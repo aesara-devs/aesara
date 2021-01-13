@@ -8,8 +8,7 @@ import warnings
 
 import numpy as np
 
-import theano
-from theano import tensor
+import theano.tensor as tt
 from theano.gradient import DisconnectedType
 from theano.graph.basic import Apply, Constant, Variable
 from theano.graph.op import OpenMPOp
@@ -17,6 +16,7 @@ from theano.graph.params_type import ParamsType
 from theano.graph.type import EnumList
 from theano.graph.utils import MethodNotDefined
 from theano.scalar import bool as bool_t
+from theano.tensor.type import TensorType, int_dtypes
 
 
 def max_pool_2d_same_size(input, patch_size):
@@ -453,8 +453,7 @@ class Pool(OpenMPOp):
         if pad is None:
             pad = (0,) * ndim
         patch_shape = tuple(
-            tensor.extract_constant(imgshape[-ndim + i]) + pad[i] * 2
-            for i in range(ndim)
+            tt.extract_constant(imgshape[-ndim + i]) + pad[i] * 2 for i in range(ndim)
         )
 
         def compute_out(v, downsample, stride):
@@ -464,15 +463,15 @@ class Pool(OpenMPOp):
                 else:
                     out = (v - downsample) // stride + 1
                     if isinstance(out, Variable):
-                        return tensor.maximum(out, 0)
+                        return tt.maximum(out, 0)
                     else:
                         return np.maximum(out, 0)
             else:
                 if isinstance(v, Variable):
-                    return tensor.switch(
-                        tensor.ge(stride, downsample),
+                    return tt.switch(
+                        tt.ge(stride, downsample),
                         (v - 1) // stride + 1,
-                        tensor.maximum(0, (v - 1 - downsample) // stride + 1) + 1,
+                        tt.maximum(0, (v - 1 - downsample) // stride + 1) + 1,
                     )
                 elif stride >= downsample:
                     return (v - 1) // stride + 1
@@ -503,9 +502,9 @@ class Pool(OpenMPOp):
             # Old interface
             self.ndim = len(node.op.ds)
             self.mode = node.op.mode
-            ws = theano.tensor.constant(node.op.ds)
-            st = theano.tensor.constant(node.op.st)
-            pad = theano.tensor.constant(node.op.padding)
+            ws = tt.constant(node.op.ds)
+            st = tt.constant(node.op.st)
+            pad = tt.constant(node.op.padding)
             node.inputs.append(ws)
             node.inputs.append(st)
             node.inputs.append(pad)
@@ -530,7 +529,7 @@ class Pool(OpenMPOp):
 
     def make_node(self, x, ws, stride=None, pad=None):
         # TODO: consider restricting the dtype?
-        x = tensor.as_tensor_variable(x)
+        x = tt.as_tensor_variable(x)
         nd = self.ndim
         if stride is None:
             stride = ws
@@ -542,23 +541,23 @@ class Pool(OpenMPOp):
             if isinstance(ws, (tuple, list)):
                 if any(pad[i] >= ws[i] for i in range(nd)):
                     raise NotImplementedError("padding must be smaller than strides")
-        ws = tensor.as_tensor_variable(ws)
-        stride = tensor.as_tensor_variable(stride)
-        pad = tensor.as_tensor_variable(pad)
+        ws = tt.as_tensor_variable(ws)
+        stride = tt.as_tensor_variable(stride)
+        pad = tt.as_tensor_variable(pad)
         assert ws.ndim == 1
         assert stride.ndim == 1
         assert pad.ndim == 1
         if x.type.ndim < nd:
             raise TypeError()
-        if ws.dtype not in tensor.int_dtypes:
+        if ws.dtype not in int_dtypes:
             raise TypeError("Pool downsample parameters must be ints.")
-        if stride.dtype not in tensor.int_dtypes:
+        if stride.dtype not in int_dtypes:
             raise TypeError("Stride parameters must be ints.")
-        if pad.dtype not in tensor.int_dtypes:
+        if pad.dtype not in int_dtypes:
             raise TypeError("Padding parameters must be ints.")
         # If the input shape are broadcastable we can have 0 in the output shape
         broad = x.broadcastable[:-nd] + (False,) * nd
-        out = tensor.TensorType(x.dtype, broad)
+        out = TensorType(x.dtype, broad)
         return Apply(self, [x, ws, stride, pad], [out()])
 
     def perform(self, node, inp, out, params):
@@ -1097,23 +1096,22 @@ class PoolGrad(OpenMPOp):
         if pad is None:
             pad = (0,) * ndim
         patch_shape = tuple(
-            tensor.extract_constant(imgshape[-ndim + i]) + pad[i] * 2
-            for i in range(ndim)
+            tt.extract_constant(imgshape[-ndim + i]) + pad[i] * 2 for i in range(ndim)
         )
 
         def compute_out(v, downsample, stride):
             if ignore_border:
                 out = (v - downsample) // stride + 1
                 if isinstance(out, Variable):
-                    return tensor.maximum(out, 0)
+                    return tt.maximum(out, 0)
                 else:
                     return np.maximum(out, 0)
             else:
                 if isinstance(v, Variable):
-                    return tensor.switch(
-                        tensor.ge(stride, downsample),
+                    return tt.switch(
+                        tt.ge(stride, downsample),
                         (v - 1) // stride + 1,
-                        tensor.maximum(0, (v - 1 - downsample) // stride + 1) + 1,
+                        tt.maximum(0, (v - 1 - downsample) // stride + 1) + 1,
                     )
                 elif stride >= downsample:
                     return (v - 1) // stride + 1
@@ -1144,9 +1142,9 @@ class PoolGrad(OpenMPOp):
             # Old interface
             self.ndim = len(node.op.ds)
             self.mode = node.op.mode
-            ws = theano.tensor.constant(node.op.ds)
-            st = theano.tensor.constant(node.op.st)
-            pad = theano.tensor.constant(node.op.padding)
+            ws = tt.constant(node.op.ds)
+            st = tt.constant(node.op.st)
+            pad = tt.constant(node.op.padding)
             node.inputs.append(ws)
             node.inputs.append(st)
             node.inputs.append(pad)
@@ -1182,17 +1180,17 @@ class MaxPoolGrad(PoolGrad):
     def make_node(self, x, maxout, gz, ws, stride=None, pad=None):
         # make_node should only be called by the grad function of
         # Pool, so these asserts should not fail.
-        x = tensor.as_tensor_variable(x)
-        maxout = tensor.as_tensor_variable(maxout)
-        gz = tensor.as_tensor_variable(gz)
+        x = tt.as_tensor_variable(x)
+        maxout = tt.as_tensor_variable(maxout)
+        gz = tt.as_tensor_variable(gz)
         nd = self.ndim
         if stride is None:
             stride = ws
         if pad is None:
             pad = (0,) * nd
-        ws = tensor.as_tensor_variable(ws)
-        stride = tensor.as_tensor_variable(stride)
-        pad = tensor.as_tensor_variable(pad)
+        ws = tt.as_tensor_variable(ws)
+        stride = tt.as_tensor_variable(stride)
+        pad = tt.as_tensor_variable(pad)
         assert isinstance(x, Variable) and x.ndim >= nd
         assert isinstance(maxout, Variable) and maxout.ndim >= nd
         assert isinstance(gz, Variable) and gz.ndim >= nd
@@ -1200,11 +1198,11 @@ class MaxPoolGrad(PoolGrad):
         assert isinstance(stride, Variable) and stride.ndim == 1
         assert isinstance(pad, Variable) and pad.ndim == 1
         assert x.ndim == maxout.ndim == gz.ndim >= nd
-        if ws.dtype not in tensor.int_dtypes:
+        if ws.dtype not in int_dtypes:
             raise TypeError("Pool downsample parameters must be ints.")
-        if stride.dtype not in tensor.int_dtypes:
+        if stride.dtype not in int_dtypes:
             raise TypeError("Stride parameters must be ints.")
-        if pad.dtype not in tensor.int_dtypes:
+        if pad.dtype not in int_dtypes:
             raise TypeError("Padding parameters must be ints.")
         return Apply(self, [x, maxout, gz, ws, stride, pad], [x.type()])
 
@@ -1267,8 +1265,8 @@ class MaxPoolGrad(PoolGrad):
         x, maxout, gz, ws, stride, pad = inp
         (ggx,) = grads
         return [
-            theano.tensor.zeros_like(x),
-            theano.tensor.zeros_like(maxout),
+            tt.zeros_like(x),
+            tt.zeros_like(maxout),
             DownsampleFactorMaxGradGrad(
                 ndim=self.ndim, ignore_border=self.ignore_border
             )(x, maxout, ggx, ws, stride, pad),
@@ -1515,27 +1513,27 @@ class AveragePoolGrad(PoolGrad):
     def make_node(self, x, gz, ws, stride=None, pad=None, dummy=None):
         # make_node should only be called by the grad function of
         # Pool, so these asserts should not fail.
-        x = tensor.as_tensor_variable(x)
-        gz = tensor.as_tensor_variable(gz)
+        x = tt.as_tensor_variable(x)
+        gz = tt.as_tensor_variable(gz)
         nd = self.ndim
         if stride is None:
             stride = ws
         if pad is None:
             pad = (0,) * nd
-        ws = tensor.as_tensor_variable(ws)
-        stride = tensor.as_tensor_variable(stride)
-        pad = tensor.as_tensor_variable(pad)
+        ws = tt.as_tensor_variable(ws)
+        stride = tt.as_tensor_variable(stride)
+        pad = tt.as_tensor_variable(pad)
         assert isinstance(x, Variable) and x.ndim >= nd
         assert isinstance(gz, Variable) and gz.ndim >= nd
         assert isinstance(ws, Variable) and ws.ndim == 1
         assert isinstance(stride, Variable) and stride.ndim == 1
         assert x.ndim == gz.ndim >= nd
         assert isinstance(pad, Variable) and pad.ndim == 1
-        if ws.dtype not in tensor.int_dtypes:
+        if ws.dtype not in int_dtypes:
             raise TypeError("Pool downsample parameters must be ints.")
-        if stride.dtype not in tensor.int_dtypes:
+        if stride.dtype not in int_dtypes:
             raise TypeError("Stride parameters must be ints.")
-        if pad.dtype not in tensor.int_dtypes:
+        if pad.dtype not in int_dtypes:
             raise TypeError("Padding parameters must be ints.")
         return Apply(self, [x, gz, ws, stride, pad], [x.type()])
 
@@ -1605,7 +1603,7 @@ class AveragePoolGrad(PoolGrad):
         x, gz, ws, stride, pad = inp
         (ggx,) = grads
         return [
-            theano.tensor.zeros_like(x),
+            tt.zeros_like(x),
             Pool(ignore_border=self.ignore_border, ndim=self.ndim, mode=self.mode)(
                 ggx, ws, stride, pad
             ),
@@ -1858,9 +1856,9 @@ class DownsampleFactorMaxGradGrad(OpenMPOp):
     def make_node(self, x, maxout, gz, ws, stride=None, pad=None):
         # make_node should only be called by the grad function of
         # MaxPoolGrad, so these asserts should not fail.
-        x = tensor.as_tensor_variable(x)
-        maxout = tensor.as_tensor_variable(maxout)
-        gz = tensor.as_tensor_variable(gz)
+        x = tt.as_tensor_variable(x)
+        maxout = tt.as_tensor_variable(maxout)
+        gz = tt.as_tensor_variable(gz)
         nd = self.ndim
         if stride is None:
             stride = ws
@@ -1872,18 +1870,18 @@ class DownsampleFactorMaxGradGrad(OpenMPOp):
             if isinstance(ws, (tuple, list)):
                 if any(pad[i] >= ws[i] for i in range(nd)):
                     raise NotImplementedError("padding must be smaller than strides")
-        ws = tensor.as_tensor_variable(ws)
-        stride = tensor.as_tensor_variable(stride)
-        pad = tensor.as_tensor_variable(pad)
+        ws = tt.as_tensor_variable(ws)
+        stride = tt.as_tensor_variable(stride)
+        pad = tt.as_tensor_variable(pad)
         assert ws.ndim == 1
         assert stride.ndim == 1
         assert pad.ndim == 1
         assert x.ndim == maxout.ndim == gz.ndim >= nd
-        if ws.dtype not in tensor.int_dtypes:
+        if ws.dtype not in int_dtypes:
             raise TypeError("Pool downsample parameters must be ints.")
-        if stride.dtype not in tensor.int_dtypes:
+        if stride.dtype not in int_dtypes:
             raise TypeError("Stride parameters must be ints.")
-        if pad.dtype not in tensor.int_dtypes:
+        if pad.dtype not in int_dtypes:
             raise TypeError("Padding parameters must be ints.")
         return Apply(self, [x, maxout, gz, ws, stride, pad], [x.type()])
 
@@ -1952,8 +1950,8 @@ class DownsampleFactorMaxGradGrad(OpenMPOp):
         x, maxout, ggx, ws, stride, pad = inp
         (gz,) = grads
         return [
-            theano.tensor.zeros_like(x),
-            theano.tensor.zeros_like(maxout),
+            tt.zeros_like(x),
+            tt.zeros_like(maxout),
             MaxPoolGrad(ignore_border=self.ignore_border, ndim=self.ndim)(
                 x, maxout, gz, ws, stride, pad
             ),
@@ -2196,8 +2194,8 @@ class MaxPoolRop(OpenMPOp):
 
     def make_node(self, x, eval_point, ws, stride=None, pad=None):
         # TODO: consider restricting the dtype?
-        x = tensor.as_tensor_variable(x)
-        eval_point = tensor.as_tensor_variable(eval_point)
+        x = tt.as_tensor_variable(x)
+        eval_point = tt.as_tensor_variable(eval_point)
         nd = self.ndim
         if stride is None:
             stride = ws
@@ -2209,9 +2207,9 @@ class MaxPoolRop(OpenMPOp):
             if isinstance(ws, (tuple, list)):
                 if any(pad[i] >= ws[i] for i in range(nd)):
                     raise NotImplementedError("padding must be smaller than strides")
-        ws = tensor.as_tensor_variable(ws)
-        stride = tensor.as_tensor_variable(stride)
-        pad = tensor.as_tensor_variable(pad)
+        ws = tt.as_tensor_variable(ws)
+        stride = tt.as_tensor_variable(stride)
+        pad = tt.as_tensor_variable(pad)
         assert ws.ndim == 1
         assert stride.ndim == 1
         assert pad.ndim == 1
@@ -2225,7 +2223,7 @@ class MaxPoolRop(OpenMPOp):
             raise TypeError("Padding parameters must be ints.")
         # If the input shape are broadcastable we can have 0 in the output shape
         broad = x.broadcastable[:-nd] + (False,) * nd
-        out = tensor.TensorType(eval_point.dtype, broad)
+        out = TensorType(eval_point.dtype, broad)
         return Apply(self, [x, eval_point, ws, stride, pad], [out()])
 
     def perform(self, node, inp, out, params):

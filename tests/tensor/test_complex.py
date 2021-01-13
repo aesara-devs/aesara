@@ -4,19 +4,8 @@ import pytest
 import theano
 from tests import unittest_tools as utt
 from theano.gradient import GradientError
-from theano.tensor import (
-    cast,
-    complex,
-    complex_from_polar,
-    cvector,
-    dvector,
-    fmatrix,
-    fvector,
-    imag,
-    imatrix,
-    real,
-    zvector,
-)
+from theano.tensor.basic import cast, complex, complex_from_polar, imag, real
+from theano.tensor.type import cvector, dvector, fmatrix, fvector, imatrix, zvector
 
 
 class TestRealImag:

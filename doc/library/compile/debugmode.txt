@@ -28,10 +28,10 @@ DebugMode can be used as follows:
 .. testcode::
 
     import theano
-    from theano import tensor
+    from theano import tensor as tt
     from theano.compile.debugmode import DebugMode
 
-    x = tensor.dscalar('x')
+    x = tt.dscalar('x')
 
     f = theano.function([x], 10*x, mode='DebugMode')
 

@@ -5,12 +5,14 @@ import theano
 import theano.sandbox.rng_mrg
 from tests import unittest_tools as utt
 from tests.gpuarray.config import mode_with_gpu, test_ctx_name
-from theano import gpuarray, tensor
+from theano import gpuarray
+from theano import tensor as tt
 from theano.gpuarray.basic_ops import GpuFromHost, HostFromGpu
 from theano.gpuarray.elemwise import GpuElemwise
 from theano.scan.basic import scan
 from theano.scan.checkpoints import scan_checkpoints
 from theano.scan.op import Scan
+from theano.tensor.type import fscalar, ftensor3, fvector, iscalar, vector
 
 
 pygpu_gpuarray = pytest.importorskip("pygpy.gpuarray")
@@ -35,10 +37,10 @@ class TestScan:
         def f_rnn(u_t, x_tm1, W_in, W):
             return u_t * W_in + x_tm1 * W
 
-        u = theano.tensor.fvector("u")
-        x0 = theano.tensor.fscalar("x0")
-        W_in = theano.tensor.fscalar("win")
-        W = theano.tensor.fscalar("w")
+        u = fvector("u")
+        x0 = fscalar("x0")
+        W_in = fscalar("win")
+        W = fscalar("w")
 
         mode = mode_with_gpu.excluding("InputToGpuOptimizer")
         output, updates = scan(
@@ -106,10 +108,10 @@ class TestScan:
         def f_rnn(u_t, x_tm1, W_in, W):
             return u_t * W_in + x_tm1 * W
 
-        u = theano.tensor.fvector("u")
-        x0 = theano.tensor.fscalar("x0")
-        W_in = theano.tensor.fscalar("win")
-        W = theano.tensor.fscalar("w")
+        u = fvector("u")
+        x0 = fscalar("x0")
+        W_in = fscalar("win")
+        W = fscalar("w")
         output, updates = scan(
             f_rnn,
             u,
@@ -163,12 +165,12 @@ class TestScan:
     # outputs when is running on GPU
     def test_gpu3_mixture_dtype_outputs(self):
         def f_rnn(u_t, x_tm1, W_in, W):
-            return (u_t * W_in + x_tm1 * W, theano.tensor.cast(u_t + x_tm1, "int64"))
+            return (u_t * W_in + x_tm1 * W, tt.cast(u_t + x_tm1, "int64"))
 
-        u = theano.tensor.fvector("u")
-        x0 = theano.tensor.fscalar("x0")
-        W_in = theano.tensor.fscalar("win")
-        W = theano.tensor.fscalar("w")
+        u = fvector("u")
+        x0 = fscalar("x0")
+        W_in = fscalar("win")
+        W = fscalar("w")
         output, updates = scan(
             f_rnn,
             u,
@@ -280,10 +282,10 @@ class ScanGpuTests:
         def f_rnn(u_t, x_tm1, W_in, W):
             return u_t * W_in + x_tm1 * W
 
-        u = theano.tensor.fvector("u")
-        x0 = theano.tensor.fscalar("x0")
-        W_in = theano.tensor.fscalar("win")
-        W = theano.tensor.fscalar("w")
+        u = fvector("u")
+        x0 = fscalar("x0")
+        W_in = fscalar("win")
+        W = fscalar("w")
 
         # The following line is needed to have the first case being used
         # Otherwise, it is the second that is tested.
@@ -374,10 +376,10 @@ class ScanGpuTests:
         def f_rnn(u_t, x_tm1, W_in, W):
             return u_t * W_in + x_tm1 * W
 
-        u = theano.tensor.fvector("u")
-        x0 = theano.tensor.fscalar("x0")
-        W_in = theano.tensor.fscalar("win")
-        W = theano.tensor.fscalar("w")
+        u = fvector("u")
+        x0 = fscalar("x0")
+        W_in = fscalar("win")
+        W = fscalar("w")
         output, updates = scan(
             f_rnn,
             u,
@@ -451,12 +453,12 @@ class ScanGpuTests:
     # outputs when is running on GPU
     def test_gpu3_mixture_dtype_outputs(self):
         def f_rnn(u_t, x_tm1, W_in, W):
-            return (u_t * W_in + x_tm1 * W, tensor.cast(u_t + x_tm1, "int64"))
+            return (u_t * W_in + x_tm1 * W, tt.cast(u_t + x_tm1, "int64"))
 
-        u = theano.tensor.fvector("u")
-        x0 = theano.tensor.fscalar("x0")
-        W_in = theano.tensor.fscalar("win")
-        W = theano.tensor.fscalar("w")
+        u = fvector("u")
+        x0 = fscalar("x0")
+        W_in = fscalar("win")
+        W = fscalar("w")
         output, updates = scan(
             f_rnn,
             u,
@@ -562,8 +564,8 @@ class ScanGpuTests:
         mb_length = 200
 
         # Define input variables
-        xin = tensor.ftensor3(name="xin")
-        yout = tensor.ftensor3(name="yout")
+        xin = ftensor3(name="xin")
+        yout = ftensor3(name="yout")
 
         # Initialize the network parameters
         U = theano.shared(np.zeros((n_in, n_hid), dtype="float32"), name="W_xin_to_l1")
@@ -572,12 +574,12 @@ class ScanGpuTests:
         nparams = [U, V, W]
 
         # Build the forward pass
-        l1_base = tensor.dot(xin, U)
+        l1_base = tt.dot(xin, U)
 
         def scan_l(baseline, last_step):
-            return baseline + tensor.dot(last_step, V)
+            return baseline + tt.dot(last_step, V)
 
-        zero_output = tensor.alloc(np.asarray(0.0, dtype="float32"), mb_size, n_hid)
+        zero_output = tt.alloc(np.asarray(0.0, dtype="float32"), mb_size, n_hid)
 
         l1_out, _ = scan(
             scan_l,
@@ -586,11 +588,11 @@ class ScanGpuTests:
             mode=self.mode_with_gpu_nodebug,
         )
 
-        l2_out = tensor.dot(l1_out, W)
+        l2_out = tt.dot(l1_out, W)
 
         # Compute the cost and take the gradient wrt params
-        cost = tensor.sum((l2_out - yout) ** 2)
-        grads = tensor.grad(cost, nparams)
+        cost = tt.sum((l2_out - yout) ** 2)
+        grads = theano.grad(cost, nparams)
         updates = list(zip(nparams, (n - g for n, g in zip(nparams, grads))))
 
         # Compile the theano function
@@ -627,8 +629,8 @@ class ScanGpuTests:
             output2 = temp.sum() + recurrent_out
             return output1, output2
 
-        input1 = theano.tensor.ftensor3()
-        init = theano.tensor.ftensor3()
+        input1 = ftensor3()
+        init = ftensor3()
         outputs_info = [None, init]
 
         out, _ = scan(
@@ -685,25 +687,25 @@ class TestScanGpuarray(ScanGpuTests):
 
 class TestScanCheckpoint:
     def setup_method(self):
-        self.k = tensor.iscalar("k")
-        self.A = tensor.vector("A")
+        self.k = iscalar("k")
+        self.A = vector("A")
         result, _ = scan(
             fn=lambda prior_result, A: prior_result * A,
-            outputs_info=tensor.ones_like(self.A),
+            outputs_info=tt.ones_like(self.A),
             non_sequences=self.A,
             n_steps=self.k,
         )
         result_check, _ = scan_checkpoints(
             fn=lambda prior_result, A: prior_result * A,
-            outputs_info=tensor.ones_like(self.A),
+            outputs_info=tt.ones_like(self.A),
             non_sequences=self.A,
             n_steps=self.k,
             save_every_N=100,
         )
         self.result = result[-1]
         self.result_check = result_check[-1]
-        self.grad_A = tensor.grad(self.result.sum(), self.A)
-        self.grad_A_check = tensor.grad(self.result_check.sum(), self.A)
+        self.grad_A = theano.grad(self.result.sum(), self.A)
+        self.grad_A_check = theano.grad(self.result_check.sum(), self.A)
 
     def test_memory(self):
         from tests.gpuarray.config import mode_with_gpu  # noqa

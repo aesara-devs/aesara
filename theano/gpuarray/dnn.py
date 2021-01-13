@@ -8,7 +8,7 @@ import numpy as np
 
 import theano
 import theano.pathparse
-from theano import tensor
+import theano.tensor as tt
 from theano.assert_op import Assert
 from theano.compile.ops import shape_i, shape_i_op
 from theano.configdefaults import SUPPORTED_DNN_CONV_ALGO_RUNTIME, config
@@ -47,6 +47,7 @@ from theano.tensor.nnet.abstract_conv import (
     assert_conv_shape,
     get_conv_output_shape,
 )
+from theano.tensor.type import int_dtypes, integer_dtypes, values_eq_approx_always_true
 
 
 DNN_CONV_ALGO_CHOOSE_ONCE = ["guess_once", "time_once"]
@@ -641,12 +642,9 @@ class GpuDnnConvDesc(_NoPythonExternalCOp):
 
     def make_node(self, kern_shape):
         kern_shape = as_tensor_variable(kern_shape)
-        if (
-            kern_shape.type.ndim != 1
-            or kern_shape.dtype not in theano.tensor.basic.int_dtypes
-        ):
+        if kern_shape.type.ndim != 1 or kern_shape.dtype not in int_dtypes:
             raise TypeError("kern must be an int64 1D shape tensor")
-        kern_shape = theano.tensor.basic.cast(kern_shape, "int64")
+        kern_shape = tt.cast(kern_shape, "int64")
 
         node = Apply(
             self,
@@ -663,7 +661,7 @@ class GpuDnnConvDesc(_NoPythonExternalCOp):
         # complaining because of the MergeOptimizer, we make this variable
         # always compare to True.
         out = node.outputs[0]
-        out.tag.values_eq_approx = tensor.type.values_eq_approx_always_true
+        out.tag.values_eq_approx = values_eq_approx_always_true
         return node
 
     bmode = property(
@@ -995,7 +993,7 @@ class GpuDnnConvGradW(DnnBase):
             and img.type.dtype == "float32"
             and self.algo not in ("none", "deterministic", "fft", "small")
             and beta is not None
-            and theano.tensor.extract_constant(beta) != 1
+            and tt.extract_constant(beta) != 1
         )
 
     def make_node(self, img, topgrad, output, desc, alpha=None, beta=None):
@@ -1241,7 +1239,7 @@ def _dnn_conv(
         check = Assert(
             "GpuDnnConv: given output (for beta not null) does not have expected shape"
         )
-        real_out = check(out, theano.tensor.all(theano.tensor.eq(out.shape, out_shp)))
+        real_out = check(out, tt.all(tt.eq(out.shape, out_shp)))
     return GpuDnnConv(algo=algo, num_groups=num_groups)(
         img, kerns, real_out, desc, alpha, beta
     )
@@ -1266,7 +1264,7 @@ def _dnn_gradweight(
 
     img = as_gpuarray_variable(img, ctx_name)
     topgrad = as_gpuarray_variable(topgrad, ctx_name)
-    kerns_shp = theano.tensor.as_tensor_variable(kerns_shp)
+    kerns_shp = tt.as_tensor_variable(kerns_shp)
 
     precision, dt = get_precision(precision, [img, topgrad], for_grad=True)
 
@@ -1289,7 +1287,7 @@ def _dnn_gradweight(
         check = Assert(
             "GpuDnnConvGradW: given output (for beta not null) does not have expected shape"
         )
-        real_out = check(out, theano.tensor.all(theano.tensor.eq(out.shape, kerns_shp)))
+        real_out = check(out, tt.all(tt.eq(out.shape, kerns_shp)))
     return GpuDnnConvGradW(algo=algo, num_groups=num_groups)(
         img, topgrad, real_out, desc, alpha, beta
     )
@@ -1314,7 +1312,7 @@ def _dnn_gradinput(
 
     kerns = as_gpuarray_variable(kerns, ctx_name)
     topgrad = as_gpuarray_variable(topgrad, ctx_name)
-    img_shp = theano.tensor.as_tensor_variable(img_shp)
+    img_shp = tt.as_tensor_variable(img_shp)
 
     precision, dt = get_precision(precision, [kerns, topgrad], for_grad=True)
 
@@ -1337,7 +1335,7 @@ def _dnn_gradinput(
         check = Assert(
             "GpuDnnConvGradI: given output (for beta not null) does not have expected shape"
         )
-        real_out = check(out, theano.tensor.all(theano.tensor.eq(out.shape, img_shp)))
+        real_out = check(out, tt.all(tt.eq(out.shape, img_shp)))
     return GpuDnnConvGradI(algo=algo, num_groups=num_groups)(
         kerns, topgrad, real_out, desc, alpha, beta
     )
@@ -1839,7 +1837,7 @@ class GpuDnnPoolDesc(_NoPythonCOp):
         # complaining because of the MergeOptimizer, we make this variable
         # always compare to True.
         out = node.outputs[0]
-        out.tag.values_eq_approx = tensor.type.values_eq_approx_always_true
+        out.tag.values_eq_approx = values_eq_approx_always_true
         return node
 
     def c_code(self, node, name, inputs, outputs, sub):
@@ -1941,9 +1939,9 @@ class GpuDnnPool(GpuDnnPoolBase):
         ctx_name = infer_context_name(img)
         img = as_gpuarray_variable(img, ctx_name)
 
-        ws = tensor.as_tensor_variable(ws)
-        stride = tensor.as_tensor_variable(stride)
-        pad = tensor.as_tensor_variable(pad)
+        ws = tt.as_tensor_variable(ws)
+        stride = tt.as_tensor_variable(stride)
+        pad = tt.as_tensor_variable(pad)
         assert ws.type.ndim == stride.type.ndim and ws.type.ndim == pad.type.ndim
         assert ws.type.ndim == 1
 
@@ -2025,9 +2023,9 @@ class GpuDnnPoolGrad(GpuDnnPoolBase):
         assert out_grad.ndim == inp.ndim
         assert inp.ndim == out.ndim
 
-        ws = tensor.as_tensor_variable(ws)
-        stride = tensor.as_tensor_variable(stride)
-        pad = tensor.as_tensor_variable(pad)
+        ws = tt.as_tensor_variable(ws)
+        stride = tt.as_tensor_variable(stride)
+        pad = tt.as_tensor_variable(pad)
         assert ws.type.ndim == stride.type.ndim and ws.type.ndim == pad.type.ndim
         assert ws.type.ndim == 1
 
@@ -2078,7 +2076,7 @@ def dnn_pool(img, ws, stride=None, mode="max", pad=None):
     if mode == "sum":
         ret = GpuDnnPool(mode="average_inc_pad")(img, ws, stride, pad)
         context_name = ret.type.context_name
-        window_elem = theano.tensor.prod(ws).astype(ret.dtype)
+        window_elem = tt.prod(ws).astype(ret.dtype)
         return as_gpuarray_variable(ret * window_elem, context_name)
     return GpuDnnPool(mode=mode)(img, ws, stride, pad)
 
@@ -2510,14 +2508,13 @@ class GpuDnnBatchNormInference(DnnBase):
         elif self.mode == "spatial":
             axes = (0,) + tuple(range(2, x.ndim))
         scale, bias, est_mean, est_var = (
-            theano.tensor.addbroadcast(t, *axes)
-            for t in (scale, bias, est_mean, est_var)
+            tt.addbroadcast(t, *axes) for t in (scale, bias, est_mean, est_var)
         )
 
         # define helper expressions
         est_var_eps = est_var + epsilon
-        est_std = theano.tensor.sqrt(est_var_eps)
-        two = theano.tensor.constant(2.0)
+        est_std = tt.sqrt(est_var_eps)
+        two = tt.constant(2.0)
 
         # define and return gradients
         dx = dy * (scale / est_std)
@@ -3417,21 +3414,21 @@ def dnn_batch_normalization_train(
     running_averages = running_mean is not None and running_var is not None
 
     if ndim < 4:
-        inputs = theano.tensor.shape_padright(inputs, 4 - ndim)
-        gamma = theano.tensor.shape_padright(gamma, 4 - ndim)
-        beta = theano.tensor.shape_padright(beta, 4 - ndim)
+        inputs = tt.shape_padright(inputs, 4 - ndim)
+        gamma = tt.shape_padright(gamma, 4 - ndim)
+        beta = tt.shape_padright(beta, 4 - ndim)
         if running_averages:
-            running_mean = theano.tensor.shape_padright(running_mean, 4 - ndim)
-            running_var = theano.tensor.shape_padright(running_var, 4 - ndim)
+            running_mean = tt.shape_padright(running_mean, 4 - ndim)
+            running_var = tt.shape_padright(running_var, 4 - ndim)
     elif ndim > 5:
         inputs_shape = inputs.shape
         params_shape = gamma.shape
-        inputs = theano.tensor.flatten(inputs, 5)
-        gamma = theano.tensor.flatten(gamma, 5)
-        beta = theano.tensor.flatten(beta, 5)
+        inputs = tt.flatten(inputs, 5)
+        gamma = tt.flatten(gamma, 5)
+        beta = tt.flatten(beta, 5)
         if running_averages:
-            running_mean = theano.tensor.flatten(running_mean, 5)
-            running_var = theano.tensor.flatten(running_var, 5)
+            running_mean = tt.flatten(running_mean, 5)
+            running_var = tt.flatten(running_var, 5)
 
     batchnorm_op = GpuDnnBatchNorm(mode=mode, running_averages=running_averages)
     if running_averages:
@@ -3445,11 +3442,11 @@ def dnn_batch_normalization_train(
             running_var=gpu_contiguous(running_var),
         )
         if new_running_mean.broadcastable != running_mean.broadcastable:
-            new_running_mean = tensor.patternbroadcast(
+            new_running_mean = tt.patternbroadcast(
                 new_running_mean, running_mean.broadcastable
             )
         if new_running_var.broadcastable != running_var.broadcastable:
-            new_running_var = tensor.patternbroadcast(
+            new_running_var = tt.patternbroadcast(
                 new_running_var, running_var.broadcastable
             )
         result = (out, mean, invstd, new_running_mean, new_running_var)
@@ -3461,10 +3458,10 @@ def dnn_batch_normalization_train(
             epsilon=epsilon,
         )
     if ndim < 4:
-        result = tuple(theano.tensor.flatten(r, ndim) for r in result)
+        result = tuple(tt.flatten(r, ndim) for r in result)
     elif ndim > 5:
-        result = (theano.tensor.reshape(result[0], inputs_shape),) + tuple(
-            theano.tensor.reshape(r, params_shape) for r in result[1:]
+        result = (tt.reshape(result[0], inputs_shape),) + tuple(
+            tt.reshape(r, params_shape) for r in result[1:]
         )
     return result
 
@@ -3533,18 +3530,18 @@ def dnn_batch_normalization_test(
         raise ValueError(f"epsilon must be at least 1e-5, got {epsilon:f}")
 
     if ndim < 4:
-        inputs = theano.tensor.shape_padright(inputs, 4 - ndim)
-        gamma = theano.tensor.shape_padright(gamma, 4 - ndim)
-        beta = theano.tensor.shape_padright(beta, 4 - ndim)
-        mean = theano.tensor.shape_padright(mean, 4 - ndim)
-        var = theano.tensor.shape_padright(var, 4 - ndim)
+        inputs = tt.shape_padright(inputs, 4 - ndim)
+        gamma = tt.shape_padright(gamma, 4 - ndim)
+        beta = tt.shape_padright(beta, 4 - ndim)
+        mean = tt.shape_padright(mean, 4 - ndim)
+        var = tt.shape_padright(var, 4 - ndim)
     elif ndim > 5:
         inputs_shape = inputs.shape
-        inputs = theano.tensor.flatten(inputs, 5)
-        gamma = theano.tensor.flatten(gamma, 5)
-        beta = theano.tensor.flatten(beta, 5)
-        mean = theano.tensor.flatten(mean, 5)
-        var = theano.tensor.flatten(var, 5)
+        inputs = tt.flatten(inputs, 5)
+        gamma = tt.flatten(gamma, 5)
+        beta = tt.flatten(beta, 5)
+        mean = tt.flatten(mean, 5)
+        var = tt.flatten(var, 5)
     batchnorm_op = GpuDnnBatchNormInference(mode=mode)
     result = batchnorm_op(
         gpu_contiguous(inputs),
@@ -3555,9 +3552,9 @@ def dnn_batch_normalization_test(
         epsilon=epsilon,
     )
     if ndim < 4:
-        result = theano.tensor.flatten(result, ndim)
+        result = tt.flatten(result, ndim)
     elif ndim > 5:
-        result = theano.tensor.reshape(result, inputs_shape)
+        result = tt.reshape(result, inputs_shape)
     return result
 
 
@@ -3598,10 +3595,10 @@ class GpuDnnTransformerGrid(DnnBase):
         assert theta.ndim == 3
 
         out_dims = cpu_contiguous(as_tensor_variable(out_dims))
-        assert out_dims.dtype in theano.tensor.basic.integer_dtypes
+        assert out_dims.dtype in integer_dtypes
         assert out_dims.ndim == 1
         # Ensure 64-bit ints are passed to the C code
-        out_dims = theano.tensor.basic.cast(out_dims, "int64")
+        out_dims = tt.cast(out_dims, "int64")
         grid = GpuArrayType(
             dtype=theta.dtype,
             broadcastable=(theta.type.ndim + 1) * (False,),
@@ -3795,8 +3792,8 @@ def dnn_spatialtf(img, theta, scale_width=1, scale_height=1):
     out_dims = (
         img.shape[0],
         img.shape[1],
-        theano.tensor.ceil(img.shape[2] * scale_height),
-        theano.tensor.ceil(img.shape[3] * scale_width),
+        tt.ceil(img.shape[2] * scale_height),
+        tt.ceil(img.shape[3] * scale_width),
     )
     out_dims = tuple([as_scalar(v).astype("int64") for v in out_dims])
     # Setup spatial transformer
@@ -3969,16 +3966,14 @@ def local_abstract_batch_norm_train_cudnn(fgraph, op, ctx_name, inputs, outputs)
         return None
 
     try:
-        eps = theano.tensor.get_scalar_constant_value(epsilon)
-    except theano.tensor.NotScalarConstantError:
+        eps = tt.get_scalar_constant_value(epsilon)
+    except tt.NotScalarConstantError:
         return None
     if eps < 1e-5:
         return None
     try:
-        running_average_factor = theano.tensor.get_scalar_constant_value(
-            running_average_factor
-        )
-    except theano.tensor.NotScalarConstantError:
+        running_average_factor = tt.get_scalar_constant_value(running_average_factor)
+    except tt.NotScalarConstantError:
         return None
 
     ctx = infer_context_name(*inputs)
@@ -4022,23 +4017,23 @@ def local_abstract_batch_norm_train_grad_cudnn(fgraph, op, ctx_name, inputs, out
 
     ndim = x.ndim
     if ndim < 4:
-        x = theano.tensor.shape_padright(x, 4 - ndim)
-        dy = theano.tensor.shape_padright(dy, 4 - ndim)
-        scale = theano.tensor.shape_padright(scale, 4 - ndim)
-        x_mean = theano.tensor.shape_padright(x_mean, 4 - ndim)
-        x_invstd = theano.tensor.shape_padright(x_invstd, 4 - ndim)
+        x = tt.shape_padright(x, 4 - ndim)
+        dy = tt.shape_padright(dy, 4 - ndim)
+        scale = tt.shape_padright(scale, 4 - ndim)
+        x_mean = tt.shape_padright(x_mean, 4 - ndim)
+        x_invstd = tt.shape_padright(x_invstd, 4 - ndim)
     elif ndim > 5:
         x_shape = x.shape
         params_shape = scale.shape
-        x = theano.tensor.flatten(x, 5)
-        dy = theano.tensor.flatten(dy, 5)
-        scale = theano.tensor.flatten(scale, 5)
-        x_mean = theano.tensor.flatten(x_mean, 5)
-        x_invstd = theano.tensor.flatten(x_invstd, 5)
+        x = tt.flatten(x, 5)
+        dy = tt.flatten(dy, 5)
+        scale = tt.flatten(scale, 5)
+        x_mean = tt.flatten(x_mean, 5)
+        x_invstd = tt.flatten(x_invstd, 5)
 
     try:
-        eps = theano.tensor.get_scalar_constant_value(epsilon)
-    except theano.tensor.NotScalarConstantError:
+        eps = tt.get_scalar_constant_value(epsilon)
+    except tt.NotScalarConstantError:
         return None
     if eps < 1e-5:
         return None
@@ -4057,13 +4052,13 @@ def local_abstract_batch_norm_train_grad_cudnn(fgraph, op, ctx_name, inputs, out
     )
 
     if ndim < 4:
-        g_wrt_inputs = theano.tensor.flatten(g_wrt_inputs, ndim)
-        g_wrt_scale = theano.tensor.flatten(g_wrt_scale, ndim)
-        g_wrt_bias = theano.tensor.flatten(g_wrt_bias, ndim)
+        g_wrt_inputs = tt.flatten(g_wrt_inputs, ndim)
+        g_wrt_scale = tt.flatten(g_wrt_scale, ndim)
+        g_wrt_bias = tt.flatten(g_wrt_bias, ndim)
     elif ndim > 5:
-        g_wrt_inputs = theano.tensor.reshape(g_wrt_inputs, x_shape)
-        g_wrt_scale = theano.tensor.reshape(g_wrt_scale, params_shape)
-        g_wrt_bias = theano.tensor.reshape(g_wrt_bias, params_shape)
+        g_wrt_inputs = tt.reshape(g_wrt_inputs, x_shape)
+        g_wrt_scale = tt.reshape(g_wrt_scale, params_shape)
+        g_wrt_bias = tt.reshape(g_wrt_bias, params_shape)
 
     return [g_wrt_inputs, g_wrt_scale, g_wrt_bias]
 
@@ -4080,8 +4075,8 @@ def local_abstract_batch_norm_inference_cudnn(fgraph, op, ctx_name, inputs, outp
         return None
 
     try:
-        eps = theano.tensor.get_scalar_constant_value(epsilon)
-    except theano.tensor.NotScalarConstantError:
+        eps = tt.get_scalar_constant_value(epsilon)
+    except tt.NotScalarConstantError:
         return None
     if eps < 1e-5:
         return None

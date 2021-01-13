@@ -6,6 +6,7 @@ import theano.tensor as tt
 from tests import unittest_tools as utt
 from tests.tensor.nnet.test_abstract_conv import TestGroupedConv3dNoOptim
 from theano.tensor.nnet import conv, corr3d
+from theano.tensor.type import dmatrix, dtensor3, dtensor4, dtensor5, tensor5, vector
 
 
 @pytest.mark.skipif(
@@ -20,9 +21,9 @@ class TestCorr3D(utt.InferShapeTester):
     dtype = theano.config.floatX
 
     def setup_method(self):
-        self.input = tt.tensor5("input", dtype=self.dtype)
+        self.input = tensor5("input", dtype=self.dtype)
         self.input.name = "default_V"
-        self.filters = tt.tensor5("filters", dtype=self.dtype)
+        self.filters = tensor5("filters", dtype=self.dtype)
         self.filters.name = "default_filters"
         # This tests can run even when theano.config.blas__ldflags is empty.
         super().setup_method()
@@ -324,17 +325,13 @@ class TestCorr3D(utt.InferShapeTester):
     def test_wrong_input(self):
         # Make sure errors are raised when image and kernel are not 5D tensors
         with pytest.raises(Exception):
-            self.validate((3, 2, 8, 8, 8), (4, 2, 5, 5, 5), "valid", input=tt.dmatrix())
+            self.validate((3, 2, 8, 8, 8), (4, 2, 5, 5, 5), "valid", input=dmatrix())
         with pytest.raises(Exception):
-            self.validate((3, 2, 8, 8, 8), (4, 2, 5, 5, 5), "valid", input=tt.vector())
+            self.validate((3, 2, 8, 8, 8), (4, 2, 5, 5, 5), "valid", input=vector())
         with pytest.raises(Exception):
-            self.validate(
-                (3, 2, 8, 8, 8), (4, 2, 5, 5, 5), "valid", input=tt.dtensor3()
-            )
+            self.validate((3, 2, 8, 8, 8), (4, 2, 5, 5, 5), "valid", input=dtensor3())
         with pytest.raises(Exception):
-            self.validate(
-                (3, 2, 8, 8, 8), (4, 2, 5, 5, 5), "valid", input=tt.dtensor4()
-            )
+            self.validate((3, 2, 8, 8, 8), (4, 2, 5, 5, 5), "valid", input=dtensor4())
 
     @pytest.mark.skipif(not theano.config.cxx, reason="Need cxx for this test")
     def test_dtype_upcast(self):
@@ -353,8 +350,8 @@ class TestCorr3D(utt.InferShapeTester):
             for a_dtype in dtypes:
                 for b_dtype in dtypes:
                     c_dtype = theano.scalar.upcast(a_dtype, b_dtype)
-                    a_tens = tt.tensor5(dtype=a_dtype)
-                    b_tens = tt.tensor5(dtype=b_dtype)
+                    a_tens = tensor5(dtype=a_dtype)
+                    b_tens = tensor5(dtype=b_dtype)
                     a_tens_val = rand(a_shape, dtype=a_dtype)
                     b_tens_val = rand(b_shape, dtype=b_dtype)
 
@@ -374,8 +371,8 @@ class TestCorr3D(utt.InferShapeTester):
 
         corr3dMM = corr3d.Corr3dMM
 
-        adtens = tt.dtensor5()
-        bdtens = tt.dtensor5()
+        adtens = dtensor5()
+        bdtens = dtensor5()
         aivec_vals = [
             [4, 5, 6, 3, 3],
             [6, 2, 8, 3, 3],
@@ -423,8 +420,8 @@ class TestCorr3D(utt.InferShapeTester):
         corr3dMM = corr3d.Corr3dMM
         gradW = corr3d.Corr3dMMGradWeights
 
-        adtens = tt.dtensor5()
-        bdtens = tt.dtensor5()
+        adtens = dtensor5()
+        bdtens = dtensor5()
         aivec_vals = [
             [1, 5, 6, 3, 3],
             [8, 2, 7, 3, 3],
@@ -483,8 +480,8 @@ class TestCorr3D(utt.InferShapeTester):
         corr3dMM = corr3d.Corr3dMM
         gradI = corr3d.Corr3dMMGradInputs
 
-        adtens = tt.dtensor5()
-        bdtens = tt.dtensor5()
+        adtens = dtensor5()
+        bdtens = dtensor5()
         aivec_vals = [
             [1, 5, 6, 3, 3],
             [8, 2, 7, 3, 3],

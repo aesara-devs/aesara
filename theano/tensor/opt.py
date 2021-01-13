@@ -57,6 +57,7 @@ from theano.tensor import basic as tt
 from theano.tensor.basic import (
     Alloc,
     AllocEmpty,
+    ARange,
     Dot,
     Flatten,
     Join,
@@ -113,10 +114,16 @@ from theano.tensor.subtensor import (
     get_idx_list,
 )
 from theano.tensor.type import (
+    TensorType,
+    discrete_dtypes,
+    integer_dtypes,
+    lscalar,
+    uint_dtypes,
     values_eq_approx_remove_inf,
     values_eq_approx_remove_inf_nan,
     values_eq_approx_remove_nan,
 )
+from theano.tensor.var import TensorConstant
 from theano.utils import NoDuplicateOptWarningFilter
 
 
@@ -813,7 +820,7 @@ def local_lift_transpose_through_dot(fgraph, node):
     be taken care of in a later optimization phase.
 
     """
-    if not (isinstance(node.op, tt.DimShuffle) and node.op.new_order == (1, 0)):
+    if not (isinstance(node.op, DimShuffle) and node.op.new_order == (1, 0)):
         return False
     if not (node.inputs[0].owner and isinstance(node.inputs[0].owner.op, Dot)):
         return False
@@ -910,7 +917,7 @@ class MakeVector(COp):
             dtype = self.dtype
         # bcastable = (len(inputs) == 1)
         bcastable = False
-        otype = tt.TensorType(broadcastable=(bcastable,), dtype=dtype)
+        otype = TensorType(broadcastable=(bcastable,), dtype=dtype)
         return Apply(self, inputs, [otype()])
 
     def perform(self, node, inputs, out_):
@@ -964,7 +971,7 @@ class MakeVector(COp):
 
     def grad(self, inputs, output_gradients):
         # If the output is of an integer dtype, no gradient shall pass
-        if self.dtype in tt.discrete_dtypes:
+        if self.dtype in discrete_dtypes:
             return [ipt.zeros_like().astype(config.floatX) for ipt in inputs]
 
         grads = []
@@ -1274,7 +1281,7 @@ class ShapeFeature(toolbox.Feature):
                 # x should already have been imported, and should be in shape_of.
                 s_i = self.shape_of[x][i]
 
-        if s_i.type.dtype in tt.integer_dtypes:
+        if s_i.type.dtype in integer_dtypes:
             if getattr(s_i.type, "ndim", 0):
                 raise TypeError("Shape element must be scalar", s_i)
             return s_i
@@ -1477,7 +1484,7 @@ class ShapeFeature(toolbox.Feature):
         # Must be local to the object as otherwise we reuse the same
         # variable for multiple fgraph!
         self.lscalar_one = tt.constant(1, dtype="int64")
-        assert self.lscalar_one.type == tt.lscalar
+        assert self.lscalar_one.type == lscalar
 
         self.fgraph = fgraph
         # Variable -> tuple(scalars) or None  (All tensor vars map to tuple)
@@ -1540,7 +1547,7 @@ class ShapeFeature(toolbox.Feature):
                 # but this works with `local_useless_subtensor`, so for now we
                 # keep it this way. See #266 for a better long-term fix.
                 if getattr(d, "dtype", "int64") != "int64":
-                    assert d.dtype in tt.discrete_dtypes, (node, d.dtype)
+                    assert d.dtype in discrete_dtypes, (node, d.dtype)
                     assert str(d.dtype) != "uint64", node
                     new_shape += sh[len(new_shape) : i + 1]
                     if isinstance(d, Constant):
@@ -1880,9 +1887,7 @@ def local_elemwise_alloc_op(ElemwiseOP, AllocOP, DimShuffleOP):
 # an alloc all but one is optimized.
 
 local_elemwise_alloc = register_specialize(
-    local_optimizer([Elemwise])(
-        local_elemwise_alloc_op(Elemwise, Alloc, tt.DimShuffle)
-    ),
+    local_optimizer([Elemwise])(local_elemwise_alloc_op(Elemwise, Alloc, DimShuffle)),
     "local_alloc_elemwise",
 )
 
@@ -2268,7 +2273,7 @@ def local_subtensor_make_vector(fgraph, node):
             # 'how can you have multiple indexes into a shape?'
             raise
 
-        if isinstance(idx, (ts.Scalar, tt.TensorType)):
+        if isinstance(idx, (ts.Scalar, TensorType)):
             # The idx is a Scalar, ie a Type. This means the actual index
             # is contained in node.inputs[1]
             old_idx, idx = idx, node.inputs[1]
@@ -2379,7 +2384,7 @@ def local_useless_elemwise(fgraph, node):
 
         elif isinstance(node.op.scalar_op, ts.AND) and len(node.inputs) == 2:
 
-            if isinstance(node.inputs[0], tt.TensorConstant):
+            if isinstance(node.inputs[0], TensorConstant):
                 const_val = tt.extract_constant(
                     node.inputs[0], only_process_constants=True
                 )
@@ -2391,7 +2396,7 @@ def local_useless_elemwise(fgraph, node):
                         # and this optimization would be wrong
                         return [node.inputs[1].astype(node.outputs[0].dtype)]
 
-            if isinstance(node.inputs[1], tt.TensorConstant):
+            if isinstance(node.inputs[1], TensorConstant):
                 const_val = tt.extract_constant(
                     node.inputs[1], only_process_constants=True
                 )
@@ -2405,7 +2410,7 @@ def local_useless_elemwise(fgraph, node):
 
         elif isinstance(node.op.scalar_op, ts.OR) and len(node.inputs) == 2:
 
-            if isinstance(node.inputs[0], tt.TensorConstant):
+            if isinstance(node.inputs[0], TensorConstant):
                 const_val = tt.extract_constant(
                     node.inputs[0], only_process_constants=True
                 )
@@ -2417,7 +2422,7 @@ def local_useless_elemwise(fgraph, node):
                         # and this optimization would be wrong
                         return [tt.ones_like(node.inputs[1], dtype=dtype, opt=True)]
 
-            if isinstance(node.inputs[1], tt.TensorConstant):
+            if isinstance(node.inputs[1], TensorConstant):
                 const_val = tt.extract_constant(
                     node.inputs[1], only_process_constants=True
                 )
@@ -2711,7 +2716,7 @@ def local_upcast_elemwise_constant_inputs(fgraph, node):
                             # *[Shape_i(d)(i) for d in range(i.ndim)]
                     except NotScalarConstantError:
                         # for the case of a non-scalar
-                        if isinstance(i, tt.TensorConstant):
+                        if isinstance(i, TensorConstant):
                             new_inputs.append(tt.cast(i, output_dtype))
                         else:
                             new_inputs.append(i)
@@ -2979,7 +2984,7 @@ def local_useless_subtensor(fgraph, node):
                 return False
             if np.any(idx != np.arange(length)):
                 return False
-        elif idx.owner is not None and isinstance(idx.owner.op, tt.ARange):
+        elif idx.owner is not None and isinstance(idx.owner.op, ARange):
             try:
                 start, stop, step = map(
                     lambda x: get_scalar_constant_value(x, only_process_constants=True),
@@ -4944,7 +4949,7 @@ class Canonizer(LocalOptimizer):
             self.inverse,
             self.reciprocal,
         ]:
-            if input.owner and isinstance(input.owner.op, tt.DimShuffle):
+            if input.owner and isinstance(input.owner.op, DimShuffle):
                 # If input is a DimShuffle of some input which does
                 # something like this:
 
@@ -5713,7 +5718,7 @@ def local_sum_prod_div_dimshuffle(fgraph, node):
                 config.warn__sum_div_dimshuffle_bug
                 and isinstance(node.op, Sum)
                 and numerator.owner
-                and isinstance(numerator.owner.op, tt.DimShuffle)
+                and isinstance(numerator.owner.op, DimShuffle)
             ):
                 # Check compatibility
                 new_order = numerator.owner.op.new_order
@@ -5735,7 +5740,7 @@ def local_sum_prod_div_dimshuffle(fgraph, node):
                         " False."
                     )
 
-            if denominator.owner and isinstance(denominator.owner.op, tt.DimShuffle):
+            if denominator.owner and isinstance(denominator.owner.op, DimShuffle):
                 dimshuffle_input = denominator.owner.inputs[0]
                 dimshuffle_order = denominator.owner.op.new_order
 
@@ -5771,7 +5776,7 @@ def local_sum_prod_div_dimshuffle(fgraph, node):
                     if all(i == e for i, e in enumerate(optimized_dimshuffle_order)):
                         optimized_dimshuffle = dimshuffle_input
                     else:
-                        optimized_dimshuffle = tt.DimShuffle(
+                        optimized_dimshuffle = DimShuffle(
                             dimshuffle_input.type.broadcastable,
                             optimized_dimshuffle_order,
                         )(dimshuffle_input)
@@ -5934,7 +5939,7 @@ def local_reduce_join(fgraph, node):
 
     """
     if (
-        isinstance(node.op, tt.CAReduce)
+        isinstance(node.op, CAReduce)
         and node.inputs[0].owner
         and isinstance(node.inputs[0].owner.op, Join)
     ):
@@ -6007,7 +6012,7 @@ def local_reduce_join(fgraph, node):
 @local_optimizer(ALL_REDUCE)
 def local_useless_reduce(fgraph, node):
     """Sum(a, axis=[]) -> a  """
-    if isinstance(node.op, tt.CAReduce):
+    if isinstance(node.op, CAReduce):
         (summed,) = node.inputs
         # if reduce were doing anything, the output ndim would be reduced
         if summed.type == node.outputs[0].type:
@@ -6020,7 +6025,7 @@ def local_useless_reduce(fgraph, node):
 @local_optimizer(ALL_REDUCE)
 def local_reduce_broadcastable(fgraph, node):
     """Remove reduction over broadcastable dimensions."""
-    if isinstance(node.op, tt.CAReduce):
+    if isinstance(node.op, CAReduce):
         (reduced,) = node.inputs
         odtype = node.outputs[0].dtype
         if node.op.axis is None:
@@ -6244,7 +6249,7 @@ def local_mul_to_sqr(fgraph, node):
 def local_intdiv_by_one(fgraph, node):
     """x // 1 -> x"""
     if node.op in [int_div]:
-        if isinstance(node.inputs[1], tt.TensorConstant) and np.all(
+        if isinstance(node.inputs[1], TensorConstant) and np.all(
             node.inputs[1].value == 1
         ):
             return [node.inputs[0].astype(node.outputs[0].dtype)]
@@ -6419,7 +6424,7 @@ def local_mul_specialize(fgraph, node):
             if new_inputs:
                 if len(new_inputs) == 1:
                     if has_neg:
-                        if new_inputs[0].dtype in (tt.uint_dtypes + ["bool"]):
+                        if new_inputs[0].dtype in (uint_dtypes + ["bool"]):
                             return
                         else:
                             rval = -new_inputs[0]
@@ -6654,7 +6659,7 @@ def local_log_sum_exp(fgraph, node):
 
     sum_node = node.inputs[0].owner
     # If the sum has keepdims=True, there might be a dimshuffle
-    if sum_node and isinstance(sum_node.op, tt.DimShuffle):
+    if sum_node and isinstance(sum_node.op, DimShuffle):
         dimshuffle_op = sum_node.op
         sum_node = sum_node.inputs[0].owner
     else:

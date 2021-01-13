@@ -1,15 +1,16 @@
 import time
 
-import numpy as N
+import numpy as np
 
-import theano.tensor as tt
-from theano import Mode, function
+from theano import function
+from theano.compile.mode import Mode
 from theano.tensor.nnet.conv import ConvOp
+from theano.tensor.type import TensorType, dmatrix
 
 
 def flip(kern, kshp):
     "flip the kernel as scipy.convolv2d do it flipped."
-    flip = N.zeros(kern.shape)
+    flip = np.zeros(kern.shape)
     if len(kern.shape) == 2:
         kern = kern.reshape(-1)
         it = reversed(kern)
@@ -36,9 +37,9 @@ def flip(kern, kshp):
     return flip
 
 
-global_rng = N.random.RandomState(3423489)
+global_rng = np.random.RandomState(3423489)
 
-dmatrix4 = tt.TensorType("float64", (False, False, False, False))
+dmatrix4 = TensorType("float64", (False, False, False, False))
 
 
 def exec_multilayer_conv_nnet_old(
@@ -60,12 +61,12 @@ def exec_multilayer_conv_nnet_old(
     verbose=0,
 ):
     if img is None:
-        img = tt.dmatrix()
+        img = dmatrix()
 
     # build actual input images
     imgval = global_rng.rand(bsize, imshp[0], imshp[1], imshp[2])
 
-    a = tt.dmatrix()
+    a = dmatrix()
     kerns = [a for i in nkerns]
     inputs4 = dmatrix4()
     kerns4 = dmatrix4()
@@ -81,25 +82,25 @@ def exec_multilayer_conv_nnet_old(
             print(conv_mode, ss, n_layer, kshp, nkern)
 
         # actual values
-        w = global_rng.random_sample(N.r_[nkern, imshp[0], kshp])
+        w = global_rng.random_sample(np.r_[nkern, imshp[0], kshp])
         w_flip = flip(w, kshp).reshape(w.shape)
 
         # manual implementation
         # check first stage
         padimg = imgval
         if conv_mode == "full":
-            padimg_shp = N.array(imshp[1:]) + 2 * (N.array(kshp) - N.array([1, 1]))
-            padimg = N.zeros(N.r_[bsize, imshp[0], padimg_shp])
+            padimg_shp = np.array(imshp[1:]) + 2 * (np.array(kshp) - np.array([1, 1]))
+            padimg = np.zeros(np.r_[bsize, imshp[0], padimg_shp])
             padimg[
                 :, :, kshp[0] - 1 : -kshp[0] + 1, kshp[1] - 1 : -kshp[1] + 1
             ] = imgval
 
-        outshp = N.hstack(
+        outshp = np.hstack(
             (nkern, ConvOp.getOutputShape(imshp[1:], kshp, ss, conv_mode))
         )
 
         time1 = time.time()
-        outval = N.zeros(N.r_[bsize, outshp])
+        outval = np.zeros(np.r_[bsize, outshp])
         if validate:
             # causes an atexit problem
             from scipy.signal.signaltools import _bvalfromboundary, _valfrommode
@@ -138,7 +139,7 @@ def exec_multilayer_conv_nnet_old(
                 unroll_patch=unroll_patch,
                 verbose=verbose,
             )(inputs4, kerns4)
-        # l1shp = N.hstack((nkern,
+        # l1shp = np.hstack((nkern,
         #                ConvOp.getOutputShape(imshp[1:], kshp, ss, conv_mode)))
         propup2 = function([inputs4, kerns4], conv_op)
         propup3 = function([inputs4, kerns4], conv_op, mode=Mode(linker="py"))
@@ -155,15 +156,15 @@ def exec_multilayer_conv_nnet_old(
                 hidval3_ = propup3(imgval, w_flip)
             hidval3 = hidval3_  # [:,:,0::ss[0],0::ss[1]]
             tpytot += time.time() - time1
-            assert (N.abs(hidval2 - hidval3) < 1e-5).all()
+            assert (np.abs(hidval2 - hidval3) < 1e-5).all()
         else:
             tpytot += 0
 
         if validate:
-            temp = N.abs(outval - hidval2)
+            temp = np.abs(outval - hidval2)
             assert (temp < 1e-5).all()
         if validate and conv_op_py:
-            temp = N.abs(outval - hidval3)
+            temp = np.abs(outval - hidval3)
             assert (temp < 1e-5).all()
 
         imshp = tuple(outshp)
@@ -189,12 +190,12 @@ def exec_multilayer_conv_nnet(
     verbose=0,
 ):
     if img is None:
-        img = tt.dmatrix()
+        img = dmatrix()
 
     # build actual input images
     imgval = global_rng.rand(bsize, imshp[0], imshp[1], imshp[2])
 
-    a = tt.dmatrix()
+    a = dmatrix()
     kerns = [a for i in nkerns]
     inputs4 = dmatrix4()
     kerns4 = dmatrix4()
@@ -210,15 +211,15 @@ def exec_multilayer_conv_nnet(
             print(conv_mode, ss, n_layer, kshp, nkern)
 
         # actual values
-        w = global_rng.random_sample(N.r_[nkern, imshp[0], kshp])
+        w = global_rng.random_sample(np.r_[nkern, imshp[0], kshp])
         w_flip = flip(w, kshp).reshape(w.shape)
 
-        outshp = N.hstack(
+        outshp = np.hstack(
             (nkern, ConvOp.getOutputShape(imshp[1:], kshp, ss, conv_mode))
         )
 
         time1 = time.time()
-        # outval = N.zeros(N.r_[bsize, outshp])
+        # outval = np.zeros(np.r_[bsize, outshp])
 
         # ConvOp
         if unroll_patch and not unroll_patch_size:
@@ -243,7 +244,7 @@ def exec_multilayer_conv_nnet(
                 unroll_patch=unroll_patch,
                 verbose=verbose,
             )(inputs4, kerns4)
-        # l1shp = N.hstack((nkern,
+        # l1shp = np.hstack((nkern,
         #                ConvOp.getOutputShape(imshp[1:], kshp, ss, conv_mode)))
         propup2 = function([inputs4, kerns4], conv_op)
 
@@ -280,11 +281,11 @@ def speed_multilayer_conv():
     ]  # (1,1)]#(2,2) bugged
     convmodes = ["valid", "full"]
     # do_convolve2 = False
-    a = tt.dmatrix()
+    a = dmatrix()
     kerns = [a for i in nkerns]
 
     assert len(kshps) == len(nkerns) == len(kerns)
-    timing = N.zeros(
+    timing = np.zeros(
         (len(unroll_batch), len(unroll_kern), 3, len(convmodes) * len(ssizes))
     )
     t_b_k = []
@@ -333,7 +334,7 @@ def speed_multilayer_conv():
         t = timing[:, :, 0, :]  # We select only the c timing.
     else:
         t = t_
-    t = N.asarray(t)
+    t = np.asarray(t)
     # calculate the old timing
     print("time old version")
     tctot, tpytot, ntot = [], [], []
@@ -359,10 +360,10 @@ def speed_multilayer_conv():
                 tpytot += [tpytot_]
                 ntot += [ntot_]
     else:
-        tctot = N.asarray(tctot_)
+        tctot = np.asarray(tctot_)
     print(f"old code timing {sum(tctot):.3f}s", tctot)
-    best = N.asarray(best)
-    worst = N.asarray(worst)
+    best = np.asarray(best)
+    worst = np.asarray(worst)
     print("timing for unrolled version")
     print("unroll_batch/unroll_kern valid_mode full_mode")
     for n_b in range(len(unroll_batch)):

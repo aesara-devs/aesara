@@ -1,19 +1,20 @@
 import numpy as np
 import pytest
 
-from theano import function, tensor
+from theano import function
 from theano.configdefaults import config
 from theano.sandbox import multinomial
 from theano.sandbox.rng_mrg import MRG_RandomStream as RandomStream
+from theano.tensor.type import fmatrix, fvector, iscalar
 
 
 class TestOP:
     def test_select_distinct(self):
         # Tests that ChoiceFromUniform always selects distinct elements
 
-        p = tensor.fmatrix()
-        u = tensor.fvector()
-        n = tensor.iscalar()
+        p = fmatrix()
+        u = fvector()
+        n = iscalar()
         m = multinomial.ChoiceFromUniform(odtype="auto")(p, u, n)
 
         f = function([p, u, n], m, allow_input_downcast=True)
@@ -98,9 +99,9 @@ class TestOP:
         # Tests that ChoiceFromUniform fails when asked to sample more
         # elements than the actual number of elements
 
-        p = tensor.fmatrix()
-        u = tensor.fvector()
-        n = tensor.iscalar()
+        p = fmatrix()
+        u = fvector()
+        n = iscalar()
         m = multinomial.ChoiceFromUniform(odtype="auto")(p, u, n)
 
         f = function([p, u, n], m, allow_input_downcast=True)
@@ -118,9 +119,9 @@ class TestOP:
         # Tests that ChoiceFromUniform selects elements, on average,
         # proportional to the their probabilities
 
-        p = tensor.fmatrix()
-        u = tensor.fvector()
-        n = tensor.iscalar()
+        p = fmatrix()
+        u = fvector()
+        n = iscalar()
         m = multinomial.ChoiceFromUniform(odtype="auto")(p, u, n)
 
         f = function([p, u, n], m, allow_input_downcast=True)
@@ -149,8 +150,8 @@ class TestFunction:
 
         th_rng = RandomStream(12345)
 
-        p = tensor.fmatrix()
-        n = tensor.iscalar()
+        p = fmatrix()
+        n = iscalar()
         m = th_rng.multinomial_wo_replacement(pvals=p, n=n)
 
         f = function([p, n], m, allow_input_downcast=True)
@@ -172,8 +173,8 @@ class TestFunction:
 
         th_rng = RandomStream(12345)
 
-        p = tensor.fmatrix()
-        n = tensor.iscalar()
+        p = fmatrix()
+        n = iscalar()
         m = th_rng.multinomial_wo_replacement(pvals=p, n=n)
 
         f = function([p, n], m, allow_input_downcast=True)
@@ -192,8 +193,8 @@ class TestFunction:
 
         th_rng = RandomStream(12345)
 
-        p = tensor.fmatrix()
-        n = tensor.iscalar()
+        p = fmatrix()
+        n = iscalar()
         m = th_rng.multinomial_wo_replacement(pvals=p, n=n)
 
         f = function([p, n], m, allow_input_downcast=True)

@@ -6,7 +6,8 @@ import pytest
 
 import theano
 from tests import unittest_tools as utt
-from theano import function, grad, tensor
+from theano import function, grad
+from theano import tensor as tt
 from theano.configdefaults import config
 from theano.tensor.slinalg import (
     Cholesky,
@@ -18,6 +19,7 @@ from theano.tensor.slinalg import (
     kron,
     solve,
 )
+from theano.tensor.type import dmatrix, matrix, tensor, vector
 
 
 def check_lower_triangular(pd, ch_f):
@@ -41,7 +43,7 @@ def test_cholesky():
     rng = np.random.RandomState(utt.fetch_seed())
     r = rng.randn(5, 5).astype(config.floatX)
     pd = np.dot(r, r.T)
-    x = tensor.matrix()
+    x = matrix()
     chol = cholesky(x)
     # Check the default.
     ch_f = function([x], chol)
@@ -61,15 +63,15 @@ def test_cholesky():
 
 def test_cholesky_indef():
     scipy = pytest.importorskip("scipy")
-    x = tensor.matrix()
-    matrix = np.array([[1, 0.2], [0.2, -2]]).astype(config.floatX)
+    x = matrix()
+    mat = np.array([[1, 0.2], [0.2, -2]]).astype(config.floatX)
     cholesky = Cholesky(lower=True, on_error="raise")
     chol_f = function([x], cholesky(x))
     with pytest.raises(scipy.linalg.LinAlgError):
-        chol_f(matrix)
+        chol_f(mat)
     cholesky = Cholesky(lower=True, on_error="nan")
     chol_f = function([x], cholesky(x))
-    assert np.all(np.isnan(chol_f(matrix)))
+    assert np.all(np.isnan(chol_f(mat)))
 
 
 def test_cholesky_grad():
@@ -91,15 +93,15 @@ def test_cholesky_grad():
 
 def test_cholesky_grad_indef():
     scipy = pytest.importorskip("scipy")
-    x = tensor.matrix()
-    matrix = np.array([[1, 0.2], [0.2, -2]]).astype(config.floatX)
+    x = matrix()
+    mat = np.array([[1, 0.2], [0.2, -2]]).astype(config.floatX)
     cholesky = Cholesky(lower=True, on_error="raise")
     chol_f = function([x], grad(cholesky(x).sum(), [x]))
     with pytest.raises(scipy.linalg.LinAlgError):
-        chol_f(matrix)
+        chol_f(mat)
     cholesky = Cholesky(lower=True, on_error="nan")
     chol_f = function([x], grad(cholesky(x).sum(), [x]))
-    assert np.all(np.isnan(chol_f(matrix)))
+    assert np.all(np.isnan(chol_f(mat)))
 
 
 @pytest.mark.slow
@@ -107,10 +109,10 @@ def test_cholesky_and_cholesky_grad_shape():
     pytest.importorskip("scipy")
 
     rng = np.random.RandomState(utt.fetch_seed())
-    x = tensor.matrix()
+    x = matrix()
     for l in (cholesky(x), Cholesky(lower=True)(x), Cholesky(lower=False)(x)):
         f_chol = theano.function([x], l.shape)
-        g = tensor.grad(l.sum(), x)
+        g = theano.gradient.grad(l.sum(), x)
         f_cholgrad = theano.function([x], g.shape)
         topo_chol = f_chol.maker.fgraph.toposort()
         topo_cholgrad = f_cholgrad.maker.fgraph.toposort()
@@ -128,8 +130,8 @@ def test_cholesky_and_cholesky_grad_shape():
 def test_eigvalsh():
     scipy = pytest.importorskip("scipy")
 
-    A = theano.tensor.dmatrix("a")
-    B = theano.tensor.dmatrix("b")
+    A = dmatrix("a")
+    B = dmatrix("b")
     f = function([A, B], eigvalsh(A, B))
 
     rng = np.random.RandomState(utt.fetch_seed())
@@ -143,7 +145,7 @@ def test_eigvalsh():
     # We need to test None separatly, as otherwise DebugMode will
     # complain, as this isn't a valid ndarray.
     b = None
-    B = theano.tensor.NoneConst
+    B = tt.NoneConst
     f = function([A], eigvalsh(A, B))
     w = f(a)
     refw = scipy.linalg.eigvalsh(a, b)
@@ -157,7 +159,7 @@ def test_eigvalsh_grad():
     a = rng.randn(5, 5)
     a = a + a.T
     b = 10 * np.eye(5, 5) + rng.randn(5, 5)
-    tensor.verify_grad(
+    utt.verify_grad(
         lambda a, b: eigvalsh(a, b).dot([1, 2, 3, 4, 5]), [a, b], rng=np.random
     )
 
@@ -171,8 +173,8 @@ class TestSolve(utt.InferShapeTester):
     def test_infer_shape(self):
         pytest.importorskip("scipy")
         rng = np.random.RandomState(utt.fetch_seed())
-        A = theano.tensor.matrix()
-        b = theano.tensor.matrix()
+        A = matrix()
+        b = matrix()
         self._compile_and_check(
             [A, b],  # theano.function inputs
             [self.op(A, b)],  # theano.function outputs
@@ -185,8 +187,8 @@ class TestSolve(utt.InferShapeTester):
             warn=False,
         )
         rng = np.random.RandomState(utt.fetch_seed())
-        A = theano.tensor.matrix()
-        b = theano.tensor.vector()
+        A = matrix()
+        b = vector()
         self._compile_and_check(
             [A, b],  # theano.function inputs
             [self.op(A, b)],  # theano.function outputs
@@ -202,8 +204,8 @@ class TestSolve(utt.InferShapeTester):
     def test_solve_correctness(self):
         scipy = pytest.importorskip("scipy")
         rng = np.random.RandomState(utt.fetch_seed())
-        A = theano.tensor.matrix()
-        b = theano.tensor.matrix()
+        A = matrix()
+        b = matrix()
         y = self.op(A, b)
         gen_solve_func = theano.function([A, b], y)
 
@@ -263,8 +265,8 @@ class TestSolve(utt.InferShapeTester):
 
         # try all dtype combinations
         for A_dtype, b_dtype in itertools.product(dtypes, dtypes):
-            A = tensor.matrix(dtype=A_dtype)
-            b = tensor.matrix(dtype=b_dtype)
+            A = matrix(dtype=A_dtype)
+            b = matrix(dtype=b_dtype)
             x = solve(A, b)
             fn = function([A, b], x)
             x_result = fn(A_val.astype(A_dtype), b_val.astype(b_dtype))
@@ -310,7 +312,7 @@ def test_expm():
 
     ref = scipy.linalg.expm(A)
 
-    x = tensor.matrix()
+    x = matrix()
     m = expm(x)
     expm_f = function([x], m)
 
@@ -326,7 +328,7 @@ def test_expm_grad_1():
     A = rng.randn(5, 5)
     A = A + A.T
 
-    tensor.verify_grad(expm, [A], rng=rng)
+    utt.verify_grad(expm, [A], rng=rng)
 
 
 def test_expm_grad_2():
@@ -339,7 +341,7 @@ def test_expm_grad_2():
     A = (np.diag(w ** 0.5)).dot(A + A.T).dot(np.diag(w ** (-0.5)))
     assert not np.allclose(A, A.T)
 
-    tensor.verify_grad(expm, [A], rng=rng)
+    utt.verify_grad(expm, [A], rng=rng)
 
 
 def test_expm_grad_3():
@@ -349,7 +351,7 @@ def test_expm_grad_3():
     # Always test in float64 for better numerical stability.
     A = rng.randn(5, 5)
 
-    tensor.verify_grad(expm, [A], rng=rng)
+    utt.verify_grad(expm, [A], rng=rng)
 
 
 class TestKron(utt.InferShapeTester):
@@ -364,12 +366,12 @@ class TestKron(utt.InferShapeTester):
         scipy = pytest.importorskip("scipy")
 
         for shp0 in [(2,), (2, 3), (2, 3, 4), (2, 3, 4, 5)]:
-            x = tensor.tensor(dtype="floatX", broadcastable=(False,) * len(shp0))
+            x = tensor(dtype="floatX", broadcastable=(False,) * len(shp0))
             a = np.asarray(self.rng.rand(*shp0)).astype(config.floatX)
             for shp1 in [(6,), (6, 7), (6, 7, 8), (6, 7, 8, 9)]:
                 if len(shp0) + len(shp1) == 2:
                     continue
-                y = tensor.tensor(dtype="floatX", broadcastable=(False,) * len(shp1))
+                y = tensor(dtype="floatX", broadcastable=(False,) * len(shp1))
                 f = function([x, y], kron(x, y))
                 b = self.rng.rand(*shp1).astype(config.floatX)
                 out = f(a, b)
@@ -383,12 +385,12 @@ class TestKron(utt.InferShapeTester):
 
     def test_numpy_2d(self):
         for shp0 in [(2, 3)]:
-            x = tensor.tensor(dtype="floatX", broadcastable=(False,) * len(shp0))
+            x = tensor(dtype="floatX", broadcastable=(False,) * len(shp0))
             a = np.asarray(self.rng.rand(*shp0)).astype(config.floatX)
             for shp1 in [(6, 7)]:
                 if len(shp0) + len(shp1) == 2:
                     continue
-                y = tensor.tensor(dtype="floatX", broadcastable=(False,) * len(shp1))
+                y = tensor(dtype="floatX", broadcastable=(False,) * len(shp1))
                 f = function([x, y], kron(x, y))
                 b = self.rng.rand(*shp1).astype(config.floatX)
                 out = f(a, b)

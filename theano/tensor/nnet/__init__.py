@@ -252,7 +252,7 @@ def conv2d_transpose(
 
     output_shape: tuple/list of len 4 of int or Constant variable
         The shape of the output of ``conv2d_transpose``. The last two elements
-        are allowed to be ``tensor.scalar`` variables.
+        are allowed to be ``theano.tensor.type.scalar`` variables.
 
     filter_shape: None, tuple/list of len 4 of int or Constant variable
         The shape of the filters parameter.

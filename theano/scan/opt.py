@@ -58,7 +58,8 @@ from sys import maxsize
 import numpy as np
 
 import theano
-from theano import scalar, tensor
+from theano import scalar as ts
+from theano import tensor as tt
 from theano.compile import optdb
 from theano.compile.function.types import deep_copy_op
 from theano.configdefaults import config
@@ -86,6 +87,15 @@ from theano.scan.utils import (
     scan_can_remove_outs,
 )
 from theano.tensor import Alloc, AllocEmpty, get_scalar_constant_value, opt
+from theano.tensor.elemwise import DimShuffle, Elemwise
+from theano.tensor.subtensor import (
+    IncSubtensor,
+    Subtensor,
+    get_canonical_form_slice,
+    get_idx_list,
+    set_subtensor,
+)
+from theano.tensor.var import TensorConstant
 
 
 __docformat__ = "restructedtext en"
@@ -104,11 +114,11 @@ __copyright__ = "(c) 2010, Universite de Montreal"
 _logger = logging.getLogger("theano.scan.opt")
 
 list_opt_slice = [
-    tensor.opt.local_abs_merge,
-    tensor.opt.local_mul_switch_sink,
-    tensor.opt.local_upcast_elemwise_constant_inputs,
-    tensor.opt.local_useless_switch,
-    tensor.opt.constant_folding,
+    opt.local_abs_merge,
+    opt.local_mul_switch_sink,
+    opt.local_upcast_elemwise_constant_inputs,
+    opt.local_useless_switch,
+    opt.constant_folding,
 ]
 
 
@@ -164,7 +174,7 @@ def remove_constants_and_unused_inputs_scan(fgraph, node):
     for idx in range(op.n_seqs):
         node_inp = node.inputs[idx + 1]
         if (
-            isinstance(node_inp, tensor.TensorConstant)
+            isinstance(node_inp, TensorConstant)
             and node_inp.tag.unique_value is not None
         ):
             try:
@@ -411,7 +421,7 @@ class PushOutNonSeqScan(GlobalOptimizer):
                     x = node.outputs[local_fgraph_outs_map[out]]
                     y = replace_with_out[idx]
                     shape = [shp for shp in y.shape]
-                    replace_with[x] = tensor.alloc(y, node.inputs[0], *shape)
+                    replace_with[x] = tt.alloc(y, node.inputs[0], *shape)
 
             # We need to add one extra dimension to the outputs
             # because the scan op expects for a tensor3, to which an
@@ -516,7 +526,7 @@ class PushOutSeqScan(GlobalOptimizer):
                         for x in nd.inputs
                     ]
                 )
-                and isinstance(nd.op, theano.tensor.Elemwise)
+                and isinstance(nd.op, Elemwise)
             ):
 
                 outside_ins = []
@@ -568,7 +578,7 @@ class PushOutSeqScan(GlobalOptimizer):
 
             elif (
                 nd not in to_remove_set
-                and isinstance(nd.op, theano.tensor.DimShuffle)
+                and isinstance(nd.op, DimShuffle)
                 and (
                     nd.inputs[0] in inner_seqs_set
                     or nd.inputs[0].owner in to_remove_set
@@ -676,11 +686,11 @@ class PushOutSeqScan(GlobalOptimizer):
                         odx = op.inner_mitsot_outs(ls).index(out)
                         inp = op.outer_mitsot(node)[odx]
                         st = abs(np.min(op.mitsot_taps()))
-                        y = tensor.set_subtensor(inp[st:], _y)
+                        y = set_subtensor(inp[st:], _y)
                     elif out in op.inner_sitsot_outs(ls):
                         odx = op.inner_sitsot_outs(ls).index(out)
                         inp = op.outer_sitsot(node)[odx]
-                        y = tensor.set_subtensor(inp[1:], _y)
+                        y = set_subtensor(inp[1:], _y)
                     elif out in op.inner_nitsot_outs(ls):
                         y = _y
                     else:
@@ -742,8 +752,8 @@ class PushOutScanOutput(GlobalOptimizer):
 
         for nd in local_fgraph_topo:
             if (
-                isinstance(nd.op, theano.tensor.elemwise.Elemwise)
-                and isinstance(nd.op.scalar_op, scalar.Add)
+                isinstance(nd.op, Elemwise)
+                and isinstance(nd.op.scalar_op, ts.Add)
                 and nd.out in args.inner_out_sit_sot
                 and self.inner_sitsot_only_last_step_used(fgraph, nd.out, args)
             ):
@@ -769,7 +779,7 @@ class PushOutScanOutput(GlobalOptimizer):
 
                     if (
                         dot_input.owner is not None
-                        and isinstance(dot_input.owner.op, theano.tensor.Dot)
+                        and isinstance(dot_input.owner.op, tt.Dot)
                         and len(clients[dot_input]) == 1
                         and dot_input.owner.inputs[0].ndim == 2
                         and dot_input.owner.inputs[1].ndim == 2
@@ -794,18 +804,18 @@ class PushOutScanOutput(GlobalOptimizer):
                         # so that they become matrices. This is because a
                         # dot is usually faster on two large matrices than
                         # a bunch of small ones
-                        outer_dot_inputs[0] = theano.tensor.flatten(
+                        outer_dot_inputs[0] = tt.flatten(
                             outer_dot_inputs[0].dimshuffle(1, 0, 2), ndim=2
                         )
 
-                        shape_input1 = theano.tensor.shape(outer_dot_inputs[1])
+                        shape_input1 = tt.shape(outer_dot_inputs[1])
                         outer_dot_inputs[1] = outer_dot_inputs[1].reshape(
                             (shape_input1[0] * shape_input1[1], shape_input1[2])
                         )
 
                         # Perform the dot on the newly obtained matrices and
                         # add the initial value
-                        outer_dot_output = theano.tensor.dot(*outer_dot_inputs)
+                        outer_dot_output = tt.dot(*outer_dot_inputs)
                         init_value = new_scan_args.outer_in_sit_sot[sitsot_idx][0]
                         replacement = outer_dot_output + init_value
 
@@ -837,11 +847,9 @@ class PushOutScanOutput(GlobalOptimizer):
 
         if len(fgraph.clients[outer_var]) == 1:
             client = fgraph.clients[outer_var][0][0]
-            if client != "output" and isinstance(client.op, theano.tensor.Subtensor):
-                lst = theano.tensor.subtensor.get_idx_list(
-                    client.inputs, client.op.idx_list
-                )
-                if len(lst) == 1 and theano.tensor.extract_constant(lst[0]) == -1:
+            if client != "output" and isinstance(client.op, Subtensor):
+                lst = get_idx_list(client.inputs, client.op.idx_list)
+                if len(lst) == 1 and tt.extract_constant(lst[0]) == -1:
                     return True
 
         return False
@@ -1147,20 +1155,20 @@ class ScanSaveMem(GlobalOptimizer):
                 return y
             if y is None:
                 return x
-            return tensor.minimum(x, y)
+            return tt.minimum(x, y)
 
         def select_max(x, y):
             if x is None:
                 return y
             if y is None:
                 return x
-            return tensor.maximum(x, y)
+            return tt.maximum(x, y)
 
         def sanitize(x):
             if x is None:
                 return None
             else:
-                return tensor.as_tensor_variable(x)
+                return tt.as_tensor_variable(x)
 
         if hasattr(fgraph, "shape_feature"):
             shape_of = fgraph.shape_feature.shape_of
@@ -1246,7 +1254,7 @@ class ScanSaveMem(GlobalOptimizer):
                     break
                 # 2.2 non-subtensor nodes
                 # => output needs all its intermediate values
-                elif not isinstance(cl.op, tensor.Subtensor):
+                elif not isinstance(cl.op, Subtensor):
                     global_nsteps = None
                     slices[i] = None
                     break
@@ -1254,7 +1262,7 @@ class ScanSaveMem(GlobalOptimizer):
                 # => output might need to store just a subset of its values
                 else:
                     # 2.3.1 extract idx list of subtensor
-                    this_slice = tensor.get_idx_list(cl.inputs, cl.op.idx_list)
+                    this_slice = get_idx_list(cl.inputs, cl.op.idx_list)
                     if this_slice is None:
                         # if unable to extract idx_list
                         # => outputs needs all its intermediate values
@@ -1273,15 +1281,15 @@ class ScanSaveMem(GlobalOptimizer):
                             length = shape_of[out][0]
                         except KeyError:
                             length = out.shape[0]
-                    cf_slice = tensor.get_canonical_form_slice(this_slice[0], length)
+                    cf_slice = get_canonical_form_slice(this_slice[0], length)
                     slices[i] += [(cf_slice, this_slice)]
 
                     if isinstance(this_slice[0], slice) and this_slice[0].stop is None:
                         global_nsteps = None
                     if isinstance(cf_slice[0], slice):
-                        stop = tensor.basic.extract_constant(cf_slice[0].stop)
+                        stop = tt.extract_constant(cf_slice[0].stop)
                     else:
-                        stop = tensor.basic.extract_constant(cf_slice[0]) + 1
+                        stop = tt.extract_constant(cf_slice[0]) + 1
                     if stop == maxsize or stop == length:
                         stop = None
                     else:
@@ -1325,7 +1333,7 @@ class ScanSaveMem(GlobalOptimizer):
             else:
                 sym_steps = global_nsteps["sym"][0]
                 for c in global_nsteps["sym"][1:]:
-                    sym_steps = tensor.maximum(sym_steps, c)
+                    sym_steps = tt.maximum(sym_steps, c)
 
             if global_nsteps["real"] >= 0:
                 real_steps = global_nsteps["real"]
@@ -1352,11 +1360,11 @@ class ScanSaveMem(GlobalOptimizer):
                 if type(cl) == str:
                     store_steps[i] = 0
                     break
-                elif not isinstance(cl.op, tensor.Subtensor):
+                elif not isinstance(cl.op, Subtensor):
                     store_steps[i] = 0
                     break
                 else:
-                    this_slice = tensor.get_idx_list(cl.inputs, cl.op.idx_list)
+                    this_slice = get_idx_list(cl.inputs, cl.op.idx_list)
                     if this_slice is None:
                         store_steps[i] = 0
                         break
@@ -1372,12 +1380,12 @@ class ScanSaveMem(GlobalOptimizer):
                             length = shape_of[out][0]
                         except KeyError:
                             length = out.shape[0]
-                    cf_slice = tensor.get_canonical_form_slice(this_slice[0], length)
+                    cf_slice = get_canonical_form_slice(this_slice[0], length)
 
                     if isinstance(cf_slice[0], slice):
-                        start = tensor.basic.extract_constant(cf_slice[0].start)
+                        start = tt.extract_constant(cf_slice[0].start)
                     else:
-                        start = tensor.basic.extract_constant(cf_slice[0])
+                        start = tt.extract_constant(cf_slice[0])
                     if start == 0 or store_steps[i] == 0:
                         store_steps[i] = 0
                     else:
@@ -1453,7 +1461,7 @@ class ScanSaveMem(GlobalOptimizer):
                         if (
                             nw_inputs[offset + idx].owner
                             and isinstance(
-                                nw_inputs[offset + idx].owner.op, tensor.IncSubtensor
+                                nw_inputs[offset + idx].owner.op, IncSubtensor
                             )
                             and isinstance(
                                 nw_inputs[offset + idx].owner.op.idx_list[0], slice
@@ -1461,19 +1469,19 @@ class ScanSaveMem(GlobalOptimizer):
                         ):
 
                             assert isinstance(
-                                nw_inputs[offset + idx].owner.op, tensor.IncSubtensor
+                                nw_inputs[offset + idx].owner.op, IncSubtensor
                             )
                             _nw_input = nw_inputs[offset + idx].owner.inputs[1]
-                            cval = tensor.as_tensor_variable(val)
-                            initl = tensor.as_tensor_variable(init_l[i])
-                            tmp_idx = tensor.switch(
+                            cval = tt.as_tensor_variable(val)
+                            initl = tt.as_tensor_variable(init_l[i])
+                            tmp_idx = tt.switch(
                                 cval < initl, cval + initl, cval - initl
                             )
                             nw_input = expand_empty(_nw_input, tmp_idx)
                         else:
-                            tmp = tensor.as_tensor_variable(val)
-                            initl = tensor.as_tensor_variable(init_l[i])
-                            tmp = tensor.maximum(tmp, initl)
+                            tmp = tt.as_tensor_variable(val)
+                            initl = tt.as_tensor_variable(init_l[i])
+                            tmp = tt.maximum(tmp, initl)
                             nw_input = nw_inputs[offset + idx][:tmp]
 
                         nw_inputs[offset + idx] = nw_input
@@ -1525,9 +1533,7 @@ class ScanSaveMem(GlobalOptimizer):
                             # Otherwise, simply take 0:(nw_steps+initl).
                             if (
                                 nw_inputs[in_idx].owner
-                                and isinstance(
-                                    nw_inputs[in_idx].owner.op, tensor.IncSubtensor
-                                )
+                                and isinstance(nw_inputs[in_idx].owner.op, IncSubtensor)
                                 and isinstance(
                                     nw_inputs[in_idx].owner.op.idx_list[0], slice
                                 )
@@ -1556,7 +1562,7 @@ class ScanSaveMem(GlobalOptimizer):
             # don't create one.
             # For test, mark that savemem have optimized this node
             info["_scan_savemem_visited"] = True
-            if theano.tensor.extract_constant(node_ins[0]) == 0:
+            if tt.extract_constant(node_ins[0]) == 0:
                 return
 
             # Do not call make_node for test_value
@@ -1585,9 +1591,9 @@ class ScanSaveMem(GlobalOptimizer):
                         nw_slice = (fslice,) + tuple(old_slices[1:])
                         nw_pos = inv_compress_map[idx]
 
-                        subtens = tensor.Subtensor(nw_slice)
+                        subtens = Subtensor(nw_slice)
                         # slice inputs
-                        sl_ins = tensor.Subtensor.collapse(
+                        sl_ins = Subtensor.collapse(
                             nw_slice, lambda entry: isinstance(entry, Variable)
                         )
                         new_o = subtens(new_outs[nw_pos], *sl_ins)
@@ -1636,8 +1642,8 @@ class ScanSaveMem(GlobalOptimizer):
                             )
 
                             nw_slice = (sanitize(position),) + tuple(old_slices[1:])
-                        subtens = tensor.Subtensor(nw_slice)
-                        sl_ins = tensor.Subtensor.collapse(
+                        subtens = Subtensor(nw_slice)
+                        sl_ins = Subtensor.collapse(
                             nw_slice, lambda entry: isinstance(entry, Variable)
                         )
                         new_o = subtens(new_outs[nw_pos], *sl_ins)
@@ -1865,13 +1871,13 @@ class ScanMerge(GlobalOptimizer):
         nsteps = node.inputs[0]
         try:
             nsteps = int(get_scalar_constant_value(nsteps))
-        except tensor.NotScalarConstantError:
+        except tt.NotScalarConstantError:
             pass
 
         rep_nsteps = rep.inputs[0]
         try:
             rep_nsteps = int(get_scalar_constant_value(rep_nsteps))
-        except tensor.NotScalarConstantError:
+        except tt.NotScalarConstantError:
             pass
 
         if nsteps != rep_nsteps:
@@ -2160,14 +2166,12 @@ class PushOutDot1(GlobalOptimizer):
 
             if (
                 out.owner
-                and isinstance(out.owner.op, theano.tensor.Elemwise)
-                and isinstance(out.owner.op.scalar_op, theano.scalar.Add)
+                and isinstance(out.owner.op, Elemwise)
+                and isinstance(out.owner.op.scalar_op, ts.Add)
                 and inp in out.owner.inputs
                 and len(fgraph.clients[outer_out]) == 1
                 and not isinstance(fgraph.clients[outer_out][0][0], str)
-                and isinstance(
-                    fgraph.clients[outer_out][0][0].op, theano.tensor.Subtensor
-                )
+                and isinstance(fgraph.clients[outer_out][0][0].op, Subtensor)
                 and fgraph.clients[outer_out][0][0].op.idx_list == (-1,)
             ):
 
@@ -2177,7 +2181,7 @@ class PushOutDot1(GlobalOptimizer):
                 # We need to check if x is the result of an outer product
                 if (
                     x.owner
-                    and isinstance(x.owner.op, theano.tensor.Dot)
+                    and isinstance(x.owner.op, tt.Dot)
                     and x.owner.inputs[0].ndim == 2
                     and x.owner.inputs[1].ndim == 2
                 ):
@@ -2291,7 +2295,7 @@ class PushOutDot1(GlobalOptimizer):
                             sh2 = _val.shape[2]
 
                             val = _val.reshape((sh0 * sh1, sh2))
-                            new_out = tensor.dot(out_seq, val)
+                            new_out = tt.dot(out_seq, val)
                         else:
                             _out_seq = op.outer_seqs(node)[seqs.index(inp2)]
                             out_seq = _out_seq.reshape(
@@ -2304,7 +2308,7 @@ class PushOutDot1(GlobalOptimizer):
                             val = _val.dimshuffle(1, 0, 2).reshape(
                                 (_val.shape[1], _val.shape[0] * _val.shape[2])
                             )
-                            new_out = tensor.dot(val, out_seq)
+                            new_out = tt.dot(val, out_seq)
 
                         pos = node.outputs.index(outer_out)
                         old_new = list(zip(node.outputs[:pos], new_outs[:pos]))
@@ -2376,7 +2380,7 @@ scan_seqopt1.register(
 
 scan_eqopt2.register(
     "constant_folding_for_scan2",
-    opt.in2out(tensor.opt.constant_folding, ignore_newtrees=True),
+    opt.in2out(opt.constant_folding, ignore_newtrees=True),
     1,
     "fast_run",
     "scan",

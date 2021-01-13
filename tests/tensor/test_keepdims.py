@@ -2,7 +2,10 @@ import numpy as np
 import pytest
 
 import theano
-from theano import function, tensor
+import theano.tensor as tt
+from theano import function
+from theano.tensor.elemwise import DimShuffle
+from theano.tensor.type import dtensor3
 
 
 # this tests other ops to ensure they keep the dimensions of their
@@ -31,12 +34,12 @@ class TestKeepDims:
                 new_dims.append(i)
                 i += 1
 
-        return tensor.DimShuffle(y.type.broadcastable, new_dims)(y)
+        return DimShuffle(y.type.broadcastable, new_dims)(y)
 
     @pytest.mark.slow
     def test_keepdims(self):
 
-        x = tensor.dtensor3()
+        x = dtensor3()
         a = np.random.rand(3, 2, 4)
         # We don't need to test all opt and C code, as this is tested
         # by the ops tests.
@@ -61,7 +64,7 @@ class TestKeepDims:
             [-2, -3, 2],
         ]:
 
-            op = tensor.max_and_argmax
+            op = tt.max_and_argmax
             f = function(
                 [x],
                 [
@@ -92,7 +95,7 @@ class TestKeepDims:
 
         # the following ops can be specified with either a single axis or every
         # axis:
-        for op in [tensor.argmax, tensor.argmin]:
+        for op in [tt.argmax, tt.argmin]:
             for axis in [
                 0,
                 1,
@@ -126,15 +129,15 @@ class TestKeepDims:
         # the following ops can be specified with a freely specified axis
         # parameter
         for op in [
-            tensor.sum,
-            tensor.prod,
-            tensor.mean,
-            tensor.var,
-            tensor.std,
-            tensor.all,
-            tensor.any,
-            tensor.max,
-            tensor.min,
+            tt.sum,
+            tt.prod,
+            tt.mean,
+            tt.var,
+            tt.std,
+            tt.all,
+            tt.any,
+            tt.max,
+            tt.min,
         ]:
             for axis in [
                 0,
@@ -172,7 +175,7 @@ class TestKeepDims:
 
     def test_norm(self):
 
-        x = tensor.dtensor3()
+        x = dtensor3()
         a = np.random.rand(3, 2, 4).astype(theano.config.floatX)
         mode = theano.compile.Mode(optimizer="fast_compile", linker="py")
 

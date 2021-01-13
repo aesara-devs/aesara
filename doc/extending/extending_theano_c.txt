@@ -615,7 +615,7 @@ C code.
                 raise TypeError('y must be a 1-d vector')
 
             # Create an output variable of the same type as x
-            output_var = theano.tensor.TensorType(
+            output_var = theano.tensor.type.TensorType(
                             dtype=theano.scalar.upcast(x.dtype, y.dtype),
                             broadcastable=[False])()
 
@@ -764,7 +764,7 @@ The new op is defined inside a Python file with the following code :
                 raise TypeError('y must be a 1-d vector')
 
             # Create an output variable of the same type as x
-            output_var = theano.tensor.TensorType(
+            output_var = theano.tensor.type.TensorType(
                             dtype=theano.scalar.upcast(x.dtype, y.dtype),
                             broadcastable=[False])()
 

@@ -2,8 +2,8 @@ import numpy as np
 import pytest
 
 import theano
+import theano.tensor as tt
 from tests import unittest_tools as utt
-from theano import tensor
 from theano.configdefaults import config
 from theano.graph.opt import check_stack_trace
 from theano.tensor.nnet import abstract_conv as conv
@@ -27,6 +27,15 @@ from theano.tensor.nnet.abstract_conv import (
 )
 from theano.tensor.nnet.corr import CorrMM, CorrMM_gradInputs, CorrMM_gradWeights
 from theano.tensor.nnet.corr3d import Corr3dMM, Corr3dMMGradInputs, Corr3dMMGradWeights
+from theano.tensor.type import (
+    TensorType,
+    ftensor4,
+    iscalar,
+    lvector,
+    tensor3,
+    tensor4,
+    tensor5,
+)
 
 
 def conv2d_corr(
@@ -278,7 +287,7 @@ class TestConvGradInputsShape:
 
 class TestAssertConvShape:
     def test_basic(self):
-        shape = tuple(tensor.iscalar() for i in range(4))
+        shape = tuple(iscalar() for i in range(4))
         f = theano.function(shape, assert_conv_shape(shape))
 
         assert [1, 2, 3, 4] == f(1, 2, 3, 4)
@@ -298,9 +307,9 @@ class TestAssertConvShape:
 class TestAssertShape:
     @config.change_flags(conv__assert_shape=True)
     def test_basic(self):
-        x = tensor.tensor4()
-        s1 = tensor.iscalar()
-        s2 = tensor.iscalar()
+        x = tensor4()
+        s1 = iscalar()
+        s2 = iscalar()
         expected_shape = [None, s1, s2, None]
         f = theano.function([x, s1, s2], assert_shape(x, expected_shape))
 
@@ -321,8 +330,8 @@ class TestAssertShape:
 
     @config.change_flags(conv__assert_shape=True)
     def test_shape_check_conv2d(self):
-        input = tensor.tensor4()
-        filters = tensor.tensor4()
+        input = tensor4()
+        filters = tensor4()
 
         out = conv.conv2d(
             input, filters, input_shape=(3, 5, 7, 11), filter_shape=(7, 5, 3, 3)
@@ -344,8 +353,8 @@ class TestAssertShape:
     @config.change_flags(conv__assert_shape=True)
     @pytest.mark.skipif(config.cxx == "", reason="test needs cxx")
     def test_shape_check_conv3d(self):
-        input = tensor.tensor5()
-        filters = tensor.tensor5()
+        input = tensor5()
+        filters = tensor5()
 
         out = conv.conv3d(
             input, filters, input_shape=(3, 5, 7, 11, 13), filter_shape=(7, 5, 3, 3, 3)
@@ -366,8 +375,8 @@ class TestAssertShape:
 
     @config.change_flags(conv__assert_shape=True)
     def test_shape_check_conv2d_grad_wrt_inputs(self):
-        output_grad = tensor.tensor4()
-        filters = tensor.tensor4()
+        output_grad = tensor4()
+        filters = tensor4()
 
         out = conv.conv2d_grad_wrt_inputs(
             output_grad,
@@ -386,8 +395,8 @@ class TestAssertShape:
     @config.change_flags(conv__assert_shape=True)
     @pytest.mark.skipif(config.cxx == "", reason="test needs cxx")
     def test_shape_check_conv3d_grad_wrt_inputs(self):
-        output_grad = tensor.tensor5()
-        filters = tensor.tensor5()
+        output_grad = tensor5()
+        filters = tensor5()
 
         out = conv.conv3d_grad_wrt_inputs(
             output_grad,
@@ -405,8 +414,8 @@ class TestAssertShape:
 
     @config.change_flags(conv__assert_shape=True)
     def test_shape_check_conv2d_grad_wrt_weights(self):
-        input = tensor.tensor4()
-        output_grad = tensor.tensor4()
+        input = tensor4()
+        output_grad = tensor4()
 
         out = conv.conv2d_grad_wrt_weights(
             input,
@@ -425,8 +434,8 @@ class TestAssertShape:
     @config.change_flags(conv__assert_shape=True)
     @pytest.mark.skipif(config.cxx == "", reason="test needs cxx")
     def test_shape_check_conv3d_grad_wrt_weights(self):
-        input = tensor.tensor5()
-        output_grad = tensor.tensor5()
+        input = tensor5()
+        output_grad = tensor5()
 
         out = conv.conv3d_grad_wrt_weights(
             input,
@@ -1380,16 +1389,16 @@ class TestCorrConv3d(BaseTestConv3d):
 def test_constant_shapes():
     # Check that the `imshp` and `kshp` parameters of the AbstractConv Ops
     # are rejected if not constant or None
-    dummy_t4 = tensor.ftensor4()
-    alloc_dummy_t4 = tensor.zeros((3, 5, 7, 11), dtype="float32")
+    dummy_t4 = ftensor4()
+    alloc_dummy_t4 = tt.zeros((3, 5, 7, 11), dtype="float32")
 
-    dummy_shape = tensor.lvector()
-    dummy_one_shape = tensor.ones(4, dtype="int64")
-    constant_vec_shape = tensor.constant([3, 5, 7, 11])
+    dummy_shape = lvector()
+    dummy_one_shape = tt.ones(4, dtype="int64")
+    constant_vec_shape = tt.constant([3, 5, 7, 11])
 
     tuple_shape = (3, 5, 7, 11)
     list_shape = list(tuple_shape)
-    constant_list_shape = [tensor.constant(i, dtype="int64") for i in tuple_shape]
+    constant_list_shape = [tt.constant(i, dtype="int64") for i in tuple_shape]
     constant_tuple_shape = tuple(constant_list_shape)
 
     bad_shapes = (
@@ -1422,9 +1431,9 @@ def test_constant_shapes():
 
 class TestConvTypes:
     def setup_method(self):
-        self.input = tensor.ftensor4()
-        self.filters = tensor.ftensor4()
-        self.topgrad = tensor.ftensor4()
+        self.input = ftensor4()
+        self.filters = ftensor4()
+        self.topgrad = ftensor4()
 
         self.constant_tensor = np.zeros((3, 5, 7, 11), dtype="float32")
 
@@ -1435,7 +1444,7 @@ class TestConvTypes:
         filters = self.filters
         topgrad = self.topgrad
 
-        out_shape = tensor.lvector()
+        out_shape = lvector()
 
         output = conv.conv2d(input, filters)
         grad_input, grad_filters = theano.grad(output.sum(), wrt=(input, filters))
@@ -1492,7 +1501,7 @@ class TestConvTypes:
         filters = self.filters
         topgrad = self.topgrad
         constant_tensor = self.constant_tensor
-        out_shape = tensor.lvector()
+        out_shape = lvector()
 
         # Check the forward Op
         output = conv.conv2d(constant_tensor, filters)
@@ -1615,7 +1624,7 @@ class TestBilinearUpsampling:
         # 1D kernel values used in bilinear upsampling
         # for some upsampling ratios.
 
-        rat = tensor.iscalar()
+        rat = iscalar()
         kernel_ten = bilinear_kernel_1D(ratio=rat, normalize=False)
         f_ten = theano.function([rat], kernel_ten)
 
@@ -1831,7 +1840,7 @@ class TestBilinearUpsampling:
         x = np.random.rand(1, 1, 200, 200).astype(config.floatX)
         resize = (24, 20)
         z = bilinear_upsampling(
-            tensor.as_tensor_variable(x), frac_ratio=resize, use_1D_kernel=False
+            tt.as_tensor_variable(x), frac_ratio=resize, use_1D_kernel=False
         )
         out = theano.function([], z.shape, mode="FAST_RUN")()
         utt.assert_allclose(out, (1, 1, 240, 240))
@@ -1858,8 +1867,8 @@ class TestConv2dTranspose:
         output = theano.function(
             inputs=[],
             outputs=conv2d_transpose(
-                input=tensor.ones((2, 2, 4, 4)),
-                filters=tensor.ones((2, 1, 4, 4)),
+                input=tt.ones((2, 2, 4, 4)),
+                filters=tt.ones((2, 1, 4, 4)),
                 output_shape=(2, 1, 10, 10),
                 input_dilation=(2, 2),
             ),
@@ -1902,11 +1911,11 @@ class TestConv2dGrads:
         self.border_modes = ["valid", "full"]
         self.filter_flip = [True, False]
 
-        self.output_grad = theano.tensor.tensor4()
-        self.output_grad_wrt = theano.tensor.tensor4()
+        self.output_grad = tensor4()
+        self.output_grad_wrt = tensor4()
 
-        self.x = theano.tensor.tensor4("x", config.floatX)  # inputs
-        self.w = theano.tensor.tensor4("w", config.floatX)  # filter weights
+        self.x = tensor4("x", config.floatX)  # inputs
+        self.w = tensor4("w", config.floatX)  # filter weights
 
     def test_conv2d_grad_wrt_inputs(self):
         # Compares calculated abstract grads wrt inputs with the fwd grads
@@ -2069,11 +2078,11 @@ class TestGroupedConvNoOptim:
 
     def test_fwd(self):
         if self.convdim == 2:
-            img_sym = theano.tensor.tensor4("img")
-            kern_sym = theano.tensor.tensor4("kern")
+            img_sym = tensor4("img")
+            kern_sym = tensor4("kern")
         else:
-            img_sym = theano.tensor.tensor5("img")
-            kern_sym = theano.tensor.tensor5("kern")
+            img_sym = tensor5("img")
+            kern_sym = tensor5("kern")
 
         for imshp, kshp, groups in zip(
             self.img_shape, self.kern_shape, self.num_groups
@@ -2124,11 +2133,11 @@ class TestGroupedConvNoOptim:
 
     def test_gradweights(self):
         if self.convdim == 2:
-            img_sym = theano.tensor.tensor4("img")
-            top_sym = theano.tensor.tensor4("kern")
+            img_sym = tensor4("img")
+            top_sym = tensor4("kern")
         else:
-            img_sym = theano.tensor.tensor5("img")
-            top_sym = theano.tensor.tensor5("kern")
+            img_sym = tensor5("img")
+            top_sym = tensor5("kern")
         for imshp, kshp, tshp, groups in zip(
             self.img_shape, self.kern_shape, self.top_shape, self.num_groups
         ):
@@ -2144,7 +2153,7 @@ class TestGroupedConvNoOptim:
                 num_groups=groups,
             )
             grouped_conv_output = grouped_convgrad_op(
-                img_sym, top_sym, tensor.as_tensor_variable(kshp[-self.convdim :])
+                img_sym, top_sym, tt.as_tensor_variable(kshp[-self.convdim :])
             )
             grouped_func = theano.function(
                 [img_sym, top_sym], grouped_conv_output, mode=self.mode
@@ -2180,18 +2189,18 @@ class TestGroupedConvNoOptim:
                 return grouped_convgrad_op(
                     inputs_val,
                     output_val,
-                    tensor.as_tensor_variable(kshp[-self.convdim :]),
+                    tt.as_tensor_variable(kshp[-self.convdim :]),
                 )
 
             utt.verify_grad(conv_gradweight, [img, top], mode=self.mode, eps=1)
 
     def test_gradinputs(self):
         if self.convdim == 2:
-            kern_sym = theano.tensor.tensor4("kern")
-            top_sym = theano.tensor.tensor4("top")
+            kern_sym = tensor4("kern")
+            top_sym = tensor4("top")
         else:
-            kern_sym = theano.tensor.tensor5("kern")
-            top_sym = theano.tensor.tensor5("top")
+            kern_sym = tensor5("kern")
+            top_sym = tensor5("top")
         for imshp, kshp, tshp, groups in zip(
             self.img_shape, self.kern_shape, self.top_shape, self.num_groups
         ):
@@ -2207,7 +2216,7 @@ class TestGroupedConvNoOptim:
                 num_groups=groups,
             )
             grouped_conv_output = grouped_convgrad_op(
-                kern_sym, top_sym, tensor.as_tensor_variable(imshp[-self.convdim :])
+                kern_sym, top_sym, tt.as_tensor_variable(imshp[-self.convdim :])
             )
             grouped_func = theano.function(
                 [kern_sym, top_sym], grouped_conv_output, mode=self.mode
@@ -2243,7 +2252,7 @@ class TestGroupedConvNoOptim:
                 return grouped_convgrad_op(
                     filters_val,
                     output_val,
-                    tensor.as_tensor_variable(imshp[-self.convdim :]),
+                    tt.as_tensor_variable(imshp[-self.convdim :]),
                 )
 
             utt.verify_grad(conv_gradinputs, [kern, top], mode=self.mode, eps=1)
@@ -2360,9 +2369,9 @@ class TestSeparableConv:
 
     @pytest.mark.skipif(config.cxx == "", reason="test needs cxx")
     def test_interface2d(self):
-        x_sym = theano.tensor.tensor4("x")
-        dfilter_sym = theano.tensor.tensor4("d")
-        pfilter_sym = theano.tensor.tensor4("p")
+        x_sym = tensor4("x")
+        dfilter_sym = tensor4("d")
+        pfilter_sym = tensor4("p")
 
         sep_op = separable_conv2d(x_sym, dfilter_sym, pfilter_sym, self.x.shape[1])
         fun = theano.function(
@@ -2428,9 +2437,9 @@ class TestSeparableConv:
             * 3
         )
 
-        x_sym = theano.tensor.tensor5("x")
-        dfilter_sym = theano.tensor.tensor5("d")
-        pfilter_sym = theano.tensor.tensor5("p")
+        x_sym = tensor5("x")
+        dfilter_sym = tensor5("d")
+        pfilter_sym = tensor5("p")
 
         sep_op = separable_conv3d(x_sym, dfilter_sym, pfilter_sym, x.shape[1])
         fun = theano.function(
@@ -2523,10 +2532,10 @@ class TestUnsharedConv:
         self.ref_mode = "FAST_RUN"
 
     def test_fwd(self):
-        tensor6 = theano.tensor.TensorType(config.floatX, (False,) * 6)
-        img_sym = theano.tensor.tensor4("img")
+        tensor6 = TensorType(config.floatX, (False,) * 6)
+        img_sym = tensor4("img")
         kern_sym = tensor6("kern")
-        ref_kern_sym = theano.tensor.tensor4("ref_kern")
+        ref_kern_sym = tensor4("ref_kern")
 
         for imshp, kshp, mode, sub, groups, verify in zip(
             self.img_shape,
@@ -2584,8 +2593,8 @@ class TestUnsharedConv:
                 utt.verify_grad(unshared_conv_op, [img, kern], mode=self.mode, eps=1)
 
     def test_gradweight(self):
-        img_sym = theano.tensor.tensor4("img")
-        top_sym = theano.tensor.tensor4("top")
+        img_sym = tensor4("img")
+        top_sym = tensor4("top")
 
         for imshp, kshp, topshp, mode, sub, groups, verify in zip(
             self.img_shape,
@@ -2607,7 +2616,7 @@ class TestUnsharedConv:
                 unshared=True,
             )
             unshared_out_sym = unshared_conv_op(
-                img_sym, top_sym, tensor.as_tensor_variable(kshp[-2:])
+                img_sym, top_sym, tt.as_tensor_variable(kshp[-2:])
             )
             unshared_func = theano.function(
                 [img_sym, top_sym], unshared_out_sym, mode=self.mode
@@ -2630,7 +2639,7 @@ class TestUnsharedConv:
                 unshared=False,
             )
             ref_out_sym = ref_conv_op(
-                img_sym, top_sym, tensor.as_tensor_variable(single_kshp[-2:])
+                img_sym, top_sym, tt.as_tensor_variable(single_kshp[-2:])
             )
             ref_func = theano.function([img_sym, top_sym], ref_out_sym, mode=self.mode)
 
@@ -2643,17 +2652,17 @@ class TestUnsharedConv:
 
             def conv_gradweight(inputs_val, output_val):
                 return unshared_conv_op(
-                    inputs_val, output_val, tensor.as_tensor_variable(kshp[-2:])
+                    inputs_val, output_val, tt.as_tensor_variable(kshp[-2:])
                 )
 
             if verify:
                 utt.verify_grad(conv_gradweight, [img, top], mode=self.mode, eps=1)
 
     def test_gradinput(self):
-        tensor6 = theano.tensor.TensorType(config.floatX, (False,) * 6)
+        tensor6 = TensorType(config.floatX, (False,) * 6)
         kern_sym = tensor6("kern")
-        top_sym = theano.tensor.tensor4("top")
-        ref_kern_sym = theano.tensor.tensor4("ref_kern")
+        top_sym = tensor4("top")
+        ref_kern_sym = tensor4("ref_kern")
 
         for imshp, kshp, topshp, mode, sub, groups, verify in zip(
             self.img_shape,
@@ -2677,7 +2686,7 @@ class TestUnsharedConv:
                 unshared=True,
             )
             unshared_out_sym = unshared_conv_op(
-                kern_sym, top_sym, tensor.as_tensor_variable(imshp[-2:])
+                kern_sym, top_sym, tt.as_tensor_variable(imshp[-2:])
             )
             unshared_func = theano.function(
                 [kern_sym, top_sym], unshared_out_sym, mode=self.mode
@@ -2698,7 +2707,7 @@ class TestUnsharedConv:
                 unshared=False,
             )
             ref_out_sym = ref_conv_op(
-                ref_kern_sym, top_sym, tensor.as_tensor_variable(imshp[-2:])
+                ref_kern_sym, top_sym, tt.as_tensor_variable(imshp[-2:])
             )
             ref_func = theano.function(
                 [ref_kern_sym, top_sym], ref_out_sym, mode=self.mode
@@ -2717,7 +2726,7 @@ class TestUnsharedConv:
 
             def conv_gradinputs(filters_val, output_val):
                 return unshared_conv_op(
-                    filters_val, output_val, tensor.as_tensor_variable(imshp[-2:])
+                    filters_val, output_val, tt.as_tensor_variable(imshp[-2:])
                 )
 
             if verify:
@@ -2744,8 +2753,8 @@ class TestAsymmetricPadding:
         reason="SciPy and cxx needed",
     )
     def test_fwd(self):
-        img_sym = theano.tensor.tensor4("img")
-        kern_sym = theano.tensor.tensor4("kern")
+        img_sym = tensor4("img")
+        kern_sym = tensor4("kern")
 
         for imshp, kshp, pad in zip(self.img_shape, self.kern_shape, self.border_mode):
             img = np.random.random(imshp).astype(config.floatX)
@@ -2794,8 +2803,8 @@ class TestAsymmetricPadding:
         reason="SciPy and cxx needed",
     )
     def test_gradweight(self):
-        img_sym = theano.tensor.tensor4("img")
-        top_sym = theano.tensor.tensor4("top")
+        img_sym = tensor4("img")
+        top_sym = tensor4("top")
 
         for imshp, kshp, topshp, pad in zip(
             self.img_shape, self.kern_shape, self.topgrad_shape, self.border_mode
@@ -2841,7 +2850,7 @@ class TestAsymmetricPadding:
 
             def conv_gradweight(inputs_val, output_val):
                 return asymmetric_conv_op(
-                    inputs_val, output_val, tensor.as_tensor_variable(kshp[-2:])
+                    inputs_val, output_val, tt.as_tensor_variable(kshp[-2:])
                 )
 
             utt.verify_grad(conv_gradweight, [img, top], mode=self.mode, eps=1)
@@ -2851,8 +2860,8 @@ class TestAsymmetricPadding:
         reason="SciPy and cxx needed",
     )
     def test_gradinput(self):
-        kern_sym = theano.tensor.tensor4("kern")
-        top_sym = theano.tensor.tensor4("top")
+        kern_sym = tensor4("kern")
+        top_sym = tensor4("top")
 
         for imshp, kshp, topshp, pad in zip(
             self.img_shape, self.kern_shape, self.topgrad_shape, self.border_mode
@@ -2895,7 +2904,7 @@ class TestAsymmetricPadding:
 
             def conv_gradinputs(filters_val, output_val):
                 return asymmetric_conv_op(
-                    filters_val, output_val, tensor.as_tensor_variable(imshp[-2:])
+                    filters_val, output_val, tt.as_tensor_variable(imshp[-2:])
                 )
 
             utt.verify_grad(conv_gradinputs, [kern, top], mode=self.mode, eps=1)
@@ -2928,8 +2937,8 @@ class TestCausalConv:
         reason="SciPy and cxx needed",
     )
     def test_interface(self):
-        img_sym = theano.tensor.tensor3("img")
-        kern_sym = theano.tensor.tensor3("kern")
+        img_sym = tensor3("img")
+        kern_sym = tensor3("kern")
         sym_out = causal_conv1d(
             img_sym, kern_sym, self.kern.shape, filter_dilation=self.dilation
         )

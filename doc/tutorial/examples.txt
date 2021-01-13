@@ -112,7 +112,7 @@ one. You can do it like this:
 .. If you modify this code, also change :
 .. tests/test_tutorial.py:T_examples.test_examples_6
 
->>> from theano import In
+>>> from theano.compile.io import In
 >>> from theano import function
 >>> x, y = tt.dscalars('x', 'y')
 >>> z = x + y

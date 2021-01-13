@@ -11,29 +11,10 @@ import theano.scalar as scal
 import theano.tensor as tt
 from tests import unittest_tools as utt
 from tests.tensor.utils import inplace_func, rand, randint_ranged
-from theano.compile import DeepCopyOp
+from theano.compile import DeepCopyOp, shared
 from theano.configdefaults import config
 from theano.graph.op import get_test_value
 from theano.graph.toolbox import is_same_graph
-from theano.tensor import (
-    _shared,
-    cscalar,
-    ctensor3,
-    dmatrix,
-    dscalar,
-    dtensor4,
-    dvector,
-    fmatrix,
-    fscalar,
-    ftensor4,
-    fvector,
-    iscalar,
-    lmatrix,
-    lrow,
-    lvector,
-    matrix,
-    vector,
-)
 from theano.tensor.basic import DimShuffle
 from theano.tensor.subtensor import (
     AdvancedIncSubtensor,
@@ -52,6 +33,29 @@ from theano.tensor.subtensor import (
     indexed_result_shape,
     set_subtensor,
 )
+from theano.tensor.type import (
+    TensorType,
+    col,
+    cscalar,
+    ctensor3,
+    dmatrix,
+    dscalar,
+    dtensor4,
+    dvector,
+    fmatrix,
+    fscalar,
+    ftensor4,
+    fvector,
+    iscalar,
+    lmatrix,
+    lrow,
+    lvector,
+    matrix,
+    tensor,
+    tensor3,
+    tensor4,
+    vector,
+)
 from theano.tensor.type_other import make_slice
 
 
@@ -69,7 +73,7 @@ class TestSubtensor(utt.OptimizationTestMixin):
     """
 
     def setup_method(self):
-        self.shared = _shared
+        self.shared = shared
         self.dtype = config.floatX
         mode = theano.compile.mode.get_default_mode()
         self.mode = mode.including("local_useless_subtensor")
@@ -562,7 +566,7 @@ class TestSubtensor(utt.OptimizationTestMixin):
         n = self.shared(data)
         z = scal.constant(subi).astype("int32")
         t = n[z:, z]
-        gn = tt.grad(tt.sum(tt.exp(t)), n)
+        gn = theano.grad(tt.sum(tt.exp(t)), n)
 
         f = inplace_func([], gn, mode=self.mode)
         topo = f.maker.fgraph.toposort()
@@ -593,7 +597,7 @@ class TestSubtensor(utt.OptimizationTestMixin):
                 mv = np.asarray(rand(*m_shape), dtype=self.dtype)
 
                 t = op(n[:z, :z], m)
-                gn, gm = tt.grad(tt.sum(t), [n, m])
+                gn, gm = theano.grad(tt.sum(t), [n, m])
                 utt.verify_grad(lambda m: op(n[:z, :z], m), [mv], mode=self.mode)
                 utt.verify_grad(lambda nn: op(nn[:z, :z], mv), [data], mode=self.mode)
 
@@ -601,7 +605,7 @@ class TestSubtensor(utt.OptimizationTestMixin):
         data = np.asarray(rand(2, 3), dtype=self.dtype)
         n = self.shared(data)
         t = n[1, 0]
-        gn = tt.grad(tt.sum(tt.exp(t)), n)
+        gn = theano.grad(tt.sum(tt.exp(t)), n)
         f = self.function([], gn)
         topo = f.maker.fgraph.toposort()
         topo_ = [node for node in topo if not isinstance(node.op, DeepCopyOp)]
@@ -774,13 +778,13 @@ class TestSubtensor(utt.OptimizationTestMixin):
         # test set_subtensor broadcast
         self.dtype = "float32"
 
-        x = tt.tensor4("x", dtype=self.dtype)
+        x = tensor4("x", dtype=self.dtype)
         indexes = theano.shared(np.int32([1, 2, 3, 4]))
         W = self.shared(np.random.random((10, 10, 3, 3)).astype(self.dtype))
 
         h = x + W
         h = tt.set_subtensor(h[indexes], h[indexes])
-        g = tt.grad(h.sum(), W)
+        g = theano.grad(h.sum(), W)
         N = 2
         if (
             config.mode == "FAST_COMPILE"
@@ -795,7 +799,7 @@ class TestSubtensor(utt.OptimizationTestMixin):
         # The idx can be a broadcastable vector.
         ones = np.ones((4, 3), dtype=self.dtype)
         n = self.shared(ones * 5)
-        idx = tt.TensorType(dtype="int64", broadcastable=(True,))()
+        idx = TensorType(dtype="int64", broadcastable=(True,))()
         assert idx.type.broadcastable == (True,)
         t = n[idx]
         assert isinstance(t.owner.op, AdvancedSubtensor1)
@@ -1050,9 +1054,9 @@ class TestSubtensor(utt.OptimizationTestMixin):
 
         for idx in idxs:
             # Should stay on the cpu.
-            idx_ = _shared(np.asarray(idx))
+            idx_ = shared(np.asarray(idx))
             t = n[idx_]
-            gn = tt.grad(tt.sum(tt.exp(t)), n)
+            gn = theano.grad(tt.sum(tt.exp(t)), n)
             f = self.function([], [gn, gn.shape], op=AdvancedIncSubtensor1)
             topo = f.maker.fgraph.toposort()
             if not self.fast_compile:
@@ -1084,7 +1088,7 @@ class TestSubtensor(utt.OptimizationTestMixin):
 
             # Test the grad of the grad (e.i. AdvancedIncSubtensor1.grad)
             def fct2(t):
-                return tt.grad(tt.sum(t[idx_]), t)
+                return theano.grad(tt.sum(t[idx_]), t)
 
             utt.verify_grad(fct2, [data], mode=self.mode)
 
@@ -1190,7 +1194,7 @@ class TestSubtensor(utt.OptimizationTestMixin):
                         # Symbolic variable to be incremented.
                         # We create a new one every time in order not to
                         # have duplicated variables in the function's inputs
-                        data_var = tt.TensorType(
+                        data_var = TensorType(
                             broadcastable=[False] * data_n_dims, dtype=self.dtype
                         )()
                         # Symbolic variable with rows to be incremented.
@@ -1213,7 +1217,7 @@ class TestSubtensor(utt.OptimizationTestMixin):
                         )
                         idx_num = idx_num.astype("int64")
                         # Symbolic variable with increment value.
-                        inc_var = tt.TensorType(
+                        inc_var = TensorType(
                             broadcastable=[False] * inc_n_dims, dtype=self.dtype
                         )()
                         # Trick for the case where `inc_shape` is the same as
@@ -1443,7 +1447,7 @@ class TestIncSubtensor1:
         self.rng = np.random.RandomState(seed=utt.fetch_seed())
 
         self.s = iscalar()
-        self.v = tt.fvector()
+        self.v = fvector()
         self.m = dmatrix()
         self.t = ctensor3()
 
@@ -1506,7 +1510,7 @@ class TestIncSubtensor1:
 
     def test_inc_bcastableidx(self):
         idx = tt.constant([0])
-        c_inc = tt.col()
+        c_inc = col()
         m_inc = matrix()
         out1 = inc_subtensor(self.m[:, idx], c_inc)
         out2 = inc_subtensor(self.m[:, idx], m_inc)
@@ -1523,7 +1527,7 @@ class TestAdvancedSubtensor:
     """Test inc_subtensor and set_subtensor."""
 
     def setup_method(self):
-        self.shared = _shared
+        self.shared = shared
         self.dtype = config.floatX
         self.mode = theano.compile.mode.get_default_mode()
 
@@ -1543,7 +1547,7 @@ class TestAdvancedSubtensor:
 
         def check(idx, y_val, x_val, true):
             x = self.shared(x_val, name="x")
-            y = tt.tensor(
+            y = tensor(
                 dtype="float32", broadcastable=(False,) * len(y_val.shape), name="y"
             )
             sym_idx = [tt.as_tensor_variable(ix) for ix in idx]
@@ -1695,7 +1699,7 @@ class TestAdvancedSubtensor:
         subt = self.m[self.ix1, self.ix12]
         a = inc_subtensor(subt, subt)
 
-        typ = tt.TensorType(self.m.type.dtype, self.ix2.type.broadcastable)
+        typ = TensorType(self.m.type.dtype, self.ix2.type.broadcastable)
         assert a.type == typ, (a.type, typ)
         f = theano.function(
             [self.m, self.ix1, self.ix12], a, allow_input_downcast=True, mode=self.mode
@@ -1708,7 +1712,7 @@ class TestAdvancedSubtensor:
     def test_inc_adv_subtensor_with_broadcasting(self):
         inc = dscalar()
         a = inc_subtensor(self.m[self.ix1, self.ix12], inc)
-        g_inc = tt.grad(a.sum(), inc)
+        g_inc = theano.grad(a.sum(), inc)
 
         assert a.type == self.m.type, (a.type, self.m.type)
         f = theano.function(
@@ -1728,7 +1732,7 @@ class TestAdvancedSubtensor:
     def test_inc_adv_subtensor1_with_broadcasting(self):
         inc = dscalar()
         a = inc_subtensor(self.m[self.ix1], inc)
-        g_inc = tt.grad(a.sum(), inc)
+        g_inc = theano.grad(a.sum(), inc)
 
         assert a.type == self.m.type, (a.type, self.m.type)
         f = theano.function(
@@ -1790,7 +1794,7 @@ class TestAdvancedSubtensor:
 
     def test_adv_sub_3d(self):
         # Reported in https://github.com/Theano/Theano/issues/5674
-        X = tt.tensor3("X")
+        X = tensor3("X")
 
         xx = np.zeros((3, 2, 2), config.floatX)
         for i in range(3):

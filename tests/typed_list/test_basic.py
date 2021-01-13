@@ -6,6 +6,14 @@ import theano.tensor as tt
 import theano.typed_list
 from tests import unittest_tools as utt
 from theano import sparse
+from theano.tensor.type import (
+    TensorType,
+    integer_dtypes,
+    matrix,
+    scalar,
+    tensor3,
+    vector,
+)
 from theano.tensor.type_other import SliceType
 from theano.typed_list.basic import (
     Append,
@@ -38,7 +46,7 @@ def random_lil(shape, dtype, nnz):
         idx = np.random.randint(1, huge + 1, size=2) % shape
         value = np.random.rand()
         # if dtype *int*, value will always be zeros!
-        if dtype in tt.integer_dtypes:
+        if dtype in integer_dtypes:
             value = int(value * 100)
         # The call to tuple is needed as scipy 0.13.1 do not support
         # ndarray with length 2 as idx tuple.
@@ -53,7 +61,7 @@ class TestGetItem:
     def test_sanity_check_slice(self):
 
         mySymbolicMatricesList = TypedListType(
-            tt.TensorType(theano.config.floatX, (False, False))
+            TensorType(theano.config.floatX, (False, False))
         )()
 
         mySymbolicSlice = SliceType()()
@@ -71,10 +79,10 @@ class TestGetItem:
     def test_sanity_check_single(self):
 
         mySymbolicMatricesList = TypedListType(
-            tt.TensorType(theano.config.floatX, (False, False))
+            TensorType(theano.config.floatX, (False, False))
         )()
 
-        mySymbolicScalar = tt.scalar(dtype="int64")
+        mySymbolicScalar = scalar(dtype="int64")
 
         z = GetItem()(mySymbolicMatricesList, mySymbolicScalar)
 
@@ -86,9 +94,9 @@ class TestGetItem:
 
     def test_interface(self):
         mySymbolicMatricesList = TypedListType(
-            tt.TensorType(theano.config.floatX, (False, False))
+            TensorType(theano.config.floatX, (False, False))
         )()
-        mySymbolicScalar = tt.scalar(dtype="int64")
+        mySymbolicScalar = scalar(dtype="int64")
 
         z = mySymbolicMatricesList[mySymbolicScalar]
 
@@ -106,16 +114,16 @@ class TestGetItem:
 
     def test_wrong_input(self):
         mySymbolicMatricesList = TypedListType(
-            tt.TensorType(theano.config.floatX, (False, False))
+            TensorType(theano.config.floatX, (False, False))
         )()
-        mySymbolicMatrix = tt.matrix()
+        mySymbolicMatrix = matrix()
 
         with pytest.raises(TypeError):
             GetItem()(mySymbolicMatricesList, mySymbolicMatrix)
 
     def test_constant_input(self):
         mySymbolicMatricesList = TypedListType(
-            tt.TensorType(theano.config.floatX, (False, False))
+            TensorType(theano.config.floatX, (False, False))
         )()
 
         z = GetItem()(mySymbolicMatricesList, 0)
@@ -136,9 +144,9 @@ class TestGetItem:
 class TestAppend:
     def test_inplace(self):
         mySymbolicMatricesList = TypedListType(
-            tt.TensorType(theano.config.floatX, (False, False))
+            TensorType(theano.config.floatX, (False, False))
         )()
-        myMatrix = tt.matrix()
+        myMatrix = matrix()
 
         z = Append(True)(mySymbolicMatricesList, myMatrix)
 
@@ -152,9 +160,9 @@ class TestAppend:
 
     def test_sanity_check(self):
         mySymbolicMatricesList = TypedListType(
-            tt.TensorType(theano.config.floatX, (False, False))
+            TensorType(theano.config.floatX, (False, False))
         )()
-        myMatrix = tt.matrix()
+        myMatrix = matrix()
 
         z = Append()(mySymbolicMatricesList, myMatrix)
 
@@ -168,9 +176,9 @@ class TestAppend:
 
     def test_interfaces(self):
         mySymbolicMatricesList = TypedListType(
-            tt.TensorType(theano.config.floatX, (False, False))
+            TensorType(theano.config.floatX, (False, False))
         )()
-        myMatrix = tt.matrix()
+        myMatrix = matrix()
 
         z = mySymbolicMatricesList.append(myMatrix)
 
@@ -186,10 +194,10 @@ class TestAppend:
 class TestExtend:
     def test_inplace(self):
         mySymbolicMatricesList1 = TypedListType(
-            tt.TensorType(theano.config.floatX, (False, False))
+            TensorType(theano.config.floatX, (False, False))
         )()
         mySymbolicMatricesList2 = TypedListType(
-            tt.TensorType(theano.config.floatX, (False, False))
+            TensorType(theano.config.floatX, (False, False))
         )()
 
         z = Extend(True)(mySymbolicMatricesList1, mySymbolicMatricesList2)
@@ -206,10 +214,10 @@ class TestExtend:
 
     def test_sanity_check(self):
         mySymbolicMatricesList1 = TypedListType(
-            tt.TensorType(theano.config.floatX, (False, False))
+            TensorType(theano.config.floatX, (False, False))
         )()
         mySymbolicMatricesList2 = TypedListType(
-            tt.TensorType(theano.config.floatX, (False, False))
+            TensorType(theano.config.floatX, (False, False))
         )()
 
         z = Extend()(mySymbolicMatricesList1, mySymbolicMatricesList2)
@@ -224,10 +232,10 @@ class TestExtend:
 
     def test_interface(self):
         mySymbolicMatricesList1 = TypedListType(
-            tt.TensorType(theano.config.floatX, (False, False))
+            TensorType(theano.config.floatX, (False, False))
         )()
         mySymbolicMatricesList2 = TypedListType(
-            tt.TensorType(theano.config.floatX, (False, False))
+            TensorType(theano.config.floatX, (False, False))
         )()
 
         z = mySymbolicMatricesList1.extend(mySymbolicMatricesList2)
@@ -244,10 +252,10 @@ class TestExtend:
 class TestInsert:
     def test_inplace(self):
         mySymbolicMatricesList = TypedListType(
-            tt.TensorType(theano.config.floatX, (False, False))
+            TensorType(theano.config.floatX, (False, False))
         )()
-        myMatrix = tt.matrix()
-        myScalar = tt.scalar(dtype="int64")
+        myMatrix = matrix()
+        myScalar = scalar(dtype="int64")
 
         z = Insert(True)(mySymbolicMatricesList, myScalar, myMatrix)
 
@@ -263,10 +271,10 @@ class TestInsert:
 
     def test_sanity_check(self):
         mySymbolicMatricesList = TypedListType(
-            tt.TensorType(theano.config.floatX, (False, False))
+            TensorType(theano.config.floatX, (False, False))
         )()
-        myMatrix = tt.matrix()
-        myScalar = tt.scalar(dtype="int64")
+        myMatrix = matrix()
+        myScalar = scalar(dtype="int64")
 
         z = Insert()(mySymbolicMatricesList, myScalar, myMatrix)
 
@@ -280,10 +288,10 @@ class TestInsert:
 
     def test_interface(self):
         mySymbolicMatricesList = TypedListType(
-            tt.TensorType(theano.config.floatX, (False, False))
+            TensorType(theano.config.floatX, (False, False))
         )()
-        myMatrix = tt.matrix()
-        myScalar = tt.scalar(dtype="int64")
+        myMatrix = matrix()
+        myScalar = scalar(dtype="int64")
 
         z = mySymbolicMatricesList.insert(myScalar, myMatrix)
 
@@ -299,9 +307,9 @@ class TestInsert:
 class TestRemove:
     def test_inplace(self):
         mySymbolicMatricesList = TypedListType(
-            tt.TensorType(theano.config.floatX, (False, False))
+            TensorType(theano.config.floatX, (False, False))
         )()
-        myMatrix = tt.matrix()
+        myMatrix = matrix()
 
         z = Remove(True)(mySymbolicMatricesList, myMatrix)
 
@@ -315,9 +323,9 @@ class TestRemove:
 
     def test_sanity_check(self):
         mySymbolicMatricesList = TypedListType(
-            tt.TensorType(theano.config.floatX, (False, False))
+            TensorType(theano.config.floatX, (False, False))
         )()
-        myMatrix = tt.matrix()
+        myMatrix = matrix()
 
         z = Remove()(mySymbolicMatricesList, myMatrix)
 
@@ -331,9 +339,9 @@ class TestRemove:
 
     def test_interface(self):
         mySymbolicMatricesList = TypedListType(
-            tt.TensorType(theano.config.floatX, (False, False))
+            TensorType(theano.config.floatX, (False, False))
         )()
-        myMatrix = tt.matrix()
+        myMatrix = matrix()
 
         z = mySymbolicMatricesList.remove(myMatrix)
 
@@ -349,7 +357,7 @@ class TestRemove:
 class TestReverse:
     def test_inplace(self):
         mySymbolicMatricesList = TypedListType(
-            tt.TensorType(theano.config.floatX, (False, False))
+            TensorType(theano.config.floatX, (False, False))
         )()
 
         z = Reverse(True)(mySymbolicMatricesList)
@@ -364,7 +372,7 @@ class TestReverse:
 
     def test_sanity_check(self):
         mySymbolicMatricesList = TypedListType(
-            tt.TensorType(theano.config.floatX, (False, False))
+            TensorType(theano.config.floatX, (False, False))
         )()
 
         z = Reverse()(mySymbolicMatricesList)
@@ -379,7 +387,7 @@ class TestReverse:
 
     def test_interface(self):
         mySymbolicMatricesList = TypedListType(
-            tt.TensorType(theano.config.floatX, (False, False))
+            TensorType(theano.config.floatX, (False, False))
         )()
 
         z = mySymbolicMatricesList.reverse()
@@ -396,9 +404,9 @@ class TestReverse:
 class TestIndex:
     def test_sanity_check(self):
         mySymbolicMatricesList = TypedListType(
-            tt.TensorType(theano.config.floatX, (False, False))
+            TensorType(theano.config.floatX, (False, False))
         )()
-        myMatrix = tt.matrix()
+        myMatrix = matrix()
 
         z = Index()(mySymbolicMatricesList, myMatrix)
 
@@ -412,9 +420,9 @@ class TestIndex:
 
     def test_interface(self):
         mySymbolicMatricesList = TypedListType(
-            tt.TensorType(theano.config.floatX, (False, False))
+            TensorType(theano.config.floatX, (False, False))
         )()
-        myMatrix = tt.matrix()
+        myMatrix = matrix()
 
         z = mySymbolicMatricesList.ind(myMatrix)
 
@@ -428,10 +436,10 @@ class TestIndex:
 
     def test_non_tensor_type(self):
         mySymbolicNestedMatricesList = TypedListType(
-            tt.TensorType(theano.config.floatX, (False, False)), 1
+            TensorType(theano.config.floatX, (False, False)), 1
         )()
         mySymbolicMatricesList = TypedListType(
-            tt.TensorType(theano.config.floatX, (False, False))
+            TensorType(theano.config.floatX, (False, False))
         )()
 
         z = Index()(mySymbolicNestedMatricesList, mySymbolicMatricesList)
@@ -464,9 +472,9 @@ class TestIndex:
 class TestCount:
     def test_sanity_check(self):
         mySymbolicMatricesList = TypedListType(
-            tt.TensorType(theano.config.floatX, (False, False))
+            TensorType(theano.config.floatX, (False, False))
         )()
-        myMatrix = tt.matrix()
+        myMatrix = matrix()
 
         z = Count()(mySymbolicMatricesList, myMatrix)
 
@@ -480,9 +488,9 @@ class TestCount:
 
     def test_interface(self):
         mySymbolicMatricesList = TypedListType(
-            tt.TensorType(theano.config.floatX, (False, False))
+            TensorType(theano.config.floatX, (False, False))
         )()
-        myMatrix = tt.matrix()
+        myMatrix = matrix()
 
         z = mySymbolicMatricesList.count(myMatrix)
 
@@ -496,10 +504,10 @@ class TestCount:
 
     def test_non_tensor_type(self):
         mySymbolicNestedMatricesList = TypedListType(
-            tt.TensorType(theano.config.floatX, (False, False)), 1
+            TensorType(theano.config.floatX, (False, False)), 1
         )()
         mySymbolicMatricesList = TypedListType(
-            tt.TensorType(theano.config.floatX, (False, False))
+            TensorType(theano.config.floatX, (False, False))
         )()
 
         z = Count()(mySymbolicNestedMatricesList, mySymbolicMatricesList)
@@ -532,7 +540,7 @@ class TestCount:
 class TestLength:
     def test_sanity_check(self):
         mySymbolicMatricesList = TypedListType(
-            tt.TensorType(theano.config.floatX, (False, False))
+            TensorType(theano.config.floatX, (False, False))
         )()
 
         z = Length()(mySymbolicMatricesList)
@@ -545,7 +553,7 @@ class TestLength:
 
     def test_interface(self):
         mySymbolicMatricesList = TypedListType(
-            tt.TensorType(theano.config.floatX, (False, False))
+            TensorType(theano.config.floatX, (False, False))
         )()
         z = mySymbolicMatricesList.__len__()
 
@@ -558,18 +566,18 @@ class TestLength:
 
 class TestMakeList:
     def test_wrong_shape(self):
-        a = tt.vector()
-        b = tt.matrix()
+        a = vector()
+        b = matrix()
 
         with pytest.raises(TypeError):
             make_list((a, b))
 
     def test_correct_answer(self):
-        a = tt.matrix()
-        b = tt.matrix()
+        a = matrix()
+        b = matrix()
 
-        x = tt.tensor3()
-        y = tt.tensor3()
+        x = tensor3()
+        y = tensor3()
 
         A = np.cast[theano.config.floatX](np.random.rand(5, 3))
         B = np.cast[theano.config.floatX](np.random.rand(7, 2))

@@ -8,7 +8,7 @@ import numpy as np
 import theano
 from tests import unittest_tools as utt
 from tests.sparse.test_basic import as_sparse_format
-from theano import sparse, tensor
+from theano import sparse
 from theano.configdefaults import config
 from theano.sparse.sandbox.sp2 import (
     Binomial,
@@ -17,6 +17,7 @@ from theano.sparse.sandbox.sp2 import (
     multinomial,
     poisson,
 )
+from theano.tensor.type import lscalar, lvector, scalar
 
 
 class TestPoisson(utt.InferShapeTester):
@@ -59,9 +60,9 @@ class TestPoisson(utt.InferShapeTester):
 
 
 class TestBinomial(utt.InferShapeTester):
-    n = tensor.scalar(dtype="int64")
-    p = tensor.scalar()
-    shape = tensor.lvector()
+    n = scalar(dtype="int64")
+    p = scalar()
+    shape = lvector()
     _n = 5
     _p = 0.25
     _shape = np.asarray([3, 5], dtype="int64")
@@ -117,7 +118,7 @@ class TestMultinomial(utt.InferShapeTester):
         self.op_class = Multinomial
 
     def test_op(self):
-        n = tensor.lscalar()
+        n = lscalar()
         f = theano.function([self.p, n], multinomial(n, self.p))
 
         _n = 5
@@ -126,7 +127,7 @@ class TestMultinomial(utt.InferShapeTester):
         assert np.allclose(np.floor(tested.todense()), tested.todense())
         assert tested[2, 1] == _n
 
-        n = tensor.lvector()
+        n = lvector()
         f = theano.function([self.p, n], multinomial(n, self.p))
 
         _n = np.asarray([1, 2, 3, 4], dtype="int64")

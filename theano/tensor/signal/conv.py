@@ -7,7 +7,7 @@ generic 2D convolution.
 import logging
 import warnings
 
-import theano.tensor as tensor
+from theano import tensor as tt
 from theano.configdefaults import config
 from theano.tensor.nnet import conv
 
@@ -90,11 +90,11 @@ def conv2d(
     else:
         sym_nkern = 1
 
-    new_input_shape = tensor.join(0, tensor.stack([sym_bsize, 1]), input.shape[-2:])
-    input4D = tensor.reshape(input, new_input_shape, ndim=4)
+    new_input_shape = tt.join(0, tt.stack([sym_bsize, 1]), input.shape[-2:])
+    input4D = tt.reshape(input, new_input_shape, ndim=4)
 
-    new_filter_shape = tensor.join(0, tensor.stack([sym_nkern, 1]), filters.shape[-2:])
-    filters4D = tensor.reshape(filters, new_filter_shape, ndim=4)
+    new_filter_shape = tt.join(0, tt.stack([sym_nkern, 1]), filters.shape[-2:])
+    filters4D = tt.reshape(filters, new_filter_shape, ndim=4)
 
     # perform actual convolution ###
     op = conv.ConvOp(
@@ -120,8 +120,8 @@ def conv2d(
                 stacklevel=3,
             )
 
-        output = tensor.flatten(output.T, ndim=2).T
+        output = tt.flatten(output.T, ndim=2).T
     elif input.ndim == 2 or filters.ndim == 2:
-        output = tensor.flatten(output.T, ndim=3).T
+        output = tt.flatten(output.T, ndim=3).T
 
     return output

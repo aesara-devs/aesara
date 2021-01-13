@@ -9,6 +9,7 @@ from theano.graph.op import Op
 from theano.graph.type import Type
 from theano.link.basic import Container, PerformLinker, WrapLinker
 from theano.link.c.basic import OpWiseCLinker
+from theano.tensor.type import matrix, scalar
 from theano.utils import cmp
 
 
@@ -178,7 +179,7 @@ def test_sort_schedule_fn():
     import theano
     from theano.graph.sched import make_depends, sort_schedule_fn
 
-    x = theano.tensor.matrix("x")
+    x = matrix("x")
     y = theano.tensor.dot(x[:5] * 2, x.T + 1).T
 
     def str_cmp(a, b):
@@ -198,7 +199,7 @@ def test_sort_schedule_fn():
 def test_container_deepcopy():
     # This is a test to a work around a NumPy bug.
 
-    t = theano.tensor.scalar()
+    t = scalar()
     # It seam that numpy.asarray(0.).astype(floatX) can return a numpy
     # scalar with some NumPy Version. So we call numpy.asarray with
     # the dtype parameter.

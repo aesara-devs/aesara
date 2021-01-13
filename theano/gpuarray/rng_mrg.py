@@ -7,14 +7,8 @@ http://www.iro.umontreal.ca/~simardr/ssj/indexe.html
 """
 
 
-from theano import tensor
-from theano.graph.basic import Apply
-from theano.graph.opt import local_optimizer
-from theano.sandbox.rng_mrg import mrg_uniform, mrg_uniform_base
-from theano.scalar import int32 as int_t
-from theano.tensor import as_tensor_variable, get_vector_length
-
-from .basic_ops import (
+from theano import tensor as tt
+from theano.gpuarray.basic_ops import (
     GpuFromHost,
     GpuKernelBase,
     Kernel,
@@ -22,9 +16,14 @@ from .basic_ops import (
     host_from_gpu,
     infer_context_name,
 )
-from .fp16_help import write_w
-from .opt import register_opt, register_opt2
-from .type import GpuArrayType, gpu_context_type
+from theano.gpuarray.fp16_help import write_w
+from theano.gpuarray.opt import register_opt, register_opt2
+from theano.gpuarray.type import GpuArrayType, gpu_context_type
+from theano.graph.basic import Apply
+from theano.graph.opt import local_optimizer
+from theano.sandbox.rng_mrg import mrg_uniform, mrg_uniform_base
+from theano.scalar import int32 as int_t
+from theano.tensor import as_tensor_variable, get_vector_length
 
 
 class GPUA_mrg_uniform(GpuKernelBase, mrg_uniform_base):
@@ -43,7 +42,7 @@ class GPUA_mrg_uniform(GpuKernelBase, mrg_uniform_base):
         # call through MRG_RandomStream instead.
         broad = []
         for i in range(self.output_type.ndim):
-            broad.append(tensor.extract_constant(size[i]) == 1)
+            broad.append(tt.extract_constant(size[i]) == 1)
         output_type = self.output_type.clone(broadcastable=broad)()
         rstate = as_gpuarray_variable(rstate, infer_context_name(rstate))
         return Apply(self, [rstate, size], [rstate.type(), output_type])

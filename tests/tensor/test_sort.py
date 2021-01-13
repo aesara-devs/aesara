@@ -6,7 +6,6 @@ import pytest
 
 import theano
 from tests import unittest_tools as utt
-from theano import tensor
 from theano.tensor.sort import (
     ArgSortOp,
     SortOp,
@@ -17,9 +16,20 @@ from theano.tensor.sort import (
     topk,
     topk_and_argtopk,
 )
+from theano.tensor.type import (
+    dmatrix,
+    dvector,
+    float_dtypes,
+    integer_dtypes,
+    lscalar,
+    matrix,
+    scalar,
+    tensor,
+    vector,
+)
 
 
-_all_dtypes = tensor.integer_dtypes + tensor.float_dtypes
+_all_dtypes = integer_dtypes + float_dtypes
 
 
 def gen_unique_vector(size, dtype):
@@ -35,14 +45,14 @@ class TestSort:
         self.v_val = self.rng.rand(4)
 
     def test1(self):
-        a = tensor.dmatrix()
+        a = dmatrix()
         w = sort(a)
         f = theano.function([a], w)
         utt.assert_allclose(f(self.m_val), np.sort(self.m_val))
 
     def test2(self):
-        a = tensor.dmatrix()
-        axis = tensor.scalar()
+        a = dmatrix()
+        axis = scalar()
         w = sort(a, axis)
         f = theano.function([a, axis], w)
         for axis_val in 0, 1:
@@ -51,7 +61,7 @@ class TestSort:
             utt.assert_allclose(gv, gt)
 
     def test3(self):
-        a = tensor.dvector()
+        a = dvector()
         w2 = sort(a)
         f = theano.function([a], w2)
         gv = f(self.v_val)
@@ -59,8 +69,8 @@ class TestSort:
         utt.assert_allclose(gv, gt)
 
     def test4(self):
-        a = tensor.dmatrix()
-        axis = tensor.scalar()
+        a = dmatrix()
+        axis = scalar()
         l = sort(a, axis, "mergesort")
         f = theano.function([a, axis], l)
         for axis_val in 0, 1:
@@ -78,7 +88,7 @@ class TestSort:
         assert a2 == SortOp("quicksort", [])
 
     def test_None(self):
-        a = tensor.dmatrix()
+        a = dmatrix()
         l = sort(a, None)
         f = theano.function([a], l)
         gv = f(self.m_val)
@@ -150,7 +160,7 @@ class TestSort:
 
 class TestSortInferShape(utt.InferShapeTester):
     def test_sort(self):
-        x = tensor.matrix()
+        x = matrix()
         self._compile_and_check(
             [x],
             [sort(x)],
@@ -172,7 +182,7 @@ def test_argsort():
     v_val = rng.rand(4)
 
     # Example 1
-    a = tensor.dmatrix()
+    a = dmatrix()
     w = argsort(a)
     f = theano.function([a], w)
     gv = f(m_val)
@@ -180,8 +190,8 @@ def test_argsort():
     utt.assert_allclose(gv, gt)
 
     # Example 2
-    a = tensor.dmatrix()
-    axis = tensor.lscalar()
+    a = dmatrix()
+    axis = lscalar()
     w = argsort(a, axis)
     f = theano.function([a, axis], w)
     for axis_val in 0, 1:
@@ -190,7 +200,7 @@ def test_argsort():
         utt.assert_allclose(gv, gt)
 
     # Example 3
-    a = tensor.dvector()
+    a = dvector()
     w2 = argsort(a)
     f = theano.function([a], w2)
     gv = f(v_val)
@@ -198,8 +208,8 @@ def test_argsort():
     utt.assert_allclose(gv, gt)
 
     # Example 4
-    a = tensor.dmatrix()
-    axis = tensor.lscalar()
+    a = dmatrix()
+    axis = lscalar()
     l = argsort(a, axis, "mergesort")
     f = theano.function([a, axis], l)
     for axis_val in 0, 1:
@@ -208,8 +218,8 @@ def test_argsort():
         utt.assert_allclose(gv, gt)
 
     # Example 5
-    a = tensor.dmatrix()
-    axis = tensor.lscalar()
+    a = dmatrix()
+    axis = lscalar()
     a1 = ArgSortOp("mergesort", [])
     a2 = ArgSortOp("quicksort", [])
     # All the below should give true
@@ -218,7 +228,7 @@ def test_argsort():
     assert a2 == ArgSortOp("quicksort", [])
 
     # Example 6: Testing axis=None
-    a = tensor.dmatrix()
+    a = dmatrix()
     w2 = argsort(a, None)
     f = theano.function([a], w2)
     gv = f(m_val)
@@ -246,11 +256,11 @@ class TestTopK:
         pass
 
     @pytest.mark.parametrize("dtype", _all_dtypes)
-    @pytest.mark.parametrize("idx_dtype", tensor.integer_dtypes)
+    @pytest.mark.parametrize("idx_dtype", integer_dtypes)
     @pytest.mark.parametrize("axis", [-1, 0, None])
     @pytest.mark.parametrize("sorted", [False])
     def test_argtopk_sanity(self, dtype, idx_dtype, axis, sorted):
-        x = tensor.vector(name="x", dtype=dtype)
+        x = vector(name="x", dtype=dtype)
         fn = theano.function(
             [x],
             argtopk(x, 1, axis=axis, sorted=sorted, idx_dtype=idx_dtype),
@@ -268,7 +278,7 @@ class TestTopK:
     @pytest.mark.parametrize("axis", [-1, 0, None])
     @pytest.mark.parametrize("sorted", [False])
     def test_topk_sanity(self, dtype, axis, sorted):
-        x = tensor.vector(name="x", dtype=dtype)
+        x = vector(name="x", dtype=dtype)
         fn = theano.function([x], topk(x, 1, axis=axis, sorted=sorted), mode=self.mode)
         assert any(
             [isinstance(n.op, self.op_class) for n in fn.maker.fgraph.apply_nodes]
@@ -279,11 +289,11 @@ class TestTopK:
         assert yval.dtype == xval.dtype
 
     @pytest.mark.parametrize("dtype", _all_dtypes)
-    @pytest.mark.parametrize("idx_dtype", tensor.integer_dtypes)
+    @pytest.mark.parametrize("idx_dtype", integer_dtypes)
     @pytest.mark.parametrize("axis", [-1, 0, None])
     @pytest.mark.parametrize("sorted", [False])
     def test_combined_sanity(self, dtype, idx_dtype, axis, sorted):
-        x = tensor.vector(name="x", dtype=dtype)
+        x = vector(name="x", dtype=dtype)
         yv, yi = topk_and_argtopk(x, 1, axis=axis, sorted=sorted, idx_dtype=idx_dtype)
         fn = theano.function([x], [yv, yi], mode=self.mode)
         assert any(
@@ -312,7 +322,7 @@ class TestTopK:
         if isinstance(k, str):
             k = eval(k.replace("n", str(size)))
 
-        x = theano.tensor.vector(name="x", dtype=dtype)
+        x = vector(name="x", dtype=dtype)
         y = topk(x, k, sorted=sorted)
         fn = theano.function([x], y, mode=self.mode)
         assert any(
@@ -347,7 +357,7 @@ class TestTopK:
         if isinstance(k, str):
             k = eval(k.replace("n", str(size)))
 
-        x = theano.tensor.vector(name="x", dtype=dtype)
+        x = vector(name="x", dtype=dtype)
         y = argtopk(x, k, sorted=sorted, idx_dtype=idx_dtype)
         fn = theano.function([x], y, mode=self.mode)
         assert any(
@@ -383,7 +393,7 @@ class TestTopK:
         if isinstance(k, str):
             k = eval(k.replace("n", str(size)))
 
-        x = theano.tensor.vector(name="x", dtype=dtype)
+        x = vector(name="x", dtype=dtype)
         yv, yi = topk_and_argtopk(x, k, sorted=sorted, idx_dtype=idx_dtype)
         fn = theano.function([x], [yv, yi], mode=self.mode)
         assert any(
@@ -412,7 +422,7 @@ class TestTopK:
         if isinstance(k, str):
             k = eval(k.replace("n", str(size)))
 
-        x = theano.tensor.vector(name="x", dtype=dtype)
+        x = vector(name="x", dtype=dtype)
         y = argtopk(x, k, sorted=sorted, idx_dtype="int32")
         # DebugMode won't like the index change on collision on CPU
         # So don't use DebugMode here.
@@ -457,9 +467,7 @@ class TestTopK:
             if k == 0:
                 continue
 
-            x = theano.tensor.tensor(
-                name="x", broadcastable=(False,) * len(shp), dtype=dtype
-            )
+            x = tensor(name="x", broadcastable=(False,) * len(shp), dtype=dtype)
             y = argtopk(x, k, axis=axis, sorted=sorted, idx_dtype=idx_dtype)
             fn = theano.function([x], y, mode=self.mode)
             assert any(
@@ -515,7 +523,7 @@ class TestTopKInferShape(utt.InferShapeTester):
             if k == 0:
                 continue
 
-            x = theano.tensor.tensor(
+            x = tensor(
                 name="x", broadcastable=(False,) * len(shp), dtype=theano.config.floatX
             )
             yv, yi = topk_and_argtopk(x, k, axis=axis, sorted=False, idx_dtype="int32")

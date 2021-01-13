@@ -8,6 +8,7 @@ import numpy as np
 import theano
 import theano.tensor as tt
 from theano.ifelse import ifelse
+from theano.tensor.type import fvector, scalars
 
 
 class TestProfiling:
@@ -23,7 +24,7 @@ class TestProfiling:
             theano.config.profile_memory = True
             theano.config.profiling__min_peak_memory = True
 
-            x = [tt.fvector("val%i" % i) for i in range(3)]
+            x = [fvector("val%i" % i) for i in range(3)]
 
             z = []
             z += [tt.outer(x[i], x[i + 1]).sum(axis=1) for i in range(len(x) - 1)]
@@ -79,8 +80,8 @@ class TestProfiling:
             theano.config.profile = True
             theano.config.profile_memory = True
 
-            a, b = tt.scalars("a", "b")
-            x, y = tt.scalars("x", "y")
+            a, b = scalars("a", "b")
+            x, y = scalars("x", "y")
 
             z = ifelse(tt.lt(a, b), x * 2, y * 2)
 

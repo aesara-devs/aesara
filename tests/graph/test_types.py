@@ -4,11 +4,11 @@ import numpy as np
 import pytest
 
 import theano
-from theano import scalar
+from theano import scalar as ts
 from theano.graph.basic import Apply
 from theano.graph.op import COp
 from theano.graph.type import CDataType, CEnumType, EnumList, EnumType
-from theano.tensor import TensorType
+from theano.tensor.type import TensorType, continuous_dtypes
 
 
 # todo: test generic
@@ -118,9 +118,7 @@ class MyOpEnumList(COp):
         return self.op_chosen
 
     def make_node(self, a, b):
-        return Apply(
-            self, [scalar.as_scalar(a), scalar.as_scalar(b)], [scalar.float64()]
-        )
+        return Apply(self, [ts.as_scalar(a), ts.as_scalar(b)], [ts.float64()])
 
     def perform(self, node, inputs, outputs, op):
         a, b = inputs
@@ -132,9 +130,7 @@ class MyOpEnumList(COp):
         elif op == self.params_type.MULTIPLY:
             o[0] = a * b
         elif op == self.params_type.DIVIDE:
-            if any(
-                dtype in theano.tensor.continuous_dtypes for dtype in (a.dtype, b.dtype)
-            ):
+            if any(dtype in continuous_dtypes for dtype in (a.dtype, b.dtype)):
                 o[0] = a / b
             else:
                 o[0] = a // b
@@ -196,7 +192,7 @@ class MyOpCEnumType(COp):
         return self.python_value
 
     def make_node(self):
-        return Apply(self, [], [scalar.uint32()])
+        return Apply(self, [], [ts.uint32()])
 
     def perform(self, *args, **kwargs):
         raise NotImplementedError()
@@ -269,8 +265,8 @@ class TestEnumTypes:
             )
 
     def test_op_with_enumlist(self):
-        a = scalar.int32()
-        b = scalar.int32()
+        a = ts.int32()
+        b = ts.int32()
         c_add = MyOpEnumList("+")(a, b)
         c_sub = MyOpEnumList("-")(a, b)
         c_multiply = MyOpEnumList("*")(a, b)

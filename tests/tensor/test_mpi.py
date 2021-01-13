@@ -16,6 +16,7 @@ from theano.tensor.io import (
     recv,
     send,
 )
+from theano.tensor.type import matrix
 
 
 mpi_scheduler = sort_schedule_fn(*mpi_cmps)
@@ -35,7 +36,7 @@ def test_recv():
 
 
 def test_send():
-    x = theano.tensor.matrix("x")
+    x = matrix("x")
     y = send(x, 1, 11)
     sendnode = y.owner.inputs[0].owner
     assert sendnode.op.dest == 1
@@ -74,7 +75,7 @@ def test_mpi_roundtrip():
 
 
 def test_mpi_send_wait_cmp():
-    x = theano.tensor.matrix("x")
+    x = matrix("x")
     y = send(x, 1, 11)
     z = x + x
     waitnode = y.owner
@@ -96,11 +97,11 @@ def test_mpi_tag_ordering():
 
 
 def test_mpi_schedule():
-    x = theano.tensor.matrix("x")
+    x = matrix("x")
     y = send(x, 1, 11)
     z = x + x
 
     f = theano.function([x], [y, z], mode=mpi_mode)
     nodes = f.maker.linker.make_all()[-1]
-    optypes = [MPISend, theano.tensor.Elemwise, MPISendWait]
+    optypes = [MPISend, theano.tensor.elemwise.Elemwise, MPISendWait]
     assert all(isinstance(node.op, optype) for node, optype in zip(nodes, optypes))

@@ -8,6 +8,7 @@ from theano.configdefaults import config
 from theano.graph.basic import Apply
 from theano.graph.op import COp
 from theano.scalar import Scalar, as_scalar
+from theano.tensor.type import discrete_dtypes
 
 
 class MultinomialFromUniform(COp):
@@ -51,7 +52,7 @@ class MultinomialFromUniform(COp):
         (gz,) = outgrads
         return [
             tt.zeros_like(x, dtype=config.floatX)
-            if x.dtype in tt.discrete_dtypes
+            if x.dtype in discrete_dtypes
             else tt.zeros_like(x)
             for x in ins
         ]

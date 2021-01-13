@@ -2,7 +2,7 @@ from io import StringIO
 
 from tests.record import MismatchError, Record, RecordMode
 from theano import function
-from theano.tensor import iscalar
+from theano.tensor.type import iscalar
 
 
 def test_record_good():

@@ -4,6 +4,7 @@ from collections import OrderedDict
 from functools import partial, reduce
 
 import theano
+from theano import tensor as tt
 from theano.compile.function.pfunc import rebuild_collect_shared
 from theano.compile.function.types import orig_function
 from theano.compile.mode import optdb
@@ -214,9 +215,9 @@ class OpFromGraph(Op):
 
     .. code-block:: python
 
-        from theano import function, tensor
+        from theano import function, tensor as tt
         from theano.compile.builders import OpFromGraph
-        x, y, z = tensor.scalars('xyz')
+        x, y, z = tt.scalars('xyz')
         e = x + y * z
         op = OpFromGraph([x, y, z], [e])
         # op behaves like a normal theano op
@@ -229,10 +230,10 @@ class OpFromGraph(Op):
 
         import numpy as np
         import theano
-        from theano import config, function, tensor
+        from theano import config, function, tensor as tt
         from theano.compile.builders import OpFromGraph
 
-        x, y, z = tensor.scalars('xyz')
+        x, y, z = tt.scalars('xyz')
         s = theano.shared(np.random.rand(2, 2).astype(config.floatX))
         e = x + y * z + s
         op = OpFromGraph([x, y, z], [e])
@@ -244,10 +245,10 @@ class OpFromGraph(Op):
 
     .. code-block:: python
 
-        from theano import function, tensor, grad
+        from theano import function, tensor as tt, grad
         from theano.compile.builders import OpFromGraph
 
-        x, y, z = tensor.scalars('xyz')
+        x, y, z = tt.scalars('xyz')
         e = x + y * z
         def rescale_dy(inps, grads):
             x, y, z = inps
@@ -298,7 +299,7 @@ class OpFromGraph(Op):
             if hasattr(inp, "zeros_like"):
                 return inp.zeros_like(), grad
             else:
-                return theano.tensor.constant(0.0), grad
+                return tt.constant(0.0), grad
         else:
             return grad, None
 
@@ -660,24 +661,18 @@ class OpFromGraph(Op):
         self._rop_op_is_cached = True
 
     def get_lop_op(self):
-        """
-        getter method for self._lop_op
-        """
         if not self._lop_op_is_cached:
             self._recompute_lop_op()
         return self._lop_op
 
     def get_rop_op(self):
-        """
-        getter method for self._rop_op
-        """
         if not self._rop_op_is_cached:
             self._recompute_rop_op()
         return self._rop_op
 
     def set_grad_overrides(self, grad_overrides):
         """
-        Set gradient overrides, see help(theano.OpFromGraph) for syntax
+        Set gradient overrides.
         This will completely remove any previously set L_op/gradient overrides
 
         """
@@ -688,7 +683,7 @@ class OpFromGraph(Op):
 
     def set_lop_overrides(self, lop_overrides):
         """
-        Set L_op overrides, see help(theano.OpFromGraph) for syntax
+        Set L_op overrides
         This will completely remove any previously set L_op/gradient overrides
 
         """
@@ -699,7 +694,7 @@ class OpFromGraph(Op):
 
     def set_rop_overrides(self, rop_overrides):
         """
-        Set R_op overrides, see help(theano.OpFromGraph) for syntax
+        Set R_op overrides
         This will completely remove any previously set R_op overrides
 
         """

@@ -5,8 +5,9 @@ from optparse import OptionParser
 import numpy as np
 
 import theano
-import theano.tensor as tt
 from theano.configdefaults import config
+from theano.tensor.basic import tanh
+from theano.tensor.type import vector
 
 
 parser = OptionParser(
@@ -43,11 +44,11 @@ def evalTime(f, v, script=False, loops=1000):
 
 
 def ElemwiseOpTime(N, script=False, loops=1000):
-    x = tt.vector("x")
+    x = vector("x")
     np.random.seed(1235)
     v = np.random.random(N).astype(config.floatX)
     f = theano.function([x], 2 * x + x * x)
-    f1 = theano.function([x], tt.tanh(x))
+    f1 = theano.function([x], tanh(x))
     if not script:
         if config.openmp:
             print("With openmp:")

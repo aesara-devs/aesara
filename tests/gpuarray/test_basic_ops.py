@@ -33,8 +33,8 @@ from theano.gpuarray.basic_ops import (
 from theano.gpuarray.elemwise import GpuDimShuffle, GpuElemwise
 from theano.gpuarray.subtensor import GpuSubtensor
 from theano.gpuarray.type import GpuArrayType, get_context, gpuarray_shared_constructor
-from theano.tensor import TensorType
 from theano.tensor.basic import alloc
+from theano.tensor.type import TensorType, fmatrix, iscalar, lscalar, matrix
 
 
 pygpu = pytest.importorskip("pygpu")
@@ -215,7 +215,7 @@ def makeTester(
 
 
 def test_transfer_cpu_gpu():
-    a = tt.fmatrix("a")
+    a = fmatrix("a")
     g = GpuArrayType(dtype="float32", broadcastable=(False, False))("g")
 
     av = np.asarray(rng.rand(5, 4), dtype="float32")
@@ -252,7 +252,7 @@ def test_transfer_strided():
     # This is just to ensure that it works in theano
     # libgpuarray has a much more comprehensive suit of tests to
     # ensure correctness
-    a = tt.fmatrix("a")
+    a = fmatrix("a")
     g = GpuArrayType(dtype="float32", broadcastable=(False, False))("g")
 
     av = np.asarray(rng.rand(5, 8), dtype="float32")
@@ -354,8 +354,8 @@ def test_shape():
 
 
 def test_gpu_contiguous():
-    a = tt.fmatrix("a")
-    i = tt.iscalar("i")
+    a = fmatrix("a")
+    i = iscalar("i")
     a_val = np.asarray(np.random.rand(4, 5), dtype="float32")
     # The reshape is needed otherwise we make the subtensor on the CPU
     # to transfer less data.
@@ -431,9 +431,9 @@ class TestGPUJoinAndSplit(TestJoinAndSplit):
 
 
 def test_gpujoin_gpualloc():
-    a = tt.fmatrix("a")
+    a = fmatrix("a")
     a_val = np.asarray(np.random.rand(4, 5), dtype="float32")
-    b = tt.fmatrix("b")
+    b = fmatrix("b")
     b_val = np.asarray(np.random.rand(3, 5), dtype="float32")
 
     f = theano.function(
@@ -469,9 +469,9 @@ def test_gpueye():
         # allowed.
         if M is None:
             M = N
-        N_symb = tt.iscalar()
-        M_symb = tt.iscalar()
-        k_symb = tt.iscalar()
+        N_symb = iscalar()
+        M_symb = iscalar()
+        k_symb = iscalar()
         out = tt.eye(N_symb, M_symb, k_symb, dtype=dtype) + np.array(1).astype(dtype)
         f = theano.function([N_symb, M_symb, k_symb], out, mode=mode_with_gpu)
 
@@ -509,7 +509,7 @@ def test_hostfromgpu_shape_i():
     m = mode_with_gpu.including(
         "local_dot_to_dot22", "local_dot22_to_dot22scalar", "specialize"
     )
-    a = tt.fmatrix("a")
+    a = fmatrix("a")
     ca = theano.gpuarray.type.GpuArrayType("float32", (False, False))()
     av = np.asarray(np.random.rand(5, 4), dtype="float32")
     cv = gpuarray.asarray(
@@ -542,7 +542,7 @@ def test_Gpujoin_inplace():
     # Gpujoin function but all except one of them are empty. In this case
     # Gpujoin should work inplace and the output should be the view of the
     # non-empty element.
-    s = tt.lscalar()
+    s = lscalar()
     data = np.array([3, 4, 5], dtype=theano.config.floatX)
     x = gpuarray_shared_constructor(data, borrow=True)
     z = tt.zeros((s,))
@@ -558,8 +558,8 @@ def test_Gpujoin_inplace():
 
 def test_gpu_tril_triu():
     def check_l(m, k=0):
-        m_symb = tt.matrix(dtype=m.dtype)
-        k_symb = tt.iscalar()
+        m_symb = matrix(dtype=m.dtype)
+        k_symb = iscalar()
 
         f = theano.function(
             [m_symb, k_symb], tt.tril(m_symb, k_symb), mode=mode_with_gpu
@@ -570,8 +570,8 @@ def test_gpu_tril_triu():
         assert any([isinstance(node.op, GpuTri) for node in f.maker.fgraph.toposort()])
 
     def check_u(m, k=0):
-        m_symb = tt.matrix(dtype=m.dtype)
-        k_symb = tt.iscalar()
+        m_symb = matrix(dtype=m.dtype)
+        k_symb = iscalar()
         f = theano.function(
             [m_symb, k_symb], tt.triu(m_symb, k_symb), mode=mode_with_gpu
         )
@@ -622,9 +622,9 @@ def test_gputri():
         # allowed.
         if M is None:
             M = N
-        N_symb = tt.iscalar()
-        M_symb = tt.iscalar()
-        k_symb = tt.iscalar()
+        N_symb = iscalar()
+        M_symb = iscalar()
+        k_symb = iscalar()
         out = tt.tri(N_symb, M_symb, k_symb, dtype=dtype) + np.array(1).astype(dtype)
         f = theano.function([N_symb, M_symb, k_symb], out, mode=mode_with_gpu)
         result = np.asarray(f(N, M, k)) - np.array(1).astype(dtype)

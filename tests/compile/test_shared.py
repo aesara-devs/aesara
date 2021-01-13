@@ -4,7 +4,21 @@ import pytest
 import theano
 from theano.compile.sharedvalue import SharedVariable, generic, shared
 from theano.misc.safe_asarray import _asarray
-from theano.tensor import Tensor, TensorType
+from theano.tensor.type import (
+    TensorType,
+    bscalar,
+    bvector,
+    dscalar,
+    dvector,
+    fscalar,
+    fvector,
+    iscalar,
+    ivector,
+    lscalar,
+    lvector,
+    wscalar,
+    wvector,
+)
 from theano.utils import PYTHON_INT_BITWIDTH
 
 
@@ -12,11 +26,11 @@ class TestSharedVariable:
     def test_ctors(self):
 
         if PYTHON_INT_BITWIDTH == 32:
-            assert shared(7).type == theano.tensor.iscalar, shared(7).type
+            assert shared(7).type == iscalar, shared(7).type
         else:
-            assert shared(7).type == theano.tensor.lscalar, shared(7).type
-        assert shared(7.0).type == theano.tensor.dscalar
-        assert shared(np.float32(7)).type == theano.tensor.fscalar
+            assert shared(7).type == lscalar, shared(7).type
+        assert shared(7.0).type == dscalar
+        assert shared(np.float32(7)).type == fscalar
 
         # test tensor constructor
         b = shared(np.zeros((5, 5), dtype="int32"))
@@ -51,7 +65,7 @@ class TestSharedVariable:
         # so creation should work
         SharedVariable(
             name="u",
-            type=Tensor(broadcastable=[False], dtype="float64"),
+            type=TensorType(broadcastable=[False], dtype="float64"),
             value=np.asarray([1.0, 2.0]),
             strict=False,
         )
@@ -60,7 +74,7 @@ class TestSharedVariable:
         # so creation should work
         SharedVariable(
             name="u",
-            type=Tensor(broadcastable=[False], dtype="float64"),
+            type=TensorType(broadcastable=[False], dtype="float64"),
             value=[1.0, 2.0],
             strict=False,
         )
@@ -69,7 +83,7 @@ class TestSharedVariable:
         # so creation should work
         SharedVariable(
             name="u",
-            type=Tensor(broadcastable=[False], dtype="float64"),
+            type=TensorType(broadcastable=[False], dtype="float64"),
             value=[1, 2],  # different dtype and not a numpy array
             strict=False,
         )
@@ -79,7 +93,7 @@ class TestSharedVariable:
         try:
             SharedVariable(
                 name="u",
-                type=Tensor(broadcastable=[False], dtype="float64"),
+                type=TensorType(broadcastable=[False], dtype="float64"),
                 value=dict(),  # not an array by any stretch
                 strict=False,
             )
@@ -93,7 +107,7 @@ class TestSharedVariable:
         # so creation should work
         u = SharedVariable(
             name="u",
-            type=Tensor(broadcastable=[False], dtype="float64"),
+            type=TensorType(broadcastable=[False], dtype="float64"),
             value=np.asarray([1.0, 2.0]),
             strict=False,
         )
@@ -121,42 +135,42 @@ class TestSharedVariable:
             var.set_value(val)
 
         b = shared(np.int64(7), strict=True)
-        assert b.type == theano.tensor.lscalar
+        assert b.type == lscalar
         with pytest.raises(TypeError):
             f(b, 8.23)
 
         b = shared(np.int32(7), strict=True)
-        assert b.type == theano.tensor.iscalar
+        assert b.type == iscalar
         with pytest.raises(TypeError):
             f(b, 8.23)
 
         b = shared(np.int16(7), strict=True)
-        assert b.type == theano.tensor.wscalar
+        assert b.type == wscalar
         with pytest.raises(TypeError):
             f(b, 8.23)
 
         b = shared(np.int8(7), strict=True)
-        assert b.type == theano.tensor.bscalar
+        assert b.type == bscalar
         with pytest.raises(TypeError):
             f(b, 8.23)
 
         b = shared(np.float64(7.234), strict=True)
-        assert b.type == theano.tensor.dscalar
+        assert b.type == dscalar
         with pytest.raises(TypeError):
             f(b, 8)
 
         b = shared(np.float32(7.234), strict=True)
-        assert b.type == theano.tensor.fscalar
+        assert b.type == fscalar
         with pytest.raises(TypeError):
             f(b, 8)
 
         b = shared(np.float(7.234), strict=True)
-        assert b.type == theano.tensor.dscalar
+        assert b.type == dscalar
         with pytest.raises(TypeError):
             f(b, 8)
 
         b = shared(7.234, strict=True)
-        assert b.type == theano.tensor.dscalar
+        assert b.type == dscalar
         with pytest.raises(TypeError):
             f(b, 8)
 
@@ -169,44 +183,44 @@ class TestSharedVariable:
             var.set_value(val)
 
         b = shared(np.int64([7]), strict=True)
-        assert b.type == theano.tensor.lvector
+        assert b.type == lvector
         with pytest.raises(TypeError):
             f(b, 8.23)
 
         b = shared(np.int32([7]), strict=True)
-        assert b.type == theano.tensor.ivector
+        assert b.type == ivector
         with pytest.raises(TypeError):
             f(b, 8.23)
 
         b = shared(np.int16([7]), strict=True)
-        assert b.type == theano.tensor.wvector
+        assert b.type == wvector
         with pytest.raises(TypeError):
             f(b, 8.23)
 
         b = shared(np.int8([7]), strict=True)
-        assert b.type == theano.tensor.bvector
+        assert b.type == bvector
         with pytest.raises(TypeError):
             f(b, 8.23)
 
         b = shared(np.float64([7.234]), strict=True)
-        assert b.type == theano.tensor.dvector
+        assert b.type == dvector
         with pytest.raises(TypeError):
             f(b, 8)
 
         b = shared(np.float32([7.234]), strict=True)
-        assert b.type == theano.tensor.fvector
+        assert b.type == fvector
         with pytest.raises(TypeError):
             f(b, 8)
 
         # np.float([7.234]) don't work
         #        b = shared(np.float([7.234]), strict=True)
-        #        assert b.type == theano.tensor.dvector
+        #        assert b.type == dvector
         #        with pytest.raises(TypeError):
         #            f(b, 8)
 
         # This generate a generic type. Should we cast? I don't think.
         #        b = shared([7.234], strict=True)
-        #        assert b.type == theano.tensor.dvector
+        #        assert b.type == dvector
         #        with pytest.raises(TypeError):
         #            f(b, 8)
 
@@ -228,42 +242,42 @@ class TestSharedVariable:
             var.set_value(val)
 
         b = shared(np.int64(7), allow_downcast=True)
-        assert b.type == theano.tensor.lscalar
+        assert b.type == lscalar
         f(b, 8.23)
         assert b.get_value() == 8
 
         b = shared(np.int32(7), allow_downcast=True)
-        assert b.type == theano.tensor.iscalar
+        assert b.type == iscalar
         f(b, 8.23)
         assert b.get_value() == 8
 
         b = shared(np.int16(7), allow_downcast=True)
-        assert b.type == theano.tensor.wscalar
+        assert b.type == wscalar
         f(b, 8.23)
         assert b.get_value() == 8
 
         b = shared(np.int8(7), allow_downcast=True)
-        assert b.type == theano.tensor.bscalar
+        assert b.type == bscalar
         f(b, 8.23)
         assert b.get_value() == 8
 
         b = shared(np.float64(7.234), allow_downcast=True)
-        assert b.type == theano.tensor.dscalar
+        assert b.type == dscalar
         f(b, 8)
         assert b.get_value() == 8
 
         b = shared(np.float32(7.234), allow_downcast=True)
-        assert b.type == theano.tensor.fscalar
+        assert b.type == fscalar
         f(b, 8)
         assert b.get_value() == 8
 
         b = shared(np.float(7.234), allow_downcast=True)
-        assert b.type == theano.tensor.dscalar
+        assert b.type == dscalar
         f(b, 8)
         assert b.get_value() == 8
 
         b = shared(7.234, allow_downcast=True)
-        assert b.type == theano.tensor.dscalar
+        assert b.type == dscalar
         f(b, 8)
         assert b.get_value() == 8
 
@@ -276,43 +290,43 @@ class TestSharedVariable:
             var.set_value(val)
 
         b = shared(np.int64([7]), allow_downcast=True)
-        assert b.type == theano.tensor.lvector
+        assert b.type == lvector
         f(b, [8.23])
         assert b.get_value() == 8
 
         b = shared(np.int32([7]), allow_downcast=True)
-        assert b.type == theano.tensor.ivector
+        assert b.type == ivector
         f(b, [8.23])
         assert b.get_value() == 8
 
         b = shared(np.int16([7]), allow_downcast=True)
-        assert b.type == theano.tensor.wvector
+        assert b.type == wvector
         f(b, [8.23])
         assert b.get_value() == 8
 
         b = shared(np.int8([7]), allow_downcast=True)
-        assert b.type == theano.tensor.bvector
+        assert b.type == bvector
         f(b, [8.23])
         assert b.get_value() == 8
 
         b = shared(np.float64([7.234]), allow_downcast=True)
-        assert b.type == theano.tensor.dvector
+        assert b.type == dvector
         f(b, [8])
         assert b.get_value() == 8
 
         b = shared(np.float32([7.234]), allow_downcast=True)
-        assert b.type == theano.tensor.fvector
+        assert b.type == fvector
         f(b, [8])
         assert b.get_value() == 8
 
         # np.float([7.234]) don't work
         #        b = shared(np.float([7.234]))
-        #        assert b.type == theano.tensor.dvector
+        #        assert b.type == dvector
         #        f(b,[8])
 
         # This generate a generic type. Should we cast? I don't think.
         #        b = shared([7.234])
-        #        assert b.type == theano.tensor.dvector
+        #        assert b.type == dvector
         #        f(b,[8])
 
         b = shared(np.asarray([7.234], dtype=theano.config.floatX), allow_downcast=True)

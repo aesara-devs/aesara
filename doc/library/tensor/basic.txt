@@ -10,7 +10,7 @@ Basic Tensor Functionality
 
    import theano
    import theano.tensor as tt
-   from theano.tensor import scalar, iscalar, TensorType, dmatrix, ivector
+   from theano.tensor.type import scalar, iscalar, TensorType, dmatrix, ivector, fmatrix
    from theano.tensor import set_subtensor, inc_subtensor, batched_dot
    from theano import shared
    import numpy
@@ -637,7 +637,7 @@ dimensions, see :meth:`_tensor_py_operators.dimshuffle`.
 
     Example:
 
-    >>> tensor = theano.tensor.tensor3()
+    >>> tensor = theano.tensor.type.tensor3()
     >>> theano.tensor.shape_padaxis(tensor, axis=0)
     InplaceDimShuffle{x,0,1,2}.0
     >>> theano.tensor.shape_padaxis(tensor, axis=1)
@@ -778,15 +778,15 @@ Creating Tensor
 
     Examples:
 
-    >>> a = theano.tensor.scalar()
-    >>> b = theano.tensor.scalar()
-    >>> c = theano.tensor.scalar()
+    >>> a = theano.tensor.type.scalar()
+    >>> b = theano.tensor.type.scalar()
+    >>> c = theano.tensor.type.scalar()
     >>> x = theano.tensor.stack([a, b, c])
     >>> x.ndim # x is a vector of length 3.
     1
-    >>> a = theano.tensor.tensor4()
-    >>> b = theano.tensor.tensor4()
-    >>> c = theano.tensor.tensor4()
+    >>> a = theano.tensor.type.tensor4()
+    >>> b = theano.tensor.type.tensor4()
+    >>> c = theano.tensor.type.tensor4()
     >>> x = theano.tensor.stack([a, b, c])
     >>> x.ndim # x is a 5d tensor.
     5

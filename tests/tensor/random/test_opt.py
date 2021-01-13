@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 import theano.tensor as tt
-from theano import change_flags, config, shared
+from theano import config, shared
 from theano.compile.function import function
 from theano.compile.mode import Mode
 from theano.graph.basic import Constant
@@ -24,6 +24,7 @@ from theano.tensor.random.opt import (
     local_subtensor_rv_lift,
 )
 from theano.tensor.subtensor import AdvancedSubtensor, AdvancedSubtensor1, Subtensor
+from theano.tensor.type import iscalar, vector
 
 
 inplace_mode = Mode("py", Query(include=["random_make_inplace"], exclude=[]))
@@ -88,7 +89,7 @@ def check_shape_lifted_rv(rv, params, size, rng):
     assert np.array_equal(f_ref_val, f_lifted_val)
 
 
-@change_flags(compute_test_value="raise")
+@config.change_flags(compute_test_value="raise")
 def test_lift_rv_shapes():
 
     rng = shared(np.random.RandomState(1233532), borrow=False)
@@ -237,7 +238,7 @@ def test_lift_rv_shapes():
         ),
     ],
 )
-@change_flags(compute_test_value_opt="raise", compute_test_value="raise")
+@config.change_flags(compute_test_value_opt="raise", compute_test_value="raise")
 def test_DimShuffle_lift(ds_order, lifted, dist_op, dist_params, size, rtol):
 
     rng = shared(np.random.RandomState(1233532), borrow=False)
@@ -250,7 +251,7 @@ def test_DimShuffle_lift(ds_order, lifted, dist_op, dist_params, size, rtol):
 
     size_tt = []
     for s in size:
-        s_tt = tt.iscalar()
+        s_tt = iscalar()
         s_tt.tag.test_value = s
         size_tt.append(s_tt)
 
@@ -373,7 +374,7 @@ def test_DimShuffle_lift(ds_order, lifted, dist_op, dist_params, size, rtol):
         ),
     ],
 )
-@change_flags(compute_test_value_opt="raise", compute_test_value="raise")
+@config.change_flags(compute_test_value_opt="raise", compute_test_value="raise")
 def test_Subtensor_lift(indices, lifted, dist_op, dist_params, size):
 
     rng = shared(np.random.RandomState(1233532), borrow=False)
@@ -386,7 +387,7 @@ def test_Subtensor_lift(indices, lifted, dist_op, dist_params, size):
 
     size_tt = []
     for s in size:
-        s_tt = tt.iscalar()
+        s_tt = iscalar()
         s_tt.tag.test_value = s
         size_tt.append(s_tt)
 
@@ -448,7 +449,7 @@ def test_Subtensor_lift(indices, lifted, dist_op, dist_params, size):
 def test_Subtensor_lift_restrictions():
     rng = shared(np.random.RandomState(1233532), borrow=False)
 
-    std = tt.vector("std")
+    std = vector("std")
     std.tag.test_value = np.array([1e-5, 2e-5, 3e-5], dtype=config.floatX)
     x = normal(tt.arange(2), tt.ones(2), rng=rng)
     y = x[1]

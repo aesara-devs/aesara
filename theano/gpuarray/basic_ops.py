@@ -6,7 +6,7 @@ from collections import deque
 import numpy as np
 
 import theano
-from theano import tensor
+import theano.tensor as tt
 from theano.configdefaults import config
 from theano.gradient import grad_undefined
 from theano.graph.basic import Apply, Variable
@@ -19,6 +19,7 @@ from theano.link.c.interface import HideC
 from theano.scalar import bool as bool_t
 from theano.scalar import int32 as int32_t
 from theano.tensor.basic import Alloc, AllocEmpty, Join, Split, alloc_validate_shape
+from theano.tensor.type import TensorType, values_eq_approx_always_true
 
 
 try:
@@ -27,8 +28,8 @@ try:
 except ImportError:
     pass
 
-from .fp16_help import write_w
-from .type import (
+from theano.gpuarray.fp16_help import write_w
+from theano.gpuarray.type import (
     EQ_MAP,
     ContextNotDefined,
     GpuArrayConstant,
@@ -78,7 +79,7 @@ def as_gpuarray_variable(x, context_name):
             break
 
         # If we couldn't deal with transfers, then maybe it's a tensor
-        if isinstance(x.type, tensor.TensorType):
+        if isinstance(x.type, TensorType):
             return copy_stack_trace(x, GpuFromHost(context_name)(x))
 
     # Try _as_GpuArrayVariable if possible
@@ -614,7 +615,7 @@ class HostFromGpu(COp):
     def make_node(self, x):
         if not isinstance(x.type, GpuArrayType):
             raise TypeError(x)
-        out_var = tensor.TensorType(dtype=x.dtype, broadcastable=x.broadcastable)()
+        out_var = TensorType(dtype=x.dtype, broadcastable=x.broadcastable)()
         # Keep the special comparison if there is one.
         values_eq_approx = getattr(x.tag, "values_eq_approx", None)
         if values_eq_approx:
@@ -709,7 +710,7 @@ class GpuFromHost(COp):
         return f"GpuFromHost<{self.context_name}>"
 
     def make_node(self, x):
-        if not isinstance(x.type, tensor.TensorType):
+        if not isinstance(x.type, TensorType):
             raise TypeError(x)
         if "complex" in x.dtype:
             raise TypeError("complex not supported in the new gpuarray back-end.", x)
@@ -1072,7 +1073,7 @@ class GpuAllocEmpty(HideC, AllocEmpty):
         output = GpuArrayType(
             dtype=self.dtype, broadcastable=bcast, context_name=self.context_name
         )()
-        output.tag.values_eq_approx = tensor.type.values_eq_approx_always_true
+        output.tag.values_eq_approx = values_eq_approx_always_true
         # The outut can contain nan/inf.
         output.type.filter_checks_isfinite = False
         output.tag.nan_guard_mode_check = False
@@ -1214,7 +1215,7 @@ class GpuContiguous(Op):
 gpu_contiguous = GpuContiguous()
 
 
-class GpuReshape(HideC, tensor.Reshape):
+class GpuReshape(HideC, tt.Reshape):
     """
     Reshape for GPU variables.
 
@@ -1222,11 +1223,11 @@ class GpuReshape(HideC, tensor.Reshape):
 
     _f16_ok = True
 
-    # __hash__, __eq__, __str__ come from tensor.Reshape
+    # __hash__, __eq__, __str__ come from tt.Reshape
     def make_node(self, x, shp):
         ctx_name = infer_context_name(x)
         x = as_gpuarray_variable(x, context_name=ctx_name)
-        shp = tensor.as_tensor_variable(shp)
+        shp = tt.as_tensor_variable(shp)
         res = x.transfer("cpu").reshape(shp, ndim=self.ndim)
         otype = GpuArrayType(
             dtype=res.dtype, broadcastable=res.broadcastable, context_name=ctx_name
@@ -1775,9 +1776,9 @@ class GpuEye(GpuKernelBaseCOp, _NoPythonOp):
         return get_context(self.context_name)
 
     def make_node(self, n, m, k):
-        n = tensor.as_tensor_variable(n)
-        m = tensor.as_tensor_variable(m)
-        k = tensor.as_tensor_variable(k)
+        n = tt.as_tensor_variable(n)
+        m = tt.as_tensor_variable(m)
+        k = tt.as_tensor_variable(k)
         assert n.ndim == 0
         assert m.ndim == 0
         assert k.ndim == 0
@@ -1909,9 +1910,9 @@ class GpuTri(GpuKernelBaseCOp, _NoPythonOp):
         return get_context(self.context_name)
 
     def make_node(self, n, m, k):
-        n = tensor.as_tensor_variable(n)
-        m = tensor.as_tensor_variable(m)
-        k = tensor.as_tensor_variable(k)
+        n = tt.as_tensor_variable(n)
+        m = tt.as_tensor_variable(m)
+        k = tt.as_tensor_variable(k)
         assert n.ndim == 0
         assert m.ndim == 0
         assert k.ndim == 0

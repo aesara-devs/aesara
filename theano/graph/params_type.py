@@ -22,7 +22,7 @@ Importation:
 
     # If you want to use a tensor and a scalar as parameters,
     # you should import required Theano types.
-    from theano.tensor import TensorType
+    from theano.tensor.type import TensorType
     from theano.scalar import Scalar
 
 In your Op sub-class:
@@ -573,7 +573,7 @@ class ParamsType(CType):
 
             import numpy
             from theano.graph.params_type import ParamsType
-            from theano.tensor import dmatrix
+            from theano.tensor.type import dmatrix
             from theano.scalar import Scalar
 
             class MyObject:

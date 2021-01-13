@@ -57,7 +57,7 @@ purpose, you would set the ``view_map`` field as follows:
 
 .. testsetup::
 
-   from theano import Op
+   from theano.graph.op import Op
    myop = Op()
 
 .. testcode::

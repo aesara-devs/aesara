@@ -63,6 +63,7 @@ from theano.scalar.basic import (
     true_div,
     uint8,
 )
+from theano.tensor.type import fscalar, imatrix, matrix
 
 
 def test_mul_add_true():
@@ -404,8 +405,8 @@ def test_grad_switch():
     # switch op's grad method not handling integer
     # inputs correctly
 
-    x = theano.tensor.matrix()
-    c = theano.tensor.matrix()
+    x = matrix()
+    c = matrix()
 
     s = theano.tensor.switch(c, x, 0)
     l = s.sum()
@@ -415,7 +416,7 @@ def test_grad_switch():
 
 def test_grad_identity():
     # Check that the grad method of Identity correctly handles int dytpes
-    x = theano.tensor.imatrix("x")
+    x = imatrix("x")
     # tensor_copy is Elemwise{Identity}
     y = theano.tensor.tensor_copy(x)
     l = y.sum(dtype=theano.config.floatX)
@@ -426,11 +427,11 @@ def test_grad_inrange():
     for bound_definition in [(True, True), (False, False)]:
         # Instantiate op, and then take the gradient
         op = InRange(*bound_definition)
-        x = theano.tensor.fscalar("x")
-        low = theano.tensor.fscalar("low")
-        high = theano.tensor.fscalar("high")
+        x = fscalar("x")
+        low = fscalar("low")
+        high = fscalar("high")
         out = op(x, low, high)
-        gx, glow, ghigh = theano.tensor.grad(out, [x, low, high])
+        gx, glow, ghigh = theano.gradient.grad(out, [x, low, high])
 
         # We look if the gradient are equal to zero
         # if x is lower than the lower bound,
@@ -449,7 +450,7 @@ def test_grad_inrange():
 
 
 def test_grad_abs():
-    a = theano.tensor.fscalar("a")
+    a = fscalar("a")
     b = theano.tensor.nnet.relu(a)
     c = theano.grad(b, a)
     f = theano.function([a], c, mode=theano.Mode(optimizer=None))

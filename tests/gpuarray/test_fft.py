@@ -3,10 +3,10 @@ import pytest
 
 import theano
 import theano.gpuarray.fft
-import theano.tensor as tt
 from tests import unittest_tools as utt
 from tests.gpuarray.config import mode_with_gpu
 from theano.gpuarray.fft import pycuda_available, pygpu_available, skcuda_available
+from theano.tensor.type import matrix
 
 
 # Skip tests if pygpu is not available.
@@ -25,7 +25,7 @@ class TestFFT:
     def test_1Dfft(self):
         inputs_val = np.random.random((1, N)).astype("float32")
 
-        x = tt.matrix("x", dtype="float32")
+        x = matrix("x", dtype="float32")
         rfft = theano.gpuarray.fft.curfft(x)
         f_rfft = theano.function([x], rfft, mode=mode_with_gpu)
         res_rfft = f_rfft(inputs_val)

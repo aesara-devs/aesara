@@ -2,12 +2,13 @@
 
 import theano
 from theano.graph.basic import Constant
+from theano.tensor.type import iscalar, vector
 from theano.tensor.type_other import MakeSlice, NoneConst, NoneTypeT, make_slice
 
 
 def test_make_slice_merge():
     # In the past, this was crahsing during compilation.
-    i = theano.tensor.iscalar()
+    i = iscalar()
     s1 = make_slice(0, i)
     s2 = make_slice(0, i)
     f = theano.function([i], [s1, s2])
@@ -32,10 +33,10 @@ def test_none_Constant():
     import pickle
 
     import theano
-    from theano import tensor
+    from theano import tensor as tt
 
-    x = tensor.vector("x")
-    y = tensor.argmax(x)
+    x = vector("x")
+    y = tt.argmax(x)
     kwargs = {}
     # We can't pickle DebugMode
     if theano.config.mode in ["DebugMode", "DEBUG_MODE"]:

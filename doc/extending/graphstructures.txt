@@ -385,7 +385,7 @@ Automatic Differentiation
 =========================
 
 Having the graph structure, computing automatic differentiation is
-simple. The only thing :func:`tensor.grad` has to do is to traverse the
+simple. The only thing :func:`theano.grad` has to do is to traverse the
 graph from the outputs back towards the inputs through all *apply*
 nodes (*apply* nodes are those that define which computations the
 graph does). For each such *apply* node, its *op* defines

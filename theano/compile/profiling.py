@@ -1511,66 +1511,66 @@ class ProfileStats:
             file=file,
         )
 
-        import theano
+        from theano import scalar as ts
+        from theano import tensor as tt
+        from theano.tensor.elemwise import Elemwise
+        from theano.tensor.random.op import RandomVariable
 
-        RandomVariable = theano.tensor.random.op.RandomVariable
-        scal = theano.scalar
-        T = theano.tensor
         scalar_op_amdlibm_no_speed_up = [
-            scal.LT,
-            scal.GT,
-            scal.LE,
-            scal.GE,
-            scal.EQ,
-            scal.NEQ,
-            scal.InRange,
-            scal.Switch,
-            scal.OR,
-            scal.XOR,
-            scal.AND,
-            scal.Invert,
-            scal.ScalarMaximum,
-            scal.ScalarMinimum,
-            scal.Add,
-            scal.Mul,
-            scal.Sub,
-            scal.TrueDiv,
-            scal.IntDiv,
-            scal.Clip,
-            scal.Second,
-            scal.Identity,
-            scal.Cast,
-            scal.Sgn,
-            scal.Neg,
-            scal.Inv,
-            scal.Sqr,
+            ts.LT,
+            ts.GT,
+            ts.LE,
+            ts.GE,
+            ts.EQ,
+            ts.NEQ,
+            ts.InRange,
+            ts.Switch,
+            ts.OR,
+            ts.XOR,
+            ts.AND,
+            ts.Invert,
+            ts.ScalarMaximum,
+            ts.ScalarMinimum,
+            ts.Add,
+            ts.Mul,
+            ts.Sub,
+            ts.TrueDiv,
+            ts.IntDiv,
+            ts.Clip,
+            ts.Second,
+            ts.Identity,
+            ts.Cast,
+            ts.Sgn,
+            ts.Neg,
+            ts.Inv,
+            ts.Sqr,
         ]
         scalar_op_amdlibm_speed_up = [
-            scal.Mod,
-            scal.Pow,
-            scal.Ceil,
-            scal.Floor,
-            scal.RoundHalfToEven,
-            scal.RoundHalfAwayFromZero,
-            scal.Log,
-            scal.Log2,
-            scal.Log10,
-            scal.Log1p,
-            scal.Exp,
-            scal.Sqrt,
-            scal.Abs,
-            scal.Cos,
-            scal.Sin,
-            scal.Tan,
-            scal.Tanh,
-            scal.Cosh,
-            scal.Sinh,
-            T.nnet.sigm.ScalarSigmoid,
-            T.nnet.sigm.ScalarSoftplus,
+            ts.Mod,
+            ts.Pow,
+            ts.Ceil,
+            ts.Floor,
+            ts.RoundHalfToEven,
+            ts.RoundHalfAwayFromZero,
+            ts.Log,
+            ts.Log2,
+            ts.Log10,
+            ts.Log1p,
+            ts.Exp,
+            ts.Sqrt,
+            ts.Abs,
+            ts.Cos,
+            ts.Sin,
+            ts.Tan,
+            ts.Tanh,
+            ts.Cosh,
+            ts.Sinh,
+            tt.nnet.sigm.ScalarSigmoid,
+            tt.nnet.sigm.ScalarSoftplus,
         ]
 
         def get_scalar_ops(s):
-            if isinstance(s, theano.scalar.Composite):
+            if isinstance(s, ts.Composite):
                 l = []
                 for node in s.fgraph.toposort():
                     l += get_scalar_ops(node.op)
@@ -1579,13 +1579,13 @@ class ProfileStats:
                 return [s]
 
         def list_scalar_op(op):
-            if isinstance(op.scalar_op, theano.scalar.Composite):
+            if isinstance(op.scalar_op, ts.Composite):
                 return get_scalar_ops(op.scalar_op)
             else:
                 return [op.scalar_op]
 
         def amdlibm_speed_up(op):
-            if not isinstance(op, T.Elemwise):
+            if not isinstance(op, Elemwise):
                 return False
             else:
                 l = list_scalar_op(op)
@@ -1602,11 +1602,11 @@ class ProfileStats:
                 return False
 
         def exp_float32_op(op):
-            if not isinstance(op, T.Elemwise):
+            if not isinstance(op, Elemwise):
                 return False
             else:
                 l = list_scalar_op(op)
-                return any([s_op.__class__ in [scal.Exp] for s_op in l])
+                return any([s_op.__class__ in [ts.Exp] for s_op in l])
 
         printed_tip = False
         # tip 1
@@ -1644,7 +1644,7 @@ class ProfileStats:
         # tip 4
         for (fgraph, a) in self.apply_time:
             node = a
-            if isinstance(node.op, T.Dot) and all(
+            if isinstance(node.op, tt.Dot) and all(
                 [len(i.type.broadcastable) == 2 for i in node.inputs]
             ):
                 print(
@@ -1681,7 +1681,7 @@ class ProfileStats:
         # tip 6
         for (fgraph, a) in self.apply_time:
             node = a
-            if isinstance(node.op, T.Dot) and len({i.dtype for i in node.inputs}) != 1:
+            if isinstance(node.op, tt.Dot) and len({i.dtype for i in node.inputs}) != 1:
                 print(
                     (
                         "  - You have a dot operation that has different dtype "

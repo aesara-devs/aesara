@@ -175,7 +175,7 @@ weights.
 
 .. testcode::
 
-   from theano import Op
+   from theano.graph.op import Op
    from theano.graph.type import Generic
    from theano.scalar import as_scalar
 

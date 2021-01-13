@@ -2,8 +2,8 @@ from functools import wraps
 
 import numpy as np
 
-from theano import scalar as scal
-from theano import tensor
+from theano import scalar as ts
+from theano import tensor as tt
 from theano.gpuarray.basic_ops import (
     GpuAllocEmpty,
     GpuFromHost,
@@ -16,13 +16,15 @@ from theano.gpuarray.type import GpuArrayType, get_context, move_to_gpu
 from theano.graph.basic import Constant
 from theano.graph.op import Op
 from theano.graph.opt import copy_stack_trace, inherit_stack_trace, local_optimizer
-from theano.tensor import DimShuffle, NotScalarConstantError, get_scalar_constant_value
+from theano.tensor.basic import NotScalarConstantError, get_scalar_constant_value
+from theano.tensor.elemwise import DimShuffle
+from theano.tensor.type import TensorType
 
 
 # Define a few operations to use in optimizations,
 # in order to avoid introducin new CPU Ops, or useless ones.
 def safe_to_gpu(x, ctx_name):
-    if isinstance(x.type, tensor.TensorType):
+    if isinstance(x.type, TensorType):
         return GpuFromHost(ctx_name)(x)
     else:
         return x
@@ -126,7 +128,7 @@ def alpha_merge(cls, alpha_in, beta_in):
     """
     Decorator to merge multiplication by a scalar on the output.
 
-    This will find a pattern of `scal * <yourop>(some, params, alpha,
+    This will find a pattern of `ts * <yourop>(some, params, alpha,
     beta)` and update it so that the scalar multiplication happens as
     part of your op.
 
@@ -181,7 +183,7 @@ def alpha_merge(cls, alpha_in, beta_in):
         def opt(fgraph, node):
             if (
                 isinstance(node.op, GpuElemwise)
-                and node.op.scalar_op == scal.mul
+                and node.op.scalar_op == ts.mul
                 and node.nin == 2
             ):
                 targ = find_node(fgraph, node.inputs[0], cls)
@@ -281,7 +283,7 @@ def output_merge(cls, alpha_in, beta_in, out_in):
         def opt(fgraph, node):
             if (
                 isinstance(node.op, GpuElemwise)
-                and node.op.scalar_op == scal.add
+                and node.op.scalar_op == ts.add
                 and node.nin == 2
             ):
                 targ = find_node(fgraph, node.inputs[0], cls)
@@ -303,7 +305,7 @@ def output_merge(cls, alpha_in, beta_in, out_in):
                 inputs = list(targ.inputs)
                 inputs[out_in] = W
                 dtype = inputs[beta_in].dtype
-                one = scal.constant(np.asarray(1.0, dtype=dtype))
+                one = ts.constant(np.asarray(1.0, dtype=dtype))
                 inputs[beta_in] = one
                 with inherit_stack_trace(node.outputs):
                     return maker(targ, *inputs)
@@ -415,20 +417,20 @@ def pad_dims(input, leftdims, rightdims):
     non_pool_ndim = input.ndim - rightdims
     if non_pool_ndim < leftdims:
         # too few dimensions, pad on the left
-        dummy_dims = tensor.as_tensor([1] * (leftdims - non_pool_ndim))
-        new_shape = tensor.join(0, dummy_dims, input.shape[:non_pool_ndim], img_shape)
+        dummy_dims = tt.as_tensor([1] * (leftdims - non_pool_ndim))
+        new_shape = tt.join(0, dummy_dims, input.shape[:non_pool_ndim], img_shape)
     else:
         # too many dimensions, combine the leading dimensions
         batched_ndim = non_pool_ndim - leftdims + 1
-        batch_size = tensor.prod(input.shape[:batched_ndim])
-        # convert to a vector for tensor.join
-        batch_size = tensor.shape_padright(batch_size, 1)
-        new_shape = tensor.join(
+        batch_size = tt.prod(input.shape[:batched_ndim])
+        # convert to a vector for tt.join
+        batch_size = tt.shape_padright(batch_size, 1)
+        new_shape = tt.join(
             0, batch_size, input.shape[batched_ndim:non_pool_ndim], img_shape
         )
 
     # store in the required shape
-    new_shape = tensor.cast(new_shape, "int64")
+    new_shape = tt.cast(new_shape, "int64")
     input_ND = GpuReshape(leftdims + rightdims)(input, new_shape)
     return input_ND
 
@@ -442,7 +444,7 @@ def unpad_dims(output, input, leftdims, rightdims):
         return output
 
     # restore the output to the original shape
-    outshp = tensor.join(0, input.shape[:-rightdims], output.shape[-rightdims:])
+    outshp = tt.join(0, input.shape[:-rightdims], output.shape[-rightdims:])
     return GpuReshape(input.ndim)(output, outshp)
 
 

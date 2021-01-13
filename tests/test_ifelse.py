@@ -14,6 +14,7 @@ from theano.graph.basic import Apply
 from theano.graph.op import Op
 from theano.graph.type import generic
 from theano.ifelse import IfElse, ifelse
+from theano.tensor.type import col, iscalar, matrix, row, scalar, tensor3, vector
 
 
 __docformat__ = "restructedtext en"
@@ -37,9 +38,9 @@ class TestIfelse(utt.OptimizationTestMixin):
         # Tests that lazy if works .. even if the two results have different
         # shapes but the same type (i.e. both vectors, or matrices or
         # whatnot of same dtype)
-        x = tt.vector("x", dtype=self.dtype)
-        y = tt.vector("y", dtype=self.dtype)
-        c = tt.iscalar("c")
+        x = vector("x", dtype=self.dtype)
+        y = vector("y", dtype=self.dtype)
+        c = iscalar("c")
         f = function([c, x, y], ifelse(c, x, y), mode=self.mode)
         self.assertFunctionContains1(f, self.get_ifelse(1))
         rng = np.random.RandomState(utt.fetch_seed())
@@ -56,9 +57,9 @@ class TestIfelse(utt.OptimizationTestMixin):
     def test_not_lazy_if_inplace(self):
         # Tests that if the outputs are scalars and the graph is big,
         # we disable the inplace opt to speed up optimization
-        x = tt.vector("x", dtype=self.dtype)
-        y = tt.vector("y", dtype=self.dtype)
-        c = tt.iscalar("c")
+        x = vector("x", dtype=self.dtype)
+        y = vector("y", dtype=self.dtype)
+        c = iscalar("c")
         mode = get_mode(self.mode).excluding(
             # Disable many opt to keep the graph big enough to disable
             # the opt.
@@ -86,11 +87,11 @@ class TestIfelse(utt.OptimizationTestMixin):
         assert np.allclose(vy + sum(range(200)), f(0, vx, vy))
 
     def test_mixed_dtype(self):
-        x1 = tt.vector("x1", dtype="int32")
-        x2 = tt.vector("x2", dtype=self.dtype)
-        y1 = tt.vector("y1", dtype="int32")
-        y2 = tt.vector("y2", dtype=self.dtype)
-        c = tt.iscalar("c")
+        x1 = vector("x1", dtype="int32")
+        x2 = vector("x2", dtype=self.dtype)
+        y1 = vector("y1", dtype="int32")
+        y2 = vector("y2", dtype=self.dtype)
+        c = iscalar("c")
         f = function([c, x1, x2, y1, y2], ifelse(c, (x1, x2), (y1, y2)), mode=self.mode)
         self.assertFunctionContains1(f, self.get_ifelse(2))
         rng = np.random.RandomState(utt.fetch_seed())
@@ -114,7 +115,7 @@ class TestIfelse(utt.OptimizationTestMixin):
     def test_lazy_if_on_generics(self):
         x = generic()
         y = generic()
-        c = tt.iscalar("c")
+        c = iscalar("c")
         f = function([c, x, y], ifelse(c, x, y))
 
         vx = ["testX"]
@@ -124,9 +125,9 @@ class TestIfelse(utt.OptimizationTestMixin):
 
     def test_grad_lazy_if(self):
         # Tests that we can compute the gradients through lazy if
-        x = tt.vector("x", dtype=self.dtype)
-        y = tt.vector("y", dtype=self.dtype)
-        c = tt.iscalar("c")
+        x = vector("x", dtype=self.dtype)
+        y = vector("y", dtype=self.dtype)
+        c = iscalar("c")
         z = ifelse(c, x, y)
         gx, gy = theano.grad(z.sum(), [x, y])
 
@@ -157,20 +158,20 @@ class TestIfelse(utt.OptimizationTestMixin):
 
     def test_grad_cast_input(self):
         # Tests the gradient when both inputs are on the GPU.
-        x = tt.vector("x", dtype=self.dtype)
-        y = tt.vector("y", dtype=self.dtype)
-        c = tt.iscalar("c")
+        x = vector("x", dtype=self.dtype)
+        y = vector("y", dtype=self.dtype)
+        c = iscalar("c")
         z = ifelse(c, self.cast_output(x), self.cast_output(y))
         gx, gy = theano.grad(z.sum(), [x, y])
 
         function([c, x, y], [gx, gy], mode=self.mode)
 
     def test_multiple_out(self):
-        x1 = tt.vector("x1", dtype=self.dtype)
-        x2 = tt.vector("x2", dtype=self.dtype)
-        y1 = tt.vector("y1", dtype=self.dtype)
-        y2 = tt.vector("y2", dtype=self.dtype)
-        c = tt.iscalar("c")
+        x1 = vector("x1", dtype=self.dtype)
+        x2 = vector("x2", dtype=self.dtype)
+        y1 = vector("y1", dtype=self.dtype)
+        y2 = vector("y2", dtype=self.dtype)
+        c = iscalar("c")
         z = ifelse(c, (x1, x2), (y1, y2))
         f = function([c, x1, x2, y1, y2], z, mode=self.mode)
         self.assertFunctionContains1(f, self.get_ifelse(2))
@@ -199,11 +200,11 @@ class TestIfelse(utt.OptimizationTestMixin):
 
     def test_multiple_out_grad(self):
         # Tests that we can compute the gradients through lazy if
-        x1 = tt.vector("x1")
-        x2 = tt.vector("x2")
-        y1 = tt.vector("y1")
-        y2 = tt.vector("y2")
-        c = tt.iscalar("c")
+        x1 = vector("x1")
+        x2 = vector("x2")
+        y1 = vector("y1")
+        y2 = vector("y2")
+        c = iscalar("c")
         z = ifelse(c, (x1, x2), (y1, y2))
         grads = theano.grad(z[0].sum() + z[1].sum(), [x1, x2, y1, y2])
 
@@ -237,10 +238,10 @@ class TestIfelse(utt.OptimizationTestMixin):
         p = [p0, p1, p2, p3]
 
         # in my code these vars are the result of applying scan
-        ften0 = tt.tensor3("ft0", dtype=self.dtype)
-        fmat1 = tt.matrix("fm1", dtype=self.dtype)
-        ften2 = tt.tensor3("ft2", dtype=self.dtype)
-        fmat3 = tt.matrix("fm3", dtype=self.dtype)
+        ften0 = tensor3("ft0", dtype=self.dtype)
+        fmat1 = matrix("fm1", dtype=self.dtype)
+        ften2 = tensor3("ft2", dtype=self.dtype)
+        fmat3 = matrix("fm3", dtype=self.dtype)
 
         # then I keep only the last iteration
         fsub0 = ften0[-1]
@@ -273,7 +274,7 @@ class TestIfelse(utt.OptimizationTestMixin):
         data = rng.rand(5).astype(self.dtype)
         x = self.shared(data)
         y = tt.cast(x * 10, "int8")
-        cond = tt.iscalar("cond")
+        cond = iscalar("cond")
 
         with pytest.raises(TypeError):
             ifelse(cond, x, y)
@@ -284,8 +285,8 @@ class TestIfelse(utt.OptimizationTestMixin):
         rng = np.random.RandomState(utt.fetch_seed())
         data = rng.rand(5).astype(self.dtype)
         x = self.shared(data)
-        y = tt.col("y", self.dtype)
-        cond = tt.iscalar("cond")
+        y = col("y", self.dtype)
+        cond = iscalar("cond")
 
         with pytest.raises(TypeError):
             ifelse(cond, x, y)
@@ -297,9 +298,9 @@ class TestIfelse(utt.OptimizationTestMixin):
         data = rng.rand(5).astype(self.dtype)
         x = self.shared(data)
         # print x.broadcastable
-        y = tt.row("y", self.dtype)
+        y = row("y", self.dtype)
         # print y.broadcastable
-        cond = tt.iscalar("cond")
+        cond = iscalar("cond")
 
         with pytest.raises(TypeError):
             ifelse(cond, x, y)
@@ -316,7 +317,7 @@ class TestIfelse(utt.OptimizationTestMixin):
         x = self.shared(data)
         y = theano.sparse.matrix("csc", dtype=self.dtype, name="y")
         z = theano.sparse.matrix("csr", dtype=self.dtype, name="z")
-        cond = tt.iscalar("cond")
+        cond = iscalar("cond")
 
         with pytest.raises(TypeError):
             ifelse(cond, x, y)
@@ -333,9 +334,9 @@ class TestIfelse(utt.OptimizationTestMixin):
 
     @pytest.mark.skip(reason="Optimization temporarily disabled")
     def test_merge(self):
-        x = tt.vector("x")
-        y = tt.vector("y")
-        c = tt.iscalar("c")
+        x = vector("x")
+        y = vector("y")
+        c = iscalar("c")
         z1 = ifelse(c, x + 1, y + 1)
         z2 = ifelse(c, x + 2, y + 2)
         z = z1 + z2
@@ -346,9 +347,9 @@ class TestIfelse(utt.OptimizationTestMixin):
 
     @pytest.mark.skip(reason="Optimization temporarily disabled")
     def test_remove_useless_inputs1(self):
-        x = tt.vector("x")
-        y = tt.vector("y")
-        c = tt.iscalar("c")
+        x = vector("x")
+        y = vector("y")
+        c = iscalar("c")
         z = ifelse(c, (x, x), (y, y))
         f = function([c, x, y], z)
 
@@ -357,11 +358,11 @@ class TestIfelse(utt.OptimizationTestMixin):
 
     @pytest.mark.skip(reason="Optimization temporarily disabled")
     def test_remove_useless_inputs2(self):
-        x1 = tt.vector("x1")
-        x2 = tt.vector("x2")
-        y1 = tt.vector("y1")
-        y2 = tt.vector("y2")
-        c = tt.iscalar("c")
+        x1 = vector("x1")
+        x2 = vector("x2")
+        y1 = vector("y1")
+        y2 = vector("y2")
+        c = iscalar("c")
         z = ifelse(c, (x1, x1, x1, x2, x2), (y1, y1, y2, y2, y2))
         f = function([c, x1, x2, y1, y2], z)
 
@@ -370,13 +371,13 @@ class TestIfelse(utt.OptimizationTestMixin):
 
     @pytest.mark.skip(reason="Optimization temporarily disabled")
     def test_pushout1(self):
-        x1 = tt.scalar("x1")
-        x2 = tt.scalar("x2")
-        y1 = tt.scalar("y1")
-        y2 = tt.scalar("y2")
-        w1 = tt.scalar("w1")
-        w2 = tt.scalar("w2")
-        c = tt.iscalar("c")
+        x1 = scalar("x1")
+        x2 = scalar("x2")
+        y1 = scalar("y1")
+        y2 = scalar("y2")
+        w1 = scalar("w1")
+        w2 = scalar("w2")
+        c = iscalar("c")
         x, y = ifelse(c, (x1, y1), (x2, y2), name="f1")
         z = ifelse(c, w1, w2, name="f2")
         out = x * z * y
@@ -396,10 +397,10 @@ class TestIfelse(utt.OptimizationTestMixin):
 
     @pytest.mark.skip(reason="Optimization temporarily disabled")
     def test_pushout3(self):
-        x1 = tt.scalar("x1")
-        y1 = tt.scalar("x2")
-        y2 = tt.scalar("y2")
-        c = tt.iscalar("c")
+        x1 = scalar("x1")
+        y1 = scalar("x2")
+        y2 = scalar("y2")
+        c = iscalar("c")
         two = np.asarray(2, dtype=theano.config.floatX)
         x, y = ifelse(c, (x1, y1), (two, y2), name="f1")
         o3 = np.asarray(0.3, dtype=theano.config.floatX)
@@ -419,13 +420,13 @@ class TestIfelse(utt.OptimizationTestMixin):
 
     @pytest.mark.skip(reason="Optimization temporarily disabled")
     def test_pushout2(self):
-        x1 = tt.scalar("x1")
-        x2 = tt.scalar("x2")
-        y1 = tt.scalar("y1")
-        y2 = tt.scalar("y2")
-        w1 = tt.scalar("w1")
-        w2 = tt.scalar("w2")
-        c = tt.iscalar("c")
+        x1 = scalar("x1")
+        x2 = scalar("x2")
+        y1 = scalar("y1")
+        y2 = scalar("y2")
+        w1 = scalar("w1")
+        w2 = scalar("w2")
+        c = iscalar("c")
         x, y = ifelse(c, (x1, y1), (x2, y2), name="f1")
         z = ifelse(x > y, w1, w2, name="f2")
         out = x * z * y
@@ -453,13 +454,13 @@ class TestIfelse(utt.OptimizationTestMixin):
 
     @pytest.mark.skip(reason="Optimization temporarily disabled")
     def test_merge_ifs_true_false(self):
-        x1 = tt.scalar("x1")
-        x2 = tt.scalar("x2")
-        y1 = tt.scalar("y1")
-        y2 = tt.scalar("y2")
-        w1 = tt.scalar("w1")
-        w2 = tt.scalar("w2")
-        c = tt.iscalar("c")
+        x1 = scalar("x1")
+        x2 = scalar("x2")
+        y1 = scalar("y1")
+        y2 = scalar("y2")
+        w1 = scalar("w1")
+        w2 = scalar("w2")
+        c = iscalar("c")
 
         out = ifelse(
             c,
@@ -484,7 +485,7 @@ class TestIfelse(utt.OptimizationTestMixin):
     def test_grad_test_values(self):
         # Regression test for test values of `ifelse` gradient.
         with theano.config.change_flags(compute_test_value="raise"):
-            x = tt.scalar("x")
+            x = scalar("x")
             x.tag.test_value = 1
             # Used to crash due to undefined test value.
             theano.grad(ifelse(0, x, x), x)
@@ -494,8 +495,8 @@ class TestIfelse(utt.OptimizationTestMixin):
         b = theano.shared(np.random.rand())
         params = [w, b]
 
-        x = tt.vector()
-        y = tt.scalar()
+        x = vector()
+        y = scalar()
 
         score = w.dot(x) + b
         correct = score * y > 0
@@ -605,7 +606,7 @@ class NotImplementedOp(Op):
 
 
 def test_ifelse():
-    a = tt.scalar()
+    a = scalar()
     b = generic()
     c = generic()
 
@@ -640,10 +641,10 @@ def test_nested():
     notimpl = NotImplementedOp()
     ifelseifelseif = IfElseIfElseIf()
 
-    x1 = tt.scalar("x1")
-    x2 = tt.scalar("x2")
-    c1 = tt.scalar("c1")
-    c2 = tt.scalar("c2")
+    x1 = scalar("x1")
+    x2 = scalar("x2")
+    c1 = scalar("c1")
+    c2 = scalar("c2")
     t1 = ifelse(c1, x1, notimpl(x2))
     t1.name = "t1"
     t2 = t1 * 10

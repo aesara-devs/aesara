@@ -5,7 +5,7 @@ import numpy as np
 import theano
 
 
-y = theano.tensor.fvector()
+y = theano.tensor.type.fvector()
 x = theano.shared(np.zeros(1, dtype="float32"))
 f1 = theano.function([y], updates={x: y})
 f2 = theano.function([], x.transfer("cpu"))

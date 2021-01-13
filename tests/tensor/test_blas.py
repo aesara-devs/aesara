@@ -23,10 +23,13 @@ import theano.tensor as tt
 import theano.tensor.blas_scipy
 from tests import unittest_tools
 from tests.tensor.utils import inplace_func
-from theano import In, config, shared
+from theano import shared
+from theano.compile.io import In
+from theano.configdefaults import config
 from theano.graph.fg import FunctionGraph
 from theano.misc.safe_asarray import _asarray
-from theano.tensor import as_tensor_variable, inplace
+from theano.tensor import inplace
+from theano.tensor.basic import as_tensor_variable
 from theano.tensor.blas import (
     Dot22,
     Dot22Scalar,
@@ -54,6 +57,30 @@ from theano.tensor.blas import (
 )
 from theano.tensor.nnet import sigmoid
 from theano.tensor.opt import in2out
+from theano.tensor.type import (
+    cmatrix,
+    col,
+    cscalar,
+    dmatrix,
+    drow,
+    dscalar,
+    dvector,
+    fmatrix,
+    fscalar,
+    imatrix,
+    int_dtypes,
+    iscalar,
+    ivector,
+    matrices,
+    matrix,
+    row,
+    scalar,
+    tensor,
+    vector,
+    vectors,
+    zmatrix,
+    zscalar,
+)
 
 
 if config.mode == "FAST_COMPILE":
@@ -182,8 +209,8 @@ class TestGemm:
         self.cmp(self.rand(0, 0), -1.0, self.rand(0, 0), self.rand(0, 0), -1.0)
 
     def test_factorised_scalar(self):
-        a = tt.matrix()
-        b = tt.matrix()
+        a = matrix()
+        b = matrix()
         s = theano.shared(np.zeros((5, 5)).astype(config.floatX))
 
         lr1 = tt.constant(0.01).astype(config.floatX)
@@ -408,11 +435,11 @@ class TestGemmNoFlags:
         slice_B=False,
         slice_C=False,
     ):
-        alpha = tt.scalar(dtype=dtype, name="alpha")
-        beta = tt.scalar(dtype=dtype, name="beta")
-        A = tt.matrix(dtype=dtype, name="A")
-        B = tt.matrix(dtype=dtype, name="B")
-        C = tt.matrix(dtype=dtype, name="C")
+        alpha = scalar(dtype=dtype, name="alpha")
+        beta = scalar(dtype=dtype, name="beta")
+        A = matrix(dtype=dtype, name="A")
+        B = matrix(dtype=dtype, name="B")
+        C = matrix(dtype=dtype, name="C")
 
         A1 = self.get_variable(A, transpose_A, slice_A)
         B1 = self.get_variable(B, transpose_B, slice_B)
@@ -565,7 +592,7 @@ class TestAsScalar:
 
     def test_basic_2(self):
         # Test that it works on scalar variables
-        a = tt.dscalar()
+        a = dscalar()
         d_a = tt.DimShuffle([], [])(a)
         d_a2 = tt.DimShuffle([], ["x", "x"])(a)
 
@@ -575,15 +602,15 @@ class TestAsScalar:
 
     def test_basic_3(self):
         # Test that it fails on nonscalar variables
-        a = tt.matrix()
+        a = matrix()
         assert _as_scalar(a) is None
         assert _as_scalar(tt.DimShuffle([False, False], [0, "x", 1])(a)) is None
 
 
 class TestRealMatrix:
     def test_basic(self):
-        assert _is_real_matrix(tt.DimShuffle([False, False], [1, 0])(tt.matrix()))
-        assert not _is_real_matrix(tt.DimShuffle([False], ["x", 0])(tt.dvector()))
+        assert _is_real_matrix(tt.DimShuffle([False, False], [1, 0])(matrix()))
+        assert not _is_real_matrix(tt.DimShuffle([False], ["x", 0])(dvector()))
 
 
 """
@@ -593,7 +620,7 @@ that the resulting functions compute the same things as the originals.
 
 
 def XYZab():
-    return tt.matrix(), tt.matrix(), tt.matrix(), tt.scalar(), tt.scalar()
+    return matrix(), matrix(), matrix(), scalar(), scalar()
 
 
 def just_gemm(i, o, ishapes=None, max_graphlen=0, expected_nb_gemm=1):
@@ -677,8 +704,8 @@ def test_gemm_opt0():
 @unittest_tools.assertFailure_fast
 def test_gemm_opt_double_gemm():
     # This is the pattern that shows up in the autoencoder
-    X, Y, Z, a, b = tt.matrix(), tt.matrix(), tt.matrix(), tt.scalar(), tt.scalar()
-    R, S, c = tt.matrix(), tt.matrix(), tt.scalar()
+    X, Y, Z, a, b = matrix(), matrix(), matrix(), scalar(), scalar()
+    R, S, c = matrix(), matrix(), scalar()
 
     just_gemm(
         [X, Y, Z, a, b, R, S, c],
@@ -724,16 +751,16 @@ def test_gemm_opt_double_gemm():
 
 def test_gemm_canonicalize():
     X, Y, Z, a, b = (
-        tt.matrix("X"),
-        tt.matrix("Y"),
-        tt.matrix("Z"),
-        tt.scalar("a"),
-        tt.scalar("b"),
+        matrix("X"),
+        matrix("Y"),
+        matrix("Z"),
+        scalar("a"),
+        scalar("b"),
     )
-    c, d = tt.scalar("c"), tt.scalar("d")
-    u = tt.row("u")
-    v = tt.vector("v")
-    w = tt.col("w")
+    c, d = scalar("c"), scalar("d")
+    u = row("u")
+    v = vector("v")
+    w = col("w")
 
     can = []
     fg = FunctionGraph([X, Y, Z], [X + Y + Z], clone=False)
@@ -794,7 +821,7 @@ def test_gemm_canonicalize():
 
 
 def test_gemm_factor():
-    X, Y = tt.matrix("X"), tt.matrix("Y")
+    X, Y = matrix("X"), matrix("Y")
 
     assert [(1.0, X), (1.0, Y)] == _factor_canonicalized([(1.0, X), (1.0, Y)])
     assert [(2.0, X)] == _factor_canonicalized([(1.0, X), (1.0, X)])
@@ -803,10 +830,10 @@ def test_gemm_factor():
 def test_upcasting_scalar_nogemm():
     # Test that the optimization does not crash when the scale has an incorrect
     # dtype, and forces upcasting of the result
-    v = tt.fmatrix("v")
-    w = tt.fmatrix("w")
-    t = tt.fmatrix("t")
-    alpha = tt.dscalar("a")
+    v = fmatrix("v")
+    w = fmatrix("w")
+    t = fmatrix("t")
+    alpha = dscalar("a")
 
     rval = tt.dot(w, v) * alpha + t
 
@@ -815,10 +842,10 @@ def test_upcasting_scalar_nogemm():
     assert np.sum([isinstance(n.op, Gemm) for n in t]) == 0
     # theano.printing.debugprint(f, print_type=True)
 
-    v = tt.fmatrix("v")
-    w = tt.fmatrix("w")
-    t = tt.fmatrix("t")
-    alpha = tt.cscalar("a")
+    v = fmatrix("v")
+    w = fmatrix("w")
+    t = fmatrix("t")
+    alpha = cscalar("a")
 
     with config.change_flags(on_opt_error="raise"):
         rval = tt.dot(w, v) * alpha + t
@@ -831,18 +858,18 @@ def test_upcasting_scalar_nogemm():
 
 def test_gemm_nested():
     X, Y, Z, a, b = (
-        tt.matrix("X"),
-        tt.matrix("Y"),
-        tt.matrix("Z"),
-        tt.scalar("a"),
-        tt.scalar("b"),
+        matrix("X"),
+        matrix("Y"),
+        matrix("Z"),
+        scalar("a"),
+        scalar("b"),
     )
     R, S, U, c, d = (
-        tt.matrix("R"),
-        tt.matrix("S"),
-        tt.matrix("U"),
-        tt.scalar("c"),
-        tt.scalar("d"),
+        matrix("R"),
+        matrix("S"),
+        matrix("U"),
+        scalar("c"),
+        scalar("d"),
     )
 
     just_gemm(
@@ -868,7 +895,7 @@ def test_gemm_nested():
 
 
 def test_gemm_opt_wishlist():
-    X, Y, Z, a, b = tt.matrix(), tt.matrix(), tt.matrix(), tt.scalar(), tt.scalar()
+    X, Y, Z, a, b = matrix(), matrix(), matrix(), scalar(), scalar()
 
     # with >2 additions of the same T.dot(X,Y term
     just_gemm(
@@ -884,7 +911,7 @@ def test_gemm_with_vector():
     # bug.
 
     X, Y, Z, a, b = XYZab()
-    v = tt.vector()
+    v = vector()
 
     def my_just_gemm(o):
         i = [X, Y, Z, a, b, v]
@@ -910,8 +937,8 @@ def test_gemm_with_vector():
 
 
 def test_gemm_opt_vector_stuff():
-    X, Y, a = tt.matrix(), tt.matrix(), tt.scalar()
-    u, v = tt.vector(), tt.vector()
+    X, Y, a = matrix(), matrix(), scalar()
+    u, v = vector(), vector()
 
     f = inplace_func([a, u, v], a + tt.dot(u, v), mode="FAST_RUN")
     assert gemm_inplace not in [n.op for n in f.maker.fgraph.apply_nodes]
@@ -978,13 +1005,13 @@ def test_inplace0():
     # should fail to insert gemm_inplace because gemm_inplace would
     # create cycles
     X, Y, Z, a, b = (
-        tt.matrix("X"),
-        tt.matrix("Y"),
-        tt.matrix("Z"),
-        tt.scalar("a"),
-        tt.scalar("b"),
+        matrix("X"),
+        matrix("Y"),
+        matrix("Z"),
+        scalar("a"),
+        scalar("b"),
     )
-    R, S, c = tt.matrix("R"), tt.matrix("S"), tt.scalar("c")
+    R, S, c = matrix("R"), matrix("S"), scalar("c")
 
     f = inplace_func([Z, b, R, S], [Z * (Z + b * tt.dot(R, S).T)], mode="FAST_RUN")
     assert gemm_inplace not in [n.op for n in f.maker.fgraph.apply_nodes]
@@ -1010,9 +1037,9 @@ def test_inplace1():
 
 def test_dot22():
     for dtype1 in ["float32", "float64", "complex64", "complex128"]:
-        a = tt.matrix(dtype=dtype1)
+        a = matrix(dtype=dtype1)
         for dtype2 in ["float32", "float64", "complex64", "complex128"]:
-            b = tt.matrix(dtype=dtype2)
+            b = matrix(dtype=dtype2)
             f = theano.function([a, b], tt.dot(a, b), mode=mode_blas_opt)
             topo = f.maker.fgraph.toposort()
             if dtype1 == dtype2:
@@ -1045,11 +1072,11 @@ def test_dot22scalar():
     # m = theano.compile.get_default_mode().including('BlasOpt', 'specialize')
     rng = np.random.RandomState(unittest_tools.fetch_seed())
     for dtype1 in ["complex64", "complex128"]:
-        a = tt.matrix("a", dtype=dtype1)
+        a = matrix("a", dtype=dtype1)
         for dtype2 in ["complex64", "complex128"]:
-            b = tt.matrix("b", dtype=dtype2)
+            b = matrix("b", dtype=dtype2)
             for dtype3 in ["complex64", "complex128"]:
-                c = tt.matrix("c", dtype=dtype3)
+                c = matrix("c", dtype=dtype3)
                 for dtype4 in ["complex64", "complex128"]:
                     cst = tt.constant(0.2, dtype=dtype4)
                     cst2 = tt.constant(0.1, dtype=dtype4)
@@ -1176,14 +1203,14 @@ def test_dot22scalar():
 def test_dot22scalar_cast():
     # Test that in `dot22_to_dot22scalar` we properly cast integers to floats.
     # Note that this test was failing before d5ff6904.
-    A = tt.dmatrix()
-    for scalar_int_type in tt.int_dtypes:
-        y = tt.scalar(dtype=scalar_int_type)
+    A = dmatrix()
+    for scalar_int_type in int_dtypes:
+        y = scalar(dtype=scalar_int_type)
         f = theano.function([A, y], tt.dot(A, A) * y, mode=mode_blas_opt)
         assert _dot22scalar in [x.op for x in f.maker.fgraph.toposort()]
-    A = tt.fmatrix()
-    for scalar_int_type in tt.int_dtypes:
-        y = tt.scalar(dtype=scalar_int_type)
+    A = fmatrix()
+    for scalar_int_type in int_dtypes:
+        y = scalar(dtype=scalar_int_type)
         f = theano.function([A, y], tt.dot(A, A) * y, mode=mode_blas_opt)
         if scalar_int_type in ["int32", "int64"]:
             assert _dot22 in [x.op for x in f.maker.fgraph.toposort()]
@@ -1193,17 +1220,17 @@ def test_dot22scalar_cast():
 
 def test_local_dot22_to_dot22scalar():
     # This test that the bug in gh-1507 is really fixed
-    A = tt.dmatrix()
+    A = dmatrix()
     mode = theano.compile.mode.get_default_mode()
     opt = in2out(local_dot22_to_dot22scalar)
     mode = mode.__class__(optimizer=opt)
 
-    x = tt.dscalar()
-    y = tt.dscalar()
-    z = tt.dscalar()
+    x = dscalar()
+    y = dscalar()
+    z = dscalar()
     # make sure to don't have dimshuffle as we don't opt those cases
-    m = tt.dmatrix()
-    r = tt.drow()
+    m = dmatrix()
+    r = drow()
     for idx, node in enumerate(
         [
             # Old working cases
@@ -1246,7 +1273,7 @@ def test_dot_w_self():
     # one of the inputs.
 
     A = shared(value=np.ones((2, 2)))
-    B = tt.matrix()
+    B = matrix()
 
     p = tt.dot(A, A) * B
 
@@ -1429,8 +1456,8 @@ class TestGemv(unittest_tools.OptimizationTestMixin):
         assert sum(isinstance(node.op, Gemv) for node in topo) == 1
 
     def test_gemv_dimensions(self):
-        A = tt.matrix("A")
-        x, y = tt.vectors("x", "y")
+        A = matrix("A")
+        x, y = vectors("x", "y")
         alpha = theano.shared(_asarray(1.0, dtype=config.floatX), name="alpha")
         beta = theano.shared(_asarray(1.0, dtype=config.floatX), name="beta")
 
@@ -1499,7 +1526,7 @@ class BaseGemv:
         return alpha, beta, a, x, y
 
     def test_simple(self):
-        alpha, beta, a, x, y = [self.shared(value) for value in self.get_data()]
+        alpha, beta, a, x, y = [theano.shared(value) for value in self.get_data()]
         desired_oy = (
             alpha.get_value() * matrixmultiply(a.get_value(), x.get_value())
             + beta.get_value() * y.get_value()
@@ -1520,8 +1547,8 @@ class BaseGemv:
 
         vs = self.get_data()
         alpha_v, beta_v, a_v, x_v, y_v = vs
-        a = self.shared(a_v)
-        x = self.shared(x_v)
+        a = theano.shared(a_v)
+        x = theano.shared(x_v)
 
         desired_oy = matrixmultiply(a_v, x_v)
 
@@ -1537,7 +1564,7 @@ class BaseGemv:
     def test_simple_transpose(self):
         vs = self.get_data()
         alpha_v, beta_v, a_v, x_v, y_v = vs
-        alpha, beta, a, x, y = [self.shared(v) for v in vs]
+        alpha, beta, a, x, y = [theano.shared(v) for v in vs]
 
         desired_oy = alpha_v * matrixmultiply(transpose(a_v), x_v) + beta_v * y_v
 
@@ -1553,7 +1580,7 @@ class BaseGemv:
     def test_x_stride(self):
         vs = self.get_data(x_stride=2)
         alpha_v, beta_v, a_v, x_v, y_v = vs
-        alpha, beta, a, x, y = [self.shared(v) for v in vs]
+        alpha, beta, a, x, y = [theano.shared(v) for v in vs]
 
         desired_oy = alpha_v * matrixmultiply(a_v, x_v[::2]) + beta_v * y_v
 
@@ -1569,7 +1596,7 @@ class BaseGemv:
     def test_x_stride_transpose(self):
         vs = self.get_data(x_stride=2)
         alpha_v, beta_v, a_v, x_v, y_v = vs
-        alpha, beta, a, x, y = [self.shared(v) for v in vs]
+        alpha, beta, a, x, y = [theano.shared(v) for v in vs]
 
         desired_oy = alpha_v * matrixmultiply(transpose(a_v), x_v[::2]) + beta_v * y_v
 
@@ -1585,7 +1612,7 @@ class BaseGemv:
     def test_y_stride(self):
         vs = self.get_data(y_stride=2)
         alpha_v, beta_v, a_v, x_v, y_v = vs
-        alpha, beta, a, x, y = [self.shared(v) for v in vs]
+        alpha, beta, a, x, y = [theano.shared(v) for v in vs]
 
         desired_oy = alpha_v * matrixmultiply(a_v, x_v) + beta_v * y_v[::2]
 
@@ -1601,7 +1628,7 @@ class BaseGemv:
     def test_y_stride_transpose(self):
         vs = self.get_data(y_stride=2)
         alpha_v, beta_v, a_v, x_v, y_v = vs
-        alpha, beta, a, x, y = [self.shared(v) for v in vs]
+        alpha, beta, a, x, y = [theano.shared(v) for v in vs]
 
         desired_oy = alpha_v * matrixmultiply(transpose(a_v), x_v) + beta_v * y_v[::2]
 
@@ -1617,7 +1644,7 @@ class BaseGemv:
     def test_a_strides(self):
         vs = self.get_data()
         alpha_v, beta_v, a_v, x_v, y_v = vs
-        alpha, beta, a, x, y = [self.shared(v) for v in vs]
+        alpha, beta, a, x, y = [theano.shared(v) for v in vs]
         a_v = a_v[::-1, ::-1]
         a.set_value(
             a.get_value(borrow=True, return_internal_type=True)[::-1, ::-1], borrow=True
@@ -1637,7 +1664,7 @@ class BaseGemv:
     def test_a_strides_transpose(self):
         vs = self.get_data()
         alpha_v, beta_v, a_v, x_v, y_v = vs
-        alpha, beta, a, x, y = [self.shared(v) for v in vs]
+        alpha, beta, a, x, y = [theano.shared(v) for v in vs]
         a_v = a_v[::-1, ::-1]
         a.set_value(
             a.get_value(borrow=True, return_internal_type=True)[::-1, ::-1], borrow=True
@@ -1665,10 +1692,10 @@ class BaseGemv:
         x_v = x_v.astype("float32")
         y_v = y_v.astype("float32")
 
-        alpha = tt.dscalar("alpha")
-        a = self.shared(a_v)
-        x = self.shared(x_v)
-        y = self.shared(y_v)
+        alpha = dscalar("alpha")
+        a = theano.shared(a_v)
+        x = theano.shared(x_v)
+        y = theano.shared(y_v)
 
         rval = tt.dot(a, x) * alpha + y
 
@@ -1714,30 +1741,30 @@ class TestDgemv(BaseGemv, unittest_tools.OptimizationTestMixin):
 
 class TestGerMakeNode:
     def setup_method(self):
-        self.iv = tt.tensor(dtype="int32", broadcastable=(False,))
-        self.fv = tt.tensor(dtype="float32", broadcastable=(False,))
-        self.fv1 = tt.tensor(dtype="float32", broadcastable=(True,))
-        self.dv = tt.tensor(dtype="float64", broadcastable=(False,))
-        self.dv1 = tt.tensor(dtype="float64", broadcastable=(True,))
-        self.cv = tt.tensor(dtype="complex64", broadcastable=(False,))
-        self.zv = tt.tensor(dtype="complex128", broadcastable=(False,))
+        self.iv = tensor(dtype="int32", broadcastable=(False,))
+        self.fv = tensor(dtype="float32", broadcastable=(False,))
+        self.fv1 = tensor(dtype="float32", broadcastable=(True,))
+        self.dv = tensor(dtype="float64", broadcastable=(False,))
+        self.dv1 = tensor(dtype="float64", broadcastable=(True,))
+        self.cv = tensor(dtype="complex64", broadcastable=(False,))
+        self.zv = tensor(dtype="complex128", broadcastable=(False,))
 
-        self.fv_2 = tt.tensor(dtype="float32", broadcastable=(False,))
-        self.fv1_2 = tt.tensor(dtype="float32", broadcastable=(True,))
-        self.dv_2 = tt.tensor(dtype="float64", broadcastable=(False,))
-        self.dv1_2 = tt.tensor(dtype="float64", broadcastable=(True,))
-        self.cv_2 = tt.tensor(dtype="complex64", broadcastable=(False,))
-        self.zv_2 = tt.tensor(dtype="complex128", broadcastable=(False,))
+        self.fv_2 = tensor(dtype="float32", broadcastable=(False,))
+        self.fv1_2 = tensor(dtype="float32", broadcastable=(True,))
+        self.dv_2 = tensor(dtype="float64", broadcastable=(False,))
+        self.dv1_2 = tensor(dtype="float64", broadcastable=(True,))
+        self.cv_2 = tensor(dtype="complex64", broadcastable=(False,))
+        self.zv_2 = tensor(dtype="complex128", broadcastable=(False,))
 
-        self.fm = tt.fmatrix()
-        self.dm = tt.dmatrix()
-        self.cm = tt.cmatrix()
-        self.zm = tt.zmatrix()
+        self.fm = fmatrix()
+        self.dm = dmatrix()
+        self.cm = cmatrix()
+        self.zm = zmatrix()
 
-        self.fa = tt.fscalar()
-        self.da = tt.dscalar()
-        self.ca = tt.cscalar()
-        self.za = tt.zscalar()
+        self.fa = fscalar()
+        self.da = dscalar()
+        self.ca = cscalar()
+        self.za = zscalar()
 
     def test_works_on_all_valid_dtypes(self):
         assert self.fm.type == ger(self.fm, self.fa, self.fv, self.fv_2).type
@@ -1747,7 +1774,7 @@ class TestGerMakeNode:
 
     def test_fails_on_invalid_dtypes(self):
         with pytest.raises(TypeError):
-            ger(tt.imatrix(), tt.iscalar(), tt.ivector(), tt.ivector())
+            ger(imatrix(), iscalar(), ivector(), ivector())
 
     def test_fails_for_nonscalar_alpha(self):
         with pytest.raises(TypeError):
@@ -1801,10 +1828,10 @@ class TestGer(unittest_tools.OptimizationTestMixin):
         self.mode = theano.compile.get_default_mode().including("fast_run")
         self.mode = self.mode.excluding("c_blas", "scipy_blas")
         dtype = self.dtype = "float64"  # optimization isn't dtype-dependent
-        self.A = tt.tensor(dtype=dtype, broadcastable=(False, False))
-        self.a = tt.tensor(dtype=dtype, broadcastable=())
-        self.x = tt.tensor(dtype=dtype, broadcastable=(False,))
-        self.y = tt.tensor(dtype=dtype, broadcastable=(False,))
+        self.A = tensor(dtype=dtype, broadcastable=(False, False))
+        self.a = tensor(dtype=dtype, broadcastable=())
+        self.x = tensor(dtype=dtype, broadcastable=(False,))
+        self.y = tensor(dtype=dtype, broadcastable=(False,))
         self.ger = ger
         self.ger_destructive = ger_destructive
         self.gemm = gemm_no_inplace
@@ -1872,11 +1899,13 @@ class TestGer(unittest_tools.OptimizationTestMixin):
     def test_outer(self):
         f = self.function([self.x, self.y], tt.outer(self.x, self.y))
         self.assertFunctionContains(f, self.ger_destructive)
+        # TODO FIXME: This is NOT a test.
         f(np.random.rand(5).astype(self.dtype), np.random.rand(4).astype(self.dtype))
 
     def test_A_plus_outer(self):
         f = self.function([self.A, self.x, self.y], self.A + tt.outer(self.x, self.y))
         self.assertFunctionContains(f, self.ger)
+        # TODO FIXME: This is NOT a test.
         f(
             np.random.rand(5, 4).astype(self.dtype),
             np.random.rand(5).astype(self.dtype),
@@ -1893,6 +1922,7 @@ class TestGer(unittest_tools.OptimizationTestMixin):
             [self.A, self.x, self.y], self.A + 0.1 * tt.outer(self.x, self.y)
         )
         self.assertFunctionContains(f, self.ger)
+        # TODO FIXME: This is NOT a test.
         f(
             np.random.rand(5, 4).astype(self.dtype),
             np.random.rand(5).astype(self.dtype),
@@ -1913,6 +1943,7 @@ class TestGer(unittest_tools.OptimizationTestMixin):
         # Why gemm? This make the graph simpler did we test that it
         # make it faster?
         self.assertFunctionContains(f, self.gemm)
+        # TODO FIXME: This is NOT a test.
         f(
             np.random.rand(5, 4).astype(self.dtype),
             np.random.rand(5).astype(self.dtype),
@@ -1931,6 +1962,7 @@ class TestGer(unittest_tools.OptimizationTestMixin):
             [self.A, self.x, self.y], self.A + 0.1 * tt.outer(self.x, self.y)
         )
         self.assertFunctionContains(f, self.ger)
+        # TODO FIXME: This is NOT a test.
         f(
             np.random.rand(M, N).astype(self.dtype),
             np.random.rand(M).astype(self.dtype),
@@ -1973,7 +2005,7 @@ class TestGer(unittest_tools.OptimizationTestMixin):
         return self.given_dtype("complex128", 1, 9)
 
     def test_inplace(self):
-        A = self.shared(np.random.rand(4, 5).astype(self.dtype))
+        A = theano.shared(np.random.rand(4, 5).astype(self.dtype))
         f = self.function(
             [self.x, self.y],
             [],
@@ -1982,6 +2014,7 @@ class TestGer(unittest_tools.OptimizationTestMixin):
             ],
         )
         self.assertFunctionContains(f, self.ger_destructive)
+        # TODO FIXME: This is NOT a test.
         f(np.random.rand(4).astype(self.dtype), np.random.rand(5).astype(self.dtype))
 
         A.set_value(
@@ -1992,7 +2025,6 @@ class TestGer(unittest_tools.OptimizationTestMixin):
 
 class TestBlasStrides:
     dtype = "float64"
-    shared = staticmethod(tt._shared)
     mode = theano.compile.get_default_mode()
     mode = mode.including("fast_run").excluding("gpu", "c_blas", "scipy_blas")
     rng = np.random.RandomState(seed=unittest_tools.fetch_seed())
@@ -2005,12 +2037,12 @@ class TestBlasStrides:
         bv = self.rand(*b_shp)
         cv = self.rand(*c_shp)
 
-        a = self.shared(av, "a")
-        b = self.shared(bv, "b")
-        c = self.shared(cv, "c")
+        a = theano.shared(av, "a")
+        b = theano.shared(bv, "b")
+        c = theano.shared(cv, "c")
 
-        b_t = self.shared(bv.T, "b.T")
-        c_t = self.shared(cv.T, "c.T")
+        b_t = theano.shared(bv.T, "b.T")
+        c_t = theano.shared(cv.T, "c.T")
 
         b_dev = b.get_value(borrow=False, return_internal_type=True)
         c_dev = c.get_value(borrow=False, return_internal_type=True)
@@ -2072,12 +2104,12 @@ class TestBlasStrides:
         cv = self.rand(*c_shp)
         l = np.float32(0.2)
 
-        a = self.shared(av, "a")
-        b = self.shared(bv, "b")
-        c = self.shared(cv, "c")
+        a = theano.shared(av, "a")
+        b = theano.shared(bv, "b")
+        c = theano.shared(cv, "c")
 
-        b_t = self.shared(bv.T, "b.T")
-        c_t = self.shared(cv.T, "c.T")
+        b_t = theano.shared(bv.T, "b.T")
+        c_t = theano.shared(cv.T, "c.T")
 
         b_dev = b.get_value(borrow=False, return_internal_type=True)
         c_dev = c.get_value(borrow=False, return_internal_type=True)
@@ -2141,13 +2173,13 @@ class TestBlasStrides:
         cv = self.rand(*c_shp)
         l = np.float32(0.2)
 
-        a = self.shared(av, "a")
-        b = self.shared(bv, "b")
-        c = self.shared(cv, "c")
+        a = theano.shared(av, "a")
+        b = theano.shared(bv, "b")
+        c = theano.shared(cv, "c")
 
-        a_t = self.shared(av.T, "a.T")
-        b_t = self.shared(bv.T, "b.T")
-        c_t = self.shared(cv.T, "c.T")
+        a_t = theano.shared(av.T, "a.T")
+        b_t = theano.shared(bv.T, "b.T")
+        c_t = theano.shared(cv.T, "c.T")
 
         a_dev = a.get_value(borrow=False, return_internal_type=True)
         b_dev = b.get_value(borrow=False, return_internal_type=True)
@@ -2266,10 +2298,10 @@ class TestBlasStrides:
         cv = self.rand(c_shp)
         l = np.float32(0.2)
 
-        a = self.shared(av, "a")
-        b = self.shared(bv, "b")
-        c = self.shared(cv, "c")
-        b_t = self.shared(bv.T, "b.T")
+        a = theano.shared(av, "a")
+        b = theano.shared(bv, "b")
+        c = theano.shared(cv, "c")
+        b_t = theano.shared(bv.T, "b.T")
 
         a_dev = a.get_value(borrow=False, return_internal_type=True)
         b_dev = b.get_value(borrow=False, return_internal_type=True)
@@ -2319,10 +2351,10 @@ class TestBlasStrides:
         cv = self.rand(c_shp)
         l = np.float32(0.2)
 
-        a = self.shared(av, "a")
-        b = self.shared(bv, "b")
-        c = self.shared(cv, "c")
-        a_t = self.shared(av.T, "a.T")
+        a = theano.shared(av, "a")
+        b = theano.shared(bv, "b")
+        c = theano.shared(cv, "c")
+        a_t = theano.shared(av.T, "a.T")
 
         a_dev = a.get_value(borrow=False, return_internal_type=True)
         b_dev = b.get_value(borrow=False, return_internal_type=True)
@@ -2381,7 +2413,7 @@ class TestBlasStrides:
         b = theano.shared(bval[:, :5], borrow=True)
         c = theano.shared(cval[:3, :5], borrow=True)
 
-        s = tt.scalar()
+        s = scalar()
         upd_c = s * c + tt.dot(a, b)
         f = theano.function([s], [], updates={c: upd_c})
 
@@ -2392,7 +2424,7 @@ class TestBlasStrides:
 
 class TestInferShape(unittest_tools.InferShapeTester):
     def test_dot22(self):
-        x, y = tt.matrices("xy")
+        x, y = matrices("xy")
         self._compile_and_check(
             [x, y],
             [_dot22(x, y)],
@@ -2404,8 +2436,8 @@ class TestInferShape(unittest_tools.InferShapeTester):
         )
 
     def test_dot22scalar(self):
-        x, y = tt.matrices("xy")
-        a = tt.scalar("a")
+        x, y = matrices("xy")
+        a = scalar("a")
         self._compile_and_check(
             [x, y, a],
             [_dot22scalar(x, y, a)],
@@ -2418,9 +2450,9 @@ class TestInferShape(unittest_tools.InferShapeTester):
         )
 
     def test_gemm(self):
-        x, y, z = tt.matrices("xyz")
-        a = tt.scalar("a")
-        b = tt.scalar("b")
+        x, y, z = matrices("xyz")
+        a = scalar("a")
+        b = scalar("b")
         self._compile_and_check(
             [x, y, a, z, b],
             [gemm(z, a, x, y, b)],
@@ -2435,10 +2467,10 @@ class TestInferShape(unittest_tools.InferShapeTester):
         )
 
     def test_gemv(self):
-        A = tt.matrix("A")
-        x, y = tt.vectors("xy")
-        a = tt.scalar("a")
-        b = tt.scalar("b")
+        A = matrix("A")
+        x, y = vectors("xy")
+        a = scalar("a")
+        b = scalar("b")
         self._compile_and_check(
             [y, a, A, x, b],
             [gemv(y, a, A, x, b)],
@@ -2453,9 +2485,9 @@ class TestInferShape(unittest_tools.InferShapeTester):
         )
 
     def test_ger(self):
-        A = tt.matrix("A")
-        x, y = tt.vectors("xy")
-        a = tt.scalar("a")
+        A = matrix("A")
+        x, y = vectors("xy")
+        a = scalar("a")
         self._compile_and_check(
             [A, a, x, y],
             [ger(A, a, x, y)],

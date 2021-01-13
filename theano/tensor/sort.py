@@ -1,12 +1,13 @@
 import numpy as np
 
-import theano
+from theano import tensor as tt
 from theano.gradient import grad_undefined
 from theano.graph.basic import Apply, Constant
 from theano.graph.op import Op
 from theano.misc.safe_asarray import _asarray
 from theano.tensor.basic import arange, mul
 from theano.tensor.subtensor import set_subtensor
+from theano.tensor.type import TensorType, integer_dtypes
 
 
 def _variable_is_none(var):
@@ -38,8 +39,8 @@ class SortOp(Op):
         return self.__class__.__name__ + f"{{{self.kind}, {self.order}}}"
 
     def make_node(self, input, axis=-1):
-        input = theano.tensor.as_tensor_variable(input)
-        axis = theano.tensor.as_tensor_variable(axis)
+        input = tt.as_tensor_variable(input)
+        axis = tt.as_tensor_variable(axis)
         out_type = input.type()
         return Apply(self, [input, axis], [out_type])
 
@@ -104,12 +105,10 @@ class SortOp(Op):
         # rev_idx is the reverse of previous argsort operation
         rev_idx = argsort(idx, axis, kind=self.kind, order=self.order)
         indices = []
-        axis_data = theano.tensor.switch(
-            theano.tensor.ge(axis.data, 0), axis.data, a.ndim + axis.data
-        )
+        axis_data = tt.switch(tt.ge(axis.data, 0), axis.data, a.ndim + axis.data)
         for i in range(a.ndim):
-            index_val = theano.tensor.switch(
-                theano.tensor.eq(i, axis_data),
+            index_val = tt.switch(
+                tt.eq(i, axis_data),
                 rev_idx,
                 self.__get_expanded_dim(a, axis, i),
             )
@@ -133,14 +132,14 @@ def sort(a, axis=-1, kind="quicksort", order=None):
 
     Parameters
     ----------
-    a : Tensor
+    a: TensorVariable
         Tensor to be sorted
-    axis : Tensor
+    axis: TensorVariable
         Axis along which to sort. If None, the array is flattened before
         sorting.
-    kind : {'quicksort', 'mergesort', 'heapsort'}, optional
+    kind: {'quicksort', 'mergesort', 'heapsort'}, optional
         Sorting algorithm. Default is 'quicksort'.
-    order : list, optional
+    order: list, optional
         When `a` is a structured array, this argument specifies which
         fields to compare first, second, and so on. This list does not
         need to include all of the fields.
@@ -173,13 +172,13 @@ class ArgSortOp(Op):
         return self.__class__.__name__ + f"{{{self.kind}, {self.order}}}"
 
     def make_node(self, input, axis=-1):
-        input = theano.tensor.as_tensor_variable(input)
-        axis = theano.tensor.as_tensor_variable(axis)
+        input = tt.as_tensor_variable(input)
+        axis = tt.as_tensor_variable(axis)
         bcast = input.type.broadcastable
         return Apply(
             self,
             [input, axis],
-            [theano.tensor.TensorType(dtype="int64", broadcastable=bcast)()],
+            [TensorType(dtype="int64", broadcastable=bcast)()],
         )
 
     def perform(self, node, inputs, output_storage):
@@ -381,7 +380,7 @@ class TopKOp(Op):
             raise NotImplementedError(
                 "The sorted parameter is not yet implemented. Use sorted=False for now."
             )
-        if idx_dtype not in theano.tensor.integer_dtypes:
+        if idx_dtype not in integer_dtypes:
             raise TypeError(
                 f'"idx_dtype" parameter must be an integer dtype, got "{idx_dtype}"'
             )
@@ -403,7 +402,7 @@ class TopKOp(Op):
         )
 
     def make_node(self, inp, kth):
-        inp = theano.tensor.as_tensor_variable(inp)
+        inp = tt.as_tensor_variable(inp)
         ndim = inp.ndim
         if ndim == 0:
             raise ValueError("Cannot take scalar as input")
@@ -413,16 +412,14 @@ class TopKOp(Op):
                 f" expected integer within [{int(-ndim)}, {int(ndim - 1)}]"
             )
 
-        kth = theano.tensor.as_tensor_variable(kth)
+        kth = tt.as_tensor_variable(kth)
         _check_tensor_is_scalar(kth)
         bcast = inp.type.broadcastable
         outs = []
         if self.return_values:
             outs.append(inp.type())
         if self.return_indices:
-            outs.append(
-                theano.tensor.TensorType(dtype=self.idx_dtype, broadcastable=bcast)()
-            )
+            outs.append(TensorType(dtype=self.idx_dtype, broadcastable=bcast)())
         return Apply(self, [inp, kth], outs)
 
     def perform(self, node, inputs, output_storage):
@@ -457,7 +454,7 @@ class TopKOp(Op):
                 "topk: cannot get gradient" " without both indices and values",
             )
         else:
-            x_shp = theano.tensor.shape(x)
+            x_shp = tt.shape(x)
             z_grad = out_grads[0]
             ndim = x.ndim
             axis = self.axis % ndim
@@ -509,7 +506,7 @@ def topk(x, kth, axis=-1, sorted=True, idx_dtype="int64"):
 
     """
     if axis is None:
-        x = theano.tensor.flatten(x)
+        x = tt.flatten(x)
         axis = 0
     return TopKOp(axis=axis, sorted=sorted, idx_dtype=idx_dtype)(x, kth)[0]
 
@@ -553,7 +550,7 @@ def argtopk(x, kth, axis=-1, sorted=True, idx_dtype="int64"):
 
     """
     if axis is None:
-        x = theano.tensor.flatten(x)
+        x = tt.flatten(x)
         axis = 0
     return TopKOp(axis=axis, sorted=sorted, idx_dtype=idx_dtype)(x, kth)[1]
 
@@ -570,6 +567,6 @@ def topk_and_argtopk(x, kth, axis=-1, sorted=True, idx_dtype="int64"):
 
     """
     if axis is None:
-        x = theano.tensor.flatten(x)
+        x = tt.flatten(x)
         axis = 0
     return TopKOp(axis=axis, sorted=sorted, idx_dtype=idx_dtype)(x, kth)

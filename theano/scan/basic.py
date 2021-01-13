@@ -27,6 +27,7 @@ from theano.scan import utils
 from theano.scan.op import Scan
 from theano.scan.utils import safe_new, traverse
 from theano.tensor import opt
+from theano.tensor.type import TensorType, integer_dtypes
 from theano.updates import OrderedUpdates
 
 
@@ -363,7 +364,7 @@ def scan(
             n_fixed_steps = None
 
     # Check n_steps is an int
-    if hasattr(n_steps, "dtype") and str(n_steps.dtype) not in tt.integer_dtypes:
+    if hasattr(n_steps, "dtype") and str(n_steps.dtype) not in integer_dtypes:
         raise ValueError(f" n_steps must be an int. dtype provided is {n_steps.dtype}")
 
     # compute number of sequences and number of outputs
@@ -771,10 +772,7 @@ def scan(
             # then, if we return the output as given by the innner function
             # this will represent only a slice and it will have one
             # dimension less.
-            if (
-                isinstance(inner_out.type, tt.TensorType)
-                and return_steps.get(pos, 0) != 1
-            ):
+            if isinstance(inner_out.type, TensorType) and return_steps.get(pos, 0) != 1:
                 outputs[pos] = tt.unbroadcast(tt.shape_padleft(inner_out), 0)
 
         if return_list is not True and len(outputs) == 1:
@@ -1017,7 +1015,7 @@ def scan(
 
         for w, w_copy in givens.items():
             if isinstance(w.type, gpuarray.GpuArrayType) and isinstance(
-                w_copy.type, tt.TensorType
+                w_copy.type, TensorType
             ):
                 for o in inner_outs:
                     new_givens = traverse(o, w, w_copy, new_givens)

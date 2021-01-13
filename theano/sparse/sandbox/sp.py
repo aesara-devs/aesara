@@ -13,8 +13,10 @@ from scipy import sparse as scipy_sparse
 
 import theano
 import theano.sparse
-from theano import sparse, tensor
+from theano import sparse
+from theano import tensor as tt
 from theano.graph.op import Op
+from theano.tensor.subtensor import DimShuffle
 
 
 def register_specialize(lopt, *tags, **kwargs):
@@ -348,17 +350,17 @@ def convolve(
     patches = (sparse.structured_dot(csc, images.T)).T
 
     # compute output of linear classifier
-    pshape = tensor.stack(
+    pshape = tt.stack(
         [
-            images.shape[0] * tensor.as_tensor(np.prod(outshp)),
-            tensor.as_tensor(imgshp[0] * kern_size),
+            images.shape[0] * tt.as_tensor(np.prod(outshp)),
+            tt.as_tensor(imgshp[0] * kern_size),
         ]
     )
-    patch_stack = tensor.reshape(patches, pshape, ndim=2)
+    patch_stack = tt.reshape(patches, pshape, ndim=2)
 
     # kern is of shape: nkern x ksize*number_of_input_features
     # output is thus of shape: bsize*outshp x nkern
-    output = tensor.dot(patch_stack, kerns.T)
+    output = tt.dot(patch_stack, kerns.T)
 
     # add bias across each feature map (more efficient to do it now)
     if bias is not None:
@@ -366,13 +368,13 @@ def convolve(
 
     # now to have feature maps in raster order ...
     # go from bsize*outshp x nkern to bsize x nkern*outshp
-    newshp = tensor.stack(
-        [images.shape[0], tensor.as_tensor(np.prod(outshp)), tensor.as_tensor(nkern)]
+    newshp = tt.stack(
+        [images.shape[0], tt.as_tensor(np.prod(outshp)), tt.as_tensor(nkern)]
     )
-    tensout = tensor.reshape(output, newshp, ndim=3)
-    output = tensor.DimShuffle((False,) * tensout.ndim, (0, 2, 1))(tensout)
+    tensout = tt.reshape(output, newshp, ndim=3)
+    output = DimShuffle((False,) * tensout.ndim, (0, 2, 1))(tensout)
     if flatten:
-        output = tensor.flatten(output, 2)
+        output = tt.flatten(output, 2)
 
     return output, np.hstack((nkern, outshp))
 
@@ -416,26 +418,26 @@ def max_pool(images, imgshp, maxpoolshp):
     csc = theano.sparse.CSM(sptype)(np.ones(indices.size), indices, indptr, spmat_shape)
     patches = sparse.structured_dot(csc, images.T).T
 
-    pshape = tensor.stack(
+    pshape = tt.stack(
         [
-            images.shape[0] * tensor.as_tensor(np.prod(outshp)),
-            tensor.as_tensor(imgshp[0]),
-            tensor.as_tensor(poolsize),
+            images.shape[0] * tt.as_tensor(np.prod(outshp)),
+            tt.as_tensor(imgshp[0]),
+            tt.as_tensor(poolsize),
         ]
     )
-    patch_stack = tensor.reshape(patches, pshape, ndim=3)
+    patch_stack = tt.reshape(patches, pshape, ndim=3)
 
-    out1 = tensor.max(patch_stack, axis=2)
+    out1 = tt.max(patch_stack, axis=2)
 
-    pshape = tensor.stack(
+    pshape = tt.stack(
         [
             images.shape[0],
-            tensor.as_tensor(np.prod(outshp)),
-            tensor.as_tensor(imgshp[0]),
+            tt.as_tensor(np.prod(outshp)),
+            tt.as_tensor(imgshp[0]),
         ]
     )
-    out2 = tensor.reshape(out1, pshape, ndim=3)
+    out2 = tt.reshape(out1, pshape, ndim=3)
 
-    out3 = tensor.DimShuffle(out2.broadcastable, (0, 2, 1))(out2)
+    out3 = DimShuffle(out2.broadcastable, (0, 2, 1))(out2)
 
-    return tensor.flatten(out3, 2), outshp
+    return tt.flatten(out3, 2), outshp

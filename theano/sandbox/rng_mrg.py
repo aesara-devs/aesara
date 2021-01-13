@@ -17,7 +17,10 @@ import warnings
 
 import numpy as np
 
-from theano import function, gradient, shared, tensor
+from theano import function, gradient
+from theano import scalar as ts
+from theano import shared
+from theano import tensor as tt
 from theano.compile import optdb
 from theano.configdefaults import config
 from theano.gradient import undefined_grad
@@ -25,18 +28,11 @@ from theano.graph.basic import Apply, Constant, Variable
 from theano.graph.op import COp, Op
 from theano.graph.opt import local_optimizer
 from theano.graph.params_type import ParamsType
+from theano.sandbox import multinomial
 from theano.scalar import bool as bool_t
 from theano.scalar import int32 as int_t
-from theano.tensor import (
-    TensorType,
-    as_tensor_variable,
-    cast,
-    get_vector_length,
-    opt,
-    scal,
-)
-
-from . import multinomial
+from theano.tensor import as_tensor_variable, cast, get_vector_length, opt
+from theano.tensor.type import TensorType, iscalar, ivector, lmatrix
 
 
 def matVecModM(A, s, m):
@@ -58,12 +54,12 @@ def multMatVect(v, A, m1, B, m2):
 
     """
     if multMatVect.dot_modulo is None:
-        A_sym = tensor.lmatrix("A")
-        s_sym = tensor.ivector("s")
-        m_sym = tensor.iscalar("m")
-        A2_sym = tensor.lmatrix("A2")
-        s2_sym = tensor.ivector("s2")
-        m2_sym = tensor.iscalar("m2")
+        A_sym = lmatrix("A")
+        s_sym = ivector("s")
+        m_sym = iscalar("m")
+        A2_sym = lmatrix("A2")
+        s2_sym = ivector("s2")
+        m2_sym = iscalar("m2")
         o = DotModulo()(A_sym, s_sym, m_sym, A2_sym, s2_sym, m2_sym)
         multMatVect.dot_modulo = function(
             [A_sym, s_sym, m_sym, A2_sym, s2_sym, m2_sym], o, profile=False
@@ -375,7 +371,7 @@ class mrg_uniform(COp, mrg_uniform_base):
         # call through MRG_RandomStream instead.
         broad = []
         for i in range(self.output_type.ndim):
-            broad.append(tensor.extract_constant(size[i]) == 1)
+            broad.append(tt.extract_constant(size[i]) == 1)
         output_type = self.output_type.clone(broadcastable=broad)()
         rstate = as_tensor_variable(rstate)
         size = as_tensor_variable(size)
@@ -885,7 +881,7 @@ class MRG_RandomStream:
         high = as_tensor_variable(high)
 
         if dtype is None:
-            dtype = scal.upcast(config.floatX, low.dtype, high.dtype)
+            dtype = ts.upcast(config.floatX, low.dtype, high.dtype)
 
         low = cast(low, dtype=dtype)
         high = cast(high, dtype=dtype)
@@ -1172,17 +1168,17 @@ class MRG_RandomStream:
         std = undefined_grad(as_tensor_variable(std))
 
         if dtype is None:
-            dtype = scal.upcast(config.floatX, avg.dtype, std.dtype)
+            dtype = ts.upcast(config.floatX, avg.dtype, std.dtype)
 
-        avg = tensor.cast(avg, dtype=dtype)
-        std = tensor.cast(std, dtype=dtype)
+        avg = tt.cast(avg, dtype=dtype)
+        std = tt.cast(std, dtype=dtype)
 
         # generate even number of uniform samples
         # Do manual constant folding to lower optiimizer work.
         if isinstance(size, Constant):
             n_odd_samples = size.prod(dtype="int64")
         else:
-            n_odd_samples = tensor.prod(size, dtype="int64")
+            n_odd_samples = tt.prod(size, dtype="int64")
         n_even_samples = n_odd_samples + n_odd_samples % 2
         uniform = self.uniform(
             (n_even_samples,),
@@ -1197,9 +1193,9 @@ class MRG_RandomStream:
         # box-muller transform
         u1 = uniform[: n_even_samples // 2]
         u2 = uniform[n_even_samples // 2 :]
-        r = tensor.sqrt(-2.0 * tensor.log(u1))
+        r = tt.sqrt(-2.0 * tt.log(u1))
         theta = np.array(2.0 * np.pi, dtype=dtype) * u2
-        cos_theta, sin_theta = tensor.cos(theta), tensor.sin(theta)
+        cos_theta, sin_theta = tt.cos(theta), tt.sin(theta)
         z0 = r * cos_theta
         z1 = r * sin_theta
 
@@ -1207,14 +1203,14 @@ class MRG_RandomStream:
             # use valid samples
             to_fix0 = (z0 < -2.0) | (z0 > 2.0)
             to_fix1 = (z1 < -2.0) | (z1 > 2.0)
-            z0_valid = z0[tensor.nonzero(~to_fix0)]
-            z1_valid = z1[tensor.nonzero(~to_fix1)]
+            z0_valid = z0[tt.nonzero(~to_fix0)]
+            z1_valid = z1[tt.nonzero(~to_fix1)]
 
             # re-sample invalid samples
-            to_fix0 = tensor.nonzero(to_fix0)[0]
-            to_fix1 = tensor.nonzero(to_fix1)[0]
+            to_fix0 = tt.nonzero(to_fix0)[0]
+            to_fix1 = tt.nonzero(to_fix1)[0]
             n_fix_samples = to_fix0.size + to_fix1.size
-            lower = tensor.constant(1.0 / np.e ** 2, dtype=dtype)
+            lower = tt.constant(1.0 / np.e ** 2, dtype=dtype)
             u_fix = self.uniform(
                 (n_fix_samples,),
                 low=lower,
@@ -1224,21 +1220,21 @@ class MRG_RandomStream:
                 nstreams=nstreams,
                 **kwargs,
             )
-            r_fix = tensor.sqrt(-2.0 * tensor.log(u_fix))
+            r_fix = tt.sqrt(-2.0 * tt.log(u_fix))
             z0_fixed = r_fix[: to_fix0.size] * cos_theta[to_fix0]
             z1_fixed = r_fix[to_fix0.size :] * sin_theta[to_fix1]
 
             # pack everything together to a useful result
-            norm_samples = tensor.join(0, z0_valid, z0_fixed, z1_valid, z1_fixed)
+            norm_samples = tt.join(0, z0_valid, z0_fixed, z1_valid, z1_fixed)
         else:
-            norm_samples = tensor.join(0, z0, z1)
+            norm_samples = tt.join(0, z0, z1)
         if isinstance(n_odd_samples, Variable):
             samples = norm_samples[:n_odd_samples]
         elif n_odd_samples % 2 == 1:
             samples = norm_samples[:-1]
         else:
             samples = norm_samples
-        samples = tensor.reshape(samples, newshape=size, ndim=ndim)
+        samples = tt.reshape(samples, newshape=size, ndim=ndim)
         samples *= std
         samples += avg
 
@@ -1277,7 +1273,7 @@ class MRG_RandomStream:
         normal
         """
         # constant taken from scipy.stats.truncnorm.std(a=-2, b=2, loc=0., scale=1.)
-        std = std / tensor.constant(0.87962566103423978)
+        std = std / tt.constant(0.87962566103423978)
         return self.normal(
             size=size,
             avg=avg,
@@ -1316,13 +1312,13 @@ def _check_size(size):
         if size.ndim == 1:
             return size
         elif size.ndim == 0:
-            return tensor.stack([size], ndim=1)
+            return tt.stack([size], ndim=1)
         else:
             raise ValueError(
                 "Theano variable must have 1 dimension to be a valid size.", size
             )
     elif isinstance(size, (np.integer, int)):
-        return tensor.constant([size], ndim=1)
+        return tt.constant([size], ndim=1)
     elif not isinstance(size, (tuple, list)):
         raise ValueError("Size must be a int, tuple, list or Theano variable.", size)
 
@@ -1343,7 +1339,7 @@ def _check_size(size):
                 i,
             )
 
-    return tensor.as_tensor_variable(size, ndim=1)
+    return tt.as_tensor_variable(size, ndim=1)
 
 
 @local_optimizer((mrg_uniform_base,))

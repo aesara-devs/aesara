@@ -8,15 +8,22 @@ import numpy as np
 import pytest
 
 import theano
-import theano.tensor as tensor
-from theano.printing import debugprint, min_informative_str
+import theano.tensor as tt
+from theano.printing import (
+    debugprint,
+    min_informative_str,
+    pp,
+    pydot_imported,
+    pydotprint,
+)
+from theano.tensor.type import dvector, iscalar, matrix, scalar, vector
 
 
-@pytest.mark.skipif(not theano.printing.pydot_imported, reason="pydot not available")
+@pytest.mark.skipif(not pydot_imported, reason="pydot not available")
 def test_pydotprint_cond_highlight():
     # This is a REALLY PARTIAL TEST.
     # I did them to help debug stuff.
-    x = tensor.dvector()
+    x = dvector()
     f = theano.function([x], x * 2)
     f([1, 2, 3, 4])
 
@@ -28,7 +35,7 @@ def test_pydotprint_cond_highlight():
     theano.theano_logger.removeHandler(orig_handler)
     theano.theano_logger.addHandler(new_handler)
     try:
-        theano.printing.pydotprint(f, cond_highlight=True, print_output_file=False)
+        pydotprint(f, cond_highlight=True, print_output_file=False)
     finally:
         theano.theano_logger.addHandler(orig_handler)
         theano.theano_logger.removeHandler(new_handler)
@@ -39,54 +46,51 @@ def test_pydotprint_cond_highlight():
     )
 
 
-@pytest.mark.skipif(not theano.printing.pydot_imported, reason="pydot not available")
+@pytest.mark.skipif(not pydot_imported, reason="pydot not available")
 def test_pydotprint_return_image():
-    x = tensor.dvector()
-    ret = theano.printing.pydotprint(x * 2, return_image=True)
+    x = dvector()
+    ret = pydotprint(x * 2, return_image=True)
     assert isinstance(ret, (str, bytes))
 
 
-@pytest.mark.skipif(not theano.printing.pydot_imported, reason="pydot not available")
+@pytest.mark.skipif(not pydot_imported, reason="pydot not available")
 def test_pydotprint_long_name():
     # This is a REALLY PARTIAL TEST.
     # It prints a graph where there are variable and apply nodes whose long
     # names are different, but not the shortened names.
     # We should not merge those nodes in the dot graph.
-    x = tensor.dvector()
+    x = dvector()
     mode = theano.compile.mode.get_default_mode().excluding("fusion")
     f = theano.function([x], [x * 2, x + x], mode=mode)
     f([1, 2, 3, 4])
 
-    theano.printing.pydotprint(f, max_label_size=5, print_output_file=False)
-    theano.printing.pydotprint(
-        [x * 2, x + x], max_label_size=5, print_output_file=False
-    )
+    pydotprint(f, max_label_size=5, print_output_file=False)
+    pydotprint([x * 2, x + x], max_label_size=5, print_output_file=False)
 
 
 @pytest.mark.skipif(
-    not theano.printing.pydot_imported
-    or theano.config.mode in ("DebugMode", "DEBUG_MODE"),
+    not pydot_imported or theano.config.mode in ("DebugMode", "DEBUG_MODE"),
     reason="Can't profile in DebugMode",
 )
 def test_pydotprint_profile():
-    A = tensor.matrix()
+    A = matrix()
     prof = theano.compile.ProfileStats(atexit_print=False, gpu_checks=False)
     f = theano.function([A], A + 1, profile=prof)
-    theano.printing.pydotprint(f, print_output_file=False)
+    pydotprint(f, print_output_file=False)
     f([[1]])
-    theano.printing.pydotprint(f, print_output_file=False)
+    pydotprint(f, print_output_file=False)
 
 
 def test_min_informative_str():
     # evaluates a reference output to make sure the
     # min_informative_str function works as intended
 
-    A = tensor.matrix(name="A")
-    B = tensor.matrix(name="B")
+    A = matrix(name="A")
+    B = matrix(name="B")
     C = A + B
     C.name = "C"
-    D = tensor.matrix(name="D")
-    E = tensor.matrix(name="E")
+    D = matrix(name="D")
+    E = matrix(name="E")
 
     F = D + E
     G = C + F
@@ -107,12 +111,12 @@ def test_min_informative_str():
 
 
 def test_debugprint():
-    A = tensor.matrix(name="A")
-    B = tensor.matrix(name="B")
+    A = matrix(name="A")
+    B = matrix(name="B")
     C = A + B
     C.name = "C"
-    D = tensor.matrix(name="D")
-    E = tensor.matrix(name="E")
+    D = matrix(name="D")
+    E = matrix(name="E")
 
     F = D + E
     G = C + F
@@ -249,19 +253,19 @@ def test_debugprint():
 
 
 def test_scan_debugprint1():
-    k = tensor.iscalar("k")
-    A = tensor.dvector("A")
+    k = iscalar("k")
+    A = dvector("A")
 
     # Symbolic description of the result
     result, updates = theano.scan(
         fn=lambda prior_result, A: prior_result * A,
-        outputs_info=tensor.ones_like(A),
+        outputs_info=tt.ones_like(A),
         non_sequences=A,
         n_steps=k,
     )
 
     final_result = result[-1]
-    output_str = theano.printing.debugprint(final_result, file="str")
+    output_str = debugprint(final_result, file="str")
     lines = output_str.split("\n")
 
     expected_output = """Subtensor{int64} [id A] ''
@@ -304,8 +308,8 @@ def test_scan_debugprint1():
 
 
 def test_scan_debugprint2():
-    coefficients = theano.tensor.vector("coefficients")
-    x = tensor.scalar("x")
+    coefficients = vector("coefficients")
+    x = scalar("x")
 
     max_coefficients_supported = 10000
 
@@ -314,13 +318,13 @@ def test_scan_debugprint2():
         fn=lambda coefficient, power, free_variable: coefficient
         * (free_variable ** power),
         outputs_info=None,
-        sequences=[coefficients, theano.tensor.arange(max_coefficients_supported)],
+        sequences=[coefficients, tt.arange(max_coefficients_supported)],
         non_sequences=x,
     )
     # Sum them up
     polynomial = components.sum()
 
-    output_str = theano.printing.debugprint(polynomial, file="str")
+    output_str = debugprint(polynomial, file="str")
     lines = output_str.split("\n")
 
     expected_output = """Sum{acc_dtype=float64} [id A] ''
@@ -366,18 +370,18 @@ def test_scan_debugprint2():
 
 
 def test_scan_debugprint3():
-    coefficients = theano.tensor.dvector("coefficients")
+    coefficients = dvector("coefficients")
     max_coefficients_supported = 10
 
-    k = tensor.iscalar("k")
-    A = tensor.dvector("A")
+    k = iscalar("k")
+    A = dvector("A")
 
     # compute A**k
     def compute_A_k(A, k):
         # Symbolic description of the result
         result, updates = theano.scan(
             fn=lambda prior_result, A: prior_result * A,
-            outputs_info=tensor.ones_like(A),
+            outputs_info=tt.ones_like(A),
             non_sequences=A,
             n_steps=k,
         )
@@ -391,7 +395,7 @@ def test_scan_debugprint3():
         fn=lambda coefficient, power, some_A, some_k: coefficient
         * (compute_A_k(some_A, some_k) ** power),
         outputs_info=None,
-        sequences=[coefficients, theano.tensor.arange(max_coefficients_supported)],
+        sequences=[coefficients, tt.arange(max_coefficients_supported)],
         non_sequences=[A, k],
     )
     # Sum them up
@@ -399,7 +403,7 @@ def test_scan_debugprint3():
 
     final_result = polynomial
 
-    output_str = theano.printing.debugprint(final_result, file="str")
+    output_str = debugprint(final_result, file="str")
     lines = output_str.split("\n")
 
     expected_output = """Sum{acc_dtype=float64} [id A] ''
@@ -495,7 +499,7 @@ def test_scan_debugprint4():
     )
 
     final_result = a + b
-    output_str = theano.printing.debugprint(final_result, file="str")
+    output_str = debugprint(final_result, file="str")
     lines = output_str.split("\n")
 
     expected_output = """Elemwise{add,no_inplace} [id A] ''
@@ -553,20 +557,20 @@ def test_scan_debugprint4():
 
 def test_scan_debugprint5():
 
-    k = tensor.iscalar("k")
-    A = tensor.dvector("A")
+    k = iscalar("k")
+    A = dvector("A")
 
     # Symbolic description of the result
     result, updates = theano.scan(
         fn=lambda prior_result, A: prior_result * A,
-        outputs_info=tensor.ones_like(A),
+        outputs_info=tt.ones_like(A),
         non_sequences=A,
         n_steps=k,
     )
 
-    final_result = tensor.grad(result[-1].sum(), A)
+    final_result = theano.grad(result[-1].sum(), A)
 
-    output_str = theano.printing.debugprint(final_result, file="str")
+    output_str = debugprint(final_result, file="str")
     lines = output_str.split("\n")
 
     expected_output = """Subtensor{int64} [id A] ''
@@ -687,24 +691,24 @@ def test_scan_debugprint5():
         assert truth.strip() == out.strip()
 
 
-@pytest.mark.skipif(not theano.printing.pydot_imported, reason="pydot not available")
+@pytest.mark.skipif(not pydot_imported, reason="pydot not available")
 def test_printing_scan():
     def f_pow2(x_tm1):
         return 2 * x_tm1
 
-    state = theano.tensor.scalar("state")
-    n_steps = theano.tensor.iscalar("nsteps")
+    state = scalar("state")
+    n_steps = iscalar("nsteps")
     output, updates = theano.scan(
         f_pow2, [], state, [], n_steps=n_steps, truncate_gradient=-1, go_backwards=False
     )
     f = theano.function(
         [state, n_steps], output, updates=updates, allow_input_downcast=True
     )
-    theano.printing.pydotprint(output, scan_graphs=True)
-    theano.printing.pydotprint(f, scan_graphs=True)
+    pydotprint(output, scan_graphs=True)
+    pydotprint(f, scan_graphs=True)
 
 
 def test_subtensor():
-    x = theano.tensor.dvector()
+    x = dvector()
     y = x[1]
-    assert theano.pp(y) == "<TensorType(float64, vector)>[Constant{1}]"
+    assert pp(y) == "<TensorType(float64, vector)>[Constant{1}]"

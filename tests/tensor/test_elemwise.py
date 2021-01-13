@@ -7,16 +7,16 @@ import pytest
 
 import tests.unittest_tools as utt
 import theano
+import theano.scalar as ts
 import theano.tensor as tt
 from tests import unittest_tools
-from theano import scalar
 from theano.compile.mode import Mode, get_default_mode
 from theano.configdefaults import config
 from theano.graph.basic import Variable
 from theano.graph.fg import FunctionGraph
 from theano.link.basic import PerformLinker
 from theano.link.c.basic import CLinker, OpWiseCLinker
-from theano.tensor import TensorType, as_tensor_variable
+from theano.tensor import as_tensor_variable
 from theano.tensor.elemwise import (
     CAReduce,
     DimShuffle,
@@ -26,7 +26,22 @@ from theano.tensor.elemwise import (
     Sum,
 )
 from theano.tensor.nnet import sigmoid
-from theano.tensor.type import values_eq_approx_remove_nan
+from theano.tensor.type import (
+    TensorType,
+    bmatrix,
+    bscalar,
+    complex_dtypes,
+    continuous_dtypes,
+    discrete_dtypes,
+    dmatrix,
+    iscalar,
+    matrix,
+    scalar,
+    tensor,
+    values_eq_approx_remove_nan,
+    vector,
+    vectors,
+)
 
 
 class TestDimShuffle(unittest_tools.InferShapeTester):
@@ -121,37 +136,37 @@ class TestReduceAxes:
     def test_sum_axes(self):
         axes = [None, 0, 1, [0, 1], np.array(1), [np.array(0), np.array(1)]]
         for a in axes:
-            x = tt.matrix()
+            x = matrix()
             x.sum(a)
 
     def test_mean_axes(self):
         axes = [None, 0, 1, [0, 1], np.array(1), [np.array(0), np.array(1)]]
         for a in axes:
-            x = tt.matrix()
+            x = matrix()
             x.mean(a)
 
     def test_max_axes(self):
         axes = [None, 0, 1, [0, 1], np.array(1), [np.array(0), np.array(1)]]
         for a in axes:
-            x = tt.matrix()
+            x = matrix()
             x.max(a)
 
     def test_min_axes(self):
         axes = [None, 0, 1, [0, 1], np.array(1), [np.array(0), np.array(1)]]
         for a in axes:
-            x = tt.matrix()
+            x = matrix()
             x.min(a)
 
     def test_argmax_axes(self):
         axes = [None, 0, 1, [0, 1], np.array(1), [np.array(0), np.array(1)]]
         for a in axes:
-            x = tt.matrix()
+            x = matrix()
             x.argmax(a)
 
     def test_var_axes(self):
         axes = [None, 0, 1, [0, 1], np.array(1), [np.array(0), np.array(1)]]
         for a in axes:
-            x = tt.matrix()
+            x = matrix()
             x.var(a)
 
 
@@ -197,7 +212,7 @@ class TestBroadcast:
         ]:
             x = type(theano.config.floatX, [(entry == 1) for entry in xsh])("x")
             y = type(theano.config.floatX, [(entry == 1) for entry in ysh])("y")
-            e = op(scalar.add)(x, y)
+            e = op(ts.add)(x, y)
             f = copy(linker).accept(FunctionGraph([x, y], [e])).make_function()
             xv = rand_val(xsh)
             yv = rand_val(ysh)
@@ -210,7 +225,7 @@ class TestBroadcast:
             if isinstance(linker, PerformLinker):
                 x = type(theano.config.floatX, [(entry == 1) for entry in xsh])("x")
                 y = type(theano.config.floatX, [(entry == 1) for entry in ysh])("y")
-                e = op(scalar.add)(x, y)
+                e = op(ts.add)(x, y)
                 f = (
                     copy(linker)
                     .accept(FunctionGraph([x, y], [e.shape]))
@@ -231,7 +246,7 @@ class TestBroadcast:
         ]:
             x = type(theano.config.floatX, [(entry == 1) for entry in xsh])("x")
             y = type(theano.config.floatX, [(entry == 1) for entry in ysh])("y")
-            e = op(scalar.Add(scalar.transfer_type(0)), {0: 0})(x, y)
+            e = op(ts.Add(ts.transfer_type(0)), {0: 0})(x, y)
             f = copy(linker).accept(FunctionGraph([x, y], [e])).make_function()
             xv = rand_val(xsh)
             yv = rand_val(ysh)
@@ -245,7 +260,7 @@ class TestBroadcast:
             if isinstance(linker, PerformLinker):
                 x = type(theano.config.floatX, [(entry == 1) for entry in xsh])("x")
                 y = type(theano.config.floatX, [(entry == 1) for entry in ysh])("y")
-                e = op(scalar.Add(scalar.transfer_type(0)), {0: 0})(x, y)
+                e = op(ts.Add(ts.transfer_type(0)), {0: 0})(x, y)
                 f = (
                     copy(linker)
                     .accept(FunctionGraph([x, y], [e.shape]))
@@ -289,7 +304,7 @@ class TestBroadcast:
         ):
             x = t(theano.config.floatX, [0, 0])("x")
             y = t(theano.config.floatX, [1, 1])("y")
-            e = op(scalar.Second(scalar.transfer_type(0)), {0: 0})(x, y)
+            e = op(ts.Second(ts.transfer_type(0)), {0: 0})(x, y)
             f = linker().accept(FunctionGraph([x, y], [e])).make_function()
             xv = rval((5, 5))
             yv = rval((1, 1))
@@ -297,7 +312,7 @@ class TestBroadcast:
             assert (xv == yv).all()
 
     def test_fill_var(self):
-        x = tt.matrix()
+        x = matrix()
         x.fill(3)
 
     def test_fill_grad(self):
@@ -320,7 +335,7 @@ class TestBroadcast:
         ):
             x = t(theano.config.floatX, [0, 0, 0, 0, 0])("x")
             y = t(theano.config.floatX, [0, 0, 0, 0, 0])("y")
-            e = op(scalar.add)(x, y)
+            e = op(ts.add)(x, y)
             f = linker().accept(FunctionGraph([x, y], [e])).make_function()
             xv = rval((2, 2, 2, 2, 2))
             yv = rval((2, 2, 2, 2, 2)).transpose(4, 0, 3, 1, 2)
@@ -338,7 +353,7 @@ class TestBroadcast:
             [self.rand_val, self.rand_cval],
         ):
             x = t(theano.config.floatX, [0, 0])("x")
-            e = op(scalar.add)(x, x)
+            e = op(ts.add)(x, x)
             f = linker().accept(FunctionGraph([x], [e])).make_function()
             xv = rval((2, 2))
             zv = xv + xv
@@ -385,7 +400,7 @@ class TestCAReduce(unittest_tools.InferShapeTester):
     def with_mode(
         self,
         mode,
-        scalar_op=scalar.add,
+        scalar_op=ts.add,
         dtype="floatX",
         pre_scalar_op=None,
         test_nan=False,
@@ -409,7 +424,7 @@ class TestCAReduce(unittest_tools.InferShapeTester):
             f = theano.function([x], e, mode=mode)
             xv = np.asarray(np.random.rand(*xsh))
 
-            if dtype not in tt.discrete_dtypes:
+            if dtype not in discrete_dtypes:
                 xv = np.asarray(xv, dtype=dtype)
             else:
                 xv = np.asarray(xv < 0.5, dtype=dtype)
@@ -446,34 +461,34 @@ class TestCAReduce(unittest_tools.InferShapeTester):
                     zv = np.any(zv, axis)
                 if len(tosum) == 0:
                     zv = zv != 0
-            elif scalar_op == scalar.add:
+            elif scalar_op == ts.add:
                 for axis in reversed(sorted(tosum)):
                     zv = np.add.reduce(zv, axis)
                 if dtype == "bool":
                     # np.add of a bool upcast, while CAReduce don't
                     zv = zv.astype(dtype)
-            elif scalar_op == scalar.mul:
+            elif scalar_op == ts.mul:
                 for axis in reversed(sorted(tosum)):
                     zv = np.multiply.reduce(zv, axis)
-            elif scalar_op == scalar.scalar_maximum:
+            elif scalar_op == ts.scalar_maximum:
                 try:
                     for axis in reversed(sorted(tosum)):
                         zv = np.maximum.reduce(zv, axis)
                 except ValueError:
                     numpy_raised = True
-            elif scalar_op == scalar.scalar_minimum:
+            elif scalar_op == ts.scalar_minimum:
                 try:
                     for axis in reversed(sorted(tosum)):
                         zv = np.minimum.reduce(zv, axis)
                 except ValueError:
                     numpy_raised = True
-            elif scalar_op == scalar.or_:
+            elif scalar_op == ts.or_:
                 for axis in reversed(sorted(tosum)):
                     zv = np.bitwise_or.reduce(zv, axis)
-            elif scalar_op == scalar.and_:
+            elif scalar_op == ts.and_:
                 for axis in reversed(sorted(tosum)):
                     zv = reduce_bitwise_and(zv, axis, dtype=dtype)
-            elif scalar_op == scalar.xor:
+            elif scalar_op == ts.xor:
                 # There is no identity value for the xor function
                 # So we can't support shape of dimensions 0.
                 if np.prod(zv.shape) == 0:
@@ -484,10 +499,7 @@ class TestCAReduce(unittest_tools.InferShapeTester):
                 raise Exception(
                     f"Test for CAReduce with scalar_op {scalar_op} not implemented"
                 )
-            if (
-                scalar_op in [scalar.scalar_maximum, scalar.scalar_minimum]
-                and numpy_raised
-            ):
+            if scalar_op in [ts.scalar_maximum, ts.scalar_minimum] and numpy_raised:
                 with pytest.raises(ValueError):
                     f(xv)
             else:
@@ -515,7 +527,7 @@ class TestCAReduce(unittest_tools.InferShapeTester):
                 tosum = list(range(len(xsh)))
             f = theano.function([x], e.shape, mode=mode)
             if not (
-                scalar_op in [scalar.scalar_maximum, scalar.scalar_minimum]
+                scalar_op in [ts.scalar_maximum, ts.scalar_minimum]
                 and (xsh == () or np.prod(xsh) == 0)
             ):
                 try:
@@ -525,43 +537,41 @@ class TestCAReduce(unittest_tools.InferShapeTester):
                     assert xv.size == 0
 
     def test_perform_noopt(self):
-        self.with_mode(Mode(linker="py", optimizer=None), scalar.add, dtype="floatX")
+        self.with_mode(Mode(linker="py", optimizer=None), ts.add, dtype="floatX")
 
     def test_perform(self):
         for dtype in ["bool", "floatX", "complex64", "complex128", "int8", "uint8"]:
-            self.with_mode(Mode(linker="py"), scalar.add, dtype=dtype)
-            self.with_mode(Mode(linker="py"), scalar.mul, dtype=dtype)
-            self.with_mode(Mode(linker="py"), scalar.scalar_maximum, dtype=dtype)
-            self.with_mode(Mode(linker="py"), scalar.scalar_minimum, dtype=dtype)
-            self.with_mode(
-                Mode(linker="py"), scalar.and_, dtype=dtype, tensor_op=tt.all
-            )
-            self.with_mode(Mode(linker="py"), scalar.or_, dtype=dtype, tensor_op=tt.any)
+            self.with_mode(Mode(linker="py"), ts.add, dtype=dtype)
+            self.with_mode(Mode(linker="py"), ts.mul, dtype=dtype)
+            self.with_mode(Mode(linker="py"), ts.scalar_maximum, dtype=dtype)
+            self.with_mode(Mode(linker="py"), ts.scalar_minimum, dtype=dtype)
+            self.with_mode(Mode(linker="py"), ts.and_, dtype=dtype, tensor_op=tt.all)
+            self.with_mode(Mode(linker="py"), ts.or_, dtype=dtype, tensor_op=tt.any)
         for dtype in ["int8", "uint8"]:
-            self.with_mode(Mode(linker="py"), scalar.or_, dtype=dtype)
-            self.with_mode(Mode(linker="py"), scalar.and_, dtype=dtype)
-            self.with_mode(Mode(linker="py"), scalar.xor, dtype=dtype)
+            self.with_mode(Mode(linker="py"), ts.or_, dtype=dtype)
+            self.with_mode(Mode(linker="py"), ts.and_, dtype=dtype)
+            self.with_mode(Mode(linker="py"), ts.xor, dtype=dtype)
 
     def test_perform_nan(self):
         for dtype in ["floatX", "complex64", "complex128"]:
-            self.with_mode(Mode(linker="py"), scalar.add, dtype=dtype, test_nan=True)
-            self.with_mode(Mode(linker="py"), scalar.mul, dtype=dtype, test_nan=True)
+            self.with_mode(Mode(linker="py"), ts.add, dtype=dtype, test_nan=True)
+            self.with_mode(Mode(linker="py"), ts.mul, dtype=dtype, test_nan=True)
             self.with_mode(
-                Mode(linker="py"), scalar.scalar_maximum, dtype=dtype, test_nan=True
+                Mode(linker="py"), ts.scalar_maximum, dtype=dtype, test_nan=True
             )
             self.with_mode(
-                Mode(linker="py"), scalar.scalar_minimum, dtype=dtype, test_nan=True
+                Mode(linker="py"), ts.scalar_minimum, dtype=dtype, test_nan=True
             )
             self.with_mode(
                 Mode(linker="py"),
-                scalar.or_,
+                ts.or_,
                 dtype=dtype,
                 test_nan=True,
                 tensor_op=tt.any,
             )
             self.with_mode(
                 Mode(linker="py"),
-                scalar.and_,
+                ts.and_,
                 dtype=dtype,
                 test_nan=True,
                 tensor_op=tt.all,
@@ -573,7 +583,7 @@ class TestCAReduce(unittest_tools.InferShapeTester):
     def test_c_noopt(self):
         # We need to make sure that we cover the corner cases that
         # optimizations normally cover
-        self.with_mode(Mode(linker="c", optimizer=None), scalar.add, dtype="floatX")
+        self.with_mode(Mode(linker="c", optimizer=None), ts.add, dtype="floatX")
 
     @pytest.mark.slow
     @pytest.mark.skipif(
@@ -581,17 +591,17 @@ class TestCAReduce(unittest_tools.InferShapeTester):
     )
     def test_c(self):
         for dtype in ["bool", "floatX", "complex64", "complex128", "int8", "uint8"]:
-            self.with_mode(Mode(linker="c"), scalar.add, dtype=dtype)
-            self.with_mode(Mode(linker="c"), scalar.mul, dtype=dtype)
+            self.with_mode(Mode(linker="c"), ts.add, dtype=dtype)
+            self.with_mode(Mode(linker="c"), ts.mul, dtype=dtype)
         for dtype in ["bool", "floatX", "int8", "uint8"]:
-            self.with_mode(Mode(linker="c"), scalar.scalar_minimum, dtype=dtype)
-            self.with_mode(Mode(linker="c"), scalar.scalar_maximum, dtype=dtype)
-            self.with_mode(Mode(linker="c"), scalar.and_, dtype=dtype, tensor_op=tt.all)
-            self.with_mode(Mode(linker="c"), scalar.or_, dtype=dtype, tensor_op=tt.any)
+            self.with_mode(Mode(linker="c"), ts.scalar_minimum, dtype=dtype)
+            self.with_mode(Mode(linker="c"), ts.scalar_maximum, dtype=dtype)
+            self.with_mode(Mode(linker="c"), ts.and_, dtype=dtype, tensor_op=tt.all)
+            self.with_mode(Mode(linker="c"), ts.or_, dtype=dtype, tensor_op=tt.any)
         for dtype in ["bool", "int8", "uint8"]:
-            self.with_mode(Mode(linker="c"), scalar.or_, dtype=dtype)
-            self.with_mode(Mode(linker="c"), scalar.and_, dtype=dtype)
-            self.with_mode(Mode(linker="c"), scalar.xor, dtype=dtype)
+            self.with_mode(Mode(linker="c"), ts.or_, dtype=dtype)
+            self.with_mode(Mode(linker="c"), ts.and_, dtype=dtype)
+            self.with_mode(Mode(linker="c"), ts.xor, dtype=dtype)
 
     @pytest.mark.slow
     @pytest.mark.skipif(
@@ -599,14 +609,14 @@ class TestCAReduce(unittest_tools.InferShapeTester):
     )
     def test_c_nan(self):
         for dtype in ["floatX", "complex64", "complex128"]:
-            self.with_mode(Mode(linker="c"), scalar.add, dtype=dtype, test_nan=True)
-            self.with_mode(Mode(linker="c"), scalar.mul, dtype=dtype, test_nan=True)
+            self.with_mode(Mode(linker="c"), ts.add, dtype=dtype, test_nan=True)
+            self.with_mode(Mode(linker="c"), ts.mul, dtype=dtype, test_nan=True)
         for dtype in ["floatX"]:
             self.with_mode(
-                Mode(linker="c"), scalar.scalar_minimum, dtype=dtype, test_nan=True
+                Mode(linker="c"), ts.scalar_minimum, dtype=dtype, test_nan=True
             )
             self.with_mode(
-                Mode(linker="c"), scalar.scalar_maximum, dtype=dtype, test_nan=True
+                Mode(linker="c"), ts.scalar_maximum, dtype=dtype, test_nan=True
             )
 
     def test_infer_shape(self, dtype=None, pre_scalar_op=None):
@@ -625,7 +635,7 @@ class TestCAReduce(unittest_tools.InferShapeTester):
                 d = {pre_scalar_op: pre_scalar_op}
             self._compile_and_check(
                 [x],
-                [self.op(scalar.add, axis=tosum, *d)(x)],
+                [self.op(ts.add, axis=tosum, *d)(x)],
                 [xv],
                 self.op,
                 ["local_cut_useless_reduce"],
@@ -669,20 +679,20 @@ class TestProd:
         x_val = np.asarray(
             [[1.0, 2.0, 3.0], [0.0, 5.0, 6.0], [0.0, 0.0, 9.0]], dtype="float32"
         )
-        x = tt.dmatrix()
+        x = dmatrix()
 
         # sanity check
         p = Prod(axis=1)(x)
 
         # Uncomment this for debugging if needed
-        # x2 = tt.dmatrix()
+        # x2 = dmatrix()
         # p2 = Prod(axis=1)(x2)
         # fn = theano.function([x, x2], [p - p2], mode=self.mode)
         # print("hand computed diff for each row")
         # x2_val = np.asarray([[1., 2., 3.003], [0.003, 5., 6], [
         #     0., 0., 9.01]])
         # print(fn(x_val, x2_val))
-        # fn2 = theano.function([x], [tt.grad(p.sum(), x)],
+        # fn2 = theano.function([x], [theano.gradient.grad(p.sum(), x)],
         #                       mode=self.mode)
         # print("real grad")
         # print(fn2(x_val))
@@ -697,7 +707,7 @@ class TestProd:
         # def fn5(x5):
         #    return tt.sqr(Prod(axis=1)(x5))
 
-        # x4 = tt.dmatrix()
+        # x4 = dmatrix()
         # p4 = tt.sqr(Prod(axis=1)(x4))
         # fn4 = theano.function([x4], p4)
         # print("with sqr")
@@ -708,7 +718,7 @@ class TestProd:
 
     @pytest.mark.slow
     def test_prod_no_zeros_in_input(self):
-        x = tt.dmatrix()
+        x = dmatrix()
         x_val = np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]], dtype="float32")
         pwz = Prod(axis=1, no_zeros_in_input=True)(x)
         fn = theano.function([x], pwz, mode=self.mode)
@@ -749,7 +759,7 @@ class TestProd:
         unittest_tools.verify_grad(second_deriv, [x_val], mode=self.mode)
 
     def test_prod_without_zeros(self):
-        x = tt.dmatrix()
+        x = dmatrix()
         x_val = np.array([[1, 2, 3], [0, 5, 6], [0, 0, 9]], dtype="float32")
         pwz = ProdWithoutZeros(axis=1)(x)
         fn = theano.function([x], pwz, mode=self.mode)
@@ -761,14 +771,14 @@ class TestProd:
 
     @pytest.mark.xfail(raises=theano.gradient.NullTypeGradError)
     def test_prod_without_zeros_grad(self):
-        x = tt.dmatrix()
+        x = dmatrix()
         pwz_a1 = ProdWithoutZeros(axis=0)(x)
         pwz_grad = theano.grad(tt.sum(pwz_a1), x)
         theano.function([x], pwz_grad, mode=self.mode)
 
     @pytest.mark.slow
     def test_other_grad_tests(self):
-        x = tt.dmatrix()
+        x = dmatrix()
         x_val1 = np.array([[1, 2, 3], [0, 5, 6], [0, 0, 9]], dtype="float32")
         x_val2 = np.array(
             [[1, 2, 0], [0, 5, 6], [7, 8, 9], [9, 10, 0]], dtype="float32"
@@ -776,7 +786,7 @@ class TestProd:
         rng = rng = np.random.RandomState(43)
 
         p = Prod(axis=1)
-        grad_p = tt.grad(p(x).sum(), x)
+        grad_p = theano.gradient.grad(p(x).sum(), x)
         grad_fn = theano.function([x], grad_p, mode=self.mode)
         assert np.allclose(
             grad_fn(x_val1), [[6.0, 3.0, 2.0], [30.0, 0.0, 0.0], [0.0, 0.0, 0.0]]
@@ -787,7 +797,7 @@ class TestProd:
         )
 
         p_axis0 = Prod(axis=0)
-        grad_p_axis0 = tt.grad(p_axis0(x).sum(), x)
+        grad_p_axis0 = theano.gradient.grad(p_axis0(x).sum(), x)
         grad_fn_axis0 = theano.function([x], grad_p_axis0, mode=self.mode)
         assert np.allclose(
             grad_fn_axis0(x_val2),
@@ -804,7 +814,7 @@ class TestProd:
     def test_mul_without_zeros_zeros(self):
         a = np.zeros((3, 3))
 
-        x = tt.dmatrix()
+        x = dmatrix()
 
         mul1 = ProdWithoutZeros(axis=0)(x)
 
@@ -833,8 +843,8 @@ class TestIsInfIsNan:
                 [np.nan, np.inf, -np.inf, 0, 1, -1],
             ]
         ]
-        self.scalar = tt.scalar()
-        self.vector = tt.vector()
+        self.scalar = scalar()
+        self.vector = vector()
         self.mode = get_default_mode()
         if isinstance(self.mode, theano.compile.debugmode.DebugMode):
             # Disable the check preventing usage of NaN / Inf values.
@@ -866,7 +876,7 @@ class TestReduceDtype:
     op = CAReduce
     axes = [None, 0, 1, [], [0], [1], [0, 1]]
     methods = ["sum", "prod"]
-    dtypes = list(map(str, theano.scalar.all_types))
+    dtypes = list(map(str, ts.all_types))
 
     # Test the default dtype of a method().
     def test_reduce_default_dtype(self):
@@ -874,7 +884,7 @@ class TestReduceDtype:
         for method in self.methods:
             for idx, dtype in enumerate(self.dtypes):
                 axis = self.axes[idx % len(self.axes)]
-                x = tt.matrix(dtype=dtype)
+                x = matrix(dtype=dtype)
                 s = getattr(x, method)(axis=axis)
                 assert (
                     s.dtype
@@ -902,7 +912,7 @@ class TestReduceDtype:
         for method in self.methods:
             for idx, dtype in enumerate(self.dtypes):
                 axis = self.axes[idx % len(self.axes)]
-                x = tt.matrix(dtype=dtype)
+                x = matrix(dtype=dtype)
                 s = getattr(x, method)(axis=axis)
                 assert (
                     s.owner.op.acc_dtype
@@ -934,7 +944,7 @@ class TestReduceDtype:
         idx = 0
         for method in self.methods:
             for input_dtype in self.dtypes:
-                x = tt.matrix(dtype=input_dtype)
+                x = matrix(dtype=input_dtype)
                 for output_dtype in self.dtypes:
                     # Only tests case where both input and output are complex.
                     icomplex = input_dtype.startswith("complex")
@@ -969,7 +979,7 @@ class TestReduceDtype:
                     if "complex" in input_dtype:
                         continue
                     # Check that we can take the gradient
-                    tt.grad(var.sum(), x, disconnected_inputs="ignore")
+                    theano.gradient.grad(var.sum(), x, disconnected_inputs="ignore")
                     idx += 1
 
     def test_reduce_custom_acc_dtype(self):
@@ -979,7 +989,7 @@ class TestReduceDtype:
         idx = 0
         for method in self.methods:
             for input_dtype in self.dtypes:
-                x = tt.matrix(dtype=input_dtype)
+                x = matrix(dtype=input_dtype)
                 for acc_dtype in self.dtypes:
                     # If the accumulator is a complex, the gradient of the reduce will
                     # cast the complex to the input dtype. We can't call the normal
@@ -992,10 +1002,10 @@ class TestReduceDtype:
                     axis = self.axes[idx % len(self.axes)]
                     # If output_dtype would force a downcast, we expect a TypeError
                     # We always allow int/uint inputs with float/complex outputs.
-                    upcasted_dtype = scalar.upcast(input_dtype, acc_dtype)
+                    upcasted_dtype = ts.upcast(input_dtype, acc_dtype)
                     if acc_dtype == upcasted_dtype or (
-                        input_dtype in tt.discrete_dtypes
-                        and acc_dtype in tt.continuous_dtypes
+                        input_dtype in discrete_dtypes
+                        and acc_dtype in continuous_dtypes
                     ):
                         var = getattr(x, method)(acc_dtype=acc_dtype, axis=axis)
                         assert var.owner.op.acc_dtype == acc_dtype
@@ -1003,7 +1013,7 @@ class TestReduceDtype:
                         if "complex" in input_dtype:
                             continue
                         # Check that we can take the gradient
-                        tt.grad(var.sum(), x, disconnected_inputs="ignore")
+                        theano.gradient.grad(var.sum(), x, disconnected_inputs="ignore")
                     else:
                         with pytest.raises(TypeError):
                             getattr(x(method), acc_dtype=acc_dtype, axis=axis)
@@ -1030,11 +1040,11 @@ class TestMeanDtype:
 
         # We try multiple axis combinations even though axis should not matter.
         axes = [None, 0, 1, [], [0], [1], [0, 1]]
-        for idx, dtype in enumerate(map(str, theano.scalar.all_types)):
+        for idx, dtype in enumerate(map(str, ts.all_types)):
             axis = axes[idx % len(axes)]
-            x = tt.matrix(dtype=dtype)
+            x = matrix(dtype=dtype)
             m = x.mean(axis=axis)
-            if dtype in tt.discrete_dtypes:
+            if dtype in discrete_dtypes:
                 assert m.dtype == "float64"
             else:
                 assert m.dtype == dtype, (m, m.dtype, dtype)
@@ -1050,9 +1060,9 @@ class TestMeanDtype:
         # We try multiple axis combinations even though axis should not matter.
         axes = [None, 0, 1, [], [0], [1], [0, 1]]
         idx = 0
-        for input_dtype in map(str, theano.scalar.all_types):
-            x = tt.matrix(dtype=input_dtype)
-            for sum_dtype in map(str, theano.scalar.all_types):
+        for input_dtype in map(str, ts.all_types):
+            x = matrix(dtype=input_dtype)
+            for sum_dtype in map(str, ts.all_types):
                 axis = axes[idx % len(axes)]
                 # If the inner sum cannot be created, it will raise a
                 # TypeError.
@@ -1062,7 +1072,7 @@ class TestMeanDtype:
                     pass
                 else:
                     # Executed if no TypeError was raised
-                    if sum_dtype in tt.discrete_dtypes:
+                    if sum_dtype in discrete_dtypes:
                         assert mean_var.dtype == "float64", (mean_var.dtype, sum_dtype)
                     else:
                         assert mean_var.dtype == sum_dtype, (mean_var.dtype, sum_dtype)
@@ -1078,11 +1088,13 @@ class TestMeanDtype:
                     if "complex" in mean_var.dtype:
                         continue
                     try:
-                        tt.grad(mean_var.sum(), x, disconnected_inputs="ignore")
+                        theano.gradient.grad(
+                            mean_var.sum(), x, disconnected_inputs="ignore"
+                        )
                     except NotImplementedError:
                         # TrueDiv does not seem to have a gradient when
                         # the numerator is complex.
-                        if mean_var.dtype in tt.complex_dtypes:
+                        if mean_var.dtype in complex_dtypes:
                             pass
                         else:
                             raise
@@ -1104,9 +1116,9 @@ class TestProdWithoutZerosDtype:
 
         # We try multiple axis combinations even though axis should not matter.
         axes = [None, 0, 1, [], [0], [1], [0, 1]]
-        for idx, dtype in enumerate(map(str, theano.scalar.all_types)):
+        for idx, dtype in enumerate(map(str, ts.all_types)):
             axis = axes[idx % len(axes)]
-            x = ProdWithoutZeros(axis=axis)(tt.matrix(dtype=dtype))
+            x = ProdWithoutZeros(axis=axis)(matrix(dtype=dtype))
             assert (
                 x.dtype
                 == dict(
@@ -1125,9 +1137,9 @@ class TestProdWithoutZerosDtype:
 
         # We try multiple axis combinations even though axis should not matter.
         axes = [None, 0, 1, [], [0], [1], [0, 1]]
-        for idx, dtype in enumerate(map(str, theano.scalar.all_types)):
+        for idx, dtype in enumerate(map(str, ts.all_types)):
             axis = axes[idx % len(axes)]
-            x = tt.matrix(dtype=dtype)
+            x = matrix(dtype=dtype)
             p = ProdWithoutZeros(axis=axis)(x)
             assert (
                 p.owner.op.acc_dtype
@@ -1159,9 +1171,9 @@ class TestProdWithoutZerosDtype:
         # We try multiple axis combinations even though axis should not matter.
         axes = [None, 0, 1, [], [0], [1], [0, 1]]
         idx = 0
-        for input_dtype in map(str, theano.scalar.all_types):
-            x = tt.matrix(dtype=input_dtype)
-            for output_dtype in map(str, theano.scalar.all_types):
+        for input_dtype in map(str, ts.all_types):
+            x = matrix(dtype=input_dtype)
+            for output_dtype in map(str, ts.all_types):
                 axis = axes[idx % len(axes)]
                 prod_woz_var = ProdWithoutZeros(axis=axis, dtype=output_dtype)(x)
                 assert prod_woz_var.dtype == output_dtype
@@ -1180,16 +1192,15 @@ class TestProdWithoutZerosDtype:
         # We try multiple axis combinations even though axis should not matter.
         axes = [None, 0, 1, [], [0], [1], [0, 1]]
         idx = 0
-        for input_dtype in map(str, theano.scalar.all_types):
-            x = tt.matrix(dtype=input_dtype)
-            for acc_dtype in map(str, theano.scalar.all_types):
+        for input_dtype in map(str, ts.all_types):
+            x = matrix(dtype=input_dtype)
+            for acc_dtype in map(str, ts.all_types):
                 axis = axes[idx % len(axes)]
                 # If acc_dtype would force a downcast, we expect a TypeError
                 # We always allow int/uint inputs with float/complex outputs.
-                upcasted_dtype = scalar.upcast(input_dtype, acc_dtype)
+                upcasted_dtype = ts.upcast(input_dtype, acc_dtype)
                 if acc_dtype == upcasted_dtype or (
-                    input_dtype in tt.discrete_dtypes
-                    and acc_dtype in tt.continuous_dtypes
+                    input_dtype in discrete_dtypes and acc_dtype in continuous_dtypes
                 ):
                     prod_woz_var = ProdWithoutZeros(axis=axis, acc_dtype=acc_dtype)(x)
                     assert prod_woz_var.owner.op.acc_dtype == acc_dtype
@@ -1212,7 +1223,7 @@ class TestBitOpReduceGrad:
         self.rng = np.random.RandomState(unittest_tools.fetch_seed())
 
     def test_all_grad(self):
-        x = tt.bmatrix("x")
+        x = bmatrix("x")
         x_all = x.all()
         gx = theano.grad(x_all, x)
         f = theano.function([x], gx)
@@ -1223,7 +1234,7 @@ class TestBitOpReduceGrad:
             assert np.all(gx_val == 0)
 
     def test_any_grad(self):
-        x = tt.bmatrix("x")
+        x = bmatrix("x")
         x_all = x.any()
         gx = theano.grad(x_all, x)
         f = theano.function([x], gx)
@@ -1236,8 +1247,8 @@ class TestBitOpReduceGrad:
 
 class TestElemwise(unittest_tools.InferShapeTester):
     def test_elemwise_grad_bool(self):
-        x = tt.scalar(dtype="bool")
-        y = tt.bscalar()
+        x = scalar(dtype="bool")
+        y = bscalar()
         z = x * y
         dx, dy = theano.grad(z, [x, y])
 
@@ -1262,7 +1273,7 @@ class TestElemwise(unittest_tools.InferShapeTester):
             t_right_val = np.zeros(s_right, dtype=dtype)
             self._compile_and_check(
                 [t_left, t_right],
-                [Elemwise(scalar.add)(t_left, t_right)],
+                [Elemwise(ts.add)(t_left, t_right)],
                 [t_left_val, t_right_val],
                 Elemwise,
             )
@@ -1271,7 +1282,7 @@ class TestElemwise(unittest_tools.InferShapeTester):
         # Elemwise.perform used to compute the product
         # of input shapes to check if there was a zero in them,
         # it overflowed in this case.
-        a, b, c, d, e, f = tt.vectors("abcdef")
+        a, b, c, d, e, f = vectors("abcdef")
         s = a + b + c + d + e + f
         g = theano.function(
             [a, b, c, d, e, f], s, mode=theano.compile.Mode(linker="py")
@@ -1287,20 +1298,18 @@ def test_gt_grad():
     # integer.
 
     floatX = config.floatX
-    T = theano.tensor
-
-    input_ = T.vector(dtype=floatX)
+    input_ = vector(dtype=floatX)
     random_values = np.random.RandomState(1234).uniform(low=-1, high=1, size=(2, 2))
     W_values = np.asarray(random_values, dtype=floatX)
     W = theano.shared(value=W_values, name="weights")
-    correct_score = T.dot(input_, W)
-    wrong_input = T.vector(dtype=floatX)
+    correct_score = tt.dot(input_, W)
+    wrong_input = vector(dtype=floatX)
     wrong_score = theano.clone(correct_score, {input_: wrong_input})
     # Hinge loss
-
-    scores = T.ones_like(correct_score) - correct_score + wrong_score
+    scores = tt.ones_like(correct_score) - correct_score + wrong_score
     cost = (scores * (scores > 0)).sum()
-    T.grad(cost, input_)
+    # TODO FIXME: This is NOT a test.
+    theano.grad(cost, input_)
 
 
 def test_clip_grad():
@@ -1332,7 +1341,7 @@ def test_grad_useless_sum():
     mode.check_isfinite = False
     x = TensorType(theano.config.floatX, (True,))("x")
     l = tt.log(1.0 - sigmoid(x))[0]
-    g = tt.grad(l, x)
+    g = theano.gradient.grad(l, x)
 
     f = theano.function([x], g, mode=mode)
     test_values = [-100, -1, 0, 1, 100]
@@ -1359,8 +1368,8 @@ def test_grad_useless_sum():
 def test_elemwise_grad_broadcast():
     # This crashed in the past.
 
-    x = tt.tensor(dtype="float32", broadcastable=(True, False, False, False))
-    y = tt.tensor(dtype="float32", broadcastable=(True, True, False, False))
+    x = tensor(dtype="float32", broadcastable=(True, False, False, False))
+    y = tensor(dtype="float32", broadcastable=(True, True, False, False))
 
     theano.grad(tt.tanh(x).sum(), x)
     theano.grad(tt.tanh(x + y).sum(), y)
@@ -1369,19 +1378,19 @@ def test_elemwise_grad_broadcast():
 
 def test_clip_grad_int():
     # test that integers don't crash clip gradient
-    x = tt.iscalar()
-    y = tt.iscalar()
-    z = tt.iscalar()
+    x = iscalar()
+    y = iscalar()
+    z = iscalar()
     c = tt.clip(x, y, z)
-    tt.grad(c, [x, y, z])
+    theano.gradient.grad(c, [x, y, z])
 
 
 def test_not_implemented_elemwise_grad():
     # Regression test for unimplemented gradient in an Elemwise Op.
 
-    class TestOp(scalar.ScalarOp):
+    class TestOp(ts.ScalarOp):
         def __init__(self):
-            self.output_types_preference = scalar.upgrade_to_float
+            self.output_types_preference = ts.upgrade_to_float
 
         def impl(self, n, x):
             return x * n
@@ -1393,9 +1402,9 @@ def test_not_implemented_elemwise_grad():
             return [theano.gradient.grad_not_implemented(self, 0, n), gz * dy_dx]
 
     test_op = tt.Elemwise(TestOp())
-    x = tt.scalar()
-    assert isinstance(tt.grad(test_op(2, x), x), Variable)
+    x = scalar()
+    assert isinstance(theano.gradient.grad(test_op(2, x), x), Variable)
 
     # Verify that trying to use the not implemented gradient fails.
     with pytest.raises(theano.gradient.NullTypeGradError):
-        tt.grad(test_op(x, 2), x)
+        theano.gradient.grad(test_op(x, 2), x)

@@ -19,7 +19,7 @@ import warnings
 import numpy as np
 
 import theano
-from theano import scalar
+from theano import scalar as ts
 from theano.assert_op import Assert
 from theano.compile import optdb
 from theano.configdefaults import config
@@ -31,7 +31,7 @@ from theano.scalar import UnaryScalarOp
 
 # Work-around for Python 3.6 issue that prevents `import theano.tensor as tt`
 from theano.tensor import basic as tt
-from theano.tensor import extra_ops, opt, subtensor
+from theano.tensor import extra_ops, opt
 from theano.tensor.basic import MaxAndArgmax, as_tensor_variable, log
 from theano.tensor.elemwise import Elemwise
 from theano.tensor.nnet.blocksparse import sparse_block_dot
@@ -41,8 +41,16 @@ from theano.tensor.opt import (
     register_specialize,
     register_stabilize,
 )
-from theano.tensor.subtensor import AdvancedSubtensor
-from theano.tensor.type import values_eq_approx_remove_inf, values_eq_approx_remove_nan
+from theano.tensor.subtensor import AdvancedIncSubtensor, AdvancedSubtensor, Subtensor
+from theano.tensor.type import (
+    TensorType,
+    discrete_dtypes,
+    float_dtypes,
+    ivector,
+    lvector,
+    values_eq_approx_remove_inf,
+    values_eq_approx_remove_nan,
+)
 
 
 class SoftmaxWithBias(COp):
@@ -66,9 +74,9 @@ class SoftmaxWithBias(COp):
     def make_node(self, x, b):
         x = tt.as_tensor_variable(x)
         b = tt.as_tensor_variable(b)
-        if x.type.ndim != 2 or x.type.dtype not in tt.float_dtypes:
+        if x.type.ndim != 2 or x.type.dtype not in float_dtypes:
             raise ValueError("x must be 2-d tensor of floats")
-        if b.type.ndim != 1 or b.type.dtype not in tt.float_dtypes:
+        if b.type.ndim != 1 or b.type.dtype not in float_dtypes:
             raise ValueError("b must be 1-d tensor of floats")
 
         sm = x.type()
@@ -314,7 +322,7 @@ class SoftmaxGrad(COp):
     def make_node(self, dy, sm):
         dy = tt.as_tensor_variable(dy)
         sm = tt.as_tensor_variable(sm)
-        if dy.type.ndim not in (1, 2) or dy.type.dtype not in tt.float_dtypes:
+        if dy.type.ndim not in (1, 2) or dy.type.dtype not in float_dtypes:
             raise ValueError("dy must be 1-d or 2-d tensor of floats. Got ", dy.type)
         if dy.ndim == 1:
             dy = tt.shape_padleft(dy, n_ones=1)
@@ -438,7 +446,7 @@ class Softmax(COp):
 
     def make_node(self, x):
         x = tt.as_tensor_variable(x)
-        if x.type.ndim not in (1, 2) or x.type.dtype not in tt.float_dtypes:
+        if x.type.ndim not in (1, 2) or x.type.dtype not in float_dtypes:
             raise ValueError(f"x must be 1-d or 2-d tensor of floats. Got {x.type}")
         if x.ndim == 1:
             warnings.warn(
@@ -637,7 +645,7 @@ class LogSoftmax(COp):
 
     def make_node(self, x):
         x = tt.as_tensor_variable(x)
-        if x.type.ndim not in (1, 2) or x.type.dtype not in tt.float_dtypes:
+        if x.type.ndim not in (1, 2) or x.type.dtype not in float_dtypes:
             raise ValueError(f"x must be 1-d or 2-d tensor of floats. Got {x.type}")
         if x.ndim == 1:
             warnings.warn(
@@ -783,7 +791,7 @@ def local_logsoftmax(fgraph, node):
     """
     if (
         isinstance(node.op, Elemwise)
-        and isinstance(node.op.scalar_op, scalar.basic.Log)
+        and isinstance(node.op.scalar_op, ts.Log)
         and len(node.inputs) == 1
         and node.inputs[0].owner is not None
         and isinstance(node.inputs[0].owner.op, Softmax)
@@ -821,7 +829,7 @@ def local_logsoftmax_grad(fgraph, node):
             node.inputs[0].owner.op == tt.true_div
             and node.inputs[0].owner.inputs[0].owner is not None
             and isinstance(
-                node.inputs[0].owner.inputs[0].owner.op, subtensor.AdvancedIncSubtensor
+                node.inputs[0].owner.inputs[0].owner.op, AdvancedIncSubtensor
             )
         )
     ):
@@ -1006,15 +1014,15 @@ class CrossentropySoftmaxArgmax1HotWithBias(COp):
         x = tt.as_tensor_variable(x)
         b = tt.as_tensor_variable(b)
         y_idx = tt.as_tensor_variable(y_idx)
-        if x.type.ndim != 2 or x.type.dtype not in tt.float_dtypes:
+        if x.type.ndim != 2 or x.type.dtype not in float_dtypes:
             raise ValueError("x must be 2-d tensor of floats", x.type)
-        if b.type.ndim != 1 or x.type.dtype not in tt.float_dtypes:
+        if b.type.ndim != 1 or x.type.dtype not in float_dtypes:
             raise ValueError("b must be 1-d tensor of floats", b.type)
-        if y_idx.type.ndim != 1 or y_idx.type.dtype not in tt.discrete_dtypes:
+        if y_idx.type.ndim != 1 or y_idx.type.dtype not in discrete_dtypes:
             raise ValueError("y_idx must be 1-d tensor of [u]ints", y_idx.type)
 
         #       TODO: Is this correct? It used to be y, not y_idx
-        nll = tt.TensorType(x.type.dtype, y_idx.type.broadcastable).make_variable()
+        nll = TensorType(x.type.dtype, y_idx.type.broadcastable).make_variable()
         #        nll = TensorType(x.dtype, y.broadcastable)
         sm = x.type()
         am = y_idx.type()
@@ -1235,11 +1243,11 @@ class CrossentropySoftmax1HotWithBiasDx(COp):
         dy = tt.as_tensor_variable(dy)
         sm = tt.as_tensor_variable(sm)
         y_idx = tt.as_tensor_variable(y_idx)
-        if dy.type.ndim > 1 or dy.type.dtype not in tt.float_dtypes:
+        if dy.type.ndim > 1 or dy.type.dtype not in float_dtypes:
             raise ValueError("dy must be {0,1}-d tensor of floats", dy.type)
-        if sm.type.ndim != 2 or sm.type.dtype not in tt.float_dtypes:
+        if sm.type.ndim != 2 or sm.type.dtype not in float_dtypes:
             raise ValueError("sm must be 2-d tensor of floats", sm.type)
-        if y_idx.type.ndim != 1 or y_idx.type.dtype not in tt.discrete_dtypes:
+        if y_idx.type.ndim != 1 or y_idx.type.dtype not in discrete_dtypes:
             raise ValueError("y_idx must be 1-d tensor of [u]ints", y_idx.type)
         return Apply(self, [dy, sm, y_idx], [sm.type()])
 
@@ -1269,8 +1277,7 @@ class CrossentropySoftmax1HotWithBiasDx(COp):
         # typically we should not need the gradient w.r.t. dy).
         y_idx_range = tt.arange(y_idx.shape[0])
         g_dy = tt.sum(
-            g_dx
-            * subtensor.AdvancedIncSubtensor()(sm, tt.fill(dy, -1), y_idx_range, y_idx),
+            g_dx * AdvancedIncSubtensor()(sm, tt.fill(dy, -1), y_idx_range, y_idx),
             axis=1,
         )
         g_sm = dy.dimshuffle(0, "x") * g_dx
@@ -1485,16 +1492,16 @@ class CrossentropyCategorical1Hot(Op):
         _true_one_of_n = tt.as_tensor_variable(true_one_of_n)
         if _coding_dist.type.ndim != 2:
             raise TypeError("matrix required for argument: coding_dist")
-        if _true_one_of_n.type not in (tt.lvector, tt.ivector):
+        if _true_one_of_n.type not in (lvector, ivector):
             raise TypeError(
                 "integer vector required for argument: true_one_of_n"
-                f"(got type: {_true_one_of_n.type} instead of: {tt.lvector})"
+                f"(got type: {_true_one_of_n.type} instead of: {lvector})"
             )
 
         return Apply(
             self,
             [_coding_dist, _true_one_of_n],
-            [tt.Tensor(dtype=_coding_dist.dtype, broadcastable=[False])()],
+            [TensorType(dtype=_coding_dist.dtype, broadcastable=[False])()],
         )
 
     def perform(self, node, inp, out):
@@ -1735,7 +1742,7 @@ def _check_rows_is_arange_len_labels(fgraph, rows, labels):
 
         # Not sure if that case happens any more after the introduction of
         # ShapeOptimizer, but we keep it if ShapeOptimizer is not present
-        if isinstance(stop.owner.op, subtensor.Subtensor):
+        if isinstance(stop.owner.op, Subtensor):
             shape_subtensor = stop.owner
             if shape_subtensor.op.get_constant_idx(
                 shape_subtensor.inputs, allow_partial=True
@@ -1855,7 +1862,7 @@ def local_advanced_indexing_crossentropy_onehot_grad(fgraph, node):
     # After the check for AdvancedIncSubtensor, if anything does not fit with
     # the formula above, there's no way to fit it with the the second case,
     # so we return immediately.
-    if d_sm.owner and isinstance(d_sm.owner.op, subtensor.AdvancedIncSubtensor):
+    if d_sm.owner and isinstance(d_sm.owner.op, AdvancedIncSubtensor):
         try:
             z, incr, rows, labels = d_sm.owner.inputs
         except Exception:
@@ -1960,7 +1967,7 @@ def local_advanced_indexing_crossentropy_onehot_grad(fgraph, node):
             return
 
         # Check the numerator (AdvancedIncSubtensor)
-        if num.owner and isinstance(num.owner.op, subtensor.AdvancedIncSubtensor):
+        if num.owner and isinstance(num.owner.op, AdvancedIncSubtensor):
             try:
                 z, incr, rows, labels = num.owner.inputs
             except Exception:
@@ -1977,7 +1984,7 @@ def local_advanced_indexing_crossentropy_onehot_grad(fgraph, node):
             # if the graph is valid, they have the same shape, so we
             # also know that z has the right shape.
 
-            if incr.ndim != 1 or incr.dtype not in tt.float_dtypes:
+            if incr.ndim != 1 or incr.dtype not in float_dtypes:
                 return
 
             # here we know that we are incrementing some part of
@@ -2202,7 +2209,7 @@ class Prepend_scalar_constant_to_each_row(Op):
 
     def __init__(self, val=0):
         if isinstance(val, float):
-            val = scalar.constant(val)
+            val = ts.constant(val)
         self.val = val
 
     def __str__(self):
@@ -2257,7 +2264,7 @@ class Prepend_scalar_to_each_row(Op):
         # check type of input
         x = tt.as_tensor_variable(mat)
         if isinstance(val, float):
-            val = scalar.constant(val)
+            val = ts.constant(val)
         if not mat.type.broadcastable == (False, False):
             raise TypeError("Expected a matrix as input")
         y = tt.as_tensor_variable(val)
@@ -2324,8 +2331,8 @@ def relu(x, alpha=0):
 
     Notes
     -----
-    This is numerically equivalent to ``T.switch(x > 0, x, alpha * x)``
-    (or ``T.maximum(x, alpha * x)`` for ``alpha < 1``), but uses a faster
+    This is numerically equivalent to ``switch(x > 0, x, alpha * x)``
+    (or ``maximum(x, alpha * x)`` for ``alpha < 1``), but uses a faster
     formulation or an optimized Op, so we encourage to use this function.
 
     """
@@ -2611,12 +2618,12 @@ class ScalarSoftsign(UnaryScalarOp):
     def c_code(self, node, name, inp, out, sub):
         (x,) = inp
         (z,) = out
-        if node.inputs[0].type in [theano.scalar.float32, theano.scalar.float64]:
+        if node.inputs[0].type in [ts.float32, ts.float64]:
             return f"{z} = {x} / (1.0+fabs({x}));"
         raise NotImplementedError("only floating point x is implemented")
 
 
-scalar_softsign = ScalarSoftsign(theano.scalar.upgrade_to_float, name="scalar_softsign")
+scalar_softsign = ScalarSoftsign(ts.upgrade_to_float, name="scalar_softsign")
 softsign = Elemwise(scalar_softsign, name="softsign")
 
 

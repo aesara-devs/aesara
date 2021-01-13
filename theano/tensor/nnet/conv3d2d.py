@@ -1,5 +1,5 @@
 import theano
-from theano import tensor
+from theano import tensor as tt
 from theano.gradient import DisconnectedType
 from theano.graph.basic import Apply
 from theano.graph.op import Op
@@ -103,8 +103,8 @@ class DiagonalSubtensor(Op):
             self.view_map = {0: [0]}
 
     def make_node(self, x, i0, i1):
-        _i0 = tensor.as_tensor_variable(i0)
-        _i1 = tensor.as_tensor_variable(i1)
+        _i0 = tt.as_tensor_variable(i0)
+        _i1 = tt.as_tensor_variable(i1)
         return Apply(self, [x, _i0, _i1], [x.type()])
 
     def perform(self, node, inputs, output_storage):
@@ -115,7 +115,7 @@ class DiagonalSubtensor(Op):
             output_storage[0][0] = xview.copy()
 
     def grad(self, inputs, g_outputs):
-        z = tensor.zeros_like(inputs[0])
+        z = tt.zeros_like(inputs[0])
         gx = inc_diagonal_subtensor(z, inputs[1], inputs[2], g_outputs[0])
         return [gx, DisconnectedType()(), DisconnectedType()()]
 
@@ -146,8 +146,8 @@ class IncDiagonalSubtensor(Op):
             self.destroy_map = {0: [0]}
 
     def make_node(self, x, i0, i1, amt):
-        _i0 = tensor.as_tensor_variable(i0)
-        _i1 = tensor.as_tensor_variable(i1)
+        _i0 = tt.as_tensor_variable(i0)
+        _i1 = tt.as_tensor_variable(i1)
         return Apply(self, [x, _i0, _i1, amt], [x.type()])
 
     def perform(self, node, inputs, output_storage):
@@ -242,7 +242,7 @@ def conv3d(
     if filters_shape is None:
         conv2d_filter_shape = None
 
-    out_4d = tensor.nnet.conv2d(
+    out_4d = theano.tensor.nnet.conv2d(
         signals.reshape(_signals_shape_4d),
         filters.reshape(_filters_shape_4d),
         input_shape=conv2d_signal_shape,
@@ -290,10 +290,10 @@ def conv3d(
             out_5d = diagonal_subtensor(out_tmp, 1, 3).sum(axis=3)
         else:
             # pad out_tmp with zeros before summing over the diagonal
-            out_tmp_padded = tensor.zeros(
+            out_tmp_padded = tt.zeros(
                 dtype=out_tmp.dtype, shape=(Ns, Ts + 2 * Tpad, Nf, Tf, Hout, Wout)
             )
-            out_tmp_padded = tensor.set_subtensor(
+            out_tmp_padded = theano.tensor.subtensor.set_subtensor(
                 out_tmp_padded[:, Tpad : (Ts + Tpad), :, :, :, :], out_tmp
             )
             out_5d = diagonal_subtensor(out_tmp_padded, 1, 3).sum(axis=3)

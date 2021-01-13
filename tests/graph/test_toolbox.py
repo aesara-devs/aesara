@@ -1,9 +1,10 @@
-from theano import tensor
+from theano import tensor as tt
 from theano.graph.basic import Apply, Variable
 from theano.graph.fg import FunctionGraph
 from theano.graph.op import Op
 from theano.graph.toolbox import NodeFinder, is_same_graph
 from theano.graph.type import Type
+from theano.tensor.type import vectors
 
 
 class TestNodeFinder:
@@ -109,7 +110,7 @@ class TestIsSameGraph:
     def test_single_var(self):
         # Test `is_same_graph` with some trivial graphs (one Variable).
 
-        x, y, z = tensor.vectors("x", "y", "z")
+        x, y, z = vectors("x", "y", "z")
         self.check(
             [
                 (x, x, (({}, True),)),
@@ -121,15 +122,15 @@ class TestIsSameGraph:
                         ({y: x}, True),
                     ),
                 ),
-                (x, tensor.neg(x), (({}, False),)),
-                (x, tensor.neg(y), (({}, False),)),
+                (x, tt.neg(x), (({}, False),)),
+                (x, tt.neg(y), (({}, False),)),
             ]
         )
 
     def test_full_graph(self):
         # Test `is_same_graph` with more complex graphs.
 
-        x, y, z = tensor.vectors("x", "y", "z")
+        x, y, z = vectors("x", "y", "z")
         t = x * y
         self.check(
             [
@@ -181,7 +182,7 @@ class TestIsSameGraph:
     def test_merge_only(self):
         # Test `is_same_graph` when `equal_computations` cannot be used.
 
-        x, y, z = tensor.vectors("x", "y", "z")
+        x, y, z = vectors("x", "y", "z")
         t = x * y
         self.check(
             [

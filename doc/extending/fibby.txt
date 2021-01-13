@@ -27,7 +27,7 @@ you should check the strides and alignment.
        __props__ = ()
 
        def make_node(self, x):
-           x_ = tensor.as_tensor_variable(x)
+           x_ = tt.as_tensor_variable(x)
            assert x_.ndim == 1
            return Apply(self,
                inputs=[x_],
@@ -142,7 +142,6 @@ Here is some code to test that the optimization is applied only when needed.
    import numpy
    import theano.tensor as tt
    from theano import function
-   from theano import tensor
 
    # Test it does not apply when not needed
    x = tt.dvector()

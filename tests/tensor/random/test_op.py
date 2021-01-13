@@ -2,17 +2,18 @@ import numpy as np
 from pytest import fixture, raises
 
 import theano.tensor as tt
-from theano import change_flags, config
+from theano import config
 from theano.assert_op import Assert
 from theano.gradient import NullTypeGradError
 from theano.tensor.random.basic import normal
 from theano.tensor.random.op import RandomVariable, default_shape_from_params, observed
+from theano.tensor.type import all_dtypes, iscalar, tensor, vector
 from theano.tensor.type_other import NoneTypeT
 
 
 @fixture(scope="module", autouse=True)
 def set_theano_flags():
-    with change_flags(cxx="", compute_test_value="raise"):
+    with config.change_flags(cxx="", compute_test_value="raise"):
         yield
 
 
@@ -101,7 +102,7 @@ def test_RandomVariable_basics():
     assert rv_shape.equals(tt.constant([], dtype="int64"))
 
     # Integer-specificed `dtype`
-    dtype_1 = tt.all_dtypes[1]
+    dtype_1 = all_dtypes[1]
     rv_node = rv.make_node(None, None, 1)
     rv_out = rv_node.outputs[1]
     rv_out.tag.test_value = 1
@@ -113,16 +114,16 @@ def test_RandomVariable_basics():
 
     rv = RandomVariable("normal", 0, [0, 0], config.floatX, inplace=True)
 
-    mu = tt.tensor(config.floatX, [True, False, False])
+    mu = tensor(config.floatX, [True, False, False])
     mu.tag.test_value = np.zeros((1, 2, 3)).astype(config.floatX)
-    sd = tt.tensor(config.floatX, [False, False])
+    sd = tensor(config.floatX, [False, False])
     sd.tag.test_value = np.ones((2, 3)).astype(config.floatX)
 
-    s1 = tt.iscalar()
+    s1 = iscalar()
     s1.tag.test_value = 1
-    s2 = tt.iscalar()
+    s2 = iscalar()
     s2.tag.test_value = 2
-    s3 = tt.iscalar()
+    s3 = iscalar()
     s3.tag.test_value = 3
     s3 = Assert("testing")(s3, tt.eq(s1, 1))
 
@@ -145,7 +146,7 @@ def test_RandomVariable_floatX():
 
     new_floatX = "float64" if config.floatX == "float32" else "float32"
 
-    with change_flags(floatX=new_floatX):
+    with config.change_flags(floatX=new_floatX):
         assert test_rv_op(0, 1).dtype == new_floatX
 
 
@@ -165,7 +166,7 @@ def test_observed():
 
     assert isinstance(obs_rv.owner.inputs[0].type, NoneTypeT)
 
-    rv_val = tt.vector()
+    rv_val = vector()
     rv_val.tag.test_value = np.array([0.2, 0.1, -2.4], dtype=config.floatX)
 
     obs_var = observed(rv_var, rv_val)

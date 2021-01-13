@@ -6,11 +6,12 @@ import numpy as np
 import pytest
 
 import theano
+import theano.tensor as tt
 from tests import unittest_tools as utt
-from theano import tensor
 from theano.configdefaults import config
 from theano.sandbox import rng_mrg
 from theano.sandbox.rng_mrg import MRG_RandomStream
+from theano.tensor.type import iscalar, ivector, lmatrix, matrix, scalar, vector
 
 
 # TODO: test MRG_RandomStream
@@ -256,7 +257,7 @@ def test_uniform():
         sample_size = (500, 50)
         steps = int(1e3)
 
-    x = tensor.matrix()
+    x = matrix()
     for size, const_size, var_input, input in [
         (sample_size, sample_size, [], []),
         (x.shape, sample_size, [x], [np.zeros(sample_size, dtype=config.floatX)]),
@@ -272,7 +273,7 @@ def test_uniform():
 
         # TEST CPU IMPLEMENTATION
         # The python and C implementation are tested with DebugMode
-        x = tensor.matrix()
+        x = matrix()
         R = MRG_RandomStream(234)
         # Note: we specify `nstreams` to avoid a warning.
         # TODO Look for all occurrences of `guess_n_streams` and `30 * 256`
@@ -307,13 +308,13 @@ def test_uniform():
 
 def test_broadcastable():
     R = MRG_RandomStream(234)
-    x = tensor.matrix()
+    x = matrix()
     size1 = (10, 1)
     size2 = (x.shape[0], 1)
     pvals_1 = np.random.uniform(0, 1, size=size1)
     pvals_1 = pvals_1 / sum(pvals_1)
     pvals_2 = R.uniform(size=size2)
-    pvals_2 = pvals_2 / tensor.sum(pvals_2)
+    pvals_2 = pvals_2 / tt.sum(pvals_2)
 
     for distribution in [
         R.uniform,
@@ -405,7 +406,7 @@ def test_binomial():
         steps = int(1e3)
         rtol = 0.01
 
-    x = tensor.matrix()
+    x = matrix()
     for mean in [0.1, 0.5]:
         for size, const_size, var_input, input in [
             (sample_size, sample_size, [], []),
@@ -431,7 +432,7 @@ def test_normal0():
         sample_size = (999, 50)
         default_rtol = 0.01
     sample_size_odd = (sample_size[0], sample_size[1] - 1)
-    x = tensor.matrix()
+    x = matrix()
 
     test_cases = [
         (sample_size, sample_size, [], [], -5.0, default_rtol, default_rtol),
@@ -540,7 +541,7 @@ def test_normal_truncation():
         sample_size = (999, 50)
         default_rtol = 0.01
     sample_size_odd = (sample_size[0], sample_size[1] - 1)
-    x = tensor.matrix()
+    x = matrix()
 
     test_cases = [
         (sample_size, sample_size, [], [], -5.0, default_rtol, default_rtol),
@@ -640,7 +641,7 @@ def test_truncated_normal():
         sample_size = (999, 50)
         default_rtol = 0.01
     sample_size_odd = (sample_size[0], sample_size[1] - 1)
-    x = tensor.matrix()
+    x = matrix()
 
     test_cases = [
         (sample_size, sample_size, [], [], -5.0, default_rtol, default_rtol),
@@ -847,9 +848,9 @@ def test_gradient_scan():
     def one_step(x):
         return x + theano_rng.uniform((1,), dtype="float32") * w
 
-    x = tensor.vector(dtype="float32")
+    x = vector(dtype="float32")
     values, updates = theano.scan(one_step, outputs_info=x, n_steps=10)
-    gw = theano.grad(tensor.sum(values[-1]), w)
+    gw = theano.grad(tt.sum(values[-1]), w)
     f = theano.function([x], gw)
     f(np.arange(1, dtype="float32"))
 
@@ -874,12 +875,12 @@ def test_simple_shared_mrg_random():
 
 
 def test_multMatVect():
-    A1 = tensor.lmatrix("A1")
-    s1 = tensor.ivector("s1")
-    m1 = tensor.iscalar("m1")
-    A2 = tensor.lmatrix("A2")
-    s2 = tensor.ivector("s2")
-    m2 = tensor.iscalar("m2")
+    A1 = lmatrix("A1")
+    s1 = ivector("s1")
+    m1 = iscalar("m1")
+    A2 = lmatrix("A2")
+    s2 = ivector("s2")
+    m2 = iscalar("m2")
 
     g0 = rng_mrg.DotModulo()(A1, s1, m1, A2, s2, m2)
     f0 = theano.function([A1, s1, m1, A2, s2, m2], g0)
@@ -910,7 +911,7 @@ def test_multMatVect():
 
 
 def test_seed_fn():
-    idx = tensor.ivector()
+    idx = ivector()
 
     for new_seed, same in [(234, True), (None, True), (23, False)]:
         random = MRG_RandomStream(234)
@@ -988,12 +989,12 @@ def test_undefined_grad():
     srng = MRG_RandomStream(seed=1234)
 
     # checking uniform distribution
-    low = tensor.scalar()
+    low = scalar()
     out = srng.uniform((), low=low)
     with pytest.raises(theano.gradient.NullTypeGradError):
         theano.grad(out, low)
 
-    high = tensor.scalar()
+    high = scalar()
     out = srng.uniform((), low=0, high=high)
     with pytest.raises(theano.gradient.NullTypeGradError):
         theano.grad(out, high)
@@ -1003,47 +1004,47 @@ def test_undefined_grad():
         theano.grad(out, (low, high))
 
     # checking binomial distribution
-    prob = tensor.scalar()
+    prob = scalar()
     out = srng.binomial((), p=prob)
     with pytest.raises(theano.gradient.NullTypeGradError):
         theano.grad(out, prob)
 
     # checking multinomial distribution
-    prob1 = tensor.scalar()
-    prob2 = tensor.scalar()
-    p = [theano.tensor.as_tensor_variable([prob1, 0.5, 0.25])]
+    prob1 = scalar()
+    prob2 = scalar()
+    p = [tt.as_tensor_variable([prob1, 0.5, 0.25])]
     out = srng.multinomial(size=None, pvals=p, n=4)[0]
     with pytest.raises(theano.gradient.NullTypeGradError):
-        theano.grad(theano.tensor.sum(out), prob1)
+        theano.grad(tt.sum(out), prob1)
 
-    p = [theano.tensor.as_tensor_variable([prob1, prob2])]
+    p = [tt.as_tensor_variable([prob1, prob2])]
     out = srng.multinomial(size=None, pvals=p, n=4)[0]
     with pytest.raises(theano.gradient.NullTypeGradError):
-        theano.grad(theano.tensor.sum(out), (prob1, prob2))
+        theano.grad(tt.sum(out), (prob1, prob2))
 
     # checking choice
-    p = [theano.tensor.as_tensor_variable([prob1, prob2, 0.1, 0.2])]
+    p = [tt.as_tensor_variable([prob1, prob2, 0.1, 0.2])]
     out = srng.choice(a=None, size=1, p=p, replace=False)[0]
     with pytest.raises(theano.gradient.NullTypeGradError):
         theano.grad(out[0], (prob1, prob2))
 
-    p = [theano.tensor.as_tensor_variable([prob1, prob2])]
+    p = [tt.as_tensor_variable([prob1, prob2])]
     out = srng.choice(a=None, size=1, p=p, replace=False)[0]
     with pytest.raises(theano.gradient.NullTypeGradError):
         theano.grad(out[0], (prob1, prob2))
 
-    p = [theano.tensor.as_tensor_variable([prob1, 0.2, 0.3])]
+    p = [tt.as_tensor_variable([prob1, 0.2, 0.3])]
     out = srng.choice(a=None, size=1, p=p, replace=False)[0]
     with pytest.raises(theano.gradient.NullTypeGradError):
         theano.grad(out[0], prob1)
 
     # checking normal distribution
-    avg = tensor.scalar()
+    avg = scalar()
     out = srng.normal((), avg=avg)
     with pytest.raises(theano.gradient.NullTypeGradError):
         theano.grad(out, avg)
 
-    std = tensor.scalar()
+    std = scalar()
     out = srng.normal((), avg=0, std=std)
     with pytest.raises(theano.gradient.NullTypeGradError):
         theano.grad(out, std)
@@ -1053,12 +1054,12 @@ def test_undefined_grad():
         theano.grad(out, (avg, std))
 
     # checking truncated normal distribution
-    avg = tensor.scalar()
+    avg = scalar()
     out = srng.truncated_normal((), avg=avg)
     with pytest.raises(theano.gradient.NullTypeGradError):
         theano.grad(out, avg)
 
-    std = tensor.scalar()
+    std = scalar()
     out = srng.truncated_normal((), avg=0, std=std)
     with pytest.raises(theano.gradient.NullTypeGradError):
         theano.grad(out, std)
@@ -1110,10 +1111,10 @@ def test_undefined_grad_opt():
     pvals = pvals / pvals.sum(axis=1)
     pvals = theano.gradient.zero_grad(pvals)
     samples = random.multinomial(pvals=pvals, n=1)
-    samples = theano.tensor.cast(samples, pvals.dtype)
+    samples = tt.cast(samples, pvals.dtype)
     samples = theano.gradient.zero_grad(samples)
-    cost = theano.tensor.sum(samples + pvals)
-    grad = theano.tensor.grad(cost, samples)
+    cost = tt.sum(samples + pvals)
+    grad = theano.gradient.grad(cost, samples)
     f = theano.function([], grad)
     assert not any(
         [

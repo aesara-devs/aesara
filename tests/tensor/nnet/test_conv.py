@@ -8,6 +8,7 @@ import theano.tensor as tt
 from tests import unittest_tools as utt
 from theano.tensor.basic import NotScalarConstantError, _allclose
 from theano.tensor.nnet import conv, conv2d
+from theano.tensor.type import dmatrix, dtensor3, dtensor4, dvector, scalar, tensor4
 
 
 @pytest.mark.skipif(
@@ -25,9 +26,9 @@ class TestConv2D(utt.InferShapeTester):
     conv2d = staticmethod(conv.conv2d)
 
     def setup_method(self):
-        self.input = tt.tensor4("input", dtype=self.dtype)
+        self.input = tensor4("input", dtype=self.dtype)
         self.input.name = "default_V"
-        self.filters = tt.tensor4("filters", dtype=self.dtype)
+        self.filters = tensor4("filters", dtype=self.dtype)
         self.filters.name = "default_filters"
         super().setup_method()
 
@@ -560,11 +561,11 @@ class TestConv2D(utt.InferShapeTester):
         # Make sure errors are raised when image and kernel are not 4D tensors
 
         with pytest.raises(Exception):
-            self.validate((3, 2, 8, 8), (4, 2, 5, 5), "valid", input=tt.dmatrix())
+            self.validate((3, 2, 8, 8), (4, 2, 5, 5), "valid", input=dmatrix())
         with pytest.raises(Exception):
-            self.validate((3, 2, 8, 8), (4, 2, 5, 5), "valid", filters=tt.dvector())
+            self.validate((3, 2, 8, 8), (4, 2, 5, 5), "valid", filters=dvector())
         with pytest.raises(Exception):
-            self.validate((3, 2, 8, 8), (4, 2, 5, 5), "valid", input=tt.dtensor3())
+            self.validate((3, 2, 8, 8), (4, 2, 5, 5), "valid", input=dtensor3())
 
     def test_gcc_crash(self):
         # gcc 4.3.0 20080428 (Red Hat 4.3.0-8)
@@ -626,8 +627,8 @@ class TestConv2D(utt.InferShapeTester):
             r = np.asarray(np.random.rand(*shape), dtype="float64")
             return r * 2 - 1
 
-        adtens = tt.dtensor4()
-        bdtens = tt.dtensor4()
+        adtens = dtensor4()
+        bdtens = dtensor4()
         aivec_val = [4, 5, 6, 3]
         bivec_val = [7, 5, 3, 2]
         adtens_val = rand(*aivec_val)
@@ -734,9 +735,9 @@ class TestConv2D(utt.InferShapeTester):
 # code from that ticket.
 def test_broadcast_grad():
     # rng = numpy.random.RandomState(utt.fetch_seed())
-    x1 = tt.tensor4("x")
+    x1 = tensor4("x")
     # x1_data = rng.randn(1, 1, 300, 300)
-    sigma = tt.scalar("sigma")
+    sigma = scalar("sigma")
     # sigma_data = 20
     window_radius = 3
 

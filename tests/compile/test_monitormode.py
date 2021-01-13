@@ -4,6 +4,7 @@ from io import StringIO
 import numpy as np
 
 import theano
+from theano.tensor.type import dscalar, vector
 
 
 def test_detect_nan():
@@ -21,7 +22,7 @@ def test_detect_nan():
                 nan_detected[0] = True
                 break
 
-    x = theano.tensor.dscalar("x")
+    x = dscalar("x")
     f = theano.function(
         [x],
         [theano.tensor.log(x) * x],
@@ -51,7 +52,7 @@ def test_optimizer():
                 nan_detected[0] = True
                 break
 
-    x = theano.tensor.dscalar("x")
+    x = dscalar("x")
     mode = theano.compile.MonitorMode(post_func=detect_nan)
     mode = mode.excluding("fusion")
     f = theano.function([x], [theano.tensor.log(x) * x], mode=mode)
@@ -83,7 +84,7 @@ def test_not_inplace():
                 nan_detected[0] = True
                 break
 
-    x = theano.tensor.vector("x")
+    x = vector("x")
     mode = theano.compile.MonitorMode(post_func=detect_nan)
     # mode = mode.excluding('fusion', 'inplace')
     mode = mode.excluding("local_elemwise_fusion", "inplace_elemwise_optimizer")

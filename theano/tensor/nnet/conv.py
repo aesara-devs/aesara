@@ -25,6 +25,7 @@ from theano.tensor.basic import (
     patternbroadcast,
 )
 from theano.tensor.nnet.abstract_conv import get_conv_output_shape, get_conv_shape_1axis
+from theano.tensor.type import discrete_dtypes, tensor
 
 
 try:
@@ -126,7 +127,7 @@ def conv2d(
                         " information are constant values. We got"
                         " {image_shape[i]} for the image_shape parameter"
                     )
-                assert image_shape[i].dtype in theano.tensor.discrete_dtypes
+                assert image_shape[i].dtype in discrete_dtypes
                 image_shape[i] = int(image_shape[i])
     if filter_shape is not None:
         filter_shape = list(filter_shape)
@@ -143,7 +144,7 @@ def conv2d(
                         " {filter_shape[i]} for the filter_shape "
                         "parameter"
                     )
-                assert filter_shape[i].dtype in theano.tensor.discrete_dtypes
+                assert filter_shape[i].dtype in discrete_dtypes
                 filter_shape[i] = int(filter_shape[i])
 
     if image_shape and filter_shape:
@@ -763,7 +764,7 @@ class ConvOp(OpenMPOp):
                 "inputs({_inputs.dtype}), kerns({_kerns.dtype})"
             )
         bcastable23 = [self.outshp[0] == 1, self.outshp[1] == 1]
-        output = theano.tensor.tensor(
+        output = tensor(
             dtype=_inputs.type.dtype,
             broadcastable=[_inputs.broadcastable[0], _kerns.broadcastable[0]]
             + bcastable23,

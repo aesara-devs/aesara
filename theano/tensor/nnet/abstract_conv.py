@@ -27,6 +27,7 @@ from theano.tensor.basic import (
     get_scalar_constant_value,
     patternbroadcast,
 )
+from theano.tensor.var import TensorConstant
 
 
 try:
@@ -573,7 +574,7 @@ def assert_shape(x, expected_shape, msg="Unexpected shape."):
 
     Parameters
     ----------
-    x : Tensor
+    x : TensorVariable
         x will be wrapped in an `Assert`.
     expected_shape : tuple or list
         The expected shape of `x`. The size of a dimension can be None,
@@ -1201,14 +1202,12 @@ def conv2d_grad_wrt_inputs(
 
     # checking the type of input_shape
     for dim in [0, 1]:
-        if not isinstance(
-            input_shape[dim], (theano.tensor.TensorConstant, int, type(None))
-        ):
+        if not isinstance(input_shape[dim], (TensorConstant, int, type(None))):
             raise ValueError(f"input_shape[{int(dim)}] must be a constant or None.")
     for dim in [2, 3]:
         if not isinstance(
             input_shape[dim],
-            (theano.tensor.TensorVariable, theano.tensor.TensorConstant, int),
+            (theano.tensor.TensorVariable, TensorConstant, int),
         ):
             raise ValueError(
                 f"input_shape[{int(dim)}] must be a symbolic variable,"
@@ -1230,7 +1229,7 @@ def conv2d_grad_wrt_inputs(
         for dim in range(expected_dim):
             if not isinstance(
                 filter_shape[dim],
-                (theano.tensor.TensorConstant, int, type(None)),
+                (TensorConstant, int, type(None)),
             ):
                 raise ValueError(f"filter_shape[{int(dim)}] must be a constant or None")
 
@@ -1366,13 +1365,11 @@ def conv3d_grad_wrt_inputs(
 
     # checking the type of input_shape
     for dim in [0, 1]:
-        assert isinstance(
-            input_shape[dim], (theano.tensor.TensorConstant, int, type(None))
-        )
+        assert isinstance(input_shape[dim], (TensorConstant, int, type(None)))
     for dim in [2, 3, 4]:
         assert isinstance(
             input_shape[dim],
-            (theano.tensor.TensorVariable, theano.tensor.TensorConstant, int),
+            (theano.tensor.TensorVariable, TensorConstant, int),
         )
 
     # checking the type of filter_shape
@@ -1380,7 +1377,7 @@ def conv3d_grad_wrt_inputs(
         for dim in [0, 1, 2, 3, 4]:
             assert isinstance(
                 filter_shape[dim],
-                (theano.tensor.TensorConstant, int, type(None)),
+                (TensorConstant, int, type(None)),
             )
 
     # setting the last three dimensions of input_shape to None, if
@@ -1521,19 +1518,17 @@ def conv2d_grad_wrt_weights(
 
     # checking the type of filter_shape
     for dim in [0, 1]:
-        assert isinstance(
-            filter_shape[dim], (theano.tensor.TensorConstant, int, type(None))
-        )
+        assert isinstance(filter_shape[dim], (TensorConstant, int, type(None)))
     if unshared:
         for dim in [2, 3]:
             assert isinstance(
                 filter_shape[dim],
-                (theano.tensor.TensorConstant, int, type(None)),
+                (TensorConstant, int, type(None)),
             )
     for dim in [-2, -1]:
         assert isinstance(
             filter_shape[dim],
-            (theano.tensor.TensorVariable, theano.tensor.TensorConstant, int),
+            (theano.tensor.TensorVariable, TensorConstant, int),
         )
 
     # checking the type of input_shape
@@ -1541,7 +1536,7 @@ def conv2d_grad_wrt_weights(
         for dim in [0, 1, 2, 3]:
             assert isinstance(
                 input_shape[dim],
-                (theano.tensor.TensorConstant, int, type(None)),
+                (TensorConstant, int, type(None)),
             )
 
     # setting the last two dimensions of filter_shape to None, if
@@ -1667,13 +1662,11 @@ def conv3d_grad_wrt_weights(
 
     # checking the type of filter_shape
     for dim in [0, 1]:
-        assert isinstance(
-            filter_shape[dim], (theano.tensor.TensorConstant, int, type(None))
-        )
+        assert isinstance(filter_shape[dim], (TensorConstant, int, type(None)))
     for dim in [2, 3, 4]:
         assert isinstance(
             filter_shape[dim],
-            (theano.tensor.TensorVariable, theano.tensor.TensorConstant, int),
+            (theano.tensor.TensorVariable, TensorConstant, int),
         )
 
     # checking the type of input_shape
@@ -1681,7 +1674,7 @@ def conv3d_grad_wrt_weights(
         for dim in [0, 1, 2, 3, 4]:
             assert isinstance(
                 input_shape[dim],
-                (theano.tensor.TensorConstant, int, type(None)),
+                (TensorConstant, int, type(None)),
             )
 
     # setting the last three dimensions of filter_shape to None, if

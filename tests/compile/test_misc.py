@@ -1,9 +1,11 @@
 import numpy as np
 
-from theano import tensor
+from theano import tensor as tt
 from theano.compile.function.pfunc import pfunc
 from theano.compile.sharedvalue import shared
+from theano.gradient import grad
 from theano.tensor.nnet import sigmoid
+from theano.tensor.type import dvector
 
 
 class NNet:
@@ -20,9 +22,9 @@ class NNet:
         super().__init__(**kw)
 
         if input is None:
-            input = tensor.dvector("input")
+            input = dvector("input")
         if target is None:
-            target = tensor.dvector("target")
+            target = dvector("target")
 
         self.input = input
         self.target = target
@@ -31,13 +33,13 @@ class NNet:
         self.w2 = shared(np.zeros((n_output, n_hidden)), "w2")
         # print self.lr.type
 
-        self.hidden = sigmoid(tensor.dot(self.w1, self.input))
-        self.output = tensor.dot(self.w2, self.hidden)
-        self.cost = tensor.sum((self.output - self.target) ** 2)
+        self.hidden = sigmoid(tt.dot(self.w1, self.input))
+        self.output = tt.dot(self.w2, self.hidden)
+        self.cost = tt.sum((self.output - self.target) ** 2)
 
         self.sgd_updates = {
-            self.w1: self.w1 - self.lr * tensor.grad(self.cost, self.w1),
-            self.w2: self.w2 - self.lr * tensor.grad(self.cost, self.w2),
+            self.w1: self.w1 - self.lr * grad(self.cost, self.w1),
+            self.w2: self.w2 - self.lr * grad(self.cost, self.w2),
         }
 
         self.sgd_step = pfunc(

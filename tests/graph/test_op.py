@@ -4,12 +4,14 @@ import pytest
 import theano
 import theano.graph.op as op
 import theano.tensor as tt
-from theano import scalar, shared
+from theano import scalar as ts
+from theano import shared
 from theano.configdefaults import config
 from theano.graph.basic import Apply, Variable
 from theano.graph.op import COp, Op
 from theano.graph.type import Generic, Type
 from theano.graph.utils import MethodNotDefined, TestValueError
+from theano.tensor.type import dmatrix, vector
 
 
 def as_variable(x):
@@ -88,7 +90,7 @@ class StructOp(COp):
 
     # The input only serves to distinguish thunks
     def make_node(self, i):
-        return Apply(self, [i], [scalar.uint64()])
+        return Apply(self, [i], [ts.uint64()])
 
     def c_support_code_struct(self, node, name):
         return f"npy_uint64 counter{name};"
@@ -167,7 +169,7 @@ class TestMakeThunk:
             __props__ = ()
 
             def make_node(self, input):
-                input = scalar.as_scalar(input)
+                input = ts.as_scalar(input)
                 output = input.type()
                 return Apply(self, [input], [output])
 
@@ -176,7 +178,7 @@ class TestMakeThunk:
                 (output,) = outputs
                 output[0] = input + 1
 
-        i = scalar.int32("i")
+        i = ts.int32("i")
         o = IncOnePython()(i)
 
         # Check that the c_code function is not implemented
@@ -203,7 +205,7 @@ class TestMakeThunk:
             __props__ = ()
 
             def make_node(self, input):
-                input = scalar.as_scalar(input)
+                input = ts.as_scalar(input)
                 output = input.type()
                 return Apply(self, [input], [output])
 
@@ -215,7 +217,7 @@ class TestMakeThunk:
             def perform(self, *args, **kwargs):
                 raise NotImplementedError("No Python implementation available.")
 
-        i = scalar.int32("i")
+        i = ts.int32("i")
         o = IncOneC()(i)
 
         # Check that the perform function is not implemented
@@ -244,15 +246,15 @@ class TestMakeThunk:
 
             __props__ = ()
 
-            itypes = [tt.dmatrix]
-            otypes = [tt.dmatrix]
+            itypes = [dmatrix]
+            otypes = [dmatrix]
 
             def perform(self, node, inputs, outputs):
                 inp = inputs[0]
                 output = outputs[0]
                 output[0] = inp * 2
 
-        x_input = tt.dmatrix("x_input")
+        x_input = dmatrix("x_input")
         f = theano.function([x_input], DoubleOp()(x_input))
         inp = np.random.rand(5, 4)
         out = f(inp)
@@ -297,7 +299,7 @@ def test_test_value_op():
 def test_get_test_values_no_debugger():
     """Tests that `get_test_values` returns `[]` when debugger is off."""
 
-    x = tt.vector()
+    x = vector()
     assert op.get_test_values(x) == []
 
 
@@ -305,7 +307,7 @@ def test_get_test_values_no_debugger():
 def test_get_test_values_ignore():
     """Tests that `get_test_values` returns `[]` when debugger is set to "ignore" and some values are missing."""
 
-    x = tt.vector()
+    x = vector()
     assert op.get_test_values(x) == []
 
 
@@ -314,7 +316,7 @@ def test_get_test_values_success():
 
     for mode in ["ignore", "warn", "raise"]:
         with config.change_flags(compute_test_value=mode):
-            x = tt.vector()
+            x = vector()
             x.tag.test_value = np.zeros((4,), dtype=config.floatX)
             y = np.zeros((5, 5))
 
@@ -335,5 +337,5 @@ def test_get_test_values_exc():
     """Tests that `get_test_values` raises an exception when debugger is set to raise and a value is missing."""
 
     with pytest.raises(TestValueError):
-        x = tt.vector()
+        x = vector()
         assert op.get_test_values(x) == []

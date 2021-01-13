@@ -879,7 +879,7 @@ def add_traceback_configvars():
         "The number of stack to trace. -1 mean all.",
         # We default to a number to be able to know where v1 + v2 is created in the
         # user script. The bigger this number is, the more run time it takes.
-        # We need to default to 8 to support theano.tensor.tensor(...).
+        # We need to default to 8 to support theano.tensor.type.tensor(...).
         # import theano, numpy
         # X = theano.tensor.matrix()
         # y = X.reshape((5,3,1))

@@ -30,6 +30,7 @@ from theano.tensor.nnet.sigm import (
     register_local_1msigmoid,
     simplify_mul,
 )
+from theano.tensor.type import fmatrix, matrix, scalar, vector, vectors
 
 
 class TestSigmoid:
@@ -145,7 +146,7 @@ class TestSigmoidOpts:
     def test_exp_over_1_plus_exp(self):
         m = self.get_mode(excluding=["local_elemwise_fusion"])
 
-        x = tt.vector()
+        x = vector()
         data = np.random.rand(54).astype(config.floatX)
 
         backup = config.warn__identify_1pexp_bug
@@ -288,7 +289,7 @@ class TestSigmoidOpts:
             return
 
         m = self.get_mode()
-        x = tt.fmatrix()
+        x = fmatrix()
 
         # tests exp_over_1_plus_exp
         f = theano.function([x], 1 - tt.exp(x) / (1 + tt.exp(x)), mode=m)
@@ -316,7 +317,7 @@ class TestSigmoidOpts:
             assert [node.op for node in func.maker.fgraph.toposort()] == ops
 
         m = self.get_mode(excluding=["local_elemwise_fusion", "inplace"])
-        x, y = tt.vectors("x", "y")
+        x, y = vectors("x", "y")
 
         f = theano.function([x], sigmoid(-x) * tt.exp(x), mode=m)
         match(f, [sigmoid])
@@ -347,7 +348,7 @@ class TestSigmoidOpts:
         # It is easier to test different graph scenarios this way than by
         # compiling a theano function.
 
-        x, y, z, t = tt.vectors("x", "y", "z", "t")
+        x, y, z, t = vectors("x", "y", "z", "t")
         exp = tt.exp
 
         def ok(expr1, expr2):
@@ -388,8 +389,8 @@ class TestSigmoidOpts:
         # At some point, this returned nan, because (1 - sigm(x)) was
         # on both the numerator and the denominator of a fraction,
         # but the two nodes in question had not been merged.
-        x = tt.matrix("x")
-        lr = tt.scalar("lr")
+        x = matrix("x")
+        lr = scalar("lr")
 
         s = sigmoid(x)
         l = tt.log(1 - s)
@@ -405,7 +406,7 @@ class TestSigmoidOpts:
             assert not np.isnan(ux_v)
 
     def test_local_ultra_fast_sigmoid(self):
-        x = tt.matrix("x")
+        x = matrix("x")
         s = sigmoid(x)
 
         mode = self.get_mode("local_ultra_fast_sigmoid")
@@ -424,7 +425,7 @@ class TestSigmoidOpts:
         f([[-50, -10, -4, -1, 0, 1, 4, 10, 50]])
 
     def test_local_hard_sigmoid(self):
-        x = tt.matrix("x")
+        x = matrix("x")
         s = sigmoid(x)
 
         mode = self.get_mode("local_hard_sigmoid")
@@ -459,7 +460,7 @@ class TestSoftplusOpts:
         utt.seed_rng()
 
     def test_logsigm_to_softplus(self):
-        x = tt.vector()
+        x = vector()
 
         out = tt.log(sigmoid(x))
         f = theano.function([x], out, mode=self.m)
@@ -476,7 +477,7 @@ class TestSoftplusOpts:
         f(np.random.rand(54).astype(config.floatX))
 
     def test_log1msigm_to_softplus(self):
-        x = tt.matrix()
+        x = matrix()
 
         out = tt.log(1 - sigmoid(x))
         f = theano.function([x], out, mode=self.m)
@@ -519,7 +520,7 @@ class TestSoftplusOpts:
         if m == "FAST_COMPILE":
             m = "FAST_RUN"
 
-        x = tt.vector()
+        x = vector()
 
         out = tt.log(1 + tt.exp(x))
         f = theano.function([x], out, mode=self.m)
@@ -538,14 +539,14 @@ class TestSigmoidUtils:
     """
 
     def test_compute_mul(self):
-        x, y, z = tt.vectors("x", "y", "z")
+        x, y, z = vectors("x", "y", "z")
         tree = (x * y) * -z
         mul_tree = parse_mul_tree(tree)
         assert parse_mul_tree(compute_mul(mul_tree)) == mul_tree
         assert is_same_graph(compute_mul(parse_mul_tree(tree)), tree)
 
     def test_parse_mul_tree(self):
-        x, y, z = tt.vectors("x", "y", "z")
+        x, y, z = vectors("x", "y", "z")
         assert parse_mul_tree(x * y) == [False, [[False, x], [False, y]]]
         assert parse_mul_tree(-(x * y)) == [True, [[False, x], [False, y]]]
         assert parse_mul_tree(-x * y) == [False, [[True, x], [False, y]]]
@@ -559,7 +560,7 @@ class TestSigmoidUtils:
         backup = config.warn__identify_1pexp_bug
         config.warn__identify_1pexp_bug = False
         try:
-            x = tt.vector("x")
+            x = vector("x")
             exp = tt.exp
             assert is_1pexp(1 + exp(x), False) == (False, x)
             assert is_1pexp(exp(x) + 1, False) == (False, x)

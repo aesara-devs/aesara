@@ -3,15 +3,16 @@ import copy
 import numpy as np
 
 import theano
-from theano import tensor
+import theano.tensor as tt
+from theano.tensor.elemwise import DimShuffle
 from theano.tensor.nnet import crossentropy_softmax_argmax_1hot_with_bias
+from theano.tensor.type import dmatrix, dvector, ivector, lvector, matrix
 
 
 def test_bug_2009_06_02_trac_387():
-    y = tensor.lvector("y")
-    f = theano.function(
-        [y], tensor.int_div(tensor.DimShuffle(y[0].broadcastable, ["x"])(y[0]), 2)
-    )
+    y = lvector("y")
+    f = theano.function([y], tt.int_div(DimShuffle(y[0].broadcastable, ["x"])(y[0]), 2))
+    # TODO FIXME: This is NOT a test.
     print(f(np.ones(1, dtype="int64") * 3))
     # XXX: there is no assert, nor comment that DEBUGMODE is to do the
     #      checking. What was the bug, and how is it being tested?
@@ -19,10 +20,10 @@ def test_bug_2009_06_02_trac_387():
 
 def test_bug_2009_07_17_borrowed_output():
     # Regression test for a bug where output was borrowed by mistake.
-    a = theano.tensor.dmatrix()
-    b = theano.tensor.dmatrix()
+    a = dmatrix()
+    b = dmatrix()
     # The output should *NOT* be borrowed.
-    g = theano.function([a, b], theano.Out(theano.tensor.dot(a, b), borrow=False))
+    g = theano.function([a, b], theano.Out(tt.dot(a, b), borrow=False))
 
     x = np.zeros((1, 2))
     y = np.ones((2, 5))
@@ -42,9 +43,9 @@ def test_bug_2009_07_17_borrowed_output():
     # that it may better be moved into the test_nnet.py test file if it turns
     # out the bug was caused by 'crossentropy_softmax_argmax_1hot_with_bias',
     # and was not a more general issue.
-    test_output_activation_no_bias = theano.tensor.dmatrix()
-    test_b2 = theano.tensor.dvector()
-    test_target = theano.tensor.ivector()
+    test_output_activation_no_bias = dmatrix()
+    test_b2 = dvector()
+    test_target = ivector()
     nll_softmax_argmax = crossentropy_softmax_argmax_1hot_with_bias(
         test_output_activation_no_bias, test_b2, test_target
     )
@@ -73,7 +74,7 @@ def test_bug_2009_07_17_borrowed_output():
 
 
 def test_deepcopied_type_filter():
-    a = copy.deepcopy(tensor.matrix())
+    a = copy.deepcopy(matrix())
 
     # The following should run cleanly.
     # As of commit 731e2d2fa68487733320d341d08b454a50c90d12

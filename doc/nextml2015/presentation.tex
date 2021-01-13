@@ -336,11 +336,12 @@ c = tt.dot(x, a)
         stringstyle=\color{violet},
         }
 \begin{lstlisting}
-from theano import tensor as tt
-tensor3 = tt.TensorType(
+from theano.tensor.type import TensorType
+
+tensor3 = TensorType(
     broadcastable=(False, False, False),
     dtype='float32')
-x = tt.tensor3()
+x = tensor3()
 \end{lstlisting}
 \end{frame}
 
@@ -351,8 +352,9 @@ x = tt.tensor3()
         stringstyle=\color{violet},
         }
 \begin{lstlisting}
-from theano import tensor as tt
-tensor3 = tt.TensorType(
+from theano.tensor.type import TensorType
+
+tensor3 = TensorType(
     broadcastable=(False, False, False),
     dtype='float32')
 x = tensor3()
@@ -370,8 +372,9 @@ mx = x.max(axis=1)
         stringstyle=\color{violet},
         }
 \begin{lstlisting}
-from theano import tensor as tt
-tensor3 = tt.TensorType(
+from theano.tensor.type import TensorType
+
+tensor3 = TensorType(
     broadcastable=(False, False, False))
 x = tensor3()
 y = x.dimshuffle((2, 1, 0))

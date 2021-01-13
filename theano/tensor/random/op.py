@@ -10,17 +10,15 @@ from theano.graph.op import Op
 from theano.misc.safe_asarray import _asarray
 from theano.tensor.basic import (
     NotScalarConstantError,
-    all_dtypes,
     as_tensor_variable,
     cast,
     constant,
     get_scalar_constant_value,
     get_vector_length,
-    int_dtypes,
 )
 from theano.tensor.random.type import RandomStateType
 from theano.tensor.random.utils import params_broadcast_shapes
-from theano.tensor.type import TensorType
+from theano.tensor.type import TensorType, all_dtypes, int_dtypes
 from theano.tensor.type_other import NoneConst
 
 

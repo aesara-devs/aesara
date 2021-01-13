@@ -310,32 +310,32 @@ These are the function required to work with gradient.grad().
   :func:`theano.gradient.grad_not_implemented`, respectively.
 
   If an element of output_gradient is of type
-  theano.gradient.DisconnectedType, it means that the cost is not a
-  function of this output. If any of the op's inputs participate in
+  `theano.gradient.DisconnectedType`, it means that the cost is not a
+  function of this output. If any of the `Op`'s inputs participate in
   the computation of only disconnected outputs, then `Op.grad` should
-  return DisconnectedType variables for those inputs.
+  return `DisconnectedType` variables for those inputs.
 
-  If the grad method is not defined, then Theano assumes it has been
+  If the `Op.grad` method is not defined, then Theano assumes it has been
   forgotten.  Symbolic differentiation will fail on a graph that
   includes this `Op`.
 
-  It must be understood that the Op's grad method is not meant to
-  return the gradient of the Op's output. theano.tensor.grad computes
+  It must be understood that the `Op`'s `grad` method is not meant to
+  return the gradient of the `Op`'s output. `theano.grad` computes
   gradients; `Op.grad` is a helper function that computes terms that
   appear in gradients.
 
-  If an `Op` has a single vector-valued output y and a single
-  vector-valued input x, then the grad method will be passed x and a
-  second vector z. Define J to be the Jacobian of y with respect to
-  x. The Op's grad method should return dot(J.T,z). When
-  theano.tensor.grad calls the grad method, it will set z to be the
-  gradient of the cost C with respect to y. If this op is the only op
-  that acts on x, then dot(J.T,z) is the gradient of C with respect to
-  x.  If there are other ops that act on x, theano.tensor.grad will
-  have to add up the terms of x's gradient contributed by the other
-  op's grad method.
+  If an `Op` has a single vector-valued output ``y`` and a single
+  vector-valued input ``x``, then the grad method will be passed ``x`` and a
+  second vector ``z``. Define ``J`` to be the Jacobian of ``y`` with respect to
+  ``x``. The `Op`'s `grad` method should return ``dot(J.T,z)``. When
+  `theano.grad` calls the grad method, it will set ``z`` to be the
+  gradient of the cost ``C`` with respect to ``y``. If this `Op` is the only `Op`
+  that acts on ``x``, then ``dot(J.T,z)`` is the gradient of C with respect to
+  ``x``.  If there are other `Op`s that act on ``x``, `theano.grad` will
+  have to add up the terms of ``x``'s gradient contributed by the other
+  `Op`'s grad method.
 
-  In practice, an op's input and output are rarely implemented as
+  In practice, an `Op`'s input and output are rarely implemented as
   single vectors.  Even if an op's output consists of a list
   containing a scalar, a sparse matrix, and a 4D tensor, you can think
   of these objects as being formed by rearranging a vector. Likewise
@@ -347,17 +347,17 @@ These are the function required to work with gradient.grad().
   the returned value should be equal to the Jacobian-vector product.
 
   So long as you implement this product correctly, you need not
-  understand what theano.tensor.grad is doing, but for the curious the
+  understand what `theano.gradient.grad` is doing, but for the curious the
   mathematical justification is as follows:
 
   In essence, the grad method must simply implement through symbolic
   Variables and operations the chain rule of differential
   calculus. The chain rule is the mathematical procedure that allows
   one to calculate the total derivative :math:`\frac{d C}{d x}` of the
-  final scalar symbolic Variable C with respect to a primitive
+  final scalar symbolic `Variable` ``C`` with respect to a primitive
   symbolic Variable x found in the list ``inputs``.  The grad method
   does this using ``output_gradients`` which provides the total
-  derivative :math:`\frac{d C}{d f}` of C with respect to a symbolic
+  derivative :math:`\frac{d C}{d f}` of ``C`` with respect to a symbolic
   Variable that is returned by the `Op` (this is provided in
   ``output_gradients``), as well as the knowledge of the total
   derivative :math:`\frac{d f}{d x}` of the latter with respect to the

@@ -1,4 +1,4 @@
-from theano import tensor
+from theano import tensor as tt
 from theano.graph.basic import io_toposort
 from theano.graph.sched import (
     _toposort,
@@ -7,14 +7,15 @@ from theano.graph.sched import (
     reverse_dict,
     sort_apply_nodes,
 )
+from theano.tensor.type import matrix
 from theano.utils import cmp
 
 
 def test_dependence():
     dependence = make_dependence_cmp()
 
-    x = tensor.matrix("x")
-    y = tensor.dot(x * 2, x + 1)
+    x = matrix("x")
+    y = tt.dot(x * 2, x + 1)
     nodes = io_toposort([x], [y])
 
     for a, b in zip(nodes[:-1], nodes[1:]):
@@ -22,8 +23,8 @@ def test_dependence():
 
 
 def test_sort_apply_nodes():
-    x = tensor.matrix("x")
-    y = tensor.dot(x * 2, x + 1)
+    x = matrix("x")
+    y = tt.dot(x * 2, x + 1)
 
     def str_cmp(a, b):
         return cmp(str(a), str(b))  # lexicographical sort

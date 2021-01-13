@@ -7,10 +7,10 @@ GPU power consumption then gemm call.
 import numpy as np
 
 import theano
-import theano.tensor as tt
 from theano.configdefaults import config
 from theano.gpuarray import dnn
 from theano.tensor.nnet.abstract_conv import get_conv_output_shape
+from theano.tensor.type import tensor4
 
 
 def burn():
@@ -18,9 +18,9 @@ def burn():
     img_shp = [sz, sz, sz, sz]
     kern_shp = [sz // 2, sz, 3, 3]
     out_shp = get_conv_output_shape(img_shp, kern_shp, "valid", (1, 1))
-    img = tt.tensor4("img")
-    kern = tt.tensor4("kern")
-    out = tt.tensor4("out")
+    img = tensor4("img")
+    kern = tensor4("kern")
+    out = tensor4("out")
 
     def rand(shp):
         return np.random.rand(*shp).astype(config.floatX)

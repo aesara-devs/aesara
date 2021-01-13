@@ -172,9 +172,11 @@ To clarify the rest of the code we define some variables to hold sizes.
 
 .. code-block:: python
 
-    X = T.tensor3('X')
-    Y = T.tensor3('Y')
-    h0 = T.tensor3('h0')
+    from theano.tensor.type import tensor3
+
+    X = tensor3('X')
+    Y = tensor3('Y')
+    h0 = tensor3('h0')
 
 We also define some Theano variables to work with.  Here `X` is input,
 `Y` is output (as in expected output) and `h0` is the initial state
@@ -242,4 +244,3 @@ List of Implemented Operations
 
 .. automodule:: theano.gpuarray.dnn
    :members:
-

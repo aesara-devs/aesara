@@ -4,8 +4,9 @@ import numpy as np
 import pytest
 
 import theano
-from theano import tensor
+from theano import tensor as tt
 from theano.scan.utils import map_variables
+from theano.tensor.type import scalar, vector
 
 
 class TestMapVariables:
@@ -14,9 +15,9 @@ class TestMapVariables:
         return getattr(graph.tag, "replacement", graph)
 
     def test_leaf(self):
-        a = tensor.scalar("a")
-        b = tensor.scalar("b")
-        c = tensor.scalar("c")
+        a = scalar("a")
+        b = scalar("b")
+        c = scalar("c")
 
         b.tag.replacement = c
 
@@ -27,9 +28,9 @@ class TestMapVariables:
         assert v.owner.inputs == [a, c]
 
     def test_leaf_inside_scan(self):
-        x = tensor.vector("x")
-        y = tensor.scalar("y")
-        z = tensor.scalar("z")
+        x = vector("x")
+        y = scalar("y")
+        z = scalar("z")
 
         y.tag.replacement = z
 
@@ -41,16 +42,16 @@ class TestMapVariables:
         assert np.array_equal(rval, [[1, 2, 3], [2, 4, 6]])
 
     def test_scan(self):
-        x = tensor.vector("x")
+        x = vector("x")
 
         # we will insert a subgraph involving these variables into the inner
         # graph of scan. since they were not previously in the inner graph,
         # they are like non_sequences to scan(). scan() infers these and
         # imports them into the inner graph properly, and map_variables()
         # should do this as well.
-        outer = tensor.scalar("outer")
+        outer = scalar("outer")
         shared = theano.shared(np.array(1.0, dtype=theano.config.floatX), name="shared")
-        constant = tensor.constant(1, name="constant")
+        constant = tt.constant(1, name="constant")
 
         # z will equal 1 so multiplying by it doesn't change any values
         z = outer * (shared + constant)
@@ -72,7 +73,7 @@ class TestMapVariables:
         assert np.array_equal(rval, [[1, 3, 6], [-1, -3, -6]])
 
     def test_scan_with_shared_update(self):
-        x = tensor.vector("x")
+        x = vector("x")
 
         # counts how many times its value is used
         counter = theano.shared(0, name="shared")
@@ -91,7 +92,7 @@ class TestMapVariables:
             map_variables(self.replacer, [s])
 
     def test_scan_with_shared_update2(self):
-        x = tensor.vector("x")
+        x = vector("x")
 
         # counts how many times its value is used
         counter = theano.shared(0, name="shared")
@@ -116,20 +117,20 @@ class TestMapVariables:
     def test_opfromgraph(self):
         # as with the scan tests above, insert foreign inputs into the
         # inner graph.
-        outer = tensor.scalar("outer")
+        outer = scalar("outer")
         shared = theano.shared(np.array(1.0, dtype=theano.config.floatX), name="shared")
-        constant = tensor.constant(1.0, name="constant")
+        constant = tt.constant(1.0, name="constant")
         z = outer * (shared + constant)
 
         # construct the inner graph
-        a = tensor.scalar()
-        b = tensor.scalar()
+        a = scalar()
+        b = scalar()
         r = a + b
         r.tag.replacement = z * (a - b)
 
         # construct the outer graph
-        c = tensor.scalar()
-        d = tensor.scalar()
+        c = scalar()
+        d = scalar()
         u = theano.compile.builders.OpFromGraph([a, b], [r])(c, d)
         t = z * u
         (v,) = map_variables(self.replacer, [t])

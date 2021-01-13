@@ -33,7 +33,7 @@ supposed to be canonical.
 
 import logging
 
-from theano import scalar as scal
+from theano import scalar as ts
 from theano.graph.opt import copy_stack_trace, local_optimizer
 from theano.tensor import basic as tt
 from theano.tensor.elemwise import CAReduce, DimShuffle
@@ -82,7 +82,7 @@ def local_max_to_min(fgraph, node):
         if (
             max.owner
             and isinstance(max.owner.op, CAReduce)
-            and max.owner.op.scalar_op == scal.scalar_maximum
+            and max.owner.op.scalar_op == ts.scalar_maximum
         ):
             neg = max.owner.inputs[0]
             if neg.owner and neg.owner.op == tt.neg:

@@ -1,12 +1,13 @@
 import logging
 
 import theano.tensor
-from theano import tensor
+from theano import tensor as tt
 from theano.graph.basic import Apply
 from theano.graph.op import Op
 from theano.graph.opt import GlobalOptimizer, local_optimizer
-from theano.tensor import DimShuffle, Dot
+from theano.tensor import Dot
 from theano.tensor.blas import Dot22
+from theano.tensor.elemwise import DimShuffle, Prod
 from theano.tensor.nlinalg import (
     MatrixInverse,
     det,
@@ -206,10 +207,10 @@ def is_positive(v):
     # TODO: how to handle this - a registry?
     #      infer_hints on Ops?
     logger.debug(f"is_positive: {v}")
-    if v.owner and v.owner.op == tensor.pow:
+    if v.owner and v.owner.op == tt.pow:
         try:
-            exponent = tensor.get_scalar_constant_value(v.owner.inputs[1])
-        except tensor.basic.NotScalarConstantError:
+            exponent = tt.get_scalar_constant_value(v.owner.inputs[1])
+        except tt.basic.NotScalarConstantError:
             return False
         if 0 == exponent % 2:
             return True
@@ -316,24 +317,24 @@ def local_det_chol(fgraph, node):
         for (cl, xpos) in fgraph.clients[x]:
             if isinstance(cl.op, Cholesky):
                 L = cl.outputs[0]
-                return [tensor.prod(extract_diag(L) ** 2)]
+                return [tt.prod(extract_diag(L) ** 2)]
 
 
 @register_canonicalize
 @register_stabilize
 @register_specialize
-@local_optimizer([tensor.log])
+@local_optimizer([tt.log])
 def local_log_prod_sqr(fgraph, node):
-    if node.op == tensor.log:
+    if node.op == tt.log:
         (x,) = node.inputs
-        if x.owner and isinstance(x.owner.op, tensor.elemwise.Prod):
+        if x.owner and isinstance(x.owner.op, Prod):
             # we cannot always make this substitution because
             # the prod might include negative terms
             p = x.owner.inputs[0]
 
             # p is the matrix we're reducing with prod
             if is_positive(p):
-                return [tensor.log(p).sum(axis=x.owner.op.axis)]
+                return [tt.log(p).sum(axis=x.owner.op.axis)]
 
             # TODO: have a reduction like prod and sum that simply
             #      returns the sign of the prod multiplication.
@@ -342,14 +343,14 @@ def local_log_prod_sqr(fgraph, node):
 @register_canonicalize
 @register_stabilize
 @register_specialize
-@local_optimizer([tensor.log])
+@local_optimizer([tt.log])
 def local_log_pow(fgraph, node):
-    if node.op == tensor.log:
+    if node.op == tt.log:
         (x,) = node.inputs
-        if x.owner and x.owner.op == tensor.pow:
+        if x.owner and x.owner.op == tt.pow:
             base, exponent = x.owner.inputs
             # TODO: reason to be careful with dtypes?
-            return [exponent * tensor.log(base)]
+            return [exponent * tt.log(base)]
 
 
 def spectral_radius_bound(X, log2_exponent):
@@ -379,5 +380,5 @@ def spectral_radius_bound(X, log2_exponent):
 
     XX = X
     for i in range(log2_exponent):
-        XX = tensor.dot(XX, XX)
-    return tensor.pow(trace(XX), 2 ** (-log2_exponent))
+        XX = tt.dot(XX, XX)
+    return tt.pow(trace(XX), 2 ** (-log2_exponent))

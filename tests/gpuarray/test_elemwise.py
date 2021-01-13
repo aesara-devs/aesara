@@ -2,6 +2,8 @@ import numpy as np
 import pytest
 
 import theano
+import theano.scalar as ts
+import theano.tensor as tt
 
 
 pygpu = pytest.importorskip("pygpu")
@@ -13,7 +15,6 @@ from tests.gpuarray.config import mode_with_gpu, mode_without_gpu, test_ctx_name
 from tests.gpuarray.test_basic_ops import rand_gpuarray
 from tests.tensor import test_elemwise
 from tests.unittest_tools import assert_allclose
-from theano import scalar, tensor
 from theano.compile.debugmode import DebugMode
 from theano.compile.mode import Mode
 from theano.gpuarray.dnn import GpuDnnReduction
@@ -28,6 +29,7 @@ from theano.gpuarray.elemwise import (
 from theano.gpuarray.type import GpuArrayType, get_context, gpuarray_shared_constructor
 from theano.link.basic import PerformLinker
 from theano.link.c.basic import CLinker
+from theano.tensor.type import bvector, float_dtypes, fmatrix, fvector, vector
 
 
 # This is actually a test for GpuElemwise
@@ -65,7 +67,7 @@ def test_elemwise_pow():
             base_val = np.random.randint(0, 5, size=10).astype(dtype_base)
             exp_val = np.random.randint(0, 3, size=10).astype(dtype_exp)
 
-            base = theano.tensor.vector(dtype=dtype_base)
+            base = vector(dtype=dtype_base)
             exp = gpuarray_shared_constructor(exp_val)
             assert exp.dtype == dtype_exp
             output = base ** exp
@@ -74,7 +76,7 @@ def test_elemwise_pow():
             n = len(
                 [n for n in f.maker.fgraph.apply_nodes if isinstance(n.op, GpuElemwise)]
             )
-            assert n == (output.dtype in tensor.float_dtypes)
+            assert n == (output.dtype in float_dtypes)
 
             # Call the function to make sure the output is valid
             out = f(base_val)
@@ -128,16 +130,16 @@ class TestMathErrorFunctions:
 
     def test_elemwise_erfinv(self):
         for dtype in self.dtypes:
-            vector = theano.tensor.vector(dtype=dtype)
-            output = theano.tensor.erfinv(vector)
+            vec = vector(dtype=dtype)
+            output = tt.erfinv(vec)
             f_host = theano.function(
-                [vector],
+                [vec],
                 output,
                 name="HOST/erfinv/" + dtype,
                 mode=self.mode_without_gpu,
             )
             f_gpu = theano.function(
-                [vector], output, name="GPU/erfinv/" + dtype, mode=self.mode_with_gpu
+                [vec], output, name="GPU/erfinv/" + dtype, mode=self.mode_with_gpu
             )
             assert (
                 len(
@@ -163,16 +165,16 @@ class TestMathErrorFunctions:
 
     def test_elemwise_erfcinv(self):
         for dtype in self.dtypes:
-            vector = theano.tensor.vector(dtype=dtype)
-            output = theano.tensor.erfcinv(vector)
+            vec = vector(dtype=dtype)
+            output = tt.erfcinv(vec)
             f_host = theano.function(
-                [vector],
+                [vec],
                 output,
                 name="HOST/erfcinv/" + dtype,
                 mode=self.mode_without_gpu,
             )
             f_gpu = theano.function(
-                [vector], output, name="GPU/erfcinv/" + dtype, mode=self.mode_with_gpu
+                [vec], output, name="GPU/erfcinv/" + dtype, mode=self.mode_with_gpu
             )
             assert (
                 len(
@@ -199,35 +201,35 @@ class TestMathErrorFunctions:
 
 class TestFloat16:
     def test_composite_elemwise_float16(self):
-        w = theano.tensor.bvector()
-        x = theano.tensor.vector(dtype="float16")
-        y = theano.tensor.fvector()
+        w = bvector()
+        x = vector(dtype="float16")
+        y = fvector()
 
-        cz = tensor.tanh(x + tensor.cast(y, "float16"))
+        cz = tt.tanh(x + tt.cast(y, "float16"))
         o = (
             cz
             - cz ** 2
-            + tensor.cast(x, "int16")
-            + tensor.cast(x, "float32")
-            + tensor.cast(w, "float16")
-            - tensor.constant(np.float16(1.0))
+            + tt.cast(x, "int16")
+            + tt.cast(x, "float32")
+            + tt.cast(w, "float16")
+            - tt.constant(np.float16(1.0))
         )
 
         theano.function([w, x, y], o, mode=mode_with_gpu)
 
-        v = theano.tensor.vector(dtype="uint8")
-        w = theano.tensor.vector(dtype="float16")
-        x = theano.tensor.vector(dtype="float16")
-        y = theano.tensor.vector(dtype="float16")
-        z = theano.tensor.vector(dtype="float16")
+        v = vector(dtype="uint8")
+        w = vector(dtype="float16")
+        x = vector(dtype="float16")
+        y = vector(dtype="float16")
+        z = vector(dtype="float16")
 
-        o = tensor.switch(v, tensor.mul(w, x, y), z)
+        o = tt.switch(v, tt.mul(w, x, y), z)
         theano.function([v, w, x, y, z], o, mode=mode_with_gpu)
 
     def test_cast_float16(self):
-        f16 = theano.tensor.vector(dtype="float16")
-        f32 = theano.tensor.fvector()
-        i8 = theano.tensor.bvector()
+        f16 = vector(dtype="float16")
+        f32 = fvector()
+        i8 = bvector()
         f = theano.function(
             [f16, f32, i8],
             [
@@ -268,7 +270,7 @@ class TestGpuCAReduceCPY(test_elemwise.TestCAReduce):
     dtypes = ["float32"]
     bin_dtypes = ["uint8", "int8"]
     op = GpuCAReduceCPY
-    reds = [scalar.add, scalar.mul]
+    reds = [ts.add, ts.mul]
     pre_scalar_op = None
     mode = mode_with_gpu
 
@@ -459,7 +461,7 @@ class TestGpuCAReduceCuda(TestGpuCAReduceCPY):
         # ((5,4,3,10,11),[1,2]),
     ]
     op = GpuCAReduceCuda
-    reds = [scalar.add, scalar.mul, scalar.scalar_maximum, scalar.scalar_minimum]
+    reds = [ts.add, ts.mul, ts.scalar_maximum, ts.scalar_minimum]
     pre_scalar_op = None
 
     def test_perform_noopt(self):
@@ -505,6 +507,6 @@ class TestGpuReduceDtype(test_elemwise.TestReduceDtype):
 
 def speed_reduce10():
     data = np.random.rand(1000, 1000).astype("float32")
-    m = theano.tensor.fmatrix()
+    m = fmatrix()
     f = theano.function([m], [m.sum(axis=0), m.T.sum(axis=0)], mode=mode_with_gpu)
     f(data)
