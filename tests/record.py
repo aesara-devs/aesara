@@ -1,4 +1,4 @@
-from theano.compile import Mode
+from theano.compile.mode import Mode
 from theano.configdefaults import config
 from theano.link.basic import WrapLinkerMany
 from theano.link.vm import VMLinker

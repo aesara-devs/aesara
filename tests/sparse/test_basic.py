@@ -11,6 +11,7 @@ from tests import unittest_tools as utt
 from tests.tensor.test_sharedvar import makeSharedTester
 from theano import sparse
 from theano.compile.function import function
+from theano.compile.io import In, Out
 from theano.configdefaults import config
 from theano.gradient import GradientError
 from theano.graph.basic import Apply, Constant
@@ -1357,7 +1358,7 @@ class TestStructuredDot:
                 a = SparseType(sparse_format_a, dtype=sparse_dtype)()
                 b = SparseType(sparse_format_b, dtype=sparse_dtype)()
                 d = tt.dot(a, b)
-                f = theano.function([a, b], theano.Out(d, borrow=True))
+                f = theano.function([a, b], Out(d, borrow=True))
                 for M, N, K, nnz in [
                     (4, 3, 2, 3),
                     (40, 30, 20, 3),
@@ -1379,7 +1380,7 @@ class TestStructuredDot:
         a = SparseType("csc", dtype=sparse_dtype)()
         b = matrix(dtype=dense_dtype)
         d = tt.dot(a, b)
-        f = theano.function([a, b], theano.Out(d, borrow=True))
+        f = theano.function([a, b], Out(d, borrow=True))
 
         for M, N, K, nnz in [
             (4, 3, 2, 3),
@@ -1928,9 +1929,7 @@ def test_sparse_shared_memory():
     sdot = sparse.structured_dot
     z = sdot(x * 3, m1) + sdot(y * 2, m2)
 
-    f = theano.function(
-        [theano.In(x, mutable=True), theano.In(y, mutable=True)], z, mode="FAST_RUN"
-    )
+    f = theano.function([In(x, mutable=True), In(y, mutable=True)], z, mode="FAST_RUN")
 
     def f_(x, y, m1=m1, m2=m2):
         return ((x * 3) * m1) + ((y * 2) * m2)
@@ -2243,9 +2242,7 @@ class TestRemove0(utt.InferShapeTester):
 
                 # the In thingy has to be there because theano has as rule not
                 # to optimize inputs
-                f = theano.function(
-                    [theano.In(x, borrow=True, mutable=True)], Remove0()(x)
-                )
+                f = theano.function([In(x, borrow=True, mutable=True)], Remove0()(x))
 
                 # assert optimization local_inplace_remove0 is applied in
                 # modes with optimization

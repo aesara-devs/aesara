@@ -13,6 +13,7 @@ import pytest
 
 import tests.unittest_tools as utt
 import theano
+from theano.compile.mode import Mode
 from theano.graph.fg import FunctionGraph
 from theano.link.c.basic import DualLinker
 from theano.scalar.basic import (
@@ -453,7 +454,7 @@ def test_grad_abs():
     a = fscalar("a")
     b = theano.tensor.nnet.relu(a)
     c = theano.grad(b, a)
-    f = theano.function([a], c, mode=theano.Mode(optimizer=None))
+    f = theano.function([a], c, mode=Mode(optimizer=None))
     # Currently Theano return 0.5, but it isn't sure it won't change
     # in the futur.
     ret = f(0.0)

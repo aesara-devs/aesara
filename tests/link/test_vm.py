@@ -8,7 +8,8 @@ import pytest
 import theano
 from theano import function
 from theano import tensor as tt
-from theano.compile import Mode
+from theano.compile.io import In
+from theano.compile.mode import Mode
 from theano.configdefaults import config
 from theano.graph.basic import Apply
 from theano.graph.op import Op
@@ -389,8 +390,8 @@ def test_vm_gc():
 
     x = vector()
     p = RunOnce()(x)
-    mode = theano.Mode(linker=VMLinker(lazy=True))
-    f = theano.function([theano.In(x, mutable=True)], [p + 1, p + 2], mode=mode)
+    mode = Mode(linker=VMLinker(lazy=True))
+    f = theano.function([In(x, mutable=True)], [p + 1, p + 2], mode=mode)
     f([1, 2, 3])
 
     p = RunOnce()(x)
@@ -408,7 +409,7 @@ def test_reallocation():
         VMLinker(allow_gc=False, lazy=False, use_cloop=False),
         VMLinker(allow_gc=True, lazy=False, use_cloop=False),
     ]:
-        m = theano.compile.get_mode(theano.Mode(linker=linker))
+        m = theano.compile.get_mode(Mode(linker=linker))
         m = m.excluding("fusion", "inplace")
 
         f = theano.function([x, y], z, name="test_reduce_memory", mode=m)
@@ -444,7 +445,7 @@ def test_no_recycling():
         VMLinker(use_cloop=False, lazy=False, allow_gc=False),
     ]:
 
-        mode = theano.Mode(optimizer="fast_compile", linker=lnk)
+        mode = Mode(optimizer="fast_compile", linker=lnk)
         f = theano.function([x], x + 1, mode=mode)
         f2 = theano.function([x], (x + 1) * 2, mode=mode)
         m1 = f.fn.thunks[0].thunk.module

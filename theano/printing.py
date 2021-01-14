@@ -14,8 +14,8 @@ from io import StringIO
 
 import numpy as np
 
-import theano
 from theano.compile import Function, SharedVariable, debugmode
+from theano.compile.io import In, Out
 from theano.configdefaults import config
 from theano.graph.basic import (
     Apply,
@@ -176,7 +176,7 @@ def debugprint(
             order.extend([topo for item in obj.outputs])
         elif isinstance(obj, (int, float, np.ndarray)):
             print(obj, file=_file)
-        elif isinstance(obj, (theano.In, theano.Out)):
+        elif isinstance(obj, (In, Out)):
             results_to_print.append(obj.variable)
             profile_list.append(None)
             smap.append(None)

@@ -6,6 +6,7 @@ import pytest
 import theano
 import theano.tensor as tt
 from tests import unittest_tools as utt
+from theano.compile.mode import Mode
 from theano.tensor.basic import NotScalarConstantError, _allclose
 from theano.tensor.nnet import conv, conv2d
 from theano.tensor.type import dmatrix, dtensor3, dtensor4, dvector, scalar, tensor4
@@ -607,7 +608,7 @@ class TestConv2D(utt.InferShapeTester):
                             unroll_patch=True,
                             openmp=openmp,
                         )
-                        mode = theano.Mode(
+                        mode = Mode(
                             linker=theano.link.vm.VMLinker(
                                 allow_gc=False, use_cloop=True
                             )

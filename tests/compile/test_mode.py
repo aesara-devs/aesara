@@ -33,5 +33,5 @@ def test_no_output_from_implace():
 
 
 def test_including():
-    mode = theano.Mode(optimizer="merge")
+    mode = Mode(optimizer="merge")
     mode.including("fast_compile")

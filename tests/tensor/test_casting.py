@@ -3,7 +3,7 @@ import numpy as np
 import theano
 import theano.tensor.basic as basic
 from theano import function
-from theano.compile import In
+from theano.compile.io import In
 from theano.misc.safe_asarray import _asarray
 from theano.tensor.basic import (
     _convert_to_float32,

@@ -2,6 +2,7 @@ import numpy as np
 import pytest
 
 import theano
+from theano.compile.mode import Mode
 from theano.graph import fg
 from theano.graph.basic import Apply, Constant, Variable
 from theano.graph.op import COp
@@ -220,7 +221,7 @@ def test_clinker_literal_inlining():
     not theano.config.cxx, reason="G++ not available, so we need to skip this test."
 )
 def test_clinker_literal_cache():
-    mode = theano.Mode(linker="c")
+    mode = Mode(linker="c")
 
     A = matrix()
     input1 = vector()
@@ -415,7 +416,7 @@ def test_shared_input_output():
     state = theano.shared(0)
     state.name = "state"
     linker = CLinker()
-    mode = theano.Mode(linker=linker)
+    mode = Mode(linker=linker)
     f = theano.function([inc], state, updates=[(state, state + inc)], mode=mode)
     g = theano.function([inc], state, updates=[(state, state + inc)])
 

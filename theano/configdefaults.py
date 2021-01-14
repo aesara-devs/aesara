@@ -111,14 +111,14 @@ def _filter_mode(val):
     if val in str_options:
         return val
     # This can be executed before Theano is completly imported, so
-    # theano.Mode is not always available.
-    # Instead of isinstance(val, theano.Mode),
+    # theano.compile.mode.Mode is not always available.
+    # Instead of isinstance(val, theano.compile.mode.Mode),
     # we can inspect the __mro__ of the object!
     for type_ in type(val).__mro__:
         if "theano.compile.mode.Mode" in str(type_):
             return val
     raise ValueError(
-        f"Expected one of {str_options}, or an instance of theano.Mode. "
+        f"Expected one of {str_options}, or an instance of theano.compile.mode.Mode. "
         f"Instead got: {val}."
     )
 

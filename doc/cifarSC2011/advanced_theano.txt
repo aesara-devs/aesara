@@ -29,9 +29,9 @@ Conditions
    z_lazy = ifelse(tt.lt(a,b), tt.mean(x), tt.mean(y))
 
    f_switch = theano.function([a,b,x,y], z_switch,
-                              mode=theano.Mode(linker='vm'))
+                              mode=theano.compile.mode.Mode(linker='vm'))
    f_lazyifelse = theano.function([a,b,x,y], z_lazy,
-                                  mode=theano.Mode(linker='vm'))
+                                  mode=theano.compile.mode.Mode(linker='vm'))
 
    val1 = 0.
    val2 = 1.

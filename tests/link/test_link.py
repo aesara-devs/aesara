@@ -3,8 +3,9 @@ from copy import deepcopy
 import numpy as np
 
 import theano
-from theano.graph import basic, fg
-from theano.graph.basic import Apply, Constant, Variable
+from theano.compile.mode import Mode
+from theano.graph import fg
+from theano.graph.basic import Apply, Constant, Variable, clone
 from theano.graph.op import Op
 from theano.graph.type import Type
 from theano.link.basic import Container, PerformLinker, WrapLinker
@@ -121,7 +122,7 @@ class TestPerformLinker:
         x, y, z = inputs()
         a, d = add(x, y), div(x, y)
         e = mul(a, d)
-        fn = perform_linker(FunctionGraph(*basic.clone([x, y, a], [e]))).make_function()
+        fn = perform_linker(FunctionGraph(*clone([x, y, a], [e]))).make_function()
         assert fn(1.0, 2.0, 9.0) == 4.5
 
     def test_skiphole(self):
@@ -129,7 +130,7 @@ class TestPerformLinker:
         a = add(x, y)
         r = raise_err(a)
         e = add(r, a)
-        fn = perform_linker(FunctionGraph(*basic.clone([x, y, r], [e]))).make_function()
+        fn = perform_linker(FunctionGraph(*clone([x, y, r], [e]))).make_function()
         assert fn(1.0, 2.0, 4.5) == 7.5
 
 
@@ -186,7 +187,7 @@ def test_sort_schedule_fn():
         return cmp(str(a), str(b))  # lexicographical sort
 
     linker = OpWiseCLinker(schedule=sort_schedule_fn(str_cmp))
-    mode = theano.Mode(linker=linker)
+    mode = Mode(linker=linker)
     f = theano.function((x,), (y,), mode=mode)
 
     nodes = f.maker.linker.make_all()[-1]

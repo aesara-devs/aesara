@@ -4,6 +4,7 @@ import pytest
 import theano
 import theano.tensor as tt
 from theano import function
+from theano.compile.mode import Mode
 from theano.tensor.elemwise import DimShuffle
 from theano.tensor.type import dtensor3
 
@@ -43,7 +44,7 @@ class TestKeepDims:
         a = np.random.rand(3, 2, 4)
         # We don't need to test all opt and C code, as this is tested
         # by the ops tests.
-        mode = theano.compile.Mode(optimizer="fast_compile", linker="py")
+        mode = Mode(optimizer="fast_compile", linker="py")
 
         # 'max_and_argmax' has two outputs and can be specified with either
         # a single or every axis:
@@ -177,7 +178,7 @@ class TestKeepDims:
 
         x = dtensor3()
         a = np.random.rand(3, 2, 4).astype(theano.config.floatX)
-        mode = theano.compile.Mode(optimizer="fast_compile", linker="py")
+        mode = Mode(optimizer="fast_compile", linker="py")
 
         for axis in [
             0,

@@ -11,6 +11,7 @@ import theano.tensor as tt
 from theano.compile.function import function
 from theano.compile.function.types import UnusedInputError
 from theano.compile.io import In, Out
+from theano.compile.mode import Mode
 from theano.configdefaults import config
 from theano.graph.basic import Constant
 from theano.graph.fg import MissingInputError
@@ -627,14 +628,12 @@ class TestFunction:
         f(o + 0.1)  # should not clobber the memory used to store four
         assert np.all(four == 4)
 
-        f = function(
-            [a], Out(a * 4, borrow=True), mode=theano.Mode("c|py_nogc", "fast_run")
-        )
+        f = function([a], Out(a * 4, borrow=True), mode=Mode("c|py_nogc", "fast_run"))
         o = np.ones((3, 3))
         four = f(o)
         assert np.all(four == 4)
         f(o + 0.1)  # should clobber the memory used to store four
-        if theano.config.cxx:
+        if config.cxx:
             assert not np.all(four == 4)
         else:
             # The Elemwise.perform method don't reuse memory
@@ -691,9 +690,7 @@ class TestFunction:
 
         a, b = dscalars("a", "b")
         c = a + b
-        func = theano.function(
-            [theano.In(a, name="first"), theano.In(b, value=1, name="second")], c
-        )
+        func = theano.function([In(a, name="first"), In(b, value=1, name="second")], c)
         x = func(first=1)
         try:
             func(second=2)
@@ -721,17 +718,17 @@ class TestFunction:
         # Assert cases we should check for aliased inputs
         for d in [
             dict(
-                inputs=[theano.In(x1, borrow=True)],
+                inputs=[In(x1, borrow=True)],
                 outputs=[x1 + 1],
                 updates=[(s2, s2 + 3)],
             ),
             dict(
-                inputs=[theano.In(x1, borrow=True, mutable=True)],
+                inputs=[In(x1, borrow=True, mutable=True)],
                 outputs=[x1 + 1],
                 updates=[(s2, s2 + 3)],
             ),
             dict(
-                inputs=[theano.In(x1, mutable=True)],
+                inputs=[In(x1, mutable=True)],
                 outputs=[x1 + 1],
                 updates=[(s2, s2 + 3)],
             ),
@@ -1146,12 +1143,12 @@ def test_empty_givens_updates():
     # triggering useless crashes at compile time.
     x = scalar()
     y = x * 2
-    function([theano.In(x)], y, givens={})
-    function([theano.In(x)], y, updates={})
+    function([In(x)], y, givens={})
+    function([In(x)], y, updates={})
 
 
 @pytest.mark.skipif(
-    not theano.gpuarray.pygpu_activated or theano.config.mode == "DEBUG_MODE",
+    not theano.gpuarray.pygpu_activated or config.mode == "DEBUG_MODE",
     reason="DEBUG_MODE forces synchronous behaviour which breaks this test",
 )
 def test_sync_update():
