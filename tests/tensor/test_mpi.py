@@ -4,6 +4,7 @@ import subprocess
 import pytest
 
 import theano
+from theano.compile.mode import Mode
 from theano.configdefaults import config
 from theano.graph.sched import sort_schedule_fn
 from theano.link.c.basic import OpWiseCLinker
@@ -21,7 +22,7 @@ from theano.tensor.type import matrix
 
 mpi_scheduler = sort_schedule_fn(*mpi_cmps)
 mpi_linker = OpWiseCLinker(schedule=mpi_scheduler)
-mpi_mode = theano.Mode(linker=mpi_linker)
+mpi_mode = Mode(linker=mpi_linker)
 
 
 @config.change_flags(compute_test_value="off")

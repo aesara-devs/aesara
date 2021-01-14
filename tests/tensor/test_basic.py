@@ -13,7 +13,6 @@ from numpy.testing import assert_allclose, assert_almost_equal, assert_array_equ
 import theano
 import theano.scalar as ts
 import theano.tensor as tt
-import theano.tensor.var as var
 from tests import unittest_tools as utt
 from tests.tensor.utils import (
     ALL_DTYPES,
@@ -73,6 +72,7 @@ from tests.tensor.utils import (
 from theano import compile, config, function, shared
 from theano.assert_op import Assert
 from theano.compile import DeepCopyOp
+from theano.compile.io import In, Out
 from theano.compile.mode import get_default_mode
 from theano.gradient import grad, hessian, numeric_grad
 from theano.graph.basic import Apply, Variable
@@ -170,6 +170,7 @@ from theano.tensor import (
     triu,
     true_div,
     unbroadcast,
+    var,
     vertical_stack,
 )
 from theano.tensor.elemwise import DimShuffle, Elemwise
@@ -3224,7 +3225,7 @@ def test_join_inplace():
     join = Join(view=0)
     c = join(0, x, z, z)
 
-    f = theano.function([theano.In(x, borrow=True), s], theano.Out(c, borrow=True))
+    f = theano.function([In(x, borrow=True), s], Out(c, borrow=True))
 
     data = np.array([3, 4, 5], dtype=config.floatX)
     print(f(data, 0))

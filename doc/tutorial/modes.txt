@@ -210,7 +210,7 @@ The optimizers Theano provides are summarized below to indicate the trade-offs
 one might make between compilation time and execution time.
 
 These optimizers can be enabled globally with the Theano flag: ``optimizer=name``
-or per call to theano functions with ``theano.function(...mode=theano.Mode(optimizer="name"))``.
+or per call to theano functions with ``function(...mode=Mode(optimizer="name"))``.
 
 =================  ============  ==============  ==================================================
 optimizer          Compile time  Execution time  Description

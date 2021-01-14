@@ -282,8 +282,7 @@ class Param(In):
         borrow=None,
     ):
         warnings.warn(
-            "The Param class is deprecated. Replace Param(default=N)"
-            " by theano.In(value=N)",
+            "The Param class is deprecated. Replace Param(default=N)" " by In(value=N)",
             stacklevel=2,
         )
         super().__init__(
@@ -322,7 +321,7 @@ def pfunc(
         Function parameters, these are not allowed to be shared variables.
     outputs : list of Variables or Out instances
         Expressions to compute.
-    mode : string or `theano.compile.Mode` instance
+    mode : string or `theano.compile.mode.Mode` instance
         Compilation mode.
     updates : iterable over pairs (shared_variable, new_expression). List, tuple or dict.
         Update the values for SharedVariable inputs according to these

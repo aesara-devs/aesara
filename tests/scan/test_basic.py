@@ -26,6 +26,8 @@ import theano.scalar.sharedvar
 from tests import unittest_tools as utt
 from theano import tensor as tt
 from theano.compile.function.pfunc import rebuild_collect_shared
+from theano.compile.io import In
+from theano.compile.mode import FAST_RUN, Mode, get_default_mode, get_mode
 from theano.configdefaults import config
 from theano.misc.safe_asarray import _asarray
 from theano.scan.basic import scan
@@ -54,11 +56,11 @@ from theano.tensor.type import (
 
 
 if config.mode == "FAST_COMPILE":
-    mode_with_opt = theano.compile.mode.get_mode("FAST_RUN")
+    mode_with_opt = get_mode("FAST_RUN")
 else:
-    mode_with_opt = theano.compile.mode.get_default_mode()
+    mode_with_opt = get_default_mode()
 if config.mode in ("DEBUG_MODE", "DebugMode"):
-    mode_nodebug = theano.compile.mode.get_mode("FAST_RUN")
+    mode_nodebug = get_mode("FAST_RUN")
 else:
     mode_nodebug = mode_with_opt
 
@@ -234,9 +236,7 @@ class TestScan:
     # generator network, only one output , type scalar ; no sequence or
     # non sequence arguments
     @pytest.mark.skipif(
-        isinstance(
-            theano.compile.mode.get_default_mode(), theano.compile.debugmode.DebugMode
-        ),
+        isinstance(get_default_mode(), theano.compile.debugmode.DebugMode),
         reason="This test fails in DebugMode, because it is not yet picklable.",
     )
     def test_pickling(self):
@@ -920,14 +920,14 @@ class TestScan:
         u0 = vector("u0")
         u1 = vector("u1")
         u2 = vector("u2")
-        mu0 = theano.In(u0, mutable=False)
-        mu1 = theano.In(u1, mutable=True)
-        mu2 = theano.In(u2, mutable=True)
+        mu0 = In(u0, mutable=False)
+        mu1 = In(u1, mutable=True)
+        mu2 = In(u2, mutable=True)
         x0 = scalar("x0")
         x1 = scalar("y0")
         W_in = theano.shared(vW_in, "Win")
         W = theano.shared(vW, "W")
-        mode = theano.compile.mode.get_mode(None).including("inplace")
+        mode = get_mode(None).including("inplace")
 
         def f_rnn_shared(u0_t, u1_t, u2_t, x0_tm1, x1_tm1):
             return [
@@ -987,14 +987,14 @@ class TestScan:
         u0 = vector("u0")
         u1 = vector("u1")
         u2 = vector("u2")
-        mu0 = theano.In(u0, mutable=True)
-        mu1 = theano.In(u1, mutable=True)
-        mu2 = theano.In(u2, mutable=True)
+        mu0 = In(u0, mutable=True)
+        mu1 = In(u1, mutable=True)
+        mu2 = In(u2, mutable=True)
         x0 = scalar("x0")
         x1 = scalar("y0")
         W_in = theano.shared(vW_in, "Win")
         W = theano.shared(vW, "W")
-        mode = theano.compile.mode.get_mode(None).including("inplace")
+        mode = get_mode(None).including("inplace")
 
         def f_rnn_shared(u0_t, u1_t, u1_tp1, u2_tm1, u2_t, u2_tp1, x0_tm1, x1_tm1):
             return [
@@ -1057,7 +1057,7 @@ class TestScan:
         x0 = tt.constant(x0)
         to_replace = outputs[0].owner.inputs[0].owner.inputs[1]
         outputs = theano.clone(outputs, replace=[(to_replace, x0)])
-        mode = theano.compile.mode.get_mode(None).including("inplace")
+        mode = get_mode(None).including("inplace")
         f9 = theano.function([], outputs, updates=updates, mode=mode)
         scan_node = [x for x in f9.maker.fgraph.toposort() if isinstance(x.op, Scan)]
         assert 0 not in scan_node[0].op.destroy_map.keys()
@@ -2783,7 +2783,7 @@ class TestScan:
             x,
             tt.constant(np.asarray(0.0, dtype=config.floatX)),
         )
-        mode = theano.compile.mode.FAST_RUN
+        mode = FAST_RUN
         mode = mode.excluding("inplace")
         f1 = theano.function([], o, mode=mode)
         inputs, outputs = clone_optimized_graph(f1)
@@ -2817,7 +2817,7 @@ class TestScan:
             tt.constant(np.asarray(0.0, dtype=config.floatX)),
         )
 
-        mode = theano.compile.mode.FAST_RUN
+        mode = FAST_RUN
         mode = mode.excluding("inplace")
         f0 = theano.function([], o, mode=mode)
         inputs, outputs = clone_optimized_graph(f0)
@@ -2852,7 +2852,7 @@ class TestScan:
             tt.constant(np.asarray(0.0, dtype=config.floatX)),
         )
 
-        mode = theano.compile.mode.FAST_RUN
+        mode = FAST_RUN
         mode = mode.excluding("inplace")
         f1 = theano.function([], o, mode=mode)
         inputs, outputs = clone_optimized_graph(f1)
@@ -4186,7 +4186,7 @@ class TestScan:
             [U, x1, x2],
             [X1, X2, X3],
             updates=updates,
-            mode=theano.Mode(linker="py"),
+            mode=Mode(linker="py"),
             allow_input_downcast=True,
         )
         rng = np.random.RandomState(utt.fetch_seed())
@@ -4223,7 +4223,7 @@ class TestScan:
             [W, x1, x2],
             [X1, X2, X3],
             updates=updates,
-            mode=theano.Mode(linker="py"),
+            mode=Mode(linker="py"),
             allow_input_downcast=True,
         )
         rng = np.random.RandomState(utt.fetch_seed())
@@ -4594,7 +4594,7 @@ def test_speed():
     #     fn=lambda ri, rii: ri + rii,
     #     sequences=[s_r[1:]],
     #     outputs_info=tt.constant(r[0]),
-    #     mode=theano.Mode(linker="cvm"),
+    #     mode=Mode(linker="cvm"),
     # )
     # assert not updates
     #
@@ -4616,7 +4616,7 @@ def test_speed():
         [],
         [],
         updates=OrderedDict([(s_i, s_i + 1), (shared_r, s_rinc)]),
-        mode=theano.Mode(linker="cvm"),
+        mode=Mode(linker="cvm"),
     )
     f_cvm_shared._check_for_aliased_inputs = False
 
@@ -4652,11 +4652,11 @@ def test_speed_rnn():
     #     fn=lambda ri, rii: tt.tanh(tt.dot(rii, w)),
     #     sequences=[s_r[1:]],
     #     outputs_info=tt.constant(r[0]),
-    #     mode=theano.Mode(linker="cvm"),
+    #     mode=Mode(linker="cvm"),
     # )
     # assert not updates
     #
-    # f_cvm = theano.function([s_r], s_y, mode=theano.Mode(linker="cvm"))
+    # f_cvm = theano.function([s_r], s_y, mode=Mode(linker="cvm"))
     #
     # cvm_duration = timeit(lambda: f_cvm(r), number=n_timeit)
 
@@ -4675,7 +4675,7 @@ def test_speed_rnn():
         [],
         [],
         updates=OrderedDict([(s_i, s_i + 1), (shared_r, s_rinc)]),
-        mode=theano.Mode(linker="cvm"),
+        mode=Mode(linker="cvm"),
     )
 
     cvm_shared_duration = timeit(lambda: f_cvm_shared(), number=n_timeit)
@@ -4691,7 +4691,7 @@ def test_speed_batchrnn():
     This function prints out the speed of recurrent neural network
     calculations implemented in various ways.
 
-    We force the mode to theano.Mode(linker='cvm'). If you manually
+    We force the mode to Mode(linker='cvm'). If you manually
     change this code to use DebugMode this will test the correctness
     of the optimizations applied, but generally correctness-testing
     is not the goal of this test.
@@ -4725,7 +4725,7 @@ def test_speed_batchrnn():
         [],
         [],
         updates=[(s_i, s_i + 1), (shared_r, s_rinc)],
-        mode=theano.Mode(linker="cvm"),
+        mode=Mode(linker="cvm"),
     )
     f_fn = f.fn
     t2 = time.time()

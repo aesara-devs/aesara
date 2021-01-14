@@ -4,6 +4,7 @@ import pytest
 import theano
 import theano.tensor as tt
 from tests import unittest_tools as utt
+from theano.compile.mode import Mode
 from theano.configdefaults import config
 from theano.graph.opt import check_stack_trace
 from theano.tensor.nnet import abstract_conv as conv
@@ -1047,7 +1048,7 @@ class TestAbstractConvNoOptim(BaseTestConv2d):
 
     def run_test_case(self, i, f, s, b, flip, provide_shape, fd=(1, 1)):
         o = self.get_output_shape(i, f, s, b, fd)
-        mode = theano.Mode(optimizer=None)
+        mode = Mode(optimizer=None)
         self.run_fwd(
             inputs_shape=i,
             filters_shape=f,
@@ -1093,7 +1094,7 @@ class TestAbstractConvNoOptim(BaseTestConv2d):
     def run_test_case_gi(
         self, i, f, o, s, b, flip, provide_shape, fd=(1, 1), expect_error=False
     ):
-        mode = theano.Mode(optimizer=None)
+        mode = Mode(optimizer=None)
         if not expect_error:
             self.run_gradinput(
                 inputs_shape=i,
@@ -2059,7 +2060,7 @@ class TestGroupedConvNoOptim:
     conv_op = theano.tensor.nnet.abstract_conv.AbstractConv2d
     conv_gradw_op = theano.tensor.nnet.abstract_conv.AbstractConv2d_gradWeights
     conv_gradi_op = theano.tensor.nnet.abstract_conv.AbstractConv2d_gradInputs
-    mode = theano.Mode(optimizer=None)
+    mode = Mode(optimizer=None)
     is_dnn = False
 
     def setup_method(self):
@@ -2269,7 +2270,7 @@ class TestGroupedConv3dNoOptim(TestGroupedConvNoOptim):
     conv_op = theano.tensor.nnet.abstract_conv.AbstractConv3d
     conv_gradw_op = theano.tensor.nnet.abstract_conv.AbstractConv3d_gradWeights
     conv_gradi_op = theano.tensor.nnet.abstract_conv.AbstractConv3d_gradInputs
-    mode = theano.Mode(optimizer=None)
+    mode = Mode(optimizer=None)
 
     def setup_method(self):
         self.num_groups = [3, 2, 4, 4]
@@ -2509,7 +2510,7 @@ class TestUnsharedConv:
     conv2d_gradw_op = theano.tensor.nnet.abstract_conv.AbstractConv2d_gradWeights
     conv2d_gradi_op = theano.tensor.nnet.abstract_conv.AbstractConv2d_gradInputs
 
-    mode = theano.compile.mode.Mode(optimizer="None")
+    mode = Mode(optimizer="None")
 
     def setup_method(self):
         self.img_shape = [(2, 2, 4, 4), (3, 2, 4, 2), (3, 3, 5, 3), (3, 4, 4, 4)]
@@ -2741,7 +2742,7 @@ class TestAsymmetricPadding:
     conv2d_gradw_op = theano.tensor.nnet.abstract_conv.AbstractConv2d_gradWeights
     conv2d_gradi_op = theano.tensor.nnet.abstract_conv.AbstractConv2d_gradInputs
 
-    mode = theano.compile.mode.Mode(optimizer="None")
+    mode = Mode(optimizer="None")
 
     img_shape = [(2, 2, 4, 4), (3, 2, 4, 2), (3, 3, 5, 3)]
     kern_shape = [(4, 2, 2, 2), (2, 2, 4, 2), (2, 3, 3, 3)]
@@ -2911,7 +2912,7 @@ class TestAsymmetricPadding:
 
 
 class TestCausalConv:
-    mode = theano.compile.mode.Mode(optimizer="None")
+    mode = Mode(optimizer="None")
 
     img = np.array(
         [

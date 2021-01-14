@@ -6,6 +6,7 @@ import pytest
 
 import theano
 from tests import unittest_tools as utt
+from theano.compile.mode import Mode
 from theano.tensor.sort import (
     ArgSortOp,
     SortOp,
@@ -428,7 +429,7 @@ class TestTopK:
         # So don't use DebugMode here.
         mode = self.mode
         if isinstance(self.mode, theano.compile.debugmode.DebugMode):
-            mode = theano.Mode(optimizer=mode.optimizer)
+            mode = Mode(optimizer=mode.optimizer)
         fn = theano.function([x], y, mode=mode)
         assert any(
             [isinstance(n.op, self.op_class) for n in fn.maker.fgraph.apply_nodes]

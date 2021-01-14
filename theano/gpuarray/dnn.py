@@ -10,6 +10,8 @@ import theano
 import theano.pathparse
 import theano.tensor as tt
 from theano.assert_op import Assert
+from theano.compile.io import Out
+from theano.compile.mode import Mode
 from theano.compile.ops import shape_i, shape_i_op
 from theano.configdefaults import SUPPORTED_DNN_CONV_ALGO_RUNTIME, config
 from theano.gpuarray import cudnn_defs, pygpu
@@ -285,7 +287,7 @@ class MakerCDataType(CDataType):
                 self._fn = theano.function(
                     [v],
                     CDataMaker(self)(v),
-                    mode=theano.Mode(optimizer=None),
+                    mode=Mode(optimizer=None),
                     profile=False,
                 )
         return self._fn
@@ -421,9 +423,7 @@ def version(raises=True):
             return -1
 
     if version.v is None:
-        f = theano.function(
-            [], DnnVersion()(), theano.Mode(optimizer=None), profile=False
-        )
+        f = theano.function([], DnnVersion()(), Mode(optimizer=None), profile=False)
         v = f()
         if v[0] != v[1]:
             raise RuntimeError(
@@ -2632,7 +2632,7 @@ def _make_dropout_desc(dropout, seed, context_name):
     desc, states = theano.function(
         [],
         _DropoutDescriptor(context_name)(dropout, seed, context_name),
-        theano.Mode(optimizer=None),
+        Mode(optimizer=None),
         profile=False,
     )()
     return desc, states
@@ -2740,7 +2740,7 @@ def _make_rnn_desc(
         _RNNDescriptor(context_name)(
             hidden_size, num_layers, ddesc, input_mode, direction_mode, rnn_mode, dtype
         ),
-        theano.Mode(optimizer=None),
+        Mode(optimizer=None),
         profile=False,
     )()
     return desc
@@ -2774,7 +2774,7 @@ def _get_param_size(desc, input_size, dtype, context_name):
     return theano.function(
         [],
         _RNNParamSize(context_name)(desc, input_size, typecode),
-        theano.Mode(optimizer=None),
+        Mode(optimizer=None),
         profile=False,
     )()
 
@@ -3016,8 +3016,8 @@ class _RNNSplitParams(DnnBase):
 def _split_rnn_params(w, desc, layer, input_size, dtype, rnn_mode):
     typecode = gpuarray.dtype_to_typecode(dtype)
     outs = _RNNSplitParams(rnn_mode)(w, desc, layer, input_size, typecode)
-    outs = [theano.Out(o, borrow=True) for o in outs]
-    return theano.function([], outs, theano.Mode(optimizer=None), profile=False)()
+    outs = [Out(o, borrow=True) for o in outs]
+    return theano.function([], outs, Mode(optimizer=None), profile=False)()
 
 
 class GpuDnnRNNOp(DnnBase):

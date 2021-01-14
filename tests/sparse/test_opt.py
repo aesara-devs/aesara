@@ -10,6 +10,7 @@ import theano.tensor as tt
 from tests import unittest_tools as utt
 from tests.sparse.test_basic import random_lil
 from theano import sparse
+from theano.compile.mode import Mode, get_default_mode
 from theano.configdefaults import config
 from theano.tensor.type import ivector, matrix, vector
 
@@ -17,7 +18,7 @@ from theano.tensor.type import ivector, matrix, vector
 def test_local_csm_properties_csm():
     data = vector()
     indices, indptr, shape = (ivector(), ivector(), ivector())
-    mode = theano.compile.mode.get_default_mode()
+    mode = get_default_mode()
     mode = mode.including("specialize", "local_csm_properties_csm")
     for CS, cast in [
         (sparse.CSC, sp.sparse.csc_matrix),
@@ -43,10 +44,10 @@ def test_local_csm_properties_csm():
 def test_local_csm_grad_c():
     data = vector()
     indices, indptr, shape = (ivector(), ivector(), ivector())
-    mode = theano.compile.mode.get_default_mode()
+    mode = get_default_mode()
 
     if theano.config.mode == "FAST_COMPILE":
-        mode = theano.compile.Mode(linker="c|py", optimizer="fast_compile")
+        mode = Mode(linker="c|py", optimizer="fast_compile")
 
     mode = mode.including("specialize", "local_csm_grad_c")
     for CS, cast in [
@@ -68,7 +69,7 @@ def test_local_csm_grad_c():
     not theano.config.cxx, reason="G++ not available, so we need to skip this test."
 )
 def test_local_mul_s_d():
-    mode = theano.compile.mode.get_default_mode()
+    mode = get_default_mode()
     mode = mode.including("specialize", "local_mul_s_d")
 
     for sp_format in sparse.sparse_formats:
@@ -85,7 +86,7 @@ def test_local_mul_s_d():
     not theano.config.cxx, reason="G++ not available, so we need to skip this test."
 )
 def test_local_mul_s_v():
-    mode = theano.compile.mode.get_default_mode()
+    mode = get_default_mode()
     mode = mode.including("specialize", "local_mul_s_v")
 
     for sp_format in ["csr"]:  # Not implemented for other format
@@ -102,7 +103,7 @@ def test_local_mul_s_v():
     not theano.config.cxx, reason="G++ not available, so we need to skip this test."
 )
 def test_local_structured_add_s_v():
-    mode = theano.compile.mode.get_default_mode()
+    mode = get_default_mode()
     mode = mode.including("specialize", "local_structured_add_s_v")
 
     for sp_format in ["csr"]:  # Not implemented for other format
@@ -120,7 +121,7 @@ def test_local_structured_add_s_v():
     not theano.config.cxx, reason="G++ not available, so we need to skip this test."
 )
 def test_local_sampling_dot_csr():
-    mode = theano.compile.mode.get_default_mode()
+    mode = get_default_mode()
     mode = mode.including("specialize", "local_sampling_dot_csr")
 
     for sp_format in ["csr"]:  # Not implemented for other format
@@ -147,7 +148,7 @@ def test_local_sampling_dot_csr():
 
 
 def test_local_dense_from_sparse_sparse_from_dense():
-    mode = theano.compile.mode.get_default_mode()
+    mode = get_default_mode()
     mode = mode.including("local_dense_from_sparse_sparse_from_dense")
 
     m = matrix()

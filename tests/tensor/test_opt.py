@@ -11,10 +11,13 @@ import theano.scalar as ts
 import theano.tensor as tt
 import theano.tensor.opt as opt
 from tests import unittest_tools as utt
-from theano import compile, pprint, shared
+from theano import pprint, shared
 from theano.assert_op import Assert
-from theano.compile import DeepCopyOp, deep_copy_op, get_mode
+from theano.compile import optdb
+from theano.compile.debugmode import DebugMode
 from theano.compile.function import function
+from theano.compile.mode import Mode, get_default_mode, get_mode
+from theano.compile.ops import DeepCopyOp, SpecifyShape, deep_copy_op, specify_shape
 from theano.configdefaults import config
 from theano.graph.basic import Apply, Constant
 from theano.graph.fg import FunctionGraph
@@ -102,20 +105,20 @@ from theano.tensor.var import TensorConstant
 mode_opt = config.mode
 if mode_opt == "FAST_COMPILE":
     mode_opt = "FAST_RUN"
-mode_opt = theano.compile.mode.get_mode(mode_opt)
+mode_opt = get_mode(mode_opt)
 
 dimshuffle_lift = out2in(local_dimshuffle_lift)
 
 _optimizer_stabilize = Query(include=["fast_run"])
 _optimizer_stabilize.position_cutoff = 1.51
-_optimizer_stabilize = compile.optdb.query(_optimizer_stabilize)
+_optimizer_stabilize = optdb.query(_optimizer_stabilize)
 
 _optimizer_specialize = Query(include=["fast_run"])
 _optimizer_specialize.position_cutoff = 2.01
-_optimizer_specialize = compile.optdb.query(_optimizer_specialize)
+_optimizer_specialize = optdb.query(_optimizer_specialize)
 
 _optimizer_fast_run = Query(include=["fast_run"])
-_optimizer_fast_run = compile.optdb.query(_optimizer_fast_run)
+_optimizer_fast_run = optdb.query(_optimizer_fast_run)
 
 
 def ds(x, y):
@@ -513,7 +516,7 @@ class TestCanonize:
 
         # We must be sure that the Canonizer is working, but that we don't have other
         # optimisation that could hide bug in the Canonizer as local_elemwise_fusion
-        mode = compile.mode.get_default_mode()
+        mode = get_default_mode()
         opt = Query(["canonicalize"])
         opt = opt.excluding("local_elemwise_fusion")
         mode = mode.__class__(linker=mode.linker, optimizer=opt)
@@ -648,7 +651,7 @@ class TestCanonize:
 
         # We must be sure that the Canonizer is working, but that we don't have other
         # optimisation that could hide bug in the Canonizer as local_elemwise_fusion
-        mode = compile.mode.get_default_mode()
+        mode = get_default_mode()
         mode._optimizer = Query(["canonicalize"])
         mode._optimizer = mode._optimizer.excluding("local_elemwise_fusion")
         for id, [g, sym_inputs, val_inputs, nb_elemwise, out_dtype] in enumerate(cases):
@@ -695,7 +698,7 @@ class TestCanonize:
 
         # We must be sure that the Canonizer is working, but that we don't have other
         # optimisation that could hide bug in the Canonizer as local_elemwise_fusion
-        mode = compile.mode.get_default_mode()
+        mode = get_default_mode()
 
         opt = Query(["canonicalize"])
         opt = opt.including("ShapeOpt", "local_fill_to_alloc")
@@ -1015,13 +1018,9 @@ class TestCanonize:
         # a = T.abs_(x)
 
         if config.mode == "FAST_COMPILE":
-            mode = theano.compile.mode.get_mode("FAST_RUN").excluding(
-                "local_elemwise_fusion"
-            )
+            mode = get_mode("FAST_RUN").excluding("local_elemwise_fusion")
         else:
-            mode = theano.compile.mode.get_default_mode().excluding(
-                "local_elemwise_fusion"
-            )
+            mode = get_default_mode().excluding("local_elemwise_fusion")
 
         f = function([x], [(4 * x) / abs(2 * x)], mode=mode)
         print(f.maker.fgraph.toposort())
@@ -1030,7 +1029,7 @@ class TestCanonize:
         f(-1)
         # some stabilization optimization make the output be finite instead of nan
         # debug_mode will raise an error when he see nan
-        if not isinstance(mode, theano.compile.debugmode.DebugMode):
+        if not isinstance(mode, DebugMode):
             assert np.isfinite(f(0))
 
         assert len(f.maker.fgraph.toposort()) == 2
@@ -1043,7 +1042,7 @@ class TestCanonize:
         f(-1)
         # some stabilization optimization make the output be finite instead of nan
         # debug_mode will raise an error when he see nan
-        if not isinstance(mode, theano.compile.debugmode.DebugMode):
+        if not isinstance(mode, DebugMode):
             assert np.isfinite(f(0))
 
         assert len(f.maker.fgraph.toposort()) == 2
@@ -1066,7 +1065,7 @@ class TestCanonize:
         # fvv = _asarray(np.random.rand(shp[0]), dtype='float32').reshape(1, shp[0])
         # We must be sure that the Canonizer is working, but that we don't have other
         # optimisation that could hide bug in the Canonizer as local_elemwise_fusion
-        mode = compile.mode.get_default_mode()
+        mode = get_default_mode()
 
         opt = Query(["canonicalize"])
         opt = opt.excluding("local_elemwise_fusion")
@@ -1131,7 +1130,7 @@ def test_local_merge_abs():
     mode = config.mode
     if mode == "FAST_COMPILE":
         mode = "FAST_RUN"
-    mode = theano.compile.mode.get_mode(mode).excluding("local_elemwise_fusion")
+    mode = get_mode(mode).excluding("local_elemwise_fusion")
 
     f = function([y, z], (abs(y * z * -2)), mode=mode)
     f(y_val, z_val)
@@ -1204,7 +1203,7 @@ def test_cast_in_mul_canonizer():
     e = tt.eq(go, x)
     o1 = (1 - e) * go
     o2 = e * go
-    mode = theano.compile.get_default_mode().excluding("fusion").including("fast_run")
+    mode = get_default_mode().excluding("fusion").including("fast_run")
     f = function([x, y], [o1, o2], mode=mode)
     theano.printing.debugprint(f, print_type=True)
     nodes = f.maker.fgraph.apply_nodes
@@ -1232,7 +1231,7 @@ class TestFusion:
         ],
         exclude=["cxx_only", "BlasOpt"],
     )
-    mode = theano.compile.Mode(compile.mode.get_default_mode().linker, opts)
+    mode = Mode(get_default_mode().linker, opts)
     _shared = staticmethod(shared)
     topo_exclude = ()
 
@@ -1986,7 +1985,7 @@ class TestFusion:
         vars = [sd, means]
 
         # Make sure that C compilation is used
-        mode = theano.compile.Mode("cvm", self.opts)
+        mode = Mode("cvm", self.opts)
         dlogp = function(vars, [theano.grad(logp, v) for v in vars], mode=mode)
 
         # Make sure something was fused
@@ -2007,7 +2006,7 @@ class TestFusion:
             exclude=["cxx_only", "BlasOpt"],
         )
 
-        mode = theano.compile.mode.Mode(self.mode.linker, opts)
+        mode = Mode(self.mode.linker, opts)
 
         x, y, z = dmatrices("xyz")
         out = tt.dot(x, y) + x + y + z
@@ -2109,7 +2108,7 @@ class TestFusion:
 
         no_c_code_op = Elemwise(NoCCodeOp(ts.basic.upgrade_to_float))
 
-        mode = theano.Mode(linker="cvm")
+        mode = Mode(linker="cvm")
         mode._optimizer = mode._optimizer.including(
             "local_elemwise_fusion",
             "composite_elemwise_fusion",
@@ -2194,9 +2193,7 @@ class TestCompositeCodegen:
         c = ts.Composite([x], [x + 1, x - 1])
         X = matrix()
         o = Elemwise(scalar_op=c)(X)
-        mode = theano.compile.mode.get_default_mode().including(
-            "local_useless_composite"
-        )
+        mode = get_default_mode().including("local_useless_composite")
 
         f = function([X], o[0], mode=mode)
         topo = f.maker.fgraph.toposort()
@@ -2216,7 +2213,7 @@ def test_log1p():
     m = config.mode
     if m == "FAST_COMPILE":
         m = "FAST_RUN"
-    m = compile.mode.get_mode(m)
+    m = get_mode(m)
     m = m.excluding("fusion")
     # check some basic cases
     x = dvector()
@@ -2267,7 +2264,7 @@ def test_log_add():
     m = config.mode
     if m == "FAST_COMPILE":
         m = "FAST_RUN"
-    m = compile.mode.get_mode(m)
+    m = get_mode(m)
     m = m.excluding("fusion")
     m = copy.copy(m)
     # No need to put them back as we have a new object
@@ -2304,11 +2301,11 @@ def test_log_add():
 def test_local_useless_slice():
     # test a simple matrix
     x = matrix("x")
-    mode_unopt = compile.get_default_mode().excluding(
+    mode_unopt = get_default_mode().excluding(
         "local_useless_slice", "local_mul_canonizer"
     )
     mode_opt = (
-        compile.get_default_mode()
+        get_default_mode()
         .including("local_useless_slice")
         .excluding("local_mul_canonizer")
     )
@@ -2358,13 +2355,11 @@ def test_local_useless_slice():
 def test_local_useless_inc_subtensor():
     x = matrix("x")
     y = matrix("y")
-    mode = compile.get_default_mode().including("local_useless_inc_subtensor")
+    mode = get_default_mode().including("local_useless_inc_subtensor")
     for sub in [slice(None), slice(None, None, -1)]:
         o = set_subtensor(x[::, sub], y)
         f = function([x, y], o, mode=mode)
-        o_shape = set_subtensor(
-            x[::, sub], theano.compile.ops.specify_shape(y, x.shape)
-        )
+        o_shape = set_subtensor(x[::, sub], specify_shape(y, x.shape))
         f_shape = function([x, y], o_shape, mode=mode)
 
         # Test with shape info
@@ -2391,7 +2386,7 @@ def test_local_useless_inc_subtensor():
     # Test that we do not optimize others strides even when sub and y
     # have same shapes
     sub = x[::, ::2]
-    o_shape = set_subtensor(sub, theano.compile.ops.specify_shape(y, sub.shape))
+    o_shape = set_subtensor(sub, specify_shape(y, sub.shape))
     f_shape = function([x, y], o_shape)
     topo = f_shape.maker.fgraph.toposort()
     # theano.printing.debugprint(f_shape)
@@ -2415,7 +2410,7 @@ def test_local_useless_subtensor():
         assert len(prog) == 1
         f([[0, 1, 2], [3, 4, 5]])  # let debugmode test something
 
-    x_c = theano.compile.ops.specify_shape(x, (2, 3))
+    x_c = specify_shape(x, (2, 3))
     # Test constant
     for dims, res in [
         ((slice(0, 2),), True),
@@ -2431,7 +2426,7 @@ def test_local_useless_subtensor():
         # theano.printing.debugprint(f)
         prog = f.maker.fgraph.toposort()
         if res:
-            assert isinstance(prog[0].op, theano.compile.ops.SpecifyShape), dims
+            assert isinstance(prog[0].op, SpecifyShape), dims
             assert prog[1].op == tt.exp, (dims, prog)
             assert len(prog) == 2, dims
         else:
@@ -2544,7 +2539,7 @@ def test_local_useless_subtensor():
         # theano.printing.debugprint(f)
         prog = f.maker.fgraph.toposort()
         if res:
-            assert isinstance(prog[0].op, theano.compile.ops.SpecifyShape), dims
+            assert isinstance(prog[0].op, SpecifyShape), dims
             assert prog[1].op == tt.exp, dims
             assert len(prog) == 2, dims
         else:
@@ -2558,7 +2553,7 @@ def test_local_subtensor_remove_broadcastable_index():
     # tests removing broadcastable dimensions with index 0 or -1,
     # otherwise the optimzation should not be applied
 
-    mode = theano.compile.mode.get_default_mode()
+    mode = get_default_mode()
     mode = mode.including("local_subtensor_remove_broadcastable_index")
     x = dmatrix("x")
     y1 = x.dimshuffle(0, "x", 1)
@@ -2643,9 +2638,7 @@ def test_local_subtensor_remove_broadcastable_index():
 class TestSubtensorIncSubtensor:
     @classmethod
     def setup_class(cls):
-        cls.mode = theano.compile.mode.get_default_mode().including(
-            "local_subtensor_inc_subtensor"
-        )
+        cls.mode = get_default_mode().including("local_subtensor_inc_subtensor")
 
     def test_basic(self):
         # basic test
@@ -2781,7 +2774,7 @@ class TestLocalSubtensorMakeVector:
 
         prog = f.maker.fgraph.toposort()
         assert len(prog) == 1
-        assert isinstance(prog[0].op, theano.compile.ops.DeepCopyOp)
+        assert isinstance(prog[0].op, DeepCopyOp)
         assert f(0, 1, 2) == 0
 
     def test_slice_idx_stop(self):
@@ -2840,9 +2833,7 @@ class TestLocalSubtensorMakeVector:
         x, y, z = lscalars("xyz")
         v = make_vector(x, y, z)
 
-        mode = theano.compile.mode.get_default_mode().including(
-            "local_subtensor_make_vector"
-        )
+        mode = get_default_mode().including("local_subtensor_make_vector")
 
         # list of subtensor cases, where local_subtensor_make_vector
         # inserts a new MakeVector node
@@ -3595,7 +3586,7 @@ class TestLocalSubtensorMerge:
 class TestLocalAdvSub1AdvIncSub1:
     def setup_method(self):
         utt.seed_rng()
-        mode = theano.compile.mode.get_default_mode()
+        mode = get_default_mode()
         self.mode = mode.including("local_adv_sub1_adv_inc_sub1").excluding("fusion")
         self.mode_no_assert = self.mode.including("local_remove_all_assert")
 
@@ -3628,7 +3619,7 @@ class TestLocalAdvSub1AdvIncSub1:
             utt.assert_allclose(dy, res)
             topo = f.maker.fgraph.toposort()
             assert len(topo) == 1
-            assert isinstance(topo[0].op, (compile.DeepCopyOp, Elemwise))
+            assert isinstance(topo[0].op, (DeepCopyOp, Elemwise))
 
             # inc_subtensor(data[idx], y)
             inc = inc_subtensor(x[idx], y)
@@ -3690,7 +3681,7 @@ class TestLocalAdvSub1AdvIncSub1:
 
 class TestAllocZero:
     def setup_method(self):
-        mode = theano.compile.mode.get_default_mode()
+        mode = get_default_mode()
         self.mode = mode.including(
             "local_incsubtensor_of_zeros",
             "local_setsubtensor_of_constants",
@@ -3923,7 +3914,7 @@ def test_local_IncSubtensor_serialize():
     y = (W[i] + W[j] + W[1] + W[i, j]).sum()
     cost = tt.sqr(t - y)
     dW = theano.grad(cost, W)
-    mode = theano.compile.mode.get_default_mode().excluding("fusion")
+    mode = get_default_mode().excluding("fusion")
     mode = mode.including("local_IncSubtensor_serialize")
     f = function([i, j, t], updates=[(W, W - 0.01 * dW)], mode=mode)
     topo = f.maker.fgraph.toposort()
@@ -3966,8 +3957,8 @@ def test_local_set_to_inc_subtensor():
     s = v[[2, 1]]
     g = s + 3
     r = set_subtensor(s, g)
-    moder = compile.get_default_mode().excluding("local_set_to_inc_subtensor")
-    modet = compile.get_default_mode().including("local_set_to_inc_subtensor")
+    moder = get_default_mode().excluding("local_set_to_inc_subtensor")
+    modet = get_default_mode().including("local_set_to_inc_subtensor")
     f1 = function([v], r, mode=moder)
     f2 = function([v], r, mode=modet)
 
@@ -4002,7 +3993,7 @@ def test_local_subtensor_of_dot():
     m2 = matrix()
     d1 = np.arange(6).reshape((3, 2)).astype(config.floatX)
     d2 = np.arange(8).reshape((2, 4)).astype(config.floatX) + 10
-    mode = compile.get_default_mode().including("local_subtensor_of_dot")
+    mode = get_default_mode().including("local_subtensor_of_dot")
 
     def test_equality(a, b):
         return a.shape == b.shape and np.allclose(a, b)
@@ -4364,7 +4355,7 @@ def test_local_elemwise_sub_zeros():
     mat_val = rng.rand(3, 2).astype(config.floatX)
 
     mode = (
-        theano.compile.get_default_mode()
+        get_default_mode()
         .excluding(
             "canonicalize",
             "uncanonicalize",
@@ -4450,7 +4441,7 @@ class TestLocalUselessElemwiseComparison:
          > |X[t] [id M] -> [id I]
         """
 
-        mode = theano.compile.get_default_mode().excluding("fusion")
+        mode = get_default_mode().excluding("fusion")
         f = function([X, Y], Z, mode=mode)
         f(
             self.rng.rand(2, 3).astype(config.floatX),
@@ -4512,9 +4503,7 @@ class TestLocalUselessElemwiseComparison:
 
     def test_inequality_with_self(self):
         x = scalar("x", dtype=config.floatX)
-        mode = theano.compile.get_default_mode().including(
-            "local_useless_elemwise_comparison"
-        )
+        mode = get_default_mode().including("local_useless_elemwise_comparison")
 
         f = function([x], tt.lt(x, x), mode=mode)
         self.assert_eqs_const(f, 0)
@@ -4536,7 +4525,7 @@ class TestLocalUselessElemwiseComparison:
 
     def test_shape_inequality_with_self(self):
         x = vector("x", dtype=config.floatX)
-        mode = theano.compile.get_default_mode().including(
+        mode = get_default_mode().including(
             "local_useless_elemwise_comparison",
             "local_shape_to_shape_i",
             "local_track_shape_i",
@@ -4576,7 +4565,7 @@ class TestLocalUselessElemwiseComparison:
 
     def test_shape_add_inequality(self):
         x = vector("x", dtype=config.floatX)
-        mode = theano.compile.get_default_mode().including(
+        mode = get_default_mode().including(
             "local_useless_elemwise_comparison",
             "local_shape_to_shape_i",
             "local_track_shape_i",
@@ -4620,7 +4609,7 @@ class TestLocalUselessElemwiseComparison:
     def test_and(self):
         # bitwise "and" with 0 should give 0 for both bool and int
         # bitwise "and" with 1 should only simplify for bool
-        mode = theano.compile.get_default_mode().including("canonicalize")
+        mode = get_default_mode().including("canonicalize")
         for dtype, zero, one in [
             ("bool", np.array(False), np.array(True)),
             ("int8", np.int8(0), np.int8(1)),
@@ -4650,7 +4639,7 @@ class TestLocalUselessElemwiseComparison:
     def test_or(self):
         # bitwise "or" with 0 should simplify for both bool and int
         # bitwise "or" with 1 should only give 1 for bool
-        mode = theano.compile.get_default_mode().including("canonicalize")
+        mode = get_default_mode().including("canonicalize")
         for dtype, zero, one in [
             ("bool", np.array(False), np.array(True)),
             ("int8", np.int8(0), np.int8(1)),
@@ -4679,7 +4668,7 @@ class TestLocalUselessElemwiseComparison:
 
     def test_xor(self):
         # bitwise "xor" with itself should always give 0 for both bool and int.
-        mode = theano.compile.get_default_mode().including("canonicalize")
+        mode = get_default_mode().including("canonicalize")
         for dtype in ("bool", "int8"):
             x = scalar("x", dtype=dtype)
 
@@ -4687,9 +4676,7 @@ class TestLocalUselessElemwiseComparison:
             self.assert_eqs_const(f, 0)
 
     def test_stacktrace(self):
-        mode = theano.compile.get_default_mode().including(
-            "local_useless_elemwise_comparison"
-        )
+        mode = get_default_mode().including("local_useless_elemwise_comparison")
 
         x = vector("x", dtype=config.floatX)
         f = function([x], tt.gt(x, x), mode=mode)
@@ -4717,7 +4704,7 @@ class TestLocalCanonicalizeAlloc:
         assert [node.op for node in f.maker.fgraph.toposort()] == [deep_copy_op]
 
         # In DebugMode, the shape mismatch should be detected
-        if isinstance(mode_opt, compile.debugmode.DebugMode):
+        if isinstance(mode_opt, DebugMode):
             with pytest.raises(ValueError):
                 f
 
@@ -4822,7 +4809,7 @@ class TestLocalUselessIncSubtensorAlloc:
         mode = config.mode
         if mode == "FAST_COMPILE":
             mode = "FAST_RUN"
-        self.mode = compile.mode.get_mode(mode)
+        self.mode = get_mode(mode)
 
     def test_advanced_inc_subtensor(self):
         x = vector("x")
@@ -5009,7 +4996,7 @@ class TestShapeOptimizer:
         out = self.max_pool_c01b(a, 1, 1, 1)
 
         # max_pool_c01b use -inf and this will trigger DebugMode error.
-        mode = copy.copy(theano.compile.get_default_mode())
+        mode = copy.copy(get_default_mode())
         mode.check_isfinite = False
         f = function([], out, mode=mode)
         f()
@@ -5066,7 +5053,7 @@ class TestShapeOptimizer:
             if isinstance(node.op, IdentityNoShape):
                 return [identity_shape(node.inputs[0])]
 
-        mode = theano.compile.get_default_mode().including("ShapeOpt", "specialize")
+        mode = get_default_mode().including("ShapeOpt", "specialize")
         rng = np.random.RandomState(utt.fetch_seed())
         x = tensor3("x")
         ins_x = identity_noshape(x)
@@ -5083,7 +5070,7 @@ class TestShapeOptimizer:
         # Register the optimization
         opt.register_specialize(local_identity_noshape_to_identity_shape)
 
-        mode = theano.compile.get_default_mode().including("ShapeOpt", "specialize")
+        mode = get_default_mode().including("ShapeOpt", "specialize")
         # With the optimization
         # The identity_shape op should not be needed anymore to compute
         # the shape
@@ -5110,7 +5097,7 @@ class TestShapeOptimizer:
         X = matrix()
         expr = X.shape[0]
 
-        mode = theano.compile.get_default_mode().excluding("ShapeOpt")
+        mode = get_default_mode().excluding("ShapeOpt")
         f = function([X], expr, mode=mode)
         print(f([[1, 2], [2, 3]]))
 
@@ -5132,7 +5119,7 @@ class TestAssert(utt.InferShapeTester):
         mode = config.mode
         if mode == "FAST_COMPILE":
             mode = "FAST_RUN"
-        mode = compile.mode.get_mode(mode)
+        mode = get_mode(mode)
 
         x = scalar()
         f = function([x], assert_op(x, 1), mode=mode)
@@ -5147,7 +5134,7 @@ class TestAssert(utt.InferShapeTester):
         mode = config.mode
         if mode == "FAST_COMPILE":
             mode = "FAST_RUN"
-        mode = compile.mode.get_mode(mode)
+        mode = get_mode(mode)
 
         x = scalar()
         y = scalar()
@@ -5164,7 +5151,7 @@ class TestAssert(utt.InferShapeTester):
         mode = config.mode
         if mode == "FAST_COMPILE":
             mode = "FAST_RUN"
-        mode = compile.mode.get_mode(mode)
+        mode = get_mode(mode)
 
         x = scalar()
         y = scalar()
@@ -5181,12 +5168,12 @@ class TestAssert(utt.InferShapeTester):
         mode = config.mode
         if mode == "FAST_COMPILE":
             mode = "FAST_RUN"
-        mode = compile.mode.get_mode(mode).including("local_remove_all_assert")
+        mode = get_mode(mode).including("local_remove_all_assert")
 
         x = scalar()
         y = scalar()
         f = function([x, y], assert_op(x, y), mode=mode)
-        if isinstance(mode, theano.compile.debugmode.DebugMode):
+        if isinstance(mode, DebugMode):
             # DebugMode will run the original version with the Assert
             with pytest.raises(AssertionError):
                 f(1, 0)
@@ -5196,7 +5183,7 @@ class TestAssert(utt.InferShapeTester):
         assert len(topo) == 1, topo
         assert topo[0].op == deep_copy_op, topo
 
-        mode = compile.mode.get_default_mode()
+        mode = get_default_mode()
         a = assert_op(x, tt.eq(x, 0).any())
         f = function([x], a, mode=mode.excluding("unsafe"))
         topo = f.maker.fgraph.toposort()
@@ -5227,7 +5214,7 @@ def test_local_mul_specialize():
     mode = config.mode
     if mode == "FAST_COMPILE":
         mode = "FAST_RUN"
-    mode = compile.mode.get_mode(mode)
+    mode = get_mode(mode)
     mode = mode.excluding("fusion")
 
     v = vector()
@@ -5276,7 +5263,7 @@ class TestTile:
                 f = function([var], tile(var, (1,) * ndim), mode=mode)
                 topo = f.maker.fgraph.toposort()
                 assert len(topo) == 1
-                assert isinstance(topo[0].op, compile.DeepCopyOp)
+                assert isinstance(topo[0].op, DeepCopyOp)
                 f(data)
                 # In this case the opt only removes nodes,
                 # no need to check_stack_trace
@@ -5294,7 +5281,7 @@ class TestTile:
 def speed_local_pow_specialize_range():
     val = np.random.rand(1e7)
     v = vector()
-    mode = compile.mode.get_default_mode()
+    mode = get_default_mode()
     mode_without_pow_opt = mode.excluding("local_pow_specialize")
     for i in range(500, 513):
         f1 = function([v], v ** i, mode=mode)
@@ -5326,7 +5313,7 @@ def test_local_pow_specialize():
     mode = config.mode
     if mode == "FAST_COMPILE":
         mode = "FAST_RUN"
-    mode = compile.mode.get_mode(mode)
+    mode = get_mode(mode)
     mode = mode.excluding("fusion")
 
     v = vector()
@@ -5379,7 +5366,7 @@ def test_local_pow_specialize_device_more_aggressive_on_cpu():
     mode = config.mode
     if mode == "FAST_COMPILE":
         mode = "FAST_RUN"
-    mode = compile.mode.get_mode(mode)
+    mode = get_mode(mode)
     mode = mode.excluding("fusion").excluding("gpu")
 
     v = vector()
@@ -5418,7 +5405,7 @@ def test_local_pow_specialize_device_more_aggressive_on_cpu():
 
 class TestRebroadcast:
     def test_local_useless_rebroadcast(self):
-        mode = theano.compile.get_default_mode().including("canonicalize")
+        mode = get_default_mode().including("canonicalize")
         v1 = vector()
         v2 = vector()
         j = tt.join(0, v1, v2)
@@ -5430,7 +5417,7 @@ class TestRebroadcast:
         assert check_stack_trace(f, ops_to_check="all")
 
     def test_rebroadcast_rebroadcast(self):
-        mode = theano.compile.get_default_mode().including("canonicalize")
+        mode = get_default_mode().including("canonicalize")
         m = matrix()
         s = tt.addbroadcast(m, 0, 1)
         v = tt.unbroadcast(s, 1)
@@ -5444,9 +5431,7 @@ class TestRebroadcast:
 
 class TestUselessElemwise:
     def setup_method(self):
-        self.mode = theano.compile.get_default_mode().including(
-            "canonicalize", "local_fill_to_alloc"
-        )
+        self.mode = get_default_mode().including("canonicalize", "local_fill_to_alloc")
 
     def test_eq(self):
         x = dmatrix()
@@ -5533,7 +5518,7 @@ class TestUselessElemwise:
 
 class TestCastCast:
     def setup_method(self):
-        mode = theano.compile.get_default_mode()
+        mode = get_default_mode()
         self.mode = mode.including("local_cast_cast")
 
     def test_consecutive(self):
@@ -5591,7 +5576,7 @@ class TestCastCast:
 
 class TestFuncInverse:
     def setup_method(self):
-        mode = theano.compile.get_default_mode()
+        mode = get_default_mode()
         self.mode = mode.including("local_func_inv")
 
     def assert_func_pair_optimized(
@@ -5654,7 +5639,7 @@ def test_constant_folding():
     # An error removed that registration during the registration.
 
     x = dvector()
-    mode = theano.compile.get_mode("FAST_COMPILE").excluding("fusion")
+    mode = get_mode("FAST_COMPILE").excluding("fusion")
     f = function([x], [x * 2, x + x], mode=mode)
     topo = f.maker.fgraph.toposort()
     assert len(topo) == 2
@@ -5664,7 +5649,7 @@ def test_constant_folding():
 
     x = tt.constant(3)
     assert x.ndim == 0
-    mode = theano.compile.get_mode("FAST_COMPILE").excluding("fusion")
+    mode = get_mode("FAST_COMPILE").excluding("fusion")
     f = function([], [x * 2, x + x], mode=mode)
     topo = f.maker.fgraph.toposort()
     assert len(topo) == 2
@@ -5686,7 +5671,7 @@ def test_constant_get_stabilized():
 
     x2 = scalar()
     y2 = tt.log(1 + tt.exp(x2))
-    mode = theano.compile.get_default_mode()
+    mode = get_default_mode()
     mode.check_isfinite = False
     f2 = function([x2], y2, mode=mode)
 
@@ -5727,7 +5712,7 @@ class TestLocalSwitchSink:
         )
 
         self.mode = (
-            theano.compile.mode.get_default_mode()
+            get_default_mode()
             .including("canonicalize", "fast_run")
             .excluding("gpu", "fusion")
         )
@@ -5837,7 +5822,7 @@ class TestLocalSwitchSink:
 class TestLocalErf:
     def setup_method(self):
         self.mode = (
-            theano.compile.mode.get_default_mode()
+            get_default_mode()
             .including("canonicalize", "fast_run")
             .excluding("gpu", "fusion")
         )
@@ -5935,7 +5920,7 @@ class TestLocalErf:
 class TestLocalErfc:
     def setup_method(self):
         self.mode_fusion = (
-            theano.compile.mode.get_default_mode()
+            get_default_mode()
             .including("canonicalize")
             .including("fast_run")
             .excluding("gpu")
@@ -6164,7 +6149,7 @@ class TestLocalErfc:
 
         val = np.random.rand(1e6)
         x = vector()
-        mode = theano.compile.mode.get_mode("FAST_RUN")
+        mode = get_mode("FAST_RUN")
         f1 = function([x], tt.log(tt.erfc(x)), mode=mode.excluding("local_log_erfc"))
         f2 = function([x], tt.log(tt.erfc(x)), mode=mode)
         print(f1.maker.fgraph.toposort())
@@ -6407,9 +6392,7 @@ class TestLocalSumProd:
     """
 
     def setup_method(self):
-        self.mode = theano.compile.get_default_mode().including(
-            "canonicalize", "specialize"
-        )
+        self.mode = get_default_mode().including("canonicalize", "specialize")
 
     def test_local_sum_prod_mul_by_scalar(self):
         # Test the optimization local_sum_prod_mul_by_scalar for both Sum and
@@ -6755,7 +6738,7 @@ class TestLocalSumProd:
     def test_local_sum_prod_mul_by_scalar_stack_trace(self):
         # Test that stack trace is copied over correctly for local_sum_prod_mul_by_scalar.
         m0 = (
-            theano.compile.get_default_mode()
+            get_default_mode()
             .excluding("inplace_elemwise_opt")
             .including("canonicalize", "specialize")
         )
@@ -6821,7 +6804,7 @@ class TestLocalOptAllocF16(TestLocalOptAlloc):
 
 class TestLocalReduce:
     def setup_method(self):
-        self.mode = theano.compile.get_default_mode().including(
+        self.mode = get_default_mode().including(
             "canonicalize", "specialize", "uncanonicalize", "local_max_and_argmax"
         )
 
@@ -6957,7 +6940,7 @@ class TestLocalReduce:
 
 class TestLocalSumProdDimshuffle:
     def setup_method(self):
-        self.mode = theano.compile.get_default_mode().including("canonicalize")
+        self.mode = get_default_mode().including("canonicalize")
 
     def test_local_sum_div_dimshuffle(self):
         a = matrix("a")
@@ -7065,7 +7048,7 @@ class TestLocalSumProdDimshuffle:
         c_val = rng.randn(2, 2, 2).astype(config.floatX)
         d_val = np.asarray(rng.randn(), config.floatX)
 
-        default_mode = theano.compile.mode.get_default_mode()
+        default_mode = get_default_mode()
         # FusionOptimizer is included to make sure that expected_outer_operator
         # remains the same for all optimization modes.
         mode_with_opt = default_mode.including(
@@ -7484,7 +7467,7 @@ def test_local_useless_split():
     opt = tt.split(x, splits, n_splits=1)
     nonopt = tt.split(x, splits, n_splits=3)
 
-    mode = compile.get_default_mode().including("local_useless_split")
+    mode = get_default_mode().including("local_useless_split")
     f_opt = function([x, splits], opt, mode=mode)
     f_nonopt = function([x, splits], nonopt, mode=mode)
 
@@ -7506,7 +7489,7 @@ def test_local_flatten_lift():
         x = tensor4()
         out = tt.flatten(tt.exp(x), i)
         assert out.ndim == i
-        mode = compile.mode.get_default_mode()
+        mode = get_default_mode()
         mode = mode.including("local_reshape_lift")
         f = function([x], out, mode=mode)
         x_np = np.random.rand(5, 4, 3, 2).astype(config.floatX)
@@ -7544,7 +7527,7 @@ class TestLocalUselessReshape:
         self.rng = np.random.RandomState(utt.fetch_seed())
 
     def test_0(self):
-        mode = theano.compile.get_default_mode().including("local_useless_reshape")
+        mode = get_default_mode().including("local_useless_reshape")
         i = iscalar("i")
         m = tt.mgrid[
             0:i,
@@ -7557,7 +7540,7 @@ class TestLocalUselessReshape:
         x = matrix("x")
         r = x.reshape(x.shape)
 
-        m0 = theano.compile.get_default_mode()
+        m0 = get_default_mode()
         m1 = m0.including("local_useless_reshape")
         f1 = function([x], r, mode=m1)
         topo = f1.maker.fgraph.toposort()
@@ -7575,7 +7558,7 @@ class TestLocalUselessReshape:
         x = matrix("x")
         r = x.reshape([Shape_i(i)(x) for i in range(x.ndim)])
 
-        m0 = theano.compile.get_default_mode()
+        m0 = get_default_mode()
         m1 = m0.including("local_useless_reshape")
         f1 = function([x], r, mode=m1)
         topo = f1.maker.fgraph.toposort()
@@ -7590,7 +7573,7 @@ class TestLocalUselessReshape:
         x = matrix("x")
         r = x.reshape((x.shape[0], -1))
 
-        m0 = theano.compile.get_default_mode()
+        m0 = get_default_mode()
         m1 = m0.including("local_useless_reshape")
         f1 = function([x], r, mode=m1)
         topo = f1.maker.fgraph.toposort()
@@ -7646,7 +7629,7 @@ def test_local_reshape_lift():
     x = tensor4()
     out = tt.exp(x).reshape([x.size])
     assert out.ndim == 1
-    mode = compile.mode.get_default_mode()
+    mode = get_default_mode()
     mode = mode.including("local_reshape_lift")
     f = function([x], out, mode=mode)
     f(np.random.rand(5, 4, 3, 2).astype(config.floatX))
@@ -7803,7 +7786,7 @@ def test_assert_op_gradient():
 
 class TestIntDivByOne:
     def setup_method(self):
-        self.mode = theano.compile.mode.get_default_mode()
+        self.mode = get_default_mode()
         self.mode = self.mode.including("local_intdiv_by_one")
 
     def test1(self):
@@ -7881,7 +7864,7 @@ def test_local_sumsqr2dot():
     W = matrix("W")
 
     y = tt.sqr(W.dimshuffle("x", 0, 1) * G.dimshuffle(0, "x", 1)).sum(axis=(1, 2))
-    MODE = theano.compile.get_default_mode().including("local_sumsqr2dot")
+    MODE = get_default_mode().including("local_sumsqr2dot")
 
     f = function([W, G], y, mode=MODE)
 
@@ -7914,7 +7897,7 @@ def test_local_expm1():
     z = tt.exp(x) - 2.0
     t = tt.exp(x) - x
     s = tt.exp(u) - np.ones((4, 3)).astype(config.floatX)
-    MODE = theano.compile.get_default_mode().including("local_expm1")
+    MODE = get_default_mode().including("local_expm1")
     f = function([x], y, mode=MODE)
     g = function([x], z, mode=MODE)
     h = function([x], t, mode=MODE)
@@ -7949,7 +7932,7 @@ def test_local_expm1():
 def test_local_merge_alloc():
     # Add this opt to the default mode,
     # otherwise, FAST_COMPILE fails.
-    default_mode = theano.compile.mode.get_default_mode()
+    default_mode = get_default_mode()
     opt_mode = default_mode.including("local_merge_alloc")
 
     x = iscalar("x")
@@ -8052,7 +8035,7 @@ def compile_graph_log_sum_exp(x, axis, dimshuffle_op=None):
     if dimshuffle_op:
         sum_exp = dimshuffle_op(sum_exp)
     y = tt.log(sum_exp)
-    MODE = theano.compile.get_default_mode().including("local_log_sum_exp")
+    MODE = get_default_mode().including("local_log_sum_exp")
     return function([x], y, mode=MODE)
 
 

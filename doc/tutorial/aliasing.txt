@@ -232,11 +232,13 @@ that control how ``theano.function`` handles its argument[s] and return value[s]
 
 .. testcode::
 
-    import theano, theano.tensor
+    import theano
+    import theano.tensor as tt
+    from theano.compile.io import In, Out
 
-    x = theano.tensor.matrix()
+    x = tt.matrix()
     y = 2 * x
-    f = theano.function([theano.In(x, borrow=True)], theano.Out(y, borrow=True))
+    f = theano.function([In(x, borrow=True)], Out(y, borrow=True))
 
 Borrowing an input means that Theano will treat the argument you provide as if
 it were part of Theano's pool of temporaries.  Consequently, your input

@@ -12,6 +12,7 @@ import theano.tensor as tt
 from tests import unittest_tools as utt
 from tests.tensor.utils import inplace_func, rand, randint_ranged
 from theano.compile import DeepCopyOp, shared
+from theano.compile.io import In
 from theano.configdefaults import config
 from theano.graph.op import get_test_value
 from theano.graph.toolbox import is_same_graph
@@ -1265,7 +1266,7 @@ class TestSubtensor(utt.OptimizationTestMixin):
                                     data_copy[idx] = inc_num
                                 else:
                                     data_copy[idx] += inc_num
-                        data_var = theano.In(data_var, mutable=True)
+                        data_var = In(data_var, mutable=True)
 
                         # Remember data for the Theano function (see below).
                         all_inputs_var += [data_var, idx_var, inc_var]

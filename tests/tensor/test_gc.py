@@ -4,6 +4,7 @@ import time
 import numpy as np
 
 import theano
+from theano.compile.mode import Mode
 from theano.link.basic import PerformLinker
 from theano.link.c.basic import OpWiseCLinker
 from theano.tensor.type import dvector, lvector
@@ -42,12 +43,8 @@ def test_gc_never_pickles_temporaries():
 
         # g_linker has no garbage collection
 
-        f = theano.function(
-            [x], r, mode=theano.Mode(optimizer=optimizer, linker=f_linker)
-        )
-        g = theano.function(
-            [x], r, mode=theano.Mode(optimizer=optimizer, linker=g_linker)
-        )
+        f = theano.function([x], r, mode=Mode(optimizer=optimizer, linker=f_linker))
+        g = theano.function([x], r, mode=Mode(optimizer=optimizer, linker=g_linker))
 
         pre_f = pickle.dumps(f)
         # pre_g = pickle.dumps(g)

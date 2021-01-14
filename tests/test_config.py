@@ -249,7 +249,7 @@ def test_mode_apply():
     with pytest.raises(ValueError, match="Expected one of"):
         configdefaults._filter_mode("not_a_mode")
 
-    # test with theano.Mode instance
+    # test with Mode instance
     import theano.compile.mode
 
     assert (

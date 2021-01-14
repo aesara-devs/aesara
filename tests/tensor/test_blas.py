@@ -25,6 +25,7 @@ from tests import unittest_tools
 from tests.tensor.utils import inplace_func
 from theano import shared
 from theano.compile.io import In
+from theano.compile.mode import Mode
 from theano.configdefaults import config
 from theano.graph.fg import FunctionGraph
 from theano.misc.safe_asarray import _asarray
@@ -139,7 +140,7 @@ class TestGemm:
                 f = inplace_func(
                     [tz, ta, tx, ty, tb],
                     gemm_inplace(tz, ta, tx, ty, tb),
-                    mode=theano.compile.Mode(optimizer=None, linker=l),
+                    mode=Mode(optimizer=None, linker=l),
                 )
                 f(z, a, x, y, b)
                 z_after = self._gemm(z_orig, a, x, y, b)
@@ -304,12 +305,12 @@ class TestGemm:
             tz, ta, tx, ty, tb = [shared(p) for p in (z, a, x, y, b)]
 
             # f = inplace_func([tz,ta,tx,ty,tb], gemm_inplace(tz,ta,tx,ty,tb),
-            #                 mode = theano.compile.Mode(optimizer = None, linker=l))
+            #                 mode = Mode(optimizer = None, linker=l))
             # f(z, a, x, y, b)
             f = inplace_func(
                 [],
                 gemm_inplace(tz, ta, tx, ty, tb),
-                mode=theano.compile.Mode(optimizer=None, linker=l),
+                mode=Mode(optimizer=None, linker=l),
             )
             f()
             unittest_tools.assert_allclose(z_after, tz.get_value(borrow=True))
@@ -366,7 +367,7 @@ class TestGemm:
                 f_i = inplace_func(
                     [],
                     gemm_inplace(tz[:, :, i], ta, tx[:, :, i], ty[:, :, i], tb),
-                    mode=theano.compile.Mode(optimizer=None, linker=l),
+                    mode=Mode(optimizer=None, linker=l),
                 )
                 for j in range(3):
                     # tz will not _always_ be overwritten,
@@ -385,7 +386,7 @@ class TestGemm:
                     [],
                     tz_i,
                     updates=[(tz, tt.set_subtensor(tz[:, :, i], tz_i))],
-                    mode=theano.compile.Mode(optimizer=None, linker=l),
+                    mode=Mode(optimizer=None, linker=l),
                 )
                 for j in range(3):
                     g_i()
@@ -645,7 +646,7 @@ def just_gemm(i, o, ishapes=None, max_graphlen=0, expected_nb_gemm=1):
     g = inplace_func(
         i,
         o,
-        mode=theano.compile.Mode(linker="py", optimizer=None),
+        mode=Mode(linker="py", optimizer=None),
         allow_input_downcast=True,
         on_unused_input="ignore",
     )
@@ -734,7 +735,7 @@ def test_gemm_opt_double_gemm():
     g = inplace_func(
         i,
         o,
-        mode=theano.compile.Mode(linker="py", optimizer=None),
+        mode=Mode(linker="py", optimizer=None),
         on_unused_input="ignore",
     )
 

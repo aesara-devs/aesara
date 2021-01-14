@@ -1284,9 +1284,7 @@ class TestElemwise(unittest_tools.InferShapeTester):
         # it overflowed in this case.
         a, b, c, d, e, f = vectors("abcdef")
         s = a + b + c + d + e + f
-        g = theano.function(
-            [a, b, c, d, e, f], s, mode=theano.compile.Mode(linker="py")
-        )
+        g = theano.function([a, b, c, d, e, f], s, mode=Mode(linker="py"))
         g(*[np.zeros(2 ** 11, config.floatX) for i in range(6)])
 
 

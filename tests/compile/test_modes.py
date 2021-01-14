@@ -5,7 +5,7 @@ Test compilation modes
 import copy
 
 import theano
-from theano.compile import Mode
+from theano.compile.mode import Mode
 from theano.tensor.type import matrix, vector
 
 
