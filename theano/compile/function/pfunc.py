@@ -454,9 +454,9 @@ def pfunc(
                 "has no effect. One way to modify an input `x` to a function "
                 "evaluating f(x) is to define a new input `y` and use "
                 "`theano.function([y], f(x), givens={x: g(y)})`. Another "
-                "solution consists in using `theano.clone`, e.g. like this: "
+                "solution consists in using `theano.clone_replace`, e.g. like this: "
                 "`theano.function([x], "
-                "theano.clone(f(x), replace={x: g(x)}))`."
+                "theano.clone_replace(f(x), replace={x: g(x)}))`."
             )
 
     # Extend the outputs with the updates on input variables so they are also

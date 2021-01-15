@@ -119,7 +119,9 @@ class RopLopChecker:
 
         assert np.allclose(v1, v2), f"ROP mismatch: {v1} {v2}"
 
-        self.check_nondiff_rop(theano.clone(y, replace={self.mx: break_op(self.mx)}))
+        self.check_nondiff_rop(
+            theano.clone_replace(y, replace={self.mx: break_op(self.mx)})
+        )
 
         vv = np.asarray(self.rng.uniform(size=out_shape), theano.config.floatX)
         yv = Lop(y, self.mx, self.v)
@@ -157,7 +159,11 @@ class RopLopChecker:
         assert np.allclose(v1, v2), f"ROP mismatch: {v1} {v2}"
 
         try:
-            Rop(theano.clone(y, replace={self.x: break_op(self.x)}), self.x, self.v)
+            Rop(
+                theano.clone_replace(y, replace={self.x: break_op(self.x)}),
+                self.x,
+                self.v,
+            )
         except ValueError:
             pytest.skip(
                 "Rop does not handle non-differentiable inputs "

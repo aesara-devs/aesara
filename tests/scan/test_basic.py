@@ -37,6 +37,7 @@ from theano.gradient import (
     hessian,
     jacobian,
 )
+from theano.graph.basic import clone_replace
 from theano.misc.safe_asarray import _asarray
 from theano.scan.basic import scan
 from theano.scan.op import Scan
@@ -1065,7 +1066,7 @@ class TestScan:
         x0[0] = vx0
         x0 = tt.constant(x0)
         to_replace = outputs[0].owner.inputs[0].owner.inputs[1]
-        outputs = theano.clone(outputs, replace=[(to_replace, x0)])
+        outputs = clone_replace(outputs, replace=[(to_replace, x0)])
         mode = get_mode(None).including("inplace")
         f9 = theano.function([], outputs, updates=updates, mode=mode)
         scan_node = [x for x in f9.maker.fgraph.toposort() if isinstance(x.op, Scan)]
@@ -1981,7 +1982,7 @@ class TestScan:
         z = theano.shared(0.25)
 
         f1 = z * (x + y) ** 2 + 5
-        f2 = theano.clone(f1, replace=None, strict=True, share_inputs=True)
+        f2 = clone_replace(f1, replace=None, strict=True, share_inputs=True)
         f2_inp = theano.graph.basic.graph_inputs([f2])
 
         assert z in f2_inp
@@ -1997,7 +1998,7 @@ class TestScan:
         z = theano.shared(0.25)
 
         f1 = z * (x + y) ** 2 + 5
-        f2 = theano.clone(f1, replace=None, strict=True, share_inputs=False)
+        f2 = clone_replace(f1, replace=None, strict=True, share_inputs=False)
         f2_inp = theano.graph.basic.graph_inputs([f2])
 
         assert z not in f2_inp
@@ -2014,7 +2015,7 @@ class TestScan:
         z = theano.shared(0.25)
 
         f1 = z * (x + y) ** 2 + 5
-        f2 = theano.clone(
+        f2 = clone_replace(
             f1, replace=OrderedDict([(y, y2)]), strict=True, share_inputs=True
         )
         f2_inp = theano.graph.basic.graph_inputs([f2])
@@ -2032,7 +2033,7 @@ class TestScan:
         z = theano.shared(0.25)
 
         f1 = z * (x + y) ** 2 + 5
-        f2 = theano.clone(
+        f2 = clone_replace(
             f1, replace=OrderedDict([(y, y2)]), strict=False, share_inputs=True
         )
         f2_inp = theano.graph.basic.graph_inputs([f2])
@@ -2050,7 +2051,7 @@ class TestScan:
         z = theano.shared(0.25)
 
         f1 = z * (x + y) ** 2 + 5
-        f2 = theano.clone(f1, replace=[(y, y2)], strict=True, share_inputs=False)
+        f2 = clone_replace(f1, replace=[(y, y2)], strict=True, share_inputs=False)
         f2_inp = theano.graph.basic.graph_inputs([f2])
         assert z not in f2_inp
         assert x not in f2_inp
@@ -2066,7 +2067,7 @@ class TestScan:
         z = theano.shared(0.25)
 
         f1 = z * (x + y) ** 2 + 5
-        f2 = theano.clone(f1, replace=[(y, y2)], strict=False, share_inputs=False)
+        f2 = clone_replace(f1, replace=[(y, y2)], strict=False, share_inputs=False)
         f2_inp = theano.graph.basic.graph_inputs([f2])
         assert z not in f2_inp
         assert x not in f2_inp
@@ -4260,7 +4261,7 @@ class TestScan:
                 d = 0.1 + 0 * y
             else:
                 d = 0.1
-            out = theano.clone(y, replace={x: x + d})
+            out = clone_replace(y, replace={x: x + d})
             # theano.printing.debugprint(out)
             return theano.function([], out)()
 

@@ -151,7 +151,7 @@ from theano.gpuarray.type import (
     move_to_gpu,
 )
 from theano.graph import toolbox
-from theano.graph.basic import Constant, Variable, applys_between
+from theano.graph.basic import Constant, Variable, applys_between, clone_replace
 from theano.graph.fg import FunctionGraph
 from theano.graph.opt import (
     GlobalOptimizer,
@@ -165,7 +165,6 @@ from theano.link.c.basic import CLinker
 from theano.misc.ordered_set import OrderedSet
 from theano.scalar.basic import Cast, Pow, Scalar, log, neg, true_div
 from theano.scalar.basic_scipy import Erfcinv, Erfinv
-from theano.scan import utils
 from theano.scan.op import Scan
 from theano.scan.opt import ScanInplaceOptimizer
 from theano.tensor.basic import (
@@ -2661,7 +2660,7 @@ def gpu_reconstruct_graph(inputs, outputs, tag=None):
     givens = {}
     for nw_x, x in zip(nw_inputs, inputs):
         givens[x] = nw_x
-    nw_outputs = utils.clone(outputs, replace=givens)
+    nw_outputs = clone_replace(outputs, replace=givens)
     return (nw_inputs, nw_outputs)
 
 
@@ -2689,7 +2688,7 @@ def local_gpua_scan_to_gpua(fgraph, op, context_name, inputs, outputs):
         scan_outs += [op.outputs[-1]]
     else:
         scan_outs = [safe_to_gpu(x, context_name) for x in op.outputs]
-    scan_outs = utils.clone(
+    scan_outs = clone_replace(
         scan_outs, replace=list(zip(op.inputs, (safe_to_cpu(x) for x in scan_ins)))
     )
 

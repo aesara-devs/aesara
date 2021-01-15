@@ -19,7 +19,7 @@ from theano.compile import SharedVariable, ops
 from theano.compile.function import function
 from theano.compile.mode import Mode
 from theano.configdefaults import config
-from theano.graph.basic import Constant, Variable, graph_inputs
+from theano.graph.basic import Constant, Variable, clone_replace, graph_inputs
 from theano.graph.fg import MissingInputError
 from theano.graph.op import get_test_value
 from theano.graph.utils import TestValueError
@@ -798,7 +798,7 @@ def scan(
     if condition is not None:
         outputs.append(condition)
     fake_nonseqs = [x.type() for x in non_seqs]
-    fake_outputs = utils.clone(
+    fake_outputs = clone_replace(
         outputs, replace=OrderedDict(zip(non_seqs, fake_nonseqs))
     )
     all_inputs = filter(
@@ -1025,7 +1025,7 @@ def scan(
     else:
         new_givens = givens
 
-    new_outs = utils.clone(inner_outs, replace=new_givens)
+    new_outs = clone_replace(inner_outs, replace=new_givens)
 
     ##
     # Step 7. Create the Scan Op

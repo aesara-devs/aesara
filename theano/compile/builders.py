@@ -781,12 +781,12 @@ class OpFromGraph(Op):
         # Clone the output shape so that shape are computed from outer inputs.
         # Note:
         # Here we can do it more simply like:
-        #      ret = [theano.clone(shp, replace=repl) for shp in out_shp]
+        #      ret = [theano.clone_replace(shp, replace=repl) for shp in out_shp]
         # But  doing it multiple time could duplicate common subgraph between
         # each shape call. Theano optimizer will clean this up later, but this
         # will ask extra work to the optimizer.
         repl = dict(zip(self.local_inputs, node.inputs))
-        cloned = theano.clone(reduce(tuple.__add__, out_shp), replace=repl)
+        cloned = theano.clone_replace(reduce(tuple.__add__, out_shp), replace=repl)
         ret = []
         used = 0
         for i in range(len(out_shp)):
@@ -824,7 +824,7 @@ def inline_ofg_expansion(fgraph, node):
         return False
     if not op.is_inline:
         return False
-    return theano.clone(
+    return theano.clone_replace(
         op.local_outputs, {u: v for u, v in zip(node.op.local_inputs, node.inputs)}
     )
 

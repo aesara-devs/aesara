@@ -43,9 +43,9 @@ __authors__ = (
     "James Bergstra "
     "Pascal Lamblin "
     "Arnaud Bergeron "
+    "PyMC Developers "
 )
 __copyright__ = "(c) 2010, Universite de Montreal"
-__contact__ = "Razvan Pascanu <r.pascanu@gmail>"
 
 from theano import configdefaults
 
@@ -55,5 +55,5 @@ configdefaults.add_scan_configvars()
 from theano.scan import opt
 from theano.scan.basic import scan
 from theano.scan.checkpoints import scan_checkpoints
-from theano.scan.utils import clone, until
+from theano.scan.utils import until
 from theano.scan.views import foldl, foldr, map, reduce

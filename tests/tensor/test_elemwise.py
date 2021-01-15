@@ -1302,7 +1302,7 @@ def test_gt_grad():
     W = theano.shared(value=W_values, name="weights")
     correct_score = tt.dot(input_, W)
     wrong_input = vector(dtype=floatX)
-    wrong_score = theano.clone(correct_score, {input_: wrong_input})
+    wrong_score = theano.clone_replace(correct_score, {input_: wrong_input})
     # Hinge loss
     scores = tt.ones_like(correct_score) - correct_score + wrong_score
     cost = (scores * (scores > 0)).sum()

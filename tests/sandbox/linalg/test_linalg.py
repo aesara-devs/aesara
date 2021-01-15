@@ -52,7 +52,7 @@ def test_rop_lop():
 
     raised = False
     try:
-        theano.gradient.Rop(theano.clone(y, replace={mx: break_op(mx)}), mx, mv)
+        theano.gradient.Rop(theano.clone_replace(y, replace={mx: break_op(mx)}), mx, mv)
     except ValueError:
         raised = True
     if not raised:

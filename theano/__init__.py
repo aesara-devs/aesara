@@ -147,7 +147,10 @@ def sparse_grad(var):
 
 
 import theano.tensor.random.var
-from theano.scan import checkpoints, clone, foldl, foldr, map, reduce, scan
+from theano.graph.basic import clone_replace
+from theano.scan import checkpoints
+from theano.scan.basic import scan
+from theano.scan.views import foldl, foldr, map, reduce
 
 
 # Some config variables are registered by submodules. Only after all those imports

@@ -65,6 +65,7 @@ from theano.graph.basic import (
     Apply,
     Constant,
     Variable,
+    clone_replace,
     equal_computations,
     graph_inputs,
     io_connection_pattern,
@@ -75,13 +76,7 @@ from theano.graph.toolbox import NoOutputFromInplace
 from theano.link.c.basic import CLinker
 from theano.link.c.exceptions import MissingGXX
 from theano.link.utils import raise_with_op
-from theano.scan.utils import (
-    Validator,
-    clone,
-    forced_replace,
-    hash_listsDictsTuples,
-    safe_new,
-)
+from theano.scan.utils import Validator, forced_replace, hash_listsDictsTuples, safe_new
 from theano.tensor.basic import as_tensor_variable
 from theano.tensor.opt import Shape_i
 from theano.tensor.type import TensorType, integer_dtypes
@@ -2485,7 +2480,7 @@ class Scan(Op):
                         replacement = inner_inp_mitmot[-replacement_idx]
 
                         self.tap_array[idx]
-                        new_inner_out_mitmot = clone(
+                        new_inner_out_mitmot = clone_replace(
                             new_inner_out_mitmot, replace=[(to_replace, replacement)]
                         )
 
