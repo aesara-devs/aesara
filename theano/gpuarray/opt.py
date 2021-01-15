@@ -168,6 +168,20 @@ from theano.scalar.basic_scipy import Erfcinv, Erfinv
 from theano.scan import utils
 from theano.scan.op import Scan
 from theano.scan.opt import ScanInplaceOptimizer
+from theano.tensor.basic import (
+    Alloc,
+    AllocDiag,
+    AllocEmpty,
+    ExtractDiag,
+    Eye,
+    Flatten,
+    Join,
+    MaxAndArgmax,
+    Rebroadcast,
+    Reshape,
+    Split,
+    Tri,
+)
 from theano.tensor.nnet import bn, conv3d2d
 from theano.tensor.nnet.abstract_conv import (
     AbstractConv2d,
@@ -344,10 +358,10 @@ class GraphToGPU(GlobalOptimizer):
             if not move_to_GPU and isinstance(
                 node.op,
                 (
-                    tt.Alloc,
-                    tt.AllocEmpty,
-                    tt.Eye,
-                    tt.Tri,
+                    Alloc,
+                    AllocEmpty,
+                    Eye,
+                    Tri,
                 ),
             ):
                 # If the Alloc[Empty] have a client that will be moved
@@ -617,7 +631,7 @@ optdb["canonicalize"].register(
 
 
 @register_opt("fast_compile")
-@local_optimizer([tt.Alloc])
+@local_optimizer([Alloc])
 def local_gpua_alloc2(fgraph, node):
     """
     Join(axis, {Alloc or HostFromGPU}, ...) -> Join(axis, GpuAlloc, Alloc, ...)
@@ -630,9 +644,9 @@ def local_gpua_alloc2(fgraph, node):
     except ContextNotDefined:
         # If there is no default context then we do not perform the move here.
         return
-    if isinstance(node.op, tt.Alloc) and all(
+    if isinstance(node.op, Alloc) and all(
         c != "output"
-        and isinstance(c.op, tt.Join)
+        and isinstance(c.op, Join)
         and all(
             i.owner and i.owner.op in [host_from_gpu, tt.alloc] for i in c.inputs[1:]
         )
@@ -642,15 +656,15 @@ def local_gpua_alloc2(fgraph, node):
 
 
 @register_opt("fast_compile")
-@op_lifter([tt.Alloc])
-@register_opt2([tt.Alloc], "fast_compile")
+@op_lifter([Alloc])
+@register_opt2([Alloc], "fast_compile")
 def local_gpuaalloc(fgraph, op, context_name, inputs, outputs):
     return GpuAlloc(context_name)(*inputs)
 
 
 @register_opt("fast_compile")
-@op_lifter([tt.AllocEmpty])
-@register_opt2([tt.AllocEmpty], "fast_compile")
+@op_lifter([AllocEmpty])
+@register_opt2([AllocEmpty], "fast_compile")
 def local_gpua_alloc_empty(fgraph, op, context_name, inputs, outputs):
     # We use _props_dict() to make sure that the GPU op know all the
     # CPU op props.
@@ -716,23 +730,23 @@ def local_gpua_contiguous(fgraph, op, context_name, inputs, outputs):
 
 
 @register_opt("fast_compile")
-@op_lifter([tt.Reshape])
-@register_opt2([tt.Reshape], "fast_compile")
+@op_lifter([Reshape])
+@register_opt2([Reshape], "fast_compile")
 def local_gpua_reshape(fgraph, op, context_name, inputs, outputs):
     res = GpuReshape(op.ndim)
     return res
 
 
 @register_opt("fast_compile")
-@op_lifter([tt.Rebroadcast])
-@register_opt2([tt.Rebroadcast], "fast_compile")
+@op_lifter([Rebroadcast])
+@register_opt2([Rebroadcast], "fast_compile")
 def local_gpua_rebroadcast(fgraph, op, context_name, inputs, outputs):
     return op(as_gpuarray_variable(inputs[0], context_name))
 
 
 @register_opt("fast_compile")
-@op_lifter([tt.Flatten])
-@register_opt2([tt.Flatten], "fast_compile")
+@op_lifter([Flatten])
+@register_opt2([Flatten], "fast_compile")
 def local_gpua_flatten(fgraph, op, context_name, inputs, outputs):
     shp = []
     if op.outdim != 1:
@@ -913,7 +927,7 @@ def local_gpua_shape(fgraph, op, context_name, inputs, outputs):
     return local_gpua_shape_graph(op, context_name, inputs, outputs)
 
 
-@register_opt2([theano.tensor.compile.ops.Shape], "fast_compile")
+@register_opt2([theano.compile.ops.Shape], "fast_compile")
 def local_gpua_shape_graph(fgraph, op, context_name, inputs, outputs):
     return [as_gpuarray_variable(inputs[0], context_name).shape]
 
@@ -923,8 +937,8 @@ def gpu_print_wrapper(op, cnda):
 
 
 @register_opt("fast_compile")
-@op_lifter([theano.tensor.printing.Print])
-@register_opt2([theano.tensor.printing.Print], "fast_compile")
+@op_lifter([theano.printing.Print])
+@register_opt2([theano.printing.Print], "fast_compile")
 def local_gpua_print_op(fgraph, op, context_name, inputs, outputs):
     (x,) = inputs
     with inherit_stack_trace(outputs):
@@ -1030,8 +1044,8 @@ def local_gpua_lazy_ifelse(fgraph, op, context_name, inputs, outputs):
 
 
 @register_opt("fast_compile")
-@op_lifter([tt.Join])
-@register_opt2([tt.Join], "fast_compile")
+@op_lifter([Join])
+@register_opt2([Join], "fast_compile")
 def local_gpua_join(fgraph, op, context_name, inputs, outputs):
     return gpu_join
 
@@ -1045,8 +1059,8 @@ def local_gpua_join_1(fgraph, node):
 
 
 @register_opt("fast_compile")
-@op_lifter([tt.Split])
-@register_opt2([tt.Split], "fast_compile")
+@op_lifter([Split])
+@register_opt2([Split], "fast_compile")
 def local_gpua_split(fgraph, op, context_name, inputs, outputs):
     # TODO use props
     return GpuSplit(op.len_splits)
@@ -1193,8 +1207,8 @@ def local_advincsub1_gpua_inplace(fgraph, node):
 
 # AllocDiag
 @register_opt("fast_compile")
-@op_lifter([tt.AllocDiag])
-@register_opt2([tt.AllocDiag], "fast_compile")
+@op_lifter([AllocDiag])
+@register_opt2([AllocDiag], "fast_compile")
 def local_gpu_alloc_diag(fgraph, op, context_name, inputs, outputs):
     if outputs[0].ndim != 2:
         # AllocDiag only supports 2d output
@@ -1204,8 +1218,8 @@ def local_gpu_alloc_diag(fgraph, op, context_name, inputs, outputs):
 
 # ExtractDiag
 @register_opt("fast_compile")
-@op_lifter([tt.ExtractDiag])
-@register_opt2([tt.ExtractDiag], "fast_compile")
+@op_lifter([ExtractDiag])
+@register_opt2([ExtractDiag], "fast_compile")
 def local_gpu_extract_diag(fgraph, op, context_name, inputs, outputs):
     return GpuExtractDiag(
         offset=op.offset, axis1=op.axis1, axis2=op.axis2, view=op.view
@@ -1453,23 +1467,23 @@ def local_gpua_dot22scalar(fgraph, op, context_name, inputs, outputs):
 
 
 @register_opt("fast_compile")
-@op_lifter([tt.Eye])
-@register_opt2([tt.Eye], "fast_compile")
+@op_lifter([Eye])
+@register_opt2([Eye], "fast_compile")
 def local_gpua_eye(fgraph, op, context_name, inputs, outputs):
     return GpuEye(dtype=op.dtype, context_name=context_name)
 
 
 @register_opt("fast_compile")
-@op_lifter([tt.Tri])
-@register_opt2([tt.Tri], "fast_compile")
+@op_lifter([Tri])
+@register_opt2([Tri], "fast_compile")
 def local_gpua_tri(fgraph, op, context_name, inputs, outputs):
     return GpuTri(dtype=op.dtype, context_name=context_name)
 
 
 @register_opt("fast_compile")
-@op_lifter([theano.tensor.nnet.CrossentropySoftmaxArgmax1HotWithBias])
+@op_lifter([theano.tensor.nnet.nnet.CrossentropySoftmaxArgmax1HotWithBias])
 @register_opt2(
-    [theano.tensor.nnet.CrossentropySoftmaxArgmax1HotWithBias], "fast_compile"
+    [theano.tensor.nnet.nnet.CrossentropySoftmaxArgmax1HotWithBias], "fast_compile"
 )
 def local_gpua_crossentropysoftmaxargmax1hotwithbias(
     fgraph, op, context_name, inputs, outputs
@@ -1478,8 +1492,10 @@ def local_gpua_crossentropysoftmaxargmax1hotwithbias(
 
 
 @register_opt("fast_compile")
-@op_lifter([theano.tensor.nnet.CrossentropySoftmax1HotWithBiasDx])
-@register_opt2([theano.tensor.nnet.CrossentropySoftmax1HotWithBiasDx], "fast_compile")
+@op_lifter([theano.tensor.nnet.nnet.CrossentropySoftmax1HotWithBiasDx])
+@register_opt2(
+    [theano.tensor.nnet.nnet.CrossentropySoftmax1HotWithBiasDx], "fast_compile"
+)
 def local_gpua_crossentropysoftmax1hotwithbiasdx(
     fgraph, op, context_name, inputs, outputs
 ):
@@ -1487,22 +1503,22 @@ def local_gpua_crossentropysoftmax1hotwithbiasdx(
 
 
 @register_opt("fast_compile")
-@op_lifter([theano.tensor.nnet.Softmax])
-@register_opt2([theano.tensor.nnet.Softmax], "fast_compile")
+@op_lifter([theano.tensor.nnet.nnet.Softmax])
+@register_opt2([theano.tensor.nnet.nnet.Softmax], "fast_compile")
 def local_gpua_softmax(fgraph, op, context_name, inputs, outputs):
     return gpu_softmax
 
 
 @register_opt("fast_compile")
-@op_lifter([theano.tensor.nnet.SoftmaxWithBias])
-@register_opt2([theano.tensor.nnet.SoftmaxWithBias], "fast_compile")
+@op_lifter([theano.tensor.nnet.nnet.SoftmaxWithBias])
+@register_opt2([theano.tensor.nnet.nnet.SoftmaxWithBias], "fast_compile")
 def local_gpua_softmaxwithbias(fgraph, op, context_name, inputs, outputs):
     return gpu_softmax_with_bias
 
 
 @register_opt("fast_compile")
-@op_lifter([theano.tensor.nnet.CrossentropyCategorical1Hot])
-@register_opt2([theano.tensor.nnet.CrossentropyCategorical1Hot], "fast_compile")
+@op_lifter([theano.tensor.nnet.nnet.CrossentropyCategorical1Hot])
+@register_opt2([theano.tensor.nnet.nnet.CrossentropyCategorical1Hot], "fast_compile")
 def local_gpu_crossentropycategorical1hot(fgraph, op, context_name, inputs, outputs):
     # There is no corresponding GPU Op, but we can express it as:
     #   coding, one_of_n = inputs
@@ -1513,8 +1529,10 @@ def local_gpu_crossentropycategorical1hot(fgraph, op, context_name, inputs, outp
 
 
 @register_opt("fast_compile")
-@op_lifter([theano.tensor.nnet.CrossentropyCategorical1HotGrad])
-@register_opt2([theano.tensor.nnet.CrossentropyCategorical1HotGrad], "fast_compile")
+@op_lifter([theano.tensor.nnet.nnet.CrossentropyCategorical1HotGrad])
+@register_opt2(
+    [theano.tensor.nnet.nnet.CrossentropyCategorical1HotGrad], "fast_compile"
+)
 def local_gpu_crossentropycategorical1hotgrad(
     fgraph, op, context_name, inputs, outputs
 ):
@@ -2707,8 +2725,8 @@ def _scan_type_infer(node):
 
 # Add optimization : maxandargmax (CPU -> GPU)
 @register_opt("fast_compile")
-@op_lifter([tt.MaxAndArgmax])
-@register_opt2([tt.MaxAndArgmax], "fast_compile")
+@op_lifter([MaxAndArgmax])
+@register_opt2([MaxAndArgmax], "fast_compile")
 def local_gpu_maxandargmax(fgraph, op, context_name, inputs, outputs):
     op = GpuMaxAndArgmax(op.get_params(None))
     if inputs[0].dtype == "float16":

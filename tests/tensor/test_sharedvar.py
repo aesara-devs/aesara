@@ -142,8 +142,8 @@ def makeSharedTester(
             assert np.all(f() == (2, 4))
             if theano.config.mode != "FAST_COMPILE":
                 assert len(topo) == 3
-                assert isinstance(topo[0].op, theano.tensor.opt.Shape_i)
-                assert isinstance(topo[1].op, theano.tensor.opt.Shape_i)
+                assert isinstance(topo[0].op, theano.compile.ops.Shape_i)
+                assert isinstance(topo[1].op, theano.compile.ops.Shape_i)
                 assert isinstance(topo[2].op, theano.tensor.opt.MakeVector)
 
         def test_shape_i(self):
@@ -165,7 +165,7 @@ def makeSharedTester(
             assert np.all(f() == (4))
             if theano.config.mode != "FAST_COMPILE":
                 assert len(topo) == 1
-                assert isinstance(topo[0].op, theano.tensor.opt.Shape_i)
+                assert isinstance(topo[0].op, theano.compile.ops.Shape_i)
 
         def test_return_internal_type(self):
             dtype = self.dtype
@@ -408,8 +408,8 @@ def makeSharedTester(
             topo = shape_op_fct.maker.fgraph.toposort()
             if theano.config.mode != "FAST_COMPILE":
                 assert len(topo) == 3
-                assert isinstance(topo[0].op, theano.tensor.opt.Shape_i)
-                assert isinstance(topo[1].op, theano.tensor.opt.Shape_i)
+                assert isinstance(topo[0].op, theano.compile.ops.Shape_i)
+                assert isinstance(topo[1].op, theano.compile.ops.Shape_i)
                 assert isinstance(topo[2].op, theano.tensor.opt.MakeVector)
 
             # Test that we forward the input
@@ -481,8 +481,8 @@ def makeSharedTester(
             shape_op_fct()
             if theano.config.mode != "FAST_COMPILE":
                 assert len(topo) == 3
-                assert isinstance(topo[0].op, theano.tensor.opt.Shape_i)
-                assert isinstance(topo[1].op, theano.tensor.opt.Shape_i)
+                assert isinstance(topo[0].op, theano.compile.ops.Shape_i)
+                assert isinstance(topo[1].op, theano.compile.ops.Shape_i)
                 assert isinstance(topo[2].op, theano.tensor.opt.MakeVector)
 
             # Test that we forward the input

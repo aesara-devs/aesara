@@ -376,7 +376,6 @@ class RandomVariable(Op):
         if dtype == "floatX":
             dtype = config.floatX
         elif dtype is None or (isinstance(dtype, str) and dtype not in all_dtypes):
-            # dtype = tt.scal.upcast(self.dtype, *[p.dtype for p in dist_params])
             raise TypeError("dtype is unspecified")
 
         if isinstance(dtype, str):

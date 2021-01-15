@@ -320,3 +320,5 @@ mpi_tag_cmp = key_to_cmp(mpi_tag_key)
 
 mpi_keys = (mpi_send_wait_key, mpi_tag_key)
 mpi_cmps = (mpi_send_wait_cmp, mpi_tag_cmp)
+
+__all__ = ["load"]

@@ -14,11 +14,14 @@ from theano.compile.mode import OPT_FAST_RUN, optdb
 from theano.configdefaults import config
 from theano.graph.fg import FunctionGraph
 from theano.graph.opt import check_stack_trace
-from theano.tensor.nnet import (
+from theano.tensor.basic import Argmax
+from theano.tensor.elemwise import CAReduce, DimShuffle, Elemwise
+from theano.tensor.nnet.nnet import (
     CrossentropyCategorical1Hot,
     CrossentropyCategorical1HotGrad,
     CrossentropySoftmax1HotWithBiasDx,
     CrossentropySoftmaxArgmax1HotWithBias,
+    LogSoftmax,
     Prepend_scalar_constant_to_each_row,
     Prepend_scalar_to_each_row,
     Softmax,
@@ -38,16 +41,15 @@ from theano.tensor.nnet import (
     logsoftmax_op,
     relu,
     selu,
-    sigmoid,
     sigmoid_binary_crossentropy,
     softmax,
     softmax_grad,
     softmax_graph,
     softmax_op,
     softmax_with_bias,
-    softplus,
+    softsign,
 )
-from theano.tensor.nnet.nnet import LogSoftmax, softsign
+from theano.tensor.nnet.sigm import sigmoid, softplus
 from theano.tensor.subtensor import AdvancedSubtensor
 from theano.tensor.type import (
     dmatrix,
@@ -578,7 +580,7 @@ class TestCrossEntropyCategorical1Hot(utt.InferShapeTester):
         def oplike(x):
             return op(x, [0, 1])
 
-        tt.verify_grad(oplike, [x_val], rng=np.random)
+        utt.verify_grad(oplike, [x_val], rng=np.random)
 
     def test_infer_shape(self):
         admat = matrix()
@@ -1063,8 +1065,8 @@ def test_argmax_pushdown():
         # for node in fgraph.toposort():
         # print node.op
         assert len(fgraph.toposort()) == 1
-        assert isinstance(fgraph.toposort()[0].op, tt.Argmax)
-        assert check_stack_trace(fgraph, ops_to_check=tt.Argmax)
+        assert isinstance(fgraph.toposort()[0].op, Argmax)
+        assert check_stack_trace(fgraph, ops_to_check=Argmax)
         x = matrix()
         # test that the max_and_argmax is not pushed down if the max is used
         out = tt.max_and_argmax(sm(tt.exp(tt.tanh(sigmoid(x)))), axis=-1)[0]
@@ -1079,9 +1081,9 @@ def test_argmax_pushdown():
         # for node in fgraph.toposort():
         # print node.op
         assert len(fgraph.toposort()) == 3
-        assert isinstance(fgraph.toposort()[0].op, tt.Elemwise)
+        assert isinstance(fgraph.toposort()[0].op, Elemwise)
         assert isinstance(fgraph.toposort()[1].op, Softmax)
-        assert isinstance(fgraph.toposort()[2].op, tt.CAReduce)
+        assert isinstance(fgraph.toposort()[2].op, CAReduce)
         assert isinstance(
             fgraph.toposort()[2].op.scalar_op, theano.scalar.ScalarMaximum
         )
@@ -1096,7 +1098,7 @@ def test_argmax_pushdown_bias():
 
     optdb.query(OPT_FAST_RUN).optimize(fgraph)
 
-    types_to_check = (tt.DimShuffle, tt.Elemwise, tt.Argmax)
+    types_to_check = (DimShuffle, Elemwise, Argmax)
     assert len(fgraph.toposort()) == 3
 
     for i, type in enumerate(types_to_check):
@@ -1113,9 +1115,9 @@ def test_argmax_pushdown_bias():
 
     assert len(fgraph.toposort()) == 2
     assert isinstance(fgraph.toposort()[0].op, SoftmaxWithBias)
-    assert isinstance(fgraph.toposort()[1].op, tt.CAReduce)
+    assert isinstance(fgraph.toposort()[1].op, CAReduce)
     assert isinstance(fgraph.toposort()[1].op.scalar_op, theano.scalar.ScalarMaximum)
-    assert check_stack_trace(fgraph, ops_to_check=(SoftmaxWithBias, tt.CAReduce))
+    assert check_stack_trace(fgraph, ops_to_check=(SoftmaxWithBias, CAReduce))
 
 
 def test_asymptotic_32():

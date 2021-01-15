@@ -7,6 +7,7 @@ from theano.graph.basic import Apply, Constant, Variable
 from theano.graph.op import COp, Op
 from theano.tensor.type import scalar
 from theano.tensor.type_other import SliceType
+from theano.tensor.var import TensorVariable
 from theano.typed_list.type import TypedListType
 
 
@@ -80,7 +81,7 @@ class GetItem(COp):
                 return Apply(self, [x, index], [x.ttype()])
         if isinstance(index.type, SliceType):
             return Apply(self, [x, index], [x.type()])
-        elif isinstance(index, tt.TensorVariable) and index.ndim == 0:
+        elif isinstance(index, TensorVariable) and index.ndim == 0:
             assert index.dtype == "int64"
             return Apply(self, [x, index], [x.ttype()])
         else:
@@ -324,7 +325,7 @@ class Insert(COp):
             index = tt.constant(index, ndim=0, dtype="int64")
         else:
             assert index.dtype == "int64"
-            assert isinstance(index, tt.TensorVariable) and index.ndim == 0
+            assert isinstance(index, TensorVariable) and index.ndim == 0
         return Apply(self, [x, index, toInsert], [x.type()])
 
     def perform(self, node, inputs, outputs):

@@ -29,11 +29,20 @@ from theano.compile.function.pfunc import rebuild_collect_shared
 from theano.compile.io import In
 from theano.compile.mode import FAST_RUN, Mode, get_default_mode, get_mode
 from theano.configdefaults import config
+from theano.gradient import (
+    NullTypeGradError,
+    Rop,
+    disconnected_grad,
+    grad,
+    hessian,
+    jacobian,
+)
 from theano.misc.safe_asarray import _asarray
 from theano.scan.basic import scan
 from theano.scan.op import Scan
 from theano.scan.opt import ScanMerge
 from theano.scan.utils import until
+from theano.tensor.basic import Dot
 from theano.tensor.type import (
     dcol,
     dmatrix,
@@ -390,7 +399,7 @@ class TestScan:
         inp = matrix()
         broadcasted_inp, _ = scan(lambda x: x, non_sequences=[inp], n_steps=n_steps)
         out = broadcasted_inp.sum()
-        gr = theano.grad(out, inp)
+        gr = grad(out, inp)
         fun = theano.function([inp], [broadcasted_inp, gr])
 
         # Execute the Theano function and compare outputs to the expected outputs
@@ -674,7 +683,7 @@ class TestScan:
             n_steps=2,
         )
 
-        theano.grad(a[-1], a0)
+        grad(a[-1], a0)
 
         # Also validate that the mappings outer_inp_from_outer_out and
         # outer_inp_from_inner_inp produce the correct results
@@ -704,7 +713,7 @@ class TestScan:
             inner_fct, sequences=seq, outputs_info={"initial": x, "taps": [-2, -1]}
         )
 
-        g_out = theano.grad(out.sum(), [seq, x])
+        g_out = grad(out.sum(), [seq, x])
 
         scan_node = g_out[0].owner.inputs[1].owner.inputs[1].owner.inputs[0].owner
         scan_node.op.connection_pattern(scan_node)
@@ -737,13 +746,13 @@ class TestScan:
 
         # Take the gradient of each output wrt its corresponding initial state
         gradients = [
-            theano.grad(scan_outputs[0].sum(), inputs[0]),
-            theano.grad(scan_outputs[1].sum(), inputs[1]),
+            grad(scan_outputs[0].sum(), inputs[0]),
+            grad(scan_outputs[1].sum(), inputs[1]),
         ]
 
         # Take the gradient of the sum of gradients wrt the inputs
         sum_of_grads = sum([g.sum() for g in gradients])
-        theano.grad(sum_of_grads, inputs[0])
+        grad(sum_of_grads, inputs[0])
 
     def test_verify_second_grad_sitsot(self):
         def get_sum_of_grad(inp):
@@ -754,7 +763,7 @@ class TestScan:
 
             # Take the gradient of each output wrt its corresponding initial
             # state
-            return theano.grad(scan_outputs.sum(), inp).sum()
+            return grad(scan_outputs.sum(), inp).sum()
 
         # Call verify_grad to ensure the correctness of the second gradients
         floatX = config.floatX
@@ -777,8 +786,8 @@ class TestScan:
             # Take the gradient of each output wrt its corresponding initial
             # state
             gradients = [
-                theano.grad(scan_outputs[0].sum(), input0),
-                theano.grad(scan_outputs[1].sum(), input1),
+                grad(scan_outputs[0].sum(), input0),
+                grad(scan_outputs[1].sum(), input1),
             ]
 
             return gradients[0].sum() + gradients[1].sum()
@@ -817,7 +826,7 @@ class TestScan:
         L = tt.mean(L)
 
         # backward pass
-        theano.grad(L, [W])
+        grad(L, [W])
 
     # simple rnn, one input, one state, weights for each; input/state are
     # vectors, weights are scalars; using shared variables and past
@@ -1156,7 +1165,7 @@ class TestScan:
             truncate_gradient=-1,
             go_backwards=False,
         )
-        gX, gY = theano.grad(values[1].sum(), [x, y])
+        gX, gY = grad(values[1].sum(), [x, y])
         f = theano.function([c, x, y], [gX, gY], allow_input_downcast=True)
         # Check for runtime errors
         f(np.int32(0), np.float32(1.0), np.float32(0.5))
@@ -1368,7 +1377,7 @@ class TestScan:
             truncate_gradient=-1,
             go_backwards=False,
         )
-        gu, gx0, gW_in, gW = theano.grad(cost, [u, x0, W_in, W])
+        gu, gx0, gW_in, gW = grad(cost, [u, x0, W_in, W])
         grad_fn = theano.function(
             [u, x0, W_in, W],
             [gu, gx0, gW_in, gW],
@@ -1434,7 +1443,7 @@ class TestScan:
         )
         # y0 is actually not used in the computation of the cost
         params = [u1, u2, x0, y0, W_in1]
-        gparams = theano.grad(cost, params, disconnected_inputs="ignore")
+        gparams = grad(cost, params, disconnected_inputs="ignore")
 
         grad_fn = theano.function(
             [u1, u2, x0, y0, W_in1],
@@ -1514,7 +1523,7 @@ class TestScan:
                 go_backwards=False,
             )
             params = [u1, u2, x0, y0, W_in1]
-            gparams = theano.grad(cost, params)
+            gparams = grad(cost, params)
 
             cost_fn = theano.function(
                 [u1, u2, x0, y0, W_in1],
@@ -1579,7 +1588,7 @@ class TestScan:
             go_backwards=True,
         )
         params = [u1, u2, x0, y0, W_in1]
-        gparams = theano.grad(cost, params)
+        gparams = grad(cost, params)
         grad_fn = theano.function(
             [u1, u2, x0, y0, W_in1],
             gparams,
@@ -1635,7 +1644,7 @@ class TestScan:
             go_backwards=False,
         )
         params = [u, u2, x0, W_in]
-        gparams = theano.grad(cost, params)
+        gparams = grad(cost, params)
         grad_fn = theano.function(
             [u, u2, x0, W_in],
             gparams,
@@ -1715,7 +1724,7 @@ class TestScan:
             go_backwards=False,
         )
         params = [u, x0, W_in]
-        gparams = theano.grad(cost, params)
+        gparams = grad(cost, params)
 
         grad_fn = theano.function(
             [u, x0, W_in],
@@ -1815,7 +1824,7 @@ class TestScan:
 
         cost = (0.5 * ((y - t) ** 2.0).mean()) + (0.5 * (y.std() - t.std()) ** 2.0)
 
-        gparams = theano.grad(cost, params)
+        gparams = grad(cost, params)
         updates = [
             (param, param - gparam * learning_rate)
             for param, gparam in zip(params, gparams)
@@ -1859,7 +1868,7 @@ class TestScan:
         x1.name = "x1"
         x2 = vector("x2")
         y, updates = scan(lambda v: tt.cast(v * x1, config.floatX), sequences=x2)
-        m = theano.grad(y.sum(), x1)
+        m = grad(y.sum(), x1)
 
         f = theano.function([x2], m, allow_input_downcast=True)
         utt.assert_allclose(f([2, 3]), 5)
@@ -1870,7 +1879,7 @@ class TestScan:
         K = x2 * x1
 
         out, updates = scan(
-            lambda i, v: theano.grad(K[i], v),
+            lambda i, v: grad(K[i], v),
             sequences=tt.arange(K.shape[0]),
             non_sequences=x1,
         )
@@ -1947,10 +1956,10 @@ class TestScan:
         fc2 = theano.shared(0.9, name="fc2")
         y = fc1 * tt.dot(x * x, tt.dot(A, x))
         y.name = "y"
-        gy = theano.grad(y, x)
+        gy = grad(y, x)
         gy.name = "gy"
         hy, updates = scan(
-            lambda i, gy, x: theano.grad(gy[i] * fc2, x),
+            lambda i, gy, x: grad(gy[i] * fc2, x),
             sequences=tt.arange(gy.shape[0]),
             non_sequences=[gy, x],
         )
@@ -2142,7 +2151,7 @@ class TestScan:
             inputs=[to_scan, seq, f1], outputs=scanned, allow_input_downcast=True
         )
 
-        t_grad = theano.grad(scanned.sum(), wrt=[to_scan, f1], consider_constant=[seq])
+        t_grad = grad(scanned.sum(), wrt=[to_scan, f1], consider_constant=[seq])
         theano.function(
             inputs=[to_scan, seq, f1], outputs=t_grad, allow_input_downcast=True
         )
@@ -2226,7 +2235,7 @@ class TestScan:
         shapef(np.ones((5, 5), dtype=config.floatX))
 
         cost = expr.sum()
-        d_cost_wrt_W = theano.grad(cost, [W])
+        d_cost_wrt_W = grad(cost, [W])
         f = theano.function(
             [W, inpt],
             d_cost_wrt_W,
@@ -2427,7 +2436,7 @@ class TestScan:
 
         out, updates = scan(inner_fct, outputs_info=x, n_steps=10)
 
-        g_out = theano.grad(out.sum(), x)
+        g_out = grad(out.sum(), x)
         fct = theano.function([x], [out, g_out])
 
         for i in range(-5, 5):
@@ -2498,7 +2507,7 @@ class TestScan:
             name="forward",
             go_backwards=False,
         )
-        go1 = theano.grad(o1.mean(), wrt=x)
+        go1 = grad(o1.mean(), wrt=x)
         f = theano.function(
             [x], go1, updates=updates, allow_input_downcast=True, mode=mode_with_opt
         )
@@ -2667,16 +2676,16 @@ class TestScan:
         dfdm = theano.function(
             [inputs, targets, x_star, s_star],
             [
-                theano.grad(M[0], x_star),
-                theano.grad(M[1], x_star),
-                theano.grad(M[2], x_star),
+                grad(M[0], x_star),
+                grad(M[1], x_star),
+                grad(M[2], x_star),
             ],
         )
         expected_output = dfdm(X, Y, test_m, test_s)
 
         # equivalent code for the jacobian using scan
         dMdm, dMdm_updts = scan(
-            lambda i, M, x: theano.grad(M[i], x),
+            lambda i, M, x: grad(M[i], x),
             sequences=tt.arange(M.shape[0]),
             non_sequences=[M, x_star],
         )
@@ -2685,7 +2694,7 @@ class TestScan:
         )
         scan_output = dfdm(X, Y, test_m, test_s)
 
-        dMdm_j = theano.gradient.jacobian(M, x_star)
+        dMdm_j = jacobian(M, x_star)
         dfdm_j = theano.function(
             [inputs, targets, x_star, s_star], [dMdm_j[0], dMdm_j[1], dMdm_j[2]]
         )
@@ -2803,7 +2812,7 @@ class TestScan:
         else:
             assert f1().shape[0] == 1
 
-        gx = theano.grad(o, x)
+        gx = grad(o, x)
         f2 = theano.function([], gx)
         utt.assert_allclose(f2(), np.ones((10,)))
 
@@ -2837,7 +2846,7 @@ class TestScan:
         else:
             assert f1().shape[0] == 1
 
-        gx = theano.grad(o, x)
+        gx = grad(o, x)
         f2 = theano.function([], gx)
         utt.assert_allclose(f2(), np.ones((10,)))
 
@@ -2872,7 +2881,7 @@ class TestScan:
         else:
             assert f1().shape[0] == 1
 
-        gx = theano.grad(o, x)
+        gx = grad(o, x)
         f2 = theano.function([], gx)
         utt.assert_allclose(f2(), np.ones((10,)))
 
@@ -2921,30 +2930,30 @@ class TestScan:
         eh0 = vector("eh0")
         eW = matrix("eW")
 
-        nwo_u = theano.gradient.Rop(o, _u, eu)
-        nwo_h0 = theano.gradient.Rop(o, _h0, eh0)
-        nwo_W = theano.gradient.Rop(o, _W, eW)
+        nwo_u = Rop(o, _u, eu)
+        nwo_h0 = Rop(o, _h0, eh0)
+        nwo_W = Rop(o, _W, eW)
         fn_rop = theano.function(
             [u, h0, W, eu, eh0, eW], [nwo_u, nwo_h0, nwo_W, o], on_unused_input="ignore"
         )
         vnu, vnh0, vnW, vno = fn_rop(v_u, v_h0, v_W, v_eu, v_eh0, v_eW)
 
         n2o_u, _ = scan(
-            lambda i, o, u, h0, W, eu: (theano.theano.grad(o[i], u) * eu).sum(),
+            lambda i, o, u, h0, W, eu: (grad(o[i], u) * eu).sum(),
             sequences=tt.arange(o.shape[0]),
             non_sequences=[o, u, h0, W, eu],
             name="jacobU",
         )
 
         n2o_h0, _ = scan(
-            lambda i, o, u, h0, W, eh0: (theano.theano.grad(o[i], h0) * eh0).sum(),
+            lambda i, o, u, h0, W, eh0: (grad(o[i], h0) * eh0).sum(),
             sequences=tt.arange(o.shape[0]),
             non_sequences=[o, u, h0, W, eh0],
             name="jacobh",
         )
 
         n2o_W, _ = scan(
-            lambda i, o, u, h0, W, eW: (theano.theano.grad(o[i], W) * eW).sum(),
+            lambda i, o, u, h0, W, eW: (grad(o[i], W) * eW).sum(),
             sequences=tt.arange(o.shape[0]),
             non_sequences=[o, u, h0, W, eW],
             name="jacobW",
@@ -2994,29 +3003,29 @@ class TestScan:
         eh0 = vector("eh0")
         eW = matrix("eW")
 
-        nwo_u = theano.gradient.Rop(o, _u, eu)
-        nwo_h0 = theano.gradient.Rop(o, _h0, eh0)
-        nwo_W = theano.gradient.Rop(o, _W, eW)
+        nwo_u = Rop(o, _u, eu)
+        nwo_h0 = Rop(o, _h0, eh0)
+        nwo_W = Rop(o, _W, eW)
         fn_rop = theano.function(
             [u, h0, W, eu, eh0, eW], [nwo_u, nwo_h0, nwo_W], on_unused_input="ignore"
         )
 
         n2o_u, _ = scan(
-            lambda i, o, u, h0, W, eu: (theano.grad(o[i], u) * eu).sum(),
+            lambda i, o, u, h0, W, eu: (grad(o[i], u) * eu).sum(),
             sequences=tt.arange(o.shape[0]),
             non_sequences=[o, u, h0, W, eu],
             name="jacobU",
         )
 
         n2o_h0, _ = scan(
-            lambda i, o, u, h0, W, eh0: (theano.grad(o[i], h0) * eh0).sum(),
+            lambda i, o, u, h0, W, eh0: (grad(o[i], h0) * eh0).sum(),
             sequences=tt.arange(o.shape[0]),
             non_sequences=[o, u, h0, W, eh0],
             name="jacobh",
         )
 
         n2o_W, _ = scan(
-            lambda i, o, u, h0, W, eW: (theano.grad(o[i], W) * eW).sum(),
+            lambda i, o, u, h0, W, eW: (grad(o[i], W) * eW).sum(),
             sequences=tt.arange(o.shape[0]),
             non_sequences=[o, u, h0, W, eW],
             name="jacobW",
@@ -3050,7 +3059,7 @@ class TestScan:
         assert len(scan_nodes) == 1
         scan_op = scan_nodes[0].op
         assert not any(
-            isinstance(n.op, tt.Dot) for n in scan_op.fn.maker.fgraph.apply_nodes
+            isinstance(n.op, Dot) for n in scan_op.fn.maker.fgraph.apply_nodes
         )
 
     def test_pushout_all(self):
@@ -3374,8 +3383,8 @@ class TestScan:
             unit_dropout, sequences=[tt.arange(inp.shape[0])]
         )
 
-        with pytest.raises(theano.gradient.NullTypeGradError):
-            theano.grad(out.sum(), inp)
+        with pytest.raises(NullTypeGradError):
+            grad(out.sum(), inp)
 
     def test_bugFunctioProvidesIntermediateNodesAsInputs(self):
         # This is a bug recently reported by Ilya
@@ -3600,8 +3609,8 @@ class TestScan:
         )
 
         # Attempt to take various gradients
-        g_output0 = theano.grad(scan_outputs[0].sum(), [seq, out_init, non_seq])
-        g_output1 = theano.grad(scan_outputs[1].sum(), [seq, out_init, non_seq])
+        g_output0 = grad(scan_outputs[0].sum(), [seq, out_init, non_seq])
+        g_output1 = grad(scan_outputs[1].sum(), [seq, out_init, non_seq])
 
         # Compile the function
         fct = theano.function([seq, out_init, non_seq], g_output0 + g_output1)
@@ -3662,7 +3671,7 @@ class TestScan:
             fn=inner_fct, outputs_info=outputs_info, n_steps=10
         )
 
-        theano.grad(scan_outputs[0].sum(), out_init[1])
+        grad(scan_outputs[0].sum(), out_init[1])
 
         # Validate the connnection pattern is as it should be
         node = scan_outputs[0].owner
@@ -3689,7 +3698,7 @@ class TestScan:
             non_sequences=x,
         )
         P = components.sum()
-        dP = theano.theano.grad(P, x)
+        dP = grad(P, x)
         tf = theano.function([c, x], dP)
         assert tf([1.0, 2.0, -3.0, 4.0], 2.0) == 38
 
@@ -3708,8 +3717,8 @@ class TestScan:
             non_sequences=x,
         )
         P = components.sum()
-        dP = theano.theano.grad(P, x).sum()
-        ddP = theano.theano.grad(dP, x)
+        dP = grad(P, x).sum()
+        ddP = grad(dP, x)
         tf = theano.function([c, x], ddP)
         assert tf([1.0, 2.0, -3.0, 4.0], 2.0) == 42
 
@@ -3833,7 +3842,7 @@ class TestScan:
                 name="the_outer_scan",
             )
 
-            return_val = theano.grad(features.sum(), w)
+            return_val = grad(features.sum(), w)
             return return_val
 
         # Compile the theano function
@@ -3869,7 +3878,7 @@ class TestScan:
             [xinit, w], loss, no_default_updates=True, allow_input_downcast=True
         )
 
-        gw, gx = theano.grad(loss, [w, xinit])
+        gw, gx = grad(loss, [w, xinit])
         grad_fn = theano.function([xinit, w], [gx, gw], allow_input_downcast=True)
         rng = np.random.RandomState(utt.fetch_seed())
         # If numbers are small, the gradients with respect to x are small
@@ -3898,7 +3907,7 @@ class TestScan:
             inner_fn, n_steps=10, truncate_gradient=-1, go_backwards=False
         )
         cost = list(updates.values())[0]
-        g_sh = theano.grad(cost, shared_var)
+        g_sh = grad(cost, shared_var)
         fgrad = theano.function([], g_sh)
         assert fgrad() == 1
 
@@ -3949,10 +3958,10 @@ class TestScan:
         )
 
         cost = ((hidden_rec - target) ** 2).mean()
-        d_cost_wrt_pars = theano.grad(cost, pars)
+        d_cost_wrt_pars = grad(cost, pars)
 
         p = dvector()
-        theano.gradient.Rop(d_cost_wrt_pars, pars, p)
+        Rop(d_cost_wrt_pars, pars, p)
 
     def test_seq_tap_bug_jeremiah(self):
         inp = np.arange(10).reshape(-1, 1).astype(config.floatX)
@@ -4024,7 +4033,7 @@ class TestScan:
             return (
                 tap_m2,
                 (tap_m1 * 1),
-                theano.gradient.disconnected_grad(tap_m2),
+                disconnected_grad(tap_m2),
                 assert_op(tap_m2, 1),
                 tap_m3 + tap_m2 + tap_m1,
             )
@@ -4065,14 +4074,14 @@ class TestScan:
         [x, y, z], _ = theano.scan(inner_fn, outputs_info=[x0, y0, z0], n_steps=10)
         cost = (x + y + z).sum()
 
-        theano.grad(cost, x0)  # defined
-        theano.grad(cost, y0)  # defined
+        grad(cost, x0)  # defined
+        grad(cost, y0)  # defined
 
         with pytest.raises(ValueError):
-            theano.grad(cost, z0)
+            grad(cost, z0)
         cost = x.sum()
         with pytest.raises(ValueError):
-            theano.grad(cost, y0)
+            grad(cost, y0)
 
     def test_disconnected_gradient(self):
         v = vector("v")
@@ -4084,7 +4093,7 @@ class TestScan:
         )
         # This used to raise an exception with older versions because for a
         # disconnected gradient a non disconnected type was returned
-        theano.grad((m * m2).sum(), v)
+        grad((m * m2).sum(), v)
 
     def test_disconnected_gradient2(self):
         v = vector("v")
@@ -4096,7 +4105,7 @@ class TestScan:
         )
         # This used to raise an exception with older versions because
         # scan could not detect the connection between `m2` and `x`
-        theano.grad(m2.sum(), m)
+        grad(m2.sum(), m)
 
     def test_disconnected_gradient3(self):
         # This tests for a crash that would occur sometimes when taking the
@@ -4111,7 +4120,7 @@ class TestScan:
             return out1, out2
 
         [out1, out2], _ = theano.scan(step, sequences=v)
-        gv = theano.grad(out2.sum(), [v])
+        gv = grad(out2.sum(), [v])
         f = theano.function([v], gv)
 
         # Ensure the output of the function is valid
@@ -4242,7 +4251,7 @@ class TestScan:
         )
 
         # This used to raise an exception
-        f = theano.function([v], theano.theano.grad(y.sum(), W))
+        f = theano.function([v], grad(y.sum(), W))
         utt.assert_allclose(f([1, 2]), [[0, 0, 0], [1, 1, 1], [1, 1, 1]])
 
     def test_clone(self):
@@ -4272,7 +4281,7 @@ class TestScan:
             outputs_info=init,
             n_steps=2,
         )
-        theano.grad(out[-1], w)
+        grad(out[-1], w)
 
     def test_scan_merge_nodes(self):
         inps = vector()
@@ -4462,7 +4471,7 @@ class TestScan:
         )
 
         cost = result_outer[0][-1]
-        H = theano.gradient.hessian(cost, W)
+        H = hessian(cost, W)
         print(".", file=sys.stderr)
         f = theano.function([W, n_steps], H)
         f(np.ones((8,), dtype="float32"), 1)
@@ -4748,7 +4757,7 @@ def test_compute_test_value():
         assert not updates
         z.name = "z"
         # The gradient computation used to crash before 6af465e.
-        theano.grad(z.sum(), x)
+        grad(z.sum(), x)
 
 
 def test_compute_test_value_nonseq():
@@ -4762,7 +4771,7 @@ def test_compute_test_value_nonseq():
         assert not updates
         z.name = "z"
         # The gradient computation used to crash before 6af465e.
-        theano.grad(z.sum(), x)
+        grad(z.sum(), x)
 
 
 def test_compute_test_value_grad():
@@ -4802,7 +4811,7 @@ def test_compute_test_value_grad():
         )
 
         loss = result_mi[-1]
-        theano.grad(loss, W_flat)
+        grad(loss, W_flat)
 
 
 def test_compute_test_value_grad_cast():
@@ -4822,7 +4831,7 @@ def test_compute_test_value_grad_cast():
             n_steps=3,
         )
 
-        theano.grad(outputs[0].sum(), w)
+        grad(outputs[0].sum(), w)
 
 
 def test_constant_folding_n_steps():
@@ -4877,7 +4886,7 @@ def test_default_value_broadcasted():
         outputs_info=[tt.alloc(floatx(0.0), 1, out_size)],
     )
     cost = tt.mean(value)
-    gW_x = theano.grad(cost, W_x)
+    gW_x = grad(cost, W_x)
     updates = [(W_x, W_x - 0.1 * gW_x)]
     f = theano.function([X], outputs=cost, updates=updates)
     f(np.random.rand(10, in_size).astype(X.dtype))
@@ -4894,7 +4903,7 @@ class TestInconsistentBroadcast:
         )
         # Error, because the broadcast patterns are inconsistent.
         with pytest.raises(TypeError):
-            theano.grad(y.sum(), x)
+            grad(y.sum(), x)
 
         # No error here, because the broadcast patterns are consistent.
         initial_x = tt.unbroadcast(initial_x, 0, 1)
@@ -4903,7 +4912,7 @@ class TestInconsistentBroadcast:
             sequences=x,
             outputs_info=[dict(initial=initial_x)],
         )
-        theano.grad(y.sum(), x)
+        grad(y.sum(), x)
 
 
 class TestMissingInputError:
@@ -4934,7 +4943,7 @@ class TestGradUntil:
             sequences=self.x,
             non_sequences=[self.threshold],
         )
-        g = theano.grad(r.sum(), self.x)
+        g = grad(r.sum(), self.x)
         f = theano.function([self.x, self.threshold], [r, g])
         theano_output, theano_gradient = f(self.seq, 5)
 
@@ -4953,7 +4962,7 @@ class TestGradUntil:
             sequences=X,
             non_sequences=[self.threshold],
         )
-        g = theano.grad(r.sum(), X)
+        g = grad(r.sum(), X)
         f = theano.function([X, self.threshold], [r, g])
         theano_output, theano_gradient = f(arr, 5)
 
@@ -4968,7 +4977,7 @@ class TestGradUntil:
             non_sequences=[self.threshold],
             truncate_gradient=n,
         )
-        g = theano.grad(r.sum(), self.x)
+        g = grad(r.sum(), self.x)
         f = theano.function([self.x, self.threshold], [r, g])
         theano_output, theano_gradient = f(self.seq, 5)
 
@@ -4984,7 +4993,7 @@ class TestGradUntil:
             non_sequences=[self.threshold],
             truncate_gradient=n,
         )
-        g = theano.grad(r.sum(), self.x)
+        g = grad(r.sum(), self.x)
         f = theano.function([self.x, self.threshold], [r, g])
         theano_output, theano_gradient = f(self.seq, 6)
 

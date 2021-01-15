@@ -28,7 +28,7 @@ from theano.graph.fg import FunctionGraph
 from theano.graph.op import get_test_value
 from theano.graph.opt import TopoOptimizer, local_optimizer
 from theano.graph.utils import TestValueError
-from theano.tensor.basic import get_scalar_constant_value
+from theano.tensor.basic import AllocEmpty, get_scalar_constant_value
 from theano.tensor.subtensor import set_subtensor
 from theano.tensor.var import TensorConstant
 
@@ -597,7 +597,7 @@ def expand_empty(tensor_var, size):
         return tensor_var
     shapes = [tensor_var.shape[x] for x in range(tensor_var.ndim)]
     new_shape = [size + shapes[0]] + shapes[1:]
-    empty = tt.AllocEmpty(tensor_var.dtype)(*new_shape)
+    empty = AllocEmpty(tensor_var.dtype)(*new_shape)
 
     ret = set_subtensor(empty[: shapes[0]], tensor_var)
     ret.tag.nan_guard_mode_check = False

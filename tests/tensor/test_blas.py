@@ -30,7 +30,7 @@ from theano.configdefaults import config
 from theano.graph.fg import FunctionGraph
 from theano.misc.safe_asarray import _asarray
 from theano.tensor import inplace
-from theano.tensor.basic import as_tensor_variable
+from theano.tensor.basic import Dot, as_tensor_variable
 from theano.tensor.blas import (
     Dot22,
     Dot22Scalar,
@@ -56,6 +56,7 @@ from theano.tensor.blas import (
     local_gemm_to_ger,
     res_is_a,
 )
+from theano.tensor.elemwise import DimShuffle
 from theano.tensor.nnet import sigmoid
 from theano.tensor.opt import in2out
 from theano.tensor.type import (
@@ -96,7 +97,7 @@ mode_blas_opt = mode_blas_opt.excluding("c_blas")
 
 
 def test_dot_eq():
-    assert tt.Dot() == tt.Dot()
+    assert Dot() == Dot()
 
 
 def sharedX(x, name):
@@ -575,9 +576,9 @@ class TestAsScalar:
         b = tt.constant(np.asarray([[[0.5]]]))
         b2 = b.dimshuffle()
         assert b2.ndim == 0
-        d_a = tt.DimShuffle([], [])(a)
-        d_b = tt.DimShuffle([True, True, True], [0, 2, 1])(b)
-        d_a2 = tt.DimShuffle([], ["x", "x", "x"])(a)
+        d_a = DimShuffle([], [])(a)
+        d_b = DimShuffle([True, True, True], [0, 2, 1])(b)
+        d_a2 = DimShuffle([], ["x", "x", "x"])(a)
 
         assert _as_scalar(a) == a
         assert _as_scalar(b) != b
@@ -589,13 +590,13 @@ class TestAsScalar:
         # Test that it fails on nonscalar constants
         a = tt.constant(np.ones(5))
         assert _as_scalar(a) is None
-        assert _as_scalar(tt.DimShuffle([False], [0, "x"])(a)) is None
+        assert _as_scalar(DimShuffle([False], [0, "x"])(a)) is None
 
     def test_basic_2(self):
         # Test that it works on scalar variables
         a = dscalar()
-        d_a = tt.DimShuffle([], [])(a)
-        d_a2 = tt.DimShuffle([], ["x", "x"])(a)
+        d_a = DimShuffle([], [])(a)
+        d_a2 = DimShuffle([], ["x", "x"])(a)
 
         assert _as_scalar(a) is a
         assert _as_scalar(d_a) is a
@@ -605,13 +606,13 @@ class TestAsScalar:
         # Test that it fails on nonscalar variables
         a = matrix()
         assert _as_scalar(a) is None
-        assert _as_scalar(tt.DimShuffle([False, False], [0, "x", 1])(a)) is None
+        assert _as_scalar(DimShuffle([False, False], [0, "x", 1])(a)) is None
 
 
 class TestRealMatrix:
     def test_basic(self):
-        assert _is_real_matrix(tt.DimShuffle([False, False], [1, 0])(matrix()))
-        assert not _is_real_matrix(tt.DimShuffle([False], ["x", 0])(dvector()))
+        assert _is_real_matrix(DimShuffle([False, False], [1, 0])(matrix()))
+        assert not _is_real_matrix(DimShuffle([False], ["x", 0])(dvector()))
 
 
 """
@@ -637,7 +638,7 @@ def just_gemm(i, o, ishapes=None, max_graphlen=0, expected_nb_gemm=1):
     nb_gemm = 0
     for node in f.maker.fgraph.apply_nodes:
         assert not isinstance(
-            node.op, tt.Dot
+            node.op, Dot
         ), "_dot22 not changed to gemm_inplace in graph"
         assert node.op != _dot22
         if node.op == gemm_inplace:
@@ -730,7 +731,7 @@ def test_gemm_opt_double_gemm():
         on_unused_input="ignore",
     )
     for node in f.maker.fgraph.apply_nodes:
-        assert not isinstance(node.op, tt.Dot)
+        assert not isinstance(node.op, Dot)
         assert node.op != _dot22
     g = inplace_func(
         i,
@@ -784,7 +785,7 @@ def test_gemm_canonicalize():
     assert len(can[2]) == 2
     assert can[2][0] == 1.0
     assert can[2][1].owner
-    assert isinstance(can[2][1].owner.op, tt.DimShuffle)
+    assert isinstance(can[2][1].owner.op, DimShuffle)
     assert can[2][1].owner.inputs == [v]
     fg.disown()
 
@@ -988,7 +989,7 @@ def test_gemm_unrolled():
                 if isinstance(
                     node.op,
                     (
-                        tt.Dot,
+                        Dot,
                         Dot22,
                         Gemm,
                     ),
@@ -1046,7 +1047,7 @@ def test_dot22():
             if dtype1 == dtype2:
                 assert _dot22 in [x.op for x in topo], (dtype1, dtype2)
             else:
-                check = [isinstance(x.op, tt.Dot) for x in topo]
+                check = [isinstance(x.op, Dot) for x in topo]
                 assert any(check), (dtype1, dtype2)
             rng = np.random.RandomState(unittest_tools.fetch_seed())
 
@@ -1116,7 +1117,7 @@ def test_dot22scalar():
                         elif dtype1 == dtype2:
                             assert _dot22 in ops, (dtype1, dtype2, dtype3, dtype4)
                         else:
-                            check = [isinstance(o, tt.Dot) for o in ops]
+                            check = [isinstance(o, Dot) for o in ops]
                             assert any(check), (dtype1, dtype2, dtype3, dtype4)
 
                     def cmp(a_shp, b_shp, c_shp, sqr_shp=(5, 5)):

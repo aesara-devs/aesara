@@ -21,6 +21,7 @@ from theano.gpuarray.subtensor import (
     GpuSubtensor,
 )
 from theano.gpuarray.type import gpuarray_shared_constructor
+from theano.tensor.basic import AllocDiag, ExtractDiag
 from theano.tensor.subtensor import advanced_inc_subtensor1, inc_subtensor
 from theano.tensor.type import ivectors, matrix, tensor, tensor4, vector
 
@@ -78,7 +79,7 @@ def test_advinc_subtensor1():
         yval[:] = 10
         x = shared(xval, name="x")
         y = tensor(dtype="float32", broadcastable=(False,) * len(shp), name="y")
-        expr = tt.advanced_inc_subtensor1(x, y, [0, 2])
+        expr = advanced_inc_subtensor1(x, y, [0, 2])
         f = theano.function([y], expr, mode=mode_with_gpu)
         assert (
             sum(
@@ -305,7 +306,7 @@ def test_adv_subtensor():
 class TestGpuExtractDiag:
     def test_extractdiag_opt(self):
         x = matrix()
-        fn = theano.function([x], tt.ExtractDiag()(x), mode=mode_with_gpu)
+        fn = theano.function([x], ExtractDiag()(x), mode=mode_with_gpu)
         assert any(
             [isinstance(node.op, GpuExtractDiag) for node in fn.maker.fgraph.toposort()]
         )
@@ -373,7 +374,7 @@ class TestGpuAllocDiag(TestAllocDiag):
 
     def test_allocdiag_opt(self):
         x = vector()
-        fn = theano.function([x], tt.AllocDiag()(x), mode=mode_with_gpu)
+        fn = theano.function([x], AllocDiag()(x), mode=mode_with_gpu)
         assert any(
             [isinstance(node.op, GpuAllocDiag) for node in fn.maker.fgraph.toposort()]
         )

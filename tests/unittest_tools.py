@@ -10,6 +10,8 @@ import theano
 import theano.tensor as tt
 from theano.compile.debugmode import str_diagnostic
 from theano.configdefaults import config
+from theano.gradient import verify_grad as orig_verify_grad
+from theano.tensor.basic import _allclose
 
 
 _logger = logging.getLogger("tests.unittest_tools")
@@ -74,7 +76,7 @@ def verify_grad(op, pt, n_tests=2, rng=None, *args, **kwargs):
     if rng is None:
         seed_rng()
         rng = np.random
-    tt.verify_grad(op, pt, n_tests, rng, *args, **kwargs)
+    orig_verify_grad(op, pt, n_tests, rng, *args, **kwargs)
 
 
 # A helpful class to check random values close to the boundaries
@@ -277,7 +279,7 @@ class WrongValue(Exception):
 
 
 def assert_allclose(expected, value, rtol=None, atol=None):
-    if not tt.basic._allclose(expected, value, rtol, atol):
+    if not _allclose(expected, value, rtol, atol):
         raise WrongValue(expected, value, rtol, atol)
 
 

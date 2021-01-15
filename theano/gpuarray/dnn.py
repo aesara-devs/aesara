@@ -37,7 +37,7 @@ from theano.scalar import bool as bool_t
 from theano.scalar import constant, get_scalar_type
 from theano.scalar import int32 as int_t
 from theano.scalar import uint32 as uint32_t
-from theano.tensor.basic import as_tensor_variable
+from theano.tensor.basic import NotScalarConstantError, as_tensor_variable
 from theano.tensor.extra_ops import cpu_contiguous
 from theano.tensor.nnet.abstract_conv import (
     AbstractConv2d,
@@ -3967,13 +3967,13 @@ def local_abstract_batch_norm_train_cudnn(fgraph, op, ctx_name, inputs, outputs)
 
     try:
         eps = tt.get_scalar_constant_value(epsilon)
-    except tt.NotScalarConstantError:
+    except NotScalarConstantError:
         return None
     if eps < 1e-5:
         return None
     try:
         running_average_factor = tt.get_scalar_constant_value(running_average_factor)
-    except tt.NotScalarConstantError:
+    except NotScalarConstantError:
         return None
 
     ctx = infer_context_name(*inputs)
@@ -4033,7 +4033,7 @@ def local_abstract_batch_norm_train_grad_cudnn(fgraph, op, ctx_name, inputs, out
 
     try:
         eps = tt.get_scalar_constant_value(epsilon)
-    except tt.NotScalarConstantError:
+    except NotScalarConstantError:
         return None
     if eps < 1e-5:
         return None
@@ -4076,7 +4076,7 @@ def local_abstract_batch_norm_inference_cudnn(fgraph, op, ctx_name, inputs, outp
 
     try:
         eps = tt.get_scalar_constant_value(epsilon)
-    except tt.NotScalarConstantError:
+    except NotScalarConstantError:
         return None
     if eps < 1e-5:
         return None

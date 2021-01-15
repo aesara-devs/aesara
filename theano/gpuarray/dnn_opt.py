@@ -51,8 +51,7 @@ from theano.gpuarray.reduction import GpuMaxAndArgmax
 from theano.gpuarray.type import list_contexts
 from theano.graph.opt import GlobalOptimizer, inherit_stack_trace, local_optimizer
 from theano.scalar import Log
-from theano.tensor import Argmax
-from theano.tensor.nnet import LogSoftmax, SoftmaxGrad
+from theano.tensor.basic import Argmax
 from theano.tensor.nnet.abstract_conv import (
     AbstractConv2d,
     AbstractConv2d_gradInputs,
@@ -63,6 +62,7 @@ from theano.tensor.nnet.abstract_conv import (
     assert_conv_shape,
     get_conv_output_shape,
 )
+from theano.tensor.nnet.nnet import LogSoftmax, SoftmaxGrad
 from theano.tensor.signal.pool import AveragePoolGrad, MaxPoolGrad, Pool
 
 

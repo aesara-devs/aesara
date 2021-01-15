@@ -27,6 +27,7 @@ from theano.scan import utils
 from theano.scan.op import Scan
 from theano.scan.utils import safe_new, traverse
 from theano.tensor import opt
+from theano.tensor.basic import NotScalarConstantError
 from theano.tensor.type import TensorType, integer_dtypes
 from theano.updates import OrderedUpdates
 
@@ -360,7 +361,7 @@ def scan(
     else:
         try:
             n_fixed_steps = opt.get_scalar_constant_value(n_steps)
-        except tt.NotScalarConstantError:
+        except NotScalarConstantError:
             n_fixed_steps = None
 
     # Check n_steps is an int

@@ -4,7 +4,11 @@ import theano
 import theano.tensor as tt
 from tests import unittest_tools as utt
 from theano.configdefaults import config
+from theano.gradient import Rop, grad
 from theano.scan.op import Scan
+from theano.tensor import nnet
+from theano.tensor.basic import Dot
+from theano.tensor.elemwise import Elemwise
 from theano.tensor.type import matrix, tensor3, vector
 
 
@@ -121,11 +125,9 @@ class GaussNewtonMatrix:
 
     def __call__(self, v, cost, parameters, damp):
         # compute Gauss-Newton Matrix right-multiplied by `v`
-        Jv = tt.Rop(self._s, parameters, v)
-        HJv = tt.grad(
-            tt.sum(tt.grad(cost, self._s) * Jv), self._s, consider_constant=[Jv]
-        )
-        JHJv = tt.grad(tt.sum(HJv * self._s), parameters, consider_constant=[HJv, Jv])
+        Jv = Rop(self._s, parameters, v)
+        HJv = grad(tt.sum(grad(cost, self._s) * Jv), self._s, consider_constant=[Jv])
+        JHJv = grad(tt.sum(HJv * self._s), parameters, consider_constant=[HJv, Jv])
 
         # apply Tikhonov damping
         JHJv = [JHJvi + damp * vi for JHJvi, vi in zip(JHJv, v)]
@@ -163,7 +165,7 @@ class TestPushOutScanOutputDot:
             node for node in f_opt.maker.fgraph.toposort() if isinstance(node.op, Scan)
         ][0]
         assert len(scan_node.op.outputs) == 1
-        assert not isinstance(scan_node.op.outputs[0], tt.Dot)
+        assert not isinstance(scan_node.op.outputs[0], Dot)
 
         # Ensure that the function compiled with the optimization produces
         # the same results as the function compiled without
@@ -207,7 +209,7 @@ class TestPushOutScanOutputDot:
         # NOTE: WHEN INFER_SHAPE IS REENABLED, BELOW THE SCAN MUST
         # HAVE ONLY 1 OUTPUT.
         assert len(scan_node.op.outputs) == 2
-        assert not isinstance(scan_node.op.outputs[0], tt.Dot)
+        assert not isinstance(scan_node.op.outputs[0], Dot)
 
         # Ensure that the function compiled with the optimization produces
         # the same results as the function compiled without
@@ -251,7 +253,7 @@ class TestPushOutScanOutputDot:
             node for node in f_opt.maker.fgraph.toposort() if isinstance(node.op, Scan)
         ][0]
         assert len(scan_node.op.outputs) == 2
-        assert not isinstance(scan_node.op.outputs[0], tt.Dot)
+        assert not isinstance(scan_node.op.outputs[0], Dot)
 
         # Ensure that the function compiled with the optimization produces
         # the same results as the function compiled without
@@ -318,8 +320,8 @@ class TestPushOutSumOfDot:
         ):
             pre_r = ri + h.dot(U)
             pre_z = zi + h.dot(V)
-            r = tt.nnet.sigmoid(pre_r)
-            z = tt.nnet.sigmoid(pre_z)
+            r = nnet.sigmoid(pre_r)
+            z = nnet.sigmoid(pre_z)
 
             after_r = r * h
             pre_h = x + after_r.dot(W)
@@ -340,7 +342,7 @@ class TestPushOutSumOfDot:
             mode=opt_mode,
         )
         cost = h[-1].sum()
-        grad1 = tt.grad(cost, [U, V, W])
+        grad1 = grad(cost, [U, V, W])
         f_opt = theano.function(inputs=[x, ri, zi], outputs=grad1, mode=opt_mode)
 
         no_opt_mode = mode.excluding("scanOp_pushout_output")
@@ -353,7 +355,7 @@ class TestPushOutSumOfDot:
             mode=no_opt_mode,
         )
         cost = h[-1].sum()
-        grad1 = tt.grad(cost, [U, V, W])
+        grad1 = grad(cost, [U, V, W])
         f_no_opt = theano.function(inputs=[x, ri, zi], outputs=grad1, mode=no_opt_mode)
 
         # Validate that the optimization has been applied
@@ -363,8 +365,8 @@ class TestPushOutSumOfDot:
 
         for output in scan_node_grad.op.outputs:
             assert not (
-                isinstance(output.owner.op, tt.elemwise.Elemwise)
-                and any([isinstance(i, tt.Dot) for i in output.owner.inputs])
+                isinstance(output.owner.op, Elemwise)
+                and any([isinstance(i, Dot) for i in output.owner.inputs])
             )
 
         # Compare the outputs of the two functions on the same input data.

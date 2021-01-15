@@ -10,8 +10,9 @@ from theano import shared
 from theano.compile.builders import OpFromGraph
 from theano.compile.function import function
 from theano.configdefaults import config
-from theano.gradient import DisconnectedType
+from theano.gradient import DisconnectedType, Rop, grad
 from theano.graph.null_type import NullType
+from theano.tensor.nnet import sigmoid
 from theano.tensor.random.utils import RandomStream
 from theano.tensor.type import TensorType, matrices, matrix, scalar, vector, vectors
 
@@ -64,7 +65,7 @@ class TestOpFromGraph(unittest_tools.InferShapeTester):
         e = x + y * z
         op = cls_ofg([x, y, z], [e])
         f = op(x, y, z)
-        f = f - tt.grad(tt.sum(f), y)
+        f = f - grad(tt.sum(f), y)
         fn = function([x, y, z], f)
         xv = np.ones((2, 2), dtype=config.floatX)
         yv = np.ones((2, 2), dtype=config.floatX) * 3
@@ -79,8 +80,8 @@ class TestOpFromGraph(unittest_tools.InferShapeTester):
         e = x + y * z
         op = cls_ofg([x, y, z], [e])
         f = op(x, y, z)
-        f = f - tt.grad(tt.sum(f), y)
-        f = f - tt.grad(tt.sum(f), y)
+        f = f - grad(tt.sum(f), y)
+        f = f - grad(tt.sum(f), y)
         fn = function([x, y, z], f)
         xv = np.ones((2, 2), dtype=config.floatX)
         yv = np.ones((2, 2), dtype=config.floatX) * 3
@@ -116,7 +117,7 @@ class TestOpFromGraph(unittest_tools.InferShapeTester):
         e = x + y * z + s
         op = cls_ofg([x, y, z], [e])
         f = op(x, y, z)
-        f = f - tt.grad(tt.sum(f), y)
+        f = f - grad(tt.sum(f), y)
         fn = function([x, y, z], f)
         xv = np.ones((2, 2), dtype=config.floatX)
         yv = np.ones((2, 2), dtype=config.floatX) * 3
@@ -125,7 +126,7 @@ class TestOpFromGraph(unittest_tools.InferShapeTester):
 
         # grad again the shared variable
         f = op(x, y, z)
-        f = f - tt.grad(tt.sum(f), s)
+        f = f - grad(tt.sum(f), s)
         fn = function([x, y, z], f)
         assert np.allclose(15.0 + s.get_value(), fn(xv, yv, zv))
 
@@ -150,7 +151,7 @@ class TestOpFromGraph(unittest_tools.InferShapeTester):
         xx, yy = vector("xx"), vector("yy")
         for op in [op_mul, op_mul2]:
             zz = tt.sum(op(xx, yy))
-            dx, dy = tt.grad(zz, [xx, yy])
+            dx, dy = grad(zz, [xx, yy])
             fn = function([xx, yy], [dx, dy])
             xv = np.random.rand(16).astype(config.floatX)
             yv = np.random.rand(16).astype(config.floatX)
@@ -176,7 +177,7 @@ class TestOpFromGraph(unittest_tools.InferShapeTester):
         )
         xx, ww, bb = vector("xx"), vector("yy"), vector("bb")
         zz = tt.sum(op_linear(xx, ww, bb))
-        dx, dw, db = tt.grad(zz, [xx, ww, bb])
+        dx, dw, db = grad(zz, [xx, ww, bb])
         fn = function([xx, ww, bb], [dx, dw, db])
         xv = np.random.rand(16).astype(config.floatX)
         wv = np.random.rand(16).astype(config.floatX)
@@ -193,7 +194,7 @@ class TestOpFromGraph(unittest_tools.InferShapeTester):
             grad_overrides=[go1, NullType()(), DisconnectedType()()],
         )
         zz2 = tt.sum(op_linear2(xx, ww, bb))
-        dx2, dw2, db2 = tt.grad(
+        dx2, dw2, db2 = grad(
             zz2,
             [xx, ww, bb],
             return_disconnected="Disconnected",
@@ -221,13 +222,13 @@ class TestOpFromGraph(unittest_tools.InferShapeTester):
         op_lop_ov = cls_ofg([x, y_, dedy], [2.0 * y_ * (1.0 - y_) * dedy])
 
         xx = vector()
-        yy1 = tt.sum(tt.nnet.sigmoid(xx))
-        gyy1 = 2.0 * tt.grad(yy1, xx)
+        yy1 = tt.sum(sigmoid(xx))
+        gyy1 = 2.0 * grad(yy1, xx)
 
         for ov in [lop_ov, op_lop_ov]:
             op = cls_ofg([x], [y], lop_overrides=ov)
             yy2 = tt.sum(op(xx))
-            gyy2 = tt.grad(yy2, xx)
+            gyy2 = grad(yy2, xx)
             fn = function([xx], [gyy1, gyy2])
 
             xval = np.random.rand(32).astype(config.floatX)
@@ -246,7 +247,7 @@ class TestOpFromGraph(unittest_tools.InferShapeTester):
         W = matrix()
         y = op_matmul(x, W)
         du = vector()
-        dv = tt.Rop(y, x, du)
+        dv = Rop(y, x, du)
         fn = function([x, W, du], dv)
         xval = np.random.rand(16).astype(config.floatX)
         Wval = np.random.rand(16, 16).astype(config.floatX)
@@ -276,7 +277,7 @@ class TestOpFromGraph(unittest_tools.InferShapeTester):
         du, dv = vector("du"), vector("dv")
         for op in [op_mul, op_mul2]:
             zz = op_mul(xx, yy)
-            dw = tt.Rop(zz, [xx, yy], [du, dv])
+            dw = Rop(zz, [xx, yy], [du, dv])
             fn = function([xx, yy, du, dv], dw)
             vals = np.random.rand(4, 32).astype(config.floatX)
             dwval = fn(*vals)
@@ -406,5 +407,5 @@ class TestOpFromGraph(unittest_tools.InferShapeTester):
         y = scalar("y")
         y.tag.test_value = np.array(1.0, dtype=config.floatX)
         f = op(y)
-        grad_f = tt.grad(f, y)
+        grad_f = grad(f, y)
         assert grad_f.tag.test_value is not None

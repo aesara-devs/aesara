@@ -10,6 +10,7 @@ from theano.gradient import grad_not_implemented, grad_undefined
 from theano.graph.basic import Apply
 from theano.graph.op import COp
 from theano.graph.type import EnumList
+from theano.tensor.type import matrix
 
 
 class Images2Neibs(COp):
@@ -111,7 +112,7 @@ class Images2Neibs(COp):
         assert neib_step.ndim == 1
 
         return Apply(
-            self, [ten4, neib_shape, neib_step], [tt.type.matrix(dtype=ten4.type.dtype)]
+            self, [ten4, neib_shape, neib_step], [matrix(dtype=ten4.type.dtype)]
         )
 
     def grad(self, inp, grads):

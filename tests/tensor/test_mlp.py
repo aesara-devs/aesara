@@ -12,6 +12,7 @@ import numpy as np
 
 import theano
 import theano.tensor as tt
+from theano.tensor.nnet.nnet import CrossentropySoftmax1HotWithBiasDx, softmax
 from theano.tensor.type import ivector, lscalar, matrix
 
 
@@ -97,7 +98,7 @@ class LogisticRegression:
         )
 
         # compute vector of class-membership probabilities in symbolic form
-        self.p_y_given_x = tt.nnet.softmax(tt.dot(input, self.W))
+        self.p_y_given_x = softmax(tt.dot(input, self.W))
 
         # compute prediction as class whose probability is maximal in
         # symbolic form
@@ -329,7 +330,7 @@ def test_mlp():
     # theano.printing.debugprint(train_model, print_type=True)
     assert any(
         [
-            isinstance(i.op, tt.nnet.CrossentropySoftmax1HotWithBiasDx)
+            isinstance(i.op, CrossentropySoftmax1HotWithBiasDx)
             for i in train_model.maker.fgraph.toposort()
         ]
     )
@@ -349,7 +350,7 @@ def test_mlp():
     # theano.printing.debugprint(train_model, print_type=True)
     assert any(
         [
-            isinstance(i.op, tt.nnet.CrossentropySoftmax1HotWithBiasDx)
+            isinstance(i.op, CrossentropySoftmax1HotWithBiasDx)
             for i in train_model.maker.fgraph.toposort()
         ]
     )

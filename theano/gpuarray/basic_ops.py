@@ -18,7 +18,14 @@ from theano.graph.utils import MethodNotDefined
 from theano.link.c.interface import HideC
 from theano.scalar import bool as bool_t
 from theano.scalar import int32 as int32_t
-from theano.tensor.basic import Alloc, AllocEmpty, Join, Split, alloc_validate_shape
+from theano.tensor.basic import (
+    Alloc,
+    AllocEmpty,
+    Join,
+    Reshape,
+    Split,
+    alloc_validate_shape,
+)
 from theano.tensor.type import TensorType, values_eq_approx_always_true
 
 
@@ -1215,7 +1222,7 @@ class GpuContiguous(Op):
 gpu_contiguous = GpuContiguous()
 
 
-class GpuReshape(HideC, tt.Reshape):
+class GpuReshape(HideC, Reshape):
     """
     Reshape for GPU variables.
 
@@ -1223,7 +1230,7 @@ class GpuReshape(HideC, tt.Reshape):
 
     _f16_ok = True
 
-    # __hash__, __eq__, __str__ come from tt.Reshape
+    # __hash__, __eq__, __str__ come from Reshape
     def make_node(self, x, shp):
         ctx_name = infer_context_name(x)
         x = as_gpuarray_variable(x, context_name=ctx_name)

@@ -266,10 +266,10 @@ There are other methods that can be optionally defined by the op:
   NullType for that input. Please refer to :func:`grad` for a more detailed
   view.
 
-  The :func:`R_op` method is needed if you want ``theano.tensor.Rop`` to
-  work with your op.
+  The :func:`R_op` method is needed if you want ``theano.gradient.Rop`` to
+  work with your `Op`.
   This function implements the application of the R-operator on the
-  function represented by your op. Let assume that function is :math:`f`,
+  function represented by your `Op`. Let assume that function is :math:`f`,
   with input :math:`x`, applying the R-operator means computing the
   Jacobian of :math:`f` and right-multiplying it by :math:`v`, the evaluation
   point, namely: :math:`\frac{\partial f}{\partial x} v`.

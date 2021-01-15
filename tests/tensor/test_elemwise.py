@@ -809,7 +809,7 @@ class TestProd:
             ],
         )
 
-        tt.verify_grad(p, [x_val1], rng=rng, mode=self.mode)
+        utt.verify_grad(p, [x_val1], rng=rng, mode=self.mode)
 
     def test_mul_without_zeros_zeros(self):
         a = np.zeros((3, 3))
@@ -1399,7 +1399,7 @@ def test_not_implemented_elemwise_grad():
             dy_dx = n
             return [theano.gradient.grad_not_implemented(self, 0, n), gz * dy_dx]
 
-    test_op = tt.Elemwise(TestOp())
+    test_op = Elemwise(TestOp())
     x = scalar()
     assert isinstance(theano.gradient.grad(test_op(2, x), x), Variable)
 

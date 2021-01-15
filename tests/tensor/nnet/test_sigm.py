@@ -13,6 +13,7 @@ from tests.tensor.utils import (
 from theano.configdefaults import config
 from theano.graph.opt import check_stack_trace
 from theano.graph.toolbox import is_same_graph
+from theano.tensor.basic import Reshape
 from theano.tensor.inplace import neg_inplace
 from theano.tensor.nnet import (
     hard_sigmoid,
@@ -505,7 +506,7 @@ class TestSoftplusOpts:
         f = theano.function([x], out, mode=self.m)
         topo = f.maker.fgraph.toposort()
         # assert len(topo) == 3
-        assert any(isinstance(node.op, tt.Reshape) for node in topo)
+        assert any(isinstance(node.op, Reshape) for node in topo)
         assert any(
             isinstance(
                 getattr(node.op, "scalar_op", None),

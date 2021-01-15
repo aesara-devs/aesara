@@ -10,6 +10,7 @@ from theano.configdefaults import config
 from theano.graph.basic import Constant, Variable, graph_inputs
 from theano.graph.fg import FunctionGraph
 from theano.graph.op import get_test_value
+from theano.tensor.opt import ShapeFeature
 from theano.tensor.random.basic import (
     bernoulli,
     beta,
@@ -148,7 +149,7 @@ def test_normal_ShapeFeature():
         [i for i in graph_inputs([d_rv]) if not isinstance(i, Constant)],
         [d_rv],
         clone=False,
-        features=[tt.opt.ShapeFeature()],
+        features=[ShapeFeature()],
     )
     s1, s2 = fg.shape_feature.shape_of[d_rv]
 
@@ -299,7 +300,7 @@ def test_mvnormal_ShapeFeature():
         [i for i in graph_inputs([d_rv]) if not isinstance(i, Constant)],
         [d_rv],
         clone=False,
-        features=[tt.opt.ShapeFeature()],
+        features=[ShapeFeature()],
     )
 
     s1, s2 = fg.shape_feature.shape_of[d_rv]
@@ -322,7 +323,7 @@ def test_mvnormal_ShapeFeature():
         [i for i in graph_inputs([d_rv]) if not isinstance(i, Constant)],
         [d_rv],
         clone=False,
-        features=[tt.opt.ShapeFeature()],
+        features=[ShapeFeature()],
     )
 
     s1, s2, s3, s4 = fg.shape_feature.shape_of[d_rv]
@@ -395,7 +396,7 @@ def test_dirichlet_ShapeFeature():
         [i for i in graph_inputs([d_rv]) if not isinstance(i, Constant)],
         [d_rv],
         clone=False,
-        features=[tt.opt.ShapeFeature()],
+        features=[ShapeFeature()],
     )
 
     s1, s2 = fg.shape_feature.shape_of[d_rv]

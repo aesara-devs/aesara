@@ -31,7 +31,7 @@ from theano.configdefaults import config
 
 
 __docformat__ = "restructuredtext en"
-__authors__ = "Pascal Lamblin"
+__authors__ = "Pascal Lamblin" "PyMC Developers"
 __copyright__ = "Copyright 2013, Universite de Montreal"
 __license__ = "3-clause BSD"
 
@@ -63,7 +63,7 @@ class StripPickler(Pickler):
 
     def __init__(self, file, protocol=0, extra_tag_to_remove=None):
         # Can't use super as Pickler isn't a new style class
-        Pickler.__init__(self, file, protocol)
+        super().__init__(file, protocol)
         self.tag_to_remove = ["trace", "test_value"]
         if extra_tag_to_remove:
             self.tag_to_remove.extend(extra_tag_to_remove)
@@ -75,7 +75,7 @@ class StripPickler(Pickler):
                 if hasattr(obj, tag):
                     del obj.__dict__[tag]
         # Remove manually-added docstring of Elemwise ops
-        elif isinstance(obj, theano.tensor.Elemwise):
+        elif isinstance(obj, theano.tensor.elemwise.Elemwise):
             if "__doc__" in obj.__dict__:
                 del obj.__dict__["__doc__"]
 

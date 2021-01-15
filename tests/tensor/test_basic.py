@@ -12,7 +12,7 @@ from numpy.testing import assert_allclose, assert_almost_equal, assert_array_equ
 
 import theano
 import theano.scalar as ts
-import theano.tensor as tt
+import theano.tensor.basic as tt
 from tests import unittest_tools as utt
 from tests.tensor.utils import (
     ALL_DTYPES,
@@ -71,9 +71,9 @@ from tests.tensor.utils import (
 )
 from theano import compile, config, function, shared
 from theano.assert_op import Assert
-from theano.compile import DeepCopyOp
 from theano.compile.io import In, Out
 from theano.compile.mode import get_default_mode
+from theano.compile.ops import DeepCopyOp, Shape, Shape_i, shape
 from theano.gradient import grad, hessian, numeric_grad
 from theano.graph.basic import Apply, Variable
 from theano.graph.fg import FunctionGraph
@@ -81,7 +81,8 @@ from theano.graph.op import Op
 from theano.link.c.basic import DualLinker
 from theano.misc.safe_asarray import _asarray
 from theano.scalar import autocast_float, autocast_float_as
-from theano.tensor import (
+from theano.tensor import blas, blas_c, opt
+from theano.tensor.basic import (
     Alloc,
     AllocDiag,
     AllocEmpty,
@@ -89,16 +90,17 @@ from theano.tensor import (
     Argmax,
     Choose,
     Dot,
+    EmptyConstantError,
     ExtractDiag,
     Eye,
     Join,
     MaxAndArgmax,
     Mean,
     NoneConst,
+    NotScalarConstantError,
     PermuteRowElements,
     Reshape,
     ScalarFromTensor,
-    Shape,
     Split,
     TensorFromScalar,
     Tile,
@@ -144,7 +146,6 @@ from theano.tensor import (
     nonzero,
     nonzero_values,
     ogrid,
-    opt,
     patternbroadcast,
     permute_row_elements,
     power,
@@ -153,7 +154,6 @@ from theano.tensor import (
     roll,
     scalar_from_tensor,
     second,
-    shape,
     smallest,
     stack,
     stacklists,
@@ -2355,7 +2355,7 @@ class TestMinMax:
 
 def test_basic_allclose():
     # This was raised by a user in https://github.com/Theano/Theano/issues/2975
-    assert tt.basic._allclose(-0.311023883434, -0.311022856884)
+    assert tt._allclose(-0.311023883434, -0.311022856884)
 
 
 class TestOuter:
@@ -3701,7 +3701,7 @@ class TestDot:
         utt.seed_rng()
 
     def test_Op_dims(self):
-        _dot = tt.basic._dot
+        _dot = tt._dot
         d0 = scalar()
         d1 = vector()
         d2 = matrix()
@@ -3972,7 +3972,7 @@ class TestReshape(utt.InferShapeTester, utt.OptimizationTestMixin):
         self.ignore_topo = (
             DeepCopyOp,
             opt.MakeVector,
-            opt.Shape_i,
+            Shape_i,
             DimShuffle,
             Elemwise,
         )
@@ -5708,7 +5708,7 @@ class TestBroadcast:
         topo = f.maker.fgraph.toposort()
         if config.mode != "FAST_COMPILE":
             assert len(topo) == 2
-            assert isinstance(topo[0].op, opt.Shape_i)
+            assert isinstance(topo[0].op, Shape_i)
             assert isinstance(topo[1].op, opt.MakeVector)
 
         x = matrix()
@@ -5718,8 +5718,8 @@ class TestBroadcast:
         topo = f.maker.fgraph.toposort()
         if config.mode != "FAST_COMPILE":
             assert len(topo) == 3
-            assert isinstance(topo[0].op, opt.Shape_i)
-            assert isinstance(topo[1].op, opt.Shape_i)
+            assert isinstance(topo[0].op, Shape_i)
+            assert isinstance(topo[1].op, Shape_i)
             assert isinstance(topo[2].op, opt.MakeVector)
 
         x = row()
@@ -5729,7 +5729,7 @@ class TestBroadcast:
         topo = f.maker.fgraph.toposort()
         if config.mode != "FAST_COMPILE":
             assert len(topo) == 2
-            assert isinstance(topo[0].op, opt.Shape_i)
+            assert isinstance(topo[0].op, Shape_i)
             assert isinstance(topo[1].op, opt.MakeVector)
 
 
@@ -5834,7 +5834,7 @@ class TestGetScalarConstantValue:
 
         b = iscalar()
         a = tt.stack([b, 2, 3])
-        with pytest.raises(tt.basic.NotScalarConstantError):
+        with pytest.raises(NotScalarConstantError):
             get_scalar_constant_value(a[0])
         assert get_scalar_constant_value(a[1]) == 2
         assert get_scalar_constant_value(a[2]) == 3
@@ -5843,11 +5843,11 @@ class TestGetScalarConstantValue:
         # scalars.
         v = ivector()
         a = tt.stack([v, [2], [3]])
-        with pytest.raises(tt.NotScalarConstantError):
+        with pytest.raises(NotScalarConstantError):
             get_scalar_constant_value(a[0])
-        with pytest.raises(tt.NotScalarConstantError):
+        with pytest.raises(NotScalarConstantError):
             get_scalar_constant_value(a[1])
-        with pytest.raises(tt.NotScalarConstantError):
+        with pytest.raises(NotScalarConstantError):
             get_scalar_constant_value(a[2])
 
         # Test the case SubTensor(Shape(v)) when the dimensions
@@ -5880,14 +5880,14 @@ class TestGetScalarConstantValue:
     def test_numpy_array(self):
         # Regression test for crash when called on a numpy array.
         assert get_scalar_constant_value(np.array(3)) == 3
-        with pytest.raises(tt.NotScalarConstantError):
+        with pytest.raises(NotScalarConstantError):
             get_scalar_constant_value(np.array([0, 1]))
-        with pytest.raises(tt.EmptyConstantError):
+        with pytest.raises(EmptyConstantError):
             get_scalar_constant_value(np.array([]))
 
     def test_make_vector(self):
         mv = opt.make_vector(1, 2, 3)
-        with pytest.raises(tt.NotScalarConstantError):
+        with pytest.raises(NotScalarConstantError):
             get_scalar_constant_value(mv)
         assert get_scalar_constant_value(mv[0]) == 1
         assert get_scalar_constant_value(mv[1]) == 2
@@ -5896,17 +5896,17 @@ class TestGetScalarConstantValue:
         assert get_scalar_constant_value(mv[np.int64(1)]) == 2
         assert get_scalar_constant_value(mv[np.uint(2)]) == 3
         t = ts.Scalar("int64")
-        with pytest.raises(tt.NotScalarConstantError):
+        with pytest.raises(NotScalarConstantError):
             get_scalar_constant_value(mv[t()])
 
     def test_shape_i(self):
         c = constant(np.random.rand(3, 4))
-        s = opt.Shape_i(0)(c)
+        s = Shape_i(0)(c)
         assert get_scalar_constant_value(s) == 3
-        s = opt.Shape_i(1)(c)
+        s = Shape_i(1)(c)
         assert get_scalar_constant_value(s) == 4
         d = theano.shared(np.random.randn(1, 1), broadcastable=(True, True))
-        f = ScalarFromTensor()(opt.Shape_i(0)(d))
+        f = ScalarFromTensor()(Shape_i(0)(d))
         assert get_scalar_constant_value(f) == 1
 
     def test_elemwise(self):
@@ -5937,12 +5937,12 @@ class TestGetScalarConstantValue:
         with config.change_flags(compute_test_value="off"):
             # condition is always False
             a = Assert()(c, c > 2)
-            with pytest.raises(tt.NotScalarConstantError):
+            with pytest.raises(NotScalarConstantError):
                 get_scalar_constant_value(a)
 
         # condition is not constant
         a = Assert()(c, c > x)
-        with pytest.raises(tt.NotScalarConstantError):
+        with pytest.raises(NotScalarConstantError):
             get_scalar_constant_value(a)
 
     def test_second(self):
@@ -6362,7 +6362,7 @@ class TestInferShape(utt.InferShapeTester):
             [advec, bdvec],
             [Dot()(advec, bdvec)],
             [advec_val, bdvec_val],
-            (Dot, tt.blas.Dot22, tt.blas.Gemv, tt.blas_c.CGemv),
+            (Dot, blas.Dot22, blas.Gemv, blas_c.CGemv),
         )
 
         # mat/mat
@@ -6374,7 +6374,7 @@ class TestInferShape(utt.InferShapeTester):
             [admat, bdmat],
             [Dot()(admat, bdmat)],
             [admat_val, bdmat_val],
-            (Dot, tt.blas.Dot22),
+            (Dot, blas.Dot22),
         )
 
         # vec/mat
@@ -6383,7 +6383,7 @@ class TestInferShape(utt.InferShapeTester):
             [advec, bdmat],
             [Dot()(advec, bdmat)],
             [advec_val, bdmat_val],
-            (Dot, tt.blas.Dot22, tt.blas.Gemv, tt.blas_c.CGemv),
+            (Dot, blas.Dot22, blas.Gemv, blas_c.CGemv),
         )
 
         # mat/vec
@@ -6392,7 +6392,7 @@ class TestInferShape(utt.InferShapeTester):
             [admat, bdvec],
             [Dot()(admat, bdvec)],
             [admat_val, bdvec_val],
-            (Dot, tt.blas.Dot22, tt.blas.Gemv, tt.blas_c.CGemv),
+            (Dot, blas.Dot22, blas.Gemv, blas_c.CGemv),
         )
 
         # Split

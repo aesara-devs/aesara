@@ -51,6 +51,7 @@ from theano.graph.utils import (
     get_variable_trace_string,
 )
 from theano.misc.safe_asarray import _asarray
+from theano.printing import pprint
 
 # Work-around for Python 3.6 issue that prevents `import theano.tensor as tt`
 from theano.tensor import basic as tt
@@ -1004,7 +1005,7 @@ class MakeVectorPrinter:
             raise TypeError("Can only print make_vector.")
 
 
-tt.pprint.assign(MakeVector, MakeVectorPrinter())
+pprint.assign(MakeVector, MakeVectorPrinter())
 
 
 class ShapeFeature(toolbox.Feature):
@@ -4175,9 +4176,9 @@ def local_sumsqr2dot(fgraph, node):
                 in_mul1, in_mul2 = in_sqr.owner.inputs
 
                 if (
-                    isinstance(in_mul1.owner.op, tt.elemwise.DimShuffle)
+                    isinstance(in_mul1.owner.op, DimShuffle)
                     and in_mul1.owner.op.new_order == ("x", 0, 1)
-                    and isinstance(in_mul2.owner.op, tt.elemwise.DimShuffle)
+                    and isinstance(in_mul2.owner.op, DimShuffle)
                     and in_mul2.owner.op.new_order == (0, "x", 1)
                 ):
                     W = in_mul1.owner.inputs[0]

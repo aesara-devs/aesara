@@ -207,7 +207,7 @@ class GpuMaxPoolGrad(CGpuKernelBase):
             GpuDownsampleFactorMaxGradGrad(
                 ndim=self.ndim, ignore_border=self.ignore_border
             )(x, maxout, ggx, ws, stride, pad),
-        ] + [theano.tensor.DisconnectedType()() for i in inp[3:]]
+        ] + [theano.gradient.DisconnectedType()() for i in inp[3:]]
 
     def connection_pattern(self, node):
         return [[1], [1], [1], [0], [0], [0]]

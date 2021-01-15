@@ -86,7 +86,14 @@ from theano.scan.utils import (
     scan_args,
     scan_can_remove_outs,
 )
-from theano.tensor import Alloc, AllocEmpty, get_scalar_constant_value, opt
+from theano.tensor import opt
+from theano.tensor.basic import (
+    Alloc,
+    AllocEmpty,
+    Dot,
+    NotScalarConstantError,
+    get_scalar_constant_value,
+)
 from theano.tensor.elemwise import DimShuffle, Elemwise
 from theano.tensor.subtensor import (
     IncSubtensor,
@@ -779,7 +786,7 @@ class PushOutScanOutput(GlobalOptimizer):
 
                     if (
                         dot_input.owner is not None
-                        and isinstance(dot_input.owner.op, tt.Dot)
+                        and isinstance(dot_input.owner.op, Dot)
                         and len(clients[dot_input]) == 1
                         and dot_input.owner.inputs[0].ndim == 2
                         and dot_input.owner.inputs[1].ndim == 2
@@ -1871,13 +1878,13 @@ class ScanMerge(GlobalOptimizer):
         nsteps = node.inputs[0]
         try:
             nsteps = int(get_scalar_constant_value(nsteps))
-        except tt.NotScalarConstantError:
+        except NotScalarConstantError:
             pass
 
         rep_nsteps = rep.inputs[0]
         try:
             rep_nsteps = int(get_scalar_constant_value(rep_nsteps))
-        except tt.NotScalarConstantError:
+        except NotScalarConstantError:
             pass
 
         if nsteps != rep_nsteps:
@@ -2181,7 +2188,7 @@ class PushOutDot1(GlobalOptimizer):
                 # We need to check if x is the result of an outer product
                 if (
                     x.owner
-                    and isinstance(x.owner.op, tt.Dot)
+                    and isinstance(x.owner.op, Dot)
                     and x.owner.inputs[0].ndim == 2
                     and x.owner.inputs[1].ndim == 2
                 ):

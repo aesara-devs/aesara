@@ -31,11 +31,25 @@ from theano.graph.opt import (
 )
 from theano.graph.optdb import Query
 from theano.misc.safe_asarray import _asarray
-from theano.tensor import Join, as_tensor_variable, inplace, join, tile
-from theano.tensor.basic import _convert_to_int8
+from theano.tensor import inplace
+from theano.tensor.basic import (
+    Alloc,
+    Dot,
+    Join,
+    MaxAndArgmax,
+    Rebroadcast,
+    Reshape,
+    ScalarFromTensor,
+    Split,
+    TensorFromScalar,
+    _convert_to_int8,
+    as_tensor_variable,
+    join,
+    tile,
+)
 from theano.tensor.blas import Dot22, Gemv
 from theano.tensor.blas_c import CGemv
-from theano.tensor.elemwise import CAReduce, DimShuffle, Elemwise, Prod
+from theano.tensor.elemwise import CAReduce, DimShuffle, Elemwise, Prod, Sum
 from theano.tensor.nnet.sigm import softplus
 from theano.tensor.opt import (
     MakeVector,
@@ -60,6 +74,8 @@ from theano.tensor.subtensor import (
     AdvancedSubtensor1,
     IncSubtensor,
     Subtensor,
+    advanced_inc_subtensor,
+    advanced_inc_subtensor1,
     inc_subtensor,
     set_subtensor,
 )
@@ -720,12 +736,12 @@ class TestCanonize:
             if sym_inputs[0].broadcastable[0]:
                 assert len(topo) == 2
                 assert isinstance(topo[0].op, Shape_i)
-                assert isinstance(topo[1].op, tt.Alloc)
+                assert isinstance(topo[1].op, Alloc)
             else:
                 assert len(topo) == 3
                 assert isinstance(topo[0].op, Shape_i)
                 assert isinstance(topo[1].op, Shape_i)
-                assert isinstance(topo[2].op, tt.Alloc)
+                assert isinstance(topo[2].op, Alloc)
             assert out_dtype == out.dtype
 
         # test (x * y) / x -> y
@@ -750,7 +766,7 @@ class TestCanonize:
             if topo and not (len(topo) == 1 and topo[0].op == deep_copy_op):
                 for node in topo[:-1]:
                     assert isinstance(node.op, Shape_i)
-                assert isinstance(topo[-1].op, tt.Alloc)
+                assert isinstance(topo[-1].op, Alloc)
 
         # test x / y / x -> 1 / y
         for id, (g, sym_inputs, val_inputs, nb_elemwise, out_dtype) in enumerate(
@@ -2713,7 +2729,7 @@ class TestSubtensorIncSubtensor:
         z = y[:i1, :i2]
         f = function([x, i1, i2, v], z, mode=self.mode)
         prog = f.maker.fgraph.toposort()
-        assert any(isinstance(x.op, tt.Alloc) for x in prog)
+        assert any(isinstance(x.op, Alloc) for x in prog)
         # case when v is broadcastable, numerical check
         x_ = np.random.uniform(size=[3, 4]).astype(config.floatX)
         v_ = np.random.uniform(
@@ -2735,7 +2751,7 @@ class TestSubtensorIncSubtensor:
         z = y[:i1, :i2]
         f = function([x, i1, i2, v], z, mode=self.mode)
         prog = f.maker.fgraph.toposort()
-        assert any(isinstance(x.op, tt.Alloc) for x in prog)
+        assert any(isinstance(x.op, Alloc) for x in prog)
         # case when v is broadcastable, numerical check
         x_ = np.random.uniform(size=[3, 4]).astype(config.floatX)
         v_ = np.random.uniform(size=[2, 1]).astype(config.floatX)
@@ -2997,54 +3013,54 @@ class TestLocalSubtensorLift:
         x = matrix("x")
         xval = np.random.rand(1, 10).astype(config.floatX)
         assert x.broadcastable == (False, False)
-        newx = tt.Rebroadcast((0, True), (1, False))(x)
+        newx = Rebroadcast((0, True), (1, False))(x)
         assert newx.broadcastable == (True, False)
 
         f1 = function([x], newx[:2, :5], mode=mode_opt)
         # Check stacktrace was copied over correctly after opt was applied
-        assert check_stack_trace(f1, ops_to_check=[Subtensor, tt.Rebroadcast])
+        assert check_stack_trace(f1, ops_to_check=[Subtensor, Rebroadcast])
         prog = f1.maker.fgraph.toposort()
         assert isinstance(prog[0].op, Subtensor)
-        assert isinstance(prog[1].op, tt.Rebroadcast)
+        assert isinstance(prog[1].op, Rebroadcast)
         assert (f1(xval) == xval[:2, :5]).all()
 
         # corner case 1: rebroadcast changes dims which are dropped through subtensor
         y = tensor4("x")
         yval = np.random.rand(1, 10, 1, 3).astype(config.floatX)
         assert y.broadcastable == (False, False, False, False)
-        newy = tt.Rebroadcast((0, True), (2, True))(y)
+        newy = Rebroadcast((0, True), (2, True))(y)
         assert newy.broadcastable == (True, False, True, False)
 
         f2 = function([y], newy[:, 3, 0, :], mode=mode_opt)
         # Check stacktrace was copied over correctly after opt was applied
-        assert check_stack_trace(f2, ops_to_check=[Subtensor, tt.Rebroadcast])
+        assert check_stack_trace(f2, ops_to_check=[Subtensor, Rebroadcast])
         prog = f2.maker.fgraph.toposort()
         assert isinstance(prog[0].op, Subtensor)
-        assert isinstance(prog[1].op, tt.Rebroadcast)
+        assert isinstance(prog[1].op, Rebroadcast)
         assert (f2(yval) == yval[:, 3, 0, :]).all()
 
         # corner case 2: subtensor idx_list is shorter than resulting broadcast pattern
         f3 = function([y], newy[:, 3, 0], mode=mode_opt)
         # Check stacktrace was copied over correctly after opt was applied
-        assert check_stack_trace(f3, ops_to_check=[Subtensor, tt.Rebroadcast])
+        assert check_stack_trace(f3, ops_to_check=[Subtensor, Rebroadcast])
         prog = f3.maker.fgraph.toposort()
         assert isinstance(prog[0].op, Subtensor)
-        assert isinstance(prog[1].op, tt.Rebroadcast)
+        assert isinstance(prog[1].op, Rebroadcast)
         assert (f3(yval) == yval[:, 3, 0]).all()
 
         # corner case 3: subtensor idx_list is shorter than rebroadcast.axis
         z = tensor4("x")
         zval = np.random.rand(4, 10, 3, 1).astype(config.floatX)
         assert z.broadcastable == (False, False, False, False)
-        newz = tt.Rebroadcast((3, True))(z)
+        newz = Rebroadcast((3, True))(z)
         assert newz.broadcastable == (False, False, False, True)
 
         f4 = function([z], newz[:, 3, 0], mode=mode_opt)
         # Check stacktrace was copied over correctly after opt was applied
-        assert check_stack_trace(f4, ops_to_check=[Subtensor, tt.Rebroadcast])
+        assert check_stack_trace(f4, ops_to_check=[Subtensor, Rebroadcast])
         prog = f4.maker.fgraph.toposort()
         assert isinstance(prog[0].op, Subtensor)
-        assert isinstance(prog[1].op, tt.Rebroadcast)
+        assert isinstance(prog[1].op, Rebroadcast)
         assert (f4(zval) == zval[:, 3, 0]).all()
 
 
@@ -3890,10 +3906,7 @@ class TestAllocZero:
                     f(_e1[1], _e2[1])
                     f(_e1[2], _e2[2])
                     assert np.all(
-                        [
-                            not isinstance(n.op, tt.Dot)
-                            for n in f.maker.fgraph.toposort()
-                        ]
+                        [not isinstance(n.op, Dot) for n in f.maker.fgraph.toposort()]
                     )
 
                     # test that we don't remove shape errors
@@ -4063,7 +4076,7 @@ class TestLocalElemwiseAlloc:
         assert (
             sum(
                 [
-                    isinstance(elem.op, tt.Alloc)
+                    isinstance(elem.op, Alloc)
                     for elem in f.maker.fgraph.toposort()
                     if elem.op is not None
                 ]
@@ -4338,7 +4351,7 @@ def test_local_fill_useless():
     # The fill is not useless, so it should stay
     f = function([m, x], tt.fill(m, x) * 2, mode=mode_opt)
     ops = [node.op.__class__ for node in f.maker.fgraph.toposort()]
-    assert tt.Alloc in ops
+    assert Alloc in ops
     f(m_, x_)
 
 
@@ -4697,7 +4710,7 @@ class TestLocalCanonicalizeAlloc:
 
         # It is a bad idea to have tt.alloc return x directly,
         # because the shape mismatch cannot be caught.
-        assert a.owner and isinstance(a.owner.op, tt.Alloc)
+        assert a.owner and isinstance(a.owner.op, Alloc)
 
         f = function([], a, mode=mode_opt)
         # The optimization should then be applied, and remove Alloc
@@ -4722,7 +4735,7 @@ class TestLocalCanonicalizeAlloc:
         # which should return x and not alloc(x, ...)
         f = function([x], [xx], mode=mode)
         op_classes = [node.op.__class__ for node in f.maker.fgraph.toposort()]
-        assert tt.Alloc not in op_classes
+        assert Alloc not in op_classes
 
         # No need to check_stack_trace as the optimization
         # local_canonicalize_alloc only removes nodes.
@@ -4741,9 +4754,9 @@ class TestLocalCanonicalizeAlloc:
         # We are supposed to test if tensr.Alloc is not in op_classes,
         # but since the proper proper optimization is not currently
         # implemented it will fail. Once the correct optimization is in place,
-        # we have to change the following we should not see tt.Alloc
+        # we have to change the following we should not see Alloc
         # in op_classes and we have to change the assert.
-        assert tt.Alloc in op_classes
+        assert Alloc in op_classes
         # The correct opt removes nodes, no need for check_stack_trace
 
     def test_useless_alloc_with_shape_one(self):
@@ -4815,7 +4828,7 @@ class TestLocalUselessIncSubtensorAlloc:
         x = vector("x")
         y = scalar("y")
         i = matrix("i", dtype="int64")
-        z = tt.advanced_inc_subtensor(x, tt.alloc(y, *i.shape), i)
+        z = advanced_inc_subtensor(x, tt.alloc(y, *i.shape), i)
         mode1 = self.mode.excluding(self.opt_name)
         mode2 = self.mode.including(self.opt_name)
         f1 = function([x, i, y], z, mode=mode1)
@@ -4823,13 +4836,11 @@ class TestLocalUselessIncSubtensorAlloc:
 
         # the alloc op should still be there
         assert (
-            len([n for n in f1.maker.fgraph.toposort() if isinstance(n.op, tt.Alloc)])
-            == 1
+            len([n for n in f1.maker.fgraph.toposort() if isinstance(n.op, Alloc)]) == 1
         )
         # the alloc op should have been removed
         assert (
-            len([n for n in f2.maker.fgraph.toposort() if isinstance(n.op, tt.Alloc)])
-            == 0
+            len([n for n in f2.maker.fgraph.toposort() if isinstance(n.op, Alloc)]) == 0
         )
 
         x_value = np.random.randn(5).astype(config.floatX)
@@ -4849,7 +4860,7 @@ class TestLocalUselessIncSubtensorAlloc:
         x = vector("x")
         y = scalar("y")
         i = vector("i", dtype="int64")
-        z = tt.advanced_inc_subtensor1(x, tt.alloc(y, *i.shape), i)
+        z = advanced_inc_subtensor1(x, tt.alloc(y, *i.shape), i)
         mode1 = self.mode.excluding(self.opt_name)
         mode2 = self.mode.including(self.opt_name)
         f1 = function([x, i, y], z, mode=mode1)
@@ -4857,13 +4868,11 @@ class TestLocalUselessIncSubtensorAlloc:
 
         # the alloc op should still be there
         assert (
-            len([n for n in f1.maker.fgraph.toposort() if isinstance(n.op, tt.Alloc)])
-            == 1
+            len([n for n in f1.maker.fgraph.toposort() if isinstance(n.op, Alloc)]) == 1
         )
         # the alloc op should have been removed
         assert (
-            len([n for n in f2.maker.fgraph.toposort() if isinstance(n.op, tt.Alloc)])
-            == 0
+            len([n for n in f2.maker.fgraph.toposort() if isinstance(n.op, Alloc)]) == 0
         )
 
         x_value = np.random.randn(5).astype(config.floatX)
@@ -4891,13 +4900,11 @@ class TestLocalUselessIncSubtensorAlloc:
 
         # the alloc op should still be there
         assert (
-            len([n for n in f1.maker.fgraph.toposort() if isinstance(n.op, tt.Alloc)])
-            == 1
+            len([n for n in f1.maker.fgraph.toposort() if isinstance(n.op, Alloc)]) == 1
         )
         # the alloc op should have been removed
         assert (
-            len([n for n in f2.maker.fgraph.toposort() if isinstance(n.op, tt.Alloc)])
-            == 0
+            len([n for n in f2.maker.fgraph.toposort() if isinstance(n.op, Alloc)]) == 0
         )
 
         x_value = np.random.randn(5).astype(config.floatX)
@@ -5412,7 +5419,7 @@ class TestRebroadcast:
         f = function([v1, v2], j, mode=mode)
         f([1, 2], [3, 4, 5])
         e = f.maker.fgraph.toposort()
-        assert len([n for n in e if isinstance(n.op, tt.Rebroadcast)]) == 0
+        assert len([n for n in e if isinstance(n.op, Rebroadcast)]) == 0
 
         assert check_stack_trace(f, ops_to_check="all")
 
@@ -5424,7 +5431,7 @@ class TestRebroadcast:
         f = function([m], v, mode=mode)
         f([[76]])
         e = f.maker.fgraph.toposort()
-        rebroadcast_nodes = [n for n in e if isinstance(n.op, tt.Rebroadcast)]
+        rebroadcast_nodes = [n for n in e if isinstance(n.op, Rebroadcast)]
         assert len(rebroadcast_nodes) == 1
         assert rebroadcast_nodes[0].op.axis == {0: True}
 
@@ -5451,7 +5458,7 @@ class TestUselessElemwise:
         # Shape_i{0}(<TensorType(float64, matrix)>), Alloc([[1]], Shape_i{0}.0,
         # Shape_i{1}.0
         assert len(topo2) == 3
-        assert isinstance(topo2[-1].op, tt.Alloc)
+        assert isinstance(topo2[-1].op, Alloc)
 
     def test_neq(self):
         x = dmatrix()
@@ -5468,7 +5475,7 @@ class TestUselessElemwise:
         assert np.all(f2(vx) == np.zeros((5, 4)))
         topo2 = f2.maker.fgraph.toposort()
         assert len(topo2) == 3
-        assert isinstance(topo2[-1].op, tt.Alloc)
+        assert isinstance(topo2[-1].op, Alloc)
 
     def test_mul(self):
         x = dmatrix()
@@ -6285,7 +6292,7 @@ class TestLocalUselessSwitch:
         z = tt.switch(0, x, y)
         f = function([x, y], z, mode=self.mode)
 
-        assert isinstance(f.maker.fgraph.outputs[0].owner.op, tt.Alloc)
+        assert isinstance(f.maker.fgraph.outputs[0].owner.op, Alloc)
         assert f.maker.fgraph.inputs[1] == f.maker.fgraph.outputs[0].owner.inputs[0]
         assert not any(node.op == tt.switch for node in f.maker.fgraph.toposort())
 
@@ -6303,7 +6310,7 @@ class TestLocalUselessSwitch:
         z = tt.switch(1, x, y)
         f = function([x, y], z, mode=self.mode)
 
-        assert isinstance(f.maker.fgraph.outputs[0].owner.op, tt.Alloc)
+        assert isinstance(f.maker.fgraph.outputs[0].owner.op, Alloc)
         assert not any(node.op == tt.switch for node in f.maker.fgraph.toposort())
 
         vx = np.array([4, 5, 6], dtype="int32")
@@ -6333,7 +6340,7 @@ class TestLocalUselessSwitch:
         vy = np.array([7, 8], dtype="int64")
         utt.assert_allclose(f(vx, vy), np.where(vx, vy, vy))
 
-        assert isinstance(f.maker.fgraph.outputs[0].owner.op, tt.Alloc)
+        assert isinstance(f.maker.fgraph.outputs[0].owner.op, Alloc)
         assert not any(node.op == tt.switch for node in f.maker.fgraph.toposort())
 
 
@@ -6433,32 +6440,32 @@ class TestLocalSumProd:
         # Test sum
 
         # Case 1
-        test_reduction_opt([scalar1], [s1_val], tt.Sum, s1_val, 0)
+        test_reduction_opt([scalar1], [s1_val], Sum, s1_val, 0)
 
         # Case 2
         test_reduction_opt(
-            [vect, scalar1], [v_val, s1_val], tt.Sum, s1_val * v_val.sum(), 1
+            [vect, scalar1], [v_val, s1_val], Sum, s1_val * v_val.sum(), 1
         )
 
         # Case 3
         test_reduction_opt(
             [vect, mat, scalar1],
             [v_val, m_val, s1_val],
-            tt.Sum,
+            Sum,
             s1_val * (v_val * m_val).sum(),
             1,
         )
 
         # Case 4
         test_reduction_opt(
-            [scalar1, scalar2], [s1_val, s2_val], tt.Sum, s1_val * s2_val, 0
+            [scalar1, scalar2], [s1_val, s2_val], Sum, s1_val * s2_val, 0
         )
 
         # Case 5
         test_reduction_opt(
             [vect, scalar1, scalar2],
             [v_val, s1_val, s2_val],
-            tt.Sum,
+            Sum,
             s1_val * s2_val * v_val.sum(),
             1,
         )
@@ -6467,7 +6474,7 @@ class TestLocalSumProd:
         test_reduction_opt(
             [vect, mat, scalar1, scalar2],
             [v_val, m_val, s1_val, s2_val],
-            tt.Sum,
+            Sum,
             s1_val * s2_val * (v_val * m_val).sum(),
             1,
         )
@@ -6672,14 +6679,14 @@ class TestLocalSumProd:
                 assert len(f.maker.fgraph.apply_nodes) == nb_nodes[1]
                 topo = f.maker.fgraph.toposort()
                 assert topo[-1].op == tt.alloc
-                assert not any([isinstance(node.op, tt.Sum) for node in topo])
+                assert not any([isinstance(node.op, Sum) for node in topo])
             for i in range(3):
                 f = function([a], t_like(a).sum(i), mode=mode)
                 utt.assert_allclose(f(input), n_like(input).sum(i))
                 assert len(f.maker.fgraph.apply_nodes) == nb_nodes[2]
                 topo = f.maker.fgraph.toposort()
                 assert topo[-1].op == tt.alloc
-                assert not any([isinstance(node.op, tt.Sum) for node in topo])
+                assert not any([isinstance(node.op, Sum) for node in topo])
 
             # test prod
             f = function([a], t_like(a).prod(None), mode=mode)
@@ -6712,7 +6719,7 @@ class TestLocalSumProd:
                     assert len(f.maker.fgraph.apply_nodes) == nb_nodes[3]
                     topo = f.maker.fgraph.toposort()
                     assert topo[-1].op == tt.alloc
-                    assert not any([isinstance(node.op, tt.Sum) for node in topo])
+                    assert not any([isinstance(node.op, Sum) for node in topo])
 
     def test_local_sum_sum_int8(self):
         # Test that local_sum_sum works when combining two sums on an int8 array.
@@ -6751,7 +6758,7 @@ class TestLocalSumProd:
         assert check_stack_trace(f, ops_to_check="all")
 
         f = function([vect], tt.sum(-vect), mode=m0)
-        assert check_stack_trace(f, ops_to_check=[tt.Sum])
+        assert check_stack_trace(f, ops_to_check=[Sum])
 
         f = function([vect, ds], Prod()(vect * ds), mode=m0)
         assert check_stack_trace(f, ops_to_check=[Prod])
@@ -6763,7 +6770,7 @@ class TestLocalSumProd:
         assert check_stack_trace(f, ops_to_check="all")
 
         f = function([mat], tt.sum(-mat), mode=m0)
-        assert check_stack_trace(f, ops_to_check=[tt.Sum])
+        assert check_stack_trace(f, ops_to_check=[Sum])
 
 
 class TestLocalOptAlloc:
@@ -7408,7 +7415,7 @@ def test_local_tensor_scalar_tensor():
         f = function([t], t2, mode=mode_opt)
         e = f.maker.fgraph.toposort()
         cast_nodes = [
-            n for n in e if isinstance(n.op, (tt.TensorFromScalar, tt.ScalarFromTensor))
+            n for n in e if isinstance(n.op, (TensorFromScalar, ScalarFromTensor))
         ]
         assert len(cast_nodes) == 0
         f(0)
@@ -7439,7 +7446,7 @@ def test_local_scalar_tensor_scalar():
         f = function([s], s2, mode=mode_opt)
         e = f.maker.fgraph.toposort()
         cast_nodes = [
-            n for n in e if isinstance(n.op, (tt.TensorFromScalar, tt.ScalarFromTensor))
+            n for n in e if isinstance(n.op, (TensorFromScalar, ScalarFromTensor))
         ]
         assert len(cast_nodes) == 0
         f(0)
@@ -7478,7 +7485,7 @@ def test_local_useless_split():
 
     assert isinstance(graph_opt[-1].op, DeepCopyOp)
     assert len(graph_nonopt) == 1
-    assert isinstance(graph_nonopt[0].op, tt.Split)
+    assert isinstance(graph_nonopt[0].op, Split)
 
     assert check_stack_trace(f_opt, ops_to_check=[Assert])
     assert check_stack_trace(f_nonopt, ops_to_check="all")
@@ -7498,7 +7505,7 @@ def test_local_flatten_lift():
         shape_out_np = tuple(x_np.shape[: i - 1]) + (np.prod(x_np.shape[i - 1 :]),)
         assert shape_out_np == out_np.shape
 
-        reshape_nodes = [n for n in topo if isinstance(n.op, tt.Reshape)]
+        reshape_nodes = [n for n in topo if isinstance(n.op, Reshape)]
         assert len(reshape_nodes) == 1 and tt.is_flat(
             reshape_nodes[0].outputs[0], ndim=i
         )
@@ -7508,7 +7515,7 @@ def test_local_flatten_lift():
 class TestReshape:
     def setup_method(self):
         self.mode = mode_opt
-        self.op = tt.Reshape
+        self.op = Reshape
 
     def test_local_reshape(self):
         a = fmatrix()
@@ -7534,7 +7541,7 @@ class TestLocalUselessReshape:
         ]
         f = function([i], m, mode=mode)
         topo = f.maker.fgraph.toposort()
-        assert not any(isinstance(n.op, tt.Reshape) for n in topo)
+        assert not any(isinstance(n.op, Reshape) for n in topo)
 
     def test_1(self):
         x = matrix("x")
@@ -7544,12 +7551,12 @@ class TestLocalUselessReshape:
         m1 = m0.including("local_useless_reshape")
         f1 = function([x], r, mode=m1)
         topo = f1.maker.fgraph.toposort()
-        assert not any(isinstance(n.op, tt.Reshape) for n in topo)
+        assert not any(isinstance(n.op, Reshape) for n in topo)
 
         m2 = m1.excluding("ShapeOpt")
         f2 = function([x], r, mode=m2)
         topo = f2.maker.fgraph.toposort()
-        assert not any(isinstance(n.op, tt.Reshape) for n in topo)
+        assert not any(isinstance(n.op, Reshape) for n in topo)
 
         # We do not need tests checking that stack traces are copied over,
         # because local_useless_reshape only removes nodes from the graph
@@ -7562,12 +7569,12 @@ class TestLocalUselessReshape:
         m1 = m0.including("local_useless_reshape")
         f1 = function([x], r, mode=m1)
         topo = f1.maker.fgraph.toposort()
-        assert not any(isinstance(n.op, tt.Reshape) for n in topo)
+        assert not any(isinstance(n.op, Reshape) for n in topo)
 
         m2 = m1.excluding("ShapeOpt")
         f2 = function([x], r, mode=m2)
         topo = f2.maker.fgraph.toposort()
-        assert not any(isinstance(n.op, tt.Reshape) for n in topo)
+        assert not any(isinstance(n.op, Reshape) for n in topo)
 
     def test_m1(self):
         x = matrix("x")
@@ -7577,12 +7584,12 @@ class TestLocalUselessReshape:
         m1 = m0.including("local_useless_reshape")
         f1 = function([x], r, mode=m1)
         topo = f1.maker.fgraph.toposort()
-        assert not any(isinstance(n.op, tt.Reshape) for n in topo)
+        assert not any(isinstance(n.op, Reshape) for n in topo)
 
         m2 = m1.excluding("ShapeOpt")
         f2 = function([x], r, mode=m2)
         topo = f2.maker.fgraph.toposort()
-        assert not any(isinstance(n.op, tt.Reshape) for n in topo)
+        assert not any(isinstance(n.op, Reshape) for n in topo)
 
 
 class TestLocalReshapeToDimshuffle:
@@ -7622,7 +7629,7 @@ class TestLocalReshapeToDimshuffle:
         )
 
         # Check stacktrace was copied over correctly after opt was applied
-        assert check_stack_trace(g, ops_to_check=(DimShuffle, tt.Reshape))
+        assert check_stack_trace(g, ops_to_check=(DimShuffle, Reshape))
 
 
 def test_local_reshape_lift():
@@ -7634,7 +7641,7 @@ def test_local_reshape_lift():
     f = function([x], out, mode=mode)
     f(np.random.rand(5, 4, 3, 2).astype(config.floatX))
     topo = f.maker.fgraph.toposort()
-    assert isinstance(topo[-2].op, tt.Reshape)
+    assert isinstance(topo[-2].op, Reshape)
     assert isinstance(topo[-1].op, Elemwise)
     # Check stacktrace was copied over correctly after opt was applied
     assert check_stack_trace(f, ops_to_check="last")
@@ -7879,7 +7886,7 @@ def test_local_sumsqr2dot():
         isinstance(
             n.op,
             (
-                tt.Dot,
+                Dot,
                 Dot22,
                 Gemv,
                 CGemv,
@@ -7947,7 +7954,7 @@ def test_local_merge_alloc():
     f = function([m, x, y, z, w], output, mode=opt_mode)
     topo = f.maker.fgraph.toposort()
     assert len(topo) == 1
-    assert isinstance(topo[0].op, tt.Alloc)
+    assert isinstance(topo[0].op, Alloc)
     o = f(0.0, 1, 2, 3, 4)
     assert o.shape == (1, 2, 3, 4)
 
@@ -7957,7 +7964,7 @@ def test_local_merge_alloc():
     f = function([m, x, y, z, w], output, mode=opt_mode)
     topo = f.maker.fgraph.toposort()
     assert len(topo) == 1
-    assert isinstance(topo[0].op, tt.Alloc)
+    assert isinstance(topo[0].op, Alloc)
     o = f(0.0, 1, 2, 3, 4)
     assert o.shape == (1, 2, 3, 4)
 
@@ -7969,7 +7976,7 @@ def test_local_merge_alloc():
     topo = f.maker.fgraph.toposort()
     assert len(topo) == 3
     assert isinstance(topo[-2].op, Assert)
-    assert isinstance(topo[-1].op, tt.Alloc)
+    assert isinstance(topo[-1].op, Alloc)
     o = f(0.0, 1, 2, 2, 3, 4)
     assert o.shape == (1, 2, 3, 4)
     with pytest.raises((AssertionError, ValueError)):
@@ -7999,7 +8006,7 @@ def test_local_useless_alloc():
 
     topo = g.toposort()
     assert len(topo) == 1
-    assert isinstance(topo[0].op, tt.Alloc)
+    assert isinstance(topo[0].op, Alloc)
 
     # case 2
     # Alloc(Alloc(m, y, 1, 1), x, y, z, w) -> Alloc(m, x, y, z, w)
@@ -8012,7 +8019,7 @@ def test_local_useless_alloc():
 
     topo = g.toposort()
     assert len(topo) == 1
-    assert isinstance(topo[0].op, tt.Alloc)
+    assert isinstance(topo[0].op, Alloc)
 
     # case 3
     # Alloc(Alloc(m, y1, 1, 1), x, y2, z, w) ->
@@ -8027,7 +8034,7 @@ def test_local_useless_alloc():
     topo = g.toposort()
     assert len(topo) == 3
     assert isinstance(topo[-2].op, Assert)
-    assert isinstance(topo[-1].op, tt.Alloc)
+    assert isinstance(topo[-1].op, Alloc)
 
 
 def compile_graph_log_sum_exp(x, axis, dimshuffle_op=None):
@@ -8052,7 +8059,7 @@ def check_max_log_sum_exp(x, axis, dimshuffle_op=None):
 
         # in mode FAST_COMPILE, the optimisations don't replace the
         # MaxAndArgmax op.
-        if isinstance(node.op, tt.MaxAndArgmax):
+        if isinstance(node.op, MaxAndArgmax):
             return
 
     raise Exception("No maximum detected after log_sum_exp optimisation")
