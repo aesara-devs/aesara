@@ -16,6 +16,7 @@ from typing import (
     Optional,
     Sequence,
     Set,
+    Tuple,
     TypeVar,
     Union,
 )
@@ -863,7 +864,12 @@ def applys_between(
     )
 
 
-def clone(inputs, outputs, copy_inputs=True, copy_orphans=None):
+def clone(
+    inputs: Collection[Variable],
+    outputs: Collection[Variable],
+    copy_inputs: bool = True,
+    copy_orphans: Optional[bool] = None,
+) -> Tuple[Collection[Variable], Collection[Variable]]:
     """Copies the sub-graph contained between inputs and outputs.
 
     Parameters
@@ -898,7 +904,13 @@ def clone(inputs, outputs, copy_inputs=True, copy_orphans=None):
     return [equiv[input] for input in inputs], [equiv[output] for output in outputs]
 
 
-def clone_get_equiv(inputs, outputs, copy_inputs=True, copy_orphans=True, memo=None):
+def clone_get_equiv(
+    inputs: Collection[Variable],
+    outputs: Collection[Variable],
+    copy_inputs: bool = True,
+    copy_orphans: bool = True,
+    memo: Optional[Dict[Variable, Variable]] = None,
+):
     """
     Return a dictionary that maps from Variable and Apply nodes in the
     original graph to a new node (a clone) in a new graph.
@@ -958,6 +970,60 @@ def clone_get_equiv(inputs, outputs, copy_inputs=True, copy_orphans=True, memo=N
             memo[output] = output.clone()
 
     return memo
+
+
+def clone_replace(
+    output: Collection[Variable],
+    replace: Optional[Dict[Variable, Variable]] = None,
+    strict: bool = True,
+    share_inputs: bool = True,
+) -> Collection[Variable]:
+    """Clone a graph and replace subgraphs within it.
+
+    It returns a copy of the initial subgraph with the corresponding
+    substitutions.
+
+    Parameters
+    ----------
+    output : Theano Variables (or Theano expressions)
+        Theano expression that represents the computational graph.
+    replace : dict
+        Dictionary describing which subgraphs should be replaced by what.
+    share_inputs : bool
+        If True, use the same inputs (and shared variables) as the original
+        graph. If False, clone them. Note that cloned shared variables still
+        use the same underlying storage, so they will always have the same
+        value.
+
+    """
+    from theano.compile.function.pfunc import rebuild_collect_shared
+
+    if isinstance(replace, dict):
+        items = list(replace.items())
+    elif isinstance(replace, (list, tuple)):
+        items = replace
+    elif replace is None:
+        items = []
+    else:
+        raise ValueError(
+            (
+                "replace is neither a dictionary, list, "
+                f"tuple or None ! The value provided is {replace},"
+                f"of type {type(replace)}"
+            )
+        )
+    tmp_replace = [(x, x.type()) for x, y in items]
+    new_replace = [(x, y) for ((_, x), (_, y)) in zip(tmp_replace, items)]
+    _, _outs, _ = rebuild_collect_shared(
+        output, [], tmp_replace, [], strict, share_inputs
+    )
+
+    # TODO Explain why we call it twice ?!
+    _, outs, _ = rebuild_collect_shared(
+        _outs, [], new_replace, [], strict, share_inputs
+    )
+
+    return outs
 
 
 def general_toposort(

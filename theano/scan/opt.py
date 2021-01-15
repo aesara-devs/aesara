@@ -66,6 +66,7 @@ from theano.configdefaults import config
 from theano.graph.basic import (
     Constant,
     Variable,
+    clone_replace,
     equal_computations,
     graph_inputs,
     io_toposort,
@@ -78,7 +79,6 @@ from theano.graph.optdb import EquilibriumDB, SequenceDB
 from theano.graph.toolbox import ReplaceValidate
 from theano.scan.op import Scan
 from theano.scan.utils import (
-    clone,
     compress_outs,
     expand_empty,
     reconstruct_graph,
@@ -231,7 +231,7 @@ def remove_constants_and_unused_inputs_scan(fgraph, node):
     nw_outer.extend(nw_outer_nonseq)
 
     if len(nw_inner) != len(op_ins):
-        op_outs = clone(op_outs, replace=givens)
+        op_outs = clone_replace(op_outs, replace=givens)
         nw_info = copy.deepcopy(op.info)
         nw_info["n_seqs"] = nw_n_seqs
         # DEBUG CHECK
@@ -403,7 +403,7 @@ class PushOutNonSeqScan(GlobalOptimizer):
                     nw_outer.append(repl_out)
                 givens[to_repl] = repl_in
 
-            op_outs = clone(clean_outputs, replace=givens)
+            op_outs = clone_replace(clean_outputs, replace=givens)
             op_ins = clean_inputs + nw_inner
 
             # Reconstruct node
@@ -662,7 +662,7 @@ class PushOutSeqScan(GlobalOptimizer):
 
                 givens[to_repl] = repl_in
 
-            op_outs = clone(clean_outputs, replace=givens)
+            op_outs = clone_replace(clean_outputs, replace=givens)
             op_ins = nw_inner + clean_inputs
 
             # Reconstruct node
@@ -2005,7 +2005,7 @@ def scan_merge_inouts(fgraph, node):
         outer_inputs = a.outer_inputs
         info = a.info
         a_inner_outs = a.inner_outputs
-        inner_outputs = clone(a_inner_outs, replace=inp_equiv)
+        inner_outputs = clone_replace(a_inner_outs, replace=inp_equiv)
 
         op = Scan(inner_inputs, inner_outputs, info)
         outputs = op(*outer_inputs)

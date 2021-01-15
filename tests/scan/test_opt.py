@@ -94,7 +94,7 @@ class TestGaussNewton:
         # during certain iterations of CG in the HF algorithm. There,
         # it's in fact `pi + current update proposal`.  For simplicity,
         # I just multiply by 2 here.
-        cost_ = theano.clone(cost, replace={pi: 2 * pi for pi in params})
+        cost_ = theano.clone_replace(cost, replace={pi: 2 * pi for pi in params})
 
         # Compute Gauss-Newton-Matrix times some vector `v` which is `p` in CG,
         # but for simplicity, I just take the parameters vector because it's

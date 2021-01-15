@@ -19,10 +19,9 @@ import numpy as np
 import theano.tensor
 from theano.compile import optdb
 from theano.configdefaults import config
-from theano.graph.basic import Apply, Variable, is_in_ancestors
+from theano.graph.basic import Apply, Variable, clone_replace, is_in_ancestors
 from theano.graph.op import _NoPythonOp
 from theano.graph.opt import GlobalOptimizer, local_optimizer
-from theano.scan.utils import clone
 from theano.tensor import opt
 from theano.tensor.type import TensorType
 
@@ -540,8 +539,8 @@ def ifelse_lift_single_if_through_acceptable_ops(fgraph, main_node):
             false_ins.append(x)
     true_eval = mop(*true_ins, **dict(return_list=True))
     false_eval = mop(*false_ins, **dict(return_list=True))
-    # true_eval  = clone(outs, replace = dict(zip(node.outputs, ts)))
-    # false_eval = clone(outs, replace = dict(zip(node.outputs, fs)))
+    # true_eval  = clone_replace(outs, replace = dict(zip(node.outputs, ts)))
+    # false_eval = clone_replace(outs, replace = dict(zip(node.outputs, fs)))
 
     nw_outs = ifelse(node.inputs[0], true_eval, false_eval, return_list=True)
     return nw_outs
@@ -641,7 +640,7 @@ class CondMerge(GlobalOptimizer):
                 )
                 print("here")
                 new_outs = new_ifelse(*new_ins, **dict(return_list=True))
-                new_outs = [clone(x) for x in new_outs]
+                new_outs = [clone_replace(x) for x in new_outs]
                 old_outs = []
                 if type(merging_node.outputs) not in (list, tuple):
                     old_outs += [merging_node.outputs]
@@ -752,7 +751,7 @@ def cond_merge_random_op(fgraph, main_node):
             else:
                 old_outs += proposal.outputs
             pairs = list(zip(old_outs, new_outs))
-            main_outs = clone(main_node.outputs, replace=pairs)
+            main_outs = clone_replace(main_node.outputs, replace=pairs)
             return main_outs
 
 

@@ -7,9 +7,9 @@ __authors__ = (
     "James Bergstra "
     "Pascal Lamblin "
     "Arnaud Bergeron"
+    "PyMC Developers"
 )
 __copyright__ = "(c) 2010, Universite de Montreal"
-__contact__ = "Razvan Pascanu <r.pascanu@gmail>"
 
 
 import copy
@@ -21,9 +21,14 @@ import numpy as np
 
 from theano import scalar as ts
 from theano import tensor as tt
-from theano.compile.function.pfunc import rebuild_collect_shared
 from theano.configdefaults import config
-from theano.graph.basic import Constant, Variable, equal_computations, graph_inputs
+from theano.graph.basic import (
+    Constant,
+    Variable,
+    clone_replace,
+    equal_computations,
+    graph_inputs,
+)
 from theano.graph.fg import FunctionGraph
 from theano.graph.op import get_test_value
 from theano.graph.opt import TopoOptimizer, local_optimizer
@@ -180,54 +185,6 @@ def hash_listsDictsTuples(x):
     return hash_value
 
 
-def clone(output, replace=None, strict=True, share_inputs=True):
-    """
-    Function that allows replacing subgraphs of a computational graph.
-
-    It returns a copy of the initial subgraph with the corresponding
-    substitutions.
-
-    Parameters
-    ----------
-    output : Theano Variables (or Theano expressions)
-        Theano expression that represents the computational graph.
-    replace : dict
-        Dictionary describing which subgraphs should be replaced by what.
-    share_inputs : bool
-        If True, use the same inputs (and shared variables) as the original
-        graph. If False, clone them. Note that cloned shared variables still
-        use the same underlying storage, so they will always have the same
-        value.
-
-    """
-    if isinstance(replace, dict):
-        items = list(replace.items())
-    elif isinstance(replace, (list, tuple)):
-        items = replace
-    elif replace is None:
-        items = []
-    else:
-        raise ValueError(
-            (
-                "replace is neither a dictionary, list, "
-                f"tuple or None ! The value provided is {replace},"
-                f"of type {type(replace)}"
-            )
-        )
-    tmp_replace = [(x, x.type()) for x, y in items]
-    new_replace = [(x, y) for ((_, x), (_, y)) in zip(tmp_replace, items)]
-    _, _outs, _ = rebuild_collect_shared(
-        output, [], tmp_replace, [], strict, share_inputs
-    )
-
-    # TODO Explain why we call it twice ?!
-    _, outs, _ = rebuild_collect_shared(
-        _outs, [], new_replace, [], strict, share_inputs
-    )
-
-    return outs
-
-
 def map_variables(replacer, graphs, additional_inputs=None):
     """Construct new graphs based on 'graphs' with some variables replaced
     according to 'replacer'.
@@ -285,7 +242,7 @@ def map_variables(replacer, graphs, additional_inputs=None):
         for input_, new_input in zip(inputs_, new_inputs)
         if new_input is not input_
     ]
-    graphs = clone(graphs, share_inputs=True, replace=replacements)
+    graphs = clone_replace(graphs, share_inputs=True, replace=replacements)
     inputs_ = list(set(list(graph_inputs(graphs)) + list(additional_inputs)))
 
     fg = FunctionGraph(inputs_, graphs, clone=False)
@@ -426,7 +383,9 @@ def _map_variables_inner(
 
         replacements.extend(outer_to_inner.items())
 
-        (new_graph,) = clone([new_graph], share_inputs=True, replace=replacements)
+        (new_graph,) = clone_replace(
+            [new_graph], share_inputs=True, replace=replacements
+        )
         return new_graph
 
     new_inner_outputs = map_variables(inner_replacer, inner_outputs)
@@ -908,7 +867,7 @@ def reconstruct_graph(inputs, outputs, tag=None):
         if isinstance(inp, Constant):
             givens[inp] = inp.clone()
 
-    nw_outputs = clone(outputs, replace=givens)
+    nw_outputs = clone_replace(outputs, replace=givens)
     return (nw_inputs, nw_outputs)
 
 
@@ -1187,4 +1146,4 @@ def forced_replace(out, x, y):
 
     if len(to_replace) == 0:
         return out
-    return clone(out, replace=to_replace)
+    return clone_replace(out, replace=to_replace)
