@@ -13,6 +13,7 @@ from theano.gradient import (
     GradClip,
     GradScale,
     NullTypeGradError,
+    Rop,
     UndefinedGrad,
     consider_constant,
     consider_constant_,
@@ -744,7 +745,7 @@ class TestZeroGrad:
         v = vector()
         y = zero_grad(x)
 
-        rop = tt.Rop(y, x, v)
+        rop = Rop(y, x, v)
         f = theano.function([x, v], rop, on_unused_input="ignore")
 
         a = np.asarray(self.rng.randn(5), dtype=config.floatX)

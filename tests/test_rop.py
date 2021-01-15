@@ -21,7 +21,7 @@ import theano
 import theano.tensor as tt
 from tests import unittest_tools as utt
 from theano import function
-from theano.gradient import grad_undefined
+from theano.gradient import Lop, Rop, grad, grad_undefined
 from theano.graph.basic import Apply
 from theano.graph.op import Op
 from theano.tensor.nnet import conv, conv2d
@@ -81,7 +81,7 @@ class RopLopChecker:
         test that an error is raised.
         """
         with pytest.raises(ValueError):
-            theano.gradient.Rop(y, self.x, self.v)
+            Rop(y, self.x, self.v)
 
     def check_mat_rop_lop(self, y, out_shape):
         """
@@ -105,10 +105,10 @@ class RopLopChecker:
         """
         vx = np.asarray(self.rng.uniform(size=self.mat_in_shape), theano.config.floatX)
         vv = np.asarray(self.rng.uniform(size=self.mat_in_shape), theano.config.floatX)
-        yv = theano.gradient.Rop(y, self.mx, self.mv)
+        yv = Rop(y, self.mx, self.mv)
         rop_f = function([self.mx, self.mv], yv, on_unused_input="ignore")
         sy, _ = theano.scan(
-            lambda i, y, x, v: (theano.grad(y[i], x) * v).sum(),
+            lambda i, y, x, v: (grad(y[i], x) * v).sum(),
             sequences=tt.arange(y.shape[0]),
             non_sequences=[y, self.mx, self.mv],
         )
@@ -122,10 +122,10 @@ class RopLopChecker:
         self.check_nondiff_rop(theano.clone(y, replace={self.mx: break_op(self.mx)}))
 
         vv = np.asarray(self.rng.uniform(size=out_shape), theano.config.floatX)
-        yv = theano.gradient.Lop(y, self.mx, self.v)
+        yv = Lop(y, self.mx, self.v)
         lop_f = function([self.mx, self.v], yv)
 
-        sy = theano.grad((self.v * y).sum(), self.mx)
+        sy = grad((self.v * y).sum(), self.mx)
         scan_f = function([self.mx, self.v], sy)
 
         v1 = lop_f(vx, vv)
@@ -141,10 +141,10 @@ class RopLopChecker:
         vx = np.asarray(self.rng.uniform(size=self.in_shape), theano.config.floatX)
         vv = np.asarray(self.rng.uniform(size=self.in_shape), theano.config.floatX)
 
-        yv = theano.gradient.Rop(y, self.x, self.v)
+        yv = Rop(y, self.x, self.v)
         rop_f = function([self.x, self.v], yv, on_unused_input="ignore")
         J, _ = theano.scan(
-            lambda i, y, x: theano.grad(y[i], x),
+            lambda i, y, x: grad(y[i], x),
             sequences=tt.arange(y.shape[0]),
             non_sequences=[y, self.x],
         )
@@ -157,9 +157,7 @@ class RopLopChecker:
         assert np.allclose(v1, v2), f"ROP mismatch: {v1} {v2}"
 
         try:
-            theano.gradient.Rop(
-                theano.clone(y, replace={self.x: break_op(self.x)}), self.x, self.v
-            )
+            Rop(theano.clone(y, replace={self.x: break_op(self.x)}), self.x, self.v)
         except ValueError:
             pytest.skip(
                 "Rop does not handle non-differentiable inputs "
@@ -169,10 +167,10 @@ class RopLopChecker:
         vx = np.asarray(self.rng.uniform(size=self.in_shape), theano.config.floatX)
         vv = np.asarray(self.rng.uniform(size=out_shape), theano.config.floatX)
 
-        yv = theano.gradient.Lop(y, self.x, self.v)
+        yv = Lop(y, self.x, self.v)
         lop_f = function([self.x, self.v], yv, on_unused_input="ignore")
         J, _ = theano.scan(
-            lambda i, y, x: theano.grad(y[i], x),
+            lambda i, y, x: grad(y[i], x),
             sequences=tt.arange(y.shape[0]),
             non_sequences=[y, self.x],
         )
@@ -288,13 +286,13 @@ class TestRopLop(RopLopChecker):
 
             maxpool_op = Pool(ignore_border, ndim=len(ws))
             a_pooled = maxpool_op(x, ws).flatten()
-            yv = theano.gradient.Rop(a_pooled, x, ex)
+            yv = Rop(a_pooled, x, ex)
             mode = None
             if theano.config.mode == "FAST_COMPILE":
                 mode = "FAST_RUN"
             rop_f = function([], yv, on_unused_input="ignore", mode=mode)
             sy, _ = theano.scan(
-                lambda i, y, x, v: (theano.grad(y[i], x) * v).sum(),
+                lambda i, y, x, v: (grad(y[i], x) * v).sum(),
                 sequences=tt.arange(a_pooled.shape[0]),
                 non_sequences=[a_pooled, x, ex],
                 mode=mode,
@@ -328,9 +326,7 @@ class TestRopLop(RopLopChecker):
                     return conv_op(input, filters, border_mode=border_mode)
 
                 output = sym_conv2d(input, filters).flatten()
-                yv = theano.gradient.Rop(
-                    output, [input, filters], [ev_input, ev_filters]
-                )
+                yv = Rop(output, [input, filters], [ev_input, ev_filters])
                 mode = None
                 if theano.config.mode == "FAST_COMPILE":
                     mode = "FAST_RUN"
@@ -341,8 +337,8 @@ class TestRopLop(RopLopChecker):
                     mode=mode,
                 )
                 sy, _ = theano.scan(
-                    lambda i, y, x1, x2, v1, v2: (theano.grad(y[i], x1) * v1).sum()
-                    + (theano.grad(y[i], x2) * v2).sum(),
+                    lambda i, y, x1, x2, v1, v2: (grad(y[i], x1) * v1).sum()
+                    + (grad(y[i], x2) * v2).sum(),
                     sequences=tt.arange(output.shape[0]),
                     non_sequences=[output, input, filters, ev_input, ev_filters],
                     mode=mode,
@@ -419,7 +415,7 @@ class TestRopLop(RopLopChecker):
         success = False
 
         try:
-            theano.gradient.Rop(0.0, [matrix()], [vector()])
+            Rop(0.0, [matrix()], [vector()])
             success = True
         except ValueError:
             pass
@@ -437,10 +433,10 @@ class TestRopLop(RopLopChecker):
         m_val = self.rng.uniform(size=(3, 7)).astype(theano.config.floatX)
         v_val = self.rng.uniform(size=(7,)).astype(theano.config.floatX)
 
-        rop_out1 = theano.gradient.Rop([m, v, m + v], [m, v], [m_, v_])
+        rop_out1 = Rop([m, v, m + v], [m, v], [m_, v_])
         assert isinstance(rop_out1, list)
         assert len(rop_out1) == 3
-        rop_out2 = theano.gradient.Rop((m, v, m + v), [m, v], [m_, v_])
+        rop_out2 = Rop((m, v, m + v), [m, v], [m_, v_])
         assert isinstance(rop_out2, tuple)
         assert len(rop_out2) == 3
 
@@ -458,4 +454,4 @@ class TestRopLop(RopLopChecker):
         x = tt.arange(20.0).reshape([1, 20])
         v = theano.shared(np.ones([20]))
         d = tt.dot(x, v).sum()
-        theano.gradient.Rop(theano.grad(d, v), v, v)
+        Rop(grad(d, v), v, v)

@@ -26,7 +26,6 @@ from theano.tensor.basic import (
     get_scalar_constant_value,
 )
 from theano.tensor.elemwise import DimShuffle
-from theano.tensor.extra_ops import broadcast_shape
 from theano.tensor.inc_code import inc_code
 from theano.tensor.type import (
     bscalar,
@@ -441,6 +440,8 @@ def indexed_result_shape(array_shape, indices, indices_are_shapes=False):
             grp_shapes = tuple(array_shape[dim] for dim in dim_nums)
             res_shape += basic_shape(grp_shapes, grp_indices)
         else:
+            from theano.tensor.extra_ops import broadcast_shape
+
             res_shape += broadcast_shape(
                 *grp_indices, arrays_are_shapes=indices_are_shapes
             )
@@ -1352,7 +1353,7 @@ def inc_subtensor(
         # instead of reusing x.owner.op().
         return inner_incsubtensor.dimshuffle(x.owner.op.new_order)
 
-    elif isinstance(x.owner.op, theano.tensor.Reshape):
+    elif isinstance(x.owner.op, theano.tensor.basic.Reshape):
         # This case happens when the indices are not arranged as a vector, but
         # as a higher-dimensional array. This is handled by the subtensor
         # by flattening this list, taking the subtensor, then reshaping the
@@ -2555,3 +2556,10 @@ def take(a, indices, axis=None, mode="raise"):
             )
         ndim = a.ndim + indices.ndim - 1
     return take(a, indices.flatten(), axis, mode).reshape(shape, ndim)
+
+
+__all__ = [
+    "take",
+    "inc_subtensor",
+    "set_subtensor",
+]

@@ -1138,11 +1138,12 @@ Since version 0.10.0 Theano also supports boolean indexing with boolean
 NumPy arrays or Theano tensors.
 
 Index-assignment is *not* supported.  If you want to do something like ``a[5]
-= b`` or ``a[5]+=b``, see :func:`theano.tensor.set_subtensor` and :func:`theano.tensor.inc_subtensor` below.
+= b`` or ``a[5]+=b``, see :func:`theano.tensor.subtensor.set_subtensor` and
+:func:`theano.tensor.subtensor.inc_subtensor` below.
 
-.. autofunction:: theano.tensor.set_subtensor
+.. autofunction:: theano.tensor.subtensor.set_subtensor
 
-.. autofunction:: theano.tensor.inc_subtensor
+.. autofunction:: theano.tensor.subtensor.inc_subtensor
 
 .. _tensor_operator_support:
 

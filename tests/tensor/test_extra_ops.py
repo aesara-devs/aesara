@@ -8,6 +8,7 @@ from theano import tensor as tt
 from theano.assert_op import Assert
 from theano.configdefaults import config
 from theano.graph.basic import applys_between
+from theano.tensor.elemwise import DimShuffle
 from theano.tensor.extra_ops import (
     Bartlett,
     BroadcastTo,
@@ -358,7 +359,7 @@ class TestSqueeze(utt.InferShapeTester):
             variable = TensorType(config.floatX, broadcast)()
 
             self._compile_and_check(
-                [variable], [self.op(variable)], [data], tt.DimShuffle, warn=False
+                [variable], [self.op(variable)], [data], DimShuffle, warn=False
             )
 
     def test_grad(self):

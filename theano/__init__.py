@@ -138,7 +138,10 @@ def sparse_grad(var):
 
     .. versionadded:: 0.6rc4
     """
-    assert isinstance(var.owner.op, tensor.AdvancedSubtensor1)
+    from theano.tensor.subtensor import AdvancedSubtensor1
+
+    assert isinstance(var.owner.op, AdvancedSubtensor1)
+
     ret = var.owner.op.__class__(sparse_grad=True)(*var.owner.inputs)
     return ret
 

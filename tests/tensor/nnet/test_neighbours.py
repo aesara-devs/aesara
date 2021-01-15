@@ -6,6 +6,7 @@ import theano.tensor as tt
 from tests import unittest_tools
 from theano import function, shared
 from theano.configdefaults import config
+from theano.tensor import nnet
 from theano.tensor.nnet.neighbours import Images2Neibs, images2neibs, neibs2images
 from theano.tensor.type import dtensor4, ftensor4, ivector, matrix, tensor4
 
@@ -504,7 +505,7 @@ class TestImages2Neibs(unittest_tools.InferShapeTester):
         # investigating that case
 
         img = tensor4("img")
-        patches = tt.nnet.neighbours.images2neibs(img, [16, 16])
+        patches = nnet.neighbours.images2neibs(img, [16, 16])
         extractPatches = theano.function([img], patches, mode=self.mode)
 
         patsRecovery = matrix("patsRecovery")

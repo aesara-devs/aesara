@@ -1512,8 +1512,9 @@ class ProfileStats:
         )
 
         from theano import scalar as ts
-        from theano import tensor as tt
+        from theano.tensor.basic import Dot
         from theano.tensor.elemwise import Elemwise
+        from theano.tensor.nnet.sigm import ScalarSigmoid, ScalarSoftplus
         from theano.tensor.random.op import RandomVariable
 
         scalar_op_amdlibm_no_speed_up = [
@@ -1565,8 +1566,8 @@ class ProfileStats:
             ts.Tanh,
             ts.Cosh,
             ts.Sinh,
-            tt.nnet.sigm.ScalarSigmoid,
-            tt.nnet.sigm.ScalarSoftplus,
+            ScalarSigmoid,
+            ScalarSoftplus,
         ]
 
         def get_scalar_ops(s):
@@ -1644,7 +1645,7 @@ class ProfileStats:
         # tip 4
         for (fgraph, a) in self.apply_time:
             node = a
-            if isinstance(node.op, tt.Dot) and all(
+            if isinstance(node.op, Dot) and all(
                 [len(i.type.broadcastable) == 2 for i in node.inputs]
             ):
                 print(
@@ -1681,7 +1682,7 @@ class ProfileStats:
         # tip 6
         for (fgraph, a) in self.apply_time:
             node = a
-            if isinstance(node.op, tt.Dot) and len({i.dtype for i in node.inputs}) != 1:
+            if isinstance(node.op, Dot) and len({i.dtype for i in node.inputs}) != 1:
                 print(
                     (
                         "  - You have a dot operation that has different dtype "
@@ -1695,7 +1696,7 @@ class ProfileStats:
         # tip 7
         import theano.gpuarray
         import theano.tensor.signal.pool as pool
-        from theano.tensor.nnet import LogSoftmax
+        from theano.tensor.nnet.nnet import LogSoftmax
 
         for (fgraph, a) in self.apply_time:
             node = a

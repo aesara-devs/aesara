@@ -23,6 +23,7 @@ from theano.graph.op import COp, Op
 from theano.misc.safe_asarray import _asarray
 from theano.sparse.type import SparseType, _is_sparse
 from theano.sparse.utils import hash_from_sparse
+from theano.tensor.basic import Split
 from theano.tensor.type import TensorType
 from theano.tensor.type import continuous_dtypes as tensor_continuous_dtypes
 from theano.tensor.type import discrete_dtypes as tensor_discrete_dtypes
@@ -2944,7 +2945,7 @@ class HStack(Op):
         if _is_sparse_variable(gz):
             gz = dense_from_sparse(gz)
 
-        split = tt.Split(len(inputs))(gz, 1, tt.stack([x.shape[1] for x in inputs]))
+        split = Split(len(inputs))(gz, 1, tt.stack([x.shape[1] for x in inputs]))
         if not isinstance(split, list):
             split = [split]
 
@@ -3024,7 +3025,7 @@ class VStack(HStack):
         if _is_sparse_variable(gz):
             gz = dense_from_sparse(gz)
 
-        split = tt.Split(len(inputs))(gz, 0, tt.stack([x.shape[0] for x in inputs]))
+        split = Split(len(inputs))(gz, 0, tt.stack([x.shape[0] for x in inputs]))
         if not isinstance(split, list):
             split = [split]
 

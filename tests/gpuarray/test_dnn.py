@@ -1490,7 +1490,7 @@ class TestSoftMax(test_nnet.TestSoftMax):
         # Verify the grad operation
         dims = (2, 3, 4, 5)
         gdata = np.arange(np.product(dims), dtype=theano.config.floatX).reshape(dims)
-        tt.verify_grad(f_gpu, [gdata], rng=np.random, mode=mode_with_gpu)
+        utt.verify_grad(f_gpu, [gdata], rng=np.random, mode=mode_with_gpu)
 
         # Verify that the CPU and GPU implementations return the same results
         # up to a tolerance.

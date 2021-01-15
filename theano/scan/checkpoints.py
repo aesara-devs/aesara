@@ -1,5 +1,7 @@
-import theano
+import theano.tensor.basic as tt
+from theano.scan.basic import scan
 from theano.tensor.basic import Join
+from theano.tensor.subtensor import set_subtensor
 
 
 def scan_checkpoints(
@@ -114,13 +116,13 @@ def scan_checkpoints(
         n_steps = sequences[0].shape[0]
 
     # Compute the number of steps of the outer scan
-    o_n_steps = theano.tensor.cast(theano.tensor.ceil(n_steps / save_every_N), "int64")
+    o_n_steps = tt.cast(tt.ceil(n_steps / save_every_N), "int64")
 
     # Compute the number of steps of the inner scan
-    i_n_steps = save_every_N * theano.tensor.ones((o_n_steps,), "int64")
+    i_n_steps = save_every_N * tt.ones((o_n_steps,), "int64")
     mod = n_steps % save_every_N
-    last_n_steps = theano.tensor.switch(theano.tensor.eq(mod, 0), save_every_N, mod)
-    i_n_steps = theano.tensor.set_subtensor(i_n_steps[-1], last_n_steps)
+    last_n_steps = tt.switch(tt.eq(mod, 0), save_every_N, mod)
+    i_n_steps = set_subtensor(i_n_steps[-1], last_n_steps)
 
     # Pad the sequences if needed
     if padding:
@@ -128,7 +130,7 @@ def scan_checkpoints(
         join = Join(view=0)
         for i, s in enumerate(sequences):
             n = s.shape[0] % save_every_N
-            z = theano.tensor.zeros((n, s.shape[1:]), dtype=s.dtype)
+            z = tt.zeros((n, s.shape[1:]), dtype=s.dtype)
             sequences[i] = join(0, [s, z])
 
     # Establish the input variables of the outer scan
@@ -159,7 +161,7 @@ def scan_checkpoints(
         )
 
         # Call the user-provided function with the proper arguments
-        results, updates = theano.scan(
+        results, updates = scan(
             fn=fn,
             sequences=i_sequences[:-1],
             outputs_info=i_outputs_infos,
@@ -176,7 +178,7 @@ def scan_checkpoints(
         else:
             return [r[-1] for r in results], updates
 
-    results, updates = theano.scan(
+    results, updates = scan(
         fn=outer_step,
         sequences=o_sequences,
         outputs_info=outputs_info,

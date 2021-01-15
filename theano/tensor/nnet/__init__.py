@@ -1,21 +1,14 @@
 import warnings
 
-from . import opt
-from .abstract_conv import conv2d as abstract_conv2d
-from .abstract_conv import conv2d_grad_wrt_inputs, conv3d, separable_conv2d
-from .bn import batch_normalization
-from .conv import ConvOp
-from .nnet import (
-    CrossentropyCategorical1Hot,
-    CrossentropyCategorical1HotGrad,
-    CrossentropySoftmax1HotWithBiasDx,
-    CrossentropySoftmaxArgmax1HotWithBias,
-    LogSoftmax,
-    Prepend_scalar_constant_to_each_row,
-    Prepend_scalar_to_each_row,
-    Softmax,
-    SoftmaxGrad,
-    SoftmaxWithBias,
+import theano.tensor.nnet.opt
+from theano.tensor.nnet.abstract_conv import conv2d as abstract_conv2d
+from theano.tensor.nnet.abstract_conv import (
+    conv2d_grad_wrt_inputs,
+    conv3d,
+    separable_conv2d,
+)
+from theano.tensor.nnet.bn import batch_normalization
+from theano.tensor.nnet.nnet import (
     binary_crossentropy,
     categorical_crossentropy,
     confusion_matrix,
@@ -48,7 +41,7 @@ from .nnet import (
     softmax_with_bias,
     softsign,
 )
-from .sigm import (
+from theano.tensor.nnet.sigm import (
     hard_sigmoid,
     scalar_sigmoid,
     sigmoid,

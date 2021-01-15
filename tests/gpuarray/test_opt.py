@@ -34,6 +34,7 @@ from theano.gpuarray.linalg import GpuCholesky, GpuCusolverSolve, cusolver_avail
 from theano.gpuarray.subtensor import GpuSubtensor
 from theano.gpuarray.type import GpuArrayType, get_context, gpuarray_shared_constructor
 from theano.graph.opt import check_stack_trace
+from theano.tensor.basic import Alloc, AllocEmpty, Rebroadcast
 from theano.tensor.nnet import abstract_conv
 from theano.tensor.type import (
     TensorType,
@@ -231,7 +232,7 @@ def test_local_gpualloc_memset_0():
     f = theano.function([i], a, mode=mode_with_gpu)
     topo = f.maker.fgraph.toposort()
     assert len(topo) == 1
-    assert isinstance(topo[0].op, tt.Alloc)
+    assert isinstance(topo[0].op, Alloc)
     assert (np.asarray(f(6)) == 0).all()
     assert _check_stack_trace(f)
 
@@ -281,18 +282,18 @@ def test_local_gpualloc_empty():
 
     # Test with vector
     # Should not be moved as the only client is the output
-    a = tt.AllocEmpty("float32")(i)
+    a = AllocEmpty("float32")(i)
     f = theano.function([i], a, mode=mode_with_gpu)
     topo = f.maker.fgraph.toposort()
     assert len(topo) == 1
-    assert isinstance(topo[0].op, tt.AllocEmpty)
+    assert isinstance(topo[0].op, AllocEmpty)
     # This return not initilized data, so we can only check the shape
     assert f(3).shape == (3,)
     assert _check_stack_trace(f)
 
     # Test with vector
     # Should be moved
-    a = tt.AllocEmpty("float32")(i)
+    a = AllocEmpty("float32")(i)
     f = theano.function([i], a.cumsum(), mode=mode_with_gpu)
     topo = f.maker.fgraph.toposort()
     assert len(topo) == 3
@@ -302,7 +303,7 @@ def test_local_gpualloc_empty():
     assert _check_stack_trace(f)
 
     # Test with matrix
-    a = tt.AllocEmpty("float32")(i, ii)
+    a = AllocEmpty("float32")(i, ii)
     f = theano.function([i, ii], a.cumsum(axis=0), mode=mode_with_gpu)
     topo = f.maker.fgraph.toposort()
     assert len(topo) == 3
@@ -321,7 +322,7 @@ def test_rebroadcast():
     f(d)
 
     topo = f.maker.fgraph.toposort()
-    rebrs = [node for node in topo if isinstance(node.op, tt.Rebroadcast)]
+    rebrs = [node for node in topo if isinstance(node.op, Rebroadcast)]
     assert len(rebrs) == 1
     rebr = rebrs[0]
 

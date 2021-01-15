@@ -17,7 +17,9 @@ from theano.graph.type import EnumList, Generic
 from theano.misc.safe_asarray import _asarray
 from theano.scalar import int32 as int_t
 from theano.scalar import upcast
-from theano.tensor import basic, nlinalg
+from theano.tensor import basic as tt
+from theano.tensor import nlinalg
+from theano.tensor.subtensor import advanced_inc_subtensor1, set_subtensor
 from theano.tensor.type import (
     TensorType,
     dvector,
@@ -40,7 +42,7 @@ class CpuContiguous(COp):
     check_input = False
 
     def make_node(self, x):
-        x_ = theano.tensor.as_tensor_variable(x)
+        x_ = tt.as_tensor_variable(x)
         return Apply(self, [x_], [x_.type()])
 
     def perform(self, node, inputs, output_storage):
@@ -54,7 +56,7 @@ class CpuContiguous(COp):
         y[0] = x
 
     def grad(self, inputs, dout):
-        return [theano.tensor.as_tensor_variable(dout[0])]
+        return [tt.as_tensor_variable(dout[0])]
 
     def c_code(self, node, name, inames, onames, sub):
         (x,) = inames
@@ -115,13 +117,13 @@ class SearchsortedOp(COp):
         return self.side
 
     def make_node(self, x, v, sorter=None):
-        x = basic.as_tensor(x, ndim=1)
-        v = basic.as_tensor(v)
+        x = tt.as_tensor(x, ndim=1)
+        v = tt.as_tensor(v)
         out_type = v.type.clone(dtype="int64")
         if sorter is None:
             return Apply(self, [x, v], [out_type()])
         else:
-            sorter = basic.as_tensor(sorter, ndim=1)
+            sorter = tt.as_tensor(sorter, ndim=1)
             if PYTHON_INT_BITWIDTH == 32 and sorter.dtype == "int64":
                 raise TypeError(
                     "numpy.searchsorted with Python 32bit do not support a"
@@ -288,7 +290,7 @@ class CumOp(COp):
     c_axis = property(lambda self: np.MAXDIMS if self.axis is None else self.axis)
 
     def make_node(self, x):
-        x = basic.as_tensor_variable(x)
+        x = tt.as_tensor_variable(x)
         out_type = x.type()
 
         if self.axis is None:
@@ -338,7 +340,7 @@ class CumOp(COp):
 
     def infer_shape(self, fgraph, node, shapes):
         if self.axis is None:
-            return [(basic.prod(shapes[0]),)]  # Flatten
+            return [(tt.prod(shapes[0]),)]  # Flatten
 
         return shapes
 
@@ -475,7 +477,7 @@ class DiffOp(Op):
             self.view_map = {0: [0]}
 
     def make_node(self, x):
-        x = basic.as_tensor_variable(x)
+        x = tt.as_tensor_variable(x)
         return Apply(self, [x], [x.type()])
 
     def perform(self, node, inputs, output_storage):
@@ -495,8 +497,8 @@ class DiffOp(Op):
         z = outputs_gradients[0]
 
         def _grad_helper(z):
-            pre = basic.concatenate([[0.0], z])
-            app = basic.concatenate([z, [0.0]])
+            pre = tt.concatenate([[0.0], z])
+            app = tt.concatenate([z, [0.0]])
             return pre - app
 
         for k in range(self.n):
@@ -566,21 +568,21 @@ def bincount(x, weights=None, minlength=None, assert_nonneg=False):
 
     if assert_nonneg:
         assert_op = Assert("Input to bincount has negative values!")
-        x = assert_op(x, theano.tensor.all(x >= 0))
+        x = assert_op(x, tt.all(x >= 0))
 
-    max_value = theano.tensor.cast(x.max() + 1, "int64")
+    max_value = tt.cast(x.max() + 1, "int64")
 
     if minlength is not None:
-        max_value = theano.tensor.maximum(max_value, minlength)
+        max_value = tt.maximum(max_value, minlength)
 
     # Note: we do not use inc_subtensor(out[x], ...) in the following lines,
     # since out[x] raises an exception if the indices (x) are int8.
     if weights is None:
-        out = theano.tensor.zeros([max_value], dtype=x.dtype)
-        out = theano.tensor.advanced_inc_subtensor1(out, 1, x)
+        out = tt.zeros([max_value], dtype=x.dtype)
+        out = advanced_inc_subtensor1(out, 1, x)
     else:
-        out = theano.tensor.zeros([max_value], dtype=weights.dtype)
-        out = theano.tensor.advanced_inc_subtensor1(out, weights, x)
+        out = tt.zeros([max_value], dtype=weights.dtype)
+        out = advanced_inc_subtensor1(out, weights, x)
     return out
 
 
@@ -646,7 +648,7 @@ def compress(condition, x, axis=None):
         `x` with selected slices.
 
     """
-    indices = basic.flatnonzero(condition)
+    indices = tt.flatnonzero(condition)
     return x.take(indices, axis=axis)
 
 
@@ -659,8 +661,8 @@ class RepeatOp(Op):
         self.axis = axis
 
     def make_node(self, x, repeats):
-        x = basic.as_tensor_variable(x)
-        repeats = basic.as_tensor_variable(repeats)
+        x = tt.as_tensor_variable(x)
+        repeats = tt.as_tensor_variable(repeats)
 
         if repeats.dtype not in integer_dtypes:
             raise TypeError("repeats.dtype must be an integer.")
@@ -687,8 +689,8 @@ class RepeatOp(Op):
             broadcastable = [False]
         else:
             try:
-                const_reps = basic.get_scalar_constant_value(repeats)
-            except basic.NotScalarConstantError:
+                const_reps = tt.get_scalar_constant_value(repeats)
+            except tt.NotScalarConstantError:
                 const_reps = None
             if const_reps == 1:
                 broadcastable = x.broadcastable
@@ -753,12 +755,12 @@ class RepeatOp(Op):
                         res = res * d
                     out_shape = (res * repeats,)
             else:
-                out_shape = [theano.tensor.sum(repeats, dtype=dtype)]
+                out_shape = [tt.sum(repeats, dtype=dtype)]
         else:
             if repeats.ndim == 0:
                 out_shape[self.axis] = out_shape[self.axis] * repeats
             else:
-                out_shape[self.axis] = theano.tensor.sum(repeats, dtype=dtype)
+                out_shape[self.axis] = tt.sum(repeats, dtype=dtype)
         return [out_shape]
 
 
@@ -788,7 +790,7 @@ def repeat(x, repeats, axis=None):
     .. versionadded:: 0.6
 
     """
-    repeats = basic.as_tensor_variable(repeats)
+    repeats = tt.as_tensor_variable(repeats)
 
     if repeats.ndim > 1:
         raise ValueError("The dimension of repeats should not exceed 1.")
@@ -800,7 +802,7 @@ def repeat(x, repeats, axis=None):
             repeats = repeats[0]
 
         if x.dtype == "uint64":
-            raise TypeError("theano.tensor.repeat don't support dtype uint64")
+            raise TypeError("repeat doesn't support dtype uint64")
 
         if axis is None:
             axis = 0
@@ -831,7 +833,7 @@ def repeat(x, repeats, axis=None):
         # After the original tensor is duplicated along the additional
         # dimension, we reshape it to the expected output shape, and
         # return the output z.
-        z = basic.alloc(x.dimshuffle(*dims_), *shape_).reshape(shape)
+        z = tt.alloc(x.dimshuffle(*dims_), *shape_).reshape(shape)
         return z
 
 
@@ -840,7 +842,7 @@ class Bartlett(Op):
     __props__ = ()
 
     def make_node(self, M):
-        M = basic.as_tensor_variable(M)
+        M = tt.as_tensor_variable(M)
         if M.ndim != 0:
             raise TypeError(f"{self.__class__.__name__} only works on scalar input")
         elif M.dtype not in integer_dtypes:
@@ -855,7 +857,7 @@ class Bartlett(Op):
 
     def infer_shape(self, fgraph, node, in_shapes):
         temp = node.inputs[0]
-        M = basic.switch(basic.lt(temp, 0), basic.cast(0, temp.dtype), temp)
+        M = tt.switch(tt.lt(temp, 0), tt.cast(0, temp.dtype), temp)
         return [[M]]
 
     def grad(self, inputs, output_grads):
@@ -901,8 +903,8 @@ class FillDiagonal(Op):
         return [in_shapes[0]]
 
     def make_node(self, a, val):
-        a = basic.as_tensor_variable(a)
-        val = basic.as_tensor_variable(val)
+        a = tt.as_tensor_variable(a)
+        val = tt.as_tensor_variable(val)
         if a.ndim < 2:
             raise TypeError(
                 "%s: first parameter must have at least"
@@ -912,7 +914,7 @@ class FillDiagonal(Op):
             raise TypeError(
                 f"{self.__class__.__name__}: second parameter must be a scalar"
             )
-        val = basic.cast(val, dtype=upcast(a.dtype, val.dtype))
+        val = tt.cast(val, dtype=upcast(a.dtype, val.dtype))
         if val.dtype != a.dtype:
             raise TypeError(
                 "%s: type of second parameter must be the same as"
@@ -1003,9 +1005,9 @@ class FillDiagonalOffset(Op):
         return [in_shapes[0]]
 
     def make_node(self, a, val, offset):
-        a = basic.as_tensor_variable(a)
-        val = basic.as_tensor_variable(val)
-        offset = basic.as_tensor_variable(offset)
+        a = tt.as_tensor_variable(a)
+        val = tt.as_tensor_variable(val)
+        offset = tt.as_tensor_variable(offset)
         if a.ndim != 2:
             raise TypeError(
                 "%s: first parameter must have exactly"
@@ -1019,7 +1021,7 @@ class FillDiagonalOffset(Op):
             raise TypeError(
                 f"{self.__class__.__name__}: third parameter must be a scalar"
             )
-        val = basic.cast(val, dtype=upcast(a.dtype, val.dtype))
+        val = tt.cast(val, dtype=upcast(a.dtype, val.dtype))
         if val.dtype != a.dtype:
             raise TypeError(
                 "%s: type of second parameter must be the same"
@@ -1080,13 +1082,13 @@ class FillDiagonalOffset(Op):
         # only valid for matrices
         wr_a = fill_diagonal_offset(grad, 0, offset)
 
-        offset_abs = basic.abs_(offset)
-        pos_offset_flag = basic.ge(offset, 0)
-        neg_offset_flag = basic.lt(offset, 0)
-        min_wh = basic.minimum(width, height)
+        offset_abs = tt.abs_(offset)
+        pos_offset_flag = tt.ge(offset, 0)
+        neg_offset_flag = tt.lt(offset, 0)
+        min_wh = tt.minimum(width, height)
 
         start = offset * pos_offset_flag + offset_abs * width * neg_offset_flag
-        num_of_step = basic.minimum(
+        num_of_step = tt.minimum(
             min_wh, width * pos_offset_flag + height * neg_offset_flag - offset_abs
         )
 
@@ -1094,9 +1096,9 @@ class FillDiagonalOffset(Op):
         end = start + step * num_of_step
 
         # input of slice should be integer
-        start = basic.cast(start, "int32")
-        step = basic.cast(step, "int32")
-        end = basic.cast(end, "int32")
+        start = tt.cast(start, "int32")
+        step = tt.cast(step, "int32")
+        end = tt.cast(end, "int32")
 
         wr_val = grad.flatten()[start:end:step].sum()
 
@@ -1162,8 +1164,8 @@ def to_one_hot(y, nb_class, dtype=None):
         the one hot encoding of the corresponding ``y[i]`` value.
 
     """
-    ret = theano.tensor.zeros((y.shape[0], nb_class), dtype=dtype)
-    ret = theano.tensor.set_subtensor(ret[theano.tensor.arange(y.shape[0]), y], 1)
+    ret = tt.zeros((y.shape[0], nb_class), dtype=dtype)
+    ret = set_subtensor(ret[tt.arange(y.shape[0]), y], 1)
     return ret
 
 
@@ -1206,7 +1208,7 @@ class Unique(Op):
             )
 
     def make_node(self, x):
-        x = basic.as_tensor_variable(x)
+        x = tt.as_tensor_variable(x)
         self_axis = self.axis
         if self_axis is None:
             broadcastable = [False]
@@ -1271,7 +1273,7 @@ class Unique(Op):
             )
         if self.return_inverse:
             if self.axis is None:
-                shape = (basic.prod(i0_shapes[0]),)
+                shape = (tt.prod(i0_shapes[0]),)
             else:
                 shape = (i0_shapes[0][self_axis],)
             if self.return_index:
@@ -1297,8 +1299,8 @@ class UnravelIndex(Op):
         self.order = order
 
     def make_node(self, indices, dims):
-        indices = basic.as_tensor_variable(indices)
-        dims = basic.as_tensor_variable(dims)
+        indices = tt.as_tensor_variable(indices)
+        dims = tt.as_tensor_variable(dims)
 
         if indices.dtype not in int_dtypes:
             raise TypeError(
@@ -1314,7 +1316,7 @@ class UnravelIndex(Op):
             [indices, dims],
             [
                 TensorType(dtype="int64", broadcastable=(False,) * indices.ndim)()
-                for i in range(basic.get_vector_length(dims))
+                for i in range(tt.get_vector_length(dims))
             ],
         )
 
@@ -1378,8 +1380,8 @@ class RavelMultiIndex(Op):
         self.order = order
 
     def make_node(self, *inp):
-        multi_index = [basic.as_tensor_variable(i) for i in inp[:-1]]
-        dims = basic.as_tensor_variable(inp[-1])
+        multi_index = [tt.as_tensor_variable(i) for i in inp[:-1]]
+        dims = tt.as_tensor_variable(inp[-1])
 
         for i in multi_index:
             if i.dtype not in int_dtypes:
@@ -1522,13 +1524,13 @@ def broadcast_shape_iter(arrays, **kwargs):
                 # equal, so we'll need to assert their equality and move the error
                 # handling to evaluation time.
                 assert_dim = Assert("Could not broadcast dimensions")
-                eq_condition = basic.all(
+                eq_condition = tt.all(
                     [
-                        basic.or_(basic.eq(dim, one), basic.eq(i_dim, dim))
+                        tt.or_(tt.eq(dim, one), tt.eq(i_dim, dim))
                         for dim in potentially_unequal_dims
                     ]
                 )
-                eq_condition = basic.or_(basic.eq(i_dim, one), eq_condition)
+                eq_condition = tt.or_(tt.eq(i_dim, one), eq_condition)
                 result_dims.append(assert_dim(i_dim, eq_condition))
             else:
                 result_dims.append(i_dim)
@@ -1547,10 +1549,10 @@ class BroadcastTo(Op):
         return super().__call__(a, *shape, **kwargs)
 
     def make_node(self, a, *shape):
-        a = basic.as_tensor_variable(a)
-        shape = basic.as_tensor_variable(shape, ndim=1)
+        a = tt.as_tensor_variable(a)
+        shape = tt.as_tensor_variable(shape, ndim=1)
 
-        shape, bcast = basic.alloc_validate_shape(shape)
+        shape, bcast = tt.alloc_validate_shape(shape)
 
         out = type(a.type)(dtype=a.type.dtype, broadcastable=bcast)()
 
@@ -1571,7 +1573,7 @@ class BroadcastTo(Op):
         d_wrt_a = broadcast_to(dout, shape).sum(axis=new_dims)
 
         # Determine the dimensions that were broadcast
-        _, shape_bcast = basic.alloc_validate_shape(shape)
+        _, shape_bcast = tt.alloc_validate_shape(shape)
         bcast_sums = [
             i
             for i, (a_b, s_b) in enumerate(zip(a.broadcastable, shape_bcast[-a.ndim :]))

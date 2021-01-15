@@ -9,8 +9,7 @@ from theano.configdefaults import config
 from theano.graph.fg import FunctionGraph
 from theano.graph.opt import out2in
 from theano.link.basic import PerformLinker
-
-# from theano.tensor import matrix,max_and_argmax,MaaxAndArgmax,neg
+from theano.tensor.basic import MaxAndArgmax
 from theano.tensor.elemwise import CAReduce, DimShuffle, Elemwise
 from theano.tensor.opt_uncanonicalize import (
     local_alloc_dimshuffle,
@@ -40,7 +39,7 @@ class TestMaxAndArgmax:
             f = function([n], tt.max_and_argmax(n, axis), mode=mode)
             topo = f.maker.fgraph.toposort()
             assert len(topo) == 1
-            assert isinstance(topo[0].op, tt.MaxAndArgmax)
+            assert isinstance(topo[0].op, MaxAndArgmax)
 
 
 class TestMinMax:

@@ -14,6 +14,7 @@ from tests.tensor.test_basic import (
     TestReshape,
 )
 from tests.tensor.utils import rand, safe_make_node
+from theano.compile.ops import Shape_i
 from theano.gpuarray.basic_ops import (
     GpuAlloc,
     GpuAllocEmpty,
@@ -33,7 +34,8 @@ from theano.gpuarray.basic_ops import (
 from theano.gpuarray.elemwise import GpuDimShuffle, GpuElemwise
 from theano.gpuarray.subtensor import GpuSubtensor
 from theano.gpuarray.type import GpuArrayType, get_context, gpuarray_shared_constructor
-from theano.tensor.basic import alloc
+from theano.tensor.basic import Alloc, Split, alloc
+from theano.tensor.opt import MakeVector
 from theano.tensor.type import TensorType, fmatrix, iscalar, lscalar, matrix
 
 
@@ -298,7 +300,7 @@ class TestGPUAlloc(TestAlloc):
     dtype = "float32"
     mode = mode_with_gpu
     shared = staticmethod(gpuarray_shared_constructor)
-    allocs = [GpuAlloc(test_ctx_name), GpuAlloc(test_ctx_name), tt.Alloc()]
+    allocs = [GpuAlloc(test_ctx_name), GpuAlloc(test_ctx_name), Alloc()]
 
 
 def test_alloc_empty():
@@ -341,16 +343,16 @@ def test_shape():
     assert np.all(f(v) == (3, 4, 5))
     if theano.config.mode != "FAST_COMPILE":
         assert len(topo) == 4
-        assert isinstance(topo[0].op, tt.opt.Shape_i)
-        assert isinstance(topo[1].op, tt.opt.Shape_i)
-        assert isinstance(topo[2].op, tt.opt.Shape_i)
-        assert isinstance(topo[3].op, tt.opt.MakeVector)
+        assert isinstance(topo[0].op, Shape_i)
+        assert isinstance(topo[1].op, Shape_i)
+        assert isinstance(topo[2].op, Shape_i)
+        assert isinstance(topo[3].op, MakeVector)
     mode = mode_with_gpu.excluding("local_shape_to_shape_i")
     f = theano.function([x], x.shape, mode=mode)
     topo = f.maker.fgraph.toposort()
     assert np.all(f(v) == (3, 4, 5))
     assert len(topo) == 1
-    assert isinstance(topo[0].op, tt.Shape)
+    assert isinstance(topo[0].op, theano.compile.ops.Shape)
 
 
 def test_gpu_contiguous():
@@ -381,8 +383,8 @@ class TestGPUReshape(TestReshape):
             theano.compile.DeepCopyOp,
             GpuDimShuffle,
             GpuElemwise,
-            tt.opt.Shape_i,
-            tt.opt.MakeVector,
+            Shape_i,
+            MakeVector,
         )
         assert self.op == GpuReshape
 
@@ -416,7 +418,7 @@ class TestGPUJoinAndSplit(TestJoinAndSplit):
         # Also test float16 computation at the same time.
         rng = np.random.RandomState(seed=utt.fetch_seed())
         m = self.shared(rng.rand(4, 6).astype("float16"))
-        o = tt.Split(2)(m, 0, [2, 2])
+        o = Split(2)(m, 0, [2, 2])
         assert o[0].dtype == "float16"
         f = theano.function([], o, mode=self.mode)
         assert any(
@@ -520,18 +522,18 @@ def test_hostfromgpu_shape_i():
     assert any(isinstance(x.op, GpuFromHost) for x in f.maker.fgraph.toposort())
     f = theano.function([a], GpuFromHost(test_ctx_name)(a).shape, mode=m)
     topo = f.maker.fgraph.toposort()
-    assert isinstance(topo[0].op, tt.opt.Shape_i)
-    assert isinstance(topo[1].op, tt.opt.Shape_i)
-    assert isinstance(topo[2].op, tt.opt.MakeVector)
+    assert isinstance(topo[0].op, Shape_i)
+    assert isinstance(topo[1].op, Shape_i)
+    assert isinstance(topo[2].op, MakeVector)
     assert tuple(f(av)) == (5, 4)
 
     f = theano.function([ca], host_from_gpu(ca), mode=m)
     assert host_from_gpu in [x.op for x in f.maker.fgraph.toposort()]
     f = theano.function([ca], host_from_gpu(ca).shape, mode=m)
     topo = f.maker.fgraph.toposort()
-    assert isinstance(topo[0].op, theano.compile.Shape_i)
-    assert isinstance(topo[1].op, theano.compile.Shape_i)
-    assert isinstance(topo[2].op, tt.opt.MakeVector)
+    assert isinstance(topo[0].op, Shape_i)
+    assert isinstance(topo[1].op, Shape_i)
+    assert isinstance(topo[2].op, MakeVector)
     assert tuple(f(cv)) == (5, 4)
 
 

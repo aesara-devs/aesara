@@ -329,7 +329,7 @@ Note that we need to iterate over the indices of ``y`` and not over the elements
   b_sym = tt.vector("b_sym")
 
   # define shared random stream
-  trng = tt.random.utils.RandomStream(1234)
+  trng = theano.tensor.random.utils.RandomStream(1234)
   d=trng.binomial(size=W[1].shape)
 
   results, updates = theano.scan(lambda v: tt.tanh(tt.dot(v, W) + b_sym) * d, sequences=X)

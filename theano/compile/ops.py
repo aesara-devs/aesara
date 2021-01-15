@@ -894,7 +894,7 @@ class SpecifyShape(COp):
                 s = theano.tensor.get_scalar_constant_value(node.inputs[1][dim])
                 s = theano.tensor.as_tensor_variable(s)
                 new_shape.append(s)
-            except theano.tensor.NotScalarConstantError:
+            except theano.tensor.basic.NotScalarConstantError:
                 new_shape.append(node.inputs[1][dim])
 
         assert len(new_shape) == len(xshape)

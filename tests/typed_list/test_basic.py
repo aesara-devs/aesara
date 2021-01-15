@@ -2,7 +2,6 @@ import numpy as np
 import pytest
 
 import theano
-import theano.tensor as tt
 import theano.typed_list
 from tests import unittest_tools as utt
 from theano import sparse
@@ -15,6 +14,7 @@ from theano.tensor.type import (
     vector,
 )
 from theano.tensor.type_other import SliceType
+from theano.tensor.var import TensorVariable
 from theano.typed_list.basic import (
     Append,
     Count,
@@ -68,7 +68,7 @@ class TestGetItem:
 
         z = GetItem()(mySymbolicMatricesList, mySymbolicSlice)
 
-        assert not isinstance(z, tt.TensorVariable)
+        assert not isinstance(z, TensorVariable)
 
         f = theano.function([mySymbolicMatricesList, mySymbolicSlice], z)
 

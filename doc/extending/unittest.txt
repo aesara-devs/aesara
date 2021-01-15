@@ -375,7 +375,7 @@ symbolic variable:
         z_val = numpy.asarray(2)
         rng = numpy.random.RandomState(42)
 
-        tensor.verify_grad(fun, [x_val, y_val, z_val], rng=rng)
+        theano.gradient.verify_grad(fun, [x_val, y_val, z_val], rng=rng)
 
 Here is an example showing how to use ``verify_grad`` on an Op instance:
 
@@ -386,7 +386,7 @@ Here is an example showing how to use ``verify_grad`` on an Op instance:
         # being used is Flatten(), which takes a single input).
         a_val = numpy.asarray([[0,1,2],[3,4,5]], dtype='float64')
         rng = numpy.random.RandomState(42)
-        tensor.verify_grad(tensor.Flatten(), [a_val], rng=rng)
+        theano.gradient.verify_grad(tensor.Flatten(), [a_val], rng=rng)
 
 Here is another example, showing how to verify the gradient w.r.t. a subset of
 an Op's inputs. This is useful in particular when the gradient w.r.t. some of
@@ -408,14 +408,14 @@ which would cause ``verify_grad`` to crash.
         b_val = numpy.asarray([1, 2, 3], dtype='float64')
         rng = numpy.random.RandomState(42)
 
-        tensor.verify_grad(op_with_fixed_y_idx, [x_val, b_val], rng=rng)
+        theano.gradient.verify_grad(op_with_fixed_y_idx, [x_val, b_val], rng=rng)
 
 .. note::
 
     Although ``verify_grad`` is defined in ``theano.tensor.basic``, unittests
     should use the version of ``verify_grad`` defined in ``tests.unittest_tools``.
     This is simply a wrapper function which takes care of seeding the random
-    number generator appropriately before calling ``theano.tensor.basic.verify_grad``
+    number generator appropriately before calling ``theano.gradient.verify_grad``
 
 makeTester and makeBroadcastTester
 ==================================

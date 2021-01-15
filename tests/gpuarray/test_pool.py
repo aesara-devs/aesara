@@ -8,7 +8,6 @@ import theano
 from tests import unittest_tools as utt
 from tests.gpuarray.config import mode_with_gpu, mode_without_gpu
 from tests.gpuarray.test_basic_ops import rand
-from theano import gradient
 from theano import tensor as tt
 from theano.gpuarray.pool import (
     GpuAveragePoolGrad,
@@ -16,6 +15,7 @@ from theano.gpuarray.pool import (
     GpuMaxPoolGrad,
     GpuPool,
 )
+from theano.gradient import Lop, Rop, grad
 from theano.tensor.signal.pool import (
     AveragePoolGrad,
     DownsampleFactorMaxGradGrad,
@@ -138,7 +138,7 @@ def test_pool2d():
                 )
                 assert np.allclose(f(), f2()), (shp, ws, st, pad, mode, ignore_border)
 
-                a_pooled_grad = theano.gradient.grad(a_pooled.sum(), a)
+                a_pooled_grad = grad(a_pooled.sum(), a)
 
                 g = theano.function([], a_pooled_grad, mode=gpu_mode)
                 g2 = theano.function([], a_pooled_grad, mode=ref_mode)
@@ -165,12 +165,8 @@ def test_pool2d():
 
                 ea = theano.shared(rand(*shp), "ea")
 
-                gr = theano.function(
-                    [], theano.gradient.Rop(a_pooled, a, ea), mode=gpu_mode
-                )
-                gr2 = theano.function(
-                    [], theano.gradient.Rop(a_pooled, a, ea), mode=ref_mode
-                )
+                gr = theano.function([], Rop(a_pooled, a, ea), mode=gpu_mode)
+                gr2 = theano.function([], Rop(a_pooled, a, ea), mode=ref_mode)
 
                 assert any(
                     [
@@ -186,7 +182,7 @@ def test_pool2d():
                 )
                 assert np.allclose(gr(), gr2()), (shp, ws, st, pad, mode, ignore_border)
 
-                ggf = gradient.Lop(theano.gradient.grad((a_pooled ** 2).sum(), a), a, a)
+                ggf = Lop(grad((a_pooled ** 2).sum(), a), a, a)
 
                 gg = theano.function([], ggf, mode=gpu_mode)
                 gg2 = theano.function([], ggf, mode=ref_mode)
@@ -268,7 +264,7 @@ def test_pool3d():
                 )
                 assert np.allclose(f(), f2()), (shp, ws, st, pad, mode, ignore_border)
 
-                a_pooled_grad = theano.gradient.grad(a_pooled.sum(), a)
+                a_pooled_grad = grad(a_pooled.sum(), a)
 
                 g = theano.function([], a_pooled_grad, mode=gpu_mode)
                 g2 = theano.function([], a_pooled_grad, mode=ref_mode)
@@ -295,12 +291,8 @@ def test_pool3d():
 
                 ea = theano.shared(rand(*shp), "ea")
 
-                gr = theano.function(
-                    [], theano.gradient.Rop(a_pooled, a, ea), mode=gpu_mode
-                )
-                gr2 = theano.function(
-                    [], theano.gradient.Rop(a_pooled, a, ea), mode=ref_mode
-                )
+                gr = theano.function([], Rop(a_pooled, a, ea), mode=gpu_mode)
+                gr2 = theano.function([], Rop(a_pooled, a, ea), mode=ref_mode)
 
                 assert any(
                     [
@@ -316,7 +308,7 @@ def test_pool3d():
                 )
                 assert np.allclose(gr(), gr2()), (shp, ws, st, pad, mode, ignore_border)
 
-                ggf = gradient.Lop(theano.gradient.grad((a_pooled ** 2).sum(), a), a, a)
+                ggf = Lop(grad((a_pooled ** 2).sum(), a), a, a)
 
                 gg = theano.function([], ggf, mode=gpu_mode)
                 gg2 = theano.function([], ggf, mode=ref_mode)

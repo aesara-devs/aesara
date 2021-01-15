@@ -12,6 +12,7 @@ except ImportError:
     ndimage = None
 
 import tests.unittest_tools as utt
+from theano.compile.sharedvalue import shared
 from theano.graph.opt import check_stack_trace
 from theano.tensor.nnet.conv3d2d import (
     DiagonalSubtensor,
@@ -117,8 +118,6 @@ def test_conv3d(border_mode):
         mode = theano.compile.mode.get_mode("FAST_RUN")
     else:
         mode = theano.compile.mode.get_default_mode()
-
-    shared = theano.tensor._shared
 
     Ns, Ts, C, Hs, Ws = 3, 10, 3, 32, 32
     Nf, Tf, C, Hf, Wf = 32, 5, 3, 5, 5

@@ -12,7 +12,7 @@ from theano.link.c.interface import HideC
 from theano.scalar import bool as bool_t
 from theano.scalar import int32 as int_t
 from theano.scalar import uint32 as size_t
-from theano.tensor import AllocDiag
+from theano.tensor.basic import AllocDiag
 from theano.tensor.subtensor import (
     AdvancedIncSubtensor,
     AdvancedSubtensor,

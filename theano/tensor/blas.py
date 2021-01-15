@@ -161,6 +161,7 @@ from theano.printing import FunctionPrinter, debugprint, pprint
 from theano.scalar import bool as bool_t
 from theano.tensor import basic as tt
 from theano.tensor.blas_headers import blas_header_text, blas_header_version
+from theano.tensor.elemwise import DimShuffle, Elemwise
 from theano.tensor.opt import in2out, local_dimshuffle_lift
 from theano.tensor.type import integer_dtypes, values_eq_approx_remove_inf_nan
 from theano.utils import memoize
@@ -1111,7 +1112,7 @@ def _as_scalar(res, dtype=None):
     if dtype is None:
         dtype = config.floatX
     if np.all(res.type.broadcastable):
-        while res.owner and isinstance(res.owner.op, tt.DimShuffle):
+        while res.owner and isinstance(res.owner.op, DimShuffle):
             res = res.owner.inputs[0]
         # may still have some number of True's
         if res.type.broadcastable:
@@ -1165,7 +1166,7 @@ def _beta_L_plus_alpha_M(fgraph, beta, L, alpha, M, recurse_flip=True):
     # and the dot22. local_dot_to_dot22 in particular will put in such things.
     if (
         M.owner
-        and isinstance(M.owner.op, tt.DimShuffle)
+        and isinstance(M.owner.op, DimShuffle)
         and M.owner.inputs[0].owner
         and isinstance(M.owner.inputs[0].owner.op, Dot22)
     ):
@@ -1241,7 +1242,7 @@ def _gemm_canonicalize(fgraph, r, scale, rval, maxclients):
         matrices = []
         for i in r.owner.inputs:
             if np.all(i.type.broadcastable):
-                while i.owner and isinstance(i.owner.op, tt.DimShuffle):
+                while i.owner and isinstance(i.owner.op, DimShuffle):
                     i = i.owner.inputs[0]
                 if i.type.broadcastable:
                     scalars.append(i.dimshuffle())
@@ -1463,7 +1464,7 @@ class GemmOptimizer(GlobalOptimizer):
             nodelist.reverse()
             for node in nodelist:
                 if not (
-                    isinstance(node.op, tt.Elemwise)
+                    isinstance(node.op, Elemwise)
                     and isinstance(
                         node.op.scalar_op,
                         (

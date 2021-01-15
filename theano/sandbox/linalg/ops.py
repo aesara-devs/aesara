@@ -1,11 +1,11 @@
 import logging
 
 import theano.tensor
-from theano import tensor as tt
 from theano.graph.basic import Apply
 from theano.graph.op import Op
 from theano.graph.opt import GlobalOptimizer, local_optimizer
-from theano.tensor import Dot
+from theano.tensor import basic as tt
+from theano.tensor.basic import Dot
 from theano.tensor.blas import Dot22
 from theano.tensor.elemwise import DimShuffle, Prod
 from theano.tensor.nlinalg import (
@@ -210,7 +210,7 @@ def is_positive(v):
     if v.owner and v.owner.op == tt.pow:
         try:
             exponent = tt.get_scalar_constant_value(v.owner.inputs[1])
-        except tt.basic.NotScalarConstantError:
+        except tt.NotScalarConstantError:
             return False
         if 0 == exponent % 2:
             return True

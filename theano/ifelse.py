@@ -486,14 +486,14 @@ where, each of the optimization do the following things:
 #                'ifelse')
 
 acceptable_ops = (
+    theano.compile.ops.Shape,
+    theano.compile.ops.SpecifyShape,
+    theano.compile.ops.Rebroadcast,
     theano.tensor.basic.Dot,
     theano.tensor.basic.Reshape,
-    theano.tensor.basic.Shape,
-    theano.compile.ops.SpecifyShape,
     theano.tensor.basic.MaxAndArgmax,
     theano.tensor.subtensor.Subtensor,
     theano.tensor.subtensor.IncSubtensor,
-    theano.tensor.basic.Rebroadcast,
     theano.tensor.basic.Alloc,
     theano.tensor.elemwise.Elemwise,
     theano.tensor.elemwise.DimShuffle,

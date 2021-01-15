@@ -177,7 +177,7 @@ class AllocDiag(Op):
     def make_node(self, _x):
         warnings.warn(
             "DeprecationWarning: theano.tensor.nlinalg.AllocDiag"
-            "is deprecated, please use theano.tensor.AllocDiag"
+            "is deprecated, please use theano.tensor.basic.AllocDiag"
             "instead.",
             category=DeprecationWarning,
         )

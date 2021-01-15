@@ -27,7 +27,7 @@ from theano.tensor.basic import (
     get_scalar_constant_value,
     patternbroadcast,
 )
-from theano.tensor.var import TensorConstant
+from theano.tensor.var import TensorConstant, TensorVariable
 
 
 try:
@@ -1207,7 +1207,7 @@ def conv2d_grad_wrt_inputs(
     for dim in [2, 3]:
         if not isinstance(
             input_shape[dim],
-            (theano.tensor.TensorVariable, TensorConstant, int),
+            (TensorVariable, TensorConstant, int),
         ):
             raise ValueError(
                 f"input_shape[{int(dim)}] must be a symbolic variable,"
@@ -1237,7 +1237,7 @@ def conv2d_grad_wrt_inputs(
     # the type of these dimensions is TensorVariable.
     numerical_input_shape = list(input_shape)
     for dim in [2, 3]:
-        if isinstance(input_shape[dim], theano.tensor.TensorVariable):
+        if isinstance(input_shape[dim], TensorVariable):
             numerical_input_shape[dim] = None
 
     grad_input_op = AbstractConv2d_gradInputs(
@@ -1369,7 +1369,7 @@ def conv3d_grad_wrt_inputs(
     for dim in [2, 3, 4]:
         assert isinstance(
             input_shape[dim],
-            (theano.tensor.TensorVariable, TensorConstant, int),
+            (TensorVariable, TensorConstant, int),
         )
 
     # checking the type of filter_shape
@@ -1384,7 +1384,7 @@ def conv3d_grad_wrt_inputs(
     # the type of these dimensions is TensorVariable.
     numerical_input_shape = list(input_shape)
     for dim in [2, 3, 4]:
-        if isinstance(input_shape[dim], theano.tensor.TensorVariable):
+        if isinstance(input_shape[dim], TensorVariable):
             numerical_input_shape[dim] = None
 
     grad_input_op = AbstractConv3d_gradInputs(
@@ -1528,7 +1528,7 @@ def conv2d_grad_wrt_weights(
     for dim in [-2, -1]:
         assert isinstance(
             filter_shape[dim],
-            (theano.tensor.TensorVariable, TensorConstant, int),
+            (TensorVariable, TensorConstant, int),
         )
 
     # checking the type of input_shape
@@ -1543,7 +1543,7 @@ def conv2d_grad_wrt_weights(
     # the type of these dimensions is TensorVariable.
     numerical_filter_shape = list(filter_shape)
     for dim in [-2, -1]:
-        if isinstance(filter_shape[dim], theano.tensor.TensorVariable):
+        if isinstance(filter_shape[dim], TensorVariable):
             numerical_filter_shape[dim] = None
 
     gradWeight_op = AbstractConv2d_gradWeights(
@@ -1666,7 +1666,7 @@ def conv3d_grad_wrt_weights(
     for dim in [2, 3, 4]:
         assert isinstance(
             filter_shape[dim],
-            (theano.tensor.TensorVariable, TensorConstant, int),
+            (TensorVariable, TensorConstant, int),
         )
 
     # checking the type of input_shape
@@ -1681,7 +1681,7 @@ def conv3d_grad_wrt_weights(
     # the type of these dimensions is TensorVariable.
     numerical_filter_shape = list(filter_shape)
     for dim in [2, 3, 4]:
-        if isinstance(filter_shape[dim], theano.tensor.TensorVariable):
+        if isinstance(filter_shape[dim], TensorVariable):
             numerical_filter_shape[dim] = None
 
     gradWeight_op = AbstractConv3d_gradWeights(

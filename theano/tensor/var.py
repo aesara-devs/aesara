@@ -442,9 +442,7 @@ class _tensor_py_operators:
                 hasattr(args_el, "dtype") and args_el.dtype == "bool"
             ):
                 return True
-            if not isinstance(args_el, theano.tensor.Variable) and isinstance(
-                args_el, Iterable
-            ):
+            if not isinstance(args_el, Variable) and isinstance(args_el, Iterable):
                 for el in args_el:
                     if includes_bool(el):
                         return True
@@ -466,7 +464,7 @@ class _tensor_py_operators:
                 # no increase in index_dim_count
                 ellipses.append(i)
             elif (
-                isinstance(arg, (np.ndarray, theano.tensor.Variable))
+                isinstance(arg, (np.ndarray, Variable))
                 and hasattr(arg, "dtype")
                 and arg.dtype == "bool"
             ):

@@ -273,7 +273,7 @@ the following:
    bvis = theano.shared(bvis_values)
    bhid = theano.shared(bhid_values)
 
-   trng = tt.random.utils.RandomStream(1234)
+   trng = theano.tensor.random.utils.RandomStream(1234)
 
    def OneStep(vsample) :
        hmean = tt.nnet.sigmoid(theano.dot(vsample, W) + bhid)
@@ -354,7 +354,7 @@ updated:
     bvis = theano.shared(bvis_values)
     bhid = theano.shared(bhid_values)
 
-    trng = tt.random.utils.RandomStream(1234)
+    trng = theano.tensor.random.utils.RandomStream(1234)
 
     # OneStep, with explicit use of the shared variables (W, bvis, bhid)
     def OneStep(vsample, W, bvis, bhid):

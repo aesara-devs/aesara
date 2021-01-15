@@ -9,6 +9,7 @@ from tests import unittest_tools
 from tests.tensor.test_blas import BaseGemv, TestBlasStrides
 from tests.unittest_tools import OptimizationTestMixin
 from theano.misc.safe_asarray import _asarray
+from theano.tensor.basic import AllocEmpty
 from theano.tensor.blas import Ger
 from theano.tensor.blas_c import CGemv, CGer, check_force_gemv_init
 from theano.tensor.blas_scipy import ScipyGer
@@ -282,13 +283,7 @@ class TestCGemv(OptimizationTestMixin):
         assert np.allclose(out[0], np.dot(vy, vx))
         assert np.allclose(out[1], np.dot(vz, vx))
         assert (
-            len(
-                [
-                    n
-                    for n in f.maker.fgraph.apply_nodes
-                    if isinstance(n.op, tt.AllocEmpty)
-                ]
-            )
+            len([n for n in f.maker.fgraph.apply_nodes if isinstance(n.op, AllocEmpty)])
             == 2
         )
 

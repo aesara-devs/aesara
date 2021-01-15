@@ -133,3 +133,5 @@ none_type_t = NoneTypeT()
 # So use NoneConst.clone() before using it in a Theano graph.
 # Use NoneConst.equals(x) to check if two variable are NoneConst.
 NoneConst = Constant(none_type_t, None, name="NoneConst")
+
+__all__ = ["make_slice", "slicetype", "none_type_t", "NoneConst"]

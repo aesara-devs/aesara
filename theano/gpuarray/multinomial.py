@@ -10,22 +10,21 @@ except ImportError:
 
 import theano
 import theano.sandbox.multinomial
-from theano.graph.basic import Apply
-from theano.graph.op import _NoPythonOp
-from theano.scalar import as_scalar
-from theano.tensor import NotScalarConstantError, get_scalar_constant_value
-
-from .basic_ops import (
+from theano.gpuarray.basic_ops import (
     GpuKernelBaseCOp,
     Kernel,
     as_gpuarray_variable,
     gpuarray_helper_inc_dir,
     infer_context_name,
 )
-from .elemwise import GpuDimShuffle
-from .fp16_help import load_w, work_dtype, write_w
-from .opt import op_lifter, register_opt, register_opt2
-from .type import GpuArrayType
+from theano.gpuarray.elemwise import GpuDimShuffle
+from theano.gpuarray.fp16_help import load_w, work_dtype, write_w
+from theano.gpuarray.opt import op_lifter, register_opt, register_opt2
+from theano.gpuarray.type import GpuArrayType
+from theano.graph.basic import Apply
+from theano.graph.op import _NoPythonOp
+from theano.scalar import as_scalar
+from theano.tensor.basic import NotScalarConstantError, get_scalar_constant_value
 
 
 class GPUAMultinomialFromUniform(GpuKernelBaseCOp, _NoPythonOp):

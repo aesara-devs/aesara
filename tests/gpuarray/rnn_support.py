@@ -2,6 +2,7 @@ import numpy as np
 
 import theano
 import theano.tensor as tt
+from theano.tensor import nnet
 
 
 class Model:
@@ -125,10 +126,10 @@ class GRU(Layer):
         """step through processed input to create output"""
 
         def step(inp, s_prev):
-            i_t = tt.nnet.sigmoid(
+            i_t = nnet.sigmoid(
                 tt.dot(inp, self.W_i) + tt.dot(s_prev, self.R_i) + self.b_wi + self.b_ru
             )
-            r_t = tt.nnet.sigmoid(
+            r_t = nnet.sigmoid(
                 tt.dot(inp, self.W_r) + tt.dot(s_prev, self.R_r) + self.b_wr + self.b_rr
             )
 
@@ -229,13 +230,13 @@ class LSTM(Layer):
         """step through processed input to create output"""
 
         def step(x_t, h_tm1, c_tm1):
-            i_t = tt.nnet.sigmoid(
+            i_t = nnet.sigmoid(
                 tt.dot(x_t, self.W_i) + tt.dot(h_tm1, self.R_i) + self.b_wi + self.b_ri
             )
-            f_t = tt.nnet.sigmoid(
+            f_t = nnet.sigmoid(
                 tt.dot(x_t, self.W_f) + tt.dot(h_tm1, self.R_f) + self.b_wf + self.b_rf
             )
-            o_t = tt.nnet.sigmoid(
+            o_t = nnet.sigmoid(
                 tt.dot(x_t, self.W_o) + tt.dot(h_tm1, self.R_o) + self.b_ro + self.b_wo
             )
 

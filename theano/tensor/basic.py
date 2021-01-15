@@ -12,7 +12,7 @@ import theano.scalar.sharedvar
 from theano import compile, config, printing
 from theano import scalar as ts
 from theano.assert_op import Assert, assert_op
-from theano.compile import Rebroadcast, Shape, shape
+from theano.compile.ops import Rebroadcast, Shape, shape
 from theano.gradient import DisconnectedType, grad_not_implemented, grad_undefined
 from theano.graph.basic import Apply, Constant, Variable
 from theano.graph.op import COp, Op
@@ -208,12 +208,6 @@ def as_tensor_variable(x, name=None, ndim=None):
 
     return constant(x, name=name, ndim=ndim)
 
-
-# this has a different name, because _as_tensor_variable is the
-# function which ops use to upcast their arguments... this
-# internal-use function is a good place to put debugging stuff, better
-# than the global astensor.
-_as_tensor_variable = as_tensor_variable
 
 as_tensor = as_tensor_variable
 
@@ -629,7 +623,7 @@ def get_scalar_constant_value(
                 owner = v.owner
                 leftmost_parent = owner.inputs[0]
                 if leftmost_parent.owner and isinstance(
-                    leftmost_parent.owner.op, theano.tensor.Shape
+                    leftmost_parent.owner.op, Shape
                 ):
                     op = owner.op
                     idx_list = op.idx_list
@@ -879,7 +873,7 @@ class MaxAndArgmax(COp):
         return self.axis
 
     def make_node(self, x):
-        x = _as_tensor_variable(x)
+        x = as_tensor_variable(x)
 
         # We keep the original broadcastable flags for dimensions on which
         # we do not perform the max / argmax.
@@ -1032,7 +1026,7 @@ class MaxAndArgmax(COp):
         # g_max to x's shape when axis=0 the broadcasting mechanism
         # does it automatically
         x = inp[0]
-        axis = _as_tensor_variable(self.axis)
+        axis = as_tensor_variable(self.axis)
         g_max, g_max_idx = grads
 
         g_max_disconnected = isinstance(g_max.type, DisconnectedType)
@@ -1099,7 +1093,7 @@ class Argmax(COp):
         return self.params_type.get_params(c_axis=c_axis)
 
     def make_node(self, x, axis=None):
-        x = _as_tensor_variable(x)
+        x = as_tensor_variable(x)
         if self.axis is None:
             all_axes = list(range(x.ndim))
         else:
@@ -1939,7 +1933,7 @@ def cov(m, y=None, rowvar=True, bias=False, ddof=None, fweights=None, aweights=N
     if y is not None:
         if not rowvar and y.shape[0] != 1:
             y = y.T
-        m = theano.tensor.concatenate((m, y), axis=0)
+        m = concatenate((m, y), axis=0)
 
     if ddof is None:
         if not bias:
@@ -1952,7 +1946,7 @@ def cov(m, y=None, rowvar=True, bias=False, ddof=None, fweights=None, aweights=N
 
     m -= m.mean(axis=1, keepdims=1)
     c = m.dot(m.T)
-    c *= theano.tensor.constant(1) / fact
+    c *= constant(1) / fact
     return c.squeeze()
 
 
@@ -3217,7 +3211,6 @@ class Default(Op):
 
 
 default = Default()
-setdefault = default  # legacy
 
 
 ##########################
@@ -3904,10 +3897,10 @@ class Join(COp):
             dtype.
 
         """
-        axis, tensors = axis_and_tensors[0], axis_and_tensors[1:]
-        if not tensors:
+        axis, tens = axis_and_tensors[0], axis_and_tensors[1:]
+        if not tens:
             raise ValueError("Cannot join an empty list of tensors")
-        as_tensor_variable_args = [as_tensor_variable(x) for x in tensors]
+        as_tensor_variable_args = [as_tensor_variable(x) for x in tens]
 
         dtypes = [x.type.dtype for x in as_tensor_variable_args]
         out_dtype = ts.upcast(*dtypes)
@@ -3916,10 +3909,10 @@ class Join(COp):
             return tensor(dtype=out_dtype, broadcastable=bcastable)
 
         return self._make_node_internal(
-            axis, tensors, as_tensor_variable_args, output_maker
+            axis, tens, as_tensor_variable_args, output_maker
         )
 
-    def _make_node_internal(self, axis, tensors, as_tensor_variable_args, output_maker):
+    def _make_node_internal(self, axis, tens, as_tensor_variable_args, output_maker):
         if not builtins.all(targs.type.ndim for targs in as_tensor_variable_args):
             raise TypeError(
                 "Join cannot handle arguments of dimension 0."
@@ -4006,49 +3999,46 @@ class Join(COp):
     def perform(self, node, axis_and_tensors, out_):
         (out,) = out_
         view = self.view
-        axis, tensors = axis_and_tensors[0], axis_and_tensors[1:]
+        axis, tens = axis_and_tensors[0], axis_and_tensors[1:]
         # we check these tensors for being empty.
         if (view != -1) and np.all(
-            [
-                tensor.shape[axis] == 0
-                for tensor in tensors[0:view] + tensors[view + 1 :]
-            ]
+            [tensor.shape[axis] == 0 for tensor in tens[0:view] + tens[view + 1 :]]
         ):
-            out[0] = tensors[view]
+            out[0] = tens[view]
 
         else:
-            ndim = tensors[0].ndim
+            ndim = tens[0].ndim
             if axis < -ndim:
                 raise IndexError(
                     f"Join axis {int(axis)} out of bounds [0, {int(ndim)})"
                 )
 
             out[0] = _asarray(
-                np.concatenate(tensors, axis=axis), dtype=node.outputs[0].type.dtype
+                np.concatenate(tens, axis=axis), dtype=node.outputs[0].type.dtype
             )
 
     def c_code_cache_version(self):
         return (5,)
 
     def c_code(self, node, name, inputs, outputs, sub):
-        axis, tensors = inputs[0], inputs[1:]
+        axis, tens = inputs[0], inputs[1:]
         view = self.view
-        non_empty_tensor = tensors[view]
-        input_1 = tensors[0]
-        l = len(tensors)
+        non_empty_tensor = tens[view]
+        input_1 = tens[0]
+        l = len(tens)
         (out,) = outputs
         fail = sub["fail"]
         adtype = node.inputs[0].type.dtype_specs()[1]
         copy_to_list = []
 
-        for i, inp in enumerate(tensors):
+        for i, inp in enumerate(tens):
             copy_to_list.append(
                 f"""Py_INCREF({inp});
                    PyList_SetItem(list, {i}, (PyObject*){inp});"""
             )
 
         copy_inputs_to_list = "\n".join(copy_to_list)
-        n = len(tensors)
+        n = len(tens)
 
         code = (
             """
@@ -4098,17 +4088,17 @@ class Join(COp):
         the gradient along the `axis` which was used for joining.
         """
         (gz,) = grads
-        axis, tensors = axis_and_tensors[0], axis_and_tensors[1:]
+        axis, tens = axis_and_tensors[0], axis_and_tensors[1:]
 
         rval = [grad_undefined(self, 0, axis)]
 
-        dtypes = [as_tensor_variable(x).type.dtype for x in tensors]
+        dtypes = [as_tensor_variable(x).type.dtype for x in tens]
         out_dtype = ts.upcast(*dtypes)
 
         if "float" in out_dtype or "complex" in out_dtype:
             # assume that this is differentiable
-            split = Split(len(tensors))
-            split_gz = split(gz, axis, stack([shape(x)[axis] for x in tensors]))
+            split = Split(len(tens))
+            split_gz = split(gz, axis, stack([shape(x)[axis] for x in tens]))
             # If there is only one split, it might not be in a list.
             if not isinstance(split_gz, list):
                 split_gz = [split_gz]
@@ -4116,13 +4106,13 @@ class Join(COp):
             # broadcast. As the grad need to keep the information,
             # read it if needed.
             split_gz = [
-                patternbroadcast(g, t.broadcastable) for t, g in zip(tensors, split_gz)
+                patternbroadcast(g, t.broadcastable) for t, g in zip(tens, split_gz)
             ]
             rval = rval + split_gz
         else:
             # the output has integer type, so the gradient through it
             # is 0
-            rval = rval + [tensor.zeros_like(dtype=config.floatX) for tensor in tensors]
+            rval = rval + [t.zeros_like(dtype=config.floatX) for t in tens]
 
         return rval
 
@@ -4177,11 +4167,6 @@ def join(axis, *tensors_list):
 
     Parameters
     ----------
-    tensors : list of tensors (or list-like)
-        A list of tensors to be concatenated along the given axis.
-        The shapes of the tensors to be concatenated must be all
-        identical, except in the dimension (`axis`) on which they are to
-        be joined.
     axis : int (symbolic or literal)
         On which dimension should the tensors be joined?  The `axis`
         must be a valid index into the shape of the tensors to be
@@ -4191,6 +4176,11 @@ def join(axis, *tensors_list):
         former case, the axis is fixed at construction, while in the
         latter it may vary over time depending on the value of the
         `axis` variable.
+    tensors_list : list of TensorVariable (or list-like)
+        A list of tensors to be concatenated along the given axis.
+        The shapes of the tensors to be concatenated must be all
+        identical, except in the dimension (`axis`) on which they are to
+        be joined.
     """
     if len(tensors_list) == 1:
         return tensors_list[0]
@@ -4368,9 +4358,7 @@ def stack(*tensors, **kwargs):
     """
     # ---> Remove this when moving to the new interface:
     if not tensors and not kwargs:
-        raise Exception(
-            "theano.tensor.stack(tensors, axis) must have at least" " one parameter"
-        )
+        raise ValueError("No tensor arguments provided")
 
     if not kwargs and not isinstance(tensors[0], (list, tuple)):
         warnings.warn(
@@ -4397,10 +4385,7 @@ def stack(*tensors, **kwargs):
     # <--- Until here.
 
     if len(tensors) == 0:
-        raise Exception(
-            "tensors is empty. You should at least provide one"
-            " tensor to theano.tensor.stack(tensors, axis)."
-        )
+        raise ValueError("No tensor arguments provided")
 
     # If all tensors are scalars of the same type, call make_vector.
     # It makes the graph simpler, by not adding DimShuffles and Rebroadcasts
@@ -5028,9 +5013,7 @@ def flatten(x, ndim=1):
     bcast_kept_dims = x.broadcastable[: ndim - 1]
     bcast_new_dim = builtins.all(x.broadcastable[ndim - 1 :])
     broadcastable = bcast_kept_dims + (bcast_new_dim,)
-    x_reshaped = theano.tensor.addbroadcast(
-        x_reshaped, *[i for i in range(ndim) if broadcastable[i]]
-    )
+    x_reshaped = addbroadcast(x_reshaped, *[i for i in range(ndim) if broadcastable[i]])
     return x_reshaped
 
 
@@ -5677,18 +5660,16 @@ class Dot(Op):
         inputs = list(map(as_tensor_variable, inputs))
 
         if len(inputs) != 2:
-            raise TypeError(
-                f"theano.tensor.Dot: 2 arguments required, {len(inputs)} given "
-            )
+            raise TypeError(f"Two arguments required, {len(inputs)} given ")
         if inputs[0].ndim not in (1, 2):
             raise TypeError(
-                "theano.tensor.Dot: input 0 (0-indexed) must have ndim of "
+                "Input 0 (0-indexed) must have ndim of "
                 f"1 or 2, {int(inputs[0].ndim)} given. Consider calling "
                 "theano.tensor.dot instead."
             )
         if inputs[1].ndim not in (1, 2):
             raise TypeError(
-                "theano.tensor.Dot: input 1 (0-indexed) must have ndim of "
+                "Input 1 (0-indexed) must have ndim of "
                 f"1 or 2, {int(inputs[1].ndim)} given. Consider calling "
                 "theano.tensor.dot instead."
             )
@@ -6238,17 +6219,15 @@ class ExtractDiag(Op):
         (gz,) = gout
 
         if x.ndim == 2:
-            x = theano.tensor.zeros_like(x)
-            xdiag = theano.tensor.AllocDiag(offset=self.offset)(gz)
+            x = zeros_like(x)
+            xdiag = AllocDiag(offset=self.offset)(gz)
             return [
-                theano.tensor.set_subtensor(
+                theano.tensor.subtensor.set_subtensor(
                     x[: xdiag.shape[0], : xdiag.shape[1]], xdiag
                 )
             ]
         else:
-            warnings.warn(
-                "gradient of theano.tensor.basic.ExtractDiag only" "works for matrices."
-            )
+            warnings.warn("Gradient of ExtractDiag only works for matrices.")
             return [grad_not_implemented(self, 0, x)]
 
     def infer_shape(self, fgraph, node, shapes):
@@ -6294,7 +6273,7 @@ class ExtractDiag(Op):
 
 def diagonal(a, offset=0, axis1=0, axis2=1):
     """
-    A helper function for `theano.tensor.ExtractDiag`. It accepts tensor with
+    A helper function for `ExtractDiag`. It accepts tensor with
     `ndim >= 2` as input. The name `diagonal` is just meant to keep it
     consistent with numpy.
 
@@ -6437,8 +6416,8 @@ class AllocDiag(Op):
 
 def diag(v, k=0):
     """
-    A helper function for two ops: `theano.tensor.ExtractDiag` and
-    `theano.tensor.AllocDiag`. The name `diag` is meant to keep it consistent
+    A helper function for two ops: `ExtractDiag` and
+    `AllocDiag`. The name `diag` is meant to keep it consistent
     with numpy. It both accepts tensor vector and tensor matrix.
     While the passed tensor variable `v` has `v.ndim>=2`, it builds a
     `ExtractDiag` instance, and returns a vector with its entries equal to
@@ -6644,14 +6623,14 @@ class Choose(Op):
         else:
             choice = as_tensor_variable(choices)
         (out_shape,) = self.infer_shape(
-            None, None, [tuple(a.shape), tuple(theano.tensor.basic.shape(choice))]
+            None, None, [tuple(a.shape), tuple(theano.compile.ops.shape(choice))]
         )
 
         bcast = []
         for s in out_shape:
             try:
                 s_val = theano.get_scalar_constant_value(s)
-            except (theano.tensor.basic.NotScalarConstantError, AttributeError):
+            except (NotScalarConstantError, AttributeError):
                 s_val = None
 
             if s_val == 1:
@@ -6770,3 +6749,183 @@ class AllocEmpty(COp):
 
     def R_op(self, inputs, eval_points):
         return [zeros(inputs, self.dtype)]
+
+
+__all__ = [
+    "choose",
+    "swapaxes",
+    "power",
+    "ptp",
+    "stacklists",
+    "diag",
+    "diagonal",
+    "all",
+    "any",
+    "outer",
+    "tensordot",
+    "dense_dot",
+    "dot",
+    "inverse_permutation",
+    "permute_row_elements",
+    "mgrid",
+    "ogrid",
+    "arange",
+    "tile",
+    "flatten",
+    "is_flat",
+    "reshape",
+    "vertical_stack",
+    "horizontal_stack",
+    "get_vector_length",
+    "concatenate",
+    "stack",
+    "shape_padaxis",
+    "shape_padright",
+    "shape_padleft",
+    "roll",
+    "join",
+    "patternbroadcast",
+    "unbroadcast",
+    "addbroadcast",
+    "split",
+    "batched_tensordot",
+    "batched_dot",
+    "transpose",
+    "extract_constant",
+    "clip",
+    "pow",
+    "mod",
+    "mod_check",
+    "int_div",
+    "floor_div",
+    "ceil_intdiv",
+    "true_div",
+    "mul",
+    "sub",
+    "add",
+    "divmod",
+    "minimum",
+    "maximum",
+    "default",
+    "std",
+    "var",
+    "mean",
+    "prod",
+    "sum",
+    "tensor_copy",
+    "transfer",
+    "alloc",
+    "alloc_validate_shape",
+    "identity_like",
+    "eye",
+    "triu",
+    "tril",
+    "tri",
+    "nonzero_values",
+    "flatnonzero",
+    "nonzero",
+    "ones",
+    "zeros",
+    "zeros_like",
+    "ones_like",
+    "fill",
+    "second",
+    "complex_from_polar",
+    "conj",
+    "complex",
+    "angle",
+    "imag",
+    "real",
+    "iv",
+    "i1",
+    "i0",
+    "jv",
+    "j1",
+    "j0",
+    "gammal",
+    "gammau",
+    "gammaincc",
+    "gammainc",
+    "chi2sf",
+    "tri_gamma",
+    "psi",
+    "gammaln",
+    "gamma",
+    "erfcinv",
+    "erfinv",
+    "erfcx",
+    "erfc",
+    "erf",
+    "arctanh",
+    "tanh",
+    "arccosh",
+    "cosh",
+    "arcsinh",
+    "sinh",
+    "arctan2",
+    "arctan",
+    "tan",
+    "arcsin",
+    "sin",
+    "arccos",
+    "cos",
+    "rad2deg",
+    "deg2rad",
+    "sqrt",
+    "cov",
+    "square",
+    "sqr",
+    "round_half_away_from_zero",
+    "round_half_to_even",
+    "round",
+    "iround",
+    "trunc",
+    "floor",
+    "ceil",
+    "sgn",
+    "log1p",
+    "log10",
+    "log2",
+    "log",
+    "inv",
+    "neg",
+    "expm1",
+    "exp2",
+    "exp",
+    "abs_",
+    "bitwise_not",
+    "invert",
+    "bitwise_xor",
+    "xor",
+    "bitwise_or",
+    "or_",
+    "bitwise_and",
+    "and_",
+    "where",
+    "switch",
+    "isclose",
+    "allclose",
+    "isinf",
+    "isnan",
+    "neq",
+    "eq",
+    "ge",
+    "le",
+    "gt",
+    "lt",
+    "largest",
+    "smallest",
+    "argmin",
+    "min",
+    "argmax",
+    "max",
+    "max_and_argmax",
+    "check_and_normalize_axes",
+    "cast",
+    "scalar_from_tensor",
+    "tensor_from_scalar",
+    "get_scalar_constant_value",
+    "constant",
+    "as_tensor_variable",
+    "as_tensor",
+]
