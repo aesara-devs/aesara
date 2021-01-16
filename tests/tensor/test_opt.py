@@ -6163,8 +6163,7 @@ class TestLocalUselessSwitch:
     def setup_method(self):
         self.mode = mode_opt.excluding("constant_folding")
 
-    def test_const0(self):
-
+    def test_const_0(self):
         for dtype1 in ["int32", "int64"]:
             for dtype2 in ["int32", "int64"]:
                 x = tt.matrix("x", dtype=dtype1)
@@ -6186,10 +6185,15 @@ class TestLocalUselessSwitch:
                 )
                 vx = np.array([[1, 2, 3], [4, 5, 6]], dtype=dtype1)
                 vy = np.array([[7, 8, 9], [10, 11, 12]], dtype=dtype2)
-                assert np.all(f(vx, vy) == vy)
+                np_res = np.where(0, vx, vy)
+                assert np.array_equal(f(vx, vy), np_res)
 
-    def test_const1(self):
+        res_non_bool_np = np.where(np.ones(10), 0, 1)
+        non_bool_graph = tt.switch(np.ones(10), 0, 1)
+        non_bool_fn = function([], non_bool_graph, mode=self.mode)
+        assert np.array_equal(non_bool_fn(), res_non_bool_np)
 
+    def test_const_1(self):
         for dtype1 in ["int32", "int64"]:
             for dtype2 in ["int32", "int64"]:
                 x = tt.matrix("x", dtype=dtype1)
@@ -6211,10 +6215,10 @@ class TestLocalUselessSwitch:
                 )
                 vx = np.array([[1, 2, 3], [4, 5, 6]], dtype=dtype1)
                 vy = np.array([[7, 8, 9], [10, 11, 12]], dtype=dtype2)
-                assert np.all(f(vx, vy) == vx)
+                np_res = np.where(1, vx, vy)
+                assert np.array_equal(f(vx, vy), np_res)
 
     def test_left_is_right(self):
-
         for dtype1 in ["int32", "int64"]:
             x = tt.matrix("x", dtype=dtype1)
             varc = tt.matrix("varc", dtype=dtype1)
@@ -6239,12 +6243,11 @@ class TestLocalUselessSwitch:
 
             vx = np.array([[1, 2, 3], [4, 5, 6]], dtype=dtype1)
             vc = np.array([[1, 2, 3], [4, 5, 6]], dtype=dtype1)
-            assert np.all(f1(vx) == vx)
-            assert np.all(f0(vx) == vx)
-            assert np.all(f2(vx, vc) == vx)
+            assert np.array_equal(f1(vx), vx)
+            assert np.array_equal(f0(vx), vx)
+            assert np.array_equal(f2(vx, vc), vx)
 
     def test_shape_le_0(self):
-
         for dtype1 in ["float32", "float64"]:
             x = tt.matrix("x", dtype=dtype1)
             z0 = tt.switch(tt.le(x.shape[0], 0), 0, x.shape[0])
@@ -6259,84 +6262,63 @@ class TestLocalUselessSwitch:
             assert f0(vx) == 0
             assert f1(vx) == 5
 
-    def test_broadcast1(self):
+    def test_broadcasting_1(self):
         # test switch(cst, matrix, row)
         x = tt.matrix("x", dtype="int32")
         y = tt.vector("y", dtype="int64")
 
         z = tt.switch(1, x, y)
         f = function([x, y], z, mode=self.mode)
-        assert (
-            len(
-                [
-                    node.op
-                    for node in f.maker.fgraph.toposort()
-                    if isinstance(node.op, tt.Elemwise)
-                    and not isinstance(node.op.scalar_op, scal.basic.Cast)
-                ]
-            )
-            == 0
-        )
+
+        assert isinstance(f.maker.fgraph.outputs[0].owner.op, tt.Elemwise)
+        assert isinstance(f.maker.fgraph.outputs[0].owner.op.scalar_op, scal.basic.Cast)
+        assert not any(node.op == tt.switch for node in f.maker.fgraph.toposort())
+
         vx = np.array([[1, 2, 3], [4, 5, 6]], dtype="int32")
         vy = np.array([10, 11, 12], dtype="int64")
-        assert np.all(f(vx, vy) == vx)
+        np_res = np.where(1, vx, vy)
+        assert np.array_equal(f(vx, vy), np_res)
 
         z = tt.switch(0, x, y)
         f = function([x, y], z, mode=self.mode)
-        assert (
-            len(
-                [
-                    node.op
-                    for node in f.maker.fgraph.toposort()
-                    if isinstance(node.op, tt.Elemwise)
-                ]
-            )
-            == 0
-        )
+
+        assert isinstance(f.maker.fgraph.outputs[0].owner.op, tt.Alloc)
+        assert f.maker.fgraph.inputs[1] == f.maker.fgraph.outputs[0].owner.inputs[0]
+        assert not any(node.op == tt.switch for node in f.maker.fgraph.toposort())
+
         vx = np.array([[1, 2, 3], [4, 5, 6]], dtype="int32")
         vy = np.array([10, 11, 12], dtype="int64")
-        assert np.all(f(vx, vy) == vy)
+        np_res = np.where(0, vx, vy)
+        assert np.array_equal(f(vx, vy), np_res)
 
-    def test_broadcast2(self):
+    def test_broadcasting_2(self):
         # test switch(cst, vector, matrix)
 
-        # This case is not optimized for now.
         x = tt.vector("x", dtype="int32")
         y = tt.matrix("y", dtype="int64")
         z = tt.switch(1, x, y)
         f = function([x, y], z, mode=self.mode)
-        assert (
-            len(
-                [
-                    node.op
-                    for node in f.maker.fgraph.toposort()
-                    if isinstance(node.op, tt.Elemwise)
-                    and not isinstance(node.op.scalar_op, scal.basic.Cast)
-                ]
-            )
-            == 0
-        )
+
+        assert isinstance(f.maker.fgraph.outputs[0].owner.op, tt.Alloc)
+        assert not any(node.op == tt.switch for node in f.maker.fgraph.toposort())
+
         vx = np.array([4, 5, 6], dtype="int32")
         vy = np.array([[7, 8, 9], [10, 11, 12]], dtype="int64")
-        assert np.all(f(vx, vy) == vx)
+        np_res = np.where(1, vx, vy)
+        assert np.array_equal(f(vx, vy), np_res)
 
         z = tt.switch(0, x, y)
         f = function([x, y], z, mode=self.mode)
-        assert (
-            len(
-                [
-                    node.op
-                    for node in f.maker.fgraph.toposort()
-                    if isinstance(node.op, tt.Elemwise)
-                ]
-            )
-            == 0
-        )
+
+        assert isinstance(f.maker.fgraph.outputs[0].owner.op, DeepCopyOp)
+        assert not any(node.op == tt.switch for node in f.maker.fgraph.toposort())
+
         vx = np.array([4, 5, 6], dtype="int32")
         vy = np.array([[7, 8, 9], [10, 11, 12]], dtype="int64")
-        assert np.all(f(vx, vy) == vy)
+        np_res = np.where(0, vx, vy)
+        assert np.array_equal(f(vx, vy), np_res)
 
-    def test_broadcast3(self):
+    def test_broadcasting_3(self):
         # test switch(matrix, same_vector, same_vector)
 
         x = tt.matrix("x", dtype="int32")
@@ -6346,16 +6328,9 @@ class TestLocalUselessSwitch:
         vx = np.array([[0, 1], [1, 0]], dtype="int32")
         vy = np.array([7, 8], dtype="int64")
         utt.assert_allclose(f(vx, vy), np.where(vx, vy, vy))
-        assert (
-            len(
-                [
-                    node.op
-                    for node in f.maker.fgraph.toposort()
-                    if isinstance(node.op, tt.Elemwise)
-                ]
-            )
-            == 0
-        )
+
+        assert isinstance(f.maker.fgraph.outputs[0].owner.op, tt.Alloc)
+        assert not any(node.op == tt.switch for node in f.maker.fgraph.toposort())
 
 
 class TestLocalMergeSwitchSameCond:

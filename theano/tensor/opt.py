@@ -97,6 +97,7 @@ from theano.tensor.elemwise import (
     ProdWithoutZeros,
     Sum,
 )
+from theano.tensor.extra_ops import broadcast_shape
 from theano.tensor.sort import TopKOp
 from theano.tensor.subtensor import (
     AdvancedIncSubtensor,
@@ -4327,7 +4328,9 @@ def local_useless_switch(fgraph, node):
         T.switch(le(shape_i{id}(X), 0), 0, shape_i{id}(X)) -> shape_i{id}(X)
     """
     if isinstance(node.op, Elemwise) and isinstance(node.op.scalar_op, ts.Switch):
+
         cond = tt.extract_constant(node.inputs[0], only_process_constants=True)
+
         if (isinstance(cond, np.ndarray) and cond.ndim == 0) or isinstance(
             cond, np.number
         ):
@@ -4336,37 +4339,18 @@ def local_useless_switch(fgraph, node):
             else:
                 correct_out = node.inputs[1]
 
-            if correct_out.ndim != node.outputs[0].ndim:
-                # TODO: broadcast?
-                return False
             if correct_out.dtype != node.outputs[0].dtype:
                 out = tt.cast(correct_out, node.outputs[0].dtype)
             else:
                 out = correct_out
 
-            if out.type.broadcastable != node.outputs[0].type.broadcastable:
-                # We need to copy data to the new dimensions during execution
-
-                # We should not depend on node.outputs as this would
-                # make the new node depend on the old one that will
-                # get optimized again. So this create a cycle.
-                shps = []
-                for idx, (b1, b2), in enumerate(
-                    zip(out.type.broadcastable, node.outputs[0].type.broadcastable)
-                ):
-                    if b1 == b2:
-                        shps.append(out.shape[idx])
-                    elif not node.inputs[1].type.broadcastable[idx]:
-                        shps.append(node.inputs[1].shape[idx])
-                    else:
-                        shps.append(node.inputs[2].shape[idx])
-                out = alloc(out, *shps)
-            else:
-                out = out
+            out_shape = broadcast_shape(*node.inputs)
+            out = alloc(out, *out_shape)
 
             # Copy over stacktrace from selected output to new output
             copy_stack_trace(node.outputs + correct_out, out)
             return [out]
+
         # if left is right -> left
         if node.inputs[1] is node.inputs[2]:
             # Note: No need to copy over stacktrace, because the input node
