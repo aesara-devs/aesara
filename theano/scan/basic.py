@@ -27,7 +27,7 @@ from theano.scan import utils
 from theano.scan.op import Scan
 from theano.scan.utils import safe_new, traverse
 from theano.tensor import opt
-from theano.tensor.basic import NotScalarConstantError
+from theano.tensor.exceptions import NotScalarConstantError
 from theano.tensor.type import TensorType, integer_dtypes
 from theano.updates import OrderedUpdates
 

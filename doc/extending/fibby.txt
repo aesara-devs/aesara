@@ -108,7 +108,8 @@ TODO: talk about OPTIMIZATION STAGES
 
 .. testcode::
 
-   from theano.tensor.opt import get_scalar_constant_value, NotScalarConstantError
+   from theano.tensor.basic import get_scalar_constant_value
+   from theano.tensor.exceptions import NotScalarConstantError
 
    # Remove any fibby(zeros(...))
    @theano.tensor.opt.register_specialize

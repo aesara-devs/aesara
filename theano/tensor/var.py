@@ -9,6 +9,7 @@ import theano
 from theano.configdefaults import config
 from theano.graph.basic import Constant, Variable
 from theano.scalar import ComplexError, IntegerDivisionError
+from theano.tensor.exceptions import AdvancedIndexingError
 from theano.tensor.type import TensorType
 from theano.tensor.utils import hash_from_ndarray
 
@@ -533,7 +534,7 @@ class _tensor_py_operators:
             if arg is not np.newaxis:
                 try:
                     theano.tensor.subtensor.Subtensor.convert(arg)
-                except theano.tensor.subtensor.AdvancedIndexingError:
+                except AdvancedIndexingError:
                     if advanced:
                         axis = None
                         break

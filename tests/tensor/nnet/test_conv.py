@@ -7,7 +7,8 @@ import theano
 import theano.tensor as tt
 from tests import unittest_tools as utt
 from theano.compile.mode import Mode
-from theano.tensor.basic import NotScalarConstantError, _allclose
+from theano.tensor.basic import _allclose
+from theano.tensor.exceptions import NotScalarConstantError
 from theano.tensor.nnet import conv, conv2d
 from theano.tensor.type import dmatrix, dtensor3, dtensor4, dvector, scalar, tensor4
 

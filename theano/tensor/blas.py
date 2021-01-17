@@ -162,6 +162,7 @@ from theano.scalar import bool as bool_t
 from theano.tensor import basic as tt
 from theano.tensor.blas_headers import blas_header_text, blas_header_version
 from theano.tensor.elemwise import DimShuffle, Elemwise
+from theano.tensor.exceptions import NotScalarConstantError
 from theano.tensor.opt import in2out, local_dimshuffle_lift
 from theano.tensor.type import integer_dtypes, values_eq_approx_remove_inf_nan
 from theano.utils import memoize
@@ -1729,7 +1730,7 @@ def local_gemm_to_ger(fgraph, node):
                 yv = y.dimshuffle(1)
                 try:
                     bval = tt.get_scalar_constant_value(b)
-                except tt.NotScalarConstantError:
+                except NotScalarConstantError:
                     # b isn't a constant, GEMM is doing useful pre-scaling
                     return
 

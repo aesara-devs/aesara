@@ -483,7 +483,7 @@ class ConvOp(OpenMPOp):
 
         all_shape = self.has_all_shape(imshp, kshp, nkern, bsize)
         if (unroll_batch or unroll_kern) and not all_shape:
-            raise Exception(
+            raise ValueError(
                 "In ConvOp, when using unroll_batch and"
                 " unroll_nkern, all shape are needed"
             )
@@ -613,10 +613,10 @@ class ConvOp(OpenMPOp):
         self.out_mode = output_mode
 
         if self.out_mode not in ["valid", "full"]:
-            raise Exception(f"Mode {self.out_mode} not implemented")
+            raise NotImplementedError(f"Mode {self.out_mode} not implemented")
 
         if any((shp is not None) and (shp <= 0) for shp in self.outshp):
-            raise Exception(
+            raise ValueError(
                 "Bad size for the output shape. Verify that [post-"
                 f"supersampling] input shape ({self.imshp_logical}) and kern"
                 f" shape({self.kshp_logical}) are ok. (Hint: kerns must fit inside"
@@ -1038,7 +1038,7 @@ class ConvOp(OpenMPOp):
         all_shape = self.has_all_shape(self.imshp, self.kshp, self.nkern, self.bsize)
 
         if not all_shape and (self.dx != 1 or self.dy != 1):
-            raise Exception(
+            raise ValueError(
                 "ConvOp.grad when dx!=1 or dy!=1 we must have all "
                 "the optional shape information"
             )
@@ -1486,7 +1486,9 @@ if(kerns_dim[1] != img2d_dim[1]){
         elif node.inputs[0].type.dtype == "float64":
             d["type"] = "double"
         else:
-            raise Exception(f"Type {node.inputs[0].type.dtype} not implemented")
+            raise NotImplementedError(
+                f"Type {node.inputs[0].type.dtype} not implemented"
+            )
         d["gemm"] = "dgemm_"
         if not d["type"] == "double":
             d["gemm"] = "sgemm_"
@@ -2042,8 +2044,8 @@ def gen_conv_code_unroll_batch_kern(d, unroll_bsize=1, unroll_ksize=1):
         or "unroll_biter" in d
         or "unroll_kiter" in d
     ):
-        raise Exception(
-            "We can't use this dictionary as we will overwrite some of its containt"
+        raise ValueError(
+            "We can't use this dictionary as we will overwrite some of its content"
         )
     d = d.copy()
 

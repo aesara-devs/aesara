@@ -19,6 +19,7 @@ from theano.scalar import int32 as int_t
 from theano.scalar import upcast
 from theano.tensor import basic as tt
 from theano.tensor import nlinalg
+from theano.tensor.exceptions import NotScalarConstantError
 from theano.tensor.subtensor import advanced_inc_subtensor1, set_subtensor
 from theano.tensor.type import (
     TensorType,
@@ -690,7 +691,7 @@ class RepeatOp(Op):
         else:
             try:
                 const_reps = tt.get_scalar_constant_value(repeats)
-            except tt.NotScalarConstantError:
+            except NotScalarConstantError:
                 const_reps = None
             if const_reps == 1:
                 broadcastable = x.broadcastable
