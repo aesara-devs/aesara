@@ -62,7 +62,7 @@ from theano.tensor.nnet.abstract_conv import (
     assert_conv_shape,
     get_conv_output_shape,
 )
-from theano.tensor.nnet.nnet import LogSoftmax, SoftmaxGrad
+from theano.tensor.nnet.basic import LogSoftmax, SoftmaxGrad
 from theano.tensor.signal.pool import AveragePoolGrad, MaxPoolGrad, Pool
 
 

@@ -1480,9 +1480,9 @@ def local_gpua_tri(fgraph, op, context_name, inputs, outputs):
 
 
 @register_opt("fast_compile")
-@op_lifter([theano.tensor.nnet.nnet.CrossentropySoftmaxArgmax1HotWithBias])
+@op_lifter([theano.tensor.nnet.basic.CrossentropySoftmaxArgmax1HotWithBias])
 @register_opt2(
-    [theano.tensor.nnet.nnet.CrossentropySoftmaxArgmax1HotWithBias], "fast_compile"
+    [theano.tensor.nnet.basic.CrossentropySoftmaxArgmax1HotWithBias], "fast_compile"
 )
 def local_gpua_crossentropysoftmaxargmax1hotwithbias(
     fgraph, op, context_name, inputs, outputs
@@ -1491,9 +1491,9 @@ def local_gpua_crossentropysoftmaxargmax1hotwithbias(
 
 
 @register_opt("fast_compile")
-@op_lifter([theano.tensor.nnet.nnet.CrossentropySoftmax1HotWithBiasDx])
+@op_lifter([theano.tensor.nnet.basic.CrossentropySoftmax1HotWithBiasDx])
 @register_opt2(
-    [theano.tensor.nnet.nnet.CrossentropySoftmax1HotWithBiasDx], "fast_compile"
+    [theano.tensor.nnet.basic.CrossentropySoftmax1HotWithBiasDx], "fast_compile"
 )
 def local_gpua_crossentropysoftmax1hotwithbiasdx(
     fgraph, op, context_name, inputs, outputs
@@ -1502,22 +1502,22 @@ def local_gpua_crossentropysoftmax1hotwithbiasdx(
 
 
 @register_opt("fast_compile")
-@op_lifter([theano.tensor.nnet.nnet.Softmax])
-@register_opt2([theano.tensor.nnet.nnet.Softmax], "fast_compile")
+@op_lifter([theano.tensor.nnet.basic.Softmax])
+@register_opt2([theano.tensor.nnet.basic.Softmax], "fast_compile")
 def local_gpua_softmax(fgraph, op, context_name, inputs, outputs):
     return gpu_softmax
 
 
 @register_opt("fast_compile")
-@op_lifter([theano.tensor.nnet.nnet.SoftmaxWithBias])
-@register_opt2([theano.tensor.nnet.nnet.SoftmaxWithBias], "fast_compile")
+@op_lifter([theano.tensor.nnet.basic.SoftmaxWithBias])
+@register_opt2([theano.tensor.nnet.basic.SoftmaxWithBias], "fast_compile")
 def local_gpua_softmaxwithbias(fgraph, op, context_name, inputs, outputs):
     return gpu_softmax_with_bias
 
 
 @register_opt("fast_compile")
-@op_lifter([theano.tensor.nnet.nnet.CrossentropyCategorical1Hot])
-@register_opt2([theano.tensor.nnet.nnet.CrossentropyCategorical1Hot], "fast_compile")
+@op_lifter([theano.tensor.nnet.basic.CrossentropyCategorical1Hot])
+@register_opt2([theano.tensor.nnet.basic.CrossentropyCategorical1Hot], "fast_compile")
 def local_gpu_crossentropycategorical1hot(fgraph, op, context_name, inputs, outputs):
     # There is no corresponding GPU Op, but we can express it as:
     #   coding, one_of_n = inputs
@@ -1528,9 +1528,9 @@ def local_gpu_crossentropycategorical1hot(fgraph, op, context_name, inputs, outp
 
 
 @register_opt("fast_compile")
-@op_lifter([theano.tensor.nnet.nnet.CrossentropyCategorical1HotGrad])
+@op_lifter([theano.tensor.nnet.basic.CrossentropyCategorical1HotGrad])
 @register_opt2(
-    [theano.tensor.nnet.nnet.CrossentropyCategorical1HotGrad], "fast_compile"
+    [theano.tensor.nnet.basic.CrossentropyCategorical1HotGrad], "fast_compile"
 )
 def local_gpu_crossentropycategorical1hotgrad(
     fgraph, op, context_name, inputs, outputs

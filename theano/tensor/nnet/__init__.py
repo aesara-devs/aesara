@@ -7,8 +7,7 @@ from theano.tensor.nnet.abstract_conv import (
     conv3d,
     separable_conv2d,
 )
-from theano.tensor.nnet.bn import batch_normalization
-from theano.tensor.nnet.nnet import (
+from theano.tensor.nnet.basic import (
     binary_crossentropy,
     categorical_crossentropy,
     confusion_matrix,
@@ -41,6 +40,7 @@ from theano.tensor.nnet.nnet import (
     softmax_with_bias,
     softsign,
 )
+from theano.tensor.nnet.bn import batch_normalization
 from theano.tensor.nnet.sigm import (
     hard_sigmoid,
     scalar_sigmoid,
