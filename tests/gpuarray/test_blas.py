@@ -22,7 +22,7 @@ from theano.gpuarray.blas import (
     gpuger_inplace,
     gpuger_no_inplace,
 )
-from theano.tensor.blas import _dot22, batched_dot, gemm_inplace, gemv, gemv_inplace
+from theano.tensor.blas import BatchedDot, _dot22, gemm_inplace, gemv, gemv_inplace
 from theano.tensor.type import matrix, tensor, tensor3, vector
 
 
@@ -186,7 +186,7 @@ gemm_batched_tests["float64"] = [
 
 TestGpuGemmBatch = makeTester(
     "GpuGemmBatchTester",
-    op=lambda z, alpha, x, y, beta: alpha * batched_dot(x, y) + beta * z,
+    op=lambda z, alpha, x, y, beta: alpha * BatchedDot()(x, y) + beta * z,
     gpu_op=gpugemmbatch_inplace,
     cases=gemm_batched_tests,
 )

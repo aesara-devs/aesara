@@ -8,7 +8,7 @@ from tempfile import mkstemp
 
 import numpy as np
 import pytest
-from numpy.testing import assert_allclose, assert_almost_equal, assert_array_equal
+from numpy.testing import assert_almost_equal, assert_array_equal
 
 import theano
 import theano.scalar as ts
@@ -113,7 +113,6 @@ from theano.tensor.basic import (
     argmax,
     argmin,
     as_tensor_variable,
-    batched_dot,
     cast,
     choose,
     clip,
@@ -741,67 +740,6 @@ TestDenseDot = makeTester(
     ),
     bad_build=dict(),
     bad_runtime=dict(bad1=(rand(5, 7), rand(5, 7)), bad2=(rand(5, 7), rand(8, 3))),
-)
-
-TestBatchedDot = makeTester(
-    name="BatchedDotTester",
-    op=batched_dot,
-    expected=(
-        lambda xs, ys: np.asarray(
-            list(
-                x * y if x.ndim == 0 or y.ndim == 0 else np.dot(x, y)
-                for x, y in zip(xs, ys)
-            ),
-            dtype=ts.upcast(xs.dtype, ys.dtype),
-        )
-    ),
-    checks={},
-    grad=dict(
-        correct1=(rand(3, 5, 7), rand(3, 7, 5)),
-        correct2=(rand(3, 5, 7), rand(3, 7, 9)),
-        correct3=(rand(3, 5, 7), rand(3, 7)),
-        correct4=(rand(3, 5), rand(3, 5, 7)),
-        correct5=(rand(3), rand(3, 5, 7)),
-        correct6=(rand(3, 5), rand(3)),
-        correct7=(rand(3, 5), rand(3, 5)),
-        correct8=(rand(3), rand(3)),
-        correct9=(rand(3, 5, 7, 11), rand(3)),
-        correct10=(rand(3, 2, 6, 5), rand(3, 5)),
-        correct11=(rand(3, 2, 6, 5), rand(3, 5, 7)),
-        correct12=(rand(3, 2, 6, 5), rand(3, 7, 5, 8)),
-        mixed1=(rand(3, 5).astype("float32"), rand(3, 5, 7)),
-        mixed2=(rand(3, 5).astype("float64"), rand(3, 5, 7)),
-    ),
-    good=dict(
-        correct1=(rand(3, 5, 7), rand(3, 7, 5)),
-        correct2=(rand(3, 5, 7), rand(3, 7, 9)),
-        correct3=(rand(3, 5, 7), rand(3, 7)),
-        correct4=(rand(3, 5), rand(3, 5, 7)),
-        correct5=(rand(3), rand(3, 5, 7)),
-        correct6=(rand(3, 5), rand(3)),
-        correct7=(rand(3, 5), rand(3, 5)),
-        correct8=(rand(3), rand(3)),
-        correct9=(rand(3, 5, 7, 11), rand(3)),
-        correct10=(rand(3, 7, 11, 5), rand(3, 5)),
-        correct11=(rand(3, 7, 11, 5), rand(3, 5, 13)),
-        correct12=(rand(3, 7, 11, 5), rand(3, 13, 5, 17)),
-        mixed1=(rand(3, 5).astype("float32"), rand(3, 5, 7)),
-        mixed2=(rand(3, 5).astype("float64"), rand(3, 5, 7)),
-    ),
-    bad_build=dict(
-        no_batch_axis2=(rand(), rand(3, 5)), no_batch_axis3=(rand(3, 5), rand())
-    ),
-    bad_runtime=dict(
-        batch_dim_mismatch1=(rand(2, 5, 7), rand(3, 7, 9)),
-        batch_dim_mismatch2=(rand(3, 5, 7), rand(2, 7, 9)),
-        batch_dim_mismatch3=(rand(3), rand(5)),
-        bad_dim1=(rand(3, 5, 7), rand(3, 5, 7)),
-        bad_dim2=(rand(3, 5, 7), rand(3, 8, 3)),
-        bad_dim3=(rand(3, 5), rand(3, 7)),
-        bad_dim4=(rand(3, 5, 7, 11), rand(3, 5)),
-        bad_dim5=(rand(3, 5, 7, 11), rand(3, 5, 13)),
-        bad_dim6=(rand(3, 5, 7, 11), rand(3, 13, 5, 17)),
-    ),
 )
 
 
@@ -1595,84 +1533,6 @@ class TestClip:
 #      gradient numerically
 
 
-def test_batched_dot():
-    first = tensor3("first")
-    second = tensor3("second")
-    output = batched_dot(first, second)
-    first_val = np.random.rand(10, 10, 20).astype(config.floatX)
-    second_val = np.random.rand(10, 20, 5).astype(config.floatX)
-    result_fn = theano.function([first, second], output)
-    result = result_fn(first_val, second_val)
-    assert result.shape[0] == first_val.shape[0]
-    assert result.shape[1] == first_val.shape[1]
-    assert result.shape[2] == second_val.shape[2]
-
-    first_mat = dmatrix("first")
-    second_mat = dmatrix("second")
-    output = batched_dot(first_mat, second_mat)
-    first_mat_val = np.random.rand(10, 10).astype(config.floatX)
-    second_mat_val = np.random.rand(10, 10).astype(config.floatX)
-    result_fn = theano.function([first_mat, second_mat], output)
-    result = result_fn(first_mat_val, second_mat_val)
-
-    assert result.shape[0] == first_mat_val.shape[0]
-
-
-def test_batched_dot_not_contiguous():
-    def np_genarray(*_shape):
-        size = 1
-        for dimsize in _shape:
-            size *= dimsize
-        return np.arange(size, dtype=config.floatX).reshape(_shape)
-
-    X = tensor3()
-    W = tensor3()
-    Z = batched_dot(X, W)
-    f = function([X, W], Z)
-
-    w = np_genarray(30, 10, 5)
-    reversed_x_container = np_genarray(20, 40, 30)
-    x_container = reversed_x_container.T
-
-    def check_first_dim(inverted):
-        direction = -1 if inverted else 1
-        x = x_container[::direction, ::2, ::2]
-        assert x.shape == (30, 20, 10)
-        assert x.strides[0] == direction * np.dtype(config.floatX).itemsize
-        assert not (x.flags["C_CONTIGUOUS"] or x.flags["F_CONTIGUOUS"])
-        result = f(x, w)
-        ref_result = np.asarray(list(np.dot(u, v) for u, v in zip(x, w)))
-        utt.assert_allclose(ref_result, result)
-
-    for inverted in (0, 1):
-        check_first_dim(inverted)
-
-
-def test_batched_tensordot():
-    first = tensor4("first")
-    second = tensor4("second")
-    axes = [[1, 2], [3, 1]]
-    output = tt.batched_tensordot(first, second, axes)
-    first_val = np.random.rand(8, 10, 20, 3).astype(config.floatX)
-    second_val = np.random.rand(8, 20, 5, 10).astype(config.floatX)
-    result_fn = theano.function([first, second], output)
-    result = result_fn(first_val, second_val)
-    assert result.shape[0] == first_val.shape[0]
-    assert result.shape[1] == first_val.shape[3]
-    assert result.shape[2] == second_val.shape[2]
-
-    first_mat = dmatrix("first")
-    second_mat = dmatrix("second")
-    axes = 1
-    output = tt.batched_tensordot(first_mat, second_mat, axes)
-    first_mat_val = np.random.rand(10, 4).astype(config.floatX)
-    second_mat_val = np.random.rand(10, 4).astype(config.floatX)
-    result_fn = theano.function([first_mat, second_mat], output)
-    result = result_fn(first_mat_val, second_mat_val)
-    assert result.shape[0] == first_mat_val.shape[0]
-    assert len(result.shape) == 1
-
-
 def test_tensor_values_eq_approx():
     # test, inf, -inf and nan equal themself
     a = np.asarray([-np.inf, -1, 0, 1, np.inf, np.nan])
@@ -2369,7 +2229,7 @@ class TestOuter:
                 v1 = np.asarray(np.random.rand(*s1)).astype(config.floatX)
                 v2 = np.asarray(np.random.rand(*s2)).astype(config.floatX)
                 o = tt.outer(x, y).eval({x: v1, y: v2})
-                assert_allclose(o, np.outer(v1, v2))
+                utt.assert_allclose(o, np.outer(v1, v2))
 
     def test_grad(self):
         # Test the combined graph of the graph of outer
@@ -6719,10 +6579,10 @@ class TestTensorInstanceMethods:
         x, y = self.vals
         # Use allclose comparison as a user reported on the mailing
         # list failure otherwise with array that print exactly the same.
-        assert_allclose(x.dot(y), X.dot(Y).eval({X: x, Y: y}))
+        utt.assert_allclose(x.dot(y), X.dot(Y).eval({X: x, Y: y}))
         Z = X.dot(Y)
         z = x.dot(y)
-        assert_allclose(x.dot(z), X.dot(Z).eval({X: x, Z: z}))
+        utt.assert_allclose(x.dot(z), X.dot(Z).eval({X: x, Z: z}))
 
     def test_real_imag(self):
         X, Y = self.vars
@@ -6751,7 +6611,7 @@ class TestTensorInstanceMethods:
         # std() is implemented as theano tree and does not pass its
         # args directly to numpy. This sometimes results in small
         # difference, so we use allclose test.
-        assert_allclose(X.std().eval({X: x}), x.std())
+        utt.assert_allclose(X.std().eval({X: x}), x.std())
 
     def test_repeat(self):
         X, _ = self.vars

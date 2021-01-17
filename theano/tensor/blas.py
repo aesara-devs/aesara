@@ -2071,13 +2071,13 @@ class BatchedDot(COp):
             raise TypeError(
                 "theano.tensor.blas.BatchedDot: input 0 (0-indexed)"
                 f" must have ndim of 2 or 3, {int(inputs[0].ndim)} given. Consider"
-                " calling theano.tensor.batched_dot instead."
+                " calling theano.tensor.blas.batched_dot instead."
             )
         if inputs[1].ndim not in (2, 3):
             raise TypeError(
                 "theano.tensor.blas.BatchedDot: input 1 (0-indexed)"
                 f" must have ndim of 2 or 3, {int(inputs[1].ndim)} given. Consider"
-                " calling theano.tensor.batched_dot instead."
+                " calling theano.tensor.blas.batched_dot instead."
             )
 
         dtype = theano.scalar.upcast(*[input.type.dtype for input in inputs])
@@ -2424,18 +2424,18 @@ class BatchedDot(COp):
 
         # x is a matrix, y is a tensor3, grad is a matrix
         elif xdim == 2 and ydim == 3:
-            xgrad = tt.batched_dot(gz, y.dimshuffle(0, 2, 1))
+            xgrad = batched_dot(gz, y.dimshuffle(0, 2, 1))
             ygrad = x.dimshuffle(0, 1, "x") * gz.dimshuffle(0, "x", 1)
 
         # x is a tensor3, y is a matrix, grad is a matrix
         elif xdim == 3 and ydim == 2:
             xgrad = gz.dimshuffle(0, 1, "x") * y.dimshuffle(0, "x", 1)
-            ygrad = tt.batched_dot(x.dimshuffle(0, 2, 1), gz)
+            ygrad = batched_dot(x.dimshuffle(0, 2, 1), gz)
 
         # x is a tensor3, y is a tensor3, grad is a tensor3
         elif xdim == ydim == 3:
-            xgrad = tt.batched_dot(gz, y.dimshuffle(0, 2, 1))
-            ygrad = tt.batched_dot(x.dimshuffle(0, 2, 1), gz)
+            xgrad = batched_dot(gz, y.dimshuffle(0, 2, 1))
+            ygrad = batched_dot(x.dimshuffle(0, 2, 1), gz)
 
         # If x or y contain broadcastable dimensions but only one of
         # them know that a matching dimensions is broadcastable, the
@@ -2532,7 +2532,7 @@ class BatchedDot(COp):
         return [xshp[:-1] + yshp[2:]]
 
 
-batched_dot = BatchedDot()
+_batched_dot = BatchedDot()
 
 
 # from opt import register_specialize, register_canonicalize
@@ -2541,3 +2541,82 @@ batched_dot = BatchedDot()
 def local_print_as_we_go_along(fgraph, node):
     if node.op in (tt.sub, tt.add):
         debugprint(node)
+
+
+def batched_dot(a, b):
+    """Compute the batched dot product of two variables.
+
+    I.e.:
+
+        batched_dot(a, b)[i] = dot(a[i], b[i])
+
+    Note that this batched_dot function does one of three things, in the
+    following sequence:
+
+        1.  If either a or b is a vector, it returns the batched elementwise
+            product without calling the Theano BatchedDot op.
+
+        2.  If both a and b have either 2 or 3 dimensions, it calls Theano's
+            BatchedDot op on a and b.
+
+        3.  If either a or b has more than 3 dimensions, it calls Theano's
+            batched_tensordot function with appropriate axes. The
+            batched_tensordot function expresses high-dimensional batched
+            dot products in terms of batched matrix-matrix dot products, so
+            it may be possible to futherize optimize for performance.
+    """
+    a, b = tt.as_tensor_variable(a), tt.as_tensor_variable(b)
+
+    if a.ndim == 0:
+        raise TypeError("a must have at least one (batch) axis")
+    elif b.ndim == 0:
+        raise TypeError("b must have at least one (batch) axis")
+    elif a.ndim == 1:
+        return a.dimshuffle(*([0] + ["x"] * (b.ndim - 1))) * b
+    elif b.ndim == 1:
+        return a * b.dimshuffle(*([0] + ["x"] * (a.ndim - 1)))
+    elif a.ndim > 3 or b.ndim > 3:
+        return batched_tensordot(a, b, [[a.ndim - 1], [np.maximum(1, b.ndim - 2)]])
+    else:
+        # avoid circular import
+        return _batched_dot(a, b)
+
+
+def batched_tensordot(x, y, axes=2):
+    """Compute a batched tensordot product.
+
+    A hybrid of batched_dot and tensordot, this function computes the
+    tensordot product between the two tensors, by iterating over the
+    first dimension to perform a sequence of tensordots.
+
+    Parameters
+    ----------
+    x: TensorVariable
+        A tensor with sizes e.g.: for 3D (dim1, dim3, dim2)
+    y: TensorVariable
+        A tensor with sizes e.g.: for 3D (dim1, dim2, dim4)
+    axes: int or array-like of length 2
+        If an integer, the number of axes to sum over.
+        If an array, it must have two array elements containing the axes to sum
+        over in each tensor.
+
+        If an integer i, it is converted to an array containing
+        the last i dimensions of the first tensor and the first
+        i dimensions of the second tensor (excluding the first
+        (batch) dimension):
+            axes = [list(range(a.ndim - i, b.ndim)), list(range(1,i+1))]
+
+        If an array, its two elements must contain compatible axes
+        of the two tensors. For example, [[1, 2], [2, 4]] means sum
+        over the 2nd and 3rd axes of a and the 3rd and 5th axes of b.
+        (Remember axes are zero-indexed!) The 2nd axis of a and the
+        3rd axis of b must have the same shape; the same is true for
+        the 3rd axis of a and the 5th axis of b.
+
+    Like tensordot, this function uses a series of dimshuffles and
+    reshapes to reduce the tensor dot product to a matrix or vector
+    dot product.  Finally, it calls batched_dot to compute the result.
+    """
+    from theano.tensor.basic import _tensordot_as_dot
+
+    return _tensordot_as_dot(x, y, axes, dot=batched_dot, batched=True)
