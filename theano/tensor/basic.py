@@ -3365,82 +3365,6 @@ def transpose(x, axes=None):
     return ret
 
 
-def batched_dot(a, b):
-    """
-    Compute the batched dot product of two variables:
-
-        batched_dot(a, b)[i] = dot(a[i], b[i])
-
-    Note that this batched_dot function does one of three things, in the
-    following sequence:
-
-        1.  If either a or b is a vector, it returns the batched elementwise
-            product without calling the Theano BatchedDot op.
-
-        2.  If both a and b have either 2 or 3 dimensions, it calls Theano's
-            BatchedDot op on a and b.
-
-        3.  If either a or b has more than 3 dimensions, it calls Theano's
-            batched_tensordot function with appropriate axes. The
-            batched_tensordot function expresses high-dimensional batched
-            dot products in terms of batched matrix-matrix dot products, so
-            it may be possible to futherize optimize for performance.
-    """
-    a, b = as_tensor_variable(a), as_tensor_variable(b)
-
-    if a.ndim == 0:
-        raise TypeError("a must have at least one (batch) axis")
-    elif b.ndim == 0:
-        raise TypeError("b must have at least one (batch) axis")
-    elif a.ndim == 1:
-        return a.dimshuffle(*([0] + ["x"] * (b.ndim - 1))) * b
-    elif b.ndim == 1:
-        return a * b.dimshuffle(*([0] + ["x"] * (a.ndim - 1)))
-    elif a.ndim > 3 or b.ndim > 3:
-        return batched_tensordot(a, b, [[a.ndim - 1], [np.maximum(1, b.ndim - 2)]])
-    else:
-        # avoid circular import
-        return theano.tensor.blas.BatchedDot()(a, b)
-
-
-def batched_tensordot(x, y, axes=2):
-    """Compute a batched tensordot product.
-
-    A hybrid of batched_dot and tensordot, this function computes the
-    tensordot product between the two tensors, by iterating over the
-    first dimension to perform a sequence of tensordots.
-
-    Parameters
-    ----------
-    x: TensorVariable
-        A tensor with sizes e.g.: for 3D (dim1, dim3, dim2)
-    y: TensorVariable
-        A tensor with sizes e.g.: for 3D (dim1, dim2, dim4)
-    axes: int or array-like of length 2
-        If an integer, the number of axes to sum over.
-        If an array, it must have two array elements containing the axes to sum
-        over in each tensor.
-
-        If an integer i, it is converted to an array containing
-        the last i dimensions of the first tensor and the first
-        i dimensions of the second tensor (excluding the first
-        (batch) dimension):
-            axes = [list(range(a.ndim - i, b.ndim)), list(range(1,i+1))]
-
-        If an array, its two elements must contain compatible axes
-        of the two tensors. For example, [[1, 2], [2, 4]] means sum
-        over the 2nd and 3rd axes of a and the 3rd and 5th axes of b.
-        (Remember axes are zero-indexed!) The 2nd axis of a and the
-        3rd axis of b must have the same shape; the same is true for
-        the 3rd axis of a and the 5th axis of b.
-
-    Like tensordot, this function uses a series of dimshuffles and
-    reshapes to reduce the tensor dot product to a matrix or vector
-    dot product.  Finally, it calls batched_dot to compute the result.
-    """
-    return _tensordot_as_dot(x, y, axes, dot=batched_dot, batched=True)
-
-
 def split(x, splits_size, n_splits, axis=0):
     the_split = Split(n_splits)
     return the_split(x, axis, splits_size)
@@ -6771,8 +6695,6 @@ __all__ = [
     "unbroadcast",
     "addbroadcast",
     "split",
-    "batched_tensordot",
-    "batched_dot",
     "transpose",
     "extract_constant",
     "clip",

@@ -8,6 +8,7 @@ from theano.graph.basic import Apply
 from theano.graph.op import ExternalCOp, OpenMPOp
 from theano.graph.opt import local_optimizer
 from theano.link.c.cmodule import GCC_compiler
+from theano.tensor.blas import batched_dot
 from theano.tensor.extra_ops import cpu_contiguous
 from theano.tensor.opt import register_canonicalize
 from theano.tensor.type import ftensor3, fvector
@@ -200,7 +201,7 @@ class ConnectionistTemporalClassification(ExternalCOp, OpenMPOp):
         assert gradients is not None
 
         grad_op = output_grads[0]
-        total_grad = tt.batched_dot(grad_op, gradients.dimshuffle(1, 0, 2)).dimshuffle(
+        total_grad = batched_dot(grad_op, gradients.dimshuffle(1, 0, 2)).dimshuffle(
             1, 0, 2
         )
         return [

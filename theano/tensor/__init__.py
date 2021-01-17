@@ -20,6 +20,7 @@ from theano.tensor import (
     xlogx,
 )
 from theano.tensor.basic import *
+from theano.tensor.blas import batched_dot, batched_tensordot
 from theano.tensor.extra_ops import (
     bartlett,
     bincount,

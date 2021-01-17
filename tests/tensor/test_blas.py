@@ -19,11 +19,14 @@ from numpy import (
 from numpy.testing import assert_array_almost_equal
 
 import theano
+import theano.scalar as ts
 import theano.tensor as tt
 import theano.tensor.blas_scipy
 from tests import unittest_tools
-from tests.tensor.utils import inplace_func
+from tests import unittest_tools as utt
+from tests.tensor.utils import inplace_func, makeTester, rand
 from theano import shared
+from theano.compile.function import function
 from theano.compile.io import In
 from theano.compile.mode import Mode
 from theano.configdefaults import config
@@ -44,6 +47,8 @@ from theano.tensor.blas import (
     _factor_canonicalized,
     _gemm_canonicalize,
     _is_real_matrix,
+    batched_dot,
+    batched_tensordot,
     gemm,
     gemm_inplace,
     gemm_no_inplace,
@@ -78,6 +83,8 @@ from theano.tensor.type import (
     row,
     scalar,
     tensor,
+    tensor3,
+    tensor4,
     vector,
     vectors,
     zmatrix,
@@ -220,7 +227,7 @@ class TestGemm:
         l2_reg = tt.constant(0.0001).astype(config.floatX)
 
         # test constant merge with gemm
-        f = theano.function(
+        f = function(
             [a, b],
             updates=[(s, lr1 * tt.dot(a, b) + l2_reg * lr2 * s)],
             mode=mode_not_fast_compile,
@@ -232,7 +239,7 @@ class TestGemm:
         assert f[0].op == gemm_inplace
 
         # test factored scalar with merge
-        f = theano.function(
+        f = function(
             [a, b],
             updates=[(s, lr1 * (tt.dot(a, b) - l2_reg * s))],
             mode=mode_not_fast_compile,
@@ -244,7 +251,7 @@ class TestGemm:
         assert f[0].op == gemm_inplace
 
         # test factored scalar with merge and neg
-        f = theano.function(
+        f = function(
             [a, b],
             updates=[(s, s - lr1 * (s * 0.0002 + tt.dot(a, b)))],
             mode=mode_not_fast_compile,
@@ -383,7 +390,7 @@ class TestGemm:
                     )
 
                 tz_i = gemm_no_inplace(tz[:, :, i], ta, tx[:, :, i], ty[:, :, i], tb)
-                g_i = theano.function(
+                g_i = function(
                     [],
                     tz_i,
                     updates=[(tz, tt.set_subtensor(tz[:, :, i], tz_i))],
@@ -447,9 +454,7 @@ class TestGemmNoFlags:
         B1 = self.get_variable(B, transpose_B, slice_B)
         C1 = self.get_variable(C, transpose_C, slice_C)
 
-        return theano.function(
-            [alpha, A, B, beta, C], self.gemm(C1, alpha, A1, B1, beta)
-        )
+        return function([alpha, A, B, beta, C], self.gemm(C1, alpha, A1, B1, beta))
 
     def generate_value(self, dtype, width, height, to_transpose, to_slice):
         if to_slice:
@@ -839,7 +844,7 @@ def test_upcasting_scalar_nogemm():
 
     rval = tt.dot(w, v) * alpha + t
 
-    f = theano.function([w, v, t, alpha], rval)
+    f = function([w, v, t, alpha], rval)
     t = f.maker.fgraph.toposort()
     assert np.sum([isinstance(n.op, Gemm) for n in t]) == 0
     # theano.printing.debugprint(f, print_type=True)
@@ -851,7 +856,7 @@ def test_upcasting_scalar_nogemm():
 
     with config.change_flags(on_opt_error="raise"):
         rval = tt.dot(w, v) * alpha + t
-        f = theano.function([w, v, t, alpha], rval)
+        f = function([w, v, t, alpha], rval)
 
     t = f.maker.fgraph.toposort()
     assert np.sum([isinstance(n.op, Gemm) for n in t]) == 0
@@ -979,7 +984,7 @@ def test_gemm_unrolled():
             cur_V = update_V(cur_H)
             cur_H = update_H(cur_V)
 
-        unrolled_theano = theano.function(
+        unrolled_theano = function(
             [], updates=[(V, cur_V), (H, cur_H)], name="unrolled_theano"
         )
         nb_dot = sum(
@@ -1042,7 +1047,7 @@ def test_dot22():
         a = matrix(dtype=dtype1)
         for dtype2 in ["float32", "float64", "complex64", "complex128"]:
             b = matrix(dtype=dtype2)
-            f = theano.function([a, b], tt.dot(a, b), mode=mode_blas_opt)
+            f = function([a, b], tt.dot(a, b), mode=mode_blas_opt)
             topo = f.maker.fgraph.toposort()
             if dtype1 == dtype2:
                 assert _dot22 in [x.op for x in topo], (dtype1, dtype2)
@@ -1127,16 +1132,14 @@ def test_dot22scalar():
                         sv = rng.uniform(size=sqr_shp).astype(dtype1)
 
                         if False:
-                            f = theano.function(
-                                [a, b], cst * tt.dot(a, b), mode=mode_blas_opt
-                            )
+                            f = function([a, b], cst * tt.dot(a, b), mode=mode_blas_opt)
                             f.maker.fgraph.toposort()
                             check_dot22scalar(f, 1)
 
                             f(av, bv)
 
                         if True:
-                            f = theano.function(
+                            f = function(
                                 [a, b, c], cst * c * tt.dot(a, b), mode=mode_blas_opt
                             )
                             f.maker.fgraph.toposort()
@@ -1144,7 +1147,7 @@ def test_dot22scalar():
 
                             f(av, bv, cv)
 
-                        f = theano.function(
+                        f = function(
                             [a, b, c], c * cst * tt.dot(a, b), mode=mode_blas_opt
                         )
                         f.maker.fgraph.toposort()
@@ -1154,22 +1157,18 @@ def test_dot22scalar():
                         # Here, canonicalize also seems needed
                         # TODO: add only the optimizations needed?
                         m2 = mode_blas_opt.including("canonicalize")
-                        f = theano.function(
-                            [a, b, c], cst2 * c * cst * tt.dot(a, b), mode=m2
-                        )
+                        f = function([a, b, c], cst2 * c * cst * tt.dot(a, b), mode=m2)
                         f.maker.fgraph.toposort()
                         check_dot22scalar(f, 2)
                         f(av, bv, cv)
 
                         if dtype1 == dtype2 == dtype3:
-                            f = theano.function(
-                                [a, b, c], c * cst * a * tt.dot(a, b), mode=m2
-                            )
+                            f = function([a, b, c], c * cst * a * tt.dot(a, b), mode=m2)
                             f.maker.fgraph.toposort()
                             check_dot22scalar(f, 2)
                             f(sv, sv, sv)
 
-                            f = theano.function(
+                            f = function(
                                 [a, b, c],
                                 cst * c * a * tt.dot(a, b),
                                 mode=mode_blas_opt,
@@ -1187,9 +1186,7 @@ def test_dot22scalar():
                             #    assert len(topo)==2
                             f(sv, sv, sv)
 
-                            f = theano.function(
-                                [a, b, c], c * a * cst * tt.dot(a, b), mode=m2
-                            )
+                            f = function([a, b, c], c * a * cst * tt.dot(a, b), mode=m2)
                             f.maker.fgraph.toposort()
                             check_dot22scalar(f, 2)
                             f(sv, sv, sv)
@@ -1208,12 +1205,12 @@ def test_dot22scalar_cast():
     A = dmatrix()
     for scalar_int_type in int_dtypes:
         y = scalar(dtype=scalar_int_type)
-        f = theano.function([A, y], tt.dot(A, A) * y, mode=mode_blas_opt)
+        f = function([A, y], tt.dot(A, A) * y, mode=mode_blas_opt)
         assert _dot22scalar in [x.op for x in f.maker.fgraph.toposort()]
     A = fmatrix()
     for scalar_int_type in int_dtypes:
         y = scalar(dtype=scalar_int_type)
-        f = theano.function([A, y], tt.dot(A, A) * y, mode=mode_blas_opt)
+        f = function([A, y], tt.dot(A, A) * y, mode=mode_blas_opt)
         if scalar_int_type in ["int32", "int64"]:
             assert _dot22 in [x.op for x in f.maker.fgraph.toposort()]
         else:
@@ -1263,9 +1260,7 @@ def test_local_dot22_to_dot22scalar():
     ):
         node2 = local_dot22_to_dot22scalar.transform(None, node.owner)
         assert node2
-        f = theano.function(
-            [x, y, z, m, r, A], node, mode=mode, on_unused_input="ignore"
-        )
+        f = function([x, y, z, m, r, A], node, mode=mode, on_unused_input="ignore")
         f(0.1, 0.2, 0.3, [[1, 2], [3, 4]], [[5, 6]], [[7, 8], [9, 10]])
 
 
@@ -1280,7 +1275,7 @@ def test_dot_w_self():
     p = tt.dot(A, A) * B
 
     grad = tt.grad(tt.mean(p), A)
-    f = theano.function([B], p, updates=[(A, A - grad)])
+    f = function([B], p, updates=[(A, A - grad)])
 
     # tests correctness in debugmode
     f(np.asarray([[0, 1], [2, 3]], dtype=config.floatX))
@@ -1297,7 +1292,7 @@ class TestGemv(unittest_tools.OptimizationTestMixin):
         rng = np.random.RandomState(unittest_tools.fetch_seed())
         v = theano.shared(np.array(rng.uniform(size=(2,)), dtype="float32"))
         w = theano.shared(np.array(rng.uniform(size=(2,)), dtype="float32"))
-        f = theano.function([], theano.tensor.dot(v, w), mode=mode_blas_opt)
+        f = function([], theano.tensor.dot(v, w), mode=mode_blas_opt)
 
         # Assert that the dot was optimized somehow
         self.assertFunctionContains0(f, tt.dot)
@@ -1311,7 +1306,7 @@ class TestGemv(unittest_tools.OptimizationTestMixin):
         rng = np.random.RandomState(unittest_tools.fetch_seed())
         v = theano.shared(np.array(rng.uniform(size=(2,)), dtype="float32"))
         m = theano.shared(np.array(rng.uniform(size=(2, 3)), dtype="float32"))
-        f = theano.function([], theano.tensor.dot(v, m), mode=mode_blas_opt)
+        f = function([], theano.tensor.dot(v, m), mode=mode_blas_opt)
 
         # Assert that the dot was optimized somehow
         self.assertFunctionContains0(f, tt.dot)
@@ -1328,7 +1323,7 @@ class TestGemv(unittest_tools.OptimizationTestMixin):
         rng = np.random.RandomState(unittest_tools.fetch_seed())
         v = theano.shared(np.array(rng.uniform(size=(2,)), dtype="float32"))
         m = theano.shared(np.array(rng.uniform(size=(3, 2)), dtype="float32"))
-        f = theano.function([], theano.tensor.dot(m, v), mode=mode_blas_opt)
+        f = function([], theano.tensor.dot(m, v), mode=mode_blas_opt)
 
         # Assert that the dot was optimized somehow
         self.assertFunctionContains0(f, tt.dot)
@@ -1349,7 +1344,7 @@ class TestGemv(unittest_tools.OptimizationTestMixin):
         v2 = theano.shared(v2_orig)
         m = theano.shared(np.array(rng.uniform(size=m_shp), dtype="float32"))
 
-        f = theano.function([], v2 + theano.tensor.dot(m, v1), mode=mode_blas_opt)
+        f = function([], v2 + theano.tensor.dot(m, v1), mode=mode_blas_opt)
 
         # Assert they produce the same output
         assert np.allclose(f(), np.dot(m.get_value(), v1.get_value()) + v2_orig)
@@ -1359,7 +1354,7 @@ class TestGemv(unittest_tools.OptimizationTestMixin):
         assert topo[0].op.inplace is False
 
         # test the inplace version
-        g = theano.function(
+        g = function(
             [], [], updates=[(v2, v2 + theano.tensor.dot(m, v1))], mode=mode_blas_opt
         )
 
@@ -1398,7 +1393,7 @@ class TestGemv(unittest_tools.OptimizationTestMixin):
         v2 = theano.shared(v2_orig)
         m = theano.shared(np.array(rng.uniform(size=(2, 3)), dtype="float32"))
 
-        f = theano.function([], v2 + theano.tensor.dot(v1, m), mode=mode_blas_opt)
+        f = function([], v2 + theano.tensor.dot(v1, m), mode=mode_blas_opt)
 
         # Assert they produce the same output
         assert np.allclose(f(), np.dot(v1.get_value(), m.get_value()) + v2.get_value())
@@ -1407,7 +1402,7 @@ class TestGemv(unittest_tools.OptimizationTestMixin):
         assert topo[-1].op.inplace is False
 
         # test the inplace version
-        g = theano.function(
+        g = function(
             [], [], updates=[(v2, v2 + theano.tensor.dot(v1, m))], mode=mode_blas_opt
         )
 
@@ -1441,7 +1436,7 @@ class TestGemv(unittest_tools.OptimizationTestMixin):
             broadcastable=(True, False),
         )
         o = theano.tensor.dot(m, v1)
-        f = theano.function([], o + v2, mode=mode_blas_opt)
+        f = function([], o + v2, mode=mode_blas_opt)
 
         # Assert they produce the same output
         assert np.allclose(f(), np.dot(m.get_value(), v1.get_value()) + v2.get_value())
@@ -1450,7 +1445,7 @@ class TestGemv(unittest_tools.OptimizationTestMixin):
 
         # call gemv directly for mixed broadcast pattern.
         o = gemv_no_inplace(v2, 0.5, m, v1, 0.25)
-        f = theano.function([], o, mode=mode_blas_opt)
+        f = function([], o, mode=mode_blas_opt)
         assert np.allclose(
             f(), 0.5 * np.dot(m.get_value(), v1.get_value()) + 0.25 * v2.get_value()
         )
@@ -1464,7 +1459,7 @@ class TestGemv(unittest_tools.OptimizationTestMixin):
         beta = theano.shared(_asarray(1.0, dtype=config.floatX), name="beta")
 
         z = beta * y + alpha * tt.dot(A, x)
-        f = theano.function([A, x, y], z)
+        f = function([A, x, y], z)
 
         # Matrix value
         A_val = np.ones((5, 3), dtype=config.floatX)
@@ -1536,7 +1531,7 @@ class BaseGemv:
 
         oy = alpha * tt.dot(a, x) + beta * y
 
-        oy_func = theano.function([], oy, mode=self.mode)
+        oy_func = function([], oy, mode=self.mode)
 
         oy_func.maker.fgraph.toposort()
         self.assertFunctionContains1(oy_func, self.gemv)
@@ -1556,7 +1551,7 @@ class BaseGemv:
 
         oy = tt.dot(a, x)
 
-        oy_func = theano.function([], oy, mode=self.mode)
+        oy_func = function([], oy, mode=self.mode)
 
         self.assertFunctionContains1(oy_func, self.gemv_inplace)
 
@@ -1572,7 +1567,7 @@ class BaseGemv:
 
         oy = alpha * tt.dot(a.T, x) + beta * y
 
-        oy_func = theano.function([], oy, mode=self.mode)
+        oy_func = function([], oy, mode=self.mode)
 
         self.assertFunctionContains1(oy_func, self.gemv)
 
@@ -1588,7 +1583,7 @@ class BaseGemv:
 
         oy = alpha * tt.dot(a, x[::2]) + beta * y
 
-        oy_func = theano.function([], oy, mode=self.mode)
+        oy_func = function([], oy, mode=self.mode)
 
         self.assertFunctionContains1(oy_func, self.gemv)
 
@@ -1604,7 +1599,7 @@ class BaseGemv:
 
         oy = alpha * tt.dot(a.T, x[::2]) + beta * y
 
-        oy_func = theano.function([], oy, mode=self.mode)
+        oy_func = function([], oy, mode=self.mode)
 
         self.assertFunctionContains1(oy_func, self.gemv)
 
@@ -1620,7 +1615,7 @@ class BaseGemv:
 
         oy = alpha * tt.dot(a, x) + beta * y[::2]
 
-        oy_func = theano.function([], oy, mode=self.mode)
+        oy_func = function([], oy, mode=self.mode)
 
         self.assertFunctionContains1(oy_func, self.gemv)
 
@@ -1636,7 +1631,7 @@ class BaseGemv:
 
         oy = alpha * tt.dot(a.T, x) + beta * y[::2]
 
-        oy_func = theano.function([], oy, mode=self.mode)
+        oy_func = function([], oy, mode=self.mode)
 
         self.assertFunctionContains1(oy_func, self.gemv)
 
@@ -1656,7 +1651,7 @@ class BaseGemv:
 
         oy = alpha * tt.dot(a, x) + beta * y
 
-        oy_func = theano.function([], oy, mode=self.mode)
+        oy_func = function([], oy, mode=self.mode)
 
         self.assertFunctionContains1(oy_func, self.gemv)
 
@@ -1676,7 +1671,7 @@ class BaseGemv:
 
         oy = alpha * tt.dot(a.T, x) + beta * y
 
-        oy_func = theano.function([], oy, mode=self.mode)
+        oy_func = function([], oy, mode=self.mode)
 
         self.assertFunctionContains1(oy_func, self.gemv)
 
@@ -1701,7 +1696,7 @@ class BaseGemv:
 
         rval = tt.dot(a, x) * alpha + y
 
-        f = theano.function([alpha], rval, mode=self.mode)
+        f = function([alpha], rval, mode=self.mode)
         # this function is currently optimized so that the gemv is
         # done inplace on a temporarily allocated-buffer, which is
         # then scaled by alpha and to t with a fused elemwise.
@@ -1841,7 +1836,7 @@ class TestGer(unittest_tools.OptimizationTestMixin):
     def function(self, inputs, outputs, updates=None):
         if updates is None:
             updates = []
-        return theano.function(inputs, outputs, self.mode, updates=updates)
+        return function(inputs, outputs, self.mode, updates=updates)
 
     def b(self, bval):
         return tt.as_tensor_variable(np.asarray(bval, dtype=self.dtype))
@@ -2051,14 +2046,12 @@ class TestBlasStrides:
         bt_dev = b_t.get_value(borrow=False, return_internal_type=True)
         ct_dev = c_t.get_value(borrow=False, return_internal_type=True)
 
-        f_nn = theano.function([], [], updates=[(a, tt.dot(b, c))], mode=self.mode)
+        f_nn = function([], [], updates=[(a, tt.dot(b, c))], mode=self.mode)
         # print 'class name:', self.__class__.__name__
         # theano.printing.debugprint(f_nn)
-        f_nt = theano.function([], [], updates=[(a, tt.dot(b, c_t.T))], mode=self.mode)
-        f_tn = theano.function([], [], updates=[(a, tt.dot(b_t.T, c))], mode=self.mode)
-        f_tt = theano.function(
-            [], [], updates=[(a, tt.dot(b_t.T, c_t.T))], mode=self.mode
-        )
+        f_nt = function([], [], updates=[(a, tt.dot(b, c_t.T))], mode=self.mode)
+        f_tn = function([], [], updates=[(a, tt.dot(b_t.T, c))], mode=self.mode)
+        f_tt = function([], [], updates=[(a, tt.dot(b_t.T, c_t.T))], mode=self.mode)
 
         # Try with all stride patterns, and all transposed pattern
         for step_signs in product((-1, 1), repeat=4):
@@ -2118,16 +2111,10 @@ class TestBlasStrides:
         bt_dev = b_t.get_value(borrow=False, return_internal_type=True)
         ct_dev = c_t.get_value(borrow=False, return_internal_type=True)
 
-        f_nn = theano.function([], [], updates=[(a, l * tt.dot(b, c))], mode=self.mode)
-        f_nt = theano.function(
-            [], [], updates=[(a, l * tt.dot(b, c_t.T))], mode=self.mode
-        )
-        f_tn = theano.function(
-            [], [], updates=[(a, l * tt.dot(b_t.T, c))], mode=self.mode
-        )
-        f_tt = theano.function(
-            [], [], updates=[(a, l * tt.dot(b_t.T, c_t.T))], mode=self.mode
-        )
+        f_nn = function([], [], updates=[(a, l * tt.dot(b, c))], mode=self.mode)
+        f_nt = function([], [], updates=[(a, l * tt.dot(b, c_t.T))], mode=self.mode)
+        f_tn = function([], [], updates=[(a, l * tt.dot(b_t.T, c))], mode=self.mode)
+        f_tt = function([], [], updates=[(a, l * tt.dot(b_t.T, c_t.T))], mode=self.mode)
 
         # Try with all stride patterns, and all transposed pattern
         for step_signs in product((-1, 1), repeat=4):
@@ -2189,28 +2176,26 @@ class TestBlasStrides:
         bt_dev = b_t.get_value(borrow=False, return_internal_type=True)
         ct_dev = c_t.get_value(borrow=False, return_internal_type=True)
 
-        f_nnn = theano.function(
-            [], [], updates=[(a, (l * a + tt.dot(b, c)))], mode=self.mode
-        )
-        f_nnt = theano.function(
+        f_nnn = function([], [], updates=[(a, (l * a + tt.dot(b, c)))], mode=self.mode)
+        f_nnt = function(
             [], [], updates=[(a, (l * a + tt.dot(b, c_t.T)))], mode=self.mode
         )
-        f_ntn = theano.function(
+        f_ntn = function(
             [], [], updates=[(a, (l * a + tt.dot(b_t.T, c)))], mode=self.mode
         )
-        f_ntt = theano.function(
+        f_ntt = function(
             [], [], updates=[(a, (l * a + tt.dot(b_t.T, c_t.T)))], mode=self.mode
         )
-        f_tnn = theano.function(
+        f_tnn = function(
             [], [], updates=[(a_t, (l * a_t + tt.dot(b, c).T))], mode=self.mode
         )
-        f_tnt = theano.function(
+        f_tnt = function(
             [], [], updates=[(a_t, (l * a_t + tt.dot(b, c_t.T).T))], mode=self.mode
         )
-        f_ttn = theano.function(
+        f_ttn = function(
             [], [], updates=[(a_t, (l * a_t + tt.dot(b_t.T, c).T))], mode=self.mode
         )
-        f_ttt = theano.function(
+        f_ttt = function(
             [],
             [],
             updates=[(a_t, (l * a_t + tt.dot(b_t.T, c_t.T).T))],
@@ -2309,11 +2294,9 @@ class TestBlasStrides:
         b_dev = b.get_value(borrow=False, return_internal_type=True)
         c_dev = c.get_value(borrow=False, return_internal_type=True)
 
-        f_n = theano.function(
-            [], [], updates=[(a, (a + l * tt.dot(b, c)))], mode=self.mode
-        )
+        f_n = function([], [], updates=[(a, (a + l * tt.dot(b, c)))], mode=self.mode)
 
-        f_t = theano.function(
+        f_t = function(
             [], [], updates=[(a, (a + l * tt.dot(b_t.T, c)))], mode=self.mode
         )
 
@@ -2362,11 +2345,9 @@ class TestBlasStrides:
         b_dev = b.get_value(borrow=False, return_internal_type=True)
         c_dev = c.get_value(borrow=False, return_internal_type=True)
 
-        f_n = theano.function(
-            [], [], updates=[(a, (a + l * tt.outer(b, c)))], mode=self.mode
-        )
+        f_n = function([], [], updates=[(a, (a + l * tt.outer(b, c)))], mode=self.mode)
 
-        f_t = theano.function(
+        f_t = function(
             [], [], updates=[(a_t, (a_t + l * tt.outer(b, c).T))], mode=self.mode
         )
 
@@ -2417,7 +2398,7 @@ class TestBlasStrides:
 
         s = scalar()
         upd_c = s * c + tt.dot(a, b)
-        f = theano.function([s], [], updates={c: upd_c})
+        f = function([s], [], updates={c: upd_c})
 
         f(0)
         ref_output = np.ones((3, 5)) * 2
@@ -2501,3 +2482,143 @@ class TestInferShape(unittest_tools.InferShapeTester):
             ],
             Ger,
         )
+
+
+TestBatchedDot = makeTester(
+    name="BatchedDotTester",
+    op=batched_dot,
+    expected=(
+        lambda xs, ys: np.asarray(
+            list(
+                x * y if x.ndim == 0 or y.ndim == 0 else np.dot(x, y)
+                for x, y in zip(xs, ys)
+            ),
+            dtype=ts.upcast(xs.dtype, ys.dtype),
+        )
+    ),
+    checks={},
+    grad=dict(
+        correct1=(rand(3, 5, 7), rand(3, 7, 5)),
+        correct2=(rand(3, 5, 7), rand(3, 7, 9)),
+        correct3=(rand(3, 5, 7), rand(3, 7)),
+        correct4=(rand(3, 5), rand(3, 5, 7)),
+        correct5=(rand(3), rand(3, 5, 7)),
+        correct6=(rand(3, 5), rand(3)),
+        correct7=(rand(3, 5), rand(3, 5)),
+        correct8=(rand(3), rand(3)),
+        correct9=(rand(3, 5, 7, 11), rand(3)),
+        correct10=(rand(3, 2, 6, 5), rand(3, 5)),
+        correct11=(rand(3, 2, 6, 5), rand(3, 5, 7)),
+        correct12=(rand(3, 2, 6, 5), rand(3, 7, 5, 8)),
+        mixed1=(rand(3, 5).astype("float32"), rand(3, 5, 7)),
+        mixed2=(rand(3, 5).astype("float64"), rand(3, 5, 7)),
+    ),
+    good=dict(
+        correct1=(rand(3, 5, 7), rand(3, 7, 5)),
+        correct2=(rand(3, 5, 7), rand(3, 7, 9)),
+        correct3=(rand(3, 5, 7), rand(3, 7)),
+        correct4=(rand(3, 5), rand(3, 5, 7)),
+        correct5=(rand(3), rand(3, 5, 7)),
+        correct6=(rand(3, 5), rand(3)),
+        correct7=(rand(3, 5), rand(3, 5)),
+        correct8=(rand(3), rand(3)),
+        correct9=(rand(3, 5, 7, 11), rand(3)),
+        correct10=(rand(3, 7, 11, 5), rand(3, 5)),
+        correct11=(rand(3, 7, 11, 5), rand(3, 5, 13)),
+        correct12=(rand(3, 7, 11, 5), rand(3, 13, 5, 17)),
+        mixed1=(rand(3, 5).astype("float32"), rand(3, 5, 7)),
+        mixed2=(rand(3, 5).astype("float64"), rand(3, 5, 7)),
+    ),
+    bad_build=dict(
+        no_batch_axis2=(rand(), rand(3, 5)), no_batch_axis3=(rand(3, 5), rand())
+    ),
+    bad_runtime=dict(
+        batch_dim_mismatch1=(rand(2, 5, 7), rand(3, 7, 9)),
+        batch_dim_mismatch2=(rand(3, 5, 7), rand(2, 7, 9)),
+        batch_dim_mismatch3=(rand(3), rand(5)),
+        bad_dim1=(rand(3, 5, 7), rand(3, 5, 7)),
+        bad_dim2=(rand(3, 5, 7), rand(3, 8, 3)),
+        bad_dim3=(rand(3, 5), rand(3, 7)),
+        bad_dim4=(rand(3, 5, 7, 11), rand(3, 5)),
+        bad_dim5=(rand(3, 5, 7, 11), rand(3, 5, 13)),
+        bad_dim6=(rand(3, 5, 7, 11), rand(3, 13, 5, 17)),
+    ),
+)
+
+
+def test_batched_dot():
+    first = tensor3("first")
+    second = tensor3("second")
+    output = batched_dot(first, second)
+    first_val = np.random.rand(10, 10, 20).astype(config.floatX)
+    second_val = np.random.rand(10, 20, 5).astype(config.floatX)
+    result_fn = function([first, second], output)
+    result = result_fn(first_val, second_val)
+    assert result.shape[0] == first_val.shape[0]
+    assert result.shape[1] == first_val.shape[1]
+    assert result.shape[2] == second_val.shape[2]
+
+    first_mat = dmatrix("first")
+    second_mat = dmatrix("second")
+    output = batched_dot(first_mat, second_mat)
+    first_mat_val = np.random.rand(10, 10).astype(config.floatX)
+    second_mat_val = np.random.rand(10, 10).astype(config.floatX)
+    result_fn = function([first_mat, second_mat], output)
+    result = result_fn(first_mat_val, second_mat_val)
+
+    assert result.shape[0] == first_mat_val.shape[0]
+
+
+def test_batched_dot_not_contiguous():
+    def np_genarray(*_shape):
+        size = 1
+        for dimsize in _shape:
+            size *= dimsize
+        return np.arange(size, dtype=config.floatX).reshape(_shape)
+
+    X = tensor3()
+    W = tensor3()
+    Z = batched_dot(X, W)
+    f = function([X, W], Z)
+
+    w = np_genarray(30, 10, 5)
+    reversed_x_container = np_genarray(20, 40, 30)
+    x_container = reversed_x_container.T
+
+    def check_first_dim(inverted):
+        direction = -1 if inverted else 1
+        x = x_container[::direction, ::2, ::2]
+        assert x.shape == (30, 20, 10)
+        assert x.strides[0] == direction * np.dtype(config.floatX).itemsize
+        assert not (x.flags["C_CONTIGUOUS"] or x.flags["F_CONTIGUOUS"])
+        result = f(x, w)
+        ref_result = np.asarray(list(np.dot(u, v) for u, v in zip(x, w)))
+        utt.assert_allclose(ref_result, result)
+
+    for inverted in (0, 1):
+        check_first_dim(inverted)
+
+
+def test_batched_tensordot():
+    first = tensor4("first")
+    second = tensor4("second")
+    axes = [[1, 2], [3, 1]]
+    output = batched_tensordot(first, second, axes)
+    first_val = np.random.rand(8, 10, 20, 3).astype(config.floatX)
+    second_val = np.random.rand(8, 20, 5, 10).astype(config.floatX)
+    result_fn = function([first, second], output)
+    result = result_fn(first_val, second_val)
+    assert result.shape[0] == first_val.shape[0]
+    assert result.shape[1] == first_val.shape[3]
+    assert result.shape[2] == second_val.shape[2]
+
+    first_mat = dmatrix("first")
+    second_mat = dmatrix("second")
+    axes = 1
+    output = batched_tensordot(first_mat, second_mat, axes)
+    first_mat_val = np.random.rand(10, 4).astype(config.floatX)
+    second_mat_val = np.random.rand(10, 4).astype(config.floatX)
+    result_fn = function([first_mat, second_mat], output)
+    result = result_fn(first_mat_val, second_mat_val)
+    assert result.shape[0] == first_mat_val.shape[0]
+    assert len(result.shape) == 1
