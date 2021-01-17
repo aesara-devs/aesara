@@ -57,7 +57,7 @@ from theano.tensor.nlinalg import (
     QRFull,
     QRIncomplete,
 )
-from theano.tensor.nnet.nnet import Softmax
+from theano.tensor.nnet.basic import Softmax
 from theano.tensor.nnet.sigm import ScalarSoftplus
 from theano.tensor.opt import MakeVector
 from theano.tensor.slinalg import Cholesky, Solve

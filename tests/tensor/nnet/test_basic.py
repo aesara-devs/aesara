@@ -16,7 +16,7 @@ from theano.graph.fg import FunctionGraph
 from theano.graph.opt import check_stack_trace
 from theano.tensor.basic import Argmax
 from theano.tensor.elemwise import CAReduce, DimShuffle, Elemwise
-from theano.tensor.nnet.nnet import (
+from theano.tensor.nnet.basic import (
     CrossentropyCategorical1Hot,
     CrossentropyCategorical1HotGrad,
     CrossentropySoftmax1HotWithBiasDx,

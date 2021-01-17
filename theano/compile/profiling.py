@@ -1696,7 +1696,7 @@ class ProfileStats:
         # tip 7
         import theano.gpuarray
         import theano.tensor.signal.pool as pool
-        from theano.tensor.nnet.nnet import LogSoftmax
+        from theano.tensor.nnet.basic import LogSoftmax
 
         for (fgraph, a) in self.apply_time:
             node = a

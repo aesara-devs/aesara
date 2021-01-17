@@ -1465,7 +1465,7 @@ def add_deprecated_configvars():
         "warn__argmax_pushdown_bug",
         (
             "Warn if in past version of Theano we generated a bug with the "
-            "theano.tensor.nnet.nnet.local_argmax_pushdown optimization. "
+            "theano.tensor.nnet.basic.local_argmax_pushdown optimization. "
             "Was fixed 27 may 2010"
         ),
         BoolParam(_warn_default("0.3")),

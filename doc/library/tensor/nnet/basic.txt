@@ -1,10 +1,10 @@
-.. _libdoc_tensor_nnet_nnet:
+.. _libdoc_tensor_nnet_basic:
 
 ======================================================
-:mod:`nnet` -- Ops for neural networks
+:mod:`basic` -- Basic Ops for neural networks
 ======================================================
 
-.. module:: theano.tensor.nnet.nnet
+.. module:: theano.tensor.nnet.basic
    :platform: Unix, Windows
    :synopsis: Ops for neural networks
 .. moduleauthor:: LISA

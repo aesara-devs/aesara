@@ -12,7 +12,7 @@ import numpy as np
 
 import theano
 import theano.tensor as tt
-from theano.tensor.nnet.nnet import CrossentropySoftmax1HotWithBiasDx, softmax
+from theano.tensor.nnet.basic import CrossentropySoftmax1HotWithBiasDx, softmax
 from theano.tensor.type import ivector, lscalar, matrix
 
 

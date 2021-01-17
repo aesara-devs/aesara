@@ -926,7 +926,7 @@ def local_softmax_with_bias(fgraph, node):
 
                 if sm_bias.type == node.outputs[0].type:
                     # This condition is not always true. See the test
-                    # nnet/tests/test_nnet.py:T_SoftmaxWithBias.test_broadcast
+                    # nnet/tests/test_basic.py:T_SoftmaxWithBias.test_broadcast
                     return [sm_bias]
 
 
@@ -1672,7 +1672,7 @@ def local_argmax_pushdown(fgraph, node):
         )
     ):
         if config.warn__argmax_pushdown_bug:
-            logging.getLogger("theano.tensor.nnet.nnet").warn(
+            logging.getLogger("theano.tensor.nnet.basic").warn(
                 "There was a bug in Theano fixed on May 27th, 2010 in this case."
                 " I.E. when we take the max of a softplus, softmax, exp, "
                 "log, tanh, sigmoid, softmax_with_bias op, we were doing "
