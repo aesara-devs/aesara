@@ -16,8 +16,9 @@ from theano.gpuarray.type import GpuArrayType, get_context, move_to_gpu
 from theano.graph.basic import Constant
 from theano.graph.op import Op
 from theano.graph.opt import copy_stack_trace, inherit_stack_trace, local_optimizer
-from theano.tensor.basic import NotScalarConstantError, get_scalar_constant_value
+from theano.tensor.basic import get_scalar_constant_value
 from theano.tensor.elemwise import DimShuffle
+from theano.tensor.exceptions import NotScalarConstantError
 from theano.tensor.type import TensorType
 
 

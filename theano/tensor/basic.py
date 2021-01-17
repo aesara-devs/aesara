@@ -23,6 +23,7 @@ from theano.printing import min_informative_str, pprint
 from theano.scalar import int32
 from theano.tensor import elemwise
 from theano.tensor.elemwise import CAReduce, DimShuffle, Elemwise, Sum, scalar_elemwise
+from theano.tensor.exceptions import EmptyConstantError, NotScalarConstantError
 from theano.tensor.type import (
     TensorType,
     complex_dtypes,
@@ -44,10 +45,6 @@ from theano.tensor.var import TensorConstant, TensorVariable, _tensor_py_operato
 _logger = logging.getLogger("theano.tensor.basic")
 
 __docformat__ = "restructuredtext en"
-
-
-class ShapeError(Exception):
-    """Raised when the shape cannot be computed."""
 
 
 def check_equal_numpy(x, y):
@@ -331,20 +328,6 @@ def _allclose(a, b, rtol=None, atol=None):
         atol_ = atol
 
     return np.allclose(a, b, atol=atol_, rtol=rtol_)
-
-
-class NotScalarConstantError(Exception):
-    """
-    Raised by get_scalar_constant_value if called on something that is
-    not a scalar constant.
-    """
-
-
-class EmptyConstantError(NotScalarConstantError):
-    """
-    Raised by get_scalar_const_value if called on something that is a
-    zero dimensional constant.
-    """
 
 
 def numpy_scalar(data):
@@ -1867,7 +1850,7 @@ def round(a, mode=None):
     elif mode == "half_to_even":
         return round_half_to_even(a)
     else:
-        raise Exception(f"round mode {mode} is not implemented.")
+        raise NotImplementedError(f"round mode {mode} is not implemented.")
 
 
 @scalar_elemwise

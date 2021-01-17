@@ -112,13 +112,13 @@ if (
 def get_scalar_constant_value(v):
     """Return the constant scalar (i.e. 0-D) value underlying variable `v`.
 
-    If v is the output of dimshuffles, fills, allocs, rebroadcasts, cast
+    If `v` is the output of dim-shuffles, fills, allocs, rebroadcasts, cast
     this function digs through them.
 
-    If theano.sparse is also there, we will look over CSM op.
+    If ``theano.sparse`` is also there, we will look over CSM `Op`.
 
     If `v` is not some view of constant data, then raise a
-    tensor.basic.NotScalarConstantError.
+    `NotScalarConstantError`.
     """
     # Is it necessary to test for presence of theano.sparse at runtime?
     sparse = globals().get("sparse")

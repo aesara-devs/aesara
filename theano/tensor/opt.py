@@ -62,11 +62,9 @@ from theano.tensor.basic import (
     Dot,
     Flatten,
     Join,
-    NotScalarConstantError,
     Rebroadcast,
     Reshape,
     ScalarFromTensor,
-    ShapeError,
     Split,
     TensorFromScalar,
     Tile,
@@ -99,6 +97,7 @@ from theano.tensor.elemwise import (
     ProdWithoutZeros,
     Sum,
 )
+from theano.tensor.exceptions import NotScalarConstantError, ShapeError
 from theano.tensor.extra_ops import broadcast_shape
 from theano.tensor.sort import TopKOp
 from theano.tensor.subtensor import (
@@ -1115,7 +1114,7 @@ class ShapeFeature(toolbox.Feature):
                 "Code called by infer_shape failed raising a "
                 "NotImplementedError. Raising NotImplementedError to "
                 "indicate that a shape cannot be computed is no longer "
-                "supported, and one should now use tensor.ShapeError "
+                "supported, and one should now use ShapeError "
                 f"instead. The original exception message is: {e}"
             ).with_traceback(e.__traceback__)
         except Exception as e:

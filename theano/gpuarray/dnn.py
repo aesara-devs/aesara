@@ -37,7 +37,8 @@ from theano.scalar import bool as bool_t
 from theano.scalar import constant, get_scalar_type
 from theano.scalar import int32 as int_t
 from theano.scalar import uint32 as uint32_t
-from theano.tensor.basic import NotScalarConstantError, as_tensor_variable
+from theano.tensor.basic import as_tensor_variable
+from theano.tensor.exceptions import NotScalarConstantError
 from theano.tensor.extra_ops import cpu_contiguous
 from theano.tensor.nnet.abstract_conv import (
     AbstractConv2d,

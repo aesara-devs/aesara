@@ -34,6 +34,7 @@ from theano.tensor import basic as tt
 from theano.tensor import extra_ops, opt
 from theano.tensor.basic import MaxAndArgmax, as_tensor_variable, log
 from theano.tensor.elemwise import Elemwise
+from theano.tensor.exceptions import NotScalarConstantError
 from theano.tensor.nnet.blocksparse import sparse_block_dot
 from theano.tensor.nnet.sigm import sigmoid, softplus
 from theano.tensor.opt import (
@@ -1758,7 +1759,7 @@ def _check_rows_is_arange_len_labels(fgraph, rows, labels):
 def _is_const(z, val, approx=False):
     try:
         maybe = opt.get_scalar_constant_value(z)
-    except tt.NotScalarConstantError:
+    except NotScalarConstantError:
         return False
     if approx:
         return np.allclose(maybe, val)

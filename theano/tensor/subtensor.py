@@ -26,6 +26,7 @@ from theano.tensor.basic import (
     get_scalar_constant_value,
 )
 from theano.tensor.elemwise import DimShuffle
+from theano.tensor.exceptions import AdvancedIndexingError, ShapeError
 from theano.tensor.inc_code import inc_code
 from theano.tensor.type import (
     bscalar,
@@ -60,13 +61,6 @@ invalid_tensor_types = (
     cscalar,
     zscalar,
 )
-
-
-class AdvancedIndexingError(TypeError):
-    """
-    Raised when Subtensor is asked to perform advanced indexing.
-
-    """
 
 
 def as_index_constant(a):
@@ -2344,7 +2338,7 @@ class AdvancedSubtensor(Op):
                 isinstance(idx, (np.bool_, bool))
                 or getattr(idx, "dtype", None) == "bool"
             ):
-                raise theano.tensor.basic.ShapeError(
+                raise ShapeError(
                     "Shape inference for boolean indices is not implemented"
                 )
             # The `ishapes` entries for `SliceType`s will be None, and

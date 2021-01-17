@@ -2114,7 +2114,7 @@ def _is_zero(x):
     try:
         constant_value = theano.get_scalar_constant_value(x)
         no_constant_value = False
-    except theano.tensor.basic.NotScalarConstantError:
+    except theano.tensor.exceptions.NotScalarConstantError:
         pass
 
     if no_constant_value:

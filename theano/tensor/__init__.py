@@ -5,6 +5,7 @@ __docformat__ = "restructuredtext en"
 
 import warnings
 
+import theano.tensor.exceptions
 from theano.compile.ops import shape, specify_shape
 from theano.gradient import consider_constant, grad, hessian, jacobian
 from theano.tensor import sharedvar  # adds shared-variable constructors

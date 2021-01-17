@@ -24,7 +24,8 @@ from theano.gpuarray.type import GpuArrayType
 from theano.graph.basic import Apply
 from theano.graph.op import _NoPythonOp
 from theano.scalar import as_scalar
-from theano.tensor.basic import NotScalarConstantError, get_scalar_constant_value
+from theano.tensor.basic import get_scalar_constant_value
+from theano.tensor.exceptions import NotScalarConstantError
 
 
 class GPUAMultinomialFromUniform(GpuKernelBaseCOp, _NoPythonOp):

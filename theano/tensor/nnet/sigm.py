@@ -20,8 +20,8 @@ from theano.graph.utils import MethodNotDefined
 from theano.printing import pprint
 from theano.tensor import basic as tt
 from theano.tensor import opt
-from theano.tensor.basic import NotScalarConstantError
 from theano.tensor.elemwise import Elemwise
+from theano.tensor.exceptions import NotScalarConstantError
 from theano.tensor.type import TensorType, values_eq_approx_remove_inf
 
 
@@ -463,7 +463,7 @@ def _is_1(expr):
     try:
         v = opt.get_scalar_constant_value(expr)
         return np.allclose(v, 1)
-    except tt.NotScalarConstantError:
+    except NotScalarConstantError:
         return False
 
 
@@ -1074,7 +1074,7 @@ def local_1msigmoid(fgraph, node):
         if sub_r.owner and sub_r.owner.op == sigmoid:
             try:
                 val_l = opt.get_scalar_constant_value(sub_l)
-            except tt.NotScalarConstantError:
+            except NotScalarConstantError:
                 return
             if np.allclose(np.sum(val_l), 1):
                 out = sigmoid(-sub_r.owner.inputs[0])
