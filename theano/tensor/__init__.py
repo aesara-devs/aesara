@@ -6,7 +6,6 @@ __docformat__ = "restructuredtext en"
 import warnings
 
 import theano.tensor.exceptions
-from theano.compile.ops import shape, specify_shape
 from theano.gradient import consider_constant, grad, hessian, jacobian
 from theano.tensor import sharedvar  # adds shared-variable constructors
 from theano.tensor import (
@@ -34,6 +33,14 @@ from theano.tensor.extra_ops import (
     unravel_index,
 )
 from theano.tensor.io import *
+from theano.tensor.shape import (
+    reshape,
+    shape,
+    shape_padaxis,
+    shape_padleft,
+    shape_padright,
+    specify_shape,
+)
 
 # We import as `_shared` instead of `shared` to avoid confusion between
 # `theano.shared` and `tensor._shared`.

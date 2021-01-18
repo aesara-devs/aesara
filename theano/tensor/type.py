@@ -719,7 +719,6 @@ def values_eq_approx_always_true(a, b):
     return True
 
 
-# Register TensorType C code for ViewOp.
 theano.compile.register_view_op_c_code(
     TensorType,
     """
@@ -731,44 +730,6 @@ theano.compile.register_view_op_c_code(
 )
 
 
-# Register TensorType C code for Shape Op.
-theano.compile.register_shape_c_code(
-    TensorType,
-    """
-    npy_intp shape[] = {PyArray_NDIM(%(iname)s)};
-    if(%(oname)s == NULL || (PyArray_DIMS(%(oname)s)[0] != shape[0]))
-    {
-        Py_XDECREF(%(oname)s);
-        %(oname)s = (PyArrayObject*) PyArray_SimpleNew(1, shape, NPY_INT64);
-    }
-    for(int i=0;i<shape[0];i++)
-    {
-        ((npy_int64*)PyArray_GETPTR1(%(oname)s, i))[0] = PyArray_DIMS(%(iname)s)[i];
-    }
-    """,
-    version=1,
-)
-
-
-# Register TensorType C code for ViewOp.
-theano.compile.register_shape_i_c_code(
-    TensorType,
-    """
-    if(!%(oname)s)
-        %(oname)s=(PyArrayObject*)PyArray_EMPTY(0, NULL, NPY_INT64, 0);
-    ((npy_int64*)PyArray_DATA(%(oname)s))[0]=PyArray_DIMS(%(iname)s)[%(i)s];
-    """,
-    """
-    if (%(i)s>=PyArray_NDIM(%(iname)s)){
-        PyErr_SetString(PyExc_TypeError,
-            "Number of dimensions lower than expected");
-        %(fail)s
-    }
-    """,
-    version=3,
-)
-
-# Register TensorType C code for DeepCopyOp
 theano.compile.register_deep_copy_op_c_code(
     TensorType,
     """
@@ -811,37 +772,6 @@ theano.compile.register_rebroadcast_c_code(
             PyArray_DIMS(%(iname)s)[%(axis)s]);
         %(fail)s
     }
-    """,
-    version=1,
-)
-
-
-theano.compile.register_specify_shape_c_code(
-    TensorType,
-    """
-        if (PyArray_NDIM(%(iname)s) != PyArray_DIMS(%(shape)s)[0]) {
-            PyErr_Format(PyExc_AssertionError,
-                         "SpecifyShape: vector of shape has %%d elements,"
-                         " but the input has %%d dimensions.",
-                         PyArray_DIMS(%(shape)s)[0],
-                         PyArray_NDIM(%(iname)s));
-            %(fail)s;
-        }
-        for(int i = 0; i < PyArray_NDIM(%(iname)s); i++){
-            dtype_%(shape)s shp = ((dtype_%(shape)s*)PyArray_GETPTR1(%(shape)s,
-                                                                     i))[0];
-            if (PyArray_DIMS(%(iname)s)[i] != shp) {
-                PyErr_Format(PyExc_AssertionError,
-                             "SpecifyShape: dim %%d of input has shape %%d,"
-                             " expected %%d.",
-                             i, PyArray_DIMS(%(iname)s)[i],
-                             shp);
-                %(fail)s;
-            }
-        }
-        Py_XDECREF(%(oname)s);
-        %(oname)s = %(iname)s;
-        Py_XINCREF(%(oname)s);
     """,
     version=1,
 )

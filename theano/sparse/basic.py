@@ -24,6 +24,7 @@ from theano.misc.safe_asarray import _asarray
 from theano.sparse.type import SparseType, _is_sparse
 from theano.sparse.utils import hash_from_sparse
 from theano.tensor.basic import Split
+from theano.tensor.shape import shape
 from theano.tensor.type import TensorType
 from theano.tensor.type import continuous_dtypes as tensor_continuous_dtypes
 from theano.tensor.type import discrete_dtypes as tensor_discrete_dtypes
@@ -199,8 +200,8 @@ def sp_ones_like(x):
 
     """
     # TODO: don't restrict to CSM formats
-    data, indices, indptr, shape = csm_properties(x)
-    return CSM(format=x.format)(tt.ones_like(data), indices, indptr, shape)
+    data, indices, indptr, _shape = csm_properties(x)
+    return CSM(format=x.format)(tt.ones_like(data), indices, indptr, _shape)
 
 
 def sp_zeros_like(x):
@@ -220,12 +221,12 @@ def sp_zeros_like(x):
     """
 
     # TODO: don't restrict to CSM formats
-    _, _, indptr, shape = csm_properties(x)
+    _, _, indptr, _shape = csm_properties(x)
     return CSM(format=x.format)(
         data=np.array([], dtype=x.type.dtype),
         indices=np.array([], dtype="int32"),
         indptr=tt.zeros_like(indptr),
-        shape=shape,
+        shape=_shape,
     )
 
 
@@ -293,7 +294,10 @@ class _sparse_py_operators:
     def toarray(self):
         return dense_from_sparse(self)
 
-    shape = property(lambda self: tt.shape(dense_from_sparse(self)))
+    @property
+    def shape(self):
+        return shape(dense_from_sparse(self))
+
     # don't worry!
     # the plan is that the ShapeFeature in tt.opt will do shape propagation
     # and remove the dense_from_sparse from the graph.  This will *NOT*
@@ -493,8 +497,8 @@ class CSMProperties(Op):
         if isinstance(g[0].type, DisconnectedType):
             return [csm.zeros_like()]
 
-        data, indices, indptr, shape = csm_properties(csm)
-        return [CSM(csm.format)(g[0], indices, indptr, shape)]
+        data, indices, indptr, _shape = csm_properties(csm)
+        return [CSM(csm.format)(g[0], indices, indptr, _shape)]
 
 
 # don't make this a function or it breaks some optimizations below
@@ -616,10 +620,10 @@ class CSM(Op):
 
     def perform(self, node, inputs, outputs):
         # for efficiency, if remap does nothing, then do not apply it
-        (data, indices, indptr, shape) = inputs
+        (data, indices, indptr, _shape) = inputs
         (out,) = outputs
 
-        if len(shape) != 2:
+        if len(_shape) != 2:
             raise ValueError("Shape should be an array of length 2")
         if data.shape != indices.shape:
             errmsg = (
@@ -633,12 +637,12 @@ class CSM(Op):
             raise ValueError(errmsg)
         if self.format == "csc":
             out[0] = scipy.sparse.csc_matrix(
-                (data, indices.copy(), indptr.copy()), np.asarray(shape), copy=False
+                (data, indices.copy(), indptr.copy()), np.asarray(_shape), copy=False
             )
         else:
             assert self.format == "csr"
             out[0] = scipy.sparse.csr_matrix(
-                (data, indices.copy(), indptr.copy()), shape.copy(), copy=False
+                (data, indices.copy(), indptr.copy()), _shape.copy(), copy=False
             )
 
     def connection_pattern(self, node):
@@ -3156,11 +3160,11 @@ def structured_monoid(tensor_op):
 
             xs = [ts.as_scalar(arg) for arg in args[1:]]
 
-            data, ind, ptr, shape = csm_properties(x)
+            data, ind, ptr, _shape = csm_properties(x)
 
             data = tensor_op(data, *xs)
 
-            return CSM(x.format)(data, ind, ptr, shape)
+            return CSM(x.format)(data, ind, ptr, _shape)
 
         wrapper.__name__ = str(tensor_op.scalar_op)
         return wrapper
@@ -3478,17 +3482,17 @@ class TrueDot(Op):
             data = rval.data.view(dtype=node.outputs[0].dtype)
             indices = rval.indices
             indptr = rval.indptr
-            shape = rval.shape
+            _shape = rval.shape
             # No need to copy indices and indptr as in CSM.perform(),
             # as there is only one user of them.
             if format == "csc":
                 rval = scipy.sparse.csc_matrix(
-                    (data, indices, indptr), shape, copy=False
+                    (data, indices, indptr), _shape, copy=False
                 )
             else:
                 assert format == "csr"
                 rval = scipy.sparse.csr_matrix(
-                    (data, indices, indptr), shape, copy=False
+                    (data, indices, indptr), _shape, copy=False
                 )
         out[0] = rval
 

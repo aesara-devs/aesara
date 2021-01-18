@@ -6,6 +6,7 @@ from theano.graph.basic import Apply, Constant
 from theano.graph.op import Op
 from theano.misc.safe_asarray import _asarray
 from theano.tensor.basic import arange, mul
+from theano.tensor.shape import shape
 from theano.tensor.subtensor import set_subtensor
 from theano.tensor.type import TensorType, integer_dtypes
 
@@ -454,7 +455,7 @@ class TopKOp(Op):
                 "topk: cannot get gradient" " without both indices and values",
             )
         else:
-            x_shp = tt.shape(x)
+            x_shp = shape(x)
             z_grad = out_grads[0]
             ndim = x.ndim
             axis = self.axis % ndim

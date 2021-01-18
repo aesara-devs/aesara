@@ -23,6 +23,7 @@ from theano.graph.basic import Apply, Variable, clone_replace, is_in_ancestors
 from theano.graph.op import _NoPythonOp
 from theano.graph.opt import GlobalOptimizer, local_optimizer
 from theano.tensor import opt
+from theano.tensor.shape import Reshape, Shape, SpecifyShape
 from theano.tensor.type import TensorType
 
 
@@ -484,12 +485,13 @@ where, each of the optimization do the following things:
 # optdb.register('ifelse_equilibriumOpt', ifelse_equilibrium, .5, 'fast_run',
 #                'ifelse')
 
+
 acceptable_ops = (
-    theano.compile.ops.Shape,
-    theano.compile.ops.SpecifyShape,
+    Shape,
+    SpecifyShape,
+    Reshape,
     theano.compile.ops.Rebroadcast,
     theano.tensor.basic.Dot,
-    theano.tensor.basic.Reshape,
     theano.tensor.basic.MaxAndArgmax,
     theano.tensor.subtensor.Subtensor,
     theano.tensor.subtensor.IncSubtensor,

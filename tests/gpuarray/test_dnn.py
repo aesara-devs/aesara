@@ -44,6 +44,7 @@ from theano.tensor.nnet.abstract_conv import (
 )
 from theano.tensor.nnet.corr import CorrMM
 from theano.tensor.nnet.corr3d import Corr3dMM
+from theano.tensor.shape import reshape
 from theano.tensor.signal.pool import (
     AveragePoolGrad,
     MaxPoolGrad,
@@ -2813,7 +2814,7 @@ def test_dnn_spatialtf():
 
     def spatialtf_cpu(inp, theta, scale_height, scale_width, border_mode="nearest"):
         num_batch, num_channels, height, width = inp.shape
-        theta = tt.reshape(theta, (-1, 2, 3))
+        theta = reshape(theta, (-1, 2, 3))
 
         # grid of (x_t, y_t, 1), eq (1) in ref [1]
         out_height = tt.cast(tt.ceil(height * scale_height), "int64")
@@ -2832,7 +2833,7 @@ def test_dnn_spatialtf():
             input_dim, x_s_flat, y_s_flat, out_height, out_width, border_mode
         )
 
-        output = tt.reshape(
+        output = reshape(
             input_transformed, (num_batch, out_height, out_width, num_channels)
         )
         output = output.dimshuffle(0, 3, 1, 2)  # dimshuffle to conv format

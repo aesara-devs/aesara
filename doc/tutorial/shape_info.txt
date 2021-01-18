@@ -118,7 +118,7 @@ upgrade.  Here is the current state of what can be done:
 
 >>> import theano
 >>> x = theano.tensor.matrix()
->>> x_specify_shape = theano.compile.ops.specify_shape(x, (2, 2))
+>>> x_specify_shape = theano.tensor.specify_shape(x, (2, 2))
 >>> f = theano.function([x], (x_specify_shape ** 2).shape)
 >>> theano.printing.debugprint(f) # doctest: +NORMALIZE_WHITESPACE
 DeepCopyOp [id A] ''   0

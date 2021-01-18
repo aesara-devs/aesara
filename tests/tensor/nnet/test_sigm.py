@@ -13,7 +13,6 @@ from tests.tensor.utils import (
 from theano.configdefaults import config
 from theano.graph.opt import check_stack_trace
 from theano.graph.toolbox import is_same_graph
-from theano.tensor.basic import Reshape
 from theano.tensor.inplace import neg_inplace
 from theano.tensor.nnet import (
     hard_sigmoid,
@@ -31,6 +30,7 @@ from theano.tensor.nnet.sigm import (
     register_local_1msigmoid,
     simplify_mul,
 )
+from theano.tensor.shape import Reshape
 from theano.tensor.type import fmatrix, matrix, scalar, vector, vectors
 
 

@@ -17,7 +17,7 @@ from theano.compile import optdb
 from theano.compile.debugmode import DebugMode
 from theano.compile.function import function
 from theano.compile.mode import Mode, get_default_mode, get_mode
-from theano.compile.ops import DeepCopyOp, SpecifyShape, deep_copy_op, specify_shape
+from theano.compile.ops import DeepCopyOp, deep_copy_op
 from theano.configdefaults import config
 from theano.graph.basic import Apply, Constant
 from theano.graph.fg import FunctionGraph
@@ -38,7 +38,6 @@ from theano.tensor.basic import (
     Join,
     MaxAndArgmax,
     Rebroadcast,
-    Reshape,
     ScalarFromTensor,
     Split,
     TensorFromScalar,
@@ -53,7 +52,6 @@ from theano.tensor.elemwise import CAReduce, DimShuffle, Elemwise, Prod, Sum
 from theano.tensor.nnet.sigm import softplus
 from theano.tensor.opt import (
     MakeVector,
-    Shape_i,
     assert_op,
     local_add_specialize,
     local_canonicalize_alloc,
@@ -67,6 +65,7 @@ from theano.tensor.opt import (
     make_vector,
     mul_canonizer,
 )
+from theano.tensor.shape import Reshape, Shape_i, SpecifyShape, reshape, specify_shape
 from theano.tensor.subtensor import (
     AdvancedIncSubtensor,
     AdvancedIncSubtensor1,
@@ -293,10 +292,10 @@ def test_local_useless_dimshuffle_in_reshape():
     row = TensorType(broadcastable=(True, False), dtype="float64")("row")
     col = TensorType(broadcastable=(False, True), dtype="float64")("col")
 
-    reshape_dimshuffle_vector = tt.reshape(vec.dimshuffle("x", 0), vec.shape)
-    reshape_dimshuffle_mat = tt.reshape(mat.dimshuffle("x", 0, "x", 1), mat.shape)
-    reshape_dimshuffle_row = tt.reshape(row.dimshuffle(1, "x"), row.shape)
-    reshape_dimshuffle_col = tt.reshape(col.dimshuffle(0), col.shape)
+    reshape_dimshuffle_vector = reshape(vec.dimshuffle("x", 0), vec.shape)
+    reshape_dimshuffle_mat = reshape(mat.dimshuffle("x", 0, "x", 1), mat.shape)
+    reshape_dimshuffle_row = reshape(row.dimshuffle(1, "x"), row.shape)
+    reshape_dimshuffle_col = reshape(col.dimshuffle(0), col.shape)
 
     g = FunctionGraph(
         [vec, mat, row, col],
@@ -328,7 +327,7 @@ def test_local_useless_dimshuffle_in_reshape():
 
     # Check that the optimization does not get applied when the order
     # of dimensions has changed.
-    reshape_dimshuffle_mat2 = tt.reshape(mat.dimshuffle("x", 1, "x", 0), mat.shape)
+    reshape_dimshuffle_mat2 = reshape(mat.dimshuffle("x", 1, "x", 0), mat.shape)
     h = FunctionGraph([mat], [reshape_dimshuffle_mat2])
     str_h = str(h)
     useless_dimshuffle_in_reshape.optimize(h)
@@ -7605,8 +7604,8 @@ class TestLocalReshapeToDimshuffle:
             )
         )
         y = shared(self.rng.randn(5, 6))
-        reshape_x = tt.reshape(x, (1, 4))
-        reshape_y = tt.reshape(y, (1, 5, 1, 6, 1, 1))
+        reshape_x = reshape(x, (1, 4))
+        reshape_y = reshape(y, (1, 5, 1, 6, 1, 1))
 
         g = FunctionGraph([x, y], [reshape_x, reshape_y])
         assert str(g) == (

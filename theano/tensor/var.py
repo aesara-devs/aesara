@@ -226,7 +226,9 @@ class _tensor_py_operators:
         return theano.tensor.trunc(self)
 
     # NumPy-like transpose property
-    T = property(lambda self: theano.tensor.basic.transpose(self))
+    @property
+    def T(self):
+        return theano.tensor.basic.transpose(self)
 
     def transpose(self, *axes):
         """Transpose this array.
@@ -253,13 +255,18 @@ class _tensor_py_operators:
         else:
             return theano.tensor.basic.transpose(self, axes)
 
-    shape = property(lambda self: theano.tensor.basic.shape(self))
+    @property
+    def shape(self):
+        from theano.tensor.shape import shape
 
-    size = property(
-        lambda self: self.shape[0]
-        if self.ndim == 1
-        else theano.tensor.basic.prod(self.shape)
-    )
+        return shape(self)
+
+    @property
+    def size(self):
+        if self.ndim == 1:
+            return self.shape[0]
+        else:
+            return theano.tensor.basic.prod(self.shape)
 
     def any(self, axis=None, keepdims=False):
         return theano.tensor.basic.any(self, axis=axis, keepdims=keepdims)
@@ -294,6 +301,7 @@ class _tensor_py_operators:
                      in a tuple, in theano you do need to.
 
         """
+        from theano.tensor.shape import reshape
 
         if ndim is not None:
             if not isinstance(ndim, int):
@@ -301,7 +309,7 @@ class _tensor_py_operators:
                     "Expected ndim to be an integer, is " + str(type(ndim))
                 )
 
-        return theano.tensor.basic.reshape(self, shape, ndim=ndim)
+        return reshape(self, shape, ndim=ndim)
 
     def dimshuffle(self, *pattern):
         """
@@ -642,21 +650,27 @@ class _tensor_py_operators:
                 "theano.tensor.sum? (Maybe .max?)"
             )
 
-    ndim = property(lambda self: self.type.ndim)
-    """The rank of this tensor."""
+    @property
+    def ndim(self):
+        """The rank of this tensor."""
+        return self.type.ndim
 
-    broadcastable = property(lambda self: self.type.broadcastable)
-    """
-    The broadcastable signature of this tensor.
+    @property
+    def broadcastable(self):
+        """
+        The broadcastable signature of this tensor.
 
-    See Also
-    --------
-    broadcasting
+        See Also
+        --------
+        broadcasting
 
-    """
+        """
+        return self.type.broadcastable
 
-    dtype = property(lambda self: self.type.dtype)
-    """The dtype of this tensor."""
+    @property
+    def dtype(self):
+        """The dtype of this tensor."""
+        return self.type.dtype
 
     def __dot__(left, right):
         return theano.tensor.basic.dense_dot(left, right)

@@ -28,6 +28,7 @@ from theano.tensor.basic import (
 from theano.tensor.elemwise import DimShuffle
 from theano.tensor.exceptions import AdvancedIndexingError, ShapeError
 from theano.tensor.inc_code import inc_code
+from theano.tensor.shape import Reshape
 from theano.tensor.type import (
     bscalar,
     complex_dtypes,
@@ -1347,7 +1348,7 @@ def inc_subtensor(
         # instead of reusing x.owner.op().
         return inner_incsubtensor.dimshuffle(x.owner.op.new_order)
 
-    elif isinstance(x.owner.op, theano.tensor.basic.Reshape):
+    elif isinstance(x.owner.op, Reshape):
         # This case happens when the indices are not arranged as a vector, but
         # as a higher-dimensional array. This is handled by the subtensor
         # by flattening this list, taking the subtensor, then reshaping the

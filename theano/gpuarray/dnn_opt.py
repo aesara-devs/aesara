@@ -1,6 +1,5 @@
 import theano
 from theano.compile import optdb
-from theano.compile.ops import shape_i_op
 from theano.gpuarray.basic_ops import (
     GpuAllocEmpty,
     GpuArrayType,
@@ -63,6 +62,7 @@ from theano.tensor.nnet.abstract_conv import (
     get_conv_output_shape,
 )
 from theano.tensor.nnet.basic import LogSoftmax, SoftmaxGrad
+from theano.tensor.shape import shape_i_op
 from theano.tensor.signal.pool import AveragePoolGrad, MaxPoolGrad, Pool
 
 

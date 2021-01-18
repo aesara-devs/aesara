@@ -18,14 +18,8 @@ from theano.graph.utils import MethodNotDefined
 from theano.link.c.interface import HideC
 from theano.scalar import bool as bool_t
 from theano.scalar import int32 as int32_t
-from theano.tensor.basic import (
-    Alloc,
-    AllocEmpty,
-    Join,
-    Reshape,
-    Split,
-    alloc_validate_shape,
-)
+from theano.tensor.basic import Alloc, AllocEmpty, Join, Split, alloc_validate_shape
+from theano.tensor.shape import Reshape
 from theano.tensor.type import TensorType, values_eq_approx_always_true
 
 

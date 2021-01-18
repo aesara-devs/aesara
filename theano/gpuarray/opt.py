@@ -16,7 +16,6 @@ from theano import tensor as tt
 from theano.assert_op import Assert
 from theano.breakpoint import PdbBreakpoint
 from theano.compile import optdb
-from theano.compile.ops import shape_i
 from theano.configdefaults import config
 from theano.gpuarray.basic_ops import (
     GpuAlloc,
@@ -177,7 +176,6 @@ from theano.tensor.basic import (
     Join,
     MaxAndArgmax,
     Rebroadcast,
-    Reshape,
     Split,
     Tri,
 )
@@ -196,6 +194,7 @@ from theano.tensor.nnet.blocksparse import SparseBlockGemv, SparseBlockOuter
 from theano.tensor.nnet.conv import ConvOp
 from theano.tensor.nnet.ctc import ConnectionistTemporalClassification
 from theano.tensor.nnet.neighbours import Images2Neibs
+from theano.tensor.shape import Reshape, Shape, SpecifyShape, shape_i, specify_shape
 from theano.tensor.type import TensorType
 
 
@@ -901,23 +900,23 @@ def local_gpua_dimshuffle(fgraph, op, context_name, inputs, outputs):
 
 
 @register_opt("fast_compile")
-@op_lifter([theano.compile.ops.SpecifyShape])
-@register_opt2([theano.compile.ops.SpecifyShape], "fast_compile")
+@op_lifter([SpecifyShape])
+@register_opt2([SpecifyShape], "fast_compile")
 def local_gpua_specifyShape(fgraph, op, context_name, inputs, outputs):
     if isinstance(inputs[0].type, GpuArrayType):
         return
     return local_gpua_specifyShape_graph(op, context_name, inputs, outputs)
 
 
-@register_opt2([theano.compile.ops.SpecifyShape], "fast_compile")
+@register_opt2([SpecifyShape], "fast_compile")
 def local_gpua_specifyShape_graph(fgraph, op, context_name, inputs, outputs):
     inp = [as_gpuarray_variable(inputs[0], context_name)]
     inp += inputs[1:]
-    return theano.compile.ops.specify_shape(*inp)
+    return specify_shape(*inp)
 
 
 @register_opt("fast_compile")
-@op_lifter([theano.compile.ops.Shape])
+@op_lifter([Shape])
 def local_gpua_shape(fgraph, op, context_name, inputs, outputs):
     # op_lifter will call this opt too frequently as the output is
     # always on the CPU.
@@ -926,7 +925,7 @@ def local_gpua_shape(fgraph, op, context_name, inputs, outputs):
     return local_gpua_shape_graph(op, context_name, inputs, outputs)
 
 
-@register_opt2([theano.compile.ops.Shape], "fast_compile")
+@register_opt2([Shape], "fast_compile")
 def local_gpua_shape_graph(fgraph, op, context_name, inputs, outputs):
     return [as_gpuarray_variable(inputs[0], context_name).shape]
 

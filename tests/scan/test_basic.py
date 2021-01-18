@@ -44,6 +44,7 @@ from theano.scan.op import Scan
 from theano.scan.opt import ScanMerge
 from theano.scan.utils import until
 from theano.tensor.basic import Dot
+from theano.tensor.shape import Shape_i, reshape, shape, specify_shape
 from theano.tensor.type import (
     dcol,
     dmatrix,
@@ -382,7 +383,7 @@ class TestScan:
         # Note that the output is reshaped to 3 dimensional tensor, and
         my_f = theano.function(
             [state, n_steps, nw_shape],
-            [tt.reshape(output, nw_shape, ndim=3)[:-2], output[:-4]],
+            [reshape(output, nw_shape, ndim=3)[:-2], output[:-4]],
             updates=updates,
             allow_input_downcast=True,
         )
@@ -2518,9 +2519,7 @@ class TestScan:
         # this new assert is here to test if scan_merging works ..
         nb_scan = len([n for n in topo if isinstance(n.op, Scan)])
         assert nb_scan == 1
-        nb_shape_i = len(
-            [n for n in topo if isinstance(n.op, theano.tensor.opt.Shape_i)]
-        )
+        nb_shape_i = len([n for n in topo if isinstance(n.op, Shape_i)])
         if config.mode != "FAST_COMPILE":
             assert nb_shape_i == 1
 
@@ -2635,7 +2634,7 @@ class TestScan:
 
             # mean
             def predict_mean_i(i, x_star, s_star, X, beta, h):
-                n, D = tt.shape(X)
+                n, D = shape(X)
                 # rescale every dimension by the corresponding inverse lengthscale
                 iL = tt.diag(h[i, :D])
                 inp = (X - x_star).dot(iL)
@@ -2912,11 +2911,11 @@ class TestScan:
         h0 = vector("h0")
         W = matrix("W")
 
-        _u = theano.compile.ops.specify_shape(u, v_u.shape)
+        _u = specify_shape(u, v_u.shape)
         _u.name = "_U"
-        _h0 = theano.compile.ops.specify_shape(h0, v_h0.shape)
+        _h0 = specify_shape(h0, v_h0.shape)
         _h0.name = "_h0"
-        _W = theano.compile.ops.specify_shape(W, v_W.shape)
+        _W = specify_shape(W, v_W.shape)
         _W.name = "_W"
 
         [o, _], _ = scan(
@@ -2989,11 +2988,11 @@ class TestScan:
         h0 = vector("h0")
         W = matrix("W")
 
-        _u = theano.compile.ops.specify_shape(u, v_u.shape)
+        _u = specify_shape(u, v_u.shape)
         _u.name = "_U"
-        _h0 = theano.compile.ops.specify_shape(h0, v_h0.shape)
+        _h0 = specify_shape(h0, v_h0.shape)
         _h0.name = "_h0"
-        _W = theano.compile.ops.specify_shape(W, v_W.shape)
+        _W = specify_shape(W, v_W.shape)
         _W.name = "_W"
 
         o, _ = scan(
@@ -3244,9 +3243,9 @@ class TestScan:
         _W2 = matrix()
         _h0 = vector()
 
-        W1 = theano.compile.ops.specify_shape(_W1, (3, 3))
-        W2 = theano.compile.ops.specify_shape(_W2, (3, 3))
-        h0 = theano.compile.ops.specify_shape(_h0, (3,))
+        W1 = specify_shape(_W1, (3, 3))
+        W2 = specify_shape(_W2, (3, 3))
+        h0 = specify_shape(_h0, (3,))
 
         def lambda_fn(W1, h, W2):
             return W1 * tt.dot(h, W2)
@@ -4877,7 +4876,7 @@ def test_default_value_broadcasted():
     W_x = init_weights((in_size, out_size), "W_x")
 
     def _active(x, pre_h):
-        x = tt.reshape(x, (1, in_size))
+        x = reshape(x, (1, in_size))
         pre_h = tt.dot(x, W_x)
         return pre_h
 

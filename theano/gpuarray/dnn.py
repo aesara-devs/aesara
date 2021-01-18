@@ -12,7 +12,6 @@ import theano.tensor as tt
 from theano.assert_op import Assert
 from theano.compile.io import Out
 from theano.compile.mode import Mode
-from theano.compile.ops import shape_i, shape_i_op
 from theano.configdefaults import SUPPORTED_DNN_CONV_ALGO_RUNTIME, config
 from theano.gpuarray import cudnn_defs, pygpu
 from theano.gpuarray.basic_ops import (
@@ -50,6 +49,7 @@ from theano.tensor.nnet.abstract_conv import (
     assert_conv_shape,
     get_conv_output_shape,
 )
+from theano.tensor.shape import reshape, shape_i, shape_i_op, shape_padright
 from theano.tensor.type import int_dtypes, integer_dtypes, values_eq_approx_always_true
 
 
@@ -3415,12 +3415,12 @@ def dnn_batch_normalization_train(
     running_averages = running_mean is not None and running_var is not None
 
     if ndim < 4:
-        inputs = tt.shape_padright(inputs, 4 - ndim)
-        gamma = tt.shape_padright(gamma, 4 - ndim)
-        beta = tt.shape_padright(beta, 4 - ndim)
+        inputs = shape_padright(inputs, 4 - ndim)
+        gamma = shape_padright(gamma, 4 - ndim)
+        beta = shape_padright(beta, 4 - ndim)
         if running_averages:
-            running_mean = tt.shape_padright(running_mean, 4 - ndim)
-            running_var = tt.shape_padright(running_var, 4 - ndim)
+            running_mean = shape_padright(running_mean, 4 - ndim)
+            running_var = shape_padright(running_var, 4 - ndim)
     elif ndim > 5:
         inputs_shape = inputs.shape
         params_shape = gamma.shape
@@ -3461,8 +3461,8 @@ def dnn_batch_normalization_train(
     if ndim < 4:
         result = tuple(tt.flatten(r, ndim) for r in result)
     elif ndim > 5:
-        result = (tt.reshape(result[0], inputs_shape),) + tuple(
-            tt.reshape(r, params_shape) for r in result[1:]
+        result = (reshape(result[0], inputs_shape),) + tuple(
+            reshape(r, params_shape) for r in result[1:]
         )
     return result
 
@@ -3531,11 +3531,11 @@ def dnn_batch_normalization_test(
         raise ValueError(f"epsilon must be at least 1e-5, got {epsilon:f}")
 
     if ndim < 4:
-        inputs = tt.shape_padright(inputs, 4 - ndim)
-        gamma = tt.shape_padright(gamma, 4 - ndim)
-        beta = tt.shape_padright(beta, 4 - ndim)
-        mean = tt.shape_padright(mean, 4 - ndim)
-        var = tt.shape_padright(var, 4 - ndim)
+        inputs = shape_padright(inputs, 4 - ndim)
+        gamma = shape_padright(gamma, 4 - ndim)
+        beta = shape_padright(beta, 4 - ndim)
+        mean = shape_padright(mean, 4 - ndim)
+        var = shape_padright(var, 4 - ndim)
     elif ndim > 5:
         inputs_shape = inputs.shape
         inputs = tt.flatten(inputs, 5)
@@ -3555,7 +3555,7 @@ def dnn_batch_normalization_test(
     if ndim < 4:
         result = tt.flatten(result, ndim)
     elif ndim > 5:
-        result = tt.reshape(result, inputs_shape)
+        result = reshape(result, inputs_shape)
     return result
 
 
@@ -4018,11 +4018,11 @@ def local_abstract_batch_norm_train_grad_cudnn(fgraph, op, ctx_name, inputs, out
 
     ndim = x.ndim
     if ndim < 4:
-        x = tt.shape_padright(x, 4 - ndim)
-        dy = tt.shape_padright(dy, 4 - ndim)
-        scale = tt.shape_padright(scale, 4 - ndim)
-        x_mean = tt.shape_padright(x_mean, 4 - ndim)
-        x_invstd = tt.shape_padright(x_invstd, 4 - ndim)
+        x = shape_padright(x, 4 - ndim)
+        dy = shape_padright(dy, 4 - ndim)
+        scale = shape_padright(scale, 4 - ndim)
+        x_mean = shape_padright(x_mean, 4 - ndim)
+        x_invstd = shape_padright(x_invstd, 4 - ndim)
     elif ndim > 5:
         x_shape = x.shape
         params_shape = scale.shape
@@ -4057,9 +4057,9 @@ def local_abstract_batch_norm_train_grad_cudnn(fgraph, op, ctx_name, inputs, out
         g_wrt_scale = tt.flatten(g_wrt_scale, ndim)
         g_wrt_bias = tt.flatten(g_wrt_bias, ndim)
     elif ndim > 5:
-        g_wrt_inputs = tt.reshape(g_wrt_inputs, x_shape)
-        g_wrt_scale = tt.reshape(g_wrt_scale, params_shape)
-        g_wrt_bias = tt.reshape(g_wrt_bias, params_shape)
+        g_wrt_inputs = reshape(g_wrt_inputs, x_shape)
+        g_wrt_scale = reshape(g_wrt_scale, params_shape)
+        g_wrt_bias = reshape(g_wrt_bias, params_shape)
 
     return [g_wrt_inputs, g_wrt_scale, g_wrt_bias]
 

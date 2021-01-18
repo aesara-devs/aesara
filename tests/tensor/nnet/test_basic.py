@@ -50,6 +50,7 @@ from theano.tensor.nnet.basic import (
     softsign,
 )
 from theano.tensor.nnet.sigm import sigmoid, softplus
+from theano.tensor.shape import shape_padleft, specify_shape
 from theano.tensor.subtensor import AdvancedSubtensor
 from theano.tensor.type import (
     dmatrix,
@@ -367,7 +368,7 @@ class TestCrossEntropySoftmax1Hot:
         y_idx = [3]
 
         def f(a):
-            return crossentropy_softmax_1hot(tt.shape_padleft(a), y_idx)[0]
+            return crossentropy_softmax_1hot(shape_padleft(a), y_idx)[0]
 
         utt.verify_grad(f, [np.random.rand(4)])
 
@@ -375,7 +376,7 @@ class TestCrossEntropySoftmax1Hot:
         y_idx = [3]
 
         def f(a, b):
-            return crossentropy_softmax_1hot(tt.shape_padleft(a) + b, y_idx)[0]
+            return crossentropy_softmax_1hot(shape_padleft(a) + b, y_idx)[0]
 
         utt.verify_grad(f, [np.random.rand(4), np.random.rand(4)])
 
@@ -946,7 +947,7 @@ class TestCrossEntropyCategorical1Hot(utt.InferShapeTester):
         x = vector("x")
         b = vector("b")
         y_ = lvector("y_")
-        y = theano.compile.ops.specify_shape(y_, (1,))
+        y = specify_shape(y_, (1,))
 
         # Test that a biased softmax is optimized correctly
         bias_expressions = [

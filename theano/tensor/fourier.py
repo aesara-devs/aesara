@@ -5,6 +5,7 @@ import numpy as np
 import theano.tensor as tt
 from theano.graph.basic import Apply
 from theano.graph.op import Op
+from theano.tensor.shape import shape
 from theano.tensor.subtensor import set_subtensor
 from theano.tensor.type import TensorType, integer_dtypes
 from theano.tensor.var import TensorConstant
@@ -138,7 +139,7 @@ class Fourier(Op):
         axis = int(axis.data)
         # notice that the number of actual elements in wrto is independent of
         # possible padding or truncation:
-        elem = tt.arange(0, tt.shape(a)[axis], 1)
+        elem = tt.arange(0, shape(a)[axis], 1)
         # accounts for padding:
         freq = tt.arange(0, n, 1)
         outer = tt.outer(freq, elem)
@@ -153,7 +154,7 @@ class Fourier(Op):
         flip_shape = list(np.arange(0, a.ndim)[::-1])
         res = res.dimshuffle(flip_shape)
         res = tt.switch(
-            tt.lt(n, tt.shape(a)[axis]),
+            tt.lt(n, shape(a)[axis]),
             set_subtensor(
                 res[
                     n::,
