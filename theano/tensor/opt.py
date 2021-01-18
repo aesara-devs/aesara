@@ -19,7 +19,7 @@ import theano
 import theano.scalar.basic as ts
 from theano import compile
 from theano.assert_op import Assert, assert_op
-from theano.compile.ops import Shape, Shape_i, ViewOp
+from theano.compile.ops import ViewOp
 from theano.configdefaults import config
 from theano.graph import toolbox
 from theano.graph.basic import (
@@ -63,7 +63,6 @@ from theano.tensor.basic import (
     Flatten,
     Join,
     Rebroadcast,
-    Reshape,
     ScalarFromTensor,
     Split,
     TensorFromScalar,
@@ -99,6 +98,7 @@ from theano.tensor.elemwise import (
 )
 from theano.tensor.exceptions import NotScalarConstantError, ShapeError
 from theano.tensor.extra_ops import broadcast_shape
+from theano.tensor.shape import Reshape, Shape, Shape_i, shape_padleft
 from theano.tensor.sort import TopKOp
 from theano.tensor.subtensor import (
     AdvancedIncSubtensor,
@@ -1462,10 +1462,7 @@ class ShapeFeature(toolbox.Feature):
     def init_r(self, r):
         """Register r's shape in the shape_of dictionary."""
         if r not in self.shape_of:
-            try:
-                self.set_shape(r, self.shape_tuple(r))
-            except AttributeError:  # XXX: where would this come from?
-                self.set_shape(r, None)
+            self.set_shape(r, self.shape_tuple(r))
 
     def make_vector_shape(self, r):
         return make_vector(*self.shape_of[r])
@@ -2701,7 +2698,7 @@ def local_upcast_elemwise_constant_inputs(fgraph, node):
                         )
                         if all(i.broadcastable):
                             new_inputs.append(
-                                tt.shape_padleft(tt.cast(cval_i, output_dtype), i.ndim)
+                                shape_padleft(tt.cast(cval_i, output_dtype), i.ndim)
                             )
                         else:
                             if shape_i is None:
@@ -3840,7 +3837,7 @@ def local_useless_inc_subtensor_alloc(fgraph, node):
             # need to make the leading implicitly broadcasted dimensions
             # explicit for shape comparison later.
             if xi.ndim > y.ndim:
-                y = tt.shape_padleft(y, xi.ndim - y.ndim)
+                y = shape_padleft(y, xi.ndim - y.ndim)
                 if y not in shape_of:
                     shape_feature.on_import(fgraph, y.owner, f"{reason}: add `y`")
 

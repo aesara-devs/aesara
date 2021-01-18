@@ -190,14 +190,6 @@ class RopLopChecker:
 
 
 class TestRopLop(RopLopChecker):
-    def test_shape(self):
-        self.check_nondiff_rop(self.x.shape[0])
-
-    def test_specifyshape(self):
-        self.check_rop_lop(
-            theano.compile.ops.specify_shape(self.x, self.in_shape), self.in_shape
-        )
-
     def test_max(self):
         # If we call max directly, we will return an CAReduce object
         # which doesn't have R_op implemented!
@@ -381,15 +373,6 @@ class TestRopLop(RopLopChecker):
 
     def test_elemwise1(self):
         self.check_rop_lop(self.x + tt.cast(self.x, "int32"), self.in_shape)
-
-    def test_reshape(self):
-        new_shape = tt.constant(
-            np.asarray([self.mat_in_shape[0] * self.mat_in_shape[1]], dtype="int64")
-        )
-
-        self.check_mat_rop_lop(
-            self.mx.reshape(new_shape), (self.mat_in_shape[0] * self.mat_in_shape[1],)
-        )
 
     def test_flatten(self):
         self.check_mat_rop_lop(

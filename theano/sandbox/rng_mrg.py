@@ -32,6 +32,7 @@ from theano.sandbox import multinomial
 from theano.scalar import bool as bool_t
 from theano.scalar import int32 as int_t
 from theano.tensor import as_tensor_variable, cast, get_vector_length, opt
+from theano.tensor.shape import reshape
 from theano.tensor.type import TensorType, iscalar, ivector, lmatrix
 
 
@@ -1234,7 +1235,7 @@ class MRG_RandomStream:
             samples = norm_samples[:-1]
         else:
             samples = norm_samples
-        samples = tt.reshape(samples, newshape=size, ndim=ndim)
+        samples = reshape(samples, newshape=size, ndim=ndim)
         samples *= std
         samples += avg
 

@@ -78,7 +78,7 @@ from theano.link.c.exceptions import MissingGXX
 from theano.link.utils import raise_with_op
 from theano.scan.utils import Validator, forced_replace, hash_listsDictsTuples, safe_new
 from theano.tensor.basic import as_tensor_variable
-from theano.tensor.opt import Shape_i
+from theano.tensor.shape import Shape_i
 from theano.tensor.type import TensorType, integer_dtypes
 from theano.tensor.var import TensorVariable
 

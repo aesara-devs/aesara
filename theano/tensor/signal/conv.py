@@ -10,6 +10,7 @@ import warnings
 from theano import tensor as tt
 from theano.configdefaults import config
 from theano.tensor.nnet import conv
+from theano.tensor.shape import reshape
 
 
 __docformat__ = "restructuredtext en"
@@ -91,10 +92,10 @@ def conv2d(
         sym_nkern = 1
 
     new_input_shape = tt.join(0, tt.stack([sym_bsize, 1]), input.shape[-2:])
-    input4D = tt.reshape(input, new_input_shape, ndim=4)
+    input4D = reshape(input, new_input_shape, ndim=4)
 
     new_filter_shape = tt.join(0, tt.stack([sym_nkern, 1]), filters.shape[-2:])
-    filters4D = tt.reshape(filters, new_filter_shape, ndim=4)
+    filters4D = reshape(filters, new_filter_shape, ndim=4)
 
     # perform actual convolution ###
     op = conv.ConvOp(

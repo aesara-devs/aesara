@@ -15,6 +15,7 @@ from tests.gpuarray.test_basic_ops import rand_gpuarray
 from theano.compile import DeepCopyOp, Rebroadcast, ViewOp
 from theano.configdefaults import config
 from theano.gpuarray.type import GpuArrayType, gpuarray_shared_constructor
+from theano.tensor.shape import specify_shape
 from theano.tensor.type import row
 
 
@@ -80,7 +81,7 @@ def test_specify_shape():
     for dtype in ["float16", "float32"]:
         a = rand_gpuarray(20, dtype=dtype)
         g = GpuArrayType(dtype=dtype, broadcastable=(False,))("g")
-        f = theano.function([g], theano.compile.ops.specify_shape(g, [20]))
+        f = theano.function([g], specify_shape(g, [20]))
         f(a)
 
 

@@ -7,7 +7,6 @@ from theano.compile.mode import Mode
 from theano.graph.fg import FunctionGraph
 from theano.graph.optdb import Query
 from theano.link.jax import JAXLinker
-from theano.tensor import basic as tt_basic
 from theano.tensor import blas as tt_blas
 from theano.tensor import elemwise as tt_elemwise
 from theano.tensor import extra_ops as tt_extra_ops
@@ -16,6 +15,7 @@ from theano.tensor import nnet as tt_nnet
 from theano.tensor import opt as tt_opt
 from theano.tensor import slinalg as tt_slinalg
 from theano.tensor import subtensor as tt_subtensor
+from theano.tensor.shape import Shape, Shape_i, SpecifyShape, reshape
 from theano.tensor.type import (
     dscalar,
     dvector,
@@ -139,34 +139,36 @@ def test_jax_Alloc():
     compare_jax_and_py(x_fg, [np.ones(10, dtype=theano.config.floatX)])
 
 
-def test_jax_compile_ops():
-    x = theano.compile.ops.DeepCopyOp()(tt.as_tensor_variable(1.1))
-    x_fg = FunctionGraph([], [x])
-
-    compare_jax_and_py(x_fg, [])
-
+def test_jax_shape_ops():
     x_np = np.zeros((20, 3))
-    x = theano.compile.ops.Shape()(tt.as_tensor_variable(x_np))
+    x = Shape()(tt.as_tensor_variable(x_np))
     x_fg = FunctionGraph([], [x])
 
     compare_jax_and_py(x_fg, [], must_be_device_array=False)
 
-    x = theano.compile.ops.Shape_i(1)(tt.as_tensor_variable(x_np))
+    x = Shape_i(1)(tt.as_tensor_variable(x_np))
     x_fg = FunctionGraph([], [x])
 
     compare_jax_and_py(x_fg, [], must_be_device_array=False)
 
-    x = theano.compile.ops.SpecifyShape()(tt.as_tensor_variable(x_np), (20, 3))
+    x = SpecifyShape()(tt.as_tensor_variable(x_np), (20, 3))
     x_fg = FunctionGraph([], [x])
 
     compare_jax_and_py(x_fg, [])
 
     with theano.config.change_flags(compute_test_value="off"):
-        x = theano.compile.ops.SpecifyShape()(tt.as_tensor_variable(x_np), (2, 3))
+        x = SpecifyShape()(tt.as_tensor_variable(x_np), (2, 3))
         x_fg = FunctionGraph([], [x])
 
         with pytest.raises(AssertionError):
             compare_jax_and_py(x_fg, [])
+
+
+def test_jax_compile_ops():
+    x = theano.compile.ops.DeepCopyOp()(tt.as_tensor_variable(1.1))
+    x_fg = FunctionGraph([], [x])
+
+    compare_jax_and_py(x_fg, [])
 
     x_np = np.zeros((20, 1, 1))
     x = theano.compile.ops.Rebroadcast((0, False), (1, True), (2, False))(
@@ -650,13 +652,13 @@ def test_jax_MakeVector():
 
 def test_jax_Reshape():
     a = vector("a")
-    x = tt_basic.reshape(a, (2, 2))
+    x = reshape(a, (2, 2))
     x_fg = FunctionGraph([a], [x])
     compare_jax_and_py(x_fg, [np.r_[1.0, 2.0, 3.0, 4.0].astype(theano.config.floatX)])
 
     # Test breaking "omnistaging" changes in JAX.
     # See https://github.com/tensorflow/probability/commit/782d0c64eb774b9aac54a1c8488e4f1f96fbbc68
-    x = tt_basic.reshape(a, (a.shape[0] // 2, a.shape[0] // 2))
+    x = reshape(a, (a.shape[0] // 2, a.shape[0] // 2))
     x_fg = FunctionGraph([a], [x])
     compare_jax_and_py(x_fg, [np.r_[1.0, 2.0, 3.0, 4.0].astype(theano.config.floatX)])
 
@@ -665,7 +667,7 @@ def test_jax_Reshape():
 def test_jax_Reshape_nonconcrete():
     a = vector("a")
     b = iscalar("b")
-    x = tt_basic.reshape(a, (b, b))
+    x = reshape(a, (b, b))
     x_fg = FunctionGraph([a, b], [x])
     compare_jax_and_py(
         x_fg, [np.r_[1.0, 2.0, 3.0, 4.0].astype(theano.config.floatX), 2]

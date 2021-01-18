@@ -17,6 +17,7 @@ from theano.tensor.opt_uncanonicalize import (
     local_dimshuffle_subtensor,
     local_reshape_dimshuffle,
 )
+from theano.tensor.shape import reshape
 from theano.tensor.type import dtensor4, iscalar, matrix, tensor, vector
 
 
@@ -141,7 +142,7 @@ def test_local_reshape_dimshuffle():
     x = matrix("x")
 
     y = x.dimshuffle("x", 0, "x", 1)
-    out = tt.reshape(y, (1, x.shape[0] * x.shape[1], 1))
+    out = reshape(y, (1, x.shape[0] * x.shape[1], 1))
 
     g = FunctionGraph([x], [out])
     reshape_dimshuffle(g)

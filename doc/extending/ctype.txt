@@ -565,17 +565,19 @@ default, it will recompile the c code for each process.
 Shape and Shape_i
 =================
 
-We have 2 generic Ops, Shape and Shape_i, that return the shape of any
-Theano Variable that has a shape attribute (Shape_i returns only one of
+We have 2 generic `Op`s, `Shape` and `Shape_i`, that return the shape of any
+Theano `Variable` that has a shape attribute (`Shape_i` returns only one of
 the elements of the shape).
 
 
 .. code-block:: python
 
-   theano.compile.ops.register_shape_c_code(YOUR_TYPE_CLASS, THE_C_CODE, version=())
-   theano.compile.ops.register_shape_i_c_code(YOUR_TYPE_CLASS, THE_C_CODE, CHECK_INPUT, version=())
+   from theano.theano.shape import register_shape_c_code, register_shape_i_c_code
 
-The C code works as the ViewOp. Shape_i has the additional ``i`` parameter
+   register_shape_c_code(YOUR_TYPE_CLASS, THE_C_CODE, version=())
+   register_shape_i_c_code(YOUR_TYPE_CLASS, THE_C_CODE, CHECK_INPUT, version=())
+
+The C code works as the `ViewOp`. `Shape_i` has the additional ``i`` parameter
 that you can use with ``%(i)s``.
 
 In your CHECK_INPUT, you must check that the input has enough dimensions to

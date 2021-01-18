@@ -16,6 +16,7 @@ import theano.sparse
 from theano import sparse
 from theano import tensor as tt
 from theano.graph.op import Op
+from theano.tensor.shape import reshape
 from theano.tensor.subtensor import DimShuffle
 
 
@@ -356,7 +357,7 @@ def convolve(
             tt.as_tensor(imgshp[0] * kern_size),
         ]
     )
-    patch_stack = tt.reshape(patches, pshape, ndim=2)
+    patch_stack = reshape(patches, pshape, ndim=2)
 
     # kern is of shape: nkern x ksize*number_of_input_features
     # output is thus of shape: bsize*outshp x nkern
@@ -371,7 +372,7 @@ def convolve(
     newshp = tt.stack(
         [images.shape[0], tt.as_tensor(np.prod(outshp)), tt.as_tensor(nkern)]
     )
-    tensout = tt.reshape(output, newshp, ndim=3)
+    tensout = reshape(output, newshp, ndim=3)
     output = DimShuffle((False,) * tensout.ndim, (0, 2, 1))(tensout)
     if flatten:
         output = tt.flatten(output, 2)
@@ -425,7 +426,7 @@ def max_pool(images, imgshp, maxpoolshp):
             tt.as_tensor(poolsize),
         ]
     )
-    patch_stack = tt.reshape(patches, pshape, ndim=3)
+    patch_stack = reshape(patches, pshape, ndim=3)
 
     out1 = tt.max(patch_stack, axis=2)
 
@@ -436,7 +437,7 @@ def max_pool(images, imgshp, maxpoolshp):
             tt.as_tensor(imgshp[0]),
         ]
     )
-    out2 = tt.reshape(out1, pshape, ndim=3)
+    out2 = reshape(out1, pshape, ndim=3)
 
     out3 = DimShuffle(out2.broadcastable, (0, 2, 1))(out2)
 

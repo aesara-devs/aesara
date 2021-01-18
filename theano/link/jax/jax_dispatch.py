@@ -6,14 +6,7 @@ import jax
 import jax.numpy as jnp
 import jax.scipy as jsp
 
-from theano.compile.ops import (
-    DeepCopyOp,
-    Rebroadcast,
-    Shape,
-    Shape_i,
-    SpecifyShape,
-    ViewOp,
-)
+from theano.compile.ops import DeepCopyOp, Rebroadcast, ViewOp
 from theano.configdefaults import config
 from theano.graph.fg import FunctionGraph
 from theano.graph.type import CType
@@ -29,7 +22,6 @@ from theano.tensor.basic import (
     Eye,
     Join,
     MaxAndArgmax,
-    Reshape,
     ScalarFromTensor,
     TensorFromScalar,
 )
@@ -60,6 +52,7 @@ from theano.tensor.nlinalg import (
 from theano.tensor.nnet.basic import Softmax
 from theano.tensor.nnet.sigm import ScalarSoftplus
 from theano.tensor.opt import MakeVector
+from theano.tensor.shape import Reshape, Shape, Shape_i, SpecifyShape
 from theano.tensor.slinalg import Cholesky, Solve
 from theano.tensor.subtensor import (  # This is essentially `np.take`; Boolean mask indexing and setting
     AdvancedIncSubtensor,

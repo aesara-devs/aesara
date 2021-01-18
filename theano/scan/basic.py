@@ -28,6 +28,7 @@ from theano.scan.op import Scan
 from theano.scan.utils import safe_new, traverse
 from theano.tensor import opt
 from theano.tensor.exceptions import NotScalarConstantError
+from theano.tensor.shape import shape_padleft
 from theano.tensor.type import TensorType, integer_dtypes
 from theano.updates import OrderedUpdates
 
@@ -637,7 +638,7 @@ def scan(
             # defined in scan utils
             sit_sot_scan_inputs.append(
                 utils.expand_empty(
-                    tt.unbroadcast(tt.shape_padleft(actual_arg), 0),
+                    tt.unbroadcast(shape_padleft(actual_arg), 0),
                     actual_n_steps,
                 )
             )
@@ -774,7 +775,7 @@ def scan(
             # this will represent only a slice and it will have one
             # dimension less.
             if isinstance(inner_out.type, TensorType) and return_steps.get(pos, 0) != 1:
-                outputs[pos] = tt.unbroadcast(tt.shape_padleft(inner_out), 0)
+                outputs[pos] = tt.unbroadcast(shape_padleft(inner_out), 0)
 
         if return_list is not True and len(outputs) == 1:
             outputs = outputs[0]
@@ -888,7 +889,7 @@ def scan(
                 sit_sot_inner_inputs.append(new_var)
                 sit_sot_scan_inputs.append(
                     utils.expand_empty(
-                        tt.unbroadcast(tt.shape_padleft(input.variable), 0),
+                        tt.unbroadcast(shape_padleft(input.variable), 0),
                         actual_n_steps,
                     )
                 )

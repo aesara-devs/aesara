@@ -13,6 +13,11 @@ from theano.configdefaults import config
 from theano.graph.basic import Constant, Variable
 from theano.graph.type import CType
 from theano.misc.safe_asarray import _asarray
+from theano.tensor.shape import (
+    register_shape_c_code,
+    register_shape_i_c_code,
+    register_specify_shape_c_code,
+)
 from theano.tensor.type import TensorType, complex_dtypes, discrete_dtypes
 from theano.tensor.type import values_eq_approx as tensor_values_eq_approx
 from theano.tensor.type import (
@@ -806,7 +811,7 @@ theano.compile.register_view_op_c_code(
 )
 
 # Register GpuArrayType C code for Shape Op.
-theano.compile.register_shape_c_code(
+register_shape_c_code(
     GpuArrayType,
     """
     npy_intp shape[] = {%(iname)s->ga.nd};
@@ -823,7 +828,7 @@ theano.compile.register_shape_c_code(
     version=1,
 )
 
-theano.compile.register_shape_i_c_code(
+register_shape_i_c_code(
     GpuArrayType,
     """
     if(!%(oname)s)
@@ -865,7 +870,7 @@ theano.compile.register_rebroadcast_c_code(
     version=1,
 )
 
-theano.compile.register_specify_shape_c_code(
+register_specify_shape_c_code(
     GpuArrayType,
     """
         if (PyGpuArray_NDIM(%(iname)s) != PyArray_DIMS(%(shape)s)[0]) {

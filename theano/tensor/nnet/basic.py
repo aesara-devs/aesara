@@ -42,6 +42,7 @@ from theano.tensor.opt import (
     register_specialize,
     register_stabilize,
 )
+from theano.tensor.shape import shape_padleft
 from theano.tensor.subtensor import AdvancedIncSubtensor, AdvancedSubtensor, Subtensor
 from theano.tensor.type import (
     TensorType,
@@ -326,9 +327,9 @@ class SoftmaxGrad(COp):
         if dy.type.ndim not in (1, 2) or dy.type.dtype not in float_dtypes:
             raise ValueError("dy must be 1-d or 2-d tensor of floats. Got ", dy.type)
         if dy.ndim == 1:
-            dy = tt.shape_padleft(dy, n_ones=1)
+            dy = shape_padleft(dy, n_ones=1)
         if sm.ndim == 1:
-            sm = tt.shape_padleft(sm, n_ones=1)
+            sm = shape_padleft(sm, n_ones=1)
         return Apply(self, [dy, sm], [sm.type()])
 
     def perform(self, node, input_storage, output_storage):
@@ -457,7 +458,7 @@ class Softmax(COp):
                 category=PendingDeprecationWarning,
                 stacklevel=4,
             )
-            x = tt.shape_padleft(x, n_ones=1)
+            x = shape_padleft(x, n_ones=1)
 
         return Apply(self, [x], [x.type()])
 
@@ -656,7 +657,7 @@ class LogSoftmax(COp):
                 category=PendingDeprecationWarning,
                 stacklevel=4,
             )
-            x = tt.shape_padleft(x, n_ones=1)
+            x = shape_padleft(x, n_ones=1)
 
         return Apply(self, [x], [x.type()])
 
@@ -899,7 +900,7 @@ def local_softmax_with_bias(fgraph, node):
             if len(non_vectors) == 0:
                 assert len(vectors) > 0  # we should have at least 1 input...
                 promoted_vector = vectors.pop()
-                non_vectors.append(tt.shape_padleft(promoted_vector))
+                non_vectors.append(shape_padleft(promoted_vector))
             assert non_vectors  # not empty
 
             if vectors:

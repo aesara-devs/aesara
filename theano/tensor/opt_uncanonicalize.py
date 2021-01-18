@@ -38,6 +38,7 @@ from theano.graph.opt import copy_stack_trace, local_optimizer
 from theano.tensor import basic as tt
 from theano.tensor.elemwise import CAReduce, DimShuffle
 from theano.tensor.opt import register_uncanonicalize
+from theano.tensor.shape import Reshape, reshape
 from theano.tensor.subtensor import Subtensor
 
 
@@ -116,7 +117,7 @@ def local_alloc_dimshuffle(fgraph, node):
 
 
 @register_uncanonicalize
-@local_optimizer([tt.Reshape])
+@local_optimizer([Reshape])
 def local_reshape_dimshuffle(fgraph, node):
     """
     If a dimshuffle is inside a reshape and does not change the order
@@ -124,7 +125,7 @@ def local_reshape_dimshuffle(fgraph, node):
 
     Reshape(Dimshuffle(x), shp) -> Reshape(x, shp)
     """
-    if isinstance(node.op, tt.Reshape):
+    if isinstance(node.op, Reshape):
         input_ = node.inputs[0]
         if input_.owner and isinstance(input_.owner.op, DimShuffle):
             new_order = input_.owner.op.new_order
@@ -137,7 +138,7 @@ def local_reshape_dimshuffle(fgraph, node):
                 else:
                     offset += 1
             return [
-                tt.reshape(
+                reshape(
                     input_.owner.inputs[0], node.inputs[1], ndim=node.outputs[0].ndim
                 )
             ]

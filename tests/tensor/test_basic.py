@@ -73,7 +73,7 @@ from theano import compile, config, function, shared
 from theano.assert_op import Assert
 from theano.compile.io import In, Out
 from theano.compile.mode import get_default_mode
-from theano.compile.ops import DeepCopyOp, Shape, Shape_i, shape
+from theano.compile.ops import DeepCopyOp
 from theano.gradient import grad, hessian, numeric_grad
 from theano.graph.basic import Apply, Variable
 from theano.graph.fg import FunctionGraph
@@ -99,7 +99,6 @@ from theano.tensor.basic import (
     NoneConst,
     NotScalarConstantError,
     PermuteRowElements,
-    Reshape,
     ScalarFromTensor,
     Split,
     TensorFromScalar,
@@ -149,7 +148,6 @@ from theano.tensor.basic import (
     permute_row_elements,
     power,
     ptp,
-    reshape,
     roll,
     scalar_from_tensor,
     second,
@@ -173,6 +171,7 @@ from theano.tensor.basic import (
     vertical_stack,
 )
 from theano.tensor.elemwise import DimShuffle, Elemwise
+from theano.tensor.shape import Reshape, Shape, Shape_i, shape_padright
 from theano.tensor.type import (
     TensorType,
     bvector,
@@ -1609,20 +1608,6 @@ def test_isnan():
         assert y.dtype == "bool"
         f = theano.function([x], y, allow_input_downcast=True)
         f([[0, 1, 2]])
-
-
-class TestShape:
-    def test_basic0(self):
-        s = shape(np.ones((5, 3)))
-        assert (eval_outputs([s]) == [5, 3]).all()
-
-    def test_basic1(self):
-        s = shape(np.ones(2))
-        assert (eval_outputs([s]) == [2]).all()
-
-    def test_basic2(self):
-        s = shape(np.ones((5, 3, 10)))
-        assert (eval_outputs([s]) == [5, 3, 10]).all()
 
 
 class TestMaxAndArgmax:
@@ -3106,7 +3091,7 @@ def test_join_oneInput():
     x_1 = fmatrix()
     x_2 = fvector()
     join_0 = tt.concatenate([x_0], axis=1)
-    join_1 = tt.concatenate([x_0, x_1, tt.shape_padright(x_2)], axis=1)
+    join_1 = tt.concatenate([x_0, x_1, shape_padright(x_2)], axis=1)
 
     assert join_0 is x_0
     assert join_1 is not x_0
@@ -3821,191 +3806,6 @@ class TestOpCache:
 
         a = rand(5, 2).astype(config.floatX)
         assert np.all(fn_py(a) == fn_c_or_py(a))
-
-
-class TestReshape(utt.InferShapeTester, utt.OptimizationTestMixin):
-    def setup_method(self):
-        self.shared = theano.shared
-        self.op = Reshape
-        # The tag canonicalize is needed for the shape test in FAST_COMPILE
-        self.mode = None
-        self.ignore_topo = (
-            DeepCopyOp,
-            opt.MakeVector,
-            Shape_i,
-            DimShuffle,
-            Elemwise,
-        )
-        super().setup_method()
-
-    def function(self, inputs, outputs, ignore_empty=False):
-        f = function(inputs, outputs, mode=self.mode)
-        if self.mode is not None or config.mode != "FAST_COMPILE":
-            topo = f.maker.fgraph.toposort()
-            topo_ = [node for node in topo if not isinstance(node.op, self.ignore_topo)]
-            if ignore_empty:
-                assert len(topo_) <= 1, topo_
-            else:
-                assert len(topo_) == 1, topo_
-            if len(topo_) > 0:
-                assert type(topo_[0].op) is self.op
-        return f
-
-    def test_reshape(self):
-        a = dvector()
-        b = dmatrix()
-        d = dmatrix()
-
-        # basic to 1 dim(without list)
-        c = reshape(b, as_tensor_variable(6), ndim=1)
-        f = self.function([b], c)
-
-        b_val1 = np.asarray([[0, 1, 2], [3, 4, 5]])
-        c_val1 = np.asarray([0, 1, 2, 3, 4, 5])
-        b_val2 = b_val1.T
-        c_val2 = np.asarray([0, 3, 1, 4, 2, 5])
-
-        f_out1 = f(b_val1)
-        f_out2 = f(b_val2)
-        assert np.all(f_out1 == c_val1), (f_out1, c_val1)
-        assert np.all(f_out2 == c_val2), (f_out2, c_val2)
-        # print f.maker.fgraph.toposort()
-        # check that we remove the useless reshape
-
-        # basic to 1 dim(with list)
-        c = reshape(b, (as_tensor_variable(6),), ndim=1)
-        f = self.function([b], c)
-        assert np.all(
-            f(np.asarray([[0, 1, 2], [3, 4, 5]])) == np.asarray([0, 1, 2, 3, 4, 5])
-        )
-        # print f.maker.fgraph.toposort()
-        # check that we remove the useless reshape
-
-        # basic to shape object of same ndim
-        c = reshape(b, d.shape)
-        f = self.function([b, d], c)
-        assert np.all(
-            f(np.asarray([[0, 1, 2], [3, 4, 5]]), [[0, 1], [2, 3], [4, 5]])
-            == np.asarray([[0, 1], [2, 3], [4, 5]])
-        )
-
-        # basic to 2 dims
-        c = reshape(a, [2, 3])
-        f = self.function([a], c)
-        assert np.all(
-            f(np.asarray([0, 1, 2, 3, 4, 5])) == np.asarray([[0, 1, 2], [3, 4, 5]])
-        )
-
-        # test that it works without inplace operations
-        a_val = np.asarray([0, 1, 2, 3, 4, 5])
-        a_val_copy = np.asarray([0, 1, 2, 3, 4, 5])
-        b_val = np.asarray([[0, 1, 2], [3, 4, 5]])
-
-        f_sub = self.function([a, b], c - b)
-        assert np.all(f_sub(a_val, b_val) == 0.0)
-        assert np.all(a_val == a_val_copy)
-
-        # test that it works with inplace operations
-        a_val = _asarray([0, 1, 2, 3, 4, 5], dtype="float64")
-        a_val_copy = _asarray([0, 1, 2, 3, 4, 5], dtype="float64")
-        b_val = _asarray([[0, 1, 2], [3, 4, 5]], dtype="float64")
-
-        f_sub = self.function([a, b], c - b)
-        assert np.all(f_sub(a_val, b_val) == 0.0)
-        assert np.all(a_val == a_val_copy)
-
-        # verify gradient
-        def just_vals(v):
-            return Reshape(2)(v, _asarray([2, 3], dtype="int32"))
-
-        utt.verify_grad(just_vals, [a_val], mode=self.mode)
-
-        # test infer_shape
-        self._compile_and_check([a], [c], (a_val,), self.op)
-
-        # test broadcast flag for constant value of 1
-        c = reshape(b, (b.shape[0], b.shape[1], 1))
-        # That reshape may get replaced with a dimshuffle, with is ignored,
-        # so we pass "ignore_empty=True"
-        f = self.function([b], c, ignore_empty=True)
-        assert np.all(
-            f(np.asarray([[0, 1, 2], [3, 4, 5]]))
-            == np.asarray([[[0], [1], [2]], [[3], [4], [5]]])
-        )
-        assert f.maker.fgraph.toposort()[-1].outputs[0].type.broadcastable == (
-            False,
-            False,
-            True,
-        )
-
-        # test broadcast flag for constant value of 1 if it cannot be
-        # replaced with dimshuffle
-        c = reshape(b, (b.shape[1], b.shape[0], 1))
-        f = self.function([b], c, ignore_empty=True)
-        assert np.all(
-            f(np.asarray([[0, 1, 2], [3, 4, 5]]))
-            == np.asarray([[[0], [1]], [[2], [3]], [[4], [5]]])
-        )
-        assert f.maker.fgraph.toposort()[-1].outputs[0].type.broadcastable == (
-            False,
-            False,
-            True,
-        )
-
-    def test_m1(self):
-        t = tensor3()
-        rng = np.random.RandomState(seed=utt.fetch_seed())
-        val = rng.uniform(size=(3, 4, 5)).astype(config.floatX)
-        for out in [
-            t.reshape([-1]),
-            t.reshape([-1, 5]),
-            t.reshape([5, -1]),
-            t.reshape([5, -1, 3]),
-        ]:
-            self._compile_and_check([t], [out], [val], self.op)
-
-    def test_reshape_long_in_shape(self):
-        v = dvector("v")
-        r = v.reshape((v.shape[0], 1))
-        print(r.eval({v: np.arange(5.0)}))
-        assert np.allclose(r.eval({v: np.arange(5.0)}).T, np.arange(5.0))
-
-    def test_bad_shape(self):
-        a = matrix("a")
-        shapes = ivector("shapes")
-        rng = np.random.RandomState(seed=utt.fetch_seed())
-        a_val = rng.uniform(size=(3, 4)).astype(config.floatX)
-
-        # Test reshape to 1 dim
-        r = a.reshape(shapes, ndim=1)
-
-        f = self.function([a, shapes], r)
-        with pytest.raises(ValueError):
-            f(a_val, [13])
-
-        # Test reshape to 2 dim
-        r = a.reshape(shapes, ndim=2)
-
-        f = self.function([a, shapes], r)
-
-        with pytest.raises(ValueError):
-            f(a_val, [-1, 5])
-        with pytest.raises(ValueError):
-            f(a_val, [7, -1])
-        with pytest.raises(ValueError):
-            f(a_val, [7, 5])
-        with pytest.raises(ValueError):
-            f(a_val, [-1, -1])
-
-    def test_0(self):
-        x = fvector("x")
-        f = self.function([x], x.reshape((0, 100)))
-        assert f(np.ndarray((0,), dtype="float32")).shape == (0, 100)
-
-    def test_empty_shp(self):
-        const = constant([1]).reshape(())
-        f = function([], const)
-        assert f().shape == ()
 
 
 def test_make_column_matrix_broadcastable():

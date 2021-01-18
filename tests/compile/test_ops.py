@@ -1,28 +1,12 @@
 import pickle
 
 import numpy as np
-import pytest
 
-import theano
 from tests import unittest_tools as utt
 from theano import function
-from theano.compile.ops import Rebroadcast, SpecifyShape, as_op, shape, shape_i
+from theano.compile.ops import Rebroadcast, as_op
 from theano.configdefaults import config
-from theano.graph.fg import FunctionGraph
-from theano.tensor.opt import ShapeFeature
-from theano.tensor.subtensor import Subtensor
-from theano.tensor.type import (
-    TensorType,
-    dmatrix,
-    dtensor4,
-    dvector,
-    ivector,
-    matrix,
-    tensor3,
-    vector,
-)
-from theano.tensor.type_other import NoneConst
-from theano.typed_list import make_list
+from theano.tensor.type import TensorType, dmatrix, dtensor4, dvector
 
 
 @as_op([dmatrix, dmatrix], dmatrix)
@@ -98,111 +82,6 @@ class TestOpDecorator(utt.InferShapeTester):
         assert m2.owner.op == m.owner.op
 
 
-def test_shape_i_hash():
-    assert isinstance(theano.tensor.opt.Shape_i(np.int64(1)).__hash__(), int)
-
-
-class TestSpecifyShape(utt.InferShapeTester):
-    mode = None
-    input_type = TensorType
-
-    def shortDescription(self):
-        return None
-
-    def test_bad_shape(self):
-        # Test that at run time we raise an exception when the shape
-        # is not the one specified
-        specify_shape = SpecifyShape()
-
-        x = vector()
-        xval = np.random.rand(2).astype(config.floatX)
-        f = theano.function([x], specify_shape(x, [2]), mode=self.mode)
-        f(xval)
-        xval = np.random.rand(3).astype(config.floatX)
-        with pytest.raises(AssertionError):
-            f(xval)
-
-        assert isinstance(
-            [n for n in f.maker.fgraph.toposort() if isinstance(n.op, SpecifyShape)][0]
-            .inputs[0]
-            .type,
-            self.input_type,
-        )
-
-        x = matrix()
-        xval = np.random.rand(2, 3).astype(config.floatX)
-        f = theano.function([x], specify_shape(x, [2, 3]), mode=self.mode)
-        assert isinstance(
-            [n for n in f.maker.fgraph.toposort() if isinstance(n.op, SpecifyShape)][0]
-            .inputs[0]
-            .type,
-            self.input_type,
-        )
-        f(xval)
-        for shape_ in [(1, 3), (2, 2), (5, 5)]:
-            xval = np.random.rand(*shape_).astype(config.floatX)
-            with pytest.raises(AssertionError):
-                f(xval)
-
-    def test_bad_number_of_shape(self):
-        # Test that the number of dimensions provided is good
-        specify_shape = SpecifyShape()
-
-        x = vector()
-        shape_vec = ivector()
-        xval = np.random.rand(2).astype(config.floatX)
-        with pytest.raises(AssertionError):
-            specify_shape(x, [])
-        with pytest.raises(AssertionError):
-            specify_shape(x, [2, 2])
-
-        f = theano.function([x, shape_vec], specify_shape(x, shape_vec), mode=self.mode)
-        assert isinstance(
-            [n for n in f.maker.fgraph.toposort() if isinstance(n.op, SpecifyShape)][0]
-            .inputs[0]
-            .type,
-            self.input_type,
-        )
-        with pytest.raises(AssertionError):
-            f(xval, [])
-        with pytest.raises(AssertionError):
-            f(xval, [2, 2])
-
-        x = matrix()
-        xval = np.random.rand(2, 3).astype(config.floatX)
-        for shape_ in [(), (1,), (2, 3, 4)]:
-            with pytest.raises(AssertionError):
-                specify_shape(x, shape_)
-            f = theano.function(
-                [x, shape_vec], specify_shape(x, shape_vec), mode=self.mode
-            )
-            assert isinstance(
-                [
-                    n
-                    for n in f.maker.fgraph.toposort()
-                    if isinstance(n.op, SpecifyShape)
-                ][0]
-                .inputs[0]
-                .type,
-                self.input_type,
-            )
-            with pytest.raises(AssertionError):
-                f(xval, shape_)
-
-    def test_infer_shape(self):
-        rng = np.random.RandomState(3453)
-        adtens4 = dtensor4()
-        aivec = ivector()
-        aivec_val = [3, 4, 2, 5]
-        adtens4_val = rng.rand(*aivec_val)
-        self._compile_and_check(
-            [adtens4, aivec],
-            [SpecifyShape()(adtens4, aivec)],
-            [adtens4_val, aivec_val],
-            SpecifyShape,
-        )
-
-
 class TestRebroadcast(utt.InferShapeTester):
     def test_rebroadcast(self):
         rng = np.random.RandomState(3453)
@@ -227,28 +106,3 @@ class TestRebroadcast(utt.InferShapeTester):
             [adtens4_bro_val],
             Rebroadcast,
         )
-
-
-@config.change_flags(compute_test_value="raise")
-def test_nonstandard_shapes():
-    a = tensor3(config.floatX)
-    a.tag.test_value = np.random.random((2, 3, 4)).astype(config.floatX)
-    b = tensor3(config.floatX)
-    b.tag.test_value = np.random.random((2, 3, 4)).astype(config.floatX)
-
-    tl = make_list([a, b])
-    tl_shape = shape(tl)
-    assert np.array_equal(tl_shape.get_test_value(), (2, 2, 3, 4))
-
-    # There's no `FunctionGraph`, so it should return a `Subtensor`
-    tl_shape_i = shape_i(tl, 0)
-    assert isinstance(tl_shape_i.owner.op, Subtensor)
-    assert tl_shape_i.get_test_value() == 2
-
-    tl_fg = FunctionGraph([a, b], [tl], features=[ShapeFeature()])
-    tl_shape_i = shape_i(tl, 0, fgraph=tl_fg)
-    assert not isinstance(tl_shape_i.owner.op, Subtensor)
-    assert tl_shape_i.get_test_value() == 2
-
-    none_shape = shape(NoneConst)
-    assert np.array_equal(none_shape.get_test_value(), [])

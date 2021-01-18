@@ -8,6 +8,7 @@ import theano.sparse
 import theano.tensor as tt
 from tests import unittest_tools as utt
 from theano.misc.may_share_memory import may_share_memory
+from theano.tensor.shape import Shape_i, specify_shape
 
 
 utt.seed_rng()
@@ -142,8 +143,8 @@ def makeSharedTester(
             assert np.all(f() == (2, 4))
             if theano.config.mode != "FAST_COMPILE":
                 assert len(topo) == 3
-                assert isinstance(topo[0].op, theano.compile.ops.Shape_i)
-                assert isinstance(topo[1].op, theano.compile.ops.Shape_i)
+                assert isinstance(topo[0].op, Shape_i)
+                assert isinstance(topo[1].op, Shape_i)
                 assert isinstance(topo[2].op, theano.tensor.opt.MakeVector)
 
         def test_shape_i(self):
@@ -165,7 +166,7 @@ def makeSharedTester(
             assert np.all(f() == (4))
             if theano.config.mode != "FAST_COMPILE":
                 assert len(topo) == 1
-                assert isinstance(topo[0].op, theano.compile.ops.Shape_i)
+                assert isinstance(topo[0].op, Shape_i)
 
         def test_return_internal_type(self):
             dtype = self.dtype
@@ -399,7 +400,7 @@ def makeSharedTester(
 
             # Test that we can replace with values of the same shape
             x1_shared = self.shared_constructor(x1_1)
-            x1_specify_shape = theano.compile.ops.specify_shape(x1_shared, x1_1.shape)
+            x1_specify_shape = specify_shape(x1_shared, x1_1.shape)
             x1_shared.set_value(x1_2)
             assert np.allclose(
                 self.ref_fct(x1_shared.get_value(borrow=True)), self.ref_fct(x1_2)
@@ -408,8 +409,8 @@ def makeSharedTester(
             topo = shape_op_fct.maker.fgraph.toposort()
             if theano.config.mode != "FAST_COMPILE":
                 assert len(topo) == 3
-                assert isinstance(topo[0].op, theano.compile.ops.Shape_i)
-                assert isinstance(topo[1].op, theano.compile.ops.Shape_i)
+                assert isinstance(topo[0].op, Shape_i)
+                assert isinstance(topo[1].op, Shape_i)
                 assert isinstance(topo[2].op, theano.tensor.opt.MakeVector)
 
             # Test that we forward the input
@@ -468,7 +469,7 @@ def makeSharedTester(
 
             # Test that we can replace with values of the same shape
             x1_shared = self.shared_constructor(x1_1)
-            x1_specify_shape = theano.compile.ops.specify_shape(
+            x1_specify_shape = specify_shape(
                 x1_shared,
                 (tt.as_tensor_variable(x1_1.shape[0]), x1_shared.shape[1]),
             )
@@ -481,8 +482,8 @@ def makeSharedTester(
             shape_op_fct()
             if theano.config.mode != "FAST_COMPILE":
                 assert len(topo) == 3
-                assert isinstance(topo[0].op, theano.compile.ops.Shape_i)
-                assert isinstance(topo[1].op, theano.compile.ops.Shape_i)
+                assert isinstance(topo[0].op, Shape_i)
+                assert isinstance(topo[1].op, Shape_i)
                 assert isinstance(topo[2].op, theano.tensor.opt.MakeVector)
 
             # Test that we forward the input
@@ -562,7 +563,7 @@ def makeSharedTester(
                 )
             # Their is no inplace gemm for sparse
             # assert all(node.op.inplace for node in topo if node.op.__class__.__name__ == "StructuredDot")
-            s_shared_specify = theano.compile.ops.specify_shape(
+            s_shared_specify = specify_shape(
                 s_shared, s_shared.get_value(borrow=True).shape
             )
 
@@ -599,12 +600,8 @@ def makeSharedTester(
                     if node.op.__class__.__name__ == "GpuGemm"
                 )
             # now test with the specify shape op in the inputs and outputs
-            a_shared = theano.compile.ops.specify_shape(
-                a_shared, a_shared.get_value(borrow=True).shape
-            )
-            b_shared = theano.compile.ops.specify_shape(
-                b_shared, b_shared.get_value(borrow=True).shape
-            )
+            a_shared = specify_shape(a_shared, a_shared.get_value(borrow=True).shape)
+            b_shared = specify_shape(b_shared, b_shared.get_value(borrow=True).shape)
 
             f = theano.function(
                 [],

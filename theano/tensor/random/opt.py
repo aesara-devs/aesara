@@ -1,6 +1,5 @@
 import theano.tensor as tt
 from theano.compile import optdb
-from theano.compile.ops import Shape
 from theano.configdefaults import config
 from theano.graph.op import compute_test_value
 from theano.graph.opt import local_optimizer
@@ -9,6 +8,7 @@ from theano.tensor.extra_ops import broadcast_to
 from theano.tensor.opt import in2out
 from theano.tensor.random.op import RandomVariable
 from theano.tensor.random.utils import broadcast_params
+from theano.tensor.shape import Shape
 from theano.tensor.subtensor import (
     AdvancedSubtensor,
     AdvancedSubtensor1,

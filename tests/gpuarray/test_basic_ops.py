@@ -14,7 +14,6 @@ from tests.tensor.test_basic import (
     TestReshape,
 )
 from tests.tensor.utils import rand, safe_make_node
-from theano.compile.ops import Shape_i
 from theano.gpuarray.basic_ops import (
     GpuAlloc,
     GpuAllocEmpty,
@@ -36,6 +35,7 @@ from theano.gpuarray.subtensor import GpuSubtensor
 from theano.gpuarray.type import GpuArrayType, get_context, gpuarray_shared_constructor
 from theano.tensor.basic import Alloc, Split, alloc
 from theano.tensor.opt import MakeVector
+from theano.tensor.shape import Shape, Shape_i
 from theano.tensor.type import TensorType, fmatrix, iscalar, lscalar, matrix
 
 
@@ -352,7 +352,7 @@ def test_shape():
     topo = f.maker.fgraph.toposort()
     assert np.all(f(v) == (3, 4, 5))
     assert len(topo) == 1
-    assert isinstance(topo[0].op, theano.compile.ops.Shape)
+    assert isinstance(topo[0].op, Shape)
 
 
 def test_gpu_contiguous():

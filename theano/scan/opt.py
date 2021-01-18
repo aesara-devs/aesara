@@ -95,6 +95,7 @@ from theano.tensor.basic import (
     get_scalar_constant_value,
 )
 from theano.tensor.elemwise import DimShuffle, Elemwise
+from theano.tensor.shape import shape
 from theano.tensor.subtensor import (
     IncSubtensor,
     Subtensor,
@@ -427,8 +428,8 @@ class PushOutNonSeqScan(GlobalOptimizer):
                 if out in local_fgraph_outs_set:
                     x = node.outputs[local_fgraph_outs_map[out]]
                     y = replace_with_out[idx]
-                    shape = [shp for shp in y.shape]
-                    replace_with[x] = tt.alloc(y, node.inputs[0], *shape)
+                    y_shape = [shp for shp in y.shape]
+                    replace_with[x] = tt.alloc(y, node.inputs[0], *y_shape)
 
             # We need to add one extra dimension to the outputs
             # because the scan op expects for a tensor3, to which an
@@ -815,7 +816,7 @@ class PushOutScanOutput(GlobalOptimizer):
                             outer_dot_inputs[0].dimshuffle(1, 0, 2), ndim=2
                         )
 
-                        shape_input1 = tt.shape(outer_dot_inputs[1])
+                        shape_input1 = shape(outer_dot_inputs[1])
                         outer_dot_inputs[1] = outer_dot_inputs[1].reshape(
                             (shape_input1[0] * shape_input1[1], shape_input1[2])
                         )

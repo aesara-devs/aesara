@@ -19,6 +19,7 @@ from theano.graph.opt import copy_stack_trace, inherit_stack_trace, local_optimi
 from theano.tensor.basic import get_scalar_constant_value
 from theano.tensor.elemwise import DimShuffle
 from theano.tensor.exceptions import NotScalarConstantError
+from theano.tensor.shape import shape_padright
 from theano.tensor.type import TensorType
 
 
@@ -425,7 +426,7 @@ def pad_dims(input, leftdims, rightdims):
         batched_ndim = non_pool_ndim - leftdims + 1
         batch_size = tt.prod(input.shape[:batched_ndim])
         # convert to a vector for tt.join
-        batch_size = tt.shape_padright(batch_size, 1)
+        batch_size = shape_padright(batch_size, 1)
         new_shape = tt.join(
             0, batch_size, input.shape[batched_ndim:non_pool_ndim], img_shape
         )

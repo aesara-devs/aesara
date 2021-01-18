@@ -55,14 +55,16 @@ from theano.tensor.type import (
 
 
 def _check_stack_trace(thing):
+    from theano.tensor.shape import Shape, Shape_i
+
     def _ops_to_check(op):
         if not isinstance(op, theano.graph.op.Op):
             op = op.op  # assume it is an apply node
         return not isinstance(
             op,
             (
-                theano.compile.ops.Shape_i,
-                theano.compile.ops.Shape,
+                Shape_i,
+                Shape,
                 theano.compile.ops.DeepCopyOp,
                 theano.tensor.opt.MakeVector,
                 theano.tensor.subtensor.Subtensor,

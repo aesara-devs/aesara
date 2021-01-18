@@ -87,6 +87,7 @@ from theano.sparse.basic import (
 )
 from theano.sparse.opt import CSMGradC, StructuredDotCSC, UsmmCscDense
 from theano.tensor.elemwise import DimShuffle, Elemwise
+from theano.tensor.shape import Shape_i
 from theano.tensor.subtensor import AdvancedIncSubtensor1, AdvancedSubtensor1, Subtensor
 from theano.tensor.type import (
     TensorType,
@@ -1872,8 +1873,8 @@ def test_shape():
     if theano.config.mode != "FAST_COMPILE":
         topo = f.maker.fgraph.toposort()
         assert len(topo) == 3
-        assert isinstance(topo[0].op, theano.tensor.opt.Shape_i)
-        assert isinstance(topo[1].op, theano.tensor.opt.Shape_i)
+        assert isinstance(topo[0].op, Shape_i)
+        assert isinstance(topo[1].op, Shape_i)
         assert isinstance(topo[2].op, theano.tensor.opt.MakeVector)
 
 
