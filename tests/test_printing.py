@@ -284,17 +284,17 @@ def test_scan_debugprint1():
      | | | | |   |       |A [id M]
      | | | | |   |       |InplaceDimShuffle{x} [id N] ''
      | | | | |   |         |TensorConstant{1.0} [id O]
-     | | | | |   |Constant{0} [id P]
+     | | | | |   |ScalarConstant{0} [id P]
      | | | | |Subtensor{int64} [id Q] ''
      | | | |   |Shape [id R] ''
      | | | |   | |Rebroadcast{0} [id J] ''
-     | | | |   |Constant{1} [id S]
+     | | | |   |ScalarConstant{1} [id S]
      | | | |Rebroadcast{0} [id J] ''
      | | | |ScalarFromTensor [id T] ''
      | | |   |Subtensor{int64} [id H] ''
      | | |A [id M]
-     | |Constant{1} [id U]
-     |Constant{-1} [id V]
+     | |ScalarConstant{1} [id U]
+     |ScalarConstant{-1} [id V]
 
     Inner graphs of the scan ops:
 
@@ -334,8 +334,8 @@ def test_scan_debugprint2():
        | | |Shape [id E] ''
        | | | |Subtensor{int64::} [id F] 'coefficients[0:]'
        | | |   |coefficients [id G]
-       | | |   |Constant{0} [id H]
-       | | |Constant{0} [id I]
+       | | |   |ScalarConstant{0} [id H]
+       | | |ScalarConstant{0} [id I]
        | |Subtensor{int64} [id J] ''
        |   |Shape [id K] ''
        |   | |Subtensor{int64::} [id L] ''
@@ -343,8 +343,8 @@ def test_scan_debugprint2():
        |   |   | |TensorConstant{0} [id N]
        |   |   | |TensorConstant{10000} [id O]
        |   |   | |TensorConstant{1} [id P]
-       |   |   |Constant{0} [id Q]
-       |   |Constant{0} [id R]
+       |   |   |ScalarConstant{0} [id Q]
+       |   |ScalarConstant{0} [id R]
        |Subtensor{:int64:} [id S] ''
        | |Subtensor{int64::} [id F] 'coefficients[0:]'
        | |ScalarFromTensor [id T] ''
@@ -413,8 +413,8 @@ def test_scan_debugprint3():
        | | |Shape [id E] ''
        | | | |Subtensor{int64::} [id F] 'coefficients[0:]'
        | | |   |coefficients [id G]
-       | | |   |Constant{0} [id H]
-       | | |Constant{0} [id I]
+       | | |   |ScalarConstant{0} [id H]
+       | | |ScalarConstant{0} [id I]
        | |Subtensor{int64} [id J] ''
        |   |Shape [id K] ''
        |   | |Subtensor{int64::} [id L] ''
@@ -422,8 +422,8 @@ def test_scan_debugprint3():
        |   |   | |TensorConstant{0} [id N]
        |   |   | |TensorConstant{10} [id O]
        |   |   | |TensorConstant{1} [id P]
-       |   |   |Constant{0} [id Q]
-       |   |Constant{0} [id R]
+       |   |   |ScalarConstant{0} [id Q]
+       |   |ScalarConstant{0} [id R]
        |Subtensor{:int64:} [id S] ''
        | |Subtensor{int64::} [id F] 'coefficients[0:]'
        | |ScalarFromTensor [id T] ''
@@ -459,17 +459,17 @@ def test_scan_debugprint3():
      >   | | | | | |   |       |A_copy [id BO] -> [id W]
      >   | | | | | |   |       |InplaceDimShuffle{x} [id BP] ''
      >   | | | | | |   |         |TensorConstant{1.0} [id BQ]
-     >   | | | | | |   |Constant{0} [id BR]
+     >   | | | | | |   |ScalarConstant{0} [id BR]
      >   | | | | | |Subtensor{int64} [id BS] ''
      >   | | | | |   |Shape [id BT] ''
      >   | | | | |   | |Rebroadcast{0} [id BL] ''
-     >   | | | | |   |Constant{1} [id BU]
+     >   | | | | |   |ScalarConstant{1} [id BU]
      >   | | | | |Rebroadcast{0} [id BL] ''
      >   | | | | |ScalarFromTensor [id BV] ''
      >   | | | |   |Subtensor{int64} [id BJ] ''
      >   | | | |A_copy [id BO] -> [id W]
-     >   | | |Constant{1} [id BW]
-     >   | |Constant{-1} [id BX]
+     >   | | |ScalarConstant{1} [id BW]
+     >   | |ScalarConstant{-1} [id BX]
      >   |InplaceDimShuffle{x} [id BY] ''
      >     |<TensorType(int64, scalar)> [id BZ] -> [id U]
 
@@ -514,8 +514,8 @@ def test_scan_debugprint4():
      | | | |     |Shape [id I] ''
      | | | |     | |Subtensor{:int64:} [id J] ''
      | | | |     |   |<TensorType(int64, vector)> [id K]
-     | | | |     |   |Constant{2} [id L]
-     | | | |     |Constant{0} [id M]
+     | | | |     |   |ScalarConstant{2} [id L]
+     | | | |     |ScalarConstant{0} [id M]
      | | | |Subtensor{:int64:} [id J] ''
      | | | |ScalarFromTensor [id N] ''
      | | |   |Subtensor{int64} [id H] ''
@@ -527,15 +527,15 @@ def test_scan_debugprint4():
      | |   |     |Shape [id S] ''
      | |   |     | |Subtensor{:int64:} [id T] ''
      | |   |     |   |<TensorType(int64, vector)> [id U]
-     | |   |     |   |Constant{2} [id V]
-     | |   |     |Constant{0} [id W]
+     | |   |     |   |ScalarConstant{2} [id V]
+     | |   |     |ScalarConstant{0} [id W]
      | |   |Subtensor{:int64:} [id T] ''
      | |   |ScalarFromTensor [id X] ''
      | |     |Subtensor{int64} [id R] ''
-     | |Constant{2} [id Y]
+     | |ScalarConstant{2} [id Y]
      |Subtensor{int64::} [id Z] ''
        |for{cpu,scan_fn}.1 [id C] ''
-       |Constant{2} [id BA]
+       |ScalarConstant{2} [id BA]
 
     Inner graphs of the scan ops:
 
@@ -592,31 +592,31 @@ def test_scan_debugprint5():
     | | | |   | | |   |       |A [id P]
     | | | |   | | |   |       |InplaceDimShuffle{x} [id Q] ''
     | | | |   | | |   |         |TensorConstant{1.0} [id R]
-    | | | |   | | |   |Constant{0} [id S]
+    | | | |   | | |   |ScalarConstant{0} [id S]
     | | | |   | | |Subtensor{int64} [id T] ''
     | | | |   | |   |Shape [id U] ''
     | | | |   | |   | |Rebroadcast{0} [id M] ''
-    | | | |   | |   |Constant{1} [id V]
+    | | | |   | |   |ScalarConstant{1} [id V]
     | | | |   | |Rebroadcast{0} [id M] ''
     | | | |   | |ScalarFromTensor [id W] ''
     | | | |   |   |Subtensor{int64} [id K] ''
     | | | |   |A [id P]
-    | | | |Constant{0} [id X]
+    | | | |ScalarConstant{0} [id X]
     | | |TensorConstant{1} [id Y]
     | |Subtensor{:int64:} [id Z] ''
     | | |Subtensor{::int64} [id BA] ''
     | | | |Subtensor{:int64:} [id BB] ''
     | | | | |for{cpu,scan_fn} [id F] ''
-    | | | | |Constant{-1} [id BC]
-    | | | |Constant{-1} [id BD]
+    | | | | |ScalarConstant{-1} [id BC]
+    | | | |ScalarConstant{-1} [id BD]
     | | |ScalarFromTensor [id BE] ''
     | |   |Elemwise{sub,no_inplace} [id C] ''
     | |Subtensor{:int64:} [id BF] ''
     | | |Subtensor{:int64:} [id BG] ''
     | | | |Subtensor{::int64} [id BH] ''
     | | | | |for{cpu,scan_fn} [id F] ''
-    | | | | |Constant{-1} [id BI]
-    | | | |Constant{-1} [id BJ]
+    | | | | |ScalarConstant{-1} [id BI]
+    | | | |ScalarConstant{-1} [id BJ]
     | | |ScalarFromTensor [id BK] ''
     | |   |Elemwise{sub,no_inplace} [id C] ''
     | |Subtensor{::int64} [id BL] ''
@@ -629,21 +629,21 @@ def test_scan_debugprint5():
     | | | | |Elemwise{second,no_inplace} [id BR] ''
     | | | | | |Subtensor{int64::} [id BS] ''
     | | | | | | |for{cpu,scan_fn} [id F] ''
-    | | | | | | |Constant{1} [id BT]
+    | | | | | | |ScalarConstant{1} [id BT]
     | | | | | |InplaceDimShuffle{x,x} [id BU] ''
     | | | | |   |TensorConstant{0.0} [id BV]
     | | | | |Elemwise{second} [id BW] ''
     | | | | | |Subtensor{int64} [id BX] ''
     | | | | | | |Subtensor{int64::} [id BS] ''
-    | | | | | | |Constant{-1} [id BY]
+    | | | | | | |ScalarConstant{-1} [id BY]
     | | | | | |InplaceDimShuffle{x} [id BZ] ''
     | | | | |   |Elemwise{second,no_inplace} [id CA] ''
     | | | | |     |Sum{acc_dtype=float64} [id CB] ''
     | | | | |     | |Subtensor{int64} [id BX] ''
     | | | | |     |TensorConstant{1.0} [id CC]
-    | | | | |Constant{-1} [id BY]
-    | | | |Constant{1} [id BT]
-    | | |Constant{-1} [id CD]
+    | | | | |ScalarConstant{-1} [id BY]
+    | | | |ScalarConstant{1} [id BT]
+    | | |ScalarConstant{-1} [id CD]
     | |Alloc [id CE] ''
     | | |TensorConstant{0.0} [id CF]
     | | |Elemwise{add,no_inplace} [id CG] ''
@@ -652,9 +652,9 @@ def test_scan_debugprint5():
     | | |Subtensor{int64} [id CI] ''
     | |   |Shape [id CJ] ''
     | |   | |A [id P]
-    | |   |Constant{0} [id CK]
+    | |   |ScalarConstant{0} [id CK]
     | |A [id P]
-    |Constant{-1} [id CL]
+    |ScalarConstant{-1} [id CL]
 
     Inner graphs of the scan ops:
 
@@ -711,4 +711,4 @@ def test_printing_scan():
 def test_subtensor():
     x = dvector()
     y = x[1]
-    assert pp(y) == "<TensorType(float64, vector)>[Constant{1}]"
+    assert pp(y) == "<TensorType(float64, vector)>[ScalarConstant{1}]"

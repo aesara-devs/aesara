@@ -630,7 +630,7 @@ class Constant(Variable):
             name = str(self.data)
             if len(name) > 20:
                 name = name[:10] + "..." + name[-10:]
-            return "Constant{%s}" % name
+            return f"{type(self).__name__}{{{name}}}"
 
     def clone(self):
         """
