@@ -440,7 +440,7 @@ def get_scalar_constant_value(
                 i = v.owner.op.i
                 inp = v.owner.inputs[0]
                 if isinstance(inp, Constant):
-                    return np.asarray(inp.data.shape[i])
+                    return np.asarray(np.shape(inp.data)[i])
                 # The shape of a broadcastable dimension is 1
                 if hasattr(inp.type, "broadcastable") and inp.type.broadcastable[i]:
                     return np.asarray(1)
@@ -638,7 +638,7 @@ def get_scalar_constant_value(
                         return np.asarray(1)
 
                     if isinstance(grandparent, Constant):
-                        return np.asarray(grandparent.data.shape[idx])
+                        return np.asarray(np.shape(grandparent.data)[idx])
 
         raise NotScalarConstantError(v)
 
