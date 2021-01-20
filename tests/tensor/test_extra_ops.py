@@ -7,6 +7,7 @@ from theano import function
 from theano import tensor as tt
 from theano.assert_op import Assert
 from theano.configdefaults import config
+from theano.gradient import grad
 from theano.graph.basic import applys_between
 from theano.tensor.elemwise import DimShuffle
 from theano.tensor.extra_ops import (
@@ -40,6 +41,7 @@ from theano.tensor.extra_ops import (
     to_one_hot,
     unravel_index,
 )
+from theano.tensor.math import sum as tt_sum
 from theano.tensor.type import (
     TensorType,
     dmatrix,
@@ -320,11 +322,11 @@ class TestDiffOp(utt.InferShapeTester):
         x = vector("x")
         a = np.random.random(50).astype(config.floatX)
 
-        theano.function([x], tt.grad(tt.sum(diff(x)), x))
+        theano.function([x], grad(tt_sum(diff(x)), x))
         utt.verify_grad(self.op, [a])
 
         for k in range(TestDiffOp.nb):
-            theano.function([x], tt.grad(tt.sum(diff(x, n=k)), x))
+            theano.function([x], grad(tt_sum(diff(x, n=k)), x))
             utt.verify_grad(DiffOp(n=k), [a], eps=7e-3)
 
 

@@ -28,6 +28,7 @@ from theano.scan.op import Scan
 from theano.scan.utils import safe_new, traverse
 from theano.tensor import opt
 from theano.tensor.exceptions import NotScalarConstantError
+from theano.tensor.math import minimum
 from theano.tensor.shape import shape_padleft
 from theano.tensor.type import TensorType, integer_dtypes
 from theano.updates import OrderedUpdates
@@ -560,7 +561,7 @@ def scan(
     if utils.isNaN_or_Inf_or_None(n_steps):
         actual_n_steps = lengths_vec[0]
         for contestant in lengths_vec[1:]:
-            actual_n_steps = tt.minimum(actual_n_steps, contestant)
+            actual_n_steps = minimum(actual_n_steps, contestant)
     else:
         actual_n_steps = tt.as_tensor(n_steps)
 

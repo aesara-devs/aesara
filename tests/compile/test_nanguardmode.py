@@ -10,6 +10,7 @@ import pytest
 import theano
 import theano.tensor as tt
 from theano.compile.nanguardmode import NanGuardMode
+from theano.tensor.math import dot
 from theano.tensor.type import matrix, tensor3
 
 
@@ -19,7 +20,7 @@ def test_NanGuardMode():
     # the abnormalties.
     x = matrix()
     w = theano.shared(np.random.randn(5, 7).astype(theano.config.floatX))
-    y = tt.dot(x, w)
+    y = dot(x, w)
 
     fun = theano.function(
         [x], y, mode=NanGuardMode(nan_is_error=True, inf_is_error=True)

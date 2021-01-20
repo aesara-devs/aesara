@@ -87,6 +87,7 @@ from theano.sparse.basic import (
 )
 from theano.sparse.opt import CSMGradC, StructuredDotCSC, UsmmCscDense
 from theano.tensor.elemwise import DimShuffle, Elemwise
+from theano.tensor.math import sum as tt_sum
 from theano.tensor.shape import Shape_i
 from theano.tensor.subtensor import AdvancedIncSubtensor1, AdvancedSubtensor1, Subtensor
 from theano.tensor.type import (
@@ -1190,7 +1191,7 @@ class TestCsm:
                     y = tt.constant(a.indices)
                     z = tt.constant(a.indptr)
                     s = tt.constant(a.shape)
-                    return tt.sum(dense_from_sparse(CSM(format)(x, y, z, s) * a))
+                    return tt_sum(dense_from_sparse(CSM(format)(x, y, z, s) * a))
 
                 verify_grad_sparse(my_op, [a.data])
 
@@ -1697,14 +1698,14 @@ class TestUsmm:
                 # In DebugMode there is a strange difference with complex
                 # So we raise a little the threshold a little.
                 try:
-                    orig_atol = theano.tensor.basic.float64_atol
-                    orig_rtol = theano.tensor.basic.float64_rtol
-                    theano.tensor.basic.float64_atol = 1e-7
-                    theano.tensor.basic.float64_rtol = 1e-6
+                    orig_atol = theano.tensor.math.float64_atol
+                    orig_rtol = theano.tensor.math.float64_rtol
+                    theano.tensor.math.float64_atol = 1e-7
+                    theano.tensor.math.float64_rtol = 1e-6
                     f_a_out = f_a(a_data, x_data, y_data)
                 finally:
-                    theano.tensor.basic.float64_atol = orig_atol
-                    theano.tensor.basic.float64_rtol = orig_rtol
+                    theano.tensor.math.float64_atol = orig_atol
+                    theano.tensor.math.float64_rtol = orig_rtol
 
             # As we do a dot product of 2 vector of 100 element,
             # This mean we can have 2*100*eps abs error.
@@ -2905,23 +2906,23 @@ def elemwise_checker(
                         f = theano.function(variable, self.op(*variable))
 
                         old_value = (
-                            tensor.basic.float32_atol,
-                            tensor.basic.float32_rtol,
-                            tensor.basic.float64_atol,
-                            tensor.basic.float64_rtol,
+                            tensor.math.float32_atol,
+                            tensor.math.float32_rtol,
+                            tensor.math.float64_atol,
+                            tensor.math.float64_rtol,
                         )
-                        tensor.basic.float32_atol = 1e-4
-                        tensor.basic.float32_rtol = 1e-3
-                        tensor.basic.float64_atol = 1e-3
-                        tensor.basic.float64_rtol = 1e-4
+                        tensor.math.float32_atol = 1e-4
+                        tensor.math.float32_rtol = 1e-3
+                        tensor.math.float64_atol = 1e-3
+                        tensor.math.float64_rtol = 1e-4
                         try:
                             tested = f(*data)
                         finally:
                             (
-                                tensor.basic.float32_atol,
-                                tensor.basic.float32_rtol,
-                                tensor.basic.float64_atol,
-                                tensor.basic.float64_rtol,
+                                tensor.math.float32_atol,
+                                tensor.math.float32_rtol,
+                                tensor.math.float64_atol,
+                                tensor.math.float64_rtol,
                             ) = old_value
 
                         data = [m.toarray().astype("float32") for m in data]

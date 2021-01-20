@@ -3,7 +3,7 @@ import pytest
 
 import theano
 from tests import unittest_tools as utt
-from tests.tensor.utils import eval_outputs
+from tests.tensor.utils import eval_outputs, rand
 from tests.test_rop import RopLopChecker
 from theano import function
 from theano.compile.ops import DeepCopyOp
@@ -80,7 +80,7 @@ class TestReshape(utt.InferShapeTester, utt.OptimizationTestMixin):
                 assert type(topo_[0].op) is self.op
         return f
 
-    def test_reshape(self):
+    def test_basics(self):
         a = dvector()
         b = dmatrix()
         d = dmatrix()
@@ -230,6 +230,69 @@ class TestReshape(utt.InferShapeTester, utt.OptimizationTestMixin):
         const = constant([1]).reshape(())
         f = function([], const)
         assert f().shape == ()
+
+    def test_more_shapes(self):
+        # TODO: generalize infer_shape to account for tensor variable
+        # (non-constant) input shape
+        admat = dmatrix()
+        ndim = 1
+        admat_val = rand(3, 4)
+        self._compile_and_check(
+            [admat], [Reshape(ndim)(admat, [12])], [admat_val], Reshape
+        )
+
+        self._compile_and_check(
+            [admat], [Reshape(ndim)(admat, [-1])], [admat_val], Reshape
+        )
+
+        ndim = 2
+        self._compile_and_check(
+            [admat], [Reshape(ndim)(admat, [4, 3])], [admat_val], Reshape
+        )
+
+        self._compile_and_check(
+            [admat], [Reshape(ndim)(admat, [4, -1])], [admat_val], Reshape
+        )
+
+        self._compile_and_check(
+            [admat], [Reshape(ndim)(admat, [3, -1])], [admat_val], Reshape
+        )
+
+        self._compile_and_check(
+            [admat], [Reshape(ndim)(admat, [-1, 3])], [admat_val], Reshape
+        )
+        self._compile_and_check(
+            [admat], [Reshape(ndim)(admat, [-1, 4])], [admat_val], Reshape
+        )
+
+        # enable when infer_shape is generalized:
+        # self._compile_and_check([admat, aivec],
+        #                        [Reshape(ndim)(admat, aivec)],
+        #                        [admat_val, [4, 3]], Reshape)
+        #
+        # self._compile_and_check([admat, aivec],
+        #                        [Reshape(ndim)(admat, aivec)],
+        #                        [admat_val, [4, -1]], Reshape)
+
+        adtens4 = dtensor4()
+        ndim = 4
+        adtens4_val = rand(2, 4, 3, 5)
+        self._compile_and_check(
+            [adtens4], [Reshape(ndim)(adtens4, [1, -1, 10, 4])], [adtens4_val], Reshape
+        )
+
+        self._compile_and_check(
+            [adtens4], [Reshape(ndim)(adtens4, [1, 3, 10, 4])], [adtens4_val], Reshape
+        )
+
+        # enable when infer_shape is generalized:
+        # self._compile_and_check([adtens4, aivec],
+        #                        [Reshape(ndim)(adtens4, aivec)],
+        #                        [adtens4_val, [1, -1, 10, 4]], Reshape)
+        #
+        # self._compile_and_check([adtens4, aivec],
+        #                        [Reshape(ndim)(adtens4, aivec)],
+        #                        [adtens4_val, [1, 3, 10, 4]], Reshape)
 
 
 def test_shape_i_hash():

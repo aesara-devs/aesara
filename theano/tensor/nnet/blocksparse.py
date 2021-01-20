@@ -4,7 +4,7 @@ import theano
 from theano.gradient import grad_undefined
 from theano.graph.basic import Apply
 from theano.graph.op import Op
-from theano.tensor.basic import discrete_dtypes
+from theano.tensor.type import discrete_dtypes
 
 
 class SparseBlockGemv(Op):

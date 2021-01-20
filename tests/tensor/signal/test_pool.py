@@ -8,6 +8,7 @@ import theano
 import theano.tensor as tt
 from tests import unittest_tools as utt
 from theano import function
+from theano.tensor.math import sum as tt_sum
 from theano.tensor.signal.pool import (
     AveragePoolGrad,
     DownsampleFactorMaxGradGrad,
@@ -933,7 +934,7 @@ class TestDownsampleFactorMax(utt.InferShapeTester):
         x_vec = vector("x")
         z = tt.dot(x_vec.dimshuffle(0, "x"), x_vec.dimshuffle("x", 0))
         y = pool_2d(input=z, ws=(2, 2), ignore_border=True)
-        C = tt.exp(tt.sum(y))
+        C = tt.exp(tt_sum(y))
 
         grad_hess = theano.gradient.hessian(cost=C, wrt=x_vec)
         fn_hess = function(inputs=[x_vec], outputs=grad_hess)

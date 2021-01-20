@@ -24,6 +24,8 @@ from theano import function
 from theano.gradient import Lop, Rop, grad, grad_undefined
 from theano.graph.basic import Apply
 from theano.graph.op import Op
+from theano.tensor.math import argmax, dot
+from theano.tensor.math import max as tt_max
 from theano.tensor.nnet import conv, conv2d
 from theano.tensor.signal.pool import Pool
 from theano.tensor.type import TensorType, matrix, vector
@@ -150,7 +152,7 @@ class RopLopChecker:
             sequences=tt.arange(y.shape[0]),
             non_sequences=[y, self.x],
         )
-        sy = tt.dot(J, self.v)
+        sy = dot(J, self.v)
 
         scan_f = function([self.x, self.v], sy, on_unused_input="ignore")
 
@@ -180,7 +182,7 @@ class RopLopChecker:
             sequences=tt.arange(y.shape[0]),
             non_sequences=[y, self.x],
         )
-        sy = tt.dot(self.v, J)
+        sy = dot(self.v, J)
 
         scan_f = function([self.x, self.v], sy)
 
@@ -193,12 +195,12 @@ class TestRopLop(RopLopChecker):
     def test_max(self):
         # If we call max directly, we will return an CAReduce object
         # which doesn't have R_op implemented!
-        # self.check_mat_rop_lop(tt.max(self.mx, axis=[0,1])[0], ())
-        self.check_mat_rop_lop(tt.max(self.mx, axis=0), (self.mat_in_shape[1],))
-        self.check_mat_rop_lop(tt.max(self.mx, axis=1), (self.mat_in_shape[0],))
+        # self.check_mat_rop_lop(tt_max(self.mx, axis=[0,1])[0], ())
+        self.check_mat_rop_lop(tt_max(self.mx, axis=0), (self.mat_in_shape[1],))
+        self.check_mat_rop_lop(tt_max(self.mx, axis=1), (self.mat_in_shape[0],))
 
     def test_argmax(self):
-        self.check_nondiff_rop(tt.argmax(self.mx, axis=1))
+        self.check_nondiff_rop(argmax(self.mx, axis=1))
 
     def test_subtensor(self):
         self.check_rop_lop(self.x[:4], (4,))
@@ -366,7 +368,7 @@ class TestRopLop(RopLopChecker):
         insh = self.in_shape[0]
         vW = np.asarray(self.rng.uniform(size=(insh, insh)), theano.config.floatX)
         W = theano.shared(vW)
-        self.check_rop_lop(tt.dot(self.x, W), self.in_shape)
+        self.check_rop_lop(dot(self.x, W), self.in_shape)
 
     def test_elemwise0(self):
         self.check_rop_lop((self.x + 1) ** 2, self.in_shape)
@@ -442,5 +444,5 @@ class TestRopLop(RopLopChecker):
         # the inputs).
         x = tt.arange(20.0).reshape([1, 20])
         v = theano.shared(np.ones([20]))
-        d = tt.dot(x, v).sum()
+        d = dot(x, v).sum()
         Rop(grad(d, v), v, v)

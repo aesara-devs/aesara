@@ -3,7 +3,6 @@ import scipy
 
 import theano
 import theano.scalar as ts
-import theano.tensor as tt
 from theano.configdefaults import config
 from theano.graph.basic import Apply
 from theano.graph.op import COp, _NoPythonCOp
@@ -21,6 +20,8 @@ from theano.sparse.basic import (
     usmm,
 )
 from theano.tensor import blas
+from theano.tensor.basic import as_tensor_variable, cast, patternbroadcast
+from theano.tensor.math import mul, neg, sub
 from theano.tensor.opt import register_canonicalize, register_specialize
 from theano.tensor.type import TensorType, tensor
 
@@ -44,7 +45,7 @@ def local_csm_properties_csm(fgraph, node):
             # csm.owner.inputs could be broadcastable. In that case, we have
             # to adjust the broadcasting flag here.
             ret_var = [
-                tt.patternbroadcast(i, o.broadcastable)
+                patternbroadcast(i, o.broadcastable)
                 for i, o in zip(csm.owner.inputs, node.outputs)
             ]
             return ret_var
@@ -119,7 +120,7 @@ class AddSD_ccode(_NoPythonCOp):
         return f"{self.__class__.__name__}{{{self.format}{inp}}}"
 
     def make_node(self, x, y):
-        x, y = sparse.as_sparse_variable(x), tt.as_tensor_variable(y)
+        x, y = sparse.as_sparse_variable(x), as_tensor_variable(y)
         out_dtype = ts.upcast(x.type.dtype, y.type.dtype)
         if self.inplace:
             assert out_dtype == y.dtype
@@ -704,13 +705,13 @@ class UsmmCscDense(_NoPythonCOp):
             return "UsmmCscDense{no_inplace}"
 
     def make_node(self, alpha, x_val, x_ind, x_ptr, x_nrows, y, z):
-        alpha = tt.as_tensor_variable(alpha)
-        x_val = tt.as_tensor_variable(x_val)
-        x_ind = tt.as_tensor_variable(x_ind)
-        x_ptr = tt.as_tensor_variable(x_ptr)
-        x_nrows = tt.as_tensor_variable(x_nrows)
-        y = tt.as_tensor_variable(y)
-        z = tt.as_tensor_variable(z)
+        alpha = as_tensor_variable(alpha)
+        x_val = as_tensor_variable(x_val)
+        x_ind = as_tensor_variable(x_ind)
+        x_ptr = as_tensor_variable(x_ptr)
+        x_nrows = as_tensor_variable(x_nrows)
+        y = as_tensor_variable(y)
+        z = as_tensor_variable(z)
         assert x_ind.dtype == "int32"
         assert x_ptr.dtype == "int32"
         assert x_nrows.dtype == "int32"
@@ -731,13 +732,13 @@ class UsmmCscDense(_NoPythonCOp):
 
         # axpy work only with the same dtype, so we should upcast the input
         if dtype_out != alpha.type.dtype:
-            alpha = tt.cast(alpha, dtype_out)
+            alpha = cast(alpha, dtype_out)
         if dtype_out != x_val.type.dtype:
-            x_val = tt.cast(x_val, dtype_out)
+            x_val = cast(x_val, dtype_out)
         if dtype_out != y.type.dtype:
-            y = tt.cast(y, dtype_out)
+            y = cast(y, dtype_out)
         if dtype_out != z.type.dtype:
-            z = tt.cast(z, dtype_out)
+            z = cast(z, dtype_out)
 
         r = Apply(
             self,
@@ -935,10 +936,10 @@ usmm_csc_dense_inplace = UsmmCscDense(inplace=True)
 # This is tested in tests/test_basic.py:UsmmTests
 local_usmm = PatternSub(
     (
-        tt.sub,
+        sub,
         "z",
         (
-            tt.mul,
+            mul,
             {
                 "pattern": "alpha",
                 "constraint": lambda expr: (
@@ -948,7 +949,7 @@ local_usmm = PatternSub(
             (sparse._dot, "x", "y"),
         ),
     ),
-    (usmm, (tt.neg, "alpha"), "x", "y", "z"),
+    (usmm, (neg, "alpha"), "x", "y", "z"),
 )
 register_specialize(local_usmm, name="local_usmm")
 
@@ -1657,10 +1658,10 @@ class StructuredAddSVCSR(_NoPythonCOp):
     __props__ = ()
 
     def make_node(self, a_data, a_indices, a_indptr, b):
-        b = tt.as_tensor_variable(b)
-        a_data = tt.as_tensor_variable(a_data)
-        a_indices = tt.as_tensor_variable(a_indices)
-        a_indptr = tt.as_tensor_variable(a_indptr)
+        b = as_tensor_variable(b)
+        a_data = as_tensor_variable(a_data)
+        a_indices = as_tensor_variable(a_indices)
+        a_indptr = as_tensor_variable(a_indptr)
         assert a_data.type.ndim == 1
         assert a_indices.type.ndim == 1
         assert a_indptr.type.ndim == 1
@@ -1852,12 +1853,12 @@ class SamplingDotCSR(_NoPythonCOp):
     __props__ = ()
 
     def make_node(self, x, y, p_data, p_ind, p_ptr, p_ncols):
-        x = tt.as_tensor_variable(x)
-        y = tt.as_tensor_variable(y)
-        p_data = tt.as_tensor_variable(p_data)
-        p_ind = tt.as_tensor_variable(p_ind)
-        p_ptr = tt.as_tensor_variable(p_ptr)
-        p_ncols = tt.as_tensor_variable(p_ncols)
+        x = as_tensor_variable(x)
+        y = as_tensor_variable(y)
+        p_data = as_tensor_variable(p_data)
+        p_ind = as_tensor_variable(p_ind)
+        p_ptr = as_tensor_variable(p_ptr)
+        p_ncols = as_tensor_variable(p_ncols)
 
         assert p_ncols.dtype == "int32"
 
@@ -1865,8 +1866,8 @@ class SamplingDotCSR(_NoPythonCOp):
         dot_out = ts.upcast(x.type.dtype, y.type.dtype)
 
         # We call blas ?dot function that take only param of the same type
-        x = tt.cast(x, dot_out)
-        y = tt.cast(y, dot_out)
+        x = cast(x, dot_out)
+        y = cast(y, dot_out)
 
         return Apply(
             self,

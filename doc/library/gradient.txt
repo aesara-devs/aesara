@@ -36,7 +36,7 @@ List of Implemented R op
 See the :ref:`gradient tutorial <tutcomputinggrads>` for the R op documentation.
 
 list of ops that support R-op:
- * with test [Most is tests/tensor/test_rop.py]
+ * with test
     * SpecifyShape
     * MaxAndArgmax
     * Subtensor

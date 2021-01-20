@@ -5,9 +5,11 @@ from io import StringIO
 import numpy as np
 
 import theano
-import theano.tensor as tt
 from theano.compile.mode import Mode, get_mode
 from theano.configdefaults import config
+from theano.tensor.math import abs_
+from theano.tensor.math import max as tt_max
+from theano.tensor.math import min as tt_min
 from theano.tensor.type import discrete_dtypes
 
 
@@ -170,9 +172,9 @@ def f_compute(op):
     return result
 
 
-f_gpua_min = f_compute(tt.min)
-f_gpua_max = f_compute(tt.max)
-f_gpua_absmax = f_compute(lambda x: tt.max(tt.abs_(x)))
+f_gpua_min = f_compute(tt_min)
+f_gpua_max = f_compute(tt_max)
+f_gpua_absmax = f_compute(lambda x: tt_max(abs_(x)))
 
 
 class NanGuardMode(Mode):

@@ -1,9 +1,11 @@
 import numpy as np
 
-import theano.tensor as tt
 from theano.gradient import DisconnectedType
 from theano.graph.basic import Apply
 from theano.graph.op import Op
+from theano.tensor.basic import as_tensor_variable
+from theano.tensor.math import sqrt
+from theano.tensor.subtensor import set_subtensor
 from theano.tensor.type import TensorType, integer_dtypes
 
 
@@ -16,7 +18,7 @@ class RFFTOp(Op):
         return TensorType(inp.dtype, broadcastable=[False] * (inp.type.ndim + 1))
 
     def make_node(self, a, s=None):
-        a = tt.as_tensor_variable(a)
+        a = as_tensor_variable(a)
         if a.ndim < 2:
             raise TypeError(
                 "%s: input must have dimension > 2, with first dimension batches"
@@ -25,9 +27,9 @@ class RFFTOp(Op):
 
         if s is None:
             s = a.shape[1:]
-            s = tt.as_tensor_variable(s)
+            s = as_tensor_variable(s)
         else:
-            s = tt.as_tensor_variable(s)
+            s = as_tensor_variable(s)
             if s.dtype not in integer_dtypes:
                 raise TypeError(
                     "%s: length of the transformed axis must be"
@@ -57,7 +59,7 @@ class RFFTOp(Op):
             + [slice(1, (s[-1] // 2) + (s[-1] % 2))]
             + [slice(None)]
         )
-        gout = tt.set_subtensor(gout[idx], gout[idx] * 0.5)
+        gout = set_subtensor(gout[idx], gout[idx] * 0.5)
         return [irfft_op(gout, s), DisconnectedType()()]
 
     def connection_pattern(self, node):
@@ -77,7 +79,7 @@ class IRFFTOp(Op):
         return TensorType(inp.dtype, broadcastable=[False] * (inp.type.ndim - 1))
 
     def make_node(self, a, s=None):
-        a = tt.as_tensor_variable(a)
+        a = as_tensor_variable(a)
         if a.ndim < 3:
             raise TypeError(
                 f"{self.__class__.__name__}: input must have dimension >= 3,  with "
@@ -86,10 +88,10 @@ class IRFFTOp(Op):
 
         if s is None:
             s = a.shape[1:-1]
-            s = tt.set_subtensor(s[-1], (s[-1] - 1) * 2)
-            s = tt.as_tensor_variable(s)
+            s = set_subtensor(s[-1], (s[-1] - 1) * 2)
+            s = as_tensor_variable(s)
         else:
-            s = tt.as_tensor_variable(s)
+            s = as_tensor_variable(s)
             if s.dtype not in integer_dtypes:
                 raise TypeError(
                     "%s: length of the transformed axis must be"
@@ -120,7 +122,7 @@ class IRFFTOp(Op):
             + [slice(1, (s[-1] // 2) + (s[-1] % 2))]
             + [slice(None)]
         )
-        gf = tt.set_subtensor(gf[idx], gf[idx] * 2)
+        gf = set_subtensor(gf[idx], gf[idx] * 2)
         return [gf, DisconnectedType()()]
 
     def connection_pattern(self, node):
@@ -160,7 +162,7 @@ def rfft(inp, norm=None):
     cond_norm = _unitary(norm)
     scaling = 1
     if cond_norm == "ortho":
-        scaling = tt.sqrt(s.prod().astype(inp.dtype))
+        scaling = sqrt(s.prod().astype(inp.dtype))
 
     return rfft_op(inp, s) / scaling
 
@@ -199,9 +201,9 @@ def irfft(inp, norm=None, is_odd=False):
 
     s = inp.shape[1:-1]
     if is_odd:
-        s = tt.set_subtensor(s[-1], (s[-1] - 1) * 2 + 1)
+        s = set_subtensor(s[-1], (s[-1] - 1) * 2 + 1)
     else:
-        s = tt.set_subtensor(s[-1], (s[-1] - 1) * 2)
+        s = set_subtensor(s[-1], (s[-1] - 1) * 2)
 
     cond_norm = _unitary(norm)
     scaling = 1
@@ -209,7 +211,7 @@ def irfft(inp, norm=None, is_odd=False):
     if cond_norm is None:
         scaling = s.prod().astype(inp.dtype)
     elif cond_norm == "ortho":
-        scaling = tt.sqrt(s.prod().astype(inp.dtype))
+        scaling = sqrt(s.prod().astype(inp.dtype))
 
     return irfft_op(inp, s) / scaling
 

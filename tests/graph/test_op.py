@@ -11,6 +11,7 @@ from theano.graph.basic import Apply, Variable
 from theano.graph.op import COp, Op
 from theano.graph.type import Generic, Type
 from theano.graph.utils import MethodNotDefined, TestValueError
+from theano.tensor.math import log
 from theano.tensor.type import dmatrix, vector
 
 
@@ -289,7 +290,7 @@ def test_test_value_shared():
 @config.change_flags(compute_test_value="raise")
 def test_test_value_op():
 
-    x = tt.log(np.ones((5, 5)))
+    x = log(np.ones((5, 5)))
     v = op.get_test_value(x)
 
     assert np.allclose(v, np.zeros((5, 5)))

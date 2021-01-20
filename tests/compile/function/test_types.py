@@ -1,4 +1,5 @@
 import copy
+import os
 import pickle
 import time
 
@@ -16,11 +17,15 @@ from theano.configdefaults import config
 from theano.graph.basic import Constant
 from theano.graph.fg import MissingInputError
 from theano.graph.opt import OpKeyOptimizer, PatternSub
+from theano.tensor.math import dot
+from theano.tensor.math import sum as tt_sum
+from theano.tensor.math import tanh
 from theano.tensor.type import (
     dmatrix,
     dscalar,
     dscalars,
     dvector,
+    fmatrix,
     fscalar,
     iscalar,
     matrix,
@@ -317,7 +322,7 @@ class TestFunction:
         # SharedVariable for tests, one of them has update
         y = theano.shared(value=1)
         z = theano.shared(value=2)
-        out = tt.tanh((x + y + 2) / (x + z - 0.2) ** 2)
+        out = tanh((x + y + 2) / (x + z - 0.2) ** 2)
 
         # Test for different linkers
         for mode in ["FAST_RUN", "FAST_COMPILE"]:
@@ -426,7 +431,7 @@ class TestFunction:
         x = vector("x")
         y = vector("y")
         # this formular has no sense but for a test
-        out = (tt.sum(x) - y) ** 2
+        out = (tt_sum(x) - y) ** 2
         train = theano.function(
             [i],
             out,
@@ -921,7 +926,7 @@ class TestPicklefunction:
 
         f = function(
             [a, x, s, xm, sm],
-            ((a.T.T) * (tt.dot(xm, (sm.T.T.T)) + x).T * (x / x) + s),
+            ((a.T.T) * (dot(xm, (sm.T.T.T)) + x).T * (x / x) + s),
         )
         old_default_mode = config.mode
         old_default_opt = config.optimizer
@@ -1061,7 +1066,7 @@ class TestPicklefunction:
         x = matrix()
         y = theano.shared(b)
 
-        f = theano.function([x], tt.dot(x, y))
+        f = theano.function([x], dot(x, y))
 
         from io import BytesIO
 
@@ -1175,7 +1180,7 @@ def test_sync_update():
         target=tests.gpuarray.config.test_ctx_name,
     )
 
-    updates = [(w, w + np.asarray(0.001, "float32") * tt.dot(x, x))]
+    updates = [(w, w + np.asarray(0.001, "float32") * dot(x, x))]
 
     f = theano.function([], updates=updates, mode=tests.gpuarray.config.mode_with_gpu)
     assert len(f.maker.fgraph.apply_nodes) == 1
@@ -1221,3 +1226,40 @@ def test_sync_update():
     d1 = t_1 - t_0
     d2 = t_2 - t_1
     assert d1 > d2, (d1, d2)
+
+
+def test_FunctionMaker_cache_optimizations():
+
+    opt_db_file = os.path.join(config.compiledir, "optimized_graphs.pkl")
+    if os.path.exists(opt_db_file):
+        os.remove(opt_db_file)
+
+    floatX = "float32"
+    mode = config.mode
+    if mode in ["DEBUG_MODE", "DebugMode"]:
+        mode = "FAST_RUN"
+
+    graph_db_file = os.path.join(config.compiledir, "optimized_graphs.pkl")
+    assert not os.path.exists(graph_db_file)
+
+    with config.change_flags(cache_optimizations=True):
+        a = fmatrix("a")
+        b = fmatrix("b")
+        c = theano.shared(np.ones((10, 10), dtype=floatX))
+        d = theano.shared(np.ones((10, 10), dtype=floatX))
+        e = tt_sum(tt_sum(tt_sum(a ** 2 + b) + c) + d)
+        f1 = theano.function([a, b], e, mode=mode)
+
+        # FIXME: We can do much better about testing this.
+        assert os.path.exists(graph_db_file)
+
+        m = fmatrix("x1")
+        n = fmatrix("x2")
+        p = theano.shared(np.ones((10, 10), dtype=floatX))
+        q = theano.shared(np.ones((10, 10), dtype=floatX))
+        j = tt_sum(tt_sum(tt_sum(m ** 2 + n) + p) + q)
+        f2 = theano.function([m, n], j, mode=mode)
+
+        in1 = np.ones((10, 10), dtype=floatX)
+        in2 = np.ones((10, 10), dtype=floatX)
+        assert f1(in1, in2) == f2(in1, in2)

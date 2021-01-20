@@ -11,7 +11,7 @@ from theano.graph import utils
 from theano.graph.basic import Apply
 from theano.graph.op import COp, Op
 from theano.graph.type import Type
-from theano.tensor.basic import _allclose
+from theano.tensor.math import _allclose, dot
 from theano.tensor.type import fmatrix, iscalar, matrix, vector
 
 
@@ -84,7 +84,7 @@ class TestComputeTestValue:
         y.tag.test_value = np.random.rand(4, 5).astype(config.floatX)
 
         # should work
-        z = tt.dot(x, y)
+        z = dot(x, y)
         assert hasattr(z.tag, "test_value")
         f = theano.function([x, y], z)
         assert _allclose(f(x.tag.test_value, y.tag.test_value), z.tag.test_value)
@@ -92,7 +92,7 @@ class TestComputeTestValue:
         # this test should fail
         y.tag.test_value = np.random.rand(6, 5).astype(config.floatX)
         with pytest.raises(ValueError):
-            tt.dot(x, y)
+            dot(x, y)
 
     def test_compute_flag(self):
         x = matrix("x")
@@ -101,18 +101,18 @@ class TestComputeTestValue:
 
         # should skip computation of test value
         with config.change_flags(compute_test_value="off"):
-            z = tt.dot(x, y)
+            z = dot(x, y)
             assert not hasattr(z.tag, "test_value")
 
         # should fail when asked by user
         with pytest.raises(ValueError), config.change_flags(compute_test_value="raise"):
-            tt.dot(x, y)
+            dot(x, y)
 
         # test that a warning is raised if required
         with warnings.catch_warnings(), config.change_flags(compute_test_value="warn"):
             warnings.simplefilter("error", UserWarning)
             with pytest.raises(UserWarning):
-                tt.dot(x, y)
+                dot(x, y)
 
     def test_string_var(self):
         x = matrix("x")
@@ -123,13 +123,13 @@ class TestComputeTestValue:
         z = theano.shared(np.random.rand(5, 6).astype(config.floatX))
 
         # should work
-        out = tt.dot(tt.dot(x, y), z)
+        out = dot(dot(x, y), z)
         assert hasattr(out.tag, "test_value")
         tf = theano.function([x, y], out)
         assert _allclose(tf(x.tag.test_value, y.tag.test_value), out.tag.test_value)
 
         def f(x, y, z):
-            return tt.dot(tt.dot(x, y), z)
+            return dot(dot(x, y), z)
 
         # this test should fail
         z.set_value(np.random.rand(7, 6).astype(config.floatX))
@@ -142,7 +142,7 @@ class TestComputeTestValue:
         y = theano.shared(np.random.rand(4, 6).astype(config.floatX), "y")
 
         # should work
-        z = tt.dot(x, y)
+        z = dot(x, y)
         assert hasattr(z.tag, "test_value")
         f = theano.function([x], z)
         assert _allclose(f(x.tag.test_value), z.tag.test_value)
@@ -150,14 +150,14 @@ class TestComputeTestValue:
         # this test should fail
         y.set_value(np.random.rand(5, 6).astype(config.floatX))
         with pytest.raises(ValueError):
-            tt.dot(x, y)
+            dot(x, y)
 
     def test_ndarray(self):
         x = np.random.rand(2, 3).astype(config.floatX)
         y = theano.shared(np.random.rand(3, 6).astype(config.floatX), "y")
 
         # should work
-        z = tt.dot(x, y)
+        z = dot(x, y)
         assert hasattr(z.tag, "test_value")
         f = theano.function([], z)
         assert _allclose(f(), z.tag.test_value)
@@ -165,7 +165,7 @@ class TestComputeTestValue:
         # this test should fail
         x = np.random.rand(2, 4).astype(config.floatX)
         with pytest.raises(ValueError):
-            tt.dot(x, y)
+            dot(x, y)
 
     def test_empty_elemwise(self):
         x = theano.shared(np.random.rand(0, 6).astype(config.floatX), "x")
@@ -181,7 +181,7 @@ class TestComputeTestValue:
         y = theano.shared(np.random.rand(3, 6).astype(config.floatX), "y")
 
         # should work
-        z = tt.dot(x, y)
+        z = dot(x, y)
         assert hasattr(z.tag, "test_value")
         f = theano.function([], z)
         assert _allclose(f(), z.tag.test_value)
@@ -189,7 +189,7 @@ class TestComputeTestValue:
         # this test should fail
         x = tt.constant(np.random.rand(2, 4), dtype=config.floatX)
         with pytest.raises(ValueError):
-            tt.dot(x, y)
+            dot(x, y)
 
     def test_incorrect_type(self):
 
@@ -242,7 +242,7 @@ class TestComputeTestValue:
         A.tag.test_value = np.random.rand(5, 3).astype(config.floatX)
 
         def fx(prior_result, A):
-            return tt.dot(prior_result, A)
+            return dot(prior_result, A)
 
         with pytest.raises(ValueError) as e:
             theano.scan(fn=fx, outputs_info=tt.ones_like(A), non_sequences=A, n_steps=k)
@@ -260,7 +260,7 @@ class TestComputeTestValue:
         A.tag.test_value = np.random.rand(5, 3).astype(config.floatX)
 
         def fx(prior_result, A):
-            return tt.dot(prior_result, A)
+            return dot(prior_result, A)
 
         with pytest.raises(ValueError):
             theano.scan(

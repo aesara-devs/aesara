@@ -16,6 +16,8 @@ import theano.sparse
 from theano import sparse
 from theano import tensor as tt
 from theano.graph.op import Op
+from theano.tensor.math import dot
+from theano.tensor.math import max as tt_max
 from theano.tensor.shape import reshape
 from theano.tensor.subtensor import DimShuffle
 
@@ -361,7 +363,7 @@ def convolve(
 
     # kern is of shape: nkern x ksize*number_of_input_features
     # output is thus of shape: bsize*outshp x nkern
-    output = tt.dot(patch_stack, kerns.T)
+    output = dot(patch_stack, kerns.T)
 
     # add bias across each feature map (more efficient to do it now)
     if bias is not None:
@@ -428,7 +430,7 @@ def max_pool(images, imgshp, maxpoolshp):
     )
     patch_stack = reshape(patches, pshape, ndim=3)
 
-    out1 = tt.max(patch_stack, axis=2)
+    out1 = tt_max(patch_stack, axis=2)
 
     pshape = tt.stack(
         [

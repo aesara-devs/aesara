@@ -12,6 +12,8 @@ import numpy as np
 
 import theano
 import theano.tensor as tt
+from theano.gradient import grad
+from theano.tensor.math import argmax, dot, log, tanh
 from theano.tensor.nnet.basic import CrossentropySoftmax1HotWithBiasDx, softmax
 from theano.tensor.type import ivector, lscalar, matrix
 
@@ -98,11 +100,11 @@ class LogisticRegression:
         )
 
         # compute vector of class-membership probabilities in symbolic form
-        self.p_y_given_x = softmax(tt.dot(input, self.W))
+        self.p_y_given_x = softmax(dot(input, self.W))
 
         # compute prediction as class whose probability is maximal in
         # symbolic form
-        self.y_pred = tt.argmax(self.p_y_given_x, axis=1)
+        self.y_pred = argmax(self.p_y_given_x, axis=1)
 
         # parameters of the model
         self.params = [self.W]
@@ -130,11 +132,11 @@ class LogisticRegression:
         # LP[T.arange(y.shape[0]),y] is a vector v containing [LP[0,y[0]], LP[1,y[1]], LP[2,y[2]], ..., LP[n-1,y[n-1]]]
         # and T.mean(LP[T.arange(y.shape[0]),y]) is the mean (across minibatch examples) of the elements in v,
         # i.e., the mean log-likelihood across the minibatch.
-        return tt.log(self.p_y_given_x[tt.arange(y.shape[0]), y])
+        return log(self.p_y_given_x[tt.arange(y.shape[0]), y])
 
 
 class HiddenLayer:
-    def __init__(self, rng, input, n_in, n_out, activation=tt.tanh, name_prefix=""):
+    def __init__(self, rng, input, n_in, n_out, activation=tanh, name_prefix=""):
         """
         Typical hidden layer of a MLP: units are fully-connected and have
         sigmoidal activation function. Weight matrix W is of shape (n_in,n_out)
@@ -176,7 +178,7 @@ class HiddenLayer:
         )
         self.W = theano.shared(value=W_values, name=name_prefix + "W")
 
-        self.output = tt.dot(input, self.W)
+        self.output = dot(input, self.W)
         # parameters of the model
         self.params = [self.W]
 
@@ -224,7 +226,7 @@ class MLP:
             input=input,
             n_in=n_in,
             n_out=n_hidden,
-            activation=tt.tanh,
+            activation=tanh,
             name_prefix="hid_",
         )
 
@@ -305,7 +307,7 @@ def test_mlp():
     # the resulting gradients will be stored in a list gparams
     gparams = []
     for param in classifier.params:
-        gparam = tt.grad(cost, param)
+        gparam = grad(cost, param)
         gparams.append(gparam)
 
     # Some optimizations needed are tagged with 'fast_run'
@@ -314,7 +316,7 @@ def test_mlp():
 
     updates2 = OrderedDict()
 
-    updates2[classifier.hiddenLayer.params[0]] = tt.grad(
+    updates2[classifier.hiddenLayer.params[0]] = grad(
         cost, classifier.hiddenLayer.params[0]
     )
     train_model = theano.function(

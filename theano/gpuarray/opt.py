@@ -174,11 +174,11 @@ from theano.tensor.basic import (
     Eye,
     Flatten,
     Join,
-    MaxAndArgmax,
     Rebroadcast,
     Split,
     Tri,
 )
+from theano.tensor.math import MaxAndArgmax
 from theano.tensor.nnet import bn, conv3d2d
 from theano.tensor.nnet.abstract_conv import (
     AbstractConv2d,
@@ -1228,15 +1228,15 @@ def local_gpu_extract_diag(fgraph, op, context_name, inputs, outputs):
 @op_lifter(
     [
         theano.tensor.elemwise.CAReduce,
-        theano.tensor.elemwise.Sum,
-        theano.tensor.elemwise.Prod,
+        theano.tensor.math.Sum,
+        theano.tensor.math.Prod,
     ]
 )
 @register_opt2(
     [
         theano.tensor.elemwise.CAReduce,
-        theano.tensor.elemwise.Sum,
-        theano.tensor.elemwise.Prod,
+        theano.tensor.math.Sum,
+        theano.tensor.math.Prod,
     ],
     "fast_compile",
 )

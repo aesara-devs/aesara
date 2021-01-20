@@ -12,6 +12,8 @@ from theano.gpuarray.elemwise import GpuElemwise
 from theano.scan.basic import scan
 from theano.scan.checkpoints import scan_checkpoints
 from theano.scan.op import Scan
+from theano.tensor.math import dot
+from theano.tensor.math import sum as tt_sum
 from theano.tensor.type import fscalar, ftensor3, fvector, iscalar, vector
 
 
@@ -574,10 +576,10 @@ class ScanGpuTests:
         nparams = [U, V, W]
 
         # Build the forward pass
-        l1_base = tt.dot(xin, U)
+        l1_base = dot(xin, U)
 
         def scan_l(baseline, last_step):
-            return baseline + tt.dot(last_step, V)
+            return baseline + dot(last_step, V)
 
         zero_output = tt.alloc(np.asarray(0.0, dtype="float32"), mb_size, n_hid)
 
@@ -588,10 +590,10 @@ class ScanGpuTests:
             mode=self.mode_with_gpu_nodebug,
         )
 
-        l2_out = tt.dot(l1_out, W)
+        l2_out = dot(l1_out, W)
 
         # Compute the cost and take the gradient wrt params
-        cost = tt.sum((l2_out - yout) ** 2)
+        cost = tt_sum((l2_out - yout) ** 2)
         grads = theano.grad(cost, nparams)
         updates = list(zip(nparams, (n - g for n, g in zip(nparams, grads))))
 

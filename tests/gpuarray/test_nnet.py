@@ -10,6 +10,8 @@ from theano.gpuarray.nnet import (
     GpuSoftmax,
     GpuSoftmaxWithBias,
 )
+from theano.gradient import grad
+from theano.tensor.math import argmax, log, mean
 from theano.tensor.nnet import crossentropy_softmax_1hot_with_bias_dx
 from theano.tensor.type import fmatrix, fvector, lvector, matrix, vector
 
@@ -51,9 +53,9 @@ def test_GpuCrossentropySoftmaxArgmax1HotWithBias():
     dot_value = np.asarray(np.dot(xx, W_values), dtype="float32")
     del W_values
     p_y_given_x = theano.tensor.nnet.softmax(dot_result + b)
-    y_pred = tt.argmax(p_y_given_x, axis=-1)
-    loss = -tt.mean(tt.log(p_y_given_x)[tt.arange(y.shape[0]), y])
-    dW = tt.grad(loss, dot_result)
+    y_pred = argmax(p_y_given_x, axis=-1)
+    loss = -mean(log(p_y_given_x)[tt.arange(y.shape[0]), y])
+    dW = grad(loss, dot_result)
     classify = theano.function(
         inputs=[y, b, dot_result], outputs=[loss, y_pred, dW], mode=mode_without_gpu
     )

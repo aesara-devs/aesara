@@ -2,20 +2,11 @@ import copy
 
 import numpy as np
 
-import theano
-import theano.tensor as tt
-from theano.tensor.elemwise import DimShuffle
+from theano.compile.function import function
+from theano.compile.io import Out
+from theano.tensor.math import dot
 from theano.tensor.nnet import crossentropy_softmax_argmax_1hot_with_bias
-from theano.tensor.type import dmatrix, dvector, ivector, lvector, matrix
-
-
-def test_bug_2009_06_02_trac_387():
-    y = lvector("y")
-    f = theano.function([y], tt.int_div(DimShuffle(y[0].broadcastable, ["x"])(y[0]), 2))
-    # TODO FIXME: This is NOT a test.
-    print(f(np.ones(1, dtype="int64") * 3))
-    # XXX: there is no assert, nor comment that DEBUGMODE is to do the
-    #      checking. What was the bug, and how is it being tested?
+from theano.tensor.type import dmatrix, dvector, ivector, matrix
 
 
 def test_bug_2009_07_17_borrowed_output():
@@ -23,16 +14,16 @@ def test_bug_2009_07_17_borrowed_output():
     a = dmatrix()
     b = dmatrix()
     # The output should *NOT* be borrowed.
-    g = theano.function([a, b], theano.Out(tt.dot(a, b), borrow=False))
+    g = function([a, b], Out(dot(a, b), borrow=False))
 
     x = np.zeros((1, 2))
     y = np.ones((2, 5))
 
     z = g(x, y)
-    print(z)  # Should be zero.
+    # print(z)  # Should be zero.
     x.fill(1)
-    print(g(x, y))  # Should be non-zero.
-    print(z)  # Should still be zero.
+    # print(g(x, y))  # Should be non-zero.
+    # print(z)  # Should still be zero.
     assert np.linalg.norm(z) == 0
 
     # The code above was supposed to fail when it was written (or, more
@@ -50,9 +41,9 @@ def test_bug_2009_07_17_borrowed_output():
         test_output_activation_no_bias, test_b2, test_target
     )
     output = nll_softmax_argmax[1]
-    g = theano.function(
+    g = function(
         [test_output_activation_no_bias, test_b2, test_target],
-        theano.Out(output, borrow=False),
+        Out(output, borrow=False),
     )
 
     a = np.zeros((1, 5))
@@ -62,10 +53,10 @@ def test_bug_2009_07_17_borrowed_output():
     z = g(a, b, c)
     z_backup = copy.copy(z)
     id_z = id(z)
-    print(f"Output z after first call: {z}")
+    # print(f"Output z after first call: {z}")
     a[0, 0] = 1
     id_other = id(g(a, b, c))
-    print(f"Output z after second call: {z}")
+    # print(f"Output z after second call: {z}")
     # Ensure that calling the function again returns a pointer towards a new
     # array.
     assert id_z != id_other

@@ -6,12 +6,13 @@ sp = pytest.importorskip("scipy", minversion="0.7.0")
 import numpy as np
 
 import theano
-import theano.tensor as tt
 from tests import unittest_tools as utt
 from tests.sparse.test_basic import random_lil
 from theano import sparse
 from theano.compile.mode import Mode, get_default_mode
 from theano.configdefaults import config
+from theano.tensor.basic import as_tensor_variable
+from theano.tensor.math import sum as tt_sum
 from theano.tensor.type import ivector, matrix, vector
 
 
@@ -54,7 +55,7 @@ def test_local_csm_grad_c():
         (sparse.CSC, sp.sparse.csc_matrix),
         (sparse.CSR, sp.sparse.csr_matrix),
     ]:
-        cost = tt.sum(sparse.DenseFromSparse()(CS(data, indices, indptr, shape)))
+        cost = tt_sum(sparse.DenseFromSparse()(CS(data, indices, indptr, shape)))
         f = theano.function(
             [data, indices, indptr, shape], theano.grad(cost, data), mode=mode
         )
@@ -167,11 +168,11 @@ def test_sd_csc():
     b = np.random.rand(5, 2).astype(np.float32)
     target = A * b
 
-    a_val = tt.as_tensor_variable(A.data)
-    a_ind = tt.as_tensor_variable(A.indices)
-    a_ptr = tt.as_tensor_variable(A.indptr)
-    nrows = tt.as_tensor_variable(np.int32(A.shape[0]))
-    b = tt.as_tensor_variable(b)
+    a_val = as_tensor_variable(A.data)
+    a_ind = as_tensor_variable(A.indices)
+    a_ptr = as_tensor_variable(A.indptr)
+    nrows = as_tensor_variable(np.int32(A.shape[0]))
+    b = as_tensor_variable(b)
 
     res = theano.sparse.opt.sd_csc(a_val, a_ind, a_ptr, nrows, b).eval()
 

@@ -5,7 +5,7 @@ from collections.abc import Iterable
 
 import numpy as np
 
-import theano
+from theano import tensor as tt
 from theano.configdefaults import config
 from theano.graph.basic import Constant, Variable
 from theano.scalar import ComplexError, IntegerDivisionError
@@ -16,10 +16,10 @@ from theano.tensor.utils import hash_from_ndarray
 
 class _tensor_py_operators:
     def __abs__(self):
-        return theano.tensor.basic.abs_(self)
+        return tt.math.abs_(self)
 
     def __neg__(self):
-        return theano.tensor.basic.neg(self)
+        return tt.math.neg(self)
 
     # These won't work because Python requires an int return value
     # def __int__(self): return convert_to_int32(self)
@@ -29,22 +29,22 @@ class _tensor_py_operators:
     _is_nonzero = True
 
     def __lt__(self, other):
-        rval = theano.tensor.basic.lt(self, other)
+        rval = tt.math.lt(self, other)
         rval._is_nonzero = False
         return rval
 
     def __le__(self, other):
-        rval = theano.tensor.basic.le(self, other)
+        rval = tt.math.le(self, other)
         rval._is_nonzero = False
         return rval
 
     def __gt__(self, other):
-        rval = theano.tensor.basic.gt(self, other)
+        rval = tt.math.gt(self, other)
         rval._is_nonzero = False
         return rval
 
     def __ge__(self, other):
-        rval = theano.tensor.basic.ge(self, other)
+        rval = tt.math.ge(self, other)
         rval._is_nonzero = False
         return rval
 
@@ -68,25 +68,25 @@ class _tensor_py_operators:
             raise TypeError("Variables do not support boolean operations.")
 
     def __invert__(self):
-        return theano.tensor.basic.invert(self)
+        return tt.math.invert(self)
 
     def __and__(self, other):
-        return theano.tensor.basic.and_(self, other)
+        return tt.math.and_(self, other)
 
     def __or__(self, other):
-        return theano.tensor.basic.or_(self, other)
+        return tt.math.or_(self, other)
 
     def __xor__(self, other):
-        return theano.tensor.basic.xor(self, other)
+        return tt.math.xor(self, other)
 
     def __rand__(self, other):
-        return theano.tensor.basic.and_(other, self)
+        return tt.math.and_(other, self)
 
     def __ror__(self, other):
-        return theano.tensor.basic.or_(other, self)
+        return tt.math.or_(other, self)
 
     def __rxor__(self, other):
-        return theano.tensor.basic.xor(other, self)
+        return tt.math.xor(other, self)
 
     # def __iand__(self, other):
     #    return _and_inplace(self, other)
@@ -99,7 +99,7 @@ class _tensor_py_operators:
 
     def __add__(self, other):
         try:
-            return theano.tensor.basic.add(self, other)
+            return tt.math.add(self, other)
         # We should catch the minimum number of exception here.
         # Otherwise this will convert error when Theano flags
         # compute_test_value is used
@@ -118,7 +118,7 @@ class _tensor_py_operators:
         # See explanation in __add__ for the error catched
         # and the return value in that case
         try:
-            return theano.tensor.basic.sub(self, other)
+            return tt.math.sub(self, other)
         except (NotImplementedError, TypeError):
             return NotImplemented
 
@@ -126,7 +126,7 @@ class _tensor_py_operators:
         # See explanation in __add__ for the error catched
         # and the return value in that case
         try:
-            return theano.tensor.mul(self, other)
+            return tt.math.mul(self, other)
         except (NotImplementedError, TypeError):
             return NotImplemented
 
@@ -134,7 +134,7 @@ class _tensor_py_operators:
         # See explanation in __add__ for the error catched
         # and the return value in that case
         try:
-            return theano.tensor.basic.div_proxy(self, other)
+            return tt.math.div_proxy(self, other)
         except IntegerDivisionError:
             # This is to raise the exception that occurs when trying to divide
             # two integer arrays (currently forbidden).
@@ -148,7 +148,7 @@ class _tensor_py_operators:
         # See explanation in __add__ for the error catched
         # and the return value in that case
         try:
-            return theano.tensor.basic.pow(self, other)
+            return tt.math.pow(self, other)
         except (NotImplementedError, TypeError):
             return NotImplemented
 
@@ -156,7 +156,7 @@ class _tensor_py_operators:
         # See explanation in __add__ for the error catched
         # and the return value in that case
         try:
-            return theano.tensor.basic.mod_check(self, other)
+            return tt.math.mod_check(self, other)
         except ComplexError:
             # This is to raise the exception that occurs when trying to compute
             # x % y with either x or y a complex number.
@@ -165,19 +165,19 @@ class _tensor_py_operators:
             return NotImplemented
 
     def __divmod__(self, other):
-        return theano.tensor.basic.divmod(self, other)
+        return tt.math.divmod(self, other)
 
     def __truediv__(self, other):
-        return theano.tensor.basic.true_div(self, other)
+        return tt.math.true_div(self, other)
 
     def __floordiv__(self, other):
-        return theano.tensor.basic.floor_div(self, other)
+        return tt.math.floor_div(self, other)
 
     def __rtruediv__(self, other):
-        return theano.tensor.basic.true_div(other, self)
+        return tt.math.true_div(other, self)
 
     def __rfloordiv__(self, other):
-        return theano.tensor.basic.floor_div(other, self)
+        return tt.math.floor_div(other, self)
 
     # Do not use these; in-place `Op`s should be inserted by optimizations
     # only!
@@ -196,39 +196,39 @@ class _tensor_py_operators:
     #    return _pow_inplace(self, other)
 
     def __radd__(self, other):
-        return theano.tensor.basic.add(other, self)
+        return tt.math.add(other, self)
 
     def __rsub__(self, other):
-        return theano.tensor.basic.sub(other, self)
+        return tt.math.sub(other, self)
 
     def __rmul__(self, other):
-        return theano.tensor.basic.mul(other, self)
+        return tt.math.mul(other, self)
 
     def __rdiv__(self, other):
-        return theano.tensor.basic.div_proxy(other, self)
+        return tt.math.div_proxy(other, self)
 
     def __rmod__(self, other):
-        return theano.tensor.basic.mod(other, self)
+        return tt.math.mod(other, self)
 
     def __rdivmod__(self, other):
-        return theano.tensor.basic.divmod(other, self)
+        return tt.math.divmod(other, self)
 
     def __rpow__(self, other):
-        return theano.tensor.basic.pow(other, self)
+        return tt.math.pow(other, self)
 
     def __ceil__(self):
-        return theano.tensor.ceil(self)
+        return tt.math.ceil(self)
 
     def __floor__(self):
-        return theano.tensor.floor(self)
+        return tt.math.floor(self)
 
     def __trunc__(self):
-        return theano.tensor.trunc(self)
+        return tt.math.trunc(self)
 
     # NumPy-like transpose property
     @property
     def T(self):
-        return theano.tensor.basic.transpose(self)
+        return tt.basic.transpose(self)
 
     def transpose(self, *axes):
         """Transpose this array.
@@ -244,35 +244,33 @@ class _tensor_py_operators:
 
         """
         if len(axes) == 0:
-            return theano.tensor.basic.transpose(self)
+            return tt.basic.transpose(self)
         try:
             iter(axes[0])
             iterable = True
         except TypeError:
             iterable = False
         if len(axes) == 1 and iterable:
-            return theano.tensor.basic.transpose(self, axes[0])
+            return tt.basic.transpose(self, axes[0])
         else:
-            return theano.tensor.basic.transpose(self, axes)
+            return tt.basic.transpose(self, axes)
 
     @property
     def shape(self):
-        from theano.tensor.shape import shape
-
-        return shape(self)
+        return tt.shape(self)
 
     @property
     def size(self):
         if self.ndim == 1:
             return self.shape[0]
         else:
-            return theano.tensor.basic.prod(self.shape)
+            return tt.math.prod(self.shape)
 
     def any(self, axis=None, keepdims=False):
-        return theano.tensor.basic.any(self, axis=axis, keepdims=keepdims)
+        return tt.math.any(self, axis=axis, keepdims=keepdims)
 
     def all(self, axis=None, keepdims=False):
-        return theano.tensor.basic.all(self, axis=axis, keepdims=keepdims)
+        return tt.math.all(self, axis=axis, keepdims=keepdims)
 
     # Old note: "We can't implement this because Python requests that this
     # function returns an integer."
@@ -301,15 +299,13 @@ class _tensor_py_operators:
                      in a tuple, in theano you do need to.
 
         """
-        from theano.tensor.shape import reshape
-
         if ndim is not None:
             if not isinstance(ndim, int):
                 raise ValueError(
                     "Expected ndim to be an integer, is " + str(type(ndim))
                 )
 
-        return reshape(self, shape, ndim=ndim)
+        return tt.reshape(self, shape, ndim=ndim)
 
     def dimshuffle(self, *pattern):
         """
@@ -342,17 +338,17 @@ class _tensor_py_operators:
         """
         if (len(pattern) == 1) and (isinstance(pattern[0], (list, tuple))):
             pattern = pattern[0]
-        op = theano.tensor.basic.DimShuffle(list(self.type.broadcastable), pattern)
+        op = tt.elemwise.DimShuffle(list(self.type.broadcastable), pattern)
         return op(self)
 
     def flatten(self, ndim=1):
-        return theano.tensor.basic.flatten(self, ndim)
+        return tt.basic.flatten(self, ndim)
 
     def ravel(self):
-        return theano.tensor.basic.flatten(self)
+        return tt.basic.flatten(self)
 
     def diagonal(self, offset=0, axis1=0, axis2=1):
-        return theano.tensor.basic.diagonal(self, offset, axis1, axis2)
+        return tt.basic.diagonal(self, offset, axis1, axis2)
 
     def transfer(self, target):
         """Transfer this this array's data to another device.
@@ -365,85 +361,85 @@ class _tensor_py_operators:
         target : str
             The desired location of the output variable
         """
-        return theano.tensor.transfer(self, target)
+        return tt.basic.transfer(self, target)
 
     def arccos(self):
-        return theano.tensor.arccos(self)
+        return tt.math.arccos(self)
 
     def arccosh(self):
-        return theano.tensor.arccosh(self)
+        return tt.math.arccosh(self)
 
     def arcsin(self):
-        return theano.tensor.arcsin(self)
+        return tt.math.arcsin(self)
 
     def arcsinh(self):
-        return theano.tensor.arcsinh(self)
+        return tt.math.arcsinh(self)
 
     def arctan(self):
-        return theano.tensor.arctan(self)
+        return tt.math.arctan(self)
 
     def arctanh(self):
-        return theano.tensor.arctanh(self)
+        return tt.math.arctanh(self)
 
     def ceil(self):
-        return theano.tensor.ceil(self)
+        return tt.math.ceil(self)
 
     def cos(self):
-        return theano.tensor.cos(self)
+        return tt.math.cos(self)
 
     def cosh(self):
-        return theano.tensor.cosh(self)
+        return tt.math.cosh(self)
 
     def deg2rad(self):
-        return theano.tensor.deg2rad(self)
+        return tt.math.deg2rad(self)
 
     def exp(self):
-        return theano.tensor.exp(self)
+        return tt.math.exp(self)
 
     def exp2(self):
-        return theano.tensor.exp2(self)
+        return tt.math.exp2(self)
 
     def expm1(self):
-        return theano.tensor.expm1(self)
+        return tt.math.expm1(self)
 
     def floor(self):
-        return theano.tensor.floor(self)
+        return tt.math.floor(self)
 
     def log(self):
-        return theano.tensor.log(self)
+        return tt.math.log(self)
 
     def log10(self):
-        return theano.tensor.log10(self)
+        return tt.math.log10(self)
 
     def log1p(self):
-        return theano.tensor.log1p(self)
+        return tt.math.log1p(self)
 
     def log2(self):
-        return theano.tensor.log2(self)
+        return tt.math.log2(self)
 
     def rad2deg(self):
-        return theano.tensor.rad2deg(self)
+        return tt.math.rad2deg(self)
 
     def sin(self):
-        return theano.tensor.sin(self)
+        return tt.math.sin(self)
 
     def sinh(self):
-        return theano.tensor.sinh(self)
+        return tt.math.sinh(self)
 
     def sqrt(self):
-        return theano.tensor.sqrt(self)
+        return tt.math.sqrt(self)
 
     def tan(self):
-        return theano.tensor.tan(self)
+        return tt.math.tan(self)
 
     def tanh(self):
-        return theano.tensor.tanh(self)
+        return tt.math.tanh(self)
 
     def trunc(self):
-        return theano.tensor.trunc(self)
+        return tt.math.trunc(self)
 
     def astype(self, dtype):
-        return theano.tensor.cast(self, dtype)
+        return tt.basic.cast(self, dtype)
 
     def __getitem__(self, args):
         def includes_bool(args_el):
@@ -520,7 +516,7 @@ class _tensor_py_operators:
         # Convert python literals to theano constants
         args = tuple(
             [
-                theano.tensor.subtensor.as_index_constant(
+                tt.subtensor.as_index_constant(
                     np.array(inp, dtype=np.int64) if is_empty_array(inp) else inp
                 )
                 for inp in args
@@ -541,7 +537,7 @@ class _tensor_py_operators:
 
             if arg is not np.newaxis:
                 try:
-                    theano.tensor.subtensor.Subtensor.convert(arg)
+                    tt.subtensor.Subtensor.convert(arg)
                 except AdvancedIndexingError:
                     if advanced:
                         axis = None
@@ -569,7 +565,7 @@ class _tensor_py_operators:
                         list,
                         TensorVariable,
                         TensorConstant,
-                        theano.tensor.sharedvar.TensorSharedVariable,
+                        tt.sharedvar.TensorSharedVariable,
                     ),
                 )
             ):
@@ -580,7 +576,7 @@ class _tensor_py_operators:
                 # so we simply return its result.
                 return self.take(args[axis], axis)
             else:
-                return theano.tensor.subtensor.advanced_subtensor(self, *args)
+                return tt.subtensor.advanced_subtensor(self, *args)
         else:
             if np.newaxis in args:
                 # `np.newaxis` (i.e. `None`) in NumPy indexing mean "add a new
@@ -619,35 +615,35 @@ class _tensor_py_operators:
                 else:
                     return view.__getitem__(tuple(new_args))
             else:
-                return theano.tensor.subtensor.Subtensor(args)(
+                return tt.subtensor.Subtensor(args)(
                     self,
-                    *theano.tensor.subtensor.Subtensor.collapse(
+                    *tt.subtensor.Subtensor.collapse(
                         args, lambda entry: isinstance(entry, Variable)
                     ),
                 )
 
     def take(self, indices, axis=None, mode="raise"):
-        return theano.tensor.subtensor.take(self, indices, axis, mode)
+        return tt.subtensor.take(self, indices, axis, mode)
 
     def copy(self, name=None):
         """Return a symbolic copy and optionally assign a name.
 
         Does not copy the tags.
         """
-        copied_variable = theano.tensor.basic.tensor_copy(self)
+        copied_variable = tt.basic.tensor_copy(self)
         copied_variable.name = name
         return copied_variable
 
     def __iter__(self):
         try:
-            for i in range(theano.tensor.basic.get_vector_length(self)):
+            for i in range(tt.basic.get_vector_length(self)):
                 yield self[i]
         except TypeError:
             # This prevents accidental iteration via sum(self)
             raise TypeError(
                 "TensorType does not support iteration. "
                 "Maybe you are using builtins.sum instead of "
-                "theano.tensor.sum? (Maybe .max?)"
+                "theano.tensor.math.sum? (Maybe .max?)"
             )
 
     @property
@@ -673,22 +669,22 @@ class _tensor_py_operators:
         return self.type.dtype
 
     def __dot__(left, right):
-        return theano.tensor.basic.dense_dot(left, right)
+        return tt.math.dense_dot(left, right)
 
     def __rdot__(right, left):
-        return theano.tensor.basic.dense_dot(left, right)
+        return tt.math.dense_dot(left, right)
 
     dot = __dot__
 
     def sum(self, axis=None, dtype=None, keepdims=False, acc_dtype=None):
-        """See `theano.tensor.sum`."""
-        return theano.tensor.basic.sum(
+        """See `theano.tensor.math.sum`."""
+        return tt.math.sum(
             self, axis=axis, dtype=dtype, keepdims=keepdims, acc_dtype=acc_dtype
         )
 
     def prod(self, axis=None, dtype=None, keepdims=False, acc_dtype=None):
-        """See `theano.tensor.prod`."""
-        return theano.tensor.basic.prod(
+        """See `theano.tensor.math.prod`."""
+        return tt.math.prod(
             self, axis=axis, dtype=dtype, keepdims=keepdims, acc_dtype=acc_dtype
         )
 
@@ -698,125 +694,126 @@ class _tensor_py_operators:
         if np.isinf(L):
             raise NotImplementedError()
         # optimizations will/should catch cases like L=1, L=2
-        y = theano.tensor.basic.pow(
-            theano.tensor.basic.pow(theano.tensor.basic.abs_(self), L).sum(axis=axis),
+        y = tt.math.pow(
+            tt.math.pow(tt.math.abs_(self), L).sum(axis=axis),
             1.0 / L,
         )
         if keepdims:
-            return theano.tensor.basic.makeKeepDims(self, y, axis)
+            return tt.math.makeKeepDims(self, y, axis)
         else:
             return y
 
     def mean(self, axis=None, dtype=None, keepdims=False, acc_dtype=None):
-        """See `theano.tensor.mean`."""
-        return theano.tensor.basic.mean(
+        """See `theano.tensor.math.mean`."""
+        return tt.math.mean(
             self, axis=axis, dtype=dtype, keepdims=keepdims, acc_dtype=acc_dtype
         )
 
     def var(self, axis=None, ddof=0, keepdims=False, corrected=False):
-        """See `theano.tensor.var`."""
-        return theano.tensor.basic.var(
+        """See `theano.tensor.math.var`."""
+        return tt.math.var(
             self, axis=axis, ddof=ddof, keepdims=keepdims, corrected=corrected
         )
 
     def std(self, axis=None, ddof=0, keepdims=False, corrected=False):
-        """See `theano.tensor.std`."""
-        return theano.tensor.basic.std(
+        """See `theano.tensor.math.std`."""
+        return tt.math.std(
             self, axis=axis, ddof=ddof, keepdims=keepdims, corrected=corrected
         )
 
     def min(self, axis=None, keepdims=False):
-        """See `theano.tensor.min`."""
-        return theano.tensor.basic.min(self, axis, keepdims=keepdims)
+        """See `theano.tensor.math.min`."""
+        return tt.math.min(self, axis, keepdims=keepdims)
 
     def max(self, axis=None, keepdims=False):
-        """See `theano.tensor.max`."""
-        return theano.tensor.basic.max(self, axis, keepdims=keepdims)
+        """See `theano.tensor.math.max`."""
+        return tt.math.max(self, axis, keepdims=keepdims)
 
     def argmin(self, axis=None, keepdims=False):
-        """See `theano.tensor.argmin`."""
-        return theano.tensor.basic.argmin(self, axis, keepdims=keepdims)
+        """See `theano.tensor.math.argmin`."""
+        return tt.math.argmin(self, axis, keepdims=keepdims)
 
     def argmax(self, axis=None, keepdims=False):
-        """See `theano.tensor.argmax`."""
-        return theano.tensor.basic.argmax(self, axis, keepdims=keepdims)
+        """See `theano.tensor.math.argmax`."""
+        return tt.math.argmax(self, axis, keepdims=keepdims)
 
     def nonzero(self, return_matrix=False):
-        """See `theano.tensor.nonzero`."""
-        return theano.tensor.basic.nonzero(self, return_matrix=return_matrix)
+        """See `theano.tensor.basic.nonzero`."""
+        return tt.nonzero(self, return_matrix=return_matrix)
 
     def nonzero_values(self):
-        """See `theano.tensor.nonzero_values`."""
-        return theano.tensor.basic.nonzero_values(self)
+        """See `theano.tensor.basic.nonzero_values`."""
+        return tt.nonzero_values(self)
 
     def sort(self, axis=-1, kind="quicksort", order=None):
-        """See `theano.tensor.sort`."""
-        return theano.tensor.sort(self, axis, kind, order)
+        """See `theano.tensor.sort.sort`."""
+        return tt.sort(self, axis, kind, order)
 
     def argsort(self, axis=-1, kind="quicksort", order=None):
-        """See `theano.tensor.argsort`."""
-        return theano.tensor.argsort(self, axis, kind, order)
+        """See `theano.tensor.sort.argsort`."""
+        from theano.tensor.sort import argsort
+
+        return argsort(self, axis, kind, order)
 
     def clip(self, a_min, a_max):
-        "Clip (limit) the values in an array."
-        return theano.tensor.basic.clip(self, a_min, a_max)
+        "See `theano.tensor.math.clip`."
+        return tt.math.clip(self, a_min, a_max)
 
     def conj(self):
-        """See `theano.tensor.conj`."""
-        return theano.tensor.basic.conj(self)
+        """See `theano.tensor.math.conj`."""
+        return tt.math.conj(self)
 
     conjugate = conj
 
     def repeat(self, repeats, axis=None):
-        """See `theano.tensor.repeat`."""
-        return theano.tensor.extra_ops.repeat(self, repeats, axis)
+        """See `theano.tensor.basic.repeat`."""
+        return tt.extra_ops.repeat(self, repeats, axis)
 
     def round(self, mode=None):
-        """See `theano.tensor.round`."""
-        return theano.tensor.basic.round(self, mode)
+        """See `theano.tensor.math.round`."""
+        return tt.math.round(self, mode)
 
     def trace(self):
-        return theano.tensor.nlinalg.trace(self)
+        return tt.nlinalg.trace(self)
 
     # This value is set so that Theano arrays will trump NumPy operators.
     __array_priority__ = 1000
 
     def get_scalar_constant_value(self):
-        return theano.tensor.basic.get_scalar_constant_value(self)
+        return tt.basic.get_scalar_constant_value(self)
 
     def zeros_like(model, dtype=None):
-        return theano.tensor.basic.zeros_like(model, dtype=dtype)
+        return tt.basic.zeros_like(model, dtype=dtype)
 
     def ones_like(model, dtype=None):
-        return theano.tensor.basic.ones_like(model, dtype=dtype)
+        return tt.basic.ones_like(model, dtype=dtype)
 
     def cumsum(self, axis=None):
-        return theano.tensor.extra_ops.cumsum(self, axis)
+        return tt.extra_ops.cumsum(self, axis)
 
     def cumprod(self, axis=None):
-        return theano.tensor.extra_ops.cumprod(self, axis)
+        return tt.extra_ops.cumprod(self, axis)
 
     def searchsorted(self, v, side="left", sorter=None):
-        return theano.tensor.extra_ops.searchsorted(self, v, side, sorter)
+        return tt.extra_ops.searchsorted(self, v, side, sorter)
 
     def ptp(self, axis=None):
-        """See 'theano.tensor.ptp'."""
+        """See `theano.tensor.math.ptp`."""
 
-        return theano.tensor.ptp(self, axis)
+        return tt.math.ptp(self, axis)
 
     def swapaxes(self, axis1, axis2):
-        """
-        Return 'tensor.swapaxes(self, axis1, axis2).
+        """See `theano.tensor.basic.swapaxes`.
 
         If a matrix is provided with the right axes, its transpose
         will be returned.
 
         """
-        return theano.tensor.basic.swapaxes(self, axis1, axis2)
+        return tt.basic.swapaxes(self, axis1, axis2)
 
     def fill(self, value):
         """Fill inputted tensor with the assigned value."""
-        return theano.tensor.basic.fill(self, value)
+        return tt.basic.fill(self, value)
 
     def choose(self, choices, out=None, mode="raise"):
         """
@@ -824,7 +821,7 @@ class _tensor_py_operators:
         from.
 
         """
-        return theano.tensor.basic.choose(self, choices, out=None, mode="raise")
+        return tt.basic.choose(self, choices, out=None, mode="raise")
 
     def squeeze(self):
         """
@@ -834,11 +831,11 @@ class _tensor_py_operators:
         removed. This is always `x` itself or a view into `x`.
 
         """
-        return theano.tensor.extra_ops.squeeze(self)
+        return tt.extra_ops.squeeze(self)
 
     def compress(self, a, axis=None):
         """Return selected slices only."""
-        return theano.tensor.extra_ops.compress(self, a, axis=axis)
+        return tt.extra_ops.compress(self, a, axis=axis)
 
 
 class TensorVariable(_tensor_py_operators, Variable):
@@ -1022,7 +1019,7 @@ class TensorConstant(_tensor_py_operators, Constant):
         # numpy.ndarray, and python type.
         if isinstance(other, (np.ndarray, int, float)):
             # Make a TensorConstant to be able to compare
-            other = theano.tensor.basic.constant(other)
+            other = tt.basic.constant(other)
         return (
             isinstance(other, TensorConstant) and self.signature() == other.signature()
         )

@@ -35,8 +35,9 @@ import logging
 
 from theano import scalar as ts
 from theano.graph.opt import copy_stack_trace, local_optimizer
-from theano.tensor import basic as tt
+from theano.tensor.basic import Alloc, alloc, constant
 from theano.tensor.elemwise import CAReduce, DimShuffle
+from theano.tensor.math import Argmax, Max, MaxAndArgmax, Min, neg
 from theano.tensor.opt import register_uncanonicalize
 from theano.tensor.shape import Reshape, reshape
 from theano.tensor.subtensor import Subtensor
@@ -46,26 +47,26 @@ _logger = logging.getLogger("theano.tensor.opt")
 
 
 @register_uncanonicalize
-@local_optimizer([tt.MaxAndArgmax])
+@local_optimizer([MaxAndArgmax])
 def local_max_and_argmax(fgraph, node):
     """
     If we don't use the argmax, change it to a max only.
     """
-    if isinstance(node.op, tt.MaxAndArgmax):
+    if isinstance(node.op, MaxAndArgmax):
         axis = node.op.get_params(node)
         if len(fgraph.clients[node.outputs[1]]) == 0:
-            new = tt.Max(axis)(node.inputs[0])
+            new = Max(axis)(node.inputs[0])
             copy_stack_trace(node.outputs[0], new)
             return [new, None]
 
         if len(fgraph.clients[node.outputs[0]]) == 0:
-            new = tt.Argmax(axis)(node.inputs[0])
+            new = Argmax(axis)(node.inputs[0])
             copy_stack_trace(node.outputs[0], new)
             return [None, new]
 
 
 @register_uncanonicalize
-@local_optimizer([tt.neg])
+@local_optimizer([neg])
 def local_max_to_min(fgraph, node):
     """
     Change -(max(-x)) to min.
@@ -78,23 +79,23 @@ def local_max_to_min(fgraph, node):
     the interface put only MaxAndArgmax into the graph.
 
     """
-    if node.op == tt.neg and node.inputs[0].owner:
+    if node.op == neg and node.inputs[0].owner:
         max = node.inputs[0]
         if (
             max.owner
             and isinstance(max.owner.op, CAReduce)
             and max.owner.op.scalar_op == ts.scalar_maximum
         ):
-            neg = max.owner.inputs[0]
-            if neg.owner and neg.owner.op == tt.neg:
-                new = tt.Min(max.owner.op.axis)(neg.owner.inputs[0])
+            neg_node = max.owner.inputs[0]
+            if neg_node.owner and neg_node.owner.op == neg:
+                new = Min(max.owner.op.axis)(neg_node.owner.inputs[0])
                 return [copy_stack_trace(node.outputs[0], new)]
 
     return False
 
 
 @register_uncanonicalize
-@local_optimizer([tt.Alloc])
+@local_optimizer([Alloc])
 def local_alloc_dimshuffle(fgraph, node):
     """
     If a dimshuffle is inside an alloc and only adds dimension to the
@@ -102,7 +103,7 @@ def local_alloc_dimshuffle(fgraph, node):
 
     Alloc(DimShuffle(x), ...) - > Alloc(x, ...)
     """
-    if isinstance(node.op, tt.Alloc):
+    if isinstance(node.op, Alloc):
         input_ = node.inputs[0]
         if input_.owner and isinstance(input_.owner.op, DimShuffle):
             # check if it only adds dimension to the left
@@ -112,7 +113,7 @@ def local_alloc_dimshuffle(fgraph, node):
             ) + tuple(range(input_.owner.inputs[0].ndim))
             if new_order != expected_new_order:
                 return False
-            return [tt.alloc(input_.owner.inputs[0], *node.inputs[1:])]
+            return [alloc(input_.owner.inputs[0], *node.inputs[1:])]
     return False
 
 
@@ -156,7 +157,7 @@ def local_dimshuffle_alloc(fgraph, node):
     """
     if isinstance(node.op, DimShuffle) and node.inputs[0].owner:
         input_ = node.inputs[0]
-        if isinstance(input_.owner.op, tt.Alloc):
+        if isinstance(input_.owner.op, Alloc):
             # check if it only adds dimension to the left
             new_order = node.op.new_order
             expected_new_order = ("x",) * (len(new_order) - input_.ndim) + tuple(
@@ -169,7 +170,7 @@ def local_dimshuffle_alloc(fgraph, node):
             nb_new_dims = len(new_order) - input_.ndim
             new_shape_input = (1,) * nb_new_dims + tuple(input_.owner.inputs[1:])
 
-            return [tt.alloc(input_.owner.inputs[0], *new_shape_input)]
+            return [alloc(input_.owner.inputs[0], *new_shape_input)]
     return False
 
 
@@ -220,7 +221,7 @@ def local_dimshuffle_subtensor(fgraph, node):
             # tensor was indexed such as x[scalar, :, :], check that as well
             new_idx_list = list(input_.owner.op.idx_list)
             new_inputs = [input_.owner.inputs[0]]
-            zero = tt.constant(0)
+            zero = constant(0)
             slice_attr_list = ["start", "stop", "step"]
             j = 0
             slice_i = -1

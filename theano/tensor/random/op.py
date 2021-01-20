@@ -9,13 +9,13 @@ from theano.graph.basic import Apply, Variable
 from theano.graph.op import Op
 from theano.misc.safe_asarray import _asarray
 from theano.tensor.basic import (
-    NotScalarConstantError,
     as_tensor_variable,
     cast,
     constant,
     get_scalar_constant_value,
     get_vector_length,
 )
+from theano.tensor.exceptions import NotScalarConstantError
 from theano.tensor.random.type import RandomStateType
 from theano.tensor.random.utils import params_broadcast_shapes
 from theano.tensor.type import TensorType, all_dtypes, int_dtypes

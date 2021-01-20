@@ -3,7 +3,6 @@ from functools import wraps
 import numpy as np
 
 from theano import scalar as ts
-from theano import tensor as tt
 from theano.gpuarray.basic_ops import (
     GpuAllocEmpty,
     GpuFromHost,
@@ -16,9 +15,10 @@ from theano.gpuarray.type import GpuArrayType, get_context, move_to_gpu
 from theano.graph.basic import Constant
 from theano.graph.op import Op
 from theano.graph.opt import copy_stack_trace, inherit_stack_trace, local_optimizer
-from theano.tensor.basic import get_scalar_constant_value
+from theano.tensor.basic import as_tensor, cast, get_scalar_constant_value, join
 from theano.tensor.elemwise import DimShuffle
 from theano.tensor.exceptions import NotScalarConstantError
+from theano.tensor.math import prod
 from theano.tensor.shape import shape_padright
 from theano.tensor.type import TensorType
 
@@ -419,20 +419,20 @@ def pad_dims(input, leftdims, rightdims):
     non_pool_ndim = input.ndim - rightdims
     if non_pool_ndim < leftdims:
         # too few dimensions, pad on the left
-        dummy_dims = tt.as_tensor([1] * (leftdims - non_pool_ndim))
-        new_shape = tt.join(0, dummy_dims, input.shape[:non_pool_ndim], img_shape)
+        dummy_dims = as_tensor([1] * (leftdims - non_pool_ndim))
+        new_shape = join(0, dummy_dims, input.shape[:non_pool_ndim], img_shape)
     else:
         # too many dimensions, combine the leading dimensions
         batched_ndim = non_pool_ndim - leftdims + 1
-        batch_size = tt.prod(input.shape[:batched_ndim])
-        # convert to a vector for tt.join
+        batch_size = prod(input.shape[:batched_ndim])
+        # convert to a vector for join
         batch_size = shape_padright(batch_size, 1)
-        new_shape = tt.join(
+        new_shape = join(
             0, batch_size, input.shape[batched_ndim:non_pool_ndim], img_shape
         )
 
     # store in the required shape
-    new_shape = tt.cast(new_shape, "int64")
+    new_shape = cast(new_shape, "int64")
     input_ND = GpuReshape(leftdims + rightdims)(input, new_shape)
     return input_ND
 
@@ -446,7 +446,7 @@ def unpad_dims(output, input, leftdims, rightdims):
         return output
 
     # restore the output to the original shape
-    outshp = tt.join(0, input.shape[:-rightdims], output.shape[-rightdims:])
+    outshp = join(0, input.shape[:-rightdims], output.shape[-rightdims:])
     return GpuReshape(input.ndim)(output, outshp)
 
 

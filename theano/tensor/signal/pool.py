@@ -8,7 +8,8 @@ import warnings
 
 import numpy as np
 
-import theano.tensor as tt
+import theano.tensor.basic as tt
+import theano.tensor.math as tm
 from theano.gradient import DisconnectedType
 from theano.graph.basic import Apply, Constant, Variable
 from theano.graph.op import OpenMPOp
@@ -463,15 +464,15 @@ class Pool(OpenMPOp):
                 else:
                     out = (v - downsample) // stride + 1
                     if isinstance(out, Variable):
-                        return tt.maximum(out, 0)
+                        return tm.maximum(out, 0)
                     else:
                         return np.maximum(out, 0)
             else:
                 if isinstance(v, Variable):
                     return tt.switch(
-                        tt.ge(stride, downsample),
+                        tm.ge(stride, downsample),
                         (v - 1) // stride + 1,
-                        tt.maximum(0, (v - 1 - downsample) // stride + 1) + 1,
+                        tm.maximum(0, (v - 1 - downsample) // stride + 1) + 1,
                     )
                 elif stride >= downsample:
                     return (v - 1) // stride + 1
@@ -1103,15 +1104,15 @@ class PoolGrad(OpenMPOp):
             if ignore_border:
                 out = (v - downsample) // stride + 1
                 if isinstance(out, Variable):
-                    return tt.maximum(out, 0)
+                    return tm.maximum(out, 0)
                 else:
                     return np.maximum(out, 0)
             else:
                 if isinstance(v, Variable):
                     return tt.switch(
-                        tt.ge(stride, downsample),
+                        tm.ge(stride, downsample),
                         (v - 1) // stride + 1,
-                        tt.maximum(0, (v - 1 - downsample) // stride + 1) + 1,
+                        tm.maximum(0, (v - 1 - downsample) // stride + 1) + 1,
                     )
                 elif stride >= downsample:
                     return (v - 1) // stride + 1

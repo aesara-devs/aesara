@@ -841,7 +841,7 @@ def add_tensor_configvars():
     # changed at runtime.
     config.add(
         "tensor__cmp_sloppy",
-        "Relax tensor._allclose (0) not at all, (1) a bit, (2) more",
+        "Relax theano.tensor.math._allclose (0) not at all, (1) a bit, (2) more",
         IntParam(0, _is_valid_cmp_sloppy, mutable=False),
         in_c_key=False,
     )

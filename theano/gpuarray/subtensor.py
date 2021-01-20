@@ -13,6 +13,7 @@ from theano.scalar import bool as bool_t
 from theano.scalar import int32 as int_t
 from theano.scalar import uint32 as size_t
 from theano.tensor.basic import AllocDiag
+from theano.tensor.math import clip, minimum
 from theano.tensor.subtensor import (
     AdvancedIncSubtensor,
     AdvancedSubtensor,
@@ -1442,11 +1443,11 @@ class GpuExtractDiag(Op):
         # The following logic is inspired by C code of PyArray_Diagonal().
         offset = self.offset
         if offset > 0:
-            diag_size = tt.clip(dim2 - offset, 0, dim1)
+            diag_size = clip(dim2 - offset, 0, dim1)
         elif offset < 0:
-            diag_size = tt.clip(dim1 + offset, 0, dim2)
+            diag_size = clip(dim1 + offset, 0, dim2)
         else:
-            diag_size = tt.minimum(dim1, dim2)
+            diag_size = minimum(dim1, dim2)
         out_shape.append(diag_size)
         return [tuple(out_shape)]
 

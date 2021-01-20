@@ -6,7 +6,6 @@ from theano.printing import hex_digest, min_informative_str
 
 
 __authors__ = ["PyMC Team", "Ian Goodfellow"]
-__credits__ = ["PyMC Team", "Ian Goodfellow"]
 
 
 class MismatchError(Exception):

@@ -11,6 +11,8 @@ from tests.gpuarray.test_basic_ops import rand_gpuarray
 from theano.gpuarray import GpuArrayType
 from theano.gpuarray.dnn import GpuDnnReduction
 from theano.gpuarray.reduction import GpuMaxAndArgmax
+from theano.tensor.math import argmax
+from theano.tensor.math import max as tt_max
 
 
 # Number of values to be used in test tensors (except with 0-D tensors!).
@@ -113,7 +115,7 @@ class BaseTest:
         M = self.get_host_tensor()
         f = theano.function(
             [M],
-            [tt.max(M, axis=axis), tt.argmax(M, axis=axis)],
+            [tt_max(M, axis=axis), argmax(M, axis=axis)],
             name="shape:" + str(test_tensor.shape) + "/axis:" + str(axis) + "/HOST",
             mode=mode_without_gpu,
         )
@@ -128,7 +130,7 @@ class BaseTest:
         M = self.get_gpu_tensor()
         f = theano.function(
             [M],
-            [tt.max(M, axis=axis), tt.argmax(M, axis=axis)],
+            [tt_max(M, axis=axis), argmax(M, axis=axis)],
             name="shape:" + str(test_gpu_tensor.shape) + "/axis:" + str(axis) + "/GPU",
             mode=mode_with_gpu,
         )

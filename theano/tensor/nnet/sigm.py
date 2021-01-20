@@ -18,10 +18,11 @@ from theano.configdefaults import config
 from theano.graph.opt import PatternSub, copy_stack_trace, local_optimizer
 from theano.graph.utils import MethodNotDefined
 from theano.printing import pprint
-from theano.tensor import basic as tt
 from theano.tensor import opt
+from theano.tensor.basic import constant
 from theano.tensor.elemwise import Elemwise
 from theano.tensor.exceptions import NotScalarConstantError
+from theano.tensor.math import add, clip, exp, inv, log, log1p, mul, neg, sub, true_div
 from theano.tensor.type import TensorType, values_eq_approx_remove_inf
 
 
@@ -310,10 +311,10 @@ def hard_sigmoid(x):
     # Use the same dtype as determined by "upgrade_to_float",
     # and perform computation in that dtype.
     out_dtype = ts.upgrade_to_float(ts.Scalar(dtype=x.dtype))[0].dtype
-    slope = tt.constant(0.2, dtype=out_dtype)
-    shift = tt.constant(0.5, dtype=out_dtype)
+    slope = constant(0.2, dtype=out_dtype)
+    shift = constant(0.5, dtype=out_dtype)
     x = (x * slope) + shift
-    x = tt.clip(x, 0, 1)
+    x = clip(x, 0, 1)
     return x
 
 
@@ -436,15 +437,15 @@ pprint.assign(softplus, printing.FunctionPrinter("softplus"))
 
 
 def _skip_mul_1(r):
-    if r.owner and r.owner.op == tt.mul:
+    if r.owner and r.owner.op == mul:
         not_is_1 = [i for i in r.owner.inputs if not _is_1(i)]
         if len(not_is_1) == 1:
             return not_is_1[0]
 
 
 logsigm_to_softplus = PatternSub(
-    (tt.log, (sigmoid, "x")),
-    (tt.neg, (softplus, (tt.neg, "x"))),
+    (log, (sigmoid, "x")),
+    (neg, (softplus, (neg, "x"))),
     allow_multiple_clients=True,
     values_eq_approx=values_eq_approx_remove_inf,
     skip_identities_fn=_skip_mul_1,
@@ -468,8 +469,8 @@ def _is_1(expr):
 
 
 log1msigm_to_softplus = PatternSub(
-    (tt.log, (tt.sub, dict(pattern="y", constraint=_is_1), (sigmoid, "x"))),
-    (tt.neg, (softplus, "x")),
+    (log, (sub, dict(pattern="y", constraint=_is_1), (sigmoid, "x"))),
+    (neg, (softplus, "x")),
     allow_multiple_clients=True,
     values_eq_approx=values_eq_approx_remove_inf,
     skip_identities_fn=_skip_mul_1,
@@ -477,15 +478,15 @@ log1msigm_to_softplus = PatternSub(
 
 
 log1pexp_to_softplus = PatternSub(
-    (tt.log1p, (tt.exp, "x")),
+    (log1p, (exp, "x")),
     (softplus, "x"),
     values_eq_approx=values_eq_approx_remove_inf,
     allow_multiple_clients=True,
 )
 
 log1p_neg_sigmoid = PatternSub(
-    (tt.log1p, (tt.neg, (sigmoid, "x"))),
-    (tt.neg, (softplus, "x")),
+    (log1p, (neg, (sigmoid, "x"))),
+    (neg, (softplus, "x")),
     values_eq_approx=values_eq_approx_remove_inf,
     allow_multiple_clients=True,
 )
@@ -506,14 +507,14 @@ def is_1pexp(t, only_process_constants=True):
         Else return None.
 
     """
-    if t.owner and t.owner.op == tt.add:
+    if t.owner and t.owner.op == add:
         scalars, scalar_inputs, nonconsts = opt.scalarconsts_rest(
             t.owner.inputs, only_process_constants=only_process_constants
         )
         # scalar_inputs are potentially dimshuffled and filled with scalars
         if len(nonconsts) == 1:
             maybe_exp = nonconsts[0]
-            if maybe_exp.owner and maybe_exp.owner.op == tt.exp:
+            if maybe_exp.owner and maybe_exp.owner.op == exp:
                 # Verify that the constant terms sum to 1.
                 if scalars:
                     scal_sum = scalars[0]
@@ -554,13 +555,13 @@ def is_exp(var):
         cannot be cast into either form, then return `None`.
 
     """
-    neg = False
+    _neg = False
     neg_info = is_neg(var)
     if neg_info is not None:
-        neg = True
+        _neg = True
         var = neg_info
-    if var.owner and var.owner.op == tt.exp:
-        return neg, var.owner.inputs[0]
+    if var.owner and var.owner.op == exp:
+        return _neg, var.owner.inputs[0]
 
 
 def is_mul(var):
@@ -579,21 +580,21 @@ def is_mul(var):
         or None if `var` cannot be cast into this form.
 
     """
-    if var.owner and var.owner.op == tt.mul:
+    if var.owner and var.owner.op == mul:
         return var.owner.inputs
     else:
         return None
 
 
 def partition_num_or_denom(r, f):
-    if r.owner and r.owner.op == tt.mul:
+    if r.owner and r.owner.op == mul:
         a = r.owner.inputs
     else:
         a = [r]
 
     # ugly 2.4-compatible thing
     f_terms = []
-    neg = False
+    _neg = False
     rest = []
     for t in a:
         f_t = f(t)
@@ -602,8 +603,8 @@ def partition_num_or_denom(r, f):
         else:
             neg_t, f_t = f_t
             f_terms.append(f_t)
-            neg ^= neg_t  # bit flip if neg_t is true
-    return f_terms, rest, neg
+            _neg ^= neg_t  # bit flip if neg_t is true
+    return f_terms, rest, _neg
 
 
 def is_neg(var):
@@ -621,15 +622,15 @@ def is_neg(var):
         `x` if `var` is of the form `-x`, or None otherwise.
 
     """
-    apply = var.owner
-    if not apply:
+    var_node = var.owner
+    if not var_node:
         return None
-    # First match against `tt.neg`.
-    if apply.op == tt.neg:
-        return apply.inputs[0]
+    # First match against `neg`.
+    if var_node.op == neg:
+        return var_node.inputs[0]
     # Then match against a multiplication by -1.
-    if apply.op == tt.mul and len(apply.inputs) >= 2:
-        for idx, mul_input in enumerate(apply.inputs):
+    if var_node.op == mul and len(var_node.inputs) >= 2:
+        for idx, mul_input in enumerate(var_node.inputs):
             try:
                 constant = opt.get_scalar_constant_value(mul_input)
                 is_minus_1 = np.allclose(constant, -1)
@@ -637,18 +638,18 @@ def is_neg(var):
                 is_minus_1 = False
             if is_minus_1:
                 # Found a multiplication by -1.
-                if len(apply.inputs) == 2:
+                if len(var_node.inputs) == 2:
                     # Only return the other input.
-                    return apply.inputs[1 - idx]
+                    return var_node.inputs[1 - idx]
                 else:
                     # Return the multiplication of all other inputs.
-                    return tt.mul(*(apply.inputs[0:idx] + apply.inputs[idx + 1 :]))
+                    return mul(*(var_node.inputs[0:idx] + var_node.inputs[idx + 1 :]))
     # No match.
     return None
 
 
 @opt.register_stabilize
-@local_optimizer([tt.true_div])
+@local_optimizer([true_div])
 def local_exp_over_1_plus_exp(fgraph, node):
     """
     exp(x)/(1+exp(x)) -> sigm(x)
@@ -657,7 +658,7 @@ def local_exp_over_1_plus_exp(fgraph, node):
     """
     # this optimization should be done for numerical stability
     # so we don't care to check client counts
-    if node.op == tt.true_div:
+    if node.op == true_div:
 
         # find all the exp() terms in the numerator
         num, denom = node.inputs
@@ -678,11 +679,11 @@ def local_exp_over_1_plus_exp(fgraph, node):
         if not sigmoids:  # we didn't find any.  abort
             return
         # put the new numerator together
-        new_num = sigmoids + [tt.exp(t) for t in num_exp_x] + num_rest
+        new_num = sigmoids + [exp(t) for t in num_exp_x] + num_rest
         if len(new_num) == 1:
             new_num = new_num[0]
         else:
-            new_num = tt.mul(*new_num)
+            new_num = mul(*new_num)
 
         if num_neg ^ denom_neg:
             new_num = -new_num
@@ -694,7 +695,7 @@ def local_exp_over_1_plus_exp(fgraph, node):
         elif len(denom_rest) == 1:
             out = new_num / denom_rest[0]
         else:
-            out = new_num / tt.mul(*denom_rest)
+            out = new_num / mul(*denom_rest)
 
         copy_stack_trace(node.outputs[0], out)
         return [out]
@@ -856,7 +857,7 @@ def compute_mul(tree):
         )
     elif isinstance(inputs, list):
         # Recurse through inputs.
-        rval = tt.mul(*list(map(compute_mul, inputs)))
+        rval = mul(*list(map(compute_mul, inputs)))
     else:
         rval = inputs
     if neg:
@@ -999,7 +1000,7 @@ def perform_sigm_times_exp(
 
 
 @opt.register_stabilize
-@local_optimizer([tt.mul])
+@local_optimizer([mul])
 def local_sigm_times_exp(fgraph, node):
     """
     exp(x) * sigm(-x) -> sigm(x)
@@ -1008,7 +1009,7 @@ def local_sigm_times_exp(fgraph, node):
     todo: add stack traces to the intermediate variables
     """
     # Bail early if it is not a multiplication.
-    if node.op != tt.mul:
+    if node.op != mul:
         return None
     # Obtain tree of multiplications starting at this node.
     mul_tree = parse_mul_tree(node.outputs[0])
@@ -1028,7 +1029,7 @@ def local_sigm_times_exp(fgraph, node):
 
 
 @opt.register_stabilize
-@local_optimizer([tt.inv])
+@local_optimizer([inv])
 def local_inv_1_plus_exp(fgraph, node):
     """
     1/(1+exp(x)) -> sigm(-x)
@@ -1036,18 +1037,18 @@ def local_inv_1_plus_exp(fgraph, node):
     """
     # this optimization should be done for numerical stability
     # so we don't care to check client counts
-    if node.op == tt.inv:
+    if node.op == inv:
         inv_arg = node.inputs[0]
-        if inv_arg.owner and inv_arg.owner.op == tt.add:
-            scalars, scalar_inputs, nonconsts = opt.scalarconsts_rest(
+        if inv_arg.owner and inv_arg.owner.op == add:
+            scalars_, scalar_inputs, nonconsts = opt.scalarconsts_rest(
                 inv_arg.owner.inputs, only_process_constants=True
             )
             # scalar_inputs are potentially dimshuffled and fill'd scalars
             if len(nonconsts) == 1:
-                if nonconsts[0].owner and nonconsts[0].owner.op == tt.exp:
-                    if scalars and np.allclose(np.sum(scalars), 1):
+                if nonconsts[0].owner and nonconsts[0].owner.op == exp:
+                    if scalars_ and np.allclose(np.sum(scalars_), 1):
                         out = opt._fill_chain(
-                            sigmoid(tt.neg(nonconsts[0].owner.inputs[0])),
+                            sigmoid(neg(nonconsts[0].owner.inputs[0])),
                             scalar_inputs,
                         )
                         # keep combined stack traces of
@@ -1061,13 +1062,13 @@ def local_inv_1_plus_exp(fgraph, node):
 # Registration is below, and conditional.
 
 
-@local_optimizer([tt.sub])
+@local_optimizer([sub])
 def local_1msigmoid(fgraph, node):
     """
     1-sigm(x) -> sigm(-x)
 
     """
-    if node.op == tt.sub:
+    if node.op == sub:
         sub_l, sub_r = node.inputs
         if len(fgraph.clients[sub_r]) > 1:
             return  # graph is using both sigm and 1-sigm

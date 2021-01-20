@@ -20,26 +20,14 @@ from theano.scalar.basic import (
     OR,
     XOR,
     Add,
-    BinaryScalarOp,
     Mul,
     Scalar,
     ScalarMaximum,
     ScalarMinimum,
 )
-from theano.scalar.basic import add as scalar_add
-from theano.scalar.basic import and_
 from theano.scalar.basic import bool as scalar_bool
 from theano.scalar.basic import identity as scalar_identity
-from theano.scalar.basic import mul as scalar_mul
-from theano.scalar.basic import (
-    or_,
-    scalar_maximum,
-    scalar_minimum,
-    second,
-    transfer_type,
-    upcast,
-    upcast_out,
-)
+from theano.scalar.basic import scalar_maximum, scalar_minimum, transfer_type, upcast
 from theano.tensor import elemwise_cgen as cgen
 from theano.tensor.type import (
     TensorType,
@@ -400,6 +388,7 @@ second dimension
     def __init__(
         self, scalar_op, inplace_pattern=None, name=None, nfunc_spec=None, openmp=None
     ):
+        assert not isinstance(scalar_op, type(self))
         if inplace_pattern is None:
             inplace_pattern = frozendict({})
         self.name = name
@@ -564,7 +553,7 @@ second dimension
         return [[True for output in node.outputs] for ipt in node.inputs]
 
     def L_op(self, inputs, outs, ograds):
-        from theano.tensor.basic import sum as tt_sum
+        from theano.tensor.math import sum as tt_sum
 
         # Compute grad with respect to broadcasted input
         rval = self._bgrad(inputs, outs, ograds)
@@ -1720,76 +1709,6 @@ class CAReduce(COp):
             return ()
 
 
-class All(CAReduce):
-    """Applies `logical and` to all the values of a tensor along the
-    specified axis(es).
-
-    """
-
-    __props__ = ("axis",)
-    nfunc_spec = ("all", 1, 1)
-
-    def __init__(self, axis=None):
-        super().__init__(and_, axis)
-
-    def _output_dtype(self, idtype):
-        return "bool"
-
-    def __str__(self):
-        if self.axis is None:
-            return "All"
-        else:
-            return "All{%s}" % ", ".join(map(str, self.axis))
-
-    def make_node(self, input):
-        from theano.tensor.basic import as_tensor_variable, neq
-
-        input = as_tensor_variable(input)
-        if input.dtype != "bool":
-            input = neq(input, 0)
-        ret = super().make_node(input)
-        return ret
-
-    def grad(self, inp, grads):
-        (x,) = inp
-        return [x.zeros_like(config.floatX)]
-
-
-class Any(CAReduce):
-    """Applies `bitwise or` to all the values of a tensor along the
-    specified axis(es).
-
-    """
-
-    __props__ = ("axis",)
-    nfunc_spec = ("any", 1, 1)
-
-    def __init__(self, axis=None):
-        super().__init__(or_, axis)
-
-    def _output_dtype(self, idtype):
-        return "bool"
-
-    def __str__(self):
-        if self.axis is None:
-            return "Any"
-        else:
-            return "Any{%s}" % ", ".join(map(str, self.axis))
-
-    def make_node(self, input):
-        from theano.tensor.basic import as_tensor_variable, neq
-
-        input = as_tensor_variable(input)
-        if input.dtype != "bool":
-            input = neq(input, 0)
-        ret = super().make_node(input)
-        return ret
-
-    def grad(self, inp, grads):
-        (x,) = inp
-        return [x.zeros_like(config.floatX)]
-
-
 class CAReduceDtype(CAReduce):
     """
     Reduces a scalar operation along the specified axis(es).
@@ -1961,296 +1880,6 @@ class CAReduceDtype(CAReduce):
             axis = ", ".join(str(x) for x in self.axis)
             axis = f"axis=[{axis}], "
         return f"{name}{{{axis}acc_dtype={self.acc_dtype}}}"
-
-
-class Sum(CAReduceDtype):
-    """
-    Sums all the values of a tensor along the specified axis(es).
-
-    Equivalent to `CAReduceDtype(scalar.add, axis=axis, dtype=dtype)`,
-    with the difference that this defines the gradient of sum wrt its
-    tensor input.
-
-    Parameters
-    ----------
-    axis
-        Axis(es) along which the tensor should be summed
-        (use None to sum over all axes, and a list or tuple to sum along more
-        than one axis).
-
-    dtype
-        The dtype of the internal accumulator and returned
-        tensor. If None, then we use the default dtype which is the same as the
-        input tensor's dtype except when:
-        - the input dtype is a signed integer of precision < 64 bit, in
-        which case we use int64
-        - the input dtype is an unsigned integer of precision < 64 bit, in
-        which case we use uint64
-        This value does not depend on the value of "acc_dtype".
-
-    acc_dtype
-        The dtype of the internal accumulator.
-        If None (default), we use the dtype in the list below,
-        or the input dtype if its precision is higher:
-        - for int dtypes, we use at least int64;
-        - for uint dtypes, we use at least uint64;
-        - for float dtypes, we use at least float64;
-        - for complex dtypes, we use at least complex128.
-
-    """
-
-    __props__ = ("axis", "dtype", "acc_dtype")
-    nfunc_spec = ("sum", 1, 1)
-
-    def __init__(self, axis=None, dtype=None, acc_dtype=None):
-        super().__init__(scalar_add, axis=axis, dtype=dtype, acc_dtype=acc_dtype)
-
-    def __str__(self):
-        name = self.__class__.__name__
-        axis = ""
-        if self.axis is not None:
-            axis = ", ".join(str(x) for x in self.axis)
-            axis = f"axis=[{axis}], "
-        return f"{name}{{{axis}acc_dtype={self.acc_dtype}}}"
-
-    def L_op(self, inp, out, grads):
-        from theano.tensor.basic import as_tensor_variable
-
-        (x,) = inp
-
-        if out[0].dtype not in continuous_dtypes:
-            return [x.zeros_like(dtype=config.floatX)]
-
-        (gz,) = grads
-        gz = as_tensor_variable(gz)
-        axis = self.axis
-        if axis is None:
-            axis = list(range(x.type.ndim))
-        if axis == ():
-            return (gz,)
-        new_dims = []
-        i = 0
-        for j, _ in enumerate(x.type.broadcastable):
-            if j in axis:
-                new_dims.append("x")
-            else:
-                new_dims.append(i)
-                i += 1
-        ds_op = DimShuffle(gz.type.broadcastable, new_dims)
-        gx = Elemwise(second)(x, ds_op(gz))
-        return [gx]
-
-    def R_op(self, inputs, eval_points):
-        # There is just one element in inputs and eval_points, the axis are
-        # part of self
-        if None in eval_points:
-            return [None]
-        return self(*eval_points, **dict(return_list=True))
-
-
-class Prod(CAReduceDtype):
-    """
-    Multiplies all the values of a tensor along the specified axis(es).
-
-    Equivalent to `CAReduce(scalar.mul, axis = axis)`, with the
-    difference that this defines the gradient of prod wrt its tensor
-    input.
-
-    """
-
-    __props__ = ("axis", "dtype", "acc_dtype")
-    nfunc_spec = ("sum", 1, 1)
-
-    def __init__(self, axis=None, dtype=None, acc_dtype=None, no_zeros_in_input=False):
-        super().__init__(scalar_mul, axis=axis, dtype=dtype, acc_dtype=acc_dtype)
-        self.no_zeros_in_input = no_zeros_in_input
-
-    def __setstate__(self, dct):
-        super().__setstate__(dct)
-        # Add default value to be able to reload old pickled objects.
-        if "no_zeros_in_input" not in dct:
-            self.no_zeros_in_input = False
-
-    def L_op(self, inp, out, grads):
-        """
-        The grad of this Op could be very easy, if it is was not for the case
-        where zeros are present in a given "group" (ie. elements reduced
-        together to form the product).
-
-        If no zeros are found in the elements of the product, then the
-        partial derivative of the product relative to one of the elements
-        (one of the inputs) is simply the product of the other elements.
-        That's easy to see from the chain rule.
-
-        Now the trick (with no zeros) is to take the overall product, then
-        for every original element, the partial derivative is given by
-        this product divided by the element itself (which equals the product
-        of the other terms). This is easy to do by broadcasting the original
-        product.
-
-        (Note that we also need to broadcast-multiply by the
-        "incoming gradient", ie. the gradient of the cost relative to the
-        output/product).
-
-        With zeros, things get more complicated. For a given group, we have 3
-        cases:
-
-        * No zeros in the group. Use previous trick.
-        * If only one zero is present, then the gradient for that element is
-            non-zero, but is zero for all others.
-        * If more than one zero is present, then all the derivatives are zero.
-
-        For the last two cases (with 1 or more zeros), we can't use the
-        division trick, as this gives divisions by 0.
-
-        Implementing that case-by-case logic is not as trivial, so a bunch of
-        hacks are piled down here to do it. Notably, for the "only one zero"
-        case, there's a special Op that computes the product of the elements
-        in the group, minus the zero (see ProdWithoutZero). The trick is then
-        to use the division trick for groups with no zero, to use the
-        ProdWithoutZeros op where there's only one zero, and to output a
-        derivative of zero for any element part of a group with more than
-        one zero.
-
-        I do this by first counting the number of zeros in each group (see
-        the "T.eq()" bits), then taking this or that behavior (see T.switch)
-        based on the result of this count.
-
-        """
-        from theano.tensor.basic import as_tensor_variable, eq, neq
-        from theano.tensor.basic import sum as tt_sum
-        from theano.tensor.basic import switch
-
-        (prod_in,) = inp
-        (gz,) = grads
-
-        if out[0].dtype in discrete_dtypes or self.acc_dtype in discrete_dtypes:
-            # There is an int conversion in the way
-            return [prod_in.zeros_like(dtype=config.floatX)]
-
-        # Prepare the broadcasting that is used everywhere to broadcast
-        # over the original groups (ie. broadcast over the elements of a given
-        # product)
-        gz = as_tensor_variable(gz)
-        axis = self.axis
-        if axis is None:
-            axis = list(range(prod_in.type.ndim))
-        if axis == ():
-            return (gz,)
-        new_dims = []
-        i = 0
-        for j, _ in enumerate(prod_in.type.broadcastable):
-            if j in axis:
-                new_dims.append("x")
-            else:
-                new_dims.append(i)
-                i += 1
-
-        # result of the product, broadcastable over groups
-        prod_out = self(prod_in).dimshuffle(new_dims)
-        # incoming gradient, broadcastable over groups
-        gz = gz.dimshuffle(new_dims)
-
-        # division trick if we don't have zeros. This will contain
-        # NaNs to be eliminated in the T.switch if we do have zeros.
-        grad_case_without_zeros = gz * prod_out / prod_in
-
-        if self.no_zeros_in_input:
-            # this handles inputs with zeros, but only certain input shapes
-            return [grad_case_without_zeros]
-        else:
-
-            where_zeros = eq(prod_in, 0.0)
-            sum_where_zeros = tt_sum(where_zeros, axis=self.axis)
-            groups_with_single_zero = eq(sum_where_zeros, 1).dimshuffle(new_dims)
-            # tensor with 0 everywhere except for those places where
-            # a 0 part of a group with a single zero was to be found
-            where_single_zero = groups_with_single_zero * where_zeros
-            # further optimization to avoid computing ProdWithoutZeros
-            # if the incoming gradient is 0
-            where_gz_not_zero = neq(gz, 0.0)
-            # only take ProdWithoutZeros for the groups with single zeros
-            # with non-null incoming gradient
-            where_to_take_prod_without_zeros = (
-                groups_with_single_zero * where_gz_not_zero
-            )
-            # preprocess the original input so that we set 0 everywhere
-            # except for groups that contain a single zero, to avoid computing
-            # multiplications on other groups
-            prod_without_zeros_in = where_to_take_prod_without_zeros * prod_in
-            # TODO: put lazy switch here, if it'd work
-            # this is pretty efficient already (no multiplication if 0), but
-            # it'd be even better if we had a lazy if per element
-            prod_without_zeros = ProdWithoutZeros(axis=self.axis)(prod_without_zeros_in)
-            prod_without_zeros = prod_without_zeros.dimshuffle(new_dims)
-
-            groups_without_zeros = eq(sum_where_zeros, 0).dimshuffle(new_dims)
-
-            final_grad = switch(
-                groups_without_zeros,
-                grad_case_without_zeros,
-                switch(where_single_zero, prod_without_zeros, 0.0) * gz,
-            )
-
-            return [final_grad]
-
-    def c_code_cache_version(self):
-        return (1,)
-
-
-class MulWithoutZeros(BinaryScalarOp):
-    # "identity" here is zero, as in Reduce we don't want to start
-    # with reducing (1, something_else): this leads to the erroneous
-    # case where a vector of zeros is reduced by binary reductions
-    # of (1, 0), which always ends up as 1 (ie. the result for
-    # the c version, for the product of [0,0,0], is 1.0)
-
-    identity = 0.0
-    commutative = True
-    associative = True
-
-    def impl(self, x, y):
-        if x == 0:
-            return y
-        if y == 0:
-            return x
-        return x * y
-
-    def c_code(self, node, name, inp, out, sub):
-        x, y = inp
-        (z,) = out
-        return (
-            "%(z)s = ((%(x)s == 0) ? (%(y)s) : "
-            + "((%(y)s == 0) ? (%(x)s) : ((%(y)s)*(%(x)s))) );"
-        ) % locals()
-
-    def c_code_cache_version(self):
-        return (1,)
-
-
-mul_without_zeros = MulWithoutZeros(upcast_out, name="mul_without_zeros")
-
-
-class ProdWithoutZeros(CAReduceDtype):
-
-    __props__ = ("axis", "dtype", "acc_dtype")
-
-    def __init__(self, axis=None, dtype=None, acc_dtype=None):
-        super().__init__(mul_without_zeros, axis=axis, dtype=dtype, acc_dtype=acc_dtype)
-
-    def grad(self, inp, grads):
-        from theano.gradient import grad_not_implemented
-
-        (a,) = inp
-        a_grad = grad_not_implemented(
-            self,
-            0,
-            a,
-            "2nd derivatives of `product(a)` is not currently supported."
-            "If `a` is guaranteed to contains no zeros, use "
-            "`product(a, no_zeros_in_input=True)`.",
-        )
-        return [a_grad]
 
 
 def scalar_elemwise(*symbol, nfunc=None, nin=None, nout=None, symbolname=None):

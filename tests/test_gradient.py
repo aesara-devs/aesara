@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 
 import theano
-import theano.tensor as tt
+import theano.tensor.basic as tt
 from tests import unittest_tools as utt
 from theano.configdefaults import config
 from theano.gradient import (
@@ -24,6 +24,8 @@ from theano.gradient import (
     grad_not_implemented,
     grad_scale,
     grad_undefined,
+    hessian,
+    jacobian,
     subgraph_grad,
     zero_grad,
     zero_grad_,
@@ -32,8 +34,13 @@ from theano.graph.basic import Apply, graph_inputs
 from theano.graph.null_type import NullType
 from theano.graph.op import Op
 from theano.sandbox.rng_mrg import MRG_RandomStream
+from theano.tensor.math import add, dot, exp, sqr
+from theano.tensor.math import sum as tt_sum
+from theano.tensor.math import tanh
 from theano.tensor.type import (
     discrete_dtypes,
+    dmatrix,
+    dscalar,
     fscalar,
     fvector,
     imatrix,
@@ -212,19 +219,111 @@ class TestGradSourcesInputs:
 
 
 class TestGrad:
+    class Obj1(Op):
+        def __init__(self):
+            self.gval0 = scalar("e")
+            self.gval1 = scalar("f")
+
+        def make_node(self):
+            inputs = [scalar("a"), scalar("c")]
+            outputs = [scalar("b"), scalar("d")]
+            return Apply(self, inputs, outputs)
+
+        def grad(self, inp, grads):
+            x0, x1 = inp
+            gz0, gz1 = grads
+            return self.gval0, self.gval1
+
+        def perform(self, *args, **kwargs):
+            raise NotImplementedError()
+
+    def test_1param(self):
+        # grad: Test passing a single variable param
+        o = TestGrad.Obj1()
+        a1 = o.make_node()
+        assert o.gval0 is theano.grad(a1.outputs[0], a1.inputs[0])
+
+    def test_Nparam(self):
+        # grad: Test passing multiple variable params
+        o = TestGrad.Obj1()
+        a1 = o.make_node()
+        g0, g1 = grad(a1.outputs[0], a1.inputs)
+        g0.name = None
+        assert o.gval0 is g0
+        assert o.gval1 is g1
+
+    def test_grad_keep_type(self):
+        # Tests that the theano grad method returns a list if it is passed a list
+        # and a single variable if it is passed a single variable.
+        # pylearn2 depends on theano behaving this way. This functionality has been
+        # added three times and erroneously removed twice. If you do anything that
+        # requires changing this test or making it fail you are almost certainly
+        # making a common mistake, NOT fixing something.
+
+        X = matrix()
+        y = X.sum()
+
+        G = theano.grad(y, [X])
+
+        assert isinstance(G, list)
+
+        G = theano.grad(y, X)
+
+        assert not isinstance(G, list)
+
+    def test_1None_rval(self):
+        # grad: Test returning a single zero value from grad
+        o = TestGrad.Obj1()
+        a1 = o.make_node()
+        g = grad(a1.outputs[0], a1.outputs[1], disconnected_inputs="ignore")
+        assert g.owner.op == tt.fill
+        assert g.owner.inputs[1].data == 0
+        with pytest.raises(TypeError):
+            grad(a1.outputs[0], "wtf")
+
+    def test_NNone_rval(self):
+        # grad: Test returning some zero value from grad
+        o = TestGrad.Obj1()
+        a1 = o.make_node()
+        g0, g1, g2 = grad(
+            a1.outputs[0], a1.inputs + [scalar("z")], disconnected_inputs="ignore"
+        )
+        assert o.gval0 is g0
+        assert o.gval1 is g1
+        assert g2.owner.op == tt.fill
+        assert g2.owner.inputs[1].data == 0
+
+    def test_zero_gradient_shape(self):
+        # Ensure that a zero gradient has the proper shape.
+        x = dmatrix()
+        f = theano.function([x], grad(dscalar(), x, disconnected_inputs="ignore"))
+        a = np.ones((3, 7))
+        assert (f(a) == 0).all()  # Zero gradient
+        assert a.shape == f(a).shape  # With proper shape
+
+    def test_cost_is_scalar(self):
+        # grad: Test that a non-scalar cost raises a TypeError
+        v = vector()
+        m = matrix()
+        # grad(v,...) and grad(m,...) should fail
+        with pytest.raises(TypeError):
+            grad(v, v)
+        with pytest.raises(TypeError):
+            grad(m, m)
+
     def test_unimplemented_grad_func(self):
         # tests that function compilation catches unimplemented grads
         # in the graph
 
         a = vector()
-        b = grad_not_implemented(tt.add, 0, a)
+        b = grad_not_implemented(add, 0, a)
         with pytest.raises(TypeError):
             theano.function([a], b, on_unused_input="ignore")
 
     def test_undefined_grad_func(self):
         # tests that function compilation catches undefined grads in the graph
         a = vector()
-        b = grad_undefined(tt.add, 0, a)
+        b = grad_undefined(add, 0, a)
         with pytest.raises(TypeError):
             theano.function([a], b, on_unused_input="ignore")
 
@@ -273,7 +372,7 @@ class TestGrad:
     def test_grad_name(self):
         A = matrix("A")
         x = vector("x")
-        f = tt.dot(x, tt.dot(A, x))
+        f = dot(x, dot(A, x))
         f.name = "f"
         g = grad(f, x)
         assert g.name == "(df/dx)"
@@ -295,7 +394,7 @@ class TestGrad:
         # test the gradient on a tiny graph
 
         def cost(x, A):
-            return tt.dot(x, tt.dot(A, x))
+            return dot(x, dot(A, x))
 
         rng = np.random.RandomState([2012, 8, 28])
 
@@ -308,7 +407,7 @@ class TestGrad:
         # test the gradient on a small graph
 
         def output(x, A):
-            return tt.dot(x * x, A)
+            return dot(x * x, A)
 
         rng = np.random.RandomState([2012, 8, 28])
 
@@ -321,7 +420,7 @@ class TestGrad:
         # test the gradient on a bigger graph
 
         def cost(x, A):
-            return tt.dot(x * x, tt.dot(A, x))
+            return dot(x * x, dot(A, x))
 
         rng = np.random.RandomState([2012, 8, 28])
 
@@ -334,7 +433,7 @@ class TestGrad:
         # test the gradient on a graph constructed using the gradient
 
         def output(x, A):
-            orig_cost = tt.dot(x, tt.dot(A, x))
+            orig_cost = dot(x, dot(A, x))
             return grad(orig_cost, x)
 
         rng = np.random.RandomState([2012, 8, 28])
@@ -348,7 +447,7 @@ class TestGrad:
         # test the gradient on a bigger graph constructed using the gradient
 
         def output(x, A):
-            orig_cost = tt.dot(x * x, tt.dot(A, x))
+            orig_cost = dot(x * x, dot(A, x))
             return grad(orig_cost, x)
 
         rng = np.random.RandomState([2012, 8, 28])
@@ -366,7 +465,7 @@ class TestGrad:
         b = vector()
 
         def make_grad_func(X):
-            Z = tt.dot(X, W) + b
+            Z = dot(X, W) + b
             H = theano.tensor.nnet.sigmoid(Z)
             cost = H.sum()
             g = grad(cost, X)
@@ -526,7 +625,7 @@ def test_known_grads():
     p.name = "p"
     y = ct * p
     y.name = "y"
-    cost = tt.sqr(y)
+    cost = sqr(y)
     cost.name = "cost"
 
     layers = [[cost], [y], [ct, p], [ct, x, ft], [coeffs, t, full_range, x]]
@@ -635,11 +734,11 @@ def test_subgraph_grad():
     t = fvector("t")
     w1 = theano.shared(np.random.randn(3, 4))
     w2 = theano.shared(np.random.randn(4, 2))
-    a1 = tt.tanh(tt.dot(x, w1))
-    a2 = tt.tanh(tt.dot(a1, w2))
-    cost2 = tt.sqr(a2 - t).sum()
-    cost2 += tt.sqr(w2.sum())
-    cost1 = tt.sqr(w1.sum())
+    a1 = tanh(dot(x, w1))
+    a2 = tanh(dot(a1, w2))
+    cost2 = sqr(a2 - t).sum()
+    cost2 += sqr(w2.sum())
+    cost1 = sqr(w1.sum())
 
     params = [[w2], [w1]]
     costs = [cost2, cost1]
@@ -691,7 +790,7 @@ class TestConsiderConstant:
 
         expressions_gradients = [
             (x * consider_constant(x), x),
-            (x * consider_constant(tt.exp(x)), tt.exp(x)),
+            (x * consider_constant(exp(x)), exp(x)),
             (consider_constant(x), tt.constant(0.0)),
             (x ** 2 * consider_constant(x), 2 * x ** 2),
         ]
@@ -726,7 +825,7 @@ class TestZeroGrad:
 
         expressions_gradients = [
             (x * zero_grad(x), x),
-            (x * zero_grad(tt.exp(x)), tt.exp(x)),
+            (x * zero_grad(exp(x)), exp(x)),
             (zero_grad(x), tt.constant(0.0)),
             (x ** 2 * zero_grad(x), 2 * x ** 2),
         ]
@@ -774,7 +873,7 @@ class TestDisconnectedGrad:
 
         expressions_gradients = [
             (x * disconnected_grad(x), x),
-            (x * disconnected_grad(tt.exp(x)), tt.exp(x)),
+            (x * disconnected_grad(exp(x)), exp(x)),
             (x ** 2 * disconnected_grad(x), 2 * x ** 2),
         ]
 
@@ -866,10 +965,161 @@ def test_undefined_grad_opt():
     samples = tt.cast(samples, pvals.dtype)
     samples = zero_grad(samples)
 
-    cost = tt.sum(samples + pvals)
+    cost = tt_sum(samples + pvals)
     grad_res = grad(cost, samples)
 
     f = theano.function([], grad_res)
     assert not any(
         [isinstance(node.op, UndefinedGrad) for node in f.maker.fgraph.apply_nodes]
     )
+
+
+def test_jacobian_vector():
+    x = vector()
+    y = x * 2
+    rng = np.random.RandomState(seed=utt.fetch_seed())
+
+    # test when the jacobian is called with a tensor as wrt
+    Jx = jacobian(y, x)
+    f = theano.function([x], Jx)
+    vx = rng.uniform(size=(10,)).astype(theano.config.floatX)
+    assert np.allclose(f(vx), np.eye(10) * 2)
+
+    # test when the jacobian is called with a tuple as wrt
+    Jx = jacobian(y, (x,))
+    assert isinstance(Jx, tuple)
+    f = theano.function([x], Jx[0])
+    vx = rng.uniform(size=(10,)).astype(theano.config.floatX)
+    assert np.allclose(f(vx), np.eye(10) * 2)
+
+    # test when the jacobian is called with a list as wrt
+    Jx = jacobian(y, [x])
+    assert isinstance(Jx, list)
+    f = theano.function([x], Jx[0])
+    vx = rng.uniform(size=(10,)).astype(theano.config.floatX)
+    assert np.allclose(f(vx), np.eye(10) * 2)
+
+    # test when the jacobian is called with a list of two elements
+    z = vector()
+    y = x * z
+    Js = jacobian(y, [x, z])
+    f = theano.function([x, z], Js)
+    vx = rng.uniform(size=(10,)).astype(theano.config.floatX)
+    vz = rng.uniform(size=(10,)).astype(theano.config.floatX)
+    vJs = f(vx, vz)
+    evx = np.zeros((10, 10))
+    evz = np.zeros((10, 10))
+    np.fill_diagonal(evx, vx)
+    np.fill_diagonal(evz, vz)
+    assert np.allclose(vJs[0], evz)
+    assert np.allclose(vJs[1], evx)
+
+
+def test_jacobian_matrix():
+    x = matrix()
+    y = 2 * x.sum(axis=0)
+    rng = np.random.RandomState(seed=utt.fetch_seed())
+    ev = np.zeros((10, 10, 10))
+    for dx in range(10):
+        ev[dx, :, dx] = 2.0
+
+    # test when the jacobian is called with a tensor as wrt
+    Jx = jacobian(y, x)
+    f = theano.function([x], Jx)
+    vx = rng.uniform(size=(10, 10)).astype(theano.config.floatX)
+    assert np.allclose(f(vx), ev)
+
+    # test when the jacobian is called with a tuple as wrt
+    Jx = jacobian(y, (x,))
+    assert isinstance(Jx, tuple)
+    f = theano.function([x], Jx[0])
+    vx = rng.uniform(size=(10, 10)).astype(theano.config.floatX)
+    assert np.allclose(f(vx), ev)
+
+    # test when the jacobian is called with a list as wrt
+    Jx = jacobian(y, [x])
+    assert isinstance(Jx, list)
+    f = theano.function([x], Jx[0])
+    vx = rng.uniform(size=(10, 10)).astype(theano.config.floatX)
+    assert np.allclose(f(vx), ev)
+
+    # test when the jacobian is called with a list of two elements
+    z = matrix()
+    y = (x * z).sum(axis=1)
+    Js = jacobian(y, [x, z])
+    f = theano.function([x, z], Js)
+    vx = rng.uniform(size=(10, 10)).astype(theano.config.floatX)
+    vz = rng.uniform(size=(10, 10)).astype(theano.config.floatX)
+    vJs = f(vx, vz)
+    evx = np.zeros((10, 10, 10))
+    evz = np.zeros((10, 10, 10))
+    for dx in range(10):
+        evx[dx, dx, :] = vx[dx, :]
+        evz[dx, dx, :] = vz[dx, :]
+    assert np.allclose(vJs[0], evz)
+    assert np.allclose(vJs[1], evx)
+
+
+def test_jacobian_scalar():
+    x = scalar()
+    y = x * 2
+    rng = np.random.RandomState(seed=utt.fetch_seed())
+
+    # test when the jacobian is called with a tensor as wrt
+    Jx = jacobian(y, x)
+    f = theano.function([x], Jx)
+    vx = np.cast[theano.config.floatX](rng.uniform())
+    assert np.allclose(f(vx), 2)
+
+    # test when the jacobian is called with a tuple as wrt
+    Jx = jacobian(y, (x,))
+    assert isinstance(Jx, tuple)
+    f = theano.function([x], Jx[0])
+    vx = np.cast[theano.config.floatX](rng.uniform())
+    assert np.allclose(f(vx), 2)
+
+    # test when the jacobian is called with a list as wrt
+    Jx = jacobian(y, [x])
+    assert isinstance(Jx, list)
+    f = theano.function([x], Jx[0])
+    vx = np.cast[theano.config.floatX](rng.uniform())
+    assert np.allclose(f(vx), 2)
+
+    # test when the jacobian is called with a list of two elements
+    z = scalar()
+    y = x * z
+    Jx = jacobian(y, [x, z])
+    f = theano.function([x, z], Jx)
+    vx = np.cast[theano.config.floatX](rng.uniform())
+    vz = np.cast[theano.config.floatX](rng.uniform())
+    vJx = f(vx, vz)
+
+    assert np.allclose(vJx[0], vz)
+    assert np.allclose(vJx[1], vx)
+
+
+def test_hessian():
+    x = vector()
+    y = tt_sum(x ** 2)
+    Hx = hessian(y, x)
+    f = theano.function([x], Hx)
+    vx = np.arange(10).astype(theano.config.floatX)
+    assert np.allclose(f(vx), np.eye(10) * 2)
+
+
+def test_jacobian_disconnected_inputs():
+    # Test that disconnected inputs are properly handled by jacobian.
+
+    v1 = vector()
+    v2 = vector()
+    jacobian_v = theano.gradient.jacobian(1 + v1, v2, disconnected_inputs="ignore")
+    func_v = theano.function([v1, v2], jacobian_v)
+    val = np.arange(4.0).astype(theano.config.floatX)
+    assert np.allclose(func_v(val, val), np.zeros((4, 4)))
+
+    s1 = scalar()
+    s2 = scalar()
+    jacobian_s = theano.gradient.jacobian(1 + s1, s2, disconnected_inputs="ignore")
+    func_s = theano.function([s2], jacobian_s)
+    val = np.array(1.0).astype(theano.config.floatX)
+    assert np.allclose(func_s(val), np.zeros(1))

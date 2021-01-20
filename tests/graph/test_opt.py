@@ -1,6 +1,5 @@
 import pytest
 
-import theano.tensor as tt
 from tests.graph.utils import (
     MyType,
     MyVariable,
@@ -30,6 +29,7 @@ from theano.graph.opt import (
     pre_greedy_local_optimizer,
     theano,
 )
+from theano.tensor.math import dot
 from theano.tensor.opt import constant_folding
 from theano.tensor.subtensor import AdvancedSubtensor
 from theano.tensor.type import matrix
@@ -332,7 +332,7 @@ class TestMergeOptimizer:
         # Merge two nodes, one has assert, the other not.
         x1 = matrix("x1")
         x2 = matrix("x2")
-        e = tt.dot(x1, x2) + tt.dot(assert_op(x1, (x1 > x2).all()), x2)
+        e = dot(x1, x2) + dot(assert_op(x1, (x1 > x2).all()), x2)
         g = FunctionGraph([x1, x2], [e])
         MergeOptimizer().optimize(g)
         strg = theano.printing.debugprint(g, file="str")
@@ -354,7 +354,7 @@ class TestMergeOptimizer:
         # with the same conditions.
         x1 = matrix("x1")
         x2 = matrix("x2")
-        e = tt.dot(assert_op(x1, (x1 > x2).all()), x2) + tt.dot(
+        e = dot(assert_op(x1, (x1 > x2).all()), x2) + dot(
             assert_op(x1, (x1 > x2).all()), x2
         )
         g = FunctionGraph([x1, x2], [e])
@@ -381,7 +381,7 @@ class TestMergeOptimizer:
         x1 = matrix("x1")
         x2 = matrix("x2")
         x3 = matrix("x3")
-        e = tt.dot(assert_op(x1, (x1 > x3).all()), x2) + tt.dot(
+        e = dot(assert_op(x1, (x1 > x3).all()), x2) + dot(
             assert_op(x1, (x1 > x2).all()), x2
         )
         g = FunctionGraph([x1, x2, x3], [e])
@@ -426,7 +426,7 @@ class TestMergeOptimizer:
         x1 = matrix("x1")
         x2 = matrix("x2")
         x3 = matrix("x3")
-        e = tt.dot(assert_op(x1, (x1 > x3).all()), x2) + tt.dot(
+        e = dot(assert_op(x1, (x1 > x3).all()), x2) + dot(
             x1, assert_op(x2, (x2 > x3).all())
         )
         g = FunctionGraph([x1, x2, x3], [e])
@@ -457,7 +457,7 @@ class TestMergeOptimizer:
         x1 = matrix("x1")
         x2 = matrix("x2")
         x3 = matrix("x3")
-        e = tt.dot(x1, assert_op(x2, (x2 > x3).all())) + tt.dot(
+        e = dot(x1, assert_op(x2, (x2 > x3).all())) + dot(
             assert_op(x1, (x1 > x3).all()), x2
         )
         g = FunctionGraph([x1, x2, x3], [e])

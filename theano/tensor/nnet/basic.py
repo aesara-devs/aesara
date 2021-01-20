@@ -32,9 +32,25 @@ from theano.scalar import UnaryScalarOp
 # Work-around for Python 3.6 issue that prevents `import theano.tensor as tt`
 from theano.tensor import basic as tt
 from theano.tensor import extra_ops, opt
-from theano.tensor.basic import MaxAndArgmax, as_tensor_variable, log
-from theano.tensor.elemwise import Elemwise
+from theano.tensor.basic import ARange, as_tensor_variable
+from theano.tensor.elemwise import DimShuffle, Elemwise
 from theano.tensor.exceptions import NotScalarConstantError
+from theano.tensor.math import (
+    MaxAndArgmax,
+    Sum,
+    add,
+    dot,
+    eq,
+    exp,
+    expm1,
+    log,
+    max_and_argmax,
+    mul,
+    neg,
+    or_,
+)
+from theano.tensor.math import sum as tt_sum
+from theano.tensor.math import tanh, tensordot, true_div
 from theano.tensor.nnet.blocksparse import sparse_block_dot
 from theano.tensor.nnet.sigm import sigmoid, softplus
 from theano.tensor.opt import (
@@ -42,7 +58,7 @@ from theano.tensor.opt import (
     register_specialize,
     register_stabilize,
 )
-from theano.tensor.shape import shape_padleft
+from theano.tensor.shape import shape, shape_padleft
 from theano.tensor.subtensor import AdvancedIncSubtensor, AdvancedSubtensor, Subtensor
 from theano.tensor.type import (
     TensorType,
@@ -121,7 +137,7 @@ class SoftmaxWithBias(COp):
             return [DisconnectedType()(), DisconnectedType()()]
 
         dx = softmax_grad(g_sm, outputs[0])
-        db = tt.sum(dx, axis=0)
+        db = tt_sum(dx, axis=0)
         return dx, db
 
     def infer_shape(self, fgraph, node, shape):
@@ -345,10 +361,10 @@ class SoftmaxGrad(COp):
         dy, sm = inp
         (g,) = grads
 
-        tmp = g + tt.neg(tt.sum(g * sm, axis=1).dimshuffle((0, "x")))
+        tmp = g + neg(tt_sum(g * sm, axis=1).dimshuffle((0, "x")))
         g_dy = tmp * sm
 
-        tmp2 = tt.sum(dy * sm, axis=1).dimshuffle((0, "x"))
+        tmp2 = tt_sum(dy * sm, axis=1).dimshuffle((0, "x"))
         g_sm = tmp * dy - g * tmp2
 
         return g_dy, g_sm
@@ -670,7 +686,7 @@ class LogSoftmax(COp):
     def grad(self, inp, grads):
         (x,) = inp
         sm = softmax_op(x)
-        return [grads[0] - tt.sum(grads[0], axis=1, keepdims=True) * sm]
+        return [grads[0] - tt_sum(grads[0], axis=1, keepdims=True) * sm]
 
     def R_op(self, inputs, eval_points):
         # I think the Jacobian is symmetric so the R_op
@@ -820,7 +836,7 @@ def local_logsoftmax_grad(fgraph, node):
         isinstance(node.op, SoftmaxGrad)
         and len(node.inputs) == 2
         and node.inputs[0].owner is not None
-        and node.inputs[0].owner.op == tt.true_div
+        and node.inputs[0].owner.op == true_div
         and len(node.inputs[0].owner.inputs) >= 2
         and node.inputs[0].owner.inputs[1].owner is not None
         and node.inputs[0].owner.inputs[1].owner.op == softmax_op
@@ -828,7 +844,7 @@ def local_logsoftmax_grad(fgraph, node):
         and not (
             # skip if it will be optimized by
             # local_advanced_indexing_crossentropy_onehot_grad
-            node.inputs[0].owner.op == tt.true_div
+            node.inputs[0].owner.op == true_div
             and node.inputs[0].owner.inputs[0].owner is not None
             and isinstance(
                 node.inputs[0].owner.inputs[0].owner.op, AdvancedIncSubtensor
@@ -841,14 +857,14 @@ def local_logsoftmax_grad(fgraph, node):
         grads = node.inputs[0].owner.inputs[0]
         if grads.broadcastable[1] and not sm.broadcastable[1]:
             grads = tt.alloc(grads, grads.shape[0], sm.shape[1])
-        ret = grads - tt.sum(grads, axis=1, keepdims=True) * sm
+        ret = grads - tt_sum(grads, axis=1, keepdims=True) * sm
         ret.tag.values_eq_approx = values_eq_approx_remove_nan
         copy_stack_trace(node.outputs[0], ret)
         return [ret]
 
 
 def softmax_graph(c):
-    return tt.exp(c) / tt.exp(c).sum(axis=-1, keepdims=True)
+    return exp(c) / exp(c).sum(axis=-1, keepdims=True)
 
 
 def softmax(c):
@@ -873,25 +889,25 @@ def local_softmax_with_bias(fgraph, node):
     """
     if node.op == softmax_op:
         (x,) = node.inputs
-        if x.owner and x.owner.op == tt.add:
+        if x.owner and x.owner.op == add:
             vectors = []
             non_vectors = []
             for x_in in x.owner.inputs:
                 if list(x_in.type.broadcastable) == [True, False]:
                     # print isinstance(x_in.owner.op,
-                    # tt.DimShuffle) since specialization comes
+                    # DimShuffle) since specialization comes
                     # relatively late in optimization, we don't want to
                     # put in extra DimShuffles un-necessarily.
                     if (
                         x_in.owner
-                        and isinstance(x_in.owner.op, tt.DimShuffle)
+                        and isinstance(x_in.owner.op, DimShuffle)
                         and list(x_in.owner.inputs[0].type.broadcastable) == [False]
                     ):
                         # cut out the DimShuffle that was broadcasting a vector
                         vectors.append(x_in.owner.inputs[0])
                     else:
                         # insert an extra DimShuffle to correct the old one
-                        vectors.append(tt.DimShuffle((True, False), (1,))(x_in))
+                        vectors.append(DimShuffle((True, False), (1,))(x_in))
                 else:
                     non_vectors.append(x_in)
 
@@ -906,13 +922,13 @@ def local_softmax_with_bias(fgraph, node):
             if vectors:
                 # we're in business...
                 if len(vectors) > 1:
-                    vector_sum = tt.add(*vectors)
+                    vector_sum = add(*vectors)
                     copy_stack_trace(x_in, vector_sum)
                 else:
                     vector_sum = vectors[0]
 
                 if len(non_vectors) > 1:
-                    non_vector_sum = tt.add(*non_vectors)
+                    non_vector_sum = add(*non_vectors)
                     copy_stack_trace(x_in, non_vector_sum)
                 else:
                     non_vector_sum = non_vectors[0]
@@ -939,7 +955,7 @@ def softmax_simplifier(numerators, denominators):
 
         if numerator.ndim != 2:
             continue
-        if numerator.owner and numerator.owner.op == tt.exp:
+        if numerator.owner and numerator.owner.op == exp:
             x = numerator.owner.inputs[0]
         else:
             continue
@@ -947,11 +963,11 @@ def softmax_simplifier(numerators, denominators):
         matching_denom = None
 
         for denominator in denominators:
-            if denominator.owner and isinstance(denominator.owner.op, tt.DimShuffle):
+            if denominator.owner and isinstance(denominator.owner.op, DimShuffle):
                 if denominator.owner.op.new_order == (0, "x"):
                     z = denominator.owner.inputs[0]
                     # thing getting dimshuffled
-                    if z.owner and isinstance(z.owner.op, tt.Sum):
+                    if z.owner and isinstance(z.owner.op, Sum):
                         # print 'ASDF', denominator.owner.op.new_order
                         # print z.owner.op.axis
                         if z.owner.op.axis == (1,):
@@ -1108,7 +1124,7 @@ class CrossentropySoftmaxArgmax1HotWithBias(COp):
         if not isinstance(g_nll.type, DisconnectedType):
             nll, sm = crossentropy_softmax_1hot_with_bias(x, b, y_idx)
             dx = crossentropy_softmax_1hot_with_bias_dx(g_nll, sm, y_idx)
-            db = tt.sum(dx, axis=[0])
+            db = tt_sum(dx, axis=[0])
             dx_terms.append(dx)
             db_terms.append(db)
 
@@ -1278,7 +1294,7 @@ class CrossentropySoftmax1HotWithBiasDx(COp):
         # potentially misleading behavior in gradient computations! (although
         # typically we should not need the gradient w.r.t. dy).
         y_idx_range = tt.arange(y_idx.shape[0])
-        g_dy = tt.sum(
+        g_dy = tt_sum(
             g_dx * AdvancedIncSubtensor()(sm, tt.fill(dy, -1), y_idx_range, y_idx),
             axis=1,
         )
@@ -1428,7 +1444,7 @@ def crossentropy_softmax_max_and_argmax_1hot_with_bias(x, b, y_idx, **kwargs):
 
     """
     (xent, softmax) = crossentropy_softmax_1hot_with_bias(x, b, y_idx, **kwargs)
-    (max_pr, argmax) = tt.max_and_argmax(softmax, axis=-1)
+    (max_pr, argmax) = max_and_argmax(softmax, axis=-1)
     return (xent, softmax, max_pr, argmax)
 
 
@@ -1665,9 +1681,9 @@ def local_argmax_pushdown(fgraph, node):
         in (
             softmax_op,
             softplus,
-            tt.exp,
+            exp,
             log,
-            tt.tanh,
+            tanh,
             sigmoid,
             softmax_with_bias,
         )
@@ -1694,19 +1710,19 @@ def local_argmax_pushdown(fgraph, node):
         if x.owner and x.owner.op in (
             softmax_op,
             softplus,
-            tt.exp,
+            exp,
             log,
-            tt.tanh,
+            tanh,
             sigmoid,
         ):
             (pre_x,) = x.owner.inputs
-            ret = tt.max_and_argmax(pre_x, axis)
+            ret = max_and_argmax(pre_x, axis)
             copy_stack_trace(x_max, ret)
             return ret
         if x.owner and x.owner.op == softmax_with_bias:
             pre_x, pre_bias = x.owner.inputs
-            ret = tt.max_and_argmax(
-                pre_x + tt.DimShuffle(pre_bias.broadcastable, ("x", 0))(pre_bias),
+            ret = max_and_argmax(
+                pre_x + DimShuffle(pre_bias.broadcastable, ("x", 0))(pre_bias),
                 axis,
             )
             # copy both stack traces
@@ -1733,7 +1749,7 @@ def _check_rows_is_arange_len_labels(fgraph, rows, labels):
         if len(shape_of[labels]) == 1 and _is_const(shape_of[labels][0], 1):
             return _is_const(rows, 0)
 
-    if rows.owner and isinstance(rows.owner.op, tt.ARange):
+    if rows.owner and isinstance(rows.owner.op, ARange):
         start, stop, step = rows.owner.inputs
         if getattr(start, "data", None) != 0:  # constants will have data
             return False
@@ -1750,7 +1766,7 @@ def _check_rows_is_arange_len_labels(fgraph, rows, labels):
                 shape_subtensor.inputs, allow_partial=True
             ) == [0]:
                 shape_var = shape_subtensor.inputs[0]
-                if shape_var.owner and shape_var.owner.op == tt.shape:
+                if shape_var.owner and shape_var.owner.op == shape:
                     return shape_var.owner.inputs[0] is labels
         else:
             shape_of = fgraph.shape_feature.shape_of
@@ -1889,11 +1905,11 @@ def local_advanced_indexing_crossentropy_onehot_grad(fgraph, node):
 
         # If there's a 'minus' sign before the whole expression, put it in
         # out_grad and iterate
-        if incr.owner and incr.owner.op == tt.neg:
+        if incr.owner and incr.owner.op == neg:
             out_grad = -out_grad
             incr = incr.owner.inputs[0]
 
-        if incr.owner and incr.owner.op == tt.true_div:
+        if incr.owner and incr.owner.op == true_div:
             num, denom = incr.owner.inputs
 
             # set out_grad according to the numerator, it may be divided later
@@ -1910,7 +1926,7 @@ def local_advanced_indexing_crossentropy_onehot_grad(fgraph, node):
                 # Base case
                 adv_subtensor = denom
                 # out_grad /= 1.
-            elif denom.owner.op == tt.mul:
+            elif denom.owner.op == mul:
                 # Try to find the AdvancedSubtensor node mentionned above,
                 # and the output gradient
                 for i, input in enumerate(denom.owner.inputs):
@@ -1921,7 +1937,7 @@ def local_advanced_indexing_crossentropy_onehot_grad(fgraph, node):
                         if len(other_inputs) == 1:
                             rest = other_inputs[0]
                         else:
-                            rest = tt.mul(*[other_inputs])
+                            rest = mul(*[other_inputs])
 
                         # Check that rest is a vector or a scalar
                         if rest.ndim == 1 or np.all(rest.broadcastable):
@@ -1957,7 +1973,7 @@ def local_advanced_indexing_crossentropy_onehot_grad(fgraph, node):
         # it was really case 1.
 
     # Second case
-    elif d_sm.owner and d_sm.owner.op == tt.true_div:
+    elif d_sm.owner and d_sm.owner.op == true_div:
         # we're looking for
         # AdvIncSubtensor(zeros, grad_nll, arange(len(y)), y) / softmax
         try:
@@ -2094,7 +2110,7 @@ def local_useless_crossentropy_softmax_1hot_with_bias_dx_alloc(fgraph, node):
                 # If `dz` is broadcastable, we need to check whether the shapes
                 # of `dy` and `sm` are the same or whether the shape of `dy` is
                 # equal to 1.
-                cond = tt.or_(tt.eq(dy.shape[0], 1), tt.eq(dy.shape[0], sm.shape[0]))
+                cond = or_(eq(dy.shape[0], 1), eq(dy.shape[0], sm.shape[0]))
                 msg = "`sm` and `dy` do not have the same shape."
                 dz = Assert(msg)(dz, cond)
 
@@ -2198,7 +2214,7 @@ def categorical_crossentropy(coding_dist, true_dist):
 
     """
     if true_dist.ndim == coding_dist.ndim:
-        return -tt.sum(true_dist * log(coding_dist), axis=coding_dist.ndim - 1)
+        return -tt_sum(true_dist * log(coding_dist), axis=coding_dist.ndim - 1)
     elif true_dist.ndim == coding_dist.ndim - 1:
         return crossentropy_categorical_1hot(coding_dist, true_dist)
     else:
@@ -2500,12 +2516,12 @@ def h_softmax(
     """
 
     # First softmax that computes the probabilities of belonging to each class
-    class_probs = softmax(tt.dot(x, W1) + b1)
+    class_probs = softmax(dot(x, W1) + b1)
 
     if target is None:  # Computes the probabilites of all the outputs
 
         # Second softmax that computes the output probabilities
-        activations = tt.tensordot(x, W2, (1, 1)) + b2
+        activations = tensordot(x, W2, (1, 1)) + b2
         output_probs = softmax(activations.reshape((-1, n_outputs_per_class)))
         output_probs = output_probs.reshape((batch_size, n_classes, -1))
         output_probs = class_probs.dimshuffle(0, 1, "x") * output_probs
@@ -2566,7 +2582,7 @@ def elu(x, alpha=1):
         "Fast and Accurate Deep Network Learning by
         Exponential Linear Units (ELUs)" <http://arxiv.org/abs/1511.07289>`.
     """
-    return tt.switch(x > 0, x, alpha * tt.expm1(x))
+    return tt.switch(x > 0, x, alpha * expm1(x))
 
 
 def selu(x):
@@ -2676,8 +2692,8 @@ def confusion_matrix(actual, pred):
     colA = actual.dimshuffle(0, "x")
     colP = pred.dimshuffle(0, "x")
 
-    oneHotA = tt.eq(colA, order).astype("int64")
-    oneHotP = tt.eq(colP, order).astype("int64")
+    oneHotA = eq(colA, order).astype("int64")
+    oneHotP = eq(colP, order).astype("int64")
 
-    conf_mat = tt.dot(oneHotA.T, oneHotP)
+    conf_mat = dot(oneHotA.T, oneHotP)
     return [conf_mat, order]

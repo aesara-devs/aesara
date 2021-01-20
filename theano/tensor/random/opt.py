@@ -1,10 +1,11 @@
-import theano.tensor as tt
 from theano.compile import optdb
 from theano.configdefaults import config
 from theano.graph.op import compute_test_value
 from theano.graph.opt import local_optimizer
+from theano.tensor.basic import constant, get_vector_length
 from theano.tensor.elemwise import DimShuffle
 from theano.tensor.extra_ops import broadcast_to
+from theano.tensor.math import sum as tt_sum
 from theano.tensor.opt import in2out
 from theano.tensor.random.op import RandomVariable
 from theano.tensor.random.utils import broadcast_params
@@ -147,11 +148,8 @@ def local_dimshuffle_rv_lift(fgraph, node):
         # since the trailing dimensions in `size` represent the independent
         # variates dimensions (for univariate distributions, at least)
         new_size = (
-            [
-                tt.constant(1, dtype="int64") if o == "x" else size[o]
-                for o in ds_new_order
-            ]
-            if tt.get_vector_length(size) > 0
+            [constant(1, dtype="int64") if o == "x" else size[o] for o in ds_new_order]
+            if get_vector_length(size) > 0
             else size
         )
 
@@ -194,7 +192,7 @@ def local_dimshuffle_rv_lift(fgraph, node):
         # Update the `size` array to reflect the `DimShuffle`d dimensions.
         # There should be no need to `DimShuffle` now.
         new_size = [
-            tt.constant(1, dtype="int64") if o == "x" else size[o] for o in ds_new_order
+            constant(1, dtype="int64") if o == "x" else size[o] for o in ds_new_order
         ]
 
         new_node = rv_op.make_node(rng, new_size, dtype, *dist_params)
@@ -339,7 +337,7 @@ def local_subtensor_rv_lift(fgraph, node):
     # *which* dimensions of `size` are used).
     if any(st_is_bool):
         size_lifted = tuple(
-            tt.sum(idx) if is_bool else s
+            tt_sum(idx) if is_bool else s
             for s, is_bool, idx in zip(
                 size_lifted, st_is_bool, st_indices[: (reps_ind_split_idx + 1)]
             )

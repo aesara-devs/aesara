@@ -15,7 +15,6 @@ from numpy.lib.stride_tricks import as_strided
 
 import theano
 from theano import scalar as ts
-from theano import tensor as tt
 from theano.configdefaults import config
 from theano.gradient import DisconnectedType, grad_not_implemented, grad_undefined
 from theano.graph.basic import Apply, Constant, Variable
@@ -23,7 +22,25 @@ from theano.graph.op import COp, Op
 from theano.misc.safe_asarray import _asarray
 from theano.sparse.type import SparseType, _is_sparse
 from theano.sparse.utils import hash_from_sparse
+from theano.tensor import basic as tt
 from theano.tensor.basic import Split
+from theano.tensor.math import add as tt_add
+from theano.tensor.math import arcsin, arcsinh, arctan, arctanh, ceil, conj, deg2rad
+from theano.tensor.math import dot as tt_dot
+from theano.tensor.math import exp, expm1, floor, log, log1p, maximum, minimum
+from theano.tensor.math import pow as tt_pow
+from theano.tensor.math import (
+    rad2deg,
+    round_half_to_even,
+    sgn,
+    sin,
+    sinh,
+    sqr,
+    sqrt,
+    tan,
+    tanh,
+    trunc,
+)
 from theano.tensor.shape import shape
 from theano.tensor.type import TensorType
 from theano.tensor.type import continuous_dtypes as tensor_continuous_dtypes
@@ -1845,7 +1862,7 @@ class Diag(Op):
         return [square_diagonal(gz)]
 
     def infer_shape(self, fgraph, nodes, shapes):
-        return [(tt.minimum(*shapes[0]),)]
+        return [(minimum(*shapes[0]),)]
 
 
 diag = Diag()
@@ -3181,7 +3198,7 @@ def structured_sigmoid(x):
     # see decorator for function body
 
 
-@structured_monoid(tt.exp)
+@structured_monoid(exp)
 def structured_exp(x):
     """
     Structured elemwise exponential.
@@ -3190,7 +3207,7 @@ def structured_exp(x):
     # see decorator for function body
 
 
-@structured_monoid(tt.log)
+@structured_monoid(log)
 def structured_log(x):
     """
     Structured elemwise logarithm.
@@ -3199,7 +3216,7 @@ def structured_log(x):
     # see decorator for function body
 
 
-@structured_monoid(tt.pow)
+@structured_monoid(tt_pow)
 def structured_pow(x, y):
     """
     Structured elemwise power of sparse matrix x by scalar y.
@@ -3208,7 +3225,7 @@ def structured_pow(x, y):
     # see decorator for function body
 
 
-@structured_monoid(tt.minimum)
+@structured_monoid(minimum)
 def structured_minimum(x, y):
     """
     Structured elemwise minimum of sparse matrix x by scalar y.
@@ -3217,7 +3234,7 @@ def structured_minimum(x, y):
     # see decorator for function body
 
 
-@structured_monoid(tt.maximum)
+@structured_monoid(maximum)
 def structured_maximum(x, y):
     """
     Structured elemwise maximum of sparse matrix x by scalar y.
@@ -3226,7 +3243,7 @@ def structured_maximum(x, y):
     # see decorator for function body
 
 
-@structured_monoid(tt.add)
+@structured_monoid(tt_add)
 def structured_add(x):
     """
     Structured addition of sparse matrix x and scalar y.
@@ -3236,7 +3253,7 @@ def structured_add(x):
 
 
 # Sparse operation (map 0 to 0)
-@structured_monoid(tt.sin)
+@structured_monoid(sin)
 def sin(x):
     """
     Elemwise sinus of `x`.
@@ -3245,7 +3262,7 @@ def sin(x):
     # see decorator for function body
 
 
-@structured_monoid(tt.tan)
+@structured_monoid(tan)
 def tan(x):
     """
     Elemwise tan of `x`.
@@ -3254,7 +3271,7 @@ def tan(x):
     # see decorator for function body
 
 
-@structured_monoid(tt.arcsin)
+@structured_monoid(arcsin)
 def arcsin(x):
     """
     Elemwise arcsinus of `x`.
@@ -3263,7 +3280,7 @@ def arcsin(x):
     # see decorator for function body
 
 
-@structured_monoid(tt.arctan)
+@structured_monoid(arctan)
 def arctan(x):
     """
     Elemwise arctan of `x`.
@@ -3272,7 +3289,7 @@ def arctan(x):
     # see decorator for function body
 
 
-@structured_monoid(tt.sinh)
+@structured_monoid(sinh)
 def sinh(x):
     """
     Elemwise sinh of `x`.
@@ -3281,7 +3298,7 @@ def sinh(x):
     # see decorator for function body
 
 
-@structured_monoid(tt.arcsinh)
+@structured_monoid(arcsinh)
 def arcsinh(x):
     """
     Elemwise arcsinh of `x`.
@@ -3290,7 +3307,7 @@ def arcsinh(x):
     # see decorator for function body
 
 
-@structured_monoid(tt.tanh)
+@structured_monoid(tanh)
 def tanh(x):
     """
     Elemwise tanh of `x`.
@@ -3299,7 +3316,7 @@ def tanh(x):
     # see decorator for function body
 
 
-@structured_monoid(tt.arctanh)
+@structured_monoid(arctanh)
 def arctanh(x):
     """
     Elemwise arctanh of `x`.
@@ -3308,7 +3325,7 @@ def arctanh(x):
     # see decorator for function body
 
 
-@structured_monoid(tt.round_half_to_even)
+@structured_monoid(round_half_to_even)
 def rint(x):
     """
     Elemwise round half to even of `x`.
@@ -3318,11 +3335,11 @@ def rint(x):
 
 
 # Give it a simple name instead of the complex one that would automatically
-# be derived from `tt.round_half_to_even`.
+# be derived from `round_half_to_even`.
 rint.__name__ = "rint"
 
 
-@structured_monoid(tt.sgn)
+@structured_monoid(sgn)
 def sgn(x):
     """
     Elemwise signe of `x`.
@@ -3331,7 +3348,7 @@ def sgn(x):
     # see decorator for function body
 
 
-@structured_monoid(tt.ceil)
+@structured_monoid(ceil)
 def ceil(x):
     """
     Elemwise ceiling of `x`.
@@ -3340,7 +3357,7 @@ def ceil(x):
     # see decorator for function body
 
 
-@structured_monoid(tt.floor)
+@structured_monoid(floor)
 def floor(x):
     """
     Elemwise floor of `x`.
@@ -3349,7 +3366,7 @@ def floor(x):
     # see decorator for function body
 
 
-@structured_monoid(tt.log1p)
+@structured_monoid(log1p)
 def log1p(x):
     """
     Elemwise log(1 + `x`).
@@ -3358,7 +3375,7 @@ def log1p(x):
     # see decorator for function body
 
 
-@structured_monoid(tt.expm1)
+@structured_monoid(expm1)
 def expm1(x):
     """
     Elemwise e^`x` - 1.
@@ -3367,7 +3384,7 @@ def expm1(x):
     # see decorator for function body
 
 
-@structured_monoid(tt.deg2rad)
+@structured_monoid(deg2rad)
 def deg2rad(x):
     """
     Elemwise degree to radian.
@@ -3376,7 +3393,7 @@ def deg2rad(x):
     # see decorator for function body
 
 
-@structured_monoid(tt.rad2deg)
+@structured_monoid(rad2deg)
 def rad2deg(x):
     """
     Elemwise radian to degree.
@@ -3385,7 +3402,7 @@ def rad2deg(x):
     # see decorator for function body
 
 
-@structured_monoid(tt.trunc)
+@structured_monoid(trunc)
 def trunc(x):
     """
     Elemwise truncature.
@@ -3394,7 +3411,7 @@ def trunc(x):
     # see decorator for function body
 
 
-@structured_monoid(tt.sqr)
+@structured_monoid(sqr)
 def sqr(x):
     """
     Elemwise `x` * `x`.
@@ -3403,7 +3420,7 @@ def sqr(x):
     # see decorator for function body
 
 
-@structured_monoid(tt.sqrt)
+@structured_monoid(sqrt)
 def sqrt(x):
     """
     Elemwise square root of `x`.
@@ -3412,7 +3429,7 @@ def sqrt(x):
     # see decorator for function body
 
 
-@structured_monoid(tt.conj)
+@structured_monoid(conj)
 def conj(x):
     """
     Elemwise complex conjugate of `x`.
@@ -4162,11 +4179,11 @@ class Dot(Op):
         rval = []
 
         if _is_dense_variable(y):
-            rval.append(tt.dot(gz, y.T))
+            rval.append(tt_dot(gz, y.T))
         else:
             rval.append(dot(gz, y.T))
         if _is_dense_variable(x):
-            rval.append(tt.dot(x.T, gz))
+            rval.append(tt_dot(x.T, gz))
         else:
             rval.append(dot(x.T, gz))
 

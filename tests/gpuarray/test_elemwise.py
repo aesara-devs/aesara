@@ -29,6 +29,7 @@ from theano.gpuarray.elemwise import (
 from theano.gpuarray.type import GpuArrayType, get_context, gpuarray_shared_constructor
 from theano.link.basic import PerformLinker
 from theano.link.c.basic import CLinker
+from theano.tensor.math import erfcinv, erfinv, mul, tanh
 from theano.tensor.type import bvector, float_dtypes, fmatrix, fvector, vector
 
 
@@ -131,7 +132,7 @@ class TestMathErrorFunctions:
     def test_elemwise_erfinv(self):
         for dtype in self.dtypes:
             vec = vector(dtype=dtype)
-            output = tt.erfinv(vec)
+            output = erfinv(vec)
             f_host = theano.function(
                 [vec],
                 output,
@@ -166,7 +167,7 @@ class TestMathErrorFunctions:
     def test_elemwise_erfcinv(self):
         for dtype in self.dtypes:
             vec = vector(dtype=dtype)
-            output = tt.erfcinv(vec)
+            output = erfcinv(vec)
             f_host = theano.function(
                 [vec],
                 output,
@@ -205,7 +206,7 @@ class TestFloat16:
         x = vector(dtype="float16")
         y = fvector()
 
-        cz = tt.tanh(x + tt.cast(y, "float16"))
+        cz = tanh(x + tt.cast(y, "float16"))
         o = (
             cz
             - cz ** 2
@@ -223,7 +224,7 @@ class TestFloat16:
         y = vector(dtype="float16")
         z = vector(dtype="float16")
 
-        o = tt.switch(v, tt.mul(w, x, y), z)
+        o = tt.switch(v, mul(w, x, y), z)
         theano.function([v, w, x, y, z], o, mode=mode_with_gpu)
 
     def test_cast_float16(self):

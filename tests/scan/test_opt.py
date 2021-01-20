@@ -1,14 +1,16 @@
 import numpy as np
 
 import theano
-import theano.tensor as tt
+import theano.tensor.basic as tt
 from tests import unittest_tools as utt
 from theano.configdefaults import config
-from theano.gradient import Rop, grad
+from theano.gradient import Rop, grad, jacobian
 from theano.scan.op import Scan
 from theano.tensor import nnet
-from theano.tensor.basic import Dot
 from theano.tensor.elemwise import Elemwise
+from theano.tensor.math import Dot, dot
+from theano.tensor.math import sum as tt_sum
+from theano.tensor.math import tanh
 from theano.tensor.type import matrix, tensor3, vector
 
 
@@ -70,7 +72,7 @@ class TestGaussNewton:
 
         # recurrent function
         def step(x_t, h_tm1):
-            h = tt.tanh(tt.dot(h_tm1, W_hh) + tt.dot(x_t, W_xh) + b_h)
+            h = tanh(dot(h_tm1, W_hh) + dot(x_t, W_xh) + b_h)
             return h
 
         # build recurrent graph
@@ -80,7 +82,7 @@ class TestGaussNewton:
             h_0 = tt.alloc(0.0, batch_size, 10).astype(config.floatX)
         h, updates = theano.scan(step, sequences=[x], outputs_info=[h_0])
         # network output
-        y = tt.dot(h, W_hy) + b_y
+        y = dot(h, W_hy) + b_y
 
         # Create Gauss-Newton-Matrix object. Not really of any use here, but I
         # need it for Hessian-Free optimization.
@@ -126,8 +128,8 @@ class GaussNewtonMatrix:
     def __call__(self, v, cost, parameters, damp):
         # compute Gauss-Newton Matrix right-multiplied by `v`
         Jv = Rop(self._s, parameters, v)
-        HJv = grad(tt.sum(grad(cost, self._s) * Jv), self._s, consider_constant=[Jv])
-        JHJv = grad(tt.sum(HJv * self._s), parameters, consider_constant=[HJv, Jv])
+        HJv = grad(tt_sum(grad(cost, self._s) * Jv), self._s, consider_constant=[Jv])
+        JHJv = grad(tt_sum(HJv * self._s), parameters, consider_constant=[HJv, Jv])
 
         # apply Tikhonov damping
         JHJv = [JHJvi + damp * vi for JHJvi, vi in zip(JHJv, v)]
@@ -148,15 +150,15 @@ class TestPushOutScanOutputDot:
 
         v = vector()
         m = matrix()
-        output = tt.dot(v, m)
+        output = dot(v, m)
 
         # Compile the function twice, once with the optimization and once
         # without
         opt_mode = mode.including("scan")
-        f_opt = theano.function([v, m], tt.jacobian(output, v), mode=opt_mode)
+        f_opt = theano.function([v, m], jacobian(output, v), mode=opt_mode)
 
         no_opt_mode = mode.excluding("scanOp_pushout_output")
-        f_no_opt = theano.function([v, m], tt.jacobian(output, v), mode=no_opt_mode)
+        f_no_opt = theano.function([v, m], jacobian(output, v), mode=no_opt_mode)
 
         # Ensure that the optimization was performed correctly in f_opt
         # The inner function of scan should have only one output and it should
@@ -186,7 +188,7 @@ class TestPushOutScanOutputDot:
 
         def inner_fct(vect, mat):
             vect_squared = vect ** 2
-            return tt.dot(vect_squared, mat), vect_squared
+            return dot(vect_squared, mat), vect_squared
 
         outputs, updates = theano.scan(
             fn=inner_fct, outputs_info=[None] * 2, sequences=a, non_sequences=b
@@ -231,7 +233,7 @@ class TestPushOutScanOutputDot:
 
         def inner_fct(seq1, previous_output1, nonseq1):
             output1 = previous_output1 + seq1
-            output2 = tt.dot(output1, nonseq1)
+            output2 = dot(output1, nonseq1)
             return output1, output2
 
         outputs, updates = theano.scan(
@@ -325,7 +327,7 @@ class TestPushOutSumOfDot:
 
             after_r = r * h
             pre_h = x + after_r.dot(W)
-            new_h = tt.tanh(pre_h)
+            new_h = tanh(pre_h)
 
             res_h = z * new_h + (1 - z) * h
             return res_h
@@ -385,9 +387,9 @@ class TestPushOutSumOfDot:
         U = theano.shared(np.random.normal(size=(6, 7))).astype(config.floatX)
 
         def inner_fct(seq1, seq2, seq3, previous_output):
-            temp1 = tt.dot(seq1, W) + seq3
-            temp2 = tt.dot(seq2, U)
-            dot_output = tt.dot(temp1, temp2)
+            temp1 = dot(seq1, W) + seq3
+            temp2 = dot(seq2, U)
+            dot_output = dot(temp1, temp2)
             return previous_output + dot_output
 
         init = tt.as_tensor_variable(np.random.normal(size=(3, 7)))

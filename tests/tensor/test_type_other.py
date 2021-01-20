@@ -2,6 +2,7 @@
 
 import theano
 from theano.graph.basic import Constant
+from theano.tensor.math import argmax
 from theano.tensor.type import iscalar, vector
 from theano.tensor.type_other import MakeSlice, NoneConst, NoneTypeT, make_slice
 
@@ -14,10 +15,11 @@ def test_make_slice_merge():
     f = theano.function([i], [s1, s2])
     nodes = f.maker.fgraph.apply_nodes
     assert len([n for n in nodes if isinstance(n.op, MakeSlice)]) == 1
-    theano.printing.debugprint(f)
 
 
 def test_none_Constant():
+    # FIXME: This is a poor test.
+
     # Tests equals
     # We had an error in the past with unpickling
 
@@ -33,10 +35,9 @@ def test_none_Constant():
     import pickle
 
     import theano
-    from theano import tensor as tt
 
     x = vector("x")
-    y = tt.argmax(x)
+    y = argmax(x)
     kwargs = {}
     # We can't pickle DebugMode
     if theano.config.mode in ["DebugMode", "DEBUG_MODE"]:

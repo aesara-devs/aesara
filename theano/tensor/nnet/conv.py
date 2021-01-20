@@ -19,11 +19,11 @@ from theano.graph.basic import Apply
 from theano.graph.op import OpenMPOp
 from theano.tensor import blas
 from theano.tensor.basic import (
-    NotScalarConstantError,
     as_tensor_variable,
     get_scalar_constant_value,
     patternbroadcast,
 )
+from theano.tensor.exceptions import NotScalarConstantError
 from theano.tensor.nnet.abstract_conv import get_conv_output_shape, get_conv_shape_1axis
 from theano.tensor.type import discrete_dtypes, tensor
 

@@ -17,19 +17,18 @@ from theano.graph.type import CType
 from theano.graph.utils import MethodNotDefined
 from theano.misc.safe_asarray import _asarray
 from theano.printing import pprint
-from theano.tensor.basic import (
-    NotScalarConstantError,
-    TensorType,
-    addbroadcast,
-    alloc,
-    clip,
-    get_scalar_constant_value,
-)
+from theano.tensor.basic import addbroadcast, alloc, get_scalar_constant_value
 from theano.tensor.elemwise import DimShuffle
-from theano.tensor.exceptions import AdvancedIndexingError, ShapeError
+from theano.tensor.exceptions import (
+    AdvancedIndexingError,
+    NotScalarConstantError,
+    ShapeError,
+)
 from theano.tensor.inc_code import inc_code
+from theano.tensor.math import clip
 from theano.tensor.shape import Reshape
 from theano.tensor.type import (
+    TensorType,
     bscalar,
     complex_dtypes,
     cscalar,

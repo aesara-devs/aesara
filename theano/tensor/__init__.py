@@ -33,6 +33,7 @@ from theano.tensor.extra_ops import (
     unravel_index,
 )
 from theano.tensor.io import *
+from theano.tensor.math import *
 from theano.tensor.shape import (
     reshape,
     shape,

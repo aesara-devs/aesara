@@ -1,9 +1,10 @@
 import numpy as np
 
-from theano import tensor as tt
 from theano.compile.function.pfunc import pfunc
 from theano.compile.sharedvalue import shared
 from theano.gradient import grad
+from theano.tensor.math import dot
+from theano.tensor.math import sum as tt_sum
 from theano.tensor.nnet import sigmoid
 from theano.tensor.type import dvector
 
@@ -33,9 +34,9 @@ class NNet:
         self.w2 = shared(np.zeros((n_output, n_hidden)), "w2")
         # print self.lr.type
 
-        self.hidden = sigmoid(tt.dot(self.w1, self.input))
-        self.output = tt.dot(self.w2, self.hidden)
-        self.cost = tt.sum((self.output - self.target) ** 2)
+        self.hidden = sigmoid(dot(self.w1, self.input))
+        self.output = dot(self.w2, self.hidden)
+        self.cost = tt_sum((self.output - self.target) ** 2)
 
         self.sgd_updates = {
             self.w1: self.w1 - self.lr * grad(self.cost, self.w1),

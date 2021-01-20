@@ -22,11 +22,11 @@ from theano.configdefaults import config
 from theano.graph.basic import Apply, Variable
 from theano.graph.op import Op
 from theano.tensor.basic import (
-    NotScalarConstantError,
     as_tensor_variable,
     get_scalar_constant_value,
     patternbroadcast,
 )
+from theano.tensor.exceptions import NotScalarConstantError
 from theano.tensor.var import TensorConstant, TensorVariable
 
 

@@ -19,8 +19,8 @@ from theano.sandbox.linalg.ops import (
     solve,
     spectral_radius_bound,
 )
-from theano.tensor.basic import _allclose
 from theano.tensor.elemwise import DimShuffle
+from theano.tensor.math import _allclose
 from theano.tensor.nlinalg import MatrixInverse
 from theano.tensor.type import dmatrix, matrix, vector
 

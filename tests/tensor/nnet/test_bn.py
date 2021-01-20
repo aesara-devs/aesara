@@ -7,6 +7,7 @@ import theano
 import theano.tensor as tt
 from tests import unittest_tools as utt
 from theano.configdefaults import config
+from theano.tensor.math import sum as tt_sum
 from theano.tensor.nnet import bn
 from theano.tensor.type import (
     TensorType,
@@ -548,7 +549,7 @@ def test_batch_normalization_train_broadcast():
 
             # compile to compute all differences
             f = theano.function(
-                [x, scale, bias, running_mean, running_var], tt.sum(sum(results))
+                [x, scale, bias, running_mean, running_var], tt_sum(sum(results))
             )
 
             # the paired ops are exactly the same, so the optimizer should have
