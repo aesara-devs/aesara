@@ -13,6 +13,7 @@ from theano.graph.op import COp, Op
 from theano.graph.opt import local_optimizer
 from theano.graph.optdb import EquilibriumDB
 from theano.graph.toolbox import BadOptimization
+from theano.tensor.math import add, dot, log
 from theano.tensor.type import TensorType, dvector, fmatrix, fvector, vector
 
 
@@ -227,9 +228,9 @@ def test_badthunkoutput():
 
 
 def test_badoptimization():
-    @local_optimizer([tt.add])
+    @local_optimizer([add])
     def insert_broken_add(fgraph, node):
-        if node.op == tt.add:
+        if node.op == add:
             return [off_by_half(*node.inputs)]
         return False
 
@@ -253,18 +254,18 @@ def test_badoptimization():
 def test_badoptimization_opt_err():
     # This variant of test_badoptimization() replace the working code
     # with a new apply node that will raise an error.
-    @local_optimizer([tt.add])
+    @local_optimizer([add])
     def insert_bigger_b_add(fgraph, node):
-        if node.op == tt.add:
+        if node.op == add:
             inputs = list(node.inputs)
             if inputs[-1].owner is None:
                 inputs[-1] = tt.concatenate((inputs[-1], inputs[-1]))
                 return [node.op(*inputs)]
         return False
 
-    @local_optimizer([tt.add])
+    @local_optimizer([add])
     def insert_bad_dtype(fgraph, node):
-        if node.op == tt.add:
+        if node.op == add:
             inputs = list(node.inputs)
             if inputs[-1].owner is None:
 
@@ -316,9 +317,9 @@ def test_stochasticoptimization():
 
     last_time_replaced = [False]
 
-    @local_optimizer([tt.add])
+    @local_optimizer([add])
     def insert_broken_add_sometimes(fgraph, node):
-        if node.op == tt.add:
+        if node.op == add:
             last_time_replaced[0] = not last_time_replaced[0]
             if last_time_replaced[0]:
                 return [off_by_half(*node.inputs)]
@@ -334,7 +335,7 @@ def test_stochasticoptimization():
     with pytest.raises(debugmode.StochasticOrder):
         theano.function(
             [a, b],
-            tt.add(a, b),
+            add(a, b),
             mode=debugmode.DebugMode(
                 optimizer=opt,
                 check_c_code=True,
@@ -559,7 +560,7 @@ class TestCheckIsfinite:
     def test_check_isfinite(self):
         x = vector()
         f = theano.function([x], (x + 2) * 5, mode="DEBUG_MODE")
-        g = theano.function([x], tt.log(x), mode="DEBUG_MODE")
+        g = theano.function([x], log(x), mode="DEBUG_MODE")
 
         # this should work
         f(np.log([3, 4, 5]).astype(config.floatX))
@@ -736,7 +737,7 @@ class TestPreallocatedOutput:
         b = fmatrix("b")
         z = BrokenCImplementationAdd()(a, b)
         # In this test, we do not want z to be an output of the graph.
-        out = tt.dot(z, np.eye(7))
+        out = dot(z, np.eye(7))
 
         a_val = self.rng.randn(7, 7).astype("float32")
         b_val = self.rng.randn(7, 7).astype("float32")

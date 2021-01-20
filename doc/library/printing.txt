@@ -51,10 +51,11 @@ Theano also provides :func:`theano.printing.pydotprint` that creates a png image
 
 1) The first is :func:`theano.pp`.
 
->>> from theano import pp, tensor as tt
+>>> from theano import pp, grad,
+>>> from theano import tensor as tt
 >>> x = tt.dscalar('x')
 >>> y = x ** 2
->>> gy = tt.grad(y, x)
+>>> gy = grad(y, x)
 >>> pp(gy)  # print out the gradient prior to optimization
 '((fill((x ** TensorConstant{2}), TensorConstant{1.0}) * TensorConstant{2}) * (x ** (TensorConstant{2} - TensorConstant{1})))'
 >>> f = function([x], gy)

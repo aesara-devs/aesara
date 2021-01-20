@@ -8,7 +8,7 @@ import theano
 from tests import unittest_tools as utt
 from theano import function
 from theano.configdefaults import config
-from theano.tensor.basic import _allclose
+from theano.tensor.math import _allclose
 from theano.tensor.nlinalg import (
     SVD,
     AllocDiag,

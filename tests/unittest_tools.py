@@ -7,11 +7,11 @@ import numpy as np
 import pytest
 
 import theano
-import theano.tensor as tt
 from theano.compile.debugmode import str_diagnostic
 from theano.configdefaults import config
 from theano.gradient import verify_grad as orig_verify_grad
-from theano.tensor.basic import _allclose
+from theano.tensor.math import _allclose
+from theano.tensor.math import add as tt_add
 
 
 _logger = logging.getLogger("tests.unittest_tools")
@@ -139,7 +139,7 @@ class OptimizationTestMixin:
 class OpContractTestMixin:
     # self.ops should be a list of instantiations of an Op class to test.
     # self.other_op should be an op which is different from every op
-    other_op = tt.add
+    other_op = tt_add
 
     def copy(self, x):
         return copy(x)

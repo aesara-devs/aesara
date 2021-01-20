@@ -5,8 +5,8 @@ import numpy as np
 
 from theano.compile.sharedvalue import shared
 from theano.graph.basic import Variable
-from theano.tensor.basic import maximum
 from theano.tensor.extra_ops import broadcast_to
+from theano.tensor.math import maximum
 
 
 def params_broadcast_shapes(param_shapes, ndims_params, use_theano=True):

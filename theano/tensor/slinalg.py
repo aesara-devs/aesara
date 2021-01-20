@@ -13,7 +13,8 @@ except ImportError:
     imported_scipy = False
 
 import theano.tensor
-import theano.tensor as tt
+import theano.tensor.basic as tt
+import theano.tensor.math as tm
 from theano.graph.basic import Apply
 from theano.graph.op import Op
 from theano.tensor import as_tensor_variable
@@ -105,7 +106,7 @@ class Cholesky(Op):
         # Replace the cholesky decomposition with 1 if there are nans
         # or solve_upper_triangular will throw a ValueError.
         if self.on_error == "nan":
-            ok = ~tt.any(tt.isnan(chol_x))
+            ok = ~tm.any(tm.isnan(chol_x))
             chol_x = tt.switch(ok, chol_x, 1)
             dz = tt.switch(ok, dz, 1)
 
@@ -293,7 +294,7 @@ class Solve(Op):
         )
         b_bar = trans_solve_op(A.T, c_bar)
         # force outer product if vector second input
-        A_bar = -tt.outer(b_bar, c) if c.ndim == 1 else -b_bar.dot(c.T)
+        A_bar = -tm.outer(b_bar, c) if c.ndim == 1 else -b_bar.dot(c.T)
         if self.A_structure == "lower_triangular":
             A_bar = tt.tril(A_bar)
         elif self.A_structure == "upper_triangular":
@@ -474,7 +475,7 @@ def kron(a, b):
             "kron: inputs dimensions must sum to 3 or more. "
             f"You passed {int(a.ndim)} and {int(b.ndim)}."
         )
-    o = tt.outer(a, b)
+    o = tm.outer(a, b)
     o = o.reshape(tt.concatenate((a.shape, b.shape)), a.ndim + b.ndim)
     shf = o.dimshuffle(0, 2, 1, *list(range(3, o.ndim)))
     if shf.ndim == 3:

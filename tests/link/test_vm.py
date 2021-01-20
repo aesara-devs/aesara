@@ -5,18 +5,20 @@ import time
 import numpy as np
 import pytest
 
-import theano
-from theano import function
-from theano import tensor as tt
+from theano.compile.function import function
 from theano.compile.io import In
-from theano.compile.mode import Mode
+from theano.compile.mode import Mode, get_mode
+from theano.compile.sharedvalue import shared
 from theano.configdefaults import config
 from theano.graph.basic import Apply
 from theano.graph.op import Op
 from theano.ifelse import ifelse
+from theano.link.c.basic import OpWiseCLinker
 from theano.link.c.exceptions import MissingGXX
 from theano.link.vm import Loop, VMLinker
+from theano.tensor.math import cosh, sin, tanh
 from theano.tensor.type import dvector, lscalar, scalar, scalars, vector, vectors
+from theano.tensor.var import TensorConstant
 
 
 class TestCallbacks:
@@ -59,7 +61,7 @@ def test_c_thunks():
     a = scalars("a")
     b, c = vectors("bc")
     cases = [False]
-    if theano.config.cxx:
+    if config.cxx:
         cases.append(True)
     for c_thunks in cases:
         f = function(
@@ -76,7 +78,7 @@ def test_c_thunks():
 
 
 @pytest.mark.skipif(
-    not theano.config.cxx, reason="G++ not available, so we need to skip this test."
+    not config.cxx, reason="G++ not available, so we need to skip this test."
 )
 def test_speed():
     def build_graph(x, depth=5):
@@ -94,7 +96,7 @@ def test_speed():
     def time_numpy():
         steps_a = 5
         steps_b = 100
-        x = np.asarray([2.0, 3.0], dtype=theano.config.floatX)
+        x = np.asarray([2.0, 3.0], dtype=config.floatX)
 
         numpy_version(x, steps_a)
         t0 = time.time()
@@ -134,12 +136,10 @@ def test_speed():
 
         print(f"{name} takes {1000 * (t_b - t_a) / (steps_b - steps_a):f} s/Kop")
 
-    from theano.link.c.basic import OpWiseCLinker
-
     time_linker("c|py", OpWiseCLinker)
     time_linker("vmLinker", VMLinker)
     time_linker("vmLinker_nogc", lambda: VMLinker(allow_gc=False))
-    if theano.config.cxx:
+    if config.cxx:
         time_linker("vmLinker_CLOOP", lambda: VMLinker(allow_gc=False, use_cloop=True))
     time_numpy()
 
@@ -179,7 +179,7 @@ def test_speed_lazy():
 
     time_linker("vmLinker", VMLinker)
     time_linker("vmLinker_nogc", lambda: VMLinker(allow_gc=False))
-    if theano.config.cxx:
+    if config.cxx:
         time_linker("vmLinker_C", lambda: VMLinker(allow_gc=False, use_cloop=True))
 
 
@@ -189,7 +189,7 @@ def test_partial_function():
     def check_partial_function(linker_name):
         x = scalar("input")
         y = x ** 2
-        f = theano.function(
+        f = function(
             [x], [y + 7, y - 9, y / 14.0], mode=Mode(optimizer=None, linker=linker_name)
         )
 
@@ -198,19 +198,19 @@ def test_partial_function():
         utt.assert_allclose(f(5), np.array([32.0, 16.0, 1.7857142857142858]))
 
     check_partial_function(VMLinker(allow_partial_eval=True, use_cloop=False))
-    if not theano.config.cxx:
+    if not config.cxx:
         pytest.skip("Need cxx for this test")
     check_partial_function("cvm")
 
 
 @pytest.mark.skipif(
-    not theano.config.cxx, reason="G++ not available, so we need to skip this test."
+    not config.cxx, reason="G++ not available, so we need to skip this test."
 )
 def test_partial_function_with_output_keys():
     def check_partial_function_output_keys(linker_name):
         x = scalar("input")
         y = 3 * x
-        f = theano.function(
+        f = function(
             [x], {"a": y * 5, "b": y - 7}, mode=Mode(optimizer=None, linker=linker_name)
         )
 
@@ -223,19 +223,19 @@ def test_partial_function_with_output_keys():
 
 
 @pytest.mark.skipif(
-    not theano.config.cxx, reason="G++ not available, so we need to skip this test."
+    not config.cxx, reason="G++ not available, so we need to skip this test."
 )
 def test_partial_function_with_updates():
     def check_updates(linker_name):
         x = lscalar("input")
-        y = theano.shared(np.asarray(1, "int64"), name="global")
-        f = theano.function(
+        y = shared(np.asarray(1, "int64"), name="global")
+        f = function(
             [x],
             [x, x + 34],
             updates=[(y, x + 1)],
             mode=Mode(optimizer=None, linker=linker_name),
         )
-        g = theano.function(
+        g = function(
             [x],
             [x - 6],
             updates=[(y, y + 3)],
@@ -253,12 +253,12 @@ def test_partial_function_with_updates():
 
 
 def test_allow_gc_cvm():
-    mode = theano.config.mode
+    mode = config.mode
     if mode in ["DEBUG_MODE", "DebugMode"]:
         mode = "FAST_RUN"
 
     v = vector()
-    f = theano.function([v], v + 1, mode=mode)
+    f = function([v], v + 1, mode=mode)
 
     f([1])
     n = list(f.maker.fgraph.apply_nodes)[0].outputs[0]
@@ -289,7 +289,7 @@ if run_memory_usage_tests:
             x = vector()
             z = x
             for d in range(10):
-                z = tt.sin(-z + 1)
+                z = sin(-z + 1)
 
             f = function([x], z, mode=Mode(optimizer=None, linker="cvm"))
             if not i % 100:
@@ -347,7 +347,7 @@ if run_memory_usage_tests:
         def build_graph(x, depth=5):
             z = x
             for d in range(depth):
-                z = tt.sin(-z + 1)
+                z = sin(-z + 1)
             return z
 
         def time_linker(name, linker):
@@ -391,35 +391,33 @@ def test_vm_gc():
     x = vector()
     p = RunOnce()(x)
     mode = Mode(linker=VMLinker(lazy=True))
-    f = theano.function([In(x, mutable=True)], [p + 1, p + 2], mode=mode)
+    f = function([In(x, mutable=True)], [p + 1, p + 2], mode=mode)
     f([1, 2, 3])
 
     p = RunOnce()(x)
     pp = p + p
-    f = theano.function([x], [pp + pp], mode=mode)
+    f = function([x], [pp + pp], mode=mode)
     f([1, 2, 3])
 
 
 def test_reallocation():
     x = scalar("x")
     y = scalar("y")
-    z = tt.tanh(3 * x + y) + tt.cosh(x + 5 * y)
+    z = tanh(3 * x + y) + cosh(x + 5 * y)
     # The functinality is currently implement for non lazy and non c VM only.
     for linker in [
         VMLinker(allow_gc=False, lazy=False, use_cloop=False),
         VMLinker(allow_gc=True, lazy=False, use_cloop=False),
     ]:
-        m = theano.compile.get_mode(Mode(linker=linker))
+        m = get_mode(Mode(linker=linker))
         m = m.excluding("fusion", "inplace")
 
-        f = theano.function([x, y], z, name="test_reduce_memory", mode=m)
+        f = function([x, y], z, name="test_reduce_memory", mode=m)
         output = f(1, 2)
         assert output
         storage_map = f.fn.storage_map
 
         def check_storage(storage_map):
-            from theano.tensor.var import TensorConstant
-
             for i in storage_map:
                 if not isinstance(i, TensorConstant):
                     keys_copy = list(storage_map.keys())[:]
@@ -434,7 +432,7 @@ def test_reallocation():
 
 
 @pytest.mark.skipif(
-    not theano.config.cxx, reason="G++ not available, so we need to skip this test."
+    not config.cxx, reason="G++ not available, so we need to skip this test."
 )
 def test_no_recycling():
     x = vector()
@@ -446,15 +444,15 @@ def test_no_recycling():
     ]:
 
         mode = Mode(optimizer="fast_compile", linker=lnk)
-        f = theano.function([x], x + 1, mode=mode)
-        f2 = theano.function([x], (x + 1) * 2, mode=mode)
+        f = function([x], x + 1, mode=mode)
+        f2 = function([x], (x + 1) * 2, mode=mode)
         m1 = f.fn.thunks[0].thunk.module
         m2 = f2.fn.thunks[0].thunk.module
         assert m1 is m2
 
 
 @pytest.mark.skipif(
-    not theano.config.cxx, reason="G++ not available, so we need to skip this test."
+    not config.cxx, reason="G++ not available, so we need to skip this test."
 )
 def test_VMLinker_make_vm_cvm():
     # We don't want this at module level, since CXX might not be present

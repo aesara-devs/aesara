@@ -556,6 +556,8 @@ class Reshape(COp):
         return self(eval_points[0], *inputs[1:], **dict(return_list=True))
 
     def infer_shape(self, fgraph, node, ishapes):
+        from theano.tensor.math import eq, maximum, mul
+
         # inputs[1] can contain at most one value of '-1', meaning the actual
         # shape of the output will be automatically computed by reshape, so
         # that the total number of elements stays the same.
@@ -563,7 +565,6 @@ class Reshape(COp):
         # It's not trivial, because we would have to check if the product of
         # all the non-minus-one shapes is a divisor of the product of the
         # original shapes.
-
         # The following expression leads to cycles in feature_shape,
         # because it tries to replace the Shape_i node by the switch
         # statement, which depends on Shape_i.
@@ -572,17 +573,15 @@ class Reshape(COp):
         #                      node.inputs[1][i])
         #                    for i in range(self.ndim)]
         #    )]
-
         # Here, we only simplify if the shape (node.inputs[1]) is a constant,
         # ideally it would suffice to check that it is always non-negative.
-
         # If current variable is a scalar and its dimensionality should
         # change to self.ndim, then use size 1 for all new dimensions.
         if len(ishapes[0]) == 0:
             return [(1,) * self.ndim]
 
         requ = node.inputs[1]
-        input_size = tt.mul(*ishapes[0])
+        input_size = mul(*ishapes[0])
         if isinstance(requ, TensorConstant):
             requ = list(requ.data)
             requ_part = [ele for ele in requ if ele != -1]
@@ -593,7 +592,7 @@ class Reshape(COp):
                 # a division by 0. We do not want to keep a negative
                 # size here as it could lead to further weird errors
                 # after other optimizations.
-                requ_size = tt.mul(*requ_part)
+                requ_size = mul(*requ_part)
                 missing = input_size // (1 if requ_size == 0 else requ_size)
                 for i, ele in enumerate(requ):
                     if ele == -1:
@@ -607,6 +606,7 @@ class Reshape(COp):
                 )
             return [requ]
         else:
+
             requ = [requ[i] for i in range(self.ndim)]
             # since new_dims can have negative value (-1), the
             # multiplication of all values should be negated
@@ -614,17 +614,17 @@ class Reshape(COp):
             # To avoid optimization complexity, we avoid checking
             # for the case when there are two or more '-1' values.
             if self.ndim:
-                requ_size = -tt.mul(*requ)
+                requ_size = -mul(*requ)
                 # If there are both 0 and -1 in requ_size, it is impossible
                 # to determine a right output, but we can at least prevent
                 # a division by 0. We do not want to keep a negative
                 # size here as it could lead to further weird errors
                 # after other optimizations.
-                rest_size = input_size // tt.maximum(requ_size, 1)
+                rest_size = input_size // maximum(requ_size, 1)
             return [
                 tuple(
                     [
-                        tt.switch(tt.eq(requ[i], -1), rest_size, requ[i])
+                        tt.switch(eq(requ[i], -1), rest_size, requ[i])
                         for i in range(self.ndim)
                     ]
                 )

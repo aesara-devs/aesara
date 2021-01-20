@@ -1,11 +1,11 @@
 import numpy as np
 
-from theano import tensor as tt
 from theano.gradient import grad_undefined
 from theano.graph.basic import Apply, Constant
 from theano.graph.op import Op
 from theano.misc.safe_asarray import _asarray
-from theano.tensor.basic import arange, mul
+from theano.tensor.basic import arange, as_tensor_variable, flatten, switch
+from theano.tensor.math import eq, ge, mul
 from theano.tensor.shape import shape
 from theano.tensor.subtensor import set_subtensor
 from theano.tensor.type import TensorType, integer_dtypes
@@ -40,8 +40,8 @@ class SortOp(Op):
         return self.__class__.__name__ + f"{{{self.kind}, {self.order}}}"
 
     def make_node(self, input, axis=-1):
-        input = tt.as_tensor_variable(input)
-        axis = tt.as_tensor_variable(axis)
+        input = as_tensor_variable(input)
+        axis = as_tensor_variable(axis)
         out_type = input.type()
         return Apply(self, [input, axis], [out_type])
 
@@ -106,10 +106,10 @@ class SortOp(Op):
         # rev_idx is the reverse of previous argsort operation
         rev_idx = argsort(idx, axis, kind=self.kind, order=self.order)
         indices = []
-        axis_data = tt.switch(tt.ge(axis.data, 0), axis.data, a.ndim + axis.data)
+        axis_data = switch(ge(axis.data, 0), axis.data, a.ndim + axis.data)
         for i in range(a.ndim):
-            index_val = tt.switch(
-                tt.eq(i, axis_data),
+            index_val = switch(
+                eq(i, axis_data),
                 rev_idx,
                 self.__get_expanded_dim(a, axis, i),
             )
@@ -173,8 +173,8 @@ class ArgSortOp(Op):
         return self.__class__.__name__ + f"{{{self.kind}, {self.order}}}"
 
     def make_node(self, input, axis=-1):
-        input = tt.as_tensor_variable(input)
-        axis = tt.as_tensor_variable(axis)
+        input = as_tensor_variable(input)
+        axis = as_tensor_variable(axis)
         bcast = input.type.broadcastable
         return Apply(
             self,
@@ -403,7 +403,7 @@ class TopKOp(Op):
         )
 
     def make_node(self, inp, kth):
-        inp = tt.as_tensor_variable(inp)
+        inp = as_tensor_variable(inp)
         ndim = inp.ndim
         if ndim == 0:
             raise ValueError("Cannot take scalar as input")
@@ -413,7 +413,7 @@ class TopKOp(Op):
                 f" expected integer within [{int(-ndim)}, {int(ndim - 1)}]"
             )
 
-        kth = tt.as_tensor_variable(kth)
+        kth = as_tensor_variable(kth)
         _check_tensor_is_scalar(kth)
         bcast = inp.type.broadcastable
         outs = []
@@ -507,7 +507,7 @@ def topk(x, kth, axis=-1, sorted=True, idx_dtype="int64"):
 
     """
     if axis is None:
-        x = tt.flatten(x)
+        x = flatten(x)
         axis = 0
     return TopKOp(axis=axis, sorted=sorted, idx_dtype=idx_dtype)(x, kth)[0]
 
@@ -551,7 +551,7 @@ def argtopk(x, kth, axis=-1, sorted=True, idx_dtype="int64"):
 
     """
     if axis is None:
-        x = tt.flatten(x)
+        x = flatten(x)
         axis = 0
     return TopKOp(axis=axis, sorted=sorted, idx_dtype=idx_dtype)(x, kth)[1]
 
@@ -568,6 +568,6 @@ def topk_and_argtopk(x, kth, axis=-1, sorted=True, idx_dtype="int64"):
 
     """
     if axis is None:
-        x = tt.flatten(x)
+        x = flatten(x)
         axis = 0
     return TopKOp(axis=axis, sorted=sorted, idx_dtype=idx_dtype)(x, kth)

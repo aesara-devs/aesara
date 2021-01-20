@@ -3,7 +3,7 @@ import pytest
 
 import theano
 from tests import unittest_tools as utt
-from theano.tensor.basic import _allclose
+from theano.tensor.math import _allclose
 from theano.tensor.signal import conv
 from theano.tensor.type import TensorType, dtensor3, dtensor4, dvector, matrix
 

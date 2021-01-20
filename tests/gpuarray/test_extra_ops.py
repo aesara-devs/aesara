@@ -5,7 +5,7 @@ import numpy as np
 import pytest
 
 import theano
-import theano.tensor as tt
+import theano.tensor.math as tm
 from tests import unittest_tools as utt
 from tests.gpuarray.config import mode_with_gpu, test_ctx_name
 from tests.tensor.test_extra_ops import TestCumOp
@@ -30,13 +30,13 @@ class TestGpuCumOp(TestCumOp):
         # The CPU implementation is not so accurate, which throws out DebugMode.
         # Since propagating .tag.values_eq_approx to the output of every
         # GpuFromHost seems overkill, we just relax the rtol for these tests
-        self.old_rtol = tt.float32_rtol
-        tt.float32_rtol *= 2
+        self.old_rtol = tm.float32_rtol
+        tm.float32_rtol *= 2
 
     def teardown_method(self):
         super().teardown_method()
         # Restore rtol
-        tt.float32_rtol = self.old_rtol
+        tm.float32_rtol = self.old_rtol
 
     @pytest.mark.skipif(
         theano.config.floatX != "float32",

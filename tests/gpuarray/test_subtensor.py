@@ -5,7 +5,6 @@ from tests import unittest_tools as utt
 from tests.gpuarray.config import mode_with_gpu, test_ctx_name
 from tests.tensor.test_basic import TestAllocDiag
 from tests.tensor.test_subtensor import TestAdvancedSubtensor, TestSubtensor
-from theano import tensor as tt
 from theano.compile import DeepCopyOp
 from theano.gpuarray.basic_ops import GpuContiguous, GpuFromHost, HostFromGpu
 from theano.gpuarray.elemwise import GpuDimShuffle
@@ -22,6 +21,7 @@ from theano.gpuarray.subtensor import (
 )
 from theano.gpuarray.type import gpuarray_shared_constructor
 from theano.tensor.basic import AllocDiag, ExtractDiag
+from theano.tensor.math import sum as tt_sum
 from theano.tensor.subtensor import advanced_inc_subtensor1, inc_subtensor
 from theano.tensor.type import ivectors, matrix, tensor, tensor4, vector
 
@@ -395,7 +395,7 @@ class TestGpuAllocDiag(TestAllocDiag):
 
         # offset = 0 case:
         mtx_x = GpuAllocDiag()(x)
-        sum_mtx_x = tt.sum(mtx_x)
+        sum_mtx_x = tt_sum(mtx_x)
         grad_x = theano.grad(sum_mtx_x, x)
         grad_mtx_x = theano.grad(sum_mtx_x, mtx_x)
 
@@ -409,7 +409,7 @@ class TestGpuAllocDiag(TestAllocDiag):
 
         # offset > 0 case:
         mtx_x = GpuAllocDiag(2)(x)
-        sum_mtx_x = tt.sum(mtx_x)
+        sum_mtx_x = tt_sum(mtx_x)
         grad_x = theano.grad(sum_mtx_x, x)
         grad_mtx_x = theano.grad(sum_mtx_x, mtx_x)
 
@@ -423,7 +423,7 @@ class TestGpuAllocDiag(TestAllocDiag):
 
         # offset < 0 case:
         mtx_x = GpuAllocDiag(-3)(x)
-        sum_mtx_x = tt.sum(mtx_x)
+        sum_mtx_x = tt_sum(mtx_x)
         grad_x = theano.grad(sum_mtx_x, x)
         grad_mtx_x = theano.grad(sum_mtx_x, mtx_x)
 

@@ -404,7 +404,7 @@ def str_diagnostic(expected, value, rtol, atol):
         print(ssio.getvalue(), file=sio)
     except Exception:
         pass
-    atol_, rtol_ = theano.tensor.basic._get_atol_rtol(expected, value)
+    atol_, rtol_ = theano.tensor.math._get_atol_rtol(expected, value)
     if rtol is not None:
         rtol_ = rtol
     if atol is not None:

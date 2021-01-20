@@ -6,11 +6,11 @@ from theano.graph.basic import Apply
 from theano.graph.op import Op
 from theano.graph.opt import copy_stack_trace, local_optimizer
 from theano.scalar import Composite, add, as_common_dtype, mul, sub, true_div
-
-# Work-around for Python 3.6 issue that prevents `import theano.tensor as tt`
 from theano.tensor import basic as tt
 from theano.tensor.basic import as_tensor_variable
 from theano.tensor.elemwise import Elemwise
+from theano.tensor.math import inv, mean, prod, sqrt
+from theano.tensor.math import sum as tt_sum
 from theano.tensor.opt import register_specialize_device
 from theano.tensor.type import TensorType
 
@@ -615,7 +615,7 @@ class AbstractBatchNormInference(Op):
 
         # define helper expressions
         est_var_eps = est_var + epsilon
-        est_std = tt.sqrt(est_var_eps)
+        est_std = sqrt(est_var_eps)
         two = tt.constant(2.0)
 
         # define and return gradients
@@ -672,7 +672,7 @@ class AbstractBatchNormTrainGrad(Op):
         ddinputs, ddscale, ddbias = grads
 
         x_diff = x - x_mean
-        mean_dy_x_diff = tt.mean(dy * x_diff, axis=self.axes, keepdims=True)
+        mean_dy_x_diff = mean(dy * x_diff, axis=self.axes, keepdims=True)
 
         # compute gradients given each of the output gradients
         g_wrt_x = 0
@@ -682,10 +682,10 @@ class AbstractBatchNormTrainGrad(Op):
         g_wrt_x_invstd = 0
 
         if not isinstance(ddinputs.type, theano.gradient.DisconnectedType):
-            ccc = scale * (ddinputs - tt.mean(ddinputs, axis=self.axes, keepdims=True))
+            ccc = scale * (ddinputs - mean(ddinputs, axis=self.axes, keepdims=True))
             ddd = (x_invstd ** 3) * (
-                ccc * tt.mean(dy * x_diff, axis=self.axes, keepdims=True)
-                + dy * tt.mean(ccc * x_diff, axis=self.axes, keepdims=True)
+                ccc * mean(dy * x_diff, axis=self.axes, keepdims=True)
+                + dy * mean(ccc * x_diff, axis=self.axes, keepdims=True)
             )
 
             g_wrt_x = g_wrt_x - ddd
@@ -694,19 +694,19 @@ class AbstractBatchNormTrainGrad(Op):
                 - (
                     (x_invstd ** 3)
                     * x_diff
-                    * tt.mean(ccc * x_diff, axis=self.axes, keepdims=True)
+                    * mean(ccc * x_diff, axis=self.axes, keepdims=True)
                 )
             )
 
             eee = (dy * x_invstd) - ((x_invstd ** 3) * x_diff * mean_dy_x_diff)
-            g_wrt_scale = g_wrt_scale + tt.sum(
-                ddinputs * (eee - tt.mean(eee, axis=self.axes, keepdims=True)),
+            g_wrt_scale = g_wrt_scale + tt_sum(
+                ddinputs * (eee - mean(eee, axis=self.axes, keepdims=True)),
                 axis=self.axes,
                 keepdims=True,
             )
 
-            g_wrt_x_mean = g_wrt_x_mean + tt.sum(ddd, axis=self.axes, keepdims=True)
-            g_wrt_x_invstd = g_wrt_x_invstd + tt.sum(
+            g_wrt_x_mean = g_wrt_x_mean + tt_sum(ddd, axis=self.axes, keepdims=True)
+            g_wrt_x_invstd = g_wrt_x_invstd + tt_sum(
                 ccc * (dy - 3 * (x_invstd ** 2) * x_diff * mean_dy_x_diff),
                 axis=self.axes,
                 keepdims=True,
@@ -716,10 +716,10 @@ class AbstractBatchNormTrainGrad(Op):
             g_wrt_x = g_wrt_x + (x_invstd * ddscale * dy)
             g_wrt_dy = g_wrt_dy + (x_invstd * ddscale * x_diff)
             g_wrt_x_mean = g_wrt_x_mean - (
-                x_invstd * ddscale * tt.sum(dy, axis=self.axes, keepdims=True)
+                x_invstd * ddscale * tt_sum(dy, axis=self.axes, keepdims=True)
             )
             g_wrt_x_invstd = g_wrt_x_invstd + (
-                ddscale * tt.sum(dy * x_diff, axis=self.axes, keepdims=True)
+                ddscale * tt_sum(dy * x_diff, axis=self.axes, keepdims=True)
             )
 
         if not isinstance(ddbias.type, theano.gradient.DisconnectedType):
@@ -802,7 +802,7 @@ def local_abstract_batch_norm_train(fgraph, node):
     # The epsilon should not upcast the dtype.
     if var.dtype == "float32" and epsilon.dtype == "float64":
         epsilon = epsilon.astype("float32")
-    invstd = tt.inv(tt.sqrt(var + epsilon))
+    invstd = inv(sqrt(var + epsilon))
     out = (x - mean) * (scale * invstd) + bias
     results = [out, mean, invstd]
 
@@ -814,7 +814,7 @@ def local_abstract_batch_norm_train(fgraph, node):
         )
         results.append(running_mean)
     if len(node.inputs) > 6:
-        m = tt.cast(tt.prod(x.shape) / tt.prod(scale.shape), config.floatX)
+        m = tt.cast(prod(x.shape) / prod(scale.shape), config.floatX)
         running_var = node.inputs[6]
         running_var = (
             running_var * (1.0 - running_average_factor)
@@ -853,12 +853,12 @@ def local_abstract_batch_norm_train_grad(fgraph, node):
         return None
 
     x_diff = x - x_mean
-    mean_dy_x_diff = tt.mean(dy * x_diff, axis=axes, keepdims=True)
+    mean_dy_x_diff = mean(dy * x_diff, axis=axes, keepdims=True)
     c = (dy * x_invstd) - x_diff * (mean_dy_x_diff * (x_invstd ** 3))
 
-    g_wrt_inputs = scale * (c - tt.mean(c, axis=axes, keepdims=True))
-    g_wrt_scale = tt.sum(dy * x_invstd * x_diff, axis=axes, keepdims=True)
-    g_wrt_bias = tt.sum(dy, axis=axes, keepdims=True)
+    g_wrt_inputs = scale * (c - mean(c, axis=axes, keepdims=True))
+    g_wrt_scale = tt_sum(dy * x_invstd * x_diff, axis=axes, keepdims=True)
+    g_wrt_bias = tt_sum(dy, axis=axes, keepdims=True)
     results = [g_wrt_inputs, g_wrt_scale, g_wrt_bias]
 
     results = [
@@ -893,9 +893,7 @@ def local_abstract_batch_norm_inference(fgraph, node):
     if estimated_variance.dtype == "float32" and epsilon.dtype == "float64":
         epsilon = epsilon.astype("float32")
 
-    result = (x - estimated_mean) * (
-        scale / tt.sqrt(estimated_variance + epsilon)
-    ) + bias
+    result = (x - estimated_mean) * (scale / sqrt(estimated_variance + epsilon)) + bias
     result = tt.patternbroadcast(result, node.outputs[0].broadcastable)
 
     for var in theano.graph.basic.vars_between(node.inputs, [result]):

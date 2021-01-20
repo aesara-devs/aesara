@@ -586,7 +586,7 @@ def values_eq_approx(
         return GpuArrayType.values_eq(a, b)
     else:
         if not (allow_remove_inf or allow_remove_nan):
-            atol_, rtol_ = theano.tensor.basic._get_atol_rtol(a, b)
+            atol_, rtol_ = theano.tensor.math._get_atol_rtol(a, b)
             if rtol is not None:
                 rtol_ = rtol
             if atol is not None:

@@ -9,8 +9,11 @@ from theano.configdefaults import config
 from theano.graph.fg import FunctionGraph
 from theano.graph.opt import out2in
 from theano.link.basic import PerformLinker
-from theano.tensor.basic import MaxAndArgmax
 from theano.tensor.elemwise import CAReduce, DimShuffle, Elemwise
+from theano.tensor.math import MaxAndArgmax
+from theano.tensor.math import max as tt_max
+from theano.tensor.math import max_and_argmax
+from theano.tensor.math import min as tt_min
 from theano.tensor.opt_uncanonicalize import (
     local_alloc_dimshuffle,
     local_dimshuffle_alloc,
@@ -32,12 +35,12 @@ class TestMaxAndArgmax:
         for axis in [0, 1, -1]:
             n = matrix()
 
-            f = function([n], tt.max_and_argmax(n, axis)[0], mode=mode)
+            f = function([n], max_and_argmax(n, axis)[0], mode=mode)
             topo = f.maker.fgraph.toposort()
             assert len(topo) == 1
             assert isinstance(topo[0].op, CAReduce)
 
-            f = function([n], tt.max_and_argmax(n, axis), mode=mode)
+            f = function([n], max_and_argmax(n, axis), mode=mode)
             topo = f.maker.fgraph.toposort()
             assert len(topo) == 1
             assert isinstance(topo[0].op, MaxAndArgmax)
@@ -55,13 +58,13 @@ class TestMinMax:
         n = matrix()
 
         for axis in [0, 1, -1]:
-            f = function([n], tt.max(n, axis), mode=self.mode)
+            f = function([n], tt_max(n, axis), mode=self.mode)
             topo = f.maker.fgraph.toposort()
             assert len(topo) == 1
             assert isinstance(topo[0].op, CAReduce)
             f(data)
 
-            f = function([n], tt.max(-n, axis), mode=self.mode)
+            f = function([n], tt_max(-n, axis), mode=self.mode)
             topo = f.maker.fgraph.toposort()
             assert len(topo) == 2
             assert isinstance(topo[0].op, Elemwise)
@@ -69,7 +72,7 @@ class TestMinMax:
             assert isinstance(topo[1].op, CAReduce)
             f(data)
 
-            f = function([n], -tt.max(n, axis), mode=self.mode)
+            f = function([n], -tt_max(n, axis), mode=self.mode)
             topo = f.maker.fgraph.toposort()
             assert len(topo) == 2
             assert isinstance(topo[0].op, CAReduce)
@@ -77,7 +80,7 @@ class TestMinMax:
             assert isinstance(topo[1].op.scalar_op, ts.Neg)
             f(data)
 
-            f = function([n], -tt.max(-n, axis), mode=self.mode)
+            f = function([n], -tt_max(-n, axis), mode=self.mode)
             topo = f.maker.fgraph.toposort()
             assert len(topo) == 1
             assert isinstance(topo[0].op, CAReduce)  # min
@@ -88,14 +91,14 @@ class TestMinMax:
         n = matrix()
 
         for axis in [0, 1, -1]:
-            f = function([n], tt.min(n, axis), mode=self.mode)
+            f = function([n], tt_min(n, axis), mode=self.mode)
             topo = f.maker.fgraph.toposort()
             assert len(topo) == 1
             assert isinstance(topo[0].op, CAReduce)
             f(data)
 
             # test variant with neg to make sure we optimize correctly
-            f = function([n], tt.min(-n, axis), mode=self.mode)
+            f = function([n], tt_min(-n, axis), mode=self.mode)
             topo = f.maker.fgraph.toposort()
             assert len(topo) == 2
             assert isinstance(topo[0].op, CAReduce)  # max
@@ -103,7 +106,7 @@ class TestMinMax:
             assert isinstance(topo[1].op.scalar_op, ts.Neg)
             f(data)
 
-            f = function([n], -tt.min(n, axis), mode=self.mode)
+            f = function([n], -tt_min(n, axis), mode=self.mode)
             topo = f.maker.fgraph.toposort()
             assert len(topo) == 2
             assert isinstance(topo[0].op, Elemwise)
@@ -111,7 +114,7 @@ class TestMinMax:
             assert isinstance(topo[1].op, CAReduce)  # max
             f(data)
 
-            f = function([n], -tt.min(-n, axis), mode=self.mode)
+            f = function([n], -tt_min(-n, axis), mode=self.mode)
             topo = f.maker.fgraph.toposort()
             assert len(topo) == 1
             assert isinstance(topo[0].op, CAReduce)  # max

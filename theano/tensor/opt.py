@@ -52,14 +52,10 @@ from theano.graph.utils import (
 )
 from theano.misc.safe_asarray import _asarray
 from theano.printing import pprint
-
-# Work-around for Python 3.6 issue that prevents `import theano.tensor as tt`
-from theano.tensor import basic as tt
 from theano.tensor.basic import (
     Alloc,
     AllocEmpty,
     ARange,
-    Dot,
     Flatten,
     Join,
     Rebroadcast,
@@ -67,38 +63,54 @@ from theano.tensor.basic import (
     Split,
     TensorFromScalar,
     Tile,
-    abs_,
-    add,
     alloc,
-    erf,
-    erfc,
+    as_tensor_variable,
+    cast,
+    constant,
     extract_constant,
     fill,
     get_scalar_constant_value,
-    int_div,
-    inv,
-    log,
-    log1p,
-    mul,
-    neg,
-    pow,
-    sub,
+    get_vector_length,
+    join,
+    ones_like,
+    patternbroadcast,
+    switch,
     tensor_copy,
-    true_div,
+    unbroadcast,
+    zeros,
+    zeros_like,
 )
-from theano.tensor.elemwise import (
-    All,
-    Any,
-    CAReduce,
-    DimShuffle,
-    Elemwise,
-    Prod,
-    ProdWithoutZeros,
-    Sum,
-)
+from theano.tensor.elemwise import CAReduce, DimShuffle, Elemwise
 from theano.tensor.exceptions import NotScalarConstantError, ShapeError
 from theano.tensor.extra_ops import broadcast_shape
-from theano.tensor.shape import Reshape, Shape, Shape_i, shape_padleft
+from theano.tensor.math import All, Any, Dot, Prod, ProdWithoutZeros, Sum, abs_, add
+from theano.tensor.math import all as tt_all
+from theano.tensor.math import (
+    and_,
+    ceil_intdiv,
+    dot,
+    eq,
+    erf,
+    erfc,
+    exp,
+    expm1,
+    ge,
+    gt,
+    int_div,
+    inv,
+    le,
+    log,
+    log1p,
+    lt,
+    makeKeepDims,
+)
+from theano.tensor.math import max as tt_max
+from theano.tensor.math import maximum, minimum, mul, neg, or_
+from theano.tensor.math import pow as tt_pow
+from theano.tensor.math import prod, sgn, sqr, sqrt, sub
+from theano.tensor.math import sum as tt_sum
+from theano.tensor.math import true_div
+from theano.tensor.shape import Reshape, Shape, Shape_i, shape, shape_padleft
 from theano.tensor.sort import TopKOp
 from theano.tensor.subtensor import (
     AdvancedIncSubtensor,
@@ -189,7 +201,7 @@ def broadcast_like(value, template, fgraph, dtype=None):
     necessary.
 
     """
-    value = tt.as_tensor_variable(value)
+    value = as_tensor_variable(value)
     if value.type == template.type:
         return value
     if template not in fgraph.variables:
@@ -199,7 +211,7 @@ def broadcast_like(value, template, fgraph, dtype=None):
         )
     if dtype is None:
         dtype = template.dtype
-    value = tt.cast(value, dtype)
+    value = cast(value, dtype)
     if value.type == template.type:
         return value
     if hasattr(fgraph, "shape_feature"):
@@ -209,7 +221,7 @@ def broadcast_like(value, template, fgraph, dtype=None):
     rval = alloc(value, *new_shape)
     # the template may have 1s in its shape without being broadcastable
     if rval.broadcastable != template.broadcastable:
-        rval = tt.unbroadcast(
+        rval = unbroadcast(
             rval,
             *[
                 i
@@ -664,18 +676,18 @@ def local_0_dot_x(fgraph, node):
         pass
 
     if replace:
-        constant_zero = tt.constant(0, dtype=node.outputs[0].type.dtype)
+        constant_zero = constant(0, dtype=node.outputs[0].type.dtype)
         if x.ndim == 2 and y.ndim == 2:
-            constant_zero = assert_op(constant_zero, tt.eq(x.shape[1], y.shape[0]))
+            constant_zero = assert_op(constant_zero, eq(x.shape[1], y.shape[0]))
             return [alloc(constant_zero, x.shape[0], y.shape[1])]
         elif x.ndim == 1 and y.ndim == 2:
-            constant_zero = assert_op(constant_zero, tt.eq(x.shape[0], y.shape[0]))
+            constant_zero = assert_op(constant_zero, eq(x.shape[0], y.shape[0]))
             return [alloc(constant_zero, y.shape[1])]
         elif x.ndim == 2 and y.ndim == 1:
-            constant_zero = assert_op(constant_zero, tt.eq(x.shape[1], y.shape[0]))
+            constant_zero = assert_op(constant_zero, eq(x.shape[1], y.shape[0]))
             return [alloc(constant_zero, x.shape[0])]
         elif x.ndim == 1 and y.ndim == 1:
-            constant_zero = assert_op(constant_zero, tt.eq(x.shape[0], y.shape[0]))
+            constant_zero = assert_op(constant_zero, eq(x.shape[0], y.shape[0]))
             return [constant_zero]
         else:
             _logger.warning(
@@ -828,7 +840,7 @@ def local_lift_transpose_through_dot(fgraph, node):
 
     if x.ndim == y.ndim == 2:
         # Output is dot product of transposed inputs in reverse order
-        ret = [tt.dot(y.T, x.T)]
+        ret = [dot(y.T, x.T)]
 
         # Copy over stack trace to output from result of dot-product
         copy_stack_trace(node.inputs[0], ret)
@@ -891,7 +903,7 @@ class MakeVector(COp):
         self.dtype = dtype
 
     def make_node(self, *inputs):
-        inputs = list(map(tt.as_tensor_variable, inputs))
+        inputs = list(map(as_tensor_variable, inputs))
         if not all(a.type == inputs[0].type for a in inputs) or (
             len(inputs) > 0 and inputs[0].dtype != self.dtype
         ):
@@ -902,12 +914,12 @@ class MakeVector(COp):
                 "The upcast of the inputs to MakeVector should match the "
                 "dtype given in __init__."
             )
-            if not all(self.dtype == tt.cast(i, dtype=dtype).dtype for i in inputs):
+            if not all(self.dtype == cast(i, dtype=dtype).dtype for i in inputs):
                 raise TypeError(
                     "MakeVector.make_node expected inputs"
                     f" upcastable to {self.dtype}. got {[i.dtype for i in inputs]}"
                 )
-            inputs = [tt.cast(i, dtype=dtype) for i in inputs]
+            inputs = [cast(i, dtype=dtype) for i in inputs]
         assert all(self.dtype == a.dtype for a in inputs)
         assert all(a.ndim == 0 for a in inputs)
 
@@ -1245,7 +1257,7 @@ class ShapeFeature(toolbox.Feature):
                 # choose that options as it would give better error
                 # message.
                 raise AssertionError(msg)
-            return tt.constant(s_i, dtype="int64")
+            return constant(s_i, dtype="int64")
         if isinstance(s_i, (tuple, list)):
             # this dimension is the same as many of the inputs
             # which tells us that if one of the inputs is known,
@@ -1333,7 +1345,7 @@ class ShapeFeature(toolbox.Feature):
                     # The two following comparison are a speed optimization
                     # But we never timed this speed optimization!
                     self.lscalar_one.equals(shape_vars[i])
-                    or self.lscalar_one.equals(tt.extract_constant(shape_vars[i]))
+                    or self.lscalar_one.equals(extract_constant(shape_vars[i]))
                     for i in range(r.ndim)
                 ]
             )
@@ -1424,7 +1436,7 @@ class ShapeFeature(toolbox.Feature):
                 # But we never timed this speed optimization!
                 self.lscalar_one.equals(merged_shape[i])
                 or self.lscalar_one.equals(
-                    tt.extract_constant(merged_shape[i], only_process_constants=True)
+                    extract_constant(merged_shape[i], only_process_constants=True)
                 )
                 for i in range(r.ndim)
             ]
@@ -1451,7 +1463,7 @@ class ShapeFeature(toolbox.Feature):
                 # The two following comparison are a speed optimization
                 # But we never timed this speed optimization!
                 self.lscalar_one.equals(new_shape[idx])
-                or self.lscalar_one.equals(tt.extract_constant(new_shape[idx]))
+                or self.lscalar_one.equals(extract_constant(new_shape[idx]))
                 for idx in range(r.ndim)
             ]
         )
@@ -1480,7 +1492,7 @@ class ShapeFeature(toolbox.Feature):
         fgraph.shape_feature = self
         # Must be local to the object as otherwise we reuse the same
         # variable for multiple fgraph!
-        self.lscalar_one = tt.constant(1, dtype="int64")
+        self.lscalar_one = constant(1, dtype="int64")
         assert self.lscalar_one.type == lscalar
 
         self.fgraph = fgraph
@@ -1548,9 +1560,9 @@ class ShapeFeature(toolbox.Feature):
                     assert str(d.dtype) != "uint64", node
                     new_shape += sh[len(new_shape) : i + 1]
                     if isinstance(d, Constant):
-                        casted_d = tt.constant(d.data, dtype="int64")
+                        casted_d = constant(d.data, dtype="int64")
                     else:
-                        casted_d = tt.cast(d, "int64")
+                        casted_d = cast(d, "int64")
                     new_shape[i] = casted_d
             if new_shape:
                 # We replace the shape with wrong dtype by the one with
@@ -1832,7 +1844,7 @@ def local_elemwise_alloc_op(ElemwiseOP, AllocOP, DimShuffleOP):
                         ):
                             i_shp = get_shape(i, idx)
                             cmp_shp = get_shape(cmp_op, idx)
-                            cond.append(tt.eq(i_shp, cmp_shp))
+                            cond.append(eq(i_shp, cmp_shp))
                     if cond:
                         assert_op_in = assert_op(assert_op_in, *cond)
                 new_i.append(i.owner.inputs[0])
@@ -1842,7 +1854,7 @@ def local_elemwise_alloc_op(ElemwiseOP, AllocOP, DimShuffleOP):
                 assert i.type.ndim == cmp_op.type.ndim
                 if config.experimental__local_alloc_elemwise_assert:
                     assert_cond = [
-                        tt.eq(i.shape[idx], cmp_op.shape[idx])
+                        eq(i.shape[idx], cmp_op.shape[idx])
                         for idx in range(i.type.ndim)
                         if not i.type.broadcastable[idx]
                         and not same_shape(i, cmp_op, idx, idx)
@@ -1957,7 +1969,7 @@ def local_fill_to_alloc(fgraph, node):
             rval = [v]
         elif v.type.broadcastable == node.outputs[0].type.broadcastable:
             # this is a cast
-            rval = [tt.cast(v, node.outputs[0].type.dtype)]
+            rval = [cast(v, node.outputs[0].type.dtype)]
         elif r.type.broadcastable == node.outputs[0].type.broadcastable:
             # we are broadcasting v somehow, but not r
             o = broadcast_like(v, r, fgraph, dtype=v.dtype)
@@ -2112,7 +2124,7 @@ def local_alloc_empty_to_zeros(fgraph, node):
 
     """
     if isinstance(node.op, AllocEmpty):
-        return [tt.zeros(node.inputs, dtype=node.outputs[0].dtype)]
+        return [zeros(node.inputs, dtype=node.outputs[0].dtype)]
 
 
 compile.optdb.register(
@@ -2128,7 +2140,7 @@ compile.optdb.register(
 @register_canonicalize
 @local_optimizer([Shape])
 def local_shape_to_shape_i(fgraph, node):
-    if node.op == tt.shape:
+    if node.op == shape:
         # This optimization needs ShapeOpt and fgraph.shape_feature
         if not hasattr(fgraph, "shape_feature"):
             return
@@ -2305,7 +2317,7 @@ def local_subtensor_make_vector(fgraph, node):
 
             # Copy over stack trace from previous output to new output
             copy_stack_trace(node.outputs[0], ret)
-            ret = tt.patternbroadcast(ret, node.outputs[0].broadcastable)
+            ret = patternbroadcast(ret, node.outputs[0].broadcastable)
             return [ret]
         else:
             raise TypeError("case not expected")
@@ -2318,7 +2330,7 @@ def local_subtensor_make_vector(fgraph, node):
             ret = make_vector(*x.owner.inputs[const_slice])
             # Copy over stack trace from previous outputs to new output
             copy_stack_trace(node.outputs, ret)
-            ret = tt.patternbroadcast(ret, node.outputs[0].broadcastable)
+            ret = patternbroadcast(ret, node.outputs[0].broadcastable)
             return [ret]
         except NotScalarConstantError:
             pass
@@ -2355,7 +2367,7 @@ def local_useless_elemwise(fgraph, node):
         if node.op.scalar_op == ts.eq and len(node.inputs) == 2:
             if node.inputs[0] == node.inputs[1]:
                 # it is the same var in the graph. That will always be true
-                ret = tt.ones_like(node.inputs[0], dtype=dtype, opt=True)
+                ret = ones_like(node.inputs[0], dtype=dtype, opt=True)
 
                 # Copy stack trace from input to constant output
                 copy_stack_trace(node.outputs[0], ret)
@@ -2363,7 +2375,7 @@ def local_useless_elemwise(fgraph, node):
         elif node.op.scalar_op == ts.neq and len(node.inputs) == 2:
             if node.inputs[0] == node.inputs[1]:
                 # it is the same var in the graph. That will always be false
-                ret = tt.zeros_like(node.inputs[0], dtype=dtype, opt=True)
+                ret = zeros_like(node.inputs[0], dtype=dtype, opt=True)
 
                 # Copy stack trace from input to constant output
                 copy_stack_trace(node.outputs[0], ret)
@@ -2382,24 +2394,24 @@ def local_useless_elemwise(fgraph, node):
         elif isinstance(node.op.scalar_op, ts.AND) and len(node.inputs) == 2:
 
             if isinstance(node.inputs[0], TensorConstant):
-                const_val = tt.extract_constant(
+                const_val = extract_constant(
                     node.inputs[0], only_process_constants=True
                 )
                 if not isinstance(const_val, Variable):
                     if const_val == 0:
-                        return [tt.zeros_like(node.inputs[1], dtype=dtype, opt=True)]
+                        return [zeros_like(node.inputs[1], dtype=dtype, opt=True)]
                     elif node.outputs[0].dtype == "bool":
                         # If the output is not Boolean, it is the bitwise AND,
                         # and this optimization would be wrong
                         return [node.inputs[1].astype(node.outputs[0].dtype)]
 
             if isinstance(node.inputs[1], TensorConstant):
-                const_val = tt.extract_constant(
+                const_val = extract_constant(
                     node.inputs[1], only_process_constants=True
                 )
                 if not isinstance(const_val, Variable):
                     if const_val == 0:
-                        return [tt.zeros_like(node.inputs[0], dtype=dtype, opt=True)]
+                        return [zeros_like(node.inputs[0], dtype=dtype, opt=True)]
                     elif node.outputs[0].dtype == "bool":
                         # If the output is not Boolean, it is the bitwise AND,
                         # and this optimization would be wrong
@@ -2408,7 +2420,7 @@ def local_useless_elemwise(fgraph, node):
         elif isinstance(node.op.scalar_op, ts.OR) and len(node.inputs) == 2:
 
             if isinstance(node.inputs[0], TensorConstant):
-                const_val = tt.extract_constant(
+                const_val = extract_constant(
                     node.inputs[0], only_process_constants=True
                 )
                 if not isinstance(const_val, Variable):
@@ -2417,10 +2429,10 @@ def local_useless_elemwise(fgraph, node):
                     elif node.outputs[0].dtype == "bool":
                         # If the output is not Boolean, it is the bitwise OR,
                         # and this optimization would be wrong
-                        return [tt.ones_like(node.inputs[1], dtype=dtype, opt=True)]
+                        return [ones_like(node.inputs[1], dtype=dtype, opt=True)]
 
             if isinstance(node.inputs[1], TensorConstant):
-                const_val = tt.extract_constant(
+                const_val = extract_constant(
                     node.inputs[1], only_process_constants=True
                 )
                 if not isinstance(const_val, Variable):
@@ -2429,11 +2441,11 @@ def local_useless_elemwise(fgraph, node):
                     elif node.outputs[0].dtype == "bool":
                         # If the output is not Boolean, it is the bitwise OR,
                         # and this optimization would be wrong
-                        return [tt.ones_like(node.inputs[0], dtype=dtype, opt=True)]
+                        return [ones_like(node.inputs[0], dtype=dtype, opt=True)]
 
         elif isinstance(node.op.scalar_op, ts.XOR) and len(node.inputs) == 2:
             if node.inputs[0] is node.inputs[1]:
-                return [tt.zeros_like(node.inputs[0], dtype=dtype, opt=True)]
+                return [zeros_like(node.inputs[0], dtype=dtype, opt=True)]
 
 
 @register_specialize
@@ -2449,7 +2461,7 @@ def local_alloc_unary(fgraph, node):
             # T.alloc does not preserve the stacktrace of v,
             # so we need to copy it over from x.
             copy_stack_trace(node.outputs[0], v)
-            ret = alloc(tt.cast(v, node.outputs[0].dtype), *shp)
+            ret = alloc(cast(v, node.outputs[0].dtype), *shp)
 
             # T.cast does not preserve the stacktrace of x,
             # so we need to copy it over to the output.
@@ -2698,14 +2710,14 @@ def local_upcast_elemwise_constant_inputs(fgraph, node):
                         )
                         if all(i.broadcastable):
                             new_inputs.append(
-                                shape_padleft(tt.cast(cval_i, output_dtype), i.ndim)
+                                shape_padleft(cast(cval_i, output_dtype), i.ndim)
                             )
                         else:
                             if shape_i is None:
                                 return
                             new_inputs.append(
                                 alloc(
-                                    tt.cast(cval_i, output_dtype),
+                                    cast(cval_i, output_dtype),
                                     *[shape_i(d)(i) for d in range(i.ndim)],
                                 )
                             )
@@ -2714,7 +2726,7 @@ def local_upcast_elemwise_constant_inputs(fgraph, node):
                     except NotScalarConstantError:
                         # for the case of a non-scalar
                         if isinstance(i, TensorConstant):
-                            new_inputs.append(tt.cast(i, output_dtype))
+                            new_inputs.append(cast(i, output_dtype))
                         else:
                             new_inputs.append(i)
 
@@ -2778,7 +2790,7 @@ def local_useless_inc_subtensor(fgraph, node):
         and e.stop is None
         and (
             e.step is None
-            or tt.extract_constant(e.step, only_process_constants=True) == -1
+            or extract_constant(e.step, only_process_constants=True) == -1
         )
         for e in idx_cst
     ):
@@ -2857,7 +2869,7 @@ def local_useless_slice(fgraph, node):
                 and s.stop is None
                 and (
                     s.step is None
-                    or tt.extract_constant(s.step, only_process_constants=True) == 1
+                    or extract_constant(s.step, only_process_constants=True) == 1
                 )
             ):
                 last_slice -= 1
@@ -3156,11 +3168,11 @@ def merge_two_slices(fgraph, slice1, len1, slice2, len2):
             # complain about accessing element len1+1 which is probably not
             # too intuitive for the user
             val = sl1.start + sl2 * sl1.step
-            val = tt.switch(tt.le(len2, 0), len1 + 1, val)
-            val = tt.switch(tt.ge(sl2, len2), len1 + 1, val)
-            val = tt.switch(tt.lt(sl2, 0), -len1 - 1, val)
+            val = switch(le(len2, 0), len1 + 1, val)
+            val = switch(ge(sl2, len2), len1 + 1, val)
+            val = switch(lt(sl2, 0), -len1 - 1, val)
             if sl1.step:
-                val = tt.switch(tt.eq(sl1.step, 0), len1 + 1, val)
+                val = switch(eq(sl1.step, 0), len1 + 1, val)
             return val
         else:
             # We are in the more complex case when we do not actually know
@@ -3180,12 +3192,12 @@ def merge_two_slices(fgraph, slice1, len1, slice2, len2):
                 )
             # we need to pick either n_val or p_val and then follow same
             # steps as above for covering the index error cases
-            val = tt.switch(tt.lt(reverse1, 0), n_val, p_val)
-            val = tt.switch(tt.le(len2, 0), len1 + 1, val)
-            val = tt.switch(tt.ge(sl2, len2), len1 + 1, val)
-            val = tt.switch(tt.lt(sl2, 0), -len1 - 1, val)
+            val = switch(lt(reverse1, 0), n_val, p_val)
+            val = switch(le(len2, 0), len1 + 1, val)
+            val = switch(ge(sl2, len2), len1 + 1, val)
+            val = switch(lt(sl2, 0), -len1 - 1, val)
             if sl1.step:
-                val = tt.switch(tt.eq(sl1.step, 0), len1 + 1, val)
+                val = switch(eq(sl1.step, 0), len1 + 1, val)
             return val
     else:
         # We are deleaing with two slices that need to be put together
@@ -3196,45 +3208,45 @@ def merge_two_slices(fgraph, slice1, len1, slice2, len2):
         p_step = sl1.step * sl2.step
         n_step = sl1.step * sl2.step * -1
 
-        pp_start = tt.minimum(sl1.start + sl2.start * sl1.step, sl1.stop)
-        pp_stop = tt.minimum(sl1.start + sl2.stop * sl1.step, sl1.stop)
+        pp_start = minimum(sl1.start + sl2.start * sl1.step, sl1.stop)
+        pp_stop = minimum(sl1.start + sl2.stop * sl1.step, sl1.stop)
 
         pn_stop = sl1.start + (sl2.start - 1) * sl1.step
-        pn_stop = tt.switch(
-            tt.and_(tt.lt(pn_stop, 0), tt.gt(flen, 0)),
+        pn_stop = switch(
+            and_(lt(pn_stop, 0), gt(flen, 0)),
             -len1 - 1,
-            tt.minimum(pn_stop, sl1.stop),
+            minimum(pn_stop, sl1.stop),
         )
         pn_start = sl1.start + (sl2.stop - 1) * sl1.step
-        pn_start = tt.minimum(pn_start, sl1.stop)
-        pn_start = tt.maximum(pn_start, 0)
+        pn_start = minimum(pn_start, sl1.stop)
+        pn_start = maximum(pn_start, 0)
 
         np_stop = sl1.stop - sl2.stop * sl1.step - 1
-        np_stop = tt.switch(
-            tt.and_(tt.lt(np_stop, 0), tt.gt(flen, 0)),
+        np_stop = switch(
+            and_(lt(np_stop, 0), gt(flen, 0)),
             -len1 - 1,
-            tt.maximum(sl1.start - 1, np_stop),
+            maximum(sl1.start - 1, np_stop),
         )
-        np_start = tt.maximum(sl1.start, sl1.stop - sl2.start * sl1.step - 1)
+        np_start = maximum(sl1.start, sl1.stop - sl2.start * sl1.step - 1)
 
-        nn_start = tt.maximum(sl1.start, (sl1.stop - 1) - (sl2.stop - 1) * sl1.step)
-        nn_stop = tt.maximum(sl1.start, sl1.stop - sl2.start * sl1.step)
+        nn_start = maximum(sl1.start, (sl1.stop - 1) - (sl2.stop - 1) * sl1.step)
+        nn_stop = maximum(sl1.start, sl1.stop - sl2.start * sl1.step)
 
-        start = tt.switch(
-            tt.lt(reverse2 * reverse1, 0),
-            tt.switch(tt.lt(reverse1, 0), np_start, pn_start),
-            tt.switch(tt.lt(reverse1, 0), nn_start, pp_start),
-        )
-
-        stop = tt.switch(
-            tt.lt(reverse2 * reverse1, 0),
-            tt.switch(tt.lt(reverse1, 0), np_stop, pn_stop),
-            tt.switch(tt.lt(reverse1, 0), nn_stop, pp_stop),
+        start = switch(
+            lt(reverse2 * reverse1, 0),
+            switch(lt(reverse1, 0), np_start, pn_start),
+            switch(lt(reverse1, 0), nn_start, pp_start),
         )
 
-        step = tt.switch(tt.lt(reverse2 * reverse1, 0), n_step, p_step)
-        start = tt.switch(tt.le(flen, 0), 0, start)
-        stop = tt.switch(tt.le(flen, 0), 0, stop)
+        stop = switch(
+            lt(reverse2 * reverse1, 0),
+            switch(lt(reverse1, 0), np_stop, pn_stop),
+            switch(lt(reverse1, 0), nn_stop, pp_stop),
+        )
+
+        step = switch(lt(reverse2 * reverse1, 0), n_step, p_step)
+        start = switch(le(flen, 0), 0, start)
+        stop = switch(le(flen, 0), 0, stop)
 
         return slice(start, stop, step)
 
@@ -3313,7 +3325,7 @@ def local_subtensor_merge(fgraph, node):
             if out.type != orig_out.type:
                 assert out.dtype == orig_out.dtype
                 assert out.ndim == orig_out.ndim
-                out = tt.patternbroadcast(out, orig_out.broadcastable)
+                out = patternbroadcast(out, orig_out.broadcastable)
                 copy_stack_trace([orig_out, node.inputs[0]], out)
             return [out]
 
@@ -3374,7 +3386,7 @@ def local_subtensor_of_alloc(fgraph, node):
                 # Do not add the ceil_intdiv() graphs in the graphs
                 # when this is not needed as it prevent detecting the
                 # correct broadcast pattern.
-                nw_dim = tt.ceil_intdiv(nw_dim, csl.step)
+                nw_dim = ceil_intdiv(nw_dim, csl.step)
             nw_dims += [nw_dim]
 
     nw_val = val[tuple(val_slices)]
@@ -3387,7 +3399,7 @@ def local_subtensor_of_alloc(fgraph, node):
     if rval[0].type != node.outputs[0].type:
         # It happen that the make_node() isn't able to infer the same pattern.
         # We know it is safe, so fix that.
-        rval[0] = tt.patternbroadcast(rval[0], node.outputs[0].broadcastable)
+        rval[0] = patternbroadcast(rval[0], node.outputs[0].broadcastable)
 
     return rval
 
@@ -3449,7 +3461,7 @@ def local_subtensor_of_dot(fgraph, node):
     # Copy over previous output stacktrace and previous dot product stacktrace,
     # because an error here may correspond to an either in either the original
     # dot product, or in the dot product after the subtensor operation.
-    r = tt.dot(a_sub, b_sub)
+    r = dot(a_sub, b_sub)
     copy_stack_trace([node.outputs[0], node.inputs[0]], r)
 
     return [r]
@@ -3741,7 +3753,7 @@ def local_adv_sub1_adv_inc_sub1(fgraph, node):
         and
         # Don't use only_process_constants=True. We need to
         # investigate Alloc of 0s but with non constant shape.
-        tt.extract_constant(x, elemwise=False) != 0
+        extract_constant(x, elemwise=False) != 0
     ):
         return
 
@@ -3761,9 +3773,9 @@ def local_adv_sub1_adv_inc_sub1(fgraph, node):
             )
         return
 
-    cond = [tt.all(tt.and_(tt.lt(idx, x.shape[0]), tt.ge(idx, -x.shape[0])))]
+    cond = [tt_all(and_(lt(idx, x.shape[0]), ge(idx, -x.shape[0])))]
     if not fgraph.shape_feature.same_shape(idx, y, 0, 0):
-        cond.append(tt.eq(idx.shape[0], y.shape[0]))
+        cond.append(eq(idx.shape[0], y.shape[0]))
     r = Assert(
         "Bad indexing or shapes in a AdvancedIncSubtensor1 " "that was optimized away"
     )(y, *cond)
@@ -3773,7 +3785,7 @@ def local_adv_sub1_adv_inc_sub1(fgraph, node):
         return [r]
     # It is possible that y is upcast or downcast to x.dtype.
     # In all case, as we set or add with 0, we can just cast y.
-    r2 = tt.cast(r, node.outputs[0].dtype)
+    r2 = cast(r, node.outputs[0].dtype)
 
     # Copy over stacktrace from before casting, since
     # we don't expect problems in the casting operation,
@@ -3848,7 +3860,7 @@ def local_useless_inc_subtensor_alloc(fgraph, node):
                 # The shapes of `y` and `xi` must either agree or `y` may
                 # also have shape equal to 1 which may be treated as a
                 # broadcastable dimension by the subtensor op.
-                tt.or_(tt.eq(y.shape[k], 1), tt.eq(y.shape[k], xi.shape[k]))
+                or_(eq(y.shape[k], 1), eq(y.shape[k], xi.shape[k]))
                 # Loop over all dimensions.
                 for k in range(xi.ndim)
                 # We need to check the above shapes, if
@@ -4071,7 +4083,7 @@ def local_join_empty(fgraph, node):
             # T.join do not work in that case.
             # constant folding will take care of this case.
             return
-        ret = tt.join(node.inputs[0], *new_inputs)
+        ret = join(node.inputs[0], *new_inputs)
         o = node.outputs[0]
         if ret.dtype != o.dtype:
             # Join can upcast some inputs
@@ -4085,7 +4097,7 @@ def local_join_empty(fgraph, node):
         if ret.type != o.type:
             assert ret.dtype == o.dtype
             assert ret.ndim == o.ndim
-            ret = tt.patternbroadcast(ret, node.outputs[0].broadcastable)
+            ret = patternbroadcast(ret, node.outputs[0].broadcastable)
 
         # Copy over stacktrace from previous output
         # (after patternbroadcast op) for same reasons as before.
@@ -4129,7 +4141,7 @@ def local_join_make_vector(fgraph, node):
         else:
             new_inputs.append(inp)
     if len(new_inputs) < len(node.inputs) - 1:
-        ret = tt.join(node.inputs[0], *new_inputs)
+        ret = join(node.inputs[0], *new_inputs)
 
         # Copy over stacktrace from previous output (after join op)
         # to new output, because an error in the new op must be caused
@@ -4180,9 +4192,9 @@ def local_sumsqr2dot(fgraph, node):
                     W = in_mul1.owner.inputs[0]
                     G = in_mul2.owner.inputs[0]
 
-                    new_out = tt.dot(tt.sqr(G), tt.sqr(W).sum(axis=0))
+                    new_out = dot(sqr(G), sqr(W).sum(axis=0))
                     if new_out.dtype != out.dtype:
-                        new_out = tt.cast(new_out, dtype=out.dtype)
+                        new_out = cast(new_out, dtype=out.dtype)
                     return [new_out]
 
 
@@ -4205,13 +4217,13 @@ def local_expm1(fgraph, node):
             in1.owner
             and isinstance(in1.owner.op, Elemwise)
             and isinstance(in1.owner.op.scalar_op, ts.Exp)
-            and tt.extract_constant(in2, only_process_constants=False) == 1
+            and extract_constant(in2, only_process_constants=False) == 1
         ):
             in11 = in1.owner.inputs[0]
-            new_out = tt.expm1(in11)
+            new_out = expm1(in11)
 
             if new_out.dtype != out.dtype:
-                new_out = tt.cast(new_out, dtype=out.dtype)
+                new_out = cast(new_out, dtype=out.dtype)
             if new_out.type != out.type:
                 return
             return [new_out]
@@ -4236,7 +4248,7 @@ def local_useless_switch(fgraph, node):
     """
     if isinstance(node.op, Elemwise) and isinstance(node.op.scalar_op, ts.Switch):
 
-        cond = tt.extract_constant(node.inputs[0], only_process_constants=True)
+        cond = extract_constant(node.inputs[0], only_process_constants=True)
 
         if (isinstance(cond, np.ndarray) and cond.ndim == 0) or isinstance(
             cond, np.number
@@ -4247,7 +4259,7 @@ def local_useless_switch(fgraph, node):
                 correct_out = node.inputs[1]
 
             if correct_out.dtype != node.outputs[0].dtype:
-                out = tt.cast(correct_out, node.outputs[0].dtype)
+                out = cast(correct_out, node.outputs[0].dtype)
             else:
                 out = correct_out
 
@@ -4282,11 +4294,9 @@ def local_useless_switch(fgraph, node):
             and isinstance(cond_var.owner.op.scalar_op, ts.LE)
             and cond_var.owner.inputs[0].owner
             and isinstance(cond_var.owner.inputs[0].owner.op, Shape_i)
-            and tt.extract_constant(
-                cond_var.owner.inputs[1], only_process_constants=True
-            )
+            and extract_constant(cond_var.owner.inputs[1], only_process_constants=True)
             == 0
-            and tt.extract_constant(left, only_process_constants=True) == 0
+            and extract_constant(left, only_process_constants=True) == 0
             and right is cond_var.owner.inputs[0]
         ):
             assert right.type == node.outputs[0].type
@@ -4326,17 +4336,17 @@ def local_mul_switch_sink(fgraph, node):
     if node.op != mul:
         return False
     for idx, i in enumerate(node.inputs):
-        if i.owner and i.owner.op == tt.switch:
-            switch = i.owner
+        if i.owner and i.owner.op == switch:
+            switch_node = i.owner
             try:
                 if (
                     get_scalar_constant_value(
-                        switch.inputs[1], only_process_constants=True
+                        switch_node.inputs[1], only_process_constants=True
                     )
                     == 0.0
                 ):
                     listmul = node.inputs[:idx] + node.inputs[idx + 1 :]
-                    fmul = mul(*(listmul + [switch.inputs[2]]))
+                    fmul = mul(*(listmul + [switch_node.inputs[2]]))
 
                     # Copy over stacktrace for elementwise multiplication op
                     # from previous elementwise multiplication op.
@@ -4345,26 +4355,26 @@ def local_mul_switch_sink(fgraph, node):
                     # multiplication op.
                     copy_stack_trace(node.outputs, fmul)
 
-                    fct = [tt.switch(switch.inputs[0], 0, fmul)]
+                    fct = [switch(switch_node.inputs[0], 0, fmul)]
                     fct[0].tag.values_eq_approx = values_eq_approx_remove_nan
 
                     # Copy over stacktrace for switch op from both previous
                     #  elementwise multiplication op and previous switch op,
                     # because an error in this part can be caused by either
                     # of the two previous ops.
-                    copy_stack_trace(node.outputs + switch.outputs, fct)
+                    copy_stack_trace(node.outputs + switch_node.outputs, fct)
                     return fct
             except NotScalarConstantError:
                 pass
             try:
                 if (
                     get_scalar_constant_value(
-                        switch.inputs[2], only_process_constants=True
+                        switch_node.inputs[2], only_process_constants=True
                     )
                     == 0.0
                 ):
                     listmul = node.inputs[:idx] + node.inputs[idx + 1 :]
-                    fmul = mul(*(listmul + [switch.inputs[1]]))
+                    fmul = mul(*(listmul + [switch_node.inputs[1]]))
                     # Copy over stacktrace for elementwise multiplication op
                     # from previous elementwise multiplication op.
                     # An error in the multiplication (e.g. errors due to
@@ -4372,14 +4382,14 @@ def local_mul_switch_sink(fgraph, node):
                     # multiplication op.
                     copy_stack_trace(node.outputs, fmul)
 
-                    fct = [tt.switch(switch.inputs[0], fmul, 0)]
+                    fct = [switch(switch_node.inputs[0], fmul, 0)]
                     fct[0].tag.values_eq_approx = values_eq_approx_remove_nan
 
                     # Copy over stacktrace for switch op from both previous
                     # elementwise multiplication op and previous switch op,
                     # because an error in this part can be caused by either
                     # of the two previous ops.
-                    copy_stack_trace(node.outputs + switch.outputs, fct)
+                    copy_stack_trace(node.outputs + switch_node.outputs, fct)
                     return fct
             except NotScalarConstantError:
                 pass
@@ -4403,14 +4413,16 @@ def local_div_switch_sink(fgraph, node):
     if node.op != true_div and node.op != int_div:
         return False
     op = node.op
-    if node.inputs[0].owner and node.inputs[0].owner.op == tt.switch:
-        switch = node.inputs[0].owner
+    if node.inputs[0].owner and node.inputs[0].owner.op == switch:
+        switch_node = node.inputs[0].owner
         try:
             if (
-                get_scalar_constant_value(switch.inputs[1], only_process_constants=True)
+                get_scalar_constant_value(
+                    switch_node.inputs[1], only_process_constants=True
+                )
                 == 0.0
             ):
-                fdiv = op(switch.inputs[2], node.inputs[1])
+                fdiv = op(switch_node.inputs[2], node.inputs[1])
                 # Copy over stacktrace for elementwise division op
                 # from previous elementwise multiplication op.
                 # An error in the division (e.g. errors due to
@@ -4418,23 +4430,25 @@ def local_div_switch_sink(fgraph, node):
                 # will point to the new division op.
                 copy_stack_trace(node.outputs, fdiv)
 
-                fct = [tt.switch(switch.inputs[0], 0, fdiv)]
+                fct = [switch(switch_node.inputs[0], 0, fdiv)]
                 fct[0].tag.values_eq_approx = values_eq_approx_remove_nan
 
                 # Copy over stacktrace for switch op from both previous
                 # elementwise division op and previous switch op,
                 # because an error in this part can be caused by either
                 # of the two previous ops.
-                copy_stack_trace(node.outputs + switch.outputs, fct)
+                copy_stack_trace(node.outputs + switch_node.outputs, fct)
                 return fct
         except NotScalarConstantError:
             pass
         try:
             if (
-                get_scalar_constant_value(switch.inputs[2], only_process_constants=True)
+                get_scalar_constant_value(
+                    switch_node.inputs[2], only_process_constants=True
+                )
                 == 0.0
             ):
-                fdiv = op(switch.inputs[1], node.inputs[1])
+                fdiv = op(switch_node.inputs[1], node.inputs[1])
                 # Copy over stacktrace for elementwise division op
                 # from previous elementwise multiplication op.
                 # An error in the division (e.g. errors due to
@@ -4442,14 +4456,14 @@ def local_div_switch_sink(fgraph, node):
                 # will point to the new division op.
                 copy_stack_trace(node.outputs, fdiv)
 
-                fct = [tt.switch(switch.inputs[0], fdiv, 0)]
+                fct = [switch(switch_node.inputs[0], fdiv, 0)]
                 fct[0].tag.values_eq_approx = values_eq_approx_remove_nan
 
                 # Copy over stacktrace for switch op from both previous
                 # elementwise division op and previous switch op,
                 # because an error in this part can be caused by either
                 # of the two previous ops.
-                copy_stack_trace(node.outputs + switch.outputs, fct)
+                copy_stack_trace(node.outputs + switch_node.outputs, fct)
                 return fct
         except NotScalarConstantError:
             pass
@@ -4481,7 +4495,7 @@ def local_merge_switch_same_cond(fgraph, node):
         return
     # pull out switch
     return [
-        tt.switch(
+        switch(
             cond,
             node.op(*[s.owner.inputs[1] for s in node.inputs]),
             node.op(*[s.owner.inputs[2] for s in node.inputs]),
@@ -4505,12 +4519,10 @@ def local_useless_tile(fgraph, node):
     """
     if isinstance(node.op, Tile):
         try:
-            a = tt.get_scalar_constant_value(
-                node.inputs[1], only_process_constants=True
-            )
+            a = get_scalar_constant_value(node.inputs[1], only_process_constants=True)
             if a == 1:
                 try:
-                    l = tt.get_vector_length(node.inputs[1])
+                    l = get_vector_length(node.inputs[1])
                     if l == node.inputs[0].ndim:
                         # No need to copy over any stacktrace as previous
                         # input variable already has a stacktrace
@@ -4553,10 +4565,10 @@ def local_useless_split(fgraph, node):
     if isinstance(node.op, Split):
         if node.op.len_splits == 1:
             x, axis, splits = node.inputs
-            out = assert_op(x, tt.eq(splits.shape[0], 1))
+            out = assert_op(x, eq(splits.shape[0], 1))
             # Copy over stacktrace from previous output node.
             copy_stack_trace(node.outputs, out)
-            out2 = assert_op(out, tt.eq(x.shape[axis], splits[0]))
+            out2 = assert_op(out, eq(x.shape[axis], splits[0]))
             # Copy over stacktrace from previous output node.
             copy_stack_trace(out, out2)
 
@@ -4822,7 +4834,7 @@ def local_reshape_lift(fgraph, node):
         # In rare case the original broadcast was (False, True), but
         # the new one is (False, False). So don't crash in that case.
         if e.type != node.outputs[0].type:
-            re = tt.patternbroadcast(e, node.outputs[0].broadcastable)
+            re = patternbroadcast(e, node.outputs[0].broadcastable)
 
             # Copy over stack trace.
             # If the graph fails it is usually due to the fact that a dimension
@@ -5045,7 +5057,7 @@ class Canonizer(LocalOptimizer):
 
         ln, ld = len(num), len(denum)
         if not ln and not ld:
-            return tt.as_tensor_variable(self.calculate([], []))
+            return as_tensor_variable(self.calculate([], []))
         if not ln:
             if self.use_reciprocal:
                 return self.reciprocal(self.merge_num_denum(denum, []))
@@ -5194,7 +5206,7 @@ class Canonizer(LocalOptimizer):
             ct = [self.calculate(numct, denumct, aslist=False, out_type=out_type)]
 
         # Wrapping ct in a Constant with the right dtype
-        ct = [tt.constant(c, dtype=out_type.dtype) for c in ct]
+        ct = [constant(c, dtype=out_type.dtype) for c in ct]
 
         if orig_num and len(numct) == 1 and len(denumct) == 0 and ct:
             # In that case we should only have one constant in `ct`.
@@ -5284,7 +5296,7 @@ class Canonizer(LocalOptimizer):
 
         new = self.merge_num_denum(num, denum)
         if new.type.dtype != out.type.dtype:
-            new = tt.cast(new, out.type.dtype)
+            new = cast(new, out.type.dtype)
 
         assert (new.type == out.type) == (not (new.type != out.type))
 
@@ -5460,7 +5472,7 @@ def local_elemwise_sub_zeros(fgraph, node):
         and node.op.scalar_op == ts.sub
         and node.inputs[0] == node.inputs[1]
     ):
-        res = tt.zeros_like(node.inputs[0])
+        res = zeros_like(node.inputs[0])
         # Copy over stacktrace from previous output.
         # This could help for failures due to out-of-memory.
         copy_stack_trace(node.outputs, res)
@@ -5513,7 +5525,7 @@ def local_useless_elemwise_comparison(fgraph, node):
         isinstance(node.op.scalar_op, (ts.LT, ts.GT))
         and node.inputs[0] is node.inputs[1]
     ):
-        res = tt.zeros_like(node.inputs[0], dtype=dtype, opt=True)
+        res = zeros_like(node.inputs[0], dtype=dtype, opt=True)
         # Copy over stacktrace from previous output.
         copy_stack_trace(node.outputs, res)
         return [res]
@@ -5522,7 +5534,7 @@ def local_useless_elemwise_comparison(fgraph, node):
         isinstance(node.op.scalar_op, (ts.LE, ts.GE))
         and node.inputs[0] is node.inputs[1]
     ):
-        res = tt.ones_like(node.inputs[0], dtype=dtype, opt=True)
+        res = ones_like(node.inputs[0], dtype=dtype, opt=True)
 
         # Copy over stacktrace from previous output.
         copy_stack_trace(node.outputs, res)
@@ -5542,9 +5554,9 @@ def local_useless_elemwise_comparison(fgraph, node):
         isinstance(node.op.scalar_op, ts.LT)
         and node.inputs[0].owner
         and isinstance(node.inputs[0].owner.op, Shape_i)
-        and tt.extract_constant(node.inputs[1], only_process_constants=True) == 0
+        and extract_constant(node.inputs[1], only_process_constants=True) == 0
     ):
-        res = tt.zeros_like(node.inputs[0], dtype=dtype, opt=True)
+        res = zeros_like(node.inputs[0], dtype=dtype, opt=True)
         # Copy over stacktrace from previous output.
         copy_stack_trace(node.outputs, res)
         return [res]
@@ -5553,9 +5565,9 @@ def local_useless_elemwise_comparison(fgraph, node):
         isinstance(node.op.scalar_op, ts.GE)
         and node.inputs[0].owner
         and isinstance(node.inputs[0].owner.op, Shape_i)
-        and tt.extract_constant(node.inputs[1], only_process_constants=True) == 0
+        and extract_constant(node.inputs[1], only_process_constants=True) == 0
     ):
-        res = tt.ones_like(node.inputs[0], dtype=dtype, opt=True)
+        res = ones_like(node.inputs[0], dtype=dtype, opt=True)
         # Copy over stacktrace from previous output.
         copy_stack_trace(node.outputs, res)
         return [res]
@@ -5564,14 +5576,14 @@ def local_useless_elemwise_comparison(fgraph, node):
         isinstance(node.op.scalar_op, ts.ScalarMaximum)
         and node.inputs[0].owner
         and isinstance(node.inputs[0].owner.op, Shape_i)
-        and tt.extract_constant(node.inputs[1], only_process_constants=True) == 0
+        and extract_constant(node.inputs[1], only_process_constants=True) == 0
     ):
         # No need to copy over stacktrace.
         return [node.inputs[0]]
     # Elemwise[maximum](0, X.shape[i]) -> X.shape[i]
     if (
         isinstance(node.op.scalar_op, ts.ScalarMaximum)
-        and tt.extract_constant(node.inputs[0], only_process_constants=True) == 0
+        and extract_constant(node.inputs[0], only_process_constants=True) == 0
         and node.inputs[1].owner
         and isinstance(node.inputs[1].owner.op, Shape_i)
     ):
@@ -5582,9 +5594,9 @@ def local_useless_elemwise_comparison(fgraph, node):
         isinstance(node.op.scalar_op, ts.ScalarMinimum)
         and node.inputs[0].owner
         and isinstance(node.inputs[0].owner.op, Shape_i)
-        and tt.extract_constant(node.inputs[1], only_process_constants=True) == 0
+        and extract_constant(node.inputs[1], only_process_constants=True) == 0
     ):
-        res = tt.zeros_like(node.inputs[0], dtype=dtype, opt=True)
+        res = zeros_like(node.inputs[0], dtype=dtype, opt=True)
         # Copy over stacktrace from previous output.
         copy_stack_trace(node.outputs, res)
         return [res]
@@ -5592,11 +5604,11 @@ def local_useless_elemwise_comparison(fgraph, node):
     # Elemwise[minimum](0, X.shape[i]) -> 0
     if (
         isinstance(node.op.scalar_op, ts.ScalarMinimum)
-        and tt.extract_constant(node.inputs[0], only_process_constants=True) == 0
+        and extract_constant(node.inputs[0], only_process_constants=True) == 0
         and node.inputs[1].owner
         and isinstance(node.inputs[1].owner.op, Shape_i)
     ):
-        res = tt.zeros_like(node.inputs[1], dtype=dtype, opt=True)
+        res = zeros_like(node.inputs[1], dtype=dtype, opt=True)
         # Copy over stacktrace from previous output.
         copy_stack_trace(node.outputs, res)
         return [res]
@@ -5613,9 +5625,9 @@ def local_useless_elemwise_comparison(fgraph, node):
                 for var in node.inputs[0].owner.inputs
             ]
         )
-        and tt.extract_constant(node.inputs[1], only_process_constants=True) == 0
+        and extract_constant(node.inputs[1], only_process_constants=True) == 0
     ):
-        res = tt.zeros_like(node.inputs[0], dtype=dtype, opt=True)
+        res = zeros_like(node.inputs[0], dtype=dtype, opt=True)
         # Copy over stacktrace from previous output.
         copy_stack_trace(node.outputs, res)
         return [res]
@@ -5631,9 +5643,9 @@ def local_useless_elemwise_comparison(fgraph, node):
                 for var in node.inputs[0].owner.inputs
             ]
         )
-        and tt.extract_constant(node.inputs[1], only_process_constants=True) == 0
+        and extract_constant(node.inputs[1], only_process_constants=True) == 0
     ):
-        res = tt.ones_like(node.inputs[0], dtype=dtype, opt=True)
+        res = ones_like(node.inputs[0], dtype=dtype, opt=True)
 
         # Copy over stacktrace from previous output.
         copy_stack_trace(node.outputs, res)
@@ -5670,7 +5682,7 @@ def local_useless_elemwise_comparison(fgraph, node):
         try:
             cst = get_scalar_constant_value(node.inputs[1], only_process_constants=True)
 
-            res = tt.zeros_like(node.inputs[0], dtype=dtype, opt=True)
+            res = zeros_like(node.inputs[0], dtype=dtype, opt=True)
 
             if cst < 0:
                 # Copy over stacktrace from previous output.
@@ -5794,18 +5806,18 @@ def local_sum_prod_div_dimshuffle(fgraph, node):
                             )
 
                     if isinstance(node.op, Sum):
-                        op_on_compatible_dims = tt.sum(numerator, axis=compatible_dims)
+                        op_on_compatible_dims = tt_sum(numerator, axis=compatible_dims)
                         rval = true_div(op_on_compatible_dims, optimized_dimshuffle)
                         if len(reordered_incompatible_dims) > 0:
-                            rval = tt.sum(rval, axis=reordered_incompatible_dims)
+                            rval = tt_sum(rval, axis=reordered_incompatible_dims)
                     elif isinstance(node.op, Prod):
-                        op_on_compatible_dims = tt.prod(numerator, axis=compatible_dims)
+                        op_on_compatible_dims = prod(numerator, axis=compatible_dims)
                         dtype = numerator.dtype
                         rval = true_div(
                             op_on_compatible_dims,
                             (
                                 optimized_dimshuffle
-                                ** tt.prod(
+                                ** prod(
                                     [
                                         numerator.shape[ax].astype(dtype)
                                         for ax in compatible_dims
@@ -5814,7 +5826,7 @@ def local_sum_prod_div_dimshuffle(fgraph, node):
                             ),
                         )
                         if len(reordered_incompatible_dims) > 0:
-                            rval = tt.prod(rval, axis=reordered_incompatible_dims)
+                            rval = prod(rval, axis=reordered_incompatible_dims)
                     return [rval]
 
 
@@ -5941,7 +5953,7 @@ def local_reduce_join(fgraph, node):
         and isinstance(node.inputs[0].owner.op, Join)
     ):
         join = node.inputs[0].owner
-        if tt.extract_constant(join.inputs[0], only_process_constants=True) != 0:
+        if extract_constant(join.inputs[0], only_process_constants=True) != 0:
             return
 
         if isinstance(node.op.scalar_op, (ts.ScalarMaximum, ts.ScalarMinimum)):
@@ -6046,7 +6058,7 @@ def local_reduce_broadcastable(fgraph, node):
                 new_reduced = reduced.dimshuffle(*pattern)
                 if new_axis:
                     if type(node.op) == CAReduce:
-                        # This happen for tt.max(), tt.min()
+                        # This happen for tt_max(), tt_min()
                         new_op = node.op.__class__(node.op.scalar_op, axis=new_axis)
                     else:
                         new_op = node.op.__class__(axis=new_axis)
@@ -6187,7 +6199,7 @@ def local_div_to_inv(fgraph, node):
         new_out = inv(local_mul_canonizer.merge_num_denum(node.inputs[1:], []))
         # The ones could have forced upcasting
         if new_out.dtype != out.dtype:
-            new_out = tt.cast(new_out, dtype=out.dtype)
+            new_out = cast(new_out, dtype=out.dtype)
         # The ones could have forced a specific length
         if new_out.type != out.type:
             new_out = broadcast_like(new_out, out, fgraph)
@@ -6202,7 +6214,7 @@ register_specialize(local_div_to_inv)
 @local_optimizer([inv])
 def local_inv_canon(fgraph, node):
     if node.op == inv:
-        return [pow(node.inputs[0], -1.0)]
+        return [tt_pow(node.inputs[0], -1.0)]
     else:
         return False
 
@@ -6210,9 +6222,9 @@ def local_inv_canon(fgraph, node):
 register_canonicalize(local_inv_canon)
 
 
-@local_optimizer([pow])
+@local_optimizer([tt_pow])
 def local_pow_canonicalize(fgraph, node):
-    if node.op == pow:
+    if node.op == tt_pow:
         cst = local_mul_canonizer.get_constant(node.inputs[1])
         if cst == 0:
             return [broadcast_like(1, node.outputs[0], fgraph)]
@@ -6238,7 +6250,7 @@ def local_mul_to_sqr(fgraph, node):
     if node.op == mul:
         if len(node.inputs) == 2:
             if node.inputs[0] is node.inputs[1]:
-                return [tt.sqr(node.inputs[0])]
+                return [sqr(node.inputs[0])]
 
 
 @register_canonicalize
@@ -6266,11 +6278,11 @@ def local_zero_div(fgraph, node):
             return [ret]
 
 
-@local_optimizer([pow])
+@local_optimizer([tt_pow])
 def local_pow_specialize(fgraph, node):
     # here, we are past the point of canonicalization, so we don't want
     # to put in un-necessary fills.
-    if node.op == pow:
+    if node.op == tt_pow:
         # the idea here is that we have pow(x, y)
         odtype = node.outputs[0].dtype
         xsym = node.inputs[0]
@@ -6282,21 +6294,21 @@ def local_pow_specialize(fgraph, node):
             rval = None
 
             if np.all(y == 2):
-                rval = [tt.sqr(xsym)]
+                rval = [sqr(xsym)]
             if np.all(y == 1):
                 rval = [xsym]
             if np.all(y == 0):
                 rval = [fill(xsym, np.asarray(1, dtype=odtype))]
             if np.all(y == 0.5):
-                rval = [tt.sqrt(xsym)]
+                rval = [sqrt(xsym)]
             if np.all(y == -0.5):
-                rval = [inv(tt.sqrt(xsym))]
+                rval = [inv(sqrt(xsym))]
             if np.all(y == -1):
                 rval = [inv(xsym)]
             if np.all(y == -2):
-                rval = [inv(tt.sqr(xsym))]
+                rval = [inv(sqr(xsym))]
             if rval:
-                rval[0] = tt.cast(rval[0], odtype)
+                rval[0] = cast(rval[0], odtype)
                 assert rval[0].type == node.outputs[0].type, (rval, node.outputs)
                 return rval
     else:
@@ -6307,12 +6319,12 @@ register_specialize(local_pow_specialize)
 
 
 @register_specialize_device
-@local_optimizer([pow])
+@local_optimizer([tt_pow])
 def local_pow_specialize_device(fgraph, node):
     """
     This optimization is not the same on all device. We do it only on cpu here.
     """
-    if node.op == pow:
+    if node.op == tt_pow:
         # the idea here is that we have pow(x, y)
         odtype = node.outputs[0].dtype
         xsym = node.inputs[0]
@@ -6343,7 +6355,7 @@ def local_pow_specialize_device(fgraph, node):
                 pow2_scal = [ts.get_scalar_type(xsym.dtype)()]
                 y_to_do = abs(y)
                 for i in range(int(np.log2(y_to_do))):
-                    pow2.append(tt.sqr(pow2[i]))
+                    pow2.append(sqr(pow2[i]))
                     pow2_scal.append(ts.sqr(pow2_scal[i]))
                 rval1 = None
                 rval1_scal = None
@@ -6368,7 +6380,7 @@ def local_pow_specialize_device(fgraph, node):
                 else:
                     rval = [rval1]
             if rval:
-                rval[0] = tt.cast(rval[0], odtype)
+                rval[0] = cast(rval[0], odtype)
                 assert rval[0].type == node.outputs[0].type, (rval, node.outputs)
                 return rval
 
@@ -6476,7 +6488,7 @@ def local_add_specialize(fgraph, node):
                 # we got rid of the entire expression!
                 ndim = node.outputs[0].type.ndim
                 # Reuse call to constant for cache()
-                cst = tt.constant(np.zeros((1,) * ndim, dtype=dtype))
+                cst = constant(np.zeros((1,) * ndim, dtype=dtype))
                 assert cst.type.broadcastable == (True,) * ndim
                 return fill_chain(cst)
 
@@ -6487,7 +6499,7 @@ def local_add_specialize(fgraph, node):
             # The dtype should not be changed. It can happen if the input
             # that was forcing upcasting was equal to 0.
             if ret[0].dtype != dtype:
-                ret = [tt.cast(ret[0], dtype)]
+                ret = [cast(ret[0], dtype)]
             return ret
     else:
         return False
@@ -6518,7 +6530,7 @@ def check_for_x_over_absX(numerators, denominators):
             else:
                 denominators.remove(den)
                 numerators.remove(den.owner.inputs[0])
-                numerators.append(tt.sgn(den.owner.inputs[0]))
+                numerators.append(sgn(den.owner.inputs[0]))
     return numerators, denominators
 
 
@@ -6602,9 +6614,7 @@ def local_log1p(fgraph, node):
                     return _fill_chain(log1p(ninp), scalar_inputs)
 
         elif log_arg.owner and log_arg.owner.op == sub:
-            one = tt.extract_constant(
-                log_arg.owner.inputs[0], only_process_constants=True
-            )
+            one = extract_constant(log_arg.owner.inputs[0], only_process_constants=True)
             if one != 1:
                 return
             other = log_arg.owner.inputs[1]
@@ -6635,14 +6645,12 @@ def local_log_add(fgraph, node):
                 #    TODO
                 # raise NotImplementedError()
                 return
-            pre_exp = [
-                x.owner.inputs[0] for x in zi if x.owner and x.owner.op == tt.exp
-            ]
+            pre_exp = [x.owner.inputs[0] for x in zi if x.owner and x.owner.op == exp]
             if len(pre_exp) == len(zi):
                 # all arguments to add are exp(<something>)
-                max_pre = tt.maximum(*pre_exp)
+                max_pre = maximum(*pre_exp)
 
-                ret = max_pre + log1p(tt.exp(add(*[p - max_pre for p in pre_exp])))
+                ret = max_pre + log1p(exp(add(*[p - max_pre for p in pre_exp])))
                 ret.tag.values_eq_approx = values_eq_approx_remove_inf
                 return [ret]
 
@@ -6672,10 +6680,10 @@ def local_log_sum_exp(fgraph, node):
         return
 
     pre_exp = exp_node.inputs[0]
-    max_pre_exp = tt.max(pre_exp, axis=axis)
-    max_pre_exp_keepdims = tt.makeKeepDims(pre_exp, max_pre_exp, axis)
+    max_pre_exp = tt_max(pre_exp, axis=axis)
+    max_pre_exp_keepdims = makeKeepDims(pre_exp, max_pre_exp, axis)
 
-    ret = max_pre_exp + log(tt.sum(tt.exp(pre_exp - max_pre_exp_keepdims), axis=axis))
+    ret = max_pre_exp + log(tt_sum(exp(pre_exp - max_pre_exp_keepdims), axis=axis))
 
     # Restore the dimshuffle op, if any.
     if dimshuffle_op:
@@ -7141,7 +7149,7 @@ def local_log_erfc(fgraph, node):
     elif node.outputs[0].dtype == "float64":
         threshold = 26.641747557
 
-    ret = tt.switch(x < threshold, node.outputs[0], stab_value)
+    ret = switch(x < threshold, node.outputs[0], stab_value)
     ret.tag.values_eq_approx = values_eq_approx_remove_inf
     return [ret]
 
@@ -7179,14 +7187,14 @@ def local_grad_log_erfc_neg(fgraph, node):
     if node.inputs[0].owner.op != mul:
         mul_in = None
         y = []
-        if not node.inputs[0].owner or node.inputs[0].owner.op != tt.exp:
+        if not node.inputs[0].owner or node.inputs[0].owner.op != exp:
             return False
         exp_in = node.inputs[0]
     else:
         mul_in = node.inputs[0]
         exp_in = None
         for idx, inp in enumerate(mul_in.owner.inputs):
-            if inp.owner and inp.owner.op == tt.exp:
+            if inp.owner and inp.owner.op == exp:
                 exp_in = inp
                 break
         if len(mul_in.owner.inputs) == 2:
@@ -7200,10 +7208,7 @@ def local_grad_log_erfc_neg(fgraph, node):
 
     if exp_in.owner.inputs[0].owner.op == neg:
         neg_in = exp_in.owner.inputs[0]
-        if (
-            not neg_in.owner.inputs[0].owner
-            or neg_in.owner.inputs[0].owner.op != tt.sqr
-        ):
+        if not neg_in.owner.inputs[0].owner or neg_in.owner.inputs[0].owner.op != sqr:
             return False
         sqr_in = neg_in.owner.inputs[0]
         x = sqr_in.owner.inputs[0]
@@ -7250,7 +7255,7 @@ def local_grad_log_erfc_neg(fgraph, node):
         if len(mul_neg.owner.inputs) == 2:
             if (
                 not mul_neg.owner.inputs[1].owner
-                or mul_neg.owner.inputs[1].owner.op != tt.sqr
+                or mul_neg.owner.inputs[1].owner.op != sqr
             ):
                 return False
             sqr_in = mul_neg.owner.inputs[1]
@@ -7301,8 +7306,8 @@ def local_grad_log_erfc_neg(fgraph, node):
     # aaron value
     stab_value = (
         x
-        * pow(1 - 1 / (2 * (x ** 2)) + 3 / (4 * (x ** 4)) - 15 / (8 * (x ** 6)), -1)
-        * tt.cast(tt.sqrt(np.pi), dtype=x.dtype)
+        * tt_pow(1 - 1 / (2 * (x ** 2)) + 3 / (4 * (x ** 4)) - 15 / (8 * (x ** 6)), -1)
+        * cast(sqrt(np.pi), dtype=x.dtype)
     )
 
     if x.dtype == "float32" or x.dtype == "float16":
@@ -7310,7 +7315,7 @@ def local_grad_log_erfc_neg(fgraph, node):
         # threshold = 10.1
     elif x.dtype == "float64":
         threshold = 26.641747557
-    ret = tt.switch(x < threshold, true_div_no_mul, stab_value)
+    ret = switch(x < threshold, true_div_no_mul, stab_value)
     if y:
         ret = mul(ret, *y)
     ret.tag.values_eq_approx = values_eq_approx_remove_inf_nan
@@ -7846,7 +7851,7 @@ def local_merge_alloc(fgraph, node):
                     " error message and a stack trace of where in your code"
                     " the error is created, use the Theano flags"
                     " optimizer=None or optimizer=fast_compile."
-                )(dim_outer, tt.eq(dim_outer, dim_inner))
+                )(dim_outer, eq(dim_outer, dim_inner))
         i += 1
     return [alloc(inputs_inner[0], *dims_outer)]
 

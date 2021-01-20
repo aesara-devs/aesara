@@ -25,6 +25,7 @@ from theano.graph.basic import (
 )
 from theano.graph.op import Op
 from theano.graph.type import Type
+from theano.tensor.math import max_and_argmax
 from theano.tensor.type import TensorType, iscalars, matrix, scalars
 from theano.tensor.type_other import NoneConst
 from theano.tensor.var import TensorVariable
@@ -337,8 +338,8 @@ def test_equal_computations():
     assert equal_computations([NoneConst], [NoneConst])
 
     m = matrix()
-    max_argmax1 = tt.max_and_argmax(m)
-    max_argmax2 = tt.max_and_argmax(m)
+    max_argmax1 = max_and_argmax(m)
+    max_argmax2 = max_and_argmax(m)
     assert equal_computations(max_argmax1, max_argmax2)
 
 

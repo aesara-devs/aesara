@@ -3,6 +3,7 @@ import pickle
 import re
 import shutil
 import tempfile
+from collections import OrderedDict
 
 import numpy as np
 import pytest
@@ -10,16 +11,22 @@ import pytest
 import theano
 from theano.compile.function import function, function_dump
 from theano.compile.io import In
+from theano.configdefaults import config
+from theano.tensor.math import sum as tt_sum
 from theano.tensor.type import (
     bscalar,
     bvector,
     dscalar,
     dvector,
+    fmatrix,
     fscalar,
     fvector,
     vector,
     wvector,
 )
+
+
+floatX = "float32"
 
 
 def test_function_dump():
@@ -195,7 +202,7 @@ class TestFunctionIn:
             f(0, 0.1, 0)
 
         # If allow_downcast is None, it should work iff floatX=float32
-        if theano.config.floatX == "float32":
+        if config.floatX == "float32":
             assert np.allclose(f(0, 0, 0.1), 0.1)
         else:
             with pytest.raises(TypeError):
@@ -229,3 +236,68 @@ class TestFunctionIn:
         # If allow_downcast is None, like False
         with pytest.raises(TypeError):
             f(z, z, [0.1])
+
+
+def test_pickle_unpickle_with_reoptimization():
+    mode = config.mode
+    if mode in ["DEBUG_MODE", "DebugMode"]:
+        mode = "FAST_RUN"
+    x1 = fmatrix("x1")
+    x2 = fmatrix("x2")
+    x3 = theano.shared(np.ones((10, 10), dtype=floatX))
+    x4 = theano.shared(np.ones((10, 10), dtype=floatX))
+    y = tt_sum(tt_sum(tt_sum(x1 ** 2 + x2) + x3) + x4)
+
+    updates = OrderedDict()
+    updates[x3] = x3 + 1
+    updates[x4] = x4 + 1
+    f = theano.function([x1, x2], y, updates=updates, mode=mode)
+
+    # now pickle the compiled theano fn
+    string_pkl = pickle.dumps(f, -1)
+
+    in1 = np.ones((10, 10), dtype=floatX)
+    in2 = np.ones((10, 10), dtype=floatX)
+
+    # test unpickle with optimization
+    default = config.reoptimize_unpickled_function
+    try:
+        # the default is True
+        config.reoptimize_unpickled_function = True
+        f_ = pickle.loads(string_pkl)
+        assert f(in1, in2) == f_(in1, in2)
+    finally:
+        config.reoptimize_unpickled_function = default
+
+
+def test_pickle_unpickle_without_reoptimization():
+    mode = config.mode
+    if mode in ["DEBUG_MODE", "DebugMode"]:
+        mode = "FAST_RUN"
+    x1 = fmatrix("x1")
+    x2 = fmatrix("x2")
+    x3 = theano.shared(np.ones((10, 10), dtype=floatX))
+    x4 = theano.shared(np.ones((10, 10), dtype=floatX))
+    y = tt_sum(tt_sum(tt_sum(x1 ** 2 + x2) + x3) + x4)
+
+    updates = OrderedDict()
+    updates[x3] = x3 + 1
+    updates[x4] = x4 + 1
+    f = theano.function([x1, x2], y, updates=updates, mode=mode)
+
+    # now pickle the compiled theano fn
+    string_pkl = pickle.dumps(f, -1)
+
+    # compute f value
+    in1 = np.ones((10, 10), dtype=floatX)
+    in2 = np.ones((10, 10), dtype=floatX)
+
+    # test unpickle without optimization
+    default = config.reoptimize_unpickled_function
+    try:
+        # the default is True
+        config.reoptimize_unpickled_function = False
+        f_ = pickle.loads(string_pkl)
+        assert f(in1, in2) == f_(in1, in2)
+    finally:
+        config.reoptimize_unpickled_function = default

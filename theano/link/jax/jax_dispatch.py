@@ -18,10 +18,8 @@ from theano.tensor.basic import (
     Alloc,
     AllocEmpty,
     ARange,
-    Dot,
     Eye,
     Join,
-    MaxAndArgmax,
     ScalarFromTensor,
     TensorFromScalar,
 )
@@ -38,6 +36,7 @@ from theano.tensor.extra_ops import (
     Unique,
     UnravelIndex,
 )
+from theano.tensor.math import Dot, MaxAndArgmax
 from theano.tensor.nlinalg import (
     SVD,
     AllocDiag,

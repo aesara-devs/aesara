@@ -32,6 +32,7 @@ from theano.sandbox import multinomial
 from theano.scalar import bool as bool_t
 from theano.scalar import int32 as int_t
 from theano.tensor import as_tensor_variable, cast, get_vector_length, opt
+from theano.tensor.math import cos, log, prod, sin, sqrt
 from theano.tensor.shape import reshape
 from theano.tensor.type import TensorType, iscalar, ivector, lmatrix
 
@@ -1179,7 +1180,7 @@ class MRG_RandomStream:
         if isinstance(size, Constant):
             n_odd_samples = size.prod(dtype="int64")
         else:
-            n_odd_samples = tt.prod(size, dtype="int64")
+            n_odd_samples = prod(size, dtype="int64")
         n_even_samples = n_odd_samples + n_odd_samples % 2
         uniform = self.uniform(
             (n_even_samples,),
@@ -1194,9 +1195,9 @@ class MRG_RandomStream:
         # box-muller transform
         u1 = uniform[: n_even_samples // 2]
         u2 = uniform[n_even_samples // 2 :]
-        r = tt.sqrt(-2.0 * tt.log(u1))
+        r = sqrt(-2.0 * log(u1))
         theta = np.array(2.0 * np.pi, dtype=dtype) * u2
-        cos_theta, sin_theta = tt.cos(theta), tt.sin(theta)
+        cos_theta, sin_theta = cos(theta), sin(theta)
         z0 = r * cos_theta
         z1 = r * sin_theta
 
@@ -1221,7 +1222,7 @@ class MRG_RandomStream:
                 nstreams=nstreams,
                 **kwargs,
             )
-            r_fix = tt.sqrt(-2.0 * tt.log(u_fix))
+            r_fix = sqrt(-2.0 * log(u_fix))
             z0_fixed = r_fix[: to_fix0.size] * cos_theta[to_fix0]
             z1_fixed = r_fix[to_fix0.size :] * sin_theta[to_fix1]
 

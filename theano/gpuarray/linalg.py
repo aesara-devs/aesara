@@ -4,7 +4,6 @@ import numpy as np
 import pkg_resources
 from numpy.linalg.linalg import LinAlgError
 
-from theano import tensor as tt
 from theano.configdefaults import config
 from theano.gpuarray.basic_ops import (
     CGpuKernelBase,
@@ -18,6 +17,8 @@ from theano.graph.basic import Apply
 from theano.graph.op import ExternalCOp, Op
 from theano.graph.params_type import ParamsType
 from theano.scalar import bool as bool_t
+from theano.tensor import basic as tt
+from theano.tensor import math as tm
 
 
 try:
@@ -339,7 +340,7 @@ class GpuCusolverSolve(Op):
         # no need to handle A_structure like slinalg.py?
         trans_solve_op = GpuCusolverSolve("general")
         b_bar = trans_solve_op(A.T, c_bar)
-        A_bar = -tt.outer(b_bar, c) if c.ndim == 1 else -b_bar.dot(c.T)
+        A_bar = -tm.outer(b_bar, c) if c.ndim == 1 else -b_bar.dot(c.T)
         return [A_bar, b_bar]
 
 
@@ -494,7 +495,7 @@ class GpuCublasTriangularSolve(Op):
         trans_solve_op = GpuCublasTriangularSolve(not self.lower)
         b_bar = trans_solve_op(A.T, c_bar)
 
-        A_bar = -tt.outer(b_bar, c) if c.ndim == 1 else -b_bar.dot(c.T)
+        A_bar = -tm.outer(b_bar, c) if c.ndim == 1 else -b_bar.dot(c.T)
 
         if self.lower:
             A_bar = tt.tril(A_bar)
@@ -660,7 +661,7 @@ class GpuCholesky(Op):
 
         # this is for nan mode
         #
-        # ok = ~tt.any(tt.isnan(chol_x))
+        # ok = ~tm.any(tm.isnan(chol_x))
         # chol_x = tt.switch(ok, chol_x, 1)
         # dz = tt.switch(ok, dz, 1)
 
@@ -806,7 +807,7 @@ class GpuMagmaSVD(GpuMagmaBase):
     def infer_shape(self, fgraph, node, shapes):
         (x_shape,) = shapes
         M, N = x_shape
-        K = tt.minimum(M, N)
+        K = tm.minimum(M, N)
         s_shape = (K,)
         if self.compute_uv:
             u_shape = (M, M) if self.full_matrices else (M, K)

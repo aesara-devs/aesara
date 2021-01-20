@@ -8,9 +8,10 @@
 import numpy as np
 import numpy.random
 
-import theano.tensor as tt
 from tests import unittest_tools as utt
 from theano import config, function, shared
+from theano.gradient import grad
+from theano.tensor.math import dot, exp, log
 from theano.tensor.type import matrix, vector
 
 
@@ -35,11 +36,11 @@ class TestScipy:
         b = shared(np.zeros(()))
 
         # Construct Theano expression graph
-        p_1 = 1 / (1 + tt.exp(-tt.dot(x, w) - b))
-        xent = -y * tt.log(p_1) - (1 - y) * tt.log(1 - p_1)
+        p_1 = 1 / (1 + exp(-dot(x, w) - b))
+        xent = -y * log(p_1) - (1 - y) * log(1 - p_1)
         prediction = p_1 > 0.5
         cost = xent.mean() + 0.01 * (w ** 2).sum()
-        gw, gb = tt.grad(cost, [w, b])
+        gw, gb = grad(cost, [w, b])
 
         # Compile expressions to functions
         train = function(

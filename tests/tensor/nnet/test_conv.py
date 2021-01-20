@@ -7,8 +7,8 @@ import theano
 import theano.tensor as tt
 from tests import unittest_tools as utt
 from theano.compile.mode import Mode
-from theano.tensor.basic import _allclose
 from theano.tensor.exceptions import NotScalarConstantError
+from theano.tensor.math import _allclose, exp
 from theano.tensor.nnet import conv, conv2d
 from theano.tensor.type import dmatrix, dtensor3, dtensor4, dvector, scalar, tensor4
 
@@ -745,7 +745,7 @@ def test_broadcast_grad():
 
     filter_1d = tt.arange(-window_radius, window_radius + 1)
     filter_1d = filter_1d.astype(theano.config.floatX)
-    filter_1d = tt.exp(-0.5 * filter_1d ** 2 / sigma ** 2)
+    filter_1d = exp(-0.5 * filter_1d ** 2 / sigma ** 2)
     filter_1d = filter_1d / filter_1d.sum()
 
     filter_W = filter_1d.dimshuffle(["x", "x", 0, "x"])

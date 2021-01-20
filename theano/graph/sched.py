@@ -235,7 +235,7 @@ def sort_apply_nodes(inputs, outputs, cmps):
     --------
     >>> from theano.graph.basic import sort_apply_nodes, dependence
     >>> from theano.tensor.type import matrix
-    >>> from theano.tensor.basic import dot
+    >>> from theano.tensor.math import dot
     >>> x = matrix('x')
     >>> y = dot(x*2, x+1)
     >>> str_cmp = lambda a, b: cmp(str(a), str(b)) # lexicographical sort

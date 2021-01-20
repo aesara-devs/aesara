@@ -6,7 +6,7 @@ import pytest
 
 import theano
 import theano.ifelse
-import theano.tensor as tt
+import theano.tensor.basic as tt
 from tests import unittest_tools as utt
 from theano import function
 from theano.compile.mode import Mode, get_mode
@@ -14,6 +14,7 @@ from theano.graph.basic import Apply
 from theano.graph.op import Op
 from theano.graph.type import generic
 from theano.ifelse import IfElse, ifelse
+from theano.tensor.math import eq
 from theano.tensor.type import col, iscalar, matrix, row, scalar, tensor3, vector
 
 
@@ -651,7 +652,7 @@ def test_nested():
     t2.name = "t2"
     t3 = ifelse(c2, t2, x1 + t1)
     t3.name = "t3"
-    t4 = ifelseifelseif(tt.eq(x1, x2), x1, tt.eq(x1, 5), x2, c2, t3, t3 + 0.5)
+    t4 = ifelseifelseif(eq(x1, x2), x1, eq(x1, 5), x2, c2, t3, t3 + 0.5)
     t4.name = "t4"
 
     linker = theano.link.vm.VMLinker(lazy=False)

@@ -1,6 +1,5 @@
 import numpy as np
 
-import theano.tensor as tt
 from theano.gpuarray.basic_ops import (
     as_gpuarray_variable,
     gpu_contiguous,
@@ -11,7 +10,10 @@ from theano.gpuarray.type import GpuArrayType
 from theano.gradient import DisconnectedType
 from theano.graph.basic import Apply
 from theano.graph.op import _NoPythonOp
+from theano.tensor.basic import as_tensor_variable
 from theano.tensor.fft import IRFFTOp
+from theano.tensor.math import sqrt
+from theano.tensor.subtensor import set_subtensor
 from theano.tensor.type import integer_dtypes
 
 
@@ -72,7 +74,7 @@ class CuRFFTOp(_NoPythonOp):
         # If no shape is provided as input, default to input data shape.
         if s is None:
             s = inp.shape[1:]
-        s = tt.as_tensor_variable(s)
+        s = as_tensor_variable(s)
 
         assert inp.dtype == "float32"
         assert s.ndim == 1
@@ -158,7 +160,7 @@ class CuRFFTOp(_NoPythonOp):
             + [slice(1, (s[-1] // 2) + (s[-1] % 2))]
             + [slice(None)]
         )
-        gout = tt.set_subtensor(gout[idx], gout[idx] * 0.5)
+        gout = set_subtensor(gout[idx], gout[idx] * 0.5)
         return [cuirfft_op(gout, s), DisconnectedType()()]
 
     def connection_pattern(self, node):
@@ -203,8 +205,8 @@ class CuIRFFTOp(_NoPythonOp):
         # If no shape is provided as input, calculate shape assuming even real transform.
         if s is None:
             s = inp.shape[1:-1]
-            s = tt.set_subtensor(s[-1], (s[-1] - 1) * 2)
-        s = tt.as_tensor_variable(s)
+            s = set_subtensor(s[-1], (s[-1] - 1) * 2)
+        s = as_tensor_variable(s)
 
         assert inp.dtype == "float32"
         assert s.ndim == 1
@@ -290,7 +292,7 @@ class CuIRFFTOp(_NoPythonOp):
             + [slice(1, (s[-1] // 2) + (s[-1] % 2))]
             + [slice(None)]
         )
-        gf = tt.set_subtensor(gf[idx], gf[idx] * 2)
+        gf = set_subtensor(gf[idx], gf[idx] * 2)
         return [gf, DisconnectedType()()]
 
     def connection_pattern(self, node):
@@ -330,7 +332,7 @@ def curfft(inp, norm=None):
     cond_norm = _unitary(norm)
     scaling = 1
     if cond_norm == "ortho":
-        scaling = tt.sqrt(s.prod().astype("float32"))
+        scaling = sqrt(s.prod().astype("float32"))
 
     return curfft_op(inp, s) / scaling
 
@@ -369,16 +371,16 @@ def cuirfft(inp, norm=None, is_odd=False):
 
     s = inp.shape[1:-1]
     if is_odd:
-        s = tt.set_subtensor(s[-1], (s[-1] - 1) * 2 + 1)
+        s = set_subtensor(s[-1], (s[-1] - 1) * 2 + 1)
     else:
-        s = tt.set_subtensor(s[-1], (s[-1] - 1) * 2)
+        s = set_subtensor(s[-1], (s[-1] - 1) * 2)
 
     cond_norm = _unitary(norm)
     scaling = 1
     if cond_norm is None:
         scaling = s.prod().astype("float32")
     elif cond_norm == "ortho":
-        scaling = tt.sqrt(s.prod().astype("float32"))
+        scaling = sqrt(s.prod().astype("float32"))
 
     return cuirfft_op(inp, s) / scaling
 

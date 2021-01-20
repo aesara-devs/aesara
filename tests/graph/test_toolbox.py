@@ -1,9 +1,9 @@
-from theano import tensor as tt
 from theano.graph.basic import Apply, Variable
 from theano.graph.fg import FunctionGraph
 from theano.graph.op import Op
 from theano.graph.toolbox import NodeFinder, is_same_graph
 from theano.graph.type import Type
+from theano.tensor.math import neg
 from theano.tensor.type import vectors
 
 
@@ -122,8 +122,8 @@ class TestIsSameGraph:
                         ({y: x}, True),
                     ),
                 ),
-                (x, tt.neg(x), (({}, False),)),
-                (x, tt.neg(y), (({}, False),)),
+                (x, neg(x), (({}, False),)),
+                (x, neg(y), (({}, False),)),
             ]
         )
 

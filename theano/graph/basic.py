@@ -23,7 +23,6 @@ from typing import (
 
 import numpy as np
 
-import theano
 from theano.configdefaults import config
 from theano.graph.utils import (
     MetaObject,
@@ -374,9 +373,6 @@ class Variable(Node):
 
         theano.function([a,b], [c])     # compilation error because a is constant, it can't be an input
 
-        d = tt.value(1.5)               # create a value similar to the constant 'a'
-        e = d + b
-        theano.function([d,b], [e])     # this works.  d's default value of 1.5 is ignored.
 
     The python variables :literal:`a,b,c` all refer to instances of type
     `Variable`. The `Variable` referred to by `a` is also an instance of
@@ -543,6 +539,7 @@ class Variable(Node):
         This way of computing has more overhead than a normal Theano
         function, so don't use it too much in real scripts.
         """
+        from theano.compile.function import function
 
         if inputs_to_values is None:
             inputs_to_values = {}
@@ -552,7 +549,7 @@ class Variable(Node):
 
         inputs = tuple(sorted(inputs_to_values.keys(), key=id))
         if inputs not in self._fn_cache:
-            self._fn_cache[inputs] = theano.function(inputs, self)
+            self._fn_cache[inputs] = function(inputs, self)
         args = [inputs_to_values[param] for param in inputs]
 
         rval = self._fn_cache[inputs](*args)

@@ -4,11 +4,12 @@ from functools import partial
 
 import numpy as np
 
-import theano
+from theano import scalar as ts
 from theano.gradient import DisconnectedType
 from theano.graph.basic import Apply
 from theano.graph.op import Op
 from theano.tensor import basic as tt
+from theano.tensor import math as tm
 from theano.tensor.basic import ExtractDiag, as_tensor_variable
 from theano.tensor.type import dvector, lscalar, matrix, scalar, vector
 
@@ -64,8 +65,8 @@ class MatrixPinv(Op):
         (z,) = outputs
         (gz,) = g_outputs
 
-        x_dot_z = tt.dot(x, z)
-        z_dot_x = tt.dot(z, x)
+        x_dot_z = tm.dot(x, z)
+        z_dot_x = tm.dot(z, x)
 
         grad = (
             -matrix_dot(z, gz.T, z)
@@ -123,7 +124,7 @@ class MatrixInverse(Op):
         (x,) = inputs
         xi = self(x)
         (gz,) = g_outputs
-        # TT.dot(gz.T,xi)
+        # tm.dot(gz.T,xi)
         return [-matrix_dot(xi, gz.T, xi).T]
 
     def R_op(self, inputs, eval_points):
@@ -163,7 +164,7 @@ def matrix_dot(*args):
     """
     rval = args[0]
     for a in args[1:]:
-        rval = tt.dot(rval, a)
+        rval = tm.dot(rval, a)
     return rval
 
 
@@ -399,7 +400,7 @@ class EighGrad(Op):
         assert v.ndim == 2
         assert gw.ndim == 1
         assert gv.ndim == 2
-        out_dtype = theano.scalar.upcast(x.dtype, w.dtype, v.dtype, gw.dtype, gv.dtype)
+        out_dtype = ts.upcast(x.dtype, w.dtype, v.dtype, gw.dtype, gv.dtype)
         out = matrix(dtype=out_dtype)
         return Apply(self, [x, w, v, gw, gv], [out])
 
@@ -604,7 +605,7 @@ class SVD(Op):
     def infer_shape(self, fgraph, node, shapes):
         (x_shape,) = shapes
         M, N = x_shape
-        K = tt.minimum(M, N)
+        K = tm.minimum(M, N)
         s_shape = (K,)
         if self.compute_uv:
             u_shape = (M, M) if self.full_matrices else (M, K)
@@ -690,18 +691,18 @@ def matrix_power(M, n):
         return M
 
     elif n == 2:
-        return tt.dot(M, M)
+        return tm.dot(M, M)
 
     elif n == 3:
-        return tt.dot(tt.dot(M, M), M)
+        return tm.dot(tm.dot(M, M), M)
 
     result = z = None
 
     while n > 0:
-        z = M if z is None else tt.dot(z, z)
+        z = M if z is None else tm.dot(z, z)
         n, bit = divmod(n, 2)
         if bit:
-            result = z if result is None else tt.dot(result, z)
+            result = z if result is None else tm.dot(result, z)
 
     return result
 
@@ -713,30 +714,30 @@ def norm(x, ord):
         raise ValueError("'axis' entry is out of bounds.")
     elif ndim == 1:
         if ord is None:
-            return tt.sum(x ** 2) ** 0.5
+            return tm.sum(x ** 2) ** 0.5
         elif ord == "inf":
-            return tt.max(abs(x))
+            return tm.max(abs(x))
         elif ord == "-inf":
-            return tt.min(abs(x))
+            return tm.min(abs(x))
         elif ord == 0:
             return x[x.nonzero()].shape[0]
         else:
             try:
-                z = tt.sum(abs(x ** ord)) ** (1.0 / ord)
+                z = tm.sum(abs(x ** ord)) ** (1.0 / ord)
             except TypeError:
                 raise ValueError("Invalid norm order for vectors.")
             return z
     elif ndim == 2:
         if ord is None or ord == "fro":
-            return tt.sum(abs(x ** 2)) ** (0.5)
+            return tm.sum(abs(x ** 2)) ** (0.5)
         elif ord == "inf":
-            return tt.max(tt.sum(abs(x), 1))
+            return tm.max(tm.sum(abs(x), 1))
         elif ord == "-inf":
-            return tt.min(tt.sum(abs(x), 1))
+            return tm.min(tm.sum(abs(x), 1))
         elif ord == 1:
-            return tt.max(tt.sum(abs(x), 0))
+            return tm.max(tm.sum(abs(x), 0))
         elif ord == -1:
-            return tt.min(tt.sum(abs(x), 0))
+            return tm.min(tm.sum(abs(x), 0))
         else:
             raise ValueError(0)
     elif ndim > 2:
@@ -819,7 +820,7 @@ class TensorSolve(Op):
     def make_node(self, a, b):
         a = as_tensor_variable(a)
         b = as_tensor_variable(b)
-        out_dtype = theano.scalar.upcast(a.dtype, b.dtype)
+        out_dtype = ts.upcast(a.dtype, b.dtype)
         x = matrix(dtype=out_dtype)
         return Apply(self, [a, b], [x])
 

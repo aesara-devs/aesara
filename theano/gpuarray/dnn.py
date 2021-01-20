@@ -8,7 +8,8 @@ import numpy as np
 
 import theano
 import theano.pathparse
-import theano.tensor as tt
+import theano.tensor.basic as tt
+import theano.tensor.math as tm
 from theano.assert_op import Assert
 from theano.compile.io import Out
 from theano.compile.mode import Mode
@@ -1240,7 +1241,7 @@ def _dnn_conv(
         check = Assert(
             "GpuDnnConv: given output (for beta not null) does not have expected shape"
         )
-        real_out = check(out, tt.all(tt.eq(out.shape, out_shp)))
+        real_out = check(out, tm.all(tm.eq(out.shape, out_shp)))
     return GpuDnnConv(algo=algo, num_groups=num_groups)(
         img, kerns, real_out, desc, alpha, beta
     )
@@ -1288,7 +1289,7 @@ def _dnn_gradweight(
         check = Assert(
             "GpuDnnConvGradW: given output (for beta not null) does not have expected shape"
         )
-        real_out = check(out, tt.all(tt.eq(out.shape, kerns_shp)))
+        real_out = check(out, tm.all(tm.eq(out.shape, kerns_shp)))
     return GpuDnnConvGradW(algo=algo, num_groups=num_groups)(
         img, topgrad, real_out, desc, alpha, beta
     )
@@ -1336,7 +1337,7 @@ def _dnn_gradinput(
         check = Assert(
             "GpuDnnConvGradI: given output (for beta not null) does not have expected shape"
         )
-        real_out = check(out, tt.all(tt.eq(out.shape, img_shp)))
+        real_out = check(out, tm.all(tm.eq(out.shape, img_shp)))
     return GpuDnnConvGradI(algo=algo, num_groups=num_groups)(
         kerns, topgrad, real_out, desc, alpha, beta
     )
@@ -2077,7 +2078,7 @@ def dnn_pool(img, ws, stride=None, mode="max", pad=None):
     if mode == "sum":
         ret = GpuDnnPool(mode="average_inc_pad")(img, ws, stride, pad)
         context_name = ret.type.context_name
-        window_elem = tt.prod(ws).astype(ret.dtype)
+        window_elem = tm.prod(ws).astype(ret.dtype)
         return as_gpuarray_variable(ret * window_elem, context_name)
     return GpuDnnPool(mode=mode)(img, ws, stride, pad)
 
@@ -2514,7 +2515,7 @@ class GpuDnnBatchNormInference(DnnBase):
 
         # define helper expressions
         est_var_eps = est_var + epsilon
-        est_std = tt.sqrt(est_var_eps)
+        est_std = tm.sqrt(est_var_eps)
         two = tt.constant(2.0)
 
         # define and return gradients
@@ -3793,8 +3794,8 @@ def dnn_spatialtf(img, theta, scale_width=1, scale_height=1):
     out_dims = (
         img.shape[0],
         img.shape[1],
-        tt.ceil(img.shape[2] * scale_height),
-        tt.ceil(img.shape[3] * scale_width),
+        tm.ceil(img.shape[2] * scale_height),
+        tm.ceil(img.shape[3] * scale_width),
     )
     out_dims = tuple([as_scalar(v).astype("int64") for v in out_dims])
     # Setup spatial transformer

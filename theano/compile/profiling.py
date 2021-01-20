@@ -1512,8 +1512,8 @@ class ProfileStats:
         )
 
         from theano import scalar as ts
-        from theano.tensor.basic import Dot
         from theano.tensor.elemwise import Elemwise
+        from theano.tensor.math import Dot
         from theano.tensor.nnet.sigm import ScalarSigmoid, ScalarSoftplus
         from theano.tensor.random.op import RandomVariable
 

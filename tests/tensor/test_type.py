@@ -73,3 +73,27 @@ def test_filter_memmap():
 
     res = test_type.filter(fp)
     assert res is fp
+
+
+def test_tensor_values_eq_approx():
+    # test, inf, -inf and nan equal themself
+    a = np.asarray([-np.inf, -1, 0, 1, np.inf, np.nan])
+    assert TensorType.values_eq_approx(a, a)
+
+    # test inf, -inf don't equal themself
+    b = np.asarray([np.inf, -1, 0, 1, np.inf, np.nan])
+    assert not TensorType.values_eq_approx(a, b)
+    b = np.asarray([-np.inf, -1, 0, 1, -np.inf, np.nan])
+    assert not TensorType.values_eq_approx(a, b)
+
+    # test allow_remove_inf
+    b = np.asarray([np.inf, -1, 0, 1, 5, np.nan])
+    assert TensorType.values_eq_approx(a, b, allow_remove_inf=True)
+    b = np.asarray([np.inf, -1, 0, 1, 5, 6])
+    assert not TensorType.values_eq_approx(a, b, allow_remove_inf=True)
+
+    # test allow_remove_nan
+    b = np.asarray([np.inf, -1, 0, 1, 5, np.nan])
+    assert not TensorType.values_eq_approx(a, b, allow_remove_nan=False)
+    b = np.asarray([-np.inf, -1, 0, 1, np.inf, 6])
+    assert not TensorType.values_eq_approx(a, b, allow_remove_nan=False)

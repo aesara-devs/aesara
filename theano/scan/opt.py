@@ -87,14 +87,10 @@ from theano.scan.utils import (
     scan_can_remove_outs,
 )
 from theano.tensor import opt
-from theano.tensor.basic import (
-    Alloc,
-    AllocEmpty,
-    Dot,
-    NotScalarConstantError,
-    get_scalar_constant_value,
-)
+from theano.tensor.basic import Alloc, AllocEmpty, get_scalar_constant_value
 from theano.tensor.elemwise import DimShuffle, Elemwise
+from theano.tensor.exceptions import NotScalarConstantError
+from theano.tensor.math import Dot, dot, maximum, minimum
 from theano.tensor.shape import shape
 from theano.tensor.subtensor import (
     IncSubtensor,
@@ -823,7 +819,7 @@ class PushOutScanOutput(GlobalOptimizer):
 
                         # Perform the dot on the newly obtained matrices and
                         # add the initial value
-                        outer_dot_output = tt.dot(*outer_dot_inputs)
+                        outer_dot_output = dot(*outer_dot_inputs)
                         init_value = new_scan_args.outer_in_sit_sot[sitsot_idx][0]
                         replacement = outer_dot_output + init_value
 
@@ -1163,14 +1159,14 @@ class ScanSaveMem(GlobalOptimizer):
                 return y
             if y is None:
                 return x
-            return tt.minimum(x, y)
+            return minimum(x, y)
 
         def select_max(x, y):
             if x is None:
                 return y
             if y is None:
                 return x
-            return tt.maximum(x, y)
+            return maximum(x, y)
 
         def sanitize(x):
             if x is None:
@@ -1341,7 +1337,7 @@ class ScanSaveMem(GlobalOptimizer):
             else:
                 sym_steps = global_nsteps["sym"][0]
                 for c in global_nsteps["sym"][1:]:
-                    sym_steps = tt.maximum(sym_steps, c)
+                    sym_steps = maximum(sym_steps, c)
 
             if global_nsteps["real"] >= 0:
                 real_steps = global_nsteps["real"]
@@ -1489,7 +1485,7 @@ class ScanSaveMem(GlobalOptimizer):
                         else:
                             tmp = tt.as_tensor_variable(val)
                             initl = tt.as_tensor_variable(init_l[i])
-                            tmp = tt.maximum(tmp, initl)
+                            tmp = maximum(tmp, initl)
                             nw_input = nw_inputs[offset + idx][:tmp]
 
                         nw_inputs[offset + idx] = nw_input
@@ -2303,7 +2299,7 @@ class PushOutDot1(GlobalOptimizer):
                             sh2 = _val.shape[2]
 
                             val = _val.reshape((sh0 * sh1, sh2))
-                            new_out = tt.dot(out_seq, val)
+                            new_out = dot(out_seq, val)
                         else:
                             _out_seq = op.outer_seqs(node)[seqs.index(inp2)]
                             out_seq = _out_seq.reshape(
@@ -2316,7 +2312,7 @@ class PushOutDot1(GlobalOptimizer):
                             val = _val.dimshuffle(1, 0, 2).reshape(
                                 (_val.shape[1], _val.shape[0] * _val.shape[2])
                             )
-                            new_out = tt.dot(val, out_seq)
+                            new_out = dot(val, out_seq)
 
                         pos = node.outputs.index(outer_out)
                         old_new = list(zip(node.outputs[:pos], new_outs[:pos]))

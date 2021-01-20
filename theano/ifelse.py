@@ -16,8 +16,9 @@ from copy import deepcopy
 
 import numpy as np
 
-import theano.tensor
+import theano.tensor as tt
 from theano.compile import optdb
+from theano.compile.ops import Rebroadcast
 from theano.configdefaults import config
 from theano.graph.basic import Apply, Variable, clone_replace, is_in_ancestors
 from theano.graph.op import _NoPythonOp
@@ -169,7 +170,7 @@ class IfElse(_NoPythonOp):
         assert (
             len(args) == 2 * self.n_outs
         ), f"Wrong number of arguments to make_node: expected {int(2 * self.n_outs)}, got {len(args)}"
-        c = theano.tensor.as_tensor_variable(c)
+        c = tt.basic.as_tensor_variable(c)
         if not self.gpu:
             # When gpu is true, we are given only gpuarrays, and we want
             # to keep them as gpuarrays
@@ -180,7 +181,7 @@ class IfElse(_NoPythonOp):
                 elif isinstance(x, Variable):
                     nw_args.append(x)
                 else:
-                    nw_args.append(theano.tensor.as_tensor_variable(x))
+                    nw_args.append(tt.basic.as_tensor_variable(x))
             args = nw_args
         ts = args[: self.n_outs]
         fs = args[self.n_outs :]
@@ -229,17 +230,11 @@ class IfElse(_NoPythonOp):
         if_true = (
             [ins[0]]
             + grads
-            + [
-                theano.tensor.zeros_like(t, dtype=grads[i].dtype)
-                for i, t in enumerate(ts)
-            ]
+            + [tt.basic.zeros_like(t, dtype=grads[i].dtype) for i, t in enumerate(ts)]
         )
         if_false = (
             [ins[0]]
-            + [
-                theano.tensor.zeros_like(f, dtype=grads[i].dtype)
-                for i, f in enumerate(fs)
-            ]
+            + [tt.basic.zeros_like(f, dtype=grads[i].dtype) for i, f in enumerate(fs)]
             + grads
         )
 
@@ -365,9 +360,9 @@ def ifelse(condition, then_branch, else_branch, name=None):
     new_else_branch = []
     for then_branch_elem, else_branch_elem in zip(then_branch, else_branch):
         if not isinstance(then_branch_elem, Variable):
-            then_branch_elem = theano.tensor.as_tensor_variable(then_branch_elem)
+            then_branch_elem = tt.basic.as_tensor_variable(then_branch_elem)
         if not isinstance(else_branch_elem, Variable):
-            else_branch_elem = theano.tensor.as_tensor_variable(else_branch_elem)
+            else_branch_elem = tt.basic.as_tensor_variable(else_branch_elem)
 
         if then_branch_elem.type != else_branch_elem.type:
             # If one of them is a TensorType, and the other one can be
@@ -490,14 +485,14 @@ acceptable_ops = (
     Shape,
     SpecifyShape,
     Reshape,
-    theano.compile.ops.Rebroadcast,
-    theano.tensor.basic.Dot,
-    theano.tensor.basic.MaxAndArgmax,
-    theano.tensor.subtensor.Subtensor,
-    theano.tensor.subtensor.IncSubtensor,
-    theano.tensor.basic.Alloc,
-    theano.tensor.elemwise.Elemwise,
-    theano.tensor.elemwise.DimShuffle,
+    Rebroadcast,
+    tt.math.Dot,
+    tt.math.MaxAndArgmax,
+    tt.subtensor.Subtensor,
+    tt.subtensor.IncSubtensor,
+    tt.basic.Alloc,
+    tt.elemwise.Elemwise,
+    tt.elemwise.DimShuffle,
 )
 
 

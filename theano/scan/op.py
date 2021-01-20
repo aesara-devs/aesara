@@ -78,6 +78,7 @@ from theano.link.c.exceptions import MissingGXX
 from theano.link.utils import raise_with_op
 from theano.scan.utils import Validator, forced_replace, hash_listsDictsTuples, safe_new
 from theano.tensor.basic import as_tensor_variable
+from theano.tensor.math import minimum
 from theano.tensor.shape import Shape_i
 from theano.tensor.type import TensorType, integer_dtypes
 from theano.tensor.var import TensorVariable
@@ -2132,7 +2133,7 @@ class Scan(Op):
         # Restrict the number of grad steps according to
         # self.truncate_gradient
         if self.truncate_gradient != -1:
-            grad_steps = tt.minimum(grad_steps, self.truncate_gradient)
+            grad_steps = minimum(grad_steps, self.truncate_gradient)
 
         self_inputs = self.inputs
         self_outputs = self.outputs

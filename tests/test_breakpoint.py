@@ -1,9 +1,9 @@
 import numpy as np
 
 import theano
-import theano.tensor as tt
 from tests import unittest_tools as utt
 from theano.breakpoint import PdbBreakpoint
+from theano.tensor.math import dot, gt
 from theano.tensor.type import fmatrix, fscalar
 
 
@@ -15,13 +15,13 @@ class TestPdbBreakpoint(utt.InferShapeTester):
         # of dimensions
         self.input1 = fmatrix()
         self.input2 = fscalar()
-        self.output = tt.dot(
+        self.output = dot(
             (self.input1 - self.input2), (self.input1 - self.input2).transpose()
         )
 
         # Declare the conditional breakpoint
         self.breakpointOp = PdbBreakpoint("Sum of output too high")
-        self.condition = tt.gt(self.output.sum(), 1000)
+        self.condition = gt(self.output.sum(), 1000)
         (
             self.monitored_input1,
             self.monitored_input2,

@@ -7,7 +7,6 @@ from tests import unittest_tools as utt
 from tests.gpuarray.config import mode_with_gpu, test_ctx_name
 from tests.gpuarray.test_basic_ops import makeTester, rand
 from tests.tensor.test_blas import BaseGemv, TestGer
-from theano import tensor as tt
 from theano.configdefaults import config
 from theano.gpuarray import gpuarray_shared_constructor
 from theano.gpuarray.blas import (
@@ -22,7 +21,15 @@ from theano.gpuarray.blas import (
     gpuger_inplace,
     gpuger_no_inplace,
 )
-from theano.tensor.blas import BatchedDot, _dot22, gemm_inplace, gemv, gemv_inplace
+from theano.tensor.blas import (
+    BatchedDot,
+    _dot22,
+    batched_dot,
+    gemm_inplace,
+    gemv,
+    gemv_inplace,
+)
+from theano.tensor.math import dot
 from theano.tensor.type import matrix, tensor, tensor3, vector
 
 
@@ -197,7 +204,7 @@ class TestGpuGemmBatchStrided:
         # Reported in https://github.com/Theano/Theano/issues/5730
         x = tensor3()
         y = tensor3()
-        z = tt.batched_dot(x, y[:, 0, :, np.newaxis])
+        z = batched_dot(x, y[:, 0, :, np.newaxis])
         f = theano.function([x, y], z, mode=mode_with_gpu)
         x_num = np.arange(32 * 19 * 600, dtype=config.floatX).reshape((32, 19, 600))
         y_num = np.arange(7 * 32 * 600, dtype=config.floatX).reshape((32, 7, 600))
@@ -270,6 +277,6 @@ def test_gemv_dot_strides():
     yv = rand(5, 1)
     x = gpuarray_shared_constructor(xv)
     y = gpuarray_shared_constructor(yv, broadcastable=(False, True))
-    f = theano.function([], tt.dot(x, y[::-1]), mode=mode_with_gpu)
+    f = theano.function([], dot(x, y[::-1]), mode=mode_with_gpu)
     out = f()
     utt.assert_allclose(out, np.dot(xv, yv[::-1]))

@@ -6,7 +6,7 @@ import numpy as np
 
 import theano
 from theano.configdefaults import config
-from theano.tensor.basic import tanh
+from theano.tensor.math import tanh
 from theano.tensor.type import vector
 
 

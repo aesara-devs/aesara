@@ -3,11 +3,12 @@ import pytest
 
 import theano
 import theano.gpuarray
-import theano.tensor as tt
 from tests import unittest_tools as utt
 from tests.gpuarray.config import mode_with_gpu, mode_without_gpu
 from tests.tensor.nnet.test_ctc import setup_ctc_case, setup_grad_case, setup_torch_case
 from theano.gpuarray.ctc import GpuConnectionistTemporalClassification, gpu_ctc
+from theano.gradient import grad
+from theano.tensor.math import mean
 from theano.tensor.nnet.ctc import (
     ConnectionistTemporalClassification,
     ctc,
@@ -50,7 +51,7 @@ class TestCTC:
         outputs = [cpu_ctc_cost]
         if compute_grad:
             # Symbolic gradient of CTC cost
-            cpu_ctc_grad = tt.grad(tt.mean(cpu_ctc_cost), activations)
+            cpu_ctc_grad = grad(mean(cpu_ctc_cost), activations)
             outputs += [cpu_ctc_grad]
         return theano.function([], outputs, mode=mode)
 
@@ -59,7 +60,7 @@ class TestCTC:
         outputs = [gpu_ctc_cost]
         if compute_grad:
             # Symbolic gradient of CTC cost
-            gpu_ctc_grad = tt.grad(tt.mean(gpu_ctc_cost), activations)
+            gpu_ctc_grad = grad(mean(gpu_ctc_cost), activations)
             outputs += [gpu_ctc_grad]
         return theano.function([], outputs, mode=mode_with_gpu)
 

@@ -1,14 +1,33 @@
 from collections import OrderedDict
+from datetime import datetime
 from io import StringIO
 
 import numpy as np
 
 import theano
-from tests import disturb_mem
 from tests.record import Record, RecordMode
 from theano import shared
 from theano.configdefaults import config
 from theano.printing import var_descriptor
+
+
+__authors__ = "Ian Goodfellow" "PyMC Developers"
+__license__ = "3-clause BSD"
+
+
+def disturb_mem():
+    # Allocate a time-dependent amount of objects to increase
+    # chances of subsequently objects' ids changing from run
+    # to run. This is useful for exposing issues that cause
+    # non-deterministic behavior due to dependence on memory
+    # addresses, like iterating over a dict or a set.
+    global l
+    now = datetime.now()
+    ms = now.microsecond
+    ms = int(ms)
+    n = ms % 1000
+    m = ms // 1000
+    l = [[0] * m for i in range(n)]
 
 
 def sharedX(x, name=None):
@@ -17,6 +36,7 @@ def sharedX(x, name=None):
 
 
 def test_determinism_1():
+    # FIXME: This is a poor test.
 
     # Tests that repeatedly running a script that compiles and
     # runs a function does exactly the same thing every time it
@@ -33,14 +53,14 @@ def test_determinism_1():
             log = StringIO(log)
         record = Record(replay=replay, file_object=log)
 
-        disturb_mem.disturb_mem()
+        disturb_mem()
 
         mode = RecordMode(record=record)
 
         b = sharedX(np.zeros((2,)), name="b")
         channels = OrderedDict()
 
-        disturb_mem.disturb_mem()
+        disturb_mem()
 
         v_max = b.max(axis=0)
         v_min = b.min(axis=0)
@@ -54,7 +74,7 @@ def test_determinism_1():
                 v_range.max(),
             ]
         ):
-            disturb_mem.disturb_mem()
+            disturb_mem()
             s = sharedX(0.0, name="s_" + str(i))
             updates.append((s, val))
 
@@ -70,7 +90,7 @@ def test_determinism_1():
         )
         for output in f.maker.fgraph.outputs:
             mode.record.handle_line(var_descriptor(output) + "\n")
-        disturb_mem.disturb_mem()
+        disturb_mem()
         f()
 
         mode.record.f.flush()
@@ -83,7 +103,3 @@ def test_determinism_1():
     # (Sometimes you sample the same outcome twice in a row)
     for i in range(10):
         run(1, log)
-
-
-if __name__ == "__main__":
-    test_determinism_1()

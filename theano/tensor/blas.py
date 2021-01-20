@@ -163,8 +163,9 @@ from theano.tensor import basic as tt
 from theano.tensor.blas_headers import blas_header_text, blas_header_version
 from theano.tensor.elemwise import DimShuffle, Elemwise
 from theano.tensor.exceptions import NotScalarConstantError
+from theano.tensor.math import Dot, add, mul, neg, sub
 from theano.tensor.opt import in2out, local_dimshuffle_lift
-from theano.tensor.type import integer_dtypes, values_eq_approx_remove_inf_nan
+from theano.tensor.type import integer_dtypes, tensor, values_eq_approx_remove_inf_nan
 from theano.utils import memoize
 
 
@@ -1226,18 +1227,18 @@ def _gemm_canonicalize(fgraph, r, scale, rval, maxclients):
         rval.append((scale, r))
         return rval
 
-    if r.owner and r.owner.op == tt.sub:
+    if r.owner and r.owner.op == sub:
         _gemm_canonicalize(fgraph, r.owner.inputs[0], scale, rval, 1)
         _gemm_canonicalize(fgraph, r.owner.inputs[1], -scale, rval, 1)
 
-    elif r.owner and r.owner.op == tt.add:
+    elif r.owner and r.owner.op == add:
         for i in r.owner.inputs:
             _gemm_canonicalize(fgraph, i, scale, rval, 1)
 
-    elif r.owner and r.owner.op == tt.neg:
+    elif r.owner and r.owner.op == neg:
         _gemm_canonicalize(fgraph, r.owner.inputs[0], -scale, rval, 1)
 
-    elif r.owner and r.owner.op == tt.mul:
+    elif r.owner and r.owner.op == mul:
         scalars = []
         vectors = []
         matrices = []
@@ -1266,7 +1267,7 @@ def _gemm_canonicalize(fgraph, r, scale, rval, maxclients):
                 _gemm_canonicalize(fgraph, m, scaled(scalars[0]), rval, 1)
             else:
                 _gemm_canonicalize(
-                    fgraph, m, tt.mul(scaled(scalars[0]), *scalars[1:]), rval, 1
+                    fgraph, m, mul(scaled(scalars[0]), *scalars[1:]), rval, 1
                 )
         elif len(vectors) == 1:
             assert len(matrices) == 0
@@ -1277,7 +1278,7 @@ def _gemm_canonicalize(fgraph, r, scale, rval, maxclients):
                 _gemm_canonicalize(fgraph, v, scaled(scalars[0]), rval, 1)
             else:
                 _gemm_canonicalize(
-                    fgraph, v, tt.mul(scaled(scalars[0]), *scalars[1:]), rval, 1
+                    fgraph, v, mul(scaled(scalars[0]), *scalars[1:]), rval, 1
                 )
         else:  # lets not open this up
             rval.append((scale, r))
@@ -1381,7 +1382,7 @@ def _gemm_from_factored_list(fgraph, lst):
                 ]
                 add_inputs.extend(gemm_of_sM_list)
                 if len(add_inputs) > 1:
-                    rval = [tt.add(*add_inputs)]
+                    rval = [add(*add_inputs)]
                 else:
                     rval = add_inputs
                 # print "RETURNING GEMM THING", rval
@@ -1586,7 +1587,7 @@ class Dot22(GemmRelated):
         if y.type.dtype != x.type.dtype:
             raise TypeError("dtype mismatch to Dot22")
         bz = (x.type.broadcastable[0], y.type.broadcastable[1])
-        outputs = [tt.tensor(x.type.dtype, bz)]
+        outputs = [tensor(x.type.dtype, bz)]
         return Apply(self, [x, y], outputs)
 
     def perform(self, node, inp, out):
@@ -1656,11 +1657,11 @@ class Dot22(GemmRelated):
 _dot22 = Dot22()
 
 
-@local_optimizer([tt.Dot])
+@local_optimizer([Dot])
 def local_dot_to_dot22(fgraph, node):
     # This works for tensor.outer too because basic.outer is a macro that
     # produces a dot(dimshuffle,dimshuffle) of form 4 below
-    if not isinstance(node.op, tt.Dot):
+    if not isinstance(node.op, Dot):
         return
 
     x, y = node.inputs
@@ -1861,7 +1862,7 @@ class Dot22Scalar(GemmRelated):
             raise TypeError("Dot22Scalar requires float or complex args", a.dtype)
 
         bz = [x.type.broadcastable[0], y.type.broadcastable[1]]
-        outputs = [tt.tensor(x.type.dtype, bz)]
+        outputs = [tensor(x.type.dtype, bz)]
         return Apply(self, [x, y, a], outputs)
 
     def perform(self, node, inp, out):
@@ -1926,7 +1927,7 @@ class Dot22Scalar(GemmRelated):
 _dot22scalar = Dot22Scalar()
 
 
-@local_optimizer([tt.mul])
+@local_optimizer([mul])
 def local_dot22_to_dot22scalar(fgraph, node):
     """
     Notes
@@ -1951,7 +1952,7 @@ def local_dot22_to_dot22scalar(fgraph, node):
     inputs)
 
     """
-    if node.op != tt.mul:
+    if node.op != mul:
         return False
     i_dot22 = [x.owner and x.owner.op == _dot22 for x in node.inputs]
     if not any(i_dot22):
@@ -1969,7 +1970,7 @@ def local_dot22_to_dot22scalar(fgraph, node):
         # The canonizer should have merged those mul together.
         i_mul = [
             x.owner
-            and x.owner.op == tt.mul
+            and x.owner.op == mul
             and any([_as_scalar(x_i, dtype=d.dtype) for x_i in x.owner.inputs])
             for x in node.inputs
         ]
@@ -2012,7 +2013,7 @@ def local_dot22_to_dot22scalar(fgraph, node):
             inpt for i, inpt in enumerate(m.owner.inputs) if i != scalar_idx
         ]
 
-        return [tt.mul(dot, *(other_factors + other_m_inputs))]
+        return [mul(dot, *(other_factors + other_m_inputs))]
 
     scalar_idx = -1
     for i, x in enumerate(node.inputs):
@@ -2040,7 +2041,7 @@ def local_dot22_to_dot22scalar(fgraph, node):
     if len(o) == 0:
         return [_dot22scalar(d.owner.inputs[0], d.owner.inputs[1], a)]
     else:
-        return [tt.mul(_dot22scalar(d.owner.inputs[0], d.owner.inputs[1], a), *o)]
+        return [mul(_dot22scalar(d.owner.inputs[0], d.owner.inputs[1], a), *o)]
 
 
 # must happen after gemm as the gemm optimizer don't understant
@@ -2088,7 +2089,7 @@ class BatchedDot(COp):
             + inputs[0].type.broadcastable[1:-1]
             + inputs[1].type.broadcastable[2:]
         )
-        return Apply(self, upcasted_inputs, [tt.tensor(dtype, broadcastable)])
+        return Apply(self, upcasted_inputs, [tensor(dtype, broadcastable)])
 
     def perform(self, node, inp, out):
         x, y = inp
@@ -2537,9 +2538,9 @@ _batched_dot = BatchedDot()
 
 # from opt import register_specialize, register_canonicalize
 # @register_specialize
-@local_optimizer([tt.sub, tt.add])
+@local_optimizer([sub, add])
 def local_print_as_we_go_along(fgraph, node):
-    if node.op in (tt.sub, tt.add):
+    if node.op in (sub, add):
         debugprint(node)
 
 
@@ -2617,6 +2618,6 @@ def batched_tensordot(x, y, axes=2):
     reshapes to reduce the tensor dot product to a matrix or vector
     dot product.  Finally, it calls batched_dot to compute the result.
     """
-    from theano.tensor.basic import _tensordot_as_dot
+    from theano.tensor.math import _tensordot_as_dot
 
     return _tensordot_as_dot(x, y, axes, dot=batched_dot, batched=True)

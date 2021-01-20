@@ -8,7 +8,7 @@ from numpy.testing import assert_array_equal
 
 import theano
 import theano.scalar as scal
-import theano.tensor as tt
+import theano.tensor.basic as tt
 from tests import unittest_tools as utt
 from tests.tensor.utils import inplace_func, rand, randint_ranged
 from theano.compile import DeepCopyOp, shared
@@ -16,7 +16,9 @@ from theano.compile.io import In
 from theano.configdefaults import config
 from theano.graph.op import get_test_value
 from theano.graph.toolbox import is_same_graph
-from theano.tensor.basic import DimShuffle
+from theano.tensor.elemwise import DimShuffle
+from theano.tensor.math import exp, isinf
+from theano.tensor.math import sum as tt_sum
 from theano.tensor.subtensor import (
     AdvancedIncSubtensor,
     AdvancedIncSubtensor1,
@@ -57,7 +59,7 @@ from theano.tensor.type import (
     tensor4,
     vector,
 )
-from theano.tensor.type_other import make_slice
+from theano.tensor.type_other import make_slice, slicetype
 
 
 subtensor_ops = (
@@ -567,7 +569,7 @@ class TestSubtensor(utt.OptimizationTestMixin):
         n = self.shared(data)
         z = scal.constant(subi).astype("int32")
         t = n[z:, z]
-        gn = theano.grad(tt.sum(tt.exp(t)), n)
+        gn = theano.grad(tt_sum(exp(t)), n)
 
         f = inplace_func([], gn, mode=self.mode)
         topo = f.maker.fgraph.toposort()
@@ -598,7 +600,7 @@ class TestSubtensor(utt.OptimizationTestMixin):
                 mv = np.asarray(rand(*m_shape), dtype=self.dtype)
 
                 t = op(n[:z, :z], m)
-                gn, gm = theano.grad(tt.sum(t), [n, m])
+                gn, gm = theano.grad(tt_sum(t), [n, m])
                 utt.verify_grad(lambda m: op(n[:z, :z], m), [mv], mode=self.mode)
                 utt.verify_grad(lambda nn: op(nn[:z, :z], mv), [data], mode=self.mode)
 
@@ -606,7 +608,7 @@ class TestSubtensor(utt.OptimizationTestMixin):
         data = np.asarray(rand(2, 3), dtype=self.dtype)
         n = self.shared(data)
         t = n[1, 0]
-        gn = theano.grad(tt.sum(tt.exp(t)), n)
+        gn = theano.grad(tt_sum(exp(t)), n)
         f = self.function([], gn)
         topo = f.maker.fgraph.toposort()
         topo_ = [node for node in topo if not isinstance(node.op, DeepCopyOp)]
@@ -784,7 +786,7 @@ class TestSubtensor(utt.OptimizationTestMixin):
         W = self.shared(np.random.random((10, 10, 3, 3)).astype(self.dtype))
 
         h = x + W
-        h = tt.set_subtensor(h[indexes], h[indexes])
+        h = set_subtensor(h[indexes], h[indexes])
         g = theano.grad(h.sum(), W)
         N = 2
         if (
@@ -1057,7 +1059,7 @@ class TestSubtensor(utt.OptimizationTestMixin):
             # Should stay on the cpu.
             idx_ = shared(np.asarray(idx))
             t = n[idx_]
-            gn = theano.grad(tt.sum(tt.exp(t)), n)
+            gn = theano.grad(tt_sum(exp(t)), n)
             f = self.function([], [gn, gn.shape], op=AdvancedIncSubtensor1)
             topo = f.maker.fgraph.toposort()
             if not self.fast_compile:
@@ -1083,13 +1085,13 @@ class TestSubtensor(utt.OptimizationTestMixin):
             assert np.allclose(gshape, data.shape)
 
             def fct(t):
-                return tt.sum(t[idx_])
+                return tt_sum(t[idx_])
 
             utt.verify_grad(fct, [data], mode=self.mode)
 
             # Test the grad of the grad (e.i. AdvancedIncSubtensor1.grad)
             def fct2(t):
-                return theano.grad(tt.sum(t[idx_]), t)
+                return theano.grad(tt_sum(t[idx_]), t)
 
             utt.verify_grad(fct2, [data], mode=self.mode)
 
@@ -1817,7 +1819,7 @@ class TestAdvancedSubtensor:
     def test_adv_sub_slice(self):
         # Reported in https://github.com/Theano/Theano/issues/5898
         var = self.shared(np.zeros([3, 3], dtype=config.floatX))
-        slc = tt.slicetype()
+        slc = slicetype()
         f = theano.function([slc], var[slc], mode=self.mode)
         s = slice(1, 3)
         f(s)
@@ -2212,7 +2214,7 @@ class TestInferShape(utt.InferShapeTester):
             check_topo=False,
         )
 
-        abs_res = n[~tt.isinf(n)]
+        abs_res = n[~isinf(n)]
         assert abs_res.broadcastable == (False,)
 
 
@@ -2308,3 +2310,10 @@ def test_indexed_result_shape():
 
     test_idx = (slice(1, 3), [1, 3, 2])
     compare_index_shapes(test_array, test_idx)
+
+
+def test_symbolic_slice():
+    x = tensor4("x")
+    a, b = x.shape[:2]
+    output = a.eval({x: np.zeros((5, 4, 3, 2), dtype=config.floatX)})
+    assert output == np.array(5)

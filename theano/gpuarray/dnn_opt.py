@@ -50,7 +50,7 @@ from theano.gpuarray.reduction import GpuMaxAndArgmax
 from theano.gpuarray.type import list_contexts
 from theano.graph.opt import GlobalOptimizer, inherit_stack_trace, local_optimizer
 from theano.scalar import Log
-from theano.tensor.basic import Argmax
+from theano.tensor.math import Argmax
 from theano.tensor.nnet.abstract_conv import (
     AbstractConv2d,
     AbstractConv2d_gradInputs,

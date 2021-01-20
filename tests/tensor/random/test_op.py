@@ -4,7 +4,8 @@ from pytest import fixture, raises
 import theano.tensor as tt
 from theano import config
 from theano.assert_op import Assert
-from theano.gradient import NullTypeGradError
+from theano.gradient import NullTypeGradError, grad
+from theano.tensor.math import eq
 from theano.tensor.random.basic import normal
 from theano.tensor.random.op import RandomVariable, default_shape_from_params, observed
 from theano.tensor.type import all_dtypes, iscalar, tensor, vector
@@ -110,7 +111,7 @@ def test_RandomVariable_basics():
     assert rv_out.dtype == dtype_1
 
     with raises(NullTypeGradError):
-        tt.grad(rv_out, [rv_node.inputs[0]])
+        grad(rv_out, [rv_node.inputs[0]])
 
     rv = RandomVariable("normal", 0, [0, 0], config.floatX, inplace=True)
 
@@ -125,7 +126,7 @@ def test_RandomVariable_basics():
     s2.tag.test_value = 2
     s3 = iscalar()
     s3.tag.test_value = 3
-    s3 = Assert("testing")(s3, tt.eq(s1, 1))
+    s3 = Assert("testing")(s3, eq(s1, 1))
 
     res = rv.compute_bcast([mu, sd], (s1, s2, s3))
     assert res == [False] * 3
@@ -172,4 +173,4 @@ def test_observed():
     obs_var = observed(rv_var, rv_val)
 
     with raises(NullTypeGradError):
-        tt.grad(obs_var.sum(), [rv_val])
+        grad(obs_var.sum(), [rv_val])

@@ -20,6 +20,10 @@ from theano.scalar import upcast
 from theano.tensor import basic as tt
 from theano.tensor import nlinalg
 from theano.tensor.exceptions import NotScalarConstantError
+from theano.tensor.math import abs_
+from theano.tensor.math import all as tt_all
+from theano.tensor.math import eq, ge, lt, maximum, minimum, or_, prod
+from theano.tensor.math import sum as tt_sum
 from theano.tensor.subtensor import advanced_inc_subtensor1, set_subtensor
 from theano.tensor.type import (
     TensorType,
@@ -341,7 +345,7 @@ class CumOp(COp):
 
     def infer_shape(self, fgraph, node, shapes):
         if self.axis is None:
-            return [(tt.prod(shapes[0]),)]  # Flatten
+            return [(prod(shapes[0]),)]  # Flatten
 
         return shapes
 
@@ -569,12 +573,12 @@ def bincount(x, weights=None, minlength=None, assert_nonneg=False):
 
     if assert_nonneg:
         assert_op = Assert("Input to bincount has negative values!")
-        x = assert_op(x, tt.all(x >= 0))
+        x = assert_op(x, tt_all(x >= 0))
 
     max_value = tt.cast(x.max() + 1, "int64")
 
     if minlength is not None:
-        max_value = tt.maximum(max_value, minlength)
+        max_value = maximum(max_value, minlength)
 
     # Note: we do not use inc_subtensor(out[x], ...) in the following lines,
     # since out[x] raises an exception if the indices (x) are int8.
@@ -756,12 +760,12 @@ class RepeatOp(Op):
                         res = res * d
                     out_shape = (res * repeats,)
             else:
-                out_shape = [tt.sum(repeats, dtype=dtype)]
+                out_shape = [tt_sum(repeats, dtype=dtype)]
         else:
             if repeats.ndim == 0:
                 out_shape[self.axis] = out_shape[self.axis] * repeats
             else:
-                out_shape[self.axis] = tt.sum(repeats, dtype=dtype)
+                out_shape[self.axis] = tt_sum(repeats, dtype=dtype)
         return [out_shape]
 
 
@@ -858,7 +862,7 @@ class Bartlett(Op):
 
     def infer_shape(self, fgraph, node, in_shapes):
         temp = node.inputs[0]
-        M = tt.switch(tt.lt(temp, 0), tt.cast(0, temp.dtype), temp)
+        M = tt.switch(lt(temp, 0), tt.cast(0, temp.dtype), temp)
         return [[M]]
 
     def grad(self, inputs, output_grads):
@@ -1083,13 +1087,13 @@ class FillDiagonalOffset(Op):
         # only valid for matrices
         wr_a = fill_diagonal_offset(grad, 0, offset)
 
-        offset_abs = tt.abs_(offset)
-        pos_offset_flag = tt.ge(offset, 0)
-        neg_offset_flag = tt.lt(offset, 0)
-        min_wh = tt.minimum(width, height)
+        offset_abs = abs_(offset)
+        pos_offset_flag = ge(offset, 0)
+        neg_offset_flag = lt(offset, 0)
+        min_wh = minimum(width, height)
 
         start = offset * pos_offset_flag + offset_abs * width * neg_offset_flag
-        num_of_step = tt.minimum(
+        num_of_step = minimum(
             min_wh, width * pos_offset_flag + height * neg_offset_flag - offset_abs
         )
 
@@ -1274,7 +1278,7 @@ class Unique(Op):
             )
         if self.return_inverse:
             if self.axis is None:
-                shape = (tt.prod(i0_shapes[0]),)
+                shape = (prod(i0_shapes[0]),)
             else:
                 shape = (i0_shapes[0][self_axis],)
             if self.return_index:
@@ -1525,13 +1529,13 @@ def broadcast_shape_iter(arrays, **kwargs):
                 # equal, so we'll need to assert their equality and move the error
                 # handling to evaluation time.
                 assert_dim = Assert("Could not broadcast dimensions")
-                eq_condition = tt.all(
+                eq_condition = tt_all(
                     [
-                        tt.or_(tt.eq(dim, one), tt.eq(i_dim, dim))
+                        or_(eq(dim, one), eq(i_dim, dim))
                         for dim in potentially_unequal_dims
                     ]
                 )
-                eq_condition = tt.or_(tt.eq(i_dim, one), eq_condition)
+                eq_condition = or_(eq(i_dim, one), eq_condition)
                 result_dims.append(assert_dim(i_dim, eq_condition))
             else:
                 result_dims.append(i_dim)

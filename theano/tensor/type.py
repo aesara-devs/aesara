@@ -652,7 +652,7 @@ def values_eq_approx(
         if str(a.dtype) not in continuous_dtypes:
             return np.all(a == b)
         else:
-            cmp = theano.tensor.basic._allclose(a, b, rtol=rtol, atol=atol)
+            cmp = theano.tensor.math._allclose(a, b, rtol=rtol, atol=atol)
             if cmp:
                 # Numpy claims they are close, this is good enough for us.
                 return True
