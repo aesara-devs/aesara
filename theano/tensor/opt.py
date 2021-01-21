@@ -7571,6 +7571,7 @@ def local_elemwise_fusion_op(op_class, max_input_fct=lambda node: 32, maker=None
                 except (NotImplementedError, MethodNotDefined):
                     _logger.warning(
                         (
+                            "Optimization Warning: "
                             f"The Op {i.owner.op.scalar_op} does not provide a C implementation."
                             " As well as being potentially slow, this also disables "
                             "loop fusion."
@@ -7637,9 +7638,11 @@ your code will run correctly, but may be slower."""
                 {"fail": "%(fail)s"},
             )
         except (NotImplementedError, MethodNotDefined):
+            name = str(s_new_out[0].owner.op)
             _logger.warning(
                 (
-                    f"The Op {s_new_out[0].owner.op} does not provide a C implementation."
+                    "Optimization Warning: "
+                    f"The Op {name} does not provide a C implementation."
                     " As well as being potentially slow, this also disables "
                     "loop fusion."
                 )
