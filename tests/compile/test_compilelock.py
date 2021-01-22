@@ -2,6 +2,8 @@ import multiprocessing
 import os
 import sys
 import tempfile
+import threading
+import time
 
 import filelock
 import pytest
@@ -76,6 +78,37 @@ def run_locking_test(ctx):
             assert get_subprocess_lock_state(ctx, dir_name) == "locked"
 
         assert get_subprocess_lock_state(ctx, dir_name) == "unlocked"
+
+
+def test_locking_thread():
+
+    with tempfile.TemporaryDirectory() as dir_name:
+
+        def test_fn_1():
+            with lock_ctx(dir_name):
+                # Sleep "indefinitely"
+                time.sleep(100)
+
+        def test_fn_2(arg):
+            try:
+                with lock_ctx(dir_name, timeout=0.1):
+                    # If this can get the lock, then our file lock has failed
+                    raise AssertionError()
+            except filelock.Timeout:
+                # It timed out, which means that the lock was still held by the
+                # first thread
+                arg.append(True)
+
+        thread_1 = threading.Thread(target=test_fn_1)
+        res = []
+        thread_2 = threading.Thread(target=test_fn_2, args=(res,))
+
+        thread_1.start()
+        thread_2.start()
+
+        # The second thread should raise `filelock.Timeout`
+        thread_2.join()
+        assert True in res
 
 
 @pytest.mark.skipif(sys.platform != "linux", reason="Fork is only available on linux")
