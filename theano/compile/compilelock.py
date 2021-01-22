@@ -18,8 +18,12 @@ __all__ = [
 ]
 
 
-local_mem = threading.local()
-local_mem._locks: typing.Dict[str, bool] = {}
+class ThreadFileLocks(threading.local):
+    def __init__(self):
+        self._locks = {}
+
+
+local_mem = ThreadFileLocks()
 
 
 def force_unlock(lock_dir: os.PathLike):
