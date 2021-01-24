@@ -213,7 +213,7 @@ Contact us
 
 Discussion about Theano 
 Questions and bug reports should
-be submitted in form of an issue ticket, tracker located at the following link pymc-theano-dev_
+be submitted in the form of an issue at pymc-theano-dev_
 
 We welcome all kinds of contributions. If you have any questions
 regarding how to extend Theano, please feel free to ask.
