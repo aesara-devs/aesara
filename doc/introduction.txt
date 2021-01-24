@@ -211,7 +211,6 @@ Here is the state of that vision as of November 15th, 2017 (after Theano 1.0.0):
 Contact us
 ==========
 
-Discussion about Theano 
 Questions and bug reports should
 be submitted in the form of an issue at pymc-theano-dev_
 
