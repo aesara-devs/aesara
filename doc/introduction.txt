@@ -211,18 +211,11 @@ Here is the state of that vision as of November 15th, 2017 (after Theano 1.0.0):
 Contact us
 ==========
 
-Discussion about Theano takes place in the theano-dev_ and
-theano-users_ mailing lists. People interested in development of
-Theano should check the former, while the latter is reserved for
-issues that concern the end users.
-
-Questions, comments, praise, criticism as well as bug reports should
-be submitted to these mailing lists.
+Questions and bug reports should
+be submitted in the form of an issue at pymc-theano-dev_
 
 We welcome all kinds of contributions. If you have any questions
-regarding how to extend Theano, please feel free to ask on the
-theano-dev_ mailing list.
-
+regarding how to extend Theano, please feel free to ask.
 
 
 .. _LISA:  https://mila.umontreal.ca/
@@ -234,5 +227,4 @@ theano-dev_ mailing list.
 .. _MATLAB: http://www.mathworks.com/products/matlab/
 .. _Mathematica: http://www.wolfram.com/mathematica/
 
-.. _theano-users: http://groups.google.com/forum/#!forum/theano-users
-.. _theano-dev: http://groups.google.com/forum/#!forum/theano-dev
+.. _pymc-theano-dev: https://github.com/pymc-devs/Theano-PyMC/issues
