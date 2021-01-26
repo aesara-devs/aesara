@@ -40,7 +40,7 @@ from theano.tensor.nnet.basic import (
     softmax_with_bias,
     softsign,
 )
-from theano.tensor.nnet.bn import batch_normalization
+from theano.tensor.nnet.batchnorm import batch_normalization
 from theano.tensor.nnet.sigm import (
     hard_sigmoid,
     scalar_sigmoid,
