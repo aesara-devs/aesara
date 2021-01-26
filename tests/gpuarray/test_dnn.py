@@ -48,7 +48,7 @@ from theano.tensor.nnet import (
     LogSoftmax,
     Softmax,
     SoftmaxGrad,
-    bn,
+    batchnorm,
     conv2d,
     softmax,
     softmax_op,
@@ -1869,7 +1869,7 @@ def test_dnn_batchnorm_train():
                 x_invstd_abstract,
                 out_running_mean_abstract,
                 out_running_var_abstract,
-            ) = bn.batch_normalization_train(
+            ) = batchnorm.batch_normalization_train(
                 x,
                 scale,
                 bias,
@@ -1966,9 +1966,9 @@ def test_dnn_batchnorm_train():
                     isinstance(
                         n.op,
                         (
-                            bn.AbstractBatchNormTrain,
-                            bn.AbstractBatchNormInference,
-                            bn.AbstractBatchNormTrainGrad,
+                            batchnorm.AbstractBatchNormTrain,
+                            batchnorm.AbstractBatchNormInference,
+                            batchnorm.AbstractBatchNormTrainGrad,
                         ),
                     )
                     for n in f_abstract.maker.fgraph.toposort()
@@ -2044,9 +2044,11 @@ def test_dnn_batchnorm_train_without_running_averages():
     out_gpu, x_mean_gpu, x_invstd_gpu = dnn.dnn_batch_normalization_train(
         x, scale, bias, "per-activation"
     )
-    out_abstract, x_mean_abstract, x_invstd_abstract = bn.batch_normalization_train(
-        x, scale, bias, "per-activation"
-    )
+    (
+        out_abstract,
+        x_mean_abstract,
+        x_invstd_abstract,
+    ) = batchnorm.batch_normalization_train(x, scale, bias, "per-activation")
     # backward pass
     grads_gpu = theano.grad(None, wrt=[x, scale, bias], known_grads={out_gpu: dy})
     grads_abstract = theano.grad(
@@ -2081,9 +2083,9 @@ def test_dnn_batchnorm_train_without_running_averages():
             isinstance(
                 n.op,
                 (
-                    bn.AbstractBatchNormTrain,
-                    bn.AbstractBatchNormInference,
-                    bn.AbstractBatchNormTrainGrad,
+                    batchnorm.AbstractBatchNormTrain,
+                    batchnorm.AbstractBatchNormInference,
+                    batchnorm.AbstractBatchNormTrainGrad,
                 ),
             )
             for n in f_abstract.maker.fgraph.toposort()
@@ -2113,9 +2115,11 @@ def test_without_dnn_batchnorm_train_without_running_averages():
     param_shape = (1, 10, 30, 25)
 
     # forward pass
-    out_abstract, x_mean_abstract, x_invstd_abstract = bn.batch_normalization_train(
-        x, scale, bias, "per-activation"
-    )
+    (
+        out_abstract,
+        x_mean_abstract,
+        x_invstd_abstract,
+    ) = batchnorm.batch_normalization_train(x, scale, bias, "per-activation")
     # backward pass
     grads_abstract = theano.grad(
         None, wrt=[x, scale, bias], known_grads={out_abstract: dy}
@@ -2144,9 +2148,9 @@ def test_without_dnn_batchnorm_train_without_running_averages():
             isinstance(
                 n.op,
                 (
-                    bn.AbstractBatchNormTrain,
-                    bn.AbstractBatchNormInference,
-                    bn.AbstractBatchNormTrainGrad,
+                    batchnorm.AbstractBatchNormTrain,
+                    batchnorm.AbstractBatchNormInference,
+                    batchnorm.AbstractBatchNormTrainGrad,
                 ),
             )
             for n in f_abstract.maker.fgraph.toposort()
@@ -2243,7 +2247,7 @@ def test_batchnorm_inference():
                 x, scale, bias, mean, var, mode, eps
             )
             # forward pass, abstract interface
-            out_abstract = bn.batch_normalization_test(
+            out_abstract = batchnorm.batch_normalization_test(
                 x, scale, bias, mean, var, mode, eps
             )
             # reference forward pass
@@ -2293,9 +2297,9 @@ def test_batchnorm_inference():
                     isinstance(
                         n.op,
                         (
-                            bn.AbstractBatchNormTrain,
-                            bn.AbstractBatchNormInference,
-                            bn.AbstractBatchNormTrainGrad,
+                            batchnorm.AbstractBatchNormTrain,
+                            batchnorm.AbstractBatchNormInference,
+                            batchnorm.AbstractBatchNormTrainGrad,
                         ),
                     )
                     for n in f_abstract.maker.fgraph.toposort()
@@ -2389,10 +2393,12 @@ def test_dnn_batchnorm_valid_and_invalid_axes():
         invalid_axes_lists = (tuple(range(1, ndim)),)
         for axes in valid_axes_lists + invalid_axes_lists:
             # forward pass, abstract interface
-            out_train, x_mean, x_invstd = bn.batch_normalization_train(
+            out_train, x_mean, x_invstd = batchnorm.batch_normalization_train(
                 x, scale, bias, axes
             )
-            out_test = bn.batch_normalization_test(x, scale, bias, mean, var, axes)
+            out_test = batchnorm.batch_normalization_test(
+                x, scale, bias, mean, var, axes
+            )
             # backward pass
             dy = vartype("dy")
             grads_train = theano.grad(
@@ -2433,9 +2439,9 @@ def test_dnn_batchnorm_valid_and_invalid_axes():
                         isinstance(
                             n.op,
                             (
-                                bn.AbstractBatchNormTrain,
-                                bn.AbstractBatchNormInference,
-                                bn.AbstractBatchNormTrainGrad,
+                                batchnorm.AbstractBatchNormTrain,
+                                batchnorm.AbstractBatchNormInference,
+                                batchnorm.AbstractBatchNormTrainGrad,
                             ),
                         )
                         for n in f.maker.fgraph.toposort()
@@ -2450,9 +2456,9 @@ def test_dnn_batchnorm_valid_and_invalid_axes():
                             (
                                 dnn.GpuDnnBatchNorm,
                                 dnn.GpuDnnBatchNormGrad,
-                                bn.AbstractBatchNormTrain,
-                                bn.AbstractBatchNormInference,
-                                bn.AbstractBatchNormTrainGrad,
+                                batchnorm.AbstractBatchNormTrain,
+                                batchnorm.AbstractBatchNormInference,
+                                batchnorm.AbstractBatchNormTrainGrad,
                             ),
                         )
                         for n in f.maker.fgraph.toposort()

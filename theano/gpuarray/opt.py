@@ -179,7 +179,7 @@ from theano.tensor.basic import (
     Tri,
 )
 from theano.tensor.math import MaxAndArgmax
-from theano.tensor.nnet import bn, conv3d2d
+from theano.tensor.nnet import batchnorm, conv3d2d
 from theano.tensor.nnet.abstract_conv import (
     AbstractConv2d,
     AbstractConv2d_gradInputs,
@@ -3122,9 +3122,9 @@ register_opt("fast_compile")(abstract_batch_norm_groupopt)
 register_opt("fast_compile", name="abstract_batch_norm_db")(abstract_batch_norm_db)
 register_opt2(
     [
-        bn.AbstractBatchNormTrain,
-        bn.AbstractBatchNormTrainGrad,
-        bn.AbstractBatchNormInference,
+        batchnorm.AbstractBatchNormTrain,
+        batchnorm.AbstractBatchNormTrainGrad,
+        batchnorm.AbstractBatchNormInference,
     ],
     "fast_compile",
     name="abstract_batch_norm_db2",
@@ -3132,19 +3132,19 @@ register_opt2(
 
 for op, fct, cpu in [
     (
-        bn.AbstractBatchNormTrain,
+        batchnorm.AbstractBatchNormTrain,
         local_abstract_batch_norm_train_cudnn,
-        bn.local_abstract_batch_norm_train,
+        batchnorm.local_abstract_batch_norm_train,
     ),
     (
-        bn.AbstractBatchNormTrainGrad,
+        batchnorm.AbstractBatchNormTrainGrad,
         local_abstract_batch_norm_train_grad_cudnn,
-        bn.local_abstract_batch_norm_train_grad,
+        batchnorm.local_abstract_batch_norm_train_grad,
     ),
     (
-        bn.AbstractBatchNormInference,
+        batchnorm.AbstractBatchNormInference,
         local_abstract_batch_norm_inference_cudnn,
-        bn.local_abstract_batch_norm_inference,
+        batchnorm.local_abstract_batch_norm_inference,
     ),
 ]:
     lifter = op_lifter([op])(fct)

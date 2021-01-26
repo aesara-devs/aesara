@@ -8,7 +8,7 @@ import theano.tensor as tt
 from tests import unittest_tools as utt
 from theano.configdefaults import config
 from theano.tensor.math import sum as tt_sum
-from theano.tensor.nnet import bn
+from theano.tensor.nnet import batchnorm
 from theano.tensor.type import (
     TensorType,
     matrix,
@@ -51,7 +51,7 @@ def test_BNComposite():
         f_ref = theano.function([x, b, g, m, v], [bn_ref_op])
         res_ref = f_ref(X, G, B, M, V)
         for mode in ["low_mem", "high_mem"]:
-            bn_op = bn.batch_normalization(x, g, b, m, v, mode=mode)
+            bn_op = batchnorm.batch_normalization(x, g, b, m, v, mode=mode)
             f = theano.function([x, b, g, m, v], [bn_op])
             res = f(X, G, B, M, V)
             utt.assert_allclose(res_ref, res)
@@ -79,13 +79,15 @@ def test_batch_normalization():
     f_ref = theano.function([x, g, b, m, v], [bn_ref_op])
     res_ref = f_ref(X, G, B, M, V)
     for mode in ["low_mem", "high_mem"]:
-        bn_op = bn.batch_normalization(x, g, b, m, v, mode=mode)
+        bn_op = batchnorm.batch_normalization(x, g, b, m, v, mode=mode)
         f = theano.function([x, g, b, m, v], [bn_op])
         res = f(X, G, B, M, V)
         utt.assert_allclose(res_ref, res)
 
         def bn_f(inputs, gamma, beta, mean, std):
-            return bn.batch_normalization(inputs, gamma, beta, mean, std, mode=mode)
+            return batchnorm.batch_normalization(
+                inputs, gamma, beta, mean, std, mode=mode
+            )
 
         utt.verify_grad(bn_f, [X, G, B, M, V])
 
@@ -95,7 +97,7 @@ def test_batch_normalization():
     f_ref = theano.function([x, b, g], [bn_ref_op])
     res_ref = f_ref(X, G, B)
     for mode in ["low_mem", "high_mem"]:
-        bn_op = bn.batch_normalization(
+        bn_op = batchnorm.batch_normalization(
             x,
             g,
             b,
@@ -108,7 +110,9 @@ def test_batch_normalization():
         utt.assert_allclose(res_ref, res)
 
         def bn_f(inputs, gamma, beta, mean, std):
-            return bn.batch_normalization(inputs, gamma, beta, mean, std, mode=mode)
+            return batchnorm.batch_normalization(
+                inputs, gamma, beta, mean, std, mode=mode
+            )
 
         utt.verify_grad(
             bn_f, [X, G, B, X.mean(axis=0)[np.newaxis], X.std(axis=0)[np.newaxis]]
@@ -144,7 +148,7 @@ def test_bn_feature_maps():
     res_ref = f_ref(X, G, B, M, V)
 
     for mode in ["low_mem", "high_mem"]:
-        bn_op = bn.batch_normalization(
+        bn_op = batchnorm.batch_normalization(
             x,
             g.dimshuffle("x", 0, "x", "x"),
             b.dimshuffle("x", 0, "x", "x"),
@@ -157,7 +161,7 @@ def test_bn_feature_maps():
         utt.assert_allclose(res_ref, res)
 
         def conv_bn(inputs, gamma, beta, mean, std):
-            return bn.batch_normalization(
+            return batchnorm.batch_normalization(
                 inputs,
                 gamma.dimshuffle("x", 0, "x", "x"),
                 beta.dimshuffle("x", 0, "x", "x"),
@@ -196,7 +200,7 @@ def test_batch_normalization_train():
                 x_invstd,
                 out_running_mean,
                 out_running_var,
-            ) = bn.batch_normalization_train(
+            ) = batchnorm.batch_normalization_train(
                 x,
                 scale,
                 bias,
@@ -300,9 +304,9 @@ def test_batch_normalization_train():
                     isinstance(
                         n.op,
                         (
-                            bn.AbstractBatchNormTrain,
-                            bn.AbstractBatchNormInference,
-                            bn.AbstractBatchNormTrainGrad,
+                            batchnorm.AbstractBatchNormTrain,
+                            batchnorm.AbstractBatchNormInference,
+                            batchnorm.AbstractBatchNormTrainGrad,
                         ),
                     )
                     for n in f.maker.fgraph.toposort()
@@ -378,19 +382,19 @@ def test_batch_normalization_train_grad_grad():
                 continue
 
             def bn_grad_wrt_inputs_f(x, dy, scale, x_mean, x_invstd):
-                g_inputs, g_scale, g_bias = bn.AbstractBatchNormTrainGrad(axes)(
+                g_inputs, g_scale, g_bias = batchnorm.AbstractBatchNormTrainGrad(axes)(
                     x, dy, scale, x_mean, x_invstd
                 )
                 return g_inputs
 
             def bn_grad_wrt_scale_f(x, dy, scale, x_mean, x_invstd):
-                g_inputs, g_scale, g_bias = bn.AbstractBatchNormTrainGrad(axes)(
+                g_inputs, g_scale, g_bias = batchnorm.AbstractBatchNormTrainGrad(axes)(
                     x, dy, scale, x_mean, x_invstd
                 )
                 return g_scale
 
             def bn_grad_wrt_bias_f(x, dy, scale, x_mean, x_invstd):
-                g_inputs, g_scale, g_bias = bn.AbstractBatchNormTrainGrad(axes)(
+                g_inputs, g_scale, g_bias = batchnorm.AbstractBatchNormTrainGrad(axes)(
                     x, dy, scale, x_mean, x_invstd
                 )
                 return g_bias
@@ -438,7 +442,7 @@ def test_batch_normalization_train_without_running_averages():
     param_shape = (1, 10, 30, 25)
 
     # forward pass
-    out, x_mean, x_invstd = bn.batch_normalization_train(
+    out, x_mean, x_invstd = batchnorm.batch_normalization_train(
         x, scale, bias, "per-activation"
     )
     # backward pass
@@ -451,9 +455,9 @@ def test_batch_normalization_train_without_running_averages():
             isinstance(
                 n.op,
                 (
-                    bn.AbstractBatchNormTrain,
-                    bn.AbstractBatchNormInference,
-                    bn.AbstractBatchNormTrainGrad,
+                    batchnorm.AbstractBatchNormTrain,
+                    batchnorm.AbstractBatchNormInference,
+                    batchnorm.AbstractBatchNormTrainGrad,
                 ),
             )
             for n in f.maker.fgraph.toposort()
@@ -508,7 +512,7 @@ def test_batch_normalization_train_broadcast():
             running_var_bc = running_var.dimshuffle(params_dimshuffle)
 
             # batch_normalization_train with original, non-broadcasted variables
-            train_non_bc = bn.batch_normalization_train(
+            train_non_bc = batchnorm.batch_normalization_train(
                 x,
                 scale,
                 bias,
@@ -519,7 +523,7 @@ def test_batch_normalization_train_broadcast():
                 running_var,
             )
             # batch_normalization_train with broadcasted variables
-            train_bc = bn.batch_normalization_train(
+            train_bc = batchnorm.batch_normalization_train(
                 x,
                 scale_bc,
                 bias_bc,
@@ -534,11 +538,11 @@ def test_batch_normalization_train_broadcast():
             )
 
             # batch_normalization_test with original, non-broadcasted variables
-            test_non_bc = bn.batch_normalization_test(
+            test_non_bc = batchnorm.batch_normalization_test(
                 x, scale, bias, running_mean, running_var, axes, eps
             )
             # batch_normalization_test with broadcasted variables
-            test_bc = bn.batch_normalization_test(
+            test_bc = batchnorm.batch_normalization_test(
                 x, scale_bc, bias_bc, running_mean_bc, running_var_bc, axes, eps
             )
 
@@ -588,7 +592,9 @@ def test_batch_normalization_test():
                 continue
 
             # forward pass
-            out = bn.batch_normalization_test(x, scale, bias, mean, var, axes, eps)
+            out = batchnorm.batch_normalization_test(
+                x, scale, bias, mean, var, axes, eps
+            )
             # reference forward pass
             if axes == "per-activation":
                 axes2 = (0,)
@@ -619,9 +625,9 @@ def test_batch_normalization_test():
                     isinstance(
                         n.op,
                         (
-                            bn.AbstractBatchNormTrain,
-                            bn.AbstractBatchNormInference,
-                            bn.AbstractBatchNormTrainGrad,
+                            batchnorm.AbstractBatchNormTrain,
+                            batchnorm.AbstractBatchNormInference,
+                            batchnorm.AbstractBatchNormTrainGrad,
                         ),
                     )
                     for n in f.maker.fgraph.toposort()
@@ -660,10 +666,10 @@ def test_batch_normalization_broadcastable():
     )
 
     # forward pass
-    out_train, x_mean, x_invstd = bn.batch_normalization_train(
+    out_train, x_mean, x_invstd = batchnorm.batch_normalization_train(
         x, scale, bias, "spatial"
     )
-    out_test = bn.batch_normalization_test(x, scale, bias, mean, var, "spatial")
+    out_test = batchnorm.batch_normalization_test(x, scale, bias, mean, var, "spatial")
     # backward pass
     grads_train = tt.grad(None, wrt=[x, scale, bias], known_grads={out_train: dy})
     grads_test = tt.grad(None, wrt=[x, scale, bias], known_grads={out_test: dy})
@@ -677,9 +683,9 @@ def test_batch_normalization_broadcastable():
             isinstance(
                 n.op,
                 (
-                    bn.AbstractBatchNormTrain,
-                    bn.AbstractBatchNormInference,
-                    bn.AbstractBatchNormTrainGrad,
+                    batchnorm.AbstractBatchNormTrain,
+                    batchnorm.AbstractBatchNormInference,
+                    batchnorm.AbstractBatchNormTrainGrad,
                 ),
             )
             for n in f.maker.fgraph.toposort()
