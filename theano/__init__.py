@@ -129,23 +129,6 @@ def get_scalar_constant_value(v):
     return tensor.get_scalar_constant_value(v)
 
 
-def sparse_grad(var):
-    """This function return a new variable whose gradient will be
-    stored in a sparse format instead of dense.
-
-    Currently only variable created by AdvancedSubtensor1 is supported.
-    i.e. a_tensor_var[an_int_vector].
-
-    .. versionadded:: 0.6rc4
-    """
-    from theano.tensor.subtensor import AdvancedSubtensor1
-
-    assert isinstance(var.owner.op, AdvancedSubtensor1)
-
-    ret = var.owner.op.__class__(sparse_grad=True)(*var.owner.inputs)
-    return ret
-
-
 import theano.tensor.random.var
 from theano.graph.basic import clone_replace
 from theano.scan import checkpoints

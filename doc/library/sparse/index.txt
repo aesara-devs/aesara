@@ -297,4 +297,4 @@ List of Implemented Operations
 .. automodule:: theano.sparse.basic
     :members:
 
-.. autofunction:: tests.sparse.test_basic.sparse_random_inputs
+.. autofunction:: theano.sparse.sparse_grad
