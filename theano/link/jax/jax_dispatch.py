@@ -6,7 +6,7 @@ import jax
 import jax.numpy as jnp
 import jax.scipy as jsp
 
-from theano.compile.ops import DeepCopyOp, Rebroadcast, ViewOp
+from theano.compile.ops import DeepCopyOp, ViewOp
 from theano.configdefaults import config
 from theano.graph.fg import FunctionGraph
 from theano.graph.type import CType
@@ -20,6 +20,7 @@ from theano.tensor.basic import (
     ARange,
     Eye,
     Join,
+    Rebroadcast,
     ScalarFromTensor,
     TensorFromScalar,
 )

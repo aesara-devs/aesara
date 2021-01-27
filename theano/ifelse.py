@@ -18,12 +18,11 @@ import numpy as np
 
 import theano.tensor as tt
 from theano.compile import optdb
-from theano.compile.ops import Rebroadcast
 from theano.configdefaults import config
 from theano.graph.basic import Apply, Variable, clone_replace, is_in_ancestors
 from theano.graph.op import _NoPythonOp
 from theano.graph.opt import GlobalOptimizer, local_optimizer
-from theano.tensor import opt
+from theano.tensor import basic, opt
 from theano.tensor.shape import Reshape, Shape, SpecifyShape
 from theano.tensor.type import TensorType
 
@@ -485,7 +484,7 @@ acceptable_ops = (
     Shape,
     SpecifyShape,
     Reshape,
-    Rebroadcast,
+    basic.Rebroadcast,
     tt.math.Dot,
     tt.math.MaxAndArgmax,
     tt.subtensor.Subtensor,

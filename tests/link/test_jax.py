@@ -6,7 +6,7 @@ import pytest
 import theano.scalar.basic as ts
 from theano.compile.function import function
 from theano.compile.mode import Mode
-from theano.compile.ops import DeepCopyOp, Rebroadcast, ViewOp
+from theano.compile.ops import DeepCopyOp, ViewOp
 from theano.compile.sharedvalue import shared
 from theano.configdefaults import config
 from theano.graph.fg import FunctionGraph
@@ -15,6 +15,7 @@ from theano.graph.optdb import Query
 from theano.ifelse import ifelse
 from theano.link.jax import JAXLinker
 from theano.scan.basic import scan
+from theano.tensor import basic
 from theano.tensor import basic as tt
 from theano.tensor import blas as tt_blas
 from theano.tensor import elemwise as tt_elemwise
@@ -183,13 +184,17 @@ def test_jax_compile_ops():
     compare_jax_and_py(x_fg, [])
 
     x_np = np.zeros((20, 1, 1))
-    x = Rebroadcast((0, False), (1, True), (2, False))(tt.as_tensor_variable(x_np))
+    x = basic.Rebroadcast((0, False), (1, True), (2, False))(
+        tt.as_tensor_variable(x_np)
+    )
     x_fg = FunctionGraph([], [x])
 
     compare_jax_and_py(x_fg, [])
 
     with config.change_flags(compute_test_value="off"):
-        x = Rebroadcast((0, True), (1, False), (2, False))(tt.as_tensor_variable(x_np))
+        x = basic.Rebroadcast((0, True), (1, False), (2, False))(
+            tt.as_tensor_variable(x_np)
+        )
         x_fg = FunctionGraph([], [x])
 
         with pytest.raises(ValueError):

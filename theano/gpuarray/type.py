@@ -8,6 +8,7 @@ import numpy as np
 import theano
 import theano.scalar as ts
 import theano.tensor as tt
+import theano.tensor.basic
 from theano.compile import SharedVariable
 from theano.configdefaults import config
 from theano.graph.basic import Constant, Variable
@@ -856,7 +857,7 @@ theano.compile.register_deep_copy_op_c_code(
     version=(5,),
 )
 
-theano.compile.register_rebroadcast_c_code(
+theano.tensor.basic.register_rebroadcast_c_code(
     GpuArrayType,
     """
     if(%(iname)s->ga.dimensions[%(axis)s] != 1){

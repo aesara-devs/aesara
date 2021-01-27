@@ -51,12 +51,10 @@ from theano.compile.monitormode import MonitorMode
 from theano.compile.ops import (
     DeepCopyOp,
     FromFunctionOp,
-    Rebroadcast,
     ViewOp,
     as_op,
     deep_copy_op,
     register_deep_copy_op_c_code,
-    register_rebroadcast_c_code,
     register_view_op_c_code,
     view_op,
 )
