@@ -15,21 +15,19 @@ from theano.graph.opt import check_stack_trace
 from theano.graph.toolbox import is_same_graph
 from theano.tensor.inplace import neg_inplace
 from theano.tensor.math import clip, exp, log, mul, neg
-from theano.tensor.nnet import (
-    hard_sigmoid,
-    sigmoid,
-    sigmoid_inplace,
-    softplus,
-    ultra_fast_sigmoid,
-)
 from theano.tensor.nnet.sigm import (
     ScalarSoftplus,
     compute_mul,
+    hard_sigmoid,
     is_1pexp,
     parse_mul_tree,
     perform_sigm_times_exp,
     register_local_1msigmoid,
+    sigmoid,
+    sigmoid_inplace,
     simplify_mul,
+    softplus,
+    ultra_fast_sigmoid,
 )
 from theano.tensor.shape import Reshape
 from theano.tensor.type import fmatrix, matrix, scalar, vector, vectors
