@@ -8,6 +8,7 @@ import theano.sparse
 import theano.tensor as tt
 from tests import unittest_tools as utt
 from theano.misc.may_share_memory import may_share_memory
+from theano.tensor.basic_opt import MakeVector
 from theano.tensor.shape import Shape_i, specify_shape
 
 
@@ -145,7 +146,7 @@ def makeSharedTester(
                 assert len(topo) == 3
                 assert isinstance(topo[0].op, Shape_i)
                 assert isinstance(topo[1].op, Shape_i)
-                assert isinstance(topo[2].op, theano.tensor.opt.MakeVector)
+                assert isinstance(topo[2].op, MakeVector)
 
         def test_shape_i(self):
             dtype = self.dtype
@@ -411,7 +412,7 @@ def makeSharedTester(
                 assert len(topo) == 3
                 assert isinstance(topo[0].op, Shape_i)
                 assert isinstance(topo[1].op, Shape_i)
-                assert isinstance(topo[2].op, theano.tensor.opt.MakeVector)
+                assert isinstance(topo[2].op, MakeVector)
 
             # Test that we forward the input
             specify_shape_fct = theano.function([], x1_specify_shape)
@@ -484,7 +485,7 @@ def makeSharedTester(
                 assert len(topo) == 3
                 assert isinstance(topo[0].op, Shape_i)
                 assert isinstance(topo[1].op, Shape_i)
-                assert isinstance(topo[2].op, theano.tensor.opt.MakeVector)
+                assert isinstance(topo[2].op, MakeVector)
 
             # Test that we forward the input
             specify_shape_fct = theano.function([], x1_specify_shape)

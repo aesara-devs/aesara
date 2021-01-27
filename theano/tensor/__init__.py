@@ -9,12 +9,12 @@ import theano.tensor.exceptions
 from theano.gradient import consider_constant, grad, hessian, jacobian
 from theano.tensor import sharedvar  # adds shared-variable constructors
 from theano.tensor import (
+    basic_opt,
     blas,
     blas_c,
     blas_scipy,
     nlinalg,
     nnet,
-    opt,
     opt_uncanonicalize,
     xlogx,
 )

@@ -26,12 +26,12 @@ from theano.configdefaults import config
 from theano.gradient import undefined_grad
 from theano.graph.basic import Apply, Constant, Variable
 from theano.graph.op import COp, Op
-from theano.graph.opt import local_optimizer
+from theano.graph.opt import in2out, local_optimizer
 from theano.graph.params_type import ParamsType
 from theano.sandbox import multinomial
 from theano.scalar import bool as bool_t
 from theano.scalar import int32 as int_t
-from theano.tensor import as_tensor_variable, cast, get_vector_length, opt
+from theano.tensor import as_tensor_variable, cast, get_vector_length
 from theano.tensor.math import cos, log, prod, sin, sqrt
 from theano.tensor.shape import reshape
 from theano.tensor.type import TensorType, iscalar, ivector, lmatrix
@@ -1357,7 +1357,7 @@ def mrg_random_make_inplace(fgraph, node):
 
 optdb.register(
     "random_make_inplace_mrg",
-    opt.in2out(mrg_random_make_inplace, ignore_newtrees=True),
+    in2out(mrg_random_make_inplace, ignore_newtrees=True),
     99,
     "fast_run",
     "inplace",

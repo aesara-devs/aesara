@@ -18,8 +18,8 @@ from theano.configdefaults import config
 from theano.graph.opt import PatternSub, copy_stack_trace, local_optimizer
 from theano.graph.utils import MethodNotDefined
 from theano.printing import pprint
-from theano.tensor import opt
-from theano.tensor.basic import constant
+from theano.tensor import basic_opt
+from theano.tensor.basic import constant, get_scalar_constant_value
 from theano.tensor.elemwise import Elemwise
 from theano.tensor.exceptions import NotScalarConstantError
 from theano.tensor.math import add, clip, exp, inv, log, log1p, mul, neg, sub, true_div
@@ -462,7 +462,7 @@ def _is_1(expr):
 
     """
     try:
-        v = opt.get_scalar_constant_value(expr)
+        v = get_scalar_constant_value(expr)
         return np.allclose(v, 1)
     except NotScalarConstantError:
         return False
@@ -491,10 +491,10 @@ log1p_neg_sigmoid = PatternSub(
     allow_multiple_clients=True,
 )
 
-opt.register_stabilize(logsigm_to_softplus, name="logsigm_to_softplus")
-opt.register_stabilize(log1msigm_to_softplus, name="log1msigm_to_softplus")
-opt.register_stabilize(log1pexp_to_softplus, name="log1pexp_to_softplus")
-opt.register_stabilize(log1p_neg_sigmoid, name="log1p_neg_sigmoid,")
+basic_opt.register_stabilize(logsigm_to_softplus, name="logsigm_to_softplus")
+basic_opt.register_stabilize(log1msigm_to_softplus, name="log1msigm_to_softplus")
+basic_opt.register_stabilize(log1pexp_to_softplus, name="log1pexp_to_softplus")
+basic_opt.register_stabilize(log1p_neg_sigmoid, name="log1p_neg_sigmoid,")
 
 
 def is_1pexp(t, only_process_constants=True):
@@ -508,7 +508,7 @@ def is_1pexp(t, only_process_constants=True):
 
     """
     if t.owner and t.owner.op == add:
-        scalars, scalar_inputs, nonconsts = opt.scalarconsts_rest(
+        scalars, scalar_inputs, nonconsts = basic_opt.scalarconsts_rest(
             t.owner.inputs, only_process_constants=only_process_constants
         )
         # scalar_inputs are potentially dimshuffled and filled with scalars
@@ -632,7 +632,7 @@ def is_neg(var):
     if var_node.op == mul and len(var_node.inputs) >= 2:
         for idx, mul_input in enumerate(var_node.inputs):
             try:
-                constant = opt.get_scalar_constant_value(mul_input)
+                constant = get_scalar_constant_value(mul_input)
                 is_minus_1 = np.allclose(constant, -1)
             except NotScalarConstantError:
                 is_minus_1 = False
@@ -648,7 +648,7 @@ def is_neg(var):
     return None
 
 
-@opt.register_stabilize
+@basic_opt.register_stabilize
 @local_optimizer([true_div])
 def local_exp_over_1_plus_exp(fgraph, node):
     """
@@ -999,7 +999,7 @@ def perform_sigm_times_exp(
         return not keep_it
 
 
-@opt.register_stabilize
+@basic_opt.register_stabilize
 @local_optimizer([mul])
 def local_sigm_times_exp(fgraph, node):
     """
@@ -1028,7 +1028,7 @@ def local_sigm_times_exp(fgraph, node):
     return [out]
 
 
-@opt.register_stabilize
+@basic_opt.register_stabilize
 @local_optimizer([inv])
 def local_inv_1_plus_exp(fgraph, node):
     """
@@ -1040,14 +1040,14 @@ def local_inv_1_plus_exp(fgraph, node):
     if node.op == inv:
         inv_arg = node.inputs[0]
         if inv_arg.owner and inv_arg.owner.op == add:
-            scalars_, scalar_inputs, nonconsts = opt.scalarconsts_rest(
+            scalars_, scalar_inputs, nonconsts = basic_opt.scalarconsts_rest(
                 inv_arg.owner.inputs, only_process_constants=True
             )
             # scalar_inputs are potentially dimshuffled and fill'd scalars
             if len(nonconsts) == 1:
                 if nonconsts[0].owner and nonconsts[0].owner.op == exp:
                     if scalars_ and np.allclose(np.sum(scalars_), 1):
-                        out = opt._fill_chain(
+                        out = basic_opt._fill_chain(
                             sigmoid(neg(nonconsts[0].owner.inputs[0])),
                             scalar_inputs,
                         )
@@ -1074,7 +1074,7 @@ def local_1msigmoid(fgraph, node):
             return  # graph is using both sigm and 1-sigm
         if sub_r.owner and sub_r.owner.op == sigmoid:
             try:
-                val_l = opt.get_scalar_constant_value(sub_l)
+                val_l = get_scalar_constant_value(sub_l)
             except NotScalarConstantError:
                 return
             if np.allclose(np.sum(val_l), 1):
@@ -1092,4 +1092,4 @@ register_local_1msigmoid = False
 # would be a consideration... anyway leaving False for now.
 
 if register_local_1msigmoid:
-    opt.register_canonicalize(local_1msigmoid)
+    basic_opt.register_canonicalize(local_1msigmoid)

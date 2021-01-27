@@ -426,7 +426,7 @@ def local_dnn_convgi_inplace(node, inputs):
 
 optdb.register(
     "local_dnna_conv_inplace",
-    theano.tensor.opt.in2out(
+    theano.graph.opt.in2out(
         local_dnn_conv_inplace,
         local_dnn_convgw_inplace,
         local_dnn_convgi_inplace,

@@ -9,7 +9,6 @@ import pytest
 import theano
 import theano.scalar as ts
 import theano.tensor as tt
-import theano.tensor.opt as opt
 from tests import unittest_tools as utt
 from theano import pprint, shared
 from theano.assert_op import Assert
@@ -43,6 +42,25 @@ from theano.tensor.basic import (
     as_tensor_variable,
     join,
     tile,
+)
+from theano.tensor.basic_opt import (
+    MakeVector,
+    ShapeFeature,
+    assert_op,
+    local_add_specialize,
+    local_canonicalize_alloc,
+    local_dimshuffle_lift,
+    local_greedy_distributor,
+    local_lift_transpose_through_dot,
+    local_merge_alloc,
+    local_reshape_to_dimshuffle,
+    local_useless_alloc,
+    local_useless_dimshuffle_in_reshape,
+    local_useless_elemwise,
+    local_useless_reshape,
+    make_vector,
+    mul_canonizer,
+    register_specialize,
 )
 from theano.tensor.blas import Dot22, Gemv
 from theano.tensor.blas_c import CGemv
@@ -92,21 +110,6 @@ from theano.tensor.math import sgn, sin, sinh, sqr, sqrt, sub
 from theano.tensor.math import sum as tt_sum
 from theano.tensor.math import tan, tanh, true_div, xor
 from theano.tensor.nnet.sigm import softplus
-from theano.tensor.opt import (
-    MakeVector,
-    assert_op,
-    local_add_specialize,
-    local_canonicalize_alloc,
-    local_dimshuffle_lift,
-    local_greedy_distributor,
-    local_merge_alloc,
-    local_reshape_to_dimshuffle,
-    local_useless_alloc,
-    local_useless_dimshuffle_in_reshape,
-    local_useless_reshape,
-    make_vector,
-    mul_canonizer,
-)
 from theano.tensor.shape import Reshape, Shape_i, SpecifyShape, reshape, specify_shape
 from theano.tensor.subtensor import (
     AdvancedIncSubtensor,
@@ -5114,7 +5117,7 @@ class TestShapeOptimizer:
         assert identity_shape not in f_ops
 
         # Register the optimization
-        opt.register_specialize(local_identity_noshape_to_identity_shape)
+        register_specialize(local_identity_noshape_to_identity_shape)
 
         mode = get_default_mode().including("ShapeOpt", "specialize")
         # With the optimization
@@ -7164,7 +7167,7 @@ class TestMakeVector(utt.InferShapeTester):
             ("float64", ()),
             ("int64", ()),
         ]:
-            mv = opt.MakeVector(dtype=dtype)(*inputs)
+            mv = MakeVector(dtype=dtype)(*inputs)
             assert mv.dtype == dtype
             f = function([b, i, d], mv, on_unused_input="ignore")
             f(val[b], val[i], val[d])
@@ -7211,7 +7214,7 @@ class TestMakeVector(utt.InferShapeTester):
                             else:
                                 # use constant value
                                 f_inputs.append(val[var])
-                        return opt.MakeVector(dtype=dtype)(*f_inputs)
+                        return MakeVector(dtype=dtype)(*f_inputs)
 
                     utt.verify_grad(fun, [val[ri] for ri in float_inputs])
 
@@ -7226,7 +7229,7 @@ class TestMakeVector(utt.InferShapeTester):
             ("float32", (i, d)),
         ]:
             try:
-                opt.MakeVector(dtype=dtype)(*inputs)
+                MakeVector(dtype=dtype)(*inputs)
                 raise Exception("Theano should have raised an error")
             except AssertionError:
                 pass
@@ -7678,9 +7681,9 @@ def test_local_reshape_lift():
 
 class TestLiftTransposeThroughDot:
     def simple_optimize(self, g):
-        out2in(opt.local_useless_elemwise).optimize(g)
-        out2in(opt.local_lift_transpose_through_dot).optimize(g)
-        out2in(opt.local_useless_elemwise).optimize(g)
+        out2in(local_useless_elemwise).optimize(g)
+        out2in(local_lift_transpose_through_dot).optimize(g)
+        out2in(local_useless_elemwise).optimize(g)
         return g
 
     def test_matrix_matrix(self):
@@ -7761,7 +7764,7 @@ class TestShapeFeature:
         cst = tt.constant(1).clone()
         o = x + cst
         fgraph = FunctionGraph([x], [o], clone=False)
-        shape_feature = opt.ShapeFeature()
+        shape_feature = ShapeFeature()
         fgraph.attach_feature(shape_feature)
         assert shape_feature.same_shape(x, o)
 
@@ -7770,7 +7773,7 @@ class TestShapeFeature:
         cst = tt.constant(1).clone()
         o = x + cst
         fgraph = FunctionGraph([x], [o], clone=False)
-        shape_feature = opt.ShapeFeature()
+        shape_feature = ShapeFeature()
         fgraph.attach_feature(shape_feature)
         assert shape_feature.same_shape(x, o)
 
@@ -7779,7 +7782,7 @@ class TestShapeFeature:
         y = vector()
         o = x + y
         fgraph = FunctionGraph([x, y], [o], clone=False)
-        shape_feature = opt.ShapeFeature()
+        shape_feature = ShapeFeature()
         fgraph.attach_feature(shape_feature)
         assert shape_feature.same_shape(x, o)
         # The following case isn't implemented
@@ -7790,7 +7793,7 @@ class TestShapeFeature:
         y = vector()
         o = x + y
         fgraph = FunctionGraph([x, y], [o], clone=False)
-        shape_feature = opt.ShapeFeature()
+        shape_feature = ShapeFeature()
         fgraph.attach_feature(shape_feature)
         assert shape_feature.same_shape(x, o, 0, 0)
         # The following case isn't implemented
@@ -7801,7 +7804,7 @@ class TestShapeFeature:
         y = vector()
         o = x + y
         fgraph = FunctionGraph([x, y], [o], clone=False)
-        shape_feature = opt.ShapeFeature()
+        shape_feature = ShapeFeature()
         fgraph.attach_feature(shape_feature)
         with pytest.raises(IndexError):
             shape_feature.same_shape(x, o, 1, 0)

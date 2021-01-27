@@ -223,12 +223,12 @@ gpu_seqopt.register(
     "gpuarray_cut_transfers", gpu_cut_copies, 2, "fast_compile", "fast_run", "gpuarray"
 )
 
-register_opt("fast_compile")(theano.tensor.opt.local_track_shape_i)
+register_opt("fast_compile")(theano.tensor.basic_opt.local_track_shape_i)
 register_opt(final_opt=True, name="gpua_constant_folding")(
-    theano.tensor.opt.constant_folding
+    theano.tensor.basic_opt.constant_folding
 )
 gpu_optimizer.register(
-    "local_remove_all_assert", theano.tensor.opt.local_remove_all_assert, "unsafe"
+    "local_remove_all_assert", theano.tensor.basic_opt.local_remove_all_assert, "unsafe"
 )
 
 
@@ -614,7 +614,7 @@ gpu_cut_copies.register(
 )
 gpu_cut_copies.register(
     "cut_gpua_constant_transfers",
-    theano.tensor.opt.constant_folding,
+    theano.tensor.basic_opt.constant_folding,
     "fast_compile",
     "fast_run",
     "gpuarray",
@@ -700,7 +700,7 @@ def local_gpua_alloc_empty_to_zeros(fgraph, node):
 
 optdb.register(
     "local_gpua_alloc_empty_to_zeros",
-    theano.tensor.opt.in2out(local_gpua_alloc_empty_to_zeros),
+    theano.graph.opt.in2out(local_gpua_alloc_empty_to_zeros),
     # After move to gpu and merge2, before inplace.
     49.3,
     "alloc_empty_to_zeros",
@@ -861,7 +861,7 @@ def split_inputs(inputs, max_nb_inputs, op):
     return op(*inputs)
 
 
-gpu_local_elemwise_fusion = theano.tensor.opt.local_elemwise_fusion_op(
+gpu_local_elemwise_fusion = theano.tensor.basic_opt.local_elemwise_fusion_op(
     GpuElemwise, max_inputs_to_GpuElemwise
 )
 optdb.register(
@@ -870,7 +870,7 @@ optdb.register(
     # 48.6 specialize
     # 49 cpu fusion
     # 49.5 add destroy handler
-    theano.tensor.opt.FusionOptimizer(gpu_local_elemwise_fusion),
+    theano.tensor.basic_opt.FusionOptimizer(gpu_local_elemwise_fusion),
     49,
     "fast_run",
     "fusion",
@@ -878,7 +878,7 @@ optdb.register(
     "gpuarray",
 )
 
-inplace_gpu_elemwise_opt = theano.tensor.opt.InplaceElemwiseOptimizer(GpuElemwise)
+inplace_gpu_elemwise_opt = theano.tensor.basic_opt.InplaceElemwiseOptimizer(GpuElemwise)
 optdb.register(
     "gpua_inplace_opt",
     inplace_gpu_elemwise_opt,
@@ -889,7 +889,7 @@ optdb.register(
     "gpuarray",
 )
 
-register_opt(theano.tensor.opt.local_useless_elemwise)
+register_opt(theano.tensor.basic_opt.local_useless_elemwise)
 
 
 @register_opt("fast_compile")
@@ -2602,7 +2602,7 @@ def local_assert_no_cpu_op(fgraph, node):
 
 
 # Register the local_assert_no_cpu_op:
-assert_no_cpu_op = theano.tensor.opt.in2out(
+assert_no_cpu_op = theano.graph.opt.in2out(
     local_assert_no_cpu_op, name="assert_no_cpu_op"
 )
 # 49.2 is after device specialization & fusion optimizations for last transfers

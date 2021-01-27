@@ -34,7 +34,7 @@ from theano.gpuarray.elemwise import GpuDimShuffle, GpuElemwise
 from theano.gpuarray.subtensor import GpuSubtensor
 from theano.gpuarray.type import GpuArrayType, get_context, gpuarray_shared_constructor
 from theano.tensor.basic import Alloc, Split, alloc
-from theano.tensor.opt import MakeVector
+from theano.tensor.basic_opt import MakeVector
 from theano.tensor.shape import Shape, Shape_i
 from theano.tensor.type import TensorType, fmatrix, iscalar, lscalar, matrix
 

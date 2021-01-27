@@ -29,8 +29,8 @@ from theano.graph.opt import (
     pre_greedy_local_optimizer,
     theano,
 )
+from theano.tensor.basic_opt import constant_folding
 from theano.tensor.math import dot
-from theano.tensor.opt import constant_folding
 from theano.tensor.subtensor import AdvancedSubtensor
 from theano.tensor.type import matrix
 from theano.tensor.type_other import MakeSlice, SliceConstant, slicetype

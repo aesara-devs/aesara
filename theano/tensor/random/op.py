@@ -4,6 +4,7 @@ from copy import copy
 import numpy as np
 
 import theano
+from theano.assert_op import Assert
 from theano.configdefaults import config
 from theano.graph.basic import Apply, Variable
 from theano.graph.op import Op
@@ -292,7 +293,7 @@ class RandomVariable(Op):
             s_owner = getattr(s, "owner", None)
 
             # Get rid of the `Assert`s added by `broadcast_shape`
-            if s_owner and isinstance(s_owner.op, theano.tensor.opt.Assert):
+            if s_owner and isinstance(s_owner.op, Assert):
                 s = s_owner.inputs[0]
 
             try:

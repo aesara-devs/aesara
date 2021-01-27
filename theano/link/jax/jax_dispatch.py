@@ -24,6 +24,7 @@ from theano.tensor.basic import (
     ScalarFromTensor,
     TensorFromScalar,
 )
+from theano.tensor.basic_opt import MakeVector
 from theano.tensor.blas import BatchedDot
 from theano.tensor.elemwise import CAReduce, DimShuffle, Elemwise
 from theano.tensor.extra_ops import (
@@ -51,7 +52,6 @@ from theano.tensor.nlinalg import (
 )
 from theano.tensor.nnet.basic import Softmax
 from theano.tensor.nnet.sigm import ScalarSoftplus
-from theano.tensor.opt import MakeVector
 from theano.tensor.shape import Reshape, Shape, Shape_i, SpecifyShape
 from theano.tensor.slinalg import Cholesky, Solve
 from theano.tensor.subtensor import (  # This is essentially `np.take`; Boolean mask indexing and setting

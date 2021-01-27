@@ -150,6 +150,7 @@ from theano.graph.op import COp, Op
 from theano.graph.opt import (
     EquilibriumOptimizer,
     GlobalOptimizer,
+    in2out,
     inherit_stack_trace,
     local_optimizer,
 )
@@ -160,11 +161,11 @@ from theano.graph.utils import MethodNotDefined, TestValueError
 from theano.printing import FunctionPrinter, debugprint, pprint
 from theano.scalar import bool as bool_t
 from theano.tensor import basic as tt
+from theano.tensor.basic_opt import local_dimshuffle_lift
 from theano.tensor.blas_headers import blas_header_text, blas_header_version
 from theano.tensor.elemwise import DimShuffle, Elemwise
 from theano.tensor.exceptions import NotScalarConstantError
 from theano.tensor.math import Dot, add, mul, neg, sub
-from theano.tensor.opt import in2out, local_dimshuffle_lift
 from theano.tensor.type import integer_dtypes, tensor, values_eq_approx_remove_inf_nan
 from theano.utils import memoize
 

@@ -1876,7 +1876,7 @@ def test_shape():
         assert len(topo) == 3
         assert isinstance(topo[0].op, Shape_i)
         assert isinstance(topo[1].op, Shape_i)
-        assert isinstance(topo[2].op, theano.tensor.opt.MakeVector)
+        assert isinstance(topo[2].op, theano.tensor.basic_opt.MakeVector)
 
 
 def test_may_share_memory():

@@ -21,8 +21,8 @@ from theano.compile import optdb
 from theano.configdefaults import config
 from theano.graph.basic import Apply, Variable, clone_replace, is_in_ancestors
 from theano.graph.op import _NoPythonOp
-from theano.graph.opt import GlobalOptimizer, local_optimizer
-from theano.tensor import basic, opt
+from theano.graph.opt import GlobalOptimizer, in2out, local_optimizer
+from theano.tensor import basic
 from theano.tensor.shape import Reshape, Shape, SpecifyShape
 from theano.tensor.type import TensorType
 
@@ -439,7 +439,7 @@ def cond_make_inplace(fgraph, node):
 
 optdb.register(
     "cond_make_inplace",
-    opt.in2out(cond_make_inplace, ignore_newtrees=True),
+    in2out(cond_make_inplace, ignore_newtrees=True),
     95,
     "fast_run",
     "inplace",
@@ -758,12 +758,12 @@ def cond_merge_random_op(fgraph, main_node):
 #
 # XXX: This optimization doesn't seem to exist anymore?
 # pushout_equilibrium.register("cond_lift_single_if",
-#                              opt.in2out(cond_lift_single_if,
+#                              in2out(cond_lift_single_if,
 #                                         ignore_newtrees=True),
 #                              'fast_run', 'ifelse')
 #
 # pushout_equilibrium.register("cond_merge_random_op",
-#                              opt.in2out(cond_merge_random_op,
+#                              in2out(cond_merge_random_op,
 #                                         ignore_newtrees=True),
 #                              'fast_run', 'ifelse')
 #
@@ -773,17 +773,17 @@ def cond_merge_random_op(fgraph, main_node):
 #                              'fast_run', 'ifelse')
 #
 # pushout_equilibrium.register("ifelse_remove_identical_inside",
-#                              opt.in2out(cond_remove_identical,
+#                              in2out(cond_remove_identical,
 #                                         ignore_newtrees=True),
 #                              'fast_run', 'ifelse')
 #
 # pushout_equilibrium.register('ifelse_sameCondTrue_inside',
-#                              opt.in2out(cond_merge_ifs_true,
+#                              in2out(cond_merge_ifs_true,
 #                                         ignore_newtrees=True),
 #                              'fast_run', 'ifelse')
 #
 # pushout_equilibrium.register('ifelse_sameCondFalse_inside',
-#                              opt.in2out(cond_merge_ifs_false,
+#                              in2out(cond_merge_ifs_false,
 #                                         ignore_newtrees=True),
 #                              'fast_run', 'ifelse')
 #
@@ -797,18 +797,18 @@ def cond_merge_random_op(fgraph, main_node):
 #
 #
 # ifelse_seqopt.register('ifelse_sameCondTrue',
-#                        opt.in2out(cond_merge_ifs_true,
+#                        in2out(cond_merge_ifs_true,
 #                                   ignore_newtrees=True),
 #                        3, 'fast_run', 'ifelse')
 #
 #
 # ifelse_seqopt.register('ifelse_sameCondFalse',
-#                        opt.in2out(cond_merge_ifs_false,
+#                        in2out(cond_merge_ifs_false,
 #                                   ignore_newtrees=True),
 #                        4, 'fast_run', 'ifelse')
 #
 #
 # ifelse_seqopt.register('ifelse_removeIdenetical',
-#                        opt.in2out(cond_remove_identical,
+#                        in2out(cond_remove_identical,
 #                                   ignore_newtrees=True),
 #                        7, 'fast_run', 'ifelse')

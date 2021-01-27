@@ -2,6 +2,7 @@
 
 from theano.configdefaults import config
 from theano.graph.op import COp
+from theano.graph.opt import in2out
 from theano.graph.params_type import ParamsType
 from theano.scalar import bool as bool_t
 
@@ -21,7 +22,6 @@ from theano.tensor.blas import (
     local_optimizer,
     optdb,
 )
-from theano.tensor.opt import in2out
 
 
 class BaseBLAS(COp):

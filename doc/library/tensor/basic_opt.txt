@@ -1,12 +1,11 @@
 ===================================================================
-:mod:`tensor.opt` --  Tensor Optimizations
+:mod:`tensor.basic_opt` --  Tensor Optimizations
 ===================================================================
 
-.. module:: tensor.opt
+.. module:: tensor.basic_opt
    :platform: Unix, Windows
    :synopsis: Tensor Optimizations
-.. moduleauthor:: LISA
+.. moduleauthor:: LISA, PyMC Developers
 
-.. automodule:: theano.tensor.opt
+.. automodule:: theano.tensor.basic_opt
     :members:
-

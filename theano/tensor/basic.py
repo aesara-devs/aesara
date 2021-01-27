@@ -183,7 +183,7 @@ def as_tensor_variable(x, name=None, ndim=None):
                 # `MakeVector` is a better option due to its `get_scalar_constant_value`
                 # support.
                 dtype = ts.upcast(*[i.dtype for i in x if hasattr(i, "dtype")])
-                return theano.tensor.opt.MakeVector(dtype)(*x)
+                return theano.tensor.basic_opt.MakeVector(dtype)(*x)
 
             return stack(x)
 
@@ -501,7 +501,7 @@ def get_scalar_constant_value(
                 elif (
                     v.owner.inputs[0].owner
                     and isinstance(
-                        v.owner.inputs[0].owner.op, theano.tensor.opt.MakeVector
+                        v.owner.inputs[0].owner.op, theano.tensor.basic_opt.MakeVector
                     )
                     and
                     # MakeVector normally accept only scalar as input.
@@ -2017,7 +2017,7 @@ def addbroadcast(x, *axes):
 
     """
     rval = Rebroadcast(*[(axis, True) for axis in axes])(x)
-    return theano.tensor.opt.apply_rebroadcast_opt(rval)
+    return theano.tensor.basic_opt.apply_rebroadcast_opt(rval)
 
 
 def unbroadcast(x, *axes):
@@ -2047,7 +2047,7 @@ def unbroadcast(x, *axes):
 
     """
     rval = Rebroadcast(*[(axis, False) for axis in axes])(x)
-    return theano.tensor.opt.apply_rebroadcast_opt(rval)
+    return theano.tensor.basic_opt.apply_rebroadcast_opt(rval)
 
 
 def patternbroadcast(x, broadcastable):
@@ -2078,7 +2078,7 @@ def patternbroadcast(x, broadcastable):
 
     """
     rval = Rebroadcast(*[(i, broadcastable[i]) for i in range(len(broadcastable))])(x)
-    return theano.tensor.opt.apply_rebroadcast_opt(rval)
+    return theano.tensor.basic_opt.apply_rebroadcast_opt(rval)
 
 
 class Join(COp):
@@ -2592,7 +2592,7 @@ def stack(*tensors, **kwargs):
         # in case there is direct int
         tensors = list(map(as_tensor_variable, tensors))
         dtype = ts.upcast(*[i.dtype for i in tensors])
-        return theano.tensor.opt.MakeVector(dtype)(*tensors)
+        return theano.tensor.basic_opt.MakeVector(dtype)(*tensors)
     return join(axis, *[shape_padaxis(t, axis) for t in tensors])
 
 
@@ -2650,7 +2650,7 @@ def get_vector_length(v):
         return len(v.get_value())
     if isinstance(v, Constant) and v.type.ndim == 1:
         return len(v.data)
-    if v.owner and isinstance(v.owner.op, theano.tensor.opt.MakeVector):
+    if v.owner and isinstance(v.owner.op, theano.tensor.basic_opt.MakeVector):
         return len(v.owner.inputs)
     if v.owner and isinstance(v.owner.op, Shape):
         return v.owner.inputs[0].type.ndim

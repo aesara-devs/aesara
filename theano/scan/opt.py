@@ -74,7 +74,7 @@ from theano.graph.basic import (
 )
 from theano.graph.destroyhandler import DestroyHandler
 from theano.graph.fg import InconsistencyError
-from theano.graph.opt import GlobalOptimizer, local_optimizer
+from theano.graph.opt import GlobalOptimizer, in2out, local_optimizer
 from theano.graph.optdb import EquilibriumDB, SequenceDB
 from theano.graph.toolbox import ReplaceValidate
 from theano.scan.op import Scan
@@ -86,7 +86,7 @@ from theano.scan.utils import (
     scan_args,
     scan_can_remove_outs,
 )
-from theano.tensor import opt
+from theano.tensor import basic_opt
 from theano.tensor.basic import Alloc, AllocEmpty, get_scalar_constant_value
 from theano.tensor.elemwise import DimShuffle, Elemwise
 from theano.tensor.exceptions import NotScalarConstantError
@@ -118,11 +118,11 @@ __copyright__ = "(c) 2010, Universite de Montreal"
 _logger = logging.getLogger("theano.scan.opt")
 
 list_opt_slice = [
-    opt.local_abs_merge,
-    opt.local_mul_switch_sink,
-    opt.local_upcast_elemwise_constant_inputs,
-    opt.local_useless_switch,
-    opt.constant_folding,
+    basic_opt.local_abs_merge,
+    basic_opt.local_mul_switch_sink,
+    basic_opt.local_upcast_elemwise_constant_inputs,
+    basic_opt.local_useless_switch,
+    basic_opt.constant_folding,
 ]
 
 
@@ -2354,7 +2354,7 @@ scan_eqopt1.register("all_pushout_opt", scan_seqopt1, 1, "fast_run", "scan")
 
 scan_seqopt1.register(
     "scanOp_remove_constants_and_unused_inputs0",
-    opt.in2out(remove_constants_and_unused_inputs_scan, ignore_newtrees=True),
+    in2out(remove_constants_and_unused_inputs_scan, ignore_newtrees=True),
     1,
     "remove_constants_and_unused_inputs_scan",
     "fast_run",
@@ -2384,7 +2384,7 @@ scan_seqopt1.register(
 
 scan_eqopt2.register(
     "constant_folding_for_scan2",
-    opt.in2out(opt.constant_folding, ignore_newtrees=True),
+    in2out(basic_opt.constant_folding, ignore_newtrees=True),
     1,
     "fast_run",
     "scan",
@@ -2393,7 +2393,7 @@ scan_eqopt2.register(
 
 scan_eqopt2.register(
     "scanOp_remove_constants_and_unused_inputs1",
-    opt.in2out(remove_constants_and_unused_inputs_scan, ignore_newtrees=True),
+    in2out(remove_constants_and_unused_inputs_scan, ignore_newtrees=True),
     2,
     "remove_constants_and_unused_inputs_scan",
     "fast_run",
@@ -2409,7 +2409,7 @@ scan_eqopt2.register("scanOp_merge", ScanMerge(), 4, "fast_run", "scan")
 # After Merge optimization
 scan_eqopt2.register(
     "scanop_remove_constants_and_unused_inputs2",
-    opt.in2out(remove_constants_and_unused_inputs_scan, ignore_newtrees=True),
+    in2out(remove_constants_and_unused_inputs_scan, ignore_newtrees=True),
     5,
     "remove_constants_and_unused_inputs_scan",
     "fast_run",
@@ -2418,7 +2418,7 @@ scan_eqopt2.register(
 
 scan_eqopt2.register(
     "scanOp_merge_inouts",
-    opt.in2out(scan_merge_inouts, ignore_newtrees=True),
+    in2out(scan_merge_inouts, ignore_newtrees=True),
     6,
     "scan_merge_inouts",
     "fast_run",
@@ -2428,7 +2428,7 @@ scan_eqopt2.register(
 # After everything else
 scan_eqopt2.register(
     "scanOp_remove_constants_and_unused_inputs3",
-    opt.in2out(remove_constants_and_unused_inputs_scan, ignore_newtrees=True),
+    in2out(remove_constants_and_unused_inputs_scan, ignore_newtrees=True),
     8,
     "remove_constants_and_unused_inputs_scan",
     "fast_run",

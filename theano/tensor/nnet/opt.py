@@ -10,8 +10,10 @@ from theano.graph.opt import (
     LocalMetaOptimizerSkipAssertionError,
     TopoOptimizer,
     copy_stack_trace,
+    in2out,
     local_optimizer,
 )
+from theano.tensor.basic_opt import register_specialize_device
 from theano.tensor.nnet.abstract_conv import (
     AbstractConv2d,
     AbstractConv2d_gradInputs,
@@ -32,7 +34,6 @@ from theano.tensor.nnet.blocksparse import (
 from theano.tensor.nnet.conv import ConvOp, conv2d
 from theano.tensor.nnet.corr import CorrMM, CorrMM_gradInputs, CorrMM_gradWeights
 from theano.tensor.nnet.corr3d import Corr3dMM, Corr3dMMGradInputs, Corr3dMMGradWeights
-from theano.tensor.opt import in2out, register_specialize_device
 from theano.tensor.type import TensorType
 
 

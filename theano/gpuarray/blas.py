@@ -1,14 +1,6 @@
 import theano
 from theano.compile import optdb
-from theano.graph.basic import Apply
-from theano.graph.op import _NoPythonCOp
-from theano.graph.opt import LocalOptGroup
-from theano.graph.params_type import ParamsType
-from theano.scalar import bool as bool_t
-from theano.tensor.basic import as_tensor_variable
-from theano.tensor.opt import in2out
-
-from .basic_ops import (
+from theano.gpuarray.basic_ops import (
     CGpuKernelBase,
     GpuArrayType,
     as_gpuarray_variable,
@@ -16,7 +8,13 @@ from .basic_ops import (
     gpuarray_helper_inc_dir,
     infer_context_name,
 )
-from .opt_util import inplace_allocempty
+from theano.gpuarray.opt_util import inplace_allocempty
+from theano.graph.basic import Apply
+from theano.graph.op import _NoPythonCOp
+from theano.graph.opt import LocalOptGroup, in2out
+from theano.graph.params_type import ParamsType
+from theano.scalar import bool as bool_t
+from theano.tensor.basic import as_tensor_variable
 
 
 try:
