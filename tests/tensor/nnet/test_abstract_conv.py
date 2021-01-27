@@ -334,7 +334,7 @@ class TestAssertShape:
         input = tensor4()
         filters = tensor4()
 
-        out = conv.conv2d(
+        out = conv.abstract_conv2d(
             input, filters, input_shape=(3, 5, 7, 11), filter_shape=(7, 5, 3, 3)
         )
         f = theano.function([input, filters], out)
@@ -888,7 +888,7 @@ class BaseTestConv2d(BaseTestConv):
         self,
         inputs_shape,
         filters_shape,
-        conv_fn=conv.conv2d,
+        conv_fn=conv.abstract_conv2d,
         conv_op=conv.AbstractConv2d,
         ref=conv2d_corr,
         **kwargs,
@@ -1447,7 +1447,7 @@ class TestConvTypes:
 
         out_shape = lvector()
 
-        output = conv.conv2d(input, filters)
+        output = conv.abstract_conv2d(input, filters)
         grad_input, grad_filters = theano.grad(output.sum(), wrt=(input, filters))
         assert grad_input.type == input.type, (
             grad_input,
@@ -1505,7 +1505,7 @@ class TestConvTypes:
         out_shape = lvector()
 
         # Check the forward Op
-        output = conv.conv2d(constant_tensor, filters)
+        output = conv.abstract_conv2d(constant_tensor, filters)
         grad_filters = theano.grad(output.sum(), wrt=filters)
         assert grad_filters.type == filters.type, (
             grad_filters,
@@ -1514,7 +1514,7 @@ class TestConvTypes:
             filters.type,
         )
 
-        output = conv.conv2d(input, constant_tensor)
+        output = conv.abstract_conv2d(input, constant_tensor)
         grad_input = theano.grad(output.sum(), wrt=input)
         assert grad_input.type == input.type, (
             grad_input,
