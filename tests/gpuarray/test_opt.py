@@ -34,7 +34,7 @@ from theano.gpuarray.linalg import GpuCholesky, GpuCusolverSolve, cusolver_avail
 from theano.gpuarray.subtensor import GpuSubtensor
 from theano.gpuarray.type import GpuArrayType, get_context, gpuarray_shared_constructor
 from theano.graph.opt import check_stack_trace
-from theano.tensor.basic import Alloc, AllocEmpty, Rebroadcast
+from theano.tensor.basic import Alloc, AllocEmpty, MakeVector, Rebroadcast
 from theano.tensor.blas import batched_dot
 from theano.tensor.math import dot, eq, exp, gt, tanh
 from theano.tensor.nnet import abstract_conv
@@ -68,7 +68,7 @@ def _check_stack_trace(thing):
                 Shape_i,
                 Shape,
                 theano.compile.ops.DeepCopyOp,
-                theano.tensor.basic_opt.MakeVector,
+                MakeVector,
                 theano.tensor.subtensor.Subtensor,
                 theano.tensor.elemwise.Elemwise,
                 theano.ifelse.IfElse,

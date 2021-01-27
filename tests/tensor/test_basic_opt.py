@@ -34,6 +34,7 @@ from theano.tensor import inplace
 from theano.tensor.basic import (
     Alloc,
     Join,
+    MakeVector,
     Rebroadcast,
     ScalarFromTensor,
     Split,
@@ -41,10 +42,10 @@ from theano.tensor.basic import (
     _convert_to_int8,
     as_tensor_variable,
     join,
+    make_vector,
     tile,
 )
 from theano.tensor.basic_opt import (
-    MakeVector,
     ShapeFeature,
     assert_op,
     local_canonicalize_alloc,
@@ -55,7 +56,6 @@ from theano.tensor.basic_opt import (
     local_useless_dimshuffle_in_reshape,
     local_useless_elemwise,
     local_useless_reshape,
-    make_vector,
     register_specialize,
 )
 from theano.tensor.blas import Dot22, Gemv
