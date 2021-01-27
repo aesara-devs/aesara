@@ -7,7 +7,7 @@ from functools import reduce
 import numpy as np
 
 import theano
-import theano.pathparse
+import theano.gpuarray.pathparse
 import theano.tensor.basic as tt
 import theano.tensor.math as tm
 from theano.assert_op import Assert
@@ -66,7 +66,7 @@ except ImportError:
 WIN32_CUDNN_NAMES = ["cudnn64_7.dll", "cudnn64_6.dll", "cudnn64_5.dll"]
 
 if sys.platform == "win32":
-    theano.pathparse.PathParser(config.dnn__bin_path)
+    theano.gpuarray.pathparse.PathParser(config.dnn__bin_path)
 
 
 def _load_lib(name):
