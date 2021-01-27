@@ -1085,7 +1085,7 @@ def local_1msigmoid(fgraph, node):
 
 register_local_1msigmoid = False
 # This is False because the Stabilize pattern above
-# is looking for 1-sigm.  Also Canonizer turns neg into *(-1) and so
+# is looking for 1-sigm.  Also AlgebraicCanonizer turns neg into *(-1) and so
 # this optimization might set off an unwanted chain of things.
 # OTH - this transformation can be seen as pushing normal arithmetic either  below or above the
 # sigmoidal nonlinearity... so if the canonicalized form had anything to say about that then it

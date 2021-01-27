@@ -47,11 +47,8 @@ from theano.tensor.basic_opt import (
     MakeVector,
     ShapeFeature,
     assert_op,
-    local_add_specialize,
     local_canonicalize_alloc,
     local_dimshuffle_lift,
-    local_greedy_distributor,
-    local_lift_transpose_through_dot,
     local_merge_alloc,
     local_reshape_to_dimshuffle,
     local_useless_alloc,
@@ -59,7 +56,6 @@ from theano.tensor.basic_opt import (
     local_useless_elemwise,
     local_useless_reshape,
     make_vector,
-    mul_canonizer,
     register_specialize,
 )
 from theano.tensor.blas import Dot22, Gemv
@@ -109,6 +105,12 @@ from theano.tensor.math import round as tt_round
 from theano.tensor.math import sgn, sin, sinh, sqr, sqrt, sub
 from theano.tensor.math import sum as tt_sum
 from theano.tensor.math import tan, tanh, true_div, xor
+from theano.tensor.math_opt import (
+    local_add_specialize,
+    local_greedy_distributor,
+    local_lift_transpose_through_dot,
+    mul_canonizer,
+)
 from theano.tensor.nnet.sigm import softplus
 from theano.tensor.shape import Reshape, Shape_i, SpecifyShape, reshape, specify_shape
 from theano.tensor.subtensor import (
@@ -465,7 +467,7 @@ class TestCanonize:
         print(pprint(g.outputs[0]))
 
     def test_elemwise_multiple_inputs_optimisation(self):
-        # verify that the Canonizer merge sequential Elemwise({mul,add}) part 1
+        # verify that the AlgebraicCanonizer merge sequential Elemwise({mul,add}) part 1
         #
         # This part are that case that is done, but don't include case
         # that are not implemented but are supposed to be.
@@ -574,8 +576,8 @@ class TestCanonize:
         ]  # [10:11]
         # print cases
 
-        # We must be sure that the Canonizer is working, but that we don't have other
-        # optimisation that could hide bug in the Canonizer as local_elemwise_fusion
+        # We must be sure that the AlgebraicCanonizer is working, but that we don't have other
+        # optimisation that could hide bug in the AlgebraicCanonizer as local_elemwise_fusion
         mode = get_default_mode()
         opt = Query(["canonicalize"])
         opt = opt.excluding("local_elemwise_fusion")
@@ -595,11 +597,11 @@ class TestCanonize:
             assert out_dtype == out.dtype
 
     @pytest.mark.skip(
-        reason="Current implementation of Canonizer does not "
+        reason="Current implementation of AlgebraicCanonizer does not "
         "implement all cases. Skip the corresponding test."
     )
     def test_elemwise_multiple_inputs_optimisation2(self):
-        # verify that the Canonizer merge sequential Elemwise({mul,add}) part 2.
+        # verify that the AlgebraicCanonizer merge sequential Elemwise({mul,add}) part 2.
         # This part are that case that should have been done, but that are not implemented.
         # Test with and without DimShuffle
 
@@ -709,8 +711,8 @@ class TestCanonize:
         ]  # [10:11]
         # print cases
 
-        # We must be sure that the Canonizer is working, but that we don't have other
-        # optimisation that could hide bug in the Canonizer as local_elemwise_fusion
+        # We must be sure that the AlgebraicCanonizer is working, but that we don't have other
+        # optimisation that could hide bug in the AlgebraicCanonizer as local_elemwise_fusion
         mode = get_default_mode()
         mode._optimizer = Query(["canonicalize"])
         mode._optimizer = mode._optimizer.excluding("local_elemwise_fusion")
@@ -728,7 +730,7 @@ class TestCanonize:
 
     @pytest.mark.slow
     def test_multiple_case(self):
-        # test those case take from the comment in Canonizer
+        # test those case take from the comment in AlgebraicCanonizer
         # x / x -> 1
         # (x * y) / x -> y
         # x / y / x -> 1 / y
@@ -756,8 +758,8 @@ class TestCanonize:
         dwv = _asarray(np.random.rand(*shp), dtype="float64")
         dvv = _asarray(np.random.rand(shp[0]), dtype="float64").reshape(1, shp[0])
 
-        # We must be sure that the Canonizer is working, but that we don't have other
-        # optimisation that could hide bug in the Canonizer as local_elemwise_fusion
+        # We must be sure that the AlgebraicCanonizer is working, but that we don't have other
+        # optimisation that could hide bug in the AlgebraicCanonizer as local_elemwise_fusion
         mode = get_default_mode()
 
         opt = Query(["canonicalize"])
@@ -1109,7 +1111,7 @@ class TestCanonize:
         assert f.maker.fgraph.toposort()[0].op == sgn
 
     @pytest.mark.skip(
-        reason="Current implementation of Canonizer does not "
+        reason="Current implementation of AlgebraicCanonizer does not "
         "implement all cases. Skip the corresponding test."
     )
     def test_multiple_case_that_fail(self):
@@ -1123,8 +1125,8 @@ class TestCanonize:
         dyv = _asarray(np.random.rand(*shp), dtype="float32")
         dzv = _asarray(np.random.rand(*shp), dtype="float32")
         # fvv = _asarray(np.random.rand(shp[0]), dtype='float32').reshape(1, shp[0])
-        # We must be sure that the Canonizer is working, but that we don't have other
-        # optimisation that could hide bug in the Canonizer as local_elemwise_fusion
+        # We must be sure that the AlgebraicCanonizer is working, but that we don't have other
+        # optimisation that could hide bug in the AlgebraicCanonizer as local_elemwise_fusion
         mode = get_default_mode()
 
         opt = Query(["canonicalize"])

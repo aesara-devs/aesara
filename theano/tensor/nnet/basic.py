@@ -31,7 +31,7 @@ from theano.scalar import UnaryScalarOp
 
 # Work-around for Python 3.6 issue that prevents `import theano.tensor as tt`
 from theano.tensor import basic as tt
-from theano.tensor import basic_opt, extra_ops
+from theano.tensor import extra_ops, math_opt
 from theano.tensor.basic import ARange, as_tensor_variable
 from theano.tensor.basic_opt import (
     register_canonicalize,
@@ -985,7 +985,7 @@ def softmax_simplifier(numerators, denominators):
     return numerators, denominators
 
 
-basic_opt.local_mul_canonizer.add_simplifier(softmax_simplifier, "softmax_simplifier")
+math_opt.local_mul_canonizer.add_simplifier(softmax_simplifier, "softmax_simplifier")
 
 
 class CrossentropySoftmaxArgmax1HotWithBias(COp):
