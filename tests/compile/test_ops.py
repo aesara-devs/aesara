@@ -4,8 +4,9 @@ import numpy as np
 
 from tests import unittest_tools as utt
 from theano import function
-from theano.compile.ops import Rebroadcast, as_op
+from theano.compile.ops import as_op
 from theano.configdefaults import config
+from theano.tensor.basic import Rebroadcast
 from theano.tensor.type import TensorType, dmatrix, dtensor4, dvector
 
 
