@@ -86,7 +86,7 @@ from theano.scan.utils import (
     scan_args,
     scan_can_remove_outs,
 )
-from theano.tensor import basic_opt
+from theano.tensor import basic_opt, math_opt
 from theano.tensor.basic import Alloc, AllocEmpty, get_scalar_constant_value
 from theano.tensor.elemwise import DimShuffle, Elemwise
 from theano.tensor.exceptions import NotScalarConstantError
@@ -118,8 +118,8 @@ __copyright__ = "(c) 2010, Universite de Montreal"
 _logger = logging.getLogger("theano.scan.opt")
 
 list_opt_slice = [
-    basic_opt.local_abs_merge,
-    basic_opt.local_mul_switch_sink,
+    math_opt.local_abs_merge,
+    math_opt.local_mul_switch_sink,
     basic_opt.local_upcast_elemwise_constant_inputs,
     basic_opt.local_useless_switch,
     basic_opt.constant_folding,
