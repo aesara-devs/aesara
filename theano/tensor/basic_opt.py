@@ -139,7 +139,7 @@ from theano.tensor.var import TensorConstant
 from theano.utils import NoDuplicateOptWarningFilter
 
 
-_logger = logging.getLogger("theano.tensor.opt")
+_logger = logging.getLogger("theano.tensor.basic_opt")
 _logger.addFilter(NoDuplicateOptWarningFilter())
 
 
@@ -4888,7 +4888,7 @@ class Canonizer(LocalOptimizer):
     Examples
     --------
     >>> import theano.tensor as tt
-    >>> from theano.tensor.opt import Canonizer
+    >>> from theano.tensor.basic_opt import Canonizer
     >>> add_canonizer = Canonizer(add, sub, neg, \\
     ...                           lambda n, d: sum(n) - sum(d))
     >>> mul_canonizer = Canonizer(mul, true_div, inv, \\

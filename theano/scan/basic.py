@@ -26,7 +26,6 @@ from theano.graph.utils import TestValueError
 from theano.scan import utils
 from theano.scan.op import Scan
 from theano.scan.utils import safe_new, traverse
-from theano.tensor import opt
 from theano.tensor.exceptions import NotScalarConstantError
 from theano.tensor.math import minimum
 from theano.tensor.shape import shape_padleft
@@ -362,7 +361,7 @@ def scan(
         n_fixed_steps = int(n_steps)
     else:
         try:
-            n_fixed_steps = opt.get_scalar_constant_value(n_steps)
+            n_fixed_steps = tt.get_scalar_constant_value(n_steps)
         except NotScalarConstantError:
             n_fixed_steps = None
 

@@ -68,7 +68,7 @@ def _check_stack_trace(thing):
                 Shape_i,
                 Shape,
                 theano.compile.ops.DeepCopyOp,
-                theano.tensor.opt.MakeVector,
+                theano.tensor.basic_opt.MakeVector,
                 theano.tensor.subtensor.Subtensor,
                 theano.tensor.elemwise.Elemwise,
                 theano.ifelse.IfElse,

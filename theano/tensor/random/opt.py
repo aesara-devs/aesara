@@ -1,12 +1,11 @@
 from theano.compile import optdb
 from theano.configdefaults import config
 from theano.graph.op import compute_test_value
-from theano.graph.opt import local_optimizer
+from theano.graph.opt import in2out, local_optimizer
 from theano.tensor.basic import constant, get_vector_length
 from theano.tensor.elemwise import DimShuffle
 from theano.tensor.extra_ops import broadcast_to
 from theano.tensor.math import sum as tt_sum
-from theano.tensor.opt import in2out
 from theano.tensor.random.op import RandomVariable
 from theano.tensor.random.utils import broadcast_params
 from theano.tensor.shape import Shape

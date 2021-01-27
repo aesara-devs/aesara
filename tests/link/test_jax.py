@@ -17,12 +17,12 @@ from theano.link.jax import JAXLinker
 from theano.scan.basic import scan
 from theano.tensor import basic
 from theano.tensor import basic as tt
+from theano.tensor import basic_opt as tt_opt
 from theano.tensor import blas as tt_blas
 from theano.tensor import elemwise as tt_elemwise
 from theano.tensor import extra_ops as tt_extra_ops
 from theano.tensor import nlinalg as tt_nlinalg
 from theano.tensor import nnet as tt_nnet
-from theano.tensor import opt as tt_opt
 from theano.tensor import slinalg as tt_slinalg
 from theano.tensor import subtensor as tt_subtensor
 from theano.tensor.math import MaxAndArgmax

@@ -63,7 +63,7 @@ def shape_of_variables(fgraph, input_shapes):
     """
 
     if not hasattr(fgraph, "shape_feature"):
-        fgraph.attach_feature(theano.tensor.opt.ShapeFeature())
+        fgraph.attach_feature(theano.tensor.basic_opt.ShapeFeature())
 
     input_dims = [
         dimension

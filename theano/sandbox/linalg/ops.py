@@ -5,6 +5,11 @@ from theano.graph.basic import Apply
 from theano.graph.op import Op
 from theano.graph.opt import GlobalOptimizer, local_optimizer
 from theano.tensor import basic as tt
+from theano.tensor.basic_opt import (
+    register_canonicalize,
+    register_specialize,
+    register_stabilize,
+)
 from theano.tensor.blas import Dot22
 from theano.tensor.elemwise import DimShuffle
 from theano.tensor.exceptions import NotScalarConstantError
@@ -17,11 +22,6 @@ from theano.tensor.nlinalg import (
     extract_diag,
     matrix_inverse,
     trace,
-)
-from theano.tensor.opt import (
-    register_canonicalize,
-    register_specialize,
-    register_stabilize,
 )
 from theano.tensor.slinalg import Cholesky, Solve, cholesky, imported_scipy, solve
 

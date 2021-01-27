@@ -8,10 +8,10 @@ from theano.graph.opt import copy_stack_trace, local_optimizer
 from theano.scalar import Composite, add, as_common_dtype, mul, sub, true_div
 from theano.tensor import basic as tt
 from theano.tensor.basic import as_tensor_variable
+from theano.tensor.basic_opt import register_specialize_device
 from theano.tensor.elemwise import Elemwise
 from theano.tensor.math import inv, mean, prod, sqrt
 from theano.tensor.math import sum as tt_sum
-from theano.tensor.opt import register_specialize_device
 from theano.tensor.type import TensorType
 
 

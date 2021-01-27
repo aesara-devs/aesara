@@ -21,8 +21,8 @@ from theano.sparse.basic import (
 )
 from theano.tensor import blas
 from theano.tensor.basic import as_tensor_variable, cast, patternbroadcast
+from theano.tensor.basic_opt import register_canonicalize, register_specialize
 from theano.tensor.math import mul, neg, sub
-from theano.tensor.opt import register_canonicalize, register_specialize
 from theano.tensor.type import TensorType, tensor
 
 

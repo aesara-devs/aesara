@@ -10,7 +10,7 @@ from theano.configdefaults import config
 from theano.graph.basic import Constant, Variable, graph_inputs
 from theano.graph.fg import FunctionGraph
 from theano.graph.op import get_test_value
-from theano.tensor.opt import ShapeFeature
+from theano.tensor.basic_opt import ShapeFeature
 from theano.tensor.random.basic import (
     bernoulli,
     beta,

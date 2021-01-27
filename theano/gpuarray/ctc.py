@@ -16,9 +16,9 @@ from theano.graph.basic import Apply
 from theano.graph.op import _NoPythonExternalCOp
 from theano.graph.opt import local_optimizer
 from theano.tensor.basic import as_tensor_variable
+from theano.tensor.basic_opt import register_canonicalize
 from theano.tensor.blas import batched_dot
 from theano.tensor.nnet.ctc import ctc_available
-from theano.tensor.opt import register_canonicalize
 
 
 class GpuConnectionistTemporalClassification(_NoPythonExternalCOp):

@@ -41,7 +41,6 @@ from theano.graph.basic import Apply
 from theano.graph.op import Op
 from theano.misc.safe_asarray import _asarray
 from theano.scalar import autocast_float, autocast_float_as
-from theano.tensor import opt
 from theano.tensor.basic import (
     Alloc,
     AllocDiag,
@@ -100,6 +99,7 @@ from theano.tensor.basic import (
     vertical_stack,
     zeros_like,
 )
+from theano.tensor.basic_opt import MakeVector, make_vector
 from theano.tensor.elemwise import DimShuffle
 from theano.tensor.exceptions import EmptyConstantError, NotScalarConstantError
 from theano.tensor.math import dense_dot, eq
@@ -514,12 +514,12 @@ class TestAsTensorVariable:
         x = tt.tile(a, (1, 1, 1))
         y = (constant(1, dtype="int64"), x.shape[2])
         res = tt.as_tensor(y, ndim=1)
-        assert isinstance(res.owner.op, opt.MakeVector)
+        assert isinstance(res.owner.op, MakeVector)
         assert tuple(res.owner.inputs) == y
 
         y = (1, x.shape[2])
         res = tt.as_tensor(y)
-        assert isinstance(res.owner.op, opt.MakeVector)
+        assert isinstance(res.owner.op, MakeVector)
 
 
 class TestAlloc:
@@ -947,7 +947,7 @@ def test_get_vector_length():
     mode = theano.compile.get_default_mode().excluding("constant_folding")
     f = function([x, y], [b, c, a], mode=mode)
     topo = f.maker.fgraph.toposort()
-    assert [True for node in topo if isinstance(node.op, opt.MakeVector)]
+    assert [True for node in topo if isinstance(node.op, MakeVector)]
 
     assert np.allclose(f(4, 5), [5, 9, 4])
 
@@ -960,7 +960,7 @@ class TestJoinAndSplit:
         self.mode = theano.compile.get_default_mode().excluding("constant_folding")
         self.join_op = Join()
         self.split_op_class = Split
-        self.make_vector_op = opt.MakeVector()
+        self.make_vector_op = MakeVector()
         self.floatX = config.floatX
         self.hide_error = config.mode not in [
             "DebugMode",
@@ -1002,7 +1002,7 @@ class TestJoinAndSplit:
         c = theano.shared(np.asarray(3.0, dtype=self.floatX))
         s = stack([a, b, c])
         want = np.array([1, 2, 3])
-        out = self.eval_outputs_and_check_vector([s], opt.MakeVector())
+        out = self.eval_outputs_and_check_vector([s], MakeVector())
         assert (out == want).all()
 
     def test_stack_scalar(self):
@@ -1027,7 +1027,7 @@ class TestJoinAndSplit:
         # print val
         assert np.all(val == [1, 2, 1, 2])
         topo = f.maker.fgraph.toposort()
-        assert len([n for n in topo if isinstance(n.op, opt.MakeVector)]) > 0
+        assert len([n for n in topo if isinstance(n.op, MakeVector)]) > 0
         assert len([n for n in topo if isinstance(n, type(self.join_op))]) == 0
         assert f.maker.fgraph.outputs[0].dtype == self.floatX
 
@@ -1041,7 +1041,7 @@ class TestJoinAndSplit:
         val = f(1, 2)
         assert np.all(val == [1, 2, 1, 2])
         topo = f.maker.fgraph.toposort()
-        assert len([n for n in topo if isinstance(n.op, opt.MakeVector)]) > 0
+        assert len([n for n in topo if isinstance(n.op, MakeVector)]) > 0
         assert len([n for n in topo if isinstance(n, type(self.join_op))]) == 0
         assert f.maker.fgraph.outputs[0].dtype == "int64"
 
@@ -1057,7 +1057,7 @@ class TestJoinAndSplit:
         val = f(1, 2)
         assert np.all(val == [10, 1, 2, 3])
         topo = f.maker.fgraph.toposort()
-        assert len([n for n in topo if isinstance(n.op, opt.MakeVector)]) > 0
+        assert len([n for n in topo if isinstance(n.op, MakeVector)]) > 0
         assert len([n for n in topo if isinstance(n, type(self.join_op))]) == 0
         assert f.maker.fgraph.outputs[0].dtype == "int64"
 
@@ -2976,7 +2976,7 @@ class TestBroadcast:
         if config.mode != "FAST_COMPILE":
             assert len(topo) == 2
             assert isinstance(topo[0].op, Shape_i)
-            assert isinstance(topo[1].op, opt.MakeVector)
+            assert isinstance(topo[1].op, MakeVector)
 
         x = matrix()
         y = unbroadcast(x, 0)
@@ -2987,7 +2987,7 @@ class TestBroadcast:
             assert len(topo) == 3
             assert isinstance(topo[0].op, Shape_i)
             assert isinstance(topo[1].op, Shape_i)
-            assert isinstance(topo[2].op, opt.MakeVector)
+            assert isinstance(topo[2].op, MakeVector)
 
         x = row()
         y = unbroadcast(x, 0)
@@ -2997,7 +2997,7 @@ class TestBroadcast:
         if config.mode != "FAST_COMPILE":
             assert len(topo) == 2
             assert isinstance(topo[0].op, Shape_i)
-            assert isinstance(topo[1].op, opt.MakeVector)
+            assert isinstance(topo[1].op, MakeVector)
 
 
 def test_len():
@@ -3108,7 +3108,7 @@ class TestGetScalarConstantValue:
             get_scalar_constant_value(np.array([]))
 
     def test_make_vector(self):
-        mv = opt.make_vector(1, 2, 3)
+        mv = make_vector(1, 2, 3)
         with pytest.raises(NotScalarConstantError):
             get_scalar_constant_value(mv)
         assert get_scalar_constant_value(mv[0]) == 1
@@ -3568,7 +3568,7 @@ class TestInferShape(utt.InferShapeTester):
         adtens = tensor3()
         adtens_val = rand(4, 5, 3)
         self._compile_and_check(
-            [adtens], [Shape()(adtens)], [adtens_val], (opt.MakeVector, Shape)
+            [adtens], [Shape()(adtens)], [adtens_val], (MakeVector, Shape)
         )
 
     def test_Split(self):

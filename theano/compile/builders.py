@@ -16,7 +16,7 @@ from theano.graph.fg import FunctionGraph
 from theano.graph.null_type import NullType
 from theano.graph.op import Op, ops_with_inner_function
 from theano.graph.opt import in2out, local_optimizer
-from theano.tensor.opt import ShapeFeature
+from theano.tensor.basic_opt import ShapeFeature
 
 
 def infer_shape(outs, inputs, input_shapes):

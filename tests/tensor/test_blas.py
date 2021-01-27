@@ -32,6 +32,7 @@ from theano.compile.sharedvalue import shared
 from theano.configdefaults import config
 from theano.gradient import grad
 from theano.graph.fg import FunctionGraph
+from theano.graph.opt import in2out
 from theano.misc.safe_asarray import _asarray
 from theano.tensor import inplace
 from theano.tensor.basic import as_tensor_variable
@@ -65,7 +66,6 @@ from theano.tensor.blas import (
 from theano.tensor.elemwise import DimShuffle
 from theano.tensor.math import Dot, dot, mean, mul, neg, outer, sqrt
 from theano.tensor.nnet import sigmoid
-from theano.tensor.opt import in2out
 from theano.tensor.type import (
     cmatrix,
     col,

@@ -4,6 +4,7 @@ Implementations of BLAS Ops based on scipy's BLAS bindings.
 
 import numpy as np
 
+from theano.graph.opt import in2out
 from theano.tensor.blas import (
     Ger,
     blas_optdb,
@@ -13,7 +14,6 @@ from theano.tensor.blas import (
     local_optimizer,
     optdb,
 )
-from theano.tensor.opt import in2out
 
 
 if have_fblas:

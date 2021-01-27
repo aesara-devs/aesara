@@ -112,7 +112,7 @@ TODO: talk about OPTIMIZATION STAGES
    from theano.tensor.exceptions import NotScalarConstantError
 
    # Remove any fibby(zeros(...))
-   @theano.tensor.opt.register_specialize
+   @theano.tensor.basic_opt.register_specialize
    @theano.graph.opt.local_optimizer([fibby])
    def fibby_of_zero(fgraph, node):
        if node.op == fibby:

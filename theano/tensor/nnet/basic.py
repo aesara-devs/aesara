@@ -31,8 +31,13 @@ from theano.scalar import UnaryScalarOp
 
 # Work-around for Python 3.6 issue that prevents `import theano.tensor as tt`
 from theano.tensor import basic as tt
-from theano.tensor import extra_ops, opt
+from theano.tensor import basic_opt, extra_ops
 from theano.tensor.basic import ARange, as_tensor_variable
+from theano.tensor.basic_opt import (
+    register_canonicalize,
+    register_specialize,
+    register_stabilize,
+)
 from theano.tensor.elemwise import DimShuffle, Elemwise
 from theano.tensor.exceptions import NotScalarConstantError
 from theano.tensor.math import (
@@ -53,11 +58,6 @@ from theano.tensor.math import sum as tt_sum
 from theano.tensor.math import tanh, tensordot, true_div
 from theano.tensor.nnet.blocksparse import sparse_block_dot
 from theano.tensor.nnet.sigm import sigmoid, softplus
-from theano.tensor.opt import (
-    register_canonicalize,
-    register_specialize,
-    register_stabilize,
-)
 from theano.tensor.shape import shape, shape_padleft
 from theano.tensor.subtensor import AdvancedIncSubtensor, AdvancedSubtensor, Subtensor
 from theano.tensor.type import (
@@ -985,7 +985,7 @@ def softmax_simplifier(numerators, denominators):
     return numerators, denominators
 
 
-opt.local_mul_canonizer.add_simplifier(softmax_simplifier, "softmax_simplifier")
+basic_opt.local_mul_canonizer.add_simplifier(softmax_simplifier, "softmax_simplifier")
 
 
 class CrossentropySoftmaxArgmax1HotWithBias(COp):
@@ -1775,7 +1775,7 @@ def _check_rows_is_arange_len_labels(fgraph, rows, labels):
 
 def _is_const(z, val, approx=False):
     try:
-        maybe = opt.get_scalar_constant_value(z)
+        maybe = tt.get_scalar_constant_value(z)
     except NotScalarConstantError:
         return False
     if approx:

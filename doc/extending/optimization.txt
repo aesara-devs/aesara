@@ -10,7 +10,7 @@ In this section we will define a couple optimizations on doubles.
 .. todo::
 
    This tutorial goes way too far under the hood, for someone who just wants
-   to add yet another pattern to the libraries in tensor.opt for example.
+   to add yet another pattern to the libraries in `tensor.basic_opt` for example.
 
    We need another tutorial that covers the decorator syntax, and explains how
    to register your optimization right away.  That's what you need to get

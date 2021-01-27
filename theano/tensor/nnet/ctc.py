@@ -8,9 +8,9 @@ from theano.graph.basic import Apply
 from theano.graph.op import ExternalCOp, OpenMPOp
 from theano.graph.opt import local_optimizer
 from theano.link.c.cmodule import GCC_compiler
+from theano.tensor.basic_opt import register_canonicalize
 from theano.tensor.blas import batched_dot
 from theano.tensor.extra_ops import cpu_contiguous
-from theano.tensor.opt import register_canonicalize
 from theano.tensor.type import ftensor3, fvector
 
 

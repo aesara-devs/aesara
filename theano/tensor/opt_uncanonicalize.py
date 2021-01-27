@@ -36,14 +36,14 @@ import logging
 from theano import scalar as ts
 from theano.graph.opt import copy_stack_trace, local_optimizer
 from theano.tensor.basic import Alloc, alloc, constant
+from theano.tensor.basic_opt import register_uncanonicalize
 from theano.tensor.elemwise import CAReduce, DimShuffle
 from theano.tensor.math import Argmax, Max, MaxAndArgmax, Min, neg
-from theano.tensor.opt import register_uncanonicalize
 from theano.tensor.shape import Reshape, reshape
 from theano.tensor.subtensor import Subtensor
 
 
-_logger = logging.getLogger("theano.tensor.opt")
+_logger = logging.getLogger("theano.tensor.opt_uncanonicalize")
 
 
 @register_uncanonicalize
