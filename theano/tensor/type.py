@@ -71,7 +71,7 @@ class TensorType(CType):
             warnings.warn(
                 "You use an old interface to"
                 " AdvancedSubtensor1 sparse_grad. Now use"
-                " theano.sparse_grad(a_tensor[an_int_vector]).",
+                " theano.sparse.sparse_grad(a_tensor[an_int_vector]).",
                 category=DeprecationWarning,
             )
 

@@ -656,7 +656,7 @@ class TestConstructSparseFromList:
         # USER INTERFACE
         m = matrix()
         v = ivector()
-        sub = theano.sparse_grad(m[v])
+        sub = theano.sparse.sparse_grad(m[v])
         g = theano.grad(sub.sum(), m)
         assert isinstance(g.owner.op, ConstructSparseFromList)
 
@@ -675,7 +675,7 @@ class TestConstructSparseFromList:
         shared_v = theano.shared(valv)
 
         def fn(m):
-            return theano.sparse_grad(m[shared_v])
+            return theano.sparse.sparse_grad(m[shared_v])
 
         verify_grad_sparse(fn, [valm])
 
@@ -691,7 +691,7 @@ class TestConstructSparseFromList:
 
             # Test that we raise an error, as we can't create a sparse
             # grad from tensors that don't have 2 dimensions.
-            sub = theano.sparse_grad(sub)
+            sub = theano.sparse.sparse_grad(sub)
             with pytest.raises(TypeError):
                 theano.grad(sub.sum(), t)
 
