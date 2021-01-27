@@ -20,11 +20,11 @@ from theano.tensor.basic import (
     ARange,
     Eye,
     Join,
+    MakeVector,
     Rebroadcast,
     ScalarFromTensor,
     TensorFromScalar,
 )
-from theano.tensor.basic_opt import MakeVector
 from theano.tensor.blas import BatchedDot
 from theano.tensor.elemwise import CAReduce, DimShuffle, Elemwise
 from theano.tensor.extra_ops import (

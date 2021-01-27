@@ -50,6 +50,7 @@ from theano.tensor.basic import (
     ExtractDiag,
     Eye,
     Join,
+    MakeVector,
     PermuteRowElements,
     ScalarFromTensor,
     Split,
@@ -75,6 +76,7 @@ from theano.tensor.basic import (
     horizontal_stack,
     inverse_permutation,
     join,
+    make_vector,
     mgrid,
     nonzero,
     nonzero_values,
@@ -99,7 +101,6 @@ from theano.tensor.basic import (
     vertical_stack,
     zeros_like,
 )
-from theano.tensor.basic_opt import MakeVector, make_vector
 from theano.tensor.elemwise import DimShuffle
 from theano.tensor.exceptions import EmptyConstantError, NotScalarConstantError
 from theano.tensor.math import dense_dot, eq

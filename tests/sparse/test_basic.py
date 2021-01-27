@@ -86,6 +86,7 @@ from theano.sparse.basic import (
     _mtypes,
 )
 from theano.sparse.opt import CSMGradC, StructuredDotCSC, UsmmCscDense
+from theano.tensor.basic import MakeVector
 from theano.tensor.elemwise import DimShuffle, Elemwise
 from theano.tensor.math import sum as tt_sum
 from theano.tensor.shape import Shape_i
@@ -1876,7 +1877,7 @@ def test_shape():
         assert len(topo) == 3
         assert isinstance(topo[0].op, Shape_i)
         assert isinstance(topo[1].op, Shape_i)
-        assert isinstance(topo[2].op, theano.tensor.basic_opt.MakeVector)
+        assert isinstance(topo[2].op, MakeVector)
 
 
 def test_may_share_memory():

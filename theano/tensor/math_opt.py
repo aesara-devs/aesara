@@ -27,6 +27,7 @@ from theano.misc.safe_asarray import _asarray
 from theano.tensor.basic import (
     Alloc,
     Join,
+    MakeVector,
     alloc,
     as_tensor_variable,
     cast,
@@ -40,7 +41,6 @@ from theano.tensor.basic import (
 )
 from theano.tensor.basic_opt import (
     FusionOptimizer,
-    MakeVector,
     _fill_chain,
     broadcast_like,
     encompasses_broadcastable,

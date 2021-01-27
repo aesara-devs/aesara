@@ -8,7 +8,7 @@ import theano.sparse
 import theano.tensor as tt
 from tests import unittest_tools as utt
 from theano.misc.may_share_memory import may_share_memory
-from theano.tensor.basic_opt import MakeVector
+from theano.tensor.basic import MakeVector
 from theano.tensor.shape import Shape_i, specify_shape
 
 

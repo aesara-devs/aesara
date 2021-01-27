@@ -10,8 +10,8 @@ from theano.compile.ops import DeepCopyOp
 from theano.configdefaults import config
 from theano.graph.fg import FunctionGraph
 from theano.misc.safe_asarray import _asarray
-from theano.tensor.basic import as_tensor_variable, constant
-from theano.tensor.basic_opt import MakeVector, ShapeFeature
+from theano.tensor.basic import MakeVector, as_tensor_variable, constant
+from theano.tensor.basic_opt import ShapeFeature
 from theano.tensor.elemwise import DimShuffle, Elemwise
 from theano.tensor.shape import (
     Reshape,

@@ -20,7 +20,6 @@ from theano.compile.ops import ViewOp
 from theano.configdefaults import config
 from theano.graph import toolbox
 from theano.graph.basic import (
-    Apply,
     Constant,
     Variable,
     ancestors,
@@ -28,7 +27,7 @@ from theano.graph.basic import (
     io_toposort,
 )
 from theano.graph.fg import InconsistencyError
-from theano.graph.op import COp, get_test_value
+from theano.graph.op import get_test_value
 from theano.graph.opt import (
     GlobalOptimizer,
     OpRemove,
@@ -44,7 +43,6 @@ from theano.graph.utils import (
     TestValueError,
     get_variable_trace_string,
 )
-from theano.misc.safe_asarray import _asarray
 from theano.printing import pprint
 from theano.tensor.basic import (
     Alloc,
@@ -52,6 +50,7 @@ from theano.tensor.basic import (
     ARange,
     Flatten,
     Join,
+    MakeVector,
     Rebroadcast,
     ScalarFromTensor,
     Split,
@@ -66,6 +65,7 @@ from theano.tensor.basic import (
     get_scalar_constant_value,
     get_vector_length,
     join,
+    make_vector,
     ones_like,
     patternbroadcast,
     switch,
@@ -778,120 +778,6 @@ def local_scalar_tensor_scalar(fgraph, node):
 #####################################
 # ShapeFeature, Shape optimizations
 #####################################
-
-
-class MakeVector(COp):
-    """Concatenate a number of scalars together into a vector.
-
-    This is a simple version of stack() that introduces far less cruft
-    into the graph. Should work with 0 inputs. The constant_folding
-    optimization will remove it.
-
-    """
-
-    __props__ = ("dtype",)
-
-    def __init__(self, dtype="int64"):
-        self.dtype = dtype
-
-    def make_node(self, *inputs):
-        inputs = list(map(as_tensor_variable, inputs))
-        if not all(a.type == inputs[0].type for a in inputs) or (
-            len(inputs) > 0 and inputs[0].dtype != self.dtype
-        ):
-            dtype = ts.upcast(self.dtype, *[i.dtype for i in inputs])
-            # upcast the input to the determined dtype,
-            # but don't downcast anything
-            assert dtype == self.dtype, (
-                "The upcast of the inputs to MakeVector should match the "
-                "dtype given in __init__."
-            )
-            if not all(self.dtype == cast(i, dtype=dtype).dtype for i in inputs):
-                raise TypeError(
-                    "MakeVector.make_node expected inputs"
-                    f" upcastable to {self.dtype}. got {[i.dtype for i in inputs]}"
-                )
-            inputs = [cast(i, dtype=dtype) for i in inputs]
-        assert all(self.dtype == a.dtype for a in inputs)
-        assert all(a.ndim == 0 for a in inputs)
-
-        if inputs:
-            dtype = inputs[0].type.dtype
-        else:
-            dtype = self.dtype
-        # bcastable = (len(inputs) == 1)
-        bcastable = False
-        otype = TensorType(broadcastable=(bcastable,), dtype=dtype)
-        return Apply(self, inputs, [otype()])
-
-    def perform(self, node, inputs, out_):
-        (out,) = out_
-        # not calling theano._asarray as optimization
-        if (out[0] is None) or (out[0].size != len(inputs)):
-            out[0] = _asarray(inputs, dtype=node.outputs[0].dtype)
-        else:
-            # assume that out has correct dtype. there is no cheap way to check
-            out[0][...] = inputs
-
-    def c_code_cache_version(self):
-        return (2,)
-
-    def c_code(self, node, name, inp, out_, props):
-        (out,) = out_
-        # Shouldn't use PyArray_TYPE(inp[0]) for the dtype
-        # when len(inp) == 0 (we need to support this case.
-        # So there will be (1 * nb_dtype) + ((nb len(inp) - 1 ))
-        # different c code with the following algo
-        out_shape = len(inp)
-        out_num = np.dtype(node.outputs[0].dtype).num
-        # don't use dtype_%(out)s as when check_input=False, it isn't defined.
-        out_dtype = node.outputs[0].type.dtype_specs()[1]
-        if len(inp) > 0:
-            assert self.dtype == node.inputs[0].dtype
-            out_num = f"PyArray_TYPE({inp[0]})"
-
-        ret = (
-            """
-        npy_intp dims[1];
-        dims[0] = %(out_shape)s;
-        if(!%(out)s || PyArray_DIMS(%(out)s)[0] != %(out_shape)s){
-            Py_XDECREF(%(out)s);
-            %(out)s = (PyArrayObject*)PyArray_EMPTY(1, dims, %(out_num)s, 0);
-        }
-        """
-            % locals()
-        )
-        for idx, i in enumerate(inp):
-            ret += (
-                """
-            *((%(out_dtype)s *)PyArray_GETPTR1(%(out)s, %(idx)s)) = *((%(out_dtype)s *) PyArray_DATA(%(i)s));
-            """
-                % locals()
-            )
-        return ret
-
-    def infer_shape(self, fgraph, node, ishapes):
-        return [(len(ishapes),)]
-
-    def grad(self, inputs, output_gradients):
-        # If the output is of an integer dtype, no gradient shall pass
-        if self.dtype in discrete_dtypes:
-            return [ipt.zeros_like().astype(config.floatX) for ipt in inputs]
-
-        grads = []
-        for i, inp in enumerate(inputs):
-            grads.append(output_gradients[0][i])
-        return grads
-
-    def R_op(self, inputs, eval_points):
-        if None in eval_points:
-            return [None]
-        return self.make_node(*eval_points).outputs
-
-
-make_vector = MakeVector()
-
-
 class MakeVectorPrinter:
     def process(self, r, pstate):
         if r.owner is None:
