@@ -52,7 +52,7 @@ from theano.tensor.nnet.basic import (
     softmax_with_bias,
     softsign,
 )
-from theano.tensor.nnet.sigm import sigmoid, softplus
+from theano.tensor.nnet.sigm import sigmoid
 from theano.tensor.shape import shape_padleft, specify_shape
 from theano.tensor.subtensor import AdvancedSubtensor
 from theano.tensor.type import (
@@ -69,22 +69,6 @@ from theano.tensor.type import (
     vector,
     vectors,
 )
-
-
-class TestSigmoid:
-    def setup_method(self):
-        utt.seed_rng()
-
-    def test_elemwise(self):
-        utt.verify_grad(sigmoid, [np.random.rand(3, 4)])
-
-
-class TestSoftplus:
-    def setup_method(self):
-        utt.seed_rng()
-
-    def test_elemwise(self):
-        utt.verify_grad(softplus, [np.random.rand(3, 4)])
 
 
 class TestSoftmax(utt.InferShapeTester):
