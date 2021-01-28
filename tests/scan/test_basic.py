@@ -3,7 +3,7 @@
 
    * Scan seems to do copies of every input variable. Is that needed?
    answer : probably not, but it doesn't hurt also ( what we copy is
-   theano variables, which just cary information about the type / dimension
+   aesara variables, which just cary information about the type / dimension
    of the data)
 
    * There is some of scan functionality that is not well documented
@@ -20,17 +20,16 @@ from tempfile import mkdtemp
 import numpy as np
 import pytest
 
-from tests import unittest_tools as utt
-from theano.assert_op import assert_op
-from theano.compile.debugmode import DebugMode
-from theano.compile.function import function
-from theano.compile.function.pfunc import rebuild_collect_shared
-from theano.compile.io import In
-from theano.compile.mode import FAST_RUN, Mode, get_default_mode, get_mode
-from theano.compile.monitormode import MonitorMode
-from theano.compile.sharedvalue import shared
-from theano.configdefaults import config
-from theano.gradient import (
+from aesara.assert_op import assert_op
+from aesara.compile.debugmode import DebugMode
+from aesara.compile.function import function
+from aesara.compile.function.pfunc import rebuild_collect_shared
+from aesara.compile.io import In
+from aesara.compile.mode import FAST_RUN, Mode, get_default_mode, get_mode
+from aesara.compile.monitormode import MonitorMode
+from aesara.compile.sharedvalue import shared
+from aesara.configdefaults import config
+from aesara.gradient import (
     NullTypeGradError,
     Rop,
     disconnected_grad,
@@ -38,30 +37,30 @@ from theano.gradient import (
     hessian,
     jacobian,
 )
-from theano.graph.basic import clone_replace, graph_inputs
-from theano.graph.fg import MissingInputError
-from theano.misc.safe_asarray import _asarray
-from theano.scan.basic import scan
-from theano.scan.op import Scan
-from theano.scan.opt import ScanMerge
-from theano.scan.utils import until
-from theano.scan.views import foldl, foldr
-from theano.scan.views import map as tt_map
-from theano.scan.views import reduce as tt_reduce
-from theano.tensor import basic as tt
-from theano.tensor.blas import Dot22
-from theano.tensor.elemwise import Elemwise
-from theano.tensor.math import Dot
-from theano.tensor.math import all as tt_all
-from theano.tensor.math import dot, mean
-from theano.tensor.math import sum as tt_sum
-from theano.tensor.math import tanh
-from theano.tensor.nnet import categorical_crossentropy, sigmoid, softmax_graph
-from theano.tensor.random.utils import RandomStream
-from theano.tensor.shape import Shape_i, reshape, shape, specify_shape
-from theano.tensor.sharedvar import SharedVariable
-from theano.tensor.subtensor import Subtensor, inc_subtensor
-from theano.tensor.type import (
+from aesara.graph.basic import clone_replace, graph_inputs
+from aesara.graph.fg import MissingInputError
+from aesara.misc.safe_asarray import _asarray
+from aesara.scan.basic import scan
+from aesara.scan.op import Scan
+from aesara.scan.opt import ScanMerge
+from aesara.scan.utils import until
+from aesara.scan.views import foldl, foldr
+from aesara.scan.views import map as tt_map
+from aesara.scan.views import reduce as tt_reduce
+from aesara.tensor import basic as tt
+from aesara.tensor.blas import Dot22
+from aesara.tensor.elemwise import Elemwise
+from aesara.tensor.math import Dot
+from aesara.tensor.math import all as tt_all
+from aesara.tensor.math import dot, mean
+from aesara.tensor.math import sum as tt_sum
+from aesara.tensor.math import tanh
+from aesara.tensor.nnet import categorical_crossentropy, sigmoid, softmax_graph
+from aesara.tensor.random.utils import RandomStream
+from aesara.tensor.shape import Shape_i, reshape, shape, specify_shape
+from aesara.tensor.sharedvar import SharedVariable
+from aesara.tensor.subtensor import Subtensor, inc_subtensor
+from aesara.tensor.type import (
     dcol,
     dmatrix,
     dscalar,
@@ -80,6 +79,7 @@ from theano.tensor.type import (
     tensor3,
     vector,
 )
+from tests import unittest_tools as utt
 
 
 if config.mode == "FAST_COMPILE":
@@ -303,8 +303,8 @@ class TestScan:
         steps = 5
 
         numpy_values = np.array([state * (2 ** (k + 1)) for k in range(steps)])
-        theano_values = my_f(state, steps)
-        utt.assert_allclose(numpy_values, theano_values)
+        aesara_values = my_f(state, steps)
+        utt.assert_allclose(numpy_values, aesara_values)
 
     # Test that the inner input_storage and output_storage are
     # properly cleared
@@ -369,8 +369,8 @@ class TestScan:
         steps = 5
 
         numpy_values = np.array([state * (2 ** (k + 1)) for k in range(steps)])
-        theano_values = my_f(state, steps)
-        utt.assert_allclose(numpy_values, theano_values[0])
+        aesara_values = my_f(state, steps)
+        utt.assert_allclose(numpy_values, aesara_values[0])
 
     def test_subtensor_multiple_slices(self):
         # This addresses a bug reported by Matthias Zoehrer
@@ -408,7 +408,7 @@ class TestScan:
 
     @pytest.mark.slow
     def test_only_nonseq_inputs(self):
-        # Compile the Theano function
+        # Compile the Aesara function
         n_steps = 2
         inp = matrix()
         broadcasted_inp, _ = scan(lambda x: x, non_sequences=[inp], n_steps=n_steps)
@@ -416,7 +416,7 @@ class TestScan:
         gr = grad(out, inp)
         fun = function([inp], [broadcasted_inp, gr])
 
-        # Execute the Theano function and compare outputs to the expected outputs
+        # Execute the Aesara function and compare outputs to the expected outputs
         inputs = np.array([[1, 2], [3, 4]], dtype=config.floatX)
         expected_out1 = np.repeat(inputs[None], n_steps, axis=0)
         expected_out2 = np.ones(inputs.shape, dtype="int8") * n_steps
@@ -461,8 +461,8 @@ class TestScan:
         v_out[0] = v_u[0] * W_in + v_x0 * W
         for step in range(1, 4):
             v_out[step] = v_u[step] * W_in + v_out[step - 1] * W
-        theano_values = f2(v_u, v_x0, W_in, W)
-        utt.assert_allclose(theano_values, v_out)
+        aesara_values = f2(v_u, v_x0, W_in, W)
+        utt.assert_allclose(aesara_values, v_out)
 
     # simple rnn, one input, one state, weights for each; input/state
     # are vectors, weights are scalars; using shared variables
@@ -496,8 +496,8 @@ class TestScan:
         for step in range(1, 4):
             v_out[step] = v_u[step] * W_in.get_value() + v_out[step - 1] * W.get_value()
 
-        theano_values = f3(v_u, v_x0)
-        assert np.allclose(theano_values, v_out)
+        aesara_values = f3(v_u, v_x0)
+        assert np.allclose(aesara_values, v_out)
 
     # some rnn with multiple outputs and multiple inputs; other
     # dimension instead of scalars/vectors
@@ -550,9 +550,9 @@ class TestScan:
             v_x[i] = np.dot(v_u1[i], vW_in1) + v_u2[i] * vW_in2 + np.dot(v_x[i - 1], vW)
             v_y[i] = np.dot(v_x[i - 1], vWout)
 
-        (theano_x, theano_y) = f4(v_u1, v_u2, v_x0, v_y0, vW_in1)
-        utt.assert_allclose(theano_x, v_x)
-        utt.assert_allclose(theano_y, v_y)
+        (aesara_x, aesara_y) = f4(v_u1, v_u2, v_x0, v_y0, vW_in1)
+        utt.assert_allclose(aesara_x, v_x)
+        utt.assert_allclose(aesara_y, v_y)
 
     def test_multiple_outs_taps(self):
         l = 5
@@ -865,7 +865,7 @@ class TestScan:
         )
 
         f7 = function([u, x0], outputs, updates=updates, allow_input_downcast=True)
-        theano_out = f7(vu, vx0)
+        aesara_out = f7(vu, vx0)
 
         # compute output in numpy
         # a bit of explaining:
@@ -878,7 +878,7 @@ class TestScan:
         numpy_out = np.zeros((2,))
         numpy_out[0] = vu[0] * vW_in + vx0[1] * vW + vx0[0]
         numpy_out[1] = vu[1] * vW_in + numpy_out[0] * vW + vx0[1]
-        utt.assert_allclose(numpy_out, theano_out)
+        utt.assert_allclose(numpy_out, aesara_out)
 
     # simple rnn, one input, one state, weights for each; input/state are
     # vectors, weights are scalars; using shared variables and past
@@ -909,14 +909,14 @@ class TestScan:
         )
 
         f8 = function([u, x0], output, updates=updates, allow_input_downcast=True)
-        theano_out = f8(vu, vx0)
+        aesara_out = f8(vu, vx0)
         # compute output in numpy
         numpy_out = np.zeros(2)
         # think of vu[0] as vu[-2], vu[4] as vu[2]
         # and vx0[0] as vx0[-2], vx0[1] as vx0[-1]
         numpy_out[0] = (vu[0] + vu[4]) * vW_in + vx0[1] * vW + vx0[0]
         numpy_out[1] = (vu[1] + vu[5]) * vW_in + numpy_out[0] * vW + vx0[1]
-        utt.assert_allclose(numpy_out, theano_out)
+        utt.assert_allclose(numpy_out, aesara_out)
 
     # simple rnn ; compute inplace version 1
     @utt.assertFailure_fast
@@ -978,12 +978,12 @@ class TestScan:
             numpy_x0[i] = vu0[i] * vW_in + numpy_x0[i - 1] * vW + vu1[i] * vu2[i]
             numpy_x1[i] = vu0[i] * vW_in + numpy_x1[i - 1] * vW + vu1[i] + vu2[i]
 
-        # note theano computes inplace, so call function after numpy
+        # note aesara computes inplace, so call function after numpy
         # equivalent is done
-        (theano_x0, theano_x1) = f9(vu0, vu1, vu2, vx0, vx1)
-        # assert that theano does what it should
-        utt.assert_allclose(theano_x0, numpy_x0)
-        utt.assert_allclose(theano_x1, numpy_x1)
+        (aesara_x0, aesara_x1) = f9(vu0, vu1, vu2, vx0, vx1)
+        # assert that aesara does what it should
+        utt.assert_allclose(aesara_x0, numpy_x0)
+        utt.assert_allclose(aesara_x1, numpy_x1)
 
     # simple rnn ; compute inplace version 2
     @utt.assertFailure_fast
@@ -1047,12 +1047,12 @@ class TestScan:
                 vu0[i] * vW_in + numpy_x1[i - 1] * vW + vu2[i] + vu2[i + 1] + vu2[i + 2]
             )
 
-        # note theano computes inplace, so call function after numpy
+        # note aesara computes inplace, so call function after numpy
         # equivalent is done
-        (theano_x0, theano_x1) = f9(vu0, vu1, vu2, vx0, vx1)
-        # assert that theano does what it should
-        utt.assert_allclose(theano_x0, numpy_x0)
-        utt.assert_allclose(theano_x1, numpy_x1)
+        (aesara_x0, aesara_x1) = f9(vu0, vu1, vu2, vx0, vx1)
+        # assert that aesara does what it should
+        utt.assert_allclose(aesara_x0, numpy_x0)
+        utt.assert_allclose(aesara_x1, numpy_x1)
 
     @utt.assertFailure_fast
     def test_inplace3(self):
@@ -1116,7 +1116,7 @@ class TestScan:
 
         f10 = function([u2, y0], outputs, updates=updates, allow_input_downcast=True)
         allstuff = f10(vu2, vy0)
-        theano_y0, theano_y1, theano_y2 = allstuff
+        aesara_y0, aesara_y1, aesara_y2 = allstuff
 
         # do things in numpy
         numpy_y0 = np.zeros((6, 2))
@@ -1138,9 +1138,9 @@ class TestScan:
             numpy_W1 = numpy_W1 + 0.1
             numpy_W2 = numpy_W2 + 0.05
 
-        utt.assert_allclose(theano_y0, numpy_y0[3:])
-        utt.assert_allclose(theano_y1, numpy_y1[1:])
-        utt.assert_allclose(theano_y2, numpy_y2)
+        utt.assert_allclose(aesara_y0, numpy_y0[3:])
+        utt.assert_allclose(aesara_y1, numpy_y1[1:])
+        utt.assert_allclose(aesara_y2, numpy_y2)
         utt.assert_allclose(W1.get_value(), numpy_W1)
         utt.assert_allclose(W2.get_value(), numpy_W2)
 
@@ -1168,10 +1168,10 @@ class TestScan:
         f(np.int32(0), np.float32(1.0), np.float32(0.5))
 
     def test_simple_shared_random(self):
-        theano_rng = RandomStream(utt.fetch_seed())
+        aesara_rng = RandomStream(utt.fetch_seed())
 
         values, updates = scan(
-            lambda: theano_rng.uniform(-1, 1, size=(2,)),
+            lambda: aesara_rng.uniform(-1, 1, size=(2,)),
             [],
             [],
             [],
@@ -1188,10 +1188,10 @@ class TestScan:
         for i in range(10):
             numpy_v[i] = rng.uniform(-1, 1, size=(2,))
 
-        theano_v = my_f()
-        utt.assert_allclose(theano_v, numpy_v[:5, :])
-        theano_v = my_f()
-        utt.assert_allclose(theano_v, numpy_v[5:, :])
+        aesara_v = my_f()
+        utt.assert_allclose(aesara_v, numpy_v[:5, :])
+        aesara_v = my_f()
+        utt.assert_allclose(aesara_v, numpy_v[5:, :])
 
     def test_gibbs_chain(self):
         rng = np.random.RandomState(utt.fetch_seed())
@@ -1222,12 +1222,12 @@ class TestScan:
                 trng.binomial(1, vmean_t, size=vmean_t.shape), dtype="float32"
             )
 
-        theano_vsamples, updates = scan(
+        aesara_vsamples, updates = scan(
             f, [], vsample, [], n_steps=10, truncate_gradient=-1, go_backwards=False
         )
 
         my_f = function(
-            [vsample], theano_vsamples[-1], updates=updates, allow_input_downcast=True
+            [vsample], aesara_vsamples[-1], updates=updates, allow_input_downcast=True
         )
 
         _rng = np.random.RandomState(utt.fetch_seed())
@@ -1287,8 +1287,8 @@ class TestScan:
 
         v_u = rng.uniform(-5.0, 5.0, size=(5,))
         numpy_result = v_u + 3
-        theano_result = f2(v_u)
-        utt.assert_allclose(theano_result, numpy_result)
+        aesara_result = f2(v_u)
+        utt.assert_allclose(aesara_result, numpy_result)
 
     def test_map(self):
         v = vector("v")
@@ -1301,8 +1301,8 @@ class TestScan:
         rng = np.random.RandomState(utt.fetch_seed())
         vals = rng.uniform(-5.0, 5.0, size=(10,))
         abs_vals = abs(vals)
-        theano_vals = f(vals)
-        utt.assert_allclose(abs_vals, theano_vals)
+        aesara_vals = f(vals)
+        utt.assert_allclose(abs_vals, aesara_vals)
 
     def test_backwards(self):
         def f_rnn(u_t, x_tm1, W_in, W):
@@ -1339,8 +1339,8 @@ class TestScan:
         for step in range(1, 4):
             v_out[step] = v_u[3 - step] * W_in + v_out[step - 1] * W
 
-        theano_values = f2(v_u, v_x0, W_in, W)
-        utt.assert_allclose(theano_values, v_out)
+        aesara_values = f2(v_u, v_x0, W_in, W)
+        utt.assert_allclose(aesara_values, v_out)
 
     def test_reduce(self):
         v = vector("v")
@@ -2114,12 +2114,12 @@ class TestScan:
             v_x[i] = np.dot(v_u1[i], vW_in1) + v_u2[i] * vW_in2 + np.dot(v_x[i - 1], vW)
             v_y[i] = np.dot(v_x[i - 1], vWout) + v_y[i - 1]
 
-        (theano_dump1, theano_dump2, theano_x, theano_y) = f4(
+        (aesara_dump1, aesara_dump2, aesara_x, aesara_y) = f4(
             v_u1, v_u2, v_x0, v_y0, vW_in1
         )
 
-        utt.assert_allclose(theano_x, v_x)
-        utt.assert_allclose(theano_y, v_y)
+        utt.assert_allclose(aesara_x, v_x)
+        utt.assert_allclose(aesara_y, v_y)
 
     def test_scan_as_tensor_on_gradients(self):
         # Bug reported by cityhall on scan when computing the gradients
@@ -2191,10 +2191,10 @@ class TestScan:
             v_x[i] = np.dot(v_u1[i], vW_in1) + v_u2[i] * vW_in2 + np.dot(v_x[i - 1], vW)
             v_y[i] = np.dot(v_x[i - 1], vWout) + v_y[i - 1]
 
-        (theano_dump, theano_x, theano_y) = f4(v_u1, v_u2, v_x0, v_y0, vW_in1)
+        (aesara_dump, aesara_x, aesara_y) = f4(v_u1, v_u2, v_x0, v_y0, vW_in1)
 
-        utt.assert_allclose(theano_x, v_x[-1:])
-        utt.assert_allclose(theano_y, v_y[-1:])
+        utt.assert_allclose(aesara_x, v_x[-1:])
+        utt.assert_allclose(aesara_y, v_y[-1:])
 
     def caching_nsteps_by_scan_op(self):
         W = matrix("weights")
@@ -2692,7 +2692,7 @@ class TestScan:
             outputs_info=[x, None],
         )
 
-        # Compile a theano function where any optimization error will lead to
+        # Compile an Aesara function where any optimization error will lead to
         # an exception being raised
         function([x], outputs, updates=updates)
 
@@ -3056,7 +3056,7 @@ class TestScan:
         v_out = np.dot(v_h, v_W1 + v_W2)
         sol = np.zeros((5, 2))
         # This line is here to make sol have the same shape as the output of
-        # theano. Note that what we ask theano to do is to repeat the 2
+        # aesara. Note that what we ask aesara to do is to repeat the 2
         # elements vector v_out 5 times
         sol[:, :] = v_out
         utt.assert_allclose(sol, f(v_h, v_W1, v_W2))
@@ -3080,7 +3080,7 @@ class TestScan:
 
         f = function([W1, W2, step_indices], o, mode=mode_with_opt)
 
-        # Compule an theano function without the optimization
+        # Compule an aesara function without the optimization
         o, _ = scan(
             lambda_fn,
             sequences=[step_indices, W1],
@@ -3555,7 +3555,7 @@ class TestScan:
 
     def test_grad_duplicate_outputs(self):
         # This test validates that taking the gradient of a scan, in which
-        # multiple outputs are the same theano variable, works.
+        # multiple outputs are the same aesara variable, works.
 
         def inner_fct(inp1, inp2, inp3):
             total = inp1 + inp2 + inp3
@@ -3743,10 +3743,10 @@ class TestScan:
             v_x[i] = np.dot(v_u1[i], vW_in1) + v_u2[i] * vW_in2 + np.dot(v_x[i - 1], vW)
             v_y[i] = np.dot(v_x[i - 1], vWout) + v_y[i - 1]
 
-        (theano_dump, theano_x, theano_y) = f4(v_u1, v_u2, v_x0, v_y0, vW_in1)
+        (aesara_dump, aesara_x, aesara_y) = f4(v_u1, v_u2, v_x0, v_y0, vW_in1)
 
-        utt.assert_allclose(theano_x, v_x[-2:])
-        utt.assert_allclose(theano_y, v_y[-4:])
+        utt.assert_allclose(aesara_x, v_x[-2:])
+        utt.assert_allclose(aesara_y, v_y[-4:])
 
     def test_opt_order(self):
         # Verify that scan optimizations are applied before blas
@@ -3810,7 +3810,7 @@ class TestScan:
             return_val = grad(features.sum(), w)
             return return_val
 
-        # Compile the theano function
+        # Compile the aesara function
         x = tensor3("x")
         w = matrix("w")
         f = function(inputs=[x, w], outputs=get_outputs(x, w))
@@ -4898,10 +4898,10 @@ class TestGradUntil:
         )
         g = grad(r.sum(), self.x)
         f = function([self.x, self.threshold], [r, g])
-        theano_output, theano_gradient = f(self.seq, 5)
+        aesara_output, aesara_gradient = f(self.seq, 5)
 
-        utt.assert_allclose(theano_output, self.numpy_output)
-        utt.assert_allclose(theano_gradient, self.numpy_gradient)
+        utt.assert_allclose(aesara_output, self.numpy_output)
+        utt.assert_allclose(aesara_gradient, self.numpy_gradient)
 
     def test_grad_until_ndim_greater_one(self):
         def tile_array(inp):
@@ -4917,10 +4917,10 @@ class TestGradUntil:
         )
         g = grad(r.sum(), X)
         f = function([X, self.threshold], [r, g])
-        theano_output, theano_gradient = f(arr, 5)
+        aesara_output, aesara_gradient = f(arr, 5)
 
-        utt.assert_allclose(theano_output, tile_array(self.numpy_output))
-        utt.assert_allclose(theano_gradient, tile_array(self.numpy_gradient))
+        utt.assert_allclose(aesara_output, tile_array(self.numpy_output))
+        utt.assert_allclose(aesara_gradient, tile_array(self.numpy_gradient))
 
     def test_grad_until_and_truncate(self):
         n = 3
@@ -4932,11 +4932,11 @@ class TestGradUntil:
         )
         g = grad(r.sum(), self.x)
         f = function([self.x, self.threshold], [r, g])
-        theano_output, theano_gradient = f(self.seq, 5)
+        aesara_output, aesara_gradient = f(self.seq, 5)
 
         self.numpy_gradient[: 7 - n] = 0
-        utt.assert_allclose(theano_output, self.numpy_output)
-        utt.assert_allclose(theano_gradient, self.numpy_gradient)
+        utt.assert_allclose(aesara_output, self.numpy_output)
+        utt.assert_allclose(aesara_gradient, self.numpy_gradient)
 
     def test_grad_until_and_truncate_sequence_taps(self):
         n = 3
@@ -4948,12 +4948,12 @@ class TestGradUntil:
         )
         g = grad(r.sum(), self.x)
         f = function([self.x, self.threshold], [r, g])
-        theano_output, theano_gradient = f(self.seq, 6)
+        aesara_output, aesara_gradient = f(self.seq, 6)
 
         # Gradient computed by hand:
         numpy_grad = np.array([0, 0, 0, 5, 6, 10, 4, 5, 0, 0, 0, 0, 0, 0, 0])
         numpy_grad = numpy_grad.astype(config.floatX)
-        utt.assert_allclose(theano_gradient, numpy_grad)
+        utt.assert_allclose(aesara_gradient, numpy_grad)
 
 
 def test_condition_hidden_inp():

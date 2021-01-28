@@ -4,12 +4,11 @@ import numpy as np
 import numpy.linalg
 import pytest
 
-import theano
-from tests import unittest_tools as utt
-from theano import function, grad
-from theano import tensor as tt
-from theano.configdefaults import config
-from theano.tensor.slinalg import (
+import aesara
+from aesara import function, grad
+from aesara import tensor as tt
+from aesara.configdefaults import config
+from aesara.tensor.slinalg import (
     Cholesky,
     CholeskyGrad,
     Solve,
@@ -19,7 +18,8 @@ from theano.tensor.slinalg import (
     kron,
     solve,
 )
-from theano.tensor.type import dmatrix, matrix, tensor, vector
+from aesara.tensor.type import dmatrix, matrix, tensor, vector
+from tests import unittest_tools as utt
 
 
 def check_lower_triangular(pd, ch_f):
@@ -111,9 +111,9 @@ def test_cholesky_and_cholesky_grad_shape():
     rng = np.random.RandomState(utt.fetch_seed())
     x = matrix()
     for l in (cholesky(x), Cholesky(lower=True)(x), Cholesky(lower=False)(x)):
-        f_chol = theano.function([x], l.shape)
-        g = theano.gradient.grad(l.sum(), x)
-        f_cholgrad = theano.function([x], g.shape)
+        f_chol = aesara.function([x], l.shape)
+        g = aesara.gradient.grad(l.sum(), x)
+        f_cholgrad = aesara.function([x], g.shape)
         topo_chol = f_chol.maker.fgraph.toposort()
         topo_cholgrad = f_cholgrad.maker.fgraph.toposort()
         if config.mode != "FAST_COMPILE":
@@ -176,8 +176,8 @@ class TestSolve(utt.InferShapeTester):
         A = matrix()
         b = matrix()
         self._compile_and_check(
-            [A, b],  # theano.function inputs
-            [self.op(A, b)],  # theano.function outputs
+            [A, b],  # aesara.function inputs
+            [self.op(A, b)],  # aesara.function outputs
             # A must be square
             [
                 np.asarray(rng.rand(5, 5), dtype=config.floatX),
@@ -190,8 +190,8 @@ class TestSolve(utt.InferShapeTester):
         A = matrix()
         b = vector()
         self._compile_and_check(
-            [A, b],  # theano.function inputs
-            [self.op(A, b)],  # theano.function outputs
+            [A, b],  # aesara.function inputs
+            [self.op(A, b)],  # aesara.function outputs
             # A must be square
             [
                 np.asarray(rng.rand(5, 5), dtype=config.floatX),
@@ -207,17 +207,17 @@ class TestSolve(utt.InferShapeTester):
         A = matrix()
         b = matrix()
         y = self.op(A, b)
-        gen_solve_func = theano.function([A, b], y)
+        gen_solve_func = aesara.function([A, b], y)
 
         cholesky_lower = Cholesky(lower=True)
         L = cholesky_lower(A)
         y_lower = self.op(L, b)
-        lower_solve_func = theano.function([L, b], y_lower)
+        lower_solve_func = aesara.function([L, b], y_lower)
 
         cholesky_upper = Cholesky(lower=False)
         U = cholesky_upper(A)
         y_upper = self.op(U, b)
-        upper_solve_func = theano.function([U, b], y_upper)
+        upper_solve_func = aesara.function([U, b], y_upper)
 
         b_val = np.asarray(rng.rand(5, 1), dtype=config.floatX)
 

@@ -4,18 +4,18 @@ from functools import reduce
 import numpy as np
 import pytest
 
-import theano
-import theano.ifelse
-import theano.tensor.basic as tt
+import aesara
+import aesara.ifelse
+import aesara.tensor.basic as tt
+from aesara import function
+from aesara.compile.mode import Mode, get_mode
+from aesara.graph.basic import Apply
+from aesara.graph.op import Op
+from aesara.graph.type import generic
+from aesara.ifelse import IfElse, ifelse
+from aesara.tensor.math import eq
+from aesara.tensor.type import col, iscalar, matrix, row, scalar, tensor3, vector
 from tests import unittest_tools as utt
-from theano import function
-from theano.compile.mode import Mode, get_mode
-from theano.graph.basic import Apply
-from theano.graph.op import Op
-from theano.graph.type import generic
-from theano.ifelse import IfElse, ifelse
-from theano.tensor.math import eq
-from theano.tensor.type import col, iscalar, matrix, row, scalar, tensor3, vector
 
 
 __docformat__ = "restructedtext en"
@@ -25,12 +25,12 @@ __copyright__ = "(c) 2010, Universite de Montreal"
 
 class TestIfelse(utt.OptimizationTestMixin):
     mode = None
-    dtype = theano.config.floatX
+    dtype = aesara.config.floatX
     cast_output = staticmethod(tt.as_tensor_variable)
-    shared = staticmethod(theano.shared)
+    shared = staticmethod(aesara.shared)
 
     def get_ifelse(self, n):
-        if theano.config.mode == "FAST_COMPILE":
+        if aesara.config.mode == "FAST_COMPILE":
             return IfElse(n)
         else:
             return IfElse(n, as_view=True)
@@ -130,7 +130,7 @@ class TestIfelse(utt.OptimizationTestMixin):
         y = vector("y", dtype=self.dtype)
         c = iscalar("c")
         z = ifelse(c, x, y)
-        gx, gy = theano.grad(z.sum(), [x, y])
+        gx, gy = aesara.grad(z.sum(), [x, y])
 
         f = function(
             [c, x, y], [self.cast_output(gx), self.cast_output(gy)], mode=self.mode
@@ -163,7 +163,7 @@ class TestIfelse(utt.OptimizationTestMixin):
         y = vector("y", dtype=self.dtype)
         c = iscalar("c")
         z = ifelse(c, self.cast_output(x), self.cast_output(y))
-        gx, gy = theano.grad(z.sum(), [x, y])
+        gx, gy = aesara.grad(z.sum(), [x, y])
 
         function([c, x, y], [gx, gy], mode=self.mode)
 
@@ -207,14 +207,14 @@ class TestIfelse(utt.OptimizationTestMixin):
         y2 = vector("y2")
         c = iscalar("c")
         z = ifelse(c, (x1, x2), (y1, y2))
-        grads = theano.grad(z[0].sum() + z[1].sum(), [x1, x2, y1, y2])
+        grads = aesara.grad(z[0].sum() + z[1].sum(), [x1, x2, y1, y2])
 
         f = function([c, x1, x2, y1, y2], grads)
         rng = np.random.RandomState(utt.fetch_seed())
 
         lens = [rng.randint(200) for i in range(4)]
         values = [
-            np.asarray(rng.uniform(size=(l,)), theano.config.floatX) for l in lens
+            np.asarray(rng.uniform(size=(l,)), aesara.config.floatX) for l in lens
         ]
         outs_1 = f(1, *values)
         assert all([x.shape[0] == y for x, y in zip(outs_1, lens)])
@@ -311,13 +311,13 @@ class TestIfelse(utt.OptimizationTestMixin):
     def test_sparse_tensor_error(self):
         pytest.importorskip("scipy", minversion="0.7.0")
 
-        import theano.sparse
+        import aesara.sparse
 
         rng = np.random.RandomState(utt.fetch_seed())
         data = rng.rand(2, 3).astype(self.dtype)
         x = self.shared(data)
-        y = theano.sparse.matrix("csc", dtype=self.dtype, name="y")
-        z = theano.sparse.matrix("csr", dtype=self.dtype, name="z")
+        y = aesara.sparse.matrix("csc", dtype=self.dtype, name="y")
+        z = aesara.sparse.matrix("csr", dtype=self.dtype, name="z")
         cond = iscalar("cond")
 
         with pytest.raises(TypeError):
@@ -402,10 +402,10 @@ class TestIfelse(utt.OptimizationTestMixin):
         y1 = scalar("x2")
         y2 = scalar("y2")
         c = iscalar("c")
-        two = np.asarray(2, dtype=theano.config.floatX)
+        two = np.asarray(2, dtype=aesara.config.floatX)
         x, y = ifelse(c, (x1, y1), (two, y2), name="f1")
-        o3 = np.asarray(0.3, dtype=theano.config.floatX)
-        o2 = np.asarray(0.2, dtype=theano.config.floatX)
+        o3 = np.asarray(0.3, dtype=aesara.config.floatX)
+        o2 = np.asarray(0.2, dtype=aesara.config.floatX)
         z = ifelse(c, o3, o2, name="f2")
         out = x * z * y
 
@@ -485,15 +485,15 @@ class TestIfelse(utt.OptimizationTestMixin):
 
     def test_grad_test_values(self):
         # Regression test for test values of `ifelse` gradient.
-        with theano.config.change_flags(compute_test_value="raise"):
+        with aesara.config.change_flags(compute_test_value="raise"):
             x = scalar("x")
             x.tag.test_value = 1
             # Used to crash due to undefined test value.
-            theano.grad(ifelse(0, x, x), x)
+            aesara.grad(ifelse(0, x, x), x)
 
     def test_grad_int_value(self):
-        w = theano.shared(np.random.rand(10))
-        b = theano.shared(np.random.rand())
+        w = aesara.shared(np.random.rand(10))
+        b = aesara.shared(np.random.rand())
         params = [w, b]
 
         x = vector()
@@ -503,7 +503,7 @@ class TestIfelse(utt.OptimizationTestMixin):
         correct = score * y > 0
 
         loss = ifelse(correct, 0, 1)
-        [(param, param - 0.5 * theano.grad(cost=loss, wrt=param)) for param in params]
+        [(param, param - 0.5 * aesara.grad(cost=loss, wrt=param)) for param in params]
 
 
 class IfElseIfElseIf(Op):
@@ -615,17 +615,17 @@ def test_ifelse():
 
     lazys = [True]
     # We need lazy to end up being True for this test.
-    if theano.config.vm__lazy in [True, None]:
+    if aesara.config.vm__lazy in [True, None]:
         lazys = [True, None]
 
     cloops = [True, False]
 
-    if theano.config.cxx == "":
+    if aesara.config.cxx == "":
         cloops = [False]
 
     for cloop in cloops:
         for lazy in lazys:
-            linker = theano.link.vm.VMLinker(use_cloop=cloop, lazy=lazy)
+            linker = aesara.link.vm.VMLinker(use_cloop=cloop, lazy=lazy)
             f = function(
                 [a, b, c],
                 ifelse(a, notimpl(b), c),
@@ -655,11 +655,11 @@ def test_nested():
     t4 = ifelseifelseif(eq(x1, x2), x1, eq(x1, 5), x2, c2, t3, t3 + 0.5)
     t4.name = "t4"
 
-    linker = theano.link.vm.VMLinker(lazy=False)
+    linker = aesara.link.vm.VMLinker(lazy=False)
     f = function([c1, c2, x1, x2], t4, mode=Mode(linker=linker, optimizer="fast_run"))
     with pytest.raises(NotImplementedOpException):
         f(1, 0, np.array(10, dtype=x1.dtype), 0)
 
-    linker = theano.link.vm.VMLinker(lazy=True)
+    linker = aesara.link.vm.VMLinker(lazy=True)
     f = function([c1, c2, x1, x2], t4, mode=Mode(linker=linker, optimizer="fast_run"))
     assert f(1, 0, np.array(10, dtype=x1.dtype), 0) == 20.5

@@ -1,8 +1,8 @@
 import numpy as np
 
-import theano
-import theano.tensor as tt
-from theano.tensor.type import dmatrix, scalars
+import aesara
+import aesara.tensor as tt
+from aesara.tensor.type import dmatrix, scalars
 
 
 class Mlp:
@@ -17,13 +17,13 @@ class Mlp:
         self.nhiddens = nhiddens
 
         x = dmatrix("x")
-        wh = theano.shared(self.rng.normal(0, 1, (nfeatures, nhiddens)), borrow=True)
-        bh = theano.shared(np.zeros(nhiddens), borrow=True)
-        h = theano.tensor.nnet.sigmoid(tt.dot(x, wh) + bh)
+        wh = aesara.shared(self.rng.normal(0, 1, (nfeatures, nhiddens)), borrow=True)
+        bh = aesara.shared(np.zeros(nhiddens), borrow=True)
+        h = aesara.tensor.nnet.sigmoid(tt.dot(x, wh) + bh)
 
-        wy = theano.shared(self.rng.normal(0, 1, (nhiddens, noutputs)))
-        by = theano.shared(np.zeros(noutputs), borrow=True)
-        y = theano.tensor.nnet.softmax(tt.dot(h, wy) + by)
+        wy = aesara.shared(self.rng.normal(0, 1, (nhiddens, noutputs)))
+        by = aesara.shared(np.zeros(noutputs), borrow=True)
+        y = aesara.tensor.nnet.softmax(tt.dot(h, wy) + by)
 
         self.inputs = [x]
         self.outputs = [y]
@@ -33,9 +33,9 @@ class OfgNested:
     def __init__(self):
         x, y, z = scalars("xyz")
         e = x * y
-        op = theano.compile.builders.OpFromGraph([x, y], [e])
+        op = aesara.compile.builders.OpFromGraph([x, y], [e])
         e2 = op(x, y) + z
-        op2 = theano.compile.builders.OpFromGraph([x, y, z], [e2])
+        op2 = aesara.compile.builders.OpFromGraph([x, y, z], [e2])
         e3 = op2(x, y, z) + z
 
         self.inputs = [x, y, z]
@@ -45,8 +45,8 @@ class OfgNested:
 class Ofg:
     def __init__(self):
         x, y, z = scalars("xyz")
-        e = theano.tensor.nnet.sigmoid((x + y + z) ** 2)
-        op = theano.compile.builders.OpFromGraph([x, y, z], [e])
+        e = aesara.tensor.nnet.sigmoid((x + y + z) ** 2)
+        op = aesara.compile.builders.OpFromGraph([x, y, z], [e])
         e2 = op(x, y, z) + op(z, y, x)
 
         self.inputs = [x, y, z]
@@ -56,8 +56,8 @@ class Ofg:
 class OfgSimple:
     def __init__(self):
         x, y, z = scalars("xyz")
-        e = theano.tensor.nnet.sigmoid((x + y + z) ** 2)
-        op = theano.compile.builders.OpFromGraph([x, y, z], [e])
+        e = aesara.tensor.nnet.sigmoid((x + y + z) ** 2)
+        op = aesara.compile.builders.OpFromGraph([x, y, z], [e])
         e2 = op(x, y, z)
 
         self.inputs = [x, y, z]

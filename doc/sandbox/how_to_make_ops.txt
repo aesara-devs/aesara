@@ -12,7 +12,7 @@ An Op class can represent one or a wide variety of functions depending on how yo
 
 It is not always obvious what should be a parameter and what should be an input. For example, a generic indexing Op could take a list and an index as graph inputs, whereas a specific indexing Op could have an index parameter, so you could have a specialized Op instance to fetch the nth element of a list, where n is known statically. [*Could you give some advice about the relative tradeoffs of having something as a parameter and something as an input?*]
 
-Examples of parameterized Ops in theano:
+Examples of parameterized Ops in aesara:
   ``Broadcast(<scalar op>, <inplace?>)``
     upgrades an op that works on scalars so it works on tensors. Can work inplace or not.
   ``Reduce(<scalar op>, <axes>)``
@@ -46,7 +46,7 @@ The ``make_node`` method is expected to have the following signature:
 
     make_node(self, *inputs)
 
-``inputs`` may be a list of anything that the user wants to provide as symbolic input (symbolic: standing for the actual values that will be passed when the graph is compiled into an executable function). [*The Theano intro should describe symbolic in greater depth, and we should link to that from here.*] This may or may not include Variable instances (but if you want the inputs of this Op to sometimes be outputs of another Op, then the inputs should be Variable instances). [*What else could they be? Constant, Values, ...*] The return value should be an instance of [GraphStructures Apply] (see the example below). Here are the tasks typically handled in ``make_node``.
+``inputs`` may be a list of anything that the user wants to provide as symbolic input (symbolic: standing for the actual values that will be passed when the graph is compiled into an executable function). [*The Aesara intro should describe symbolic in greater depth, and we should link to that from here.*] This may or may not include Variable instances (but if you want the inputs of this Op to sometimes be outputs of another Op, then the inputs should be Variable instances). [*What else could they be? Constant, Values, ...*] The return value should be an instance of [GraphStructures Apply] (see the example below). Here are the tasks typically handled in ``make_node``.
 
   * Check that the inputs are valid (type checking, etc.). [*Since we don't actually have values, what can we do besides type checking?*]
   * If needed, wrap the inputs in Variable instances with the proper type.
@@ -59,12 +59,12 @@ Example:
 
 .. code-block:: python
 
-	from theano.scalar import *
-	
+	from aesara.scalar import *
+
 	class Add(Op):
 	    #...
 	    def make_node(self, x, y):
-	        # note 1: constant, int64 and Scalar are defined in theano.scalar
+	        # note 1: constant, int64 and Scalar are defined in aesara.scalar
 	        # note 2: constant(x) is equivalent to Constant(type = int64, data = x)
 	        # note 3: the call int64() is equivalent to Variable(type = int64) or Variable(type = Scalar(dtype = 'int64'))
 	        if isinstance(x, int):
@@ -80,7 +80,7 @@ Example:
 	        node = Apply(op = self, inputs = inputs, outputs = outputs)
 	        return node
 	    #...
-	
+
 	add = Add()                               # I make an instance of Add
 	node1 = add.make_node(int64(), int64())   # I make a node with two Variable inputs
 	node2 = add.make_node(1, 2)               # this works too
@@ -113,7 +113,7 @@ It is not necessary or recommended to override ``__call__`` unless you want to h
 perform
 =======
 
-The ``perform`` method is expected to have the following signature: 
+The ``perform`` method is expected to have the following signature:
 
 ``
 perform(self, node, inputs, output_storage)
@@ -140,7 +140,7 @@ Here is an example of a properly defined ``perform``:
 	        z, = output_storage  # extract the one storage (the comma after z is not optional)
 	        z[0] = x + y         # we must put the variable in z[0]
 	    ...
-	
+
 	add = Add()                               # I make an instance of Add
 	node = add.make_node(int64(), int64())    # I make a node with two integer inputs
 	storage = [None]                          # I make my storage as a 1-element list with None
@@ -167,7 +167,7 @@ Advanced note: for an Op with multiple outputs, it is possible that some of them
 grad
 ====
 
-``grad`` is a theano-specific [*as opposed to?*]  function - it does not interface with core optimization and compilation facilities, but it provides a useful interface to differentiation. Its expected signature is:
+``grad`` is an Aesara-specific [*as opposed to?*]  function - it does not interface with core optimization and compilation facilities, but it provides a useful interface to differentiation. Its expected signature is:
 
 .. code-block:: python
 
@@ -190,9 +190,9 @@ Essentially, the semantics are:
 	def grad(self, (x, y), (gz, gw)):
 	   # In this situation you want two return values that have the shape of x and y respectively
 	   return gz*dz/dx + gw*dw/dx, gz*dz/dy + gw*dw/dy
-	
-More specifically, 
-``grad`` must return a list or tuple of input gradients, as many as there are inputs. Let C be a Variable (currently assumed to be a scalar) that depends through a theano symbolic expression on the node outputs. Then each output_gradients[i] represents symbolically dC/doutputs[i]. The returned input gradients should represent symbolically dC/dinputs[i].
+
+More specifically,
+``grad`` must return a list or tuple of input gradients, as many as there are inputs. Let C be a Variable (currently assumed to be a scalar) that depends through an Aesara symbolic expression on the node outputs. Then each output_gradients[i] represents symbolically dC/doutputs[i]. The returned input gradients should represent symbolically dC/dinputs[i].
 
 Example:
 
@@ -207,7 +207,7 @@ Example:
 	    ...
 	mul = Mul()
 
-If the op is not differentiable wrt one of its inputs, the gradient for that input should be ``None``; if the op is not differentiable with respect to any of its inputs, it should return something equivalent to 
+If the op is not differentiable wrt one of its inputs, the gradient for that input should be ``None``; if the op is not differentiable with respect to any of its inputs, it should return something equivalent to
 ``[None] * len(inputs)``.  If ``grad`` is not implemented for any op in a graph, then the symbolic gradient engine will complain (with an attribute exception).
 
 
@@ -254,7 +254,7 @@ Example: if we expect to call the op repeatedly on incrementally bigger inputs, 
 	    default_output = 0
 	    def make_node(self, x, y):
 	        return Apply(self, [x,y], [x.type.make_variable(), x.type.make_variable()])
-	
+
 	    def perform(self, node, (x, y), (z, stor)):
 	        if z[0] is None or stor[0] is None:
 	            stor[0] = numpy.ndarray(x.size * 2)
@@ -273,6 +273,3 @@ It is also possible but potentially more complicated to use "private
 inputs" to do the same thing: inputs cannot be set, though their contents
 can be modified, so a wrapper would be needed and the input must be
 marked as 'destroyed' by the Op using the 'destroy_map' field.
-
-
-

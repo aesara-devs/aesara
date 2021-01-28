@@ -1,19 +1,19 @@
 import numpy as np
 from pytest import fixture, raises
 
-import theano.tensor as tt
-from theano import config
-from theano.assert_op import Assert
-from theano.gradient import NullTypeGradError, grad
-from theano.tensor.math import eq
-from theano.tensor.random.basic import normal
-from theano.tensor.random.op import RandomVariable, default_shape_from_params, observed
-from theano.tensor.type import all_dtypes, iscalar, tensor, vector
-from theano.tensor.type_other import NoneTypeT
+import aesara.tensor as tt
+from aesara import config
+from aesara.assert_op import Assert
+from aesara.gradient import NullTypeGradError, grad
+from aesara.tensor.math import eq
+from aesara.tensor.random.basic import normal
+from aesara.tensor.random.op import RandomVariable, default_shape_from_params, observed
+from aesara.tensor.type import all_dtypes, iscalar, tensor, vector
+from aesara.tensor.type_other import NoneTypeT
 
 
 @fixture(scope="module", autouse=True)
-def set_theano_flags():
+def set_aesara_flags():
     with config.change_flags(cxx="", compute_test_value="raise"):
         yield
 

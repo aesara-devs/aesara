@@ -7,17 +7,17 @@ Utility functions
 Optimization
 ------------
 
-.. automodule:: theano.gpuarray.opt_util
+.. automodule:: aesara.gpuarray.opt_util
    :members:
 
 Kernel generation
 -----------------
 
-.. automodule:: theano.gpuarray.kernel_codegen
+.. automodule:: aesara.gpuarray.kernel_codegen
    :members:
 
 float16
 -------
 
-.. automodule:: theano.gpuarray.fp16_help
+.. automodule:: aesara.gpuarray.fp16_help
    :members:

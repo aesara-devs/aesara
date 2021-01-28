@@ -5,12 +5,12 @@
 :mod:`random` -- Low-level random numbers
 =============================================
 
-.. module:: theano.tensor.random
+.. module:: aesara.tensor.random
    :synopsis: symbolic random variables
 .. moduleauthor:: pymc-team
 
 
-The `theano.tensor.random` module provides random-number drawing functionality
+The `aesara.tensor.random` module provides random-number drawing functionality
 that closely resembles the `numpy.random` module.
 
 Reference
@@ -24,7 +24,7 @@ Reference
 
    .. testcode:: constructors
 
-      from theano.tensor.random.utils import RandomStream
+      from aesara.tensor.random.utils import RandomStream
 
       rng = RandomStream()
       sample = rng.normal(0, 1, size=(2, 2))

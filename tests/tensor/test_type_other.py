@@ -1,10 +1,10 @@
 """ This file don't test everything. It only test one past crash error."""
 
-import theano
-from theano.graph.basic import Constant
-from theano.tensor.math import argmax
-from theano.tensor.type import iscalar, vector
-from theano.tensor.type_other import MakeSlice, NoneConst, NoneTypeT, make_slice
+import aesara
+from aesara.graph.basic import Constant
+from aesara.tensor.math import argmax
+from aesara.tensor.type import iscalar, vector
+from aesara.tensor.type_other import MakeSlice, NoneConst, NoneTypeT, make_slice
 
 
 def test_make_slice_merge():
@@ -12,7 +12,7 @@ def test_make_slice_merge():
     i = iscalar()
     s1 = make_slice(0, i)
     s2 = make_slice(0, i)
-    f = theano.function([i], [s1, s2])
+    f = aesara.function([i], [s1, s2])
     nodes = f.maker.fgraph.apply_nodes
     assert len([n for n in nodes if isinstance(n.op, MakeSlice)]) == 1
 
@@ -34,13 +34,13 @@ def test_none_Constant():
     # This trigger equals that returned the wrong answer in the past.
     import pickle
 
-    import theano
+    import aesara
 
     x = vector("x")
     y = argmax(x)
     kwargs = {}
     # We can't pickle DebugMode
-    if theano.config.mode in ["DebugMode", "DEBUG_MODE"]:
+    if aesara.config.mode in ["DebugMode", "DEBUG_MODE"]:
         kwargs = {"mode": "FAST_RUN"}
-    f = theano.function([x], [y], **kwargs)
+    f = aesara.function([x], [y], **kwargs)
     pickle.loads(pickle.dumps(f))

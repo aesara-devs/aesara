@@ -1,4 +1,4 @@
-name: theano-docs
+name: aesara-docs
 channels:
   - defaults
   - conda-forge

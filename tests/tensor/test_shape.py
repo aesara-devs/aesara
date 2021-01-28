@@ -1,19 +1,16 @@
 import numpy as np
 import pytest
 
-import theano
-from tests import unittest_tools as utt
-from tests.tensor.utils import eval_outputs, rand
-from tests.test_rop import RopLopChecker
-from theano import function
-from theano.compile.ops import DeepCopyOp
-from theano.configdefaults import config
-from theano.graph.fg import FunctionGraph
-from theano.misc.safe_asarray import _asarray
-from theano.tensor.basic import MakeVector, as_tensor_variable, constant
-from theano.tensor.basic_opt import ShapeFeature
-from theano.tensor.elemwise import DimShuffle, Elemwise
-from theano.tensor.shape import (
+import aesara
+from aesara import function
+from aesara.compile.ops import DeepCopyOp
+from aesara.configdefaults import config
+from aesara.graph.fg import FunctionGraph
+from aesara.misc.safe_asarray import _asarray
+from aesara.tensor.basic import MakeVector, as_tensor_variable, constant
+from aesara.tensor.basic_opt import ShapeFeature
+from aesara.tensor.elemwise import DimShuffle, Elemwise
+from aesara.tensor.shape import (
     Reshape,
     Shape_i,
     SpecifyShape,
@@ -22,8 +19,8 @@ from theano.tensor.shape import (
     shape_i,
     specify_shape,
 )
-from theano.tensor.subtensor import Subtensor
-from theano.tensor.type import (
+from aesara.tensor.subtensor import Subtensor
+from aesara.tensor.type import (
     TensorType,
     dmatrix,
     dtensor4,
@@ -34,8 +31,11 @@ from theano.tensor.type import (
     tensor3,
     vector,
 )
-from theano.tensor.type_other import NoneConst
-from theano.typed_list import make_list
+from aesara.tensor.type_other import NoneConst
+from aesara.typed_list import make_list
+from tests import unittest_tools as utt
+from tests.tensor.utils import eval_outputs, rand
+from tests.test_rop import RopLopChecker
 
 
 def test_shape_basic():
@@ -54,7 +54,7 @@ def test_shape_basic():
 
 class TestReshape(utt.InferShapeTester, utt.OptimizationTestMixin):
     def setup_method(self):
-        self.shared = theano.shared
+        self.shared = aesara.shared
         self.op = Reshape
         # The tag canonicalize is needed for the shape test in FAST_COMPILE
         self.mode = None
@@ -313,7 +313,7 @@ class TestSpecifyShape(utt.InferShapeTester):
 
         x = vector()
         xval = np.random.rand(2).astype(config.floatX)
-        f = theano.function([x], specify_shape(x, [2]), mode=self.mode)
+        f = aesara.function([x], specify_shape(x, [2]), mode=self.mode)
         f(xval)
         xval = np.random.rand(3).astype(config.floatX)
         with pytest.raises(AssertionError):
@@ -328,7 +328,7 @@ class TestSpecifyShape(utt.InferShapeTester):
 
         x = matrix()
         xval = np.random.rand(2, 3).astype(config.floatX)
-        f = theano.function([x], specify_shape(x, [2, 3]), mode=self.mode)
+        f = aesara.function([x], specify_shape(x, [2, 3]), mode=self.mode)
         assert isinstance(
             [n for n in f.maker.fgraph.toposort() if isinstance(n.op, SpecifyShape)][0]
             .inputs[0]
@@ -353,7 +353,7 @@ class TestSpecifyShape(utt.InferShapeTester):
         with pytest.raises(AssertionError):
             specify_shape(x, [2, 2])
 
-        f = theano.function([x, shape_vec], specify_shape(x, shape_vec), mode=self.mode)
+        f = aesara.function([x, shape_vec], specify_shape(x, shape_vec), mode=self.mode)
         assert isinstance(
             [n for n in f.maker.fgraph.toposort() if isinstance(n.op, SpecifyShape)][0]
             .inputs[0]
@@ -370,7 +370,7 @@ class TestSpecifyShape(utt.InferShapeTester):
         for shape_ in [(), (1,), (2, 3, 4)]:
             with pytest.raises(AssertionError):
                 specify_shape(x, shape_)
-            f = theano.function(
+            f = aesara.function(
                 [x, shape_vec], specify_shape(x, shape_vec), mode=self.mode
             )
             assert isinstance(

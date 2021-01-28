@@ -3,17 +3,17 @@ import time
 
 import numpy as np
 
-import theano
-from theano.compile.mode import Mode
-from theano.link.basic import PerformLinker
-from theano.link.c.basic import OpWiseCLinker
-from theano.tensor.type import dvector, lvector
+import aesara
+from aesara.compile.mode import Mode
+from aesara.link.basic import PerformLinker
+from aesara.link.c.basic import OpWiseCLinker
+from aesara.tensor.type import dvector, lvector
 
 
 def test_no_reuse():
     x = lvector()
     y = lvector()
-    f = theano.function([x, y], x + y)
+    f = aesara.function([x, y], x + y)
 
     # provide both inputs in the first call
     f(np.ones(10, dtype="int64"), np.ones(10, dtype="int64"))
@@ -43,8 +43,8 @@ def test_gc_never_pickles_temporaries():
 
         # g_linker has no garbage collection
 
-        f = theano.function([x], r, mode=Mode(optimizer=optimizer, linker=f_linker))
-        g = theano.function([x], r, mode=Mode(optimizer=optimizer, linker=g_linker))
+        f = aesara.function([x], r, mode=Mode(optimizer=optimizer, linker=f_linker))
+        g = aesara.function([x], r, mode=Mode(optimizer=optimizer, linker=g_linker))
 
         pre_f = pickle.dumps(f)
         # pre_g = pickle.dumps(g)
@@ -64,7 +64,7 @@ def test_gc_never_pickles_temporaries():
         assert a(g) == a(g)  # some sanity checks on the pickling mechanism
 
         def b(fn):
-            return len(pickle.dumps(theano.compile.function.types._pickle_Function(fn)))
+            return len(pickle.dumps(aesara.compile.function.types._pickle_Function(fn)))
 
         assert b(f) == b(f)  # some sanity checks on the pickling mechanism
 
@@ -109,7 +109,7 @@ def test_merge_opt_runtime():
         r = r + r / 10
 
     t = time.time()
-    theano.function([x], r, mode="FAST_COMPILE")
+    aesara.function([x], r, mode="FAST_COMPILE")
     # FAST_RUN does in-place optimizer which requires a lot of
     # toposorting, which is actually pretty slow at the moment.  This
     # test was designed to test MergeOptimizer... so I'm leaving

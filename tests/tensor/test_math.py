@@ -10,76 +10,27 @@ import numpy as np
 import pytest
 from numpy.testing import assert_array_equal
 
-import theano.scalar as ts
-from tests import unittest_tools as utt
-from tests.tensor.utils import (
-    _bad_build_broadcast_binary_normal,
-    _bad_runtime_broadcast_binary_normal,
-    _bad_runtime_inv,
-    _eps,
-    _good_broadcast_binary_arctan2,
-    _good_broadcast_binary_normal,
-    _good_broadcast_div_mod_normal_float,
-    _good_broadcast_div_mod_normal_float_no_complex,
-    _good_broadcast_pow_normal_float,
-    _good_broadcast_unary_arccosh,
-    _good_broadcast_unary_arcsin,
-    _good_broadcast_unary_arctanh,
-    _good_broadcast_unary_normal,
-    _good_broadcast_unary_normal_float_no_complex,
-    _good_broadcast_unary_normal_float_no_empty_no_complex,
-    _good_broadcast_unary_normal_no_complex,
-    _good_broadcast_unary_positive,
-    _good_broadcast_unary_tan,
-    _good_broadcast_unary_wide,
-    _good_inv,
-    _grad_broadcast_binary_normal,
-    _grad_broadcast_pow_normal,
-    _grad_broadcast_unary_normal,
-    _grad_broadcast_unary_normal_no_complex,
-    _grad_broadcast_unary_normal_no_complex_no_corner_case,
-    _grad_broadcast_unary_normal_noint,
-    _grad_inv,
-    _numpy_true_div,
-    angle_eps,
-    check_floatX,
-    copymod,
-    div_grad_rtol,
-    eval_outputs,
-    get_numeric_types,
-    ignore_isfinite_mode,
-    inplace_func,
-    makeBroadcastTester,
-    makeTester,
-    rand,
-    rand_nonzero,
-    rand_ranged,
-    randcomplex,
-    randint,
-    randuint32,
-    upcast_float16_ufunc,
-    upcast_int8_nfunc,
-)
-from theano.compile.debugmode import DebugMode
-from theano.compile.function import function
-from theano.compile.mode import get_default_mode
-from theano.compile.sharedvalue import shared
-from theano.configdefaults import config
-from theano.gradient import NullTypeGradError, grad, numeric_grad
-from theano.graph.basic import Variable, applys_between
-from theano.graph.fg import FunctionGraph
-from theano.link.c.basic import DualLinker
-from theano.misc.safe_asarray import _asarray
-from theano.tensor import blas, blas_c
-from theano.tensor.basic import (
+import aesara.scalar as ts
+from aesara.compile.debugmode import DebugMode
+from aesara.compile.function import function
+from aesara.compile.mode import get_default_mode
+from aesara.compile.sharedvalue import shared
+from aesara.configdefaults import config
+from aesara.gradient import NullTypeGradError, grad, numeric_grad
+from aesara.graph.basic import Variable, applys_between
+from aesara.graph.fg import FunctionGraph
+from aesara.link.c.basic import DualLinker
+from aesara.misc.safe_asarray import _asarray
+from aesara.tensor import blas, blas_c
+from aesara.tensor.basic import (
     as_tensor_variable,
     constant,
     eye,
     get_scalar_constant_value,
     switch,
 )
-from theano.tensor.elemwise import CAReduce, Elemwise
-from theano.tensor.math import (
+from aesara.tensor.elemwise import CAReduce, Elemwise
+from aesara.tensor.math import (
     Argmax,
     Dot,
     MaxAndArgmax,
@@ -149,10 +100,10 @@ from theano.tensor.math import (
     sqrt,
     sub,
 )
-from theano.tensor.math import sum as tt_sum
-from theano.tensor.math import tan, tanh, tensordot, true_div, trunc, var
-from theano.tensor.nnet import sigmoid
-from theano.tensor.type import (
+from aesara.tensor.math import sum as tt_sum
+from aesara.tensor.math import tan, tanh, tensordot, true_div, trunc, var
+from aesara.tensor.nnet import sigmoid
+from aesara.tensor.type import (
     TensorType,
     complex_dtypes,
     continuous_dtypes,
@@ -180,7 +131,56 @@ from theano.tensor.type import (
     vectors,
     zvector,
 )
-from theano.tensor.type_other import NoneConst
+from aesara.tensor.type_other import NoneConst
+from tests import unittest_tools as utt
+from tests.tensor.utils import (
+    _bad_build_broadcast_binary_normal,
+    _bad_runtime_broadcast_binary_normal,
+    _bad_runtime_inv,
+    _eps,
+    _good_broadcast_binary_arctan2,
+    _good_broadcast_binary_normal,
+    _good_broadcast_div_mod_normal_float,
+    _good_broadcast_div_mod_normal_float_no_complex,
+    _good_broadcast_pow_normal_float,
+    _good_broadcast_unary_arccosh,
+    _good_broadcast_unary_arcsin,
+    _good_broadcast_unary_arctanh,
+    _good_broadcast_unary_normal,
+    _good_broadcast_unary_normal_float_no_complex,
+    _good_broadcast_unary_normal_float_no_empty_no_complex,
+    _good_broadcast_unary_normal_no_complex,
+    _good_broadcast_unary_positive,
+    _good_broadcast_unary_tan,
+    _good_broadcast_unary_wide,
+    _good_inv,
+    _grad_broadcast_binary_normal,
+    _grad_broadcast_pow_normal,
+    _grad_broadcast_unary_normal,
+    _grad_broadcast_unary_normal_no_complex,
+    _grad_broadcast_unary_normal_no_complex_no_corner_case,
+    _grad_broadcast_unary_normal_noint,
+    _grad_inv,
+    _numpy_true_div,
+    angle_eps,
+    check_floatX,
+    copymod,
+    div_grad_rtol,
+    eval_outputs,
+    get_numeric_types,
+    ignore_isfinite_mode,
+    inplace_func,
+    makeBroadcastTester,
+    makeTester,
+    rand,
+    rand_nonzero,
+    rand_ranged,
+    randcomplex,
+    randint,
+    randuint32,
+    upcast_float16_ufunc,
+    upcast_int8_nfunc,
+)
 
 
 if config.mode == "FAST_COMPILE":
@@ -1242,7 +1242,7 @@ class TestMinMax:
         # Test the gradient when we have multiple axis at the same time.
         #
         # This not implemented, so we disable the test. See ticket:
-        # http://www.assembla.com/spaces/theano/tickets/511
+        # http://www.assembla.com/spaces/aesara/tickets/511
         data = rand(2, 3)
         for fct in [max_and_argmax, max, min]:
             utt.verify_grad(lambda v: fct(v, axis=[0, 1]), [data])
@@ -1710,7 +1710,7 @@ class TestAdd:
             for s, fn in tests:
                 f = inplace_func([], fn(a, b))
                 # print 'valid output:', fn(a.data, b.data)
-                # print 'theano output:', f(a.data, b.data)
+                # print 'Aesara output:', f(a.data, b.data)
                 assert a.type.values_eq_approx(fn(a.get_value(), b.get_value()), f())
 
     def test_grad_scalar_l(self):
@@ -1807,7 +1807,7 @@ class TestMean:
 
 
 def test_dot_numpy_inputs():
-    """Test the `theano.tensor.dot` interface function with NumPy inputs."""
+    """Test the `Aesara.tensor.dot` interface function with NumPy inputs."""
     a = np.ones(2)
     b = np.ones(2)
     res = dot(a, b)
@@ -2199,20 +2199,20 @@ class TestArithmeticCast:
         # Here:
         # scalar == scalar stored as a 0d array
         # array == 1d array
-        # i_scalar == scalar type used internally by Theano
-        def theano_scalar(dtype):
+        # i_scalar == scalar type used internally by Aesara
+        def Aesara_scalar(dtype):
             return scalar(dtype=str(dtype))
 
         def numpy_scalar(dtype):
             return np.array(1, dtype=dtype)
 
-        def theano_array(dtype):
+        def Aesara_array(dtype):
             return vector(dtype=str(dtype))
 
         def numpy_array(dtype):
             return np.array([1], dtype=dtype)
 
-        def theano_i_scalar(dtype):
+        def Aesara_i_scalar(dtype):
             return ts.Scalar(str(dtype))()
 
         def numpy_i_scalar(dtype):
@@ -2243,15 +2243,15 @@ class TestArithmeticCast:
                                     ("i_scalar", "i_scalar"),
                                 ):
 
-                                    theano_args = list(
-                                        map(eval, [f"theano_{c}" for c in combo])
+                                    Aesara_args = list(
+                                        map(eval, [f"Aesara_{c}" for c in combo])
                                     )
                                     numpy_args = list(
                                         map(eval, [f"numpy_{c}" for c in combo])
                                     )
-                                    theano_dtype = op(
-                                        theano_args[0](a_type),
-                                        theano_args[1](b_type),
+                                    Aesara_dtype = op(
+                                        Aesara_args[0](a_type),
+                                        Aesara_args[1](b_type),
                                     ).type.dtype
 
                                     # For numpy we have a problem:
@@ -2269,7 +2269,7 @@ class TestArithmeticCast:
                                     numpy_dtype = ts.upcast(
                                         *list(map(str, numpy_dtypes))
                                     )
-                                    if numpy_dtype == theano_dtype:
+                                    if numpy_dtype == Aesara_dtype:
                                         # Same data type found, all is good!
                                         continue
                                     if (
@@ -2280,11 +2280,11 @@ class TestArithmeticCast:
                                         and numpy_dtype == "float64"
                                     ):
                                         # We should keep float32.
-                                        assert theano_dtype == "float32"
+                                        assert Aesara_dtype == "float32"
                                         continue
                                     if "array" in combo and "scalar" in combo:
                                         # For mixed scalar / array operations,
-                                        # Theano may differ from numpy as it does
+                                        # Aesara may differ from numpy as it does
                                         # not try to prevent the scalar from
                                         # upcasting the array.
                                         array_type, scalar_type = (
@@ -2300,8 +2300,8 @@ class TestArithmeticCast:
                                             # the scalar type as well.
                                             array_type != up_type
                                             and
-                                            # Theano upcasted the result array.
-                                            theano_dtype == up_type
+                                            # Aesara upcasted the result array.
+                                            Aesara_dtype == up_type
                                             and
                                             # But Numpy kept its original type.
                                             array_type == numpy_dtype
@@ -2315,7 +2315,7 @@ class TestArithmeticCast:
                                         and a_type == "complex128"
                                         and (b_type == "float32" or b_type == "float16")
                                         and combo == ("scalar", "array")
-                                        and theano_dtype == "complex128"
+                                        and Aesara_dtype == "complex128"
                                         and numpy_dtype == "complex64"
                                     ):
                                         # In numpy 1.6.x adding a complex128 with
@@ -2518,7 +2518,7 @@ class TestTensorInstanceMethods:
     def test_std(self):
         X, _ = self.vars
         x, _ = self.vals
-        # std() is implemented as theano tree and does not pass its
+        # std() is implemented as Aesara tree and does not pass its
         # args directly to numpy. This sometimes results in small
         # difference, so we use allclose test.
         utt.assert_allclose(X.std().eval({X: x}), x.std())
@@ -2768,14 +2768,14 @@ class TestIsInfIsNan:
 
     def run_isfunc(self, tt_func, np_func):
         for args in (self.scalar, self.vector):
-            theano_isfunc = function([args], tt_func(args), mode=self.mode)
+            Aesara_isfunc = function([args], tt_func(args), mode=self.mode)
             for x in self.test_vals:
                 if (x.ndim == 0 and args is not self.scalar) or (
                     x.ndim == 1 and args is not self.vector
                 ):
                     # We only test with the appropriate input type.
                     continue
-                t_out = theano_isfunc(x)
+                t_out = Aesara_isfunc(x)
                 n_out = np_func(x)
                 assert (t_out == n_out).all(), (t_out, n_out)
 
@@ -3210,7 +3210,7 @@ def test_grad_useless_sum():
     """
     Test absence of useless sum.
 
-    When an operation (such as `theano.tensor.mul`) is done on a broadcastable
+    When an operation (such as `Aesara.tensor.mul`) is done on a broadcastable
     vector and a matrix, the gradient in backward path is computed for the
     broadcasted vector. So a sum reverts the broadcasted vector to a vector. In
     the case of operations on two broadcastable vectors, the sum should not be

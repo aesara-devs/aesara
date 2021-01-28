@@ -1,12 +1,12 @@
 import numpy as np
 import pytest
 
-import theano
+import aesara
+from aesara.gradient import GradientError
+from aesara.tensor.basic import cast
+from aesara.tensor.math import complex, complex_from_polar, imag, real
+from aesara.tensor.type import cvector, dvector, fmatrix, fvector, imatrix, zvector
 from tests import unittest_tools as utt
-from theano.gradient import GradientError
-from theano.tensor.basic import cast
-from theano.tensor.math import complex, complex_from_polar, imag, real
-from theano.tensor.type import cvector, dvector, fmatrix, fvector, imatrix, zvector
 
 
 class TestRealImag:
@@ -14,20 +14,20 @@ class TestRealImag:
         x = zvector()
         rng = np.random.RandomState(23)
         xval = np.asarray(list(np.complex(rng.randn(), rng.randn()) for i in range(10)))
-        assert np.all(xval.real == theano.function([x], real(x))(xval))
-        assert np.all(xval.imag == theano.function([x], imag(x))(xval))
+        assert np.all(xval.real == aesara.function([x], real(x))(xval))
+        assert np.all(xval.imag == aesara.function([x], imag(x))(xval))
 
     def test_on_real_input(self):
         x = dvector()
         rng = np.random.RandomState(23)
         xval = rng.randn(10)
-        np.all(0 == theano.function([x], imag(x))(xval))
-        np.all(xval == theano.function([x], real(x))(xval))
+        np.all(0 == aesara.function([x], imag(x))(xval))
+        np.all(xval == aesara.function([x], real(x))(xval))
 
         x = imatrix()
         xval = np.asarray(rng.randn(3, 3) * 100, dtype="int32")
-        np.all(0 == theano.function([x], imag(x))(xval))
-        np.all(xval == theano.function([x], real(x))(xval))
+        np.all(0 == aesara.function([x], imag(x))(xval))
+        np.all(xval == aesara.function([x], real(x))(xval))
 
     def test_cast(self):
         x = zvector()
@@ -42,7 +42,7 @@ class TestRealImag:
         r, i = [real(c), imag(c)]
         assert r.type == fvector
         assert i.type == fvector
-        f = theano.function([m], [r, i])
+        f = aesara.function([m], [r, i])
 
         mval = np.asarray(rng.randn(2, 5), dtype="float32")
         rval, ival = f(mval)

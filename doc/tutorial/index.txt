@@ -5,15 +5,15 @@
 Tutorial
 ========
 
-Let us start an interactive session (e.g. with ``python`` or ``ipython``) and import Theano.
+Let us start an interactive session (e.g. with ``python`` or ``ipython``) and import Aesara.
 
->>> from theano import *
+>>> from aesara import *
 
 Several of the symbols you will need to use are in the ``tensor`` subpackage
-of Theano. Let us import that subpackage under a handy name like
+of Aesara. Let us import that subpackage under a handy name like
 ``tt`` (the tutorials will frequently use this convention).
 
->>> import theano.tensor as tt
+>>> import aesara.tensor as tt
 
 If that succeeded you are ready for the tutorial, otherwise check your
 installation (see :ref:`install`).

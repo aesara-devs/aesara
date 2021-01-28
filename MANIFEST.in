@@ -7,8 +7,8 @@ global-include *.h
 global-include *.sh
 global-include *.pkl
 recursive-include doc
-include bin/theano-cache
+include bin/aesara-cache
 prune .jenkins
 prune .travis
 include versioneer.py
-include theano/_version.py
+include aesara/_version.py

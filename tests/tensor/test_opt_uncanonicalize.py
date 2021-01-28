@@ -1,34 +1,34 @@
 import numpy as np
 
-import theano
-import theano.tensor as tt
-from tests import unittest_tools as utt
-from theano import function
-from theano import scalar as ts
-from theano.configdefaults import config
-from theano.graph.fg import FunctionGraph
-from theano.graph.opt import out2in
-from theano.link.basic import PerformLinker
-from theano.tensor.elemwise import CAReduce, DimShuffle, Elemwise
-from theano.tensor.math import MaxAndArgmax
-from theano.tensor.math import max as tt_max
-from theano.tensor.math import max_and_argmax
-from theano.tensor.math import min as tt_min
-from theano.tensor.opt_uncanonicalize import (
+import aesara
+import aesara.tensor as tt
+from aesara import function
+from aesara import scalar as ts
+from aesara.configdefaults import config
+from aesara.graph.fg import FunctionGraph
+from aesara.graph.opt import out2in
+from aesara.link.basic import PerformLinker
+from aesara.tensor.elemwise import CAReduce, DimShuffle, Elemwise
+from aesara.tensor.math import MaxAndArgmax
+from aesara.tensor.math import max as tt_max
+from aesara.tensor.math import max_and_argmax
+from aesara.tensor.math import min as tt_min
+from aesara.tensor.opt_uncanonicalize import (
     local_alloc_dimshuffle,
     local_dimshuffle_alloc,
     local_dimshuffle_subtensor,
     local_reshape_dimshuffle,
 )
-from theano.tensor.shape import reshape
-from theano.tensor.type import dtensor4, iscalar, matrix, tensor, vector
+from aesara.tensor.shape import reshape
+from aesara.tensor.type import dtensor4, iscalar, matrix, tensor, vector
+from tests import unittest_tools as utt
 
 
 class TestMaxAndArgmax:
     def test_optimization(self):
         # If we use only the max output, we should replace this op with
         # a faster one.
-        mode = theano.compile.mode.get_default_mode().including(
+        mode = aesara.compile.mode.get_default_mode().including(
             "canonicalize", "fast_run"
         )
 
@@ -49,7 +49,7 @@ class TestMaxAndArgmax:
 class TestMinMax:
     def setup_method(self):
         utt.seed_rng()
-        self.mode = theano.compile.mode.get_default_mode().including(
+        self.mode = aesara.compile.mode.get_default_mode().including(
             "canonicalize", "fast_run"
         )
 
@@ -206,13 +206,13 @@ def test_local_dimshuffle_subtensor():
     x = tensor(broadcastable=(False, True, False, True), dtype="float64")
     out = x[i].dimshuffle(1)
 
-    f = theano.function([x, i], out)
+    f = aesara.function([x, i], out)
 
     topo = f.maker.fgraph.toposort()
     assert any([not isinstance(x, DimShuffle) for x in topo])
     assert f(np.random.rand(5, 1, 4, 1), 2).shape == (4,)
 
-    # Test a corner case that had Theano return a bug.
+    # Test a corner case that had Aesara return a bug.
     x = dtensor4("x")
     x = tt.patternbroadcast(x, (False, True, False, False))
 

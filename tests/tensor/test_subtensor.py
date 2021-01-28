@@ -6,20 +6,18 @@ import numpy as np
 import pytest
 from numpy.testing import assert_array_equal
 
-import theano
-import theano.scalar as scal
-import theano.tensor.basic as tt
-from tests import unittest_tools as utt
-from tests.tensor.utils import inplace_func, rand, randint_ranged
-from theano.compile import DeepCopyOp, shared
-from theano.compile.io import In
-from theano.configdefaults import config
-from theano.graph.op import get_test_value
-from theano.graph.toolbox import is_same_graph
-from theano.tensor.elemwise import DimShuffle
-from theano.tensor.math import exp, isinf
-from theano.tensor.math import sum as tt_sum
-from theano.tensor.subtensor import (
+import aesara
+import aesara.scalar as scal
+import aesara.tensor.basic as tt
+from aesara.compile import DeepCopyOp, shared
+from aesara.compile.io import In
+from aesara.configdefaults import config
+from aesara.graph.op import get_test_value
+from aesara.graph.toolbox import is_same_graph
+from aesara.tensor.elemwise import DimShuffle
+from aesara.tensor.math import exp, isinf
+from aesara.tensor.math import sum as tt_sum
+from aesara.tensor.subtensor import (
     AdvancedIncSubtensor,
     AdvancedIncSubtensor1,
     AdvancedSubtensor,
@@ -36,7 +34,7 @@ from theano.tensor.subtensor import (
     indexed_result_shape,
     set_subtensor,
 )
-from theano.tensor.type import (
+from aesara.tensor.type import (
     TensorType,
     col,
     cscalar,
@@ -61,7 +59,9 @@ from theano.tensor.type import (
     tensor4,
     vector,
 )
-from theano.tensor.type_other import make_slice, slicetype
+from aesara.tensor.type_other import make_slice, slicetype
+from tests import unittest_tools as utt
+from tests.tensor.utils import inplace_func, rand, randint_ranged
 
 
 subtensor_ops = (
@@ -80,7 +80,7 @@ class TestSubtensor(utt.OptimizationTestMixin):
     def setup_method(self):
         self.shared = shared
         self.dtype = config.floatX
-        mode = theano.compile.mode.get_default_mode()
+        mode = aesara.compile.mode.get_default_mode()
         self.mode = mode.including("local_useless_subtensor")
         self.fast_compile = config.mode == "FAST_COMPILE"
         utt.seed_rng()
@@ -96,7 +96,7 @@ class TestSubtensor(utt.OptimizationTestMixin):
         N_fast=None,
     ):
         """
-        wrapper around theano.function that also check the output
+        wrapper around aesara.function that also check the output
 
         :param N: the number of op expected in the toposort
                   if tuple of length 2, (expected if fast_compile,
@@ -109,7 +109,7 @@ class TestSubtensor(utt.OptimizationTestMixin):
         if op is None:
             op = Subtensor
 
-        f = theano.function(inputs, outputs, mode=mode, accept_inplace=accept_inplace)
+        f = aesara.function(inputs, outputs, mode=mode, accept_inplace=accept_inplace)
         self.assertFunctionContainsClassN(f, op, N)
         return f
 
@@ -139,7 +139,7 @@ class TestSubtensor(utt.OptimizationTestMixin):
         t = n[7]
         assert isinstance(t.owner.op, Subtensor)
         # Silence expected error messages
-        _logger = logging.getLogger("theano.graph.opt")
+        _logger = logging.getLogger("aesara.graph.opt")
         oldlevel = _logger.level
         _logger.setLevel(logging.CRITICAL)
         try:
@@ -220,7 +220,7 @@ class TestSubtensor(utt.OptimizationTestMixin):
             t = n[idx]
             assert isinstance(t.owner.op, Subtensor)
             # Silence expected warnings
-            _logger = logging.getLogger("theano.graph.opt")
+            _logger = logging.getLogger("aesara.graph.opt")
             oldlevel = _logger.level
             _logger.setLevel(logging.CRITICAL)
             try:
@@ -325,7 +325,7 @@ class TestSubtensor(utt.OptimizationTestMixin):
         x = self.shared(np.random.rand(5, 4).astype(self.dtype))
         y = self.shared(np.random.rand(1, 2, 3).astype(self.dtype))
         o = x[: y.shape[0], None, :]
-        f = theano.function([], o, mode=self.mode)
+        f = aesara.function([], o, mode=self.mode)
         ret = f()
         assert ret.shape == (1, 1, 4)
 
@@ -524,7 +524,7 @@ class TestSubtensor(utt.OptimizationTestMixin):
             with pytest.raises(TypeError):
                 test_array.__getitem__(([0, 1], [0, False]))
             with pytest.raises(TypeError):
-                test_array.__getitem__(([0, 1], [0, theano.shared(True)]))
+                test_array.__getitem__(([0, 1], [0, aesara.shared(True)]))
 
     def test_newaxis(self):
         # newaxis support comes from logic in the __getitem__ of TensorType
@@ -559,7 +559,7 @@ class TestSubtensor(utt.OptimizationTestMixin):
         s1 = s[newaxis]
         assert s1.broadcastable == (True,), s1
 
-        vs1, vn3, vn4 = theano.function([s], [s1, n3, n4], mode=self.mode)(-2.0)
+        vs1, vn3, vn4 = aesara.function([s], [s1, n3, n4], mode=self.mode)(-2.0)
 
         assert np.all(vs1 == [-2.0])
         assert np.all(vn3 == np.arange(24)[newaxis, :, newaxis])
@@ -571,7 +571,7 @@ class TestSubtensor(utt.OptimizationTestMixin):
         n = self.shared(data)
         z = scal.constant(subi).astype("int32")
         t = n[z:, z]
-        gn = theano.grad(tt_sum(exp(t)), n)
+        gn = aesara.grad(tt_sum(exp(t)), n)
 
         f = inplace_func([], gn, mode=self.mode)
         topo = f.maker.fgraph.toposort()
@@ -602,7 +602,7 @@ class TestSubtensor(utt.OptimizationTestMixin):
                 mv = np.asarray(rand(*m_shape), dtype=self.dtype)
 
                 t = op(n[:z, :z], m)
-                gn, gm = theano.grad(tt_sum(t), [n, m])
+                gn, gm = aesara.grad(tt_sum(t), [n, m])
                 utt.verify_grad(lambda m: op(n[:z, :z], m), [mv], mode=self.mode)
                 utt.verify_grad(lambda nn: op(nn[:z, :z], mv), [data], mode=self.mode)
 
@@ -610,7 +610,7 @@ class TestSubtensor(utt.OptimizationTestMixin):
         data = np.asarray(rand(2, 3), dtype=self.dtype)
         n = self.shared(data)
         t = n[1, 0]
-        gn = theano.grad(tt_sum(exp(t)), n)
+        gn = aesara.grad(tt_sum(exp(t)), n)
         f = self.function([], gn)
         topo = f.maker.fgraph.toposort()
         topo_ = [node for node in topo if not isinstance(node.op, DeepCopyOp)]
@@ -667,7 +667,7 @@ class TestSubtensor(utt.OptimizationTestMixin):
                 assert out1 is out2
 
             # test the grad
-            gn = theano.grad(t.sum(), n)
+            gn = aesara.grad(t.sum(), n)
             g = self.function([], gn, op=AdvancedIncSubtensor1)
             utt.verify_grad(
                 lambda m: m[[1, 3]],
@@ -741,7 +741,7 @@ class TestSubtensor(utt.OptimizationTestMixin):
 
         # Test the gradient
         c = t.sum()
-        gn = theano.grad(c, n)
+        gn = aesara.grad(c, n)
         g = self.function([idx], gn, op=AdvancedIncSubtensor1)
         g_0 = g([0])
         assert g_0.shape == (1, 3)
@@ -784,12 +784,12 @@ class TestSubtensor(utt.OptimizationTestMixin):
         self.dtype = "float32"
 
         x = tensor4("x", dtype=self.dtype)
-        indexes = theano.shared(np.int32([1, 2, 3, 4]))
+        indexes = aesara.shared(np.int32([1, 2, 3, 4]))
         W = self.shared(np.random.random((10, 10, 3, 3)).astype(self.dtype))
 
         h = x + W
         h = set_subtensor(h[indexes], h[indexes])
-        g = theano.grad(h.sum(), W)
+        g = aesara.grad(h.sum(), W)
         N = 2
         if (
             config.mode == "FAST_COMPILE"
@@ -820,7 +820,7 @@ class TestSubtensor(utt.OptimizationTestMixin):
 
         # Test the gradient
         c = t.sum()
-        gn = theano.grad(c, n)
+        gn = aesara.grad(c, n)
         g = self.function([idx], gn, op=AdvancedIncSubtensor1)
         g_0 = g([0])
         assert g_0.shape == (4, 3)
@@ -1061,7 +1061,7 @@ class TestSubtensor(utt.OptimizationTestMixin):
             # Should stay on the cpu.
             idx_ = shared(np.asarray(idx))
             t = n[idx_]
-            gn = theano.grad(tt_sum(exp(t)), n)
+            gn = aesara.grad(tt_sum(exp(t)), n)
             f = self.function([], [gn, gn.shape], op=AdvancedIncSubtensor1)
             topo = f.maker.fgraph.toposort()
             if not self.fast_compile:
@@ -1093,7 +1093,7 @@ class TestSubtensor(utt.OptimizationTestMixin):
 
             # Test the grad of the grad (e.i. AdvancedIncSubtensor1.grad)
             def fct2(t):
-                return theano.grad(tt_sum(t[idx_]), t)
+                return aesara.grad(tt_sum(t[idx_]), t)
 
             utt.verify_grad(fct2, [data], mode=self.mode)
 
@@ -1241,7 +1241,7 @@ class TestSubtensor(utt.OptimizationTestMixin):
                         inc_num = rng.uniform(size=inc_size).astype(self.dtype)
                         inc_num = inc_num.reshape(inc_shape)
                         # Result of the incrementation.
-                        # (i) Theano
+                        # (i) Aesara
                         if set_instead_of_inc:
                             op = set_subtensor
                         else:
@@ -1272,7 +1272,7 @@ class TestSubtensor(utt.OptimizationTestMixin):
                                     data_copy[idx] += inc_num
                         data_var = In(data_var, mutable=True)
 
-                        # Remember data for the Theano function (see below).
+                        # Remember data for the Aesara function (see below).
                         all_inputs_var += [data_var, idx_var, inc_var]
                         all_inputs_num += [data_num, idx_num, inc_num]
                         all_outputs_var.append(output)
@@ -1281,7 +1281,7 @@ class TestSubtensor(utt.OptimizationTestMixin):
                             (set_instead_of_inc, inplace, data_shape, inc_shape)
                         )
 
-        # Actual test (we compile a single Theano function to make it faster).
+        # Actual test (we compile a single Aesara function to make it faster).
         with config.change_flags(warn__gpu_set_subtensor1=False):
             f = self.function(
                 all_inputs_var,
@@ -1319,7 +1319,7 @@ class TestSubtensor(utt.OptimizationTestMixin):
 
         m1 = set_subtensor(m[:, i], 0)
         m2 = inc_subtensor(m[:, i], 1)
-        f = theano.function([m, i], [m1, m2], mode=self.mode)
+        f = aesara.function([m, i], [m1, m2], mode=self.mode)
 
         m_val = rand(3, 5)
         i_val = randint_ranged(min=0, max=4, shape=(4,))
@@ -1344,7 +1344,7 @@ class TestSubtensor(utt.OptimizationTestMixin):
         m1 = set_subtensor(m[:, i], 0)
         m2 = inc_subtensor(m[:, i], 1)
 
-        f = theano.function([m, i], [m1, m2], mode=self.mode)
+        f = aesara.function([m, i], [m1, m2], mode=self.mode)
 
         m_val = rand(5, 7)
         i_val = randint_ranged(min=0, max=6, shape=(4, 2))
@@ -1379,7 +1379,7 @@ class TestSubtensor(utt.OptimizationTestMixin):
                 sub_m = m[:, i]
                 m1 = set_subtensor(sub_m, np.zeros(shp_v))
                 m2 = inc_subtensor(sub_m, np.ones(shp_v))
-                f = theano.function([m, i], [m1, m2], mode=self.mode)
+                f = aesara.function([m, i], [m1, m2], mode=self.mode)
 
                 m_val = rand(3, 5)
                 i_val = randint_ranged(min=0, max=4, shape=shp_i)
@@ -1416,7 +1416,7 @@ class TestSubtensor(utt.OptimizationTestMixin):
                 sub_m = m[:, i]
                 m1 = set_subtensor(sub_m, np.zeros(shp_v))
                 m2 = inc_subtensor(sub_m, np.ones(shp_v))
-                f = theano.function([m, i], [m1, m2], mode=self.mode)
+                f = aesara.function([m, i], [m1, m2], mode=self.mode)
 
                 m_val = rand(3, 5)
                 i_val = randint_ranged(min=0, max=4, shape=shp_i)
@@ -1438,7 +1438,7 @@ class TestSubtensor(utt.OptimizationTestMixin):
 
     def test_take(self):
         a = matrix()
-        f = theano.function(
+        f = aesara.function(
             [a], a.take(0, axis=-1), allow_input_downcast=True, mode=self.mode
         )
         f(np.random.normal(0, 1, (30, 4)))
@@ -1480,7 +1480,7 @@ class TestIncSubtensor:
             else:
                 resut = inc_subtensor(a[sl1, sl2], increment)
 
-            f = theano.function([a, increment, sl2_end], resut)
+            f = aesara.function([a, increment, sl2_end], resut)
 
             val_a = np.ones((5, 5))
             val_inc = 2.3
@@ -1515,12 +1515,12 @@ class TestIncSubtensor:
         rng = np.random.RandomState(utt.fetch_seed())
 
         def rng_randX(*shape):
-            return rng.rand(*shape).astype(theano.config.floatX)
+            return rng.rand(*shape).astype(aesara.config.floatX)
 
         for op in (set_subtensor, inc_subtensor):
             for base in (a[:], a[0]):
                 out = op(base, increment)
-                f = theano.function([a, increment], out)
+                f = aesara.function([a, increment], out)
                 # This one should work
                 f(rng_randX(3, 1), rng_randX(1))
                 # These ones should not
@@ -1551,7 +1551,7 @@ class TestIncSubtensor:
 
             resut = method(a[sl1, sl3, sl2], increment)
 
-            f = theano.function([a, increment, sl2_end], resut)
+            f = aesara.function([a, increment, sl2_end], resut)
 
             expected_result = np.copy(val_a)
             result = f(val_a, val_inc, val_sl2_end)
@@ -1566,7 +1566,7 @@ class TestIncSubtensor:
             # Test when we broadcast the result
             resut = method(a[sl1, sl2], increment)
 
-            f = theano.function([a, increment, sl2_end], resut)
+            f = aesara.function([a, increment, sl2_end], resut)
 
             expected_result = np.copy(val_a)
             result = f(val_a, val_inc, val_sl2_end)
@@ -1659,7 +1659,7 @@ class TestIncSubtensor1:
         # TODO: compile a function and verify that the subtensor is removed
         #      completely, because the whole expression is redundant.
 
-        f = theano.function([self.v, self.adv1q], a, allow_input_downcast=True)
+        f = aesara.function([self.v, self.adv1q], a, allow_input_downcast=True)
         aval = f([0.4, 0.9, 0.1], [1, 2])
         assert np.allclose(aval, [0.4, 0.9, 0.1])
 
@@ -1667,7 +1667,7 @@ class TestIncSubtensor1:
         a = inc_subtensor(self.v[self.adv1q], self.v[self.adv1q])
 
         assert a.type == self.v.type
-        f = theano.function([self.v, self.adv1q], a, allow_input_downcast=True)
+        f = aesara.function([self.v, self.adv1q], a, allow_input_downcast=True)
         aval = f([0.4, 0.9, 0.1], [1, 2])
         assert np.allclose(aval, [0.4, 1.8, 0.2])
 
@@ -1675,7 +1675,7 @@ class TestIncSubtensor1:
         a = inc_subtensor(self.v[self.adv1q], 3.0)
 
         assert a.type == self.v.type
-        f = theano.function([self.v, self.adv1q], a, allow_input_downcast=True)
+        f = aesara.function([self.v, self.adv1q], a, allow_input_downcast=True)
         aval = f([0.4, 0.9, 0.1], [1, 2])
         assert np.allclose(aval, [0.4, 3.9, 3.1])
 
@@ -1687,7 +1687,7 @@ class TestIncSubtensor1:
         idx = lmatrix()
         a = self.m[idx]
         a2 = inc_subtensor(a, a)
-        f = theano.function([self.m, idx], a2)
+        f = aesara.function([self.m, idx], a2)
 
         mval = self.rng.random_sample((4, 10))
         idxval = np.array([[1, 2], [3, 2]])
@@ -1705,7 +1705,7 @@ class TestIncSubtensor1:
         out1 = inc_subtensor(self.m[:, idx], c_inc)
         out2 = inc_subtensor(self.m[:, idx], m_inc)
 
-        f = theano.function([self.m, c_inc, m_inc], [out1, out2])
+        f = aesara.function([self.m, c_inc, m_inc], [out1, out2])
         mval = self.rng.random_sample((10, 5))
         incval = self.rng.random_sample((10, 1)).astype(config.floatX)
 
@@ -1719,7 +1719,7 @@ class TestAdvancedSubtensor:
     def setup_method(self):
         self.shared = shared
         self.dtype = config.floatX
-        self.mode = theano.compile.mode.get_default_mode()
+        self.mode = aesara.compile.mode.get_default_mode()
 
         self.s = iscalar()
         self.v = fvector()
@@ -1742,7 +1742,7 @@ class TestAdvancedSubtensor:
             )
             sym_idx = [tt.as_tensor_variable(ix) for ix in idx]
             expr = advanced_inc_subtensor(x, y, *sym_idx)
-            f = theano.function([y], expr, mode=self.mode)
+            f = aesara.function([y], expr, mode=self.mode)
             rval = f(y_val)
             assert np.allclose(rval, true)
 
@@ -1834,7 +1834,7 @@ class TestAdvancedSubtensor:
         a = inc_subtensor(subt, subt)
 
         assert a.type == self.v.type, (a.type, self.v.type)
-        f = theano.function(
+        f = aesara.function(
             [self.v, self.ix2], a, allow_input_downcast=True, mode=self.mode
         )
         aval = f([0.4, 0.9, 0.1], [[1, 2], [1, 2]])
@@ -1842,7 +1842,7 @@ class TestAdvancedSubtensor:
 
     def test_adv_subtensor_w_int_and_matrix(self):
         subt = self.ft4[0, :, self.ix2, :]
-        f = theano.function([self.ft4, self.ix2], subt, mode=self.mode)
+        f = aesara.function([self.ft4, self.ix2], subt, mode=self.mode)
         ft4v = np.random.random((2, 3, 4, 5)).astype("float32")
         ix2v = np.asarray([[0, 1], [1, 0]])
         aval = f(ft4v, ix2v)
@@ -1851,7 +1851,7 @@ class TestAdvancedSubtensor:
 
     def test_adv_subtensor_w_none_and_matrix(self):
         subt = self.ft4[:, None, :, self.ix2, :]
-        f = theano.function([self.ft4, self.ix2], subt, mode=self.mode)
+        f = aesara.function([self.ft4, self.ix2], subt, mode=self.mode)
         ft4v = np.random.random((2, 3, 4, 5)).astype("float32")
         ix2v = np.asarray([[0, 1], [1, 0]])
         aval = f(ft4v, ix2v)
@@ -1860,7 +1860,7 @@ class TestAdvancedSubtensor:
 
     def test_adv_subtensor_w_slice_and_matrix(self):
         subt = self.ft4[:, 0:1, self.ix2, :]
-        f = theano.function([self.ft4, self.ix2], subt, mode=self.mode)
+        f = aesara.function([self.ft4, self.ix2], subt, mode=self.mode)
         ft4v = np.random.random((2, 3, 4, 5)).astype("float32")
         ix2v = np.asarray([[0, 1], [1, 0]])
         aval = f(ft4v, ix2v)
@@ -1869,7 +1869,7 @@ class TestAdvancedSubtensor:
 
     def test_adv_subtensor_w_matrix_and_int(self):
         subt = self.ft4[:, :, self.ix2, 0]
-        f = theano.function([self.ft4, self.ix2], subt, mode=self.mode)
+        f = aesara.function([self.ft4, self.ix2], subt, mode=self.mode)
         ft4v = np.random.random((2, 3, 4, 5)).astype("float32")
         ix2v = np.asarray([[0, 1], [1, 0]])
         aval = f(ft4v, ix2v)
@@ -1878,7 +1878,7 @@ class TestAdvancedSubtensor:
 
     def test_adv_subtensor_w_matrix_and_none(self):
         subt = self.ft4[:, :, self.ix2, None, :]
-        f = theano.function([self.ft4, self.ix2], subt, mode=self.mode)
+        f = aesara.function([self.ft4, self.ix2], subt, mode=self.mode)
         ft4v = np.random.random((2, 3, 4, 5)).astype("float32")
         ix2v = np.asarray([[0, 1], [1, 0]])
         aval = f(ft4v, ix2v)
@@ -1891,7 +1891,7 @@ class TestAdvancedSubtensor:
 
         typ = TensorType(self.m.type.dtype, self.ix2.type.broadcastable)
         assert a.type == typ, (a.type, typ)
-        f = theano.function(
+        f = aesara.function(
             [self.m, self.ix1, self.ix12], a, allow_input_downcast=True, mode=self.mode
         )
         aval = f([[0.4, 0.9, 0.1], [5, 6, 7], [0.5, 0.3, 0.15]], [1, 2, 1], [0, 1, 0])
@@ -1902,10 +1902,10 @@ class TestAdvancedSubtensor:
     def test_inc_adv_subtensor_with_broadcasting(self):
         inc = dscalar()
         a = inc_subtensor(self.m[self.ix1, self.ix12], inc)
-        g_inc = theano.grad(a.sum(), inc)
+        g_inc = aesara.grad(a.sum(), inc)
 
         assert a.type == self.m.type, (a.type, self.m.type)
-        f = theano.function(
+        f = aesara.function(
             [self.m, self.ix1, self.ix12, inc],
             [a, g_inc],
             allow_input_downcast=True,
@@ -1922,10 +1922,10 @@ class TestAdvancedSubtensor:
     def test_inc_adv_subtensor1_with_broadcasting(self):
         inc = dscalar()
         a = inc_subtensor(self.m[self.ix1], inc)
-        g_inc = theano.grad(a.sum(), inc)
+        g_inc = aesara.grad(a.sum(), inc)
 
         assert a.type == self.m.type, (a.type, self.m.type)
-        f = theano.function(
+        f = aesara.function(
             [self.m, self.ix1, inc],
             [a, g_inc],
             allow_input_downcast=True,
@@ -1946,7 +1946,7 @@ class TestAdvancedSubtensor:
         a = inc_subtensor(self.m[self.ix1, self.ix2], 2.1)
 
         assert a.type == self.m.type, (a.type, self.m.type)
-        f = theano.function(
+        f = aesara.function(
             [self.m, self.ix1, self.ix2], a, allow_input_downcast=True, mode=self.mode
         )
         aval = f(
@@ -1966,19 +1966,19 @@ class TestAdvancedSubtensor:
     def test_2d_3d_tensors(self):
         rng = np.random.RandomState(utt.fetch_seed())
         a = rng.uniform(size=(3, 3))
-        b = theano.shared(a)
+        b = aesara.shared(a)
         i = iscalar()
         j = iscalar()
         z = b[[i, j], :]
-        f1 = theano.function([i, j], z, mode=self.mode)
+        f1 = aesara.function([i, j], z, mode=self.mode)
         cmd = f1(0, 1) == a[[0, 1], :]
         assert cmd.all()
 
         aa = rng.uniform(size=(4, 2, 3))
-        bb = theano.shared(aa)
+        bb = aesara.shared(aa)
         k = iscalar()
         z = bb[[i, j, k], :, i:k]
-        f2 = theano.function([i, j, k], z, mode=self.mode)
+        f2 = aesara.function([i, j, k], z, mode=self.mode)
         cmd = f2(0, 1, 2) == aa[[0, 1, 2], :, 0:2]
         assert cmd.all()
 
@@ -1999,7 +1999,7 @@ class TestAdvancedSubtensor:
         r_idx = np.arange(xx.shape[1])[:, np.newaxis]
         c_idx = np.arange(xx.shape[2])[np.newaxis, :]
 
-        f = theano.function([X], X[b_idx, r_idx, c_idx], mode=self.mode)
+        f = aesara.function([X], X[b_idx, r_idx, c_idx], mode=self.mode)
         out = f(xx)
         utt.assert_allclose(out, xx[b_idx, r_idx, c_idx])
 
@@ -2007,7 +2007,7 @@ class TestAdvancedSubtensor:
         # Reported in https://github.com/Theano/Theano/issues/5898
         var = self.shared(np.zeros([3, 3], dtype=config.floatX))
         slc = slicetype()
-        f = theano.function([slc], var[slc], mode=self.mode)
+        f = aesara.function([slc], var[slc], mode=self.mode)
         s = slice(1, 3)
         f(s)
 
@@ -2020,7 +2020,7 @@ class TestAdvancedSubtensor:
         idx1 = self.shared(idx1_v)
         idx2 = tt.arange(4)
         out = var[:, idx1, idx2]
-        f = theano.function([], out, mode=self.mode)
+        f = aesara.function([], out, mode=self.mode)
         out_v = f()
         assert out_v.shape == (3, 5, 4)
 

@@ -6,39 +6,39 @@ List of gpuarray Ops implemented
 
 .. moduleauthor:: LISA
 
-Normally you should not call directly those Ops! Theano should
+Normally you should not call directly those Ops! Aesara should
 automatically transform CPU ops to their GPU equivalent. So this list
 is just useful to let people know what is implemented on the GPU.
 
 Basic Op
 ========
 
-.. automodule:: theano.gpuarray.basic_ops
+.. automodule:: aesara.gpuarray.basic_ops
     :members:
 
 Blas Op
 =======
 
-.. automodule:: theano.gpuarray.blas
+.. automodule:: aesara.gpuarray.blas
     :members:
 
 Elemwise Op
 ===========
 
-.. automodule:: theano.gpuarray.elemwise
+.. automodule:: aesara.gpuarray.elemwise
     :members:
 
 Subtensor Op
 ============
 
-.. automodule:: theano.gpuarray.subtensor
+.. automodule:: aesara.gpuarray.subtensor
     :members:
 
 Nnet Op
 =======
 
-.. automodule:: theano.gpuarray.nnet
+.. automodule:: aesara.gpuarray.nnet
     :members:
 
-.. automodule:: theano.gpuarray.neighbours
+.. automodule:: aesara.gpuarray.neighbours
     :members:

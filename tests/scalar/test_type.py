@@ -1,7 +1,7 @@
 import numpy as np
 
-from theano.configdefaults import config
-from theano.scalar.basic import (
+from aesara.configdefaults import config
+from aesara.scalar.basic import (
     IntDiv,
     Scalar,
     TrueDiv,

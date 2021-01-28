@@ -10,9 +10,9 @@
 .. moduleauthor:: LISA
 
 
-.. autofunction:: theano.tensor.nnet.bn.batch_normalization_train
-.. autofunction:: theano.tensor.nnet.bn.batch_normalization_test
+.. autofunction:: aesara.tensor.nnet.bn.batch_normalization_train
+.. autofunction:: aesara.tensor.nnet.bn.batch_normalization_test
 
-.. seealso:: cuDNN batch normalization: :class:`theano.gpuarray.dnn.dnn_batch_normalization_train`, :class:`theano.gpuarray.dnn.dnn_batch_normalization_test>`.
+.. seealso:: cuDNN batch normalization: :class:`aesara.gpuarray.dnn.dnn_batch_normalization_train`, :class:`aesara.gpuarray.dnn.dnn_batch_normalization_test>`.
 
-.. autofunction:: theano.tensor.nnet.bn.batch_normalization
+.. autofunction:: aesara.tensor.nnet.bn.batch_normalization

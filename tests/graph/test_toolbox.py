@@ -1,10 +1,10 @@
-from theano.graph.basic import Apply, Variable
-from theano.graph.fg import FunctionGraph
-from theano.graph.op import Op
-from theano.graph.toolbox import NodeFinder, is_same_graph
-from theano.graph.type import Type
-from theano.tensor.math import neg
-from theano.tensor.type import vectors
+from aesara.graph.basic import Apply, Variable
+from aesara.graph.fg import FunctionGraph
+from aesara.graph.op import Op
+from aesara.graph.toolbox import NodeFinder, is_same_graph
+from aesara.graph.type import Type
+from aesara.tensor.math import neg
+from aesara.tensor.type import vectors
 
 
 class TestNodeFinder:

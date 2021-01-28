@@ -8,40 +8,21 @@ import numpy as np
 import pytest
 from numpy.testing import assert_array_equal
 
-import theano
-import theano.scalar as ts
-import theano.tensor.basic as tt
-import theano.tensor.math as tm
-from tests import unittest_tools as utt
-from tests.tensor.utils import (
-    ALL_DTYPES,
-    COMPLEX_DTYPES,
-    REAL_DTYPES,
-    _good_broadcast_unary_normal,
-    _grad_broadcast_unary_normal,
-    eval_outputs,
-    get_numeric_types,
-    inplace_func,
-    makeBroadcastTester,
-    makeTester,
-    multi_dtype_cast_checks,
-    multi_dtype_checks,
-    rand,
-    rand_of_dtype,
-    randint,
-    randint_ranged,
-)
-from theano import compile, config, function, shared
-from theano.assert_op import Assert
-from theano.compile.io import In, Out
-from theano.compile.mode import get_default_mode
-from theano.compile.ops import DeepCopyOp
-from theano.gradient import grad, hessian
-from theano.graph.basic import Apply
-from theano.graph.op import Op
-from theano.misc.safe_asarray import _asarray
-from theano.scalar import autocast_float, autocast_float_as
-from theano.tensor.basic import (
+import aesara
+import aesara.scalar as ts
+import aesara.tensor.basic as tt
+import aesara.tensor.math as tm
+from aesara import compile, config, function, shared
+from aesara.assert_op import Assert
+from aesara.compile.io import In, Out
+from aesara.compile.mode import get_default_mode
+from aesara.compile.ops import DeepCopyOp
+from aesara.gradient import grad, hessian
+from aesara.graph.basic import Apply
+from aesara.graph.op import Op
+from aesara.misc.safe_asarray import _asarray
+from aesara.scalar import autocast_float, autocast_float_as
+from aesara.tensor.basic import (
     Alloc,
     AllocDiag,
     AllocEmpty,
@@ -101,12 +82,12 @@ from theano.tensor.basic import (
     vertical_stack,
     zeros_like,
 )
-from theano.tensor.elemwise import DimShuffle
-from theano.tensor.exceptions import EmptyConstantError, NotScalarConstantError
-from theano.tensor.math import dense_dot, eq
-from theano.tensor.math import sum as tt_sum
-from theano.tensor.shape import Reshape, Shape, Shape_i, shape_padright
-from theano.tensor.type import (
+from aesara.tensor.elemwise import DimShuffle
+from aesara.tensor.exceptions import EmptyConstantError, NotScalarConstantError
+from aesara.tensor.math import dense_dot, eq
+from aesara.tensor.math import sum as tt_sum
+from aesara.tensor.shape import Reshape, Shape, Shape_i, shape_padright
+from aesara.tensor.type import (
     TensorType,
     bvector,
     col,
@@ -140,8 +121,27 @@ from theano.tensor.type import (
     vectors,
     wvector,
 )
-from theano.tensor.var import TensorConstant
-from theano.utils import PYTHON_INT_BITWIDTH
+from aesara.tensor.var import TensorConstant
+from aesara.utils import PYTHON_INT_BITWIDTH
+from tests import unittest_tools as utt
+from tests.tensor.utils import (
+    ALL_DTYPES,
+    COMPLEX_DTYPES,
+    REAL_DTYPES,
+    _good_broadcast_unary_normal,
+    _grad_broadcast_unary_normal,
+    eval_outputs,
+    get_numeric_types,
+    inplace_func,
+    makeBroadcastTester,
+    makeTester,
+    multi_dtype_cast_checks,
+    multi_dtype_checks,
+    rand,
+    rand_of_dtype,
+    randint,
+    randint_ranged,
+)
 
 
 if config.mode == "FAST_COMPILE":
@@ -526,7 +526,7 @@ class TestAsTensorVariable:
 class TestAlloc:
     dtype = config.floatX
     mode = mode_opt
-    shared = staticmethod(theano.shared)
+    shared = staticmethod(aesara.shared)
     allocs = [Alloc()] * 3
 
     def setup_method(self):
@@ -553,9 +553,9 @@ class TestAlloc:
         ):
             derp = tt_sum(dense_dot(subtensor, variables))
 
-            fobj = theano.function([some_vector], derp, mode=self.mode)
-            grad_derp = theano.grad(derp, some_vector)
-            fgrad = theano.function([some_vector], grad_derp, mode=self.mode)
+            fobj = aesara.function([some_vector], derp, mode=self.mode)
+            grad_derp = aesara.grad(derp, some_vector)
+            fgrad = aesara.function([some_vector], grad_derp, mode=self.mode)
 
             topo_obj = fobj.maker.fgraph.toposort()
             assert np.sum([isinstance(node.op, type(alloc_)) for node in topo_obj]) == 0
@@ -575,42 +575,42 @@ class TestAlloc:
             # we do not want it to be constant-folded
             out = alloc_(val, 50, 60)
 
-            f = theano.function([], out, mode=self.mode)
+            f = aesara.function([], out, mode=self.mode)
             topo = f.maker.fgraph.toposort()
             assert np.sum([isinstance(node.op, type(alloc_)) for node in topo]) == 1
             assert not isinstance(topo[0].op, DeepCopyOp)
 
     def test_ones(self):
         for shp in [[], 1, [1], [1, 2], [1, 2, 3], np.r_[1, 2, 3]]:
-            ones = theano.function([], [tt.ones(shp)], mode=self.mode)
+            ones = aesara.function([], [tt.ones(shp)], mode=self.mode)
             assert np.allclose(ones(), np.ones(shp))
 
         # scalar doesn't have to be provided as input
         x = scalar()
         shp = []
-        ones_scalar = theano.function([], [tt.ones(x.shape)], mode=self.mode)
+        ones_scalar = aesara.function([], [tt.ones(x.shape)], mode=self.mode)
         assert np.allclose(ones_scalar(), np.ones(shp))
 
         for (typ, shp) in [(vector, [3]), (matrix, [3, 4])]:
             x = typ()
-            ones_tensor = theano.function([x], [tt.ones(x.shape)], mode=self.mode)
+            ones_tensor = aesara.function([x], [tt.ones(x.shape)], mode=self.mode)
             inp = np.zeros(shp, dtype=config.floatX)
             assert np.allclose(ones_tensor(inp), np.ones(shp))
 
     def test_zeros(self):
         for shp in [[], 1, [1], [1, 2], [1, 2, 3], np.r_[1, 2, 3]]:
-            zeros = theano.function([], [tt.zeros(shp)], mode=self.mode)
+            zeros = aesara.function([], [tt.zeros(shp)], mode=self.mode)
             assert np.allclose(zeros(), np.zeros(shp))
 
         # scalar doesn't have to be provided as input
         x = scalar()
         shp = []
-        zeros_scalar = theano.function([], [tt.zeros(x.shape)], mode=self.mode)
+        zeros_scalar = aesara.function([], [tt.zeros(x.shape)], mode=self.mode)
         assert np.allclose(zeros_scalar(), np.zeros(shp))
 
         for (typ, shp) in [(vector, [3]), (matrix, [3, 4])]:
             x = typ()
-            zeros_tensor = theano.function([x], [tt.zeros(x.shape)], mode=self.mode)
+            zeros_tensor = aesara.function([x], [tt.zeros(x.shape)], mode=self.mode)
             inp = np.zeros(shp, dtype=config.floatX)
             assert np.allclose(zeros_tensor(inp), np.zeros(shp))
 
@@ -618,7 +618,7 @@ class TestAlloc:
 # This is slow for the ('int8', 3) version.
 def test_eye():
     def check(dtype, N, M_=None, k=0):
-        # Theano does not accept None as a tensor.
+        # Aesara does not accept None as a tensor.
         # So we must use a real value.
         M = M_
         # Currently DebugMode does not support None as inputs even if this is
@@ -652,7 +652,7 @@ def test_eye():
 class TestTriangle:
     def test_tri(self):
         def check(dtype, N, M_=None, k=0):
-            # Theano does not accept None as a tensor.
+            # Aesara does not accept None as a tensor.
             # So we must use a real value.
             M = M_
             # Currently DebugMode does not support None as inputs even if this is
@@ -888,12 +888,12 @@ def test_nan_inf_constant_signature():
     # Also test that nan !=0 and nan != nan.
     x = scalar()
     mode = get_default_mode()
-    if isinstance(mode, theano.compile.debugmode.DebugMode):
+    if isinstance(mode, aesara.compile.debugmode.DebugMode):
         # Disable the check preventing usage of NaN / Inf values.
         # We first do a copy of the mode to avoid side effects on other tests.
         mode = copy(mode)
         mode.check_isfinite = False
-    f = theano.function([x], eq(x, np.nan), mode=mode)
+    f = aesara.function([x], eq(x, np.nan), mode=mode)
 
     assert f(0) == 0
     assert f(np.nan) == 0
@@ -905,7 +905,7 @@ def test_basic_allclose():
 
 
 def test_get_vector_length():
-    x = theano.shared(np.zeros((2, 3, 4, 5)))
+    x = aesara.shared(np.zeros((2, 3, 4, 5)))
     assert len(list(x.shape)) == 4
     assert len(list(x.shape[2:4])) == 2
     assert len(list(x.shape[2:])) == 2
@@ -945,7 +945,7 @@ def test_get_vector_length():
     assert 3 == get_vector_length(triple)
 
     a, b, c = triple
-    mode = theano.compile.get_default_mode().excluding("constant_folding")
+    mode = aesara.compile.get_default_mode().excluding("constant_folding")
     f = function([x, y], [b, c, a], mode=mode)
     topo = f.maker.fgraph.toposort()
     assert [True for node in topo if isinstance(node.op, MakeVector)]
@@ -958,7 +958,7 @@ class TestJoinAndSplit:
     def setup_method(self):
         Join.debug = False
         utt.seed_rng()
-        self.mode = theano.compile.get_default_mode().excluding("constant_folding")
+        self.mode = aesara.compile.get_default_mode().excluding("constant_folding")
         self.join_op = Join()
         self.split_op_class = Split
         self.make_vector_op = MakeVector()
@@ -971,7 +971,7 @@ class TestJoinAndSplit:
         self.shared = shared
 
     def eval_outputs_and_check_join(self, outputs):
-        f = theano.function([], outputs, self.mode)
+        f = aesara.function([], outputs, self.mode)
         topo = f.maker.fgraph.toposort()
         assert [True for node in topo if isinstance(node.op, type(self.join_op))]
         variables = f()
@@ -982,7 +982,7 @@ class TestJoinAndSplit:
     def eval_outputs_and_check_vector(self, outputs, make_vector_op=None):
         if make_vector_op is None:
             make_vector_op = self.make_vector_op
-        f = theano.function([], outputs, self.mode)
+        f = aesara.function([], outputs, self.mode)
         topo = f.maker.fgraph.toposort()
         assert [True for node in topo if isinstance(node.op, type(make_vector_op))]
         variables = f()
@@ -1000,7 +1000,7 @@ class TestJoinAndSplit:
         # tested only on cpu as gpu support only float32
         a = as_tensor_variable(1)
         b = as_tensor_variable(2.0)
-        c = theano.shared(np.asarray(3.0, dtype=self.floatX))
+        c = aesara.shared(np.asarray(3.0, dtype=self.floatX))
         s = stack([a, b, c])
         want = np.array([1, 2, 3])
         out = self.eval_outputs_and_check_vector([s], MakeVector())
@@ -1130,7 +1130,7 @@ class TestJoinAndSplit:
         # Try some values
         a_v = np.random.rand(4)
         b_v = np.random.rand(4)
-        f = theano.function([a, b], [Ha, Hb])
+        f = aesara.function([a, b], [Ha, Hb])
         Ha_v, Hb_v = f(a_v, b_v)
         # The Hessian is always a matrix full of 2
         assert Ha_v.shape == (4, 4)
@@ -1149,7 +1149,7 @@ class TestJoinAndSplit:
         # Try some values
         a_v = np.random.rand(4)
         b_v = np.random.rand(4)
-        f = theano.function([a, b], [Ha, Hb])
+        f = aesara.function([a, b], [Ha, Hb])
         Ha_v, Hb_v = f(a_v, b_v)
         # The Hessian is always a matrix full of 0
         assert Ha_v.shape == (4, 4)
@@ -1162,7 +1162,7 @@ class TestJoinAndSplit:
         # also test that we remove the Join op if there is only 1 input
         m = fmatrix()
         c = tt.concatenate([m])
-        f = theano.function(
+        f = aesara.function(
             inputs=[m], outputs=[c], mode=self.mode.including("local_join_1")
         )
         topo = f.maker.fgraph.toposort()
@@ -1180,19 +1180,19 @@ class TestJoinAndSplit:
 
     def test_roll(self):
 
-        for get_shift in [lambda a: a, lambda x: theano.shared(x)]:
+        for get_shift in [lambda a: a, lambda x: aesara.shared(x)]:
             # Test simple 1D example
             a = self.shared(np.array([1, 2, 3, 4, 5, 6], dtype=self.floatX))
             b = roll(a, get_shift(2))
             want = np.array([5, 6, 1, 2, 3, 4])
-            out = theano.function([], b)()
+            out = aesara.function([], b)()
 
             assert (out == want).all()
 
             # Test simple 1D example with explicit 0 axis
             b = roll(a, get_shift(-1), 0)
             want = np.array([2, 3, 4, 5, 6, 1])
-            out = theano.function([], b)()
+            out = aesara.function([], b)()
 
             assert (out == want).all()
 
@@ -1201,7 +1201,7 @@ class TestJoinAndSplit:
             b = roll(a, get_shift(-2), 1)
 
             want = np.roll(a.get_value(borrow=True), -2, 1)
-            out = theano.function([], b)()
+            out = aesara.function([], b)()
 
             assert (out == want).all()
 
@@ -1210,21 +1210,21 @@ class TestJoinAndSplit:
             b = roll(a, get_shift(-2), -2)
 
             want = np.roll(a.get_value(borrow=True), -2, -2)
-            out = theano.function([], b)()
+            out = aesara.function([], b)()
 
             assert (out == want).all()
 
             # Test rolling on axis 0
             want = np.roll(a.get_value(borrow=True), -2, 0)
             b = roll(a, get_shift(-2), 0)
-            out = theano.function([], b)()
+            out = aesara.function([], b)()
 
             assert (out == want).all()
 
             # Test rolling on default axis with ndim > 1
             want = np.roll(a.get_value(borrow=True), 2)
             b = roll(a, get_shift(2))
-            out = theano.function([], b)()
+            out = aesara.function([], b)()
 
             assert (out == want).all()
 
@@ -1232,7 +1232,7 @@ class TestJoinAndSplit:
             # larger than axis size
             want = np.roll(a.get_value(borrow=True), 4, 0)
             b = roll(a, get_shift(4), 0)
-            out = theano.function([], b)()
+            out = aesara.function([], b)()
 
             assert (out == want).all()
 
@@ -1240,7 +1240,7 @@ class TestJoinAndSplit:
             # larger than axis size
             want = np.roll(a.get_value(borrow=True), -4, 0)
             b = roll(a, get_shift(-4), 0)
-            out = theano.function([], b)()
+            out = aesara.function([], b)()
 
             assert (out == want).all()
 
@@ -1402,7 +1402,7 @@ class TestJoinAndSplit:
         b = as_tensor_variable(v)
 
         s = join(-1, a, b)
-        f = theano.function([], [s], mode=self.mode)
+        f = aesara.function([], [s], mode=self.mode)
         topo = f.maker.fgraph.toposort()
         assert [True for node in topo if isinstance(node.op, type(self.join_op))]
 
@@ -1414,7 +1414,7 @@ class TestJoinAndSplit:
         assert np.allclose(got, want)
 
         s = join(-2, a, b)
-        f = theano.function([], [s], mode=self.mode)
+        f = aesara.function([], [s], mode=self.mode)
         topo = f.maker.fgraph.toposort()
         assert [True for node in topo if isinstance(node.op, type(self.join_op))]
 
@@ -1444,7 +1444,7 @@ class TestJoinAndSplit:
         assert c.type.broadcastable[0] and c.type.broadcastable[2]
         assert not c.type.broadcastable[1]
 
-        # Opt can remplace the int by a Theano constant
+        # Opt can remplace the int by an Aesara constant
         c = self.join_op(constant(1), a, b)
         assert c.type.broadcastable[0] and c.type.broadcastable[2]
         assert not c.type.broadcastable[1]
@@ -1623,7 +1623,7 @@ class TestJoinAndSplit:
 
         # Test dim 0
         z = self.join_op(0, x1, x2, x3)
-        f = theano.function([], z.shape, mode=self.mode)
+        f = aesara.function([], z.shape, mode=self.mode)
         topo = f.maker.fgraph.toposort()
 
         out = f()
@@ -1638,7 +1638,7 @@ class TestJoinAndSplit:
         x2.set_value(get_mat(3, 4))
         x3.set_value(get_mat(3, 5))
         z = self.join_op(1, x1, x2, x3)
-        f = theano.function([], z.shape, mode=self.mode)
+        f = aesara.function([], z.shape, mode=self.mode)
         topo = f.maker.fgraph.toposort()
         out = f()
         assert (out == [3, 13]).all()
@@ -1736,7 +1736,7 @@ def test_join_inplace():
     join = Join(view=0)
     c = join(0, x, z, z)
 
-    f = theano.function([In(x, borrow=True), s], Out(c, borrow=True))
+    f = aesara.function([In(x, borrow=True), s], Out(c, borrow=True))
 
     data = np.array([3, 4, 5], dtype=config.floatX)
     print(f(data, 0))
@@ -2108,7 +2108,7 @@ def test_tile_grad():
     def grad_tile(x, reps, np_x):
         y = tile(x, reps)
         z = y.sum()
-        g = theano.function([x], grad(z, x))
+        g = aesara.function([x], grad(z, x))
         grad_res = g(np_x)
         # The gradient should be the product of the tiling dimensions
         # (since the gradients are additive through the tiling operation)
@@ -2499,28 +2499,28 @@ class TestNdGrid:
             for ng, tg in zip(n, t):
                 utt.assert_allclose(ng, tg.eval())
 
-    def test_mgrid_theano_variable_numpy_equiv(self):
+    def test_mgrid_aesara_variable_numpy_equiv(self):
         nfmgrid = np.mgrid[0:1:0.1, 1:10:1.0, 10:100:10.0]
         nimgrid = np.mgrid[0:2:1, 1:10:1, 10:100:10]
         i, j, k = dscalars("i", "j", "k")
         l, m, n = iscalars("l", "m", "n")
         tfmgrid = mgrid[i:1:0.1, 1:j:1.0, 10:100:k]
         timgrid = mgrid[l:2:1, 1:m:1, 10:100:n]
-        ff = theano.function([i, j, k], tfmgrid)
-        fi = theano.function([l, m, n], timgrid)
+        ff = aesara.function([i, j, k], tfmgrid)
+        fi = aesara.function([l, m, n], timgrid)
         for n, t in zip((nfmgrid, nimgrid), (ff(0, 10, 10.0), fi(0, 10, 10))):
             for ng, tg in zip(n, t):
                 utt.assert_allclose(ng, tg)
 
-    def test_ogrid_theano_variable_numpy_equiv(self):
+    def test_ogrid_aesara_variable_numpy_equiv(self):
         nfogrid = np.ogrid[0:1:0.1, 1:10:1.0, 10:100:10.0]
         niogrid = np.ogrid[0:2:1, 1:10:1, 10:100:10]
         i, j, k = dscalars("i", "j", "k")
         l, m, n = iscalars("l", "m", "n")
         tfogrid = ogrid[i:1:0.1, 1:j:1.0, 10:100:k]
         tiogrid = ogrid[l:2:1, 1:m:1, 10:100:n]
-        ff = theano.function([i, j, k], tfogrid)
-        fi = theano.function([l, m, n], tiogrid)
+        ff = aesara.function([i, j, k], tfogrid)
+        fi = aesara.function([l, m, n], tiogrid)
         for n, t in zip((nfogrid, niogrid), (ff(0, 10, 10.0), fi(0, 10, 10))):
             for ng, tg in zip(n, t):
                 utt.assert_allclose(ng, tg)
@@ -2706,7 +2706,7 @@ def test_stack():
 
 
 @pytest.mark.skipif(
-    isinstance(get_default_mode(), theano.compile.debugmode.DebugMode),
+    isinstance(get_default_mode(), aesara.compile.debugmode.DebugMode),
     reason="This test fails in DEBUG_MODE, but the generated code is OK. "
     "It is actually a problem of DEBUG_MODE, see #626.",
 )
@@ -2720,7 +2720,7 @@ def test_default():
 
 
 @pytest.mark.skipif(
-    isinstance(get_default_mode(), theano.compile.debugmode.DebugMode),
+    isinstance(get_default_mode(), aesara.compile.debugmode.DebugMode),
     reason="This test fails in DEBUG_MODE, but the generated code is OK. "
     "It is actually a problem of DEBUG_MODE, see #626.",
 )
@@ -2849,7 +2849,7 @@ def _test_autocast_numpy_floatX():
     for floatX in ("float32", "float64"):
         # Go through some typical scalar values.
         # We only consider 'int' and 'long' Python values that can fit
-        # into int64, as that is the maximal integer type that Theano
+        # into int64, as that is the maximal integer type that Aesara
         # supports, and that is the maximal type in Python indexing.
         for x in (
             [2 ** i - 1 for i in range(64)]
@@ -2971,7 +2971,7 @@ class TestBroadcast:
     def test_infer_shape(self):
         x = matrix()
         y = addbroadcast(x, 0)
-        f = theano.function([x], y.shape)
+        f = aesara.function([x], y.shape)
         assert (f(np.zeros((1, 5), dtype=config.floatX)) == [1, 5]).all()
         topo = f.maker.fgraph.toposort()
         if config.mode != "FAST_COMPILE":
@@ -2981,7 +2981,7 @@ class TestBroadcast:
 
         x = matrix()
         y = unbroadcast(x, 0)
-        f = theano.function([x], y.shape)
+        f = aesara.function([x], y.shape)
         assert (f(np.zeros((2, 5), dtype=config.floatX)) == [2, 5]).all()
         topo = f.maker.fgraph.toposort()
         if config.mode != "FAST_COMPILE":
@@ -2992,7 +2992,7 @@ class TestBroadcast:
 
         x = row()
         y = unbroadcast(x, 0)
-        f = theano.function([x], y.shape)
+        f = aesara.function([x], y.shape)
         assert (f(np.zeros((1, 5), dtype=config.floatX)) == [1, 5]).all()
         topo = f.maker.fgraph.toposort()
         if config.mode != "FAST_COMPILE":
@@ -3023,7 +3023,7 @@ def test_unalign():
     # out_numpy = 2 * a + 3 * b
 
     av, bv = vectors("ab")
-    f = theano.function([av, bv], 2 * av + 3 * bv)
+    f = aesara.function([av, bv], 2 * av + 3 * bv)
     f.maker.fgraph.toposort()
 
     with pytest.raises(TypeError):
@@ -3036,7 +3036,7 @@ def test_unalign():
     # out_numpy = 2 * a + 3 * b
 
     av, bv = scalars("ab")
-    f = theano.function([av, bv], 2 * av + 3 * bv)
+    f = aesara.function([av, bv], 2 * av + 3 * bv)
     f.maker.fgraph.toposort()
     with pytest.raises(TypeError):
         f(a, b)
@@ -3128,7 +3128,7 @@ class TestGetScalarConstantValue:
         assert get_scalar_constant_value(s) == 3
         s = Shape_i(1)(c)
         assert get_scalar_constant_value(s) == 4
-        d = theano.shared(np.random.randn(1, 1), broadcastable=(True, True))
+        d = aesara.shared(np.random.randn(1, 1), broadcastable=(True, True))
         f = ScalarFromTensor()(Shape_i(0)(d))
         assert get_scalar_constant_value(f) == 1
 
@@ -3212,7 +3212,7 @@ class TestSize:
     def test_shared(self):
         # NB: we also test higher order tensors at the same time.
         y = np.zeros((1, 2, 3, 4), dtype=config.floatX)
-        x = theano.shared(y)
+        x = aesara.shared(y)
         assert y.size == function([], x.size)()
 
 
@@ -3243,7 +3243,7 @@ class TestDiag:
         x = vector()
         g = diag(x)
         assert isinstance(g.owner.op, AllocDiag)
-        f = theano.function([x], g)
+        f = aesara.function([x], g)
         for shp in [5, 0, 1]:
             m = rng.rand(shp).astype(self.floatX)
             v = np.diag(m)
@@ -3255,7 +3255,7 @@ class TestDiag:
         xx = self.shared(rng.rand(3, 5))
         g = diag(xx)
         assert isinstance(g.owner.op, ExtractDiag)
-        f = theano.function([], g)
+        f = aesara.function([], g)
         for shp in [(5, 3), (3, 5), (5, 1), (1, 5), (5, 0), (0, 5), (1, 0), (0, 1)]:
             m = rng.rand(*shp).astype(self.floatX)
             xx.set_value(m)
@@ -3274,7 +3274,7 @@ class TestDiag:
 
         x = vector()
         g = diag(x)
-        f = theano.function([x], g.shape)
+        f = aesara.function([x], g.shape)
         topo = f.maker.fgraph.toposort()
         if config.mode != "FAST_COMPILE":
             assert np.sum([isinstance(node.op, AllocDiag) for node in topo]) == 0
@@ -3284,7 +3284,7 @@ class TestDiag:
 
         x = matrix()
         g = diag(x)
-        f = theano.function([x], g.shape)
+        f = aesara.function([x], g.shape)
         topo = f.maker.fgraph.toposort()
         if config.mode != "FAST_COMPILE":
             assert np.sum([isinstance(node.op, ExtractDiag) for node in topo]) == 0
@@ -3303,7 +3303,7 @@ class TestDiag:
 class TestAllocDiag:
     def setup_method(self):
         self.alloc_diag = AllocDiag
-        self.mode = theano.compile.mode.get_default_mode()
+        self.mode = aesara.compile.mode.get_default_mode()
 
     def _generator(self):
         dims = 4
@@ -3338,7 +3338,7 @@ class TestAllocDiag:
                 if np.maximum(axis1, axis2) > len(test_val.shape):
                     continue
                 adiag_op = self.alloc_diag(offset=offset, axis1=axis1, axis2=axis2)
-                f = theano.function([x], adiag_op(x))
+                f = aesara.function([x], adiag_op(x))
                 # AllocDiag and extract the diagonal again
                 # to check
                 diag_arr = f(test_val)
@@ -3346,9 +3346,9 @@ class TestAllocDiag:
                 assert np.all(rediag == test_val)
 
                 # Test infer_shape
-                f_shape = theano.function([x], adiag_op(x).shape, mode="FAST_RUN")
+                f_shape = aesara.function([x], adiag_op(x).shape, mode="FAST_RUN")
 
-                theano.printing.debugprint(f_shape.maker.fgraph.outputs[0])
+                aesara.printing.debugprint(f_shape.maker.fgraph.outputs[0])
                 output_shape = f_shape(test_val)
                 assert not any(
                     isinstance(node.op, self.alloc_diag)
@@ -3361,10 +3361,10 @@ class TestAllocDiag:
 
                 diag_x = adiag_op(x)
                 sum_diag_x = tt_sum(diag_x)
-                grad_x = theano.grad(sum_diag_x, x)
-                grad_diag_x = theano.grad(sum_diag_x, diag_x)
-                f_grad_x = theano.function([x], grad_x, mode=self.mode)
-                f_grad_diag_x = theano.function([x], grad_diag_x, mode=self.mode)
+                grad_x = aesara.grad(sum_diag_x, x)
+                grad_diag_x = aesara.grad(sum_diag_x, diag_x)
+                f_grad_x = aesara.function([x], grad_x, mode=self.mode)
+                f_grad_diag_x = aesara.function([x], grad_diag_x, mode=self.mode)
                 grad_input = f_grad_x(test_val)
                 grad_diag_input = f_grad_diag_x(test_val)
                 true_grad_input = np.diagonal(
@@ -3375,11 +3375,11 @@ class TestAllocDiag:
 
 
 class TestNumpyAssumptions:
-    # Verify that some assumptions Theano makes on Numpy's behavior still hold.
+    # Verify that some assumptions Aesara makes on Numpy's behavior still hold.
     def test_ndarray_copy(self):
         # A copy or deepcopy of the ndarray type should not create a new object.
         #
-        # This is because Theano makes some comparisons of the form:
+        # This is because Aesara makes some comparisons of the form:
         #     if type(x) is np.ndarray
         assert copy(np.ndarray) is np.ndarray
         assert deepcopy(np.ndarray) is np.ndarray
@@ -3387,7 +3387,7 @@ class TestNumpyAssumptions:
     def test_dtype_equality(self):
         # Ensure dtype string comparisons are consistent.
         #
-        # Theano often uses string representations of dtypes (e.g. 'float32'). We
+        # Aesara often uses string representations of dtypes (e.g. 'float32'). We
         # need to make sure that comparing the string representations is the same
         # as comparing the dtype objects themselves.
         dtypes = get_numeric_types(with_complex=True)
@@ -3407,7 +3407,7 @@ def test_transpose():
     x2v = np.arange(24).reshape(2, 12)
     x3v = np.arange(24).reshape(2, 3, 4)
 
-    f = theano.function(
+    f = aesara.function(
         [x1, x2, x3],
         [
             tt.transpose(x1),
@@ -4004,8 +4004,8 @@ class TestChoose(utt.InferShapeTester):
             A = np.asarray(np.random.rand(*shp1) * shp2[0], dtype="int32")
             C = np.asarray(np.random.rand(*shp2) * shp2[0], dtype="float32")
             self._compile_and_check(
-                [a, c],  # theano.function inputs
-                [self.op(a, c)],  # theano.function outputs
+                [a, c],  # aesara.function inputs
+                [self.op(a, c)],  # aesara.function outputs
                 # Always use not square matrix!
                 # inputs data
                 [A, C],
@@ -4029,8 +4029,8 @@ class TestChoose(utt.InferShapeTester):
         assert np.allclose(f(A, B, C).shape, shape)
 
         self._compile_and_check(
-            [a, b, c],  # theano.function inputs
-            [self.op(a, (b, c))],  # theano.function outputs
+            [a, b, c],  # aesara.function inputs
+            [self.op(a, (b, c))],  # aesara.function outputs
             # Always use not square matrix!
             # inputs data
             [A, B, C],
@@ -4041,7 +4041,7 @@ class TestChoose(utt.InferShapeTester):
 
 def test_allocempty():
     # Test that we allocated correctly
-    f = theano.function([], AllocEmpty("float32")(2, 3))
+    f = aesara.function([], AllocEmpty("float32")(2, 3))
     assert len(f.maker.fgraph.apply_nodes) == 1
     out = f()
 

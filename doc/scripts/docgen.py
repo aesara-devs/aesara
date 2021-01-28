@@ -49,14 +49,14 @@ if __name__ == '__main__':
     mkdir(outdir)
     os.chdir(outdir)
 
-    # Make sure the appropriate 'theano' directory is in the PYTHONPATH
+    # Make sure the appropriate 'aesara' directory is in the PYTHONPATH
     pythonpath = os.environ.get('PYTHONPATH', '')
     pythonpath = os.pathsep.join([throot, pythonpath])
     sys.path[0:0] = [throot]  # We must not use os.environ.
 
     # Make sure we don't use gpu to compile documentation
-    env_th_flags = os.environ.get('THEANO_FLAGS', '')
-    os.environ['THEANO_FLAGS'] = 'device=cpu,force_device=True'
+    env_th_flags = os.environ.get('AESARA_FLAGS', '')
+    os.environ['AESARA_FLAGS'] = 'device=cpu,force_device=True'
 
     def call_sphinx(builder, workdir):
         import sphinx
@@ -95,7 +95,7 @@ if __name__ == '__main__':
             os.chdir(workdir)
             os.system('make')
             try:
-                shutil.copy(os.path.join(workdir, 'theano.pdf'), outdir)
+                shutil.copy(os.path.join(workdir, 'aesara.pdf'), outdir)
                 os.chdir(outdir)
                 shutil.rmtree(workdir)
             except OSError as e:
@@ -111,5 +111,5 @@ if __name__ == '__main__':
     # To go back to the original current directory.
     os.chdir(currentdir)
 
-    # Reset THEANO_FLAGS
-    os.environ['THEANO_FLAGS'] = env_th_flags
+    # Reset AESARA_FLAGS
+    os.environ['AESARA_FLAGS'] = env_th_flags

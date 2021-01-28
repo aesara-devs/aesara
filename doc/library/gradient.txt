@@ -11,7 +11,7 @@
 
 .. testsetup:: *
 
-   from theano.gradient import *
+   from aesara.gradient import *
 
 Symbolic gradient is usually computed from :func:`gradient.grad`, which offers a
 more convenient syntax for the common case of wanting the gradient of some
@@ -23,7 +23,7 @@ awkward to use when :func:`gradient.grad` can do the job.
 Gradient related functions
 ==========================
 
-.. automodule:: theano.gradient
+.. automodule:: aesara.gradient
     :members:
 
 .. _R_op_list:

@@ -1,12 +1,12 @@
 import numpy as np
 import pytest
 
-from theano.compile.function import function
-from theano.gradient import grad
-from theano.scan.basic import scan
-from theano.scan.checkpoints import scan_checkpoints
-from theano.tensor.basic import ones_like
-from theano.tensor.type import iscalar, vector
+from aesara.compile.function import function
+from aesara.gradient import grad
+from aesara.scan.basic import scan
+from aesara.scan.checkpoints import scan_checkpoints
+from aesara.tensor.basic import ones_like
+from aesara.tensor.type import iscalar, vector
 
 
 class TestScanCheckpoint:

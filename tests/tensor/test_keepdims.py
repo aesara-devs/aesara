@@ -1,20 +1,20 @@
 import numpy as np
 import pytest
 
-import theano
-from theano import function
-from theano.compile.mode import Mode
-from theano.tensor.elemwise import DimShuffle
-from theano.tensor.math import all as tt_all
-from theano.tensor.math import any as tt_any
-from theano.tensor.math import argmax, argmin
-from theano.tensor.math import max as tt_max
-from theano.tensor.math import max_and_argmax, mean
-from theano.tensor.math import min as tt_min
-from theano.tensor.math import prod, std
-from theano.tensor.math import sum as tt_sum
-from theano.tensor.math import var
-from theano.tensor.type import dtensor3
+import aesara
+from aesara import function
+from aesara.compile.mode import Mode
+from aesara.tensor.elemwise import DimShuffle
+from aesara.tensor.math import all as tt_all
+from aesara.tensor.math import any as tt_any
+from aesara.tensor.math import argmax, argmin
+from aesara.tensor.math import max as tt_max
+from aesara.tensor.math import max_and_argmax, mean
+from aesara.tensor.math import min as tt_min
+from aesara.tensor.math import prod, std
+from aesara.tensor.math import sum as tt_sum
+from aesara.tensor.math import var
+from aesara.tensor.type import dtensor3
 
 
 # this tests other ops to ensure they keep the dimensions of their
@@ -185,7 +185,7 @@ class TestKeepDims:
     def test_norm(self):
 
         x = dtensor3()
-        a = np.random.rand(3, 2, 4).astype(theano.config.floatX)
+        a = np.random.rand(3, 2, 4).astype(aesara.config.floatX)
         mode = Mode(optimizer="fast_compile", linker="py")
 
         for axis in [

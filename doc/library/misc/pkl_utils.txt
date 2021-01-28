@@ -7,13 +7,13 @@
 
 .. testsetup:: *
 
-   from theano.misc.pkl_utils import *
+   from aesara.misc.pkl_utils import *
 
-.. autofunction:: theano.misc.pkl_utils.dump
+.. autofunction:: aesara.misc.pkl_utils.dump
 
-.. autofunction:: theano.misc.pkl_utils.load
+.. autofunction:: aesara.misc.pkl_utils.load
 
-.. autoclass:: theano.misc.pkl_utils.StripPickler
+.. autoclass:: aesara.misc.pkl_utils.StripPickler
 
 .. seealso::
 

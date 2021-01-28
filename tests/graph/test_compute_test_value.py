@@ -3,20 +3,20 @@ import warnings
 import numpy as np
 import pytest
 
-import theano
-import theano.tensor as tt
-from theano import scalar as ts
-from theano.configdefaults import config
-from theano.graph import utils
-from theano.graph.basic import Apply
-from theano.graph.op import COp, Op
-from theano.graph.type import Type
-from theano.tensor.math import _allclose, dot
-from theano.tensor.type import fmatrix, iscalar, matrix, vector
+import aesara
+import aesara.tensor as tt
+from aesara import scalar as ts
+from aesara.configdefaults import config
+from aesara.graph import utils
+from aesara.graph.basic import Apply
+from aesara.graph.op import COp, Op
+from aesara.graph.type import Type
+from aesara.tensor.math import _allclose, dot
+from aesara.tensor.type import fmatrix, iscalar, matrix, vector
 
 
 @pytest.fixture(scope="module", autouse=True)
-def set_theano_flags():
+def set_aesara_flags():
     with config.change_flags(compute_test_value="raise"):
         yield
 
@@ -86,7 +86,7 @@ class TestComputeTestValue:
         # should work
         z = dot(x, y)
         assert hasattr(z.tag, "test_value")
-        f = theano.function([x, y], z)
+        f = aesara.function([x, y], z)
         assert _allclose(f(x.tag.test_value, y.tag.test_value), z.tag.test_value)
 
         # this test should fail
@@ -120,12 +120,12 @@ class TestComputeTestValue:
         y = matrix("y")
         y.tag.test_value = np.random.rand(4, 5).astype(config.floatX)
 
-        z = theano.shared(np.random.rand(5, 6).astype(config.floatX))
+        z = aesara.shared(np.random.rand(5, 6).astype(config.floatX))
 
         # should work
         out = dot(dot(x, y), z)
         assert hasattr(out.tag, "test_value")
-        tf = theano.function([x, y], out)
+        tf = aesara.function([x, y], out)
         assert _allclose(tf(x.tag.test_value, y.tag.test_value), out.tag.test_value)
 
         def f(x, y, z):
@@ -139,12 +139,12 @@ class TestComputeTestValue:
     def test_shared(self):
         x = matrix("x")
         x.tag.test_value = np.random.rand(3, 4).astype(config.floatX)
-        y = theano.shared(np.random.rand(4, 6).astype(config.floatX), "y")
+        y = aesara.shared(np.random.rand(4, 6).astype(config.floatX), "y")
 
         # should work
         z = dot(x, y)
         assert hasattr(z.tag, "test_value")
-        f = theano.function([x], z)
+        f = aesara.function([x], z)
         assert _allclose(f(x.tag.test_value), z.tag.test_value)
 
         # this test should fail
@@ -154,12 +154,12 @@ class TestComputeTestValue:
 
     def test_ndarray(self):
         x = np.random.rand(2, 3).astype(config.floatX)
-        y = theano.shared(np.random.rand(3, 6).astype(config.floatX), "y")
+        y = aesara.shared(np.random.rand(3, 6).astype(config.floatX), "y")
 
         # should work
         z = dot(x, y)
         assert hasattr(z.tag, "test_value")
-        f = theano.function([], z)
+        f = aesara.function([], z)
         assert _allclose(f(), z.tag.test_value)
 
         # this test should fail
@@ -168,22 +168,22 @@ class TestComputeTestValue:
             dot(x, y)
 
     def test_empty_elemwise(self):
-        x = theano.shared(np.random.rand(0, 6).astype(config.floatX), "x")
+        x = aesara.shared(np.random.rand(0, 6).astype(config.floatX), "x")
 
         # should work
         z = (x + 2) * 3
         assert hasattr(z.tag, "test_value")
-        f = theano.function([], z)
+        f = aesara.function([], z)
         assert _allclose(f(), z.tag.test_value)
 
     def test_constant(self):
         x = tt.constant(np.random.rand(2, 3), dtype=config.floatX)
-        y = theano.shared(np.random.rand(3, 6).astype(config.floatX), "y")
+        y = aesara.shared(np.random.rand(3, 6).astype(config.floatX), "y")
 
         # should work
         z = dot(x, y)
         assert hasattr(z.tag, "test_value")
-        f = theano.function([], z)
+        f = aesara.function([], z)
         assert _allclose(f(), z.tag.test_value)
 
         # this test should fail
@@ -224,7 +224,7 @@ class TestComputeTestValue:
             return prior_result * A
 
         # Symbolic description of the result
-        result, updates = theano.scan(
+        result, updates = aesara.scan(
             fn=fx, outputs_info=tt.ones_like(A), non_sequences=A, n_steps=k
         )
 
@@ -245,7 +245,7 @@ class TestComputeTestValue:
             return dot(prior_result, A)
 
         with pytest.raises(ValueError) as e:
-            theano.scan(fn=fx, outputs_info=tt.ones_like(A), non_sequences=A, n_steps=k)
+            aesara.scan(fn=fx, outputs_info=tt.ones_like(A), non_sequences=A, n_steps=k)
 
         assert str(e.traceback[0].path).endswith("test_compute_test_value.py")
         # We should be in the "fx" function defined above
@@ -263,12 +263,12 @@ class TestComputeTestValue:
             return dot(prior_result, A)
 
         with pytest.raises(ValueError):
-            theano.scan(
+            aesara.scan(
                 fn=fx, outputs_info=tt.ones_like(A.T), non_sequences=A, n_steps=k
             )
 
         with pytest.raises(ValueError, match="^could not broadcast input"):
-            theano.scan(
+            aesara.scan(
                 fn=fx, outputs_info=tt.ones_like(A.T), non_sequences=A, n_steps=k
             )
 
@@ -323,6 +323,6 @@ class TestComputeTestValue:
     def test_disabled_during_compilation(self):
         # We test that it is disabled when we include deep copy in the code
         # This don't test that it is disabled during optimization, but the code do it.
-        init_Mu1 = theano.shared(np.zeros((5,), dtype=config.floatX)).dimshuffle("x", 0)
+        init_Mu1 = aesara.shared(np.zeros((5,), dtype=config.floatX)).dimshuffle("x", 0)
 
-        theano.function([], outputs=[init_Mu1])
+        aesara.function([], outputs=[init_Mu1])

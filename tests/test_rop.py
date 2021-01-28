@@ -17,18 +17,18 @@ import itertools
 import numpy as np
 import pytest
 
-import theano
-import theano.tensor as tt
+import aesara
+import aesara.tensor as tt
+from aesara import function
+from aesara.gradient import Lop, Rop, grad, grad_undefined
+from aesara.graph.basic import Apply
+from aesara.graph.op import Op
+from aesara.tensor.math import argmax, dot
+from aesara.tensor.math import max as tt_max
+from aesara.tensor.nnet import conv, conv2d
+from aesara.tensor.signal.pool import Pool
+from aesara.tensor.type import TensorType, matrix, vector
 from tests import unittest_tools as utt
-from theano import function
-from theano.gradient import Lop, Rop, grad, grad_undefined
-from theano.graph.basic import Apply
-from theano.graph.op import Op
-from theano.tensor.math import argmax, dot
-from theano.tensor.math import max as tt_max
-from theano.tensor.nnet import conv, conv2d
-from theano.tensor.signal.pool import Pool
-from theano.tensor.type import TensorType, matrix, vector
 
 
 class BreakRop(Op):
@@ -105,11 +105,11 @@ class RopLopChecker:
         If you want to test an Op with an output matrix, add a sum
         after the Op you want to test.
         """
-        vx = np.asarray(self.rng.uniform(size=self.mat_in_shape), theano.config.floatX)
-        vv = np.asarray(self.rng.uniform(size=self.mat_in_shape), theano.config.floatX)
+        vx = np.asarray(self.rng.uniform(size=self.mat_in_shape), aesara.config.floatX)
+        vv = np.asarray(self.rng.uniform(size=self.mat_in_shape), aesara.config.floatX)
         yv = Rop(y, self.mx, self.mv)
         rop_f = function([self.mx, self.mv], yv, on_unused_input="ignore")
-        sy, _ = theano.scan(
+        sy, _ = aesara.scan(
             lambda i, y, x, v: (grad(y[i], x) * v).sum(),
             sequences=tt.arange(y.shape[0]),
             non_sequences=[y, self.mx, self.mv],
@@ -122,10 +122,10 @@ class RopLopChecker:
         assert np.allclose(v1, v2), f"ROP mismatch: {v1} {v2}"
 
         self.check_nondiff_rop(
-            theano.clone_replace(y, replace={self.mx: break_op(self.mx)})
+            aesara.clone_replace(y, replace={self.mx: break_op(self.mx)})
         )
 
-        vv = np.asarray(self.rng.uniform(size=out_shape), theano.config.floatX)
+        vv = np.asarray(self.rng.uniform(size=out_shape), aesara.config.floatX)
         yv = Lop(y, self.mx, self.v)
         lop_f = function([self.mx, self.v], yv)
 
@@ -142,12 +142,12 @@ class RopLopChecker:
         vector. The output is still a vector.
         """
         # TEST ROP
-        vx = np.asarray(self.rng.uniform(size=self.in_shape), theano.config.floatX)
-        vv = np.asarray(self.rng.uniform(size=self.in_shape), theano.config.floatX)
+        vx = np.asarray(self.rng.uniform(size=self.in_shape), aesara.config.floatX)
+        vv = np.asarray(self.rng.uniform(size=self.in_shape), aesara.config.floatX)
 
         yv = Rop(y, self.x, self.v)
         rop_f = function([self.x, self.v], yv, on_unused_input="ignore")
-        J, _ = theano.scan(
+        J, _ = aesara.scan(
             lambda i, y, x: grad(y[i], x),
             sequences=tt.arange(y.shape[0]),
             non_sequences=[y, self.x],
@@ -162,7 +162,7 @@ class RopLopChecker:
 
         try:
             Rop(
-                theano.clone_replace(y, replace={self.x: break_op(self.x)}),
+                aesara.clone_replace(y, replace={self.x: break_op(self.x)}),
                 self.x,
                 self.v,
             )
@@ -172,12 +172,12 @@ class RopLopChecker:
                 "correctly. Bug exposed by fixing Add.grad method."
             )
 
-        vx = np.asarray(self.rng.uniform(size=self.in_shape), theano.config.floatX)
-        vv = np.asarray(self.rng.uniform(size=out_shape), theano.config.floatX)
+        vx = np.asarray(self.rng.uniform(size=self.in_shape), aesara.config.floatX)
+        vv = np.asarray(self.rng.uniform(size=out_shape), aesara.config.floatX)
 
         yv = Lop(y, self.x, self.v)
         lop_f = function([self.x, self.v], yv, on_unused_input="ignore")
-        J, _ = theano.scan(
+        J, _ = aesara.scan(
             lambda i, y, x: grad(y[i], x),
             sequences=tt.arange(y.shape[0]),
             non_sequences=[y, self.x],
@@ -206,31 +206,31 @@ class TestRopLop(RopLopChecker):
         self.check_rop_lop(self.x[:4], (4,))
 
     def test_incsubtensor1(self):
-        tv = np.asarray(self.rng.uniform(size=(3,)), theano.config.floatX)
-        t = theano.shared(tv)
-        out = theano.tensor.subtensor.inc_subtensor(self.x[:3], t)
+        tv = np.asarray(self.rng.uniform(size=(3,)), aesara.config.floatX)
+        t = aesara.shared(tv)
+        out = aesara.tensor.subtensor.inc_subtensor(self.x[:3], t)
         self.check_rop_lop(out, self.in_shape)
 
     def test_incsubtensor2(self):
-        tv = np.asarray(self.rng.uniform(size=(10,)), theano.config.floatX)
-        t = theano.shared(tv)
-        out = theano.tensor.subtensor.inc_subtensor(t[:4], self.x[:4])
+        tv = np.asarray(self.rng.uniform(size=(10,)), aesara.config.floatX)
+        t = aesara.shared(tv)
+        out = aesara.tensor.subtensor.inc_subtensor(t[:4], self.x[:4])
         self.check_rop_lop(out, (10,))
 
     def test_setsubtensor1(self):
-        tv = np.asarray(self.rng.uniform(size=(3,)), theano.config.floatX)
-        t = theano.shared(tv)
-        out = theano.tensor.subtensor.set_subtensor(self.x[:3], t)
+        tv = np.asarray(self.rng.uniform(size=(3,)), aesara.config.floatX)
+        t = aesara.shared(tv)
+        out = aesara.tensor.subtensor.set_subtensor(self.x[:3], t)
         self.check_rop_lop(out, self.in_shape)
 
     def test_print(self):
-        out = theano.printing.Print("x", attrs=("shape",))(self.x)
+        out = aesara.printing.Print("x", attrs=("shape",))(self.x)
         self.check_rop_lop(out, self.in_shape)
 
     def test_setsubtensor2(self):
-        tv = np.asarray(self.rng.uniform(size=(10,)), theano.config.floatX)
-        t = theano.shared(tv)
-        out = theano.tensor.subtensor.set_subtensor(t[:4], self.x[:4])
+        tv = np.asarray(self.rng.uniform(size=(10,)), aesara.config.floatX)
+        t = aesara.shared(tv)
+        out = aesara.tensor.subtensor.set_subtensor(t[:4], self.x[:4])
         self.check_rop_lop(out, (10,))
 
     def test_dimshuffle(self):
@@ -281,17 +281,17 @@ class TestRopLop(RopLopChecker):
             vx = rng.rand(*shp)
             vex = rng.rand(*shp)
 
-            x = theano.shared(vx)
-            ex = theano.shared(vex)
+            x = aesara.shared(vx)
+            ex = aesara.shared(vex)
 
             maxpool_op = Pool(ignore_border, ndim=len(ws))
             a_pooled = maxpool_op(x, ws).flatten()
             yv = Rop(a_pooled, x, ex)
             mode = None
-            if theano.config.mode == "FAST_COMPILE":
+            if aesara.config.mode == "FAST_COMPILE":
                 mode = "FAST_RUN"
             rop_f = function([], yv, on_unused_input="ignore", mode=mode)
-            sy, _ = theano.scan(
+            sy, _ = aesara.scan(
                 lambda i, y, x, v: (grad(y[i], x) * v).sum(),
                 sequences=tt.arange(a_pooled.shape[0]),
                 non_sequences=[a_pooled, x, ex],
@@ -309,16 +309,16 @@ class TestRopLop(RopLopChecker):
                 filter_shape = (2, 2, 2, 3)
                 image_dim = len(image_shape)
                 filter_dim = len(filter_shape)
-                input = TensorType(theano.config.floatX, [False] * image_dim)(
+                input = TensorType(aesara.config.floatX, [False] * image_dim)(
                     name="input"
                 )
-                filters = TensorType(theano.config.floatX, [False] * filter_dim)(
+                filters = TensorType(aesara.config.floatX, [False] * filter_dim)(
                     name="filter"
                 )
-                ev_input = TensorType(theano.config.floatX, [False] * image_dim)(
+                ev_input = TensorType(aesara.config.floatX, [False] * image_dim)(
                     name="ev_input"
                 )
-                ev_filters = TensorType(theano.config.floatX, [False] * filter_dim)(
+                ev_filters = TensorType(aesara.config.floatX, [False] * filter_dim)(
                     name="ev_filters"
                 )
 
@@ -328,7 +328,7 @@ class TestRopLop(RopLopChecker):
                 output = sym_conv2d(input, filters).flatten()
                 yv = Rop(output, [input, filters], [ev_input, ev_filters])
                 mode = None
-                if theano.config.mode == "FAST_COMPILE":
+                if aesara.config.mode == "FAST_COMPILE":
                     mode = "FAST_RUN"
                 rop_f = function(
                     [input, filters, ev_input, ev_filters],
@@ -336,7 +336,7 @@ class TestRopLop(RopLopChecker):
                     on_unused_input="ignore",
                     mode=mode,
                 )
-                sy, _ = theano.scan(
+                sy, _ = aesara.scan(
                     lambda i, y, x1, x2, v1, v2: (grad(y[i], x1) * v1).sum()
                     + (grad(y[i], x2) * v2).sum(),
                     sequences=tt.arange(output.shape[0]),
@@ -349,7 +349,7 @@ class TestRopLop(RopLopChecker):
                     on_unused_input="ignore",
                     mode=mode,
                 )
-                dtype = theano.config.floatX
+                dtype = aesara.config.floatX
                 image_data = np.random.random(image_shape).astype(dtype)
                 filter_data = np.random.random(filter_shape).astype(dtype)
                 ev_image_data = np.random.random(image_shape).astype(dtype)
@@ -359,15 +359,15 @@ class TestRopLop(RopLopChecker):
                 assert np.allclose(v1, v2), f"Rop mismatch: {v1} {v2}"
 
     def test_join(self):
-        tv = np.asarray(self.rng.uniform(size=(10,)), theano.config.floatX)
-        t = theano.shared(tv)
+        tv = np.asarray(self.rng.uniform(size=(10,)), aesara.config.floatX)
+        t = aesara.shared(tv)
         out = tt.join(0, self.x, t)
         self.check_rop_lop(out, (self.in_shape[0] + 10,))
 
     def test_dot(self):
         insh = self.in_shape[0]
-        vW = np.asarray(self.rng.uniform(size=(insh, insh)), theano.config.floatX)
-        W = theano.shared(vW)
+        vW = np.asarray(self.rng.uniform(size=(insh, insh)), aesara.config.floatX)
+        W = aesara.shared(vW)
         self.check_rop_lop(dot(self.x, W), self.in_shape)
 
     def test_elemwise0(self):
@@ -386,7 +386,7 @@ class TestRopLop(RopLopChecker):
 
     def test_softmax(self):
         # Softmax adds an extra dimnesion !
-        self.check_rop_lop(theano.tensor.nnet.softmax(self.x)[0], self.in_shape[0])
+        self.check_rop_lop(aesara.tensor.nnet.softmax(self.x)[0], self.in_shape[0])
 
     def test_alloc(self):
         # Alloc of the sum of x into a vector
@@ -419,10 +419,10 @@ class TestRopLop(RopLopChecker):
         m_ = matrix("m_")
         v_ = vector("v_")
 
-        mval = self.rng.uniform(size=(3, 7)).astype(theano.config.floatX)
-        vval = self.rng.uniform(size=(7,)).astype(theano.config.floatX)
-        m_val = self.rng.uniform(size=(3, 7)).astype(theano.config.floatX)
-        v_val = self.rng.uniform(size=(7,)).astype(theano.config.floatX)
+        mval = self.rng.uniform(size=(3, 7)).astype(aesara.config.floatX)
+        vval = self.rng.uniform(size=(7,)).astype(aesara.config.floatX)
+        m_val = self.rng.uniform(size=(3, 7)).astype(aesara.config.floatX)
+        v_val = self.rng.uniform(size=(7,)).astype(aesara.config.floatX)
 
         rop_out1 = Rop([m, v, m + v], [m, v], [m_, v_])
         assert isinstance(rop_out1, list)
@@ -434,7 +434,7 @@ class TestRopLop(RopLopChecker):
         all_outs = []
         for o in rop_out1, rop_out2:
             all_outs.extend(o)
-        f = theano.function([m, v, m_, v_], all_outs)
+        f = aesara.function([m, v, m_, v_], all_outs)
         f(mval, vval, m_val, v_val)
 
     def test_Rop_dot_bug_18Oct2013_Jeremiah(self):
@@ -443,6 +443,6 @@ class TestRopLop(RopLopChecker):
         # one differentiable path (i.e. there is no gradient wrt to one of
         # the inputs).
         x = tt.arange(20.0).reshape([1, 20])
-        v = theano.shared(np.ones([20]))
+        v = aesara.shared(np.ones([20]))
         d = dot(x, v).sum()
         Rop(grad(d, v), v, v)

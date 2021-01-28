@@ -1,12 +1,12 @@
 import numpy as np
 
-from theano.compile.function.pfunc import pfunc
-from theano.compile.sharedvalue import shared
-from theano.gradient import grad
-from theano.tensor.math import dot
-from theano.tensor.math import sum as tt_sum
-from theano.tensor.nnet import sigmoid
-from theano.tensor.type import dvector
+from aesara.compile.function.pfunc import pfunc
+from aesara.compile.sharedvalue import shared
+from aesara.gradient import grad
+from aesara.tensor.math import dot
+from aesara.tensor.math import sum as tt_sum
+from aesara.tensor.nnet import sigmoid
+from aesara.tensor.type import dvector
 
 
 class NNet:

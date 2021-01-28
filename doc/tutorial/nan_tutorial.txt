@@ -11,7 +11,7 @@ because sometimes it is caused by a bug or error in the code, sometimes it's
 because of the numerical stability of your computational environment (library
 versions, etc.), and even, sometimes it relates to your algorithm. Here we try
 to outline common issues which cause the model to yield NaNs, as well as
-provide nails and hammers to diagnose it. 
+provide nails and hammers to diagnose it.
 
 
 Check Superparameters and Weight Initialization
@@ -30,26 +30,26 @@ two) training epochs each to see if the NaNs could disappear.
 
 Some models can be very sensitive to the initialization of weight vectors. If
 those weights are not initialized in a proper range, then it is not surprising
-that the model ends up with yielding NaNs. 
+that the model ends up with yielding NaNs.
 
 
 Run in NanGuardMode, DebugMode, or MonitorMode
 -----------------------------------------------
 
 If adjusting hyperparameters doesn't work for you, you can still get help from
-Theano's NanGuardMode. Change the mode of your theano function to NanGuardMode
+Aesara's NanGuardMode. Change the mode of your aesara function to NanGuardMode
 and run them again. The NanGuardMode will monitor all input/output variables in
 each node, and raises an error if NaNs are detected. For how to use the
-``NanGuardMode``, please refer to :ref:`nanguardmode`. Using ``optimizer_including=alloc_empty_to_zeros`` 
-with ``NanGuardMode`` could be helpful to detect NaN, for more information please refer 
-to :ref:`AllocEmpty`. 
+``NanGuardMode``, please refer to :ref:`nanguardmode`. Using ``optimizer_including=alloc_empty_to_zeros``
+with ``NanGuardMode`` could be helpful to detect NaN, for more information please refer
+to :ref:`AllocEmpty`.
 
 DebugMode can also help. Run your code in DebugMode with flag
 ``mode=DebugMode,DebugMode__check_py=False``. This will give you clue about which
 op is causing this problem, and then you can inspect that op in more detail. For
 details of using ``DebugMode``, please refer to :ref:`debugmode`.
 
-Theano's MonitorMode provides another helping hand. It can be used to step
+Aesara's MonitorMode provides another helping hand. It can be used to step
 through the execution of a function. You can inspect the inputs and outputs of
 each node being executed when the function is called. For how to use that,
 please check :ref:`faq_monitormode`.
@@ -76,7 +76,7 @@ and find out if everything is derived correctly.
 CUDA Specific Option
 --------------------
 
-The Theano flag ``nvcc.fastmath=True`` can genarate NaN. Don't set
+The Aesara flag ``nvcc.fastmath=True`` can genarate NaN. Don't set
 this flag while debugging NaN.
 
 
@@ -87,4 +87,4 @@ NaN Introduced by AllocEmpty
 
 AllocEmpty is used by many operation such as scan to allocate some memory without properly clearing it. The reason for that is that the allocated memory will subsequently be overwritten. However, this can sometimes introduce NaN depending on the operation and what was previously stored in the memory it is working on. For instance, trying to zero out memory  using a multiplication before applying an operation could cause NaN if NaN is already present in the memory, since `0 * NaN => NaN`.
 
-Using ``optimizer_including=alloc_empty_to_zeros`` replaces `AllocEmpty` by `Alloc{0}`, which is helpful to diagnose where NaNs come from. Please note that when running in `NanGuardMode`, this optimizer is not included by default. Therefore, it might be helpful to use them both together. 
+Using ``optimizer_including=alloc_empty_to_zeros`` replaces `AllocEmpty` by `Alloc{0}`, which is helpful to diagnose where NaNs come from. Please note that when running in `NanGuardMode`, this optimizer is not included by default. Therefore, it might be helpful to use them both together.

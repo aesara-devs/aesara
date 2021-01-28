@@ -11,7 +11,7 @@ give you a warm feeling in your stomach.
 Non-Basic Python features
 -------------------------
 
-Theano doesn't use your grandfather's python.
+Aesara doesn't use your grandfather's python.
 
   * properties
 
@@ -41,7 +41,7 @@ Theano doesn't use your grandfather's python.
      >>> f.a = 5
      >>> f()
      5
-        
+
   * Warning about mutual imports:
 
     * script a.py file defined a class A.
@@ -58,4 +58,3 @@ Theano doesn't use your grandfather's python.
     ``__main__.<classname>``, instead of type ``<file>.<classname>``.  This should never
     happen under normal usage, and can cause problems (like the one you are/were
     experiencing).
-

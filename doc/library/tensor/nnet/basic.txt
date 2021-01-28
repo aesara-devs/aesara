@@ -4,7 +4,7 @@
 :mod:`basic` -- Basic Ops for neural networks
 ======================================================
 
-.. module:: theano.tensor.nnet.basic
+.. module:: aesara.tensor.nnet.basic
    :platform: Unix, Windows
    :synopsis: Ops for neural networks
 .. moduleauthor:: LISA
@@ -19,14 +19,14 @@
    - :func:`softplus`
    - :func:`softmax`
    - :func:`softsign`
-   - :func:`relu() <theano.tensor.nnet.relu>`
-   - :func:`elu() <theano.tensor.nnet.elu>`
-   - :func:`selu() <theano.tensor.nnet.selu>`
+   - :func:`relu() <aesara.tensor.nnet.relu>`
+   - :func:`elu() <aesara.tensor.nnet.elu>`
+   - :func:`selu() <aesara.tensor.nnet.selu>`
    - :func:`binary_crossentropy`
    - :func:`sigmoid_binary_crossentropy`
    - :func:`.categorical_crossentropy`
-   - :func:`h_softmax() <theano.tensor.nnet.h_softmax>`
-   - :func:`confusion_matrix <theano.tensor.nnet.confusion_matrix>`
+   - :func:`h_softmax() <aesara.tensor.nnet.h_softmax>`
+   - :func:`confusion_matrix <aesara.tensor.nnet.confusion_matrix>`
 
 .. function:: sigmoid(x)
 
@@ -50,7 +50,7 @@
 
    .. testcode::
 
-       import theano.tensor as tt
+       import aesara.tensor as tt
 
        x, y, b = tt.dvectors('x', 'y', 'b')
        W = tt.dmatrix('W')
@@ -66,8 +66,8 @@
     :Return type: same as x
     :Returns: approximated element-wise sigmoid: :math:`sigmoid(x) = \frac{1}{1 + \exp(-x)}`.
     :note: To automatically change all :func:`sigmoid` ops to this version, use
-      the Theano optimization ``local_ultra_fast_sigmoid``. This can be done
-      with the Theano flag ``optimizer_including=local_ultra_fast_sigmoid``.
+      the Aesara optimization ``local_ultra_fast_sigmoid``. This can be done
+      with the Aesara flag ``optimizer_including=local_ultra_fast_sigmoid``.
       This optimization is done late, so it should not affect
       stabilization optimization.
 
@@ -88,8 +88,8 @@
     :Return type: same as x
     :Returns: approximated element-wise sigmoid: :math:`sigmoid(x) = \frac{1}{1 + \exp(-x)}`.
     :note: To automatically change all :func:`sigmoid` ops to this version, use
-      the Theano optimization ``local_hard_sigmoid``. This can be done
-      with the Theano flag ``optimizer_including=local_hard_sigmoid``.
+      the Aesara optimization ``local_hard_sigmoid``. This can be done
+      with the Aesara flag ``optimizer_including=local_hard_sigmoid``.
       This optimization is done late, so it should not affect
       stabilization optimization.
 
@@ -147,11 +147,11 @@
        W = tt.dmatrix('W')
        y = tt.nnet.softmax(tt.dot(W,x) + b)
 
-.. autofunction:: theano.tensor.nnet.relu
+.. autofunction:: aesara.tensor.nnet.relu
 
-.. autofunction:: theano.tensor.nnet.elu
+.. autofunction:: aesara.tensor.nnet.elu
 
-.. autofunction:: theano.tensor.nnet.selu
+.. autofunction:: aesara.tensor.nnet.selu
 
 .. function:: binary_crossentropy(output,target)
 
@@ -239,8 +239,8 @@
 
    .. testsetup::
 
-      import theano
-      o = theano.tensor.ivector()
+      import aesara
+      o = aesara.tensor.ivector()
 
    .. testcode::
 
@@ -249,4 +249,4 @@
        # o is either the above-mentioned 1-of-N vector or 2D tensor
 
 
-.. autofunction:: theano.tensor.nnet.h_softmax
+.. autofunction:: aesara.tensor.nnet.h_softmax

@@ -5,19 +5,19 @@ sp = pytest.importorskip("scipy", minversion="0.7.0")
 
 import numpy as np
 
-import theano
-from tests import unittest_tools as utt
-from tests.sparse.test_basic import as_sparse_format
-from theano import sparse
-from theano.configdefaults import config
-from theano.sparse.sandbox.sp2 import (
+import aesara
+from aesara import sparse
+from aesara.configdefaults import config
+from aesara.sparse.sandbox.sp2 import (
     Binomial,
     Multinomial,
     Poisson,
     multinomial,
     poisson,
 )
-from theano.tensor.type import lscalar, lvector, scalar
+from aesara.tensor.type import lscalar, lvector, scalar
+from tests import unittest_tools as utt
+from tests.sparse.test_basic import as_sparse_format
 
 
 class TestPoisson(utt.InferShapeTester):
@@ -25,10 +25,10 @@ class TestPoisson(utt.InferShapeTester):
     a = {}
 
     for format in sparse.sparse_formats:
-        variable = getattr(theano.sparse, format + "_matrix")
+        variable = getattr(aesara.sparse, format + "_matrix")
 
         rand = np.array(
-            np.random.randint(1, 4, size=(3, 4)) - 1, dtype=theano.config.floatX
+            np.random.randint(1, 4, size=(3, 4)) - 1, dtype=aesara.config.floatX
         )
 
         x[format] = variable()
@@ -40,7 +40,7 @@ class TestPoisson(utt.InferShapeTester):
 
     def test_op(self):
         for format in sparse.sparse_formats:
-            f = theano.function([self.x[format]], poisson(self.x[format]))
+            f = aesara.function([self.x[format]], poisson(self.x[format]))
 
             tested = f(self.a[format])
 
@@ -77,7 +77,7 @@ class TestBinomial(utt.InferShapeTester):
     def test_op(self):
         for sp_format in sparse.sparse_formats:
             for o_type in sparse.float_dtypes:
-                f = theano.function(
+                f = aesara.function(
                     self.inputs, Binomial(sp_format, o_type)(*self.inputs)
                 )
 
@@ -119,7 +119,7 @@ class TestMultinomial(utt.InferShapeTester):
 
     def test_op(self):
         n = lscalar()
-        f = theano.function([self.p, n], multinomial(n, self.p))
+        f = aesara.function([self.p, n], multinomial(n, self.p))
 
         _n = 5
         tested = f(self._p, _n)
@@ -128,7 +128,7 @@ class TestMultinomial(utt.InferShapeTester):
         assert tested[2, 1] == _n
 
         n = lvector()
-        f = theano.function([self.p, n], multinomial(n, self.p))
+        f = aesara.function([self.p, n], multinomial(n, self.p))
 
         _n = np.asarray([1, 2, 3, 4], dtype="int64")
         tested = f(self._p, _n)

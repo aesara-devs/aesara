@@ -2,17 +2,17 @@ import functools
 
 import numpy as np
 
-import theano
+import aesara
+from aesara import tensor as tt
+from aesara.configdefaults import config
+from aesara.gpuarray.rng_mrg import GPUA_mrg_uniform
+from aesara.gpuarray.type import gpuarray_shared_constructor
+from aesara.sandbox import rng_mrg
+from aesara.sandbox.rng_mrg import MRG_RandomStream
 from tests import unittest_tools as utt
 from tests.gpuarray.config import mode_with_gpu as mode
 from tests.sandbox.test_rng_mrg import java_samples, rng_mrg_overflow
 from tests.sandbox.test_rng_mrg import test_f16_nonzero as cpu_f16_nonzero
-from theano import tensor as tt
-from theano.configdefaults import config
-from theano.gpuarray.rng_mrg import GPUA_mrg_uniform
-from theano.gpuarray.type import gpuarray_shared_constructor
-from theano.sandbox import rng_mrg
-from theano.sandbox.rng_mrg import MRG_RandomStream
 
 
 utt.seed_rng()
@@ -49,7 +49,7 @@ def test_consistency_GPUA_serial():
 
             # We need the sample back in the main memory
             cpu_sample = tt.as_tensor_variable(sample)
-            f = theano.function([], cpu_sample, mode=mode)
+            f = aesara.function([], cpu_sample, mode=mode)
             for k in range(n_samples):
                 s = f()
                 samples.append(s)
@@ -96,7 +96,7 @@ def test_consistency_GPUA_parallel():
 
         # We need the sample back in the main memory
         cpu_sample = tt.as_tensor_variable(sample)
-        f = theano.function([], cpu_sample, mode=mode)
+        f = aesara.function([], cpu_sample, mode=mode)
 
         for k in range(n_samples):
             s = f()
@@ -120,14 +120,14 @@ def test_GPUA_full_fill():
 
     R = MRG_RandomStream(234)
     uni = R.uniform(size, nstreams=60 * 256)
-    f_cpu = theano.function([], uni)
+    f_cpu = aesara.function([], uni)
 
     rstate_gpu = gpuarray_shared_constructor(R.state_updates[-1][0].get_value())
     new_rstate, sample = GPUA_mrg_uniform.new(
         rstate_gpu, ndim=None, dtype="float32", size=size
     )
     rstate_gpu.default_update = new_rstate
-    f_gpu = theano.function([], sample, mode=mode)
+    f_gpu = aesara.function([], sample, mode=mode)
 
     utt.assert_allclose(f_cpu(), f_gpu())
 
@@ -170,11 +170,11 @@ def test_validate_input_types_gpuarray_backend():
 
 def test_f16_nonzero():
     try:
-        # To have theano.shared(x) try to move on the GPU
-        theano.compile.shared_constructor(gpuarray_shared_constructor)
+        # To have aesara.shared(x) try to move on the GPU
+        aesara.compile.shared_constructor(gpuarray_shared_constructor)
         cpu_f16_nonzero(mode=mode, op_to_check=GPUA_mrg_uniform)
     finally:
-        theano.compile.shared_constructor(gpuarray_shared_constructor, remove=True)
+        aesara.compile.shared_constructor(gpuarray_shared_constructor, remove=True)
 
 
 def test_cpu_target_with_shared_variable():
@@ -182,16 +182,16 @@ def test_cpu_target_with_shared_variable():
     s = np.random.rand(2, 3).astype("float32")
     x = gpuarray_shared_constructor(s, name="x")
     try:
-        # To have theano.shared(x) try to move on the GPU
-        theano.compile.shared_constructor(gpuarray_shared_constructor)
+        # To have aesara.shared(x) try to move on the GPU
+        aesara.compile.shared_constructor(gpuarray_shared_constructor)
         y = srng.uniform(x.shape, target="cpu")
         y.name = "y"
         z = (x * y).sum()
         z.name = "z"
 
-        fz = theano.function([], z, mode=mode)
+        fz = aesara.function([], z, mode=mode)
 
         nodes = fz.maker.fgraph.toposort()
         assert not any([isinstance(node.op, GPUA_mrg_uniform) for node in nodes])
     finally:
-        theano.compile.shared_constructor(gpuarray_shared_constructor, remove=True)
+        aesara.compile.shared_constructor(gpuarray_shared_constructor, remove=True)

@@ -1,6 +1,6 @@
 import numpy as np
 
-from theano import shared
+from aesara import shared
 
 
 def test_RandomStateSharedVariable():

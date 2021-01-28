@@ -4,23 +4,21 @@ from copy import copy
 import numpy as np
 import pytest
 
+import aesara
+import aesara.scalar as ts
 import tests.unittest_tools as utt
-import theano
-import theano.scalar as ts
-from tests import unittest_tools
-from tests.tensor.test_math import reduce_bitwise_and
-from theano.compile.mode import Mode
-from theano.configdefaults import config
-from theano.graph.basic import Variable
-from theano.graph.fg import FunctionGraph
-from theano.link.basic import PerformLinker
-from theano.link.c.basic import CLinker, OpWiseCLinker
-from theano.tensor import as_tensor_variable
-from theano.tensor.basic import second
-from theano.tensor.elemwise import CAReduce, DimShuffle, Elemwise
-from theano.tensor.math import all as tt_all
-from theano.tensor.math import any as tt_any
-from theano.tensor.type import (
+from aesara.compile.mode import Mode
+from aesara.configdefaults import config
+from aesara.graph.basic import Variable
+from aesara.graph.fg import FunctionGraph
+from aesara.link.basic import PerformLinker
+from aesara.link.c.basic import CLinker, OpWiseCLinker
+from aesara.tensor import as_tensor_variable
+from aesara.tensor.basic import second
+from aesara.tensor.elemwise import CAReduce, DimShuffle, Elemwise
+from aesara.tensor.math import all as tt_all
+from aesara.tensor.math import any as tt_any
+from aesara.tensor.type import (
     TensorType,
     bmatrix,
     bscalar,
@@ -29,12 +27,14 @@ from theano.tensor.type import (
     scalar,
     vectors,
 )
+from tests import unittest_tools
+from tests.tensor.test_math import reduce_bitwise_and
 
 
 class TestDimShuffle(unittest_tools.InferShapeTester):
     op = DimShuffle
     type = TensorType
-    dtype = theano.config.floatX
+    dtype = aesara.config.floatX
 
     def with_linker(self, linker):
         for xsh, shuffle, zsh in [
@@ -134,10 +134,10 @@ class TestBroadcast:
     linkers = [PerformLinker, CLinker]
 
     def rand_val(self, shp):
-        return np.asarray(np.random.rand(*shp), dtype=theano.config.floatX)
+        return np.asarray(np.random.rand(*shp), dtype=aesara.config.floatX)
 
     def rand_cval(self, shp):
-        return np.asarray(np.random.rand(*shp), dtype=theano.config.floatX)
+        return np.asarray(np.random.rand(*shp), dtype=aesara.config.floatX)
 
     def setup_method(self):
         unittest_tools.seed_rng()
@@ -159,8 +159,8 @@ class TestBroadcast:
             ((2, 3, 4, 5), (1, 1, 1, 1)),
             ((), ()),
         ]:
-            x = type(theano.config.floatX, [(entry == 1) for entry in xsh])("x")
-            y = type(theano.config.floatX, [(entry == 1) for entry in ysh])("y")
+            x = type(aesara.config.floatX, [(entry == 1) for entry in xsh])("x")
+            y = type(aesara.config.floatX, [(entry == 1) for entry in ysh])("y")
             e = op(ts.add)(x, y)
             f = copy(linker).accept(FunctionGraph([x, y], [e])).make_function()
             xv = rand_val(xsh)
@@ -172,8 +172,8 @@ class TestBroadcast:
             # test Elemwise.infer_shape
             # the Shape op don't implement c_code!
             if isinstance(linker, PerformLinker):
-                x = type(theano.config.floatX, [(entry == 1) for entry in xsh])("x")
-                y = type(theano.config.floatX, [(entry == 1) for entry in ysh])("y")
+                x = type(aesara.config.floatX, [(entry == 1) for entry in xsh])("x")
+                y = type(aesara.config.floatX, [(entry == 1) for entry in ysh])("y")
                 e = op(ts.add)(x, y)
                 f = (
                     copy(linker)
@@ -193,8 +193,8 @@ class TestBroadcast:
             ((2, 3, 4, 5), (1, 1, 1, 1)),
             ((), ()),
         ]:
-            x = type(theano.config.floatX, [(entry == 1) for entry in xsh])("x")
-            y = type(theano.config.floatX, [(entry == 1) for entry in ysh])("y")
+            x = type(aesara.config.floatX, [(entry == 1) for entry in xsh])("x")
+            y = type(aesara.config.floatX, [(entry == 1) for entry in ysh])("y")
             e = op(ts.Add(ts.transfer_type(0)), {0: 0})(x, y)
             f = copy(linker).accept(FunctionGraph([x, y], [e])).make_function()
             xv = rand_val(xsh)
@@ -207,8 +207,8 @@ class TestBroadcast:
             # test Elemwise.infer_shape
             # the Shape op don't implement c_code!
             if isinstance(linker, PerformLinker):
-                x = type(theano.config.floatX, [(entry == 1) for entry in xsh])("x")
-                y = type(theano.config.floatX, [(entry == 1) for entry in ysh])("y")
+                x = type(aesara.config.floatX, [(entry == 1) for entry in xsh])("x")
+                y = type(aesara.config.floatX, [(entry == 1) for entry in ysh])("y")
                 e = op(ts.Add(ts.transfer_type(0)), {0: 0})(x, y)
                 f = (
                     copy(linker)
@@ -227,7 +227,7 @@ class TestBroadcast:
         self.with_linker(PerformLinker(), self.op, self.type, self.rand_val)
 
     @pytest.mark.skipif(
-        not theano.config.cxx, reason="G++ not available, so we need to skip this test."
+        not aesara.config.cxx, reason="G++ not available, so we need to skip this test."
     )
     def test_c(self):
         self.with_linker(CLinker(), self.cop, self.ctype, self.rand_cval)
@@ -236,13 +236,13 @@ class TestBroadcast:
         self.with_linker_inplace(PerformLinker(), self.op, self.type, self.rand_val)
 
     @pytest.mark.skipif(
-        not theano.config.cxx, reason="G++ not available, so we need to skip this test."
+        not aesara.config.cxx, reason="G++ not available, so we need to skip this test."
     )
     def test_c_inplace(self):
         self.with_linker_inplace(CLinker(), self.cop, self.ctype, self.rand_cval)
 
     @pytest.mark.skipif(
-        not theano.config.cxx, reason="G++ not available, so we need to skip this test."
+        not aesara.config.cxx, reason="G++ not available, so we need to skip this test."
     )
     def test_fill(self):
         for linker, op, t, rval in zip(
@@ -251,8 +251,8 @@ class TestBroadcast:
             [self.type, self.ctype],
             [self.rand_val, self.rand_cval],
         ):
-            x = t(theano.config.floatX, [0, 0])("x")
-            y = t(theano.config.floatX, [1, 1])("y")
+            x = t(aesara.config.floatX, [0, 0])("x")
+            y = t(aesara.config.floatX, [1, 1])("y")
             e = op(ts.Second(ts.transfer_type(0)), {0: 0})(x, y)
             f = linker().accept(FunctionGraph([x, y], [e])).make_function()
             xv = rval((5, 5))
@@ -270,10 +270,10 @@ class TestBroadcast:
         x = TensorType(config.floatX, [0, 1, 0])("x")
         y = TensorType(config.floatX, [0, 1, 0])("y")
         e = second(x, y)
-        theano.grad(e.sum(), y)
+        aesara.grad(e.sum(), y)
 
     @pytest.mark.skipif(
-        not theano.config.cxx, reason="G++ not available, so we need to skip this test."
+        not aesara.config.cxx, reason="G++ not available, so we need to skip this test."
     )
     def test_weird_strides(self):
         for linker, op, t, rval in zip(
@@ -282,8 +282,8 @@ class TestBroadcast:
             [self.type, self.ctype],
             [self.rand_val, self.rand_cval],
         ):
-            x = t(theano.config.floatX, [0, 0, 0, 0, 0])("x")
-            y = t(theano.config.floatX, [0, 0, 0, 0, 0])("y")
+            x = t(aesara.config.floatX, [0, 0, 0, 0, 0])("x")
+            y = t(aesara.config.floatX, [0, 0, 0, 0, 0])("y")
             e = op(ts.add)(x, y)
             f = linker().accept(FunctionGraph([x, y], [e])).make_function()
             xv = rval((2, 2, 2, 2, 2))
@@ -292,7 +292,7 @@ class TestBroadcast:
             assert (f(xv, yv) == zv).all()
 
     @pytest.mark.skipif(
-        not theano.config.cxx, reason="G++ not available, so we need to skip this test."
+        not aesara.config.cxx, reason="G++ not available, so we need to skip this test."
     )
     def test_same_inputs(self):
         for linker, op, t, rval in zip(
@@ -301,7 +301,7 @@ class TestBroadcast:
             [self.type, self.ctype],
             [self.rand_val, self.rand_cval],
         ):
-            x = t(theano.config.floatX, [0, 0])("x")
+            x = t(aesara.config.floatX, [0, 0])("x")
             e = op(ts.add)(x, x)
             f = linker().accept(FunctionGraph([x], [e])).make_function()
             xv = rval((2, 2))
@@ -341,7 +341,7 @@ class TestCAReduce(unittest_tools.InferShapeTester):
     ):
         for xsh, tosum in self.cases:
             if dtype == "floatX":
-                dtype = theano.config.floatX
+                dtype = aesara.config.floatX
             x = self.type(dtype, [(entry == 1) for entry in xsh])("x")
             d = {}
             if pre_scalar_op is not None:
@@ -354,7 +354,7 @@ class TestCAReduce(unittest_tools.InferShapeTester):
             if tosum is None:
                 tosum = list(range(len(xsh)))
 
-            f = theano.function([x], e, mode=mode)
+            f = aesara.function([x], e, mode=mode)
             xv = np.asarray(np.random.rand(*xsh))
 
             if dtype not in discrete_dtypes:
@@ -458,7 +458,7 @@ class TestCAReduce(unittest_tools.InferShapeTester):
                 e = tensor_op(x, axis=tosum)
             if tosum is None:
                 tosum = list(range(len(xsh)))
-            f = theano.function([x], e.shape, mode=mode)
+            f = aesara.function([x], e.shape, mode=mode)
             if not (
                 scalar_op in [ts.scalar_maximum, ts.scalar_minimum]
                 and (xsh == () or np.prod(xsh) == 0)
@@ -511,7 +511,7 @@ class TestCAReduce(unittest_tools.InferShapeTester):
             )
 
     @pytest.mark.skipif(
-        not theano.config.cxx, reason="G++ not available, so we need to skip this test."
+        not aesara.config.cxx, reason="G++ not available, so we need to skip this test."
     )
     def test_c_noopt(self):
         # We need to make sure that we cover the corner cases that
@@ -520,7 +520,7 @@ class TestCAReduce(unittest_tools.InferShapeTester):
 
     @pytest.mark.slow
     @pytest.mark.skipif(
-        not theano.config.cxx, reason="G++ not available, so we need to skip this test."
+        not aesara.config.cxx, reason="G++ not available, so we need to skip this test."
     )
     def test_c(self):
         for dtype in ["bool", "floatX", "complex64", "complex128", "int8", "uint8"]:
@@ -538,7 +538,7 @@ class TestCAReduce(unittest_tools.InferShapeTester):
 
     @pytest.mark.slow
     @pytest.mark.skipif(
-        not theano.config.cxx, reason="G++ not available, so we need to skip this test."
+        not aesara.config.cxx, reason="G++ not available, so we need to skip this test."
     )
     def test_c_nan(self):
         for dtype in ["floatX", "complex64", "complex128"]:
@@ -554,7 +554,7 @@ class TestCAReduce(unittest_tools.InferShapeTester):
 
     def test_infer_shape(self, dtype=None, pre_scalar_op=None):
         if dtype is None:
-            dtype = theano.config.floatX
+            dtype = aesara.config.floatX
         for xsh, tosum in self.cases:
             x = self.type(dtype, [(entry == 1) for entry in xsh])("x")
             if pre_scalar_op is not None:
@@ -583,8 +583,8 @@ class TestBitOpReduceGrad:
     def test_all_grad(self):
         x = bmatrix("x")
         x_all = x.all()
-        gx = theano.grad(x_all, x)
-        f = theano.function([x], gx)
+        gx = aesara.grad(x_all, x)
+        f = aesara.function([x], gx)
         x_random = self.rng.binomial(n=1, p=0.5, size=(5, 7)).astype("int8")
         for x_val in (x_random, np.zeros_like(x_random), np.ones_like(x_random)):
             gx_val = f(x_val)
@@ -594,8 +594,8 @@ class TestBitOpReduceGrad:
     def test_any_grad(self):
         x = bmatrix("x")
         x_all = x.any()
-        gx = theano.grad(x_all, x)
-        f = theano.function([x], gx)
+        gx = aesara.grad(x_all, x)
+        f = aesara.function([x], gx)
         x_random = self.rng.binomial(n=1, p=0.5, size=(5, 7)).astype("int8")
         for x_val in (x_random, np.zeros_like(x_random), np.ones_like(x_random)):
             gx_val = f(x_val)
@@ -608,7 +608,7 @@ class TestElemwise(unittest_tools.InferShapeTester):
         x = scalar(dtype="bool")
         y = bscalar()
         z = x * y
-        dx, dy = theano.grad(z, [x, y])
+        dx, dy = aesara.grad(z, [x, y])
 
     def test_infer_shape(self):
 
@@ -624,7 +624,7 @@ class TestElemwise(unittest_tools.InferShapeTester):
             ((2, 1, 4, 5), (2, 3, 4, 5)),
             ((2, 3, 4, 1), (2, 3, 4, 5)),
         ]:
-            dtype = theano.config.floatX
+            dtype = aesara.config.floatX
             t_left = TensorType(dtype, [(entry == 1) for entry in s_left])()
             t_right = TensorType(dtype, [(entry == 1) for entry in s_right])()
             t_left_val = np.zeros(s_left, dtype=dtype)
@@ -642,7 +642,7 @@ class TestElemwise(unittest_tools.InferShapeTester):
         # it overflowed in this case.
         a, b, c, d, e, f = vectors("abcdef")
         s = a + b + c + d + e + f
-        g = theano.function([a, b, c, d, e, f], s, mode=Mode(linker="py"))
+        g = aesara.function([a, b, c, d, e, f], s, mode=Mode(linker="py"))
         g(*[np.zeros(2 ** 11, config.floatX) for i in range(6)])
 
 
@@ -660,12 +660,12 @@ def test_not_implemented_elemwise_grad():
             (n, x) = inputs
             (gz,) = gout
             dy_dx = n
-            return [theano.gradient.grad_not_implemented(self, 0, n), gz * dy_dx]
+            return [aesara.gradient.grad_not_implemented(self, 0, n), gz * dy_dx]
 
     test_op = Elemwise(TestOp())
     x = scalar()
-    assert isinstance(theano.gradient.grad(test_op(2, x), x), Variable)
+    assert isinstance(aesara.gradient.grad(test_op(2, x), x), Variable)
 
     # Verify that trying to use the not implemented gradient fails.
-    with pytest.raises(theano.gradient.NullTypeGradError):
-        theano.gradient.grad(test_op(x, 2), x)
+    with pytest.raises(aesara.gradient.NullTypeGradError):
+        aesara.gradient.grad(test_op(x, 2), x)

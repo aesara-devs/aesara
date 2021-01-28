@@ -2,13 +2,13 @@
 .. _extend_faq:
 
 =========================================
-Extending Theano: FAQ and Troubleshooting
+Extending Aesara: FAQ and Troubleshooting
 =========================================
 
 I wrote a new Op/Type, and weird stuff is happening...
 ------------------------------------------------------
 
-First, check the :ref:`op_contract` and the :ref:`type_contract` 
+First, check the :ref:`op_contract` and the :ref:`type_contract`
 and make sure you're following the rules.
 Then try running your program in :ref:`using_debugmode`.  DebugMode might catch
 something that you're not seeing.
@@ -26,7 +26,5 @@ I wrote a new optimization, and it changed my results even though I'm pretty sur
 ------------------------------------------------------------------------------------------------
 
 First, check the :ref:`op_contract` and make sure you're following the rules.
-Then try running your program in :ref:`using_debugmode`.  DebugMode might 
+Then try running your program in :ref:`using_debugmode`.  DebugMode might
 catch something that you're not seeing.
-
-

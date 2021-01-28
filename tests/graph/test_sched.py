@@ -1,14 +1,14 @@
-from theano.graph.basic import io_toposort
-from theano.graph.sched import (
+from aesara.graph.basic import io_toposort
+from aesara.graph.sched import (
     _toposort,
     make_dependence_cmp,
     posort,
     reverse_dict,
     sort_apply_nodes,
 )
-from theano.tensor.math import dot
-from theano.tensor.type import matrix
-from theano.utils import cmp
+from aesara.tensor.math import dot
+from aesara.tensor.type import matrix
+from aesara.utils import cmp
 
 
 def test_dependence():

@@ -7,5 +7,5 @@
    :synopsis: Tensor Optimizations for Math Operations
 .. moduleauthor:: LISA, PyMC Developers
 
-.. automodule:: theano.tensor.math_opt
+.. automodule:: aesara.tensor.math_opt
     :members:

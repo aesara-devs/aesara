@@ -6,7 +6,7 @@ More Examples
 =============
 
 At this point it would be wise to begin familiarizing yourself more
-systematically with Theano's fundamental objects and operations by
+systematically with Aesara's fundamental objects and operations by
 browsing this section of the library: :ref:`libdoc_basic_tensor`.
 
 As the tutorial unfolds, you should also gradually acquaint yourself
@@ -40,11 +40,11 @@ Well, what you do is this:
 .. If you modify this code, also change :
 .. tests/test_tutorial.py:T_examples.test_examples_1
 
->>> import theano
->>> import theano.tensor as tt
+>>> import aesara
+>>> import aesara.tensor as tt
 >>> x = tt.dmatrix('x')
 >>> s = 1 / (1 + tt.exp(-x))
->>> logistic = theano.function([x], s)
+>>> logistic = aesara.function([x], s)
 >>> logistic([[0, 1], [-1, -2]])
 array([[ 0.5       ,  0.73105858],
        [ 0.26894142,  0.11920292]])
@@ -65,7 +65,7 @@ We can verify that this alternate form produces the same values:
 .. tests/test_tutorial.py:T_examples.test_examples_2
 
 >>> s2 = (1 + tt.tanh(x / 2)) / 2
->>> logistic2 = theano.function([x], s2)
+>>> logistic2 = aesara.function([x], s2)
 >>> logistic2([[0, 1], [-1, -2]])
 array([[ 0.5       ,  0.73105858],
        [ 0.26894142,  0.11920292]])
@@ -74,7 +74,7 @@ array([[ 0.5       ,  0.73105858],
 Computing More than one Thing at the Same Time
 ==============================================
 
-Theano supports functions with multiple outputs. For example, we can
+Aesara supports functions with multiple outputs. For example, we can
 compute the :ref:`elementwise <libdoc_tensor_elementwise>` difference, absolute difference, and
 squared difference between two matrices *a* and *b* at the same time:
 
@@ -85,7 +85,7 @@ squared difference between two matrices *a* and *b* at the same time:
 >>> diff = a - b
 >>> abs_diff = abs(diff)
 >>> diff_squared = diff**2
->>> f = theano.function([a, b], [diff, abs_diff, diff_squared])
+>>> f = aesara.function([a, b], [diff, abs_diff, diff_squared])
 
 .. note::
    `dmatrices` produces as many outputs as names that you provide.  It is a
@@ -112,8 +112,8 @@ one. You can do it like this:
 .. If you modify this code, also change :
 .. tests/test_tutorial.py:T_examples.test_examples_6
 
->>> from theano.compile.io import In
->>> from theano import function
+>>> from aesara.compile.io import In
+>>> from aesara import function
 >>> x, y = tt.dscalars('x', 'y')
 >>> z = x + y
 >>> f = function([x, In(y, value=1)], z)
@@ -178,7 +178,7 @@ internal state, and returns the old state value.
 .. If you modify this code, also change :
 .. tests/test_tutorial.py:T_examples.test_examples_8
 
->>> from theano import shared
+>>> from aesara import shared
 >>> state = shared(0)
 >>> inc = tt.iscalar('inc')
 >>> accumulator = function([inc], state, updates=[(state, state+inc)])
@@ -242,7 +242,7 @@ achieve a similar result by returning the new expressions, and working with
 them in NumPy as usual.  The updates mechanism can be a syntactic convenience,
 but it is mainly there for efficiency.  Updates to shared variables can
 sometimes be done more quickly using in-place algorithms (e.g. low-rank matrix
-updates).  Also, Theano has more control over where and how shared variables are
+updates).  Also, Aesara has more control over where and how shared variables are
 allocated, which is one of the important elements of getting good performance
 on the :ref:`GPU<using_gpu>`.
 
@@ -276,26 +276,26 @@ expression that evaluates to a tensor of same shape and dtype.
 
 .. note::
 
-    Theano shared variable broadcast pattern default to False for each
+    Aesara shared variable broadcast pattern default to False for each
     dimensions. Shared variable size can change over time, so we can't
     use the shape to find the broadcastable pattern. If you want a
     different pattern, just pass it as a parameter
-    ``theano.shared(..., broadcastable=(True, False))``
+    ``aesara.shared(..., broadcastable=(True, False))``
 
 Copying functions
 =================
-Theano functions can be copied, which can be useful for creating similar
+Aesara functions can be copied, which can be useful for creating similar
 functions but with different shared variables or updates. This is done using
-the :func:`copy()<theano.compile.function.types.Function.copy>` method of ``function`` objects. The optimized graph of the original function is copied,
+the :func:`copy()<aesara.compile.function.types.Function.copy>` method of ``function`` objects. The optimized graph of the original function is copied,
 so compilation only needs to be performed once.
 
 Let's start from the accumulator defined above:
 
->>> import theano
->>> import theano.tensor as tt
->>> state = theano.shared(0)
+>>> import aesara
+>>> import aesara.tensor as tt
+>>> state = aesara.shared(0)
 >>> inc = tt.iscalar('inc')
->>> accumulator = theano.function([inc], state, updates=[(state, state+inc)])
+>>> accumulator = aesara.function([inc], state, updates=[(state, state+inc)])
 
 We can use it to increment the state as usual:
 
@@ -307,7 +307,7 @@ array(0)
 We can use ``copy()`` to create a similar accumulator but with its own internal state
 using the ``swap`` parameter, which is a dictionary of shared variables to exchange:
 
->>> new_state = theano.shared(0)
+>>> new_state = aesara.shared(0)
 >>> new_accumulator = accumulator.copy(swap={state:new_state})
 >>> new_accumulator(100)
 [array(0)]
@@ -336,18 +336,18 @@ As expected, the shared state is no longer updated:
 Using Random Numbers
 ====================
 
-Because in Theano you first express everything symbolically and
+Because in Aesara you first express everything symbolically and
 afterwards compile this expression to get functions,
 using pseudo-random numbers is not as straightforward as it is in
 NumPy, though also not too complicated.
 
-The way to think about putting randomness into Theano's computations is
-to put random variables in your graph. Theano will allocate a NumPy
+The way to think about putting randomness into Aesara's computations is
+to put random variables in your graph. Aesara will allocate a NumPy
 `RandomStream` object (a random number generator) for each such
 variable, and draw from it as necessary. We will call this sort of
 sequence of random numbers a *random stream*. *Random streams* are at
 their core shared variables, so the observations on shared variables
-hold here as well. Theano's random objects are defined and implemented in
+hold here as well. Aesara's random objects are defined and implemented in
 :ref:`RandomStream<libdoc_tensor_random_utils>` and, at a lower level,
 in :ref:`RandomVariable<libdoc_tensor_random_basic>`.
 
@@ -361,8 +361,8 @@ Here's a brief example.  The setup code is:
 
 .. testcode::
 
-    from theano.tensor.random.utils import RandomStream
-    from theano import function
+    from aesara.tensor.random.utils import RandomStream
+    from aesara import function
     srng = RandomStream(seed=234)
     rv_u = srng.uniform(0, 1, size=(2,2))
     rv_n = srng.normal(0, 1, size=(2,2))
@@ -439,33 +439,33 @@ array([[ 0.,  0.],
 >>> v2 = f()             # v2 != v1
 >>> v3 = f()             # v3 == v1
 
-Copying Random State Between Theano Graphs
+Copying Random State Between Aesara Graphs
 ------------------------------------------
 
 In some use cases, a user might want to transfer the "state" of all random
-number generators associated with a given theano graph (e.g. g1, with compiled
+number generators associated with a given aesara graph (e.g. g1, with compiled
 function f1 below) to a second graph (e.g. g2, with function f2). This might
 arise for example if you are trying to initialize the state of a model, from
 the parameters of a pickled version of a previous model. For
-:class:`theano.tensor.random.utils.RandomStream` and
-:class:`theano.sandbox.rng_mrg.MRG_RandomStream`
+:class:`aesara.tensor.random.utils.RandomStream` and
+:class:`aesara.sandbox.rng_mrg.MRG_RandomStream`
 this can be achieved by copying elements of the `state_updates` parameter.
 
 Each time a random variable is drawn from a `RandomStream` object, a tuple is
 added to the `state_updates` list. The first element is a shared variable,
 which represents the state of the random number generator associated with this
-*particular* variable, while the second represents the theano graph
+*particular* variable, while the second represents the aesara graph
 corresponding to the random number generation process (i.e. RandomFunction{uniform}.0).
 
-An example of how "random states" can be transferred from one theano function
+An example of how "random states" can be transferred from one aesara function
 to another is shown below.
 
 >>> from __future__ import print_function
->>> import theano
+>>> import aesara
 >>> import numpy
->>> import theano.tensor as tt
->>> from theano.sandbox.rng_mrg import MRG_RandomStream
->>> from theano.tensor.random.utils import RandomStream
+>>> import aesara.tensor as tt
+>>> from aesara.sandbox.rng_mrg import MRG_RandomStream
+>>> from aesara.tensor.random.utils import RandomStream
 
 >>> class Graph():
 ...     def __init__(self, seed=123):
@@ -473,10 +473,10 @@ to another is shown below.
 ...         self.y = self.rng.uniform(size=(1,))
 
 >>> g1 = Graph(seed=123)
->>> f1 = theano.function([], g1.y)
+>>> f1 = aesara.function([], g1.y)
 
 >>> g2 = Graph(seed=987)
->>> f2 = theano.function([], g2.y)
+>>> f2 = aesara.function([], g2.y)
 
 >>> # By default, the two functions are out of sync.
 >>> f1()
@@ -490,7 +490,7 @@ array([ 0.55056769])
 ...     for (su1, su2) in zip(g1.rng.state_updates, g2.rng.state_updates):
 ...         su2[0].set_value(su1[0].get_value())
 
->>> # We now copy the state of the theano random number generators.
+>>> # We now copy the state of the aesara random number generators.
 >>> copy_random_state(g1, g2)
 >>> f1()
 array([ 0.59044123])
@@ -518,7 +518,7 @@ The `RandomStream` only work on the CPU, MRG31k3p work on the CPU and GPU.
 
         .. code-block:: python
 
-            from theano.sandbox.rng_mrg import MRG_RandomStream as RandomStream
+            from aesara.sandbox.rng_mrg import MRG_RandomStream as RandomStream
 
 .. _logistic_regression:
 
@@ -532,8 +532,8 @@ It will be used repeatedly.
 .. testcode::
 
     import numpy
-    import theano
-    import theano.tensor as tt
+    import aesara
+    import aesara.tensor as tt
     rng = numpy.random
 
     N = 400                                   # training sample size
@@ -543,7 +543,7 @@ It will be used repeatedly.
     D = (rng.randn(N, feats), rng.randint(size=N, low=0, high=2))
     training_steps = 10000
 
-    # Declare Theano symbolic variables
+    # Declare Aesara symbolic variables
     x = tt.dmatrix("x")
     y = tt.dvector("y")
 
@@ -552,16 +552,16 @@ It will be used repeatedly.
     # this and the following bias variable b
     # are shared so they keep their values
     # between training iterations (updates)
-    w = theano.shared(rng.randn(feats), name="w")
+    w = aesara.shared(rng.randn(feats), name="w")
 
     # initialize the bias term
-    b = theano.shared(0., name="b")
+    b = aesara.shared(0., name="b")
 
     print("Initial model:")
     print(w.get_value())
     print(b.get_value())
 
-    # Construct Theano expression graph
+    # Construct Aesara expression graph
     p_1 = 1 / (1 + tt.exp(-T.dot(x, w) - b))        # Probability that target = 1
     prediction = p_1 > 0.5                          # The prediction thresholded
     xent = -y * tt.log(p_1) - (1-y) * tt.log(1-p_1) # Cross-entropy loss function
@@ -574,11 +574,11 @@ It will be used repeatedly.
                                                     # tutorial)
 
     # Compile
-    train = theano.function(
+    train = aesara.function(
               inputs=[x,y],
               outputs=[prediction, xent],
               updates=((w, w - 0.1 * gw), (b, b - 0.1 * gb)))
-    predict = theano.function(inputs=[x], outputs=prediction)
+    predict = aesara.function(inputs=[x], outputs=prediction)
 
     # Train
     for i in range(training_steps):

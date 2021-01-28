@@ -1,5 +1,5 @@
-..  ../../../../theano/sparse/sandbox/sp.py
-..  ../../../../theano/sparse/sandbox/truedot.py
+..  ../../../../aesara/sparse/sandbox/sp.py
+..  ../../../../aesara/sparse/sandbox/truedot.py
 
 .. _libdoc_sparse_sandbox:
 
@@ -15,9 +15,9 @@
 API
 ===
 
-.. automodule:: theano.sparse.sandbox.sp
+.. automodule:: aesara.sparse.sandbox.sp
     :members:
-.. automodule:: theano.sparse.sandbox.sp2
+.. automodule:: aesara.sparse.sandbox.sp2
     :members:
-.. automodule:: theano.sparse.sandbox.truedot
+.. automodule:: aesara.sparse.sandbox.truedot
     :members:

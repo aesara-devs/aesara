@@ -1,8 +1,8 @@
-from theano.compile.mode import Mode
-from theano.configdefaults import config
-from theano.link.basic import WrapLinkerMany
-from theano.link.vm import VMLinker
-from theano.printing import hex_digest, min_informative_str
+from aesara.compile.mode import Mode
+from aesara.configdefaults import config
+from aesara.link.basic import WrapLinkerMany
+from aesara.link.vm import VMLinker
+from aesara.printing import hex_digest, min_informative_str
 
 
 __authors__ = ["PyMC Team", "Ian Goodfellow"]
@@ -123,10 +123,10 @@ class RecordMode(Mode):
 
        # Then compile and call the function you wish to test, which uses
        # Apply nodes with record_mode as first parameter to record all the
-       # computations to file. For example, call a Theano function with the
+       # computations to file. For example, call an Aesara function with the
        # RecordMode object.
-       x = theano.tensor.dscalar()
-       f = theano.function([x], 2*x, mode=record_mode)
+       x = aesara.tensor.dscalar()
+       f = aesara.function([x], 2*x, mode=record_mode)
        print f(4)
 
        # Create another RecordMode object and initialize it with the previous
@@ -138,8 +138,8 @@ class RecordMode(Mode):
        # Compile and call the function to test again with record_mode as
        # first parameter. An exception will be thrown if the recorded
        # computations are not identical between the two runs.
-       x = theano.tensor.dscalar()
-       f = theano.function([x], 2*x, mode=playback_mode)
+       x = aesara.tensor.dscalar()
+       f = aesara.function([x], 2*x, mode=playback_mode)
        print f(4)
 
     """
@@ -248,7 +248,7 @@ class RecordMode(Mode):
             line = f"Outputs: {outputs_digest}\n"
             handle_line(fgraph, line, i, node, fn)
 
-        # linker = theano.link.c.basic.OpWiseCLinker()
+        # linker = aesara.link.c.basic.OpWiseCLinker()
         linker = VMLinker(use_cloop=bool(config.cxx))
 
         wrap_linker = WrapLinkerMany([linker], [callback])

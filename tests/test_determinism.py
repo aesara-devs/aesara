@@ -4,11 +4,11 @@ from io import StringIO
 
 import numpy as np
 
-import theano
+import aesara
+from aesara import shared
+from aesara.configdefaults import config
+from aesara.printing import var_descriptor
 from tests.record import Record, RecordMode
-from theano import shared
-from theano.configdefaults import config
-from theano.printing import var_descriptor
 
 
 __authors__ = "Ian Goodfellow" "PyMC Developers"
@@ -78,14 +78,14 @@ def test_determinism_1():
             s = sharedX(0.0, name="s_" + str(i))
             updates.append((s, val))
 
-        for var in theano.graph.basic.ancestors(update for _, update in updates):
+        for var in aesara.graph.basic.ancestors(update for _, update in updates):
             if var.name is not None and var.name != "b":
                 if var.name[0] != "s" or len(var.name) != 2:
                     var.name = None
 
         for key in channels:
             updates.append((s, channels[key]))
-        f = theano.function(
+        f = aesara.function(
             [], mode=mode, updates=updates, on_unused_input="ignore", name="f"
         )
         for output in f.maker.fgraph.outputs:

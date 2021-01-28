@@ -7,10 +7,6 @@ arrays.  It can use GPUs and perform efficient symbolic differentiation.
 This is a fork of the `original Theano library <https://github.com/Theano/Theano>`__ that is being
 maintained by the `PyMC team <https://github.com/pymc-devs>`__.
 
-.. warning::
-   The name of this repository/project may change in the near future.
-
-
 Features
 ========
 
@@ -36,21 +32,21 @@ The latest release of |Project Name| can be installed from PyPI using ``pip``:
 
 ::
 
-    pip install Theano-PyMC
+    pip install aesara
 
 
 Or via conda-forge:
 
 ::
 
-    conda install -c conda-forge theano-pymc
+    conda install -c conda-forge aesara
 
 
 The current development branch of |Project Name| can be installed from GitHub, also using ``pip``:
 
 ::
 
-    pip install git+https://github.com/pymc-devs/Theano-PyMC
+    pip install git+https://github.com/pymc-devs/aesara
 
 
 For platform-specific installation information see the legacy documentation `here <http://deeplearning.net/software/theano/install.html>`__.
@@ -62,8 +58,8 @@ Support
 The PyMC group operates under the NumFOCUS umbrella. If you want to support us financially, you can donate `here <https://numfocus.salsalabs.org/donate-to-pymc3/index.html>`__.
 
 
-.. |Project Name| replace:: Theano-PyMC
-.. |Tests Status| image:: https://github.com/pymc-devs/Theano-PyMC/workflows/Tests/badge.svg
-  :target: https://github.com/pymc-devs/Theano/actions?query=workflow%3ATests
-.. |Coverage| image:: https://coveralls.io/repos/github/pymc-devs/Theano-PyMC/badge.svg?branch=master
-  :target: https://coveralls.io/github/pymc-devs/Theano-PyMC?branch=master
+.. |Project Name| replace:: Aesara
+.. |Tests Status| image:: https://github.com/pymc-devs/aesara/workflows/Tests/badge.svg
+  :target: https://github.com/pymc-devs/aesara/actions?query=workflow%3ATests
+.. |Coverage| image:: https://coveralls.io/repos/github/pymc-devs/aesara/badge.svg?branch=master
+  :target: https://coveralls.io/github/pymc-devs/aesara?branch=master

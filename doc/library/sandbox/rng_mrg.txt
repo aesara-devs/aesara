@@ -12,5 +12,5 @@
 API
 ===
 
-.. automodule:: theano.sandbox.rng_mrg
+.. automodule:: aesara.sandbox.rng_mrg
     :members:

@@ -5,16 +5,16 @@ import pickle
 
 import pytest
 
-from theano import configdefaults, configparser
-from theano.configdefaults import short_platform
-from theano.configparser import ConfigParam
+from aesara import configdefaults, configparser
+from aesara.configdefaults import short_platform
+from aesara.configparser import ConfigParam
 
 
 def _create_test_config():
-    return configparser.TheanoConfigParser(
+    return configparser.AesaraConfigParser(
         flags_dict={},
-        theano_cfg=stdlib_configparser.ConfigParser(),
-        theano_raw_cfg=stdlib_configparser.RawConfigParser(),
+        aesara_cfg=stdlib_configparser.ConfigParser(),
+        aesara_raw_cfg=stdlib_configparser.RawConfigParser(),
     )
 
 
@@ -65,7 +65,7 @@ def test_api_redirect():
 
 
 def test_invalid_default():
-    # Ensure an invalid default value found in the Theano code only causes
+    # Ensure an invalid default value found in the Aesara code only causes
     # a crash if it is not overridden by the user.
 
     root = _create_test_config()
@@ -250,11 +250,11 @@ def test_mode_apply():
         configdefaults._filter_mode("not_a_mode")
 
     # test with Mode instance
-    import theano.compile.mode
+    import aesara.compile.mode
 
     assert (
-        configdefaults._filter_mode(theano.compile.mode.FAST_COMPILE)
-        == theano.compile.mode.FAST_COMPILE
+        configdefaults._filter_mode(aesara.compile.mode.FAST_COMPILE)
+        == aesara.compile.mode.FAST_COMPILE
     )
 
 

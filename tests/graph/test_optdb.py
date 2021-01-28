@@ -1,6 +1,6 @@
 import pytest
 
-from theano.graph.optdb import DB, opt
+from aesara.graph.optdb import DB, opt
 
 
 class TestDB:

@@ -1,17 +1,17 @@
 import numpy as np
 import pytest
 
-import theano
-import theano.tensor as tt
+import aesara
+import aesara.tensor as tt
+from aesara import function, shared
+from aesara.configdefaults import config
+from aesara.tensor import nnet
+from aesara.tensor.nnet.neighbours import Images2Neibs, images2neibs, neibs2images
+from aesara.tensor.type import dtensor4, ftensor4, ivector, matrix, tensor4
 from tests import unittest_tools
-from theano import function, shared
-from theano.configdefaults import config
-from theano.tensor import nnet
-from theano.tensor.nnet.neighbours import Images2Neibs, images2neibs, neibs2images
-from theano.tensor.type import dtensor4, ftensor4, ivector, matrix, tensor4
 
 
-mode_without_gpu = theano.compile.mode.get_default_mode().excluding("gpu")
+mode_without_gpu = aesara.compile.mode.get_default_mode().excluding("gpu")
 
 
 class TestImages2Neibs(unittest_tools.InferShapeTester):
@@ -297,7 +297,7 @@ class TestImages2Neibs(unittest_tools.InferShapeTester):
         ):
             for neib_shape in neib_shapes:
                 for dtype in self.dtypes:
-                    x = theano.shared(np.random.randn(*shape).astype(dtype))
+                    x = aesara.shared(np.random.randn(*shape).astype(dtype))
                     extra = (neib_shape[0] // 2, neib_shape[1] // 2)
                     padded_shape = (
                         x.shape[0],
@@ -313,8 +313,8 @@ class TestImages2Neibs(unittest_tools.InferShapeTester):
                         padded_x, neib_shape, neib_step, mode="valid"
                     )
                     x_using_half = images2neibs(x, neib_shape, neib_step, mode="half")
-                    f_valid = theano.function([], x_using_valid, mode="FAST_RUN")
-                    f_half = theano.function([], x_using_half, mode=self.mode)
+                    f_valid = aesara.function([], x_using_valid, mode="FAST_RUN")
+                    f_half = aesara.function([], x_using_half, mode=self.mode)
                     unittest_tools.assert_allclose(f_valid(), f_half())
 
     @pytest.mark.slow
@@ -334,7 +334,7 @@ class TestImages2Neibs(unittest_tools.InferShapeTester):
         ):
             for neib_shape in neib_shapes:
                 for dtype in self.dtypes:
-                    x = theano.shared(np.random.randn(*shape).astype(dtype))
+                    x = aesara.shared(np.random.randn(*shape).astype(dtype))
                     extra = (neib_shape[0] - 1, neib_shape[1] - 1)
                     padded_shape = (
                         x.shape[0],
@@ -350,8 +350,8 @@ class TestImages2Neibs(unittest_tools.InferShapeTester):
                         padded_x, neib_shape, neib_step, mode="valid"
                     )
                     x_using_full = images2neibs(x, neib_shape, neib_step, mode="full")
-                    f_valid = theano.function([], x_using_valid, mode="FAST_RUN")
-                    f_full = theano.function([], x_using_full, mode=self.mode)
+                    f_valid = aesara.function([], x_using_valid, mode="FAST_RUN")
+                    f_full = aesara.function([], x_using_full, mode=self.mode)
                     unittest_tools.assert_allclose(f_valid(), f_full())
 
     @config.change_flags(compute_test_value="off")
@@ -471,7 +471,7 @@ class TestImages2Neibs(unittest_tools.InferShapeTester):
         images = dtensor4()
         images_val = np.arange(np.prod(shape), dtype="float32").reshape(shape)
 
-        f = theano.function(
+        f = aesara.function(
             [images], tt.sqr(images2neibs(images, (2, 2), mode="valid")), mode=self.mode
         )
         with pytest.raises(TypeError):
@@ -482,7 +482,7 @@ class TestImages2Neibs(unittest_tools.InferShapeTester):
         images = dtensor4()
         images_val = np.arange(np.prod(shape), dtype="float32").reshape(shape)
 
-        f = theano.function(
+        f = aesara.function(
             [images], tt.sqr(images2neibs(images, (2, 2), mode="half")), mode=self.mode
         )
         with pytest.raises(TypeError):
@@ -493,7 +493,7 @@ class TestImages2Neibs(unittest_tools.InferShapeTester):
         images = dtensor4()
         images_val = np.arange(np.prod(shape), dtype="float32").reshape(shape)
 
-        f = theano.function(
+        f = aesara.function(
             [images], tt.sqr(images2neibs(images, (2, 2), mode="full")), mode=self.mode
         )
         with pytest.raises(TypeError):
@@ -506,14 +506,14 @@ class TestImages2Neibs(unittest_tools.InferShapeTester):
 
         img = tensor4("img")
         patches = nnet.neighbours.images2neibs(img, [16, 16])
-        extractPatches = theano.function([img], patches, mode=self.mode)
+        extractPatches = aesara.function([img], patches, mode=self.mode)
 
         patsRecovery = matrix("patsRecovery")
         original_size = ivector("original_size")
 
         for mode in ["valid", "ignore_borders"]:
             out = neibs2images(patsRecovery, (16, 16), original_size, mode=mode)
-            f = theano.function([patsRecovery, original_size], out, mode=self.mode)
+            f = aesara.function([patsRecovery, original_size], out, mode=self.mode)
 
             im_val = np.ones((1, 3, 320, 320), dtype=np.float32)
             neibs = extractPatches(im_val)

@@ -7,16 +7,16 @@ from io import StringIO
 import numpy as np
 import pytest
 
-import theano
-import theano.tensor as tt
-from theano.printing import (
+import aesara
+import aesara.tensor as tt
+from aesara.printing import (
     debugprint,
     min_informative_str,
     pp,
     pydot_imported,
     pydotprint,
 )
-from theano.tensor.type import dvector, iscalar, matrix, scalar, vector
+from aesara.tensor.type import dvector, iscalar, matrix, scalar, vector
 
 
 @pytest.mark.skipif(not pydot_imported, reason="pydot not available")
@@ -24,21 +24,21 @@ def test_pydotprint_cond_highlight():
     # This is a REALLY PARTIAL TEST.
     # I did them to help debug stuff.
     x = dvector()
-    f = theano.function([x], x * 2)
+    f = aesara.function([x], x * 2)
     f([1, 2, 3, 4])
 
     s = StringIO()
     new_handler = logging.StreamHandler(s)
     new_handler.setLevel(logging.DEBUG)
-    orig_handler = theano.logging_default_handler
+    orig_handler = aesara.logging_default_handler
 
-    theano.theano_logger.removeHandler(orig_handler)
-    theano.theano_logger.addHandler(new_handler)
+    aesara.aesara_logger.removeHandler(orig_handler)
+    aesara.aesara_logger.addHandler(new_handler)
     try:
         pydotprint(f, cond_highlight=True, print_output_file=False)
     finally:
-        theano.theano_logger.addHandler(orig_handler)
-        theano.theano_logger.removeHandler(new_handler)
+        aesara.aesara_logger.addHandler(orig_handler)
+        aesara.aesara_logger.removeHandler(new_handler)
 
     assert (
         s.getvalue() == "pydotprint: cond_highlight is set but there"
@@ -60,8 +60,8 @@ def test_pydotprint_long_name():
     # names are different, but not the shortened names.
     # We should not merge those nodes in the dot graph.
     x = dvector()
-    mode = theano.compile.mode.get_default_mode().excluding("fusion")
-    f = theano.function([x], [x * 2, x + x], mode=mode)
+    mode = aesara.compile.mode.get_default_mode().excluding("fusion")
+    f = aesara.function([x], [x * 2, x + x], mode=mode)
     f([1, 2, 3, 4])
 
     pydotprint(f, max_label_size=5, print_output_file=False)
@@ -69,13 +69,13 @@ def test_pydotprint_long_name():
 
 
 @pytest.mark.skipif(
-    not pydot_imported or theano.config.mode in ("DebugMode", "DEBUG_MODE"),
+    not pydot_imported or aesara.config.mode in ("DebugMode", "DEBUG_MODE"),
     reason="Can't profile in DebugMode",
 )
 def test_pydotprint_profile():
     A = matrix()
-    prof = theano.compile.ProfileStats(atexit_print=False, gpu_checks=False)
-    f = theano.function([A], A + 1, profile=prof)
+    prof = aesara.compile.ProfileStats(atexit_print=False, gpu_checks=False)
+    f = aesara.function([A], A + 1, profile=prof)
     pydotprint(f, print_output_file=False)
     f([[1]])
     pydotprint(f, print_output_file=False)
@@ -120,8 +120,8 @@ def test_debugprint():
 
     F = D + E
     G = C + F
-    mode = theano.compile.get_default_mode().including("fusion")
-    g = theano.function([A, B, D, E], G, mode=mode)
+    mode = aesara.compile.get_default_mode().including("fusion")
+    g = aesara.function([A, B, D, E], G, mode=mode)
 
     # just test that it work
     s = StringIO()
@@ -257,7 +257,7 @@ def test_scan_debugprint1():
     A = dvector("A")
 
     # Symbolic description of the result
-    result, updates = theano.scan(
+    result, updates = aesara.scan(
         fn=lambda prior_result, A: prior_result * A,
         outputs_info=tt.ones_like(A),
         non_sequences=A,
@@ -314,7 +314,7 @@ def test_scan_debugprint2():
     max_coefficients_supported = 10000
 
     # Generate the components of the polynomial
-    components, updates = theano.scan(
+    components, updates = aesara.scan(
         fn=lambda coefficient, power, free_variable: coefficient
         * (free_variable ** power),
         outputs_info=None,
@@ -379,7 +379,7 @@ def test_scan_debugprint3():
     # compute A**k
     def compute_A_k(A, k):
         # Symbolic description of the result
-        result, updates = theano.scan(
+        result, updates = aesara.scan(
             fn=lambda prior_result, A: prior_result * A,
             outputs_info=tt.ones_like(A),
             non_sequences=A,
@@ -391,7 +391,7 @@ def test_scan_debugprint3():
         return A_k
 
     # Generate the components of the polynomial
-    components, updates = theano.scan(
+    components, updates = aesara.scan(
         fn=lambda coefficient, power, some_A, some_k: coefficient
         * (compute_A_k(some_A, some_k) ** power),
         outputs_info=None,
@@ -486,10 +486,10 @@ def test_scan_debugprint4():
     def fn(a_m2, a_m1, b_m2, b_m1):
         return a_m1 + a_m2, b_m1 + b_m2
 
-    a0 = theano.shared(np.arange(2, dtype="int64"))
-    b0 = theano.shared(np.arange(2, dtype="int64"))
+    a0 = aesara.shared(np.arange(2, dtype="int64"))
+    b0 = aesara.shared(np.arange(2, dtype="int64"))
 
-    (a, b), _ = theano.scan(
+    (a, b), _ = aesara.scan(
         fn,
         outputs_info=[
             {"initial": a0, "taps": [-2, -1]},
@@ -561,14 +561,14 @@ def test_scan_debugprint5():
     A = dvector("A")
 
     # Symbolic description of the result
-    result, updates = theano.scan(
+    result, updates = aesara.scan(
         fn=lambda prior_result, A: prior_result * A,
         outputs_info=tt.ones_like(A),
         non_sequences=A,
         n_steps=k,
     )
 
-    final_result = theano.grad(result[-1].sum(), A)
+    final_result = aesara.grad(result[-1].sum(), A)
 
     output_str = debugprint(final_result, file="str")
     lines = output_str.split("\n")
@@ -698,10 +698,10 @@ def test_printing_scan():
 
     state = scalar("state")
     n_steps = iscalar("nsteps")
-    output, updates = theano.scan(
+    output, updates = aesara.scan(
         f_pow2, [], state, [], n_steps=n_steps, truncate_gradient=-1, go_backwards=False
     )
-    f = theano.function(
+    f = aesara.function(
         [state, n_steps], output, updates=updates, allow_input_downcast=True
     )
     pydotprint(output, scan_graphs=True)

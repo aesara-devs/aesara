@@ -1,18 +1,18 @@
 import numpy as np
 import pytest
 
-import theano
-import theano.graph.op as op
-import theano.tensor as tt
-from theano import scalar as ts
-from theano import shared
-from theano.configdefaults import config
-from theano.graph.basic import Apply, Variable
-from theano.graph.op import COp, Op
-from theano.graph.type import Generic, Type
-from theano.graph.utils import MethodNotDefined, TestValueError
-from theano.tensor.math import log
-from theano.tensor.type import dmatrix, vector
+import aesara
+import aesara.graph.op as op
+import aesara.tensor as tt
+from aesara import scalar as ts
+from aesara import shared
+from aesara.configdefaults import config
+from aesara.graph.basic import Apply, Variable
+from aesara.graph.op import COp, Op
+from aesara.graph.type import Generic, Type
+from aesara.graph.utils import MethodNotDefined, TestValueError
+from aesara.tensor.math import log
+from aesara.tensor.type import dmatrix, vector
 
 
 def as_variable(x):
@@ -137,7 +137,7 @@ class TestOp:
 
     def test_op_no_input(self):
         x = NoInputOp()()
-        f = theano.function([], x)
+        f = aesara.function([], x)
         rval = f()
         assert rval == "test Op no input"
 
@@ -146,18 +146,18 @@ class TestOp:
     )
     def test_op_struct(self):
         sop = StructOp()
-        c = sop(theano.tensor.constant(0))
+        c = sop(aesara.tensor.constant(0))
         mode = None
         if config.mode == "FAST_COMPILE":
             mode = "FAST_RUN"
-        f = theano.function([], c, mode=mode)
+        f = aesara.function([], c, mode=mode)
         rval = f()
         assert rval == 0
         rval = f()
         assert rval == 1
 
-        c2 = sop(theano.tensor.constant(1))
-        f2 = theano.function([], [c, c2], mode=mode)
+        c2 = sop(aesara.tensor.constant(1))
+        f2 = aesara.function([], [c, c2], mode=mode)
         rval = f2()
         assert rval == [0, 0]
 
@@ -256,7 +256,7 @@ class TestMakeThunk:
                 output[0] = inp * 2
 
         x_input = dmatrix("x_input")
-        f = theano.function([x_input], DoubleOp()(x_input))
+        f = aesara.function([x_input], DoubleOp()(x_input))
         inp = np.random.rand(5, 4)
         out = f(inp)
         assert np.allclose(inp * 2, out)

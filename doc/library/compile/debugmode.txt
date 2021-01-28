@@ -5,7 +5,7 @@
 :mod:`debugmode`
 =================
 
-.. module:: theano.compile.debugmode
+.. module:: aesara.compile.debugmode
    :platform: Unix, Windows
    :synopsis: defines DebugMode
 .. moduleauthor:: LISA
@@ -27,13 +27,13 @@ DebugMode can be used as follows:
 
 .. testcode::
 
-    import theano
-    from theano import tensor as tt
-    from theano.compile.debugmode import DebugMode
+    import aesara
+    from aesara import tensor as tt
+    from aesara.compile.debugmode import DebugMode
 
     x = tt.dscalar('x')
 
-    f = theano.function([x], 10*x, mode='DebugMode')
+    f = aesara.function([x], 10*x, mode='DebugMode')
 
     f(5)
     f(0)
@@ -42,12 +42,12 @@ DebugMode can be used as follows:
 It can also be used by setting the configuration variable :attr:`config.mode`,
 or passing a `DebugMode` instance, as in
 
->>> f = theano.function([x], 10*x, mode=DebugMode(check_c_code=False))
+>>> f = aesara.function([x], 10*x, mode=DebugMode(check_c_code=False))
 
 If any problem is detected, DebugMode will raise an exception according to
 what went wrong, either at call time (``f(5)``) or compile time (
-``f = theano.function(x, 10*x, mode='DebugMode')``). These exceptions
-should *not* be ignored; talk to your local Theano guru or email the
+``f = aesara.function(x, 10*x, mode='DebugMode')``). These exceptions
+should *not* be ignored; talk to your local Aesara guru or email the
 users list if you cannot make the exception go away.
 
 Some kinds of errors can only be detected for certain input value combinations.
@@ -63,7 +63,7 @@ Reference
 
 .. class:: DebugMode(Mode)
 
-    Evaluation Mode that detects internal theano errors.
+    Evaluation Mode that detects internal aesara errors.
 
     This mode catches several kinds of internal error:
 

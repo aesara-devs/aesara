@@ -3,13 +3,13 @@ from functools import update_wrapper
 import numpy as np
 import pytest
 
-import theano
-import theano.sparse
-import theano.tensor as tt
+import aesara
+import aesara.sparse
+import aesara.tensor as tt
+from aesara.misc.may_share_memory import may_share_memory
+from aesara.tensor.basic import MakeVector
+from aesara.tensor.shape import Shape_i, specify_shape
 from tests import unittest_tools as utt
-from theano.misc.may_share_memory import may_share_memory
-from theano.tensor.basic import MakeVector
-from theano.tensor.shape import Shape_i, specify_shape
 
 
 utt.seed_rng()
@@ -26,7 +26,7 @@ def makeSharedTester(
     shared_constructor_accept_ndarray_,
     internal_type_,
     check_internal_type_,
-    theano_fct_,
+    aesara_fct_,
     ref_fct_,
     cast_value_=np.asarray,
     expect_fail_fast_shape_inplace=True,
@@ -49,8 +49,8 @@ def makeSharedTester(
     :param internal_type_: The internal type used.
     :param check_internal_type_: A function that tell if its input is of the same
                                 type as this shared variable internal type.
-    :param theano_fct_: A theano op that will be used to do some computation on the shared variable
-    :param ref_fct_: A reference function that should return the same value as the theano_fct_
+    :param aesara_fct_: A aesara op that will be used to do some computation on the shared variable
+    :param ref_fct_: A reference function that should return the same value as the aesara_fct_
     :param cast_value_: A callable that cast an ndarray into the internal shared variable representation
     :param name: This string is used to set the returned class' __name__
                  attribute. This is needed for tests to properly tag the
@@ -72,7 +72,7 @@ def makeSharedTester(
         shared_borrow_true_alias = shared_borrow_true_alias_
         internal_type = internal_type_
         check_internal_type = staticmethod(check_internal_type_)
-        theano_fct = staticmethod(theano_fct_)
+        aesara_fct = staticmethod(aesara_fct_)
         ref_fct = staticmethod(ref_fct_)
         set_value_borrow_true_alias = set_value_borrow_true_alias_
         set_value_inplace = set_value_inplace_
@@ -83,7 +83,7 @@ def makeSharedTester(
         def test_shared_dont_alias(self):
             dtype = self.dtype
             if dtype is None:
-                dtype = theano.config.floatX
+                dtype = aesara.config.floatX
 
             rng = np.random.RandomState(utt.fetch_seed())
             x = np.asarray(rng.uniform(0, 1, [2, 4]), dtype=dtype)
@@ -91,9 +91,9 @@ def makeSharedTester(
 
             x_ref = self.ref_fct(x)
             x_shared = self.shared_constructor(x, borrow=False)
-            total = self.theano_fct(x_shared)
+            total = self.aesara_fct(x_shared)
 
-            total_func = theano.function([], total)
+            total_func = aesara.function([], total)
 
             total_val = total_func()
 
@@ -128,7 +128,7 @@ def makeSharedTester(
         def test_shape(self):
             dtype = self.dtype
             if dtype is None:
-                dtype = theano.config.floatX
+                dtype = aesara.config.floatX
 
             rng = np.random.RandomState(utt.fetch_seed())
             x = np.asarray(rng.uniform(0, 1, [2, 4]), dtype=dtype)
@@ -136,13 +136,13 @@ def makeSharedTester(
 
             self.ref_fct(x)
             x_shared = self.shared_constructor(x, borrow=False)
-            self.theano_fct(x_shared)
+            self.aesara_fct(x_shared)
 
-            f = theano.function([], x_shared.shape)
+            f = aesara.function([], x_shared.shape)
             topo = f.maker.fgraph.toposort()
 
             assert np.all(f() == (2, 4))
-            if theano.config.mode != "FAST_COMPILE":
+            if aesara.config.mode != "FAST_COMPILE":
                 assert len(topo) == 3
                 assert isinstance(topo[0].op, Shape_i)
                 assert isinstance(topo[1].op, Shape_i)
@@ -151,7 +151,7 @@ def makeSharedTester(
         def test_shape_i(self):
             dtype = self.dtype
             if dtype is None:
-                dtype = theano.config.floatX
+                dtype = aesara.config.floatX
 
             rng = np.random.RandomState(utt.fetch_seed())
             x = np.asarray(rng.uniform(0, 1, [2, 4]), dtype=dtype)
@@ -159,29 +159,29 @@ def makeSharedTester(
 
             self.ref_fct(x)
             x_shared = self.shared_constructor(x, borrow=False)
-            self.theano_fct(x_shared)
+            self.aesara_fct(x_shared)
 
-            f = theano.function([], x_shared.shape[1])
+            f = aesara.function([], x_shared.shape[1])
             topo = f.maker.fgraph.toposort()
 
             assert np.all(f() == (4))
-            if theano.config.mode != "FAST_COMPILE":
+            if aesara.config.mode != "FAST_COMPILE":
                 assert len(topo) == 1
                 assert isinstance(topo[0].op, Shape_i)
 
         def test_return_internal_type(self):
             dtype = self.dtype
             if dtype is None:
-                dtype = theano.config.floatX
+                dtype = aesara.config.floatX
 
             rng = np.random.RandomState(utt.fetch_seed())
             x = np.asarray(rng.uniform(0, 1, [2, 4]), dtype=dtype)
             x = self.cast_value(x)
 
             x_shared = self.shared_constructor(x, borrow=False)
-            total = self.theano_fct(x_shared)
+            total = self.aesara_fct(x_shared)
 
-            total_func = theano.function([], total)
+            total_func = aesara.function([], total)
 
             # in this case we can alias with the internal value
             x = x_shared.get_value(borrow=True, return_internal_type=True)
@@ -205,7 +205,7 @@ def makeSharedTester(
             # Test that get_value returns a ndarray
             dtype = self.dtype
             if dtype is None:
-                dtype = theano.config.floatX
+                dtype = aesara.config.floatX
 
             rng = np.random.RandomState(utt.fetch_seed())
             x_orig = np.asarray(rng.uniform(0, 1, [2, 4]), dtype=dtype)
@@ -220,7 +220,7 @@ def makeSharedTester(
         def test_set_value(self):
             dtype = self.dtype
             if dtype is None:
-                dtype = theano.config.floatX
+                dtype = aesara.config.floatX
 
             rng = np.random.RandomState(utt.fetch_seed())
             x = np.asarray(rng.uniform(0, 1, [2, 4]), dtype=dtype)
@@ -228,12 +228,12 @@ def makeSharedTester(
 
             x_orig = x
             x_shared = self.shared_constructor(x, borrow=False)
-            total = self.theano_fct(x_shared)
+            total = self.aesara_fct(x_shared)
 
-            total_func = theano.function([], total)
+            total_func = aesara.function([], total)
             total_func()
 
-            # test if that theano shared variable optimize set_value(borrow=True)
+            # test if that aesara shared variable optimize set_value(borrow=True)
             get_x = x_shared.get_value(borrow=True)
             assert get_x is not x_orig  # borrow=False to shared_constructor
             get_x /= 0.5
@@ -262,7 +262,7 @@ def makeSharedTester(
         def test_shared_do_alias(self):
             dtype = self.dtype
             if dtype is None:
-                dtype = theano.config.floatX
+                dtype = aesara.config.floatX
 
             rng = np.random.RandomState(utt.fetch_seed())
             x = np.asarray(rng.uniform(1, 2, [4, 2]), dtype=dtype)
@@ -271,9 +271,9 @@ def makeSharedTester(
 
             x_shared = self.shared_constructor(x, borrow=True)
 
-            total = self.theano_fct(x_shared)
+            total = self.aesara_fct(x_shared)
 
-            total_func = theano.function([], total)
+            total_func = aesara.function([], total)
 
             total_val = total_func()
 
@@ -289,11 +289,11 @@ def makeSharedTester(
 
         def test_inplace_set_value(self):
             # We test that if the SharedVariable implement it we do inplace set_value
-            # We also test this for partial inplace modification when accessing the internal of theano.
+            # We also test this for partial inplace modification when accessing the internal of aesara.
 
             dtype = self.dtype
             if dtype is None:
-                dtype = theano.config.floatX
+                dtype = aesara.config.floatX
 
             shp = (100 // 4, 1024)  # 100KB
 
@@ -389,7 +389,7 @@ def makeSharedTester(
         def test_specify_shape(self):
             dtype = self.dtype
             if dtype is None:
-                dtype = theano.config.floatX
+                dtype = aesara.config.floatX
 
             rng = np.random.RandomState(utt.fetch_seed())
             x1_1 = np.asarray(rng.uniform(1, 2, [4, 2]), dtype=dtype)
@@ -406,38 +406,38 @@ def makeSharedTester(
             assert np.allclose(
                 self.ref_fct(x1_shared.get_value(borrow=True)), self.ref_fct(x1_2)
             )
-            shape_op_fct = theano.function([], x1_shared.shape)
+            shape_op_fct = aesara.function([], x1_shared.shape)
             topo = shape_op_fct.maker.fgraph.toposort()
-            if theano.config.mode != "FAST_COMPILE":
+            if aesara.config.mode != "FAST_COMPILE":
                 assert len(topo) == 3
                 assert isinstance(topo[0].op, Shape_i)
                 assert isinstance(topo[1].op, Shape_i)
                 assert isinstance(topo[2].op, MakeVector)
 
             # Test that we forward the input
-            specify_shape_fct = theano.function([], x1_specify_shape)
+            specify_shape_fct = aesara.function([], x1_specify_shape)
             assert np.all(self.ref_fct(specify_shape_fct()) == self.ref_fct(x1_2))
             topo_specify = specify_shape_fct.maker.fgraph.toposort()
             assert len(topo_specify) == 2
 
             # Test that we put the shape info into the graph
-            shape_constant_fct = theano.function([], x1_specify_shape.shape)
+            shape_constant_fct = aesara.function([], x1_specify_shape.shape)
             assert np.all(shape_constant_fct() == shape_op_fct())
             topo_cst = shape_constant_fct.maker.fgraph.toposort()
-            if theano.config.mode != "FAST_COMPILE":
+            if aesara.config.mode != "FAST_COMPILE":
                 assert len(topo_cst) == 1
-                topo_cst[0].op == theano.compile.function.types.deep_copy_op
+                topo_cst[0].op == aesara.compile.function.types.deep_copy_op
 
             # Test that we can take the grad.
-            if theano.sparse.enable_sparse and isinstance(
-                x1_specify_shape.type, theano.sparse.SparseType
+            if aesara.sparse.enable_sparse and isinstance(
+                x1_specify_shape.type, aesara.sparse.SparseType
             ):
                 # SparseVariable don't support sum for now.
                 assert not hasattr(x1_specify_shape, "sum")
             else:
-                shape_grad = theano.gradient.grad(x1_specify_shape.sum(), x1_shared)
-                shape_constant_fct_grad = theano.function([], shape_grad)
-                # theano.printing.debugprint(shape_constant_fct_grad)
+                shape_grad = aesara.gradient.grad(x1_specify_shape.sum(), x1_shared)
+                shape_constant_fct_grad = aesara.function([], shape_grad)
+                # aesara.printing.debugprint(shape_constant_fct_grad)
                 shape_constant_fct_grad()
 
             # Test that we can replace with values of the different shape
@@ -449,7 +449,7 @@ def makeSharedTester(
 
             # No assertion will be raised as the Op is removed from the graph
             # when their is optimization
-            if theano.config.mode not in ["FAST_COMPILE", "DebugMode", "DEBUG_MODE"]:
+            if aesara.config.mode not in ["FAST_COMPILE", "DebugMode", "DEBUG_MODE"]:
                 shape_constant_fct()
             else:
                 with pytest.raises(AssertionError):
@@ -458,7 +458,7 @@ def makeSharedTester(
         def test_specify_shape_partial(self):
             dtype = self.dtype
             if dtype is None:
-                dtype = theano.config.floatX
+                dtype = aesara.config.floatX
 
             rng = np.random.RandomState(utt.fetch_seed())
             x1_1 = np.asarray(rng.uniform(1, 2, [4, 2]), dtype=dtype)
@@ -478,30 +478,30 @@ def makeSharedTester(
             assert np.allclose(
                 self.ref_fct(x1_shared.get_value(borrow=True)), self.ref_fct(x1_2)
             )
-            shape_op_fct = theano.function([], x1_shared.shape)
+            shape_op_fct = aesara.function([], x1_shared.shape)
             topo = shape_op_fct.maker.fgraph.toposort()
             shape_op_fct()
-            if theano.config.mode != "FAST_COMPILE":
+            if aesara.config.mode != "FAST_COMPILE":
                 assert len(topo) == 3
                 assert isinstance(topo[0].op, Shape_i)
                 assert isinstance(topo[1].op, Shape_i)
                 assert isinstance(topo[2].op, MakeVector)
 
             # Test that we forward the input
-            specify_shape_fct = theano.function([], x1_specify_shape)
+            specify_shape_fct = aesara.function([], x1_specify_shape)
             specify_shape_fct()
-            # theano.printing.debugprint(specify_shape_fct)
+            # aesara.printing.debugprint(specify_shape_fct)
             assert np.all(self.ref_fct(specify_shape_fct()) == self.ref_fct(x1_2))
             topo_specify = specify_shape_fct.maker.fgraph.toposort()
-            if theano.config.mode != "FAST_COMPILE":
+            if aesara.config.mode != "FAST_COMPILE":
                 assert len(topo_specify) == 4
 
             # Test that we put the shape info into the graph
-            shape_constant_fct = theano.function([], x1_specify_shape.shape)
-            # theano.printing.debugprint(shape_constant_fct)
+            shape_constant_fct = aesara.function([], x1_specify_shape.shape)
+            # aesara.printing.debugprint(shape_constant_fct)
             assert np.all(shape_constant_fct() == shape_op_fct())
             topo_cst = shape_constant_fct.maker.fgraph.toposort()
-            if theano.config.mode != "FAST_COMPILE":
+            if aesara.config.mode != "FAST_COMPILE":
                 assert len(topo_cst) == 2
 
             # Test that we can replace with values of the different shape
@@ -511,7 +511,7 @@ def makeSharedTester(
                 specify_shape_fct()
 
             # No assertion will be raised as the Op is removed from the graph
-            if theano.config.mode not in ["FAST_COMPILE", "DebugMode", "DEBUG_MODE"]:
+            if aesara.config.mode not in ["FAST_COMPILE", "DebugMode", "DEBUG_MODE"]:
                 shape_constant_fct()
             else:
                 with pytest.raises(AssertionError):
@@ -522,7 +522,7 @@ def makeSharedTester(
 
             dtype = self.dtype
             if dtype is None:
-                dtype = theano.config.floatX
+                dtype = aesara.config.floatX
 
             rng = np.random.RandomState(utt.fetch_seed())
             a = np.asarray(rng.uniform(1, 2, [40, 40]), dtype=dtype)
@@ -534,14 +534,14 @@ def makeSharedTester(
             s = np.zeros((40, 40), dtype=dtype)
             s = self.cast_value(s)
             s_shared = self.shared_constructor(s)
-            f = theano.function(
+            f = aesara.function(
                 [],
-                updates=[(s_shared, theano.tensor.dot(a_shared, b_shared) + s_shared)],
+                updates=[(s_shared, aesara.tensor.dot(a_shared, b_shared) + s_shared)],
             )
             topo = f.maker.fgraph.toposort()
             f()
             # [Gemm{inplace}(<TensorType(float64, matrix)>, 0.01, <TensorType(float64, matrix)>, <TensorType(float64, matrix)>, 2e-06)]
-            if theano.config.mode != "FAST_COMPILE":
+            if aesara.config.mode != "FAST_COMPILE":
                 assert (
                     sum(
                         [
@@ -553,9 +553,9 @@ def makeSharedTester(
                     == 1
                 )
                 assert all(
-                    node.op == theano.tensor.blas.gemm_inplace
+                    node.op == aesara.tensor.blas.gemm_inplace
                     for node in topo
-                    if isinstance(node.op, theano.tensor.blas.Gemm)
+                    if isinstance(node.op, aesara.tensor.blas.Gemm)
                 )
                 assert all(
                     node.op.inplace
@@ -569,17 +569,17 @@ def makeSharedTester(
             )
 
             # now test with the specify shape op in the output
-            f = theano.function(
+            f = aesara.function(
                 [],
                 s_shared.shape,
                 updates=[
-                    (s_shared, theano.tensor.dot(a_shared, b_shared) + s_shared_specify)
+                    (s_shared, aesara.tensor.dot(a_shared, b_shared) + s_shared_specify)
                 ],
             )
             topo = f.maker.fgraph.toposort()
             shp = f()
             assert np.all(shp == (40, 40))
-            if theano.config.mode != "FAST_COMPILE":
+            if aesara.config.mode != "FAST_COMPILE":
                 assert (
                     sum(
                         [
@@ -591,9 +591,9 @@ def makeSharedTester(
                     == 1
                 )
                 assert all(
-                    node.op == theano.tensor.blas.gemm_inplace
+                    node.op == aesara.tensor.blas.gemm_inplace
                     for node in topo
-                    if isinstance(node.op, theano.tensor.blas.Gemm)
+                    if isinstance(node.op, aesara.tensor.blas.Gemm)
                 )
                 assert all(
                     node.op.inplace
@@ -604,17 +604,17 @@ def makeSharedTester(
             a_shared = specify_shape(a_shared, a_shared.get_value(borrow=True).shape)
             b_shared = specify_shape(b_shared, b_shared.get_value(borrow=True).shape)
 
-            f = theano.function(
+            f = aesara.function(
                 [],
                 s_shared.shape,
                 updates=[
-                    (s_shared, theano.tensor.dot(a_shared, b_shared) + s_shared_specify)
+                    (s_shared, aesara.tensor.dot(a_shared, b_shared) + s_shared_specify)
                 ],
             )
             topo = f.maker.fgraph.toposort()
             shp = f()
             assert np.all(shp == (40, 40))
-            if theano.config.mode != "FAST_COMPILE":
+            if aesara.config.mode != "FAST_COMPILE":
                 assert (
                     sum(
                         [
@@ -626,9 +626,9 @@ def makeSharedTester(
                     == 1
                 )
                 assert all(
-                    node.op == theano.tensor.blas.gemm_inplace
+                    node.op == aesara.tensor.blas.gemm_inplace
                     for node in topo
-                    if isinstance(node.op, theano.tensor.blas.Gemm)
+                    if isinstance(node.op, aesara.tensor.blas.Gemm)
                 )
                 assert all(
                     node.op.inplace
@@ -637,9 +637,9 @@ def makeSharedTester(
                 )
 
         if (
-            theano.config.cycle_detection == "fast"
+            aesara.config.cycle_detection == "fast"
             and expect_fail_fast_shape_inplace
-            and theano.config.mode != "FAST_COMPILE"
+            and aesara.config.mode != "FAST_COMPILE"
         ):
             test_specify_shape_inplace = pytest.mark.xfail(test_specify_shape_inplace)
 
@@ -647,7 +647,7 @@ def makeSharedTester(
             # Test the type.values_eq[_approx] function
             dtype = self.dtype
             if dtype is None:
-                dtype = theano.config.floatX
+                dtype = aesara.config.floatX
 
             # We need big shape as in the past there have been a bug in the
             # sparse values_eq_approx.
@@ -681,8 +681,8 @@ def makeSharedTester(
 
 
 @makeSharedTester(
-    shared_constructor_=theano.shared,
-    dtype_=theano.config.floatX,
+    shared_constructor_=aesara.shared,
+    dtype_=aesara.config.floatX,
     get_value_borrow_true_alias_=True,
     shared_borrow_true_alias_=True,
     set_value_borrow_true_alias_=True,
@@ -691,7 +691,7 @@ def makeSharedTester(
     shared_constructor_accept_ndarray_=True,
     internal_type_=np.ndarray,
     check_internal_type_=lambda a: isinstance(a, np.ndarray),
-    theano_fct_=lambda a: a * 2,
+    aesara_fct_=lambda a: a * 2,
     ref_fct_=lambda a: np.asarray(a * 2),
     cast_value_=np.asarray,
 )
@@ -701,5 +701,5 @@ class TestSharedOptions:
 
 def test_scalar_shared_options():
     # Simple test to make sure we do not loose that fonctionality.
-    theano.shared(value=0.0, name="lk", borrow=True)
-    theano.shared(value=np.float32(0.0), name="lk", borrow=True)
+    aesara.shared(value=0.0, name="lk", borrow=True)
+    aesara.shared(value=np.float32(0.0), name="lk", borrow=True)

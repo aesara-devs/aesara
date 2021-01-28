@@ -5,10 +5,10 @@ import tempfile
 import numpy as np
 import pytest
 
-import theano as th
-import theano.d3viz as d3v
+import aesara as th
+import aesara.d3viz as d3v
+from aesara.d3viz.formatting import pydot_imported, pydot_imported_msg
 from tests.d3viz import models
-from theano.d3viz.formatting import pydot_imported, pydot_imported_msg
 
 
 if not pydot_imported:

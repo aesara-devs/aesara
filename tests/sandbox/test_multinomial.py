@@ -1,10 +1,10 @@
 import numpy as np
 
 import tests.unittest_tools as utt
-from theano import function
-from theano.configdefaults import config
-from theano.sandbox.multinomial import MultinomialFromUniform
-from theano.tensor.type import dmatrix, dvector, fmatrix, fvector, iscalar
+from aesara import function
+from aesara.configdefaults import config
+from aesara.sandbox.multinomial import MultinomialFromUniform
+from aesara.tensor.type import dmatrix, dvector, fmatrix, fvector, iscalar
 
 
 def test_n_samples_1():

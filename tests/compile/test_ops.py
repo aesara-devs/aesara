@@ -2,12 +2,12 @@ import pickle
 
 import numpy as np
 
+from aesara import function
+from aesara.compile.ops import as_op
+from aesara.configdefaults import config
+from aesara.tensor.basic import Rebroadcast
+from aesara.tensor.type import TensorType, dmatrix, dtensor4, dvector
 from tests import unittest_tools as utt
-from theano import function
-from theano.compile.ops import as_op
-from theano.configdefaults import config
-from theano.tensor.basic import Rebroadcast
-from theano.tensor.type import TensorType, dmatrix, dtensor4, dvector
 
 
 @as_op([dmatrix, dmatrix], dmatrix)

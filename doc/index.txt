@@ -2,269 +2,68 @@
 Welcome
 =======
 
-Theano is a Python library that allows you to define, optimize, and
+Aesara is a Python library that allows you to define, optimize, and
 evaluate mathematical expressions involving multi-dimensional
-arrays efficiently. Theano features:
+arrays efficiently. Aesara features:
 
-* **tight integration with NumPy** -- Use `numpy.ndarray` in Theano-compiled functions.
+* **tight integration with NumPy** -- Use `numpy.ndarray` in Aesara-compiled functions.
 * **transparent use of a GPU** -- Perform data-intensive computations much faster than on a CPU.
-* **efficient symbolic differentiation** -- Theano does your derivatives for functions with one or many inputs.
+* **efficient symbolic differentiation** -- Aesara does your derivatives for functions with one or many inputs.
 * **speed and stability optimizations** -- Get the right answer for ``log(1+x)`` even when ``x`` is really tiny.
 * **dynamic C code generation** -- Evaluate expressions faster.
 * **extensive unit-testing and self-verification** -- Detect and diagnose many types of errors.
 
-Theano has been powering large-scale computationally intensive
-scientific investigations since 2007.  But it is also approachable
-enough to be used in the classroom (University of Montreal's `deep
-learning/machine learning <https://mila.umontreal.ca/en/cours/>`_ classes).
-
-News
-====
-
-* 2018/05/23: Release of Theano 1.0.2 (bug fixes). Everybody is encouraged to update.
-
-* 2017/12/06: Release of Theano 1.0.1 (bug fixes). Everybody is encouraged to update.
-
-* 2017/11/15: Release of Theano 1.0.0. Everybody is encouraged to update.
-
-* 2017/10/30: Release of Theano 1.0.0rc1, new features and many bugfixes, final release to coming.
-
-* 2017/10/16: Release of Theano 0.10.0beta4, new features and many bugfixes, release candidate to coming.
-
-* 2017/09/28: IMPORTANT: `MILA will stop developing Theano <https://groups.google.com/d/msg/theano-users/7Poq8BZutbY/rNCIfvAEAwAJ>`_ and the next release (renamed to 1.0) will be the last main release.
-
-* 2017/09/20: Release of Theano 0.10.0beta3, new features and many bugfixes, release candidate to coming.
-
-* 2017/09/07: Release of Theano 0.10.0beta2, new features and many bugfixes, release candidate to coming.
-
-* 2017/08/09: Release of Theano 0.10.0beta1, many improvements and bugfixes, release candidate to coming.
-
-* Removed support for the old (device=gpu) backend.  Use the new
-  backend (device=cuda) for gpu computing.  See `Converting to the new
-  gpu back end(gpuarray)
-  <https://github.com/Theano/Theano/wiki/Converting-to-the-new-gpu-back-end%28gpuarray%29>`_
-  for help with conversion.
-
-* 2017/03/20: Release of Theano 0.9.0. Everybody is encouraged to update.
-
-* 2017/03/13: Release of Theano 0.9.0rc4, with crash fixes and bug fixes.
-
-* 2017/03/06: Release of Theano 0.9.0rc3, with crash fixes, bug fixes and improvements.
-
-* 2017/02/27: Release of Theano 0.9.0rc2, with crash fixes, bug fixes and improvements.
-
-* 2017/02/20: Release of Theano 0.9.0rc1, many improvements and bugfixes, final release to coming.
-
-* 2017/01/24: Release of Theano 0.9.0beta1, many improvements and bugfixes, release candidate to coming.
-
-* 2016/05/09: New technical report on Theano:
-  `Theano: A Python framework for fast computation of mathematical expressions <http://arxiv.org/abs/1605.02688>`_.
-  This is the new preferred reference.
-
-* 2016/04/21: Release of Theano 0.8.2, adding support for CuDNN v5.
-
-* 2016/03/29: Release of Theano 0.8.1, fixing a compilation issue on MacOS X with XCode 7.3.
-
-* 2016/03/21: Release of Theano 0.8. Everybody is encouraged to update.
-
-* Multi-GPU.
-
-* We added support for CNMeM to speed up the GPU memory allocation.
-
-* Theano 0.7 was released 26th March 2015. Everybody is encouraged to update.
-
-* We support cuDNN if it is installed by the user.
-
-* Open Machine Learning Workshop 2014 :download:`presentation <omlw2014/omlw_presentation.pdf>`.
-
-* Colin Raffel `tutorial on Theano <http://nbviewer.ipython.org/github/craffel/theano-tutorial/blob/master/Theano%20Tutorial.ipynb>`_.
-
-* Ian Goodfellow did a `12h class with exercises on Theano <https://github.com/goodfeli/theano_exercises>`_.
-
-* New technical report on Theano: `Theano: new features and speed improvements <http://arxiv.org/abs/1211.5590>`_.
-
-* `HPCS 2011 Tutorial <http://www.iro.umontreal.ca/~lisa/pointeurs/tutorial_hpcs2011_fixed.pdf>`_.
-  We included a few fixes discovered while doing the Tutorial.
-
-.. image:: images/talk2010.png
-    :scale: 75%
-    :align: left
-
-You can watch a quick (20 minute) introduction to Theano given as a talk at `SciPy 2010 <http://conference.scipy.org/scipy2010/>`_ via streaming (or downloaded) video:
-
-  `Transparent GPU Computing With Theano`_.
-  James Bergstra, SciPy 2010, June 30, 2010.
-
-.. _Transparent GPU Computing With Theano: http://www.archive.org/details/Scipy2010-JamesBergstra-TransparentGpuComputingWithTheano
+Aesara is based on Aesara, which has been powering large-scale computationally
+intensive scientific investigations since 2007.
 
 Download
 ========
 
-Theano is now `available on PyPI`_, and can be installed via ``easy_install
-Theano``, ``pip install Theano`` or by downloading and unpacking the tarball
-and typing ``python setup.py install``.
+Aesara is `available on PyPI`_, and can be installed via ``pip install Aesara``.
 
 Those interested in bleeding-edge features should obtain the latest development
 version, available via::
 
-    git clone git://github.com/Theano/Theano.git
+    git clone git://github.com/pymc-devs/aesara.git
 
 You can then place the checkout directory on your ``$PYTHONPATH`` or use
 ``python setup.py develop`` to install a ``.pth`` into your ``site-packages``
 directory, so that when you pull updates via Git, they will be
 automatically reflected the "installed" version. For more information about
-installation and configuration, see :ref:`installing Theano <install>`.
+installation and configuration, see :ref:`installing Aesara <install>`.
 
-.. only:: html
-
-  Status
-  ======
-
-  .. raw:: html
-
-     <a href="http://travis-ci.org/Theano/Theano/builds"><img src="https://secure.travis-ci.org/Theano/Theano.png?branch=master" /></a>&nbsp;
-
-  .. raw:: html
-
-     <a href="https://crate.io/packages/Theano/"><img src="https://img.shields.io/pypi/v/Theano.svg" alt="Latest PyPI version" /></a>&nbsp;
-
-  .. raw:: html
-
-     <a href="https://crate.io/packages/Theano/"><img src="https://img.shields.io/pypi/dm/Theano.svg" alt="Number of PyPI downloads" /></a>&nbsp;
-
-.. _available on PyPI: http://pypi.python.org/pypi/Theano
-.. _Related Projects: https://github.com/Theano/Theano/wiki/Related-projects
-
-Citing Theano
-==============
-
-If you use Theano for academic research, you are highly encouraged (though not
-required) to cite the following, most recent paper:
-
-* Theano Development Team. `"Theano: A Python framework for fast computation of mathematical expressions"
-  <http://arxiv.org/pdf/1605.02688.pdf>`_.
-  (:download:`short BibTeX <theano-short.bib>`, :download:`full BibTeX <theano-full.bib>`)
-
-Theano is primarily developed by academics, and so citations matter a lot to
-us. As an added benefit, you increase Theano's exposure and potential user
-(and developer) base, which is to the benefit of all users of Theano. Thanks
-in advance!
-
-See our :ref:`citation` for details.
+.. _available on PyPI: http://pypi.python.org/pypi/aesara
+.. _Related Projects: https://github.com/pymc-devs/aesara/wiki/Related-projects
 
 Documentation
 =============
 
 Roughly in order of what you'll want to check out:
 
-* :ref:`install` -- How to install Theano.
-* :ref:`introduction` -- What is Theano?
+* :ref:`install` -- How to install Aesara.
+* :ref:`introduction` -- What is Aesara?
 * :ref:`tutorial` -- Learn the basics.
 * :ref:`troubleshooting` -- Tips and tricks for common debugging.
-* :ref:`libdoc` -- Theano's functionality, module by module.
+* :ref:`libdoc` -- Aesara's functionality, module by module.
 * :ref:`faq` -- A set of commonly asked questions.
-* :ref:`optimizations` -- Guide to Theano's graph optimizations.
+* :ref:`optimizations` -- Guide to Aesara's graph optimizations.
 * :ref:`extending` -- Learn to add a Type, Op, or graph optimization.
-* :ref:`dev_start_guide` -- How to contribute code to Theano.
-* :ref:`internal` -- How to maintain Theano and more...
+* :ref:`dev_start_guide` -- How to contribute code to Aesara.
+* :ref:`internal` -- How to maintain Aesara and more...
 * :ref:`release` -- How our release should work.
 * :ref:`acknowledgement` -- What we took from other projects.
-* `Related Projects`_ -- link to other projects that implement new functionalities on top of Theano
-
-You can download the latest `PDF documentation <http://deeplearning.net/software/theano/theano.pdf>`_, rather than reading it online.
-
-Check out how Theano can be used for Machine Learning: `Deep Learning Tutorials <http://www.deeplearning.net/tutorial>`_.
-
-Theano was featured at `SciPy 2010 <http://www.iro.umontreal.ca/~lisa/publications2/index.php/publications/show/461>`__.
+* `Related Projects`_ -- link to other projects that implement new functionalities on top of Aesara
 
 
-.. _theano_community:
+.. _aesara_community:
 
-Community
-=========
+* Visit `theano-users`_ if you want to talk to all Theano users.
 
-    "Thank YOU for correcting it so quickly. I wish all packages I worked
-    with would have such an active maintenance - this is as good as it
-    gets :-)"
-
-    (theano-users, Aug 2, 2010)
-
-
-* Register to `theano-announce`_ if you want to be kept informed on important change on theano(low volume).
-
-* Register and post to `theano-users`_ if you want to talk to all Theano users.
-
-* Register and post to `theano-dev`_ if you want to talk to the developers.
-
-* Register to `theano-github`_ if you want to receive an email for all changes to the GitHub repository.
-
-* Register to `theano-buildbot`_ if you want to receive our daily buildbot email.
+* Visit `theano-dev`_ if you want to talk to the developers.
 
 * Ask/view questions/answers at `StackOverflow`_
 
-* We use `Github tickets <http://github.com/Theano/Theano/issues>`__ to keep track of issues
-  (however, some old tickets can still be found on
-  `Assembla <http://www.assembla.com/spaces/theano/tickets>`__).
-
-* Come visit us in Montreal! Most developers are students in the LISA_ group at the `University of Montreal`_.
-
-
-.. _support:
-
-Help!
-=====
-
-How to Seek Help
-----------------
-
-The appropriate venue for seeking help depends on the kind of question you have.
-
-* How do I? -- `theano-users`_ mailing list or `StackOverflow`_
-* I got this error, why? -- `theano-users`_ mailing list or `StackOverflow`_ (please include the *full* error message, even if it's long)
-* I got this error and I'm sure it's a bug -- `Github ticket <http://github.com/Theano/Theano/issues>`__
-* I have an idea/request -- post the suggestion to `theano-dev`_ or, even better, implement the idea and submit a `GitHub <https://github.com/Theano/Theano/pulls>`__ pull request!
-* Why do you? -- `theano-users`_ mailing list (not appropriate for StackOverflow)
-* When will you? -- `theano-dev`_ mailing list (not appropriate for StackOverflow)
-
-Please do take some time to search for similar questions that were asked and answered in the past. If you find something
-similar that doesn't fully answer your question, it can be helpful to say something like "I found X but it doesn't
-address facet Y" and link to the previous discussion.
-
-When asking questions on StackOverflow, please use the *theano* tag, so your question can be found, and follow
-StackOverflow's guidance on `asking questions <http://stackoverflow.com/help/asking>`__. Consider also using the
-*python* and *numpy* tags, especially if you are unsure which library your problem relates to.
-
-It's often helpful to include the following details with your question:
-
-* If you have an error, the *full* error message, even if it's long
-* Which versions of Python and Theano you're using
-* Whether you're using a CPU or GPU device
-* Details of your Theano configuration settings (you can print this in Python via `print theano.config <http://deeplearning.net/software/theano/library/config.html>`__)
-
-Spending the time to create a minimal specific example of a problem is likely to get you to an answer quicker than
-posting something quickly that has too much irrelevant detail or is too vague. A minimal example may take you a bit more
-time to create but the first response is more likely to be the answer you need than, rather than a frustrated request
-for clarification.
-
-
-How to provide help
--------------------
-
-If you see a question on the `theano-users`_ mailing list, or on `StackOverflow`_, that you
-feel reasonably confident you know an answer to, please do support the community by helping others.
-
-We were all newbies to Theano once and, as the community expands, there is a constant stream of new Theano users looking
-for help. Perhaps you asked a question when you were first starting out? Now you can pay it forward by helping others.
-It's also a good way to reinforce your own Theano knowledge.
-
-Often it's easiest to answer a question directly but sometimes it may be better to refer people to a good answer that
-was provided in the past. Pointing people to relevant sections in the documentation, or to a Theano tutorial, can also
-be helpful.
-
-When answering questions please `be nice <http://stackoverflow.com/help/be-nice>`__ (as always!) and, on
-StackOverflow, follow their guidance for `answering questions <http://stackoverflow.com/help/answering>`__.
-
-
+* We use `Github tickets <http://github.com/pymc-devs/aesara/issues>`__ to keep track of issues.
 
 .. toctree::
    :maxdepth: 1
@@ -290,12 +89,4 @@ StackOverflow, follow their guidance for `answering questions <http://stackoverf
 
 .. _theano-dev: http://groups.google.com/group/theano-dev
 .. _theano-users: http://groups.google.com/group/theano-users
-.. _theano-announce: http://groups.google.com/group/theano-announce
-.. _theano-github: http://groups.google.com/group/theano-github
-.. _theano-buildbot: http://groups.google.com/group/theano-buildbot
-.. _tickets: http://pylearn.org/theano/trac/query?status=accepted&status=assigned&status=new&status=reopened&group=milestone&max=200&col=id&col=summary&col=status&col=owner&col=type&col=priority&col=component&col=time&report=9&order=priority
-
 .. _StackOverflow: http://stackoverflow.com/questions/tagged/theano
-
-.. _LISA: http://www.iro.umontreal.ca/~lisa
-.. _University of Montreal: http://www.umontreal.ca

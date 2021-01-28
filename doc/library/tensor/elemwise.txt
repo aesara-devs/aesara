@@ -4,12 +4,12 @@
 
 .. testsetup::
 
-   from theano.tensor.elemwise import *
+   from aesara.tensor.elemwise import *
 
 .. module:: tensor.elemwise
    :platform: Unix, Windows
    :synopsis: Tensor Elemwise
 .. moduleauthor:: LISA
 
-.. automodule:: theano.tensor.elemwise
+.. automodule:: aesara.tensor.elemwise
     :members:

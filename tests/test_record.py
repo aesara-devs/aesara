@@ -1,8 +1,8 @@
 from io import StringIO
 
+from aesara import function
+from aesara.tensor.type import iscalar
 from tests.record import MismatchError, Record, RecordMode
-from theano import function
-from theano.tensor.type import iscalar
 
 
 def test_record_good():
@@ -72,7 +72,7 @@ def test_record_bad():
 
 def test_record_mode_good():
     # Like test_record_good, but some events are recorded by the
-    # theano RecordMode. We don't attempt to check the
+    # aesara RecordMode. We don't attempt to check the
     # exact string value of the record in this case.
 
     # Record a sequence of events
@@ -110,7 +110,7 @@ def test_record_mode_good():
 
 def test_record_mode_bad():
     # Like test_record_bad, but some events are recorded by the
-    # theano RecordMode, as is the event that triggers the mismatch
+    # aesara RecordMode, as is the event that triggers the mismatch
     # error.
 
     # Record a sequence of events

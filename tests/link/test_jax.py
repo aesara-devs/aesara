@@ -3,34 +3,34 @@ from functools import partial
 import numpy as np
 import pytest
 
-import theano.scalar.basic as ts
-from theano.compile.function import function
-from theano.compile.mode import Mode
-from theano.compile.ops import DeepCopyOp, ViewOp
-from theano.compile.sharedvalue import shared
-from theano.configdefaults import config
-from theano.graph.fg import FunctionGraph
-from theano.graph.op import get_test_value
-from theano.graph.optdb import Query
-from theano.ifelse import ifelse
-from theano.link.jax import JAXLinker
-from theano.scan.basic import scan
-from theano.tensor import basic as tt
-from theano.tensor import blas as tt_blas
-from theano.tensor import elemwise as tt_elemwise
-from theano.tensor import extra_ops as tt_extra_ops
-from theano.tensor import nlinalg as tt_nlinalg
-from theano.tensor import nnet as tt_nnet
-from theano.tensor import slinalg as tt_slinalg
-from theano.tensor import subtensor as tt_subtensor
-from theano.tensor.math import MaxAndArgmax
-from theano.tensor.math import all as tt_all
-from theano.tensor.math import clip, cosh, gammaln, log
-from theano.tensor.math import max as tt_max
-from theano.tensor.math import maximum, prod
-from theano.tensor.math import sum as tt_sum
-from theano.tensor.shape import Shape, Shape_i, SpecifyShape, reshape
-from theano.tensor.type import (
+import aesara.scalar.basic as ts
+from aesara.compile.function import function
+from aesara.compile.mode import Mode
+from aesara.compile.ops import DeepCopyOp, ViewOp
+from aesara.compile.sharedvalue import shared
+from aesara.configdefaults import config
+from aesara.graph.fg import FunctionGraph
+from aesara.graph.op import get_test_value
+from aesara.graph.optdb import Query
+from aesara.ifelse import ifelse
+from aesara.link.jax import JAXLinker
+from aesara.scan.basic import scan
+from aesara.tensor import basic as tt
+from aesara.tensor import blas as tt_blas
+from aesara.tensor import elemwise as tt_elemwise
+from aesara.tensor import extra_ops as tt_extra_ops
+from aesara.tensor import nlinalg as tt_nlinalg
+from aesara.tensor import nnet as tt_nnet
+from aesara.tensor import slinalg as tt_slinalg
+from aesara.tensor import subtensor as tt_subtensor
+from aesara.tensor.math import MaxAndArgmax
+from aesara.tensor.math import all as tt_all
+from aesara.tensor.math import clip, cosh, gammaln, log
+from aesara.tensor.math import max as tt_max
+from aesara.tensor.math import maximum, prod
+from aesara.tensor.math import sum as tt_sum
+from aesara.tensor.shape import Shape, Shape_i, SpecifyShape, reshape
+from aesara.tensor.type import (
     dscalar,
     dvector,
     iscalar,
@@ -48,7 +48,7 @@ jax = pytest.importorskip("jax")
 
 
 @pytest.fixture(scope="module", autouse=True)
-def set_theano_flags():
+def set_aesara_flags():
     with config.change_flags(cxx="", compute_test_value="ignore"):
         yield
 
@@ -61,14 +61,14 @@ def compare_jax_and_py(
 ):
     """Function to compare python graph output and jax compiled output for testing equality
 
-    In the tests below computational graphs are defined in Theano. These graphs are then passed to
+    In the tests below computational graphs are defined in Aesara. These graphs are then passed to
     this function which then compiles the graphs in both jax and python, runs the calculation
     in both and checks if the results are the same
 
     Parameters
     ----------
     fgraph: FunctionGraph
-        Theano function Graph object
+        Aesara function Graph object
     inputs: iter
         Inputs for function graph
     assert_fn: func, opt
@@ -90,8 +90,8 @@ def compare_jax_and_py(
     jax_mode = Mode(JAXLinker(), opts)
     py_mode = Mode("py", opts)
 
-    theano_jax_fn = function(fgraph.inputs, fgraph.outputs, mode=jax_mode)
-    jax_res = theano_jax_fn(*inputs)
+    aesara_jax_fn = function(fgraph.inputs, fgraph.outputs, mode=jax_mode)
+    jax_res = aesara_jax_fn(*inputs)
 
     if must_be_device_array:
         if isinstance(jax_res, list):
@@ -101,8 +101,8 @@ def compare_jax_and_py(
         else:
             assert isinstance(jax_res, jax.interpreters.xla.DeviceArray)
 
-    theano_py_fn = function(fgraph.inputs, fgraph.outputs, mode=py_mode)
-    py_res = theano_py_fn(*inputs)
+    aesara_py_fn = function(fgraph.inputs, fgraph.outputs, mode=py_mode)
+    py_res = aesara_py_fn(*inputs)
 
     if len(fgraph.outputs) > 1:
         for j, p in zip(jax_res, py_res):
@@ -366,7 +366,7 @@ def test_jax_scan_multiple_output():
     delta = scalar("delta")
 
     # TODO: Use random streams when their JAX conversions are implemented.
-    # trng = theano.tensor.random.RandomStream(1234)
+    # trng = aesara.tensor.random.RandomStream(1234)
 
     def seir_one_step(ct0, dt0, st0, et0, it0, logp_c, logp_d, beta, gamma, delta):
         # bt0 = trng.binomial(n=st0, p=beta)
@@ -865,9 +865,9 @@ def test_jax_BatchedDot():
     inputs = [get_test_value(a)[:-1], get_test_value(b)]
     opts = Query(include=[None], exclude=["cxx_only", "BlasOpt"])
     jax_mode = Mode(JAXLinker(), opts)
-    theano_jax_fn = function(fgraph.inputs, fgraph.outputs, mode=jax_mode)
+    aesara_jax_fn = function(fgraph.inputs, fgraph.outputs, mode=jax_mode)
     with pytest.raises(TypeError):
-        theano_jax_fn(*inputs)
+        aesara_jax_fn(*inputs)
 
     # matrix . matrix
     a = matrix("a")
@@ -882,14 +882,14 @@ def test_jax_BatchedDot():
 def test_shared():
     a = shared(np.array([1, 2, 3], dtype=config.floatX))
 
-    theano_jax_fn = function([], a, mode="JAX")
-    jax_res = theano_jax_fn()
+    aesara_jax_fn = function([], a, mode="JAX")
+    jax_res = aesara_jax_fn()
 
     assert isinstance(jax_res, jax.interpreters.xla.DeviceArray)
     np.testing.assert_allclose(jax_res, a.get_value())
 
-    theano_jax_fn = function([], a * 2, mode="JAX")
-    jax_res = theano_jax_fn()
+    aesara_jax_fn = function([], a * 2, mode="JAX")
+    jax_res = aesara_jax_fn()
 
     assert isinstance(jax_res, jax.interpreters.xla.DeviceArray)
     np.testing.assert_allclose(jax_res, a.get_value() * 2)
@@ -899,7 +899,7 @@ def test_shared():
     new_a_value = np.array([3, 4, 5], dtype=config.floatX)
     a.set_value(new_a_value)
 
-    jax_res = theano_jax_fn()
+    jax_res = aesara_jax_fn()
     assert isinstance(jax_res, jax.interpreters.xla.DeviceArray)
     np.testing.assert_allclose(jax_res, new_a_value * 2)
 

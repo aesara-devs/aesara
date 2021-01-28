@@ -8,8 +8,8 @@
 
     Two similar implementation exists for conv2d:
 
-        :func:`signal.conv2d <theano.tensor.signal.conv.conv2d>` and
-        :func:`nnet.conv2d <theano.tensor.nnet.conv2d>`.
+        :func:`signal.conv2d <aesara.tensor.signal.conv.conv2d>` and
+        :func:`nnet.conv2d <aesara.tensor.nnet.conv2d>`.
 
     The former implements a traditional
     2D convolution, while the latter implements the convolutional layers
@@ -24,10 +24,10 @@
 
 The recommended user interface are:
 
-- :func:`theano.tensor.nnet.conv2d` for 2d convolution
-- :func:`theano.tensor.nnet.conv3d` for 3d convolution
+- :func:`aesara.tensor.nnet.conv2d` for 2d convolution
+- :func:`aesara.tensor.nnet.conv3d` for 3d convolution
 
-With those new interface, Theano will automatically use the fastest
+With those new interface, Aesara will automatically use the fastest
 implementation in many cases. On the CPU, the implementation is a GEMM
 based one. On the GPU, there is a GEMM based and :ref:`cuDNN
 <libdoc_gpuarray_dnn>` version.
@@ -35,9 +35,9 @@ based one. On the GPU, there is a GEMM based and :ref:`cuDNN
 By default on the GPU, if cuDNN is available, it will be used,
 otherwise we will fall back to using gemm based version (slower than
 cuDNN in most cases and uses more memory). To get an error if cuDNN
-can not be used, you can supply the Theano flag ``dnn.enable=True``.
+can not be used, you can supply the Aesara flag ``dnn.enable=True``.
 
-Either cuDNN and the gemm version can be disabled using the Theano flags
+Either cuDNN and the gemm version can be disabled using the Aesara flags
 ``optimizer_excluding=conv_dnn`` and ``optimizer_excluding=conv_gemm``,
 respectively. If both are disabled, it will raise an error.
 
@@ -62,14 +62,14 @@ for each specific convolution in your graph. For each instance, it will
 compile and benchmark each applicable implementation and choose the
 fastest one. It can be enabled using ``optimizer_including=conv_meta``.
 The meta-optimizer can also selectively disable cudnn and gemm version
-using the Theano flag ``metaopt__optimizer_excluding=conv_dnn`` and
+using the Aesara flag ``metaopt__optimizer_excluding=conv_dnn`` and
 ``metaopt__optimizer_excluding=conv_gemm`` respectively.
 
 
 .. note::
 
-    Theano had older user interface like
-    theano.tensor.nnet.conv.conv2d. Do not use them anymore. They
+    Aesara had older user interface like
+    aesara.tensor.nnet.conv.conv2d. Do not use them anymore. They
     will give you slower code and won't allow easy switch between CPU
     and GPU computation. They also support less type of convolution.
 
@@ -78,14 +78,14 @@ Implementation Details
 ======================
 
 This section gives more implementation detail. Most of the time you do
-not need to read it. Theano will select it for you.
+not need to read it. Aesara will select it for you.
 
 
 - Implemented operators for neural network 2D / image convolution:
-    - :func:`nnet.conv.conv2d <theano.tensor.nnet.conv.conv2d>`.
+    - :func:`nnet.conv.conv2d <aesara.tensor.nnet.conv.conv2d>`.
       old 2d convolution. DO NOT USE ANYMORE.
 
-    - :func:`GpuCorrMM <theano.gpuarray.blas.GpuCorrMM>`
+    - :func:`GpuCorrMM <aesara.gpuarray.blas.GpuCorrMM>`
       This is a GPU-only 2d correlation implementation taken from
       `caffe's CUDA implementation <https://github.com/BVLC/caffe/blob/master/src/caffe/layers/conv_layer.cu>`_. It does not flip the kernel.
 
@@ -96,41 +96,41 @@ not need to read it. Theano will select it for you.
       It needs extra memory for the Toeplitz matrix, which is a 2D matrix of shape
       ``(no of channels * filter width * filter height, output width * output height)``.
 
-    - :func:`CorrMM <theano.tensor.nnet.corr.CorrMM>`
+    - :func:`CorrMM <aesara.tensor.nnet.corr.CorrMM>`
       This is a CPU-only 2d correlation implementation taken from
       `caffe's cpp implementation <https://github.com/BVLC/caffe/blob/master/src/caffe/layers/conv_layer.cpp>`_.
       It does not flip the kernel.
-    - :func:`dnn_conv <theano.gpuarray.dnn.dnn_conv>` GPU-only
+    - :func:`dnn_conv <aesara.gpuarray.dnn.dnn_conv>` GPU-only
       convolution using NVIDIA's cuDNN library.
 
 - Implemented operators for neural network 3D / video convolution:
-    - :func:`GpuCorr3dMM <theano.gpuarray.blas.GpuCorr3dMM>`
+    - :func:`GpuCorr3dMM <aesara.gpuarray.blas.GpuCorr3dMM>`
       This is a GPU-only 3d correlation relying on a Toeplitz matrix
-      and gemm implementation (see :func:`GpuCorrMM <theano.sandbox.cuda.blas.GpuCorrMM>`)
+      and gemm implementation (see :func:`GpuCorrMM <aesara.sandbox.cuda.blas.GpuCorrMM>`)
       It needs extra memory for the Toeplitz matrix, which is a 2D matrix of shape
       ``(no of channels * filter width * filter height * filter depth, output width * output height * output depth)``.
-    - :func:`Corr3dMM <theano.tensor.nnet.corr3d.Corr3dMM>`
+    - :func:`Corr3dMM <aesara.tensor.nnet.corr3d.Corr3dMM>`
       This is a CPU-only 3d correlation implementation based on
-      the 2d version (:func:`CorrMM <theano.tensor.nnet.corr.CorrMM>`).
+      the 2d version (:func:`CorrMM <aesara.tensor.nnet.corr.CorrMM>`).
       It does not flip the kernel. As it provides a gradient, you can use it as a
       replacement for nnet.conv3d. For convolutions done on CPU,
       nnet.conv3d will be replaced by Corr3dMM.
 
-    - :func:`dnn_conv3d <theano.gpuarray.dnn.dnn_conv3d>` GPU-only
-      3D convolution using NVIDIA's cuDNN library (as :func:`dnn_conv <theano.gpuarray.dnn.dnn_conv>` but for 3d).
+    - :func:`dnn_conv3d <aesara.gpuarray.dnn.dnn_conv3d>` GPU-only
+      3D convolution using NVIDIA's cuDNN library (as :func:`dnn_conv <aesara.gpuarray.dnn.dnn_conv>` but for 3d).
 
-      If cuDNN is available, by default, Theano will replace all nnet.conv3d
+      If cuDNN is available, by default, Aesara will replace all nnet.conv3d
       operations with dnn_conv.
 
-    - :func:`conv3d2d <theano.tensor.nnet.conv3d2d.conv3d>`
+    - :func:`conv3d2d <aesara.tensor.nnet.conv3d2d.conv3d>`
       Another conv3d implementation that uses the conv2d with data reshaping.
       It is faster in some corner cases than conv3d. It flips the kernel.
 
-.. autofunction:: theano.tensor.nnet.conv2d
-.. autofunction:: theano.tensor.nnet.conv2d_transpose
-.. autofunction:: theano.tensor.nnet.conv3d
-.. autofunction:: theano.tensor.nnet.conv3d2d.conv3d
-.. autofunction:: theano.tensor.nnet.conv.conv2d
+.. autofunction:: aesara.tensor.nnet.conv2d
+.. autofunction:: aesara.tensor.nnet.conv2d_transpose
+.. autofunction:: aesara.tensor.nnet.conv3d
+.. autofunction:: aesara.tensor.nnet.conv3d2d.conv3d
+.. autofunction:: aesara.tensor.nnet.conv.conv2d
 
-.. automodule:: theano.tensor.nnet.abstract_conv
+.. automodule:: aesara.tensor.nnet.abstract_conv
     :members:

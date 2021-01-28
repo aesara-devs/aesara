@@ -1,0 +1,40 @@
+
+.. _aesara_vs_c:
+
+============
+Aesara vs. C
+============
+
+We describe some of the patterns in Aesara, and present their closest
+analogue in a statically typed language such as C:
+
+=============== ===========================================================
+Aesara          C
+=============== ===========================================================
+Apply           function application / function call
+Variable        local function data / variable
+Shared Variable global function data / variable
+Op              operations carried out in computation / function definition
+Type            data types
+=============== ===========================================================
+
+For example:
+
+.. code-block:: c
+
+   int d = 0;
+
+   int main(int a) {
+       int b = 3;
+       int c = f(b)
+       d = b + c;
+       return g(a, c);
+   }
+
+
+Based on this code snippet, we can relate ``f`` and ``g`` to Ops, ``a``,
+``b`` and ``c`` to Variables, ``d`` to Shared Variable, ``g(a, c)``,
+``f(b)`` and ``d = b + c`` (taken as meaning
+the action of computing ``f``, ``g`` or ``+`` on their respective inputs) to
+Applies. Lastly, ``int`` could be interpreted as the Aesara Type of the
+Variables ``a``, ``b``, ``c`` and ``d``.

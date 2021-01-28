@@ -1,10 +1,10 @@
 import numpy as np
 import pytest
 
+from aesara import function
+from aesara.sandbox.minimal import minimal
+from aesara.tensor.type import matrix, vector
 from tests import unittest_tools as utt
-from theano import function
-from theano.sandbox.minimal import minimal
-from theano.tensor.type import matrix, vector
 
 
 @pytest.mark.skip(reason="Unfinished test")

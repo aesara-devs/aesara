@@ -1,18 +1,18 @@
 import numpy as np
 import pytest
 
+import aesara
 import tests.unittest_tools as utt
-import theano
-from tests.gpuarray.config import mode_with_gpu, test_ctx_name
-from tests.tensor.nnet.test_blocksparse import TestBlockSparseGemvAndOuter
-from theano.gpuarray.blocksparse import (
+from aesara.gpuarray.blocksparse import (
     GpuSparseBlockGemv,
     GpuSparseBlockOuter,
     gpu_sparse_block_gemv,
     gpu_sparse_block_outer,
 )
-from theano.gpuarray.type import gpuarray_shared_constructor
-from theano.tensor.type import fmatrix, ftensor3, lmatrix
+from aesara.gpuarray.type import gpuarray_shared_constructor
+from aesara.tensor.type import fmatrix, ftensor3, lmatrix
+from tests.gpuarray.config import mode_with_gpu, test_ctx_name
+from tests.tensor.nnet.test_blocksparse import TestBlockSparseGemvAndOuter
 
 
 class TestBlockSparseGemvAndOuterGPUarray(TestBlockSparseGemvAndOuter):
@@ -42,13 +42,13 @@ class TestBlockSparseGemvAndOuterGPUarray(TestBlockSparseGemvAndOuter):
         W = gpuarray_shared_constructor(W_val, context=test_ctx_name)
 
         o = gpu_sparse_block_gemv(b.take(oIdx, axis=0), W, h, iIdx, oIdx)
-        gW = theano.grad(o.sum(), W)
+        gW = aesara.grad(o.sum(), W)
 
         lr = np.asarray(0.05, dtype="float32")
 
         upd = W - lr * gW
 
-        f1 = theano.function([h, iIdx, b, oIdx], updates=[(W, upd)], mode=mode_with_gpu)
+        f1 = aesara.function([h, iIdx, b, oIdx], updates=[(W, upd)], mode=mode_with_gpu)
 
         # Make sure the lr update was merged.
         assert isinstance(f1.maker.fgraph.outputs[0].owner.op, GpuSparseBlockOuter)
@@ -57,7 +57,7 @@ class TestBlockSparseGemvAndOuterGPUarray(TestBlockSparseGemvAndOuter):
         mode = mode_with_gpu.excluding("local_merge_blocksparse_alpha")
         mode = mode.excluding("local_merge_blocksparse_output")
 
-        f2 = theano.function([h, iIdx, b, oIdx], updates=[(W, upd)], mode=mode)
+        f2 = aesara.function([h, iIdx, b, oIdx], updates=[(W, upd)], mode=mode)
 
         # Make sure the lr update is not merged.
         assert not isinstance(f2.maker.fgraph.outputs[0].owner.op, GpuSparseBlockOuter)

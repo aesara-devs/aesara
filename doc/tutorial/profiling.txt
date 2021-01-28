@@ -2,7 +2,7 @@
 .. _tut_profiling:
 
 =========================
-Profiling Theano function
+Profiling Aesara function
 =========================
 
 .. note::
@@ -17,43 +17,43 @@ You can profile your
 functions using either of the following two options:
 
 
-1. Use Theano flag :attr:`config.profile` to enable profiling.
-    - To enable the memory profiler use the Theano flag:
+1. Use Aesara flag :attr:`config.profile` to enable profiling.
+    - To enable the memory profiler use the Aesara flag:
       :attr:`config.profile_memory` in addition to :attr:`config.profile`.
-    - Moreover, to enable the profiling of Theano optimization phase,
-      use the Theano flag: :attr:`config.profile_optimizer` in addition
+    - Moreover, to enable the profiling of Aesara optimization phase,
+      use the Aesara flag: :attr:`config.profile_optimizer` in addition
       to :attr:`config.profile`.
-    - You can also use the Theano flags :attr:`profiling__n_apply`,
+    - You can also use the Aesara flags :attr:`profiling__n_apply`,
       :attr:`profiling__n_ops` and :attr:`profiling__min_memory_size`
       to modify the quantity of information printed.
 
-2. Pass the argument :attr:`profile=True` to the function :func:`theano.function <function.function>`. And then call :attr:`f.profile.summary()` for a single function.
+2. Pass the argument :attr:`profile=True` to the function :func:`aesara.function <function.function>`. And then call :attr:`f.profile.summary()` for a single function.
     - Use this option when you want to profile not all the
       functions but one or more specific function(s).
-    - You can also combine the profile of many functions: 
-    
+    - You can also combine the profile of many functions:
+
       .. doctest::
           :hide:
 
-          profile = theano.compile.ProfileStats()
-          f = theano.function(..., profile=profile)  # doctest: +SKIP
-          g = theano.function(..., profile=profile)  # doctest: +SKIP
+          profile = aesara.compile.ProfileStats()
+          f = aesara.function(..., profile=profile)  # doctest: +SKIP
+          g = aesara.function(..., profile=profile)  # doctest: +SKIP
           ...  # doctest: +SKIP
           profile.summary()
 
 
 
-The profiler will output one profile per Theano function and profile
+The profiler will output one profile per Aesara function and profile
 that is the sum of the printed profiles. Each profile contains 4
 sections: global info, class info, Ops info and Apply node info.
 
-In the global section, the "Message" is the name of the Theano
-function. theano.function() has an optional parameter ``name`` that
+In the global section, the "Message" is the name of the Aesara
+function. aesara.function() has an optional parameter ``name`` that
 defaults to None. Change it to something else to help you profile many
-Theano functions. In that section, we also see the number of times the
+Aesara functions. In that section, we also see the number of times the
 function was called (1) and the total time spent in all those
 calls. The time spent in Function.fn.__call__ and in thunks is useful
-to understand Theano overhead.
+to understand Aesara overhead.
 
 Also, we see the time spent in the two parts of the compilation
 process: optimization (modify the graph to make it more stable/faster)
@@ -78,13 +78,13 @@ a graph optimization that eliminates the offending Op altogether.
 You should strongly consider emailing one of our lists about your
 issue before spending too much time on this.
 
-Here is an example output when we disable some Theano optimizations to
+Here is an example output when we disable some Aesara optimizations to
 give you a better idea of the difference between sections. With all
 optimizations enabled, there would be only one op left in the graph.
 
 to run the example:
 
-  THEANO_FLAGS=optimizer_excluding=fusion:inplace,profile=True python doc/tutorial/profiling_example.py
+  AESARA_FLAGS=optimizer_excluding=fusion:inplace,profile=True python doc/tutorial/profiling_example.py
 
 The output:
 

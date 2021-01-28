@@ -13,8 +13,8 @@ from pickle import Unpickler
 import numpy as np
 import pytest
 
-from theano.configdefaults import config
-from theano.gpuarray.type import ContextNotDefined
+from aesara.configdefaults import config
+from aesara.gpuarray.type import ContextNotDefined
 
 
 try:

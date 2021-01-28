@@ -1,30 +1,30 @@
 import numpy as np
 import pytest
 
-import theano.tensor as tt
-from theano import config, shared
-from theano.compile.function import function
-from theano.compile.mode import Mode
-from theano.graph.basic import Constant
-from theano.graph.fg import FunctionGraph
-from theano.graph.opt import EquilibriumOptimizer
-from theano.graph.optdb import Query
-from theano.tensor.elemwise import DimShuffle
-from theano.tensor.random.basic import (
+import aesara.tensor as tt
+from aesara import config, shared
+from aesara.compile.function import function
+from aesara.compile.mode import Mode
+from aesara.graph.basic import Constant
+from aesara.graph.fg import FunctionGraph
+from aesara.graph.opt import EquilibriumOptimizer
+from aesara.graph.optdb import Query
+from aesara.tensor.elemwise import DimShuffle
+from aesara.tensor.random.basic import (
     dirichlet,
     multivariate_normal,
     normal,
     poisson,
     uniform,
 )
-from theano.tensor.random.op import RandomVariable
-from theano.tensor.random.opt import (
+from aesara.tensor.random.op import RandomVariable
+from aesara.tensor.random.opt import (
     lift_rv_shapes,
     local_dimshuffle_rv_lift,
     local_subtensor_rv_lift,
 )
-from theano.tensor.subtensor import AdvancedSubtensor, AdvancedSubtensor1, Subtensor
-from theano.tensor.type import iscalar, vector
+from aesara.tensor.subtensor import AdvancedSubtensor, AdvancedSubtensor1, Subtensor
+from aesara.tensor.type import iscalar, vector
 
 
 inplace_mode = Mode("py", Query(include=["random_make_inplace"], exclude=[]))
@@ -391,7 +391,7 @@ def test_Subtensor_lift(indices, lifted, dist_op, dist_params, size):
         s_tt.tag.test_value = s
         size_tt.append(s_tt)
 
-    from theano.tensor.subtensor import as_index_constant
+    from aesara.tensor.subtensor import as_index_constant
 
     indices_tt = ()
     for i in indices:

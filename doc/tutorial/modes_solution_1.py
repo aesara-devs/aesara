@@ -1,33 +1,33 @@
 #!/usr/bin/env python
-# Theano tutorial
+# Aesara tutorial
 # Solution to Exercise in section 'Configuration Settings and Compiling Modes'
 
 
 import numpy as np
-import theano
-import theano.tensor as tt
+import aesara
+import aesara.tensor as tt
 
-theano.config.floatX = 'float32'
+aesara.config.floatX = 'float32'
 
 rng = np.random
 
 N = 400
 feats = 784
-D = (rng.randn(N, feats).astype(theano.config.floatX),
-rng.randint(size=N, low=0, high=2).astype(theano.config.floatX))
+D = (rng.randn(N, feats).astype(aesara.config.floatX),
+rng.randint(size=N, low=0, high=2).astype(aesara.config.floatX))
 training_steps = 10000
 
-# Declare Theano symbolic variables
+# Declare Aesara symbolic variables
 x = tt.matrix("x")
 y = tt.vector("y")
-w = theano.shared(rng.randn(feats).astype(theano.config.floatX), name="w")
-b = theano.shared(np.asarray(0., dtype=theano.config.floatX), name="b")
+w = aesara.shared(rng.randn(feats).astype(aesara.config.floatX), name="w")
+b = aesara.shared(np.asarray(0., dtype=aesara.config.floatX), name="b")
 x.tag.test_value = D[0]
 y.tag.test_value = D[1]
 #print "Initial model:"
 #print w.get_value(), b.get_value()
 
-# Construct Theano expression graph
+# Construct Aesara expression graph
 p_1 = 1 / (1 + tt.exp(-tt.dot(x, w) - b))  # Probability of having a one
 prediction = p_1 > 0.5  # The prediction that is done: 0 or 1
 xent = -y * tt.log(p_1) - (1 - y) * tt.log(1 - p_1)  # Cross-entropy
@@ -36,12 +36,12 @@ cost = tt.cast(xent.mean(), 'float32') + \
 gw, gb = tt.grad(cost, [w, b])
 
 # Compile expressions to functions
-train = theano.function(
+train = aesara.function(
             inputs=[x, y],
             outputs=[prediction, xent],
             updates={w: w - 0.01 * gw, b: b - 0.01 * gb},
             name="train")
-predict = theano.function(inputs=[x], outputs=prediction,
+predict = aesara.function(inputs=[x], outputs=prediction,
             name="predict")
 
 if any([x.op.__class__.__name__ in ['Gemv', 'CGemv', 'Gemm', 'CGemm'] for x in
@@ -51,7 +51,7 @@ elif any([x.op.__class__.__name__ in ['GpuGemm', 'GpuGemv'] for x in
 train.maker.fgraph.toposort()]):
     print('Used the gpu')
 else:
-    print('ERROR, not able to tell if theano used the cpu or the gpu')
+    print('ERROR, not able to tell if aesara used the cpu or the gpu')
     print(train.maker.fgraph.toposort())
 
 for i in range(training_steps):

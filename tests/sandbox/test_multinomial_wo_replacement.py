@@ -1,11 +1,11 @@
 import numpy as np
 import pytest
 
-from theano import function
-from theano.configdefaults import config
-from theano.sandbox import multinomial
-from theano.sandbox.rng_mrg import MRG_RandomStream as RandomStream
-from theano.tensor.type import fmatrix, fvector, iscalar
+from aesara import function
+from aesara.configdefaults import config
+from aesara.sandbox import multinomial
+from aesara.sandbox.rng_mrg import MRG_RandomStream as RandomStream
+from aesara.tensor.type import fmatrix, fvector, iscalar
 
 
 class TestOP:

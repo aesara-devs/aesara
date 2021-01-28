@@ -1,19 +1,19 @@
 import numpy as np
 import pytest
 
-import theano
+import aesara
+from aesara import tensor as tt
+from aesara.tensor.blas_scipy import ScipyGer
+from aesara.tensor.math import outer
+from aesara.tensor.type import tensor
 from tests.tensor.test_blas import TestBlasStrides, gemm_no_inplace
 from tests.unittest_tools import OptimizationTestMixin
-from theano import tensor as tt
-from theano.tensor.blas_scipy import ScipyGer
-from theano.tensor.math import outer
-from theano.tensor.type import tensor
 
 
-@pytest.mark.skipif(not theano.tensor.blas_scipy.have_fblas, reason="fblas needed")
+@pytest.mark.skipif(not aesara.tensor.blas_scipy.have_fblas, reason="fblas needed")
 class TestScipyGer(OptimizationTestMixin):
     def setup_method(self):
-        self.mode = theano.compile.get_default_mode()
+        self.mode = aesara.compile.get_default_mode()
         self.mode = self.mode.including("fast_run")
         self.mode = self.mode.excluding("c_blas")  # c_blas trumps scipy Ops
         dtype = self.dtype = "float64"  # optimization isn't dtype-dependent
@@ -26,7 +26,7 @@ class TestScipyGer(OptimizationTestMixin):
         self.yval = np.asarray([1.5, 2.7, 3.9], dtype=dtype)
 
     def function(self, inputs, outputs):
-        return theano.function(inputs, outputs, self.mode)
+        return aesara.function(inputs, outputs, self.mode)
 
     def run_f(self, f):
         f(self.Aval, self.xval, self.yval)
@@ -60,5 +60,5 @@ class TestScipyGer(OptimizationTestMixin):
 
 
 class TestBlasStridesScipy(TestBlasStrides):
-    mode = theano.compile.get_default_mode()
+    mode = aesara.compile.get_default_mode()
     mode = mode.including("fast_run").excluding("gpu", "c_blas")

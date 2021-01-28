@@ -4,7 +4,7 @@
 :mod:`utils` -- Friendly random numbers
 ======================================================
 
-.. module:: theano.tensor.random.utils
+.. module:: aesara.tensor.random.utils
    :platform: Unix, Windows
    :synopsis: symbolic random variables
 .. moduleauthor:: LISA
@@ -12,11 +12,11 @@
 Guide
 =====
 
-Since Theano uses a functional design, producing pseudo-random numbers in a
+Since Aesara uses a functional design, producing pseudo-random numbers in a
 graph is not quite as straightforward as it is in numpy.
 
-The way to think about putting randomness into Theano's computations is to
-put random variables in your graph.  Theano will allocate a numpy RandomState
+The way to think about putting randomness into Aesara's computations is to
+put random variables in your graph.  Aesara will allocate a numpy RandomState
 object for each such variable, and draw from it as necessary.  We will call this sort of sequence of
 random numbers a *random stream*.
 

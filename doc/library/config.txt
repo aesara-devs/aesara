@@ -1,7 +1,7 @@
 .. _libdoc_config:
 
 =======================================
-:mod:`config` -- Theano Configuration
+:mod:`config` -- Aesara Configuration
 =======================================
 
 .. module:: config
@@ -13,58 +13,58 @@
 Guide
 =====
 
-The config module contains many ``attributes`` that modify Theano's behavior.  Many of these
-attributes are consulted during the import of the ``theano`` module and many are assumed to be
+The config module contains many ``attributes`` that modify Aesara's behavior.  Many of these
+attributes are consulted during the import of the ``aesara`` module and many are assumed to be
 read-only.
 
 *As a rule, the attributes in this module should not be modified by user code.*
 
-Theano's code comes with default values for these attributes, but you can
-override them from your .theanorc file, and override those values in turn by
-the :envvar:`THEANO_FLAGS` environment variable.
+Aesara's code comes with default values for these attributes, but you can
+override them from your ``.aesararc`` file, and override those values in turn by
+the :envvar:`AESARA_FLAGS` environment variable.
 
 The order of precedence is:
 
-1. an assignment to ``theano.config.<property>``
-2. an assignment in :envvar:`THEANO_FLAGS`
-3. an assignment in the .theanorc file (or the file indicated in :envvar:`THEANORC`)
+1. an assignment to ``aesara.config.<property>``
+2. an assignment in :envvar:`AESARA_FLAGS`
+3. an assignment in the ``.aesararc`` file (or the file indicated in :envvar:`AESARARC`)
 
 You can print out the current/effective configuration at any time by printing
-``theano.config``.  For example, to see a list  of all active configuration
+``aesara.config``.  For example, to see a list  of all active configuration
 variables, type this from the command-line:
 
 .. code-block:: bash
 
-    python -c 'import theano; print(theano.config)' | less
+    python -c 'import aesara; print(aesara.config)' | less
 
 Environment Variables
 =====================
 
 
-.. envvar:: THEANO_FLAGS
+.. envvar:: AESARA_FLAGS
 
     This is a list of comma-delimited key=value pairs that control
-    Theano's behavior.
+    Aesara's behavior.
 
-    For example, in bash, you can override your :envvar:`THEANORC` defaults
+    For example, in bash, you can override your :envvar:`AESARARC` defaults
     for <myscript>.py by typing this:
 
     .. code-block:: bash
 
-        THEANO_FLAGS='floatX=float32,device=cuda0,gpuarray__preallocate=1'  python <myscript>.py
+        AESARA_FLAGS='floatX=float32,device=cuda0,gpuarray__preallocate=1'  python <myscript>.py
 
-    If a value is defined several times in ``THEANO_FLAGS``,
+    If a value is defined several times in ``AESARA_FLAGS``,
     the right-most definition is used. So, for instance, if
-    ``THEANO_FLAGS='device=cpu,device=cuda0'``, then cuda0 will be used.
+    ``AESARA_FLAGS='device=cpu,device=cuda0'``, then cuda0 will be used.
 
-.. envvar:: THEANORC
+.. envvar:: AESARARC
 
-    The location[s] of the .theanorc file[s] in ConfigParser format.
-    It defaults to ``$HOME/.theanorc``. On Windows, it defaults to
-    ``$HOME/.theanorc:$HOME/.theanorc.txt`` to make Windows users' life
+    The location(s) of the ``.aesararc`` file(s) in `ConfigParser` format.
+    It defaults to ``$HOME/.aesararc``. On Windows, it defaults to
+    ``$HOME/.aesararc:$HOME/.aesararc.txt`` to make Windows users' life
     easier.
 
-    Here is the .theanorc equivalent to the THEANO_FLAGS in the example above:
+    Here is the ``.aesararc`` equivalent to the ``AESARA_FLAGS`` in the example above:
 
     .. code-block:: cfg
 
@@ -83,24 +83,24 @@ Environment Variables
     section (e.g. ``[gpuarray]``, ``[dnn.conv]``).
 
     Multiple configuration files can be specified by separating them with ':'
-    characters (as in $PATH).  Multiple configuration files will be merged,
+    characters (as in ``$PATH``).  Multiple configuration files will be merged,
     with later (right-most) files taking priority over earlier files in the
     case that multiple files specify values for a common configuration option.
     For example, to override system-wide settings with personal ones,
-    set ``THEANORC=/etc/theanorc:~/.theanorc``. To load configuration files in
-    the current working directory, append ``.theanorc`` to the list of configuration
-    files, e.g. ``THEANORC=~/.theanorc:.theanorc``.
+    set ``AESARARC=/etc/aesararc:~/.aesararc``. To load configuration files in
+    the current working directory, append ``.aesararc`` to the list of configuration
+    files, e.g. ``AESARARC=~/.aesararc:.aesararc``.
 
 Config Attributes
 =====================
 
 The list below describes some of the more common and important flags
 that you might want to use. For the complete list (including documentation),
-import theano and print the config variable, as in:
+import aesara and print the config variable, as in:
 
 .. code-block:: bash
 
-    python -c 'import theano; print(theano.config)' | less
+    python -c 'import aesara; print(aesara.config)' | less
 
 .. attribute:: device
 
@@ -130,7 +130,7 @@ import theano and print the config variable, as in:
     we disable the GPU.  If ``False`` and ``device=gpu*``, and if the
     specified device cannot be used, we warn and fall back to the CPU.
 
-    This is useful to run Theano's tests on a computer with a GPU, but
+    This is useful to run Aesara's tests on a computer with a GPU, but
     without running the GPU tests.
 
     This flag's value cannot be modified during the program execution.
@@ -141,7 +141,7 @@ import theano and print the config variable, as in:
     ``'opencl0:0'``, ``'opencl0:1'``, ...
 
     Initialize the gpu device to use.
-    When its value is ``'cuda*'`` or ``'opencl*'``, the theano
+    When its value is ``'cuda*'`` or ``'opencl*'``, the aesara
     flag :attr:`device` must be ``'cpu'``.
     Unlike :attr:`device`, setting this flag to a specific GPU will not
     try to use this device by default, in particular it will **not** move
@@ -167,7 +167,7 @@ import theano and print the config variable, as in:
     Default: ``'float64'``
 
     This sets the default dtype returned by ``tensor.matrix()``, ``tensor.vector()``,
-    and similar functions.  It also sets the default Theano bit width for
+    and similar functions.  It also sets the default Aesara bit width for
     arguments passed as Python floating-point numbers.
 
 .. attribute:: warn_float64
@@ -198,14 +198,14 @@ import theano and print the config variable, as in:
 
     Default: ``True``
 
-    This sets the default for the use of the Theano garbage collector
-    for intermediate results. To use less memory, Theano frees the
+    This sets the default for the use of the Aesara garbage collector
+    for intermediate results. To use less memory, Aesara frees the
     intermediate results as soon as they are no longer needed.
-    Disabling Theano garbage collection allows Theano to reuse buffers
+    Disabling Aesara garbage collection allows Aesara to reuse buffers
     for intermediate results between function calls. This speeds up
-    Theano by no longer spending time reallocating space. This gives
+    Aesara by no longer spending time reallocating space. This gives
     significant speed up on functions with many ops that are fast to
-    execute, but this increases Theano's memory usage.
+    execute, but this increases Aesara's memory usage.
 
 .. note:: if :attr:`config.gpuarray__preallocate` is the default value
     or not disabled (-1), this is not useful anymore on the GPU.
@@ -278,15 +278,15 @@ import theano and print the config variable, as in:
 
     Enable or disable parallel computation on the CPU with OpenMP.
     It is the default value used when creating an Op that supports it.
-    It is best to define it in .theanorc
-    or in the environment variable THEANO_FLAGS.
+    It is best to define it in ``.aesararc``
+    or in the environment variable ``AESARA_FLAGS``.
 
 .. attribute:: openmp_elemwise_minsize
 
     Positive int value, default: 200000.
 
-    This specifies the vectors minimum size for which elemwise ops
-    use openmp, if openmp is enabled.
+    This specifies the vectors minimum size for which elemwise `Op`s
+    use OpenMP, if OpenMP is enabled.
 
 .. attribute:: cast_policy
 
@@ -294,16 +294,16 @@ import theano and print the config variable, as in:
 
     Default: ``'custom'``
 
-    This specifies how data types are implicitly figured out in Theano, e.g. for
+    This specifies how data types are implicitly figured out in Aesara, e.g. for
     constants or in the results of arithmetic operations. The 'custom' value
     corresponds to a set of custom rules originally used in
-    Theano (which can be partially customized, see e.g. the in-code help of
+    Aesara (which can be partially customized, see e.g. the in-code help of
     ``tensor.NumpyAutocaster``), and will be deprecated in the future.
-    The 'numpy+floatX' setting attempts to mimic the numpy casting rules,
+    The ``'numpy+floatX'`` setting attempts to mimic the numpy casting rules,
     although it prefers to use float32 numbers instead of float64 when
-    ``config.floatX`` is set to 'float32' and the user uses data that is not
+    ``config.floatX`` is set to ``'float32'`` and the user uses data that is not
     explicitly typed as float64 (e.g. regular Python floats).
-    Note that 'numpy+floatX' is not currently behaving exactly as planned (it
+    Note that ``'numpy+floatX'`` is not currently behaving exactly as planned (it
     is a work-in-progress), and thus you should consider it as experimental.
     At the moment it behaves differently from numpy in the following
     situations:
@@ -311,9 +311,9 @@ import theano and print the config variable, as in:
     * Depending on the value of :attr:`config.int_division`, the resulting type
       of a division of integer types with the ``/`` operator may not match
       that of numpy.
-    * On mixed scalar / array operations, numpy tries to prevent the scalar
+    * On mixed scalar and array operations, NumPy tries to prevent the scalar
       from upcasting the array's type unless it is of a fundamentally
-      different type. Theano does not attempt to do the same at this point,
+      different type. Aesara does not attempt to do the same at this point,
       so you should be careful that scalars may upcast arrays when they
       would not when using numpy. This behavior should change in the near
       future.
@@ -328,7 +328,7 @@ import theano and print the config variable, as in:
     ``y`` are of integer types (possibly unsigned). 'int' means an integer is
     returned (as in Python 2.X), but this behavior is deprecated. 'floatX'
     returns a number of type given by ``config.floatX``. 'raise' is the safest
-    choice (and will become default in a future release of Theano) and raises
+    choice (and will become default in a future release of Aesara) and raises
     an error when one tries to do such an operation, enforcing the use of the
     integer division operator (``//``) (if a float result is intended, either
     cast one of the arguments to a float, or use ``x.__truediv__(y)``).
@@ -340,7 +340,7 @@ import theano and print the config variable, as in:
 
     Default: ``'Mode'``
 
-    This sets the default compilation mode for theano functions. By default the
+    This sets the default compilation mode for aesara functions. By default the
     mode Mode is equivalent to FAST_RUN. See Config attribute linker and optimizer.
 
 .. attribute:: profile
@@ -349,7 +349,7 @@ import theano and print the config variable, as in:
 
     Default: ``False``
 
-    Do the vm/cvm linkers profile the execution time of Theano functions?
+    Do the vm/cvm linkers profile the execution time of Aesara functions?
 
     See :ref:`tut_profiling` for examples.
 
@@ -359,7 +359,7 @@ import theano and print the config variable, as in:
 
     Default: ``False``
 
-    Do the vm/cvm linkers profile the memory usage of Theano functions?
+    Do the vm/cvm linkers profile the memory usage of Aesara functions?
     It only works when profile=True.
 
 .. attribute:: profile_optimizer
@@ -368,7 +368,7 @@ import theano and print the config variable, as in:
 
     Default: ``False``
 
-    Do the vm/cvm linkers profile the optimization phase when compiling a Theano function?
+    Do the vm/cvm linkers profile the optimization phase when compiling an Aesara function?
     It only works when profile=True.
 
 .. attribute:: config.profiling__n_apply
@@ -424,7 +424,7 @@ import theano and print the config variable, as in:
 
     Default: ``False``
 
-    Do we ignore the first call to a Theano function while profiling.
+    Do we ignore the first call to an Aesara function while profiling.
 
 .. attribute:: config.lib__amblibm
 
@@ -446,7 +446,7 @@ import theano and print the config variable, as in:
 
     The value represents the start size (either in MB or the fraction
     of total GPU memory) of the memory pool. If more memory is needed,
-    Theano will try to obtain more, but this can cause memory
+    Aesara will try to obtain more, but this can cause memory
     fragmentation.
 
     A negative value will completely disable the allocation cache.
@@ -461,8 +461,7 @@ import theano and print the config variable, as in:
 
         This could cause memory fragmentation. So if you have a memory
         error while using the cache, try to allocate more memory at
-        the start or disable it. If you try this, report your result
-        on `theano-dev`_.
+        the start or disable it.
 
     .. note::
 
@@ -538,10 +537,6 @@ import theano and print the config variable, as in:
     ('raise'), fall into the pdb debugger ('pdb') or ignore it ('ignore').
     We suggest to never use 'ignore' except in tests.
 
-   If you encounter a warning, report it on `theano-dev`_.
-
-.. _theano-dev: http://groups.google.com/group/theano-dev
-
 .. attribute:: assert_no_cpu_op
 
     String value: ``'ignore'`` or ``'warn'`` or ``'raise'`` or ``'pdb'``
@@ -572,18 +567,18 @@ import theano and print the config variable, as in:
 
     Default: ``'0.9'``
 
-    When we fix a Theano bug that generated bad results under some
-    circumstances, we also make Theano raise a warning when it encounters
+    When we fix an Aesara bug that generated bad results under some
+    circumstances, we also make Aesara raise a warning when it encounters
     the same circumstances again. This helps to detect if said bug
     had affected your past experiments, as you only need to run your
     experiment again with the new version, and you do not have to
-    understand the Theano internal that triggered the bug. A better
+    understand the Aesara internal that triggered the bug. A better
     way to detect this will be implemented. See this `ticket
     <http://www.assembla.com/spaces/theano/tickets/514>`__.
 
     This flag allows new users not to get warnings about old bugs, that were
-    fixed before their first checkout of Theano.
-    You can set its value to the first version of Theano
+    fixed before their first checkout of Aesara.
+    You can set its value to the first version of Aesara
     that you used (probably 0.3 or higher)
 
     ``'None'`` means that all warnings will be displayed.
@@ -591,15 +586,15 @@ import theano and print the config variable, as in:
 
     It is recommended that you put a version, so that you will see future
     warnings.
-    It is also recommended you put this into your .theanorc, so this setting
+    It is also recommended you put this into your ``.aesararc``, so this setting
     will always be used.
 
     This flag's value cannot be modified during the program execution.
 
 .. attribute:: base_compiledir
 
-    Default: On Windows: $LOCALAPPDATA\\Theano if $LOCALAPPDATA is defined,
-    otherwise and on other systems: ~/.theano.
+    Default: On Windows: ``$LOCALAPPDATA\\Aesara`` if ``$LOCALAPPDATA`` is defined,
+    otherwise and on other systems: ``~/.aesara``.
 
     This directory stores the platform-dependent compilation directories.
 
@@ -612,7 +607,7 @@ import theano and print the config variable, as in:
     This is a Python format string that specifies the subdirectory
     of ``config.base_compiledir`` in which to store platform-dependent
     compiled modules. To see a list of all available substitution keys,
-    run ``python -c "import theano; print(theano.config)"``, and look
+    run ``python -c "import aesara; print(aesara.config)"``, and look
     for compiledir_format.
 
     This flag's value cannot be modified during the program execution.
@@ -776,12 +771,12 @@ import theano and print the config variable, as in:
     Default: Full path to g++ if g++ is present. Empty string otherwise.
 
     Indicates which C++ compiler to use. If empty, no C++ code is
-    compiled.  Theano automatically detects whether g++ is present and
+    compiled.  Aesara automatically detects whether g++ is present and
     disables C++ compilation when it is not.  On darwin systems (Mac
     OS X), it preferably looks for clang++ and uses that if available.
 
     We print a warning if we detect that no compiler is present. It is
-    recommended to run with C++ compilation as Theano will be much
+    recommended to run with C++ compilation as Aesara will be much
     slower otherwise.
 
     This can be any compiler binary (full path or not) but things may
@@ -927,11 +922,11 @@ import theano and print the config variable, as in:
     Default: ``'off'``
 
     Setting this attribute to something other than ``'off'`` activates a
-    debugging mechanism, where Theano executes the graph on-the-fly, as it is
+    debugging mechanism, where Aesara executes the graph on-the-fly, as it is
     being built. This allows the user to spot errors early on (such as
     dimension mis-match), **before** optimizations are applied.
 
-    Theano will execute the graph using the Constants and/or shared variables
+    Aesara will execute the graph using the Constants and/or shared variables
     provided by the user. Purely symbolic variables (e.g. ``x = T.dmatrix()``) can be
     augmented with test values, by writing to their ``'tag.test_value'``
     attribute (e.g. ``x.tag.test_value = numpy.random.rand(5, 4)``).
@@ -946,24 +941,24 @@ import theano and print the config variable, as in:
 
 .. attribute:: compute_test_value_opt
 
-    As ``compute_test_value``, but it is the value used during Theano
-    optimization phase. Theano user's do not need to use this. This is
-    to help debug shape error in Theano optimization.
+    As ``compute_test_value``, but it is the value used during Aesara
+    optimization phase. Aesara user's do not need to use this. This is
+    to help debug shape error in Aesara optimization.
 
 .. attribute:: print_test_value
 
     Bool value, default: ``False``
 
-    If ``'True'``, Theano will override the ``__str__`` method of its variables
+    If ``'True'``, Aesara will override the ``__str__`` method of its variables
     to also print the tag.test_value when this is available.
 
 .. attribute:: reoptimize_unpickled_function
 
-    Bool value, default: False (changed in master after Theano 0.7 release)
+    Bool value, default: False
 
-    Theano users can use the standard python pickle tools to save a compiled
-    theano function. When pickling, both graph before and after the optimization
-    are saved, including shared variables. When set to True, the graph is
+    Aesara users can use the standard python pickle tools to save a compiled
+    aesara function. When pickling, both graph before and after the optimization
+    are saved, including shared variables. When set to ``True``, the graph is
     reoptimized when being unpickled. Otherwise, skip the graph optimization and
     use directly the optimized graph.
 
@@ -997,7 +992,7 @@ import theano and print the config variable, as in:
     Bool value, default: ``False``
 
     If True, will remove the ``-O*`` parameter passed to g++.
-    This is useful to debug in gdb modules compiled by Theano.
+    This is useful to debug in gdb modules compiled by Aesara.
     The parameter ``-g`` is passed by default to g++.
 
 .. attribute:: config.cmodule__compilation_warning
@@ -1017,7 +1012,7 @@ import theano and print the config variable, as in:
     Int value, default: ``60 * 60 * 24 * 24``  # 24 days
 
     In seconds. The time after which a compiled c module won't be
-    reused by Theano. Automatic deletion of those c module 7 days
+    reused by Aesara. Automatic deletion of those c module 7 days
     after that time.
 
 .. attribute:: config.cmodule__debug
@@ -1036,8 +1031,8 @@ import theano and print the config variable, as in:
 
     Bool value, default: 0
 
-    The number of user stack level to keep for variables during Theano
-    compilation. If higher then 0, will make us keep Theano internal
+    The number of user stack level to keep for variables during Aesara
+    compilation. If higher then 0, will make us keep Aesara internal
     stack trace.
 
 .. attribute:: config.metaopt__verbose

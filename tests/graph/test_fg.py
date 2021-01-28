@@ -3,10 +3,10 @@ import pickle
 import numpy as np
 import pytest
 
+from aesara.configdefaults import config
+from aesara.graph.fg import FunctionGraph, MissingInputError
+from aesara.graph.toolbox import BadOptimization
 from tests.graph.utils import MyVariable, MyVariable2, op1, op2, op3
-from theano.configdefaults import config
-from theano.graph.fg import FunctionGraph, MissingInputError
-from theano.graph.toolbox import BadOptimization
 
 
 class TestFunctionGraph:
@@ -149,7 +149,7 @@ class TestFunctionGraph:
         assert var5.owner in fg.apply_nodes
 
         with pytest.raises(TypeError, match="Computation graph contains.*"):
-            from theano.graph.null_type import NullType
+            from aesara.graph.null_type import NullType
 
             fg.import_var(NullType()(), "testing")
 

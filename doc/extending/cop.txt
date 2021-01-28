@@ -193,7 +193,7 @@ There are less methods to define for a `COp` than for a `Type`:
 
        For example, for the matrix-matrix product ``infer_shape`` will
        have as inputs ``(fgraph, node, ((x0,x1), (y0,y1)))`` and should return
-       ``[(x0, y1)]``. Both the inputs and the return value may be Theano
+       ``[(x0, y1)]``. Both the inputs and the return value may be Aesara
        variables.
 
     .. method:: c_code_cache_version()
@@ -220,7 +220,7 @@ There are less methods to define for a `COp` than for a `Type`:
 
        In addition, this allow to lower the number of compiled module
        and disk access. Particularly useful when the file system load
-       is high or when theano compilation directory is shared by many
+       is high or when aesara compilation directory is shared by many
        process (like on a network file server on a cluster).
 
     .. method:: get_params(node)
@@ -263,7 +263,7 @@ many strings as there are inputs and outputs to the application of the
 Op and they correspond to the ``name`` that is passed to the type of
 each Variable in these lists. For example, if ``node.inputs[0].type ==
 double``, then ``input_names[0]`` is the ``name`` argument passed to
-``double.c_declare`` etc. when the first input is processed by Theano.
+``double.c_declare`` etc. when the first input is processed by Aesara.
 
 In a nutshell, ``input_names`` and ``output_names`` parameterize the
 names of the inputs your operation needs to use and the outputs it
@@ -291,7 +291,7 @@ We will be defining C code for the multiplication `COp` on doubles.
 
 .. testsetup::
 
-   from theano.graph.op import COp
+   from aesara.graph.op import COp
    mul = COp()
 
 .. testcode::
@@ -318,7 +318,7 @@ each output to what they should be.
 .. warning::
    Do *NOT* use C's ``return`` statement to return the variable(s) of
    the computations. Set the output variables directly as shown
-   above. Theano will pick them up for you.
+   above. Aesara will pick them up for you.
 
 
 **c_code_cleanup**
@@ -338,8 +338,8 @@ version that it produces in the code I gave above.
 
 .. testcode::
 
-   from theano.graph.basic import Apply, Constant
-   from theano.graph.op import COp
+   from aesara.graph.basic import Apply, Constant
+   from aesara.graph.op import COp
 
 
    class BinaryDoubleOp(COp):

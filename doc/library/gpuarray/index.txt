@@ -5,7 +5,7 @@
 :mod:`gpuarray` -- The (new) GPU backend
 =======================================================
 
-.. module:: theano.gpuarray
+.. module:: aesara.gpuarray
    :platform: Unix, Windows
    :synopsis: Code for GPU programming (new)
 .. moduleauthor:: MILA

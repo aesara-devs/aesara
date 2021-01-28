@@ -1,20 +1,20 @@
 import numpy as np
 
-import theano
-import theano.tensor.basic as tt
+import aesara
+import aesara.tensor.basic as tt
+from aesara.configdefaults import config
+from aesara.gradient import Rop, grad, jacobian
+from aesara.scan.op import Scan
+from aesara.tensor import nnet
+from aesara.tensor.elemwise import Elemwise
+from aesara.tensor.math import Dot, dot
+from aesara.tensor.math import sum as tt_sum
+from aesara.tensor.math import tanh
+from aesara.tensor.type import matrix, tensor3, vector
 from tests import unittest_tools as utt
-from theano.configdefaults import config
-from theano.gradient import Rop, grad, jacobian
-from theano.scan.op import Scan
-from theano.tensor import nnet
-from theano.tensor.elemwise import Elemwise
-from theano.tensor.math import Dot, dot
-from theano.tensor.math import sum as tt_sum
-from theano.tensor.math import tanh
-from theano.tensor.type import matrix, tensor3, vector
 
 
-mode = theano.compile.mode.get_mode(config.mode)
+mode = aesara.compile.mode.get_mode(config.mode)
 
 
 class TestGaussNewton:
@@ -37,10 +37,10 @@ class TestGaussNewton:
             targets_size = (num_timesteps, batch_size, 1)
 
         # make inputs and targets shared variables
-        inputs = theano.shared(
+        inputs = aesara.shared(
             self.rng.uniform(size=inputs_size).astype(config.floatX), borrow=True
         )
-        targets = theano.shared(
+        targets = aesara.shared(
             self.rng.uniform(size=targets_size).astype(config.floatX), borrow=True
         )
 
@@ -55,18 +55,18 @@ class TestGaussNewton:
         t.tag.test_value = targets.get_value(borrow=True)
 
         # create a set of parameters for a simple RNN
-        W_xh = theano.shared(
+        W_xh = aesara.shared(
             (0.01 * self.rng.uniform(size=(num_features, 10))).astype(config.floatX),
             borrow=True,
         )
-        W_hh = theano.shared(
+        W_hh = aesara.shared(
             (0.01 * self.rng.uniform(size=(10, 10))).astype(config.floatX), borrow=True
         )
-        W_hy = theano.shared(
+        W_hy = aesara.shared(
             (0.01 * self.rng.uniform(size=(10, 1))).astype(config.floatX), borrow=True
         )
-        b_h = theano.shared(np.zeros(10).astype(config.floatX), borrow=True)
-        b_y = theano.shared(np.zeros(1).astype(config.floatX), borrow=True)
+        b_h = aesara.shared(np.zeros(10).astype(config.floatX), borrow=True)
+        b_y = aesara.shared(np.zeros(1).astype(config.floatX), borrow=True)
 
         params = [W_xh, W_hh, W_hy, b_h, b_y]
 
@@ -80,7 +80,7 @@ class TestGaussNewton:
             h_0 = tt.alloc(0.0, 10).astype(config.floatX)
         else:
             h_0 = tt.alloc(0.0, batch_size, 10).astype(config.floatX)
-        h, updates = theano.scan(step, sequences=[x], outputs_info=[h_0])
+        h, updates = aesara.scan(step, sequences=[x], outputs_info=[h_0])
         # network output
         y = dot(h, W_hy) + b_y
 
@@ -96,15 +96,15 @@ class TestGaussNewton:
         # during certain iterations of CG in the HF algorithm. There,
         # it's in fact `pi + current update proposal`.  For simplicity,
         # I just multiply by 2 here.
-        cost_ = theano.clone_replace(cost, replace={pi: 2 * pi for pi in params})
+        cost_ = aesara.clone_replace(cost, replace={pi: 2 * pi for pi in params})
 
         # Compute Gauss-Newton-Matrix times some vector `v` which is `p` in CG,
         # but for simplicity, I just take the parameters vector because it's
         # already there.
         Gv = gn(v=params, cost=cost, parameters=params, damp=tt.constant(1.0))
 
-        # compile Theano function
-        f = theano.function([], [cost_] + Gv, givens={x: inputs, t: targets}, mode=mode)
+        # compile Aesara function
+        f = aesara.function([], [cost_] + Gv, givens={x: inputs, t: targets}, mode=mode)
         # execute
         f()
 
@@ -155,10 +155,10 @@ class TestPushOutScanOutputDot:
         # Compile the function twice, once with the optimization and once
         # without
         opt_mode = mode.including("scan")
-        f_opt = theano.function([v, m], jacobian(output, v), mode=opt_mode)
+        f_opt = aesara.function([v, m], jacobian(output, v), mode=opt_mode)
 
         no_opt_mode = mode.excluding("scanOp_pushout_output")
-        f_no_opt = theano.function([v, m], jacobian(output, v), mode=no_opt_mode)
+        f_no_opt = aesara.function([v, m], jacobian(output, v), mode=no_opt_mode)
 
         # Ensure that the optimization was performed correctly in f_opt
         # The inner function of scan should have only one output and it should
@@ -190,17 +190,17 @@ class TestPushOutScanOutputDot:
             vect_squared = vect ** 2
             return dot(vect_squared, mat), vect_squared
 
-        outputs, updates = theano.scan(
+        outputs, updates = aesara.scan(
             fn=inner_fct, outputs_info=[None] * 2, sequences=a, non_sequences=b
         )
 
         # Compile the function twice, once with the optimization and once
         # without
         opt_mode = mode.including("scan")
-        f_opt = theano.function([a, b], outputs, mode=opt_mode)
+        f_opt = aesara.function([a, b], outputs, mode=opt_mode)
 
         no_opt_mode = mode.excluding("scanOp_pushout_output")
-        f_no_opt = theano.function([a, b], outputs, mode=no_opt_mode)
+        f_no_opt = aesara.function([a, b], outputs, mode=no_opt_mode)
 
         # Ensure that the optimization was performed correctly in f_opt
         # The inner function of scan should have only one output and it should
@@ -236,17 +236,17 @@ class TestPushOutScanOutputDot:
             output2 = dot(output1, nonseq1)
             return output1, output2
 
-        outputs, updates = theano.scan(
+        outputs, updates = aesara.scan(
             fn=inner_fct, outputs_info=[a[0], None], sequences=a, non_sequences=b
         )
 
         # Compile the function twice, once with the optimization and once
         # without
         opt_mode = mode.including("scan")
-        f_opt = theano.function([a, b], outputs, mode=opt_mode)
+        f_opt = aesara.function([a, b], outputs, mode=opt_mode)
 
         no_opt_mode = mode.excluding("scanOp_pushout_output")
-        f_no_opt = theano.function([a, b], outputs, mode=no_opt_mode)
+        f_no_opt = aesara.function([a, b], outputs, mode=no_opt_mode)
 
         # Ensure that the optimization was performed correctly in f_opt
         # The inner function of scan should have only one output and it should
@@ -289,13 +289,13 @@ class TestPushOutSumOfDot:
         dim = 5
 
         # Weight matrices
-        U = theano.shared(
+        U = aesara.shared(
             np.random.normal(size=(dim, dim), scale=0.0001).astype(config.floatX)
         )
         U.name = "U"
-        V = theano.shared(U.get_value())
+        V = aesara.shared(U.get_value())
         V.name = "V"
-        W = theano.shared(U.get_value())
+        W = aesara.shared(U.get_value())
         W.name = "W"
 
         # Variables and their values
@@ -335,7 +335,7 @@ class TestPushOutSumOfDot:
         # Compile the function twice, once with the optimization and once
         # without
         opt_mode = mode.including("scan")
-        h, _ = theano.scan(
+        h, _ = aesara.scan(
             rnn_step1,
             sequences=[x, ri, zi],
             n_steps=seq_len,
@@ -345,10 +345,10 @@ class TestPushOutSumOfDot:
         )
         cost = h[-1].sum()
         grad1 = grad(cost, [U, V, W])
-        f_opt = theano.function(inputs=[x, ri, zi], outputs=grad1, mode=opt_mode)
+        f_opt = aesara.function(inputs=[x, ri, zi], outputs=grad1, mode=opt_mode)
 
         no_opt_mode = mode.excluding("scanOp_pushout_output")
-        h, _ = theano.scan(
+        h, _ = aesara.scan(
             rnn_step1,
             sequences=[x, ri, zi],
             n_steps=seq_len,
@@ -358,7 +358,7 @@ class TestPushOutSumOfDot:
         )
         cost = h[-1].sum()
         grad1 = grad(cost, [U, V, W])
-        f_no_opt = theano.function(inputs=[x, ri, zi], outputs=grad1, mode=no_opt_mode)
+        f_no_opt = aesara.function(inputs=[x, ri, zi], outputs=grad1, mode=no_opt_mode)
 
         # Validate that the optimization has been applied
         scan_node_grad = [
@@ -383,8 +383,8 @@ class TestPushOutSumOfDot:
         input2 = tensor3()
         input3 = tensor3()
 
-        W = theano.shared(np.random.normal(size=(4, 5))).astype(config.floatX)
-        U = theano.shared(np.random.normal(size=(6, 7))).astype(config.floatX)
+        W = aesara.shared(np.random.normal(size=(4, 5))).astype(config.floatX)
+        U = aesara.shared(np.random.normal(size=(6, 7))).astype(config.floatX)
 
         def inner_fct(seq1, seq2, seq3, previous_output):
             temp1 = dot(seq1, W) + seq3
@@ -397,24 +397,24 @@ class TestPushOutSumOfDot:
         # Compile the function twice, once with the optimization and once
         # without
         opt_mode = mode.including("scan")
-        h, _ = theano.scan(
+        h, _ = aesara.scan(
             inner_fct,
             sequences=[input1, input2, input3],
             outputs_info=init,
             mode=opt_mode,
         )
         output = h[-1]
-        f_opt = theano.function([input1, input2, input3], output, mode=opt_mode)
+        f_opt = aesara.function([input1, input2, input3], output, mode=opt_mode)
 
         no_opt_mode = mode.excluding("scanOp_pushout_output")
-        h, _ = theano.scan(
+        h, _ = aesara.scan(
             inner_fct,
             sequences=[input1, input2, input3],
             outputs_info=init,
             mode=no_opt_mode,
         )
         output = h[-1]
-        f_no_opt = theano.function([input1, input2, input3], output, mode=no_opt_mode)
+        f_no_opt = aesara.function([input1, input2, input3], output, mode=no_opt_mode)
 
         # Ensure that the optimization has been applied for f_opt
         # TODO

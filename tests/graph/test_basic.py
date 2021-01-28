@@ -4,9 +4,9 @@ from itertools import count
 import numpy as np
 import pytest
 
-from theano import shared
-from theano import tensor as tt
-from theano.graph.basic import (
+from aesara import shared
+from aesara import tensor as tt
+from aesara.graph.basic import (
     Apply,
     Variable,
     ancestors,
@@ -23,12 +23,12 @@ from theano.graph.basic import (
     vars_between,
     walk,
 )
-from theano.graph.op import Op
-from theano.graph.type import Type
-from theano.tensor.math import max_and_argmax
-from theano.tensor.type import TensorType, iscalars, matrix, scalars
-from theano.tensor.type_other import NoneConst
-from theano.tensor.var import TensorVariable
+from aesara.graph.op import Op
+from aesara.graph.type import Type
+from aesara.tensor.math import max_and_argmax
+from aesara.tensor.type import TensorType, iscalars, matrix, scalars
+from aesara.tensor.type_other import NoneConst
+from aesara.tensor.var import TensorVariable
 
 
 class MyType(Type):

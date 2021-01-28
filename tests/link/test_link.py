@@ -2,16 +2,16 @@ from copy import deepcopy
 
 import numpy as np
 
-import theano
-from theano.compile.mode import Mode
-from theano.graph import fg
-from theano.graph.basic import Apply, Constant, Variable, clone
-from theano.graph.op import Op
-from theano.graph.type import Type
-from theano.link.basic import Container, PerformLinker, WrapLinker
-from theano.link.c.basic import OpWiseCLinker
-from theano.tensor.type import matrix, scalar
-from theano.utils import cmp
+import aesara
+from aesara.compile.mode import Mode
+from aesara.graph import fg
+from aesara.graph.basic import Apply, Constant, Variable, clone
+from aesara.graph.op import Op
+from aesara.graph.type import Type
+from aesara.link.basic import Container, PerformLinker, WrapLinker
+from aesara.link.c.basic import OpWiseCLinker
+from aesara.tensor.type import matrix, scalar
+from aesara.utils import cmp
 
 
 def as_variable(x):
@@ -177,18 +177,18 @@ class TestWrapLinker:
 
 
 def test_sort_schedule_fn():
-    import theano
-    from theano.graph.sched import make_depends, sort_schedule_fn
+    import aesara
+    from aesara.graph.sched import make_depends, sort_schedule_fn
 
     x = matrix("x")
-    y = theano.tensor.dot(x[:5] * 2, x.T + 1).T
+    y = aesara.tensor.dot(x[:5] * 2, x.T + 1).T
 
     def str_cmp(a, b):
         return cmp(str(a), str(b))  # lexicographical sort
 
     linker = OpWiseCLinker(schedule=sort_schedule_fn(str_cmp))
     mode = Mode(linker=linker)
-    f = theano.function((x,), (y,), mode=mode)
+    f = aesara.function((x,), (y,), mode=mode)
 
     nodes = f.maker.linker.make_all()[-1]
     depends = make_depends()
@@ -204,7 +204,7 @@ def test_container_deepcopy():
     # It seam that numpy.asarray(0.).astype(floatX) can return a numpy
     # scalar with some NumPy Version. So we call numpy.asarray with
     # the dtype parameter.
-    v = np.asarray(0.0, dtype=theano.config.floatX)
+    v = np.asarray(0.0, dtype=aesara.config.floatX)
     assert isinstance(v, np.ndarray), type(v)
     for readonly in [True, False]:
         c = Container(t, [v], readonly=readonly)

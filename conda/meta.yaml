@@ -1,6 +1,6 @@
 package:
-  name: theano
-  version: {{ environ.get('THEANO_VERSION') }}
+  name: aesara
+  version: {{ environ.get('AESARA_VERSION') }}
 
 source:
   path: ../
@@ -25,13 +25,13 @@ requirements:
 
 test:
   imports:
-    - theano
+    - aesara
 
 about:
-  home: http://deeplearning.net/software/theano/
+  home: https://github.com/pymc-devs/aesara/
   license: BSD 3-Clause
   license_family: BSD
   summary: Optimizing compiler for evaluating mathematical expressions on CPUs and GPUs.
-  summary: Fork of Theano for PyMC3. An optimizing compiler for evaluating mathematical expressions on CPUs and GPUs.
-  dev_url: https://github.com/pymc-devs/Theano-PyMC/
-  doc_url: http://deeplearning.net/software/theano/
+  summary: Fork of Aesara for PyMC3. An optimizing compiler for evaluating mathematical expressions on CPUs and GPUs.
+  dev_url: https://github.com/pymc-devs/aesara/
+  doc_url: https://aesara.readthedocs.io/en/latest/index.html

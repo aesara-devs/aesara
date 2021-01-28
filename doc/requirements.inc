@@ -33,7 +33,7 @@ Requirements
 **Optional requirements**
 
     |PlatformCompiler|
-        **Highly recommended.** Theano can fall back on a NumPy-based Python execution model, but a C compiler allows for vastly faster execution.
+        **Highly recommended.** Aesara can fall back on a NumPy-based Python execution model, but a C compiler allows for vastly faster execution.
 
     `Sphinx <http://sphinx.pocoo.org/>`_ >= 0.5.1, `pygments <http://pygments.org/>`_
         For building the documentation. LaTeX_ and dvipng_ are also necessary for math to show up as images.
@@ -56,9 +56,9 @@ Requirements
         git+https://github.com/lebedov/scikit-cuda.git#egg=scikit-cuda``.
 
     `warp-ctc`_
-        Required for :ref:`Theano CTC implementation
+        Required for :ref:`Aesara CTC implementation
         <libdoc_tensor_nnet_ctc>`. It is faster then using an
-        equivalent graph of Theano ops.
+        equivalent graph of Aesara ops.
 
 
 Requirements installation through Conda (recommended)

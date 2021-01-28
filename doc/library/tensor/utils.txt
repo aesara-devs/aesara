@@ -4,13 +4,12 @@
 
 .. testsetup::
 
-   from theano.tensor.utils import *
+   from aesara.tensor.utils import *
 
 .. module:: tensor.utils
    :platform: Unix, Windows
    :synopsis: Tensor Utils
 .. moduleauthor:: LISA
 
-.. automodule:: theano.tensor.utils
+.. automodule:: aesara.tensor.utils
     :members:
-

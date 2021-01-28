@@ -3,23 +3,23 @@ import sys
 import numpy as np
 import pytest
 
-import theano
-import theano.tensor as tt
+import aesara
+import aesara.tensor as tt
+from aesara.compile import debugmode
+from aesara.configdefaults import config
+from aesara.graph.basic import Apply, Variable
+from aesara.graph.op import COp, Op
+from aesara.graph.opt import local_optimizer
+from aesara.graph.optdb import EquilibriumDB
+from aesara.graph.toolbox import BadOptimization
+from aesara.tensor.math import add, dot, log
+from aesara.tensor.type import TensorType, dvector, fmatrix, fvector, vector
 from tests import unittest_tools as utt
-from theano.compile import debugmode
-from theano.configdefaults import config
-from theano.graph.basic import Apply, Variable
-from theano.graph.op import COp, Op
-from theano.graph.opt import local_optimizer
-from theano.graph.optdb import EquilibriumDB
-from theano.graph.toolbox import BadOptimization
-from theano.tensor.math import add, dot, log
-from theano.tensor.type import TensorType, dvector, fmatrix, fvector, vector
 
 
 def test_debugmode_basic():
     x = dvector()
-    f = theano.function([x], ((2.0 * x) + 7) / 2.0, mode=debugmode.DebugMode())
+    f = aesara.function([x], ((2.0 * x) + 7) / 2.0, mode=debugmode.DebugMode())
     f([1, 2])
 
 
@@ -96,7 +96,7 @@ class BROKEN_ON_PURPOSE_Add(COp):
 # inconsistent is a invalid op, whose perform and c_code do not match
 inconsistent = BROKEN_ON_PURPOSE_Add(False)
 
-# off_by_half is a good op, that is different from theano.sparse.sd_csc
+# off_by_half is a good op, that is different from aesara.sparse.sd_csc
 off_by_half = BROKEN_ON_PURPOSE_Add(True)
 
 
@@ -207,12 +207,12 @@ def test_badthunkoutput():
     a = dvector()
     b = dvector()
 
-    f_good = theano.function(
+    f_good = aesara.function(
         [a, b],
         off_by_half(a, b),
         mode=debugmode.DebugMode(check_c_code=config.cxx),
     )
-    f_inconsistent = theano.function(
+    f_inconsistent = aesara.function(
         [a, b],
         inconsistent(a, b),
         mode=debugmode.DebugMode(check_c_code=config.cxx),
@@ -241,7 +241,7 @@ def test_badoptimization():
     a = dvector()
     b = dvector()
 
-    f = theano.function([a, b], a + b, mode=debugmode.DebugMode(optimizer=opt))
+    f = aesara.function([a, b], a + b, mode=debugmode.DebugMode(optimizer=opt))
 
     with pytest.raises(debugmode.BadOptimization) as einfo:
         f(
@@ -282,7 +282,7 @@ def test_badoptimization_opt_err():
     a = dvector()
     b = dvector()
 
-    f = theano.function([a, b], a + b, mode=debugmode.DebugMode(optimizer=opt))
+    f = aesara.function([a, b], a + b, mode=debugmode.DebugMode(optimizer=opt))
     with pytest.raises(ValueError, match=r"insert_bigger_b_add"):
         f(
             [1.0, 2.0, 3.0],
@@ -292,7 +292,7 @@ def test_badoptimization_opt_err():
     # Test that opt that do an illegal change still get the error from graph.
     with pytest.raises(BadOptimization, match=r"insert_bad_dtype") as einfo:
         with config.change_flags(on_opt_error="raise"):
-            f2 = theano.function(
+            f2 = aesara.function(
                 [a, b],
                 a + b,
                 mode=debugmode.DebugMode(optimizer=opt2, stability_patience=1),
@@ -333,7 +333,7 @@ def test_stochasticoptimization():
     b = dvector()
 
     with pytest.raises(debugmode.StochasticOrder):
-        theano.function(
+        aesara.function(
             [a, b],
             add(a, b),
             mode=debugmode.DebugMode(
@@ -349,7 +349,7 @@ def test_stochasticoptimization():
 )
 def test_just_c_code():
     x = dvector()
-    f = theano.function([x], wb2(x), mode=debugmode.DebugMode(check_py_code=False))
+    f = aesara.function([x], wb2(x), mode=debugmode.DebugMode(check_py_code=False))
     assert np.all(f([1, 2]) == [2, 4])
 
 
@@ -367,7 +367,7 @@ def test_baddestroymap():
 
     x = dvector()
     y = dvector()
-    f = theano.function([x, y], BadAdd()(x, y), mode="DEBUG_MODE")
+    f = aesara.function([x, y], BadAdd()(x, y), mode="DEBUG_MODE")
 
     with pytest.raises(debugmode.BadDestroyMap):
         f([1, 2], [3, 4])
@@ -378,7 +378,7 @@ def test_baddestroymap():
 )
 def test_baddestroymap_c():
     x = dvector()
-    f = theano.function([x], wb2i(x), mode=debugmode.DebugMode(check_py_code=False))
+    f = aesara.function([x], wb2i(x), mode=debugmode.DebugMode(check_py_code=False))
     with pytest.raises(debugmode.BadDestroyMap):
         assert np.all(f([1, 2]) == [2, 4])
 
@@ -407,14 +407,14 @@ class TestViewMap:
     def test_badviewmap_ref(self):
         x = dvector()
         y = dvector()
-        f = theano.function([x, y], self.BadAddRef()(x, y), mode="DEBUG_MODE")
+        f = aesara.function([x, y], self.BadAddRef()(x, y), mode="DEBUG_MODE")
         with pytest.raises(debugmode.BadViewMap):
             f([1, 2], [3, 4])
 
     def test_badviewmap_slice(self):
         x = dvector()
         y = dvector()
-        f = theano.function([x, y], self.BadAddSlice()(x, y), mode="DEBUG_MODE")
+        f = aesara.function([x, y], self.BadAddSlice()(x, y), mode="DEBUG_MODE")
         with pytest.raises(debugmode.BadViewMap):
             f([1, 2], [3, 4])
 
@@ -423,7 +423,7 @@ class TestViewMap:
         goodop.view_map = {0: [1]}
         x = dvector()
         y = dvector()
-        f = theano.function([x, y], goodop(x, y), mode="DEBUG_MODE")
+        f = aesara.function([x, y], goodop(x, y), mode="DEBUG_MODE")
         # Shouldn't raise an error
         f([1, 5, 1], [3, 4, 2, 1, 4])
 
@@ -432,7 +432,7 @@ class TestViewMap:
     )
     def test_badviewmap_c(self):
         x = dvector()
-        f = theano.function([x], wb1i(x), mode=debugmode.DebugMode(check_py_code=False))
+        f = aesara.function([x], wb1i(x), mode=debugmode.DebugMode(check_py_code=False))
         with pytest.raises(debugmode.BadViewMap):
             f([1, 2])
 
@@ -455,7 +455,7 @@ class TestViewMap:
 
         x = dvector("x")
         y = dvector("y")
-        f = theano.function([x, y], CustomOp()(x, y), mode="DEBUG_MODE")
+        f = aesara.function([x, y], CustomOp()(x, y), mode="DEBUG_MODE")
 
         r0, r1 = f([1, 2, 3, 4], [5, 6, 7, 8])
 
@@ -480,7 +480,7 @@ class TestViewMap:
 
         x = dvector()
         y = dvector()
-        f = theano.function([x, y], CustomOp()(x, y), mode="DEBUG_MODE")
+        f = aesara.function([x, y], CustomOp()(x, y), mode="DEBUG_MODE")
 
         r0, r1 = f([1, 2, 3, 4], [5, 6, 7, 8])
 
@@ -506,7 +506,7 @@ class TestViewMap:
 
         x = dvector("x")
         y = dvector("y")
-        f = theano.function([x, y], CustomOp()(x, y)[0] * 2, mode="DEBUG_MODE")
+        f = aesara.function([x, y], CustomOp()(x, y)[0] * 2, mode="DEBUG_MODE")
 
         r0 = f([1, 2, 3, 4], [5, 6, 7, 8])
 
@@ -514,7 +514,7 @@ class TestViewMap:
 
     def test_aliased_outputs_bad(self):
         # here the alias between outputs is not ok because destroying one
-        # destroys the other, but there's no way to warn theano about it
+        # destroys the other, but there's no way to warn aesara about it
         # through the view_map mechanism.
         class CustomOp(Op):
             def make_node(self, a, b):
@@ -535,7 +535,7 @@ class TestViewMap:
         y = dvector()
         bad_xy0, bad_xy1 = custom_op(x, y)
         out = bad_xy0 * 2 + bad_xy1 * 2
-        f = theano.function([x, y], out, mode="DEBUG_MODE")
+        f = aesara.function([x, y], out, mode="DEBUG_MODE")
 
         with pytest.raises(debugmode.BadViewMap):
             f([1, 2, 3, 4], [5, 6, 7, 8])
@@ -551,16 +551,16 @@ class TestViewMap:
 class TestCheckIsfinite:
     def setup_method(self):
         self.old_ts = TensorType.filter_checks_isfinite
-        self.old_dm = theano.compile.mode.predefined_modes["DEBUG_MODE"].check_isfinite
+        self.old_dm = aesara.compile.mode.predefined_modes["DEBUG_MODE"].check_isfinite
 
     def teardown_method(self):
         TensorType.filter_checks_isfinite = self.old_ts
-        theano.compile.mode.predefined_modes["DEBUG_MODE"].check_isfinite = self.old_dm
+        aesara.compile.mode.predefined_modes["DEBUG_MODE"].check_isfinite = self.old_dm
 
     def test_check_isfinite(self):
         x = vector()
-        f = theano.function([x], (x + 2) * 5, mode="DEBUG_MODE")
-        g = theano.function([x], log(x), mode="DEBUG_MODE")
+        f = aesara.function([x], (x + 2) * 5, mode="DEBUG_MODE")
+        g = aesara.function([x], log(x), mode="DEBUG_MODE")
 
         # this should work
         f(np.log([3, 4, 5]).astype(config.floatX))
@@ -583,13 +583,13 @@ class TestCheckIsfinite:
 
         # this should disable the exception
         TensorType.filter_checks_isfinite = False
-        theano.compile.mode.predefined_modes["DEBUG_MODE"].check_isfinite = False
+        aesara.compile.mode.predefined_modes["DEBUG_MODE"].check_isfinite = False
         # insert several Inf
         f(np.asarray(np.asarray([1.0, 1.0, 1.0]) / 0, dtype=config.floatX))
 
     def test_check_isfinite_disabled(self):
         x = dvector()
-        f = theano.function(
+        f = aesara.function(
             [x], (x + 2) * 5, mode=debugmode.DebugMode(check_isfinite=False)
         )
 
@@ -745,7 +745,7 @@ class TestPreallocatedOutput:
         # Should work
         mode = debugmode.DebugMode(check_preallocated_output=["c_contiguous"])
 
-        f = theano.function([a, b], out, mode=mode)
+        f = aesara.function([a, b], out, mode=mode)
         f(a_val, b_val)
         # print 'out_val =', out_val
         # print out_val.strides
@@ -754,7 +754,7 @@ class TestPreallocatedOutput:
         # used incorrectly.
         mode = debugmode.DebugMode(check_preallocated_output=["f_contiguous"])
 
-        f = theano.function([a, b], out, mode=mode)
+        f = aesara.function([a, b], out, mode=mode)
 
         if config.cxx:
             with pytest.raises(debugmode.BadThunkOutput):
@@ -776,7 +776,7 @@ class TestPreallocatedOutput:
         # Should work
         mode = debugmode.DebugMode(check_preallocated_output=["c_contiguous"])
 
-        f = theano.function([a, b], out, mode=mode)
+        f = aesara.function([a, b], out, mode=mode)
         f(a_val, b_val)
         # print 'out_val =', out_val
         # print out_val.strides
@@ -785,7 +785,7 @@ class TestPreallocatedOutput:
         # used incorrectly.
         mode = debugmode.DebugMode(check_preallocated_output=["f_contiguous"])
 
-        f = theano.function([a, b], out, mode=mode)
+        f = aesara.function([a, b], out, mode=mode)
 
         if config.cxx:
             with pytest.raises(debugmode.BadThunkOutput):
@@ -797,7 +797,7 @@ class TestPreallocatedOutput:
     def test_output_broadcast_tensor(self):
         v = fvector("v")
         c, r = VecAsRowAndCol()(v)
-        f = theano.function([v], [c, r])
+        f = aesara.function([v], [c, r])
 
         v_val = self.rng.randn(5).astype("float32")
         f(v_val)
