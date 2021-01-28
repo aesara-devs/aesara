@@ -1,7 +1,7 @@
 Tutorial on adding JAX Ops to Aesara
 =============================
 
-A core feature of Aesara, previously named Theano-PyMC, is the JAX
+A core feature of Aesara, previously named Aesara, is the JAX
 backend. To support the backend JAX ops need be added to Aesara once to
 be supported. This tutorial will explain each step.
 
@@ -14,8 +14,8 @@ to know what we want JAX to do.
 
 | Here are the examples for ``eye`` and ``ifelse`` from Aesara from the
   compiled doc and codebase respectively
-| https://theano-pymc.readthedocs.io/en/latest/library/tensor/basic.html?highlight=eye#theano.tensor.eye
-| https://github.com/pymc-devs/Theano-PyMC/blob/master/theano/ifelse.py#L35
+| https://aesara.readthedocs.io/en/latest/library/tensor/basic.html?highlight=eye#aesara.tensor.eye
+| https://github.com/pymc-devs/aesara/blob/master/aesara/ifelse.py#L35
 
 Step 2: Find the relevant JAX method (or something close)
 =========================================================
@@ -39,7 +39,7 @@ logic.
        return res if n_outs > 1 else res[0]
 
 *Code in context:*
-https://github.com/pymc-devs/Theano-PyMC/blob/master/theano/link/jax/jax_dispatch.py#L583
+https://github.com/pymc-devs/aesara/blob/master/aesara/link/jax/jax_dispatch.py#L583
 
 Step 3: Register the function with the jax_funcify dispatcher
 =============================================================
@@ -51,13 +51,13 @@ short tutorial on dispatching is at the bottom.
 
 The linker functions should be added to ``jax_dispatch`` module linked
 below.
-https://github.com/pymc-devs/Theano-PyMC/blob/master/theano/link/jax/jax_dispatch.py
+https://github.com/pymc-devs/aesara/blob/master/aesara/link/jax/jax_dispatch.py
 
 Here’s an example for the Eye Op.
 
 .. code:: python
 
-   from theano.tensor.basic import Eye
+   from aesara.tensor.basic import Eye
 
    @jax_funcify.register(Eye) # The decorator
    def jax_funcify_Eye(op): # The function that takes an Op and returns its JAX equivalent
@@ -69,7 +69,7 @@ Here’s an example for the Eye Op.
        return eye
 
 *Code in context:*
-https://github.com/pymc-devs/Theano-PyMC/blob/master/theano/link/jax/jax_dispatch.py#L1071
+https://github.com/pymc-devs/aesara/blob/master/aesara/link/jax/jax_dispatch.py#L1071
 
 Step 4: Write tests
 ===================
@@ -82,19 +82,19 @@ compile the same function graph in Python and JAX and check that the
 numerical output is similar betwen the JAX and Python output, as well
 object types to ensure correct compilation.
 
-https://github.com/pymc-devs/Theano-PyMC/blob/master/tests/link/test_jax.py
+https://github.com/pymc-devs/aesara/blob/master/tests/link/test_jax.py
 
 .. code:: python
 
    def test_jax_eye():
        """Tests jaxification of the Eye operator"""
-       out = tt.eye(3) # Initialize a Theano Op
-       out_fg = theano.graph.fg.FunctionGraph([], [out]) # Create a Theano FunctionGraph
+       out = tt.eye(3) # Initialize an Aesara Op
+       out_fg = aesara.graph.fg.FunctionGraph([], [out]) # Create an Aesara FunctionGraph
 
        compare_jax_and_py(out_fg, []) # Pas the graph and any inputs to testing function
 
 *Code in context:*
-https://github.com/pymc-devs/Theano-PyMC/blob/056fcee1434818d0aed9234e01c754ed88d0f27a/tests/link/test_jax.py#L250
+https://github.com/pymc-devs/aesara/blob/056fcee1434818d0aed9234e01c754ed88d0f27a/tests/link/test_jax.py#L250
 
 Step 5: Wait for CI pass and Code Review
 ========================================
@@ -102,7 +102,7 @@ Step 5: Wait for CI pass and Code Review
 Create a pull request and ensure CI passes. If it does wait for a code
 review and a likely merge!
 
-https://github.com/pymc-devs/Theano-PyMC/pulls
+https://github.com/pymc-devs/aesara/pulls
 
 Appendix: What does singledispatcher do?
 ========================================

@@ -4,8 +4,8 @@ from tempfile import mkdtemp
 import numpy as np
 import pytest
 
-from theano.configdefaults import config
-from theano.tensor.type import TensorType
+from aesara.configdefaults import config
+from aesara.tensor.type import TensorType
 
 
 def test_filter_variable():

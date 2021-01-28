@@ -1,18 +1,18 @@
 import numpy as np
 import pytest
 
+import aesara
 import tests.unittest_tools as utt
-import theano
-from tests.gpuarray.config import mode_with_gpu
-from theano import function
-from theano.configdefaults import config
-from theano.gpuarray.multinomial import (
+from aesara import function
+from aesara.configdefaults import config
+from aesara.gpuarray.multinomial import (
     GPUAChoiceFromUniform,
     GPUAMultinomialFromUniform,
 )
-from theano.sandbox import multinomial
-from theano.sandbox.rng_mrg import MRG_RandomStream as RandomStream
-from theano.tensor.type import fmatrix, frow, fvector, iscalar, matrix, vector
+from aesara.sandbox import multinomial
+from aesara.sandbox.rng_mrg import MRG_RandomStream as RandomStream
+from aesara.tensor.type import fmatrix, frow, fvector, iscalar, matrix, vector
+from tests.gpuarray.config import mode_with_gpu
 
 
 def test_multinomial_output_dtype():
@@ -23,7 +23,7 @@ def test_multinomial_output_dtype():
     u = fvector()
 
     for dtype in ["int64", "float32", "float16", "float64", "int32", "auto"]:
-        m = theano.sandbox.multinomial.MultinomialFromUniform(dtype)(p, u)
+        m = aesara.sandbox.multinomial.MultinomialFromUniform(dtype)(p, u)
 
         # the m*2 allows the multinomial to reuse output
         f = function([p, u], m * 2, allow_input_downcast=True, mode=mode_with_gpu)
@@ -64,7 +64,7 @@ def test_multinomial_input_dtype():
             u = vector("u", idtype)
             # p = dmatrix('p')
             # u = dvector('u')
-            m = theano.sandbox.multinomial.MultinomialFromUniform(odtype)(p, u)
+            m = aesara.sandbox.multinomial.MultinomialFromUniform(odtype)(p, u)
 
             # the m*2 allows the multinomial to reuse output
             f = function([p, u], m * 2, allow_input_downcast=True, mode=mode_with_gpu)
@@ -99,7 +99,7 @@ def test_multinomial_large():
     # DEBUG_MODE will test this on GPU
     p = fmatrix()
     u = fvector()
-    m = theano.sandbox.multinomial.MultinomialFromUniform("auto")(p, u)
+    m = aesara.sandbox.multinomial.MultinomialFromUniform("auto")(p, u)
     f = function([p, u], m * 2, allow_input_downcast=True, mode=mode_with_gpu)
     assert any(
         [
@@ -132,7 +132,7 @@ def test_gpu_opt_dtypes():
     for dtype in ["uint32", "float32", "int64", "float64"]:
         p = fmatrix()
         u = fvector()
-        m = theano.sandbox.multinomial.MultinomialFromUniform(dtype)(p, u)
+        m = aesara.sandbox.multinomial.MultinomialFromUniform(dtype)(p, u)
 
         f = function([p, u], m, allow_input_downcast=True, mode=mode_with_gpu)
         assert any(
@@ -155,7 +155,7 @@ def test_gpu_opt():
     # is moved to the gpu.
     p = fmatrix()
     u = fvector()
-    m = theano.sandbox.multinomial.MultinomialFromUniform("auto")(p, u)
+    m = aesara.sandbox.multinomial.MultinomialFromUniform("auto")(p, u)
     assert m.dtype == "float32", m.dtype
 
     f = function([p, u], m, allow_input_downcast=True, mode=mode_with_gpu)
@@ -172,7 +172,7 @@ def test_gpu_opt():
 
     # Test with a row, it was failing in the past.
     r = frow()
-    m = theano.sandbox.multinomial.MultinomialFromUniform("auto")(r, u)
+    m = aesara.sandbox.multinomial.MultinomialFromUniform("auto")(r, u)
     assert m.dtype == "float32", m.dtype
 
     f = function([r, u], m, allow_input_downcast=True, mode=mode_with_gpu)

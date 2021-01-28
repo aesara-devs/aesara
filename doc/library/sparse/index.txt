@@ -8,13 +8,13 @@
 In the tutorial section, you can find a :ref:`sparse tutorial
 <tutsparse>`.
 
-The sparse submodule is not loaded when we import Theano. You must
-import ``theano.sparse`` to enable it.
+The sparse submodule is not loaded when we import Aesara. You must
+import ``aesara.sparse`` to enable it.
 
 The sparse module provides the same functionality as the tensor
 module. The difference lies under the covers because sparse matrices
 do not store data in a contiguous array. Note that there are no GPU
-implementations for sparse matrices in Theano. The sparse module has
+implementations for sparse matrices in Aesara. The sparse module has
 been used in:
 
 - NLP: Dense linear transformations of sparse vectors.
@@ -24,14 +24,11 @@ Compressed Sparse Format
 ========================
 
 This section tries to explain how information is stored for the two
-sparse formats of SciPy supported by Theano. There are more formats
-that can be used with SciPy and some documentation about them may be
-found `here
-<http://deeplearning.net/software/theano/sandbox/sparse.html>`_.
+sparse formats of SciPy supported by Aesara.
 
 .. Changes to this section should also result in changes to tutorial/sparse.txt.
 
-Theano supports two *compressed sparse formats*: ``csc`` and ``csr``,
+Aesara supports two *compressed sparse formats*: ``csc`` and ``csr``,
 respectively based on columns and rows. They have both the same
 attributes: ``data``, ``indices``, ``indptr`` and ``shape``.
 
@@ -123,57 +120,57 @@ List of Implemented Operations
 ==============================
 
 - Moving from and to sparse
-    - :func:`dense_from_sparse <theano.sparse.basic.dense_from_sparse>`.
+    - :func:`dense_from_sparse <aesara.sparse.basic.dense_from_sparse>`.
       Both grads are implemented. Structured by default.
-    - :func:`csr_from_dense <theano.sparse.basic.csr_from_dense>`,
-      :func:`csc_from_dense <theano.sparse.basic.csc_from_dense>`.
+    - :func:`csr_from_dense <aesara.sparse.basic.csr_from_dense>`,
+      :func:`csc_from_dense <aesara.sparse.basic.csc_from_dense>`.
       The grad implemented is structured.
-    - Theano SparseVariable objects have a method ``toarray()`` that is the same as
-      :func:`dense_from_sparse <theano.sparse.basic.dense_from_sparse>`.
+    - Aesara SparseVariable objects have a method ``toarray()`` that is the same as
+      :func:`dense_from_sparse <aesara.sparse.basic.dense_from_sparse>`.
 
 - Construction of Sparses and their Properties
-    - :class:`CSM <theano.sparse.basic.CSM>` and ``CSC``, ``CSR`` to construct a matrix.
+    - :class:`CSM <aesara.sparse.basic.CSM>` and ``CSC``, ``CSR`` to construct a matrix.
       The grad implemented is regular.
-    - :func:`csm_properties <theano.sparse.basic.csm_properties>`.
+    - :func:`csm_properties <aesara.sparse.basic.csm_properties>`.
       to get the properties of a sparse matrix.
       The grad implemented is regular.
     - csm_indices(x), csm_indptr(x), csm_data(x) and csm_shape(x) or x.shape.
-    - :func:`sp_ones_like <theano.sparse.basic.sp_ones_like>`.
+    - :func:`sp_ones_like <aesara.sparse.basic.sp_ones_like>`.
       The grad implemented is regular.
-    - :func:`sp_zeros_like <theano.sparse.basic.sp_zeros_like>`.
+    - :func:`sp_zeros_like <aesara.sparse.basic.sp_zeros_like>`.
       The grad implemented is regular.
-    - :func:`square_diagonal <theano.sparse.basic.square_diagonal>`.
+    - :func:`square_diagonal <aesara.sparse.basic.square_diagonal>`.
       The grad implemented is regular.
-    - :func:`construct_sparse_from_list <theano.sparse.basic.construct_sparse_from_list>`.
+    - :func:`construct_sparse_from_list <aesara.sparse.basic.construct_sparse_from_list>`.
       The grad implemented is regular.
 
 - Cast
-    - :func:`cast <theano.sparse.basic.cast>` with ``bcast``, ``wcast``, ``icast``, ``lcast``,
+    - :func:`cast <aesara.sparse.basic.cast>` with ``bcast``, ``wcast``, ``icast``, ``lcast``,
       ``fcast``, ``dcast``, ``ccast``, and ``zcast``.
       The grad implemented is regular.
 
 - Transpose
-    - :func:`transpose <theano.sparse.basic.transpose>`.
+    - :func:`transpose <aesara.sparse.basic.transpose>`.
       The grad implemented is regular.
 
 - Basic Arithmetic
-    - :func:`neg <theano.sparse.basic.neg>`.
+    - :func:`neg <aesara.sparse.basic.neg>`.
       The grad implemented is regular.
-    - :func:`eq <theano.sparse.basic.eq>`.
-    - :func:`neq <theano.sparse.basic.neq>`.
-    - :func:`gt <theano.sparse.basic.gt>`.
-    - :func:`ge <theano.sparse.basic.ge>`.
-    - :func:`lt <theano.sparse.basic.lt>`.
-    - :func:`le <theano.sparse.basic.le>`.
-    - :func:`add <theano.sparse.basic.add>`.
+    - :func:`eq <aesara.sparse.basic.eq>`.
+    - :func:`neq <aesara.sparse.basic.neq>`.
+    - :func:`gt <aesara.sparse.basic.gt>`.
+    - :func:`ge <aesara.sparse.basic.ge>`.
+    - :func:`lt <aesara.sparse.basic.lt>`.
+    - :func:`le <aesara.sparse.basic.le>`.
+    - :func:`add <aesara.sparse.basic.add>`.
       The grad implemented is regular.
-    - :func:`sub <theano.sparse.basic.sub>`.
+    - :func:`sub <aesara.sparse.basic.sub>`.
       The grad implemented is regular.
-    - :func:`mul <theano.sparse.basic.mul>`.
+    - :func:`mul <aesara.sparse.basic.mul>`.
       The grad implemented is regular.
-    - :func:`col_scale <theano.sparse.basic.col_scale>` to multiply by a vector along the columns.
+    - :func:`col_scale <aesara.sparse.basic.col_scale>` to multiply by a vector along the columns.
       The grad implemented is structured.
-    - :func:`row_scale <theano.sparse.basic.row_scale>` to multiply by a vector along the rows.
+    - :func:`row_scale <aesara.sparse.basic.row_scale>` to multiply by a vector along the rows.
       The grad implemented is structured.
 
 - Monoid (Element-wise operation with only one sparse input).
@@ -207,13 +204,13 @@ List of Implemented Operations
     - ``sqrt``
 
 - Dot Product
-    - :func:`dot <theano.sparse.basic.dot>`.
+    - :func:`dot <aesara.sparse.basic.dot>`.
 
         - One of the inputs must be sparse, the other sparse or dense.
         - The grad implemented is regular.
         - No C code for perform and no C code for grad.
         - Returns a dense for perform and a dense for grad.
-    - :func:`structured_dot <theano.sparse.basic.structured_dot>`.
+    - :func:`structured_dot <aesara.sparse.basic.structured_dot>`.
 
         - The first input is sparse, the second can be sparse or dense.
         - The grad implemented is structured.
@@ -222,7 +219,7 @@ List of Implemented Operations
           dense one if one of the inputs is dense.
         - Returns a sparse grad for sparse inputs and dense grad for
           dense inputs.
-    - :func:`true_dot <theano.sparse.basic.true_dot>`.
+    - :func:`true_dot <aesara.sparse.basic.true_dot>`.
 
         - The first input is sparse, the second can be sparse or dense.
         - The grad implemented is regular.
@@ -232,18 +229,18 @@ List of Implemented Operations
           default a dense for dense inputs. The parameter
           ``grad_preserves_dense`` can be set to False to return a
           sparse grad for dense inputs.
-    - :func:`sampling_dot <theano.sparse.basic.sampling_dot>`.
+    - :func:`sampling_dot <aesara.sparse.basic.sampling_dot>`.
 
         - Both inputs must be dense.
         - The grad implemented is structured for `p`.
         - Sample of the dot and sample of the gradient.
         - C code for perform but not for grad.
         - Returns sparse for perform and grad.
-    - :func:`usmm <theano.sparse.basic.usmm>`.
+    - :func:`usmm <aesara.sparse.basic.usmm>`.
 
         - You *shouldn't* insert this op yourself!
            - There is an optimization that transform a
-             :func:`dot <theano.sparse.basic.dot>` to ``Usmm`` when possible.
+             :func:`dot <aesara.sparse.basic.dot>` to ``Usmm`` when possible.
 
         - This op is the equivalent of gemm for sparse dot.
         - There is no grad implemented for this op.
@@ -258,29 +255,29 @@ List of Implemented Operations
     - Sparse variables don't support [M, N:O] and [M:N, O] as we don't
       support sparse vectors and returning a sparse matrix would break
       the numpy interface.  Use [M:M+1, N:O] and [M:N, O:O+1] instead.
-    - :func:`diag <theano.sparse.basic.diag>`.
+    - :func:`diag <aesara.sparse.basic.diag>`.
       The grad implemented is regular.
 
 - Concatenation
-    - :func:`hstack <theano.sparse.basic.hstack>`.
+    - :func:`hstack <aesara.sparse.basic.hstack>`.
       The grad implemented is regular.
-    - :func:`vstack <theano.sparse.basic.vstack>`.
+    - :func:`vstack <aesara.sparse.basic.vstack>`.
       The grad implemented is regular.
 
 - Probability
     `There is no grad implemented for these operations.`
 
-    - :class:`Poisson <theano.sparse.basic.Poisson>` and ``poisson``
-    - :class:`Binomial <theano.sparse.basic.Binomial>` and ``csc_fbinomial``, ``csc_dbinomial``
+    - :class:`Poisson <aesara.sparse.basic.Poisson>` and ``poisson``
+    - :class:`Binomial <aesara.sparse.basic.Binomial>` and ``csc_fbinomial``, ``csc_dbinomial``
       ``csr_fbinomial``, ``csr_dbinomial``
-    - :class:`Multinomial <theano.sparse.basic.Multinomial>` and ``multinomial``
+    - :class:`Multinomial <aesara.sparse.basic.Multinomial>` and ``multinomial``
 
 - Internal Representation
     `They all have a regular grad implemented.`
 
-    - :func:`ensure_sorted_indices <theano.sparse.basic.ensure_sorted_indices>`.
-    - :func:`remove0 <theano.sparse.basic.remove0>`.
-    - :func:`clean <theano.sparse.basic.clean>` to resort indices and remove zeros
+    - :func:`ensure_sorted_indices <aesara.sparse.basic.ensure_sorted_indices>`.
+    - :func:`remove0 <aesara.sparse.basic.remove0>`.
+    - :func:`clean <aesara.sparse.basic.clean>` to resort indices and remove zeros
 
 - To help testing
     - :func:`tests.sparse.test_basic.sparse_random_inputs`
@@ -294,7 +291,7 @@ List of Implemented Operations
    :synopsis: Sparse Op
 .. moduleauthor:: LISA
 
-.. automodule:: theano.sparse.basic
+.. automodule:: aesara.sparse.basic
     :members:
 
-.. autofunction:: theano.sparse.sparse_grad
+.. autofunction:: aesara.sparse.sparse_grad

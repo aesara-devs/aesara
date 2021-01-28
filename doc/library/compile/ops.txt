@@ -2,5 +2,5 @@
 :mod:`ops` --  Some Common Ops and extra Ops stuff
 ==================================================
 
-.. automodule:: theano.compile.ops
+.. automodule:: aesara.compile.ops
     :members:

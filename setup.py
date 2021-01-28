@@ -9,14 +9,14 @@ def read_file(filename):
         return buff.read()
 
 
-NAME = "Theano-PyMC"
+NAME = "aesara"
 MAINTAINER = "PyMC developers"
 MAINTAINER_EMAIL = "pymc-devs@gmail.com"
 DESCRIPTION = (
     "Optimizing compiler for evaluating mathematical expressions on CPUs and GPUs."
 )
 LONG_DESCRIPTION = read_file("DESCRIPTION.txt")
-URL = "http://deeplearning.net/software/theano/"
+URL = "https://github.com/pymc-devs/aesara"
 LICENSE = "BSD"
 AUTHOR = "pymc-devs"
 AUTHOR_EMAIL = "pymc-devs@gmail.com"
@@ -72,17 +72,17 @@ if __name__ == "__main__":
                 "ChangeLog",
                 "c_code/*",
             ],
-            "theano.misc": ["*.sh"],
-            "theano.d3viz": ["html/*", "css/*", "js/*"],
+            "aesara.misc": ["*.sh"],
+            "aesara.d3viz": ["html/*", "css/*", "js/*"],
         },
         entry_points={
             "console_scripts": [
-                "theano-cache = bin.theano_cache:main",
+                "aesara-cache = bin.aesara_cache:main",
             ]
         },
         keywords=" ".join(
             [
-                "theano",
+                "aesara",
                 "math",
                 "numerical",
                 "symbolic",

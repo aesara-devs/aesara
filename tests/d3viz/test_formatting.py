@@ -1,8 +1,8 @@
 import numpy as np
 import pytest
 
-import theano as th
-from theano.d3viz.formatting import PyDotFormatter, pydot_imported, pydot_imported_msg
+import aesara as th
+from aesara.d3viz.formatting import PyDotFormatter, pydot_imported, pydot_imported_msg
 
 
 if not pydot_imported:

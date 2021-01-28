@@ -5,13 +5,13 @@ import numpy as np
 import scipy.stats as stats
 from pytest import fixture, importorskip, raises
 
-import theano.tensor as tt
-from theano.configdefaults import config
-from theano.graph.basic import Constant, Variable, graph_inputs
-from theano.graph.fg import FunctionGraph
-from theano.graph.op import get_test_value
-from theano.tensor.basic_opt import ShapeFeature
-from theano.tensor.random.basic import (
+import aesara.tensor as tt
+from aesara.configdefaults import config
+from aesara.graph.basic import Constant, Variable, graph_inputs
+from aesara.graph.fg import FunctionGraph
+from aesara.graph.op import get_test_value
+from aesara.tensor.basic_opt import ShapeFeature
+from aesara.tensor.random.basic import (
     bernoulli,
     beta,
     betabinom,
@@ -36,11 +36,11 @@ from theano.tensor.random.basic import (
     truncexpon,
     uniform,
 )
-from theano.tensor.type import iscalar, scalar, tensor
+from aesara.tensor.type import iscalar, scalar, tensor
 
 
 @fixture(scope="module", autouse=True)
-def set_theano_flags():
+def set_aesara_flags():
     with config.change_flags(cxx="", compute_test_value="raise"):
         yield
 
@@ -59,7 +59,7 @@ def rv_numpy_tester(rv, *params, **kwargs):
 
         test_fn = getattr(np.random, name)
 
-    theano_res = rv(*params, **kwargs)
+    aesara_res = rv(*params, **kwargs)
 
     param_vals = [get_test_value(p) if isinstance(p, Variable) else p for p in params]
     kwargs_vals = {
@@ -72,14 +72,14 @@ def rv_numpy_tester(rv, *params, **kwargs):
 
     numpy_res = np.asarray(test_fn(*param_vals, **kwargs_vals))
 
-    assert theano_res.type.numpy_dtype.kind == numpy_res.dtype.kind
+    assert aesara_res.type.numpy_dtype.kind == numpy_res.dtype.kind
 
     numpy_shape = np.shape(numpy_res)
     numpy_bcast = [s == 1 for s in numpy_shape]
-    np.testing.assert_array_equal(theano_res.type.broadcastable, numpy_bcast)
+    np.testing.assert_array_equal(aesara_res.type.broadcastable, numpy_bcast)
 
-    theano_res_val = theano_res.get_test_value()
-    np.testing.assert_array_equal(theano_res_val.shape, numpy_res.shape)
+    aesara_res_val = aesara_res.get_test_value()
+    np.testing.assert_array_equal(aesara_res_val.shape, numpy_res.shape)
 
 
 def test_uniform_samples():

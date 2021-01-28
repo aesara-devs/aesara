@@ -18,25 +18,22 @@ from numpy import (
 )
 from numpy.testing import assert_array_almost_equal
 
-import theano
-import theano.scalar as ts
-import theano.tensor as tt
-import theano.tensor.blas_scipy
-from tests import unittest_tools
-from tests import unittest_tools as utt
-from tests.tensor.utils import inplace_func, makeTester, rand
-from theano.compile.function import function
-from theano.compile.io import In
-from theano.compile.mode import Mode
-from theano.compile.sharedvalue import shared
-from theano.configdefaults import config
-from theano.gradient import grad
-from theano.graph.fg import FunctionGraph
-from theano.graph.opt import in2out
-from theano.misc.safe_asarray import _asarray
-from theano.tensor import inplace
-from theano.tensor.basic import as_tensor_variable
-from theano.tensor.blas import (
+import aesara
+import aesara.scalar as ts
+import aesara.tensor as tt
+import aesara.tensor.blas_scipy
+from aesara.compile.function import function
+from aesara.compile.io import In
+from aesara.compile.mode import Mode
+from aesara.compile.sharedvalue import shared
+from aesara.configdefaults import config
+from aesara.gradient import grad
+from aesara.graph.fg import FunctionGraph
+from aesara.graph.opt import in2out
+from aesara.misc.safe_asarray import _asarray
+from aesara.tensor import inplace
+from aesara.tensor.basic import as_tensor_variable
+from aesara.tensor.blas import (
     Dot22,
     Dot22Scalar,
     Gemm,
@@ -63,10 +60,10 @@ from theano.tensor.blas import (
     local_gemm_to_ger,
     res_is_a,
 )
-from theano.tensor.elemwise import DimShuffle
-from theano.tensor.math import Dot, dot, mean, mul, neg, outer, sqrt
-from theano.tensor.nnet import sigmoid
-from theano.tensor.type import (
+from aesara.tensor.elemwise import DimShuffle
+from aesara.tensor.math import Dot, dot, mean, mul, neg, outer, sqrt
+from aesara.tensor.nnet import sigmoid
+from aesara.tensor.type import (
     cmatrix,
     col,
     cscalar,
@@ -92,6 +89,9 @@ from theano.tensor.type import (
     zmatrix,
     zscalar,
 )
+from tests import unittest_tools
+from tests import unittest_tools as utt
+from tests.tensor.utils import inplace_func, makeTester, rand
 
 
 if config.mode == "FAST_COMPILE":
@@ -99,7 +99,7 @@ if config.mode == "FAST_COMPILE":
 else:
     mode_not_fast_compile = config.mode
 
-mode_blas_opt = theano.compile.get_default_mode().including(
+mode_blas_opt = aesara.compile.get_default_mode().including(
     "BlasOpt", "specialize", "InplaceBlasOpt"
 )
 mode_blas_opt = mode_blas_opt.excluding("c_blas")
@@ -168,7 +168,7 @@ class TestGemm:
             cmp_linker(copy(z), a, x, y, b, "py")
 
             if not dtype.startswith("complex") and config.cxx:
-                # If config.blas__ldflags is empty, Theano will use
+                # If config.blas__ldflags is empty, Aesara will use
                 # a NumPy C implementation of [sd]gemm_.
                 cmp_linker(copy(z), a, x, y, b, "c")
 
@@ -849,7 +849,7 @@ def test_upcasting_scalar_nogemm():
     f = function([w, v, t, alpha], rval)
     t = f.maker.fgraph.toposort()
     assert np.sum([isinstance(n.op, Gemm) for n in t]) == 0
-    # theano.printing.debugprint(f, print_type=True)
+    # aesara.printing.debugprint(f, print_type=True)
 
     v = fmatrix("v")
     w = fmatrix("w")
@@ -862,7 +862,7 @@ def test_upcasting_scalar_nogemm():
 
     t = f.maker.fgraph.toposort()
     assert np.sum([isinstance(n.op, Gemm) for n in t]) == 0
-    # theano.printing.debugprint(f, print_type=True)
+    # aesara.printing.debugprint(f, print_type=True)
 
 
 def test_gemm_nested():
@@ -984,13 +984,13 @@ def test_gemm_unrolled():
             cur_V = update_V(cur_H)
             cur_H = update_H(cur_V)
 
-        unrolled_theano = function(
-            [], updates=[(V, cur_V), (H, cur_H)], name="unrolled_theano"
+        unrolled_aesara = function(
+            [], updates=[(V, cur_V), (H, cur_H)], name="unrolled_aesara"
         )
         nb_dot = sum(
             [
                 1
-                for node in unrolled_theano.maker.fgraph.toposort()
+                for node in unrolled_aesara.maker.fgraph.toposort()
                 if isinstance(
                     node.op,
                     (
@@ -1005,7 +1005,7 @@ def test_gemm_unrolled():
         # So the final graph should have 1 + 2* num_rounds dot variant op.
         assert nb_dot == num_rounds * 2 + 1, nb_dot
 
-        unrolled_theano()
+        unrolled_aesara()
 
 
 def test_inplace0():
@@ -1037,7 +1037,7 @@ def test_inplace1():
     X, Y, Z, a, b = XYZab()
     # with > 2 terms in the overall addition
     f = inplace_func([X, Y, Z], [Z + Z + dot(X, Y)], mode="FAST_RUN")
-    # theano.printing.debugprint(f)
+    # aesara.printing.debugprint(f)
     # it doesn't work inplace because we didn't mark Z as mutable input
     assert [n.op for n in f.maker.fgraph.apply_nodes] == [gemm_no_inplace]
 
@@ -1074,9 +1074,9 @@ def test_dot22scalar():
     # including does not seem to work for 'local_dot_to_dot22' and
     # 'local_dot22_to_dot22scalar'
     # TODO: exclude other optimizations in BlasOpt?
-    # m = theano.compile.get_default_mode().including('local_dot_to_dot22',
+    # m = aesara.compile.get_default_mode().including('local_dot_to_dot22',
     #                           'local_dot22_to_dot22scalar','specialize')
-    # m = theano.compile.get_default_mode().including('BlasOpt', 'specialize')
+    # m = aesara.compile.get_default_mode().including('BlasOpt', 'specialize')
     rng = np.random.RandomState(unittest_tools.fetch_seed())
     for dtype1 in ["complex64", "complex128"]:
         a = matrix("a", dtype=dtype1)
@@ -1091,7 +1091,7 @@ def test_dot22scalar():
                     def check_dot22scalar(func, len_topo_scalar=-1):
                         topo = func.maker.fgraph.toposort()
                         ops = [x.op for x in topo]
-                        dtype4_upcast = theano.scalar.upcast(dtype4, dtype1, dtype2)
+                        dtype4_upcast = aesara.scalar.upcast(dtype4, dtype1, dtype2)
 
                         if dtype1 == dtype2 == dtype3 == dtype4_upcast:
                             if len_topo_scalar > 0:
@@ -1218,7 +1218,7 @@ def test_dot22scalar_cast():
 def test_local_dot22_to_dot22scalar():
     # This test that the bug in gh-1507 is really fixed
     A = dmatrix()
-    mode = theano.compile.mode.get_default_mode()
+    mode = aesara.compile.mode.get_default_mode()
     opt = in2out(local_dot22_to_dot22scalar)
     mode = mode.__class__(optimizer=opt)
 
@@ -1290,7 +1290,7 @@ class TestGemv(unittest_tools.OptimizationTestMixin):
         rng = np.random.RandomState(unittest_tools.fetch_seed())
         v = shared(np.array(rng.uniform(size=(2,)), dtype="float32"))
         w = shared(np.array(rng.uniform(size=(2,)), dtype="float32"))
-        f = function([], theano.tensor.dot(v, w), mode=mode_blas_opt)
+        f = function([], aesara.tensor.dot(v, w), mode=mode_blas_opt)
 
         # Assert that the dot was optimized somehow
         self.assertFunctionContains0(f, dot)
@@ -1304,7 +1304,7 @@ class TestGemv(unittest_tools.OptimizationTestMixin):
         rng = np.random.RandomState(unittest_tools.fetch_seed())
         v = shared(np.array(rng.uniform(size=(2,)), dtype="float32"))
         m = shared(np.array(rng.uniform(size=(2, 3)), dtype="float32"))
-        f = function([], theano.tensor.dot(v, m), mode=mode_blas_opt)
+        f = function([], aesara.tensor.dot(v, m), mode=mode_blas_opt)
 
         # Assert that the dot was optimized somehow
         self.assertFunctionContains0(f, dot)
@@ -1321,7 +1321,7 @@ class TestGemv(unittest_tools.OptimizationTestMixin):
         rng = np.random.RandomState(unittest_tools.fetch_seed())
         v = shared(np.array(rng.uniform(size=(2,)), dtype="float32"))
         m = shared(np.array(rng.uniform(size=(3, 2)), dtype="float32"))
-        f = function([], theano.tensor.dot(m, v), mode=mode_blas_opt)
+        f = function([], aesara.tensor.dot(m, v), mode=mode_blas_opt)
 
         # Assert that the dot was optimized somehow
         self.assertFunctionContains0(f, dot)
@@ -1342,7 +1342,7 @@ class TestGemv(unittest_tools.OptimizationTestMixin):
         v2 = shared(v2_orig)
         m = shared(np.array(rng.uniform(size=m_shp), dtype="float32"))
 
-        f = function([], v2 + theano.tensor.dot(m, v1), mode=mode_blas_opt)
+        f = function([], v2 + aesara.tensor.dot(m, v1), mode=mode_blas_opt)
 
         # Assert they produce the same output
         assert np.allclose(f(), np.dot(m.get_value(), v1.get_value()) + v2_orig)
@@ -1353,7 +1353,7 @@ class TestGemv(unittest_tools.OptimizationTestMixin):
 
         # test the inplace version
         g = function(
-            [], [], updates=[(v2, v2 + theano.tensor.dot(m, v1))], mode=mode_blas_opt
+            [], [], updates=[(v2, v2 + aesara.tensor.dot(m, v1))], mode=mode_blas_opt
         )
 
         # Assert they produce the same output
@@ -1391,7 +1391,7 @@ class TestGemv(unittest_tools.OptimizationTestMixin):
         v2 = shared(v2_orig)
         m = shared(np.array(rng.uniform(size=(2, 3)), dtype="float32"))
 
-        f = function([], v2 + theano.tensor.dot(v1, m), mode=mode_blas_opt)
+        f = function([], v2 + aesara.tensor.dot(v1, m), mode=mode_blas_opt)
 
         # Assert they produce the same output
         assert np.allclose(f(), np.dot(v1.get_value(), m.get_value()) + v2.get_value())
@@ -1401,7 +1401,7 @@ class TestGemv(unittest_tools.OptimizationTestMixin):
 
         # test the inplace version
         g = function(
-            [], [], updates=[(v2, v2 + theano.tensor.dot(v1, m))], mode=mode_blas_opt
+            [], [], updates=[(v2, v2 + aesara.tensor.dot(v1, m))], mode=mode_blas_opt
         )
 
         # Assert they produce the same output
@@ -1433,7 +1433,7 @@ class TestGemv(unittest_tools.OptimizationTestMixin):
             np.array(rng.uniform(size=(1, 2)), dtype="float32"),
             broadcastable=(True, False),
         )
-        o = theano.tensor.dot(m, v1)
+        o = aesara.tensor.dot(m, v1)
         f = function([], o + v2, mode=mode_blas_opt)
 
         # Assert they produce the same output
@@ -1480,7 +1480,7 @@ class TestGemv(unittest_tools.OptimizationTestMixin):
 # The following gemv tests were added in March 2011 by Ian Goodfellow
 # and are based on the gemv tests from scipy
 # http://projects.scipy.org/scipy/browser/trunk/scipy/linalg/tests/test_fblas.py?rev=6803
-# NOTE: At the time these tests were written, theano did not have a
+# NOTE: At the time these tests were written, aesara did not have a
 # conjugate function. If such a thing is ever added, the tests involving
 # conjugate should be ported over as well.
 
@@ -1699,7 +1699,7 @@ class BaseGemv:
         # done inplace on a temporarily allocated-buffer, which is
         # then scaled by alpha and to t with a fused elemwise.
         n_gemvs = 0
-        # theano.printing.debugprint(f, print_type=True)
+        # aesara.printing.debugprint(f, print_type=True)
         for node in f.maker.fgraph.toposort():
             if node.op == self.gemv_inplace:
                 n_gemvs += 1
@@ -1820,7 +1820,7 @@ class TestGer(unittest_tools.OptimizationTestMixin):
     shared = staticmethod(shared)
 
     def setup_method(self):
-        self.mode = theano.compile.get_default_mode().including("fast_run")
+        self.mode = aesara.compile.get_default_mode().including("fast_run")
         self.mode = self.mode.excluding("c_blas", "scipy_blas")
         dtype = self.dtype = "float64"  # optimization isn't dtype-dependent
         self.A = tensor(dtype=dtype, broadcastable=(False, False))
@@ -2020,7 +2020,7 @@ class TestGer(unittest_tools.OptimizationTestMixin):
 
 class TestBlasStrides:
     dtype = "float64"
-    mode = theano.compile.get_default_mode()
+    mode = aesara.compile.get_default_mode()
     mode = mode.including("fast_run").excluding("gpu", "c_blas", "scipy_blas")
     rng = np.random.RandomState(seed=unittest_tools.fetch_seed())
 
@@ -2046,7 +2046,7 @@ class TestBlasStrides:
 
         f_nn = function([], [], updates=[(a, dot(b, c))], mode=self.mode)
         # print 'class name:', self.__class__.__name__
-        # theano.printing.debugprint(f_nn)
+        # aesara.printing.debugprint(f_nn)
         f_nt = function([], [], updates=[(a, dot(b, c_t.T))], mode=self.mode)
         f_tn = function([], [], updates=[(a, dot(b_t.T, c))], mode=self.mode)
         f_tt = function([], [], updates=[(a, dot(b_t.T, c_t.T))], mode=self.mode)

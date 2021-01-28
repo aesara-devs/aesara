@@ -1,10 +1,10 @@
 import numpy as np
 import pytest
 
-import theano.tensor as tt
-from theano.graph.fg import FunctionGraph
-from theano.tensor.type import matrix
-from theano.tensor.utils import hash_from_ndarray, shape_of_variables
+import aesara.tensor as tt
+from aesara.graph.fg import FunctionGraph
+from aesara.tensor.type import matrix
+from aesara.tensor.utils import hash_from_ndarray, shape_of_variables
 
 
 def test_hash_from_ndarray():

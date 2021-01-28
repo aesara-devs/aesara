@@ -1,4 +1,4 @@
-..  ../../../../theano/sandbox/slinalg.py
+..  ../../../../aesara/sandbox/slinalg.py
 
 .. _libdoc_slinalg:
 
@@ -18,7 +18,7 @@
 API
 ===
 
-.. automodule:: theano.tensor.slinalg
+.. automodule:: aesara.tensor.slinalg
     :members:
     :exclude-members: solve, solve_lower_triangular, solve_upper_triangular
 

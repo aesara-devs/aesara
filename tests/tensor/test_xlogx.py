@@ -1,9 +1,9 @@
 import numpy.random
 
-import theano
+import aesara
+from aesara.tensor import as_tensor_variable
+from aesara.tensor.xlogx import xlogx, xlogy0
 from tests import unittest_tools as utt
-from theano.tensor import as_tensor_variable
-from theano.tensor.xlogx import xlogx, xlogy0
 
 
 class TestXlogX:
@@ -13,7 +13,7 @@ class TestXlogX:
     def test_basic(self):
         x = as_tensor_variable([1, 0])
         y = xlogx(x)
-        f = theano.function([], [y])
+        f = aesara.function([], [y])
         assert numpy.all(f() == numpy.asarray([0, 0.0]))
 
         # class Dummy(object):
@@ -32,5 +32,5 @@ class TestXlogY0:
         x = as_tensor_variable([1, 0])
         y = as_tensor_variable([1, 0])
         z = xlogy0(x, y)
-        f = theano.function([], z)
+        f = aesara.function([], z)
         assert numpy.all(f() == numpy.asarray([0, 0.0]))

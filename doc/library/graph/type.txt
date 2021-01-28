@@ -8,7 +8,7 @@
 Reference
 ---------
 
-.. automodule:: theano.graph.type
+.. automodule:: aesara.graph.type
    :platform: Unix, Windows
    :synopsis: Interface for types of symbolic variables
    :members:

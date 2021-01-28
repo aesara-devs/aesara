@@ -4,15 +4,15 @@ from itertools import product
 import numpy as np
 import pytest
 
-import theano
-import theano.tensor.math as tm
+import aesara
+import aesara.tensor.math as tm
+from aesara.gpuarray.extra_ops import GpuCumOp
+from aesara.gpuarray.type import get_context
+from aesara.tensor.extra_ops import CumOp
+from aesara.tensor.type import fmatrix, ftensor3, ftensor4, fvector, tensor3
 from tests import unittest_tools as utt
 from tests.gpuarray.config import mode_with_gpu, test_ctx_name
 from tests.tensor.test_extra_ops import TestCumOp
-from theano.gpuarray.extra_ops import GpuCumOp
-from theano.gpuarray.type import get_context
-from theano.tensor.extra_ops import CumOp
-from theano.tensor.type import fmatrix, ftensor3, ftensor4, fvector, tensor3
 
 
 class TestGpuCumOp(TestCumOp):
@@ -39,14 +39,14 @@ class TestGpuCumOp(TestCumOp):
         tm.float32_rtol = self.old_rtol
 
     @pytest.mark.skipif(
-        theano.config.floatX != "float32",
-        reason=f"Gpucumop not implemented for dtype {theano.config.floatX}",
+        aesara.config.floatX != "float32",
+        reason=f"Gpucumop not implemented for dtype {aesara.config.floatX}",
     )
     @pytest.mark.parametrized("mode", ["mul", "add"])
     def test_infer_shape(self, mode):
         op_class = partial(self.op_class, mode=mode)
         x = tensor3("x")
-        a = np.random.random((3, 5, 2)).astype(theano.config.floatX)
+        a = np.random.random((3, 5, 2)).astype(aesara.config.floatX)
 
         for axis in range(-len(a.shape), len(a.shape)):
             self._compile_and_check([x], [op_class(axis=axis)(x)], [a], GpuCumOp)
@@ -59,7 +59,7 @@ class TestGpuCumOp(TestCumOp):
 
         for axis in [0, None, -1]:
             a = np.random.random((42,)).astype("float32")
-            cumop_function = theano.function(
+            cumop_function = aesara.function(
                 [x], op_class(axis=axis)(x), mode=self.mode
             )
 
@@ -71,7 +71,7 @@ class TestGpuCumOp(TestCumOp):
 
             # Cartesian product of all slicings to test.
             for slicing in product(slicings, repeat=x.ndim):
-                f = theano.function(
+                f = aesara.function(
                     [x], op_class(axis=axis)(x[slicing]), mode=self.mode
                 )
                 assert [
@@ -90,7 +90,7 @@ class TestGpuCumOp(TestCumOp):
 
         for axis in [0, 1, None, -1, -2]:
             a = np.random.random((42, 30)).astype("float32")
-            cumop_function = theano.function(
+            cumop_function = aesara.function(
                 [x], op_class(axis=axis)(x), mode=self.mode
             )
 
@@ -102,7 +102,7 @@ class TestGpuCumOp(TestCumOp):
 
             # Cartesian product of all slicings to test.
             for slicing in product(slicings, repeat=x.ndim):
-                f = theano.function(
+                f = aesara.function(
                     [x], op_class(axis=axis)(x[slicing]), mode=self.mode
                 )
                 assert [
@@ -121,7 +121,7 @@ class TestGpuCumOp(TestCumOp):
 
         for axis in [0, 1, 2, None, -1, -2, -3]:
             a = np.random.random((42, 30, 25)).astype("float32")
-            cumop_function = theano.function(
+            cumop_function = aesara.function(
                 [x], op_class(axis=axis)(x), mode=self.mode
             )
 
@@ -133,7 +133,7 @@ class TestGpuCumOp(TestCumOp):
 
             # Cartesian product of all slicings to test.
             for slicing in product(slicings, repeat=x.ndim):
-                f = theano.function(
+                f = aesara.function(
                     [x], op_class(axis=axis)(x[slicing]), mode=self.mode
                 )
                 assert [
@@ -151,7 +151,7 @@ class TestGpuCumOp(TestCumOp):
         block_max_size = self.max_threads_dim0 * 2
 
         x = fvector("x")
-        f = theano.function([x], op_class(axis=0)(x), mode=self.mode)
+        f = aesara.function([x], op_class(axis=0)(x), mode=self.mode)
         assert [n for n in f.maker.fgraph.toposort() if isinstance(n.op, GpuCumOp)]
 
         # Extensive testing for the first 1025 sizes
@@ -175,7 +175,7 @@ class TestGpuCumOp(TestCumOp):
 
         x = fmatrix("x")
         for shape_axis, axis in zip([0, 1, 0, 1, 0], [0, 1, None, -1, -2]):
-            f = theano.function([x], op_class(axis=axis)(x), mode=self.mode)
+            f = aesara.function([x], op_class(axis=axis)(x), mode=self.mode)
             assert [n for n in f.maker.fgraph.toposort() if isinstance(n.op, GpuCumOp)]
 
             # Extensive testing for the first 1025 sizes
@@ -216,7 +216,7 @@ class TestGpuCumOp(TestCumOp):
 
         x = ftensor3("x")
         for shape_axis, axis in zip([0, 1, 2, 0, 2, 1, 0], [0, 1, 2, None, -1, -2, -3]):
-            f = theano.function([x], op_class(axis=axis)(x), mode=self.mode)
+            f = aesara.function([x], op_class(axis=axis)(x), mode=self.mode)
             assert [n for n in f.maker.fgraph.toposort() if isinstance(n.op, GpuCumOp)]
 
             # Extensive testing for the first 1025 sizes
@@ -265,5 +265,5 @@ class TestGpuCumOp(TestCumOp):
         op_class = partial(self.op_class, mode=mode)
         # Should not use the GPU version.
         x = ftensor4("x")
-        f = theano.function([x], op_class(axis=1)(x), mode=self.mode)
+        f = aesara.function([x], op_class(axis=1)(x), mode=self.mode)
         assert [n for n in f.maker.fgraph.toposort() if isinstance(n.op, CumOp)]

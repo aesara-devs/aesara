@@ -1,8 +1,8 @@
 import pytest
 
-import theano
-from theano.tensor.type import vector
-from theano.updates import OrderedUpdates
+import aesara
+from aesara.tensor.type import vector
+from aesara.updates import OrderedUpdates
 
 
 class TestIfelse:
@@ -10,7 +10,7 @@ class TestIfelse:
         with pytest.raises(TypeError):
             OrderedUpdates(dict(d=3))
 
-        sv = theano.shared("asdf")
+        sv = aesara.shared("asdf")
         OrderedUpdates({sv: 3})
 
     def test_updates_setitem(self):
@@ -23,15 +23,15 @@ class TestIfelse:
         with pytest.raises(TypeError):
             up.__setitem__(vector(), 7)
 
-        up[theano.shared(88)] = 7
+        up[aesara.shared(88)] = 7
 
     def test_updates_add(self):
 
         up1 = OrderedUpdates()
         up2 = OrderedUpdates()
 
-        a = theano.shared("a")
-        b = theano.shared("b")
+        a = aesara.shared("a")
+        b = aesara.shared("b")
 
         assert not up1 + up2
 

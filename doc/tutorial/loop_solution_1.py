@@ -1,16 +1,16 @@
 #!/usr/bin/env python
-# Theano tutorial
+# Aesara tutorial
 # Solution to Exercise in section 'Loop'
 
 import numpy as np
 
-import theano
-import theano.tensor as tt
+import aesara
+import aesara.tensor as tt
 
 
 # 1. First example
 
-theano.config.warn__subtensor_merge_bug = False
+aesara.config.warn__subtensor_merge_bug = False
 
 k = tt.iscalar("k")
 A = tt.vector("A")
@@ -20,7 +20,7 @@ def inner_fct(prior_result, A):
     return prior_result * A
 
 # Symbolic description of the result
-result, updates = theano.scan(fn=inner_fct,
+result, updates = aesara.scan(fn=inner_fct,
                               outputs_info=tt.ones_like(A),
                               non_sequences=A, n_steps=k)
 
@@ -28,7 +28,7 @@ result, updates = theano.scan(fn=inner_fct,
 # value. Scan notices this and does not waste memory saving them.
 final_result = result[-1]
 
-power = theano.function(inputs=[A, k], outputs=final_result,
+power = aesara.function(inputs=[A, k], outputs=final_result,
                         updates=updates)
 
 print(power(list(range(10)), 2))
@@ -43,13 +43,13 @@ max_coefficients_supported = 10000
 
 # Generate the components of the polynomial
 full_range = tt.arange(max_coefficients_supported)
-components, updates = theano.scan(fn=lambda coeff, power, free_var:
+components, updates = aesara.scan(fn=lambda coeff, power, free_var:
                                   coeff * (free_var ** power),
                                   sequences=[coefficients, full_range],
                                   outputs_info=None,
                                   non_sequences=x)
 polynomial = components.sum()
-calculate_polynomial1 = theano.function(inputs=[coefficients, x],
+calculate_polynomial1 = aesara.function(inputs=[coefficients, x],
                                         outputs=polynomial)
 
 test_coeff = np.asarray([1, 0, 2], dtype=np.float32)
@@ -58,7 +58,7 @@ print(calculate_polynomial1(test_coeff, 3))
 
 # 3. Reduction performed inside scan
 
-theano.config.warn__subtensor_merge_bug = False
+aesara.config.warn__subtensor_merge_bug = False
 
 coefficients = tt.vector("coefficients")
 x = tt.scalar("x")
@@ -70,14 +70,14 @@ full_range = tt.arange(max_coefficients_supported)
 
 outputs_info = tt.as_tensor_variable(np.asarray(0, 'float64'))
 
-components, updates = theano.scan(fn=lambda coeff, power, prior_value, free_var:
+components, updates = aesara.scan(fn=lambda coeff, power, prior_value, free_var:
                                   prior_value + (coeff * (free_var ** power)),
                                   sequences=[coefficients, full_range],
                                   outputs_info=outputs_info,
                                   non_sequences=x)
 
 polynomial = components[-1]
-calculate_polynomial = theano.function(inputs=[coefficients, x],
+calculate_polynomial = aesara.function(inputs=[coefficients, x],
                                        outputs=polynomial, updates=updates)
 
 test_coeff = np.asarray([1, 0, 2], dtype=np.float32)

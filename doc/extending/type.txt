@@ -1,4 +1,4 @@
-.. _theano_type:
+.. _aesara_type:
 
 ======================
 Making the double type
@@ -10,7 +10,7 @@ Making the double type
 Type's contract
 ===============
 
-In Theano's framework, a ``Type`` (:class:`Type`)
+In Aesara's framework, a ``Type`` (:class:`Type`)
 is any object which defines the following
 methods. To obtain the default methods described below, the Type should
 be an instance of ``Type`` or should be an instance of a
@@ -39,7 +39,7 @@ default values.
         type-dependent, you may decide what your own type does by default)
 
       We need to define ``filter`` with three arguments. The second argument
-      must be called ``strict`` (Theano often calls it by keyword) and must
+      must be called ``strict`` (Aesara often calls it by keyword) and must
       have a default value of ``False``. The third argument must be called
       ``allow_downcast`` and must have a default value of ``None``.
 
@@ -154,7 +154,7 @@ default values.
         objects `a` and `b` could share memory. Return False
         otherwise. It is used to debug when Ops did not declare memory
         aliasing between variables. Can be a static method.
-        It is highly recommended to use and is mandatory for Type in Theano
+        It is highly recommended to use and is mandatory for Type in Aesara
         as our buildbot runs in DebugMode.
 
 For each method, the *default* is what ``Type`` defines
@@ -171,14 +171,14 @@ Additional definitions
 ----------------------
 
 For certain mechanisms, you can register functions and other such
-things to plus your type into theano's mechanisms.  These are optional
+things to plus your type into aesara's mechanisms.  These are optional
 but will allow people to use you type with familiar interfaces.
 
 `transfer()`
 ~~~~~~~~~~~~
 
 To plug in additional options for the transfer target, define a
-function which takes a theano variable and a target argument and
+function which takes an Aesara variable and a target argument and
 returns eitehr a new transferred variable (which can be the same as
 the input if no transfer is nessecary) or returns None if the transfer
 can't be done.
@@ -252,7 +252,7 @@ chose to be 1e-4.
 
 .. note::
 
-    ``values_eq`` is never actually used by Theano, but it might be used
+    ``values_eq`` is never actually used by Aesara, but it might be used
     internally in the future. Equality testing in
     :ref:`DebugMode <debugmode>` is done using ``values_eq_approx``.
 
@@ -265,7 +265,7 @@ the Type is to instantiate a plain Type and set the needed fields:
 
 .. testcode::
 
-   from theano.graph.type import Type
+   from aesara.graph.type import Type
 
    double = Type()
    double.filter = filter
@@ -277,7 +277,7 @@ and define ``filter`` and ``values_eq_approx`` in the subclass:
 
 .. code-block:: python
 
-   from theano.graph.type import Type
+   from aesara.graph.type import Type
 
    class Double(Type):
 
@@ -300,7 +300,7 @@ instances of ``Double`` are technically the same Type. However, different
 
 .. testsetup::
 
-   from theano.graph.type import Type
+   from aesara.graph.type import Type
 
    class Double(Type):
 
@@ -335,7 +335,7 @@ instances of ``Double`` are technically the same Type. However, different
 >>> double1 == double2
 False
 
-Theano compares Types using ``==`` to see if they are the same.
+Aesara compares Types using ``==`` to see if they are the same.
 This happens in DebugMode.  Also, Ops can (and should) ensure that their inputs
 have the expected Type by checking something like ``if x.type == lvector``.
 
@@ -353,7 +353,7 @@ There are several ways to make sure that equality testing works properly:
  #. Hide the Double class and only advertise a single instance of it.
 
 Here we will prefer the final option, because it is the simplest.
-Ops in the Theano code often define the ``__eq__`` method though.
+Ops in the Aesara code often define the ``__eq__`` method though.
 
 
 Untangling some concepts
@@ -387,7 +387,7 @@ attempt to clear up the confusion:
   does not represent anything that one of its instances does not. In this
   case it is a singleton, a set with one element. However, the
   :class:`TensorType`
-  class in Theano (which is a subclass of Type)
+  class in Aesara (which is a subclass of Type)
   represents a set of types of tensors
   parametrized by their data type or number of dimensions. We could say
   that subclassing Type builds a hierarchy of Types which is based upon
@@ -399,7 +399,7 @@ Final version
 
 .. testcode::
 
-   from theano.graph.type import Type
+   from aesara.graph.type import Type
 
    class Double(Type):
 

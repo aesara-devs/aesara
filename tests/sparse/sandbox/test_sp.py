@@ -8,10 +8,10 @@ pytest.importorskip("scipy", minversion="0.7.0")
 import numpy as np
 from scipy.signal import convolve2d
 
+from aesara import function
+from aesara.sparse.sandbox import sp
+from aesara.tensor.type import dmatrix, dvector
 from tests import unittest_tools as utt
-from theano import function
-from theano.sparse.sandbox import sp
-from theano.tensor.type import dmatrix, dvector
 
 
 class TestSP:
@@ -89,7 +89,7 @@ class TestSP:
                     assert (temp < 1e-5).all()
 
                     # test downward propagation -- symbolic stuff
-                    # vis = theano.gradient.grad(output, input, output)
+                    # vis = aesara.gradient.grad(output, input, output)
                     # downprop = function([kerns,input], vis, mode=mode)
                     # visval = downprop(filters,img1d)
                     # test downward propagation -- reference implementation
@@ -117,7 +117,7 @@ class TestSP:
 
     #            print '**** Convolution Profiling Results (',mode,') ****'
     #            print 'Numpy processing time: ', ntot
-    #            print 'Theano processing time: ', ttot
+    #            print 'Aesara processing time: ', ttot
 
     # this doesn't compare the output of anything... but I manually verified that the patches
     # are properly generated

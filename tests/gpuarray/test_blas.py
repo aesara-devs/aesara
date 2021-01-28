@@ -2,14 +2,10 @@ import itertools
 
 import numpy as np
 
-import theano
-from tests import unittest_tools as utt
-from tests.gpuarray.config import mode_with_gpu, test_ctx_name
-from tests.gpuarray.test_basic_ops import makeTester, rand
-from tests.tensor.test_blas import BaseGemv, TestGer
-from theano.configdefaults import config
-from theano.gpuarray import gpuarray_shared_constructor
-from theano.gpuarray.blas import (
+import aesara
+from aesara.configdefaults import config
+from aesara.gpuarray import gpuarray_shared_constructor
+from aesara.gpuarray.blas import (
     GpuGemm,
     GpuGer,
     gpu_dot22,
@@ -21,7 +17,7 @@ from theano.gpuarray.blas import (
     gpuger_inplace,
     gpuger_no_inplace,
 )
-from theano.tensor.blas import (
+from aesara.tensor.blas import (
     BatchedDot,
     _dot22,
     batched_dot,
@@ -29,8 +25,12 @@ from theano.tensor.blas import (
     gemv,
     gemv_inplace,
 )
-from theano.tensor.math import dot
-from theano.tensor.type import matrix, tensor, tensor3, vector
+from aesara.tensor.math import dot
+from aesara.tensor.type import matrix, tensor, tensor3, vector
+from tests import unittest_tools as utt
+from tests.gpuarray.config import mode_with_gpu, test_ctx_name
+from tests.gpuarray.test_basic_ops import makeTester, rand
+from tests.tensor.test_blas import BaseGemv, TestGer
 
 
 TestGpuGemv = makeTester(
@@ -76,7 +76,7 @@ def test_float16():
         gpuarray_shared_constructor(val, target=test_ctx_name) for val in float16_data
     ]
     o = gemv(*float16_shared)
-    f = theano.function([], o, mode=mode_with_gpu)
+    f = aesara.function([], o, mode=mode_with_gpu)
     y, alpha, A, x, beta = float16_data
     out = f()
     utt.assert_allclose(np.asarray(out), alpha * np.dot(A, x) + beta * y)
@@ -95,7 +95,7 @@ def test_float16():
         gpuarray_shared_constructor(val, target=test_ctx_name) for val in float16_data
     ]
     o = gpugemm_no_inplace(*float16_shared)
-    f = theano.function([], o)
+    f = aesara.function([], o)
     y, alpha, A, x, beta = float16_data
     out = f()
     utt.assert_allclose(np.asarray(out), alpha * np.dot(A, x) + beta * y)
@@ -105,7 +105,7 @@ def test_float16():
 
     float16_shared = [gpuarray_shared_constructor(val) for val in float16_data]
     o = gpu_dot22(*float16_shared)
-    f = theano.function([], o)
+    f = aesara.function([], o)
     x, y = float16_data
     out = f()
     utt.assert_allclose(np.asarray(out), np.dot(x, y))
@@ -123,7 +123,7 @@ class TestGpuSgemv(BaseGemv, utt.OptimizationTestMixin):
         try:
             return gpuarray_shared_constructor(val)
         except TypeError:
-            return theano.shared(val)
+            return aesara.shared(val)
 
 
 TestGpuGemm = makeTester(
@@ -205,7 +205,7 @@ class TestGpuGemmBatchStrided:
         x = tensor3()
         y = tensor3()
         z = batched_dot(x, y[:, 0, :, np.newaxis])
-        f = theano.function([x, y], z, mode=mode_with_gpu)
+        f = aesara.function([x, y], z, mode=mode_with_gpu)
         x_num = np.arange(32 * 19 * 600, dtype=config.floatX).reshape((32, 19, 600))
         y_num = np.arange(7 * 32 * 600, dtype=config.floatX).reshape((32, 7, 600))
         f(x_num, y_num)
@@ -261,12 +261,12 @@ TestGpuDot22 = makeTester(
 def test_gemv_zeros():
     W = matrix()
     v = vector()
-    f = theano.function([W, v], W.dot(v), mode=mode_with_gpu)
+    f = aesara.function([W, v], W.dot(v), mode=mode_with_gpu)
 
     # Apply to an empty matrix shape (5,0) and an empty vector shape (0,)
     dim = 1000
-    A = np.zeros((dim, 0), dtype=theano.config.floatX)
-    b = np.zeros((0,), dtype=theano.config.floatX)
+    A = np.zeros((dim, 0), dtype=aesara.config.floatX)
+    b = np.zeros((0,), dtype=aesara.config.floatX)
     tmp = f(A, b)
     assert np.allclose(tmp, np.zeros((dim,)))
 
@@ -277,6 +277,6 @@ def test_gemv_dot_strides():
     yv = rand(5, 1)
     x = gpuarray_shared_constructor(xv)
     y = gpuarray_shared_constructor(yv, broadcastable=(False, True))
-    f = theano.function([], dot(x, y[::-1]), mode=mode_with_gpu)
+    f = aesara.function([], dot(x, y[::-1]), mode=mode_with_gpu)
     out = f()
     utt.assert_allclose(out, np.dot(xv, yv[::-1]))

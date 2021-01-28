@@ -1,19 +1,19 @@
 import numpy as np
 
+import aesara
+import aesara.tensor as tt
 import tests.unittest_tools as utt
-import theano
-import theano.tensor as tt
-from tests.gpuarray.config import mode_with_gpu, mode_without_gpu
-from theano.gpuarray.nnet import (
+from aesara.gpuarray.nnet import (
     GpuCrossentropySoftmax1HotWithBiasDx,
     GpuCrossentropySoftmaxArgmax1HotWithBias,
     GpuSoftmax,
     GpuSoftmaxWithBias,
 )
-from theano.gradient import grad
-from theano.tensor.math import argmax, log, mean
-from theano.tensor.nnet import crossentropy_softmax_1hot_with_bias_dx
-from theano.tensor.type import fmatrix, fvector, lvector, matrix, vector
+from aesara.gradient import grad
+from aesara.tensor.math import argmax, log, mean
+from aesara.tensor.nnet import crossentropy_softmax_1hot_with_bias_dx
+from aesara.tensor.type import fmatrix, fvector, lvector, matrix, vector
+from tests.gpuarray.config import mode_with_gpu, mode_without_gpu
 
 
 mode_wo_cudnn = mode_with_gpu.excluding("cudnn")
@@ -27,7 +27,7 @@ def test_GpuCrossentropySoftmaxArgmax1HotWithBias():
     batch_size = 4097
     n_out = 1250
 
-    if not isinstance(mode_with_gpu, theano.compile.debugmode.DebugMode):
+    if not isinstance(mode_with_gpu, aesara.compile.debugmode.DebugMode):
         n_in = 4098
         n_out = 4099
 
@@ -52,21 +52,21 @@ def test_GpuCrossentropySoftmaxArgmax1HotWithBias():
 
     dot_value = np.asarray(np.dot(xx, W_values), dtype="float32")
     del W_values
-    p_y_given_x = theano.tensor.nnet.softmax(dot_result + b)
+    p_y_given_x = aesara.tensor.nnet.softmax(dot_result + b)
     y_pred = argmax(p_y_given_x, axis=-1)
     loss = -mean(log(p_y_given_x)[tt.arange(y.shape[0]), y])
     dW = grad(loss, dot_result)
-    classify = theano.function(
+    classify = aesara.function(
         inputs=[y, b, dot_result], outputs=[loss, y_pred, dW], mode=mode_without_gpu
     )
-    classify_gpu = theano.function(
+    classify_gpu = aesara.function(
         inputs=[y, b, dot_result], outputs=[loss, y_pred, dW], mode=mode_with_gpu
     )
 
     assert any(
         [
             isinstance(
-                node.op, theano.tensor.nnet.CrossentropySoftmaxArgmax1HotWithBias
+                node.op, aesara.tensor.nnet.CrossentropySoftmaxArgmax1HotWithBias
             )
             for node in classify.maker.fgraph.toposort()
         ]
@@ -94,7 +94,7 @@ def test_GpuCrossentropySoftmax1HotWithBiasDx():
     batch_size = 4097
     n_out = 1250
 
-    if not isinstance(mode_with_gpu, theano.compile.debugmode.DebugMode):
+    if not isinstance(mode_with_gpu, aesara.compile.debugmode.DebugMode):
         n_out = 4099
 
     # Seed numpy.random with config.unittests__rseed
@@ -108,14 +108,14 @@ def test_GpuCrossentropySoftmax1HotWithBiasDx():
     softmax_output /= softmax_output.sum(axis=1).reshape(softmax_output.shape[1], 1)
     op = crossentropy_softmax_1hot_with_bias_dx(dnll_value, softmax_output, y_idx_value)
 
-    cpu_f = theano.function([softmax_output], op, mode=mode_without_gpu)
-    gpu_f = theano.function([softmax_output], op, mode=mode_with_gpu)
-    # theano.printing.debugprint(cpu_f)
-    # theano.printing.debugprint(gpu_f)
+    cpu_f = aesara.function([softmax_output], op, mode=mode_without_gpu)
+    gpu_f = aesara.function([softmax_output], op, mode=mode_with_gpu)
+    # aesara.printing.debugprint(cpu_f)
+    # aesara.printing.debugprint(gpu_f)
 
     assert any(
         [
-            isinstance(node.op, theano.tensor.nnet.CrossentropySoftmax1HotWithBiasDx)
+            isinstance(node.op, aesara.tensor.nnet.CrossentropySoftmax1HotWithBiasDx)
             for node in cpu_f.maker.fgraph.toposort()
         ]
     )
@@ -161,11 +161,11 @@ def softmax_with_bias_unittest_template(dtypeInput, dtypeBias):
     x = matrix("x", dtype=dtypeInput)
     b = vector("b", dtype=dtypeBias)
 
-    z = theano.tensor.nnet.softmax_with_bias(x, b)
+    z = aesara.tensor.nnet.softmax_with_bias(x, b)
 
-    f = theano.function([x, b], z, mode=mode_without_gpu)
-    f_gpu = theano.function([x, b], z, mode=mode_with_gpu)
-    assert f.maker.fgraph.toposort()[-1].op == theano.tensor.nnet.softmax_with_bias
+    f = aesara.function([x, b], z, mode=mode_without_gpu)
+    f_gpu = aesara.function([x, b], z, mode=mode_with_gpu)
+    assert f.maker.fgraph.toposort()[-1].op == aesara.tensor.nnet.softmax_with_bias
     assert isinstance(f_gpu.maker.fgraph.toposort()[-2].op, GpuSoftmaxWithBias)
 
     def cmp(n, m):
@@ -213,10 +213,10 @@ def softmax_unittest_template(dtypeInput):
 
     x = matrix("x", dtype=dtypeInput)
 
-    z = theano.tensor.nnet.softmax(x)
-    f = theano.function([x], z, mode=mode_without_gpu)
-    f_gpu = theano.function([x], z, mode=mode_wo_cudnn)
-    assert f.maker.fgraph.toposort()[-1].op == theano.tensor.nnet.softmax_op
+    z = aesara.tensor.nnet.softmax(x)
+    f = aesara.function([x], z, mode=mode_without_gpu)
+    f_gpu = aesara.function([x], z, mode=mode_wo_cudnn)
+    assert f.maker.fgraph.toposort()[-1].op == aesara.tensor.nnet.softmax_op
     assert isinstance(f_gpu.maker.fgraph.toposort()[-2].op, GpuSoftmax)
 
     def cmp(n, m):
@@ -256,9 +256,9 @@ class TestSoftMax:
         f_z_out = f_z(x)
         f_gpu_z_out = f_gpu_z(x_gpu)
 
-        f = theano.function([x], f_z_out, mode=mode_without_gpu)
-        f_gpu = theano.function([x_gpu], f_gpu_z_out, mode=self.mode)
-        self._check_types(f, f_gpu, theano.tensor.nnet.Softmax, self.gpu_op)
+        f = aesara.function([x], f_z_out, mode=mode_without_gpu)
+        f_gpu = aesara.function([x_gpu], f_gpu_z_out, mode=self.mode)
+        self._check_types(f, f_gpu, aesara.tensor.nnet.Softmax, self.gpu_op)
 
         # we need to test n>32*1024 to check that we make the block loop.
         cmp(1, 5, f, f_gpu)
@@ -306,7 +306,7 @@ class TestSoftMax:
 
     def test_softmax(self):
         x = fmatrix("x")
-        z = theano.tensor.nnet.softmax_op
+        z = aesara.tensor.nnet.softmax_op
 
         f, f_gpu = self._test_softmax(x, x, z, z, self._cmp)
 
@@ -314,8 +314,8 @@ class TestSoftMax:
 
     def test_softmax_shape_0(self):
         x = fmatrix("x")
-        z = theano.tensor.nnet.softmax_op
+        z = aesara.tensor.nnet.softmax_op
 
         f, f_gpu = self._test_softmax(x, x, z, z, self._cmp)
-        # Theano can handle that case, but cudnn can't
+        # Aesara can handle that case, but cudnn can't
         self._cmp(0, 10, f, f_gpu)

@@ -1,6 +1,6 @@
 """
   Different tests that are not connected to any particular Op, or
-  functionality of Theano. Here will go for example code that we will
+  functionality of Aesara. Here will go for example code that we will
   publish in papers, that we should ensure that it will remain
   operational
 
@@ -8,11 +8,11 @@
 import numpy as np
 import numpy.random
 
+from aesara import config, function, shared
+from aesara.gradient import grad
+from aesara.tensor.math import dot, exp, log
+from aesara.tensor.type import matrix, vector
 from tests import unittest_tools as utt
-from theano import config, function, shared
-from theano.gradient import grad
-from theano.tensor.math import dot, exp, log
-from theano.tensor.type import matrix, vector
 
 
 class TestScipy:
@@ -35,7 +35,7 @@ class TestScipy:
         w = shared(rng.randn(100))
         b = shared(np.zeros(()))
 
-        # Construct Theano expression graph
+        # Construct Aesara expression graph
         p_1 = 1 / (1 + exp(-dot(x, w) - b))
         xent = -y * log(p_1) - (1 - y) * log(1 - p_1)
         prediction = p_1 > 0.5

@@ -1,0 +1,3 @@
+#!/usr/bin/env python
+import aesara_cache
+aesara_cache.main()

@@ -4,9 +4,9 @@ import sys
 import numpy as np
 import pytest
 
-from theano import shared
-from theano.compile.ops import ViewOp
-from theano.tensor.random.type import RandomStateType, random_state_type
+from aesara import shared
+from aesara.compile.ops import ViewOp
+from aesara.tensor.random.type import RandomStateType, random_state_type
 
 
 # @pytest.mark.skipif(
@@ -15,8 +15,8 @@ from theano.tensor.random.type import RandomStateType, random_state_type
 def test_view_op_c_code():
     # TODO: It might be good to make sure that the registered C code works
     # (even though it's basically copy-paste from other registered `Op`s).
-    # from theano.compile.ops import view_op
-    # from theano.link.c.basic import CLinker
+    # from aesara.compile.ops import view_op
+    # from aesara.link.c.basic import CLinker
     # rng_var = random_state_type()
     # rng_view = view_op(rng_var)
     # function(

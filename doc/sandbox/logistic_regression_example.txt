@@ -36,7 +36,7 @@ BUT, YOU GOTTA RUN THIS CODE AND MAKE SURE IT STILL WORKS NICELY, HEY?
         #
         # GET THE GRADIENTS NECESSARY TO FIT OUR PARAMETERS
 
-        update_fn = theano.function(
+        update_fn = aesara.function(
             inputs = [x, y, stepsize,
                 In(w,
                     name='w',
@@ -54,7 +54,7 @@ BUT, YOU GOTTA RUN THIS CODE AND MAKE SURE IT STILL WORKS NICELY, HEY?
             outputs = cost,
             mode = 'EXPENSIVE_OPTIMIZATIONS')
 
-        apply_fn = theano.function(
+        apply_fn = aesara.function(
             inputs = [x, In(w, value=update_fn.storage[w]), In(b, value=update_fn.storage[b])],
             outputs = [prediction])
 

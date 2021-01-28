@@ -9,29 +9,29 @@ Configuration Settings and Compiling Modes
 Configuration
 =============
 
-The ``config`` module contains several *attributes* that modify Theano's behavior.  Many of these
-attributes are examined during the import of the ``theano`` module and several are assumed to be
+The ``config`` module contains several *attributes* that modify Aesara's behavior.  Many of these
+attributes are examined during the import of the ``aesara`` module and several are assumed to be
 read-only.
 
 *As a rule, the attributes in the* ``config`` *module should not be modified inside the user code.*
 
-Theano's code comes with default values for these attributes, but you can
-override them from your ``.theanorc`` file, and override those values in turn by
-the :envvar:`THEANO_FLAGS` environment variable.
+Aesara's code comes with default values for these attributes, but you can
+override them from your ``.aesararc`` file, and override those values in turn by
+the :envvar:`AESARA_FLAGS` environment variable.
 
 The order of precedence is:
 
-1. an assignment to theano.config.<property>
-2. an assignment in :envvar:`THEANO_FLAGS`
-3. an assignment in the .theanorc file (or the file indicated in :envvar:`THEANORC`)
+1. an assignment to aesara.config.<property>
+2. an assignment in :envvar:`AESARA_FLAGS`
+3. an assignment in the .aesararc file (or the file indicated in :envvar:`AESARARC`)
 
 You can display the current/effective configuration at any time by printing
-theano.config.  For example, to see a list  of all active configuration
+aesara.config.  For example, to see a list  of all active configuration
 variables, type this from the command-line:
 
 .. code-block:: bash
 
-    python -c 'import theano; print(theano.config)' | less
+    python -c 'import aesara; print(aesara.config)' | less
 
 
 For more detail, see :ref:`Configuration <libdoc_config>` in the library.
@@ -46,25 +46,25 @@ Consider the logistic regression:
 .. testcode::
 
     import numpy
-    import theano
-    import theano.tensor as tt
+    import aesara
+    import aesara.tensor as tt
     rng = numpy.random
 
     N = 400
     feats = 784
-    D = (rng.randn(N, feats).astype(theano.config.floatX),
-    rng.randint(size=N,low=0, high=2).astype(theano.config.floatX))
+    D = (rng.randn(N, feats).astype(aesara.config.floatX),
+    rng.randint(size=N,low=0, high=2).astype(aesara.config.floatX))
     training_steps = 10000
 
-    # Declare Theano symbolic variables
+    # Declare Aesara symbolic variables
     x = tt.matrix("x")
     y = tt.vector("y")
-    w = theano.shared(rng.randn(feats).astype(theano.config.floatX), name="w")
-    b = theano.shared(numpy.asarray(0., dtype=theano.config.floatX), name="b")
+    w = aesara.shared(rng.randn(feats).astype(aesara.config.floatX), name="w")
+    b = aesara.shared(numpy.asarray(0., dtype=aesara.config.floatX), name="b")
     x.tag.test_value = D[0]
     y.tag.test_value = D[1]
 
-    # Construct Theano expression graph
+    # Construct Aesara expression graph
     p_1 = 1 / (1 + tt.exp(-tt.dot(x, w)-b)) # Probability of having a one
     prediction = p_1 > 0.5 # The prediction that is done: 0 or 1
     xent = -y*tt.log(p_1) - (1-y)*tt.log(1-p_1) # Cross-entropy
@@ -72,12 +72,12 @@ Consider the logistic regression:
     gw,gb = tt.grad(cost, [w,b])
 
     # Compile expressions to functions
-    train = theano.function(
+    train = aesara.function(
                 inputs=[x,y],
                 outputs=[prediction, xent],
                 updates=[(w, w-0.01*gw), (b, b-0.01*gb)],
                 name = "train")
-    predict = theano.function(inputs=[x], outputs=prediction,
+    predict = aesara.function(inputs=[x], outputs=prediction,
                 name = "predict")
 
     if any([x.op.__class__.__name__ in ['Gemv', 'CGemv', 'Gemm', 'CGemm'] for x in
@@ -87,7 +87,7 @@ Consider the logistic regression:
               train.maker.fgraph.toposort()]):
         print('Used the gpu')
     else:
-        print('ERROR, not able to tell if theano used the cpu or the gpu')
+        print('ERROR, not able to tell if aesara used the cpu or the gpu')
         print(train.maker.fgraph.toposort())
 
     for i in range(training_steps):
@@ -115,7 +115,7 @@ as it will be useful later on.
 
 .. Note::
 
-   * Apply the Theano flag ``floatX=float32`` (through ``theano.config.floatX``) in your code.
+   * Apply the Aesara flag ``floatX=float32`` (through ``aesara.config.floatX``) in your code.
    * Cast inputs before storing them into a shared variable.
    * Circumvent the automatic cast of *int32* with *float32* to *float64*:
 
@@ -130,12 +130,12 @@ as it will be useful later on.
 Mode
 ====
 
-Every time :func:`theano.function <function.function>` is called,
-the symbolic relationships between the input and output Theano *variables*
+Every time :func:`aesara.function <function.function>` is called,
+the symbolic relationships between the input and output Aesara *variables*
 are optimized and compiled. The way this compilation occurs
 is controlled by the value of the ``mode`` parameter.
 
-Theano defines the following modes by name:
+Aesara defines the following modes by name:
 
 - ``'FAST_COMPILE'``: Apply just a few graph optimizations and only use Python implementations. So GPU is disabled.
 - ``'FAST_RUN'``: Apply all optimizations and use C implementations where possible.
@@ -147,7 +147,7 @@ Theano defines the following modes by name:
 The default mode is typically ``FAST_RUN``, but it can be controlled via
 the configuration variable :attr:`config.mode`,
 which can be overridden by passing the keyword argument to
-:func:`theano.function <function.function>`.
+:func:`aesara.function <function.function>`.
 
 ================= =============================================================== ===============================================================================
 short name        Full constructor                                                What does it do?
@@ -171,7 +171,7 @@ A mode is composed of 2 things: an optimizer and a linker. Some modes,
 like ``NanGuardMode`` and ``DebugMode``, add logic around the
 optimizer and linker. ``DebugMode`` uses its own linker.
 
-You can select which linker to use with the Theano flag :attr:`config.linker`.
+You can select which linker to use with the Aesara flag :attr:`config.linker`.
 Here is a table to compare the different linkers.
 
 =============  =========  =================  =========  ===
@@ -184,13 +184,13 @@ c|py_nogc      no         yes                "++"       As c|py, but without gc
 c              no         yes                "+"        Use only C code (if none available for an op, raise an error)
 py             yes        yes                "+++"      Use only Python code
 NanGuardMode   yes        yes                "++++"     Check if nodes generate NaN
-DebugMode      no         yes                VERY HIGH  Make many checks on what Theano computes
+DebugMode      no         yes                VERY HIGH  Make many checks on what Aesara computes
 =============  =========  =================  =========  ===
 
 
 .. [#gc] Garbage collection of intermediate results during computation.
          Otherwise, their memory space used by the ops is kept between
-         Theano function calls, in order not to
+         Aesara function calls, in order not to
          reallocate memory, and lower the overhead (make it faster...).
 .. [#cpy1] Default
 
@@ -202,20 +202,20 @@ For more detail, see :ref:`Mode<libdoc_compile_mode>` in the library.
 Optimizers
 ==========
 
-Theano allows compilations with a number of predefined optimizers.
+Aesara allows compilations with a number of predefined optimizers.
 An optimizer consists of a particular set of optimizations, that speed
-up execution of Theano programs.
+up execution of Aesara programs.
 
-The optimizers Theano provides are summarized below to indicate the trade-offs
+The optimizers Aesara provides are summarized below to indicate the trade-offs
 one might make between compilation time and execution time.
 
-These optimizers can be enabled globally with the Theano flag: ``optimizer=name``
-or per call to theano functions with ``function(...mode=Mode(optimizer="name"))``.
+These optimizers can be enabled globally with the Aesara flag: ``optimizer=name``
+or per call to aesara functions with ``function(...mode=Mode(optimizer="name"))``.
 
 =================  ============  ==============  ==================================================
 optimizer          Compile time  Execution time  Description
 =================  ============  ==============  ==================================================
-None               "++++++"      "+"             Applies none of Theano's opts
+None               "++++++"      "+"             Applies none of Aesara's opts
 o1 (fast_compile)  "+++++"       "++"            Applies only basic opts
 o2                 "++++"        "+++"           Applies few basic opts and some that compile fast
 o3                 "+++"         "++++"          Applies all opts except ones that compile slower
@@ -226,7 +226,7 @@ stabilize          "+++++"       "++"            Only applies stability opts
 
 For a detailed list of the specific optimizations applied for each of these
 optimizers, see :ref:`optimizations`. Also, see :ref:`unsafe_optimization` and
-:ref:`faster-theano-function-compilation` for other trade-off.
+:ref:`faster-aesara-function-compilation` for other trade-off.
 
 
 .. _using_debugmode:
@@ -254,7 +254,7 @@ DebugMode is used as follows:
 
     x = tt.dvector('x')
 
-    f = theano.function([x], 10 * x, mode='DebugMode')
+    f = aesara.function([x], 10 * x, mode='DebugMode')
 
     f([5])
     f([0])
@@ -263,8 +263,8 @@ DebugMode is used as follows:
 
 If any problem is detected, DebugMode will raise an exception according to
 what went wrong, either at call time (*f(5)*) or compile time (
-``f = theano.function(x, 10 * x, mode='DebugMode')``). These exceptions
-should *not* be ignored; talk to your local Theano guru or email the
+``f = aesara.function(x, 10 * x, mode='DebugMode')``). These exceptions
+should *not* be ignored; talk to your local Aesara guru or email the
 users list if you cannot make the exception go away.
 
 Some kinds of errors can only be detected for certain input value combinations.

@@ -2,12 +2,12 @@
 .. _libdoc_compile_shared:
 
 ===========================================
-:mod:`shared` - defines theano.shared
+:mod:`shared` - defines aesara.shared
 ===========================================
 
-.. module:: theano.compile.sharedvalue
+.. module:: aesara.compile.sharedvalue
    :platform: Unix, Windows
-   :synopsis: defines theano.shared and related classes
+   :synopsis: defines aesara.shared and related classes
 .. moduleauthor:: LISA
 
 
@@ -20,10 +20,10 @@
     The user-friendly constructor is :func:`shared`
 
     .. method:: get_value(self, borrow=False, return_internal_type=False)
-    
+
        :param borrow: True to permit returning of an object aliased to internal memory.
        :type borrow: bool
-               
+
        :param return_internal_type: True to permit the returning of an arbitrary type object used
                internally to store the shared variable.
        :type return_internal_type: bool
@@ -36,7 +36,7 @@
        ``borrow=True`` and ``return_internal_type=True``, it will
        always return the original data, not a copy, but this can be a
        GPU object.
-    
+
     .. method:: set_value(self, new_value, borrow=False)
 
        :param new_value: The new value.

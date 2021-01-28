@@ -6,7 +6,7 @@
 Frequently Asked Questions
 ==========================
 
-Does Theano support Python 3?
+Does Aesara support Python 3?
 ------------------------------
 
 We support both Python 2 >= 2.7 and Python 3 >= 3.4.
@@ -14,8 +14,8 @@ We support both Python 2 >= 2.7 and Python 3 >= 3.4.
 Output slight numerical difference
 ----------------------------------
 
-Sometimes when you compare the output of Theano using different
-Theano flags, Theano versions, CPU and GPU or with other software like
+Sometimes when you compare the output of Aesara using different
+Aesara flags, Aesara versions, CPU and GPU or with other software like
 NumPy, you will see small numerical differences.
 
 This is normal. Floating point numbers are approximations of real
@@ -37,24 +37,24 @@ Use it at your own risk. Some people warned that the ``-ftree-loop-distribution`
 
 In the past we said that if the ``compiledir`` was not shared by multiple
 computers, you could add the ``-march=native`` flag. Now we recommend
-to remove this flag as Theano does it automatically and safely,
+to remove this flag as Aesara does it automatically and safely,
 even if the ``compiledir`` is shared by multiple computers with different
-CPUs. In fact, Theano asks g++ what are the equivalent flags it uses, and re-uses
+CPUs. In fact, Aesara asks g++ what are the equivalent flags it uses, and re-uses
 them directly.
 
 
-.. _faster-theano-function-compilation:
+.. _faster-aesara-function-compilation:
 
-Faster Theano Function Compilation
+Faster Aesara Function Compilation
 ----------------------------------
 
-Theano function compilation can be time consuming. It can be sped up by setting
-the flag ``mode=FAST_COMPILE`` which instructs Theano to skip most
+Aesara function compilation can be time consuming. It can be sped up by setting
+the flag ``mode=FAST_COMPILE`` which instructs Aesara to skip most
 optimizations and disables the generation of any c/cuda code. This is useful
 for quickly testing a simple idea.
 
 If c/cuda code is necessary, as when using a GPU, the flag
-``optimizer=fast_compile`` can be used instead. It instructs Theano to
+``optimizer=fast_compile`` can be used instead. It instructs Aesara to
 skip time consuming optimizations but still generate c/cuda code.
 
 Similarly using the flag ``optimizer_excluding=inplace`` will speed up
@@ -71,28 +71,28 @@ usage.
 
 Alternatively, if the graph is big, using the flag ``cycle_detection=fast``
 will speedup the computations by removing some of the inplace
-optimizations. This would allow theano to skip a time consuming cycle
+optimizations. This would allow aesara to skip a time consuming cycle
 detection algorithm. If the graph is big enough,we suggest that you use
 this flag instead of ``optimizer_excluding=inplace``. It will result in a
 computation time that is in between fast compile and fast run.
 
-Theano flag `reoptimize_unpickled_function` controls if an unpickled
-theano function should reoptimize its graph or not. Theano users can
-use the standard python pickle tools to save a compiled theano
+Aesara flag `reoptimize_unpickled_function` controls if an unpickled
+aesara function should reoptimize its graph or not. Aesara users can
+use the standard python pickle tools to save a compiled aesara
 function. When pickling, both graph before and after the optimization
 are saved, including shared variables. When set to True, the graph is
 reoptimized when being unpickled. Otherwise, skip the graph
 optimization and use directly the optimized graph from the pickled
 file. The default is False.
 
-Faster Theano function
+Faster Aesara function
 ----------------------
 
-You can set the Theano flag :attr:`allow_gc <config.allow_gc>` to ``False`` to get a speed-up by using
-more memory. By default, Theano frees intermediate results when we don't need
+You can set the Aesara flag :attr:`allow_gc <config.allow_gc>` to ``False`` to get a speed-up by using
+more memory. By default, Aesara frees intermediate results when we don't need
 them anymore. Doing so prevents us from reusing this memory. So disabling the
 garbage collection will keep all intermediate results' memory space to allow to
-reuse them during the next call to the same Theano function, if they are of the
+reuse them during the next call to the same Aesara function, if they are of the
 correct shape. The shape could change if the shapes of the inputs change.
 
 .. note::
@@ -106,28 +106,28 @@ Unsafe optimization
 ===================
 
 
-Some Theano optimizations make the assumption that the user inputs are
+Some Aesara optimizations make the assumption that the user inputs are
 valid. What this means is that if the user provides invalid values (like
 incompatible shapes or indexing values that are out of bounds) and
 the optimizations are applied, the user error will get lost. Most of the
 time, the assumption is that the user inputs are valid. So it is good
 to have the optimization being applied, but loosing the error is bad.
-The newest optimization in Theano with such assumption will add an
+The newest optimization in Aesara with such assumption will add an
 assertion in the graph to keep the user error message. Computing
 these assertions could take some time. If you are sure everything is valid
-in your graph and want the fastest possible Theano, you can enable an
+in your graph and want the fastest possible Aesara, you can enable an
 optimization that will remove those assertions with:
 ``optimizer_including=local_remove_all_assert``
 
 
-Faster Small Theano function
+Faster Small Aesara function
 ----------------------------
 
 .. note::
 
-   For Theano 0.6 and up.
+   For Aesara 0.6 and up.
 
-For Theano functions that don't do much work, like a regular logistic
+For Aesara functions that don't do much work, like a regular logistic
 regression, the overhead of checking the input can be significant. You
 can disable it by setting ``f.trust_input`` to True.
 Make sure the types of arguments you provide match those defined when
@@ -137,10 +137,10 @@ For example, replace the following
 
 .. testcode:: faster
 
-    import theano
-    from theano import function
+    import aesara
+    from aesara import function
 
-    x = theano.tensor.type.scalar('x')
+    x = aesara.tensor.type.scalar('x')
     f = function([x], x + 1.)
     f(10.)
 
@@ -149,16 +149,16 @@ with
 .. testcode:: faster
 
     import numpy
-    import theano
-    from theano import function
+    import aesara
+    from aesara import function
 
-    x = theano.tensor.type.scalar('x')
+    x = aesara.tensor.type.scalar('x')
     f = function([x], x + 1.)
     f.trust_input = True
-    f(numpy.array([10.], dtype=theano.config.floatX))
+    f(numpy.array([10.], dtype=aesara.config.floatX))
 
-Also, for small Theano functions, you can remove more Python overhead by
-making a Theano function that does not take any input. You can use shared
+Also, for small Aesara functions, you can remove more Python overhead by
+making an Aesara function that does not take any input. You can use shared
 variables to achieve this. Then you can call it like this: ``f.fn()`` or
 ``f.fn(n_calls=N)`` to speed it up. In the last case, only the last
 function output (out of N calls) is returned.
@@ -169,32 +169,32 @@ but requires that all nodes in the graph have a C implementation:
 
 .. code-block:: python
 
-    x = theano.tensor.type.scalar('x')
-    f = function([x], (x + 1.) * 2, mode=theano.compile.mode.Mode(linker='c'))
+    x = aesara.tensor.type.scalar('x')
+    f = function([x], (x + 1.) * 2, mode=aesara.compile.mode.Mode(linker='c'))
     f(10.)
 
 New GPU backend using libgpuarray
 ---------------------------------
 
-The new theano GPU backend (:ref:`gpuarray`) uses ``config.gpuarray__preallocate`` for GPU memory allocation.
+The new aesara GPU backend (:ref:`gpuarray`) uses ``config.gpuarray__preallocate`` for GPU memory allocation.
 
 Related Projects
 ----------------
 
-We try to list in this `wiki page <https://github.com/Theano/Theano/wiki/Related-projects>`_ other Theano related projects.
+We try to list in this `wiki page <https://github.com/Aesara/Aesara/wiki/Related-projects>`_ other Aesara related projects.
 
 
-"What are Theano's Limitations?"
+"What are Aesara's Limitations?"
 --------------------------------
 
-Theano offers a good amount of flexibility, but has some limitations too.
+Aesara offers a good amount of flexibility, but has some limitations too.
 You must answer for yourself the following question: How can my algorithm be cleverly written
-so as to make the most of what Theano can do?
+so as to make the most of what Aesara can do?
 
 Here is a list of some of the known limitations:
 
 - *While*- or *for*-Loops within an expression graph are supported, but only via
-  the :func:`theano.scan` op (which puts restrictions on how the loop body can
+  the :func:`aesara.scan` op (which puts restrictions on how the loop body can
   interact with the rest of the graph).
 
 - Neither *goto* nor *recursion* is supported or planned within expression graphs.

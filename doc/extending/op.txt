@@ -5,7 +5,7 @@ Making arithmetic Ops on double
 
 .. testsetup:: *
 
-   from theano.graph.type import Type
+   from aesara.graph.type import Type
 
    class Double(Type):
 
@@ -52,7 +52,7 @@ define the following methods.
   This method is responsible for creating output Variables of a
   suitable symbolic `Type` to serve as the outputs of this Op's
   application.  The Variables found in ``*inputs`` must be operated on
-  using Theano's symbolic language to compute the symbolic output
+  using Aesara's symbolic language to compute the symbolic output
   Variables. This method should put these outputs into an Apply
   instance, and return the Apply instance.
 
@@ -207,7 +207,7 @@ Optional methods or attributes
    By default this is a convenience function which calls
    :meth:`make_node` with the supplied arguments and returns the
    result indexed by `default_output`.  This can be overridden by
-   subclasses to do anything else, but must return either a theano
+   subclasses to do anything else, but must return either an Aesara
    Variable or a list of Variables.
 
    If you feel the need to override `__call__` to change the graph
@@ -230,7 +230,7 @@ Optional methods or attributes
    The function should return a list with one tuple for each output.
    Each tuple should contain the corresponding output's computed shape.
 
-   Implementing this method will allow Theano to compute the output's
+   Implementing this method will allow Aesara to compute the output's
    shape without computing the output itself, potentially sparing you
    a costly recomputation.
 
@@ -260,7 +260,7 @@ Optional methods or attributes
 
    By default when optimizations are enabled, we remove during
    function compilation Apply nodes whose inputs are all constants.
-   We replace the Apply node with a Theano constant variable.
+   We replace the Apply node with an Aesara constant variable.
    This way, the Apply node is not executed at each function
    call. If you want to force the execution of an op during the
    function call, make do_constant_folding return False.
@@ -293,8 +293,8 @@ These are the function required to work with gradient.grad().
 
   If the `Op` being defined is differentiable, its gradient may be
   specified symbolically in this method. Both ``inputs`` and
-  ``output_gradients`` are lists of symbolic Theano Variables and
-  those must be operated on using Theano's symbolic language. The grad
+  ``output_gradients`` are lists of symbolic Aesara Variables and
+  those must be operated on using Aesara's symbolic language. The grad
   method must return a list containing one Variable for each
   input. Each returned Variable represents the gradient with respect
   to that input computed based on the symbolic gradients with respect
@@ -304,23 +304,23 @@ These are the function required to work with gradient.grad().
   this method should be defined to return a variable of type NullType
   for that input. Likewise, if you have not implemented the grad
   computation for some input, you may return a variable of type
-  NullType for that input. theano.gradient contains convenience
+  NullType for that input. aesara.gradient contains convenience
   methods that can construct the variable for you:
-  :func:`theano.gradient.grad_undefined` and
-  :func:`theano.gradient.grad_not_implemented`, respectively.
+  :func:`aesara.gradient.grad_undefined` and
+  :func:`aesara.gradient.grad_not_implemented`, respectively.
 
   If an element of output_gradient is of type
-  `theano.gradient.DisconnectedType`, it means that the cost is not a
+  `aesara.gradient.DisconnectedType`, it means that the cost is not a
   function of this output. If any of the `Op`'s inputs participate in
   the computation of only disconnected outputs, then `Op.grad` should
   return `DisconnectedType` variables for those inputs.
 
-  If the `Op.grad` method is not defined, then Theano assumes it has been
+  If the `Op.grad` method is not defined, then Aesara assumes it has been
   forgotten.  Symbolic differentiation will fail on a graph that
   includes this `Op`.
 
   It must be understood that the `Op`'s `grad` method is not meant to
-  return the gradient of the `Op`'s output. `theano.grad` computes
+  return the gradient of the `Op`'s output. `aesara.grad` computes
   gradients; `Op.grad` is a helper function that computes terms that
   appear in gradients.
 
@@ -328,10 +328,10 @@ These are the function required to work with gradient.grad().
   vector-valued input ``x``, then the grad method will be passed ``x`` and a
   second vector ``z``. Define ``J`` to be the Jacobian of ``y`` with respect to
   ``x``. The `Op`'s `grad` method should return ``dot(J.T,z)``. When
-  `theano.grad` calls the grad method, it will set ``z`` to be the
+  `aesara.grad` calls the grad method, it will set ``z`` to be the
   gradient of the cost ``C`` with respect to ``y``. If this `Op` is the only `Op`
   that acts on ``x``, then ``dot(J.T,z)`` is the gradient of C with respect to
-  ``x``.  If there are other `Op`s that act on ``x``, `theano.grad` will
+  ``x``.  If there are other `Op`s that act on ``x``, `aesara.grad` will
   have to add up the terms of ``x``'s gradient contributed by the other
   `Op`'s grad method.
 
@@ -347,7 +347,7 @@ These are the function required to work with gradient.grad().
   the returned value should be equal to the Jacobian-vector product.
 
   So long as you implement this product correctly, you need not
-  understand what `theano.gradient.grad` is doing, but for the curious the
+  understand what `aesara.gradient.grad` is doing, but for the curious the
   mathematical justification is as follows:
 
   In essence, the grad method must simply implement through symbolic
@@ -376,7 +376,7 @@ These are the function required to work with gradient.grad().
   C}{d f} * \frac{d f}{d x}`.
 
   Here, the chain rule must be implemented in a similar but slightly
-  more complex setting: Theano provides in the list
+  more complex setting: Aesara provides in the list
   ``output_gradients`` one gradient for each of the Variables returned
   by the `Op`. Where f is one such particular Variable, the
   corresponding gradient found in ``output_gradients`` and
@@ -400,7 +400,7 @@ These are the function required to work with gradient.grad().
   \frac{d f_i}{d x_j}`.  Both the partial differentiation and the
   multiplication have to be performed by :func:`grad`.
 
-  Theano currently imposes the following constraints on the values
+  Aesara currently imposes the following constraints on the values
   returned by the grad method:
 
   1) They must be Variable instances.
@@ -416,7 +416,7 @@ These are the function required to work with gradient.grad().
   :math:`\frac{d f}{d x} = \lim_{\epsilon \rightarrow 0} (f(x+\epsilon)-f(x))/\epsilon`.
 
   Suppose your function f has an integer-valued output. For most
-  functions you're likely to implement in theano, this means your
+  functions you're likely to implement in aesara, this means your
   gradient should be zero, because f(x+epsilon) = f(x) for almost all
   x. (The only other option is that the gradient could be undefined,
   if your function is discontinuous everywhere, like the rational
@@ -425,14 +425,14 @@ These are the function required to work with gradient.grad().
   Suppose your function f has an integer-valued input. This is a
   little trickier, because you need to think about what you mean
   mathematically when you make a variable integer-valued in
-  theano. Most of the time in machine learning we mean "f is a
+  aesara. Most of the time in machine learning we mean "f is a
   function of a real-valued x, but we are only going to pass in
   integer-values of x". In this case, f(x+epsilon) exists, so the
   gradient through f should be the same whether x is an integer or a
   floating point variable. Sometimes what we mean is "f is a function
   of an integer-valued x, and f is only defined where x is an
   integer." Since f(x+epsilon) doesn't exist, the gradient is
-  undefined.  Finally, many times in theano, integer valued inputs
+  undefined.  Finally, many times in aesara, integer valued inputs
   don't actually affect the elements of the output, only its shape.
 
   If your function f has both an integer-valued input and an
@@ -492,12 +492,12 @@ These are the function required to work with gradient.grad().
   elements of all outputs.
 
   This method conveys two pieces of information that are otherwise
-  not part of the theano graph:
+  not part of the aesara graph:
 
   1) Which of the op's inputs are truly ancestors of each of the
      op's outputs. Suppose an op has two inputs, x and y, and
      outputs f(x) and g(y). y is not really an ancestor of f, but
-     it appears to be so in the theano graph.
+     it appears to be so in the aesara graph.
   2) Whether the actual elements of each input/output are relevant
      to a computation.
      For example, the shape op does not read its input's elements,
@@ -560,7 +560,7 @@ First, we'll instantiate a ``mul`` Op:
 
 .. testcode:: mul
 
-   from theano.graph.op import Op
+   from aesara.graph.op import Op
 
 
    mul = Op()
@@ -594,7 +594,7 @@ node representing the application of `Op` ``mul`` to inputs ``x`` and
 
 .. note::
 
-   Theano relies on the fact that if you call the ``make_node`` method
+   Aesara relies on the fact that if you call the ``make_node`` method
    of Apply's first argument on the inputs passed as the Apply's
    second argument, the call will not fail and the returned Apply
    instance will be equivalent.  This is how graphs are copied.
@@ -620,18 +620,18 @@ Here, ``z`` is a list of one element. By default, ``z == [None]``.
 .. note::
 
    It is possible that ``z`` does not contain ``None``. If it contains
-   anything else, Theano guarantees that whatever it contains is what
+   anything else, Aesara guarantees that whatever it contains is what
    ``perform`` put there the last time it was called with this
-   particular storage. Furthermore, Theano gives you permission to do
+   particular storage. Furthermore, Aesara gives you permission to do
    whatever you want with ``z``'s contents, chiefly reusing it or the
    memory allocated for it. More information can be found in the
    :ref:`op` documentation.
 
 .. warning::
 
-   We gave ``z`` the Theano type ``double`` in ``make_node``, which means
+   We gave ``z`` the Aesara type ``double`` in ``make_node``, which means
    that a Python ``float`` must be put there. You should not put, say, an
-   ``int`` in ``z[0]`` because Theano assumes Ops handle typing properly.
+   ``int`` in ``z[0]`` because Aesara assumes Ops handle typing properly.
 
 
 Trying out our new Op
@@ -641,10 +641,10 @@ In the following code, we use our new `Op`:
 
 .. doctest:: mul
 
-   >>> import theano
+   >>> import aesara
    >>> x, y = double('x'), double('y')
    >>> z = mul(x, y)
-   >>> f = theano.function([x, y], z)
+   >>> f = aesara.function([x, y], z)
    >>> f(5, 6)
    30.0
    >>> f(5.6, 6.7)
@@ -660,7 +660,7 @@ they are magically cast to the right type. Now, what if we try this?
    >>> z = mul(x, 2)
    Traceback (most recent call last):
      File "<stdin>", line 1, in <module>
-     File "/u/breuleuo/hg/theano/theano/graph/op.py", line 207, in __call__
+     File "/u/breuleuo/hg/aesara/aesara/graph/op.py", line 207, in __call__
      File "<stdin>", line 2, in make_node
    AttributeError: 'int' object has no attribute 'type'
 
@@ -692,7 +692,7 @@ is a :ref:`variable` we statically know the value of.
    >>> import numpy
    >>> x = double('x')
    >>> z = mul(x, 2)
-   >>> f = theano.function([x], z)
+   >>> f = aesara.function([x], z)
    >>> f(10)
    20.0
    >>> numpy.allclose(f(3.4), 6.8)
@@ -701,7 +701,7 @@ is a :ref:`variable` we statically know the value of.
 Now the code works the way we want it to.
 
 .. note::
-   Most Theano Ops follow this convention of up-casting literal
+   Most Aesara Ops follow this convention of up-casting literal
    make_node arguments to Constants.
    This makes typing expressions more natural.  If you do
    not want a constant somewhere in your graph, you have to pass a Variable
@@ -719,8 +719,8 @@ arithmetic operators:
 
 .. testcode::
 
-   from theano.graph.basic import Apply, Constant
-   from theano.graph.op import Op
+   from aesara.graph.basic import Apply, Constant
+   from aesara.graph.op import Op
 
 
    class BinaryDoubleOp(Op):

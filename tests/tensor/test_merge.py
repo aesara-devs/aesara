@@ -1,11 +1,11 @@
 import numpy as np
 
-import theano.tensor.basic as tt
-from theano.graph.basic import Apply, Variable
-from theano.graph.fg import FunctionGraph
-from theano.graph.op import Op
-from theano.graph.opt import MergeOptimizer
-from theano.graph.type import Type
+import aesara.tensor.basic as tt
+from aesara.graph.basic import Apply, Variable
+from aesara.graph.fg import FunctionGraph
+from aesara.graph.op import Op
+from aesara.graph.opt import MergeOptimizer
+from aesara.graph.type import Type
 
 
 def is_variable(x):

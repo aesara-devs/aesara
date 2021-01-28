@@ -5,20 +5,20 @@ import time
 import numpy as np
 import pytest
 
-from theano.compile.function import function
-from theano.compile.io import In
-from theano.compile.mode import Mode, get_mode
-from theano.compile.sharedvalue import shared
-from theano.configdefaults import config
-from theano.graph.basic import Apply
-from theano.graph.op import Op
-from theano.ifelse import ifelse
-from theano.link.c.basic import OpWiseCLinker
-from theano.link.c.exceptions import MissingGXX
-from theano.link.vm import Loop, VMLinker
-from theano.tensor.math import cosh, sin, tanh
-from theano.tensor.type import dvector, lscalar, scalar, scalars, vector, vectors
-from theano.tensor.var import TensorConstant
+from aesara.compile.function import function
+from aesara.compile.io import In
+from aesara.compile.mode import Mode, get_mode
+from aesara.compile.sharedvalue import shared
+from aesara.configdefaults import config
+from aesara.graph.basic import Apply
+from aesara.graph.op import Op
+from aesara.ifelse import ifelse
+from aesara.link.c.basic import OpWiseCLinker
+from aesara.link.c.exceptions import MissingGXX
+from aesara.link.vm import Loop, VMLinker
+from aesara.tensor.math import cosh, sin, tanh
+from aesara.tensor.type import dvector, lscalar, scalar, scalars, vector, vectors
+from aesara.tensor.var import TensorConstant
 
 
 class TestCallbacks:
@@ -383,7 +383,7 @@ class RunOnce(Op):
 
 
 def test_vm_gc():
-    # This already caused a bug in the trunk of Theano.
+    # This already caused a bug in the trunk of Aesara.
     #
     # The bug was introduced in the trunk on July 5th, 2012 and fixed on
     # July 30th.
@@ -456,7 +456,7 @@ def test_no_recycling():
 )
 def test_VMLinker_make_vm_cvm():
     # We don't want this at module level, since CXX might not be present
-    from theano.link.c.cvm import CVM
+    from aesara.link.c.cvm import CVM
 
     a = scalar()
     linker = VMLinker(allow_gc=False, use_cloop=True)
@@ -473,17 +473,17 @@ def test_VMLinker_make_vm_no_cvm():
 
         # Make sure that GXX isn't present
         with pytest.raises(MissingGXX):
-            import theano.link.c.cvm
+            import aesara.link.c.cvm
 
-            reload(theano.link.c.cvm)
+            reload(aesara.link.c.cvm)
 
         # Make sure that `cvm` module is missing
-        with patch.dict("sys.modules", {"theano.link.c.cvm": None}):
+        with patch.dict("sys.modules", {"aesara.link.c.cvm": None}):
             a = scalar()
             linker = VMLinker(allow_gc=False, use_cloop=True)
 
             with pytest.raises(ModuleNotFoundError):
-                import theano.link.c.cvm
+                import aesara.link.c.cvm
 
             f = function([a], a, mode=Mode(optimizer=None, linker=linker))
             assert isinstance(f.fn, Loop)

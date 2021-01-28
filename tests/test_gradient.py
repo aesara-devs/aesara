@@ -3,11 +3,10 @@ from collections import OrderedDict
 import numpy as np
 import pytest
 
-import theano
-import theano.tensor.basic as tt
-from tests import unittest_tools as utt
-from theano.configdefaults import config
-from theano.gradient import (
+import aesara
+import aesara.tensor.basic as tt
+from aesara.configdefaults import config
+from aesara.gradient import (
     DisconnectedInputError,
     DisconnectedType,
     GradClip,
@@ -30,14 +29,14 @@ from theano.gradient import (
     zero_grad,
     zero_grad_,
 )
-from theano.graph.basic import Apply, graph_inputs
-from theano.graph.null_type import NullType
-from theano.graph.op import Op
-from theano.sandbox.rng_mrg import MRG_RandomStream
-from theano.tensor.math import add, dot, exp, sqr
-from theano.tensor.math import sum as tt_sum
-from theano.tensor.math import tanh
-from theano.tensor.type import (
+from aesara.graph.basic import Apply, graph_inputs
+from aesara.graph.null_type import NullType
+from aesara.graph.op import Op
+from aesara.sandbox.rng_mrg import MRG_RandomStream
+from aesara.tensor.math import add, dot, exp, sqr
+from aesara.tensor.math import sum as tt_sum
+from aesara.tensor.math import tanh
+from aesara.tensor.type import (
     discrete_dtypes,
     dmatrix,
     dscalar,
@@ -50,6 +49,7 @@ from theano.tensor.type import (
     scalar,
     vector,
 )
+from tests import unittest_tools as utt
 
 
 one = tt.as_tensor_variable(1.0)
@@ -241,7 +241,7 @@ class TestGrad:
         # grad: Test passing a single variable param
         o = TestGrad.Obj1()
         a1 = o.make_node()
-        assert o.gval0 is theano.grad(a1.outputs[0], a1.inputs[0])
+        assert o.gval0 is aesara.grad(a1.outputs[0], a1.inputs[0])
 
     def test_Nparam(self):
         # grad: Test passing multiple variable params
@@ -253,9 +253,9 @@ class TestGrad:
         assert o.gval1 is g1
 
     def test_grad_keep_type(self):
-        # Tests that the theano grad method returns a list if it is passed a list
+        # Tests that the aesara grad method returns a list if it is passed a list
         # and a single variable if it is passed a single variable.
-        # pylearn2 depends on theano behaving this way. This functionality has been
+        # pylearn2 depends on aesara behaving this way. This functionality has been
         # added three times and erroneously removed twice. If you do anything that
         # requires changing this test or making it fail you are almost certainly
         # making a common mistake, NOT fixing something.
@@ -263,11 +263,11 @@ class TestGrad:
         X = matrix()
         y = X.sum()
 
-        G = theano.grad(y, [X])
+        G = aesara.grad(y, [X])
 
         assert isinstance(G, list)
 
-        G = theano.grad(y, X)
+        G = aesara.grad(y, X)
 
         assert not isinstance(G, list)
 
@@ -296,7 +296,7 @@ class TestGrad:
     def test_zero_gradient_shape(self):
         # Ensure that a zero gradient has the proper shape.
         x = dmatrix()
-        f = theano.function([x], grad(dscalar(), x, disconnected_inputs="ignore"))
+        f = aesara.function([x], grad(dscalar(), x, disconnected_inputs="ignore"))
         a = np.ones((3, 7))
         assert (f(a) == 0).all()  # Zero gradient
         assert a.shape == f(a).shape  # With proper shape
@@ -318,14 +318,14 @@ class TestGrad:
         a = vector()
         b = grad_not_implemented(add, 0, a)
         with pytest.raises(TypeError):
-            theano.function([a], b, on_unused_input="ignore")
+            aesara.function([a], b, on_unused_input="ignore")
 
     def test_undefined_grad_func(self):
         # tests that function compilation catches undefined grads in the graph
         a = vector()
         b = grad_undefined(add, 0, a)
         with pytest.raises(TypeError):
-            theano.function([a], b, on_unused_input="ignore")
+            aesara.function([a], b, on_unused_input="ignore")
 
     def test_unimplemented_grad_grad(self):
         # tests that unimplemented grads are caught in the grad method
@@ -466,10 +466,10 @@ class TestGrad:
 
         def make_grad_func(X):
             Z = dot(X, W) + b
-            H = theano.tensor.nnet.sigmoid(Z)
+            H = aesara.tensor.nnet.sigmoid(Z)
             cost = H.sum()
             g = grad(cost, X)
-            return theano.function([X, W, b], g, on_unused_input="ignore")
+            return aesara.function([X, W, b], g, on_unused_input="ignore")
 
         int_func = make_grad_func(imatrix())
         # we have to use float64 as the float type to get the results to match
@@ -510,7 +510,7 @@ class TestGrad:
         g = grad(cost, x, add_names=False)
         # we still need to pass in x because it determines the shape of
         # the output
-        f = theano.function([x], g)
+        f = aesara.function([x], g)
         rng = np.random.RandomState([2012, 9, 5])
         x = np.cast[x.dtype](rng.randn(3))
         g = f(x)
@@ -556,7 +556,7 @@ class TestGrad:
 
         # cost is differentiable wrt x
         # but we can't tell that without using Op1's connection pattern
-        # looking at the theano graph alone, g is an ancestor of cost
+        # looking at the aesara graph alone, g is an ancestor of cost
         # and has x as an ancestor, so we must compute its gradient
 
         g = grad(cost, x)
@@ -595,7 +595,7 @@ class TestGrad:
         g_x = grad(z_x, x, consider_constant=[x])
         g_one = grad(z_one, one)
 
-        f = theano.function([x, y], [g_x, g_one])
+        f = aesara.function([x, y], [g_x, g_one])
 
         g_x, g_one = f(1, 0.5)
 
@@ -637,7 +637,7 @@ def test_known_grads():
     values = [np.cast[ipt.dtype](value) for ipt, value in zip(inputs, values)]
 
     true_grads = grad(cost, inputs, disconnected_inputs="ignore")
-    true_grads = theano.function(inputs, true_grads)
+    true_grads = aesara.function(inputs, true_grads)
     true_grads = true_grads(*values)
 
     for layer in layers:
@@ -646,7 +646,7 @@ def test_known_grads():
         full = grad(
             cost=None, known_grads=known, wrt=inputs, disconnected_inputs="ignore"
         )
-        full = theano.function(inputs, full)
+        full = aesara.function(inputs, full)
         full = full(*values)
         assert len(true_grads) == len(full)
         for a, b, var in zip(true_grads, full, inputs):
@@ -660,7 +660,7 @@ def test_dxdx():
     # of the gradient as defined in the Op contract, it should be 1.
     # If you feel the need to change this unit test you are probably
     # modifying the Op contract and should definitely get the approval
-    # of multiple people on theano-dev.
+    # of multiple people on aesara-dev.
 
     x = iscalar()
     g = grad(x, x)
@@ -678,7 +678,7 @@ def test_known_grads_integers():
 
     g_grad = grad(cost=None, known_grads={x: g_expected}, wrt=x)
 
-    f = theano.function([g_expected], g_grad)
+    f = aesara.function([g_expected], g_grad)
 
     x = -3
     gv = np.cast[config.floatX](0.6)
@@ -732,8 +732,8 @@ def test_subgraph_grad():
 
     x = fvector("x")
     t = fvector("t")
-    w1 = theano.shared(np.random.randn(3, 4))
-    w2 = theano.shared(np.random.randn(4, 2))
+    w1 = aesara.shared(np.random.randn(3, 4))
+    w2 = aesara.shared(np.random.randn(4, 2))
     a1 = tanh(dot(x, w1))
     a2 = tanh(dot(a1, w2))
     cost2 = sqr(a2 - t).sum()
@@ -752,7 +752,7 @@ def test_subgraph_grad():
     wrt = [w2, w1]
     cost = cost2 + cost1
     true_grads = grad(cost, wrt)
-    true_grads = theano.function(inputs, true_grads)
+    true_grads = aesara.function(inputs, true_grads)
     true_grads = true_grads(*values)
     next_grad = None
     param_grads = []
@@ -763,7 +763,7 @@ def test_subgraph_grad():
         next_grad = OrderedDict(zip(grad_ends[i], next_grad))
         param_grads.extend(param_grad)
 
-    pgrads = theano.function(inputs, param_grads)
+    pgrads = aesara.function(inputs, param_grads)
     pgrads = pgrads(*values)
 
     for true_grad, pgrad in zip(true_grads, pgrads):
@@ -778,9 +778,9 @@ class TestConsiderConstant:
     def test_op_removed(self):
         x = matrix("x")
         y = x * consider_constant(x)
-        f = theano.function([x], y)
-        # need to refer to theano.consider_constant_ here,
-        # theano.consider_constant is a wrapper function!
+        f = aesara.function([x], y)
+        # need to refer to aesara.consider_constant_ here,
+        # aesara.consider_constant is a wrapper function!
         assert consider_constant_ not in [node.op for node in f.maker.fgraph.toposort()]
 
     def test_grad(self):
@@ -797,10 +797,10 @@ class TestConsiderConstant:
 
         for expr, expr_grad in expressions_gradients:
             g = grad(expr.sum(), x)
-            # gradient according to theano
-            f = theano.function([x], g, on_unused_input="ignore")
+            # gradient according to aesara
+            f = aesara.function([x], g, on_unused_input="ignore")
             # desired gradient
-            f2 = theano.function([x], expr_grad, on_unused_input="ignore")
+            f2 = aesara.function([x], expr_grad, on_unused_input="ignore")
 
             assert np.allclose(f(a), f2(a))
 
@@ -813,9 +813,9 @@ class TestZeroGrad:
     def test_op_removed(self):
         x = matrix("x")
         y = x * zero_grad(x)
-        f = theano.function([x], y)
-        # need to refer to theano.zero_grad here,
-        # theano.zero_grad is a wrapper function!
+        f = aesara.function([x], y)
+        # need to refer to aesara.zero_grad here,
+        # aesara.zero_grad is a wrapper function!
         assert zero_grad_ not in [node.op for node in f.maker.fgraph.toposort()]
 
     def test_grad(self):
@@ -832,10 +832,10 @@ class TestZeroGrad:
 
         for expr, expr_grad in expressions_gradients:
             g = grad(expr.sum(), x)
-            # gradient according to theano
-            f = theano.function([x], g, on_unused_input="ignore")
+            # gradient according to aesara
+            f = aesara.function([x], g, on_unused_input="ignore")
             # desired gradient
-            f2 = theano.function([x], expr_grad, on_unused_input="ignore")
+            f2 = aesara.function([x], expr_grad, on_unused_input="ignore")
 
             assert np.allclose(f(a), f2(a))
 
@@ -845,7 +845,7 @@ class TestZeroGrad:
         y = zero_grad(x)
 
         rop = Rop(y, x, v)
-        f = theano.function([x, v], rop, on_unused_input="ignore")
+        f = aesara.function([x, v], rop, on_unused_input="ignore")
 
         a = np.asarray(self.rng.randn(5), dtype=config.floatX)
         u = np.asarray(self.rng.randn(5), dtype=config.floatX)
@@ -861,9 +861,9 @@ class TestDisconnectedGrad:
     def test_op_removed(self):
         x = matrix("x")
         y = x * disconnected_grad(x)
-        f = theano.function([x], y)
-        # need to refer to theano.disconnected_grad here,
-        # theano.disconnected_grad is a wrapper function!
+        f = aesara.function([x], y)
+        # need to refer to aesara.disconnected_grad here,
+        # aesara.disconnected_grad is a wrapper function!
         assert disconnected_grad_ not in [node.op for node in f.maker.fgraph.toposort()]
 
     def test_grad(self):
@@ -879,10 +879,10 @@ class TestDisconnectedGrad:
 
         for expr, expr_grad in expressions_gradients:
             g = grad(expr.sum(), x)
-            # gradient according to theano
-            f = theano.function([x], g, on_unused_input="ignore")
+            # gradient according to aesara
+            f = aesara.function([x], g, on_unused_input="ignore")
             # desired gradient
-            f2 = theano.function([x], expr_grad, on_unused_input="ignore")
+            f2 = aesara.function([x], expr_grad, on_unused_input="ignore")
 
             assert np.allclose(f(a), f2(a))
 
@@ -926,7 +926,7 @@ def test_grad_clip():
     z = grad(grad_clip(x, -1, 1) ** 2, x)
     z2 = grad(x ** 2, x)
 
-    f = theano.function([x], outputs=[z, z2])
+    f = aesara.function([x], outputs=[z, z2])
 
     if config.mode != "FAST_COMPILE":
         topo = f.maker.fgraph.toposort()
@@ -942,7 +942,7 @@ def test_grad_scale():
     z = grad(grad_scale(x, 2) ** 2, x)
     z2 = grad(x ** 2, x)
 
-    f = theano.function([x], outputs=[z, z2])
+    f = aesara.function([x], outputs=[z, z2])
 
     if config.mode != "FAST_COMPILE":
         topo = f.maker.fgraph.toposort()
@@ -957,7 +957,7 @@ def test_undefined_grad_opt():
     # Make sure that undefined grad get removed in optimized graph.
     random = MRG_RandomStream(np.random.randint(1, 2147462579))
 
-    pvals = theano.shared(np.random.rand(10, 20).astype(config.floatX))
+    pvals = aesara.shared(np.random.rand(10, 20).astype(config.floatX))
     pvals = pvals / pvals.sum(axis=1)
     pvals = zero_grad(pvals)
 
@@ -968,7 +968,7 @@ def test_undefined_grad_opt():
     cost = tt_sum(samples + pvals)
     grad_res = grad(cost, samples)
 
-    f = theano.function([], grad_res)
+    f = aesara.function([], grad_res)
     assert not any(
         [isinstance(node.op, UndefinedGrad) for node in f.maker.fgraph.apply_nodes]
     )
@@ -981,31 +981,31 @@ def test_jacobian_vector():
 
     # test when the jacobian is called with a tensor as wrt
     Jx = jacobian(y, x)
-    f = theano.function([x], Jx)
-    vx = rng.uniform(size=(10,)).astype(theano.config.floatX)
+    f = aesara.function([x], Jx)
+    vx = rng.uniform(size=(10,)).astype(aesara.config.floatX)
     assert np.allclose(f(vx), np.eye(10) * 2)
 
     # test when the jacobian is called with a tuple as wrt
     Jx = jacobian(y, (x,))
     assert isinstance(Jx, tuple)
-    f = theano.function([x], Jx[0])
-    vx = rng.uniform(size=(10,)).astype(theano.config.floatX)
+    f = aesara.function([x], Jx[0])
+    vx = rng.uniform(size=(10,)).astype(aesara.config.floatX)
     assert np.allclose(f(vx), np.eye(10) * 2)
 
     # test when the jacobian is called with a list as wrt
     Jx = jacobian(y, [x])
     assert isinstance(Jx, list)
-    f = theano.function([x], Jx[0])
-    vx = rng.uniform(size=(10,)).astype(theano.config.floatX)
+    f = aesara.function([x], Jx[0])
+    vx = rng.uniform(size=(10,)).astype(aesara.config.floatX)
     assert np.allclose(f(vx), np.eye(10) * 2)
 
     # test when the jacobian is called with a list of two elements
     z = vector()
     y = x * z
     Js = jacobian(y, [x, z])
-    f = theano.function([x, z], Js)
-    vx = rng.uniform(size=(10,)).astype(theano.config.floatX)
-    vz = rng.uniform(size=(10,)).astype(theano.config.floatX)
+    f = aesara.function([x, z], Js)
+    vx = rng.uniform(size=(10,)).astype(aesara.config.floatX)
+    vz = rng.uniform(size=(10,)).astype(aesara.config.floatX)
     vJs = f(vx, vz)
     evx = np.zeros((10, 10))
     evz = np.zeros((10, 10))
@@ -1025,31 +1025,31 @@ def test_jacobian_matrix():
 
     # test when the jacobian is called with a tensor as wrt
     Jx = jacobian(y, x)
-    f = theano.function([x], Jx)
-    vx = rng.uniform(size=(10, 10)).astype(theano.config.floatX)
+    f = aesara.function([x], Jx)
+    vx = rng.uniform(size=(10, 10)).astype(aesara.config.floatX)
     assert np.allclose(f(vx), ev)
 
     # test when the jacobian is called with a tuple as wrt
     Jx = jacobian(y, (x,))
     assert isinstance(Jx, tuple)
-    f = theano.function([x], Jx[0])
-    vx = rng.uniform(size=(10, 10)).astype(theano.config.floatX)
+    f = aesara.function([x], Jx[0])
+    vx = rng.uniform(size=(10, 10)).astype(aesara.config.floatX)
     assert np.allclose(f(vx), ev)
 
     # test when the jacobian is called with a list as wrt
     Jx = jacobian(y, [x])
     assert isinstance(Jx, list)
-    f = theano.function([x], Jx[0])
-    vx = rng.uniform(size=(10, 10)).astype(theano.config.floatX)
+    f = aesara.function([x], Jx[0])
+    vx = rng.uniform(size=(10, 10)).astype(aesara.config.floatX)
     assert np.allclose(f(vx), ev)
 
     # test when the jacobian is called with a list of two elements
     z = matrix()
     y = (x * z).sum(axis=1)
     Js = jacobian(y, [x, z])
-    f = theano.function([x, z], Js)
-    vx = rng.uniform(size=(10, 10)).astype(theano.config.floatX)
-    vz = rng.uniform(size=(10, 10)).astype(theano.config.floatX)
+    f = aesara.function([x, z], Js)
+    vx = rng.uniform(size=(10, 10)).astype(aesara.config.floatX)
+    vz = rng.uniform(size=(10, 10)).astype(aesara.config.floatX)
     vJs = f(vx, vz)
     evx = np.zeros((10, 10, 10))
     evz = np.zeros((10, 10, 10))
@@ -1067,31 +1067,31 @@ def test_jacobian_scalar():
 
     # test when the jacobian is called with a tensor as wrt
     Jx = jacobian(y, x)
-    f = theano.function([x], Jx)
-    vx = np.cast[theano.config.floatX](rng.uniform())
+    f = aesara.function([x], Jx)
+    vx = np.cast[aesara.config.floatX](rng.uniform())
     assert np.allclose(f(vx), 2)
 
     # test when the jacobian is called with a tuple as wrt
     Jx = jacobian(y, (x,))
     assert isinstance(Jx, tuple)
-    f = theano.function([x], Jx[0])
-    vx = np.cast[theano.config.floatX](rng.uniform())
+    f = aesara.function([x], Jx[0])
+    vx = np.cast[aesara.config.floatX](rng.uniform())
     assert np.allclose(f(vx), 2)
 
     # test when the jacobian is called with a list as wrt
     Jx = jacobian(y, [x])
     assert isinstance(Jx, list)
-    f = theano.function([x], Jx[0])
-    vx = np.cast[theano.config.floatX](rng.uniform())
+    f = aesara.function([x], Jx[0])
+    vx = np.cast[aesara.config.floatX](rng.uniform())
     assert np.allclose(f(vx), 2)
 
     # test when the jacobian is called with a list of two elements
     z = scalar()
     y = x * z
     Jx = jacobian(y, [x, z])
-    f = theano.function([x, z], Jx)
-    vx = np.cast[theano.config.floatX](rng.uniform())
-    vz = np.cast[theano.config.floatX](rng.uniform())
+    f = aesara.function([x, z], Jx)
+    vx = np.cast[aesara.config.floatX](rng.uniform())
+    vz = np.cast[aesara.config.floatX](rng.uniform())
     vJx = f(vx, vz)
 
     assert np.allclose(vJx[0], vz)
@@ -1102,8 +1102,8 @@ def test_hessian():
     x = vector()
     y = tt_sum(x ** 2)
     Hx = hessian(y, x)
-    f = theano.function([x], Hx)
-    vx = np.arange(10).astype(theano.config.floatX)
+    f = aesara.function([x], Hx)
+    vx = np.arange(10).astype(aesara.config.floatX)
     assert np.allclose(f(vx), np.eye(10) * 2)
 
 
@@ -1112,14 +1112,14 @@ def test_jacobian_disconnected_inputs():
 
     v1 = vector()
     v2 = vector()
-    jacobian_v = theano.gradient.jacobian(1 + v1, v2, disconnected_inputs="ignore")
-    func_v = theano.function([v1, v2], jacobian_v)
-    val = np.arange(4.0).astype(theano.config.floatX)
+    jacobian_v = aesara.gradient.jacobian(1 + v1, v2, disconnected_inputs="ignore")
+    func_v = aesara.function([v1, v2], jacobian_v)
+    val = np.arange(4.0).astype(aesara.config.floatX)
     assert np.allclose(func_v(val, val), np.zeros((4, 4)))
 
     s1 = scalar()
     s2 = scalar()
-    jacobian_s = theano.gradient.jacobian(1 + s1, s2, disconnected_inputs="ignore")
-    func_s = theano.function([s2], jacobian_s)
-    val = np.array(1.0).astype(theano.config.floatX)
+    jacobian_s = aesara.gradient.jacobian(1 + s1, s2, disconnected_inputs="ignore")
+    func_s = aesara.function([s2], jacobian_s)
+    val = np.array(1.0).astype(aesara.config.floatX)
     assert np.allclose(func_s(val), np.zeros(1))

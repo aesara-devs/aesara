@@ -3,13 +3,12 @@ from collections import OrderedDict
 import numpy as np
 import pytest
 
-import theano
-import theano.tensor as tt
-from tests import unittest_tools as utt
-from theano.configdefaults import config
-from theano.tensor.math import sum as tt_sum
-from theano.tensor.nnet import batchnorm
-from theano.tensor.type import (
+import aesara
+import aesara.tensor as tt
+from aesara.configdefaults import config
+from aesara.tensor.math import sum as tt_sum
+from aesara.tensor.nnet import batchnorm
+from aesara.tensor.type import (
     TensorType,
     matrix,
     scalar,
@@ -18,6 +17,7 @@ from theano.tensor.type import (
     tensor5,
     vector,
 )
+from tests import unittest_tools as utt
 
 
 def test_BNComposite():
@@ -41,18 +41,18 @@ def test_BNComposite():
         m = vector("m")
         v = vector("v")
 
-        x.tag.test_value = np.random.rand(2, 2).astype(theano.config.floatX)
-        b.tag.test_value = np.random.rand(2).astype(theano.config.floatX)
-        g.tag.test_value = np.random.rand(2).astype(theano.config.floatX)
-        m.tag.test_value = np.random.rand(2).astype(theano.config.floatX)
-        v.tag.test_value = np.random.rand(2).astype(theano.config.floatX)
+        x.tag.test_value = np.random.rand(2, 2).astype(aesara.config.floatX)
+        b.tag.test_value = np.random.rand(2).astype(aesara.config.floatX)
+        g.tag.test_value = np.random.rand(2).astype(aesara.config.floatX)
+        m.tag.test_value = np.random.rand(2).astype(aesara.config.floatX)
+        v.tag.test_value = np.random.rand(2).astype(aesara.config.floatX)
 
         bn_ref_op = bn_ref(x, g, b, m, v)
-        f_ref = theano.function([x, b, g, m, v], [bn_ref_op])
+        f_ref = aesara.function([x, b, g, m, v], [bn_ref_op])
         res_ref = f_ref(X, G, B, M, V)
         for mode in ["low_mem", "high_mem"]:
             bn_op = batchnorm.batch_normalization(x, g, b, m, v, mode=mode)
-            f = theano.function([x, b, g, m, v], [bn_op])
+            f = aesara.function([x, b, g, m, v], [bn_op])
             res = f(X, G, B, M, V)
             utt.assert_allclose(res_ref, res)
 
@@ -76,11 +76,11 @@ def test_batch_normalization():
     v = vector("v")
 
     bn_ref_op = bn_ref(x, g, b, m, v)
-    f_ref = theano.function([x, g, b, m, v], [bn_ref_op])
+    f_ref = aesara.function([x, g, b, m, v], [bn_ref_op])
     res_ref = f_ref(X, G, B, M, V)
     for mode in ["low_mem", "high_mem"]:
         bn_op = batchnorm.batch_normalization(x, g, b, m, v, mode=mode)
-        f = theano.function([x, g, b, m, v], [bn_op])
+        f = aesara.function([x, g, b, m, v], [bn_op])
         res = f(X, G, B, M, V)
         utt.assert_allclose(res_ref, res)
 
@@ -94,7 +94,7 @@ def test_batch_normalization():
     bn_ref_op = bn_ref(
         x, g, b, x.mean(axis=0, keepdims=True), x.std(axis=0, keepdims=True)
     )
-    f_ref = theano.function([x, b, g], [bn_ref_op])
+    f_ref = aesara.function([x, b, g], [bn_ref_op])
     res_ref = f_ref(X, G, B)
     for mode in ["low_mem", "high_mem"]:
         bn_op = batchnorm.batch_normalization(
@@ -105,7 +105,7 @@ def test_batch_normalization():
             x.std(axis=0, keepdims=True),
             mode=mode,
         )
-        f = theano.function([x, b, g], [bn_op])
+        f = aesara.function([x, b, g], [bn_op])
         res = f(X, G, B)
         utt.assert_allclose(res_ref, res)
 
@@ -144,7 +144,7 @@ def test_bn_feature_maps():
         m.dimshuffle("x", 0, "x", "x"),
         v.dimshuffle("x", 0, "x", "x"),
     )
-    f_ref = theano.function([x, b, g, m, v], [bn_ref_op])
+    f_ref = aesara.function([x, b, g, m, v], [bn_ref_op])
     res_ref = f_ref(X, G, B, M, V)
 
     for mode in ["low_mem", "high_mem"]:
@@ -156,7 +156,7 @@ def test_bn_feature_maps():
             v.dimshuffle("x", 0, "x", "x"),
             mode=mode,
         )
-        f = theano.function([x, b, g, m, v], [bn_op])
+        f = aesara.function([x, b, g, m, v], [bn_op])
         res = f(X, G, B, M, V)
         utt.assert_allclose(res_ref, res)
 
@@ -223,7 +223,7 @@ def test_batch_normalization_train():
             scale2 = tt.addbroadcast(scale, *axes2)
             bias2 = tt.addbroadcast(bias, *axes2)
             out2 = (x - x_mean2) * (scale2 * x_invstd2) + bias2
-            m = tt.cast(tt.prod(x.shape) / tt.prod(scale.shape), theano.config.floatX)
+            m = tt.cast(tt.prod(x.shape) / tt.prod(scale.shape), aesara.config.floatX)
             out_running_mean2 = (
                 running_mean * (1 - running_average_factor)
                 + x_mean2 * running_average_factor
@@ -279,7 +279,7 @@ def test_batch_normalization_train():
                 return_disconnected="zero",
             )
             # compile
-            f = theano.function(
+            f = aesara.function(
                 [x, scale, bias, running_mean, running_var, dy, dx, dscale, dbias],
                 [
                     out,
@@ -318,19 +318,19 @@ def test_batch_normalization_train():
                 param_shape = tuple(
                     1 if d in axes2 else s for d, s in enumerate(data_shape)
                 )
-                X = 4 + 3 * np.random.randn(*data_shape).astype(theano.config.floatX)
-                Dy = -1 + 2 * np.random.randn(*data_shape).astype(theano.config.floatX)
-                Scale = np.random.randn(*param_shape).astype(theano.config.floatX)
-                Bias = np.random.randn(*param_shape).astype(theano.config.floatX)
+                X = 4 + 3 * np.random.randn(*data_shape).astype(aesara.config.floatX)
+                Dy = -1 + 2 * np.random.randn(*data_shape).astype(aesara.config.floatX)
+                Scale = np.random.randn(*param_shape).astype(aesara.config.floatX)
+                Bias = np.random.randn(*param_shape).astype(aesara.config.floatX)
                 Running_mean = np.random.randn(*param_shape).astype(
-                    theano.config.floatX
+                    aesara.config.floatX
                 )
-                Running_var = np.random.randn(*param_shape).astype(theano.config.floatX)
-                Dx = 4 + 3 * np.random.randn(*data_shape).astype(theano.config.floatX)
+                Running_var = np.random.randn(*param_shape).astype(aesara.config.floatX)
+                Dx = 4 + 3 * np.random.randn(*data_shape).astype(aesara.config.floatX)
                 Dscale = -1 + 2 * np.random.randn(*param_shape).astype(
-                    theano.config.floatX
+                    aesara.config.floatX
                 )
-                Dbias = np.random.randn(*param_shape).astype(theano.config.floatX)
+                Dbias = np.random.randn(*param_shape).astype(aesara.config.floatX)
 
                 outputs = f(
                     X, Scale, Bias, Running_mean, Running_var, Dy, Dx, Dscale, Dbias
@@ -448,7 +448,7 @@ def test_batch_normalization_train_without_running_averages():
     # backward pass
     grads = tt.grad(None, wrt=[x, scale, bias], known_grads={out: dy})
     # compile
-    f = theano.function([x, scale, bias, dy], [out, x_mean, x_invstd] + grads)
+    f = aesara.function([x, scale, bias, dy], [out, x_mean, x_invstd] + grads)
     # check if the abstract Ops have been replaced
     assert not any(
         [
@@ -464,10 +464,10 @@ def test_batch_normalization_train_without_running_averages():
         ]
     )
     # run
-    X = 4 + 3 * np.random.randn(*data_shape).astype(theano.config.floatX)
-    Dy = -1 + 2 * np.random.randn(*data_shape).astype(theano.config.floatX)
-    Scale = np.random.randn(*param_shape).astype(theano.config.floatX)
-    Bias = np.random.randn(*param_shape).astype(theano.config.floatX)
+    X = 4 + 3 * np.random.randn(*data_shape).astype(aesara.config.floatX)
+    Dy = -1 + 2 * np.random.randn(*data_shape).astype(aesara.config.floatX)
+    Scale = np.random.randn(*param_shape).astype(aesara.config.floatX)
+    Bias = np.random.randn(*param_shape).astype(aesara.config.floatX)
     f(X, Scale, Bias, Dy)
 
 
@@ -552,16 +552,16 @@ def test_batch_normalization_train_broadcast():
             results = [abs(r - r_bc) for (r, r_bc) in zip(results_non_bc, results_bc)]
 
             # compile to compute all differences
-            f = theano.function(
+            f = aesara.function(
                 [x, scale, bias, running_mean, running_var], tt_sum(sum(results))
             )
 
             # the paired ops are exactly the same, so the optimizer should have
             # collapsed the sum of differences to a constant zero
             nodes = f.maker.fgraph.toposort()
-            if theano.config.mode != "FAST_COMPILE":
+            if aesara.config.mode != "FAST_COMPILE":
                 assert len(nodes) == 1
-                assert isinstance(nodes[0].op, theano.compile.DeepCopyOp)
+                assert isinstance(nodes[0].op, aesara.compile.DeepCopyOp)
             inputs = [
                 np.asarray(np.random.rand(*((4,) * n)), x.dtype)
                 for n in [
@@ -616,7 +616,7 @@ def test_batch_normalization_test():
                 None, wrt=[x, scale, bias, mean, var], known_grads={out2: dy}
             )
             # compile
-            f = theano.function(
+            f = aesara.function(
                 [x, scale, bias, mean, var, dy], [out, out2] + grads + grads2
             )
             # check if the abstract Ops have been replaced
@@ -639,12 +639,12 @@ def test_batch_normalization_test():
                 param_shape = tuple(
                     1 if d in axes2 else s for d, s in enumerate(data_shape)
                 )
-                X = 4 + 3 * np.random.randn(*data_shape).astype(theano.config.floatX)
-                Dy = -1 + 2 * np.random.randn(*data_shape).astype(theano.config.floatX)
-                Scale = np.random.randn(*param_shape).astype(theano.config.floatX)
-                Bias = np.random.randn(*param_shape).astype(theano.config.floatX)
-                Mean = np.random.randn(*param_shape).astype(theano.config.floatX)
-                Var = np.random.rand(*param_shape).astype(theano.config.floatX)
+                X = 4 + 3 * np.random.randn(*data_shape).astype(aesara.config.floatX)
+                Dy = -1 + 2 * np.random.randn(*data_shape).astype(aesara.config.floatX)
+                Scale = np.random.randn(*param_shape).astype(aesara.config.floatX)
+                Bias = np.random.randn(*param_shape).astype(aesara.config.floatX)
+                Mean = np.random.randn(*param_shape).astype(aesara.config.floatX)
+                Var = np.random.rand(*param_shape).astype(aesara.config.floatX)
                 outputs = f(X, Scale, Bias, Mean, Var, Dy)
                 # compare outputs
                 utt.assert_allclose(outputs[0], outputs[1])  # out
@@ -674,7 +674,7 @@ def test_batch_normalization_broadcastable():
     grads_train = tt.grad(None, wrt=[x, scale, bias], known_grads={out_train: dy})
     grads_test = tt.grad(None, wrt=[x, scale, bias], known_grads={out_test: dy})
     # compile
-    f = theano.function(
+    f = aesara.function(
         [x, scale, bias, mean, var, dy],
         [out_train, x_mean, x_invstd, out_test] + grads_train + grads_test,
     )

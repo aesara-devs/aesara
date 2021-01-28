@@ -6,32 +6,31 @@ from io import StringIO
 import numpy as np
 import pytest
 
-import theano
-import theano.scalar as ts
-import theano.tensor as tt
-from tests import unittest_tools as utt
-from theano import pprint, shared
-from theano.assert_op import Assert
-from theano.compile import optdb
-from theano.compile.debugmode import DebugMode
-from theano.compile.function import function
-from theano.compile.mode import Mode, get_default_mode, get_mode
-from theano.compile.ops import DeepCopyOp, deep_copy_op
-from theano.configdefaults import config
-from theano.graph.basic import Apply, Constant
-from theano.graph.fg import FunctionGraph
-from theano.graph.op import Op
-from theano.graph.opt import (
+import aesara
+import aesara.scalar as ts
+import aesara.tensor as tt
+from aesara import pprint, shared
+from aesara.assert_op import Assert
+from aesara.compile import optdb
+from aesara.compile.debugmode import DebugMode
+from aesara.compile.function import function
+from aesara.compile.mode import Mode, get_default_mode, get_mode
+from aesara.compile.ops import DeepCopyOp, deep_copy_op
+from aesara.configdefaults import config
+from aesara.graph.basic import Apply, Constant
+from aesara.graph.fg import FunctionGraph
+from aesara.graph.op import Op
+from aesara.graph.opt import (
     LocalOptGroup,
     TopoOptimizer,
     check_stack_trace,
     local_optimizer,
     out2in,
 )
-from theano.graph.optdb import Query
-from theano.misc.safe_asarray import _asarray
-from theano.tensor import inplace
-from theano.tensor.basic import (
+from aesara.graph.optdb import Query
+from aesara.misc.safe_asarray import _asarray
+from aesara.tensor import inplace
+from aesara.tensor.basic import (
     Alloc,
     Join,
     MakeVector,
@@ -45,7 +44,7 @@ from theano.tensor.basic import (
     make_vector,
     tile,
 )
-from theano.tensor.basic_opt import (
+from aesara.tensor.basic_opt import (
     ShapeFeature,
     assert_op,
     local_canonicalize_alloc,
@@ -58,13 +57,13 @@ from theano.tensor.basic_opt import (
     local_useless_reshape,
     register_specialize,
 )
-from theano.tensor.blas import Dot22, Gemv
-from theano.tensor.blas_c import CGemv
-from theano.tensor.elemwise import CAReduce, DimShuffle, Elemwise
-from theano.tensor.math import Dot, MaxAndArgmax, Prod, Sum, abs_, add
-from theano.tensor.math import all as tt_all
-from theano.tensor.math import any as tt_any
-from theano.tensor.math import (
+from aesara.tensor.blas import Dot22, Gemv
+from aesara.tensor.blas_c import CGemv
+from aesara.tensor.elemwise import CAReduce, DimShuffle, Elemwise
+from aesara.tensor.math import Dot, MaxAndArgmax, Prod, Sum, abs_, add
+from aesara.tensor.math import all as tt_all
+from aesara.tensor.math import any as tt_any
+from aesara.tensor.math import (
     arccosh,
     arcsinh,
     arctanh,
@@ -95,25 +94,25 @@ from theano.tensor.math import (
     log10,
     lt,
 )
-from theano.tensor.math import max as tt_max
-from theano.tensor.math import maximum
-from theano.tensor.math import min as tt_min
-from theano.tensor.math import minimum, mul, neg, neq
-from theano.tensor.math import pow as tt_pow
-from theano.tensor.math import prod, rad2deg
-from theano.tensor.math import round as tt_round
-from theano.tensor.math import sgn, sin, sinh, sqr, sqrt, sub
-from theano.tensor.math import sum as tt_sum
-from theano.tensor.math import tan, tanh, true_div, xor
-from theano.tensor.math_opt import (
+from aesara.tensor.math import max as tt_max
+from aesara.tensor.math import maximum
+from aesara.tensor.math import min as tt_min
+from aesara.tensor.math import minimum, mul, neg, neq
+from aesara.tensor.math import pow as tt_pow
+from aesara.tensor.math import prod, rad2deg
+from aesara.tensor.math import round as tt_round
+from aesara.tensor.math import sgn, sin, sinh, sqr, sqrt, sub
+from aesara.tensor.math import sum as tt_sum
+from aesara.tensor.math import tan, tanh, true_div, xor
+from aesara.tensor.math_opt import (
     local_add_specialize,
     local_greedy_distributor,
     local_lift_transpose_through_dot,
     mul_canonizer,
 )
-from theano.tensor.nnet.sigm import softplus
-from theano.tensor.shape import Reshape, Shape_i, SpecifyShape, reshape, specify_shape
-from theano.tensor.subtensor import (
+from aesara.tensor.nnet.sigm import softplus
+from aesara.tensor.shape import Reshape, Shape_i, SpecifyShape, reshape, specify_shape
+from aesara.tensor.subtensor import (
     AdvancedIncSubtensor,
     AdvancedIncSubtensor1,
     AdvancedSubtensor,
@@ -125,7 +124,7 @@ from theano.tensor.subtensor import (
     inc_subtensor,
     set_subtensor,
 )
-from theano.tensor.type import (
+from aesara.tensor.type import (
     TensorType,
     bmatrix,
     bscalar,
@@ -161,7 +160,8 @@ from theano.tensor.type import (
     vector,
     vectors,
 )
-from theano.tensor.var import TensorConstant
+from aesara.tensor.var import TensorConstant
+from tests import unittest_tools as utt
 
 
 mode_opt = config.mode
@@ -1171,12 +1171,12 @@ class TestCanonize:
         sio = StringIO()
         handler = logging.StreamHandler(sio)
         handler.setLevel(logging.ERROR)
-        logging.getLogger("theano.graph.opt").addHandler(handler)
+        logging.getLogger("aesara.graph.opt").addHandler(handler)
         try:
             x = vector()
             function([x], x + np.nan)
         finally:
-            logging.getLogger("theano.graph.opt").removeHandler(handler)
+            logging.getLogger("aesara.graph.opt").removeHandler(handler)
         # Ideally this test would only catch the maxed out equilibrium
         # optimizer error message, but to be safe in case this message
         # is modified in the future, we assert that there is no error
@@ -1207,7 +1207,7 @@ def test_local_merge_abs():
 
 def test_merge_abs_bugfix():
     # Test crash in optimization reported by Jeremiah Lowin at
-    # https://groups.google.com/d/topic/theano-users/TaXfqXP2Mj0/discussion
+    # https://groups.google.com/d/topic/aesara-users/TaXfqXP2Mj0/discussion
     input = matrix()
     # normalize on cols
     step1 = input / input.sum(0)
@@ -1215,7 +1215,7 @@ def test_merge_abs_bugfix():
     step2 = step1 / step1.sum(1)
     # get l1 norm
     l1_norm = abs_(step2).sum()
-    function([input], theano.gradient.grad(l1_norm, input))
+    function([input], aesara.gradient.grad(l1_norm, input))
 
 
 def test_mixeddiv():
@@ -1267,7 +1267,7 @@ def test_cast_in_mul_canonizer():
     o2 = e * go
     mode = get_default_mode().excluding("fusion").including("fast_run")
     f = function([x, y], [o1, o2], mode=mode)
-    theano.printing.debugprint(f, print_type=True)
+    aesara.printing.debugprint(f, print_type=True)
     nodes = f.maker.fgraph.apply_nodes
     assert (
         len(
@@ -2048,7 +2048,7 @@ class TestFusion:
 
         # Make sure that C compilation is used
         mode = Mode("cvm", self.opts)
-        dlogp = function(vars, [theano.grad(logp, v) for v in vars], mode=mode)
+        dlogp = function(vars, [aesara.grad(logp, v) for v in vars], mode=mode)
 
         # Make sure something was fused
         assert any(
@@ -2449,7 +2449,7 @@ def test_local_useless_inc_subtensor():
     o_shape = set_subtensor(s, specify_shape(y, s.shape))
     f_shape = function([x, y], o_shape)
     topo = f_shape.maker.fgraph.toposort()
-    # theano.printing.debugprint(f_shape)
+    # aesara.printing.debugprint(f_shape)
     assert any(isinstance(n.op, IncSubtensor) for n in topo)
     out = f_shape([[2, 3, 6, 7]], [[8, 9]])
     assert (out == np.asarray([[8, 3, 9, 7]])).all()
@@ -2464,7 +2464,7 @@ def test_local_useless_subtensor():
         (slice(0, None), slice(0, None)),
     ]:
         f = function([x], exp(x).__getitem__(dims), mode=mode_opt)
-        # theano.printing.debugprint(f)
+        # aesara.printing.debugprint(f)
         prog = f.maker.fgraph.toposort()
         assert prog[0].op == exp
         assert len(prog) == 1
@@ -2483,7 +2483,7 @@ def test_local_useless_subtensor():
         ((slice(0, 1), 1), False),
     ]:
         f = function([x], exp(x_c).__getitem__(dims), mode=mode_opt)
-        # theano.printing.debugprint(f)
+        # aesara.printing.debugprint(f)
         prog = f.maker.fgraph.toposort()
         if res:
             assert isinstance(prog[0].op, SpecifyShape), dims
@@ -2538,7 +2538,7 @@ def test_local_useless_subtensor():
         ]
     ):
         f = function([x], exp(x).__getitem__(dims), mode=mode_opt)
-        # theano.printing.debugprint(f)
+        # aesara.printing.debugprint(f)
         prog = f.maker.fgraph.toposort()
         if res:
             assert prog[0].op == exp, dims
@@ -2555,7 +2555,7 @@ def test_local_useless_subtensor():
         ]
     ):
         f = function([x], exp(x_c).__getitem__(dims), mode=mode_opt)
-        # theano.printing.debugprint(f)
+        # aesara.printing.debugprint(f)
         prog = f.maker.fgraph.toposort()
         if res:
             assert prog[0].op == exp, dims
@@ -2572,7 +2572,7 @@ def test_local_useless_subtensor():
         ]
     ):
         f = function([x, s], exp(x).__getitem__(dims), mode=mode_opt)
-        # theano.printing.debugprint(f)
+        # aesara.printing.debugprint(f)
         prog = f.maker.fgraph.toposort()
         if res:
             assert prog[0].op == exp, dims
@@ -2596,7 +2596,7 @@ def test_local_useless_subtensor():
         (tt.arange(1, 2), False),
     ):
         f = function([x], exp(x_c).__getitem__(dims), mode=mode_opt)
-        # theano.printing.debugprint(f)
+        # aesara.printing.debugprint(f)
         prog = f.maker.fgraph.toposort()
         if res:
             assert isinstance(prog[0].op, SpecifyShape), dims
@@ -3152,7 +3152,7 @@ class TestLocalSubtensorMerge:
         g = function(
             [x, y], x[y::][-1], mode=mode_opt.excluding("local_subtensor_merge")
         )
-        # theano.printing.debugprint(f, print_type=True)
+        # aesara.printing.debugprint(f, print_type=True)
 
         # Check stacktrace was copied over correctly after opt was applied
         assert check_stack_trace(f, ops_to_check=Subtensor)
@@ -3189,7 +3189,7 @@ class TestLocalSubtensorMerge:
             # Check stacktrace was copied over correctly after opt was applied
             assert check_stack_trace(f, ops_to_check=Subtensor)
 
-            # theano.printing.debugprint(f, print_type=True)
+            # aesara.printing.debugprint(f, print_type=True)
             topo = f.maker.fgraph.toposort()
             # print [t for t in topo if isinstance(t.op, Subtensor)]
             assert len([t for t in topo if isinstance(t.op, Subtensor)]) == 1
@@ -3217,7 +3217,7 @@ class TestLocalSubtensorMerge:
         g = function(
             [x, y], x[::-1][y], mode=mode_opt.excluding("local_subtensor_merge")
         )
-        # theano.printing.debugprint(f, print_type=True)
+        # aesara.printing.debugprint(f, print_type=True)
 
         # Check stacktrace was copied over correctly after opt was applied
         assert check_stack_trace(f, ops_to_check=Subtensor)
@@ -3248,7 +3248,7 @@ class TestLocalSubtensorMerge:
             # Check stacktrace was copied over correctly after opt was applied
             assert check_stack_trace(f, ops_to_check=Subtensor)
 
-            # theano.printing.debugprint(f, print_type=True)
+            # aesara.printing.debugprint(f, print_type=True)
             topo = f.maker.fgraph.toposort()
             # print [t for t in topo if isinstance(t.op, Subtensor)]
             assert len([t for t in topo if isinstance(t.op, Subtensor)]) == 1
@@ -3268,7 +3268,7 @@ class TestLocalSubtensorMerge:
         # Check stacktrace was copied over correctly after opt was applied
         assert check_stack_trace(f, ops_to_check=Subtensor)
 
-        # theano.printing.debugprint(f, print_type=True)
+        # aesara.printing.debugprint(f, print_type=True)
 
         topo = f.maker.fgraph.toposort()
         # print [t for t in topo if isinstance(t.op, Subtensor)]
@@ -3291,7 +3291,7 @@ class TestLocalSubtensorMerge:
                 # Check stacktrace was copied over correctly after opt was applied
                 assert check_stack_trace(f, ops_to_check=Subtensor)
 
-                # theano.printing.debugprint(f, print_type=True)
+                # aesara.printing.debugprint(f, print_type=True)
                 topo = f.maker.fgraph.toposort()
                 # print [t for t in topo if isinstance(t.op, Subtensor)]
                 assert len([t for t in topo if isinstance(t.op, Subtensor)]) == 1
@@ -3312,7 +3312,7 @@ class TestLocalSubtensorMerge:
         # Check stacktrace was copied over correctly after opt was applied
         assert check_stack_trace(f, ops_to_check=Subtensor)
 
-        # theano.printing.debugprint(f, print_type=True)
+        # aesara.printing.debugprint(f, print_type=True)
 
         topo = f.maker.fgraph.toposort()
         # print [t for t in topo if isinstance(t.op, Subtensor)]
@@ -3361,7 +3361,7 @@ class TestLocalSubtensorMerge:
         # Check stacktrace was copied over correctly after opt was applied
         assert check_stack_trace(f, ops_to_check=Subtensor)
 
-        # theano.printing.debugprint(f, print_type=True)
+        # aesara.printing.debugprint(f, print_type=True)
 
         topo = f.maker.fgraph.toposort()
         # print [t for t in topo if isinstance(t.op, Subtensor)]
@@ -3455,7 +3455,7 @@ class TestLocalSubtensorMerge:
         # Check stacktrace was copied over correctly after opt was applied
         assert check_stack_trace(f, ops_to_check=Subtensor)
 
-        # theano.printing.debugprint(f, print_type=True)
+        # aesara.printing.debugprint(f, print_type=True)
 
         topo = f.maker.fgraph.toposort()
         # print [t for t in topo if isinstance(t.op, Subtensor)]
@@ -3508,7 +3508,7 @@ class TestLocalSubtensorMerge:
         s2 = iscalar("s2")
 
         # Generate all possible lists of positions for None in those 6 slots
-        # A 1 indicates None is present, 0 that there is a Theano scalar.
+        # A 1 indicates None is present, 0 that there is an Aesara scalar.
         none_positions = np.ndindex(2, 2, 2, 2, 2, 2)
 
         # Ranges to be used when not None
@@ -3570,7 +3570,7 @@ class TestLocalSubtensorMerge:
         i = iscalar("i")
 
         # Generate all possible lists of positions for None in those 6 slots
-        # A 1 indicates None is present, 0 that there is a Theano scalar.
+        # A 1 indicates None is present, 0 that there is an Aesara scalar.
         # The last index (i) is never None
         none_positions = np.ndindex(2, 2, 2, 1)
 
@@ -3970,7 +3970,7 @@ def test_local_IncSubtensor_serialize():
     t = scalar("t")
     y = (W[i] + W[j] + W[1] + W[i, j]).sum()
     cost = sqr(t - y)
-    dW = theano.grad(cost, W)
+    dW = aesara.grad(cost, W)
     mode = get_default_mode().excluding("fusion")
     mode = mode.including("local_IncSubtensor_serialize")
     f = function([i, j, t], updates=[(W, W - 0.01 * dW)], mode=mode)
@@ -4056,14 +4056,14 @@ def test_local_subtensor_of_dot():
         return a.shape == b.shape and np.allclose(a, b)
 
     # [cst]
-    f = function([m1, m2], theano.tensor.dot(m1, m2)[1], mode=mode)
+    f = function([m1, m2], aesara.tensor.dot(m1, m2)[1], mode=mode)
     topo = f.maker.fgraph.toposort()
     assert test_equality(f(d1, d2), np.dot(d1, d2)[1])
     # DimShuffle happen in FAST_COMPILE
     assert isinstance(topo[-1].op, (CGemv, Gemv, DimShuffle))
 
     # slice
-    f = function([m1, m2], theano.tensor.dot(m1, m2)[1:2], mode=mode)
+    f = function([m1, m2], aesara.tensor.dot(m1, m2)[1:2], mode=mode)
     topo = f.maker.fgraph.toposort()
     assert test_equality(f(d1, d2), np.dot(d1, d2)[1:2])
     assert isinstance(topo[-1].op, Dot22)
@@ -4074,12 +4074,12 @@ def test_local_subtensor_of_dot():
     d1 = np.arange(30).reshape(2, 5, 3).astype(config.floatX)
     d2 = np.arange(72).reshape(4, 3, 6).astype(config.floatX) + 100
 
-    f = function([m1, m2, idx], theano.tensor.dot(m1, m2)[idx, 1:4, :, idx:], mode=mode)
+    f = function([m1, m2, idx], aesara.tensor.dot(m1, m2)[idx, 1:4, :, idx:], mode=mode)
     assert test_equality(f(d1, d2, 1), np.dot(d1, d2)[1, 1:4, :, 1:])
     # if we return the gradients. We need to use same mode as before.
     assert check_stack_trace(f, ops_to_check="last")
 
-    f = function([m1, m2, idx], theano.tensor.dot(m1, m2)[1:4, :, idx:, idx], mode=mode)
+    f = function([m1, m2, idx], aesara.tensor.dot(m1, m2)[1:4, :, idx:, idx], mode=mode)
     assert test_equality(f(d1, d2, 1), np.dot(d1, d2)[1:4, :, 1:, 1])
 
     # Now test that the stack trace is copied over properly,
@@ -4469,11 +4469,11 @@ class TestLocalUselessElemwiseComparison:
         # The following case is what made me discover those cases.
         X = matrix("X")
         Y = vector("Y")
-        X_sum, updates = theano.scan(
+        X_sum, updates = aesara.scan(
             fn=lambda x: x.sum(), outputs_info=None, sequences=[X], non_sequences=None
         )
         Z = X_sum + Y
-        # theano.printing.debugprint(Z)
+        # aesara.printing.debugprint(Z)
         # here is the output for the debug print:
         """
         Elemwise{add,no_inplace} [id A] ''
@@ -4504,7 +4504,7 @@ class TestLocalUselessElemwiseComparison:
             self.rng.rand(2, 3).astype(config.floatX),
             self.rng.rand(2).astype(config.floatX),
         )
-        # theano.printing.debugprint(f, print_type=True)
+        # aesara.printing.debugprint(f, print_type=True)
         # here is the output for the debug print:
         """
         Elemwise{Add}[(0, 0)] [id A] <TensorType(float64, vector)> ''   7
@@ -5708,12 +5708,12 @@ def test_constant_folding():
 
 
 @pytest.mark.xfail(
-    reason="Theano optimizes constant before stabilization. "
+    reason="Aesara optimizes constant before stabilization. "
     "This breaks stabilization optimization in some "
     "cases. See #504."
 )
 def test_constant_get_stabilized():
-    # Currently Theano enable the constant_folding optimization before stabilization optimization.
+    # Currently Aesara enable the constant_folding optimization before stabilization optimization.
     # This cause some stabilization optimization not being implemented and thus cause inf value to appear
     # when it should not.
     #
@@ -5828,7 +5828,7 @@ class TestLocalSwitchSink:
         # This case caused a missed optimization in the past.
         x = dscalar("x")
         y = tt.switch(x < 7, x, sqrt(x - 7))
-        f = self.function_remove_nan([x], theano.gradient.grad(y, x), self.mode)
+        f = self.function_remove_nan([x], aesara.gradient.grad(y, x), self.mode)
         assert f(5) == 1, f(5)
 
     @pytest.mark.slow
@@ -6134,7 +6134,7 @@ class TestLocalErfc:
         mode_fusion = copy.copy(self.mode_fusion)
         mode_fusion.check_isfinite = False
 
-        f = function([x], theano.gradient.grad(log(erfc(x)).sum(), x), mode=mode)
+        f = function([x], aesara.gradient.grad(log(erfc(x)).sum(), x), mode=mode)
 
         assert len(f.maker.fgraph.apply_nodes) == 22, len(f.maker.fgraph.apply_nodes)
         assert all(np.isfinite(f(val)))
@@ -6165,12 +6165,12 @@ class TestLocalErfc:
         assert all(np.isfinite(f(val)))
 
         # test that it work correctly if x is x*2 in the graph.
-        f = function([x], theano.gradient.grad(log(erfc(2 * x)).sum(), x), mode=mode)
+        f = function([x], aesara.gradient.grad(log(erfc(2 * x)).sum(), x), mode=mode)
         assert len(f.maker.fgraph.apply_nodes) == 23, len(f.maker.fgraph.apply_nodes)
         assert np.isfinite(f(val)).all()
         assert f.maker.fgraph.outputs[0].dtype == config.floatX
 
-        f = function([x], theano.gradient.grad(log(erfc(x)).sum(), x), mode=mode_fusion)
+        f = function([x], aesara.gradient.grad(log(erfc(x)).sum(), x), mode=mode_fusion)
         assert len(f.maker.fgraph.apply_nodes) == 1, len(f.maker.fgraph.apply_nodes)
         assert f.maker.fgraph.outputs[0].dtype == config.floatX
 
@@ -6951,7 +6951,7 @@ class TestLocalReduce:
         topo = f.maker.fgraph.toposort()
         assert isinstance(topo[-1].op, Elemwise)
 
-        # Test a case that was bugged in a old Theano bug
+        # Test a case that was bugged in a old Aesara bug
         with config.change_flags(warn__reduce_join=False):
             f = function([], tt_sum(tt.stack([A, A]), axis=1), mode=self.mode)
 
@@ -7175,9 +7175,9 @@ class TestMakeVector(utt.InferShapeTester):
             f(val[b], val[i], val[d])
 
             s = mv.sum()
-            gb = theano.gradient.grad(s, b, disconnected_inputs="ignore")
-            gi = theano.gradient.grad(s, i, disconnected_inputs="ignore")
-            gd = theano.gradient.grad(s, d, disconnected_inputs="ignore")
+            gb = aesara.gradient.grad(s, b, disconnected_inputs="ignore")
+            gi = aesara.gradient.grad(s, i, disconnected_inputs="ignore")
+            gd = aesara.gradient.grad(s, d, disconnected_inputs="ignore")
             # print 'gb =', gb
             # print 'gi =', gi
             # print 'gd =', gd
@@ -7232,7 +7232,7 @@ class TestMakeVector(utt.InferShapeTester):
         ]:
             try:
                 MakeVector(dtype=dtype)(*inputs)
-                raise Exception("Theano should have raised an error")
+                raise Exception("Aesara should have raised an error")
             except AssertionError:
                 pass
 
@@ -7387,7 +7387,7 @@ def test_local_join_make_vector():
     mv = MakeVector(config.floatX)
     s = tt.join(0, mv(a), v, mv(b, c), mv(d, e))
     f = function([a, b, c, d, e, v], s, mode=mode_opt)
-    theano.printing.debugprint(f)
+    aesara.printing.debugprint(f)
     val = f(1, 2, 3, 4, 6, [7, 8])
     assert np.all(val == [1, 7, 8, 2, 3, 4, 6])
     e = f.maker.fgraph.toposort()
@@ -7724,7 +7724,7 @@ class TestLiftTransposeThroughDot:
 def test_local_upcast_elemwise_constant_inputs():
     s = dvector("s")
     x = tt_sum(log(10 ** s))
-    f = function([s], [theano.gradient.grad(x, s)])
+    f = function([s], [aesara.gradient.grad(x, s)])
     f([-42, -2.1, -1, -0.5, 0, 0.2, 1, 2, 12])
 
     # This test a corner where the optimization should not be applied.
@@ -7818,7 +7818,7 @@ def test_assert_op_gradient():
     x = vector("x")
     assert_op = Assert()
     cost = tt_sum(assert_op(x, x.size < 2))
-    grad = theano.gradient.grad(cost, x)
+    grad = aesara.gradient.grad(cost, x)
     func = function([x], grad)
 
     x_val = np.ones(shape=(1,), dtype=config.floatX)

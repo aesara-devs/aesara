@@ -11,7 +11,7 @@ Random Numbers
 == Requirements ==
 
 
-Theano functions sometimes need random numbers.
+Aesara functions sometimes need random numbers.
 Random operations are not as simple as other operations such as ones_like, or pow(), because the output must be different when we call the same function repeatedly.  CompileFunction's new default-valued, updatable input variables make this possible.  At the same time we need random streams to be repeatable, and easy to work with.  So the basic requirements of our random number mechanism are:
 
  1. Internal random number generators must be used in a clear manner, and be accessible to the caller after a function has been compiled.
@@ -25,7 +25,7 @@ Random operations are not as simple as other operations such as ones_like, or po
 
 One option would be to skirt the issue by requiring users to pass all the random numbers we might need as input.
 However, it is not always simple to know how many random numbers will be required because the shape of a random matrix might be computed within the graph.
-The solution proposed here is to pass one or more random number generators as input to {{{theano.function}}}.
+The solution proposed here is to pass one or more random number generators as input to {{{aesara.function}}}.
 
 Sharing a random number generator between different {{{RandomOp}}} instances makes it difficult to producing the same stream regardless of other ops in graph, and to keep {{{RandomOps}}} isolated.
 Therefore, each {{{RandomOp}}} instance in a graph will have its very own random number generator.
@@ -41,7 +41,7 @@ So the proposal is to provide the missing functionality (the last three requirem
 
     #!python
     # create a random generator, providing a default seed to condition how RandomOp instances are produced.
-    from theano.compile.function import function
+    from aesara.compile.function import function
 
 
     r = MetaRandom(metaseed=872364)
@@ -99,7 +99,7 @@ So the proposal is to provide the missing functionality (the last three requirem
 == {{{MetaRandom}}} ==
 
 The {{{MetaRandom}}} class is the proposed interface for getting {{{RandomOp}}} instances.
-There are some syntactic similarities in the way {{{MetaRandom}}} is used to construct graphs, and the way {{{numpy.RandomState}}} appears in a corresponding procedural implementation.  But since theano is symbolic the meaning of {{{MetaRandom}}} is quite different.
+There are some syntactic similarities in the way {{{MetaRandom}}} is used to construct graphs, and the way {{{numpy.RandomState}}} appears in a corresponding procedural implementation.  But since aesara is symbolic the meaning of {{{MetaRandom}}} is quite different.
 
 As with {{{numpy.RandomState}}} though, a global instance of {{{MetaRandom}}} will be instantiated at import time for the scripter's convenience.
 
@@ -186,7 +186,7 @@ then any time afterward both {{{r.setstate(fn, state_99)}}} and {{{r.seed(fn, 99
 
     #!python
     # create a random state
-    from theano.compile.function import function
+    from aesara.compile.function import function
 
 
     r = RandomState(name = 'r')

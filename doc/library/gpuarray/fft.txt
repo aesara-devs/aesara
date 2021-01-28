@@ -1,7 +1,7 @@
 .. _libdoc_gpuarray_fft:
 
 =====================================================
-:mod:`theano.gpuarray.fft` -- Fast Fourier Transforms
+:mod:`aesara.gpuarray.fft` -- Fast Fourier Transforms
 =====================================================
 
 Performs Fast Fourier Transforms (FFT) on the GPU.
@@ -15,27 +15,27 @@ FFT gradients are implemented as the opposite Fourier transform of the output gr
 
 .. warning ::
     The real and imaginary parts of the Fourier domain arrays are stored as a pair of float32
-    arrays, emulating complex64. Since theano has limited support for complex
+    arrays, emulating complex64. Since aesara has limited support for complex
     number operations, care must be taken to manually implement operations such as gradients.
 
-.. automodule:: theano.gpuarray.fft
+.. automodule:: aesara.gpuarray.fft
    :members: curfft, cuirfft
 
 For example, the code below performs the real input FFT of a box function, which is a sinc function.
 The absolute value is plotted, since the phase oscillates due to the box function being
-shifted to the middle of the array. The Theano flag ``device=cuda{0,1...}`` must be used.
+shifted to the middle of the array. The Aesara flag ``device=cuda{0,1...}`` must be used.
 
 .. testcode::
 
     import numpy as np
-    import theano
-    import theano.tensor as tt
-    from theano.gpuarray import fft
+    import aesara
+    import aesara.tensor as tt
+    from aesara.gpuarray import fft
 
     x = tt.matrix('x', dtype='float32')
 
     rfft = fft.curfft(x, norm='ortho')
-    f_rfft = theano.function([x], rfft)
+    f_rfft = aesara.function([x], rfft)
 
     N = 1024
     box = np.zeros((1, N), dtype='float32')

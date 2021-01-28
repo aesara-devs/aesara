@@ -2,16 +2,14 @@ import numpy as np
 import numpy.linalg
 import pytest
 
-import theano
-from tests import unittest_tools as utt
-from tests.test_rop import break_op
-from theano import function
-from theano import tensor as tt
-from theano.configdefaults import config
+import aesara
+from aesara import function
+from aesara import tensor as tt
+from aesara.configdefaults import config
 
 # The one in comment are not tested...
-from theano.sandbox.linalg.ops import Cholesky  # PSD_hint,; op class
-from theano.sandbox.linalg.ops import (
+from aesara.sandbox.linalg.ops import Cholesky  # PSD_hint,; op class
+from aesara.sandbox.linalg.ops import (
     Solve,
     imported_scipy,
     inv_as_solve,
@@ -19,10 +17,12 @@ from theano.sandbox.linalg.ops import (
     solve,
     spectral_radius_bound,
 )
-from theano.tensor.elemwise import DimShuffle
-from theano.tensor.math import _allclose
-from theano.tensor.nlinalg import MatrixInverse
-from theano.tensor.type import dmatrix, matrix, vector
+from aesara.tensor.elemwise import DimShuffle
+from aesara.tensor.math import _allclose
+from aesara.tensor.nlinalg import MatrixInverse
+from aesara.tensor.type import dmatrix, matrix, vector
+from tests import unittest_tools as utt
+from tests.test_rop import break_op
 
 
 def test_rop_lop():
@@ -31,19 +31,19 @@ def test_rop_lop():
     v = vector("v")
     y = matrix_inverse(mx).sum(axis=0)
 
-    yv = theano.gradient.Rop(y, mx, mv)
+    yv = aesara.gradient.Rop(y, mx, mv)
     rop_f = function([mx, mv], yv)
 
-    sy, _ = theano.scan(
-        lambda i, y, x, v: (theano.gradient.grad(y[i], x) * v).sum(),
+    sy, _ = aesara.scan(
+        lambda i, y, x, v: (aesara.gradient.grad(y[i], x) * v).sum(),
         sequences=tt.arange(y.shape[0]),
         non_sequences=[y, mx, mv],
     )
     scan_f = function([mx, mv], sy)
 
     rng = np.random.RandomState(utt.fetch_seed())
-    vx = np.asarray(rng.randn(4, 4), theano.config.floatX)
-    vv = np.asarray(rng.randn(4, 4), theano.config.floatX)
+    vx = np.asarray(rng.randn(4, 4), aesara.config.floatX)
+    vv = np.asarray(rng.randn(4, 4), aesara.config.floatX)
 
     v1 = rop_f(vx, vv)
     v2 = scan_f(vx, vv)
@@ -52,7 +52,7 @@ def test_rop_lop():
 
     raised = False
     try:
-        theano.gradient.Rop(theano.clone_replace(y, replace={mx: break_op(mx)}), mx, mv)
+        aesara.gradient.Rop(aesara.clone_replace(y, replace={mx: break_op(mx)}), mx, mv)
     except ValueError:
         raised = True
     if not raised:
@@ -61,11 +61,11 @@ def test_rop_lop():
             " is not differentiable"
         )
 
-    vv = np.asarray(rng.uniform(size=(4,)), theano.config.floatX)
-    yv = theano.gradient.Lop(y, mx, v)
+    vv = np.asarray(rng.uniform(size=(4,)), aesara.config.floatX)
+    yv = aesara.gradient.Lop(y, mx, v)
     lop_f = function([mx, v], yv)
 
-    sy = theano.gradient.grad((v * y).sum(), mx)
+    sy = aesara.gradient.grad((v * y).sum(), mx)
     scan_f = function([mx, v], sy)
 
     v1 = lop_f(vx, vv)
@@ -78,23 +78,23 @@ def test_spectral_radius_bound():
     rng = np.random.RandomState(utt.fetch_seed())
     x = matrix()
     radius_bound = spectral_radius_bound(x, 5)
-    f = theano.function([x], radius_bound)
+    f = aesara.function([x], radius_bound)
 
     shp = (3, 4)
     m = rng.rand(*shp)
     m = np.cov(m).astype(config.floatX)
-    radius_bound_theano = f(m)
+    radius_bound_aesara = f(m)
 
     # test the approximation
     mm = m
     for i in range(5):
         mm = np.dot(mm, mm)
     radius_bound_numpy = np.trace(mm) ** (2 ** (-5))
-    assert abs(radius_bound_numpy - radius_bound_theano) < tol
+    assert abs(radius_bound_numpy - radius_bound_aesara) < tol
 
     # test the bound
     eigen_val = numpy.linalg.eig(m)
-    assert (eigen_val[0].max() - radius_bound_theano) < tol
+    assert (eigen_val[0].max() - radius_bound_aesara) < tol
 
     # test type errors
     xx = vector()
@@ -122,9 +122,9 @@ def test_spectral_radius_bound():
 
 def test_transinv_to_invtrans():
     X = matrix("X")
-    Y = theano.tensor.nlinalg.matrix_inverse(X)
+    Y = aesara.tensor.nlinalg.matrix_inverse(X)
     Z = Y.transpose()
-    f = theano.function([X], Z)
+    f = aesara.function([X], Z)
     if config.mode != "FAST_COMPILE":
         for node in f.maker.fgraph.toposort():
             if isinstance(node.op, MatrixInverse):
@@ -144,12 +144,12 @@ def test_tag_solve_triangular():
     U = cholesky_upper(A)
     b1 = solve(L, x)
     b2 = solve(U, x)
-    f = theano.function([A, x], b1)
+    f = aesara.function([A, x], b1)
     if config.mode != "FAST_COMPILE":
         for node in f.maker.fgraph.toposort():
             if isinstance(node.op, Solve):
                 assert node.op.A_structure == "lower_triangular"
-    f = theano.function([A, x], b2)
+    f = aesara.function([A, x], b2)
     if config.mode != "FAST_COMPILE":
         for node in f.maker.fgraph.toposort():
             if isinstance(node.op, Solve):

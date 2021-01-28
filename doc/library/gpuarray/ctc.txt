@@ -1,7 +1,7 @@
 .. _libdoc_gpuarray_ctc:
 
 ================================================================================
-:mod:`theano.gpuarray.ctc` -- Connectionist Temporal Classification (CTC) loss
+:mod:`aesara.gpuarray.ctc` -- Connectionist Temporal Classification (CTC) loss
 ================================================================================
 
 
@@ -24,10 +24,10 @@
     Unfortunately, Windows platforms are not yet supported by the underlying
     library.
 
-.. module:: theano.gpuarray.ctc
+.. module:: aesara.gpuarray.ctc
    :platform: Unix
    :synopsis: Connectionist temporal classification (CTC) loss Op, using the warp-ctc library
 .. moduleauthor:: `João Victor Risso <https://github.com/joaovictortr>`_
 
-.. autofunction:: theano.gpuarray.ctc.gpu_ctc
-.. autoclass:: theano.gpuarray.ctc.GpuConnectionistTemporalClassification
+.. autofunction:: aesara.gpuarray.ctc.gpu_ctc
+.. autoclass:: aesara.gpuarray.ctc.GpuConnectionistTemporalClassification

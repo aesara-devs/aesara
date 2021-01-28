@@ -1,11 +1,11 @@
 import numpy as np
 import pytest
 
-import theano
+import aesara
+from aesara.tensor.math import _allclose
+from aesara.tensor.signal import conv
+from aesara.tensor.type import TensorType, dtensor3, dtensor4, dvector, matrix
 from tests import unittest_tools as utt
-from theano.tensor.math import _allclose
-from theano.tensor.signal import conv
-from theano.tensor.type import TensorType, dtensor3, dtensor4, dvector, matrix
 
 
 _ = pytest.importorskip("scipy.signal")
@@ -29,19 +29,19 @@ class TestSignalConv2D:
         if filter_dim != 3:
             nkern = 1
 
-        # THEANO IMPLEMENTATION ############
+        # AESARA IMPLEMENTATION ############
         # we create a symbolic function so that verify_grad can work
         def sym_conv2d(input, filters):
             return conv.conv2d(input, filters)
 
         output = sym_conv2d(input, filters)
         assert output.ndim == out_dim
-        theano_conv = theano.function([input, filters], output)
+        aesara_conv = aesara.function([input, filters], output)
 
         # initialize input and compute result
         image_data = np.random.random(image_shape)
         filter_data = np.random.random(filter_shape)
-        theano_output = theano_conv(image_data, filter_data)
+        aesara_output = aesara_conv(image_data, filter_data)
 
         # REFERENCE IMPLEMENTATION ############
         out_shape2d = np.array(image_shape[-2:]) - np.array(filter_shape[-2:]) + 1
@@ -50,13 +50,13 @@ class TestSignalConv2D:
         # reshape as 3D input tensors to make life easier
         image_data3d = image_data.reshape((bsize,) + image_shape[-2:])
         filter_data3d = filter_data.reshape((nkern,) + filter_shape[-2:])
-        # reshape theano output as 4D to make life easier
-        theano_output4d = theano_output.reshape(
+        # reshape aesara output as 4D to make life easier
+        aesara_output4d = aesara_output.reshape(
             (
                 bsize,
                 nkern,
             )
-            + theano_output.shape[-2:]
+            + aesara_output.shape[-2:]
         )
 
         # loop over mini-batches (if required)
@@ -78,14 +78,14 @@ class TestSignalConv2D:
                             * filter2d[::-1, ::-1]
                         ).sum()
 
-                assert _allclose(theano_output4d[b, k, :, :], output2d)
+                assert _allclose(aesara_output4d[b, k, :, :], output2d)
 
         # TEST GRADIENT ############
         if verify_grad:
             utt.verify_grad(sym_conv2d, [image_data, filter_data])
 
     @pytest.mark.skipif(
-        theano.config.cxx == "",
+        aesara.config.cxx == "",
         reason="conv2d tests need a c++ compiler",
     )
     def test_basic(self):

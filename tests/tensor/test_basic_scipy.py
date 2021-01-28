@@ -6,6 +6,10 @@ scipy = pytest.importorskip("scipy")
 
 from functools import partial
 
+from aesara import tensor as tt
+from aesara.compile.mode import get_default_mode
+from aesara.configdefaults import config
+from aesara.tensor import inplace
 from tests import unittest_tools as utt
 from tests.tensor.utils import (
     _good_broadcast_unary_chi2sf,
@@ -21,10 +25,6 @@ from tests.tensor.utils import (
     rand_ranged,
     randint_ranged,
 )
-from theano import tensor as tt
-from theano.compile.mode import get_default_mode
-from theano.configdefaults import config
-from theano.tensor import inplace
 
 
 imported_scipy_special = False

@@ -2,10 +2,10 @@ import time
 
 import numpy as np
 
-from theano import function
-from theano.compile.mode import Mode
-from theano.tensor.nnet.conv import ConvOp
-from theano.tensor.type import TensorType, dmatrix
+from aesara import function
+from aesara.compile.mode import Mode
+from aesara.tensor.nnet.conv import ConvOp
+from aesara.tensor.type import TensorType, dmatrix
 
 
 def flip(kern, kshp):

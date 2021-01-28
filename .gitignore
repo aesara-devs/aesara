@@ -30,11 +30,11 @@ doc/indexes/typelist.txt
 html
 pdf
 setuptools-*.egg
-theano/generated_version.py
-theano/generated_version.py.out
+aesara/generated_version.py
+aesara/generated_version.py.out
 distribute-*.egg
 distribute-*.tar.gz
-Theano.suo
+Aesara.suo
 .ipynb_checkpoints
 .pydevproject
 .ropeproject
@@ -44,5 +44,5 @@ core
 .mypy_cache/
 /htmlcov/
 
-theano-venv/
+aesara-venv/
 /notebooks/Sandbox*

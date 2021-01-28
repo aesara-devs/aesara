@@ -1,15 +1,15 @@
 import numpy as np
 import pytest
 
-import theano
+import aesara
+from aesara import tensor as tt
+from aesara.graph.basic import Apply
+from aesara.graph.op import COp, ExternalCOp
+from aesara.graph.params_type import Params, ParamsType
+from aesara.graph.type import EnumList, Generic
+from aesara.scalar import Scalar
+from aesara.tensor.type import TensorType, matrix
 from tests import unittest_tools as utt
-from theano import tensor as tt
-from theano.graph.basic import Apply
-from theano.graph.op import COp, ExternalCOp
-from theano.graph.params_type import Params, ParamsType
-from theano.graph.type import EnumList, Generic
-from theano.scalar import Scalar
-from theano.tensor.type import TensorType, matrix
 
 
 tensor_type_0d = TensorType("float64", tuple())
@@ -344,8 +344,8 @@ class TestParamsType:
         x = matrix(dtype="float64")
         y1 = QuadraticOpFunc(a, b, c)(x)
         y2 = QuadraticCOpFunc(a, b, c)(x)
-        f1 = theano.function([x], y1)
-        f2 = theano.function([x], y2)
+        f1 = aesara.function([x], y1)
+        f2 = aesara.function([x], y2)
         shape = (100, 100)
         vx = (
             np.random.normal(size=shape[0] * shape[1]).astype("float64").reshape(*shape)

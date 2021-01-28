@@ -1,32 +1,32 @@
 import numpy as np
 import pytest
 
-import theano
-import theano.sandbox.rng_mrg
+import aesara
+import aesara.sandbox.rng_mrg
+from aesara import gpuarray
+from aesara import tensor as tt
+from aesara.gpuarray.basic_ops import GpuFromHost, HostFromGpu
+from aesara.gpuarray.elemwise import GpuElemwise
+from aesara.scan.basic import scan
+from aesara.scan.checkpoints import scan_checkpoints
+from aesara.scan.op import Scan
+from aesara.tensor.math import dot
+from aesara.tensor.math import sum as tt_sum
+from aesara.tensor.type import fscalar, ftensor3, fvector, iscalar, vector
 from tests import unittest_tools as utt
 from tests.gpuarray.config import mode_with_gpu, test_ctx_name
-from theano import gpuarray
-from theano import tensor as tt
-from theano.gpuarray.basic_ops import GpuFromHost, HostFromGpu
-from theano.gpuarray.elemwise import GpuElemwise
-from theano.scan.basic import scan
-from theano.scan.checkpoints import scan_checkpoints
-from theano.scan.op import Scan
-from theano.tensor.math import dot
-from theano.tensor.math import sum as tt_sum
-from theano.tensor.type import fscalar, ftensor3, fvector, iscalar, vector
 
 
 pygpu_gpuarray = pytest.importorskip("pygpy.gpuarray")
 GpuArrayException = pygpu_gpuarray.GpuArrayException
 
 
-if theano.config.mode == "FAST_COMPILE":
-    mode_with_opt = theano.compile.mode.get_mode("FAST_RUN")
+if aesara.config.mode == "FAST_COMPILE":
+    mode_with_opt = aesara.compile.mode.get_mode("FAST_RUN")
 else:
-    mode_with_opt = theano.compile.mode.get_default_mode()
-if theano.config.mode in ("DEBUG_MODE", "DebugMode"):
-    mode_nodebug = theano.compile.mode.get_mode("FAST_RUN")
+    mode_with_opt = aesara.compile.mode.get_default_mode()
+if aesara.config.mode in ("DEBUG_MODE", "DebugMode"):
+    mode_nodebug = aesara.compile.mode.get_mode("FAST_RUN")
 else:
     mode_nodebug = mode_with_opt
 
@@ -57,7 +57,7 @@ class TestScan:
         )
 
         output = GpuFromHost(test_ctx_name)(output)
-        f2 = theano.function(
+        f2 = aesara.function(
             [u, x0, W_in, W],
             output,
             updates=updates,
@@ -82,8 +82,8 @@ class TestScan:
         for step in range(1, 4):
             v_out[step] = v_u[step] * W_in + v_out[step - 1] * W
 
-        theano_values = f2(v_u, v_x0, W_in, W)
-        utt.assert_allclose(theano_values, v_out)
+        aesara_values = f2(v_u, v_x0, W_in, W)
+        utt.assert_allclose(aesara_values, v_out)
 
         # TO DEL
         topo = f2.maker.fgraph.toposort()
@@ -125,7 +125,7 @@ class TestScan:
             mode=mode_with_gpu,
         )
 
-        f2 = theano.function(
+        f2 = aesara.function(
             [u, x0, W_in, W],
             output,
             updates=updates,
@@ -146,8 +146,8 @@ class TestScan:
         for step in range(1, 4):
             v_out[step] = v_u[step] * W_in + v_out[step - 1] * W
 
-        theano_values = f2(v_u, v_x0, W_in, W)
-        utt.assert_allclose(theano_values, v_out)
+        aesara_values = f2(v_u, v_x0, W_in, W)
+        utt.assert_allclose(aesara_values, v_out)
 
         topo = f2.maker.fgraph.toposort()
         assert sum([isinstance(node.op, HostFromGpu) for node in topo]) == 1
@@ -184,7 +184,7 @@ class TestScan:
             mode=mode_with_gpu,
         )
 
-        f2 = theano.function(
+        f2 = aesara.function(
             [u, x0, W_in, W],
             output,
             updates=updates,
@@ -208,9 +208,9 @@ class TestScan:
             v_out1[step] = v_u[step] * W_in + v_out1[step - 1] * W
             v_out2[step] = np.int64(v_u[step] + v_out1[step - 1])
 
-        theano_out1, theano_out2 = f2(v_u, v_x0, W_in, W)
-        utt.assert_allclose(theano_out1, v_out1)
-        utt.assert_allclose(theano_out2, v_out2)
+        aesara_out1, aesara_out2 = f2(v_u, v_x0, W_in, W)
+        utt.assert_allclose(aesara_out1, v_out1)
+        utt.assert_allclose(aesara_out2, v_out2)
 
         topo = f2.maker.fgraph.toposort()
         scan_node = [node for node in topo if isinstance(node.op, scan.op.Scan)]
@@ -234,8 +234,8 @@ class TestScan:
             ),
             dtype="float32",
         )
-        vsample = theano.shared(v_vsample)
-        trng = theano.sandbox.rng_mrg.MRG_RandomStream(utt.fetch_seed())
+        vsample = aesara.shared(v_vsample)
+        trng = aesara.sandbox.rng_mrg.MRG_RandomStream(utt.fetch_seed())
 
         def f(vsample_tm1):
             return (
@@ -243,7 +243,7 @@ class TestScan:
                 * vsample_tm1
             )
 
-        theano_vsamples, updates = scan(
+        aesara_vsamples, updates = scan(
             f,
             [],
             vsample,
@@ -253,9 +253,9 @@ class TestScan:
             go_backwards=False,
             mode=mode_with_gpu,
         )
-        my_f = theano.function(
+        my_f = aesara.function(
             [],
-            theano_vsamples[-1],
+            aesara_vsamples[-1],
             updates=updates,
             allow_input_downcast=True,
             mode=mode_with_gpu,
@@ -304,7 +304,7 @@ class ScanGpuTests:
         )
 
         output = self.gpu_backend.gpu_from_host(output)
-        f2 = theano.function(
+        f2 = aesara.function(
             [u, x0, W_in, W],
             output,
             updates=updates,
@@ -329,8 +329,8 @@ class ScanGpuTests:
         v_out[0] = v_u[0] * W_in + v_x0 * W
         for step in range(1, 4):
             v_out[step] = v_u[step] * W_in + v_out[step - 1] * W
-        theano_values = f2(v_u, v_x0, W_in, W)
-        utt.assert_allclose(theano_values, v_out)
+        aesara_values = f2(v_u, v_x0, W_in, W)
+        utt.assert_allclose(aesara_values, v_out)
 
         # TO DEL
         topo = f2.maker.fgraph.toposort()
@@ -393,7 +393,7 @@ class ScanGpuTests:
             mode=self.mode_with_gpu,
         )
 
-        f2 = theano.function(
+        f2 = aesara.function(
             [u, x0, W_in, W],
             output,
             updates=updates,
@@ -413,8 +413,8 @@ class ScanGpuTests:
         v_out[0] = v_u[0] * W_in + v_x0 * W
         for step in range(1, 4):
             v_out[step] = v_u[step] * W_in + v_out[step - 1] * W
-        theano_values = f2(v_u, v_x0, W_in, W)
-        utt.assert_allclose(theano_values, v_out)
+        aesara_values = f2(v_u, v_x0, W_in, W)
+        utt.assert_allclose(aesara_values, v_out)
 
         topo = f2.maker.fgraph.toposort()
         assert (
@@ -472,7 +472,7 @@ class ScanGpuTests:
             mode=self.mode_with_gpu,
         )
 
-        f2 = theano.function(
+        f2 = aesara.function(
             [u, x0, W_in, W],
             output,
             updates=updates,
@@ -496,9 +496,9 @@ class ScanGpuTests:
             v_out1[step] = v_u[step] * W_in + v_out1[step - 1] * W
             v_out2[step] = np.int64(v_u[step] + v_out1[step - 1])
 
-        theano_out1, theano_out2 = f2(v_u, v_x0, W_in, W)
-        utt.assert_allclose(theano_out1, v_out1)
-        utt.assert_allclose(theano_out2, v_out2)
+        aesara_out1, aesara_out2 = f2(v_u, v_x0, W_in, W)
+        utt.assert_allclose(aesara_out1, v_out1)
+        utt.assert_allclose(aesara_out2, v_out2)
 
         topo = f2.maker.fgraph.toposort()
         scan_node = [node for node in topo if isinstance(node.op, Scan)]
@@ -516,8 +516,8 @@ class ScanGpuTests:
             ),
             dtype="float32",
         )
-        vsample = theano.shared(v_vsample)
-        trng = theano.sandbox.rng_mrg.MRG_RandomStream(utt.fetch_seed())
+        vsample = aesara.shared(v_vsample)
+        trng = aesara.sandbox.rng_mrg.MRG_RandomStream(utt.fetch_seed())
 
         def f(vsample_tm1):
             return (
@@ -525,7 +525,7 @@ class ScanGpuTests:
                 * vsample_tm1
             )
 
-        theano_vsamples, updates = scan(
+        aesara_vsamples, updates = scan(
             f,
             [],
             vsample,
@@ -535,9 +535,9 @@ class ScanGpuTests:
             go_backwards=False,
             mode=self.mode_with_gpu,
         )
-        my_f = theano.function(
+        my_f = aesara.function(
             [],
-            theano_vsamples[-1],
+            aesara_vsamples[-1],
             updates=updates,
             allow_input_downcast=True,
             mode=self.mode_with_gpu,
@@ -548,7 +548,7 @@ class ScanGpuTests:
         my_f()
 
     def test_gpu_memory_usage(self):
-        # This test validates that the memory usage of the defined theano
+        # This test validates that the memory usage of the defined aesara
         # function is reasonnable when executed on the GPU. It checks for
         # a bug in which one of scan's optimization was not applied which
         # made the scan node compute large and unnecessary outputs which
@@ -570,9 +570,9 @@ class ScanGpuTests:
         yout = ftensor3(name="yout")
 
         # Initialize the network parameters
-        U = theano.shared(np.zeros((n_in, n_hid), dtype="float32"), name="W_xin_to_l1")
-        V = theano.shared(np.zeros((n_hid, n_hid), dtype="float32"), name="W_l1_to_l1")
-        W = theano.shared(np.zeros((n_hid, n_out), dtype="float32"), name="W_l1_to_l2")
+        U = aesara.shared(np.zeros((n_in, n_hid), dtype="float32"), name="W_xin_to_l1")
+        V = aesara.shared(np.zeros((n_hid, n_hid), dtype="float32"), name="W_l1_to_l1")
+        W = aesara.shared(np.zeros((n_hid, n_out), dtype="float32"), name="W_l1_to_l2")
         nparams = [U, V, W]
 
         # Build the forward pass
@@ -594,11 +594,11 @@ class ScanGpuTests:
 
         # Compute the cost and take the gradient wrt params
         cost = tt_sum((l2_out - yout) ** 2)
-        grads = theano.grad(cost, nparams)
+        grads = aesara.grad(cost, nparams)
         updates = list(zip(nparams, (n - g for n, g in zip(nparams, grads))))
 
-        # Compile the theano function
-        feval_backprop = theano.function(
+        # Compile the aesara function
+        feval_backprop = aesara.function(
             [xin, yout], cost, updates=updates, mode=self.mode_with_gpu_nodebug
         )
 
@@ -613,7 +613,7 @@ class ScanGpuTests:
         grad_scan_node = scan_nodes[1]
         assert len(grad_scan_node.outputs) == 2, len(grad_scan_node.outputs)
 
-        # Call the theano function to ensure the absence of a memory error
+        # Call the aesara function to ensure the absence of a memory error
         feval_backprop(
             np.zeros((mb_length, mb_size, n_in), dtype="float32"),
             np.zeros((mb_length, mb_size, n_out), dtype="float32"),
@@ -645,7 +645,7 @@ class ScanGpuTests:
         out1 = out[0].flatten()
         out2 = out[1].flatten()
 
-        fct = theano.function([input1, init], [out1, out2], mode=self.mode_with_gpu)
+        fct = aesara.function([input1, init], [out1, out2], mode=self.mode_with_gpu)
 
         output = fct(
             np.ones((2, 1, 1), dtype="float32"), np.ones((1, 1, 1), dtype="float32")
@@ -706,27 +706,27 @@ class TestScanCheckpoint:
         )
         self.result = result[-1]
         self.result_check = result_check[-1]
-        self.grad_A = theano.grad(self.result.sum(), self.A)
-        self.grad_A_check = theano.grad(self.result_check.sum(), self.A)
+        self.grad_A = aesara.grad(self.result.sum(), self.A)
+        self.grad_A_check = aesara.grad(self.result_check.sum(), self.A)
 
     def test_memory(self):
         from tests.gpuarray.config import mode_with_gpu  # noqa
 
-        f = theano.function(
+        f = aesara.function(
             inputs=[self.A, self.k], outputs=self.grad_A, mode=mode_with_gpu
         )
-        f_check = theano.function(
+        f_check = aesara.function(
             inputs=[self.A, self.k], outputs=self.grad_A_check, mode=mode_with_gpu
         )
-        free_gmem = theano.gpuarray.type._context_reg[None].free_gmem
+        free_gmem = aesara.gpuarray.type._context_reg[None].free_gmem
         data = np.ones(free_gmem // 3000, dtype=np.float32)
         # Check that it works with the checkpoints
         size = 1000
-        if isinstance(mode_with_gpu, theano.compile.debugmode.DebugMode):
+        if isinstance(mode_with_gpu, aesara.compile.debugmode.DebugMode):
             size = 100
         f_check(data, size)
         # Check that the basic scan fails in that case
         # Skip that check in DebugMode, as it can fail in different ways
-        if not isinstance(mode_with_gpu, theano.compile.debugmode.DebugMode):
+        if not isinstance(mode_with_gpu, aesara.compile.debugmode.DebugMode):
             with pytest.raises(GpuArrayException):
                 f(data, 1000)

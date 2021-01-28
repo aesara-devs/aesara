@@ -6,16 +6,16 @@ Overview of the compilation pipeline
 ====================================
 
 The purpose of this page is to explain each step of defining and
-compiling a Theano function.
+compiling an Aesara function.
 
 
 Definition of the computation graph
 -----------------------------------
 
-By creating Theano :ref:`Variables <variable>` using
-``theano.tensor.lscalar`` or ``theano.tensor.dmatrix`` or by using
-Theano functions such as ``theano.tensor.sin`` or
-``theano.tensor.log``, the user builds a computation graph. The
+By creating Aesara :ref:`Variables <variable>` using
+``aesara.tensor.lscalar`` or ``aesara.tensor.dmatrix`` or by using
+Aesara functions such as ``aesara.tensor.sin`` or
+``aesara.tensor.log``, the user builds a computation graph. The
 structure of that graph and details about its components can be found
 in the :ref:`graphstructures` article.
 
@@ -25,7 +25,7 @@ Compilation of the computation graph
 ------------------------------------
 
 Once the user has built a computation graph, she can use
-``theano.function`` in order to make one or more functions that
+``aesara.function`` in order to make one or more functions that
 operate on real data. function takes a list of input :ref:`Variables
 <variable>` as well as a list of output Variables that define a
 precise subgraph corresponding to the function(s) we want to define,
@@ -73,9 +73,9 @@ extracted from the Mode. It is then called with the FunctionGraph as
 argument to
 produce a ``thunk``, which is a function with no arguments that
 returns nothing. Along with the thunk, one list of input containers (a
-theano.link.basic.Container is a sort of object that wraps another and does
+`aesara.link.basic.Container` is a sort of object that wraps another and does
 type casting) and one list of output containers are produced,
-corresponding to the input and output Variables as well as the updates
+corresponding to the input and output `Variable`s as well as the updates
 defined for the inputs when applicable. To perform the computations,
 the inputs must be placed in the input containers, the thunk must be
 called, and the outputs must be retrieved from the output containers
@@ -83,8 +83,8 @@ where the thunk put them.
 
 Typically, the linker calls the ``toposort`` method in order to obtain
 a linear sequence of operations to perform. How they are linked
-together depends on the Linker used. The CLinker produces a single
-block of C code for the whole computation, whereas the OpWiseCLinker
+together depends on the Linker used. The `CLinker` produces a single
+block of C code for the whole computation, whereas the `OpWiseCLinker`
 produces one thunk for each individual operation and calls them in
 sequence.
 
@@ -99,9 +99,9 @@ case if ``borrow`` was True, the thunk would be allowed to reuse (or
 .. note::
 
     Compiled libraries are stored within a specific compilation directory,
-    which by default is set to ``$HOME/.theano/compiledir_xxx``, where
+    which by default is set to ``$HOME/.aesara/compiledir_xxx``, where
     ``xxx`` identifies the platform (under Windows the default location
-    is instead ``$LOCALAPPDATA\Theano\compiledir_xxx``). It may be manually set
+    is instead ``$LOCALAPPDATA\Aesara\compiledir_xxx``). It may be manually set
     to a different location either by setting :attr:`config.compiledir` or
     :attr:`config.base_compiledir`, either within your Python script or by
     using one of the configuration mechanisms described in :mod:`config`.
@@ -109,9 +109,9 @@ case if ``borrow`` was True, the thunk would be allowed to reuse (or
     The compile cache is based upon the C++ code of the graph to be compiled.
     So, if you change compilation configuration variables, such as
     :attr:`config.blas__ldflags`, you will need to manually remove your compile cache,
-    using ``Theano/bin/theano-cache clear``
+    using ``Aesara/bin/aesara-cache clear``
 
-    Theano also implements a lock mechanism that prevents multiple compilations
+    Aesara also implements a lock mechanism that prevents multiple compilations
     within the same compilation directory (to avoid crashes with parallel
     execution of some scripts).
 

@@ -3,20 +3,20 @@ from functools import partial
 import numpy as np
 import pytest
 
-import theano
+import aesara
+from aesara import shared
+from aesara.compile.builders import OpFromGraph
+from aesara.compile.function import function
+from aesara.configdefaults import config
+from aesara.gradient import DisconnectedType, Rop, grad
+from aesara.graph.null_type import NullType
+from aesara.tensor.math import dot, exp
+from aesara.tensor.math import round as tt_round
+from aesara.tensor.math import sum as tt_sum
+from aesara.tensor.nnet import sigmoid
+from aesara.tensor.random.utils import RandomStream
+from aesara.tensor.type import TensorType, matrices, matrix, scalar, vector, vectors
 from tests import unittest_tools
-from theano import shared
-from theano.compile.builders import OpFromGraph
-from theano.compile.function import function
-from theano.configdefaults import config
-from theano.gradient import DisconnectedType, Rop, grad
-from theano.graph.null_type import NullType
-from theano.tensor.math import dot, exp
-from theano.tensor.math import round as tt_round
-from theano.tensor.math import sum as tt_sum
-from theano.tensor.nnet import sigmoid
-from theano.tensor.random.utils import RandomStream
-from theano.tensor.type import TensorType, matrices, matrix, scalar, vector, vectors
 
 
 class TestOpFromGraph(unittest_tools.InferShapeTester):
@@ -300,7 +300,7 @@ class TestOpFromGraph(unittest_tools.InferShapeTester):
             return y + tt_round(y)
 
         def f1_back(inputs, output_gradients):
-            return [output_gradients[0], theano.gradient.disconnected_type()]
+            return [output_gradients[0], aesara.gradient.disconnected_type()]
 
         op = cls_ofg(
             inputs=[x, y],
@@ -312,7 +312,7 @@ class TestOpFromGraph(unittest_tools.InferShapeTester):
 
         c = op(x, y)
 
-        g1 = theano.grad(c.sum(), x)
+        g1 = aesara.grad(c.sum(), x)
 
         out = g1.eval(
             {x: np.ones((5,), dtype=np.float32), y: np.ones((5,), dtype=np.float32)}

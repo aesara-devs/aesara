@@ -8,20 +8,20 @@ For an introductory discussion of *Graphical Processing Units* (GPU)
 and their use for intensive parallel computation purposes, see `GPGPU
 <http://en.wikipedia.org/wiki/GPGPU>`_.
 
-One of Theano's design goals is to specify computations at an abstract
+One of Aesara's design goals is to specify computations at an abstract
 level, so that the internal function compiler has a lot of flexibility
 about how to carry out those computations.  One of the ways we take
 advantage of this flexibility is in carrying out calculations on a
 graphics card.
 
-Using the GPU in Theano is as simple as setting the ``device``
+Using the GPU in Aesara is as simple as setting the ``device``
 configuration flag to ``device=cuda``. You can optionally target a
 specific gpu by specifying the number of the gpu as in
 e.g. ``device=cuda2``.  It is also encouraged to set the floating
 point precision to float32 when working on the GPU as that is usually
 much faster.  For example:
-``THEANO_FLAGS='device=cuda,floatX=float32'``.  You can also set these
-options in the .theanorc file's ``[global]`` section:
+``AESARA_FLAGS='device=cuda,floatX=float32'``.  You can also set these
+options in the .aesararc file's ``[global]`` section:
 
      .. code-block:: cfg
 
@@ -35,9 +35,9 @@ options in the .theanorc file's ``[global]`` section:
       the driver selects the one to use (usually cuda0).
     * You can use the program ``nvidia-smi`` to change this policy.
     * By default, when ``device`` indicates preference for GPU computations,
-      Theano will fall back to the CPU if there is a problem with the GPU.
+      Aesara will fall back to the CPU if there is a problem with the GPU.
       You can use the flag ``force_device=True`` to instead raise an error when
-      Theano cannot use the GPU.
+      Aesara cannot use the GPU.
 
 .. _gpuarray:
 
@@ -50,7 +50,7 @@ instructions to accomplish that are provided at
 `libgpuarray <http://deeplearning.net/software/libgpuarray/installation.html>`_.
 
 To install Nvidia's GPU-programming toolchain (CUDA) and configure
-Theano to use it, see the installation instructions for
+Aesara to use it, see the installation instructions for
 :ref:`Linux <gpu_linux>`, :ref:`MacOS <gpu_macos>` and :ref:`Windows <gpu_windows>`.
 
 While all types of devices are supported if using OpenCL, for the
@@ -69,18 +69,18 @@ be referred to as GPU.
 
   .. _testing_the_gpu:
 
-Testing Theano with GPU
+Testing Aesara with GPU
 ~~~~~~~~~~~~~~~~~~~~~~~
 
 To see if your GPU is being used, cut and paste the following program
 into a file and run it.
 
-Use the Theano flag ``device=cuda`` to require the use of the GPU. Use the flag
+Use the Aesara flag ``device=cuda`` to require the use of the GPU. Use the flag
 ``device=cuda{0,1,...}`` to specify which GPU to use.
 
 .. testcode::
 
-  from theano import function, config, shared, tensor as tt
+  from aesara import function, config, shared, tensor as tt
   import numpy
   import time
 
@@ -97,7 +97,7 @@ Use the Theano flag ``device=cuda`` to require the use of the GPU. Use the flag
   t1 = time.time()
   print("Looping %d times took %f seconds" % (iters, t1 - t0))
   print("Result is %s" % (r,))
-  if numpy.any([isinstance(x.op, theano.tensor.elemwise.Elemwise) and
+  if numpy.any([isinstance(x.op, aesara.tensor.elemwise.Elemwise) and
                 ('Gpu' not in type(x.op).__name__)
                 for x in f.maker.fgraph.toposort()]):
       print('Used the cpu')
@@ -105,7 +105,7 @@ Use the Theano flag ``device=cuda`` to require the use of the GPU. Use the flag
       print('Used the gpu')
 
 The program just computes ``exp()`` of a bunch of random numbers.  Note
-that we use the :func:`theano.shared` function to make sure that the
+that we use the :func:`aesara.shared` function to make sure that the
 input *x* is stored on the GPU.
 
 .. testoutput::
@@ -119,14 +119,14 @@ input *x* is stored on the GPU.
 
 .. code-block:: none
 
-  $ THEANO_FLAGS=device=cpu python gpu_tutorial1.py
+  $ AESARA_FLAGS=device=cpu python gpu_tutorial1.py
   [Elemwise{exp,no_inplace}(<TensorType(float64, vector)>)]
   Looping 1000 times took 2.271284 seconds
   Result is [ 1.23178032  1.61879341  1.52278065 ...,  2.20771815  2.29967753
     1.62323285]
   Used the cpu
 
-  $ THEANO_FLAGS=device=cuda0 python gpu_tutorial1.py
+  $ AESARA_FLAGS=device=cuda0 python gpu_tutorial1.py
   Using cuDNN version 5105 on context None
   Mapped name None to device cuda0: GeForce GTX 750 Ti (0000:07:00.0)
   [GpuElemwise{exp,no_inplace}(<GpuArrayType<None>(float64, (False,))>), HostFromGpu(gpuarray)(GpuElemwise{exp,no_inplace}.0)]
@@ -145,12 +145,12 @@ results are returned to ensure a consistent interface with CPU code.
 This allows changing the device some code runs on by only replacing
 the value of the ``device`` flag without touching the code.
 
-If you don't mind a loss of flexibility, you can ask theano to return
+If you don't mind a loss of flexibility, you can ask aesara to return
 the GPU object directly.  The following code is modified to do just that.
 
 .. testcode::
 
-  from theano import function, config, shared, tensor as tt
+  from aesara import function, config, shared, tensor as tt
   import numpy
   import time
 
@@ -167,7 +167,7 @@ the GPU object directly.  The following code is modified to do just that.
   t1 = time.time()
   print("Looping %d times took %f seconds" % (iters, t1 - t0))
   print("Result is %s" % (numpy.asarray(r),))
-  if numpy.any([isinstance(x.op, theano.tensor.elemwise.Elemwise) and
+  if numpy.any([isinstance(x.op, aesara.tensor.elemwise.Elemwise) and
                 ('Gpu' not in type(x.op).__name__)
                 for x in f.maker.fgraph.toposort()]):
       print('Used the cpu')
@@ -184,7 +184,7 @@ The output is
    :hide:
    :options: +ELLIPSIS, +SKIP
 
-   $ THEANO_FLAGS=device=cuda0 python gpu_tutorial2.py
+   $ AESARA_FLAGS=device=cuda0 python gpu_tutorial2.py
    Using cuDNN version 5105 on context None
    Mapped name None to device cuda0: GeForce GTX 750 Ti (0000:07:00.0)
    [GpuElemwise{exp,no_inplace}(<GpuArrayType<None>(float64, (False,))>)]
@@ -196,7 +196,7 @@ The output is
 
 .. code-block:: none
 
-  $ THEANO_FLAGS=device=cuda0 python gpu_tutorial2.py
+  $ AESARA_FLAGS=device=cuda0 python gpu_tutorial2.py
   Using cuDNN version 5105 on context None
   Mapped name None to device cuda0: GeForce GTX 750 Ti (0000:07:00.0)
   [GpuElemwise{exp,no_inplace}(<GpuArrayType<None>(float64, (False,))>)]
@@ -237,7 +237,7 @@ device, and also as we refine our implementation:
   on that data. Getting GPU performance largely hinges on making data transfer
   to the device pay off.
 
-The backend supports all regular theano data types (float32, float64,
+The backend supports all regular aesara data types (float32, float64,
 int, ...), however GPU support varies and some units can't deal with
 double (float64) or small (less than 32 bits like int16) data types.
 You will get an error at compile time or runtime if this is the case.
@@ -252,7 +252,7 @@ Tips for Improving Performance on GPU
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 * Consider adding ``floatX=float32`` (or the type you are using) to your
-  ``.theanorc`` file if you plan to do a lot of GPU work.
+  ``.aesararc`` file if you plan to do a lot of GPU work.
 * The GPU backend supports *float64* variables, but they are still slower
   to compute than *float32*. The more *float32*, the better GPU performance
   you will get.
@@ -270,7 +270,7 @@ Tips for Improving Performance on GPU
   information at program termination. Is time being used sensibly?  If
   an op or Apply is taking more time than its share, then if you know
   something about GPU programming, have a look at how it's implemented
-  in theano.gpuarray.  Check the line similar to *Spent Xs(X%) in cpu
+  in aesara.gpuarray.  Check the line similar to *Spent Xs(X%) in cpu
   op, Xs(X%) in gpu op and Xs(X%) in transfer op*. This can tell you
   if not enough of your graph is on the GPU or if there is too much
   memory transfer.
@@ -312,25 +312,25 @@ Consider again the logistic regression:
 .. testcode::
 
     import numpy
-    import theano
-    import theano.tensor as tt
+    import aesara
+    import aesara.tensor as tt
     rng = numpy.random
 
     N = 400
     feats = 784
-    D = (rng.randn(N, feats).astype(theano.config.floatX),
-    rng.randint(size=N,low=0, high=2).astype(theano.config.floatX))
+    D = (rng.randn(N, feats).astype(aesara.config.floatX),
+    rng.randint(size=N,low=0, high=2).astype(aesara.config.floatX))
     training_steps = 10000
 
-    # Declare Theano symbolic variables
+    # Declare Aesara symbolic variables
     x = tt.matrix("x")
     y = tt.vector("y")
-    w = theano.shared(rng.randn(feats).astype(theano.config.floatX), name="w")
-    b = theano.shared(numpy.asarray(0., dtype=theano.config.floatX), name="b")
+    w = aesara.shared(rng.randn(feats).astype(aesara.config.floatX), name="w")
+    b = aesara.shared(numpy.asarray(0., dtype=aesara.config.floatX), name="b")
     x.tag.test_value = D[0]
     y.tag.test_value = D[1]
 
-    # Construct Theano expression graph
+    # Construct Aesara expression graph
     p_1 = 1 / (1 + tt.exp(-tt.dot(x, w)-b)) # Probability of having a one
     prediction = p_1 > 0.5 # The prediction that is done: 0 or 1
     xent = -y*tt.log(p_1) - (1-y)*tt.log(1-p_1) # Cross-entropy
@@ -338,12 +338,12 @@ Consider again the logistic regression:
     gw,gb = tt.grad(cost, [w,b])
 
     # Compile expressions to functions
-    train = theano.function(
+    train = aesara.function(
                 inputs=[x,y],
                 outputs=[prediction, xent],
                 updates=[(w, w-0.01*gw), (b, b-0.01*gb)],
                 name = "train")
-    predict = theano.function(inputs=[x], outputs=prediction,
+    predict = aesara.function(inputs=[x], outputs=prediction,
                 name = "predict")
 
     if any([x.op.__class__.__name__ in ['Gemv', 'CGemv', 'Gemm', 'CGemm'] for x in
@@ -353,7 +353,7 @@ Consider again the logistic regression:
               train.maker.fgraph.toposort()]):
         print('Used the gpu')
     else:
-        print('ERROR, not able to tell if theano used the cpu or the gpu')
+        print('ERROR, not able to tell if aesara used the cpu or the gpu')
         print(train.maker.fgraph.toposort())
 
     for i in range(training_steps):
@@ -365,8 +365,8 @@ Consider again the logistic regression:
     print("prediction on D")
     print(predict(D[0]))
 
-    print("floatX=", theano.config.floatX)
-    print("device=", theano.config.device)
+    print("floatX=", aesara.config.floatX)
+    print("device=", aesara.config.device)
 
 .. testoutput::
    :hide:
@@ -398,7 +398,7 @@ your ideas to test.
 Software for Directly Programming a GPU
 ---------------------------------------
 
-Leaving aside Theano which is a meta-programmer, there are:
+Leaving aside Aesara which is a meta-programmer, there are:
 
 * **CUDA**: GPU programming API by NVIDIA based on extension to C (CUDA C)
 
@@ -535,19 +535,19 @@ Modify and execute to work for a matrix of shape (20, 10).
 
 
 
-.. _pyCUDA_theano:
+.. _pyCUDA_aesara:
 
-**Example: Theano + PyCUDA**
+**Example: Aesara + PyCUDA**
 
 
 .. code-block:: python
 
-    import numpy, theano
-    import theano.misc.pycuda_init
+    import numpy, aesara
+    import aesara.misc.pycuda_init
     from pycuda.compiler import SourceModule
-    import theano.sandbox.cuda as cuda
-    from theano.graph.basic import Apply
-    from theano.graph.op import Op
+    import aesara.sandbox.cuda as cuda
+    from aesara.graph.basic import Apply
+    from aesara.graph.op import Op
 
 
     class PyCUDADoubleOp(Op):
@@ -584,8 +584,8 @@ Modify and execute to work for a matrix of shape (20, 10).
 
 Use this code to test it:
 
->>> x = theano.tensor.type.fmatrix()
->>> f = theano.function([x], PyCUDADoubleOp()(x))  # doctest: +SKIP
+>>> x = aesara.tensor.type.fmatrix()
+>>> f = aesara.function([x], PyCUDADoubleOp()(x))  # doctest: +SKIP
 >>> xv = numpy.ones((4, 5), dtype="float32")
 >>> assert numpy.allclose(f(xv), xv*2)  # doctest: +SKIP
 >>> print(numpy.asarray(f(xv)))  # doctest: +SKIP
@@ -600,7 +600,7 @@ Modify and execute to multiply two matrices: *x* * *y*.
 
 Modify and execute to return two outputs: *x + y* and *x - y*.
 
-(Notice that Theano's current *elemwise fusion* optimization is
+(Notice that Aesara's current *elemwise fusion* optimization is
 only applicable to computations involving a single output. Hence, to gain
 efficiency over the basic solution that is asked here, the two operations would
 have to be jointly optimized explicitly in the code.)
@@ -614,5 +614,5 @@ Note
   on the GPU.
 
 * The mode `FAST_COMPILE` disables C code, so also disables the GPU. You
-  can use the Theano flag optimizer='fast_compile' to speed up
+  can use the Aesara flag optimizer='fast_compile' to speed up
   compilation and keep the GPU.

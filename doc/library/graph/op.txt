@@ -5,7 +5,7 @@
 :mod:`graph` -- Objects and functions for computational graphs
 ================================================
 
-.. automodule:: theano.graph.op
+.. automodule:: aesara.graph.op
    :platform: Unix, Windows
    :synopsis: Interface for types of symbolic variables
    :members:

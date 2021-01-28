@@ -29,7 +29,7 @@ In this section we will define a couple optimizations on doubles.
 Global and local optimizations
 ==============================
 
-First, let's lay out the way optimizations work in Theano. There are
+First, let's lay out the way optimizations work in Aesara. There are
 two types of optimizations: *global* optimizations and *local*
 optimizations. A global optimization takes a ``FunctionGraph`` object (a
 FunctionGraph is a wrapper around a whole computation graph, you can see its
@@ -73,7 +73,7 @@ methods:
 
     .. method:: optimize(fgraph)
 
-      This is the interface function called by Theano.
+      This is the interface function called by Aesara.
 
       *Default:* this is defined by GlobalOptimizer as ``add_requirement(fgraph);
       apply(fgraph)``.
@@ -121,9 +121,9 @@ simplification described above:
 
 .. testcode::
 
-   import theano
-   from theano.graph.opt import GlobalOptimizer
-   from theano.graph.toolbox import ReplaceValidate
+   import aesara
+   from aesara.graph.opt import GlobalOptimizer
+   from aesara.graph.toolbox import ReplaceValidate
 
    class Simplify(GlobalOptimizer):
        def add_requirements(self, fgraph):
@@ -181,7 +181,7 @@ for the simplification (``x``, ``y``, ``z``, ``a``, ``b``, etc.).
 
 Test time:
 
->>> from theano.scalar import float64, add, mul, true_div
+>>> from aesara.scalar import float64, add, mul, true_div
 >>> x = float64('x')
 >>> y = float64('y')
 >>> z = float64('z')
@@ -213,9 +213,9 @@ Nothing happened here. The reason is: ``add(y, z) != add(y,
 z)``. That is the case for efficiency reasons. To fix this problem we
 first need to merge the parts of the graph that represent the same
 computation, using the ``MergeOptimizer`` defined in
-``theano.graph.opt``.
+``aesara.graph.opt``.
 
->>> from theano.graph.opt import MergeOptimizer
+>>> from aesara.graph.opt import MergeOptimizer
 >>> MergeOptimizer().optimize(e)  # doctest: +ELLIPSIS
 (0, ..., None, None, {}, 1, 0)
 >>> e
@@ -227,15 +227,15 @@ computation, using the ``MergeOptimizer`` defined in
 Once the merge is done, both occurrences of ``add(y, z)`` are
 collapsed into a single one and is used as an input in two
 places. Note that ``add(x, y)`` and ``add(y, x)`` are still considered
-to be different because Theano has no clue that ``add`` is
+to be different because Aesara has no clue that ``add`` is
 commutative. You may write your own global optimizer to identify
 computations that are identical with full knowledge of the rules of
-arithmetics that your Ops implement. Theano might provide facilities
+arithmetics that your Ops implement. Aesara might provide facilities
 for this somewhere in the future.
 
 .. note::
 
-   :class:`FunctionGraph` is a Theano structure intended for the optimization
+   :class:`FunctionGraph` is an Aesara structure intended for the optimization
    phase. It is used internally by function and is rarely
    exposed to the end user. You can use it to test out optimizations,
    etc. if you are comfortable with it, but it is recommended to use
@@ -295,14 +295,14 @@ subset of them) and applies one or several local optimizers on them.
 [add(z, mul(true_div(mul(y, x), y), true_div(z, x)))]
 >>> simplify = graph.opt.TopoOptimizer(local_simplify)
 >>> simplify.optimize(e)
-(<theano.graph.opt.TopoOptimizer object at 0x...>, 1, 5, 3, ..., ..., ...)
+(<aesara.graph.opt.TopoOptimizer object at 0x...>, 1, 5, 3, ..., ..., ...)
 >>> e
 [add(z, mul(x, true_div(z, x)))]
 
 OpSub, OpRemove, PatternSub
 +++++++++++++++++++++++++++
 
-Theano defines some shortcuts to make LocalOptimizers:
+Aesara defines some shortcuts to make LocalOptimizers:
 
 .. function:: OpSub(op1, op2)
 
@@ -324,11 +324,11 @@ Theano defines some shortcuts to make LocalOptimizers:
 
 .. testsetup::
 
-   from theano.scalar import identity
+   from aesara.scalar import identity
 
 .. testcode::
 
-   from theano.graph.opt import OpSub, OpRemove, PatternSub
+   from aesara.graph.opt import OpSub, OpRemove, PatternSub
 
    # Replacing add by mul (this is not recommended for primarily
    # mathematical reasons):
@@ -369,7 +369,7 @@ use constraints, etc. - there's some decent doc at
 The optimization database (optdb)
 =================================
 
-Theano exports a symbol called ``optdb`` which acts as a sort of
+Aesara exports a symbol called ``optdb`` which acts as a sort of
 ordered database of optimizations. When you make a new optimization,
 you must insert it at the proper place in the database. Furthermore,
 you can give each optimization in the database a set of tags that can
@@ -417,10 +417,10 @@ well and the LocalOptimizers they return will be put in their places
 (note that as of yet no DB can produce LocalOptimizer objects, so this
 is a moot point).
 
-Theano contains one principal DB object, :class:`optdb`, which
-contains all of Theano's optimizers with proper tags. It is
+Aesara contains one principal DB object, :class:`optdb`, which
+contains all of Aesara's optimizers with proper tags. It is
 recommended to insert new Optimizers in it. As mentioned previously,
-optdb is a SequenceDB, so, at the top level, Theano applies a sequence
+optdb is a SequenceDB, so, at the top level, Aesara applies a sequence
 of global optimizations to the computation graphs.
 
 
@@ -431,7 +431,7 @@ A Query is built by the following call:
 
 .. code-block:: python
 
-   theano.graph.optdb.Query(include, require=None, exclude=None, subquery=None)
+   aesara.graph.optdb.Query(include, require=None, exclude=None, subquery=None)
 
 .. class:: Query
 
@@ -472,8 +472,8 @@ Optimizer:
 
 .. testcode::
 
-   from theano.graph.optdb import Query
-   from theano.compile import optdb
+   from aesara.graph.optdb import Query
+   from aesara.compile import optdb
 
    # This is how the optimizer for the fast_run mode is defined
    fast_run = optdb.query(Query(include=['fast_run']))
@@ -517,7 +517,7 @@ LocalOptimizers may be registered in two ways:
   (see previous section).
 * Put them in an EquilibriumDB.
 
-Theano defines two EquilibriumDBs where you can put local
+Aesara defines two EquilibriumDBs where you can put local
 optimizations:
 
 
@@ -613,12 +613,12 @@ WRITEME
 
 .. _profiling_opt:
 
-Profiling Theano function compilation
+Profiling Aesara function compilation
 =====================================
 
-You find that compiling a Theano function is taking too much time? You
-can get profiling information about Theano optimization. The normal
-:ref:`Theano profiler <tut_profiling>` will provide you with very
+You find that compiling an Aesara function is taking too much time? You
+can get profiling information about Aesara optimization. The normal
+:ref:`Aesara profiler <tut_profiling>` will provide you with very
 high-level information. The indentation shows the included in/subset
 relationship between sections. The top of its output look like this:
 
@@ -630,33 +630,33 @@ relationship between sections. The top of its output look like this:
       Time in 0 calls to Function.__call__: 0.000000e+00s
       Total compile time: 1.131874e+01s
         Number of Apply nodes: 50
-        Theano Optimizer time: 1.152431e+00s
-           Theano validate time: 2.790451e-02s
-        Theano Linker time (includes C, CUDA code generation/compiling): 7.893991e-02s
+        Aesara Optimizer time: 1.152431e+00s
+           Aesara validate time: 2.790451e-02s
+        Aesara Linker time (includes C, CUDA code generation/compiling): 7.893991e-02s
            Import time 1.153541e-02s
-      Time in all call to theano.grad() 4.732513e-02s
+      Time in all call to aesara.grad() 4.732513e-02s
 
 Explanations:
 
-* ``Total compile time: 1.131874e+01s`` gives the total time spent inside `theano.function`.
+* ``Total compile time: 1.131874e+01s`` gives the total time spent inside `aesara.function`.
 * ``Number of Apply nodes: 50`` means that after optimization, there are 50 apply node in the graph.
-* ``Theano Optimizer time: 1.152431e+00s`` means that we spend 1.15s in the ``theano.function`` phase where we optimize (modify) the graph to make it faster / more stable numerically / work on GPU /...
-* ``Theano validate time: 2.790451e-02s`` means that we spent 2.8e-2s in the *validate* subset of the optimization phase.
-* ``Theano Linker time (includes C, CUDA code generation/compiling): 7.893991e-02s`` means that we spent 7.9e-2s in *linker* phase of ``theano.function``.
+* ``Aesara Optimizer time: 1.152431e+00s`` means that we spend 1.15s in the ``aesara.function`` phase where we optimize (modify) the graph to make it faster / more stable numerically / work on GPU /...
+* ``Aesara validate time: 2.790451e-02s`` means that we spent 2.8e-2s in the *validate* subset of the optimization phase.
+* ``Aesara Linker time (includes C, CUDA code generation/compiling): 7.893991e-02s`` means that we spent 7.9e-2s in *linker* phase of ``aesara.function``.
 * ``Import time 1.153541e-02s`` is a subset of the linker time where we import the compiled module.
-* ``Time in all call to theano.grad() 4.732513e-02s`` tells that we spent a total of 4.7e-2s in all calls to ``theano.grad``. This is outside of the calls to ``theano.function``.
+* ``Time in all call to aesara.grad() 4.732513e-02s`` tells that we spent a total of 4.7e-2s in all calls to ``aesara.grad``. This is outside of the calls to ``aesara.function``.
 
 The *linker* phase includes the generation of the C code, the time spent
-by g++ to compile and the time needed by Theano to build the object we
+by g++ to compile and the time needed by Aesara to build the object we
 return. The C code generation and compilation is cached, so the first
 time you compile a function and the following ones could take different
 amount of execution time.
 
-Detailed profiling of Theano optimizer
+Detailed profiling of Aesara optimizer
 --------------------------------------
 
-You can get more detailed profiling information about the Theano
-optimizer phase by setting to `True` the Theano flags
+You can get more detailed profiling information about the Aesara
+optimizer phase by setting to `True` the Aesara flags
 :attr:`config.profile_optimizer` (this require `config.profile` to be `True`
 as well).
 

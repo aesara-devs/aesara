@@ -7,5 +7,5 @@
    :synopsis: Tensor Optimizations
 .. moduleauthor:: LISA, PyMC Developers
 
-.. automodule:: theano.tensor.basic_opt
+.. automodule:: aesara.tensor.basic_opt
     :members:

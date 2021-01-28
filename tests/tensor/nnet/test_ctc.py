@@ -1,14 +1,14 @@
 import numpy as np
 import pytest
 
-import theano
-import theano.tensor as tt
-from tests import unittest_tools as utt
-from theano.tensor.nnet.ctc import (
+import aesara
+import aesara.tensor as tt
+from aesara.tensor.nnet.ctc import (
     ConnectionistTemporalClassification,
     ctc,
     ctc_available,
 )
+from tests import unittest_tools as utt
 
 
 def setup_torch_case():
@@ -106,7 +106,7 @@ def setup_grad_case():
     not ctc_available(), reason="Optional library warp-ctc not available"
 )
 @pytest.mark.skipif(
-    theano.config.mode == "FAST_COMPILE" or theano.config.cxx == "",
+    aesara.config.mode == "FAST_COMPILE" or aesara.config.cxx == "",
     reason="We need a c compiler",
 )
 class TestCTC:
@@ -121,15 +121,15 @@ class TestCTC:
         self, activations, labels, input_length, expected_costs, expected_grads
     ):
         # Create symbolic variables
-        t_activations = theano.shared(activations, name="activations")
-        t_activation_times = theano.shared(input_length, name="activation_times")
-        t_labels = theano.shared(labels, name="labels")
+        t_activations = aesara.shared(activations, name="activations")
+        t_activation_times = aesara.shared(input_length, name="activation_times")
+        t_labels = aesara.shared(labels, name="labels")
 
         t_cost = ctc(t_activations, t_labels, t_activation_times)
         # Symbolic gradient of CTC cost
         t_grad = tt.grad(tt.mean(t_cost), t_activations)
         # Compile symbolic functions
-        train = theano.function([], [t_cost, t_grad])
+        train = aesara.function([], [t_cost, t_grad])
 
         cost, grad = train()
 
@@ -143,7 +143,7 @@ class TestCTC:
         Check if optimization to disable gradients is working
         """
         ctc_cost = ctc(activations, labels, input_length)
-        ctc_function = theano.function([], [ctc_cost])
+        ctc_function = aesara.function([], [ctc_cost])
         for node in ctc_function.maker.fgraph.apply_nodes:
             if isinstance(node.op, ConnectionistTemporalClassification):
                 assert node.op.compute_grad is False
@@ -172,8 +172,8 @@ class TestCTC:
         def ctc_op_functor(labels, in_lengths):
             def wrapper(acts):
                 # Create auxiliary symbolic variables
-                t_activation_times = theano.shared(in_lengths, name="activation_times")
-                t_labels = theano.shared(labels, name="labels")
+                t_activation_times = aesara.shared(in_lengths, name="activation_times")
+                t_labels = aesara.shared(labels, name="labels")
                 return ctc(acts, t_labels, t_activation_times)
 
             return wrapper

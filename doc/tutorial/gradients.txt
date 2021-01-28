@@ -3,13 +3,13 @@
 
 
 =====================
-Derivatives in Theano
+Derivatives in Aesara
 =====================
 
 Computing Gradients
 ===================
 
-Now let's use Theano for a slightly more sophisticated task: create a
+Now let's use Aesara for a slightly more sophisticated task: create a
 function which computes the derivative of some expression *y* with
 respect to its parameter *x*. To do this we will use the macro ``tt.grad``.
 For instance, we can compute the
@@ -24,15 +24,15 @@ Here is the code to compute this gradient:
 .. tests/test_tutorial.py:T_examples.test_examples_4
 
 >>> import numpy
->>> import theano
->>> import theano.tensor as tt
->>> from theano import pp
+>>> import aesara
+>>> import aesara.tensor as tt
+>>> from aesara import pp
 >>> x = tt.dscalar('x')
 >>> y = x ** 2
 >>> gy = tt.grad(y, x)
 >>> pp(gy)  # print out the gradient prior to optimization
 '((fill((x ** TensorConstant{2}), TensorConstant{1.0}) * TensorConstant{2}) * (x ** (TensorConstant{2} - TensorConstant{1})))'
->>> f = theano.function([x], gy)
+>>> f = aesara.function([x], gy)
 >>> f(4)
 array(8.0)
 >>> numpy.allclose(f(94.2), 188.4)
@@ -71,14 +71,14 @@ logistic is: :math:`ds(x)/dx = s(x) \cdot (1 - s(x))`.
 >>> x = tt.dmatrix('x')
 >>> s = tt.sum(1 / (1 + tt.exp(-x)))
 >>> gs = tt.grad(s, x)
->>> dlogistic = theano.function([x], gs)
+>>> dlogistic = aesara.function([x], gs)
 >>> dlogistic([[0, 1], [-1, -2]])
 array([[ 0.25      ,  0.19661193],
        [ 0.19661193,  0.10499359]])
 
 In general, for any **scalar** expression *s*, ``tt.grad(s, w)`` provides
-the Theano expression for computing :math:`\frac{\partial s}{\partial w}`. In
-this way Theano can be used for doing **efficient** symbolic differentiation
+the Aesara expression for computing :math:`\frac{\partial s}{\partial w}`. In
+this way Aesara can be used for doing **efficient** symbolic differentiation
 (as the expression returned by ``tt.grad`` will be optimized during compilation), even for
 function with many inputs. (see `automatic differentiation <http://en.wikipedia.org/wiki/Automatic_differentiation>`_ for a description
 of symbolic differentiation).
@@ -95,15 +95,15 @@ of symbolic differentiation).
    :ref:`this<libdoc_gradient>` section of the library.
 
    Additional information on the inner workings of differentiation may also be
-   found in the more advanced tutorial :ref:`Extending Theano<extending>`.
+   found in the more advanced tutorial :ref:`Extending Aesara<extending>`.
 
 Computing the Jacobian
 ======================
 
-In Theano's parlance, the term *Jacobian* designates the tensor comprising the
+In Aesara's parlance, the term *Jacobian* designates the tensor comprising the
 first partial derivatives of the output of a function with respect to its inputs.
 (This is a generalization of to the so-called Jacobian matrix in Mathematics.)
-Theano implements the :func:`theano.gradient.jacobian` macro that does all
+Aesara implements the :func:`aesara.gradient.jacobian` macro that does all
 that is needed to compute the Jacobian. The following text explains how
 to do it manually.
 
@@ -114,18 +114,18 @@ do is to loop over the entries in *y* and compute the gradient of
 
 .. note::
 
-    ``scan`` is a generic op in Theano that allows writing in a symbolic
+    ``scan`` is a generic op in Aesara that allows writing in a symbolic
     manner all kinds of recurrent equations. While creating
     symbolic loops (and optimizing them for performance) is a hard task,
     effort is being done for improving the performance of ``scan``. We
     shall return to :ref:`scan<tutloop>` later in this tutorial.
 
->>> import theano
->>> import theano.tensor as tt
+>>> import aesara
+>>> import aesara.tensor as tt
 >>> x = tt.dvector('x')
 >>> y = x ** 2
->>> J, updates = theano.scan(lambda i, y, x : tt.grad(y[i], x), sequences=T.arange(y.shape[0]), non_sequences=[y, x])
->>> f = theano.function([x], J, updates=updates)
+>>> J, updates = aesara.scan(lambda i, y, x : tt.grad(y[i], x), sequences=T.arange(y.shape[0]), non_sequences=[y, x])
+>>> f = aesara.function([x], J, updates=updates)
 >>> f([4, 4])
 array([[ 8.,  0.],
        [ 0.,  8.]])
@@ -139,7 +139,7 @@ matrix which corresponds to the Jacobian.
 .. note::
     There are some pitfalls to be aware of regarding ``tt.grad``. One of them is that you
     cannot re-write the above expression of the Jacobian as
-    ``theano.scan(lambda y_i,x: tt.grad(y_i,x), sequences=y,
+    ``aesara.scan(lambda y_i,x: tt.grad(y_i,x), sequences=y,
     non_sequences=x)``, even though from the documentation of scan this
     seems possible. The reason is that *y_i* will not be a function of
     *x* anymore, while *y[i]* still is.
@@ -148,9 +148,9 @@ matrix which corresponds to the Jacobian.
 Computing the Hessian
 =====================
 
-In Theano, the term *Hessian* has the usual mathematical meaning: It is the
+In Aesara, the term *Hessian* has the usual mathematical meaning: It is the
 matrix comprising the second order partial derivative of a function with scalar
-output and vector input. Theano implements :func:`theano.gradient.hessian` macro that does all
+output and vector input. Aesara implements :func:`aesara.gradient.hessian` macro that does all
 that is needed to compute the Hessian. The following text explains how
 to do it manually.
 
@@ -163,8 +163,8 @@ scalar.
 >>> y = x ** 2
 >>> cost = y.sum()
 >>> gy = tt.grad(cost, x)
->>> H, updates = theano.scan(lambda i, gy,x : tt.grad(gy[i], x), sequences=T.arange(gy.shape[0]), non_sequences=[gy, x])
->>> f = theano.function([x], H, updates=updates)
+>>> H, updates = aesara.scan(lambda i, gy,x : tt.grad(gy[i], x), sequences=T.arange(gy.shape[0]), non_sequences=[gy, x])
+>>> f = aesara.function([x], H, updates=updates)
 >>> f([4, 4])
 array([[ 2.,  0.],
        [ 0.,  2.]])
@@ -182,7 +182,7 @@ performance gains. A description of one such algorithm can be found here:
 * Barak A. Pearlmutter, "Fast Exact Multiplication by the Hessian", *Neural
   Computation, 1994*
 
-While in principle we would want Theano to identify these patterns automatically for us,
+While in principle we would want Aesara to identify these patterns automatically for us,
 in practice, implementing such optimizations in a generic manner is extremely
 difficult. Therefore, we provide special functions dedicated to these tasks.
 
@@ -195,7 +195,7 @@ vector, namely :math:`\frac{\partial f(x)}{\partial x} v`. The formulation
 can be extended even for *x* being a matrix, or a tensor in general, case in
 which also the Jacobian becomes a tensor and the product becomes some kind
 of tensor product. Because in practice we end up needing to compute such
-expressions in terms of weight matrices, Theano supports this more generic
+expressions in terms of weight matrices, Aesara supports this more generic
 form of the operation. In order to evaluate the *R-operation* of
 expression *y*, with respect to *x*, multiplying the Jacobian with *v*
 you need to do something similar to this:
@@ -204,8 +204,8 @@ you need to do something similar to this:
 >>> V = tt.dmatrix('V')
 >>> x = tt.dvector('x')
 >>> y = tt.dot(x, W)
->>> JV = theano.gradient.Rop(y, W, V)
->>> f = theano.function([W, V, x], JV)
+>>> JV = aesara.gradient.Rop(y, W, V)
+>>> f = aesara.function([W, V, x], JV)
 >>> f([[1, 1], [1, 1]], [[2, 2], [2, 2]], [0,1])
 array([ 2.,  2.])
 
@@ -223,8 +223,8 @@ f(x)}{\partial x}`. The *L-operator* is also supported for generic tensors
 >>> v = tt.dvector('v')
 >>> x = tt.dvector('x')
 >>> y = tt.dot(x, W)
->>> VJ = theano.gradient.Lop(y, W, v)
->>> f = theano.function([v,x], VJ)
+>>> VJ = aesara.gradient.Lop(y, W, v)
+>>> f = aesara.function([v,x], VJ)
 >>> f([2, 2], [0, 1])
 array([[ 0.,  0.],
        [ 2.,  2.]])
@@ -256,7 +256,7 @@ Hence, we suggest profiling the methods before using either one of the two:
 >>> y = tt.sum(x ** 2)
 >>> gy = tt.grad(y, x)
 >>> vH = tt.grad(tt.sum(gy * v), x)
->>> f = theano.function([x, v], vH)
+>>> f = aesara.function([x, v], vH)
 >>> f([4, 4], [2, 2])
 array([ 4.,  4.])
 
@@ -267,8 +267,8 @@ or, making use of the *R-operator*:
 >>> v = tt.dvector('v')
 >>> y = tt.sum(x ** 2)
 >>> gy = tt.grad(y, x)
->>> Hv = theano.gradient.Rop(gy, x, v)
->>> f = theano.function([x, v], Hv)
+>>> Hv = aesara.gradient.Rop(gy, x, v)
+>>> f = aesara.function([x, v], Hv)
 >>> f([4, 4], [2, 2])
 array([ 4.,  4.])
 
@@ -277,7 +277,7 @@ Final Pointers
 ==============
 
 
-* The ``grad`` function works symbolically: it receives and returns Theano variables.
+* The ``grad`` function works symbolically: it receives and returns Aesara variables.
 
 * ``grad`` can be compared to a macro since it can be applied repeatedly.
 

@@ -12,8 +12,8 @@ try:
 except ImportError:
     scipy_imported = False
 
-from theano.misc.may_share_memory import may_share_memory
-from theano.misc.safe_asarray import _asarray
+from aesara.misc.may_share_memory import may_share_memory
+from aesara.misc.safe_asarray import _asarray
 
 
 def may_share_memory_core(a, b):

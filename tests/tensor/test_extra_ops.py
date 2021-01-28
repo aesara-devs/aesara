@@ -1,16 +1,15 @@
 import numpy as np
 import pytest
 
-import theano
-from tests import unittest_tools as utt
-from theano import function
-from theano import tensor as tt
-from theano.assert_op import Assert
-from theano.configdefaults import config
-from theano.gradient import grad
-from theano.graph.basic import applys_between
-from theano.tensor.elemwise import DimShuffle
-from theano.tensor.extra_ops import (
+import aesara
+from aesara import function
+from aesara import tensor as tt
+from aesara.assert_op import Assert
+from aesara.configdefaults import config
+from aesara.gradient import grad
+from aesara.graph.basic import applys_between
+from aesara.tensor.elemwise import DimShuffle
+from aesara.tensor.extra_ops import (
     Bartlett,
     BroadcastTo,
     CpuContiguous,
@@ -41,8 +40,8 @@ from theano.tensor.extra_ops import (
     to_one_hot,
     unravel_index,
 )
-from theano.tensor.math import sum as tt_sum
-from theano.tensor.type import (
+from aesara.tensor.math import sum as tt_sum
+from aesara.tensor.type import (
     TensorType,
     dmatrix,
     dscalar,
@@ -59,14 +58,15 @@ from theano.tensor.type import (
     tensor3,
     vector,
 )
-from theano.utils import LOCAL_BITWIDTH, PYTHON_INT_BITWIDTH
+from aesara.utils import LOCAL_BITWIDTH, PYTHON_INT_BITWIDTH
+from tests import unittest_tools as utt
 
 
 def test_cpu_contiguous():
     a = fmatrix("a")
     i = iscalar("i")
     a_val = np.asarray(np.random.rand(4, 5), dtype="float32")
-    f = theano.function([a, i], cpu_contiguous(a.reshape((5, 4))[::i]))
+    f = aesara.function([a, i], cpu_contiguous(a.reshape((5, 4))[::i]))
     topo = f.maker.fgraph.toposort()
     assert any([isinstance(node.op, CpuContiguous) for node in topo])
     assert f(a_val, 1).flags["C_CONTIGUOUS"]
@@ -91,14 +91,14 @@ class TestSearchsortedOp(utt.InferShapeTester):
         self.idx_sorted = np.argsort(self.a).astype("int32")
 
     def test_searchsortedOp_on_sorted_input(self):
-        f = theano.function([self.x, self.v], searchsorted(self.x, self.v))
+        f = aesara.function([self.x, self.v], searchsorted(self.x, self.v))
         assert np.allclose(
             np.searchsorted(self.a[self.idx_sorted], self.b),
             f(self.a[self.idx_sorted], self.b),
         )
 
         sorter = vector("sorter", dtype="int32")
-        f = theano.function(
+        f = aesara.function(
             [self.x, self.v, sorter],
             self.x.searchsorted(self.v, sorter=sorter, side="right"),
         )
@@ -108,7 +108,7 @@ class TestSearchsortedOp(utt.InferShapeTester):
         )
 
         sa = self.a[self.idx_sorted]
-        f = theano.function([self.x, self.v], self.x.searchsorted(self.v, side="right"))
+        f = aesara.function([self.x, self.v], self.x.searchsorted(self.v, side="right"))
         assert np.allclose(sa.searchsorted(self.b, side="right"), f(sa, self.b))
 
     def test_searchsortedOp_wrong_side_kwd(self):
@@ -134,7 +134,7 @@ class TestSearchsortedOp(utt.InferShapeTester):
         # 'uint8', 'uint16', 'uint32', 'uint64')
         for dtype in compatible_types:
             sorter = vector("sorter", dtype=dtype)
-            f = theano.function(
+            f = aesara.function(
                 [self.x, self.v, sorter],
                 searchsorted(self.x, self.v, sorter=sorter),
                 allow_input_downcast=True,
@@ -145,7 +145,7 @@ class TestSearchsortedOp(utt.InferShapeTester):
             )
 
     def test_searchsortedOp_on_right_side(self):
-        f = theano.function(
+        f = aesara.function(
             [self.x, self.v], searchsorted(self.x, self.v, side="right")
         )
         assert np.allclose(
@@ -204,13 +204,13 @@ class TestCumOp(utt.InferShapeTester):
         with pytest.raises(ValueError):
             cumprod(x, axis=-4)
 
-        f = theano.function([x], [cumsum(x), cumprod(x)])
+        f = aesara.function([x], [cumsum(x), cumprod(x)])
         s, p = f(a)
         assert np.allclose(np.cumsum(a), s)  # Test axis=None
         assert np.allclose(np.cumprod(a), p)  # Test axis=None
 
         for axis in range(-len(a.shape), len(a.shape)):
-            f = theano.function([x], [cumsum(x, axis=axis), cumprod(x, axis=axis)])
+            f = aesara.function([x], [cumsum(x, axis=axis), cumprod(x, axis=axis)])
             s, p = f(a)
             assert np.allclose(np.cumsum(a, axis=axis), s)
             assert np.allclose(np.cumprod(a, axis=axis), p)
@@ -269,19 +269,19 @@ class TestBinCount(utt.InferShapeTester):
             a = np.random.randint(1, 51, size=(25)).astype(dtype)
             weights = np.random.random((25,)).astype(config.floatX)
 
-            f1 = theano.function([x], bincount(x))
-            f2 = theano.function([x, w], bincount(x, weights=w))
+            f1 = aesara.function([x], bincount(x))
+            f2 = aesara.function([x, w], bincount(x, weights=w))
 
             assert (ref(a) == f1(a)).all()
             assert np.allclose(ref(a, weights), f2(a, weights))
-            f3 = theano.function([x], bincount(x, minlength=55))
-            f4 = theano.function([x], bincount(x, minlength=5))
+            f3 = aesara.function([x], bincount(x, minlength=55))
+            f4 = aesara.function([x], bincount(x, minlength=5))
             assert (ref(a, minlength=55) == f3(a)).all()
             assert (ref(a, minlength=5) == f4(a)).all()
             # skip the following test when using unsigned ints
             if not dtype.startswith("u"):
                 a[0] = -1
-                f5 = theano.function([x], bincount(x, assert_nonneg=True))
+                f5 = aesara.function([x], bincount(x, assert_nonneg=True))
                 with pytest.raises(AssertionError):
                     f5(a)
 
@@ -298,12 +298,12 @@ class TestDiffOp(utt.InferShapeTester):
         x = matrix("x")
         a = np.random.random((30, 50)).astype(config.floatX)
 
-        f = theano.function([x], diff(x))
+        f = aesara.function([x], diff(x))
         assert np.allclose(np.diff(a), f(a))
 
         for axis in range(len(a.shape)):
             for k in range(TestDiffOp.nb):
-                g = theano.function([x], diff(x, n=k, axis=axis))
+                g = aesara.function([x], diff(x, n=k, axis=axis))
                 assert np.allclose(np.diff(a, n=k, axis=axis), g(a))
 
     def test_infer_shape(self):
@@ -322,11 +322,11 @@ class TestDiffOp(utt.InferShapeTester):
         x = vector("x")
         a = np.random.random(50).astype(config.floatX)
 
-        theano.function([x], grad(tt_sum(diff(x)), x))
+        aesara.function([x], grad(tt_sum(diff(x)), x))
         utt.verify_grad(self.op, [a])
 
         for k in range(TestDiffOp.nb):
-            theano.function([x], grad(tt_sum(diff(x, n=k)), x))
+            aesara.function([x], grad(tt_sum(diff(x, n=k)), x))
             utt.verify_grad(DiffOp(n=k), [a], eps=7e-3)
 
 
@@ -347,7 +347,7 @@ class TestSqueeze(utt.InferShapeTester):
             data = np.random.random(size=shape).astype(config.floatX)
             variable = TensorType(config.floatX, broadcast)()
 
-            f = theano.function([variable], self.op(variable))
+            f = aesara.function([variable], self.op(variable))
 
             expected = np.squeeze(data)
             tested = f(data)
@@ -371,12 +371,12 @@ class TestSqueeze(utt.InferShapeTester):
             utt.verify_grad(self.op, [data])
 
     def test_var_interface(self):
-        # same as test_op, but use a_theano_var.squeeze.
+        # same as test_op, but use a_aesara_var.squeeze.
         for shape, broadcast in zip(self.shape_list, self.broadcast_list):
             data = np.random.random(size=shape).astype(config.floatX)
             variable = TensorType(config.floatX, broadcast)()
 
-            f = theano.function([variable], variable.squeeze())
+            f = aesara.function([variable], variable.squeeze())
 
             expected = np.squeeze(data)
             tested = f(data)
@@ -423,7 +423,7 @@ class TestCompress(utt.InferShapeTester):
             data = np.random.random(size=shape).astype(config.floatX)
             data_var = matrix()
 
-            f = theano.function(
+            f = aesara.function(
                 [cond_var, data_var], self.op(cond_var, data_var, axis=axis)
             )
 
@@ -464,7 +464,7 @@ class TestRepeatOp(utt.InferShapeTester):
                         with pytest.raises(TypeError):
                             repeat(x, r_var, axis=axis)
                     else:
-                        f = theano.function([x, r_var], repeat(x, r_var, axis=axis))
+                        f = aesara.function([x, r_var], repeat(x, r_var, axis=axis))
                         assert np.allclose(np.repeat(a, r, axis=axis), f(a, r))
 
                         r_var = vector(dtype=dtype)
@@ -477,12 +477,12 @@ class TestRepeatOp(utt.InferShapeTester):
                             with pytest.raises(TypeError):
                                 repeat(x, r_var, axis=axis)
                         else:
-                            f = theano.function([x, r_var], repeat(x, r_var, axis=axis))
+                            f = aesara.function([x, r_var], repeat(x, r_var, axis=axis))
                             assert np.allclose(np.repeat(a, r, axis=axis), f(a, r))
 
                         # check when r is a list of single integer, e.g. [3].
                         r = np.random.randint(1, 11, size=()).astype(dtype) + 2
-                        f = theano.function([x], repeat(x, [r], axis=axis))
+                        f = aesara.function([x], repeat(x, [r], axis=axis))
                         assert np.allclose(np.repeat(a, r, axis=axis), f(a))
                         assert not np.any(
                             [
@@ -491,10 +491,10 @@ class TestRepeatOp(utt.InferShapeTester):
                             ]
                         )
 
-                        # check when r is  theano tensortype that broadcastable is (True,)
+                        # check when r is  aesara tensortype that broadcastable is (True,)
                         r_var = TensorType(broadcastable=(True,), dtype=dtype)()
                         r = np.random.randint(1, 6, size=(1,)).astype(dtype)
-                        f = theano.function([x, r_var], repeat(x, r_var, axis=axis))
+                        f = aesara.function([x, r_var], repeat(x, r_var, axis=axis))
                         assert np.allclose(np.repeat(a, r[0], axis=axis), f(a, r))
                         assert not np.any(
                             [
@@ -732,7 +732,7 @@ class TestFillDiagonalOffset(utt.InferShapeTester):
 def test_to_one_hot():
     v = ivector()
     o = to_one_hot(v, 10)
-    f = theano.function([v], o)
+    f = aesara.function([v], o)
     out = f([1, 2, 3, 5, 6])
     assert out.dtype == config.floatX
     assert np.allclose(
@@ -748,7 +748,7 @@ def test_to_one_hot():
 
     v = ivector()
     o = to_one_hot(v, 10, dtype="int32")
-    f = theano.function([v], o)
+    f = aesara.function([v], o)
     out = f([1, 2, 3, 5, 6])
     assert out.dtype == "int32"
     assert np.allclose(
@@ -795,7 +795,7 @@ class TestUnique(utt.InferShapeTester):
             np.unique(inp, True, True, True),
         ]
         for op, outs_expected in zip(self.ops, list_outs_expected):
-            f = theano.function(inputs=[x], outputs=op(x, return_list=True))
+            f = aesara.function(inputs=[x], outputs=op(x, return_list=True))
             outs = f(inp)
             # Compare the result computed to the expected value.
             for out, out_exp in zip(outs, outs_expected):
@@ -818,7 +818,7 @@ class TestUnique(utt.InferShapeTester):
             np.unique(inp, True, True, True),
         ]
         for op, outs_expected in zip(self.ops, list_outs_expected):
-            f = theano.function(inputs=[x], outputs=op(x, return_list=True))
+            f = aesara.function(inputs=[x], outputs=op(x, return_list=True))
             outs = f(inp)
             # Compare the result computed to the expected value.
             for out, out_exp in zip(outs, outs_expected):
@@ -1002,7 +1002,7 @@ class TestUniqueAxis(utt.InferShapeTester):
             for args, kwargs in self.ops_pars
         ]
         for op, outs_expected in zip(ops, list_outs_expected):
-            f = theano.function(inputs=[x], outputs=op(x, return_list=True))
+            f = aesara.function(inputs=[x], outputs=op(x, return_list=True))
             outs = f(inp)
             # Compare the result computed to the expected value.
             for out, out_exp in zip(outs, outs_expected):
@@ -1025,7 +1025,7 @@ class TestUniqueAxis(utt.InferShapeTester):
             for args, kwargs in self.ops_pars
         ]
         for op, outs_expected in zip(ops, list_outs_expected):
-            f = theano.function(inputs=[x], outputs=op(x, return_list=True))
+            f = aesara.function(inputs=[x], outputs=op(x, return_list=True))
             outs = f(inp)
             # Compare the result computed to the expected value.
             for out, out_exp in zip(outs, outs_expected):
@@ -1085,7 +1085,7 @@ class TestUnravelIndex(utt.InferShapeTester):
                 indices = indices[-1]
             elif index_ndim == 2:
                 indices = indices[:, np.newaxis]
-            indices_symb = theano.shared(indices)
+            indices_symb = aesara.shared(indices)
 
             # reference result
             ref = np.unravel_index(indices, shape, order=order)
@@ -1104,14 +1104,14 @@ class TestUnravelIndex(utt.InferShapeTester):
             f_array_array = fn(indices, shape_array)
             np.testing.assert_equal(ref, f_array_array())
 
-            # shape given as a theano variable
-            shape_symb = theano.shared(shape_array)
+            # shape given as an Aesara variable
+            shape_symb = aesara.shared(shape_array)
             f_array_symb = fn(indices, shape_symb)
             np.testing.assert_equal(ref, f_array_symb())
 
             # shape given as a Shape op (unravel_index will use get_vector_length
             # to infer the number of dimensions)
-            indexed_array = theano.shared(np.random.uniform(size=shape_array))
+            indexed_array = aesara.shared(np.random.uniform(size=shape_array))
             f_array_shape = fn(indices, indexed_array.shape)
             np.testing.assert_equal(ref, f_array_shape())
 
@@ -1160,7 +1160,7 @@ class TestRavelMultiIndex(utt.InferShapeTester):
                 multi_index = tuple(i[-1] for i in multi_index)
             elif index_ndim == 2:
                 multi_index = tuple(i[:, np.newaxis] for i in multi_index)
-            multi_index_symb = [theano.shared(i) for i in multi_index]
+            multi_index_symb = [aesara.shared(i) for i in multi_index]
 
             # reference result
             ref = np.ravel_multi_index(multi_index, shape, mode, order)
@@ -1179,8 +1179,8 @@ class TestRavelMultiIndex(utt.InferShapeTester):
             f_array_array = fn(multi_index, shape_array)
             np.testing.assert_equal(ref, f_array_array())
 
-            # shape given as a theano variable
-            shape_symb = theano.shared(shape_array)
+            # shape given as an Aesara variable
+            shape_symb = aesara.shared(shape_array)
             f_array_symb = fn(multi_index, shape_symb)
             np.testing.assert_equal(ref, f_array_symb())
 

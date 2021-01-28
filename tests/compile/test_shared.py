@@ -1,10 +1,10 @@
 import numpy as np
 import pytest
 
-import theano
-from theano.compile.sharedvalue import SharedVariable, generic, shared
-from theano.misc.safe_asarray import _asarray
-from theano.tensor.type import (
+import aesara
+from aesara.compile.sharedvalue import SharedVariable, generic, shared
+from aesara.misc.safe_asarray import _asarray
+from aesara.tensor.type import (
     TensorType,
     bscalar,
     bvector,
@@ -19,7 +19,7 @@ from theano.tensor.type import (
     wscalar,
     wvector,
 )
-from theano.utils import PYTHON_INT_BITWIDTH
+from aesara.utils import PYTHON_INT_BITWIDTH
 
 
 class TestSharedVariable:
@@ -329,8 +329,8 @@ class TestSharedVariable:
         #        assert b.type == dvector
         #        f(b,[8])
 
-        b = shared(np.asarray([7.234], dtype=theano.config.floatX), allow_downcast=True)
-        assert b.dtype == theano.config.floatX
+        b = shared(np.asarray([7.234], dtype=aesara.config.floatX), allow_downcast=True)
+        assert b.dtype == aesara.config.floatX
         f(b, [8])
         assert b.get_value() == 8
 
@@ -340,5 +340,5 @@ class TestSharedVariable:
 
     def test_err_symbolic_variable(self):
         with pytest.raises(TypeError):
-            shared(theano.tensor.ones((2, 3)))
+            shared(aesara.tensor.ones((2, 3)))
         shared(np.ones((2, 4)))

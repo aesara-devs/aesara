@@ -2,21 +2,21 @@ from copy import copy
 
 import pytest
 
-from tests.unittest_tools import assertFailure_fast
-from theano.configdefaults import config
-from theano.graph.basic import Apply, Constant, Variable, clone
-from theano.graph.destroyhandler import DestroyHandler
-from theano.graph.fg import FunctionGraph, InconsistencyError
-from theano.graph.op import Op
-from theano.graph.opt import (
+from aesara.configdefaults import config
+from aesara.graph.basic import Apply, Constant, Variable, clone
+from aesara.graph.destroyhandler import DestroyHandler
+from aesara.graph.fg import FunctionGraph, InconsistencyError
+from aesara.graph.op import Op
+from aesara.graph.opt import (
     NavigatorOptimizer,
     OpKeyOptimizer,
     OpSub,
     PatternSub,
     TopoOptimizer,
 )
-from theano.graph.toolbox import ReplaceValidate
-from theano.graph.type import Type
+from aesara.graph.toolbox import ReplaceValidate
+from aesara.graph.type import Type
+from tests.unittest_tools import assertFailure_fast
 
 
 def PatternOptimizer(p1, p2, ign=True):

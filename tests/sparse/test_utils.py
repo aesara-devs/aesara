@@ -4,8 +4,8 @@ import pytest
 
 sp = pytest.importorskip("scipy", minversion="0.7.0")
 
+from aesara.sparse.utils import hash_from_sparse
 from tests.sparse.test_basic import as_sparse_format
-from theano.sparse.utils import hash_from_sparse
 
 
 def test_hash_from_sparse():

@@ -2,13 +2,13 @@ import numpy as np
 import pytest
 from numpy.testing import assert_equal, assert_string_equal
 
+import aesara
 import tests.unittest_tools as utt
-import theano
-from theano.tensor.elemwise import DimShuffle
-from theano.tensor.subtensor import AdvancedSubtensor, AdvancedSubtensor1, Subtensor
-from theano.tensor.type import TensorType, dmatrix, iscalar, ivector, matrix
-from theano.tensor.type_other import MakeSlice
-from theano.tensor.var import TensorConstant
+from aesara.tensor.elemwise import DimShuffle
+from aesara.tensor.subtensor import AdvancedSubtensor, AdvancedSubtensor1, Subtensor
+from aesara.tensor.type import TensorType, dmatrix, iscalar, ivector, matrix
+from aesara.tensor.type_other import MakeSlice
+from aesara.tensor.var import TensorConstant
 
 
 @pytest.mark.parametrize(
@@ -45,7 +45,7 @@ def test_numpy_method(fct):
     data = np.random.rand(5, 5)
     x.tag.test_value = data
     y = fct(x)
-    f = theano.function([x], y)
+    f = aesara.function([x], y)
     utt.assert_allclose(np.nan_to_num(f(data)), np.nan_to_num(fct(data)))
 
 
@@ -56,8 +56,8 @@ def test_empty_list_indexing():
     x = dmatrix("x")
     y = x[:, []]
     z = x[:, ()]
-    fy = theano.function([x], y)
-    fz = theano.function([x], z)
+    fy = aesara.function([x], y)
+    fz = aesara.function([x], z)
     assert_equal(fy(data).shape, ynp.shape)
     assert_equal(fz(data).shape, znp.shape)
 
@@ -66,7 +66,7 @@ def test_copy():
     x = dmatrix("x")
     data = np.random.rand(5, 5)
     y = x.copy(name="y")
-    f = theano.function([x], y)
+    f = aesara.function([x], y)
     assert_equal(f(data), data)
     assert_string_equal(y.name, "y")
 
@@ -77,7 +77,7 @@ def test__getitem__Subtensor():
     i = iscalar("i")
 
     z = x[i]
-    op_types = [type(node.op) for node in theano.graph.basic.io_toposort([x, i], [z])]
+    op_types = [type(node.op) for node in aesara.graph.basic.io_toposort([x, i], [z])]
     assert op_types[-1] == Subtensor
 
     # This should ultimately do nothing (i.e. just return `x`)
@@ -89,29 +89,29 @@ def test__getitem__Subtensor():
     # It lands in the `full_slices` condition in
     # `_tensor_py_operators.__getitem__`
     z = x[..., None]
-    op_types = [type(node.op) for node in theano.graph.basic.io_toposort([x, i], [z])]
+    op_types = [type(node.op) for node in aesara.graph.basic.io_toposort([x, i], [z])]
     assert all(op_type == DimShuffle for op_type in op_types)
 
     z = x[None, :, None, :]
-    op_types = [type(node.op) for node in theano.graph.basic.io_toposort([x, i], [z])]
+    op_types = [type(node.op) for node in aesara.graph.basic.io_toposort([x, i], [z])]
     assert all(op_type == DimShuffle for op_type in op_types)
 
     # This one lands in the non-`full_slices` condition in
     # `_tensor_py_operators.__getitem__`
     z = x[:i, :, None]
-    op_types = [type(node.op) for node in theano.graph.basic.io_toposort([x, i], [z])]
+    op_types = [type(node.op) for node in aesara.graph.basic.io_toposort([x, i], [z])]
     assert op_types[1:] == [DimShuffle, Subtensor]
 
     z = x[:]
-    op_types = [type(node.op) for node in theano.graph.basic.io_toposort([x, i], [z])]
+    op_types = [type(node.op) for node in aesara.graph.basic.io_toposort([x, i], [z])]
     assert op_types[-1] == Subtensor
 
     z = x[..., :]
-    op_types = [type(node.op) for node in theano.graph.basic.io_toposort([x, i], [z])]
+    op_types = [type(node.op) for node in aesara.graph.basic.io_toposort([x, i], [z])]
     assert op_types[-1] == Subtensor
 
     z = x[..., i, :]
-    op_types = [type(node.op) for node in theano.graph.basic.io_toposort([x, i], [z])]
+    op_types = [type(node.op) for node in aesara.graph.basic.io_toposort([x, i], [z])]
     assert op_types[-1] == Subtensor
 
 
@@ -120,24 +120,24 @@ def test__getitem__AdvancedSubtensor_bool():
     i = TensorType("bool", (False, False))("i")
 
     z = x[i]
-    op_types = [type(node.op) for node in theano.graph.basic.io_toposort([x, i], [z])]
+    op_types = [type(node.op) for node in aesara.graph.basic.io_toposort([x, i], [z])]
     assert op_types[-1] == AdvancedSubtensor
 
     i = TensorType("bool", (False,))("i")
     z = x[:, i]
-    op_types = [type(node.op) for node in theano.graph.basic.io_toposort([x, i], [z])]
+    op_types = [type(node.op) for node in aesara.graph.basic.io_toposort([x, i], [z])]
     assert op_types[-1] == AdvancedSubtensor
 
     i = TensorType("bool", (False,))("i")
     z = x[..., i]
-    op_types = [type(node.op) for node in theano.graph.basic.io_toposort([x, i], [z])]
+    op_types = [type(node.op) for node in aesara.graph.basic.io_toposort([x, i], [z])]
     assert op_types[-1] == AdvancedSubtensor
 
     with pytest.raises(TypeError):
         z = x[[True, False], i]
 
     z = x[ivector("b"), i]
-    op_types = [type(node.op) for node in theano.graph.basic.io_toposort([x, i], [z])]
+    op_types = [type(node.op) for node in aesara.graph.basic.io_toposort([x, i], [z])]
     assert op_types[-1] == AdvancedSubtensor
 
 
@@ -148,25 +148,25 @@ def test__getitem__AdvancedSubtensor():
 
     # This is a `__getitem__` call that's redirected to `_tensor_py_operators.take`
     z = x[i]
-    op_types = [type(node.op) for node in theano.graph.basic.io_toposort([x, i], [z])]
+    op_types = [type(node.op) for node in aesara.graph.basic.io_toposort([x, i], [z])]
     assert op_types[-1] == AdvancedSubtensor1
 
     # This should index nothing (i.e. return an empty copy of `x`)
     # We check that the index is empty
     z = x[[]]
-    op_types = [type(node.op) for node in theano.graph.basic.io_toposort([x, i], [z])]
+    op_types = [type(node.op) for node in aesara.graph.basic.io_toposort([x, i], [z])]
     assert op_types == [AdvancedSubtensor1]
     assert isinstance(z.owner.inputs[1], TensorConstant)
 
     # This is also a `__getitem__` call that's redirected to `_tensor_py_operators.take`
     z = x[:, i]
-    op_types = [type(node.op) for node in theano.graph.basic.io_toposort([x, i], [z])]
+    op_types = [type(node.op) for node in aesara.graph.basic.io_toposort([x, i], [z])]
     assert op_types == [DimShuffle, AdvancedSubtensor1, DimShuffle]
 
     z = x[..., i, None]
-    op_types = [type(node.op) for node in theano.graph.basic.io_toposort([x, i], [z])]
+    op_types = [type(node.op) for node in aesara.graph.basic.io_toposort([x, i], [z])]
     assert op_types == [MakeSlice, AdvancedSubtensor]
 
     z = x[i, None]
-    op_types = [type(node.op) for node in theano.graph.basic.io_toposort([x, i], [z])]
+    op_types = [type(node.op) for node in aesara.graph.basic.io_toposort([x, i], [z])]
     assert op_types[-1] == AdvancedSubtensor

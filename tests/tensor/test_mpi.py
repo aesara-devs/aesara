@@ -3,12 +3,12 @@ import subprocess
 
 import pytest
 
-import theano
-from theano.compile.mode import Mode
-from theano.configdefaults import config
-from theano.graph.sched import sort_schedule_fn
-from theano.link.c.basic import OpWiseCLinker
-from theano.tensor.io import (
+import aesara
+from aesara.compile.mode import Mode
+from aesara.configdefaults import config
+from aesara.graph.sched import sort_schedule_fn
+from aesara.link.c.basic import OpWiseCLinker
+from aesara.tensor.io import (
     MPISend,
     MPISendWait,
     mpi_cmps,
@@ -17,7 +17,7 @@ from theano.tensor.io import (
     recv,
     send,
 )
-from theano.tensor.type import matrix
+from aesara.tensor.type import matrix
 
 
 mpi_scheduler = sort_schedule_fn(*mpi_cmps)
@@ -48,20 +48,20 @@ def test_send():
 def test_can_make_function():
     x = recv((5, 5), "float32", 0, 11)
     y = x + 1
-    assert theano.function([], [y])
+    assert aesara.function([], [y])
 
 
 @pytest.mark.skipif(not mpi_enabled, reason="MPI not enabled")
 def test_mpi_roundtrip():
-    theano_root = theano.__file__.split("__init__")[0]
+    aesara_root = aesara.__file__.split("__init__")[0]
     env = os.environ.copy()
-    flags = env.get("THEANO_FLAGS", "")
+    flags = env.get("AESARA_FLAGS", "")
     keep_flags = ",".join(
         f for f in flags.split(",") if not f.startswith("init_gpu_device")
     )
-    env["THEANO_FLAGS"] = keep_flags
+    env["AESARA_FLAGS"] = keep_flags
     p = subprocess.Popen(
-        "mpiexec -np 2 python " + theano_root + "tensor/tests/_test_mpi_roundtrip.py",
+        "mpiexec -np 2 python " + aesara_root + "tensor/tests/_test_mpi_roundtrip.py",
         stdin=subprocess.PIPE,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
@@ -91,7 +91,7 @@ def test_mpi_tag_ordering():
     x = recv((2, 2), "float32", 1, 12)
     y = recv((2, 2), "float32", 1, 11)
     z = recv((2, 2), "float32", 1, 13)
-    f = theano.function([], [x, y, z], mode=mpi_mode)
+    f = aesara.function([], [x, y, z], mode=mpi_mode)
     nodes = f.maker.linker.make_all()[-1]
 
     assert all(node.op.tag == tag for node, tag in zip(nodes, (11, 12, 13, 11, 12, 13)))
@@ -102,7 +102,7 @@ def test_mpi_schedule():
     y = send(x, 1, 11)
     z = x + x
 
-    f = theano.function([x], [y, z], mode=mpi_mode)
+    f = aesara.function([x], [y, z], mode=mpi_mode)
     nodes = f.maker.linker.make_all()[-1]
-    optypes = [MPISend, theano.tensor.elemwise.Elemwise, MPISendWait]
+    optypes = [MPISend, aesara.tensor.elemwise.Elemwise, MPISendWait]
     assert all(isinstance(node.op, optype) for node, optype in zip(nodes, optypes))

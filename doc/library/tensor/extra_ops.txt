@@ -4,13 +4,12 @@
 
 .. testsetup:: *
 
-   from theano.tensor.extra_ops import *
+   from aesara.tensor.extra_ops import *
 
 .. module:: tensor.extra_ops
    :platform: Unix, Windows
    :synopsis: Tensor Extra Ops
 .. moduleauthor:: LISA
 
-.. automodule:: theano.tensor.extra_ops
+.. automodule:: aesara.tensor.extra_ops
     :members:
-

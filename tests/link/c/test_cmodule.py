@@ -10,12 +10,12 @@ from unittest.mock import patch
 
 import numpy as np
 
-import theano
-from theano.link.c.cmodule import GCC_compiler, default_blas_ldflags
-from theano.tensor.type import dvectors
+import aesara
+from aesara.link.c.cmodule import GCC_compiler, default_blas_ldflags
+from aesara.tensor.type import dvectors
 
 
-class MyOp(theano.compile.ops.DeepCopyOp):
+class MyOp(aesara.compile.ops.DeepCopyOp):
     nb_called = 0
 
     def c_code_cache_version(self):
@@ -32,7 +32,7 @@ class MyOp(theano.compile.ops.DeepCopyOp):
             rand = np.random.rand()
             return ('printf("%(rand)s\\n");' + code) % locals()
         # Else, no C code
-        return super(theano.compile.ops.DeepCopyOp, self).c_code(
+        return super(aesara.compile.ops.DeepCopyOp, self).c_code(
             node, name, inames, onames, sub
         )
 
@@ -48,18 +48,18 @@ def test_inter_process_cache():
     # node.inputs[*].owner like the name of the variable.
 
     x, y = dvectors("xy")
-    f = theano.function([x, y], [MyOp()(x), MyOp()(y)])
+    f = aesara.function([x, y], [MyOp()(x), MyOp()(y)])
     f(np.arange(60), np.arange(60))
-    if theano.config.mode == "FAST_COMPILE" or theano.config.cxx == "":
+    if aesara.config.mode == "FAST_COMPILE" or aesara.config.cxx == "":
         assert MyOp.nb_called == 0
     else:
         assert MyOp.nb_called == 1
 
     # What if we compile a new function with new variables?
     x, y = dvectors("xy")
-    f = theano.function([x, y], [MyOp()(x), MyOp()(y)])
+    f = aesara.function([x, y], [MyOp()(x), MyOp()(y)])
     f(np.arange(60), np.arange(60))
-    if theano.config.mode == "FAST_COMPILE" or theano.config.cxx == "":
+    if aesara.config.mode == "FAST_COMPILE" or aesara.config.cxx == "":
         assert MyOp.nb_called == 0
     else:
         assert MyOp.nb_called == 1
@@ -73,8 +73,8 @@ def test_flag_detection():
     GCC_compiler.try_flags(["-lblas"])
 
 
-@patch("theano.link.c.cmodule.try_blas_flag", return_value=None)
-@patch("theano.link.c.cmodule.sys")
+@patch("aesara.link.c.cmodule.try_blas_flag", return_value=None)
+@patch("aesara.link.c.cmodule.sys")
 def test_default_blas_ldflags(sys_mock, try_blas_flag_mock, caplog):
 
     sys_mock.version = "3.8.0 | packaged by conda-forge | (default, Nov 22 2019, 19:11:38) \n[GCC 7.3.0]"

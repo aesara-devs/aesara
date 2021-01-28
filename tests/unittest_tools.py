@@ -6,12 +6,12 @@ from functools import wraps
 import numpy as np
 import pytest
 
-import theano
-from theano.compile.debugmode import str_diagnostic
-from theano.configdefaults import config
-from theano.gradient import verify_grad as orig_verify_grad
-from theano.tensor.math import _allclose
-from theano.tensor.math import add as tt_add
+import aesara
+from aesara.compile.debugmode import str_diagnostic
+from aesara.configdefaults import config
+from aesara.gradient import verify_grad as orig_verify_grad
+from aesara.tensor.math import _allclose
+from aesara.tensor.math import add as tt_add
 
 
 _logger = logging.getLogger("tests.unittest_tools")
@@ -188,7 +188,7 @@ class InferShapeTester:
         # and it can be None
         mode = getattr(self, "mode", None)
         if mode is None:
-            mode = theano.compile.get_default_mode()
+            mode = aesara.compile.get_default_mode()
         # This mode seems to be the minimal one including the shape_i
         # optimizations, if we don't want to enumerate them explicitly.
         self.mode = mode.including("canonicalize")
@@ -250,9 +250,9 @@ class InferShapeTester:
                     )
                     break
 
-        outputs_function = theano.function(inputs, outputs, mode=mode)
-        shapes_function = theano.function(inputs, [o.shape for o in outputs], mode=mode)
-        # theano.printing.debugprint(shapes_function)
+        outputs_function = aesara.function(inputs, outputs, mode=mode)
+        shapes_function = aesara.function(inputs, [o.shape for o in outputs], mode=mode)
+        # aesara.printing.debugprint(shapes_function)
         # Check that the Op is removed from the compiled function.
         if check_topo:
             topo_shape = shapes_function.maker.fgraph.toposort()
@@ -375,9 +375,9 @@ class AttemptManyTimes:
 
 def assertFailure_fast(f):
     """A Decorator to handle the test cases that are failing when
-    THEANO_FLAGS =cycle_detection='fast'.
+    AESARA_FLAGS =cycle_detection='fast'.
     """
-    if theano.config.cycle_detection == "fast":
+    if aesara.config.cycle_detection == "fast":
 
         def test_with_assert(*args, **kwargs):
             with pytest.raises(Exception):

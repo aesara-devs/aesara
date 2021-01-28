@@ -3,26 +3,15 @@
 .. _citation:
 
 
-Theano Citation Policy
+Aesara Citation Policy
 ======================
 
-If you use Theano for academic research, you are highly encouraged (though not
+If you use Aesara for academic research, you are highly encouraged (though not
 required) to cite the following paper:
 
 * Theano Development Team. `"Theano: A Python framework for fast computation of mathematical expressions"
   <http://arxiv.org/pdf/1605.02688.pdf>`_.
   (:download:`short BibTeX <theano-short.bib>`, :download:`full BibTeX <theano-full.bib>`)
-
-Theano is primarily developed by academics, and so citations matter a lot to
-us. As an added benefit, you increase Theano's exposure and potential user
-(and developer) base, which is to the benefit of all users of Theano. Thanks
-in advance!
-
-Previously, we asked users of Theano to cite the two papers below.
-However, many members of our community have contributed to Theano in the
-meantime, and it is inconvenient to cite multiple papers. We intend to
-introduce new papers periodically, and only ask for users to cite the
-single most recent paper with the most comprehensive author list.
 
 Earlier articles:
 

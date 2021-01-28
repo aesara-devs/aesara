@@ -1,8 +1,8 @@
 import numpy as np
 
-from theano.graph.basic import Apply, Variable
-from theano.graph.op import Op
-from theano.graph.type import Type
+from aesara.graph.basic import Apply, Variable
+from aesara.graph.op import Op
+from aesara.graph.type import Type
 
 
 def is_variable(x):

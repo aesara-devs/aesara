@@ -6,17 +6,17 @@ are rarely used by themselves, instead they are the basis for Tensor Ops
 to use numpy's scalar routines.
 If you do want to rewrite these tests, bear in mind:
   * You don't need to use Composite.
-  * FunctionGraph and DualLinker are old, use theano.compile.function.function instead.
+  * FunctionGraph and DualLinker are old, use aesara.compile.function.function instead.
 """
 import numpy as np
 import pytest
 
+import aesara
 import tests.unittest_tools as utt
-import theano
-from theano.compile.mode import Mode
-from theano.graph.fg import FunctionGraph
-from theano.link.c.basic import DualLinker
-from theano.scalar.basic import (
+from aesara.compile.mode import Mode
+from aesara.graph.fg import FunctionGraph
+from aesara.link.c.basic import DualLinker
+from aesara.scalar.basic import (
     ComplexError,
     Composite,
     InRange,
@@ -64,7 +64,7 @@ from theano.scalar.basic import (
     true_div,
     uint8,
 )
-from theano.tensor.type import fscalar, imatrix, matrix
+from aesara.tensor.type import fscalar, imatrix, matrix
 
 
 def test_mul_add_true():
@@ -190,15 +190,15 @@ class TestComposite:
         # We test that Composite.make_node accept as inputs Variable
         # some that represent existing computation.
 
-        si0 = theano.scalar.int8()
-        si1 = theano.scalar.int8()
-        si2 = theano.scalar.float32()
+        si0 = aesara.scalar.int8()
+        si1 = aesara.scalar.int8()
+        si2 = aesara.scalar.float32()
         sout = (si0 * si1) / si2
-        sop = theano.scalar.Composite([si0, si1, si2], [sout])
-        si0 = theano.scalar.int8()
-        si1 = theano.scalar.int8()
-        si2 = theano.scalar.float32()
-        si3 = theano.scalar.float32()
+        sop = aesara.scalar.Composite([si0, si1, si2], [sout])
+        si0 = aesara.scalar.int8()
+        si1 = aesara.scalar.int8()
+        si2 = aesara.scalar.float32()
+        si3 = aesara.scalar.float32()
         sop.make_node(si0 * si3, si1, si2)
 
 
@@ -314,10 +314,10 @@ class TestUpgradeToFloat:
         xf = float32("xf")
 
         ei = unary_op(xi)
-        fi = theano.function([xi], ei)
+        fi = aesara.function([xi], ei)
 
         ef = unary_op(xf)
-        ff = theano.function([xf], ef)
+        ff = aesara.function([xf], ef)
 
         for x_val in x_range:
             outi = fi(x_val)
@@ -334,10 +334,10 @@ class TestUpgradeToFloat:
         yf = float32("yf")
 
         ei = binary_op(xi, yi)
-        fi = theano.function([xi, yi], ei)
+        fi = aesara.function([xi, yi], ei)
 
         ef = binary_op(xf, yf)
-        ff = theano.function([xf, yf], ef)
+        ff = aesara.function([xf, yf], ef)
 
         for x_val in x_range:
             for y_val in y_range:
@@ -355,14 +355,14 @@ class TestUpgradeToFloat:
 
         xi = int8("xi")
         yi = int8("yi")
-        xf = Scalar(theano.config.floatX)("xf")
-        yf = Scalar(theano.config.floatX)("yf")
+        xf = Scalar(aesara.config.floatX)("xf")
+        yf = Scalar(aesara.config.floatX)("yf")
 
         ei = true_div(xi, yi)
-        fi = theano.function([xi, yi], ei)
+        fi = aesara.function([xi, yi], ei)
 
         ef = true_div(xf, yf)
-        ff = theano.function([xf, yf], ef)
+        ff = aesara.function([xf, yf], ef)
 
         for x_val in x_range:
             for y_val in y_range:
@@ -395,7 +395,7 @@ def test_grad_gt():
     x = float32(name="x")
     y = float32(name="y")
     z = x > y
-    g = theano.gradient.grad(z, y)
+    g = aesara.gradient.grad(z, y)
     assert g.eval({y: 1.0}) == 0.0
 
 
@@ -409,19 +409,19 @@ def test_grad_switch():
     x = matrix()
     c = matrix()
 
-    s = theano.tensor.switch(c, x, 0)
+    s = aesara.tensor.switch(c, x, 0)
     l = s.sum()
 
-    theano.gradient.grad(l, x)
+    aesara.gradient.grad(l, x)
 
 
 def test_grad_identity():
     # Check that the grad method of Identity correctly handles int dytpes
     x = imatrix("x")
     # tensor_copy is Elemwise{Identity}
-    y = theano.tensor.tensor_copy(x)
-    l = y.sum(dtype=theano.config.floatX)
-    theano.gradient.grad(l, x)
+    y = aesara.tensor.tensor_copy(x)
+    l = y.sum(dtype=aesara.config.floatX)
+    aesara.gradient.grad(l, x)
 
 
 def test_grad_inrange():
@@ -432,7 +432,7 @@ def test_grad_inrange():
         low = fscalar("low")
         high = fscalar("high")
         out = op(x, low, high)
-        gx, glow, ghigh = theano.gradient.grad(out, [x, low, high])
+        gx, glow, ghigh = aesara.gradient.grad(out, [x, low, high])
 
         # We look if the gradient are equal to zero
         # if x is lower than the lower bound,
@@ -441,8 +441,8 @@ def test_grad_inrange():
         # bound.
         # Mathematically we should have an infinite gradient when
         # x is equal to the lower or higher bound but in that case
-        # Theano defines the gradient to be zero for stability.
-        f = theano.function([x, low, high], [gx, glow, ghigh])
+        # Aesara defines the gradient to be zero for stability.
+        f = aesara.function([x, low, high], [gx, glow, ghigh])
         utt.assert_allclose(f(0, 1, 5), [0, 0, 0])
         utt.assert_allclose(f(1, 1, 5), [0, 0, 0])
         utt.assert_allclose(f(2, 1, 5), [0, 0, 0])
@@ -452,10 +452,10 @@ def test_grad_inrange():
 
 def test_grad_abs():
     a = fscalar("a")
-    b = theano.tensor.nnet.relu(a)
-    c = theano.grad(b, a)
-    f = theano.function([a], c, mode=Mode(optimizer=None))
-    # Currently Theano return 0.5, but it isn't sure it won't change
+    b = aesara.tensor.nnet.relu(a)
+    c = aesara.grad(b, a)
+    f = aesara.function([a], c, mode=Mode(optimizer=None))
+    # Currently Aesara return 0.5, but it isn't sure it won't change
     # in the futur.
     ret = f(0.0)
     assert ret == 0.5, ret

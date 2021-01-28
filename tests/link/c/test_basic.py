@@ -1,15 +1,15 @@
 import numpy as np
 import pytest
 
-import theano
-from theano.compile.mode import Mode
-from theano.graph import fg
-from theano.graph.basic import Apply, Constant, Variable
-from theano.graph.op import COp
-from theano.graph.type import CType
-from theano.link.basic import PerformLinker
-from theano.link.c.basic import CLinker, DualLinker, OpWiseCLinker
-from theano.tensor.type import iscalar, matrix, vector
+import aesara
+from aesara.compile.mode import Mode
+from aesara.graph import fg
+from aesara.graph.basic import Apply, Constant, Variable
+from aesara.graph.op import COp
+from aesara.graph.type import CType
+from aesara.link.basic import PerformLinker
+from aesara.link.c.basic import CLinker, DualLinker, OpWiseCLinker
+from aesara.tensor.type import iscalar, matrix, vector
 
 
 def as_variable(x):
@@ -191,7 +191,7 @@ def Env(inputs, outputs):
 
 
 @pytest.mark.skipif(
-    not theano.config.cxx, reason="G++ not available, so we need to skip this test."
+    not aesara.config.cxx, reason="G++ not available, so we need to skip this test."
 )
 def test_clinker_straightforward():
     x, y, z = inputs()
@@ -202,7 +202,7 @@ def test_clinker_straightforward():
 
 
 @pytest.mark.skipif(
-    not theano.config.cxx, reason="G++ not available, so we need to skip this test."
+    not aesara.config.cxx, reason="G++ not available, so we need to skip this test."
 )
 def test_clinker_literal_inlining():
     x, y, z = inputs()
@@ -218,7 +218,7 @@ def test_clinker_literal_inlining():
 
 
 @pytest.mark.skipif(
-    not theano.config.cxx, reason="G++ not available, so we need to skip this test."
+    not aesara.config.cxx, reason="G++ not available, so we need to skip this test."
 )
 def test_clinker_literal_cache():
     mode = Mode(linker="c")
@@ -232,15 +232,15 @@ def test_clinker_literal_cache():
             [-4.664007e-07, 9.468691e-01, -3.18862e-02],
             [-2.562651e-06, -3.188625e-02, 1.05226e00],
         ],
-        dtype=theano.config.floatX,
+        dtype=aesara.config.floatX,
     )
 
     orientationi = np.array(
-        [59.36276866, 1.06116353, 0.93797339], dtype=theano.config.floatX
+        [59.36276866, 1.06116353, 0.93797339], dtype=aesara.config.floatX
     )
 
     for out1 in [A - input1[0] * np.identity(3), input1[0] * np.identity(3)]:
-        benchmark = theano.function(
+        benchmark = aesara.function(
             inputs=[A, input1], outputs=[out1], on_unused_input="ignore", mode=mode
         )
 
@@ -248,7 +248,7 @@ def test_clinker_literal_cache():
 
 
 @pytest.mark.skipif(
-    not theano.config.cxx, reason="G++ not available, so we need to skip this test."
+    not aesara.config.cxx, reason="G++ not available, so we need to skip this test."
 )
 def test_clinker_single_node():
     x, y, z = inputs()
@@ -259,7 +259,7 @@ def test_clinker_single_node():
 
 
 @pytest.mark.skipif(
-    not theano.config.cxx, reason="G++ not available, so we need to skip this test."
+    not aesara.config.cxx, reason="G++ not available, so we need to skip this test."
 )
 def test_clinker_dups():
     # Testing that duplicate inputs are allowed.
@@ -272,7 +272,7 @@ def test_clinker_dups():
 
 
 @pytest.mark.skipif(
-    not theano.config.cxx, reason="G++ not available, so we need to skip this test."
+    not aesara.config.cxx, reason="G++ not available, so we need to skip this test."
 )
 def test_clinker_not_used_inputs():
     # Testing that unused inputs are allowed.
@@ -284,7 +284,7 @@ def test_clinker_not_used_inputs():
 
 
 @pytest.mark.skipif(
-    not theano.config.cxx, reason="G++ not available, so we need to skip this test."
+    not aesara.config.cxx, reason="G++ not available, so we need to skip this test."
 )
 def test_clinker_dups_inner():
     # Testing that duplicates are allowed inside the graph
@@ -305,7 +305,7 @@ def test_opwiseclinker_straightforward():
     e = add(mul(add(x, y), div(x, y)), bad_sub(bad_sub(x, y), z))
     lnk = OpWiseCLinker().accept(Env([x, y, z], [e]))
     fn = lnk.make_function()
-    if theano.config.cxx:
+    if aesara.config.cxx:
         assert fn(2.0, 2.0, 2.0) == 2.0
     else:
         # The python version of bad_sub always return -10.
@@ -346,7 +346,7 @@ def test_duallinker_straightforward():
 
 
 @pytest.mark.skipif(
-    not theano.config.cxx, reason="G++ not available, so we need to skip this test."
+    not aesara.config.cxx, reason="G++ not available, so we need to skip this test."
 )
 def test_duallinker_mismatch():
     x, y, z = inputs()
@@ -393,7 +393,7 @@ add_fail = AddFail()
 
 
 @pytest.mark.skipif(
-    not theano.config.cxx, reason="G++ not available, so we need to skip this test."
+    not aesara.config.cxx, reason="G++ not available, so we need to skip this test."
 )
 def test_c_fail_error():
     x, y, z = inputs()
@@ -406,19 +406,19 @@ def test_c_fail_error():
 
 
 @pytest.mark.skipif(
-    not theano.config.cxx, reason="G++ not available, so we need to skip this test."
+    not aesara.config.cxx, reason="G++ not available, so we need to skip this test."
 )
 def test_shared_input_output():
     # Test bug reported on the mailing list by Alberto Orlandi
     # https://groups.google.com/d/topic/theano-users/6dLaEqc2R6g/discussion
     # The shared variable is both an input and an output of the function.
     inc = iscalar("inc")
-    state = theano.shared(0)
+    state = aesara.shared(0)
     state.name = "state"
     linker = CLinker()
     mode = Mode(linker=linker)
-    f = theano.function([inc], state, updates=[(state, state + inc)], mode=mode)
-    g = theano.function([inc], state, updates=[(state, state + inc)])
+    f = aesara.function([inc], state, updates=[(state, state + inc)], mode=mode)
+    g = aesara.function([inc], state, updates=[(state, state + inc)])
 
     # Initial value
     f0 = f(0)
@@ -439,10 +439,10 @@ def test_shared_input_output():
     g0 = g(0)
     assert f0 == g0 == 5, (f0, g0)
 
-    vstate = theano.shared(np.zeros(3, dtype="int32"))
+    vstate = aesara.shared(np.zeros(3, dtype="int32"))
     vstate.name = "vstate"
-    fv = theano.function([inc], vstate, updates=[(vstate, vstate + inc)], mode=mode)
-    gv = theano.function([inc], vstate, updates=[(vstate, vstate + inc)])
+    fv = aesara.function([inc], vstate, updates=[(vstate, vstate + inc)], mode=mode)
+    gv = aesara.function([inc], vstate, updates=[(vstate, vstate + inc)])
 
     # Initial value
     fv0 = fv(0)
