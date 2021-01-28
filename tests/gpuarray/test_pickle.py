@@ -25,6 +25,7 @@ except ImportError:
     have_pygpu = False
 
 
+@pytest.mark.skip(reason="These tests relied on saved/versioned pickled files.")
 @pytest.mark.skipif(have_pygpu, reason="pygpu active")
 def test_unpickle_gpuarray_as_numpy_ndarray_flag1():
     oldflag = config.experimental__unpickle_gpu_on_cpu
@@ -42,6 +43,7 @@ def test_unpickle_gpuarray_as_numpy_ndarray_flag1():
         config.experimental__unpickle_gpu_on_cpu = oldflag
 
 
+@pytest.mark.skip(reason="These tests relied on saved/versioned pickled files.")
 def test_unpickle_gpuarray_as_numpy_ndarray_flag2():
     oldflag = config.experimental__unpickle_gpu_on_cpu
     config.experimental__unpickle_gpu_on_cpu = True
