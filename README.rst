@@ -61,5 +61,5 @@ The PyMC group operates under the NumFOCUS umbrella. If you want to support us f
 .. |Project Name| replace:: Aesara
 .. |Tests Status| image:: https://github.com/pymc-devs/aesara/workflows/Tests/badge.svg
   :target: https://github.com/pymc-devs/aesara/actions?query=workflow%3ATests
-.. |Coverage| image:: https://coveralls.io/repos/github/pymc-devs/aesara/badge.svg?branch=master
-  :target: https://coveralls.io/github/pymc-devs/aesara?branch=master
+.. |Coverage| image:: https://codecov.io/gh/pymc-devs/aesara/branch/master/graph/badge.svg?token=WVwr8nZYmc
+  :target: https://codecov.io/gh/pymc-devs/aesara
