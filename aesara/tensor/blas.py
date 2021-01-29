@@ -160,7 +160,7 @@ from aesara.graph.toolbox import ReplacementDidNotRemoveError, ReplaceValidate
 from aesara.graph.utils import MethodNotDefined, TestValueError
 from aesara.printing import FunctionPrinter, debugprint, pprint
 from aesara.scalar import bool as bool_t
-from aesara.tensor import basic as tt
+from aesara.tensor import basic as aet
 from aesara.tensor.basic_opt import local_dimshuffle_lift
 from aesara.tensor.blas_headers import blas_header_text, blas_header_version
 from aesara.tensor.elemwise import DimShuffle, Elemwise
@@ -248,11 +248,11 @@ class Gemv(Op):
             return "%s{no_inplace}" % self.__class__.__name__
 
     def make_node(self, y, alpha, A, x, beta):
-        y = tt.as_tensor_variable(y)
-        x = tt.as_tensor_variable(x)
-        A = tt.as_tensor_variable(A)
-        alpha = tt.as_tensor_variable(alpha)
-        beta = tt.as_tensor_variable(beta)
+        y = aet.as_tensor_variable(y)
+        x = aet.as_tensor_variable(x)
+        A = aet.as_tensor_variable(A)
+        alpha = aet.as_tensor_variable(alpha)
+        beta = aet.as_tensor_variable(beta)
         if y.dtype != A.dtype or y.dtype != x.dtype:
             raise TypeError(
                 "Gemv requires matching dtypes", (y.dtype, A.dtype, x.dtype)
@@ -341,10 +341,10 @@ class Ger(Op):
             return "%s{non-destructive}" % self.__class__.__name__
 
     def make_node(self, A, alpha, x, y):
-        A = tt.as_tensor_variable(A)
-        y = tt.as_tensor_variable(y)
-        x = tt.as_tensor_variable(x)
-        alpha = tt.as_tensor_variable(alpha)
+        A = aet.as_tensor_variable(A)
+        y = aet.as_tensor_variable(y)
+        x = aet.as_tensor_variable(x)
+        alpha = aet.as_tensor_variable(alpha)
         if not (A.dtype == x.dtype == y.dtype == alpha.dtype):
             raise TypeError(
                 "ger requires matching dtypes", (A.dtype, alpha.dtype, x.dtype, y.dtype)
@@ -897,7 +897,7 @@ class Gemm(GemmRelated):
         return rval
 
     def make_node(self, *inputs):
-        inputs = list(map(tt.as_tensor_variable, inputs))
+        inputs = list(map(aet.as_tensor_variable, inputs))
         if len(inputs) != 5:
             raise TypeError(
                 f"Wrong number of inputs for {self} (expected 5, got {len(inputs)})"
@@ -1129,7 +1129,7 @@ def _as_scalar(res, dtype=None):
             # as the cast of the scalar can be done before or after the dot22
             # and this will give the same result.
             if aesara.scalar.upcast(res.dtype, dtype) == dtype:
-                return tt.cast(rval, dtype)
+                return aet.cast(rval, dtype)
             else:
                 return None
 
@@ -1342,9 +1342,9 @@ def _gemm_from_factored_list(fgraph, lst):
         # sM can be a tuple of 2 elements or an Aesara variable.
         if isinstance(sM, tuple):
             sm0, sm1 = sM
-            sm0 = tt.as_tensor_variable(sm0)
+            sm0 = aet.as_tensor_variable(sm0)
             if aesara.scalar.upcast(sm0.dtype, sm1.dtype) == sm1.dtype:
-                lst2.append((tt.cast(sm0, sm1.dtype), sM[1]))
+                lst2.append((aet.cast(sm0, sm1.dtype), sM[1]))
 
     lst = lst2
 
@@ -1578,8 +1578,8 @@ class Dot22(GemmRelated):
     check_input = False
 
     def make_node(self, x, y):
-        x = tt.as_tensor_variable(x)
-        y = tt.as_tensor_variable(y)
+        x = aet.as_tensor_variable(x)
+        y = aet.as_tensor_variable(y)
         dtypes = ("float16", "float32", "float64", "complex64", "complex128")
         if x.type.ndim != 2 or x.type.dtype not in dtypes:
             raise TypeError(x)
@@ -1731,7 +1731,7 @@ def local_gemm_to_ger(fgraph, node):
                 xv = x.dimshuffle(0)
                 yv = y.dimshuffle(1)
                 try:
-                    bval = tt.get_scalar_constant_value(b)
+                    bval = aet.get_scalar_constant_value(b)
                 except NotScalarConstantError:
                     # b isn't a constant, GEMM is doing useful pre-scaling
                     return
@@ -1740,7 +1740,7 @@ def local_gemm_to_ger(fgraph, node):
                     rval = ger(z, a, xv, yv)
                     return [rval]
                 elif bval == 0:  # GER on zeros_like should be faster than GEMM
-                    zeros = tt.zeros([x.shape[0], y.shape[1]], x.dtype)
+                    zeros = aet.zeros([x.shape[0], y.shape[1]], x.dtype)
                     rval = ger(zeros, a, xv, yv)
                     return [rval]
                 else:
@@ -1759,32 +1759,32 @@ def local_dot22_to_ger_or_gemv(fgraph, node):
             x, y = node.inputs
             xb = x.broadcastable
             yb = y.broadcastable
-            one = tt.as_tensor_variable(np.asarray(1, dtype=x.dtype))
-            zero = tt.as_tensor_variable(np.asarray(0, dtype=x.dtype))
+            one = aet.as_tensor_variable(np.asarray(1, dtype=x.dtype))
+            zero = aet.as_tensor_variable(np.asarray(0, dtype=x.dtype))
             if xb[1] and yb[0]:
                 # x and y are both vectors so this might qualifies for a GER
                 xv = x.dimshuffle(0)
                 yv = y.dimshuffle(1)
-                zeros = tt.zeros([x.shape[0], y.shape[1]], dtype=x.dtype)
+                zeros = aet.zeros([x.shape[0], y.shape[1]], dtype=x.dtype)
                 rval = ger(zeros, one, xv, yv)
                 return [rval]
             if xb[0] and yb[1]:
                 # x and y are both vectors so this qualifies for a sdot / ddot
                 # TODO: Aesara doesn't have a sdot, but gemv is better than _dot22
                 xv = x.dimshuffle(1)
-                zeros = tt.AllocEmpty(x.dtype)(1)
+                zeros = aet.AllocEmpty(x.dtype)(1)
                 rval = gemv_no_inplace(zeros, one, y.T, xv, zero)
                 return [rval.dimshuffle("x", 0)]
             if xb[0] and not yb[0] and not yb[1]:
                 # x is vector, y is matrix so try gemv
                 xv = x.dimshuffle(1)
-                zeros = tt.AllocEmpty(x.dtype)(y.shape[1])
+                zeros = aet.AllocEmpty(x.dtype)(y.shape[1])
                 rval = gemv_no_inplace(zeros, one, y.T, xv, zero)
                 return [rval.dimshuffle("x", 0)]
             if not xb[0] and not xb[1] and yb[1]:
                 # x is matrix, y is vector, try gemv
                 yv = y.dimshuffle(0)
-                zeros = tt.AllocEmpty(x.dtype)(x.shape[0])
+                zeros = aet.AllocEmpty(x.dtype)(x.shape[0])
                 rval = gemv_no_inplace(zeros, one, x, yv, zero)
                 return [rval.dimshuffle(0, "x")]
 
@@ -1999,7 +1999,9 @@ def local_dot22_to_dot22scalar(fgraph, node):
                 " matrix type"
             )
             return False
-        a = tt.cast(_as_scalar(m.owner.inputs[scalar_idx], dtype=d.dtype), d.type.dtype)
+        a = aet.cast(
+            _as_scalar(m.owner.inputs[scalar_idx], dtype=d.dtype), d.type.dtype
+        )
         assert not a.type.ndim
         dot = _dot22scalar(d.owner.inputs[0], d.owner.inputs[1], a)
 
@@ -2037,7 +2039,7 @@ def local_dot22_to_dot22scalar(fgraph, node):
     o.remove(d)
     o.remove(s)
 
-    a = tt.cast(i_scalar[scalar_idx], d.type.dtype)
+    a = aet.cast(i_scalar[scalar_idx], d.type.dtype)
     assert not a.type.ndim
     if len(o) == 0:
         return [_dot22scalar(d.owner.inputs[0], d.owner.inputs[1], a)]
@@ -2062,7 +2064,7 @@ class BatchedDot(COp):
     __props__ = ()
 
     def make_node(self, *inputs):
-        inputs = list(map(tt.as_tensor_variable, inputs))
+        inputs = list(map(aet.as_tensor_variable, inputs))
 
         if len(inputs) != 2:
             raise TypeError(f"Two arguments required, but {len(inputs)} given.")
@@ -2081,7 +2083,7 @@ class BatchedDot(COp):
 
         dtype = aesara.scalar.upcast(*[input.type.dtype for input in inputs])
         # upcast inputs to common dtype if needed
-        upcasted_inputs = [tt.cast(input, dtype) for input in inputs]
+        upcasted_inputs = [aet.cast(input, dtype) for input in inputs]
         broadcastable = (
             (inputs[0].type.broadcastable[0] or inputs[1].type.broadcastable[0],)
             + inputs[0].type.broadcastable[1:-1]
@@ -2441,9 +2443,9 @@ class BatchedDot(COp):
         # above code don't always return the right broadcast pattern.
         # This cause problem down the road. See gh-1461.
         if xgrad.broadcastable != x.broadcastable:
-            xgrad = tt.patternbroadcast(xgrad, x.broadcastable)
+            xgrad = aet.patternbroadcast(xgrad, x.broadcastable)
         if ygrad.broadcastable != y.broadcastable:
-            ygrad = tt.patternbroadcast(ygrad, y.broadcastable)
+            ygrad = aet.patternbroadcast(ygrad, y.broadcastable)
 
         return xgrad, ygrad
 
@@ -2564,7 +2566,7 @@ def batched_dot(a, b):
             dot products in terms of batched matrix-matrix dot products, so
             it may be possible to futherize optimize for performance.
     """
-    a, b = tt.as_tensor_variable(a), tt.as_tensor_variable(b)
+    a, b = aet.as_tensor_variable(a), aet.as_tensor_variable(b)
 
     if a.ndim == 0:
         raise TypeError("a must have at least one (batch) axis")

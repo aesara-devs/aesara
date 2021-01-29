@@ -13,7 +13,7 @@ import numpy as np
 
 import aesara
 from aesara import printing
-from aesara import scalar as ts
+from aesara import scalar as aes
 from aesara.configdefaults import config
 from aesara.graph.opt import PatternSub, copy_stack_trace, local_optimizer
 from aesara.graph.utils import MethodNotDefined
@@ -26,7 +26,7 @@ from aesara.tensor.math import add, clip, exp, inv, log, log1p, mul, neg, sub, t
 from aesara.tensor.type import TensorType, values_eq_approx_remove_inf
 
 
-class ScalarSigmoid(ts.UnaryScalarOp):
+class ScalarSigmoid(aes.UnaryScalarOp):
     """
     This is just speed opt. Not for stability.
 
@@ -79,9 +79,9 @@ class ScalarSigmoid(ts.UnaryScalarOp):
         # float16 limits: -11.0, 7.0f
         # We use the float32 limits for float16 for now as the
         # computation will happen in float32 anyway.
-        if node.inputs[0].type == ts.float32 or node.inputs[0].type == ts.float16:
+        if node.inputs[0].type == aes.float32 or node.inputs[0].type == aes.float16:
             return f"""{z} = 1.0f / (1.0f + exp(-{x}));"""
-        elif node.inputs[0].type == ts.float64:
+        elif node.inputs[0].type == aes.float64:
             return f"""{z} = 1.0 / (1.0 + exp(-{x}));"""
         else:
             raise NotImplementedError("only floatingpoint is implemented")
@@ -176,11 +176,11 @@ class ScalarSigmoid(ts.UnaryScalarOp):
         print(val_ultra.min())
 
 
-scalar_sigmoid = ScalarSigmoid(ts.upgrade_to_float, name="scalar_sigmoid")
+scalar_sigmoid = ScalarSigmoid(aes.upgrade_to_float, name="scalar_sigmoid")
 sigmoid = Elemwise(scalar_sigmoid, name="sigmoid")
 
 sigmoid_inplace = Elemwise(
-    ScalarSigmoid(ts.transfer_type(0)),
+    ScalarSigmoid(aes.transfer_type(0)),
     inplace_pattern={0: 0},
     name="sigmoid_inplace",
 )
@@ -188,7 +188,7 @@ sigmoid_inplace = Elemwise(
 pprint.assign(sigmoid, printing.FunctionPrinter("sigmoid"))
 
 
-class UltraFastScalarSigmoid(ts.UnaryScalarOp):
+class UltraFastScalarSigmoid(aes.UnaryScalarOp):
     """
     This is just speed opt. Not for stability.
 
@@ -250,12 +250,12 @@ class UltraFastScalarSigmoid(ts.UnaryScalarOp):
 
 
 ultra_fast_scalar_sigmoid = UltraFastScalarSigmoid(
-    ts.upgrade_to_float, name="ultra_fast_scalar_sigmoid"
+    aes.upgrade_to_float, name="ultra_fast_scalar_sigmoid"
 )
 ultra_fast_sigmoid = Elemwise(ultra_fast_scalar_sigmoid, name="ultra_fast_sigmoid")
 
 ultra_fast_sigmoid_inplace = Elemwise(
-    UltraFastScalarSigmoid(ts.transfer_type(0)),
+    UltraFastScalarSigmoid(aes.transfer_type(0)),
     inplace_pattern={0: 0},
     name="ultra_fast_sigmoid_inplace",
 )
@@ -310,7 +310,7 @@ def hard_sigmoid(x):
     """
     # Use the same dtype as determined by "upgrade_to_float",
     # and perform computation in that dtype.
-    out_dtype = ts.upgrade_to_float(ts.Scalar(dtype=x.dtype))[0].dtype
+    out_dtype = aes.upgrade_to_float(aes.Scalar(dtype=x.dtype))[0].dtype
     slope = constant(0.2, dtype=out_dtype)
     shift = constant(0.5, dtype=out_dtype)
     x = (x * slope) + shift
@@ -340,7 +340,7 @@ aesara.compile.optdb["uncanonicalize"].register(
 )
 
 
-class ScalarSoftplus(ts.UnaryScalarOp):
+class ScalarSoftplus(aes.UnaryScalarOp):
     r"""
     Compute log(1 + exp(x)), also known as softplus or log1pexp
 
@@ -393,7 +393,7 @@ class ScalarSoftplus(ts.UnaryScalarOp):
 
         # We use the float32 limits for float16 for now as the
         # computation will happen in float32 anyway.
-        if node.inputs[0].type == ts.float32 or node.inputs[0].type == ts.float16:
+        if node.inputs[0].type == aes.float32 or node.inputs[0].type == aes.float16:
             return (
                 """
                 %(z)s = (
@@ -406,7 +406,7 @@ class ScalarSoftplus(ts.UnaryScalarOp):
                 """
                 % locals()
             )
-        elif node.inputs[0].type == ts.float64:
+        elif node.inputs[0].type == aes.float64:
             return (
                 """
                 %(z)s = (
@@ -430,7 +430,7 @@ class ScalarSoftplus(ts.UnaryScalarOp):
             return v
 
 
-scalar_softplus = ScalarSoftplus(ts.upgrade_to_float, name="scalar_softplus")
+scalar_softplus = ScalarSoftplus(aes.upgrade_to_float, name="scalar_softplus")
 softplus = Elemwise(scalar_softplus, name="softplus")
 
 pprint.assign(softplus, printing.FunctionPrinter("softplus"))

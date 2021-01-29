@@ -8,7 +8,7 @@ import numpy as np
 
 import aesara
 import aesara.gpuarray.pathparse
-import aesara.tensor.basic as tt
+import aesara.tensor.basic as aet
 import aesara.tensor.math as tm
 from aesara.assert_op import Assert
 from aesara.compile.io import Out
@@ -646,7 +646,7 @@ class GpuDnnConvDesc(_NoPythonExternalCOp):
         kern_shape = as_tensor_variable(kern_shape)
         if kern_shape.type.ndim != 1 or kern_shape.dtype not in int_dtypes:
             raise TypeError("kern must be an int64 1D shape tensor")
-        kern_shape = tt.cast(kern_shape, "int64")
+        kern_shape = aet.cast(kern_shape, "int64")
 
         node = Apply(
             self,
@@ -995,7 +995,7 @@ class GpuDnnConvGradW(DnnBase):
             and img.type.dtype == "float32"
             and self.algo not in ("none", "deterministic", "fft", "small")
             and beta is not None
-            and tt.extract_constant(beta) != 1
+            and aet.extract_constant(beta) != 1
         )
 
     def make_node(self, img, topgrad, output, desc, alpha=None, beta=None):
@@ -1266,7 +1266,7 @@ def _dnn_gradweight(
 
     img = as_gpuarray_variable(img, ctx_name)
     topgrad = as_gpuarray_variable(topgrad, ctx_name)
-    kerns_shp = tt.as_tensor_variable(kerns_shp)
+    kerns_shp = aet.as_tensor_variable(kerns_shp)
 
     precision, dt = get_precision(precision, [img, topgrad], for_grad=True)
 
@@ -1314,7 +1314,7 @@ def _dnn_gradinput(
 
     kerns = as_gpuarray_variable(kerns, ctx_name)
     topgrad = as_gpuarray_variable(topgrad, ctx_name)
-    img_shp = tt.as_tensor_variable(img_shp)
+    img_shp = aet.as_tensor_variable(img_shp)
 
     precision, dt = get_precision(precision, [kerns, topgrad], for_grad=True)
 
@@ -1941,9 +1941,9 @@ class GpuDnnPool(GpuDnnPoolBase):
         ctx_name = infer_context_name(img)
         img = as_gpuarray_variable(img, ctx_name)
 
-        ws = tt.as_tensor_variable(ws)
-        stride = tt.as_tensor_variable(stride)
-        pad = tt.as_tensor_variable(pad)
+        ws = aet.as_tensor_variable(ws)
+        stride = aet.as_tensor_variable(stride)
+        pad = aet.as_tensor_variable(pad)
         assert ws.type.ndim == stride.type.ndim and ws.type.ndim == pad.type.ndim
         assert ws.type.ndim == 1
 
@@ -2025,9 +2025,9 @@ class GpuDnnPoolGrad(GpuDnnPoolBase):
         assert out_grad.ndim == inp.ndim
         assert inp.ndim == out.ndim
 
-        ws = tt.as_tensor_variable(ws)
-        stride = tt.as_tensor_variable(stride)
-        pad = tt.as_tensor_variable(pad)
+        ws = aet.as_tensor_variable(ws)
+        stride = aet.as_tensor_variable(stride)
+        pad = aet.as_tensor_variable(pad)
         assert ws.type.ndim == stride.type.ndim and ws.type.ndim == pad.type.ndim
         assert ws.type.ndim == 1
 
@@ -2510,13 +2510,13 @@ class GpuDnnBatchNormInference(DnnBase):
         elif self.mode == "spatial":
             axes = (0,) + tuple(range(2, x.ndim))
         scale, bias, est_mean, est_var = (
-            tt.addbroadcast(t, *axes) for t in (scale, bias, est_mean, est_var)
+            aet.addbroadcast(t, *axes) for t in (scale, bias, est_mean, est_var)
         )
 
         # define helper expressions
         est_var_eps = est_var + epsilon
         est_std = tm.sqrt(est_var_eps)
-        two = tt.constant(2.0)
+        two = aet.constant(2.0)
 
         # define and return gradients
         dx = dy * (scale / est_std)
@@ -3425,12 +3425,12 @@ def dnn_batch_normalization_train(
     elif ndim > 5:
         inputs_shape = inputs.shape
         params_shape = gamma.shape
-        inputs = tt.flatten(inputs, 5)
-        gamma = tt.flatten(gamma, 5)
-        beta = tt.flatten(beta, 5)
+        inputs = aet.flatten(inputs, 5)
+        gamma = aet.flatten(gamma, 5)
+        beta = aet.flatten(beta, 5)
         if running_averages:
-            running_mean = tt.flatten(running_mean, 5)
-            running_var = tt.flatten(running_var, 5)
+            running_mean = aet.flatten(running_mean, 5)
+            running_var = aet.flatten(running_var, 5)
 
     batchnorm_op = GpuDnnBatchNorm(mode=mode, running_averages=running_averages)
     if running_averages:
@@ -3444,11 +3444,11 @@ def dnn_batch_normalization_train(
             running_var=gpu_contiguous(running_var),
         )
         if new_running_mean.broadcastable != running_mean.broadcastable:
-            new_running_mean = tt.patternbroadcast(
+            new_running_mean = aet.patternbroadcast(
                 new_running_mean, running_mean.broadcastable
             )
         if new_running_var.broadcastable != running_var.broadcastable:
-            new_running_var = tt.patternbroadcast(
+            new_running_var = aet.patternbroadcast(
                 new_running_var, running_var.broadcastable
             )
         result = (out, mean, invstd, new_running_mean, new_running_var)
@@ -3460,7 +3460,7 @@ def dnn_batch_normalization_train(
             epsilon=epsilon,
         )
     if ndim < 4:
-        result = tuple(tt.flatten(r, ndim) for r in result)
+        result = tuple(aet.flatten(r, ndim) for r in result)
     elif ndim > 5:
         result = (reshape(result[0], inputs_shape),) + tuple(
             reshape(r, params_shape) for r in result[1:]
@@ -3539,11 +3539,11 @@ def dnn_batch_normalization_test(
         var = shape_padright(var, 4 - ndim)
     elif ndim > 5:
         inputs_shape = inputs.shape
-        inputs = tt.flatten(inputs, 5)
-        gamma = tt.flatten(gamma, 5)
-        beta = tt.flatten(beta, 5)
-        mean = tt.flatten(mean, 5)
-        var = tt.flatten(var, 5)
+        inputs = aet.flatten(inputs, 5)
+        gamma = aet.flatten(gamma, 5)
+        beta = aet.flatten(beta, 5)
+        mean = aet.flatten(mean, 5)
+        var = aet.flatten(var, 5)
     batchnorm_op = GpuDnnBatchNormInference(mode=mode)
     result = batchnorm_op(
         gpu_contiguous(inputs),
@@ -3554,7 +3554,7 @@ def dnn_batch_normalization_test(
         epsilon=epsilon,
     )
     if ndim < 4:
-        result = tt.flatten(result, ndim)
+        result = aet.flatten(result, ndim)
     elif ndim > 5:
         result = reshape(result, inputs_shape)
     return result
@@ -3600,7 +3600,7 @@ class GpuDnnTransformerGrid(DnnBase):
         assert out_dims.dtype in integer_dtypes
         assert out_dims.ndim == 1
         # Ensure 64-bit ints are passed to the C code
-        out_dims = tt.cast(out_dims, "int64")
+        out_dims = aet.cast(out_dims, "int64")
         grid = GpuArrayType(
             dtype=theta.dtype,
             broadcastable=(theta.type.ndim + 1) * (False,),
@@ -3968,13 +3968,13 @@ def local_abstract_batch_norm_train_cudnn(fgraph, op, ctx_name, inputs, outputs)
         return None
 
     try:
-        eps = tt.get_scalar_constant_value(epsilon)
+        eps = aet.get_scalar_constant_value(epsilon)
     except NotScalarConstantError:
         return None
     if eps < 1e-5:
         return None
     try:
-        running_average_factor = tt.get_scalar_constant_value(running_average_factor)
+        running_average_factor = aet.get_scalar_constant_value(running_average_factor)
     except NotScalarConstantError:
         return None
 
@@ -4027,14 +4027,14 @@ def local_abstract_batch_norm_train_grad_cudnn(fgraph, op, ctx_name, inputs, out
     elif ndim > 5:
         x_shape = x.shape
         params_shape = scale.shape
-        x = tt.flatten(x, 5)
-        dy = tt.flatten(dy, 5)
-        scale = tt.flatten(scale, 5)
-        x_mean = tt.flatten(x_mean, 5)
-        x_invstd = tt.flatten(x_invstd, 5)
+        x = aet.flatten(x, 5)
+        dy = aet.flatten(dy, 5)
+        scale = aet.flatten(scale, 5)
+        x_mean = aet.flatten(x_mean, 5)
+        x_invstd = aet.flatten(x_invstd, 5)
 
     try:
-        eps = tt.get_scalar_constant_value(epsilon)
+        eps = aet.get_scalar_constant_value(epsilon)
     except NotScalarConstantError:
         return None
     if eps < 1e-5:
@@ -4054,9 +4054,9 @@ def local_abstract_batch_norm_train_grad_cudnn(fgraph, op, ctx_name, inputs, out
     )
 
     if ndim < 4:
-        g_wrt_inputs = tt.flatten(g_wrt_inputs, ndim)
-        g_wrt_scale = tt.flatten(g_wrt_scale, ndim)
-        g_wrt_bias = tt.flatten(g_wrt_bias, ndim)
+        g_wrt_inputs = aet.flatten(g_wrt_inputs, ndim)
+        g_wrt_scale = aet.flatten(g_wrt_scale, ndim)
+        g_wrt_bias = aet.flatten(g_wrt_bias, ndim)
     elif ndim > 5:
         g_wrt_inputs = reshape(g_wrt_inputs, x_shape)
         g_wrt_scale = reshape(g_wrt_scale, params_shape)
@@ -4077,7 +4077,7 @@ def local_abstract_batch_norm_inference_cudnn(fgraph, op, ctx_name, inputs, outp
         return None
 
     try:
-        eps = tt.get_scalar_constant_value(epsilon)
+        eps = aet.get_scalar_constant_value(epsilon)
     except NotScalarConstantError:
         return None
     if eps < 1e-5:

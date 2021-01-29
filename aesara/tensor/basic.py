@@ -16,7 +16,7 @@ import numpy as np
 import aesara
 import aesara.scalar.sharedvar
 from aesara import compile, config, printing
-from aesara import scalar as ts
+from aesara import scalar as aes
 from aesara.assert_op import Assert, assert_op
 from aesara.gradient import DisconnectedType, grad_not_implemented, grad_undefined
 from aesara.graph.basic import Apply, Constant, Variable
@@ -132,7 +132,7 @@ def as_tensor_variable(x, name=None, ndim=None):
         if isinstance(x, Constant):
             return as_tensor_variable(x.data, name=name, ndim=ndim)
 
-        if isinstance(x.type, ts.Scalar):
+        if isinstance(x.type, aes.Scalar):
             x = tensor_from_scalar(x)
 
         if not isinstance(x.type, TensorType):
@@ -182,7 +182,7 @@ def as_tensor_variable(x, name=None, ndim=None):
                 # we know that the result should be a vector.
                 # `MakeVector` is a better option due to its `get_scalar_constant_value`
                 # support.
-                dtype = ts.upcast(*[i.dtype for i in x if hasattr(i, "dtype")])
+                dtype = aes.upcast(*[i.dtype for i in x if hasattr(i, "dtype")])
                 return MakeVector(dtype)(*x)
 
             return stack(x)
@@ -223,7 +223,7 @@ def constant(x, name=None, ndim=None, dtype=None):
         else:
             x = x.data
 
-    x_ = ts.convert(x, dtype=dtype)
+    x_ = aes.convert(x, dtype=dtype)
 
     if ndim is not None:
         if x_.ndim < ndim:
@@ -279,22 +279,22 @@ def numpy_scalar(data):
 
 
 _scalar_constant_value_elemwise_ops = (
-    ts.Cast,
-    ts.Switch,
-    ts.NEQ,
-    ts.EQ,
-    ts.LT,
-    ts.GT,
-    ts.LE,
-    ts.GE,
-    ts.Sub,
-    ts.Add,
-    ts.Mod,
-    ts.Mul,
-    ts.IntDiv,
-    ts.TrueDiv,
-    ts.ScalarMinimum,
-    ts.ScalarMaximum,
+    aes.Cast,
+    aes.Switch,
+    aes.NEQ,
+    aes.EQ,
+    aes.LT,
+    aes.GT,
+    aes.LE,
+    aes.GE,
+    aes.Sub,
+    aes.Add,
+    aes.Mod,
+    aes.Mul,
+    aes.IntDiv,
+    aes.TrueDiv,
+    aes.ScalarMinimum,
+    aes.ScalarMaximum,
 )
 
 
@@ -394,8 +394,8 @@ def get_scalar_constant_value(
                 if builtins.all([0 == c.ndim and c != 0 for c in cond]):
                     v = v.owner.inputs[0]
                     continue
-            elif isinstance(v.owner.op, ts.ScalarOp):
-                if isinstance(v.owner.op, ts.Second):
+            elif isinstance(v.owner.op, aes.ScalarOp):
+                if isinstance(v.owner.op, aes.Second):
                     # We don't need both input to be constant for second
                     shp, val = v.owner.inputs
                     v = val
@@ -412,7 +412,7 @@ def get_scalar_constant_value(
             # we need to investigate Second as Alloc. So elemwise
             # don't disable the check for Second.
             elif isinstance(v.owner.op, Elemwise):
-                if isinstance(v.owner.op.scalar_op, ts.Second):
+                if isinstance(v.owner.op.scalar_op, aes.Second):
                     # We don't need both input to be constant for second
                     shp, val = v.owner.inputs
                     v = val
@@ -583,7 +583,7 @@ class TensorFromScalar(Op):
     __props__ = ()
 
     def make_node(self, s):
-        assert isinstance(s.type, ts.Scalar)
+        assert isinstance(s.type, aes.Scalar)
         return Apply(self, [s], [tensor(dtype=s.type.dtype, broadcastable=())])
 
     def perform(self, node, inp, out_):
@@ -622,7 +622,7 @@ class ScalarFromTensor(COp):
         assert isinstance(t.type, TensorType)
         assert t.type.broadcastable == ()
         return Apply(
-            self, [t], [ts.get_scalar_type(dtype=t.type.dtype).make_variable()]
+            self, [t], [aes.get_scalar_type(dtype=t.type.dtype).make_variable()]
         )
 
     def perform(self, node, inp, out_):
@@ -864,46 +864,46 @@ def _conversion(real_value, name):
 # what types you are casting to what.  That logic is implemented by the
 # `cast()` function below.
 
-_convert_to_bool = _conversion(Elemwise(ts.convert_to_bool), "bool")
+_convert_to_bool = _conversion(Elemwise(aes.convert_to_bool), "bool")
 """Cast to boolean"""
 
-_convert_to_int8 = _conversion(Elemwise(ts.convert_to_int8), "int8")
+_convert_to_int8 = _conversion(Elemwise(aes.convert_to_int8), "int8")
 """Cast to 8-bit integer"""
 
-_convert_to_int16 = _conversion(Elemwise(ts.convert_to_int16), "int16")
+_convert_to_int16 = _conversion(Elemwise(aes.convert_to_int16), "int16")
 """Cast to 16-bit integer"""
 
-_convert_to_int32 = _conversion(Elemwise(ts.convert_to_int32), "int32")
+_convert_to_int32 = _conversion(Elemwise(aes.convert_to_int32), "int32")
 """Cast to 32-bit integer"""
 
-_convert_to_int64 = _conversion(Elemwise(ts.convert_to_int64), "int64")
+_convert_to_int64 = _conversion(Elemwise(aes.convert_to_int64), "int64")
 """Cast to 64-bit integer"""
 
-_convert_to_uint8 = _conversion(Elemwise(ts.convert_to_uint8), "uint8")
+_convert_to_uint8 = _conversion(Elemwise(aes.convert_to_uint8), "uint8")
 """Cast to unsigned 8-bit integer"""
 
-_convert_to_uint16 = _conversion(Elemwise(ts.convert_to_uint16), "uint16")
+_convert_to_uint16 = _conversion(Elemwise(aes.convert_to_uint16), "uint16")
 """Cast to unsigned 16-bit integer"""
 
-_convert_to_uint32 = _conversion(Elemwise(ts.convert_to_uint32), "uint32")
+_convert_to_uint32 = _conversion(Elemwise(aes.convert_to_uint32), "uint32")
 """Cast to unsigned 32-bit integer"""
 
-_convert_to_uint64 = _conversion(Elemwise(ts.convert_to_uint64), "uint64")
+_convert_to_uint64 = _conversion(Elemwise(aes.convert_to_uint64), "uint64")
 """Cast to unsigned 64-bit integer"""
 
-_convert_to_float16 = _conversion(Elemwise(ts.convert_to_float16), "float16")
+_convert_to_float16 = _conversion(Elemwise(aes.convert_to_float16), "float16")
 """Cast to half-precision floating point"""
 
-_convert_to_float32 = _conversion(Elemwise(ts.convert_to_float32), "float32")
+_convert_to_float32 = _conversion(Elemwise(aes.convert_to_float32), "float32")
 """Cast to single-precision floating point"""
 
-_convert_to_float64 = _conversion(Elemwise(ts.convert_to_float64), "float64")
+_convert_to_float64 = _conversion(Elemwise(aes.convert_to_float64), "float64")
 """Cast to double-precision floating point"""
 
-_convert_to_complex64 = _conversion(Elemwise(ts.convert_to_complex64), "complex64")
+_convert_to_complex64 = _conversion(Elemwise(aes.convert_to_complex64), "complex64")
 """Cast to single-precision complex"""
 
-_convert_to_complex128 = _conversion(Elemwise(ts.convert_to_complex128), "complex128")
+_convert_to_complex128 = _conversion(Elemwise(aes.convert_to_complex128), "complex128")
 """Cast to double-precision complex"""
 
 _cast_mapping = {
@@ -956,7 +956,7 @@ where = switch
 ##########################
 
 
-# fill, _fill_inplace = _elemwise(ts.second, 'fill',
+# fill, _fill_inplace = _elemwise(aes.second, 'fill',
 # """fill WRITEME (elemwise)""")
 @scalar_elemwise
 def second(a, b):
@@ -1606,7 +1606,7 @@ class MakeVector(COp):
         if not all(a.type == inputs[0].type for a in inputs) or (
             len(inputs) > 0 and inputs[0].dtype != self.dtype
         ):
-            dtype = ts.upcast(self.dtype, *[i.dtype for i in inputs])
+            dtype = aes.upcast(self.dtype, *[i.dtype for i in inputs])
             # upcast the input to the determined dtype,
             # but don't downcast anything
             assert dtype == self.dtype, (
@@ -1738,7 +1738,7 @@ def register_transfer(fn):
 
 
 """Create a duplicate of `a` (with duplicated storage)"""
-tensor_copy = Elemwise(ts.identity)
+tensor_copy = Elemwise(aes.identity)
 pprint.assign(tensor_copy, printing.IgnorePrinter())
 
 
@@ -1795,8 +1795,8 @@ def extract_constant(x, elemwise=True, only_process_constants=False):
         x = get_scalar_constant_value(x, elemwise, only_process_constants)
     except NotScalarConstantError:
         pass
-    if isinstance(x, ts.ScalarVariable) or isinstance(
-        x, ts.sharedvar.ScalarSharedVariable
+    if isinstance(x, aes.ScalarVariable) or isinstance(
+        x, aes.sharedvar.ScalarSharedVariable
     ):
         if x.owner and isinstance(x.owner.op, ScalarFromTensor):
             x = x.owner.inputs[0]
@@ -2265,7 +2265,7 @@ class Join(COp):
         as_tensor_variable_args = [as_tensor_variable(x) for x in tens]
 
         dtypes = [x.type.dtype for x in as_tensor_variable_args]
-        out_dtype = ts.upcast(*dtypes)
+        out_dtype = aes.upcast(*dtypes)
 
         def output_maker(bcastable):
             return tensor(dtype=out_dtype, broadcastable=bcastable)
@@ -2455,7 +2455,7 @@ class Join(COp):
         rval = [grad_undefined(self, 0, axis)]
 
         dtypes = [as_tensor_variable(x).type.dtype for x in tens]
-        out_dtype = ts.upcast(*dtypes)
+        out_dtype = aes.upcast(*dtypes)
 
         if "float" in out_dtype or "complex" in out_dtype:
             # assume that this is differentiable
@@ -2701,7 +2701,7 @@ def stack(*tensors, **kwargs):
     ):
         # in case there is direct int
         tensors = list(map(as_tensor_variable, tensors))
-        dtype = ts.upcast(*[i.dtype for i in tensors])
+        dtype = aes.upcast(*[i.dtype for i in tensors])
         return aesara.tensor.basic_opt.MakeVector(dtype)(*tensors)
     return join(axis, *[shape_padaxis(t, axis) for t in tensors])
 
@@ -3287,7 +3287,7 @@ class ARange(Op):
                 # this give float64. This is safer then checking for
                 # uint64 in case we support [u]int128 or other in the
                 # future.
-                ts.upcast(var.dtype, "int64") == "int64"
+                aes.upcast(var.dtype, "int64") == "int64"
             ):
                 return cast(var, "int64")
             return var
@@ -3363,7 +3363,7 @@ def arange(start, stop=None, step=1, dtype=None):
     start, stop, step = map(as_tensor_variable, (start, stop, step))
     # If dtype is not provided, infer it from the other arguments
     if dtype is None:
-        dtype = ts.upcast(start.type.dtype, stop.type.dtype, step.type.dtype)
+        dtype = aes.upcast(start.type.dtype, stop.type.dtype, step.type.dtype)
         # don't try to be stingy and byte-optimize, this leads to
         # overflow problems.
         if dtype in int_dtypes:

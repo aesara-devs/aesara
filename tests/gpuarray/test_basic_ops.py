@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 import aesara
-import aesara.tensor as tt
+import aesara.tensor as aet
 from aesara.gpuarray.basic_ops import (
     GpuAlloc,
     GpuAllocEmpty,
@@ -438,16 +438,18 @@ def test_gpujoin_gpualloc():
     b_val = np.asarray(np.random.rand(3, 5), dtype="float32")
 
     f = aesara.function(
-        [a, b], tt.join(0, tt.zeros_like(a), tt.ones_like(b)) + 4, mode=mode_without_gpu
+        [a, b],
+        aet.join(0, aet.zeros_like(a), aet.ones_like(b)) + 4,
+        mode=mode_without_gpu,
     )
     f_gpu = aesara.function(
-        [a, b], tt.join(0, tt.zeros_like(a), tt.ones_like(b)), mode=mode_with_gpu
+        [a, b], aet.join(0, aet.zeros_like(a), aet.ones_like(b)), mode=mode_with_gpu
     )
     f_gpu2 = aesara.function(
-        [a, b], tt.join(0, tt.zeros_like(a), tt.ones_like(b)) + 4, mode=mode_with_gpu
+        [a, b], aet.join(0, aet.zeros_like(a), aet.ones_like(b)) + 4, mode=mode_with_gpu
     )
-    assert sum([node.op == tt.alloc for node in f.maker.fgraph.toposort()]) == 2
-    assert sum([node.op == tt.join_ for node in f.maker.fgraph.toposort()]) == 1
+    assert sum([node.op == aet.alloc for node in f.maker.fgraph.toposort()]) == 2
+    assert sum([node.op == aet.join_ for node in f.maker.fgraph.toposort()]) == 1
     assert (
         sum([isinstance(node.op, GpuAlloc) for node in f_gpu.maker.fgraph.toposort()])
         == 2
@@ -473,7 +475,7 @@ def test_gpueye():
         N_symb = iscalar()
         M_symb = iscalar()
         k_symb = iscalar()
-        out = tt.eye(N_symb, M_symb, k_symb, dtype=dtype) + np.array(1).astype(dtype)
+        out = aet.eye(N_symb, M_symb, k_symb, dtype=dtype) + np.array(1).astype(dtype)
         f = aesara.function([N_symb, M_symb, k_symb], out, mode=mode_with_gpu)
 
         result = np.asarray(f(N, M, k)) - np.array(1).astype(dtype)
@@ -546,7 +548,7 @@ def test_Gpujoin_inplace():
     s = lscalar()
     data = np.array([3, 4, 5], dtype=aesara.config.floatX)
     x = gpuarray_shared_constructor(data, borrow=True)
-    z = tt.zeros((s,))
+    z = aet.zeros((s,))
 
     join = GpuJoin(view=0)
     c = join(0, x, z)
@@ -563,7 +565,7 @@ def test_gpu_tril_triu():
         k_symb = iscalar()
 
         f = aesara.function(
-            [m_symb, k_symb], tt.tril(m_symb, k_symb), mode=mode_with_gpu
+            [m_symb, k_symb], aet.tril(m_symb, k_symb), mode=mode_with_gpu
         )
         result = f(m, k)
         assert np.allclose(result, np.tril(m, k))
@@ -574,7 +576,7 @@ def test_gpu_tril_triu():
         m_symb = matrix(dtype=m.dtype)
         k_symb = iscalar()
         f = aesara.function(
-            [m_symb, k_symb], tt.triu(m_symb, k_symb), mode=mode_with_gpu
+            [m_symb, k_symb], aet.triu(m_symb, k_symb), mode=mode_with_gpu
         )
         result = f(m, k)
         assert np.allclose(result, np.triu(m, k))
@@ -626,7 +628,7 @@ def test_gputri():
         N_symb = iscalar()
         M_symb = iscalar()
         k_symb = iscalar()
-        out = tt.tri(N_symb, M_symb, k_symb, dtype=dtype) + np.array(1).astype(dtype)
+        out = aet.tri(N_symb, M_symb, k_symb, dtype=dtype) + np.array(1).astype(dtype)
         f = aesara.function([N_symb, M_symb, k_symb], out, mode=mode_with_gpu)
         result = np.asarray(f(N, M, k)) - np.array(1).astype(dtype)
         assert np.allclose(result, np.tri(N, M_, k, dtype=dtype))

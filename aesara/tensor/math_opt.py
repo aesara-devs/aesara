@@ -10,7 +10,7 @@ from functools import reduce
 
 import numpy as np
 
-import aesara.scalar.basic as ts
+import aesara.scalar.basic as aes
 from aesara import compile
 from aesara.assert_op import assert_op
 from aesara.configdefaults import config
@@ -199,13 +199,13 @@ def local_func_inv(fgraph, node):
 
     """
     inv_pairs = (
-        (ts.Deg2Rad, ts.Rad2Deg),
-        (ts.Cosh, ts.ArcCosh),
-        (ts.Tanh, ts.ArcTanh),
-        (ts.Sinh, ts.ArcSinh),
-        (ts.Conj, ts.Conj),
-        (ts.Neg, ts.Neg),
-        (ts.Inv, ts.Inv),
+        (aes.Deg2Rad, aes.Rad2Deg),
+        (aes.Cosh, aes.ArcCosh),
+        (aes.Tanh, aes.ArcTanh),
+        (aes.Sinh, aes.ArcSinh),
+        (aes.Conj, aes.Conj),
+        (aes.Neg, aes.Neg),
+        (aes.Inv, aes.Inv),
     )
     x = node.inputs[0]
 
@@ -236,7 +236,7 @@ def local_sumsqr2dot(fgraph, node):
     """
     if (
         isinstance(node.op, Sum)
-        and isinstance(node.op.scalar_op, ts.Add)
+        and isinstance(node.op.scalar_op, aes.Add)
         and node.op.axis == (1, 2)
     ):
         in1 = node.inputs[0]
@@ -245,13 +245,13 @@ def local_sumsqr2dot(fgraph, node):
         if (
             in1.owner
             and isinstance(in1.owner.op, Elemwise)
-            and isinstance(in1.owner.op.scalar_op, ts.Sqr)
+            and isinstance(in1.owner.op.scalar_op, aes.Sqr)
         ):
             in_sqr = in1.owner.inputs[0]
             if (
                 in_sqr.owner
                 and isinstance(in_sqr.owner.op, Elemwise)
-                and isinstance(in_sqr.owner.op.scalar_op, ts.Mul)
+                and isinstance(in_sqr.owner.op.scalar_op, aes.Mul)
                 and len(in_sqr.owner.inputs) == 2
             ):
                 in_mul1, in_mul2 = in_sqr.owner.inputs
@@ -279,14 +279,14 @@ def local_expm1(fgraph, node):
     """
     This optimization detects exp(a)-1 and converts this to expm1(a).
     """
-    if isinstance(node.op, Elemwise) and isinstance(node.op.scalar_op, ts.Sub):
+    if isinstance(node.op, Elemwise) and isinstance(node.op.scalar_op, aes.Sub):
         in1, in2 = node.inputs
         out = node.outputs[0]
 
         if (
             in1.owner
             and isinstance(in1.owner.op, Elemwise)
-            and isinstance(in1.owner.op.scalar_op, ts.Exp)
+            and isinstance(in1.owner.op.scalar_op, aes.Exp)
             and extract_constant(in2, only_process_constants=False) == 1
         ):
             in11 = in1.owner.inputs[0]
@@ -492,7 +492,7 @@ class AlgebraicCanonizer(LocalOptimizer):
 
     Examples
     --------
-    >>> import aesara.tensor as tt
+    >>> import aesara.tensor as aet
     >>> from aesara.tensor.math_opt import AlgebraicCanonizer
     >>> add_canonizer = AlgebraicCanonizer(add, sub, neg, \\
     ...                                    lambda n, d: sum(n) - sum(d))
@@ -951,7 +951,7 @@ def mul_calculate(num, denum, aslist=False, out_type=None):
 
     # Make sure we do not accidentally upcast data types.
     if out_type is None:
-        out_dtype = ts.upcast(*[v.dtype for v in (num + denum)])
+        out_dtype = aes.upcast(*[v.dtype for v in (num + denum)])
     else:
         out_dtype = out_type.dtype
     one = _asarray(1, dtype=out_dtype)
@@ -1074,7 +1074,7 @@ def local_elemwise_sub_zeros(fgraph, node):
     if (
         isinstance(node.op, Elemwise)
         and node.op.scalar_op.nin == 2
-        and node.op.scalar_op == ts.sub
+        and node.op.scalar_op == aes.sub
         and node.inputs[0] == node.inputs[1]
     ):
         res = zeros_like(node.inputs[0])
@@ -1127,7 +1127,7 @@ def local_useless_elemwise_comparison(fgraph, node):
 
     # Elemwise[{LT,GT}](X, X) -> Elemwise[zeros](X)
     if (
-        isinstance(node.op.scalar_op, (ts.LT, ts.GT))
+        isinstance(node.op.scalar_op, (aes.LT, aes.GT))
         and node.inputs[0] is node.inputs[1]
     ):
         res = zeros_like(node.inputs[0], dtype=dtype, opt=True)
@@ -1136,7 +1136,7 @@ def local_useless_elemwise_comparison(fgraph, node):
         return [res]
     # Elemwise[{LE,GE}](X, X) -> Elemwise[ones](X)
     if (
-        isinstance(node.op.scalar_op, (ts.LE, ts.GE))
+        isinstance(node.op.scalar_op, (aes.LE, aes.GE))
         and node.inputs[0] is node.inputs[1]
     ):
         res = ones_like(node.inputs[0], dtype=dtype, opt=True)
@@ -1146,7 +1146,7 @@ def local_useless_elemwise_comparison(fgraph, node):
         return [res]
     # Elemwise[{minimum,maximum}](X, X) -> X
     if (
-        isinstance(node.op.scalar_op, (ts.ScalarMinimum, ts.ScalarMaximum))
+        isinstance(node.op.scalar_op, (aes.ScalarMinimum, aes.ScalarMaximum))
         and node.inputs[0] is node.inputs[1]
     ):
         res = node.inputs[0]
@@ -1156,7 +1156,7 @@ def local_useless_elemwise_comparison(fgraph, node):
 
     # Elemwise[LT](X.shape[i], 0) -> Elemwise[zeros](X)
     if (
-        isinstance(node.op.scalar_op, ts.LT)
+        isinstance(node.op.scalar_op, aes.LT)
         and node.inputs[0].owner
         and isinstance(node.inputs[0].owner.op, Shape_i)
         and extract_constant(node.inputs[1], only_process_constants=True) == 0
@@ -1167,7 +1167,7 @@ def local_useless_elemwise_comparison(fgraph, node):
         return [res]
     # Elemwise[GE](X.shape[i], 0) -> Elemwise[ones](X)
     if (
-        isinstance(node.op.scalar_op, ts.GE)
+        isinstance(node.op.scalar_op, aes.GE)
         and node.inputs[0].owner
         and isinstance(node.inputs[0].owner.op, Shape_i)
         and extract_constant(node.inputs[1], only_process_constants=True) == 0
@@ -1178,7 +1178,7 @@ def local_useless_elemwise_comparison(fgraph, node):
         return [res]
     # Elemwise[maximum](X.shape[i], 0) -> X.shape[i]
     if (
-        isinstance(node.op.scalar_op, ts.ScalarMaximum)
+        isinstance(node.op.scalar_op, aes.ScalarMaximum)
         and node.inputs[0].owner
         and isinstance(node.inputs[0].owner.op, Shape_i)
         and extract_constant(node.inputs[1], only_process_constants=True) == 0
@@ -1187,7 +1187,7 @@ def local_useless_elemwise_comparison(fgraph, node):
         return [node.inputs[0]]
     # Elemwise[maximum](0, X.shape[i]) -> X.shape[i]
     if (
-        isinstance(node.op.scalar_op, ts.ScalarMaximum)
+        isinstance(node.op.scalar_op, aes.ScalarMaximum)
         and extract_constant(node.inputs[0], only_process_constants=True) == 0
         and node.inputs[1].owner
         and isinstance(node.inputs[1].owner.op, Shape_i)
@@ -1196,7 +1196,7 @@ def local_useless_elemwise_comparison(fgraph, node):
         return [node.inputs[1]]
     # Elemwise[minimum](X.shape[i], 0) -> 0
     if (
-        isinstance(node.op.scalar_op, ts.ScalarMinimum)
+        isinstance(node.op.scalar_op, aes.ScalarMinimum)
         and node.inputs[0].owner
         and isinstance(node.inputs[0].owner.op, Shape_i)
         and extract_constant(node.inputs[1], only_process_constants=True) == 0
@@ -1208,7 +1208,7 @@ def local_useless_elemwise_comparison(fgraph, node):
 
     # Elemwise[minimum](0, X.shape[i]) -> 0
     if (
-        isinstance(node.op.scalar_op, ts.ScalarMinimum)
+        isinstance(node.op.scalar_op, aes.ScalarMinimum)
         and extract_constant(node.inputs[0], only_process_constants=True) == 0
         and node.inputs[1].owner
         and isinstance(node.inputs[1].owner.op, Shape_i)
@@ -1220,10 +1220,10 @@ def local_useless_elemwise_comparison(fgraph, node):
 
     # Elemwise[LT](add([anything that is shapes]), 0) -> Elemwise[zeros](X)
     if (
-        isinstance(node.op.scalar_op, ts.LT)
+        isinstance(node.op.scalar_op, aes.LT)
         and node.inputs[0].owner
         and isinstance(node.inputs[0].owner.op, Elemwise)
-        and isinstance(node.inputs[0].owner.op.scalar_op, ts.Add)
+        and isinstance(node.inputs[0].owner.op.scalar_op, aes.Add)
         and all(
             [
                 isinstance(var.owner and var.owner.op, Shape_i)
@@ -1238,10 +1238,10 @@ def local_useless_elemwise_comparison(fgraph, node):
         return [res]
     # Elemwise[GE](add([anything that is shapes]), 0) -> Elemwise[ones](X)
     if (
-        isinstance(node.op.scalar_op, ts.GE)
+        isinstance(node.op.scalar_op, aes.GE)
         and node.inputs[0].owner
         and isinstance(node.inputs[0].owner.op, Elemwise)
-        and isinstance(node.inputs[0].owner.op.scalar_op, ts.Add)
+        and isinstance(node.inputs[0].owner.op.scalar_op, aes.Add)
         and all(
             [
                 isinstance(var.owner and var.owner.op, Shape_i)
@@ -1280,7 +1280,7 @@ def local_useless_elemwise_comparison(fgraph, node):
             return all(v.owner and investigate(v.owner) for v in node.inputs)
 
     if (
-        isinstance(node.op.scalar_op, ts.EQ)
+        isinstance(node.op.scalar_op, aes.EQ)
         and node.inputs[0].owner
         and investigate(node.inputs[0].owner)
     ):
@@ -1561,11 +1561,11 @@ def local_reduce_join(fgraph, node):
         if extract_constant(join_node.inputs[0], only_process_constants=True) != 0:
             return
 
-        if isinstance(node.op.scalar_op, (ts.ScalarMaximum, ts.ScalarMinimum)):
+        if isinstance(node.op.scalar_op, (aes.ScalarMaximum, aes.ScalarMinimum)):
             # Support only 2 inputs for now
             if len(join_node.inputs) != 3:
                 return
-        elif not isinstance(node.op.scalar_op, (ts.Add, ts.Mul)):
+        elif not isinstance(node.op.scalar_op, (aes.Add, aes.Mul)):
             return
         elif len(join_node.inputs) <= 2:
             # This is a useless join, that will get removed by another opt.
@@ -1875,7 +1875,7 @@ def local_intdiv_by_one(fgraph, node):
 def local_zero_div(fgraph, node):
     """0 / x -> 0"""
     if isinstance(node.op, Elemwise) and isinstance(
-        node.op.scalar_op, (ts.IntDiv, ts.TrueDiv)
+        node.op.scalar_op, (aes.IntDiv, aes.TrueDiv)
     ):
         if local_mul_canonizer.get_constant(node.inputs[0]) == 0:
             ret = broadcast_like(0, node.outputs[0], fgraph)
@@ -1957,11 +1957,11 @@ def local_pow_specialize_device(fgraph, node):
             # 512 is too small for the cpu and too big for some gpu!
             if abs(y) == int(abs(y)) and abs(y) <= 512:
                 pow2 = [xsym]
-                pow2_scal = [ts.get_scalar_type(xsym.dtype)()]
+                pow2_scal = [aes.get_scalar_type(xsym.dtype)()]
                 y_to_do = abs(y)
                 for i in range(int(np.log2(y_to_do))):
                     pow2.append(sqr(pow2[i]))
-                    pow2_scal.append(ts.sqr(pow2_scal[i]))
+                    pow2_scal.append(aes.sqr(pow2_scal[i]))
                 rval1 = None
                 rval1_scal = None
                 while y_to_do > 0:
@@ -1978,7 +1978,7 @@ def local_pow_specialize_device(fgraph, node):
                     # We fuse all the pow together here to make
                     # compilation faster
                     rval1 = Elemwise(
-                        ts.Composite([pow2_scal[0]], [rval1_scal])
+                        aes.Composite([pow2_scal[0]], [rval1_scal])
                     ).make_node(xsym)
                 if y < 0:
                     rval = [inv(rval1)]
@@ -2280,7 +2280,7 @@ def local_log_sum_exp(fgraph, node):
 
     exp_node, axis = sum_node.inputs[0].owner, sum_node.op.axis
     if not exp_node or not (
-        isinstance(exp_node.op, Elemwise) and isinstance(exp_node.op.scalar_op, ts.Exp)
+        isinstance(exp_node.op, Elemwise) and isinstance(exp_node.op.scalar_op, aes.Exp)
     ):
         return
 
@@ -2881,7 +2881,7 @@ def local_add_mul_fusion(fgraph, node):
 
     """
     if not isinstance(node.op, Elemwise) or not isinstance(
-        node.op.scalar_op, (ts.Add, ts.Mul)
+        node.op.scalar_op, (aes.Add, aes.Mul)
     ):
         return False
 

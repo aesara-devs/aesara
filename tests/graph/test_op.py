@@ -3,8 +3,8 @@ import pytest
 
 import aesara
 import aesara.graph.op as op
-import aesara.tensor as tt
-from aesara import scalar as ts
+import aesara.tensor as aet
+from aesara import scalar as aes
 from aesara import shared
 from aesara.configdefaults import config
 from aesara.graph.basic import Apply, Variable
@@ -91,7 +91,7 @@ class StructOp(COp):
 
     # The input only serves to distinguish thunks
     def make_node(self, i):
-        return Apply(self, [i], [ts.uint64()])
+        return Apply(self, [i], [aes.uint64()])
 
     def c_support_code_struct(self, node, name):
         return f"npy_uint64 counter{name};"
@@ -170,7 +170,7 @@ class TestMakeThunk:
             __props__ = ()
 
             def make_node(self, input):
-                input = ts.as_scalar(input)
+                input = aes.as_scalar(input)
                 output = input.type()
                 return Apply(self, [input], [output])
 
@@ -179,7 +179,7 @@ class TestMakeThunk:
                 (output,) = outputs
                 output[0] = input + 1
 
-        i = ts.int32("i")
+        i = aes.int32("i")
         o = IncOnePython()(i)
 
         # Check that the c_code function is not implemented
@@ -206,7 +206,7 @@ class TestMakeThunk:
             __props__ = ()
 
             def make_node(self, input):
-                input = ts.as_scalar(input)
+                input = aes.as_scalar(input)
                 output = input.type()
                 return Apply(self, [input], [output])
 
@@ -218,7 +218,7 @@ class TestMakeThunk:
             def perform(self, *args, **kwargs):
                 raise NotImplementedError("No Python implementation available.")
 
-        i = ts.int32("i")
+        i = aes.int32("i")
         o = IncOneC()(i)
 
         # Check that the perform function is not implemented
@@ -274,7 +274,7 @@ def test_test_value_ndarray():
 
 
 def test_test_value_constant():
-    x = tt.as_tensor_variable(np.zeros((5, 5)))
+    x = aet.as_tensor_variable(np.zeros((5, 5)))
     v = op.get_test_value(x)
 
     assert np.all(v == np.zeros((5, 5)))

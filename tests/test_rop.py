@@ -18,7 +18,7 @@ import numpy as np
 import pytest
 
 import aesara
-import aesara.tensor as tt
+import aesara.tensor as aet
 from aesara import function
 from aesara.gradient import Lop, Rop, grad, grad_undefined
 from aesara.graph.basic import Apply
@@ -111,7 +111,7 @@ class RopLopChecker:
         rop_f = function([self.mx, self.mv], yv, on_unused_input="ignore")
         sy, _ = aesara.scan(
             lambda i, y, x, v: (grad(y[i], x) * v).sum(),
-            sequences=tt.arange(y.shape[0]),
+            sequences=aet.arange(y.shape[0]),
             non_sequences=[y, self.mx, self.mv],
         )
         scan_f = function([self.mx, self.mv], sy, on_unused_input="ignore")
@@ -149,7 +149,7 @@ class RopLopChecker:
         rop_f = function([self.x, self.v], yv, on_unused_input="ignore")
         J, _ = aesara.scan(
             lambda i, y, x: grad(y[i], x),
-            sequences=tt.arange(y.shape[0]),
+            sequences=aet.arange(y.shape[0]),
             non_sequences=[y, self.x],
         )
         sy = dot(J, self.v)
@@ -179,7 +179,7 @@ class RopLopChecker:
         lop_f = function([self.x, self.v], yv, on_unused_input="ignore")
         J, _ = aesara.scan(
             lambda i, y, x: grad(y[i], x),
-            sequences=tt.arange(y.shape[0]),
+            sequences=aet.arange(y.shape[0]),
             non_sequences=[y, self.x],
         )
         sy = dot(self.v, J)
@@ -242,7 +242,7 @@ class TestRopLop(RopLopChecker):
         # I need the sum, because the setup expects the output to be a
         # vector
         self.check_rop_lop(
-            tt.unbroadcast(self.x[:4].dimshuffle("x", 0), 0).sum(axis=1), (1,)
+            aet.unbroadcast(self.x[:4].dimshuffle("x", 0), 0).sum(axis=1), (1,)
         )
 
     @pytest.mark.slow
@@ -293,7 +293,7 @@ class TestRopLop(RopLopChecker):
             rop_f = function([], yv, on_unused_input="ignore", mode=mode)
             sy, _ = aesara.scan(
                 lambda i, y, x, v: (grad(y[i], x) * v).sum(),
-                sequences=tt.arange(a_pooled.shape[0]),
+                sequences=aet.arange(a_pooled.shape[0]),
                 non_sequences=[a_pooled, x, ex],
                 mode=mode,
             )
@@ -339,7 +339,7 @@ class TestRopLop(RopLopChecker):
                 sy, _ = aesara.scan(
                     lambda i, y, x1, x2, v1, v2: (grad(y[i], x1) * v1).sum()
                     + (grad(y[i], x2) * v2).sum(),
-                    sequences=tt.arange(output.shape[0]),
+                    sequences=aet.arange(output.shape[0]),
                     non_sequences=[output, input, filters, ev_input, ev_filters],
                     mode=mode,
                 )
@@ -361,7 +361,7 @@ class TestRopLop(RopLopChecker):
     def test_join(self):
         tv = np.asarray(self.rng.uniform(size=(10,)), aesara.config.floatX)
         t = aesara.shared(tv)
-        out = tt.join(0, self.x, t)
+        out = aet.join(0, self.x, t)
         self.check_rop_lop(out, (self.in_shape[0] + 10,))
 
     def test_dot(self):
@@ -374,7 +374,7 @@ class TestRopLop(RopLopChecker):
         self.check_rop_lop((self.x + 1) ** 2, self.in_shape)
 
     def test_elemwise1(self):
-        self.check_rop_lop(self.x + tt.cast(self.x, "int32"), self.in_shape)
+        self.check_rop_lop(self.x + aet.cast(self.x, "int32"), self.in_shape)
 
     def test_flatten(self):
         self.check_mat_rop_lop(
@@ -390,11 +390,11 @@ class TestRopLop(RopLopChecker):
 
     def test_alloc(self):
         # Alloc of the sum of x into a vector
-        out1d = tt.alloc(self.x.sum(), self.in_shape[0])
+        out1d = aet.alloc(self.x.sum(), self.in_shape[0])
         self.check_rop_lop(out1d, self.in_shape[0])
 
         # Alloc of x into a 3-D tensor, flattened
-        out3d = tt.alloc(
+        out3d = aet.alloc(
             self.x, self.mat_in_shape[0], self.mat_in_shape[1], self.in_shape[0]
         )
         self.check_rop_lop(
@@ -442,7 +442,7 @@ class TestRopLop(RopLopChecker):
         # 2013. The bug consists when through a dot operation there is only
         # one differentiable path (i.e. there is no gradient wrt to one of
         # the inputs).
-        x = tt.arange(20.0).reshape([1, 20])
+        x = aet.arange(20.0).reshape([1, 20])
         v = aesara.shared(np.ones([20]))
         d = dot(x, v).sum()
         Rop(grad(d, v), v, v)

@@ -3,7 +3,7 @@ from functools import partial
 import numpy as np
 import pytest
 
-import aesara.scalar.basic as ts
+import aesara.scalar.basic as aes
 from aesara.compile.function import function
 from aesara.compile.mode import Mode
 from aesara.compile.ops import DeepCopyOp, ViewOp
@@ -15,7 +15,7 @@ from aesara.graph.optdb import Query
 from aesara.ifelse import ifelse
 from aesara.link.jax import JAXLinker
 from aesara.scan.basic import scan
-from aesara.tensor import basic as tt
+from aesara.tensor import basic as aet
 from aesara.tensor import blas as tt_blas
 from aesara.tensor import elemwise as tt_elemwise
 from aesara.tensor import extra_ops as tt_extra_ops
@@ -114,19 +114,19 @@ def compare_jax_and_py(
 
 
 def test_jax_Alloc():
-    x = tt.alloc(0.0, 2, 3)
+    x = aet.alloc(0.0, 2, 3)
     x_fg = FunctionGraph([], [x])
 
     (jax_res,) = compare_jax_and_py(x_fg, [])
 
     assert jax_res.shape == (2, 3)
 
-    x = tt.alloc(1.1, 2, 3)
+    x = aet.alloc(1.1, 2, 3)
     x_fg = FunctionGraph([], [x])
 
     compare_jax_and_py(x_fg, [])
 
-    x = tt.AllocEmpty("float32")(2, 3)
+    x = aet.AllocEmpty("float32")(2, 3)
     x_fg = FunctionGraph([], [x])
 
     def compare_shape_dtype(x, y):
@@ -137,13 +137,13 @@ def test_jax_Alloc():
     compare_jax_and_py(x_fg, [], assert_fn=compare_shape_dtype)
 
     a = scalar("a")
-    x = tt.alloc(a, 20)
+    x = aet.alloc(a, 20)
     x_fg = FunctionGraph([a], [x])
 
     compare_jax_and_py(x_fg, [10.0])
 
     a = vector("a")
-    x = tt.alloc(a, 20, 10)
+    x = aet.alloc(a, 20, 10)
     x_fg = FunctionGraph([a], [x])
 
     compare_jax_and_py(x_fg, [np.ones(10, dtype=config.floatX)])
@@ -151,23 +151,23 @@ def test_jax_Alloc():
 
 def test_jax_shape_ops():
     x_np = np.zeros((20, 3))
-    x = Shape()(tt.as_tensor_variable(x_np))
+    x = Shape()(aet.as_tensor_variable(x_np))
     x_fg = FunctionGraph([], [x])
 
     compare_jax_and_py(x_fg, [], must_be_device_array=False)
 
-    x = Shape_i(1)(tt.as_tensor_variable(x_np))
+    x = Shape_i(1)(aet.as_tensor_variable(x_np))
     x_fg = FunctionGraph([], [x])
 
     compare_jax_and_py(x_fg, [], must_be_device_array=False)
 
-    x = SpecifyShape()(tt.as_tensor_variable(x_np), (20, 3))
+    x = SpecifyShape()(aet.as_tensor_variable(x_np), (20, 3))
     x_fg = FunctionGraph([], [x])
 
     compare_jax_and_py(x_fg, [])
 
     with config.change_flags(compute_test_value="off"):
-        x = SpecifyShape()(tt.as_tensor_variable(x_np), (2, 3))
+        x = SpecifyShape()(aet.as_tensor_variable(x_np), (2, 3))
         x_fg = FunctionGraph([], [x])
 
         with pytest.raises(AssertionError):
@@ -176,27 +176,27 @@ def test_jax_shape_ops():
 
 def test_jax_compile_ops():
 
-    x = DeepCopyOp()(tt.as_tensor_variable(1.1))
+    x = DeepCopyOp()(aet.as_tensor_variable(1.1))
     x_fg = FunctionGraph([], [x])
 
     compare_jax_and_py(x_fg, [])
 
     x_np = np.zeros((20, 1, 1))
-    x = tt.Rebroadcast((0, False), (1, True), (2, False))(tt.as_tensor_variable(x_np))
+    x = aet.Rebroadcast((0, False), (1, True), (2, False))(aet.as_tensor_variable(x_np))
     x_fg = FunctionGraph([], [x])
 
     compare_jax_and_py(x_fg, [])
 
     with config.change_flags(compute_test_value="off"):
-        x = tt.Rebroadcast((0, True), (1, False), (2, False))(
-            tt.as_tensor_variable(x_np)
+        x = aet.Rebroadcast((0, True), (1, False), (2, False))(
+            aet.as_tensor_variable(x_np)
         )
         x_fg = FunctionGraph([], [x])
 
         with pytest.raises(ValueError):
             compare_jax_and_py(x_fg, [])
 
-    x = ViewOp()(tt.as_tensor_variable(x_np))
+    x = ViewOp()(aet.as_tensor_variable(x_np))
     x_fg = FunctionGraph([], [x])
 
     compare_jax_and_py(x_fg, [])
@@ -234,7 +234,7 @@ def test_jax_basic():
     out_fg = FunctionGraph([x, y], [out])
     compare_jax_and_py(out_fg, test_input_vals)
 
-    out = tt.diagonal(x, 0)
+    out = aet.diagonal(x, 0)
     out_fg = FunctionGraph([x], [out])
     compare_jax_and_py(
         out_fg, [np.arange(10 * 10).reshape((10, 10)).astype(config.floatX)]
@@ -285,7 +285,7 @@ def test_jax_basic():
 
 def test_jax_eye():
     """Tests jaxification of the Eye operator"""
-    out = tt.eye(3)
+    out = aet.eye(3)
     out_fg = FunctionGraph([], [out])
 
     compare_jax_and_py(out_fg, [])
@@ -437,7 +437,7 @@ def test_jax_scan_tap_output():
         fn=input_step_fn,
         outputs_info=[
             {
-                "initial": tt.as_tensor_variable(
+                "initial": aet.as_tensor_variable(
                     np.r_[-1.0, 1.3, 0.0].astype(config.floatX)
                 ),
                 "taps": [-1, -3],
@@ -458,7 +458,7 @@ def test_jax_scan_tap_output():
 
 def test_jax_Subtensors():
     # Basic indices
-    x_tt = tt.arange(3 * 4 * 5).reshape((3, 4, 5))
+    x_tt = aet.arange(3 * 4 * 5).reshape((3, 4, 5))
     out_tt = x_tt[1, 2, 0]
     assert isinstance(out_tt.owner.op, tt_subtensor.Subtensor)
     out_fg = FunctionGraph([], [out_tt])
@@ -500,16 +500,16 @@ def test_jax_Subtensors():
 
 def test_jax_IncSubtensor():
     x_np = np.random.uniform(-1, 1, size=(3, 4, 5)).astype(config.floatX)
-    x_tt = tt.arange(3 * 4 * 5).reshape((3, 4, 5)).astype(config.floatX)
+    x_tt = aet.arange(3 * 4 * 5).reshape((3, 4, 5)).astype(config.floatX)
 
     # "Set" basic indices
-    st_tt = tt.as_tensor_variable(np.array(-10.0, dtype=config.floatX))
+    st_tt = aet.as_tensor_variable(np.array(-10.0, dtype=config.floatX))
     out_tt = tt_subtensor.set_subtensor(x_tt[1, 2, 3], st_tt)
     assert isinstance(out_tt.owner.op, tt_subtensor.IncSubtensor)
     out_fg = FunctionGraph([], [out_tt])
     compare_jax_and_py(out_fg, [])
 
-    st_tt = tt.as_tensor_variable(np.r_[-1.0, 0.0].astype(config.floatX))
+    st_tt = aet.as_tensor_variable(np.r_[-1.0, 0.0].astype(config.floatX))
     out_tt = tt_subtensor.set_subtensor(x_tt[:2, 0, 0], st_tt)
     assert isinstance(out_tt.owner.op, tt_subtensor.IncSubtensor)
     out_fg = FunctionGraph([], [out_tt])
@@ -521,7 +521,7 @@ def test_jax_IncSubtensor():
     compare_jax_and_py(out_fg, [])
 
     # "Set" advanced indices
-    st_tt = tt.as_tensor_variable(
+    st_tt = aet.as_tensor_variable(
         np.random.uniform(-1, 1, size=(2, 4, 5)).astype(config.floatX)
     )
     out_tt = tt_subtensor.set_subtensor(x_tt[np.r_[0, 2]], st_tt)
@@ -529,33 +529,33 @@ def test_jax_IncSubtensor():
     out_fg = FunctionGraph([], [out_tt])
     compare_jax_and_py(out_fg, [])
 
-    st_tt = tt.as_tensor_variable(np.r_[-1.0, 0.0].astype(config.floatX))
+    st_tt = aet.as_tensor_variable(np.r_[-1.0, 0.0].astype(config.floatX))
     out_tt = tt_subtensor.set_subtensor(x_tt[[0, 2], 0, 0], st_tt)
     assert isinstance(out_tt.owner.op, tt_subtensor.AdvancedIncSubtensor)
     out_fg = FunctionGraph([], [out_tt])
     compare_jax_and_py(out_fg, [])
 
-    st_tt = tt.as_tensor_variable(x_np[[0, 2], 0, :3])
+    st_tt = aet.as_tensor_variable(x_np[[0, 2], 0, :3])
     out_tt = tt_subtensor.set_subtensor(x_tt[[0, 2], 0, :3], st_tt)
     assert isinstance(out_tt.owner.op, tt_subtensor.AdvancedIncSubtensor)
     out_fg = FunctionGraph([], [out_tt])
     compare_jax_and_py(out_fg, [])
 
     # "Set" boolean indices
-    mask_tt = tt.as_tensor_variable(x_np) > 0
+    mask_tt = aet.as_tensor_variable(x_np) > 0
     out_tt = tt_subtensor.set_subtensor(x_tt[mask_tt], 0.0)
     assert isinstance(out_tt.owner.op, tt_subtensor.AdvancedIncSubtensor)
     out_fg = FunctionGraph([], [out_tt])
     compare_jax_and_py(out_fg, [])
 
     # "Increment" basic indices
-    st_tt = tt.as_tensor_variable(np.array(-10.0, dtype=config.floatX))
+    st_tt = aet.as_tensor_variable(np.array(-10.0, dtype=config.floatX))
     out_tt = tt_subtensor.inc_subtensor(x_tt[1, 2, 3], st_tt)
     assert isinstance(out_tt.owner.op, tt_subtensor.IncSubtensor)
     out_fg = FunctionGraph([], [out_tt])
     compare_jax_and_py(out_fg, [])
 
-    st_tt = tt.as_tensor_variable(np.r_[-1.0, 0.0].astype(config.floatX))
+    st_tt = aet.as_tensor_variable(np.r_[-1.0, 0.0].astype(config.floatX))
     out_tt = tt_subtensor.inc_subtensor(x_tt[:2, 0, 0], st_tt)
     assert isinstance(out_tt.owner.op, tt_subtensor.IncSubtensor)
     out_fg = FunctionGraph([], [out_tt])
@@ -567,7 +567,7 @@ def test_jax_IncSubtensor():
     compare_jax_and_py(out_fg, [])
 
     # "Increment" advanced indices
-    st_tt = tt.as_tensor_variable(
+    st_tt = aet.as_tensor_variable(
         np.random.uniform(-1, 1, size=(2, 4, 5)).astype(config.floatX)
     )
     out_tt = tt_subtensor.inc_subtensor(x_tt[np.r_[0, 2]], st_tt)
@@ -575,20 +575,20 @@ def test_jax_IncSubtensor():
     out_fg = FunctionGraph([], [out_tt])
     compare_jax_and_py(out_fg, [])
 
-    st_tt = tt.as_tensor_variable(np.r_[-1.0, 0.0].astype(config.floatX))
+    st_tt = aet.as_tensor_variable(np.r_[-1.0, 0.0].astype(config.floatX))
     out_tt = tt_subtensor.inc_subtensor(x_tt[[0, 2], 0, 0], st_tt)
     assert isinstance(out_tt.owner.op, tt_subtensor.AdvancedIncSubtensor)
     out_fg = FunctionGraph([], [out_tt])
     compare_jax_and_py(out_fg, [])
 
-    st_tt = tt.as_tensor_variable(x_np[[0, 2], 0, :3])
+    st_tt = aet.as_tensor_variable(x_np[[0, 2], 0, :3])
     out_tt = tt_subtensor.inc_subtensor(x_tt[[0, 2], 0, :3], st_tt)
     assert isinstance(out_tt.owner.op, tt_subtensor.AdvancedIncSubtensor)
     out_fg = FunctionGraph([], [out_tt])
     compare_jax_and_py(out_fg, [])
 
     # "Increment" boolean indices
-    mask_tt = tt.as_tensor_variable(x_np) > 0
+    mask_tt = aet.as_tensor_variable(x_np) > 0
     out_tt = tt_subtensor.set_subtensor(x_tt[mask_tt], 1.0)
     assert isinstance(out_tt.owner.op, tt_subtensor.AdvancedIncSubtensor)
     out_fg = FunctionGraph([], [out_tt])
@@ -650,7 +650,7 @@ def test_jax_CAReduce():
 
 
 def test_jax_MakeVector():
-    x = tt.make_vector(1, 2, 3)
+    x = aet.make_vector(1, 2, 3)
     x_fg = FunctionGraph([], [x])
 
     compare_jax_and_py(x_fg, [])
@@ -733,7 +733,7 @@ def test_jax_logp():
     logp = (-tau * (value - mu) ** 2 + log(tau / np.pi / 2.0)) / 2.0
     conditions = [sigma > 0]
     alltrue = tt_all([tt_all(1 * val) for val in conditions])
-    normal_logp = tt.switch(alltrue, logp, -np.inf)
+    normal_logp = aet.switch(alltrue, logp, -np.inf)
 
     fgraph = FunctionGraph([mu, tau, sigma, value], [normal_logp])
 
@@ -809,7 +809,7 @@ def test_arange_nonconcrete():
     a = scalar("a")
     a.tag.test_value = 10
 
-    out = tt.arange(a)
+    out = aet.arange(a)
     fgraph = FunctionGraph([a], [out])
     compare_jax_and_py(fgraph, [get_test_value(i) for i in fgraph.inputs])
 
@@ -828,7 +828,7 @@ def test_identity():
     a = scalar("a")
     a.tag.test_value = 10
 
-    out = ts.identity(a)
+    out = aes.identity(a)
     fgraph = FunctionGraph([a], [out])
     compare_jax_and_py(fgraph, [get_test_value(i) for i in fgraph.inputs])
 
@@ -837,12 +837,12 @@ def test_second():
     a0 = scalar("a0")
     b = scalar("b")
 
-    out = ts.second(a0, b)
+    out = aes.second(a0, b)
     fgraph = FunctionGraph([a0, b], [out])
     compare_jax_and_py(fgraph, [10.0, 5.0])
 
     a1 = vector("a1")
-    out = tt.second(a1, b)
+    out = aet.second(a1, b)
     fgraph = FunctionGraph([a1, b], [out])
     compare_jax_and_py(fgraph, [np.zeros([5], dtype=config.floatX), 5.0])
 
@@ -925,7 +925,7 @@ def test_extra_ops():
     compare_jax_and_py(fgraph, [get_test_value(i) for i in fgraph.inputs])
 
     # This function also cannot take symbolic input.
-    c = tt.as_tensor(5)
+    c = aet.as_tensor(5)
     out = tt_extra_ops.bartlett(c)
     fgraph = FunctionGraph([], [out])
     compare_jax_and_py(fgraph, [get_test_value(i) for i in fgraph.inputs])
@@ -961,7 +961,7 @@ def test_extra_ops():
 
     # The inputs are "concrete", yet it still has problems?
     out = tt_extra_ops.Unique()(
-        tt.as_tensor(np.arange(6, dtype=config.floatX).reshape((3, 2)))
+        aet.as_tensor(np.arange(6, dtype=config.floatX).reshape((3, 2)))
     )
     fgraph = FunctionGraph([], [out])
     compare_jax_and_py(fgraph, [])

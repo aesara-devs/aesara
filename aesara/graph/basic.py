@@ -358,10 +358,10 @@ class Variable(Node):
     .. code-block:: python
 
         import aesara
-        import aesara.tensor as tt
+        import aesara.tensor as aet
 
-        a = tt.constant(1.5)            # declare a symbolic constant
-        b = tt.fscalar()                # declare a symbolic floating-point scalar
+        a = aet.constant(1.5)            # declare a symbolic constant
+        b = aet.fscalar()                # declare a symbolic floating-point scalar
 
         c = a + b                       # create a simple expression
 
@@ -517,9 +517,9 @@ class Variable(Node):
         --------
 
         >>> import numpy as np
-        >>> import aesara.tensor as tt
-        >>> x = tt.dscalar('x')
-        >>> y = tt.dscalar('y')
+        >>> import aesara.tensor as aet
+        >>> x = aet.dscalar('x')
+        >>> y = aet.dscalar('y')
         >>> z = x + y
         >>> np.allclose(z.eval({x : 16.3, y : 12.1}), 28.4)
         True

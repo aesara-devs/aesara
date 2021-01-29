@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 import aesara
-import aesara.tensor as tt
+import aesara.tensor as aet
 from aesara.tensor.nnet import conv, corr3d
 from aesara.tensor.type import dmatrix, dtensor3, dtensor4, dtensor5, tensor5, vector
 from tests import unittest_tools as utt
@@ -48,10 +48,12 @@ class TestCorr3D(utt.InferShapeTester):
             pytest.skip("Need cxx for this test")
 
         N_image_shape = [
-            tt.get_scalar_constant_value(tt.as_tensor_variable(x)) for x in image_shape
+            aet.get_scalar_constant_value(aet.as_tensor_variable(x))
+            for x in image_shape
         ]
         N_filter_shape = [
-            tt.get_scalar_constant_value(tt.as_tensor_variable(x)) for x in filter_shape
+            aet.get_scalar_constant_value(aet.as_tensor_variable(x))
+            for x in filter_shape
         ]
 
         if input is None:
@@ -294,7 +296,7 @@ class TestCorr3D(utt.InferShapeTester):
     )
     def test_shape_Constant_tensor(self, border_mode):
         # Tests correlation where the {image,filter}_shape is a Constant tensor
-        as_t = tt.as_tensor_variable
+        as_t = aet.as_tensor_variable
         self.validate(
             (as_t(3), as_t(2), as_t(7), as_t(5), as_t(5)), (5, 2, 2, 3, 3), border_mode
         )

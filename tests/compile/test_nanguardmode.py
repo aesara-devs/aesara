@@ -8,7 +8,7 @@ import numpy as np
 import pytest
 
 import aesara
-import aesara.tensor as tt
+import aesara.tensor as aet
 from aesara.compile.nanguardmode import NanGuardMode
 from aesara.tensor.math import dot
 from aesara.tensor.type import matrix, tensor3
@@ -54,7 +54,7 @@ def test_NanGuardMode():
     biga = np.tile(np.asarray(1e20).astype(aesara.config.floatX), (3, 4, 5))
 
     x = tensor3()
-    y = x[:, tt.arange(2), tt.arange(2), None]
+    y = x[:, aet.arange(2), aet.arange(2), None]
     fun = aesara.function(
         [x], y, mode=NanGuardMode(nan_is_error=True, inf_is_error=True)
     )

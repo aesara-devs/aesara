@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 import aesara
-import aesara.tensor as tt
+import aesara.tensor as aet
 from aesara.compile.mode import OPT_FAST_RUN, optdb
 from aesara.configdefaults import config
 from aesara.gradient import grad
@@ -693,10 +693,10 @@ class TestCrossEntropyCategorical1Hot(utt.InferShapeTester):
 
         # Basic case
         expressions = [
-            tt_sum(-log(softmax(x)[tt.arange(y.shape[0]), y])),
-            -tt_sum(log(softmax(x)[tt.arange(y.shape[0]), y])),
-            -tt_sum(log(softmax(x))[tt.arange(y.shape[0]), y]),
-            tt_sum(-log(softmax(x))[tt.arange(y.shape[0]), y]),
+            tt_sum(-log(softmax(x)[aet.arange(y.shape[0]), y])),
+            -tt_sum(log(softmax(x)[aet.arange(y.shape[0]), y])),
+            -tt_sum(log(softmax(x))[aet.arange(y.shape[0]), y]),
+            tt_sum(-log(softmax(x))[aet.arange(y.shape[0]), y]),
         ]
         for expr in expressions:
 
@@ -720,10 +720,10 @@ class TestCrossEntropyCategorical1Hot(utt.InferShapeTester):
 
         # Test that a biased softmax is optimized correctly
         bias_expressions = [
-            tt_sum(-log(softmax(x + b)[tt.arange(y.shape[0]), y])),
-            -tt_sum(log(softmax(b + x)[tt.arange(y.shape[0]), y])),
-            -tt_sum(log(softmax(x + b))[tt.arange(y.shape[0]), y]),
-            tt_sum(-log(softmax(b + x))[tt.arange(y.shape[0]), y]),
+            tt_sum(-log(softmax(x + b)[aet.arange(y.shape[0]), y])),
+            -tt_sum(log(softmax(b + x)[aet.arange(y.shape[0]), y])),
+            -tt_sum(log(softmax(x + b))[aet.arange(y.shape[0]), y]),
+            tt_sum(-log(softmax(b + x))[aet.arange(y.shape[0]), y]),
         ]
 
         for expr in bias_expressions:
@@ -745,10 +745,10 @@ class TestCrossEntropyCategorical1Hot(utt.InferShapeTester):
 
         # Test that using "mean" instead of sum works, too
         mean_expressions = [
-            mean(-log(softmax(x)[tt.arange(y.shape[0]), y])),
-            -mean(log(softmax(x)[tt.arange(y.shape[0]), y])),
-            -mean(log(softmax(x))[tt.arange(y.shape[0]), y]),
-            mean(-log(softmax(x))[tt.arange(y.shape[0]), y]),
+            mean(-log(softmax(x)[aet.arange(y.shape[0]), y])),
+            -mean(log(softmax(x)[aet.arange(y.shape[0]), y])),
+            -mean(log(softmax(x))[aet.arange(y.shape[0]), y]),
+            mean(-log(softmax(x))[aet.arange(y.shape[0]), y]),
         ]
 
         for expr in mean_expressions:
@@ -773,10 +773,10 @@ class TestCrossEntropyCategorical1Hot(utt.InferShapeTester):
             assert softmax_grad not in ops
 
         mean_bias_expressions = [
-            mean(-log(softmax(x + b)[tt.arange(y.shape[0]), y])),
-            -mean(log(softmax(b + x)[tt.arange(y.shape[0]), y])),
-            -mean(log(softmax(x + b))[tt.arange(y.shape[0]), y]),
-            mean(-log(softmax(b + x))[tt.arange(y.shape[0]), y]),
+            mean(-log(softmax(x + b)[aet.arange(y.shape[0]), y])),
+            -mean(log(softmax(b + x)[aet.arange(y.shape[0]), y])),
+            -mean(log(softmax(x + b))[aet.arange(y.shape[0]), y]),
+            mean(-log(softmax(b + x))[aet.arange(y.shape[0]), y]),
         ]
 
         for expr in mean_bias_expressions:
@@ -801,12 +801,12 @@ class TestCrossEntropyCategorical1Hot(utt.InferShapeTester):
     def test_xent_thing_int32(self):
         x = matrix("x")
         y = lvector("y")
-        yi = tt.cast(y, "int32")
+        yi = aet.cast(y, "int32")
         expressions = [
-            tt_sum(-log(softmax(x)[tt.arange(yi.shape[0]), yi])),
-            -tt_sum(log(softmax(x)[tt.arange(yi.shape[0]), yi])),
-            -tt_sum(log(softmax(x))[tt.arange(yi.shape[0]), yi]),
-            tt_sum(-log(softmax(x))[tt.arange(yi.shape[0]), yi]),
+            tt_sum(-log(softmax(x)[aet.arange(yi.shape[0]), yi])),
+            -tt_sum(log(softmax(x)[aet.arange(yi.shape[0]), yi])),
+            -tt_sum(log(softmax(x))[aet.arange(yi.shape[0]), yi]),
+            tt_sum(-log(softmax(x))[aet.arange(yi.shape[0]), yi]),
         ]
 
         for expr in expressions:
@@ -834,8 +834,8 @@ class TestCrossEntropyCategorical1Hot(utt.InferShapeTester):
 
         # Test that a biased softmax is optimized correctly
         bias_expressions = [
-            tt_sum(-log(softmax(x)[tt.arange(y.shape[0]), y])),
-            -tt_sum(log(softmax(x)[tt.arange(y.shape[0]), y])),
+            tt_sum(-log(softmax(x)[aet.arange(y.shape[0]), y])),
+            -tt_sum(log(softmax(x)[aet.arange(y.shape[0]), y])),
         ]
 
         for expr in bias_expressions:
@@ -863,10 +863,10 @@ class TestCrossEntropyCategorical1Hot(utt.InferShapeTester):
 
         # Test that a biased softmax is optimized correctly
         bias_expressions = [
-            tt_sum(-log(softmax(x + b)[tt.arange(y.shape[0]), y])),
-            -tt_sum(log(softmax(b + x)[tt.arange(y.shape[0]), y])),
-            -tt_sum(log(softmax(x + b))[tt.arange(y.shape[0]), y]),
-            tt_sum(-log(softmax(b + x))[tt.arange(y.shape[0]), y]),
+            tt_sum(-log(softmax(x + b)[aet.arange(y.shape[0]), y])),
+            -tt_sum(log(softmax(b + x)[aet.arange(y.shape[0]), y])),
+            -tt_sum(log(softmax(x + b))[aet.arange(y.shape[0]), y]),
+            tt_sum(-log(softmax(b + x))[aet.arange(y.shape[0]), y]),
         ]
 
         for expr in bias_expressions:
@@ -900,10 +900,10 @@ class TestCrossEntropyCategorical1Hot(utt.InferShapeTester):
 
         # Test that a biased softmax is optimized correctly
         bias_expressions = [
-            tt_sum(-log(softmax(x + b)[tt.arange(y.shape[0]), y])),
-            -tt_sum(log(softmax(b + x)[tt.arange(y.shape[0]), y])),
-            -tt_sum(log(softmax(x + b))[tt.arange(y.shape[0]), y]),
-            tt_sum(-log(softmax(b + x))[tt.arange(y.shape[0]), y]),
+            tt_sum(-log(softmax(x + b)[aet.arange(y.shape[0]), y])),
+            -tt_sum(log(softmax(b + x)[aet.arange(y.shape[0]), y])),
+            -tt_sum(log(softmax(x + b))[aet.arange(y.shape[0]), y]),
+            tt_sum(-log(softmax(b + x))[aet.arange(y.shape[0]), y]),
         ]
 
         for expr in bias_expressions:
@@ -938,10 +938,10 @@ class TestCrossEntropyCategorical1Hot(utt.InferShapeTester):
 
         # Test that a biased softmax is optimized correctly
         bias_expressions = [
-            tt_sum(-log(softmax(x + b)[tt.arange(y.shape[0]), y])),
-            -tt_sum(log(softmax(b + x)[tt.arange(y.shape[0]), y])),
-            -tt_sum(log(softmax(x + b))[tt.arange(y.shape[0]), y]),
-            tt_sum(-log(softmax(b + x))[tt.arange(y.shape[0]), y]),
+            tt_sum(-log(softmax(x + b)[aet.arange(y.shape[0]), y])),
+            -tt_sum(log(softmax(b + x)[aet.arange(y.shape[0]), y])),
+            -tt_sum(log(softmax(x + b))[aet.arange(y.shape[0]), y]),
+            tt_sum(-log(softmax(b + x))[aet.arange(y.shape[0]), y]),
         ]
 
         for expr in bias_expressions:
@@ -988,22 +988,22 @@ class TestCrossEntropyCategorical1Hot(utt.InferShapeTester):
 
         # Cases to test
         expressions = [
-            a * tt_sum(-log(softmax(x)[tt.arange(y.shape[0]), y])),
-            -a * tt_sum(log(softmax(x)[tt.arange(y.shape[0]), y])),
-            a * (-tt_sum(log(softmax(x)[tt.arange(y.shape[0]), y]))),
-            a * tt_sum(log(softmax(x)[tt.arange(y.shape[0]), y])),
-            a * tt_sum(-log(softmax(x))[tt.arange(y.shape[0]), y]),
-            -a * tt_sum(log(softmax(x))[tt.arange(y.shape[0]), y]),
-            a * (-tt_sum(log(softmax(x))[tt.arange(y.shape[0]), y])),
-            a * tt_sum(log(softmax(x))[tt.arange(y.shape[0]), y]),
-            a * mean(-log(softmax(x)[tt.arange(y.shape[0]), y])),
-            -a * mean(log(softmax(x)[tt.arange(y.shape[0]), y])),
-            a * (-mean(log(softmax(x)[tt.arange(y.shape[0]), y]))),
-            a * mean(log(softmax(x)[tt.arange(y.shape[0]), y])),
-            a * mean(-log(softmax(x))[tt.arange(y.shape[0]), y]),
-            -a * mean(log(softmax(x))[tt.arange(y.shape[0]), y]),
-            a * (-mean(log(softmax(x))[tt.arange(y.shape[0]), y])),
-            a * mean(log(softmax(x))[tt.arange(y.shape[0]), y]),
+            a * tt_sum(-log(softmax(x)[aet.arange(y.shape[0]), y])),
+            -a * tt_sum(log(softmax(x)[aet.arange(y.shape[0]), y])),
+            a * (-tt_sum(log(softmax(x)[aet.arange(y.shape[0]), y]))),
+            a * tt_sum(log(softmax(x)[aet.arange(y.shape[0]), y])),
+            a * tt_sum(-log(softmax(x))[aet.arange(y.shape[0]), y]),
+            -a * tt_sum(log(softmax(x))[aet.arange(y.shape[0]), y]),
+            a * (-tt_sum(log(softmax(x))[aet.arange(y.shape[0]), y])),
+            a * tt_sum(log(softmax(x))[aet.arange(y.shape[0]), y]),
+            a * mean(-log(softmax(x)[aet.arange(y.shape[0]), y])),
+            -a * mean(log(softmax(x)[aet.arange(y.shape[0]), y])),
+            a * (-mean(log(softmax(x)[aet.arange(y.shape[0]), y]))),
+            a * mean(log(softmax(x)[aet.arange(y.shape[0]), y])),
+            a * mean(-log(softmax(x))[aet.arange(y.shape[0]), y]),
+            -a * mean(log(softmax(x))[aet.arange(y.shape[0]), y]),
+            a * (-mean(log(softmax(x))[aet.arange(y.shape[0]), y])),
+            a * mean(log(softmax(x))[aet.arange(y.shape[0]), y]),
         ]
 
         for expr in expressions:

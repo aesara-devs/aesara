@@ -47,7 +47,7 @@ from aesara.scan.utils import until
 from aesara.scan.views import foldl, foldr
 from aesara.scan.views import map as tt_map
 from aesara.scan.views import reduce as tt_reduce
-from aesara.tensor import basic as tt
+from aesara.tensor import basic as aet
 from aesara.tensor.blas import Dot22
 from aesara.tensor.elemwise import Elemwise
 from aesara.tensor.math import Dot
@@ -1067,7 +1067,7 @@ class TestScan:
         )
         x0 = asarrayX(np.zeros((3,)))
         x0[0] = vx0
-        x0 = tt.constant(x0)
+        x0 = aet.constant(x0)
         to_replace = outputs[0].owner.inputs[0].owner.inputs[1]
         outputs = clone_replace(outputs, replace=[(to_replace, x0)])
         mode = get_mode(None).including("inplace")
@@ -1150,9 +1150,9 @@ class TestScan:
         c = iscalar("c")
 
         def inner_fn(cond, x, y):
-            new_cond = tt.cast(tt.switch(cond, x, y), "int32")
-            new_x = tt.switch(cond, sigmoid(y * x), x)
-            new_y = tt.switch(cond, y, sigmoid(x))
+            new_cond = aet.cast(aet.switch(cond, x, y), "int32")
+            new_x = aet.switch(cond, sigmoid(y * x), x)
+            new_y = aet.switch(cond, y, sigmoid(x))
             return new_cond, new_x, new_y
 
         values, _ = scan(
@@ -1214,11 +1214,11 @@ class TestScan:
 
         def f(vsample_tm1):
             hmean_t = sigmoid(dot(vsample_tm1, W) + bhid)
-            hsample_t = tt.cast(
+            hsample_t = aet.cast(
                 trng.binomial(1, hmean_t, size=hmean_t.shape), dtype="float32"
             )
             vmean_t = sigmoid(dot(hsample_t, W.T) + bvis)
-            return tt.cast(
+            return aet.cast(
                 trng.binomial(1, vmean_t, size=vmean_t.shape), dtype="float32"
             )
 
@@ -1616,7 +1616,7 @@ class TestScan:
         def f_rnn_cmpl(u_t, u2_t, x_tm1, W_in):
             trng1 = RandomStream(123)
             x_t = (
-                tt.cast(u2_t, config.floatX)
+                aet.cast(u2_t, config.floatX)
                 + dot(u_t, W_in)
                 + x_tm1
                 + trng1.uniform(low=-1.1, high=1.1, dtype=config.floatX)
@@ -1700,7 +1700,7 @@ class TestScan:
             trng1 = RandomStream(123)
             rnd_nb = trng1.uniform(-0.1, 0.1)
             x_t = dot(u_t, W_in) + x_tm1 + rnd_nb
-            x_t = tt.cast(x_t, dtype=config.floatX)
+            x_t = aet.cast(x_t, dtype=config.floatX)
             return x_t
 
         cost, updates = scan_project_sum(
@@ -1854,7 +1854,7 @@ class TestScan:
         x1 = shared(3.0)
         x1.name = "x1"
         x2 = vector("x2")
-        y, updates = scan(lambda v: tt.cast(v * x1, config.floatX), sequences=x2)
+        y, updates = scan(lambda v: aet.cast(v * x1, config.floatX), sequences=x2)
         m = grad(y.sum(), x1)
 
         f = function([x2], m, allow_input_downcast=True)
@@ -1867,7 +1867,7 @@ class TestScan:
 
         out, updates = scan(
             lambda i, v: grad(K[i], v),
-            sequences=tt.arange(K.shape[0]),
+            sequences=aet.arange(K.shape[0]),
             non_sequences=x1,
         )
         f = function([x1], out, allow_input_downcast=True)
@@ -1947,7 +1947,7 @@ class TestScan:
         gy.name = "gy"
         hy, updates = scan(
             lambda i, gy, x: grad(gy[i] * fc2, x),
-            sequences=tt.arange(gy.shape[0]),
+            sequences=aet.arange(gy.shape[0]),
             non_sequences=[gy, x],
         )
 
@@ -2337,7 +2337,7 @@ class TestScan:
 
         x = scalar()
         seq = vector()
-        outputs_info = [x, tt.zeros_like(x)]
+        outputs_info = [x, aet.zeros_like(x)]
         (out1, out2), updates = scan(
             lambda a, b, c: (a + b, b + c),
             sequences=seq,
@@ -2374,7 +2374,7 @@ class TestScan:
 
         x = dcol()
         seq = dcol()
-        outputs_info = [x, tt.zeros_like(x)]
+        outputs_info = [x, aet.zeros_like(x)]
         (out1, out2), updates = scan(
             lambda a, b, c: (a + b, a + c), sequences=seq, outputs_info=outputs_info
         )
@@ -2442,7 +2442,7 @@ class TestScan:
             diff = mitsot_m1 + seq1
             next_mitsot_val = mitsot_m2 + diff
             next_sitsot_val = sitsot_m1 - diff
-            nitsot_out = tt.alloc(
+            nitsot_out = aet.alloc(
                 np.asarray(0.0, "float32"), next_mitsot_val + next_sitsot_val
             )
             return next_sitsot_val, next_mitsot_val, nitsot_out
@@ -2606,14 +2606,14 @@ class TestScan:
                 return K.sum()
 
             beta, K_updts = scan(
-                init_K, sequences=tt.arange(E), non_sequences=[inputs, targets]
+                init_K, sequences=aet.arange(E), non_sequences=[inputs, targets]
             )
 
             # mean
             def predict_mean_i(i, x_star, s_star, X, beta, h):
                 n, D = shape(X)
                 # rescale every dimension by the corresponding inverse lengthscale
-                iL = tt.diag(h[i, :D])
+                iL = aet.diag(h[i, :D])
                 inp = (X - x_star).dot(iL)
 
                 # compute the mean
@@ -2627,7 +2627,7 @@ class TestScan:
 
             (M), M_updts = scan(
                 predict_mean_i,
-                sequences=tt.arange(E),
+                sequences=aet.arange(E),
                 non_sequences=[x_star, s_star, inputs, beta, hyp],
             )
             return M
@@ -2663,7 +2663,7 @@ class TestScan:
         # equivalent code for the jacobian using scan
         dMdm, dMdm_updts = scan(
             lambda i, M, x: grad(M[i], x),
-            sequences=tt.arange(M.shape[0]),
+            sequences=aet.arange(M.shape[0]),
             non_sequences=[M, x_star],
         )
         dfdm = function([inputs, targets, x_star, s_star], [dMdm[0], dMdm[1], dMdm[2]])
@@ -2685,7 +2685,7 @@ class TestScan:
         # when applied on this graph.
         x = matrix()
         outputs, updates = scan(
-            lambda x: [x * x, tt.constant(0).copy().copy()],
+            lambda x: [x * x, aet.constant(0).copy().copy()],
             n_steps=2,
             sequences=[],
             non_sequences=[],
@@ -2739,7 +2739,7 @@ class TestScan:
         W = shared(np.random.random((5, 2)).astype("float32"))
 
         def f(inp, mem):
-            i = tt.join(0, inp, mem)
+            i = aet.join(0, inp, mem)
             d = dot(i, W)
             return d, d
 
@@ -2763,7 +2763,7 @@ class TestScan:
         o, _ = tt_reduce(
             lambda v, acc: acc + v,
             x,
-            tt.constant(np.asarray(0.0, dtype=config.floatX)),
+            aet.constant(np.asarray(0.0, dtype=config.floatX)),
         )
         mode = FAST_RUN
         mode = mode.excluding("inplace")
@@ -2794,7 +2794,7 @@ class TestScan:
         o, _ = foldl(
             lambda v, acc: acc + v,
             x,
-            tt.constant(np.asarray(0.0, dtype=config.floatX)),
+            aet.constant(np.asarray(0.0, dtype=config.floatX)),
         )
 
         mode = FAST_RUN
@@ -2827,7 +2827,7 @@ class TestScan:
         o, _ = foldr(
             lambda v, acc: acc + v,
             x,
-            tt.constant(np.asarray(0.0, dtype=config.floatX)),
+            aet.constant(np.asarray(0.0, dtype=config.floatX)),
         )
 
         mode = FAST_RUN
@@ -2909,21 +2909,21 @@ class TestScan:
 
         n2o_u, _ = scan(
             lambda i, o, u, h0, W, eu: (grad(o[i], u) * eu).sum(),
-            sequences=tt.arange(o.shape[0]),
+            sequences=aet.arange(o.shape[0]),
             non_sequences=[o, u, h0, W, eu],
             name="jacobU",
         )
 
         n2o_h0, _ = scan(
             lambda i, o, u, h0, W, eh0: (grad(o[i], h0) * eh0).sum(),
-            sequences=tt.arange(o.shape[0]),
+            sequences=aet.arange(o.shape[0]),
             non_sequences=[o, u, h0, W, eh0],
             name="jacobh",
         )
 
         n2o_W, _ = scan(
             lambda i, o, u, h0, W, eW: (grad(o[i], W) * eW).sum(),
-            sequences=tt.arange(o.shape[0]),
+            sequences=aet.arange(o.shape[0]),
             non_sequences=[o, u, h0, W, eW],
             name="jacobW",
         )
@@ -2981,21 +2981,21 @@ class TestScan:
 
         n2o_u, _ = scan(
             lambda i, o, u, h0, W, eu: (grad(o[i], u) * eu).sum(),
-            sequences=tt.arange(o.shape[0]),
+            sequences=aet.arange(o.shape[0]),
             non_sequences=[o, u, h0, W, eu],
             name="jacobU",
         )
 
         n2o_h0, _ = scan(
             lambda i, o, u, h0, W, eh0: (grad(o[i], h0) * eh0).sum(),
-            sequences=tt.arange(o.shape[0]),
+            sequences=aet.arange(o.shape[0]),
             non_sequences=[o, u, h0, W, eh0],
             name="jacobh",
         )
 
         n2o_W, _ = scan(
             lambda i, o, u, h0, W, eW: (grad(o[i], W) * eW).sum(),
-            sequences=tt.arange(o.shape[0]),
+            sequences=aet.arange(o.shape[0]),
             non_sequences=[o, u, h0, W, eW],
             name="jacobW",
         )
@@ -3017,7 +3017,7 @@ class TestScan:
 
         o, _ = scan(
             lambda hi, him1, W: (hi, dot(hi + him1, W)),
-            outputs_info=[tt.zeros([h.shape[1]]), None],
+            outputs_info=[aet.zeros([h.shape[1]]), None],
             sequences=[h],
             non_sequences=[W],
         )
@@ -3156,7 +3156,7 @@ class TestScan:
         o, _ = scan(
             lambda_fn,
             outputs_info=h0,
-            non_sequences=[W1, tt.zeros_like(W2)],
+            non_sequences=[W1, aet.zeros_like(W2)],
             n_steps=5,
         )
 
@@ -3187,9 +3187,9 @@ class TestScan:
 
         o, _ = scan(
             lambda_fn,
-            sequences=tt.zeros_like(W1),
+            sequences=aet.zeros_like(W1),
             outputs_info=h0,
-            non_sequences=[tt.zeros_like(W2)],
+            non_sequences=[aet.zeros_like(W2)],
             n_steps=5,
         )
 
@@ -3221,9 +3221,9 @@ class TestScan:
 
         o, _ = scan(
             lambda_fn,
-            sequences=tt.zeros_like(W1),
+            sequences=aet.zeros_like(W1),
             outputs_info=h0,
-            non_sequences=[tt.zeros_like(W2)],
+            non_sequences=[aet.zeros_like(W2)],
             n_steps=5,
         )
 
@@ -3277,7 +3277,7 @@ class TestScan:
         max_coefficients_supported = 10000
 
         # Generate the components of the polynomial
-        full_range = tt.arange(max_coefficients_supported)
+        full_range = aet.arange(max_coefficients_supported)
         components, updates = scan(
             fn=lambda coeff, power, free_var: coeff * (free_var ** power),
             sequences=[coefficients, full_range],
@@ -3286,7 +3286,7 @@ class TestScan:
         polynomial1 = components.sum()
         polynomial2, updates = scan(
             fn=lambda coeff, power, prev, free_var: prev + coeff * (free_var ** power),
-            outputs_info=tt.constant(0, dtype="floatX"),
+            outputs_info=aet.constant(0, dtype="floatX"),
             sequences=[coefficients, full_range],
             non_sequences=x,
         )
@@ -3341,14 +3341,14 @@ class TestScan:
                 return inp + sample
 
             pooled, updates_inner = scan(
-                fn=stochastic_pooling, sequences=tt.arange(inp.shape[0])
+                fn=stochastic_pooling, sequences=aet.arange(inp.shape[0])
             )
 
             # randomly add stuff to units
             rand_nums = rand_stream.binomial(1, 0.5, size=pooled.shape)
             return pooled + rand_nums, updates_inner
 
-        out, updates_outer = scan(unit_dropout, sequences=[tt.arange(inp.shape[0])])
+        out, updates_outer = scan(unit_dropout, sequences=[aet.arange(inp.shape[0])])
 
         with pytest.raises(NullTypeGradError):
             grad(out.sum(), inp)
@@ -3655,7 +3655,7 @@ class TestScan:
         c = vector("c")
         x = scalar("x")
         _max_coefficients_supported = 1000
-        full_range = tt.arange(_max_coefficients_supported)
+        full_range = aet.arange(_max_coefficients_supported)
         components, updates = scan(
             fn=lambda coeff, power, free_var: coeff * (free_var ** power),
             outputs_info=None,
@@ -3674,7 +3674,7 @@ class TestScan:
         c = vector("c")
         x = scalar("x")
         _max_coefficients_supported = 1000
-        full_range = tt.arange(_max_coefficients_supported)
+        full_range = aet.arange(_max_coefficients_supported)
         components, updates = scan(
             fn=lambda coeff, power, free_var: coeff * (free_var ** power),
             outputs_info=None,
@@ -3915,7 +3915,7 @@ class TestScan:
         hidden_rec, _ = scan(
             lambda x, h_tm1: transfer(dot(h_tm1, W2) + x),
             sequences=hidden,
-            outputs_info=[tt.zeros_like(hidden[0])],
+            outputs_info=[aet.zeros_like(hidden[0])],
         )
 
         hidden_rec.reshape(
@@ -4048,7 +4048,7 @@ class TestScan:
     def test_disconnected_gradient(self):
         v = vector("v")
         m = matrix("m")
-        u0 = tt.zeros((7,))
+        u0 = aet.zeros((7,))
 
         [u, m2], _ = scan(lambda _, u: [u, v], sequences=m, outputs_info=[u0, None])
         # This used to raise an exception with older versions because for a
@@ -4058,7 +4058,7 @@ class TestScan:
     def test_disconnected_gradient2(self):
         v = vector("v")
         m = matrix("m")
-        u0 = tt.zeros((7,))
+        u0 = aet.zeros((7,))
 
         [u, m2], _ = scan(
             lambda x, u: [x + u, u + v], sequences=m, outputs_info=[u0, None]
@@ -4093,7 +4093,7 @@ class TestScan:
         S, _ = scan(
             lambda x1, x2, u: u + dot(x1, x2),
             sequences=[A.dimshuffle(0, 1, "x"), B.dimshuffle(0, "x", 1)],
-            outputs_info=[tt.zeros_like(A)],
+            outputs_info=[aet.zeros_like(A)],
         )
         f = function([A, B], S.owner.inputs[0][-1])
         rng = np.random.RandomState(utt.fetch_seed())
@@ -4102,9 +4102,9 @@ class TestScan:
         utt.assert_allclose(f(vA, vB), np.dot(vA.T, vB))
 
     def test_pregreedy_optimizer(self):
-        W = tt.zeros((5, 4))
-        bv = tt.zeros((5,))
-        bh = tt.zeros((4,))
+        W = aet.zeros((5, 4))
+        bv = aet.zeros((5,))
+        bh = aet.zeros((4,))
         v = matrix("v")
         (bv_t, bh_t), _ = scan(
             lambda _: [bv, bh], sequences=v, outputs_info=[None, None]
@@ -4117,7 +4117,7 @@ class TestScan:
         function([v], chain)(np.zeros((3, 5), dtype=config.floatX))
 
     def test_savemem_does_not_duplicate_number_of_scan_nodes(self):
-        var = tt.ones(())
+        var = aet.ones(())
         values, _ = scan(
             lambda x: ([x], (), until(x)),
             outputs_info=[var],
@@ -4408,7 +4408,7 @@ class TestScan:
 
             result_inner, _ = scan(
                 fn=loss_inner,
-                outputs_info=tt.as_tensor_variable(np.asarray(0, dtype=np.float32)),
+                outputs_info=aet.as_tensor_variable(np.asarray(0, dtype=np.float32)),
                 non_sequences=[W],
                 n_steps=1,
             )
@@ -4417,7 +4417,7 @@ class TestScan:
         # Also test return_list for that case.
         result_outer, _ = scan(
             fn=loss_outer,
-            outputs_info=tt.as_tensor_variable(np.asarray(0, dtype=np.float32)),
+            outputs_info=aet.as_tensor_variable(np.asarray(0, dtype=np.float32)),
             non_sequences=[W],
             n_steps=n_steps,
             return_list=True,
@@ -4497,7 +4497,7 @@ class TestScan:
         # Symbolic description of the result
         result, updates = scan(
             fn=lambda prior_result, A: prior_result * A,
-            outputs_info=tt.ones_like(A),
+            outputs_info=aet.ones_like(A),
             non_sequences=A,
             n_steps=k,
             mode=mode,
@@ -4555,7 +4555,7 @@ def test_speed():
     # s_y, updates = scan(
     #     fn=lambda ri, rii: ri + rii,
     #     sequences=[s_r[1:]],
-    #     outputs_info=tt.constant(r[0]),
+    #     outputs_info=aet.constant(r[0]),
     #     mode=Mode(linker="cvm"),
     # )
     # assert not updates
@@ -4613,7 +4613,7 @@ def test_speed_rnn():
     # s_y, updates = scan(
     #     fn=lambda ri, rii: tanh(dot(rii, w)),
     #     sequences=[s_r[1:]],
-    #     outputs_info=tt.constant(r[0]),
+    #     outputs_info=aet.constant(r[0]),
     #     mode=Mode(linker="cvm"),
     # )
     # assert not updates
@@ -4737,11 +4737,11 @@ def test_compute_test_value_grad():
         W_flat.tag.test_value = WEIGHT
         W = W_flat.reshape((2, 2, 3))
 
-        outputs_mi = tt.as_tensor_variable(np.asarray(0, dtype="float32"))
+        outputs_mi = aet.as_tensor_variable(np.asarray(0, dtype="float32"))
         outputs_mi.tag.test_value = np.asarray(0, dtype="float32")
 
         def loss_mi(mi, sum_mi, W):
-            outputs_ti = tt.as_tensor_variable(np.asarray(0, dtype="float32"))
+            outputs_ti = aet.as_tensor_variable(np.asarray(0, dtype="float32"))
             outputs_ti.tag.test_value = np.asarray(0, dtype="float32")
 
             def loss_ti(ti, sum_ti, mi, W):
@@ -4750,7 +4750,7 @@ def test_compute_test_value_grad():
             result_ti, _ = scan(
                 fn=loss_ti,
                 outputs_info=outputs_ti,
-                sequences=tt.arange(W.shape[1], dtype="int32"),
+                sequences=aet.arange(W.shape[1], dtype="int32"),
                 non_sequences=[mi, W],
             )
             lossmi = result_ti[-1]
@@ -4759,7 +4759,7 @@ def test_compute_test_value_grad():
         result_mi, _ = scan(
             fn=loss_mi,
             outputs_info=outputs_mi,
-            sequences=tt.arange(W.shape[0], dtype="int32"),
+            sequences=aet.arange(W.shape[0], dtype="int32"),
             non_sequences=[W],
         )
 
@@ -4792,7 +4792,7 @@ def test_constant_folding_n_steps():
     # folding optimization step.
     res, _ = scan(
         lambda x: x * 2,
-        outputs_info=tt.ones(()),
+        outputs_info=aet.ones(()),
         # The constant `n_steps` was causing the crash.
         n_steps=10,
     )
@@ -4836,7 +4836,7 @@ def test_default_value_broadcasted():
     value, scan_updates = scan(
         _active,
         sequences=X,
-        outputs_info=[tt.alloc(floatx(0.0), 1, out_size)],
+        outputs_info=[aet.alloc(floatx(0.0), 1, out_size)],
     )
     cost = mean(value)
     gW_x = grad(cost, W_x)
@@ -4848,7 +4848,7 @@ def test_default_value_broadcasted():
 class TestInconsistentBroadcast:
     def test_raise_error(self):
         x = tensor3()
-        initial_x = tt.constant(np.zeros((1, 10)))
+        initial_x = aet.constant(np.zeros((1, 10)))
         y, updates = scan(
             fn=lambda x, prev_x: x + prev_x,
             sequences=x,
@@ -4859,7 +4859,7 @@ class TestInconsistentBroadcast:
             grad(y.sum(), x)
 
         # No error here, because the broadcast patterns are consistent.
-        initial_x = tt.unbroadcast(initial_x, 0, 1)
+        initial_x = aet.unbroadcast(initial_x, 0, 1)
         y, updates = scan(
             fn=lambda x, prev_x: x + prev_x,
             sequences=x,
@@ -4875,7 +4875,7 @@ class TestMissingInputError:
         inc = scalar("inc")
 
         def count_up():
-            return tt.zeros(()), {c: c + inc}
+            return aet.zeros(()), {c: c + inc}
 
         _, updates = scan(count_up, n_steps=20)
         function(inputs=[inc], outputs=[], updates=updates)

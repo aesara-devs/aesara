@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 
 import aesara
-from aesara import scalar as ts
+from aesara import scalar as aes
 from aesara.graph.basic import Apply
 from aesara.graph.op import COp
 from aesara.graph.type import CDataType, CEnumType, EnumList, EnumType
@@ -118,7 +118,7 @@ class MyOpEnumList(COp):
         return self.op_chosen
 
     def make_node(self, a, b):
-        return Apply(self, [ts.as_scalar(a), ts.as_scalar(b)], [ts.float64()])
+        return Apply(self, [aes.as_scalar(a), aes.as_scalar(b)], [aes.float64()])
 
     def perform(self, node, inputs, outputs, op):
         a, b = inputs
@@ -192,7 +192,7 @@ class MyOpCEnumType(COp):
         return self.python_value
 
     def make_node(self):
-        return Apply(self, [], [ts.uint32()])
+        return Apply(self, [], [aes.uint32()])
 
     def perform(self, *args, **kwargs):
         raise NotImplementedError()
@@ -265,8 +265,8 @@ class TestEnumTypes:
             )
 
     def test_op_with_enumlist(self):
-        a = ts.int32()
-        b = ts.int32()
+        a = aes.int32()
+        b = aes.int32()
         c_add = MyOpEnumList("+")(a, b)
         c_sub = MyOpEnumList("-")(a, b)
         c_multiply = MyOpEnumList("*")(a, b)

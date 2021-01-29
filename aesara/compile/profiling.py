@@ -1511,67 +1511,67 @@ class ProfileStats:
             file=file,
         )
 
-        from aesara import scalar as ts
+        from aesara import scalar as aes
         from aesara.tensor.elemwise import Elemwise
         from aesara.tensor.math import Dot
         from aesara.tensor.nnet.sigm import ScalarSigmoid, ScalarSoftplus
         from aesara.tensor.random.op import RandomVariable
 
         scalar_op_amdlibm_no_speed_up = [
-            ts.LT,
-            ts.GT,
-            ts.LE,
-            ts.GE,
-            ts.EQ,
-            ts.NEQ,
-            ts.InRange,
-            ts.Switch,
-            ts.OR,
-            ts.XOR,
-            ts.AND,
-            ts.Invert,
-            ts.ScalarMaximum,
-            ts.ScalarMinimum,
-            ts.Add,
-            ts.Mul,
-            ts.Sub,
-            ts.TrueDiv,
-            ts.IntDiv,
-            ts.Clip,
-            ts.Second,
-            ts.Identity,
-            ts.Cast,
-            ts.Sgn,
-            ts.Neg,
-            ts.Inv,
-            ts.Sqr,
+            aes.LT,
+            aes.GT,
+            aes.LE,
+            aes.GE,
+            aes.EQ,
+            aes.NEQ,
+            aes.InRange,
+            aes.Switch,
+            aes.OR,
+            aes.XOR,
+            aes.AND,
+            aes.Invert,
+            aes.ScalarMaximum,
+            aes.ScalarMinimum,
+            aes.Add,
+            aes.Mul,
+            aes.Sub,
+            aes.TrueDiv,
+            aes.IntDiv,
+            aes.Clip,
+            aes.Second,
+            aes.Identity,
+            aes.Cast,
+            aes.Sgn,
+            aes.Neg,
+            aes.Inv,
+            aes.Sqr,
         ]
         scalar_op_amdlibm_speed_up = [
-            ts.Mod,
-            ts.Pow,
-            ts.Ceil,
-            ts.Floor,
-            ts.RoundHalfToEven,
-            ts.RoundHalfAwayFromZero,
-            ts.Log,
-            ts.Log2,
-            ts.Log10,
-            ts.Log1p,
-            ts.Exp,
-            ts.Sqrt,
-            ts.Abs,
-            ts.Cos,
-            ts.Sin,
-            ts.Tan,
-            ts.Tanh,
-            ts.Cosh,
-            ts.Sinh,
+            aes.Mod,
+            aes.Pow,
+            aes.Ceil,
+            aes.Floor,
+            aes.RoundHalfToEven,
+            aes.RoundHalfAwayFromZero,
+            aes.Log,
+            aes.Log2,
+            aes.Log10,
+            aes.Log1p,
+            aes.Exp,
+            aes.Sqrt,
+            aes.Abs,
+            aes.Cos,
+            aes.Sin,
+            aes.Tan,
+            aes.Tanh,
+            aes.Cosh,
+            aes.Sinh,
             ScalarSigmoid,
             ScalarSoftplus,
         ]
 
         def get_scalar_ops(s):
-            if isinstance(s, ts.Composite):
+            if isinstance(s, aes.Composite):
                 l = []
                 for node in s.fgraph.toposort():
                     l += get_scalar_ops(node.op)
@@ -1580,7 +1580,7 @@ class ProfileStats:
                 return [s]
 
         def list_scalar_op(op):
-            if isinstance(op.scalar_op, ts.Composite):
+            if isinstance(op.scalar_op, aes.Composite):
                 return get_scalar_ops(op.scalar_op)
             else:
                 return [op.scalar_op]
@@ -1607,7 +1607,7 @@ class ProfileStats:
                 return False
             else:
                 l = list_scalar_op(op)
-                return any([s_op.__class__ in [ts.Exp] for s_op in l])
+                return any([s_op.__class__ in [aes.Exp] for s_op in l])
 
         printed_tip = False
         # tip 1

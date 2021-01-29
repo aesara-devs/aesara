@@ -14,7 +14,7 @@ from collections import OrderedDict
 
 import numpy as np
 
-import aesara.tensor as tt
+import aesara.tensor as aet
 from aesara.compile import SharedVariable, ops
 from aesara.compile.function import function
 from aesara.compile.mode import Mode
@@ -115,11 +115,11 @@ def scan(
 
         .. code-block:: python
 
-            import aesara.tensor as tt
-            W   = tt.matrix()
+            import aesara.tensor as aet
+            W   = aet.matrix()
             W_2 = W**2
             def f(x):
-                return tt.dot(x,W_2)
+                return aet.dot(x,W_2)
 
         The function is expected to return two things. One is a list of
         outputs ordered in the same order as ``outputs_info``, with the
@@ -347,7 +347,7 @@ def scan(
     non_seqs = []
     for elem in wrap_into_list(non_sequences):
         if not isinstance(elem, Variable):
-            non_seqs.append(tt.as_tensor_variable(elem))
+            non_seqs.append(aet.as_tensor_variable(elem))
         else:
             non_seqs.append(elem)
 
@@ -361,7 +361,7 @@ def scan(
         n_fixed_steps = int(n_steps)
     else:
         try:
-            n_fixed_steps = tt.get_scalar_constant_value(n_steps)
+            n_fixed_steps = aet.get_scalar_constant_value(n_steps)
         except NotScalarConstantError:
             n_fixed_steps = None
 
@@ -482,7 +482,7 @@ def scan(
                 # If not we need to use copies, that will be replaced at
                 # each frame by the corresponding slice
                 actual_slice = seq["input"][k - mintap_proxy]
-                _seq_val = tt.as_tensor_variable(seq["input"])
+                _seq_val = aet.as_tensor_variable(seq["input"])
                 _seq_val_slice = _seq_val[k - mintap_proxy]
                 nw_slice = _seq_val_slice.type()
 
@@ -544,7 +544,7 @@ def scan(
 
     if not utils.isNaN_or_Inf_or_None(n_steps):
         # ^ N_steps should also be considered
-        lengths_vec.append(tt.as_tensor(n_steps))
+        lengths_vec.append(aet.as_tensor(n_steps))
 
     if len(lengths_vec) == 0:
         # ^ No information about the number of steps
@@ -562,7 +562,7 @@ def scan(
         for contestant in lengths_vec[1:]:
             actual_n_steps = minimum(actual_n_steps, contestant)
     else:
-        actual_n_steps = tt.as_tensor(n_steps)
+        actual_n_steps = aet.as_tensor(n_steps)
 
     scan_seqs = [seq[:actual_n_steps] for seq in scan_seqs]
     # Conventions :
@@ -610,7 +610,7 @@ def scan(
 
             actual_arg = init_out["initial"]
             if not isinstance(actual_arg, Variable):
-                actual_arg = tt.as_tensor_variable(actual_arg)
+                actual_arg = aet.as_tensor_variable(actual_arg)
             arg = safe_new(actual_arg)
             if isinstance(arg, Constant):
                 # safe new returns a clone of the constants, but that is not
@@ -638,7 +638,7 @@ def scan(
             # defined in scan utils
             sit_sot_scan_inputs.append(
                 utils.expand_empty(
-                    tt.unbroadcast(shape_padleft(actual_arg), 0),
+                    aet.unbroadcast(shape_padleft(actual_arg), 0),
                     actual_n_steps,
                 )
             )
@@ -671,7 +671,7 @@ def scan(
             for k in init_out["taps"]:
                 # create a new slice
                 actual_nw_slice = init_out["initial"][k + mintap]
-                _init_out_var = tt.as_tensor_variable(init_out["initial"])
+                _init_out_var = aet.as_tensor_variable(init_out["initial"])
                 _init_out_var_slice = _init_out_var[k + mintap]
                 nw_slice = _init_out_var_slice.type()
 
@@ -775,7 +775,7 @@ def scan(
             # this will represent only a slice and it will have one
             # dimension less.
             if isinstance(inner_out.type, TensorType) and return_steps.get(pos, 0) != 1:
-                outputs[pos] = tt.unbroadcast(shape_padleft(inner_out), 0)
+                outputs[pos] = aet.unbroadcast(shape_padleft(inner_out), 0)
 
         if return_list is not True and len(outputs) == 1:
             outputs = outputs[0]
@@ -889,11 +889,11 @@ def scan(
                 sit_sot_inner_inputs.append(new_var)
                 sit_sot_scan_inputs.append(
                     utils.expand_empty(
-                        tt.unbroadcast(shape_padleft(input.variable), 0),
+                        aet.unbroadcast(shape_padleft(input.variable), 0),
                         actual_n_steps,
                     )
                 )
-                tensor_update = tt.as_tensor_variable(input.update)
+                tensor_update = aet.as_tensor_variable(input.update)
                 sit_sot_inner_outputs.append(tensor_update)
                 # Not that pos is not a negative index. The sign of pos is used
                 # as a flag to indicate if this output should be part of the
@@ -1075,7 +1075,7 @@ def scan(
     scan_inputs = []
     for arg in [actual_n_steps] + _scan_inputs:
         try:
-            arg = tt.as_tensor_variable(arg)
+            arg = aet.as_tensor_variable(arg)
         except TypeError:
             # This happens for Random States for e.g. but it is a good way
             # to make sure all inputs are tensors.

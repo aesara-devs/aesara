@@ -13,7 +13,7 @@ from io import StringIO
 import numpy as np
 
 import aesara
-import aesara.scalar.basic as ts
+import aesara.scalar.basic as aes
 from aesara import compile
 from aesara.assert_op import Assert, assert_op
 from aesara.compile.ops import ViewOp
@@ -449,7 +449,7 @@ class InplaceElemwiseOptimizer(GlobalOptimizer):
                     try:
                         if hasattr(op.scalar_op, "make_new_inplace"):
                             new_scal = op.scalar_op.make_new_inplace(
-                                ts.transfer_type(
+                                aes.transfer_type(
                                     *[
                                         inplace_pattern.get(i, o.dtype)
                                         for i, o in enumerate(node.outputs)
@@ -458,7 +458,7 @@ class InplaceElemwiseOptimizer(GlobalOptimizer):
                             )
                         else:
                             new_scal = op.scalar_op.__class__(
-                                ts.transfer_type(
+                                aes.transfer_type(
                                     *[
                                         inplace_pattern.get(i, None)
                                         for i in range(len(node.outputs))
@@ -2004,11 +2004,11 @@ def local_subtensor_remove_broadcastable_index(fgraph, node):
     remove_dim = []
     node_inputs_idx = 1
     for dim, elem in enumerate(idx):
-        if isinstance(elem, (ts.Scalar)):
+        if isinstance(elem, (aes.Scalar)):
             # The idx is a Scalar, ie a Type. This means the actual index
             # is contained in node.inputs[1]
             dim_index = node.inputs[node_inputs_idx]
-            if type(dim_index) == ts.ScalarConstant:
+            if type(dim_index) == aes.ScalarConstant:
                 dim_index = dim_index.value
             if dim_index in [0, -1] and node.inputs[0].broadcastable[dim]:
                 remove_dim.append(dim)
@@ -2060,7 +2060,7 @@ def local_subtensor_make_vector(fgraph, node):
             # 'how can you have multiple indexes into a shape?'
             raise
 
-        if isinstance(idx, (ts.Scalar, TensorType)):
+        if isinstance(idx, (aes.Scalar, TensorType)):
             # The idx is a Scalar, ie a Type. This means the actual index
             # is contained in node.inputs[1]
             old_idx, idx = idx, node.inputs[1]
@@ -2142,7 +2142,7 @@ def local_useless_elemwise(fgraph, node):
         # cleaner graph.
         dtype = node.outputs[0].dtype
 
-        if node.op.scalar_op == ts.eq and len(node.inputs) == 2:
+        if node.op.scalar_op == aes.eq and len(node.inputs) == 2:
             if node.inputs[0] == node.inputs[1]:
                 # it is the same var in the graph. That will always be true
                 ret = ones_like(node.inputs[0], dtype=dtype, opt=True)
@@ -2150,7 +2150,7 @@ def local_useless_elemwise(fgraph, node):
                 # Copy stack trace from input to constant output
                 copy_stack_trace(node.outputs[0], ret)
                 return [ret]
-        elif node.op.scalar_op == ts.neq and len(node.inputs) == 2:
+        elif node.op.scalar_op == aes.neq and len(node.inputs) == 2:
             if node.inputs[0] == node.inputs[1]:
                 # it is the same var in the graph. That will always be false
                 ret = zeros_like(node.inputs[0], dtype=dtype, opt=True)
@@ -2159,17 +2159,17 @@ def local_useless_elemwise(fgraph, node):
                 copy_stack_trace(node.outputs[0], ret)
                 return [ret]
 
-        elif node.op.scalar_op == ts.mul and len(node.inputs) == 1:
+        elif node.op.scalar_op == aes.mul and len(node.inputs) == 1:
             # No need to copy over any stack trace
             return [node.inputs[0]]
 
-        elif node.op.scalar_op == ts.add and len(node.inputs) == 1:
+        elif node.op.scalar_op == aes.add and len(node.inputs) == 1:
             # No need to copy over any stack trace
             return [node.inputs[0]]
-        elif node.op.scalar_op == ts.identity and len(node.inputs) == 1:
+        elif node.op.scalar_op == aes.identity and len(node.inputs) == 1:
             return [node.inputs[0]]
 
-        elif isinstance(node.op.scalar_op, ts.AND) and len(node.inputs) == 2:
+        elif isinstance(node.op.scalar_op, aes.AND) and len(node.inputs) == 2:
 
             if isinstance(node.inputs[0], TensorConstant):
                 const_val = extract_constant(
@@ -2195,7 +2195,7 @@ def local_useless_elemwise(fgraph, node):
                         # and this optimization would be wrong
                         return [node.inputs[0].astype(node.outputs[0].dtype)]
 
-        elif isinstance(node.op.scalar_op, ts.OR) and len(node.inputs) == 2:
+        elif isinstance(node.op.scalar_op, aes.OR) and len(node.inputs) == 2:
 
             if isinstance(node.inputs[0], TensorConstant):
                 const_val = extract_constant(
@@ -2221,7 +2221,7 @@ def local_useless_elemwise(fgraph, node):
                         # and this optimization would be wrong
                         return [ones_like(node.inputs[0], dtype=dtype, opt=True)]
 
-        elif isinstance(node.op.scalar_op, ts.XOR) and len(node.inputs) == 2:
+        elif isinstance(node.op.scalar_op, aes.XOR) and len(node.inputs) == 2:
             if node.inputs[0] is node.inputs[1]:
                 return [zeros_like(node.inputs[0], dtype=dtype, opt=True)]
 
@@ -2259,13 +2259,13 @@ def local_cast_cast(fgraph, node):
           and the first cast cause an upcast.
 
     """
-    if not isinstance(node.op, Elemwise) or not isinstance(node.op.scalar_op, ts.Cast):
+    if not isinstance(node.op, Elemwise) or not isinstance(node.op.scalar_op, aes.Cast):
         return
     x = node.inputs[0]
     if (
         not x.owner
         or not isinstance(x.owner.op, Elemwise)
-        or not isinstance(x.owner.op.scalar_op, ts.Cast)
+        or not isinstance(x.owner.op.scalar_op, aes.Cast)
     ):
         return
 
@@ -2415,8 +2415,8 @@ def local_upcast_elemwise_constant_inputs(fgraph, node):
         scalar_op = node.op.scalar_op
         # print "aa", scalar_op.output_types_preference
         if getattr(scalar_op, "output_types_preference", None) in (
-            ts.upgrade_to_float,
-            ts.upcast_out,
+            aes.upgrade_to_float,
+            aes.upcast_out,
         ):
             # this is the kind of op that we can screw with the input
             # dtypes by upcasting explicitly
@@ -2546,7 +2546,7 @@ def local_set_to_inc_subtensor(fgraph, node):
         and node.op.set_instead_of_inc
         and node.inputs[1].owner
         and isinstance(node.inputs[1].owner.op, Elemwise)
-        and isinstance(node.inputs[1].owner.op.scalar_op, ts.Add)
+        and isinstance(node.inputs[1].owner.op.scalar_op, aes.Add)
     ):
         addn = node.inputs[1].owner
         subn = None
@@ -3887,7 +3887,7 @@ def local_useless_switch(fgraph, node):
 
         T.switch(le(shape_i{id}(X), 0), 0, shape_i{id}(X)) -> shape_i{id}(X)
     """
-    if isinstance(node.op, Elemwise) and isinstance(node.op.scalar_op, ts.Switch):
+    if isinstance(node.op, Elemwise) and isinstance(node.op.scalar_op, aes.Switch):
 
         cond = extract_constant(node.inputs[0], only_process_constants=True)
 
@@ -3932,7 +3932,7 @@ def local_useless_switch(fgraph, node):
         if (
             cond_var.owner
             and isinstance(cond_var.owner.op, Elemwise)
-            and isinstance(cond_var.owner.op.scalar_op, ts.LE)
+            and isinstance(cond_var.owner.op.scalar_op, aes.LE)
             and cond_var.owner.inputs[0].owner
             and isinstance(cond_var.owner.inputs[0].owner.op, Shape_i)
             and extract_constant(cond_var.owner.inputs[1], only_process_constants=True)
@@ -3956,14 +3956,14 @@ def local_useless_switch(fgraph, node):
 def local_merge_switch_same_cond(fgraph, node):
     # node must be binary elemwise or add or mul
     if not isinstance(node.op, Elemwise) or not isinstance(
-        node.op.scalar_op, (ts.BinaryScalarOp, ts.Add, ts.Mul)
+        node.op.scalar_op, (aes.BinaryScalarOp, aes.Add, aes.Mul)
     ):
         return
     # all inputs must be switch
     if not all(
         s.owner
         and isinstance(s.owner.op, Elemwise)
-        and isinstance(s.owner.op.scalar_op, ts.Switch)
+        and isinstance(s.owner.op.scalar_op, aes.Switch)
         for s in node.inputs
     ):
         return
@@ -4509,7 +4509,7 @@ def local_elemwise_fusion_op(op_class, max_input_fct=lambda node: 32, maker=None
                         elif ii in tmp_input:
                             tmp_s_input.append(tmp_scalar[tmp_input.index(ii)])
                         else:
-                            tmp = ts.get_scalar_type(ii.dtype).make_variable()
+                            tmp = aes.get_scalar_type(ii.dtype).make_variable()
                             try:
                                 tv = get_test_value(ii)
                                 if tv.size > 0:
@@ -4577,7 +4577,7 @@ def local_elemwise_fusion_op(op_class, max_input_fct=lambda node: 32, maker=None
                 if inputs.count(i) == node.inputs.count(i):
                     s = s_inputs[inputs.index(i)]
                 else:
-                    s = ts.get_scalar_type(i.dtype).make_variable()
+                    s = aes.get_scalar_type(i.dtype).make_variable()
                     try:
                         if config.compute_test_value != "off":
                             v = get_test_value(i)
@@ -4622,7 +4622,7 @@ your code will run correctly, but may be slower."""
             return False
 
         # create the composite op.
-        composite_op = ts.Composite(s_inputs, s_new_out)
+        composite_op = aes.Composite(s_inputs, s_new_out)
 
         # create the new node.
         # Do not call make_node to have test_value
@@ -4791,14 +4791,14 @@ def local_useless_composite(fgraph, node):
 
     """
     if not isinstance(node.op, Elemwise) or not isinstance(
-        node.op.scalar_op, ts.Composite
+        node.op.scalar_op, aes.Composite
     ):
         return
     comp = node.op.scalar_op
     idx = [i for i, o_extern in enumerate(node.outputs) if fgraph.clients[o_extern]]
     if len(idx) < len(node.outputs):
         new_outputs = [comp.outputs[i] for i in idx]
-        c = ts.Composite(inputs=comp.inputs, outputs=new_outputs)
+        c = aes.Composite(inputs=comp.inputs, outputs=new_outputs)
         e = Elemwise(scalar_op=c)(*node.inputs, return_list=True)
         return dict(zip([node.outputs[i] for i in idx], e))
 

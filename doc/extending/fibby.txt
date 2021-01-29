@@ -27,7 +27,7 @@ you should check the strides and alignment.
        __props__ = ()
 
        def make_node(self, x):
-           x_ = tt.as_tensor_variable(x)
+           x_ = aet.as_tensor_variable(x)
            assert x_.ndim == 1
            return Apply(self,
                inputs=[x_],
@@ -141,11 +141,11 @@ Here is some code to test that the optimization is applied only when needed.
 .. testcode::
 
    import numpy
-   import aesara.tensor as tt
+   import aesara.tensor as aet
    from aesara import function
 
    # Test it does not apply when not needed
-   x = tt.dvector()
+   x = aet.dvector()
    f = function([x], fibby(x))
 
    # We call the function to make sure it runs.
@@ -156,7 +156,7 @@ Here is some code to test that the optimization is applied only when needed.
    assert isinstance(topo[0].op, Fibby)
 
    # Test that the optimization gets applied.
-   f_zero = function([], fibby(tt.zeros([5])))
+   f_zero = function([], fibby(aet.zeros([5])))
 
    # If you run in DebugMode, it will compare the output before
    # and after the optimization.

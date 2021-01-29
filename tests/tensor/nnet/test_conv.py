@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 
 import aesara
-import aesara.tensor as tt
+import aesara.tensor as aet
 from aesara.compile.mode import Mode
 from aesara.tensor.exceptions import NotScalarConstantError
 from aesara.tensor.math import _allclose, exp
@@ -64,12 +64,12 @@ class TestConv2D(utt.InferShapeTester):
         """
         if N_image_shape is None:
             N_image_shape = [
-                tt.get_scalar_constant_value(tt.as_tensor_variable(x))
+                aet.get_scalar_constant_value(aet.as_tensor_variable(x))
                 for x in image_shape
             ]
         if N_filter_shape is None:
             N_filter_shape = [
-                tt.get_scalar_constant_value(tt.as_tensor_variable(x))
+                aet.get_scalar_constant_value(aet.as_tensor_variable(x))
                 for x in filter_shape
             ]
 
@@ -391,7 +391,7 @@ class TestConv2D(utt.InferShapeTester):
     def test_shape_Constant_tensor(self):
         # Tests convolution where the {image,filter}_shape is a Constant tensor.
 
-        as_t = tt.as_tensor_variable
+        as_t = aet.as_tensor_variable
         self.validate((as_t(3), as_t(2), as_t(7), as_t(5)), (5, 2, 2, 3), "valid")
         self.validate(as_t([3, 2, 7, 5]), (5, 2, 2, 3), "valid")
         self.validate(as_t((3, 2, 7, 5)), (5, 2, 2, 3), "valid")
@@ -743,7 +743,7 @@ def test_broadcast_grad():
     # sigma_data = 20
     window_radius = 3
 
-    filter_1d = tt.arange(-window_radius, window_radius + 1)
+    filter_1d = aet.arange(-window_radius, window_radius + 1)
     filter_1d = filter_1d.astype(aesara.config.floatX)
     filter_1d = exp(-0.5 * filter_1d ** 2 / sigma ** 2)
     filter_1d = filter_1d / filter_1d.sum()

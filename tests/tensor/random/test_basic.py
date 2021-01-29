@@ -5,7 +5,7 @@ import numpy as np
 import scipy.stats as stats
 from pytest import fixture, importorskip, raises
 
-import aesara.tensor as tt
+import aesara.tensor as aet
 from aesara.configdefaults import config
 from aesara.graph.basic import Constant, Variable, graph_inputs
 from aesara.graph.fg import FunctionGraph
@@ -110,14 +110,17 @@ def test_normal_infer_shape():
     sd_tt.tag.test_value = np.array(1.0, dtype=config.floatX)
 
     test_params = [
-        ([tt.as_tensor_variable(np.array(1.0, dtype=config.floatX)), sd_tt], None),
-        ([tt.as_tensor_variable(np.array(1.0, dtype=config.floatX)), sd_tt], (M_tt,)),
-        ([tt.as_tensor_variable(np.array(1.0, dtype=config.floatX)), sd_tt], (2, M_tt)),
-        ([tt.zeros((M_tt,)), sd_tt], None),
-        ([tt.zeros((M_tt,)), sd_tt], (M_tt,)),
-        ([tt.zeros((M_tt,)), sd_tt], (2, M_tt)),
-        ([tt.zeros((M_tt,)), tt.ones((M_tt,))], None),
-        ([tt.zeros((M_tt,)), tt.ones((M_tt,))], (2, M_tt)),
+        ([aet.as_tensor_variable(np.array(1.0, dtype=config.floatX)), sd_tt], None),
+        ([aet.as_tensor_variable(np.array(1.0, dtype=config.floatX)), sd_tt], (M_tt,)),
+        (
+            [aet.as_tensor_variable(np.array(1.0, dtype=config.floatX)), sd_tt],
+            (2, M_tt),
+        ),
+        ([aet.zeros((M_tt,)), sd_tt], None),
+        ([aet.zeros((M_tt,)), sd_tt], (M_tt,)),
+        ([aet.zeros((M_tt,)), sd_tt], (2, M_tt)),
+        ([aet.zeros((M_tt,)), aet.ones((M_tt,))], None),
+        ([aet.zeros((M_tt,)), aet.ones((M_tt,))], (2, M_tt)),
         (
             [
                 np.array([[-1, 20], [300, -4000]], dtype=config.floatX),
@@ -142,7 +145,7 @@ def test_normal_ShapeFeature():
     sd_tt = scalar("sd")
     sd_tt.tag.test_value = np.array(1.0, dtype=config.floatX)
 
-    d_rv = normal(tt.ones((M_tt,)), sd_tt, size=(2, M_tt))
+    d_rv = normal(aet.ones((M_tt,)), sd_tt, size=(2, M_tt))
     d_rv.tag.test_value
 
     fg = FunctionGraph(
@@ -176,12 +179,12 @@ def test_normal_samples():
     test_mean = np.array([0], dtype=config.floatX)
     test_stddev = np.array([1], dtype=config.floatX)
     rv_numpy_tester(normal, test_mean, test_stddev, size=[1])
-    rv_numpy_tester(normal, tt.as_tensor(test_mean), test_stddev, size=[1])
+    rv_numpy_tester(normal, aet.as_tensor(test_mean), test_stddev, size=[1])
     rv_numpy_tester(
         normal,
-        tt.as_tensor_variable(test_mean),
+        aet.as_tensor_variable(test_mean),
         test_stddev,
-        size=tt.as_tensor_variable([1]),
+        size=aet.as_tensor_variable([1]),
     )
 
 
@@ -294,7 +297,7 @@ def test_mvnormal_ShapeFeature():
     M_tt = iscalar("M")
     M_tt.tag.test_value = 2
 
-    d_rv = multivariate_normal(tt.ones((M_tt,)), tt.eye(M_tt), size=2)
+    d_rv = multivariate_normal(aet.ones((M_tt,)), aet.eye(M_tt), size=2)
 
     fg = FunctionGraph(
         [i for i in graph_inputs([d_rv]) if not isinstance(i, Constant)],
@@ -314,7 +317,7 @@ def test_mvnormal_ShapeFeature():
 
     test_covar = np.diag(np.array([1, 10, 100], dtype=config.floatX))
     test_covar = np.stack([test_covar, test_covar * 10.0])
-    cov = tt.as_tensor(test_covar).type()
+    cov = aet.as_tensor(test_covar).type()
     cov.tag.test_value = test_covar
 
     d_rv = multivariate_normal(mean, cov, size=[2, 3])
@@ -370,12 +373,12 @@ def test_dirichlet_infer_shape():
     M_tt.tag.test_value = 3
 
     test_params = [
-        ([tt.ones((M_tt,))], None),
-        ([tt.ones((M_tt,))], (M_tt + 1,)),
-        ([tt.ones((M_tt,))], (2, M_tt)),
-        ([tt.ones((M_tt, M_tt + 1))], None),
-        ([tt.ones((M_tt, M_tt + 1))], (M_tt + 2,)),
-        ([tt.ones((M_tt, M_tt + 1))], (2, M_tt + 2, M_tt + 3)),
+        ([aet.ones((M_tt,))], None),
+        ([aet.ones((M_tt,))], (M_tt + 1,)),
+        ([aet.ones((M_tt,))], (2, M_tt)),
+        ([aet.ones((M_tt, M_tt + 1))], None),
+        ([aet.ones((M_tt, M_tt + 1))], (M_tt + 2,)),
+        ([aet.ones((M_tt, M_tt + 1))], (2, M_tt + 2, M_tt + 3)),
     ]
     for args, size in test_params:
         rv = dirichlet(*args, size=size)
@@ -390,7 +393,7 @@ def test_dirichlet_ShapeFeature():
     N_tt = iscalar("N")
     N_tt.tag.test_value = 3
 
-    d_rv = dirichlet(tt.ones((M_tt, N_tt)), name="Gamma")
+    d_rv = dirichlet(aet.ones((M_tt, N_tt)), name="Gamma")
 
     fg = FunctionGraph(
         [i for i in graph_inputs([d_rv]) if not isinstance(i, Constant)],
@@ -408,7 +411,7 @@ def test_dirichlet_ShapeFeature():
 def test_poisson_samples():
 
     rv_numpy_tester(poisson)
-    rv_numpy_tester(poisson, size=tt.as_tensor((2, 3)))
+    rv_numpy_tester(poisson, size=aet.as_tensor((2, 3)))
 
     test_lambda = np.array(10, dtype="int64")
 
@@ -612,9 +615,9 @@ def test_random_integer_samples():
     rv_numpy_tester(randint, [0, 1, 2], 5)
     rv_numpy_tester(randint, [0, 1, 2], 5, size=[3, 3])
     rv_numpy_tester(randint, [0], [5], size=[1])
-    rv_numpy_tester(randint, tt.as_tensor_variable([-1]), [1], size=[1])
+    rv_numpy_tester(randint, aet.as_tensor_variable([-1]), [1], size=[1])
     rv_numpy_tester(
-        randint, tt.as_tensor_variable([-1]), [1], size=tt.as_tensor_variable([1])
+        randint, aet.as_tensor_variable([-1]), [1], size=aet.as_tensor_variable([1])
     )
 
 
@@ -630,9 +633,9 @@ def test_choice_samples():
         rv_numpy_tester(choice, np.array([[1, 2], [3, 4]]))
 
     rv_numpy_tester(choice, [1, 2, 3], 1)
-    rv_numpy_tester(choice, [1, 2, 3], 1, p=tt.as_tensor([1 / 3.0, 1 / 3.0, 1 / 3.0]))
+    rv_numpy_tester(choice, [1, 2, 3], 1, p=aet.as_tensor([1 / 3.0, 1 / 3.0, 1 / 3.0]))
     rv_numpy_tester(choice, [1, 2, 3], (10, 2), replace=True)
-    rv_numpy_tester(choice, tt.as_tensor_variable([1, 2, 3]), 2, replace=True)
+    rv_numpy_tester(choice, aet.as_tensor_variable([1, 2, 3]), 2, replace=True)
 
 
 def test_permutation_samples():

@@ -4,7 +4,7 @@ import aesara.tensor
 from aesara.graph.basic import Apply
 from aesara.graph.op import Op
 from aesara.graph.opt import GlobalOptimizer, local_optimizer
-from aesara.tensor import basic as tt
+from aesara.tensor import basic as aet
 from aesara.tensor.basic_opt import (
     register_canonicalize,
     register_specialize,
@@ -212,7 +212,7 @@ def is_positive(v):
     logger.debug(f"is_positive: {v}")
     if v.owner and v.owner.op == tt_pow:
         try:
-            exponent = tt.get_scalar_constant_value(v.owner.inputs[1])
+            exponent = aet.get_scalar_constant_value(v.owner.inputs[1])
         except NotScalarConstantError:
             return False
         if 0 == exponent % 2:

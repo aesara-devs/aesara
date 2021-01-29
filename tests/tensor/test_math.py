@@ -10,7 +10,7 @@ import numpy as np
 import pytest
 from numpy.testing import assert_array_equal
 
-import aesara.scalar as ts
+import aesara.scalar as aes
 from aesara.compile.debugmode import DebugMode
 from aesara.compile.function import function
 from aesara.compile.mode import get_default_mode
@@ -308,7 +308,7 @@ TestCeilIntDivBroadcast = makeBroadcastTester(
 
 TestModBroadcast = makeBroadcastTester(
     op=mod,
-    expected=lambda x, y: np.asarray(x % y, dtype=ts.upcast(x.dtype, y.dtype)),
+    expected=lambda x, y: np.asarray(x % y, dtype=aes.upcast(x.dtype, y.dtype)),
     good=copymod(_good_broadcast_div_mod_normal_float, ["complex1", "complex2"]),
     grad=_grad_broadcast_div_mod_normal,
     grad_eps=1e-5,
@@ -380,7 +380,7 @@ TestRoundHalfToEvenBroadcast = makeBroadcastTester(
 # This happen in float32 mode.
 TestRoundHalfAwayFromZeroBroadcast = makeBroadcastTester(
     op=round_half_away_from_zero,
-    expected=lambda a: ts.round_half_away_from_zero_vec(a),
+    expected=lambda a: aes.round_half_away_from_zero_vec(a),
     good=_good_broadcast_unary_normal_float_no_empty_no_complex,
     grad=_grad_broadcast_unary_normal_no_complex_no_corner_case,
 )
@@ -2213,7 +2213,7 @@ class TestArithmeticCast:
             return np.array([1], dtype=dtype)
 
         def Aesara_i_scalar(dtype):
-            return ts.Scalar(str(dtype))()
+            return aes.Scalar(str(dtype))()
 
         def numpy_i_scalar(dtype):
             return numpy_scalar(dtype)
@@ -2266,7 +2266,7 @@ class TestArithmeticCast:
                                             numpy_args[1](b_type), numpy_args[0](a_type)
                                         ).dtype,
                                     ]
-                                    numpy_dtype = ts.upcast(
+                                    numpy_dtype = aes.upcast(
                                         *list(map(str, numpy_dtypes))
                                     )
                                     if numpy_dtype == Aesara_dtype:
@@ -2291,7 +2291,7 @@ class TestArithmeticCast:
                                             (a_type, b_type)[list(combo).index(arg)]
                                             for arg in ("array", "scalar")
                                         )
-                                        up_type = ts.upcast(array_type, scalar_type)
+                                        up_type = aes.upcast(array_type, scalar_type)
                                         if (
                                             # The two data types are different.
                                             scalar_type != array_type
@@ -2791,7 +2791,7 @@ class TestSumProdReduceDtype:
     op = CAReduce
     axes = [None, 0, 1, [], [0], [1], [0, 1]]
     methods = ["sum", "prod"]
-    dtypes = list(map(str, ts.all_types))
+    dtypes = list(map(str, aes.all_types))
 
     # Test the default dtype of a method().
     def test_reduce_default_dtype(self):
@@ -2917,7 +2917,7 @@ class TestSumProdReduceDtype:
                     axis = self.axes[idx % len(self.axes)]
                     # If output_dtype would force a downcast, we expect a TypeError
                     # We always allow int/uint inputs with float/complex outputs.
-                    upcasted_dtype = ts.upcast(input_dtype, acc_dtype)
+                    upcasted_dtype = aes.upcast(input_dtype, acc_dtype)
                     if acc_dtype == upcasted_dtype or (
                         input_dtype in discrete_dtypes
                         and acc_dtype in continuous_dtypes
@@ -2955,7 +2955,7 @@ class TestMeanDtype:
 
         # We try multiple axis combinations even though axis should not matter.
         axes = [None, 0, 1, [], [0], [1], [0, 1]]
-        for idx, dtype in enumerate(map(str, ts.all_types)):
+        for idx, dtype in enumerate(map(str, aes.all_types)):
             axis = axes[idx % len(axes)]
             x = matrix(dtype=dtype)
             m = x.mean(axis=axis)
@@ -2975,9 +2975,9 @@ class TestMeanDtype:
         # We try multiple axis combinations even though axis should not matter.
         axes = [None, 0, 1, [], [0], [1], [0, 1]]
         idx = 0
-        for input_dtype in map(str, ts.all_types):
+        for input_dtype in map(str, aes.all_types):
             x = matrix(dtype=input_dtype)
-            for sum_dtype in map(str, ts.all_types):
+            for sum_dtype in map(str, aes.all_types):
                 axis = axes[idx % len(axes)]
                 # If the inner sum cannot be created, it will raise a
                 # TypeError.
@@ -3029,7 +3029,7 @@ class TestProdWithoutZerosDtype:
 
         # We try multiple axis combinations even though axis should not matter.
         axes = [None, 0, 1, [], [0], [1], [0, 1]]
-        for idx, dtype in enumerate(map(str, ts.all_types)):
+        for idx, dtype in enumerate(map(str, aes.all_types)):
             axis = axes[idx % len(axes)]
             x = ProdWithoutZeros(axis=axis)(matrix(dtype=dtype))
             assert (
@@ -3050,7 +3050,7 @@ class TestProdWithoutZerosDtype:
 
         # We try multiple axis combinations even though axis should not matter.
         axes = [None, 0, 1, [], [0], [1], [0, 1]]
-        for idx, dtype in enumerate(map(str, ts.all_types)):
+        for idx, dtype in enumerate(map(str, aes.all_types)):
             axis = axes[idx % len(axes)]
             x = matrix(dtype=dtype)
             p = ProdWithoutZeros(axis=axis)(x)
@@ -3084,9 +3084,9 @@ class TestProdWithoutZerosDtype:
         # We try multiple axis combinations even though axis should not matter.
         axes = [None, 0, 1, [], [0], [1], [0, 1]]
         idx = 0
-        for input_dtype in map(str, ts.all_types):
+        for input_dtype in map(str, aes.all_types):
             x = matrix(dtype=input_dtype)
-            for output_dtype in map(str, ts.all_types):
+            for output_dtype in map(str, aes.all_types):
                 axis = axes[idx % len(axes)]
                 prod_woz_var = ProdWithoutZeros(axis=axis, dtype=output_dtype)(x)
                 assert prod_woz_var.dtype == output_dtype
@@ -3105,13 +3105,13 @@ class TestProdWithoutZerosDtype:
         # We try multiple axis combinations even though axis should not matter.
         axes = [None, 0, 1, [], [0], [1], [0, 1]]
         idx = 0
-        for input_dtype in map(str, ts.all_types):
+        for input_dtype in map(str, aes.all_types):
             x = matrix(dtype=input_dtype)
-            for acc_dtype in map(str, ts.all_types):
+            for acc_dtype in map(str, aes.all_types):
                 axis = axes[idx % len(axes)]
                 # If acc_dtype would force a downcast, we expect a TypeError
                 # We always allow int/uint inputs with float/complex outputs.
-                upcasted_dtype = ts.upcast(input_dtype, acc_dtype)
+                upcasted_dtype = aes.upcast(input_dtype, acc_dtype)
                 if acc_dtype == upcasted_dtype or (
                     input_dtype in discrete_dtypes and acc_dtype in continuous_dtypes
                 ):

@@ -1,7 +1,7 @@
 import numpy as np
 
 import aesara
-import aesara.tensor as tt
+import aesara.tensor as aet
 from aesara.tensor.type import dmatrix, scalars
 
 
@@ -19,11 +19,11 @@ class Mlp:
         x = dmatrix("x")
         wh = aesara.shared(self.rng.normal(0, 1, (nfeatures, nhiddens)), borrow=True)
         bh = aesara.shared(np.zeros(nhiddens), borrow=True)
-        h = aesara.tensor.nnet.sigmoid(tt.dot(x, wh) + bh)
+        h = aesara.tensor.nnet.sigmoid(aet.dot(x, wh) + bh)
 
         wy = aesara.shared(self.rng.normal(0, 1, (nhiddens, noutputs)))
         by = aesara.shared(np.zeros(noutputs), borrow=True)
-        y = aesara.tensor.nnet.softmax(tt.dot(h, wy) + by)
+        y = aesara.tensor.nnet.softmax(aet.dot(h, wy) + by)
 
         self.inputs = [x]
         self.outputs = [y]

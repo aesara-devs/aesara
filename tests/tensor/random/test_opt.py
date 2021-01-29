@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-import aesara.tensor as tt
+import aesara.tensor as aet
 from aesara import config, shared
 from aesara.compile.function import function
 from aesara.compile.mode import Mode
@@ -56,14 +56,14 @@ def test_inplace_optimization():
 def check_shape_lifted_rv(rv, params, size, rng):
     tt_params = []
     for p in params:
-        p_tt = tt.as_tensor(p)
+        p_tt = aet.as_tensor(p)
         p_tt = p_tt.type()
         p_tt.tag.test_value = p
         tt_params.append(p_tt)
 
     tt_size = []
     for s in size:
-        s_tt = tt.as_tensor(s)
+        s_tt = aet.as_tensor(s)
         s_tt = s_tt.type()
         s_tt.tag.test_value = s
         tt_size.append(s_tt)
@@ -245,7 +245,7 @@ def test_DimShuffle_lift(ds_order, lifted, dist_op, dist_params, size, rtol):
 
     dist_params_tt = []
     for p in dist_params:
-        p_tt = tt.as_tensor(p).type()
+        p_tt = aet.as_tensor(p).type()
         p_tt.tag.test_value = p
         dist_params_tt.append(p_tt)
 
@@ -381,7 +381,7 @@ def test_Subtensor_lift(indices, lifted, dist_op, dist_params, size):
 
     dist_params_tt = []
     for p in dist_params:
-        p_tt = tt.as_tensor(p).type()
+        p_tt = aet.as_tensor(p).type()
         p_tt.tag.test_value = p
         dist_params_tt.append(p_tt)
 
@@ -451,7 +451,7 @@ def test_Subtensor_lift_restrictions():
 
     std = vector("std")
     std.tag.test_value = np.array([1e-5, 2e-5, 3e-5], dtype=config.floatX)
-    x = normal(tt.arange(2), tt.ones(2), rng=rng)
+    x = normal(aet.arange(2), aet.ones(2), rng=rng)
     y = x[1]
     # The non-`Subtensor` client depends on the RNG state, so we can't perform
     # the lift
@@ -467,7 +467,7 @@ def test_Subtensor_lift_restrictions():
 
     # The non-`Subtensor` client doesn't depend on the RNG state, so we can
     # perform the lift
-    z = tt.ones(x.shape) - x[1]
+    z = aet.ones(x.shape) - x[1]
 
     fg = FunctionGraph([rng], [z], clone=False)
     EquilibriumOptimizer([local_subtensor_rv_lift], max_use_ratio=100).apply(fg)
@@ -481,7 +481,7 @@ def test_Subtensor_lift_restrictions():
 def test_Dimshuffle_lift_restrictions():
     rng = shared(np.random.RandomState(1233532), borrow=False)
 
-    x = normal(tt.arange(2).reshape((2,)), 100, size=(2, 2, 2), rng=rng)
+    x = normal(aet.arange(2).reshape((2,)), 100, size=(2, 2, 2), rng=rng)
     y = x.dimshuffle(1, 0, 2)
     # The non-`Dimshuffle` client depends on the RNG state, so we can't
     # perform the lift
@@ -497,7 +497,7 @@ def test_Dimshuffle_lift_restrictions():
 
     # The non-`Dimshuffle` client doesn't depend on the RNG state, so we can
     # perform the lift
-    z = tt.ones(x.shape) - y
+    z = aet.ones(x.shape) - y
 
     fg = FunctionGraph([rng], [z], clone=False)
     EquilibriumOptimizer([local_dimshuffle_rv_lift], max_use_ratio=100).apply(fg)

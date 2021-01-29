@@ -6,7 +6,7 @@ scipy = pytest.importorskip("scipy")
 
 from functools import partial
 
-from aesara import tensor as tt
+from aesara import tensor as aet
 from aesara.compile.mode import get_default_mode
 from aesara.configdefaults import config
 from aesara.tensor import inplace
@@ -81,7 +81,7 @@ else:
     skip_scipy = "scipy is not present"
 
 TestErfBroadcast = makeBroadcastTester(
-    op=tt.erf,
+    op=aet.erf,
     expected=expected_erf,
     good=_good_broadcast_unary_normal,
     grad=_grad_broadcast_unary_normal,
@@ -100,7 +100,7 @@ TestErfInplaceBroadcast = makeBroadcastTester(
 )
 
 TestErfcBroadcast = makeBroadcastTester(
-    op=tt.erfc,
+    op=aet.erfc,
     expected=expected_erfc,
     good=_good_broadcast_unary_normal_float_no_complex,
     grad=_grad_broadcast_unary_normal,
@@ -119,7 +119,7 @@ TestErfcInplaceBroadcast = makeBroadcastTester(
 )
 
 TestErfcxBroadcast = makeBroadcastTester(
-    op=tt.erfcx,
+    op=aet.erfcx,
     expected=expected_erfcx,
     good=_good_broadcast_unary_normal_float_no_complex_small_neg_range,
     grad=_grad_broadcast_unary_normal_small_neg_range,
@@ -138,7 +138,7 @@ TestErfcxInplaceBroadcast = makeBroadcastTester(
 )
 
 TestErfinvBroadcast = makeBroadcastTester(
-    op=tt.erfinv,
+    op=aet.erfinv,
     expected=expected_erfinv,
     good={
         "normal": [rand_ranged(-0.9, 0.9, (2, 3))],
@@ -151,7 +151,7 @@ TestErfinvBroadcast = makeBroadcastTester(
 )
 
 TestErfcinvBroadcast = makeBroadcastTester(
-    op=tt.erfcinv,
+    op=aet.erfcinv,
     expected=expected_erfcinv,
     good={
         "normal": [rand_ranged(0.001, 1.9, (2, 3))],
@@ -177,7 +177,7 @@ _grad_broadcast_unary_gammaln = dict(
 )
 
 TestGammaBroadcast = makeBroadcastTester(
-    op=tt.gamma,
+    op=aet.gamma,
     expected=expected_gamma,
     good=_good_broadcast_unary_gammaln,
     grad=_grad_broadcast_unary_gammaln,
@@ -196,7 +196,7 @@ TestGammaInplaceBroadcast = makeBroadcastTester(
 )
 
 TestGammalnBroadcast = makeBroadcastTester(
-    op=tt.gammaln,
+    op=aet.gammaln,
     expected=expected_gammaln,
     good=_good_broadcast_unary_gammaln,
     grad=_grad_broadcast_unary_gammaln,
@@ -223,7 +223,7 @@ _good_broadcast_unary_psi = dict(
 )
 
 TestPsiBroadcast = makeBroadcastTester(
-    op=tt.psi,
+    op=aet.psi,
     expected=expected_psi,
     good=_good_broadcast_unary_psi,
     eps=2e-10,
@@ -243,7 +243,7 @@ TestPsiInplaceBroadcast = makeBroadcastTester(
 _good_broadcast_unary_tri_gamma = _good_broadcast_unary_psi
 
 TestTriGammaBroadcast = makeBroadcastTester(
-    op=tt.tri_gamma,
+    op=aet.tri_gamma,
     expected=expected_tri_gamma,
     good=_good_broadcast_unary_psi,
     eps=2e-8,
@@ -261,7 +261,7 @@ TestTriGammaInplaceBroadcast = makeBroadcastTester(
 )
 
 TestChi2SFBroadcast = makeBroadcastTester(
-    op=tt.chi2sf,
+    op=aet.chi2sf,
     expected=expected_chi2sf,
     good=_good_broadcast_unary_chi2sf,
     eps=2e-10,
@@ -312,7 +312,7 @@ _grad_broadcast_binary_bessel = dict(
 )
 
 TestJ0Broadcast = makeBroadcastTester(
-    op=tt.j0,
+    op=aet.j0,
     expected=expected_j0,
     good=_good_broadcast_unary_bessel,
     grad=_grad_broadcast_unary_bessel,
@@ -332,7 +332,7 @@ TestJ0InplaceBroadcast = makeBroadcastTester(
 )
 
 TestJ1Broadcast = makeBroadcastTester(
-    op=tt.j1,
+    op=aet.j1,
     expected=expected_j1,
     good=_good_broadcast_unary_bessel,
     grad=_grad_broadcast_unary_bessel,
@@ -352,7 +352,7 @@ TestJ1InplaceBroadcast = makeBroadcastTester(
 )
 
 TestJvBroadcast = makeBroadcastTester(
-    op=tt.jv,
+    op=aet.jv,
     expected=expected_jv,
     good=_good_broadcast_binary_bessel,
     eps=2e-10,
@@ -378,13 +378,13 @@ def test_verify_jv_grad():
     v_val, x_val = _grad_broadcast_binary_bessel["normal"]
 
     def fixed_first_input_jv(x):
-        return tt.jv(v_val, x)
+        return aet.jv(v_val, x)
 
     utt.verify_grad(fixed_first_input_jv, [x_val])
 
 
 TestI0Broadcast = makeBroadcastTester(
-    op=tt.i0,
+    op=aet.i0,
     expected=expected_i0,
     good=_good_broadcast_unary_bessel,
     grad=_grad_broadcast_unary_bessel,
@@ -404,7 +404,7 @@ TestI0InplaceBroadcast = makeBroadcastTester(
 )
 
 TestI1Broadcast = makeBroadcastTester(
-    op=tt.i1,
+    op=aet.i1,
     expected=expected_i1,
     good=_good_broadcast_unary_bessel,
     grad=_grad_broadcast_unary_bessel,
@@ -424,7 +424,7 @@ TestI1InplaceBroadcast = makeBroadcastTester(
 )
 
 TestIvBroadcast = makeBroadcastTester(
-    op=tt.iv,
+    op=aet.iv,
     expected=expected_iv,
     good=_good_broadcast_binary_bessel,
     eps=2e-10,
@@ -450,6 +450,6 @@ def test_verify_iv_grad():
     v_val, x_val = _grad_broadcast_binary_bessel["normal"]
 
     def fixed_first_input_iv(x):
-        return tt.iv(v_val, x)
+        return aet.iv(v_val, x)
 
     utt.verify_grad(fixed_first_input_iv, [x_val])

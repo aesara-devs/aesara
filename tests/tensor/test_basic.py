@@ -9,8 +9,8 @@ import pytest
 from numpy.testing import assert_array_equal
 
 import aesara
-import aesara.scalar as ts
-import aesara.tensor.basic as tt
+import aesara.scalar as aes
+import aesara.tensor.basic as aet
 import aesara.tensor.math as tm
 from aesara import compile, config, function, shared
 from aesara.assert_op import Assert
@@ -372,7 +372,7 @@ class ApplyDefaultTestOp(Op):
         self.default_output = id
 
     def make_node(self, x):
-        x = tt.as_tensor_variable(x)
+        x = aet.as_tensor_variable(x)
         return Apply(self, [x], [x.type()])
 
     def perform(self, *args, **kwargs):
@@ -415,7 +415,7 @@ class TestAsTensorVariable:
         self.x = scalar("x")
 
     def test_tensor_from_scalar(self):
-        y = as_tensor_variable(ts.int8())
+        y = as_tensor_variable(aes.int8())
         assert isinstance(y.owner.op, TensorFromScalar)
 
     def test_multi_outputs(self):
@@ -487,8 +487,8 @@ class TestAsTensorVariable:
         ("x", "y"),
         [
             ([1, 2], [1, 2]),
-            ([tt.as_tensor(1), tt.as_tensor(2)], [1, 2]),
-            ([ts.constant(1), ts.constant(2)], [1, 2]),
+            ([aet.as_tensor(1), aet.as_tensor(2)], [1, 2]),
+            ([aes.constant(1), aes.constant(2)], [1, 2]),
         ],
     )
     def test_constant_consistency(self, x, y):
@@ -512,14 +512,14 @@ class TestAsTensorVariable:
 
     def test_make_vector(self):
         a = iscalar()
-        x = tt.tile(a, (1, 1, 1))
+        x = aet.tile(a, (1, 1, 1))
         y = (constant(1, dtype="int64"), x.shape[2])
-        res = tt.as_tensor(y, ndim=1)
+        res = aet.as_tensor(y, ndim=1)
         assert isinstance(res.owner.op, MakeVector)
         assert tuple(res.owner.inputs) == y
 
         y = (1, x.shape[2])
-        res = tt.as_tensor(y)
+        res = aet.as_tensor(y)
         assert isinstance(res.owner.op, MakeVector)
 
 
@@ -582,35 +582,35 @@ class TestAlloc:
 
     def test_ones(self):
         for shp in [[], 1, [1], [1, 2], [1, 2, 3], np.r_[1, 2, 3]]:
-            ones = aesara.function([], [tt.ones(shp)], mode=self.mode)
+            ones = aesara.function([], [aet.ones(shp)], mode=self.mode)
             assert np.allclose(ones(), np.ones(shp))
 
         # scalar doesn't have to be provided as input
         x = scalar()
         shp = []
-        ones_scalar = aesara.function([], [tt.ones(x.shape)], mode=self.mode)
+        ones_scalar = aesara.function([], [aet.ones(x.shape)], mode=self.mode)
         assert np.allclose(ones_scalar(), np.ones(shp))
 
         for (typ, shp) in [(vector, [3]), (matrix, [3, 4])]:
             x = typ()
-            ones_tensor = aesara.function([x], [tt.ones(x.shape)], mode=self.mode)
+            ones_tensor = aesara.function([x], [aet.ones(x.shape)], mode=self.mode)
             inp = np.zeros(shp, dtype=config.floatX)
             assert np.allclose(ones_tensor(inp), np.ones(shp))
 
     def test_zeros(self):
         for shp in [[], 1, [1], [1, 2], [1, 2, 3], np.r_[1, 2, 3]]:
-            zeros = aesara.function([], [tt.zeros(shp)], mode=self.mode)
+            zeros = aesara.function([], [aet.zeros(shp)], mode=self.mode)
             assert np.allclose(zeros(), np.zeros(shp))
 
         # scalar doesn't have to be provided as input
         x = scalar()
         shp = []
-        zeros_scalar = aesara.function([], [tt.zeros(x.shape)], mode=self.mode)
+        zeros_scalar = aesara.function([], [aet.zeros(x.shape)], mode=self.mode)
         assert np.allclose(zeros_scalar(), np.zeros(shp))
 
         for (typ, shp) in [(vector, [3]), (matrix, [3, 4])]:
             x = typ()
-            zeros_tensor = aesara.function([x], [tt.zeros(x.shape)], mode=self.mode)
+            zeros_tensor = aesara.function([x], [aet.zeros(x.shape)], mode=self.mode)
             inp = np.zeros(shp, dtype=config.floatX)
             assert np.allclose(zeros_tensor(inp), np.zeros(shp))
 
@@ -1161,7 +1161,7 @@ class TestJoinAndSplit:
         # Fast test of concatenate as this is an alias for join.
         # also test that we remove the Join op if there is only 1 input
         m = fmatrix()
-        c = tt.concatenate([m])
+        c = aet.concatenate([m])
         f = aesara.function(
             inputs=[m], outputs=[c], mode=self.mode.including("local_join_1")
         )
@@ -1663,7 +1663,7 @@ class TestJoinAndSplit:
         x = TensorType(self.floatX, [False, False, True])()
         u = TensorType(self.floatX, [False, False, True])()
         # This line used to crash.
-        tt.concatenate([x, -u], axis=2)
+        aet.concatenate([x, -u], axis=2)
 
     def test_concatenate_same(self):
         # Test that we can concatenate the same tensor multiple time.
@@ -1671,7 +1671,7 @@ class TestJoinAndSplit:
         # In the past it was broken on the GPU.
         rng = np.random.RandomState(seed=utt.fetch_seed())
         T_shared = self.shared(rng.rand(3, 4).astype(self.floatX))
-        Tout = tt.concatenate([T_shared, T_shared])
+        Tout = aet.concatenate([T_shared, T_shared])
         f = function([], Tout, mode=self.mode)
         out = f()
         if config.mode != "FAST_COMPILE":
@@ -1731,7 +1731,7 @@ def test_join_inplace():
     # element.
     s = lscalar()
     x = vector("x")
-    z = tt.zeros((s,))
+    z = aet.zeros((s,))
 
     join = Join(view=0)
     c = join(0, x, z, z)
@@ -1756,15 +1756,15 @@ def test_join_oneInput():
     x_0 = fmatrix()
     x_1 = fmatrix()
     x_2 = fvector()
-    join_0 = tt.concatenate([x_0], axis=1)
-    join_1 = tt.concatenate([x_0, x_1, shape_padright(x_2)], axis=1)
+    join_0 = aet.concatenate([x_0], axis=1)
+    join_1 = aet.concatenate([x_0, x_1, shape_padright(x_2)], axis=1)
 
     assert join_0 is x_0
     assert join_1 is not x_0
 
 
 def test_TensorFromScalar():
-    s = ts.constant(56)
+    s = aes.constant(56)
     t = tensor_from_scalar(s)
     assert t.owner.op is tensor_from_scalar
     assert t.type.broadcastable == (), t.type.broadcastable
@@ -1782,7 +1782,7 @@ def test_TensorFromScalar():
 
 
 def test_ScalarFromTensor():
-    tc = constant(56)  # ts.constant(56)
+    tc = constant(56)  # aes.constant(56)
     ss = scalar_from_tensor(tc)
     assert ss.owner.op is scalar_from_tensor
     assert ss.type.dtype == tc.type.dtype
@@ -1799,10 +1799,10 @@ def test_ScalarFromTensor():
     else:
         raise NotImplementedError(config.cast_policy)
 
-    ts = lscalar()
-    ss = scalar_from_tensor(ts)
-    ss.owner.op.grad([ts], [ss])
-    fff = function([ts], ss)
+    aes = lscalar()
+    ss = scalar_from_tensor(aes)
+    ss.owner.op.grad([aes], [ss])
+    fff = function([aes], ss)
     v = fff(np.asarray(5))
     assert v == 5
     assert isinstance(v, np.int64)
@@ -1939,26 +1939,26 @@ def test_is_flat():
     # given `ndim`
 
     # Constant variable
-    assert tt.is_flat(tt.as_tensor_variable(np.zeros(10)))
-    assert tt.is_flat(tt.as_tensor_variable(np.zeros((10, 10, 10))), ndim=3)
-    assert not tt.is_flat(tt.as_tensor_variable(np.zeros((10, 10, 10))))
+    assert aet.is_flat(aet.as_tensor_variable(np.zeros(10)))
+    assert aet.is_flat(aet.as_tensor_variable(np.zeros((10, 10, 10))), ndim=3)
+    assert not aet.is_flat(aet.as_tensor_variable(np.zeros((10, 10, 10))))
 
     # Symbolic variable
-    assert tt.is_flat(vector())
-    assert tt.is_flat(tensor3(), ndim=3)
-    assert not tt.is_flat(tensor3())
+    assert aet.is_flat(vector())
+    assert aet.is_flat(tensor3(), ndim=3)
+    assert not aet.is_flat(tensor3())
 
     # Reshape with constant shape
     X = tensor4()
-    assert tt.is_flat(X.reshape((-1,)))
-    assert tt.is_flat(X.reshape((10, 10, -1)), ndim=3)
-    assert not tt.is_flat(X.reshape((10, 10, -1)))
+    assert aet.is_flat(X.reshape((-1,)))
+    assert aet.is_flat(X.reshape((10, 10, -1)), ndim=3)
+    assert not aet.is_flat(X.reshape((10, 10, -1)))
 
     # Reshape with symbolic shape
     X = tensor4()
-    assert tt.is_flat(X.reshape((iscalar(),)))
-    assert tt.is_flat(X.reshape((iscalar(),) * 3), ndim=3)
-    assert not tt.is_flat(X.reshape((iscalar(),) * 3))
+    assert aet.is_flat(X.reshape((iscalar(),)))
+    assert aet.is_flat(X.reshape((iscalar(),) * 3), ndim=3)
+    assert not aet.is_flat(X.reshape((iscalar(),) * 3))
 
 
 def test_tile():
@@ -3050,13 +3050,13 @@ def test_dimshuffle_duplicate():
 
 class TestGetScalarConstantValue:
     def test_get_scalar_constant_value(self):
-        a = tt.stack([1, 2, 3])
+        a = aet.stack([1, 2, 3])
         assert get_scalar_constant_value(a[0]) == 1
         assert get_scalar_constant_value(a[1]) == 2
         assert get_scalar_constant_value(a[2]) == 3
 
         b = iscalar()
-        a = tt.stack([b, 2, 3])
+        a = aet.stack([b, 2, 3])
         with pytest.raises(NotScalarConstantError):
             get_scalar_constant_value(a[0])
         assert get_scalar_constant_value(a[1]) == 2
@@ -3065,7 +3065,7 @@ class TestGetScalarConstantValue:
         # For now get_scalar_constant_value goes through only MakeVector and Join of
         # scalars.
         v = ivector()
-        a = tt.stack([v, [2], [3]])
+        a = aet.stack([v, [2], [3]])
         with pytest.raises(NotScalarConstantError):
             get_scalar_constant_value(a[0])
         with pytest.raises(NotScalarConstantError):
@@ -3078,12 +3078,12 @@ class TestGetScalarConstantValue:
         v = row()
         assert get_scalar_constant_value(v.shape[0]) == 1
 
-        res = tt.get_scalar_constant_value(tt.as_tensor([10, 20]).shape[0])
+        res = aet.get_scalar_constant_value(aet.as_tensor([10, 20]).shape[0])
         assert isinstance(res, np.ndarray)
         assert 2 == res
 
-        res = tt.get_scalar_constant_value(
-            9 + tt.as_tensor([1.0]).shape[0],
+        res = aet.get_scalar_constant_value(
+            9 + aet.as_tensor([1.0]).shape[0],
             elemwise=True,
             only_process_constants=False,
             max_recur=9,
@@ -3118,7 +3118,7 @@ class TestGetScalarConstantValue:
         assert get_scalar_constant_value(mv[np.int32(0)]) == 1
         assert get_scalar_constant_value(mv[np.int64(1)]) == 2
         assert get_scalar_constant_value(mv[np.uint(2)]) == 3
-        t = ts.Scalar("int64")
+        t = aes.Scalar("int64")
         with pytest.raises(NotScalarConstantError):
             get_scalar_constant_value(mv[t()])
 
@@ -3144,7 +3144,7 @@ class TestGetScalarConstantValue:
         assert np.allclose(get_scalar_constant_value(s), c.data * 1.2)
         s = c < 0.5
         assert np.allclose(get_scalar_constant_value(s), int(c.data < 0.5))
-        s = tt.second(c, 0.4)
+        s = aet.second(c, 0.4)
         assert np.allclose(get_scalar_constant_value(s), 0.4)
 
     def test_assert(self):
@@ -3172,7 +3172,7 @@ class TestGetScalarConstantValue:
         # Second should apply when the value is constant but not the shape
         c = constant(np.random.rand())
         shp = vector()
-        s = tt.second(shp, c)
+        s = aet.second(shp, c)
         assert get_scalar_constant_value(s) == c.data
 
     def test_copy(self):
@@ -3188,7 +3188,7 @@ class TestGetScalarConstantValue:
 def test_complex_mod_failure():
     # Make sure % fails on complex numbers.
     x = vector(dtype="complex64")
-    with pytest.raises(ts.ComplexError):
+    with pytest.raises(aes.ComplexError):
         x % 5
 
 
@@ -3217,7 +3217,7 @@ class TestSize:
 
 
 class TestDiag:
-    # Test that tt.diag has the same behavior as np.diag.
+    # Test that aet.diag has the same behavior as np.diag.
     # np.diag has two behaviors:
     #
     # (1) when given a vector, it returns a matrix with that vector as the
@@ -3410,16 +3410,16 @@ def test_transpose():
     f = aesara.function(
         [x1, x2, x3],
         [
-            tt.transpose(x1),
-            tt.transpose(x2),
-            tt.transpose(x3),
+            aet.transpose(x1),
+            aet.transpose(x2),
+            aet.transpose(x3),
             x1.transpose(),
             x2.transpose(),
             x3.transpose(),
             x2.transpose(0, 1),
             x3.transpose((0, 2, 1)),
-            tt.transpose(x2, [0, 1]),
-            tt.transpose(x3, [0, 2, 1]),
+            aet.transpose(x2, [0, 1]),
+            aet.transpose(x3, [0, 2, 1]),
         ],
     )
 
@@ -3443,10 +3443,10 @@ def test_transpose():
     assert np.all(t3d == np.transpose(x3v, [0, 2, 1]))
 
     # Check that we create a name.
-    assert tt.transpose(x1).name == "x1.T"
-    assert tt.transpose(x2).name == "x2.T"
-    assert tt.transpose(x3).name == "x3.T"
-    assert tt.transpose(dmatrix()).name is None
+    assert aet.transpose(x1).name == "x1.T"
+    assert aet.transpose(x2).name == "x2.T"
+    assert aet.transpose(x3).name == "x3.T"
+    assert aet.transpose(dmatrix()).name is None
 
 
 def test_stacklists():
@@ -3685,7 +3685,7 @@ class TestInferShape(utt.InferShapeTester):
         )
 
     def test_TensorFromScalar(self):
-        aiscal = ts.float64()
+        aiscal = aes.float64()
 
         self._compile_and_check(
             [aiscal], [TensorFromScalar()(aiscal)], [4.0], TensorFromScalar

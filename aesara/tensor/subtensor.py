@@ -7,7 +7,7 @@ from textwrap import dedent
 import numpy as np
 
 import aesara
-from aesara import scalar as ts
+from aesara import scalar as aes
 from aesara.configdefaults import config
 from aesara.gradient import DisconnectedType
 from aesara.graph.basic import Apply, Variable
@@ -46,8 +46,8 @@ from aesara.tensor.type_other import NoneConst, NoneTypeT, SliceType, make_slice
 
 _logger = logging.getLogger("aesara.tensor.subtensor")
 
-invalid_scal_types = (ts.float64, ts.float32, ts.float16)
-scal_types = (ts.int64, ts.int32, ts.int16, ts.int8)
+invalid_scal_types = (aes.float64, aes.float32, aes.float16)
+scal_types = (aes.int64, aes.int32, aes.int16, aes.int8)
 tensor_types = (
     lscalar,
     iscalar,
@@ -76,7 +76,7 @@ def as_index_constant(a):
             as_index_constant(a.step),
         )
     elif isinstance(a, (int, np.integer)):
-        return ts.ScalarConstant(ts.int64, a)
+        return aes.ScalarConstant(aes.int64, a)
     elif not isinstance(a, Variable):
         return aesara.tensor.as_tensor(a)
     else:
@@ -301,7 +301,7 @@ def range_len(slc):
         switch(
             and_(lt(step, 0), gt(start, stop)),
             1 + (start - 1 - stop) // (-step),
-            ts.ScalarConstant(ts.int64, 0),
+            aes.ScalarConstant(aes.int64, 0),
         ),
     )
 
@@ -356,9 +356,9 @@ def basic_shape(shape, indices):
                 idx_inputs = (None,)
             res_shape += (slice_len(slice(*idx_inputs), n),)
         elif idx is None:
-            res_shape += (ts.ScalarConstant(ts.int64, 1),)
+            res_shape += (aes.ScalarConstant(aes.int64, 1),)
         elif isinstance(getattr(idx, "type", None), NoneTypeT):
-            res_shape += (ts.ScalarConstant(ts.int64, 1),)
+            res_shape += (aes.ScalarConstant(aes.int64, 1),)
         else:
             raise ValueError(f"Invalid index type: {idx}")
     return res_shape
@@ -516,13 +516,13 @@ class Subtensor(COp):
             and entry.type in tensor_types
             and np.all(entry.type.broadcastable)
         ):
-            return ts.get_scalar_type(entry.type.dtype)
+            return aes.get_scalar_type(entry.type.dtype)
         elif (
             isinstance(entry, CType)
             and entry in tensor_types
             and np.all(entry.broadcastable)
         ):
-            return ts.get_scalar_type(entry.dtype)
+            return aes.get_scalar_type(entry.dtype)
         elif slice_ok and isinstance(entry, slice):
             a = entry.start
             b = entry.stop
@@ -615,13 +615,13 @@ class Subtensor(COp):
 
     @staticmethod
     def my_as_scalar(a):
-        # Since ts.as_scalar does not know about tensor types (it would
+        # Since aes.as_scalar does not know about tensor types (it would
         # create a circular import) , this method converts either a
         # TensorVariable or a ScalarVariable to a scalar.
         if isinstance(a, Variable) and isinstance(a.type, TensorType):
             return aesara.tensor.scalar_from_tensor(a)
         else:
-            return ts.as_scalar(a)
+            return aes.as_scalar(a)
 
     def make_node(self, x, *inputs):
         """
@@ -1150,7 +1150,7 @@ class SubtensorPrinter:
                 for entry in idxs:
                     if isinstance(entry, int):
                         sidxs.append(str(entry))
-                    elif isinstance(entry, ts.Scalar):
+                    elif isinstance(entry, aes.Scalar):
                         sidxs.append(pstate.pprinter.process(inputs.pop()))
                     elif isinstance(entry, slice):
                         if entry.start is None or entry.start == 0:
@@ -2063,7 +2063,7 @@ class AdvancedIncSubtensor1(COp):
 
     __props__ = ("inplace", "set_instead_of_inc")
     check_input = False
-    params_type = ParamsType(inplace=ts.bool, set_instead_of_inc=ts.bool)
+    params_type = ParamsType(inplace=aes.bool, set_instead_of_inc=aes.bool)
 
     def __init__(self, inplace=False, set_instead_of_inc=False):
         self.inplace = bool(inplace)

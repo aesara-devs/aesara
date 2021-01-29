@@ -5,15 +5,15 @@
 import numpy as np
 
 import aesara
-import aesara.tensor as tt
+import aesara.tensor as aet
 
 
 # 1. First example
 
 aesara.config.warn__subtensor_merge_bug = False
 
-k = tt.iscalar("k")
-A = tt.vector("A")
+k = aet.iscalar("k")
+A = aet.vector("A")
 
 
 def inner_fct(prior_result, A):
@@ -21,7 +21,7 @@ def inner_fct(prior_result, A):
 
 # Symbolic description of the result
 result, updates = aesara.scan(fn=inner_fct,
-                              outputs_info=tt.ones_like(A),
+                              outputs_info=aet.ones_like(A),
                               non_sequences=A, n_steps=k)
 
 # Scan has provided us with A ** 1 through A ** k.  Keep only the last
@@ -37,12 +37,12 @@ print(power(list(range(10)), 2))
 
 # 2. Second example
 
-coefficients = tt.vector("coefficients")
-x = tt.scalar("x")
+coefficients = aet.vector("coefficients")
+x = aet.scalar("x")
 max_coefficients_supported = 10000
 
 # Generate the components of the polynomial
-full_range = tt.arange(max_coefficients_supported)
+full_range = aet.arange(max_coefficients_supported)
 components, updates = aesara.scan(fn=lambda coeff, power, free_var:
                                   coeff * (free_var ** power),
                                   sequences=[coefficients, full_range],
@@ -60,15 +60,15 @@ print(calculate_polynomial1(test_coeff, 3))
 
 aesara.config.warn__subtensor_merge_bug = False
 
-coefficients = tt.vector("coefficients")
-x = tt.scalar("x")
+coefficients = aet.vector("coefficients")
+x = aet.scalar("x")
 max_coefficients_supported = 10000
 
 # Generate the components of the polynomial
-full_range = tt.arange(max_coefficients_supported)
+full_range = aet.arange(max_coefficients_supported)
 
 
-outputs_info = tt.as_tensor_variable(np.asarray(0, 'float64'))
+outputs_info = aet.as_tensor_variable(np.asarray(0, 'float64'))
 
 components, updates = aesara.scan(fn=lambda coeff, power, prior_value, free_var:
                                   prior_value + (coeff * (free_var ** power)),

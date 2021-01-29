@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 
 import aesara
-from aesara import tensor as tt
+from aesara import tensor as aet
 from aesara.scan.utils import map_variables
 from aesara.tensor.type import scalar, vector
 
@@ -51,7 +51,7 @@ class TestMapVariables:
         # should do this as well.
         outer = scalar("outer")
         shared = aesara.shared(np.array(1.0, dtype=aesara.config.floatX), name="shared")
-        constant = tt.constant(1, name="constant")
+        constant = aet.constant(1, name="constant")
 
         # z will equal 1 so multiplying by it doesn't change any values
         z = outer * (shared + constant)
@@ -119,7 +119,7 @@ class TestMapVariables:
         # inner graph.
         outer = scalar("outer")
         shared = aesara.shared(np.array(1.0, dtype=aesara.config.floatX), name="shared")
-        constant = tt.constant(1.0, name="constant")
+        constant = aet.constant(1.0, name="constant")
         z = outer * (shared + constant)
 
         # construct the inner graph

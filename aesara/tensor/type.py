@@ -4,7 +4,7 @@ import warnings
 import numpy as np
 
 import aesara
-from aesara import scalar as ts
+from aesara import scalar as aes
 from aesara.configdefaults import config
 from aesara.graph.basic import Variable
 from aesara.graph.type import CType
@@ -16,14 +16,14 @@ _logger = logging.getLogger("aesara.tensor.type")
 
 
 # Define common subsets of dtypes (as strings).
-complex_dtypes = list(map(str, ts.complex_types))
-continuous_dtypes = list(map(str, ts.continuous_types))
-float_dtypes = list(map(str, ts.float_types))
-integer_dtypes = list(map(str, ts.integer_types))
-discrete_dtypes = list(map(str, ts.discrete_types))
-all_dtypes = list(map(str, ts.all_types))
-int_dtypes = list(map(str, ts.int_types))
-uint_dtypes = list(map(str, ts.uint_types))
+complex_dtypes = list(map(str, aes.complex_types))
+continuous_dtypes = list(map(str, aes.continuous_types))
+float_dtypes = list(map(str, aes.float_types))
+integer_dtypes = list(map(str, aes.integer_types))
+discrete_dtypes = list(map(str, aes.discrete_types))
+all_dtypes = list(map(str, aes.all_types))
+int_dtypes = list(map(str, aes.int_types))
+uint_dtypes = list(map(str, aes.uint_types))
 
 
 class TensorType(CType):
@@ -136,7 +136,7 @@ class TensorType(CType):
                 if isinstance(data, np.ndarray):
                     # Check if self.dtype can accurately represent data
                     # (do not try to convert the data)
-                    up_dtype = ts.upcast(self.dtype, data.dtype)
+                    up_dtype = aes.upcast(self.dtype, data.dtype)
                     if up_dtype == self.dtype:
                         # Bug in the following line when data is a
                         # scalar array, see
@@ -296,7 +296,7 @@ class TensorType(CType):
             )
 
     def to_scalar_type(self):
-        return ts.get_scalar_type(dtype=self.dtype)
+        return aes.get_scalar_type(dtype=self.dtype)
 
     def __eq__(self, other):
         """
@@ -549,22 +549,22 @@ class TensorType(CType):
         )
 
     def c_headers(self, **kwargs):
-        return ts.get_scalar_type(self.dtype).c_headers(**kwargs)
+        return aes.get_scalar_type(self.dtype).c_headers(**kwargs)
 
     def c_libraries(self, **kwargs):
-        return ts.get_scalar_type(self.dtype).c_libraries(**kwargs)
+        return aes.get_scalar_type(self.dtype).c_libraries(**kwargs)
 
     def c_compile_args(self, **kwargs):
-        return ts.get_scalar_type(self.dtype).c_compile_args(**kwargs)
+        return aes.get_scalar_type(self.dtype).c_compile_args(**kwargs)
 
     def c_support_code(self, **kwargs):
-        return ts.get_scalar_type(self.dtype).c_support_code(**kwargs)
+        return aes.get_scalar_type(self.dtype).c_support_code(**kwargs)
 
     def c_init_code(self, **kwargs):
-        return ts.get_scalar_type(self.dtype).c_init_code(**kwargs)
+        return aes.get_scalar_type(self.dtype).c_init_code(**kwargs)
 
     def c_code_cache_version(self):
-        scalar_version = ts.get_scalar_type(self.dtype).c_code_cache_version()
+        scalar_version = aes.get_scalar_type(self.dtype).c_code_cache_version()
         if scalar_version:
             return (11,) + scalar_version
         else:
