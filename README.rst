@@ -19,10 +19,74 @@ Features
 Getting started
 ===============
 
-The documentation is located `here <https://theano-pymc.readthedocs.io/en/latest/>`__.
+.. code-block:: python
 
-.. warning::
-    As development progresses, the legacy documentation may become less applicable.
+  import aesara
+  from aesara import tensor as aet
+  from aesara.printing import debugprint
+
+  # Declare two symbolic floating-point scalars
+  a = aet.dscalar("a")
+  b = aet.dscalar("b")
+
+  # Create a simple example expression
+  c = a + b
+
+  # Convert the expression into a callable object that takes `(a, b)`
+  # values as input and computes the value of `c`.
+  f_c = aesara.function([a, b], c)
+
+  assert f_c(1.5, 2.5) == 4.0
+
+  # Compute the gradient of the example expression with respect to `a`
+  dc = aesara.grad(c, a)
+
+  f_dc = aesara.function([a, b], dc)
+
+  assert f_dc(1.5, 2.5) == 1.0
+
+  # Compiling functions with `aesara.function` also optimizes
+  # expression graphs by removing unnecessary operations and
+  # replacing computations with more efficient ones.
+
+  v = aet.vector("v")
+  M = aet.matrix("M")
+
+  d = a/a + (M + a).dot(v)
+
+  debugprint(d)
+  # Elemwise{add,no_inplace} [id A] ''
+  #  |InplaceDimShuffle{x} [id B] ''
+  #  | |Elemwise{true_div,no_inplace} [id C] ''
+  #  |   |a [id D]
+  #  |   |a [id D]
+  #  |dot [id E] ''
+  #    |Elemwise{add,no_inplace} [id F] ''
+  #    | |M [id G]
+  #    | |InplaceDimShuffle{x,x} [id H] ''
+  #    |   |a [id D]
+  #    |v [id I]
+
+  f_d = aesara.function([a, v, M], d)
+
+  # `a/a` -> `1` and the dot product is replaced with a BLAS function
+  # (i.e. CGemv)
+  debugprint(f_d)
+  # Elemwise{Add}[(0, 1)] [id A] ''   5
+  #  |TensorConstant{(1,) of 1.0} [id B]
+  #  |CGemv{inplace} [id C] ''   4
+  #    |AllocEmpty{dtype='float64'} [id D] ''   3
+  #    | |Shape_i{0} [id E] ''   2
+  #    |   |M [id F]
+  #    |TensorConstant{1.0} [id G]
+  #    |Elemwise{add,no_inplace} [id H] ''   1
+  #    | |M [id F]
+  #    | |InplaceDimShuffle{x,x} [id I] ''   0
+  #    |   |a [id J]
+  #    |v [id K]
+  #    |TensorConstant{0.0} [id L]
+
+The documentation is located `here <https://aesara.readthedocs.io/en/latest/>`__.
 
 
 Installation

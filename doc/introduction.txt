@@ -67,9 +67,9 @@ Aesara's features, but it illustrates concretely what Aesara is.
     # create a simple expression
     c = a + b
 
-    # convert the expression into a callable object that takes (a,b)
-    # values as input and computes a value for c
-    f = aesara.function([a,b], c)
+    # convert the expression into a callable object that takes `(a, b)`
+    # values as input and computes a value for `c`
+    f = aesara.function([a, b], c)
 
     # bind 1.5 to 'a', 2.5 to 'b', and evaluate 'c'
     assert 4.0 == f(1.5, 2.5)
@@ -79,7 +79,7 @@ Aesara is not a programming language in the normal sense because you
 write a program in Python that builds expressions for Aesara. Still it
 is like a programming language in the sense that you have to
 
-- declare variables (``a,b``) and give their types
+- declare variables (``a, b``) and give their types
 
 - build expressions for how to put those variables together
 
