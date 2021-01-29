@@ -13,7 +13,7 @@ arrays efficiently. Aesara features:
 * **dynamic C code generation** -- Evaluate expressions faster.
 * **extensive unit-testing and self-verification** -- Detect and diagnose many types of errors.
 
-Aesara is based on Aesara, which has been powering large-scale computationally
+Aesara is based on `Theano`_, which has been powering large-scale computationally
 intensive scientific investigations since 2007.
 
 Download
@@ -87,6 +87,7 @@ Roughly in order of what you'll want to check out:
    LICENSE
 
 
+.. _Theano: https://github.com/Theano/Theano
 .. _theano-dev: http://groups.google.com/group/theano-dev
 .. _theano-users: http://groups.google.com/group/theano-users
 .. _StackOverflow: http://stackoverflow.com/questions/tagged/theano
