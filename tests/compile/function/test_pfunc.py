@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 import aesara
-from aesara import tensor as tt
+from aesara import tensor as aet
 from aesara.compile.function import pfunc
 from aesara.compile.io import In
 from aesara.compile.sharedvalue import shared
@@ -807,7 +807,7 @@ class TestAliasingRules:
                 In(m1, mutable=True),
                 In(m2, mutable=True),
             ],
-            tt.dot((x * 2), m1) + tt.dot((y * 3), m2),
+            aet.dot((x * 2), m1) + aet.dot((y * 3), m2),
         )
         # Test 1. If the same variable is given twice
 
@@ -871,7 +871,7 @@ class TestAliasingRules:
                 In(m2, mutable=True),
                 In(m3, mutable=True),
             ],
-            (tt.dot((x * 2), m1) + tt.dot((y * 3), m2) + tt.dot((z * 4), m3)),
+            (aet.dot((x * 2), m1) + aet.dot((y * 3), m2) + aet.dot((z * 4), m3)),
         )
 
         # Compute bogus values

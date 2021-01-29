@@ -1,7 +1,7 @@
 import numpy as np
 from pytest import fixture, raises
 
-import aesara.tensor as tt
+import aesara.tensor as aet
 from aesara import config
 from aesara.assert_op import Assert
 from aesara.gradient import NullTypeGradError, grad
@@ -99,8 +99,8 @@ def test_RandomVariable_basics():
         rv.make_node(rng=1)
 
     # `RandomVariable._infer_shape` should handle no parameters
-    rv_shape = rv._infer_shape(tt.constant([]), (), [])
-    assert rv_shape.equals(tt.constant([], dtype="int64"))
+    rv_shape = rv._infer_shape(aet.constant([]), (), [])
+    assert rv_shape.equals(aet.constant([], dtype="int64"))
 
     # Integer-specificed `dtype`
     dtype_1 = all_dtypes[1]

@@ -28,10 +28,10 @@ DebugMode can be used as follows:
 .. testcode::
 
     import aesara
-    from aesara import tensor as tt
+    from aesara import tensor as aet
     from aesara.compile.debugmode import DebugMode
 
-    x = tt.dscalar('x')
+    x = aet.dscalar('x')
 
     f = aesara.function([x], 10*x, mode='DebugMode')
 

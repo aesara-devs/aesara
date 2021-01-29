@@ -33,7 +33,7 @@ supposed to be canonical.
 
 import logging
 
-from aesara import scalar as ts
+from aesara import scalar as aes
 from aesara.graph.opt import copy_stack_trace, local_optimizer
 from aesara.tensor.basic import Alloc, alloc, constant
 from aesara.tensor.basic_opt import register_uncanonicalize
@@ -84,7 +84,7 @@ def local_max_to_min(fgraph, node):
         if (
             max.owner
             and isinstance(max.owner.op, CAReduce)
-            and max.owner.op.scalar_op == ts.scalar_maximum
+            and max.owner.op.scalar_op == aes.scalar_maximum
         ):
             neg_node = max.owner.inputs[0]
             if neg_node.owner and neg_node.owner.op == neg:

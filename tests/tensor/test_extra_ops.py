@@ -3,7 +3,7 @@ import pytest
 
 import aesara
 from aesara import function
-from aesara import tensor as tt
+from aesara import tensor as aet
 from aesara.assert_op import Assert
 from aesara.configdefaults import config
 from aesara.gradient import grad
@@ -1223,8 +1223,8 @@ def test_broadcast_shape():
     x = np.array([[1], [2], [3]])
     y = np.array([4, 5, 6])
     b = np.broadcast(x, y)
-    x_tt = tt.as_tensor_variable(x)
-    y_tt = tt.as_tensor_variable(y)
+    x_tt = aet.as_tensor_variable(x)
+    y_tt = aet.as_tensor_variable(y)
     b_tt = broadcast_shape(x_tt, y_tt)
     assert np.array_equal([z.eval() for z in b_tt], b.shape)
     # Now, we try again using shapes as the inputs
@@ -1252,8 +1252,8 @@ def test_broadcast_shape():
     x = np.array([1, 2, 3])
     y = np.array([4, 5, 6])
     b = np.broadcast(x, y)
-    x_tt = tt.as_tensor_variable(x)
-    y_tt = tt.as_tensor_variable(y)
+    x_tt = aet.as_tensor_variable(x)
+    y_tt = aet.as_tensor_variable(y)
     b_tt = broadcast_shape(x_tt, y_tt)
     assert np.array_equal([z.eval() for z in b_tt], b.shape)
     b_tt = broadcast_shape(shape_tuple(x_tt), shape_tuple(y_tt), arrays_are_shapes=True)
@@ -1268,8 +1268,8 @@ def test_broadcast_shape():
     x = np.empty((1, 2, 3))
     y = np.array(1)
     b = np.broadcast(x, y)
-    x_tt = tt.as_tensor_variable(x)
-    y_tt = tt.as_tensor_variable(y)
+    x_tt = aet.as_tensor_variable(x)
+    y_tt = aet.as_tensor_variable(y)
     b_tt = broadcast_shape(x_tt, y_tt)
     assert b_tt[0].value == 1
     assert np.array_equal([z.eval() for z in b_tt], b.shape)
@@ -1282,8 +1282,8 @@ def test_broadcast_shape():
     x = np.empty((2, 1, 3))
     y = np.empty((2, 1, 1))
     b = np.broadcast(x, y)
-    x_tt = tt.as_tensor_variable(x)
-    y_tt = tt.as_tensor_variable(y)
+    x_tt = aet.as_tensor_variable(x)
+    y_tt = aet.as_tensor_variable(y)
     b_tt = broadcast_shape(x_tt, y_tt)
     assert b_tt[1].value == 1
     assert np.array_equal([z.eval() for z in b_tt], b.shape)
@@ -1300,9 +1300,9 @@ def test_broadcast_shape():
     x2_shp_tt = iscalar("x2")
     y1_shp_tt = iscalar("y1")
     x_shapes = (1, x1_shp_tt, x2_shp_tt)
-    x_tt = tt.ones(x_shapes)
+    x_tt = aet.ones(x_shapes)
     y_shapes = (y1_shp_tt, 1, x2_shp_tt)
-    y_tt = tt.ones(y_shapes)
+    y_tt = aet.ones(y_shapes)
     b_tt = broadcast_shape(x_tt, y_tt)
     # TODO: This will work when/if we use a more sophisticated `is_same_graph`
     # implementation.
@@ -1310,7 +1310,7 @@ def test_broadcast_shape():
     #     isinstance(node.op, Assert)
     #     for node in graph_ops([x_tt, y_tt], b_tt)
     # )
-    res = tt.as_tensor(b_tt).eval(
+    res = aet.as_tensor(b_tt).eval(
         {
             x1_shp_tt: 10,
             x2_shp_tt: 4,
@@ -1320,7 +1320,7 @@ def test_broadcast_shape():
     assert np.array_equal(res, (2, 10, 4))
 
     y_shapes = (y1_shp_tt, 1, y1_shp_tt)
-    y_tt = tt.ones(y_shapes)
+    y_tt = aet.ones(y_shapes)
     b_tt = broadcast_shape(x_tt, y_tt)
     assert isinstance(b_tt[-1].owner.op, Assert)
 

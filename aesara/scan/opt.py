@@ -58,8 +58,8 @@ from sys import maxsize
 import numpy as np
 
 import aesara
-from aesara import scalar as ts
-from aesara import tensor as tt
+from aesara import scalar as aes
+from aesara import tensor as aet
 from aesara.compile import optdb
 from aesara.compile.function.types import deep_copy_op
 from aesara.configdefaults import config
@@ -425,7 +425,7 @@ class PushOutNonSeqScan(GlobalOptimizer):
                     x = node.outputs[local_fgraph_outs_map[out]]
                     y = replace_with_out[idx]
                     y_shape = [shp for shp in y.shape]
-                    replace_with[x] = tt.alloc(y, node.inputs[0], *y_shape)
+                    replace_with[x] = aet.alloc(y, node.inputs[0], *y_shape)
 
             # We need to add one extra dimension to the outputs
             # because the scan op expects for a tensor3, to which an
@@ -757,7 +757,7 @@ class PushOutScanOutput(GlobalOptimizer):
         for nd in local_fgraph_topo:
             if (
                 isinstance(nd.op, Elemwise)
-                and isinstance(nd.op.scalar_op, ts.Add)
+                and isinstance(nd.op.scalar_op, aes.Add)
                 and nd.out in args.inner_out_sit_sot
                 and self.inner_sitsot_only_last_step_used(fgraph, nd.out, args)
             ):
@@ -808,7 +808,7 @@ class PushOutScanOutput(GlobalOptimizer):
                         # so that they become matrices. This is because a
                         # dot is usually faster on two large matrices than
                         # a bunch of small ones
-                        outer_dot_inputs[0] = tt.flatten(
+                        outer_dot_inputs[0] = aet.flatten(
                             outer_dot_inputs[0].dimshuffle(1, 0, 2), ndim=2
                         )
 
@@ -853,7 +853,7 @@ class PushOutScanOutput(GlobalOptimizer):
             client = fgraph.clients[outer_var][0][0]
             if client != "output" and isinstance(client.op, Subtensor):
                 lst = get_idx_list(client.inputs, client.op.idx_list)
-                if len(lst) == 1 and tt.extract_constant(lst[0]) == -1:
+                if len(lst) == 1 and aet.extract_constant(lst[0]) == -1:
                     return True
 
         return False
@@ -1172,7 +1172,7 @@ class ScanSaveMem(GlobalOptimizer):
             if x is None:
                 return None
             else:
-                return tt.as_tensor_variable(x)
+                return aet.as_tensor_variable(x)
 
         if hasattr(fgraph, "shape_feature"):
             shape_of = fgraph.shape_feature.shape_of
@@ -1291,9 +1291,9 @@ class ScanSaveMem(GlobalOptimizer):
                     if isinstance(this_slice[0], slice) and this_slice[0].stop is None:
                         global_nsteps = None
                     if isinstance(cf_slice[0], slice):
-                        stop = tt.extract_constant(cf_slice[0].stop)
+                        stop = aet.extract_constant(cf_slice[0].stop)
                     else:
-                        stop = tt.extract_constant(cf_slice[0]) + 1
+                        stop = aet.extract_constant(cf_slice[0]) + 1
                     if stop == maxsize or stop == length:
                         stop = None
                     else:
@@ -1387,9 +1387,9 @@ class ScanSaveMem(GlobalOptimizer):
                     cf_slice = get_canonical_form_slice(this_slice[0], length)
 
                     if isinstance(cf_slice[0], slice):
-                        start = tt.extract_constant(cf_slice[0].start)
+                        start = aet.extract_constant(cf_slice[0].start)
                     else:
-                        start = tt.extract_constant(cf_slice[0])
+                        start = aet.extract_constant(cf_slice[0])
                     if start == 0 or store_steps[i] == 0:
                         store_steps[i] = 0
                     else:
@@ -1476,15 +1476,15 @@ class ScanSaveMem(GlobalOptimizer):
                                 nw_inputs[offset + idx].owner.op, IncSubtensor
                             )
                             _nw_input = nw_inputs[offset + idx].owner.inputs[1]
-                            cval = tt.as_tensor_variable(val)
-                            initl = tt.as_tensor_variable(init_l[i])
-                            tmp_idx = tt.switch(
+                            cval = aet.as_tensor_variable(val)
+                            initl = aet.as_tensor_variable(init_l[i])
+                            tmp_idx = aet.switch(
                                 cval < initl, cval + initl, cval - initl
                             )
                             nw_input = expand_empty(_nw_input, tmp_idx)
                         else:
-                            tmp = tt.as_tensor_variable(val)
-                            initl = tt.as_tensor_variable(init_l[i])
+                            tmp = aet.as_tensor_variable(val)
+                            initl = aet.as_tensor_variable(init_l[i])
                             tmp = maximum(tmp, initl)
                             nw_input = nw_inputs[offset + idx][:tmp]
 
@@ -1566,7 +1566,7 @@ class ScanSaveMem(GlobalOptimizer):
             # don't create one.
             # For test, mark that savemem have optimized this node
             info["_scan_savemem_visited"] = True
-            if tt.extract_constant(node_ins[0]) == 0:
+            if aet.extract_constant(node_ins[0]) == 0:
                 return
 
             # Do not call make_node for test_value
@@ -2171,7 +2171,7 @@ class PushOutDot1(GlobalOptimizer):
             if (
                 out.owner
                 and isinstance(out.owner.op, Elemwise)
-                and isinstance(out.owner.op.scalar_op, ts.Add)
+                and isinstance(out.owner.op.scalar_op, aes.Add)
                 and inp in out.owner.inputs
                 and len(fgraph.clients[outer_out]) == 1
                 and not isinstance(fgraph.clients[outer_out][0][0], str)

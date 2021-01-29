@@ -4,7 +4,7 @@ import pytest
 import aesara
 import aesara.sandbox.rng_mrg
 from aesara import gpuarray
-from aesara import tensor as tt
+from aesara import tensor as aet
 from aesara.gpuarray.basic_ops import GpuFromHost, HostFromGpu
 from aesara.gpuarray.elemwise import GpuElemwise
 from aesara.scan.basic import scan
@@ -167,7 +167,7 @@ class TestScan:
     # outputs when is running on GPU
     def test_gpu3_mixture_dtype_outputs(self):
         def f_rnn(u_t, x_tm1, W_in, W):
-            return (u_t * W_in + x_tm1 * W, tt.cast(u_t + x_tm1, "int64"))
+            return (u_t * W_in + x_tm1 * W, aet.cast(u_t + x_tm1, "int64"))
 
         u = fvector("u")
         x0 = fscalar("x0")
@@ -455,7 +455,7 @@ class ScanGpuTests:
     # outputs when is running on GPU
     def test_gpu3_mixture_dtype_outputs(self):
         def f_rnn(u_t, x_tm1, W_in, W):
-            return (u_t * W_in + x_tm1 * W, tt.cast(u_t + x_tm1, "int64"))
+            return (u_t * W_in + x_tm1 * W, aet.cast(u_t + x_tm1, "int64"))
 
         u = fvector("u")
         x0 = fscalar("x0")
@@ -581,7 +581,7 @@ class ScanGpuTests:
         def scan_l(baseline, last_step):
             return baseline + dot(last_step, V)
 
-        zero_output = tt.alloc(np.asarray(0.0, dtype="float32"), mb_size, n_hid)
+        zero_output = aet.alloc(np.asarray(0.0, dtype="float32"), mb_size, n_hid)
 
         l1_out, _ = scan(
             scan_l,
@@ -693,13 +693,13 @@ class TestScanCheckpoint:
         self.A = vector("A")
         result, _ = scan(
             fn=lambda prior_result, A: prior_result * A,
-            outputs_info=tt.ones_like(self.A),
+            outputs_info=aet.ones_like(self.A),
             non_sequences=self.A,
             n_steps=self.k,
         )
         result_check, _ = scan_checkpoints(
             fn=lambda prior_result, A: prior_result * A,
-            outputs_info=tt.ones_like(self.A),
+            outputs_info=aet.ones_like(self.A),
             non_sequences=self.A,
             n_steps=self.k,
             save_every_N=100,

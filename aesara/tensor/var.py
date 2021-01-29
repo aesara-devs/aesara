@@ -5,7 +5,7 @@ from collections.abc import Iterable
 
 import numpy as np
 
-from aesara import tensor as tt
+from aesara import tensor as aet
 from aesara.configdefaults import config
 from aesara.graph.basic import Constant, Variable
 from aesara.scalar import ComplexError, IntegerDivisionError
@@ -16,10 +16,10 @@ from aesara.tensor.utils import hash_from_ndarray
 
 class _tensor_py_operators:
     def __abs__(self):
-        return tt.math.abs_(self)
+        return aet.math.abs_(self)
 
     def __neg__(self):
-        return tt.math.neg(self)
+        return aet.math.neg(self)
 
     # These won't work because Python requires an int return value
     # def __int__(self): return convert_to_int32(self)
@@ -29,22 +29,22 @@ class _tensor_py_operators:
     _is_nonzero = True
 
     def __lt__(self, other):
-        rval = tt.math.lt(self, other)
+        rval = aet.math.lt(self, other)
         rval._is_nonzero = False
         return rval
 
     def __le__(self, other):
-        rval = tt.math.le(self, other)
+        rval = aet.math.le(self, other)
         rval._is_nonzero = False
         return rval
 
     def __gt__(self, other):
-        rval = tt.math.gt(self, other)
+        rval = aet.math.gt(self, other)
         rval._is_nonzero = False
         return rval
 
     def __ge__(self, other):
-        rval = tt.math.ge(self, other)
+        rval = aet.math.ge(self, other)
         rval._is_nonzero = False
         return rval
 
@@ -68,25 +68,25 @@ class _tensor_py_operators:
             raise TypeError("Variables do not support boolean operations.")
 
     def __invert__(self):
-        return tt.math.invert(self)
+        return aet.math.invert(self)
 
     def __and__(self, other):
-        return tt.math.and_(self, other)
+        return aet.math.and_(self, other)
 
     def __or__(self, other):
-        return tt.math.or_(self, other)
+        return aet.math.or_(self, other)
 
     def __xor__(self, other):
-        return tt.math.xor(self, other)
+        return aet.math.xor(self, other)
 
     def __rand__(self, other):
-        return tt.math.and_(other, self)
+        return aet.math.and_(other, self)
 
     def __ror__(self, other):
-        return tt.math.or_(other, self)
+        return aet.math.or_(other, self)
 
     def __rxor__(self, other):
-        return tt.math.xor(other, self)
+        return aet.math.xor(other, self)
 
     # def __iand__(self, other):
     #    return _and_inplace(self, other)
@@ -99,7 +99,7 @@ class _tensor_py_operators:
 
     def __add__(self, other):
         try:
-            return tt.math.add(self, other)
+            return aet.math.add(self, other)
         # We should catch the minimum number of exception here.
         # Otherwise this will convert error when Aesara flags
         # compute_test_value is used
@@ -118,7 +118,7 @@ class _tensor_py_operators:
         # See explanation in __add__ for the error catched
         # and the return value in that case
         try:
-            return tt.math.sub(self, other)
+            return aet.math.sub(self, other)
         except (NotImplementedError, TypeError):
             return NotImplemented
 
@@ -126,7 +126,7 @@ class _tensor_py_operators:
         # See explanation in __add__ for the error catched
         # and the return value in that case
         try:
-            return tt.math.mul(self, other)
+            return aet.math.mul(self, other)
         except (NotImplementedError, TypeError):
             return NotImplemented
 
@@ -134,7 +134,7 @@ class _tensor_py_operators:
         # See explanation in __add__ for the error catched
         # and the return value in that case
         try:
-            return tt.math.div_proxy(self, other)
+            return aet.math.div_proxy(self, other)
         except IntegerDivisionError:
             # This is to raise the exception that occurs when trying to divide
             # two integer arrays (currently forbidden).
@@ -148,7 +148,7 @@ class _tensor_py_operators:
         # See explanation in __add__ for the error catched
         # and the return value in that case
         try:
-            return tt.math.pow(self, other)
+            return aet.math.pow(self, other)
         except (NotImplementedError, TypeError):
             return NotImplemented
 
@@ -156,7 +156,7 @@ class _tensor_py_operators:
         # See explanation in __add__ for the error catched
         # and the return value in that case
         try:
-            return tt.math.mod_check(self, other)
+            return aet.math.mod_check(self, other)
         except ComplexError:
             # This is to raise the exception that occurs when trying to compute
             # x % y with either x or y a complex number.
@@ -165,19 +165,19 @@ class _tensor_py_operators:
             return NotImplemented
 
     def __divmod__(self, other):
-        return tt.math.divmod(self, other)
+        return aet.math.divmod(self, other)
 
     def __truediv__(self, other):
-        return tt.math.true_div(self, other)
+        return aet.math.true_div(self, other)
 
     def __floordiv__(self, other):
-        return tt.math.floor_div(self, other)
+        return aet.math.floor_div(self, other)
 
     def __rtruediv__(self, other):
-        return tt.math.true_div(other, self)
+        return aet.math.true_div(other, self)
 
     def __rfloordiv__(self, other):
-        return tt.math.floor_div(other, self)
+        return aet.math.floor_div(other, self)
 
     # Do not use these; in-place `Op`s should be inserted by optimizations
     # only!
@@ -196,39 +196,39 @@ class _tensor_py_operators:
     #    return _pow_inplace(self, other)
 
     def __radd__(self, other):
-        return tt.math.add(other, self)
+        return aet.math.add(other, self)
 
     def __rsub__(self, other):
-        return tt.math.sub(other, self)
+        return aet.math.sub(other, self)
 
     def __rmul__(self, other):
-        return tt.math.mul(other, self)
+        return aet.math.mul(other, self)
 
     def __rdiv__(self, other):
-        return tt.math.div_proxy(other, self)
+        return aet.math.div_proxy(other, self)
 
     def __rmod__(self, other):
-        return tt.math.mod(other, self)
+        return aet.math.mod(other, self)
 
     def __rdivmod__(self, other):
-        return tt.math.divmod(other, self)
+        return aet.math.divmod(other, self)
 
     def __rpow__(self, other):
-        return tt.math.pow(other, self)
+        return aet.math.pow(other, self)
 
     def __ceil__(self):
-        return tt.math.ceil(self)
+        return aet.math.ceil(self)
 
     def __floor__(self):
-        return tt.math.floor(self)
+        return aet.math.floor(self)
 
     def __trunc__(self):
-        return tt.math.trunc(self)
+        return aet.math.trunc(self)
 
     # NumPy-like transpose property
     @property
     def T(self):
-        return tt.basic.transpose(self)
+        return aet.basic.transpose(self)
 
     def transpose(self, *axes):
         """Transpose this array.
@@ -244,33 +244,33 @@ class _tensor_py_operators:
 
         """
         if len(axes) == 0:
-            return tt.basic.transpose(self)
+            return aet.basic.transpose(self)
         try:
             iter(axes[0])
             iterable = True
         except TypeError:
             iterable = False
         if len(axes) == 1 and iterable:
-            return tt.basic.transpose(self, axes[0])
+            return aet.basic.transpose(self, axes[0])
         else:
-            return tt.basic.transpose(self, axes)
+            return aet.basic.transpose(self, axes)
 
     @property
     def shape(self):
-        return tt.shape(self)
+        return aet.shape(self)
 
     @property
     def size(self):
         if self.ndim == 1:
             return self.shape[0]
         else:
-            return tt.math.prod(self.shape)
+            return aet.math.prod(self.shape)
 
     def any(self, axis=None, keepdims=False):
-        return tt.math.any(self, axis=axis, keepdims=keepdims)
+        return aet.math.any(self, axis=axis, keepdims=keepdims)
 
     def all(self, axis=None, keepdims=False):
-        return tt.math.all(self, axis=axis, keepdims=keepdims)
+        return aet.math.all(self, axis=axis, keepdims=keepdims)
 
     # Old note: "We can't implement this because Python requests that this
     # function returns an integer."
@@ -305,7 +305,7 @@ class _tensor_py_operators:
                     "Expected ndim to be an integer, is " + str(type(ndim))
                 )
 
-        return tt.reshape(self, shape, ndim=ndim)
+        return aet.reshape(self, shape, ndim=ndim)
 
     def dimshuffle(self, *pattern):
         """
@@ -338,17 +338,17 @@ class _tensor_py_operators:
         """
         if (len(pattern) == 1) and (isinstance(pattern[0], (list, tuple))):
             pattern = pattern[0]
-        op = tt.elemwise.DimShuffle(list(self.type.broadcastable), pattern)
+        op = aet.elemwise.DimShuffle(list(self.type.broadcastable), pattern)
         return op(self)
 
     def flatten(self, ndim=1):
-        return tt.basic.flatten(self, ndim)
+        return aet.basic.flatten(self, ndim)
 
     def ravel(self):
-        return tt.basic.flatten(self)
+        return aet.basic.flatten(self)
 
     def diagonal(self, offset=0, axis1=0, axis2=1):
-        return tt.basic.diagonal(self, offset, axis1, axis2)
+        return aet.basic.diagonal(self, offset, axis1, axis2)
 
     def transfer(self, target):
         """Transfer this this array's data to another device.
@@ -361,85 +361,85 @@ class _tensor_py_operators:
         target : str
             The desired location of the output variable
         """
-        return tt.basic.transfer(self, target)
+        return aet.basic.transfer(self, target)
 
     def arccos(self):
-        return tt.math.arccos(self)
+        return aet.math.arccos(self)
 
     def arccosh(self):
-        return tt.math.arccosh(self)
+        return aet.math.arccosh(self)
 
     def arcsin(self):
-        return tt.math.arcsin(self)
+        return aet.math.arcsin(self)
 
     def arcsinh(self):
-        return tt.math.arcsinh(self)
+        return aet.math.arcsinh(self)
 
     def arctan(self):
-        return tt.math.arctan(self)
+        return aet.math.arctan(self)
 
     def arctanh(self):
-        return tt.math.arctanh(self)
+        return aet.math.arctanh(self)
 
     def ceil(self):
-        return tt.math.ceil(self)
+        return aet.math.ceil(self)
 
     def cos(self):
-        return tt.math.cos(self)
+        return aet.math.cos(self)
 
     def cosh(self):
-        return tt.math.cosh(self)
+        return aet.math.cosh(self)
 
     def deg2rad(self):
-        return tt.math.deg2rad(self)
+        return aet.math.deg2rad(self)
 
     def exp(self):
-        return tt.math.exp(self)
+        return aet.math.exp(self)
 
     def exp2(self):
-        return tt.math.exp2(self)
+        return aet.math.exp2(self)
 
     def expm1(self):
-        return tt.math.expm1(self)
+        return aet.math.expm1(self)
 
     def floor(self):
-        return tt.math.floor(self)
+        return aet.math.floor(self)
 
     def log(self):
-        return tt.math.log(self)
+        return aet.math.log(self)
 
     def log10(self):
-        return tt.math.log10(self)
+        return aet.math.log10(self)
 
     def log1p(self):
-        return tt.math.log1p(self)
+        return aet.math.log1p(self)
 
     def log2(self):
-        return tt.math.log2(self)
+        return aet.math.log2(self)
 
     def rad2deg(self):
-        return tt.math.rad2deg(self)
+        return aet.math.rad2deg(self)
 
     def sin(self):
-        return tt.math.sin(self)
+        return aet.math.sin(self)
 
     def sinh(self):
-        return tt.math.sinh(self)
+        return aet.math.sinh(self)
 
     def sqrt(self):
-        return tt.math.sqrt(self)
+        return aet.math.sqrt(self)
 
     def tan(self):
-        return tt.math.tan(self)
+        return aet.math.tan(self)
 
     def tanh(self):
-        return tt.math.tanh(self)
+        return aet.math.tanh(self)
 
     def trunc(self):
-        return tt.math.trunc(self)
+        return aet.math.trunc(self)
 
     def astype(self, dtype):
-        return tt.basic.cast(self, dtype)
+        return aet.basic.cast(self, dtype)
 
     def __getitem__(self, args):
         def includes_bool(args_el):
@@ -516,7 +516,7 @@ class _tensor_py_operators:
         # Convert python literals to aesara constants
         args = tuple(
             [
-                tt.subtensor.as_index_constant(
+                aet.subtensor.as_index_constant(
                     np.array(inp, dtype=np.int64) if is_empty_array(inp) else inp
                 )
                 for inp in args
@@ -537,7 +537,7 @@ class _tensor_py_operators:
 
             if arg is not np.newaxis:
                 try:
-                    tt.subtensor.Subtensor.convert(arg)
+                    aet.subtensor.Subtensor.convert(arg)
                 except AdvancedIndexingError:
                     if advanced:
                         axis = None
@@ -565,7 +565,7 @@ class _tensor_py_operators:
                         list,
                         TensorVariable,
                         TensorConstant,
-                        tt.sharedvar.TensorSharedVariable,
+                        aet.sharedvar.TensorSharedVariable,
                     ),
                 )
             ):
@@ -576,7 +576,7 @@ class _tensor_py_operators:
                 # so we simply return its result.
                 return self.take(args[axis], axis)
             else:
-                return tt.subtensor.advanced_subtensor(self, *args)
+                return aet.subtensor.advanced_subtensor(self, *args)
         else:
             if np.newaxis in args:
                 # `np.newaxis` (i.e. `None`) in NumPy indexing mean "add a new
@@ -615,28 +615,28 @@ class _tensor_py_operators:
                 else:
                     return view.__getitem__(tuple(new_args))
             else:
-                return tt.subtensor.Subtensor(args)(
+                return aet.subtensor.Subtensor(args)(
                     self,
-                    *tt.subtensor.Subtensor.collapse(
+                    *aet.subtensor.Subtensor.collapse(
                         args, lambda entry: isinstance(entry, Variable)
                     ),
                 )
 
     def take(self, indices, axis=None, mode="raise"):
-        return tt.subtensor.take(self, indices, axis, mode)
+        return aet.subtensor.take(self, indices, axis, mode)
 
     def copy(self, name=None):
         """Return a symbolic copy and optionally assign a name.
 
         Does not copy the tags.
         """
-        copied_variable = tt.basic.tensor_copy(self)
+        copied_variable = aet.basic.tensor_copy(self)
         copied_variable.name = name
         return copied_variable
 
     def __iter__(self):
         try:
-            for i in range(tt.basic.get_vector_length(self)):
+            for i in range(aet.basic.get_vector_length(self)):
                 yield self[i]
         except TypeError:
             # This prevents accidental iteration via sum(self)
@@ -669,22 +669,22 @@ class _tensor_py_operators:
         return self.type.dtype
 
     def __dot__(left, right):
-        return tt.math.dense_dot(left, right)
+        return aet.math.dense_dot(left, right)
 
     def __rdot__(right, left):
-        return tt.math.dense_dot(left, right)
+        return aet.math.dense_dot(left, right)
 
     dot = __dot__
 
     def sum(self, axis=None, dtype=None, keepdims=False, acc_dtype=None):
         """See `aesara.tensor.math.sum`."""
-        return tt.math.sum(
+        return aet.math.sum(
             self, axis=axis, dtype=dtype, keepdims=keepdims, acc_dtype=acc_dtype
         )
 
     def prod(self, axis=None, dtype=None, keepdims=False, acc_dtype=None):
         """See `aesara.tensor.math.prod`."""
-        return tt.math.prod(
+        return aet.math.prod(
             self, axis=axis, dtype=dtype, keepdims=keepdims, acc_dtype=acc_dtype
         )
 
@@ -694,60 +694,60 @@ class _tensor_py_operators:
         if np.isinf(L):
             raise NotImplementedError()
         # optimizations will/should catch cases like L=1, L=2
-        y = tt.math.pow(
-            tt.math.pow(tt.math.abs_(self), L).sum(axis=axis),
+        y = aet.math.pow(
+            aet.math.pow(aet.math.abs_(self), L).sum(axis=axis),
             1.0 / L,
         )
         if keepdims:
-            return tt.math.makeKeepDims(self, y, axis)
+            return aet.math.makeKeepDims(self, y, axis)
         else:
             return y
 
     def mean(self, axis=None, dtype=None, keepdims=False, acc_dtype=None):
         """See `aesara.tensor.math.mean`."""
-        return tt.math.mean(
+        return aet.math.mean(
             self, axis=axis, dtype=dtype, keepdims=keepdims, acc_dtype=acc_dtype
         )
 
     def var(self, axis=None, ddof=0, keepdims=False, corrected=False):
         """See `aesara.tensor.math.var`."""
-        return tt.math.var(
+        return aet.math.var(
             self, axis=axis, ddof=ddof, keepdims=keepdims, corrected=corrected
         )
 
     def std(self, axis=None, ddof=0, keepdims=False, corrected=False):
         """See `aesara.tensor.math.std`."""
-        return tt.math.std(
+        return aet.math.std(
             self, axis=axis, ddof=ddof, keepdims=keepdims, corrected=corrected
         )
 
     def min(self, axis=None, keepdims=False):
         """See `aesara.tensor.math.min`."""
-        return tt.math.min(self, axis, keepdims=keepdims)
+        return aet.math.min(self, axis, keepdims=keepdims)
 
     def max(self, axis=None, keepdims=False):
         """See `aesara.tensor.math.max`."""
-        return tt.math.max(self, axis, keepdims=keepdims)
+        return aet.math.max(self, axis, keepdims=keepdims)
 
     def argmin(self, axis=None, keepdims=False):
         """See `aesara.tensor.math.argmin`."""
-        return tt.math.argmin(self, axis, keepdims=keepdims)
+        return aet.math.argmin(self, axis, keepdims=keepdims)
 
     def argmax(self, axis=None, keepdims=False):
         """See `aesara.tensor.math.argmax`."""
-        return tt.math.argmax(self, axis, keepdims=keepdims)
+        return aet.math.argmax(self, axis, keepdims=keepdims)
 
     def nonzero(self, return_matrix=False):
         """See `aesara.tensor.basic.nonzero`."""
-        return tt.nonzero(self, return_matrix=return_matrix)
+        return aet.nonzero(self, return_matrix=return_matrix)
 
     def nonzero_values(self):
         """See `aesara.tensor.basic.nonzero_values`."""
-        return tt.nonzero_values(self)
+        return aet.nonzero_values(self)
 
     def sort(self, axis=-1, kind="quicksort", order=None):
         """See `aesara.tensor.sort.sort`."""
-        return tt.sort(self, axis, kind, order)
+        return aet.sort(self, axis, kind, order)
 
     def argsort(self, axis=-1, kind="quicksort", order=None):
         """See `aesara.tensor.sort.argsort`."""
@@ -757,50 +757,50 @@ class _tensor_py_operators:
 
     def clip(self, a_min, a_max):
         "See `aesara.tensor.math.clip`."
-        return tt.math.clip(self, a_min, a_max)
+        return aet.math.clip(self, a_min, a_max)
 
     def conj(self):
         """See `aesara.tensor.math.conj`."""
-        return tt.math.conj(self)
+        return aet.math.conj(self)
 
     conjugate = conj
 
     def repeat(self, repeats, axis=None):
         """See `aesara.tensor.basic.repeat`."""
-        return tt.extra_ops.repeat(self, repeats, axis)
+        return aet.extra_ops.repeat(self, repeats, axis)
 
     def round(self, mode=None):
         """See `aesara.tensor.math.round`."""
-        return tt.math.round(self, mode)
+        return aet.math.round(self, mode)
 
     def trace(self):
-        return tt.nlinalg.trace(self)
+        return aet.nlinalg.trace(self)
 
     # This value is set so that Aesara arrays will trump NumPy operators.
     __array_priority__ = 1000
 
     def get_scalar_constant_value(self):
-        return tt.basic.get_scalar_constant_value(self)
+        return aet.basic.get_scalar_constant_value(self)
 
     def zeros_like(model, dtype=None):
-        return tt.basic.zeros_like(model, dtype=dtype)
+        return aet.basic.zeros_like(model, dtype=dtype)
 
     def ones_like(model, dtype=None):
-        return tt.basic.ones_like(model, dtype=dtype)
+        return aet.basic.ones_like(model, dtype=dtype)
 
     def cumsum(self, axis=None):
-        return tt.extra_ops.cumsum(self, axis)
+        return aet.extra_ops.cumsum(self, axis)
 
     def cumprod(self, axis=None):
-        return tt.extra_ops.cumprod(self, axis)
+        return aet.extra_ops.cumprod(self, axis)
 
     def searchsorted(self, v, side="left", sorter=None):
-        return tt.extra_ops.searchsorted(self, v, side, sorter)
+        return aet.extra_ops.searchsorted(self, v, side, sorter)
 
     def ptp(self, axis=None):
         """See `aesara.tensor.math.ptp`."""
 
-        return tt.math.ptp(self, axis)
+        return aet.math.ptp(self, axis)
 
     def swapaxes(self, axis1, axis2):
         """See `aesara.tensor.basic.swapaxes`.
@@ -809,11 +809,11 @@ class _tensor_py_operators:
         will be returned.
 
         """
-        return tt.basic.swapaxes(self, axis1, axis2)
+        return aet.basic.swapaxes(self, axis1, axis2)
 
     def fill(self, value):
         """Fill inputted tensor with the assigned value."""
-        return tt.basic.fill(self, value)
+        return aet.basic.fill(self, value)
 
     def choose(self, choices, out=None, mode="raise"):
         """
@@ -821,7 +821,7 @@ class _tensor_py_operators:
         from.
 
         """
-        return tt.basic.choose(self, choices, out=None, mode="raise")
+        return aet.basic.choose(self, choices, out=None, mode="raise")
 
     def squeeze(self):
         """
@@ -831,11 +831,11 @@ class _tensor_py_operators:
         removed. This is always `x` itself or a view into `x`.
 
         """
-        return tt.extra_ops.squeeze(self)
+        return aet.extra_ops.squeeze(self)
 
     def compress(self, a, axis=None):
         """Return selected slices only."""
-        return tt.extra_ops.compress(self, a, axis=axis)
+        return aet.extra_ops.compress(self, a, axis=axis)
 
 
 class TensorVariable(_tensor_py_operators, Variable):
@@ -1019,7 +1019,7 @@ class TensorConstant(_tensor_py_operators, Constant):
         # numpy.ndarray, and python type.
         if isinstance(other, (np.ndarray, int, float)):
             # Make a TensorConstant to be able to compare
-            other = tt.basic.constant(other)
+            other = aet.basic.constant(other)
         return (
             isinstance(other, TensorConstant) and self.signature() == other.signature()
         )

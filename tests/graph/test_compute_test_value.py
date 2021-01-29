@@ -4,8 +4,8 @@ import numpy as np
 import pytest
 
 import aesara
-import aesara.tensor as tt
-from aesara import scalar as ts
+import aesara.tensor as aet
+from aesara import scalar as aes
 from aesara.configdefaults import config
 from aesara.graph import utils
 from aesara.graph.basic import Apply
@@ -30,7 +30,7 @@ class IncOneC(COp):
     __props__ = ()
 
     def make_node(self, input):
-        input = ts.as_scalar(input)
+        input = aes.as_scalar(input)
         output = input.type()
         return Apply(self, [input], [output])
 
@@ -177,7 +177,7 @@ class TestComputeTestValue:
         assert _allclose(f(), z.tag.test_value)
 
     def test_constant(self):
-        x = tt.constant(np.random.rand(2, 3), dtype=config.floatX)
+        x = aet.constant(np.random.rand(2, 3), dtype=config.floatX)
         y = aesara.shared(np.random.rand(3, 6).astype(config.floatX), "y")
 
         # should work
@@ -187,7 +187,7 @@ class TestComputeTestValue:
         assert _allclose(f(), z.tag.test_value)
 
         # this test should fail
-        x = tt.constant(np.random.rand(2, 4), dtype=config.floatX)
+        x = aet.constant(np.random.rand(2, 4), dtype=config.floatX)
         with pytest.raises(ValueError):
             dot(x, y)
 
@@ -225,7 +225,7 @@ class TestComputeTestValue:
 
         # Symbolic description of the result
         result, updates = aesara.scan(
-            fn=fx, outputs_info=tt.ones_like(A), non_sequences=A, n_steps=k
+            fn=fx, outputs_info=aet.ones_like(A), non_sequences=A, n_steps=k
         )
 
         # We only care about A**k, but scan has provided us with A**1 through A**k.
@@ -245,7 +245,9 @@ class TestComputeTestValue:
             return dot(prior_result, A)
 
         with pytest.raises(ValueError) as e:
-            aesara.scan(fn=fx, outputs_info=tt.ones_like(A), non_sequences=A, n_steps=k)
+            aesara.scan(
+                fn=fx, outputs_info=aet.ones_like(A), non_sequences=A, n_steps=k
+            )
 
         assert str(e.traceback[0].path).endswith("test_compute_test_value.py")
         # We should be in the "fx" function defined above
@@ -264,12 +266,12 @@ class TestComputeTestValue:
 
         with pytest.raises(ValueError):
             aesara.scan(
-                fn=fx, outputs_info=tt.ones_like(A.T), non_sequences=A, n_steps=k
+                fn=fx, outputs_info=aet.ones_like(A.T), non_sequences=A, n_steps=k
             )
 
         with pytest.raises(ValueError, match="^could not broadcast input"):
             aesara.scan(
-                fn=fx, outputs_info=tt.ones_like(A.T), non_sequences=A, n_steps=k
+                fn=fx, outputs_info=aet.ones_like(A.T), non_sequences=A, n_steps=k
             )
 
     def test_no_c_code(self):
@@ -281,7 +283,7 @@ class TestComputeTestValue:
             __props__ = ()
 
             def make_node(self, input):
-                input = ts.as_scalar(input)
+                input = aes.as_scalar(input)
                 output = input.type()
                 return Apply(self, [input], [output])
 
@@ -290,7 +292,7 @@ class TestComputeTestValue:
                 (output,) = outputs
                 output[0] = input + 1
 
-        i = ts.int32("i")
+        i = aes.int32("i")
         i.tag.test_value = 3
 
         o = IncOnePython()(i)
@@ -306,7 +308,7 @@ class TestComputeTestValue:
         not config.cxx, reason="G++ not available, so we need to skip this test."
     )
     def test_no_perform(self):
-        i = ts.int32("i")
+        i = aes.int32("i")
         i.tag.test_value = 3
 
         # Class IncOneC is defined outside of the TestComputeTestValue

@@ -11,7 +11,7 @@ from collections import OrderedDict
 import numpy as np
 
 import aesara
-import aesara.tensor as tt
+import aesara.tensor as aet
 from aesara.gradient import grad
 from aesara.tensor.math import argmax, dot, log, tanh
 from aesara.tensor.nnet.basic import CrossentropySoftmax1HotWithBiasDx, softmax
@@ -53,7 +53,7 @@ def gen_data():
         # floats it doesn't make sense) therefore instead of returning
         # ``shared_y`` we will have to cast it to int. This little hack
         # lets ous get around this issue
-        return shared_x, tt.cast(shared_y, "int32")
+        return shared_x, aet.cast(shared_y, "int32")
 
     test_set_x, test_set_y = shared_dataset(test_set)
     valid_set_x, valid_set_y = shared_dataset(valid_set)
@@ -132,7 +132,7 @@ class LogisticRegression:
         # LP[T.arange(y.shape[0]),y] is a vector v containing [LP[0,y[0]], LP[1,y[1]], LP[2,y[2]], ..., LP[n-1,y[n-1]]]
         # and T.mean(LP[T.arange(y.shape[0]),y]) is the mean (across minibatch examples) of the elements in v,
         # i.e., the mean log-likelihood across the minibatch.
-        return log(self.p_y_given_x[tt.arange(y.shape[0]), y])
+        return log(self.p_y_given_x[aet.arange(y.shape[0]), y])
 
 
 class HiddenLayer:

@@ -1,7 +1,7 @@
 import numpy as np
 
 import aesara
-import aesara.tensor as tt
+import aesara.tensor as aet
 import tests.unittest_tools as utt
 from aesara.gpuarray.nnet import (
     GpuCrossentropySoftmax1HotWithBiasDx,
@@ -54,7 +54,7 @@ def test_GpuCrossentropySoftmaxArgmax1HotWithBias():
     del W_values
     p_y_given_x = aesara.tensor.nnet.softmax(dot_result + b)
     y_pred = argmax(p_y_given_x, axis=-1)
-    loss = -mean(log(p_y_given_x)[tt.arange(y.shape[0]), y])
+    loss = -mean(log(p_y_given_x)[aet.arange(y.shape[0]), y])
     dW = grad(loss, dot_result)
     classify = aesara.function(
         inputs=[y, b, dot_result], outputs=[loss, y_pred, dW], mode=mode_without_gpu

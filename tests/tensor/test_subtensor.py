@@ -8,7 +8,7 @@ from numpy.testing import assert_array_equal
 
 import aesara
 import aesara.scalar as scal
-import aesara.tensor.basic as tt
+import aesara.tensor.basic as aet
 from aesara.compile import DeepCopyOp, shared
 from aesara.compile.io import In
 from aesara.configdefaults import config
@@ -316,7 +316,7 @@ class TestSubtensor(utt.OptimizationTestMixin):
             (lambda: n[: (2 ** 63)])()
 
     def test_list_slice(self):
-        x = tt.arange(100).reshape((5, 5, 4))
+        x = aet.arange(100).reshape((5, 5, 4))
         res = x[[slice(1, -1)] * x.ndim].eval()
         x = np.arange(100).reshape((5, 5, 4))
         np.allclose(res, x[[slice(1, -1)] * x.ndim])
@@ -636,7 +636,7 @@ class TestSubtensor(utt.OptimizationTestMixin):
             # optimized for that case.
             (rand(4, 4, 2, 3), [3, 3, 1, 1, 2, 2, 0, 0, -1, -2, -3, -4]),
             # Test with TensorConstant index.
-            (rand(4, 2, 3), tt.constant([3, 3, 1, 1, 2, 2, 0, 0])),
+            (rand(4, 2, 3), aet.constant([3, 3, 1, 1, 2, 2, 0, 0])),
         ]:
             data = np.asarray(data, dtype=self.dtype)
             n = self.shared(data)
@@ -878,10 +878,10 @@ class TestSubtensor(utt.OptimizationTestMixin):
         f = self.function(
             [start, stop, step, length],
             [
-                tt.as_tensor_variable(cnf[0].start),
-                tt.as_tensor_variable(cnf[0].stop),
-                tt.as_tensor_variable(cnf[0].step),
-                tt.as_tensor_variable(cnf[1]),
+                aet.as_tensor_variable(cnf[0].start),
+                aet.as_tensor_variable(cnf[0].stop),
+                aet.as_tensor_variable(cnf[0].step),
+                aet.as_tensor_variable(cnf[1]),
             ],
             N=0,
             op=subtensor_ops,
@@ -906,10 +906,10 @@ class TestSubtensor(utt.OptimizationTestMixin):
         f = self.function(
             [stop, step, length],
             [
-                tt.as_tensor_variable(cnf[0].start),
-                tt.as_tensor_variable(cnf[0].stop),
-                tt.as_tensor_variable(cnf[0].step),
-                tt.as_tensor_variable(cnf[1]),
+                aet.as_tensor_variable(cnf[0].start),
+                aet.as_tensor_variable(cnf[0].stop),
+                aet.as_tensor_variable(cnf[0].step),
+                aet.as_tensor_variable(cnf[1]),
             ],
             N=0,
             op=subtensor_ops,
@@ -933,10 +933,10 @@ class TestSubtensor(utt.OptimizationTestMixin):
         f = self.function(
             [start, step, length],
             [
-                tt.as_tensor_variable(cnf[0].start),
-                tt.as_tensor_variable(cnf[0].stop),
-                tt.as_tensor_variable(cnf[0].step),
-                tt.as_tensor_variable(cnf[1]),
+                aet.as_tensor_variable(cnf[0].start),
+                aet.as_tensor_variable(cnf[0].stop),
+                aet.as_tensor_variable(cnf[0].step),
+                aet.as_tensor_variable(cnf[1]),
             ],
             N=0,
             op=subtensor_ops,
@@ -960,10 +960,10 @@ class TestSubtensor(utt.OptimizationTestMixin):
         f = self.function(
             [start, stop, length],
             [
-                tt.as_tensor_variable(cnf[0].start),
-                tt.as_tensor_variable(cnf[0].stop),
-                tt.as_tensor_variable(cnf[0].step),
-                tt.as_tensor_variable(cnf[1]),
+                aet.as_tensor_variable(cnf[0].start),
+                aet.as_tensor_variable(cnf[0].stop),
+                aet.as_tensor_variable(cnf[0].step),
+                aet.as_tensor_variable(cnf[1]),
             ],
             N=0,
             op=subtensor_ops,
@@ -986,10 +986,10 @@ class TestSubtensor(utt.OptimizationTestMixin):
         f = self.function(
             [step, length],
             [
-                tt.as_tensor_variable(cnf[0].start),
-                tt.as_tensor_variable(cnf[0].stop),
-                tt.as_tensor_variable(cnf[0].step),
-                tt.as_tensor_variable(cnf[1]),
+                aet.as_tensor_variable(cnf[0].start),
+                aet.as_tensor_variable(cnf[0].stop),
+                aet.as_tensor_variable(cnf[0].step),
+                aet.as_tensor_variable(cnf[1]),
             ],
             N=0,
             op=subtensor_ops,
@@ -1011,10 +1011,10 @@ class TestSubtensor(utt.OptimizationTestMixin):
         f = self.function(
             [start, length],
             [
-                tt.as_tensor_variable(cnf[0].start),
-                tt.as_tensor_variable(cnf[0].stop),
-                tt.as_tensor_variable(cnf[0].step),
-                tt.as_tensor_variable(cnf[1]),
+                aet.as_tensor_variable(cnf[0].start),
+                aet.as_tensor_variable(cnf[0].stop),
+                aet.as_tensor_variable(cnf[0].step),
+                aet.as_tensor_variable(cnf[1]),
             ],
             N=0,
             op=subtensor_ops,
@@ -1036,10 +1036,10 @@ class TestSubtensor(utt.OptimizationTestMixin):
         f = self.function(
             [stop, length],
             [
-                tt.as_tensor_variable(cnf[0].start),
-                tt.as_tensor_variable(cnf[0].stop),
-                tt.as_tensor_variable(cnf[0].step),
-                tt.as_tensor_variable(cnf[1]),
+                aet.as_tensor_variable(cnf[0].start),
+                aet.as_tensor_variable(cnf[0].stop),
+                aet.as_tensor_variable(cnf[0].step),
+                aet.as_tensor_variable(cnf[1]),
             ],
             N=0,
             op=subtensor_ops,
@@ -1302,7 +1302,7 @@ class TestSubtensor(utt.OptimizationTestMixin):
         # Test case provided (and bug detected, gh-607) by John Salvatier
         m = matrix("m")
         gv = np.array([0, 1, 3])
-        g = tt.constant(gv)
+        g = aet.constant(gv)
         i = lvector("i")
 
         # s1 used to fail
@@ -1699,7 +1699,7 @@ class TestIncSubtensor1:
         utt.assert_allclose(a2val[3], mval[3] * 2)
 
     def test_inc_bcastableidx(self):
-        idx = tt.constant([0])
+        idx = aet.constant([0])
         c_inc = col()
         m_inc = matrix()
         out1 = inc_subtensor(self.m[:, idx], c_inc)
@@ -1740,7 +1740,7 @@ class TestAdvancedSubtensor:
             y = tensor(
                 dtype="float32", broadcastable=(False,) * len(y_val.shape), name="y"
             )
-            sym_idx = [tt.as_tensor_variable(ix) for ix in idx]
+            sym_idx = [aet.as_tensor_variable(ix) for ix in idx]
             expr = advanced_inc_subtensor(x, y, *sym_idx)
             f = aesara.function([y], expr, mode=self.mode)
             rval = f(y_val)
@@ -1813,7 +1813,7 @@ class TestAdvancedSubtensor:
             # optimized for that case.
             (rand(4, 4, 2, 3), [3, 3, 1, 1, 2, 2, 0, 0, -1, -2, -3, -4]),
             # Test with TensorConstant index.
-            (rand(2, 4, 3), tt.constant([3, 3, 1, 1, 2, 2, 0, 0])),
+            (rand(2, 4, 3), aet.constant([3, 3, 1, 1, 2, 2, 0, 0])),
         ]:
             data = np.asarray(data, dtype=self.dtype)
             n = self.shared(data)
@@ -2018,7 +2018,7 @@ class TestAdvancedSubtensor:
         var = self.shared(var_v)
         idx1_v = rng.randint(0, 61, size=(5, 4)).astype("int32")
         idx1 = self.shared(idx1_v)
-        idx2 = tt.arange(4)
+        idx2 = aet.arange(4)
         out = var[:, idx1, idx2]
         f = aesara.function([], out, mode=self.mode)
         out_v = f()
@@ -2068,7 +2068,7 @@ class TestAdvancedSubtensor:
         # Test boolean gradients
         def fun(x, y):
             return advanced_inc_subtensor(
-                x, y, tt.as_tensor(np.array([[True, False], [False, True]]))
+                x, y, aet.as_tensor(np.array([[True, False], [False, True]]))
             )
 
         utt.verify_grad(
@@ -2082,7 +2082,7 @@ class TestAdvancedSubtensor:
 
         def fun(x, y):
             return advanced_set_subtensor(
-                x, y, tt.as_tensor(np.array([[True, False], [False, True]]))
+                x, y, aet.as_tensor(np.array([[True, False], [False, True]]))
             )
 
         utt.verify_grad(
@@ -2424,7 +2424,7 @@ def test_indexed_result_shape():
         if isinstance(x, (slice, type(None))):
             return x
         else:
-            return tt.as_tensor(x)
+            return aet.as_tensor(x)
 
     def bcast_shape_tuple(x):
         if not hasattr(x, "shape"):
@@ -2435,14 +2435,14 @@ def test_indexed_result_shape():
 
     def compare_index_shapes(test_array, test_idx):
         res = indexed_result_shape(
-            tt.as_tensor(test_array).shape, [idx_as_tensor(i) for i in test_idx]
+            aet.as_tensor(test_array).shape, [idx_as_tensor(i) for i in test_idx]
         )
         exp_res = test_array[test_idx].shape
         assert np.array_equal(tuple(get_test_value(r) for r in res), exp_res)
 
         # Test shape-only version
         res = indexed_result_shape(
-            tt.as_tensor(test_array).shape,
+            aet.as_tensor(test_array).shape,
             [bcast_shape_tuple(idx_as_tensor(i)) for i in test_idx],
             indices_are_shapes=True,
         )

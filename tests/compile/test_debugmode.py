@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 
 import aesara
-import aesara.tensor as tt
+import aesara.tensor as aet
 from aesara.compile import debugmode
 from aesara.configdefaults import config
 from aesara.graph.basic import Apply, Variable
@@ -32,8 +32,8 @@ class BROKEN_ON_PURPOSE_Add(COp):
         self.py_offset = py_offset
 
     def make_node(self, a, b):
-        a = tt.as_tensor_variable(a)
-        b = tt.as_tensor_variable(b)
+        a = aet.as_tensor_variable(a)
+        b = aet.as_tensor_variable(b)
         assert a.type.dtype == "float64"
         assert a.type.dtype == b.type.dtype
         assert a.type.ndim == 1
@@ -116,7 +116,7 @@ class WeirdBrokenOp(COp):
         self.behaviour = behaviour
 
     def make_node(self, a):
-        a_ = tt.as_tensor_variable(a)
+        a_ = aet.as_tensor_variable(a)
         r = Apply(self, [a_], [a_.type()])
         return r
 
@@ -259,7 +259,7 @@ def test_badoptimization_opt_err():
         if node.op == add:
             inputs = list(node.inputs)
             if inputs[-1].owner is None:
-                inputs[-1] = tt.concatenate((inputs[-1], inputs[-1]))
+                inputs[-1] = aet.concatenate((inputs[-1], inputs[-1]))
                 return [node.op(*inputs)]
         return False
 
@@ -608,8 +608,8 @@ class BrokenCImplementationAdd(COp):
     __props__ = ()
 
     def make_node(self, a, b):
-        a = tt.as_tensor_variable(a)
-        b = tt.as_tensor_variable(b)
+        a = aet.as_tensor_variable(a)
+        b = aet.as_tensor_variable(b)
         assert a.type.dtype == "float32"
         assert a.type.dtype == b.type.dtype
         assert a.type.ndim == 2
@@ -706,7 +706,7 @@ class VecAsRowAndCol(Op):
 
     def make_node(self, v):
         if not isinstance(v, Variable):
-            v = tt.as_tensor_variable(v)
+            v = aet.as_tensor_variable(v)
         assert v.type.ndim == 1
         type_class = type(v.type)
         out_r_type = type_class(dtype=v.dtype, broadcastable=(True, False))

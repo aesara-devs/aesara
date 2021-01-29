@@ -1,7 +1,7 @@
 import numpy as np
 
 import aesara
-import aesara.tensor.basic as tt
+import aesara.tensor.basic as aet
 from aesara.configdefaults import config
 from aesara.gradient import Rop, grad, jacobian
 from aesara.scan.op import Scan
@@ -77,9 +77,9 @@ class TestGaussNewton:
 
         # build recurrent graph
         if batch_size == 1:
-            h_0 = tt.alloc(0.0, 10).astype(config.floatX)
+            h_0 = aet.alloc(0.0, 10).astype(config.floatX)
         else:
-            h_0 = tt.alloc(0.0, batch_size, 10).astype(config.floatX)
+            h_0 = aet.alloc(0.0, batch_size, 10).astype(config.floatX)
         h, updates = aesara.scan(step, sequences=[x], outputs_info=[h_0])
         # network output
         y = dot(h, W_hy) + b_y
@@ -101,7 +101,7 @@ class TestGaussNewton:
         # Compute Gauss-Newton-Matrix times some vector `v` which is `p` in CG,
         # but for simplicity, I just take the parameters vector because it's
         # already there.
-        Gv = gn(v=params, cost=cost, parameters=params, damp=tt.constant(1.0))
+        Gv = gn(v=params, cost=cost, parameters=params, damp=aet.constant(1.0))
 
         # compile Aesara function
         f = aesara.function([], [cost_] + Gv, givens={x: inputs, t: targets}, mode=mode)
@@ -310,7 +310,7 @@ class TestPushOutSumOfDot:
         zi = tensor3("zi")
         zi_value = x_value
 
-        init = tt.alloc(np.cast[config.floatX](0), batch_size, dim)
+        init = aet.alloc(np.cast[config.floatX](0), batch_size, dim)
 
         def rnn_step1(
             # sequences
@@ -392,7 +392,7 @@ class TestPushOutSumOfDot:
             dot_output = dot(temp1, temp2)
             return previous_output + dot_output
 
-        init = tt.as_tensor_variable(np.random.normal(size=(3, 7)))
+        init = aet.as_tensor_variable(np.random.normal(size=(3, 7)))
 
         # Compile the function twice, once with the optimization and once
         # without

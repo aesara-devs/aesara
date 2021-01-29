@@ -3,7 +3,7 @@ import warnings
 import numpy as np
 
 from aesara import config, printing
-from aesara import scalar as ts
+from aesara import scalar as aes
 from aesara.gradient import DisconnectedType
 from aesara.graph.basic import Apply, Variable
 from aesara.graph.op import COp, Op
@@ -339,7 +339,7 @@ class Argmax(COp):
     __props__ = ("axis",)
     _f16_ok = True
 
-    params_type = ParamsType(c_axis=ts.int64)
+    params_type = ParamsType(c_axis=aes.int64)
 
     def __init__(self, axis):
         if axis is not None:
@@ -589,14 +589,14 @@ class Max(CAReduce):
     nfunc_spec = ("max", 1, 1)
 
     def __init__(self, axis):
-        super().__init__(ts.scalar_maximum, axis)
+        super().__init__(aes.scalar_maximum, axis)
 
 
 class Min(CAReduce):
     nfunc_spec = ("min", 1, 1)
 
     def __init__(self, axis):
-        super().__init__(ts.scalar_minimum, axis)
+        super().__init__(aes.scalar_minimum, axis)
 
 
 def max(x, axis=None, keepdims=False):
@@ -1409,7 +1409,7 @@ def complex_from_polar(abs, angle):
 
 class Mean(CAReduce):
     def __init__(self, axis=None):
-        super().__init__(ts.add, axis)
+        super().__init__(aes.add, axis)
         assert self.axis is None or len(self.axis) == 1
 
     def __str__(self):
@@ -1733,13 +1733,13 @@ def ceil_intdiv(a, b):
     # cast them to float to avoid doing the modulo. We do not know if this
     # is faster or not. But this is not safe for int64 as the cast will
     # lose precision.
-    # e.g.: cast(cast(a, scalar.upcast(a, 'float32')) / b, ts.upcast(a, b))
+    # e.g.: cast(cast(a, scalar.upcast(a, 'float32')) / b, aes.upcast(a, b))
 
     # We cast for the case when a and b are uint*. Otherwise neq will
     # force their upcast to int.
     div = int_div(a, b)
     ret = cast(neq(a % b, 0), div.dtype) + div
-    assert ret.dtype == ts.upcast(div.owner.inputs[0], div.owner.inputs[1])
+    assert ret.dtype == aes.upcast(div.owner.inputs[0], div.owner.inputs[1])
     return ret
 
 
@@ -1750,7 +1750,7 @@ def mod_check(x, y):
         or as_tensor_variable(y).dtype in complex_dtypes
     ):
         # Currently forbidden.
-        raise ts.Mod.complex_error
+        raise aes.Mod.complex_error
     else:
         return mod(x, y)
 
@@ -1840,7 +1840,7 @@ class Dot(Op):
             bz = bx[:-1]
 
         i_dtypes = [input.type.dtype for input in inputs]
-        outputs = [tensor(ts.upcast(*i_dtypes), bz)]
+        outputs = [tensor(aes.upcast(*i_dtypes), bz)]
         return Apply(self, inputs, outputs)
 
     def perform(self, node, inp, out):
@@ -2263,7 +2263,7 @@ class All(CAReduce):
     nfunc_spec = ("all", 1, 1)
 
     def __init__(self, axis=None):
-        super().__init__(ts.and_, axis)
+        super().__init__(aes.and_, axis)
 
     def _output_dtype(self, idtype):
         return "bool"
@@ -2296,7 +2296,7 @@ class Any(CAReduce):
     nfunc_spec = ("any", 1, 1)
 
     def __init__(self, axis=None):
-        super().__init__(ts.or_, axis)
+        super().__init__(aes.or_, axis)
 
     def _output_dtype(self, idtype):
         return "bool"
@@ -2359,7 +2359,7 @@ class Sum(CAReduceDtype):
     nfunc_spec = ("sum", 1, 1)
 
     def __init__(self, axis=None, dtype=None, acc_dtype=None):
-        super().__init__(ts.add, axis=axis, dtype=dtype, acc_dtype=acc_dtype)
+        super().__init__(aes.add, axis=axis, dtype=dtype, acc_dtype=acc_dtype)
 
     def __str__(self):
         name = self.__class__.__name__
@@ -2391,7 +2391,7 @@ class Sum(CAReduceDtype):
                 new_dims.append(i)
                 i += 1
         ds_op = DimShuffle(gz.type.broadcastable, new_dims)
-        gx = Elemwise(ts.second)(x, ds_op(gz))
+        gx = Elemwise(aes.second)(x, ds_op(gz))
         return [gx]
 
     def R_op(self, inputs, eval_points):
@@ -2446,7 +2446,7 @@ class Prod(CAReduceDtype):
     nfunc_spec = ("prod", 1, 1)
 
     def __init__(self, axis=None, dtype=None, acc_dtype=None, no_zeros_in_input=False):
-        super().__init__(ts.mul, axis=axis, dtype=dtype, acc_dtype=acc_dtype)
+        super().__init__(aes.mul, axis=axis, dtype=dtype, acc_dtype=acc_dtype)
         self.no_zeros_in_input = no_zeros_in_input
 
     def __setstate__(self, dct):
@@ -2642,7 +2642,7 @@ class MulWithoutZeros(BinaryScalarOp):
         return (1,)
 
 
-mul_without_zeros = MulWithoutZeros(ts.upcast_out, name="mul_without_zeros")
+mul_without_zeros = MulWithoutZeros(aes.upcast_out, name="mul_without_zeros")
 
 
 class ProdWithoutZeros(CAReduceDtype):

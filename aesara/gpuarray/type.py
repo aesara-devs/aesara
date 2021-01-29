@@ -6,8 +6,8 @@ import warnings
 import numpy as np
 
 import aesara
-import aesara.scalar as ts
-import aesara.tensor as tt
+import aesara.scalar as aes
+import aesara.tensor as aet
 import aesara.tensor.basic
 from aesara.compile import SharedVariable
 from aesara.configdefaults import config
@@ -304,7 +304,7 @@ class GpuArrayType(CType):
                 ):
                     data = converted_data
 
-            up_dtype = ts.upcast(self.dtype, data.dtype)
+            up_dtype = aes.upcast(self.dtype, data.dtype)
             if up_dtype == self.dtype:
                 if not isinstance(data, gpuarray.GpuArray):
                     data = np.array(data, dtype=self.dtype, copy=False)
@@ -435,7 +435,7 @@ class GpuArrayType(CType):
                 sb == ob or ob for sb, ob in zip(self.broadcastable, vt.broadcastable)
             )
         ):
-            return tt.patternbroadcast(var, self.broadcastable)
+            return aet.patternbroadcast(var, self.broadcastable)
 
     def __hash__(self):
         return hash((type(self), self.typecode, self.broadcastable, self.context_name))

@@ -4,7 +4,7 @@ import pytest
 
 import aesara
 from aesara import function
-from aesara import tensor as tt
+from aesara import tensor as aet
 from aesara.configdefaults import config
 
 # The one in comment are not tested...
@@ -36,7 +36,7 @@ def test_rop_lop():
 
     sy, _ = aesara.scan(
         lambda i, y, x, v: (aesara.gradient.grad(y[i], x) * v).sum(),
-        sequences=tt.arange(y.shape[0]),
+        sequences=aet.arange(y.shape[0]),
         non_sequences=[y, mx, mv],
     )
     scan_f = function([mx, mv], sy)

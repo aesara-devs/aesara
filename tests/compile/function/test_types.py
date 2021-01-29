@@ -8,7 +8,7 @@ import pytest
 
 import aesara
 import aesara.gpuarray
-import aesara.tensor as tt
+import aesara.tensor as aet
 from aesara.compile.function import function
 from aesara.compile.function.types import UnusedInputError
 from aesara.compile.io import In, Out
@@ -574,7 +574,7 @@ class TestFunction:
 
     def test_constant_output(self):
         # Test that if the output is a constant, we respect the aesara memory interface
-        f = aesara.function([], tt.constant([4]))
+        f = aesara.function([], aet.constant([4]))
         # print f.maker.fgraph.toposort()
         out = f()
         assert (out == 4).all()
@@ -585,7 +585,7 @@ class TestFunction:
         assert (out2 == 4).all()
 
         # Test that if the output is a constant and borrow, we respect the aesara memory interface
-        f = aesara.function([], Out(tt.constant([4]), borrow=True))
+        f = aesara.function([], Out(aet.constant([4]), borrow=True))
         # print f.maker.fgraph.toposort()
         out = f()
         assert (out == 4).all()

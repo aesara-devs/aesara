@@ -2,7 +2,7 @@ from functools import wraps
 
 import numpy as np
 
-from aesara import scalar as ts
+from aesara import scalar as aes
 from aesara.gpuarray.basic_ops import (
     GpuAllocEmpty,
     GpuFromHost,
@@ -130,7 +130,7 @@ def alpha_merge(cls, alpha_in, beta_in):
     """
     Decorator to merge multiplication by a scalar on the output.
 
-    This will find a pattern of `ts * <yourop>(some, params, alpha,
+    This will find a pattern of `aes * <yourop>(some, params, alpha,
     beta)` and update it so that the scalar multiplication happens as
     part of your op.
 
@@ -185,7 +185,7 @@ def alpha_merge(cls, alpha_in, beta_in):
         def opt(fgraph, node):
             if (
                 isinstance(node.op, GpuElemwise)
-                and node.op.scalar_op == ts.mul
+                and node.op.scalar_op == aes.mul
                 and node.nin == 2
             ):
                 targ = find_node(fgraph, node.inputs[0], cls)
@@ -285,7 +285,7 @@ def output_merge(cls, alpha_in, beta_in, out_in):
         def opt(fgraph, node):
             if (
                 isinstance(node.op, GpuElemwise)
-                and node.op.scalar_op == ts.add
+                and node.op.scalar_op == aes.add
                 and node.nin == 2
             ):
                 targ = find_node(fgraph, node.inputs[0], cls)
@@ -307,7 +307,7 @@ def output_merge(cls, alpha_in, beta_in, out_in):
                 inputs = list(targ.inputs)
                 inputs[out_in] = W
                 dtype = inputs[beta_in].dtype
-                one = ts.constant(np.asarray(1.0, dtype=dtype))
+                one = aes.constant(np.asarray(1.0, dtype=dtype))
                 inputs[beta_in] = one
                 with inherit_stack_trace(node.outputs):
                     return maker(targ, *inputs)

@@ -20,15 +20,15 @@ IfElse vs Switch
 
 .. testcode::
 
-   from aesara import tensor as tt
+   from aesara import tensor as aet
    from aesara.ifelse import ifelse
    import aesara, time, numpy
 
-   a,b = tt.scalars('a', 'b')
-   x,y = tt.matrices('x', 'y')
+   a,b = aet.scalars('a', 'b')
+   x,y = aet.matrices('x', 'y')
 
-   z_switch = tt.switch(tt.lt(a, b), tt.mean(x), tt.mean(y))
-   z_lazy = ifelse(tt.lt(a, b), tt.mean(x), tt.mean(y))
+   z_switch = aet.switch(aet.lt(a, b), aet.mean(x), aet.mean(y))
+   z_lazy = ifelse(aet.lt(a, b), aet.mean(x), aet.mean(y))
 
    f_switch = aesara.function([a, b, x, y], z_switch,
                               mode=aesara.compile.mode.Mode(linker='vm'))

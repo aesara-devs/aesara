@@ -2,8 +2,8 @@ import numpy as np
 import pytest
 
 import aesara
-import aesara.scalar as ts
-import aesara.tensor as tt
+import aesara.scalar as aes
+import aesara.tensor as aet
 
 
 pygpu = pytest.importorskip("pygpu")
@@ -206,14 +206,14 @@ class TestFloat16:
         x = vector(dtype="float16")
         y = fvector()
 
-        cz = tanh(x + tt.cast(y, "float16"))
+        cz = tanh(x + aet.cast(y, "float16"))
         o = (
             cz
             - cz ** 2
-            + tt.cast(x, "int16")
-            + tt.cast(x, "float32")
-            + tt.cast(w, "float16")
-            - tt.constant(np.float16(1.0))
+            + aet.cast(x, "int16")
+            + aet.cast(x, "float32")
+            + aet.cast(w, "float16")
+            - aet.constant(np.float16(1.0))
         )
 
         aesara.function([w, x, y], o, mode=mode_with_gpu)
@@ -224,7 +224,7 @@ class TestFloat16:
         y = vector(dtype="float16")
         z = vector(dtype="float16")
 
-        o = tt.switch(v, mul(w, x, y), z)
+        o = aet.switch(v, mul(w, x, y), z)
         aesara.function([v, w, x, y, z], o, mode=mode_with_gpu)
 
     def test_cast_float16(self):
@@ -271,7 +271,7 @@ class TestGpuCAReduceCPY(test_elemwise.TestCAReduce):
     dtypes = ["float32"]
     bin_dtypes = ["uint8", "int8"]
     op = GpuCAReduceCPY
-    reds = [ts.add, ts.mul]
+    reds = [aes.add, aes.mul]
     pre_scalar_op = None
     mode = mode_with_gpu
 
@@ -462,7 +462,7 @@ class TestGpuCAReduceCuda(TestGpuCAReduceCPY):
         # ((5,4,3,10,11),[1,2]),
     ]
     op = GpuCAReduceCuda
-    reds = [ts.add, ts.mul, ts.scalar_maximum, ts.scalar_minimum]
+    reds = [aes.add, aes.mul, aes.scalar_maximum, aes.scalar_minimum]
     pre_scalar_op = None
 
     def test_perform_noopt(self):

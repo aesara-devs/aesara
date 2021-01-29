@@ -5,7 +5,7 @@ import pytest
 
 import aesara
 import aesara.sparse
-import aesara.tensor as tt
+import aesara.tensor as aet
 from aesara.misc.may_share_memory import may_share_memory
 from aesara.tensor.basic import MakeVector
 from aesara.tensor.shape import Shape_i, specify_shape
@@ -472,7 +472,7 @@ def makeSharedTester(
             x1_shared = self.shared_constructor(x1_1)
             x1_specify_shape = specify_shape(
                 x1_shared,
-                (tt.as_tensor_variable(x1_1.shape[0]), x1_shared.shape[1]),
+                (aet.as_tensor_variable(x1_1.shape[0]), x1_shared.shape[1]),
             )
             x1_shared.set_value(x1_2)
             assert np.allclose(

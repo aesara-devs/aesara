@@ -6,7 +6,7 @@ from io import StringIO
 import numpy as np
 
 import aesara
-import aesara.tensor as tt
+import aesara.tensor as aet
 from aesara.ifelse import ifelse
 from aesara.tensor.type import fvector, scalars
 
@@ -27,7 +27,7 @@ class TestProfiling:
             x = [fvector("val%i" % i) for i in range(3)]
 
             z = []
-            z += [tt.outer(x[i], x[i + 1]).sum(axis=1) for i in range(len(x) - 1)]
+            z += [aet.outer(x[i], x[i + 1]).sum(axis=1) for i in range(len(x) - 1)]
             z += [x[i] + x[i + 1] for i in range(len(x) - 1)]
 
             p = aesara.ProfileStats(False, gpu_checks=False)
@@ -83,7 +83,7 @@ class TestProfiling:
             a, b = scalars("a", "b")
             x, y = scalars("x", "y")
 
-            z = ifelse(tt.lt(a, b), x * 2, y * 2)
+            z = ifelse(aet.lt(a, b), x * 2, y * 2)
 
             p = aesara.ProfileStats(False, gpu_checks=False)
 

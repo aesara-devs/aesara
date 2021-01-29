@@ -19,8 +19,8 @@ from collections import OrderedDict
 
 import numpy as np
 
-from aesara import scalar as ts
-from aesara import tensor as tt
+from aesara import scalar as aes
+from aesara import tensor as aet
 from aesara.configdefaults import config
 from aesara.graph.basic import (
     Constant,
@@ -67,9 +67,9 @@ def safe_new(x, tag="", dtype=None):
     # Note, as_tensor_variable will convert the Scalar into a
     # TensorScalar that will require a ScalarFromTensor op,
     # making the pushout optimization fail
-    elif isinstance(x, ts.ScalarVariable):
+    elif isinstance(x, aes.ScalarVariable):
         if dtype:
-            nw_x = ts.get_scalar_type(dtype=dtype)()
+            nw_x = aes.get_scalar_type(dtype=dtype)()
         else:
             nw_x = x.type()
         nw_x.name = nw_name
@@ -85,7 +85,7 @@ def safe_new(x, tag="", dtype=None):
         return nw_x
     else:
         try:
-            x = tt.as_tensor_variable(x)
+            x = aet.as_tensor_variable(x)
         except TypeError:
             # This could happen for example for random states
             pass
@@ -124,7 +124,7 @@ class until:
     """
 
     def __init__(self, condition):
-        self.condition = tt.as_tensor_variable(condition)
+        self.condition = aet.as_tensor_variable(condition)
         assert self.condition.ndim == 0
 
 
@@ -162,7 +162,7 @@ def traverse(out, x, x_copy, d, visited=None):
     elif out.owner is None:
         return d
     elif pygpu_activated and out.owner.op == host_from_gpu and out.owner.inputs == [x]:
-        d[out] = tt.as_tensor_variable(x_copy)
+        d[out] = aet.as_tensor_variable(x_copy)
         return d
     else:
         for inp in out.owner.inputs:

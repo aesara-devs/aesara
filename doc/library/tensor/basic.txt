@@ -9,7 +9,7 @@ Basic Tensor Functionality
 .. testsetup::
 
    import aesara
-   import aesara.tensor as tt
+   import aesara.tensor as aet
    from aesara.tensor.type import scalar, iscalar, TensorType, dmatrix, ivector, fmatrix
    from aesara.tensor import set_subtensor, inc_subtensor, batched_dot
    from aesara import shared
@@ -19,12 +19,12 @@ Basic Tensor Functionality
 Aesara supports any kind of Python object, but its focus is support for
 symbolic matrix expressions.  When you type,
 
->>> x = tt.fmatrix()
+>>> x = aet.fmatrix()
 
 the ``x`` is a :class:`TensorVariable` instance.
-The ``tt.fmatrix`` object itself is an instance of :class:`TensorType`.
+The ``aet.fmatrix`` object itself is an instance of :class:`TensorType`.
 Aesara knows what type of variable ``x`` is because ``x.type``
-points back to ``tt.fmatrix``.
+points back to ``aet.fmatrix``.
 
 This chapter explains the various ways of creating tensor variables,
 the attributes and methods of :class:`TensorVariable` and :class:`TensorType`,
@@ -531,7 +531,7 @@ TensorVariable
 
         Transpose of this tensor.
 
-        >>> x = tt.zmatrix()
+        >>> x = aet.zmatrix()
         >>> y = 3+.2j * x.T
 
         .. note::
@@ -824,10 +824,10 @@ Creating Tensor
     :param tensors: one or more tensors of the same rank
     :returns: A tensor such that rval[0] == tensors[0], rval[1] == tensors[1], etc.
 
-    >>> x0 = tt.scalar()
-    >>> x1 = tt.scalar()
-    >>> x2 = tt.scalar()
-    >>> x = tt.stack(x0, x1, x2)
+    >>> x0 = aet.scalar()
+    >>> x1 = aet.scalar()
+    >>> x2 = aet.scalar()
+    >>> x = aet.stack(x0, x1, x2)
     >>> x.ndim # x is a vector of length 3.
     1
 
@@ -840,10 +840,10 @@ Creating Tensor
     :param axis: Tensors will be joined along this axis, so they may have different
         ``shape[axis]``
 
-    >>> x0 = tt.fmatrix()
-    >>> x1 = tt.ftensor3()
-    >>> x2 = tt.fvector()
-    >>> x = tt.concatenate([x0, x1[0], tt.shape_padright(x2)], axis=1)
+    >>> x0 = aet.fmatrix()
+    >>> x1 = aet.ftensor3()
+    >>> x2 = aet.fvector()
+    >>> x = aet.concatenate([x0, x1[0], aet.shape_padright(x2)], axis=1)
     >>> x.ndim
     2
 
@@ -1147,7 +1147,7 @@ Operator Support
 
 Many Python operators are supported.
 
->>> a, b = tt.itensor3(), tt.itensor3() # example inputs
+>>> a, b = aet.itensor3(), aet.itensor3() # example inputs
 
 Arithmetic
 --------------
@@ -1155,13 +1155,13 @@ Arithmetic
 .. doctest::
    :options: +SKIP
 
-   >>> a + 3      # tt.add(a, 3) -> itensor3
-   >>> 3 - a      # tt.sub(3, a)
-   >>> a * 3.5    # tt.mul(a, 3.5) -> ftensor3 or dtensor3 (depending on casting)
-   >>> 2.2 / a    # tt.truediv(2.2, a)
-   >>> 2.2 // a   # tt.intdiv(2.2, a)
-   >>> 2.2**a     # tt.pow(2.2, a)
-   >>> b % a      # tt.mod(b, a)
+   >>> a + 3      # aet.add(a, 3) -> itensor3
+   >>> 3 - a      # aet.sub(3, a)
+   >>> a * 3.5    # aet.mul(a, 3.5) -> ftensor3 or dtensor3 (depending on casting)
+   >>> 2.2 / a    # aet.truediv(2.2, a)
+   >>> 2.2 // a   # aet.intdiv(2.2, a)
+   >>> 2.2**a     # aet.pow(2.2, a)
+   >>> b % a      # aet.mod(b, a)
 
 Bitwise
 -------------
@@ -1169,10 +1169,10 @@ Bitwise
 .. doctest::
    :options: +SKIP
 
-   >>> a & b      # tt.and_(a,b)    bitwise and (alias tt.bitwise_and)
-   >>> a ^ 1      # tt.xor(a,1)     bitwise xor (alias tt.bitwise_xor)
-   >>> a | b      # tt.or_(a,b)     bitwise or (alias tt.bitwise_or)
-   >>> ~a         # tt.invert(a)    bitwise invert (alias tt.bitwise_not)
+   >>> a & b      # aet.and_(a,b)    bitwise and (alias aet.bitwise_and)
+   >>> a ^ 1      # aet.xor(a,1)     bitwise xor (alias aet.bitwise_xor)
+   >>> a | b      # aet.or_(a,b)     bitwise or (alias aet.bitwise_or)
+   >>> ~a         # aet.invert(a)    bitwise invert (alias aet.bitwise_not)
 
 Inplace
 -------------
@@ -1201,9 +1201,9 @@ Casting
 
     .. testcode:: cast
 
-        import Aesara.tensor as tt
-        x = tt.matrix()
-        x_as_int = tt.cast(x, 'int32')
+        import Aesara.tensor as aet
+        x = aet.matrix()
+        x_as_int = aet.cast(x, 'int32')
 
     Attempting to casting a complex value to a real value is ambiguous and
     will raise an exception.  Use `real()`, `imag()`, `abs()`, or `angle()`.
@@ -1237,9 +1237,9 @@ The six usual equality and inequality operators share the same interface.
 
   .. testcode:: oper
 
-    import Aesara.tensor as tt
-    x,y = tt.dmatrices('x','y')
-    z = tt.le(x,y)
+    import Aesara.tensor as aet
+    x,y = aet.dmatrices('x','y')
+    z = aet.le(x,y)
 
 .. function:: lt(a, b)
 
@@ -1330,10 +1330,10 @@ Condition
 
     .. testcode:: switch
 
-      import Aesara.tensor as tt
-      a,b = tt.dmatrices('a','b')
-      x,y = tt.dmatrices('x','y')
-      z = tt.switch(tt.lt(a,b), x, y)
+      import Aesara.tensor as aet
+      a,b = aet.dmatrices('a','b')
+      x,y = aet.dmatrices('x','y')
+      z = aet.switch(aet.lt(a,b), x, y)
 
 .. function:: where(cond, ift, iff)
 
@@ -1401,8 +1401,8 @@ Here is an example using the bit-wise ``and_`` via the ``&`` operator:
 
 .. testcode:: bitwise
 
-    import Aesara.tensor as tt
-    x,y = tt.imatrices('x','y')
+    import Aesara.tensor as aet
+    x,y = aet.imatrices('x','y')
     z = x & y
 
 
@@ -1651,8 +1651,8 @@ Linear Algebra
     Returns a tensor of size e.g. if it is 3D: (dim1, dim3, dim4)
     Example:
 
-    >>> first = tt.tensor3('first')
-    >>> second = tt.tensor3('second')
+    >>> first = aet.tensor3('first')
+    >>> second = aet.tensor3('second')
     >>> result = batched_dot(first, second)
 
     :note:  This is a subset of numpy.einsum, but we do not provide it for now.
@@ -1711,7 +1711,7 @@ Linear Algebra
 
     Example:
 
-    >>> a = tt.mgrid[0:5, 0:3]
+    >>> a = aet.mgrid[0:5, 0:3]
     >>> a[0].eval()
     array([[0, 0, 0],
            [1, 1, 1],
@@ -1735,7 +1735,7 @@ Linear Algebra
 
     Example:
 
-    >>> b = tt.ogrid[0:5, 0:3]
+    >>> b = aet.ogrid[0:5, 0:3]
     >>> b[0].eval()
     array([[0],
            [1],

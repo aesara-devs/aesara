@@ -1,7 +1,7 @@
 import numpy as np
 
 import aesara
-import aesara.tensor as tt
+import aesara.tensor as aet
 from aesara.configdefaults import config
 from aesara.graph.opt import check_stack_trace
 from aesara.graph.toolbox import is_same_graph
@@ -167,23 +167,23 @@ class TestSigmoidOpts:
             f(data)
 
             # tests inv_1_plus_exp
-            f = aesara.function([x], tt.fill(x, 1.0) / (1 + exp(-x)), mode=m)
+            f = aesara.function([x], aet.fill(x, 1.0) / (1 + exp(-x)), mode=m)
             # todo: solve issue #4589 first
             # assert check_stack_trace(f, ops_to_check=sigmoid)
             assert [node.op for node in f.maker.fgraph.toposort()] == [sigmoid]
             f(data)
-            f = aesara.function([x], tt.fill(x, 1.0) / (2 + exp(-x)), mode=m)
+            f = aesara.function([x], aet.fill(x, 1.0) / (2 + exp(-x)), mode=m)
             assert [node.op for node in f.maker.fgraph.toposort()] != [sigmoid]
             f(data)
-            f = aesara.function([x], tt.fill(x, 1.0) / (1 - exp(-x)), mode=m)
+            f = aesara.function([x], aet.fill(x, 1.0) / (1 - exp(-x)), mode=m)
             assert [node.op for node in f.maker.fgraph.toposort()] != [sigmoid]
             f(data)
-            f = aesara.function([x], tt.fill(x, 1.1) / (1 + exp(-x)), mode=m)
+            f = aesara.function([x], aet.fill(x, 1.1) / (1 + exp(-x)), mode=m)
             assert [node.op for node in f.maker.fgraph.toposort()] != [sigmoid]
             f(data)
 
             # tests inv_1_plus_exp with neg
-            f = aesara.function([x], tt.fill(x, -1.0) / (1 + exp(-x)), mode=m)
+            f = aesara.function([x], aet.fill(x, -1.0) / (1 + exp(-x)), mode=m)
             # todo: solve issue #4589 first
             # assert check_stack_trace(
             #     f, ops_to_check=[sigmoid, neg_inplace])
@@ -192,19 +192,19 @@ class TestSigmoidOpts:
                 neg_inplace,
             ]
             f(data)
-            f = aesara.function([x], tt.fill(x, -1.0) / (1 - exp(-x)), mode=m)
+            f = aesara.function([x], aet.fill(x, -1.0) / (1 - exp(-x)), mode=m)
             assert [node.op for node in f.maker.fgraph.toposort()] != [
                 sigmoid,
                 neg_inplace,
             ]
             f(data)
-            f = aesara.function([x], tt.fill(x, -1.0) / (2 + exp(-x)), mode=m)
+            f = aesara.function([x], aet.fill(x, -1.0) / (2 + exp(-x)), mode=m)
             assert [node.op for node in f.maker.fgraph.toposort()] != [
                 sigmoid,
                 neg_inplace,
             ]
             f(data)
-            f = aesara.function([x], tt.fill(x, -1.1) / (1 + exp(-x)), mode=m)
+            f = aesara.function([x], aet.fill(x, -1.1) / (1 + exp(-x)), mode=m)
             assert [node.op for node in f.maker.fgraph.toposort()] != [
                 sigmoid,
                 neg_inplace,
@@ -217,7 +217,7 @@ class TestSigmoidOpts:
             # = - (sigm(x) * sigm(x))
             f = aesara.function(
                 [x],
-                (tt.fill(x, -1.0) * exp(x)) / ((1 + exp(x)) * (1 + exp(-x))),
+                (aet.fill(x, -1.0) * exp(x)) / ((1 + exp(x)) * (1 + exp(-x))),
                 mode=m,
             )
             # todo: solve issue #4589 first
@@ -226,7 +226,7 @@ class TestSigmoidOpts:
             f(data)
             f = aesara.function(
                 [x],
-                (tt.fill(x, -1.1) * exp(x)) / ((1 + exp(x)) * (1 + exp(-x))),
+                (aet.fill(x, -1.1) * exp(x)) / ((1 + exp(x)) * (1 + exp(-x))),
                 mode=m,
             )
             assert [node.op for node in f.maker.fgraph.toposort()] != [
@@ -237,7 +237,7 @@ class TestSigmoidOpts:
             f(data)
             f = aesara.function(
                 [x],
-                (tt.fill(x, -1.0) * exp(x)) / ((2 + exp(x)) * (1 + exp(-x))),
+                (aet.fill(x, -1.0) * exp(x)) / ((2 + exp(x)) * (1 + exp(-x))),
                 mode=m,
             )
             assert [node.op for node in f.maker.fgraph.toposort()] != [
@@ -248,7 +248,7 @@ class TestSigmoidOpts:
             f(data)
             f = aesara.function(
                 [x],
-                (tt.fill(x, -1.0) * exp(x)) / ((1 + exp(x)) * (2 + exp(-x))),
+                (aet.fill(x, -1.0) * exp(x)) / ((1 + exp(x)) * (2 + exp(-x))),
                 mode=m,
             )
             assert [node.op for node in f.maker.fgraph.toposort()] != [
@@ -259,7 +259,7 @@ class TestSigmoidOpts:
             f(data)
             f = aesara.function(
                 [x],
-                (tt.fill(x, -1.0) * exp(x)) / ((1 + exp(x)) * (1 + exp(x))),
+                (aet.fill(x, -1.0) * exp(x)) / ((1 + exp(x)) * (1 + exp(x))),
                 mode=m,
             )
             assert [node.op for node in f.maker.fgraph.toposort()] != [
@@ -270,7 +270,7 @@ class TestSigmoidOpts:
             f(data)
             f = aesara.function(
                 [x],
-                (tt.fill(x, -1.0) * exp(x)) / ((1 + exp(x)) * (2 + exp(-x))),
+                (aet.fill(x, -1.0) * exp(x)) / ((1 + exp(x)) * (2 + exp(-x))),
                 mode=m,
             )
             assert [node.op for node in f.maker.fgraph.toposort()] != [
@@ -300,7 +300,7 @@ class TestSigmoidOpts:
         ]
 
         # tests inv_1_plus_exp
-        f = aesara.function([x], 1 - tt.fill(x, 1.0) / (1 + exp(-x)), mode=m)
+        f = aesara.function([x], 1 - aet.fill(x, 1.0) / (1 + exp(-x)), mode=m)
         assert check_stack_trace(f, ops_to_check=[neg, sigmoid_inplace])
         assert [node.op for node in f.maker.fgraph.toposort()] == [
             neg,
@@ -492,13 +492,13 @@ class TestSoftplusOpts:
         f(np.random.rand(54, 11).astype(config.floatX))
 
         # Same test with a flatten
-        out = log(1 - tt.flatten(sigmoid(x)))
+        out = log(1 - aet.flatten(sigmoid(x)))
         f = aesara.function([x], out, mode=self.m)
 
         # assert check_stack_trace(f, ops_to_check='all')
         topo = f.maker.fgraph.toposort()
         assert len(topo) == 3
-        assert tt.is_flat(topo[0].outputs[0])
+        assert aet.is_flat(topo[0].outputs[0])
         assert isinstance(topo[1].op.scalar_op, ScalarSoftplus)
         assert isinstance(topo[2].op.scalar_op, aesara.scalar.Neg)
         f(np.random.rand(54, 11).astype(config.floatX))

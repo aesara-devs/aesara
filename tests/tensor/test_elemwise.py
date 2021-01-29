@@ -5,7 +5,7 @@ import numpy as np
 import pytest
 
 import aesara
-import aesara.scalar as ts
+import aesara.scalar as aes
 import tests.unittest_tools as utt
 from aesara.compile.mode import Mode
 from aesara.configdefaults import config
@@ -161,7 +161,7 @@ class TestBroadcast:
         ]:
             x = type(aesara.config.floatX, [(entry == 1) for entry in xsh])("x")
             y = type(aesara.config.floatX, [(entry == 1) for entry in ysh])("y")
-            e = op(ts.add)(x, y)
+            e = op(aes.add)(x, y)
             f = copy(linker).accept(FunctionGraph([x, y], [e])).make_function()
             xv = rand_val(xsh)
             yv = rand_val(ysh)
@@ -174,7 +174,7 @@ class TestBroadcast:
             if isinstance(linker, PerformLinker):
                 x = type(aesara.config.floatX, [(entry == 1) for entry in xsh])("x")
                 y = type(aesara.config.floatX, [(entry == 1) for entry in ysh])("y")
-                e = op(ts.add)(x, y)
+                e = op(aes.add)(x, y)
                 f = (
                     copy(linker)
                     .accept(FunctionGraph([x, y], [e.shape]))
@@ -195,7 +195,7 @@ class TestBroadcast:
         ]:
             x = type(aesara.config.floatX, [(entry == 1) for entry in xsh])("x")
             y = type(aesara.config.floatX, [(entry == 1) for entry in ysh])("y")
-            e = op(ts.Add(ts.transfer_type(0)), {0: 0})(x, y)
+            e = op(aes.Add(aes.transfer_type(0)), {0: 0})(x, y)
             f = copy(linker).accept(FunctionGraph([x, y], [e])).make_function()
             xv = rand_val(xsh)
             yv = rand_val(ysh)
@@ -209,7 +209,7 @@ class TestBroadcast:
             if isinstance(linker, PerformLinker):
                 x = type(aesara.config.floatX, [(entry == 1) for entry in xsh])("x")
                 y = type(aesara.config.floatX, [(entry == 1) for entry in ysh])("y")
-                e = op(ts.Add(ts.transfer_type(0)), {0: 0})(x, y)
+                e = op(aes.Add(aes.transfer_type(0)), {0: 0})(x, y)
                 f = (
                     copy(linker)
                     .accept(FunctionGraph([x, y], [e.shape]))
@@ -253,7 +253,7 @@ class TestBroadcast:
         ):
             x = t(aesara.config.floatX, [0, 0])("x")
             y = t(aesara.config.floatX, [1, 1])("y")
-            e = op(ts.Second(ts.transfer_type(0)), {0: 0})(x, y)
+            e = op(aes.Second(aes.transfer_type(0)), {0: 0})(x, y)
             f = linker().accept(FunctionGraph([x, y], [e])).make_function()
             xv = rval((5, 5))
             yv = rval((1, 1))
@@ -284,7 +284,7 @@ class TestBroadcast:
         ):
             x = t(aesara.config.floatX, [0, 0, 0, 0, 0])("x")
             y = t(aesara.config.floatX, [0, 0, 0, 0, 0])("y")
-            e = op(ts.add)(x, y)
+            e = op(aes.add)(x, y)
             f = linker().accept(FunctionGraph([x, y], [e])).make_function()
             xv = rval((2, 2, 2, 2, 2))
             yv = rval((2, 2, 2, 2, 2)).transpose(4, 0, 3, 1, 2)
@@ -302,7 +302,7 @@ class TestBroadcast:
             [self.rand_val, self.rand_cval],
         ):
             x = t(aesara.config.floatX, [0, 0])("x")
-            e = op(ts.add)(x, x)
+            e = op(aes.add)(x, x)
             f = linker().accept(FunctionGraph([x], [e])).make_function()
             xv = rval((2, 2))
             zv = xv + xv
@@ -333,7 +333,7 @@ class TestCAReduce(unittest_tools.InferShapeTester):
     def with_mode(
         self,
         mode,
-        scalar_op=ts.add,
+        scalar_op=aes.add,
         dtype="floatX",
         pre_scalar_op=None,
         test_nan=False,
@@ -394,34 +394,34 @@ class TestCAReduce(unittest_tools.InferShapeTester):
                     zv = np.any(zv, axis)
                 if len(tosum) == 0:
                     zv = zv != 0
-            elif scalar_op == ts.add:
+            elif scalar_op == aes.add:
                 for axis in reversed(sorted(tosum)):
                     zv = np.add.reduce(zv, axis)
                 if dtype == "bool":
                     # np.add of a bool upcast, while CAReduce don't
                     zv = zv.astype(dtype)
-            elif scalar_op == ts.mul:
+            elif scalar_op == aes.mul:
                 for axis in reversed(sorted(tosum)):
                     zv = np.multiply.reduce(zv, axis)
-            elif scalar_op == ts.scalar_maximum:
+            elif scalar_op == aes.scalar_maximum:
                 try:
                     for axis in reversed(sorted(tosum)):
                         zv = np.maximum.reduce(zv, axis)
                 except ValueError:
                     numpy_raised = True
-            elif scalar_op == ts.scalar_minimum:
+            elif scalar_op == aes.scalar_minimum:
                 try:
                     for axis in reversed(sorted(tosum)):
                         zv = np.minimum.reduce(zv, axis)
                 except ValueError:
                     numpy_raised = True
-            elif scalar_op == ts.or_:
+            elif scalar_op == aes.or_:
                 for axis in reversed(sorted(tosum)):
                     zv = np.bitwise_or.reduce(zv, axis)
-            elif scalar_op == ts.and_:
+            elif scalar_op == aes.and_:
                 for axis in reversed(sorted(tosum)):
                     zv = reduce_bitwise_and(zv, axis, dtype=dtype)
-            elif scalar_op == ts.xor:
+            elif scalar_op == aes.xor:
                 # There is no identity value for the xor function
                 # So we can't support shape of dimensions 0.
                 if np.prod(zv.shape) == 0:
@@ -432,7 +432,7 @@ class TestCAReduce(unittest_tools.InferShapeTester):
                 raise Exception(
                     f"Test for CAReduce with scalar_op {scalar_op} not implemented"
                 )
-            if scalar_op in [ts.scalar_maximum, ts.scalar_minimum] and numpy_raised:
+            if scalar_op in [aes.scalar_maximum, aes.scalar_minimum] and numpy_raised:
                 with pytest.raises(ValueError):
                     f(xv)
             else:
@@ -460,7 +460,7 @@ class TestCAReduce(unittest_tools.InferShapeTester):
                 tosum = list(range(len(xsh)))
             f = aesara.function([x], e.shape, mode=mode)
             if not (
-                scalar_op in [ts.scalar_maximum, ts.scalar_minimum]
+                scalar_op in [aes.scalar_maximum, aes.scalar_minimum]
                 and (xsh == () or np.prod(xsh) == 0)
             ):
                 try:
@@ -470,41 +470,41 @@ class TestCAReduce(unittest_tools.InferShapeTester):
                     assert xv.size == 0
 
     def test_perform_noopt(self):
-        self.with_mode(Mode(linker="py", optimizer=None), ts.add, dtype="floatX")
+        self.with_mode(Mode(linker="py", optimizer=None), aes.add, dtype="floatX")
 
     def test_perform(self):
         for dtype in ["bool", "floatX", "complex64", "complex128", "int8", "uint8"]:
-            self.with_mode(Mode(linker="py"), ts.add, dtype=dtype)
-            self.with_mode(Mode(linker="py"), ts.mul, dtype=dtype)
-            self.with_mode(Mode(linker="py"), ts.scalar_maximum, dtype=dtype)
-            self.with_mode(Mode(linker="py"), ts.scalar_minimum, dtype=dtype)
-            self.with_mode(Mode(linker="py"), ts.and_, dtype=dtype, tensor_op=tt_all)
-            self.with_mode(Mode(linker="py"), ts.or_, dtype=dtype, tensor_op=tt_any)
+            self.with_mode(Mode(linker="py"), aes.add, dtype=dtype)
+            self.with_mode(Mode(linker="py"), aes.mul, dtype=dtype)
+            self.with_mode(Mode(linker="py"), aes.scalar_maximum, dtype=dtype)
+            self.with_mode(Mode(linker="py"), aes.scalar_minimum, dtype=dtype)
+            self.with_mode(Mode(linker="py"), aes.and_, dtype=dtype, tensor_op=tt_all)
+            self.with_mode(Mode(linker="py"), aes.or_, dtype=dtype, tensor_op=tt_any)
         for dtype in ["int8", "uint8"]:
-            self.with_mode(Mode(linker="py"), ts.or_, dtype=dtype)
-            self.with_mode(Mode(linker="py"), ts.and_, dtype=dtype)
-            self.with_mode(Mode(linker="py"), ts.xor, dtype=dtype)
+            self.with_mode(Mode(linker="py"), aes.or_, dtype=dtype)
+            self.with_mode(Mode(linker="py"), aes.and_, dtype=dtype)
+            self.with_mode(Mode(linker="py"), aes.xor, dtype=dtype)
 
     def test_perform_nan(self):
         for dtype in ["floatX", "complex64", "complex128"]:
-            self.with_mode(Mode(linker="py"), ts.add, dtype=dtype, test_nan=True)
-            self.with_mode(Mode(linker="py"), ts.mul, dtype=dtype, test_nan=True)
+            self.with_mode(Mode(linker="py"), aes.add, dtype=dtype, test_nan=True)
+            self.with_mode(Mode(linker="py"), aes.mul, dtype=dtype, test_nan=True)
             self.with_mode(
-                Mode(linker="py"), ts.scalar_maximum, dtype=dtype, test_nan=True
+                Mode(linker="py"), aes.scalar_maximum, dtype=dtype, test_nan=True
             )
             self.with_mode(
-                Mode(linker="py"), ts.scalar_minimum, dtype=dtype, test_nan=True
+                Mode(linker="py"), aes.scalar_minimum, dtype=dtype, test_nan=True
             )
             self.with_mode(
                 Mode(linker="py"),
-                ts.or_,
+                aes.or_,
                 dtype=dtype,
                 test_nan=True,
                 tensor_op=tt_any,
             )
             self.with_mode(
                 Mode(linker="py"),
-                ts.and_,
+                aes.and_,
                 dtype=dtype,
                 test_nan=True,
                 tensor_op=tt_all,
@@ -516,7 +516,7 @@ class TestCAReduce(unittest_tools.InferShapeTester):
     def test_c_noopt(self):
         # We need to make sure that we cover the corner cases that
         # optimizations normally cover
-        self.with_mode(Mode(linker="c", optimizer=None), ts.add, dtype="floatX")
+        self.with_mode(Mode(linker="c", optimizer=None), aes.add, dtype="floatX")
 
     @pytest.mark.slow
     @pytest.mark.skipif(
@@ -524,17 +524,17 @@ class TestCAReduce(unittest_tools.InferShapeTester):
     )
     def test_c(self):
         for dtype in ["bool", "floatX", "complex64", "complex128", "int8", "uint8"]:
-            self.with_mode(Mode(linker="c"), ts.add, dtype=dtype)
-            self.with_mode(Mode(linker="c"), ts.mul, dtype=dtype)
+            self.with_mode(Mode(linker="c"), aes.add, dtype=dtype)
+            self.with_mode(Mode(linker="c"), aes.mul, dtype=dtype)
         for dtype in ["bool", "floatX", "int8", "uint8"]:
-            self.with_mode(Mode(linker="c"), ts.scalar_minimum, dtype=dtype)
-            self.with_mode(Mode(linker="c"), ts.scalar_maximum, dtype=dtype)
-            self.with_mode(Mode(linker="c"), ts.and_, dtype=dtype, tensor_op=tt_all)
-            self.with_mode(Mode(linker="c"), ts.or_, dtype=dtype, tensor_op=tt_any)
+            self.with_mode(Mode(linker="c"), aes.scalar_minimum, dtype=dtype)
+            self.with_mode(Mode(linker="c"), aes.scalar_maximum, dtype=dtype)
+            self.with_mode(Mode(linker="c"), aes.and_, dtype=dtype, tensor_op=tt_all)
+            self.with_mode(Mode(linker="c"), aes.or_, dtype=dtype, tensor_op=tt_any)
         for dtype in ["bool", "int8", "uint8"]:
-            self.with_mode(Mode(linker="c"), ts.or_, dtype=dtype)
-            self.with_mode(Mode(linker="c"), ts.and_, dtype=dtype)
-            self.with_mode(Mode(linker="c"), ts.xor, dtype=dtype)
+            self.with_mode(Mode(linker="c"), aes.or_, dtype=dtype)
+            self.with_mode(Mode(linker="c"), aes.and_, dtype=dtype)
+            self.with_mode(Mode(linker="c"), aes.xor, dtype=dtype)
 
     @pytest.mark.slow
     @pytest.mark.skipif(
@@ -542,14 +542,14 @@ class TestCAReduce(unittest_tools.InferShapeTester):
     )
     def test_c_nan(self):
         for dtype in ["floatX", "complex64", "complex128"]:
-            self.with_mode(Mode(linker="c"), ts.add, dtype=dtype, test_nan=True)
-            self.with_mode(Mode(linker="c"), ts.mul, dtype=dtype, test_nan=True)
+            self.with_mode(Mode(linker="c"), aes.add, dtype=dtype, test_nan=True)
+            self.with_mode(Mode(linker="c"), aes.mul, dtype=dtype, test_nan=True)
         for dtype in ["floatX"]:
             self.with_mode(
-                Mode(linker="c"), ts.scalar_minimum, dtype=dtype, test_nan=True
+                Mode(linker="c"), aes.scalar_minimum, dtype=dtype, test_nan=True
             )
             self.with_mode(
-                Mode(linker="c"), ts.scalar_maximum, dtype=dtype, test_nan=True
+                Mode(linker="c"), aes.scalar_maximum, dtype=dtype, test_nan=True
             )
 
     def test_infer_shape(self, dtype=None, pre_scalar_op=None):
@@ -568,7 +568,7 @@ class TestCAReduce(unittest_tools.InferShapeTester):
                 d = {pre_scalar_op: pre_scalar_op}
             self._compile_and_check(
                 [x],
-                [self.op(ts.add, axis=tosum, *d)(x)],
+                [self.op(aes.add, axis=tosum, *d)(x)],
                 [xv],
                 self.op,
                 ["local_cut_useless_reduce"],
@@ -631,7 +631,7 @@ class TestElemwise(unittest_tools.InferShapeTester):
             t_right_val = np.zeros(s_right, dtype=dtype)
             self._compile_and_check(
                 [t_left, t_right],
-                [Elemwise(ts.add)(t_left, t_right)],
+                [Elemwise(aes.add)(t_left, t_right)],
                 [t_left_val, t_right_val],
                 Elemwise,
             )
@@ -649,9 +649,9 @@ class TestElemwise(unittest_tools.InferShapeTester):
 def test_not_implemented_elemwise_grad():
     # Regression test for unimplemented gradient in an Elemwise Op.
 
-    class TestOp(ts.ScalarOp):
+    class TestOp(aes.ScalarOp):
         def __init__(self):
-            self.output_types_preference = ts.upgrade_to_float
+            self.output_types_preference = aes.upgrade_to_float
 
         def impl(self, n, x):
             return x * n

@@ -1,4 +1,4 @@
-# import aesara.tensor.basic as tt
+# import aesara.tensor.basic as aet
 
 from aesara.configdefaults import config
 from aesara.graph.op import COp
@@ -6,8 +6,8 @@ from aesara.graph.opt import in2out
 from aesara.graph.params_type import ParamsType
 from aesara.scalar import bool as bool_t
 
-# Work-around for Python 3.6 issue that prevents `import aesara.tensor as tt`
-from aesara.tensor import basic as tt
+# Work-around for Python 3.6 issue that prevents `import aesara.tensor as aet`
+from aesara.tensor import basic as aet
 from aesara.tensor.blas import (
     Gemv,
     Ger,
@@ -721,10 +721,10 @@ def make_c_gemv_destructive(fgraph, node):
         dest = inputs[0]
         if (
             dest.owner
-            and isinstance(dest.owner.op, tt.AllocEmpty)
+            and isinstance(dest.owner.op, aet.AllocEmpty)
             and len(fgraph.clients[dest]) > 1
         ):
-            inputs[0] = tt.AllocEmpty(dest.dtype)(*dest.owner.inputs)
+            inputs[0] = aet.AllocEmpty(dest.dtype)(*dest.owner.inputs)
 
         return [cgemv_inplace(*inputs)]
 

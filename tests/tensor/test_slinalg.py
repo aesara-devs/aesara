@@ -6,7 +6,7 @@ import pytest
 
 import aesara
 from aesara import function, grad
-from aesara import tensor as tt
+from aesara import tensor as aet
 from aesara.configdefaults import config
 from aesara.tensor.slinalg import (
     Cholesky,
@@ -145,7 +145,7 @@ def test_eigvalsh():
     # We need to test None separatly, as otherwise DebugMode will
     # complain, as this isn't a valid ndarray.
     b = None
-    B = tt.NoneConst
+    B = aet.NoneConst
     f = function([A], eigvalsh(A, B))
     w = f(a)
     refw = scipy.linalg.eigvalsh(a, b)

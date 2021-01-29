@@ -4,11 +4,11 @@ from functools import partial
 
 import numpy as np
 
-from aesara import scalar as ts
+from aesara import scalar as aes
 from aesara.gradient import DisconnectedType
 from aesara.graph.basic import Apply
 from aesara.graph.op import Op
-from aesara.tensor import basic as tt
+from aesara.tensor import basic as aet
 from aesara.tensor import math as tm
 from aesara.tensor.basic import ExtractDiag, as_tensor_variable
 from aesara.tensor.type import dvector, lscalar, matrix, scalar, vector
@@ -70,8 +70,8 @@ class MatrixPinv(Op):
 
         grad = (
             -matrix_dot(z, gz.T, z)
-            + matrix_dot(z, z.T, gz, (tt.identity_like(x_dot_z) - x_dot_z))
-            + matrix_dot((tt.identity_like(z_dot_x) - z_dot_x), gz, z.T, z)
+            + matrix_dot(z, z.T, gz, (aet.identity_like(x_dot_z) - x_dot_z))
+            + matrix_dot((aet.identity_like(z_dot_x) - z_dot_x), gz, z.T, z)
         ).T
         return [grad]
 
@@ -400,7 +400,7 @@ class EighGrad(Op):
         assert v.ndim == 2
         assert gw.ndim == 1
         assert gv.ndim == 2
-        out_dtype = ts.upcast(x.dtype, w.dtype, v.dtype, gw.dtype, gv.dtype)
+        out_dtype = aes.upcast(x.dtype, w.dtype, v.dtype, gw.dtype, gv.dtype)
         out = matrix(dtype=out_dtype)
         return Apply(self, [x, w, v, gw, gv], [out])
 
@@ -685,7 +685,7 @@ def matrix_power(M, n):
 
     # Shortcuts when 0 < n <= 3
     if n == 0:
-        return tt.eye(M.shape[-2])
+        return aet.eye(M.shape[-2])
 
     elif n == 1:
         return M
@@ -820,7 +820,7 @@ class TensorSolve(Op):
     def make_node(self, a, b):
         a = as_tensor_variable(a)
         b = as_tensor_variable(b)
-        out_dtype = ts.upcast(a.dtype, b.dtype)
+        out_dtype = aes.upcast(a.dtype, b.dtype)
         x = matrix(dtype=out_dtype)
         return Apply(self, [a, b], [x])
 

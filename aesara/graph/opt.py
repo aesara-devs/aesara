@@ -1314,9 +1314,9 @@ class LocalOptGroup(LocalOptimizer):
     def tracks(self):
         t = []
         for l in self.opts:
-            tt = l.tracks()
-            if tt:
-                t.extend(tt)
+            aet = l.tracks()
+            if aet:
+                t.extend(aet)
         return t
 
     def transform(self, fgraph, node):

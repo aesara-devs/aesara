@@ -16,7 +16,7 @@ from copy import deepcopy
 
 import numpy as np
 
-import aesara.tensor as tt
+import aesara.tensor as aet
 from aesara.compile import optdb
 from aesara.configdefaults import config
 from aesara.graph.basic import Apply, Variable, clone_replace, is_in_ancestors
@@ -169,7 +169,7 @@ class IfElse(_NoPythonOp):
         assert (
             len(args) == 2 * self.n_outs
         ), f"Wrong number of arguments to make_node: expected {int(2 * self.n_outs)}, got {len(args)}"
-        c = tt.basic.as_tensor_variable(c)
+        c = aet.basic.as_tensor_variable(c)
         if not self.gpu:
             # When gpu is true, we are given only gpuarrays, and we want
             # to keep them as gpuarrays
@@ -180,12 +180,12 @@ class IfElse(_NoPythonOp):
                 elif isinstance(x, Variable):
                     nw_args.append(x)
                 else:
-                    nw_args.append(tt.basic.as_tensor_variable(x))
+                    nw_args.append(aet.basic.as_tensor_variable(x))
             args = nw_args
-        ts = args[: self.n_outs]
+        aes = args[: self.n_outs]
         fs = args[self.n_outs :]
 
-        for t, f in zip(ts, fs):
+        for t, f in zip(aes, fs):
             if t.type != f.type:
                 raise TypeError(
                     ("IfElse requires same types for true and " "false return values"),
@@ -200,13 +200,13 @@ class IfElse(_NoPythonOp):
                 "with 0 standing for False, anything else "
                 "for True"
             )
-        return Apply(self, [c] + list(args), [t.type() for t in ts])
+        return Apply(self, [c] + list(args), [t.type() for t in aes])
 
     def R_op(self, inputs, eval_points):
         return self(inputs[0], *eval_points[1:], **dict(return_list=True))
 
     def grad(self, ins, grads):
-        ts = ins[1:][: self.n_outs]
+        aes = ins[1:][: self.n_outs]
         fs = ins[1:][self.n_outs :]
         if self.name is not None:
             nw_name_t = self.name + "_grad_t"
@@ -229,11 +229,11 @@ class IfElse(_NoPythonOp):
         if_true = (
             [ins[0]]
             + grads
-            + [tt.basic.zeros_like(t, dtype=grads[i].dtype) for i, t in enumerate(ts)]
+            + [aet.basic.zeros_like(t, dtype=grads[i].dtype) for i, t in enumerate(aes)]
         )
         if_false = (
             [ins[0]]
-            + [tt.basic.zeros_like(f, dtype=grads[i].dtype) for i, f in enumerate(fs)]
+            + [aet.basic.zeros_like(f, dtype=grads[i].dtype) for i, f in enumerate(fs)]
             + grads
         )
 
@@ -250,7 +250,7 @@ class IfElse(_NoPythonOp):
 
     def make_thunk(self, node, storage_map, compute_map, no_recycling, impl=None):
         cond = node.inputs[0]
-        ts = node.inputs[1:][: self.n_outs]
+        aes = node.inputs[1:][: self.n_outs]
         fs = node.inputs[1:][self.n_outs :]
         outputs = node.outputs
 
@@ -263,12 +263,12 @@ class IfElse(_NoPythonOp):
                     ls = [
                         idx + 1
                         for idx in range(self.n_outs)
-                        if not compute_map[ts[idx]][0]
+                        if not compute_map[aes[idx]][0]
                     ]
                     if len(ls) > 0:
                         return ls
                     else:
-                        for out, t in zip(outputs, ts):
+                        for out, t in zip(outputs, aes):
                             compute_map[out][0] = 1
                             val = storage_map[t][0]
                             if self.as_view:
@@ -359,9 +359,9 @@ def ifelse(condition, then_branch, else_branch, name=None):
     new_else_branch = []
     for then_branch_elem, else_branch_elem in zip(then_branch, else_branch):
         if not isinstance(then_branch_elem, Variable):
-            then_branch_elem = tt.basic.as_tensor_variable(then_branch_elem)
+            then_branch_elem = aet.basic.as_tensor_variable(then_branch_elem)
         if not isinstance(else_branch_elem, Variable):
-            else_branch_elem = tt.basic.as_tensor_variable(else_branch_elem)
+            else_branch_elem = aet.basic.as_tensor_variable(else_branch_elem)
 
         if then_branch_elem.type != else_branch_elem.type:
             # If one of them is a TensorType, and the other one can be
@@ -485,13 +485,13 @@ acceptable_ops = (
     SpecifyShape,
     Reshape,
     basic.Rebroadcast,
-    tt.math.Dot,
-    tt.math.MaxAndArgmax,
-    tt.subtensor.Subtensor,
-    tt.subtensor.IncSubtensor,
-    tt.basic.Alloc,
-    tt.elemwise.Elemwise,
-    tt.elemwise.DimShuffle,
+    aet.math.Dot,
+    aet.math.MaxAndArgmax,
+    aet.subtensor.Subtensor,
+    aet.subtensor.IncSubtensor,
+    aet.basic.Alloc,
+    aet.elemwise.Elemwise,
+    aet.elemwise.DimShuffle,
 )
 
 
@@ -517,7 +517,7 @@ def ifelse_lift_single_if_through_acceptable_ops(fgraph, main_node):
     node = ifnodes[0]
     op = node.op
 
-    ts = node.inputs[1:][: op.n_outs]
+    aes = node.inputs[1:][: op.n_outs]
     fs = node.inputs[1:][op.n_outs :]
 
     # outs = main_node.outputs
@@ -528,14 +528,14 @@ def ifelse_lift_single_if_through_acceptable_ops(fgraph, main_node):
     for x in main_node.inputs:
         if x in node.outputs:
             idx = node.outputs.index(x)
-            true_ins.append(ts[idx])
+            true_ins.append(aes[idx])
             false_ins.append(fs[idx])
         else:
             true_ins.append(x)
             false_ins.append(x)
     true_eval = mop(*true_ins, **dict(return_list=True))
     false_eval = mop(*false_ins, **dict(return_list=True))
-    # true_eval  = clone_replace(outs, replace = dict(zip(node.outputs, ts)))
+    # true_eval  = clone_replace(outs, replace = dict(zip(node.outputs, aes)))
     # false_eval = clone_replace(outs, replace = dict(zip(node.outputs, fs)))
 
     nw_outs = ifelse(node.inputs[0], true_eval, false_eval, return_list=True)
@@ -656,7 +656,7 @@ def cond_remove_identical(fgraph, node):
 
     if not isinstance(op, IfElse):
         return False
-    ts = node.inputs[1:][: op.n_outs]
+    aes = node.inputs[1:][: op.n_outs]
     fs = node.inputs[1:][op.n_outs :]
 
     # sync outs
@@ -664,7 +664,7 @@ def cond_remove_identical(fgraph, node):
     for idx in range(len(node.outputs)):
         if idx not in out_map:
             for jdx in range(idx + 1, len(node.outputs)):
-                if ts[idx] == ts[jdx] and fs[idx] == fs[jdx] and jdx not in out_map:
+                if aes[idx] == aes[jdx] and fs[idx] == fs[jdx] and jdx not in out_map:
                     out_map[jdx] = idx
 
     if len(out_map) == 0:
@@ -678,7 +678,7 @@ def cond_remove_identical(fgraph, node):
         if idx not in out_map:
             inv_map[idx] = pos
             pos = pos + 1
-            nw_ts.append(ts[idx])
+            nw_ts.append(aes[idx])
             nw_fs.append(fs[idx])
 
     new_ifelse = IfElse(n_outs=len(nw_ts), as_view=op.as_view, gpu=op.gpu, name=op.name)

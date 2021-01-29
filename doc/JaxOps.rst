@@ -88,7 +88,7 @@ https://github.com/pymc-devs/aesara/blob/master/tests/link/test_jax.py
 
    def test_jax_eye():
        """Tests jaxification of the Eye operator"""
-       out = tt.eye(3) # Initialize an Aesara Op
+       out = aet.eye(3) # Initialize an Aesara Op
        out_fg = aesara.graph.fg.FunctionGraph([], [out]) # Create an Aesara FunctionGraph
 
        compare_jax_and_py(out_fg, []) # Pas the graph and any inputs to testing function

@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 
 import aesara
-import aesara.tensor as tt
+import aesara.tensor as aet
 from aesara.gpuarray import GpuArrayType
 from aesara.gpuarray.dnn import GpuDnnReduction
 from aesara.gpuarray.reduction import GpuMaxAndArgmax
@@ -95,7 +95,7 @@ class BaseTest:
 
     def get_host_tensor(self):
         broadcastable = (False,) * self.tensor_size
-        return tt.tensor(self.dtype, broadcastable)
+        return aet.tensor(self.dtype, broadcastable)
 
     def get_gpu_tensor(self):
         broadcastable = (False,) * self.tensor_size

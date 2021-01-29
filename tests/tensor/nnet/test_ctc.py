@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 import aesara
-import aesara.tensor as tt
+import aesara.tensor as aet
 from aesara.tensor.nnet.ctc import (
     ConnectionistTemporalClassification,
     ctc,
@@ -127,7 +127,7 @@ class TestCTC:
 
         t_cost = ctc(t_activations, t_labels, t_activation_times)
         # Symbolic gradient of CTC cost
-        t_grad = tt.grad(tt.mean(t_cost), t_activations)
+        t_grad = aet.grad(aet.mean(t_cost), t_activations)
         # Compile symbolic functions
         train = aesara.function([], [t_cost, t_grad])
 

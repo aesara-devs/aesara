@@ -5,7 +5,7 @@
 
 import numpy as np
 import aesara
-import aesara.tensor as tt
+import aesara.tensor as aet
 
 aesara.config.floatX = 'float32'
 
@@ -18,8 +18,8 @@ rng.randint(size=N, low=0, high=2).astype(aesara.config.floatX))
 training_steps = 10000
 
 # Declare Aesara symbolic variables
-x = tt.matrix("x")
-y = tt.vector("y")
+x = aet.matrix("x")
+y = aet.vector("y")
 w = aesara.shared(rng.randn(feats).astype(aesara.config.floatX), name="w")
 b = aesara.shared(np.asarray(0., dtype=aesara.config.floatX), name="b")
 x.tag.test_value = D[0]
@@ -28,12 +28,12 @@ y.tag.test_value = D[1]
 #print w.get_value(), b.get_value()
 
 # Construct Aesara expression graph
-p_1 = 1 / (1 + tt.exp(-tt.dot(x, w) - b))  # Probability of having a one
+p_1 = 1 / (1 + aet.exp(-aet.dot(x, w) - b))  # Probability of having a one
 prediction = p_1 > 0.5  # The prediction that is done: 0 or 1
-xent = -y * tt.log(p_1) - (1 - y) * tt.log(1 - p_1)  # Cross-entropy
-cost = tt.cast(xent.mean(), 'float32') + \
+xent = -y * aet.log(p_1) - (1 - y) * aet.log(1 - p_1)  # Cross-entropy
+cost = aet.cast(xent.mean(), 'float32') + \
        0.01 * (w ** 2).sum()  # The cost to optimize
-gw, gb = tt.grad(cost, [w, b])
+gw, gb = aet.grad(cost, [w, b])
 
 # Compile expressions to functions
 train = aesara.function(

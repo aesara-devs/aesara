@@ -9,7 +9,7 @@ from aesara.graph.op import COp
 from aesara.graph.params_type import ParamsType
 from aesara.misc.safe_asarray import _asarray
 from aesara.scalar import int32
-from aesara.tensor import basic as tt
+from aesara.tensor import basic as aet
 from aesara.tensor.exceptions import NotScalarConstantError
 from aesara.tensor.type import TensorType, int_dtypes, tensor
 from aesara.tensor.var import TensorConstant, TensorVariable
@@ -58,7 +58,7 @@ class Shape(COp):
         # Must work for all type that have a shape attribute.
         # This will fail at execution time.
         if not isinstance(x, Variable):
-            x = tt.as_tensor_variable(x)
+            x = aet.as_tensor_variable(x)
         return Apply(self, [x], [aesara.tensor.type.lvector()])
 
     def perform(self, node, inp, out_):
@@ -369,8 +369,8 @@ class SpecifyShape(COp):
 
     def make_node(self, x, shape):
         if not isinstance(x, Variable):
-            x = tt.as_tensor_variable(x)
-        shape = tt.as_tensor_variable(shape)
+            x = aet.as_tensor_variable(x)
+        shape = aet.as_tensor_variable(shape)
         if shape.ndim > 1:
             raise AssertionError()
         if shape.dtype not in aesara.tensor.type.integer_dtypes:
@@ -393,8 +393,8 @@ class SpecifyShape(COp):
         new_shape = []
         for dim in range(node.inputs[0].ndim):
             try:
-                s = tt.get_scalar_constant_value(node.inputs[1][dim])
-                s = tt.as_tensor_variable(s)
+                s = aet.get_scalar_constant_value(node.inputs[1][dim])
+                s = aet.as_tensor_variable(s)
                 new_shape.append(s)
             except NotScalarConstantError:
                 new_shape.append(node.inputs[1][dim])
@@ -491,9 +491,9 @@ class Reshape(COp):
         return f"{self.__class__.__name__}{{{self.ndim}}}"
 
     def make_node(self, x, shp):
-        x = tt.as_tensor_variable(x)
+        x = aet.as_tensor_variable(x)
         shp_orig = shp
-        shp = tt.as_tensor_variable(shp, ndim=1)
+        shp = aet.as_tensor_variable(shp, ndim=1)
         if not (
             shp.dtype in int_dtypes
             or (isinstance(shp, TensorConstant) and shp.data.size == 0)
@@ -513,7 +513,7 @@ class Reshape(COp):
                 shp_list = [shp_orig]
             for index in range(self.ndim):
                 y = shp_list[index]
-                y = tt.as_tensor_variable(y)
+                y = aet.as_tensor_variable(y)
                 # Try to see if we can infer that y has a constant value of 1.
                 # If so, that dimension should be broadcastable.
                 try:
@@ -624,7 +624,7 @@ class Reshape(COp):
             return [
                 tuple(
                     [
-                        tt.switch(eq(requ[i], -1), rest_size, requ[i])
+                        aet.switch(eq(requ[i], -1), rest_size, requ[i])
                         for i in range(self.ndim)
                     ]
                 )
@@ -673,14 +673,14 @@ class Reshape(COp):
 
 def reshape(x, newshape, ndim=None):
     if ndim is None:
-        newshape = tt.as_tensor_variable(newshape)
+        newshape = aet.as_tensor_variable(newshape)
         if newshape.ndim != 1:
             raise TypeError(
                 "New shape in reshape must be a vector or a list/tuple of"
                 f" scalar. Got {newshape} after conversion to a vector."
             )
         try:
-            ndim = tt.get_vector_length(newshape)
+            ndim = aet.get_vector_length(newshape)
         except ValueError:
             raise ValueError(
                 f"The length of the provided shape ({newshape}) cannot "
@@ -704,7 +704,7 @@ def shape_padleft(t, n_ones=1):
     Dimshuffle
 
     """
-    _t = tt.as_tensor_variable(t)
+    _t = aet.as_tensor_variable(t)
 
     pattern = ["x"] * n_ones + [i for i in range(_t.type.ndim)]
     return _t.dimshuffle(pattern)
@@ -720,7 +720,7 @@ def shape_padright(t, n_ones=1):
     Dimshuffle
 
     """
-    _t = tt.as_tensor_variable(t)
+    _t = aet.as_tensor_variable(t)
 
     pattern = [i for i in range(_t.type.ndim)] + ["x"] * n_ones
     return _t.dimshuffle(pattern)
@@ -748,7 +748,7 @@ def shape_padaxis(t, axis):
     Dimshuffle
 
     """
-    _t = tt.as_tensor_variable(t)
+    _t = aet.as_tensor_variable(t)
 
     ndim = _t.ndim + 1
     if not -ndim <= axis < ndim:
