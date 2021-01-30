@@ -37,7 +37,6 @@ from aesara.tensor.basic import (
 )
 from aesara.tensor.basic_opt import (
     FusionOptimizer,
-    broadcast_like,
     encompasses_broadcastable,
     fuse_seqopt,
     local_fill_sink,
@@ -50,6 +49,7 @@ from aesara.tensor.basic_opt import (
 )
 from aesara.tensor.elemwise import CAReduce, DimShuffle, Elemwise
 from aesara.tensor.exceptions import NotScalarConstantError
+from aesara.tensor.extra_ops import broadcast_to
 from aesara.tensor.math import (
     All,
     Any,
@@ -1819,7 +1819,7 @@ def local_div_to_reciprocal(fgraph, node):
             new_out = cast(new_out, dtype=out.dtype)
         # The ones could have forced a specific length
         if not out.type.is_super(new_out.type):
-            new_out = broadcast_like(new_out, out, fgraph)
+            new_out = broadcast_to(new_out, out.shape).astype(out.dtype)
         return [new_out]
     else:
         return False
@@ -1840,9 +1840,15 @@ def local_pow_canonicalize(fgraph, node):
     if node.op == at_pow:
         cst = get_constant(node.inputs[1])
         if cst == 0:
-            return [broadcast_like(1, node.outputs[0], fgraph)]
+            return [
+                broadcast_to(1, node.outputs[0].shape).astype(node.outputs[0].dtype)
+            ]
         if cst == 1:
-            return [broadcast_like(node.inputs[0], node.outputs[0], fgraph)]
+            return [
+                broadcast_to(node.inputs[0], node.outputs[0].shape).astype(
+                    node.outputs[0].dtype
+                )
+            ]
     else:
         return False
 
@@ -1879,7 +1885,7 @@ def local_zero_div(fgraph, node):
         node.op.scalar_op, (aes.IntDiv, aes.TrueDiv)
     ):
         if get_constant(node.inputs[0]) == 0:
-            ret = broadcast_like(0, node.outputs[0], fgraph)
+            ret = broadcast_to(0, node.outputs[0].shape).astype(node.outputs[0].dtype)
             ret.tag.values_eq_approx = values_eq_approx_remove_nan
             return [ret]
 
@@ -2030,7 +2036,9 @@ def local_mul_specialize(fgraph, node):
                 has_neg ^= True  # toggles
             elif y == 0.0:
                 # if we find any zero, we just return right away
-                return [broadcast_like(0, node.outputs[0], fgraph)]
+                return [
+                    broadcast_to(0, node.outputs[0].shape).astype(node.outputs[0].dtype)
+                ]
             else:
                 new_inputs.append(inp)
 
@@ -2055,14 +2063,26 @@ def local_mul_specialize(fgraph, node):
                         new_inputs = [m1] + new_inputs
                     rval = mul(*new_inputs)
 
-                return [broadcast_like(rval, node.outputs[0], fgraph)]
+                return [
+                    broadcast_to(rval, node.outputs[0].shape).astype(
+                        node.outputs[0].dtype
+                    )
+                ]
             else:
                 # there are no variable inputs to mul
                 # N.B. this could have been constant-folded...
                 if has_neg:
-                    return [broadcast_like(-1, node.outputs[0], fgraph)]
+                    return [
+                        broadcast_to(-1, node.outputs[0].shape).astype(
+                            node.outputs[0].dtype
+                        )
+                    ]
                 else:
-                    return [broadcast_like(1, node.outputs[0], fgraph)]
+                    return [
+                        broadcast_to(1, node.outputs[0].shape).astype(
+                            node.outputs[0].dtype
+                        )
+                    ]
 
 
 @register_specialize

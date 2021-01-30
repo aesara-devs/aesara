@@ -67,13 +67,18 @@ from aesara.tensor.basic import (
     stack,
     switch,
     tensor_copy,
-    unbroadcast,
     zeros,
     zeros_like,
 )
 from aesara.tensor.elemwise import DimShuffle, Elemwise
 from aesara.tensor.exceptions import NotScalarConstantError, ShapeError
-from aesara.tensor.extra_ops import BroadcastTo, Repeat, Unique, broadcast_shape
+from aesara.tensor.extra_ops import (
+    BroadcastTo,
+    Repeat,
+    Unique,
+    broadcast_shape,
+    broadcast_to,
+)
 from aesara.tensor.math import all as at_all
 from aesara.tensor.math import eq
 from aesara.tensor.shape import (
@@ -135,45 +140,7 @@ def broadcast_like(value, template, fgraph, dtype=None):
     necessary.
 
     """
-    value = as_tensor_variable(value)
-    if value.type.is_super(template.type):
-        return value
-    if template not in fgraph.variables:
-        raise NotImplementedError(
-            "broadcast_like currently requires the "
-            "template Variable to be in the fgraph already"
-        )
-    if dtype is None:
-        dtype = template.dtype
-    value = cast(value, dtype)
-    if value.type.is_super(template.type):
-        return value
-    if hasattr(fgraph, "shape_feature"):
-        new_shape = fgraph.shape_feature.shape_of[template]
-    else:
-        new_shape = template.shape
-    rval = alloc(value, *new_shape)
-    # the template may have 1s in its shape without being broadcastable
-    if rval.broadcastable != template.broadcastable:
-        rval = unbroadcast(
-            rval,
-            *[
-                i
-                for i in range(rval.ndim)
-                if rval.broadcastable[i] and not template.broadcastable[i]
-            ],
-        )
-    assert rval.type.dtype == dtype
-
-    if rval.type.broadcastable != template.broadcastable:
-        raise AssertionError(
-            "rval.type.broadcastable is "
-            + str(rval.type.broadcastable)
-            + " but template.broadcastable is"
-            + str(template.broadcastable)
-        )
-
-    return rval
+    raise NotImplementedError("broadcast_like was deprecated in favor of broadcast_to")
 
 
 class InplaceElemwiseOptimizer(GlobalOptimizer):
@@ -1728,7 +1695,7 @@ def local_fill_to_alloc(fgraph, node):
         # In this case, we assume that some broadcasting is needed (otherwise
         # the condition above would've been true), so we replace the `fill`
         # with an `Alloc`.
-        o = broadcast_like(values_ref, shape_ref, fgraph, dtype=values_ref.dtype)
+        o = broadcast_to(values_ref, shape_ref.shape).astype(values_ref.dtype)
         copy_stack_trace(node.outputs[0], o)
         return [o]
 
