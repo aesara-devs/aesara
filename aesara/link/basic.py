@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from copy import copy, deepcopy
 from typing import (
     TYPE_CHECKING,
@@ -17,27 +15,23 @@ from typing import (
 from numpy import ndarray
 
 from aesara.configdefaults import config
-from aesara.graph.basic import Apply
+from aesara.graph.basic import Apply, Variable
 from aesara.graph.fg import FunctionGraph
 from aesara.graph.type import CType
+from aesara.graph.utils import MetaObject
 from aesara.link.utils import gc_helper, map_storage, raise_with_op, streamline
 from aesara.utils import deprecated, difference, to_return_values
 
 
 if TYPE_CHECKING:
 
-    from aesara.graph.basic import Variable
-    from aesara.graph.utils import MetaObject
     from aesara.link.c.basic import OpWiseCLinker
     from aesara.link.vm import VMLinker
-    from aesara.tensor.var import TensorConstant, TensorVariable
+    from aesara.tensor.var import TensorVariable
 
-
-StorageMapType = Union[
-    Dict[Union["TensorVariable", "TensorConstant"], Union[List[None], List[ndarray]]],
-    Dict["TensorConstant", List[ndarray]],
-]
+StorageMapType = Dict[Variable, List[Optional[Union[ndarray, slice]]]]
 OutputStorageType = List[Optional[List[Any]]]
+ThunkType = Tuple[Callable[[], NoReturn], List["Container"], List["Container"]]
 
 
 class Container:
@@ -189,15 +183,13 @@ class Linker:
         """
         return self._allow_gc
 
-    def clone(self, allow_gc: Optional[bool] = None) -> Linker:
+    def clone(self, allow_gc: Optional[bool] = None) -> "Linker":
         new = copy(self)
         if allow_gc is not None:
             new._allow_gc = allow_gc
         return new
 
-    def make_thunk(
-        self, **kwargs
-    ) -> Tuple[Callable[[], NoReturn], List[Container], List[Container]]:
+    def make_thunk(self, **kwargs) -> ThunkType:
         """
         This function must return a triplet (function, input_variables,
         output_variables) where function is a thunk that operates on the
@@ -298,7 +290,7 @@ class LocalLinker(Linker):
         output_storage: Optional[OutputStorageType] = None,
         storage_map: Optional[StorageMapType] = None,
         **kwargs,
-    ) -> Tuple[Callable[[], NoReturn], List[Container], List[Container]]:
+    ) -> ThunkType:
         return self.make_all(
             input_storage=input_storage,
             output_storage=output_storage,
@@ -574,7 +566,7 @@ class WrapLinker(Linker):
     ) -> None:
         pass
 
-    def make_thunk(self, **kwargs) -> Tuple[Callable, List[Container], List[Container]]:
+    def make_thunk(self, **kwargs) -> ThunkType:
         no_recycling = self.no_recycling
 
         make_all = [self.linkers[0].make_all(**kwargs)]
