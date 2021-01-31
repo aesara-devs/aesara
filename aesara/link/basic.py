@@ -1,5 +1,18 @@
+from __future__ import annotations
+
 from copy import copy, deepcopy
-from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Set, Tuple, Union
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    Dict,
+    List,
+    NoReturn,
+    Optional,
+    Set,
+    Tuple,
+    Union,
+)
 
 from numpy import ndarray
 
@@ -12,9 +25,19 @@ from aesara.utils import deprecated, difference, to_return_values
 
 
 if TYPE_CHECKING:
-    from theano.link.c.basic import OpWiseCLinker
-    from theano.link.vm import VMLinker
-    from theano.tensor.var import TensorConstant, TensorVariable
+
+    from aesara.graph.basic import Variable
+    from aesara.graph.utils import MetaObject
+    from aesara.link.c.basic import OpWiseCLinker
+    from aesara.link.vm import VMLinker
+    from aesara.tensor.var import TensorConstant, TensorVariable
+
+
+StorageMapType = Union[
+    Dict[Union["TensorVariable", "TensorConstant"], Union[List[None], List[ndarray]]],
+    Dict["TensorConstant", List[ndarray]],
+]
+OutputStorageType = List[Optional[List[Any]]]
 
 
 class Container:
@@ -25,7 +48,7 @@ class Container:
 
     Parameters
     ----------
-    r : a Variable or a Type
+    r : :py:class:`aerasa.graph.utils.MetaObject`
     storage
         A list of length 1, whose element is the value for `r`.
     readonly : bool
@@ -48,8 +71,8 @@ class Container:
         *,
         readonly: bool = False,
         strict: bool = False,
-        allow_downcast: bool = None,
-        name: str = None,
+        allow_downcast: Optional[bool] = None,
+        name: Optional[str] = None,
     ) -> None:
         if not isinstance(storage, list) or not len(storage) >= 1:
             raise TypeError("storage must be a list of length at least one")
@@ -166,13 +189,15 @@ class Linker:
         """
         return self._allow_gc
 
-    def clone(self, allow_gc: Optional[bool] = None) -> "VMLinker":
+    def clone(self, allow_gc: Optional[bool] = None) -> Linker:
         new = copy(self)
         if allow_gc is not None:
             new._allow_gc = allow_gc
         return new
 
-    def make_thunk(self, **kwargs):
+    def make_thunk(
+        self, **kwargs
+    ) -> Tuple[Callable[[], NoReturn], List[Container], List[Container]]:
         """
         This function must return a triplet (function, input_variables,
         output_variables) where function is a thunk that operates on the
@@ -247,12 +272,12 @@ class Linker:
 
         Parameters
         ----------
-        fgraph : :py:class:`theano.graph.fg.FunctionGraph`
+        fgraph : :py:class:`aerasa.graph.fg.FunctionGraph`
             A graph to compute the schedule for.
 
         Returns
         -------
-        nodes : list of :py:class:`theano.graph.basic.Apply` nodes
+        nodes : list of :py:class:`aesara.graph.basic.Apply` nodes
             The result of the scheduling or toposort operation.
         """
         if callable(self._scheduler):
@@ -270,18 +295,10 @@ class LocalLinker(Linker):
     def make_thunk(
         self,
         input_storage: Optional[Any] = None,
-        output_storage: None = None,
-        storage_map: Optional[
-            Union[
-                Dict[
-                    Union["TensorVariable", "TensorConstant"],
-                    Union[List[None], List[ndarray]],
-                ],
-                Dict["TensorConstant", List[ndarray]],
-            ]
-        ] = None,
+        output_storage: Optional[OutputStorageType] = None,
+        storage_map: Optional[StorageMapType] = None,
         **kwargs,
-    ) -> Any:
+    ) -> Tuple[Callable[[], NoReturn], List[Container], List[Container]]:
         return self.make_all(
             input_storage=input_storage,
             output_storage=output_storage,
@@ -327,9 +344,9 @@ class PerformLinker(LocalLinker):
 
         Parameters
         ----------
-        fgraph : :py:class:`theano.graph.fg.FunctionGraph` instance
-            A :py:class:`theano.link.basic.PerformLinker` instance can have accepted
-            one :py:class:`theano.graph.fg.FunctionGraph` instance at a time.
+        fgraph : :py:class:`aesara.graph.fg.FunctionGraph` instance
+            A :py:class:`aesara.link.basic.PerformLinker` instance can have accepted
+            one :py:class:`aesara.graph.fg.FunctionGraph` instance at a time.
         no_recycling
             WRITEME
 
@@ -353,8 +370,8 @@ class PerformLinker(LocalLinker):
     def make_all(
         self,
         input_storage: Optional[Any] = None,
-        output_storage: Optional[Any] = None,
-        storage_map: Optional[Any] = None,
+        output_storage: Optional[OutputStorageType] = None,
+        storage_map: Optional[StorageMapType] = None,
     ) -> Union[
         Tuple[Callable, List[Container], List[Container], List[Callable], List[Apply]],
         Tuple[Callable, List[Container], List[Container], List[Any], List[Any]],
@@ -530,7 +547,7 @@ class WrapLinker(Linker):
 
         Parameters
         ----------
-        fgraph : :py:class:`theano.graph.fg.FunctionGraph`
+        fgraph : :py:class:`aesara.graph.fg.FunctionGraph`
             The fgraph which we will link.
         no_recycling : a list of Variables that belong to fgraph.
             If a Variable is in no_recycling, L{WrapLinker} will clear
