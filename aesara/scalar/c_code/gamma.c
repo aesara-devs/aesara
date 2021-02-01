@@ -26,7 +26,6 @@
 #ifndef _ISOC99_SOURCE
 #define _ISOC99_SOURCE
 #endif                          /* needed for function log1p() */
-#include <assert.h>
 #include <float.h>
 #include <math.h>
 
@@ -84,7 +83,7 @@ DEVICE double logGamma (double n)
 {                               /* --- compute ln(Gamma(n))         */
   double s;                     /*           = ln((n-1)!), n \in IN */
 
-  assert(n > 0);                /* check the function argument */
+  if (n <= 0) return NAN;       /* check the function arguments */
   if (_facts[0] <= 0) _init();  /* initialize the tables */
   if (n < MAXFACT +1 +4 *EPSILON) {
     if (fabs(  n -floor(  n)) < 4 *EPSILON)
@@ -127,7 +126,7 @@ in the second version, the value is slightly more accurate.
 
 DEVICE double Gamma (double n)
 {                               /* --- compute Gamma(n) = (n-1)! */
-  assert(n > 0);                /* check the function argument */
+  if (n <= 0) return NAN;       /* check the function arguments */
   if (_facts[0] <= 0) _init();  /* initialize the tables */
   if (n < MAXFACT +1 +4 *EPSILON) {
     if (fabs(  n -floor(  n)) < 4 *EPSILON)
@@ -200,7 +199,7 @@ The factor exp(n *log(x) -x) is added in the functions below.
 
 DEVICE double lowerGamma (double n, double x)
 {                               /* --- lower incomplete Gamma fn. */
-  assert((n > 0) && (x > 0));   /* check the function arguments */
+  if ((n <= 0) || (x <= 0)) return NAN;  /* check the function arguments */
   return _series(n, x) *exp(n *log(x) -x);
 }  /* lowerGamma() */
 
@@ -208,7 +207,7 @@ DEVICE double lowerGamma (double n, double x)
 
 DEVICE double upperGamma (double n, double x)
 {                               /* --- upper incomplete Gamma fn. */
-  assert((n > 0) && (x > 0));   /* check the function arguments */
+  if ((n <= 0) || (x <= 0)) return NAN;  /* check the function arguments */
   return _cfrac(n, x) *exp(n *log(x) -x);
 }  /* upperGamma() */
 
@@ -216,7 +215,7 @@ DEVICE double upperGamma (double n, double x)
 
 DEVICE double GammaP (double n, double x)
 {                               /* --- regularized Gamma function P */
-  assert((n > 0) && (x >= 0));  /* check the function arguments */
+  if ((n <= 0) || (x < 0)) return NAN;  /* check the function arguments */
   if (x <=  0) return 0;        /* treat x = 0 as a special case */
   if (x < n+1) return _series(n, x) *exp(n *log(x) -x -logGamma(n));
   return 1 -_cfrac(n, x) *exp(n *log(x) -x -logGamma(n));
@@ -226,7 +225,7 @@ DEVICE double GammaP (double n, double x)
 
 DEVICE double GammaQ (double n, double x)
 {                               /* --- regularized Gamma function Q */
-  assert((n > 0) && (x >= 0));  /* check the function arguments */
+  if ((n <= 0) || (x < 0)) return NAN;  /* check the function arguments */
   if (x <=  0) return 1;        /* treat x = 0 as a special case */
   if (x < n+1) return 1 -_series(n, x) *exp(n *log(x) -x -logGamma(n));
   return _cfrac(n, x) *exp(n *log(x) -x -logGamma(n));
@@ -240,7 +239,7 @@ function (cdf) of a chi^2 distribution with k degrees of freedom.
 
 DEVICE double Gammapdf (double x, double k, double theta)
 {                               /* --- probability density function */
-  assert((k > 0) && (theta > 0));
+  if ((k <= 0) || (theta <= 0)) return NAN;  /* check the function arguments */
   if (x <  0) return 0;         /* support is non-negative x */
   if (x <= 0) return (k == 1) ? 1/theta : 0;
   if (k == 1) return exp(-x/theta) /theta;
@@ -252,7 +251,7 @@ double unitqtlP (double prob)
 {                               /* --- quantile of normal distrib. */
   double p, x;                  /*     with mean 0 and variance 1 */
 
-  assert((prob >= 0) && (prob <= 1));  /* check the function argument */
+  if ((prob < 0) || (prob > 1))  return NAN;  /* check the function arguments */
   if (prob >= 1.0) return  DBL_MAX; /* check for limiting values */
   if (prob <= 0.0) return -DBL_MAX; /* and return extrema */
   p = prob -0.5;
@@ -323,8 +322,8 @@ DEVICE double GammaqtlP (double prob, double k, double theta)
   int    n = 0;                 /* loop variable */
   double x, f, a, d, dx, dp;    /* buffers */
 
-  assert((k > 0) && (theta > 0) /* check the function arguments */
-      && (prob >= 0) && (prob <= 1));
+  /* check the function arguments */
+  if ((k <= 0) || (theta <= 0) || (prob < 0) || (prob > 1)) return NAN;
   if (prob >= 1.0) return DBL_MAX;
   if (prob <= 0.0) return 0;    /* handle limiting values */
   if      (prob < 0.05) x = exp(logGamma(k) +log(prob) /k);
@@ -355,8 +354,8 @@ DEVICE double GammaqtlQ (double prob, double k, double theta)
   int    n = 0;                 /* loop variable */
   double x, f, a, d, dx, dp;    /* buffers */
 
-  assert((k > 0) && (theta > 0) /* check the function arguments */
-      && (prob >= 0) && (prob <= 1));
+  /* check the function arguments */
+  if ((k <= 0) || (theta <= 0) || (prob < 0) || (prob > 1)) return NAN;
   if (prob <= 0.0) return DBL_MAX;
   if (prob >= 1.0) return 0;    /* handle limiting values */
   if      (prob < 0.05) x = logGamma(k) -log(prob);
