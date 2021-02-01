@@ -2368,7 +2368,7 @@ def test_local_pow_specialize():
 
     f = function([v], v**0, mode=mode)
     nodes = [node.op for node in f.maker.fgraph.toposort()]
-    assert nodes == [Shape_i(0), at.alloc]
+    assert all(node in nodes for node in (Shape_i(0), at.extra_ops.broadcast_to))
     utt.assert_allclose(f(val), val**0)
 
     f = function([v], v**1, mode=mode)
@@ -2378,12 +2378,12 @@ def test_local_pow_specialize():
 
     f = function([v], v ** (-1), mode=mode)
     nodes = [node.op for node in f.maker.fgraph.toposort()]
-    assert nodes == [reciprocal]
+    assert reciprocal in nodes
     utt.assert_allclose(f(val_no0), val_no0 ** (-1))
 
     f = function([v], v**2, mode=mode)
     nodes = [node.op for node in f.maker.fgraph.toposort()]
-    assert nodes == [sqr]
+    assert sqr in nodes
     utt.assert_allclose(f(val), val**2)
 
     f = function([v], v ** (-2), mode=mode)
