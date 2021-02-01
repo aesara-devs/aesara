@@ -2305,7 +2305,7 @@ def test_local_mul_specialize():
 
     f = function([v], v * (-1), mode=mode)
     nodes = [node.op for node in f.maker.fgraph.toposort()]
-    assert nodes == [neg]
+    assert neg in nodes
 
     f = function([v, m], v * 1 * (-m), mode=mode)
     nodes = [node.op for node in f.maker.fgraph.toposort()]
