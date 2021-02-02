@@ -49,7 +49,7 @@ from aesara.tensor.basic_opt import (
 )
 from aesara.tensor.elemwise import CAReduce, DimShuffle, Elemwise
 from aesara.tensor.exceptions import NotScalarConstantError
-from aesara.tensor.extra_ops import broadcast_to
+from aesara.tensor.extra_ops import BroadcastTo, broadcast_to
 from aesara.tensor.math import (
     All,
     Any,
@@ -1701,14 +1701,14 @@ def local_reduce_broadcastable(fgraph, node):
 @local_optimizer([Sum, Prod])
 def local_opt_alloc(fgraph, node):
     """
-    sum(alloc(constant,shapes...)) => constant*prod(shapes)
+    sum(alloc(constant,shapes...)) => constant*sum(shapes)
     or
     prod(alloc(constant,shapes...)) => constant**prod(shapes)
 
     """
     if isinstance(node.op, Sum) or isinstance(node.op, Prod):
         (node_inps,) = node.inputs
-        if node_inps.owner and isinstance(node_inps.owner.op, Alloc):
+        if node_inps.owner and (isinstance(node_inps.owner.op, (Alloc, BroadcastTo))):
             inp = node_inps.owner.inputs[0]
             shapes = node_inps.owner.inputs[1:]
             try:
