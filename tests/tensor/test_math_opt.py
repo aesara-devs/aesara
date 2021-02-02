@@ -16,7 +16,7 @@ from aesara.compile.function import function
 from aesara.compile.mode import Mode, get_default_mode, get_mode
 from aesara.compile.ops import DeepCopyOp, deep_copy_op
 from aesara.configdefaults import config
-from aesara.graph.basic import Apply, Constant, equal_computations
+from aesara.graph.basic import Apply, Constant, equal_computations, io_toposort
 from aesara.graph.fg import FunctionGraph
 from aesara.graph.opt import (
     LocalOptGroup,
@@ -2453,7 +2453,13 @@ class TestFuncInverse:
         self.mode = mode.including("local_func_inv")
 
     def assert_func_pair_optimized(
-        self, func1, func2, data, should_copy=True, is_complex=False
+        self,
+        func1,
+        func2,
+        data,
+        should_copy=True,
+        is_complex=False,
+        is_first_input=False,
     ):
         # Check that a pair of funcs is optimized properly
 
@@ -2461,7 +2467,13 @@ class TestFuncInverse:
         o = func2(func1(x))
         f = function([x], o, mode=self.mode)
         delta = f(data) - data
-        topo = f.maker.fgraph.toposort()
+
+        if is_first_input:
+            topo = io_toposort(
+                f.maker.fgraph.inputs, [f.maker.fgraph.outputs[0].owner.inputs[0]]
+            )
+        else:
+            topo = f.maker.fgraph.toposort()
 
         if should_copy:
             acceptable_topo_lens = [1]
@@ -2497,11 +2509,11 @@ class TestFuncInverse:
         self.assert_func_pair_optimized(neg, neg, dx)
         cx = dx + complex(0, 1) * (dx + 0.01)
         self.assert_func_pair_optimized(conj, conj, cx, is_complex=True)
-
         # Test that non-inverse functions are ran normally
         self.assert_func_pair_optimized(
-            conj, neg, cx, should_copy=False, is_complex=True
+            conj, neg, cx, should_copy=False, is_complex=True, is_first_input=True
         )
+
         dx = np.random.random((5, 4)).astype("float32") + 0.01
         self.assert_func_pair_optimized(rad2deg, rad2deg, dx, should_copy=False)
         self.assert_func_pair_optimized(rad2deg, cosh, dx, should_copy=False)
