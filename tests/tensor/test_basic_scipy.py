@@ -53,6 +53,8 @@ if imported_scipy_special:
     expected_psi = scipy.special.psi
     expected_tri_gamma = partial(scipy.special.polygamma, 1)
     expected_chi2sf = scipy.stats.chi2.sf
+    expected_gammainc = scipy.special.gammainc
+    expected_gammaincc = scipy.special.gammaincc
     expected_j0 = scipy.special.j0
     expected_j1 = scipy.special.j1
     expected_jv = scipy.special.jv
@@ -72,6 +74,8 @@ else:
     expected_psi = []
     expected_tri_gamma = []
     expected_chi2sf = []
+    expected_gammainc = []
+    expected_gammaincc = []
     expected_j0 = []
     expected_j1 = []
     expected_jv = []
@@ -279,6 +283,62 @@ TestChi2SFInplaceBroadcast = makeBroadcastTester(
     inplace=True,
     skip=skip_scipy,
     name="Chi2SF",
+)
+
+_good_broadcast_unary_gammainc = dict(
+    normal=(rand_ranged(-1 + 1e-2, 10, (2, 3)), rand_ranged(-1 + 1e-2, 10, (2, 3))),
+    empty=(np.asarray([], dtype=config.floatX), np.asarray([], dtype=config.floatX)),
+    int=(randint_ranged(1, 10, (2, 3)), randint_ranged(1, 10, (2, 3))),
+    uint8=(
+        randint_ranged(1, 6, (2, 3)).astype("uint8"),
+        randint_ranged(1, 6, (2, 3)).astype("uint8"),
+    ),
+    uint16=(
+        randint_ranged(1, 10, (2, 3)).astype("uint16"),
+        randint_ranged(1, 10, (2, 3)).astype("uint16"),
+    ),
+    uint64=(
+        randint_ranged(1, 10, (2, 3)).astype("uint64"),
+        randint_ranged(1, 10, (2, 3)).astype("uint64"),
+    ),
+)
+
+TestGammaIncBroadcast = makeBroadcastTester(
+    op=aet.gammainc,
+    expected=expected_gammainc,
+    good=_good_broadcast_unary_gammainc,
+    eps=2e-8,
+    mode=mode_no_scipy,
+    skip=skip_scipy,
+)
+
+TestGammaIncInplaceBroadcast = makeBroadcastTester(
+    op=inplace.gammainc_inplace,
+    expected=expected_gammainc,
+    good=_good_broadcast_unary_gammainc,
+    eps=2e-8,
+    mode=mode_no_scipy,
+    inplace=True,
+    skip=skip_scipy,
+)
+
+TestGammaInccBroadcast = makeBroadcastTester(
+    op=aet.gammaincc,
+    expected=expected_gammaincc,
+    good=_good_broadcast_unary_gammainc,
+    eps=2e-8,
+    mode=mode_no_scipy,
+    skip=skip_scipy,
+)
+
+TestGammaInccInplaceBroadcast = makeBroadcastTester(
+    op=inplace.gammaincc_inplace,
+    expected=expected_gammaincc,
+    good=_good_broadcast_unary_gammainc,
+    eps=2e-8,
+    mode=mode_no_scipy,
+    inplace=True,
+    skip=skip_scipy,
 )
 
 _good_broadcast_unary_bessel = dict(
