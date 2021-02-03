@@ -286,7 +286,7 @@ TestChi2SFInplaceBroadcast = makeBroadcastTester(
 )
 
 _good_broadcast_unary_gammainc = dict(
-    normal=(rand_ranged(-1 + 1e-2, 10, (2, 3)), rand_ranged(-1 + 1e-2, 10, (2, 3))),
+    normal=(rand_ranged(1e-2, 10, (2, 3)), rand_ranged(1e-2, 10, (2, 3))),
     empty=(np.asarray([], dtype=config.floatX), np.asarray([], dtype=config.floatX)),
     int=(randint_ranged(1, 10, (2, 3)), randint_ranged(1, 10, (2, 3))),
     uint8=(
