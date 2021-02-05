@@ -311,7 +311,7 @@ TestModBroadcast = makeBroadcastTester(
     expected=lambda x, y: np.asarray(x % y, dtype=aes.upcast(x.dtype, y.dtype)),
     good=copymod(_good_broadcast_div_mod_normal_float, ["complex1", "complex2"]),
     grad=_grad_broadcast_div_mod_normal,
-    grad_eps=1e-5,
+    grad_eps=1e-7,
 )
 
 # Disable NAN checking for pow operator per issue #1780
