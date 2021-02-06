@@ -60,6 +60,7 @@ from aesara.tensor.math import (
     All,
     Any,
     Dot,
+    NonZeroCAReduce,
     Prod,
     ProdWithoutZeros,
     Sum,
@@ -1526,14 +1527,18 @@ def local_op_of_op(fgraph, node):
                 return [combined(node_inps.owner.inputs[0])]
 
 
-ALL_REDUCE = [
-    CAReduce,
-    All,
-    Any,
-    Sum,
-    Prod,
-    ProdWithoutZeros,
-] + CAReduce.__subclasses__()
+ALL_REDUCE = (
+    [
+        CAReduce,
+        All,
+        Any,
+        Sum,
+        Prod,
+        ProdWithoutZeros,
+    ]
+    + CAReduce.__subclasses__()
+    + NonZeroCAReduce.__subclasses__()
+)
 
 
 @register_canonicalize
