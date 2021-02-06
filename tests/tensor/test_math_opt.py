@@ -22,7 +22,7 @@ from aesara.graph.opt import LocalOptGroup, TopoOptimizer, check_stack_trace, ou
 from aesara.graph.optdb import Query
 from aesara.misc.safe_asarray import _asarray
 from aesara.tensor import inplace
-from aesara.tensor.basic import Alloc, join
+from aesara.tensor.basic import Alloc, join, switch
 from aesara.tensor.basic_opt import local_dimshuffle_lift
 from aesara.tensor.blas import Dot22, Gemv
 from aesara.tensor.blas_c import CGemv
@@ -73,6 +73,7 @@ from aesara.tensor.math import sum as tt_sum
 from aesara.tensor.math import tan, tanh, true_div, xor
 from aesara.tensor.math_opt import (
     local_add_specialize,
+    local_grad_log_erfc_neg,
     local_greedy_distributor,
     mul_canonizer,
 )
@@ -2839,7 +2840,14 @@ class TestLocalErfc:
         )
         assert all(np.isfinite(f(val)))
 
+    @np.errstate(divide="ignore", invalid="ignore")
     def test_local_grad_log_erfc_neg(self):
+        # TODO: This evaluation is questionable; is the transform's math not
+        # already established?  It doesn't look like these tests are preforming
+        # a real numerical evaluation of the underlying math.  Instead, it
+        # looks like they're being used as an extremely poor way of validating
+        # the transform results.  It would be better to remove these numerical
+        # evaluations and confirm the transform output directly and exactly.
         val = [
             -100,
             -30,
@@ -2868,80 +2876,82 @@ class TestLocalErfc:
             30,
             100,
         ]
-        if config.mode in ["DebugMode", "DEBUG_MODE", "FAST_COMPILE"]:
-            # python mode don't like the inv(0) in computation,
-            # but the switch don't select this value.
-            # So it is computed for no good reason.
-            val.remove(0)
-        if config.mode in ["DebugMode", "DEBUG_MODE"] and config.floatX == "float32":
-            # In float32 their is a plage of values close to 10 that we stabilize as it give bigger error then the stabilized version.
-            # The orig value in float32 -30.0, the stab value -20.1 the orig value in float64 -18.1.
-            val.remove(10)
         val = np.asarray(val, dtype=config.floatX)
         x = vector("x")
         y = vector("y")
 
-        # their is some nan that will happear in the graph for the log of the negatives values
-        mode = copy.copy(self.mode)
+        # Test cases for which the requisite form isn't present
+        no_matches = [
+            ([x, y], exp(sqr(x)) / erfc(y)),
+            ([x, y], exp(neg(x)) / erfc(y)),
+            ([x, y], exp(x * 1) / erfc(y)),
+            ([x, y], exp(neg(sqr(x))) / erfc(y)),
+            ([x], mul(1.0, 2.0, x) / erfc(x)),
+        ]
+        for inputs, no_match in no_matches:
+            fg = FunctionGraph(inputs, [no_match], clone=False)
+
+            TopoOptimizer(
+                LocalOptGroup(local_grad_log_erfc_neg), order="out_to_in"
+            ).optimize(fg)
+
+            # Make sure that the graph hasn't been changed
+            assert fg.outputs[0] is no_match
+
+        # Some `nan`s will appear in the graph for the log of negatives values
+        mode = Mode("py", self.mode.optimizer)
         mode.check_isfinite = False
-        mode_fusion = copy.copy(self.mode_fusion)
-        mode_fusion.check_isfinite = False
 
-        f = function([x], aesara.gradient.grad(log(erfc(x)).sum(), x), mode=mode)
+        # Make sure that we catch our target graph in a way that it's naturally
+        # produced
+        log_erfc_grad = aesara.gradient.grad(log(erfc(x)).sum(), x)
+        f = function([x], log_erfc_grad, mode=mode)
 
-        assert len(f.maker.fgraph.apply_nodes) == 22, len(f.maker.fgraph.apply_nodes)
+        # The resulting graph should be `mul(switch(...), y)`
+        assert f.maker.fgraph.outputs[0].owner.op == mul
+        assert f.maker.fgraph.outputs[0].owner.inputs[0].owner.op == switch
         assert all(np.isfinite(f(val)))
         assert f.maker.fgraph.outputs[0].dtype == config.floatX
 
-        # test with a different mul constant
+        # Test with a different `mul` and `constant`
         f = function([x], mul(exp(neg(sqr(x))), -10.12837917) / erfc(x), mode=mode)
-        assert len(f.maker.fgraph.apply_nodes) == 23, len(f.maker.fgraph.apply_nodes)
+
+        assert f.maker.fgraph.outputs[0].owner.op == mul
+        assert f.maker.fgraph.outputs[0].owner.inputs[0].owner.op == switch
         assert f.maker.fgraph.outputs[0].dtype == config.floatX
         assert all(np.isfinite(f(val)))
 
-        # test that we work without the mul
+        # Test it works without the `mul`
         f = function([x], exp(neg(sqr(x))) / erfc(x), mode=mode)
-        assert len(f.maker.fgraph.apply_nodes) == 22, len(f.maker.fgraph.apply_nodes)
+
+        assert f.maker.fgraph.outputs[0].owner.op == switch
         assert f.maker.fgraph.outputs[0].dtype == config.floatX
         assert all(np.isfinite(f(val)))
 
-        # test that we don't work if x!=y
-        f = function([x, y], exp(neg(sqr(x))) / erfc(y), mode=mode)
-        assert len(f.maker.fgraph.apply_nodes) == 5, len(f.maker.fgraph.apply_nodes)
-        assert f.maker.fgraph.outputs[0].dtype == config.floatX
-        f(val, val - 3)
-
-        # test that we work without the sqr and neg
+        # Test that it works without the `sqr` and `neg`
         f = function([x], exp(mul(-1, x, x)) / erfc(x), mode=mode)
-        assert len(f.maker.fgraph.apply_nodes) == 21, len(f.maker.fgraph.apply_nodes)
+
+        assert f.maker.fgraph.outputs[0].owner.op == switch
         assert f.maker.fgraph.outputs[0].dtype == config.floatX
         assert all(np.isfinite(f(val)))
 
-        # test that it work correctly if x is x*2 in the graph.
+        # Test that it works correctly when `x` is multiplied by a constant
         f = function([x], aesara.gradient.grad(log(erfc(2 * x)).sum(), x), mode=mode)
-        assert len(f.maker.fgraph.apply_nodes) == 23, len(f.maker.fgraph.apply_nodes)
+
+        assert f.maker.fgraph.outputs[0].owner.op == mul
+        assert f.maker.fgraph.outputs[0].owner.inputs[0].owner.op == switch
         assert np.isfinite(f(val)).all()
         assert f.maker.fgraph.outputs[0].dtype == config.floatX
 
+        # I suppose this tests whether or not the transform is applied before
+        # fusion?
+        mode_fusion = copy.copy(self.mode_fusion)
+        mode_fusion.check_isfinite = False
+
         f = function([x], aesara.gradient.grad(log(erfc(x)).sum(), x), mode=mode_fusion)
+
         assert len(f.maker.fgraph.apply_nodes) == 1, len(f.maker.fgraph.apply_nodes)
         assert f.maker.fgraph.outputs[0].dtype == config.floatX
-
-        # TODO: fix this problem
-        if config.floatX == "float32" and config.mode in [
-            "DebugMode",
-            "DEBUG_MODE",
-        ]:
-            # The python code upcast somewhere internally some value of float32
-            # to python float for part of its computation. That make that the c
-            # and python code do not generate the same value. You can ignore
-            # this error. This happen in an intermediate step that don't show
-            # in the final result.
-
-            # Showing this test error is a duplicate of the one in test_local_log_erfc. We hide it.
-            pass
-        else:
-            assert all(np.isfinite(f(val)))
 
     def speed_local_log_erfc(self):
 
