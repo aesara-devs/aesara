@@ -174,23 +174,19 @@ class TestGreedyDistribute:
         # 1. ((a/x + b/y) * x * y) --> a*y + b*x
         e = (a / z + b / x) * x * z
         g = FunctionGraph([a, b, c, d, x, y, z], [e])
-        # print pprint(g.outputs[0])
         mul_canonizer.optimize(g)
         TopoOptimizer(
             LocalOptGroup(local_greedy_distributor), order="out_to_in"
         ).optimize(g)
-        # print pprint(g.outputs[0])
         assert str(pprint(g.outputs[0])) == "((a * x) + (b * z))"
 
         # 2. ((a/x + b) * x) --> a + b*x
         e = (a / x + b) * x
         g = FunctionGraph([a, b, x], [e])
-        # print pprint(g.outputs[0])
         mul_canonizer.optimize(g)
         TopoOptimizer(
             LocalOptGroup(local_greedy_distributor), order="out_to_in"
         ).optimize(g)
-        # print pprint(g.outputs[0])
         assert str(pprint(g.outputs[0])) == "(a + (b * x))"
 
     def test_kording_bug(self):
@@ -233,9 +229,7 @@ class TestAlgebraicCanonize:
         # e = (x / x) * (y / y)
         e = (-1 * x) / y / (-2 * z)
         g = FunctionGraph([x, y, z, a, b, c, d], [e])
-        print(pprint(g.outputs[0]))
         mul_canonizer.optimize(g)
-        print(pprint(g.outputs[0]))
 
     def test_elemwise_multiple_inputs_optimisation(self):
         # verify that the AlgebraicCanonizer merge sequential Elemwise({mul,add}) part 1
@@ -856,8 +850,6 @@ class TestAlgebraicCanonize:
             mode = get_default_mode().excluding("local_elemwise_fusion")
 
         f = function([x], [(4 * x) / abs(2 * x)], mode=mode)
-        print(f.maker.fgraph.toposort())
-        print()
         f(0.1)
         f(-1)
         # some stabilization optimization make the output be finite instead of nan
@@ -869,8 +861,6 @@ class TestAlgebraicCanonize:
         assert f.maker.fgraph.toposort()[0].op == sgn
 
         f = function([x], [(4 * x) / abs(x / 2)], mode=mode)
-        print(f.maker.fgraph.toposort())
-        print()
         f(0.1)
         f(-1)
         # some stabilization optimization make the output be finite instead of nan
@@ -1038,7 +1028,6 @@ def test_cast_in_mul_canonizer():
     o2 = e * go
     mode = get_default_mode().excluding("fusion").including("fast_run")
     f = function([x, y], [o1, o2], mode=mode)
-    aesara.printing.debugprint(f, print_type=True)
     nodes = f.maker.fgraph.apply_nodes
     assert (
         len(
@@ -1992,6 +1981,7 @@ class TestLocalUselessElemwiseComparison:
         self.rng = np.random.RandomState(utt.fetch_seed())
 
     def test_local_useless_elemwise_comparison(self):
+        # TODO FIXME: This is not a real test!
         # TODO: test each case individually.
         # The following case is what made me discover those cases.
         X = matrix("X")
@@ -2667,19 +2657,17 @@ class TestLocalErf:
         assert [n.op for n in f.maker.fgraph.toposort()] == [
             erfc
         ], f.maker.fgraph.toposort()
-        print(f(val))
+        f(val)
 
         f = function([x], 1 + (-erf(x)), mode=self.mode)
         assert [n.op for n in f.maker.fgraph.toposort()] == [
             erfc
         ], f.maker.fgraph.toposort()
-        print(f(val))
 
         f = function([x], (-erf(x)) + 1, mode=self.mode)
         assert [n.op for n in f.maker.fgraph.toposort()] == [
             erfc
         ], f.maker.fgraph.toposort()
-        print(f(val))
 
         f = function([x], 2 - erf(x), mode=self.mode)
         topo = f.maker.fgraph.toposort()
@@ -2689,7 +2677,6 @@ class TestLocalErf:
         assert isinstance(topo[1].op.scalar_op, aes.Add) or isinstance(
             topo[1].op.scalar_op, aes.Sub
         ), f.maker.fgraph.toposort()
-        print(f(val))
 
     def test_local_erf_minus_one(self):
         val = np.asarray([-30, -3, -2, -1, 0, 1, 2, 3, 30], dtype=config.floatX)
@@ -2697,15 +2684,13 @@ class TestLocalErf:
 
         f = function([x], erf(x) - 1, mode=self.mode)
         assert [n.op for n in f.maker.fgraph.toposort()] == [erfc, mul]
-        print(f(val))
+        f(val)
 
         f = function([x], erf(x) + (-1), mode=self.mode)
         assert [n.op for n in f.maker.fgraph.toposort()] == [erfc, mul]
-        print(f(val))
 
         f = function([x], -1 + erf(x), mode=self.mode)
         assert [n.op for n in f.maker.fgraph.toposort()] == [erfc, mul]
-        print(f(val))
 
         f = function([x], erf(x) - 2, mode=self.mode)
         topo = f.maker.fgraph.toposort()
@@ -2715,7 +2700,6 @@ class TestLocalErf:
         assert isinstance(topo[1].op.scalar_op, aes.Add) or isinstance(
             topo[1].op.scalar_op, aes.Sub
         )
-        print(f(val))
 
 
 @pytest.mark.skipif(
@@ -2743,13 +2727,12 @@ class TestLocalErfc:
         assert [n.op for n in f.maker.fgraph.toposort()] == [
             erf
         ], f.maker.fgraph.toposort()
-        print(f(val))
+        f(val)
 
         f = function([x], (-erfc(x)) + 1, mode=self.mode)
         assert [n.op for n in f.maker.fgraph.toposort()] == [
             erf
         ], f.maker.fgraph.toposort()
-        print(f(val))
 
         f = function([x], 2 - erfc(x), mode=self.mode)
         topo = f.maker.fgraph.toposort()
@@ -2757,11 +2740,9 @@ class TestLocalErfc:
         assert topo[0].op == erfc, f.maker.fgraph.toposort()
         assert isinstance(topo[1].op, Elemwise), f.maker.fgraph.toposort()
         assert isinstance(topo[1].op.scalar_op, aes.Sub), f.maker.fgraph.toposort()
-        print(f(val))
 
     def test_local_erf_neg_minus_one(self):
         # test opt: (-1)+erfc(-x)=>erf(x)
-
         val = np.asarray([-30, -3, -2, -1, 0, 1, 2, 3, 30], dtype=config.floatX)
         x = vector("x")
 
@@ -2769,19 +2750,17 @@ class TestLocalErfc:
         assert [n.op for n in f.maker.fgraph.toposort()] == [
             erf
         ], f.maker.fgraph.toposort()
-        print(f(val))
+        f(val)
 
         f = function([x], erfc(-x) - 1, mode=self.mode)
         assert [n.op for n in f.maker.fgraph.toposort()] == [
             erf
         ], f.maker.fgraph.toposort()
-        print(f(val))
 
         f = function([x], erfc(-x) + (-1), mode=self.mode)
         assert [n.op for n in f.maker.fgraph.toposort()] == [
             erf
         ], f.maker.fgraph.toposort()
-        print(f(val))
 
     @pytest.mark.xfail()
     def test_local_log_erfc(self):
