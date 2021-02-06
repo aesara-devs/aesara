@@ -2710,7 +2710,7 @@ def local_grad_log_erfc_neg(fgraph, node):
     """Stability optimization for the grad of `log(erfc(x))`.
 
     ([y*]exp(-(x**2)))/erfc(x) # The y* is optional
-    ([y*]exp(x**2))/erfc(-x) => [y*](when x>threashold,
+    ([y*]exp(x**2))/erfc(-x) => [y*](when x > threshold,
                             sqrt(pi)*-x/(1-1/(2*x**2)+3/(4*x**4)-15/(8*x**6)))
 
     for float64: threshold=26.63 see at the end of the fct for the explanation
@@ -2727,11 +2727,14 @@ def local_grad_log_erfc_neg(fgraph, node):
         return False
     if not node.inputs[1].owner or node.inputs[1].owner.op != erfc:
         return False
+
     erfc_in = node.inputs[1]
     erfc_x = erfc_in.owner.inputs[0]
+
     if not node.inputs[0].owner:
         return False
 
+    # TODO: All of this should be replaced with a single, simple unification
     # The mul is optional.
     if node.inputs[0].owner.op != mul:
         mul_in = None
@@ -2746,12 +2749,15 @@ def local_grad_log_erfc_neg(fgraph, node):
             if inp.owner and inp.owner.op == exp:
                 exp_in = inp
                 break
+        else:
+            return False
+
         if len(mul_in.owner.inputs) == 2:
             y = [mul_in.owner.inputs[1 - idx]]
         else:
             y = mul_in.owner.inputs[:]
             del y[idx]
-    del mul_in
+
     if not exp_in.owner.inputs[0].owner:
         return False
 
@@ -2848,6 +2854,9 @@ def local_grad_log_erfc_neg(fgraph, node):
         # We use that flag to don't apply the optimization recursively
         return False
 
+    if erfc_x is not x:
+        return None
+
     # we move the y outside the div.
     true_div_no_mul = true_div(exp_in, erfc_in)
     true_div_no_mul.owner.tag.local_grad_log_erfc_neg = True
@@ -2864,10 +2873,14 @@ def local_grad_log_erfc_neg(fgraph, node):
         # threshold = 10.1
     elif x.dtype == "float64":
         threshold = 26.641747557
+
     ret = switch(x < threshold, true_div_no_mul, stab_value)
+
     if y:
         ret = mul(ret, *y)
+
     ret.tag.values_eq_approx = values_eq_approx_remove_inf_nan
+
     return [ret]
 
 
