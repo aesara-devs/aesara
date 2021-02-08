@@ -39,6 +39,14 @@ except ImportError:
         mode_no_scipy = "FAST_RUN"
 
 
+def scipy_special_gammau(k, x):
+    return scipy.special.gammaincc(k, x) * scipy.special.gamma(k)
+
+
+def scipy_special_gammal(k, x):
+    return scipy.special.gammainc(k, x) * scipy.special.gamma(k)
+
+
 # We can't test it if scipy is not installed!
 # Precomputing the result is brittle(it have been broken!)
 # As if we do any modification to random number here,
@@ -55,14 +63,16 @@ if imported_scipy_special:
     expected_chi2sf = scipy.stats.chi2.sf
     expected_gammainc = scipy.special.gammainc
     expected_gammaincc = scipy.special.gammaincc
+    expected_gammau = scipy_special_gammau
+    expected_gammal = scipy_special_gammal
     expected_j0 = scipy.special.j0
     expected_j1 = scipy.special.j1
     expected_jv = scipy.special.jv
     expected_i0 = scipy.special.i0
     expected_i1 = scipy.special.i1
     expected_iv = scipy.special.iv
-    skip_scipy = False
     expected_erfcx = scipy.special.erfcx
+    skip_scipy = False
 else:
     expected_erf = []
     expected_erfc = []
@@ -76,6 +86,8 @@ else:
     expected_chi2sf = []
     expected_gammainc = []
     expected_gammaincc = []
+    expected_gammau = []
+    expected_gammal = []
     expected_j0 = []
     expected_j1 = []
     expected_jv = []
@@ -285,7 +297,7 @@ TestChi2SFInplaceBroadcast = makeBroadcastTester(
     name="Chi2SF",
 )
 
-_good_broadcast_binary_gammainc = dict(
+_good_broadcast_binary_gamma = dict(
     normal=(rand_ranged(1e-2, 10, (2, 3)), rand_ranged(1e-2, 10, (2, 3))),
     empty=(np.asarray([], dtype=config.floatX), np.asarray([], dtype=config.floatX)),
     int=(randint_ranged(1, 10, (2, 3)), randint_ranged(1, 10, (2, 3))),
@@ -306,7 +318,7 @@ _good_broadcast_binary_gammainc = dict(
 TestGammaIncBroadcast = makeBroadcastTester(
     op=aet.gammainc,
     expected=expected_gammainc,
-    good=_good_broadcast_binary_gammainc,
+    good=_good_broadcast_binary_gamma,
     eps=2e-8,
     mode=mode_no_scipy,
     skip=skip_scipy,
@@ -315,7 +327,7 @@ TestGammaIncBroadcast = makeBroadcastTester(
 TestGammaIncInplaceBroadcast = makeBroadcastTester(
     op=inplace.gammainc_inplace,
     expected=expected_gammainc,
-    good=_good_broadcast_binary_gammainc,
+    good=_good_broadcast_binary_gamma,
     eps=2e-8,
     mode=mode_no_scipy,
     inplace=True,
@@ -325,7 +337,7 @@ TestGammaIncInplaceBroadcast = makeBroadcastTester(
 TestGammaInccBroadcast = makeBroadcastTester(
     op=aet.gammaincc,
     expected=expected_gammaincc,
-    good=_good_broadcast_binary_gammainc,
+    good=_good_broadcast_binary_gamma,
     eps=2e-8,
     mode=mode_no_scipy,
     skip=skip_scipy,
@@ -334,7 +346,45 @@ TestGammaInccBroadcast = makeBroadcastTester(
 TestGammaInccInplaceBroadcast = makeBroadcastTester(
     op=inplace.gammaincc_inplace,
     expected=expected_gammaincc,
-    good=_good_broadcast_binary_gammainc,
+    good=_good_broadcast_binary_gamma,
+    eps=2e-8,
+    mode=mode_no_scipy,
+    inplace=True,
+    skip=skip_scipy,
+)
+
+TestGammaUBroadcast = makeBroadcastTester(
+    op=aet.gammau,
+    expected=expected_gammau,
+    good=_good_broadcast_binary_gamma,
+    eps=2e-8,
+    mode=mode_no_scipy,
+    skip=skip_scipy,
+)
+
+TestGammaUInplaceBroadcast = makeBroadcastTester(
+    op=inplace.gammau_inplace,
+    expected=expected_gammau,
+    good=_good_broadcast_binary_gamma,
+    eps=2e-8,
+    mode=mode_no_scipy,
+    inplace=True,
+    skip=skip_scipy,
+)
+
+TestGammaLBroadcast = makeBroadcastTester(
+    op=aet.gammal,
+    expected=expected_gammal,
+    good=_good_broadcast_binary_gamma,
+    eps=2e-8,
+    mode=mode_no_scipy,
+    skip=skip_scipy,
+)
+
+TestGammaLInplaceBroadcast = makeBroadcastTester(
+    op=inplace.gammal_inplace,
+    expected=expected_gammal,
+    good=_good_broadcast_binary_gamma,
     eps=2e-8,
     mode=mode_no_scipy,
     inplace=True,
