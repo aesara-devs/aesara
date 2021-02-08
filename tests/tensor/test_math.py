@@ -265,11 +265,30 @@ TestMulBroadcast = makeBroadcastTester(
     ),
 )
 
+# Values are fixed, because the gradient evaluation in TestModBroadcast often
+# fails when the inputs are close to each other (due to gradient discontinuity).
+# fmt: off
 _grad_broadcast_div_mod_normal = dict(
-    same_shapes=(rand(2, 3), rand_nonzero((2, 3))),
-    scalar=(rand(2, 3), rand_nonzero((1, 1))),
-    row=(rand(2, 3), rand_nonzero((1, 3))),
-    column=(rand(2, 3), rand_nonzero((2, 1))),
+    same_shapes=(
+        np.array([[-0.51157823, 0.02560825, -0.7482302], [0.05923786, -0.21001006, -0.66742722]]),
+        np.array([[-0.02250197, -0.32979461, 0.32081774], [0.36419213, -0.54073201, 0.8932643]])
+    ),
+    scalar=(
+        np.array([[0.32390696, -0.77305276, -0.66302977], [0.8214372, -0.31612823, -0.06294127]]),
+        np.array([[-0.86904352]])
+    ),
+    row=(
+        np.array([[0.89763688, -0.09403658, 0.05847774], [-0.00694876, -0.08999577, 0.19857154]]),
+        np.array([[-0.47662978, 0.72692131, -0.18250251]])
+    ),
+    column=(
+        np.array([[0.04506636, 0.05725927, -0.94947897], [0.39868416, -0.12655465, -0.87068554]]),
+        np.array([[-0.39040176], [0.76164576]])
+    ),
+    # same_shapes=(rand(2, 3), rand_nonzero((2, 3))),
+    # scalar=(rand(2, 3), rand_nonzero((1, 1))),
+    # row=(rand(2, 3), rand_nonzero((1, 3))),
+    # column=(rand(2, 3), rand_nonzero((2, 1))),
     # complex1=(randcomplex(2, 3), randcomplex_nonzero((2, 3))),
     # complex2=(randcomplex(2, 3), rand_nonzero((2, 3))),
     # complex3=(rand(2, 3), randcomplex_nonzero((2, 3))),
@@ -278,6 +297,7 @@ _grad_broadcast_div_mod_normal = dict(
     # empty1=(np.asarray([]), np.asarray([1.])),
     # empty2=(np.asarray([0]), np.asarray([])),
 )
+# fmt: on
 
 TestTrueDivBroadcast = makeBroadcastTester(
     op=true_div,

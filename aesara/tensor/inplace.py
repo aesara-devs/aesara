@@ -259,6 +259,26 @@ def chi2sf_inplace(x, k):
 
 
 @scalar_elemwise
+def gammainc_inplace(k, x):
+    """regularized lower gamma function (P)"""
+
+
+@scalar_elemwise
+def gammaincc_inplace(k, x):
+    """regularized upper gamma function (Q)"""
+
+
+@scalar_elemwise
+def gammau_inplace(k, x):
+    """upper incomplete gamma function"""
+
+
+@scalar_elemwise
+def gammal_inplace(k, x):
+    """lower incomplete gamma function"""
+
+
+@scalar_elemwise
 def j0_inplace(x):
     """Bessel function of the first kind of order 0."""
 
