@@ -137,8 +137,7 @@ class FunctionGraph(utils.MetaObject):
         # outputs even if they aren't used in the graph.
         self.variables = set()
 
-        # TODO FIXME: We should *not* be using a list created elsewhere!
-        self.outputs = outputs
+        self.outputs = list(outputs)
         self.clients = {}
 
         for f in features:
