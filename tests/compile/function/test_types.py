@@ -40,20 +40,6 @@ def PatternOptimizer(p1, p2, ign=True):
     return OpKeyOptimizer(PatternSub(p1, p2), ignore_newtrees=ign)
 
 
-def checkfor(testcase, fn, E):
-    try:
-        fn()
-    except Exception as e:
-        if isinstance(e, E):
-            # we got the exception we wanted
-            return
-        else:
-            # we did not get the exception we wanted
-            raise
-    # fn worked, but it shouldn't have
-    testcase.fail()
-
-
 class TestFunction:
     @pytest.mark.xfail()
     def test_none(self):
@@ -79,58 +65,67 @@ class TestFunction:
             x, s = scalars("xs")
             function([], [x])
 
-        checkfor(self, fn, MissingInputError)
+        with pytest.raises(MissingInputError):
+            fn()
 
         def fn():
             x, s = scalars("xs")
             # Ignore unused input s, as it hides the other error
             function([s], [x], on_unused_input="ignore")
 
-        checkfor(self, fn, MissingInputError)
+        with pytest.raises(MissingInputError):
+            fn()
 
         def fn():
             x, s = scalars("xs")
             function([s], [x])
 
-        checkfor(self, fn, UnusedInputError)
+        with pytest.raises(UnusedInputError):
+            fn()
 
         def fn():
             x, s = scalars("xs")
             # Ignore unused input s, as it hides the other error
             function([s], x, on_unused_input="ignore")
 
-        checkfor(self, fn, MissingInputError)
+        with pytest.raises(MissingInputError):
+            fn()
 
         def fn():
             x, s = scalars("xs")
             function([s], x)
 
-        checkfor(self, fn, UnusedInputError)
+        with pytest.raises(UnusedInputError):
+            fn()
 
         def fn():
             x, s = scalars("xs")
             # Ignore unused input s, as it hides the other error
             function([s], Out(x), on_unused_input="ignore")
 
-        checkfor(self, fn, MissingInputError)
+        with pytest.raises(MissingInputError):
+            fn()
 
         def fn():
             x, s = scalars("xs")
             function([s], Out(x))
 
-        checkfor(self, fn, UnusedInputError)
+        with pytest.raises(UnusedInputError):
+            fn()
 
         def fn():
             x, s = scalars("xs")
             function([In(x, update=s + x)], x)
 
-        checkfor(self, fn, MissingInputError)
+        with pytest.raises(MissingInputError):
+            fn()
 
         def fn():
             x, s = scalars("xs")
             function([In(x, update=((s * s) + x))], x)
 
-        checkfor(self, fn, MissingInputError)
+        with pytest.raises(MissingInputError):
+            fn()
 
     def test_input_anon_singleton(self):
         x, s = scalars("xs")
@@ -152,15 +147,16 @@ class TestFunction:
         assert f(s=2, x=1) == 0.5
         assert f(x=2, s=1) == 2.0
         assert f(2, s=1) == 2.0
-        checkfor(
-            self, lambda: f(2, x=2.0), TypeError
-        )  # got multiple values for keyword argument 'x'
-        checkfor(
-            self, lambda: f(x=1), TypeError
-        )  # takes exactly 2 non-keyword arguments (1 given)
-        checkfor(
-            self, lambda: f(s=1), TypeError
-        )  # takes exactly 2 non-keyword arguments (0 given)
+
+        with pytest.raises(TypeError):
+            # got multiple values for keyword argument 'x'
+            f(2, x=2.0)
+        with pytest.raises(TypeError):
+            # takes exactly 2 non-keyword arguments (1 given)
+            f(x=1)
+        with pytest.raises(TypeError):
+            # takes exactly 2 non-keyword arguments (0 given)
+            f(s=1)
 
     def test_naming_rule1(self):
         a = scalar()  # the a is for 'anonymous' (un-named).
@@ -169,12 +165,13 @@ class TestFunction:
         assert f(1, 2) == 0.5
         assert f(2, 1) == 2.0
         assert f(2, s=1) == 2.0
-        checkfor(
-            self, lambda: f(q=2, s=1), TypeError
-        )  # got unexpected keyword argument 'q'
-        checkfor(
-            self, lambda: f(a=2, s=1), TypeError
-        )  # got unexpected keyword argument 'a'
+
+        with pytest.raises(TypeError):
+            # got unexpected keyword argument 'q'
+            f(q=2, s=1)
+        with pytest.raises(TypeError):
+            # got unexpected keyword argument 'a'
+            f(a=2, s=1)
 
     def test_naming_rule2(self):
         a = scalar()  # the a is for 'anonymous' (un-named).
@@ -186,12 +183,13 @@ class TestFunction:
         assert f(9, 1, 2) == 0.5
         assert f(9, 2, 1) == 2.0
         assert f(9, 2, s=1) == 2.0
-        checkfor(
-            self, lambda: f(x=9, a=2, s=1), TypeError
-        )  # got unexpected keyword argument 'x'
-        checkfor(
-            self, lambda: f(5.0, x=9), TypeError
-        )  # got unexpected keyword argument 'x'
+
+        with pytest.raises(TypeError):
+            # got unexpected keyword argument 'x'
+            f(x=9, a=2, s=1)
+        with pytest.raises(TypeError):
+            # got unexpected keyword argument 'x'
+            f(5.0, x=9)
 
     def test_naming_rule3(self):
         a = scalar()  # the a is for 'anonymous' (un-named).
@@ -203,15 +201,15 @@ class TestFunction:
         assert f(9, 2, s=4) == 9.5  # can give s as kwarg
         assert f(9, s=4) == 9.25  # can give s as kwarg, get default a
         assert f(x=9, s=4) == 9.25  # can give s as kwarg, omit a, x as kw
-        checkfor(
-            self, lambda: f(x=9, a=2, s=4), TypeError
-        )  # got unexpected keyword argument 'a'
-        checkfor(
-            self, lambda: f(), TypeError
-        )  # takes exactly 3 non-keyword arguments (0 given)
-        checkfor(
-            self, lambda: f(x=9), TypeError
-        )  # takes exactly 3 non-keyword arguments (1 given)
+        with pytest.raises(TypeError):
+            # got unexpected keyword argument 'a'
+            f(x=9, a=2, s=4)
+        with pytest.raises(TypeError):
+            # takes exactly 3 non-keyword arguments (0 given)
+            f()
+        with pytest.raises(TypeError):
+            # takes exactly 3 non-keyword arguments (1 given)
+            f(x=9)
 
     def test_naming_rule4(self):
         a = scalar()  # the a is for 'anonymous' (un-named).
@@ -225,12 +223,12 @@ class TestFunction:
         assert f(9, a=2, s=4) == 9.5  # can give s as kwarg, a as kwarg
         assert f(x=9, a=2, s=4) == 9.5  # can give all kwargs
         assert f(x=9, s=4) == 9.25  # can give all kwargs
-        checkfor(
-            self, lambda: f(), TypeError
-        )  # takes exactly 3 non-keyword arguments (0 given)
-        checkfor(
-            self, lambda: f(5.0, x=9), TypeError
-        )  # got multiple values for keyword argument 'x'
+        with pytest.raises(TypeError):
+            # takes exactly 3 non-keyword arguments (0 given)
+            f()
+        with pytest.raises(TypeError):
+            # got multiple values for keyword argument 'x'
+            f(5.0, x=9)
 
     def test_state_access(self):
         a = scalar()  # the a is for 'anonymous' (un-named).
@@ -262,12 +260,14 @@ class TestFunction:
         # implicit names would cause error.  What do we do?
         f = function([a, x, s], a + x + s)
         assert f(1, 2, 3) == 6
-        checkfor(self, lambda: f(1, 2, x=3), TypeError)
+        with pytest.raises(TypeError):
+            f(1, 2, x=3)
 
     def test_weird_names(self):
         a, x, s = scalars("xxx")
 
-        checkfor(self, lambda: function([In(a, name=[])], []), TypeError)
+        with pytest.raises(TypeError):
+            function([In(a, name=[])], [])
 
         def t():
             f = function(
@@ -280,7 +280,8 @@ class TestFunction:
             )
             return f
 
-        checkfor(self, t, TypeError)
+        with pytest.raises(TypeError):
+            t()
 
     def test_copy(self):
         a = scalar()  # the a is for 'anonymous' (un-named).
