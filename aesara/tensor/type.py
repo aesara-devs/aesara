@@ -1,5 +1,4 @@
 import logging
-import warnings
 
 import numpy as np
 
@@ -56,7 +55,7 @@ class TensorType(CType):
     Inf entries. (Used in `DebugMode`)
     """
 
-    def __init__(self, dtype, broadcastable, name=None, sparse_grad=False):
+    def __init__(self, dtype, broadcastable, name=None):
         self.dtype = str(dtype)
         if self.dtype == "floatX":
             self.dtype = config.floatX
@@ -66,14 +65,6 @@ class TensorType(CType):
         self.dtype_specs()  # error checking is done there
         self.name = name
         self.numpy_dtype = np.dtype(self.dtype)
-        self.sparse_grad = sparse_grad
-        if sparse_grad:
-            warnings.warn(
-                "You use an old interface to"
-                " AdvancedSubtensor1 sparse_grad. Now use"
-                " aesara.sparse.sparse_grad(a_tensor[an_int_vector]).",
-                category=DeprecationWarning,
-            )
 
     def clone(self, dtype=None, broadcastable=None):
         """
@@ -85,9 +76,7 @@ class TensorType(CType):
             dtype = self.dtype
         if broadcastable is None:
             broadcastable = self.broadcastable
-        return self.__class__(
-            dtype, broadcastable, name=self.name, sparse_grad=self.sparse_grad
-        )
+        return self.__class__(dtype, broadcastable, name=self.name)
 
     def filter(self, data, strict=False, allow_downcast=None):
         """
