@@ -91,6 +91,7 @@ from aesara.compile import (
 from aesara.compile.function import function, function_dump
 from aesara.compile.function.types import FunctionMaker
 from aesara.gradient import Lop, Rop, grad, subgraph_grad
+from aesara.printing import debugprint as dprint
 from aesara.printing import pp, pprint
 from aesara.updates import OrderedUpdates
 
