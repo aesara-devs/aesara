@@ -1,7 +1,6 @@
 """A container for specifying and manipulating a graph with distinct inputs and outputs."""
 import time
 from collections import OrderedDict
-from io import StringIO
 
 import aesara
 from aesara.configdefaults import config
@@ -475,40 +474,7 @@ class FunctionGraph(utils.MetaObject):
         if verbose:
             print(reason, var, new_var)
 
-        if var.type != new_var.type:
-            new_var_2 = var.type.convert_variable(new_var)
-            # We still make sure that the type converts correctly
-            if new_var_2 is None or new_var_2.type != var.type:
-                done = dict()
-                used_ids = dict()
-                old = aesara.compile.debugmode.debugprint(
-                    var,
-                    prefix="  ",
-                    depth=6,
-                    file=StringIO(),
-                    done=done,
-                    print_type=True,
-                    used_ids=used_ids,
-                ).getvalue()
-                new = aesara.compile.debugmode.debugprint(
-                    new_var,
-                    prefix="  ",
-                    depth=6,
-                    file=StringIO(),
-                    done=done,
-                    print_type=True,
-                    used_ids=used_ids,
-                ).getvalue()
-                raise toolbox.BadOptimization(
-                    var,
-                    new_var,
-                    None,
-                    None,
-                    str(reason) + ". The type of the replacement must be the same.",
-                    old,
-                    new,
-                )
-            new_var = new_var_2
+        new_var = var.type.filter_variable(new_var, allow_convert=True)
 
         if var not in self.variables:
             # this variable isn't in the graph... don't raise an

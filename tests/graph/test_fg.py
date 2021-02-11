@@ -5,7 +5,6 @@ import pytest
 
 from aesara.configdefaults import config
 from aesara.graph.fg import FunctionGraph, MissingInputError
-from aesara.graph.toolbox import BadOptimization
 from tests.graph.utils import MyVariable, MyVariable2, op1, op2, op3
 
 
@@ -216,7 +215,7 @@ class TestFunctionGraph:
         var5 = op3(var4, var2, var2)
         fg = FunctionGraph([var1, var2], [var3, var5], clone=False)
 
-        with pytest.raises(BadOptimization):
+        with pytest.raises(TypeError):
             var0 = MyVariable2("var0")
             # The types don't match and one cannot be converted to the other
             fg.replace(var3, var0)
