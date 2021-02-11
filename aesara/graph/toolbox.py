@@ -11,6 +11,7 @@ import numpy as np
 import aesara
 from aesara.configdefaults import config
 from aesara.graph.basic import (
+    Variable,
     equal_computations,
     graph_inputs,
     io_toposort,
@@ -105,13 +106,41 @@ class BadOptimization(Exception):
         new_graph=None,
     ):
         super().__init__()
+
         self.old_r = old_r
         self.new_r = new_r
         self.old_r_val = old_r_val
         self.new_r_val = new_r_val
         self.reason = reason
-        self.old_graph = old_graph
-        self.new_graph = new_graph
+
+        done = dict()
+        used_ids = dict()
+
+        if isinstance(old_r, Variable):
+            self.old_graph = aesara.compile.debugmode.debugprint(
+                old_r,
+                prefix="  ",
+                depth=6,
+                file=StringIO(),
+                done=done,
+                print_type=True,
+                used_ids=used_ids,
+            ).getvalue()
+        else:
+            self.old_graph = None
+
+        if isinstance(new_r, Variable):
+            self.new_graph = aesara.compile.debugmode.debugprint(
+                new_r,
+                prefix="  ",
+                depth=6,
+                file=StringIO(),
+                done=done,
+                print_type=True,
+                used_ids=used_ids,
+            ).getvalue()
+        else:
+            self.new_graph = None
 
         # To allow extending the error message of an existing error.
         self.full_err = None
