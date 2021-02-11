@@ -821,7 +821,7 @@ def is_same_graph_with_merge(var1, var2, givens=None):
     # which happens when the graph is made of a single Variable.
     # We also need to make sure we replace a Variable if it is present in
     # `givens`.
-    vars_replaced = [givens.get(v, v) for v in vars]
+    vars_replaced = [givens.get(v, v) for v in fgraph.outputs]
     o1, o2 = [v.owner for v in vars_replaced]
     if o1 is None and o2 is None:
         # Comparing two single-Variable graphs: they are equal if they are
