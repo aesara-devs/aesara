@@ -856,9 +856,9 @@ class MergeOptimizer(GlobalOptimizer):
                     # Only need to check one of the var of each pairs.
                     # If it is a Constant, the other must also be a Constant as we merge them.
                     if all([isinstance(old, Constant) for old, new in pairs]):
-                        fgraph.replace_all(pairs, "MergeOptimizer")
+                        fgraph.replace_all(pairs, reason="MergeOptimizer")
                     else:
-                        fgraph.replace_all_validate(pairs, "MergeOptimizer")
+                        fgraph.replace_all_validate(pairs, reason="MergeOptimizer")
                 except InconsistencyError:
                     success = False
                     nb_fail += 1
