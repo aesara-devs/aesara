@@ -555,10 +555,12 @@ class ReplaceValidate(History, Validator):
         del fgraph.replace_all_validate
         del fgraph.replace_all_validate_remove
 
-    def replace_validate(self, fgraph, r, new_r, reason=None):
-        self.replace_all_validate(fgraph, [(r, new_r)], reason=reason)
+    def replace_validate(self, fgraph, r, new_r, reason=None, **kwargs):
+        self.replace_all_validate(fgraph, [(r, new_r)], reason=reason, **kwargs)
 
-    def replace_all_validate(self, fgraph, replacements, reason=None, verbose=None):
+    def replace_all_validate(
+        self, fgraph, replacements, reason=None, verbose=None, **kwargs
+    ):
         chk = fgraph.checkpoint()
         if verbose is None:
             verbose = config.optimizer_verbose
@@ -569,7 +571,7 @@ class ReplaceValidate(History, Validator):
 
         for r, new_r in replacements:
             try:
-                fgraph.replace(r, new_r, reason=reason, verbose=False)
+                fgraph.replace(r, new_r, reason=reason, verbose=False, **kwargs)
             except Exception as e:
                 msg = str(e)
                 s1 = "The type of the replacement must be the same"
@@ -630,14 +632,14 @@ class ReplaceValidate(History, Validator):
         return chk
 
     def replace_all_validate_remove(
-        self, fgraph, replacements, remove, reason=None, warn=True
+        self, fgraph, replacements, remove, reason=None, warn=True, **kwargs
     ):
         """
         As replace_all_validate, revert the replacement if the ops
         in the list remove are still in the graph. Also print a warning.
 
         """
-        chk = fgraph.replace_all_validate(replacements, reason)
+        chk = fgraph.replace_all_validate(replacements, reason=reason, **kwargs)
         self._nodes_removed.update(remove)
         for rm in remove:
             if rm in fgraph.apply_nodes or rm in fgraph.variables:

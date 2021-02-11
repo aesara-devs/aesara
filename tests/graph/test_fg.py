@@ -111,20 +111,26 @@ class TestFunctionGraph:
         var5 = op3(var4, var2, var2)
         fg = FunctionGraph([var1, var2], [var3, var5], clone=False)
 
-        var5 = MyVariable("var5")
-        var6 = op2(var5)
+        var8 = MyVariable("var8")
+        var6 = op2(var8)
 
         with pytest.raises(MissingInputError):
             fg.import_node(var6.owner)
 
-        var6 = op2(var2)
-        assert not hasattr(var6.owner.tag, "imported_by")
-        fg.import_node(var6.owner)
+        assert var8 not in fg.variables
 
-        assert hasattr(var6.owner.tag, "imported_by")
-        assert var6 in fg.variables
+        fg.import_node(var6.owner, import_missing=True)
+        assert var8 in fg.inputs
         assert var6.owner in fg.apply_nodes
-        assert (var6.owner, 0) in fg.get_clients(var2)
+
+        var7 = op2(var2)
+        assert not hasattr(var7.owner.tag, "imported_by")
+        fg.import_node(var7.owner)
+
+        assert hasattr(var7.owner.tag, "imported_by")
+        assert var7 in fg.variables
+        assert var7.owner in fg.apply_nodes
+        assert (var7.owner, 0) in fg.get_clients(var2)
 
     def test_import_var(self):
 
@@ -135,11 +141,16 @@ class TestFunctionGraph:
         var5 = op3(var4, var2, var2)
         fg = FunctionGraph([var1, var2], [var3, var5], clone=False)
 
+        var0 = MyVariable("var0")
+
         with pytest.raises(MissingInputError):
-            var0 = MyVariable("var0")
             # We can't import a new `FunctionGraph` input (i.e. something
-            # without an owner)
+            # without an owner), at least not without setting `import_missing`
             fg.import_var(var0, "testing")
+
+        fg.import_var(var0, import_missing=True)
+
+        assert var0 in fg.inputs
 
         var5 = op2()
         # We can import variables with owners
