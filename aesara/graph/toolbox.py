@@ -337,7 +337,7 @@ class GetCheckpoint:
         return self.nb
 
 
-class LambdExtract:
+class LambdaExtract:
     def __init__(self, fgraph, node, i, r, reason=None):
         self.fgraph = fgraph
         self.node = node
@@ -395,7 +395,7 @@ class History(Feature):
         if self.history[fgraph] is None:
             return
         h = self.history[fgraph]
-        h.append(LambdExtract(fgraph, node, i, r, reason))
+        h.append(LambdaExtract(fgraph, node, i, r, reason))
 
     def revert(self, fgraph, checkpoint):
         """
