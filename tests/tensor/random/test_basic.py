@@ -104,23 +104,26 @@ def test_beta_samples():
 
 
 def test_normal_infer_shape():
-    M_tt = iscalar("M")
-    M_tt.tag.test_value = 3
-    sd_tt = scalar("sd")
-    sd_tt.tag.test_value = np.array(1.0, dtype=config.floatX)
+    M_aet = iscalar("M")
+    M_aet.tag.test_value = 3
+    sd_aet = scalar("sd")
+    sd_aet.tag.test_value = np.array(1.0, dtype=config.floatX)
 
     test_params = [
-        ([aet.as_tensor_variable(np.array(1.0, dtype=config.floatX)), sd_tt], None),
-        ([aet.as_tensor_variable(np.array(1.0, dtype=config.floatX)), sd_tt], (M_tt,)),
+        ([aet.as_tensor_variable(np.array(1.0, dtype=config.floatX)), sd_aet], None),
         (
-            [aet.as_tensor_variable(np.array(1.0, dtype=config.floatX)), sd_tt],
-            (2, M_tt),
+            [aet.as_tensor_variable(np.array(1.0, dtype=config.floatX)), sd_aet],
+            (M_aet,),
         ),
-        ([aet.zeros((M_tt,)), sd_tt], None),
-        ([aet.zeros((M_tt,)), sd_tt], (M_tt,)),
-        ([aet.zeros((M_tt,)), sd_tt], (2, M_tt)),
-        ([aet.zeros((M_tt,)), aet.ones((M_tt,))], None),
-        ([aet.zeros((M_tt,)), aet.ones((M_tt,))], (2, M_tt)),
+        (
+            [aet.as_tensor_variable(np.array(1.0, dtype=config.floatX)), sd_aet],
+            (2, M_aet),
+        ),
+        ([aet.zeros((M_aet,)), sd_aet], None),
+        ([aet.zeros((M_aet,)), sd_aet], (M_aet,)),
+        ([aet.zeros((M_aet,)), sd_aet], (2, M_aet)),
+        ([aet.zeros((M_aet,)), aet.ones((M_aet,))], None),
+        ([aet.zeros((M_aet,)), aet.ones((M_aet,))], (2, M_aet)),
         (
             [
                 np.array([[-1, 20], [300, -4000]], dtype=config.floatX),
@@ -140,12 +143,12 @@ def test_normal_infer_shape():
 
 
 def test_normal_ShapeFeature():
-    M_tt = iscalar("M")
-    M_tt.tag.test_value = 3
-    sd_tt = scalar("sd")
-    sd_tt.tag.test_value = np.array(1.0, dtype=config.floatX)
+    M_aet = iscalar("M")
+    M_aet.tag.test_value = 3
+    sd_aet = scalar("sd")
+    sd_aet.tag.test_value = np.array(1.0, dtype=config.floatX)
 
-    d_rv = normal(aet.ones((M_tt,)), sd_tt, size=(2, M_tt))
+    d_rv = normal(aet.ones((M_aet,)), sd_aet, size=(2, M_aet))
     d_rv.tag.test_value
 
     fg = FunctionGraph(
@@ -294,10 +297,10 @@ def test_mvnormal_samples():
 
 
 def test_mvnormal_ShapeFeature():
-    M_tt = iscalar("M")
-    M_tt.tag.test_value = 2
+    M_aet = iscalar("M")
+    M_aet.tag.test_value = 2
 
-    d_rv = multivariate_normal(aet.ones((M_tt,)), aet.eye(M_tt), size=2)
+    d_rv = multivariate_normal(aet.ones((M_aet,)), aet.eye(M_aet), size=2)
 
     fg = FunctionGraph(
         [i for i in graph_inputs([d_rv]) if not isinstance(i, Constant)],
@@ -309,7 +312,7 @@ def test_mvnormal_ShapeFeature():
     s1, s2 = fg.shape_feature.shape_of[d_rv]
 
     assert get_test_value(s1) == 2
-    assert M_tt in graph_inputs([s2])
+    assert M_aet in graph_inputs([s2])
 
     # Test broadcasted shapes
     mean = tensor(config.floatX, [True, False])
@@ -369,16 +372,16 @@ def test_dirichlet_samples():
 
 
 def test_dirichlet_infer_shape():
-    M_tt = iscalar("M")
-    M_tt.tag.test_value = 3
+    M_aet = iscalar("M")
+    M_aet.tag.test_value = 3
 
     test_params = [
-        ([aet.ones((M_tt,))], None),
-        ([aet.ones((M_tt,))], (M_tt + 1,)),
-        ([aet.ones((M_tt,))], (2, M_tt)),
-        ([aet.ones((M_tt, M_tt + 1))], None),
-        ([aet.ones((M_tt, M_tt + 1))], (M_tt + 2,)),
-        ([aet.ones((M_tt, M_tt + 1))], (2, M_tt + 2, M_tt + 3)),
+        ([aet.ones((M_aet,))], None),
+        ([aet.ones((M_aet,))], (M_aet + 1,)),
+        ([aet.ones((M_aet,))], (2, M_aet)),
+        ([aet.ones((M_aet, M_aet + 1))], None),
+        ([aet.ones((M_aet, M_aet + 1))], (M_aet + 2,)),
+        ([aet.ones((M_aet, M_aet + 1))], (2, M_aet + 2, M_aet + 3)),
     ]
     for args, size in test_params:
         rv = dirichlet(*args, size=size)
@@ -388,12 +391,12 @@ def test_dirichlet_infer_shape():
 
 def test_dirichlet_ShapeFeature():
     """Make sure `RandomVariable.infer_shape` works with `ShapeFeature`."""
-    M_tt = iscalar("M")
-    M_tt.tag.test_value = 2
-    N_tt = iscalar("N")
-    N_tt.tag.test_value = 3
+    M_aet = iscalar("M")
+    M_aet.tag.test_value = 2
+    N_aet = iscalar("N")
+    N_aet.tag.test_value = 3
 
-    d_rv = dirichlet(aet.ones((M_tt, N_tt)), name="Gamma")
+    d_rv = dirichlet(aet.ones((M_aet, N_aet)), name="Gamma")
 
     fg = FunctionGraph(
         [i for i in graph_inputs([d_rv]) if not isinstance(i, Constant)],
@@ -404,8 +407,8 @@ def test_dirichlet_ShapeFeature():
 
     s1, s2 = fg.shape_feature.shape_of[d_rv]
 
-    assert M_tt in graph_inputs([s1])
-    assert N_tt in graph_inputs([s2])
+    assert M_aet in graph_inputs([s1])
+    assert N_aet in graph_inputs([s2])
 
 
 def test_poisson_samples():

@@ -1223,106 +1223,114 @@ def test_broadcast_shape():
     x = np.array([[1], [2], [3]])
     y = np.array([4, 5, 6])
     b = np.broadcast(x, y)
-    x_tt = aet.as_tensor_variable(x)
-    y_tt = aet.as_tensor_variable(y)
-    b_tt = broadcast_shape(x_tt, y_tt)
-    assert np.array_equal([z.eval() for z in b_tt], b.shape)
+    x_aet = aet.as_tensor_variable(x)
+    y_aet = aet.as_tensor_variable(y)
+    b_aet = broadcast_shape(x_aet, y_aet)
+    assert np.array_equal([z.eval() for z in b_aet], b.shape)
     # Now, we try again using shapes as the inputs
     #
     # This case also confirms that a broadcast dimension will
     # broadcast against a non-broadcast dimension when they're
     # both symbolic (i.e. we couldn't obtain constant values).
-    b_tt = broadcast_shape(
-        shape_tuple(x_tt, use_bcast=False),
-        shape_tuple(y_tt, use_bcast=False),
+    b_aet = broadcast_shape(
+        shape_tuple(x_aet, use_bcast=False),
+        shape_tuple(y_aet, use_bcast=False),
         arrays_are_shapes=True,
     )
     assert any(
-        isinstance(node.op, Assert) for node in applys_between([x_tt, y_tt], b_tt)
+        isinstance(node.op, Assert) for node in applys_between([x_aet, y_aet], b_aet)
     )
-    assert np.array_equal([z.eval() for z in b_tt], b.shape)
-    b_tt = broadcast_shape(shape_tuple(x_tt), shape_tuple(y_tt), arrays_are_shapes=True)
-    assert np.array_equal([z.eval() for z in b_tt], b.shape)
+    assert np.array_equal([z.eval() for z in b_aet], b.shape)
+    b_aet = broadcast_shape(
+        shape_tuple(x_aet), shape_tuple(y_aet), arrays_are_shapes=True
+    )
+    assert np.array_equal([z.eval() for z in b_aet], b.shape)
     # These are all constants, so there shouldn't be any asserts in the
     # resulting graph.
     assert not any(
-        isinstance(node.op, Assert) for node in applys_between([x_tt, y_tt], b_tt)
+        isinstance(node.op, Assert) for node in applys_between([x_aet, y_aet], b_aet)
     )
 
     x = np.array([1, 2, 3])
     y = np.array([4, 5, 6])
     b = np.broadcast(x, y)
-    x_tt = aet.as_tensor_variable(x)
-    y_tt = aet.as_tensor_variable(y)
-    b_tt = broadcast_shape(x_tt, y_tt)
-    assert np.array_equal([z.eval() for z in b_tt], b.shape)
-    b_tt = broadcast_shape(shape_tuple(x_tt), shape_tuple(y_tt), arrays_are_shapes=True)
-    assert np.array_equal([z.eval() for z in b_tt], b.shape)
+    x_aet = aet.as_tensor_variable(x)
+    y_aet = aet.as_tensor_variable(y)
+    b_aet = broadcast_shape(x_aet, y_aet)
+    assert np.array_equal([z.eval() for z in b_aet], b.shape)
+    b_aet = broadcast_shape(
+        shape_tuple(x_aet), shape_tuple(y_aet), arrays_are_shapes=True
+    )
+    assert np.array_equal([z.eval() for z in b_aet], b.shape)
     # TODO: This will work when/if we use a more sophisticated `is_same_graph`
     # implementation.
     # assert not any(
     #     isinstance(node.op, Assert)
-    #     for node in graph_ops([x_tt, y_tt], b_tt)
+    #     for node in graph_ops([x_aet, y_aet], b_aet)
     # )
 
     x = np.empty((1, 2, 3))
     y = np.array(1)
     b = np.broadcast(x, y)
-    x_tt = aet.as_tensor_variable(x)
-    y_tt = aet.as_tensor_variable(y)
-    b_tt = broadcast_shape(x_tt, y_tt)
-    assert b_tt[0].value == 1
-    assert np.array_equal([z.eval() for z in b_tt], b.shape)
+    x_aet = aet.as_tensor_variable(x)
+    y_aet = aet.as_tensor_variable(y)
+    b_aet = broadcast_shape(x_aet, y_aet)
+    assert b_aet[0].value == 1
+    assert np.array_equal([z.eval() for z in b_aet], b.shape)
     assert not any(
-        isinstance(node.op, Assert) for node in applys_between([x_tt, y_tt], b_tt)
+        isinstance(node.op, Assert) for node in applys_between([x_aet, y_aet], b_aet)
     )
-    b_tt = broadcast_shape(shape_tuple(x_tt), shape_tuple(y_tt), arrays_are_shapes=True)
-    assert np.array_equal([z.eval() for z in b_tt], b.shape)
+    b_aet = broadcast_shape(
+        shape_tuple(x_aet), shape_tuple(y_aet), arrays_are_shapes=True
+    )
+    assert np.array_equal([z.eval() for z in b_aet], b.shape)
 
     x = np.empty((2, 1, 3))
     y = np.empty((2, 1, 1))
     b = np.broadcast(x, y)
-    x_tt = aet.as_tensor_variable(x)
-    y_tt = aet.as_tensor_variable(y)
-    b_tt = broadcast_shape(x_tt, y_tt)
-    assert b_tt[1].value == 1
-    assert np.array_equal([z.eval() for z in b_tt], b.shape)
+    x_aet = aet.as_tensor_variable(x)
+    y_aet = aet.as_tensor_variable(y)
+    b_aet = broadcast_shape(x_aet, y_aet)
+    assert b_aet[1].value == 1
+    assert np.array_equal([z.eval() for z in b_aet], b.shape)
     # TODO: This will work when/if we use a more sophisticated `is_same_graph`
     # implementation.
     # assert not any(
     #     isinstance(node.op, Assert)
-    #     for node in graph_ops([x_tt, y_tt], b_tt)
+    #     for node in graph_ops([x_aet, y_aet], b_aet)
     # )
-    b_tt = broadcast_shape(shape_tuple(x_tt), shape_tuple(y_tt), arrays_are_shapes=True)
-    assert np.array_equal([z.eval() for z in b_tt], b.shape)
+    b_aet = broadcast_shape(
+        shape_tuple(x_aet), shape_tuple(y_aet), arrays_are_shapes=True
+    )
+    assert np.array_equal([z.eval() for z in b_aet], b.shape)
 
-    x1_shp_tt = iscalar("x1")
-    x2_shp_tt = iscalar("x2")
-    y1_shp_tt = iscalar("y1")
-    x_shapes = (1, x1_shp_tt, x2_shp_tt)
-    x_tt = aet.ones(x_shapes)
-    y_shapes = (y1_shp_tt, 1, x2_shp_tt)
-    y_tt = aet.ones(y_shapes)
-    b_tt = broadcast_shape(x_tt, y_tt)
+    x1_shp_aet = iscalar("x1")
+    x2_shp_aet = iscalar("x2")
+    y1_shp_aet = iscalar("y1")
+    x_shapes = (1, x1_shp_aet, x2_shp_aet)
+    x_aet = aet.ones(x_shapes)
+    y_shapes = (y1_shp_aet, 1, x2_shp_aet)
+    y_aet = aet.ones(y_shapes)
+    b_aet = broadcast_shape(x_aet, y_aet)
     # TODO: This will work when/if we use a more sophisticated `is_same_graph`
     # implementation.
     # assert not any(
     #     isinstance(node.op, Assert)
-    #     for node in graph_ops([x_tt, y_tt], b_tt)
+    #     for node in graph_ops([x_aet, y_aet], b_aet)
     # )
-    res = aet.as_tensor(b_tt).eval(
+    res = aet.as_tensor(b_aet).eval(
         {
-            x1_shp_tt: 10,
-            x2_shp_tt: 4,
-            y1_shp_tt: 2,
+            x1_shp_aet: 10,
+            x2_shp_aet: 4,
+            y1_shp_aet: 2,
         }
     )
     assert np.array_equal(res, (2, 10, 4))
 
-    y_shapes = (y1_shp_tt, 1, y1_shp_tt)
-    y_tt = aet.ones(y_shapes)
-    b_tt = broadcast_shape(x_tt, y_tt)
-    assert isinstance(b_tt[-1].owner.op, Assert)
+    y_shapes = (y1_shp_aet, 1, y1_shp_aet)
+    y_aet = aet.ones(y_shapes)
+    b_aet = broadcast_shape(x_aet, y_aet)
+    assert isinstance(b_aet[-1].owner.op, Assert)
 
 
 class TestBroadcastTo(utt.InferShapeTester):
@@ -1348,10 +1356,10 @@ class TestBroadcastTo(utt.InferShapeTester):
         assert bcast_res.broadcastable == (False, True)
 
         bcast_np = np.broadcast_to(5, (4, 1))
-        bcast_tt = bcast_res.get_test_value()
+        bcast_aet = bcast_res.get_test_value()
 
-        assert np.array_equal(bcast_tt, bcast_np)
-        assert np.shares_memory(bcast_tt, a.get_test_value())
+        assert np.array_equal(bcast_aet, bcast_np)
+        assert np.shares_memory(bcast_aet, a.get_test_value())
 
     @pytest.mark.parametrize(
         "fn,input_dims",
