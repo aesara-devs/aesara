@@ -14,7 +14,7 @@ from aesara.tensor.blas import Dot22
 from aesara.tensor.elemwise import DimShuffle
 from aesara.tensor.exceptions import NotScalarConstantError
 from aesara.tensor.math import Dot, Prod, dot, log
-from aesara.tensor.math import pow as tt_pow
+from aesara.tensor.math import pow as aet_pow
 from aesara.tensor.math import prod
 from aesara.tensor.nlinalg import (
     MatrixInverse,
@@ -210,7 +210,7 @@ def is_positive(v):
     # TODO: how to handle this - a registry?
     #      infer_hints on Ops?
     logger.debug(f"is_positive: {v}")
-    if v.owner and v.owner.op == tt_pow:
+    if v.owner and v.owner.op == aet_pow:
         try:
             exponent = aet.get_scalar_constant_value(v.owner.inputs[1])
         except NotScalarConstantError:
@@ -350,7 +350,7 @@ def local_log_prod_sqr(fgraph, node):
 def local_log_pow(fgraph, node):
     if node.op == log:
         (x,) = node.inputs
-        if x.owner and x.owner.op == tt_pow:
+        if x.owner and x.owner.op == aet_pow:
             base, exponent = x.owner.inputs
             # TODO: reason to be careful with dtypes?
             return [exponent * log(base)]
@@ -384,4 +384,4 @@ def spectral_radius_bound(X, log2_exponent):
     XX = X
     for i in range(log2_exponent):
         XX = dot(XX, XX)
-    return tt_pow(trace(XX), 2 ** (-log2_exponent))
+    return aet_pow(trace(XX), 2 ** (-log2_exponent))

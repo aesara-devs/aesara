@@ -17,7 +17,7 @@ from aesara import sparse
 from aesara import tensor as aet
 from aesara.graph.op import Op
 from aesara.tensor.math import dot
-from aesara.tensor.math import max as tt_max
+from aesara.tensor.math import max as aet_max
 from aesara.tensor.shape import reshape
 from aesara.tensor.subtensor import DimShuffle
 
@@ -430,7 +430,7 @@ def max_pool(images, imgshp, maxpoolshp):
     )
     patch_stack = reshape(patches, pshape, ndim=3)
 
-    out1 = tt_max(patch_stack, axis=2)
+    out1 = aet_max(patch_stack, axis=2)
 
     pshape = aet.stack(
         [

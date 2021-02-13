@@ -54,7 +54,7 @@ from aesara.tensor.math import (
     neg,
     or_,
 )
-from aesara.tensor.math import sum as tt_sum
+from aesara.tensor.math import sum as aet_sum
 from aesara.tensor.math import tanh, tensordot, true_div
 from aesara.tensor.nnet.blocksparse import sparse_block_dot
 from aesara.tensor.nnet.sigm import sigmoid, softplus
@@ -137,7 +137,7 @@ class SoftmaxWithBias(COp):
             return [DisconnectedType()(), DisconnectedType()()]
 
         dx = softmax_grad(g_sm, outputs[0])
-        db = tt_sum(dx, axis=0)
+        db = aet_sum(dx, axis=0)
         return dx, db
 
     def infer_shape(self, fgraph, node, shape):
@@ -361,10 +361,10 @@ class SoftmaxGrad(COp):
         dy, sm = inp
         (g,) = grads
 
-        tmp = g + neg(tt_sum(g * sm, axis=1).dimshuffle((0, "x")))
+        tmp = g + neg(aet_sum(g * sm, axis=1).dimshuffle((0, "x")))
         g_dy = tmp * sm
 
-        tmp2 = tt_sum(dy * sm, axis=1).dimshuffle((0, "x"))
+        tmp2 = aet_sum(dy * sm, axis=1).dimshuffle((0, "x"))
         g_sm = tmp * dy - g * tmp2
 
         return g_dy, g_sm
@@ -686,7 +686,7 @@ class LogSoftmax(COp):
     def grad(self, inp, grads):
         (x,) = inp
         sm = softmax_op(x)
-        return [grads[0] - tt_sum(grads[0], axis=1, keepdims=True) * sm]
+        return [grads[0] - aet_sum(grads[0], axis=1, keepdims=True) * sm]
 
     def R_op(self, inputs, eval_points):
         # I think the Jacobian is symmetric so the R_op
@@ -857,7 +857,7 @@ def local_logsoftmax_grad(fgraph, node):
         grads = node.inputs[0].owner.inputs[0]
         if grads.broadcastable[1] and not sm.broadcastable[1]:
             grads = aet.alloc(grads, grads.shape[0], sm.shape[1])
-        ret = grads - tt_sum(grads, axis=1, keepdims=True) * sm
+        ret = grads - aet_sum(grads, axis=1, keepdims=True) * sm
         ret.tag.values_eq_approx = values_eq_approx_remove_nan
         copy_stack_trace(node.outputs[0], ret)
         return [ret]
@@ -1124,7 +1124,7 @@ class CrossentropySoftmaxArgmax1HotWithBias(COp):
         if not isinstance(g_nll.type, DisconnectedType):
             nll, sm = crossentropy_softmax_1hot_with_bias(x, b, y_idx)
             dx = crossentropy_softmax_1hot_with_bias_dx(g_nll, sm, y_idx)
-            db = tt_sum(dx, axis=[0])
+            db = aet_sum(dx, axis=[0])
             dx_terms.append(dx)
             db_terms.append(db)
 
@@ -1294,7 +1294,7 @@ class CrossentropySoftmax1HotWithBiasDx(COp):
         # potentially misleading behavior in gradient computations! (although
         # typically we should not need the gradient w.r.t. dy).
         y_idx_range = aet.arange(y_idx.shape[0])
-        g_dy = tt_sum(
+        g_dy = aet_sum(
             g_dx * AdvancedIncSubtensor()(sm, aet.fill(dy, -1), y_idx_range, y_idx),
             axis=1,
         )
@@ -2214,7 +2214,7 @@ def categorical_crossentropy(coding_dist, true_dist):
 
     """
     if true_dist.ndim == coding_dist.ndim:
-        return -tt_sum(true_dist * log(coding_dist), axis=coding_dist.ndim - 1)
+        return -aet_sum(true_dist * log(coding_dist), axis=coding_dist.ndim - 1)
     elif true_dist.ndim == coding_dist.ndim - 1:
         return crossentropy_categorical_1hot(coding_dist, true_dist)
     else:

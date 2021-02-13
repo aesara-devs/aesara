@@ -7,7 +7,7 @@ import pytest
 import aesara
 import aesara.tensor as aet
 from aesara import function
-from aesara.tensor.math import sum as tt_sum
+from aesara.tensor.math import sum as aet_sum
 from aesara.tensor.signal.pool import (
     AveragePoolGrad,
     DownsampleFactorMaxGradGrad,
@@ -934,7 +934,7 @@ class TestDownsampleFactorMax(utt.InferShapeTester):
         x_vec = vector("x")
         z = aet.dot(x_vec.dimshuffle(0, "x"), x_vec.dimshuffle("x", 0))
         y = pool_2d(input=z, ws=(2, 2), ignore_border=True)
-        C = aet.exp(tt_sum(y))
+        C = aet.exp(aet_sum(y))
 
         grad_hess = aesara.gradient.hessian(cost=C, wrt=x_vec)
         fn_hess = function(inputs=[x_vec], outputs=grad_hess)

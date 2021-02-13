@@ -8,7 +8,7 @@ from aesara.scan.op import Scan
 from aesara.tensor import nnet
 from aesara.tensor.elemwise import Elemwise
 from aesara.tensor.math import Dot, dot
-from aesara.tensor.math import sum as tt_sum
+from aesara.tensor.math import sum as aet_sum
 from aesara.tensor.math import tanh
 from aesara.tensor.type import matrix, tensor3, vector
 from tests import unittest_tools as utt
@@ -128,8 +128,8 @@ class GaussNewtonMatrix:
     def __call__(self, v, cost, parameters, damp):
         # compute Gauss-Newton Matrix right-multiplied by `v`
         Jv = Rop(self._s, parameters, v)
-        HJv = grad(tt_sum(grad(cost, self._s) * Jv), self._s, consider_constant=[Jv])
-        JHJv = grad(tt_sum(HJv * self._s), parameters, consider_constant=[HJv, Jv])
+        HJv = grad(aet_sum(grad(cost, self._s) * Jv), self._s, consider_constant=[Jv])
+        JHJv = grad(aet_sum(HJv * self._s), parameters, consider_constant=[HJv, Jv])
 
         # apply Tikhonov damping
         JHJv = [JHJvi + damp * vi for JHJvi, vi in zip(JHJv, v)]

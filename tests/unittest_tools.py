@@ -11,7 +11,7 @@ from aesara.compile.debugmode import str_diagnostic
 from aesara.configdefaults import config
 from aesara.gradient import verify_grad as orig_verify_grad
 from aesara.tensor.math import _allclose
-from aesara.tensor.math import add as tt_add
+from aesara.tensor.math import add as aet_add
 
 
 _logger = logging.getLogger("tests.unittest_tools")
@@ -139,7 +139,7 @@ class OptimizationTestMixin:
 class OpContractTestMixin:
     # self.ops should be a list of instantiations of an Op class to test.
     # self.other_op should be an op which is different from every op
-    other_op = tt_add
+    other_op = aet_add
 
     def copy(self, x):
         return copy(x)

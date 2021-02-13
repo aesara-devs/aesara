@@ -45,15 +45,15 @@ from aesara.scan.op import Scan
 from aesara.scan.opt import ScanMerge
 from aesara.scan.utils import until
 from aesara.scan.views import foldl, foldr
-from aesara.scan.views import map as tt_map
-from aesara.scan.views import reduce as tt_reduce
+from aesara.scan.views import map as aet_map
+from aesara.scan.views import reduce as aet_reduce
 from aesara.tensor import basic as aet
 from aesara.tensor.blas import Dot22
 from aesara.tensor.elemwise import Elemwise
 from aesara.tensor.math import Dot
-from aesara.tensor.math import all as tt_all
+from aesara.tensor.math import all as aet_all
 from aesara.tensor.math import dot, mean
-from aesara.tensor.math import sum as tt_sum
+from aesara.tensor.math import sum as aet_sum
 from aesara.tensor.math import tanh
 from aesara.tensor.nnet import categorical_crossentropy, sigmoid, softmax_graph
 from aesara.tensor.random.utils import RandomStream
@@ -1292,7 +1292,7 @@ class TestScan:
 
     def test_map(self):
         v = vector("v")
-        abs_expr, abs_updates = tt_map(
+        abs_expr, abs_updates = aet_map(
             lambda x: abs(x), v, [], truncate_gradient=-1, go_backwards=False
         )
 
@@ -1345,7 +1345,7 @@ class TestScan:
     def test_reduce(self):
         v = vector("v")
         s = scalar("s")
-        result, updates = tt_reduce(lambda x, y: x + y, v, s)
+        result, updates = aet_reduce(lambda x, y: x + y, v, s)
 
         f = function([v, s], result, updates=updates, allow_input_downcast=True)
         rng = np.random.RandomState(utt.fetch_seed())
@@ -2622,7 +2622,7 @@ class TestScan:
 
                 lb = (inp * t).sum() + beta.sum()
 
-                Mi = tt_sum(lb) * h[i, D]
+                Mi = aet_sum(lb) * h[i, D]
                 return Mi
 
             (M), M_updts = scan(
@@ -2760,7 +2760,7 @@ class TestScan:
     def test_reduce_memory_consumption(self):
 
         x = shared(np.asarray(np.random.uniform(size=(10,)), dtype=config.floatX))
-        o, _ = tt_reduce(
+        o, _ = aet_reduce(
             lambda v, acc: acc + v,
             x,
             aet.constant(np.asarray(0.0, dtype=config.floatX)),
@@ -3330,7 +3330,7 @@ class TestScan:
 
         rand_stream = RandomStream()
         inp = matrix()
-        norm_inp = inp / tt_sum(inp, axis=0)
+        norm_inp = inp / aet_sum(inp, axis=0)
 
         def unit_dropout(out_idx):
             def stochastic_pooling(in_idx):
@@ -4223,10 +4223,10 @@ class TestScan:
 
         x = shared(np.asarray(0.0, dtype=config.floatX))
         utt.assert_allclose(
-            test(x, tt_sum((x + 1) ** 2), mention_y=False), 1.21000003815
+            test(x, aet_sum((x + 1) ** 2), mention_y=False), 1.21000003815
         )
         utt.assert_allclose(
-            test(x, tt_sum((x + 1) ** 2), mention_y=True), 1.21000003815
+            test(x, aet_sum((x + 1) ** 2), mention_y=True), 1.21000003815
         )
 
     def test_grad_find_input(self):
@@ -4911,7 +4911,7 @@ class TestGradUntil:
         X = matrix(name="x")
         arr = tile_array(self.seq)
         r, _ = scan(
-            lambda x, u: (x * x, until(tt_all(x > u))),
+            lambda x, u: (x * x, until(aet_all(x > u))),
             sequences=X,
             non_sequences=[self.threshold],
         )

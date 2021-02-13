@@ -12,7 +12,7 @@ import aesara
 from aesara.compile.function import function, function_dump
 from aesara.compile.io import In
 from aesara.configdefaults import config
-from aesara.tensor.math import sum as tt_sum
+from aesara.tensor.math import sum as aet_sum
 from aesara.tensor.type import (
     bscalar,
     bvector,
@@ -246,7 +246,7 @@ def test_pickle_unpickle_with_reoptimization():
     x2 = fmatrix("x2")
     x3 = aesara.shared(np.ones((10, 10), dtype=floatX))
     x4 = aesara.shared(np.ones((10, 10), dtype=floatX))
-    y = tt_sum(tt_sum(tt_sum(x1 ** 2 + x2) + x3) + x4)
+    y = aet_sum(aet_sum(aet_sum(x1 ** 2 + x2) + x3) + x4)
 
     updates = OrderedDict()
     updates[x3] = x3 + 1
@@ -278,7 +278,7 @@ def test_pickle_unpickle_without_reoptimization():
     x2 = fmatrix("x2")
     x3 = aesara.shared(np.ones((10, 10), dtype=floatX))
     x4 = aesara.shared(np.ones((10, 10), dtype=floatX))
-    y = tt_sum(tt_sum(tt_sum(x1 ** 2 + x2) + x3) + x4)
+    y = aet_sum(aet_sum(aet_sum(x1 ** 2 + x2) + x3) + x4)
 
     updates = OrderedDict()
     updates[x3] = x3 + 1

@@ -100,7 +100,7 @@ from aesara.tensor.math import (
     sqrt,
     sub,
 )
-from aesara.tensor.math import sum as tt_sum
+from aesara.tensor.math import sum as aet_sum
 from aesara.tensor.math import tan, tanh, tensordot, true_div, trunc, var
 from aesara.tensor.nnet import sigmoid
 from aesara.tensor.type import (
@@ -2196,12 +2196,12 @@ class TestSum:
     def test_sum_overflow(self):
         # Ensure that overflow errors are a little bit harder to get
         a = TensorType(dtype="int8", broadcastable=[False])()
-        f = function([a], tt_sum(a))
+        f = function([a], aet_sum(a))
         assert f([1] * 300) == 300
 
     def test_list(self):
         ll = [shared(0.0), shared(2.0)]
-        tt_sum(ll).eval() == 2
+        aet_sum(ll).eval() == 2
 
 
 class TestArithmeticCast:
@@ -2716,7 +2716,7 @@ class TestProd:
     def test_prod_without_zeros_grad(self):
         x = dmatrix()
         pwz_a1 = ProdWithoutZeros(axis=0)(x)
-        pwz_grad = grad(tt_sum(pwz_a1), x)
+        pwz_grad = grad(aet_sum(pwz_a1), x)
         # FIXME: This is not a real test.
         function([x], pwz_grad, mode=self.mode)
 
@@ -2786,9 +2786,9 @@ class TestIsInfIsNan:
             self.mode = copy(self.mode)
             self.mode.check_isfinite = False
 
-    def run_isfunc(self, tt_func, np_func):
+    def run_isfunc(self, aet_func, np_func):
         for args in (self.scalar, self.vector):
-            Aesara_isfunc = function([args], tt_func(args), mode=self.mode)
+            Aesara_isfunc = function([args], aet_func(args), mode=self.mode)
             for x in self.test_vals:
                 if (x.ndim == 0 and args is not self.scalar) or (
                     x.ndim == 1 and args is not self.vector

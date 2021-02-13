@@ -24,11 +24,11 @@ from aesara.sparse.type import SparseType, _is_sparse
 from aesara.sparse.utils import hash_from_sparse
 from aesara.tensor import basic as aet
 from aesara.tensor.basic import Split
-from aesara.tensor.math import add as tt_add
+from aesara.tensor.math import add as aet_add
 from aesara.tensor.math import arcsin, arcsinh, arctan, arctanh, ceil, conj, deg2rad
-from aesara.tensor.math import dot as tt_dot
+from aesara.tensor.math import dot as aet_dot
 from aesara.tensor.math import exp, expm1, floor, log, log1p, maximum, minimum
-from aesara.tensor.math import pow as tt_pow
+from aesara.tensor.math import pow as aet_pow
 from aesara.tensor.math import (
     rad2deg,
     round_half_to_even,
@@ -3216,7 +3216,7 @@ def structured_log(x):
     # see decorator for function body
 
 
-@structured_monoid(tt_pow)
+@structured_monoid(aet_pow)
 def structured_pow(x, y):
     """
     Structured elemwise power of sparse matrix x by scalar y.
@@ -3243,7 +3243,7 @@ def structured_maximum(x, y):
     # see decorator for function body
 
 
-@structured_monoid(tt_add)
+@structured_monoid(aet_add)
 def structured_add(x):
     """
     Structured addition of sparse matrix x and scalar y.
@@ -4179,11 +4179,11 @@ class Dot(Op):
         rval = []
 
         if _is_dense_variable(y):
-            rval.append(tt_dot(gz, y.T))
+            rval.append(aet_dot(gz, y.T))
         else:
             rval.append(dot(gz, y.T))
         if _is_dense_variable(x):
-            rval.append(tt_dot(x.T, gz))
+            rval.append(aet_dot(x.T, gz))
         else:
             rval.append(dot(x.T, gz))
 

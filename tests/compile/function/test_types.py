@@ -18,7 +18,7 @@ from aesara.graph.basic import Constant
 from aesara.graph.fg import MissingInputError
 from aesara.graph.opt import OpKeyOptimizer, PatternSub
 from aesara.tensor.math import dot
-from aesara.tensor.math import sum as tt_sum
+from aesara.tensor.math import sum as aet_sum
 from aesara.tensor.math import tanh
 from aesara.tensor.type import (
     dmatrix,
@@ -432,7 +432,7 @@ class TestFunction:
         x = vector("x")
         y = vector("y")
         # this formular has no sense but for a test
-        out = (tt_sum(x) - y) ** 2
+        out = (aet_sum(x) - y) ** 2
         train = aesara.function(
             [i],
             out,
@@ -1248,7 +1248,7 @@ def test_FunctionMaker_cache_optimizations():
         b = fmatrix("b")
         c = aesara.shared(np.ones((10, 10), dtype=floatX))
         d = aesara.shared(np.ones((10, 10), dtype=floatX))
-        e = tt_sum(tt_sum(tt_sum(a ** 2 + b) + c) + d)
+        e = aet_sum(aet_sum(aet_sum(a ** 2 + b) + c) + d)
         f1 = aesara.function([a, b], e, mode=mode)
 
         # FIXME: We can do much better about testing this.
@@ -1258,7 +1258,7 @@ def test_FunctionMaker_cache_optimizations():
         n = fmatrix("x2")
         p = aesara.shared(np.ones((10, 10), dtype=floatX))
         q = aesara.shared(np.ones((10, 10), dtype=floatX))
-        j = tt_sum(tt_sum(tt_sum(m ** 2 + n) + p) + q)
+        j = aet_sum(aet_sum(aet_sum(m ** 2 + n) + p) + q)
         f2 = aesara.function([m, n], j, mode=mode)
 
         in1 = np.ones((10, 10), dtype=floatX)

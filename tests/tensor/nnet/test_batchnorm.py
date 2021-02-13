@@ -6,7 +6,7 @@ import pytest
 import aesara
 import aesara.tensor as aet
 from aesara.configdefaults import config
-from aesara.tensor.math import sum as tt_sum
+from aesara.tensor.math import sum as aet_sum
 from aesara.tensor.nnet import batchnorm
 from aesara.tensor.type import (
     TensorType,
@@ -555,7 +555,7 @@ def test_batch_normalization_train_broadcast():
 
             # compile to compute all differences
             f = aesara.function(
-                [x, scale, bias, running_mean, running_var], tt_sum(sum(results))
+                [x, scale, bias, running_mean, running_var], aet_sum(sum(results))
             )
 
             # the paired ops are exactly the same, so the optimizer should have

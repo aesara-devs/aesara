@@ -77,11 +77,11 @@ from aesara.tensor.math import (
     log1p,
     makeKeepDims,
 )
-from aesara.tensor.math import max as tt_max
+from aesara.tensor.math import max as aet_max
 from aesara.tensor.math import maximum, mul, neg
-from aesara.tensor.math import pow as tt_pow
+from aesara.tensor.math import pow as aet_pow
 from aesara.tensor.math import prod, sgn, sqr, sqrt, sub
-from aesara.tensor.math import sum as tt_sum
+from aesara.tensor.math import sum as aet_sum
 from aesara.tensor.math import true_div
 from aesara.tensor.shape import Shape, Shape_i
 from aesara.tensor.subtensor import Subtensor
@@ -1411,10 +1411,10 @@ def local_sum_prod_div_dimshuffle(fgraph, node):
                             )
 
                     if isinstance(node.op, Sum):
-                        op_on_compatible_dims = tt_sum(numerator, axis=compatible_dims)
+                        op_on_compatible_dims = aet_sum(numerator, axis=compatible_dims)
                         rval = true_div(op_on_compatible_dims, optimized_dimshuffle)
                         if len(reordered_incompatible_dims) > 0:
-                            rval = tt_sum(rval, axis=reordered_incompatible_dims)
+                            rval = aet_sum(rval, axis=reordered_incompatible_dims)
                     elif isinstance(node.op, Prod):
                         op_on_compatible_dims = prod(numerator, axis=compatible_dims)
                         dtype = numerator.dtype
@@ -1663,7 +1663,7 @@ def local_reduce_broadcastable(fgraph, node):
                 new_reduced = reduced.dimshuffle(*pattern)
                 if new_axis:
                     if type(node.op) == CAReduce:
-                        # This happen for tt_max(), tt_min()
+                        # This happen for aet_max(), aet_min()
                         new_op = node.op.__class__(node.op.scalar_op, axis=new_axis)
                     else:
                         new_op = node.op.__class__(axis=new_axis)
@@ -1819,7 +1819,7 @@ register_specialize(local_div_to_inv)
 @local_optimizer([inv])
 def local_inv_canon(fgraph, node):
     if node.op == inv:
-        return [tt_pow(node.inputs[0], -1.0)]
+        return [aet_pow(node.inputs[0], -1.0)]
     else:
         return False
 
@@ -1827,9 +1827,9 @@ def local_inv_canon(fgraph, node):
 register_canonicalize(local_inv_canon)
 
 
-@local_optimizer([tt_pow])
+@local_optimizer([aet_pow])
 def local_pow_canonicalize(fgraph, node):
-    if node.op == tt_pow:
+    if node.op == aet_pow:
         cst = local_mul_canonizer.get_constant(node.inputs[1])
         if cst == 0:
             return [broadcast_like(1, node.outputs[0], fgraph)]
@@ -1883,11 +1883,11 @@ def local_zero_div(fgraph, node):
             return [ret]
 
 
-@local_optimizer([tt_pow])
+@local_optimizer([aet_pow])
 def local_pow_specialize(fgraph, node):
     # here, we are past the point of canonicalization, so we don't want
     # to put in un-necessary fills.
-    if node.op == tt_pow:
+    if node.op == aet_pow:
         # the idea here is that we have pow(x, y)
         odtype = node.outputs[0].dtype
         xsym = node.inputs[0]
@@ -1924,12 +1924,12 @@ register_specialize(local_pow_specialize)
 
 
 @register_specialize_device
-@local_optimizer([tt_pow])
+@local_optimizer([aet_pow])
 def local_pow_specialize_device(fgraph, node):
     """
     This optimization is not the same on all device. We do it only on cpu here.
     """
-    if node.op == tt_pow:
+    if node.op == aet_pow:
         # the idea here is that we have pow(x, y)
         odtype = node.outputs[0].dtype
         xsym = node.inputs[0]
@@ -2285,10 +2285,10 @@ def local_log_sum_exp(fgraph, node):
         return
 
     pre_exp = exp_node.inputs[0]
-    max_pre_exp = tt_max(pre_exp, axis=axis)
+    max_pre_exp = aet_max(pre_exp, axis=axis)
     max_pre_exp_keepdims = makeKeepDims(pre_exp, max_pre_exp, axis)
 
-    ret = max_pre_exp + log(tt_sum(exp(pre_exp - max_pre_exp_keepdims), axis=axis))
+    ret = max_pre_exp + log(aet_sum(exp(pre_exp - max_pre_exp_keepdims), axis=axis))
 
     # Restore the dimshuffle op, if any.
     if dimshuffle_op:
@@ -2864,7 +2864,7 @@ def local_grad_log_erfc_neg(fgraph, node):
     # aaron value
     stab_value = (
         x
-        * tt_pow(1 - 1 / (2 * (x ** 2)) + 3 / (4 * (x ** 4)) - 15 / (8 * (x ** 6)), -1)
+        * aet_pow(1 - 1 / (2 * (x ** 2)) + 3 / (4 * (x ** 4)) - 15 / (8 * (x ** 6)), -1)
         * cast(sqrt(np.pi), dtype=x.dtype)
     )
 

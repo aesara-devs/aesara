@@ -31,7 +31,7 @@ from aesara.tensor.math import (
     prod,
     sqrt,
 )
-from aesara.tensor.math import sum as tt_sum
+from aesara.tensor.math import sum as aet_sum
 from aesara.tensor.nnet import batchnorm, conv2d, softmax, softmax_op
 from aesara.tensor.nnet.abstract_conv import (
     get_conv_gradinputs_shape,
@@ -668,7 +668,7 @@ def test_pooling_opt_arbitrary_dimensions():
 
             for mode in modes:
                 out_pool = Pool(ndim=len(ws), mode=mode, ignore_border=True)(input, ws)
-                out_pool_grad = aesara.grad(tt_sum(out_pool), wrt=input)
+                out_pool_grad = aesara.grad(aet_sum(out_pool), wrt=input)
                 out = [out_pool, out_pool_grad]
 
                 # run on GPU
@@ -722,7 +722,7 @@ def test_pooling_empty_batch():
     d = f(np.random.rand(*img_shp).astype("float32"))
     assert d.shape == (0, 5, 3, 4)
 
-    g = aesara.grad(tt_sum(o), wrt=img)
+    g = aesara.grad(aet_sum(o), wrt=img)
     f = aesara.function([img], g, mode=mode_with_gpu)
     d = f(np.random.rand(*img_shp).astype("float32"))
     # Not sure what to assert, it should just pass, that's all.
@@ -1784,7 +1784,7 @@ def test_dnn_reduction_error():
 
     vecT = vector(dtype=aesara.config.floatX)
     outputT = aet.alloc(2.0 * vecT, 5, vecT.shape[0])
-    outputSummedT = tt_sum(aet.transpose(outputT), axis=1)
+    outputSummedT = aet_sum(aet.transpose(outputT), axis=1)
     f3 = aesara.function(inputs=[vecT], outputs=outputSummedT)
 
     output = f3(vec)
@@ -2922,7 +2922,7 @@ def test_dnn_spatialtf():
         wb = ((x1_f - x) * (y - y0_f)).dimshuffle(0, "x")
         wc = ((x - x0_f) * (y1_f - y)).dimshuffle(0, "x")
         wd = ((x - x0_f) * (y - y0_f)).dimshuffle(0, "x")
-        output = tt_sum([wa * Ia, wb * Ib, wc * Ic, wd * Id], axis=0)
+        output = aet_sum([wa * Ia, wb * Ib, wc * Ic, wd * Id], axis=0)
         return output
 
     def _linspace(start, stop, num):

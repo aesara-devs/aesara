@@ -21,9 +21,9 @@ from aesara.tensor import basic as aet
 from aesara.tensor import nlinalg
 from aesara.tensor.exceptions import NotScalarConstantError
 from aesara.tensor.math import abs_
-from aesara.tensor.math import all as tt_all
+from aesara.tensor.math import all as aet_all
 from aesara.tensor.math import eq, ge, lt, maximum, minimum, or_, prod
-from aesara.tensor.math import sum as tt_sum
+from aesara.tensor.math import sum as aet_sum
 from aesara.tensor.subtensor import advanced_inc_subtensor1, set_subtensor
 from aesara.tensor.type import (
     TensorType,
@@ -573,7 +573,7 @@ def bincount(x, weights=None, minlength=None, assert_nonneg=False):
 
     if assert_nonneg:
         assert_op = Assert("Input to bincount has negative values!")
-        x = assert_op(x, tt_all(x >= 0))
+        x = assert_op(x, aet_all(x >= 0))
 
     max_value = aet.cast(x.max() + 1, "int64")
 
@@ -760,12 +760,12 @@ class RepeatOp(Op):
                         res = res * d
                     out_shape = (res * repeats,)
             else:
-                out_shape = [tt_sum(repeats, dtype=dtype)]
+                out_shape = [aet_sum(repeats, dtype=dtype)]
         else:
             if repeats.ndim == 0:
                 out_shape[self.axis] = out_shape[self.axis] * repeats
             else:
-                out_shape[self.axis] = tt_sum(repeats, dtype=dtype)
+                out_shape[self.axis] = aet_sum(repeats, dtype=dtype)
         return [out_shape]
 
 
@@ -1529,7 +1529,7 @@ def broadcast_shape_iter(arrays, **kwargs):
                 # equal, so we'll need to assert their equality and move the error
                 # handling to evaluation time.
                 assert_dim = Assert("Could not broadcast dimensions")
-                eq_condition = tt_all(
+                eq_condition = aet_all(
                     [
                         or_(eq(dim, one), eq(i_dim, dim))
                         for dim in potentially_unequal_dims

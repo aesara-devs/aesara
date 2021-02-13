@@ -10,7 +10,7 @@ from aesara.graph.fg import FunctionGraph
 from aesara.graph.opt import check_stack_trace
 from aesara.tensor.elemwise import CAReduce, DimShuffle, Elemwise
 from aesara.tensor.math import Argmax, add, argmax, dot, exp, log, max_and_argmax, mean
-from aesara.tensor.math import sum as tt_sum
+from aesara.tensor.math import sum as aet_sum
 from aesara.tensor.math import tanh, true_div
 from aesara.tensor.nnet.basic import (
     CrossentropyCategorical1Hot,
@@ -226,7 +226,7 @@ class TestLogSoftmax(utt.InferShapeTester):
         # numerically stable log-softmax with crossentropy
         logsm = logsoftmax(x)
         sm2 = exp(logsm)  # just used to show equivalence with sm
-        cm2 = -tt_sum(y * logsm, axis=1)
+        cm2 = -aet_sum(y * logsm, axis=1)
         grad_node = grad(cm2.mean(), x)
 
         # create some inputs into a softmax that are large and labels
@@ -654,7 +654,7 @@ class TestCrossEntropyCategorical1Hot(utt.InferShapeTester):
         one_of_n = lvector("one_of_n")
         op = crossentropy_categorical_1hot
         xe = op(softmax_op(x), one_of_n)
-        sum_xe = tt_sum(xe)
+        sum_xe = aet_sum(xe)
         g_x = grad(sum_xe, x)
         fgraph = FunctionGraph([x, one_of_n], [g_x])
         assert check_stack_trace(
@@ -674,7 +674,7 @@ class TestCrossEntropyCategorical1Hot(utt.InferShapeTester):
         one_of_n = lvector("one_of_n")
         op = crossentropy_categorical_1hot
         xe = op(softmax_op(x), one_of_n)
-        sum_xe = tt_sum(xe)
+        sum_xe = aet_sum(xe)
         g_x = grad(sum_xe, x)
         fgraph = FunctionGraph([x, one_of_n], [g_x])
 
@@ -693,10 +693,10 @@ class TestCrossEntropyCategorical1Hot(utt.InferShapeTester):
 
         # Basic case
         expressions = [
-            tt_sum(-log(softmax(x)[aet.arange(y.shape[0]), y])),
-            -tt_sum(log(softmax(x)[aet.arange(y.shape[0]), y])),
-            -tt_sum(log(softmax(x))[aet.arange(y.shape[0]), y]),
-            tt_sum(-log(softmax(x))[aet.arange(y.shape[0]), y]),
+            aet_sum(-log(softmax(x)[aet.arange(y.shape[0]), y])),
+            -aet_sum(log(softmax(x)[aet.arange(y.shape[0]), y])),
+            -aet_sum(log(softmax(x))[aet.arange(y.shape[0]), y]),
+            aet_sum(-log(softmax(x))[aet.arange(y.shape[0]), y]),
         ]
         for expr in expressions:
 
@@ -720,10 +720,10 @@ class TestCrossEntropyCategorical1Hot(utt.InferShapeTester):
 
         # Test that a biased softmax is optimized correctly
         bias_expressions = [
-            tt_sum(-log(softmax(x + b)[aet.arange(y.shape[0]), y])),
-            -tt_sum(log(softmax(b + x)[aet.arange(y.shape[0]), y])),
-            -tt_sum(log(softmax(x + b))[aet.arange(y.shape[0]), y]),
-            tt_sum(-log(softmax(b + x))[aet.arange(y.shape[0]), y]),
+            aet_sum(-log(softmax(x + b)[aet.arange(y.shape[0]), y])),
+            -aet_sum(log(softmax(b + x)[aet.arange(y.shape[0]), y])),
+            -aet_sum(log(softmax(x + b))[aet.arange(y.shape[0]), y]),
+            aet_sum(-log(softmax(b + x))[aet.arange(y.shape[0]), y]),
         ]
 
         for expr in bias_expressions:
@@ -803,10 +803,10 @@ class TestCrossEntropyCategorical1Hot(utt.InferShapeTester):
         y = lvector("y")
         yi = aet.cast(y, "int32")
         expressions = [
-            tt_sum(-log(softmax(x)[aet.arange(yi.shape[0]), yi])),
-            -tt_sum(log(softmax(x)[aet.arange(yi.shape[0]), yi])),
-            -tt_sum(log(softmax(x))[aet.arange(yi.shape[0]), yi]),
-            tt_sum(-log(softmax(x))[aet.arange(yi.shape[0]), yi]),
+            aet_sum(-log(softmax(x)[aet.arange(yi.shape[0]), yi])),
+            -aet_sum(log(softmax(x)[aet.arange(yi.shape[0]), yi])),
+            -aet_sum(log(softmax(x))[aet.arange(yi.shape[0]), yi]),
+            aet_sum(-log(softmax(x))[aet.arange(yi.shape[0]), yi]),
         ]
 
         for expr in expressions:
@@ -834,8 +834,8 @@ class TestCrossEntropyCategorical1Hot(utt.InferShapeTester):
 
         # Test that a biased softmax is optimized correctly
         bias_expressions = [
-            tt_sum(-log(softmax(x)[aet.arange(y.shape[0]), y])),
-            -tt_sum(log(softmax(x)[aet.arange(y.shape[0]), y])),
+            aet_sum(-log(softmax(x)[aet.arange(y.shape[0]), y])),
+            -aet_sum(log(softmax(x)[aet.arange(y.shape[0]), y])),
         ]
 
         for expr in bias_expressions:
@@ -863,10 +863,10 @@ class TestCrossEntropyCategorical1Hot(utt.InferShapeTester):
 
         # Test that a biased softmax is optimized correctly
         bias_expressions = [
-            tt_sum(-log(softmax(x + b)[aet.arange(y.shape[0]), y])),
-            -tt_sum(log(softmax(b + x)[aet.arange(y.shape[0]), y])),
-            -tt_sum(log(softmax(x + b))[aet.arange(y.shape[0]), y]),
-            tt_sum(-log(softmax(b + x))[aet.arange(y.shape[0]), y]),
+            aet_sum(-log(softmax(x + b)[aet.arange(y.shape[0]), y])),
+            -aet_sum(log(softmax(b + x)[aet.arange(y.shape[0]), y])),
+            -aet_sum(log(softmax(x + b))[aet.arange(y.shape[0]), y]),
+            aet_sum(-log(softmax(b + x))[aet.arange(y.shape[0]), y]),
         ]
 
         for expr in bias_expressions:
@@ -900,10 +900,10 @@ class TestCrossEntropyCategorical1Hot(utt.InferShapeTester):
 
         # Test that a biased softmax is optimized correctly
         bias_expressions = [
-            tt_sum(-log(softmax(x + b)[aet.arange(y.shape[0]), y])),
-            -tt_sum(log(softmax(b + x)[aet.arange(y.shape[0]), y])),
-            -tt_sum(log(softmax(x + b))[aet.arange(y.shape[0]), y]),
-            tt_sum(-log(softmax(b + x))[aet.arange(y.shape[0]), y]),
+            aet_sum(-log(softmax(x + b)[aet.arange(y.shape[0]), y])),
+            -aet_sum(log(softmax(b + x)[aet.arange(y.shape[0]), y])),
+            -aet_sum(log(softmax(x + b))[aet.arange(y.shape[0]), y]),
+            aet_sum(-log(softmax(b + x))[aet.arange(y.shape[0]), y]),
         ]
 
         for expr in bias_expressions:
@@ -938,10 +938,10 @@ class TestCrossEntropyCategorical1Hot(utt.InferShapeTester):
 
         # Test that a biased softmax is optimized correctly
         bias_expressions = [
-            tt_sum(-log(softmax(x + b)[aet.arange(y.shape[0]), y])),
-            -tt_sum(log(softmax(b + x)[aet.arange(y.shape[0]), y])),
-            -tt_sum(log(softmax(x + b))[aet.arange(y.shape[0]), y]),
-            tt_sum(-log(softmax(b + x))[aet.arange(y.shape[0]), y]),
+            aet_sum(-log(softmax(x + b)[aet.arange(y.shape[0]), y])),
+            -aet_sum(log(softmax(b + x)[aet.arange(y.shape[0]), y])),
+            -aet_sum(log(softmax(x + b))[aet.arange(y.shape[0]), y]),
+            aet_sum(-log(softmax(b + x))[aet.arange(y.shape[0]), y]),
         ]
 
         for expr in bias_expressions:
@@ -988,14 +988,14 @@ class TestCrossEntropyCategorical1Hot(utt.InferShapeTester):
 
         # Cases to test
         expressions = [
-            a * tt_sum(-log(softmax(x)[aet.arange(y.shape[0]), y])),
-            -a * tt_sum(log(softmax(x)[aet.arange(y.shape[0]), y])),
-            a * (-tt_sum(log(softmax(x)[aet.arange(y.shape[0]), y]))),
-            a * tt_sum(log(softmax(x)[aet.arange(y.shape[0]), y])),
-            a * tt_sum(-log(softmax(x))[aet.arange(y.shape[0]), y]),
-            -a * tt_sum(log(softmax(x))[aet.arange(y.shape[0]), y]),
-            a * (-tt_sum(log(softmax(x))[aet.arange(y.shape[0]), y])),
-            a * tt_sum(log(softmax(x))[aet.arange(y.shape[0]), y]),
+            a * aet_sum(-log(softmax(x)[aet.arange(y.shape[0]), y])),
+            -a * aet_sum(log(softmax(x)[aet.arange(y.shape[0]), y])),
+            a * (-aet_sum(log(softmax(x)[aet.arange(y.shape[0]), y]))),
+            a * aet_sum(log(softmax(x)[aet.arange(y.shape[0]), y])),
+            a * aet_sum(-log(softmax(x))[aet.arange(y.shape[0]), y]),
+            -a * aet_sum(log(softmax(x))[aet.arange(y.shape[0]), y]),
+            a * (-aet_sum(log(softmax(x))[aet.arange(y.shape[0]), y])),
+            a * aet_sum(log(softmax(x))[aet.arange(y.shape[0]), y]),
             a * mean(-log(softmax(x)[aet.arange(y.shape[0]), y])),
             -a * mean(log(softmax(x)[aet.arange(y.shape[0]), y])),
             a * (-mean(log(softmax(x)[aet.arange(y.shape[0]), y]))),

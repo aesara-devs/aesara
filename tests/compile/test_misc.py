@@ -4,7 +4,7 @@ from aesara.compile.function.pfunc import pfunc
 from aesara.compile.sharedvalue import shared
 from aesara.gradient import grad
 from aesara.tensor.math import dot
-from aesara.tensor.math import sum as tt_sum
+from aesara.tensor.math import sum as aet_sum
 from aesara.tensor.nnet import sigmoid
 from aesara.tensor.type import dvector
 
@@ -36,7 +36,7 @@ class NNet:
 
         self.hidden = sigmoid(dot(self.w1, self.input))
         self.output = dot(self.w2, self.hidden)
-        self.cost = tt_sum((self.output - self.target) ** 2)
+        self.cost = aet_sum((self.output - self.target) ** 2)
 
         self.sgd_updates = {
             self.w1: self.w1 - self.lr * grad(self.cost, self.w1),
