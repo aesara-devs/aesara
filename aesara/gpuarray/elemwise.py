@@ -414,9 +414,11 @@ class GpuElemwise(_NoPythonOp, HideC, Elemwise):
 
         return str(code)
 
-    # Since we don't have a perform ...
-    def python_constant_folding(self, node):
-        return False
+    def prepare_node(self, node, storage_map, compute_map, no_recycling, impl=None):
+        # Since we don't have a Python implementation, ignore `impl` and use C.
+        return super().prepare_node(
+            node, storage_map, compute_map, no_recycling, impl="c"
+        )
 
     def c_code_cache_version(self):
         ver = self.scalar_op.c_code_cache_version()

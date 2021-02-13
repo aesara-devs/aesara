@@ -209,20 +209,6 @@ There are less methods to define for a `COp` than for a `Type`:
        Overrides :meth:`c_code_cache_version` if defined, but
        otherwise has the same contract.
 
-    .. method:: python_constant_folding(node)
-
-       Optional. If present this method will be called before doing
-       constant folding of a node, with that node as a parameter. If
-       it return True, we will not generate C code when doing constant
-       folding of this node.  This is useful when the compilation of
-       the C code will be longer then the computation in python
-       (e.g. Elemwise of scalars).
-
-       In addition, this allow to lower the number of compiled module
-       and disk access. Particularly useful when the file system load
-       is high or when aesara compilation directory is shared by many
-       process (like on a network file server on a cluster).
-
     .. method:: get_params(node)
 
        (optional) If defined, should return the runtime params the op
