@@ -665,6 +665,9 @@ second dimension
         # - NumPy ufunc support only up to 31 inputs.
         #   But our c code support more.
         # - nfunc is reused for scipy and scipy is optional
+        if len(node.inputs) > 32 and self.ufunc and impl == "py":
+            impl = "c"
+
         if getattr(self, "nfunc_spec", None) and impl != "c":
             self.nfunc = getattr(np, self.nfunc_spec[0], None)
             if self.nfunc is None:
@@ -1254,14 +1257,6 @@ second dimension
             return tuple(version)
         else:
             return ()
-
-    def python_constant_folding(self, node):
-        """
-        Return True if we do not want to compile c code
-        when doing constant folding of this node.
-        """
-        # The python code don't support 32 inputs or more.
-        return node.outputs[0].ndim == 0 and len(node.inputs) < 32
 
 
 class CAReduce(COp):

@@ -4347,18 +4347,12 @@ def constant_folding(fgraph, node):
     for o in node.outputs:
         storage_map[o] = [None]
         compute_map[o] = [False]
-    impl = None
-    if hasattr(node.op, "python_constant_folding") and node.op.python_constant_folding(
-        node
-    ):
-        impl = "py"
-    thunk = node.op.make_thunk(
-        node, storage_map, compute_map, no_recycling=[], impl=impl
-    )
 
+    thunk = node.op.make_thunk(node, storage_map, compute_map, no_recycling=[])
     required = thunk()
-    assert not required  # a node whose inputs are all provided should always
-    # return successfully
+    # A node whose inputs are all provided should always return successfully
+    assert not required
+
     rval = []
     for output in node.outputs:
         assert compute_map[output][0], (output, storage_map[output][0])
