@@ -56,17 +56,17 @@ def test_inplace_optimization():
 def check_shape_lifted_rv(rv, params, size, rng):
     aet_params = []
     for p in params:
-        p_tt = aet.as_tensor(p)
-        p_tt = p_tt.type()
-        p_tt.tag.test_value = p
-        aet_params.append(p_tt)
+        p_aet = aet.as_tensor(p)
+        p_aet = p_aet.type()
+        p_aet.tag.test_value = p
+        aet_params.append(p_aet)
 
     aet_size = []
     for s in size:
-        s_tt = aet.as_tensor(s)
-        s_tt = s_tt.type()
-        s_tt.tag.test_value = s
-        aet_size.append(s_tt)
+        s_aet = aet.as_tensor(s)
+        s_aet = s_aet.type()
+        s_aet.tag.test_value = s
+        aet_size.append(s_aet)
 
     rv = rv(*aet_params, size=aet_size, rng=rng)
     rv_lifted = lift_rv_shapes(rv.owner)
@@ -243,22 +243,22 @@ def test_DimShuffle_lift(ds_order, lifted, dist_op, dist_params, size, rtol):
 
     rng = shared(np.random.RandomState(1233532), borrow=False)
 
-    dist_params_tt = []
+    dist_params_aet = []
     for p in dist_params:
-        p_tt = aet.as_tensor(p).type()
-        p_tt.tag.test_value = p
-        dist_params_tt.append(p_tt)
+        p_aet = aet.as_tensor(p).type()
+        p_aet.tag.test_value = p
+        dist_params_aet.append(p_aet)
 
-    size_tt = []
+    size_aet = []
     for s in size:
-        s_tt = iscalar()
-        s_tt.tag.test_value = s
-        size_tt.append(s_tt)
+        s_aet = iscalar()
+        s_aet.tag.test_value = s
+        size_aet.append(s_aet)
 
-    dist_st = dist_op(*dist_params_tt, size=size_tt, rng=rng).dimshuffle(ds_order)
+    dist_st = dist_op(*dist_params_aet, size=size_aet, rng=rng).dimshuffle(ds_order)
 
     f_inputs = [
-        p for p in dist_params_tt + size_tt if not isinstance(p, (slice, Constant))
+        p for p in dist_params_aet + size_aet if not isinstance(p, (slice, Constant))
     ]
 
     mode = Mode(
@@ -379,32 +379,32 @@ def test_Subtensor_lift(indices, lifted, dist_op, dist_params, size):
 
     rng = shared(np.random.RandomState(1233532), borrow=False)
 
-    dist_params_tt = []
+    dist_params_aet = []
     for p in dist_params:
-        p_tt = aet.as_tensor(p).type()
-        p_tt.tag.test_value = p
-        dist_params_tt.append(p_tt)
+        p_aet = aet.as_tensor(p).type()
+        p_aet.tag.test_value = p
+        dist_params_aet.append(p_aet)
 
-    size_tt = []
+    size_aet = []
     for s in size:
-        s_tt = iscalar()
-        s_tt.tag.test_value = s
-        size_tt.append(s_tt)
+        s_aet = iscalar()
+        s_aet.tag.test_value = s
+        size_aet.append(s_aet)
 
     from aesara.tensor.subtensor import as_index_constant
 
-    indices_tt = ()
+    indices_aet = ()
     for i in indices:
-        i_tt = as_index_constant(i)
-        if not isinstance(i_tt, slice):
-            i_tt.tag.test_value = i
-        indices_tt += (i_tt,)
+        i_aet = as_index_constant(i)
+        if not isinstance(i_aet, slice):
+            i_aet.tag.test_value = i
+        indices_aet += (i_aet,)
 
-    dist_st = dist_op(*dist_params_tt, size=size_tt, rng=rng)[indices_tt]
+    dist_st = dist_op(*dist_params_aet, size=size_aet, rng=rng)[indices_aet]
 
     f_inputs = [
         p
-        for p in dist_params_tt + size_tt + list(indices_tt)
+        for p in dist_params_aet + size_aet + list(indices_aet)
         if not isinstance(p, (slice, Constant))
     ]
 

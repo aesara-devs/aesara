@@ -419,7 +419,7 @@ def jax_funcify_Composite(op):
 @jax_funcify.register(Scan)
 def jax_funcify_Scan(op):
     inner_fg = FunctionGraph(op.inputs, op.outputs)
-    jax_tt_inner_func = jax_funcify(inner_fg)
+    jax_aet_inner_func = jax_funcify(inner_fg)
 
     def scan(*outer_inputs):
         scan_args = ScanArgs(
@@ -538,7 +538,7 @@ def jax_funcify_Scan(op):
 
         def jax_inner_func(carry, x):
             inner_args = jax_args_to_inner_scan(op, carry, x)
-            inner_scan_outs = [fn(*inner_args) for fn in jax_tt_inner_func]
+            inner_scan_outs = [fn(*inner_args) for fn in jax_aet_inner_func]
             new_carry = inner_scan_outs_to_jax_outs(op, carry, inner_scan_outs)
             return new_carry, inner_scan_outs
 

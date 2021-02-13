@@ -424,7 +424,7 @@ def test_jax_scan_multiple_output():
 
 def test_jax_scan_tap_output():
 
-    a_tt = scalar("a")
+    a_aet = scalar("a")
 
     def input_step_fn(y_tm1, y_tm3, a):
         y_tm1.name = "y_tm1"
@@ -433,7 +433,7 @@ def test_jax_scan_tap_output():
         res.name = "y_t"
         return res
 
-    y_scan_tt, _ = scan(
+    y_scan_aet, _ = scan(
         fn=input_step_fn,
         outputs_info=[
             {
@@ -443,14 +443,14 @@ def test_jax_scan_tap_output():
                 "taps": [-1, -3],
             },
         ],
-        non_sequences=[a_tt],
+        non_sequences=[a_aet],
         n_steps=10,
         name="y_scan",
     )
-    y_scan_tt.name = "y"
-    y_scan_tt.owner.inputs[0].name = "y_all"
+    y_scan_aet.name = "y"
+    y_scan_aet.owner.inputs[0].name = "y_all"
 
-    out_fg = FunctionGraph([a_tt], [y_scan_tt])
+    out_fg = FunctionGraph([a_aet], [y_scan_aet])
 
     test_input_vals = [np.array(10.0).astype(config.floatX)]
     compare_jax_and_py(out_fg, test_input_vals)
@@ -458,140 +458,140 @@ def test_jax_scan_tap_output():
 
 def test_jax_Subtensors():
     # Basic indices
-    x_tt = aet.arange(3 * 4 * 5).reshape((3, 4, 5))
-    out_tt = x_tt[1, 2, 0]
-    assert isinstance(out_tt.owner.op, aet_subtensor.Subtensor)
-    out_fg = FunctionGraph([], [out_tt])
+    x_aet = aet.arange(3 * 4 * 5).reshape((3, 4, 5))
+    out_aet = x_aet[1, 2, 0]
+    assert isinstance(out_aet.owner.op, aet_subtensor.Subtensor)
+    out_fg = FunctionGraph([], [out_aet])
     compare_jax_and_py(out_fg, [])
 
-    out_tt = x_tt[1:2, 1, :]
-    assert isinstance(out_tt.owner.op, aet_subtensor.Subtensor)
-    out_fg = FunctionGraph([], [out_tt])
+    out_aet = x_aet[1:2, 1, :]
+    assert isinstance(out_aet.owner.op, aet_subtensor.Subtensor)
+    out_fg = FunctionGraph([], [out_aet])
     compare_jax_and_py(out_fg, [])
 
     # Boolean indices
-    out_tt = x_tt[x_tt < 0]
-    assert isinstance(out_tt.owner.op, aet_subtensor.AdvancedSubtensor)
-    out_fg = FunctionGraph([], [out_tt])
+    out_aet = x_aet[x_aet < 0]
+    assert isinstance(out_aet.owner.op, aet_subtensor.AdvancedSubtensor)
+    out_fg = FunctionGraph([], [out_aet])
     compare_jax_and_py(out_fg, [])
 
     # Advanced indexing
-    out_tt = x_tt[[1, 2]]
-    assert isinstance(out_tt.owner.op, aet_subtensor.AdvancedSubtensor1)
-    out_fg = FunctionGraph([], [out_tt])
+    out_aet = x_aet[[1, 2]]
+    assert isinstance(out_aet.owner.op, aet_subtensor.AdvancedSubtensor1)
+    out_fg = FunctionGraph([], [out_aet])
     compare_jax_and_py(out_fg, [])
 
-    out_tt = x_tt[[1, 2], [2, 3]]
-    assert isinstance(out_tt.owner.op, aet_subtensor.AdvancedSubtensor)
-    out_fg = FunctionGraph([], [out_tt])
+    out_aet = x_aet[[1, 2], [2, 3]]
+    assert isinstance(out_aet.owner.op, aet_subtensor.AdvancedSubtensor)
+    out_fg = FunctionGraph([], [out_aet])
     compare_jax_and_py(out_fg, [])
 
     # Advanced and basic indexing
-    out_tt = x_tt[[1, 2], :]
-    assert isinstance(out_tt.owner.op, aet_subtensor.AdvancedSubtensor1)
-    out_fg = FunctionGraph([], [out_tt])
+    out_aet = x_aet[[1, 2], :]
+    assert isinstance(out_aet.owner.op, aet_subtensor.AdvancedSubtensor1)
+    out_fg = FunctionGraph([], [out_aet])
     compare_jax_and_py(out_fg, [])
 
-    out_tt = x_tt[[1, 2], :, [3, 4]]
-    assert isinstance(out_tt.owner.op, aet_subtensor.AdvancedSubtensor)
-    out_fg = FunctionGraph([], [out_tt])
+    out_aet = x_aet[[1, 2], :, [3, 4]]
+    assert isinstance(out_aet.owner.op, aet_subtensor.AdvancedSubtensor)
+    out_fg = FunctionGraph([], [out_aet])
     compare_jax_and_py(out_fg, [])
 
 
 def test_jax_IncSubtensor():
     x_np = np.random.uniform(-1, 1, size=(3, 4, 5)).astype(config.floatX)
-    x_tt = aet.arange(3 * 4 * 5).reshape((3, 4, 5)).astype(config.floatX)
+    x_aet = aet.arange(3 * 4 * 5).reshape((3, 4, 5)).astype(config.floatX)
 
     # "Set" basic indices
-    st_tt = aet.as_tensor_variable(np.array(-10.0, dtype=config.floatX))
-    out_tt = aet_subtensor.set_subtensor(x_tt[1, 2, 3], st_tt)
-    assert isinstance(out_tt.owner.op, aet_subtensor.IncSubtensor)
-    out_fg = FunctionGraph([], [out_tt])
+    st_aet = aet.as_tensor_variable(np.array(-10.0, dtype=config.floatX))
+    out_aet = aet_subtensor.set_subtensor(x_aet[1, 2, 3], st_aet)
+    assert isinstance(out_aet.owner.op, aet_subtensor.IncSubtensor)
+    out_fg = FunctionGraph([], [out_aet])
     compare_jax_and_py(out_fg, [])
 
-    st_tt = aet.as_tensor_variable(np.r_[-1.0, 0.0].astype(config.floatX))
-    out_tt = aet_subtensor.set_subtensor(x_tt[:2, 0, 0], st_tt)
-    assert isinstance(out_tt.owner.op, aet_subtensor.IncSubtensor)
-    out_fg = FunctionGraph([], [out_tt])
+    st_aet = aet.as_tensor_variable(np.r_[-1.0, 0.0].astype(config.floatX))
+    out_aet = aet_subtensor.set_subtensor(x_aet[:2, 0, 0], st_aet)
+    assert isinstance(out_aet.owner.op, aet_subtensor.IncSubtensor)
+    out_fg = FunctionGraph([], [out_aet])
     compare_jax_and_py(out_fg, [])
 
-    out_tt = aet_subtensor.set_subtensor(x_tt[0, 1:3, 0], st_tt)
-    assert isinstance(out_tt.owner.op, aet_subtensor.IncSubtensor)
-    out_fg = FunctionGraph([], [out_tt])
+    out_aet = aet_subtensor.set_subtensor(x_aet[0, 1:3, 0], st_aet)
+    assert isinstance(out_aet.owner.op, aet_subtensor.IncSubtensor)
+    out_fg = FunctionGraph([], [out_aet])
     compare_jax_and_py(out_fg, [])
 
     # "Set" advanced indices
-    st_tt = aet.as_tensor_variable(
+    st_aet = aet.as_tensor_variable(
         np.random.uniform(-1, 1, size=(2, 4, 5)).astype(config.floatX)
     )
-    out_tt = aet_subtensor.set_subtensor(x_tt[np.r_[0, 2]], st_tt)
-    assert isinstance(out_tt.owner.op, aet_subtensor.AdvancedIncSubtensor1)
-    out_fg = FunctionGraph([], [out_tt])
+    out_aet = aet_subtensor.set_subtensor(x_aet[np.r_[0, 2]], st_aet)
+    assert isinstance(out_aet.owner.op, aet_subtensor.AdvancedIncSubtensor1)
+    out_fg = FunctionGraph([], [out_aet])
     compare_jax_and_py(out_fg, [])
 
-    st_tt = aet.as_tensor_variable(np.r_[-1.0, 0.0].astype(config.floatX))
-    out_tt = aet_subtensor.set_subtensor(x_tt[[0, 2], 0, 0], st_tt)
-    assert isinstance(out_tt.owner.op, aet_subtensor.AdvancedIncSubtensor)
-    out_fg = FunctionGraph([], [out_tt])
+    st_aet = aet.as_tensor_variable(np.r_[-1.0, 0.0].astype(config.floatX))
+    out_aet = aet_subtensor.set_subtensor(x_aet[[0, 2], 0, 0], st_aet)
+    assert isinstance(out_aet.owner.op, aet_subtensor.AdvancedIncSubtensor)
+    out_fg = FunctionGraph([], [out_aet])
     compare_jax_and_py(out_fg, [])
 
-    st_tt = aet.as_tensor_variable(x_np[[0, 2], 0, :3])
-    out_tt = aet_subtensor.set_subtensor(x_tt[[0, 2], 0, :3], st_tt)
-    assert isinstance(out_tt.owner.op, aet_subtensor.AdvancedIncSubtensor)
-    out_fg = FunctionGraph([], [out_tt])
+    st_aet = aet.as_tensor_variable(x_np[[0, 2], 0, :3])
+    out_aet = aet_subtensor.set_subtensor(x_aet[[0, 2], 0, :3], st_aet)
+    assert isinstance(out_aet.owner.op, aet_subtensor.AdvancedIncSubtensor)
+    out_fg = FunctionGraph([], [out_aet])
     compare_jax_and_py(out_fg, [])
 
     # "Set" boolean indices
-    mask_tt = aet.as_tensor_variable(x_np) > 0
-    out_tt = aet_subtensor.set_subtensor(x_tt[mask_tt], 0.0)
-    assert isinstance(out_tt.owner.op, aet_subtensor.AdvancedIncSubtensor)
-    out_fg = FunctionGraph([], [out_tt])
+    mask_aet = aet.as_tensor_variable(x_np) > 0
+    out_aet = aet_subtensor.set_subtensor(x_aet[mask_aet], 0.0)
+    assert isinstance(out_aet.owner.op, aet_subtensor.AdvancedIncSubtensor)
+    out_fg = FunctionGraph([], [out_aet])
     compare_jax_and_py(out_fg, [])
 
     # "Increment" basic indices
-    st_tt = aet.as_tensor_variable(np.array(-10.0, dtype=config.floatX))
-    out_tt = aet_subtensor.inc_subtensor(x_tt[1, 2, 3], st_tt)
-    assert isinstance(out_tt.owner.op, aet_subtensor.IncSubtensor)
-    out_fg = FunctionGraph([], [out_tt])
+    st_aet = aet.as_tensor_variable(np.array(-10.0, dtype=config.floatX))
+    out_aet = aet_subtensor.inc_subtensor(x_aet[1, 2, 3], st_aet)
+    assert isinstance(out_aet.owner.op, aet_subtensor.IncSubtensor)
+    out_fg = FunctionGraph([], [out_aet])
     compare_jax_and_py(out_fg, [])
 
-    st_tt = aet.as_tensor_variable(np.r_[-1.0, 0.0].astype(config.floatX))
-    out_tt = aet_subtensor.inc_subtensor(x_tt[:2, 0, 0], st_tt)
-    assert isinstance(out_tt.owner.op, aet_subtensor.IncSubtensor)
-    out_fg = FunctionGraph([], [out_tt])
+    st_aet = aet.as_tensor_variable(np.r_[-1.0, 0.0].astype(config.floatX))
+    out_aet = aet_subtensor.inc_subtensor(x_aet[:2, 0, 0], st_aet)
+    assert isinstance(out_aet.owner.op, aet_subtensor.IncSubtensor)
+    out_fg = FunctionGraph([], [out_aet])
     compare_jax_and_py(out_fg, [])
 
-    out_tt = aet_subtensor.set_subtensor(x_tt[0, 1:3, 0], st_tt)
-    assert isinstance(out_tt.owner.op, aet_subtensor.IncSubtensor)
-    out_fg = FunctionGraph([], [out_tt])
+    out_aet = aet_subtensor.set_subtensor(x_aet[0, 1:3, 0], st_aet)
+    assert isinstance(out_aet.owner.op, aet_subtensor.IncSubtensor)
+    out_fg = FunctionGraph([], [out_aet])
     compare_jax_and_py(out_fg, [])
 
     # "Increment" advanced indices
-    st_tt = aet.as_tensor_variable(
+    st_aet = aet.as_tensor_variable(
         np.random.uniform(-1, 1, size=(2, 4, 5)).astype(config.floatX)
     )
-    out_tt = aet_subtensor.inc_subtensor(x_tt[np.r_[0, 2]], st_tt)
-    assert isinstance(out_tt.owner.op, aet_subtensor.AdvancedIncSubtensor1)
-    out_fg = FunctionGraph([], [out_tt])
+    out_aet = aet_subtensor.inc_subtensor(x_aet[np.r_[0, 2]], st_aet)
+    assert isinstance(out_aet.owner.op, aet_subtensor.AdvancedIncSubtensor1)
+    out_fg = FunctionGraph([], [out_aet])
     compare_jax_and_py(out_fg, [])
 
-    st_tt = aet.as_tensor_variable(np.r_[-1.0, 0.0].astype(config.floatX))
-    out_tt = aet_subtensor.inc_subtensor(x_tt[[0, 2], 0, 0], st_tt)
-    assert isinstance(out_tt.owner.op, aet_subtensor.AdvancedIncSubtensor)
-    out_fg = FunctionGraph([], [out_tt])
+    st_aet = aet.as_tensor_variable(np.r_[-1.0, 0.0].astype(config.floatX))
+    out_aet = aet_subtensor.inc_subtensor(x_aet[[0, 2], 0, 0], st_aet)
+    assert isinstance(out_aet.owner.op, aet_subtensor.AdvancedIncSubtensor)
+    out_fg = FunctionGraph([], [out_aet])
     compare_jax_and_py(out_fg, [])
 
-    st_tt = aet.as_tensor_variable(x_np[[0, 2], 0, :3])
-    out_tt = aet_subtensor.inc_subtensor(x_tt[[0, 2], 0, :3], st_tt)
-    assert isinstance(out_tt.owner.op, aet_subtensor.AdvancedIncSubtensor)
-    out_fg = FunctionGraph([], [out_tt])
+    st_aet = aet.as_tensor_variable(x_np[[0, 2], 0, :3])
+    out_aet = aet_subtensor.inc_subtensor(x_aet[[0, 2], 0, :3], st_aet)
+    assert isinstance(out_aet.owner.op, aet_subtensor.AdvancedIncSubtensor)
+    out_fg = FunctionGraph([], [out_aet])
     compare_jax_and_py(out_fg, [])
 
     # "Increment" boolean indices
-    mask_tt = aet.as_tensor_variable(x_np) > 0
-    out_tt = aet_subtensor.set_subtensor(x_tt[mask_tt], 1.0)
-    assert isinstance(out_tt.owner.op, aet_subtensor.AdvancedIncSubtensor)
-    out_fg = FunctionGraph([], [out_tt])
+    mask_aet = aet.as_tensor_variable(x_np) > 0
+    out_aet = aet_subtensor.set_subtensor(x_aet[mask_aet], 1.0)
+    assert isinstance(out_aet.owner.op, aet_subtensor.AdvancedIncSubtensor)
+    out_fg = FunctionGraph([], [out_aet])
     compare_jax_and_py(out_fg, [])
 
 
@@ -614,37 +614,37 @@ def test_jax_ifelse():
 
 
 def test_jax_CAReduce():
-    a_tt = vector("a")
-    a_tt.tag.test_value = np.r_[1, 2, 3].astype(config.floatX)
+    a_aet = vector("a")
+    a_aet.tag.test_value = np.r_[1, 2, 3].astype(config.floatX)
 
-    x = aet_sum(a_tt, axis=None)
-    x_fg = FunctionGraph([a_tt], [x])
+    x = aet_sum(a_aet, axis=None)
+    x_fg = FunctionGraph([a_aet], [x])
 
     compare_jax_and_py(x_fg, [np.r_[1, 2, 3].astype(config.floatX)])
 
-    a_tt = matrix("a")
-    a_tt.tag.test_value = np.c_[[1, 2, 3], [1, 2, 3]].astype(config.floatX)
+    a_aet = matrix("a")
+    a_aet.tag.test_value = np.c_[[1, 2, 3], [1, 2, 3]].astype(config.floatX)
 
-    x = aet_sum(a_tt, axis=0)
-    x_fg = FunctionGraph([a_tt], [x])
-
-    compare_jax_and_py(x_fg, [np.c_[[1, 2, 3], [1, 2, 3]].astype(config.floatX)])
-
-    x = aet_sum(a_tt, axis=1)
-    x_fg = FunctionGraph([a_tt], [x])
+    x = aet_sum(a_aet, axis=0)
+    x_fg = FunctionGraph([a_aet], [x])
 
     compare_jax_and_py(x_fg, [np.c_[[1, 2, 3], [1, 2, 3]].astype(config.floatX)])
 
-    a_tt = matrix("a")
-    a_tt.tag.test_value = np.c_[[1, 2, 3], [1, 2, 3]].astype(config.floatX)
-
-    x = prod(a_tt, axis=0)
-    x_fg = FunctionGraph([a_tt], [x])
+    x = aet_sum(a_aet, axis=1)
+    x_fg = FunctionGraph([a_aet], [x])
 
     compare_jax_and_py(x_fg, [np.c_[[1, 2, 3], [1, 2, 3]].astype(config.floatX)])
 
-    x = aet_all(a_tt)
-    x_fg = FunctionGraph([a_tt], [x])
+    a_aet = matrix("a")
+    a_aet.tag.test_value = np.c_[[1, 2, 3], [1, 2, 3]].astype(config.floatX)
+
+    x = prod(a_aet, axis=0)
+    x_fg = FunctionGraph([a_aet], [x])
+
+    compare_jax_and_py(x_fg, [np.c_[[1, 2, 3], [1, 2, 3]].astype(config.floatX)])
+
+    x = aet_all(a_aet)
+    x_fg = FunctionGraph([a_aet], [x])
 
     compare_jax_and_py(x_fg, [np.c_[[1, 2, 3], [1, 2, 3]].astype(config.floatX)])
 
@@ -679,24 +679,24 @@ def test_jax_Reshape_nonconcrete():
 
 
 def test_jax_Dimshuffle():
-    a_tt = matrix("a")
+    a_aet = matrix("a")
 
-    x = a_tt.T
-    x_fg = FunctionGraph([a_tt], [x])
+    x = a_aet.T
+    x_fg = FunctionGraph([a_aet], [x])
     compare_jax_and_py(x_fg, [np.c_[[1.0, 2.0], [3.0, 4.0]].astype(config.floatX)])
 
-    x = a_tt.dimshuffle([0, 1, "x"])
-    x_fg = FunctionGraph([a_tt], [x])
+    x = a_aet.dimshuffle([0, 1, "x"])
+    x_fg = FunctionGraph([a_aet], [x])
     compare_jax_and_py(x_fg, [np.c_[[1.0, 2.0], [3.0, 4.0]].astype(config.floatX)])
 
-    a_tt = tensor(dtype=config.floatX, broadcastable=[False, True])
-    x = a_tt.dimshuffle((0,))
-    x_fg = FunctionGraph([a_tt], [x])
+    a_aet = tensor(dtype=config.floatX, broadcastable=[False, True])
+    x = a_aet.dimshuffle((0,))
+    x_fg = FunctionGraph([a_aet], [x])
     compare_jax_and_py(x_fg, [np.c_[[1.0, 2.0, 3.0, 4.0]].astype(config.floatX)])
 
-    a_tt = tensor(dtype=config.floatX, broadcastable=[False, True])
-    x = aet_elemwise.DimShuffle([False, True], (0,), inplace=True)(a_tt)
-    x_fg = FunctionGraph([a_tt], [x])
+    a_aet = tensor(dtype=config.floatX, broadcastable=[False, True])
+    x = aet_elemwise.DimShuffle([False, True], (0,), inplace=True)(a_aet)
+    x_fg = FunctionGraph([a_aet], [x])
     compare_jax_and_py(x_fg, [np.c_[[1.0, 2.0, 3.0, 4.0]].astype(config.floatX)])
 
 

@@ -728,11 +728,11 @@ class TestNonzero:
             m_symb = tensor(dtype=m.dtype, broadcastable=(False,) * m.ndim)
             m_symb.tag.test_value = m
 
-            res_tuple_tt = nonzero(m_symb, return_matrix=False)
-            res_matrix_tt = nonzero(m_symb, return_matrix=True)
+            res_tuple_aet = nonzero(m_symb, return_matrix=False)
+            res_matrix_aet = nonzero(m_symb, return_matrix=True)
 
-            res_tuple = tuple(r.tag.test_value for r in res_tuple_tt)
-            res_matrix = res_matrix_tt.tag.test_value
+            res_tuple = tuple(r.tag.test_value for r in res_tuple_aet)
+            res_matrix = res_matrix_aet.tag.test_value
 
             assert np.allclose(res_matrix, np.vstack(np.nonzero(m)))
 
@@ -757,9 +757,9 @@ class TestNonzero:
             m_symb = tensor(dtype=m.dtype, broadcastable=(False,) * m.ndim)
             m_symb.tag.test_value = m
 
-            res_tt = flatnonzero(m_symb)
+            res_aet = flatnonzero(m_symb)
 
-            result = res_tt.tag.test_value
+            result = res_aet.tag.test_value
             assert np.allclose(result, np.flatnonzero(m))
 
         rand0d = np.empty(())
@@ -780,9 +780,9 @@ class TestNonzero:
             m_symb = tensor(dtype=m.dtype, broadcastable=(False,) * m.ndim)
             m_symb.tag.test_value = m
 
-            res_tt = nonzero_values(m_symb)
+            res_aet = nonzero_values(m_symb)
 
-            result = res_tt.tag.test_value
+            result = res_aet.tag.test_value
             assert np.allclose(result, m[np.nonzero(m)])
 
         rand0d = np.empty(())

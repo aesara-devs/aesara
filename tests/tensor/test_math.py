@@ -932,9 +932,9 @@ class TestMaxAndArgmax:
 
     def test_numpy_input(self):
         ar = np.array([1, 2, 3])
-        max_tt, argmax_tt = max_and_argmax(ar, axis=None)
-        assert max_tt.eval(), 3
-        assert argmax_tt.eval(), 2
+        max_aet, argmax_aet = max_and_argmax(ar, axis=None)
+        assert max_aet.eval(), 3
+        assert argmax_aet.eval(), 2
 
 
 class TestArgminArgmax:
