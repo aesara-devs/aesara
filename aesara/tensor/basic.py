@@ -3420,7 +3420,7 @@ class _nd_grid:
 
     Examples
     --------
-    >>> a = T.mgrid[0:5, 0:3]
+    >>> a = aet.mgrid[0:5, 0:3]
     >>> a[0].eval()
     array([[0, 0, 0],
            [1, 1, 1],
@@ -3433,7 +3433,7 @@ class _nd_grid:
            [0, 1, 2],
            [0, 1, 2],
            [0, 1, 2]], dtype=int8)
-    >>> b = T.ogrid[0:5, 0:3]
+    >>> b = aet.ogrid[0:5, 0:3]
     >>> b[0].eval()
     array([[0],
            [1],
@@ -3853,45 +3853,28 @@ def diagonal(a, offset=0, axis1=0, axis2=1):
 
 
 class AllocDiag(Op):
-    """
-    An op that copies a vector to the diagonal of an empty matrix. It does the
-    inverse of ExtractDiag.
+    """An `Op` that copies a vector to the diagonal of an empty matrix.
 
-    Usage: T.AllocDiag()(x)
-
-    `x` should be a tensor vector. The parenthesis in the front should indicate
-    which main diagonal the vector value goes into. By default it is set to
-    `0`, which corresponds to setting the values of x to the main diagonal in
-    the returned matrix.
-
-    Parameters
-    ----------
-    axis1: Axis to be used as the first axis of the 2-D
-        sub-arrays to which the diagonals will be allocated.
-        Defaults to first axis (0).
-
-    axis2: Axis to be used as the second axis of the 2-D
-        sub-arrays to which the diagonals will be allocated.
-        Defaults to second axis (1).
-
-    offset: Offset of the diagonal from the main diagonal defined by `axis1`
-        and `axis2`.
-        Can be positive or negative.
-        Defaults to main diagonal (0).
-
-    x: symbolic vector
-        A tensor vector consists of diagonal values.
-
-    Returns
-    -------
-    tensor : symbolic tenstor
-        A tensor with passed tensor values at their corresponding diagonals.
-
+    It does the inverse of `ExtractDiag`.
     """
 
     __props__ = ("offset", "axis1", "axis2")
 
     def __init__(self, offset=0, axis1=0, axis2=1):
+        """
+        Parameters
+        ----------
+        offset: int
+            Offset of the diagonal from the main diagonal defined by `axis1`
+            and `axis2`. Can be positive or negative.  Defaults to main
+            diagonal (i.e. 0).
+        axis1: int
+            Axis to be used as the first axis of the 2-D sub-arrays to which
+            the diagonals will be allocated.  Defaults to first axis (i.e. 0).
+        axis2: int
+            Axis to be used as the second axis of the 2-D sub-arrays to which
+            the diagonals will be allocated.  Defaults to second axis (i.e. 1).
+        """
         self.offset = offset
         self.axis1 = axis1
         self.axis2 = axis2

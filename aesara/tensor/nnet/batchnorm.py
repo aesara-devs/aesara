@@ -185,10 +185,10 @@ def batch_normalization_train(
         axes = (0,) + tuple(range(2, inputs.ndim))
         mean = inputs.mean(axes, keepdims=True)
         var = inputs.var(axes, keepdims=True)
-        invstd = T.inv(T.sqrt(var + epsilon))
+        invstd = aet.inv(aet.sqrt(var + epsilon))
         out = (inputs - mean) * gamma * invstd + beta
 
-        m = T.cast(T.prod(inputs.shape) / T.prod(mean.shape), 'float32')
+        m = aet.cast(ate.prod(inputs.shape) / aet.prod(mean.shape), 'float32')
         running_mean = running_mean * (1 - running_average_factor) + \\
                        mean * running_average_factor
         running_var = running_var * (1 - running_average_factor) + \\
@@ -332,9 +332,9 @@ def batch_normalization_test(
         axes = (0,)
         # for spatial normalization
         axes = (0,) + tuple(range(2, inputs.ndim))
-        gamma, beta, mean, var = (T.addbroadcast(t, *axes)
+        gamma, beta, mean, var = (aet.addbroadcast(t, *axes)
                                   for t in (gamma, beta, mean, var))
-        out = (inputs - mean) * gamma / T.sqrt(var + epsilon) + beta
+        out = (inputs - mean) * gamma / aet.sqrt(var + epsilon) + beta
     """
     ndim = inputs.ndim
     axes, non_bc_axes = _prepare_batch_normalization_axes(axes, ndim)

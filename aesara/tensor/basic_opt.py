@@ -810,7 +810,7 @@ class ShapeFeature(toolbox.Feature):
     2. to infer the shape of every node in the graph in terms of the
        input shapes.
 
-    3. remove all fills (T.second, T.fill) from the graph
+    3. remove all fills ``(aet.second, aet.fill)`` from the graph
 
     Lifting shapes as close to the inputs as possible is important for
     canonicalization because it is very bad form to have to compute
@@ -2236,12 +2236,12 @@ def local_alloc_unary(fgraph, node):
             x = a.owner.inputs[0]
             shp = a.owner.inputs[1:]
             v = node.op(x)
-            # T.alloc does not preserve the stacktrace of v,
+            # aet.alloc does not preserve the stacktrace of v,
             # so we need to copy it over from x.
             copy_stack_trace(node.outputs[0], v)
             ret = alloc(cast(v, node.outputs[0].dtype), *shp)
 
-            # T.cast does not preserve the stacktrace of x,
+            # aet.cast does not preserve the stacktrace of x,
             # so we need to copy it over to the output.
             copy_stack_trace([node.outputs[0], a], ret)
             return [ret]
@@ -3132,14 +3132,11 @@ def local_subtensor_of_alloc(fgraph, node):
 @register_specialize
 @local_optimizer([Subtensor])
 def local_subtensor_of_dot(fgraph, node):
-    """
-    This optimization translates T.dot(A, B)[idxs] into T.dot(A[idxs_a], B[idxs_b]),
-    where idxs_a and idxs_b are defined appropriately.
+    """Rewrite ``aet.dot(A, B)[idxs]`` into ``aet.dot(A[idxs_a], B[idxs_b])``.
 
-    idxs_a is the first A.ndim-1 entries of idxs,
-    and idxs_b is the remaining entries of idxs (if any),
-    modified to skip the second-to-last dimension of B
-    (because dot sums over this dimension).
+    ``idxs_a`` is the first ``A.ndim-1`` entries of ``idxs``, and ``idxs_b`` is
+    the remaining entries of ``idxs`` (if any), modified to skip the
+    second-to-last dimension of ``B`` (because dot sums over this dimension).
 
     """
     if not isinstance(node.op, Subtensor):
@@ -3535,7 +3532,7 @@ def local_useless_inc_subtensor_alloc(fgraph, node):
         i = node.inputs[2:]
 
         if y.owner is not None and isinstance(y.owner.op, Alloc):
-            # `z` is the input of the Alloc op, i.e. T.alloc(z, <shape>)
+            # `z` is the input of the Alloc op, i.e. aet.alloc(z, <shape>)
             z = y.owner.inputs[0]
 
             try:
@@ -3803,7 +3800,7 @@ def local_join_empty(fgraph, node):
         new_inputs.append(inp)
     if len(new_inputs) < len(node.inputs) - 1:
         if len(new_inputs) == 0:
-            # T.join do not work in that case.
+            # aet.join do not work in that case.
             # constant folding will take care of this case.
             return
         ret = join(node.inputs[0], *new_inputs)
@@ -3880,12 +3877,16 @@ def local_join_make_vector(fgraph, node):
 def local_useless_switch(fgraph, node):
     """
     This optimization makes the following changes in the graph:
-        T.switch(cond,left,right) -->
-               if cond is constant and cond == 0: right
-               if cond is constant and cond != 0: left
-               if left is right -> left
 
-        T.switch(le(shape_i{id}(X), 0), 0, shape_i{id}(X)) -> shape_i{id}(X)
+    ``aet.switch(cond, left, right)`` ->
+            ``if cond is constant and cond == 0``: right
+            ``if cond is constant and cond != 0``: left
+            ``if left is right`` -> ``left``
+
+    and
+
+    ``aet.switch(le(shape_i{id}(X), 0), 0, shape_i{id}(X))`` -> ``shape_i{id}(X)``
+
     """
     if isinstance(node.op, Elemwise) and isinstance(node.op.scalar_op, aes.Switch):
 

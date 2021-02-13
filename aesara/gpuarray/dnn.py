@@ -3379,10 +3379,10 @@ def dnn_batch_normalization_train(
         axes = 0 if mode == 'per-activation' else (0, 2, 3)
         mean = inputs.mean(axes, keepdims=True)
         var = inputs.var(axes, keepdims=True)
-        invstd = T.inv(T.sqrt(var + epsilon))
+        invstd = aet.inv(aet.sqrt(var + epsilon))
         out = (inputs - mean) * gamma * invstd + beta
 
-        m = T.cast(T.prod(inputs.shape) / T.prod(mean.shape), 'float32')
+        m = aet.cast(aet.prod(inputs.shape) / aet.prod(mean.shape), 'float32')
         running_mean = running_mean * (1 - running_average_factor) + \\
                        mean * running_average_factor
         running_var = running_var * (1 - running_average_factor) + \\
@@ -3511,9 +3511,9 @@ def dnn_batch_normalization_test(
     .. code-block:: python
 
         axes = (0,) if mode == 'per-activation' else (0, 2, 3)
-        gamma, beta, mean, var = (T.addbroadcast(t, *axes)
+        gamma, beta, mean, var = (aet.addbroadcast(t, *axes)
                                   for t in (gamma, beta, mean, var))
-        out = (inputs - mean) * gamma / T.sqrt(var + epsilon) + beta
+        out = (inputs - mean) * gamma / aet.sqrt(var + epsilon) + beta
 
     For 5d tensors, the axes would be (0, 2, 3, 4).
     """

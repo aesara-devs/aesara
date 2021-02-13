@@ -2081,7 +2081,7 @@ def local_useless_crossentropy_softmax_1hot_with_bias_dx_alloc(fgraph, node):
         assert dy.ndim == 1
 
         if dy.owner is not None and isinstance(dy.owner.op, aet.Alloc):
-            # dz is the input of the Alloc op, i.e. T.alloc(dz, <shape>)
+            # dz is the input of the Alloc op, i.e. aet.alloc(dz, <shape>)
             dz = dy.owner.inputs[0]
 
             try:

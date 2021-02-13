@@ -17,6 +17,7 @@ import warnings
 import numpy as np
 
 import aesara
+from aesara import tensor as aet
 from aesara.assert_op import Assert
 from aesara.configdefaults import config
 from aesara.graph.basic import Apply, Variable
@@ -560,12 +561,12 @@ def assert_conv_shape(shape):
                 assert_shp = Assert(
                     f"The convolution would produce an invalid shape (dim[{int(i)}] < 0)."
                 )
-                out_shape.append(assert_shp(n, aesara.tensor.ge(n, 0)))
+                out_shape.append(assert_shp(n, aet.ge(n, 0)))
             else:
                 assert_shp = Assert(
                     f"The convolution would produce an invalid shape (dim[{int(i)}] < 0)."
                 )
-                out_shape.append(assert_shp(n, aesara.tensor.gt(n, 0)))
+                out_shape.append(assert_shp(n, aet.gt(n, 0)))
     return tuple(out_shape)
 
 
@@ -597,7 +598,7 @@ def assert_shape(x, expected_shape, msg="Unexpected shape."):
     tests = []
     for i in range(x.ndim):
         if expected_shape[i] is not None:
-            tests.append(aesara.tensor.eq(shape[i], expected_shape[i]))
+            tests.append(aet.eq(shape[i], expected_shape[i]))
     if tests:
         return Assert(msg)(x, *tests)
     else:
@@ -1862,13 +1863,11 @@ def bilinear_kernel_1D(ratio, normalize=True):
         by the indicated ratio using bilinear interpolation in one dimension.
 
     """
-
-    T = aesara.tensor
-    half_kern = T.arange(1, ratio + 1, dtype=config.floatX)
-    kern = T.concatenate([half_kern, half_kern[-2::-1]])
+    half_kern = aet.arange(1, ratio + 1, dtype=config.floatX)
+    kern = aet.concatenate([half_kern, half_kern[-2::-1]])
 
     if normalize:
-        kern /= T.cast(ratio, config.floatX)
+        kern /= aet.cast(ratio, config.floatX)
     return kern
 
 
@@ -1903,7 +1902,6 @@ def frac_bilinear_upsampling(input, frac_ratio):
         sides. This does not happen when it is odd.
     """
 
-    T = aesara.tensor
     row, col = input.shape[2:]
     up_input = input.reshape((-1, 1, row, col))
 
@@ -1928,15 +1926,15 @@ def frac_bilinear_upsampling(input, frac_ratio):
             subsample = (frac_ratio[1], frac_ratio[1])
 
     # duplicate borders of the input
-    concat_mat = T.concatenate(
+    concat_mat = aet.concatenate(
         (up_input[:, :, :1, :], up_input, up_input[:, :, -1:, :]), axis=2
     )
-    concat_mat = T.concatenate(
+    concat_mat = aet.concatenate(
         (concat_mat[:, :, :, :1], concat_mat, concat_mat[:, :, :, -1:]), axis=3
     )
 
     # add padding for the pyramidal kernel
-    double_pad = (2 * T.as_tensor([row, col]) - 1) * np.array(ratio) + 1
+    double_pad = (2 * aet.as_tensor([row, col]) - 1) * np.array(ratio) + 1
     pad = double_pad // 2
 
     # build pyramidal kernel
@@ -1945,25 +1943,25 @@ def frac_bilinear_upsampling(input, frac_ratio):
     )
 
     # add corresponding padding
-    pad_kern = T.concatenate(
+    pad_kern = aet.concatenate(
         (
-            T.zeros(
+            aet.zeros(
                 tuple(kern.shape[:2]) + (pad[0], kern.shape[-1]),
                 dtype=config.floatX,
             ),
             kern,
-            T.zeros(
+            aet.zeros(
                 tuple(kern.shape[:2]) + (double_pad[0] - pad[0], kern.shape[-1]),
                 dtype=config.floatX,
             ),
         ),
         axis=2,
     )
-    pad_kern = T.concatenate(
+    pad_kern = aet.concatenate(
         (
-            T.zeros(tuple(pad_kern.shape[:3]) + (pad[1],), dtype=config.floatX),
+            aet.zeros(tuple(pad_kern.shape[:3]) + (pad[1],), dtype=config.floatX),
             pad_kern,
-            T.zeros(
+            aet.zeros(
                 tuple(pad_kern.shape[:3]) + (double_pad[1] - pad[1],),
                 dtype=config.floatX,
             ),
@@ -1972,7 +1970,7 @@ def frac_bilinear_upsampling(input, frac_ratio):
     )
 
     # upsample the input by passing it as kernel of conv and using filter_dilation
-    upsamp = T.nnet.conv2d(
+    upsamp = conv2d(
         pad_kern,
         concat_mat,
         border_mode="valid",
@@ -2048,7 +2046,6 @@ def bilinear_upsampling(
         return frac_bilinear_upsampling(input, frac_ratio=frac_ratio)
 
     # the remaining case if integer ratio with use_1D_kernel
-    T = aesara.tensor
     try:
         up_bs = batch_size * num_input_channels
     except TypeError:
@@ -2058,11 +2055,11 @@ def bilinear_upsampling(
 
     # concatenating the first and last row and column
     # first and last row
-    concat_mat = T.concatenate(
+    concat_mat = aet.concatenate(
         (up_input[:, :, :1, :], up_input, up_input[:, :, -1:, :]), axis=2
     )
     # first and last col
-    concat_mat = T.concatenate(
+    concat_mat = aet.concatenate(
         (concat_mat[:, :, :, :1], concat_mat, concat_mat[:, :, :, -1:]), axis=3
     )
     concat_col = col + 2

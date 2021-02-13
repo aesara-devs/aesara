@@ -148,8 +148,7 @@ def local_0_dot_x(fgraph, node):
 @register_canonicalize
 @local_optimizer([DimShuffle])
 def local_lift_transpose_through_dot(fgraph, node):
-    """
-    dot(x,y).T -> dot(y.T, x.T)
+    """Perform the rewrite ``dot(x,y).T -> dot(y.T, x.T)``
 
     These optimizations "lift" (propagate towards the inputs) DimShuffle
     through dot product.  It allows to put the graph in a more standard shape,
@@ -231,8 +230,9 @@ def local_func_inv(fgraph, node):
 @local_optimizer([Sum])
 def local_sumsqr2dot(fgraph, node):
     """
-    This optimization detects T.sqr( W.dimshuffle('x',0,1) * G.dimshuffle(0,'x',1) ).sum(axis=(1,2))
-     and converts this to T.dot(T.sqr(G), T.sqr(W).sum(axis=0)).
+    This optimization detects
+    ``aet.sqr(W.dimshuffle("x", 0, 1) * G.dimshuffle(0, "x", 1) ).sum(axis=(1, 2))``
+    and converts it to ``aet.dot(aet.sqr(G), aet.sqr(W).sum(axis=0))``.
     """
     if (
         isinstance(node.op, Sum)
@@ -305,24 +305,30 @@ def local_expm1(fgraph, node):
 def local_mul_switch_sink(fgraph, node):
     """
     This optimization makes the following changes in the graph:
-    T.mul(A,T.switch(cond,0,iff),B) -->  T.switch(cond,0,T.mul(A,B,iff))
-    T.mul(A,T.switch(cond,ift,0),B) -->  T.switch(cond,T.mul(A,B,ift),0)
-    A and B being several (or none) symbolic variables.
-    This is useful because A and B may not be numerically stable and give
+    ``aet.mul(A, aet.switch(cond, 0, iff), B)`` -> ``aet.switch(cond, 0, aet.mul(A, B, iff))``
+    ``aet.mul(A, aet.switch(cond, ift, 0), B)`` -> ``aet.switch(cond, aet.mul(A, B, ift), 0)``
+    ``A`` and ``B`` being several (or none) symbolic variables.
+    This is useful because ``A`` and ``B`` may not be numerically stable and give
     NaN or inf values for cases where the switch returns 0.
-    With this optimization T.grad(T.switch(...)) has the right behavior.
+    With this optimization ``aet.grad(aet.switch(...))`` has the right behavior.
 
     Examples
     --------
-      x -> f(x)
-      x -> g(x)
-      y = T.switch(cond,f(x),g(x))
-      **without the optimization
-      T.grad(y,x) -> grad(f(x),x) * grad(y,f(x)) +  grad(g(x),x) * grad(y,g(x))
-      **with the optimization
-      T.grad(y,x) -> switch(cond,grad(f(x),x), 0) + switch(cond,0,grad(g(x),x))
-    This will be particularly useful for the lazyif because we skip
-    an entire part of the graph.
+
+        x -> f(x)
+        x -> g(x)
+        y = aet.switch(cond, f(x), g(x))
+
+    without the optimization:
+
+        aet.grad(y, x) -> grad(f(x), x) * grad(y, f(x)) + grad(g(x), x) * grad(y, g(x))
+
+    with the optimization
+
+        aet.grad(y, x) -> switch(cond, grad(f(x), x), 0) + switch(cond, 0, grad(g(x), x))
+
+    This will be particularly useful for the lazy ``if`` because we skip an entire
+    part of the graph.
 
     """
     if node.op != mul:
@@ -393,13 +399,16 @@ def local_mul_switch_sink(fgraph, node):
 def local_div_switch_sink(fgraph, node):
     """
     This optimization makes the following changes in the graph:
-    T.div(T.switch(cond,0,iff),A) -->  T.switch(cond,0,T.div(iff,A))
-    T.div(T.switch(cond,ift,0),A) -->  T.switch(cond,T.div(ift,A),0)
 
-    A being a symbolic variable.
-    This is useful because A may not be numerically stable and give
-    NaN or inf values for cases where the switch returns 0.
-    See local_mul_switch_sink for more details.
+    ``aet.div(aet.switch(cond, 0, iff), A)`` -> ``aet.switch(cond, 0, aet.div(iff, A))``
+    ``aet.div(aet.switch(cond, ift, 0), A)`` -> ``aet.switch(cond, aet.div(ift, A), 0)``
+
+    where ``A`` is a symbolic variable.
+
+    This is useful because ``A`` may not be numerically stable and give
+    ``nan`` or ``inf`` values for cases where the switch returns 0.
+
+    See `local_mul_switch_sink` for more details.
 
     """
     if node.op != true_div and node.op != int_div:
@@ -1027,9 +1036,8 @@ def local_sum_prod_mul_by_scalar(fgraph, node):
                 # for same reason as above.
                 copy_stack_trace(node.outputs, new_op_output)
 
-            # If node.op is a T.elemwise.Prod, then the scalars need to be
-            # raised to the power of the number of elements in the input
-            # to the Prod
+            # If `node.op` is a `Prod`, then the scalars need to be raised to
+            # the power of the number of elements in the input to the `Prod`
             if isinstance(node.op, Prod) and new_op_input_nb_elements != 1:
 
                 scalars = [s ** new_op_input_nb_elements for s in scalars]
