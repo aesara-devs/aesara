@@ -906,7 +906,7 @@ def test_gemm_nested():
 def test_gemm_opt_wishlist():
     X, Y, Z, a, b = matrix(), matrix(), matrix(), scalar(), scalar()
 
-    # with >2 additions of the same T.dot(X,Y term
+    # with >2 additions of the same ``aet.dot(X, Y)`` term
     just_gemm([X, Y, Z, a, b], [(b * b) * Z * a + (a * a) * dot(X, Y) + b * dot(X, Y)])
 
     just_gemm([X, Y, Z, a, b], [Z + dot(X, Y) + dot(X, Y)])

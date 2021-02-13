@@ -2490,14 +2490,14 @@ class Prod(CAReduceDtype):
         Implementing that case-by-case logic is not as trivial, so a bunch of
         hacks are piled down here to do it. Notably, for the "only one zero"
         case, there's a special Op that computes the product of the elements
-        in the group, minus the zero (see ProdWithoutZero). The trick is then
+        in the group, minus the zero (see `ProdWithoutZeros`). The trick is then
         to use the division trick for groups with no zero, to use the
-        ProdWithoutZeros op where there's only one zero, and to output a
+        `ProdWithoutZeros` op where there's only one zero, and to output a
         derivative of zero for any element part of a group with more than
         one zero.
 
-        I do this by first counting the number of zeros in each group (see
-        the "T.eq()" bits), then taking this or that behavior (see T.switch)
+        I do this by first counting the number of zeros in each group (see the
+        `aet.eq` bits), then taking this or that behavior (see `aet.switch`)
         based on the result of this count.
 
         """
@@ -2532,7 +2532,7 @@ class Prod(CAReduceDtype):
         gz = gz.dimshuffle(new_dims)
 
         # division trick if we don't have zeros. This will contain
-        # NaNs to be eliminated in the T.switch if we do have zeros.
+        # NaNs to be eliminated in the `aet.switch` if we do have zeros.
         grad_case_without_zeros = gz * prod_out / prod_in
 
         if self.no_zeros_in_input:

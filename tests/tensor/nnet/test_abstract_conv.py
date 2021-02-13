@@ -1920,8 +1920,8 @@ class TestConv2dGrads:
 
     def test_conv2d_grad_wrt_inputs(self):
         # Compares calculated abstract grads wrt inputs with the fwd grads
-        # This method checks the outputs of conv2_grad_wrt_inputs against
-        # the outputs of T.nnet.conv forward grads to make sure the
+        # This method checks the outputs of `conv2_grad_wrt_inputs` against
+        # the outputs of `aesara.tensor.nnet.conv` forward grads to make sure the
         # results are the same.
 
         for (in_shape, fltr_shape) in zip(self.inputs_shapes, self.filters_shapes):
@@ -1986,8 +1986,8 @@ class TestConv2dGrads:
 
     def test_conv2d_grad_wrt_weights(self):
         # Compares calculated abstract grads wrt weights with the fwd grads
-        # This method checks the outputs of conv2_grad_wrt_weights against
-        # the outputs of T.nnet.conv forward grads to make sure the
+        # This method checks the outputs of `conv2_grad_wrt_weights` against
+        # the outputs of `aesara.tensor.nnet.conv` forward grads to make sure the
         # results are the same.
 
         for (in_shape, fltr_shape) in zip(self.inputs_shapes, self.filters_shapes):

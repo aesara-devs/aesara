@@ -842,7 +842,7 @@ class TestAlgebraicCanonize:
         # 4 * x / abs(2*x) it get simplifier during canonicalisation.
 
         x = dscalar()
-        # a = T.abs_(x)
+        # a = aet.abs_(x)
 
         if config.mode == "FAST_COMPILE":
             mode = get_mode("FAST_RUN").excluding("local_elemwise_fusion")
@@ -2366,7 +2366,6 @@ def test_local_pow_specialize():
     assert len(nodes) == 2
     assert nodes[0] == sqr
     assert isinstance(nodes[1].scalar_op, aes.basic.Inv)
-    #    assert nodes == [T.sqr,T.inv]#Why this don't work?
     utt.assert_allclose(f(val_no0), val_no0 ** (-2))
 
     f = function([v], v ** (0.5), mode=mode)
@@ -2379,7 +2378,6 @@ def test_local_pow_specialize():
     assert len(nodes) == 2
     assert nodes[0] == sqrt
     assert isinstance(nodes[1].scalar_op, aes.basic.Inv)
-    #    assert nodes == [T.sqrt,T.inv]#Why this don't work?
     utt.assert_allclose(f(val_no0), val_no0 ** (-0.5))
 
 

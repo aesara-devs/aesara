@@ -25,9 +25,10 @@ class Assert(COp):
     --------
     >>> import aesara
     >>> import aesara.tensor as aet
-    >>> x = aet.vector('x')
-    >>> assert_op = aet.opt.Assert()
-    >>> func = aesara.function([x], assert_op(x, x.size<2))
+    >>> from aesara.assert_op import Assert
+    >>> x = aet.vector("x")
+    >>> assert_op = Assert("This assert failed")
+    >>> func = aesara.function([x], assert_op(x, x.size < 2))
 
     """
 

@@ -1111,7 +1111,7 @@ def res_is_a(fgraph, var, op, maxclients=None):
 
 
 def _as_scalar(res, dtype=None):
-    """Return None or a TensorVariable whose type is in T.float_scalar_types"""
+    """Return ``None`` or a `TensorVariable` whose type is in `float_scalar_types`"""
     if dtype is None:
         dtype = config.floatX
     if np.all(res.type.broadcastable):
