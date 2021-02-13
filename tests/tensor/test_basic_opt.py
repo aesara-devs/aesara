@@ -1428,7 +1428,6 @@ def test_local_useless_inc_subtensor():
     o_shape = set_subtensor(s, specify_shape(y, s.shape))
     f_shape = function([x, y], o_shape)
     topo = f_shape.maker.fgraph.toposort()
-    # aesara.printing.debugprint(f_shape)
     assert any(isinstance(n.op, IncSubtensor) for n in topo)
     out = f_shape([[2, 3, 6, 7]], [[8, 9]])
     assert (out == np.asarray([[8, 3, 9, 7]])).all()
@@ -1443,7 +1442,6 @@ def test_local_useless_subtensor():
         (slice(0, None), slice(0, None)),
     ]:
         f = function([x], exp(x).__getitem__(dims), mode=mode_opt)
-        # aesara.printing.debugprint(f)
         prog = f.maker.fgraph.toposort()
         assert prog[0].op == exp
         assert len(prog) == 1
@@ -1462,7 +1460,6 @@ def test_local_useless_subtensor():
         ((slice(0, 1), 1), False),
     ]:
         f = function([x], exp(x_c).__getitem__(dims), mode=mode_opt)
-        # aesara.printing.debugprint(f)
         prog = f.maker.fgraph.toposort()
         if res:
             assert isinstance(prog[0].op, SpecifyShape), dims
@@ -1517,7 +1514,6 @@ def test_local_useless_subtensor():
         ]
     ):
         f = function([x], exp(x).__getitem__(dims), mode=mode_opt)
-        # aesara.printing.debugprint(f)
         prog = f.maker.fgraph.toposort()
         if res:
             assert prog[0].op == exp, dims
@@ -1534,7 +1530,6 @@ def test_local_useless_subtensor():
         ]
     ):
         f = function([x], exp(x_c).__getitem__(dims), mode=mode_opt)
-        # aesara.printing.debugprint(f)
         prog = f.maker.fgraph.toposort()
         if res:
             assert prog[0].op == exp, dims
@@ -1551,7 +1546,6 @@ def test_local_useless_subtensor():
         ]
     ):
         f = function([x, s], exp(x).__getitem__(dims), mode=mode_opt)
-        # aesara.printing.debugprint(f)
         prog = f.maker.fgraph.toposort()
         if res:
             assert prog[0].op == exp, dims
@@ -1575,7 +1569,6 @@ def test_local_useless_subtensor():
         (aet.arange(1, 2), False),
     ):
         f = function([x], exp(x_c).__getitem__(dims), mode=mode_opt)
-        # aesara.printing.debugprint(f)
         prog = f.maker.fgraph.toposort()
         if res:
             assert isinstance(prog[0].op, SpecifyShape), dims
@@ -2131,15 +2124,12 @@ class TestLocalSubtensorMerge:
         g = function(
             [x, y], x[y::][-1], mode=mode_opt.excluding("local_subtensor_merge")
         )
-        # aesara.printing.debugprint(f, print_type=True)
 
         # Check stacktrace was copied over correctly after opt was applied
         assert check_stack_trace(f, ops_to_check=Subtensor)
 
         topo = f.maker.fgraph.toposort()
-        # print [t for t in topo if isinstance(t.op, Subtensor)]
         assert len([t for t in topo if isinstance(t.op, Subtensor)]) == 1
-        # print topo[-1].op
         assert isinstance(topo[-1].op, DeepCopyOp)
 
         for x_s in self.x_shapes:
@@ -2168,11 +2158,8 @@ class TestLocalSubtensorMerge:
             # Check stacktrace was copied over correctly after opt was applied
             assert check_stack_trace(f, ops_to_check=Subtensor)
 
-            # aesara.printing.debugprint(f, print_type=True)
             topo = f.maker.fgraph.toposort()
-            # print [t for t in topo if isinstance(t.op, Subtensor)]
             assert len([t for t in topo if isinstance(t.op, Subtensor)]) == 1
-            # print topo[-1].op
             assert isinstance(topo[-1].op, DeepCopyOp)
 
             for x_s in self.x_shapes:
@@ -2196,15 +2183,12 @@ class TestLocalSubtensorMerge:
         g = function(
             [x, y], x[::-1][y], mode=mode_opt.excluding("local_subtensor_merge")
         )
-        # aesara.printing.debugprint(f, print_type=True)
 
         # Check stacktrace was copied over correctly after opt was applied
         assert check_stack_trace(f, ops_to_check=Subtensor)
 
         topo = f.maker.fgraph.toposort()
-        # print [t for t in topo if isinstance(t.op, Subtensor)]
         assert len([t for t in topo if isinstance(t.op, Subtensor)]) == 1
-        # print topo[-1].op
         assert isinstance(topo[-1].op, DeepCopyOp)
 
         for x_s in self.x_shapes:
@@ -2227,11 +2211,8 @@ class TestLocalSubtensorMerge:
             # Check stacktrace was copied over correctly after opt was applied
             assert check_stack_trace(f, ops_to_check=Subtensor)
 
-            # aesara.printing.debugprint(f, print_type=True)
             topo = f.maker.fgraph.toposort()
-            # print [t for t in topo if isinstance(t.op, Subtensor)]
             assert len([t for t in topo if isinstance(t.op, Subtensor)]) == 1
-            # print topo[-1].op
             assert isinstance(topo[-1].op, DeepCopyOp)
 
             for x_s in self.x_shapes:
@@ -2247,12 +2228,8 @@ class TestLocalSubtensorMerge:
         # Check stacktrace was copied over correctly after opt was applied
         assert check_stack_trace(f, ops_to_check=Subtensor)
 
-        # aesara.printing.debugprint(f, print_type=True)
-
         topo = f.maker.fgraph.toposort()
-        # print [t for t in topo if isinstance(t.op, Subtensor)]
         assert len([t for t in topo if isinstance(t.op, Subtensor)]) == 1
-        # print topo[-1].op
         assert isinstance(topo[-1].op, DeepCopyOp)
 
         for x_s in self.x_shapes:
@@ -2270,11 +2247,8 @@ class TestLocalSubtensorMerge:
                 # Check stacktrace was copied over correctly after opt was applied
                 assert check_stack_trace(f, ops_to_check=Subtensor)
 
-                # aesara.printing.debugprint(f, print_type=True)
                 topo = f.maker.fgraph.toposort()
-                # print [t for t in topo if isinstance(t.op, Subtensor)]
                 assert len([t for t in topo if isinstance(t.op, Subtensor)]) == 1
-                # print topo[-1].op
                 assert isinstance(topo[-1].op, DeepCopyOp)
 
                 for x_s in self.x_shapes:
@@ -2291,12 +2265,8 @@ class TestLocalSubtensorMerge:
         # Check stacktrace was copied over correctly after opt was applied
         assert check_stack_trace(f, ops_to_check=Subtensor)
 
-        # aesara.printing.debugprint(f, print_type=True)
-
         topo = f.maker.fgraph.toposort()
-        # print [t for t in topo if isinstance(t.op, Subtensor)]
         assert len([t for t in topo if isinstance(t.op, Subtensor)]) == 1
-        # print topo[-1].op
         assert isinstance(topo[-1].op, DeepCopyOp)
 
         for x_s in self.x_shapes:
@@ -2340,12 +2310,8 @@ class TestLocalSubtensorMerge:
         # Check stacktrace was copied over correctly after opt was applied
         assert check_stack_trace(f, ops_to_check=Subtensor)
 
-        # aesara.printing.debugprint(f, print_type=True)
-
         topo = f.maker.fgraph.toposort()
-        # print [t for t in topo if isinstance(t.op, Subtensor)]
         assert len([t for t in topo if isinstance(t.op, Subtensor)]) == 1
-        # print topo[-1].op
         assert isinstance(topo[-1].op, DeepCopyOp)
 
         b1r = self.rng.permutation(list(range(-8, 8)))[:2]
@@ -2434,12 +2400,8 @@ class TestLocalSubtensorMerge:
         # Check stacktrace was copied over correctly after opt was applied
         assert check_stack_trace(f, ops_to_check=Subtensor)
 
-        # aesara.printing.debugprint(f, print_type=True)
-
         topo = f.maker.fgraph.toposort()
-        # print [t for t in topo if isinstance(t.op, Subtensor)]
         assert len([t for t in topo if isinstance(t.op, Subtensor)]) == 1
-        # print topo[-1].op
         assert isinstance(topo[-1].op, DeepCopyOp)
 
         b_r = self.rng.permutation(list(range(-4, 4)))[:3]
@@ -2470,9 +2432,6 @@ class TestLocalSubtensorMerge:
                                 # any exception
                                 n_ok += 1
                                 f(x_val, b_v, e_v, s_v, i_v)
-
-            # print 'shape: %s' % (x_s,)
-            # print '%% OK: %f' % (float(n_ok) * 100 / (n_ok + n_index_err))
 
     @pytest.mark.slow
     def test_none_slice(self):
@@ -2530,7 +2489,6 @@ class TestLocalSubtensorMerge:
             assert check_stack_trace(f, ops_to_check=Subtensor, bug_print="ignore")
 
             topo = f.maker.fgraph.toposort()
-            # print [t for t in topo if isinstance(t.op, Subtensor)]
             assert len([t for t in topo if isinstance(t.op, Subtensor)]) <= 1
             assert isinstance(topo[-1].op, DeepCopyOp)
 
@@ -2589,7 +2547,6 @@ class TestLocalSubtensorMerge:
             assert check_stack_trace(f, ops_to_check=Subtensor)
 
             topo = f.maker.fgraph.toposort()
-            # print [t for t in topo if isinstance(t.op, Subtensor)]
             assert len([t for t in topo if isinstance(t.op, Subtensor)]) <= 1
             assert isinstance(topo[-1].op, DeepCopyOp)
 
@@ -3386,7 +3343,6 @@ class TestLocalCanonicalizeAlloc:
 
         f = function([x], [y], mode=mode)
         op_classes = [node.op.__class__ for node in f.maker.fgraph.toposort()]
-        print(op_classes)
 
         # We are supposed to test if tensr.Alloc is not in op_classes,
         # but since the proper proper optimization is not currently
@@ -3743,7 +3699,8 @@ class TestShapeOptimizer:
 
         mode = get_default_mode().excluding("ShapeOpt")
         f = function([X], expr, mode=mode)
-        print(f([[1, 2], [2, 3]]))
+        # FIXME: This is not a good test.
+        f([[1, 2], [2, 3]])
 
 
 class TestAssert(utt.InferShapeTester):
@@ -4057,7 +4014,6 @@ class TestCastCast:
 def test_constant_folding():
     # Test that constant folding get registered at fast_compile
     # An error removed that registration during the registration.
-
     x = dvector()
     mode = get_mode("FAST_COMPILE").excluding("fusion")
     f = function([x], [x * 2, x + x], mode=mode)
@@ -4078,16 +4034,18 @@ def test_constant_folding():
 
 @pytest.mark.xfail(
     reason="Aesara optimizes constant before stabilization. "
-    "This breaks stabilization optimization in some "
-    "cases. See #504."
+    "This breaks stabilization optimizations in some "
+    "cases. See #504.",
+    raises=AssertionError,
 )
 def test_constant_get_stabilized():
-    # Currently Aesara enable the constant_folding optimization before stabilization optimization.
-    # This cause some stabilization optimization not being implemented and thus cause inf value to appear
-    # when it should not.
-    #
-    # .. note: we can't simply move the constant_folding optimization to specialize as this break other optimization!
-    # We will need to partially duplicate some canonicalize optimzation to specialize to fix this issue.
+    # Currently Aesara enables the `constant_folding` optimization before stabilization optimization.
+    # This caused some stabilization optimizations to not be activated and that
+    # caused inf values to appear when they should not.
+
+    # We can't simply move the `constant_folding` optimization to
+    # specialize since this will break other optimizations.  We will need to
+    # partially duplicate some canonicalize optimizations to fix this issue.
 
     x2 = scalar()
     y2 = log(1 + exp(x2))
@@ -4102,9 +4060,6 @@ def test_constant_get_stabilized():
     x = aet.as_tensor_variable(800)
     y = log(1 + exp(x))
     f = function([], y, mode=mode)
-    assert len(f.maker.fgraph.toposort()) == 0
-    assert np.isinf(f())
-
     # When this error is fixed, the following line should be ok.
     assert f() == 800, f()
 
@@ -4524,13 +4479,9 @@ class TestMakeVector(utt.InferShapeTester):
             gb = aesara.gradient.grad(s, b, disconnected_inputs="ignore")
             gi = aesara.gradient.grad(s, i, disconnected_inputs="ignore")
             gd = aesara.gradient.grad(s, d, disconnected_inputs="ignore")
-            # print 'gb =', gb
-            # print 'gi =', gi
-            # print 'gd =', gd
 
             g = function([b, i, d], [gb, gi, gd])
             g_val = g(val[b], val[i], val[d])
-            # print 'g_val =', g_val
 
             if dtype in int_dtypes:
                 # The gradient should be 0
@@ -4733,7 +4684,6 @@ def test_local_join_make_vector():
     mv = MakeVector(config.floatX)
     s = aet.join(0, mv(a), v, mv(b, c), mv(d, e))
     f = function([a, b, c, d, e, v], s, mode=mode_opt)
-    aesara.printing.debugprint(f)
     val = f(1, 2, 3, 4, 6, [7, 8])
     assert np.all(val == [1, 7, 8, 2, 3, 4, 6])
     e = f.maker.fgraph.toposort()
