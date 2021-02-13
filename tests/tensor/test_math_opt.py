@@ -28,8 +28,8 @@ from aesara.tensor.blas import Dot22, Gemv
 from aesara.tensor.blas_c import CGemv
 from aesara.tensor.elemwise import CAReduce, DimShuffle, Elemwise
 from aesara.tensor.math import Dot, MaxAndArgmax, Prod, Sum, abs_, add
-from aesara.tensor.math import all as tt_all
-from aesara.tensor.math import any as tt_any
+from aesara.tensor.math import all as aet_all
+from aesara.tensor.math import any as aet_any
 from aesara.tensor.math import (
     arccosh,
     arcsinh,
@@ -61,15 +61,15 @@ from aesara.tensor.math import (
     log10,
     lt,
 )
-from aesara.tensor.math import max as tt_max
+from aesara.tensor.math import max as aet_max
 from aesara.tensor.math import maximum
-from aesara.tensor.math import min as tt_min
+from aesara.tensor.math import min as aet_min
 from aesara.tensor.math import minimum, mul, neg, neq
-from aesara.tensor.math import pow as tt_pow
+from aesara.tensor.math import pow as aet_pow
 from aesara.tensor.math import prod, rad2deg
-from aesara.tensor.math import round as tt_round
+from aesara.tensor.math import round as aet_round
 from aesara.tensor.math import sgn, sin, sinh, sqr, sqrt, sub
-from aesara.tensor.math import sum as tt_sum
+from aesara.tensor.math import sum as aet_sum
 from aesara.tensor.math import tan, tanh, true_div, xor
 from aesara.tensor.math_opt import (
     local_add_specialize,
@@ -1554,7 +1554,7 @@ class TestFusion:
                 "float32",
             ),
             (
-                fx - fy + tt_round(fz),
+                fx - fy + aet_round(fz),
                 (fx, fy, fz),
                 (fxv, fyv, fzv),
                 1,
@@ -1627,7 +1627,7 @@ class TestFusion:
                 "float64",
             ),
             (
-                tt_pow(fx * fy + fz, fx * fy),
+                aet_pow(fx * fy + fz, fx * fy),
                 (fx, fy, fz),
                 (fxv, fyv, fzv),
                 1,
@@ -2971,7 +2971,7 @@ class TestLocalMergeSwitchSameCond:
             le,
             eq,
             neq,
-            tt_pow,
+            aet_pow,
         ):
             g = optimize(FunctionGraph(mats, [op(s1, s2)]))
             assert str(g).count("Switch") == 1
@@ -3356,10 +3356,10 @@ class TestLocalSumProd:
         mat = dmatrix()
         ds = dscalar()
 
-        f = function([vect, ds], tt_sum(vect * ds), mode=m0)
+        f = function([vect, ds], aet_sum(vect * ds), mode=m0)
         assert check_stack_trace(f, ops_to_check="all")
 
-        f = function([vect], tt_sum(-vect), mode=m0)
+        f = function([vect], aet_sum(-vect), mode=m0)
         assert check_stack_trace(f, ops_to_check=[Sum])
 
         f = function([vect, ds], Prod()(vect * ds), mode=m0)
@@ -3368,10 +3368,10 @@ class TestLocalSumProd:
         f = function([vect], Prod()(-vect), mode=m0)
         assert check_stack_trace(f, ops_to_check=[Prod])
 
-        f = function([mat, ds], tt_sum(mat * ds), mode=m0)
+        f = function([mat, ds], aet_sum(mat * ds), mode=m0)
         assert check_stack_trace(f, ops_to_check="all")
 
-        f = function([mat], tt_sum(-mat), mode=m0)
+        f = function([mat], aet_sum(-mat), mode=m0)
         assert check_stack_trace(f, ops_to_check=[Sum])
 
 
@@ -3383,12 +3383,12 @@ class TestLocalReduce:
 
     def test_local_reduce_broadcast_all_0(self):
         for fct in [
-            tt_sum,
-            tt_all,
-            tt_any,
+            aet_sum,
+            aet_all,
+            aet_any,
             prod,
-            tt_max,
-            tt_min,
+            aet_max,
+            aet_min,
         ]:
             x = TensorType("int64", (True, True, True))()
             f = function([x], [fct(x)], mode=self.mode)
@@ -3398,12 +3398,12 @@ class TestLocalReduce:
 
     def test_local_reduce_broadcast_all_1(self):
         for fct in [
-            tt_sum,
-            tt_all,
-            tt_any,
+            aet_sum,
+            aet_all,
+            aet_any,
             prod,
-            tt_max,
-            tt_min,
+            aet_max,
+            aet_min,
         ]:
             x = TensorType("int64", (True, True))()
             f = function([x], [fct(x, axis=[0, 1])], mode=self.mode)
@@ -3413,12 +3413,12 @@ class TestLocalReduce:
 
     def test_local_reduce_broadcast_some_0(self):
         for fct in [
-            tt_sum,
-            tt_all,
-            tt_any,
+            aet_sum,
+            aet_all,
+            aet_any,
             prod,
-            tt_max,
-            tt_min,
+            aet_max,
+            aet_min,
         ]:
             x = TensorType("int64", (True, False, True))()
             f = function([x], [fct(x, axis=[0, 1])], mode=self.mode)
@@ -3438,12 +3438,12 @@ class TestLocalReduce:
 
     def test_local_reduce_broadcast_some_1(self):
         for fct in [
-            tt_sum,
-            tt_all,
-            tt_any,
+            aet_sum,
+            aet_all,
+            aet_any,
             prod,
-            tt_max,
-            tt_min,
+            aet_max,
+            aet_min,
         ]:
             x = TensorType("int64", (True, True, True))()
             f = function([x], [fct(x, axis=[0, 2])], mode=self.mode)
@@ -3460,9 +3460,9 @@ class TestLocalReduce:
         z = np.asarray([[5, 0], [1, 2]], dtype=config.floatX)
         # Test different reduction scalar operation
         for out, res in [
-            (tt_max((vx, vy), 0), np.max((x, y), 0)),
-            (tt_min((vx, vy), 0), np.min((x, y), 0)),
-            (tt_sum((vx, vy, vz), 0), np.sum((x, y, z), 0)),
+            (aet_max((vx, vy), 0), np.max((x, y), 0)),
+            (aet_min((vx, vy), 0), np.min((x, y), 0)),
+            (aet_sum((vx, vy, vz), 0), np.sum((x, y, z), 0)),
             (prod((vx, vy, vz), 0), np.prod((x, y, z), 0)),
             (prod((vx, vy.T, vz), 0), np.prod((x, y.T, z), 0)),
         ]:
@@ -3477,14 +3477,14 @@ class TestLocalReduce:
         # on 32 bit systems
         A = shared(np.array([1, 2, 3, 4, 5], dtype="int64"))
 
-        f = function([], tt_sum(aet.stack([A, A]), axis=0), mode=self.mode)
+        f = function([], aet_sum(aet.stack([A, A]), axis=0), mode=self.mode)
         utt.assert_allclose(f(), [2, 4, 6, 8, 10])
         topo = f.maker.fgraph.toposort()
         assert isinstance(topo[-1].op, Elemwise)
 
         # Test a case that was bugged in a old Aesara bug
         with config.change_flags(warn__reduce_join=False):
-            f = function([], tt_sum(aet.stack([A, A]), axis=1), mode=self.mode)
+            f = function([], aet_sum(aet.stack([A, A]), axis=1), mode=self.mode)
 
         utt.assert_allclose(f(), [15, 15])
         topo = f.maker.fgraph.toposort()
@@ -3493,7 +3493,7 @@ class TestLocalReduce:
         # This case could be optimized
         A = shared(np.array([1, 2, 3, 4, 5]).reshape(5, 1))
         f = function(
-            [], tt_sum(aet.concatenate((A, A), axis=1), axis=1), mode=self.mode
+            [], aet_sum(aet.concatenate((A, A), axis=1), axis=1), mode=self.mode
         )
         utt.assert_allclose(f(), [2, 4, 6, 8, 10])
         topo = f.maker.fgraph.toposort()
@@ -3501,7 +3501,7 @@ class TestLocalReduce:
 
         A = shared(np.array([1, 2, 3, 4, 5]).reshape(5, 1))
         f = function(
-            [], tt_sum(aet.concatenate((A, A), axis=1), axis=0), mode=self.mode
+            [], aet_sum(aet.concatenate((A, A), axis=1), axis=0), mode=self.mode
         )
         utt.assert_allclose(f(), [15, 15])
         topo = f.maker.fgraph.toposort()
@@ -3511,7 +3511,7 @@ class TestLocalReduce:
         # is not applied.  Reported at
         # https://groups.google.com/d/topic/theano-users/EDgyCU00fFA/discussion
         with config.change_flags(warn__reduce_join=False):
-            out = tt_sum([vx, vy, vz], axis=None)
+            out = aet_sum([vx, vy, vz], axis=None)
             f = function([vx, vy, vz], out)
 
 
@@ -3524,7 +3524,7 @@ class TestLocalSumProdDimshuffle:
         b = vector("b")
         c = tensor3("c")
         d = scalar("d")
-        sum = tt_sum
+        sum = aet_sum
         sums = [
             sum(a / d),
             sum(a / d.dimshuffle("x", "x")),
@@ -3863,7 +3863,7 @@ def test_local_expm1():
 
 
 def compile_graph_log_sum_exp(x, axis, dimshuffle_op=None):
-    sum_exp = tt_sum(exp(x), axis=axis)
+    sum_exp = aet_sum(exp(x), axis=axis)
     if dimshuffle_op:
         sum_exp = dimshuffle_op(sum_exp)
     y = log(sum_exp)

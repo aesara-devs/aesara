@@ -24,7 +24,7 @@ from aesara.gradient import Lop, Rop, grad, grad_undefined
 from aesara.graph.basic import Apply
 from aesara.graph.op import Op
 from aesara.tensor.math import argmax, dot
-from aesara.tensor.math import max as tt_max
+from aesara.tensor.math import max as aet_max
 from aesara.tensor.nnet import conv, conv2d
 from aesara.tensor.signal.pool import Pool
 from aesara.tensor.type import TensorType, matrix, vector
@@ -195,9 +195,9 @@ class TestRopLop(RopLopChecker):
     def test_max(self):
         # If we call max directly, we will return an CAReduce object
         # which doesn't have R_op implemented!
-        # self.check_mat_rop_lop(tt_max(self.mx, axis=[0,1])[0], ())
-        self.check_mat_rop_lop(tt_max(self.mx, axis=0), (self.mat_in_shape[1],))
-        self.check_mat_rop_lop(tt_max(self.mx, axis=1), (self.mat_in_shape[0],))
+        # self.check_mat_rop_lop(aet_max(self.mx, axis=[0,1])[0], ())
+        self.check_mat_rop_lop(aet_max(self.mx, axis=0), (self.mat_in_shape[1],))
+        self.check_mat_rop_lop(aet_max(self.mx, axis=1), (self.mat_in_shape[0],))
 
     def test_argmax(self):
         self.check_nondiff_rop(argmax(self.mx, axis=1))

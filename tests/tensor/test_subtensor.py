@@ -16,7 +16,7 @@ from aesara.graph.op import get_test_value
 from aesara.graph.toolbox import is_same_graph
 from aesara.tensor.elemwise import DimShuffle
 from aesara.tensor.math import exp, isinf
-from aesara.tensor.math import sum as tt_sum
+from aesara.tensor.math import sum as aet_sum
 from aesara.tensor.subtensor import (
     AdvancedIncSubtensor,
     AdvancedIncSubtensor1,
@@ -571,7 +571,7 @@ class TestSubtensor(utt.OptimizationTestMixin):
         n = self.shared(data)
         z = scal.constant(subi).astype("int32")
         t = n[z:, z]
-        gn = aesara.grad(tt_sum(exp(t)), n)
+        gn = aesara.grad(aet_sum(exp(t)), n)
 
         f = inplace_func([], gn, mode=self.mode)
         topo = f.maker.fgraph.toposort()
@@ -602,7 +602,7 @@ class TestSubtensor(utt.OptimizationTestMixin):
                 mv = np.asarray(rand(*m_shape), dtype=self.dtype)
 
                 t = op(n[:z, :z], m)
-                gn, gm = aesara.grad(tt_sum(t), [n, m])
+                gn, gm = aesara.grad(aet_sum(t), [n, m])
                 utt.verify_grad(lambda m: op(n[:z, :z], m), [mv], mode=self.mode)
                 utt.verify_grad(lambda nn: op(nn[:z, :z], mv), [data], mode=self.mode)
 
@@ -610,7 +610,7 @@ class TestSubtensor(utt.OptimizationTestMixin):
         data = np.asarray(rand(2, 3), dtype=self.dtype)
         n = self.shared(data)
         t = n[1, 0]
-        gn = aesara.grad(tt_sum(exp(t)), n)
+        gn = aesara.grad(aet_sum(exp(t)), n)
         f = self.function([], gn)
         topo = f.maker.fgraph.toposort()
         topo_ = [node for node in topo if not isinstance(node.op, DeepCopyOp)]
@@ -1061,7 +1061,7 @@ class TestSubtensor(utt.OptimizationTestMixin):
             # Should stay on the cpu.
             idx_ = shared(np.asarray(idx))
             t = n[idx_]
-            gn = aesara.grad(tt_sum(exp(t)), n)
+            gn = aesara.grad(aet_sum(exp(t)), n)
             f = self.function([], [gn, gn.shape], op=AdvancedIncSubtensor1)
             topo = f.maker.fgraph.toposort()
             if not self.fast_compile:
@@ -1087,13 +1087,13 @@ class TestSubtensor(utt.OptimizationTestMixin):
             assert np.allclose(gshape, data.shape)
 
             def fct(t):
-                return tt_sum(t[idx_])
+                return aet_sum(t[idx_])
 
             utt.verify_grad(fct, [data], mode=self.mode)
 
             # Test the grad of the grad (e.i. AdvancedIncSubtensor1.grad)
             def fct2(t):
-                return aesara.grad(tt_sum(t[idx_]), t)
+                return aesara.grad(aet_sum(t[idx_]), t)
 
             utt.verify_grad(fct2, [data], mode=self.mode)
 

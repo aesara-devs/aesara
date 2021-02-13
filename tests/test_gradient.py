@@ -34,7 +34,7 @@ from aesara.graph.null_type import NullType
 from aesara.graph.op import Op
 from aesara.sandbox.rng_mrg import MRG_RandomStream
 from aesara.tensor.math import add, dot, exp, sqr
-from aesara.tensor.math import sum as tt_sum
+from aesara.tensor.math import sum as aet_sum
 from aesara.tensor.math import tanh
 from aesara.tensor.type import (
     discrete_dtypes,
@@ -965,7 +965,7 @@ def test_undefined_grad_opt():
     samples = aet.cast(samples, pvals.dtype)
     samples = zero_grad(samples)
 
-    cost = tt_sum(samples + pvals)
+    cost = aet_sum(samples + pvals)
     grad_res = grad(cost, samples)
 
     f = aesara.function([], grad_res)
@@ -1100,7 +1100,7 @@ def test_jacobian_scalar():
 
 def test_hessian():
     x = vector()
-    y = tt_sum(x ** 2)
+    y = aet_sum(x ** 2)
     Hx = hessian(y, x)
     f = aesara.function([x], Hx)
     vx = np.arange(10).astype(aesara.config.floatX)

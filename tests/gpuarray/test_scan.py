@@ -11,7 +11,7 @@ from aesara.scan.basic import scan
 from aesara.scan.checkpoints import scan_checkpoints
 from aesara.scan.op import Scan
 from aesara.tensor.math import dot
-from aesara.tensor.math import sum as tt_sum
+from aesara.tensor.math import sum as aet_sum
 from aesara.tensor.type import fscalar, ftensor3, fvector, iscalar, vector
 from tests import unittest_tools as utt
 from tests.gpuarray.config import mode_with_gpu, test_ctx_name
@@ -593,7 +593,7 @@ class ScanGpuTests:
         l2_out = dot(l1_out, W)
 
         # Compute the cost and take the gradient wrt params
-        cost = tt_sum((l2_out - yout) ** 2)
+        cost = aet_sum((l2_out - yout) ** 2)
         grads = aesara.grad(cost, nparams)
         updates = list(zip(nparams, (n - g for n, g in zip(nparams, grads))))
 

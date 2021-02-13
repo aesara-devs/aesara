@@ -85,7 +85,7 @@ from aesara.tensor.basic import (
 from aesara.tensor.elemwise import DimShuffle
 from aesara.tensor.exceptions import EmptyConstantError, NotScalarConstantError
 from aesara.tensor.math import dense_dot, eq
-from aesara.tensor.math import sum as tt_sum
+from aesara.tensor.math import sum as aet_sum
 from aesara.tensor.shape import Reshape, Shape, Shape_i, shape_padright
 from aesara.tensor.type import (
     TensorType,
@@ -551,7 +551,7 @@ class TestAlloc:
                 (some_matrix[idx, idx], 1),
             ],
         ):
-            derp = tt_sum(dense_dot(subtensor, variables))
+            derp = aet_sum(dense_dot(subtensor, variables))
 
             fobj = aesara.function([some_vector], derp, mode=self.mode)
             grad_derp = aesara.grad(derp, some_vector)
@@ -3360,7 +3360,7 @@ class TestAllocDiag:
                 assert np.all(rediag_shape == test_val.shape)
 
                 diag_x = adiag_op(x)
-                sum_diag_x = tt_sum(diag_x)
+                sum_diag_x = aet_sum(diag_x)
                 grad_x = aesara.grad(sum_diag_x, x)
                 grad_diag_x = aesara.grad(sum_diag_x, diag_x)
                 f_grad_x = aesara.function([x], grad_x, mode=self.mode)

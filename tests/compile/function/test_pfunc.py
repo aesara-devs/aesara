@@ -8,7 +8,7 @@ from aesara.compile.io import In
 from aesara.compile.sharedvalue import shared
 from aesara.configdefaults import config
 from aesara.misc.safe_asarray import _asarray
-from aesara.tensor.math import sum as tt_sum
+from aesara.tensor.math import sum as aet_sum
 from aesara.tensor.type import (
     bscalar,
     bvector,
@@ -93,7 +93,7 @@ class TestPfunc:
         with pytest.raises(
             TypeError, match=r"^Cannot use a shared variable \(w\) as explicit input"
         ):
-            pfunc([w], tt_sum(w * w))
+            pfunc([w], aet_sum(w * w))
 
     def test_default_container(self):
         # Ensure it is possible to (implicitly) use a shared variable in a
@@ -102,7 +102,7 @@ class TestPfunc:
         rng = np.random.RandomState(1827)
         w_init = rng.rand(5)
         w = shared(w_init.copy(), "w")
-        reg = tt_sum(w * w)
+        reg = aet_sum(w * w)
         f = pfunc([], reg)
 
         assert f() == np.sum(w_init * w_init)

@@ -79,10 +79,10 @@ from aesara.tensor.math import (
     neg,
     neq,
 )
-from aesara.tensor.math import pow as tt_pow
-from aesara.tensor.math import round as tt_round
+from aesara.tensor.math import pow as aet_pow
+from aesara.tensor.math import round as aet_round
 from aesara.tensor.math import sin, sinh, sqr, sqrt, sub
-from aesara.tensor.math import sum as tt_sum
+from aesara.tensor.math import sum as aet_sum
 from aesara.tensor.math import tan, tanh, true_div, xor
 from aesara.tensor.math_opt import local_lift_transpose_through_dot
 from aesara.tensor.nnet.sigm import softplus
@@ -861,7 +861,7 @@ class TestFusion:
                 "float32",
             ),
             (
-                fx - fy + tt_round(fz),
+                fx - fy + aet_round(fz),
                 (fx, fy, fz),
                 (fxv, fyv, fzv),
                 1,
@@ -934,7 +934,7 @@ class TestFusion:
                 "float64",
             ),
             (
-                tt_pow(fx * fy + fz, fx * fy),
+                aet_pow(fx * fy + fz, fx * fy),
                 (fx, fy, fz),
                 (fxv, fyv, fzv),
                 1,
@@ -1107,7 +1107,7 @@ class TestFusion:
             f = cst_m05 * sd ** cst_m2 * (ones - means[i]) ** cst_2 + cst_05 * log(
                 cst_05 * (sd ** cst_m2) / np.pi
             )
-            factors.append(tt_sum(f))
+            factors.append(aet_sum(f))
 
         logp = add(*factors)
 
@@ -4432,7 +4432,7 @@ class TestLocalMergeSwitchSameCond:
             le,
             eq,
             neq,
-            tt_pow,
+            aet_pow,
         ):
             g = optimize(FunctionGraph(mats, [op(s1, s2)]))
             assert str(g).count("Switch") == 1
@@ -5033,7 +5033,7 @@ class TestLiftTransposeThroughDot:
 
 def test_local_upcast_elemwise_constant_inputs():
     s = dvector("s")
-    x = tt_sum(log(10 ** s))
+    x = aet_sum(log(10 ** s))
     f = function([s], [aesara.gradient.grad(x, s)])
     f([-42, -2.1, -1, -0.5, 0, 0.2, 1, 2, 12])
 
@@ -5127,7 +5127,7 @@ class TestShapeFeature:
 def test_assert_op_gradient():
     x = vector("x")
     assert_op = Assert()
-    cost = tt_sum(assert_op(x, x.size < 2))
+    cost = aet_sum(assert_op(x, x.size < 2))
     grad = aesara.gradient.grad(cost, x)
     func = function([x], grad)
 

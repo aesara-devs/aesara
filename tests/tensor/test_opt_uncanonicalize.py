@@ -10,9 +10,9 @@ from aesara.graph.opt import out2in
 from aesara.link.basic import PerformLinker
 from aesara.tensor.elemwise import CAReduce, DimShuffle, Elemwise
 from aesara.tensor.math import MaxAndArgmax
-from aesara.tensor.math import max as tt_max
+from aesara.tensor.math import max as aet_max
 from aesara.tensor.math import max_and_argmax
-from aesara.tensor.math import min as tt_min
+from aesara.tensor.math import min as aet_min
 from aesara.tensor.opt_uncanonicalize import (
     local_alloc_dimshuffle,
     local_dimshuffle_alloc,
@@ -58,13 +58,13 @@ class TestMinMax:
         n = matrix()
 
         for axis in [0, 1, -1]:
-            f = function([n], tt_max(n, axis), mode=self.mode)
+            f = function([n], aet_max(n, axis), mode=self.mode)
             topo = f.maker.fgraph.toposort()
             assert len(topo) == 1
             assert isinstance(topo[0].op, CAReduce)
             f(data)
 
-            f = function([n], tt_max(-n, axis), mode=self.mode)
+            f = function([n], aet_max(-n, axis), mode=self.mode)
             topo = f.maker.fgraph.toposort()
             assert len(topo) == 2
             assert isinstance(topo[0].op, Elemwise)
@@ -72,7 +72,7 @@ class TestMinMax:
             assert isinstance(topo[1].op, CAReduce)
             f(data)
 
-            f = function([n], -tt_max(n, axis), mode=self.mode)
+            f = function([n], -aet_max(n, axis), mode=self.mode)
             topo = f.maker.fgraph.toposort()
             assert len(topo) == 2
             assert isinstance(topo[0].op, CAReduce)
@@ -80,7 +80,7 @@ class TestMinMax:
             assert isinstance(topo[1].op.scalar_op, aes.Neg)
             f(data)
 
-            f = function([n], -tt_max(-n, axis), mode=self.mode)
+            f = function([n], -aet_max(-n, axis), mode=self.mode)
             topo = f.maker.fgraph.toposort()
             assert len(topo) == 1
             assert isinstance(topo[0].op, CAReduce)  # min
@@ -91,14 +91,14 @@ class TestMinMax:
         n = matrix()
 
         for axis in [0, 1, -1]:
-            f = function([n], tt_min(n, axis), mode=self.mode)
+            f = function([n], aet_min(n, axis), mode=self.mode)
             topo = f.maker.fgraph.toposort()
             assert len(topo) == 1
             assert isinstance(topo[0].op, CAReduce)
             f(data)
 
             # test variant with neg to make sure we optimize correctly
-            f = function([n], tt_min(-n, axis), mode=self.mode)
+            f = function([n], aet_min(-n, axis), mode=self.mode)
             topo = f.maker.fgraph.toposort()
             assert len(topo) == 2
             assert isinstance(topo[0].op, CAReduce)  # max
@@ -106,7 +106,7 @@ class TestMinMax:
             assert isinstance(topo[1].op.scalar_op, aes.Neg)
             f(data)
 
-            f = function([n], -tt_min(n, axis), mode=self.mode)
+            f = function([n], -aet_min(n, axis), mode=self.mode)
             topo = f.maker.fgraph.toposort()
             assert len(topo) == 2
             assert isinstance(topo[0].op, Elemwise)
@@ -114,7 +114,7 @@ class TestMinMax:
             assert isinstance(topo[1].op, CAReduce)  # max
             f(data)
 
-            f = function([n], -tt_min(-n, axis), mode=self.mode)
+            f = function([n], -aet_min(-n, axis), mode=self.mode)
             topo = f.maker.fgraph.toposort()
             assert len(topo) == 1
             assert isinstance(topo[0].op, CAReduce)  # max

@@ -78,7 +78,7 @@ from aesara.tensor.elemwise import DimShuffle, Elemwise
 from aesara.tensor.exceptions import NotScalarConstantError, ShapeError
 from aesara.tensor.extra_ops import broadcast_shape
 from aesara.tensor.math import Dot, add
-from aesara.tensor.math import all as tt_all
+from aesara.tensor.math import all as aet_all
 from aesara.tensor.math import (
     and_,
     ceil_intdiv,
@@ -3496,7 +3496,7 @@ def local_adv_sub1_adv_inc_sub1(fgraph, node):
             )
         return
 
-    cond = [tt_all(and_(lt(idx, x.shape[0]), ge(idx, -x.shape[0])))]
+    cond = [aet_all(and_(lt(idx, x.shape[0]), ge(idx, -x.shape[0])))]
     if not fgraph.shape_feature.same_shape(idx, y, 0, 0):
         cond.append(eq(idx.shape[0], y.shape[0]))
     r = Assert(

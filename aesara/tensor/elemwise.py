@@ -553,7 +553,7 @@ second dimension
         return [[True for output in node.outputs] for ipt in node.inputs]
 
     def L_op(self, inputs, outs, ograds):
-        from aesara.tensor.math import sum as tt_sum
+        from aesara.tensor.math import sum as aet_sum
 
         # Compute grad with respect to broadcasted input
         rval = self._bgrad(inputs, outs, ograds)
@@ -594,7 +594,7 @@ second dimension
             ]
 
             if to_sum:
-                sr = tt_sum(rval[i], axis=to_sum, keepdims=True)
+                sr = aet_sum(rval[i], axis=to_sum, keepdims=True)
                 rval[i] = sr
 
         return rval

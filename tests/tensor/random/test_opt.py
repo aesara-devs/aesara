@@ -54,33 +54,33 @@ def test_inplace_optimization():
 
 
 def check_shape_lifted_rv(rv, params, size, rng):
-    tt_params = []
+    aet_params = []
     for p in params:
         p_tt = aet.as_tensor(p)
         p_tt = p_tt.type()
         p_tt.tag.test_value = p
-        tt_params.append(p_tt)
+        aet_params.append(p_tt)
 
-    tt_size = []
+    aet_size = []
     for s in size:
         s_tt = aet.as_tensor(s)
         s_tt = s_tt.type()
         s_tt.tag.test_value = s
-        tt_size.append(s_tt)
+        aet_size.append(s_tt)
 
-    rv = rv(*tt_params, size=tt_size, rng=rng)
+    rv = rv(*aet_params, size=aet_size, rng=rng)
     rv_lifted = lift_rv_shapes(rv.owner)
 
     # Make sure the size input is empty
     assert np.array_equal(rv_lifted.inputs[1].data, [])
 
     f_ref = function(
-        tt_params + tt_size,
+        aet_params + aet_size,
         rv,
         mode=no_mode,
     )
     f_lifted = function(
-        tt_params + tt_size,
+        aet_params + aet_size,
         rv_lifted.outputs[1],
         mode=no_mode,
     )

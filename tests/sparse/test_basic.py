@@ -86,7 +86,7 @@ from aesara.sparse.basic import (
 from aesara.sparse.opt import CSMGradC, StructuredDotCSC, UsmmCscDense
 from aesara.tensor.basic import MakeVector
 from aesara.tensor.elemwise import DimShuffle, Elemwise
-from aesara.tensor.math import sum as tt_sum
+from aesara.tensor.math import sum as aet_sum
 from aesara.tensor.shape import Shape_i
 from aesara.tensor.subtensor import AdvancedIncSubtensor1, AdvancedSubtensor1, Subtensor
 from aesara.tensor.type import (
@@ -1192,7 +1192,7 @@ class TestCsm:
                     y = aet.constant(a.indices)
                     z = aet.constant(a.indptr)
                     s = aet.constant(a.shape)
-                    return tt_sum(dense_from_sparse(CSM(format)(x, y, z, s) * a))
+                    return aet_sum(dense_from_sparse(CSM(format)(x, y, z, s) * a))
 
                 verify_grad_sparse(my_op, [a.data])
 

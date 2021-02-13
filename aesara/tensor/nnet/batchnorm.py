@@ -11,7 +11,7 @@ from aesara.tensor.basic import as_tensor_variable
 from aesara.tensor.basic_opt import register_specialize_device
 from aesara.tensor.elemwise import Elemwise
 from aesara.tensor.math import inv, mean, prod, sqrt
-from aesara.tensor.math import sum as tt_sum
+from aesara.tensor.math import sum as aet_sum
 from aesara.tensor.type import TensorType
 
 
@@ -699,14 +699,14 @@ class AbstractBatchNormTrainGrad(Op):
             )
 
             eee = (dy * x_invstd) - ((x_invstd ** 3) * x_diff * mean_dy_x_diff)
-            g_wrt_scale = g_wrt_scale + tt_sum(
+            g_wrt_scale = g_wrt_scale + aet_sum(
                 ddinputs * (eee - mean(eee, axis=self.axes, keepdims=True)),
                 axis=self.axes,
                 keepdims=True,
             )
 
-            g_wrt_x_mean = g_wrt_x_mean + tt_sum(ddd, axis=self.axes, keepdims=True)
-            g_wrt_x_invstd = g_wrt_x_invstd + tt_sum(
+            g_wrt_x_mean = g_wrt_x_mean + aet_sum(ddd, axis=self.axes, keepdims=True)
+            g_wrt_x_invstd = g_wrt_x_invstd + aet_sum(
                 ccc * (dy - 3 * (x_invstd ** 2) * x_diff * mean_dy_x_diff),
                 axis=self.axes,
                 keepdims=True,
@@ -716,10 +716,10 @@ class AbstractBatchNormTrainGrad(Op):
             g_wrt_x = g_wrt_x + (x_invstd * ddscale * dy)
             g_wrt_dy = g_wrt_dy + (x_invstd * ddscale * x_diff)
             g_wrt_x_mean = g_wrt_x_mean - (
-                x_invstd * ddscale * tt_sum(dy, axis=self.axes, keepdims=True)
+                x_invstd * ddscale * aet_sum(dy, axis=self.axes, keepdims=True)
             )
             g_wrt_x_invstd = g_wrt_x_invstd + (
-                ddscale * tt_sum(dy * x_diff, axis=self.axes, keepdims=True)
+                ddscale * aet_sum(dy * x_diff, axis=self.axes, keepdims=True)
             )
 
         if not isinstance(ddbias.type, aesara.gradient.DisconnectedType):
@@ -857,8 +857,8 @@ def local_abstract_batch_norm_train_grad(fgraph, node):
     c = (dy * x_invstd) - x_diff * (mean_dy_x_diff * (x_invstd ** 3))
 
     g_wrt_inputs = scale * (c - mean(c, axis=axes, keepdims=True))
-    g_wrt_scale = tt_sum(dy * x_invstd * x_diff, axis=axes, keepdims=True)
-    g_wrt_bias = tt_sum(dy, axis=axes, keepdims=True)
+    g_wrt_scale = aet_sum(dy * x_invstd * x_diff, axis=axes, keepdims=True)
+    g_wrt_bias = aet_sum(dy, axis=axes, keepdims=True)
     results = [g_wrt_inputs, g_wrt_scale, g_wrt_bias]
 
     results = [

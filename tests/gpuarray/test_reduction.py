@@ -9,7 +9,7 @@ from aesara.gpuarray import GpuArrayType
 from aesara.gpuarray.dnn import GpuDnnReduction
 from aesara.gpuarray.reduction import GpuMaxAndArgmax
 from aesara.tensor.math import argmax
-from aesara.tensor.math import max as tt_max
+from aesara.tensor.math import max as aet_max
 from tests import unittest_tools as utt
 from tests.gpuarray.config import mode_with_gpu, mode_without_gpu
 from tests.gpuarray.test_basic_ops import rand_gpuarray
@@ -115,7 +115,7 @@ class BaseTest:
         M = self.get_host_tensor()
         f = aesara.function(
             [M],
-            [tt_max(M, axis=axis), argmax(M, axis=axis)],
+            [aet_max(M, axis=axis), argmax(M, axis=axis)],
             name="shape:" + str(test_tensor.shape) + "/axis:" + str(axis) + "/HOST",
             mode=mode_without_gpu,
         )
@@ -130,7 +130,7 @@ class BaseTest:
         M = self.get_gpu_tensor()
         f = aesara.function(
             [M],
-            [tt_max(M, axis=axis), argmax(M, axis=axis)],
+            [aet_max(M, axis=axis), argmax(M, axis=axis)],
             name="shape:" + str(test_gpu_tensor.shape) + "/axis:" + str(axis) + "/GPU",
             mode=mode_with_gpu,
         )

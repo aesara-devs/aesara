@@ -40,7 +40,7 @@ from aesara.tensor.extra_ops import (
     to_one_hot,
     unravel_index,
 )
-from aesara.tensor.math import sum as tt_sum
+from aesara.tensor.math import sum as aet_sum
 from aesara.tensor.type import (
     TensorType,
     dmatrix,
@@ -322,11 +322,11 @@ class TestDiffOp(utt.InferShapeTester):
         x = vector("x")
         a = np.random.random(50).astype(config.floatX)
 
-        aesara.function([x], grad(tt_sum(diff(x)), x))
+        aesara.function([x], grad(aet_sum(diff(x)), x))
         utt.verify_grad(self.op, [a])
 
         for k in range(TestDiffOp.nb):
-            aesara.function([x], grad(tt_sum(diff(x, n=k)), x))
+            aesara.function([x], grad(aet_sum(diff(x, n=k)), x))
             utt.verify_grad(DiffOp(n=k), [a], eps=7e-3)
 
 
