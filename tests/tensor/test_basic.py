@@ -522,6 +522,14 @@ class TestAsTensorVariable:
         res = aet.as_tensor(y)
         assert isinstance(res.owner.op, MakeVector)
 
+    def test_multi_out(self):
+        class TestOp(Op):
+            def make_node(self, a, b):
+                return Apply(self, [a, b], [a, b])
+
+        with pytest.raises(TypeError):
+            aet.as_tensor(TestOp(matrix(), matrix()))
+
 
 class TestAlloc:
     dtype = config.floatX
@@ -3049,7 +3057,7 @@ def test_dimshuffle_duplicate():
 
 
 class TestGetScalarConstantValue:
-    def test_get_scalar_constant_value(self):
+    def test_basic(self):
         a = aet.stack([1, 2, 3])
         assert get_scalar_constant_value(a[0]) == 1
         assert get_scalar_constant_value(a[1]) == 2

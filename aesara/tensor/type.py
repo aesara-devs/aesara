@@ -241,9 +241,6 @@ class TensorType(CType):
         and dtype and have "compatible" broadcastable pattern.
 
         """
-        if hasattr(other, "_as_TensorVariable"):
-            other = other._as_TensorVariable()
-
         if not isinstance(other, Variable):
             # The value is not a Variable: we cast it into
             # a Constant of the appropriate Type.
