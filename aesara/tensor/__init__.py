@@ -4,6 +4,41 @@
 __docformat__ = "restructuredtext en"
 
 import warnings
+from functools import singledispatch
+
+
+def as_tensor_variable(x, name=None, ndim=None, **kwargs):
+    """Convert `x` into the appropriate `TensorType`.
+
+    This function is often used by `make_node` methods of `Op` subclasses to
+    turn ndarrays, numbers, `Scalar` instances, `Apply` instances and
+    `TensorType` instances into valid input list elements.
+
+    Parameters
+    ----------
+    x : Apply or Variable or numpy.ndarray or number
+        This thing will be transformed into a `Variable` in a sensible way. An
+        ndarray argument will not be copied, but a list of numbers will be
+        copied to make an ndarray.
+    name : str or None
+        If a new `Variable` instance is created, it will be named with this
+        string.
+    ndim : None or integer
+        Return a Variable with this many dimensions.
+
+    Raises
+    ------
+    TypeError
+        If `x` cannot be converted to a TensorType Variable.
+
+    """
+    return _as_tensor_variable(x, name, ndim, **kwargs)
+
+
+@singledispatch
+def _as_tensor_variable(x, name, ndim, **kwargs):
+    raise NotImplementedError("")
+
 
 import aesara.tensor.exceptions
 from aesara.gradient import consider_constant, grad, hessian, jacobian

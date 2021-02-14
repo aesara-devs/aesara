@@ -166,33 +166,33 @@ class IfElse(_NoPythonOp):
         return out_shapes
 
     def make_node(self, c, *args):
-        assert (
-            len(args) == 2 * self.n_outs
-        ), f"Wrong number of arguments to make_node: expected {int(2 * self.n_outs)}, got {len(args)}"
+        if len(args) != 2 * self.n_outs:
+            raise ValueError(
+                f"Wrong number of arguments to make_node: expected "
+                f"{int(2 * self.n_outs)}, got {len(args)}"
+            )
         c = aet.basic.as_tensor_variable(c)
         if not self.gpu:
             # When gpu is true, we are given only gpuarrays, and we want
             # to keep them as gpuarrays
             nw_args = []
             for x in args:
-                if hasattr(x, "_as_TensorVariable"):
-                    nw_args.append(x._as_TensorVariable())
-                elif isinstance(x, Variable):
+                if isinstance(x, Variable):
                     nw_args.append(x)
                 else:
-                    nw_args.append(aet.basic.as_tensor_variable(x))
+                    nw_args.append(aet.as_tensor_variable(x))
             args = nw_args
         aes = args[: self.n_outs]
         fs = args[self.n_outs :]
 
         for t, f in zip(aes, fs):
+            # TODO: Attempt to convert types so that they match?
+            # new_f = t.type.filter_variable(f)
+
             if t.type != f.type:
                 raise TypeError(
-                    ("IfElse requires same types for true and " "false return values"),
-                    t,
-                    f,
-                    t.type,
-                    f.type,
+                    "IfElse requires same types for true and false return values: "
+                    f"true_branch={t.type}, false_branch={f.type}"
                 )
         if c.ndim > 0:
             raise TypeError(

@@ -10,6 +10,7 @@ import logging
 import warnings
 from collections import OrderedDict
 from collections.abc import Sequence
+from numbers import Number
 
 import numpy as np
 
@@ -26,6 +27,8 @@ from aesara.graph.type import CType
 from aesara.misc.safe_asarray import _asarray
 from aesara.printing import min_informative_str, pprint
 from aesara.scalar import int32
+from aesara.scalar.basic import ScalarConstant, ScalarVariable
+from aesara.tensor import _as_tensor_variable, as_tensor_variable
 from aesara.tensor.elemwise import DimShuffle, Elemwise, scalar_elemwise
 from aesara.tensor.exceptions import EmptyConstantError, NotScalarConstantError
 from aesara.tensor.shape import (
@@ -82,121 +85,109 @@ def __oplist_tag(thing, tag):
     thing.__oplist_tags = tags
 
 
-def as_tensor_variable(x, name=None, ndim=None):
-    """Convert `x` into the appropriate `TensorType`.
-
-    This function is often used by `make_node` methods of `Op` subclasses to
-    turn ndarrays, numbers, `Scalar` instances, `Apply` instances and
-    `TensorType` instances into valid input list elements.
-
-    Parameters
-    ----------
-    x : Apply or Variable or numpy.ndarray or number
-        This thing will be transformed into a `Variable` in a sensible way. An
-        ndarray argument will not be copied, but a list of numbers will be
-        copied to make an ndarray.
-    name : str or None
-        If a new `Variable` instance is created, it will be named with this
-        string.
-    ndim : None or integer
-        Return a Variable with this many dimensions.
-
-    Raises
-    ------
-    TypeError
-        If `x` cannot be converted to a TensorType Variable.
-
-    """
-    if (
-        isinstance(getattr(x, "type", None), TensorType)
-        and (name is None or x.name == name)
-        and (ndim is None or x.ndim == ndim)
-    ):
-        return x
-
-    if hasattr(x, "_as_TensorVariable"):
-        return x._as_TensorVariable()  # TODO: pass name and ndim arguments
-
-    if isinstance(x, Apply):
-        # use Apply's default output mechanism
-        if (x.op.default_output is None) and (len(x.outputs) != 1):
-            raise TypeError(
-                "Multi-output Op encountered. "
-                "Retry using only one of the outputs directly."
-            )
-
-        x = x.default_output()
-
-    if isinstance(x, Variable):
-
-        if isinstance(x, Constant):
-            return as_tensor_variable(x.data, name=name, ndim=ndim)
-
-        if isinstance(x.type, aes.Scalar):
-            x = tensor_from_scalar(x)
-
-        if not isinstance(x.type, TensorType):
-            raise TypeError(
-                "Tensor type field must be a TensorType; found {}.".format(type(x.type))
-            )
-
-        if ndim is None:
-            return x
-        else:
-            if x.type.ndim > ndim:
-                # strip off leading broadcastable dimensions
-                first_non_broadcastable = [
-                    idx for idx in range(x.ndim) if not x.broadcastable[idx]
-                ][0]
-                x = x.dimshuffle(list(range(x.ndim))[first_non_broadcastable:])
-                if x.ndim > ndim:
-                    raise ValueError(
-                        "Tensor of type {} could not be cast to have {} dimensions".format(
-                            x.type, ndim
-                        )
-                    )
-                return x
-            elif x.type.ndim < ndim:
-                return shape_padleft(x, n_ones=(ndim - x.type.ndim))
-            else:
-                return x
-
-    elif isinstance(x, Sequence):
-
-        def extract_constants(i):
-            if isinstance(i, Variable):
-                if isinstance(i, Constant):
-                    return i.data
-                else:
-                    raise TypeError
-            else:
-                return i
-
-        try:
-            x = [extract_constants(i) for i in x]
-        except TypeError:
-            if builtins.all(getattr(i, "ndim", None) == 0 for i in x) and (
-                ndim is None or ndim == 1
-            ):
-                # In this instance, we can avoid making a `Join` `Op`, because
-                # we know that the result should be a vector.
-                # `MakeVector` is a better option due to its `get_scalar_constant_value`
-                # support.
-                dtype = aes.upcast(*[i.dtype for i in x if hasattr(i, "dtype")])
-                return MakeVector(dtype)(*x)
-
-            return stack(x)
-
-    elif isinstance(x, bool):
+@_as_tensor_variable.register(Apply)
+def _as_tensor_Apply(x, name, ndim):
+    # use Apply's default output mechanism
+    if (x.op.default_output is None) and (len(x.outputs) != 1):
         raise TypeError(
-            "Cannot cast True or False as a tensor variable. Please use "
-            "np.array(True) or np.array(False) if you need these constants. "
-            "This error might be caused by using the == operator on "
-            "Variables. v == w does not do what you think it does, "
-            "use aesara.tensor.eq(v, w) instead."
+            "Multi-output Op encountered. "
+            "Retry using only one of the outputs directly."
         )
 
+    x = x.default_output()
+
+    return as_tensor_variable(x, name=name, ndim=ndim)
+
+
+@_as_tensor_variable.register(ScalarVariable)
+@_as_tensor_variable.register(ScalarConstant)
+def _as_tensor_Scalar(x, name, ndim):
+    return as_tensor_variable(tensor_from_scalar(x), name=name, ndim=ndim)
+
+
+@_as_tensor_variable.register(Variable)
+def _as_tensor_Variable(x, name, ndim):
+    if not isinstance(x.type, TensorType):
+        raise TypeError(
+            "Tensor type field must be a TensorType; found {}.".format(type(x.type))
+        )
+
+    if ndim is None:
+        return x
+
+    if x.type.ndim > ndim:
+        # strip off leading broadcastable dimensions
+        first_non_broadcastable = [
+            idx for idx in range(x.ndim) if not x.broadcastable[idx]
+        ][0]
+        x = x.dimshuffle(list(range(x.ndim))[first_non_broadcastable:])
+        if x.ndim > ndim:
+            raise ValueError(
+                "Tensor of type {} could not be cast to have {} dimensions".format(
+                    x.type, ndim
+                )
+            )
+        return x
+    elif x.type.ndim < ndim:
+        return shape_padleft(x, n_ones=(ndim - x.type.ndim))
+    else:
+        return x
+
+
+@_as_tensor_variable.register(list)
+@_as_tensor_variable.register(tuple)
+def _as_tensor_Sequence(x, name, ndim):
+
+    if len(x) == 0:
+        return constant(x, name=name, ndim=ndim)
+
+    # If a sequence has `Variable`s in it, then we want
+    # to customize the conversion to a tensor type.
+    def extract_constants(i):
+        if isinstance(i, Variable):
+            if isinstance(i, Constant):
+                return i.data
+            else:
+                raise TypeError
+        else:
+            return i
+
+    try:
+        x = type(x)(extract_constants(i) for i in x)
+    except TypeError:
+        if builtins.all(getattr(i, "ndim", None) == 0 for i in x) and (
+            ndim is None or ndim == 1
+        ):
+            # In this instance, we have a sequence of constants with which we
+            # want to construct a vector, so we can use `MakeVector` directly.
+            dtype = aes.upcast(*[i.dtype for i in x if hasattr(i, "dtype")])
+            return MakeVector(dtype)(*x)
+
+        # In this case, we have at least one non-`Constant` term, so we
+        # couldn't get an underlying non-symbolic sequence of objects and we to
+        # symbolically join terms.
+        return stack(x)
+
     return constant(x, name=name, ndim=ndim)
+
+
+@_as_tensor_variable.register(np.bool_)
+@_as_tensor_variable.register(np.number)
+@_as_tensor_variable.register(Number)
+@_as_tensor_variable.register(np.ndarray)
+def _as_tensor_numbers(x, name, ndim):
+    return constant(x, name=name, ndim=ndim)
+
+
+@_as_tensor_variable.register(bool)
+def _as_tensor_bool(x, name, ndim):
+    raise TypeError(
+        "Cannot cast True or False as a tensor variable. Please use "
+        "np.array(True) or np.array(False) if you need these constants. "
+        "This error might be caused by using the == operator on "
+        "Variables. v == w does not do what you think it does, "
+        "use aesara.tensor.eq(v, w) instead."
+    )
 
 
 as_tensor = as_tensor_variable
@@ -347,6 +338,7 @@ def get_scalar_constant_value(
                 data = v.tag.unique_value
             else:
                 data = v.data
+
             if isinstance(data, np.ndarray):
                 return numpy_scalar(data).copy()
             else:

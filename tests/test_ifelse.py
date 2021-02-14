@@ -35,6 +35,21 @@ class TestIfelse(utt.OptimizationTestMixin):
         else:
             return IfElse(n, as_view=True)
 
+    def test_wrong_n_outs(self):
+        x = vector("x", dtype=self.dtype)
+        c = iscalar("c")
+        with pytest.raises(ValueError):
+            IfElse(0)(c, x, x)
+
+    def test_const_Op_argument(self):
+        x = vector("x", dtype=self.dtype)
+        y = np.array([2.0, 3.0], dtype=self.dtype)
+        c = iscalar("c")
+        f = function([c, x], IfElse(1)(c, x, y), mode=self.mode)
+
+        val = f(0, np.r_[1.0, 2.0].astype(self.dtype))
+        assert np.array_equal(val, y)
+
     def test_lazy_if(self):
         # Tests that lazy if works .. even if the two results have different
         # shapes but the same type (i.e. both vectors, or matrices or

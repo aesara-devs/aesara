@@ -643,11 +643,6 @@ EQ_MAP.update(list((v, k) for k, v in EQ_MAP.items()))
 
 
 class _operators(_tensor_py_operators):
-    def _as_TensorVariable(self):
-        from .basic_ops import host_from_gpu
-
-        return host_from_gpu(self)
-
     def _as_GpuArrayVariable(self, context_name):
         if self.type.context_name == context_name:
             return self
@@ -655,6 +650,13 @@ class _operators(_tensor_py_operators):
             from .basic_ops import GpuToGpu
 
             return GpuToGpu(context_name)(self)
+
+
+@aet._as_tensor_variable.register(_operators)
+def _as_tensor_operators(x, **kwargs):
+    from aesara.gpuarray.basic_ops import host_from_gpu
+
+    return host_from_gpu(x)
 
 
 class GpuArrayVariable(_operators, Variable):
