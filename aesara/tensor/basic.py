@@ -313,8 +313,13 @@ def get_scalar_constant_value(
                     return np.array(data.item(), dtype=v.dtype)
                 except ValueError:
                     raise NotScalarConstantError()
-            else:
-                return data
+
+            from aesara.sparse.type import SparseType
+
+            if isinstance(v.type, SparseType):
+                raise NotScalarConstantError()
+
+            return data
 
         if not only_process_constants and getattr(v, "owner", None) and max_recur > 0:
             max_recur -= 1

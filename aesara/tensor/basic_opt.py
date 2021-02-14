@@ -78,7 +78,12 @@ from aesara.tensor.math import eq
 from aesara.tensor.shape import Reshape, Shape, Shape_i, SpecifyShape, shape_padleft
 from aesara.tensor.sort import TopKOp
 from aesara.tensor.subtensor import Subtensor, get_idx_list
-from aesara.tensor.type import TensorType, discrete_dtypes, integer_dtypes
+from aesara.tensor.type import (
+    DenseTensorType,
+    TensorType,
+    discrete_dtypes,
+    integer_dtypes,
+)
 from aesara.tensor.var import TensorConstant
 from aesara.utils import NoDuplicateOptWarningFilter
 
@@ -2954,7 +2959,8 @@ def constant_folding(fgraph, node):
 
         # TODO: `Type` itself should provide an interface for constructing
         # instances appropriate for a given constant.
-        if isinstance(output.type, TensorType):
+        # TODO: Add handling for sparse types.
+        if isinstance(output.type, DenseTensorType):
             output_type = TensorType(
                 output.type.dtype,
                 tuple(s == 1 for s in data.shape),

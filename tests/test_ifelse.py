@@ -335,13 +335,13 @@ class TestIfelse(utt.OptimizationTestMixin):
         z = aesara.sparse.matrix("csr", dtype=self.dtype, name="z")
         cond = iscalar("cond")
 
-        with pytest.raises(TypeError):
+        with pytest.raises(NotImplementedError):
             ifelse(cond, x, y)
-        with pytest.raises(TypeError):
+        with pytest.raises(NotImplementedError):
             ifelse(cond, y, x)
-        with pytest.raises(TypeError):
+        with pytest.raises(NotImplementedError):
             ifelse(cond, x, z)
-        with pytest.raises(TypeError):
+        with pytest.raises(NotImplementedError):
             ifelse(cond, z, x)
         with pytest.raises(TypeError):
             ifelse(cond, y, z)

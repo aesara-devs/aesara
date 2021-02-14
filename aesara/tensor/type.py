@@ -1,6 +1,6 @@
 import logging
 import warnings
-from typing import Iterable, Optional, Union
+from typing import Iterable, Optional, Tuple, Union
 
 import numpy as np
 
@@ -9,6 +9,7 @@ from aesara import scalar as aes
 from aesara.configdefaults import config
 from aesara.graph.basic import Variable
 from aesara.graph.type import HasDataType
+from aesara.graph.utils import MetaType
 from aesara.link.c.type import CType
 from aesara.misc.safe_asarray import _asarray
 from aesara.utils import apply_across_args
@@ -50,8 +51,9 @@ dtype_specs_map = {
 class TensorType(CType, HasDataType):
     r"""Symbolic `Type` representing `numpy.ndarray`\s."""
 
-    __props__ = ("dtype", "shape")
+    __props__: Tuple[str, ...] = ("dtype", "shape")
 
+    dtype_specs_map = dtype_specs_map
     context_name = "cpu"
     filter_checks_isfinite = False
     """
@@ -271,7 +273,7 @@ class TensorType(CType, HasDataType):
 
         """
         try:
-            return dtype_specs_map[self.dtype]
+            return self.dtype_specs_map[self.dtype]
         except KeyError:
             raise TypeError(
                 f"Unsupported dtype for {self.__class__.__name__}: {self.dtype}"
@@ -611,6 +613,20 @@ class TensorType(CType, HasDataType):
             return (11,) + scalar_version
         else:
             return ()
+
+
+class DenseTypeMeta(MetaType):
+    def __instancecheck__(self, o):
+        if type(o) == TensorType or isinstance(o, DenseTypeMeta):
+            return True
+        return False
+
+
+class DenseTensorType(TensorType, metaclass=DenseTypeMeta):
+    r"""A `Type` for dense tensors.
+
+    Instances of this class and `TensorType`\s are considered dense `Type`\s.
+    """
 
 
 def values_eq_approx(

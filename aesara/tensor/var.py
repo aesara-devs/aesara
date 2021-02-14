@@ -10,6 +10,7 @@ import numpy as np
 from aesara import tensor as at
 from aesara.configdefaults import config
 from aesara.graph.basic import Constant, Variable
+from aesara.graph.utils import MetaType
 from aesara.scalar import ComplexError, IntegerDivisionError
 from aesara.tensor import _get_vector_length, as_tensor_variable
 from aesara.tensor.exceptions import AdvancedIndexingError
@@ -1040,3 +1041,33 @@ class TensorConstant(TensorVariable, Constant):
 
 
 TensorType.constant_type = TensorConstant
+
+
+class DenseVariableMeta(MetaType):
+    def __instancecheck__(self, o):
+        if type(o) == TensorVariable or isinstance(o, DenseVariableMeta):
+            return True
+        return False
+
+
+class DenseTensorVariable(TensorType, metaclass=DenseVariableMeta):
+    r"""A `Variable` for dense tensors.
+
+    Instances of this class and `TensorVariable`\s are considered dense
+    `Variable`\s.
+    """
+
+
+class DenseConstantMeta(MetaType):
+    def __instancecheck__(self, o):
+        if type(o) == TensorConstant or isinstance(o, DenseConstantMeta):
+            return True
+        return False
+
+
+class DenseTensorConstant(TensorType, metaclass=DenseConstantMeta):
+    r"""A `Constant` for dense tensors.
+
+    Instances of this class and `TensorConstant`\s are considered dense
+    `Constant`\s.
+    """
