@@ -1642,7 +1642,7 @@ class numeric_grad:
         for i, (a, b) in enumerate(zip(g_pt, self.gf)):
             if a.shape != b.shape:
                 raise ValueError(
-                    f"argument element {i} has wrong shape {str(a.shape, b.shape)}"
+                    f"argument element {i} has wrong shapes {a.shape}, {b.shape}"
                 )
             errs.append(numeric_grad.abs_rel_err(a, b))
         return errs
