@@ -431,7 +431,7 @@ class SpecifyShape(COp):
             )
 
         if isinstance(x.type, TensorType) and all(isinstance(s, Number) for s in shape):
-            out_var = TensorType(x.type.dtype, shape)()
+            out_var = x.type.clone(shape=shape)()
         else:
             out_var = x.type()
 

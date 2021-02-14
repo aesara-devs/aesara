@@ -6,6 +6,7 @@ import aesara
 import tests.unittest_tools as utt
 from aesara.graph.basic import Constant, equal_computations
 from aesara.tensor import get_vector_length
+from aesara.tensor.basic import constant
 from aesara.tensor.elemwise import DimShuffle
 from aesara.tensor.math import dot
 from aesara.tensor.subtensor import AdvancedSubtensor, Subtensor
@@ -21,7 +22,12 @@ from aesara.tensor.type import (
     tensor3,
 )
 from aesara.tensor.type_other import MakeSlice
-from aesara.tensor.var import TensorConstant, TensorVariable
+from aesara.tensor.var import (
+    DenseTensorConstant,
+    DenseTensorVariable,
+    TensorConstant,
+    TensorVariable,
+)
 
 
 @pytest.mark.parametrize(
@@ -247,3 +253,14 @@ def test_get_vector_length():
     x = TensorVariable(TensorType("int64", (None,)))
     with pytest.raises(ValueError):
         get_vector_length(x)
+
+
+def test_dense_types():
+
+    x = matrix()
+    assert isinstance(x, DenseTensorVariable)
+    assert not isinstance(x, DenseTensorConstant)
+
+    x = constant(1)
+    assert not isinstance(x, DenseTensorVariable)
+    assert isinstance(x, DenseTensorConstant)

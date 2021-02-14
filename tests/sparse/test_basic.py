@@ -12,7 +12,7 @@ from aesara.compile.function import function
 from aesara.compile.io import In, Out
 from aesara.configdefaults import config
 from aesara.gradient import GradientError
-from aesara.graph.basic import Apply, Constant
+from aesara.graph.basic import Apply, Constant, applys_between
 from aesara.graph.op import Op
 from aesara.misc.safe_asarray import _asarray
 from aesara.sparse import (
@@ -78,6 +78,7 @@ from aesara.sparse import (
     true_dot,
 )
 from aesara.sparse.basic import (
+    SparseConstant,
     _is_dense_variable,
     _is_sparse,
     _is_sparse_variable,
@@ -1017,21 +1018,44 @@ class TestComparison:
 
 
 class TestConversion:
-    @pytest.mark.skip
     def test_basic(self):
-        a = at.as_tensor_variable(np.random.random((5)))
+        test_val = np.random.rand(5).astype(config.floatX)
+        a = at.as_tensor_variable(test_val)
         s = csc_from_dense(a)
         val = eval_outputs([s])
-        assert str(val.dtype) == "float64"
+        assert str(val.dtype) == config.floatX
         assert val.format == "csc"
 
-    @pytest.mark.skip
-    def test_basic_1(self):
-        a = at.as_tensor_variable(np.random.random((5)))
+        a = at.as_tensor_variable(test_val)
         s = csr_from_dense(a)
         val = eval_outputs([s])
-        assert str(val.dtype) == "float64"
+        assert str(val.dtype) == config.floatX
         assert val.format == "csr"
+
+        test_val = np.eye(3).astype(config.floatX)
+        a = sp.sparse.csr_matrix(test_val)
+        s = as_sparse_or_tensor_variable(a)
+        res = at.as_tensor_variable(s)
+        assert isinstance(res, SparseConstant)
+
+        a = sp.sparse.csr_matrix(test_val)
+        s = as_sparse_or_tensor_variable(a)
+        from aesara.tensor.exceptions import NotScalarConstantError
+
+        with pytest.raises(NotScalarConstantError):
+            at.get_scalar_constant_value(s, only_process_constants=True)
+
+    # TODO:
+    # def test_sparse_as_tensor_variable(self):
+    #     csr = sp.sparse.csr_matrix(np.eye(3))
+    #     val = aet.as_tensor_variable(csr)
+    #     assert str(val.dtype) == config.floatX
+    #     assert val.format == "csr"
+    #
+    #     csr = sp.sparse.csc_matrix(np.eye(3))
+    #     val = aet.as_tensor_variable(csr)
+    #     assert str(val.dtype) == config.floatX
+    #     assert val.format == "csc"
 
     def test_dense_from_sparse(self):
         # call dense_from_sparse
@@ -1590,6 +1614,32 @@ class TestDots(utt.InferShapeTester):
             np.random.default_rng().integers(0, 100, (size, size)), dtype=intX
         )
         f(i, a)
+
+    def test_tensor_dot_types(self):
+
+        x = sparse.csc_matrix("x")
+        x_d = at.matrix("x_d")
+        y = sparse.csc_matrix("y")
+
+        res = at.dot(x, y)
+        op_types = set(type(n.op) for n in applys_between([x, y], [res]))
+        assert sparse.basic.StructuredDot in op_types
+        assert at.math.Dot not in op_types
+
+        res = at.dot(x_d, y)
+        op_types = set(type(n.op) for n in applys_between([x, y], [res]))
+        assert sparse.basic.StructuredDot in op_types
+        assert at.math.Dot not in op_types
+
+        res = at.dot(x, x_d)
+        op_types = set(type(n.op) for n in applys_between([x, y], [res]))
+        assert sparse.basic.StructuredDot in op_types
+        assert at.math.Dot not in op_types
+
+        res = at.dot(at.second(1, x), y)
+        op_types = set(type(n.op) for n in applys_between([x, y], [res]))
+        assert sparse.basic.StructuredDot in op_types
+        assert at.math.Dot not in op_types
 
     def test_csr_dense_grad(self):
 
