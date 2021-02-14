@@ -5,6 +5,8 @@ from warnings import warn
 import jax
 import jax.numpy as jnp
 import jax.scipy as jsp
+import numpy as np
+from numpy.random import RandomState
 
 from aesara.compile.ops import DeepCopyOp, ViewOp
 from aesara.configdefaults import config
@@ -52,6 +54,7 @@ from aesara.tensor.nlinalg import (
 )
 from aesara.tensor.nnet.basic import Softmax
 from aesara.tensor.nnet.sigm import ScalarSoftplus
+from aesara.tensor.random.op import RandomVariable
 from aesara.tensor.shape import Reshape, Shape, Shape_i, SpecifyShape
 from aesara.tensor.slinalg import Cholesky, Solve
 from aesara.tensor.subtensor import (  # This is essentially `np.take`; Boolean mask indexing and setting
@@ -64,6 +67,10 @@ from aesara.tensor.subtensor import (  # This is essentially `np.take`; Boolean 
     get_idx_list,
 )
 from aesara.tensor.type_other import MakeSlice
+
+
+# For use with JAX since JAX doesn't support 'str' arguments
+numpy_bit_gens = {"MT19937": 0, "PCG64": 1, "Philox": 2, "SFC64": 3}
 
 
 if config.floatX == "float64":
@@ -125,21 +132,18 @@ def compose_jax_funcs(out_node, fgraph_inputs, memo=None):
             i_dtype = getattr(i, "dtype", None)
 
             def jax_inputs_func(*inputs, i_dtype=i_dtype, idx=idx):
-                return jnp.array(inputs[idx], dtype=jnp.dtype(i_dtype))
+                return jax_typify(inputs[idx], i_dtype)
 
             input_f = jax_inputs_func
 
         elif i.owner is None:
-            # This input is something like a `aesara.graph.basic.Constant`
+            # This input is something like an `aesara.graph.basic.Constant`
 
             i_dtype = getattr(i, "dtype", None)
             i_data = i.data
 
             def jax_data_func(*inputs, i_dtype=i_dtype, i_data=i_data):
-                if i_dtype is None:
-                    return i_data
-                else:
-                    return jnp.array(i_data, dtype=jnp.dtype(i_dtype))
+                return jax_typify(i_data, i_dtype)
 
             input_f = jax_data_func
         else:
@@ -171,7 +175,6 @@ def compose_jax_funcs(out_node, fgraph_inputs, memo=None):
 
         def jax_func(*inputs):
             func_args = [fn(*inputs) for fn in input_funcs]
-            # func_args = jax.tree_map(lambda fn: fn(*inputs), input_funcs)
             return return_func(*func_args)
 
         jax_funcs.append(update_wrapper(jax_func, return_func))
@@ -185,8 +188,30 @@ def compose_jax_funcs(out_node, fgraph_inputs, memo=None):
 
 
 @singledispatch
+def jax_typify(data, dtype):
+    """Convert instances of Aesara `Type`s to JAX types."""
+    if dtype is None:
+        return data
+    if dtype is not None:
+        return jnp.array(data, dtype=dtype)
+    raise NotImplementedError(f"No JAX conversion for data and dtype: {data}, {dtype}")
+
+
+@jax_typify.register(np.ndarray)
+def jax_typify_ndarray(data, dtype):
+    return jnp.array(data, dtype=dtype)
+
+
+@jax_typify.register(RandomState)
+def jax_typify_RandomState(state, dtype):
+    state = state.get_state(legacy=False)
+    state["bit_generator"] = numpy_bit_gens[state["bit_generator"]]
+    return state
+
+
+@singledispatch
 def jax_funcify(op):
-    """Create a JAX "perform" function for an Aesara `Variable` and its `Op`."""
+    """Create a JAX compatible function from an Aesara `Op`."""
     raise NotImplementedError(f"No JAX conversion for the given `Op`: {op}")
 
 
@@ -616,8 +641,6 @@ def jax_funcify_Subtensor(op):
             cdata = get_idx_list((x,) + ilists, idx_list)
         else:
             cdata = ilists
-
-        # breakpoint()
 
         if len(cdata) == 1:
             cdata = cdata[0]
@@ -1082,3 +1105,24 @@ def jax_funcify_BatchedDot(op):
         return jnp.einsum("nij,njk->nik", a, b)
 
     return batched_dot
+
+
+@jax_funcify.register(RandomVariable)
+def jax_funcify_RandomVariable(op):
+    name = op.name
+
+    if not hasattr(jax.random, name):
+        raise NotImplementedError(
+            f"No JAX conversion for the given distribution: {name}"
+        )
+
+    def random_variable(rng, size, dtype, *args):
+        prng = jax.random.PRNGKey(rng["state"]["key"][0])
+        dtype = jnp.dtype(dtype)
+        data = getattr(jax.random, name)(key=prng, shape=size)
+        smpl_value = jnp.array(data, dtype=dtype)
+        prng = jax.random.split(prng, num=1)[0]
+        jax.ops.index_update(rng["state"]["key"], 0, prng[0])
+        return (rng, smpl_value)
+
+    return random_variable

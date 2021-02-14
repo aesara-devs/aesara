@@ -1,6 +1,8 @@
 from collections.abc import Sequence
 from warnings import warn
 
+from numpy.random import RandomState
+
 from aesara.graph.basic import Constant
 from aesara.link.basic import Container, PerformLinker
 from aesara.link.utils import gc_helper, map_storage, streamline
@@ -44,7 +46,7 @@ class JAXLinker(PerformLinker):
         """
         import jax
 
-        from aesara.link.jax.jax_dispatch import jax_funcify
+        from aesara.link.jax.jax_dispatch import jax_funcify, jax_typify
 
         output_nodes = [o.owner for o in self.fgraph.outputs]
 
@@ -59,7 +61,17 @@ class JAXLinker(PerformLinker):
             n for n, i in enumerate(self.fgraph.inputs) if isinstance(i, Constant)
         ]
 
-        thunk_inputs = [storage_map[n] for n in self.fgraph.inputs]
+        thunk_inputs = []
+        for n in self.fgraph.inputs:
+            sinput = storage_map[n]
+            if isinstance(sinput[0], RandomState):
+                new_value = jax_typify(sinput[0], getattr(sinput[0], "dtype", None))
+                # We need to remove the reference-based connection to the
+                # original `RandomState`/shared variable's storage, because
+                # subsequent attempts to use the same shared variable within
+                # other non-JAXified graphs will have problems.
+                sinput = [new_value]
+            thunk_inputs.append(sinput)
 
         thunks = []
 
