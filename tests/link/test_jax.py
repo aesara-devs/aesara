@@ -7,7 +7,7 @@ import aesara.scalar.basic as aes
 from aesara.compile.function import function
 from aesara.compile.mode import Mode
 from aesara.compile.ops import DeepCopyOp, ViewOp
-from aesara.compile.sharedvalue import shared
+from aesara.compile.sharedvalue import SharedVariable, shared
 from aesara.configdefaults import config
 from aesara.graph.fg import FunctionGraph
 from aesara.graph.op import get_test_value
@@ -29,6 +29,7 @@ from aesara.tensor.math import clip, cosh, gammaln, log
 from aesara.tensor.math import max as aet_max
 from aesara.tensor.math import maximum, prod
 from aesara.tensor.math import sum as aet_sum
+from aesara.tensor.random.basic import normal
 from aesara.tensor.shape import Shape, Shape_i, SpecifyShape, reshape
 from aesara.tensor.type import (
     dscalar,
@@ -90,7 +91,8 @@ def compare_jax_and_py(
     jax_mode = Mode(JAXLinker(), opts)
     py_mode = Mode("py", opts)
 
-    aesara_jax_fn = function(fgraph.inputs, fgraph.outputs, mode=jax_mode)
+    fn_inputs = [i for i in fgraph.inputs if not isinstance(i, SharedVariable)]
+    aesara_jax_fn = function(fn_inputs, fgraph.outputs, mode=jax_mode)
     jax_res = aesara_jax_fn(*inputs)
 
     if must_be_device_array:
@@ -101,7 +103,7 @@ def compare_jax_and_py(
         else:
             assert isinstance(jax_res, jax.interpreters.xla.DeviceArray)
 
-    aesara_py_fn = function(fgraph.inputs, fgraph.outputs, mode=py_mode)
+    aesara_py_fn = function(fn_inputs, fgraph.outputs, mode=py_mode)
     py_res = aesara_py_fn(*inputs)
 
     if len(fgraph.outputs) > 1:
@@ -964,4 +966,12 @@ def test_extra_ops():
         aet.as_tensor(np.arange(6, dtype=config.floatX).reshape((3, 2)))
     )
     fgraph = FunctionGraph([], [out])
+    compare_jax_and_py(fgraph, [])
+
+
+@pytest.mark.xfail(reason="The RNG states are not 1:1", raises=AssertionError)
+def test_random():
+    rng = shared(np.random.RandomState(123))
+    out = normal(rng=rng)
+    fgraph = FunctionGraph([out.owner.inputs[0]], [out], clone=False)
     compare_jax_and_py(fgraph, [])
