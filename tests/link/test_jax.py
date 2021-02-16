@@ -30,6 +30,7 @@ from aesara.tensor.math import max as aet_max
 from aesara.tensor.math import maximum, prod
 from aesara.tensor.math import sum as aet_sum
 from aesara.tensor.random.basic import normal
+from aesara.tensor.random.utils import RandomStream
 from aesara.tensor.shape import Shape, Shape_i, SpecifyShape, reshape
 from aesara.tensor.type import (
     dscalar,
@@ -46,6 +47,10 @@ from aesara.tensor.type import (
 
 
 jax = pytest.importorskip("jax")
+
+opts = Query(include=[None], exclude=["cxx_only", "BlasOpt"])
+jax_mode = Mode(JAXLinker(), opts)
+py_mode = Mode("py", opts)
 
 
 @pytest.fixture(scope="module", autouse=True)
@@ -86,10 +91,6 @@ def compare_jax_and_py(
     """
     if assert_fn is None:
         assert_fn = partial(np.testing.assert_allclose, rtol=1e-4)
-
-    opts = Query(include=[None], exclude=["cxx_only", "BlasOpt"])
-    jax_mode = Mode(JAXLinker(), opts)
-    py_mode = Mode("py", opts)
 
     fn_inputs = [i for i in fgraph.inputs if not isinstance(i, SharedVariable)]
     aesara_jax_fn = function(fn_inputs, fgraph.outputs, mode=jax_mode)
@@ -975,3 +976,14 @@ def test_random():
     out = normal(rng=rng)
     fgraph = FunctionGraph([out.owner.inputs[0]], [out], clone=False)
     compare_jax_and_py(fgraph, [])
+
+
+def test_RandomStream():
+    srng = RandomStream(seed=123)
+    out = srng.normal() - srng.normal()
+
+    fn = function([], out, mode=jax_mode)
+    jax_res_1 = fn()
+    jax_res_2 = fn()
+
+    assert np.array_equal(jax_res_1, jax_res_2)
