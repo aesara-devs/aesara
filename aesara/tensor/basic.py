@@ -1844,7 +1844,7 @@ class Split(COp):
         self.len_splits = int(len_splits)
 
     def __str__(self):
-        return "{self.__class__.__name__ }{{{self.len_splits}}}"
+        return f"{self.__class__.__name__ }{{{self.len_splits}}}"
 
     def make_node(self, x, axis, splits):
         """WRITEME"""
@@ -1853,9 +1853,9 @@ class Split(COp):
         splits = as_tensor_variable(splits)
 
         if splits.type not in int_vector_types:
-            raise TypeError("splits must have type tensor.lvector", splits.type)
+            raise TypeError("`splits` parameter must be tensors of integer type")
         if axis.type not in int_types:
-            raise TypeError("axis must have type lscalar", axis.type)
+            raise TypeError("`axis` parameter must be an integer scalar")
 
         #         # The following lines are necessary if we allow splits of zero
         #         if isinstance(axis, Constant):
@@ -1869,30 +1869,19 @@ class Split(COp):
         return Apply(self, inputs, outputs)
 
     def perform(self, node, inputs, outputs):
-        """WRITEME"""
         x, axis, splits = inputs
 
-        try:
-            len_along_axis = x.shape[axis]
-        except Exception:
-            raise ValueError(
-                f"Split.perform() with axis=({axis}) is invalid"
-                f" for x.shape==({x.shape})"
-            )
-        if len(splits) != self.len_splits:
-            raise ValueError(
-                "In Split.perform(), len(splits) != len_splits.",
-                (len(splits), self.len_splits),
-            )
+        len_along_axis = x.shape[axis]
 
+        if len(splits) != self.len_splits:
+            raise ValueError("Length of `splits` is not equal to `len_splits`")
         if np.sum(splits) != len_along_axis:
             raise ValueError(
-                f"The splits sum to {np.sum(splits)}, expected {len_along_axis}"
+                f"The splits sum to {np.sum(splits)}; expected {len_along_axis}"
             )
         if builtins.any([nb < 0 for nb in splits]):
             raise ValueError(
-                "Split: you tried to make an ndarray with a "
-                "negative number of elements."
+                "Attempted to make an array with a " "negative number of elements"
             )
 
         # Checking is done, let's roll the splitting algorithm!
