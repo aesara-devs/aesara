@@ -585,14 +585,45 @@ def max_and_argmax(a, axis=None, keepdims=False):
     return [out, argout]
 
 
-class Max(CAReduce):
+class NonZeroCAReduce(CAReduce):
+    def _c_all(self, node, name, inames, onames, sub):
+        decl, checks, alloc, loop, end = super()._c_all(node, name, inames, onames, sub)
+
+        # We add an additional check for zero-sized dimensions (This seems like
+        # something that could enabled in `elemwise_cgen.make_checks`.)
+        iname = inames[0]
+
+        axis = self.axis
+        if axis is None:
+            axis = list(range(len(node.inputs[0].type.broadcastable)))
+
+        pattern = [0] * len(node.inputs[0].broadcastable)
+        for i in axis:
+            pattern[i] = 1
+
+        pattern_ = str(pattern)[1:-1]
+
+        decl += f"""int tosum[]={{{pattern_}}};"""
+        alloc += f"""
+                for(int i=0;i<PyArray_NDIM({iname});i++){{
+                    if(PyArray_DIMS({iname})[i]==0 && tosum[i]){{
+                        PyErr_Format(PyExc_ValueError,
+                            "Input of CAReduce{{{node.op.scalar_op}}} has zero-size on axis %%d",i);
+                        {sub["fail"]};
+                    }}
+                }}
+                """
+        return decl, checks, alloc, loop, end
+
+
+class Max(NonZeroCAReduce):
     nfunc_spec = ("max", 1, 1)
 
     def __init__(self, axis):
         super().__init__(aes.scalar_maximum, axis)
 
 
-class Min(CAReduce):
+class Min(NonZeroCAReduce):
     nfunc_spec = ("min", 1, 1)
 
     def __init__(self, axis):

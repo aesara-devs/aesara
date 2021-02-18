@@ -372,7 +372,7 @@ class TestCAReduce(unittest_tools.InferShapeTester):
             zv = xv
             if pre_scalar_op is not None:
                 zv = Elemwise(scalar_op=pre_scalar_op)(x).eval({x: xv})
-            numpy_raised = False
+
             if len(tosum) > 1 and any([a < 0 for a in tosum]):
                 # In that case, we need to use the good order of axis
                 # in the reduction.
@@ -404,17 +404,19 @@ class TestCAReduce(unittest_tools.InferShapeTester):
                 for axis in reversed(sorted(tosum)):
                     zv = np.multiply.reduce(zv, axis)
             elif scalar_op == aes.scalar_maximum:
-                try:
-                    for axis in reversed(sorted(tosum)):
-                        zv = np.maximum.reduce(zv, axis)
-                except ValueError:
-                    numpy_raised = True
+                # There is no identity value for the maximum function
+                # So we can't support shape of dimensions 0.
+                if np.prod(zv.shape) == 0:
+                    continue
+                for axis in reversed(sorted(tosum)):
+                    zv = np.maximum.reduce(zv, axis)
             elif scalar_op == aes.scalar_minimum:
-                try:
-                    for axis in reversed(sorted(tosum)):
-                        zv = np.minimum.reduce(zv, axis)
-                except ValueError:
-                    numpy_raised = True
+                # There is no identity value for the minimum function
+                # So we can't support shape of dimensions 0.
+                if np.prod(zv.shape) == 0:
+                    continue
+                for axis in reversed(sorted(tosum)):
+                    zv = np.minimum.reduce(zv, axis)
             elif scalar_op == aes.or_:
                 for axis in reversed(sorted(tosum)):
                     zv = np.bitwise_or.reduce(zv, axis)
@@ -432,24 +434,21 @@ class TestCAReduce(unittest_tools.InferShapeTester):
                 raise Exception(
                     f"Test for CAReduce with scalar_op {scalar_op} not implemented"
                 )
-            if scalar_op in [aes.scalar_maximum, aes.scalar_minimum] and numpy_raised:
-                with pytest.raises(ValueError):
-                    f(xv)
+
+            if test_nan:
+                try:
+                    assert self.type.values_eq(f(xv), zv), (f(xv), zv)
+                except NotImplementedError:
+                    # GpuCAReduce don't implement all cases when size is 0
+                    assert xv.size == 0
             else:
-                if test_nan:
-                    try:
-                        assert self.type.values_eq(f(xv), zv), (f(xv), zv)
-                    except NotImplementedError:
-                        # GpuCAReduce don't implement all cases when size is 0
-                        assert xv.size == 0
-                else:
-                    try:
-                        f_xv = f(xv)
-                        assert f_xv.shape == zv.shape, (f_xv, zv)
-                        utt.assert_allclose(zv, f_xv)
-                    except NotImplementedError:
-                        # GpuCAReduce don't implement all cases when size is 0
-                        assert xv.size == 0
+                try:
+                    f_xv = f(xv)
+                    assert f_xv.shape == zv.shape, (f_xv, zv)
+                    utt.assert_allclose(zv, f_xv)
+                except NotImplementedError:
+                    # GpuCAReduce don't implement all cases when size is 0
+                    assert xv.size == 0
 
             x = self.type(dtype, [(entry == 1) for entry in xsh])("x")
             if tensor_op is None:

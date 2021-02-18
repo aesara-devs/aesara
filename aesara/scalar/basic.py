@@ -1259,17 +1259,17 @@ class UnaryScalarOp(ScalarOp):
 
 class BinaryScalarOp(ScalarOp):
     # One may define in subclasses the following fields:
-    #   - `identity`: for an associative operation, identity corresponds to
-    #     the neutral element. For instance, it will be 0 for addition, 1 for
-    #     multiplication, True for "and", False for "or".
     #   - `commutative`: whether op(a, b) == op(b, a)
     #   - `associative`: whether op(op(a, b), c) == op(a, op(b, c))
+    commutative = None
+    associative = None
+    identity = None
+    """
+    For an associative operation, the identity object corresponds to the neutral
+    element. For instance, it will be ``0`` for addition, ``1`` for multiplication,
+    ``True`` for ``and``, ``False`` for ``or``.
+    """
     nin = 2
-
-
-###############
-# Comparisons
-###############
 
 
 class LogicalComparison(BinaryScalarOp):
@@ -1725,6 +1725,7 @@ class ScalarMaximum(BinaryScalarOp):
     associative = True
     nfunc_spec = ("maximum", 2, 1)
     nfunc_variadic = "maximum"
+    identity = -np.inf
 
     def impl(self, *inputs):
         # The built-in max function don't support complex type
@@ -1767,6 +1768,7 @@ class ScalarMinimum(BinaryScalarOp):
     associative = True
     nfunc_spec = ("minimum", 2, 1)
     nfunc_variadic = "minimum"
+    identity = np.inf
 
     def impl(self, *inputs):
         # The built-in min function don't support complex type

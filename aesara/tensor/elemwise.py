@@ -15,19 +15,10 @@ from aesara.misc.frozendict import frozendict
 from aesara.misc.safe_asarray import _asarray
 from aesara.printing import FunctionPrinter, pprint
 from aesara.scalar import get_scalar_type
-from aesara.scalar.basic import (
-    AND,
-    OR,
-    XOR,
-    Add,
-    Mul,
-    Scalar,
-    ScalarMaximum,
-    ScalarMinimum,
-)
+from aesara.scalar.basic import Scalar
 from aesara.scalar.basic import bool as scalar_bool
 from aesara.scalar.basic import identity as scalar_identity
-from aesara.scalar.basic import scalar_maximum, scalar_minimum, transfer_type, upcast
+from aesara.scalar.basic import transfer_type, upcast
 from aesara.tensor import elemwise_cgen as cgen
 from aesara.tensor.type import (
     TensorType,
@@ -1209,7 +1200,7 @@ second dimension
             """
                     % locals()
                 )
-        return decl, checks, alloc, loop
+        return decl, checks, alloc, loop, ""
 
     def c_code(self, node, nodename, inames, onames, sub):
         if (
@@ -1310,47 +1301,26 @@ class CAReduce(COp):
             raise NotImplementedError(
                 "CAReduce only supports binary functions with a single " "output."
             )
+
+        self.axis = None
+        self.ufunc_is_vectorized = False
         self.scalar_op = scalar_op
-
-        if axis is None:
-            self.axis = axis
-        # There is a bug in numpy that results in isinstance(x,
-        # integer_types) returning False for numpy integers.  See
-        # <http://projects.scipy.org/numpy/ticket/2235>.
-        elif isinstance(axis, (int, np.integer)):
-            self.axis = (axis,)
-        elif isinstance(axis, np.ndarray) and axis.ndim == 0:
-            self.axis = (int(axis),)
-        else:
-            self.axis = list({int(a) for a in axis})
-            self.axis.sort()
-            self.axis = tuple(self.axis)
-
         self.set_ufunc(scalar_op)
 
+        if axis is not None:
+            if isinstance(axis, (int, np.integer)) or (
+                isinstance(axis, np.ndarray) and not axis.shape
+            ):
+                self.axis = (int(axis),)
+            else:
+                self.axis = tuple(axis)
+
     def set_ufunc(self, scalar_op):
-        # TODO FIXME: Why would we ever do this, instead of allowing the `Op`
-        # itself to tell us which `ufunc` it should use?
-        if isinstance(scalar_op, Add):
-            self.ufunc = np.add
-        elif isinstance(scalar_op, Mul):
-            self.ufunc = np.multiply
-        elif isinstance(scalar_op, ScalarMaximum):
-            self.ufunc = np.maximum
-        elif isinstance(scalar_op, ScalarMinimum):
-            self.ufunc = np.minimum
-        elif isinstance(scalar_op, AND) and _numpy_ver >= [1, 12]:
-            # numpy.bitwise_and.identity was incorrect for versions before
-            # 1.12 (it was 1 instead of -1), so we skip it in that case.
-            # We will fall back to the "else:" case, which defines a
-            # ufunc without identity.
-            self.ufunc = np.bitwise_and
-        elif isinstance(scalar_op, OR):
-            self.ufunc = np.bitwise_or
-        elif isinstance(scalar_op, XOR):
-            self.ufunc = np.bitwise_xor
+        if hasattr(scalar_op, "nfunc_spec") and hasattr(np, scalar_op.nfunc_spec[0]):
+            self.ufunc = getattr(np, scalar_op.nfunc_spec[0])
         else:
             self.ufunc = np.frompyfunc(scalar_op.impl, 2, 1)
+            self.ufunc_is_vectorized = True
 
     def _output_dtype(self, input_dtype):
         return input_dtype
@@ -1359,41 +1329,41 @@ class CAReduce(COp):
         from aesara.tensor.basic import as_tensor_variable
 
         input = as_tensor_variable(input)
+        inp_dims = input.type.ndim
+        inp_bdcast = input.type.broadcastable
+        inp_dtype = input.type.dtype
+        copy_op = False
 
-        if self.axis is not None:
-            for axis in self.axis:
-                if axis >= input.type.ndim or (
-                    axis < 0 and abs(axis) > input.type.ndim
-                ):
-                    raise ValueError(
-                        f"Not enough dimensions on {input} to reduce on axis {axis}"
-                    )
-        input = as_tensor_variable(input)
         axis = self.axis
         if axis is None:
-            axis = list(range(len(input.type.broadcastable)))
-        if any(a < 0 for a in axis):
-            axis2 = []
-            for a in self.axis:
-                if a < 0:
-                    axis2.append(a + input.type.ndim)
-                else:
-                    axis2.append(a)
-            assert len(axis) == len(axis2)
-            axis = tuple(axis2)
-            # We can't call self.__class__() as there is a class that
-            # inherits from CAReduce that doesn't have the same signature
+            axis = list(range(len(inp_bdcast)))
+
+        axis = list(axis)
+        for i, a in enumerate(axis):
+            if a >= inp_dims or a < -inp_dims:
+                raise ValueError(
+                    f"Not enough dimensions on {input} to reduce on axis {a}"
+                )
+            if a < 0:
+                copy_op = True
+                axis[i] = a + inp_dims
+
+        # We can't call self.__class__() as there is a class that
+        # inherits from CAReduce that doesn't have the same signature
+        if copy_op:
             op = copy(self)
             op.set_ufunc(op.scalar_op)
-            op.axis = axis
+            assert len(axis) == len(self.axis)
+            op.axis = tuple(axis)
         else:
             op = self
-        broadcastable = [
-            x for i, x in enumerate(input.type.broadcastable) if i not in axis
-        ]
+
+        broadcastable = [x for i, x in enumerate(inp_bdcast) if i not in axis]
+
         output = TensorType(
-            dtype=self._output_dtype(input.type.dtype), broadcastable=broadcastable
+            dtype=self._output_dtype(inp_dtype), broadcastable=broadcastable
         )()
+
         return Apply(op, [input], [output])
 
     def __getstate__(self):
@@ -1420,38 +1390,25 @@ class CAReduce(COp):
         axis = self.axis
         if axis is None:
             axis = list(range(input.ndim))
-        variable = input
-        to_reduce = reversed(sorted(axis))
 
         if hasattr(self, "acc_dtype") and self.acc_dtype is not None:
             acc_dtype = self.acc_dtype
         else:
             acc_dtype = node.outputs[0].type.dtype
 
-        if to_reduce:
-            for dimension in to_reduce:
-                # If it's a zero-sized array, use scalar_op.identity
-                # if available
-                if variable.shape[dimension] == 0:
-                    if hasattr(self.scalar_op, "identity"):
-                        # Compute the shape of the output
-                        v_shape = list(variable.shape)
-                        del v_shape[dimension]
-                        variable = np.empty(tuple(v_shape), dtype=acc_dtype)
-                        variable.fill(self.scalar_op.identity)
-                    else:
-                        raise ValueError(
-                            f"Input ({variable}) has zero-size on axis {dimension}, but "
-                            f"self.scalar_op ({self.scalar_op}) has no attribute 'identity'"
-                        )
-                else:
-                    variable = self.ufunc.reduce(variable, dimension, dtype=acc_dtype)
+        variable = np.array(input, dtype=acc_dtype)
 
-            variable = np.asarray(variable)
-            if np.may_share_memory(variable, input):
-                # perhaps numpy is clever for reductions of size 1?
-                # We don't want this.
-                variable = variable.copy()
+        if axis:
+            # Reducing functions built using np.frompyfunc() do not
+            # support reduction along multiple axes. Hence loop through
+            # each, otherwise numpy's inbuilt reduction functions
+            # support reduction along multiple axes directly.
+            if self.ufunc_is_vectorized:
+                to_reduce = reversed(sorted(axis))
+                for dimension in to_reduce:
+                    variable = self.ufunc.reduce(variable, dimension, dtype=acc_dtype)
+            else:
+                variable = self.ufunc.reduce(variable, axis=tuple(axis))
             output[0] = _asarray(variable, dtype=node.outputs[0].type.dtype)
         else:
             # Force a copy
@@ -1559,60 +1516,30 @@ class CAReduce(COp):
                 dict(sub, lv0=aname),
             )
 
-        if hasattr(self.scalar_op, "identity"):
-            identity = self.scalar_op.identity
-        elif self.scalar_op in [scalar_maximum, scalar_minimum]:
-            if self.scalar_op == scalar_maximum:
-                scal_name = "maximum"
-                if input.type.dtype in ["float32", "float64"]:
-                    identity = "-__builtin_inf()"
-                elif input.type.dtype.startswith("uint") or input.type.dtype == "bool":
-                    # numpy does not define NPY_MIN_UINT* and NPY_MIN_BOOL
-                    identity = "0"
-                else:
-                    identity = "NPY_MIN_" + str(input.type.dtype).upper()
-            if self.scalar_op == scalar_minimum:
-                scal_name = "minimum"
-                if input.type.dtype in ["float32", "float64"]:
-                    identity = "__builtin_inf()"
-                elif input.type.dtype == "bool":
-                    # numpy does not define NPY_MAX_BOOL
-                    identity = "1"
-                else:
-                    identity = "NPY_MAX_" + str(input.type.dtype).upper()
-            fail = sub["fail"]
-            pattern = [0] * len(node.inputs[0].broadcastable)
-            axis = self.axis
-            if axis is None:
-                axis = list(range(len(pattern)))
-            for i in axis:
-                pattern[i] = 1
-            pattern_ = str(pattern)[1:-1]
-            decl += """int tosum[]={%(pattern_)s};""" % locals()
-            alloc += (
-                """
-                    for(int i=0;i<PyArray_NDIM(%(iname)s);i++){
-                        if(PyArray_DIMS(%(iname)s)[i]==0 && tosum[i]){
-                            PyErr_Format(PyExc_ValueError,
-                                "Input of CAReduce{%(scal_name)s} has zero-size on axis %%d",i);
-                            %(fail)s;
-                        }
-                    }
-                    """
-                % locals()
-            )
-        else:
-            raise TypeError("The CAReduce.scalar_op must have an identity field.")
+        identity = self.scalar_op.identity
+
+        if np.isposinf(identity):
+            if input.type.dtype in ["float32", "float64"]:
+                identity = "__builtin_inf()"
+            elif input.type.dtype.startswith("uint") or input.type.dtype == "bool":
+                identity = "1"
+            else:
+                identity = "NPY_MAX_" + str(input.type.dtype).upper()
+        elif np.isneginf(identity):
+            if input.type.dtype in ["float32", "float64"]:
+                identity = "-__builtin_inf()"
+            elif input.type.dtype.startswith("uint") or input.type.dtype == "bool":
+                identity = "0"
+            else:
+                identity = "NPY_MIN_" + str(input.type.dtype).upper()
+        elif identity is None:
+            raise TypeError(f"The {self.scalar_op} does not define an identity.")
 
         task0_decl = (
-            "%(dtype)s& %(name)s_i = *%(name)s_iter;\n"
-            "%(name)s_i = %(identity)s;"
-            % dict(dtype=adtype, name=aname, identity=identity)
+            f"{adtype}& {aname}_i = *{aname}_iter;\n" f"{aname}_i = {identity};"
         )
 
-        task1_decl = "%(dtype)s& %(name)s_i = *%(name)s_iter;\n" % dict(
-            dtype=idtype, name=inames[0]
-        )
+        task1_decl = f"{idtype}& {inames[0]}_i = *{inames[0]}_iter;\n"
 
         task1_code = self.scalar_op.c_code(
             Apply(
@@ -1631,15 +1558,12 @@ class CAReduce(COp):
             [f"{aname}_i"],
             sub,
         )
-        code1 = (
-            """
-        {
-            %(task1_decl)s
-            %(task1_code)s
-        }
+        code1 = f"""
+        {{
+            {task1_decl}
+            {task1_code}
+        }}
         """
-            % locals()
-        )
 
         if node.inputs[0].type.ndim:
             if len(axis) == 1:
@@ -1662,11 +1586,9 @@ class CAReduce(COp):
 
         end = ""
         if adtype != odtype:
-            end = """
-            PyArray_CopyInto(%(oname)s, %(aname)s);
-            """ % dict(
-                oname=oname, aname=aname
-            )
+            end = f"""
+            PyArray_CopyInto({oname}, {aname});
+            """
             end += acc_type.c_cleanup(aname, sub)
 
         return decl, checks, alloc, loop, end
@@ -1681,7 +1603,7 @@ class CAReduce(COp):
 
     def c_code_cache_version_apply(self, node):
         # the version corresponding to the c code in this Op
-        version = [8]
+        version = [9]
 
         # now we insert versions for the ops on which we depend...
         scalar_node = Apply(

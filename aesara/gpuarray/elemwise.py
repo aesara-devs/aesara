@@ -3024,11 +3024,9 @@ class GpuCAReduceCPY(GpuKernelBase, HideC, CAReduceDtype):
     """
 
     def __init__(self, scalar_op, axis=None, dtype=None, acc_dtype=None):
-        if not hasattr(scalar_op, "identity"):
+        if scalar_op.identity is None:
             raise ValueError("No identity on scalar op")
-        CAReduceDtype.__init__(
-            self, scalar_op, axis=axis, dtype=dtype, acc_dtype=acc_dtype
-        )
+        super().__init__(scalar_op, axis=axis, dtype=dtype, acc_dtype=acc_dtype)
 
     def __str__(self):
         ax = ""
@@ -3038,7 +3036,7 @@ class GpuCAReduceCPY(GpuKernelBase, HideC, CAReduceDtype):
 
     def make_node(self, input):
         ctx_name = infer_context_name(input)
-        res = CAReduceDtype.make_node(self, input)
+        res = super().make_node(input)
         input = as_gpuarray_variable(input, ctx_name)
         otype = GpuArrayType(
             dtype=res.outputs[0].dtype,
