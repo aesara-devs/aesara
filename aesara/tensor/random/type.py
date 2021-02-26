@@ -14,6 +14,9 @@ class RandomStateType(Type):
     with the `==` operator.  This `Type` exists to provide an equals function
     that is used by `DebugMode`.
 
+    Also works with a `dict` derived from RandomState.get_state() unless
+    the `strict` argument is explicitly set to `True`.
+
     """
 
     def __repr__(self):
@@ -21,19 +24,38 @@ class RandomStateType(Type):
 
     @classmethod
     def filter(cls, data, strict=False, allow_downcast=None):
-        if cls.is_valid_value(data):
+        if cls.is_valid_value(data, strict):
             return data
         else:
             raise TypeError()
 
     @staticmethod
-    def is_valid_value(a):
-        return isinstance(a, np.random.RandomState)
+    def is_valid_value(a, strict):
+        if isinstance(a, np.random.RandomState):
+            return True
+
+        if not strict and isinstance(a, dict):
+            gen_keys = ["bit_generator", "gauss", "has_gauss", "state"]
+            state_keys = ["key", "pos"]
+
+            for key in gen_keys:
+                if key not in a:
+                    return False
+
+            for key in state_keys:
+                if key not in a["state"]:
+                    return False
+
+            state_key = a["state"]["key"]
+            if state_key.shape == (624,) and state_key.dtype == np.uint32:
+                return True
+
+        return False
 
     @staticmethod
     def values_eq(a, b):
-        sa = a.get_state(legacy=False)
-        sb = b.get_state(legacy=False)
+        sa = a if isinstance(a, dict) else a.get_state(legacy=False)
+        sb = b if isinstance(b, dict) else b.get_state(legacy=False)
 
         def _eq(sa, sb):
             for key in sa:
