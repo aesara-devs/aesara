@@ -51,6 +51,16 @@ class TestRandomStateType:
         with pytest.raises(TypeError):
             rng_type.filter(1)
 
+        rng = rng.get_state(legacy=False)
+        assert rng_type.is_valid_value(rng, strict=False)
+
+        rng["state"] = {}
+
+        assert rng_type.is_valid_value(rng, strict=False) is False
+
+        rng = {}
+        assert rng_type.is_valid_value(rng, strict=False) is False
+
     def test_values_eq(self):
 
         rng_type = random_state_type
