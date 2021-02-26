@@ -1063,18 +1063,7 @@ class ScanInplaceOptimizer(GlobalOptimizer):
 
     def apply(self, fgraph):
 
-        # Depending on the value of gpua_flag, get the list of memory
-        # allocation ops that the optimization should be able to
-        # handle
         alloc_ops = (Alloc, AllocEmpty)
-        if self.gpua_flag:
-            # gpuarray might be imported but not its GpuAlloc and
-            # GpuAllopEmpty ops.
-            try:
-                alloc_ops += (aesara.gpuarray.GpuAlloc, aesara.gpuarray.GpuAllocEmpty)
-            except Exception:
-                pass
-
         nodes = fgraph.toposort()[::-1]
         scan_nodes = [
             x

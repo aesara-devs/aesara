@@ -78,9 +78,13 @@ def execute(execute=True, verbose=True, M=2000, N=2000, K=2000, iters=10, order=
 
     f()  # Ignore first function call to get representative time.
     if execute:
-        sync = hasattr(aesara, "gpuarray") and isinstance(
-            c, aesara.gpuarray.GpuArraySharedVariable
-        )
+        try:
+            from aesara.gpuarray import GpuArraySharedVariable
+
+            sync = isinstance(c, GpuArraySharedVariable)
+        except ImportError:
+            sync = False
+
         if sync:
             # Make sure we don't include the time from the first call
             c.get_value(borrow=True, return_internal_type=True).sync()

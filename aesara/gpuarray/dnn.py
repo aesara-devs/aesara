@@ -66,7 +66,12 @@ except ImportError:
 WIN32_CUDNN_NAMES = ["cudnn64_7.dll", "cudnn64_6.dll", "cudnn64_5.dll"]
 
 if sys.platform == "win32":
-    aesara.gpuarray.pathparse.PathParser(config.dnn__bin_path)
+    try:
+        from aesara.gpuarray.pathparse import PathParser
+
+        PathParser(config.dnn__bin_path)
+    except ImportError:
+        pass
 
 
 def _load_lib(name):
