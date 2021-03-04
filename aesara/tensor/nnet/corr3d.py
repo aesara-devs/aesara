@@ -1,5 +1,6 @@
 import logging
 import os
+from typing import Optional
 
 import aesara
 from aesara.configdefaults import config
@@ -48,7 +49,7 @@ class BaseCorr3dMM(OpenMPOp, _NoPythonOp):
     check_broadcast = False
     __props__ = ("border_mode", "subsample", "filter_dilation", "num_groups")
 
-    _direction = None
+    _direction: Optional[str] = None
 
     params_type = ParamsType(
         direction=EnumList(

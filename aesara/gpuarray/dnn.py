@@ -3,6 +3,7 @@ import os
 import sys
 import warnings
 from functools import reduce
+from typing import Optional
 
 import numpy as np
 
@@ -1904,8 +1905,8 @@ class GpuDnnPoolBase(DnnBase):
     """
 
     # c_file and c_function must be defined in sub-classes.
-    c_file = None
-    c_function = None
+    c_file: Optional[str] = None
+    c_function: Optional[str] = None
 
     _f16_ok = True
     __props__ = ("mode",)

@@ -3253,7 +3253,7 @@ def structured_add(x):
 
 
 # Sparse operation (map 0 to 0)
-@structured_monoid(sin)
+@structured_monoid(sin)  # type: ignore[no-redef]
 def sin(x):
     """
     Elemwise sinus of `x`.
@@ -3262,7 +3262,7 @@ def sin(x):
     # see decorator for function body
 
 
-@structured_monoid(tan)
+@structured_monoid(tan)  # type: ignore[no-redef]
 def tan(x):
     """
     Elemwise tan of `x`.
@@ -3271,7 +3271,7 @@ def tan(x):
     # see decorator for function body
 
 
-@structured_monoid(arcsin)
+@structured_monoid(arcsin)  # type: ignore[no-redef]
 def arcsin(x):
     """
     Elemwise arcsinus of `x`.
@@ -3280,7 +3280,7 @@ def arcsin(x):
     # see decorator for function body
 
 
-@structured_monoid(arctan)
+@structured_monoid(arctan)  # type: ignore[no-redef]
 def arctan(x):
     """
     Elemwise arctan of `x`.
@@ -3289,7 +3289,7 @@ def arctan(x):
     # see decorator for function body
 
 
-@structured_monoid(sinh)
+@structured_monoid(sinh)  # type: ignore[no-redef]
 def sinh(x):
     """
     Elemwise sinh of `x`.
@@ -3298,7 +3298,7 @@ def sinh(x):
     # see decorator for function body
 
 
-@structured_monoid(arcsinh)
+@structured_monoid(arcsinh)  # type: ignore[no-redef]
 def arcsinh(x):
     """
     Elemwise arcsinh of `x`.
@@ -3307,7 +3307,7 @@ def arcsinh(x):
     # see decorator for function body
 
 
-@structured_monoid(tanh)
+@structured_monoid(tanh)  # type: ignore[no-redef]
 def tanh(x):
     """
     Elemwise tanh of `x`.
@@ -3316,7 +3316,7 @@ def tanh(x):
     # see decorator for function body
 
 
-@structured_monoid(arctanh)
+@structured_monoid(arctanh)  # type: ignore[no-redef]
 def arctanh(x):
     """
     Elemwise arctanh of `x`.
@@ -3339,7 +3339,7 @@ def rint(x):
 rint.__name__ = "rint"
 
 
-@structured_monoid(sgn)
+@structured_monoid(sgn)  # type: ignore[no-redef]
 def sgn(x):
     """
     Elemwise signe of `x`.
@@ -3348,7 +3348,7 @@ def sgn(x):
     # see decorator for function body
 
 
-@structured_monoid(ceil)
+@structured_monoid(ceil)  # type: ignore[no-redef]
 def ceil(x):
     """
     Elemwise ceiling of `x`.
@@ -3357,7 +3357,7 @@ def ceil(x):
     # see decorator for function body
 
 
-@structured_monoid(floor)
+@structured_monoid(floor)  # type: ignore[no-redef]
 def floor(x):
     """
     Elemwise floor of `x`.
@@ -3366,7 +3366,7 @@ def floor(x):
     # see decorator for function body
 
 
-@structured_monoid(log1p)
+@structured_monoid(log1p)  # type: ignore[no-redef]
 def log1p(x):
     """
     Elemwise log(1 + `x`).
@@ -3375,7 +3375,7 @@ def log1p(x):
     # see decorator for function body
 
 
-@structured_monoid(expm1)
+@structured_monoid(expm1)  # type: ignore[no-redef]
 def expm1(x):
     """
     Elemwise e^`x` - 1.
@@ -3384,7 +3384,7 @@ def expm1(x):
     # see decorator for function body
 
 
-@structured_monoid(deg2rad)
+@structured_monoid(deg2rad)  # type: ignore[no-redef]
 def deg2rad(x):
     """
     Elemwise degree to radian.
@@ -3393,7 +3393,7 @@ def deg2rad(x):
     # see decorator for function body
 
 
-@structured_monoid(rad2deg)
+@structured_monoid(rad2deg)  # type: ignore[no-redef]
 def rad2deg(x):
     """
     Elemwise radian to degree.
@@ -3402,7 +3402,7 @@ def rad2deg(x):
     # see decorator for function body
 
 
-@structured_monoid(trunc)
+@structured_monoid(trunc)  # type: ignore[no-redef]
 def trunc(x):
     """
     Elemwise truncature.
@@ -3411,7 +3411,7 @@ def trunc(x):
     # see decorator for function body
 
 
-@structured_monoid(sqr)
+@structured_monoid(sqr)  # type: ignore[no-redef]
 def sqr(x):
     """
     Elemwise `x` * `x`.
@@ -3420,7 +3420,7 @@ def sqr(x):
     # see decorator for function body
 
 
-@structured_monoid(sqrt)
+@structured_monoid(sqrt)  # type: ignore[no-redef]
 def sqrt(x):
     """
     Elemwise square root of `x`.
@@ -3429,7 +3429,7 @@ def sqrt(x):
     # see decorator for function body
 
 
-@structured_monoid(conj)
+@structured_monoid(conj)  # type: ignore[no-redef]
 def conj(x):
     """
     Elemwise complex conjugate of `x`.

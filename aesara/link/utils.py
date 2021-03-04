@@ -1,9 +1,9 @@
 import io
 import sys
 import traceback
-import typing
 import warnings
 from operator import itemgetter
+from typing import Callable, Dict, Iterable, List, NoReturn, Optional, Tuple
 
 import numpy as np
 
@@ -15,11 +15,11 @@ from aesara.graph.fg import FunctionGraph
 
 def map_storage(
     fgraph: FunctionGraph,
-    order: typing.Iterable[Apply],
-    input_storage: typing.Optional[typing.List],
-    output_storage: typing.Optional[typing.List],
-    storage_map: typing.Dict = None,
-) -> typing.Tuple[typing.List, typing.List, typing.Dict]:
+    order: Iterable[Apply],
+    input_storage: Optional[List],
+    output_storage: Optional[List],
+    storage_map: Dict = None,
+) -> Tuple[List, List, Dict]:
     """Ensure there is storage (a length-1 list) for inputs, outputs, and interior nodes.
 
     :param fgraph: The current fgraph.  This function uses the inputs and outputs attributes.
@@ -132,7 +132,7 @@ def streamline(
     post_thunk_old_storage=None,
     no_recycling=None,
     nice_errors=True,
-) -> typing.Callable[[], typing.NoReturn]:
+) -> Callable[[], NoReturn]:
     """
     WRITEME
 
@@ -210,7 +210,7 @@ def streamline(
     return f
 
 
-def gc_helper(node_list: typing.List[Apply]):
+def gc_helper(node_list: List[Apply]):
     """
     Return the set of Variable instances which are computed by node_list.
     Parameters
@@ -390,11 +390,11 @@ def raise_with_op(
             for item in fgraph.inputs
             if not isinstance(item, aesara.compile.SharedVariable)
         ]
-        storage_map_list = []
+        storage_map_list: List = []
         total_size = 0
         total_size_inputs = 0
         for k in storage_map:
-            storage_map_item = []
+            storage_map_item: List = []
 
             # storage_map_item[0]: the variable
             storage_map_item.append(str(k))

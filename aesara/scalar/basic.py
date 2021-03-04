@@ -15,6 +15,7 @@ from collections.abc import Callable
 from copy import copy
 from itertools import chain
 from textwrap import dedent
+from typing import Optional
 
 import numpy as np
 
@@ -1215,8 +1216,8 @@ class ScalarOp(COp):
 
 class UnaryScalarOp(ScalarOp):
     nin = 1
-    amd_float32 = None
-    amd_float64 = None
+    amd_float32: Optional[str] = None
+    amd_float64: Optional[str] = None
 
     def c_code_contiguous(self, node, name, inputs, outputs, sub):
         (x,) = inputs
@@ -1261,9 +1262,9 @@ class BinaryScalarOp(ScalarOp):
     # One may define in subclasses the following fields:
     #   - `commutative`: whether op(a, b) == op(b, a)
     #   - `associative`: whether op(op(a, b), c) == op(a, op(b, c))
-    commutative = None
-    associative = None
-    identity = None
+    commutative: Optional[bool] = None
+    associative: Optional[bool] = None
+    identity: Optional[bool] = None
     """
     For an associative operation, the identity object corresponds to the neutral
     element. For instance, it will be ``0`` for addition, ``1`` for multiplication,

@@ -1,5 +1,6 @@
 import logging
 import os
+from typing import Optional
 
 import aesara
 from aesara.configdefaults import config
@@ -56,7 +57,7 @@ class BaseCorrMM(OpenMPOp, _NoPythonOp):
         "unshared",
     )
 
-    _direction = None
+    _direction: Optional[str] = None
 
     params_type = ParamsType(
         direction=EnumList(
