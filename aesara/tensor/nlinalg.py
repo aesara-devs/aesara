@@ -1,5 +1,4 @@
 import logging
-import warnings
 from functools import partial
 
 import numpy as np
@@ -10,7 +9,7 @@ from aesara.graph.basic import Apply
 from aesara.graph.op import Op
 from aesara.tensor import basic as aet
 from aesara.tensor import math as tm
-from aesara.tensor.basic import ExtractDiag, as_tensor_variable
+from aesara.tensor.basic import as_tensor_variable, extract_diag
 from aesara.tensor.type import dvector, lscalar, matrix, scalar, vector
 
 
@@ -166,62 +165,6 @@ def matrix_dot(*args):
     for a in args[1:]:
         rval = tm.dot(rval, a)
     return rval
-
-
-class AllocDiag(Op):
-    """
-    Allocates a square matrix with the given vector as its diagonal.
-    """
-
-    __props__ = ()
-
-    def make_node(self, _x):
-        warnings.warn(
-            "DeprecationWarning: aesara.tensor.nlinalg.AllocDiag"
-            "is deprecated, please use aesara.tensor.basic.AllocDiag"
-            "instead.",
-            category=DeprecationWarning,
-        )
-        x = as_tensor_variable(_x)
-        if x.type.ndim != 1:
-            raise TypeError("AllocDiag only works on vectors", _x)
-        return Apply(self, [x], [matrix(dtype=x.type.dtype)])
-
-    def grad(self, inputs, g_outputs):
-        return [extract_diag(g_outputs[0])]
-
-    def perform(self, node, inputs, outputs):
-        (x,) = inputs
-        (z,) = outputs
-        if x.ndim != 1:
-            raise TypeError(x)
-        z[0] = np.diag(x)
-
-    def infer_shape(self, fgraph, node, shapes):
-        (x_s,) = shapes
-        return [(x_s[0], x_s[0])]
-
-
-alloc_diag = AllocDiag()
-extract_diag = ExtractDiag()
-# TODO: optimization to insert ExtractDiag with view=True
-
-
-def diag(x):
-    """
-    Numpy-compatibility method
-    If `x` is a matrix, return its diagonal.
-    If `x` is a vector return a matrix with it as its diagonal.
-
-    * This method does not support the `k` argument that numpy supports.
-    """
-    xx = as_tensor_variable(x)
-    if xx.type.ndim == 1:
-        return alloc_diag(xx)
-    elif xx.type.ndim == 2:
-        return extract_diag(xx)
-    else:
-        raise TypeError("diag requires vector or matrix argument", x)
 
 
 def trace(X):

@@ -16,8 +16,10 @@ from aesara.scan.op import Scan
 from aesara.scan.utils import scan_args as ScanArgs
 from aesara.tensor.basic import (
     Alloc,
+    AllocDiag,
     AllocEmpty,
     ARange,
+    ExtractDiag,
     Eye,
     Join,
     MakeVector,
@@ -41,11 +43,9 @@ from aesara.tensor.extra_ops import (
 from aesara.tensor.math import Dot, MaxAndArgmax
 from aesara.tensor.nlinalg import (
     SVD,
-    AllocDiag,
     Det,
     Eig,
     Eigh,
-    ExtractDiag,
     MatrixInverse,
     QRFull,
     QRIncomplete,
@@ -265,6 +265,16 @@ def jax_funcify_Second(op):
         return jnp.broadcast_to(y, x.shape)
 
     return second
+
+
+@jax_funcify.register(AllocDiag)
+def jax_funcify_AllocDiag(op):
+    offset = op.offset
+
+    def allocdiag(v, offset=offset):
+        return jnp.diag(v, k=offset)
+
+    return allocdiag
 
 
 @jax_funcify.register(AllocEmpty)
@@ -833,14 +843,6 @@ def jax_funcify_Cholesky(op):
         return jsp.linalg.cholesky(a, lower=lower).astype(a.dtype)
 
     return cholesky
-
-
-@jax_funcify.register(AllocDiag)
-def jax_funcify_AllocDiag(op):
-    def alloc_diag(x):
-        return jnp.diag(x)
-
-    return alloc_diag
 
 
 @jax_funcify.register(Solve)
