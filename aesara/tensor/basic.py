@@ -3811,6 +3811,10 @@ class ExtractDiag(Op):
             self.axis2 = 1
 
 
+extract_diag = ExtractDiag()
+# TODO: optimization to insert ExtractDiag with view=True
+
+
 def diagonal(a, offset=0, axis1=0, axis2=1):
     """
     A helper function for `ExtractDiag`. It accepts tensor with
@@ -4298,4 +4302,5 @@ __all__ = [
     "constant",
     "as_tensor_variable",
     "as_tensor",
+    "extract_diag",
 ]

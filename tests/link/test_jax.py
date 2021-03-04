@@ -265,7 +265,7 @@ def test_jax_basic():
         ],
     )
 
-    out = aet_nlinalg.alloc_diag(b)
+    out = aet.diag(b)
     out_fg = FunctionGraph([b], [out])
     compare_jax_and_py(out_fg, [np.arange(10).astype(config.floatX)])
 
