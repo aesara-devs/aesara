@@ -12,6 +12,7 @@ that satisfies the constraints. That's useful for pattern matching.
 
 from copy import copy
 from functools import partial
+from typing import Dict
 
 
 class Keyword:
@@ -218,7 +219,7 @@ class VariableInList:  # not a subclass of Variable
         self.variable = variable
 
 
-_all = {}
+_all: Dict = {}
 
 
 def var_lookup(vartype, name, *args, **kwargs):
