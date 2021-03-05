@@ -153,11 +153,10 @@ class Erfcx(UnaryScalarOp):
     def c_header_dirs(self, **kwargs):
         # Faddeeva.cc requires Faddeeva.hh (c++) or Faddeeva.h (c), which are in this folder
         # From the error messages it seems aesara is compiling with c++
-        dirs = super().c_header_dirs(**kwargs) + [
-            os.path.join(os.path.dirname(__file__), "c_code")
-        ]
-        raise SystemError
-        return dirs
+        return [os.path.join(os.path.dirname(__file__), "c_code")]
+        # return = super().c_header_dirs(**kwargs) + [
+        #     os.path.join(os.path.dirname(__file__), "c_code")
+        # ]
 
     def c_support_code(self, **kwargs):
         # Using Faddeeva functions from: http://ab-initio.mit.edu/wiki/index.php/Faddeeva_Package
@@ -165,18 +164,17 @@ class Erfcx(UnaryScalarOp):
             os.path.join(os.path.dirname(__file__), "c_code", "Faddeeva.cc")
         ) as f:
             raw = f.read()
-            print(raw)
             return raw
 
     def c_code(self, node, name, inp, out, sub):
         (x,) = inp
         (z,) = out
-        if node.inputs[0].type in complex_types:
+        if node.inputs[0].type not in float_types:
             raise NotImplementedError("type not supported", type)
-        # Still figuring out casting
-        # dtype = "npy_" + node.inputs[0].dtype
-        cast = node.outputs[0].type.dtype_specs()[1]
-        return f"{z} = ({cast}) Faddeeva_erfcx_re(({cast}){x});"
+
+        if node.inputs[0].type in float_types:
+            dtype = "npy_" + node.outputs[0].dtype
+            return f"{z} = ({dtype}) Faddeeva::erfcx({x});"
 
 
 erfcx = Erfcx(upgrade_to_float_no_complex, name="erfcx")
