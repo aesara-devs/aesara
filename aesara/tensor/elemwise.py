@@ -1218,6 +1218,9 @@ second dimension
     def c_headers(self, **kwargs):
         return ["<vector>", "<algorithm>"]
 
+    def c_header_dirs(self, **kwargs):
+        return self.scalar_op.c_header_dirs(**kwargs)
+
     def c_support_code(self, **kwargs):
         return self.scalar_op.c_support_code(**kwargs)
 
