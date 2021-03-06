@@ -6,6 +6,7 @@ import scipy.stats as stats
 from pytest import fixture, importorskip, raises
 
 import aesara.tensor as aet
+from aesara import shared
 from aesara.configdefaults import config
 from aesara.graph.basic import Constant, Variable, graph_inputs
 from aesara.graph.fg import FunctionGraph
@@ -25,6 +26,8 @@ from aesara.tensor.random.basic import (
     halfcauchy,
     halfnormal,
     invgamma,
+    kumaraswamy,
+    laplace,
     multinomial,
     multivariate_normal,
     nbinom,
@@ -34,7 +37,9 @@ from aesara.tensor.random.basic import (
     polyagamma,
     randint,
     truncexpon,
+    truncnorm,
     uniform,
+    wald,
 )
 from aesara.tensor.type import iscalar, scalar, tensor
 
@@ -464,6 +469,39 @@ def test_invgamma_samples():
     )
 
 
+def test_wald_samples():
+    test_mean = np.array(10, dtype=config.floatX)
+    test_scale = np.array(1, dtype=config.floatX)
+
+    rv_numpy_tester(wald, test_mean, test_scale)
+    rv_numpy_tester(wald, test_mean, test_scale, size=[2, 3])
+
+
+def test_truncnormal_samples():
+    test_a = np.array(-4, dtype=config.floatX)
+    test_b = np.array(5, dtype=config.floatX)
+    test_loc = np.array(0, dtype=config.floatX)
+    test_scale = np.array(1, dtype=config.floatX)
+
+    rv_numpy_tester(
+        truncnorm,
+        test_a,
+        test_b,
+        test_loc,
+        test_scale,
+        test_fn=partial(truncnorm.rng_fn, None),
+    )
+    rv_numpy_tester(
+        truncnorm,
+        test_a,
+        test_b,
+        test_loc,
+        test_scale,
+        size=[2, 3],
+        test_fn=partial(truncnorm.rng_fn, None),
+    )
+
+
 def test_truncexpon_samples():
     test_b = np.array(5, dtype=config.floatX)
     test_loc = np.array(0, dtype=config.floatX)
@@ -496,6 +534,14 @@ def test_bernoulli_samples():
         size=[2, 3],
         test_fn=partial(bernoulli.rng_fn, None),
     )
+
+
+def test_laplace_samples():
+    test_loc = np.array(10, dtype=config.floatX)
+    test_scale = np.array(5, dtype=config.floatX)
+
+    rv_numpy_tester(laplace, test_loc, test_scale)
+    rv_numpy_tester(laplace, test_loc, test_scale, size=[2, 3])
 
 
 def test_binomial_samples():
@@ -576,6 +622,26 @@ def test_categorical_samples():
     res = categorical(p, size=(10, 2, 3))
     exp_res = np.tile(np.arange(3), (10, 2, 1))
     assert np.array_equal(get_test_value(res), exp_res)
+
+
+def test_kumaraswamy_samples():
+    rng_state = np.random.RandomState(np.random.MT19937(np.random.SeedSequence(1234)))
+
+    a = np.array([[100, 1, 1], [1, 100, 1], [1, 1, 100]], dtype=config.floatX)
+    b = np.array([[100, 1, 1], [1, 100, 1], [1, 1, 100]], dtype=config.floatX)
+
+    assert kumaraswamy.rng_fn(rng_state, a, b, size=None).shape == (3, 3)
+
+    res = kumaraswamy(a, b, rng=shared(rng_state))
+    p = np.array(
+        [
+            [0.94868886, 0.40370142, 0.40370142],
+            [0.40370142, 0.94868886, 0.40370142],
+            [0.40370142, 0.40370142, 0.94868886],
+        ],
+        dtype=config.floatX,
+    )
+    assert np.allclose(get_test_value(res), p)
 
 
 def test_polyagamma_samples():

@@ -258,6 +258,37 @@ class InvGammaRV(RandomVariable):
 invgamma = InvGammaRV()
 
 
+class WaldRV(RandomVariable):
+    name = "wald"
+    ndim_supp = 0
+    ndims_params = [0, 0]
+    dtype = "floatX"
+    _print_name_ = ("Wald", "\\operatorname{Wald}")
+
+    def __call__(self, mean=1.0, scale=1.0, size=None, **kwargs):
+        return super().__call__(mean, scale, size=size, **kwargs)
+
+
+wald = WaldRV()
+
+
+class TruncNormalRV(RandomVariable):
+    name = "truncnorm"
+    ndim_supp = 0
+    ndims_params = [0, 0, 0]
+    dtype = "floatX"
+    _print_name = ("TruncNorm", "\\operatorname{TruncNorm}")
+
+    @classmethod
+    def rng_fn(cls, rng, a, b, loc, scale, size=None):
+        return stats.truncnorm.rvs(
+            a, b, loc=loc, scale=scale, size=size, random_state=rng
+        )
+
+
+truncnorm = TruncNormalRV()
+
+
 class TruncExponentialRV(RandomVariable):
     name = "truncexpon"
     ndim_supp = 0
@@ -288,6 +319,17 @@ class BernoulliRV(RandomVariable):
 
 
 bernoulli = BernoulliRV()
+
+
+class LaplaceRV(RandomVariable):
+    name = "laplace"
+    ndim_supp = 0
+    ndims_params = [0, 0]
+    dtype = "floatX"
+    _print_name = ("Laplace", "\\operatorname{Laplace}")
+
+
+laplace = LaplaceRV()
 
 
 class BinomialRV(RandomVariable):
@@ -382,6 +424,22 @@ class CategoricalRV(RandomVariable):
 
 
 categorical = CategoricalRV()
+
+
+class KumaraswamyRV(RandomVariable):
+    name = "kumaraswamy"
+    ndim_supp = 0
+    ndims_params = [0, 0]
+    dtype = "floatX"
+    _print_name = ("Kumaraswamy", "\\operatorname{Kumaraswamy}")
+
+    @classmethod
+    def rng_fn(cls, rng, a, b, size):
+        u = rng.uniform(size=size)
+        return (1 - (1 - u) ** (1 / b)) ** (1 / a)
+
+
+kumaraswamy = KumaraswamyRV()
 
 
 class PolyaGammaRV(RandomVariable):
