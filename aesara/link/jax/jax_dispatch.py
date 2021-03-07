@@ -192,9 +192,8 @@ def jax_typify(data, dtype):
     """Convert instances of Aesara `Type`s to JAX types."""
     if dtype is None:
         return data
-    if dtype is not None:
+    else:
         return jnp.array(data, dtype=dtype)
-    raise NotImplementedError(f"No JAX conversion for data and dtype: {data}, {dtype}")
 
 
 @jax_typify.register(np.ndarray)
