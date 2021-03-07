@@ -29,7 +29,7 @@ from aesara.tensor.math import clip, cosh, gammaln, log
 from aesara.tensor.math import max as aet_max
 from aesara.tensor.math import maximum, prod
 from aesara.tensor.math import sum as aet_sum
-from aesara.tensor.random.basic import normal
+from aesara.tensor.random.basic import RandomVariable, normal
 from aesara.tensor.random.utils import RandomStream
 from aesara.tensor.shape import Shape, Shape_i, SpecifyShape, reshape
 from aesara.tensor.type import (
@@ -976,6 +976,28 @@ def test_random():
     out = normal(rng=rng)
     fgraph = FunctionGraph([out.owner.inputs[0]], [out], clone=False)
     compare_jax_and_py(fgraph, [])
+
+
+def test_random_unimplemented():
+    class NonExistentRV(RandomVariable):
+        name = "non-existent"
+        ndim_supp = 0
+        ndims_params = []
+        dtype = "floatX"
+
+        def __call__(self, size=None, **kwargs):
+            return super().__call__(size=size, **kwargs)
+
+        def rng_fn(cls, rng, size):
+            return 0
+
+    nonexistentrv = NonExistentRV()
+    rng = shared(np.random.RandomState(123))
+    out = nonexistentrv(rng=rng)
+    fgraph = FunctionGraph([out.owner.inputs[0]], [out], clone=False)
+
+    with pytest.raises(NotImplementedError):
+        compare_jax_and_py(fgraph, [])
 
 
 def test_RandomStream():
