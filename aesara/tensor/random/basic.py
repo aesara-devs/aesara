@@ -272,23 +272,6 @@ class WaldRV(RandomVariable):
 wald = WaldRV()
 
 
-class TruncNormalRV(RandomVariable):
-    name = "truncnorm"
-    ndim_supp = 0
-    ndims_params = [0, 0, 0]
-    dtype = "floatX"
-    _print_name = ("TruncNorm", "\\operatorname{TruncNorm}")
-
-    @classmethod
-    def rng_fn(cls, rng, a, b, loc, scale, size=None):
-        return stats.truncnorm.rvs(
-            a, b, loc=loc, scale=scale, size=size, random_state=rng
-        )
-
-
-truncnorm = TruncNormalRV()
-
-
 class TruncExponentialRV(RandomVariable):
     name = "truncexpon"
     ndim_supp = 0
@@ -424,22 +407,6 @@ class CategoricalRV(RandomVariable):
 
 
 categorical = CategoricalRV()
-
-
-class KumaraswamyRV(RandomVariable):
-    name = "kumaraswamy"
-    ndim_supp = 0
-    ndims_params = [0, 0]
-    dtype = "floatX"
-    _print_name = ("Kumaraswamy", "\\operatorname{Kumaraswamy}")
-
-    @classmethod
-    def rng_fn(cls, rng, a, b, size):
-        u = rng.uniform(size=size)
-        return (1 - (1 - u) ** (1 / b)) ** (1 / a)
-
-
-kumaraswamy = KumaraswamyRV()
 
 
 class PolyaGammaRV(RandomVariable):
