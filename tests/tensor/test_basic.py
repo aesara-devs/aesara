@@ -3225,19 +3225,21 @@ class TestSize:
 
 
 class TestDiag:
-    # Test that aet.diag has the same behavior as np.diag.
-    # np.diag has two behaviors:
-    #
-    # (1) when given a vector, it returns a matrix with that vector as the
-    # diagonal.
-    # (2) when given a matrix, returns a vector which is the diagonal of the
-    # matrix.
-    #
-    # (1) and (2) are tested by test_alloc_diag and test_extract_diag
-    # respectively.
-    #
-    # test_diag test makes sure that linalg.diag instantiates
-    # the right op based on the dimension of the input.
+    """
+    Test that linalg.diag has the same behavior as numpy.diag.
+    numpy.diag has two behaviors:
+    (1) when given a vector, it returns a matrix with that vector as the
+    diagonal.
+    (2) when given a matrix, returns a vector which is the diagonal of the
+    matrix.
+
+    (1) and (2) are tested by test_alloc_diag and test_extract_diag
+    respectively.
+
+    test_diag test makes sure that linalg.diag instantiates
+    the right op based on the dimension of the input.
+    """
+
     def setup_method(self):
         self.mode = None
         self.shared = shared

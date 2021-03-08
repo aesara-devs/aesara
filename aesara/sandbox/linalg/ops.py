@@ -16,13 +16,7 @@ from aesara.tensor.exceptions import NotScalarConstantError
 from aesara.tensor.math import Dot, Prod, dot, log
 from aesara.tensor.math import pow as aet_pow
 from aesara.tensor.math import prod
-from aesara.tensor.nlinalg import (
-    MatrixInverse,
-    det,
-    extract_diag,
-    matrix_inverse,
-    trace,
-)
+from aesara.tensor.nlinalg import MatrixInverse, det, matrix_inverse, trace
 from aesara.tensor.slinalg import Cholesky, Solve, cholesky, imported_scipy, solve
 
 
@@ -320,7 +314,7 @@ def local_det_chol(fgraph, node):
         for (cl, xpos) in fgraph.clients[x]:
             if isinstance(cl.op, Cholesky):
                 L = cl.outputs[0]
-                return [prod(extract_diag(L) ** 2)]
+                return [prod(aet.extract_diag(L) ** 2)]
 
 
 @register_canonicalize

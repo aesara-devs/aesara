@@ -10,17 +10,12 @@ from aesara.configdefaults import config
 from aesara.tensor.math import _allclose
 from aesara.tensor.nlinalg import (
     SVD,
-    AllocDiag,
     Eig,
-    ExtractDiag,
     MatrixInverse,
     TensorInv,
-    alloc_diag,
     det,
-    diag,
     eig,
     eigh,
-    extract_diag,
     matrix_dot,
     matrix_inverse,
     matrix_power,
@@ -33,7 +28,6 @@ from aesara.tensor.nlinalg import (
     trace,
 )
 from aesara.tensor.type import (
-    TensorType,
     lmatrix,
     lscalar,
     matrix,
@@ -285,136 +279,6 @@ def test_det_shape():
     f = aesara.function([x], det(x))
     f_shape = aesara.function([x], det(x).shape)
     assert np.all(f(r).shape == f_shape(r))
-
-
-class TestDiag:
-    """
-    Test that linalg.diag has the same behavior as numpy.diag.
-    numpy.diag has two behaviors:
-    (1) when given a vector, it returns a matrix with that vector as the
-    diagonal.
-    (2) when given a matrix, returns a vector which is the diagonal of the
-    matrix.
-
-    (1) and (2) are tested by test_alloc_diag and test_extract_diag
-    respectively.
-
-    test_diag test makes sure that linalg.diag instantiates
-    the right op based on the dimension of the input.
-    """
-
-    def setup_method(self):
-        self.mode = None
-        self.shared = aesara.shared
-        self.floatX = config.floatX
-        self.type = TensorType
-
-    def test_alloc_diag(self):
-        rng = np.random.RandomState(utt.fetch_seed())
-        x = vector()
-        g = alloc_diag(x)
-        f = aesara.function([x], g)
-
-        # test "normal" scenario (5x5 matrix) and special cases of 0x0 and 1x1
-        for shp in [5, 0, 1]:
-            m = rng.rand(shp).astype(self.floatX)
-            v = np.diag(m)
-            r = f(m)
-            # The right matrix is created
-            assert (r == v).all()
-
-        # Test we accept only vectors
-        xx = matrix()
-        ok = False
-        try:
-            alloc_diag(xx)
-        except TypeError:
-            ok = True
-        assert ok
-
-        # Test infer_shape
-        f = aesara.function([x], g.shape)
-        topo = f.maker.fgraph.toposort()
-        if config.mode != "FAST_COMPILE":
-            assert sum([node.op.__class__ == AllocDiag for node in topo]) == 0
-        for shp in [5, 0, 1]:
-            m = rng.rand(shp).astype(self.floatX)
-            assert (f(m) == m.shape).all()
-
-    def test_alloc_diag_grad(self):
-        rng = np.random.RandomState(utt.fetch_seed())
-        x = rng.rand(5)
-        utt.verify_grad(alloc_diag, [x], rng=rng)
-
-    def test_diag(self):
-        # test that it builds a matrix with given diagonal when using
-        # vector inputs
-        x = vector()
-        y = diag(x)
-        assert y.owner.op.__class__ == AllocDiag
-
-        # test that it extracts the diagonal when using matrix input
-        x = matrix()
-        y = extract_diag(x)
-        assert y.owner.op.__class__ == ExtractDiag
-
-    # not testing the view=True case since it is not used anywhere.
-    def test_extract_diag(self):
-        rng = np.random.RandomState(utt.fetch_seed())
-        m = rng.rand(2, 3).astype(self.floatX)
-        x = self.shared(m)
-        g = extract_diag(x)
-        f = aesara.function([], g)
-        assert [
-            isinstance(node.inputs[0].type, self.type)
-            for node in f.maker.fgraph.toposort()
-            if isinstance(node.op, ExtractDiag)
-        ] == [True]
-
-        for shp in [(2, 3), (3, 2), (3, 3), (1, 1), (0, 0)]:
-            m = rng.rand(*shp).astype(self.floatX)
-            x.set_value(m)
-            v = np.diag(m)
-            r = f()
-            # The right diagonal is extracted
-            assert (r == v).all()
-
-        # Test we accept only matrix
-        xx = vector()
-        ok = False
-        try:
-            extract_diag(xx)
-        except TypeError:
-            ok = True
-        except ValueError:
-            ok = True
-        assert ok
-
-        # Test infer_shape
-        f = aesara.function([], g.shape)
-        topo = f.maker.fgraph.toposort()
-        if config.mode != "FAST_COMPILE":
-            assert sum([node.op.__class__ == ExtractDiag for node in topo]) == 0
-        for shp in [(2, 3), (3, 2), (3, 3)]:
-            m = rng.rand(*shp).astype(self.floatX)
-            x.set_value(m)
-            assert f() == min(shp)
-
-    def test_extract_diag_grad(self):
-        rng = np.random.RandomState(utt.fetch_seed())
-        x = rng.rand(5, 4).astype(self.floatX)
-        utt.verify_grad(extract_diag, [x], rng=rng)
-
-    @pytest.mark.slow
-    def test_extract_diag_empty(self):
-        c = self.shared(np.array([[], []], self.floatX))
-        f = aesara.function([], extract_diag(c), mode=self.mode)
-
-        assert [
-            isinstance(node.inputs[0].type, self.type)
-            for node in f.maker.fgraph.toposort()
-            if isinstance(node.op, ExtractDiag)
-        ] == [True]
 
 
 def test_trace():

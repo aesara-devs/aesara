@@ -153,10 +153,11 @@ class Erfcx(UnaryScalarOp):
     def c_header_dirs(self, **kwargs):
         # Faddeeva.cc requires Faddeeva.hh (c++) or Faddeeva.h (c), which are in this folder
         # From the error messages it seems aesara is compiling with c++
-        return [os.path.join(os.path.dirname(__file__), "c_code")]
-        # return = super().c_header_dirs(**kwargs) + [
-        #     os.path.join(os.path.dirname(__file__), "c_code")
-        # ]
+        res = super().c_header_dirs(**kwargs) + [
+            os.path.join(os.path.dirname(__file__), "c_code")
+        ]
+
+        return res
 
     def c_support_code(self, **kwargs):
         # Using Faddeeva functions from: http://ab-initio.mit.edu/wiki/index.php/Faddeeva_Package

@@ -18,7 +18,6 @@ from aesara.misc.safe_asarray import _asarray
 from aesara.scalar import int32 as int_t
 from aesara.scalar import upcast
 from aesara.tensor import basic as aet
-from aesara.tensor import nlinalg
 from aesara.tensor.exceptions import NotScalarConstantError
 from aesara.tensor.math import abs_
 from aesara.tensor.math import all as aet_all
@@ -961,7 +960,7 @@ class FillDiagonal(Op):
             )
         wr_a = fill_diagonal(grad, 0)  # valid for any number of dimensions
         # diag is only valid for matrices
-        wr_val = nlinalg.diag(grad).sum()
+        wr_val = aet.diag(grad).sum()
         return [wr_a, wr_val]
 
 
