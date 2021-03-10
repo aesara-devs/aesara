@@ -4255,6 +4255,13 @@ class Composite(ScalarOp):
                 return ()
         return tuple(rval)
 
+    def c_header_dirs(self, **kwargs):
+        rval = sum(
+            (subnode.op.c_header_dirs(**kwargs) for subnode in self.fgraph.toposort()),
+            [],
+        )
+        return rval
+
     def c_support_code(self, **kwargs):
         # Remove duplicate code blocks by using a `set`
         rval = {

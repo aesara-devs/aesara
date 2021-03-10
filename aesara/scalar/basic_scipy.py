@@ -150,6 +150,31 @@ class Erfcx(UnaryScalarOp):
         )
         return (gz * (-cst + (2.0 * x) * erfcx(x)),)
 
+    def c_header_dirs(self, **kwargs):
+        # Using the Faddeeva.hh (c++) header for Faddeevva.cc
+        res = super().c_header_dirs(**kwargs) + [
+            os.path.join(os.path.dirname(__file__), "c_code")
+        ]
+        return res
+
+    def c_support_code(self, **kwargs):
+        # Using Faddeeva.cc source file from: http://ab-initio.mit.edu/wiki/index.php/Faddeeva_Package
+        with open(
+            os.path.join(os.path.dirname(__file__), "c_code", "Faddeeva.cc")
+        ) as f:
+            raw = f.read()
+            return raw
+
+    def c_code(self, node, name, inp, out, sub):
+        (x,) = inp
+        (z,) = out
+
+        if node.inputs[0].type in float_types:
+            dtype = "npy_" + node.outputs[0].dtype
+            return f"{z} = ({dtype}) Faddeeva::erfcx({x});"
+
+        raise NotImplementedError("type not supported", type)
+
 
 erfcx = Erfcx(upgrade_to_float_no_complex, name="erfcx")
 
