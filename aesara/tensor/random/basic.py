@@ -258,6 +258,20 @@ class InvGammaRV(RandomVariable):
 invgamma = InvGammaRV()
 
 
+class WaldRV(RandomVariable):
+    name = "wald"
+    ndim_supp = 0
+    ndims_params = [0, 0]
+    dtype = "floatX"
+    _print_name_ = ("Wald", "\\operatorname{Wald}")
+
+    def __call__(self, mean=1.0, scale=1.0, size=None, **kwargs):
+        return super().__call__(mean, scale, size=size, **kwargs)
+
+
+wald = WaldRV()
+
+
 class TruncExponentialRV(RandomVariable):
     name = "truncexpon"
     ndim_supp = 0
@@ -288,6 +302,17 @@ class BernoulliRV(RandomVariable):
 
 
 bernoulli = BernoulliRV()
+
+
+class LaplaceRV(RandomVariable):
+    name = "laplace"
+    ndim_supp = 0
+    ndims_params = [0, 0]
+    dtype = "floatX"
+    _print_name = ("Laplace", "\\operatorname{Laplace}")
+
+
+laplace = LaplaceRV()
 
 
 class BinomialRV(RandomVariable):

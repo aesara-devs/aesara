@@ -25,6 +25,7 @@ from aesara.tensor.random.basic import (
     halfcauchy,
     halfnormal,
     invgamma,
+    laplace,
     multinomial,
     multivariate_normal,
     nbinom,
@@ -35,6 +36,7 @@ from aesara.tensor.random.basic import (
     randint,
     truncexpon,
     uniform,
+    wald,
 )
 from aesara.tensor.type import iscalar, scalar, tensor
 
@@ -464,6 +466,14 @@ def test_invgamma_samples():
     )
 
 
+def test_wald_samples():
+    test_mean = np.array(10, dtype=config.floatX)
+    test_scale = np.array(1, dtype=config.floatX)
+
+    rv_numpy_tester(wald, test_mean, test_scale)
+    rv_numpy_tester(wald, test_mean, test_scale, size=[2, 3])
+
+
 def test_truncexpon_samples():
     test_b = np.array(5, dtype=config.floatX)
     test_loc = np.array(0, dtype=config.floatX)
@@ -496,6 +506,14 @@ def test_bernoulli_samples():
         size=[2, 3],
         test_fn=partial(bernoulli.rng_fn, None),
     )
+
+
+def test_laplace_samples():
+    test_loc = np.array(10, dtype=config.floatX)
+    test_scale = np.array(5, dtype=config.floatX)
+
+    rv_numpy_tester(laplace, test_loc, test_scale)
+    rv_numpy_tester(laplace, test_loc, test_scale, size=[2, 3])
 
 
 def test_binomial_samples():
