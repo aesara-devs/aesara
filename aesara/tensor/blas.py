@@ -140,6 +140,7 @@ except ImportError:
     pass
 
 from functools import reduce
+from typing import Tuple, Union
 
 import aesara.scalar
 from aesara.compile.mode import optdb
@@ -506,7 +507,7 @@ class GemmRelated(COp):
 
     """
 
-    __props__ = ()
+    __props__: Union[Tuple, Tuple[str]] = ()
 
     def c_support_code(self, **kwargs):
         # return cblas_header_text()

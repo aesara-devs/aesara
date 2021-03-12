@@ -19,6 +19,7 @@ import textwrap
 import time
 import warnings
 from io import BytesIO, StringIO
+from typing import Dict, List, Set
 
 import numpy.distutils
 
@@ -631,38 +632,38 @@ class ModuleCache:
 
     """
 
-    dirname = ""
+    dirname: str = ""
     """
     The working directory that is managed by this interface.
 
     """
-    module_from_name = {}
+    module_from_name: Dict = {}
     """
     Maps a module filename to the loaded module object.
 
     """
-    entry_from_key = {}
+    entry_from_key: Dict = {}
     """
     Maps keys to the filename of a .so/.pyd.
 
     """
-    similar_keys = {}
+    similar_keys: Dict = {}
     """
     Maps a part-of-key to all keys that share this same part.
 
     """
-    module_hash_to_key_data = {}
+    module_hash_to_key_data: Dict = {}
     """
     Maps a module hash to its corresponding KeyData object.
 
     """
-    stats = []
+    stats: List = []
     """
     A list with counters for the number of hits, loads, compiles issued by
     module_from_key().
 
     """
-    loaded_key_pkl = set()
+    loaded_key_pkl: Set = set()
     """
     Set of all key.pkl files that have been loaded.
 

@@ -1,3 +1,5 @@
+from typing import List
+
 import numpy as np
 
 import aesara
@@ -26,7 +28,7 @@ class SparseBlockGemv(Op):
 
     __props__ = ("inplace",)
 
-    registered_opts = []
+    registered_opts: List = []
 
     def __init__(self, inplace=False):
         self.inplace = inplace
@@ -147,7 +149,7 @@ class SparseBlockOuter(Op):
 
     __props__ = ("inplace",)
 
-    registered_opts = []
+    registered_opts: List = []
 
     def __init__(self, inplace=False):
         self.inplace = inplace

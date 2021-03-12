@@ -1,5 +1,6 @@
 import logging
 from functools import partial
+from typing import Tuple, Union
 
 import numpy as np
 
@@ -224,7 +225,7 @@ class Eig(Op):
     """
 
     _numop = staticmethod(np.linalg.eig)
-    __props__ = ()
+    __props__: Union[Tuple, Tuple[str]] = ()
 
     def make_node(self, x):
         x = as_tensor_variable(x)

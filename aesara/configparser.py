@@ -13,6 +13,7 @@ from configparser import (
 )
 from functools import wraps
 from io import StringIO
+from typing import Optional
 
 from aesara.utils import deprecated, hash_from_code
 
@@ -94,7 +95,7 @@ class AesaraConfigParser:
         self._flags_dict = flags_dict
         self._aesara_cfg = aesara_cfg
         self._aesara_raw_cfg = aesara_raw_cfg
-        self._config_var_dict = {}
+        self._config_var_dict: typing.Dict = {}
         super().__init__()
 
     def __str__(self, print_doc=True):
@@ -325,7 +326,7 @@ class ConfigParam:
             return self._apply(value)
         return value
 
-    def validate(self, value) -> None:
+    def validate(self, value) -> Optional[bool]:
         """Validates that a parameter values falls into a supported set or range.
 
         Raises

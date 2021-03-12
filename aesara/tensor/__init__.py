@@ -5,12 +5,12 @@ __docformat__ = "restructuredtext en"
 
 import warnings
 from functools import singledispatch
-from typing import Callable, Optional
+from typing import Callable, NoReturn, Optional
 
 
 def as_tensor_variable(
     x, name: Optional[str] = None, ndim: Optional[int] = None, **kwargs
-):
+) -> Callable:
     """Convert `x` into the appropriate `TensorType`.
 
     This function is often used by `make_node` methods of `Op` subclasses to
@@ -39,7 +39,9 @@ def as_tensor_variable(
 
 
 @singledispatch
-def _as_tensor_variable(x, name: Optional[str], ndim: Optional[int], **kwargs):
+def _as_tensor_variable(
+    x, name: Optional[str], ndim: Optional[int], **kwargs
+) -> NoReturn:
     raise NotImplementedError("")
 
 

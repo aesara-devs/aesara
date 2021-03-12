@@ -331,7 +331,7 @@ def unify_walk(a, b, U):
         return False
 
 
-@comm_guard(FreeVariable, ANY_TYPE)  # noqa
+@comm_guard(FreeVariable, ANY_TYPE)  # type: ignore[no-redef] # noqa
 def unify_walk(fv, o, U):
     """
     FreeV is unified to BoundVariable(other_object).
@@ -341,7 +341,7 @@ def unify_walk(fv, o, U):
     return U.merge(v, fv)
 
 
-@comm_guard(BoundVariable, ANY_TYPE)  # noqa
+@comm_guard(BoundVariable, ANY_TYPE)  # type: ignore[no-redef] # noqa
 def unify_walk(bv, o, U):
     """
     The unification succeed iff BV.value == other_object.
@@ -353,7 +353,7 @@ def unify_walk(bv, o, U):
         return False
 
 
-@comm_guard(OrVariable, ANY_TYPE)  # noqa
+@comm_guard(OrVariable, ANY_TYPE)  # type: ignore[no-redef] # noqa
 def unify_walk(ov, o, U):
     """
     The unification succeeds iff other_object in OrV.options.
@@ -366,7 +366,7 @@ def unify_walk(ov, o, U):
         return False
 
 
-@comm_guard(NotVariable, ANY_TYPE)  # noqa
+@comm_guard(NotVariable, ANY_TYPE)  # type: ignore[no-redef] # noqa
 def unify_walk(nv, o, U):
     """
     The unification succeeds iff other_object not in NV.not_options.
@@ -379,7 +379,7 @@ def unify_walk(nv, o, U):
         return U.merge(v, nv)
 
 
-@comm_guard(FreeVariable, Variable)  # noqa
+@comm_guard(FreeVariable, Variable)  # type: ignore[no-redef] # noqa
 def unify_walk(fv, v, U):
     """
     Both variables are unified.
@@ -389,7 +389,7 @@ def unify_walk(fv, v, U):
     return U.merge(v, fv)
 
 
-@comm_guard(BoundVariable, Variable)  # noqa
+@comm_guard(BoundVariable, Variable)  # type: ignore[no-redef] # noqa
 def unify_walk(bv, v, U):
     """
     V is unified to BV.value.
@@ -398,7 +398,7 @@ def unify_walk(bv, v, U):
     return unify_walk(v, bv.value, U)
 
 
-@comm_guard(OrVariable, OrVariable)  # noqa
+@comm_guard(OrVariable, OrVariable)  # type: ignore[no-redef] # noqa
 def unify_walk(a, b, U):
     """
     OrV(list1) == OrV(list2) == OrV(intersection(list1, list2))
@@ -414,7 +414,7 @@ def unify_walk(a, b, U):
     return U.merge(v, a, b)
 
 
-@comm_guard(NotVariable, NotVariable)  # noqa
+@comm_guard(NotVariable, NotVariable)  # type: ignore[no-redef] # noqa
 def unify_walk(a, b, U):
     """
     NV(list1) == NV(list2) == NV(union(list1, list2))
@@ -425,7 +425,7 @@ def unify_walk(a, b, U):
     return U.merge(v, a, b)
 
 
-@comm_guard(OrVariable, NotVariable)  # noqa
+@comm_guard(OrVariable, NotVariable)  # type: ignore[no-redef] # noqa
 def unify_walk(o, n, U):
     r"""
     OrV(list1) == NV(list2) == OrV(list1 \ list2)
@@ -441,7 +441,7 @@ def unify_walk(o, n, U):
     return U.merge(v, o, n)
 
 
-@comm_guard(VariableInList, (list, tuple))  # noqa
+@comm_guard(VariableInList, (list, tuple))  # type: ignore[no-redef] # noqa
 def unify_walk(vil, l, U):
     """
     Unifies VIL's inner Variable to OrV(list).
@@ -452,7 +452,7 @@ def unify_walk(vil, l, U):
     return unify_walk(v, ov, U)
 
 
-@comm_guard((list, tuple), (list, tuple))  # noqa
+@comm_guard((list, tuple), (list, tuple))  # type: ignore[no-redef] # noqa
 def unify_walk(l1, l2, U):
     """
     Tries to unify each corresponding pair of elements from l1 and l2.
@@ -467,7 +467,7 @@ def unify_walk(l1, l2, U):
     return U
 
 
-@comm_guard(dict, dict)  # noqa
+@comm_guard(dict, dict)  # type: ignore[no-redef] # noqa
 def unify_walk(d1, d2, U):
     """
     Tries to unify values of corresponding keys.
@@ -481,7 +481,7 @@ def unify_walk(d1, d2, U):
     return U
 
 
-@comm_guard(ANY_TYPE, ANY_TYPE)  # noqa
+@comm_guard(ANY_TYPE, ANY_TYPE)  # type: ignore[no-redef] # noqa
 def unify_walk(a, b, U):
     """
     Checks for the existence of the __unify_walk__ method for one of
@@ -498,7 +498,7 @@ def unify_walk(a, b, U):
         return FALL_THROUGH
 
 
-@comm_guard(Variable, ANY_TYPE)  # noqa
+@comm_guard(Variable, ANY_TYPE)  # type: ignore[no-redef] # noqa
 def unify_walk(v, o, U):
     """
     This simply checks if the Var has an unification in U and uses it
@@ -528,27 +528,27 @@ def unify_merge(a, b, U):
     return a
 
 
-@comm_guard(Variable, ANY_TYPE)  # noqa
+@comm_guard(Variable, ANY_TYPE)  # type: ignore[no-redef] # noqa
 def unify_merge(v, o, U):
     return v
 
 
-@comm_guard(BoundVariable, ANY_TYPE)  # noqa
+@comm_guard(BoundVariable, ANY_TYPE)  # type: ignore[no-redef] # noqa
 def unify_merge(bv, o, U):
     return bv.value
 
 
-@comm_guard(VariableInList, (list, tuple))  # noqa
+@comm_guard(VariableInList, (list, tuple))  # type: ignore[no-redef] # noqa
 def unify_merge(vil, l, U):
     return [unify_merge(x, x, U) for x in l]
 
 
-@comm_guard((list, tuple), (list, tuple))  # noqa
+@comm_guard((list, tuple), (list, tuple))  # type: ignore[no-redef] # noqa
 def unify_merge(l1, l2, U):
     return [unify_merge(x1, x2, U) for x1, x2 in zip(l1, l2)]
 
 
-@comm_guard(dict, dict)  # noqa
+@comm_guard(dict, dict)  # type: ignore[no-redef] # noqa
 def unify_merge(d1, d2, U):
     d = d1.__class__()
     for k1, v1 in d1.items():
@@ -562,12 +562,12 @@ def unify_merge(d1, d2, U):
     return d
 
 
-@comm_guard(FVar, ANY_TYPE)  # noqa
+@comm_guard(FVar, ANY_TYPE)  # type: ignore[no-redef] # noqa
 def unify_merge(vs, o, U):
     return vs(U)
 
 
-@comm_guard(ANY_TYPE, ANY_TYPE)  # noqa
+@comm_guard(ANY_TYPE, ANY_TYPE)  # type: ignore[no-redef] # noqa
 def unify_merge(a, b, U):
     if (
         not isinstance(a, Variable)
@@ -579,7 +579,7 @@ def unify_merge(a, b, U):
         return FALL_THROUGH
 
 
-@comm_guard(Variable, ANY_TYPE)  # noqa
+@comm_guard(Variable, ANY_TYPE)  # type: ignore[no-redef] # noqa
 def unify_merge(v, o, U):
     """
     This simply checks if the Var has an unification in U and uses it

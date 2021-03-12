@@ -1,4 +1,5 @@
 import warnings
+from typing import Dict
 
 import numpy as np
 
@@ -49,7 +50,7 @@ class Shape(COp):
     # Mapping from Type to C code (and version) to use.
     # In the C code, the name of the input variable is %(iname)s,
     # the output variable is %(oname)s.
-    c_code_and_version = {}
+    c_code_and_version: Dict = {}
 
     check_input = False
     __props__ = ()
@@ -143,7 +144,7 @@ class Shape_i(COp):
     # Mapping from Type to C code (and version) to use.
     # In the C code, the name of the input variable is %(iname)s,
     # the output variable is %(oname)s.
-    c_code_and_version = {}
+    c_code_and_version: Dict = {}
 
     check_input = False
 
@@ -363,7 +364,7 @@ class SpecifyShape(COp):
     # Mapping from Type to C code (and version) to use.
     # In the C code, the name of the input variable is %(iname)s,
     # the output variable is %(oname)s.
-    c_code_and_version = {}
+    c_code_and_version: Dict = {}
     __props__ = ()
     _f16_ok = True
 

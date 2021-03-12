@@ -8,6 +8,7 @@ help make new Ops more rapidly.
 import copy
 import pickle
 import warnings
+from typing import Dict, Tuple
 
 from aesara.graph.basic import Apply
 from aesara.graph.op import COp, Op
@@ -42,9 +43,9 @@ class ViewOp(COp):
     # Mapping from Type to C code (and version) to use.
     # In the C code, the name of the input variable is %(iname)s,
     # the output variable is %(oname)s.
-    c_code_and_version = {}
-    __props__ = ()
-    _f16_ok = True
+    c_code_and_version: Dict = {}
+    __props__: Tuple = ()
+    _f16_ok: bool = True
 
     def make_node(self, x):
         return Apply(self, [x], [x.type()])
@@ -148,11 +149,11 @@ class DeepCopyOp(COp):
     # Mapping from Type to C code (and version) to use.
     # In the C code, the name of the input variable is %(iname)s,
     # the output variable is %(oname)s.
-    c_code_and_version = {}
+    c_code_and_version: Dict = {}
 
-    check_input = False
-    __props__ = ()
-    _f16_ok = True
+    check_input: bool = False
+    __props__: Tuple = ()
+    _f16_ok: bool = True
 
     def __init__(self):
         pass

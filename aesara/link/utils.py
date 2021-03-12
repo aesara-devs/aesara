@@ -3,7 +3,7 @@ import sys
 import traceback
 import warnings
 from operator import itemgetter
-from typing import Callable, Dict, Iterable, List, NoReturn, Optional, Tuple
+from typing import Callable, Dict, Iterable, List, NoReturn, Optional, Tuple, Union
 
 import numpy as np
 
@@ -314,6 +314,10 @@ def raise_with_op(
 
     types = [getattr(ipt, "type", "No type") for ipt in node.inputs]
     detailed_err_msg += f"\nInputs types: {types}\n"
+
+    shapes: Union[List, str]
+    strides: Union[List, str]
+    scalar_values: Union[List, str]
 
     if thunk is not None:
         if hasattr(thunk, "inputs"):

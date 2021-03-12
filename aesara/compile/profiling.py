@@ -17,6 +17,7 @@ import sys
 import time
 import warnings
 from collections import defaultdict
+from typing import Dict, List
 
 import numpy as np
 
@@ -37,7 +38,7 @@ total_fct_exec_time = 0.0
 total_graph_opt_time = 0.0
 total_time_linker = 0.0
 
-_atexit_print_list = []
+_atexit_print_list: List = []
 _atexit_registered = False
 
 
@@ -242,15 +243,15 @@ class ProfileStats:
     # pretty string to print in summary, to identify this output
     #
 
-    variable_shape = {}
+    variable_shape: Dict = {}
     # Variable -> shapes
     #
 
-    variable_strides = {}
+    variable_strides: Dict = {}
     # Variable -> strides
     #
 
-    variable_offset = {}
+    variable_offset: Dict = {}
     # Variable -> offset
     #
 
@@ -270,7 +271,7 @@ class ProfileStats:
 
     linker_node_make_thunks = 0.0
 
-    linker_make_thunk_time = {}
+    linker_make_thunk_time: Dict = {}
 
     line_width = config.profiling__output_line_width
 

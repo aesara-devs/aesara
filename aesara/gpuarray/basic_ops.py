@@ -2,6 +2,7 @@ import copy
 import os
 import re
 from collections import deque
+from typing import Union
 
 import numpy as np
 
@@ -306,7 +307,7 @@ class GpuKernelBase:
 
     """
 
-    params_type = gpu_context_type
+    params_type: Union[ParamsType, gpu_context_type] = gpu_context_type
 
     def get_params(self, node):
         # Default implementation, suitable for most sub-classes.

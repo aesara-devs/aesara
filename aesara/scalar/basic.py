@@ -15,7 +15,7 @@ from collections.abc import Callable
 from copy import copy
 from itertools import chain
 from textwrap import dedent
-from typing import Optional
+from typing import Dict, Mapping, Optional, Tuple, Type, Union
 
 import numpy as np
 
@@ -898,7 +898,7 @@ def upgrade_to_float(*types):
     Upgrade any int types to float32 or float64 to avoid losing precision.
 
     """
-    conv = {
+    conv: Mapping[Type, Type] = {
         bool: float32,
         int8: float32,
         int16: float32,
@@ -3954,7 +3954,7 @@ class Composite(ScalarOp):
 
     """
 
-    init_param = ("inputs", "outputs")
+    init_param: Union[Tuple[str, str], Tuple[str]] = ("inputs", "outputs")
 
     def __str__(self):
         if self.name is None:
@@ -4331,7 +4331,7 @@ class Composite(ScalarOp):
 
 class Compositef32:
     # This is a dict of scalar op classes that need special handling
-    special = {}
+    special: Dict = {}
 
     def apply(self, fgraph):
         mapping = {}

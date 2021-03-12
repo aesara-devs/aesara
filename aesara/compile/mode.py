@@ -5,6 +5,7 @@ WRITEME
 
 import logging
 import warnings
+from typing import Tuple, Union
 
 import aesara
 from aesara.compile.function.types import Supervisor
@@ -251,6 +252,8 @@ optdb.register("add_destroy_handler", AddDestroyHandler(), 49.5, "fast_run", "in
 
 # final pass just to make sure
 optdb.register("merge3", MergeOptimizer(), 100, "fast_run", "merge")
+
+_tags: Union[Tuple[str, str], Tuple]
 
 if config.check_stack_trace in ["raise", "warn", "log"]:
     _tags = ("fast_run", "fast_compile")
