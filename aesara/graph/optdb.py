@@ -2,6 +2,7 @@ import copy
 import math
 import sys
 from io import StringIO
+from typing import Dict, Optional
 
 from aesara.configdefaults import config
 from aesara.graph import opt
@@ -192,6 +193,7 @@ class Query:
         self.exclude = exclude or OrderedSet()
         self.subquery = subquery or {}
         self.position_cutoff = position_cutoff
+        self.name: Optional[str] = None
         if extra_optimizations is None:
             extra_optimizations = []
         self.extra_optimizations = extra_optimizations
@@ -438,14 +440,18 @@ class LocalGroupDB(DB):
     """
 
     def __init__(
-        self, apply_all_opts=False, profile=False, local_opt=opt.LocalOptGroup
+        self,
+        apply_all_opts: bool = False,
+        profile: bool = False,
+        local_opt=opt.LocalOptGroup,
     ):
         super().__init__()
         self.failure_callback = None
         self.apply_all_opts = apply_all_opts
         self.profile = profile
-        self.__position__ = {}
+        self.__position__: Dict = {}
         self.local_opt = local_opt
+        self.__name__: str = ""
 
     def register(self, name, obj, *tags, **kwargs):
         super().register(name, obj, *tags)

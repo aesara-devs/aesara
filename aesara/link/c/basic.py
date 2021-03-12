@@ -8,6 +8,7 @@ import sys
 from collections import defaultdict
 from copy import copy
 from io import StringIO
+from typing import Dict
 
 import numpy as np
 
@@ -1795,7 +1796,7 @@ class OpWiseCLinker(LocalLinker):
 
     """
 
-    __cache__ = {}
+    __cache__: Dict = {}
 
     def __init__(
         self, fallback_on_perform=True, allow_gc=None, nice_errors=True, schedule=None

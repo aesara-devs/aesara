@@ -11,6 +11,7 @@ import pickle
 import time
 import warnings
 from itertools import chain
+from typing import List
 
 import numpy as np
 
@@ -1877,7 +1878,7 @@ def _constructor_FunctionMaker(kwargs):
         return None
 
 
-__checkers = []
+__checkers: List = []
 
 
 def check_equal(x, y):

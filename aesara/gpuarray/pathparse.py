@@ -1,5 +1,6 @@
 import os
 import sys
+from typing import Set
 
 
 class PathParser:
@@ -25,7 +26,7 @@ class PathParser:
 
     """
 
-    paths = set()
+    paths: Set = set()
 
     def _add(self, path):
         path = path.strip()

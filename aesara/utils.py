@@ -12,6 +12,7 @@ import warnings
 from collections import OrderedDict
 from collections.abc import Callable
 from functools import partial, wraps
+from typing import List, Set
 
 
 __all__ = [
@@ -29,7 +30,7 @@ __all__ = [
 ]
 
 
-__excepthooks = []
+__excepthooks: List = []
 
 
 LOCAL_BITWIDTH = struct.calcsize("P") * 8
@@ -374,7 +375,7 @@ def apply_across_args(*fns):
 class NoDuplicateOptWarningFilter(logging.Filter):
     """Filter to avoid duplicating optimization warnings."""
 
-    prev_msgs = set()
+    prev_msgs: Set = set()
 
     def filter(self, record):
         msg = record.getMessage()

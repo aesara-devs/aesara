@@ -157,7 +157,7 @@ class Op(MetaObject):
 
     """
 
-    default_output = None
+    default_output: Optional[int] = None
     """
     An `int` that specifies which output `Op.__call__` should return.  If
     `None`, then all outputs are returned.
@@ -852,7 +852,7 @@ def lquote_macro(txt: Text) -> Text:
     return "\n".join(res)
 
 
-def get_sub_macros(sub: Dict[Text, Text]) -> Tuple[Text]:
+def get_sub_macros(sub: Dict[Text, Text]) -> Union[Tuple[Text], Tuple[Text, Text]]:
     define_macros = []
     undef_macros = []
     define_macros.append(f"#define FAIL {lquote_macro(sub['fail'])}")
@@ -864,7 +864,9 @@ def get_sub_macros(sub: Dict[Text, Text]) -> Tuple[Text]:
     return "\n".join(define_macros), "\n".join(undef_macros)
 
 
-def get_io_macros(inputs: List[Text], outputs: List[Text]) -> Tuple[List[Text]]:
+def get_io_macros(
+    inputs: List[Text], outputs: List[Text]
+) -> Union[Tuple[List[Text]], Tuple[str, str]]:
     define_macros = []
     undef_macros = []
 
@@ -1023,7 +1025,7 @@ class ExternalCOp(COp):
                     f"No valid section marker was found in file {func_files[i]}"
                 )
 
-    def __get_op_params(self) -> List[Text]:
+    def __get_op_params(self) -> Union[List[Text], List[Tuple[str, Any]]]:
         """Construct name, value pairs that will be turned into macros for use within the `Op`'s code.
 
         The names must be strings that are not a C keyword and the
@@ -1130,7 +1132,7 @@ class ExternalCOp(COp):
 
     def get_c_macros(
         self, node: Apply, name: Text, check_input: Optional[bool] = None
-    ) -> Tuple[Text]:
+    ) -> Union[Tuple[str], Tuple[str, str]]:
         "Construct a pair of C ``#define`` and ``#undef`` code strings."
         define_template = "#define %s %s"
         undef_template = "#undef %s"

@@ -3,6 +3,7 @@ import sys
 import traceback
 from abc import ABCMeta
 from io import StringIO
+from typing import List
 
 
 def simple_extract_stack(f=None, limit=None, skips=None):
@@ -225,7 +226,7 @@ class MetaType(ABCMeta):
 
 
 class MetaObject(metaclass=MetaType):
-    __slots__ = []
+    __slots__: List = []
 
     def __ne__(self, other):
         return not self == other

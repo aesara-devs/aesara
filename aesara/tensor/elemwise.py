@@ -1,4 +1,5 @@
 from copy import copy
+from typing import Tuple, Union
 
 import numpy as np
 
@@ -1297,7 +1298,9 @@ class CAReduce(COp):
 
     """
 
-    __props__ = ("scalar_op", "axis")
+    __props__: Union[
+        Tuple[str], Tuple[str, str], Tuple[str, str, str], Tuple[str, str, str, str]
+    ] = ("scalar_op", "axis")
 
     def __init__(self, scalar_op, axis=None):
         if scalar_op.nin not in [-1, 2] or scalar_op.nout != 1:
@@ -1682,7 +1685,12 @@ class CAReduceDtype(CAReduce):
 
     """
 
-    __props__ = ("scalar_op", "axis", "dtype", "acc_dtype")
+    __props__: Union[Tuple[str, str, str], Tuple[str, str, str, str]] = (
+        "scalar_op",
+        "axis",
+        "dtype",
+        "acc_dtype",
+    )
 
     def __init__(self, scalar_op, axis=None, dtype=None, acc_dtype=None):
         super().__init__(scalar_op, axis=axis)

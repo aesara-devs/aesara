@@ -571,7 +571,7 @@ class Variable(Node):
         return d
 
     #  refer to doc in nodes_constructed.
-    construction_observers = []
+    construction_observers: List = []
 
     @classmethod
     def append_construction_observer(cls, observer):
@@ -700,10 +700,11 @@ def walk(
 
     rval_set: Set[T] = set()
 
+    nodes_pop: Callable[[], T]
     if bfs:
-        nodes_pop: Callable[[], T] = nodes.popleft
+        nodes_pop = nodes.popleft
     else:
-        nodes_pop: Callable[[], T] = nodes.pop
+        nodes_pop = nodes.pop
 
     while nodes:
         node: T = nodes_pop()
@@ -714,7 +715,7 @@ def walk(
 
             rval_set.add(node_hash)
 
-            new_nodes: Sequence[T] = expand(node)
+            new_nodes: Optional[Sequence[T]] = expand(node)
 
             if return_children:
                 yield node, new_nodes
@@ -862,8 +863,8 @@ def applys_between(
 
 
 def clone(
-    inputs: Collection[Variable],
-    outputs: Collection[Variable],
+    inputs: List[Variable],
+    outputs: List[Variable],
     copy_inputs: bool = True,
     copy_orphans: Optional[bool] = None,
 ) -> Tuple[Collection[Variable], Collection[Variable]]:
@@ -902,8 +903,8 @@ def clone(
 
 
 def clone_get_equiv(
-    inputs: Collection[Variable],
-    outputs: Collection[Variable],
+    inputs: List[Variable],
+    outputs: List[Variable],
     copy_inputs: bool = True,
     copy_orphans: bool = True,
     memo: Optional[Dict[Variable, Variable]] = None,
@@ -1171,7 +1172,7 @@ def io_toposort(
     compute_deps = None
     compute_deps_cache = None
     iset = set(inputs)
-    deps_cache = {}
+    deps_cache: Dict = {}
 
     if not orderings:  # ordering can be None or empty dict
         # Specialized function that is faster when no ordering.
@@ -1345,8 +1346,8 @@ def as_string(
 
     orph = list(orphans_between(i, outputs))
 
-    multi = set()
-    seen = set()
+    multi: Set = set()
+    seen: Set = set()
     for output in outputs:
         op = output.owner
         if op in seen:
@@ -1362,8 +1363,8 @@ def as_string(
                 multi.add(op2)
             else:
                 seen.add(input.owner)
-    multi = [x for x in multi]
-    done = set()
+    multi: Set = [x for x in multi]
+    done: Set = set()
 
     def multi_index(x):
         return multi.index(x) + 1

@@ -1,5 +1,6 @@
 import copy
 import warnings
+from typing import Tuple, Union
 
 import numpy as np
 
@@ -18,7 +19,7 @@ class MultinomialFromUniform(COp):
     TODO : need description for parameter 'odtype'
     """
 
-    __props__ = ("odtype",)
+    __props__: Union[Tuple[str], Tuple[str, str]] = ("odtype",)
 
     def __init__(self, odtype):
         self.odtype = odtype
