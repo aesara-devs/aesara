@@ -4,18 +4,21 @@ We don't have real tests for the cache, but it would be great to make them!
 But this one tests a current behavior that isn't good: the c_code isn't
 deterministic based on the input type and the op.
 """
-
 import logging
+import tempfile
 from unittest.mock import patch
 
 import numpy as np
+import pytest
 
 import aesara
+from aesara.compile.ops import DeepCopyOp
 from aesara.link.c.cmodule import GCC_compiler, default_blas_ldflags
+from aesara.link.c.exceptions import CompileError
 from aesara.tensor.type import dvectors
 
 
-class MyOp(aesara.compile.ops.DeepCopyOp):
+class MyOp(DeepCopyOp):
     nb_called = 0
 
     def c_code_cache_version(self):
@@ -35,6 +38,11 @@ class MyOp(aesara.compile.ops.DeepCopyOp):
         return super(aesara.compile.ops.DeepCopyOp, self).c_code(
             node, name, inames, onames, sub
         )
+
+
+def test_compiler_error():
+    with pytest.raises(CompileError), tempfile.TemporaryDirectory() as dir_name:
+        GCC_compiler.compile_str("module_name", "blah", location=dir_name)
 
 
 def test_inter_process_cache():
