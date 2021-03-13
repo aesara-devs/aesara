@@ -409,7 +409,7 @@ second dimension
 
     def get_output_info(self, dim_shuffle, *inputs):
         """Return the outputs dtype and broadcastable pattern and the
-        dimshuffled niputs.
+        dimshuffled inputs.
 
         """
         shadow = self.scalar_op.make_node(
@@ -857,9 +857,9 @@ second dimension
         return rval
 
     def _c_all(self, node, nodename, inames, onames, sub):
-        # Some ops call directly the Elemwise._c_all or Elemwise.c_code
+        # Some `Op`s directly call `Elemwise._c_all` or `Elemwise.c_code`
         # To not request all of them to call prepare_node(), do it here.
-        # There is no harm if it get called multile time.
+        # There is no harm if it get called multiple times.
         if not hasattr(node.tag, "fake_node"):
             self.prepare_node(node, None, None, "c")
         _inames = inames
