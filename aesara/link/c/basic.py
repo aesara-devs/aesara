@@ -1771,6 +1771,9 @@ class _CThunk:
                 raise
             raise exc_value.with_traceback(exc_trace)
 
+    def __str__(self):
+        return f"{type(self).__name__}({self.module})"
+
 
 class OpWiseCLinker(LocalLinker):
     """
