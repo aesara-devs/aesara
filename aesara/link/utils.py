@@ -330,9 +330,9 @@ def raise_with_op(
                 else:
                     scalar_values.append("not shown")
         else:
-            shapes = "The thunk don't have an inputs attributes."
-            strides = "So we can't access the strides of inputs values"
-            scalar_values = "And can't print its inputs scalar value"
+            shapes = "The thunk doesn't have an `inputs` attributes."
+            strides = "So we can't access the strides of the input values"
+            scalar_values = "and we can't print its scalar input values"
         clients = [[c[0] for c in fgraph.clients[var]] for var in node.outputs]
         detailed_err_msg += (
             f"Inputs shapes: {shapes}"
@@ -349,14 +349,15 @@ def raise_with_op(
         detailed_err_msg += f"\nOutputs clients: {clients}\n"
     else:
         hints.append(
-            "HINT: Use another linker then the c linker to"
-            " have the inputs shapes and strides printed."
+            "HINT: Use a linker other than the C linker to"
+            " print the inputs' shapes and strides."
         )
 
     # Print node backtraces
     tr = getattr(node.outputs[0].tag, "trace", [])
     if isinstance(tr, list) and len(tr) > 0:
-        detailed_err_msg += "\nBacktrace when the node is created(use Aesara flag traceback__limit=N to make it longer):\n"
+        detailed_err_msg += "\nBacktrace when the node is created "
+        detailed_err_msg += "(use Aesara flag traceback__limit=N to make it longer):\n"
 
         # Print separate message for each element in the list of batcktraces
         sio = io.StringIO()
@@ -365,9 +366,9 @@ def raise_with_op(
         detailed_err_msg += str(sio.getvalue())
     else:
         hints.append(
-            "HINT: Re-running with most Aesara optimization disabled could"
-            " give you a back-trace of when this node was created. This can"
-            " be done with by setting the Aesara flag"
+            "HINT: Re-running with most Aesara optimizations disabled could"
+            " provide a back-trace showing when this node was created. This can"
+            " be done by setting the Aesara flag"
             " 'optimizer=fast_compile'. If that does not work,"
             " Aesara optimizations can be disabled with 'optimizer=None'."
         )
@@ -378,7 +379,7 @@ def raise_with_op(
 
         f = io.StringIO()
         aesara.printing.debugprint(node, file=f, stop_on_name=True, print_type=True)
-        detailed_err_msg += "\nDebugprint of the apply node: \n"
+        detailed_err_msg += "\nDebug print of the apply node: \n"
         detailed_err_msg += f.getvalue()
 
     # Prints output_map
@@ -497,8 +498,8 @@ def raise_with_op(
 
     else:
         hints.append(
-            "HINT: Use the Aesara flag 'exception_verbosity=high'"
-            " for a debugprint and storage map footprint of this apply node."
+            "HINT: Use the Aesara flag `exception_verbosity=high`"
+            " for a debug print-out and storage map footprint of this Apply node."
         )
 
     try:
@@ -506,7 +507,9 @@ def raise_with_op(
             str(exc_value) + detailed_err_msg + "\n" + "\n".join(hints)
         )
     except TypeError:
-        warnings.warn(f"{exc_type} error does not allow us to add extra error message")
+        warnings.warn(
+            f"{exc_type} error does not allow us to add an extra error message"
+        )
         # Some exception need extra parameter in inputs. So forget the
         # extra long error message in that case.
     raise exc_value.with_traceback(exc_trace)
@@ -541,7 +544,7 @@ def __log_thunk_trace(value, handler: io.TextIOWrapper):
                 write(line)
             write(
                 "For the full definition stack trace set"
-                " the Aesara flags traceback__limit to -1"
+                " the Aesara flags `traceback__limit` to -1"
             )
 
 
