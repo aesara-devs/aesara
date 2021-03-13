@@ -28,7 +28,7 @@ import aesara
 # we will abuse the lockfile mechanism when reading and writing the registry
 from aesara.compile.compilelock import lock_ctx
 from aesara.configdefaults import config, gcc_version_str
-from aesara.link.c.exceptions import MissingGXX
+from aesara.link.c.exceptions import CompileError, MissingGXX
 from aesara.utils import (
     LOCAL_BITWIDTH,
     flatten,
@@ -2543,9 +2543,9 @@ class GCC_compiler(Compiler):
             # We replace '\n' by '. ' in the error message because when Python
             # prints the exception, having '\n' in the text makes it more
             # difficult to read.
-            compile_stderr = compile_stderr.replace("\n", ". ")
-            raise Exception(
-                f"Compilation failed (return status={status}): {compile_stderr}"
+            # compile_stderr = compile_stderr.replace("\n", ". ")
+            raise CompileError(
+                f"Compilation failed (return status={status}):\n{' '.join(cmd)}\n{compile_stderr}"
             )
         elif config.cmodule__compilation_warning and compile_stderr:
             # Print errors just below the command line.
