@@ -57,24 +57,27 @@ class TestCallbacks:
         assert self.n_callbacks["IfElse"] == 2
 
 
-def test_c_thunks():
-    a = scalars("a")
-    b, c = vectors("bc")
+def test_use_c_thunks():
+    a_at = scalars("a")
+    b_at = vectors("b")
+
+    a = np.array(0.0).astype(config.floatX)
+    b = np.array([2.0]).astype(config.floatX)
+
     cases = [False]
     if config.cxx:
         cases.append(True)
-    for c_thunks in cases:
+
+    for use_c_thunks in cases:
         f = function(
-            [a, b, c],
-            ifelse(a, a * b, b * c),
+            [a_at, b_at],
+            a_at * b_at,
             mode=Mode(
-                optimizer=None, linker=VMLinker(c_thunks=c_thunks, use_cloop=False)
+                optimizer=None, linker=VMLinker(c_thunks=use_c_thunks, use_cloop=False)
             ),
         )
-        f(1, [2], [3, 2])
-        with pytest.raises(ValueError):
-            f(0, [2], [3, 4])
-        assert any([hasattr(t, "cthunk") for t in f.fn.thunks]) == c_thunks
+        assert np.array_equal(a * b, f(a, b))
+        assert any([hasattr(t, "cthunk") for t in f.fn.thunks]) == use_c_thunks
 
 
 @pytest.mark.skipif(

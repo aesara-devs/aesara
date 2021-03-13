@@ -736,30 +736,9 @@ second dimension
             # should be disabled.
             super().perform(node, inputs, output_storage)
 
-        for dims in zip(
-            *[
-                list(zip(input.shape, sinput.type.broadcastable))
-                for input, sinput in zip(inputs, node.inputs)
-            ]
-        ):
-            if max(d for d, b in dims) != 1 and (1, False) in dims:
-                # yes there may be more compact ways to write this code,
-                # but please maintain python 2.4 compatibility
-                # (no "x if c else y")
-                msg = []
-                assert len(inputs) == len(node.inputs)
-                for input, sinput in zip(inputs, node.inputs):
-                    assert len(input.shape) == len(sinput.type.broadcastable)
-                    msg2 = []
-                    for d, b in zip(input.shape, sinput.type.broadcastable):
-                        if b:
-                            msg2 += ["*"]
-                        else:
-                            msg2 += [str(d)]
-                    msg.append(f"({', '.join(msg2)})")
-
-                base_exc_str = f"Dimension mismatch; shapes are {', '.join(msg)}"
-                raise ValueError(base_exc_str)
+        for d, dim_shapes in enumerate(zip(*(i.shape for i in inputs))):
+            if len(set(dim_shapes) - {1}) > 1:
+                raise ValueError(f"Shapes on dimension {d} do not match: {dim_shapes}")
 
         # Determine the shape of outputs
         out_shape = []
