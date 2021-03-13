@@ -25,6 +25,7 @@ from aesara.tensor.type import (
     discrete_dtypes,
     matrix,
     scalar,
+    vector,
     vectors,
 )
 from tests import unittest_tools
@@ -643,6 +644,36 @@ class TestElemwise(unittest_tools.InferShapeTester):
         s = a + b + c + d + e + f
         g = aesara.function([a, b, c, d, e, f], s, mode=Mode(linker="py"))
         g(*[np.zeros(2 ** 11, config.floatX) for i in range(6)])
+
+    def check_input_dimensions_match(self, mode):
+        """Make sure that our input validation works correctly and doesn't
+        throw erroneous broadcast-based errors.
+        """
+        x_v = matrix("x")
+        m_v = vector("m")
+
+        x = np.array([[-1.32720483], [0.23442016]]).astype(config.floatX)
+        m = np.array([0.0, 0.0]).astype(config.floatX)
+
+        z_v = x_v - m_v
+        f = aesara.function([x_v, m_v], z_v, mode=mode)
+
+        res = f(x, m)
+
+        assert np.array_equal(res, x - m)
+
+    def test_input_dimensions_match_python(self):
+        self.check_input_dimensions_match(Mode(linker="py"))
+
+    @pytest.mark.xfail(
+        reason="Elemwise C implementation does not broadcast parameters",
+        exception=ValueError,
+    )
+    @pytest.mark.skipif(
+        not aesara.config.cxx, reason="G++ not available, so we need to skip this test."
+    )
+    def test_input_dimensions_match_c(self):
+        self.check_input_dimensions_match(Mode(linker="c"))
 
 
 def test_not_implemented_elemwise_grad():
