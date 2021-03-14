@@ -11,16 +11,6 @@ import pytest
 from aesara.compile.compilelock import force_unlock, local_mem, lock_ctx
 
 
-def test_compilelock_errors():
-    with tempfile.TemporaryDirectory() as dir:
-        with pytest.raises(ValueError):
-            with lock_ctx(dir, timeout=0):
-                pass
-        with pytest.raises(ValueError):
-            with lock_ctx(dir, timeout=-2):
-                pass
-
-
 def test_compilelock_force_unlock():
     with tempfile.TemporaryDirectory() as dir_name:
         with lock_ctx(dir_name):
