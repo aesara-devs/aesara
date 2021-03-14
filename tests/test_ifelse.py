@@ -621,26 +621,22 @@ class NotImplementedOp(Op):
         raise NotImplementedError()
 
 
-def test_ifelse():
+@aesara.config.change_flags(vm__lazy=True)
+def test_ifelse_lazy_c():
     a = scalar()
     b = generic()
     c = generic()
 
     notimpl = NotImplementedOp()
 
-    lazys = [True]
-    # We need lazy to end up being True for this test.
-    if aesara.config.vm__lazy in [True, None]:
-        lazys = [True, None]
-
     cloops = [True, False]
 
     if aesara.config.cxx == "":
         cloops = [False]
 
-    for cloop in cloops:
-        for lazy in lazys:
-            linker = aesara.link.vm.VMLinker(use_cloop=cloop, lazy=lazy)
+    for use_cloop in cloops:
+        for lazy in [True, None]:
+            linker = aesara.link.vm.VMLinker(use_cloop=use_cloop, lazy=lazy)
             f = function(
                 [a, b, c],
                 ifelse(a, notimpl(b), c),
