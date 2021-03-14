@@ -84,6 +84,8 @@ def test_use_c_thunks():
     not config.cxx, reason="G++ not available, so we need to skip this test."
 )
 def test_speed():
+    # TODO FIXME: This isn't a real test.
+
     def build_graph(x, depth=5):
         z = x
         for d in range(depth):
@@ -148,6 +150,8 @@ def test_speed():
 
 
 def test_speed_lazy():
+    # TODO FIXME: This isn't a real test.
+
     def build_graph(x, depth=5):
         z = x
         for d in range(depth):
