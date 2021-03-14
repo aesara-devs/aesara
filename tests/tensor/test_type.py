@@ -46,7 +46,7 @@ def test_filter_float_subclass():
         test_type = TensorType("float64", broadcastable=[])
 
         nan = np.array([np.nan], dtype="float64")[0]
-        assert isinstance(nan, np.float) and not isinstance(nan, np.ndarray)
+        assert isinstance(nan, float) and not isinstance(nan, np.ndarray)
 
         filtered_nan = test_type.filter(nan)
         assert isinstance(filtered_nan, np.ndarray)
