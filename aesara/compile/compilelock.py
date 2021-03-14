@@ -4,8 +4,8 @@ in the same compilation directory (which can cause crashes).
 """
 import os
 import threading
-import typing
 from contextlib import contextmanager
+from typing import Optional
 
 import filelock
 
@@ -45,7 +45,7 @@ def force_unlock(lock_dir: os.PathLike):
 
 
 @contextmanager
-def lock_ctx(lock_dir: os.PathLike = None, *, timeout: typing.Optional[float] = -1):
+def lock_ctx(lock_dir: os.PathLike = None, *, timeout: Optional[float] = None):
     """Context manager that wraps around FileLock and SoftFileLock from filelock package.
 
     Parameters
@@ -59,10 +59,9 @@ def lock_ctx(lock_dir: os.PathLike = None, *, timeout: typing.Optional[float] = 
     """
     if lock_dir is None:
         lock_dir = config.compiledir
-    if timeout == -1:
+
+    if timeout is None:
         timeout = config.compile__timeout
-    elif not (timeout is None or timeout > 0):
-        raise ValueError(f"Timeout parameter must be None or positive. Got {timeout}.")
 
     # locks are kept in a dictionary to account for changing compiledirs
     dir_key = f"{lock_dir}-{os.getpid()}"
