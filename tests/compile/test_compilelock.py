@@ -81,13 +81,22 @@ def run_locking_test(ctx):
 
 
 def test_locking_thread():
+    import traceback
 
     with tempfile.TemporaryDirectory() as dir_name:
 
-        def test_fn_1():
-            with lock_ctx(dir_name):
-                # Sleep "indefinitely"
-                time.sleep(100)
+        def test_fn_1(arg):
+            try:
+                with lock_ctx(dir_name):
+                    # Notify the outside that we've obtained the lock
+                    arg.append(False)
+                    while True not in arg:
+                        time.sleep(0.5)
+            except Exception:
+                # Notify the outside that we done
+                arg.append(False)
+                # If something unexpected happened, we want to know what it was
+                traceback.print_exc()
 
         def test_fn_2(arg):
             try:
@@ -98,17 +107,29 @@ def test_locking_thread():
                 # It timed out, which means that the lock was still held by the
                 # first thread
                 arg.append(True)
+            except Exception:
+                # If something unexpected happened, we want to know what it was
+                traceback.print_exc()
 
-        thread_1 = threading.Thread(target=test_fn_1)
         res = []
+        thread_1 = threading.Thread(target=test_fn_1, args=(res,))
         thread_2 = threading.Thread(target=test_fn_2, args=(res,))
 
         thread_1.start()
+
+        # Make sure the first thread has obtained the lock
+        while False not in res:
+            time.sleep(0.5)
+
         thread_2.start()
 
         # The second thread should raise `filelock.Timeout`
         thread_2.join()
         assert True in res
+
+        thread_1.join()
+        assert not thread_1.is_alive()
+        assert not thread_2.is_alive()
 
 
 @pytest.mark.skipif(sys.platform != "linux", reason="Fork is only available on linux")
