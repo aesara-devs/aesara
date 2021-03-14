@@ -378,7 +378,7 @@ class MultinomialRV(RandomVariable):
 
 multinomial = MultinomialRV()
 
-vsearchsorted = np.vectorize(np.searchsorted, otypes=[np.int], signature="(n),()->()")
+vsearchsorted = np.vectorize(np.searchsorted, otypes=[int], signature="(n),()->()")
 
 
 class CategoricalRV(RandomVariable):
