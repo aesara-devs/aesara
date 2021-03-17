@@ -52,7 +52,7 @@ from aesara.tensor.nlinalg import (
     QRFull,
     QRIncomplete,
 )
-from aesara.tensor.nnet.basic import Softmax
+from aesara.tensor.nnet.basic import Softmax, LogSoftmax
 from aesara.tensor.nnet.sigm import ScalarSoftplus
 from aesara.tensor.random.op import RandomVariable
 from aesara.tensor.shape import Reshape, Shape, Shape_i, SpecifyShape
@@ -273,6 +273,14 @@ def jax_funcify_Softmax(op):
         return jax.nn.softmax(x)
 
     return softmax
+
+
+@jax_funcify.register(LogSoftmax)
+def jax_funcify_LogSoftmax(op):
+    def log_softmax(x):
+        return jax.nn.log_softmax(x)
+
+    return log_softmax
 
 
 @jax_funcify.register(ScalarSoftplus)
