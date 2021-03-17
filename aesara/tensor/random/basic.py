@@ -73,7 +73,7 @@ halfnormal = HalfNormalRV()
 
 
 class GammaRV(RandomVariable):
-    name = "halfnormal"
+    name = "gamma"
     ndim_supp = 0
     ndims_params = [0, 0]
     dtype = "floatX"
@@ -226,7 +226,7 @@ cauchy = CauchyRV()
 
 
 class HalfCauchyRV(RandomVariable):
-    name = "cauchy"
+    name = "halfcauchy"
     ndim_supp = 0
     ndims_params = [0, 0]
     dtype = "floatX"
