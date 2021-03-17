@@ -794,6 +794,8 @@ def jax_funcify_DimShuffle(op):
 @jax_funcify.register(Join)
 def jax_funcify_Join(op):
     def join(axis, *tensors):
+        # tensors could also be tuples, and in this case they don't have a ndim
+        tensors = [jnp.asarray(tensor) for tensor in tensors]
         view = op.view
         if (view != -1) and all(
             [
