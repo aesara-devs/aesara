@@ -687,7 +687,6 @@ def walk(
     Yields
     ------
     nodes
-        When `build_inv` is ``True``, a inverse map is returned.
 
     Notes
     -----
