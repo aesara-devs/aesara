@@ -18,6 +18,7 @@ import tempfile
 import textwrap
 import time
 import warnings
+import threading
 from io import BytesIO, StringIO
 from typing import Dict, List, Set
 
@@ -1575,7 +1576,8 @@ def _rmtree(
                 )
 
 
-_module_cache = None
+
+_module_cache = threading.local()
 
 
 def get_module_cache(dirname, init_args=None):
@@ -1592,20 +1594,20 @@ def get_module_cache(dirname, init_args=None):
     global _module_cache
     if init_args is None:
         init_args = {}
-    if _module_cache is None:
-        _module_cache = ModuleCache(dirname, **init_args)
-        atexit.register(_module_cache._on_atexit)
+    if not hasattr(_module_cache, 'val'):
+        _module_cache.val = ModuleCache(dirname, **init_args)
+        atexit.register(_module_cache.val._on_atexit)
     elif init_args:
         _logger.warning(
             "Ignoring init arguments for module cache because it "
             "was created prior to this call"
         )
-    if _module_cache.dirname != dirname:
+    if _module_cache.val.dirname != dirname:
         _logger.warning(
             "Returning module cache instance with different "
-            f"dirname ({_module_cache.dirname}) than you requested ({dirname})"
+            f"dirname ({_module_cache.val.dirname}) than you requested ({dirname})"
         )
-    return _module_cache
+    return _module_cache.val
 
 
 def get_lib_extension():
