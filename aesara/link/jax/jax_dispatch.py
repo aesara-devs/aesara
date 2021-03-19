@@ -52,7 +52,7 @@ from aesara.tensor.nlinalg import (
     QRFull,
     QRIncomplete,
 )
-from aesara.tensor.nnet.basic import Softmax, LogSoftmax
+from aesara.tensor.nnet.basic import LogSoftmax, Softmax
 from aesara.tensor.nnet.sigm import ScalarSoftplus
 from aesara.tensor.random.op import RandomVariable
 from aesara.tensor.shape import Reshape, Shape, Shape_i, SpecifyShape
