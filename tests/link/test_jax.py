@@ -777,6 +777,10 @@ def test_nnet():
     fgraph = FunctionGraph([x], [out])
     compare_jax_and_py(fgraph, [get_test_value(i) for i in fgraph.inputs])
 
+    out = aet_nnet.logsoftmax(x)
+    fgraph = FunctionGraph([x], [out])
+    compare_jax_and_py(fgraph, [get_test_value(i) for i in fgraph.inputs])
+
 
 def test_tensor_basics():
     y = vector("y")
