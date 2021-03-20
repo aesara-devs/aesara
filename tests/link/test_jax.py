@@ -703,6 +703,45 @@ def test_jax_Dimshuffle():
     compare_jax_and_py(x_fg, [np.c_[[1.0, 2.0, 3.0, 4.0]].astype(config.floatX)])
 
 
+def test_jax_Join():
+    a = matrix("a")
+    b = matrix("b")
+
+    x = aet.join(0, a, b)
+    x_fg = FunctionGraph([a, b], [x])
+    compare_jax_and_py(
+        x_fg,
+        [
+            np.c_[[1.0, 2.0, 3.0]].astype(config.floatX),
+            np.c_[[4.0, 5.0, 6.0]].astype(config.floatX),
+        ],
+    )
+    compare_jax_and_py(
+        x_fg,
+        [
+            np.c_[[1.0, 2.0, 3.0]].astype(config.floatX),
+            np.c_[[4.0, 5.0]].astype(config.floatX),
+        ],
+    )
+
+    x = aet.join(1, a, b)
+    x_fg = FunctionGraph([a, b], [x])
+    compare_jax_and_py(
+        x_fg,
+        [
+            np.c_[[1.0, 2.0, 3.0]].astype(config.floatX),
+            np.c_[[4.0, 5.0, 6.0]].astype(config.floatX),
+        ],
+    )
+    compare_jax_and_py(
+        x_fg,
+        [
+            np.c_[[1.0, 2.0], [3.0, 4.0]].astype(config.floatX),
+            np.c_[[5.0, 6.0]].astype(config.floatX),
+        ],
+    )
+
+
 def test_jax_variadic_Scalar():
     mu = vector("mu", dtype=config.floatX)
     mu.tag.test_value = np.r_[0.1, 1.1].astype(config.floatX)
