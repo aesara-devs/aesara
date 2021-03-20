@@ -52,7 +52,7 @@ from aesara.tensor.nlinalg import (
     QRFull,
     QRIncomplete,
 )
-from aesara.tensor.nnet.basic import Softmax
+from aesara.tensor.nnet.basic import LogSoftmax, Softmax
 from aesara.tensor.nnet.sigm import ScalarSoftplus
 from aesara.tensor.random.op import RandomVariable
 from aesara.tensor.shape import Reshape, Shape, Shape_i, SpecifyShape
@@ -273,6 +273,14 @@ def jax_funcify_Softmax(op):
         return jax.nn.softmax(x)
 
     return softmax
+
+
+@jax_funcify.register(LogSoftmax)
+def jax_funcify_LogSoftmax(op):
+    def log_softmax(x):
+        return jax.nn.log_softmax(x)
+
+    return log_softmax
 
 
 @jax_funcify.register(ScalarSoftplus)
@@ -786,6 +794,8 @@ def jax_funcify_DimShuffle(op):
 @jax_funcify.register(Join)
 def jax_funcify_Join(op):
     def join(axis, *tensors):
+        # tensors could also be tuples, and in this case they don't have a ndim
+        tensors = [jnp.asarray(tensor) for tensor in tensors]
         view = op.view
         if (view != -1) and all(
             [
