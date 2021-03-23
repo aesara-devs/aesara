@@ -3,8 +3,8 @@ Generate and compile C modules for Python.
 
 """
 import atexit
-import distutils.sysconfig
 import contextlib
+import distutils.sysconfig
 import importlib
 import logging
 import os
@@ -17,9 +17,9 @@ import subprocess
 import sys
 import tempfile
 import textwrap
+import threading
 import time
 import warnings
-import threading
 from io import BytesIO, StringIO
 from typing import Dict, List, Set
 
@@ -1575,7 +1575,6 @@ def _rmtree(
                 _logger.warning(
                     f"Failed to remove or mark cache directory {parent} for removal {ee}"
                 )
-
 
 
 _module_caches = {}

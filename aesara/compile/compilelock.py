@@ -34,7 +34,7 @@ def force_unlock(lock_dir: os.PathLike):
     lock_dir : os.PathLike
         Path to a directory that was locked with `lock_ctx`.
     """
-    lockfile = os.path.join(lock_dir, 'lock')
+    lockfile = os.path.join(lock_dir, "lock")
     fl = filelock.FileLock(lockfile)
     fl.release(force=True)
 
@@ -62,7 +62,7 @@ def lock_ctx(lock_dir: os.PathLike = None, *, timeout: Optional[float] = None):
         timeout = config.compile__timeout
 
     # locks are kept in a dictionary to account for changing compiledirs
-    lockfile = os.path.join(lock_dir, 'lock')
+    lockfile = os.path.join(lock_dir, "lock")
 
     if lockfile in local_mem._locks:
         lock = local_mem._locks[lockfile]
