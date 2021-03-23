@@ -4,6 +4,7 @@ Generate and compile C modules for Python.
 """
 import atexit
 import distutils.sysconfig
+import contextlib
 import importlib
 import logging
 import os
@@ -1577,9 +1578,21 @@ def _rmtree(
 
 
 
-_module_cache = threading.local()
+_module_caches = {}
+_module_cache_lock = threading.RLock()
 
 
+@atexit.register
+def _clear_cache():
+    global _module_cache_lock
+    global _module_cache_lock
+
+    with _module_cache_lock:
+        for cache in _module_caches.values():
+            cache._on_atexit()
+
+
+@contextlib.contextmanager
 def get_module_cache(dirname, init_args=None):
     """
     Create a new module_cache with the (k, v) pairs in this dictionary
@@ -1591,23 +1604,15 @@ def get_module_cache(dirname, init_args=None):
         the ModuleCache constructor as keyword arguments.
 
     """
-    global _module_cache
-    if init_args is None:
-        init_args = {}
-    if not hasattr(_module_cache, 'val'):
-        _module_cache.val = ModuleCache(dirname, **init_args)
-        atexit.register(_module_cache.val._on_atexit)
-    elif init_args:
-        _logger.warning(
-            "Ignoring init arguments for module cache because it "
-            "was created prior to this call"
-        )
-    if _module_cache.val.dirname != dirname:
-        _logger.warning(
-            "Returning module cache instance with different "
-            f"dirname ({_module_cache.val.dirname}) than you requested ({dirname})"
-        )
-    return _module_cache.val
+    global _module_caches
+    global _module_cache_lock
+
+    with _module_cache_lock:
+        if dirname not in _module_caches:
+            if init_args is None:
+                init_args = {}
+            _module_caches[dirname] = ModuleCache(dirname, **init_args)
+        yield _module_caches[dirname]
 
 
 def get_lib_extension():
