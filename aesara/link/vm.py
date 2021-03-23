@@ -1043,8 +1043,12 @@ class VMLinker(LocalLinker):
                 dependencies=dependency_map_list,
             )
 
-            if platform.python_implementation() == "CPython":
-                assert c0 == sys.getrefcount(node_n_inputs)
+            if platform.python_implementation() == "CPython" and c0 != sys.getrefcount(
+                node_n_inputs
+            ):
+                logger.warning(
+                    "Detected reference count inconsistency after CVM construction"
+                )
         else:
             lazy = self.lazy
             if lazy is None:
