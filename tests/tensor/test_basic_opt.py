@@ -38,6 +38,7 @@ from aesara.tensor.basic import (
 )
 from aesara.tensor.basic_opt import (
     ShapeFeature,
+    apply_rebroadcast_opt,
     assert_op,
     local_canonicalize_alloc,
     local_dimshuffle_lift,
@@ -5184,3 +5185,18 @@ def test_local_useless_alloc():
     assert len(topo) == 3
     assert isinstance(topo[-2].op, Assert)
     assert isinstance(topo[-1].op, Alloc)
+
+
+def test_apply_rebroadcast_opt():
+    # Test the `Elemwise` case in `local_rebroadcast_lift` with `fgraph=None`.
+    # This is called by in `apply_rebroadcast_opt`.
+    a = vector(dtype="float32")
+    b = tensor("float64", [True])
+    x = b.astype(a.dtype)
+
+    broadcastable = (False,)
+    axis = [(i, broadcastable[i]) for i in range(len(broadcastable))]
+    rval = Rebroadcast(*axis)(x)
+
+    res = apply_rebroadcast_opt(rval)
+    assert res is rval

@@ -26,7 +26,7 @@ from aesara.graph.basic import (
     equal_computations,
     io_toposort,
 )
-from aesara.graph.fg import InconsistencyError
+from aesara.graph.fg import FunctionGraph, InconsistencyError
 from aesara.graph.op import get_test_value
 from aesara.graph.opt import (
     GlobalOptimizer,
@@ -3622,11 +3622,6 @@ def local_useless_inc_subtensor_alloc(fgraph, node):
             return [r]
 
 
-####################
-# Rebroadcast opts #
-####################
-
-
 @register_useless
 @register_canonicalize
 @register_specialize
@@ -3682,7 +3677,7 @@ def local_rebroadcast_lift(fgraph, node):
         # is called from `apply_rebroadcast_opt`, which in particular is used
         # by the `unbroadcast` function before we are in the actual function
         # compilation phase.
-        if len(fgraph.clients[input]) == 1:
+        if len(fgraph.clients.get(input, ())) == 1:
             rebroadcasted = Rebroadcast(*list(op.axis.items()))(inode.inputs[0])
             # Copy over stacktrace from previous output (after rebroadcasting)
             # to new output, because an error in the new graph right after
@@ -3730,16 +3725,17 @@ def apply_rebroadcast_opt(rval):
 
     """
 
+    fg = FunctionGraph([], [])
     changed = True
     while changed and rval.owner:
         changed = False
-        rval2 = local_useless_rebroadcast.transform(None, rval.owner)
+        rval2 = local_useless_rebroadcast.transform(fg, rval.owner)
         if rval2:
             assert len(rval2) == 1
             rval = rval2[0]
             changed = True
         if rval.owner:
-            rval2 = local_rebroadcast_lift.transform(None, rval.owner)
+            rval2 = local_rebroadcast_lift.transform(fg, rval.owner)
             if rval2:
                 assert len(rval2) == 1
                 rval = rval2[0]
@@ -3747,9 +3743,6 @@ def apply_rebroadcast_opt(rval):
     return rval
 
 
-#############
-# Join opts #
-#############
 @register_specialize
 @register_canonicalize
 @register_useless
