@@ -56,7 +56,7 @@ if __name__ == "__main__":
         url=URL,
         license=LICENSE,
         platforms=PLATFORMS,
-        packages=find_packages(exclude=["tests.*"]),
+        packages=find_packages(exclude=["tests", "tests.*"]),
         install_requires=["numpy>=1.9.1", "scipy>=0.14", "filelock"],
         package_data={
             "": [
