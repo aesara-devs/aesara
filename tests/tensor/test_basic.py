@@ -33,6 +33,7 @@ from aesara.tensor.basic import (
     Join,
     MakeVector,
     PermuteRowElements,
+    Rebroadcast,
     ScalarFromTensor,
     Split,
     TensorFromScalar,
@@ -3007,6 +3008,32 @@ class TestBroadcast:
             assert len(topo) == 2
             assert isinstance(topo[0].op, Shape_i)
             assert isinstance(topo[1].op, MakeVector)
+
+
+class TestRebroadcast(utt.InferShapeTester):
+    def test_rebroadcast(self):
+        rng = np.random.RandomState(3453)
+        # Rebroadcast
+        adtens4 = dtensor4()
+        adict = [(0, False), (1, True), (2, False), (3, True)]
+        adtens4_val = rng.rand(2, 1, 3, 1).astype(config.floatX)
+        self._compile_and_check(
+            [adtens4],
+            [Rebroadcast(*adict)(adtens4)],
+            [adtens4_val],
+            Rebroadcast,
+            warn=False,
+        )
+
+        adtens4_bro = TensorType("float64", (True, True, True, False))()
+        bdict = [(0, True), (1, False), (2, False), (3, False)]
+        adtens4_bro_val = rng.rand(1, 1, 1, 3).astype(config.floatX)
+        self._compile_and_check(
+            [adtens4_bro],
+            [Rebroadcast(*bdict)(adtens4_bro)],
+            [adtens4_bro_val],
+            Rebroadcast,
+        )
 
 
 def test_len():
