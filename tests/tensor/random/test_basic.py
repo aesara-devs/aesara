@@ -589,6 +589,10 @@ def test_categorical_samples():
 
     rng_state = np.random.RandomState(np.random.MT19937(np.random.SeedSequence(1234)))
 
+    assert categorical.rng_fn(rng_state, np.array([1.0 / 3.0] * 3), size=10).shape == (
+        10,
+    )
+
     p = np.array([[100000, 1, 1], [1, 100000, 1], [1, 1, 100000]], dtype=config.floatX)
     p = p / p.sum(axis=-1)
 
