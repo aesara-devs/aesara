@@ -413,10 +413,14 @@ class CategoricalRV(RandomVariable):
         size = tuple(np.atleast_1d(size))
         ind_shape = p.shape[:-1]
 
-        if len(size) > 0 and size[-len(ind_shape) :] != ind_shape:
-            raise ValueError("Parameters shape and size do not match.")
+        if len(ind_shape) > 0:
+            if len(size) > 0 and size[-len(ind_shape) :] != ind_shape:
+                raise ValueError("Parameters shape and size do not match.")
 
-        samples_shape = size[: -len(ind_shape)] + ind_shape
+            samples_shape = size[: -len(ind_shape)] + ind_shape
+        else:
+            samples_shape = size
+
         unif_samples = rng.uniform(size=samples_shape)
         samples = vsearchsorted(p.cumsum(axis=-1), unif_samples)
 
