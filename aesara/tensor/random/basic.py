@@ -375,6 +375,23 @@ class MultinomialRV(RandomVariable):
             self.ndim_supp, dist_params, rep_param_idx, param_shapes
         )
 
+    @classmethod
+    def rng_fn(cls, rng, n, p, size):
+        if n.ndim > 0 or p.ndim > 1:
+            n, p = broadcast_params([n, p], cls.ndims_params)
+            size = tuple(size or ())
+
+            if size:
+                n = np.broadcast_to(n, size + n.shape)
+                p = np.broadcast_to(p, size + p.shape)
+
+            res = np.empty(p.shape)
+            for idx in np.ndindex(p.shape[:-1]):
+                res[idx] = rng.multinomial(n[idx], p[idx])
+            return res
+        else:
+            return rng.multinomial(n, p, size=size)
+
 
 multinomial = MultinomialRV()
 

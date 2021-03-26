@@ -6,6 +6,7 @@ import scipy.stats as stats
 from pytest import fixture, importorskip, raises
 
 import aesara.tensor as aet
+from aesara import shared
 from aesara.configdefaults import config
 from aesara.graph.basic import Constant, Variable, graph_inputs
 from aesara.graph.fg import FunctionGraph
@@ -567,6 +568,21 @@ def test_multinomial_samples():
         test_p,
         size=[2, 3],
     )
+
+    rng_state = shared(
+        np.random.RandomState(np.random.MT19937(np.random.SeedSequence(1234)))
+    )
+
+    test_M = np.array([10, 20], dtype="int64")
+    test_p = np.array([[0.999, 0.001], [0.001, 0.999]], dtype=config.floatX)
+
+    res = multinomial(test_M, test_p, rng=rng_state).eval()
+    exp_res = np.array([[10, 0], [0, 20]])
+    assert np.array_equal(res, exp_res)
+
+    res = multinomial(test_M, test_p, size=(3,), rng=rng_state).eval()
+    exp_res = np.stack([exp_res] * 3)
+    assert np.array_equal(res, exp_res)
 
 
 def test_categorical_samples():
