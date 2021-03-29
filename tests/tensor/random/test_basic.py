@@ -23,6 +23,7 @@ from aesara.tensor.random.basic import (
     dirichlet,
     exponential,
     gamma,
+    gumbel,
     halfcauchy,
     halfnormal,
     invgamma,
@@ -216,6 +217,14 @@ def test_gamma_samples():
 
     rv_numpy_tester(gamma, test_a, test_b, test_fn=stats.gamma.rvs)
     rv_numpy_tester(gamma, test_a, test_b, size=[2, 3], test_fn=stats.gamma.rvs)
+
+
+def test_gumbel_samples():
+    test_mu = np.array(0.0, dtype=config.floatX)
+    test_beta = np.array(1.0, dtype=config.floatX)
+
+    rv_numpy_tester(gumbel, test_mu, test_beta, test_fn=stats.gumbel_r.rvs)
+    rv_numpy_tester(gumbel, test_mu, test_beta, size=[2, 3], test_fn=stats.gumbel_r.rvs)
 
 
 def test_exponential_samples():
