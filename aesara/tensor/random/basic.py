@@ -1,3 +1,5 @@
+from typing import List, Optional, Union
+
 import numpy as np
 import scipy.stats as stats
 
@@ -106,6 +108,36 @@ class ParetoRV(RandomVariable):
 
 
 pareto = ParetoRV()
+
+
+class GumbelRV(RandomVariable):
+    name = "gumbel"
+    ndim_supp = 0
+    ndims_params = [0, 0]
+    dtype = "floatX"
+    _print_name = ("Gumbel", "\\operatorname{Gumbel}")
+
+    def __call__(
+        self,
+        loc: Union[np.ndarray, float],
+        scale: Union[np.ndarray, float] = 1.0,
+        size: Optional[Union[List[int], int]] = None,
+        **kwargs
+    ) -> RandomVariable:
+        return super().__call__(loc, scale, size=size, **kwargs)
+
+    @classmethod
+    def rng_fn(
+        cls,
+        rng: np.random.RandomState,
+        loc: Union[np.ndarray, float],
+        scale: Union[np.ndarray, float],
+        size: Optional[Union[List[int], int]],
+    ) -> np.ndarray:
+        return stats.gumbel_r.rvs(loc=loc, scale=scale, size=size, random_state=rng)
+
+
+gumbel = GumbelRV()
 
 
 class ExponentialRV(RandomVariable):
