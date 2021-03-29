@@ -15,19 +15,33 @@ except ImportError:  # pragma: no cover
         raise RuntimeError("pypolygamma not installed!")
 
 
-class UniformRV(RandomVariable):
-    name = "uniform"
+class BernoulliRV(RandomVariable):
+    name = "bernoulli"
     ndim_supp = 0
-    ndims_params = [0, 0]
-    dtype = "floatX"
-    _print_name = ("U", "\\operatorname{U}")
+    ndims_params = [0]
+    dtype = "int64"
+    _print_name = ("Bern", "\\operatorname{Bern}")
 
-    def __call__(self, low=0.0, high=1.0, size=None, **kwargs):
-        return super().__call__(low, high, size=size, **kwargs)
+    @classmethod
+    def rng_fn(cls, rng, p, size=None):
+        return stats.bernoulli.rvs(p, size=size, random_state=rng)
 
 
-uniform = UniformRV()
+bernoulli = BernoulliRV()
 
+class BetaBinomialRV(RandomVariable):
+    name = "beta_binomial"
+    ndim_supp = 0
+    ndims_params = [0, 0, 0]
+    dtype = "int64"
+    _print_name = ("BetaBinom", "\\operatorname{BetaBinom}")
+
+    @classmethod
+    def rng_fn(cls, rng, n, a, b, size=None):
+        return stats.betabinom.rvs(n, a, b, size=size, random_state=rng)
+
+
+betabinom = BetaBinomialRV()
 
 class BetaRV(RandomVariable):
     name = "beta"
@@ -40,135 +54,95 @@ class BetaRV(RandomVariable):
 beta = BetaRV()
 
 
-class NormalRV(RandomVariable):
-    name = "normal"
+class BinomialRV(RandomVariable):
+    name = "binomial"
+    ndim_supp = 0
+    ndims_params = [0, 0]
+    dtype = "int64"
+    _print_name = ("Binom", "\\operatorname{Binom}")
+
+
+binomial = BinomialRV()
+
+class CategoricalRV(RandomVariable):
+    name = "categorical"
+    ndim_supp = 0
+    ndims_params = [1]
+    dtype = "int64"
+    _print_name = ("Cat", "\\operatorname{Cat}")
+
+    @classmethod
+    def rng_fn(cls, rng, p, size):
+        if size is None:
+            size = ()
+
+        size = tuple(np.atleast_1d(size))
+        ind_shape = p.shape[:-1]
+
+        if len(ind_shape) > 0:
+            if len(size) > 0 and size[-len(ind_shape) :] != ind_shape:
+                raise ValueError("Parameters shape and size do not match.")
+
+            samples_shape = size[: -len(ind_shape)] + ind_shape
+        else:
+            samples_shape = size
+
+        unif_samples = rng.uniform(size=samples_shape)
+        samples = vsearchsorted(p.cumsum(axis=-1), unif_samples)
+
+        return samples
+
+
+categorical = CategoricalRV()
+
+class CauchyRV(RandomVariable):
+    name = "cauchy"
     ndim_supp = 0
     ndims_params = [0, 0]
     dtype = "floatX"
-    _print_name = ("N", "\\operatorname{N}")
-
-    def __call__(self, loc=0.0, scale=1.0, size=None, **kwargs):
-        return super().__call__(loc, scale, size=size, **kwargs)
-
-
-normal = NormalRV()
-
-
-class HalfNormalRV(RandomVariable):
-    name = "halfnormal"
-    ndim_supp = 0
-    ndims_params = [0, 0]
-    dtype = "floatX"
-    _print_name = ("N**+", "\\operatorname{N^{+}}")
+    _print_name = ("C", "\\operatorname{C}")
 
     def __call__(self, loc=0.0, scale=1.0, size=None, **kwargs):
         return super().__call__(loc, scale, size=size, **kwargs)
 
     @classmethod
     def rng_fn(cls, rng, loc, scale, size):
-        return stats.halfnorm.rvs(loc, scale, random_state=rng, size=size)
+        return stats.cauchy.rvs(loc=loc, scale=scale, random_state=rng, size=size)
 
 
-halfnormal = HalfNormalRV()
+cauchy = CauchyRV()
 
-
-class GammaRV(RandomVariable):
-    name = "gamma"
+class ChoiceRV(RandomVariable):
+    name = "choice"
     ndim_supp = 0
-    ndims_params = [0, 0]
-    dtype = "floatX"
-    _print_name = ("Gamma", "\\operatorname{Gamma}")
-
-    def __call__(self, shape, rate, size=None, **kwargs):
-        return super().__call__(shape, 1.0 / rate, size=size, **kwargs)
+    ndims_params = [1, 1, 0]
+    dtype = None
+    _print_name = ("choice", "\\operatorname{choice}")
 
     @classmethod
-    def rng_fn(cls, rng, shape, scale, size):
-        return stats.gamma.rvs(shape, scale=scale, size=size, random_state=rng)
+    def rng_fn(cls, rng, a, p, replace, size):
+        return rng.choice(a, size, replace, p)
+
+    def _shape_from_params(self, *args, **kwargs):
+        raise NotImplementedError()
+
+    def _infer_shape(self, size, dist_params, param_shapes=None):
+        return size
+
+    def __call__(self, a, size=None, replace=True, p=None, **kwargs):
+
+        a = as_tensor_variable(a, ndim=1)
+
+        if p is None:
+            p = aesara.tensor.type_other.NoneConst.clone()
+
+        if isinstance(replace, bool):
+            replace = aesara.tensor.constant(np.array(replace))
+
+        return super().__call__(a, p, replace, size=size, dtype=a.dtype, **kwargs)
 
 
-gamma = GammaRV()
-
-
-class ExponentialRV(RandomVariable):
-    name = "exponential"
-    ndim_supp = 0
-    ndims_params = [0]
-    dtype = "floatX"
-    _print_name = ("Exp", "\\operatorname{Exp}")
-
-    def __call__(self, scale=1.0, size=None, **kwargs):
-        return super().__call__(scale, size=size, **kwargs)
-
-
-exponential = ExponentialRV()
-
-
-def safe_multivariate_normal(mean, cov, size=None, rng=None):
-    """A shape consistent multivariate normal sampler.
-
-    What we mean by "shape consistent": SciPy will return scalars when the
-    arguments are vectors with dimension of size 1.  We require that the output
-    be at least 1D, so that it's consistent with the underlying random
-    variable.
-
-    """
-    res = np.atleast_1d(
-        stats.multivariate_normal(mean=mean, cov=cov, allow_singular=True).rvs(
-            size=size, random_state=rng
-        )
-    )
-
-    if size is not None:
-        res = res.reshape(list(size) + [-1])
-
-    return res
-
-
-class MvNormalRV(RandomVariable):
-    name = "multivariate_normal"
-    ndim_supp = 1
-    ndims_params = [1, 2]
-    dtype = "floatX"
-    _print_name = ("N", "\\operatorname{N}")
-
-    def __call__(self, mean=None, cov=None, size=None, **kwargs):
-
-        dtype = aesara.config.floatX if self.dtype == "floatX" else self.dtype
-
-        if mean is None:
-            mean = np.array([0.0], dtype=dtype)
-        if cov is None:
-            cov = np.array([[1.0]], dtype=dtype)
-        return super().__call__(mean, cov, size=size, **kwargs)
-
-    @classmethod
-    def rng_fn(cls, rng, mean, cov, size):
-
-        if mean.ndim > 1 or cov.ndim > 2:
-            # Neither SciPy nor NumPy implement parameter broadcasting for
-            # multivariate normals (or many other multivariate distributions),
-            # so we have implement a quick and dirty one here
-            mean, cov = broadcast_params([mean, cov], cls.ndims_params)
-            size = tuple(size or ())
-
-            if size:
-                mean = np.broadcast_to(mean, size + mean.shape)
-                cov = np.broadcast_to(cov, size + cov.shape)
-
-            res = np.empty(mean.shape)
-            for idx in np.ndindex(mean.shape[:-1]):
-                m = mean[idx]
-                c = cov[idx]
-                res[idx] = safe_multivariate_normal(m, c, rng=rng)
-            return res
-        else:
-            return safe_multivariate_normal(mean, cov, size=size, rng=rng)
-
-
-multivariate_normal = MvNormalRV()
-
-
+choice = ChoiceRV()
 class DirichletRV(RandomVariable):
     name = "dirichlet"
     ndim_supp = 1
@@ -192,37 +166,43 @@ class DirichletRV(RandomVariable):
 
 dirichlet = DirichletRV()
 
-
-class PoissonRV(RandomVariable):
-    name = "poisson"
+class ExponentialRV(RandomVariable):
+    name = "exponential"
     ndim_supp = 0
     ndims_params = [0]
-    dtype = "int64"
-    _print_name = ("Pois", "\\operatorname{Pois}")
+    dtype = "floatX"
+    _print_name = ("Exp", "\\operatorname{Exp}")
 
-    def __call__(self, lam=1.0, size=None, **kwargs):
-        return super().__call__(lam, size=size, **kwargs)
-
-
-poisson = PoissonRV()
+    def __call__(self, scale=1.0, size=None, **kwargs):
+        return super().__call__(scale, size=size, **kwargs)
 
 
-class CauchyRV(RandomVariable):
-    name = "cauchy"
+exponential = ExponentialRV()
+
+
+class GammaRV(RandomVariable):
+    name = "gamma"
     ndim_supp = 0
     ndims_params = [0, 0]
     dtype = "floatX"
-    _print_name = ("C", "\\operatorname{C}")
+    _print_name = ("Gamma", "\\operatorname{Gamma}")
 
-    def __call__(self, loc=0.0, scale=1.0, size=None, **kwargs):
-        return super().__call__(loc, scale, size=size, **kwargs)
+    def __call__(self, shape, rate, size=None, **kwargs):
+        return super().__call__(shape, 1.0 / rate, size=size, **kwargs)
 
     @classmethod
-    def rng_fn(cls, rng, loc, scale, size):
-        return stats.cauchy.rvs(loc=loc, scale=scale, random_state=rng, size=size)
+    def rng_fn(cls, rng, shape, scale, size):
+        return stats.gamma.rvs(shape, scale=scale, size=size, random_state=rng)
 
 
-cauchy = CauchyRV()
+gamma = GammaRV()
+
+
+
+
+
+
+
 
 
 class HalfCauchyRV(RandomVariable):
@@ -243,6 +223,24 @@ class HalfCauchyRV(RandomVariable):
 halfcauchy = HalfCauchyRV()
 
 
+class HalfNormalRV(RandomVariable):
+    name = "halfnormal"
+    ndim_supp = 0
+    ndims_params = [0, 0]
+    dtype = "floatX"
+    _print_name = ("N**+", "\\operatorname{N^{+}}")
+
+    def __call__(self, loc=0.0, scale=1.0, size=None, **kwargs):
+        return super().__call__(loc, scale, size=size, **kwargs)
+
+    @classmethod
+    def rng_fn(cls, rng, loc, scale, size):
+        return stats.halfnorm.rvs(loc, scale, random_state=rng, size=size)
+
+
+halfnormal = HalfNormalRV()
+
+
 class InvGammaRV(RandomVariable):
     name = "invgamma"
     ndim_supp = 0
@@ -258,50 +256,10 @@ class InvGammaRV(RandomVariable):
 invgamma = InvGammaRV()
 
 
-class WaldRV(RandomVariable):
-    name = "wald"
-    ndim_supp = 0
-    ndims_params = [0, 0]
-    dtype = "floatX"
-    _print_name_ = ("Wald", "\\operatorname{Wald}")
-
-    def __call__(self, mean=1.0, scale=1.0, size=None, **kwargs):
-        return super().__call__(mean, scale, size=size, **kwargs)
 
 
-wald = WaldRV()
 
 
-class TruncExponentialRV(RandomVariable):
-    name = "truncexpon"
-    ndim_supp = 0
-    ndims_params = [0, 0, 0]
-    dtype = "floatX"
-    _print_name = ("TruncExp", "\\operatorname{TruncExp}")
-
-    @classmethod
-    def rng_fn(cls, rng, b, loc, scale, size=None):
-        return stats.truncexpon.rvs(
-            b, loc=loc, scale=scale, size=size, random_state=rng
-        )
-
-
-truncexpon = TruncExponentialRV()
-
-
-class BernoulliRV(RandomVariable):
-    name = "bernoulli"
-    ndim_supp = 0
-    ndims_params = [0]
-    dtype = "int64"
-    _print_name = ("Bern", "\\operatorname{Bern}")
-
-    @classmethod
-    def rng_fn(cls, rng, p, size=None):
-        return stats.bernoulli.rvs(p, size=size, random_state=rng)
-
-
-bernoulli = BernoulliRV()
 
 
 class LaplaceRV(RandomVariable):
@@ -315,45 +273,10 @@ class LaplaceRV(RandomVariable):
 laplace = LaplaceRV()
 
 
-class BinomialRV(RandomVariable):
-    name = "binomial"
-    ndim_supp = 0
-    ndims_params = [0, 0]
-    dtype = "int64"
-    _print_name = ("Binom", "\\operatorname{Binom}")
 
 
-binomial = BinomialRV()
 
 
-class NegBinomialRV(RandomVariable):
-    name = "nbinom"
-    ndim_supp = 0
-    ndims_params = [0, 0]
-    dtype = "int64"
-    _print_name = ("NB", "\\operatorname{NB}")
-
-    @classmethod
-    def rng_fn(cls, rng, n, p, size=None):
-        return stats.nbinom.rvs(n, p, size=size, random_state=rng)
-
-
-nbinom = NegBinomialRV()
-
-
-class BetaBinomialRV(RandomVariable):
-    name = "beta_binomial"
-    ndim_supp = 0
-    ndims_params = [0, 0, 0]
-    dtype = "int64"
-    _print_name = ("BetaBinom", "\\operatorname{BetaBinom}")
-
-    @classmethod
-    def rng_fn(cls, rng, n, a, b, size=None):
-        return stats.betabinom.rvs(n, a, b, size=size, random_state=rng)
-
-
-betabinom = BetaBinomialRV()
 
 
 class MultinomialRV(RandomVariable):
@@ -398,36 +321,140 @@ multinomial = MultinomialRV()
 vsearchsorted = np.vectorize(np.searchsorted, otypes=[int], signature="(n),()->()")
 
 
-class CategoricalRV(RandomVariable):
-    name = "categorical"
-    ndim_supp = 0
-    ndims_params = [1]
-    dtype = "int64"
-    _print_name = ("Cat", "\\operatorname{Cat}")
+def safe_multivariate_normal(mean, cov, size=None, rng=None):
+    """A shape consistent multivariate normal sampler.
+
+    What we mean by "shape consistent": SciPy will return scalars when the
+    arguments are vectors with dimension of size 1.  We require that the output
+    be at least 1D, so that it's consistent with the underlying random
+    variable.
+
+    """
+    res = np.atleast_1d(
+        stats.multivariate_normal(mean=mean, cov=cov, allow_singular=True).rvs(
+            size=size, random_state=rng
+        )
+    )
+
+    if size is not None:
+        res = res.reshape(list(size) + [-1])
+
+    return res
+
+class MvNormalRV(RandomVariable):
+    name = "multivariate_normal"
+    ndim_supp = 1
+    ndims_params = [1, 2]
+    dtype = "floatX"
+    _print_name = ("N", "\\operatorname{N}")
+
+    def __call__(self, mean=None, cov=None, size=None, **kwargs):
+
+        dtype = aesara.config.floatX if self.dtype == "floatX" else self.dtype
+
+        if mean is None:
+            mean = np.array([0.0], dtype=dtype)
+        if cov is None:
+            cov = np.array([[1.0]], dtype=dtype)
+        return super().__call__(mean, cov, size=size, **kwargs)
 
     @classmethod
-    def rng_fn(cls, rng, p, size):
-        if size is None:
-            size = ()
+    def rng_fn(cls, rng, mean, cov, size):
 
-        size = tuple(np.atleast_1d(size))
-        ind_shape = p.shape[:-1]
+        if mean.ndim > 1 or cov.ndim > 2:
+            # Neither SciPy nor NumPy implement parameter broadcasting for
+            # multivariate normals (or many other multivariate distributions),
+            # so we have implement a quick and dirty one here
+            mean, cov = broadcast_params([mean, cov], cls.ndims_params)
+            size = tuple(size or ())
 
-        if len(ind_shape) > 0:
-            if len(size) > 0 and size[-len(ind_shape) :] != ind_shape:
-                raise ValueError("Parameters shape and size do not match.")
+            if size:
+                mean = np.broadcast_to(mean, size + mean.shape)
+                cov = np.broadcast_to(cov, size + cov.shape)
 
-            samples_shape = size[: -len(ind_shape)] + ind_shape
+            res = np.empty(mean.shape)
+            for idx in np.ndindex(mean.shape[:-1]):
+                m = mean[idx]
+                c = cov[idx]
+                res[idx] = safe_multivariate_normal(m, c, rng=rng)
+            return res
         else:
-            samples_shape = size
-
-        unif_samples = rng.uniform(size=samples_shape)
-        samples = vsearchsorted(p.cumsum(axis=-1), unif_samples)
-
-        return samples
+            return safe_multivariate_normal(mean, cov, size=size, rng=rng)
 
 
-categorical = CategoricalRV()
+multivariate_normal = MvNormalRV()
+
+class PoissonRV(RandomVariable):
+    name = "poisson"
+    ndim_supp = 0
+    ndims_params = [0]
+    dtype = "int64"
+    _print_name = ("Pois", "\\operatorname{Pois}")
+
+    def __call__(self, lam=1.0, size=None, **kwargs):
+        return super().__call__(lam, size=size, **kwargs)
+
+
+poisson = PoissonRV()
+
+class NormalRV(RandomVariable):
+    name = "normal"
+    ndim_supp = 0
+    ndims_params = [0, 0]
+    dtype = "floatX"
+    _print_name = ("N", "\\operatorname{N}")
+
+    def __call__(self, loc=0.0, scale=1.0, size=None, **kwargs):
+        return super().__call__(loc, scale, size=size, **kwargs)
+
+
+normal = NormalRV()
+
+
+class NegBinomialRV(RandomVariable):
+    name = "nbinom"
+    ndim_supp = 0
+    ndims_params = [0, 0]
+    dtype = "int64"
+    _print_name = ("NB", "\\operatorname{NB}")
+
+    @classmethod
+    def rng_fn(cls, rng, n, p, size=None):
+        return stats.nbinom.rvs(n, p, size=size, random_state=rng)
+
+
+nbinom = NegBinomialRV()
+
+
+class PermutationRV(RandomVariable):
+    name = "permutation"
+    ndim_supp = 1
+    ndims_params = [1]
+    dtype = None
+    _print_name = ("permutation", "\\operatorname{permutation}")
+
+    @classmethod
+    def rng_fn(cls, rng, x, size):
+        return rng.permutation(x if x.ndim > 0 else x.item())
+
+    def _infer_shape(self, size, dist_params, param_shapes=None):
+
+        param_shapes = param_shapes or [p.shape for p in dist_params]
+
+        (x,) = dist_params
+        (x_shape,) = param_shapes
+
+        if x.ndim == 0:
+            return (x,)
+        else:
+            return x_shape
+
+    def __call__(self, x, **kwargs):
+        x = as_tensor_variable(x)
+        return super().__call__(x, dtype=x.dtype, **kwargs)
+
+
+permutation = PermutationRV()
 
 
 class PolyaGammaRV(RandomVariable):
@@ -470,6 +497,12 @@ class PolyaGammaRV(RandomVariable):
 polyagamma = PolyaGammaRV()
 
 
+
+
+
+
+
+
 class RandIntRV(RandomVariable):
     name = "randint"
     ndim_supp = 0
@@ -485,66 +518,44 @@ class RandIntRV(RandomVariable):
 
 randint = RandIntRV()
 
-
-class ChoiceRV(RandomVariable):
-    name = "choice"
+class TruncExponentialRV(RandomVariable):
+    name = "truncexpon"
     ndim_supp = 0
-    ndims_params = [1, 1, 0]
-    dtype = None
-    _print_name = ("choice", "\\operatorname{choice}")
+    ndims_params = [0, 0, 0]
+    dtype = "floatX"
+    _print_name = ("TruncExp", "\\operatorname{TruncExp}")
 
     @classmethod
-    def rng_fn(cls, rng, a, p, replace, size):
-        return rng.choice(a, size, replace, p)
-
-    def _shape_from_params(self, *args, **kwargs):
-        raise NotImplementedError()
-
-    def _infer_shape(self, size, dist_params, param_shapes=None):
-        return size
-
-    def __call__(self, a, size=None, replace=True, p=None, **kwargs):
-
-        a = as_tensor_variable(a, ndim=1)
-
-        if p is None:
-            p = aesara.tensor.type_other.NoneConst.clone()
-
-        if isinstance(replace, bool):
-            replace = aesara.tensor.constant(np.array(replace))
-
-        return super().__call__(a, p, replace, size=size, dtype=a.dtype, **kwargs)
+    def rng_fn(cls, rng, b, loc, scale, size=None):
+        return stats.truncexpon.rvs(
+            b, loc=loc, scale=scale, size=size, random_state=rng
+        )
 
 
-choice = ChoiceRV()
+truncexpon = TruncExponentialRV()
+
+class UniformRV(RandomVariable):
+    name = "uniform"
+    ndim_supp = 0
+    ndims_params = [0, 0]
+    dtype = "floatX"
+    _print_name = ("U", "\\operatorname{U}")
+
+    def __call__(self, low=0.0, high=1.0, size=None, **kwargs):
+        return super().__call__(low, high, size=size, **kwargs)
 
 
-class PermutationRV(RandomVariable):
-    name = "permutation"
-    ndim_supp = 1
-    ndims_params = [1]
-    dtype = None
-    _print_name = ("permutation", "\\operatorname{permutation}")
+uniform = UniformRV()
 
-    @classmethod
-    def rng_fn(cls, rng, x, size):
-        return rng.permutation(x if x.ndim > 0 else x.item())
+class WaldRV(RandomVariable):
+    name = "wald"
+    ndim_supp = 0
+    ndims_params = [0, 0]
+    dtype = "floatX"
+    _print_name_ = ("Wald", "\\operatorname{Wald}")
 
-    def _infer_shape(self, size, dist_params, param_shapes=None):
-
-        param_shapes = param_shapes or [p.shape for p in dist_params]
-
-        (x,) = dist_params
-        (x_shape,) = param_shapes
-
-        if x.ndim == 0:
-            return (x,)
-        else:
-            return x_shape
-
-    def __call__(self, x, **kwargs):
-        x = as_tensor_variable(x)
-        return super().__call__(x, dtype=x.dtype, **kwargs)
+    def __call__(self, mean=1.0, scale=1.0, size=None, **kwargs):
+        return super().__call__(mean, scale, size=size, **kwargs)
 
 
-permutation = PermutationRV()
+wald = WaldRV()
