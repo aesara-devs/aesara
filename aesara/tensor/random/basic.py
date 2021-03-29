@@ -29,6 +29,7 @@ class BernoulliRV(RandomVariable):
 
 bernoulli = BernoulliRV()
 
+
 class BetaBinomialRV(RandomVariable):
     name = "beta_binomial"
     ndim_supp = 0
@@ -42,6 +43,7 @@ class BetaBinomialRV(RandomVariable):
 
 
 betabinom = BetaBinomialRV()
+
 
 class BetaRV(RandomVariable):
     name = "beta"
@@ -63,6 +65,7 @@ class BinomialRV(RandomVariable):
 
 
 binomial = BinomialRV()
+
 
 class CategoricalRV(RandomVariable):
     name = "categorical"
@@ -95,6 +98,7 @@ class CategoricalRV(RandomVariable):
 
 categorical = CategoricalRV()
 
+
 class CauchyRV(RandomVariable):
     name = "cauchy"
     ndim_supp = 0
@@ -111,6 +115,7 @@ class CauchyRV(RandomVariable):
 
 
 cauchy = CauchyRV()
+
 
 class ChoiceRV(RandomVariable):
     name = "choice"
@@ -143,6 +148,8 @@ class ChoiceRV(RandomVariable):
 
 
 choice = ChoiceRV()
+
+
 class DirichletRV(RandomVariable):
     name = "dirichlet"
     ndim_supp = 1
@@ -165,6 +172,7 @@ class DirichletRV(RandomVariable):
 
 
 dirichlet = DirichletRV()
+
 
 class ExponentialRV(RandomVariable):
     name = "exponential"
@@ -196,13 +204,6 @@ class GammaRV(RandomVariable):
 
 
 gamma = GammaRV()
-
-
-
-
-
-
-
 
 
 class HalfCauchyRV(RandomVariable):
@@ -256,12 +257,6 @@ class InvGammaRV(RandomVariable):
 invgamma = InvGammaRV()
 
 
-
-
-
-
-
-
 class LaplaceRV(RandomVariable):
     name = "laplace"
     ndim_supp = 0
@@ -271,12 +266,6 @@ class LaplaceRV(RandomVariable):
 
 
 laplace = LaplaceRV()
-
-
-
-
-
-
 
 
 class MultinomialRV(RandomVariable):
@@ -341,6 +330,7 @@ def safe_multivariate_normal(mean, cov, size=None, rng=None):
 
     return res
 
+
 class MvNormalRV(RandomVariable):
     name = "multivariate_normal"
     ndim_supp = 1
@@ -384,6 +374,7 @@ class MvNormalRV(RandomVariable):
 
 multivariate_normal = MvNormalRV()
 
+
 class PoissonRV(RandomVariable):
     name = "poisson"
     ndim_supp = 0
@@ -396,6 +387,7 @@ class PoissonRV(RandomVariable):
 
 
 poisson = PoissonRV()
+
 
 class NormalRV(RandomVariable):
     name = "normal"
@@ -497,12 +489,6 @@ class PolyaGammaRV(RandomVariable):
 polyagamma = PolyaGammaRV()
 
 
-
-
-
-
-
-
 class RandIntRV(RandomVariable):
     name = "randint"
     ndim_supp = 0
@@ -517,6 +503,7 @@ class RandIntRV(RandomVariable):
 
 
 randint = RandIntRV()
+
 
 class TruncExponentialRV(RandomVariable):
     name = "truncexpon"
@@ -534,6 +521,7 @@ class TruncExponentialRV(RandomVariable):
 
 truncexpon = TruncExponentialRV()
 
+
 class UniformRV(RandomVariable):
     name = "uniform"
     ndim_supp = 0
@@ -546,6 +534,7 @@ class UniformRV(RandomVariable):
 
 
 uniform = UniformRV()
+
 
 class WaldRV(RandomVariable):
     name = "wald"
