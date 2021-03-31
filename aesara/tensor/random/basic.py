@@ -90,6 +90,24 @@ class GammaRV(RandomVariable):
 gamma = GammaRV()
 
 
+class ParetoRV(RandomVariable):
+    name = "pareto"
+    ndim_supp = 0
+    ndims_params = [0, 0]
+    dtype = "floatX"
+    _print_name = ("Pareto", "\\operatorname{Pareto}")
+
+    def __call__(self, b, scale=1.0, size=None, **kwargs):
+        return super().__call__(b, scale, size=size, **kwargs)
+
+    @classmethod
+    def rng_fn(cls, rng, b, scale, size):
+        return stats.pareto.rvs(b, scale=scale, size=size, random_state=rng)
+
+
+pareto = ParetoRV()
+
+
 class ExponentialRV(RandomVariable):
     name = "exponential"
     ndim_supp = 0
