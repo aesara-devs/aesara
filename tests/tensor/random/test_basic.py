@@ -31,6 +31,7 @@ from aesara.tensor.random.basic import (
     multivariate_normal,
     nbinom,
     normal,
+    pareto,
     permutation,
     poisson,
     polyagamma,
@@ -225,6 +226,13 @@ def test_exponential_samples():
 
     rv_numpy_tester(exponential, test_lambda)
     rv_numpy_tester(exponential, test_lambda, size=[2, 3])
+
+
+def test_pareto_samples():
+    test_alpha = np.array(0.5, dtype=config.floatX)
+
+    rv_numpy_tester(pareto, test_alpha, test_fn=stats.pareto.rvs)
+    rv_numpy_tester(pareto, test_alpha, size=[2, 3], test_fn=stats.pareto.rvs)
 
 
 def test_mvnormal_samples():
