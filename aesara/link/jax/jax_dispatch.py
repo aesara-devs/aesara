@@ -1,3 +1,4 @@
+import warnings
 from collections.abc import Sequence
 from functools import reduce, singledispatch, update_wrapper
 from warnings import warn
@@ -86,6 +87,10 @@ try:
     jax.config.disable_omnistaging()
 except AttributeError:
     pass
+except Exception as e:
+    # The version might be >= 0.2.12, which means that omnistaging can't be
+    # disabled
+    warnings.warn(f"JAX omnistaging couldn't be disabled: {e}")
 
 subtensor_ops = (Subtensor, AdvancedSubtensor1, AdvancedSubtensor)
 incsubtensor_ops = (IncSubtensor, AdvancedIncSubtensor1)
@@ -653,7 +658,6 @@ def jax_funcify_Subtensor(op):
             cdata = cdata[0]
 
         return x.__getitem__(cdata)
-        # return x.take(ilists, axis=0)
 
     return subtensor
 
