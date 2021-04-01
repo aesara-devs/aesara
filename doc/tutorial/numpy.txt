@@ -10,11 +10,11 @@ NumPy refresher
 ***************
 
 Here are some quick guides to NumPy:
-  * `Numpy quick guide for Matlab users <http://www.scipy.org/NumPy_for_Matlab_Users>`__
+  * `NumPy for MATLAB users <https://numpy.org/doc/stable/user/numpy-for-matlab-users.html>`__
   * `Numpy User Guide <http://docs.scipy.org/doc/numpy/user/index.html>`__
-  * `More detailed Numpy tutorial <http://www.scipy.org/Tentative_NumPy_Tutorial>`__
+  * `More detailed Numpy tutorial <https://scipy.github.io/old-wiki/pages/Tentative_NumPy_Tutorial>`__
   * `100 NumPy exercises <https://github.com/rougier/numpy-100>`__
-  * `Numpy tutorial <http://www.labri.fr/perso/nrougier/teaching/numpy/numpy.html>`__
+  * `From Python to Numpy free book <https://www.labri.fr/perso/nrougier/from-python-to-numpy/>`__
 
     .. [TODO: More doc, e.g. see _test_tensor.py]
 
