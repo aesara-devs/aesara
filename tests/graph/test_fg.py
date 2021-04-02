@@ -41,6 +41,10 @@ class TestFunctionGraph:
             var3 = op1(var1)
             FunctionGraph([var3], [var2], clone=False)
 
+        with pytest.raises(ValueError):
+            var3 = op1(var1)
+            FunctionGraph([var3], clone=False)
+
     def test_init(self):
         var1 = MyVariable("var1")
         var2 = MyVariable("var2")
@@ -57,6 +61,19 @@ class TestFunctionGraph:
         assert fg.get_clients(var2) == [(var4.owner, 1)]
         assert fg.get_clients(var3) == [(var4.owner, 0), ("output", 0)]
         assert fg.get_clients(var4) == [("output", 1)]
+
+        fg = FunctionGraph(outputs=[var3, var4], clone=False)
+        assert fg.inputs == [var1, var2]
+
+        memo = {}
+        fg = FunctionGraph(outputs=[var3, var4], clone=True, memo=memo)
+
+        assert memo[var1].type == var1.type
+        assert memo[var1].name == var1.name
+        assert memo[var2].type == var2.type
+        assert memo[var2].name == var2.name
+        assert var3 in memo
+        assert var4 in memo
 
     def test_remove_client(self):
         var1 = MyVariable("var1")
