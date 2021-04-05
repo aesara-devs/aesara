@@ -23,6 +23,7 @@ from aesara.tensor.random.basic import (
     dirichlet,
     exponential,
     gamma,
+    geometric,
     gumbel,
     halfcauchy,
     halfnormal,
@@ -440,6 +441,13 @@ def test_poisson_samples():
 
     rv_numpy_tester(poisson, test_lambda)
     rv_numpy_tester(poisson, test_lambda, size=[2, 3])
+
+
+def test_geometric_samples():
+    test_p = np.array(0.1, dtype=config.floatX)
+
+    rv_numpy_tester(geometric, test_p)
+    rv_numpy_tester(geometric, test_p, size=[2, 3])
 
 
 def test_cauchy_samples():

@@ -257,6 +257,17 @@ class PoissonRV(RandomVariable):
 poisson = PoissonRV()
 
 
+class GeometricRV(RandomVariable):
+    name = "geometric"
+    ndim_supp = 0
+    ndims_params = [0]
+    dtype = "int64"
+    _print_name = ("Geom", "\\operatorname{Geom}")
+
+
+geometric = GeometricRV()
+
+
 class CauchyRV(RandomVariable):
     name = "cauchy"
     ndim_supp = 0
