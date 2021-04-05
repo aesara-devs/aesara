@@ -30,6 +30,7 @@ from aesara.tensor.random.basic import (
     hypergeometric,
     invgamma,
     laplace,
+    lognormal,
     multinomial,
     multivariate_normal,
     nbinom,
@@ -211,6 +212,15 @@ def test_halfnormal_samples():
         size=[2, 3],
         test_fn=stats.halfnorm.rvs,
     )
+
+
+def test_lognormal_samples():
+    test_mean = np.array(0, dtype=config.floatX)
+    test_sigma = np.array(1, dtype=config.floatX)
+
+    rv_numpy_tester(lognormal)
+    rv_numpy_tester(lognormal, test_mean)
+    rv_numpy_tester(lognormal, test_mean, test_sigma, size=[2, 3])
 
 
 def test_gamma_samples():

@@ -74,6 +74,20 @@ class HalfNormalRV(RandomVariable):
 halfnormal = HalfNormalRV()
 
 
+class LogNormalRV(RandomVariable):
+    name = "lognormal"
+    ndim_supp = 0
+    ndims_params = [0, 0]
+    dtype = "floatX"
+    _print_name = ("LogN", "\\operatorname{LogN}")
+
+    def __call__(self, mean=0.0, sigma=1.0, size=None, **kwargs):
+        return super().__call__(mean, sigma, size=size, **kwargs)
+
+
+lognormal = LogNormalRV()
+
+
 class GammaRV(RandomVariable):
     name = "gamma"
     ndim_supp = 0
