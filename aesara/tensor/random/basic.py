@@ -268,6 +268,17 @@ class GeometricRV(RandomVariable):
 geometric = GeometricRV()
 
 
+class HyperGeometricRV(RandomVariable):
+    name = "hypergeometric"
+    ndim_supp = 0
+    ndims_params = [0, 0, 0]
+    dtype = "int64"
+    _print_name = ("HyperGeom", "\\operatorname{HyperGeom}")
+
+
+hypergeometric = HyperGeometricRV()
+
+
 class CauchyRV(RandomVariable):
     name = "cauchy"
     ndim_supp = 0
