@@ -27,6 +27,7 @@ from aesara.tensor.random.basic import (
     gumbel,
     halfcauchy,
     halfnormal,
+    hypergeometric,
     invgamma,
     laplace,
     multinomial,
@@ -448,6 +449,15 @@ def test_geometric_samples():
 
     rv_numpy_tester(geometric, test_p)
     rv_numpy_tester(geometric, test_p, size=[2, 3])
+
+
+def test_hypergeometric_samples():
+    test_ngood = np.array(10, dtype="int64")
+    test_nbad = np.array(20, dtype="int64")
+    test_nsample = np.array(5, dtype="int64")
+
+    rv_numpy_tester(hypergeometric, test_ngood, test_nbad, test_nsample)
+    rv_numpy_tester(hypergeometric, test_ngood, test_nbad, test_nsample, size=[2, 3])
 
 
 def test_cauchy_samples():
