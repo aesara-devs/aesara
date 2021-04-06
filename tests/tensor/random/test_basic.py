@@ -30,6 +30,7 @@ from aesara.tensor.random.basic import (
     hypergeometric,
     invgamma,
     laplace,
+    logistic,
     lognormal,
     multinomial,
     multivariate_normal,
@@ -265,6 +266,15 @@ def test_weibull_samples():
 
     rv_numpy_tester(weibull, test_alpha)
     rv_numpy_tester(weibull, test_alpha, size=[2, 3])
+
+
+def test_logistic_samples():
+    test_loc = np.array(2, dtype=config.floatX)
+    test_scale = np.array(0.5, dtype=config.floatX)
+
+    rv_numpy_tester(logistic)
+    rv_numpy_tester(logistic, test_loc)
+    rv_numpy_tester(logistic, test_loc, test_scale, size=[2, 3])
 
 
 def test_pareto_samples():
