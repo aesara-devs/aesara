@@ -204,6 +204,17 @@ class LogisticRV(RandomVariable):
 logistic = LogisticRV()
 
 
+class VonMisesRV(RandomVariable):
+    name = "vonmises"
+    ndim_supp = 0
+    ndims_params = [0, 0]
+    dtype = "floatX"
+    _print_name = ("VonMises", "\\operatorname{VonMises}")
+
+
+vonmises = VonMisesRV()
+
+
 def safe_multivariate_normal(mean, cov, size=None, rng=None):
     """A shape consistent multivariate normal sampler.
 
