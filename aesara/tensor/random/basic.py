@@ -31,6 +31,17 @@ class UniformRV(RandomVariable):
 uniform = UniformRV()
 
 
+class TriangularRV(RandomVariable):
+    name = "triangular"
+    ndim_supp = 0
+    ndims_params = [0, 0, 0]
+    dtype = "floatX"
+    _print_name = ("Triang", "\\operatorname{Triang}")
+
+
+triangular = TriangularRV()
+
+
 class BetaRV(RandomVariable):
     name = "beta"
     ndim_supp = 0

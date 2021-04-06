@@ -40,6 +40,7 @@ from aesara.tensor.random.basic import (
     poisson,
     polyagamma,
     randint,
+    triangular,
     truncexpon,
     uniform,
     wald,
@@ -100,6 +101,15 @@ def test_uniform_samples():
 
     rv_numpy_tester(uniform, test_low, test_high)
     rv_numpy_tester(uniform, test_low, test_high, size=[3])
+
+
+def test_triangular_samples():
+    test_left = np.array(10, dtype=config.floatX)
+    test_mode = np.array(12, dtype=config.floatX)
+    test_right = np.array(20, dtype=config.floatX)
+
+    rv_numpy_tester(triangular, test_left, test_mode, test_right)
+    rv_numpy_tester(triangular, test_left, test_mode, test_right, size=[2, 3])
 
 
 def test_beta_samples():
