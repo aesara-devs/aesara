@@ -179,6 +179,17 @@ class ExponentialRV(RandomVariable):
 exponential = ExponentialRV()
 
 
+class WeibullRV(RandomVariable):
+    name = "weibull"
+    ndim_supp = 0
+    ndims_params = [0]
+    dtype = "floatX"
+    _print_name = ("Weibull", "\\operatorname{Weibull}")
+
+
+weibull = WeibullRV()
+
+
 def safe_multivariate_normal(mean, cov, size=None, rng=None):
     """A shape consistent multivariate normal sampler.
 
