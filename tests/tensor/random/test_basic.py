@@ -44,6 +44,7 @@ from aesara.tensor.random.basic import (
     triangular,
     truncexpon,
     uniform,
+    vonmises,
     wald,
     weibull,
 )
@@ -275,6 +276,14 @@ def test_logistic_samples():
     rv_numpy_tester(logistic)
     rv_numpy_tester(logistic, test_loc)
     rv_numpy_tester(logistic, test_loc, test_scale, size=[2, 3])
+
+
+def test_vonmises_samples():
+    test_mu = np.array(np.pi, dtype=config.floatX)
+    test_kappa = np.array(0.5, dtype=config.floatX)
+
+    rv_numpy_tester(vonmises, test_mu, test_kappa)
+    rv_numpy_tester(vonmises, test_mu, test_kappa, size=[2, 3])
 
 
 def test_pareto_samples():
