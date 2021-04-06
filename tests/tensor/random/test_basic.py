@@ -44,6 +44,7 @@ from aesara.tensor.random.basic import (
     truncexpon,
     uniform,
     wald,
+    weibull,
 )
 from aesara.tensor.type import iscalar, scalar, tensor
 
@@ -257,6 +258,13 @@ def test_exponential_samples():
 
     rv_numpy_tester(exponential, test_lambda)
     rv_numpy_tester(exponential, test_lambda, size=[2, 3])
+
+
+def test_weibull_samples():
+    test_alpha = np.array(3, dtype=config.floatX)
+
+    rv_numpy_tester(weibull, test_alpha)
+    rv_numpy_tester(weibull, test_alpha, size=[2, 3])
 
 
 def test_pareto_samples():
