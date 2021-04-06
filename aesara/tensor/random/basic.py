@@ -190,6 +190,20 @@ class WeibullRV(RandomVariable):
 weibull = WeibullRV()
 
 
+class LogisticRV(RandomVariable):
+    name = "logistic"
+    ndim_supp = 0
+    ndims_params = [0, 0]
+    dtype = "floatX"
+    _print_name = ("Logistic", "\\operatorname{Logistic}")
+
+    def __call__(self, loc=0, scale=1, size=None, **kwargs):
+        return super().__call__(loc, scale, size=size, **kwargs)
+
+
+logistic = LogisticRV()
+
+
 def safe_multivariate_normal(mean, cov, size=None, rng=None):
     """A shape consistent multivariate normal sampler.
 
