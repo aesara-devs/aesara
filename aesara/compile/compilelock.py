@@ -21,6 +21,10 @@ __all__ = [
 class ThreadFileLocks(threading.local):
     def __init__(self):
         self._locks = {}
+        # For each lock we also store the pid of the process
+        # that created the lock, so we can create a new lock
+        # after a fork
+        self._pids = {}
 
 
 local_mem = ThreadFileLocks()
@@ -64,11 +68,12 @@ def lock_ctx(lock_dir: os.PathLike = None, *, timeout: Optional[float] = None):
     # locks are kept in a dictionary to account for changing compiledirs
     lockfile = os.path.join(lock_dir, "lock")
 
-    if lockfile in local_mem._locks:
+    if lockfile in local_mem._locks and local_mem._pids[lockfile] == os.getpid():
         lock = local_mem._locks[lockfile]
     else:
         lock = filelock.FileLock(lockfile, timeout=timeout)
         local_mem._locks[lockfile] = lock
+        local_mem._pids[lockfile] = os.getpid()
 
     with lock.acquire(timeout=timeout):
         yield
