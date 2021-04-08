@@ -1295,6 +1295,21 @@ class Unique(Op):
             self.axis = None
 
 
+def unique(
+    ar, return_index=False, return_inverse=False, return_counts=False, axis=None
+):
+    """Find the unique elements of an array.
+
+    Returns the sorted unique elements of an array. There are three optional
+    outputs in addition to the unique elements:
+
+    * the indices of the input array that give the unique values
+    * the indices of the unique array that reconstruct the input array
+    * the number of times each unique value comes up in the input array
+    """
+    return Unique(return_index, return_inverse, return_counts, axis)(ar)
+
+
 class UnravelIndex(Op):
     __props__ = ("order",)
 
