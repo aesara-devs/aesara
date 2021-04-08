@@ -72,6 +72,7 @@ from aesara.tensor.math import (
     erfc,
     exp,
     expm1,
+    ge,
     int_div,
     inv,
     log,
@@ -224,6 +225,43 @@ def local_func_inv(fgraph, node):
             return x.owner.inputs
 
     return
+
+
+@register_canonicalize
+@register_specialize
+@local_optimizer([Elemwise])
+def local_exp_log(fgraph, node):
+    x = node.inputs[0]
+
+    if not isinstance(node.op, Elemwise):
+        return
+    if not x.owner or not isinstance(x.owner.op, Elemwise):
+        return
+
+    prev_op = x.owner.op.scalar_op
+    node_op = node.op.scalar_op
+
+    # Case for log(exp(x))
+    if isinstance(prev_op, aes.Exp) and isinstance(node_op, aes.Log):
+        return x.owner.inputs
+
+    # Case for exp(log(x))
+    if isinstance(prev_op, aes.Log) and isinstance(node_op, aes.Exp):
+        x = x.owner.inputs[0]
+        old_out = node.outputs[0]
+        new_out = switch(ge(x, 0), x, np.asarray(np.nan, old_out.dtype))
+        if new_out.type != old_out.type:
+            return
+        return [new_out]
+
+    # Case for exp(log1p(x))
+    if isinstance(prev_op, aes.Log1p) and isinstance(node_op, aes.Exp):
+        x = x.owner.inputs[0]
+        old_out = node.outputs[0]
+        new_out = switch(ge(x, -1), add(1, x), np.asarray(np.nan, old_out.dtype))
+        if new_out.type != old_out.type:
+            return
+        return [new_out]
 
 
 @register_canonicalize

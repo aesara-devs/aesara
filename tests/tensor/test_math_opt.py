@@ -2482,6 +2482,61 @@ class TestFuncInverse:
         self.assert_func_pair_optimized(rad2deg, cosh, dx, should_copy=False)
 
 
+class TestExpLog:
+    def setup_method(self):
+        mode = get_default_mode()
+        self.mode = mode.including("local_exp_log").excluding("fusion")
+
+    def test_log_exp(self):
+        # log(exp(x)) -> x
+        data = np.random.rand(4, 3).astype("float32")
+        x = fmatrix()
+        f = function([x], log(exp(x)), mode=self.mode)
+        graph = f.maker.fgraph.toposort()
+        ops_graph = [
+            node
+            for node in graph
+            if isinstance(node.op, Elemwise)
+            and isinstance(node.op.scalar_op, (aes.Log, aes.Exp))
+        ]
+        assert len(ops_graph) == 0
+        np.testing.assert_array_equal(f(data), data)
+
+    def test_exp_log(self):
+        # exp(log(x)) -> switch(x > 0, x, nan)
+        data_valid = np.random.rand(4, 3).astype("float32")
+        data_invalid = data_valid * -1
+        x = fmatrix()
+        f = function([x], exp(log(x)), mode=self.mode)
+        graph = f.maker.fgraph.toposort()
+        ops_graph = [
+            node
+            for node in graph
+            if isinstance(node.op, Elemwise)
+            and isinstance(node.op.scalar_op, (aes.Log, aes.Exp))
+        ]
+        assert len(ops_graph) == 0
+        np.testing.assert_array_equal(f(data_valid), data_valid)
+        assert np.all(np.isnan(f(data_invalid)))
+
+    def test_exp_log1p(self):
+        # exp(log1p(x)) -> switch(x > -1, x + 1, nan)
+        data_valid = np.random.rand(4, 3).astype("float32") * 2 - 1
+        data_invalid = data_valid - 2
+        x = fmatrix()
+        f = function([x], exp(log1p(x)), mode=self.mode)
+        graph = f.maker.fgraph.toposort()
+        ops_graph = [
+            node
+            for node in graph
+            if isinstance(node.op, Elemwise)
+            and isinstance(node.op.scalar_op, (aes.Log, aes.Exp))
+        ]
+        assert len(ops_graph) == 0
+        np.testing.assert_array_equal(f(data_valid), data_valid + 1)
+        assert np.all(np.isnan(f(data_invalid)))
+
+
 class TestLocalSwitchSink:
     def setup_method(self):
         # condition values
