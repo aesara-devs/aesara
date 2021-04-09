@@ -12,7 +12,6 @@ from numpy.random import RandomState
 from aesara.compile.ops import DeepCopyOp, ViewOp
 from aesara.configdefaults import config
 from aesara.graph.fg import FunctionGraph
-from aesara.graph.type import CType
 from aesara.ifelse import IfElse
 from aesara.scalar.basic import Cast, Clip, Composite, Identity, ScalarOp, Second
 from aesara.scan.op import Scan
@@ -58,14 +57,14 @@ from aesara.tensor.nnet.sigm import ScalarSoftplus
 from aesara.tensor.random.op import RandomVariable
 from aesara.tensor.shape import Reshape, Shape, Shape_i, SpecifyShape
 from aesara.tensor.slinalg import Cholesky, Solve
-from aesara.tensor.subtensor import (  # This is essentially `np.take`; Boolean mask indexing and setting
+from aesara.tensor.subtensor import (
     AdvancedIncSubtensor,
     AdvancedIncSubtensor1,
     AdvancedSubtensor,
     AdvancedSubtensor1,
     IncSubtensor,
     Subtensor,
-    get_idx_list,
+    indices_from_subtensor,
 )
 from aesara.tensor.type_other import MakeSlice
 
@@ -628,20 +627,6 @@ def jax_funcify_IfElse(op):
     return ifelse
 
 
-def convert_indices(indices, entry):
-    if indices and isinstance(entry, CType):
-        rval = indices.pop(0)
-        return rval
-    elif isinstance(entry, slice):
-        return slice(
-            convert_indices(indices, entry.start),
-            convert_indices(indices, entry.stop),
-            convert_indices(indices, entry.step),
-        )
-    else:
-        return entry
-
-
 @jax_funcify.register(Subtensor)
 def jax_funcify_Subtensor(op):
 
@@ -649,15 +634,12 @@ def jax_funcify_Subtensor(op):
 
     def subtensor(x, *ilists):
 
-        if idx_list:
-            cdata = get_idx_list((x,) + ilists, idx_list)
-        else:
-            cdata = ilists
+        indices = indices_from_subtensor(ilists, idx_list)
 
-        if len(cdata) == 1:
-            cdata = cdata[0]
+        if len(indices) == 1:
+            indices = indices[0]
 
-        return x.__getitem__(cdata)
+        return x.__getitem__(indices)
 
     return subtensor
 
@@ -675,16 +657,11 @@ def jax_funcify_IncSubtensor(op):
         jax_fn = jax.ops.index_add
 
     def incsubtensor(x, y, *ilist, jax_fn=jax_fn, idx_list=idx_list):
-        _ilist = list(ilist)
-        cdata = (
-            tuple(convert_indices(_ilist, idx) for idx in idx_list)
-            if idx_list
-            else _ilist
-        )
-        if len(cdata) == 1:
-            cdata = cdata[0]
+        indices = indices_from_subtensor(ilist, idx_list)
+        if len(indices) == 1:
+            indices = indices[0]
 
-        return jax_fn(x, cdata, y)
+        return jax_fn(x, indices, y)
 
     return incsubtensor
 
