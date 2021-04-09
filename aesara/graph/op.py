@@ -545,6 +545,9 @@ class Op(MetaObject):
         )
         return self.make_py_thunk(node, storage_map, compute_map, no_recycling)
 
+    def __str__(self):
+        return getattr(type(self), "__name__", super().__str__())
+
 
 class COp(Op, CLinkerOp):
     """An `Op` with a C implementation."""
