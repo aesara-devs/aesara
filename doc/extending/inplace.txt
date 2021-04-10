@@ -5,22 +5,16 @@
 Views and inplace operations
 ============================
 
-Aesara allows the definition of Ops which return a :term:`view` on one
+Aesara allows the definition of ``Op``s which return a :term:`view` on one
 of their inputs or operate :term:`inplace` on one or several
-inputs. This allows more efficient operations on numpy's ``ndarray``
+inputs. This allows more efficient operations on NumPy's ``ndarray``
 data type than would be possible otherwise.
-However, in order to work correctly, these Ops need to
+However, in order to work correctly, these ``Op``s need to
 implement an additional interface.
 
 Aesara recognizes views and inplace operations specially. It ensures
 that they are used in a consistent manner and it ensures that
 operations will be carried in a compatible order.
-
-An unfortunate fact is that it is impossible to return a view on an
-input with the ``double`` type or to operate inplace on it (Python
-floats are immutable). Therefore, we can't make examples of these
-concepts out of what we've just built. Nonetheless, we will present
-the concepts:
 
 .. _views:
 
@@ -50,7 +44,7 @@ range ``0xDEADBEFF - 0xDEADBFDF`` and z the range ``0xCAFEBABE -
 0xCAFEBBBE``. Since the ranges for ``x`` and ``y`` overlap, ``y`` is
 considered to be a view of ``x`` and vice versa.
 
-Suppose you had an Op which took ``x`` as input and returned
+Suppose you had an ``Op`` which took ``x`` as input and returned
 ``y``. You would need to tell Aesara that ``y`` is a view of ``x``. For this
 purpose, you would set the ``view_map`` field as follows:
 
@@ -126,7 +120,7 @@ operation on ``x``.
       r4 = log(r2)
 
    Needless to say, this goes for user-defined inplace operations as
-   well: the modified input must figure in the list of outputs you
+   well; the modified input must figure in the list of outputs you
    give to ``Apply`` in the definition of ``make_node``.
 
    Also, for technical reasons but also because they are slightly
@@ -140,13 +134,13 @@ operation on ``x``.
    introduces inconsistencies.
 
 
-Take the previous definitions of ``x``, ``y`` and ``z`` and suppose an Op which
+Take the previous definitions of ``x``, ``y`` and ``z`` and suppose an ``Op`` which
 adds one to every byte of its input. If we give ``x`` as an input to
-that Op, it can either allocate a new buffer of the same size as ``x``
+that ``Op``, it can either allocate a new buffer of the same size as ``x``
 (that could be ``z``) and set that new buffer's bytes to the variable of
-the addition. That would be a normal, :term:`pure` Op. Alternatively,
+the addition. That would be a normal, :term:`pure` ``Op``. Alternatively,
 it could add one to each byte *in* the buffer ``x``, therefore
-changing it. That would be an inplace Op.
+changing it. That would be an inplace ``Op``.
 
 Aesara needs to be notified of this fact. The syntax is similar to
 that of ``view_map``:
@@ -181,11 +175,11 @@ Destructive Operations
 ======================
 
 While some operations will operate inplace on their inputs, some might
-simply destroy or corrupt them. For example, an Op could do temporary
+simply destroy or corrupt them. For example, an ``Op`` could do temporary
 calculations right in its inputs. If that is the case, Aesara also
 needs to be notified. The way to notify Aesara is to assume that some
 output operated inplace on whatever inputs are changed or corrupted by
-the Op (even if the output does not technically reuse any of the
+the ``Op`` (even if the output does not technically reuse any of the
 input(s)'s memory). From there, go to the previous section.
 
 
@@ -203,24 +197,24 @@ input(s)'s memory). From there, go to the previous section.
    certainly lead to erroneous computations.
 
    You can often identify an incorrect ``view_map`` or ``destroy_map``
-   by using :ref:`DebugMode`.  *Be sure to use DebugMode when developing
-   a new Op that uses ``view_map`` and/or ``destroy_map``.*
+   by using :ref:`DebugMode`.  *Be sure to use ``DebugMode`` when developing
+   a new ``Op`` that uses ``view_map`` and/or ``destroy_map``.*
 
 Inplace optimization and DebugMode
 ==================================
 
-It is recommended that during the graph construction, all Ops are not inplace.
-Then an optimization replaces them with inplace ones. Currently DebugMode checks
+It is recommended that during the graph construction, all ``Op``s are not inplace.
+Then an optimization replaces them with inplace ones. Currently ``DebugMode`` checks
 all optimizations that were tried even if they got rejected. One reason an inplace
-optimization can get rejected is when there is another Op that is already being applied
+optimization can get rejected is when there is another ``Op`` that is already being applied
 inplace on the same input. Another reason to reject an inplace optimization is
 if it would introduce a cycle into the graph.
 
-The problem with DebugMode is that it will trigger a useless error when
+The problem with ``DebugMode`` is that it will trigger a useless error when
 checking a rejected inplace optimization, since it will lead to wrong results.
-In order to be able to use DebugMode in more situations, your inplace
+In order to be able to use ``DebugMode`` in more situations, your inplace
 optimization can pre-check whether it will get rejected by using the
 ``aesara.graph.destroyhandler.fast_inplace_check()`` function, that will tell
-which Ops can be performed inplace. You may then skip the optimization if it is
+which ``Op``s can be performed inplace. You may then skip the optimization if it is
 incompatible with this check. Note however that this check does not cover all
 cases where an optimization may be rejected (it will not detect cycles).
