@@ -166,7 +166,7 @@ class BadDestroyMap(DebugModeError):
         print("  node:", self.node, file=sio)
         print("  perform:", self.perform, file=sio)
         print("  node.inputs:", [(str(i), id(i)) for i in self.node.inputs], file=sio)
-        print("  destroy_map:", getattr(self.node.op, "destroy_map", {}), file=sio)
+        print("  destroy_map:", self.node.op.destroy_map, file=sio)
         print("  changed input idx:", self.idx, file=sio)
         print("  changed input type:", self.node.inputs[self.idx].type, file=sio)
         print("  repr (old val):", repr(self.old_val), file=sio)
@@ -250,8 +250,8 @@ class BadViewMap(DebugModeError):
         print("  node:", self.node, file=sio)
         print("  node.inputs:", [(str(i), id(i)) for i in self.node.inputs], file=sio)
         print("  node.outputs:", [(str(i), id(i)) for i in self.node.outputs], file=sio)
-        print("  view_map:", getattr(self.node.op, "view_map", {}), file=sio)
-        print("  destroy_map:", getattr(self.node.op, "destroy_map", {}), file=sio)
+        print("  view_map:", self.node.op.view_map, file=sio)
+        print("  destroy_map:", self.node.op.destroy_map, file=sio)
         print("  aliased output:", self.output_idx, file=sio)
         print("  aliased output storage:", self.out_storage, file=sio)
         if self.in_alias_idx:
@@ -554,12 +554,12 @@ def debugprint(
             r_name = ""
 
         if print_destroy_map:
-            destroy_map_str = str(getattr(r.owner.op, "destroy_map", ""))
+            destroy_map_str = str(r.owner.op.destroy_map)
         else:
             destroy_map_str = ""
 
         if print_view_map:
-            view_map_str = str(getattr(r.owner.op, "view_map", ""))
+            view_map_str = str(r.owner.op.view_map)
         else:
             view_map_str = ""
         if destroy_map_str and destroy_map_str != "{}":
@@ -742,13 +742,13 @@ def _check_inputs(
 
     """
     destroyed_idx_list = []
-    destroy_map = getattr(node.op, "destroy_map", {})
+    destroy_map = node.op.destroy_map
     for o_pos, i_pos_list in destroy_map.items():
         destroyed_idx_list.extend(i_pos_list)
     destroyed_res_list = [node.inputs[i] for i in destroyed_idx_list]
 
     actually_inplace_outputs = []
-    dmap = getattr(node.op, "destroy_map", {})
+    dmap = node.op.destroy_map
     for oo, ii in dmap.items():
         var = node.outputs[oo]
         out_var = storage_map[var][0]
@@ -769,7 +769,7 @@ def _check_inputs(
                     f"as destroyed was not changed for node '{node}'"
                 )
 
-    vmap = getattr(node.op, "view_map", {})
+    vmap = node.op.view_map
     for oo, ii in vmap.items():
         var = node.outputs[oo]
         out_var = storage_map[var][0]
@@ -836,8 +836,8 @@ def _check_viewmap(fgraph, node, storage_map):
         outstorage = storage_map[onode][0]
 
         # first find out which input it aliases
-        view_map = getattr(node.op, "view_map", {})
-        destroy_map = getattr(node.op, "destroy_map", {})
+        view_map = node.op.view_map
+        destroy_map = node.op.destroy_map
 
         # In theory, aesara's view_map only allows for 1 output to
         # alias 1 input. Checking for multiple aliases just in
@@ -1395,8 +1395,8 @@ def _check_preallocated_output(
 
         # Set of inputs that are marked as destroyed or viewed
         aliased_inputs = set()
-        dmap = getattr(node.op, "destroy_map", {})
-        vmap = getattr(node.op, "view_map", {})
+        dmap = node.op.destroy_map
+        vmap = node.op.view_map
         for i, r in enumerate(node.inputs):
             if any(i in v for v in chain(dmap.values(), vmap.values())):
                 aliased_inputs.add(r)
@@ -2082,8 +2082,8 @@ class _Linker(LocalLinker):
 
                         clobber = True
                         if thunk_py:
-                            dmap = getattr(node.op, "destroy_map", {})
-                            vmap = getattr(node.op, "view_map", {})
+                            dmap = node.op.destroy_map
+                            vmap = node.op.view_map
                             for i, r in enumerate(node.inputs):
                                 # if thunk_py ran, and we still got
                                 # this far, it means that the

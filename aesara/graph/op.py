@@ -107,7 +107,7 @@ def compute_test_value(node: Apply):
     # The original values should not be destroyed, so we copy the values of the
     # inputs in `destroy_map`
     destroyed_inputs_idx = set()
-    if getattr(node.op, "destroy_map", None):
+    if node.op.destroy_map:
         for i_pos_list in node.op.destroy_map.values():
             destroyed_inputs_idx.update(i_pos_list)
     for inp_idx in destroyed_inputs_idx:
@@ -164,6 +164,29 @@ class Op(MetaObject):
 
     A subclass should not change this class variable, but instead override it
     with a subclass variable or an instance variable.
+
+    """
+
+    view_map: Dict[int, List[int]] = {}
+    """
+    A ``dict`` that maps output indices to the input indices of which they are
+    a view.
+
+    Examples
+    ========
+        view_map = {0: [1]} # first output is a view of second input
+        view_map = {1: [0]} # second output is a view of first input
+    """
+
+    destroy_map: Dict[int, List[int]] = {}
+    """
+    A ``dict`` that maps output indices to the input indices upon which they
+    operate in-place.
+
+    Examples
+    ========
+        destroy_map = {0: [1]} # first output operates in-place on second input
+        destroy_map = {1: [0]} # second output operates in-place on first input
 
     """
 

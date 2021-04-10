@@ -430,8 +430,8 @@ def raise_with_op(
                         total_size_inputs += sz
                     else:
                         # If it is a view, don't count it twice.
-                        if getattr(k.owner.op, "view_map", None):
-                            vmap = k.owner.op.view_map
+                        vmap = k.owner.op.view_map
+                        if vmap:
                             out_idx = k.owner.outputs.index(k)
                             data = storage_map[k][0]
                             if out_idx in vmap:
@@ -445,14 +445,14 @@ def raise_with_op(
                         # shouldn't be in the storage_map anymore
                         # except if there is a special flag used. So
                         # we still must check it.
-                        if getattr(k.owner.op, "destroy_map", None):
-                            vmap = k.owner.op.destroy_map
+                        dmap = k.owner.op.destroy_map
+                        if dmap:
                             out_idx = k.owner.outputs.index(k)
                             data = storage_map[k][0]
-                            if out_idx in vmap:
-                                assert len(vmap[out_idx]) == 1
+                            if out_idx in dmap:
+                                assert len(dmap[out_idx]) == 1
                                 input_data = storage_map[
-                                    k.owner.inputs[vmap[out_idx][0]]
+                                    k.owner.inputs[dmap[out_idx][0]]
                                 ][0]
                                 if k.type.may_share_memory(data, input_data):
                                     total_size -= sz

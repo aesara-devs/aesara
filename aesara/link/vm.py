@@ -36,8 +36,8 @@ def calculate_reallocate_info(order, fgraph, storage_map, compute_map_re, depend
 
     for idx in range(len(order)):
         node = order[idx]
-        dmap = getattr(node.op, "destroy_map", None)
-        vmap = getattr(node.op, "view_map", None)
+        dmap = node.op.destroy_map
+        vmap = node.op.view_map
 
         idx_o = 0
         for out in node.outputs:
@@ -574,9 +574,7 @@ class Stack(VM):
                                     if (
                                         config.warn__vm_gc_bug
                                         and current_apply in apply_stack
-                                        and getattr(
-                                            current_apply.op, "destroy_map", False
-                                        )
+                                        and current_apply.op.destroy_map
                                     ):
                                         warnings.warn(
                                             "There was a bug that existed in "

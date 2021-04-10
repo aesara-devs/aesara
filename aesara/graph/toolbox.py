@@ -812,7 +812,7 @@ class NoOutputFromInplace(Feature):
             node = out.owner
             op = node.op
             out_idx = node.outputs.index(out)
-            if hasattr(op, "destroy_map") and out_idx in op.destroy_map:
+            if op.destroy_map and out_idx in op.destroy_map:
                 raise aesara.graph.fg.InconsistencyError(
                     "A function graph Feature has requested that outputs of the graph "
                     "be prevented from being the result of in-place "

@@ -57,8 +57,8 @@ def alias_root(v):
     """
     if v.owner is None:
         return v
-    vmap = getattr(v.owner.op, "view_map", {})
-    dmap = getattr(v.owner.op, "destroy_map", {})
+    vmap = v.owner.op.view_map
+    dmap = v.owner.op.destroy_map
     outpos = v.owner.outputs.index(v)
     v_views = vmap.get(outpos, []) + dmap.get(outpos, [])
     if len(v_views) > 1:
@@ -83,8 +83,8 @@ def view_tree_set(fgraph, v, treeset):
     for cl, v_input_pos_to_cl in fgraph.clients[v]:
         if cl == "output":
             continue
-        vmap = getattr(cl.op, "view_map", {})
-        dmap = getattr(cl.op, "destroy_map", {})
+        vmap = cl.op.view_map
+        dmap = cl.op.destroy_map
         for opos, iposlist in chain(vmap.items(), dmap.items()):
             if v_input_pos_to_cl in iposlist:
                 if cl.outputs[opos] not in treeset:
@@ -189,7 +189,7 @@ def std_fgraph(input_specs, output_specs, accept_inplace=False):
     fgraph = FunctionGraph(orig_inputs, orig_outputs, update_mapping=update_mapping)
 
     for node in fgraph.apply_nodes:
-        if getattr(node.op, "destroy_map", None):
+        if node.op.destroy_map:
             if not accept_inplace:
                 raise TypeError(
                     "Graph must not contain inplace operations", node, node.op

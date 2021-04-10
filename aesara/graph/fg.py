@@ -205,14 +205,14 @@ class FunctionGraph(MetaObject):
         node : aesara.graph.basic.Apply
 
         """
-        if hasattr(node.op, "view_map") and not all(
+        if node.op.view_map and not all(
             isinstance(view, (list, tuple)) for view in node.op.view_map.values()
         ):
             raise Exception(
                 f"Op '{node.op}' have a bad view map '{node.op.view_map}',"
                 " the values must be tuples or lists."
             )
-        if hasattr(node.op, "destroy_map") and not all(
+        if node.op.destroy_map and not all(
             isinstance(destroy, (list, tuple))
             for destroy in node.op.destroy_map.values()
         ):
