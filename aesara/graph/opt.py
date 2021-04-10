@@ -835,7 +835,7 @@ class MergeOptimizer(GlobalOptimizer):
                                 [
                                     i in flatten(c.op.destroy_map.values())
                                     for c, i in clients
-                                    if c != "output" and hasattr(c.op, "destroy_map")
+                                    if c != "output" and c.op.destroy_map
                                 ]
                             )
                             > 1

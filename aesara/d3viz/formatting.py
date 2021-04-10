@@ -186,11 +186,11 @@ class PyDotFormatter:
                     graph.add_node(pd_var)
 
                 edge_params = {}
-                if hasattr(node.op, "view_map") and id in reduce(
+                if node.op.view_map and id in reduce(
                     list.__add__, node.op.view_map.values(), []
                 ):
                     edge_params["color"] = self.node_colors["output"]
-                elif hasattr(node.op, "destroy_map") and id in reduce(
+                elif node.op.destroy_map and id in reduce(
                     list.__add__, node.op.destroy_map.values(), []
                 ):
                     edge_params["color"] = "red"

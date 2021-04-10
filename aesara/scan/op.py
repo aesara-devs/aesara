@@ -794,8 +794,6 @@ class Scan(Op):
         else:
             name = "for"
         aux_txt = "%s"
-        if getattr(self, "destroy_map", None) is None:
-            self.destroy_map = OrderedDict()
         if len(self.destroy_map.keys()) > 0:
             # Check if all outputs are inplace
             if sorted(self.destroy_map.keys()) == sorted(
@@ -1027,7 +1025,7 @@ class Scan(Op):
             cython_inps_is_tensor = np.asarray(self.inps_is_tensor, dtype="int32")
             cython_outs_is_tensor = np.asarray(self.outs_is_tensor, dtype="int32")
 
-            if hasattr(self, "destroy_map"):
+            if self.destroy_map:
                 cython_destroy_map = [
                     x in self.destroy_map for x in range(len(node.outputs))
                 ]
@@ -1321,8 +1319,6 @@ class Scan(Op):
             (-self.mintaps[idx]) % store_steps[idx]
             for idx in range(self.n_outs + self.n_nit_sot)
         ]
-        if not getattr(self, "destroy_map", None):
-            self.destroy_map = OrderedDict()
         # 2.1 Create storage space for outputs
         for idx in range(self.n_outs):
             if idx in self.destroy_map:

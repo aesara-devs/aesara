@@ -20,7 +20,7 @@ def test_no_output_from_implace():
     # using a mode that does not include the optimization
     fct_no_opt = aesara.function([x, y], b, mode="FAST_RUN")
     op = fct_no_opt.maker.fgraph.outputs[0].owner.op
-    assert hasattr(op, "destroy_map") and 0 in op.destroy_map
+    assert op.destroy_map and 0 in op.destroy_map
 
     # Ensure that the elemwise op that produces the output is not inplace when
     # using a mode that includes the optimization
@@ -29,7 +29,7 @@ def test_no_output_from_implace():
 
     fct_opt = aesara.function([x, y], b, mode=mode_opt)
     op = fct_opt.maker.fgraph.outputs[0].owner.op
-    assert not hasattr(op, "destroy_map") or 0 not in op.destroy_map
+    assert not op.destroy_map or 0 not in op.destroy_map
 
 
 def test_including():

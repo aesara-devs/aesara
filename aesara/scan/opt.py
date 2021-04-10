@@ -1119,7 +1119,7 @@ class ScanInplaceOptimizer(GlobalOptimizer):
 
                     # Get the indices of this client's inputs on which it
                     # operates inplace
-                    if hasattr(client.op, "destroy_map"):
+                    if client.op.destroy_map:
                         # This flattens the content of destroy_map.values()
                         # which is a list of lists
                         inplace_inp_indices = sum(client.op.destroy_map.values(), [])

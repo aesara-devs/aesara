@@ -962,8 +962,8 @@ class ProfileStats:
                 if ignore_dmap:
                     dmap = None
                 else:
-                    dmap = getattr(node.op, "destroy_map", None)
-                vmap = getattr(node.op, "view_map", None)
+                    dmap = node.op.destroy_map
+                vmap = node.op.view_map
                 val = nodes_mem[node]
 
                 for v in val:
@@ -1125,8 +1125,8 @@ class ProfileStats:
                     mem_freed = 0
                     max_storage = max_mem_count
 
-                    dmap = getattr(node.op, "destroy_map", None)
-                    vmap = getattr(node.op, "view_map", None)
+                    dmap = node.op.destroy_map
+                    vmap = node.op.view_map
 
                     idx = 0
                     # Update the Python emulating dicts and add the
@@ -1426,9 +1426,9 @@ class ProfileStats:
         items.sort(key=lambda a: a[1], reverse=True)
         for idx, ((fgraph, node), node_outputs_size) in enumerate(items[:N]):
             code = ["c"] * len(node.outputs)
-            for out, inp in getattr(node.op, "destroy_map", {}).items():
+            for out, inp in node.op.destroy_map.items():
                 code[out] = "i"
-            for out, inp in getattr(node.op, "view_map", {}).items():
+            for out, inp in node.op.view_map.items():
                 code[out] = "v"
             shapes = str(fct_shapes[fgraph][node])
 

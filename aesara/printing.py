@@ -997,11 +997,11 @@ def pydotprint(
             param = {}
             if label:
                 param["label"] = label
-            if hasattr(node.op, "view_map") and idx in reduce(
+            if node.op.view_map and idx in reduce(
                 list.__add__, node.op.view_map.values(), []
             ):
                 param["color"] = colorCodes["Output"]
-            elif hasattr(node.op, "destroy_map") and idx in reduce(
+            elif node.op.destroy_map and idx in reduce(
                 list.__add__, node.op.destroy_map.values(), []
             ):
                 param["color"] = "red"
