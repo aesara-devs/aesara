@@ -20,8 +20,11 @@ def create_storage_map(fgraph, order):
 
     for node in order:
         for r in node.inputs:
-            # TODO assert r is constant
-            constants[unique_name_for_apply(r)] = r
+            if r not in storage_map:
+                # TODO assert r is constant
+                name = unique_name_for_apply(r)
+                constants[name] = r.data
+                storage_map[r] = name
         for r in node.outputs:
             assert r not in storage_map
             storage_map[r] = unique_name_for_apply(r)
