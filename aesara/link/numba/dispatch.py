@@ -2,6 +2,8 @@ from functools import singledispatch
 import ast
 
 import numba
+import numpy as np
+import scipy.special
 
 import aesara
 from .naming import unique_name
@@ -137,3 +139,67 @@ def make_numba_thunk_Elemwise(op, node, storage_map):
         return func(x, y)
 
     return NumbaThunk.from_func_one_output(wrapper, node, storage_map)
+
+
+def _register_scalar_ops():
+    _scalar_ops = {
+        aesara.scalar.Abs: np.abs,
+        aesara.scalar.Angle: np.angle,
+        aesara.scalar.ArcCos: np.arccos,
+        aesara.scalar.ArcCosh: np.arccosh,
+        aesara.scalar.ArcSin: np.arcsin,
+        aesara.scalar.ArcSinh: np.arcsinh,
+        aesara.scalar.ArcTan: np.arctan,
+        aesara.scalar.ArcTanh: np.arctan2,
+        aesara.scalar.Ceil: np.ceil,
+        aesara.scalar.Conj: np.conj,
+        aesara.scalar.Cos: np.cos,
+        aesara.scalar.Cosh: np.cosh,
+        aesara.scalar.Deg2Rad: np.deg2rad,
+        aesara.scalar.Erf: scipy.special.erf,
+        aesara.scalar.Erfc: scipy.special.erfc,
+        aesara.scalar.Erfcinv: scipy.special.erfcinv,
+        aesara.scalar.Erfcx: scipy.special.erfcx,
+        aesara.scalar.Erfinv: scipy.special.erfinv,
+        aesara.scalar.Exp: np.exp,
+        aesara.scalar.Exp2: np.exp2,
+        aesara.scalar.Expm1: np.expm1,
+        aesara.scalar.Floor: np.floor,
+        aesara.scalar.Gamma: scipy.special.gamma,
+        aesara.scalar.GammaLn: scipy.special.gammaln,
+        aesara.scalar.I0: scipy.special.i0,
+        aesara.scalar.I1: scipy.special.i1,
+        aesara.scalar.Imag: np.imag,
+        aesara.scalar.IsInf: np.isinf,
+        aesara.scalar.IsNan: np.isnan,
+        aesara.scalar.J0: scipy.special.j0,
+        aesara.scalar.J1: scipy.special.j1,
+        aesara.scalar.Log: np.log,
+        aesara.scalar.Log10: np.log10,
+        aesara.scalar.Log1p: np.log1p,
+        aesara.scalar.Log2: np.log2,
+        aesara.scalar.Psi: scipy.special.psi,
+        aesara.scalar.Rad2Deg: np.rad2deg,
+        aesara.scalar.Sgn: np.sign,
+        aesara.scalar.Sin: np.sin,
+        aesara.scalar.Sinh: np.sinh,
+        aesara.scalar.Sqrt: np.sqrt,
+        aesara.scalar.Tan: np.tan,
+        aesara.scalar.Tanh: np.tanh,
+        aesara.scalar.Trunc: np.trunc,
+    }
+
+    for op, np_func in _scalar_ops.items():
+
+        @make_numba_thunk.register(op)
+        def make_numba_thunk_ScalarOp(op, node, storage_map):
+
+            # TODO This could just generate call ast directly
+            @numba.njit
+            def func(x):
+                return np_func(x)
+
+            return NumbaThunk.from_func_one_output(func, node, storage_map)
+
+
+_register_scalar_ops()
