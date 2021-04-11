@@ -1,9 +1,10 @@
 _name_factory_stack = []
 
+
 class NameFactory:
     def __init__(self):
         self._name_counts = {}
-        
+
     def unique_name(self, name):
         count = self._name_counts.setdefault(name, 0)
         if count == 0:
@@ -17,7 +18,7 @@ class NameFactory:
     def __enter__(self):
         global _name_factory_stack
         _name_factory_stack.append(self)
-    
+
     def __exit__(self, *args):
         global _name_factory_stack
         last = _name_factory_stack.pop()
@@ -29,7 +30,7 @@ def unique_name(name):
     if not _name_factory_stack:
         raise RuntimeError("No name factory on stack.")
     output = _name_factory_stack[-1].unique_name(name)
-    #assert output.isidentifier(), output
+    # assert output.isidentifier(), output
     return output
 
 
