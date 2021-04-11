@@ -87,7 +87,7 @@ def __oplist_tag(thing, tag):
 
 
 @_as_tensor_variable.register(Apply)
-def _as_tensor_Apply(x, name, ndim):
+def _as_tensor_Apply(x, name, ndim, **kwargs):
     # use Apply's default output mechanism
     if (x.op.default_output is None) and (len(x.outputs) != 1):
         raise TypeError(
@@ -97,17 +97,17 @@ def _as_tensor_Apply(x, name, ndim):
 
     x = x.default_output()
 
-    return as_tensor_variable(x, name=name, ndim=ndim)
+    return as_tensor_variable(x, name=name, ndim=ndim, **kwargs)
 
 
 @_as_tensor_variable.register(ScalarVariable)
 @_as_tensor_variable.register(ScalarConstant)
-def _as_tensor_Scalar(x, name, ndim):
-    return as_tensor_variable(tensor_from_scalar(x), name=name, ndim=ndim)
+def _as_tensor_Scalar(x, name, ndim, **kwargs):
+    return as_tensor_variable(tensor_from_scalar(x), name=name, ndim=ndim, **kwargs)
 
 
 @_as_tensor_variable.register(Variable)
-def _as_tensor_Variable(x, name, ndim):
+def _as_tensor_Variable(x, name, ndim, **kwargs):
     if not isinstance(x.type, TensorType):
         raise TypeError(
             "Tensor type field must be a TensorType; found {}.".format(type(x.type))
@@ -137,10 +137,10 @@ def _as_tensor_Variable(x, name, ndim):
 
 @_as_tensor_variable.register(list)
 @_as_tensor_variable.register(tuple)
-def _as_tensor_Sequence(x, name, ndim):
+def _as_tensor_Sequence(x, name, ndim, dtype=None, **kwargs):
 
     if len(x) == 0:
-        return constant(x, name=name, ndim=ndim)
+        return constant(x, name=name, ndim=ndim, dtype=dtype)
 
     # If a sequence has `Variable`s in it, then we want
     # to customize the conversion to a tensor type.
@@ -161,7 +161,8 @@ def _as_tensor_Sequence(x, name, ndim):
         ):
             # In this instance, we have a sequence of constants with which we
             # want to construct a vector, so we can use `MakeVector` directly.
-            dtype = aes.upcast(*[i.dtype for i in x if hasattr(i, "dtype")])
+            if dtype is None:
+                dtype = aes.upcast(*[i.dtype for i in x if hasattr(i, "dtype")])
             return MakeVector(dtype)(*x)
 
         # In this case, we have at least one non-`Constant` term, so we
@@ -169,19 +170,19 @@ def _as_tensor_Sequence(x, name, ndim):
         # symbolically join terms.
         return stack(x)
 
-    return constant(x, name=name, ndim=ndim)
+    return constant(x, name=name, ndim=ndim, dtype=dtype)
 
 
 @_as_tensor_variable.register(np.bool_)
 @_as_tensor_variable.register(np.number)
 @_as_tensor_variable.register(Number)
 @_as_tensor_variable.register(np.ndarray)
-def _as_tensor_numbers(x, name, ndim):
-    return constant(x, name=name, ndim=ndim)
+def _as_tensor_numbers(x, name, ndim, dtype=None, **kwargs):
+    return constant(x, name=name, ndim=ndim, dtype=dtype)
 
 
 @_as_tensor_variable.register(bool)
-def _as_tensor_bool(x, name, ndim):
+def _as_tensor_bool(x, name, ndim, **kwargs):
     raise TypeError(
         "Cannot cast True or False as a tensor variable. Please use "
         "np.array(True) or np.array(False) if you need these constants. "

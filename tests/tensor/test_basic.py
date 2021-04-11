@@ -462,6 +462,26 @@ class TestAsTensorVariable:
         ten = as_tensor_variable(np.array([True, False, False, True, True]))
         assert ten.type.dtype == "bool"
 
+    def test_dtype(self):
+        res = as_tensor_variable([])
+        assert res.type.dtype == config.floatX
+
+        res = as_tensor_variable([], dtype="int64")
+        assert res.type.dtype == "int64"
+
+        res = as_tensor_variable(np.array([1], dtype="int32"), dtype="int64")
+        assert res.type.dtype == "int64"
+
+        res = as_tensor_variable(np.array([1.0], dtype=config.floatX), dtype="int64")
+        # TODO: This cross-type conversion probably shouldn't be the default.
+        assert res.type.dtype == "int64"
+
+        x = as_tensor_variable(np.array([1.0, 2.0], dtype="float64"))
+        # This shouldn't convert the dtype, because it's already a `Variable`
+        # with a set dtype
+        res = as_tensor_variable(x, dtype="int64")
+        assert res.type.dtype == "float64"
+
     def test_memmap(self):
         inp = np.random.rand(4, 3)
         _, fname = mkstemp()
