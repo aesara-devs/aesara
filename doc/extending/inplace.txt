@@ -170,6 +170,9 @@ first input (position 0).
    myop.destroy_map = {0: [0, 1]} # first output operates inplace on both the first and second input
    # unlike for views, the previous line is legal and supported
 
+.. note::
+   ``DestroyHandler`` provides a hackish means of specifying that a variable cannot be
+   "destroyed" by an in-place operation: ``var.tag.indestructible = True``.
 
 Destructive Operations
 ======================
