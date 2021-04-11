@@ -79,7 +79,7 @@ class NumbaThunk:
 
 @singledispatch
 def make_numba_thunk(op, node, storage_map):
-    raise NotImplementedError()
+    raise NotImplementedError(f"No numba implementation of {type(op).__name__}.")
 
 
 @make_numba_thunk.register(aesara.scalar.basic.Add)
@@ -110,10 +110,14 @@ def make_numba_thunk_ScalarMul(op, node, storage_map):
 
 @make_numba_thunk.register(aesara.tensor.elemwise.Elemwise)
 def make_numba_thunk_Elemwise(op, node, storage_map):
-    scalar_graph = node.op.scalar_op.fgraph
 
-    from .numba_linker import compile_graph
-    scalar_func = compile_graph(scalar_graph)
+    if isinstance(node.op.scalar_op, aesara.scalar.basic.Composite):
+        from .numba_linker import compile_graph
+
+        scalar_graph = node.op.scalar_op.fgraph
+        scalar_func = compile_graph(scalar_graph)
+    else:
+        raise NotImplementedError()
 
     # TODO Need impl for arbitrary number of args
     @numba.vectorize

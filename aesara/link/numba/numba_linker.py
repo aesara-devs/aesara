@@ -34,30 +34,6 @@ def create_storage_map(fgraph, order):
     return input_storage, output_storage, constants, storage_map
 
 
-class AstLoader(importlib.abc.InspectLoader):
-    def __init__(self, asts):
-        self._asts = asts
-
-    def get_source(self, fullname):
-        if fullname not in self._asts:            
-            raise ImportError()
-        return None
-    
-    def get_code(self, fullname):
-        if fullname not in self._asts:
-            raise ImportError()
-        return self.source_to_code(self._asts[fullname])
-
-
-def load_module(module_name, module):
-    loader = AstLoader({module_name: module})
-    spec = importlib.util.spec_from_loader(module_name, loader)
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    sys.modules[module_name] = module
-    return module
-
-
 def compile_graph(graph, order=None, *, debug=False):
     if order is None:
         order = graph.toposort()
@@ -93,12 +69,14 @@ def compile_graph(graph, order=None, *, debug=False):
         mod = builder.wrap_in_module(['numba'], [run_func])
 
         # TODO name must be globally unique
-        mod = builder.compile(mod, f"aesara_function_{uuid.uuid4().bytes[:6]}", debug=debug)  
+        run_graph = builder.compile(
+            mod,
+            f"aesara_function_{uuid.uuid4().bytes[:6]}",
+            globals=global_vars,
+            debug=debug
+        )
 
-    for name, var in global_vars.items():
-        setattr(mod, name, var)
-
-    return mod.run_graph
+    return run_graph
 
 
 class AstBuilder:
@@ -142,8 +120,25 @@ class AstBuilder:
 
         return run_func
     
-    def compile(self, mod, module_name, *, debug=True):
+    def compile(self, mod, module_name, globals, *, debug=True):
         mod = ast.fix_missing_locations(mod)
         if debug:
-            print(astor.to_source(mod))
-        return load_module(unique_name(module_name), mod)
+            from tempfile import NamedTemporaryFile
+
+            import astor
+
+            mod_src = astor.to_source(mod)
+
+            with NamedTemporaryFile(delete=False) as f:
+                filename = f.name
+                f.write(mod_src.encode())
+
+            # Make sure line numbers match source
+            mod = ast.parse(mod_src)
+        else:
+            filename = "<meta>"
+
+        globals = globals.copy()
+        exec(compile(mod, filename, 'exec'), globals)
+
+        return globals["run_graph"]
