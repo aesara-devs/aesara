@@ -1575,6 +1575,9 @@ class BroadcastTo(Op):
 
         out = type(a.type)(dtype=a.type.dtype, broadcastable=bcast)()
 
+        # Attempt to prevent in-place operations on this view-based output
+        out.tag.indestructible = True
+
         return Apply(self, [a] + shape, [out])
 
     def perform(self, node, inputs, output_storage):

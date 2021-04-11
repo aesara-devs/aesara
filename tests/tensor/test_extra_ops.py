@@ -5,9 +5,11 @@ import aesara
 from aesara import function
 from aesara import tensor as aet
 from aesara.assert_op import Assert
+from aesara.compile.mode import Mode
 from aesara.configdefaults import config
 from aesara.gradient import grad
 from aesara.graph.basic import applys_between
+from aesara.graph.optdb import Query
 from aesara.tensor.elemwise import DimShuffle
 from aesara.tensor.extra_ops import (
     Bartlett,
@@ -41,6 +43,7 @@ from aesara.tensor.extra_ops import (
     unravel_index,
 )
 from aesara.tensor.math import sum as aet_sum
+from aesara.tensor.subtensor import AdvancedIncSubtensor1
 from aesara.tensor.type import (
     TensorType,
     dmatrix,
@@ -1155,3 +1158,22 @@ class TestBroadcastTo(utt.InferShapeTester):
             [np.random.rand(2, 1, 3).astype(config.floatX), 6, 2, 5, 3],
             self.op_class,
         )
+
+    def test_inplace(self):
+        """Make sure that in-place optimizations are *not* performed on the output of a ``BroadcastTo``."""
+        a = aet.zeros((5,))
+        d = aet.vector("d")
+        c = aet.set_subtensor(a[np.r_[0, 1, 3]], d)
+        b = broadcast_to(c, (5,))
+        q = b[np.r_[0, 1, 3]]
+        e = aet.set_subtensor(q, np.r_[0, 0, 0])
+
+        opts = Query(include=["inplace"])
+        py_mode = Mode("py", opts)
+        e_fn = function([d], e, mode=py_mode)
+
+        advincsub_node = e_fn.maker.fgraph.outputs[0].owner
+        assert isinstance(advincsub_node.op, AdvancedIncSubtensor1)
+        assert isinstance(advincsub_node.inputs[0].owner.op, BroadcastTo)
+
+        assert advincsub_node.op.inplace is False
