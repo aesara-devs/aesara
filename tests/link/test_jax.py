@@ -321,7 +321,7 @@ def test_jax_Composite():
 def test_jax_FunctionGraph_names():
     import inspect
 
-    from aesara.link.jax.jax_dispatch import jax_funcify
+    from aesara.link.jax.dispatch import jax_funcify
 
     x = scalar("1x")
     y = scalar("_")
@@ -337,7 +337,7 @@ def test_jax_FunctionGraph_names():
 
 def test_jax_FunctionGraph_once():
     """Make sure that an output is only computed once when it's referenced multiple times."""
-    from aesara.link.jax.jax_dispatch import jax_funcify
+    from aesara.link.jax.dispatch import jax_funcify
 
     x = vector("x")
     y = vector("y")

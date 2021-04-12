@@ -39,7 +39,7 @@ logic.
        return res if n_outs > 1 else res[0]
 
 *Code in context:*
-https://github.com/pymc-devs/aesara/blob/master/aesara/link/jax/jax_dispatch.py#L583
+https://github.com/pymc-devs/aesara/blob/master/aesara/link/jax/dispatch.py#L583
 
 Step 3: Register the function with the jax_funcify dispatcher
 =============================================================
@@ -49,9 +49,9 @@ function with the Aesara JAX Linker. This is done through the dispatcher
 decorator and closure as seen below. If unsure how dispatching works a
 short tutorial on dispatching is at the bottom.
 
-The linker functions should be added to ``jax_dispatch`` module linked
+The linker functions should be added to ``dispatch`` module linked
 below.
-https://github.com/pymc-devs/aesara/blob/master/aesara/link/jax/jax_dispatch.py
+https://github.com/pymc-devs/aesara/blob/master/aesara/link/jax/dispatch.py
 
 Here’s an example for the Eye Op.
 
@@ -69,7 +69,7 @@ Here’s an example for the Eye Op.
        return eye
 
 *Code in context:*
-https://github.com/pymc-devs/aesara/blob/master/aesara/link/jax/jax_dispatch.py#L1071
+https://github.com/pymc-devs/aesara/blob/master/aesara/link/jax/dispatch.py#L1071
 
 Step 4: Write tests
 ===================
