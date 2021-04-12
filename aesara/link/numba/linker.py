@@ -1,12 +1,10 @@
-import importlib
-import sys
 import ast
 import uuid
 
-import astor
+from aesara.graph.basic import Constant
 
-from .naming import unique_name, unique_name_for_apply, NameFactory
 from .dispatch import make_numba_thunk
+from .naming import NameFactory, unique_name_for_apply
 
 
 def create_storage_map(fgraph, order):
@@ -21,7 +19,7 @@ def create_storage_map(fgraph, order):
     for node in order:
         for r in node.inputs:
             if r not in storage_map:
-                # TODO assert r is constant
+                assert isinstance(r, Constant)
                 name = unique_name_for_apply(r)
                 constants[name] = r.data
                 storage_map[r] = name

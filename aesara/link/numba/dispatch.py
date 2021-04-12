@@ -1,11 +1,12 @@
-from functools import singledispatch
 import ast
+from functools import singledispatch
 
 import numba
 import numpy as np
 import scipy.special
 
 import aesara
+
 from .naming import unique_name
 
 

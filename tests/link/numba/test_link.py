@@ -34,7 +34,7 @@ def test_composite():
     x = np.random.randn(1000)
     y = np.random.randn(1000)
 
-    res = numba_fn(x, y)
+    res = func(x, y)  # Answer from python mode compilation of FunctionGraph
+    numba_res = numba_fn(x, y)  # Answer from Numba converted FunctionGraph
 
-    # TODO: Make a real test
-    assert res
+    assert np.array_equal(res, numba_res)
