@@ -1,6 +1,12 @@
+import ast
+import re
 import warnings
-from collections.abc import Sequence
-from functools import reduce, singledispatch, update_wrapper
+from collections import Counter
+from functools import reduce, singledispatch
+from keyword import iskeyword
+from tempfile import NamedTemporaryFile
+from textwrap import indent
+from types import FunctionType
 from warnings import warn
 
 import jax
@@ -11,8 +17,10 @@ from numpy.random import RandomState
 
 from aesara.compile.ops import DeepCopyOp, ViewOp
 from aesara.configdefaults import config
+from aesara.graph.basic import Constant, Variable
 from aesara.graph.fg import FunctionGraph
 from aesara.ifelse import IfElse
+from aesara.link.utils import map_storage
 from aesara.scalar.basic import Cast, Clip, Composite, Identity, ScalarOp, Second
 from aesara.scan.op import Scan
 from aesara.scan.utils import scan_args as ScanArgs
@@ -95,102 +103,6 @@ subtensor_ops = (Subtensor, AdvancedSubtensor1, AdvancedSubtensor)
 incsubtensor_ops = (IncSubtensor, AdvancedIncSubtensor1)
 
 
-def compose_jax_funcs(out_node, fgraph_inputs, memo=None):
-    """Compose JAX implementations of node operations.
-
-    This function walks the graph given by the `Apply` node, `out_node`, and
-    creates JAX JIT-able functions for its input and output variables.
-
-    Parameters
-    ----------
-    out_node: aesara.graph.basic.Apply
-        The node for which we want to construct a JAX JIT-able function.
-    fgraph_inputs: List[Variable]
-        The inputs--in a `FunctionGraph` sense--to `out_node`.
-    memo: Mapping (Optional)
-        A map from visited nodes to their JAX functions.
-
-    Outputs
-    -------
-    A `function` object that represents the composed JAX operations and takes
-    the same form of inputs as `fgraph_inputs`.
-
-    """
-    if memo is None:
-        memo = {}
-
-    if out_node in memo:
-        return memo[out_node]
-
-    jax_return_func = jax_funcify(out_node.op)
-
-    # We create a list of JAX-able functions that produce the values of each
-    # input variable for `out_node`.
-    input_funcs = []
-    for i in out_node.inputs:
-        if i in fgraph_inputs:
-            # This input is a top-level input (i.e. an input to the
-            # `FunctionGraph` in which this `out_node` resides)
-            idx = fgraph_inputs.index(i)
-
-            i_dtype = getattr(i, "dtype", None)
-
-            def jax_inputs_func(*inputs, i_dtype=i_dtype, idx=idx):
-                return jax_typify(inputs[idx], i_dtype)
-
-            input_f = jax_inputs_func
-
-        elif i.owner is None:
-            # This input is something like an `aesara.graph.basic.Constant`
-
-            i_dtype = getattr(i, "dtype", None)
-            i_data = i.data
-
-            def jax_data_func(*inputs, i_dtype=i_dtype, i_data=i_data):
-                return jax_typify(i_data, i_dtype)
-
-            input_f = jax_data_func
-        else:
-            # This input is the output of another node, so we need to
-            # generate a JAX-able function for its subgraph
-            input_f = compose_jax_funcs(i.owner, fgraph_inputs, memo)
-
-            if i.owner.nout > 1:
-                # This input is one of multiple outputs from the `i.owner`
-                # node, and we need to determine exactly which one it is and
-                # create a JAX-able function that returns only it.
-                out_idx = i.owner.outputs.index(i)
-                (out_fn,) = input_f
-
-                def jax_multiout_func(*inputs, out_idx=out_idx, out_fn=out_fn):
-                    return out_fn(*inputs)[out_idx]
-
-                input_f = jax_multiout_func
-
-        assert callable(input_f)
-
-        input_funcs.append(input_f)
-
-    if not isinstance(jax_return_func, Sequence):
-        jax_return_func = [jax_return_func]
-
-    jax_funcs = []
-    for return_func in jax_return_func:
-
-        def jax_func(*inputs):
-            func_args = [fn(*inputs) for fn in input_funcs]
-            return return_func(*func_args)
-
-        jax_funcs.append(update_wrapper(jax_func, return_func))
-
-    if len(out_node.outputs) == 1:
-        jax_funcs = jax_funcs[0]
-
-    memo[out_node] = jax_funcs
-
-    return jax_funcs
-
-
 @singledispatch
 def jax_typify(data, dtype):
     """Convert instances of Aesara `Type`s to JAX types."""
@@ -213,7 +125,7 @@ def jax_typify_RandomState(state, dtype):
 
 
 @singledispatch
-def jax_funcify(op):
+def jax_funcify(op, **kwargs):
     """Create a JAX compatible function from an Aesara `Op`."""
     raise NotImplementedError(f"No JAX conversion for the given `Op`: {op}")
 
@@ -458,8 +370,17 @@ def jax_funcify_Elemwise(op):
 
 @jax_funcify.register(Composite)
 def jax_funcify_Composite(op):
+    # This approach basically gets rid of the fused `Elemwise` by turning each
+    # `Op` in the `Composite` back into individually broadcasted NumPy-like
+    # operations.
+    # TODO: A better approach would involve something like `jax.vmap` or some
+    # other operation that can perform the broadcasting that `Elemwise` does.
     jax_impl = jax_funcify(op.fgraph)
-    return jax_impl
+
+    def composite(*args):
+        return jax_impl(*args)[0]
+
+    return composite
 
 
 @jax_funcify.register(Scan)
@@ -684,12 +605,94 @@ def jax_funcify_AdvancedIncSubtensor(op):
 
 
 @jax_funcify.register(FunctionGraph)
-def jax_funcify_FunctionGraph(fgraph):
+def jax_funcify_FunctionGraph(
+    fgraph, order=None, input_storage=None, output_storage=None, storage_map=None
+):
 
-    out_nodes = [r.owner for r in fgraph.outputs if r.owner is not None]
-    jax_funcs = [compose_jax_funcs(o, fgraph.inputs) for o in out_nodes]
+    if order is None:
+        order = fgraph.toposort()
+    input_storage, output_storage, storage_map = map_storage(
+        fgraph, order, input_storage, output_storage, storage_map
+    )
 
-    return jax_funcs
+    global_env = {}
+    fgraph_name = "jax_funcified_fgraph"
+
+    def unique_name(x, names_counter=Counter([fgraph_name]), obj_to_names={}):
+        if x in obj_to_names:
+            return obj_to_names[x]
+
+        if isinstance(x, Variable):
+            name = re.sub("[^0-9a-zA-Z]+", "_", x.name) if x.name else ""
+            name = (
+                name if (name.isidentifier() and not iskeyword(name)) else x.auto_name
+            )
+        elif isinstance(x, FunctionType):
+            name = x.__name__
+        else:
+            name = type(x).__name__
+
+        name_suffix = names_counter.get(name, "")
+        local_name = f"{name}{name_suffix}"
+
+        names_counter.update((name,))
+        obj_to_names[x] = local_name
+
+        return local_name
+
+    body_assigns = []
+    for node in order:
+        jax_func = jax_funcify(node.op)
+
+        # Create a local alias with a unique name
+        local_jax_func_name = unique_name(jax_func)
+        global_env[local_jax_func_name] = jax_func
+
+        node_input_names = []
+        for i in node.inputs:
+            local_input_name = unique_name(i)
+            if storage_map[i][0] is not None or isinstance(i, Constant):
+                # Constants need to be assigned locally and referenced
+                global_env[local_input_name] = jax_typify(storage_map[i][0], None)
+                # TODO: We could attempt to use the storage arrays directly
+                # E.g. `local_input_name = f"{local_input_name}[0]"`
+            node_input_names.append(local_input_name)
+
+        node_output_names = [unique_name(v) for v in node.outputs]
+
+        body_assigns.append(
+            f"{', '.join(node_output_names)} = {local_jax_func_name}({', '.join(node_input_names)})"
+        )
+
+    fgraph_input_names = [unique_name(v) for v in fgraph.inputs]
+    fgraph_output_names = [unique_name(v) for v in fgraph.outputs]
+    joined_body_assigns = indent("\n".join(body_assigns), "    ")
+
+    if len(fgraph_output_names) == 1:
+        fgraph_return_src = f"({fgraph_output_names[0]},)"
+    else:
+        fgraph_return_src = ", ".join(fgraph_output_names)
+
+    fgraph_def_src = f"""
+def {fgraph_name}({", ".join(fgraph_input_names)}):
+{joined_body_assigns}
+    return {fgraph_return_src}
+    """
+
+    fgraph_def_ast = ast.parse(fgraph_def_src)
+
+    # Create source code to be (at least temporarily) associated with the
+    # compiled function (e.g. for easier debugging)
+    with NamedTemporaryFile(delete=False) as f:
+        filename = f.name
+        f.write(fgraph_def_src.encode())
+
+    mod_code = compile(fgraph_def_ast, filename, mode="exec")
+    exec(mod_code, global_env, locals())
+
+    fgraph_def = locals()[fgraph_name]
+
+    return fgraph_def
 
 
 @jax_funcify.register(CAReduce)

@@ -10,11 +10,13 @@ from aesara.compile.mode import Mode
 from aesara.compile.ops import DeepCopyOp, ViewOp
 from aesara.compile.sharedvalue import SharedVariable, shared
 from aesara.configdefaults import config
+from aesara.graph.basic import Apply
 from aesara.graph.fg import FunctionGraph
-from aesara.graph.op import get_test_value
+from aesara.graph.op import Op, get_test_value
 from aesara.graph.optdb import Query
 from aesara.ifelse import ifelse
 from aesara.link.jax import JAXLinker
+from aesara.scalar.basic import Composite
 from aesara.scan.basic import scan
 from aesara.tensor import basic as aet
 from aesara.tensor import blas as aet_blas
@@ -24,6 +26,7 @@ from aesara.tensor import nlinalg as aet_nlinalg
 from aesara.tensor import nnet as aet_nnet
 from aesara.tensor import slinalg as aet_slinalg
 from aesara.tensor import subtensor as aet_subtensor
+from aesara.tensor.elemwise import Elemwise
 from aesara.tensor.math import MaxAndArgmax
 from aesara.tensor.math import all as aet_all
 from aesara.tensor.math import clip, cosh, gammaln, log
@@ -293,6 +296,94 @@ def test_jax_basic():
         out_fg,
         [(np.eye(10) + np.random.randn(10, 10) * 0.01).astype(config.floatX)],
     )
+
+
+def test_jax_Composite():
+    x_s = aes.float64("x")
+    y_s = aes.float64("y")
+
+    comp_op = Elemwise(Composite([x_s, y_s], [x_s + y_s * 2]))
+
+    x = vector("x")
+    y = vector("y")
+
+    out = comp_op(x, y)
+
+    out_fg = FunctionGraph([x, y], [out])
+
+    test_input_vals = [
+        np.arange(10).astype(config.floatX),
+        np.arange(10, 20).astype(config.floatX),
+    ]
+    _ = compare_jax_and_py(out_fg, test_input_vals)
+
+
+def test_jax_FunctionGraph_names():
+    import inspect
+
+    from aesara.link.jax.jax_dispatch import jax_funcify
+
+    x = scalar("1x")
+    y = scalar("_")
+    z = scalar()
+    q = scalar("def")
+
+    out_fg = FunctionGraph([x, y, z, q], [x, y, z, q], clone=False)
+    out_jx = jax_funcify(out_fg)
+    sig = inspect.signature(out_jx)
+    assert (x.auto_name, "_", z.auto_name, q.auto_name) == tuple(sig.parameters.keys())
+    assert (1, 2, 3, 4) == out_jx(1, 2, 3, 4)
+
+
+def test_jax_FunctionGraph_once():
+    """Make sure that an output is only computed once when it's referenced multiple times."""
+    from aesara.link.jax.jax_dispatch import jax_funcify
+
+    x = vector("x")
+    y = vector("y")
+
+    class TestOp(Op):
+        def __init__(self):
+            self.called = 0
+
+        def make_node(self, *args):
+            return Apply(self, list(args), [x.type() for x in args])
+
+        def perform(self, inputs, outputs):
+            for i, inp in enumerate(inputs):
+                outputs[i][0] = inp[0]
+
+    @jax_funcify.register(TestOp)
+    def jax_funcify_TestOp(op):
+        def func(*args, op=op):
+            op.called += 1
+            return list(args)
+
+        return func
+
+    op1 = TestOp()
+    op2 = TestOp()
+
+    q, r = op1(x, y)
+    outs = op2(q + r, q + r)
+
+    out_fg = FunctionGraph([x, y], outs, clone=False)
+    assert len(out_fg.outputs) == 2
+
+    out_jx = jax_funcify(out_fg)
+
+    x_val = np.r_[1, 2].astype(config.floatX)
+    y_val = np.r_[2, 3].astype(config.floatX)
+
+    res = out_jx(x_val, y_val)
+    assert len(res) == 2
+    assert op1.called == 1
+    assert op2.called == 1
+
+    res = out_jx(x_val, y_val)
+    assert len(res) == 2
+    assert op1.called == 2
+    assert op2.called == 2
 
 
 def test_jax_eye():

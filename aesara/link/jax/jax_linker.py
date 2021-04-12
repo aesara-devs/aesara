@@ -1,4 +1,3 @@
-from collections.abc import Sequence
 from warnings import warn
 
 from numpy.random import RandomState
@@ -23,7 +22,9 @@ class JAXLinker(PerformLinker):
 
     allow_non_jax = False
 
-    def create_jax_thunks(self, compute_map, storage_map):
+    def create_jax_thunks(
+        self, compute_map, order, input_storage, output_storage, storage_map
+    ):
         """Create a thunk for each output of the `Linker`s `FunctionGraph`.
 
         This is differs from the other thunk-making function in that it only
@@ -51,9 +52,12 @@ class JAXLinker(PerformLinker):
         output_nodes = [o.owner for o in self.fgraph.outputs]
 
         # Create a JAX-compilable function from our `FunctionGraph`
-        jaxed_fgraph_outputs = jax_funcify(self.fgraph)
-
-        assert len(jaxed_fgraph_outputs) == len(output_nodes)
+        jaxed_fgraph = jax_funcify(
+            self.fgraph,
+            input_storage=input_storage,
+            output_storage=output_storage,
+            storage_map=storage_map,
+        )
 
         # I suppose we can consider `Constant`s to be "static" according to
         # JAX.
@@ -75,52 +79,36 @@ class JAXLinker(PerformLinker):
 
         thunks = []
 
-        for node, jax_funcs in zip(output_nodes, jaxed_fgraph_outputs):
+        thunk_outputs = [storage_map[n] for n in self.fgraph.outputs]
 
-            thunk_outputs = [storage_map[n] for n in node.outputs]
+        fgraph_jit = jax.jit(jaxed_fgraph, static_argnums)
 
-            if not isinstance(jax_funcs, Sequence):
-                jax_funcs = [jax_funcs]
+        def thunk(
+            fgraph=self.fgraph,
+            fgraph_jit=fgraph_jit,
+            thunk_inputs=thunk_inputs,
+            thunk_outputs=thunk_outputs,
+        ):
+            outputs = fgraph_jit(*[x[0] for x in thunk_inputs])
 
-            jax_impl_jits = [
-                jax.jit(jax_func, static_argnums) for jax_func in jax_funcs
-            ]
+            for o_node, o_storage, o_val in zip(fgraph.outputs, thunk_outputs, outputs):
+                compute_map[o_node][0] = True
+                if len(o_storage) > 1:
+                    assert len(o_storage) == len(o_val)
+                    for i, o_sub_val in enumerate(o_val):
+                        o_storage[i] = o_sub_val
+                else:
+                    o_storage[0] = o_val
+            return outputs
 
-            def thunk(
-                node=node, jax_impl_jits=jax_impl_jits, thunk_outputs=thunk_outputs
-            ):
-                outputs = [
-                    jax_impl_jit(*[x[0] for x in thunk_inputs])
-                    for jax_impl_jit in jax_impl_jits
-                ]
+        thunk.inputs = thunk_inputs
+        thunk.outputs = thunk_outputs
+        thunk.lazy = False
 
-                if len(jax_impl_jits) < len(node.outputs):
-                    # In this case, the JAX function will output a single
-                    # output that contains the other outputs.
-                    # This happens for multi-output `Op`s that directly
-                    # correspond to multi-output JAX functions (e.g. `SVD` and
-                    # `jax.numpy.linalg.svd`).
-                    outputs = outputs[0]
+        thunks.append(thunk)
 
-                for o_node, o_storage, o_val in zip(
-                    node.outputs, thunk_outputs, outputs
-                ):
-                    compute_map[o_node][0] = True
-                    if len(o_storage) > 1:
-                        assert len(o_storage) == len(o_val)
-                        for i, o_sub_val in enumerate(o_val):
-                            o_storage[i] = o_sub_val
-                    else:
-                        o_storage[0] = o_val
-                return outputs
-
-            thunk.inputs = thunk_inputs
-            thunk.outputs = thunk_outputs
-            thunk.lazy = False
-
-            thunks.append(thunk)
-
-        return thunks, output_nodes
+        # This is a bit hackish, but we only return one of the output nodes
+        return thunks, output_nodes[:1]
 
     def make_all(self, input_storage=None, output_storage=None, storage_map=None):
         fgraph = self.fgraph
@@ -138,7 +126,9 @@ class JAXLinker(PerformLinker):
         try:
             # We need to create thunk functions that will populate the output
             # storage arrays with the JAX-computed values.
-            thunks, nodes = self.create_jax_thunks(compute_map, storage_map)
+            thunks, nodes = self.create_jax_thunks(
+                compute_map, nodes, input_storage, output_storage, storage_map
+            )
 
         except NotImplementedError as e:
             if not self.allow_non_jax:
