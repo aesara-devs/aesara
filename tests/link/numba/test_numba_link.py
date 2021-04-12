@@ -31,10 +31,26 @@ def test_composite():
     func = aesara.function([x, y], [z], mode=mode)
     numba_fn = compile_graph(func.maker.fgraph, debug=True)
 
-    x = np.random.randn(1000)
-    y = np.random.randn(1000)
+    x_val = np.random.randn(1000)
+    y_val = np.random.randn(1000)
 
-    res = func(x, y)  # Answer from python mode compilation of FunctionGraph
-    numba_res = numba_fn(x, y)  # Answer from Numba converted FunctionGraph
+    res = func(x_val, y_val)  # Answer from python mode compilation of FunctionGraph
+    numba_res = numba_fn(x_val, y_val)  # Answer from Numba converted FunctionGraph
 
     assert np.array_equal(res, numba_res)
+
+    # y1 = aet.vector("y1")
+    # x1 = aet.vector("x1")
+
+    # z = (x + y) * (x1 + y1) * y
+
+    # x1_val = np.random.randn(1000)
+    # y1_val = np.random.randn(1000)
+
+    # func = aesara.function([x, y, x1, y1], [z], mode=mode)
+    # numba_fn = compile_graph(func.maker.fgraph, debug=True)
+
+    # res = func(x_val, y_val, x1_val, y1_val)  # Answer from python mode compilation of FunctionGraph
+    # numba_res = numba_fn(x_val, y_val,x1_val,y1_val)  # Answer from Numba converted FunctionGraph
+
+    # assert np.array_equal(res, numba_res)
