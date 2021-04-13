@@ -13,6 +13,7 @@ sympy
 versioneer
 jax; python_version > '3.6'
 jaxlib; python_version > '3.6'
+numba
 diff-cover
 pre-commit
 isort
