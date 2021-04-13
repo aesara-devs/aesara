@@ -1,12 +1,5 @@
-import ast
-import re
 import warnings
-from collections import Counter
 from functools import reduce, singledispatch
-from keyword import iskeyword
-from tempfile import NamedTemporaryFile
-from textwrap import indent
-from types import FunctionType
 from warnings import warn
 
 import jax
@@ -17,10 +10,9 @@ from numpy.random import RandomState
 
 from aesara.compile.ops import DeepCopyOp, ViewOp
 from aesara.configdefaults import config
-from aesara.graph.basic import Constant, Variable
 from aesara.graph.fg import FunctionGraph
 from aesara.ifelse import IfElse
-from aesara.link.utils import map_storage
+from aesara.link.utils import fgraph_to_python
 from aesara.scalar.basic import Cast, Clip, Composite, Identity, ScalarOp, Second
 from aesara.scan.op import Scan
 from aesara.scan.utils import scan_args as ScanArgs
@@ -104,7 +96,7 @@ incsubtensor_ops = (IncSubtensor, AdvancedIncSubtensor1)
 
 
 @singledispatch
-def jax_typify(data, dtype):
+def jax_typify(data, dtype=None, **kwargs):
     """Convert instances of Aesara `Type`s to JAX types."""
     if dtype is None:
         return data
@@ -113,12 +105,12 @@ def jax_typify(data, dtype):
 
 
 @jax_typify.register(np.ndarray)
-def jax_typify_ndarray(data, dtype):
+def jax_typify_ndarray(data, dtype=None, **kwargs):
     return jnp.array(data, dtype=dtype)
 
 
 @jax_typify.register(RandomState)
-def jax_typify_RandomState(state, dtype):
+def jax_typify_RandomState(state, **kwargs):
     state = state.get_state(legacy=False)
     state["bit_generator"] = numpy_bit_gens[state["bit_generator"]]
     return state
@@ -608,91 +600,17 @@ def jax_funcify_FunctionGraph(
     storage_map=None,
     **kwargs,
 ):
-
-    if order is None:
-        order = fgraph.toposort()
-    input_storage, output_storage, storage_map = map_storage(
-        fgraph, order, input_storage, output_storage, storage_map
+    return fgraph_to_python(
+        fgraph,
+        jax_funcify,
+        jax_typify,
+        order,
+        input_storage,
+        output_storage,
+        storage_map,
+        fgraph_name="jax_funcified_fgraph",
+        **kwargs,
     )
-
-    global_env = {}
-    fgraph_name = "jax_funcified_fgraph"
-
-    def unique_name(x, names_counter=Counter([fgraph_name]), obj_to_names={}):
-        if x in obj_to_names:
-            return obj_to_names[x]
-
-        if isinstance(x, Variable):
-            name = re.sub("[^0-9a-zA-Z]+", "_", x.name) if x.name else ""
-            name = (
-                name if (name.isidentifier() and not iskeyword(name)) else x.auto_name
-            )
-        elif isinstance(x, FunctionType):
-            name = x.__name__
-        else:
-            name = type(x).__name__
-
-        name_suffix = names_counter.get(name, "")
-        local_name = f"{name}{name_suffix}"
-
-        names_counter.update((name,))
-        obj_to_names[x] = local_name
-
-        return local_name
-
-    body_assigns = []
-    for node in order:
-        jax_func = jax_funcify(node.op, node=node, **kwargs)
-
-        # Create a local alias with a unique name
-        local_jax_func_name = unique_name(jax_func)
-        global_env[local_jax_func_name] = jax_func
-
-        node_input_names = []
-        for i in node.inputs:
-            local_input_name = unique_name(i)
-            if storage_map[i][0] is not None or isinstance(i, Constant):
-                # Constants need to be assigned locally and referenced
-                global_env[local_input_name] = jax_typify(storage_map[i][0], None)
-                # TODO: We could attempt to use the storage arrays directly
-                # E.g. `local_input_name = f"{local_input_name}[0]"`
-            node_input_names.append(local_input_name)
-
-        node_output_names = [unique_name(v) for v in node.outputs]
-
-        body_assigns.append(
-            f"{', '.join(node_output_names)} = {local_jax_func_name}({', '.join(node_input_names)})"
-        )
-
-    fgraph_input_names = [unique_name(v) for v in fgraph.inputs]
-    fgraph_output_names = [unique_name(v) for v in fgraph.outputs]
-    joined_body_assigns = indent("\n".join(body_assigns), "    ")
-
-    if len(fgraph_output_names) == 1:
-        fgraph_return_src = f"({fgraph_output_names[0]},)"
-    else:
-        fgraph_return_src = ", ".join(fgraph_output_names)
-
-    fgraph_def_src = f"""
-def {fgraph_name}({", ".join(fgraph_input_names)}):
-{joined_body_assigns}
-    return {fgraph_return_src}
-    """
-
-    fgraph_def_ast = ast.parse(fgraph_def_src)
-
-    # Create source code to be (at least temporarily) associated with the
-    # compiled function (e.g. for easier debugging)
-    with NamedTemporaryFile(delete=False) as f:
-        filename = f.name
-        f.write(fgraph_def_src.encode())
-
-    mod_code = compile(fgraph_def_ast, filename, mode="exec")
-    exec(mod_code, global_env, locals())
-
-    fgraph_def = locals()[fgraph_name]
-
-    return fgraph_def
 
 
 @jax_funcify.register(CAReduce)

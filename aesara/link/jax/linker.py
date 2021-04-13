@@ -69,7 +69,9 @@ class JAXLinker(PerformLinker):
         for n in self.fgraph.inputs:
             sinput = storage_map[n]
             if isinstance(sinput[0], RandomState):
-                new_value = jax_typify(sinput[0], getattr(sinput[0], "dtype", None))
+                new_value = jax_typify(
+                    sinput[0], dtype=getattr(sinput[0], "dtype", None)
+                )
                 # We need to remove the reference-based connection to the
                 # original `RandomState`/shared variable's storage, because
                 # subsequent attempts to use the same shared variable within
