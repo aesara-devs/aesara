@@ -1,15 +1,22 @@
+import ast
 import io
+import re
 import sys
 import traceback
 import warnings
+from collections import Counter
+from keyword import iskeyword
 from operator import itemgetter
-from typing import Callable, Dict, Iterable, List, NoReturn, Optional, Tuple, Union
+from tempfile import NamedTemporaryFile
+from textwrap import indent
+from types import FunctionType
+from typing import Any, Callable, Dict, Iterable, List, NoReturn, Optional, Tuple, Union
 
 import numpy as np
 
 from aesara import utils
 from aesara.configdefaults import config
-from aesara.graph.basic import Apply, Constant
+from aesara.graph.basic import Apply, Constant, Variable
 from aesara.graph.fg import FunctionGraph
 
 
@@ -564,3 +571,139 @@ def register_thunk_trace_excepthook(handler: io.TextIOWrapper = sys.stdout):
 
 
 register_thunk_trace_excepthook()
+
+
+def fgraph_to_python(
+    fgraph: FunctionGraph,
+    op_conversion_fn: Callable,
+    type_conversion_fn: Optional[Callable] = lambda x, **kwargs: x,
+    order: Optional[List[Variable]] = None,
+    input_storage: Optional[List[Any]] = None,
+    output_storage: Optional[List[Any]] = None,
+    storage_map: Optional[Dict[Variable, List[Any]]] = None,
+    fgraph_name: str = "fgraph_to_python",
+    global_env: Optional[Dict[Any, Any]] = None,
+    local_env: Optional[Dict[Any, Any]] = None,
+    **kwargs,
+) -> FunctionType:
+    """Convert a ``FunctionGraph`` into a regular Python function.
+
+    Parameters
+    ==========
+    fgraph
+        The ``FunctionGraph`` to convert.
+    op_conversion_fn
+        A callable used to convert nodes inside `fgraph` based on their ``Op``
+        types.  It must have the signature ``(Op, **kwargs)``.  One of the
+        keyword arguments will be ``node``, which provides the ``Apply`` node.
+    type_conversion_fn
+        A callable used to convert the values in `storage_map`.
+    order
+        The ``order`` argument to ``map_storage``.
+    input_storage
+        The ``input_storage`` argument to ``map_storage``.
+    output_storage
+        The ``output_storage`` argument to ``map_storage``.
+    storage_map
+        The ``storage_map`` argument to ``map_storage``.
+    fgraph_name
+        The name used for the resulting function.
+    global_env
+        The global environment used when the function is constructed.
+        The default is an empty ``dict``.
+    local_env
+        The local environment used when the function is constructed.
+        The default is ``locals()``.
+    **kwargs
+        The remaining keywords are passed to `python_conversion_fn`
+    """
+
+    if order is None:
+        order = fgraph.toposort()
+    input_storage, output_storage, storage_map = map_storage(
+        fgraph, order, input_storage, output_storage, storage_map
+    )
+
+    if global_env is None:
+        global_env = {}
+
+    def unique_name(x, names_counter=Counter([fgraph_name]), obj_to_names={}):
+        if x in obj_to_names:
+            return obj_to_names[x]
+
+        if isinstance(x, Variable):
+            name = re.sub("[^0-9a-zA-Z]+", "_", x.name) if x.name else ""
+            name = (
+                name if (name.isidentifier() and not iskeyword(name)) else x.auto_name
+            )
+        elif isinstance(x, FunctionType):
+            name = x.__name__
+        else:
+            name = type(x).__name__
+
+        name_suffix = names_counter.get(name, "")
+        local_name = f"{name}{name_suffix}"
+
+        names_counter.update((name,))
+        obj_to_names[x] = local_name
+
+        return local_name
+
+    body_assigns = []
+    for node in order:
+        jax_func = op_conversion_fn(node.op, node=node, **kwargs)
+
+        # Create a local alias with a unique name
+        local_jax_func_name = unique_name(jax_func)
+        global_env[local_jax_func_name] = jax_func
+
+        node_input_names = []
+        for i in node.inputs:
+            local_input_name = unique_name(i)
+            if storage_map[i][0] is not None or isinstance(i, Constant):
+                # Constants need to be assigned locally and referenced
+                global_env[local_input_name] = type_conversion_fn(
+                    storage_map[i][0], node=None, **kwargs
+                )
+                # TODO: We could attempt to use the storage arrays directly
+                # E.g. `local_input_name = f"{local_input_name}[0]"`
+            node_input_names.append(local_input_name)
+
+        node_output_names = [unique_name(v) for v in node.outputs]
+
+        body_assigns.append(
+            f"{', '.join(node_output_names)} = {local_jax_func_name}({', '.join(node_input_names)})"
+        )
+
+    fgraph_input_names = [unique_name(v) for v in fgraph.inputs]
+    fgraph_output_names = [unique_name(v) for v in fgraph.outputs]
+    joined_body_assigns = indent("\n".join(body_assigns), "    ")
+
+    if len(fgraph_output_names) == 1:
+        fgraph_return_src = f"({fgraph_output_names[0]},)"
+    else:
+        fgraph_return_src = ", ".join(fgraph_output_names)
+
+    fgraph_def_src = f"""
+def {fgraph_name}({", ".join(fgraph_input_names)}):
+{joined_body_assigns}
+    return {fgraph_return_src}
+    """
+
+    fgraph_def_ast = ast.parse(fgraph_def_src)
+
+    # Create source code to be (at least temporarily) associated with the
+    # compiled function (e.g. for easier debugging)
+    with NamedTemporaryFile(delete=False) as f:
+        filename = f.name
+        f.write(fgraph_def_src.encode())
+
+    if local_env is None:
+        local_env = locals()
+
+    mod_code = compile(fgraph_def_ast, filename, mode="exec")
+    exec(mod_code, global_env, local_env)
+
+    fgraph_def = local_env[fgraph_name]
+
+    return fgraph_def
