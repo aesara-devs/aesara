@@ -4,7 +4,7 @@ import numba
 
 from aesara.graph.fg import FunctionGraph
 from aesara.link.utils import fgraph_to_python
-from aesara.scalar.basic import Add, Composite, Mul
+from aesara.scalar.basic import Composite, ScalarOp
 from aesara.tensor.elemwise import Elemwise
 
 
@@ -41,26 +41,20 @@ def numba_funcify_FunctionGraph(
     )
 
 
-# TODO: Generalize Add and Mul
-@numba_funcify.register(Add)
-def numba_funcify_ScalarAdd(op, **kwargs):
+@numba_funcify.register(ScalarOp)
+def numba_funcify_ScalarOp(op, **kwargs):
+    import numpy as np
+
+    numpy_func = getattr(np, op.nfunc_spec[0])
+
     @numba.njit
-    def add(x, y):
-        result = 0
-        result = x + y
+    def scalar_func(*args):
+        result = args[0]
+        for arg in args[1:]:
+            result = numpy_func(arg, result)
         return result
 
-    return add
-
-
-@numba_funcify.register(Mul)
-def numba_funcify_ScalarMul(op, **kwargs):
-    @numba.njit
-    def mul(x, y, z):
-        result = x * y * z
-        return result
-
-    return mul
+    return scalar_func
 
 
 @numba_funcify.register(Elemwise)
