@@ -1,9 +1,11 @@
 import ast
-from functools import singledispatch
+from functools import reduce, singledispatch
 from tempfile import NamedTemporaryFile
 
 import numba
 import numpy as np
+import scipy
+import scipy.special
 
 from aesara.compile.ops import DeepCopyOp
 from aesara.graph.fg import FunctionGraph
@@ -51,16 +53,24 @@ def numba_funcify_FunctionGraph(
 @numba_funcify.register(ScalarOp)
 def numba_funcify_ScalarOp(op, **kwargs):
 
-    numpy_func = getattr(np, op.nfunc_spec[0])
+    scalar_func_name = op.nfunc_spec[0]
+
+    if scalar_func_name.startswith("scipy."):
+        func_package = scipy
+        scalar_func_name = scalar_func_name.split(".", 1)[-1]
+    else:
+        func_package = np
+
+    if "." in scalar_func_name:
+        scalar_func = reduce(getattr, [scipy] + scalar_func_name.split("."))
+    else:
+        scalar_func = getattr(func_package, scalar_func_name)
 
     @numba.njit
-    def scalar_func(*args):
-        result = args[0]
-        for arg in args[1:]:
-            result = numpy_func(arg, result)
-        return result
+    def scalar_op(*args):
+        return scalar_func(*args)
 
-    return scalar_func
+    return scalar_op
 
 
 @numba_funcify.register(Elemwise)
