@@ -573,6 +573,25 @@ def register_thunk_trace_excepthook(handler: io.TextIOWrapper = sys.stdout):
 register_thunk_trace_excepthook()
 
 
+def compile_function_src(src, function_name, global_env=None, local_env=None):
+    src_ast = ast.parse(src)
+
+    with NamedTemporaryFile(delete=False) as f:
+        filename = f.name
+        f.write(src.encode())
+
+    if global_env is None:
+        global_env = {}
+
+    if local_env is None:
+        local_env = {}
+
+    mod_code = compile(src_ast, filename, mode="exec")
+    exec(mod_code, global_env, local_env)
+
+    return local_env[function_name]
+
+
 def fgraph_to_python(
     fgraph: FunctionGraph,
     op_conversion_fn: Callable,
@@ -624,9 +643,6 @@ def fgraph_to_python(
         fgraph, order, input_storage, output_storage, storage_map
     )
 
-    if global_env is None:
-        global_env = {}
-
     def unique_name(x, names_counter=Counter([fgraph_name]), obj_to_names={}):
         if x in obj_to_names:
             return obj_to_names[x]
@@ -648,6 +664,9 @@ def fgraph_to_python(
         obj_to_names[x] = local_name
 
         return local_name
+
+    if global_env is None:
+        global_env = {}
 
     body_assigns = []
     for node in order:
@@ -690,20 +709,11 @@ def {fgraph_name}({", ".join(fgraph_input_names)}):
     return {fgraph_return_src}
     """
 
-    fgraph_def_ast = ast.parse(fgraph_def_src)
-
-    # Create source code to be (at least temporarily) associated with the
-    # compiled function (e.g. for easier debugging)
-    with NamedTemporaryFile(delete=False) as f:
-        filename = f.name
-        f.write(fgraph_def_src.encode())
-
     if local_env is None:
         local_env = locals()
 
-    mod_code = compile(fgraph_def_ast, filename, mode="exec")
-    exec(mod_code, global_env, local_env)
-
-    fgraph_def = local_env[fgraph_name]
+    fgraph_def = compile_function_src(
+        fgraph_def_src, fgraph_name, global_env, local_env
+    )
 
     return fgraph_def

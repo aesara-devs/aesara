@@ -1,6 +1,4 @@
-import ast
 from functools import reduce, singledispatch
-from tempfile import NamedTemporaryFile
 
 import numba
 import numpy as np
@@ -10,7 +8,7 @@ import scipy.special
 from aesara.compile.ops import DeepCopyOp
 from aesara.graph.fg import FunctionGraph
 from aesara.graph.type import Type
-from aesara.link.utils import fgraph_to_python
+from aesara.link.utils import compile_function_src, fgraph_to_python
 from aesara.scalar.basic import Composite, ScalarOp
 from aesara.tensor.elemwise import Elemwise
 from aesara.tensor.subtensor import AdvancedSubtensor, AdvancedSubtensor1, Subtensor
@@ -154,19 +152,12 @@ def numba_funcify_Subtensor(op, node, **kwargs):
         node, idx_list, objmode=isinstance(op, AdvancedSubtensor)
     )
 
-    subtensor_def_ast = ast.parse(subtensor_def_src)
+    global_env = {}
+    global_env["objmode"] = numba.objmode
 
-    with NamedTemporaryFile(delete=False) as f:
-        filename = f.name
-        f.write(subtensor_def_src.encode())
+    subtensor_fn = compile_function_src(subtensor_def_src, "subtensor", global_env)
 
-    local_env = {}
-    mod_code = compile(subtensor_def_ast, filename, mode="exec")
-    exec(mod_code, {"objmode": numba.objmode}, local_env)
-
-    subtensor_def = local_env["subtensor"]
-
-    return numba.njit(subtensor_def)
+    return numba.njit(subtensor_fn)
 
 
 @numba_funcify.register(DeepCopyOp)
