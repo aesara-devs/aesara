@@ -49,7 +49,7 @@ def numba_funcify_FunctionGraph(
 
 
 @numba_funcify.register(ScalarOp)
-def numba_funcify_ScalarOp(op, **kwargs):
+def numba_funcify_ScalarOp(op, node, **kwargs):
 
     scalar_func_name = op.nfunc_spec[0]
 
@@ -64,23 +64,40 @@ def numba_funcify_ScalarOp(op, **kwargs):
     else:
         scalar_func = getattr(func_package, scalar_func_name)
 
-    @numba.njit
-    def scalar_op(*args):
-        return scalar_func(*args)
+    input_names = ", ".join([v.auto_name for v in node.inputs])
 
-    return scalar_op
+    global_env = {"scalar_func": scalar_func}
+
+    scalar_op_src = f"""
+def scalar_op({input_names}):
+    return scalar_func({input_names})
+    """
+    scalar_op_fn = compile_function_src(scalar_op_src, "scalar_op", global_env)
+
+    return numba.njit(scalar_op_fn)
 
 
 @numba_funcify.register(Elemwise)
-def numba_funcify_Elemwise(op, **kwargs):
-    scalar_op = op.scalar_op
-    # TODO: Vectorize this
-    return numba_funcify(scalar_op)
+def numba_funcify_Elemwise(op, node, **kwargs):
+    scalar_op_fn = numba_funcify(op.scalar_op, node, **kwargs)
+
+    input_names = ", ".join([v.auto_name for v in node.inputs])
+
+    global_env = {"scalar_op": scalar_op_fn, "vectorize": numba.vectorize}
+
+    elemwise_src = f"""
+@vectorize
+def elemwise({input_names}):
+    return scalar_op({input_names})
+    """
+    elemwise_fn = compile_function_src(elemwise_src, "elemwise", global_env)
+
+    return elemwise_fn
 
 
 @numba_funcify.register(Composite)
 def numba_funcify_Composite(op, vectorize=True, **kwargs):
-    numba_impl = numba.njit(numba_funcify(op.fgraph))
+    numba_impl = numba.njit(numba_funcify(op.fgraph, **kwargs))
 
     @numba.njit
     def composite(*args):
