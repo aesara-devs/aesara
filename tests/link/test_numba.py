@@ -3,6 +3,7 @@ from functools import partial
 import numpy as np
 import pytest
 
+import aesara.scalar as aes
 import aesara.tensor as aet
 from aesara import config
 from aesara.compile.function import function
@@ -11,7 +12,10 @@ from aesara.compile.sharedvalue import SharedVariable
 from aesara.graph.fg import FunctionGraph
 from aesara.graph.optdb import Query
 from aesara.link.numba.linker import NumbaLinker
+from aesara.scalar.basic import Composite
 from aesara.tensor import subtensor as aet_subtensor
+from aesara.tensor.elemwise import Elemwise
+from aesara.tensor.type import scalar
 
 
 opts = Query(include=[None], exclude=["cxx_only", "BlasOpt"])
@@ -77,6 +81,23 @@ def compare_numba_and_py(
 def test_Elemwise(inputs, input_vals, output_fn):
     out_fg = FunctionGraph(inputs, [output_fn(*inputs)])
     compare_numba_and_py(out_fg, input_vals)
+
+
+@pytest.mark.parametrize(
+    "inputs, input_values",
+    [
+        (
+            [scalar("x"), scalar("y")],
+            [np.array(10).astype(config.floatX), np.array(20).astype(config.floatX)],
+        ),
+    ],
+)
+def test_numba_Composite(inputs, input_values):
+    x_s = aes.float64("x")
+    y_s = aes.float64("y")
+    comp_op = Elemwise(Composite([x_s, y_s], [x_s + y_s * 2 + aes.exp(x_s - y_s)]))
+    out_fg = FunctionGraph(inputs, [comp_op(*inputs)])
+    compare_numba_and_py(out_fg, input_values)
 
 
 @pytest.mark.parametrize(
