@@ -51,3 +51,7 @@ def test_filter_float_subclass():
 
         filtered_nan = test_type.filter(nan)
         assert isinstance(filtered_nan, np.floating)
+
+    with config.change_flags(floatX="float64"):
+        filtered_nan = test_type.filter(nan)
+        assert isinstance(filtered_nan, np.floating)

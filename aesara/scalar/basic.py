@@ -360,7 +360,7 @@ class Scalar(CType):
                     and isinstance(data, (float, np.floating))
                     and self.dtype == config.floatX
                 )
-                or data == converted_data
+                or np.array_equal(data, converted_data, equal_nan=True)
             ):
                 return py_type(data)
             else:
