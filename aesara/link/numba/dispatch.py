@@ -4,6 +4,9 @@ import numba
 import numpy as np
 import scipy
 import scipy.special
+from llvmlite.llvmpy.core import Type as llvm_Type
+from numba import types
+from numba.extending import box
 
 from aesara.compile.ops import DeepCopyOp
 from aesara.graph.fg import FunctionGraph
@@ -13,6 +16,32 @@ from aesara.scalar.basic import Composite, ScalarOp
 from aesara.tensor.elemwise import Elemwise
 from aesara.tensor.subtensor import AdvancedSubtensor, AdvancedSubtensor1, Subtensor
 from aesara.tensor.type_other import MakeSlice
+
+
+def slice_new(self, start, stop, step):
+    fnty = llvm_Type.function(self.pyobj, [self.pyobj, self.pyobj, self.pyobj])
+    fn = self._get_function(fnty, name="PySlice_New")
+    return self.builder.call(fn, [start, stop, step])
+
+
+@box(types.SliceType)
+def box_slice(typ, val, c):
+    """Implement boxing for ``slice`` objects in Numba.
+
+    This makes it possible to return an Numba's internal representation of a
+    ``slice`` object as a proper ``slice`` to Python.
+    """
+
+    start = c.box(types.int64, c.builder.extract_value(val, 0))
+    stop = c.box(types.int64, c.builder.extract_value(val, 1))
+    if typ.has_step:
+        step = c.box(types.int64, c.builder.extract_value(val, 2))
+    else:
+        step = c.pyapi.get_null_object()
+
+    slice_val = slice_new(c.pyapi, start, stop, step)
+
+    return slice_val
 
 
 @singledispatch
@@ -199,9 +228,10 @@ def numba_funcify_DeepCopyOp(op, node, **kwargs):
 
 @numba_funcify.register(MakeSlice)
 def numba_funcify_MakeSlice(op, **kwargs):
-    # XXX: This won't work when calling into object mode (e.g. for advanced
-    # indexing), because there's no Numba unboxing for its native `slice`
-    # objects.
+    """
+    XXX: This requires a ``slice`` boxing implementation to work with Numba's
+    object mode.
+    """
 
     @numba.njit
     def makeslice(*x):

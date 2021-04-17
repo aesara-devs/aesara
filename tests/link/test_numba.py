@@ -145,13 +145,10 @@ def test_AdvancedSubtensor1(x, indices):
     "x, indices",
     [
         (aet.as_tensor(np.arange(3 * 4 * 5).reshape((3, 4, 5))), ([1, 2], [2, 3])),
-        # XXX TODO: This will fail because advanced indexing calls into object
-        # mode (i.e. Python) and there's no unboxing for Numba's internal/native
-        # `slice` objects.
-        # (
-        #     aet.as_tensor(np.arange(3 * 4 * 5).reshape((3, 4, 5))),
-        #     ([1, 2], slice(None), [3, 4]),
-        # ),
+        (
+            aet.as_tensor(np.arange(3 * 4 * 5).reshape((3, 4, 5))),
+            ([1, 2], slice(None), [3, 4]),
+        ),
     ],
 )
 def test_AdvancedSubtensor(x, indices):
