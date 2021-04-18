@@ -1673,6 +1673,24 @@ class TestSubtensorIncSubtensor:
     def setup_class(cls):
         cls.mode = get_default_mode().including("local_subtensor_inc_subtensor")
 
+    @pytest.mark.parametrize(
+        "val, indices, optype",
+        [
+            (vector(), (iscalar(),), IncSubtensor),
+            (vector(), (ivector(),), AdvancedIncSubtensor1),
+            (vector(), (ivector(), ivector()), AdvancedIncSubtensor),
+        ],
+    )
+    def test_inplace(self, val, indices, optype):
+        x = matrix("x")
+        y = set_subtensor((2 * x)[indices], val, inplace=False)
+        assert isinstance(y.owner.op, optype)
+        assert y.owner.op.inplace is False
+        f = function(
+            [x, val] + list(indices), y, mode=get_default_mode().including("inplace")
+        )
+        assert f.maker.fgraph.outputs[0].owner.op.inplace is True
+
     def test_basic(self):
         # basic test
         x = matrix("x")

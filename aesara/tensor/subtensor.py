@@ -2605,13 +2605,10 @@ class AdvancedIncSubtensor(Op):
     __props__ = ("inplace", "set_instead_of_inc")
 
     def __init__(self, inplace=False, set_instead_of_inc=False):
-        self.inplace = inplace
         self.set_instead_of_inc = set_instead_of_inc
-        # The assert is needed as in the pass the first argument was
-        # something else that was not used.
-        assert isinstance(inplace, bool)
-        if self.inplace:
-            raise NotImplementedError("In place computation is not" " implemented")
+        self.inplace = inplace
+        if inplace:
+            self.destroy_map = {0: [0]}
 
     def __str__(self):
         return "{}{{{}, {}}}".format(
@@ -2636,8 +2633,6 @@ class AdvancedIncSubtensor(Op):
         )
 
     def perform(self, node, inputs, out_):
-        # TODO: 1. opt to make this in place 2. generalize as described in
-        # AdvancedSubtensor's perform TODO
 
         check_advanced_indexing_dimensions(inputs[0], inputs[2:])
 
