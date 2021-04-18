@@ -3290,10 +3290,6 @@ compile.optdb.register(
 
 @local_optimizer([IncSubtensor], inplace=True)
 def local_inplace_setsubtensor(fgraph, node):
-    """
-    Also work for GpuIncSubtensor.
-
-    """
     if isinstance(node.op, IncSubtensor) and not node.op.inplace:
         dta = node.op.destroyhandler_tolerate_aliased
         new_op = node.op.__class__(
@@ -3322,36 +3318,51 @@ compile.optdb.register(
     60,
     "fast_run",
     "inplace",
-)  # DEBUG
+)
 
 
 @local_optimizer([AdvancedIncSubtensor1], inplace=True)
-def local_inplace_incsubtensor1(fgraph, node):
-    """
-    Also work for GpuAdvancedIncSubtensor1.
-
-    """
+def local_inplace_AdvancedIncSubtensor1(fgraph, node):
     if isinstance(node.op, AdvancedIncSubtensor1) and not node.op.inplace:
         new_op = node.op.clone_inplace()
         new_node = new_op(*node.inputs)
-
-        # Copy stacktrace from original outputs to new outputs.
-        # This is sensible, because the new operation is the
-        # same as the old one, but now with different attributes.
         copy_stack_trace(node.outputs, new_node)
         return [new_node]
     return False
 
 
 compile.optdb.register(
-    "local_inplace_incsubtensor1",
+    "local_inplace_AdvancedIncSubtensor1",
     TopoOptimizer(
-        local_inplace_incsubtensor1, failure_callback=TopoOptimizer.warn_inplace
+        local_inplace_AdvancedIncSubtensor1, failure_callback=TopoOptimizer.warn_inplace
     ),
     60,
     "fast_run",
     "inplace",
-)  # DEBUG
+)
+
+
+@local_optimizer([AdvancedIncSubtensor], inplace=True)
+def local_inplace_AdvancedIncSubtensor(fgraph, node):
+    if isinstance(node.op, AdvancedIncSubtensor) and not node.op.inplace:
+        new_op = type(node.op)(
+            inplace=True, set_instead_of_inc=node.op.set_instead_of_inc
+        )
+        new_node = new_op(*node.inputs)
+        copy_stack_trace(node.outputs, new_node)
+        return [new_node]
+    return False
+
+
+compile.optdb.register(
+    "local_inplace_AdvancedIncSubtensor",
+    TopoOptimizer(
+        local_inplace_AdvancedIncSubtensor, failure_callback=TopoOptimizer.warn_inplace
+    ),
+    60,
+    "fast_run",
+    "inplace",
+)
 
 
 # Register old name

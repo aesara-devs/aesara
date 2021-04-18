@@ -1732,7 +1732,14 @@ class TestAdvancedSubtensor:
         self.ix2 = lmatrix()
         self.ixr = lrow()
 
-    def test_advinc_subtensor(self):
+    @pytest.mark.parametrize(
+        "inplace",
+        [
+            True,
+            False,
+        ],
+    )
+    def test_advinc_subtensor(self, inplace):
         x_shp = (20, 15, 10, 5)
 
         def check(idx, y_val, x_val, true):
@@ -1741,8 +1748,12 @@ class TestAdvancedSubtensor:
                 dtype="float32", broadcastable=(False,) * len(y_val.shape), name="y"
             )
             sym_idx = [aet.as_tensor_variable(ix) for ix in idx]
-            expr = advanced_inc_subtensor(x, y, *sym_idx)
-            f = aesara.function([y], expr, mode=self.mode)
+            expr = AdvancedIncSubtensor(inplace=inplace)(x, y, *sym_idx)
+            f = aesara.function(
+                [y], expr, mode=self.mode.excluding("inplace"), accept_inplace=inplace
+            )
+            fgraph = f.maker.fgraph
+            assert fgraph.outputs[0].owner.op.inplace == inplace
             rval = f(y_val)
             assert np.allclose(rval, true)
 
@@ -1759,11 +1770,14 @@ class TestAdvancedSubtensor:
                 x_val = np.arange(np.prod(x_shp), dtype="float32").reshape(x_shp) + 1
                 y_val = np.arange(np.prod(y_shp), dtype="float32").reshape(y_shp) + 1
                 rep = x_val.copy()
+
                 try:
                     rep[idx] += y_val
                 except ValueError:
                     continue
+
                 check(idx, y_val, x_val, rep)
+
             x_val = np.arange(np.prod(x_shp), dtype="float32").reshape(x_shp) + 1
             y_val = np.array(1).astype(np.float32)
             rep = x_val.copy()
