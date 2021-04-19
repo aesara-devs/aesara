@@ -1,4 +1,3 @@
-import ast
 import io
 import re
 import sys
@@ -574,7 +573,6 @@ register_thunk_trace_excepthook()
 
 
 def compile_function_src(src, function_name, global_env=None, local_env=None):
-    src_ast = ast.parse(src)
 
     with NamedTemporaryFile(delete=False) as f:
         filename = f.name
@@ -586,7 +584,7 @@ def compile_function_src(src, function_name, global_env=None, local_env=None):
     if local_env is None:
         local_env = {}
 
-    mod_code = compile(src_ast, filename, mode="exec")
+    mod_code = compile(src, filename, mode="exec")
     exec(mod_code, global_env, local_env)
 
     return local_env[function_name]
