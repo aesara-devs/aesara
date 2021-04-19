@@ -595,6 +595,7 @@ def compile_function_src(src, function_name, global_env=None, local_env=None):
 def fgraph_to_python(
     fgraph: FunctionGraph,
     op_conversion_fn: Callable,
+    *,
     type_conversion_fn: Optional[Callable] = lambda x, **kwargs: x,
     order: Optional[List[Variable]] = None,
     input_storage: Optional[List[Any]] = None,
@@ -613,10 +614,12 @@ def fgraph_to_python(
         The ``FunctionGraph`` to convert.
     op_conversion_fn
         A callable used to convert nodes inside `fgraph` based on their ``Op``
-        types.  It must have the signature ``(Op, **kwargs)``.  One of the
-        keyword arguments will be ``node``, which provides the ``Apply`` node.
+        types.  It must have the signature
+        ``(op: Op, node: Apply=None, storage_map: Dict[Variable, List[Optional[Any]]]=None, **kwargs)``.
     type_conversion_fn
-        A callable used to convert the values in `storage_map`.
+        A callable used to convert the values in `storage_map`.  It must have
+        the signature
+        ``(value: Optional[Any], variable: Variable=None, storage: List[Optional[Any]]=None, **kwargs)``.
     order
         The ``order`` argument to ``map_storage``.
     input_storage
@@ -670,7 +673,9 @@ def fgraph_to_python(
 
     body_assigns = []
     for node in order:
-        jax_func = op_conversion_fn(node.op, node=node, **kwargs)
+        jax_func = op_conversion_fn(
+            node.op, node=node, storage_map=storage_map, **kwargs
+        )
 
         # Create a local alias with a unique name
         local_jax_func_name = unique_name(jax_func)
@@ -682,7 +687,7 @@ def fgraph_to_python(
             if storage_map[i][0] is not None or isinstance(i, Constant):
                 # Constants need to be assigned locally and referenced
                 global_env[local_input_name] = type_conversion_fn(
-                    storage_map[i][0], node=None, **kwargs
+                    storage_map[i][0], variable=i, storage=storage_map[i], **kwargs
                 )
                 # TODO: We could attempt to use the storage arrays directly
                 # E.g. `local_input_name = f"{local_input_name}[0]"`

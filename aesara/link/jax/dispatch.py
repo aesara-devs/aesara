@@ -117,7 +117,7 @@ def jax_typify_RandomState(state, **kwargs):
 
 
 @singledispatch
-def jax_funcify(op, **kwargs):
+def jax_funcify(op, node=None, storage_map=None, **kwargs):
     """Create a JAX compatible function from an Aesara `Op`."""
     raise NotImplementedError(f"No JAX conversion for the given `Op`: {op}")
 
@@ -594,21 +594,15 @@ def jax_funcify_AdvancedIncSubtensor(op, **kwargs):
 @jax_funcify.register(FunctionGraph)
 def jax_funcify_FunctionGraph(
     fgraph,
-    order=None,
-    input_storage=None,
-    output_storage=None,
-    storage_map=None,
+    node=None,
+    fgraph_name="jax_funcified_fgraph",
     **kwargs,
 ):
     return fgraph_to_python(
         fgraph,
         jax_funcify,
-        jax_typify,
-        order,
-        input_storage,
-        output_storage,
-        storage_map,
-        fgraph_name="jax_funcified_fgraph",
+        type_conversion_fn=jax_typify,
+        fgraph_name=fgraph_name,
         **kwargs,
     )
 

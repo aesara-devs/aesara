@@ -7,14 +7,10 @@ from aesara.link.basic import JITLinker
 class JAXLinker(JITLinker):
     """A `Linker` that JIT-compiles NumPy-based operations using JAX."""
 
-    def fgraph_convert(
-        self, fgraph, order, input_storage, output_storage, storage_map, **kwargs
-    ):
+    def fgraph_convert(self, fgraph, **kwargs):
         from aesara.link.jax.dispatch import jax_funcify
 
-        return jax_funcify(
-            fgraph, order, input_storage, output_storage, storage_map, **kwargs
-        )
+        return jax_funcify(fgraph, **kwargs)
 
     def jit_compile(self, fn):
         import jax
