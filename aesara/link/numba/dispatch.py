@@ -25,9 +25,6 @@ from aesara.tensor.subtensor import (
 from aesara.tensor.type_other import MakeSlice
 
 
-incsubtensor_ops = (IncSubtensor, AdvancedIncSubtensor1)
-
-
 def slice_new(self, start, stop, step):
     fnty = llvm_Type.function(self.pyobj, [self.pyobj, self.pyobj, self.pyobj])
     fn = self._get_function(fnty, name="PySlice_New")
