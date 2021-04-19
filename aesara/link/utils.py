@@ -590,6 +590,21 @@ def compile_function_src(src, function_name, global_env=None, local_env=None):
     return local_env[function_name]
 
 
+def get_name_for_object(x: Any):
+    """Get the name for an arbitrary object."""
+
+    if isinstance(x, Variable):
+        name = re.sub("[^0-9a-zA-Z]+", "_", x.name) if x.name else ""
+        name = name if (name.isidentifier() and not iskeyword(name)) else x.auto_name
+    else:
+        name = getattr(x, "__name__", None)
+
+    if not name or (not name.isidentifier() or iskeyword(name)):
+        name = type(x).__name__
+
+    return name
+
+
 def fgraph_to_python(
     fgraph: FunctionGraph,
     op_conversion_fn: Callable,
@@ -602,6 +617,7 @@ def fgraph_to_python(
     fgraph_name: str = "fgraph_to_python",
     global_env: Optional[Dict[Any, Any]] = None,
     local_env: Optional[Dict[Any, Any]] = None,
+    get_name_for_object: Callable[[Any], str] = get_name_for_object,
     **kwargs,
 ) -> FunctionType:
     """Convert a ``FunctionGraph`` into a regular Python function.
@@ -634,6 +650,9 @@ def fgraph_to_python(
     local_env
         The local environment used when the function is constructed.
         The default is ``locals()``.
+    get_name_for_object
+        A function used to provide names for the objects referenced within the
+        generated function.
     **kwargs
         The remaining keywords are passed to `python_conversion_fn`
     """
@@ -648,15 +667,7 @@ def fgraph_to_python(
         if x in obj_to_names:
             return obj_to_names[x]
 
-        if isinstance(x, Variable):
-            name = re.sub("[^0-9a-zA-Z]+", "_", x.name) if x.name else ""
-            name = (
-                name if (name.isidentifier() and not iskeyword(name)) else x.auto_name
-            )
-        elif isinstance(x, FunctionType):
-            name = x.__name__
-        else:
-            name = type(x).__name__
+        name = get_name_for_object(x)
 
         name_suffix = names_counter.get(name, "")
         local_name = f"{name}{name_suffix}"

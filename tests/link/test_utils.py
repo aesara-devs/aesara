@@ -6,7 +6,7 @@ from aesara import config
 from aesara.graph.basic import Apply
 from aesara.graph.fg import FunctionGraph
 from aesara.graph.op import Op
-from aesara.link.utils import fgraph_to_python
+from aesara.link.utils import fgraph_to_python, get_name_for_object
 from aesara.scalar.basic import Add
 from aesara.tensor.elemwise import Elemwise
 from aesara.tensor.type import scalar, vector
@@ -49,6 +49,9 @@ def test_fgraph_to_python_names():
         sig.parameters.keys()
     )
     assert (1, 2, 3, 4, 5) == out_jx(1, 2, 3, 4, 5)
+
+    obj = object()
+    assert get_name_for_object(obj) == type(obj).__name__
 
 
 def test_fgraph_to_python_once():
