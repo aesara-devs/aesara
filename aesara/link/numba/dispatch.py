@@ -100,11 +100,12 @@ def numba_funcify_ScalarOp(op, node, **kwargs):
 
     global_env = {"scalar_func": scalar_func}
 
+    scalar_op_fn_name = scalar_func.__name__
     scalar_op_src = f"""
-def scalar_op({input_names}):
+def {scalar_op_fn_name}({input_names}):
     return scalar_func({input_names})
     """
-    scalar_op_fn = compile_function_src(scalar_op_src, "scalar_op", global_env)
+    scalar_op_fn = compile_function_src(scalar_op_src, scalar_op_fn_name, global_env)
 
     return numba.njit(scalar_op_fn)
 
@@ -117,12 +118,13 @@ def numba_funcify_Elemwise(op, node, **kwargs):
 
     global_env = {"scalar_op": scalar_op_fn, "vectorize": numba.vectorize}
 
+    elemwise_fn_name = f"elemwise_{scalar_op_fn.__name__}"
     elemwise_src = f"""
 @vectorize
-def elemwise({input_names}):
+def {elemwise_fn_name}({input_names}):
     return scalar_op({input_names})
     """
-    elemwise_fn = compile_function_src(elemwise_src, "elemwise", global_env)
+    elemwise_fn = compile_function_src(elemwise_src, elemwise_fn_name, global_env)
 
     return elemwise_fn
 
