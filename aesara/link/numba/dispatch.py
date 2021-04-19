@@ -60,7 +60,7 @@ def numba_typify(data, dtype=None, **kwargs):
 
 
 @singledispatch
-def numba_funcify(op, **kwargs):
+def numba_funcify(op, node=None, storage_map=None, **kwargs):
     """Create a Numba compatible function from an Aesara `Op`."""
     raise NotImplementedError(f"No Numba conversion for the given `Op`: {op}")
 
@@ -68,27 +68,23 @@ def numba_funcify(op, **kwargs):
 @numba_funcify.register(FunctionGraph)
 def numba_funcify_FunctionGraph(
     fgraph,
-    order=None,
-    input_storage=None,
-    output_storage=None,
-    storage_map=None,
+    node=None,
+    fgraph_name="jax_funcified_fgraph",
     **kwargs,
 ):
     return fgraph_to_python(
         fgraph,
         numba_funcify,
-        numba_typify,
-        order,
-        input_storage,
-        output_storage,
-        storage_map,
-        fgraph_name="numba_funcified_fgraph",
+        type_conversion_fn=numba_typify,
+        fgraph_name=fgraph_name,
         **kwargs,
     )
 
 
 @numba_funcify.register(ScalarOp)
 def numba_funcify_ScalarOp(op, node, **kwargs):
+    # TODO: Do we need to cache these functions so that we don't end up
+    # compiling the same Numba function over and over again?
 
     scalar_func_name = op.nfunc_spec[0]
 
