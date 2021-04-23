@@ -6,7 +6,6 @@ stability.
 
 """
 
-
 import warnings
 
 import numpy as np
@@ -16,7 +15,6 @@ from aesara import printing
 from aesara import scalar as aes
 from aesara.configdefaults import config
 from aesara.graph.opt import PatternSub, copy_stack_trace, local_optimizer
-from aesara.graph.utils import MethodNotDefined
 from aesara.printing import pprint
 from aesara.tensor import basic_opt
 from aesara.tensor.basic import constant, get_scalar_constant_value
@@ -26,29 +24,31 @@ from aesara.tensor.math import add, clip, exp, inv, log, log1p, mul, neg, sub, t
 from aesara.tensor.type import TensorType, values_eq_approx_remove_inf
 
 
+imported_scipy_special = False
+try:
+    import scipy.special
+    import scipy.stats
+
+    imported_scipy_special = True
+# Importing scipy.special may raise ValueError.
+# See http://projects.scipy.org/scipy/ticket/1739
+except (ImportError, ValueError):
+    pass
+
+
 class ScalarSigmoid(aes.UnaryScalarOp):
     """
-    This is just speed opt. Not for stability.
+    Logistic sigmoid function (1 / (1 + exp(x)), also known as expit or inverse logit
 
     """
 
     nfunc_spec = ("scipy.special.expit", 1, 1)
 
-    @staticmethod
-    def st_impl(x):
-        if x < -30.0:
-            return 0.0
-        if x > 30.0:
-            return 1.0
-        # If x is an int8 or uint8, numpy.exp will compute the result in
-        # half-precision (float16), where we want float32.
-        x_dtype = str(getattr(x, "dtype", ""))
-        if x_dtype in ("int8", "uint8"):
-            return 1.0 / (1.0 + np.exp(-x, sig="f"))
-        return 1.0 / (1.0 + np.exp(-x))
-
     def impl(self, x):
-        return ScalarSigmoid.st_impl(x)
+        if imported_scipy_special:
+            return scipy.special.expit(x)
+        else:
+            super().impl(x)
 
     def grad(self, inp, grads):
         (x,) = inp
@@ -63,22 +63,7 @@ class ScalarSigmoid(aes.UnaryScalarOp):
     def c_code(self, node, name, inp, out, sub):
         (x,) = inp
         (z,) = out
-        # We add boundary checks prevent exp from generating inf or
-        # 0. The reset of the logic always generate 0 or 1 in those
-        # cases. This is a speed optimization.
-        # The constants were obtained by looking at the output of
-        # python commands like:
-        #
-        # import numpy, aesara
-        # dt='float32'  # or float64
-        # for i in range(750):
-        #     print i, repr(_asarray(1.0, dtype=dt) /
-        #                   (_asarray(1.0, dtype=dt) +
-        #                    numpy.exp(-_asarray([i,-i], dtype=dt))))
 
-        # float16 limits: -11.0, 7.0f
-        # We use the float32 limits for float16 for now as the
-        # computation will happen in float32 anyway.
         if node.inputs[0].type == aes.float32 or node.inputs[0].type == aes.float16:
             return f"""{z} = 1.0f / (1.0f + exp(-{x}));"""
         elif node.inputs[0].type == aes.float64:
@@ -92,88 +77,6 @@ class ScalarSigmoid(aes.UnaryScalarOp):
             return (2,) + v
         else:
             return v
-
-    # This fct is disabled as it is slower then the normal code!
-    def c_code_contiguous_disabled(self, node, name, inp, out, sub):
-        (x,) = inp
-        (z,) = out
-        if not config.lib__amblibm or node.inputs[0].dtype != node.outputs[0].dtype:
-            raise MethodNotDefined()
-        dtype = node.inputs[0].dtype
-        if dtype == "float32" and self.amd_float32 is not None:
-            dtype = "float"
-            fct = "amd_vrsa_expf"
-        elif dtype == "float64" and self.amd_float64 is not None:
-            dtype = "double"
-            fct = "amd_vrda_exp"
-        else:
-            raise MethodNotDefined()
-        return (
-            """
-        npy_intp n = PyArray_SIZE(%(z)s);
-        %(dtype)s * x = (%(dtype)s*) PyArray_DATA(%(x)s);
-        %(dtype)s * z = (%(dtype)s*) PyArray_DATA(%(z)s);
-        // We block to keep the data in l1
-        // normal l1 size = 32k: 32k/2(input + output)/8(nb bytes of double)=2k
-        // We stay bellow the 2k limit to let space for
-        // This is faster than the not blocking version
-        for(int i=0;i<n;i+=2048){
-            npy_intp nb = (n-i<2048)?n-i:2048;
-            for(int j=0;j<nb;j++){
-                z[i+j] = -x[i+j];
-            }
-            %(fct)s(nb, z+i, z+i);
-            for(int j=0;j<nb;j++){
-                z[i+j] = 1.0 /(1.0+z[i+j]);
-            }
-        }
-        """
-            % locals()
-        )
-        raise MethodNotDefined()
-
-    @staticmethod
-    def gen_graph():
-        """
-        This method was used to generate the graph: sigmoid_prec.png in the doc.
-
-        """
-        data = np.arange(-15, 15, 0.1)
-        val = 1 / (1 + np.exp(-data))
-
-        def hard_sigmoid(x):
-            return aesara.tensor.nnet.hard_sigmoid(x)
-
-        def ultra_fast_sigmoid(x):
-            return aesara.tensor.nnet.ultra_fast_sigmoid(x)
-
-        val_hard = hard_sigmoid(data).eval()
-        val_ultra = ultra_fast_sigmoid(data).eval()
-
-        import os
-
-        import matplotlib.pyplot as plt
-
-        fig = plt.figure()
-        ax = fig.add_subplot(111)
-        ax.plot(data, val)  # , 'o-')
-        ax.plot(data, val_ultra)  # , '-')
-        ax.plot(data, val_hard)  # , '-')
-        ax.grid(True)
-        ax.legend(("sigmoid", "ultra_fast", "hard"), "upper left")
-        fname = os.path.join(
-            os.path.dirname(aesara.__file__),
-            "..",
-            "doc",
-            "library",
-            "tensor",
-            "nnet",
-            "sigmoid_prec.png",
-        )
-        plt.savefig(fname)
-        print("New picture saved at", fname)
-        print(val_ultra.max())
-        print(val_ultra.min())
 
 
 scalar_sigmoid = ScalarSigmoid(aes.upgrade_to_float, name="scalar_sigmoid")
@@ -382,14 +285,15 @@ class ScalarSoftplus(aes.UnaryScalarOp):
     def c_code(self, node, name, inp, out, sub):
         (x,) = inp
         (z,) = out
-        # These constants were obtained by looking at the output of
+        # The boundary constants were obtained by looking at the output of
         # python commands like:
         # import numpy, aesara
         # dt='float32'  # or float64
         #  for i in range(750):
         #      print i, repr(numpy.log1p(numpy.exp(_asarray([i,-i], dtype=dt))))
         # the upper boundary check prevents us from generating inf, whereas the
-        # the lower boundary check prevents using exp when the result will be 0 anyway
+        # the lower boundary check prevents using exp when the result will be 0 anyway.
+        # The intermediate constants are taken from Machler (2012).
 
         # We use the float32 limits for float16 for now as the
         # computation will happen in float32 anyway.
