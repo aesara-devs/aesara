@@ -5,7 +5,8 @@ import aesara.tensor as aet
 from aesara.configdefaults import config
 from aesara.graph.opt import check_stack_trace
 from aesara.graph.toolbox import is_same_graph
-from aesara.tensor.inplace import neg_inplace
+from aesara.tensor import sigmoid
+from aesara.tensor.inplace import neg_inplace, sigmoid_inplace
 from aesara.tensor.math import clip, exp, log, mul, neg
 from aesara.tensor.nnet.sigm import (
     ScalarSoftplus,
@@ -15,8 +16,6 @@ from aesara.tensor.nnet.sigm import (
     parse_mul_tree,
     perform_sigm_times_exp,
     register_local_1msigmoid,
-    sigmoid,
-    sigmoid_inplace,
     simplify_mul,
     softplus,
     ultra_fast_sigmoid,

@@ -1515,7 +1515,7 @@ class ProfileStats:
         from aesara import scalar as aes
         from aesara.tensor.elemwise import Elemwise
         from aesara.tensor.math import Dot
-        from aesara.tensor.nnet.sigm import ScalarSigmoid, ScalarSoftplus
+        from aesara.tensor.nnet.sigm import ScalarSoftplus
         from aesara.tensor.random.op import RandomVariable
 
         scalar_op_amdlibm_no_speed_up = [
@@ -1567,7 +1567,7 @@ class ProfileStats:
             aes.Tanh,
             aes.Cosh,
             aes.Sinh,
-            ScalarSigmoid,
+            aes.Sigmoid,
             ScalarSoftplus,
         ]
 

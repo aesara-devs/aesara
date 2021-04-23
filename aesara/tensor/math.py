@@ -1403,6 +1403,11 @@ def iv(v, x):
 
 
 @scalar_elemwise
+def sigmoid(x):
+    """Logistic sigmoid function (1 / (1 + exp(x)), also known as expit or inverse logit"""
+
+
+@scalar_elemwise
 def real(z):
     """Return real component of complex-valued tensor `z`"""
 
@@ -2828,6 +2833,7 @@ __all__ = [
     "i0",
     "i1",
     "iv",
+    "sigmoid",
     "real",
     "imag",
     "angle",
