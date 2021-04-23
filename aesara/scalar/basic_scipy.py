@@ -16,6 +16,7 @@ from aesara.scalar.basic import (
     complex_types,
     discrete_types,
     exp,
+    float64,
     float_types,
     upcast,
     upgrade_to_float,
@@ -928,3 +929,49 @@ class I0(UnaryScalarOp):
 
 
 i0 = I0(upgrade_to_float, name="i0")
+
+
+class Sigmoid(UnaryScalarOp):
+    """
+    Logistic sigmoid function (1 / (1 + exp(x)), also known as expit or inverse logit
+    """
+
+    nfunc_spec = ("scipy.special.expit", 1, 1)
+
+    def impl(self, x):
+        if imported_scipy_special:
+            return scipy.special.expit(x)
+        else:
+            super().impl(x)
+
+    def grad(self, inp, grads):
+        (x,) = inp
+        (gz,) = grads
+        y = sigmoid(x)
+        rval = gz * y * (1.0 - y)
+
+        assert rval.type.dtype.find("float") != -1
+
+        return [rval]
+
+    def c_code(self, node, name, inp, out, sub):
+        (x,) = inp
+        (z,) = out
+
+        if node.inputs[0].type in float_types:
+            if node.inputs[0].type == float64:
+                return f"""{z} = 1.0 / (1.0 + exp(-{x}));"""
+            else:
+                return f"""{z} = 1.0f / (1.0f + exp(-{x}));"""
+        else:
+            raise NotImplementedError("only floatingpoint is implemented")
+
+    def c_code_cache_version(self):
+        v = super().c_code_cache_version()
+        if v:
+            return (2,) + v
+        else:
+            return v
+
+
+sigmoid = Sigmoid(upgrade_to_float, name="sigmoid")

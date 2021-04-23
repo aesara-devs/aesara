@@ -31,7 +31,7 @@ from aesara.tensor.math import MaxAndArgmax
 from aesara.tensor.math import all as aet_all
 from aesara.tensor.math import clip, cosh, gammaln, log
 from aesara.tensor.math import max as aet_max
-from aesara.tensor.math import maximum, prod
+from aesara.tensor.math import maximum, prod, sigmoid
 from aesara.tensor.math import sum as aet_sum
 from aesara.tensor.random.basic import RandomVariable, normal
 from aesara.tensor.random.utils import RandomStream
@@ -944,7 +944,7 @@ def test_nnet():
     x = vector("x")
     x.tag.test_value = np.r_[1.0, 2.0].astype(config.floatX)
 
-    out = aet_nnet.sigmoid(x)
+    out = sigmoid(x)
     fgraph = FunctionGraph([x], [out])
     compare_jax_and_py(fgraph, [get_test_value(i) for i in fgraph.inputs])
 

@@ -16,79 +16,25 @@ from aesara import scalar as aes
 from aesara.configdefaults import config
 from aesara.graph.opt import PatternSub, copy_stack_trace, local_optimizer
 from aesara.printing import pprint
+from aesara.scalar import sigmoid as scalar_sigmoid
 from aesara.tensor import basic_opt
 from aesara.tensor.basic import constant, get_scalar_constant_value
 from aesara.tensor.elemwise import Elemwise
 from aesara.tensor.exceptions import NotScalarConstantError
-from aesara.tensor.math import add, clip, exp, inv, log, log1p, mul, neg, sub, true_div
-from aesara.tensor.type import TensorType, values_eq_approx_remove_inf
-
-
-imported_scipy_special = False
-try:
-    import scipy.special
-    import scipy.stats
-
-    imported_scipy_special = True
-# Importing scipy.special may raise ValueError.
-# See http://projects.scipy.org/scipy/ticket/1739
-except (ImportError, ValueError):
-    pass
-
-
-class ScalarSigmoid(aes.UnaryScalarOp):
-    """
-    Logistic sigmoid function (1 / (1 + exp(x)), also known as expit or inverse logit
-
-    """
-
-    nfunc_spec = ("scipy.special.expit", 1, 1)
-
-    def impl(self, x):
-        if imported_scipy_special:
-            return scipy.special.expit(x)
-        else:
-            super().impl(x)
-
-    def grad(self, inp, grads):
-        (x,) = inp
-        (gz,) = grads
-        y = scalar_sigmoid(x)
-        rval = gz * y * (1.0 - y)
-
-        assert rval.type.dtype.find("float") != -1
-
-        return [rval]
-
-    def c_code(self, node, name, inp, out, sub):
-        (x,) = inp
-        (z,) = out
-
-        if node.inputs[0].type == aes.float32 or node.inputs[0].type == aes.float16:
-            return f"""{z} = 1.0f / (1.0f + exp(-{x}));"""
-        elif node.inputs[0].type == aes.float64:
-            return f"""{z} = 1.0 / (1.0 + exp(-{x}));"""
-        else:
-            raise NotImplementedError("only floatingpoint is implemented")
-
-    def c_code_cache_version(self):
-        v = super().c_code_cache_version()
-        if v:
-            return (2,) + v
-        else:
-            return v
-
-
-scalar_sigmoid = ScalarSigmoid(aes.upgrade_to_float, name="scalar_sigmoid")
-sigmoid = Elemwise(scalar_sigmoid, name="sigmoid")
-
-sigmoid_inplace = Elemwise(
-    ScalarSigmoid(aes.transfer_type(0)),
-    inplace_pattern={0: 0},
-    name="sigmoid_inplace",
+from aesara.tensor.math import (
+    add,
+    clip,
+    exp,
+    inv,
+    log,
+    log1p,
+    mul,
+    neg,
+    sigmoid,
+    sub,
+    true_div,
 )
-
-pprint.assign(sigmoid, printing.FunctionPrinter("sigmoid"))
+from aesara.tensor.type import TensorType, values_eq_approx_remove_inf
 
 
 class UltraFastScalarSigmoid(aes.UnaryScalarOp):
@@ -258,7 +204,6 @@ class ScalarSoftplus(aes.UnaryScalarOp):
         "Accurately computing `\log(1-\exp(- \mid a \mid))` Assessed by the Rmpfr package"
     """
 
-    @staticmethod
     def static_impl(x):
         # If x is an int8 or uint8, numpy.exp will compute the result in
         # half-precision (float16), where we want float32.

@@ -309,6 +309,11 @@ def iv_inplace(v, x):
 
 
 @scalar_elemwise
+def sigmoid_inplace(x):
+    """Logistic sigmoid function (1 / (1 + exp(x)), also known as expit or inverse logit"""
+
+
+@scalar_elemwise
 def second_inplace(a):
     """Fill `a` with `b`"""
 
