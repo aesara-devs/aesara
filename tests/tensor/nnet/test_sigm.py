@@ -5,11 +5,11 @@ import aesara.tensor as aet
 from aesara.configdefaults import config
 from aesara.graph.opt import check_stack_trace
 from aesara.graph.toolbox import is_same_graph
-from aesara.tensor import sigmoid
+from aesara.scalar import Softplus
+from aesara.tensor import sigmoid, softplus
 from aesara.tensor.inplace import neg_inplace, sigmoid_inplace
 from aesara.tensor.math import clip, exp, log, mul, neg
 from aesara.tensor.nnet.sigm import (
-    ScalarSoftplus,
     compute_mul,
     hard_sigmoid,
     is_1pexp,
@@ -17,7 +17,6 @@ from aesara.tensor.nnet.sigm import (
     perform_sigm_times_exp,
     register_local_1msigmoid,
     simplify_mul,
-    softplus,
     ultra_fast_sigmoid,
 )
 from aesara.tensor.shape import Reshape
@@ -474,7 +473,7 @@ class TestSoftplusOpts:
         topo = f.maker.fgraph.toposort()
         assert len(topo) == 3
         assert isinstance(topo[0].op.scalar_op, aesara.scalar.Neg)
-        assert isinstance(topo[1].op.scalar_op, ScalarSoftplus)
+        assert isinstance(topo[1].op.scalar_op, Softplus)
         assert isinstance(topo[2].op.scalar_op, aesara.scalar.Neg)
         f(np.random.rand(54).astype(config.floatX))
 
@@ -485,7 +484,7 @@ class TestSoftplusOpts:
         f = aesara.function([x], out, mode=self.m)
         topo = f.maker.fgraph.toposort()
         assert len(topo) == 2
-        assert isinstance(topo[0].op.scalar_op, ScalarSoftplus)
+        assert isinstance(topo[0].op.scalar_op, Softplus)
         assert isinstance(topo[1].op.scalar_op, aesara.scalar.Neg)
         # assert check_stack_trace(f, ops_to_check='all')
         f(np.random.rand(54, 11).astype(config.floatX))
@@ -498,7 +497,7 @@ class TestSoftplusOpts:
         topo = f.maker.fgraph.toposort()
         assert len(topo) == 3
         assert aet.is_flat(topo[0].outputs[0])
-        assert isinstance(topo[1].op.scalar_op, ScalarSoftplus)
+        assert isinstance(topo[1].op.scalar_op, Softplus)
         assert isinstance(topo[2].op.scalar_op, aesara.scalar.Neg)
         f(np.random.rand(54, 11).astype(config.floatX))
 
@@ -511,7 +510,7 @@ class TestSoftplusOpts:
         assert any(
             isinstance(
                 getattr(node.op, "scalar_op", None),
-                ScalarSoftplus,
+                Softplus,
             )
             for node in topo
         )
@@ -531,7 +530,7 @@ class TestSoftplusOpts:
         # assert check_stack_trace(f, ops_to_check='all')
         topo = f.maker.fgraph.toposort()
         assert len(topo) == 1
-        assert isinstance(topo[0].op.scalar_op, ScalarSoftplus)
+        assert isinstance(topo[0].op.scalar_op, Softplus)
         f(np.random.rand(54).astype(config.floatX))
 
 

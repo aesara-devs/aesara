@@ -314,6 +314,11 @@ def sigmoid_inplace(x):
 
 
 @scalar_elemwise
+def softplus_inplace(x):
+    """Compute log(1 + exp(x)), also known as softplus or log1pexp"""
+
+
+@scalar_elemwise
 def second_inplace(a):
     """Fill `a` with `b`"""
 

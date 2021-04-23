@@ -31,6 +31,7 @@ from aesara.tensor.math import (
     mul,
     neg,
     sigmoid,
+    softplus,
     sub,
     true_div,
 )
@@ -187,102 +188,6 @@ def local_hard_sigmoid(fgraph, node):
 aesara.compile.optdb["uncanonicalize"].register(
     "local_hard_sigmoid", local_hard_sigmoid
 )
-
-
-class ScalarSoftplus(aes.UnaryScalarOp):
-    r"""
-    Compute log(1 + exp(x)), also known as softplus or log1pexp
-
-    This function is numerically more stable than the naive approach.
-
-    For details, see
-    https://cran.r-project.org/web/packages/Rmpfr/vignettes/log1mexp-note.pdf
-
-    References
-    ----------
-    .. [Machler2012] Martin Mächler (2012).
-        "Accurately computing `\log(1-\exp(- \mid a \mid))` Assessed by the Rmpfr package"
-    """
-
-    def static_impl(x):
-        # If x is an int8 or uint8, numpy.exp will compute the result in
-        # half-precision (float16), where we want float32.
-        not_int8 = str(getattr(x, "dtype", "")) not in ("int8", "uint8")
-        if x < -37.0:
-            return np.exp(x) if not_int8 else np.exp(x, signature="f")
-        elif x < 18.0:
-            return (
-                np.log1p(np.exp(x)) if not_int8 else np.log1p(np.exp(x, signature="f"))
-            )
-        elif x < 33.3:
-            return x + np.exp(-x) if not_int8 else x + np.exp(-x, signature="f")
-        else:
-            return x
-
-    def impl(self, x):
-        return ScalarSoftplus.static_impl(x)
-
-    def grad(self, inp, grads):
-        (x,) = inp
-        (gz,) = grads
-        return [gz * scalar_sigmoid(x)]
-
-    def c_code(self, node, name, inp, out, sub):
-        (x,) = inp
-        (z,) = out
-        # The boundary constants were obtained by looking at the output of
-        # python commands like:
-        # import numpy, aesara
-        # dt='float32'  # or float64
-        #  for i in range(750):
-        #      print i, repr(numpy.log1p(numpy.exp(_asarray([i,-i], dtype=dt))))
-        # the upper boundary check prevents us from generating inf, whereas the
-        # the lower boundary check prevents using exp when the result will be 0 anyway.
-        # The intermediate constants are taken from Machler (2012).
-
-        # We use the float32 limits for float16 for now as the
-        # computation will happen in float32 anyway.
-        if node.inputs[0].type == aes.float32 or node.inputs[0].type == aes.float16:
-            return (
-                """
-                %(z)s = (
-                    %(x)s < -103.0f ? 0.0 :
-                    %(x)s < -37.0f ? exp(%(x)s) :
-                    %(x)s < 18.0f ? log1p(exp(%(x)s)) :
-                    %(x)s < 33.3f ? %(x)s + exp(-%(x)s) :
-                    %(x)s
-                );
-                """
-                % locals()
-            )
-        elif node.inputs[0].type == aes.float64:
-            return (
-                """
-                %(z)s = (
-                    %(x)s < -745.0 ? 0.0 :
-                    %(x)s < -37.0 ? exp(%(x)s) :
-                    %(x)s < 18.0 ? log1p(exp(%(x)s)) :
-                    %(x)s < 33.3 ? %(x)s + exp(-%(x)s) :
-                    %(x)s
-                );
-                """
-                % locals()
-            )
-        else:
-            raise NotImplementedError("only floatingpoint is implemented")
-
-    def c_code_cache_version(self):
-        v = super().c_code_cache_version()
-        if v:
-            return (2,) + v
-        else:
-            return v
-
-
-scalar_softplus = ScalarSoftplus(aes.upgrade_to_float, name="scalar_softplus")
-softplus = Elemwise(scalar_softplus, name="softplus")
-
-pprint.assign(softplus, printing.FunctionPrinter("softplus"))
 
 
 def _skip_mul_1(r):

@@ -1408,6 +1408,11 @@ def sigmoid(x):
 
 
 @scalar_elemwise
+def softplus(x):
+    """Compute log(1 + exp(x)), also known as softplus or log1pexp"""
+
+
+@scalar_elemwise
 def real(z):
     """Return real component of complex-valued tensor `z`"""
 
@@ -2834,6 +2839,7 @@ __all__ = [
     "i1",
     "iv",
     "sigmoid",
+    "softplus",
     "real",
     "imag",
     "angle",
