@@ -492,9 +492,10 @@ betabinom = BetaBinomialRV()
 class MultinomialRV(RandomVariable):
     """A Multinomial random variable type.
 
-    FYI: Length of the support dimension is determined by the last
+    Notes
+    -----
+    The length of the support dimension is determined by the last
     dimension in the *second* parameter (i.e.  the probabilities vector).
-
     """
 
     name = "multinomial"
