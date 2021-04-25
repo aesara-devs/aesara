@@ -3,7 +3,6 @@
 
 __docformat__ = "restructuredtext en"
 
-import warnings
 from functools import singledispatch
 from typing import TYPE_CHECKING, Any, Callable, List, NoReturn, Optional, Union
 
