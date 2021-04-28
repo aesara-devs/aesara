@@ -643,6 +643,11 @@ class TestAlloc:
             inp = np.zeros(shp, dtype=config.floatX)
             assert np.allclose(zeros_tensor(inp), np.zeros(shp))
 
+    def test_full(self):
+        full_at = aet.full((2, 3), 3, dtype="int64")
+        res = aesara.function([], full_at, mode=self.mode)()
+        assert np.array_equal(res, np.full((2, 3), 3, dtype="int64"))
+
 
 # This is slow for the ('int8', 3) version.
 def test_eye():
@@ -4104,3 +4109,12 @@ def test_allocempty():
 
     assert out.shape == (2, 3)
     assert out.dtype == "float32"
+
+    empty_at = aet.empty((2, 3), dtype=None)
+    res = aesara.function([], empty_at)()
+    assert res.shape == (2, 3)
+
+    empty_at = aet.empty((2, 3), dtype="int64")
+    res = aesara.function([], empty_at)()
+    assert res.shape == (2, 3)
+    assert res.dtype == "int64"
