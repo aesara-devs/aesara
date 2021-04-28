@@ -114,7 +114,7 @@ class FunctionGraph(MetaObject):
             raise ValueError("No outputs specified")
 
         if inputs is None:
-            inputs = [i for i in graph_inputs(outputs)]
+            inputs = [i for i in graph_inputs(outputs) if not isinstance(i, Constant)]
 
         if clone:
             memo = clone_get_equiv(

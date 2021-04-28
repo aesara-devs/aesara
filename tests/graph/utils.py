@@ -1,6 +1,6 @@
 import numpy as np
 
-from aesara.graph.basic import Apply, Variable
+from aesara.graph.basic import Apply, Constant, Variable
 from aesara.graph.op import Op
 from aesara.graph.type import Type
 
@@ -35,6 +35,10 @@ class MyType2(Type):
 
 def MyVariable(name):
     return Variable(MyType(), None, None, name=name)
+
+
+def MyConstant(name, data=None):
+    return Constant(MyType(), data, name=name)
 
 
 def MyVariable2(name):
