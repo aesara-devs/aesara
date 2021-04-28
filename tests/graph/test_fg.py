@@ -5,7 +5,7 @@ import pytest
 
 from aesara.configdefaults import config
 from aesara.graph.fg import FunctionGraph, MissingInputError
-from tests.graph.utils import MyVariable, MyVariable2, op1, op2, op3
+from tests.graph.utils import MyConstant, MyVariable, MyVariable2, op1, op2, op3
 
 
 class TestFunctionGraph:
@@ -62,7 +62,9 @@ class TestFunctionGraph:
         assert fg.get_clients(var3) == [(var4.owner, 0), ("output", 0)]
         assert fg.get_clients(var4) == [("output", 1)]
 
-        fg = FunctionGraph(outputs=[var3, var4], clone=False)
+        varC = MyConstant("varC")
+        var5 = op1(var1, varC)
+        fg = FunctionGraph(outputs=[var3, var4, var5], clone=False)
         assert fg.inputs == [var1, var2]
 
         memo = {}
