@@ -1,4 +1,5 @@
 from functools import partial
+from unittest import mock
 
 import numpy as np
 import pytest
@@ -56,6 +57,24 @@ def compare_numba_and_py(
         accept_inplace=True,
     )
     numba_res = aesara_numba_fn(*inputs)
+
+    # We evaluate the Numba implementation in pure Python for coverage
+    # purposes.
+    def py_tuple_setitem(t, i, v):
+        l = list(t)
+        l[i] = v
+        return tuple(l)
+
+    with mock.patch("aesara.link.numba.dispatch.numba.njit", lambda x: x), mock.patch(
+        "aesara.link.numba.dispatch.numba.vectorize", lambda x: x
+    ), mock.patch("aesara.link.numba.dispatch.tuple_setitem", py_tuple_setitem):
+        aesara_numba_fn = function(
+            fn_inputs,
+            fgraph.outputs,
+            mode=numba_mode,
+            accept_inplace=True,
+        )
+        _ = aesara_numba_fn(*inputs)
 
     aesara_py_fn = function(
         fn_inputs, fgraph.outputs, mode=py_mode, accept_inplace=True
