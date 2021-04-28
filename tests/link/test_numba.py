@@ -1,27 +1,43 @@
-from functools import partial
+import contextlib
 from unittest import mock
 
 import numpy as np
 import pytest
 
 import aesara.scalar as aes
+import aesara.scalar.basic as aesb
 import aesara.tensor as aet
+import aesara.tensor.basic as aetb
 from aesara import config
 from aesara.compile.function import function
 from aesara.compile.mode import Mode
+from aesara.compile.ops import ViewOp
 from aesara.compile.sharedvalue import SharedVariable
+from aesara.graph.basic import Constant
 from aesara.graph.fg import FunctionGraph
 from aesara.graph.optdb import Query
 from aesara.link.numba.linker import NumbaLinker
 from aesara.scalar.basic import Composite
+from aesara.tensor import elemwise as aet_elemwise
 from aesara.tensor import subtensor as aet_subtensor
 from aesara.tensor.elemwise import Elemwise
-from aesara.tensor.type import scalar
+from aesara.tensor.shape import Reshape, Shape, Shape_i, SpecifyShape
 
 
 opts = Query(include=[None], exclude=["cxx_only", "BlasOpt"])
 numba_mode = Mode(NumbaLinker(), opts)
 py_mode = Mode("py", opts)
+
+
+def set_test_value(x, v):
+    x.tag.test_value = v
+    return x
+
+
+def compare_shape_dtype(x, y):
+    (x,) = x
+    (y,) = y
+    return x.shape == y.shape and x.dtype == y.dtype
 
 
 def compare_numba_and_py(
@@ -47,9 +63,19 @@ def compare_numba_and_py(
 
     """
     if assert_fn is None:
-        assert_fn = partial(np.testing.assert_allclose, rtol=1e-4)
+
+        def assert_fn(x, y):
+            return np.testing.assert_allclose(x, y, rtol=1e-4) and compare_shape_dtype(
+                x, y
+            )
 
     fn_inputs = [i for i in fgraph.inputs if not isinstance(i, SharedVariable)]
+
+    aesara_py_fn = function(
+        fn_inputs, fgraph.outputs, mode=py_mode, accept_inplace=True
+    )
+    py_res = aesara_py_fn(*inputs)
+
     aesara_numba_fn = function(
         fn_inputs,
         fgraph.outputs,
@@ -75,11 +101,6 @@ def compare_numba_and_py(
             accept_inplace=True,
         )
         _ = aesara_numba_fn(*inputs)
-
-    aesara_py_fn = function(
-        fn_inputs, fgraph.outputs, mode=py_mode, accept_inplace=True
-    )
-    py_res = aesara_py_fn(*inputs)
 
     if len(fgraph.outputs) > 1:
         for j, p in zip(numba_res, py_res):
@@ -114,7 +135,7 @@ def test_Elemwise(inputs, input_vals, output_fn):
     "inputs, input_values",
     [
         (
-            [scalar("x"), scalar("y")],
+            [aet.scalar("x"), aet.scalar("y")],
             [np.array(10).astype(config.floatX), np.array(20).astype(config.floatX)],
         ),
     ],
@@ -296,3 +317,319 @@ def test_AdvancedIncSubtensor(x, y, indices):
     assert isinstance(out_aet.owner.op, aet_subtensor.AdvancedIncSubtensor)
     out_fg = FunctionGraph([x_at], [out_aet])
     compare_numba_and_py(out_fg, [x.data])
+
+
+@pytest.mark.parametrize(
+    "x, i",
+    [
+        (np.zeros((20, 3)), 1),
+    ],
+)
+def test_Shape(x, i):
+    g = Shape()(aet.as_tensor_variable(x))
+    g_fg = FunctionGraph([], [g])
+
+    compare_numba_and_py(g_fg, [])
+
+    g = Shape_i(i)(aet.as_tensor_variable(x))
+    g_fg = FunctionGraph([], [g])
+
+    compare_numba_and_py(g_fg, [])
+
+
+@pytest.mark.parametrize(
+    "v, shape",
+    [
+        (0.0, (2, 3)),
+        (1.1, (2, 3)),
+        (set_test_value(aet.scalar("a"), np.array(10.0, dtype=config.floatX)), (20,)),
+        (set_test_value(aet.vector("a"), np.ones(10, dtype=config.floatX)), (20, 10)),
+    ],
+)
+def test_Alloc(v, shape):
+    g = aet.alloc(v, *shape)
+    g_fg = FunctionGraph(outputs=[g])
+
+    (numba_res,) = compare_numba_and_py(
+        g_fg,
+        [
+            i.tag.test_value
+            for i in g_fg.inputs
+            if not isinstance(i, (SharedVariable, Constant))
+        ],
+    )
+
+    assert numba_res.shape == shape
+
+
+def test_AllocEmpty():
+
+    x = aet.empty((2, 3), dtype="float32")
+    x_fg = FunctionGraph([], [x])
+
+    # We need cannot compare the values in the arrays, only the shapes and
+    # dtypes
+    compare_numba_and_py(x_fg, [], assert_fn=compare_shape_dtype)
+
+
+@pytest.mark.parametrize(
+    "v, new_order, inplace",
+    [
+        # `{'drop': [], 'shuffle': [], 'augment': [0, 1]}`
+        (
+            set_test_value(
+                aet.lscalar(name="a"),
+                np.array(1, dtype=np.int64),
+            ),
+            ("x", "x"),
+            True,
+        ),
+        # I.e. `a_aet.T`
+        # `{'drop': [], 'shuffle': [1, 0], 'augment': []}`
+        (
+            set_test_value(
+                aet.matrix("a"), np.array([[1.0, 2.0], [3.0, 4.0]], dtype=config.floatX)
+            ),
+            (1, 0),
+            True,
+        ),
+        # `{'drop': [], 'shuffle': [0, 1], 'augment': [2]}`
+        (
+            set_test_value(
+                aet.matrix("a"), np.array([[1.0, 2.0], [3.0, 4.0]], dtype=config.floatX)
+            ),
+            (1, 0, "x"),
+            True,
+        ),
+        # `{'drop': [1], 'shuffle': [2, 0], 'augment': [0, 2, 4]}`
+        (
+            set_test_value(
+                aet.tensor(config.floatX, [False, True, False], name="a"),
+                np.array([[[1.0, 2.0]], [[3.0, 4.0]]], dtype=config.floatX),
+            ),
+            ("x", 2, "x", 0, "x"),
+            True,
+        ),
+        # I.e. `a_aet.dimshuffle((0,))`
+        # `{'drop': [1], 'shuffle': [0], 'augment': []}`
+        (
+            set_test_value(
+                aet.tensor(config.floatX, [False, True], name="a"),
+                np.array([[1.0], [2.0], [3.0], [4.0]], dtype=config.floatX),
+            ),
+            (0,),
+            True,
+        ),
+        (
+            set_test_value(
+                aet.tensor(config.floatX, [False, True], name="a"),
+                np.array([[1.0], [2.0], [3.0], [4.0]], dtype=config.floatX),
+            ),
+            (0,),
+            True,
+        ),
+    ],
+)
+def test_Dimshuffle(v, new_order, inplace):
+    g = aet_elemwise.DimShuffle(v.broadcastable, new_order, inplace=inplace)(v)
+    g_fg = FunctionGraph(outputs=[g])
+    compare_numba_and_py(
+        g_fg,
+        [
+            i.tag.test_value
+            for i in g_fg.inputs
+            if not isinstance(i, (SharedVariable, Constant))
+        ],
+    )
+
+
+@pytest.mark.parametrize(
+    "v", [set_test_value(aes.float64(), np.array(1.0, dtype="float64"))]
+)
+def test_TensorFromScalar(v):
+    g = aetb.TensorFromScalar()(v)
+    g_fg = FunctionGraph(outputs=[g])
+    compare_numba_and_py(
+        g_fg,
+        [
+            i.tag.test_value
+            for i in g_fg.inputs
+            if not isinstance(i, (SharedVariable, Constant))
+        ],
+    )
+
+
+@pytest.mark.parametrize(
+    "v",
+    [
+        set_test_value(aet.scalar(), np.array(1.0, dtype=config.floatX)),
+    ],
+)
+def test_ScalarFromTensor(v):
+    g = aetb.ScalarFromTensor()(v)
+    g_fg = FunctionGraph(outputs=[g])
+    compare_numba_and_py(
+        g_fg,
+        [
+            i.tag.test_value
+            for i in g_fg.inputs
+            if not isinstance(i, (SharedVariable, Constant))
+        ],
+    )
+
+
+@pytest.mark.parametrize(
+    "v, axis, fails",
+    [
+        (
+            set_test_value(aet.matrix(), np.array([[1.0]], dtype=config.floatX)),
+            [(0, True), (1, True)],
+            False,
+        ),
+        (
+            set_test_value(aet.matrix(), np.array([[1.0, 2.0]], dtype=config.floatX)),
+            [(0, True), (1, False)],
+            False,
+        ),
+        (
+            set_test_value(aet.matrix(), np.array([[1.0, 2.0]], dtype=config.floatX)),
+            [(0, True), (1, True)],
+            True,
+        ),
+    ],
+)
+def test_Rebroadcast(v, axis, fails):
+    g = aetb.Rebroadcast(*axis)(v)
+    g_fg = FunctionGraph(outputs=[g])
+    cm = contextlib.suppress() if not fails else pytest.raises(ValueError)
+    with cm:
+        compare_numba_and_py(
+            g_fg,
+            [
+                i.tag.test_value
+                for i in g_fg.inputs
+                if not isinstance(i, (SharedVariable, Constant))
+            ],
+        )
+
+
+@pytest.mark.parametrize(
+    "v, dtype",
+    [
+        (set_test_value(aet.fscalar(), np.array(1.0, dtype="float32")), aesb.float64),
+        (set_test_value(aet.dscalar(), np.array(1.0, dtype="float64")), aesb.float32),
+    ],
+)
+def test_Cast(v, dtype):
+    g = aesb.Cast(dtype)(v)
+    g_fg = FunctionGraph(outputs=[g])
+    compare_numba_and_py(
+        g_fg,
+        [
+            i.tag.test_value
+            for i in g_fg.inputs
+            if not isinstance(i, (SharedVariable, Constant))
+        ],
+    )
+
+
+@pytest.mark.parametrize(
+    "v, shape, ndim",
+    [
+        (set_test_value(aet.vector(), np.arange(4, dtype=config.floatX)), (2, 2), 2),
+        (
+            set_test_value(aet.vector(), np.arange(4, dtype=config.floatX)),
+            set_test_value(aet.lvector(), np.array([2, 2], dtype="int64")),
+            2,
+        ),
+    ],
+)
+def test_Reshape(v, shape, ndim):
+    g = Reshape(ndim)(v, shape)
+    g_fg = FunctionGraph(outputs=[g])
+    compare_numba_and_py(
+        g_fg,
+        [
+            i.tag.test_value
+            for i in g_fg.inputs
+            if not isinstance(i, (SharedVariable, Constant))
+        ],
+    )
+
+
+@pytest.mark.parametrize(
+    "v, shape, fails",
+    [
+        (
+            set_test_value(aet.matrix(), np.array([[1.0]], dtype=config.floatX)),
+            (1, 1),
+            False,
+        ),
+        (
+            set_test_value(aet.matrix(), np.array([[1.0, 2.0]], dtype=config.floatX)),
+            (1, 1),
+            True,
+        ),
+    ],
+)
+def test_SpecifyShape(v, shape, fails):
+    g = SpecifyShape()(v, shape)
+    g_fg = FunctionGraph(outputs=[g])
+    cm = contextlib.suppress() if not fails else pytest.raises(AssertionError)
+    with cm:
+        compare_numba_and_py(
+            g_fg,
+            [
+                i.tag.test_value
+                for i in g_fg.inputs
+                if not isinstance(i, (SharedVariable, Constant))
+            ],
+        )
+
+
+@pytest.mark.parametrize(
+    "v",
+    [
+        set_test_value(aet.vector(), np.arange(4, dtype=config.floatX)),
+    ],
+)
+def test_ViewOp(v):
+    g = ViewOp()(v)
+    g_fg = FunctionGraph(outputs=[g])
+    compare_numba_and_py(
+        g_fg,
+        [
+            i.tag.test_value
+            for i in g_fg.inputs
+            if not isinstance(i, (SharedVariable, Constant))
+        ],
+    )
+
+
+@pytest.mark.parametrize(
+    "x, y",
+    [
+        (
+            set_test_value(aet.lvector(), np.arange(4, dtype="int64")),
+            set_test_value(aet.dvector(), np.arange(4, dtype="float64")),
+        ),
+        (
+            set_test_value(
+                aet.dmatrix(), np.arange(4, dtype="float64").reshape((2, 2))
+            ),
+            set_test_value(aet.lscalar(), np.array(4, dtype="int64")),
+        ),
+    ],
+)
+def test_Second(x, y):
+    # We use the `Elemwise`-wrapped version of `Second`
+    g = aet.second(x, y)
+    g_fg = FunctionGraph(outputs=[g])
+    compare_numba_and_py(
+        g_fg,
+        [
+            i.tag.test_value
+            for i in g_fg.inputs
+            if not isinstance(i, (SharedVariable, Constant))
+        ],
+    )
