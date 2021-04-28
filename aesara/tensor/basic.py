@@ -1581,6 +1581,28 @@ alloc = Alloc()
 pprint.assign(alloc, printing.FunctionPrinter("alloc"))
 
 
+def full(shape, fill_value, dtype=None):
+    """Return a new array of given shape and type, filled with `fill_value`.
+
+    See ``numpy.full``.
+
+    Parameters
+    ----------
+    shape : int or sequence of ints
+        Shape of the new array, e.g., ``(2, 3)`` or ``2``.
+    fill_value : scalar or array_like
+        Fill value.
+    dtype : data-type, optional
+        The desired data-type for the array  The default, None, means
+        `np.array(fill_value).dtype`.
+
+    """
+    fill_value = as_tensor_variable(fill_value)
+    if dtype:
+        fill_value = fill_value.astype(dtype)
+    return alloc(fill_value, *shape)
+
+
 class MakeVector(COp):
     """Concatenate a number of scalars together into a vector.
 
@@ -4249,6 +4271,24 @@ class AllocEmpty(COp):
         return [zeros(inputs, self.dtype)]
 
 
+def empty(shape, dtype=None):
+    """Return a new array of given shape and type, without initializing entries.
+
+    See ``numpy.empty``.
+
+    Parameters
+    ----------
+    shape : int or tuple of int
+        Shape of the empty array, e.g., ``(2, 3)`` or ``2``.
+    dtype : data-type, optional
+        Desired output data-type for the array, e.g, `numpy.int8`. Default is
+        `numpy.float64`.
+    """
+    if dtype is None:
+        dtype = config.floatX
+    return AllocEmpty(dtype)(*shape)
+
+
 __all__ = [
     "choose",
     "swapaxes",
@@ -4305,4 +4345,6 @@ __all__ = [
     "as_tensor_variable",
     "as_tensor",
     "extract_diag",
+    "full",
+    "empty",
 ]
