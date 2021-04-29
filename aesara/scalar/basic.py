@@ -2413,7 +2413,7 @@ class Cast(UnaryScalarOp):
             raise TypeError(o_type)
         super().__init__(specific_out(o_type), name=name)
         self.o_type = o_type
-        self.ctor = getattr(np, o_type.dtype)
+        self.ctor = np.dtype(o_type.dtype).type
 
     def __str__(self):
         return f"{self.__class__.__name__}{{{self.o_type.dtype}}}"
