@@ -817,7 +817,7 @@ class TestNonzero:
             res_aet = nonzero_values(m_symb)
 
             result = res_aet.tag.test_value
-            assert np.allclose(result, m[np.nonzero(m)])
+            assert np.allclose(result, m[np.nonzero(m)], equal_nan=True)
 
         rand0d = np.empty(())
         with pytest.raises(ValueError):
