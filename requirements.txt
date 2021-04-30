@@ -14,6 +14,7 @@ versioneer
 jax; python_version > '3.6'
 jaxlib; python_version > '3.6'
 numba
+numba-scipy>=0.3.0
 diff-cover
 pre-commit
 isort
