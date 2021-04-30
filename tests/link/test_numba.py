@@ -91,9 +91,24 @@ def compare_numba_and_py(
         l[i] = v
         return tuple(l)
 
+    def py_to_scalar(x):
+        if isinstance(x, np.ndarray):
+            return x.item()
+        else:
+            return x
+
     with mock.patch("aesara.link.numba.dispatch.numba.njit", lambda x: x), mock.patch(
         "aesara.link.numba.dispatch.numba.vectorize", lambda x: x
-    ), mock.patch("aesara.link.numba.dispatch.tuple_setitem", py_tuple_setitem):
+    ), mock.patch(
+        "aesara.link.numba.dispatch.tuple_setitem", py_tuple_setitem
+    ), mock.patch(
+        "aesara.link.numba.dispatch.direct_cast", lambda x, dtype: x
+    ), mock.patch(
+        "aesara.link.numba.dispatch.numba.np.numpy_support.from_dtype",
+        lambda dtype: dtype,
+    ), mock.patch(
+        "aesara.link.numba.dispatch.to_scalar", py_to_scalar
+    ):
         aesara_numba_fn = function(
             fn_inputs,
             fgraph.outputs,
@@ -373,6 +388,28 @@ def test_AllocEmpty():
 
 
 @pytest.mark.parametrize(
+    "v, offset",
+    [
+        (set_test_value(aet.vector(), np.arange(10, dtype=config.floatX)), 0),
+        (set_test_value(aet.vector(), np.arange(10, dtype=config.floatX)), 1),
+        (set_test_value(aet.vector(), np.arange(10, dtype=config.floatX)), -1),
+    ],
+)
+def test_AllocDiag(v, offset):
+    g = aetb.AllocDiag(offset=offset)(v)
+    g_fg = FunctionGraph(outputs=[g])
+
+    compare_numba_and_py(
+        g_fg,
+        [
+            i.tag.test_value
+            for i in g_fg.inputs
+            if not isinstance(i, (SharedVariable, Constant))
+        ],
+    )
+
+
+@pytest.mark.parametrize(
     "v, new_order, inplace",
     [
         # `{'drop': [], 'shuffle': [], 'augment': [0, 1]}`
@@ -625,6 +662,80 @@ def test_Second(x, y):
     # We use the `Elemwise`-wrapped version of `Second`
     g = aet.second(x, y)
     g_fg = FunctionGraph(outputs=[g])
+    compare_numba_and_py(
+        g_fg,
+        [
+            i.tag.test_value
+            for i in g_fg.inputs
+            if not isinstance(i, (SharedVariable, Constant))
+        ],
+    )
+
+
+@pytest.mark.parametrize(
+    "v, min, max",
+    [
+        (set_test_value(aet.scalar(), np.array(10, dtype=config.floatX)), 3.0, 7.0),
+        (set_test_value(aet.scalar(), np.array(1, dtype=config.floatX)), 3.0, 7.0),
+        (set_test_value(aet.scalar(), np.array(10, dtype=config.floatX)), 7.0, 3.0),
+    ],
+)
+def test_Clip(v, min, max):
+    g = aes.clip(v, min, max)
+    g_fg = FunctionGraph(outputs=[g])
+
+    compare_numba_and_py(
+        g_fg,
+        [
+            i.tag.test_value
+            for i in g_fg.inputs
+            if not isinstance(i, (SharedVariable, Constant))
+        ],
+    )
+
+
+@pytest.mark.parametrize(
+    "vals, dtype",
+    [
+        (
+            (
+                set_test_value(aet.scalar(), np.array(1, dtype=config.floatX)),
+                set_test_value(aet.scalar(), np.array(2, dtype=config.floatX)),
+                set_test_value(aet.scalar(), np.array(3, dtype=config.floatX)),
+            ),
+            config.floatX,
+        ),
+    ],
+)
+def test_MakeVector(vals, dtype):
+    g = aetb.MakeVector(dtype)(*vals)
+    g_fg = FunctionGraph(outputs=[g])
+
+    compare_numba_and_py(
+        g_fg,
+        [
+            i.tag.test_value
+            for i in g_fg.inputs
+            if not isinstance(i, (SharedVariable, Constant))
+        ],
+    )
+
+
+@pytest.mark.parametrize(
+    "start, stop, step, dtype",
+    [
+        (
+            set_test_value(aet.lscalar(), np.array(1)),
+            set_test_value(aet.lscalar(), np.array(10)),
+            set_test_value(aet.lscalar(), np.array(3)),
+            config.floatX,
+        ),
+    ],
+)
+def test_ARange(start, stop, step, dtype):
+    g = aetb.ARange(dtype)(start, stop, step)
+    g_fg = FunctionGraph(outputs=[g])
+
     compare_numba_and_py(
         g_fg,
         [

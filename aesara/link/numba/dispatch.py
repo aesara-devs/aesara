@@ -16,10 +16,13 @@ from aesara.compile.ops import DeepCopyOp, ViewOp
 from aesara.graph.fg import FunctionGraph
 from aesara.graph.type import Type
 from aesara.link.utils import compile_function_src, fgraph_to_python
-from aesara.scalar.basic import Cast, Composite, Identity, ScalarOp, Second
+from aesara.scalar.basic import Cast, Clip, Composite, Identity, ScalarOp, Second
 from aesara.tensor.basic import (
     Alloc,
+    AllocDiag,
     AllocEmpty,
+    ARange,
+    MakeVector,
     Rebroadcast,
     ScalarFromTensor,
     TensorFromScalar,
@@ -346,6 +349,17 @@ def numba_funcify_MakeSlice(op, **kwargs):
     return makeslice
 
 
+@numba_funcify.register(MakeVector)
+def numba_funcify_MakeVector(op, **kwargs):
+    dtype = np.dtype(op.dtype)
+
+    @numba.njit
+    def makevector(*args):
+        return np.array([a.item() for a in args], dtype=dtype)
+
+    return makevector
+
+
 @numba_funcify.register(Shape)
 def numba_funcify_Shape(op, **kwargs):
     @numba.njit
@@ -445,6 +459,17 @@ def alloc(val, {", ".join(shape_var_names)}):
     return numba.njit(alloc_fn)
 
 
+@numba_funcify.register(AllocDiag)
+def numba_funcify_AllocDiag(op, **kwargs):
+    offset = op.offset
+
+    @numba.njit
+    def allocdiag(v):
+        return np.diag(v, k=offset)
+
+    return allocdiag
+
+
 @numba_funcify.register(Second)
 def numba_funcify_Second(op, node, **kwargs):
     @numba.njit
@@ -539,13 +564,28 @@ def numba_funcify_Rebroadcast(op, **kwargs):
     return rebroadcast
 
 
+@numba.extending.intrinsic
+def direct_cast(typingctx, val, typ):
+    casted = typ.instance_type
+    sig = casted(casted, typ)
+
+    def codegen(context, builder, signature, args):
+        val, _ = args
+        context.nrt.incref(builder, signature.return_type, val)
+        return val
+
+    return sig, codegen
+
+
 @numba_funcify.register(Cast)
 def numba_funcify_Cast(op, **kwargs):
-    dtype = op.o_type.dtype
+
+    dtype = np.dtype(op.o_type.dtype)
+    dtype = numba.np.numpy_support.from_dtype(dtype)
 
     @numba.njit
     def cast(x):
-        return np.array(x, dtype=dtype)
+        return direct_cast(x, dtype)
 
     return cast
 
@@ -589,3 +629,29 @@ def numba_funcify_ViewOp(op, **kwargs):
         return x
 
     return viewop
+
+
+@numba_funcify.register(Clip)
+def numba_funcify_Clip(op, **kwargs):
+    @numba.njit
+    def clip(_x, _min, _max):
+        x = to_scalar(_x)
+        min = to_scalar(_min)
+        max = to_scalar(_max)
+        return np.where(x < min, min, to_scalar(np.where(x > max, max, x)))
+
+    return clip
+
+
+@numba_funcify.register(ARange)
+def numba_funcify_ARange(op, **kwargs):
+    dtype = np.dtype(op.dtype)
+    dtype = numba.np.numpy_support.from_dtype(dtype)
+
+    @numba.njit
+    def arange(start, stop, step):
+        return np.arange(
+            to_scalar(start), to_scalar(stop), to_scalar(step), dtype=dtype
+        )
+
+    return arange
