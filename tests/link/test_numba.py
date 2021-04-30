@@ -1,6 +1,7 @@
 import contextlib
 from unittest import mock
 
+import numba
 import numpy as np
 import pytest
 
@@ -13,15 +14,34 @@ from aesara.compile.function import function
 from aesara.compile.mode import Mode
 from aesara.compile.ops import ViewOp
 from aesara.compile.sharedvalue import SharedVariable
-from aesara.graph.basic import Constant
+from aesara.graph.basic import Apply, Constant
 from aesara.graph.fg import FunctionGraph
+from aesara.graph.op import Op
 from aesara.graph.optdb import Query
+from aesara.graph.type import Type
+from aesara.link.numba.dispatch import create_numba_signature, get_numba_type
 from aesara.link.numba.linker import NumbaLinker
 from aesara.scalar.basic import Composite
 from aesara.tensor import elemwise as aet_elemwise
 from aesara.tensor import subtensor as aet_subtensor
 from aesara.tensor.elemwise import Elemwise
 from aesara.tensor.shape import Reshape, Shape, Shape_i, SpecifyShape
+
+
+class MyType(Type):
+    def filter(self, data):
+        return data
+
+    def __eq__(self, other):
+        return isinstance(other, MyType)
+
+    def __hash__(self):
+        return hash(MyType)
+
+
+class MyOp(Op):
+    def perform(self, *args):
+        pass
 
 
 opts = Query(include=[None], exclude=["cxx_only", "BlasOpt"])
@@ -124,6 +144,71 @@ def compare_numba_and_py(
         assert_fn(numba_res, py_res)
 
     return numba_res
+
+
+@pytest.mark.parametrize(
+    "v, expected, force_scalar, not_implemented",
+    [
+        (MyType(), None, False, True),
+        (aes.float32, numba.types.float32, False, False),
+        (aet.fscalar, numba.types.Array(numba.types.float32, 0, "A"), False, False),
+        (aet.fscalar, numba.types.float32, True, False),
+        (aet.lvector, numba.types.int64[:], False, False),
+        (aet.dmatrix, numba.types.float64[:, :], False, False),
+        (aet.dmatrix, numba.types.float64, True, False),
+    ],
+)
+def test_get_numba_type(v, expected, force_scalar, not_implemented):
+    cm = (
+        contextlib.suppress()
+        if not not_implemented
+        else pytest.raises(NotImplementedError)
+    )
+    with cm:
+        res = get_numba_type(v, force_scalar=force_scalar)
+        assert res == expected
+
+
+@pytest.mark.parametrize(
+    "v, expected, force_scalar",
+    [
+        (Apply(MyOp(), [], []), numba.types.void(), False),
+        (Apply(MyOp(), [], []), numba.types.void(), True),
+        (
+            Apply(MyOp(), [aet.lvector()], []),
+            numba.types.void(numba.types.int64[:]),
+            False,
+        ),
+        (Apply(MyOp(), [aet.lvector()], []), numba.types.void(numba.types.int64), True),
+        (
+            Apply(MyOp(), [aet.dmatrix(), aes.float32()], [aet.dmatrix()]),
+            numba.types.float64[:, :](numba.types.float64[:, :], numba.types.float32),
+            False,
+        ),
+        (
+            Apply(MyOp(), [aet.dmatrix(), aes.float32()], [aet.dmatrix()]),
+            numba.types.float64(numba.types.float64, numba.types.float32),
+            True,
+        ),
+        (
+            Apply(MyOp(), [aet.dmatrix(), aes.float32()], [aet.dmatrix(), aes.int32()]),
+            numba.types.Tuple([numba.types.float64[:, :], numba.types.int32])(
+                numba.types.float64[:, :], numba.types.float32
+            ),
+            False,
+        ),
+        (
+            Apply(MyOp(), [aet.dmatrix(), aes.float32()], [aet.dmatrix(), aes.int32()]),
+            numba.types.Tuple([numba.types.float64, numba.types.int32])(
+                numba.types.float64, numba.types.float32
+            ),
+            True,
+        ),
+    ],
+)
+def test_create_numba_signature(v, expected, force_scalar):
+    res = create_numba_signature(v, force_scalar=force_scalar)
+    assert res == expected
 
 
 @pytest.mark.parametrize(

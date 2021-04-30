@@ -13,10 +13,19 @@ from numba.cpython.unsafe.tuple import tuple_setitem
 from numba.extending import box
 
 from aesara.compile.ops import DeepCopyOp, ViewOp
+from aesara.graph.basic import Apply
 from aesara.graph.fg import FunctionGraph
 from aesara.graph.type import Type
 from aesara.link.utils import compile_function_src, fgraph_to_python
-from aesara.scalar.basic import Cast, Clip, Composite, Identity, ScalarOp, Second
+from aesara.scalar.basic import (
+    Cast,
+    Clip,
+    Composite,
+    Identity,
+    Scalar,
+    ScalarOp,
+    Second,
+)
 from aesara.tensor.basic import (
     Alloc,
     AllocDiag,
@@ -37,7 +46,43 @@ from aesara.tensor.subtensor import (
     IncSubtensor,
     Subtensor,
 )
+from aesara.tensor.type import TensorType
 from aesara.tensor.type_other import MakeSlice
+
+
+def get_numba_type(
+    aesara_type: Type, layout: str = "A", force_scalar: bool = False
+) -> numba.types.Type:
+    """Create a Numba type object for a ``Type``."""
+
+    if isinstance(aesara_type, TensorType) and not force_scalar:
+        dtype = aesara_type.numpy_dtype
+        numba_dtype = numba.np.numpy_support.from_dtype(dtype)
+        return numba.types.Array(numba_dtype, aesara_type.ndim, layout)
+    elif isinstance(aesara_type, Scalar) or force_scalar:
+        dtype = np.dtype(aesara_type.dtype)
+        numba_dtype = numba.np.numpy_support.from_dtype(dtype)
+        return numba_dtype
+    else:
+        raise NotImplementedError(f"Numba type not implemented for {aesara_type}")
+
+
+def create_numba_signature(node: Apply, force_scalar: bool = False) -> numba.types.Type:
+    """Create a Numba type for the signature of an ``Apply`` node."""
+    input_types = []
+    for inp in node.inputs:
+        input_types.append(get_numba_type(inp.type, force_scalar=force_scalar))
+
+    output_types = []
+    for out in node.outputs:
+        output_types.append(get_numba_type(out.type, force_scalar=force_scalar))
+
+    if len(output_types) > 1:
+        return numba.types.Tuple(output_types)(*input_types)
+    elif len(output_types) == 1:
+        return output_types[0](*input_types)
+    else:
+        return numba.types.void(*input_types)
 
 
 def slice_new(self, start, stop, step):
