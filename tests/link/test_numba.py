@@ -94,10 +94,15 @@ def compare_numba_and_py(
     "inputs, input_vals, output_fn",
     [
         (
+            [aet.vector()],
+            [np.random.randn(100).astype(config.floatX)],
+            lambda x: aet.nnet.sigmoid(x),
+        ),
+        (
             [aet.vector() for i in range(4)],
             [np.random.randn(100).astype(config.floatX) for i in range(4)],
             lambda x, y, x1, y1: (x + y) * (x1 + y1) * y,
-        )
+        ),
     ],
 )
 def test_Elemwise(inputs, input_vals, output_fn):
