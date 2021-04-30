@@ -252,8 +252,9 @@ def numpy_scalar(data):
 
     Raises
     ------
-     NotScalarConstantError
+    NotScalarConstantError
         If the numpy ndarray is not a scalar.
+    EmptyConstantError
 
     """
 
@@ -262,7 +263,7 @@ def numpy_scalar(data):
         assert np.all(np.array([]) == data)
         raise EmptyConstantError()
     try:
-        np.complex(data)  # works for all numeric scalars
+        complex(data)  # works for all numeric scalars
         return data
     except Exception:
         raise NotScalarConstantError(
