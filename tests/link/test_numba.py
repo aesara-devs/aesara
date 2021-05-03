@@ -1050,3 +1050,35 @@ def test_ExtractDiag(val, offset):
             if not isinstance(i, (SharedVariable, Constant))
         ],
     )
+
+
+@pytest.mark.parametrize(
+    "n, m, k, dtype",
+    [
+        (set_test_value(aet.lscalar(), np.array(1, dtype=np.int64)), None, 0, None),
+        (
+            set_test_value(aet.lscalar(), np.array(1, dtype=np.int64)),
+            set_test_value(aet.lscalar(), np.array(2, dtype=np.int64)),
+            0,
+            "float32",
+        ),
+        (
+            set_test_value(aet.lscalar(), np.array(1, dtype=np.int64)),
+            set_test_value(aet.lscalar(), np.array(2, dtype=np.int64)),
+            1,
+            "int64",
+        ),
+    ],
+)
+def test_Eye(n, m, k, dtype):
+    g = aet.eye(n, m, k, dtype=dtype)
+    g_fg = FunctionGraph(outputs=[g])
+
+    compare_numba_and_py(
+        g_fg,
+        [
+            i.tag.test_value
+            for i in g_fg.inputs
+            if not isinstance(i, (SharedVariable, Constant))
+        ],
+    )
