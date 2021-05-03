@@ -35,6 +35,7 @@ from aesara.tensor.basic import (
     AllocDiag,
     AllocEmpty,
     ARange,
+    ExtractDiag,
     Join,
     MakeVector,
     Rebroadcast,
@@ -819,3 +820,16 @@ def numba_funcify_Join(op, **kwargs):
         return np.concatenate(tensors, to_scalar(axis))
 
     return join
+
+
+@numba_funcify.register(ExtractDiag)
+def numba_funcify_ExtractDiag(op, **kwargs):
+    offset = op.offset
+    # axis1 = op.axis1
+    # axis2 = op.axis2
+
+    @numba.njit
+    def extract_diag(x):
+        return np.diag(x, k=offset)
+
+    return extract_diag
