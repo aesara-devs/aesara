@@ -935,3 +935,89 @@ def test_CAReduce(careduce_fn, axis, v):
             if not isinstance(i, (SharedVariable, Constant))
         ],
     )
+
+
+@pytest.mark.parametrize(
+    "vals, axis",
+    [
+        (
+            (
+                set_test_value(
+                    aet.matrix(), np.random.normal(size=(1, 2)).astype(config.floatX)
+                ),
+                set_test_value(
+                    aet.matrix(), np.random.normal(size=(1, 2)).astype(config.floatX)
+                ),
+            ),
+            0,
+        ),
+        (
+            (
+                set_test_value(
+                    aet.matrix(), np.random.normal(size=(2, 1)).astype(config.floatX)
+                ),
+                set_test_value(
+                    aet.matrix(), np.random.normal(size=(3, 1)).astype(config.floatX)
+                ),
+            ),
+            0,
+        ),
+        (
+            (
+                set_test_value(
+                    aet.matrix(), np.random.normal(size=(1, 2)).astype(config.floatX)
+                ),
+                set_test_value(
+                    aet.matrix(), np.random.normal(size=(1, 2)).astype(config.floatX)
+                ),
+            ),
+            1,
+        ),
+        (
+            (
+                set_test_value(
+                    aet.matrix(), np.random.normal(size=(2, 2)).astype(config.floatX)
+                ),
+                set_test_value(
+                    aet.matrix(), np.random.normal(size=(2, 1)).astype(config.floatX)
+                ),
+            ),
+            1,
+        ),
+    ],
+)
+def test_Join(vals, axis):
+    g = aet.join(axis, *vals)
+    g_fg = FunctionGraph(outputs=[g])
+
+    compare_numba_and_py(
+        g_fg,
+        [
+            i.tag.test_value
+            for i in g_fg.inputs
+            if not isinstance(i, (SharedVariable, Constant))
+        ],
+    )
+
+
+def test_Join_view():
+    vals = (
+        set_test_value(
+            aet.matrix(), np.random.normal(size=(2, 2)).astype(config.floatX)
+        ),
+        set_test_value(
+            aet.matrix(), np.random.normal(size=(2, 2)).astype(config.floatX)
+        ),
+    )
+    g = aetb.Join(view=1)(1, *vals)
+    g_fg = FunctionGraph(outputs=[g])
+
+    with pytest.raises(NotImplementedError):
+        compare_numba_and_py(
+            g_fg,
+            [
+                i.tag.test_value
+                for i in g_fg.inputs
+                if not isinstance(i, (SharedVariable, Constant))
+            ],
+        )
