@@ -35,6 +35,7 @@ from aesara.tensor.basic import (
     AllocDiag,
     AllocEmpty,
     ARange,
+    Join,
     MakeVector,
     Rebroadcast,
     ScalarFromTensor,
@@ -801,3 +802,20 @@ def numba_funcify_ARange(op, **kwargs):
         )
 
     return arange
+
+
+@numba_funcify.register(Join)
+def numba_funcify_Join(op, **kwargs):
+    view = op.view
+
+    if view != -1:
+        # TODO: Where (and why) is this `Join.view` even being used?  From a
+        # quick search, the answer appears to be "nowhere", so we should
+        # probably just remove it.
+        raise NotImplementedError("The `view` parameter to `Join` is not supported")
+
+    @numba.njit
+    def join(axis, *tensors):
+        return np.concatenate(tensors, to_scalar(axis))
+
+    return join
