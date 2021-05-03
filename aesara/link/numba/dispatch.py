@@ -55,13 +55,15 @@ def get_numba_type(
 ) -> numba.types.Type:
     """Create a Numba type object for a ``Type``."""
 
-    if isinstance(aesara_type, TensorType) and not force_scalar:
+    if isinstance(aesara_type, TensorType):
         dtype = aesara_type.numpy_dtype
-        numba_dtype = numba.np.numpy_support.from_dtype(dtype)
+        numba_dtype = numba.from_dtype(dtype)
+        if force_scalar:
+            return numba_dtype
         return numba.types.Array(numba_dtype, aesara_type.ndim, layout)
-    elif isinstance(aesara_type, Scalar) or force_scalar:
+    elif isinstance(aesara_type, Scalar):
         dtype = np.dtype(aesara_type.dtype)
-        numba_dtype = numba.np.numpy_support.from_dtype(dtype)
+        numba_dtype = numba.from_dtype(dtype)
         return numba_dtype
     else:
         raise NotImplementedError(f"Numba type not implemented for {aesara_type}")
