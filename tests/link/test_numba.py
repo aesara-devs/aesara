@@ -864,3 +864,74 @@ def test_ARange(start, stop, step, dtype):
             if not isinstance(i, (SharedVariable, Constant))
         ],
     )
+
+
+@pytest.mark.parametrize(
+    "careduce_fn, axis, v",
+    [
+        (aet.sum, 0, set_test_value(aet.vector(), np.arange(3, dtype=config.floatX))),
+        (aet.all, 0, set_test_value(aet.vector(), np.arange(3, dtype=config.floatX))),
+        (
+            aet.sum,
+            0,
+            set_test_value(
+                aet.matrix(), np.arange(3 * 2, dtype=config.floatX).reshape((3, 2))
+            ),
+        ),
+        (
+            aet.sum,
+            (0, 1),
+            set_test_value(
+                aet.matrix(), np.arange(3 * 2, dtype=config.floatX).reshape((3, 2))
+            ),
+        ),
+        (
+            aet.sum,
+            (1, 0),
+            set_test_value(
+                aet.matrix(), np.arange(3 * 2, dtype=config.floatX).reshape((3, 2))
+            ),
+        ),
+        (
+            aet.sum,
+            None,
+            set_test_value(
+                aet.matrix(), np.arange(3 * 2, dtype=config.floatX).reshape((3, 2))
+            ),
+        ),
+        (
+            aet.sum,
+            1,
+            set_test_value(
+                aet.matrix(), np.arange(3 * 2, dtype=config.floatX).reshape((3, 2))
+            ),
+        ),
+        (aet.prod, 0, set_test_value(aet.vector(), np.arange(3, dtype=config.floatX))),
+        (
+            aet.prod,
+            0,
+            set_test_value(
+                aet.matrix(), np.arange(3 * 2, dtype=config.floatX).reshape((3, 2))
+            ),
+        ),
+        (
+            aet.prod,
+            1,
+            set_test_value(
+                aet.matrix(), np.arange(3 * 2, dtype=config.floatX).reshape((3, 2))
+            ),
+        ),
+    ],
+)
+def test_CAReduce(careduce_fn, axis, v):
+    g = careduce_fn(v, axis=axis)
+    g_fg = FunctionGraph(outputs=[g])
+
+    compare_numba_and_py(
+        g_fg,
+        [
+            i.tag.test_value
+            for i in g_fg.inputs
+            if not isinstance(i, (SharedVariable, Constant))
+        ],
+    )
