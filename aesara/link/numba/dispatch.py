@@ -36,6 +36,7 @@ from aesara.tensor.basic import (
     AllocEmpty,
     ARange,
     ExtractDiag,
+    Eye,
     Join,
     MakeVector,
     Rebroadcast,
@@ -833,3 +834,15 @@ def numba_funcify_ExtractDiag(op, **kwargs):
         return np.diag(x, k=offset)
 
     return extract_diag
+
+
+@numba_funcify.register(Eye)
+def numba_funcify_Eye(op, **kwargs):
+    dtype = np.dtype(op.dtype)
+    dtype = numba.np.numpy_support.from_dtype(dtype)
+
+    @numba.njit
+    def eye(N, M, k):
+        return np.eye(to_scalar(N), to_scalar(M), to_scalar(k), dtype=dtype)
+
+    return eye
