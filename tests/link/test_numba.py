@@ -1021,3 +1021,32 @@ def test_Join_view():
                 if not isinstance(i, (SharedVariable, Constant))
             ],
         )
+
+
+@pytest.mark.parametrize(
+    "val, offset",
+    [
+        (
+            set_test_value(
+                aet.matrix(), np.arange(10 * 10, dtype=config.floatX).reshape((10, 10))
+            ),
+            0,
+        ),
+        (
+            set_test_value(aet.vector(), np.arange(10, dtype=config.floatX)),
+            0,
+        ),
+    ],
+)
+def test_ExtractDiag(val, offset):
+    g = aet.diag(val, offset)
+    g_fg = FunctionGraph(outputs=[g])
+
+    compare_numba_and_py(
+        g_fg,
+        [
+            i.tag.test_value
+            for i in g_fg.inputs
+            if not isinstance(i, (SharedVariable, Constant))
+        ],
+    )
