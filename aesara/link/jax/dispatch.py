@@ -492,7 +492,7 @@ def jax_funcify_Scan(op, **kwargs):
 
         def jax_inner_func(carry, x):
             inner_args = jax_args_to_inner_scan(op, carry, x)
-            inner_scan_outs = [fn(*inner_args) for fn in jax_aet_inner_func]
+            inner_scan_outs = list(jax_aet_inner_func(*inner_args))
             new_carry = inner_scan_outs_to_jax_outs(op, carry, inner_scan_outs)
             return new_carry, inner_scan_outs
 
