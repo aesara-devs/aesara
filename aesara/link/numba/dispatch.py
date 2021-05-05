@@ -101,24 +101,39 @@ def slice_new(self, start, stop, step):
     return self.builder.call(fn, [start, stop, step])
 
 
-@box(types.SliceType)
-def box_slice(typ, val, c):
-    """Implement boxing for ``slice`` objects in Numba.
+def enable_slice_boxing():
+    """Enable boxing for Numba's native ``slice``s.
 
-    This makes it possible to return an Numba's internal representation of a
-    ``slice`` object as a proper ``slice`` to Python.
+    TODO: this can be removed when https://github.com/numba/numba/pull/6939 is
+    merged and a release is made.
     """
 
-    start = c.box(types.int64, c.builder.extract_value(val, 0))
-    stop = c.box(types.int64, c.builder.extract_value(val, 1))
-    if typ.has_step:
-        step = c.box(types.int64, c.builder.extract_value(val, 2))
-    else:
-        step = c.pyapi.get_null_object()
+    @box(types.SliceType)
+    def box_slice(typ, val, c):
+        """Implement boxing for ``slice`` objects in Numba.
 
-    slice_val = slice_new(c.pyapi, start, stop, step)
+        This makes it possible to return an Numba's internal representation of a
+        ``slice`` object as a proper ``slice`` to Python.
+        """
 
-    return slice_val
+        start = c.box(types.int64, c.builder.extract_value(val, 0))
+        stop = c.box(types.int64, c.builder.extract_value(val, 1))
+        if typ.has_step:
+            step = c.box(types.int64, c.builder.extract_value(val, 2))
+        else:
+            step = c.pyapi.get_null_object()
+
+        slice_val = slice_new(c.pyapi, start, stop, step)
+
+        return slice_val
+
+    @numba.extending.overload(operator.contains)
+    def in_seq_empty_tuple(x, y):
+        if isinstance(x, types.Tuple) and not x.types:
+            return lambda x, y: False
+
+
+enable_slice_boxing()
 
 
 @numba.generated_jit(nopython=True)
@@ -156,12 +171,6 @@ def create_tuple_creator(f, n):
 def create_tuple_string(x):
     args = ", ".join(x + ([""] if len(x) == 1 else []))
     return f"({args})"
-
-
-@numba.extending.overload(operator.contains)
-def in_seq_empty_tuple(x, y):
-    if isinstance(x, types.Tuple) and not x.types:
-        return lambda x, y: False
 
 
 @singledispatch
