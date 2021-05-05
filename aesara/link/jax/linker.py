@@ -20,7 +20,7 @@ class JAXLinker(JITLinker):
         static_argnums = [
             n for n, i in enumerate(self.fgraph.inputs) if isinstance(i, Constant)
         ]
-        return jax.jit(fn, static_argnums)
+        return jax.jit(fn, static_argnums=static_argnums)
 
     def create_thunk_inputs(self, storage_map):
         from aesara.link.jax.dispatch import jax_typify
