@@ -365,7 +365,7 @@ class ConfigParam:
     def __set__(self, cls, val):
         if not self.mutable and hasattr(self, "val"):
             raise Exception(
-                "Can't change the value of {self.name} config parameter after initialization!"
+                f"Can't change the value of {self.name} config parameter after initialization!"
             )
         applied = self.apply(val)
         self.validate(applied)
