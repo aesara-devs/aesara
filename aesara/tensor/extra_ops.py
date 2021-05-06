@@ -656,7 +656,7 @@ def compress(condition, x, axis=None):
     return x.take(indices, axis=axis)
 
 
-class RepeatOp(Op):
+class Repeat(Op):
     # See the repeat function for docstring
 
     __props__ = ("axis",)
@@ -800,7 +800,7 @@ def repeat(x, repeats, axis=None):
         raise ValueError("The dimension of repeats should not exceed 1.")
 
     if repeats.ndim == 1 and not repeats.broadcastable[0]:
-        return RepeatOp(axis=axis)(x, repeats)
+        return Repeat(axis=axis)(x, repeats)
     else:
         if repeats.ndim == 1:
             repeats = repeats[0]
