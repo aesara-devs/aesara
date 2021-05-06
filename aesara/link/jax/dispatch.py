@@ -38,7 +38,7 @@ from aesara.tensor.extra_ops import (
     FillDiagonal,
     FillDiagonalOffset,
     RavelMultiIndex,
-    RepeatOp,
+    Repeat,
     Unique,
     UnravelIndex,
 )
@@ -877,8 +877,8 @@ def jax_funcify_DiffOp(op, **kwargs):
     return diffop
 
 
-@jax_funcify.register(RepeatOp)
-def jax_funcify_RepeatOp(op, **kwargs):
+@jax_funcify.register(Repeat)
+def jax_funcify_Repeat(op, **kwargs):
     axis = op.axis
 
     def repeatop(x, repeats, axis=axis):
