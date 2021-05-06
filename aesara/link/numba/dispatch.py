@@ -1,4 +1,5 @@
 import operator
+import warnings
 from functools import reduce, singledispatch
 from textwrap import indent
 
@@ -171,7 +172,32 @@ def numba_typify(data, dtype=None, **kwargs):
 @singledispatch
 def numba_funcify(op, node=None, storage_map=None, **kwargs):
     """Create a Numba compatible function from an Aesara `Op`."""
-    raise NotImplementedError(f"No Numba conversion for the given `Op`: {op}")
+
+    warnings.warn(
+        (f"Numba will use object mode to run {op}'s perform method"),
+        UserWarning,
+    )
+
+    n_outputs = len(node.outputs)
+
+    if n_outputs > 1:
+        ret_sig = numba.types.Tuple([get_numba_type(o.type) for o in node.outputs])
+    else:
+        ret_sig = get_numba_type(node.outputs[0].type)
+
+    @numba.njit
+    def perform(*inputs):
+        with numba.objmode(ret=ret_sig):
+            outputs = [[None] for i in range(n_outputs)]
+            op.perform(node, inputs, outputs)
+            outputs = tuple([o[0] for o in outputs])
+            if n_outputs == 1:
+                ret = outputs[0]
+            else:
+                ret = outputs
+        return ret
+
+    return perform
 
 
 @numba_funcify.register(FunctionGraph)

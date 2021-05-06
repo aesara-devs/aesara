@@ -45,6 +45,26 @@ class MyOp(Op):
         pass
 
 
+class MySingleOut(Op):
+    def make_node(self, a, b):
+        return Apply(self, [a, b], [a.type()])
+
+    def perform(self, node, inputs, outputs):
+        res = (inputs[0] + inputs[1]).astype(inputs[0][0].dtype)
+        outputs[0][0] = res
+
+
+class MyMultiOut(Op):
+    def make_node(self, a, b):
+        return Apply(self, [a, b], [a.type(), b.type()])
+
+    def perform(self, node, inputs, outputs):
+        res1 = 2 * inputs[0]
+        res2 = 2 * inputs[1]
+        outputs[0][0] = res1
+        outputs[1][0] = res2
+
+
 opts = Query(include=[None], exclude=["cxx_only", "BlasOpt"])
 numba_mode = Mode(NumbaLinker(), opts)
 py_mode = Mode("py", opts)
@@ -1082,3 +1102,49 @@ def test_Eye(n, m, k, dtype):
             if not isinstance(i, (SharedVariable, Constant))
         ],
     )
+
+
+@pytest.mark.parametrize(
+    "inputs, op, exc",
+    [
+        (
+            [
+                set_test_value(
+                    aet.matrix(), np.random.random(size=(2, 3)).astype(config.floatX)
+                ),
+                set_test_value(aet.lmatrix(), np.random.poisson(size=(2, 3))),
+            ],
+            MySingleOut,
+            UserWarning,
+        ),
+        (
+            [
+                set_test_value(
+                    aet.matrix(), np.random.random(size=(2, 3)).astype(config.floatX)
+                ),
+                set_test_value(aet.lmatrix(), np.random.poisson(size=(2, 3))),
+            ],
+            MyMultiOut,
+            UserWarning,
+        ),
+    ],
+)
+def test_perform(inputs, op, exc):
+
+    g = op()(*inputs)
+
+    if isinstance(g, list):
+        g_fg = FunctionGraph(outputs=g)
+    else:
+        g_fg = FunctionGraph(outputs=[g])
+
+    cm = contextlib.suppress() if exc is None else pytest.warns(exc)
+    with cm:
+        compare_numba_and_py(
+            g_fg,
+            [
+                i.tag.test_value
+                for i in g_fg.inputs
+                if not isinstance(i, (SharedVariable, Constant))
+            ],
+        )
