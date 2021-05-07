@@ -1407,6 +1407,9 @@ def sigmoid(x):
     """Logistic sigmoid function (1 / (1 + exp(x)), also known as expit or inverse logit"""
 
 
+expit = sigmoid
+
+
 @scalar_elemwise
 def softplus(x):
     """Compute log(1 + exp(x)), also known as softplus or log1pexp"""
@@ -2839,6 +2842,7 @@ __all__ = [
     "i1",
     "iv",
     "sigmoid",
+    "expit",
     "softplus",
     "real",
     "imag",
