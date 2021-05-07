@@ -9,16 +9,15 @@ from aesara.scalar import Softplus
 from aesara.tensor import sigmoid, softplus
 from aesara.tensor.inplace import neg_inplace, sigmoid_inplace
 from aesara.tensor.math import clip, exp, log, mul, neg
-from aesara.tensor.nnet.sigm import (
+from aesara.tensor.math_opt import (
     compute_mul,
-    hard_sigmoid,
     is_1pexp,
     parse_mul_tree,
     perform_sigm_times_exp,
     register_local_1msigmoid,
     simplify_mul,
-    ultra_fast_sigmoid,
 )
+from aesara.tensor.nnet.sigm import hard_sigmoid, ultra_fast_sigmoid
 from aesara.tensor.shape import Reshape
 from aesara.tensor.type import fmatrix, matrix, scalar, vector, vectors
 from tests import unittest_tools as utt
