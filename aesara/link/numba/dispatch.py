@@ -48,7 +48,6 @@ from aesara.tensor.basic import (
 from aesara.tensor.elemwise import CAReduce, DimShuffle, Elemwise
 from aesara.tensor.extra_ops import (
     Bartlett,
-    BroadcastTo,
     CumOp,
     DiffOp,
     FillDiagonal,
@@ -1316,21 +1315,3 @@ def numba_funcify_Searchsorted(op, node, **kwargs):
             return np.searchsorted(a, v, side)
 
     return searchsorted
-
-
-@numba_funcify.register(BroadcastTo)
-def numba_funcify_BroadcastTo(op, node, **kwargs):
-    warnings.warn(
-        ("Numba will use object mode to allow the " "use of `numpy.broadcast_to`."),
-        UserWarning,
-    )
-
-    ret_sig = get_numba_type(node.outputs[0].type)
-
-    @numba.njit
-    def broadcastto(x, *shape):
-        with numba.objmode(ret=ret_sig):
-            ret = np.broadcast_to(x, shape)
-        return ret
-
-    return broadcastto
