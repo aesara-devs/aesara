@@ -20,7 +20,8 @@ from aesara.graph.opt import (
 from aesara.graph.optdb import EquilibriumDB, LocalGroupDB, Query, SequenceDB, TopoDB
 from aesara.link.basic import PerformLinker
 from aesara.link.c.basic import CLinker, OpWiseCLinker
-from aesara.link.jax import JAXLinker
+from aesara.link.jax.linker import JAXLinker
+from aesara.link.numba.linker import NumbaLinker
 from aesara.link.vm import VMLinker
 
 
@@ -40,6 +41,7 @@ predefined_linkers = {
     "vm_nogc": VMLinker(allow_gc=False, use_cloop=False),
     "cvm_nogc": VMLinker(allow_gc=False, use_cloop=True),
     "jax": JAXLinker(),
+    "numba": NumbaLinker(),
 }
 
 
@@ -420,12 +422,16 @@ else:
     FAST_RUN = Mode("vm", "fast_run")
 
 JAX = Mode(JAXLinker(), Query(include=["fast_run"], exclude=["cxx_only", "BlasOpt"]))
+NUMBA = Mode(
+    NumbaLinker(), Query(include=["fast_run"], exclude=["cxx_only", "BlasOpt"])
+)
 
 
 predefined_modes = {
     "FAST_COMPILE": FAST_COMPILE,
     "FAST_RUN": FAST_RUN,
     "JAX": JAX,
+    "NUMBA": NUMBA,
 }
 
 instantiated_default_mode = None
