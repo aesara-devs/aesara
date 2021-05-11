@@ -1694,6 +1694,11 @@ def test_BroadcastTo(x, shape, exc):
             ),
             None,
         ),
+        (
+            set_test_value(aet.lvector(), np.random.random(size=(2,)).astype(np.int64)),
+            set_test_value(aet.lvector(), np.random.random(size=(2,)).astype(np.int64)),
+            None,
+        ),
     ],
 )
 def test_Dot(x, y, exc):

@@ -1424,7 +1424,7 @@ def numba_funcify_Dot(op, node, **kwargs):
 
     @numba.njit
     def dot(x, y):
-        return np.dot(inputs_cast(x), inputs_cast(y)).astype(out_dtype)
+        return np.asarray(np.dot(inputs_cast(x), inputs_cast(y))).astype(out_dtype)
 
     return dot
 
