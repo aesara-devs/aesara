@@ -13,7 +13,7 @@ import aesara.tensor as aet
 import aesara.tensor.basic as aetb
 import aesara.tensor.math as aem
 import aesara.tensor.nnet.basic as nnetb
-from aesara import config
+from aesara import config, shared
 from aesara.compile.function import function
 from aesara.compile.mode import Mode
 from aesara.compile.ops import ViewOp
@@ -2312,3 +2312,25 @@ def test_BatchedDot(x, y, exc):
                 if not isinstance(i, (SharedVariable, Constant))
             ],
         )
+
+
+def test_shared():
+    a = shared(np.array([1, 2, 3], dtype=config.floatX))
+
+    aesara_numba_fn = function([], a, mode="NUMBA")
+    numba_res = aesara_numba_fn()
+
+    np.testing.assert_allclose(numba_res, a.get_value())
+
+    aesara_numba_fn = function([], a * 2, mode="NUMBA")
+    numba_res = aesara_numba_fn()
+
+    np.testing.assert_allclose(numba_res, a.get_value() * 2)
+
+    # Changed the shared value and make sure that the Numba-compiled function
+    # also changes.
+    new_a_value = np.array([3, 4, 5], dtype=config.floatX)
+    a.set_value(new_a_value)
+
+    numba_res = aesara_numba_fn()
+    np.testing.assert_allclose(numba_res, new_a_value * 2)
