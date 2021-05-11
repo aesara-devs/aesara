@@ -1,5 +1,3 @@
-import numba
-
 from aesara.link.basic import JITLinker
 
 
@@ -12,6 +10,8 @@ class NumbaLinker(JITLinker):
         return numba_funcify(fgraph, **kwargs)
 
     def jit_compile(self, fn):
+        import numba
+
         jitted_fn = numba.njit(fn)
         return jitted_fn
 

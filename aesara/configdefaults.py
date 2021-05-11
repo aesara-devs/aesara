@@ -107,6 +107,7 @@ def _filter_mode(val):
         "FAST_COMPILE",
         "DEBUG_MODE",
         "JAX",
+        "NUMBA",
     ]
     if val in str_options:
         return val
