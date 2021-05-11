@@ -1,20 +1,17 @@
 |Tests Status| |Coverage|
 
-|Project Name| is a Python library that allows you to define, optimize, and
+|Project Name| is a Python library that allows one to define, optimize, and
 efficiently evaluate mathematical expressions involving multi-dimensional
-arrays.  It can use GPUs and perform efficient symbolic differentiation.
-
-This is a fork of the `original Theano library <https://github.com/Theano/Theano>`__ that is being
-maintained by the `PyMC team <https://github.com/pymc-devs>`__.
+arrays.
 
 Features
 ========
 
 - A hackable, pure-Python codebase
-- Extensible graph framework suitable for rapid development of custom symbolic optimizations
+- Extensible graph framework suitable for rapid development of custom operators and symbolic optimizations
 - Implements an extensible graph transpilation framework that currently provides
-  compilation to C and JAX JITed Python functions
-- Built on top of one of the most widely-used Python tensor libraries: Theano
+  compilation via C, `JAX <https://github.com/google/jax>`__, and `Numba <https://github.com/numba/numba>`__
+- Based on one of the most widely-used Python tensor libraries: `Theano <https://github.com/Theano/Theano>`__
 
 Getting started
 ===============
@@ -119,7 +116,7 @@ For platform-specific installation information see the legacy documentation `her
 Support
 =======
 
-The PyMC group operates under the NumFOCUS umbrella. If you want to support us financially, you can donate `here <https://numfocus.salsalabs.org/donate-to-pymc3/index.html>`__.
+The PyMC group operates under the NumFOCUS umbrella. If you want to support us financially, donate `here <https://numfocus.salsalabs.org/donate-to-pymc3/index.html>`__.
 
 
 .. |Project Name| replace:: Aesara
