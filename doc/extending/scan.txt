@@ -1,7 +1,7 @@
 .. _scan_internals:
 
 Developer documentation for Scan
-+++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++
 
 Context
 =======
