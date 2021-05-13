@@ -1,6 +1,6 @@
 .. _scan_internals:
 
-Developper documentation for Scan
+Developer documentation for Scan
 +++++++++++++++++++++++++++++++++
 
 Context
