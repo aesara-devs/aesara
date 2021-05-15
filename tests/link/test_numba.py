@@ -138,6 +138,9 @@ def eval_python_only(fn_inputs, fgraph, inputs):
         lambda dtype: dtype,
     ), mock.patch(
         "aesara.link.numba.dispatch.to_scalar", py_to_scalar
+    ), mock.patch(
+        "aesara.link.numba.dispatch.to_fixed_tuple",
+        lambda x, n: tuple(x),
     ):
         aesara_numba_fn = function(
             fn_inputs,
