@@ -14,6 +14,7 @@ import aesara.tensor.basic as aetb
 import aesara.tensor.inplace as ati
 import aesara.tensor.math as aem
 import aesara.tensor.nnet.basic as nnetb
+import aesara.tensor.random.basic as aer
 from aesara import config, shared
 from aesara.compile.function import function
 from aesara.compile.mode import Mode
@@ -138,7 +139,10 @@ def eval_python_only(fn_inputs, fgraph, inputs):
 
             return inner_vec
 
-        return wrap
+        if len(args) == 1 and callable(args[0]):
+            return wrap(args[0], **kwargs)
+        else:
+            return wrap
 
     with mock.patch("aesara.link.numba.dispatch.numba.njit", njit_noop), mock.patch(
         "aesara.link.numba.dispatch.numba.vectorize",
@@ -2469,3 +2473,383 @@ def test_shared():
 
     numba_res = aesara_numba_fn()
     np.testing.assert_allclose(numba_res, new_a_value * 2)
+
+
+@pytest.mark.parametrize(
+    "rv_op, dist_args, size",
+    [
+        (
+            aer.normal,
+            [
+                set_test_value(
+                    aet.dvector(),
+                    np.array([1.0, 2.0], dtype=np.float64),
+                ),
+                set_test_value(
+                    aet.dscalar(),
+                    np.array(1.0, dtype=np.float64),
+                ),
+            ],
+            aet.as_tensor([3, 2]),
+        ),
+        (
+            aer.uniform,
+            [
+                set_test_value(
+                    aet.dvector(),
+                    np.array([1.0, 2.0], dtype=np.float64),
+                ),
+                set_test_value(
+                    aet.dscalar(),
+                    np.array(1.0, dtype=np.float64),
+                ),
+            ],
+            aet.as_tensor([3, 2]),
+        ),
+        (
+            aer.triangular,
+            [
+                set_test_value(
+                    aet.dscalar(),
+                    np.array(-5.0, dtype=np.float64),
+                ),
+                set_test_value(
+                    aet.dscalar(),
+                    np.array(1.0, dtype=np.float64),
+                ),
+                set_test_value(
+                    aet.dscalar(),
+                    np.array(5.0, dtype=np.float64),
+                ),
+            ],
+            aet.as_tensor([3, 2]),
+        ),
+        pytest.param(
+            aer.beta,
+            [
+                set_test_value(
+                    aet.dvector(),
+                    np.array([1.0, 2.0], dtype=np.float64),
+                ),
+                set_test_value(
+                    aet.dscalar(),
+                    np.array(1.0, dtype=np.float64),
+                ),
+            ],
+            aet.as_tensor([3, 2]),
+            marks=pytest.mark.xfail(reason="Numba and NumPy rng states do not match"),
+        ),
+        (
+            aer.lognormal,
+            [
+                set_test_value(
+                    aet.dvector(),
+                    np.array([1.0, 2.0], dtype=np.float64),
+                ),
+                set_test_value(
+                    aet.dscalar(),
+                    np.array(1.0, dtype=np.float64),
+                ),
+            ],
+            aet.as_tensor([3, 2]),
+        ),
+        pytest.param(
+            aer.gamma,
+            [
+                set_test_value(
+                    aet.dvector(),
+                    np.array([1.0, 2.0], dtype=np.float64),
+                ),
+                set_test_value(
+                    aet.dscalar(),
+                    np.array(1.0, dtype=np.float64),
+                ),
+            ],
+            aet.as_tensor([3, 2]),
+            marks=pytest.mark.xfail(reason="Numba and NumPy rng states do not match"),
+        ),
+        pytest.param(
+            aer.chisquare,
+            [
+                set_test_value(
+                    aet.dvector(),
+                    np.array([1.0, 2.0], dtype=np.float64),
+                )
+            ],
+            aet.as_tensor([3, 2]),
+            marks=pytest.mark.xfail(reason="Numba and NumPy rng states do not match"),
+        ),
+        pytest.param(
+            aer.pareto,
+            [
+                set_test_value(
+                    aet.dvector(),
+                    np.array([1.0, 2.0], dtype=np.float64),
+                ),
+            ],
+            aet.as_tensor([3, 2]),
+            marks=pytest.mark.xfail(reason="Not implemented"),
+        ),
+        pytest.param(
+            aer.gumbel,
+            [
+                set_test_value(
+                    aet.dvector(),
+                    np.array([1.0, 2.0], dtype=np.float64),
+                ),
+                set_test_value(
+                    aet.dscalar(),
+                    np.array(1.0, dtype=np.float64),
+                ),
+            ],
+            aet.as_tensor([3, 2]),
+            marks=pytest.mark.xfail(reason="Numba and NumPy rng states do not match"),
+        ),
+        (
+            aer.exponential,
+            [
+                set_test_value(
+                    aet.dvector(),
+                    np.array([1.0, 2.0], dtype=np.float64),
+                ),
+            ],
+            aet.as_tensor([3, 2]),
+        ),
+        (
+            aer.weibull,
+            [
+                set_test_value(
+                    aet.dvector(),
+                    np.array([1.0, 2.0], dtype=np.float64),
+                ),
+            ],
+            aet.as_tensor([3, 2]),
+        ),
+        (
+            aer.logistic,
+            [
+                set_test_value(
+                    aet.dvector(),
+                    np.array([1.0, 2.0], dtype=np.float64),
+                ),
+                set_test_value(
+                    aet.dscalar(),
+                    np.array(1.0, dtype=np.float64),
+                ),
+            ],
+            aet.as_tensor([3, 2]),
+        ),
+        pytest.param(
+            aer.vonmises,
+            [
+                set_test_value(
+                    aet.dvector(),
+                    np.array([1.0, 2.0], dtype=np.float64),
+                ),
+                set_test_value(
+                    aet.dscalar(),
+                    np.array(1.0, dtype=np.float64),
+                ),
+            ],
+            aet.as_tensor([3, 2]),
+            marks=pytest.mark.xfail(reason="Numba and NumPy rng states do not match"),
+        ),
+        (
+            aer.geometric,
+            [
+                set_test_value(
+                    aet.dvector(),
+                    np.array([0.3, 0.4], dtype=np.float64),
+                ),
+            ],
+            aet.as_tensor([3, 2]),
+        ),
+        (
+            aer.hypergeometric,
+            [
+                set_test_value(
+                    aet.lscalar(),
+                    np.array(7, dtype=np.int64),
+                ),
+                set_test_value(
+                    aet.lscalar(),
+                    np.array(8, dtype=np.int64),
+                ),
+                set_test_value(
+                    aet.lscalar(),
+                    np.array(15, dtype=np.int64),
+                ),
+            ],
+            aet.as_tensor([3, 2]),
+        ),
+        pytest.param(
+            aer.cauchy,
+            [
+                set_test_value(
+                    aet.dvector(),
+                    np.array([1.0, 2.0], dtype=np.float64),
+                ),
+                set_test_value(
+                    aet.dscalar(),
+                    np.array(1.0, dtype=np.float64),
+                ),
+            ],
+            aet.as_tensor([3, 2]),
+            marks=pytest.mark.xfail(reason="Not implemented"),
+        ),
+        (
+            aer.wald,
+            [
+                set_test_value(
+                    aet.dvector(),
+                    np.array([1.0, 2.0], dtype=np.float64),
+                ),
+                set_test_value(
+                    aet.dscalar(),
+                    np.array(1.0, dtype=np.float64),
+                ),
+            ],
+            aet.as_tensor([3, 2]),
+        ),
+        (
+            aer.laplace,
+            [
+                set_test_value(
+                    aet.dvector(),
+                    np.array([1.0, 2.0], dtype=np.float64),
+                ),
+                set_test_value(
+                    aet.dscalar(),
+                    np.array(1.0, dtype=np.float64),
+                ),
+            ],
+            aet.as_tensor([3, 2]),
+        ),
+        (
+            aer.binomial,
+            [
+                set_test_value(
+                    aet.lvector(),
+                    np.array([1, 2], dtype=np.int64),
+                ),
+                set_test_value(
+                    aet.dscalar(),
+                    np.array(0.9, dtype=np.float64),
+                ),
+            ],
+            aet.as_tensor([3, 2]),
+        ),
+        # pytest.param(
+        #     aer.negative_binomial,
+        #     [
+        #         set_test_value(
+        #             aet.lvector(),
+        #             np.array([1, 2], dtype=np.int64),
+        #         ),
+        #         set_test_value(
+        #             aet.dscalar(),
+        #             np.array(0.9, dtype=np.float64),
+        #         ),
+        #     ],
+        #     aet.as_tensor([3, 2]),
+        #     marks=pytest.mark.xfail(reason="Not implemented"),
+        # ),
+        (
+            aer.normal,
+            [
+                set_test_value(
+                    aet.lvector(),
+                    np.array([1, 2], dtype=np.int64),
+                ),
+                set_test_value(
+                    aet.dscalar(),
+                    np.array(1.0, dtype=np.float64),
+                ),
+            ],
+            aet.as_tensor(tuple(set_test_value(aet.lscalar(), v) for v in [3, 2])),
+        ),
+        (
+            aer.poisson,
+            [
+                set_test_value(
+                    aet.dvector(),
+                    np.array([1.0, 2.0], dtype=np.float64),
+                ),
+            ],
+            None,
+        ),
+        (
+            aer.halfnormal,
+            [
+                set_test_value(
+                    aet.lvector(),
+                    np.array([1, 2], dtype=np.int64),
+                ),
+                set_test_value(
+                    aet.dscalar(),
+                    np.array(1.0, dtype=np.float64),
+                ),
+            ],
+            None,
+        ),
+        (
+            aer.randint,
+            [
+                set_test_value(
+                    aet.lscalar(),
+                    np.array(0, dtype=np.int64),
+                ),
+                set_test_value(
+                    aet.lscalar(),
+                    np.array(5, dtype=np.int64),
+                ),
+            ],
+            aet.as_tensor([3, 2]),
+        ),
+        pytest.param(
+            aer.multivariate_normal,
+            [
+                set_test_value(
+                    aet.dmatrix(),
+                    np.array([[1, 2], [3, 4]], dtype=np.float64),
+                ),
+                set_test_value(
+                    aet.tensor("float64", [True, False, False]),
+                    np.eye(2)[None, ...],
+                ),
+            ],
+            aet.as_tensor(tuple(set_test_value(aet.lscalar(), v) for v in [4, 3, 2])),
+            marks=pytest.mark.xfail(reason="Not implemented"),
+        ),
+    ],
+    ids=str,
+)
+def test_RandomVariable(rv_op, dist_args, size):
+    rng = shared(np.random.RandomState(29402))
+    g = rv_op(*dist_args, size=size, rng=rng)
+    g_fg = FunctionGraph(outputs=[g])
+
+    compare_numba_and_py(
+        g_fg,
+        [
+            i.tag.test_value
+            for i in g_fg.inputs
+            if not isinstance(i, (SharedVariable, Constant))
+        ],
+    )
+
+
+def test_random_Generator():
+    rng = shared(np.random.default_rng(29402))
+    g = aer.normal(rng=rng)
+    g_fg = FunctionGraph(outputs=[g])
+
+    with pytest.raises(TypeError):
+        compare_numba_and_py(
+            g_fg,
+            [
+                i.tag.test_value
+                for i in g_fg.inputs
+                if not isinstance(i, (SharedVariable, Constant))
+            ],
+        )
