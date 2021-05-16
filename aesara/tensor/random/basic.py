@@ -117,6 +117,34 @@ class GammaRV(RandomVariable):
 gamma = GammaRV()
 
 
+class ChiSquaredRV(RandomVariable):
+    name = "chi_squared"
+    ndim_supp = 0
+    ndims_params = [0]
+    dtype = "floatX"
+    _print_name = ("ChiSquared", "\\operatorname{ChiSquared}")
+
+    def __call__(
+        self,
+        nu: Union[np.ndarray, float],
+        size: Optional[Union[List[int], int]] = None,
+        **kwargs
+    ) -> RandomVariable:
+        return super().call(nu=nu, size=size, **kwargs)
+
+    @classmethod
+    def rng_fn(
+        cls,
+        rng: np.random.RandomState,
+        nu: Union[np.ndarray, float],
+        size: Optional[Union[List[int], int]],
+    ) -> np.ndarray:
+        return stats.chi2.rvs(nu, size=size, random_state=rng)
+
+
+chi_squared = ChiSquaredRV()
+
+
 class ParetoRV(RandomVariable):
     name = "pareto"
     ndim_supp = 0
