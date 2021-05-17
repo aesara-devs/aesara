@@ -249,7 +249,7 @@ def test_chisquare_samples():
     test_df = np.array(2, dtype=config.floatX)
 
     rv_numpy_tester(chisquare, test_df, test_fn=stats.chi2.rvs)
-    rv_numpy_tester(chisquare, test_df, size=[2, 3], test_fn=stats.gamma.rvs)
+    rv_numpy_tester(chisquare, test_df, size=[2, 3], test_fn=stats.chi2.rvs)
 
 
 def test_gumbel_samples():
