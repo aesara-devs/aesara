@@ -11,15 +11,14 @@ from aesara.graph.op import Op
 from aesara.misc.safe_asarray import _asarray
 from aesara.tensor.basic import (
     as_tensor_variable,
-    cast,
     constant,
     get_scalar_constant_value,
     get_vector_length,
 )
 from aesara.tensor.exceptions import NotScalarConstantError
 from aesara.tensor.random.type import RandomStateType
-from aesara.tensor.random.utils import params_broadcast_shapes
-from aesara.tensor.type import TensorType, all_dtypes, int_dtypes
+from aesara.tensor.random.utils import normalize_size_param, params_broadcast_shapes
+from aesara.tensor.type import TensorType, all_dtypes
 from aesara.tensor.type_other import NoneConst
 
 
@@ -348,18 +347,7 @@ class RandomVariable(Op):
             `(rng_var, out_var)`.
 
         """
-        if size is None:
-            size = constant([], dtype="int64")
-        elif isinstance(size, int):
-            size = as_tensor_variable([size], ndim=1)
-        elif not isinstance(size, (np.ndarray, Variable, Sequence)):
-            raise TypeError(
-                "Parameter size must be None, an integer, or a sequence with integers."
-            )
-        else:
-            size = cast(as_tensor_variable(size, ndim=1), "int64")
-
-        assert size.dtype in int_dtypes
+        size = normalize_size_param(size)
 
         dist_params = tuple(
             as_tensor_variable(p) if not isinstance(p, Variable) else p

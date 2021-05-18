@@ -1,3 +1,4 @@
+from collections.abc import Sequence
 from functools import wraps
 from itertools import zip_longest
 
@@ -5,8 +6,10 @@ import numpy as np
 
 from aesara.compile.sharedvalue import shared
 from aesara.graph.basic import Variable
+from aesara.tensor.basic import as_tensor_variable, cast, constant
 from aesara.tensor.extra_ops import broadcast_to
 from aesara.tensor.math import maximum
+from aesara.tensor.type import int_dtypes
 
 
 def params_broadcast_shapes(param_shapes, ndims_params, use_aesara=True):
@@ -93,6 +96,24 @@ def broadcast_params(params, ndims_params):
     ]
 
     return bcast_params
+
+
+def normalize_size_param(size):
+    """Create an Aesara value for a ``RandomVariable`` ``size`` parameter."""
+    if size is None:
+        size = constant([], dtype="int64")
+    elif isinstance(size, int):
+        size = as_tensor_variable([size], ndim=1)
+    elif not isinstance(size, (np.ndarray, Variable, Sequence)):
+        raise TypeError(
+            "Parameter size must be None, an integer, or a sequence with integers."
+        )
+    else:
+        size = cast(as_tensor_variable(size, ndim=1), "int64")
+
+    assert size.dtype in int_dtypes
+
+    return size
 
 
 class RandomStream:
