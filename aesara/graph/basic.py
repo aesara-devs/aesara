@@ -434,7 +434,7 @@ class Variable(Node):
 
     def __str__(self):
         """Return a str representation of the Variable."""
-        return self._str_impl(formatting="plain")
+        return self._str_impl()
 
     def __repr_test_value__(self):
         """Return a repr of the test value.
