@@ -420,8 +420,7 @@ class Variable(Node):
 
         return self.tag.test_value
 
-    def __str__(self):
-        """Return a str representation of the Variable."""
+    def _str_impl(self):
         if self.name is not None:
             return self.name
         if self.owner is not None:
@@ -433,6 +432,10 @@ class Variable(Node):
         else:
             return f"<{self.type}>"
 
+    def __str__(self):
+        """Return a str representation of the Variable."""
+        return self._str_impl(formatting="plain")
+
     def __repr_test_value__(self):
         """Return a repr of the test value.
 
@@ -442,13 +445,7 @@ class Variable(Node):
         """
         return repr(self.get_test_value())
 
-    def __repr__(self, firstPass=True):
-        """Return a repr of the Variable.
-
-        Return a printable name or description of the Variable. If
-        config.print_test_value is True it will also print the test_value if
-        any.
-        """
+    def _repr_impl(self, firstPass=True):
         to_print = [str(self)]
         if config.print_test_value and firstPass:
             try:
@@ -456,6 +453,15 @@ class Variable(Node):
             except TestValueError:
                 pass
         return "\n".join(to_print)
+
+    def __repr__(self, firstPass=True):
+        """Return a repr of the Variable.
+
+        Return a printable name or description of the Variable. If
+        config.print_test_value is True it will also print the test_value if
+        any.
+        """
+        return self._repr_impl(firstPass=firstPass)
 
     def clone(self):
         """
