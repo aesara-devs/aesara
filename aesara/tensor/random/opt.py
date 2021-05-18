@@ -58,14 +58,20 @@ def lift_rv_shapes(node):
 
     dist_params = broadcast_params(dist_params, node.op.ndims_params)
 
-    dist_params = [
-        broadcast_to(
-            p, (tuple(size) + tuple(p.shape)) if node.op.ndim_supp > 0 else size
-        )
-        for p in dist_params
-    ]
+    if get_vector_length(size) > 0:
+        dist_params = [
+            broadcast_to(
+                p, (tuple(size) + tuple(p.shape)) if node.op.ndim_supp > 0 else size
+            )
+            for p in dist_params
+        ]
 
-    return node.op.make_node(rng, None, dtype, *dist_params)
+    new_node = node.op.make_node(rng, None, dtype, *dist_params)
+
+    if config.compute_test_value != "off":
+        compute_test_value(new_node)
+
+    return new_node
 
 
 @local_optimizer([DimShuffle])

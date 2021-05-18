@@ -105,6 +105,13 @@ def test_lift_rv_shapes():
         np.array([0.0, 1.0], dtype=config.floatX),
         np.array(5.0, dtype=config.floatX),
     ]
+    test_size = []
+    check_shape_lifted_rv(normal, test_params, test_size, rng)
+
+    test_params = [
+        np.array([0.0, 1.0], dtype=config.floatX),
+        np.array(5.0, dtype=config.floatX),
+    ]
     test_size = [3, 2]
     check_shape_lifted_rv(normal, test_params, test_size, rng)
 
