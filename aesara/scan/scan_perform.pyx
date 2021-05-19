@@ -64,7 +64,7 @@ from aesara.link.utils import raise_with_op
 
 
 def get_version():
-    return 0.298
+    return 0.299
 
 @cython.boundscheck(False)
 def perform(
@@ -153,9 +153,7 @@ def perform(
         starting point of implementing this function in C ( we need to take
         all the code around the call of this function and put in C inside
         that code)
-    fnct: python object
-        Only used to attach some timings for the profile mode ( can be
-        skiped if we don't care about Aesara's profile mode)
+    fnct: Function
     destroy_map
         Array of boolean saying if an output is computed inplace
     args: list of ndarrays (and random states)
@@ -404,7 +402,7 @@ def perform(
                 # done by raise_with_op is not implemented in C.
                 if hasattr(fn, 'thunks'):
                     # For the CVM
-                    raise_with_op(fn.maker.fgraph,
+                    raise_with_op(fnct.maker.fgraph,
                                   fn.nodes[fn.position_of_error],
                                   fn.thunks[fn.position_of_error])
                 else:
@@ -412,7 +410,7 @@ def perform(
                     # We don't have access from python to all the
                     # temps values So for now, we just don't print
                     # the extra shapes/strides info
-                    raise_with_op(fn.maker.fgraph, fn.nodes[fn.position_of_error])
+                    raise_with_op(fnct.maker.fgraph, fn.nodes[fn.position_of_error])
             else:
                 # old-style linkers raise their own exceptions
                 raise
@@ -612,11 +610,11 @@ def perform(
             # do not get applied
             if i < n_steps:
 
-	    # Cython can not handle negative indices ( because of a
-	    # derictive at the beginning of the function that says not
-	    # to do boundschecks). The directive is used to make the
-	    # code faster, so this workaround is better then removing
-	    # the directive.
+                # Cython can not handle negative indices ( because of a
+                # directive at the beginning of the function that says not
+                # to do boundschecks). The directive is used to make the
+                # code faster, so this workaround is better then removing
+                # the directive.
                 sh0 = outs[idx][0].shape[0]
                 outs[idx][0] = outs[idx][0][:sh0-(n_steps - i)]
 
@@ -639,15 +637,5 @@ def perform(
             if hasattr(fn, 'update_profile'):
                 fn.update_profile(profile)
 
-    ### Old Profile Mode
-    #if hasattr(fnct.maker.mode,'fct_call_time'):
-    #    fnct.maker.mode.fct_call_time[fnct] += t_fn
-    #    fnct.maker.mode.fct_call[fnct] += n_steps
-
-    #fnct.maker.mode.call_time += t_fn
-    #fnct.maker.mode.fn_time += t_fn
-
-    # DEBUG PRINT :
     self.t_call = t_call
     self.t_fn   = t_fn
-    # print 'Cython > timing', t_call, t_fn, 'in percentage', 100.*t_fn/t_call

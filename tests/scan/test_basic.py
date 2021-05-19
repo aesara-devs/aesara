@@ -37,8 +37,9 @@ from aesara.gradient import (
     hessian,
     jacobian,
 )
-from aesara.graph.basic import clone_replace, graph_inputs
+from aesara.graph.basic import Apply, clone_replace, graph_inputs
 from aesara.graph.fg import MissingInputError
+from aesara.graph.op import Op
 from aesara.misc.safe_asarray import _asarray
 from aesara.scan.basic import scan
 from aesara.scan.op import Scan
@@ -4517,6 +4518,32 @@ class TestScan:
 
         else:
             assert detect_large_outputs.large_count == 3
+
+
+@pytest.mark.skipif(
+    not config.cxx, reason="G++ not available, so we need to skip this test."
+)
+def test_cvm_exception_handling():
+    class MyOp(Op):
+        def make_node(self, input):
+            return Apply(self, [input], [vector()])
+
+        def perform(self, node, inputs, outputs):
+            raise Exception("blah")
+
+    myop = MyOp()
+
+    def scan_fn():
+        return myop(aet.as_tensor(1))
+
+    mode = Mode(optimizer=None, linker="cvm")
+
+    res, _ = scan(scan_fn, n_steps=4, mode=mode)
+
+    res_fn = function([], res, mode=mode)
+
+    with pytest.raises(Exception, match="blah"):
+        res_fn()
 
 
 @pytest.mark.skipif(
