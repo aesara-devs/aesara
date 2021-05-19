@@ -1,6 +1,5 @@
 """A container for specifying and manipulating a graph with distinct inputs and outputs."""
 import time
-import warnings
 from collections import OrderedDict
 from typing import Any, Dict, List, NoReturn, Optional, Tuple, Union
 
@@ -522,9 +521,6 @@ class FunctionGraph(MetaObject):
             # easier to implement some optimizations for
             # multiple-output ops
             # raise ValueError()
-            warnings.warn(
-                f"Variable {var} cannot be replaced; it isn't in the FunctionGraph"
-            )
             return
 
         if config.compute_test_value != "off":
