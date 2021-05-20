@@ -396,7 +396,7 @@ class EigvalshGrad(Op):
     # But this can only be done once scipy.linalg.eigh is available as an Op
     # (currently the Eigh uses numpy.linalg.eigh, which doesn't let you
     # pass the right-hand-side matrix for a generalized eigenproblem.) See the
-    # discussion on github at
+    # discussion on GitHub at
     # https://github.com/Theano/Theano/pull/1846#discussion-diff-12486764
 
     __props__ = ("lower",)
