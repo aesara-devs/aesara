@@ -14,7 +14,7 @@ Contributing
 You want to contribute to Aesara? That is great! This page explain our
 workflow and some resource for doing so.
 
-Looking for an idea for a first contribution? Check the `github issues
+Looking for an idea for a first contribution? Check the `GitHub issues
 <https://github.com/pymc-devs/aesara/issues>`_.
 
 We recommend creating an issue to discuss proposed changes before making them.
@@ -418,7 +418,7 @@ Submit your changes to the central repository
 ---------------------------------------------
 
 Once your code is ready for others to review, you need to commit all the changes and then push your
-branch to your github fork first:
+branch to your GitHub fork first:
 
 .. code-block:: bash
 
@@ -428,7 +428,7 @@ branch to your github fork first:
 
     git push -u origin my_shiny_feature
 
-Then, go to your fork's github page on the github website, select your
+Then, go to your fork's GitHub page on the GitHub website, select your
 feature branch and hit the "Pull Request" button in the top right
 corner.  This will signal the maintainers that you wish to submit your
 changes for inclusion in ``origin/main``.

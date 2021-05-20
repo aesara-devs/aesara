@@ -68,7 +68,7 @@ Roughly in order of what you'll want to check out:
 
 * Ask/view questions/answers at `StackOverflow`_
 
-* We use `Github tickets <http://github.com/pymc-devs/aesara/issues>`__ to keep track of issues.
+* We use `GitHub tickets <http://github.com/pymc-devs/aesara/issues>`__ to keep track of issues.
 
 .. toctree::
    :maxdepth: 1
