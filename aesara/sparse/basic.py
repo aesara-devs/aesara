@@ -3466,7 +3466,7 @@ class TrueDot(Op):
             raise TypeError(x)
 
         # These are the conversions performed by scipy.sparse.dot
-        if x.type.format == "csc" or x.type.format == "coup":
+        if x.type.format == "csc" or x.type.format == "coo":
             myformat = "csc"
         elif x.type.format == "csr":
             myformat = "csr"
