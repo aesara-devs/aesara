@@ -1928,7 +1928,7 @@ def local_advanced_indexing_crossentropy_onehot_grad(fgraph, node):
                 adv_subtensor = denom
                 # out_grad /= 1.
             elif denom.owner.op == mul:
-                # Try to find the AdvancedSubtensor node mentionned above,
+                # Try to find the AdvancedSubtensor node mentioned above,
                 # and the output gradient
                 for i, input in enumerate(denom.owner.inputs):
                     if input.owner and isinstance(input.owner.op, AdvancedSubtensor):
@@ -2519,7 +2519,7 @@ def h_softmax(
     # First softmax that computes the probabilities of belonging to each class
     class_probs = softmax(dot(x, W1) + b1)
 
-    if target is None:  # Computes the probabilites of all the outputs
+    if target is None:  # Computes the probabilities of all the outputs
 
         # Second softmax that computes the output probabilities
         activations = tensordot(x, W2, (1, 1)) + b2

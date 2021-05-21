@@ -9,7 +9,7 @@ class TypedListType(CType):
     ttype
         Type of aesara variable this list will contains, can be another list.
     depth
-        Optionnal parameters, any value above 0 will create a nested list of
+        Optional parameters, any value above 0 will create a nested list of
         this depth. (0-based)
 
     """

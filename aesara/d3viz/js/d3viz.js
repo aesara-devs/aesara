@@ -609,7 +609,7 @@ function drawGraph() {
 		.on('tick', updateGraph)
 		.start();
 
-	// Drag behavour
+	// Drag behaviour
 	var drag = forceLayout.drag()
 		.on('dragstart', function(d) {
 			d3.event.sourceEvent.stopPropagation();

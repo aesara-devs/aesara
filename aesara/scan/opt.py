@@ -340,7 +340,7 @@ class PushOutNonSeqScan(GlobalOptimizer):
                             (
                                 "Error in the `scan_pushout_non_seq_"
                                 "operations`. The optimization tries "
-                                "to move some computation fron scan "
+                                "to move some computation from scan "
                                 "which is not allowed to move. Report "
                                 "this on aesara-users list"
                             ),
@@ -556,7 +556,7 @@ class PushOutSeqScan(GlobalOptimizer):
                             (
                                 "Error in the `scan_pushout_seq_"
                                 "operations`. The optimization tries "
-                                "to move some computation fron scan "
+                                "to move some computation from scan "
                                 "which is not allowed to move. Report "
                                 "this on aesara-users list"
                             ),

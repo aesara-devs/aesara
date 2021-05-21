@@ -116,7 +116,7 @@ class HintsFeature:
 
     #
     #
-    # Feature inteface
+    # Feature interface
     #
     #
     def on_attach(self, fgraph):

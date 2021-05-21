@@ -67,7 +67,7 @@ void im3d2col(const %(float_type)s* data_im, const int channels,
   }
 }
 
-// Unlike the Caffe and Aesara GPU verions, the data_im array is set to zero
+// Unlike the Caffe and Aesara GPU versions, the data_im array is set to zero
 // before the col2im call rather than doing it here. So, the result is just
 // accumulated into data_im.
 void col2im3d(const %(float_type)s* data_col, const int channels,
@@ -284,7 +284,7 @@ PyArrayObject* corr3dMM(PyArrayObject* bottom,
         // valid correlation: im3d2col, then gemm
         // Iterate over batch
         int blas_threads_saved = %(blas_get_num_threads)s;
-        // Always forcing gemm to one thread when OpenMP is enalbed for best and stable performance.
+        // Always forcing gemm to one thread when OpenMP is enabled for best and stable performance.
         %(blas_set_num_threads)s(1);
         %(omp_flags)s
         for (int n = 0; n < batchSize; ++n) {
@@ -328,7 +328,7 @@ PyArrayObject* corr3dMM(PyArrayObject* bottom,
         // valid convolution: im2col, then gemm
         // Iterate over batch
         int blas_threads_saved = %(blas_get_num_threads)s;
-        // Always forcing gemm to one thread when OpenMP is enalbed for best and stable performance.
+        // Always forcing gemm to one thread when OpenMP is enabled for best and stable performance.
         %(blas_set_num_threads)s(1);
         // OMP for batch-level paralization
         %(omp_flags)s
@@ -382,7 +382,7 @@ PyArrayObject* corr3dMM(PyArrayObject* bottom,
         // Iterate over batch
 
         int blas_threads_saved = %(blas_get_num_threads)s;
-        // Always forcing gemm to one thread when OpenMP is enalbed for best and stable performance.
+        // Always forcing gemm to one thread when OpenMP is enabled for best and stable performance.
         %(blas_set_num_threads)s(1);
         %(omp_flags)s
         for (int n = 0; n < batchSize; ++n) {

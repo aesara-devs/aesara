@@ -300,7 +300,7 @@ def apply_label(node):
 
 
 def apply_profile(fgraph, node, profile):
-    """Return apply profiling informaton."""
+    """Return apply profiling information."""
     if not profile or profile.fct_call_time == 0:
         return None
     time = profile.apply_time.get((fgraph, node), 0)

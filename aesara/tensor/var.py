@@ -105,7 +105,7 @@ class _tensor_py_operators:
         # compute_test_value is used
         # Evidently, we need to catch NotImplementedError
         # TypeError from as_tensor_variable are caught in Elemwise.make_node
-        # Oterwise TensorVariable * SparseVariable won't work!
+        # Otherwise TensorVariable * SparseVariable won't work!
         except (NotImplementedError, TypeError):
             # We must return NotImplemented and not an
             # NotImplementedError or raise an NotImplementedError.
@@ -115,7 +115,7 @@ class _tensor_py_operators:
             return NotImplemented
 
     def __sub__(self, other):
-        # See explanation in __add__ for the error catched
+        # See explanation in __add__ for the error caught
         # and the return value in that case
         try:
             return aet.math.sub(self, other)
@@ -123,7 +123,7 @@ class _tensor_py_operators:
             return NotImplemented
 
     def __mul__(self, other):
-        # See explanation in __add__ for the error catched
+        # See explanation in __add__ for the error caught
         # and the return value in that case
         try:
             return aet.math.mul(self, other)
@@ -131,7 +131,7 @@ class _tensor_py_operators:
             return NotImplemented
 
     def __div__(self, other):
-        # See explanation in __add__ for the error catched
+        # See explanation in __add__ for the error caught
         # and the return value in that case
         try:
             return aet.math.div_proxy(self, other)
@@ -145,7 +145,7 @@ class _tensor_py_operators:
     __truediv__ = __div__
 
     def __pow__(self, other):
-        # See explanation in __add__ for the error catched
+        # See explanation in __add__ for the error caught
         # and the return value in that case
         try:
             return aet.math.pow(self, other)
@@ -153,7 +153,7 @@ class _tensor_py_operators:
             return NotImplemented
 
     def __mod__(self, other):
-        # See explanation in __add__ for the error catched
+        # See explanation in __add__ for the error caught
         # and the return value in that case
         try:
             return aet.math.mod_check(self, other)
@@ -1015,7 +1015,7 @@ class TensorConstant(_tensor_py_operators, Constant):
         return TensorConstantSignature((self.type, self.data))
 
     def equals(self, other):
-        # Override Contant.equals to allow to compare with
+        # Override Constant.equals to allow to compare with
         # numpy.ndarray, and python type.
         if isinstance(other, (np.ndarray, int, float)):
             # Make a TensorConstant to be able to compare

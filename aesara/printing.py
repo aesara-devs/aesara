@@ -1098,7 +1098,7 @@ def pydotprint(
                 g.add_edge(pd.Edge(aid, varid, **param))
                 g.add_node(pd.Node(varid, shape=var_shape, label=varstr))
     #            else:
-    # don't add egde here as it is already added from the inputs.
+    # don't add edge here as it is already added from the inputs.
 
     # The var that represent updates, must be linked to the input var.
     for sha, up in input_update.items():
@@ -1229,7 +1229,7 @@ def min_informative_str(obj, indent_level=0, _prev_obs=None, _tag_generator=None
     typical graph, such an error message is considerably less
     informative. Error messages based on this function should convey
     much more information about the location in the graph of the error
-    while remaining succint.
+    while remaining succinct.
 
     One final note: the use of capital letters to uniquely identify
     nodes within the graph is motivated by legibility. I do not use

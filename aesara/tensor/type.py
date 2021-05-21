@@ -24,7 +24,7 @@ all_dtypes = list(map(str, aes.all_types))
 int_dtypes = list(map(str, aes.int_types))
 uint_dtypes = list(map(str, aes.uint_types))
 
-# TODO: add more type correspondances for e.g. int32, int64, float32,
+# TODO: add more type correspondences for e.g. int32, int64, float32,
 # complex64, etc.
 dtype_specs_map = {
     "float16": (float, "npy_float16", "NPY_FLOAT16"),

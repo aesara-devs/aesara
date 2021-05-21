@@ -562,7 +562,7 @@ class Variable(Node):
         if (not config.pickle_test_value) and (hasattr(self.tag, "test_value")):
             if not type(config).pickle_test_value.is_default:
                 warnings.warn(
-                    "pickle_test_value is not defaut value (True).\n"
+                    "pickle_test_value is not default value (True).\n"
                     f"Test value of variable {d['auto_name']}({d['name']}) will not be dumped."
                 )
             t = copy(d["tag"])
@@ -1286,7 +1286,7 @@ def io_connection_pattern(inputs, outputs):
             connect_pattern_by_var[out] = out_connection_pattern
 
     # Obtain the global connection pattern by combining the
-    # connnection patterns of the individual outputs
+    # connection patterns of the individual outputs
     global_connection_pattern = [[] for o in range(len(inputs))]
     for out in outputs:
         out_connection_pattern = connect_pattern_by_var.get(out)

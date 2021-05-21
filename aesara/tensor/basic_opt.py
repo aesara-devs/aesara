@@ -1030,7 +1030,7 @@ class ShapeFeature(features.Feature):
                 msg += get_variable_trace_string(var)
                 # The rest of the pipeline don't handle correctly this
                 # case.  So we have 2 choices, stop compilation or
-                # consider the shape as unknow.  As we have more
+                # consider the shape as unknown.  As we have more
                 # chance to give the stack trace here then later, I
                 # choose that options as it would give better error
                 # message.
@@ -1494,7 +1494,7 @@ aesara.compile.mode.optdb.register(
 )
 # Not enabled by default for now. Some crossentropy opt use the
 # shape_feature.  They are at step 2.01. uncanonicalize is at step
-# 3. After it goes to 48.5 that move to the gpu. So 10 seem resonable.
+# 3. After it goes to 48.5 that move to the gpu. So 10 seems reasonable.
 aesara.compile.mode.optdb.register("UnShapeOpt", UnShapeOptimizer(), 10)
 
 
@@ -1529,7 +1529,7 @@ def local_elemwise_alloc_op(ElemwiseOP, AllocOP, DimShuffleOP):
                 ]
             )
 
-        # The broadcast pattern of the ouptut must match the broadcast
+        # The broadcast pattern of the output must match the broadcast
         # pattern of at least one of the inputs.
         if not any(
             [
@@ -1586,7 +1586,7 @@ def local_elemwise_alloc_op(ElemwiseOP, AllocOP, DimShuffleOP):
             # If only 1 alloc or dimshuffle alloc, it is the one we
             # will use for the shape. So no alloc would be removed.
             if len(l2) > 1:
-                # l containt inputs with alloc or dimshuffle alloc
+                # l contains inputs with alloc or dimshuffle alloc
                 # only.  Its length will always be at least one, as we
                 # checked that before
                 l = [
@@ -2336,7 +2336,7 @@ def local_remove_useless_assert(fgraph, node):
 
                 if 0 != const.ndim or const == 0:
                     # Should we raise an error here? How to be sure it
-                    # is not catched?
+                    # is not caught?
                     cond.append(c)
             except NotScalarConstantError:
                 cond.append(c)
@@ -2525,7 +2525,7 @@ def local_useless_inc_subtensor(fgraph, node):
             return
         # There is no reverse, so we don't need a replacement.
         if all(e.step is None for e in node.op.idx_list):
-            # They are the same shape, so we can remore this IncSubtensor
+            # They are the same shape, so we can remove this IncSubtensor
             return [node.inputs[1]]
         ret = Subtensor(node.op.idx_list)(*node.inputs[1:])
         # Copy over previous output stacktrace
@@ -3837,8 +3837,8 @@ def local_join_empty(fgraph, node):
 def local_join_make_vector(fgraph, node):
     """Join(0, make_vector1, make_vector2, ...) => Join(0, make_vector12, ...)
 
-    Merge MakeVector inputs to Join. This can make the join completly
-    disapear with the local_join_1 opt.
+    Merge MakeVector inputs to Join. This can make the join completely
+    disappear with the local_join_1 opt.
 
     """
     if not isinstance(node.op, Join) or node.outputs[0].ndim != 1:

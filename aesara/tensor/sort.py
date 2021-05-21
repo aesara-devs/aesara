@@ -204,7 +204,7 @@ class ArgSortOp(Op):
         return [inputs_shapes[0]]
 
     def grad(self, inputs, output_grads):
-        # No grad defined for intergers.
+        # No grad defined for integers.
         inp, axis = inputs
         inp_grad = inp.zeros_like()
         axis_grad = grad_undefined(

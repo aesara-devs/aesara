@@ -98,7 +98,7 @@ This implies that a ParamsType cannot contain different enum types with common e
     wrapper = ParamsType(enum1=EnumList('CONSTANT_1', 'CONSTANT_2'),
                          enum2=EnumType(CONSTANT_1=0, CONSTANT_3=5))
 
-If your enum types contain constant aliases, you can retrive them from ParamsType
+If your enum types contain constant aliases, you can retrieve them from ParamsType
 with ``ParamsType.enum_from_alias(alias)`` method (see :class:`aesara.graph.type.EnumType`
 for more info about enumeration aliases).
 

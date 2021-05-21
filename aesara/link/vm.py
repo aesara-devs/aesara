@@ -319,7 +319,7 @@ class LoopGC(VM):
 
 class Stack(VM):
     """
-    Finish-to-start evalution order of thunks.
+    Finish-to-start evaluation order of thunks.
 
     This supports lazy evaluation of subtrees and partial
     computations of graphs when only some inputs have changed.

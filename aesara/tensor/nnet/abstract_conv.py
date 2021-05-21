@@ -1416,7 +1416,7 @@ def conv2d_grad_wrt_weights(
     """Compute conv output gradient w.r.t its weights
 
     This function will build the symbolic graph for getting the
-    gradient of the output of a convolution (output_grad) w.r.t its wights.
+    gradient of the output of a convolution (output_grad) w.r.t its weights.
 
     Parameters
     ----------

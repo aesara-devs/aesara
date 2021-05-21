@@ -1941,7 +1941,7 @@ class Dot(Op):
         return rval
 
     def R_op(self, inputs, eval_points):
-        # R_op for a \dot b evaluted at c for a and d for b is
+        # R_op for a \dot b evaluated at c for a and d for b is
         # simply c \dot b + a \dot d
 
         assert len(inputs) == 2
@@ -2034,7 +2034,7 @@ def dense_dot(a, b):
         2.  If either a or b has more than 2 dimensions, it calls Aesara's
             tensordot function with appropriate axes. The tensordot function
             expresses high-dimensional dot products in terms of 2D matrix
-            multiplications, so it may be possible to futherize optimize for
+            multiplications, so it may be possible to further optimize for
             performance.
 
         3.  If both a and b have either 1 or 2 dimensions, it calls Aesara's

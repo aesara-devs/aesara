@@ -87,7 +87,7 @@ class CuRFFTOp(_NoPythonOp):
         inputs = [storage_map[v] for v in node.inputs]
         outputs = [storage_map[v] for v in node.outputs]
 
-        # Initiliaze cuda context to the input's.
+        # Initialize cuda context to the input's.
         with node.inputs[0].type.context:
             skcuda.misc.init()
 
@@ -164,7 +164,7 @@ class CuRFFTOp(_NoPythonOp):
         return [cuirfft_op(gout, s), DisconnectedType()()]
 
     def connection_pattern(self, node):
-        # Specificy that shape input parameter has no connection to graph and gradients.
+        # Specify that shape input parameter has no connection to graph and gradients.
         return [[True], [False]]
 
 
@@ -218,7 +218,7 @@ class CuIRFFTOp(_NoPythonOp):
         inputs = [storage_map[v] for v in node.inputs]
         outputs = [storage_map[v] for v in node.outputs]
 
-        # Initiliaze cuda context to the input's.
+        # Initialize cuda context to the input's.
         with node.inputs[0].type.context:
             skcuda.misc.init()
 
@@ -296,7 +296,7 @@ class CuIRFFTOp(_NoPythonOp):
         return [gf, DisconnectedType()()]
 
     def connection_pattern(self, node):
-        # Specificy that shape input parameter has no connection to graph and gradients.
+        # Specify that shape input parameter has no connection to graph and gradients.
         return [[True], [False]]
 
 

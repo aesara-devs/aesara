@@ -369,7 +369,7 @@ def inline_softmax_fixed_shared(
     Parameters
     ----------
     N
-        Length of the buffer, atleast waprSize(32).
+        Length of the buffer, at least warpSize(32).
     buf
         A shared memory buffer of size warpSize * sizeof(dtype).
     x

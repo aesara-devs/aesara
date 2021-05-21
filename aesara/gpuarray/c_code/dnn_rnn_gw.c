@@ -12,7 +12,7 @@ int dnn_rnn_gw(cudnnRNNDescriptor_t desc, npy_uint64 _wsize,
   cudnnTensorDescriptor_t *xl = NULL;
   cudnnTensorDescriptor_t *yl = NULL;
   gpudata *workspace = NULL;
-  size_t worksize, ressize;
+  size_t worksize, resize;
 
   size_t iters = PyGpuArray_DIM(x, 0);
   size_t wsize = _wsize;
@@ -132,7 +132,7 @@ int dnn_rnn_gw(cudnnRNNDescriptor_t desc, npy_uint64 _wsize,
   }
 
   err = cudnnGetRNNTrainingReserveSize(_handle, desc, (int)iters,
-                                       xl, &ressize);
+                                       xl, &resize);
   if (err != CUDNN_STATUS_SUCCESS) {
     PyErr_Format(PyExc_RuntimeError,
                  "Could not get reserve size: %s",
@@ -146,7 +146,7 @@ int dnn_rnn_gw(cudnnRNNDescriptor_t desc, npy_uint64 _wsize,
                                 yl, PyGpuArray_DEV_DATA(y),
                                 *(void **)workspace, worksize,
                                 dwdesc, PyGpuArray_DEV_DATA(*dw),
-                                *(void **)reserve, ressize);
+                                *(void **)reserve, resize);
   if (err != CUDNN_STATUS_SUCCESS) {
     PyErr_Format(PyExc_RuntimeError,
                  "Could run RNN grad weights: %s",

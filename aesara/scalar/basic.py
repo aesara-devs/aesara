@@ -61,7 +61,7 @@ class IntegerDivisionError(Exception):
 
 def upcast(dtype, *dtypes):
     # This tries to keep data in floatX or lower precision, unless we
-    # explicitely request a higher precision datatype.
+    # explicitly request a higher precision datatype.
     keep_float32 = [
         (config.cast_policy == "numpy+floatX" and config.floatX == "float32")
     ]
@@ -4056,7 +4056,7 @@ class Composite(ScalarOp):
         # But we don't have an efficient execution. We will execute
         # like a tree, so nodes that have more then 1 client will be
         # executed as many times as there number of clients. In the
-        # example aboce, it will calculate *1 twice. Doing otherwise
+        # example above, it will calculate *1 twice. Doing otherwise
         # imply making a complicated execution engine.
 
         # We need the fast creation of the executor as we always do it
@@ -4136,7 +4136,7 @@ class Composite(ScalarOp):
         # Also, if there is Composite in the inner graph, we want to
         # remove them. In that case, we do a more complicated clone
         # that will flatten Composite. We don't need to do this
-        # recusively, as the way the fusion optimizer work, we have
+        # recursively, as the way the fusion optimizer work, we have
         # only 1 new Composite each time at the output.
         for i in inputs:
             assert i not in outputs  # This isn't supported, use identity

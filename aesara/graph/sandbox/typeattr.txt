@@ -77,7 +77,7 @@ It is ok to add new attributes at any time, even after graphs have been construc
 things are implemented such that the new attribute is UNKNOWN for all variables that were
 created before the attribute was introduced.  This way, a user can
 just make up an attribute and use it for a special variable in his graph.  This should not
-interfere with anything.  Type Attributes might supercede the 'tags' of variables in this way.
+interfere with anything.  Type Attributes might supersede the 'tags' of variables in this way.
 
 
 Challenge learned from Attempt 1: asymmetry in type-checking

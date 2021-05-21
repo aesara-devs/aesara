@@ -21,7 +21,7 @@ int dnn_rnn_gi(cudnnRNNDescriptor_t desc, npy_uint64 xshp,
   cudnnTensorDescriptor_t *yl = NULL;
   cudnnTensorDescriptor_t *dxl = NULL;
   gpudata *workspace = NULL;
-  size_t worksize, ressize;
+  size_t worksize, resize;
 
   size_t seqLength = PyGpuArray_DIM(y, 0);
   size_t miniBatch = PyGpuArray_DIM(y, 1);
@@ -170,7 +170,7 @@ int dnn_rnn_gi(cudnnRNNDescriptor_t desc, npy_uint64 xshp,
   }
 
   err = cudnnGetRNNTrainingReserveSize(_handle, desc, (int)seqLength,
-                                       dxl, &ressize);
+                                       dxl, &resize);
   if (err != CUDNN_STATUS_SUCCESS) {
     PyErr_Format(PyExc_RuntimeError,
                  "Could not get reserve size: %s",
@@ -178,13 +178,13 @@ int dnn_rnn_gi(cudnnRNNDescriptor_t desc, npy_uint64 xshp,
     goto fail;
   }
 
-  *oreserve = gpudata_alloc(c->ctx, ressize, NULL, 0, NULL);
+  *oreserve = gpudata_alloc(c->ctx, resize, NULL, 0, NULL);
   if (*oreserve == NULL) {
     PyErr_Format(PyExc_RuntimeError, "Could not allocate reserve");
     goto fail;
   }
 
-  if (gpudata_move(*oreserve, 0, reserve, 0, ressize) != GA_NO_ERROR) {
+  if (gpudata_move(*oreserve, 0, reserve, 0, resize) != GA_NO_ERROR) {
     PyErr_SetString(PyExc_RuntimeError, "could not copy reserve");
     goto fail;
   }
@@ -202,7 +202,7 @@ int dnn_rnn_gi(cudnnRNNDescriptor_t desc, npy_uint64 xshp,
                              dhxdesc, PyGpuArray_DEV_DATA(*dhx),
                              dcxdesc, dcx ? PyGpuArray_DEV_DATA(*dcx) : NULL,
                              *(void **)workspace, worksize,
-                             *(void **)(*oreserve), ressize);
+                             *(void **)(*oreserve), resize);
   if (err != CUDNN_STATUS_SUCCESS) {
     PyErr_Format(PyExc_RuntimeError,
                  "Could run RNN grad inputs: %s",

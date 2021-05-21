@@ -147,7 +147,7 @@ def _make_handle(ctx):
 
 
 def _dnn_check_compile():
-    preambule = """
+    preamble = """
 #include <stdio.h>
 #include <cudnn.h>
 #include <cudnn_helper.h>
@@ -180,7 +180,7 @@ if ((err = cudnnCreate(&_handle)) != CUDNN_STATUS_SUCCESS) {
 
     # NB: GCC_compiler.try_flags() may return just a boolean instead of a tuple (avail, out, here).
     compiler_res = GCC_compiler.try_flags(
-        params, preambule=preambule, body=body, try_run=False, output=True
+        params, preamble=preamble, body=body, try_run=False, output=True
     )
 
     avail, out, err = (
@@ -2420,7 +2420,7 @@ class GpuDnnBatchNorm(DnnBase):
         )
 
     def connection_pattern(self, node):
-        # Specificy that epsilon and running_average_factor are not connected to outputs.
+        # Specify that epsilon and running_average_factor are not connected to outputs.
         patterns = [
             [True, True, True],  # x
             [True, True, True],  # scale
@@ -2535,7 +2535,7 @@ class GpuDnnBatchNormInference(DnnBase):
         return [dx, dscale, dbias, dmean, dvar, DisconnectedType()()]
 
     def connection_pattern(self, node):
-        # Specificy that epsilon is not connected to outputs.
+        # Specify that epsilon is not connected to outputs.
         return [[True], [True], [True], [True], [True], [False]]
 
 

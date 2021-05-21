@@ -45,7 +45,7 @@ def check_deterministic(iterable):
 
 class Link:
     # This make that we need to use a different pickle protocol
-    # then the default.  Othewise, there is pickling errors
+    # then the default.  Otherwise, there is pickling errors
     __slots__ = "prev", "next", "key", "__weakref__"
 
     def __getstate__(self):

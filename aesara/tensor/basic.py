@@ -793,7 +793,7 @@ class Rebroadcast(COp):
 
     def c_code_cache_version(self):
         version = []
-        # If any of the c code is unversionned, we have to return ()
+        # If any of the c code is unversioned, we have to return ()
         # Else, we will return a list of (type name, version) pairs.
         for t, (c, v) in sorted(
             self.c_code_and_version.items(), key=lambda pair: str(pair[0])
@@ -2620,7 +2620,7 @@ def stack(*tensors, **kwargs):
     of tensors passed.
 
     Note: The interface stack(*tensors) is deprecated, you should use
-    stack(tensors, axis=0) insted.
+    stack(tensors, axis=0) instead.
 
     Parameters
     ----------
@@ -3069,7 +3069,7 @@ def flatten(x, ndim=1):
     Returns
     -------
     aesara.tensor.var.TensorVariable
-        the flattend variable with dimensionality of outdim
+        the flattened variable with dimensionality of outdim
     """
     if ndim is None:
         ndim = 1
@@ -4196,7 +4196,7 @@ class AllocEmpty(COp):
         output = otype()
 
         output.tag.values_eq_approx = values_eq_approx_always_true
-        # The outut can contain nan/inf.  output.type is a new
+        # The output can contain nan/inf.  output.type is a new
         # instance, so we can do this only for that variable.
         output.type.filter_checks_isfinite = False
 
