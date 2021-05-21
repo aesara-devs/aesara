@@ -67,11 +67,11 @@ two macros most often used in Aesara C ops.
 The general principle, in the reference counting paradigm, is that the owner
 of a reference to an object is responsible for disposing properly of it.
 This can be done by decrementing the reference count once the reference is no
-longer used or by transfering ownership; passing on the reference to a new
+longer used or by transferring ownership; passing on the reference to a new
 owner which becomes responsible for it.
 
 Some functions return "borrowed references"; this means that they return a
-reference to an object **without** transfering ownership of the reference to the
+reference to an object **without** transferring ownership of the reference to the
 caller of the function. This means that if you call a function which returns a
 borrowed reference, you do not have the burden of properly disposing of that
 reference. You should **not** call Py_XDECREF() on a borrowed reference.
@@ -120,9 +120,9 @@ NumPy ndarrays
 In the NumPy C-API, NumPy arrays are represented as instances of the
 PyArrayObject class which is a descendant of the PyObject class. This means
 that, as for any other Python object that you manipulate from C code, you
-need to appropriatedly manage the reference counts of PyArrayObject instances.
+need to appropriately manage the reference counts of PyArrayObject instances.
 
-Unlike in a standard multidimensionnal C array, a NumPy array's internal data
+Unlike in a standard multidimensional C array, a NumPy array's internal data
 representation does not have to occupy a continuous region in memory. In fact,
 it can be C-contiguous, F-contiguous or non-contiguous. C-contiguous means
 that the data is not only contiguous in memory but also that it is organized
@@ -347,7 +347,7 @@ commonly used.
     to raise a ValueError Python exception with the specified message.
     The function ``PyErr_Format()`` supports string formatting so it is
     possible to tailor the error message to the specifics of the error
-    that occured. If ``PyErr_Format()`` is called with more than two
+    that occurred. If ``PyErr_Format()`` is called with more than two
     arguments, the subsequent arguments are used to format the error message
     with the same behavior as the function `PyString_FromFormat()
     <https://docs.python.org/2/c-api/string.html#c.PyString_FromFormat>`_. The
@@ -579,7 +579,7 @@ method must be valid in every setting your op supports. If the op is meant
 to supports inputs of various dtypes, the C code in this method should be
 generic enough to work with every supported dtype. If the op operates on
 inputs that can be vectors or matrices, the C code in this method should
-be able to accomodate both kinds of inputs.
+be able to accommodate both kinds of inputs.
 
 In our example, the method ``c_support_code`` is used to declare a C
 function to validate that two vectors have the same shape. Because our
@@ -891,10 +891,10 @@ If you pass a function name to the ``__init__()`` method of the
 
 *       It must receive one argument for each input to the `Op` followed
         by one pointer to an argument for each output of the `Op`.  The
-        types for the argument is dependant on the Types (that is
+        types for the argument is dependent on the Types (that is
         aesara Types) of your inputs and outputs.
 
-*       You can sepcify the number of inputs and outputs for your `Op`
+*       You can specify the number of inputs and outputs for your `Op`
         by setting the ``_cop_num_inputs`` and ``_cop_num_outputs``
         attributes on your `COp`.  The main function will always be
         called with that number of arguments, using NULL to fill in
@@ -924,7 +924,7 @@ discussed below.
 *      ``APPLY_SPECIFIC(str)`` which will automatically append a name
        unique to the :ref:`Apply` node that applies the `Op` at the end
        of the provided ``str``. The use of this macro is discussed
-       futher below.
+       further below.
 
 For every input which has a :attr:`dtype` attribute (this means
 Tensors, and equivalent types on GPU), the following macros will be
@@ -1012,7 +1012,7 @@ sometimes tricky.  The key thing to remember is that things that can
 be shared between instances of the `Op` should be apply-agnostic and go
 into a section which does not end in ``_apply`` or ``_struct``.  The
 distinction of ``_apply`` and ``_struct`` mostly hinghes on how you
-want to manange the lifetime of the object.  Note that to use an
+want to manage the lifetime of the object.  Note that to use an
 apply-specific object, you have to be in a apply-specific section, so
 some portions of the code that might seem apply-agnostic may still be
 apply-specific because of the data they use (this does not include

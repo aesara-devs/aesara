@@ -43,7 +43,7 @@ Running the code above we see:
 
    Traceback (most recent call last):
      ...
-   ValueError: Input dimension mis-match. (input[0].shape[0] = 3, input[1].shape[0] = 2)
+   ValueError: Input dimension mismatch. (input[0].shape[0] = 3, input[1].shape[0] = 2)
    Apply node that caused the error: Elemwise{add,no_inplace}(<TensorType(float64, vector)>, <TensorType(float64, vector)>, <TensorType(float64, vector)>)
    Inputs types: [TensorType(float64, vector), TensorType(float64, vector), TensorType(float64, vector)]
    Inputs shapes: [(3,), (2,), (2,)]
@@ -55,7 +55,7 @@ Running the code above we see:
 
 Arguably the most useful information is approximately half-way through
 the error message, where the kind of error is displayed along with its
-cause (`ValueError: Input dimension mis-match. (input[0].shape[0] = 3,
+cause (`ValueError: Input dimension mismatch. (input[0].shape[0] = 3,
 input[1].shape[0] = 2`).
 Below it, some other information is given, such as the apply node that
 caused the error, as well as the input types, shapes, strides and
@@ -504,7 +504,7 @@ Consider this example script ("ex.py"):
 
    Traceback (most recent call last):
      ...
-   ValueError: Input dimension mis-match. (input[0].shape[0] = 3, input[1].shape[0] = 5)
+   ValueError: Input dimension mismatch. (input[0].shape[0] = 3, input[1].shape[0] = 5)
    Apply node that caused the error: Elemwise{mul,no_inplace}(a, b)
    Toposort index: 0
    Inputs types: [TensorType(float64, matrix), TensorType(float64, matrix)]
@@ -530,7 +530,7 @@ illustrative purposes. As the matrices can't be multiplied element-wise
     File "/u/username/Aesara/aesara/compile/function/types.py", line 451, in __call__
     File "/u/username/Aesara/aesara/graph/link.py", line 271, in streamline_default_f
     File "/u/username/Aesara/aesara/graph/link.py", line 267, in streamline_default_f
-    File "/u/username/Aesara/aesara/graph/cc.py", line 1049, in execute ValueError: ('Input dimension mis-match. (input[0].shape[0] = 3, input[1].shape[0] = 5)', Elemwise{mul,no_inplace}(a, b), Elemwise{mul,no_inplace}(a, b))
+    File "/u/username/Aesara/aesara/graph/cc.py", line 1049, in execute ValueError: ('Input dimension mismatch. (input[0].shape[0] = 3, input[1].shape[0] = 5)', Elemwise{mul,no_inplace}(a, b), Elemwise{mul,no_inplace}(a, b))
 
 The call stack contains some useful information to trace back the source
 of the error. There's the script where the compiled function was called --

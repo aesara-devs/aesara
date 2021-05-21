@@ -230,7 +230,7 @@ places. Note that ``add(x, y)`` and ``add(y, x)`` are still considered
 to be different because Aesara has no clue that ``add`` is
 commutative. You may write your own global optimizer to identify
 computations that are identical with full knowledge of the rules of
-arithmetics that your Ops implement. Aesara might provide facilities
+arithmetic that your Ops implement. Aesara might provide facilities
 for this somewhere in the future.
 
 .. note::
@@ -278,7 +278,7 @@ The definition of transform is the inner loop of the global optimizer,
 where the node is given as argument. If no changes are to be made,
 ``False`` must be returned. Else, a list of what to replace the node's
 outputs with must be returned. This list must have the same length as
-node.ouputs. If one of node.outputs don't have clients(it is not used
+node.outputs. If one of node.outputs don't have clients(it is not used
 in the graph), you can put None in the returned list to remove it.
 
 In order to apply the local optimizer we must use it in conjunction

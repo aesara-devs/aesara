@@ -14,7 +14,7 @@
 
 .. note::
 
-   This interface is the prefered interface. It will be moved
+   This interface is the preferred interface. It will be moved
    automatically to the GPU.
 
 .. note::

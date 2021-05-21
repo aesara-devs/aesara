@@ -76,7 +76,7 @@ and find out if everything is derived correctly.
 CUDA Specific Option
 --------------------
 
-The Aesara flag ``nvcc.fastmath=True`` can genarate NaN. Don't set
+The Aesara flag ``nvcc.fastmath=True`` can generate NaN. Don't set
 this flag while debugging NaN.
 
 

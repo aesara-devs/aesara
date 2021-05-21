@@ -243,7 +243,7 @@ Hidden outputs (as a form of op state)
 
 For performance purposes, an ``op`` might want to have a hidden internal state.
 
-Example: if we expect to call the op repeatedly on incrementally bigger inputs, we might want private output storage that's a lot bigger than needed and take incrementally bigger views on it, to save allocation overhead. In order to do this, we can have two outputs: one that we will return normally and will contain the answer and the other that will be the (larger) container. In this case, the advanced note in the 'reusing outputs' section applies. Furthermore, ``__call__`` should be overriden to only return the first output instead of both of them. Here is what the example's ``perform`` and ``__call__`` would look like:
+Example: if we expect to call the op repeatedly on incrementally bigger inputs, we might want private output storage that's a lot bigger than needed and take incrementally bigger views on it, to save allocation overhead. In order to do this, we can have two outputs: one that we will return normally and will contain the answer and the other that will be the (larger) container. In this case, the advanced note in the 'reusing outputs' section applies. Furthermore, ``__call__`` should be overridden to only return the first output instead of both of them. Here is what the example's ``perform`` and ``__call__`` would look like:
 
 .. code-block:: python
 

@@ -53,7 +53,7 @@ following methods will be used for the type:
   - :meth:`__hash__ <Type.__hash__>`
   - :meth:`values_eq <Type.values_eq>`
 
-Additionaly if you want to use your params with C code, you need to extend `COp`
+Additionally if you want to use your params with C code, you need to extend `COp`
 and implement the following methods:
 
   - :meth:`c_declare <CLinkerType.c_declare>`
@@ -123,7 +123,7 @@ extra parameter at the end which corresponds to the params object.
 
 Also, for the C code, the `sub` dictionary will contain an extra entry
 `'params'` which will map to the variable name of the params object.
-This is true for all methods that recieve a `sub` parameter, so this
+This is true for all methods that receive a `sub` parameter, so this
 means that you can use your params in the :meth:`c_code <COp.c_code>`
 and :meth:`c_init_code_struct <COp.c_init_code_struct>` method.
 

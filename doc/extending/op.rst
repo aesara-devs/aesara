@@ -252,7 +252,7 @@ Optional methods or attributes
    .. note::
 
      If you set `__props__`, this will be automatically generated.
-     You can still overide it for custom output.
+     You can still override it for custom output.
 
 .. function:: do_constant_folding(fgraph, node)
 
@@ -537,7 +537,7 @@ These are the function required to work with gradient.grad().
    Same conventions as for the grad method hold. If your op is not
    differentiable, you can return None. Note that in contrast to
    the method :func:`grad`, for :func:`R_op` you need to return the
-   same number of outputs as there are ouputs of the op. You can think
+   same number of outputs as there are outputs of the op. You can think
    of it in the following terms. You have all your inputs concatenated
    into a single vector :math:`x`. You do the same with the evaluation
    points (which are as many as inputs and of the shame shape) and obtain
