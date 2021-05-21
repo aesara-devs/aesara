@@ -164,7 +164,7 @@ class HiddenLayer:
         """
         self.input = input
 
-        # `W` is initialized with `W_values` which is uniformely sampled
+        # `W` is initialized with `W_values` which is uniformly sampled
         # from -6./sqrt(n_in+n_hidden) and 6./sqrt(n_in+n_hidden)
         # the output of uniform if converted using asarray to dtype
         # aesara.config.floatX so that the code is runable on GPU
@@ -188,7 +188,7 @@ class MLP:
 
     A multilayer perceptron is a feedforward artificial neural network model
     that has one layer or more of hidden units and nonlinear activations.
-    Intermidiate layers usually have as activation function thanh or the
+    Intermediate layers usually have as activation function thanh or the
     sigmoid function (defined here by a ``SigmoidalLayer`` class)  while the
     top layer is a softamx layer (defined here by a ``LogisticRegression``
     class).

@@ -640,7 +640,7 @@ class TestSoftplus:
         utt.verify_grad(aet.softplus, [np.random.rand(3, 4)])
 
     def test_accuracy(self):
-        # Test all aproximations are working (cutoff points are -37, 18, 33.3)
+        # Test all approximations are working (cutoff points are -37, 18, 33.3)
         x_test = np.array([-40.0, -17.5, 17.5, 18.5, 40.0])
         y_th = aet.softplus(x_test).eval()
         y_np = np.log1p(np.exp(x_test))

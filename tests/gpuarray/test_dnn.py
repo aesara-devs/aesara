@@ -1284,7 +1284,7 @@ def run_conv_small_batched_vs_multicall(inputs_shape, filters_shape, batch_sub):
     f = aesara.function([], [conv, sub_conv_top, sub_conv_bottom], mode=mode_with_gpu)
     res_all, res_batch_top, res_batch_bottom = f()
     for i in range(batch_sub):
-        # Check first ouputs.
+        # Check first outputs.
         utt.assert_allclose(res_batch_top[i], res_all[i])
         # Then check last outputs.
         p = batch_size - batch_sub + i

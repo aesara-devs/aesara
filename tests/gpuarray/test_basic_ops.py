@@ -206,7 +206,7 @@ def makeTester(
 
             for description, check in self.checks.items():
                 assert check(inputs, variables), (
-                    "Test %s::%s: Failed check: %s " "(inputs were %s, ouputs were %s)"
+                    "Test %s::%s: Failed check: %s " "(inputs were %s, outputs were %s)"
                 ) % (self.op, testname, description, inputs, variables)
 
     Checker.__name__ = name

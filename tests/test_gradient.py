@@ -901,7 +901,7 @@ class TestDisconnectedGrad:
         x = matrix("x")
 
         # This MUST raise a DisconnectedInputError error.
-        # This also rasies an additional warning from gradients.py.
+        # This also raises an additional warning from gradients.py.
         with pytest.raises(DisconnectedInputError):
             grad(disconnected_grad(x).sum(), x)
 
@@ -912,7 +912,7 @@ class TestDisconnectedGrad:
         b = matrix("b")
         y = a + disconnected_grad(b)
         # This MUST raise a DisconnectedInputError error.
-        # This also rasies an additional warning from gradients.py.
+        # This also raises an additional warning from gradients.py.
         with pytest.raises(DisconnectedInputError):
             grad(y.sum(), b)
 

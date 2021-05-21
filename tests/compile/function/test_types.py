@@ -387,7 +387,7 @@ class TestFunction:
             )
             cpy = ori.copy(swap=swap)
 
-            # run fuction several time
+            # run function several times
             ori(1), cpy(1), cpy(2)
 
             # assert same SharedVariable are update in different function

@@ -411,7 +411,7 @@ def test_reallocation():
     x = scalar("x")
     y = scalar("y")
     z = tanh(3 * x + y) + cosh(x + 5 * y)
-    # The functinality is currently implement for non lazy and non c VM only.
+    # The functionality is currently implement for non lazy and non c VM only.
     for linker in [
         VMLinker(allow_gc=False, lazy=False, use_cloop=False),
         VMLinker(allow_gc=True, lazy=False, use_cloop=False),

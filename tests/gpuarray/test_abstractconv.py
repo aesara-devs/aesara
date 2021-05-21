@@ -37,7 +37,7 @@ class TestDnnConv2d(BaseTestConv2d):
     def setup_class(cls):
         super().setup_class()
         cls.shared = staticmethod(gpuarray_shared_constructor)
-        # provide_shape is not used by the cuDNN impementation
+        # provide_shape is not used by the cuDNN implementation
         cls.provide_shape = [False]
 
     @pytest.mark.skipif(dnn_available(test_ctx_name), reason=dnn_available.msg)
@@ -131,7 +131,7 @@ class TestDnnConv3d(BaseTestConv3d):
     def setup_class(cls):
         super().setup_class()
         cls.shared = staticmethod(gpuarray_shared_constructor)
-        # provide_shape is not used by the cuDNN impementation
+        # provide_shape is not used by the cuDNN implementation
         cls.provide_shape = [False]
 
     @pytest.mark.skipif(dnn_available(test_ctx_name), reason=dnn_available.msg)

@@ -52,7 +52,7 @@ def test_pseudoinverse_correctness():
     assert ri.shape[0] == r.shape[1]
     assert ri.shape[1] == r.shape[0]
     assert ri.dtype == r.dtype
-    # Note that pseudoinverse can be quite unprecise so I prefer to compare
+    # Note that pseudoinverse can be quite imprecise so I prefer to compare
     # the result with what np.linalg returns
     assert _allclose(ri, np.linalg.pinv(r))
 

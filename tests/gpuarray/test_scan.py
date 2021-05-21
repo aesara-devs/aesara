@@ -549,7 +549,7 @@ class ScanGpuTests:
 
     def test_gpu_memory_usage(self):
         # This test validates that the memory usage of the defined aesara
-        # function is reasonnable when executed on the GPU. It checks for
+        # function is reasonable when executed on the GPU. It checks for
         # a bug in which one of scan's optimization was not applied which
         # made the scan node compute large and unnecessary outputs which
         # brought memory usage on the GPU to ~12G.

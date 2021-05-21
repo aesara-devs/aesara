@@ -710,7 +710,7 @@ class TestAliasingRules:
     # with the memory of normal python variables that the user uses.
     #
     # 2. shared variables are allocated in this memory space, as are the
-    # temporaries used for Function evalution.
+    # temporaries used for Function evaluation.
     #
     # 3. Physically, this managed memory space may be spread across the host,
     # on a GPU device(s), or even on a remote machine.

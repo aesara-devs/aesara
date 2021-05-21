@@ -46,7 +46,7 @@ class MyType(Type):
     @staticmethod
     def may_share_memory(a, b):
         # As this represent a string and string are immutable, they
-        # never share memory in the DebugMode sence. This is needed as
+        # never share memory in the DebugMode sense. This is needed as
         # Python reuse string internally.
         return False
 

@@ -872,7 +872,7 @@ class TestScan:
         # a bit of explaining:
         # due to the definition of sequences taps in scan, v_0[0] is
         # actually v_0[-2], and v_0[1] is v_0[-1]. The values v_0[2]
-        # and v_0[3] do not get uesd ( because you do not use v_0[t]
+        # and v_0[3] do not get used ( because you do not use v_0[t]
         # in scan) which might seem strange, but then again why not use
         # v_0[t] instead of v_0[t-2] in a real application ??
         # also vx0[0] corresponds to vx0[-2], vx0[1] to vx0[-1]
@@ -3267,7 +3267,7 @@ class TestScan:
 
     @pytest.mark.skip(
         reason="This test fails because not typed outputs_info "
-        "are always gived the smallest dtype. There is "
+        "are always given the smallest dtype. There is "
         "no upcast of outputs_info in scan for now.",
     )
     def test_outputs_info_not_typed(self):
@@ -3639,7 +3639,7 @@ class TestScan:
 
         grad(scan_outputs[0].sum(), out_init[1])
 
-        # Validate the connnection pattern is as it should be
+        # Validate the connection pattern is as it should be
         node = scan_outputs[0].owner
         connection_pattern = node.op.connection_pattern(node)
         expected_connection_pattern = [

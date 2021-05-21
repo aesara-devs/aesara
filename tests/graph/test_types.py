@@ -219,7 +219,7 @@ class TestEnumTypes:
             except AttributeError:
                 pass
             else:
-                raise Exception("EnumList with invalid name should faild.")
+                raise Exception("EnumList with invalid name should fail.")
 
             try:
                 EnumType(**{invalid_name: 0})

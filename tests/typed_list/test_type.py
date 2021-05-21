@@ -111,7 +111,7 @@ class TestTypedListType:
         assert myNestedType2 != myNestedType3
 
     def test_nested_list_arg(self):
-        # test for the 'depth' optionnal argument
+        # test for the 'depth' optional argument
 
         myNestedType = TypedListType(
             TensorType(aesara.config.floatX, (False, False)), 3

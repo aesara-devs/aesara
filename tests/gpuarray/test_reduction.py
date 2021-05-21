@@ -19,7 +19,7 @@ from tests.gpuarray.test_basic_ops import rand_gpuarray
 test_size = 10000
 
 # NB: This order of "unsorted axes" is arbitrary and is here
-# just to have the same informations on profile output
+# just to have the same information on profile output
 # from one test to another.
 unsorted_axes = (2, 4, 0, 3, 1)
 
@@ -88,7 +88,7 @@ class BaseTest:
             pytest.skip("No tensor ndim defined.")
         if self.tensor_size < 0 or self.tensor_size > 5:
             pytest.skip(
-                "We allow from 0 (included) to 5 (inclued) dimensons for these tests."
+                "We allow from 0 (included) to 5 (included) dimensons for these tests."
             )
         if self.shape is None:
             self.shape = self.get_shape()

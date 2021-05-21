@@ -207,7 +207,7 @@ class TestPushOutScanOutputDot:
         scan_node = [
             node for node in f_opt.maker.fgraph.toposort() if isinstance(node.op, Scan)
         ][0]
-        # NOTE: WHEN INFER_SHAPE IS REENABLED, BELOW THE SCAN MUST
+        # NOTE: WHEN INFER_SHAPE IS RE-ENABLED, BELOW THE SCAN MUST
         # HAVE ONLY 1 OUTPUT.
         assert len(scan_node.op.outputs) == 2
         assert not isinstance(scan_node.op.outputs[0], Dot)
@@ -282,7 +282,7 @@ class TestPushOutSumOfDot:
         #
         # 'dim' has been reduced from 1000 to 5 to make the test run faster
 
-        # Parameters from an actual machine tranlation run
+        # Parameters from an actual machine translation run
         batch_size = 80
         seq_len = 50
         dim = 5

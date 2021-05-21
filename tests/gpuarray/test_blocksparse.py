@@ -28,7 +28,7 @@ class TestBlockSparseGemvAndOuterGPUarray(TestBlockSparseGemvAndOuter):
     @pytest.mark.skip(
         reason="""
         This test is temporarily disabled since we disabled the output_merge
-        and alpha_merge optimizations for blocksparse due to brokeness.
+        and alpha_merge optimizations for blocksparse due to brokenness.
         Re-enable when those are re-added.
         """
     )

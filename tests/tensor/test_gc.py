@@ -53,7 +53,7 @@ def test_gc_never_pickles_temporaries():
         # len_pre_g = len(pre_g)
 
         # We can't compare the content or the length of the string
-        # between f and g. 2 reason, we store some timming information
+        # between f and g. 2 reason, we store some timing information
         # in float. They won't be the same each time. Different float
         # can have different length when printed.
 
