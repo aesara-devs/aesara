@@ -700,7 +700,7 @@ class Scan(Op):
                 raise ValueError(
                     (
                         "Argument %s given to scan node does not"
-                        " match its correspondance %s"
+                        " match its correspondence %s"
                     )
                     % (str(outer_nonseq), str(inner_nonseq))
                 )
@@ -890,7 +890,7 @@ class Scan(Op):
 
                         # Make it so the input is automatically updated to the
                         # output value, possibly inplace, at the end of the
-                        # function exectution. Also, since an update is
+                        # function execution. Also, since an update is
                         # defined, a default value must also be (this is
                         # verified by DebugMode). Use an array of size 0 but
                         # the right ndim and dtype (use a shape of 1 on
@@ -1097,7 +1097,7 @@ class Scan(Op):
     def outer_seqs(self, list_inputs):
         if isinstance(list_inputs, Apply):
             list_inputs = list_inputs.inputs
-        # Given the list of outter inputs this function grabs those
+        # Given the list of outer inputs this function grabs those
         # corresponding to sequences
         return list_inputs[1 : 1 + self.n_seqs]
 
@@ -1116,7 +1116,7 @@ class Scan(Op):
 
     def outer_mitmot_outs(self, list_outputs):
         if isinstance(list_outputs, Apply):
-            list_outputs = list_outputs.ouputs
+            list_outputs = list_outputs.outputs
         return list_outputs[: self.n_mit_mot]
 
     def mitmot_taps(self):
@@ -1300,7 +1300,7 @@ class Scan(Op):
                 seqs.append(seq)
 
         # 2. Allocate memory for the outputs. Construct the list:
-        #       store_steps  -- map containting the length of each output
+        #       store_steps  -- map containing the length of each output
         #       pos          -- map containing the current position of each
         #                       output
 
@@ -1706,7 +1706,7 @@ class Scan(Op):
                     output_storage[idx][0][: store_steps[idx] - pdx] = tmp
                     del tmp
             # This would normally happen only when doing truncated
-            # backpropagation through time. In such a scenarion Scan is
+            # backpropagation through time. In such a scenario Scan is
             # expected to return 0 for all entries for which the gradient is
             # not actually computed
             elif store_steps[idx] > i - self.mintaps[idx]:

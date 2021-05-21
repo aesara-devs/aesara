@@ -117,7 +117,7 @@ def _contains_cycle(fgraph, orderings):
         if owner:
             # insert node in node_to_children[r]
             # (if r is not already in node_to_children,
-            # intialize it to [])
+            # initialize it to [])
             node_to_children.setdefault(owner, []).append(var)
             parent_counts[var] = 1
         else:
@@ -136,7 +136,7 @@ def _contains_cycle(fgraph, orderings):
             for parent in parents:
                 # insert node in node_to_children[r]
                 # (if r is not already in node_to_children,
-                # intialize it to [])
+                # initialize it to [])
                 node_to_children.setdefault(parent, []).append(a_n)
             parent_counts[a_n] = len(parents)
         else:
@@ -187,7 +187,7 @@ def _build_droot_impact(destroy_handler):
             input_idx = input_idx_list[0]
             input = app.inputs[input_idx]
 
-            # Find non-view variable which is ultimatly viewed by input.
+            # Find non-view variable which is ultimately viewed by input.
             view_i = destroy_handler.view_i
             _r = input
             while _r is not None:
@@ -224,7 +224,7 @@ def _build_droot_impact(destroy_handler):
 
 def fast_inplace_check(fgraph, inputs):
     """
-    Return the variables in inputs that are posible candidate for as inputs of
+    Return the variables in inputs that are possible candidate for as inputs of
     inplace operation.
 
     Parameters
@@ -419,7 +419,7 @@ class DestroyHandler(Bookkeeper):  # noqa
                         return True
                     for var_idx in app.op.view_map.keys():
                         if idx in app.op.view_map[var_idx]:
-                            # We need to recursivly check the destroy_map of all the
+                            # We need to recursively check the destroy_map of all the
                             # outputs that we have a view_map on.
                             if recursive_destroys_finder(app.outputs[var_idx]):
                                 return True

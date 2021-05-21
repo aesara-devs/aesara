@@ -188,9 +188,9 @@ def scan(
           the initial state, which in this case should have the shape
           (5,)+output.shape. If this variable containing the initial
           state is called ``init_y`` then ``init_y[0]`` *corresponds to*
-          ``output[-5]``. ``init_y[1]`` *correponds to* ``output[-4]``,
+          ``output[-5]``. ``init_y[1]`` *corresponds to* ``output[-4]``,
           ``init_y[2]`` corresponds to ``output[-3]``, ``init_y[3]``
-          coresponds to ``output[-2]``, ``init_y[4]`` corresponds to
+          corresponds to ``output[-2]``, ``init_y[4]`` corresponds to
           ``output[-1]``. While this order might seem strange, it comes
           natural from splitting an array at a given point. Assume that
           we have a array ``x``, and we choose ``k`` to be time step

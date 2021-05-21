@@ -282,7 +282,7 @@ class Function:
     Meaningful settings are: 'ignore', 'warn', 'raise'.
 
     If the value is 'warn', then a message will be printed to stderr
-    if aliased storage is dectected during pickle.dump.
+    if aliased storage is detected during pickle.dump.
 
     If the value is 'raise', then an AliasedMemoryError will be raised
     if aliased storage is detected during pickle.dump.
@@ -455,7 +455,7 @@ class Function:
                         # stored in the container, since the container is
                         # shared.
                         # For safety, we make sure 'refeed' is False, since
-                        # there is no need to refeed the defaullt value.
+                        # there is no need to refeed the default value.
                         assert not refeed
                     else:
                         c.value = value
@@ -781,7 +781,7 @@ class Function:
             container = f_cpy.finder.pop(in_cpy.variable)
             if not swapped:
                 f_cpy.finder[in_ori.variable] = container
-                in_cpy.vairable = in_ori.variable
+                in_cpy.variable = in_ori.variable
             else:
                 f_cpy.finder[swap[in_ori.variable]] = container
                 in_cpy.variable = swap[in_ori.variable]
@@ -1470,7 +1470,7 @@ class FunctionMaker:
                             )
                         )
 
-                        # hack to remove inconstent entry in givens
+                        # hack to remove inconsistent entry in givens
                         # seems to work that but source of inconsistency
                         # could be worth investigating.
                         for key, value in temp.items():
@@ -1528,8 +1528,8 @@ class FunctionMaker:
         output_keys=None,
         name=None,
     ):
-        # Save the provided mode, not the instanciated mode.
-        # The instanciated mode don't pickle and if we unpickle an Aesara
+        # Save the provided mode, not the instantiated mode.
+        # The instantiated mode don't pickle and if we unpickle an Aesara
         # function and it get re-compiled, we want the current optimizer to be
         # used, not the optimizer when it was saved.
         self.mode = mode
@@ -1541,7 +1541,7 @@ class FunctionMaker:
         self.profile = profile
         if profile:
             # This is very important:
-            # 1) We preload the cache here to don't have its timming
+            # 1) We preload the cache here to not have its timing
             #    included in optimization that compile function.
             # 2) Do not refresh the cache here by default. It cause
             #    too much execution time during testing as we compile

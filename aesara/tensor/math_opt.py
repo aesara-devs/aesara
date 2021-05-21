@@ -1598,7 +1598,7 @@ def local_reduce_join(fgraph, node):
 
     Notes
     -----
-    Supported scalar.op are Maximum, Mimimum in some cases and Add and Mul in
+    Supported scalar.op are Maximum, Minimum in some cases and Add and Mul in
     all cases.
 
     Currently we must reduce on axis 0. It is probably extensible to the case
@@ -1996,7 +1996,7 @@ def local_pow_specialize_device(fgraph, node):
         # y is a ndarray with dtype int8 and value 2,4 or 6. This make
         # the abs(y) <= 512 fail!
         # taking the value outside ndarray solve the problem.
-        # it could be that in that case, numpy make the comparaison
+        # it could be that in that case, numpy make the comparison
         # into the wrong type(do in int8 that overflow.)
         if isinstance(y, np.ndarray):
             assert y.size == 1
@@ -2608,7 +2608,7 @@ register_stabilize(local_one_minus_erf2)
 register_specialize(local_one_minus_erf2)
 
 # 1+(-erf(x))=>erfc(x) This is a different graph then the previous as
-# the canonicalize don't work completly
+# the canonicalize don't work completely
 local_one_plus_neg_erf = PatternSub(
     (add, 1, (neg, (erf, "x"))),
     (erfc, "x"),
@@ -2673,7 +2673,7 @@ register_stabilize(local_one_minus_erfc3)
 register_specialize(local_one_minus_erfc3)
 
 # 1+(-erfc(x)) => erf(x) This is a different graph then the previous as
-# the canonicalize don't work completly
+# the canonicalize don't work completely
 local_one_add_neg_erfc = PatternSub(
     (add, 1, (neg, (erfc, "x"))),
     (erf, "x"),
@@ -2722,7 +2722,7 @@ def local_log_erfc(fgraph, node):
 
     log(erfc(x)) => when x>threshold,
                 -x**2-log(x)-.5*log(pi)+log(1-1/(2*x**2)+3/(4*x**4)-15/(8*x**6))
-    for float64: threshold=26.641747557 was choosed with:
+    for float64: threshold=26.641747557 was chosen with:
     [(i,numpy.log(scipy.special.erfc(numpy.asarray([i],dtype='float64'))))
     for i in numpy.arange(26.641747557,26.6417475571,.00000000001)]
     for float32: threshold=10.0541949, [(i,numpy.log(scipy.special.erfc(
@@ -2770,7 +2770,7 @@ def local_grad_log_erfc_neg(fgraph, node):
     for float64: threshold=26.63 see at the end of the fct for the explanation
     for float32: threshold=9.3 see at the end of the fct for the explanation
 
-    TODO: remove the contraint that there are only 2 inputs to exp(x**2)
+    TODO: remove the constraint that there are only 2 inputs to exp(x**2)
         is the second.
     TODO: at the test point 10 in float32, there is instability in the original
         value. The original gives -30.0, the stab -20.1 and in float64 -18.1.
@@ -2944,7 +2944,7 @@ def local_add_mul_fusion(fgraph, node):
     It is better to fuse add/mul that way then in a Composite node as
     this make the inner graph of the Composite smaller. This allow to
     put more computation in a Composite before hitting the max
-    recusion limit when pickling Composite.
+    recursion limit when pickling Composite.
 
     """
     if not isinstance(node.op, Elemwise) or not isinstance(

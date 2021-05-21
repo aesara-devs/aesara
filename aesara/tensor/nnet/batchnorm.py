@@ -497,7 +497,7 @@ class AbstractBatchNormTrain(Op):
         )
 
     def connection_pattern(self, node):
-        # Specificy that epsilon and running_average_factor are not connected to outputs.
+        # Specify that epsilon and running_average_factor are not connected to outputs.
         patterns = [
             [True, True, True],  # x
             [True, True, True],  # scale
@@ -629,7 +629,7 @@ class AbstractBatchNormInference(Op):
         return [dx, dscale, dbias, dmean, dvar, aesara.gradient.DisconnectedType()()]
 
     def connection_pattern(self, node):
-        # Specificy that epsilon is not connected to outputs.
+        # Specify that epsilon is not connected to outputs.
         return [[True], [True], [True], [True], [True], [False]]
 
     def perform(self, node, inputs, output_storage):
@@ -902,7 +902,7 @@ def local_abstract_batch_norm_inference(fgraph, node):
     return [result]
 
 
-# Register Cpu Optmization
+# Register Cpu Optimization
 bn_groupopt = aesara.graph.optdb.LocalGroupDB()
 bn_groupopt.__name__ = "batchnorm_opts"
 register_specialize_device(bn_groupopt, "fast_compile", "fast_run")

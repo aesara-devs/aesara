@@ -20,7 +20,7 @@ Special cases:
 
 Often a for-loop or while-loop can be expressed as a ``scan()`` operation,
 and ``scan`` is the closest that aesara comes to looping. The advantages
-of using ``scan`` over `for` loops in python (amongs other) are:
+of using ``scan`` over `for` loops in python (among others) are:
 
 * it allows the number of iterations to be part of the symbolic graph
 * it allows computing gradients through the for loop

@@ -15,7 +15,7 @@
          These are inputs over which scan loops and gets data but into which
          scan also writes data. The shorthand mit_mot describes how scan
          deal with them at each step : at each step take several slices as
-         input and produce sevaral slices as outputs
+         input and produce several slices as outputs
 
          iii) mit_sot : multiple input taps single output tap arguments.
          As before scan reads from these but also writes. At each step scan
@@ -33,17 +33,17 @@
          At each step use its value as input, and afterwards replace it with
          a new value.
          vii) other_args: arguments that are passed to every call of the
-         inner function as they are ( no slicing is perfomed)
+         inner function as they are ( no slicing is performed)
 
     All these outputs are one after the other in the inputs list (named in
     this code as args) in a given order ( namely the one described above
-    with little discrepencies depending if we are talking about the outputs
+    with little discrepancies depending if we are talking about the outputs
     of the Scan op or the inputs of the Scan op Node, and if we are talking
     about the inputs of the inner function of scan or of the scan op).
 
     Because of this, all we need to be able to separate and tell arguments
     apart is how many of which we have as well as how many taps and which
-    ones (where applicable). All this information is desribed (more or less)
+    ones (where applicable). All this information is described (more or less)
     by describing the arguments of this function)
 """
 
@@ -98,18 +98,18 @@ def perform(
     Parameters
     ----------
     n_shared_outs: unsigned int
-        Number of arugments that correspond to shared variables with
+        Number of arguments that correspond to shared variables with
         updates
     n_mit_mot_outs: unsigned int
         Sum over the number of output taps for each mit_mot sequence
     n_seqs: unsigned int
         Number of sequences provided as input
     n_mit_mot : unsigned int
-        Number of mit_mot arguemnts
+        Number of mit_mot arguments
     n_mit_sot: unsigned int
         Number of mit_sot arguments
     n_sit_sot: unsigned int
-        Number of sit sot arguemnts
+        Number of sit sot arguments
     n_nit_sot: unsigned int
         Number of nit_sot arguments
     n_steps: unsigned int
@@ -165,7 +165,7 @@ def perform(
         figure things out on the outside - python)
     self: python object
         The scan op itself. I only use it to attach to it some timing
-        informations .. but I don;t need to.
+        information .. but I don;t need to.
 
     """
     # 1. Unzip the number of steps and sequences. If number of steps is
@@ -223,7 +223,7 @@ def perform(
                                   args[1+idx],
                                   args[1+idx].shape)
     # 2. Allocate memory for the outputs. Construct the list:
-    #       store_steps  -- map containting the length of each output
+    #       store_steps  -- map containing the length of each output
     #       pos          -- map containing the current position of each output
 
     for idx in range(n_mit_mot + n_mit_sot + n_sit_sot):
@@ -595,7 +595,7 @@ def perform(
                 outs[idx][0][store_steps[idx]-pdx:] = outs[idx][0][:pdx]
                 outs[idx][0][:store_steps[idx]-pdx] = tmp
         # This would normally happen only when doing truncated
-        # backpropagation through time. In such a scenarion Scan is
+        # backpropagation through time. In such a scenario Scan is
         # expected to return 0 for all entries for which the gradient is
         # not actually computed
         elif store_steps[idx] > i - self.mintaps[idx]:

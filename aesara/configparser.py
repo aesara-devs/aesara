@@ -320,7 +320,7 @@ class ConfigParam:
     def apply(self, value):
         """Applies modifications to a parameter value during assignment.
 
-        Typical use cases are casting or the subsitution of '~' with the user home directory.
+        Typical use cases are casting or the substitution of '~' with the user home directory.
         """
         if callable(self._apply):
             return self._apply(value)
@@ -462,7 +462,7 @@ class DeviceParam(ConfigParam):
             return val
         elif val.startswith("gpu"):
             raise ValueError(
-                "You are tring to use the old GPU back-end. "
+                "You are trying to use the old GPU back-end. "
                 "It was removed from Aesara. Use device=cuda* now. "
                 "See https://github.com/pymc-devs/aesara/wiki/Converting-to-the-new-gpu-back-end%28gpuarray%29 "
                 "for more information."
@@ -565,7 +565,7 @@ def _create_default_config():
     aesara_raw_cfg.read(config_files)
 
     # Instances of AesaraConfigParser can have independent current values!
-    # But because the properties are assinged to the type, their existence is global.
+    # But because the properties are assigned to the type, their existence is global.
     config = AesaraConfigParser(
         flags_dict=AESARA_FLAGS_DICT,
         aesara_cfg=aesara_cfg,

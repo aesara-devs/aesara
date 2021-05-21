@@ -619,7 +619,7 @@ class EnumType(CType, dict):
 
         # An alias defined in an EnumType will be correctly converted with non-strict filtering.
         value = enum.filter('delta', strict=False)
-        # value now contaisn enum.D, ie. 4.
+        # value now contains enum.D, ie. 4.
 
     .. note::
 
@@ -803,7 +803,7 @@ class EnumType(CType, dict):
 
         If given value is unknown, the C function sets a Python ValueError exception and returns a non-zero.
 
-        This C function may be useful to retrieve some runtime informations.
+        This C function may be useful to retrieve some runtime information.
         It is available in C code when aesara flag ``config.cmodule__debug`` is set to ``True``.
         """
         return """

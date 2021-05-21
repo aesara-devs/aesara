@@ -347,7 +347,7 @@ class InvalidValueError(DebugModeError):
 
 
 def str_diagnostic(expected, value, rtol, atol):
-    """Return a pretty multiline string representating the cause
+    """Return a pretty multiline string representing the cause
     of the exception"""
     sio = StringIO()
 
@@ -811,7 +811,7 @@ def _check_inputs(
                     if clobber_dr_vals:
                         # no copy, this is the last use of this variable
                         dr_vals[r] = (storage_map[r][0], node)
-                    # make sure that dr_vals[r] doens't get used again
+                    # make sure that dr_vals[r] doesn't get used again
                     storage_map[r][0] = data_destroyed
             else:
                 raise BadDestroyMap(node, r_idx, r_vals[r], storage_map[r][0], perform)
@@ -1713,7 +1713,7 @@ class _VariableEquivalenceTracker:
 
 
 # List of default version of make thunk.
-# This is needed to know if the user overrided it.
+# This is needed to know if the user overrode it.
 default_make_thunk = [get_unbound_function(COp.make_thunk)]
 
 

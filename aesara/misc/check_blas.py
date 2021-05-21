@@ -302,6 +302,6 @@ if __name__ == "__main__":
         print()
         print(
             "Try to run this script a few times. Experience shows that"
-            " the first time is not as fast as followings calls. The"
+            " the first time is not as fast as following calls. The"
             " difference is not big, but consistent."
         )

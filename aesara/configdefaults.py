@@ -111,7 +111,7 @@ def _filter_mode(val):
     ]
     if val in str_options:
         return val
-    # This can be executed before Aesara is completly imported, so
+    # This can be executed before Aesara is completely imported, so
     # aesara.compile.mode.Mode is not always available.
     # Instead of isinstance(val, aesara.compile.mode.Mode),
     # we can inspect the __mro__ of the object!
@@ -328,7 +328,7 @@ def add_basic_configvars():
         "If `more`, sometimes we will select some implementation that "
         "are more deterministic, but slower. In particular, on the GPU, "
         "we will avoid using AtomicAdd. Sometimes we will still use "
-        "non-deterministic implementaion, e.g. when we do not have a GPU "
+        "non-deterministic implementation, e.g. when we do not have a GPU "
         "implementation that is deterministic. Also see "
         "the dnn.conv.algo* flags to cover more cases.",
         EnumStr("default", ["more"]),
@@ -920,7 +920,7 @@ def add_experimental_configvars():
         " optimization local_alloc_elemwise."
         " Generates error if not True. Use"
         " optimizer_excluding=local_alloc_elemwise"
-        " to dsiable.",
+        " to disable.",
         BoolParam(True),
         in_c_key=False,
     )

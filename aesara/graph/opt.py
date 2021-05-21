@@ -114,7 +114,7 @@ class GlobalOptimizer(abc.ABC):
     def print_profile(stream, prof, level=0):
         if prof is not None:
             raise NotImplementedError(
-                "The function print_profile must be overrided if the"
+                "The function print_profile must be overridden if the"
                 " optimizer return profiling information."
             )
 
@@ -1184,7 +1184,7 @@ class LocalMetaOptimizer(LocalOptimizer):
 
     def get_opts(self, node):
         """
-        Can be overrided to change the way opts are selected
+        Can be overridden to change the way opts are selected
         """
         return self.track_dict[type(node.op)]
 

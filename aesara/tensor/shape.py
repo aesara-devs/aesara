@@ -104,7 +104,7 @@ class Shape(COp):
 
     def c_code_cache_version(self):
         version = []
-        # If any of the c code is unversionned, we have to return ()
+        # If any of the c code is unversioned, we have to return ()
         # Else, we will return a list of (type name, version) pairs.
         for t, (c, v) in sorted(
             self.c_code_and_version.items(), key=lambda pair: str(pair[0])
@@ -165,7 +165,7 @@ class Shape_i(COp):
     #    when params_type is defined directly in class code.
     # 2) We wrap scalar into ParamsType (instead of directly using scalar as op param)
     #    to avoid Aesara converting scalar param to constant that would be later
-    #    hardcoded as litteral in C code, making us loose all the advantages of
+    #    hardcoded as literal in C code, making us loose all the advantages of
     #    using params.
     @property
     def params_type(self):
@@ -191,7 +191,7 @@ class Shape_i(COp):
 
     def c_code_cache_version(self):
         version = []
-        # If any of the c code is unversionned, we have to return ()
+        # If any of the c code is unversioned, we have to return ()
         # Else, we will return a list of (type name, version) pairs.
         for t, (c, ci, v) in sorted(
             self.c_code_and_version.items(), key=lambda pair: str(pair[0])
@@ -457,7 +457,7 @@ class SpecifyShape(COp):
 
     def c_code_cache_version(self):
         version = []
-        # If any of the c code is unversionned, we have to return ()
+        # If any of the c code is unversioned, we have to return ()
         # Else, we will return a list of (type name, version) pairs.
         for t, (c, v, _) in sorted(
             self.c_code_and_version.items(), key=lambda pair: str(pair[0])

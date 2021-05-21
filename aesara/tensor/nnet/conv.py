@@ -268,7 +268,7 @@ class ConvOp(OpenMPOp):
         Passed to GpuConv.
     version: int or str
         Passed to GpuConv, if version='no_fft', fft
-        optimization will be desactivated at the op level.
+        optimization will be deactivated at the op level.
     direction_hint: {'forward', 'bprop weights', 'bprop inputs'}
         Passed to GpuConv, used by graph optimizers to aid algorithm choice.
 
@@ -412,7 +412,7 @@ class ConvOp(OpenMPOp):
         """
         # The formula would be ceil((i + s * k - s * 1) / float(d)),
         # with s=1 for mode=='full' and s=-1 for mode=='valid'.
-        # To support symbolic shapes, we express this with integer arithmetics.
+        # To support symbolic shapes, we express this with integer arithmetic.
         warnings.warn(
             "The method `getOutputShape` is deprecated use"
             "`get_conv_output_shape` instead.",
@@ -1231,7 +1231,7 @@ using namespace std;
         d["mode"] = self.out_mode.upper()
         d["affectation"] = "="
 
-        # Default values, will be overrided if the shape info is provided
+        # Default values, will be overridden if the shape info is provided
         d["self_bsize"] = f"PyArray_DIMS({d['img2d']})[0]"
         d["self_nkern"] = f"PyArray_DIMS({d['filtersflipped']})[0]"
         d["self_outshp0"] = "-1"

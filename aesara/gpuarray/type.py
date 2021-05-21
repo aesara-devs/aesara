@@ -109,7 +109,7 @@ def reg_context(name, ctx):
 
 def get_context(name):
     """
-    Retrive the context associated with a name.
+    Retrieve the context associated with a name.
 
     Return the context object mapped to `ref` that was previously
     register through :func:`reg_context`. Trying to get the context
@@ -976,7 +976,7 @@ Py_INCREF(%(name)s);
         ver = pygpu.gpuarray.api_version()
         return (0, ver[0])
 
-    # Variable, Contstant, ... not declared
+    # Variable, Constant, ... not declared
 
 
 """

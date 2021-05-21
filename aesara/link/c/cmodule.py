@@ -1174,8 +1174,8 @@ class ModuleCache:
             #    When device=gpu, we compile during Aesara
             #    import. This triggers the loading of the cache. But
             #    unpickling the cache asks that the external Ops are
-            #    completly loaded, which isn't always the case!
-            #    If a module isn't completly loaded and its unpickling
+            #    completely loaded, which isn't always the case!
+            #    If a module isn't completely loaded and its unpickling
             #    fails, it means it is safe for this function
             #    compilation to skip them, but not for future
             #    compilations. So reloading the cache here
@@ -1894,7 +1894,7 @@ class Compiler:
     def _try_flags(
         cls,
         flag_list,
-        preambule="",
+        preamble="",
         body="",
         try_run=False,
         output=False,
@@ -1916,7 +1916,7 @@ class Compiler:
 
         code = (
             """
-        %(preambule)s
+        %(preamble)s
         int main(int argc, char** argv)
         {
             %(body)s
@@ -2366,14 +2366,14 @@ class GCC_compiler(Compiler):
     def try_flags(
         cls,
         flag_list,
-        preambule="",
+        preamble="",
         body="",
         try_run=False,
         output=False,
         comp_args=True,
     ):
         return cls._try_flags(
-            flag_list, preambule, body, try_run, output, config.cxx, comp_args
+            flag_list, preamble, body, try_run, output, config.cxx, comp_args
         )
 
     @staticmethod

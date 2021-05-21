@@ -63,7 +63,7 @@ class RFFTOp(Op):
         return [irfft_op(gout, s), DisconnectedType()()]
 
     def connection_pattern(self, node):
-        # Specificy that shape input parameter has no connection to graph and gradients.
+        # Specify that shape input parameter has no connection to graph and gradients.
         return [[True], [False]]
 
 
@@ -126,7 +126,7 @@ class IRFFTOp(Op):
         return [gf, DisconnectedType()()]
 
     def connection_pattern(self, node):
-        # Specificy that shape input parameter has no connection to graph and gradients.
+        # Specify that shape input parameter has no connection to graph and gradients.
         return [[True], [False]]
 
 

@@ -2451,7 +2451,7 @@ class BatchedDot(COp):
         return xgrad, ygrad
 
     def R_op(self, inputs, eval_points):
-        # R_op for batched_dot(a, b) evaluted at c for a and d for b is
+        # R_op for batched_dot(a, b) evaluated at c for a and d for b is
         # simply batched_dot(c, b) + batched_dot(a, d)
 
         assert len(inputs) == 2
@@ -2565,7 +2565,7 @@ def batched_dot(a, b):
             batched_tensordot function with appropriate axes. The
             batched_tensordot function expresses high-dimensional batched
             dot products in terms of batched matrix-matrix dot products, so
-            it may be possible to futherize optimize for performance.
+            it may be possible to further optimize for performance.
     """
     a, b = aet.as_tensor_variable(a), aet.as_tensor_variable(b)
 

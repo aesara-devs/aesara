@@ -426,7 +426,7 @@ int sub_setarray(GpuArray *dst, GpuArray *src) {
         iadd = GpuElemwise_new(%(ctx)s->ctx, "", "a += b",
                                2, args, %(nd)s, GE_CONVERT_F16);
         if (iadd == NULL) {
-          PyErr_SetString(PyExc_RuntimeError, "Could not intialize inplace add support");
+          PyErr_SetString(PyExc_RuntimeError, "Could not initialize inplace add support");
           %(fail)s
         }
         """ % dict(
@@ -981,7 +981,7 @@ class GpuAdvancedIncSubtensor1(COp):
         iadd = GpuElemwise_new(%(params)s->context->ctx, "", "a += b",
                                2, args, %(params)s->ndim_input_1, GE_CONVERT_F16);
         if (iadd == NULL) {
-          PyErr_SetString(PyExc_RuntimeError, "Could not intialize inplace add support");
+          PyErr_SetString(PyExc_RuntimeError, "Could not initialize inplace add support");
           %(fail)s
         }
         """ % dict(

@@ -54,7 +54,7 @@ class CpuContiguous(COp):
     def perform(self, node, inputs, output_storage):
         (x,) = inputs
         y = output_storage[0]
-        # if the ouput is contiguous do nothing, else copy
+        # if the output is contiguous do nothing, else copy
         # the input
         if not x.flags["C_CONTIGUOUS"]:
             x = x.copy()
@@ -411,7 +411,7 @@ class CumOp(COp):
 def cumsum(x, axis=None):
     """Return the cumulative sum of the elements along a given axis.
 
-    Wraping of numpy.cumsum.
+    Wrapping of numpy.cumsum.
 
     Parameters
     ----------
@@ -431,7 +431,7 @@ def cumsum(x, axis=None):
 def cumprod(x, axis=None):
     """Return the cumulative product of the elements along a given axis.
 
-    Wraping of numpy.cumprod.
+    Wrapping of numpy.cumprod.
 
     Parameters
     ----------
@@ -523,7 +523,7 @@ def diff(x, n=1, axis=-1):
 
     The first order difference is given by out[i] = a[i + 1] - a[i]
     along the given axis, higher order differences are calculated by
-    using diff recursively. Wraping of numpy.diff.
+    using diff recursively. Wrapping of numpy.diff.
 
     Parameters
     ----------
@@ -774,7 +774,7 @@ def repeat(x, repeats, axis=None):
     """Repeat elements of an array.
 
     It returns an array which has the same shape as `x`, except
-    along the given axis. The axis is used to speficy along which
+    along the given axis. The axis is used to specify along which
     axis to repeat values. By default, use the flattened input
     array, and return a flat output array.
 

@@ -135,7 +135,7 @@ class CLinkerObject:
         An empty tuple indicates an 'unversioned' `Op` that will not be cached
         between processes.
 
-        The cache mechanism may erase cached modules that have been superceded
+        The cache mechanism may erase cached modules that have been superseded
         by newer versions. See `ModuleCache` for details.
 
         See Also
@@ -207,7 +207,7 @@ class CLinkerOp(CLinkerObject):
         cached between processes.
 
         The cache mechanism may erase cached modules that have been
-        superceded by newer versions.  See `ModuleCache` for details.
+        superseded by newer versions.  See `ModuleCache` for details.
 
         See Also
         --------
@@ -249,7 +249,7 @@ class CLinkerOp(CLinkerObject):
             can be accessed by prepending "py_" to the name in the
             list.
         outputs : list of str
-            Each string is the name of a C variable correspoinding to
+            Each string is the name of a C variable corresponding to
             one of the outputs of the Op. The type depends on the
             declared type of the output. There is a corresponding
             python variable that can be accessed by prepending "py_" to
@@ -558,7 +558,7 @@ class CLinkerType(CLinkerObject):
         be cached between processes.
 
         The cache mechanism may erase cached modules that have been
-        superceded by newer versions. See `ModuleCache` for details.
+        superseded by newer versions. See `ModuleCache` for details.
 
         """
         return ()

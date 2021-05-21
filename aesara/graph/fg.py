@@ -587,7 +587,7 @@ class FunctionGraph(MetaObject):
 
         """
         try:
-            # Why do we catch the exeception anyway?
+            # Why do we catch the exception anyway?
             self._features.remove(feature)
         except ValueError:
             return
@@ -608,7 +608,7 @@ class FunctionGraph(MetaObject):
                 fn = getattr(feature, name)
             except AttributeError:
                 # this is safe because there is no work done inside the
-                # try; the AttributeError reall must come from feature.${name}
+                # try; the AttributeError really must come from feature.${name}
                 # not existing
                 continue
             tf0 = time.time()

@@ -310,7 +310,7 @@ def ifelse(condition, then_branch, else_branch, name=None):
     """
     This function corresponds to an if statement, returning (and evaluating)
     inputs in the ``then_branch`` if ``condition`` evaluates to True or
-    inputs in the ``else_branch`` if ``condition`` evalutates to False.
+    inputs in the ``else_branch`` if ``condition`` evaluates to False.
 
     :type condition: scalar like
     :param condition:
@@ -323,7 +323,7 @@ def ifelse(condition, then_branch, else_branch, name=None):
         A single aesara variable or a list of aesara variables that the
         function should return as the output if ``condition`` evaluates to
         true. The number of variables should match those in the
-        ``else_branch``, and there should be a one to one correspondance
+        ``else_branch``, and there should be a one to one correspondence
         (type wise) with the tensors provided in the else branch
 
     :type else_branch: list of aesara expressions/ aesara expressions

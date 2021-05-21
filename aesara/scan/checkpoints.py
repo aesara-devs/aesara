@@ -77,7 +77,7 @@ def scan_checkpoints(
         the sequences will be zero padded to make this version of ``scan``
         work properly, but will also result in a memory copy. It can be
         avoided by setting ``padding`` to False, but you need to make
-        sure the length of the sequences is a multple of ``save_every_N``.
+        sure the length of the sequences is a multiple of ``save_every_N``.
 
     Returns
     -------

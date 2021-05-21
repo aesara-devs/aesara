@@ -73,7 +73,7 @@ class ViewOp(COp):
 
     def c_code_cache_version(self):
         version = []
-        # If any of the c code is unversionned, we have to return ()
+        # If any of the c code is unversioned, we have to return ()
         # Else, we will return a list of (type name, version) pairs.
         for t, (c, v) in sorted(
             self.c_code_and_version.items(), key=lambda pair: str(pair[0])
@@ -173,7 +173,7 @@ class DeepCopyOp(COp):
 
     def c_code_cache_version(self):
         version = []
-        # If any of the c code is unversionned, we have to return ()
+        # If any of the c code is unversioned, we have to return ()
         # Else, we will return a list of (type name, version) pairs.
         for t, (c, v) in sorted(
             self.c_code_and_version.items(), key=lambda pair: str(pair[0])

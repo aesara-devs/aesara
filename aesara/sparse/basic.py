@@ -476,7 +476,7 @@ class CSMProperties(Op):
     view_map = {0: [0], 1: [0], 2: [0]}
 
     """
-    Indexing to speficied what part of the data parameter
+    Indexing to specified what part of the data parameter
     should be use to construct the sparse matrix.
 
     """
@@ -578,7 +578,7 @@ def csm_shape(csm):
 class CSM(Op):
     # See doc in instance of this Op or function after this class definition.
     """
-    Indexing to speficied what part of the data parameter
+    Indexing to specified what part of the data parameter
     should be used to construct the sparse matrix.
 
     """
@@ -3466,7 +3466,7 @@ class TrueDot(Op):
             raise TypeError(x)
 
         # These are the conversions performed by scipy.sparse.dot
-        if x.type.format == "csc" or x.type.format == "coo":
+        if x.type.format == "csc" or x.type.format == "coup":
             myformat = "csc"
         elif x.type.format == "csr":
             myformat = "csr"

@@ -124,7 +124,7 @@ def rebuild_collect_shared(
         else:
             return clone_d.setdefault(v, v)
 
-    # intialize the clone_d mapping with the replace dictionary
+    # initialize the clone_d mapping with the replace dictionary
     if replace is None:
         replace = []
     try:

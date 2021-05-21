@@ -98,7 +98,7 @@ def _atexit_print_fn():
                 ]:
                     setattr(cum, attr, getattr(cum, attr) + getattr(ps, attr))
 
-                # merge dictonary
+                # merge dictionary
                 for attr in [
                     "apply_time",
                     "apply_callcount",
@@ -426,7 +426,7 @@ class ProfileStats:
 
     def compute_total_times(self):
         """
-        dict op -> total time icluding the time for parents
+        dict op -> total time including the time for parents
 
         """
         rval = {}
@@ -558,7 +558,7 @@ class ProfileStats:
                 file=file,
             )
             # While this carries over less information, it is arranged such
-            # that it way more readeable that the previous output of the
+            # that it is way more readable than the previous output of the
             # profiler
         print(
             "   ... (remaining %i Classes account for %6.2f%%(%.2fs) of "
@@ -651,7 +651,7 @@ class ProfileStats:
                 file=file,
             )
             # While this carries over less information, it is arranged such
-            # that it way more readeable that the previous output of the
+            # that it is way more readable than the previous output of the
             # profiler
         print(
             "   ... (remaining %i Ops account for %6.2f%%(%.2fs) of "
@@ -952,7 +952,7 @@ class ProfileStats:
             for var in fgraph.variables:
                 viewed_by[var] = []
             view_of = {}  # {var1: original var viewed by var1}
-            # The orignal mean that we don't keep trac of all the intermediate
+            # The original mean that we don't keep track of all the intermediate
             # relationship in the view.
 
             for node in order:
@@ -1007,7 +1007,7 @@ class ProfileStats:
                         # the output could be different then the
                         # input.
                         assert isinstance(ins, Variable)
-                        # we keep trac of view only again the origin
+                        # we keep track of view only again the origin
                         origin = view_of.get(ins, ins)
                         view_of[out] = origin
                         viewed_by[origin].append(out)
@@ -1250,7 +1250,7 @@ class ProfileStats:
             for var in fgraph.variables:
                 viewed_by[var] = []
             view_of = {}  # {var1: original var viewed by var1}
-            # The orignal mean that we don't keep trac of all the intermediate
+            # The original mean that we don't keep track of all the intermediate
             # relationship in the view.
 
             min_memory_generator(executable_nodes, viewed_by, view_of)
