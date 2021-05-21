@@ -2728,7 +2728,7 @@ def _hv_switch(op, expected_function):
 
     :Parameters:
     - `op`: HStack or VStack class.
-    - `expected_function`: function from scipy for comparaison.
+    - `expected_function`: function from scipy for comparison.
     """
 
     class TestXStack(_TestHVStack):

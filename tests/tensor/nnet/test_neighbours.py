@@ -233,7 +233,7 @@ class TestImages2Neibs(unittest_tools.InferShapeTester):
             [13, 14, 10, 18, 19, 15, 23, 24, 20],
         ]
 
-        # TODO test discontinous image
+        # TODO test discontinuous image
 
         for shp_idx, (shape, neib_shape, neib_step, expected) in enumerate(
             [

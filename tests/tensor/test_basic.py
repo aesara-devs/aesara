@@ -2136,7 +2136,7 @@ def test_tile():
 
         # error raising test:
         # reps is vector and len(reps_value) > ndim,
-        # reps_value is the real value when excuting the function.
+        # reps_value is the real value when executing the function.
         reps = ivector()
         r = [2, 3, 4, 5, 6, 7]
         reps_ = r[: k + 2]

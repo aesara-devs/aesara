@@ -1,4 +1,4 @@
-# Test that normaly could be outside gpuarray, to have all gpuarray
+# Test that normally could be outside gpuarray, to have all gpuarray
 # tests in the same directory, we put them here.
 import numpy as np
 

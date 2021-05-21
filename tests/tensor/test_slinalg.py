@@ -142,7 +142,7 @@ def test_eigvalsh():
         refw = scipy.linalg.eigvalsh(a, b)
         np.testing.assert_array_almost_equal(w, refw)
 
-    # We need to test None separatly, as otherwise DebugMode will
+    # We need to test None separately, as otherwise DebugMode will
     # complain, as this isn't a valid ndarray.
     b = None
     B = aet.NoneConst

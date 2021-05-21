@@ -61,7 +61,7 @@ break_op = BreakRop()
 
 class RopLopChecker:
     """
-    Don't peform any test, but provide the function to test the
+    Don't perform any test, but provide the function to test the
     Rop to class that inherit from it.
     """
 

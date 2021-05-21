@@ -291,7 +291,7 @@ def test_local_gpualloc_empty():
     topo = f.maker.fgraph.toposort()
     assert len(topo) == 1
     assert isinstance(topo[0].op, AllocEmpty)
-    # This return not initilized data, so we can only check the shape
+    # This return not initialized data, so we can only check the shape
     assert f(3).shape == (3,)
     assert _check_stack_trace(f)
 
@@ -302,7 +302,7 @@ def test_local_gpualloc_empty():
     topo = f.maker.fgraph.toposort()
     assert len(topo) == 3
     assert isinstance(topo[0].op, GpuAllocEmpty)
-    # This return not initilized data, so we can only check the shape
+    # This return not initialized data, so we can only check the shape
     assert f(3).shape == (3,)
     assert _check_stack_trace(f)
 
@@ -312,7 +312,7 @@ def test_local_gpualloc_empty():
     topo = f.maker.fgraph.toposort()
     assert len(topo) == 3
     assert isinstance(topo[0].op, GpuAllocEmpty)
-    # This return not initilized data, so we can only check the shape
+    # This return not initialized data, so we can only check the shape
     assert f(3, 4).shape == (3, 4)
     assert _check_stack_trace(f)
 
@@ -550,7 +550,7 @@ def test_local_gpu_elemwise():
     utt.assert_allclose(f(a_v, b_v, c_v), a_v + b_v + c_v)
     assert _check_stack_trace(f)
 
-    return  # Not yet implemeted
+    return  # Not yet implemented
     # Test multiple output
     a_s = aesara.scalar.float32()
     a = fmatrix()

@@ -327,7 +327,7 @@ def makeSharedTester(
             if x.__class__.__name__ != "csr_matrix":
                 # sparse matrix don't support inplace affectation
                 nd += 1
-                # THIS DOENS'T DO WHAT WE EXPECT the content of a is
+                # THIS DOESN'T DO WHAT WE EXPECT the content of a is
                 # not updated for GpuArray, but it is for ndarray
                 x_shared.get_value(borrow=True)[:] = nd
                 assert may_share_memory(old_data, x_shared.container.storage[0])
@@ -347,7 +347,7 @@ def makeSharedTester(
             )
 
             # Test by set_value with borrow=False when new data cast.
-            # specificaly useful for gpu data
+            # specifically useful for gpu data
             nd += 1
             old_data = x_shared.container.storage[0]
             x_shared.set_value(self.cast_value(nd), borrow=False)

@@ -8,7 +8,7 @@ from aesara.tensor.utils import hash_from_ndarray, shape_of_variables
 
 
 def test_hash_from_ndarray():
-    hashs = []
+    hashes = []
     rng = np.random.rand(5, 5)
 
     for data in [
@@ -37,9 +37,9 @@ def test_hash_from_ndarray():
         rng[::-1],
     ]:
         data = np.asarray(data)
-        hashs.append(hash_from_ndarray(data))
+        hashes.append(hash_from_ndarray(data))
 
-    assert len(set(hashs)) == len(hashs)
+    assert len(set(hashes)) == len(hashes)
 
     # test that different type of views and their copy give the same hash
     assert hash_from_ndarray(rng[1:]) == hash_from_ndarray(rng[1:].copy())
