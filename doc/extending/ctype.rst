@@ -137,7 +137,7 @@ prefix. The complete list can be found in the documentation for
        for a matrix of 32-bit signed NumPy integers, it should return
        ``"npy_int32"``. If C type may change from an instance to another
        (e.g. ``Scalar('int32')`` vs ``Scalar('int64')``), consider
-       implementing this method. If C type is fixed accross instances,
+       implementing this method. If C type is fixed across instances,
        this method may be useless (as you already know the C type
        when you work with the C code).
 

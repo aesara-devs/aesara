@@ -3,7 +3,7 @@ https://aesara.readthedocs.io/en/latest/dev_start_guide.html
 
 
 ## Migrating PRs from the original Theano Repo
-Aesara is actively merging new changes. If you have a pull request on the original Theano respository and would like to move it here use the following commands in your local Aesara repository:
+Aesara is actively merging new changes. If you have a pull request on the original Theano repository and would like to move it here use the following commands in your local Aesara repository:
 
 ```
 # Go to your Aesara repo

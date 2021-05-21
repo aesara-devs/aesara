@@ -79,7 +79,7 @@ the ``test_jax.py`` test suite. The test should ensure that Aesara Op,
 when included as part of a function graph, passes the tests in
 ``compare_jax_and_py`` test method. What this test method does is
 compile the same function graph in Python and JAX and check that the
-numerical output is similar betwen the JAX and Python output, as well
+numerical output is similar between the JAX and Python output, as well
 object types to ensure correct compilation.
 
 https://github.com/pymc-devs/aesara/blob/main/tests/link/test_jax.py
@@ -148,7 +148,7 @@ https://docs.python.org/3/library/functools.html#functools.singledispatch
 
     Mooooo
     Woof
-    Animal has not been registerd
+    Animal has not been registered
 
 
 This is what allows the JAX Linker to determine which the correct

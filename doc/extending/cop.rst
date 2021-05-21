@@ -235,7 +235,7 @@ There are less methods to define for a `COp` than for a `Type`:
        this undefined.
 
        This attribute is internal and may go away at any point during
-       developpment if a better solution is found.
+       development if a better solution is found.
 
 The ``name`` argument is currently given an invalid value, so steer
 away from it. As was the case with `Type`, ``sub['fail']`` provides

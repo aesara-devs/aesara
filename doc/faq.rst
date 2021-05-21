@@ -111,7 +111,7 @@ valid. What this means is that if the user provides invalid values (like
 incompatible shapes or indexing values that are out of bounds) and
 the optimizations are applied, the user error will get lost. Most of the
 time, the assumption is that the user inputs are valid. So it is good
-to have the optimization being applied, but loosing the error is bad.
+to have the optimization being applied, but losing the error is bad.
 The newest optimization in Aesara with such assumption will add an
 assertion in the graph to keep the user error message. Computing
 these assertions could take some time. If you are sure everything is valid

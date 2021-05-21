@@ -185,7 +185,7 @@ PushOutSeqScan
 
 This optimization resembles PushOutNonSeqScan but it tries to push, out of
 the inner function, the computation that only relies on sequence and
-non-sequence inputs. The idea behing this optimization is that, when it is
+non-sequence inputs. The idea behind this optimization is that, when it is
 possible to do so, it is generally more computationally efficient to perform
 a single operation on a large tensor rather then perform that same operation
 many times on many smaller tensors. In many cases, this optimization can
@@ -266,7 +266,7 @@ Helper classes and functions
 ============================
 
 Because of the complexity involved in dealing with Scan, a large number of
-helper classes and functions have been developped over time to implement
+helper classes and functions have been developed over time to implement
 operations commonly needed when dealing with the scan op. The scan op
 itself defines a large number of them and others can be found in the file
 ``utils.py``. This sections aims to point out the most useful ones sorted
@@ -301,7 +301,7 @@ sequence input, going from an inner output associated with a recurrent state
 to the inner input(s) associated with that same recurrent state, etc.), then
 the ``var_mappings`` attribute of the scan op can be used.
 
-This attribute is a dictionnary with 12 {key/value} pairs. The keys are listed
+This attribute is a dictionary with 12 {key/value} pairs. The keys are listed
 below :
 
 *   "outer_inp_from_outer_out"

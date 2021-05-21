@@ -126,7 +126,7 @@ implementation methods, either :func:`perform`, :meth:`COp.c_code`
 or :func:`make_thunk`.
 
   :func:`make_node` method creates an Apply node representing the application
-  of the ``Op`` on the inputs provided. This method is reponsible for three things:
+  of the ``Op`` on the inputs provided. This method is responsible for three things:
 
     - it first checks that the input ``Variable``s types are compatible
       with the current ``Op``. If the ``Op`` cannot be applied on the provided
@@ -166,7 +166,7 @@ or :func:`make_thunk`.
   :func:`perform` method must be determined by the inputs. That is to say,
   when applied to identical inputs the method must return the same outputs.
 
-  :class:`Op` allows some other way to define the ``Op`` implentation.
+  :class:`Op` allows some other way to define the ``Op`` implementation.
   For instance, it is possible to define :meth:`COp.c_code` to provide a
   C-implementation to the ``Op``. Please refers to tutorial
   :ref:`extending_aesara_c` for a description of :meth:`COp.c_code` and other
@@ -223,10 +223,10 @@ There are other methods that can be optionally defined by the ``Op``:
   should return the same output when they are applied on the same inputs.
 
   The :attr:`__props__` lists the properties
-  that influence how the computation is performed (Ususally these are those
+  that influence how the computation is performed (Usually these are those
   that you set in  :func:`__init__`). It must be a tuple.
   If you don't have any properties, then you should set this attribute to the
-  emtpy tuple `()`.
+  empty tuple `()`.
 
   :attr:`__props__` enables the  automatic generation of appropriate
   :func:`__eq__` and :func:`__hash__`.
@@ -242,7 +242,7 @@ There are other methods that can be optionally defined by the ``Op``:
   The :func:`infer_shape` method allows an `Op` to infer the shape of its
   output variables without actually computing them.
   It takes as input ``fgraph``, a `FunctionGraph`; ``node``, a reference to the ``Op`` Apply node;
-  and a list of Aesara symbolic Varables (``i0_shape``, ``i1_shape``, ...)
+  and a list of Aesara symbolic Variables (``i0_shape``, ``i1_shape``, ...)
   which are the shape of the ``Op`` input ``Variable``s.
   :func:`infer_shape` returns a list where each element is a tuple representing
   the shape of one output.
@@ -586,7 +586,7 @@ We call ``utt.assert_allclose(expected_value, value)`` to compare
 NumPy ndarray.This raise an error message with more information. Also,
 the default tolerance can be changed with the Aesara flags
 ``config.tensor__cmp_sloppy`` that take values in 0, 1 and 2. The
-defaul value do the most strict comparison, 1 and 2 make less strict
+default value do the most strict comparison, 1 and 2 make less strict
 comparison.
 
 Testing the infer_shape

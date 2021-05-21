@@ -129,7 +129,7 @@ operation on ``x``.
    it does allow *optimizations* to substitute them in in a later
    phase. Therefore, typically, if you define an inplace operation,
    you will define a pure equivalent and an optimization which
-   subsitutes one for the other. Aesara will automatically verify if
+   substitutes one for the other. Aesara will automatically verify if
    it is possible to do so and will refuse the substitution if it
    introduces inconsistencies.
 
