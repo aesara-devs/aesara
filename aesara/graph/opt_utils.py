@@ -1,7 +1,52 @@
 import copy
+from typing import Sequence, Union
 
 import aesara
-from aesara.graph.basic import equal_computations, graph_inputs, vars_between
+from aesara.graph.basic import Variable, equal_computations, graph_inputs, vars_between
+from aesara.graph.fg import FunctionGraph
+from aesara.graph.optdb import Query
+
+
+def optimize_graph(
+    fgraph: Union[Variable, FunctionGraph],
+    include: Sequence[str] = ["canonicalize"],
+    custom_opt=None,
+    clone: bool = False,
+    **kwargs
+) -> Union[Variable, FunctionGraph]:
+    """Easily optimize a graph.
+
+    Parameters
+    ==========
+    fgraph:
+        A ``FunctionGraph`` or ``Variable`` to be optimized.
+    include:
+        String names of the optimizations to be applied.  The default
+        optimization is ``"canonicalization"``.
+    custom_opt:
+        A custom ``Optimization`` to also be applied.
+    clone:
+        Whether or not to clone the input graph before optimizing.
+    **kwargs:
+        Keyword arguments passed to the ``aesara.graph.optdb.Query`` object.
+    """
+    from aesara.compile import optdb
+
+    return_only_out = False
+    if not isinstance(fgraph, FunctionGraph):
+        fgraph = FunctionGraph(outputs=[fgraph], clone=clone)
+        return_only_out = True
+
+    canonicalize_opt = optdb.query(Query(include=include, **kwargs))
+    _ = canonicalize_opt.optimize(fgraph)
+
+    if custom_opt:
+        custom_opt.optimize(fgraph)
+
+    if return_only_out:
+        return fgraph.outputs[0]
+    else:
+        return fgraph
 
 
 def is_same_graph_with_merge(var1, var2, givens=None):
