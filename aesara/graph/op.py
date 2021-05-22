@@ -18,7 +18,6 @@ from typing import (
     ClassVar,
     Dict,
     List,
-    NoReturn,
     Optional,
     Pattern,
     Set,
@@ -51,7 +50,7 @@ ComputeMapType = List[bool]
 OutputStorageType = List[Optional[List[Any]]]
 ParamsInputType = Optional[Tuple[Any]]
 PerformMethodType = Callable[
-    [Apply, List[Any], OutputStorageType, ParamsInputType], NoReturn
+    [Apply, List[Any], OutputStorageType, ParamsInputType], None
 ]
 ThunkType = Callable[[PerformMethodType, StorageMapType, ComputeMapType, Apply], Any]
 
@@ -380,7 +379,7 @@ class Op(MetaObject):
         inputs: List[Variable],
         output_storage: OutputStorageType,
         params: ParamsInputType = None,
-    ) -> NoReturn:
+    ) -> None:
         """Calculate the function on the inputs and put the variables in the output storage.
 
         Parameters
@@ -456,7 +455,7 @@ class Op(MetaObject):
         storage_map: StorageMapType,
         compute_map: ComputeMapType,
         impl: Optional[Text],
-    ) -> NoReturn:
+    ) -> None:
         """Make any special modifications that the Op needs before doing `Op.make_thunk`.
 
         This can modify the node inplace and should return nothing.
@@ -682,7 +681,7 @@ def get_test_value(v: Variable) -> Any:
     return v.get_test_value()
 
 
-def missing_test_message(msg: Text) -> NoReturn:
+def missing_test_message(msg: Text) -> None:
     """
     Displays msg, a message saying that some test_value is missing,
     in the appropriate form based on config.compute_test_value:
@@ -840,7 +839,7 @@ int main( int argc, const char* argv[] )
         )
         return default_openmp
 
-    def update_self_openmp(self) -> NoReturn:
+    def update_self_openmp(self) -> None:
         """
         Make sure self.openmp is not True if there is no support in gxx.
 
@@ -981,7 +980,7 @@ class ExternalCOp(COp):
                     "and specify the func_name"
                 )
 
-    def load_c_code(self, func_files: List[Text]) -> NoReturn:
+    def load_c_code(self, func_files: List[Text]) -> None:
         """Loads the C code to perform the `Op`."""
         func_files = [self.get_path(f) for f in func_files]
         self.func_codes = []

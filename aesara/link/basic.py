@@ -1,17 +1,6 @@
 from abc import ABC, abstractmethod
 from copy import copy, deepcopy
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Callable,
-    Dict,
-    List,
-    NoReturn,
-    Optional,
-    Set,
-    Tuple,
-    Union,
-)
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Set, Tuple, Union
 
 from numpy import ndarray
 
@@ -32,7 +21,7 @@ if TYPE_CHECKING:
 
 StorageMapType = Dict[Variable, List[Optional[Union[ndarray, slice]]]]
 OutputStorageType = List[Optional[List[Any]]]
-ThunkType = Tuple[Callable[[], NoReturn], List["Container"], List["Container"]]
+ThunkType = Tuple[Callable[[], None], List["Container"], List["Container"]]
 
 
 class Container:

@@ -1,7 +1,7 @@
 """A container for specifying and manipulating a graph with distinct inputs and outputs."""
 import time
 from collections import OrderedDict
-from typing import Any, Dict, List, NoReturn, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import aesara
 from aesara.configdefaults import config
@@ -171,7 +171,7 @@ class FunctionGraph(MetaObject):
         self.profile = None
         self.update_mapping = update_mapping
 
-    def add_input(self, var: Variable, check: bool = True) -> NoReturn:
+    def add_input(self, var: Variable, check: bool = True) -> None:
         """Add a new variable as an input to this `FunctionGraph`.
 
         Parameters
@@ -186,7 +186,7 @@ class FunctionGraph(MetaObject):
         self.setup_var(var)
         self.variables.add(var)
 
-    def setup_var(self, var: Variable) -> NoReturn:
+    def setup_var(self, var: Variable) -> None:
         """Set up a variable so it belongs to this `FunctionGraph`.
 
         Parameters
@@ -196,7 +196,7 @@ class FunctionGraph(MetaObject):
         """
         self.clients.setdefault(var, [])
 
-    def setup_node(self, node: Apply) -> NoReturn:
+    def setup_node(self, node: Apply) -> None:
         """Set up node so it belongs to this `FunctionGraph`.
 
         Parameters
@@ -220,7 +220,7 @@ class FunctionGraph(MetaObject):
                 " the values must be tuples or lists."
             )
 
-    def disown(self) -> NoReturn:
+    def disown(self) -> None:
         """Clear internal variables."""
         for f in self._features:
             self.remove_feature(f)
@@ -236,7 +236,7 @@ class FunctionGraph(MetaObject):
         """Return a list of all the `(node, i)` pairs such that `node.inputs[i]` is `var`."""
         return self.clients[var]
 
-    def add_client(self, var: Variable, new_client: Tuple[Apply, int]) -> NoReturn:
+    def add_client(self, var: Variable, new_client: Tuple[Apply, int]) -> None:
         """Update the clients of `var` with `new_clients`.
 
         Parameters
@@ -250,7 +250,7 @@ class FunctionGraph(MetaObject):
 
     def remove_client(
         self, var: Variable, client_to_remove: Tuple[Apply, int], reason: str = None
-    ) -> NoReturn:
+    ) -> None:
         """Recursively removes clients of a variable.
 
         This is the main method to remove variables or `Apply` nodes from
@@ -316,7 +316,7 @@ class FunctionGraph(MetaObject):
 
     def import_var(
         self, var: Variable, reason: str = None, import_missing: bool = False
-    ) -> NoReturn:
+    ) -> None:
         """Import variables into this `FunctionGraph`.
 
         This will also import the `variable`'s `Apply` node.
@@ -358,7 +358,7 @@ class FunctionGraph(MetaObject):
         check: bool = True,
         reason: str = None,
         import_missing: bool = False,
-    ) -> NoReturn:
+    ) -> None:
         """Recursively import everything between an `Apply` node and the `FunctionGraph`'s outputs.
 
         Parameters:
@@ -424,7 +424,7 @@ class FunctionGraph(MetaObject):
         new_var: Variable,
         reason: str = None,
         import_missing: bool = False,
-    ) -> NoReturn:
+    ) -> None:
         """Change ``node.inputs[i]`` to `new_var`.
 
         ``new_var.type == old_var.type`` must be ``True``, where ``old_var`` is the
@@ -486,7 +486,7 @@ class FunctionGraph(MetaObject):
         reason: str = None,
         verbose: bool = None,
         import_missing: bool = False,
-    ) -> NoReturn:
+    ) -> None:
         """Replace a variable in the `FunctionGraph`.
 
         This is the main interface to manipulate the subgraph in `FunctionGraph`.
@@ -547,12 +547,12 @@ class FunctionGraph(MetaObject):
                 node, i, new_var, reason=reason, import_missing=import_missing
             )
 
-    def replace_all(self, pairs: List[Tuple[Variable, Variable]], **kwargs) -> NoReturn:
+    def replace_all(self, pairs: List[Tuple[Variable, Variable]], **kwargs) -> None:
         """Replace variables in the ``FunctionGraph`` according to ``(var, new_var)`` pairs in a list."""
         for var, new_var in pairs:
             self.replace(var, new_var, **kwargs)
 
-    def attach_feature(self, feature: Feature) -> NoReturn:
+    def attach_feature(self, feature: Feature) -> None:
         """Add a ``graph.features.Feature`` to this function graph and trigger its on_attach callback."""
         # Filter out literally identical `Feature`s
         if feature in self._features:
@@ -578,7 +578,7 @@ class FunctionGraph(MetaObject):
         # Add the feature
         self._features.append(feature)
 
-    def remove_feature(self, feature: Feature) -> NoReturn:
+    def remove_feature(self, feature: Feature) -> None:
         """
         Removes the feature from the graph.
 
@@ -595,7 +595,7 @@ class FunctionGraph(MetaObject):
         if detach is not None:
             detach(self)
 
-    def execute_callbacks(self, name: str, *args, **kwargs) -> NoReturn:
+    def execute_callbacks(self, name: str, *args, **kwargs) -> None:
         """Execute callbacks
 
         Calls `getattr(feature, name)(*args)` for each feature which has
@@ -706,7 +706,7 @@ class FunctionGraph(MetaObject):
                     ords.setdefault(node, []).extend(prereqs)
             return ords
 
-    def check_integrity(self) -> NoReturn:
+    def check_integrity(self) -> None:
         """
         Call this for a diagnosis if things go awry.
 
