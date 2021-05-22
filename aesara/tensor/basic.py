@@ -10,8 +10,9 @@ import logging
 import warnings
 from collections import OrderedDict
 from collections.abc import Sequence
+from functools import partial
 from numbers import Number
-from typing import Dict
+from typing import Dict, Tuple, Union
 
 import numpy as np
 
@@ -39,6 +40,7 @@ from aesara.tensor.shape import (
     shape,
     shape_padaxis,
     shape_padleft,
+    shape_padright,
 )
 from aesara.tensor.type import (
     TensorType,
@@ -4290,7 +4292,64 @@ def empty(shape, dtype=None):
     return AllocEmpty(dtype)(*shape)
 
 
+def atleast_Nd(
+    *arys: Union[np.ndarray, TensorVariable], n: int = 1, left: bool = True
+) -> TensorVariable:
+    """Convert inputs to arrays with at least `n` dimensions."""
+    res = []
+    for ary in arys:
+        ary = as_tensor(ary)
+
+        if ary.ndim >= n:
+            result = ary
+        else:
+            result = (
+                shape_padleft(ary, n - ary.ndim)
+                if left
+                else shape_padright(ary, n - ary.ndim)
+            )
+
+        res.append(result)
+
+    if len(res) == 1:
+        return res[0]
+    else:
+        return res
+
+
+atleast_1d = partial(atleast_Nd, n=1)
+atleast_2d = partial(atleast_Nd, n=2)
+atleast_3d = partial(atleast_Nd, n=3)
+
+
+def expand_dims(
+    a: Union[np.ndarray, TensorVariable], axis: Tuple[int, ...]
+) -> TensorVariable:
+    """Expand the shape of an array.
+
+    Insert a new axis that will appear at the `axis` position in the expanded
+    array shape.
+    """
+    a = as_tensor(a)
+
+    if not isinstance(axis, (tuple, list)):
+        axis = (axis,)
+
+    out_ndim = len(axis) + a.ndim
+    axis = np.core.numeric.normalize_axis_tuple(axis, out_ndim)
+
+    shape_it = iter(a.shape)
+    shape = [1 if ax in axis else next(shape_it) for ax in range(out_ndim)]
+
+    return a.reshape(shape)
+
+
 __all__ = [
+    "expand_dims",
+    "atleast_Nd",
+    "atleast_1d",
+    "atleast_2d",
+    "atleast_3d",
     "choose",
     "swapaxes",
     "stacklists",

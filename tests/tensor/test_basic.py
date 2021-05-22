@@ -43,11 +43,13 @@ from aesara.tensor.basic import (
     alloc,
     arange,
     as_tensor_variable,
+    atleast_Nd,
     cast,
     choose,
     constant,
     default,
     diag,
+    expand_dims,
     extract_constant,
     eye,
     fill,
@@ -4118,3 +4120,52 @@ def test_allocempty():
     res = aesara.function([], empty_at)()
     assert res.shape == (2, 3)
     assert res.dtype == "int64"
+
+
+def test_atleast_Nd():
+    ary1 = dscalar()
+    res_ary1 = atleast_Nd(ary1, n=1)
+    assert res_ary1.ndim == 1
+
+    for n in range(1, 3):
+        ary1, ary2 = dscalar(), dvector()
+        res_ary1, res_ary2 = atleast_Nd(ary1, ary2, n=n)
+
+        assert res_ary1.ndim == n
+        if n == ary2.ndim:
+            assert ary2 is res_ary2
+        else:
+            assert res_ary2.ndim == n
+
+        ary1_val = np.array(1.0, dtype=np.float64)
+        ary2_val = np.array([1.0, 2.0], dtype=np.float64)
+        res_ary1_val, res_ary2_val = aesara.function(
+            [ary1, ary2], [res_ary1, res_ary2]
+        )(ary1_val, ary2_val)
+
+        np_fn = np.atleast_1d if n == 1 else np.atleast_2d
+        assert np.array_equal(res_ary1_val, np_fn(ary1_val))
+        assert np.array_equal(res_ary2_val, np_fn(ary2_val))
+
+
+def test_expand_dims():
+    x_at = dscalar()
+    res_at = expand_dims(x_at, 0)
+    x_val = np.array(1.0, dtype=np.float64)
+    exp_res = np.expand_dims(x_val, 0)
+    res_val = aesara.function([x_at], res_at)(x_val)
+    assert np.array_equal(exp_res, res_val)
+
+    x_at = dscalar()
+    res_at = expand_dims(x_at, (0, 1))
+    x_val = np.array(1.0, dtype=np.float64)
+    exp_res = np.expand_dims(x_val, (0, 1))
+    res_val = aesara.function([x_at], res_at)(x_val)
+    assert np.array_equal(exp_res, res_val)
+
+    x_at = dmatrix()
+    res_at = expand_dims(x_at, (2, 1))
+    x_val = np.array([[1.0, 2.0], [3.0, 4.0]], dtype=np.float64)
+    exp_res = np.expand_dims(x_val, (2, 1))
+    res_val = aesara.function([x_at], res_at)(x_val)
+    assert np.array_equal(exp_res, res_val)
