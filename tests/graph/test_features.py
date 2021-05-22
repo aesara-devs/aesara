@@ -1,7 +1,7 @@
 from aesara.graph.basic import Apply, Variable
+from aesara.graph.features import NodeFinder, is_same_graph
 from aesara.graph.fg import FunctionGraph
 from aesara.graph.op import Op
-from aesara.graph.toolbox import NodeFinder, is_same_graph
 from aesara.graph.type import Type
 from aesara.tensor.math import neg
 from aesara.tensor.type import vectors

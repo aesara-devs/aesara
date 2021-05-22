@@ -18,7 +18,7 @@ from aesara import compile
 from aesara.assert_op import Assert, assert_op
 from aesara.compile.ops import ViewOp
 from aesara.configdefaults import config
-from aesara.graph import toolbox
+from aesara.graph import features
 from aesara.graph.basic import (
     Constant,
     Variable,
@@ -797,7 +797,7 @@ class MakeVectorPrinter:
 pprint.assign(MakeVector, MakeVectorPrinter())
 
 
-class ShapeFeature(toolbox.Feature):
+class ShapeFeature(features.Feature):
     """Graph optimizer for removing all calls to shape().
 
     This optimizer replaces all Shapes and Subtensors of Shapes with
@@ -4674,7 +4674,7 @@ class FusionOptimizer(GlobalOptimizer):
         self.optimizer = local_optimizer
 
     def add_requirements(self, fgraph):
-        fgraph.attach_feature(toolbox.ReplaceValidate())
+        fgraph.attach_feature(features.ReplaceValidate())
 
     def apply(self, fgraph):
         did_something = True

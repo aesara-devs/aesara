@@ -5,6 +5,7 @@ import pytest
 from aesara.configdefaults import config
 from aesara.graph.basic import Apply, Constant, Variable, clone
 from aesara.graph.destroyhandler import DestroyHandler
+from aesara.graph.features import ReplaceValidate
 from aesara.graph.fg import FunctionGraph, InconsistencyError
 from aesara.graph.op import Op
 from aesara.graph.opt import (
@@ -14,7 +15,6 @@ from aesara.graph.opt import (
     PatternSub,
     TopoOptimizer,
 )
-from aesara.graph.toolbox import ReplaceValidate
 from aesara.graph.type import Type
 from tests.unittest_tools import assertFailure_fast
 

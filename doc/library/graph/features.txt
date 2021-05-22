@@ -1,10 +1,10 @@
-.. _libdoc_graph_toolbox:
+.. _libdoc_graph_features:
 
 ================================================
-:mod:`toolbox` -- [doc TODO]
+:mod:`features` -- [doc TODO]
 ================================================
 
-.. module:: aesara.graph.toolbox
+.. module:: aesara.graph.features
    :platform: Unix, Windows
    :synopsis: Aesara Internals
 .. moduleauthor:: LISA

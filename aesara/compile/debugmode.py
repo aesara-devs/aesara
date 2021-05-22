@@ -30,9 +30,9 @@ from aesara.compile.ops import OutputGuard, _output_guard
 from aesara.configdefaults import config
 from aesara.graph.basic import Variable, graph_inputs, io_toposort
 from aesara.graph.destroyhandler import DestroyHandler
+from aesara.graph.features import BadOptimization
 from aesara.graph.fg import InconsistencyError
 from aesara.graph.op import COp, Op, ops_with_inner_function
-from aesara.graph.toolbox import BadOptimization
 from aesara.graph.utils import MethodNotDefined
 from aesara.link.basic import Container, LocalLinker
 from aesara.link.utils import map_storage, raise_with_op

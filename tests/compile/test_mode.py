@@ -2,7 +2,7 @@ import pytest
 
 import aesara
 from aesara.compile.mode import AddFeatureOptimizer, Mode
-from aesara.graph.toolbox import NoOutputFromInplace
+from aesara.graph.features import NoOutputFromInplace
 from aesara.tensor.math import dot, tanh
 from aesara.tensor.type import matrix
 

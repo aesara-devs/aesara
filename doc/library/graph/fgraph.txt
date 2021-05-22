@@ -33,7 +33,7 @@ FunctionGraph
 FunctionGraph Features
 ----------------------
 
-.. autoclass:: aesara.graph.toolbox.Feature
+.. autoclass:: aesara.graph.features.Feature
     :members:
 
 .. _libdoc_graph_fgraphfeaturelist:

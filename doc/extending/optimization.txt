@@ -123,7 +123,7 @@ simplification described above:
 
    import aesara
    from aesara.graph.opt import GlobalOptimizer
-   from aesara.graph.toolbox import ReplaceValidate
+   from aesara.graph.features import ReplaceValidate
 
    class Simplify(GlobalOptimizer):
        def add_requirements(self, fgraph):
@@ -149,12 +149,12 @@ simplification described above:
 
 Here's how it works: first, in ``add_requirements``, we add the
 ``ReplaceValidate`` :ref:`libdoc_graph_fgraphfeature` located in
-:ref:`libdoc_graph_toolbox`. This feature adds the ``replace_validate``
+:ref:`libdoc_graph_features`. This feature adds the ``replace_validate``
 method to ``fgraph``, which is an enhanced version of ``replace`` that
 does additional checks to ensure that we are not messing up the
 computation graph (note: if ``ReplaceValidate`` was already added by
 another optimizer, ``extend`` will do nothing). In a nutshell,
-``toolbox.ReplaceValidate`` grants access to ``fgraph.replace_validate``,
+``features.ReplaceValidate`` grants access to ``fgraph.replace_validate``,
 and ``fgraph.replace_validate`` allows us to replace a Variable with
 another while respecting certain validation constraints. You can
 browse the list of :ref:`libdoc_graph_fgraphfeaturelist` and see if some of

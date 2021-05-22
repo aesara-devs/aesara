@@ -15,10 +15,10 @@ from aesara.compile.debugmode import (
 )
 from aesara.configdefaults import config
 from aesara.graph.basic import Apply, Variable
+from aesara.graph.features import BadOptimization
 from aesara.graph.op import COp, Op
 from aesara.graph.opt import local_optimizer
 from aesara.graph.optdb import EquilibriumDB
-from aesara.graph.toolbox import BadOptimization
 from aesara.tensor.math import add, dot, log
 from aesara.tensor.type import TensorType, dvector, fmatrix, fvector, vector
 from tests import unittest_tools as utt
