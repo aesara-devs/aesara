@@ -12,8 +12,8 @@ import aesara.tensor.basic as aet
 from aesara.compile import DeepCopyOp, shared
 from aesara.compile.io import In
 from aesara.configdefaults import config
-from aesara.graph.features import is_same_graph
 from aesara.graph.op import get_test_value
+from aesara.graph.opt_utils import is_same_graph
 from aesara.tensor.elemwise import DimShuffle
 from aesara.tensor.math import exp, isinf
 from aesara.tensor.math import sum as aet_sum
