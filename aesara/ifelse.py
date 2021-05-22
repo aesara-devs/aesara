@@ -600,7 +600,7 @@ class CondMerge(GlobalOptimizer):
     """ Graph Optimizer that merges different cond ops """
 
     def add_requirements(self, fgraph):
-        from aesara.graph.toolbox import ReplaceValidate
+        from aesara.graph.features import ReplaceValidate
 
         fgraph.add_feature(ReplaceValidate())
 

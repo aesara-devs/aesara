@@ -31,9 +31,9 @@ from aesara.graph.basic import (
     io_toposort,
     nodes_constructed,
 )
+from aesara.graph.features import Feature, NodeFinder
 from aesara.graph.fg import InconsistencyError
 from aesara.graph.op import Op
-from aesara.graph.toolbox import Feature, NodeFinder
 from aesara.graph.utils import AssocList
 from aesara.misc.ordered_set import OrderedSet
 from aesara.utils import flatten

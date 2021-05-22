@@ -73,11 +73,11 @@ from aesara.graph.basic import (
     is_in_ancestors,
 )
 from aesara.graph.destroyhandler import DestroyHandler
+from aesara.graph.features import ReplaceValidate
 from aesara.graph.fg import InconsistencyError
 from aesara.graph.op import compute_test_value
 from aesara.graph.opt import GlobalOptimizer, in2out, local_optimizer
 from aesara.graph.optdb import EquilibriumDB, SequenceDB
-from aesara.graph.toolbox import ReplaceValidate
 from aesara.scan.op import Scan
 from aesara.scan.utils import (
     compress_outs,

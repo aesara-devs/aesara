@@ -149,7 +149,7 @@ from aesara.gpuarray.type import (
     get_context,
     move_to_gpu,
 )
-from aesara.graph import toolbox
+from aesara.graph import features
 from aesara.graph.basic import Constant, Variable, applys_between, clone_replace
 from aesara.graph.fg import FunctionGraph
 from aesara.graph.opt import (
@@ -244,7 +244,7 @@ class InputToGpuOptimizer(GlobalOptimizer):
     """
 
     def add_requirements(self, fgraph):
-        fgraph.attach_feature(toolbox.ReplaceValidate())
+        fgraph.attach_feature(features.ReplaceValidate())
 
     def apply(self, fgraph):
         for input in fgraph.inputs:
@@ -305,7 +305,7 @@ class GraphToGPU(GlobalOptimizer):
         self.local_optimizers_map = local_optimizers_map
 
     def add_requirements(self, fgraph):
-        fgraph.attach_feature(toolbox.ReplaceValidate())
+        fgraph.attach_feature(features.ReplaceValidate())
 
     def apply(self, fgraph):
         mapping = {}

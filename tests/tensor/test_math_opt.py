@@ -17,10 +17,10 @@ from aesara.compile.mode import Mode, get_default_mode, get_mode
 from aesara.compile.ops import DeepCopyOp, deep_copy_op
 from aesara.configdefaults import config
 from aesara.graph.basic import Constant
+from aesara.graph.features import is_same_graph
 from aesara.graph.fg import FunctionGraph
 from aesara.graph.opt import LocalOptGroup, TopoOptimizer, check_stack_trace, out2in
 from aesara.graph.optdb import Query
-from aesara.graph.toolbox import is_same_graph
 from aesara.misc.safe_asarray import _asarray
 from aesara.tensor import inplace
 from aesara.tensor.basic import Alloc, join, switch

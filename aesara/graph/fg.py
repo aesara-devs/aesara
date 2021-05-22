@@ -8,7 +8,7 @@ from aesara.configdefaults import config
 from aesara.graph.basic import Apply, Constant, Variable, applys_between
 from aesara.graph.basic import as_string as graph_as_string
 from aesara.graph.basic import clone_get_equiv, graph_inputs, io_toposort, vars_between
-from aesara.graph.toolbox import AlreadyThere, Feature, ReplaceValidate
+from aesara.graph.features import AlreadyThere, Feature, ReplaceValidate
 from aesara.graph.utils import MetaObject, TestValueError, get_variable_trace_string
 from aesara.misc.ordered_set import OrderedSet
 
@@ -548,16 +548,12 @@ class FunctionGraph(MetaObject):
             )
 
     def replace_all(self, pairs: List[Tuple[Variable, Variable]], **kwargs) -> NoReturn:
-        """Replace variables in the `FunctionGraph` according to `(var, new_var)` pairs in a list."""
+        """Replace variables in the ``FunctionGraph`` according to ``(var, new_var)`` pairs in a list."""
         for var, new_var in pairs:
             self.replace(var, new_var, **kwargs)
 
     def attach_feature(self, feature: Feature) -> NoReturn:
-        """
-        Adds a graph.toolbox.Feature to this function_graph and triggers its
-        on_attach callback.
-
-        """
+        """Add a ``graph.features.Feature`` to this function graph and trigger its on_attach callback."""
         # Filter out literally identical `Feature`s
         if feature in self._features:
             return  # the feature is already present

@@ -9,8 +9,8 @@ from collections import OrderedDict, deque
 import aesara
 from aesara.configdefaults import config
 from aesara.graph.basic import Constant
+from aesara.graph.features import AlreadyThere, Bookkeeper
 from aesara.graph.fg import InconsistencyError
-from aesara.graph.toolbox import AlreadyThere, Bookkeeper
 from aesara.misc.ordered_set import OrderedSet
 
 

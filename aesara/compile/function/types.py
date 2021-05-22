@@ -30,9 +30,9 @@ from aesara.graph.basic import (
     vars_between,
 )
 from aesara.graph.destroyhandler import DestroyHandler
+from aesara.graph.features import PreserveVariableAttributes, is_same_graph
 from aesara.graph.fg import FunctionGraph, InconsistencyError
 from aesara.graph.op import ops_with_inner_function
-from aesara.graph.toolbox import PreserveVariableAttributes, is_same_graph
 from aesara.graph.utils import get_variable_trace_string
 from aesara.link.basic import Container
 from aesara.link.utils import raise_with_op
