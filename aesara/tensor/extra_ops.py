@@ -1,4 +1,5 @@
 from collections.abc import Collection
+from typing import Tuple
 
 import numpy as np
 
@@ -32,6 +33,7 @@ from aesara.tensor.type import (
     integer_dtypes,
     vector,
 )
+from aesara.tensor.var import TensorVariable
 from aesara.utils import LOCAL_BITWIDTH, PYTHON_INT_BITWIDTH
 
 
@@ -1614,3 +1616,15 @@ class BroadcastTo(Op):
 
 
 broadcast_to = BroadcastTo()
+
+
+def broadcast_arrays(*args: TensorVariable) -> Tuple[TensorVariable, ...]:
+    """Broadcast any number of arrays against each other.
+
+    Parameters
+    ----------
+    `*args` : array_likes
+        The arrays to broadcast.
+
+    """
+    return tuple(broadcast_to(a, broadcast_shape(*args)) for a in args)

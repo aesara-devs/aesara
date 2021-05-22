@@ -26,6 +26,7 @@ from aesara.tensor.extra_ops import (
     UnravelIndex,
     bartlett,
     bincount,
+    broadcast_arrays,
     broadcast_shape,
     broadcast_to,
     compress,
@@ -1177,3 +1178,19 @@ class TestBroadcastTo(utt.InferShapeTester):
         assert isinstance(advincsub_node.inputs[0].owner.op, BroadcastTo)
 
         assert advincsub_node.op.inplace is False
+
+
+def test_broadcast_arrays():
+    x, y = aet.dvector(), aet.dmatrix()
+    x_bcast, y_bcast = broadcast_arrays(x, y)
+
+    py_mode = Mode("py", None)
+    bcast_fn = function([x, y], [x_bcast, y_bcast], mode=py_mode)
+
+    x_val = np.array([1.0], dtype=np.float64)
+    y_val = np.array([[1.0, 2.0], [3.0, 4.0]], dtype=np.float64)
+    x_bcast_val, y_bcast_val = bcast_fn(x_val, y_val)
+    x_bcast_exp, y_bcast_exp = np.broadcast_arrays(x_val, y_val)
+
+    assert np.array_equal(x_bcast_val, x_bcast_exp)
+    assert np.array_equal(y_bcast_val, y_bcast_exp)
