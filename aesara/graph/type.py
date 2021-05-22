@@ -4,7 +4,7 @@ import ctypes
 import platform
 import re
 from abc import abstractmethod
-from typing import Any, NoReturn, Optional, Text, TypeVar, Union
+from typing import Any, Optional, Text, TypeVar, Union
 
 from aesara.graph import utils
 from aesara.graph.basic import Constant, Variable
@@ -71,7 +71,7 @@ class Type(MetaObject):
         storage: Any,
         strict: bool = False,
         allow_downcast: Optional[bool] = None,
-    ) -> NoReturn:
+    ) -> None:
         """Return data or an appropriately wrapped/converted data by converting it in-place.
 
         This method allows one to reuse old allocated memory.  If this method
