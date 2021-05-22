@@ -66,6 +66,7 @@ from aesara.tensor.blas import batched_dot, batched_tensordot
 from aesara.tensor.extra_ops import (
     bartlett,
     bincount,
+    broadcast_arrays,
     broadcast_shape,
     broadcast_shape_iter,
     broadcast_to,
