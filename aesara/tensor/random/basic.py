@@ -693,3 +693,41 @@ class PermutationRV(RandomVariable):
 
 
 permutation = PermutationRV()
+
+
+__all__ = [
+    "permutation",
+    "choice",
+    "randint",
+    "categorical",
+    "multinomial",
+    "betabinom",
+    "nbinom",
+    "binomial",
+    "laplace",
+    "bernoulli",
+    "truncexpon",
+    "wald",
+    "invgamma",
+    "halfcauchy",
+    "cauchy",
+    "hypergeometric",
+    "geometric",
+    "poisson",
+    "dirichlet",
+    "multivariate_normal",
+    "vonmises",
+    "logistic",
+    "weibull",
+    "exponential",
+    "gumbel",
+    "pareto",
+    "chisquare",
+    "gamma",
+    "lognormal",
+    "halfnormal",
+    "normal",
+    "beta",
+    "triangular",
+    "uniform",
+]
