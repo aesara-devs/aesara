@@ -253,3 +253,6 @@ from aesara.tensor.type import (
     zvector,
 )
 from aesara.tensor.type_other import *
+
+
+__all__ = ["random"]  # noqa: F405
