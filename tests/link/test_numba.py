@@ -21,7 +21,7 @@ from aesara.compile.sharedvalue import SharedVariable
 from aesara.graph.basic import Apply, Constant
 from aesara.graph.fg import FunctionGraph
 from aesara.graph.op import Op
-from aesara.graph.optdb import Query
+from aesara.graph.optdb import OptimizationQuery
 from aesara.graph.type import Type
 from aesara.link.numba.dispatch import create_numba_signature, get_numba_type
 from aesara.link.numba.linker import NumbaLinker
@@ -70,7 +70,7 @@ class MyMultiOut(Op):
         outputs[1][0] = res2
 
 
-opts = Query(include=[None], exclude=["cxx_only", "BlasOpt"])
+opts = OptimizationQuery(include=[None], exclude=["cxx_only", "BlasOpt"])
 numba_mode = Mode(NumbaLinker(), opts)
 py_mode = Mode("py", opts)
 

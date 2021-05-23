@@ -8,7 +8,7 @@ from aesara.compile.mode import Mode
 from aesara.graph.basic import Constant
 from aesara.graph.fg import FunctionGraph
 from aesara.graph.opt import EquilibriumOptimizer
-from aesara.graph.optdb import Query
+from aesara.graph.optdb import OptimizationQuery
 from aesara.tensor.elemwise import DimShuffle
 from aesara.tensor.random.basic import (
     dirichlet,
@@ -27,8 +27,10 @@ from aesara.tensor.subtensor import AdvancedSubtensor, AdvancedSubtensor1, Subte
 from aesara.tensor.type import iscalar, vector
 
 
-inplace_mode = Mode("py", Query(include=["random_make_inplace"], exclude=[]))
-no_mode = Mode("py", Query(include=[], exclude=[]))
+inplace_mode = Mode(
+    "py", OptimizationQuery(include=["random_make_inplace"], exclude=[])
+)
+no_mode = Mode("py", OptimizationQuery(include=[], exclude=[]))
 
 
 def test_inplace_optimization():
