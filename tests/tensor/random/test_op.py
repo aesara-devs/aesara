@@ -111,6 +111,8 @@ def test_RandomVariable_basics():
     with raises(NullTypeGradError):
         grad(rv_out, [rv_node.inputs[0]])
 
+
+def test_RandomVariable_bcast():
     rv = RandomVariable("normal", 0, [0, 0], config.floatX, inplace=True)
 
     mu = tensor(config.floatX, [True, False, False])
@@ -128,6 +130,10 @@ def test_RandomVariable_basics():
 
     res = rv.compute_bcast([mu, sd], (s1, s2, s3))
     assert res == [False] * 3
+
+    size = aet.as_tensor((1, 2, 3), dtype=np.int32).astype(np.int64)
+    res = rv.compute_bcast([mu, sd], size)
+    assert res == [True, False, False]
 
 
 def test_RandomVariable_floatX():
