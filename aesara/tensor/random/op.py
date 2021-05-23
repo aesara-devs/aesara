@@ -9,12 +9,14 @@ from aesara.configdefaults import config
 from aesara.graph.basic import Apply, Variable
 from aesara.graph.op import Op
 from aesara.misc.safe_asarray import _asarray
+from aesara.scalar.basic import Cast
 from aesara.tensor.basic import (
     as_tensor_variable,
     constant,
     get_scalar_constant_value,
     get_vector_length,
 )
+from aesara.tensor.elemwise import Elemwise
 from aesara.tensor.exceptions import NotScalarConstantError
 from aesara.tensor.random.type import RandomStateType
 from aesara.tensor.random.utils import normalize_size_param, params_broadcast_shapes
@@ -283,6 +285,13 @@ class RandomVariable(Op):
 
         """
         shape = self._infer_shape(size, dist_params)
+
+        # Ignore `Cast`s, since they do not affect broadcastables
+        if getattr(shape, "owner", None) and (
+            isinstance(shape.owner.op, Elemwise)
+            and isinstance(shape.owner.op.scalar_op, Cast)
+        ):
+            shape = shape.owner.inputs[0]
 
         # Let's try to do a better job than `_infer_ndim_bcast` when
         # dimension sizes are symbolic.
