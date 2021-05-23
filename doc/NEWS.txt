@@ -1,3 +1,0 @@
-.. _NEWS:
-
-.. include:: ../NEWS.txt
