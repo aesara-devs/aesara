@@ -4,6 +4,10 @@
 Developer Start Guide
 =====================
 
+.. warning::
+   This document is outdated.
+
+
 Contributing
 ============
 
@@ -242,9 +246,6 @@ Documentation and docstrings
   `PEP257 <https://www.python.org/dev/peps/pep-0257/>`_ rules and follow the
   `Numpy docstring standard
   <https://github.com/numpy/numpy/blob/master/doc/HOWTO_DOCUMENT.rst.txt>`_.
-
-* Split the docstrings in sections, according to the `Allowed docstring
-  sections in Napoleon`_
 
 * To cross-reference other objects (e.g. reference other classes or methods) in
   the docstrings, use the

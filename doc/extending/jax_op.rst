@@ -1,9 +1,9 @@
 Tutorial on adding JAX Ops to Aesara
-=============================
+====================================
 
-A core feature of Aesara, previously named Aesara, is the JAX
-backend. To support the backend JAX ops need be added to Aesara once to
-be supported. This tutorial will explain each step.
+Aesara is able to convert its graphs into JAX compiled functions. In order to do
+this, each ``Op`` in the graph must have a JAX implementation.  This tutorial
+will explain how JAX implementations are created for an ``Op``.
 
 Step 1: Identify the Aesara Op you’d like to JAXify
 ===================================================

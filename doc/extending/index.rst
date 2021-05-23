@@ -51,3 +51,4 @@ with Aesara itself.
     unittest
     scan
     extending_faq
+    jax_op

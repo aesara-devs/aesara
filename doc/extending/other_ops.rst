@@ -137,7 +137,7 @@ You can extract the 4 fields with
 :func:`Aesara.sparse.basic.csm_shape` to extract the individual
 fields.
 
-You can look at the `AddSD`_ sparse `Op` for an example with C code. It implements
+You can look at the `AddSD` sparse `Op` for an example with C code. It implements
 the addition of a sparse matrix with a dense matrix.
 
 Sparse Tests
@@ -200,7 +200,7 @@ To allow consistent interface of Ops that support OpenMP, we have some
 helper code. Doing this also allows to enable/disable OpenMP globally
 or per op for fine-grained control.
 
-Your Op needs to inherit from ``Aesara.graph.op.OpenMPOp``. If it overrides
+Your Op needs to inherit from ``aesara.graph.op.OpenMPOp``. If it overrides
 the ``__init__()`` method, it must have an ``openmp=None`` parameter
 and must call ``super(MyOpClass, self).__init__(openmp=openmp)``.
 
@@ -263,11 +263,11 @@ along with pointers to the relevant documentation.
         can split a sparse variable into its parts as TensorVariables. Those
         can then be used as inputs to an op with C code.
 
-*       :class:`Generic <Aesara.graph.type.Generic>` : Aesara type that
+*       :class:`Generic <aesara.graph.type.Generic>` : Aesara type that
         represents a simple Python Object. Variables of this Aesara type are
         represented in C as objects of class `PyObject
         <https://docs.python.org/2/c-api/structures.html#c.PyObject>`_.
 
-*       :class:`CDataType <Aesara.graph.type.CDataType>` :  Aesara type that
+*       :class:`CDataType <aesara.graph.type.CDataType>` :  Aesara type that
         represents a C data type. The C type associated with this Aesara type
         depends on the data being represented.

@@ -1029,7 +1029,7 @@ an apply-specific function.
 
 
 Using GDB to debug COp's C code
-==============================
+===============================
 
 When debugging C code, it can be useful to use GDB for code compiled
 by Aesara.
