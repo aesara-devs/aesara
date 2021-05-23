@@ -332,8 +332,11 @@ class Scalar(CType):
     ndim = 0
 
     def __init__(self, dtype):
-        if dtype == "floatX":
+        if isinstance(dtype, str) and dtype == "floatX":
             dtype = config.floatX
+        else:
+            dtype = np.dtype(dtype).name
+
         self.dtype = dtype
         self.dtype_specs()  # error checking
 

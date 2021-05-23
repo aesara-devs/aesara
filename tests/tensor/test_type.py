@@ -8,6 +8,11 @@ from aesara.configdefaults import config
 from aesara.tensor.type import TensorType
 
 
+def test_numpy_dtype():
+    test_type = TensorType(np.int32, [])
+    assert test_type.dtype == "int32"
+
+
 def test_filter_variable():
     test_type = TensorType(config.floatX, [])
 

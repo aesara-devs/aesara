@@ -851,6 +851,12 @@ def test_identity():
 
 
 class TestCast:
+    def test_can_use_numpy_types(self):
+        x = vector(dtype=np.int32)
+        y = cast(x, np.int64)
+        f = function([x], y)
+        assert f(np.array([1, 2], dtype=np.int32)).dtype == np.int64
+
     def test_good_between_real_types(self):
         good = itertools.chain(
             multi_dtype_cast_checks((2,), dtypes=REAL_DTYPES),
