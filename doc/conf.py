@@ -144,7 +144,7 @@ if os.environ.get("READTHEDOCS") != "True":
 
 
 def setup(app):
-    app.add_stylesheet("fix_rtd.css")
+    app.add_css_file("fix_rtd.css")
 
 
 # The name for this set of Sphinx documents.  If None, it defaults to
