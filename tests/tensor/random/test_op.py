@@ -6,10 +6,8 @@ from aesara import config
 from aesara.assert_op import Assert
 from aesara.gradient import NullTypeGradError, grad
 from aesara.tensor.math import eq
-from aesara.tensor.random.basic import normal
-from aesara.tensor.random.op import RandomVariable, default_shape_from_params, observed
-from aesara.tensor.type import all_dtypes, iscalar, tensor, vector
-from aesara.tensor.type_other import NoneTypeT
+from aesara.tensor.random.op import RandomVariable, default_shape_from_params
+from aesara.tensor.type import all_dtypes, iscalar, tensor
 
 
 @fixture(scope="module", autouse=True)
@@ -149,28 +147,3 @@ def test_RandomVariable_floatX():
 
     with config.change_flags(floatX=new_floatX):
         assert test_rv_op(0, 1).dtype == new_floatX
-
-
-def test_observed():
-    rv_var = normal(0, 1, size=3)
-    obs_var = observed(rv_var, np.array([0.2, 0.1, -2.4], dtype=config.floatX))
-
-    assert obs_var.owner.inputs[0] is rv_var
-
-    with raises(TypeError):
-        observed(rv_var, np.array([1, 2], dtype=int))
-
-    with raises(TypeError):
-        observed(rv_var, np.array([[1.0, 2.0]], dtype=rv_var.dtype))
-
-    obs_rv = observed(None, np.array([0.2, 0.1, -2.4], dtype=config.floatX))
-
-    assert isinstance(obs_rv.owner.inputs[0].type, NoneTypeT)
-
-    rv_val = vector()
-    rv_val.tag.test_value = np.array([0.2, 0.1, -2.4], dtype=config.floatX)
-
-    obs_var = observed(rv_var, rv_val)
-
-    with raises(NullTypeGradError):
-        grad(obs_var.sum(), [rv_val])
