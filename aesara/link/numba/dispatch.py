@@ -519,8 +519,6 @@ def numba_funcify_CAReduce(op, node, **kwargs):
 
     scalar_op_identity = np.asarray(op.scalar_op.identity, dtype=np_acc_dtype)
 
-    acc_dtype = numba.np.numpy_support.from_dtype(np_acc_dtype)
-
     scalar_nfunc_spec = op.scalar_op.nfunc_spec
 
     # We construct a dummy `Apply` that has the minimum required number of
@@ -528,15 +526,15 @@ def numba_funcify_CAReduce(op, node, **kwargs):
     # with too few arguments.
     dummy_node = Apply(
         op,
-        [tensor(acc_dtype, [False]) for i in range(scalar_nfunc_spec[1])],
-        [tensor(acc_dtype, [False]) for o in range(scalar_nfunc_spec[2])],
+        [tensor(np_acc_dtype, [False]) for i in range(scalar_nfunc_spec[1])],
+        [tensor(np_acc_dtype, [False]) for o in range(scalar_nfunc_spec[2])],
     )
     elemwise_fn = numba_funcify_Elemwise(op, dummy_node, use_signature=True, **kwargs)
 
     input_name = get_name_for_object(node.inputs[0])
     ndim = node.inputs[0].ndim
     careduce_fn = create_multiaxis_reducer(
-        elemwise_fn, scalar_op_identity, axes, ndim, acc_dtype, input_name=input_name
+        elemwise_fn, scalar_op_identity, axes, ndim, np_acc_dtype, input_name=input_name
     )
 
     return numba.njit(careduce_fn)
