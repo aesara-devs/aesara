@@ -75,9 +75,11 @@ class TensorType(CType):
     """
 
     def __init__(self, dtype, broadcastable, name=None):
-        self.dtype = str(dtype)
-        if self.dtype == "floatX":
+        if isinstance(dtype, str) and dtype == "floatX":
             self.dtype = config.floatX
+        else:
+            self.dtype = np.dtype(dtype).name
+
         # broadcastable is immutable, and all elements are either
         # True or False
         self.broadcastable = tuple(bool(b) for b in broadcastable)

@@ -923,18 +923,21 @@ _cast_mapping = {
 
 def cast(x, dtype):
     """Symbolically cast `x` to a Tensor of type `dtype`."""
-    if dtype == "floatX":
+
+    if isinstance(dtype, str) and dtype == "floatX":
         dtype = config.floatX
 
+    dtype_name = np.dtype(dtype).name
+
     _x = as_tensor_variable(x)
-    if _x.type.dtype == dtype:
+    if _x.type.dtype == dtype_name:
         return _x
-    if _x.type.dtype.startswith("complex") and not dtype.startswith("complex"):
+    if _x.type.dtype.startswith("complex") and not dtype_name.startswith("complex"):
         raise TypeError(
             "Casting from complex to real is ambiguous: consider real(), "
             "imag(), angle() or abs()"
         )
-    return _cast_mapping[dtype](x)
+    return _cast_mapping[dtype_name](x)
 
 
 ##########################

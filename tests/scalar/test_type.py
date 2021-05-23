@@ -13,6 +13,11 @@ from aesara.scalar.basic import (
 )
 
 
+def test_numpy_dtype():
+    test_type = Scalar(np.int32)
+    assert test_type.dtype == "int32"
+
+
 def test_div_types():
     a = int8()
     b = int32()
