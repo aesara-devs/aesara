@@ -465,7 +465,7 @@ TensorVariable
     you'll want to call.
 
 
-.. autoclass:: _tensor_py_operators
+.. autoclass:: var._tensor_py_operators
    :members:
 
     This mix-in class adds convenient attributes, methods, and support
@@ -1749,7 +1749,7 @@ Linear Algebra
 Gradient / Differentiation
 ==========================
 
-.. automodule:: Aesara.gradient
+.. automodule:: aesara.gradient
     :members: grad
     :noindex:
 

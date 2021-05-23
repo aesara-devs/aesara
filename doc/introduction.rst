@@ -9,8 +9,7 @@ Aesara is a Python library that lets you define, optimize, and evaluate
 mathematical expressions, especially ones with multi-dimensional arrays
 (numpy.ndarray).  Using Aesara it is
 possible to attain speeds rivaling hand-crafted C implementations for problems
-involving large amounts of data.  It can also surpass C on a CPU by many orders
-of magnitude by taking advantage of recent GPUs.
+involving large amounts of data.
 
 Aesara combines aspects of a computer algebra system (CAS) with aspects of an
 optimizing compiler. It can also generate customized C code for many
@@ -25,7 +24,6 @@ Aesara's compiler applies many optimizations of varying complexity to
 these symbolic expressions. These optimizations include, but are not
 limited to:
 
-* use of GPU for computations
 * constant folding
 * merging of similar subgraphs, to avoid redundant calculation
 * arithmetic simplification (e.g. ``x*y/x -> y``, ``--x -> x``)

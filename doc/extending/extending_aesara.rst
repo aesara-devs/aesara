@@ -7,14 +7,14 @@ Creating a new Op: Python implementation
 So suppose you have looked through the library documentation and you don't see
 a function that does what you want.
 
-If you can implement something in terms of existing ``Op``s, you should do that.
+If you can implement something in terms of an existing ``Op``, you should do that.
 Odds are your function that uses existing Aesara expressions is short,
 has no bugs, and potentially profits from optimizations that have already been
 implemented.
 
-However, if you cannot implement an ``Op`` in terms of existing ``Op``s, you have to
-write a new one. Don't worry, Aesara was designed to make it easy to add new
-``Op``s, Types, and Optimizations.
+However, if you cannot implement an ``Op`` in terms of an existing ``Op``, you have to
+write a new one. Don't worry, Aesara was designed to make it easy to add a new
+``Op``, ``Type``, and ``Optimization``.
 
 .. These first few pages will walk you through the definition of a new :ref:`type`,
 .. ``double``, and a basic arithmetic :ref:`operations <op>` on that `Type`.
@@ -46,7 +46,7 @@ As an illustration, this tutorial shows how to write a simple Python-based
 Aesara Graphs refresher
 -----------------------
 
-.. image:: ../hpcs2011_tutorial/pics/apply_node.png
+.. image:: apply.png
     :width: 500 px
 
 Aesara represents symbolic mathematical computations as graphs. Those graphs
@@ -145,9 +145,9 @@ or :func:`make_thunk`.
   It takes several arguments:
 
     - ``node`` is a reference to an Apply node which was previously
-      obtained via the ``Op``'s :func:`make_node` method. It is typically not
-      used in simple ``Op``s, but it contains symbolic information that
-      could be required for complex ``Op``s.
+      obtained via the :func:`make_node` method. It is typically not
+      used in a simple ``Op``, but it contains symbolic information that
+      could be required by a complex ``Op``.
     - ``inputs`` is a list of references to data which can be operated on using
       non-symbolic statements, (i.e., statements in Python, Numpy).
     - ``output_storage`` is a list of storage cells where the output

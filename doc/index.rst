@@ -16,6 +16,11 @@ arrays efficiently. Aesara features:
 Aesara is based on `Theano`_, which has been powering large-scale computationally
 intensive scientific investigations since 2007.
 
+
+.. warning::
+
+   Much of the documentation hasn't been updated and is simply the old Theano documentation.
+
 Download
 ========
 
@@ -69,7 +74,6 @@ Roughly in order of what you'll want to check out:
    :maxdepth: 1
    :hidden:
 
-   NEWS
    introduction
    requirements
    install

@@ -682,4 +682,4 @@ reference
 .. autofunction:: aesara.foldl
 .. autofunction:: aesara.foldr
 .. autofunction:: aesara.scan
-.. autofunction:: aesara.scan_checkpoints
+.. autofunction:: aesara.scan.scan_checkpoints

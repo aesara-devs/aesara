@@ -1,8 +1,8 @@
 .. _cop:
 
-====================================
+=====================================
 Implementing the arithmetic COps in C
-====================================
+=====================================
 
 Now that we have set up our ``double`` type properly to allow C
 implementations for operations that work on it, all we have to do now

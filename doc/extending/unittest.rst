@@ -4,6 +4,9 @@
 Unit Testing
 ============
 
+.. warning::
+   This document is very outdated.
+
 Aesara relies heavily on unit testing. Its importance cannot be
 stressed enough!
 
@@ -45,20 +48,17 @@ Mostly `pytest aesara/`
 Folder Layout
 -------------
 
-"tests" directories are scattered throughout aesara. Each tests
-subfolder is meant to contain the unittests which validate the .py
-files in the parent folder.
-
 Files containing unittests should be prefixed with the word "test".
 
 Optimally every python module should have a unittest file associated
-with it, as shown below. Unittests testing functionality of module
-<module>.py should therefore be stored in tests/test_<module>.py::
+with it, as shown below. Unit tests that test functionality of module
+``<module>.py`` should therefore be stored in
+``tests/<sub-package>/test_<module>.py``::
 
     Aesara/aesara/tensor/basic.py
     Aesara/aesara/tensor/elemwise.py
-    Aesara/aesara/tensor/tests/test_basic.py
-    Aesara/aesara/tensor/tests/test_elemwise.py
+    Aesara/tests/tensor/test_basic.py
+    Aesara/tests/tensor/test_elemwise.py
 
 
 How to Write a Unittest
@@ -67,16 +67,14 @@ How to Write a Unittest
 Test Cases and Methods
 ----------------------
 
-Unittests should be grouped "logically" into test cases, which are
-meant to group all unittests operating on the same element and/or
-concept. Test cases are implemented as Python classes which inherit
-from unittest.TestCase
+Unit tests should be grouped "logically" into test cases, which are
+meant to group all unit tests operating on the same element and/or
+concept.
 
-Test cases contain multiple test methods. These should be prefixed
-with the word "test".
+Test cases should be functions or classes prefixed with the word "test".
 
 Test methods should be as specific as possible and cover a particular
-aspect of the problem. For example, when testing the TensorDot Op, one
+aspect of the problem. For example, when testing the ``Dot`` ``Op``, one
 test method could check for validity, while another could verify that
 the proper errors are raised when inputs have invalid dimensions.
 
@@ -84,224 +82,30 @@ Test method names should be as explicit as possible, so that users can
 see at first glance, what functionality is being tested and what tests
 need to be added.
 
-Example:
-
-.. code-block:: python
-
-    import unittest
-
-    class TestTensorDot(unittest.TestCase):
-        def test_validity(self):
-            # do stuff
-            ...
-        def test_invalid_dims(self):
-            # do more stuff
-            ...
-
-
-Test cases can define a special setUp method, which will get called
-before each test method is executed. This is a good place to put
-functionality which is shared amongst all test methods in the test
-case (i.e initializing data, parameters, seeding random number
-generators -- more on this later)
-
-.. testcode:: writeUnitest
-
-    import unittest
-
-    class TestTensorDot(unittest.TestCase):
-        def setUp(self):
-            # data which will be used in various test methods
-            self.avals = numpy.array([[1,5,3],[2,4,1]])
-            self.bvals = numpy.array([[2,3,1,8],[4,2,1,1],[1,4,8,5]])
-
-Similarly, test cases can define a tearDown method, which will be
-implicitely called at the end of each test method.
-
-
 Checking for correctness
 ------------------------
 
 When checking for correctness of mathematical expressions, the user
-should preferably compare aesara's output to the equivalent numpy
+should preferably compare aesara's output to the equivalent NumPy
 implementation.
 
 Example:
 
 .. code-block:: python
 
-    class TestTensorDot(unittest.TestCase):
-        def setUp(self):
-            ...
-
-        def test_validity(self):
-            a = T.dmatrix('a')
-            b = T.dmatrix('b')
-            c = T.dot(a, b)
-            f = aesara.function([a, b], [c])
-            cmp = f(self.avals, self.bvals) == numpy.dot(self.avals, self.bvals)
-            self.assertTrue(numpy.all(cmp))
-
-Avoid hard-coding variables, as in the following case:
-
-.. code-block:: python
-
-    self.assertTrue(numpy.all(f(self.avals, self.bvals) == numpy.array([[25, 25, 30, 28], [21, 18, 14, 25]])))
-
-This makes the test case less manageable and forces the user to update
-the variables each time the input is changed or possibly when the
-module being tested changes (after a bug fix for example). It also
-constrains the test case to specific input/output data pairs. The
-section on random values covers why this might not be such a good
-idea.
-
-Here is a list of useful functions, as defined by TestCase:
-
-* checking the state of boolean variables: assert,
-  assertTrue, assertFalse
-
-* checking for (in)equality constraints: assertEqual,
-  assertNotEqual
-
-* checking for (in)equality constraints up to a given precision (very
-  useful in aesara): assertAlmostEqual,
-  assertNotAlmostEqual
+    def test_dot_validity():
+        a = aet.dmatrix('a')
+        b = aet.dmatrix('b')
+        c = aet.dot(a, b)
+        f = aesara.function([a, b], [c])
+        assert np.array_equal(f(self.avals, self.bvals), numpy.dot(self.avals, self.bvals))
 
 
-Checking for errors
--------------------
-
-On top of verifying that your code provides the correct output, it is
-equally important to test that it fails in the appropriate manner,
-raising the appropriate exceptions, etc. Silent failures are deadly,
-as they can go unnoticed for a long time and a hard to detect
-"after-the-fact".
-
-Example:
-
-.. code-block:: python
-
-    import unittest
-
-    class TestTensorDot(unittest.TestCase):
-        ...
-        def test_3D_dot_fail(self):
-            def func():
-                a = TensorType('float64', (False,False,False)) # create 3d tensor
-                b = dmatrix()
-                c = dot(a,b) # we expect this to fail
-            # above should fail as dot operates on 2D tensors only
-            self.assertRaises(TypeError, func)
-
-Useful function, as defined by TestCase:
-
-* assertRaises
-
-
-Test Cases and Aesara Modes
----------------------------
-
-When compiling aesara functions or modules, a mode parameter can be
-given to specify which linker and optimizer to use.
-
-Example:
-
-.. code-block:: python
-
-    from aesara import function
-
-    f = function([a,b],[c],mode='FAST_RUN')
-
-Whenever possible, unit tests should omit this parameter. Leaving
-out the mode will ensure that unit tests use the default mode.
-This default mode is set to
-the configuration variable :attr:`config.mode`, which defaults to
-'FAST_RUN', and can be set by various mechanisms (see :mod:`config`).
-
-In particular, the enviromnment variable :envvar:`AESARA_FLAGS`
-allows the user to easily switch the mode in which unittests are
-run. For example to run all tests in all modes from a BASH script,
-type this:
-
-.. code-block:: bash
-
-    AESARA_FLAGS='mode=FAST_COMPILE' pytest
-    AESARA_FLAGS='mode=FAST_RUN' pytest
-    AESARA_FLAGS='mode=DebugMode' pytest
-
-.. _random_value_in_tests:
-
-Using Random Values in Test Cases
----------------------------------
-
-``numpy.random`` is often used in unit tests to initialize large data
-structures, for use as inputs to the function or module being
-tested. When doing this, it is imperative that the random number
-generator be seeded at the be beginning of each unit test. This will
-ensure that unittest behaviour is consistent from one execution to
-another (i.e., always pass or always fail).
-
-Instead of using ``numpy.random.seed`` to do this, we encourage users to
-do the following:
-
-.. testcode::
-
-    from tests import unittest_tools
-
-    class TestTensorDot(unittest.TestCase):
-        def setUp(self):
-            unittest_tools.seed_rng()
-            # OR ... call with an explicit seed
-            unittest_tools.seed_rng(234234)  # use only if really necessary!
-
-The behaviour of ``seed_rng`` is as follows:
-
-* If an explicit seed is given, it will be used for seeding numpy's rng.
-
-* If not, it will use ``config.unittests__rseed`` (its default value is ``666``).
-
-* If ``config.unittests__rseed`` is set to ``"random"``, it will seed the rng with
-  None, which is equivalent to seeding with a random seed.
-
-
-The main advantage of using ``unittest_tools.seed_rng`` is that it allows
-us to change the seed used in the unitests, without having to manually
-edit all the files. For example, this allows the nightly build to run
-``pytest`` repeatedly, changing the seed on every run (hence achieving
-a higher confidence that the variables are correct), while still
-making sure unittests are deterministic.
-
-Users who prefer their unittests to be random (when run on their local
-machine) can simply set ``config.unittests__rseed`` to ``'random'`` (see
-:mod:`config`).
-
-Similarly, to provide a seed to ``numpy.random.RandomState``, simply use:
-
-.. testcode::
-
-    import numpy
-
-    rng = numpy.random.RandomState(unittest_tools.fetch_seed())
-    # OR providing an explicit seed
-    rng = numpy.random.RandomState(unittest_tools.fetch_seed(1231))  # again not recommended
-
-Note that the ability to change the seed from one test to another,
-is incompatible with the method of hard-coding the baseline variables
-(against which we compare the aesara outputs). These must then be
-determined "algorithmically". Although this represents more work, the
-test suite will be better because of it.
-
-To help you check that the boundaries provided to ``numpy.random`` are
-correct and your tests will pass those corner cases, you can check
-``utt.MockRandomState``. Code using ``utt.MockRandomState`` should not
-be committed, it is just a tool to help adjust the sampling range.
-
-
-Creating an Op UnitTest
+Creating an Op Unit Test
 =======================
 
 A few tools have been developed to help automate the development of
-unitests for Aesara Ops.
+unit tests for Aesara Ops.
 
 
 .. _validating_grad:
