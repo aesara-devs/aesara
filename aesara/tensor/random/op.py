@@ -19,7 +19,6 @@ from aesara.tensor.exceptions import NotScalarConstantError
 from aesara.tensor.random.type import RandomStateType
 from aesara.tensor.random.utils import normalize_size_param, params_broadcast_shapes
 from aesara.tensor.type import TensorType, all_dtypes
-from aesara.tensor.type_other import NoneConst
 
 
 def default_shape_from_params(
@@ -422,55 +421,3 @@ class RandomVariable(Op):
 
     def R_op(self, inputs, eval_points):
         return [None for i in eval_points]
-
-
-class Observed(Op):
-    """An `Op` that represents an observed random variable.
-
-    This `Op` establishes an observation relationship between a random
-    variable and a specific value.
-    """
-
-    default_output = 0
-    view_map = {0: [1]}
-
-    def make_node(self, rv, val):
-        """Make an `Observed` random variable.
-
-        Parameters
-        ----------
-        rv: RandomVariable
-            The distribution from which `val` is assumed to be a sample value.
-        val: Variable
-            The observed value.
-        """
-        val = as_tensor_variable(val)
-
-        if rv is not None:
-            if not hasattr(rv, "type") or rv.type.convert_variable(val) is None:
-                raise TypeError(
-                    (
-                        "`rv` and `val` do not have compatible types:"
-                        f" rv={rv}, val={val}"
-                    )
-                )
-        else:
-            rv = NoneConst.clone()
-
-        inputs = [rv, val]
-
-        return Apply(self, inputs, [val.type()])
-
-    def perform(self, node, inputs, out):
-        out[0][0] = inputs[1]
-
-    def grad(self, inputs, outputs):
-        return [
-            aesara.gradient.grad_undefined(
-                self, k, inp, "No gradient defined for random variables"
-            )
-            for k, inp in enumerate(inputs)
-        ]
-
-
-observed = Observed()
