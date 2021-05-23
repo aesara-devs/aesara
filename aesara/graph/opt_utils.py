@@ -4,7 +4,7 @@ from typing import Sequence, Union
 import aesara
 from aesara.graph.basic import Variable, equal_computations, graph_inputs, vars_between
 from aesara.graph.fg import FunctionGraph
-from aesara.graph.optdb import Query
+from aesara.graph.optdb import OptimizationQuery
 
 
 def optimize_graph(
@@ -28,7 +28,7 @@ def optimize_graph(
     clone:
         Whether or not to clone the input graph before optimizing.
     **kwargs:
-        Keyword arguments passed to the ``aesara.graph.optdb.Query`` object.
+        Keyword arguments passed to the ``aesara.graph.optdb.OptimizationQuery`` object.
     """
     from aesara.compile import optdb
 
@@ -37,7 +37,7 @@ def optimize_graph(
         fgraph = FunctionGraph(outputs=[fgraph], clone=clone)
         return_only_out = True
 
-    canonicalize_opt = optdb.query(Query(include=include, **kwargs))
+    canonicalize_opt = optdb.query(OptimizationQuery(include=include, **kwargs))
     _ = canonicalize_opt.optimize(fgraph)
 
     if custom_opt:

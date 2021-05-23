@@ -19,7 +19,7 @@ from aesara.graph.basic import Apply, Constant
 from aesara.graph.fg import FunctionGraph
 from aesara.graph.op import Op
 from aesara.graph.opt import check_stack_trace, local_optimizer, out2in
-from aesara.graph.optdb import Query
+from aesara.graph.optdb import OptimizationQuery
 from aesara.misc.safe_asarray import _asarray
 from aesara.tensor import inplace
 from aesara.tensor.basic import (
@@ -140,15 +140,15 @@ mode_opt = get_mode(mode_opt)
 
 dimshuffle_lift = out2in(local_dimshuffle_lift)
 
-_optimizer_stabilize = Query(include=["fast_run"])
+_optimizer_stabilize = OptimizationQuery(include=["fast_run"])
 _optimizer_stabilize.position_cutoff = 1.51
 _optimizer_stabilize = optdb.query(_optimizer_stabilize)
 
-_optimizer_specialize = Query(include=["fast_run"])
+_optimizer_specialize = OptimizationQuery(include=["fast_run"])
 _optimizer_specialize.position_cutoff = 2.01
 _optimizer_specialize = optdb.query(_optimizer_specialize)
 
-_optimizer_fast_run = Query(include=["fast_run"])
+_optimizer_fast_run = OptimizationQuery(include=["fast_run"])
 _optimizer_fast_run = optdb.query(_optimizer_fast_run)
 
 
@@ -351,7 +351,7 @@ def test_local_useless_dimshuffle_in_reshape():
 
 
 class TestFusion:
-    opts = Query(
+    opts = OptimizationQuery(
         include=[
             "local_elemwise_fusion",
             "composite_elemwise_fusion",
@@ -1125,7 +1125,7 @@ class TestFusion:
 
     def test_add_mul_fusion_inplace(self):
 
-        opts = Query(
+        opts = OptimizationQuery(
             include=[
                 "local_elemwise_fusion",
                 "composite_elemwise_fusion",

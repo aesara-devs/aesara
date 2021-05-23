@@ -9,7 +9,7 @@ from aesara.compile.mode import Mode
 from aesara.configdefaults import config
 from aesara.gradient import grad
 from aesara.graph.basic import applys_between
-from aesara.graph.optdb import Query
+from aesara.graph.optdb import OptimizationQuery
 from aesara.tensor.elemwise import DimShuffle
 from aesara.tensor.extra_ops import (
     Bartlett,
@@ -1169,7 +1169,7 @@ class TestBroadcastTo(utt.InferShapeTester):
         q = b[np.r_[0, 1, 3]]
         e = aet.set_subtensor(q, np.r_[0, 0, 0])
 
-        opts = Query(include=["inplace"])
+        opts = OptimizationQuery(include=["inplace"])
         py_mode = Mode("py", opts)
         e_fn = function([d], e, mode=py_mode)
 

@@ -1,6 +1,6 @@
 import pytest
 
-from aesara.graph.optdb import DB, opt
+from aesara.graph.optdb import OptimizationDatabase, opt
 
 
 class TestDB:
@@ -11,7 +11,7 @@ class TestDB:
             def apply(self, fgraph):
                 pass
 
-        db = DB()
+        db = OptimizationDatabase()
         db.register("a", Opt())
 
         db.register("b", Opt())
