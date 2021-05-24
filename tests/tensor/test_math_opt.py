@@ -19,7 +19,7 @@ from aesara.configdefaults import config
 from aesara.graph.basic import Constant
 from aesara.graph.fg import FunctionGraph
 from aesara.graph.opt import LocalOptGroup, TopoOptimizer, check_stack_trace, out2in
-from aesara.graph.opt_utils import is_same_graph
+from aesara.graph.opt_utils import is_same_graph, optimize_graph
 from aesara.graph.optdb import OptimizationQuery
 from aesara.misc.safe_asarray import _asarray
 from aesara.tensor import inplace
@@ -3999,6 +3999,13 @@ def test_local_log_sum_exp3():
     optimised_ret = f(x_val)
 
     assert np.allclose(optimised_ret, 100.0)
+
+
+def test_local_reciprocal_1_plus_exp():
+    x = vector("x")
+    y = aet.reciprocal(1 + exp(x))
+    z = optimize_graph(y, include=["canonicalization", "stabilize", "specialize"])
+    assert z.owner.op == sigmoid
 
 
 class TestSigmoidOpts:
