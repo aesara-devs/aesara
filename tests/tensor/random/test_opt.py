@@ -135,6 +135,28 @@ def test_lift_rv_shapes():
     "ds_order, lifted, dist_op, dist_params, size, rtol",
     [
         (
+            ("x",),
+            True,
+            normal,
+            (
+                np.array(-10.0, dtype=np.float64),
+                np.array(1e-6, dtype=np.float64),
+            ),
+            (),
+            1e-7,
+        ),
+        (
+            ("x", "x", "x"),
+            True,
+            normal,
+            (
+                np.array(-10.0, dtype=np.float64),
+                np.array(1e-6, dtype=np.float64),
+            ),
+            (),
+            1e-7,
+        ),
+        (
             (1, 0, 2),
             True,
             normal,
