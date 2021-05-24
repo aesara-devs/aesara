@@ -1065,11 +1065,13 @@ def neg(a):
     """-a"""
 
 
-# numpy.reciprocal does integer division on integer inputs
-# (which is not very interesting)
 @scalar_elemwise
-def inv(a):
+def reciprocal(a):
     """1.0/a"""
+
+
+# This is deprecated and will be removed
+inv = reciprocal
 
 
 @scalar_elemwise
@@ -2789,6 +2791,7 @@ __all__ = [
     "exp2",
     "expm1",
     "neg",
+    "reciprocal",
     "inv",
     "log",
     "log2",

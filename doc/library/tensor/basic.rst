@@ -1435,7 +1435,7 @@ Mathematical
 
     Returns a variable representing the negation of `a` (also ``-a``).
 
-.. function:: inv(a)
+.. function:: reciprocal(a)
 
     Returns a variable representing the inverse of a, ie 1.0/a. Also called reciprocal.
 

@@ -67,7 +67,6 @@ from aesara.tensor.math import (
     exp2,
     expm1,
     floor,
-    inv,
     isclose,
     isinf,
     isnan,
@@ -90,6 +89,7 @@ from aesara.tensor.math import (
     power,
     ptp,
     rad2deg,
+    reciprocal,
     round_half_away_from_zero,
     round_half_to_even,
     sgn,
@@ -136,7 +136,7 @@ from tests import unittest_tools as utt
 from tests.tensor.utils import (
     _bad_build_broadcast_binary_normal,
     _bad_runtime_broadcast_binary_normal,
-    _bad_runtime_inv,
+    _bad_runtime_reciprocal,
     _eps,
     _good_broadcast_binary_arctan2,
     _good_broadcast_binary_normal,
@@ -153,14 +153,14 @@ from tests.tensor.utils import (
     _good_broadcast_unary_positive,
     _good_broadcast_unary_tan,
     _good_broadcast_unary_wide,
-    _good_inv,
+    _good_reciprocal,
     _grad_broadcast_binary_normal,
     _grad_broadcast_pow_normal,
     _grad_broadcast_unary_normal,
     _grad_broadcast_unary_normal_no_complex,
     _grad_broadcast_unary_normal_no_complex_no_corner_case,
     _grad_broadcast_unary_normal_noint,
-    _grad_inv,
+    _grad_reciprocal,
     _numpy_true_div,
     angle_eps,
     check_floatX,
@@ -308,11 +308,11 @@ TestTrueDivBroadcast = makeBroadcastTester(
 )
 
 TestInvBroadcast = makeBroadcastTester(
-    op=inv,
+    op=reciprocal,
     expected=lambda x: upcast_int8_nfunc(np.true_divide)(np.int8(1), x),
-    good=_good_inv,
-    bad_runtime=_bad_runtime_inv,
-    grad=_grad_inv,
+    good=_good_reciprocal,
+    bad_runtime=_bad_runtime_reciprocal,
+    grad=_grad_reciprocal,
     grad_rtol=div_grad_rtol,
 )
 

@@ -2846,11 +2846,8 @@ pprint.assign(pow, printing.OperatorPrinter("**", 1, "right"))
 pprint.assign(mod, printing.OperatorPrinter("%", -1, "left"))
 
 
-class Inv(UnaryScalarOp):
-    """
-    Multiplicative inverse. Also called reciprocal.
-
-    """
+class Reciprocal(UnaryScalarOp):
+    """Multiplicative inverse."""
 
     nfunc_spec = ("reciprocal", 1, 1)
 
@@ -2878,7 +2875,11 @@ class Inv(UnaryScalarOp):
         return f"{z} = 1.0 / {x};"
 
 
-inv = Inv(upgrade_to_float, name="inv")
+reciprocal = Reciprocal(upgrade_to_float, name="reciprocal")
+
+# These are deprecated and will be removed
+Inv = Reciprocal
+inv = reciprocal
 
 
 class Log(UnaryScalarOp):

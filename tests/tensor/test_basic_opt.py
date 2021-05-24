@@ -66,7 +66,6 @@ from aesara.tensor.math import (
     ge,
     gt,
     int_div,
-    inv,
     invert,
     iround,
     le,
@@ -81,6 +80,7 @@ from aesara.tensor.math import (
     neq,
 )
 from aesara.tensor.math import pow as aet_pow
+from aesara.tensor.math import reciprocal
 from aesara.tensor.math import round as aet_round
 from aesara.tensor.math import sin, sinh, softplus, sqr, sqrt, sub
 from aesara.tensor.math import sum as aet_sum
@@ -845,7 +845,7 @@ class TestFusion:
                 "float32",
             ),
             (
-                fx - fy + inv(fz),
+                fx - fy + reciprocal(fz),
                 (fx, fy, fz),
                 (fxv, fyv, fzv),
                 1,

@@ -22,13 +22,13 @@ from aesara.tensor.math import (
     clip,
     dot,
     floor,
-    inv,
     log,
     max_and_argmax,
     mean,
     minimum,
     mod,
     prod,
+    reciprocal,
     sqrt,
 )
 from aesara.tensor.math import sum as aet_sum
@@ -1879,7 +1879,7 @@ def test_dnn_batchnorm_train():
                 axes = (0,) + tuple(range(2, ndim))
             x_mean_ref = x.mean(axis=axes, keepdims=True)
             x_var_ref = x.var(axis=axes, keepdims=True)
-            x_invstd_ref = inv(sqrt(x_var_ref + eps))
+            x_invstd_ref = reciprocal(sqrt(x_var_ref + eps))
             scale_ref = aet.addbroadcast(scale, *axes)
             bias_ref = aet.addbroadcast(bias, *axes)
             m = aet.cast(prod(x.shape) / prod(scale.shape), aesara.config.floatX)

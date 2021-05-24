@@ -219,7 +219,7 @@ def test_batch_normalization_train():
                 axes2 = axes
             x_mean2 = x.mean(axis=axes2, keepdims=True)
             x_var2 = x.var(axis=axes2, keepdims=True)
-            x_invstd2 = aet.inv(aet.sqrt(x_var2 + eps))
+            x_invstd2 = aet.reciprocal(aet.sqrt(x_var2 + eps))
             scale2 = aet.addbroadcast(scale, *axes2)
             bias2 = aet.addbroadcast(bias, *axes2)
             out2 = (x - x_mean2) * (scale2 * x_invstd2) + bias2

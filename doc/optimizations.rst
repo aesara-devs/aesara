@@ -205,7 +205,7 @@ Optimization                                              o4             o3  o2 
         recognize them. Some examples include:
         * ``pow(x,2)`` -> ``x**2``
         * ``pow(x,0)`` -> ``ones_like(x)``
-        * ``pow(x, -0.5)`` -> ``inv(sqrt(x))``
+        * ``pow(x, -0.5)`` -> ``reciprocal(sqrt(x))``
 
         See :func:`local_pow_specialize`
 
