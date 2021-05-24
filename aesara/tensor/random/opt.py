@@ -146,11 +146,11 @@ def local_dimshuffle_rv_lift(fgraph, node):
 
     ds_reps_new_dims = dim_orders[:reps_ind_split_idx]
     ds_ind_new_dims = dim_orders[reps_ind_split_idx:]
-    ds_only_in_ind = ds_ind_new_dims and all(
+    ds_in_ind_space = ds_ind_new_dims and all(
         d >= reps_ind_split_idx for n, d in ds_ind_new_dims
     )
 
-    if ds_only_in_ind:
+    if ds_in_ind_space or (not ds_ind_new_dims and not ds_reps_new_dims):
 
         # Update the `size` array to reflect the `DimShuffle`d dimensions,
         # since the trailing dimensions in `size` represent the independent
@@ -163,10 +163,15 @@ def local_dimshuffle_rv_lift(fgraph, node):
 
         # Compute the new axes parameter(s) for the `DimShuffle` that will be
         # applied to the `RandomVariable` parameters (they need to be offset)
-        rv_params_new_order = [
-            d - reps_ind_split_idx if isinstance(d, int) else d
-            for d in ds_new_order[ds_ind_new_dims[0][0] :]
-        ]
+        if ds_ind_new_dims:
+            rv_params_new_order = [
+                d - reps_ind_split_idx if isinstance(d, int) else d
+                for d in ds_new_order[ds_ind_new_dims[0][0] :]
+            ]
+        else:
+            # This case is reached when, for example, `ds_new_order` only
+            # consists of new broadcastable dimensions (i.e. `"x"`s)
+            rv_params_new_order = ds_new_order
 
         # Lift the `DimShuffle`s into the parameters
         # NOTE: The parameters might not be broadcasted against each other, so
@@ -192,11 +197,11 @@ def local_dimshuffle_rv_lift(fgraph, node):
 
         return [new_node.outputs[1]]
 
-    ds_only_in_reps = ds_reps_new_dims and all(
+    ds_in_reps_space = ds_reps_new_dims and all(
         d < reps_ind_split_idx for n, d in ds_reps_new_dims
     )
 
-    if ds_only_in_reps:
+    if ds_in_reps_space:
         # Update the `size` array to reflect the `DimShuffle`d dimensions.
         # There should be no need to `DimShuffle` now.
         new_size = [
