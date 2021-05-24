@@ -46,7 +46,6 @@ from aesara.scalar.basic import (
     int8,
     int32,
     ints,
-    inv,
     invert,
     log,
     log1p,
@@ -55,6 +54,7 @@ from aesara.scalar.basic import (
     mul,
     neq,
     rad2deg,
+    reciprocal,
     sin,
     sinh,
     sqrt,
@@ -281,7 +281,7 @@ class TestUpgradeToFloat:
     # at least float32, not float16.
 
     unary_ops_vals = [
-        (inv, list(range(-127, 0)) + list(range(1, 127))),
+        (reciprocal, list(range(-127, 0)) + list(range(1, 127))),
         (sqrt, list(range(0, 128))),
         (log, list(range(1, 128))),
         (log2, list(range(1, 128))),

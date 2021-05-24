@@ -3385,7 +3385,7 @@ def dnn_batch_normalization_train(
         axes = 0 if mode == 'per-activation' else (0, 2, 3)
         mean = inputs.mean(axes, keepdims=True)
         var = inputs.var(axes, keepdims=True)
-        invstd = aet.inv(aet.sqrt(var + epsilon))
+        invstd = aet.reciprocal(aet.sqrt(var + epsilon))
         out = (inputs - mean) * gamma * invstd + beta
 
         m = aet.cast(aet.prod(inputs.shape) / aet.prod(mean.shape), 'float32')

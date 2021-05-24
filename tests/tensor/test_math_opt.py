@@ -52,7 +52,6 @@ from aesara.tensor.math import (
     ge,
     gt,
     int_div,
-    inv,
     invert,
     iround,
     le,
@@ -67,7 +66,7 @@ from aesara.tensor.math import maximum
 from aesara.tensor.math import min as aet_min
 from aesara.tensor.math import minimum, mul, neg, neq
 from aesara.tensor.math import pow as aet_pow
-from aesara.tensor.math import prod, rad2deg
+from aesara.tensor.math import prod, rad2deg, reciprocal
 from aesara.tensor.math import round as aet_round
 from aesara.tensor.math import sgn, sigmoid, sin, sinh, sqr, sqrt, sub
 from aesara.tensor.math import sum as aet_sum
@@ -595,9 +594,9 @@ class TestAlgebraicCanonize:
                 ((fv / fy) / fv, [fv, fy], [fvv, fyv], 1, "float32"),
                 # must broadcast as their is a dimshuffle in the computation
                 ((dx / dv) / dx, [dx, dv], [dxv, dvv], 1, "float64"),
-                # topo: [Shape_i, Shape_i, Elemwise{inv,no_inplace}(<TensorType(float64, row)>), Alloc]
+                # topo: [Shape_i, Shape_i, Elemwise{reciprocal,no_inplace}(<TensorType(float64, row)>), Alloc]
                 ((fx / fv) / fx, [fx, fv], [fxv, fvv], 1, "float32"),
-                # topo: [Shape_i, Shape_i, Elemwise{inv,no_inplace}(<TensorType(float32, row)>), Alloc]
+                # topo: [Shape_i, Shape_i, Elemwise{reciprocal,no_inplace}(<TensorType(float32, row)>), Alloc]
             ]
         ):
             f = function(list(sym_inputs), g, mode=mode)
@@ -609,7 +608,7 @@ class TestAlgebraicCanonize:
             assert isinstance(elem[0].op, (Elemwise,))
             assert isinstance(
                 elem[0].op.scalar_op,
-                (aes.basic.Inv, aes.basic.TrueDiv),
+                (aes.basic.Reciprocal, aes.basic.TrueDiv),
             )
             assert out_dtype == out.dtype
 
@@ -912,7 +911,7 @@ class TestAlgebraicCanonize:
             topo = f.maker.fgraph.toposort()
             assert len(topo) == 2
             assert isinstance(topo[0].op, (Elemwise,))
-            assert isinstance(topo[0].op.scalar_op, aes.basic.Inv)
+            assert isinstance(topo[0].op.scalar_op, aes.basic.Reciprocal)
             assert len(topo[0].inputs) == 1
             assert out_dtype == out.dtype
 
@@ -927,7 +926,7 @@ class TestAlgebraicCanonize:
             topo = f.maker.fgraph.toposort()
             assert len(topo) == 2
             assert isinstance(topo[0].op, (Elemwise,))
-            assert isinstance(topo[0].op.scalar_op, aes.basic.Inv)
+            assert isinstance(topo[0].op.scalar_op, aes.basic.Reciprocal)
             assert len(topo[0].inputs) == 1
             assert out_dtype == out.dtype
 
@@ -1545,7 +1544,7 @@ class TestFusion:
                 "float32",
             ),
             (
-                fx - fy + inv(fz),
+                fx - fy + reciprocal(fz),
                 (fx, fy, fz),
                 (fxv, fyv, fzv),
                 1,
@@ -2360,7 +2359,7 @@ def test_local_pow_specialize():
 
     f = function([v], v ** (-1), mode=mode)
     nodes = [node.op for node in f.maker.fgraph.toposort()]
-    assert nodes == [inv]
+    assert nodes == [reciprocal]
     utt.assert_allclose(f(val_no0), val_no0 ** (-1))
 
     f = function([v], v ** 2, mode=mode)
@@ -2372,7 +2371,7 @@ def test_local_pow_specialize():
     nodes = [node.op for node in f.maker.fgraph.toposort()]
     assert len(nodes) == 2
     assert nodes[0] == sqr
-    assert isinstance(nodes[1].scalar_op, aes.basic.Inv)
+    assert isinstance(nodes[1].scalar_op, aes.basic.Reciprocal)
     utt.assert_allclose(f(val_no0), val_no0 ** (-2))
 
     f = function([v], v ** (0.5), mode=mode)
@@ -2384,7 +2383,7 @@ def test_local_pow_specialize():
     nodes = [node.op for node in f.maker.fgraph.toposort()]
     assert len(nodes) == 2
     assert nodes[0] == sqrt
-    assert isinstance(nodes[1].scalar_op, aes.basic.Inv)
+    assert isinstance(nodes[1].scalar_op, aes.basic.Reciprocal)
     utt.assert_allclose(f(val_no0), val_no0 ** (-0.5))
 
 
@@ -2410,7 +2409,7 @@ def test_local_pow_specialize_device_more_aggressive_on_cpu():
     assert len(nodes) == 2
     assert len(f.maker.fgraph.toposort()[0].op.scalar_op.fgraph.apply_nodes) == 6
     assert isinstance(nodes[0].scalar_op, aes.Composite)
-    assert isinstance(nodes[-1].scalar_op, aes.basic.Inv)
+    assert isinstance(nodes[-1].scalar_op, aes.basic.Reciprocal)
     utt.assert_allclose(f(val_no0), val_no0 ** (-15))
 
     f = function([v], v ** (16), mode=mode)
@@ -2425,7 +2424,7 @@ def test_local_pow_specialize_device_more_aggressive_on_cpu():
     assert len(nodes) == 2
     assert len(f.maker.fgraph.toposort()[0].op.scalar_op.fgraph.apply_nodes) == 4
     assert isinstance(nodes[0].scalar_op, aes.Composite)
-    assert isinstance(nodes[-1].scalar_op, aes.basic.Inv)
+    assert isinstance(nodes[-1].scalar_op, aes.basic.Reciprocal)
     utt.assert_allclose(f(val_no0), val_no0 ** (-16))
 
 
@@ -2475,7 +2474,7 @@ class TestFuncInverse:
         self.assert_func_pair_optimized(cosh, arccosh, dx)
         self.assert_func_pair_optimized(arcsinh, sinh, dx)
         self.assert_func_pair_optimized(arctanh, tanh, dx)
-        self.assert_func_pair_optimized(inv, inv, dx)
+        self.assert_func_pair_optimized(reciprocal, reciprocal, dx)
         self.assert_func_pair_optimized(neg, neg, dx)
         cx = dx + complex(0, 1) * (dx + 0.01)
         self.assert_func_pair_optimized(conj, conj, cx, is_complex=True)
@@ -2826,12 +2825,13 @@ class TestLocalErfc:
     def test_local_log_erfc(self):
         val = [-30, -27, -26, -11, -10, -3, -2, -1, 0, 1, 2, 3, 10, 11, 26, 27, 28, 30]
         if config.mode in ["DebugMode", "DEBUG_MODE", "FAST_COMPILE"]:
-            # python mode don't like the inv(0)
+            # python mode doesn't like the reciprocal(0)
             val.remove(0)
         val = np.asarray(val, dtype=config.floatX)
         x = vector("x")
 
-        # their is some nan that will happear in the graph for the log of the negatives values
+        # their are some `nan`s that will appear in the graph due to the logs
+        # of negatives values
         mode = copy.copy(self.mode)
         mode.check_isfinite = False
         mode_fusion = copy.copy(self.mode_fusion)
@@ -3761,7 +3761,8 @@ def test_local_add_specialize():
     assert transformed[0].type == s.type
 
 
-def test_local_div_to_inv():
+def test_local_div_to_reciprocal():
+    # XXX TODO: This does *not* test `local_div_to_reciprocal`!
     num_len_s = lscalar("num_len")
     denom_s = scalar("denom")
 

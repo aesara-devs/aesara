@@ -840,7 +840,7 @@ _grad_broadcast_binary_normal = dict(
     # complex3=(rand(2,3),randcomplex(2,3)),
 )
 
-_good_inv = dict(
+_good_reciprocal = dict(
     normal=[5 * rand_nonzero((2, 3))],
     integers=[randint_nonzero(2, 3)],
     int8=[np.array(list(range(-127, 0)) + list(range(1, 127)), dtype="int8")],
@@ -850,14 +850,15 @@ _good_inv = dict(
     empty=[np.asarray([], dtype=config.floatX)],
 )
 
-_good_inv_inplace = copymod(
-    _good_inv, without=["integers", "int8", "uint8", "uint16", "complex"]
+_good_reciprocal_inplace = copymod(
+    _good_reciprocal, without=["integers", "int8", "uint8", "uint16", "complex"]
 )
-_grad_inv = copymod(
-    _good_inv, without=["integers", "int8", "uint8", "uint16", "complex", "empty"]
+_grad_reciprocal = copymod(
+    _good_reciprocal,
+    without=["integers", "int8", "uint8", "uint16", "complex", "empty"],
 )
 
-_bad_runtime_inv = dict(
+_bad_runtime_reciprocal = dict(
     float=[np.zeros((2, 3))],
     integers=[np.zeros((2, 3), dtype="int64")],
     int8=[np.zeros((2, 3), dtype="int8")],

@@ -74,7 +74,6 @@ from aesara.tensor.math import (
     expm1,
     ge,
     int_div,
-    inv,
     log,
     log1p,
     makeKeepDims,
@@ -82,7 +81,7 @@ from aesara.tensor.math import (
 from aesara.tensor.math import max as aet_max
 from aesara.tensor.math import maximum, mul, neg
 from aesara.tensor.math import pow as aet_pow
-from aesara.tensor.math import prod, sgn, sigmoid, softplus, sqr, sqrt, sub
+from aesara.tensor.math import prod, reciprocal, sgn, sigmoid, softplus, sqr, sqrt, sub
 from aesara.tensor.math import sum as aet_sum
 from aesara.tensor.math import true_div
 from aesara.tensor.shape import Shape, Shape_i
@@ -206,7 +205,7 @@ def local_func_inv(fgraph, node):
         (aes.Sinh, aes.ArcSinh),
         (aes.Conj, aes.Conj),
         (aes.Neg, aes.Neg),
-        (aes.Inv, aes.Inv),
+        (aes.Reciprocal, aes.Reciprocal),
     )
     x = node.inputs[0]
 
@@ -511,28 +510,29 @@ def local_div_switch_sink(fgraph, node):
 
 
 class AlgebraicCanonizer(LocalOptimizer):
-    r"""
-    Simplification tool. The variable is a local_optimizer. It is best used
-    with a TopoOptimizer in in_to_out order.
+    r"""Simplification tool.
 
-    Usage: AlgebraicCanonizer(main, inverse, reciprocal, calculate)
+    The variable is a ``local_optimizer``. It is best used
+    with a ``TopoOptimizer`` in ``in_to_out`` order.
+
+    Usage: ``AlgebraicCanonizer(main, inverse, reciprocal, calculate)``
 
     Parameters
     ----------
     main
-        A suitable Op class that is commutative, associative and
+        A suitable ``Op`` class that is commutative, associative and
         takes one to an arbitrary number of inputs, e.g. add or
         mul
     inverse
-        An Op class such that inverse(main(x, y), y) == x
-        e.g. sub or true_div
+        An ``Op`` class such that ``inverse(main(x, y), y) == x``
+        e.g. ``sub`` or true_div
     reciprocal
-        A function such that main(x, reciprocal(y)) == inverse(x, y)
-        e.g. neg or inv
+        A function such that ``main(x, reciprocal(y)) == inverse(x, y)``
+        e.g. ``neg`` or ``reciprocal``
     calculate
         Function that takes a list of numpy.ndarray instances
         for the numerator, another list for the denumerator,
-        and calculates inverse(main(\*num), main(\*denum)). It
+        and calculates ``inverse(main(\*num), main(\*denum))``. It
         takes a keyword argument, aslist. If True, the value
         should be returned as a list of one element, unless
         the value is such that value = main(). In that case,
@@ -547,7 +547,7 @@ class AlgebraicCanonizer(LocalOptimizer):
     >>> mul_canonizer = AlgebraicCanonizer(mul, true_div, inv, \\
     ...                                    lambda n, d: prod(n) / prod(d))
 
-    Examples of optimizations mul_canonizer can perform:
+    Examples of optimizations ``mul_canonizer`` can perform:
 
     | x / x -> 1
     | (x * y) / x -> y
@@ -562,10 +562,10 @@ class AlgebraicCanonizer(LocalOptimizer):
 
     """
 
-    def __init__(self, main, inverse, reciprocal, calculate, use_reciprocal=True):
+    def __init__(self, main, inverse_fn, reciprocal_fn, calculate, use_reciprocal=True):
         self.main = main
-        self.inverse = inverse
-        self.reciprocal = reciprocal
+        self.inverse = inverse_fn
+        self.reciprocal = reciprocal_fn
         self.calculate = calculate
         self.use_reciprocal = use_reciprocal
 
@@ -579,11 +579,11 @@ class AlgebraicCanonizer(LocalOptimizer):
 
     def get_num_denum(self, input):
         r"""
-        This extract two lists, num and denum, such that the input is:
-        self.inverse(self.main(\*num), self.main(\*denum)). It returns
-        the two lists in a (num, denum) pair.
+        This extract two lists, ``num`` and ``denum``, such that the input is:
+        ``self.inverse(self.main(\*num), self.main(\*denum))``. It returns
+        the two lists in a ``(num, denum)`` pair.
 
-        For example, for main, inverse and reciprocal = \*, / and inv(),
+        For example, for main, inverse and ``reciprocal = \*, / and inv()``,
 
         | input -> returned value (num, denum)
 
@@ -1013,7 +1013,9 @@ def mul_calculate(num, denum, aslist=False, out_type=None):
     return v
 
 
-local_mul_canonizer = AlgebraicCanonizer(mul, true_div, inv, mul_calculate, False)
+local_mul_canonizer = AlgebraicCanonizer(
+    mul, true_div, reciprocal, mul_calculate, False
+)
 register_canonicalize(local_mul_canonizer, name="local_mul_canonizer")
 
 
@@ -1847,12 +1849,12 @@ register_canonicalize(local_mul_zero)
 
 
 @local_optimizer([true_div])
-def local_div_to_inv(fgraph, node):
+def local_div_to_reciprocal(fgraph, node):
     if node.op == true_div and np.all(
         local_mul_canonizer.get_constant(node.inputs[0]) == 1.0
     ):
         out = node.outputs[0]
-        new_out = inv(local_mul_canonizer.merge_num_denum(node.inputs[1:], []))
+        new_out = reciprocal(local_mul_canonizer.merge_num_denum(node.inputs[1:], []))
         # The ones could have forced upcasting
         if new_out.dtype != out.dtype:
             new_out = cast(new_out, dtype=out.dtype)
@@ -1864,18 +1866,19 @@ def local_div_to_inv(fgraph, node):
         return False
 
 
-register_specialize(local_div_to_inv)
+# TODO: Add this to the canonicalization to reduce redundancy.
+register_specialize(local_div_to_reciprocal)
 
 
-@local_optimizer([inv])
-def local_inv_canon(fgraph, node):
-    if node.op == inv:
+@local_optimizer([reciprocal])
+def local_reciprocal_canon(fgraph, node):
+    if node.op == reciprocal:
         return [aet_pow(node.inputs[0], -1.0)]
     else:
         return False
 
 
-register_canonicalize(local_inv_canon)
+register_canonicalize(local_reciprocal_canon)
 
 
 @local_optimizer([aet_pow])
@@ -1958,11 +1961,11 @@ def local_pow_specialize(fgraph, node):
             if np.all(y == 0.5):
                 rval = [sqrt(xsym)]
             if np.all(y == -0.5):
-                rval = [inv(sqrt(xsym))]
+                rval = [reciprocal(sqrt(xsym))]
             if np.all(y == -1):
-                rval = [inv(xsym)]
+                rval = [reciprocal(xsym)]
             if np.all(y == -2):
-                rval = [inv(sqr(xsym))]
+                rval = [reciprocal(sqr(xsym))]
             if rval:
                 rval[0] = cast(rval[0], odtype)
                 assert rval[0].type == node.outputs[0].type, (rval, node.outputs)
@@ -2032,7 +2035,7 @@ def local_pow_specialize_device(fgraph, node):
                         aes.Composite([pow2_scal[0]], [rval1_scal])
                     ).make_node(xsym)
                 if y < 0:
-                    rval = [inv(rval1)]
+                    rval = [reciprocal(rval1)]
                 else:
                     rval = [rval1]
             if rval:
@@ -2476,7 +2479,7 @@ def attempt_distribution(factor, num, denum, out_type):
 
 @register_canonicalize
 @register_stabilize
-@local_optimizer([mul, true_div, inv])
+@local_optimizer([mul, true_div, reciprocal])
 def local_greedy_distributor(fgraph, node):
     """
     Optimize by reducing the number of multiplications and/or divisions.
@@ -3584,19 +3587,21 @@ def local_sigm_times_exp(fgraph, node):
 
 
 @register_stabilize
-@local_optimizer([inv])
-def local_inv_1_plus_exp(fgraph, node):
-    """
-    1/(1+exp(x)) -> sigm(-x)
+@local_optimizer([reciprocal])
+def local_reciprocal_1_plus_exp(fgraph, node):
+    """``reciprocal(1+exp(x)) -> sigm(-x)``
 
+    TODO: This is redundant; we can just decided on *one* canonical form
+    for division (e.g. either `true_div` or `reciprocal`) and have this
+    taken care of with existing rewrites.
     """
     # this optimization should be done for numerical stability
     # so we don't care to check client counts
-    if node.op == inv:
-        inv_arg = node.inputs[0]
-        if inv_arg.owner and inv_arg.owner.op == add:
+    if node.op == reciprocal:
+        reciprocal_arg = node.inputs[0]
+        if reciprocal_arg.owner and reciprocal_arg.owner.op == add:
             scalars_, scalar_inputs, nonconsts = scalarconsts_rest(
-                inv_arg.owner.inputs, only_process_constants=True
+                reciprocal_arg.owner.inputs, only_process_constants=True
             )
             # scalar_inputs are potentially dimshuffled and fill'd scalars
             if len(nonconsts) == 1:
@@ -3608,9 +3613,11 @@ def local_inv_1_plus_exp(fgraph, node):
                         )
                         # keep combined stack traces of
                         #     exp(x):           nonconsts[0],
-                        #     1 + exp(x):       inv_arg,
+                        #     1 + exp(x):       reciprocal_arg,
                         #     1 / (1 + exp(x)): node.outputs[0]
-                        copy_stack_trace([nonconsts[0], inv_arg, node.outputs[0]], out)
+                        copy_stack_trace(
+                            [nonconsts[0], reciprocal_arg, node.outputs[0]], out
+                        )
                         return out
 
 

@@ -1543,7 +1543,7 @@ class ProfileStats:
             aes.Cast,
             aes.Sgn,
             aes.Neg,
-            aes.Inv,
+            aes.Reciprocal,
             aes.Sqr,
         ]
         scalar_op_amdlibm_speed_up = [

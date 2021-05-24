@@ -79,7 +79,7 @@ def neg_inplace(a):
 
 
 @scalar_elemwise
-def inv_inplace(a):
+def reciprocal_inplace(a):
     """1.0/a (inplace on a)"""
 
 
