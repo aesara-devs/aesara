@@ -76,24 +76,27 @@ def lift_rv_shapes(node):
 
 @local_optimizer([DimShuffle])
 def local_dimshuffle_rv_lift(fgraph, node):
-    """Lift `DimShuffle`s through `RandomVariable` `Op`s.
+    """Lift a ``DimShuffle`` through ``RandomVariable`` inputs.
 
     For example, ``normal(mu, std).T == normal(mu.T, std.T)``.
 
-    The basic idea behind this optimization is that we need to separate the
-    `DimShuffle`ing into independent `DimShuffle`s that each occur in two
-    distinct sub-spaces: the parameters and ``size`` (i.e. replications)
-    sub-spaces.
+    The basic idea behind this rewrite is that we need to separate the
+    ``DimShuffle``-ing into distinct ``DimShuffle``s that each occur in two
+    distinct sub-spaces: the (set of independent) parameters and ``size``
+    (i.e. replications) sub-spaces.
 
-    If a `DimShuffle` exchanges dimensions across those two sub-spaces, then we
+    If a ``DimShuffle`` exchanges dimensions across those two sub-spaces, then we
     don't do anything.
 
-    Otherwise, if the `DimShuffle` only exchanges dimensions within each of
+    Otherwise, if the ``DimShuffle`` only exchanges dimensions within each of
     those sub-spaces, we can break it apart and apply the parameter-space
-    `DimShuffle` to the `RandomVariable`'s distribution parameters, and the
-    apply the replications-space `DimShuffle` to the `RandomVariable`'s``size``
-    tuple.  The latter is a particularly simple rearranging of a tuple, but the
-    former requires a little more work.
+    ``DimShuffle`` to the distribution parameters, and then apply the
+    replications-space ``DimShuffle`` to the ``size`` tuple.  The latter is a
+    particularly simple rearranging of a tuple, but the former requires a
+    little more work.
+
+    TODO: Currently, multivariate support for this rewrite is disabled.
+
     """
 
     ds_op = node.op
@@ -132,7 +135,7 @@ def local_dimshuffle_rv_lift(fgraph, node):
 
     # If the indices in `ds_new_order` are entirely within the replication
     # indices group or the independent variates indices group, then we can apply
-    # this optimization.
+    # this rewrite.
 
     ds_new_order = ds_op.new_order
     # Create a map from old index order to new/`DimShuffled` index order
@@ -212,28 +215,29 @@ def local_dimshuffle_rv_lift(fgraph, node):
 
 @local_optimizer([Subtensor, AdvancedSubtensor1, AdvancedSubtensor])
 def local_subtensor_rv_lift(fgraph, node):
-    """Lift ``*Subtensor`` `Op`s up to a `RandomVariable`'s parameters.
+    """Lift a ``*Subtensor`` through ``RandomVariable`` inputs.
 
-    In a fashion similar to `local_dimshuffle_rv_lift`, the indexed dimensions
+    In a fashion similar to ``local_dimshuffle_rv_lift``, the indexed dimensions
     need to be separated into distinct replication-space and (independent)
     parameter-space ``*Subtensor``s.
 
     The replication-space ``*Subtensor`` can be used to determine a
     sub/super-set of the replication-space and, thus, a "smaller"/"larger"
     ``size`` tuple.  The parameter-space ``*Subtensor`` is simply lifted and
-    applied to the `RandomVariable`'s distribution parameters.
+    applied to the distribution parameters.
 
     Consider the following example graph:
     ``normal(mu, std, size=(d1, d2, d3))[idx1, idx2, idx3]``.  The
-    ``*Subtensor`` `Op` requests indices ``idx1``, ``idx2``, and ``idx3``,
+    ``*Subtensor`` ``Op`` requests indices ``idx1``, ``idx2``, and ``idx3``,
     which correspond to all three ``size`` dimensions.  Now, depending on the
-    broadcasted dimensions of ``mu`` and ``std``, this ``*Subtensor`` `Op`
-    could be reducing the ``size`` parameter and/or subsetting the independent
+    broadcasted dimensions of ``mu`` and ``std``, this ``*Subtensor`` ``Op``
+    could be reducing the ``size`` parameter and/or sub-setting the independent
     ``mu`` and ``std`` parameters.  Only once the dimensions are properly
     separated into the two replication/parameter subspaces can we determine how
     the ``*Subtensor`` indices are distributed.
     For instance, ``normal(mu, std, size=(d1, d2, d3))[idx1, idx2, idx3]``
-    could become ``normal(mu[idx1], std[idx2], size=np.shape(idx1) + np.shape(idx2) + np.shape(idx3))``
+    could become
+    ``normal(mu[idx1], std[idx2], size=np.shape(idx1) + np.shape(idx2) + np.shape(idx3))``
     if ``mu.shape == std.shape == ()``
 
     ``normal`` is a rather simple case, because it's univariate.  Multivariate
@@ -242,10 +246,7 @@ def local_subtensor_rv_lift(fgraph, node):
     distributions it is.  For example, the dimensions of the multivariate
     normal's image can be mapped directly to each dimension of its parameters.
     We use these mappings to change a graph like ``multivariate_normal(mu, Sigma)[idx1]``
-    into ``multivariate_normal(mu[idx1], Sigma[idx1, idx1])``.  Notice how
-
-    Also, there's the important matter of "advanced" indexing, which may not
-    only subset an array, but also broadcast it to a larger size.
+    into ``multivariate_normal(mu[idx1], Sigma[idx1, idx1])``.
 
     """
 
