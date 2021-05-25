@@ -40,19 +40,21 @@ optdb.register(
 )
 
 
-def lift_rv_shapes(node):
-    """Lift `RandomVariable`'s shape-related parameters.
+@local_optimizer(tracks=None)
+def local_rv_size_lift(fgraph, node):
+    """Lift the ``size`` parameter in a ``RandomVariable``.
 
-    In other words, this will broadcast the distribution parameters and
-    extra dimensions added by the `size` parameter.
+    In other words, this will broadcast the distribution parameters by adding
+    the extra dimensions implied by the ``size`` parameter, and remove the
+    ``size`` parameter in the process.
 
-    For example, ``normal([0.0, 1.0], 5.0, size=(3, 2))`` becomes
-    ``normal([[0., 1.], [0., 1.], [0., 1.]], [[5., 5.], [5., 5.], [5., 5.]])``.
+    For example, ``normal(0, 1, size=(1, 2))`` becomes
+    ``normal([[0, 0]], [[1, 1]], size=())``.
 
     """
 
     if not isinstance(node.op, RandomVariable):
-        return False
+        return
 
     rng, size, dtype, *dist_params = node.inputs
 
@@ -65,13 +67,15 @@ def lift_rv_shapes(node):
             )
             for p in dist_params
         ]
+    else:
+        return
 
     new_node = node.op.make_node(rng, None, dtype, *dist_params)
 
     if config.compute_test_value != "off":
         compute_test_value(new_node)
 
-    return new_node
+    return new_node.outputs
 
 
 @local_optimizer([DimShuffle])
