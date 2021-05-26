@@ -104,8 +104,7 @@ class BadThunkOutput(DebugModeError):
 
     def str_diagnostic(self):
         """
-        Return a pretty multiline string representing the cause of
-        the exception.
+        Return a pretty multiline string representing the cause of the exception.
 
         """
         sio = StringIO()
@@ -347,8 +346,7 @@ class InvalidValueError(DebugModeError):
 
 
 def str_diagnostic(expected, value, rtol, atol):
-    """Return a pretty multiline string representing the cause
-    of the exception"""
+    """Return a pretty multiline string representing the cause of the exception."""
     sio = StringIO()
 
     try:

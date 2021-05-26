@@ -25,7 +25,7 @@ class ReplacementDidNotRemoveError(Exception):
     """
     This exception should be thrown by replace_all_validate_remove
     when an optimization wanted to remove a Variable or a Node from
-    the graph, but the replacement it gived didn't do that.
+    the graph, but the replacement it gave didn't do that.
 
     """
 
@@ -153,9 +153,7 @@ class BadOptimization(Exception):
 
     def str_diagnostic(self):
         """
-        Return a pretty multiline string representating the cause
-        of the exception.
-
+        Return a pretty multiline string representing the cause of the exception.
         """
         # We have a pre-made message
         if getattr(self, "full_err", None) is not None:

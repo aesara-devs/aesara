@@ -33,7 +33,7 @@ Unit Testing revolves around the following principles:
 This page is in no way meant to replace tutorials on Python's unittest
 module, for this we refer the reader to the `official documentation
 <http://docs.python.org/library/unittest.html>`_.  We will however
-adress certain specificities about how unittests relate to aesara.
+address certain specifics about how unittests relate to aesara.
 
 PyTest Primer
 ===============
