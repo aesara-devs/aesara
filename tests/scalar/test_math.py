@@ -3,7 +3,7 @@ import numpy as np
 import aesara.tensor as aet
 from aesara.graph.fg import FunctionGraph
 from aesara.link.c.basic import CLinker
-from aesara.scalar.basic_scipy import gammainc, gammaincc, gammal, gammau
+from aesara.scalar.math import gammainc, gammaincc, gammal, gammau
 
 
 def test_gammainc_nan():

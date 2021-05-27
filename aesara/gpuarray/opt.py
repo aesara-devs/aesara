@@ -163,7 +163,7 @@ from aesara.ifelse import IfElse
 from aesara.link.c.basic import CLinker
 from aesara.misc.ordered_set import OrderedSet
 from aesara.scalar.basic import Cast, Pow, Scalar, log, neg, true_div
-from aesara.scalar.basic_scipy import Erfcinv, Erfinv
+from aesara.scalar.math import Erfcinv, Erfinv
 from aesara.scan.op import Scan
 from aesara.scan.opt import ScanInplaceOptimizer
 from aesara.tensor.basic import (

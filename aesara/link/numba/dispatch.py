@@ -35,7 +35,7 @@ from aesara.scalar.basic import (
     ScalarOp,
     Second,
 )
-from aesara.scalar.basic_scipy import Softplus
+from aesara.scalar.math import Softplus
 from aesara.tensor.basic import (
     Alloc,
     AllocDiag,

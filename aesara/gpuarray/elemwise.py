@@ -10,7 +10,7 @@ from aesara.graph.utils import MethodNotDefined
 from aesara.link.c.interface import HideC
 from aesara.scalar import Composite, Scalar
 from aesara.scalar.basic import complex_types, upgrade_to_float_no_complex
-from aesara.scalar.basic_scipy import Erfcinv, Erfinv
+from aesara.scalar.math import Erfcinv, Erfinv
 from aesara.tensor.elemwise import CAReduceDtype, DimShuffle, Elemwise
 
 

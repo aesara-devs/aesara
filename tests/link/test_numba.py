@@ -8,7 +8,7 @@ import pytest
 
 import aesara.scalar as aes
 import aesara.scalar.basic as aesb
-import aesara.scalar.basic_scipy as aes_sci
+import aesara.scalar.math as aesm
 import aesara.tensor as aet
 import aesara.tensor.basic as aetb
 import aesara.tensor.math as aem
@@ -1816,7 +1816,7 @@ def test_LogSoftmax(x, exc):
     ],
 )
 def test_Softplus(x, exc):
-    g = aes_sci.Softplus(aes.upgrade_to_float)(x)
+    g = aesm.Softplus(aes.upgrade_to_float)(x)
     g_fg = FunctionGraph(outputs=[g])
 
     cm = contextlib.suppress() if exc is None else pytest.warns(exc)
