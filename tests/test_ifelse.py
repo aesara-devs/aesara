@@ -520,6 +520,17 @@ class TestIfelse(utt.OptimizationTestMixin):
         loss = ifelse(correct, 0, 1)
         [(param, param - 0.5 * aesara.grad(cost=loss, wrt=param)) for param in params]
 
+    def test_str(self):
+        x = vector("x", dtype=self.dtype)
+        y = vector("y", dtype=self.dtype)
+        c = iscalar("c")
+        res = ifelse(c, x, y)
+        assert str(res.owner).startswith("if{}")
+        res.owner.op.name = "name"
+        res.owner.op.as_view = True
+        res.owner.op.gpu = True
+        assert str(res.owner).startswith("if{name,inplace,gpu}")
+
 
 class IfElseIfElseIf(Op):
     def __init__(self, inplace=False):

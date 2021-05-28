@@ -107,7 +107,7 @@ class IfElse(_NoPythonOp):
             args.append("inplace")
         if self.gpu:
             args.append("gpu")
-        return "if{{{','.join(args)}}}"
+        return f"if{{{','.join(args)}}}"
 
     def infer_shape(self, fgraph, node, inputs_shapes):
         # By construction, corresponding then/else pairs have the same number
