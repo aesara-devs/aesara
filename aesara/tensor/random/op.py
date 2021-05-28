@@ -190,15 +190,14 @@ class RandomVariable(Op):
 
         size_len = get_vector_length(size)
 
-        if self.ndim_supp == 0 and size_len > 0:
-            # In this case, we have a univariate distribution with a non-empty
-            # `size` parameter, which means that the `size` parameter
-            # completely determines the shape of the random variable.  More
-            # importantly, the `size` parameter may be the only correct source
-            # of information for the output shape, in that we would be misled
-            # by the `dist_params` if we tried to infer the relevant parts of
-            # the output shape from those.
-            return size
+        if size_len > 0:
+            if self.ndim_supp == 0:
+                return size
+            else:
+                supp_shape = self._shape_from_params(
+                    dist_params, param_shapes=param_shapes
+                )
+                return tuple(size) + tuple(supp_shape)
 
         # Broadcast the parameters
         param_shapes = params_broadcast_shapes(
@@ -307,19 +306,19 @@ class RandomVariable(Op):
             Existing Aesara `Generator` or `RandomState` object to be used.  Creates a
             new one, if `None`.
         size: int or Sequence
-            Numpy-like size of the output (i.e. replications).
+            NumPy-like size parameter.
         dtype: str
             The dtype of the sampled output.  If the value ``"floatX"`` is
-            given, then ``dtype`` is set to ``aesara.config.floatX``.  This
-            value is only used when `self.dtype` isn't set.
+            given, then `dtype` is set to ``aesara.config.floatX``.  This value is
+            only used when ``self.dtype`` isn't set.
         dist_params: list
             Distribution parameters.
 
         Results
         -------
-        out: `Apply`
-            A node with inputs `(rng, size, dtype) + dist_args` and outputs
-            `(rng_var, out_var)`.
+        out: Apply
+            A node with inputs ``(rng, size, dtype) + dist_args`` and outputs
+            ``(rng_var, out_var)``.
 
         """
         size = normalize_size_param(size)

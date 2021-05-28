@@ -534,7 +534,7 @@ def mvnormal_test_fn(mean=None, cov=None, size=None, random_state=None):
                     np.eye(3, dtype=config.floatX) * 10.0,
                 ]
             ),
-            [2, 3],
+            [2, 3, 2],
         ),
         (
             np.array([[0, 1, 2], [4, 5, 6]], dtype=config.floatX),
@@ -551,12 +551,12 @@ def mvnormal_test_fn(mean=None, cov=None, size=None, random_state=None):
                     np.eye(3, dtype=config.floatX) * 10.0,
                 ]
             ),
-            [2, 3],
+            [2, 3, 2, 2],
         ),
         (
             np.array([[0], [10], [100]], dtype=config.floatX),
             np.eye(1, dtype=config.floatX) * 1e-6,
-            [2, 3],
+            [2, 3, 3],
         ),
     ],
 )
@@ -566,6 +566,11 @@ def test_mvnormal_samples(mu, cov, size):
 
 def test_mvnormal_default_args():
     rv_numpy_tester(multivariate_normal, test_fn=mvnormal_test_fn)
+
+    with pytest.raises(ValueError, match="shape mismatch.*"):
+        multivariate_normal.rng_fn(
+            None, np.zeros((1, 2)), np.ones((1, 2, 2)), size=(4,)
+        )
 
 
 @config.change_flags(compute_test_value="raise")
@@ -596,11 +601,10 @@ def test_mvnormal_ShapeFeature():
     cov = at.as_tensor(test_covar).type()
     cov.tag.test_value = test_covar
 
-    d_rv = multivariate_normal(mean, cov, size=[2, 3])
+    d_rv = multivariate_normal(mean, cov, size=[2, 3, 2])
 
     fg = FunctionGraph(
-        [i for i in graph_inputs([d_rv]) if not isinstance(i, Constant)],
-        [d_rv],
+        outputs=[d_rv],
         clone=False,
         features=[ShapeFeature()],
     )
@@ -617,10 +621,13 @@ def test_mvnormal_ShapeFeature():
     "alphas, size",
     [
         (np.array([[100, 1, 1], [1, 100, 1], [1, 1, 100]], dtype=config.floatX), None),
-        (np.array([[100, 1, 1], [1, 100, 1], [1, 1, 100]], dtype=config.floatX), 10),
         (
             np.array([[100, 1, 1], [1, 100, 1], [1, 1, 100]], dtype=config.floatX),
-            (10, 2),
+            (10, 3),
+        ),
+        (
+            np.array([[100, 1, 1], [1, 100, 1], [1, 1, 100]], dtype=config.floatX),
+            (10, 2, 3),
         ),
     ],
 )
@@ -631,6 +638,15 @@ def test_dirichlet_samples(alphas, size):
         return dirichlet.rng_fn(random_state, alphas, size)
 
     rv_numpy_tester(dirichlet, alphas, size=size, test_fn=dirichlet_test_fn)
+
+
+def test_dirichlet_rng():
+    alphas = np.array([[100, 1, 1], [1, 100, 1], [1, 1, 100]], dtype=config.floatX)
+
+    with pytest.raises(ValueError, match="shape mismatch.*"):
+        # The independent dimension's shape is missing from size (i.e. should
+        # be `(10, 2, 3)`)
+        dirichlet.rng_fn(None, alphas, size=(10, 2))
 
 
 M_at = iscalar("M")
@@ -644,8 +660,8 @@ M_at.tag.test_value = 3
         (at.ones((M_at,)), (M_at + 1,)),
         (at.ones((M_at,)), (2, M_at)),
         (at.ones((M_at, M_at + 1)), ()),
-        (at.ones((M_at, M_at + 1)), (M_at + 2,)),
-        (at.ones((M_at, M_at + 1)), (2, M_at + 2, M_at + 3)),
+        (at.ones((M_at, M_at + 1)), (M_at + 2, M_at)),
+        (at.ones((M_at, M_at + 1)), (2, M_at + 2, M_at + 3, M_at)),
     ],
 )
 def test_dirichlet_infer_shape(M, size):
@@ -684,8 +700,7 @@ def test_dirichlet_ShapeFeature():
     d_rv = dirichlet(at.ones((M_at, N_at)), name="Gamma")
 
     fg = FunctionGraph(
-        [i for i in graph_inputs([d_rv]) if not isinstance(i, Constant)],
-        [d_rv],
+        outputs=[d_rv],
         clone=False,
         features=[ShapeFeature()],
     )
@@ -1092,7 +1107,7 @@ def test_betabinom_samples(M, a, p, size):
         (
             np.array([10, 20], dtype=np.int64),
             np.array([[0.999, 0.001], [0.001, 0.999]], dtype=config.floatX),
-            (3,),
+            (3, 2),
             lambda *args, **kwargs: np.stack([np.array([[10, 0], [0, 20]])] * 3),
         ),
     ],
@@ -1107,6 +1122,16 @@ def test_multinomial_samples(M, p, size, test_fn):
         test_fn=test_fn,
         rng=rng,
     )
+
+
+def test_multinomial_rng():
+    test_M = np.array([10, 20], dtype=np.int64)
+    test_p = np.array([[0.999, 0.001], [0.001, 0.999]], dtype=config.floatX)
+
+    with pytest.raises(ValueError, match="shape mismatch.*"):
+        # The independent dimension's shape is missing from size (i.e. should
+        # be `(1, 2)`)
+        multinomial.rng_fn(None, test_M, test_p, size=(1,))
 
 
 @pytest.mark.parametrize(
