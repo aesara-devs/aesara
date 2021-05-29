@@ -119,7 +119,8 @@ def local_dimshuffle_rv_lift(fgraph, node):
     # If no one else is using the underlying `RandomVariable`, then we can
     # do this; otherwise, the graph would be internally inconsistent.
     if not all(
-        (n == node or isinstance(n.op, Shape)) for n, i in fgraph.clients[base_rv]
+        (n == node or isinstance(n.op, Shape))
+        for n, i in fgraph.clients.get(base_rv, ())
     ):
         return False
 
@@ -273,7 +274,8 @@ def local_subtensor_rv_lift(fgraph, node):
     # If no one else is using the underlying `RandomVariable`, then we can
     # do this; otherwise, the graph would be internally inconsistent.
     if not all(
-        (n == node or isinstance(n.op, Shape)) for n, i in fgraph.clients[base_rv]
+        (n == node or isinstance(n.op, Shape))
+        for n, i in fgraph.clients.get(base_rv, ())
     ):
         return False
 
