@@ -164,7 +164,7 @@ class RandomVariable(Op):
     def __str__(self):
         return "{}_rv".format(self.name)
 
-    def _infer_shape(self, size, dist_params, param_shapes=None):
+    def _infer_shape(self, size, dist_params, param_shapes=None, rep_param_idx=0):
         """Compute the output shape given the size and distribution parameters.
 
         Parameters
@@ -178,6 +178,8 @@ class RandomVariable(Op):
             via `Op.infer_shape`'s `input_shapes` argument.  This parameter's
             values are essentially more accurate versions of ``[d.shape for d
             in dist_params]``.
+        rep_param_idx: int, optional
+            The index of the distribution parameter to use as a reference
 
         Outputs
         -------
@@ -253,8 +255,7 @@ class RandomVariable(Op):
             ndim_reps = len(shape_reps)
         else:
             shape_supp = self._shape_from_params(
-                dist_params,
-                param_shapes=param_shapes,
+                dist_params, param_shapes=param_shapes, rep_param_idx=rep_param_idx
             )
 
             ndim_reps = size_len
@@ -273,7 +274,7 @@ class RandomVariable(Op):
         return shape
 
     @config.change_flags(compute_test_value="off")
-    def compute_bcast(self, dist_params, size):
+    def compute_bcast(self, dist_params, size, rep_param_idx=0):
         """Compute the broadcast array for this distribution's `TensorType`.
 
         Parameters
@@ -282,9 +283,11 @@ class RandomVariable(Op):
             Distribution parameters.
         size: int or Sequence (optional)
             Numpy-like size of the output (i.e. replications).
+        rep_param_idx: int, optional
+            The index of the distribution parameter to use as a reference
 
         """
-        shape = self._infer_shape(size, dist_params)
+        shape = self._infer_shape(size, dist_params, rep_param_idx=rep_param_idx)
 
         # Ignore `Cast`s, since they do not affect broadcastables
         if getattr(shape, "owner", None) and (
@@ -327,7 +330,7 @@ class RandomVariable(Op):
 
         return res
 
-    def make_node(self, rng, size, dtype, *dist_params):
+    def make_node(self, rng, size, dtype, *dist_params, **broadcast_kwargs):
         """Create a random variable node.
 
         XXX: Unnamed/non-keyword arguments are considered distribution
@@ -347,6 +350,8 @@ class RandomVariable(Op):
             value is only used when `self.dtype` isn't set.
         dist_params: list
             Distribution parameters.
+        broadcast_kwargs: dict
+            Keyword arguments for inferring distribution shape.
 
         Results
         -------
@@ -367,7 +372,8 @@ class RandomVariable(Op):
         elif not isinstance(rng.type, RandomStateType):
             raise TypeError("The type of rng should be an instance of RandomStateType")
 
-        bcast = self.compute_bcast(dist_params, size)
+        rep_param_idx = broadcast_kwargs.get("rep_param_idx", 0)
+        bcast = self.compute_bcast(dist_params, size, rep_param_idx=rep_param_idx)
         dtype = self.dtype or dtype
 
         if dtype == "floatX":
