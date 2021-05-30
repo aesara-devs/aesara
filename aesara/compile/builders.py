@@ -817,9 +817,7 @@ class OpFromGraph(Op):
         variables = self.fn(*inputs)
         assert len(variables) == len(outputs)
         for output, variable in zip(outputs, variables):
-            # TODO: when function's output-borrowing semantics are correct,
-            # we wont need this copy anymore
-            output[0] = variable.copy()
+            output[0] = variable
 
 
 @local_optimizer([OpFromGraph])
