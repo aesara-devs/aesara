@@ -8,7 +8,11 @@ from aesara.compile.builders import OpFromGraph
 from aesara.compile.function import function
 from aesara.configdefaults import config
 from aesara.gradient import DisconnectedType, Rop, disconnected_type, grad
+from aesara.graph.fg import FunctionGraph
 from aesara.graph.null_type import NullType
+from aesara.graph.opt_utils import optimize_graph
+from aesara.tensor.basic import as_tensor
+from aesara.tensor.basic_opt import ShapeOptimizer
 from aesara.tensor.math import dot, exp
 from aesara.tensor.math import round as aet_round
 from aesara.tensor.math import sigmoid
@@ -16,6 +20,7 @@ from aesara.tensor.math import sum as aet_sum
 from aesara.tensor.random.utils import RandomStream
 from aesara.tensor.type import TensorType, matrices, matrix, scalar, vector, vectors
 from tests import unittest_tools
+from tests.graph.utils import MyVariable
 
 
 class TestOpFromGraph(unittest_tools.InferShapeTester):
@@ -399,6 +404,22 @@ class TestOpFromGraph(unittest_tools.InferShapeTester):
             ],
             OpFromGraph,
         )
+
+        # Make sure `OpFromGraph.infer_shape` can handle objects without a
+        # shape
+        x = MyVariable("x")
+        y = matrix("y")
+        z = as_tensor([1, 2])
+
+        op_graph = OpFromGraph([x, y, z], [x, y])
+
+        op_var = op_graph(x, y, z)
+
+        fg = FunctionGraph(outputs=[op_var[1]], clone=False)
+        opt_res = optimize_graph(fg, custom_opt=ShapeOptimizer())
+
+        assert opt_res.shape_feature.shape_of[x] is None
+        assert opt_res.shape_feature.shape_of[z][0].data == 2
 
     @config.change_flags(compute_test_value="raise")
     def test_compute_test_value(self):

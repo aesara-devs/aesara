@@ -1,7 +1,6 @@
 """Define new Ops from existing Ops"""
-
 from collections import OrderedDict
-from functools import partial, reduce
+from functools import partial
 
 import aesara.tensor as aet
 from aesara.compile.function.pfunc import rebuild_collect_shared
@@ -781,23 +780,29 @@ class OpFromGraph(Op):
 
     def infer_shape(self, fgraph, node, shapes):
 
-        out_shp = infer_shape(self.local_outputs, self.local_inputs, shapes)
+        # TODO: Use `fgraph.shape_feature` to do this instead.
+        out_shapes = infer_shape(self.local_outputs, self.local_inputs, shapes)
 
         # Clone the output shape so that shape are computed from outer inputs.
         # Note:
-        # Here we can do it more simply like:
-        #      ret = [aesara.clone_replace(shp, replace=repl) for shp in out_shp]
-        # But  doing it multiple time could duplicate common subgraph between
+        # Here we could do it more simply like:
+        # `ret = [aesara.clone_replace(shp, replace=repl) for shp in out_shp]`
+        # But doing it multiple time could duplicate common subgraph between
         # each shape call. Aesara optimizer will clean this up later, but this
-        # will ask extra work to the optimizer.
+        # will make extra work for the optimizer.
+
         repl = dict(zip(self.local_inputs, node.inputs))
-        cloned = clone_replace(reduce(tuple.__add__, out_shp), replace=repl)
+        clone_out_shapes = [s for s in out_shapes if isinstance(s, tuple)]
+        cloned = clone_replace(sum(clone_out_shapes, ()), replace=repl)
         ret = []
         used = 0
-        for i in range(len(out_shp)):
-            nb = len(out_shp[i])
-            ret.append(cloned[used : used + nb])
-            used += nb
+        for i, out_shape in enumerate(out_shapes):
+            if out_shape is None:
+                ret.append(None)
+            else:
+                nb = len(out_shape)
+                ret.append(cloned[used : used + nb])
+                used += nb
 
         return ret
 
