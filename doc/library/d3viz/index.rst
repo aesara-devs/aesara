@@ -63,7 +63,7 @@ hidden layer and a softmax output layer.
     x = aet.dmatrix('x')
     wh = th.shared(rng.normal(0, 1, (nfeatures, nhiddens)), borrow=True)
     bh = th.shared(np.zeros(nhiddens), borrow=True)
-    h = aet.nnet.sigmoid(aet.dot(x, wh) + bh)
+    h = aet.sigmoid(aet.dot(x, wh) + bh)
 
     wy = th.shared(rng.normal(0, 1, (nhiddens, noutputs)))
     by = th.shared(np.zeros(noutputs), borrow=True)
@@ -211,7 +211,7 @@ node defines a nested graph, which will be visualized accordingly by ``d3viz``.
 .. code:: python
 
     x, y, z = aet.scalars('xyz')
-    e = aet.nnet.sigmoid((x + y + z)**2)
+    e = aet.sigmoid((x + y + z)**2)
     op = th.compile.builders.OpFromGraph([x, y, z], [e])
 
     e2 = op(x, y, z) + op(z, y, x)
