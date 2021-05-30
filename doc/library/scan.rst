@@ -276,9 +276,9 @@ the following:
    trng = aesara.tensor.random.utils.RandomStream(1234)
 
    def OneStep(vsample) :
-       hmean = aet.nnet.sigmoid(aesara.dot(vsample, W) + bhid)
+       hmean = aet.sigmoid(aesara.dot(vsample, W) + bhid)
        hsample = trng.binomial(size=hmean.shape, n=1, p=hmean)
-       vmean = aet.nnet.sigmoid(aesara.dot(hsample, W.T) + bvis)
+       vmean = aet.sigmoid(aesara.dot(hsample, W.T) + bvis)
        return trng.binomial(size=vsample.shape, n=1, p=vmean,
                             dtype=aesara.config.floatX)
 
@@ -358,9 +358,9 @@ updated:
 
     # OneStep, with explicit use of the shared variables (W, bvis, bhid)
     def OneStep(vsample, W, bvis, bhid):
-        hmean = aet.nnet.sigmoid(aesara.dot(vsample, W) + bhid)
+        hmean = aet.sigmoid(aesara.dot(vsample, W) + bhid)
         hsample = trng.binomial(size=hmean.shape, n=1, p=hmean)
-        vmean = aet.nnet.sigmoid(aesara.dot(hsample, W.T) + bvis)
+        vmean = aet.sigmoid(aesara.dot(hsample, W.T) + bvis)
         return trng.binomial(size=vsample.shape, n=1, p=vmean,
                          dtype=aesara.config.floatX)
 
@@ -394,9 +394,9 @@ Using the original Gibbs sampling example, with ``strict=True`` added to the
 
     # Same OneStep as in original example.
     def OneStep(vsample) :
-        hmean = aet.nnet.sigmoid(aesara.dot(vsample, W) + bhid)
+        hmean = aet.sigmoid(aesara.dot(vsample, W) + bhid)
         hsample = trng.binomial(size=hmean.shape, n=1, p=hmean)
-        vmean = aet.nnet.sigmoid(aesara.dot(hsample, W.T) + bvis)
+        vmean = aet.sigmoid(aesara.dot(hsample, W.T) + bvis)
         return trng.binomial(size=vsample.shape, n=1, p=vmean,
                              dtype=aesara.config.floatX)
 
@@ -423,9 +423,9 @@ variables passed explicitly to ``OneStep`` and to scan:
 
     # OneStep, with explicit use of the shared variables (W, bvis, bhid)
     def OneStep(vsample, W, bvis, bhid) :
-        hmean = aet.nnet.sigmoid(aesara.dot(vsample, W) + bhid)
+        hmean = aet.sigmoid(aesara.dot(vsample, W) + bhid)
         hsample = trng.binomial(size=hmean.shape, n=1, p=hmean)
-        vmean = aet.nnet.sigmoid(aesara.dot(hsample, W.T) + bvis)
+        vmean = aet.sigmoid(aesara.dot(hsample, W.T) + bvis)
         return trng.binomial(size=vsample.shape, n=1, p=vmean,
                              dtype=aesara.config.floatX)
 

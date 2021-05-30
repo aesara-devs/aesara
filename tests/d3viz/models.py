@@ -20,7 +20,7 @@ class Mlp:
         x = dmatrix("x")
         wh = shared(self.rng.normal(0, 1, (nfeatures, nhiddens)), borrow=True)
         bh = shared(np.zeros(nhiddens), borrow=True)
-        h = aet.nnet.sigmoid(aet.dot(x, wh) + bh)
+        h = aet.sigmoid(aet.dot(x, wh) + bh)
 
         wy = shared(self.rng.normal(0, 1, (nhiddens, noutputs)))
         by = shared(np.zeros(noutputs), borrow=True)
@@ -46,7 +46,7 @@ class OfgNested:
 class Ofg:
     def __init__(self):
         x, y, z = scalars("xyz")
-        e = aet.nnet.sigmoid((x + y + z) ** 2)
+        e = aet.sigmoid((x + y + z) ** 2)
         op = OpFromGraph([x, y, z], [e])
         e2 = op(x, y, z) + op(z, y, x)
 
@@ -57,7 +57,7 @@ class Ofg:
 class OfgSimple:
     def __init__(self):
         x, y, z = scalars("xyz")
-        e = aet.nnet.sigmoid((x + y + z) ** 2)
+        e = aet.sigmoid((x + y + z) ** 2)
         op = OpFromGraph([x, y, z], [e])
         e2 = op(x, y, z)
 
