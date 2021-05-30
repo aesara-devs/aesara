@@ -54,7 +54,7 @@
 
        x, y, b = aet.dvectors('x', 'y', 'b')
        W = aet.dmatrix('W')
-       y = aet.nnet.sigmoid(aet.dot(W, x) + b)
+       y = aet.sigmoid(aet.dot(W, x) + b)
 
    .. note:: The underlying code will return an exact 0 or 1 if an
       element of x is too small or too big.
@@ -174,8 +174,8 @@
        x, y, b, c = aet.dvectors('x', 'y', 'b', 'c')
        W = aet.dmatrix('W')
        V = aet.dmatrix('V')
-       h = aet.nnet.sigmoid(aet.dot(W, x) + b)
-       x_recons = aet.nnet.sigmoid(aet.dot(V, h) + c)
+       h = aet.sigmoid(aet.dot(W, x) + b)
+       x_recons = aet.sigmoid(aet.dot(V, h) + c)
        recon_cost = aet.nnet.binary_crossentropy(x_recons, x).mean()
 
 .. function:: sigmoid_binary_crossentropy(output,target)
@@ -203,11 +203,11 @@
        x, y, b, c = aet.dvectors('x', 'y', 'b', 'c')
        W = aet.dmatrix('W')
        V = aet.dmatrix('V')
-       h = aet.nnet.sigmoid(aet.dot(W, x) + b)
+       h = aet.sigmoid(aet.dot(W, x) + b)
        x_precons = aet.dot(V, h) + c
        # final reconstructions are given by sigmoid(x_precons), but we leave
        # them unnormalized as sigmoid_binary_crossentropy applies sigmoid
-       recon_cost = aet.nnet.sigmoid_binary_crossentropy(x_precons, x).mean()
+       recon_cost = aet.sigmoid_binary_crossentropy(x_precons, x).mean()
 
 .. function:: categorical_crossentropy(coding_dist,true_dist)
 
