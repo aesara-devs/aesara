@@ -7,11 +7,11 @@ from functools import reduce
 
 import numpy as np
 
-import aesara
 from aesara.compile import Function, builders
 from aesara.graph.basic import Apply, Constant, Variable, graph_inputs
 from aesara.graph.fg import FunctionGraph
 from aesara.printing import pydot_imported, pydot_imported_msg
+from aesara.tensor.sharedvar import TensorSharedVariable
 
 
 try:
@@ -175,7 +175,7 @@ class PyDotFormatter:
                     }
                     if isinstance(var, Constant):
                         vparams["node_type"] = "constant_input"
-                    elif isinstance(var, aesara.tensor.sharedvar.TensorSharedVariable):
+                    elif isinstance(var, TensorSharedVariable):
                         vparams["node_type"] = "shared_input"
                     vparams["dtype"] = type_to_str(var.type)
                     vparams["tag"] = var_tag(var)

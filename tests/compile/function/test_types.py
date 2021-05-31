@@ -6,7 +6,6 @@ import time
 import numpy as np
 import pytest
 
-import aesara.gpuarray
 import aesara.tensor as aet
 from aesara.compile import shared
 from aesara.compile.debugmode import DebugMode, InvalidValueError
@@ -15,7 +14,7 @@ from aesara.compile.function.types import UnusedInputError
 from aesara.compile.io import In, Out
 from aesara.compile.mode import Mode, get_default_mode
 from aesara.configdefaults import config
-from aesara.gpuarray import gpuarray_shared_constructor
+from aesara.gpuarray import gpuarray_shared_constructor, pygpu_activated
 from aesara.gpuarray.blas import GpuGemm
 from aesara.graph.basic import Constant
 from aesara.graph.fg import MissingInputError
@@ -1151,7 +1150,7 @@ def test_empty_givens_updates():
 
 
 @pytest.mark.skipif(
-    not aesara.gpuarray.pygpu_activated or config.mode == "DEBUG_MODE",
+    not pygpu_activated or config.mode == "DEBUG_MODE",
     reason="DEBUG_MODE forces synchronous behaviour which breaks this test",
 )
 def test_sync_update():

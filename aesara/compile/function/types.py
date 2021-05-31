@@ -15,12 +15,14 @@ from typing import List
 
 import numpy as np
 
-import aesara
-import aesara.compile.profiling
+from aesara import gpuarray
+from aesara.compile import profiling
 from aesara.compile.compilelock import lock_ctx
 from aesara.compile.io import In, SymbolicInput, SymbolicOutput
+from aesara.compile.mode import get_mode, predefined_linkers
 from aesara.compile.ops import deep_copy_op, view_op
 from aesara.configdefaults import config
+from aesara.gpuarray import pygpu_activated
 from aesara.graph.basic import (
     Constant,
     Variable,
@@ -36,7 +38,10 @@ from aesara.graph.op import ops_with_inner_function
 from aesara.graph.opt_utils import is_same_graph
 from aesara.graph.utils import get_variable_trace_string
 from aesara.link.basic import Container
+from aesara.link.c.basic import get_module_cache
+from aesara.link.c.cmodule import import_time
 from aesara.link.utils import raise_with_op
+from aesara.tensor.sharedvar import SharedVariable
 
 
 _logger = logging.getLogger("aesara.compile.function.types")
@@ -615,7 +620,6 @@ class Function:
                 1. same type
                 2. same shape or dim?
             """
-            SharedVariable = aesara.tensor.sharedvar.SharedVariable
             assert isinstance(sv_ori, SharedVariable), (
                 "Key of swap should be SharedVariable, given:",
                 sv_ori,
@@ -736,10 +740,10 @@ class Function:
                 message = name
             else:
                 message = str(profile.message) + " copy"
-            profile = aesara.compile.profiling.ProfileStats(message=message)
+            profile = profiling.ProfileStats(message=message)
             # profile -> object
         elif type(profile) == str:
-            profile = aesara.compile.profiling.ProfileStats(message=profile)
+            profile = profiling.ProfileStats(message=profile)
 
         f_cpy = maker.__class__(
             inputs=ins,
@@ -1043,7 +1047,7 @@ class Function:
         #
 
         dt_call = time.time() - t0
-        aesara.compile.profiling.total_fct_exec_time += dt_call
+        profiling.total_fct_exec_time += dt_call
         self.maker.mode.call_time += dt_call
         if profile:
             profile.fct_callcount += 1
@@ -1108,7 +1112,7 @@ class Function:
         return [i.variable for i in self.maker.inputs if i.implicit]
 
     def sync_shared(self):
-        if hasattr(aesara, "gpuarray") and aesara.gpuarray.pygpu_activated:
+        if gpuarray and pygpu_activated:
             import pygpu
 
             for i in self.maker.fgraph.update_mapping.values():
@@ -1533,7 +1537,7 @@ class FunctionMaker:
         # function and it get re-compiled, we want the current optimizer to be
         # used, not the optimizer when it was saved.
         self.mode = mode
-        mode = aesara.compile.mode.get_mode(mode)
+        mode = get_mode(mode)
 
         # Assert old way of working isn't used
         if getattr(mode, "profile", None):
@@ -1547,7 +1551,7 @@ class FunctionMaker:
             #    too much execution time during testing as we compile
             #    much more functions then the number of compile c
             #    module.
-            aesara.link.c.basic.get_module_cache().refresh()
+            get_module_cache().refresh()
         # Handle the case where inputs and/or outputs is a single
         # Variable (not in a list)
         unpack_single = False
@@ -1629,7 +1633,7 @@ class FunctionMaker:
                     end_optimizer = time.time()
                     opt_time = end_optimizer - start_optimizer
 
-                aesara.compile.profiling.total_graph_opt_time += opt_time
+                profiling.total_graph_opt_time += opt_time
 
                 if profile:
                     if optimizer_profile is None and hasattr(optimizer, "pre_profile"):
@@ -1654,7 +1658,7 @@ class FunctionMaker:
         if not hasattr(linker, "accept"):
             raise ValueError(
                 "'linker' parameter of FunctionMaker should be "
-                f"a Linker with an accept method or one of {list(aesara.compile.mode.predefined_linkers.keys())}"
+                f"a Linker with an accept method or one of {list(predefined_linkers.keys())}"
             )
 
         # the 'no_borrow' outputs are the ones for which that we can't
@@ -1832,7 +1836,7 @@ class FunctionMaker:
 
         # Get a function instance
         start_linker = time.time()
-        start_import_time = aesara.link.c.cmodule.import_time
+        start_import_time = import_time
 
         with config.change_flags(traceback__limit=config.traceback__compile_limit):
             _fn, _i, _o = self.linker.make_thunk(
@@ -1842,13 +1846,13 @@ class FunctionMaker:
         end_linker = time.time()
 
         linker_time = end_linker - start_linker
-        aesara.compile.profiling.total_time_linker += linker_time
+        profiling.total_time_linker += linker_time
         _logger.debug(f"Linker took {linker_time:f} seconds")
         if self.profile:
             self.profile.linker_time += linker_time
             _fn.time_thunks = self.profile.flag_time_thunks
-            import_time = aesara.link.c.cmodule.import_time - start_import_time
-            self.profile.import_time += import_time
+            import_time_delta = import_time - start_import_time
+            self.profile.import_time += import_time_delta
 
         fn = self.function_builder(
             _fn,
@@ -1953,7 +1957,7 @@ def orig_function(
     # instance if necessary:
 
     t1 = time.time()
-    mode = aesara.compile.mode.get_mode(mode)
+    mode = get_mode(mode)
 
     inputs = list(map(convert_function_input, inputs))
     if outputs is not None:
