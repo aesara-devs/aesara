@@ -91,7 +91,6 @@ class RandomVariable(Op):
 
     __props__ = ("name", "ndim_supp", "ndims_params", "dtype", "inplace")
     default_output = 1
-    nondeterministic = True
 
     def __init__(
         self,
@@ -162,7 +161,8 @@ class RandomVariable(Op):
         return getattr(np.random.RandomState, self.name)(rng, *args, **kwargs)
 
     def __str__(self):
-        return "{}_rv".format(self.name)
+        props_str = ", ".join((f"{getattr(self, prop)}" for prop in self.__props__[1:]))
+        return f"{self.name}_rv{{{props_str}}}"
 
     def _infer_shape(self, size, dist_params, param_shapes=None):
         """Compute the output shape given the size and distribution parameters.
