@@ -42,12 +42,12 @@ def test_RandomVariable_basics():
             "normal",
             0,
             [0, 0],
-            config.floatX,
+            "float32",
             inplace=True,
         )
     )
 
-    assert str_res == "normal_rv"
+    assert str_res == "normal_rv{0, (0, 0), float32, True}"
 
     # `ndims_params` should be a `Sequence` type
     with raises(TypeError, match="^Parameter ndims_params*"):
