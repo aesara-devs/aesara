@@ -445,7 +445,7 @@ class DefaultOrderedDict(OrderedDict):
             args = tuple()
         else:
             args = (self.default_factory,)
-        return type(self), args, None, None, list(self.items())
+        return type(self), args, None, None, iter(self.items())
 
     def copy(self):
         return self.__copy__()
