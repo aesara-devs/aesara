@@ -207,6 +207,7 @@ class NanGuardMode(Mode):
         big_is_error=None,
         optimizer="default",
         linker=None,
+        db=None,
     ):
         self.provided_optimizer = optimizer
         if nan_is_error is None:
@@ -298,4 +299,4 @@ class NanGuardMode(Mode):
         wrap_linker = aesara.link.vm.VMLinker(
             callback=nan_check, callback_input=nan_check_input
         )
-        super().__init__(wrap_linker, optimizer=self.provided_optimizer)
+        super().__init__(linker=wrap_linker, optimizer=self.provided_optimizer, db=db)

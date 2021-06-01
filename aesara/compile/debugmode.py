@@ -2669,6 +2669,7 @@ class DebugMode(Mode):
         check_preallocated_output=None,
         require_matching_strides=None,
         linker=None,
+        db=None,
     ):
         """
         If any of these arguments (except optimizer) is not None, it overrides
@@ -2685,7 +2686,7 @@ class DebugMode(Mode):
                 linker,
             )
 
-        super().__init__(optimizer=optimizer, linker=linker)
+        super().__init__(optimizer=optimizer, linker=linker, db=db)
 
         if stability_patience is not None:
             self.stability_patience = stability_patience
