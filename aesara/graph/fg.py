@@ -143,6 +143,7 @@ class FunctionGraph(MetaObject):
         # outputs even if they aren't used in the graph.
         self.variables = set()
 
+        self.inputs = []
         self.outputs = list(outputs)
         self.clients = {}
 
@@ -151,7 +152,6 @@ class FunctionGraph(MetaObject):
 
         self.attach_feature(ReplaceValidate())
 
-        self.inputs = []
         for in_var in inputs:
             if in_var.owner is not None:
                 raise ValueError(
