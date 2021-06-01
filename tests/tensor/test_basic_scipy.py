@@ -645,3 +645,8 @@ class TestSoftplus:
         y_th = aet.softplus(x_test).eval()
         y_np = np.log1p(np.exp(x_test))
         np.testing.assert_allclose(y_th, y_np, rtol=10e-10)
+
+
+def test_deprecated_module():
+    with pytest.warns(DeprecationWarning):
+        import aesara.scalar.basic_scipy  # noqa: F401
