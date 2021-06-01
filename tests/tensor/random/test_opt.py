@@ -65,20 +65,17 @@ def apply_local_opt_to_rv(opt, op_fn, dist_op, dist_params, size, rng):
 def test_inplace_optimization():
 
     out = normal(0, 1)
+    out.owner.inputs[0].default_update = out.owner.outputs[0]
 
     assert out.owner.op.inplace is False
-
-    inplace_mode = Mode(
-        "py", OptimizationQuery(include=["random_make_inplace"], exclude=[])
-    )
 
     f = function(
         [],
         out,
-        mode=inplace_mode,
+        mode="FAST_RUN",
     )
 
-    (new_out,) = f.maker.fgraph.outputs
+    (new_out, new_rng) = f.maker.fgraph.outputs
     assert new_out.type == out.type
     assert isinstance(new_out.owner.op, type(out.owner.op))
     assert new_out.owner.op.inplace is True
