@@ -19,7 +19,7 @@ from aesara.tensor.subtensor import (
 )
 
 
-@local_optimizer([RandomVariable])
+@local_optimizer([RandomVariable], inplace=True)
 def random_make_inplace(fgraph, node):
     op = node.op
 
