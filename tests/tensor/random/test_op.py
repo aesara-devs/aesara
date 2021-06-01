@@ -88,7 +88,7 @@ def test_RandomVariable_basics():
     )
 
     assert rv.inplace
-    assert rv.destroy_map == {0: [3]}
+    assert rv.destroy_map == {0: [0]}
 
     # A no-params `RandomVariable`
     rv = RandomVariable(name="test_rv", ndim_supp=0, ndims_params=())
