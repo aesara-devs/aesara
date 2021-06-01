@@ -4,9 +4,13 @@ from io import StringIO
 
 import numpy as np
 
-import aesara
+from aesara import function
 from aesara.compile.mode import Mode, get_mode
 from aesara.configdefaults import config
+from aesara.graph.type import _cdata_type
+from aesara.graph.utils import get_variable_trace_string
+from aesara.link.vm import VMLinker
+from aesara.printing import debugprint
 from aesara.tensor.math import abs_
 from aesara.tensor.math import max as aet_max
 from aesara.tensor.math import min as aet_min
@@ -42,7 +46,7 @@ def _is_numeric_value(arr, var):
         `True` the value is non-numeric.
 
     """
-    if isinstance(arr, aesara.graph.type._cdata_type):
+    if isinstance(arr, _cdata_type):
         return False
     elif isinstance(arr, np.random.mtrand.RandomState):
         return False
@@ -164,7 +168,7 @@ def f_compute(op):
         if f is None:
             guard_in = GpuArrayType(str(dtype), (False,), context_name=ctx_name)()
             mode = get_mode("FAST_RUN").including("gpuarray")
-            f = aesara.function([guard_in], op(guard_in), mode=mode, profile=False)
+            f = function([guard_in], op(guard_in), mode=mode, profile=False)
             result.cache[key] = f
         return f(inp)
 
@@ -263,7 +267,7 @@ class NanGuardMode(Mode):
                         "output of a node in this variable:",
                         file=sio,
                     )
-                    print(aesara.printing.debugprint(nd, file="str"), file=sio)
+                    print(debugprint(nd, file="str"), file=sio)
                 else:
                     print(
                         "NanGuardMode found an error in an input of the " "graph.",
@@ -272,7 +276,7 @@ class NanGuardMode(Mode):
                 # Add the stack trace
                 if nd:
                     var = nd.outputs[0]
-                print(aesara.graph.utils.get_variable_trace_string(var), file=sio)
+                print(get_variable_trace_string(var), file=sio)
                 msg = sio.getvalue()
                 if config.NanGuardMode__action == "raise":
                     raise AssertionError(msg)
@@ -295,7 +299,5 @@ class NanGuardMode(Mode):
             if getattr(var.tag, "nan_guard_mode_check", True):
                 do_check_on(value, None, var=var)
 
-        wrap_linker = aesara.link.vm.VMLinker(
-            callback=nan_check, callback_input=nan_check_input
-        )
+        wrap_linker = VMLinker(callback=nan_check, callback_input=nan_check_input)
         super().__init__(wrap_linker, optimizer=self.provided_optimizer)

@@ -103,7 +103,7 @@ if (
     or config.init_gpu_device.startswith("opencl")
     or config.contexts != ""
 ):
-    import aesara.gpuarray
+    from aesara import gpuarray
 
 
 def get_scalar_constant_value(v):

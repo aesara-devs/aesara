@@ -1,4 +1,3 @@
-import aesara
 from aesara.compile import optdb
 from aesara.gpuarray.basic_ops import (
     CGpuKernelBase,
@@ -9,12 +8,15 @@ from aesara.gpuarray.basic_ops import (
     infer_context_name,
 )
 from aesara.gpuarray.opt_util import inplace_allocempty
+from aesara.gradient import DisconnectedType
 from aesara.graph.basic import Apply
 from aesara.graph.op import _NoPythonCOp
 from aesara.graph.opt import LocalOptGroup, in2out
 from aesara.graph.params_type import ParamsType
 from aesara.scalar import bool as bool_t
+from aesara.scalar import upcast
 from aesara.tensor.basic import as_tensor_variable
+from aesara.tensor.blas.Gemm import E_float, E_mixed
 
 
 try:
@@ -67,7 +69,7 @@ class GpuGemv(BlasOp):
 
         # float16 not supported
         expected = A.dtype
-        assert aesara.scalar.upcast(alpha.dtype, beta.dtype, expected) == expected
+        assert upcast(alpha.dtype, beta.dtype, expected) == expected
         alpha = alpha.astype(expected)
         beta = beta.astype(expected)
         return Apply(self, [y, alpha, A, x, beta], [y.type()])
@@ -183,17 +185,17 @@ class GpuGemm(BlasOp):
 
         if not (A.dtype == B.dtype == C.dtype):
             raise TypeError(
-                aesara.tensor.blas.Gemm.E_mixed,
+                E_mixed,
                 (A.dtype, B.dtype, C.dtype, alpha.dtype, beta.dtype),
             )
         if not A.dtype.startswith("float"):
-            raise TypeError(aesara.tensor.blas.Gemm.E_float, (A.dtype))
+            raise TypeError(E_float, (A.dtype))
 
         if A.dtype == "float16":
             expected = "float32"
         else:
             expected = A.dtype
-        assert aesara.scalar.upcast(alpha.dtype, beta.dtype, expected) == expected
+        assert upcast(alpha.dtype, beta.dtype, expected) == expected
         alpha = alpha.astype(expected)
         beta = beta.astype(expected)
 
@@ -281,7 +283,7 @@ class GpuGer(BlasOp):
                 "ger requires matching dtypes", (A.dtype, alpha.dtype, x.dtype, y.dtype)
             )
 
-        assert aesara.scalar.upcast(alpha.dtype, A.dtype) == A.dtype
+        assert upcast(alpha.dtype, A.dtype) == A.dtype
         alpha = alpha.astype(A.dtype)
         assert alpha.ndim == 0
         assert A.ndim == 2
@@ -1221,9 +1223,7 @@ class GpuCorrMM_gradWeights(BaseGpuCorrMM, _NoPythonCOp):
             self.num_groups,
             self.unshared,
         )(bottom, weights)
-        d_height_width = (
-            (aesara.gradient.DisconnectedType()(),) * 2 if len(inp) == 4 else ()
-        )
+        d_height_width = (DisconnectedType()(),) * 2 if len(inp) == 4 else ()
         return (d_bottom, d_top) + d_height_width
 
     def connection_pattern(self, node):
@@ -1323,9 +1323,7 @@ class GpuCorrMM_gradInputs(BaseGpuCorrMM, _NoPythonCOp):
             self.num_groups,
             self.unshared,
         )(bottom, weights)
-        d_height_width = (
-            (aesara.gradient.DisconnectedType()(),) * 2 if len(inp) == 4 else ()
-        )
+        d_height_width = (DisconnectedType()(),) * 2 if len(inp) == 4 else ()
         return (d_weights, d_top) + d_height_width
 
     def connection_pattern(self, node):
@@ -1956,9 +1954,7 @@ class GpuCorr3dMM_gradWeights(BaseGpuCorr3dMM, _NoPythonCOp):
         d_top = GpuCorr3dMM(
             self.border_mode, self.subsample, self.filter_dilation, self.num_groups
         )(bottom, weights)
-        d_height_width_depth = (
-            (aesara.gradient.DisconnectedType()(),) * 3 if len(inp) == 5 else ()
-        )
+        d_height_width_depth = (DisconnectedType()(),) * 3 if len(inp) == 5 else ()
         return (d_bottom, d_top) + d_height_width_depth
 
     def connection_pattern(self, node):
@@ -2047,9 +2043,7 @@ class GpuCorr3dMM_gradInputs(BaseGpuCorr3dMM, _NoPythonCOp):
         d_top = GpuCorr3dMM(
             self.border_mode, self.subsample, self.filter_dilation, self.num_groups
         )(bottom, weights)
-        d_height_width_depth = (
-            (aesara.gradient.DisconnectedType()(),) * 3 if len(inp) == 5 else ()
-        )
+        d_height_width_depth = (DisconnectedType()(),) * 3 if len(inp) == 5 else ()
         return (d_weights, d_top) + d_height_width_depth
 
     def connection_pattern(self, node):

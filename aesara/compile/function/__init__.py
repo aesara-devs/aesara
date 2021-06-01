@@ -77,9 +77,9 @@ def function_dump(
         on_unused_input=on_unused_input,
     )
     with open(filename, "wb") as f:
-        import aesara.misc.pkl_utils
+        from aesara.misc import pkl_utils
 
-        pickler = aesara.misc.pkl_utils.StripPickler(
+        pickler = pkl_utils.StripPickler(
             f, protocol=-1, extra_tag_to_remove=extra_tag_to_remove
         )
         pickler.dump(d)

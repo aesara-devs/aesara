@@ -10,8 +10,6 @@ import textwrap
 
 import numpy as np
 
-import aesara
-import aesara.configparser
 from aesara.configparser import (
     BoolParam,
     ConfigParam,
@@ -21,6 +19,7 @@ from aesara.configparser import (
     FloatParam,
     IntParam,
     StrParam,
+    _config,
 )
 from aesara.utils import (
     LOCAL_BITWIDTH,
@@ -29,6 +28,7 @@ from aesara.utils import (
     maybe_add_to_os_environ_pathlist,
     output_subprocess_Popen,
 )
+from aesara.version import version as __version__
 
 
 _logger = logging.getLogger("aesara.configdefaults")
@@ -111,7 +111,7 @@ def _filter_mode(val):
     ]
     if val in str_options:
         return val
-    # This can be executed before Aesara is completly imported, so
+    # This can be executed before Aesara is completely imported, so
     # aesara.compile.mode.Mode is not always available.
     # Instead of isinstance(val, aesara.compile.mode.Mode),
     # we can inspect the __mro__ of the object!
@@ -1707,7 +1707,7 @@ _compiledir_format_dict = {
     "python_version": platform.python_version(),
     "python_bitwidth": LOCAL_BITWIDTH,
     "python_int_bitwidth": PYTHON_INT_BITWIDTH,
-    "aesara_version": aesara.__version__,
+    "aesara_version": __version__,
     "numpy_version": np.__version__,
     "gxx_version": "xxx",
     "hostname": socket.gethostname(),
@@ -1832,7 +1832,7 @@ SUPPORTED_DNN_CONV_PRECISION = (
 # `configparser.config` is flooded with deprecation warnings. These warnings
 # instruct one to use `aesara.config`, which is an alias for
 # `aesara.configdefaults.config`.
-config = aesara.configparser._config
+config = _config
 
 # The functions below register config variables into the config instance above.
 add_basic_configvars()

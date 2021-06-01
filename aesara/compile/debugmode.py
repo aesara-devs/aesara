@@ -18,11 +18,11 @@ from warnings import warn
 
 import numpy as np
 
-import aesara
 from aesara.compile.function.types import (
     Function,
     FunctionMaker,
     infer_reuse_pattern,
+    insert_deepcopy,
     std_fgraph,
 )
 from aesara.compile.mode import Mode, register_mode
@@ -36,6 +36,7 @@ from aesara.graph.op import COp, Op, ops_with_inner_function
 from aesara.graph.utils import MethodNotDefined
 from aesara.link.basic import Container, LocalLinker
 from aesara.link.utils import map_storage, raise_with_op
+from aesara.tensor import math
 from aesara.utils import NoDuplicateOptWarningFilter, difference, get_unbound_function
 
 
@@ -402,7 +403,7 @@ def str_diagnostic(expected, value, rtol, atol):
         print(ssio.getvalue(), file=sio)
     except Exception:
         pass
-    atol_, rtol_ = aesara.tensor.math._get_atol_rtol(expected, value)
+    atol_, rtol_ = math._get_atol_rtol(expected, value)
     if rtol is not None:
         rtol_ = rtol
     if atol is not None:
@@ -2441,7 +2442,7 @@ class _Maker(FunctionMaker):  # inheritance buys a few helper functions
             with config.change_flags(compute_test_value=config.compute_test_value_opt):
                 optimizer(fgraph)
 
-                aesara.compile.function.types.insert_deepcopy(
+                insert_deepcopy(
                     fgraph, inputs, list(chain(outputs, additional_outputs))
                 )
 
