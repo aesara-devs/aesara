@@ -146,13 +146,13 @@ class Supervisor:
     def validate(self, fgraph):
         if config.cycle_detection == "fast" and hasattr(fgraph, "has_destroyers"):
             if fgraph.has_destroyers(self.protected):
-                raise InconsistencyError("Trying to destroy a protected" "Variable.")
+                raise InconsistencyError("Trying to destroy protected variables.")
             return True
         if not hasattr(fgraph, "destroyers"):
             return True
         for r in self.protected + list(fgraph.outputs):
             if fgraph.destroyers(r):
-                raise InconsistencyError("Trying to destroy a protected" "Variable.", r)
+                raise InconsistencyError(f"Trying to destroy a protected variable: {r}")
 
 
 def std_fgraph(input_specs, output_specs, accept_inplace=False):
