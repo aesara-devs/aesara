@@ -145,7 +145,7 @@ class RandomVariable(Op):
         self.ndims_params = tuple(self.ndims_params)
 
         if self.inplace:
-            self.destroy_map = {0: [len(self.ndims_params) + 1]}
+            self.destroy_map = {0: [0]}
 
     def _shape_from_params(self, dist_params, **kwargs):
         """Determine the shape of a `RandomVariable`'s output given its parameters.
