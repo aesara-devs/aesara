@@ -157,7 +157,7 @@ class RecordMode(Mode):
         self.record = record
         self.known_fgraphs = set()
 
-    def __init__(self, record=None, **kwargs):
+    def __init__(self, record=None, db=None, **kwargs):
         """
         Takes either a Record object or the keyword arguments to make one.
 
@@ -252,4 +252,4 @@ class RecordMode(Mode):
         linker = VMLinker(use_cloop=bool(config.cxx))
 
         wrap_linker = WrapLinkerMany([linker], [callback])
-        super().__init__(wrap_linker, optimizer="fast_run")
+        super().__init__(linker=wrap_linker, optimizer="fast_run", db=db)

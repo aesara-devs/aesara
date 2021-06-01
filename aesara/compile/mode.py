@@ -5,7 +5,7 @@ WRITEME
 
 import logging
 import warnings
-from typing import Tuple, Union
+from typing import Optional, Tuple, Union
 
 import aesara
 from aesara.compile.function.types import Supervisor
@@ -20,11 +20,12 @@ from aesara.graph.opt import (
 from aesara.graph.optdb import (
     EquilibriumDB,
     LocalGroupDB,
+    OptimizationDatabase,
     OptimizationQuery,
     SequenceDB,
     TopoDB,
 )
-from aesara.link.basic import PerformLinker
+from aesara.link.basic import Linker, PerformLinker
 from aesara.link.c.basic import CLinker, OpWiseCLinker
 from aesara.link.jax.linker import JAXLinker
 from aesara.link.numba.linker import NumbaLinker
@@ -281,12 +282,15 @@ class Mode:
 
     Parameters
     ----------
-    optimizer : a structure of type Optimizer
+    optimizer: a structure of type Optimizer
         An Optimizer may simplify the math, put similar computations together,
         improve numerical stability and various other improvements.
-    linker : a structure of type Linker
+    linker: a structure of type Linker
         A Linker decides which implementations to use (C or Python, for example)
         and how to string them together to perform the computation.
+    db:
+        The ``OptimizationDatabase`` used by this ``Mode``.  Note: This value
+        is *not* part of a ``Mode`` instance's pickled state.
 
     See Also
     --------
@@ -296,12 +300,24 @@ class Mode:
 
     """
 
-    def __init__(self, linker=None, optimizer="default"):
+    def __init__(
+        self,
+        linker: Optional[Union[str, Linker]] = None,
+        optimizer: Union[str, OptimizationQuery] = "default",
+        db: OptimizationDatabase = None,
+    ):
         if linker is None:
             linker = config.linker
         if type(optimizer) == str and optimizer == "default":
             optimizer = config.optimizer
-        Mode.__setstate__(self, (linker, optimizer))
+
+        self.__setstate__((linker, optimizer))
+
+        if db is None:
+            global optdb
+            self.optdb = optdb
+        else:
+            self.optdb = db
 
         # self.provided_optimizer - typically the `optimizer` arg.
         # But if the `optimizer` arg is keyword corresponding to a predefined
@@ -316,7 +332,10 @@ class Mode:
         return (self.provided_linker, self.provided_optimizer)
 
     def __setstate__(self, state):
+        global optdb
+
         linker, optimizer = state
+        self.optdb = optdb
         self.provided_linker = linker
         self.provided_optimizer = optimizer
         if isinstance(linker, str) or linker is None:
@@ -331,15 +350,16 @@ class Mode:
         self.fn_time = 0
 
     def __str__(self):
-        return "{}(linker = {}, optimizer = {})".format(
-            self.__class__.__name__,
-            self.provided_linker,
-            self.provided_optimizer,
+        return (
+            f"{self.__class__.__name__}("
+            f"linker={self.provided_linker}, "
+            f"optimizer={self.provided_optimizer}, "
+            f"optdb={self.optdb})"
         )
 
     def __get_optimizer(self):
         if isinstance(self._optimizer, OptimizationQuery):
-            return optdb.query(self._optimizer)
+            return self.optdb.query(self._optimizer)
         else:
             return self._optimizer
 
