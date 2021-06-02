@@ -595,14 +595,15 @@ def test_many_arg_elemwise():
     # This test checks whether the + and * elemwise ops can handle
     # extremely large numbers of arguments on gpu.
 
-    rng = np.random.RandomState([1, 2, 3])
+    rng = np.random.default_rng([1, 2, 3])
     nb_of_inputs_overflows = []
     for num_args in [64]:
         for op_to_test in [aesara.tensor.add, aesara.tensor.mul]:
             for nb_dim in [2, 8]:
-                shapes = [rng.randint(1, 5) for i in range(nb_dim)]
+                shapes = [rng.integers(1, 5) for i in range(nb_dim)]
                 args = [
-                    np.cast["float32"](rng.randn(*shapes)) for arg in range(0, num_args)
+                    np.cast["float32"](rng.standard_normal(shapes))
+                    for arg in range(0, num_args)
                 ]
 
                 symb_args = [
@@ -645,8 +646,8 @@ def test_not_useless_scalar_gpuelemwise():
 
     with config.change_flags(warn_float64="ignore"):
         X = fmatrix()
-        x = np.random.randn(32, 32).astype(np.float32)
-        m1 = aesara.shared(np.random.randn(32, 32).astype(np.float32))
+        x = np.random.standard_normal((32, 32)).astype(np.float32)
+        m1 = aesara.shared(np.random.standard_normal((32, 32)).astype(np.float32))
         loss = (X - dot(X, m1)).norm(L=2)
         lr = aesara.shared(np.asarray(0.001, dtype=np.float32))
         grad = aesara.grad(loss, m1)
@@ -672,7 +673,7 @@ def test_local_lift_abstractconv_gpu_shape():
 
 
 def test_local_assert_no_cpu_op():
-    rng = np.random.RandomState(utt.fetch_seed())
+    rng = np.random.default_rng(utt.fetch_seed())
     m = rng.uniform(-1, 1, (10, 10)).astype("float32")
     ms = gpuarray_shared_constructor(m, name="m_shared")
     out = tanh(ms).dot(ms.T)
@@ -806,17 +807,17 @@ def test_local_gpua_advanced_incsubtensor():
 def test_batched_dot_lifter():
     # The CPU Op accepts 2D and 3D inputs, as well as mixed dtypes.
     # Make sure the lifter adds the appropriate dimshuffles and casts
-    rng = np.random.RandomState(utt.fetch_seed())
+    rng = np.random.default_rng(utt.fetch_seed())
 
     def randX(*args):
-        return rng.rand(*args).astype(config.floatX)
+        return rng.random(args).astype(config.floatX)
 
     cases = [
         (randX(3, 5, 7), randX(3, 7)),
         (randX(3, 5), randX(3, 5, 7)),
         (randX(3, 5), randX(3, 5)),
-        (rng.rand(3, 5, 7).astype("float32"), randX(3, 7, 9)),
-        (rng.rand(3, 5, 7).astype("float64"), randX(3, 7, 9)),
+        (rng.random((3, 5, 7)).astype("float32"), randX(3, 7, 9)),
+        (rng.random((3, 5, 7)).astype("float64"), randX(3, 7, 9)),
     ]
     for x_val, y_val in cases:
         x = TensorType(broadcastable=[s == 1 for s in x_val.shape], dtype=x_val.dtype)(
@@ -832,7 +833,7 @@ def test_batched_dot_lifter():
 
 
 def test_crossentropycategorical1hot_lifter():
-    rng = np.random.RandomState(utt.fetch_seed())
+    rng = np.random.default_rng(utt.fetch_seed())
     x = matrix()
     y = lvector()
     z = aesara.tensor.nnet.crossentropy_categorical_1hot(x, y)
@@ -850,7 +851,7 @@ def test_crossentropycategorical1hot_lifter():
     )
     f(
         rng.uniform(0.1, 0.9, (13, 5)).astype(config.floatX),
-        rng.randint(5, size=(13,)),
+        rng.integers(5, size=(13,)),
     )
 
 
