@@ -27,7 +27,7 @@ from aesara.tensor.slinalg import Cholesky, cholesky, imported_scipy
 from aesara.tensor.type import fmatrix, matrix, tensor3, vector
 from tests import unittest_tools as utt
 from tests.gpuarray.config import mode_with_gpu, mode_without_gpu
-from tests.gpuarray.test_basic_ops import rand
+from tests.gpuarray.test_basic_ops import random
 
 
 @pytest.mark.skipif(
@@ -149,7 +149,7 @@ class TestCusolver:
         utt.verify_grad(solve_op, [A_val, b_val], 3, rng, eps=eps)
 
     def test_solve_grad(self):
-        rng = np.random.RandomState(utt.fetch_seed())
+        rng = np.random.default_rng(utt.fetch_seed())
         structures = ["general", "lower_triangular", "upper_triangular"]
         for A_structure in structures:
             lower = A_structure == "lower_triangular"
@@ -166,9 +166,6 @@ class TestCusolver:
     reason="Optional package scikits.cuda.cusolver not available",
 )
 class TestGpuCholesky:
-    def setup_method(self):
-        utt.seed_rng()
-
     def get_gpu_cholesky_func(self, lower=True, inplace=False):
         # Helper function to compile function from GPU Cholesky op.
         A = matrix("A", dtype="float32")
@@ -267,9 +264,6 @@ class TestGpuCholesky:
     reason="Optional package scikits.cuda.cusolver not available",
 )
 class TestGpuCholesky64:
-    def setup_method(self):
-        utt.seed_rng()
-
     def get_gpu_cholesky_func(self, lower=True, inplace=False):
         # Helper function to compile function from GPU Cholesky op.
         A = matrix("A", dtype="float64")
@@ -388,18 +382,18 @@ class TestMagma:
 
         fn = aesara.function([A], gpu_matrix_inverse(A), mode=mode_with_gpu)
         N = 1000
-        test_rng = np.random.RandomState(seed=1)
-        # Copied from tests.tensor.utils.rand.
-        A_val = test_rng.rand(N, N).astype("float32") * 2 - 1
+        test_rng = np.random.default_rng(seed=1)
+        # Copied from tests.tensor.utils.random.
+        A_val = test_rng.random((N, N)).astype("float32") * 2 - 1
         A_val_inv = fn(A_val)
         utt.assert_allclose(np.eye(N), np.dot(A_val_inv, A_val), atol=1e-2)
 
     @utt.assertFailure_fast
     def test_gpu_matrix_inverse_inplace(self):
         N = 1000
-        test_rng = np.random.RandomState(seed=1)
+        test_rng = np.random.default_rng(seed=1)
         A_val_gpu = gpuarray_shared_constructor(
-            test_rng.rand(N, N).astype("float32") * 2 - 1
+            test_rng.random((N, N)).astype("float32") * 2 - 1
         )
         A_val_copy = A_val_gpu.get_value()
         A_val_gpu_inv = GpuMagmaMatrixInverse()(A_val_gpu)
@@ -448,7 +442,7 @@ class TestMagma:
         utt.assert_allclose(np.dot(np.dot(U, S_m), VT), A, rtol=rtol, atol=atol)
 
     def test_gpu_svd_wide(self):
-        A = rand(100, 50).astype("float32")
+        A = random(100, 50).astype("float32")
         M, N = A.shape
 
         U, S, VT = self.run_gpu_svd(A)
@@ -463,7 +457,7 @@ class TestMagma:
         self.assert_column_orthonormal(VT.T)
 
     def test_gpu_svd_tall(self):
-        A = rand(50, 100).astype("float32")
+        A = random(50, 100).astype("float32")
         M, N = A.shape
 
         U, S, VT = self.run_gpu_svd(A)
@@ -484,10 +478,10 @@ class TestMagma:
         )
         f_gpu = aesara.function([A], gpu_svd(A, compute_uv=False), mode=mode_with_gpu)
 
-        A_val = rand(50, 100).astype("float32")
+        A_val = random(50, 100).astype("float32")
         utt.assert_allclose(f_cpu(A_val), f_gpu(A_val))
 
-        A_val = rand(100, 50).astype("float32")
+        A_val = random(100, 50).astype("float32")
         utt.assert_allclose(f_cpu(A_val), f_gpu(A_val))
 
     def run_gpu_cholesky(self, A_val, lower=True):
@@ -500,7 +494,7 @@ class TestMagma:
         return f(A_val)
 
     def rand_symmetric(self, N):
-        A = rand(N, N).astype("float32")
+        A = random(N, N).astype("float32")
         # ensure that eigenvalues are not too small which sometimes results in
         # magma cholesky failure due to gpu limited numerical precision
         D, W = np.linalg.eigh(A)
@@ -566,7 +560,7 @@ class TestMagma:
         return fn(A_val)
 
     def check_gpu_qr(self, M, N, complete=True, rtol=None, atol=None):
-        A = rand(M, N).astype("float32")
+        A = random(M, N).astype("float32")
         if complete:
             Q_gpu, R_gpu = self.run_gpu_qr(A, complete=complete)
         else:
@@ -611,7 +605,7 @@ class TestMagma:
         return fn(A_val)
 
     def check_gpu_eigh(self, N, UPLO="L", compute_v=True, rtol=None, atol=None):
-        A = rand(N, N).astype("float32")
+        A = random(N, N).astype("float32")
         A = np.dot(A.T, A)
         d_np, v_np = np.linalg.eigh(A, UPLO=UPLO)
         if compute_v:
@@ -643,8 +637,8 @@ class TestMagma:
 
 # mostly copied from aesara/tensor/tests/test_slinalg.py
 def test_cholesky_grad():
-    rng = np.random.RandomState(utt.fetch_seed())
-    r = rng.randn(5, 5).astype(config.floatX)
+    rng = np.random.default_rng(utt.fetch_seed())
+    r = rng.standard_normal((5, 5)).astype(config.floatX)
 
     # The dots are inside the graph since Cholesky needs separable matrices
 
@@ -681,9 +675,9 @@ def test_lower_triangular_and_cholesky_grad():
         N = 100
     else:
         N = 5
-    rng = np.random.RandomState(utt.fetch_seed())
-    r = rng.randn(N, N).astype(config.floatX)
-    y = rng.rand(N, 1).astype(config.floatX)
+    rng = np.random.default_rng(utt.fetch_seed())
+    r = rng.standard_normal((N, N)).astype(config.floatX)
+    y = rng.random((N, 1)).astype(config.floatX)
 
     def f(r, y):
         PD = r.dot(r.T)

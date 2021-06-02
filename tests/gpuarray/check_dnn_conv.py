@@ -612,7 +612,6 @@ class BaseTestDnnConv:
         return None, None
 
     def __init__(self):
-        utt.seed_rng(1234)
         self.dtype_configs = cudnn.get_supported_dtype_configs(
             check_dtype_config_support
         )
