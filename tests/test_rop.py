@@ -66,16 +66,15 @@ class RopLopChecker:
     """
 
     def setup_method(self):
-        utt.seed_rng()
         # Using vectors make things a lot simpler for generating the same
         # computations using scan
         self.x = vector("x")
         self.v = vector("v")
-        self.rng = np.random.RandomState(utt.fetch_seed())
-        self.in_shape = (5 + self.rng.randint(3),)
+        self.rng = np.random.default_rng(utt.fetch_seed())
+        self.in_shape = (5 + self.rng.integers(3),)
         self.mx = matrix("mx")
         self.mv = matrix("mv")
-        self.mat_in_shape = (5 + self.rng.randint(3), 5 + self.rng.randint(3))
+        self.mat_in_shape = (5 + self.rng.integers(3), 5 + self.rng.integers(3))
 
     def check_nondiff_rop(self, y):
         """
@@ -247,7 +246,7 @@ class TestRopLop(RopLopChecker):
 
     @pytest.mark.slow
     def test_downsample(self):
-        rng = np.random.RandomState(utt.fetch_seed())
+        rng = np.random.default_rng(utt.fetch_seed())
         # ws, shp
         examples = (
             ((2,), (16,)),
@@ -278,8 +277,8 @@ class TestRopLop(RopLopChecker):
 
         for example, ignore_border in itertools.product(examples, [True, False]):
             (ws, shp) = example
-            vx = rng.rand(*shp)
-            vex = rng.rand(*shp)
+            vx = rng.random(shp)
+            vex = rng.random(shp)
 
             x = aesara.shared(vx)
             ex = aesara.shared(vex)
