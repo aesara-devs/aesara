@@ -7,9 +7,6 @@ from tests import unittest_tools as utt
 
 
 class TestXlogX:
-    def setup_method(self):
-        utt.seed_rng()
-
     def test_basic(self):
         x = as_tensor_variable([1, 0])
         y = xlogx(x)
@@ -23,9 +20,6 @@ class TestXlogX:
 
 
 class TestXlogY0:
-    def setup_method(self):
-        utt.seed_rng()
-
     def test_basic(self):
         utt.verify_grad(xlogy0, [numpy.random.rand(3, 4), numpy.random.rand(3, 4)])
 

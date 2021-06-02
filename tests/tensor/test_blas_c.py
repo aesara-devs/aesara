@@ -202,7 +202,7 @@ class TestCGemv(OptimizationTestMixin):
 
     def t_gemv1(self, m_shp):
         """ test vector2 + dot(matrix, vector1) """
-        rng = np.random.RandomState(unittest_tools.fetch_seed())
+        rng = np.random.default_rng(unittest_tools.fetch_seed())
         v1 = aesara.shared(np.array(rng.uniform(size=(m_shp[1],)), dtype="float32"))
         v2_orig = np.array(rng.uniform(size=(m_shp[0],)), dtype="float32")
         v2 = aesara.shared(v2_orig)
@@ -278,9 +278,9 @@ class TestCGemv(OptimizationTestMixin):
         f = aesara.function(
             [x, y, z], [aet.dot(y, x), aet.dot(z, x)], mode=mode_blas_opt
         )
-        vx = np.random.rand(3, 3)
-        vy = np.random.rand(3)
-        vz = np.random.rand(3)
+        vx = np.random.random((3, 3))
+        vy = np.random.random((3))
+        vz = np.random.random((3))
         out = f(vx, vy, vz)
         assert np.allclose(out[0], np.dot(vy, vx))
         assert np.allclose(out[1], np.dot(vz, vx))
@@ -316,9 +316,6 @@ class TestCGemvNoFlags:
     M = 4
     N = 5
     slice_step = 3
-
-    def setup_method(self):
-        unittest_tools.seed_rng()
 
     def get_function(self, dtype, transpose_A=False, slice_tensors=False):
         alpha = scalar(dtype=dtype)

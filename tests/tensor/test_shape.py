@@ -35,7 +35,7 @@ from aesara.tensor.type import (
 from aesara.tensor.type_other import NoneConst
 from aesara.typed_list import make_list
 from tests import unittest_tools as utt
-from tests.tensor.utils import eval_outputs, rand
+from tests.tensor.utils import eval_outputs, random
 from tests.test_rop import RopLopChecker
 
 
@@ -180,7 +180,7 @@ class TestReshape(utt.InferShapeTester, utt.OptimizationTestMixin):
 
     def test_m1(self):
         t = tensor3()
-        rng = np.random.RandomState(seed=utt.fetch_seed())
+        rng = np.random.default_rng(seed=utt.fetch_seed())
         val = rng.uniform(size=(3, 4, 5)).astype(config.floatX)
         for out in [
             t.reshape([-1]),
@@ -198,7 +198,7 @@ class TestReshape(utt.InferShapeTester, utt.OptimizationTestMixin):
     def test_bad_shape(self):
         a = matrix("a")
         shapes = ivector("shapes")
-        rng = np.random.RandomState(seed=utt.fetch_seed())
+        rng = np.random.default_rng(seed=utt.fetch_seed())
         a_val = rng.uniform(size=(3, 4)).astype(config.floatX)
 
         # Test reshape to 1 dim
@@ -237,7 +237,7 @@ class TestReshape(utt.InferShapeTester, utt.OptimizationTestMixin):
         # (non-constant) input shape
         admat = dmatrix()
         ndim = 1
-        admat_val = rand(3, 4)
+        admat_val = random(3, 4)
         self._compile_and_check(
             [admat], [Reshape(ndim)(admat, [12])], [admat_val], Reshape
         )
@@ -277,7 +277,7 @@ class TestReshape(utt.InferShapeTester, utt.OptimizationTestMixin):
 
         adtens4 = dtensor4()
         ndim = 4
-        adtens4_val = rand(2, 4, 3, 5)
+        adtens4_val = random(2, 4, 3, 5)
         self._compile_and_check(
             [adtens4], [Reshape(ndim)(adtens4, [1, -1, 10, 4])], [adtens4_val], Reshape
         )
@@ -363,10 +363,10 @@ class TestSpecifyShape(utt.InferShapeTester):
         specify_shape = SpecifyShape()
 
         x = vector()
-        xval = np.random.rand(2).astype(config.floatX)
+        xval = np.random.random((2)).astype(config.floatX)
         f = aesara.function([x], specify_shape(x, [2]), mode=self.mode)
         f(xval)
-        xval = np.random.rand(3).astype(config.floatX)
+        xval = np.random.random((3)).astype(config.floatX)
         expected = r"(Got shape \(3,\), expected \(2,\))"
         expected += r"|(dim 0 of input has shape 3, expected 2.)"
         with pytest.raises(AssertionError, match=expected):
@@ -380,7 +380,7 @@ class TestSpecifyShape(utt.InferShapeTester):
         )
 
         x = matrix()
-        xval = np.random.rand(2, 3).astype(config.floatX)
+        xval = np.random.random((2, 3)).astype(config.floatX)
         f = aesara.function([x], specify_shape(x, [2, 3]), mode=self.mode)
         assert isinstance(
             [n for n in f.maker.fgraph.toposort() if isinstance(n.op, SpecifyShape)][0]
@@ -390,7 +390,7 @@ class TestSpecifyShape(utt.InferShapeTester):
         )
         f(xval)
         for shape_ in [(4, 3), (2, 8)]:
-            xval = np.random.rand(*shape_).astype(config.floatX)
+            xval = np.random.random(shape_).astype(config.floatX)
             s_exp = str(shape_).replace("(", r"\(").replace(")", r"\)")
             expected = rf"(Got shape {s_exp}, expected \(2, 3\).)"
             expected += r"|(dim 0 of input has shape 4, expected 2)"
@@ -404,7 +404,7 @@ class TestSpecifyShape(utt.InferShapeTester):
 
         x = vector()
         shape_vec = ivector()
-        xval = np.random.rand(2).astype(config.floatX)
+        xval = np.random.random((2)).astype(config.floatX)
         with pytest.raises(AssertionError, match="will never match"):
             specify_shape(x, [])
         with pytest.raises(AssertionError, match="will never match"):
@@ -427,7 +427,7 @@ class TestSpecifyShape(utt.InferShapeTester):
             f(xval, [2, 2])
 
         x = matrix()
-        xval = np.random.rand(2, 3).astype(config.floatX)
+        xval = np.random.random((2, 3)).astype(config.floatX)
         for shape_ in [(), (1,), (2, 3, 4)]:
             with pytest.raises(AssertionError, match="will never match"):
                 specify_shape(x, shape_)
@@ -451,11 +451,11 @@ class TestSpecifyShape(utt.InferShapeTester):
                 f(xval, shape_)
 
     def test_infer_shape(self):
-        rng = np.random.RandomState(3453)
+        rng = np.random.default_rng(3453)
         adtens4 = dtensor4()
         aivec = ivector()
         aivec_val = [3, 4, 2, 5]
-        adtens4_val = rng.rand(*aivec_val)
+        adtens4_val = rng.random(aivec_val)
         self._compile_and_check(
             [adtens4, aivec],
             [SpecifyShape()(adtens4, aivec)],

@@ -437,7 +437,7 @@ def test_dirichlet_samples():
         assert res.shape == (2, 3)
         assert all(np.all(r[i] > np.delete(r, [i])) for r in res)
 
-    rng_state = np.random.RandomState(np.random.MT19937(np.random.SeedSequence(1234)))
+    rng_state = np.random.Generator(np.random.MT19937(np.random.SeedSequence(1234)))
 
     alphas = np.array([[1000, 1, 1], [1, 1000, 1], [1, 1, 1000]], dtype=config.floatX)
 
@@ -661,7 +661,7 @@ def test_multinomial_samples():
     )
 
     rng_state = shared(
-        np.random.RandomState(np.random.MT19937(np.random.SeedSequence(1234)))
+        np.random.Generator(np.random.MT19937(np.random.SeedSequence(1234)))
     )
 
     test_M = np.array([10, 20], dtype="int64")
@@ -678,7 +678,7 @@ def test_multinomial_samples():
 
 def test_categorical_samples():
 
-    rng_state = np.random.RandomState(np.random.MT19937(np.random.SeedSequence(1234)))
+    rng_state = np.random.Generator(np.random.MT19937(np.random.SeedSequence(1234)))
 
     assert categorical.rng_fn(rng_state, np.array([1.0 / 3.0] * 3), size=10).shape == (
         10,

@@ -129,7 +129,7 @@ def test_inplace_optimization():
     ],
 )
 def test_local_rv_size_lift(dist_op, dist_params, size):
-    rng = shared(np.random.RandomState(1233532), borrow=False)
+    rng = shared(np.random.default_rng(1233532), borrow=False)
 
     new_out, f_inputs, dist_st, f_opt = apply_local_opt_to_rv(
         local_rv_size_lift,
@@ -284,7 +284,7 @@ def test_local_rv_size_lift(dist_op, dist_params, size):
 @config.change_flags(compute_test_value_opt="raise", compute_test_value="raise")
 def test_DimShuffle_lift(ds_order, lifted, dist_op, dist_params, size, rtol):
 
-    rng = shared(np.random.RandomState(1233532), borrow=False)
+    rng = shared(np.random.default_rng(1233532), borrow=False)
 
     new_out, f_inputs, dist_st, f_opt = apply_local_opt_to_rv(
         local_dimshuffle_rv_lift,
@@ -400,7 +400,7 @@ def test_DimShuffle_lift(ds_order, lifted, dist_op, dist_params, size, rtol):
 def test_Subtensor_lift(indices, lifted, dist_op, dist_params, size):
     from aesara.tensor.subtensor import as_index_constant
 
-    rng = shared(np.random.RandomState(1233532), borrow=False)
+    rng = shared(np.random.default_rng(1233532), borrow=False)
 
     indices_aet = ()
     for i in indices:
@@ -445,7 +445,7 @@ def test_Subtensor_lift(indices, lifted, dist_op, dist_params, size):
 
 
 def test_Subtensor_lift_restrictions():
-    rng = shared(np.random.RandomState(1233532), borrow=False)
+    rng = shared(np.random.default_rng(1233532), borrow=False)
 
     std = vector("std")
     std.tag.test_value = np.array([1e-5, 2e-5, 3e-5], dtype=config.floatX)
@@ -477,7 +477,7 @@ def test_Subtensor_lift_restrictions():
 
 
 def test_Dimshuffle_lift_restrictions():
-    rng = shared(np.random.RandomState(1233532), borrow=False)
+    rng = shared(np.random.default_rng(1233532), borrow=False)
 
     x = normal(aet.arange(2).reshape((2,)), 100, size=(2, 2, 2), rng=rng)
     y = x.dimshuffle(1, 0, 2)

@@ -394,8 +394,8 @@ class TestFusion:
         fxv = my_init(shp, "float32", 2)
         fyv = my_init(shp, "float32", 3)
         fzv = my_init(shp, "float32", 4)
-        fvv = _asarray(np.random.rand(shp[0]), dtype="float32")
-        fsv = np.asarray(np.random.rand(), dtype="float32")
+        fvv = _asarray(np.random.random((shp[0])), dtype="float32")
+        fsv = np.asarray(np.random.random(), dtype="float32")
         dwv = my_init(shp, "float64", 5)
         ixv = _asarray(my_init(shp, num=60), dtype="int32")
         iyv = _asarray(my_init(shp, num=70), dtype="int32")
@@ -1353,7 +1353,8 @@ def test_local_useless_slice():
     o = 2 * x[0, :]
     f_unopt = function([x], o, mode=mode_unopt)
     f_opt = function([x], o, mode=mode_opt)
-    test_inp = np.random.randint(-10, 10, (4, 4)).astype("float32")
+    rng = np.random.default_rng(utt.fetch_seed())
+    test_inp = rng.integers(-10, 10, (4, 4)).astype("float32")
     assert all(
         f_opt(test_inp) == f_unopt(test_inp)
     ), "The optimization caused a mismatch in the result"
@@ -1612,8 +1613,8 @@ def test_local_subtensor_remove_broadcastable_index():
             AdvancedIncSubtensor1,
         ]
 
-    rng = np.random.RandomState(seed=utt.fetch_seed())
-    xn = rng.rand(5, 5)
+    rng = np.random.default_rng(seed=utt.fetch_seed())
+    xn = rng.random((5, 5))
     f(xn)
 
     # testing for cases that the optimzation should not be applied
@@ -1670,6 +1671,7 @@ def test_local_subtensor_remove_broadcastable_index():
 class TestSubtensorIncSubtensor:
     @classmethod
     def setup_class(cls):
+        cls.rng = np.random.default_rng(utt.fetch_seed())
         cls.mode = get_default_mode().including("local_subtensor_inc_subtensor")
 
     @pytest.mark.parametrize(
@@ -1805,7 +1807,7 @@ class TestSubtensorIncSubtensor:
         assert len(prog) == 1
         assert prog[0].op == _convert_to_int8
         # basic test, numerical check
-        x_ = np.random.randint(12, size=[3, 4]).astype("int8")
+        x_ = self.rng.integers(12, size=[3, 4]).astype("int8")
         v_ = np.random.uniform(
             12,
             size=[
@@ -2045,7 +2047,7 @@ class TestLocalSubtensorLift:
 
         # test basic case
         x = matrix("x")
-        xval = np.random.rand(1, 10).astype(config.floatX)
+        xval = np.random.random((1, 10)).astype(config.floatX)
         assert x.broadcastable == (False, False)
         newx = Rebroadcast((0, True), (1, False))(x)
         assert newx.broadcastable == (True, False)
@@ -2060,7 +2062,7 @@ class TestLocalSubtensorLift:
 
         # corner case 1: rebroadcast changes dims which are dropped through subtensor
         y = tensor4("x")
-        yval = np.random.rand(1, 10, 1, 3).astype(config.floatX)
+        yval = np.random.random((1, 10, 1, 3)).astype(config.floatX)
         assert y.broadcastable == (False, False, False, False)
         newy = Rebroadcast((0, True), (2, True))(y)
         assert newy.broadcastable == (True, False, True, False)
@@ -2084,7 +2086,7 @@ class TestLocalSubtensorLift:
 
         # corner case 3: subtensor idx_list is shorter than rebroadcast.axis
         z = tensor4("x")
-        zval = np.random.rand(4, 10, 3, 1).astype(config.floatX)
+        zval = np.random.random((4, 10, 3, 1)).astype(config.floatX)
         assert z.broadcastable == (False, False, False, False)
         newz = Rebroadcast((3, True))(z)
         assert newz.broadcastable == (False, False, False, True)
@@ -2100,9 +2102,8 @@ class TestLocalSubtensorLift:
 
 class TestLocalSubtensorMerge:
     def setup_method(self):
-        utt.seed_rng()
         self.x_shapes = [(2, 2), (5, 3), (4, 1), (1, 2), (0, 2), (2, 0), (1, 0), (0, 0)]
-        self.rng = np.random.RandomState(seed=utt.fetch_seed())
+        self.rng = np.random.default_rng(seed=utt.fetch_seed())
 
     def test_const(self):
         # var[const::][-1] -> var[-1]
@@ -2599,7 +2600,7 @@ class TestLocalSubtensorMerge:
 
 class TestLocalAdvSub1AdvIncSub1:
     def setup_method(self):
-        utt.seed_rng()
+
         mode = get_default_mode()
         self.mode = mode.including("local_adv_sub1_adv_inc_sub1").excluding("fusion")
         self.mode_no_assert = self.mode.including("local_remove_all_assert")
@@ -2615,8 +2616,8 @@ class TestLocalAdvSub1AdvIncSub1:
             y = matrix(dtype=dtype2)
             idx = ivector()
 
-            dx = np.random.rand(4, 5).astype(dtype1)
-            dy = np.random.rand(2, 5).astype(dtype2)
+            dx = np.random.random((4, 5)).astype(dtype1)
+            dy = np.random.random((2, 5)).astype(dtype2)
             # Duplicate the last row of dy
             dy = np.vstack([dy, dy[-1:]])
             # Use the same index twice, with the same corresponding value.
@@ -2660,8 +2661,8 @@ class TestLocalAdvSub1AdvIncSub1:
         y = matrix("y")
         idx = ivector()
 
-        dx = np.random.rand(4, 5).astype(config.floatX)
-        dy = np.random.rand(2, 5).astype(config.floatX)
+        dx = np.random.random((4, 5)).astype(config.floatX)
+        dy = np.random.random((2, 5)).astype(config.floatX)
 
         # set_subtensor
         inc = set_subtensor(x[idx], y)
@@ -2986,7 +2987,7 @@ def test_local_set_to_inc_subtensor():
     # We don't have any SetSubtensor in f2
     assert all(not n.op.set_instead_of_inc for n in advi2)
 
-    val = np.random.randn(3, 2).astype("float32")
+    val = np.random.standard_normal((3, 2)).astype("float32")
 
     r1 = f1(val)
     r2 = f2(val)
@@ -3199,8 +3200,8 @@ class TestLocalElemwiseAlloc:
         func = function([t3fft, self.row], o, mode=self.fast_run_mode)
         self._verify_alloc_count(func, 0)
         self._verify_assert_count(func, 1)
-        d = np.random.rand(5, 5, 1).astype(self.dtype)
-        r = np.random.rand(1, 5).astype(self.dtype)
+        d = np.random.random((5, 5, 1)).astype(self.dtype)
+        r = np.random.random((1, 5)).astype(self.dtype)
         func(d, r)
 
 
@@ -3259,19 +3260,10 @@ def test_local_fill_useless():
     z = lvector()
     m = dmatrix()
 
-    x_ = np.random.rand(
-        5,
-    )
-    y_ = np.random.rand(
-        5,
-    )
-    z_ = (
-        np.random.rand(
-            5,
-        )
-        * 5
-    ).astype("int64")
-    m_ = np.random.rand(5, 5)
+    x_ = np.random.random((5,))
+    y_ = np.random.random((5,))
+    z_ = (np.random.random((5,)) * 5).astype("int64")
+    m_ = np.random.random((5, 5))
 
     # basic case
     f = function([x], aet.fill(x, x) * 2, mode=mode_opt)
@@ -3313,11 +3305,11 @@ def test_local_fill_useless():
 
 class TestLocalCanonicalizeAlloc:
     def setup_method(self):
-        self.rng = np.random.RandomState(utt.fetch_seed())
+        self.rng = np.random.default_rng(utt.fetch_seed())
 
     @config.change_flags(compute_test_value="off")
     def test_basic(self):
-        x = shared(self.rng.randn(3, 7))
+        x = shared(self.rng.standard_normal((3, 7)))
         a = aet.alloc(x, 6, 7)
 
         # It is a bad idea to have aet.alloc return x directly,
@@ -3372,14 +3364,10 @@ class TestLocalCanonicalizeAlloc:
 
     def test_useless_alloc_with_shape_one(self):
         alloc_lift = out2in(local_canonicalize_alloc)
-        x = shared(
-            self.rng.randn(
-                2,
-            )
-        )
-        y = shared(self.rng.randn())
-        z = shared(self.rng.randn(1, 1))
-        w = shared(self.rng.randn(1, 1))
+        x = shared(self.rng.standard_normal((2,)))
+        y = shared(self.rng.standard_normal())
+        z = shared(self.rng.standard_normal((1, 1)))
+        w = shared(self.rng.standard_normal((1, 1)))
         alloc_x = aet.alloc(x, 1, 3, 2)
         alloc_y = aet.alloc(y, 1, 1)
         alloc_z = aet.alloc(z, 1, 1, 2)
@@ -3434,6 +3422,7 @@ class TestLocalUselessIncSubtensorAlloc:
         if mode == "FAST_COMPILE":
             mode = "FAST_RUN"
         self.mode = get_mode(mode)
+        self.rng = np.random.default_rng(utt.fetch_seed())
 
     def test_advanced_inc_subtensor(self):
         x = vector("x")
@@ -3454,9 +3443,9 @@ class TestLocalUselessIncSubtensorAlloc:
             len([n for n in f2.maker.fgraph.toposort() if isinstance(n.op, Alloc)]) == 0
         )
 
-        x_value = np.random.randn(5).astype(config.floatX)
-        y_value = np.random.randn()
-        i_value = np.random.randint(0, 3, size=(2, 3))
+        x_value = np.random.standard_normal((5)).astype(config.floatX)
+        y_value = np.random.standard_normal()
+        i_value = self.rng.integers(0, 3, size=(2, 3))
 
         r1 = f1(x_value, i_value, y_value)
         r2 = f2(x_value, i_value, y_value)
@@ -3486,9 +3475,9 @@ class TestLocalUselessIncSubtensorAlloc:
             len([n for n in f2.maker.fgraph.toposort() if isinstance(n.op, Alloc)]) == 0
         )
 
-        x_value = np.random.randn(5).astype(config.floatX)
-        y_value = np.random.randn()
-        i_value = np.random.randint(0, 3, size=2)
+        x_value = np.random.standard_normal((5)).astype(config.floatX)
+        y_value = np.random.standard_normal()
+        i_value = self.rng.integers(0, 3, size=2)
 
         r1 = f1(x_value, i_value, y_value)
         r2 = f2(x_value, i_value, y_value)
@@ -3518,8 +3507,8 @@ class TestLocalUselessIncSubtensorAlloc:
             len([n for n in f2.maker.fgraph.toposort() if isinstance(n.op, Alloc)]) == 0
         )
 
-        x_value = np.random.randn(5).astype(config.floatX)
-        y_value = np.random.randn()
+        x_value = np.random.standard_normal((5)).astype(config.floatX)
+        y_value = np.random.standard_normal()
         i_value = 3
 
         r1 = f1(x_value, i_value, y_value)
@@ -3533,9 +3522,6 @@ class TestLocalUselessIncSubtensorAlloc:
 
 
 class TestShapeOptimizer:
-    def setup_method(self):
-        utt.seed_rng()
-
     def test_basic(self):
         mode = config.mode
         if mode == "FAST_COMPILE":
@@ -3609,8 +3595,8 @@ class TestShapeOptimizer:
     def test_broadcasted_dims(self):
         # This test a case that caused a crash during optimization
         shp = (1, 1, 1, 1)
-        rng = np.random.RandomState(utt.fetch_seed())
-        a = shared(rng.rand(*shp).astype(config.floatX))
+        rng = np.random.default_rng(utt.fetch_seed())
+        a = shared(rng.random(shp).astype(config.floatX))
         out = self.max_pool_c01b(a, 1, 1, 1)
 
         # max_pool_c01b use -inf and this will trigger DebugMode error.
@@ -3672,13 +3658,13 @@ class TestShapeOptimizer:
                 return [identity_shape(node.inputs[0])]
 
         mode = get_default_mode().including("ShapeOpt", "specialize")
-        rng = np.random.RandomState(utt.fetch_seed())
+        rng = np.random.default_rng(utt.fetch_seed())
         x = tensor3("x")
         ins_x = identity_noshape(x)
 
         # Without the optimization
         f = function([x], ins_x.shape, mode=mode)
-        xval = rng.randn(3, 4, 7).astype(config.floatX)
+        xval = rng.standard_normal((3, 4, 7)).astype(config.floatX)
         assert np.all(f(xval) == [3, 4, 7])
         f_ops = [node.op for node in f.maker.fgraph.toposort()]
         assert len(f_ops) == 5
@@ -3693,7 +3679,7 @@ class TestShapeOptimizer:
         # The identity_shape op should not be needed anymore to compute
         # the shape
         g = function([x], ins_x.shape, mode=mode)
-        xval = rng.randn(6, 1, 2).astype(config.floatX)
+        xval = rng.standard_normal((6, 1, 2)).astype(config.floatX)
         assert np.all(g(xval) == [6, 1, 2])
         g_ops = [node.op for node in g.maker.fgraph.toposort()]
         assert len(g_ops) == 4
@@ -3703,7 +3689,7 @@ class TestShapeOptimizer:
         # test multiple level of op without infer_shape
         ins_x3 = identity_noshape(identity_noshape(identity_noshape(x)))
         h = function([x], ins_x3.shape, mode=mode)
-        xval = rng.randn(6, 1, 2).astype(config.floatX)
+        xval = rng.standard_normal((6, 1, 2)).astype(config.floatX)
         assert np.all(h(xval) == [6, 1, 2])
         h_ops = [node.op for node in h.maker.fgraph.toposort()]
         assert len(h_ops) == 4
@@ -3813,15 +3799,15 @@ class TestAssert(utt.InferShapeTester):
 
         adscal = dscalar()
         bdscal = dscalar()
-        adscal_val = np.random.rand()
-        bdscal_val = np.random.rand() + 1
+        adscal_val = np.random.random()
+        bdscal_val = np.random.random() + 1
         out = assert_op(adscal, bdscal)
         self._compile_and_check(
             [adscal, bdscal], [out], [adscal_val, bdscal_val], Assert
         )
 
         admat = dmatrix()
-        admat_val = np.random.rand(3, 4)
+        admat_val = np.random.random((3, 4))
         adscal_val += 1
         out = assert_op(admat, adscal, bdscal)
         self._compile_and_check(
@@ -3892,8 +3878,8 @@ class TestUselessElemwise:
         x = dmatrix()
         y = dmatrix()
         f = function([x, y], eq(x, y), mode=self.mode)
-        vx = np.random.rand(5, 4)
-        vy = np.random.rand(5, 4)
+        vx = np.random.random((5, 4))
+        vy = np.random.random((5, 4))
         f(vx, vy)
         topo = f.maker.fgraph.toposort()
         assert len(topo) == 1
@@ -3912,8 +3898,8 @@ class TestUselessElemwise:
         x = dmatrix()
         y = dmatrix()
         f = function([x, y], neq(x, y), mode=self.mode)
-        vx = np.random.rand(5, 4)
-        vy = np.random.rand(5, 4)
+        vx = np.random.random((5, 4))
+        vy = np.random.random((5, 4))
         f(vx, vy)
         topo = f.maker.fgraph.toposort()
         assert len(topo) == 1
@@ -3929,8 +3915,8 @@ class TestUselessElemwise:
         x = dmatrix()
         y = dmatrix()
         f = function([x], mul(x), mode=self.mode)
-        vx = np.random.rand(5, 4)
-        vy = np.random.rand(5, 4)
+        vx = np.random.random((5, 4))
+        vy = np.random.random((5, 4))
         f(vx)
         topo = f.maker.fgraph.toposort()
         assert len(topo) == 1
@@ -3946,8 +3932,8 @@ class TestUselessElemwise:
         x = dmatrix()
         y = dmatrix()
         f = function([x], add(x), mode=self.mode)
-        vx = np.random.rand(5, 4)
-        vy = np.random.rand(5, 4)
+        vx = np.random.random((5, 4))
+        vy = np.random.random((5, 4))
         f(vx)
         topo = f.maker.fgraph.toposort()
         assert len(topo) == 1
@@ -3964,7 +3950,7 @@ class TestUselessElemwise:
         # tensor_copy, and view
         x = matrix()
         f = function([x], aet.tensor_copy(x), mode=self.mode)
-        vx = np.random.rand(5, 4).astype(config.floatX)
+        vx = np.random.random((5, 4)).astype(config.floatX)
         f(vx)
         topo = f.maker.fgraph.toposort()
         assert len(topo) == 1
@@ -3980,7 +3966,7 @@ class TestCastCast:
         x = fmatrix()
         o = Elemwise(aes.Cast(aes.Scalar("float64")))(x.astype("float64"))
         f = function([x], o, mode=self.mode)
-        dx = np.random.rand(5, 4).astype("float32")
+        dx = np.random.random((5, 4)).astype("float32")
         f(dx)
         topo = f.maker.fgraph.toposort()
         assert len(topo) == 1
@@ -3989,7 +3975,7 @@ class TestCastCast:
         x = dmatrix()
         o = Elemwise(aes.Cast(aes.Scalar("float32")))(x.astype("float32"))
         f = function([x], o, mode=self.mode)
-        dx = np.random.rand(5, 4)
+        dx = np.random.random((5, 4))
         f(dx)
         topo = f.maker.fgraph.toposort()
         assert len(topo) == 1
@@ -4000,7 +3986,7 @@ class TestCastCast:
         x = fmatrix()
         o = Elemwise(aes.Cast(aes.Scalar("complex128")))(x.astype("complex64"))
         f = function([x], o, mode=self.mode)
-        dx = np.random.rand(5, 4).astype("float32")
+        dx = np.random.random((5, 4)).astype("float32")
         f(dx)
         topo = f.maker.fgraph.toposort()
         assert len(topo) == 1
@@ -4010,7 +3996,7 @@ class TestCastCast:
         x = fmatrix()
         o = Elemwise(aes.Cast(aes.Scalar("float32")))(x.astype("float64"))
         f = function([x], o, mode=self.mode)
-        dx = np.random.rand(5, 4).astype("float32")
+        dx = np.random.random((5, 4)).astype("float32")
         f(dx)
         topo = f.maker.fgraph.toposort()
         assert len(topo) == 1
@@ -4021,7 +4007,7 @@ class TestCastCast:
         x = dmatrix()
         o = Elemwise(aes.Cast(aes.Scalar("float64")))(x.astype("float32"))
         f = function([x], o, mode=self.mode)
-        dx = np.random.rand(5, 4)
+        dx = np.random.random((5, 4))
         f(dx)
         topo = f.maker.fgraph.toposort()
         assert (
@@ -4307,7 +4293,7 @@ class TestLocalUselessSwitch:
             f1 = function([x], z1, mode=self.mode)
             assert isinstance(f1.maker.fgraph.toposort()[0].op, Shape_i)
 
-            vx = np.random.randn(0, 5).astype(dtype1)
+            vx = np.random.standard_normal((0, 5)).astype(dtype1)
             assert f0(vx) == 0
             assert f1(vx) == 5
 
@@ -4467,6 +4453,7 @@ class TestLocalOptAllocF16(TestLocalOptAlloc):
 
 class TestMakeVector(utt.InferShapeTester):
     def setup_method(self):
+        self.rng = np.random.default_rng(utt.fetch_seed())
         super().setup_method()
 
     def test_make_vector(self):
@@ -4558,12 +4545,12 @@ class TestMakeVector(utt.InferShapeTester):
         biscal = iscalar()
         ciscal = iscalar()
         discal = iscalar()
-        adscal_val = np.random.rand()
-        bdscal_val = np.random.rand()
-        aiscal_val = np.random.randint(10)
-        biscal_val = np.random.randint(10)
-        ciscal_val = np.random.randint(10)
-        discal_val = np.random.randint(10)
+        adscal_val = np.random.random()
+        bdscal_val = np.random.random()
+        aiscal_val = self.rng.integers(10)
+        biscal_val = self.rng.integers(10)
+        ciscal_val = self.rng.integers(10)
+        discal_val = self.rng.integers(10)
         self._compile_and_check(
             [adscal, aiscal],
             [MakeVector("float64")(adscal, aiscal)],
@@ -4790,8 +4777,8 @@ def test_local_useless_split():
     f_opt = function([x, splits], opt, mode=mode)
     f_nonopt = function([x, splits], nonopt, mode=mode)
 
-    f_opt(np.random.rand(4, 4).astype(config.floatX), [4])
-    f_nonopt(np.random.rand(4, 4).astype(config.floatX), [1, 2, 1])
+    f_opt(np.random.random((4, 4)).astype(config.floatX), [4])
+    f_nonopt(np.random.random((4, 4)).astype(config.floatX), [1, 2, 1])
     graph_opt = f_opt.maker.fgraph.toposort()
     graph_nonopt = f_nonopt.maker.fgraph.toposort()
 
@@ -4811,7 +4798,7 @@ def test_local_flatten_lift():
         mode = get_default_mode()
         mode = mode.including("local_reshape_lift")
         f = function([x], out, mode=mode)
-        x_np = np.random.rand(5, 4, 3, 2).astype(config.floatX)
+        x_np = np.random.random((5, 4, 3, 2)).astype(config.floatX)
         out_np = f(x_np)
         topo = f.maker.fgraph.toposort()
         shape_out_np = tuple(x_np.shape[: i - 1]) + (np.prod(x_np.shape[i - 1 :]),)
@@ -4843,7 +4830,7 @@ class TestReshape:
 
 class TestLocalUselessReshape:
     def setup_method(self):
-        self.rng = np.random.RandomState(utt.fetch_seed())
+        self.rng = np.random.default_rng(utt.fetch_seed())
 
     def test_0(self):
         mode = get_default_mode().including("local_useless_reshape")
@@ -4906,17 +4893,13 @@ class TestLocalUselessReshape:
 
 class TestLocalReshapeToDimshuffle:
     def setup_method(self):
-        self.rng = np.random.RandomState(utt.fetch_seed())
+        self.rng = np.random.default_rng(utt.fetch_seed())
 
     def test_1(self):
         reshape_lift = out2in(local_reshape_to_dimshuffle)
         useless_reshape = out2in(local_useless_reshape)
-        x = shared(
-            self.rng.randn(
-                4,
-            )
-        )
-        y = shared(self.rng.randn(5, 6))
+        x = shared(self.rng.standard_normal((4,)))
+        y = shared(self.rng.standard_normal((5, 6)))
         reshape_x = reshape(x, (1, 4))
         reshape_y = reshape(y, (1, 5, 1, 6, 1, 1))
 
@@ -4951,7 +4934,7 @@ def test_local_reshape_lift():
     mode = get_default_mode()
     mode = mode.including("local_reshape_lift")
     f = function([x], out, mode=mode)
-    f(np.random.rand(5, 4, 3, 2).astype(config.floatX))
+    f(np.random.random((5, 4, 3, 2)).astype(config.floatX))
     topo = f.maker.fgraph.toposort()
     assert isinstance(topo[-2].op, Reshape)
     assert isinstance(topo[-1].op, Elemwise)
@@ -5018,13 +5001,13 @@ class TestShapeI(utt.InferShapeTester):
     def test_perform(self):
 
         advec = vector()
-        advec_val = np.random.rand(3).astype(config.floatX)
+        advec_val = np.random.random((3)).astype(config.floatX)
         f = function([advec], Shape_i(0)(advec))
         out = f(advec_val)
         utt.assert_allclose(out, advec_val.shape[0])
 
         admat = matrix()
-        admat_val = np.random.rand(4, 3).astype(config.floatX)
+        admat_val = np.random.random((4, 3)).astype(config.floatX)
         for i in range(2):
             f = function([admat], Shape_i(i)(admat))
             out = f(admat_val)
@@ -5032,7 +5015,7 @@ class TestShapeI(utt.InferShapeTester):
 
     def test_infer_shape(self):
         admat = matrix()
-        admat_val = np.random.rand(3, 4).astype(config.floatX)
+        admat_val = np.random.random((3, 4)).astype(config.floatX)
         self._compile_and_check([admat], [Shape_i(0)(admat)], [admat_val], Shape_i)
 
         self._compile_and_check([admat], [Shape_i(1)(admat)], [admat_val], Shape_i)

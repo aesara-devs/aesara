@@ -1903,7 +1903,7 @@ class TestConv2dTranspose:
 )
 class TestConv2dGrads:
     def setup_method(self):
-        self.random_stream = np.random.RandomState(utt.fetch_seed())
+        self.random_stream = np.random.default_rng(utt.fetch_seed())
 
         self.inputs_shapes = [(8, 1, 12, 12), (1, 1, 5, 5), (1, 1, 5, 6), (1, 1, 6, 6)]
         self.filters_shapes = [(5, 1, 2, 2), (1, 1, 3, 3)]
@@ -1928,12 +1928,12 @@ class TestConv2dGrads:
             for bm in self.border_modes:
                 for ss in self.subsamples:
                     for ff in self.filter_flip:
-                        input_val = self.random_stream.random_sample(in_shape).astype(
+                        input_val = self.random_stream.random(in_shape).astype(
                             config.floatX
                         )
-                        filter_val = self.random_stream.random_sample(
-                            fltr_shape
-                        ).astype(config.floatX)
+                        filter_val = self.random_stream.random(fltr_shape).astype(
+                            config.floatX
+                        )
                         out_grad_shape = (
                             aesara.tensor.nnet.abstract_conv.get_conv_output_shape(
                                 image_shape=in_shape,
@@ -1942,9 +1942,9 @@ class TestConv2dGrads:
                                 subsample=ss,
                             )
                         )
-                        out_grad_val = self.random_stream.random_sample(
-                            out_grad_shape
-                        ).astype(config.floatX)
+                        out_grad_val = self.random_stream.random(out_grad_shape).astype(
+                            config.floatX
+                        )
                         conv_out = aesara.tensor.nnet.conv2d(
                             self.x,
                             filters=self.w,
@@ -1994,12 +1994,12 @@ class TestConv2dGrads:
             for bm in self.border_modes:
                 for ss in self.subsamples:
                     for ff in self.filter_flip:
-                        input_val = self.random_stream.random_sample(in_shape).astype(
+                        input_val = self.random_stream.random(in_shape).astype(
                             config.floatX
                         )
-                        filter_val = self.random_stream.random_sample(
-                            fltr_shape
-                        ).astype(config.floatX)
+                        filter_val = self.random_stream.random(fltr_shape).astype(
+                            config.floatX
+                        )
                         out_grad_shape = (
                             aesara.tensor.nnet.abstract_conv.get_conv_output_shape(
                                 image_shape=in_shape,
@@ -2008,9 +2008,9 @@ class TestConv2dGrads:
                                 subsample=ss,
                             )
                         )
-                        out_grad_val = self.random_stream.random_sample(
-                            out_grad_shape
-                        ).astype(config.floatX)
+                        out_grad_val = self.random_stream.random(out_grad_shape).astype(
+                            config.floatX
+                        )
                         conv_out = aesara.tensor.nnet.conv2d(
                             self.x,
                             filters=self.w,

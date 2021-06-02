@@ -69,7 +69,7 @@ from tests import unittest_tools as utt
 def test_cpu_contiguous():
     a = fmatrix("a")
     i = iscalar("i")
-    a_val = np.asarray(np.random.rand(4, 5), dtype="float32")
+    a_val = np.asarray(np.random.random((4, 5)), dtype="float32")
     f = aesara.function([a, i], cpu_contiguous(a.reshape((5, 4))[::i]))
     topo = f.maker.fgraph.toposort()
     assert any([isinstance(node.op, CpuContiguous) for node in topo])
@@ -78,7 +78,7 @@ def test_cpu_contiguous():
     assert f(a_val, 3).flags["C_CONTIGUOUS"]
     # Test the grad:
 
-    utt.verify_grad(cpu_contiguous, [np.random.rand(5, 7, 2)])
+    utt.verify_grad(cpu_contiguous, [np.random.random((5, 7, 2))])
 
 
 class TestSearchsortedOp(utt.InferShapeTester):
@@ -89,9 +89,9 @@ class TestSearchsortedOp(utt.InferShapeTester):
 
         self.x = vector("x")
         self.v = tensor3("v")
-
-        self.a = 30 * np.random.random(50).astype(config.floatX)
-        self.b = 30 * np.random.random((8, 10, 5)).astype(config.floatX)
+        self.rng = np.random.default_rng(utt.fetch_seed())
+        self.a = 30 * self.rng.random(50).astype(config.floatX)
+        self.b = 30 * self.rng.random((8, 10, 5)).astype(config.floatX)
         self.idx_sorted = np.argsort(self.a).astype("int32")
 
     def test_searchsortedOp_on_sorted_input(self):
@@ -185,7 +185,7 @@ class TestSearchsortedOp(utt.InferShapeTester):
         )
 
     def test_grad(self):
-        utt.verify_grad(self.op, [self.a[self.idx_sorted], self.b])
+        utt.verify_grad(self.op, [self.a[self.idx_sorted], self.b], rng=self.rng)
 
 
 class TestCumOp(utt.InferShapeTester):
@@ -591,7 +591,7 @@ class TestBartlett(utt.InferShapeTester):
 
 class TestFillDiagonal(utt.InferShapeTester):
 
-    rng = np.random.RandomState(43)
+    rng = np.random.default_rng(43)
 
     def setup_method(self):
         super().setup_method()
@@ -603,19 +603,19 @@ class TestFillDiagonal(utt.InferShapeTester):
         y = scalar()
         f = function([x, y], fill_diagonal(x, y))
         for shp in [(8, 8), (5, 8), (8, 5)]:
-            a = np.random.rand(*shp).astype(config.floatX)
-            val = np.cast[config.floatX](np.random.rand())
+            a = np.random.random(shp).astype(config.floatX)
+            val = np.cast[config.floatX](np.random.random())
             out = f(a, val)
             # We can't use np.fill_diagonal as it is bugged.
             assert np.allclose(np.diag(out), val)
             assert (out == val).sum() == min(a.shape)
 
         # test for 3dtt
-        a = np.random.rand(3, 3, 3).astype(config.floatX)
+        a = np.random.random((3, 3, 3)).astype(config.floatX)
         x = tensor3()
         y = scalar()
         f = function([x, y], fill_diagonal(x, y))
-        val = np.cast[config.floatX](np.random.rand() + 10)
+        val = np.cast[config.floatX](np.random.random() + 10)
         out = f(a, val)
         # We can't use np.fill_diagonal as it is bugged.
         assert out[0, 0, 0] == val
@@ -627,13 +627,13 @@ class TestFillDiagonal(utt.InferShapeTester):
     def test_gradient(self):
         utt.verify_grad(
             fill_diagonal,
-            [np.random.rand(5, 8), np.random.rand()],
+            [np.random.random((5, 8)), np.random.random()],
             n_tests=1,
             rng=TestFillDiagonal.rng,
         )
         utt.verify_grad(
             fill_diagonal,
-            [np.random.rand(8, 5), np.random.rand()],
+            [np.random.random((8, 5)), np.random.random()],
             n_tests=1,
             rng=TestFillDiagonal.rng,
         )
@@ -645,14 +645,14 @@ class TestFillDiagonal(utt.InferShapeTester):
         self._compile_and_check(
             [x, y],
             [self.op(x, y)],
-            [np.random.rand(8, 5), np.random.rand()],
+            [np.random.random((8, 5)), np.random.random()],
             self.op_class,
         )
         self._compile_and_check(
             [z, y],
             [self.op(z, y)],
             # must be square when nd>2
-            [np.random.rand(8, 8, 8), np.random.rand()],
+            [np.random.random((8, 8, 8)), np.random.random()],
             self.op_class,
             warn=False,
         )
@@ -660,7 +660,7 @@ class TestFillDiagonal(utt.InferShapeTester):
 
 class TestFillDiagonalOffset(utt.InferShapeTester):
 
-    rng = np.random.RandomState(43)
+    rng = np.random.default_rng(43)
 
     def setup_method(self):
         super().setup_method()
@@ -675,8 +675,8 @@ class TestFillDiagonalOffset(utt.InferShapeTester):
         f = function([x, y, z], fill_diagonal_offset(x, y, z))
         for test_offset in (-5, -4, -1, 0, 1, 4, 5):
             for shp in [(8, 8), (5, 8), (8, 5), (5, 5)]:
-                a = np.random.rand(*shp).astype(config.floatX)
-                val = np.cast[config.floatX](np.random.rand())
+                a = np.random.random(shp).astype(config.floatX)
+                val = np.cast[config.floatX](np.random.random())
                 out = f(a, val, test_offset)
                 # We can't use np.fill_diagonal as it is bugged.
                 assert np.allclose(np.diag(out, test_offset), val)
@@ -697,19 +697,19 @@ class TestFillDiagonalOffset(utt.InferShapeTester):
 
             utt.verify_grad(
                 fill_diagonal_with_fix_offset,
-                [np.random.rand(5, 8), np.random.rand()],
+                [np.random.random((5, 8)), np.random.random()],
                 n_tests=1,
                 rng=TestFillDiagonalOffset.rng,
             )
             utt.verify_grad(
                 fill_diagonal_with_fix_offset,
-                [np.random.rand(8, 5), np.random.rand()],
+                [np.random.random((8, 5)), np.random.random()],
                 n_tests=1,
                 rng=TestFillDiagonalOffset.rng,
             )
             utt.verify_grad(
                 fill_diagonal_with_fix_offset,
-                [np.random.rand(5, 5), np.random.rand()],
+                [np.random.random((5, 5)), np.random.random()],
                 n_tests=1,
                 rng=TestFillDiagonalOffset.rng,
             )
@@ -722,13 +722,13 @@ class TestFillDiagonalOffset(utt.InferShapeTester):
             self._compile_and_check(
                 [x, y, z],
                 [self.op(x, y, z)],
-                [np.random.rand(8, 5), np.random.rand(), test_offset],
+                [np.random.random((8, 5)), np.random.random(), test_offset],
                 self.op_class,
             )
             self._compile_and_check(
                 [x, y, z],
                 [self.op(x, y, z)],
-                [np.random.rand(5, 8), np.random.rand(), test_offset],
+                [np.random.random((5, 8)), np.random.random(), test_offset],
                 self.op_class,
             )
 
@@ -1096,7 +1096,7 @@ def test_broadcast_shape():
 
 class TestBroadcastTo(utt.InferShapeTester):
 
-    rng = np.random.RandomState(43)
+    rng = np.random.default_rng(43)
 
     def setup_method(self):
         super().setup_method()
@@ -1134,7 +1134,7 @@ class TestBroadcastTo(utt.InferShapeTester):
     def test_gradient(self, fn, input_dims):
         utt.verify_grad(
             fn,
-            [np.random.rand(*input_dims).astype(config.floatX)],
+            [np.random.random(input_dims).astype(config.floatX)],
             n_tests=1,
             rng=self.rng,
         )
@@ -1147,7 +1147,7 @@ class TestBroadcastTo(utt.InferShapeTester):
         self._compile_and_check(
             [a] + shape,
             [out],
-            [np.random.rand(2, 1, 3).astype(config.floatX), 2, 1, 3],
+            [np.random.random((2, 1, 3)).astype(config.floatX), 2, 1, 3],
             self.op_class,
         )
 
@@ -1156,7 +1156,7 @@ class TestBroadcastTo(utt.InferShapeTester):
         self._compile_and_check(
             [a] + shape,
             [self.op(a, shape)],
-            [np.random.rand(2, 1, 3).astype(config.floatX), 6, 2, 5, 3],
+            [np.random.random((2, 1, 3)).astype(config.floatX), 6, 2, 5, 3],
             self.op_class,
         )
 

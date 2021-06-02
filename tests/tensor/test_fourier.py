@@ -9,7 +9,7 @@ from tests import unittest_tools as utt
 
 class TestFourier(utt.InferShapeTester):
 
-    rng = np.random.RandomState(43)
+    rng = np.random.default_rng(43)
 
     def setup_method(self):
         super().setup_method()
@@ -19,13 +19,13 @@ class TestFourier(utt.InferShapeTester):
     def test_perform(self):
         a = dmatrix()
         f = aesara.function([a], self.op(a, n=10, axis=0))
-        a = np.random.rand(8, 6)
+        a = np.random.random((8, 6))
         assert np.allclose(f(a), np.fft.fft(a, 10, 0))
 
     def test_infer_shape(self):
         a = dvector()
         self._compile_and_check(
-            [a], [self.op(a, 16, 0)], [np.random.rand(12)], self.op_class
+            [a], [self.op(a, 16, 0)], [np.random.random((12))], self.op_class
         )
         a = dmatrix()
         for var in [
@@ -34,7 +34,9 @@ class TestFourier(utt.InferShapeTester):
             self.op(a, 16, None),
             self.op(a, None, None),
         ]:
-            self._compile_and_check([a], [var], [np.random.rand(12, 4)], self.op_class)
+            self._compile_and_check(
+                [a], [var], [np.random.random((12, 4))], self.op_class
+            )
         b = iscalar()
         for var in [self.op(a, 16, b), self.op(a, None, b)]:
             self._compile_and_check(
@@ -56,10 +58,10 @@ class TestFourier(utt.InferShapeTester):
             return self.op(a, 4, 0)
 
         pts = [
-            np.random.rand(5, 2, 4, 3),
-            np.random.rand(2, 3, 4),
-            np.random.rand(2, 5),
-            np.random.rand(5),
+            np.random.random((5, 2, 4, 3)),
+            np.random.random((2, 3, 4)),
+            np.random.random((2, 5)),
+            np.random.random((5)),
         ]
         for fft_test in [fft_test1, fft_test2, fft_test3, fft_test4]:
             for pt in pts:
