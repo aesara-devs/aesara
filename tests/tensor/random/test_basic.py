@@ -29,6 +29,7 @@ from aesara.tensor.random.basic import (
     halfcauchy,
     halfnormal,
     hypergeometric,
+    integers,
     invgamma,
     laplace,
     logistic,
@@ -58,7 +59,7 @@ def set_aesara_flags():
         yield
 
 
-def rv_numpy_tester(rv, *params, **kwargs):
+def rv_numpy_tester(rv, *params, rng=None, **kwargs):
     """Test for correspondence between `RandomVariable` and NumPy shape and
     broadcast dimensions.
     """
@@ -70,9 +71,9 @@ def rv_numpy_tester(rv, *params, **kwargs):
         if name is None:
             name = rv.__name__
 
-        test_fn = getattr(np.random, name)
+        test_fn = getattr(rng or np.random, name)
 
-    aesara_res = rv(*params, **kwargs)
+    aesara_res = rv(*params, rng=shared(rng) if rng else None, **kwargs)
 
     param_vals = [get_test_value(p) if isinstance(p, Variable) else p for p in params]
     kwargs_vals = {
@@ -738,17 +739,47 @@ def test_polyagamma_samples():
     assert np.all(np.abs(np.diff(bcast_smpl.flat)) > 0.0)
 
 
-def test_random_integer_samples():
+def test_randint_samples():
 
-    rv_numpy_tester(randint, 10, None)
-    rv_numpy_tester(randint, 0, 1)
-    rv_numpy_tester(randint, 0, 1, size=[3])
-    rv_numpy_tester(randint, [0, 1, 2], 5)
-    rv_numpy_tester(randint, [0, 1, 2], 5, size=[3, 3])
-    rv_numpy_tester(randint, [0], [5], size=[1])
-    rv_numpy_tester(randint, aet.as_tensor_variable([-1]), [1], size=[1])
+    with raises(TypeError):
+        randint(10, rng=shared(np.random.default_rng()))
+
+    rng = np.random.RandomState(2313)
+    rv_numpy_tester(randint, 10, None, rng=rng)
+    rv_numpy_tester(randint, 0, 1, rng=rng)
+    rv_numpy_tester(randint, 0, 1, size=[3], rng=rng)
+    rv_numpy_tester(randint, [0, 1, 2], 5, rng=rng)
+    rv_numpy_tester(randint, [0, 1, 2], 5, size=[3, 3], rng=rng)
+    rv_numpy_tester(randint, [0], [5], size=[1], rng=rng)
+    rv_numpy_tester(randint, aet.as_tensor_variable([-1]), [1], size=[1], rng=rng)
     rv_numpy_tester(
-        randint, aet.as_tensor_variable([-1]), [1], size=aet.as_tensor_variable([1])
+        randint,
+        aet.as_tensor_variable([-1]),
+        [1],
+        size=aet.as_tensor_variable([1]),
+        rng=rng,
+    )
+
+
+def test_integers_samples():
+
+    with raises(TypeError):
+        integers(10, rng=shared(np.random.RandomState()))
+
+    rng = np.random.default_rng(2313)
+    rv_numpy_tester(integers, 10, None, rng=rng)
+    rv_numpy_tester(integers, 0, 1, rng=rng)
+    rv_numpy_tester(integers, 0, 1, size=[3], rng=rng)
+    rv_numpy_tester(integers, [0, 1, 2], 5, rng=rng)
+    rv_numpy_tester(integers, [0, 1, 2], 5, size=[3, 3], rng=rng)
+    rv_numpy_tester(integers, [0], [5], size=[1], rng=rng)
+    rv_numpy_tester(integers, aet.as_tensor_variable([-1]), [1], size=[1], rng=rng)
+    rv_numpy_tester(
+        integers,
+        aet.as_tensor_variable([-1]),
+        [1],
+        size=aet.as_tensor_variable([1]),
+        rng=rng,
     )
 
 

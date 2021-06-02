@@ -18,7 +18,7 @@ from aesara.tensor.basic import (
 )
 from aesara.tensor.elemwise import Elemwise
 from aesara.tensor.exceptions import NotScalarConstantError
-from aesara.tensor.random.type import RandomStateType
+from aesara.tensor.random.type import RandomType
 from aesara.tensor.random.utils import normalize_size_param, params_broadcast_shapes
 from aesara.tensor.type import TensorType, all_dtypes
 
@@ -158,7 +158,7 @@ class RandomVariable(Op):
 
     def rng_fn(self, rng, *args, **kwargs):
         """Sample a numeric random variate."""
-        return getattr(np.random.RandomState, self.name)(rng, *args, **kwargs)
+        return getattr(rng, self.name)(*args, **kwargs)
 
     def __str__(self):
         props_str = ", ".join((f"{getattr(self, prop)}" for prop in self.__props__[1:]))
@@ -336,8 +336,8 @@ class RandomVariable(Op):
 
         Parameters
         ----------
-        rng: RandomStateType
-            Existing Aesara `RandomState` object to be used.  Creates a
+        rng: RandomGeneratorType or RandomStateType
+            Existing Aesara `Generator` or `RandomState` object to be used.  Creates a
             new one, if `None`.
         size: int or Sequence
             Numpy-like size of the output (i.e. replications).
@@ -363,9 +363,11 @@ class RandomVariable(Op):
         )
 
         if rng is None:
-            rng = aesara.shared(np.random.RandomState())
-        elif not isinstance(rng.type, RandomStateType):
-            raise TypeError("The type of rng should be an instance of RandomStateType")
+            rng = aesara.shared(np.random.default_rng())
+        elif not isinstance(rng.type, RandomType):
+            raise TypeError(
+                "The type of rng should be an instance of either RandomGeneratorType or RandomStateType"
+            )
 
         bcast = self.compute_bcast(dist_params, size)
         dtype = self.dtype or dtype

@@ -72,7 +72,9 @@ def check_equal_numpy(x, y):
     """
     if isinstance(x, np.ndarray) and isinstance(y, np.ndarray):
         return x.dtype == y.dtype and x.shape == y.shape and np.all(abs(x - y) < 1e-10)
-    elif isinstance(x, np.random.RandomState) and isinstance(y, np.random.RandomState):
+    elif isinstance(x, (np.random.Generator, np.random.RandomState)) and isinstance(
+        y, (np.random.Generator, np.random.RandomState)
+    ):
         return builtins.all(
             np.all(a == b) for a, b in zip(x.__getstate__(), y.__getstate__())
         )

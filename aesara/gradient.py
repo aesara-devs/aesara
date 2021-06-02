@@ -1841,7 +1841,7 @@ def verify_grad(
     # random_projection should not have elements too small,
     # otherwise too much precision is lost in numerical gradient
     def random_projection():
-        plain = rng.rand(*o_fn_out.shape) + 0.5
+        plain = rng.random(o_fn_out.shape) + 0.5
         if cast_to_output_type and o_output.dtype == "float32":
             return np.array(plain, o_output.dtype)
         return plain
