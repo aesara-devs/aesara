@@ -19,7 +19,7 @@ if not pydot_imported:
 
 class TestD3Viz:
     def setup_method(self):
-        self.rng = np.random.RandomState(0)
+        self.rng = np.random.default_rng(0)
         self.data_dir = pt.join("data", "test_d3viz")
 
     def check(self, f, reference=None, verbose=False):

@@ -11,7 +11,7 @@ class Mlp:
         if rng is None:
             rng = 0
         if isinstance(rng, int):
-            rng = np.random.RandomState(rng)
+            rng = np.random.default_rng(rng)
         self.rng = rng
         self.nfeatures = nfeatures
         self.noutputs = noutputs

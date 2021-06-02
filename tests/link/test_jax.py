@@ -218,6 +218,8 @@ def test_jax_compile_ops():
 
 
 def test_jax_basic():
+    rng = np.random.default_rng(28494)
+
     x = matrix("x")
     y = matrix("y")
     b = vector("b")
@@ -259,7 +261,11 @@ def test_jax_basic():
     out_fg = FunctionGraph([x], [out])
     compare_jax_and_py(
         out_fg,
-        [(np.eye(10) + np.random.randn(10, 10) * 0.01).astype(config.floatX)],
+        [
+            (np.eye(10) + rng.standard_normal(size=(10, 10)) * 0.01).astype(
+                config.floatX
+            )
+        ],
     )
 
     # not sure why this isn't working yet with lower=False
@@ -267,7 +273,11 @@ def test_jax_basic():
     out_fg = FunctionGraph([x], [out])
     compare_jax_and_py(
         out_fg,
-        [(np.eye(10) + np.random.randn(10, 10) * 0.01).astype(config.floatX)],
+        [
+            (np.eye(10) + rng.standard_normal(size=(10, 10)) * 0.01).astype(
+                config.floatX
+            )
+        ],
     )
 
     out = aet_slinalg.solve(x, b)
@@ -294,7 +304,11 @@ def test_jax_basic():
     out_fg = FunctionGraph([x], [out])
     compare_jax_and_py(
         out_fg,
-        [(np.eye(10) + np.random.randn(10, 10) * 0.01).astype(config.floatX)],
+        [
+            (np.eye(10) + rng.standard_normal(size=(10, 10)) * 0.01).astype(
+                config.floatX
+            )
+        ],
     )
 
 
@@ -405,9 +419,9 @@ def test_jax_eye():
 
 
 def test_jax_basic_multiout():
+    rng = np.random.default_rng(213234)
 
-    np.random.seed(213234)
-    M = np.random.normal(size=(3, 3))
+    M = rng.normal(size=(3, 3))
     X = M.dot(M.T)
 
     x = matrix("x")
@@ -638,7 +652,9 @@ def test_jax_Subtensors_omni():
     reason="Omnistaging cannot be disabled",
 )
 def test_jax_IncSubtensor():
-    x_np = np.random.uniform(-1, 1, size=(3, 4, 5)).astype(config.floatX)
+    rng = np.random.default_rng(213234)
+
+    x_np = rng.uniform(-1, 1, size=(3, 4, 5)).astype(config.floatX)
     x_aet = aet.arange(3 * 4 * 5).reshape((3, 4, 5)).astype(config.floatX)
 
     # "Set" basic indices
@@ -661,7 +677,7 @@ def test_jax_IncSubtensor():
 
     # "Set" advanced indices
     st_aet = aet.as_tensor_variable(
-        np.random.uniform(-1, 1, size=(2, 4, 5)).astype(config.floatX)
+        rng.uniform(-1, 1, size=(2, 4, 5)).astype(config.floatX)
     )
     out_aet = aet_subtensor.set_subtensor(x_aet[np.r_[0, 2]], st_aet)
     assert isinstance(out_aet.owner.op, aet_subtensor.AdvancedIncSubtensor1)
@@ -707,7 +723,7 @@ def test_jax_IncSubtensor():
 
     # "Increment" advanced indices
     st_aet = aet.as_tensor_variable(
-        np.random.uniform(-1, 1, size=(2, 4, 5)).astype(config.floatX)
+        rng.uniform(-1, 1, size=(2, 4, 5)).astype(config.floatX)
     )
     out_aet = aet_subtensor.inc_subtensor(x_aet[np.r_[0, 2]], st_aet)
     assert isinstance(out_aet.owner.op, aet_subtensor.AdvancedIncSubtensor1)
@@ -1202,6 +1218,7 @@ def test_random_unimplemented():
         compare_jax_and_py(fgraph, [])
 
 
+@pytest.mark.xfail(reason="Generators not yet supported in JAX")
 def test_RandomStream():
     srng = RandomStream(seed=123)
     out = srng.normal() - srng.normal()
@@ -1211,3 +1228,11 @@ def test_RandomStream():
     jax_res_2 = fn()
 
     assert np.array_equal(jax_res_1, jax_res_2)
+
+
+@pytest.mark.xfail(reason="Generators not yet supported in JAX")
+def test_random_generators():
+    rng = shared(np.random.default_rng(123))
+    out = normal(rng=rng)
+    fgraph = FunctionGraph([out.owner.inputs[0]], [out], clone=False)
+    compare_jax_and_py(fgraph, [])

@@ -736,7 +736,7 @@ class VecAsRowAndCol(Op):
 
 class TestPreallocatedOutput:
     def setup_method(self):
-        self.rng = np.random.RandomState(seed=utt.fetch_seed())
+        self.rng = np.random.default_rng(seed=utt.fetch_seed())
 
     def test_f_contiguous(self):
         a = fmatrix("a")
@@ -745,8 +745,8 @@ class TestPreallocatedOutput:
         # In this test, we do not want z to be an output of the graph.
         out = dot(z, np.eye(7))
 
-        a_val = self.rng.randn(7, 7).astype("float32")
-        b_val = self.rng.randn(7, 7).astype("float32")
+        a_val = self.rng.standard_normal((7, 7)).astype("float32")
+        b_val = self.rng.standard_normal((7, 7)).astype("float32")
 
         # Should work
         mode = DebugMode(check_preallocated_output=["c_contiguous"])
@@ -776,8 +776,8 @@ class TestPreallocatedOutput:
         b = fmatrix("b")
         out = BrokenCImplementationAdd()(a, b)
 
-        a_val = self.rng.randn(7, 7).astype("float32")
-        b_val = self.rng.randn(7, 7).astype("float32")
+        a_val = self.rng.standard_normal((7, 7)).astype("float32")
+        b_val = self.rng.standard_normal((7, 7)).astype("float32")
 
         # Should work
         mode = DebugMode(check_preallocated_output=["c_contiguous"])
@@ -805,5 +805,5 @@ class TestPreallocatedOutput:
         c, r = VecAsRowAndCol()(v)
         f = function([v], [c, r])
 
-        v_val = self.rng.randn(5).astype("float32")
+        v_val = self.rng.standard_normal((5)).astype("float32")
         f(v_val)
