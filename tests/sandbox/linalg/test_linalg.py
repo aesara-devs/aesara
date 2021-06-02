@@ -41,9 +41,9 @@ def test_rop_lop():
     )
     scan_f = function([mx, mv], sy)
 
-    rng = np.random.RandomState(utt.fetch_seed())
-    vx = np.asarray(rng.randn(4, 4), aesara.config.floatX)
-    vv = np.asarray(rng.randn(4, 4), aesara.config.floatX)
+    rng = np.random.default_rng(utt.fetch_seed())
+    vx = np.asarray(rng.standard_normal((4, 4)), aesara.config.floatX)
+    vv = np.asarray(rng.standard_normal((4, 4)), aesara.config.floatX)
 
     v1 = rop_f(vx, vv)
     v2 = scan_f(vx, vv)
@@ -75,13 +75,13 @@ def test_rop_lop():
 
 def test_spectral_radius_bound():
     tol = 10 ** (-6)
-    rng = np.random.RandomState(utt.fetch_seed())
+    rng = np.random.default_rng(utt.fetch_seed())
     x = matrix()
     radius_bound = spectral_radius_bound(x, 5)
     f = aesara.function([x], radius_bound)
 
     shp = (3, 4)
-    m = rng.rand(*shp)
+    m = rng.random(shp)
     m = np.cov(m).astype(config.floatX)
     radius_bound_aesara = f(m)
 

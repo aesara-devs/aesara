@@ -24,7 +24,7 @@ class TestGaussNewton:
     """
 
     def setup_method(self):
-        self.rng = np.random.RandomState(utt.fetch_seed())
+        self.rng = np.random.default_rng(utt.fetch_seed())
 
     def _run(self, num_features, num_timesteps, batch_size, mode):
         # determine shapes of inputs and targets depending on the batch size

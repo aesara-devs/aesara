@@ -88,7 +88,7 @@ opts = OptimizationQuery(include=[None], exclude=["cxx_only", "BlasOpt"])
 numba_mode = Mode(NumbaLinker(), opts)
 py_mode = Mode("py", opts)
 
-rng = np.random.RandomState(42849)
+rng = np.random.default_rng(42849)
 
 
 def set_test_value(x, v):
@@ -291,13 +291,13 @@ def test_create_numba_signature(v, expected, force_scalar):
     [
         (
             [aet.vector()],
-            [rng.randn(100).astype(config.floatX)],
+            [rng.standard_normal(100).astype(config.floatX)],
             lambda x: aet.sigmoid(x),
             None,
         ),
         (
             [aet.vector() for i in range(4)],
-            [rng.randn(100).astype(config.floatX) for i in range(4)],
+            [rng.standard_normal(100).astype(config.floatX) for i in range(4)],
             lambda x, y, x1, y1: (x + y) * (x1 + y1) * y,
             None,
         ),
@@ -311,8 +311,8 @@ def test_create_numba_signature(v, expected, force_scalar):
         (
             [aet.vector(), aet.vector()],
             [
-                rng.randn(100).astype(config.floatX),
-                rng.randn(100).astype(config.floatX),
+                rng.standard_normal(100).astype(config.floatX),
+                rng.standard_normal(100).astype(config.floatX),
             ],
             lambda x, y: ati.add_inplace(x, y),
             None,
@@ -320,8 +320,8 @@ def test_create_numba_signature(v, expected, force_scalar):
         (
             [aet.vector(), aet.vector()],
             [
-                rng.randn(100).astype(config.floatX),
-                rng.randn(100).astype(config.floatX),
+                rng.standard_normal(100).astype(config.floatX),
+                rng.standard_normal(100).astype(config.floatX),
             ],
             lambda x, y: my_multi_out(x, y),
             NotImplementedError,
@@ -1954,7 +1954,9 @@ def test_MaxAndArgmax(x, axes, exc):
         (
             set_test_value(
                 aet.lmatrix(),
-                (lambda x: x.T.dot(x))(rng.randint(1, 10, size=(3, 3)).astype("int64")),
+                (lambda x: x.T.dot(x))(
+                    rng.integers(1, 10, size=(3, 3)).astype("int64")
+                ),
             ),
             True,
             None,
@@ -2004,7 +2006,9 @@ def test_Cholesky(x, lower, exc):
         (
             set_test_value(
                 aet.lmatrix(),
-                (lambda x: x.T.dot(x))(rng.randint(1, 10, size=(3, 3)).astype("int64")),
+                (lambda x: x.T.dot(x))(
+                    rng.integers(1, 10, size=(3, 3)).astype("int64")
+                ),
             ),
             set_test_value(aet.dvector(), rng.random(size=(3,)).astype("float64")),
             "general",
@@ -2120,7 +2124,9 @@ y = np.array(
         (
             set_test_value(
                 aet.lmatrix(),
-                (lambda x: x.T.dot(x))(rng.randint(1, 10, size=(3, 3)).astype("int64")),
+                (lambda x: x.T.dot(x))(
+                    rng.integers(1, 10, size=(3, 3)).astype("int64")
+                ),
             ),
             None,
         ),
@@ -2160,7 +2166,9 @@ def test_Eig(x, exc):
         (
             set_test_value(
                 aet.lmatrix(),
-                (lambda x: x.T.dot(x))(rng.randint(1, 10, size=(3, 3)).astype("int64")),
+                (lambda x: x.T.dot(x))(
+                    rng.integers(1, 10, size=(3, 3)).astype("int64")
+                ),
             ),
             "U",
             UserWarning,
@@ -2200,7 +2208,9 @@ def test_Eigh(x, uplo, exc):
         (
             set_test_value(
                 aet.lmatrix(),
-                (lambda x: x.T.dot(x))(rng.randint(1, 10, size=(3, 3)).astype("int64")),
+                (lambda x: x.T.dot(x))(
+                    rng.integers(1, 10, size=(3, 3)).astype("int64")
+                ),
             ),
             None,
         ),
@@ -2244,7 +2254,9 @@ def test_MatrixInverse(x, exc):
         (
             set_test_value(
                 aet.lmatrix(),
-                (lambda x: x.T.dot(x))(rng.randint(1, 10, size=(3, 3)).astype("int64")),
+                (lambda x: x.T.dot(x))(
+                    rng.integers(1, 10, size=(3, 3)).astype("int64")
+                ),
             ),
             "reduced",
             None,
@@ -2252,7 +2264,9 @@ def test_MatrixInverse(x, exc):
         (
             set_test_value(
                 aet.lmatrix(),
-                (lambda x: x.T.dot(x))(rng.randint(1, 10, size=(3, 3)).astype("int64")),
+                (lambda x: x.T.dot(x))(
+                    rng.integers(1, 10, size=(3, 3)).astype("int64")
+                ),
             ),
             "complete",
             UserWarning,
@@ -2303,7 +2317,9 @@ def test_QRFull(x, mode, exc):
         (
             set_test_value(
                 aet.lmatrix(),
-                (lambda x: x.T.dot(x))(rng.randint(1, 10, size=(3, 3)).astype("int64")),
+                (lambda x: x.T.dot(x))(
+                    rng.integers(1, 10, size=(3, 3)).astype("int64")
+                ),
             ),
             True,
             True,
@@ -2312,7 +2328,9 @@ def test_QRFull(x, mode, exc):
         (
             set_test_value(
                 aet.lmatrix(),
-                (lambda x: x.T.dot(x))(rng.randint(1, 10, size=(3, 3)).astype("int64")),
+                (lambda x: x.T.dot(x))(
+                    rng.integers(1, 10, size=(3, 3)).astype("int64")
+                ),
             ),
             True,
             False,

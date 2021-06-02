@@ -13,7 +13,7 @@ from tests.d3viz import models
 
 class TestPyDotFormatter:
     def setup_method(self):
-        self.rng = np.random.RandomState(0)
+        self.rng = np.random.default_rng(0)
 
     def node_counts(self, graph):
         node_types = [node.get_attributes()["node_type"] for node in graph.get_nodes()]

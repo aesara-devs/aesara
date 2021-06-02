@@ -27,7 +27,6 @@ from aesara.typed_list.basic import (
     make_list,
 )
 from aesara.typed_list.type import TypedListType
-from tests import unittest_tools as utt
 
 
 def rand_ranged_matrix(minimum, maximum, shape):
@@ -55,9 +54,6 @@ def random_lil(shape, dtype, nnz):
 
 
 class TestGetItem:
-    def setup_method(self):
-        utt.seed_rng()
-
     def test_sanity_check_slice(self):
 
         mySymbolicMatricesList = TypedListType(
