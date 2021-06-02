@@ -6,7 +6,12 @@ import scipy.stats as stats
 import aesara
 from aesara.tensor.basic import as_tensor_variable
 from aesara.tensor.random.op import RandomVariable, default_shape_from_params
+from aesara.tensor.random.type import RandomGeneratorType, RandomStateType
 from aesara.tensor.random.utils import broadcast_params
+from aesara.tensor.random.var import (
+    RandomGeneratorSharedVariable,
+    RandomStateSharedVariable,
+)
 
 
 try:
@@ -165,7 +170,7 @@ class GumbelRV(RandomVariable):
     @classmethod
     def rng_fn(
         cls,
-        rng: np.random.RandomState,
+        rng: Union[np.random.Generator, np.random.RandomState],
         loc: Union[np.ndarray, float],
         scale: Union[np.ndarray, float],
         size: Optional[Union[List[int], int]],
@@ -590,7 +595,8 @@ class PolyaGammaRV(RandomVariable):
 
     @classmethod
     def rng_fn(cls, rng, b, c, size):
-        pg = PyPolyaGamma(rng.randint(2 ** 16))
+        rand_method = rng.integers if hasattr(rng, "integers") else rng.randint
+        pg = PyPolyaGamma(rand_method(2 ** 16))
 
         if not size and b.shape == c.shape == ():
             return pg.pgdraw(b, c)
@@ -627,8 +633,39 @@ class RandIntRV(RandomVariable):
             low, high = 0, low
         return super().__call__(low, high, size=size, **kwargs)
 
+    def make_node(self, rng, *args, **kwargs):
+        if not isinstance(
+            getattr(rng, "type", None), (RandomStateType, RandomStateSharedVariable)
+        ):
+            raise TypeError("`randint` is only available for `RandomStateType`s")
+        return super().make_node(rng, *args, **kwargs)
+
 
 randint = RandIntRV()
+
+
+class IntegersRV(RandomVariable):
+    name = "integers"
+    ndim_supp = 0
+    ndims_params = [0, 0]
+    dtype = "int64"
+    _print_name = ("integers", "\\operatorname{integers}")
+
+    def __call__(self, low, high=None, size=None, **kwargs):
+        if high is None:
+            low, high = 0, low
+        return super().__call__(low, high, size=size, **kwargs)
+
+    def make_node(self, rng, *args, **kwargs):
+        if not isinstance(
+            getattr(rng, "type", None),
+            (RandomGeneratorType, RandomGeneratorSharedVariable),
+        ):
+            raise TypeError("`integers` is only available for `RandomGeneratorType`s")
+        return super().make_node(rng, *args, **kwargs)
+
+
+integers = IntegersRV()
 
 
 class ChoiceRV(RandomVariable):
@@ -698,6 +735,7 @@ permutation = PermutationRV()
 __all__ = [
     "permutation",
     "choice",
+    "integers",
     "randint",
     "categorical",
     "multinomial",

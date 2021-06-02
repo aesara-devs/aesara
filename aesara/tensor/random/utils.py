@@ -117,25 +117,28 @@ def normalize_size_param(size):
 
 
 class RandomStream:
-    """Module component with similar interface to `numpy.random.RandomState`.
+    """Module component with similar interface to `numpy.random.Generator`.
 
     Attributes
     ----------
     seed: None or int
-        A default seed to initialize the RandomState instances after build.
+        A default seed to initialize the `Generator` instances after build.
     state_updates: list
-        A list of pairs of the form `(input_r, output_r)`.  This will be
+        A list of pairs of the form ``(input_r, output_r)``.  This will be
         over-ridden by the module instance to contain stream generators.
     default_instance_seed: int
         Instance variable should take None or integer value. Used to seed the
         random number generator that provides seeds for member streams.
-    gen_seedgen: numpy.random.RandomState
-        `RandomState` instance that `RandomStream.gen` uses to seed new
+    gen_seedgen: numpy.random.Generator
+        `Generator` instance that `RandomStream.gen` uses to seed new
         streams.
+    rng_ctor: type
+        Constructor used to create the underlying RNG objects.  The default
+        is `np.random.default_rng`.
 
     """
 
-    def __init__(self, seed=None, namespace=None):
+    def __init__(self, seed=None, namespace=None, rng_ctor=np.random.default_rng):
         if namespace is None:
             from aesara.tensor.random import basic  # pylint: disable=import-self
 
@@ -145,7 +148,8 @@ class RandomStream:
 
         self.default_instance_seed = seed
         self.state_updates = []
-        self.gen_seedgen = np.random.RandomState(seed)
+        self.gen_seedgen = np.random.default_rng(seed)
+        self.rng_ctor = rng_ctor
 
     def __getattr__(self, obj):
 
@@ -191,11 +195,11 @@ class RandomStream:
         if seed is None:
             seed = self.default_instance_seed
 
-        self.gen_seedgen.seed(seed)
+        self.gen_seedgen = np.random.default_rng(seed)
 
         for old_r, new_r in self.state_updates:
-            old_r_seed = self.gen_seedgen.randint(2 ** 30)
-            old_r.set_value(np.random.RandomState(int(old_r_seed)), borrow=True)
+            old_r_seed = self.gen_seedgen.integers(2 ** 30)
+            old_r.set_value(self.rng_ctor(int(old_r_seed)), borrow=True)
 
     def gen(self, op, *args, **kwargs):
         """Create a new random stream in this container.
@@ -213,18 +217,18 @@ class RandomStream:
         -------
         TensorVariable
             The symbolic random draw part of op()'s return value.
-            This function stores the updated `RandomStateType` variable
+            This function stores the updated `RandomGeneratorType` variable
             for use at `build` time.
 
         """
         if "rng" in kwargs:
-            raise TypeError(
-                "The rng option cannot be used with a variate in a RandomStream"
+            raise ValueError(
+                "The `rng` option cannot be used with a variate in a `RandomStream`"
             )
 
         # Generate a new random state
-        seed = int(self.gen_seedgen.randint(2 ** 30))
-        random_state_variable = shared(np.random.RandomState(seed))
+        seed = int(self.gen_seedgen.integers(2 ** 30))
+        random_state_variable = shared(self.rng_ctor(seed))
 
         # Distinguish it from other shared variables (why?)
         random_state_variable.tag.is_rng = True

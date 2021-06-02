@@ -44,7 +44,7 @@ def _is_numeric_value(arr, var):
     """
     if isinstance(arr, aesara.graph.type._cdata_type):
         return False
-    elif isinstance(arr, np.random.mtrand.RandomState):
+    elif isinstance(arr, (np.random.mtrand.RandomState, np.random.Generator)):
         return False
     elif var and getattr(var.tag, "is_rng", False):
         return False
