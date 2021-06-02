@@ -16,9 +16,6 @@ from tests import unittest_tools as utt
 
 
 class TestScipy:
-    def setup_method(self):
-        utt.seed_rng()
-
     def test_scipy_paper_example1(self):
         a = vector("a")  # declare variable
         b = a + a ** 10  # build expression
@@ -28,11 +25,11 @@ class TestScipy:
     @config.change_flags(floatX="float64")
     def test_scipy_paper_example2(self):
         """ This just sees if things compile well and if they run """
-        rng = numpy.random
+        rng = numpy.random.default_rng(utt.fetch_seed())
 
         x = matrix()
         y = vector()
-        w = shared(rng.randn(100))
+        w = shared(rng.standard_normal((100)))
         b = shared(np.zeros(()))
 
         # Construct Aesara expression graph
@@ -52,7 +49,7 @@ class TestScipy:
 
         N = 4
         feats = 100
-        D = (rng.randn(N, feats), rng.randint(size=4, low=0, high=2))
+        D = (rng.standard_normal((N, feats)), rng.integers(size=4, low=0, high=2))
         training_steps = 10
         for i in range(training_steps):
             pred, err = train(D[0], D[1])
