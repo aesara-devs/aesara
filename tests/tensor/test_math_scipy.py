@@ -24,9 +24,9 @@ from tests.tensor.utils import (
     _grad_broadcast_unary_normal_small_neg_range,
     check_floatX,
     copymod,
+    integers_ranged,
     makeBroadcastTester,
-    rand_ranged,
-    randint_ranged,
+    random_ranged,
     upcast_int8_nfunc,
 )
 
@@ -167,7 +167,7 @@ TestErfinvBroadcast = makeBroadcastTester(
     op=aet.erfinv,
     expected=expected_erfinv,
     good={
-        "normal": [rand_ranged(-0.9, 0.9, (2, 3))],
+        "normal": [random_ranged(-0.9, 0.9, (2, 3))],
         "empty": [np.asarray([], dtype=config.floatX)],
     },
     grad=_grad_broadcast_unary_abs1_no_complex,
@@ -180,7 +180,7 @@ TestErfcinvBroadcast = makeBroadcastTester(
     op=aet.erfcinv,
     expected=expected_erfcinv,
     good={
-        "normal": [rand_ranged(0.001, 1.9, (2, 3))],
+        "normal": [random_ranged(0.001, 1.9, (2, 3))],
         "empty": [np.asarray([], dtype=config.floatX)],
     },
     grad=_grad_broadcast_unary_0_2_no_complex,
@@ -190,16 +190,16 @@ TestErfcinvBroadcast = makeBroadcastTester(
 )
 
 _good_broadcast_unary_gammaln = dict(
-    normal=(rand_ranged(-1 + 1e-2, 10, (2, 3)),),
+    normal=(random_ranged(-1 + 1e-2, 10, (2, 3)),),
     empty=(np.asarray([], dtype=config.floatX),),
-    int=(randint_ranged(1, 10, (2, 3)),),
-    uint8=(randint_ranged(1, 6, (2, 3)).astype("uint8"),),
-    uint16=(randint_ranged(1, 10, (2, 3)).astype("uint16"),),
-    uint64=(randint_ranged(1, 10, (2, 3)).astype("uint64"),),
+    int=(integers_ranged(1, 10, (2, 3)),),
+    uint8=(integers_ranged(1, 6, (2, 3)).astype("uint8"),),
+    uint16=(integers_ranged(1, 10, (2, 3)).astype("uint16"),),
+    uint64=(integers_ranged(1, 10, (2, 3)).astype("uint64"),),
 )
 _grad_broadcast_unary_gammaln = dict(
     # smaller range as our grad method does not estimate it well enough.
-    normal=(rand_ranged(1e-1, 8, (2, 3)),),
+    normal=(random_ranged(1e-1, 8, (2, 3)),),
 )
 
 TestGammaBroadcast = makeBroadcastTester(
@@ -241,11 +241,11 @@ TestGammalnInplaceBroadcast = makeBroadcastTester(
 )
 
 _good_broadcast_unary_psi = dict(
-    normal=(rand_ranged(1, 10, (2, 3)),),
+    normal=(random_ranged(1, 10, (2, 3)),),
     empty=(np.asarray([], dtype=config.floatX),),
-    int=(randint_ranged(1, 10, (2, 3)),),
-    uint8=(randint_ranged(1, 10, (2, 3)).astype("uint8"),),
-    uint16=(randint_ranged(1, 10, (2, 3)).astype("uint16"),),
+    int=(integers_ranged(1, 10, (2, 3)),),
+    uint8=(integers_ranged(1, 10, (2, 3)).astype("uint8"),),
+    uint16=(integers_ranged(1, 10, (2, 3)).astype("uint16"),),
 )
 
 TestPsiBroadcast = makeBroadcastTester(
@@ -308,20 +308,20 @@ TestChi2SFInplaceBroadcast = makeBroadcastTester(
 )
 
 _good_broadcast_binary_gamma = dict(
-    normal=(rand_ranged(1e-2, 10, (2, 3)), rand_ranged(1e-2, 10, (2, 3))),
+    normal=(random_ranged(1e-2, 10, (2, 3)), random_ranged(1e-2, 10, (2, 3))),
     empty=(np.asarray([], dtype=config.floatX), np.asarray([], dtype=config.floatX)),
-    int=(randint_ranged(1, 10, (2, 3)), randint_ranged(1, 10, (2, 3))),
+    int=(integers_ranged(1, 10, (2, 3)), integers_ranged(1, 10, (2, 3))),
     uint8=(
-        randint_ranged(1, 6, (2, 3)).astype("uint8"),
-        randint_ranged(1, 6, (2, 3)).astype("uint8"),
+        integers_ranged(1, 6, (2, 3)).astype("uint8"),
+        integers_ranged(1, 6, (2, 3)).astype("uint8"),
     ),
     uint16=(
-        randint_ranged(1, 10, (2, 3)).astype("uint16"),
-        randint_ranged(1, 10, (2, 3)).astype("uint16"),
+        integers_ranged(1, 10, (2, 3)).astype("uint16"),
+        integers_ranged(1, 10, (2, 3)).astype("uint16"),
     ),
     uint64=(
-        randint_ranged(1, 10, (2, 3)).astype("uint64"),
-        randint_ranged(1, 10, (2, 3)).astype("uint64"),
+        integers_ranged(1, 10, (2, 3)).astype("uint64"),
+        integers_ranged(1, 10, (2, 3)).astype("uint64"),
     ),
 )
 
@@ -402,33 +402,33 @@ TestGammaLInplaceBroadcast = makeBroadcastTester(
 )
 
 _good_broadcast_unary_bessel = dict(
-    normal=(rand_ranged(-10, 10, (2, 3)),),
+    normal=(random_ranged(-10, 10, (2, 3)),),
     empty=(np.asarray([], dtype=config.floatX),),
-    int=(randint_ranged(-10, 10, (2, 3)),),
-    uint8=(randint_ranged(0, 10, (2, 3)).astype("uint8"),),
-    uint16=(randint_ranged(0, 10, (2, 3)).astype("uint16"),),
+    int=(integers_ranged(-10, 10, (2, 3)),),
+    uint8=(integers_ranged(0, 10, (2, 3)).astype("uint8"),),
+    uint16=(integers_ranged(0, 10, (2, 3)).astype("uint16"),),
 )
 
 _grad_broadcast_unary_bessel = dict(
-    normal=(rand_ranged(-10.0, 10.0, (2, 3)),),
+    normal=(random_ranged(-10.0, 10.0, (2, 3)),),
 )
 
 _good_broadcast_binary_bessel = dict(
-    normal=(rand_ranged(-5, 5, (2, 3)), rand_ranged(0, 10, (2, 3))),
+    normal=(random_ranged(-5, 5, (2, 3)), random_ranged(0, 10, (2, 3))),
     empty=(np.asarray([], dtype=config.floatX), np.asarray([], dtype=config.floatX)),
-    integers=(randint_ranged(-5, 5, (2, 3)), randint_ranged(-10, 10, (2, 3))),
+    integers=(integers_ranged(-5, 5, (2, 3)), integers_ranged(-10, 10, (2, 3))),
     uint8=(
-        randint_ranged(0, 5, (2, 3)).astype("uint8"),
-        randint_ranged(0, 10, (2, 3)).astype("uint8"),
+        integers_ranged(0, 5, (2, 3)).astype("uint8"),
+        integers_ranged(0, 10, (2, 3)).astype("uint8"),
     ),
     uint16=(
-        randint_ranged(0, 5, (2, 3)).astype("uint16"),
-        randint_ranged(0, 10, (2, 3)).astype("uint16"),
+        integers_ranged(0, 5, (2, 3)).astype("uint16"),
+        integers_ranged(0, 10, (2, 3)).astype("uint16"),
     ),
 )
 
 _grad_broadcast_binary_bessel = dict(
-    normal=(rand_ranged(1, 5, (2, 3)), rand_ranged(0, 10, (2, 3)))
+    normal=(random_ranged(1, 5, (2, 3)), random_ranged(0, 10, (2, 3)))
 )
 
 TestJ0Broadcast = makeBroadcastTester(
@@ -593,11 +593,8 @@ TestSigmoidInplaceBroadcast = makeBroadcastTester(
 
 
 class TestSigmoid:
-    def setup_method(self):
-        utt.seed_rng()
-
     def test_elemwise(self):
-        utt.verify_grad(aet.sigmoid, [np.random.rand(3, 4)])
+        utt.verify_grad(aet.sigmoid, [np.random.random((3, 4))])
 
 
 _good_broadcast_unary_softplus = dict(
@@ -633,11 +630,8 @@ TestSoftplusInplaceBroadcast = makeBroadcastTester(
 
 
 class TestSoftplus:
-    def setup_method(self):
-        utt.seed_rng()
-
     def test_elemwise(self):
-        utt.verify_grad(aet.softplus, [np.random.rand(3, 4)])
+        utt.verify_grad(aet.softplus, [np.random.random((3, 4))])
 
     def test_accuracy(self):
         # Test all approximations are working (cutoff points are -37, 18, 33.3)

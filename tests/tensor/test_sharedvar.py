@@ -12,9 +12,6 @@ from aesara.tensor.shape import Shape_i, specify_shape
 from tests import unittest_tools as utt
 
 
-utt.seed_rng()
-
-
 def makeSharedTester(
     shared_constructor_,
     dtype_,
@@ -85,7 +82,7 @@ def makeSharedTester(
             if dtype is None:
                 dtype = aesara.config.floatX
 
-            rng = np.random.RandomState(utt.fetch_seed())
+            rng = np.random.default_rng(utt.fetch_seed())
             x = np.asarray(rng.uniform(0, 1, [2, 4]), dtype=dtype)
             x = self.cast_value(x)
 
@@ -130,7 +127,7 @@ def makeSharedTester(
             if dtype is None:
                 dtype = aesara.config.floatX
 
-            rng = np.random.RandomState(utt.fetch_seed())
+            rng = np.random.default_rng(utt.fetch_seed())
             x = np.asarray(rng.uniform(0, 1, [2, 4]), dtype=dtype)
             x = self.cast_value(x)
 
@@ -153,7 +150,7 @@ def makeSharedTester(
             if dtype is None:
                 dtype = aesara.config.floatX
 
-            rng = np.random.RandomState(utt.fetch_seed())
+            rng = np.random.default_rng(utt.fetch_seed())
             x = np.asarray(rng.uniform(0, 1, [2, 4]), dtype=dtype)
             x = self.cast_value(x)
 
@@ -174,7 +171,7 @@ def makeSharedTester(
             if dtype is None:
                 dtype = aesara.config.floatX
 
-            rng = np.random.RandomState(utt.fetch_seed())
+            rng = np.random.default_rng(utt.fetch_seed())
             x = np.asarray(rng.uniform(0, 1, [2, 4]), dtype=dtype)
             x = self.cast_value(x)
 
@@ -207,7 +204,7 @@ def makeSharedTester(
             if dtype is None:
                 dtype = aesara.config.floatX
 
-            rng = np.random.RandomState(utt.fetch_seed())
+            rng = np.random.default_rng(utt.fetch_seed())
             x_orig = np.asarray(rng.uniform(0, 1, [2, 4]), dtype=dtype)
             x_cast = self.cast_value(x_orig)
             if self.shared_constructor_accept_ndarray:
@@ -222,7 +219,7 @@ def makeSharedTester(
             if dtype is None:
                 dtype = aesara.config.floatX
 
-            rng = np.random.RandomState(utt.fetch_seed())
+            rng = np.random.default_rng(utt.fetch_seed())
             x = np.asarray(rng.uniform(0, 1, [2, 4]), dtype=dtype)
             x = self.cast_value(x)
 
@@ -264,7 +261,7 @@ def makeSharedTester(
             if dtype is None:
                 dtype = aesara.config.floatX
 
-            rng = np.random.RandomState(utt.fetch_seed())
+            rng = np.random.default_rng(utt.fetch_seed())
             x = np.asarray(rng.uniform(1, 2, [4, 2]), dtype=dtype)
             x = self.cast_value(x)
             x_ref = self.ref_fct(x)
@@ -391,7 +388,7 @@ def makeSharedTester(
             if dtype is None:
                 dtype = aesara.config.floatX
 
-            rng = np.random.RandomState(utt.fetch_seed())
+            rng = np.random.default_rng(utt.fetch_seed())
             x1_1 = np.asarray(rng.uniform(1, 2, [4, 2]), dtype=dtype)
             x1_1 = self.cast_value(x1_1)
             x1_2 = np.asarray(rng.uniform(1, 2, [4, 2]), dtype=dtype)
@@ -460,7 +457,7 @@ def makeSharedTester(
             if dtype is None:
                 dtype = aesara.config.floatX
 
-            rng = np.random.RandomState(utt.fetch_seed())
+            rng = np.random.default_rng(utt.fetch_seed())
             x1_1 = np.asarray(rng.uniform(1, 2, [4, 2]), dtype=dtype)
             x1_1 = self.cast_value(x1_1)
             x1_2 = np.asarray(rng.uniform(1, 2, [4, 2]), dtype=dtype)
@@ -524,7 +521,7 @@ def makeSharedTester(
             if dtype is None:
                 dtype = aesara.config.floatX
 
-            rng = np.random.RandomState(utt.fetch_seed())
+            rng = np.random.default_rng(utt.fetch_seed())
             a = np.asarray(rng.uniform(1, 2, [40, 40]), dtype=dtype)
             a = self.cast_value(a)
             a_shared = self.shared_constructor(a)
@@ -654,9 +651,9 @@ def makeSharedTester(
             shp = (1024, 1024)
 
             # Test the case with all zeros element
-            rng = np.random.RandomState(utt.fetch_seed())
+            rng = np.random.default_rng(utt.fetch_seed())
             for x in [
-                np.asarray(rng.rand(*shp), dtype=dtype),
+                np.asarray(rng.random(shp), dtype=dtype),
                 np.zeros(shp, dtype=dtype),
             ]:
                 zeros = (x == 0).all()

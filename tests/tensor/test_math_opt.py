@@ -252,14 +252,14 @@ class TestAlgebraicCanonize:
         dx, dy, dz = dmatrices("xyz")
         # fv = fvector('r').dimshuffle('x', 0)
         # dv = dvector('s').dimshuffle('x', 0)
-        fxv = _asarray(np.random.rand(*shp), dtype="float32")
-        fyv = _asarray(np.random.rand(*shp), dtype="float32")
-        fzv = _asarray(np.random.rand(*shp), dtype="float32")
-        # fvv = _asarray(np.random.rand(shp[0]), dtype='float32').reshape(1, shp[0])
-        # dxv = _asarray(np.random.rand(*shp), dtype='float64')
-        # dyv = _asarray(np.random.rand(*shp), dtype='float64')
-        # dzv = _asarray(np.random.rand(*shp), dtype='float64')
-        # dvv = _asarray(np.random.rand(shp[0]), dtype='float64').reshape(1, shp[0])
+        fxv = _asarray(np.random.random(shp), dtype="float32")
+        fyv = _asarray(np.random.random(shp), dtype="float32")
+        fzv = _asarray(np.random.random(shp), dtype="float32")
+        # fvv = _asarray(np.random.random((shp[0]), dtype='float32').reshape(1, shp[0])
+        # dxv = _asarray(np.random.random((*shp), dtype='float64')
+        # dyv = _asarray(np.random.random((*shp), dtype='float64')
+        # dzv = _asarray(np.random.random((*shp), dtype='float64')
+        # dvv = _asarray(np.random.random((shp[0]), dtype='float64').reshape(1, shp[0])
         cases = [
             (fx + fy, (fx, fy), (fxv, fyv), 1, "float32"),
             (fx * fy, (fx, fy), (fxv, fyv), 1, "float32"),
@@ -383,14 +383,14 @@ class TestAlgebraicCanonize:
         dx, dy, dz = dmatrices("xyz")
         fv = fvector("r").dimshuffle("x", 0)
         dv = dvector("s").dimshuffle("x", 0)
-        fxv = _asarray(np.random.rand(*shp), dtype="float32")
-        fyv = _asarray(np.random.rand(*shp), dtype="float32")
-        fzv = _asarray(np.random.rand(*shp), dtype="float32")
-        fvv = _asarray(np.random.rand(shp[0]), dtype="float32").reshape(1, shp[0])
-        dxv = _asarray(np.random.rand(*shp), dtype="float64")
-        dyv = _asarray(np.random.rand(*shp), dtype="float64")
-        dzv = _asarray(np.random.rand(*shp), dtype="float64")
-        dvv = _asarray(np.random.rand(shp[0]), dtype="float64").reshape(1, shp[0])
+        fxv = _asarray(np.random.random(shp), dtype="float32")
+        fyv = _asarray(np.random.random(shp), dtype="float32")
+        fzv = _asarray(np.random.random(shp), dtype="float32")
+        fvv = _asarray(np.random.random((shp[0])), dtype="float32").reshape(1, shp[0])
+        dxv = _asarray(np.random.random(shp), dtype="float64")
+        dyv = _asarray(np.random.random(shp), dtype="float64")
+        dzv = _asarray(np.random.random(shp), dtype="float64")
+        dvv = _asarray(np.random.random((shp[0])), dtype="float64").reshape(1, shp[0])
         cases = [
             (fx + fy, (fx, fy), (fxv, fyv), 1, "float32"),
             (fx * fy, (fx, fy), (fxv, fyv), 1, "float32"),
@@ -520,16 +520,16 @@ class TestAlgebraicCanonize:
         dx, dy, dz, dw = dmatrices("xyzw")
         fv = fvector("r").dimshuffle("x", 0)
         dv = dvector("s").dimshuffle("x", 0)
-        fxv = _asarray(np.random.rand(*shp), dtype="float32")
-        fyv = _asarray(np.random.rand(*shp), dtype="float32")
-        fzv = _asarray(np.random.rand(*shp), dtype="float32")
-        fwv = _asarray(np.random.rand(*shp), dtype="float32")
-        fvv = _asarray(np.random.rand(shp[0]), dtype="float32").reshape(1, shp[0])
-        dxv = _asarray(np.random.rand(*shp), dtype="float64")
-        dyv = _asarray(np.random.rand(*shp), dtype="float64")
-        dzv = _asarray(np.random.rand(*shp), dtype="float64")
-        dwv = _asarray(np.random.rand(*shp), dtype="float64")
-        dvv = _asarray(np.random.rand(shp[0]), dtype="float64").reshape(1, shp[0])
+        fxv = _asarray(np.random.random(shp), dtype="float32")
+        fyv = _asarray(np.random.random(shp), dtype="float32")
+        fzv = _asarray(np.random.random(shp), dtype="float32")
+        fwv = _asarray(np.random.random(shp), dtype="float32")
+        fvv = _asarray(np.random.random((shp[0])), dtype="float32").reshape(1, shp[0])
+        dxv = _asarray(np.random.random(shp), dtype="float64")
+        dyv = _asarray(np.random.random(shp), dtype="float64")
+        dzv = _asarray(np.random.random(shp), dtype="float64")
+        dwv = _asarray(np.random.random(shp), dtype="float64")
+        dvv = _asarray(np.random.random((shp[0])), dtype="float64").reshape(1, shp[0])
 
         # We must be sure that the AlgebraicCanonizer is working, but that we don't have other
         # optimisation that could hide bug in the AlgebraicCanonizer as local_elemwise_fusion
@@ -887,13 +887,13 @@ class TestAlgebraicCanonize:
         shp = (4, 4)
         fx, fy, fz = fmatrices("xyz")
         dx, dy, dz = dmatrices("xyz")
-        fxv = _asarray(np.random.rand(*shp), dtype="float32")
-        fyv = _asarray(np.random.rand(*shp), dtype="float32")
-        fzv = _asarray(np.random.rand(*shp), dtype="float32")
-        dxv = _asarray(np.random.rand(*shp), dtype="float32")
-        dyv = _asarray(np.random.rand(*shp), dtype="float32")
-        dzv = _asarray(np.random.rand(*shp), dtype="float32")
-        # fvv = _asarray(np.random.rand(shp[0]), dtype='float32').reshape(1, shp[0])
+        fxv = _asarray(np.random.random(shp), dtype="float32")
+        fyv = _asarray(np.random.random(shp), dtype="float32")
+        fzv = _asarray(np.random.random(shp), dtype="float32")
+        dxv = _asarray(np.random.random(shp), dtype="float32")
+        dyv = _asarray(np.random.random(shp), dtype="float32")
+        dzv = _asarray(np.random.random(shp), dtype="float32")
+        # fvv = _asarray(np.random.random((shp[0]), dtype='float32').reshape(1, shp[0])
         # We must be sure that the AlgebraicCanonizer is working, but that we don't have other
         # optimisation that could hide bug in the AlgebraicCanonizer as local_elemwise_fusion
         mode = get_default_mode()
@@ -955,9 +955,9 @@ class TestAlgebraicCanonize:
 
 def test_local_merge_abs():
     x, y, z = matrices("xyz")
-    x_val = np.random.rand(5, 5).astype(config.floatX)
-    y_val = np.random.rand(5, 5).astype(config.floatX)
-    z_val = np.random.rand(5, 5).astype(config.floatX)
+    x_val = np.random.random((5, 5)).astype(config.floatX)
+    y_val = np.random.random((5, 5)).astype(config.floatX)
+    z_val = np.random.random((5, 5)).astype(config.floatX)
     mode = config.mode
     if mode == "FAST_COMPILE":
         mode = "FAST_RUN"
@@ -1013,12 +1013,12 @@ def test_const_type_in_mul_canonizer():
     f1 = function([input, w, visb, hidb, betas, a], vis_gauss1)
     f2 = function([input, w, visb, hidb, betas, a], vis_gauss2)
 
-    ival = np.random.rand(5, 5)
-    wval = np.random.rand(5, 5)
-    visbval = np.random.rand(5)
-    hidbval = np.random.rand(5)
-    betaval = np.random.rand(5)
-    aval = np.random.rand(5)
+    ival = np.random.random((5, 5))
+    wval = np.random.random((5, 5))
+    visbval = np.random.random((5))
+    hidbval = np.random.random((5))
+    betaval = np.random.random((5))
+    aval = np.random.random((5))
 
     utt.assert_allclose(
         f2(ival, wval, visbval, hidbval, betaval, aval),
@@ -1095,8 +1095,8 @@ class TestFusion:
         fxv = my_init(shp, "float32", 2)
         fyv = my_init(shp, "float32", 3)
         fzv = my_init(shp, "float32", 4)
-        fvv = _asarray(np.random.rand(shp[0]), dtype="float32")
-        fsv = np.asarray(np.random.rand(), dtype="float32")
+        fvv = _asarray(np.random.random((shp[0])), dtype="float32")
+        fsv = np.asarray(np.random.random(), dtype="float32")
         dwv = my_init(shp, "float64", 5)
         ixv = _asarray(my_init(shp, num=60), dtype="int32")
         iyv = _asarray(my_init(shp, num=70), dtype="int32")
@@ -1929,10 +1929,10 @@ def test_local_elemwise_sub_zeros():
     vect = vector()
     mat = matrix()
 
-    rng = np.random.RandomState(seed=utt.fetch_seed())
-    scalar_val = rng.rand(1).astype(config.floatX)[0]
-    vect_val = rng.rand(5).astype(config.floatX)
-    mat_val = rng.rand(3, 2).astype(config.floatX)
+    rng = np.random.default_rng(seed=utt.fetch_seed())
+    scalar_val = rng.random((1)).astype(config.floatX)[0]
+    vect_val = rng.random((5)).astype(config.floatX)
+    mat_val = rng.random((3, 2)).astype(config.floatX)
 
     mode = (
         get_default_mode()
@@ -1985,7 +1985,7 @@ def test_local_elemwise_sub_zeros():
 
 class TestLocalUselessElemwiseComparison:
     def setup_method(self):
-        self.rng = np.random.RandomState(utt.fetch_seed())
+        self.rng = np.random.default_rng(utt.fetch_seed())
 
     def test_local_useless_elemwise_comparison(self):
         # TODO FIXME: This is not a real test!
@@ -2025,8 +2025,8 @@ class TestLocalUselessElemwiseComparison:
         mode = get_default_mode().excluding("fusion")
         f = function([X, Y], Z, mode=mode)
         f(
-            self.rng.rand(2, 3).astype(config.floatX),
-            self.rng.rand(2).astype(config.floatX),
+            self.rng.random((2, 3)).astype(config.floatX),
+            self.rng.random((2)).astype(config.floatX),
         )
         # aesara.printing.debugprint(f, print_type=True)
         # here is the output for the debug print:
@@ -2307,7 +2307,7 @@ def test_local_mul_specialize():
 
 
 def speed_local_pow_specialize_range():
-    val = np.random.rand(1e7)
+    val = np.random.random((1e7))
     v = vector()
     mode = get_default_mode()
     mode_without_pow_opt = mode.excluding("local_pow_specialize")
@@ -2465,13 +2465,13 @@ class TestFuncInverse:
     def test(self):
         # test optimization for consecutive functional inverses
 
-        dx = np.random.rand(5, 4).astype("float32")
+        dx = np.random.random((5, 4)).astype("float32")
         self.assert_func_pair_optimized(deg2rad, rad2deg, dx)
-        dx = np.random.rand(5, 4).astype("float32") * 180
+        dx = np.random.random((5, 4)).astype("float32") * 180
         self.assert_func_pair_optimized(rad2deg, deg2rad, dx)
 
         # Test the other functional inverses
-        dx = np.random.rand(5, 4).astype("float32")
+        dx = np.random.random((5, 4)).astype("float32")
         self.assert_func_pair_optimized(cosh, arccosh, dx)
         self.assert_func_pair_optimized(arcsinh, sinh, dx)
         self.assert_func_pair_optimized(arctanh, tanh, dx)
@@ -2484,7 +2484,7 @@ class TestFuncInverse:
         self.assert_func_pair_optimized(
             conj, neg, cx, should_copy=False, is_complex=True
         )
-        dx = np.random.rand(5, 4).astype("float32") + 0.01
+        dx = np.random.random((5, 4)).astype("float32") + 0.01
         self.assert_func_pair_optimized(rad2deg, rad2deg, dx, should_copy=False)
         self.assert_func_pair_optimized(rad2deg, cosh, dx, should_copy=False)
 
@@ -2496,7 +2496,7 @@ class TestExpLog:
 
     def test_log_exp(self):
         # log(exp(x)) -> x
-        data = np.random.rand(4, 3).astype("float32")
+        data = np.random.random((4, 3)).astype("float32")
         x = fmatrix()
         f = function([x], log(exp(x)), mode=self.mode)
         graph = f.maker.fgraph.toposort()
@@ -2511,7 +2511,7 @@ class TestExpLog:
 
     def test_exp_log(self):
         # exp(log(x)) -> switch(x > 0, x, nan)
-        data_valid = np.random.rand(4, 3).astype("float32")
+        data_valid = np.random.random((4, 3)).astype("float32")
         data_invalid = data_valid * -1
         x = fmatrix()
         f = function([x], exp(log(x)), mode=self.mode)
@@ -2528,7 +2528,7 @@ class TestExpLog:
 
     def test_exp_log1p(self):
         # exp(log1p(x)) -> switch(x > -1, x + 1, nan)
-        data_valid = np.random.rand(4, 3).astype("float32") * 2 - 1
+        data_valid = np.random.random((4, 3)).astype("float32") * 2 - 1
         data_invalid = data_valid - 2
         x = fmatrix()
         f = function([x], exp(log1p(x)), mode=self.mode)
@@ -2995,7 +2995,7 @@ class TestLocalErfc:
 
     def speed_local_log_erfc(self):
 
-        val = np.random.rand(1e6)
+        val = np.random.random((1e6))
         x = vector()
         mode = get_mode("FAST_RUN")
         f1 = function([x], log(erfc(x)), mode=mode.excluding("local_log_erfc"))
@@ -3079,10 +3079,10 @@ class TestLocalSumProd:
         scalar1 = dscalar()
         scalar2 = dscalar()
 
-        v_val = np.random.rand(2)
-        m_val = np.random.rand(2, 2)
-        s1_val = np.random.rand()
-        s2_val = np.random.rand()
+        v_val = np.random.random((2))
+        m_val = np.random.random((2, 2))
+        s1_val = np.random.random()
+        s2_val = np.random.random()
 
         def test_reduction_opt(
             inputs, inputs_val, reduction_op, expected_output, nb_expected_sum_nodes
@@ -3621,11 +3621,11 @@ class TestLocalSumProdDimshuffle:
             sum(sum(c, axis=1) / b, axis=0),
         ]
 
-        rng = np.random.RandomState(utt.fetch_seed())
-        a_val = rng.randn(2, 2).astype(config.floatX)
-        b_val = rng.randn(2).astype(config.floatX)
-        c_val = rng.randn(2, 2, 2).astype(config.floatX)
-        d_val = np.asarray(rng.randn(), config.floatX)
+        rng = np.random.default_rng(utt.fetch_seed())
+        a_val = rng.standard_normal((2, 2)).astype(config.floatX)
+        b_val = rng.standard_normal((2)).astype(config.floatX)
+        c_val = rng.standard_normal((2, 2, 2)).astype(config.floatX)
+        d_val = np.asarray(rng.standard_normal(), config.floatX)
 
         with config.change_flags(
             warn__sum_sum_bug=False, warn__sum_div_dimshuffle_bug=False
@@ -3679,11 +3679,11 @@ class TestLocalSumProdDimshuffle:
             prod(prod(c, axis=1) / b, axis=0),
         ]
 
-        rng = np.random.RandomState(utt.fetch_seed())
-        a_val = rng.randn(2, 2).astype(config.floatX)
-        b_val = rng.randn(2).astype(config.floatX)
-        c_val = rng.randn(2, 2, 2).astype(config.floatX)
-        d_val = np.asarray(rng.randn(), config.floatX)
+        rng = np.random.default_rng(utt.fetch_seed())
+        a_val = rng.standard_normal((2, 2)).astype(config.floatX)
+        b_val = rng.standard_normal((2)).astype(config.floatX)
+        c_val = rng.standard_normal((2, 2, 2)).astype(config.floatX)
+        d_val = np.asarray(rng.standard_normal(), config.floatX)
 
         default_mode = get_default_mode()
         # FusionOptimizer is included to make sure that expected_outer_operator
@@ -3863,8 +3863,8 @@ def test_local_sumsqr2dot():
 
     f = function([W, G], y, mode=MODE)
 
-    w_val = np.random.rand(4, 3).astype(config.floatX)
-    g_val = np.random.rand(5, 3).astype(config.floatX)
+    w_val = np.random.random((4, 3)).astype(config.floatX)
+    g_val = np.random.random((5, 3)).astype(config.floatX)
 
     f_val = f(w_val, g_val)
     f_test = np.dot(np.square(g_val), np.square(w_val).sum(axis=0))
@@ -3897,7 +3897,7 @@ def test_local_expm1():
     g = function([x], z, mode=MODE)
     h = function([x], t, mode=MODE)
     r = function([u], s, mode=MODE)
-    x_val = np.random.rand(4, 3).astype(config.floatX)
+    x_val = np.random.random((4, 3)).astype(config.floatX)
     f_val = f(x_val)
     f_test = function([x], expm1(x), mode=MODE)
 
@@ -3975,7 +3975,7 @@ def test_local_log_sum_exp2():
     # Tests if the optimization works (result is correct) around 1.0
 
     x = tensor3("x")
-    x_val = 1.0 + np.random.rand(4, 3, 2).astype(config.floatX) / 10.0
+    x_val = 1.0 + np.random.random((4, 3, 2)).astype(config.floatX) / 10.0
 
     f = compile_graph_log_sum_exp(x, axis=(1,))
     naive_ret = np.log(np.sum(np.exp(x_val), axis=1))
@@ -4046,7 +4046,7 @@ class TestSigmoidOpts:
         m = self.get_mode(excluding=["local_elemwise_fusion"])
 
         x = vector()
-        data = np.random.rand(54).astype(config.floatX)
+        data = np.random.random((54)).astype(config.floatX)
 
         backup = config.warn__identify_1pexp_bug
         config.warn__identify_1pexp_bug = False
@@ -4319,7 +4319,6 @@ class TestSoftplusOpts:
                 "local_elemwise_fusion"
             )
         self.m = m
-        utt.seed_rng()
 
     def test_logsigm_to_softplus(self):
         x = vector()
@@ -4336,7 +4335,7 @@ class TestSoftplusOpts:
         assert isinstance(topo[0].op.scalar_op, aesara.scalar.Neg)
         assert isinstance(topo[1].op.scalar_op, aesara.scalar.Softplus)
         assert isinstance(topo[2].op.scalar_op, aesara.scalar.Neg)
-        f(np.random.rand(54).astype(config.floatX))
+        f(np.random.random((54)).astype(config.floatX))
 
     def test_log1msigm_to_softplus(self):
         x = matrix()
@@ -4348,7 +4347,7 @@ class TestSoftplusOpts:
         assert isinstance(topo[0].op.scalar_op, aesara.scalar.Softplus)
         assert isinstance(topo[1].op.scalar_op, aesara.scalar.Neg)
         # assert check_stack_trace(f, ops_to_check='all')
-        f(np.random.rand(54, 11).astype(config.floatX))
+        f(np.random.random((54, 11)).astype(config.floatX))
 
         # Same test with a flatten
         out = log(1 - aet.flatten(sigmoid(x)))
@@ -4360,7 +4359,7 @@ class TestSoftplusOpts:
         assert aet.is_flat(topo[0].outputs[0])
         assert isinstance(topo[1].op.scalar_op, aesara.scalar.Softplus)
         assert isinstance(topo[2].op.scalar_op, aesara.scalar.Neg)
-        f(np.random.rand(54, 11).astype(config.floatX))
+        f(np.random.random((54, 11)).astype(config.floatX))
 
         # Same test with a reshape
         out = log(1 - sigmoid(x).reshape([x.size]))
@@ -4375,7 +4374,7 @@ class TestSoftplusOpts:
             )
             for node in topo
         )
-        f(np.random.rand(54, 11).astype(config.floatX))
+        f(np.random.random((54, 11)).astype(config.floatX))
 
     def test_log1pexp_to_softplus(self):
         m = aesara.config.mode
@@ -4392,7 +4391,7 @@ class TestSoftplusOpts:
         topo = f.maker.fgraph.toposort()
         assert len(topo) == 1
         assert isinstance(topo[0].op.scalar_op, aesara.scalar.Softplus)
-        f(np.random.rand(54).astype(config.floatX))
+        f(np.random.random((54)).astype(config.floatX))
 
 
 class TestSigmoidUtils:

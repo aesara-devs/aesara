@@ -41,9 +41,9 @@ def gen_unique_vector(size, dtype):
 
 class TestSort:
     def setup_method(self):
-        self.rng = np.random.RandomState(seed=utt.fetch_seed())
-        self.m_val = self.rng.rand(3, 2)
-        self.v_val = self.rng.rand(4)
+        self.rng = np.random.default_rng(seed=utt.fetch_seed())
+        self.m_val = self.rng.random((3, 2))
+        self.v_val = self.rng.random((4))
 
     def test1(self):
         a = dmatrix()
@@ -97,65 +97,65 @@ class TestSort:
         utt.assert_allclose(gv, gt)
 
     def test_grad_vector(self):
-        data = np.random.rand(10).astype(aesara.config.floatX)
+        data = np.random.random((10)).astype(aesara.config.floatX)
         utt.verify_grad(sort, [data])
 
     def test_grad_none_axis(self):
-        data = np.random.rand(10).astype(aesara.config.floatX)
+        data = np.random.random((10)).astype(aesara.config.floatX)
         utt.verify_grad(lambda x: sort(x, None), [data])
         utt.verify_grad(lambda x: sort(x, 0), [data])
 
-        data = np.random.rand(2, 3).astype(aesara.config.floatX)
+        data = np.random.random((2, 3)).astype(aesara.config.floatX)
         utt.verify_grad(lambda x: sort(x, None), [data])
-        data = np.random.rand(2, 3, 4).astype(aesara.config.floatX)
+        data = np.random.random((2, 3, 4)).astype(aesara.config.floatX)
         utt.verify_grad(lambda x: sort(x, None), [data])
 
     def test_grad_negative_axis_2d(self):
-        data = np.random.rand(2, 3).astype(aesara.config.floatX)
+        data = np.random.random((2, 3)).astype(aesara.config.floatX)
         utt.verify_grad(lambda x: sort(x, -1), [data])
-        data = np.random.rand(2, 3).astype(aesara.config.floatX)
+        data = np.random.random((2, 3)).astype(aesara.config.floatX)
         utt.verify_grad(lambda x: sort(x, -2), [data])
 
     def test_grad_negative_axis_3d(self):
-        data = np.random.rand(2, 3, 4).astype(aesara.config.floatX)
+        data = np.random.random((2, 3, 4)).astype(aesara.config.floatX)
         utt.verify_grad(lambda x: sort(x, -1), [data])
-        data = np.random.rand(2, 3, 4).astype(aesara.config.floatX)
+        data = np.random.random((2, 3, 4)).astype(aesara.config.floatX)
         utt.verify_grad(lambda x: sort(x, -2), [data])
-        data = np.random.rand(2, 3, 4).astype(aesara.config.floatX)
+        data = np.random.random((2, 3, 4)).astype(aesara.config.floatX)
         utt.verify_grad(lambda x: sort(x, -3), [data])
 
     def test_grad_negative_axis_4d(self):
-        data = np.random.rand(2, 3, 4, 2).astype(aesara.config.floatX)
+        data = np.random.random((2, 3, 4, 2)).astype(aesara.config.floatX)
         utt.verify_grad(lambda x: sort(x, -1), [data])
-        data = np.random.rand(2, 3, 4, 2).astype(aesara.config.floatX)
+        data = np.random.random((2, 3, 4, 2)).astype(aesara.config.floatX)
         utt.verify_grad(lambda x: sort(x, -2), [data])
-        data = np.random.rand(2, 3, 4, 2).astype(aesara.config.floatX)
+        data = np.random.random((2, 3, 4, 2)).astype(aesara.config.floatX)
         utt.verify_grad(lambda x: sort(x, -3), [data])
-        data = np.random.rand(2, 3, 4, 2).astype(aesara.config.floatX)
+        data = np.random.random((2, 3, 4, 2)).astype(aesara.config.floatX)
         utt.verify_grad(lambda x: sort(x, -4), [data])
 
     def test_grad_nonnegative_axis_2d(self):
-        data = np.random.rand(2, 3).astype(aesara.config.floatX)
+        data = np.random.random((2, 3)).astype(aesara.config.floatX)
         utt.verify_grad(lambda x: sort(x, 0), [data])
-        data = np.random.rand(2, 3).astype(aesara.config.floatX)
+        data = np.random.random((2, 3)).astype(aesara.config.floatX)
         utt.verify_grad(lambda x: sort(x, 1), [data])
 
     def test_grad_nonnegative_axis_3d(self):
-        data = np.random.rand(2, 3, 4).astype(aesara.config.floatX)
+        data = np.random.random((2, 3, 4)).astype(aesara.config.floatX)
         utt.verify_grad(lambda x: sort(x, 0), [data])
-        data = np.random.rand(2, 3, 4).astype(aesara.config.floatX)
+        data = np.random.random((2, 3, 4)).astype(aesara.config.floatX)
         utt.verify_grad(lambda x: sort(x, 1), [data])
-        data = np.random.rand(2, 3, 4).astype(aesara.config.floatX)
+        data = np.random.random((2, 3, 4)).astype(aesara.config.floatX)
         utt.verify_grad(lambda x: sort(x, 2), [data])
 
     def test_grad_nonnegative_axis_4d(self):
-        data = np.random.rand(2, 3, 4, 2).astype(aesara.config.floatX)
+        data = np.random.random((2, 3, 4, 2)).astype(aesara.config.floatX)
         utt.verify_grad(lambda x: sort(x, 0), [data])
-        data = np.random.rand(2, 3, 4, 2).astype(aesara.config.floatX)
+        data = np.random.random((2, 3, 4, 2)).astype(aesara.config.floatX)
         utt.verify_grad(lambda x: sort(x, 1), [data])
-        data = np.random.rand(2, 3, 4, 2).astype(aesara.config.floatX)
+        data = np.random.random((2, 3, 4, 2)).astype(aesara.config.floatX)
         utt.verify_grad(lambda x: sort(x, 2), [data])
-        data = np.random.rand(2, 3, 4, 2).astype(aesara.config.floatX)
+        data = np.random.random((2, 3, 4, 2)).astype(aesara.config.floatX)
         utt.verify_grad(lambda x: sort(x, 3), [data])
 
 
@@ -178,9 +178,9 @@ class TestSortInferShape(utt.InferShapeTester):
 
 def test_argsort():
     # Set up
-    rng = np.random.RandomState(seed=utt.fetch_seed())
-    m_val = rng.rand(3, 2)
-    v_val = rng.rand(4)
+    rng = np.random.default_rng(seed=utt.fetch_seed())
+    m_val = rng.random((3, 2))
+    v_val = rng.random((4))
 
     # Example 1
     a = dmatrix()
@@ -239,13 +239,13 @@ def test_argsort():
 
 def test_argsort_grad():
     # Testing grad of argsort
-    data = np.random.rand(2, 3).astype(aesara.config.floatX)
+    data = np.random.random((2, 3)).astype(aesara.config.floatX)
     utt.verify_grad(lambda x: argsort(x, axis=-1), [data])
 
-    data = np.random.rand(2, 3, 4, 5).astype(aesara.config.floatX)
+    data = np.random.random((2, 3, 4, 5)).astype(aesara.config.floatX)
     utt.verify_grad(lambda x: argsort(x, axis=-3), [data])
 
-    data = np.random.rand(2, 3, 3).astype(aesara.config.floatX)
+    data = np.random.random((2, 3, 3)).astype(aesara.config.floatX)
     utt.verify_grad(lambda x: argsort(x, axis=2), [data])
 
 

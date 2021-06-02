@@ -136,14 +136,14 @@ from tests.tensor.utils import (
     eval_outputs,
     get_numeric_types,
     inplace_func,
+    integers,
+    integers_ranged,
     makeBroadcastTester,
     makeTester,
     multi_dtype_cast_checks,
     multi_dtype_checks,
-    rand,
-    rand_of_dtype,
-    randint,
-    randint_ranged,
+    random,
+    random_of_dtype,
 )
 
 
@@ -156,23 +156,23 @@ TestSwitchBroadcast = makeBroadcastTester(
     op=switch,
     expected=np.where,
     good=dict(
-        all_true=(np.asarray(1, dtype=config.floatX), rand(4, 5), rand(4, 5)),
-        false_true=(np.asarray(0, dtype=config.floatX), rand(4, 5), rand(4, 5)),
-        mixed=(randint_ranged(0, 1, (4, 5)), rand(4, 5), rand(4, 5)),
+        all_true=(np.asarray(1, dtype=config.floatX), random(4, 5), random(4, 5)),
+        false_true=(np.asarray(0, dtype=config.floatX), random(4, 5), random(4, 5)),
+        mixed=(integers_ranged(0, 1, (4, 5)), random(4, 5), random(4, 5)),
     ),
-    bad_build=dict(all_true=(np.asarray(1, dtype=config.floatX), rand(4, 5))),
+    bad_build=dict(all_true=(np.asarray(1, dtype=config.floatX), random(4, 5))),
     bad_runtime=dict(
-        all_true=(np.asarray(1, dtype=config.floatX), rand(3, 5), rand(4, 5)),
-        false_true=(np.asarray(0, dtype=config.floatX), rand(4, 6), rand(4, 5)),
+        all_true=(np.asarray(1, dtype=config.floatX), random(3, 5), random(4, 5)),
+        false_true=(np.asarray(0, dtype=config.floatX), random(4, 6), random(4, 5)),
     ),
     # We suppose that cond+eps do not switch branch in switch.grad()
     # So we can't call verify_grad with cond 0.
     grad=dict(
-        all_true=(np.asarray(1, dtype=config.floatX), rand(4, 5), rand(4, 5)),
+        all_true=(np.asarray(1, dtype=config.floatX), random(4, 5), random(4, 5)),
         # false_true=(np.asarray(0, dtype=config.floatX),
-        #             rand(4, 5), rand(4, 5)),
-        # mixed=(randint_ranged(0, 1, (4, 5)).astype(config.floatX),
-        #        rand(4, 5), rand(4, 5))
+        #             random(4, 5), random(4, 5)),
+        # mixed=(integers_ranged(0, 1, (4, 5)).astype(config.floatX),
+        #        random(4, 5), random(4, 5))
     ),
 )
 
@@ -195,9 +195,9 @@ TestSecondBroadcast = makeTester(
     # I can't think of any way to make this fail at build time
     # Just some simple smoke tests
     bad_runtime=dict(
-        fail1=(rand(5, 4), rand(5)),
-        fail2=(rand(3, 2, 3), rand(6, 9)),
-        fail3=(randint(6, 2, 9), rand(3, 2)),
+        fail1=(random(5, 4), random(5)),
+        fail2=(random(3, 2, 3), random(6, 9)),
+        fail3=(integers(6, 2, 9), random(3, 2)),
     ),
 )
 
@@ -231,42 +231,42 @@ TestAllocBroadcast = makeBroadcastTester(
     op=alloc,
     expected=(lambda x, *shp: np.zeros(shp, dtype=x.dtype) + x),
     good=dict(
-        correct01=(rand(), np.int32(7)),
-        correct01_bcast=(rand(1), np.int32(7)),
-        correct02=(rand(), np.int32(4), np.int32(7)),
-        correct12=(rand(7), np.int32(4), np.int32(7)),
-        correct13=(rand(7), np.int32(2), np.int32(4), np.int32(7)),
-        correct23=(rand(4, 7), np.int32(2), np.int32(4), np.int32(7)),
-        correctb1=(rand(1, 7), np.int32(4), np.int32(7)),
-        correctb2=(rand(1, 7), np.int32(2), np.int32(4), np.int32(7)),
-        correctb3=(rand(7, 1), np.int32(7), np.int32(4)),
-        correctb4=(rand(7, 1), np.int32(2), np.int32(7), np.int32(4)),
+        correct01=(random(), np.int32(7)),
+        correct01_bcast=(random(1), np.int32(7)),
+        correct02=(random(), np.int32(4), np.int32(7)),
+        correct12=(random(7), np.int32(4), np.int32(7)),
+        correct13=(random(7), np.int32(2), np.int32(4), np.int32(7)),
+        correct23=(random(4, 7), np.int32(2), np.int32(4), np.int32(7)),
+        correctb1=(random(1, 7), np.int32(4), np.int32(7)),
+        correctb2=(random(1, 7), np.int32(2), np.int32(4), np.int32(7)),
+        correctb3=(random(7, 1), np.int32(7), np.int32(4)),
+        correctb4=(random(7, 1), np.int32(2), np.int32(7), np.int32(4)),
     ),
     bad_runtime=dict(
-        bad_shape12=(rand(7), np.int32(7), np.int32(5)),
+        bad_shape12=(random(7), np.int32(7), np.int32(5)),
     ),
     bad_build=dict(
-        vec=(rand(1), [np.int32(2)]),
-        too_big32=(rand(6, 2, 4), np.int32(6), np.int32(2)),
-        too_big32b=(rand(6, 2, 4), np.int32(6), np.int32(4)),
-        too_big32c=(rand(6, 2, 4), np.int32(2), np.int32(4)),
-        too_big32d=(rand(6, 2, 4), np.int32(2), np.int32(6)),
-        too_big32e=(rand(6, 2, 4), np.int32(4), np.int32(6)),
-        too_big32f=(rand(6, 2, 4), np.int32(4), np.int32(2)),
+        vec=(random(1), [np.int32(2)]),
+        too_big32=(random(6, 2, 4), np.int32(6), np.int32(2)),
+        too_big32b=(random(6, 2, 4), np.int32(6), np.int32(4)),
+        too_big32c=(random(6, 2, 4), np.int32(2), np.int32(4)),
+        too_big32d=(random(6, 2, 4), np.int32(2), np.int32(6)),
+        too_big32e=(random(6, 2, 4), np.int32(4), np.int32(6)),
+        too_big32f=(random(6, 2, 4), np.int32(4), np.int32(2)),
     ),
 )
 
 # Since not all inputs of Alloc are differentiable, we need different testers
-s1, s2, s3 = randint_ranged(1, 13, (3,))
+s1, s2, s3 = integers_ranged(1, 13, (3,))
 # alloc a scalar into a vector
 TestAlloc01GradBroadcast = makeBroadcastTester(
     name="Alloc01GradTester",
     op=(lambda x: alloc(x, s1)),
     expected=(lambda x: np.zeros((s1,), dtype=x.dtype) + x),
     grad=dict(
-        x1=(rand(),),
-        x2=(rand(),),
-        x3=(rand(),),
+        x1=(random(),),
+        x2=(random(),),
+        x3=(random(),),
     ),
 )
 
@@ -276,9 +276,9 @@ TestAlloc13GradBroadcast = makeBroadcastTester(
     op=(lambda x: alloc(x, s1, s2, s3)),
     expected=(lambda x: np.zeros((s1, s2, s3), dtype=x.dtype) + x),
     grad=dict(
-        x1=(rand(s3),),
-        x2=(rand(s3),),
-        x3=(rand(s3),),
+        x1=(random(s3),),
+        x2=(random(s3),),
+        x3=(random(s3),),
     ),
 )
 
@@ -288,9 +288,9 @@ TestAllocb1GradBroadcast = makeBroadcastTester(
     op=lambda x: alloc(x, s1, s2),
     expected=(lambda x: np.zeros((s1, s2), dtype=x.dtype) + x),
     grad=dict(
-        x1=(rand(1, s2),),
-        x2=(rand(1, s2),),
-        x3=(rand(1, s2),),
+        x1=(random(1, s2),),
+        x2=(random(1, s2),),
+        x3=(random(1, s2),),
     ),
 )
 
@@ -300,9 +300,9 @@ TestAllocb2GradBroadcast = makeBroadcastTester(
     op=lambda x: alloc(x, s1, s2, s3),
     expected=(lambda x: np.zeros((s1, s2, s3), dtype=x.dtype) + x),
     grad=dict(
-        x1=(rand(1, s3),),
-        x2=(rand(1, s3),),
-        x3=(rand(1, s3),),
+        x1=(random(1, s3),),
+        x2=(random(1, s3),),
+        x3=(random(1, s3),),
     ),
 )
 
@@ -312,9 +312,9 @@ TestAllocb3GradBroadcast = makeBroadcastTester(
     op=lambda x: alloc(x, s1, s2),
     expected=(lambda x: np.zeros((s1, s2), dtype=x.dtype) + x),
     grad=dict(
-        x1=(rand(s1, 1),),
-        x2=(rand(s1, 1),),
-        x3=(rand(s1, 1),),
+        x1=(random(s1, 1),),
+        x2=(random(s1, 1),),
+        x3=(random(s1, 1),),
     ),
 )
 
@@ -324,9 +324,9 @@ TestAllocb4GradBroadcast = makeBroadcastTester(
     op=lambda x: alloc(x, s1, s2, s3),
     expected=(lambda x: np.zeros((s1, s2, s3), dtype=x.dtype) + x),
     grad=dict(
-        x1=(rand(s2, 1),),
-        x2=(rand(s2, 1),),
-        x3=(rand(s2, 1),),
+        x1=(random(s2, 1),),
+        x2=(random(s2, 1),),
+        x3=(random(s2, 1),),
     ),
 )
 
@@ -337,9 +337,9 @@ TestAllocDimshuffleGradBroadcast = makeBroadcastTester(
     op=lambda x: alloc(x.dimshuffle("x", "x", 0), 1, s2, s3),
     expected=(lambda x: np.zeros((1, s2, s3), dtype=x.dtype) + x),
     grad=dict(
-        x1=(rand(s3),),
-        x2=(rand(s3),),
-        x3=(rand(s3),),
+        x1=(random(s3),),
+        x2=(random(s3),),
+        x3=(random(s3),),
     ),
 )
 TestAllocDimshuffleGrad2Broadcast = makeBroadcastTester(
@@ -347,9 +347,9 @@ TestAllocDimshuffleGrad2Broadcast = makeBroadcastTester(
     op=lambda x: alloc(x.dimshuffle("x", 0), 1, s2, s3),
     expected=(lambda x: np.zeros((1, s2, s3), dtype=x.dtype) + x),
     grad=dict(
-        x1=(rand(s3),),
-        x2=(rand(s3),),
-        x3=(rand(s3),),
+        x1=(random(s3),),
+        x2=(random(s3),),
+        x3=(random(s3),),
     ),
 )
 
@@ -485,7 +485,7 @@ class TestAsTensorVariable:
         assert res.type.dtype == "float64"
 
     def test_memmap(self):
-        inp = np.random.rand(4, 3)
+        inp = np.random.random((4, 3))
         _, fname = mkstemp()
         new_inp = np.memmap(fname, dtype=inp.dtype, mode="w+", shape=inp.shape)
         new_inp[...] = inp
@@ -561,10 +561,10 @@ class TestAlloc:
     allocs = [Alloc()] * 3
 
     def setup_method(self):
-        self.rng = np.random.RandomState(seed=utt.fetch_seed())
+        self.rng = np.random.default_rng(seed=utt.fetch_seed())
 
     def test_alloc_constant_folding(self):
-        test_params = np.asarray(self.rng.randn(50 * 60), self.dtype)
+        test_params = np.asarray(self.rng.standard_normal((50 * 60)), self.dtype)
 
         some_vector = vector("some_vector", dtype=self.dtype)
         some_matrix = some_vector.reshape((60, 50))
@@ -600,7 +600,7 @@ class TestAlloc:
             fgrad(test_params)
 
     def test_alloc_output(self):
-        val = constant(self.rng.randn(1, 1), dtype=self.dtype)
+        val = constant(self.rng.standard_normal((1, 1)), dtype=self.dtype)
         for alloc_ in self.allocs:
             # The output is the result of the alloc operation,
             # we do not want it to be constant-folded
@@ -738,7 +738,7 @@ class TestTriangle:
             assert result.dtype == np.dtype(dtype)
 
         for dtype in ALL_DTYPES:
-            m = rand_of_dtype((10, 10), dtype)
+            m = random_of_dtype((10, 10), dtype)
             check_l(m, 0)
             check_l(m, 1)
             check_l(m, -1)
@@ -747,7 +747,7 @@ class TestTriangle:
             check_u(m, 1)
             check_u(m, -1)
 
-            m = rand_of_dtype((10, 5), dtype)
+            m = random_of_dtype((10, 5), dtype)
             check_l(m, 0)
             check_l(m, 1)
             check_l(m, -1)
@@ -836,7 +836,7 @@ class TestNonzero:
 
 def test_identity():
     def check(dtype):
-        obj = rand_of_dtype((2,), dtype)
+        obj = random_of_dtype((2,), dtype)
         sym = vector(dtype=dtype)
         f = function([sym], tensor_copy(sym))
         assert np.all(obj == f(obj))
@@ -863,8 +863,8 @@ class TestCast:
             # Casts from foo to foo
             [
                 (
-                    f"{rand_of_dtype((2,), dtype)}_{dtype}",
-                    (rand_of_dtype((2,), dtype), dtype),
+                    f"{random_of_dtype((2,), dtype)}_{dtype}",
+                    (random_of_dtype((2,), dtype), dtype),
                 )
                 for dtype in ALL_DTYPES
             ],
@@ -885,7 +885,7 @@ class TestCast:
                 inp = vector(dtype=real_dtype)
                 out = cast(inp, dtype=complex_dtype)
                 f = function([inp], out)
-                obj = rand_of_dtype((2,), real_dtype)
+                obj = random_of_dtype((2,), real_dtype)
                 assert f(obj).dtype == np.dtype(complex_dtype)
 
     def test_cast_from_complex_to_real_raises_error(self):
@@ -999,7 +999,7 @@ class TestJoinAndSplit:
     # Split is tested by each verify_grad method.
     def setup_method(self):
         Join.debug = False
-        utt.seed_rng()
+
         self.mode = aesara.compile.get_default_mode().excluding("constant_folding")
         self.join_op = Join()
         self.split_op_class = Split
@@ -1170,8 +1170,8 @@ class TestJoinAndSplit:
         Ha, Hb = hessian(B.sum(), [a, b])
 
         # Try some values
-        a_v = np.random.rand(4)
-        b_v = np.random.rand(4)
+        a_v = np.random.random((4))
+        b_v = np.random.random((4))
         f = aesara.function([a, b], [Ha, Hb])
         Ha_v, Hb_v = f(a_v, b_v)
         # The Hessian is always a matrix full of 2
@@ -1189,8 +1189,8 @@ class TestJoinAndSplit:
         Ha, Hb = hessian(A.sum(), [a, b])
 
         # Try some values
-        a_v = np.random.rand(4)
-        b_v = np.random.rand(4)
+        a_v = np.random.random((4))
+        b_v = np.random.random((4))
         f = aesara.function([a, b], [Ha, Hb])
         Ha_v, Hb_v = f(a_v, b_v)
         # The Hessian is always a matrix full of 0
@@ -1476,9 +1476,9 @@ class TestJoinAndSplit:
         # Test that the broadcastable flags for the output of
         # a join operation on non-join axes are True if one or
         # more inputs is broadcastable on that dimension.
-        rng = np.random.RandomState(seed=utt.fetch_seed())
-        a_val = rng.rand(1, 4, 1).astype(self.floatX)
-        b_val = rng.rand(1, 3, 1).astype(self.floatX)
+        rng = np.random.default_rng(seed=utt.fetch_seed())
+        a_val = rng.random((1, 4, 1)).astype(self.floatX)
+        b_val = rng.random((1, 3, 1)).astype(self.floatX)
 
         a = self.shared(a_val, broadcastable=(False, False, True))
         b = self.shared(b_val, broadcastable=(True, False, True))
@@ -1506,7 +1506,7 @@ class TestJoinAndSplit:
         )
 
         # Should raise an error if dimension 0 does not match
-        a.set_value(rng.rand(2, 4, 1).astype(self.floatX))
+        a.set_value(rng.random((2, 4, 1)).astype(self.floatX))
         with pytest.raises(ValueError):
             f()
 
@@ -1514,9 +1514,9 @@ class TestJoinAndSplit:
         # Test that the broadcastable flag of the join axis
         # is False when some inputs are broadcastable on that
         # dimension.
-        rng = np.random.RandomState(seed=utt.fetch_seed())
-        a_val = rng.rand(2, 4, 1).astype(self.floatX)
-        b_val = rng.rand(1, 4, 1).astype(self.floatX)
+        rng = np.random.default_rng(seed=utt.fetch_seed())
+        a_val = rng.random((2, 4, 1)).astype(self.floatX)
+        b_val = rng.random((1, 4, 1)).astype(self.floatX)
 
         a = self.shared(a_val, broadcastable=(False, False, True))
         b = self.shared(b_val, broadcastable=(True, False, True))
@@ -1534,12 +1534,12 @@ class TestJoinAndSplit:
         # Should raise an error if b_val.shape[0] is not 1
         # We can't set the value|
         with pytest.raises(TypeError):
-            b.set_value(rng.rand(3, 4, 1).astype(self.floatX))
+            b.set_value(rng.random((3, 4, 1)).astype(self.floatX))
         a = TensorType(dtype=self.floatX, broadcastable=[0, 0, 1])()
         b = TensorType(dtype=self.floatX, broadcastable=[1, 0, 1])()
         c = self.join_op(0, a, b)
         f = function([a, b], c, mode=self.mode)
-        bad_b_val = rng.rand(3, 4, 1).astype(self.floatX)
+        bad_b_val = rng.random((3, 4, 1)).astype(self.floatX)
         with pytest.raises(TypeError):
             f(a_val, bad_b_val)
 
@@ -1547,9 +1547,9 @@ class TestJoinAndSplit:
         # Test that joining together several inputs which are all
         # broadcastable on the join dimension results in the output
         # being non-broadcastable on the join dimension.
-        rng = np.random.RandomState(seed=utt.fetch_seed())
-        a_val = rng.rand(1, 4, 1).astype(self.floatX)
-        b_val = rng.rand(1, 4, 1).astype(self.floatX)
+        rng = np.random.default_rng(seed=utt.fetch_seed())
+        a_val = rng.random((1, 4, 1)).astype(self.floatX)
+        b_val = rng.random((1, 4, 1)).astype(self.floatX)
 
         a = self.shared(a_val, broadcastable=(True, False, True))
         b = self.shared(b_val, broadcastable=(True, False, True))
@@ -1568,8 +1568,8 @@ class TestJoinAndSplit:
     def test_broadcastable_single_input_broadcastable_dimension(self):
         # Test that all broadcastable flags are preserved by a
         # single-input join.
-        rng = np.random.RandomState(seed=utt.fetch_seed())
-        a_val = rng.rand(1, 4, 1).astype(self.floatX)
+        rng = np.random.default_rng(seed=utt.fetch_seed())
+        a_val = rng.random((1, 4, 1)).astype(self.floatX)
         a = self.shared(a_val, broadcastable=(True, False, True))
         b = self.join_op(0, a)
         assert b.type.broadcastable[0]
@@ -1587,7 +1587,7 @@ class TestJoinAndSplit:
         utt.verify_grad((lambda a: join(0, a)), [a_val], rng=rng, mode=self.mode)
         # Should raise an error if length of dimension 0 is not 1
         with pytest.raises(TypeError):
-            a.set_value(rng.rand(2, 4, 1).astype(self.floatX))
+            a.set_value(rng.random((2, 4, 1)).astype(self.floatX))
         # with pytest.raises(TypeError):
         #    f(bad_a_val)
 
@@ -1613,12 +1613,12 @@ class TestJoinAndSplit:
         topo = f.maker.fgraph.toposort()
         assert [True for node in topo if isinstance(node.op, type(self.join_op))]
 
-        rng = np.random.RandomState(seed=utt.fetch_seed())
-        a_val = rng.rand(1, 1, 1, 1, 2, 1).astype(self.floatX)
-        b_val = rng.rand(1, 1, 1, 1, 2, 1).astype(self.floatX)
-        c_val = rng.rand(1, 1, 1, 1, 2, 1).astype(self.floatX)
-        d_val = rng.rand(1, 1, 1, 1, 2, 1).astype(self.floatX)
-        e_val = rng.rand(1, 1, 1, 1, 2, 1).astype(self.floatX)
+        rng = np.random.default_rng(seed=utt.fetch_seed())
+        a_val = rng.random((1, 1, 1, 1, 2, 1)).astype(self.floatX)
+        b_val = rng.random((1, 1, 1, 1, 2, 1)).astype(self.floatX)
+        c_val = rng.random((1, 1, 1, 1, 2, 1)).astype(self.floatX)
+        d_val = rng.random((1, 1, 1, 1, 2, 1)).astype(self.floatX)
+        e_val = rng.random((1, 1, 1, 1, 2, 1)).astype(self.floatX)
         f(a_val, b_val, c_val, d_val, e_val)
         utt.verify_grad(
             (lambda a, b, c, d, e: join(0, a, b, c, d, e)),
@@ -1627,7 +1627,7 @@ class TestJoinAndSplit:
             mode=self.mode,
         )
         # Should raise an error if length of dimension 0 is not 1
-        bad_val = rng.rand(2, 1, 1, 1, 2, 1).astype(self.floatX)
+        bad_val = rng.random((2, 1, 1, 1, 2, 1)).astype(self.floatX)
         with pytest.raises(TypeError):
             f(bad_val, b_val, c_val, d_val, e_val)
         with pytest.raises(TypeError):
@@ -1639,11 +1639,11 @@ class TestJoinAndSplit:
         with pytest.raises(TypeError):
             f(a_val, b_val, c_val, d_val, bad_val)
         # Should raise an error if any dimension other than 4 has length != 1
-        bad_a_val = rng.rand(1, 2, 1, 1, 2, 1).astype(self.floatX)
-        bad_b_val = rng.rand(1, 1, 1, 1, 2, 2).astype(self.floatX)
-        bad_c_val = rng.rand(1, 1, 2, 1, 2, 1).astype(self.floatX)
-        bad_d_val = rng.rand(1, 2, 1, 1, 2, 1).astype(self.floatX)
-        bad_e_val = rng.rand(1, 1, 1, 2, 2, 1).astype(self.floatX)
+        bad_a_val = rng.random((1, 2, 1, 1, 2, 1)).astype(self.floatX)
+        bad_b_val = rng.random((1, 1, 1, 1, 2, 2)).astype(self.floatX)
+        bad_c_val = rng.random((1, 1, 2, 1, 2, 1)).astype(self.floatX)
+        bad_d_val = rng.random((1, 2, 1, 1, 2, 1)).astype(self.floatX)
+        bad_e_val = rng.random((1, 1, 1, 2, 2, 1)).astype(self.floatX)
         with pytest.raises(ValueError):
             f(bad_a_val, b_val, c_val, d_val, e_val)
         with pytest.raises(ValueError):
@@ -1711,8 +1711,8 @@ class TestJoinAndSplit:
         # Test that we can concatenate the same tensor multiple time.
 
         # In the past it was broken on the GPU.
-        rng = np.random.RandomState(seed=utt.fetch_seed())
-        T_shared = self.shared(rng.rand(3, 4).astype(self.floatX))
+        rng = np.random.default_rng(seed=utt.fetch_seed())
+        T_shared = self.shared(rng.random((3, 4)).astype(self.floatX))
         Tout = aet.concatenate([T_shared, T_shared])
         f = function([], Tout, mode=self.mode)
         out = f()
@@ -1727,15 +1727,15 @@ class TestJoinAndSplit:
         )
 
     def test_mixed_ndim_error(self):
-        rng = np.random.RandomState(seed=utt.fetch_seed())
-        v = self.shared(rng.rand(4).astype(self.floatX))
-        m = self.shared(rng.rand(4, 4).astype(self.floatX))
+        rng = np.random.default_rng(seed=utt.fetch_seed())
+        v = self.shared(rng.random((4)).astype(self.floatX))
+        m = self.shared(rng.random((4, 4)).astype(self.floatX))
         with pytest.raises(TypeError):
             self.join_op(0, v, m)
 
     def test_split_0elem(self):
-        rng = np.random.RandomState(seed=utt.fetch_seed())
-        m = self.shared(rng.rand(4, 6).astype(self.floatX))
+        rng = np.random.default_rng(seed=utt.fetch_seed())
+        m = self.shared(rng.random((4, 6)).astype(self.floatX))
         o = self.split_op_class(2)(m, 0, [4, 0])
         f = function([], o, mode=self.mode)
         assert any(
@@ -1750,8 +1750,8 @@ class TestJoinAndSplit:
 
     @config.change_flags(compute_test_value="off")
     def test_split_neg(self):
-        rng = np.random.RandomState(seed=utt.fetch_seed())
-        m = self.shared(rng.rand(4, 6).astype(self.floatX))
+        rng = np.random.default_rng(seed=utt.fetch_seed())
+        m = self.shared(rng.random((4, 6)).astype(self.floatX))
         o = self.split_op_class(2)(m, 0, [5, -1])
         f = function([], o, mode=self.mode)
         assert any(
@@ -1852,9 +1852,6 @@ def test_ScalarFromTensor():
 
 
 class TestOpCache:
-    def setup_method(self):
-        utt.seed_rng()
-
     def test_basic(self):
         # trigger bug in ticket #162
         v = matrix()
@@ -1863,7 +1860,7 @@ class TestOpCache:
         fn_py = inplace_func([v], gv)
         fn_c_or_py = inplace_func([v], gv)
 
-        a = rand(5, 2).astype(config.floatX)
+        a = random(5, 2).astype(config.floatX)
         assert np.all(fn_py(a) == fn_c_or_py(a))
 
 
@@ -2013,29 +2010,29 @@ def test_tile():
             f = function([x], tile(x, reps))
             return f(x_)
 
-    rng = np.random.RandomState(utt.fetch_seed())
+    rng = np.random.default_rng(utt.fetch_seed())
 
     for use_symbolic_reps in [False, True]:
         # Test the one-dimensional case.
         x = vector()
-        x_ = rng.randn(5).astype(config.floatX)
+        x_ = rng.standard_normal(5).astype(config.floatX)
         assert np.all(run_tile(x, x_, (2,), use_symbolic_reps) == np.tile(x_, (2,)))
 
         # Test the two-dimensional case.
         x = matrix()
-        x_ = rng.randn(2, 4).astype(config.floatX)
+        x_ = rng.standard_normal((2, 4)).astype(config.floatX)
         assert np.all(run_tile(x, x_, (2, 3), use_symbolic_reps) == np.tile(x_, (2, 3)))
 
         # Test the three-dimensional case.
         x = tensor3()
-        x_ = rng.randn(2, 4, 3).astype(config.floatX)
+        x_ = rng.standard_normal((2, 4, 3)).astype(config.floatX)
         assert np.all(
             run_tile(x, x_, (2, 3, 4), use_symbolic_reps) == np.tile(x_, (2, 3, 4))
         )
 
         # Test the four-dimensional case.
         x = tensor4()
-        x_ = rng.randn(2, 4, 3, 5).astype(config.floatX)
+        x_ = rng.standard_normal((2, 4, 3, 5)).astype(config.floatX)
         assert np.all(
             run_tile(x, x_, (2, 3, 4, 6), use_symbolic_reps)
             == np.tile(x_, (2, 3, 4, 6))
@@ -2049,7 +2046,7 @@ def test_tile():
     for xtype in [vector(), matrix(), tensor3(), tensor4()]:
         x = xtype
         k = k + 1
-        x_ = rng.randn(*test_shape[0:k]).astype(config.floatX)
+        x_ = rng.standard_normal(test_shape[0:k]).astype(config.floatX)
 
         # integer:
         reps_ = 2
@@ -2156,22 +2153,25 @@ def test_tile_grad():
         # (since the gradients are additive through the tiling operation)
         assert np.all(grad_res == np.prod(reps))
 
-    rng = np.random.RandomState(utt.fetch_seed())
+    rng = np.random.default_rng(utt.fetch_seed())
 
     # test vector
-    grad_tile(vector("x"), [3], rng.randn(5).astype(config.floatX))
+    grad_tile(vector("x"), [3], rng.standard_normal((5)).astype(config.floatX))
     # test matrix
-    grad_tile(matrix("x"), [3, 4], rng.randn(2, 3).astype(config.floatX))
+    grad_tile(matrix("x"), [3, 4], rng.standard_normal((2, 3)).astype(config.floatX))
     # test tensor3
-    grad_tile(tensor3("x"), [3, 4, 5], rng.randn(2, 4, 3).astype(config.floatX))
+    grad_tile(
+        tensor3("x"), [3, 4, 5], rng.standard_normal((2, 4, 3)).astype(config.floatX)
+    )
     # test tensor4
-    grad_tile(tensor4("x"), [3, 4, 5, 6], rng.randn(2, 4, 3, 5).astype(config.floatX))
+    grad_tile(
+        tensor4("x"),
+        [3, 4, 5, 6],
+        rng.standard_normal((2, 4, 3, 5)).astype(config.floatX),
+    )
 
 
 class TestARange:
-    def setup_method(self):
-        utt.seed_rng()
-
     def test_Op_integers(self):
         # Test behaviour of ARange Op on integer inputs
         start, stop, step = iscalars("start", "stop", "step")
@@ -2189,7 +2189,7 @@ class TestARange:
         def f(start, stop, step):
             return ARange(start.type.dtype)(start, stop, step)
 
-        rng = np.random.RandomState(utt.fetch_seed())
+        rng = np.random.default_rng(utt.fetch_seed())
         # Due to the random projection, we should not use the exact
         # point that change the shape of the output.
         for start, stop, step in [(0, 4.9, 1), (5.1, 0, -0.5), (1, 5.1, 0.5)]:
@@ -2569,9 +2569,6 @@ class TestNdGrid:
 
 
 class TestInversePermutation:
-    def setup_method(self):
-        utt.seed_rng()
-
     def test_dim1(self):
         # Test the inversion of one permutation (int vector)
         p = ivector()
@@ -2580,7 +2577,7 @@ class TestInversePermutation:
         f_inverse = function([p], inv)
 
         # Generate a random permutation
-        rng = np.random.RandomState(utt.fetch_seed())
+        rng = np.random.default_rng(utt.fetch_seed())
         p_val = rng.permutation(10).astype("int32")
         inv_val = f_inverse(p_val)
 
@@ -2597,7 +2594,7 @@ class TestInversePermutation:
         inv = inverse_permutation(p)
         f_inverse = function([p], inv)
 
-        rng = np.random.RandomState(utt.fetch_seed())
+        rng = np.random.default_rng(utt.fetch_seed())
         # Generate 10 random permutations
         p_val = np.asarray([rng.permutation(10) for i in range(7)], dtype="int32")
         inv_val = f_inverse(p_val)
@@ -2612,9 +2609,6 @@ class TestInversePermutation:
 
 
 class TestPermuteRowElements:
-    def setup_method(self):
-        utt.seed_rng()
-
     def test_1_1(self):
         # Test PermuteRowElements(vector, vector)
         input = dvector()
@@ -2622,7 +2616,7 @@ class TestPermuteRowElements:
         out = permute_row_elements(input, p)
         permute = function([input, p], out)
 
-        rng = np.random.RandomState(utt.fetch_seed())
+        rng = np.random.default_rng(utt.fetch_seed())
         input_val = rng.uniform(size=(5,))
         p_val = rng.permutation(5).astype("int32")
         out_val = permute(input_val, p_val)
@@ -2645,7 +2639,7 @@ class TestPermuteRowElements:
         out = permute_row_elements(input, p)
         permute = function([input, p], out)
 
-        rng = np.random.RandomState(utt.fetch_seed())
+        rng = np.random.default_rng(utt.fetch_seed())
         input_val = rng.uniform(size=(3, 5)).astype(config.floatX)
         p_val = rng.permutation(5).astype("int32")
         out_val = permute(input_val, p_val)
@@ -2668,7 +2662,7 @@ class TestPermuteRowElements:
         out = permute_row_elements(input, p)
         permute = function([input, p], out)
 
-        rng = np.random.RandomState(utt.fetch_seed())
+        rng = np.random.default_rng(utt.fetch_seed())
         input_val = rng.uniform(size=(3, 5)).astype(config.floatX)
         p_val = np.asarray([rng.permutation(5) for i in range(3)], dtype="int32")
         out_val = permute(input_val, p_val)
@@ -2693,7 +2687,7 @@ class TestPermuteRowElements:
         out = permute_row_elements(input, p)
         permute = function([input, p], out)
 
-        rng = np.random.RandomState(utt.fetch_seed())
+        rng = np.random.default_rng(utt.fetch_seed())
         input_val = rng.uniform(size=(5,)).astype(config.floatX)
         p_val = np.asarray([rng.permutation(5) for i in range(3)], dtype="int32")
         out_val = permute(input_val, p_val)
@@ -2719,7 +2713,7 @@ class TestPermuteRowElements:
         out = permute_row_elements(input, p)
         permute = function([input, p], out)
 
-        rng = np.random.RandomState(utt.fetch_seed())
+        rng = np.random.default_rng(utt.fetch_seed())
         input_val = rng.uniform(size=(4, 1, 5)).astype(config.floatX)
         p_val = np.asarray([rng.permutation(5) for i in range(3)], dtype="int32")
         out_val = permute(input_val, p_val)
@@ -3045,11 +3039,11 @@ class TestBroadcast:
 
 class TestRebroadcast(utt.InferShapeTester):
     def test_rebroadcast(self):
-        rng = np.random.RandomState(3453)
+        rng = np.random.default_rng(3453)
         # Rebroadcast
         adtens4 = dtensor4()
         adict = [(0, False), (1, True), (2, False), (3, True)]
-        adtens4_val = rng.rand(2, 1, 3, 1).astype(config.floatX)
+        adtens4_val = rng.random((2, 1, 3, 1)).astype(config.floatX)
         self._compile_and_check(
             [adtens4],
             [Rebroadcast(*adict)(adtens4)],
@@ -3060,7 +3054,7 @@ class TestRebroadcast(utt.InferShapeTester):
 
         adtens4_bro = TensorType("float64", (True, True, True, False))()
         bdict = [(0, True), (1, False), (2, False), (3, False)]
-        adtens4_bro_val = rng.rand(1, 1, 1, 3).astype(config.floatX)
+        adtens4_bro_val = rng.random((1, 1, 1, 3)).astype(config.floatX)
         self._compile_and_check(
             [adtens4_bro],
             [Rebroadcast(*bdict)(adtens4_bro)],
@@ -3086,8 +3080,8 @@ def test_unalign():
     b = np.empty(10000, dtype=dtype)["f1"]
     assert not a.flags.aligned
     assert not b.flags.aligned
-    a[:] = rand(len(a))
-    b[:] = rand(len(b))
+    a[:] = random(len(a))
+    b[:] = random(len(b))
     # out_numpy = 2 * a + 3 * b
 
     av, bv = vectors("ab")
@@ -3160,10 +3154,10 @@ class TestGetScalarConstantValue:
         assert 10 == res
 
     def test_subtensor_of_constant(self):
-        c = constant(rand(5))
+        c = constant(random(5))
         for i in range(c.value.shape[0]):
             assert get_scalar_constant_value(c[i]) == c.value[i]
-        c = constant(rand(5, 5))
+        c = constant(random(5, 5))
         for i in range(c.value.shape[0]):
             for j in range(c.value.shape[1]):
                 assert get_scalar_constant_value(c[i, j]) == c.value[i, j]
@@ -3191,19 +3185,19 @@ class TestGetScalarConstantValue:
             get_scalar_constant_value(mv[t()])
 
     def test_shape_i(self):
-        c = constant(np.random.rand(3, 4))
+        c = constant(np.random.random((3, 4)))
         s = Shape_i(0)(c)
         assert get_scalar_constant_value(s) == 3
         s = Shape_i(1)(c)
         assert get_scalar_constant_value(s) == 4
-        d = aesara.shared(np.random.randn(1, 1), broadcastable=(True, True))
+        d = aesara.shared(np.random.standard_normal((1, 1)), broadcastable=(True, True))
         f = ScalarFromTensor()(Shape_i(0)(d))
         assert get_scalar_constant_value(f) == 1
 
     def test_elemwise(self):
         # We test only for a few elemwise, the list of all supported
         # elemwise are in the fct.
-        c = constant(np.random.rand())
+        c = constant(np.random.random())
         s = c + 1
         assert np.allclose(get_scalar_constant_value(s), c.data + 1)
         s = c - 1
@@ -3238,7 +3232,7 @@ class TestGetScalarConstantValue:
 
     def test_second(self):
         # Second should apply when the value is constant but not the shape
-        c = constant(np.random.rand())
+        c = constant(np.random.random())
         shp = vector()
         s = aet.second(shp, c)
         assert get_scalar_constant_value(s) == c.data
@@ -3307,7 +3301,7 @@ class TestDiag:
         self.type = TensorType
 
     def test_diag(self):
-        rng = np.random.RandomState(utt.fetch_seed())
+        rng = np.random.default_rng(utt.fetch_seed())
 
         # test vector input
         x = vector()
@@ -3315,19 +3309,19 @@ class TestDiag:
         assert isinstance(g.owner.op, AllocDiag)
         f = aesara.function([x], g)
         for shp in [5, 0, 1]:
-            m = rng.rand(shp).astype(self.floatX)
+            m = rng.random(shp).astype(self.floatX)
             v = np.diag(m)
             r = f(m)
             # The right matrix is created
             assert (r == v).all()
 
         # Test matrix input
-        xx = self.shared(rng.rand(3, 5))
+        xx = self.shared(rng.random((3, 5)))
         g = diag(xx)
         assert isinstance(g.owner.op, ExtractDiag)
         f = aesara.function([], g)
         for shp in [(5, 3), (3, 5), (5, 1), (1, 5), (5, 0), (0, 5), (1, 0), (0, 1)]:
-            m = rng.rand(*shp).astype(self.floatX)
+            m = rng.random(shp).astype(self.floatX)
             xx.set_value(m)
             v = np.diag(m)
             r = f()
@@ -3340,7 +3334,7 @@ class TestDiag:
             diag(xx)
 
     def test_infer_shape(self):
-        rng = np.random.RandomState(utt.fetch_seed())
+        rng = np.random.default_rng(utt.fetch_seed())
 
         x = vector()
         g = diag(x)
@@ -3349,7 +3343,7 @@ class TestDiag:
         if config.mode != "FAST_COMPILE":
             assert np.sum([isinstance(node.op, AllocDiag) for node in topo]) == 0
         for shp in [5, 0, 1]:
-            m = rng.rand(shp).astype(self.floatX)
+            m = rng.random(shp).astype(self.floatX)
             assert (f(m) == np.diag(m).shape).all()
 
         x = matrix()
@@ -3359,14 +3353,14 @@ class TestDiag:
         if config.mode != "FAST_COMPILE":
             assert np.sum([isinstance(node.op, ExtractDiag) for node in topo]) == 0
         for shp in [(5, 3), (3, 5), (5, 1), (1, 5), (5, 0), (0, 5), (1, 0), (0, 1)]:
-            m = rng.rand(*shp).astype(self.floatX)
+            m = rng.random(shp).astype(self.floatX)
             assert (f(m) == np.diag(m).shape).all()
 
     def test_diag_grad(self):
-        rng = np.random.RandomState(utt.fetch_seed())
-        x = rng.rand(5)
+        rng = np.random.default_rng(utt.fetch_seed())
+        x = rng.random((5))
         utt.verify_grad(diag, [x], rng=rng)
-        x = rng.rand(5, 3)
+        x = rng.random((5, 3))
         utt.verify_grad(diag, [x], rng=rng)
 
 
@@ -3378,7 +3372,7 @@ class TestAllocDiag:
     def _generator(self):
         dims = 4
         shape = (5,) * dims
-        xv = np.random.randn(*shape).astype(config.floatX)
+        xv = np.random.standard_normal(shape).astype(config.floatX)
         for d in range(1, dims + 1):
             # Create a TensorType of the same dimensions as
             # as the data we want to test.
@@ -3548,7 +3542,7 @@ def test_stacklists():
 class TestInferShape(utt.InferShapeTester):
     def test_Flatten(self):
         atens3 = tensor3()
-        atens3_val = rand(4, 5, 3)
+        atens3_val = random(4, 5, 3)
         for ndim in (3, 2, 1):
             self._compile_and_check(
                 [atens3],
@@ -3559,7 +3553,7 @@ class TestInferShape(utt.InferShapeTester):
             )
 
         amat = matrix()
-        amat_val = rand(4, 5)
+        amat_val = random(4, 5)
         for ndim in (2, 1):
             self._compile_and_check(
                 [amat],
@@ -3570,7 +3564,7 @@ class TestInferShape(utt.InferShapeTester):
             )
 
         avec = vector()
-        avec_val = rand(4)
+        avec_val = random(4)
         ndim = 1
         self._compile_and_check(
             [avec],
@@ -3614,7 +3608,7 @@ class TestInferShape(utt.InferShapeTester):
 
     def test_ExtractDiag(self):
         atens3 = tensor3()
-        atens3_val = rand(4, 5, 3)
+        atens3_val = random(4, 5, 3)
         atens3_diag = ExtractDiag()(atens3)
         self._compile_and_check([atens3], [atens3_diag], [atens3_val], ExtractDiag)
         atens3_diag = ExtractDiag(1)(atens3)
@@ -3630,14 +3624,14 @@ class TestInferShape(utt.InferShapeTester):
 
     def test_AllocDiag(self):
         advec = dvector()
-        advec_val = rand(4)
+        advec_val = random(4)
         self._compile_and_check([advec], [AllocDiag()(advec)], [advec_val], AllocDiag)
 
         # Shape
         # 'opt.Makevector' precludes optimizer from disentangling
         # elements of shape
         adtens = tensor3()
-        adtens_val = rand(4, 5, 3)
+        adtens_val = random(4, 5, 3)
         self._compile_and_check(
             [adtens], [Shape()(adtens)], [adtens_val], (MakeVector, Shape)
         )
@@ -3646,7 +3640,7 @@ class TestInferShape(utt.InferShapeTester):
         aiscal = iscalar()
         aivec = ivector()
         adtens = tensor3()
-        adtens_val = rand(4, 10, 3)
+        adtens_val = random(4, 10, 3)
         aivec_val = [2, 5, 3]
         for aiscal_val in [1, -2]:
             self._compile_and_check(
@@ -3659,9 +3653,9 @@ class TestInferShape(utt.InferShapeTester):
     def test_Join(self):
         aiscal = iscalar()
         cdmat = dmatrix()
-        admat_val = rand(1, 3)
-        bdmat_val = rand(2, 3)
-        cdmat_val = rand(4, 3)
+        admat_val = random(1, 3)
+        bdmat_val = random(2, 3)
+        cdmat_val = random(4, 3)
         admat = dmatrix()
         bdmat = dmatrix()
         for aiscal_val in [0, -2]:
@@ -3672,9 +3666,9 @@ class TestInferShape(utt.InferShapeTester):
                 Join,
             )
 
-        admat_val = rand(4, 1)
-        bdmat_val = rand(4, 3)
-        cdmat_val = rand(4, 2)
+        admat_val = random(4, 1)
+        bdmat_val = random(4, 3)
+        cdmat_val = random(4, 2)
         for aiscal_val in [-1, 1]:
             self._compile_and_check(
                 [aiscal, admat, bdmat, cdmat],
@@ -3689,8 +3683,8 @@ class TestInferShape(utt.InferShapeTester):
         aivec = ivector()
 
         abool = True
-        rng = np.random.RandomState(utt.fetch_seed())
-        advec_val = rand(5)
+        rng = np.random.default_rng(utt.fetch_seed())
+        advec_val = random(5)
         aivec_val = rng.permutation(5).astype("int32")
         self._compile_and_check(
             [advec, aivec],
@@ -3699,7 +3693,7 @@ class TestInferShape(utt.InferShapeTester):
             PermuteRowElements,
         )
 
-        admat_val = rand(3, 5)
+        admat_val = random(3, 5)
         self._compile_and_check(
             [admat, aivec],
             [PermuteRowElements()(admat, aivec, abool)],
@@ -3708,7 +3702,7 @@ class TestInferShape(utt.InferShapeTester):
         )
 
         adtens3 = dtensor3()
-        adtens3_val = rand(3, 2, 5)
+        adtens3_val = random(3, 2, 5)
         self._compile_and_check(
             [adtens3, aivec],
             [PermuteRowElements()(adtens3, aivec, abool)],
@@ -3721,7 +3715,7 @@ class TestInferShape(utt.InferShapeTester):
         permb = rng.permutation(5).astype("int32")
         permc = rng.permutation(5).astype("int32")
         aimat_val = np.vstack((perma, permb, permc))
-        admat_val = rand(3, 5)
+        admat_val = random(3, 5)
         self._compile_and_check(
             [admat, aimat],
             [PermuteRowElements()(admat, aimat, abool)],
@@ -3762,17 +3756,17 @@ class TestInferShape(utt.InferShapeTester):
         )
 
     def test_Alloc(self):
-        randint = np.random.randint
+        integers = np.random.default_rng(utt.fetch_seed()).integers
         adscal = dscalar()
         aiscal = lscalar()
         biscal = lscalar()
         ciscal = lscalar()
         discal = lscalar()
-        adscal_val = rand()
-        aiscal_val = randint(3, 6, size=())
-        biscal_val = randint(3, 6, size=())
-        ciscal_val = randint(3, 6, size=())
-        discal_val = randint(3, 6, size=())
+        adscal_val = random()
+        aiscal_val = integers(3, 6, size=())
+        biscal_val = integers(3, 6, size=())
+        ciscal_val = integers(3, 6, size=())
+        discal_val = integers(3, 6, size=())
         self._compile_and_check(
             [adscal, aiscal, biscal, ciscal, discal],
             [Alloc()(adscal, aiscal, biscal, ciscal, discal)],
@@ -3826,7 +3820,7 @@ class TestInferShape(utt.InferShapeTester):
         # Tile op is deprecated so the tile function doesn't use it
         # anymore, we'll test here the op directly
         advec = dvector()
-        advec_val = rand(5)
+        advec_val = random(5)
         aivec_val = [3]
         ndim = 1
         self._compile_and_check(
@@ -3834,7 +3828,7 @@ class TestInferShape(utt.InferShapeTester):
         )
 
         admat = dmatrix()
-        admat_val = rand(2, 4)
+        admat_val = random(2, 4)
         aivec_val = [2, 3]
         ndim = 2
         self._compile_and_check(
@@ -3842,7 +3836,7 @@ class TestInferShape(utt.InferShapeTester):
         )
 
         adtens4 = dtensor4()
-        adtens4_val = rand(2, 4, 3, 5)
+        adtens4_val = random(2, 4, 3, 5)
         aivec_val = [2, 3, 1, 4]
         ndim = 4
         self._compile_and_check(
@@ -3853,7 +3847,7 @@ class TestInferShape(utt.InferShapeTester):
 class TestTensorInstanceMethods:
     def setup_method(self):
         self.vars = matrices("X", "Y")
-        self.vals = [m.astype(config.floatX) for m in [rand(2, 2), rand(2, 2)]]
+        self.vals = [m.astype(config.floatX) for m in [random(2, 2), random(2, 2)]]
 
     def test_repeat(self):
         X, _ = self.vars
@@ -3944,11 +3938,11 @@ class TestSwapaxes:
         x.swapaxes(0, 1)
 
     def test_numpy_compare(self):
-        rng = np.random.RandomState(utt.fetch_seed())
+        rng = np.random.default_rng(utt.fetch_seed())
         A = matrix("A", dtype=config.floatX)
         Q = swapaxes(A, 0, 1)
         fn = function([A], [Q])
-        a = rng.rand(4, 4).astype(config.floatX)
+        a = rng.random((4, 4)).astype(config.floatX)
 
         n_s = np.swapaxes(a, 0, 1)
         t_s = fn(a)
@@ -3959,14 +3953,15 @@ class TestChoose(utt.InferShapeTester):
     op = staticmethod(choose)
     op_class = Choose
     modes = ["raise", "wrap", "clip"]
+    rng = np.random.default_rng(utt.fetch_seed())
 
     def test_numpy_compare(self):
 
         a = vector(dtype="int32")
         b = matrix(dtype="float32")
 
-        A = np.random.randint(0, 4, 4).astype("int32")
-        B = np.asarray(np.random.rand(4, 4), dtype="float32")
+        A = self.rng.integers(0, 4, 4).astype("int32")
+        B = np.asarray(np.random.random((4, 4)), dtype="float32")
 
         for m in self.modes:
             f = function([a, b], choose(a, b, mode=m))
@@ -3978,8 +3973,8 @@ class TestChoose(utt.InferShapeTester):
         a = vector(dtype="int32")
         b = matrix(dtype="float32")
 
-        A = np.random.randint(0, 4, 4).astype("int32")
-        B = np.asarray(np.random.rand(4, 4), dtype="float32")
+        A = self.rng.integers(0, 4, 4).astype("int32")
+        B = np.asarray(np.random.random((4, 4)), dtype="float32")
 
         for m in self.modes:
             f = function([a, b], a.choose(b, mode=m))
@@ -3993,7 +3988,7 @@ class TestChoose(utt.InferShapeTester):
 
         # Test when a is broadcastable
         A = 3
-        B = np.asarray(np.random.rand(4, 4), dtype="float32")
+        B = np.asarray(np.random.random((4, 4)), dtype="float32")
 
         for m in self.modes:
             f = function([a, b], choose(a, b, mode=m))
@@ -4003,7 +3998,7 @@ class TestChoose(utt.InferShapeTester):
 
         # Test when the result should be broadcastable
         b = col(dtype="float32")
-        B = np.asarray(np.random.rand(4, 1), dtype="float32")
+        B = np.asarray(np.random.random((4, 1)), dtype="float32")
         for m in self.modes:
             f = function([a, b], choose(a, b, mode=m))
             assert choose(a, b, mode=m).broadcastable[0]
@@ -4025,9 +4020,9 @@ class TestChoose(utt.InferShapeTester):
                 tensor3(dtype="int32"),
                 tensor3(dtype="float32"),
                 tensor3(dtype="float32"),
-                np.random.randint(0, 2, (2, 1, 1)).astype("int32"),
-                np.asarray(np.random.rand(1, 6, 1), dtype="float32"),
-                np.asarray(np.random.rand(1, 1, 5), dtype="float32"),
+                rng.integers(0, 2, (2, 1, 1)).astype("int32"),
+                np.asarray(np.random.random((1, 6, 1)), dtype="float32"),
+                np.asarray(np.random.random((1, 1, 5)), dtype="float32"),
             ),
             (
                 vector(dtype="int32"),
@@ -4071,8 +4066,8 @@ class TestChoose(utt.InferShapeTester):
         ]:
             a = tensor(dtype="int32", broadcastable=[n == 1 for n in shp1])
             c = tensor(dtype="float32", broadcastable=[n == 1 for n in shp2])
-            A = np.asarray(np.random.rand(*shp1) * shp2[0], dtype="int32")
-            C = np.asarray(np.random.rand(*shp2) * shp2[0], dtype="float32")
+            A = np.asarray(np.random.random(shp1) * shp2[0], dtype="int32")
+            C = np.asarray(np.random.random(shp2) * shp2[0], dtype="float32")
             self._compile_and_check(
                 [a, c],  # aesara.function inputs
                 [self.op(a, c)],  # aesara.function outputs
@@ -4091,8 +4086,8 @@ class TestChoose(utt.InferShapeTester):
         c = tensor3(dtype="int32")
 
         A = np.asarray([1, 0], dtype="int32").reshape((2, 1, 1))
-        B = np.asarray(np.random.rand(1, 4, 1), dtype="int32")
-        C = np.asarray(np.random.rand(1, 1, 7), dtype="int32")
+        B = np.asarray(np.random.random((1, 4, 1)), dtype="int32")
+        C = np.asarray(np.random.random((1, 1, 7)), dtype="int32")
 
         f = function([a, b, c], choose(a, (b, c)))
         shape = (2, 4, 7)

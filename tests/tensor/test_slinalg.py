@@ -40,8 +40,8 @@ def check_upper_triangular(pd, ch_f):
 
 def test_cholesky():
     pytest.importorskip("scipy")
-    rng = np.random.RandomState(utt.fetch_seed())
-    r = rng.randn(5, 5).astype(config.floatX)
+    rng = np.random.default_rng(utt.fetch_seed())
+    r = rng.standard_normal((5, 5)).astype(config.floatX)
     pd = np.dot(r, r.T)
     x = matrix()
     chol = cholesky(x)
@@ -77,18 +77,32 @@ def test_cholesky_indef():
 def test_cholesky_grad():
     pytest.importorskip("scipy")
 
-    rng = np.random.RandomState(utt.fetch_seed())
-    r = rng.randn(5, 5).astype(config.floatX)
+    rng = np.random.default_rng(utt.fetch_seed())
+    r = rng.standard_normal((5, 5)).astype(config.floatX)
 
     # The dots are inside the graph since Cholesky needs separable matrices
 
     # Check the default.
     utt.verify_grad(lambda r: cholesky(r.dot(r.T)), [r], 3, rng)
     # Explicit lower-triangular.
-    utt.verify_grad(lambda r: Cholesky(lower=True)(r.dot(r.T)), [r], 3, rng)
+    utt.verify_grad(
+        lambda r: Cholesky(lower=True)(r.dot(r.T)),
+        [r],
+        3,
+        rng,
+        abs_tol=0.05,
+        rel_tol=0.05,
+    )
 
     # Explicit upper-triangular.
-    utt.verify_grad(lambda r: Cholesky(lower=False)(r.dot(r.T)), [r], 3, rng)
+    utt.verify_grad(
+        lambda r: Cholesky(lower=False)(r.dot(r.T)),
+        [r],
+        3,
+        rng,
+        abs_tol=0.05,
+        rel_tol=0.05,
+    )
 
 
 def test_cholesky_grad_indef():
@@ -108,7 +122,7 @@ def test_cholesky_grad_indef():
 def test_cholesky_and_cholesky_grad_shape():
     pytest.importorskip("scipy")
 
-    rng = np.random.RandomState(utt.fetch_seed())
+    rng = np.random.default_rng(utt.fetch_seed())
     x = matrix()
     for l in (cholesky(x), Cholesky(lower=True)(x), Cholesky(lower=False)(x)):
         f_chol = aesara.function([x], l.shape)
@@ -122,7 +136,7 @@ def test_cholesky_and_cholesky_grad_shape():
                 sum([node.op.__class__ == CholeskyGrad for node in topo_cholgrad]) == 0
             )
         for shp in [2, 3, 5]:
-            m = np.cov(rng.randn(shp, shp + 10)).astype(config.floatX)
+            m = np.cov(rng.standard_normal((shp, shp + 10))).astype(config.floatX)
             np.testing.assert_equal(f_chol(m), (shp, shp))
             np.testing.assert_equal(f_cholgrad(m), (shp, shp))
 
@@ -134,10 +148,10 @@ def test_eigvalsh():
     B = dmatrix("b")
     f = function([A, B], eigvalsh(A, B))
 
-    rng = np.random.RandomState(utt.fetch_seed())
-    a = rng.randn(5, 5)
+    rng = np.random.default_rng(utt.fetch_seed())
+    a = rng.standard_normal((5, 5))
     a = a + a.T
-    for b in [10 * np.eye(5, 5) + rng.randn(5, 5)]:
+    for b in [10 * np.eye(5, 5) + rng.standard_normal((5, 5))]:
         w = f(a, b)
         refw = scipy.linalg.eigvalsh(a, b)
         np.testing.assert_array_almost_equal(w, refw)
@@ -155,10 +169,10 @@ def test_eigvalsh():
 def test_eigvalsh_grad():
     pytest.importorskip("scipy")
 
-    rng = np.random.RandomState(utt.fetch_seed())
-    a = rng.randn(5, 5)
+    rng = np.random.default_rng(utt.fetch_seed())
+    a = rng.standard_normal((5, 5))
     a = a + a.T
-    b = 10 * np.eye(5, 5) + rng.randn(5, 5)
+    b = 10 * np.eye(5, 5) + rng.standard_normal((5, 5))
     utt.verify_grad(
         lambda a, b: eigvalsh(a, b).dot([1, 2, 3, 4, 5]), [a, b], rng=np.random
     )
@@ -172,7 +186,7 @@ class TestSolve(utt.InferShapeTester):
 
     def test_infer_shape(self):
         pytest.importorskip("scipy")
-        rng = np.random.RandomState(utt.fetch_seed())
+        rng = np.random.default_rng(utt.fetch_seed())
         A = matrix()
         b = matrix()
         self._compile_and_check(
@@ -180,13 +194,13 @@ class TestSolve(utt.InferShapeTester):
             [self.op(A, b)],  # aesara.function outputs
             # A must be square
             [
-                np.asarray(rng.rand(5, 5), dtype=config.floatX),
-                np.asarray(rng.rand(5, 1), dtype=config.floatX),
+                np.asarray(rng.random((5, 5)), dtype=config.floatX),
+                np.asarray(rng.random((5, 1)), dtype=config.floatX),
             ],
             self.op_class,
             warn=False,
         )
-        rng = np.random.RandomState(utt.fetch_seed())
+        rng = np.random.default_rng(utt.fetch_seed())
         A = matrix()
         b = vector()
         self._compile_and_check(
@@ -194,8 +208,8 @@ class TestSolve(utt.InferShapeTester):
             [self.op(A, b)],  # aesara.function outputs
             # A must be square
             [
-                np.asarray(rng.rand(5, 5), dtype=config.floatX),
-                np.asarray(rng.rand(5), dtype=config.floatX),
+                np.asarray(rng.random((5, 5)), dtype=config.floatX),
+                np.asarray(rng.random((5)), dtype=config.floatX),
             ],
             self.op_class,
             warn=False,
@@ -203,7 +217,7 @@ class TestSolve(utt.InferShapeTester):
 
     def test_solve_correctness(self):
         scipy = pytest.importorskip("scipy")
-        rng = np.random.RandomState(utt.fetch_seed())
+        rng = np.random.default_rng(utt.fetch_seed())
         A = matrix()
         b = matrix()
         y = self.op(A, b)
@@ -219,10 +233,10 @@ class TestSolve(utt.InferShapeTester):
         y_upper = self.op(U, b)
         upper_solve_func = aesara.function([U, b], y_upper)
 
-        b_val = np.asarray(rng.rand(5, 1), dtype=config.floatX)
+        b_val = np.asarray(rng.random((5, 1)), dtype=config.floatX)
 
         # 1-test general case
-        A_val = np.asarray(rng.rand(5, 5), dtype=config.floatX)
+        A_val = np.asarray(rng.random((5, 5)), dtype=config.floatX)
         # positive definite matrix:
         A_val = np.dot(A_val.transpose(), A_val)
         assert np.allclose(
@@ -293,7 +307,7 @@ class TestSolve(utt.InferShapeTester):
 
     def test_solve_grad(self):
         pytest.importorskip("scipy")
-        rng = np.random.RandomState(utt.fetch_seed())
+        rng = np.random.default_rng(utt.fetch_seed())
         structures = ["general", "lower_triangular", "upper_triangular"]
         for A_structure in structures:
             lower = A_structure == "lower_triangular"
@@ -307,8 +321,8 @@ class TestSolve(utt.InferShapeTester):
 
 def test_expm():
     scipy = pytest.importorskip("scipy")
-    rng = np.random.RandomState(utt.fetch_seed())
-    A = rng.randn(5, 5).astype(config.floatX)
+    rng = np.random.default_rng(utt.fetch_seed())
+    A = rng.standard_normal((5, 5)).astype(config.floatX)
 
     ref = scipy.linalg.expm(A)
 
@@ -323,9 +337,9 @@ def test_expm():
 def test_expm_grad_1():
     # with symmetric matrix (real eigenvectors)
     pytest.importorskip("scipy")
-    rng = np.random.RandomState(utt.fetch_seed())
+    rng = np.random.default_rng(utt.fetch_seed())
     # Always test in float64 for better numerical stability.
-    A = rng.randn(5, 5)
+    A = rng.standard_normal((5, 5))
     A = A + A.T
 
     utt.verify_grad(expm, [A], rng=rng)
@@ -334,10 +348,10 @@ def test_expm_grad_1():
 def test_expm_grad_2():
     # with non-symmetric matrix with real eigenspecta
     pytest.importorskip("scipy")
-    rng = np.random.RandomState(utt.fetch_seed())
+    rng = np.random.default_rng(utt.fetch_seed())
     # Always test in float64 for better numerical stability.
-    A = rng.randn(5, 5)
-    w = rng.randn(5) ** 2
+    A = rng.standard_normal((5, 5))
+    w = rng.standard_normal((5)) ** 2
     A = (np.diag(w ** 0.5)).dot(A + A.T).dot(np.diag(w ** (-0.5)))
     assert not np.allclose(A, A.T)
 
@@ -347,16 +361,16 @@ def test_expm_grad_2():
 def test_expm_grad_3():
     # with non-symmetric matrix (complex eigenvectors)
     pytest.importorskip("scipy")
-    rng = np.random.RandomState(utt.fetch_seed())
+    rng = np.random.default_rng(utt.fetch_seed())
     # Always test in float64 for better numerical stability.
-    A = rng.randn(5, 5)
+    A = rng.standard_normal((5, 5))
 
     utt.verify_grad(expm, [A], rng=rng)
 
 
 class TestKron(utt.InferShapeTester):
 
-    rng = np.random.RandomState(43)
+    rng = np.random.default_rng(43)
 
     def setup_method(self):
         self.op = kron
@@ -367,13 +381,13 @@ class TestKron(utt.InferShapeTester):
 
         for shp0 in [(2,), (2, 3), (2, 3, 4), (2, 3, 4, 5)]:
             x = tensor(dtype="floatX", broadcastable=(False,) * len(shp0))
-            a = np.asarray(self.rng.rand(*shp0)).astype(config.floatX)
+            a = np.asarray(self.rng.random(shp0)).astype(config.floatX)
             for shp1 in [(6,), (6, 7), (6, 7, 8), (6, 7, 8, 9)]:
                 if len(shp0) + len(shp1) == 2:
                     continue
                 y = tensor(dtype="floatX", broadcastable=(False,) * len(shp1))
                 f = function([x, y], kron(x, y))
-                b = self.rng.rand(*shp1).astype(config.floatX)
+                b = self.rng.random(shp1).astype(config.floatX)
                 out = f(a, b)
                 # Newer versions of scipy want 4 dimensions at least,
                 # so we have to add a dimension to a and flatten the result.
@@ -386,12 +400,12 @@ class TestKron(utt.InferShapeTester):
     def test_numpy_2d(self):
         for shp0 in [(2, 3)]:
             x = tensor(dtype="floatX", broadcastable=(False,) * len(shp0))
-            a = np.asarray(self.rng.rand(*shp0)).astype(config.floatX)
+            a = np.asarray(self.rng.random(shp0)).astype(config.floatX)
             for shp1 in [(6, 7)]:
                 if len(shp0) + len(shp1) == 2:
                     continue
                 y = tensor(dtype="floatX", broadcastable=(False,) * len(shp1))
                 f = function([x, y], kron(x, y))
-                b = self.rng.rand(*shp1).astype(config.floatX)
+                b = self.rng.random(shp1).astype(config.floatX)
                 out = f(a, b)
                 assert np.allclose(out, np.kron(a, b))

@@ -37,7 +37,7 @@ def flip(kern, kshp):
     return flip
 
 
-global_rng = np.random.RandomState(3423489)
+global_rng = np.random.default_rng(3423489)
 
 dmatrix4 = TensorType("float64", (False, False, False, False))
 
@@ -64,7 +64,7 @@ def exec_multilayer_conv_nnet_old(
         img = dmatrix()
 
     # build actual input images
-    imgval = global_rng.rand(bsize, imshp[0], imshp[1], imshp[2])
+    imgval = global_rng.random((bsize, imshp[0], imshp[1], imshp[2]))
 
     a = dmatrix()
     kerns = [a for i in nkerns]
@@ -82,7 +82,7 @@ def exec_multilayer_conv_nnet_old(
             print(conv_mode, ss, n_layer, kshp, nkern)
 
         # actual values
-        w = global_rng.random_sample(np.r_[nkern, imshp[0], kshp])
+        w = global_rng.random((np.r_[nkern, imshp[0], kshp]))
         w_flip = flip(w, kshp).reshape(w.shape)
 
         # manual implementation
@@ -193,7 +193,7 @@ def exec_multilayer_conv_nnet(
         img = dmatrix()
 
     # build actual input images
-    imgval = global_rng.rand(bsize, imshp[0], imshp[1], imshp[2])
+    imgval = global_rng.random((bsize, imshp[0], imshp[1], imshp[2]))
 
     a = dmatrix()
     kerns = [a for i in nkerns]
@@ -211,7 +211,7 @@ def exec_multilayer_conv_nnet(
             print(conv_mode, ss, n_layer, kshp, nkern)
 
         # actual values
-        w = global_rng.random_sample(np.r_[nkern, imshp[0], kshp])
+        w = global_rng.random((np.r_[nkern, imshp[0], kshp]))
         w_flip = flip(w, kshp).reshape(w.shape)
 
         outshp = np.hstack(

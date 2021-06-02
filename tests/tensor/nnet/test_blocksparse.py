@@ -20,7 +20,7 @@ from aesara.tensor.type import fmatrix, ftensor3, ftensor4, imatrix
 
 class TestBlockSparseGemvAndOuter(utt.InferShapeTester):
     def setup_method(self):
-        utt.seed_rng()
+
         mode = None
         if aesara.config.mode == "FAST_COMPILE":
             mode = "FAST_RUN"
