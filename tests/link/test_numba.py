@@ -1986,13 +1986,44 @@ def test_Det(x, exc):
         )
 
 
+# We were seeing some weird results in CI where the following two almost
+# sign-swapped results were being return from Numba and Python, respectively.
+# The issue might be related to https://github.com/numba/numba/issues/4519.
+# Regardless, I was not able to reproduce anything like it locally after
+# extensive testing.
+x = np.array(
+    [
+        [-0.60407637, -0.71177603, -0.35842241],
+        [-0.07735968, 0.50000561, -0.86256007],
+        [-0.7931628, 0.49332471, 0.35710434],
+    ],
+    dtype=np.float64,
+)
+
+y = np.array(
+    [
+        [0.60407637, 0.71177603, -0.35842241],
+        [0.07735968, -0.50000561, -0.86256007],
+        [0.7931628, -0.49332471, 0.35710434],
+    ],
+    dtype=np.float64,
+)
+
+
 @pytest.mark.parametrize(
     "x, exc",
     [
         (
             set_test_value(
                 aet.dmatrix(),
-                (lambda x: x.T.dot(x))(rng.random(size=(3, 3)).astype("float64")),
+                (lambda x: x.T.dot(x))(x),
+            ),
+            None,
+        ),
+        (
+            set_test_value(
+                aet.dmatrix(),
+                (lambda x: x.T.dot(x))(y),
             ),
             None,
         ),
