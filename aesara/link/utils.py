@@ -682,13 +682,13 @@ def fgraph_to_python(
 
     body_assigns = []
     for node in order:
-        jax_func = op_conversion_fn(
+        compiled_func = op_conversion_fn(
             node.op, node=node, storage_map=storage_map, **kwargs
         )
 
         # Create a local alias with a unique name
-        local_jax_func_name = unique_name(jax_func)
-        global_env[local_jax_func_name] = jax_func
+        local_compiled_func_name = unique_name(compiled_func)
+        global_env[local_compiled_func_name] = compiled_func
 
         node_input_names = []
         for i in node.inputs:
@@ -705,7 +705,7 @@ def fgraph_to_python(
         node_output_names = [unique_name(v) for v in node.outputs]
 
         body_assigns.append(
-            f"{', '.join(node_output_names)} = {local_jax_func_name}({', '.join(node_input_names)})"
+            f"{', '.join(node_output_names)} = {local_compiled_func_name}({', '.join(node_input_names)})"
         )
 
     fgraph_input_names = [unique_name(v) for v in fgraph.inputs]
