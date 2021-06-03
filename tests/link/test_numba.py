@@ -74,7 +74,7 @@ opts = OptimizationQuery(include=[None], exclude=["cxx_only", "BlasOpt"])
 numba_mode = Mode(NumbaLinker(), opts)
 py_mode = Mode("py", opts)
 
-np.random.seed(42849)
+rng = np.random.RandomState(42849)
 
 
 def set_test_value(x, v):
@@ -277,18 +277,18 @@ def test_create_numba_signature(v, expected, force_scalar):
     [
         (
             [aet.vector()],
-            [np.random.randn(100).astype(config.floatX)],
+            [rng.randn(100).astype(config.floatX)],
             lambda x: aet.sigmoid(x),
         ),
         (
             [aet.vector() for i in range(4)],
-            [np.random.randn(100).astype(config.floatX) for i in range(4)],
+            [rng.randn(100).astype(config.floatX) for i in range(4)],
             lambda x, y, x1, y1: (x + y) * (x1 + y1) * y,
         ),
         (
             # This also tests the use of repeated arguments
             [aet.matrix(), aet.scalar()],
-            [np.random.normal(size=(2, 2)).astype(config.floatX), 0.0],
+            [rng.normal(size=(2, 2)).astype(config.floatX), 0.0],
             lambda a, b: aet.switch(a, b, a),
         ),
     ],
@@ -388,7 +388,7 @@ def test_AdvancedSubtensor(x, indices):
         ),
         (
             aet.as_tensor(np.arange(3 * 4 * 5).reshape((3, 4, 5))),
-            aet.as_tensor(np.random.poisson(size=(4, 5))),
+            aet.as_tensor(rng.poisson(size=(4, 5))),
             (slice(None)),
         ),
         (
@@ -398,7 +398,7 @@ def test_AdvancedSubtensor(x, indices):
         ),
         (
             aet.as_tensor(np.arange(3 * 4 * 5).reshape((3, 4, 5))),
-            aet.as_tensor(np.random.poisson(size=(1, 5))),
+            aet.as_tensor(rng.poisson(size=(1, 5))),
             (slice(1, 2), 1, slice(None)),
         ),
     ],
@@ -426,12 +426,12 @@ def test_IncSubtensor(x, y, indices):
     [
         (
             aet.as_tensor(np.arange(3 * 4 * 5).reshape((3, 4, 5))),
-            aet.as_tensor(np.random.poisson(size=(2, 4, 5))),
+            aet.as_tensor(rng.poisson(size=(2, 4, 5))),
             ([1, 2],),
         ),
         (
             aet.as_tensor(np.arange(3 * 4 * 5).reshape((3, 4, 5))),
-            aet.as_tensor(np.random.poisson(size=(2, 4, 5))),
+            aet.as_tensor(rng.poisson(size=(2, 4, 5))),
             ([1, 2], slice(None)),
         ),
     ],
@@ -459,12 +459,12 @@ def test_AdvancedIncSubtensor1(x, y, indices):
     [
         (
             aet.as_tensor(np.arange(3 * 4 * 5).reshape((3, 4, 5))),
-            aet.as_tensor(np.random.poisson(size=(2, 5))),
+            aet.as_tensor(rng.poisson(size=(2, 5))),
             ([1, 2], [2, 3]),
         ),
         (
             aet.as_tensor(np.arange(3 * 4 * 5).reshape((3, 4, 5))),
-            aet.as_tensor(np.random.poisson(size=(2, 4))),
+            aet.as_tensor(rng.poisson(size=(2, 4))),
             ([1, 2], slice(None), [3, 4]),
         ),
     ],
@@ -979,21 +979,10 @@ def test_CAReduce(careduce_fn, axis, v):
         (
             (
                 set_test_value(
-                    aet.matrix(), np.random.normal(size=(1, 2)).astype(config.floatX)
+                    aet.matrix(), rng.normal(size=(1, 2)).astype(config.floatX)
                 ),
                 set_test_value(
-                    aet.matrix(), np.random.normal(size=(1, 2)).astype(config.floatX)
-                ),
-            ),
-            0,
-        ),
-        (
-            (
-                set_test_value(
-                    aet.matrix(), np.random.normal(size=(2, 1)).astype(config.floatX)
-                ),
-                set_test_value(
-                    aet.matrix(), np.random.normal(size=(3, 1)).astype(config.floatX)
+                    aet.matrix(), rng.normal(size=(1, 2)).astype(config.floatX)
                 ),
             ),
             0,
@@ -1001,10 +990,21 @@ def test_CAReduce(careduce_fn, axis, v):
         (
             (
                 set_test_value(
-                    aet.matrix(), np.random.normal(size=(1, 2)).astype(config.floatX)
+                    aet.matrix(), rng.normal(size=(2, 1)).astype(config.floatX)
                 ),
                 set_test_value(
-                    aet.matrix(), np.random.normal(size=(1, 2)).astype(config.floatX)
+                    aet.matrix(), rng.normal(size=(3, 1)).astype(config.floatX)
+                ),
+            ),
+            0,
+        ),
+        (
+            (
+                set_test_value(
+                    aet.matrix(), rng.normal(size=(1, 2)).astype(config.floatX)
+                ),
+                set_test_value(
+                    aet.matrix(), rng.normal(size=(1, 2)).astype(config.floatX)
                 ),
             ),
             1,
@@ -1012,10 +1012,10 @@ def test_CAReduce(careduce_fn, axis, v):
         (
             (
                 set_test_value(
-                    aet.matrix(), np.random.normal(size=(2, 2)).astype(config.floatX)
+                    aet.matrix(), rng.normal(size=(2, 2)).astype(config.floatX)
                 ),
                 set_test_value(
-                    aet.matrix(), np.random.normal(size=(2, 1)).astype(config.floatX)
+                    aet.matrix(), rng.normal(size=(2, 1)).astype(config.floatX)
                 ),
             ),
             1,
@@ -1038,12 +1038,8 @@ def test_Join(vals, axis):
 
 def test_Join_view():
     vals = (
-        set_test_value(
-            aet.matrix(), np.random.normal(size=(2, 2)).astype(config.floatX)
-        ),
-        set_test_value(
-            aet.matrix(), np.random.normal(size=(2, 2)).astype(config.floatX)
-        ),
+        set_test_value(aet.matrix(), rng.normal(size=(2, 2)).astype(config.floatX)),
+        set_test_value(aet.matrix(), rng.normal(size=(2, 2)).astype(config.floatX)),
     )
     g = aetb.Join(view=1)(1, *vals)
     g_fg = FunctionGraph(outputs=[g])
@@ -1126,9 +1122,9 @@ def test_Eye(n, m, k, dtype):
         (
             [
                 set_test_value(
-                    aet.matrix(), np.random.random(size=(2, 3)).astype(config.floatX)
+                    aet.matrix(), rng.random(size=(2, 3)).astype(config.floatX)
                 ),
-                set_test_value(aet.lmatrix(), np.random.poisson(size=(2, 3))),
+                set_test_value(aet.lmatrix(), rng.poisson(size=(2, 3))),
             ],
             MySingleOut,
             UserWarning,
@@ -1136,9 +1132,9 @@ def test_Eye(n, m, k, dtype):
         (
             [
                 set_test_value(
-                    aet.matrix(), np.random.random(size=(2, 3)).astype(config.floatX)
+                    aet.matrix(), rng.random(size=(2, 3)).astype(config.floatX)
                 ),
-                set_test_value(aet.lmatrix(), np.random.poisson(size=(2, 3))),
+                set_test_value(aet.lmatrix(), rng.poisson(size=(2, 3))),
             ],
             MyMultiOut,
             UserWarning,
@@ -1244,35 +1240,27 @@ def test_CumOp(val, axis, mode):
     "val, n, axis",
     [
         (
-            set_test_value(
-                aet.matrix(), np.random.normal(size=(3, 2)).astype(config.floatX)
-            ),
+            set_test_value(aet.matrix(), rng.normal(size=(3, 2)).astype(config.floatX)),
             0,
             0,
         ),
         (
-            set_test_value(
-                aet.matrix(), np.random.normal(size=(3, 2)).astype(config.floatX)
-            ),
+            set_test_value(aet.matrix(), rng.normal(size=(3, 2)).astype(config.floatX)),
             0,
             1,
         ),
         (
-            set_test_value(
-                aet.matrix(), np.random.normal(size=(3, 2)).astype(config.floatX)
-            ),
+            set_test_value(aet.matrix(), rng.normal(size=(3, 2)).astype(config.floatX)),
             1,
             0,
         ),
         (
-            set_test_value(
-                aet.matrix(), np.random.normal(size=(3, 2)).astype(config.floatX)
-            ),
+            set_test_value(aet.matrix(), rng.normal(size=(3, 2)).astype(config.floatX)),
             1,
             1,
         ),
         (
-            set_test_value(aet.lmatrix(), np.random.poisson(size=(3, 2))),
+            set_test_value(aet.lmatrix(), rng.poisson(size=(3, 2))),
             0,
             0,
         ),
@@ -1598,9 +1586,7 @@ def test_UnravelIndex(arr, shape, order, exc):
             set_test_value(
                 aet.vector(), np.array([1.0, 2.0, 3.0], dtype=config.floatX)
             ),
-            set_test_value(
-                aet.matrix(), np.random.random((3, 2)).astype(config.floatX)
-            ),
+            set_test_value(aet.matrix(), rng.random((3, 2)).astype(config.floatX)),
             "left",
             None,
             None,
@@ -1631,9 +1617,7 @@ def test_UnravelIndex(arr, shape, order, exc):
             set_test_value(
                 aet.vector(), np.array([1.0, 2.0, 3.0], dtype=config.floatX)
             ),
-            set_test_value(
-                aet.matrix(), np.random.random((3, 2)).astype(config.floatX)
-            ),
+            set_test_value(aet.matrix(), rng.random((3, 2)).astype(config.floatX)),
             "right",
             set_test_value(aet.lvector(), np.array([0, 2, 1])),
             UserWarning,
@@ -1660,9 +1644,7 @@ def test_Searchsorted(a, v, side, sorter, exc):
     "x, shape, exc",
     [
         (
-            set_test_value(
-                aet.vector(), np.random.random(size=(2,)).astype(config.floatX)
-            ),
+            set_test_value(aet.vector(), rng.random(size=(2,)).astype(config.floatX)),
             [set_test_value(aet.lscalar(), np.array(v)) for v in [3, 2]],
             UserWarning,
         ),
@@ -1688,24 +1670,18 @@ def test_BroadcastTo(x, shape, exc):
     "x, y, exc",
     [
         (
-            set_test_value(
-                aet.matrix(), np.random.random(size=(3, 2)).astype(config.floatX)
-            ),
-            set_test_value(
-                aet.vector(), np.random.random(size=(2,)).astype(config.floatX)
-            ),
+            set_test_value(aet.matrix(), rng.random(size=(3, 2)).astype(config.floatX)),
+            set_test_value(aet.vector(), rng.random(size=(2,)).astype(config.floatX)),
             None,
         ),
         (
-            set_test_value(aet.lmatrix(), np.random.poisson(size=(3, 2))),
-            set_test_value(
-                aet.fvector(), np.random.random(size=(2,)).astype("float32")
-            ),
+            set_test_value(aet.lmatrix(), rng.poisson(size=(3, 2))),
+            set_test_value(aet.fvector(), rng.random(size=(2,)).astype("float32")),
             None,
         ),
         (
-            set_test_value(aet.lvector(), np.random.random(size=(2,)).astype(np.int64)),
-            set_test_value(aet.lvector(), np.random.random(size=(2,)).astype(np.int64)),
+            set_test_value(aet.lvector(), rng.random(size=(2,)).astype(np.int64)),
+            set_test_value(aet.lvector(), rng.random(size=(2,)).astype(np.int64)),
             None,
         ),
     ],
@@ -1730,15 +1706,11 @@ def test_Dot(x, y, exc):
     "x, exc",
     [
         (
-            set_test_value(
-                aet.vector(), np.random.random(size=(2,)).astype(config.floatX)
-            ),
+            set_test_value(aet.vector(), rng.random(size=(2,)).astype(config.floatX)),
             None,
         ),
         (
-            set_test_value(
-                aet.matrix(), np.random.random(size=(2, 3)).astype(config.floatX)
-            ),
+            set_test_value(aet.matrix(), rng.random(size=(2, 3)).astype(config.floatX)),
             None,
         ),
     ],
@@ -1763,15 +1735,11 @@ def test_Softmax(x, exc):
     "x, exc",
     [
         (
-            set_test_value(
-                aet.vector(), np.random.random(size=(2,)).astype(config.floatX)
-            ),
+            set_test_value(aet.vector(), rng.random(size=(2,)).astype(config.floatX)),
             None,
         ),
         (
-            set_test_value(
-                aet.matrix(), np.random.random(size=(2, 3)).astype(config.floatX)
-            ),
+            set_test_value(aet.matrix(), rng.random(size=(2, 3)).astype(config.floatX)),
             None,
         ),
     ],
@@ -1846,23 +1814,17 @@ def test_Softplus(x, exc):
             None,
         ),
         (
-            set_test_value(
-                aet.dvector(), np.random.random(size=(3,)).astype("float64")
-            ),
+            set_test_value(aet.dvector(), rng.random(size=(3,)).astype("float64")),
             [0],
             None,
         ),
         (
-            set_test_value(
-                aet.dmatrix(), np.random.random(size=(3, 2)).astype("float64")
-            ),
+            set_test_value(aet.dmatrix(), rng.random(size=(3, 2)).astype("float64")),
             [0],
             None,
         ),
         (
-            set_test_value(
-                aet.dmatrix(), np.random.random(size=(3, 2)).astype("float64")
-            ),
+            set_test_value(aet.dmatrix(), rng.random(size=(3, 2)).astype("float64")),
             [0, 1],
             None,
         ),
@@ -1894,7 +1856,7 @@ def test_MaxAndArgmax(x, axes, exc):
         (
             set_test_value(
                 aet.dmatrix(),
-                (lambda x: x.T.dot(x))(np.random.random(size=(3, 3)).astype("float64")),
+                (lambda x: x.T.dot(x))(rng.random(size=(3, 3)).astype("float64")),
             ),
             True,
             None,
@@ -1902,9 +1864,7 @@ def test_MaxAndArgmax(x, axes, exc):
         (
             set_test_value(
                 aet.lmatrix(),
-                (lambda x: x.T.dot(x))(
-                    np.random.randint(1, 10, size=(3, 3)).astype("int64")
-                ),
+                (lambda x: x.T.dot(x))(rng.randint(1, 10, size=(3, 3)).astype("int64")),
             ),
             True,
             None,
@@ -1912,7 +1872,7 @@ def test_MaxAndArgmax(x, axes, exc):
         (
             set_test_value(
                 aet.dmatrix(),
-                (lambda x: x.T.dot(x))(np.random.random(size=(3, 3)).astype("float64")),
+                (lambda x: x.T.dot(x))(rng.random(size=(3, 3)).astype("float64")),
             ),
             False,
             UserWarning,
@@ -1945,35 +1905,27 @@ def test_Cholesky(x, lower, exc):
         (
             set_test_value(
                 aet.dmatrix(),
-                (lambda x: x.T.dot(x))(np.random.random(size=(3, 3)).astype("float64")),
+                (lambda x: x.T.dot(x))(rng.random(size=(3, 3)).astype("float64")),
             ),
-            set_test_value(
-                aet.dvector(), np.random.random(size=(3,)).astype("float64")
-            ),
+            set_test_value(aet.dvector(), rng.random(size=(3,)).astype("float64")),
             "general",
             None,
         ),
         (
             set_test_value(
                 aet.lmatrix(),
-                (lambda x: x.T.dot(x))(
-                    np.random.randint(1, 10, size=(3, 3)).astype("int64")
-                ),
+                (lambda x: x.T.dot(x))(rng.randint(1, 10, size=(3, 3)).astype("int64")),
             ),
-            set_test_value(
-                aet.dvector(), np.random.random(size=(3,)).astype("float64")
-            ),
+            set_test_value(aet.dvector(), rng.random(size=(3,)).astype("float64")),
             "general",
             None,
         ),
         (
             set_test_value(
                 aet.dmatrix(),
-                (lambda x: x.T.dot(x))(np.random.random(size=(3, 3)).astype("float64")),
+                (lambda x: x.T.dot(x))(rng.random(size=(3, 3)).astype("float64")),
             ),
-            set_test_value(
-                aet.dvector(), np.random.random(size=(3,)).astype("float64")
-            ),
+            set_test_value(aet.dvector(), rng.random(size=(3,)).astype("float64")),
             "lower_triangular",
             UserWarning,
         ),
@@ -2005,14 +1957,14 @@ def test_Solve(A, x, lower, exc):
         (
             set_test_value(
                 aet.dmatrix(),
-                (lambda x: x.T.dot(x))(np.random.random(size=(3, 3)).astype("float64")),
+                (lambda x: x.T.dot(x))(rng.random(size=(3, 3)).astype("float64")),
             ),
             None,
         ),
         (
             set_test_value(
                 aet.lmatrix(),
-                (lambda x: x.T.dot(x))(np.random.poisson(size=(3, 3)).astype("int64")),
+                (lambda x: x.T.dot(x))(rng.poisson(size=(3, 3)).astype("int64")),
             ),
             None,
         ),
@@ -2040,16 +1992,14 @@ def test_Det(x, exc):
         (
             set_test_value(
                 aet.dmatrix(),
-                (lambda x: x.T.dot(x))(np.random.random(size=(3, 3)).astype("float64")),
+                (lambda x: x.T.dot(x))(rng.random(size=(3, 3)).astype("float64")),
             ),
             None,
         ),
         (
             set_test_value(
                 aet.lmatrix(),
-                (lambda x: x.T.dot(x))(
-                    np.random.randint(1, 10, size=(3, 3)).astype("int64")
-                ),
+                (lambda x: x.T.dot(x))(rng.randint(1, 10, size=(3, 3)).astype("int64")),
             ),
             None,
         ),
@@ -2081,7 +2031,7 @@ def test_Eig(x, exc):
         (
             set_test_value(
                 aet.dmatrix(),
-                (lambda x: x.T.dot(x))(np.random.random(size=(3, 3)).astype("float64")),
+                (lambda x: x.T.dot(x))(rng.random(size=(3, 3)).astype("float64")),
             ),
             "L",
             None,
@@ -2089,9 +2039,7 @@ def test_Eig(x, exc):
         (
             set_test_value(
                 aet.lmatrix(),
-                (lambda x: x.T.dot(x))(
-                    np.random.randint(1, 10, size=(3, 3)).astype("int64")
-                ),
+                (lambda x: x.T.dot(x))(rng.randint(1, 10, size=(3, 3)).astype("int64")),
             ),
             "U",
             UserWarning,
@@ -2124,16 +2072,14 @@ def test_Eigh(x, uplo, exc):
         (
             set_test_value(
                 aet.dmatrix(),
-                (lambda x: x.T.dot(x))(np.random.random(size=(3, 3)).astype("float64")),
+                (lambda x: x.T.dot(x))(rng.random(size=(3, 3)).astype("float64")),
             ),
             None,
         ),
         (
             set_test_value(
                 aet.lmatrix(),
-                (lambda x: x.T.dot(x))(
-                    np.random.randint(1, 10, size=(3, 3)).astype("int64")
-                ),
+                (lambda x: x.T.dot(x))(rng.randint(1, 10, size=(3, 3)).astype("int64")),
             ),
             None,
         ),
@@ -2161,7 +2107,7 @@ def test_MatrixInverse(x, exc):
         (
             set_test_value(
                 aet.dmatrix(),
-                (lambda x: x.T.dot(x))(np.random.random(size=(3, 3)).astype("float64")),
+                (lambda x: x.T.dot(x))(rng.random(size=(3, 3)).astype("float64")),
             ),
             "reduced",
             None,
@@ -2169,7 +2115,7 @@ def test_MatrixInverse(x, exc):
         (
             set_test_value(
                 aet.dmatrix(),
-                (lambda x: x.T.dot(x))(np.random.random(size=(3, 3)).astype("float64")),
+                (lambda x: x.T.dot(x))(rng.random(size=(3, 3)).astype("float64")),
             ),
             "r",
             None,
@@ -2177,9 +2123,7 @@ def test_MatrixInverse(x, exc):
         (
             set_test_value(
                 aet.lmatrix(),
-                (lambda x: x.T.dot(x))(
-                    np.random.randint(1, 10, size=(3, 3)).astype("int64")
-                ),
+                (lambda x: x.T.dot(x))(rng.randint(1, 10, size=(3, 3)).astype("int64")),
             ),
             "reduced",
             None,
@@ -2187,9 +2131,7 @@ def test_MatrixInverse(x, exc):
         (
             set_test_value(
                 aet.lmatrix(),
-                (lambda x: x.T.dot(x))(
-                    np.random.randint(1, 10, size=(3, 3)).astype("int64")
-                ),
+                (lambda x: x.T.dot(x))(rng.randint(1, 10, size=(3, 3)).astype("int64")),
             ),
             "complete",
             UserWarning,
@@ -2222,7 +2164,7 @@ def test_QRFull(x, mode, exc):
         (
             set_test_value(
                 aet.dmatrix(),
-                (lambda x: x.T.dot(x))(np.random.random(size=(3, 3)).astype("float64")),
+                (lambda x: x.T.dot(x))(rng.random(size=(3, 3)).astype("float64")),
             ),
             True,
             True,
@@ -2231,7 +2173,7 @@ def test_QRFull(x, mode, exc):
         (
             set_test_value(
                 aet.dmatrix(),
-                (lambda x: x.T.dot(x))(np.random.random(size=(3, 3)).astype("float64")),
+                (lambda x: x.T.dot(x))(rng.random(size=(3, 3)).astype("float64")),
             ),
             False,
             True,
@@ -2240,9 +2182,7 @@ def test_QRFull(x, mode, exc):
         (
             set_test_value(
                 aet.lmatrix(),
-                (lambda x: x.T.dot(x))(
-                    np.random.randint(1, 10, size=(3, 3)).astype("int64")
-                ),
+                (lambda x: x.T.dot(x))(rng.randint(1, 10, size=(3, 3)).astype("int64")),
             ),
             True,
             True,
@@ -2251,9 +2191,7 @@ def test_QRFull(x, mode, exc):
         (
             set_test_value(
                 aet.lmatrix(),
-                (lambda x: x.T.dot(x))(
-                    np.random.randint(1, 10, size=(3, 3)).astype("int64")
-                ),
+                (lambda x: x.T.dot(x))(rng.randint(1, 10, size=(3, 3)).astype("int64")),
             ),
             True,
             False,
@@ -2287,22 +2225,22 @@ def test_SVD(x, full_matrices, compute_uv, exc):
         (
             set_test_value(
                 aet.dmatrix(),
-                np.random.random(size=(3, 3)).astype("float64"),
+                rng.random(size=(3, 3)).astype("float64"),
             ),
             set_test_value(
                 aet.dmatrix(),
-                np.random.random(size=(3, 3)).astype("float64"),
+                rng.random(size=(3, 3)).astype("float64"),
             ),
             None,
         ),
         (
             set_test_value(
                 aet.dmatrix(),
-                np.random.random(size=(3, 3)).astype("float64"),
+                rng.random(size=(3, 3)).astype("float64"),
             ),
             set_test_value(
                 aet.lmatrix(),
-                np.random.poisson(size=(3, 3)).astype("int64"),
+                rng.poisson(size=(3, 3)).astype("int64"),
             ),
             None,
         ),
