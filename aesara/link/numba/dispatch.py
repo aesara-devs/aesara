@@ -35,6 +35,7 @@ from aesara.scalar.basic import (
     Scalar,
     ScalarOp,
     Second,
+    Switch,
 )
 from aesara.scalar.math import Softplus
 from aesara.tensor.basic import (
@@ -369,6 +370,15 @@ def {scalar_op_fn_name}({input_names}):
     scalar_op_fn = compile_function_src(scalar_op_src, scalar_op_fn_name, global_env)
 
     return numba.njit(scalar_op_fn)
+
+
+@numba_funcify.register(Switch)
+def numba_funcify_Switch(op, node, **kwargs):
+    @numba.njit
+    def switch(condition, x, y):
+        return x if np.all(condition) else y
+
+    return switch
 
 
 @numba_funcify.register(Elemwise)

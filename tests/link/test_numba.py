@@ -285,6 +285,12 @@ def test_create_numba_signature(v, expected, force_scalar):
             [np.random.randn(100).astype(config.floatX) for i in range(4)],
             lambda x, y, x1, y1: (x + y) * (x1 + y1) * y,
         ),
+        (
+            # This also tests the use of repeated arguments
+            [aet.matrix(), aet.scalar()],
+            [np.random.normal(size=(2, 2)).astype(config.floatX), 0.0],
+            lambda a, b: aet.switch(a, b, a),
+        ),
     ],
 )
 def test_Elemwise(inputs, input_vals, output_fn):
