@@ -6,7 +6,11 @@ from aesara import config
 from aesara.graph.basic import Apply
 from aesara.graph.fg import FunctionGraph
 from aesara.graph.op import Op
-from aesara.link.utils import fgraph_to_python, get_name_for_object
+from aesara.link.utils import (
+    fgraph_to_python,
+    get_name_for_object,
+    unique_name_generator,
+)
 from aesara.scalar.basic import Add
 from aesara.tensor.elemwise import Elemwise
 from aesara.tensor.type import scalar, vector
@@ -102,3 +106,49 @@ def test_fgraph_to_python_once():
     assert len(res) == 2
     assert op1.called == 2
     assert op2.called == 2
+
+
+def test_unique_name_generator():
+
+    unique_names = unique_name_generator(["blah"], suffix_sep="_")
+
+    x = vector("blah")
+    x_name = unique_names(x)
+    assert x_name == "blah_1"
+
+    y = vector("blah_1")
+    y_name = unique_names(y)
+    assert y_name == "blah_1_1"
+
+    # Make sure that the old name associations are still good
+    x_name = unique_names(x)
+    assert x_name == "blah_1"
+    y_name = unique_names(y)
+    assert y_name == "blah_1_1"
+
+    # Try a name that overlaps with the original name
+    z = vector("blah")
+    z_name = unique_names(z)
+    assert z_name == "blah_2"
+
+    # Try a name that overlaps with an extended name
+    w = vector("blah_1")
+    w_name = unique_names(w)
+    assert w_name == "blah_1_2"
+
+    q = vector()
+    q_name_1 = unique_names(q)
+    q_name_2 = unique_names(q)
+
+    assert q_name_1 == q_name_2 == q.auto_name
+
+    unique_names = unique_name_generator()
+
+    r = vector()
+    r_name_1 = unique_names(r)
+    r_name_2 = unique_names(r, force_unique=True)
+
+    assert r_name_1 != r_name_2
+
+    r_name_3 = unique_names(r)
+    assert r_name_2 == r_name_3

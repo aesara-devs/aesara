@@ -605,6 +605,38 @@ def get_name_for_object(x: Any):
     return name
 
 
+def unique_name_generator(
+    external_names: Optional[List[str]] = None, suffix_sep: str = ""
+) -> Callable:
+    """Create a function that generates unique names."""
+
+    if external_names is None:
+        external_names = []
+
+    def unique_name(x, force_unique=False):
+        if not force_unique and x in unique_name.obj_to_names:
+            return unique_name.obj_to_names[x]
+
+        name = get_name_for_object(x)
+
+        name_suffix = unique_name.names_counter.get(name, "")
+        if name_suffix:
+            local_name = f"{name}{suffix_sep}{name_suffix}"
+            unique_name.names_counter.update((name,))
+        else:
+            local_name = name
+
+        unique_name.names_counter.update((local_name,))
+        unique_name.obj_to_names[x] = local_name
+
+        return local_name
+
+    unique_name.names_counter = Counter(external_names)
+    unique_name.obj_to_names = {}
+
+    return unique_name
+
+
 def fgraph_to_python(
     fgraph: FunctionGraph,
     op_conversion_fn: Callable,
@@ -663,19 +695,7 @@ def fgraph_to_python(
         fgraph, order, input_storage, output_storage, storage_map
     )
 
-    def unique_name(x, names_counter=Counter([fgraph_name]), obj_to_names={}):
-        if x in obj_to_names:
-            return obj_to_names[x]
-
-        name = get_name_for_object(x)
-
-        name_suffix = names_counter.get(name, "")
-        local_name = f"{name}{name_suffix}"
-
-        names_counter.update((name,))
-        obj_to_names[x] = local_name
-
-        return local_name
+    unique_name = unique_name_generator([fgraph_name])
 
     if global_env is None:
         global_env = {}
