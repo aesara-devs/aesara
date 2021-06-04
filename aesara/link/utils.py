@@ -1,3 +1,4 @@
+import builtins
 import io
 import re
 import sys
@@ -595,7 +596,15 @@ def get_name_for_object(x: Any):
 
     if isinstance(x, Variable):
         name = re.sub("[^0-9a-zA-Z]+", "_", x.name) if x.name else ""
-        name = name if (name.isidentifier() and not iskeyword(name)) else x.auto_name
+        name = (
+            name
+            if (
+                name.isidentifier()
+                and not iskeyword(name)
+                and name not in dir(builtins)
+            )
+            else x.auto_name
+        )
     else:
         name = getattr(x, "__name__", None)
 
