@@ -602,13 +602,11 @@ def numba_funcify_CAReduce(op, node, **kwargs):
 
 @numba_funcify.register(Composite)
 def numba_funcify_Composite(op, node, **kwargs):
-    numba_impl = numba.njit(numba_funcify(op.fgraph, **kwargs))
-
-    @numba.njit
-    def composite(*args):
-        return numba_impl(*args)[0]
-
-    return composite
+    signature = create_numba_signature(node, force_scalar=True)
+    composite_fn = numba.njit(signature)(
+        numba_funcify(op.fgraph, squeeze_output=True, **kwargs)
+    )
+    return composite_fn
 
 
 def create_index_func(node, objmode=False):
