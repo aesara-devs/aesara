@@ -3,7 +3,7 @@ import warnings
 from functools import reduce, singledispatch
 from numbers import Number
 from textwrap import indent
-from typing import Union
+from typing import List, Union
 
 import numba
 import numpy as np
@@ -18,7 +18,7 @@ from numba.np.unsafe.ndarray import to_fixed_tuple
 from numpy.core.multiarray import normalize_axis_index
 
 from aesara.compile.ops import DeepCopyOp, ViewOp
-from aesara.graph.basic import Apply
+from aesara.graph.basic import Apply, Variable
 from aesara.graph.fg import FunctionGraph
 from aesara.graph.type import Type
 from aesara.link.utils import (
@@ -28,10 +28,12 @@ from aesara.link.utils import (
     unique_name_generator,
 )
 from aesara.scalar.basic import (
+    Add,
     Cast,
     Clip,
     Composite,
     Identity,
+    Mul,
     Scalar,
     ScalarOp,
     Second,
@@ -379,6 +381,42 @@ def numba_funcify_Switch(op, node, **kwargs):
         return x if np.all(condition) else y
 
     return switch
+
+
+def binary_to_nary_func(inputs: List[Variable], binary_op_name: str, binary_op: str):
+    """Create a Numba-compatible N-ary function from a binary function."""
+    unique_names = unique_name_generator(["binary_op_name"], suffix_sep="_")
+    input_names = [unique_names(v, force_unique=True) for v in inputs]
+    input_signature = ", ".join(input_names)
+    output_expr = binary_op.join(input_names)
+
+    nary_src = f"""
+def {binary_op_name}({input_signature}):
+    return {output_expr}
+    """
+    nary_fn = compile_function_src(nary_src, binary_op_name)
+
+    return nary_fn
+
+
+@numba_funcify.register(Add)
+def numba_funcify_Add(op, node, **kwargs):
+
+    signature = create_numba_signature(node, force_scalar=True)
+
+    nary_add_fn = binary_to_nary_func(node.inputs, "add", "+")
+
+    return numba.njit(signature)(nary_add_fn)
+
+
+@numba_funcify.register(Mul)
+def numba_funcify_Mul(op, node, **kwargs):
+
+    signature = create_numba_signature(node, force_scalar=True)
+
+    nary_mul_fn = binary_to_nary_func(node.inputs, "mul", "*")
+
+    return numba.njit(signature)(nary_mul_fn)
 
 
 @numba_funcify.register(Elemwise)
