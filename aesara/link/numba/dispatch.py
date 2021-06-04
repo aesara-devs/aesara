@@ -926,7 +926,7 @@ def numba_funcify_DimShuffle(op, **kwargs):
     # E           shuffle_shape = res.shape[: len(shuffle)]
     @numba.njit
     def dimshuffle(x):
-        return dimshuffle_inner(x, shuffle)
+        return dimshuffle_inner(np.asarray(x), shuffle)
 
     return dimshuffle
 
