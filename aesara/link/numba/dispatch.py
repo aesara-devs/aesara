@@ -378,7 +378,10 @@ def {scalar_op_fn_name}({input_names}):
 def numba_funcify_Switch(op, node, **kwargs):
     @numba.njit
     def switch(condition, x, y):
-        return x if np.all(condition) else y
+        if condition:
+            return x
+        else:
+            return y
 
     return switch
 
