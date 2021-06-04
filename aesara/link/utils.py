@@ -659,6 +659,7 @@ def fgraph_to_python(
     global_env: Optional[Dict[Any, Any]] = None,
     local_env: Optional[Dict[Any, Any]] = None,
     get_name_for_object: Callable[[Any], str] = get_name_for_object,
+    squeeze_output: bool = False,
     **kwargs,
 ) -> FunctionType:
     """Convert a ``FunctionGraph`` into a regular Python function.
@@ -694,6 +695,9 @@ def fgraph_to_python(
     get_name_for_object
         A function used to provide names for the objects referenced within the
         generated function.
+    squeeze_output
+        If the ``FunctionGraph`` has only one output and this option is
+        ``True``, return the single output instead of a tuple with the output.
     **kwargs
         The remaining keywords are passed to `python_conversion_fn`
     """
@@ -742,7 +746,9 @@ def fgraph_to_python(
     joined_body_assigns = indent("\n".join(body_assigns), "    ")
 
     if len(fgraph_output_names) == 1:
-        fgraph_return_src = f"({fgraph_output_names[0]},)"
+        fgraph_return_src = (
+            fgraph_output_names[0] if squeeze_output else f"({fgraph_output_names[0]},)"
+        )
     else:
         fgraph_return_src = ", ".join(fgraph_output_names)
 
