@@ -103,7 +103,7 @@ def eval_python_only(fn_inputs, fgraph, inputs):
             return x
 
     def njit_noop(*args, **kwargs):
-        if len(args) == 1:
+        if len(args) == 1 and callable(args[0]):
             return args[0]
         else:
             return lambda x: x
@@ -118,9 +118,9 @@ def eval_python_only(fn_inputs, fgraph, inputs):
             def inner_vec(*args):
                 if len(args) > nparams:
                     out = args[-1]
-                    out[:] = fn(*args[:nparams])
+                    out[:] = np.vectorize(fn)(*args[:nparams])
                 else:
-                    return fn(*args)
+                    return np.vectorize(fn)(*args)
 
             return inner_vec
 
