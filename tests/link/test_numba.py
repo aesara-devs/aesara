@@ -302,6 +302,24 @@ def test_Elemwise(inputs, input_vals, output_fn):
     "inputs, input_values, scalar_fn",
     [
         (
+            [aet.scalar("x"), aet.scalar("y"), aet.scalar("z")],
+            [
+                np.array(10, dtype=config.floatX),
+                np.array(20, dtype=config.floatX),
+                np.array(30, dtype=config.floatX),
+            ],
+            lambda x, y, z: aes.add(x, y, z),
+        ),
+        (
+            [aet.scalar("x"), aet.scalar("y"), aet.scalar("z")],
+            [
+                np.array(10, dtype=config.floatX),
+                np.array(20, dtype=config.floatX),
+                np.array(30, dtype=config.floatX),
+            ],
+            lambda x, y, z: aes.mul(x, y, z),
+        ),
+        (
             [aet.scalar("x"), aet.scalar("y")],
             [
                 np.array(10, dtype=config.floatX),
@@ -312,9 +330,8 @@ def test_Elemwise(inputs, input_vals, output_fn):
     ],
 )
 def test_numba_Composite(inputs, input_values, scalar_fn):
-    x_s = aes.float64("x")
-    y_s = aes.float64("y")
-    comp_op = Elemwise(Composite([x_s, y_s], [scalar_fn(x_s, y_s)]))
+    composite_inputs = [aes.float64(i.name) for i in inputs]
+    comp_op = Elemwise(Composite(composite_inputs, [scalar_fn(*composite_inputs)]))
     out_fg = FunctionGraph(inputs, [comp_op(*inputs)])
     compare_numba_and_py(out_fg, input_values)
 
