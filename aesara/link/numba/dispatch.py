@@ -371,7 +371,9 @@ def {scalar_op_fn_name}({input_names}):
     """
     scalar_op_fn = compile_function_src(scalar_op_src, scalar_op_fn_name, global_env)
 
-    return numba.njit(scalar_op_fn)
+    signature = create_numba_signature(node, force_scalar=True)
+
+    return numba.njit(signature)(scalar_op_fn)
 
 
 @numba_funcify.register(Switch)
