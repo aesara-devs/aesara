@@ -15,7 +15,7 @@ to know what we want JAX to do.
 | Here are the examples for ``eye`` and ``ifelse`` from Aesara from the
   compiled doc and codebase respectively
 | https://aesara.readthedocs.io/en/latest/library/tensor/basic.html?highlight=eye#aesara.tensor.eye
-| https://github.com/pymc-devs/aesara/blob/master/aesara/ifelse.py#L35
+| https://github.com/pymc-devs/aesara/blob/main/aesara/ifelse.py#L35
 
 Step 2: Find the relevant JAX method (or something close)
 =========================================================
@@ -39,7 +39,7 @@ logic.
        return res if n_outs > 1 else res[0]
 
 *Code in context:*
-https://github.com/pymc-devs/aesara/blob/master/aesara/link/jax/dispatch.py#L583
+https://github.com/pymc-devs/aesara/blob/main/aesara/link/jax/dispatch.py#L583
 
 Step 3: Register the function with the jax_funcify dispatcher
 =============================================================
@@ -51,7 +51,7 @@ short tutorial on dispatching is at the bottom.
 
 The linker functions should be added to ``dispatch`` module linked
 below.
-https://github.com/pymc-devs/aesara/blob/master/aesara/link/jax/dispatch.py
+https://github.com/pymc-devs/aesara/blob/main/aesara/link/jax/dispatch.py
 
 Here’s an example for the Eye Op.
 
@@ -69,7 +69,7 @@ Here’s an example for the Eye Op.
        return eye
 
 *Code in context:*
-https://github.com/pymc-devs/aesara/blob/master/aesara/link/jax/dispatch.py#L1071
+https://github.com/pymc-devs/aesara/blob/main/aesara/link/jax/dispatch.py#L1071
 
 Step 4: Write tests
 ===================
@@ -82,7 +82,7 @@ compile the same function graph in Python and JAX and check that the
 numerical output is similar betwen the JAX and Python output, as well
 object types to ensure correct compilation.
 
-https://github.com/pymc-devs/aesara/blob/master/tests/link/test_jax.py
+https://github.com/pymc-devs/aesara/blob/main/tests/link/test_jax.py
 
 .. code:: python
 

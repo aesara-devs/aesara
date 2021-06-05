@@ -59,7 +59,7 @@ test:  # Test code using pytest.
 	pytest -v tests/ ${PROJECT_DIR} --cov=${PROJECT_DIR} --cov-report=xml --html=testing-report.html --self-contained-html
 
 coverage: test
-	diff-cover coverage.xml --compare-branch=master --fail-under=100
+	diff-cover coverage.xml --compare-branch=main --fail-under=100
 
 pypi:
 	${PYTHON} setup.py clean --all; \
