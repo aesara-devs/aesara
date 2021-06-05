@@ -345,12 +345,12 @@ Using your local copy
 ---------------------
 
 To update your library to the latest revision, you should have a local branch
-that tracks central/master. You can add one (named "trunk" here) with:
+that tracks ``origin/main``. You can add one (named "trunk" here) with:
 
 .. code-block:: bash
 
-    git fetch central
-    git branch trunk central/master
+    git fetch origin
+    git branch trunk origin/main
 
 Once you have such a branch, in order to update it, do:
 
@@ -396,13 +396,13 @@ Start a new local branch
 ------------------------
 
 When working on a new feature in your own fork, start from an up-to-date copy
-of the `master` branch (the principal one) of the central repository
+of the `main` branch (the principal one) of the central repository
 (Aesara/Aesara on GitHub):
 
 .. code-block:: bash
 
-    git fetch central
-    git checkout -b my_shiny_feature central/master
+    git fetch origin
+    git checkout -b my_shiny_feature origin/main
 
 .. note::
 
@@ -410,7 +410,7 @@ of the `master` branch (the principal one) of the central repository
 
     .. code-block:: bash
 
-        git branch my_shiny_feature central/master
+        git branch my_shiny_feature origin/main
         git checkout my_shiny_feature
 
 
@@ -422,7 +422,7 @@ branch to your github fork first:
 
 .. code-block:: bash
 
-    git commit -a -m "your message here"
+    git commit -a -m "Your message here"
 
 .. code-block:: bash
 
@@ -431,7 +431,7 @@ branch to your github fork first:
 Then, go to your fork's github page on the github website, select your
 feature branch and hit the "Pull Request" button in the top right
 corner.  This will signal the maintainers that you wish to submit your
-changes for inclusion in central/master.
+changes for inclusion in ``origin/main``.
 
 
 Address reviewer comments
