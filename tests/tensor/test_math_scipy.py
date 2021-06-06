@@ -9,6 +9,7 @@ from functools import partial
 import scipy.special
 import scipy.stats
 
+from aesara import function
 from aesara import tensor as aet
 from aesara.compile.mode import get_default_mode
 from aesara.configdefaults import config
@@ -603,3 +604,101 @@ TestLog1mexpInplaceBroadcast = makeBroadcastTester(
 def test_deprecated_module():
     with pytest.warns(DeprecationWarning):
         import aesara.scalar.basic_scipy  # noqa: F401
+
+
+_good_broadcast_ternary_betainc = dict(
+    normal=(
+        random_ranged(0, 1000, (2, 3)),
+        random_ranged(0, 1000, (2, 3)),
+        random_ranged(0, 1, (2, 3)),
+    ),
+)
+
+TestBetaincBroadcast = makeBroadcastTester(
+    op=aet.betainc,
+    expected=scipy.special.betainc,
+    good=_good_broadcast_ternary_betainc,
+    grad=_good_broadcast_ternary_betainc,
+)
+
+TestBetaincInplaceBroadcast = makeBroadcastTester(
+    op=inplace.betainc_inplace,
+    expected=scipy.special.betainc,
+    good=_good_broadcast_ternary_betainc,
+    grad=_good_broadcast_ternary_betainc,
+    inplace=True,
+)
+
+
+class TestBetaIncGrad:
+    def test_stan_grad_partial(self):
+        # This test combines the following STAN tests:
+        # https://github.com/stan-dev/math/blob/master/test/unit/math/prim/fun/inc_beta_dda_test.cpp
+        # https://github.com/stan-dev/math/blob/master/test/unit/math/prim/fun/inc_beta_ddb_test.cpp
+        # https://github.com/stan-dev/math/blob/master/test/unit/math/prim/fun/inc_beta_ddz_test.cpp
+        a, b, z = aet.scalars("a", "b", "z")
+        betainc_out = aet.betainc(a, b, z)
+        betainc_grad = aet.grad(betainc_out, [a, b, z])
+        f_grad = function([a, b, z], betainc_grad)
+
+        decimal_precision = 7 if config.floatX == "float64" else 3
+
+        for test_a, test_b, test_z, expected_dda, expected_ddb, expected_ddz in (
+            (1.5, 1.25, 0.001, -0.00028665637, 4.41357328e-05, 0.063300692),
+            (1.5, 1.25, 0.5, -0.26038693947, 0.29301795, 1.1905416),
+            (1.5, 1.25, 0.6, -0.23806757, 0.32279575, 1.23341068),
+            (1.5, 1.25, 0.999, -0.00022264493, 0.0018969609, 0.35587692),
+            (15000, 1.25, 0.001, 0, 0, 0),
+            (15000, 1.25, 0.5, 0, 0, 0),
+            (15000, 1.25, 0.6, 0, 0, 0),
+            (15000, 1.25, 0.999, -6.59543226e-10, 2.00849793e-06, 0.009898182),
+            (1.5, 12500, 0.001, -3.93756641e-05, 1.47821755e-09, 0.1848717),
+            (1.5, 12500, 0.5, 0, 0, 0),
+            (1.5, 12500, 0.6, 0, 0, 0),
+            (1.5, 12500, 0.999, 0, 0, 0),
+            (15000, 12500, 0.001, 0, 0, 0),
+            (15000, 12500, 0.5, -8.72102443e-53, 9.55282792e-53, 5.01131256e-48),
+            (15000, 12500, 0.6, -4.085621e-14, -5.5067062e-14, 1.15135267e-71),
+            (15000, 12500, 0.999, 0, 0, 0),
+        ):
+            np.testing.assert_almost_equal(
+                f_grad(test_a, test_b, test_z),
+                [expected_dda, expected_ddb, expected_ddz],
+                decimal=decimal_precision,
+            )
+
+    def test_boik_robison_cox(self):
+        # This test compares against the tabulated values in:
+        # Boik, R. J., & Robison-Cox, J. F. (1998). Derivatives of the incomplete beta function.
+        # Journal of Statistical Software, 3(1), 1-20.
+        a, b, z = aet.scalars("a", "b", "z")
+        betainc_out = aet.betainc(a, b, z)
+        betainc_grad = aet.grad(betainc_out, [a, b])
+        f_grad = function([a, b, z], betainc_grad)
+
+        for test_a, test_b, test_z, expected_dda, expected_ddb in (
+            (1.5, 11.0, 0.001, -4.5720356e-03, 1.1845673e-04),
+            (1.5, 11.0, 0.5, -2.5501997e-03, 9.0824388e-04),
+            (1000.0, 1000.0, 0.5, -8.9224793e-03, 8.9224793e-03),
+            (1000.0, 1000.0, 0.55, -3.6713108e-07, 4.0584118e-07),
+        ):
+            np.testing.assert_almost_equal(
+                f_grad(test_a, test_b, test_z),
+                [expected_dda, expected_ddb],
+            )
+
+    def test_beta_inc_stan_grad_combined(self):
+        # This test replicates the following STAN test:
+        # https://github.com/stan-dev/math/blob/master/test/unit/math/prim/fun/grad_reg_inc_beta_test.cpp
+        a, b, z = aet.scalars("a", "b", "z")
+        betainc_out = aet.betainc(a, b, z)
+        betainc_grad = aet.grad(betainc_out, [a, b])
+        f_grad = function([a, b, z], betainc_grad)
+
+        for test_a, test_b, test_z, expected_dda, expected_ddb in (
+            (1.0, 1.0, 1.0, 0, np.nan),
+            (1.0, 1.0, 0.4, -0.36651629, 0.30649537),
+        ):
+            np.testing.assert_allclose(
+                f_grad(test_a, test_b, test_z), [expected_dda, expected_ddb]
+            )
