@@ -74,6 +74,7 @@ from aesara.tensor.math import (
     expm1,
     ge,
     int_div,
+    isinf,
     log,
     log1p,
     makeKeepDims,
@@ -2286,31 +2287,28 @@ def local_log1p(fgraph, node):
 @register_stabilize
 @register_specialize
 @local_optimizer([log])
-def local_log_add(fgraph, node):
-    # log(exp(x)+exp(y))
-    #
-    # Suppose x >= y
-    # log(exp(x) + exp(y))
-    # log(exp(x) * (1 + exp(y)/exp(x)))
-    # x + log(1 + exp(y)/exp(x))
-    # x + log1p(exp(y)/exp(x))
-    # x + log1p(exp(y-x))
+def local_log_add_exp(fgraph, node):
+    # log(exp(x)+exp(y)+exp(z)) = max + log(x-max, y-max, z-max)
+
     if node.op == log:
         z = node.inputs[0]
         if z.owner and z.owner.op == add:
             zi = z.owner.inputs
-            if len(zi) != 2:
-                # -- upgrading Maximum to handle multiple inputs wasn't trivial
-                #    TODO
-                # raise NotImplementedError()
-                return
             pre_exp = [x.owner.inputs[0] for x in zi if x.owner and x.owner.op == exp]
+            # all arguments to add are exp(<something>)
             if len(pre_exp) == len(zi):
-                # all arguments to add are exp(<something>)
-                max_pre = maximum(*pre_exp)
-
-                ret = max_pre + log1p(exp(add(*[p - max_pre for p in pre_exp])))
-                ret.tag.values_eq_approx = values_eq_approx_remove_inf
+                # Do not offset when max_pre = -np.inf, to avoid nan in the output
+                # Switch statement is placed directly inside add to break the self-symmetry
+                # of the returned output (otherwise the optimization would not stabilize)
+                max_pre = reduce(maximum, pre_exp)
+                ret = max_pre + log(
+                    add(
+                        *[
+                            switch(isinf(max_pre), exp(max_pre), exp(p - max_pre))
+                            for p in pre_exp
+                        ]
+                    )
+                )
                 return [ret]
 
 
