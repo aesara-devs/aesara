@@ -1188,12 +1188,38 @@ def test_extra_ops_omni():
     compare_jax_and_py(fgraph, [])
 
 
-@pytest.mark.xfail(reason="The RNG states are not 1:1", raises=AssertionError)
-def test_random():
-    rng = shared(np.random.RandomState(123))
-    out = normal(rng=rng)
+@pytest.mark.parametrize(
+    "at_dist, dist_params, rng, size",
+    [
+        (
+            normal,
+            (),
+            shared(np.random.RandomState(123)),
+            10000,
+        ),
+        (
+            normal,
+            (),
+            shared(np.random.default_rng(123)),
+            10000,
+        ),
+    ],
+)
+def test_random_stats(at_dist, dist_params, rng, size):
+    # The RNG states are not 1:1, so the best we can do is check some summary
+    # statistics of the samples
+    out = normal(*dist_params, rng=rng, size=size)
     fgraph = FunctionGraph([out.owner.inputs[0]], [out], clone=False)
-    compare_jax_and_py(fgraph, [])
+
+    def assert_fn(x, y):
+        (x,) = x
+        (y,) = y
+        assert x.dtype.kind == y.dtype.kind
+
+        d = 2 if config.floatX == "float64" else 1
+        np.testing.assert_array_almost_equal(np.abs(x.mean()), np.abs(y.mean()), d)
+
+    compare_jax_and_py(fgraph, [], assert_fn=assert_fn)
 
 
 def test_random_unimplemented():
@@ -1218,7 +1244,6 @@ def test_random_unimplemented():
         compare_jax_and_py(fgraph, [])
 
 
-@pytest.mark.xfail(reason="Generators not yet supported in JAX")
 def test_RandomStream():
     srng = RandomStream(seed=123)
     out = srng.normal() - srng.normal()
@@ -1228,11 +1253,3 @@ def test_RandomStream():
     jax_res_2 = fn()
 
     assert np.array_equal(jax_res_1, jax_res_2)
-
-
-@pytest.mark.xfail(reason="Generators not yet supported in JAX")
-def test_random_generators():
-    rng = shared(np.random.default_rng(123))
-    out = normal(rng=rng)
-    fgraph = FunctionGraph([out.owner.inputs[0]], [out], clone=False)
-    compare_jax_and_py(fgraph, [])
