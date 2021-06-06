@@ -8,7 +8,7 @@ or correct documentation.
 How do you define the grad function?
 ======================================
 
-Let's talk about defining the `grad()` function in an Op, using an
+Let's talk about defining the :meth:`Op.grad` function in an :class:`Op`, using an
 illustrative example.
 
 In Poisson regression (Ranzato and Szummer, 2008), the target *t* is
@@ -19,15 +19,15 @@ In the negative log likelihood of the Poisson regressor, there is a term:
 
     \log(t!)
 
-Let's say we write a logfactorial Op. We then compute the gradient
+Let's say we write a logfactorial :class:`Op`. We then compute the gradient
 
 You should define gradient, even if it is undefined.
 [give log factorial example]
 
-If an Op does not define ``grad``, but this Op does not appear in the path when
+If an :class:`Op` does not define ``grad``, but this :class:`Op` does not appear in the path when
 you compute the gradient, then there is no problem.
 
-If an Op does not define ``grad``, and this Op *does* appear in the path when
+If an :class:`Op` does not define ``grad``, and this :class:`Op` *does* appear in the path when
 you compute the gradient, **WRITEME**.
 
 Gradients for a particular variable can be one of four kinds:
@@ -45,26 +45,26 @@ currently, there is no way for a ``grad()`` method to distinguish between cases 
 and 4
 but the distinction is important because graphs with type-3 gradients are ok
 to run, whereas graphs with type-4 gradients are not.
-so I suggested that Joseph return a type-4 gradient by defining an Op with no
+so I suggested that Joseph return a type-4 gradient by defining an :class:`Op` with no
 perform method.
 the idea would be that this would suit the graph-construction phase, but would
 prevent linking.
 how does that sound to you?
 
-**This documentation is useful when we show users how to write Ops.**
+**This documentation is useful when we show users how to write :class:`Op`\s.**
 
 ======================================
 What is staticmethod, st_impl?
 ======================================
 
-``st_impl`` is an optional method in an Op.
+``st_impl`` is an optional method in an :class:`Op`.
 ``@staticmethod`` is a Python decorator for a class method that does not
 implicitly take the class instance as a first argument. Hence, st_impl
-can be used for Op implementations when no information from the Op
+can be used for :class:`Op` implementations when no information from the :class:`Op`
 instance is needed. This can be useful for testing an implementation.
 See the ``XlogX`` class below for an example.
 
-**This documentation is useful when we show users how to write Ops.
+**This documentation is useful when we show users how to write :class:`Op`\s.
 Olivier says this behavior should be discouraged but I feel that st_impl
 should be encouraged where possible.**
 
@@ -74,7 +74,7 @@ how do we write scalar ops and upgrade them to tensor ops?
 
 **Olivier says that** :class:`~aesara.tensor.xlogx.XlogX` **gives a good example. In fact, I would
 like to beef xlogx up into our running example for demonstrating how to
-write an Op:**
+write an :class:`Op`:**
 
 .. code-block:: python
 
@@ -111,10 +111,10 @@ UnaryScalarOp is the same as scalar.ScalarOp with member variable nin=1.
 **give an example of this**
 
 =======================================================
-How to use the PrintOp
+How to use the `PrintOp`
 =======================================================
 
-** This is also useful in the How to write an Op tutorial. **
+** This is also useful in the How to write an :class:`Op` tutorial. **
 
 =======================================================
 Mammouth

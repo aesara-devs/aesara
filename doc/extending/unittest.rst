@@ -12,11 +12,11 @@ stressed enough!
 
 Unit Testing revolves around the following principles:
 
-* ensuring correctness: making sure that your Op, Type or Optimization
-  works in the way you intended it to work. It is important for this
-  testing to be as thorough as possible: test not only the obvious
-  cases, but more importantly the corner cases which are more likely
-  to trigger bugs down the line.
+* ensuring correctness: making sure that your :class:`Op`, :class:`Type` or
+  optimization works in the way you intended it to work. It is important for
+  this testing to be as thorough as possible: test not only the obvious cases,
+  but more importantly the corner cases which are more likely to trigger bugs
+  down the line.
 
 * test all possible failure paths. This means testing that your code
   fails in the appropriate manner, by raising the correct errors when
@@ -30,39 +30,43 @@ Unit Testing revolves around the following principles:
   that person to produce a fix. If this sounds like too much of a
   burden... then good! APIs aren't meant to be changed on a whim!
 
-This page is in no way meant to replace tutorials on Python's unittest
-module, for this we refer the reader to the `official documentation
-<http://docs.python.org/library/unittest.html>`_.  We will however
-address certain specifics about how unittests relate to aesara.
 
-PyTest Primer
-===============
+We use `pytest <https://docs.pytest.org>`_.  New tests should
+generally take the form of a test function, and each check within a test should
+involve an assertion of some kind.
 
-We use pytest now! New tests should mostly be functions, with assertions
+.. note::
 
-How to Run Unit Tests ?
------------------------
+  Tests that check for a lack of failures (e.g. that ``Exception``\s aren't
+  raised) are generally *not* good tests.  Instead, assert something more
+  relevant and explicit about the expected outputs or side-effects of the code
+  being tested.
 
-Mostly `pytest aesara/`
+
+How to Run Unit Tests
+---------------------
+
+Mostly ``pytest aesara/``
 
 Folder Layout
 -------------
 
-Files containing unittests should be prefixed with the word "test".
+Files containing unit tests should be prefixed with the word "test".
 
-Optimally every python module should have a unittest file associated
+Ideally, every python module should have a unittest file associated
 with it, as shown below. Unit tests that test functionality of module
 ``<module>.py`` should therefore be stored in
 ``tests/<sub-package>/test_<module>.py``::
 
     Aesara/aesara/tensor/basic.py
-    Aesara/aesara/tensor/elemwise.py
     Aesara/tests/tensor/test_basic.py
+
+    Aesara/aesara/tensor/elemwise.py
     Aesara/tests/tensor/test_elemwise.py
 
 
-How to Write a Unittest
-=======================
+How to Write a Unit Test
+========================
 
 Test Cases and Methods
 ----------------------
@@ -74,7 +78,7 @@ concept.
 Test cases should be functions or classes prefixed with the word "test".
 
 Test methods should be as specific as possible and cover a particular
-aspect of the problem. For example, when testing the ``Dot`` ``Op``, one
+aspect of the problem. For example, when testing the :class:`Dot` :class:`Op`, one
 test method could check for validity, while another could verify that
 the proper errors are raised when inputs have invalid dimensions.
 
@@ -101,11 +105,11 @@ Example:
         assert np.array_equal(f(self.avals, self.bvals), numpy.dot(self.avals, self.bvals))
 
 
-Creating an Op Unit Test
-========================
+Creating an :class:`Op` Unit Test
+=================================
 
 A few tools have been developed to help automate the development of
-unit tests for Aesara Ops.
+unit tests for Aesara :class:`Op`\s.
 
 
 .. _validating_grad:
@@ -113,8 +117,8 @@ unit tests for Aesara Ops.
 Validating the Gradient
 -----------------------
 
-The ``verify_grad`` function can be used to validate that the ``grad``
-function of your Op is properly implemented. ``verify_grad`` is based
+The :func:`verify_grad` function can be used to validate that the :meth:`Op.grad`
+method of your :class:`Op` is properly implemented. :func:`verify_grad` is based
 on the Finite Difference Method where the derivative of function ``f``
 at point ``x`` is approximated as:
 
@@ -132,24 +136,24 @@ at point ``x`` is approximated as:
 * compares the two values. The tests passes if they are equal to
   within a certain tolerance.
 
-Here is the prototype for the verify_grad function.
+Here is the prototype for the :func:`verify_grad` function.
 
 .. code-block:: python
 
     def verify_grad(fun, pt, n_tests=2, rng=None, eps=1.0e-7, abs_tol=0.0001, rel_tol=0.0001):
 
-``verify_grad`` raises an Exception if the difference between the analytic gradient and
+:func:`verify_grad` raises an ``Exception`` if the difference between the analytic gradient and
 numerical gradient (computed through the Finite Difference Method) of a random
-projection of the fun's output to a scalar  exceeds
-both the given absolute and relative tolerances.
+projection of the fun's output to a scalar exceeds both the given absolute and
+relative tolerances.
 
 The parameters are as follows:
 
 * ``fun``: a Python function that takes Aesara variables as inputs,
   and returns an Aesara variable.
-  For instance, an Op instance with a single output is such a function.
+  For instance, an :class:`Op` instance with a single output is such a function.
   It can also be a Python function that calls an op with some of its
-  inputs being fixed to specific values, or that combine multiple ops.
+  inputs being fixed to specific values, or that combine multiple :class:`Op`\s.
 
 * ``pt``: the list of numpy.ndarrays to use as input values
 
@@ -181,7 +185,7 @@ symbolic variable:
 
         aesara.gradient.verify_grad(fun, [x_val, y_val, z_val], rng=rng)
 
-Here is an example showing how to use ``verify_grad`` on an Op instance:
+Here is an example showing how to use :func:`verify_grad` on an :class:`Op` instance:
 
 .. testcode::
 
@@ -193,9 +197,9 @@ Here is an example showing how to use ``verify_grad`` on an Op instance:
         aesara.gradient.verify_grad(tensor.Flatten(), [a_val], rng=rng)
 
 Here is another example, showing how to verify the gradient w.r.t. a subset of
-an Op's inputs. This is useful in particular when the gradient w.r.t. some of
+an :class:`Op`'s inputs. This is useful in particular when the gradient w.r.t. some of
 the inputs cannot be computed by finite difference (e.g. for discrete inputs),
-which would cause ``verify_grad`` to crash.
+which would cause :func:`verify_grad` to crash.
 
 .. testcode::
 
@@ -224,15 +228,15 @@ which would cause ``verify_grad`` to crash.
 makeTester and makeBroadcastTester
 ==================================
 
-Most Op unittests perform the same function. All such tests must
-verify that the op generates the proper output, that the gradient is
-valid, that the Op fails in known/expected ways. Because so much of
+Most :class:`Op` unittests perform the same function. All such tests must
+verify that the :class:`Op` generates the proper output, that the gradient is
+valid, that the :class:`Op` fails in known/expected ways. Because so much of
 this is common, two helper functions exists to make your lives easier:
-``makeTester`` and ``makeBroadcastTester`` (defined in module
-``tests.tensor.utils``).
+:func:`makeTester` and :func:`makeBroadcastTester` (defined in module
+:mod:`tests.tensor.utils`).
 
-Here is an example of ``makeTester`` generating testcases for the Dot
-product op:
+Here is an example of ``makeTester`` generating testcases for the dot
+product :class:`Op`:
 
 .. testcode::
 
@@ -253,34 +257,34 @@ product op:
                                            bad2 = (rand(5, 7), rand(8,3))),
                          grad = dict())
 
-In the above example, we provide a name and a reference to the op we
+In the above example, we provide a name and a reference to the :class:`Op` we
 want to test. We then provide in the ``expected`` field, a function
-which ``makeTester`` can use to compute the correct values. The
+which :func:`makeTester` can use to compute the correct values. The
 following five parameters are dictionaries which contain:
 
 * checks: dictionary of validation functions (dictionary key is a
   description of what each function does). Each function accepts two
   parameters and performs some sort of validation check on each
-  op-input/op-output value pairs.  If the function returns False, an
-  Exception is raised containing the check's description.
+  :class:`Op`-input/:class:`Op`-output value pairs.  If the function returns ``False``, an
+  ``Exception`` is raised containing the check's description.
 
 * good: contains valid input values, for which the output should match
-  the expected output. Unittest will fail if this is not the case.
+  the expected output. Unit tests will fail if this is not the case.
 
-* bad_build: invalid parameters which should generate an Exception
-  when attempting to build the graph (call to ``make_node`` should
-  fail).  Fails unless an Exception is raised.
+* bad_build: invalid parameters which should generate an ``Exception``
+  when attempting to build the graph (call to :meth:`Op.make_node` should
+  fail).  Fails unless an ``Exception`` is raised.
 
-* bad_runtime: invalid parameters which should generate an Exception
+* bad_runtime: invalid parameters which should generate an ``Exception``
   at runtime, when trying to compute the actual output values (call to
-  ``perform`` should fail). Fails unless an Exception is raised.
+  :meth:`Op.perform` should fail). Fails unless an ``Exception`` is raised.
 
 * grad: dictionary containing input values which will be used in the
-  call to ``verify_grad``
+  call to :func:`verify_grad`
 
 
-``makeBroadcastTester`` is a wrapper function for makeTester.  If an
+:func:`makeBroadcastTester` is a wrapper function for :func:`makeTester`.  If an
 ``inplace=True`` parameter is passed to it, it will take care of
 adding an entry to the ``checks`` dictionary. This check will ensure
-that inputs and outputs are equal, after the Op's perform function has
+that inputs and outputs are equal, after the :class:`Op`'s perform function has
 been applied.

@@ -470,11 +470,7 @@ def get_precision(precision, inputs, for_grad=False):
 
 
 class DnnBase(_NoPythonExternalCOp):
-
-    """
-    Creates a handle for cudnn and pulls in the cudnn libraries and headers.
-
-    """
+    """An `Op` that creates a handle for cudnn and pulls in the cudnn libraries and headers."""
 
     # dnn does not know about broadcasting, so we do not need to assert
     # the input broadcasting pattern.

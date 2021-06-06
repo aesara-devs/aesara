@@ -112,7 +112,7 @@ def indices_from_subtensor(
 
 
 def as_index_constant(a):
-    r"""Convert Python literals to Aesara constants--when possible--in Subtensor arguments.
+    r"""Convert Python literals to Aesara constants--when possible--in `Subtensor` arguments.
 
     This will leave `Variable`\s untouched.
     """

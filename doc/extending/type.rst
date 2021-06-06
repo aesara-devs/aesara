@@ -1,21 +1,19 @@
 .. _aesara_type:
 
-======================
-Making the double type
-======================
+===============================
+Making the double :class:`Type`
+===============================
 
 
 .. _type_contract:
 
-Type's contract
-===============
+:class:`Type`'s contract
+========================
 
-In Aesara's framework, a ``Type`` (:class:`Type`)
-is any object which defines the following
-methods. To obtain the default methods described below, the Type should
-be an instance of ``Type`` or should be an instance of a
-subclass of ``Type``. If you will write all methods yourself,
-you need not use an instance of ``Type``.
+In Aesara's framework, a :class:`Type` is any object which defines the following
+methods. To obtain the default methods described below, the :class:`Type` should be an
+instance of `Type` or should be an instance of a subclass of `Type`. If you
+will write all methods yourself, you need not use an instance of `Type`.
 
 Methods with default arguments must be defined with the same signature,
 i.e.  the same default argument names and values. If you wish to add
@@ -26,8 +24,8 @@ default values.
 
     .. method:: filter(value, strict=False, allow_downcast=None)
 
-      This casts a value to match the Type and returns the
-      cast value. If ``value`` is incompatible with the Type,
+      This casts a value to match the :class:`Type` and returns the
+      cast value. If ``value`` is incompatible with the :class:`Type`,
       the method must raise an exception. If ``strict`` is True, ``filter`` must return a
       reference to ``value`` (i.e. casting prohibited).
       If ``strict`` is False, then casting may happen, but downcasting should
@@ -55,9 +53,9 @@ default values.
 
     .. method:: is_valid_value(value)
 
-      Returns True iff the value is compatible with the Type. If
+      Returns True iff the value is compatible with the :class:`Type`. If
       ``filter(value, strict = True)`` does not raise an exception, the
-      value is compatible with the Type.
+      value is compatible with the :class:`Type`.
 
       *Default:* True iff ``filter(value, strict=True)`` does not raise
       an exception.
@@ -71,19 +69,19 @@ default values.
     .. method:: values_eq_approx(a, b)
 
       Returns True iff ``a`` and ``b`` are approximately equal, for a
-      definition of "approximately" which varies from Type to Type.
+      definition of "approximately" which varies from :class:`Type` to :class:`Type`.
 
       *Default:* ``values_eq(a, b)``
 
     .. method:: make_variable(name=None)
 
-      Makes a :term:`Variable` of this Type with the specified name, if
-      ``name`` is not ``None``. If ``name`` is ``None``, then the Variable does
-      not have a name. The Variable will have its ``type`` field set to
-      the Type object.
+      Makes a :term:`Variable` of this :class:`Type` with the specified name, if
+      ``name`` is not ``None``. If ``name`` is ``None``, then the `Variable` does
+      not have a name. The `Variable` will have its ``type`` field set to
+      the :class:`Type` object.
 
-      *Default:* there is a generic definition of this in Type. The
-      Variable's ``type`` will be the object that defines this method (in
+      *Default:* there is a generic definition of this in `Type`. The
+      `Variable`'s ``type`` will be the object that defines this method (in
       other words, ``self``).
 
     .. method:: __call__(name=None)
@@ -94,13 +92,13 @@ default values.
 
     .. method:: __eq__(other)
 
-      Used to compare Type instances themselves
+      Used to compare :class:`Type` instances themselves
 
       *Default:* ``object.__eq__``
 
     .. method:: __hash__()
 
-      Types should not be mutable, so it should be OK to define a hash
+      :class:`Type`\s should not be mutable, so it should be OK to define a hash
       function.  Typically this function should hash all of the terms
       involved in ``__eq__``.
 
@@ -108,7 +106,7 @@ default values.
 
     .. method:: get_shape_info(obj)
 
-      Optional. Only needed to profile the memory of this Type of object.
+      Optional. Only needed to profile the memory of this :class:`Type` of object.
 
       Return the information needed to compute the memory size of ``obj``.
 
@@ -124,7 +122,7 @@ default values.
       ``get_size()`` will be called on the output of this function
       when printing the memory profile.
 
-      :param obj: The object that this Type represents during execution
+      :param obj: The object that this :class:`Type` represents during execution
       :return: Python object that ``self.get_size()`` understands
 
 
@@ -132,7 +130,7 @@ default values.
 
         Number of bytes taken by the object represented by shape_info.
 
-        Optional. Only needed to profile the memory of this Type of object.
+        Optional. Only needed to profile the memory of this :class:`Type` of object.
 
         :param shape_info: the output of the call to get_shape_info()
         :return: the number of bytes taken by the object described by
@@ -150,16 +148,16 @@ default values.
 
     .. method:: may_share_memory(a, b)
 
-        Optional to run, but mandatory for DebugMode. Return True if the Python
-        objects `a` and `b` could share memory. Return False
-        otherwise. It is used to debug when Ops did not declare memory
+        Optional to run, but mandatory for `DebugMode`. Return ``True`` if the Python
+        objects `a` and `b` could share memory. Return ``False``
+        otherwise. It is used to debug when :class:`Op`\s did not declare memory
         aliasing between variables. Can be a static method.
-        It is highly recommended to use and is mandatory for Type in Aesara
-        as our buildbot runs in DebugMode.
+        It is highly recommended to use and is mandatory for :class:`Type` in Aesara
+        as our buildbot runs in `DebugMode`.
 
-For each method, the *default* is what ``Type`` defines
-for you. So, if you create an instance of ``Type`` or an
-instance of a subclass of ``Type``, you
+For each method, the *default* is what `Type` defines
+for you. So, if you create an instance of `Type` or an
+instance of a subclass of `Type`, you
 must define ``filter``. You might want to override ``values_eq_approx``,
 as well as ``values_eq``. The other defaults generally need not be
 overridden.
@@ -189,7 +187,7 @@ with it as argument.
 Defining double
 ===============
 
-We are going to base Type ``double`` on Python's ``float``. We
+We are going to base :class:`Type` ``double`` on Python's ``float``. We
 must define ``filter`` and shall override ``values_eq_approx``.
 
 
@@ -219,7 +217,7 @@ must define ``filter`` and shall override ``values_eq_approx``.
 
 If ``strict`` is True we need to return ``x``. If ``strict`` is True and ``x`` is not a
 ``float`` (for example, ``x`` could easily be an ``int``) then it is
-incompatible with our Type and we must raise an exception.
+incompatible with our :class:`Type` and we must raise an exception.
 
 If ``strict is False`` then we are allowed to cast ``x`` to a ``float``,
 so if ``x`` is an ``int`` it we will return an equivalent ``float``.
@@ -238,7 +236,7 @@ when ``allow_downcast`` is False, i.e. no precision loss is allowed.
        return abs(x - y) / (abs(x) + abs(y)) < tolerance
 
 The second method we define is ``values_eq_approx``. This method
-allows approximate comparison between two values respecting our Type's
+allows approximate comparison between two values respecting our :class:`Type`'s
 constraints. It might happen that an optimization changes the computation
 graph in such a way that it produces slightly different variables, for
 example because of numerical instability like rounding errors at the
@@ -259,9 +257,9 @@ chose to be 1e-4.
 **Putting them together**
 
 What we want is an object that respects the aforementioned
-contract. Recall that Type defines default implementations for all
+contract. Recall that :class:`Type` defines default implementations for all
 required methods of the interface, except ``filter``. One way to make
-the Type is to instantiate a plain Type and set the needed fields:
+the :class:`Type` is to instantiate a plain :class:`Type` and set the needed fields:
 
 .. testcode::
 
@@ -272,7 +270,7 @@ the Type is to instantiate a plain Type and set the needed fields:
    double.values_eq_approx = values_eq_approx
 
 
-Another way to make this Type is to make a subclass of ``Type``
+Another way to make this :class:`Type` is to make a subclass of `Type`
 and define ``filter`` and ``values_eq_approx`` in the subclass:
 
 .. code-block:: python
@@ -291,12 +289,12 @@ and define ``filter`` and ``values_eq_approx`` in the subclass:
 
    double = Double()
 
-``double`` is then an instance of Type ``Double``, which in turn is a
-subclass of ``Type``.
+``double`` is then an instance of :class:`Type`\ `Double`, which in turn is a
+subclass of `Type`.
 
 There is a small issue with defining ``double`` this way. All
-instances of ``Double`` are technically the same Type. However, different
-``Double`` Type instances do not compare the same:
+instances of `Double` are technically the same :class:`Type`. However, different
+`Double`\ :class:`Type` instances do not compare the same:
 
 .. testsetup::
 
@@ -335,9 +333,9 @@ instances of ``Double`` are technically the same Type. However, different
 >>> double1 == double2
 False
 
-Aesara compares Types using ``==`` to see if they are the same.
-This happens in DebugMode.  Also, Ops can (and should) ensure that their inputs
-have the expected Type by checking something like ``if x.type == lvector``.
+Aesara compares :class:`Type`\s using ``==`` to see if they are the same.
+This happens in :class:`DebugMode`.  Also, :class:`Op`\s can (and should) ensure that their inputs
+have the expected :class:`Type` by checking something like ``if x.type == lvector``.
 
 There are several ways to make sure that equality testing works properly:
 
@@ -349,48 +347,48 @@ There are several ways to make sure that equality testing works properly:
         def __eq__(self, other):
             return type(self) is Double and type(other) is Double
 
- #. Override ``Double.__new__`` to always return the same instance.
+ #. Override :meth:`Double.__new__` to always return the same instance.
  #. Hide the Double class and only advertise a single instance of it.
 
 Here we will prefer the final option, because it is the simplest.
-Ops in the Aesara code often define the ``__eq__`` method though.
+:class:`Op`\s in the Aesara code often define the :meth:`__eq__` method though.
 
 
 Untangling some concepts
 ========================
 
-Initially, confusion is common on what an instance of Type is versus
-a subclass of Type or an instance of Variable. Some of this confusion is
-syntactic. A Type is any object which has fields corresponding to the
-functions defined above. The Type class provides sensible defaults for
-all of them except ``filter``, so when defining new Types it is natural
-to subclass Type. Therefore, we often end up with Type subclasses and
+Initially, confusion is common on what an instance of :class:`Type` is versus
+a subclass of :class:`Type` or an instance of :class:`Variable`. Some of this confusion is
+syntactic. A :class:`Type` is any object which has fields corresponding to the
+functions defined above. The :class:`Type` class provides sensible defaults for
+all of them except ``filter``, so when defining new :class:`Type`\s it is natural
+to subclass :class:`Type`. Therefore, we often end up with :class:`Type` subclasses and
 it is can be confusing what these represent semantically. Here is an
 attempt to clear up the confusion:
 
 
-* An **instance of Type** (or an instance of a subclass)
+* An **instance of :class:`Type`** (or an instance of a subclass)
   is a set of constraints on real data. It is
   akin to a primitive type or class in C. It is a *static*
   annotation.
 
-* An **instance of Variable** symbolizes data nodes in a data flow
+* An **instance of :class:`Variable`** symbolizes data nodes in a data flow
   graph. If you were to parse the C expression ``int x;``, ``int``
-  would be a Type instance and ``x`` would be a Variable instance of
-  that Type instance. If you were to parse the C expression ``c = a +
-  b;``, ``a``, ``b`` and ``c`` would all be Variable instances.
+  would be a :class:`Type` instance and ``x`` would be a :class:`Variable` instance of
+  that :class:`Type` instance. If you were to parse the C expression ``c = a +
+  b;``, ``a``, ``b`` and ``c`` would all be :class:`Variable` instances.
 
-* A **subclass of Type** is a way of implementing
-  a set of Type instances that share
+* A **subclass of :class:`Type`** is a way of implementing
+  a set of :class:`Type` instances that share
   structural similarities. In the ``double`` example that we are doing,
-  there is actually only one Type in that set, therefore the subclass
+  there is actually only one :class:`Type` in that set, therefore the subclass
   does not represent anything that one of its instances does not. In this
   case it is a singleton, a set with one element. However, the
   :class:`TensorType`
-  class in Aesara (which is a subclass of Type)
+  class in Aesara (which is a subclass of :class:`Type`)
   represents a set of types of tensors
   parametrized by their data type or number of dimensions. We could say
-  that subclassing Type builds a hierarchy of Types which is based upon
+  that subclassing :class:`Type` builds a hierarchy of :class:`Type`\s which is based upon
   structural similarity rather than compatibility.
 
 

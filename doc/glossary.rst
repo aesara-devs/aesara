@@ -19,7 +19,7 @@ Glossary
     Broadcasting
         Broadcasting is a mechanism which allows tensors with
         different numbers of dimensions to be used in element-by-element
-        (elementwise) computations.  It works by
+        (i.e. element-wise) computations.  It works by
         (virtually) replicating the smaller tensor along
         the dimensions that it is lacking.
 
@@ -41,9 +41,9 @@ Glossary
 
     Elemwise
         An element-wise operation ``f`` on two tensor variables ``M`` and ``N``
-        is one such that:
+        is one such that::
 
-        ``f(M, N)[i, j] == f(M[i, j], N[i, j])``
+          f(M, N)[i, j] == f(M[i, j], N[i, j])
 
         In other words, each element of an input matrix is combined
         with the corresponding element of the other(s). There are no
@@ -52,6 +52,8 @@ Glossary
         operation generalized along several dimensions.  Element-wise
         operations are defined for tensors of different numbers of dimensions by
         :term:`broadcasting` the smaller ones.
+        The :class:`Op` responsible for performing element-wise computations
+        is :class:`Elemwise`.
 
     Expression
         See :term:`Apply`
@@ -68,14 +70,14 @@ Glossary
     Destructive
         An :term:`Op` is destructive (of particular input[s]) if its
         computation requires that one or more inputs be overwritten or
-        otherwise invalidated.  For example, :term:`inplace` Ops are
-        destructive.  Destructive Ops can sometimes be faster than
+        otherwise invalidated.  For example, :term:`inplace`\ :class:`Op`\s are
+        destructive.  Destructive :class:`Op`\s can sometimes be faster than
         non-destructive alternatives.  Aesara encourages users not to put
-        destructive Ops into graphs that are given to :term:`aesara.function`,
+        destructive :class:`Op`\s into graphs that are given to :term:`aesara.function`,
         but instead to trust the optimizations to insert destructive ops
         judiciously.
 
-        Destructive Ops are indicated via a ``destroy_map`` Op attribute. (See
+        Destructive :class:`Op`\s are indicated via a :attr:`Op.destroy_map` attribute. (See
         :class:`Op`.
 
 
@@ -86,7 +88,7 @@ Glossary
         Inplace computations are computations that destroy their inputs as a
         side-effect.  For example, if you iterate over a matrix and double
         every element, this is an inplace operation because when you are done,
-        the original input has been overwritten.  Ops representing inplace
+        the original input has been overwritten.  :class:`Op`\s representing inplace
         computations are :term:`destructive`, and by default these can only be
         inserted by optimizations, not user code.
 
@@ -102,9 +104,9 @@ Glossary
     Op
         The ``.op`` of an :term:`Apply`, together with its symbolic inputs
         fully determines what kind of computation will be carried out for that
-        ``Apply`` at run-time.  Mathematical functions such as addition
-        (``T.add``) and indexing  ``x[i]`` are Ops in Aesara.  Much of the
-        library documentation is devoted to describing the various Ops that
+        :class:`Apply` at run-time.  Mathematical functions such as addition
+        (``T.add``) and indexing  ``x[i]`` are :class:`Op`\s in Aesara.  Much of the
+        library documentation is devoted to describing the various :class:`Op`\s that
         are provided with Aesara, but you can add more.
 
         See also :term:`Variable`, :term:`Type`, and :term:`Apply`,
@@ -122,7 +124,7 @@ Glossary
         An :term:`Op` is *pure* if it has no :term:`destructive` side-effects.
 
     Storage
-        The memory that is used to store the value of a Variable.  In most
+        The memory that is used to store the value of a :class:`Variable`.  In most
         cases storage is internal to a compiled function, but in some cases
         (such as :term:`constant` and :term:`shared variable <shared variable>` the storage is not internal.
 
@@ -150,19 +152,18 @@ Glossary
         >>> x = aet.ivector()
         >>> y = -x**2
 
-        ``x`` and ``y`` are both `Variables`, i.e. instances of the :class:`Variable` class.
+        ``x`` and ``y`` are both :class:`Variable`\s, i.e. instances of the :class:`Variable` class.
 
         See also :term:`Type`, :term:`Op`, and :term:`Apply`,
         or read more about :ref:`graphstructures`.
 
     View
-        Some Tensor Ops (such as Subtensor and Transpose) can be computed in
-        constant time by simply re-indexing their inputs.   The outputs from
-        [the Apply instances from] such Ops are called `Views` because their
+        Some tensor :class:`Op`\s (such as :class:`Subtensor` and :class:`DimShuffle`) can be computed in
+        constant time by simply re-indexing their inputs.   The outputs of
+        such :class:`Op`\s are views because their
         storage might be aliased to the storage of other variables (the inputs
-        of the Apply).  It is important for Aesara to know which Variables are
+        of the :class:`Apply`).  It is important for Aesara to know which :class:`Variable`\s are
         views of which other ones in order to introduce :term:`Destructive`
-        Ops correctly.
+        :class:`Op`\s correctly.
 
-        View Ops are indicated via a ``view_map`` Op attribute. (See
-        :class:`Op`.
+        :class:`Op`\s that are views have their :attr:`Op.view_map` attributes set.

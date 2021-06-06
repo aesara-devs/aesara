@@ -1238,7 +1238,7 @@ The six usual equality and inequality operators share the same interface.
   :Parameter:  *a* - symbolic Tensor (or compatible)
   :Parameter:  *b* - symbolic Tensor (or compatible)
   :Return type: symbolic Tensor
-  :Returns: a symbolic tensor representing the application of the logical elementwise operator.
+  :Returns: a symbolic tensor representing the application of the logical :class:`Elemwise` operator.
 
   .. note::
 

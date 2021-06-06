@@ -1,5 +1,3 @@
-
-
 ====
 Tips
 ====
@@ -8,15 +6,15 @@ Tips
 Reusing outputs
 ===============
 
-WRITEME
+.. todo:: Write this.
 
 
-Don't define new Ops unless you have to
-=======================================
+Don't define new :class:`Op`\s unless you have to
+=================================================
 
-It is usually not useful to define Ops that can be easily
-implemented using other already existing Ops. For example, instead of
-writing a "sum_square_difference" Op, you should probably just write a
+It is usually not useful to define :class:`Op`\s that can be easily
+implemented using other already existing :class:`Op`\s. For example, instead of
+writing a "sum_square_difference" :class:`Op`, you should probably just write a
 simple function:
 
 .. testcode::
@@ -33,23 +31,23 @@ a custom implementation would probably only bother to support
 contiguous vectors/matrices of doubles...
 
 
-Use Aesara's high order Ops when applicable
-===========================================
+Use Aesara's high order :class:`Op`\s when applicable
+=====================================================
 
-Aesara provides some generic Op classes which allow you to generate a
-lot of Ops at a lesser effort. For instance, Elemwise can be used to
-make :term:`elemwise` operations easily whereas DimShuffle can be
-used to make transpose-like transformations. These higher order Ops
-are mostly Tensor-related, as this is Aesara's specialty.
+Aesara provides some generic :class:`Op` classes which allow you to generate a
+lot of :class:`Op`\s at a lesser effort. For instance, :class:`Elemwise` can be used to
+make :term:`elemwise` operations easily, whereas :class:`DimShuffle` can be
+used to make transpose-like transformations. These higher order :class:`Op`\s
+are mostly tensor-related, as this is Aesara's specialty.
 
 
 .. _opchecklist:
 
-Op Checklist
-============
+:class:`Op` Checklist
+=====================
 
 Use this list to make sure you haven't forgotten anything when
-defining a new Op. It might not be exhaustive but it covers a lot of
+defining a new :class:`Op`. It might not be exhaustive but it covers a lot of
 common mistakes.
 
-WRITEME
+.. todo:: Write a list.

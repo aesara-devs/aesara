@@ -43,8 +43,6 @@ from aesara.graph.utils import (
 from aesara.link.c.interface import CLinkerOp
 
 
-__docformat__ = "restructuredtext en"
-
 StorageMapType = List[Optional[List[Any]]]
 ComputeMapType = List[bool]
 OutputStorageType = List[Optional[List[Any]]]
@@ -150,14 +148,14 @@ class Op(MetaObject):
     page on :doc:`graph`.
 
     For more details regarding how these methods should behave: see the `Op
-    Contract` in the sphinx docs (advanced tutorial on `Op`-making).
+    Contract` in the sphinx docs (advanced tutorial on `Op` making).
 
     """
 
     default_output: Optional[int] = None
     """
-    An `int` that specifies which output `Op.__call__` should return.  If
-    `None`, then all outputs are returned.
+    An ``int`` that specifies which output :meth:`Op.__call__` should return.  If
+    ``None``, then all outputs are returned.
 
     A subclass should not change this class variable, but instead override it
     with a subclass variable or an instance variable.
@@ -228,9 +226,9 @@ class Op(MetaObject):
         return Apply(self, inputs, [o() for o in self.otypes])
 
     def __call__(self, *inputs: Any, **kwargs) -> Union[Variable, List[Variable]]:
-        r"""Construct an `Apply` node using `self.make_node` and return its outputs.
+        r"""Construct an `Apply` node using :meth:`Op.make_node` and return its outputs.
 
-        This method is just a wrapper around `Op.make_node`.
+        This method is just a wrapper around :meth:`Op.make_node`.
 
         It is called by code such as:
 
@@ -240,14 +238,13 @@ class Op(MetaObject):
            y = aesara.tensor.exp(x)
 
 
-        `tensor.exp` is an Op instance, so `tensor.exp(x)` calls
-        `tensor.exp.__call__` (i.e. this method) and returns its single output
-        `Variable`, `y`.  The `Apply` node constructed by `self.make_node`
-        behind the scenes is available via `y.owner`.
+        `aesara.tensor.exp` is an `Op` instance, so ``aesara.tensor.exp(x)`` calls
+        :meth:`aesara.tensor.exp.__call__` (i.e. this method) and returns its single output
+        `Variable`, ``y``.  The `Apply` node constructed by :meth:`self.make_node`
+        behind the scenes is available via ``y.owner``.
 
         `Op` authors are able to determine which output is returned by this method
-        via the `Op.default_output` property., but subclasses are free to override this
-        function and ignore `default_output`.
+        via the :attr:`Op.default_output` property.
 
         Parameters
         ----------
@@ -304,7 +301,7 @@ class Op(MetaObject):
         Each returned `Variable` represents the gradient with respect to that
         input computed based on the symbolic gradients with respect to each
         output. If the output is not differentiable with respect to an input,
-        then this method should return an instance of type `NullType` for that
+        then this method should return an instance of type ``NullType`` for that
         input.
 
         Parameters
@@ -331,12 +328,12 @@ class Op(MetaObject):
         r"""Construct a graph for the L-operator.
 
         This method is primarily used by `Lop` and dispatches to
-        `Op.grad` by default.
+        :meth:`Op.grad` by default.
 
-        The *L-operator* computes a *row* vector times the Jacobian. The
+        The L-operator computes a *row* vector times the Jacobian. The
         mathematical relationship is
         :math:`v \frac{\partial f(x)}{\partial x}`.
-        The *L-operator* is also supported for generic tensors (not only for
+        The L-operator is also supported for generic tensors (not only for
         vectors).
 
         Parameters
@@ -389,26 +386,26 @@ class Op(MetaObject):
             The symbolic `Apply` node that represents this computation.
         inputs : Sequence
             Immutable sequence of non-symbolic/numeric inputs.  These
-            are the values of each `Variable` in `node.inputs`.
+            are the values of each `Variable` in :attr:`node.inputs`.
         output_storage : list of list
             List of mutable single-element lists (do not change the length of
             these lists).  Each sub-list corresponds to value of each
-            `Variable` in `node.outputs`.  The primary purpose of this method
+            `Variable` in :attr:`node.outputs`.  The primary purpose of this method
             is to set the values of these sub-lists.
         params : tuple
-            A tuple containing the values of each entry in `__props__`.
+            A tuple containing the values of each entry in :attr:`Op.__props__`.
 
         Notes
         -----
         The `output_storage` list might contain data. If an element of
-        output_storage is not `None`, it has to be of the right type, for
-        instance, for a `TensorVariable`, it has to be a NumPy `ndarray`
+        output_storage is not ``None``, it has to be of the right type, for
+        instance, for a `TensorVariable`, it has to be a NumPy ``ndarray``
         with the right number of dimensions and the correct dtype.
         Its shape and stride pattern can be arbitrary. It is not
         guaranteed that such pre-set values were produced by a previous call to
-        this `Op.perform`; they could've been allocated by another
+        this :meth:`Op.perform`; they could've been allocated by another
         `Op`'s `perform` method.
-        A `Op` is free to reuse `output_storage` as it sees fit, or to
+        An `Op` is free to reuse `output_storage` as it sees fit, or to
         discard it and allocate new memory.
 
         """
@@ -420,7 +417,7 @@ class Op(MetaObject):
         folded when all its inputs are constant. This allows it to choose where
         it puts its memory/speed trade-off. Also, it could make things faster
         as constants can't be used for in-place operations (see
-        `*IncSubtensor`).
+        ``*IncSubtensor``).
 
         Parameters
         ----------
@@ -435,7 +432,7 @@ class Op(MetaObject):
         return True
 
     def get_params(self, node: Apply) -> Params:
-        """Try to detect params from the op if `Op.params_type` is set to a `ParamsType`."""
+        """Try to get parameters for the `Op` when :attr:`Op.params_type` is set to a `ParamsType`."""
         if hasattr(self, "params_type") and isinstance(self.params_type, ParamsType):
             wrapper = self.params_type
             if not all(hasattr(self, field) for field in wrapper.fields):
@@ -457,13 +454,16 @@ class Op(MetaObject):
         compute_map: ComputeMapType,
         impl: Optional[Text],
     ) -> None:
-        """Make any special modifications that the Op needs before doing `Op.make_thunk`.
+        """Make any special modifications that the `Op` needs before doing :meth:`Op.make_thunk`.
 
         This can modify the node inplace and should return nothing.
 
-        It can be called multiple time with different impl. It is the
-        op responsibility to don't re-prepare the node when it isn't
-        good to do so.
+        It can be called multiple time with different `impl` values.
+
+        .. warning::
+
+            It is the `Op`'s responsibility to not re-prepare the node when it
+            isn't good to do so.
 
         """
 
@@ -477,7 +477,7 @@ class Op(MetaObject):
     ) -> ThunkType:
         """Make a Python thunk.
 
-        Like `Op.make_thunk` but only makes python thunks.
+        Like :meth:`Op.make_thunk` but only makes Python thunks.
 
         """
         node_input_storage = [storage_map[r] for r in node.inputs]
@@ -527,7 +527,7 @@ class Op(MetaObject):
         no_recycling: bool,
         impl: Optional[Text] = None,
     ) -> ThunkType:
-        """Create a thunk.
+        r"""Create a thunk.
 
         This function must return a thunk, that is a zero-arguments
         function that encapsulates the computation to be performed
@@ -536,32 +536,34 @@ class Op(MetaObject):
         Parameters
         ----------
         node
-            Something previously returned by self.make_node.
+            Something previously returned by :meth:`Op.make_node`.
         storage_map
-            dict variable -> one-element-list where a computed
-            value for this variable may be found.
+            A ``dict`` mapping `Variable`\s to single-element lists where a
+            computed value for each `Variable` may be found.
         compute_map
-            dict variable -> one-element-list where a boolean
-            value will be found. The boolean indicates whether the
-            variable's storage_map container contains a valid value (True)
-            or if it has not been computed yet (False).
+            A ``dict`` mapping `Variable`\s to single-element lists where a
+            boolean value can be found. The boolean indicates whether the
+            `Variable`'s `storage_map` container contains a valid value
+            (i.e. ``True``) or whether it has not been computed yet
+            (i.e. ``False``).
         no_recycling
-            List of variables for which it is forbidden to reuse memory
+            List of `Variable`\s for which it is forbidden to reuse memory
             allocated by a previous call.
-        impl: str
+        impl : str
             Description for the type of node created (e.g. ``"c"``, ``"py"``,
             etc.)
 
         Notes
         -----
-        If the thunk consults the storage_map on every call, it is safe
-        for it to ignore the no_recycling argument, because elements of the
-        no_recycling list will have a value of None in the storage map.  If
-        the thunk can potentially cache return values (like CLinker does),
-        then it must not do so for variables in the no_recycling list.
+        If the thunk consults the `storage_map` on every call, it is safe
+        for it to ignore the `no_recycling` argument, because elements of the
+        `no_recycling` list will have a value of ``None`` in the `storage_map`.
+        If the thunk can potentially cache return values (like `CLinker` does),
+        then it must not do so for variables in the `no_recycling` list.
 
-        self.prepare_node(node, ...) is always called. If we try 'c' and it
-        fail and we try again 'py', prepare_node will be called twice.
+        :meth:`Op.prepare_node` is always called. If it tries ``'c'`` and it
+        fails, then it tries ``'py'``, and :meth:`Op.prepare_node` will be
+        called twice.
         """
         self.prepare_node(
             node, storage_map=storage_map, compute_map=compute_map, impl="py"
@@ -584,7 +586,7 @@ class COp(Op, CLinkerOp):
     ) -> ThunkType:
         """Create a thunk for a C implementation.
 
-        Like `Op.make_thunk`, but will only try to make a C thunk.
+        Like :meth:`Op.make_thunk`, but will only try to make a C thunk.
 
         """
         # FIXME: Putting the following import on the module level causes an import cycle.
@@ -640,13 +642,13 @@ class COp(Op, CLinkerOp):
     def make_thunk(self, node, storage_map, compute_map, no_recycling, impl=None):
         """Create a thunk.
 
-        See `Op.make_thunk`.
+        See :meth:`Op.make_thunk`.
 
         Parameters
         ----------
-        impl
-            Currently, None, 'c' or 'py'. If 'c' or 'py' we will only try
-            that version of the code.
+        impl :
+            Currently, ``None``, ``'c'`` or ``'py'``. If ``'c'`` or ``'py'`` we
+            will only try that version of the code.
 
         """
         if (impl is None and config.cxx) or impl == "c":
@@ -669,11 +671,11 @@ def get_test_value(v: Variable) -> Any:
     """Get the test value for `v`.
 
     If input `v` is not already a variable, it is turned into one by calling
-    `as_tensor_variable(v)`.
+    ``as_tensor_variable(v)``.
 
     Raises
     ------
-    AttributeError if no test value is set.
+    ``AttributeError`` if no test value is set.
 
     """
     if not isinstance(v, Variable):
@@ -771,33 +773,33 @@ Registry of `Op`\s that have an inner compiled Aesara function.
 
 The keys are `Op` classes (not instances), and values are the name of the
 attribute that contains the function. For instance, if the function is
-self.fn, the value will be 'fn'.
+``self.fn``, the value will be ``'fn'``.
 
 We need that to be able not to run debug checks a number of times that is
-exponential in the nesting level of those ops.
-For instance, Scan will be registered here.
+exponential in the nesting level of those `Op`\s.
+
+For instance, `Scan` will be registered here.
 
 """
 
 
 class OpenMPOp(COp):
-    """
-    All op using OpenMP code should inherit from this Op.
+    r"""Base class for `Op`\s using OpenMP.
 
-    This op will check that the compiler support correctly OpenMP code.
-    If not, it will print a warning and disable openmp for this Op.
-    Then it will generate the not OpenMP code.
+    This `Op` will check that the compiler support correctly OpenMP code.
+    If not, it will print a warning and disable OpenMP for this `Op`, then it
+    will generate the not OpenMP code.
 
-    This is needed as EPD on Windows g++ version spec information tell
-    it support OpenMP, but does not include the OpenMP files.
+    This is needed, as EPD on the Windows version of ``g++`` says it supports
+    OpenMP, but does not include the OpenMP files.
 
-    We also add the correct compiler flags in c_compile_args.
+    We also add the correct compiler flags in ``c_compile_args``.
 
     """
 
     gxx_support_openmp: Optional[bool] = None
     """
-    True/False after we tested this.
+    ``True``/``False`` after we tested this.
 
     """
 
@@ -813,18 +815,14 @@ class OpenMPOp(COp):
             self.openmp = False
 
     def c_compile_args(self, **kwargs):
-        """
-        Return the compilation arg "fopenmp" if openMP is supported
-        """
+        """Return the compilation argument ``"-fopenmp"`` if OpenMP is supported."""
         self.update_self_openmp()
         if self.openmp:
             return ["-fopenmp"]
         return []
 
     def c_headers(self, **kwargs):
-        """
-        Return the header file name "omp.h" if openMP is supported
-        """
+        """Return the header file name ``"omp.h"`` if OpenMP is supported."""
         self.update_self_openmp()
         if self.openmp:
             return ["omp.h"]
@@ -832,7 +830,7 @@ class OpenMPOp(COp):
 
     @staticmethod
     def test_gxx_support():
-        """Check if openMP is supported."""
+        """Check if OpenMP is supported."""
         from aesara.link.c.cmodule import GCC_compiler
 
         code = """
@@ -852,10 +850,7 @@ int main( int argc, const char* argv[] )
         return default_openmp
 
     def update_self_openmp(self) -> None:
-        """
-        Make sure self.openmp is not True if there is no support in gxx.
-
-        """
+        """Make sure ``self.openmp`` is not ``True`` if there is no OpenMP support in ``gxx``."""
         if self.openmp:
             if OpenMPOp.gxx_support_openmp is None:
                 OpenMPOp.gxx_support_openmp = OpenMPOp.test_gxx_support()
@@ -1072,7 +1067,7 @@ class ExternalCOp(COp):
         it returns:
          - a default macro ``PARAMS_TYPE`` which defines the class name of the
            corresponding C struct.
-         - a macro ``DTYPE_PARAM_key`` for every ``key`` in the ParamsType for which associated
+         - a macro ``DTYPE_PARAM_key`` for every ``key`` in the :class:`ParamsType` for which associated
            type implements the method :func:`aesara.graph.type.CLinkerType.c_element_type`.
            ``DTYPE_PARAM_key`` defines the primitive C type name of an item in a variable
            associated to ``key``.
@@ -1223,10 +1218,7 @@ class ExternalCOp(COp):
         return "\n".join(define_macros), "\n".join(undef_macros)
 
     def c_init_code_struct(self, node, name, sub):
-        """
-        Stitches all the macros and "init_code" together
-
-        """
+        r""" Stitches all the macros and ``init_code_*``\s together."""
         if "init_code_struct" in self.code_sections:
             op_code = self.code_sections["init_code_struct"]
 
@@ -1291,9 +1283,7 @@ class ExternalCOp(COp):
                 raise NotImplementedError()
 
     def c_code_cleanup(self, node, name, inputs, outputs, sub):
-        """
-        Stitches all the macros and "code_cleanup" together
-        """
+        r"""Stitches all the macros and ``code_cleanup``\s together."""
         if "code_cleanup" in self.code_sections:
             op_code = self.code_sections["code_cleanup"]
 
@@ -1339,7 +1329,7 @@ class _NoPythonCOp(COp):
 
 
 class _NoPythonExternalCOp(ExternalCOp):
-    """A class used to indicate that a `ExternalCOp` does not provide a Python implementation.
+    """A class used to indicate that an `ExternalCOp` does not provide a Python implementation.
 
     XXX: Do not use this class; it's only for tracking bad implementations internally.
 

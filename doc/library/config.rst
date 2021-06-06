@@ -175,7 +175,7 @@ import ``aesara`` and print the config variable, as in:
 
     Default: ``'ignore'``
 
-    This option determines what's done when a ``TensorVariable`` with dtype
+    This option determines what's done when a :class:`TensorVariable` with dtype
     equal to ``float64`` is created.
     This can be used to help find upcasts to ``float64`` in user code.
 
@@ -185,10 +185,10 @@ import ``aesara`` and print the config variable, as in:
 
     Default: ``'default'``
 
-    If ``more``, sometimes Aesara will select ``Op`` implementations that
+    If ``more``, sometimes Aesara will select :class:`Op` implementations that
     are more "deterministic", but slower. In particular, on the GPU,
     Aesara will avoid using ``AtomicAdd``. Sometimes Aesara will still use
-    non-deterministic implementations, e.g. when there isn't a GPU ``Op``
+    non-deterministic implementations, e.g. when there isn't a GPU :class:`Op`
     implementation that is deterministic. See the ``dnn.conv.algo*``
     flags for more cases.
 
@@ -216,7 +216,7 @@ import ``aesara`` and print the config variable, as in:
 
     Default: ``True``
 
-    This enables, or disables, an optimization in ``Scan`` that tries to
+    This enables, or disables, an optimization in :class:`Scan` that tries to
     pre-allocate memory for its outputs. Enabling the optimization can give a
     significant speed up at the cost of slightly increased memory usage.
 
@@ -230,7 +230,7 @@ import ``aesara`` and print the config variable, as in:
 
     If :attr:`config.allow_gc` is ``True``, but :attr:`config.scan__allow_gc` is
     ``False``, then Aesara will perform garbage collection during the inner
-    operations of a ``Scan`` after each iterations.
+    operations of a :class:`Scan` after each iterations.
 
 .. attribute:: config.scan__debug
 
@@ -238,7 +238,7 @@ import ``aesara`` and print the config variable, as in:
 
     Default: ``False``
 
-    If ``True``, Aesara will print extra ``Scan`` debug information.
+    If ``True``, Aesara will print extra :class:`Scan` debug information.
 
 .. attribute:: cycle_detection
 
@@ -376,7 +376,7 @@ import ``aesara`` and print the config variable, as in:
 
     Positive int value, default: 20.
 
-    The number of ``Apply`` nodes to print in the profiler output.
+    The number of :class:`Apply` nodes to print in the profiler output.
 
 .. attribute:: config.profiling__n_ops
 
@@ -388,7 +388,7 @@ import ``aesara`` and print the config variable, as in:
 
     Positive int value, default: 1024.
 
-    During memory profiling, do not print ``Apply`` nodes if the size
+    During memory profiling, do not print :class:`Apply` nodes if the size
     of their outputs (in bytes) is lower than this value.
 
 .. attribute:: config.profiling__min_peak_memory
@@ -540,7 +540,7 @@ import ``aesara`` and print the config variable, as in:
 
     Default: ``'ignore'``
 
-    If there is a CPU ``Op`` in the computational graph, depending on its value,
+    If there is a CPU :class:`Op` in the computational graph, depending on its value,
     this flag can either raise a warning, an exception or drop into the frame
     with ``pdb``.
 
@@ -550,7 +550,7 @@ import ``aesara`` and print the config variable, as in:
 
     Default: ``'warn'``
 
-    When an exception is raised while inferring the shape of an ``Apply``
+    When an exception is raised while inferring the shape of an :class:`Apply`
     node, either warn the user and use a default value (i.e. ``'warn'``), or
     raise the exception (i.e. ``'raise'``).
 
@@ -856,10 +856,10 @@ import ``aesara`` and print the config variable, as in:
     Default: ``''``
 
     A list of kinds of preallocated memory to use as output buffers for
-    each ``Op``'s computations, separated by ``:``. Implemented modes are:
+    each :class:`Op`'s computations, separated by ``:``. Implemented modes are:
 
     * ``"initial"``: initial storage present in storage map
-      (for instance, it can happen in the inner function of Scan),
+      (for instance, it can happen in the inner function of :class:`Scan`),
     * ``"previous"``: reuse previously-returned memory,
     * ``"c_contiguous"``: newly-allocated C-contiguous memory,
     * ``"f_contiguous"``: newly-allocated Fortran-contiguous memory,
@@ -883,7 +883,7 @@ import ``aesara`` and print the config variable, as in:
     Bool value, default: ``True``
 
     Generate a warning when a ``destroy_map`` or ``view_map`` says that an
-    ``Op`` will work inplace, but the ``Op`` does not reuse the input for its
+    :class:`Op` will work inplace, but the :class:`Op` does not reuse the input for its
     output.
 
 .. attribute:: config.NanGuardMode__nan_is_error
@@ -923,7 +923,7 @@ import ``aesara`` and print the config variable, as in:
     numpy.random.rand(5, 4)``).
 
     When not ``'off'``, the value of this option dictates what happens when
-    an ``Op``'s inputs do not provide appropriate test values:
+    an :class:`Op`'s inputs do not provide appropriate test values:
 
         - ``'ignore'`` will do nothing
         - ``'warn'`` will raise a ``UserWarning``
@@ -956,7 +956,7 @@ import ``aesara`` and print the config variable, as in:
 
     If ``'low'``, the text of exceptions will generally refer to apply nodes
     with short names such as ``'Elemwise{add_no_inplace}'``. If ``'high'``,
-    some exceptions will also refer to ``Apply`` nodes with long descriptions
+    some exceptions will also refer to :class:`Apply` nodes with long descriptions
     like:
 
     ::
@@ -970,7 +970,7 @@ import ``aesara`` and print the config variable, as in:
 
     Bool value, default: ``False``
 
-    If ``True``, will print a warning when compiling one or more ``Op`` with C
+    If ``True``, will print a warning when compiling one or more :class:`Op` with C
     code that can't be cached because there is no ``c_code_cache_version()``
     function associated to at least one of those :class:`Op`\s.
 
@@ -1028,7 +1028,7 @@ import ``aesara`` and print the config variable, as in:
     Int value, default: 0
 
     The verbosity level of the meta-optimizer: ``0`` for silent, ``1`` to only
-    warn when Aesara cannot meta-optimize an ``Op``, ``2`` for full output (e.g.
+    warn when Aesara cannot meta-optimize an :class:`Op`, ``2`` for full output (e.g.
     timings and the optimizations selected).
 
 

@@ -33,11 +33,15 @@ class Type(MetaObject):
 
     """
 
-    # the type that will be created by a call to make_variable.
     Variable = Variable
+    """
+    The `Type` that will be created by a call to `Type.make_variable`.
+    """
 
-    # the type that will be created by a call to make_constant
     Constant = Constant
+    """
+    The `Type` that will be created by a call to `Type.make_constant`.
+    """
 
     @abstractmethod
     def filter(

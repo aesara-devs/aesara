@@ -6,12 +6,10 @@ Aesara is a Python library that allows you to define, optimize, and
 evaluate mathematical expressions involving multi-dimensional
 arrays efficiently. Aesara features:
 
-* **tight integration with NumPy** -- Use `numpy.ndarray` in Aesara-compiled functions.
-* **transparent use of a GPU** -- Perform data-intensive computations much faster than on a CPU.
-* **efficient symbolic differentiation** -- Aesara does your derivatives for functions with one or many inputs.
-* **speed and stability optimizations** -- Get the right answer for ``log(1+x)`` even when ``x`` is really tiny.
-* **dynamic C code generation** -- Evaluate expressions faster.
-* **extensive unit-testing and self-verification** -- Detect and diagnose many types of errors.
+* **Tight integration with NumPy** -- Use ``numpy.ndarray`` in Aesara-compiled functions.
+* **Efficient symbolic differentiation** -- Aesara does your derivatives for functions with one or many inputs.
+* **Speed and stability optimizations** -- Get the right answer for ``log(1+x)`` even when ``x`` is really tiny.
+* **Dynamic C/JAX/Numba code generation** -- Evaluate expressions faster.
 
 Aesara is based on `Theano`_, which has been powering large-scale computationally
 intensive scientific investigations since 2007.
