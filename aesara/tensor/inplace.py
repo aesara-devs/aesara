@@ -324,6 +324,11 @@ def log1mexp_inplace(x):
 
 
 @scalar_elemwise
+def betainc_inplace(a, b, x):
+    """Regularized incomplete beta function"""
+
+
+@scalar_elemwise
 def second_inplace(a):
     """Fill `a` with `b`"""
 

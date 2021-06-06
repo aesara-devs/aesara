@@ -1430,6 +1430,11 @@ def log1mexp(x):
 
 
 @scalar_elemwise
+def betainc(a, b, x):
+    """Regularized incomplete beta function"""
+
+
+@scalar_elemwise
 def real(z):
     """Return real component of complex-valued tensor `z`"""
 
@@ -2909,6 +2914,7 @@ __all__ = [
     "softplus",
     "log1pexp",
     "log1mexp",
+    "betainc",
     "real",
     "imag",
     "angle",
