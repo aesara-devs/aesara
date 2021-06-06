@@ -4000,6 +4000,16 @@ def test_local_log_sum_exp3():
     assert np.allclose(optimised_ret, 100.0)
 
 
+def test_local_log_sum_exp_inf():
+    # Test that when max = +-inf, optimized output still works correctly
+    x = vector("x")
+    f = compile_graph_log_sum_exp(x, axis=0)
+
+    assert f([-np.inf, -np.inf]) == -np.inf
+    assert f([np.inf, np.inf]) == np.inf
+    assert f([-np.inf, np.inf]) == np.inf
+
+
 def test_local_reciprocal_1_plus_exp():
     x = vector("x")
     y = aet.reciprocal(1 + exp(x))

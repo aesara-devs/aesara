@@ -11,7 +11,6 @@ from functools import reduce
 import numpy as np
 
 import aesara.scalar.basic as aes
-from aesara import compile
 from aesara.assert_op import assert_op
 from aesara.configdefaults import config
 from aesara.graph.basic import Constant, Variable
@@ -2312,6 +2311,8 @@ def local_log_add_exp(fgraph, node):
                 return [ret]
 
 
+@register_stabilize
+@register_specialize
 @local_optimizer([log])
 def local_log_sum_exp(fgraph, node):
     # log(sum_i(exp(x_i))) = x_max + log(sum_i(exp(x_i - x_max)))
@@ -2340,21 +2341,25 @@ def local_log_sum_exp(fgraph, node):
     max_pre_exp = aet_max(pre_exp, axis=axis)
     max_pre_exp_keepdims = makeKeepDims(pre_exp, max_pre_exp, axis)
 
-    ret = max_pre_exp + log(aet_sum(exp(pre_exp - max_pre_exp_keepdims), axis=axis))
+    # Do not offset when max_pre = -np.inf, to avoid nan in the output
+    # Switch statement is placed directly inside sum to break the self-symmetry
+    # of the returned output (otherwise the optimization would not stabilize)
+    ret = max_pre_exp + log(
+        aet_sum(
+            switch(
+                isinf(max_pre_exp_keepdims),
+                exp(max_pre_exp_keepdims),
+                exp(pre_exp - max_pre_exp_keepdims),
+            ),
+            axis=axis,
+        ),
+    )
 
     # Restore the dimshuffle op, if any.
     if dimshuffle_op:
         ret = dimshuffle_op(ret)
 
     return [ret]
-
-
-compile.optdb.register(
-    "local_log_sum_exp",
-    in2out(local_log_sum_exp, ignore_newtrees=True),
-    1.6,
-    "fast_run",
-)
 
 
 def add_calculate(num, denum, aslist=False, out_type=None):
