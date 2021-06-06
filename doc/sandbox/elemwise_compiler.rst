@@ -1,13 +1,15 @@
 .. _sandbox_elemwise:
 
-=================
-Elemwise compiler
-=================
+==========================
+:class:`Elemwise` compiler
+==========================
 
-'''Stale specification page.  Upgrade this to provide useful developer doc. 2008.09.04'''
-== Definitions ==
+.. todo:: Stale specification page.  Upgrade this to provide useful developer doc. 2008.09.04
 
-The elementwise compiler takes inputs {{{(in0, in1, in2, ...)}}}, outputs {{{(out0, out1, out2, ...)}}}, broadcast modes {{{(mod0, mod1, mod2, ...)}}} where each mode corresponds to an output as well as {{{order}}} which determines if we broadcast/accumulate over the first or last dimensions (the looping order, basically, but some operations are only valid for one particular order!).
+Definitions
+===========
+
+The element-wise compiler takes inputs {{{(in0, in1, in2, ...)}}}, outputs {{{(out0, out1, out2, ...)}}}, broadcast modes {{{(mod0, mod1, mod2, ...)}}} where each mode corresponds to an output as well as {{{order}}} which determines if we broadcast/accumulate over the first or last dimensions (the looping order, basically, but some operations are only valid for one particular order!).
 
 The broadcast mode serves to calculate the rank of the corresponding output and how to map each input element to an output element:
 
@@ -38,7 +40,8 @@ Point of clarification: the order discussed here corresponds to a set of broadca
 
 Question: does it make sense to apply the order to the loop, or is this broadcast order something which will be local to each input argument.  What happens when the elemwise compiler deals with more complex subgraphs with multiple inputs and outputs?
 
-== The loop ==
+The loop
+========
 
 Here is the loop for {{{order == c}}}. Check for errors!
 
@@ -70,7 +73,8 @@ When {{{order == f}}}, the iterators ''ideally'' (but not necessarily) iterate i
 
 An Optimizer should look at the operations in the graph and figure out whether to allocate C_CONTIGUOUS (ideal for {{{order == c}}}) or F_CONTIGUOUS (ideal for {{{order == f}}}) arrays.
 
-== Gradient ==
+Gradient
+========
 
 The input ranks become the output ranks and gradients of the same rank as the outputs are added to the input list. If an output was given mode {{{broadcast}}}, then all inputs used to calculate it had to be broadcasted to that shape, so we must sum over the broadcasted dimensions on the gradient. The mode that we give to those inputs is therefore {{{(accumulate, sum)}}}. Inversely, if an output was given mode {{{(accumulate, sum)}}}, then all inputs used to calculate it had to be summed over those dimensions. Therefore, we give them mode {{{broadcast}}} in grad. Other accumulators than sum might prove more difficult. For example, the ith gradient for product is grad*product/x_i. Not sure how to handle that automatically.
  * I don't exactly follow this paragraph, but I think I catch the general idea and it seems to me like it will work very well.
@@ -80,5 +84,3 @@ The input ranks become the output ranks and gradients of the same rank as the ou
  * Could you explain why the accumulator gradient (e.g. product) can be trickier?
 
   * I thought about it and I figured that the general case is {{{g_accum[N-i+1], g_m[i] = grad_fn(accum[i-1], m[i], g_accum[N-i])}}} where {{{g_accum}}} is the accumulated gradient wrt the accumulator {{{accum}}}. It can be short-circuited in sum and product's case: for sum, grad_fn is the identity on its last argument so {{{g_m[i] == g_accum[i] == g_accum[0] == g_z for all i}}}. In product's case, {{{accum[i-1] == product(m[1:i-1]) and g_accum[N-i] == g_z * product(m[i+1:N])}}}, multiply them together and you obtain {{{g_z * product(m)/m[i]}}} where obviously we only need to compute {{{product(m)}}} once. It's worth handling those two special cases, for the general case I don't know.
-
-

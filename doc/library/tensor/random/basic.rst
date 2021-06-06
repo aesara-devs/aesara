@@ -9,8 +9,8 @@
    :synopsis: symbolic random variables
 
 
-The `aesara.tensor.random` module provides random-number drawing functionality
-that closely resembles the `numpy.random` module.
+The :mod:`aesara.tensor.random` module provides random-number drawing functionality
+that closely resembles the :mod:`numpy.random` module.
 
 Reference
 =========
@@ -30,15 +30,16 @@ Reference
 
 .. class:: RandomStateType(Type)
 
-    A `Type` for variables that will take ``numpy.random.RandomState``
+    A :class:`Type` for variables that will take :class:`numpy.random.RandomState`
     values.
 
 .. function:: random_state_type(name=None)
 
-    Return a new Variable whose ``.type`` is ``random_state_type``.
+    Return a new :class:`Variable` whose :attr:`Variable.type` is an instance of
+    :class:`RandomStateType`.
 
 .. class:: RandomVariable(Op)
 
-    `Op` that draws random numbers from a `numpy.random.RandomState` object.
-    This `Op` is parameterized to draw numbers from many possible
+    :class:`Op` that draws random numbers from a :class:`numpy.random.RandomState` object.
+    This :class:`Op` is parameterized to draw numbers from many possible
     distributions.

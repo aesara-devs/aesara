@@ -241,9 +241,10 @@ class FunctionGraph(MetaObject):
 
         Parameters
         ----------
-        var : Variable.
+        var : Variable
+            The `Variable` to be updated.
         new_client : (Apply, int)
-            A `(node, i)` pair such that `node.inputs[i]` is `var`.
+            A ``(node, i)`` pair such that ``node.inputs[i]`` is `var`.
 
         """
         self.clients[var].append(new_client)
@@ -251,7 +252,7 @@ class FunctionGraph(MetaObject):
     def remove_client(
         self, var: Variable, client_to_remove: Tuple[Apply, int], reason: str = None
     ) -> None:
-        """Recursively removes clients of a variable.
+        """Recursively remove clients of a variable.
 
         This is the main method to remove variables or `Apply` nodes from
         a `FunctionGraph`.
@@ -265,7 +266,7 @@ class FunctionGraph(MetaObject):
         var : Variable
             The clients of `var` that will be removed.
         client_to_remove : pair of (Apply, int)
-            A `(node, i)` pair such that `node.inputs[i]` will no longer be
+            A ``(node, i)`` pair such that ``node.inputs[i]`` will no longer be
             `var` in this `FunctionGraph`.
 
         """
@@ -359,11 +360,11 @@ class FunctionGraph(MetaObject):
         reason: str = None,
         import_missing: bool = False,
     ) -> None:
-        """Recursively import everything between an `Apply` node and the `FunctionGraph`'s outputs.
+        """Recursively import everything between an ``Apply`` node and the ``FunctionGraph``'s outputs.
 
         Parameters
         ----------
-        apply_node : aesara.graph.basic.Apply
+        apply_node : Apply
             The node to be imported.
         check : bool
             Check that the inputs for the imported nodes are also present in
@@ -419,7 +420,7 @@ class FunctionGraph(MetaObject):
 
     def change_input(
         self,
-        node: Apply,
+        node: Union[Apply, str],
         i: int,
         new_var: Variable,
         reason: str = None,
@@ -435,15 +436,15 @@ class FunctionGraph(MetaObject):
 
         Parameters
         ----------
-        node : aesara.graph.basic.Apply or str
+        node
             The node for which an input is to be changed.  If the value is
             the string ``"output"`` then the ``self.outputs`` will be used
             instead of ``node.inputs``.
-        i : int
+        i
             The index in `node.inputs` that we want to change.
-        new_var : aesara.graph.basic.Variable
+        new_var
             The new variable to take the place of ``node.inputs[i]``.
-        import_missing : bool
+        import_missing
             Add missing inputs instead of raising an exception.
         """
         # TODO: ERROR HANDLING FOR LISTENERS (should it complete the change or revert it?)
@@ -494,15 +495,15 @@ class FunctionGraph(MetaObject):
 
         Parameters
         ----------
-        var : aesara.graph.basic.Variable
+        var
             The variable to be replaced.
-        new_var : aesara.graph.basic.Variable
+        new_var
             The variable to replace `var`.
-        reason : str
+        reason
             The name of the optimization or operation in progress.
-        verbose : bool
+        verbose
             Print `reason`, `var`, and `new_var`.
-        import_missing : bool
+        import_missing
             Import missing variables.
 
         """
@@ -548,12 +549,12 @@ class FunctionGraph(MetaObject):
             )
 
     def replace_all(self, pairs: List[Tuple[Variable, Variable]], **kwargs) -> None:
-        """Replace variables in the ``FunctionGraph`` according to ``(var, new_var)`` pairs in a list."""
+        """Replace variables in the `FunctionGraph` according to ``(var, new_var)`` pairs in a list."""
         for var, new_var in pairs:
             self.replace(var, new_var, **kwargs)
 
     def attach_feature(self, feature: Feature) -> None:
-        """Add a ``graph.features.Feature`` to this function graph and trigger its on_attach callback."""
+        """Add a ``graph.features.Feature`` to this function graph and trigger its ``on_attach`` callback."""
         # Filter out literally identical `Feature`s
         if feature in self._features:
             return  # the feature is already present
@@ -579,10 +580,9 @@ class FunctionGraph(MetaObject):
         self._features.append(feature)
 
     def remove_feature(self, feature: Feature) -> None:
-        """
-        Removes the feature from the graph.
+        """Remove a feature from the graph.
 
-        Calls feature.on_detach(function_graph) if an on_detach method
+        Calls ``feature.on_detach(function_graph)`` if an ``on_detach`` method
         is defined.
 
         """
@@ -596,9 +596,9 @@ class FunctionGraph(MetaObject):
             detach(self)
 
     def execute_callbacks(self, name: str, *args, **kwargs) -> None:
-        """Execute callbacks
+        """Execute callbacks.
 
-        Calls `getattr(feature, name)(*args)` for each feature which has
+        Calls ``getattr(feature, name)(*args)`` for each feature which has
         a method called after name.
 
         """
@@ -619,8 +619,7 @@ class FunctionGraph(MetaObject):
     def collect_callbacks(self, name: str, *args) -> Dict[Feature, Any]:
         """Collects callbacks
 
-        Returns a dictionary d such that
-        `d[feature] == getattr(feature, name)(*args)`
+        Returns a dictionary d such that ``d[feature] == getattr(feature, name)(*args)``
         For each feature which has a method called after name.
         """
         d = {}
@@ -633,17 +632,17 @@ class FunctionGraph(MetaObject):
         return d
 
     def toposort(self) -> List[Apply]:
-        """Toposort
+        """Return a toposorted list of the nodes.
 
-        Return an ordering of the graph's Apply nodes such that
+        Return an ordering of the graph's ``Apply`` nodes such that:
 
-        * All the nodes of the inputs of a node are before that node.
-        * Satisfies the orderings provided by each feature that has
-          an 'orderings' method.
+        * all the nodes of the inputs of a node are before that node and
+        * they satisfy the orderings provided by each feature that has
+          an ``orderings`` method.
 
-        If a feature has an 'orderings' method, it will be called with
-        this FunctionGraph as sole argument. It should return a dictionary of
-        `{node: predecessors}` where predecessors is a list of nodes that
+        If a feature has an ``orderings`` method, it will be called with
+        this `FunctionGraph` as sole argument. It should return a dictionary of
+        ``{node: predecessors}`` where predecessors is a list of nodes that
         should be computed before the key node.
         """
         if len(self.apply_nodes) < 2:
@@ -661,15 +660,15 @@ class FunctionGraph(MetaObject):
         return order
 
     def orderings(self) -> Dict[Apply, List[Apply]]:
-        """Return `dict` `d` s.t. `d[node]` is a list of nodes that must be evaluated before `node` itself can be evaluated.
+        """Return ``dict`` ``d`` s.t. ``d[node]`` is a list of nodes that must be evaluated before ``node`` itself can be evaluated.
 
-        This is used primarily by the destroy_handler feature to ensure that
+        This is used primarily by the ``destroy_handler`` feature to ensure that
         the clients of any destroyed inputs have already computed their
         outputs.
 
         Notes
         -----
-        This only calls the `orderings()` function on all features. It does not
+        This only calls the ``orderings()`` function on all features. It does not
         take care of computing the dependencies by itself.
 
         """
@@ -707,10 +706,7 @@ class FunctionGraph(MetaObject):
             return ords
 
     def check_integrity(self) -> None:
-        """
-        Call this for a diagnosis if things go awry.
-
-        """
+        """Check the integrity of nodes in the graph."""
         nodes = set(applys_between(self.inputs, self.outputs))
         if self.apply_nodes != nodes:
             missing = nodes.difference(self.apply_nodes)
@@ -763,10 +759,7 @@ class FunctionGraph(MetaObject):
         return f"FunctionGraph({', '.join(graph_as_string(self.inputs, self.outputs))})"
 
     def clone(self, check_integrity=True) -> "FunctionGraph":
-        """
-        Clone the graph and get a memo( a dict )that map old node to new node
-
-        """
+        """Clone the graph."""
         return self.clone_get_equiv(check_integrity)[0]
 
     def clone_get_equiv(
@@ -806,11 +799,8 @@ class FunctionGraph(MetaObject):
         return e, equiv
 
     def __getstate__(self):
-        """
-        This is needed as some features introduce instance methods.
-        This is not picklable.
-
-        """
+        # This is needed as some features introduce instance methods
+        # This is not picklable
         d = self.__dict__.copy()
         for feature in self._features:
             for attr in getattr(feature, "pickle_rm_attr", []):

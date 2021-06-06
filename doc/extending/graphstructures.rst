@@ -91,7 +91,7 @@ output. You can now print the name of the op that is applied to get
 >>> y.owner.op.name
 'Elemwise{mul,no_inplace}'
 
-Hence, an elementwise multiplication is used to compute *y*. This
+Hence, an element-wise multiplication is used to compute *y*. This
 multiplication is done between the inputs:
 
 >>> len(y.owner.inputs)

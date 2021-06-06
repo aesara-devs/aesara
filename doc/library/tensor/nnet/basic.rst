@@ -106,7 +106,7 @@
    Returns the softplus nonlinearity applied to x
     :Parameter: *x* - symbolic Tensor (or compatible)
     :Return type: same as x
-    :Returns: elementwise softplus: :math:`softplus(x) = \log_e{\left(1 + \exp(x)\right)}`.
+    :Returns: element-wise softplus: :math:`softplus(x) = \log_e{\left(1 + \exp(x)\right)}`.
 
    .. note:: The underlying code will return an exact 0 if an element of x is too small.
 
@@ -162,7 +162,7 @@
        * *output* - symbolic Tensor (or compatible)
 
     :Return type: same as target
-    :Returns: a symbolic tensor, where the following is applied elementwise :math:`crossentropy(t,o) = -(t\cdot log(o) + (1 - t) \cdot log(1 - o))`.
+    :Returns: a symbolic tensor, where the following is applied element-wise :math:`crossentropy(t,o) = -(t\cdot log(o) + (1 - t) \cdot log(1 - o))`.
 
    The following block implements a simple auto-associator with a
    sigmoid nonlinearity and a reconstruction error which corresponds
@@ -187,7 +187,7 @@
        * *output* - symbolic Tensor (or compatible)
 
     :Return type: same as target
-    :Returns: a symbolic tensor, where the following is applied elementwise :math:`crossentropy(o,t) = -(t\cdot log(sigmoid(o)) + (1 - t) \cdot log(1 - sigmoid(o)))`.
+    :Returns: a symbolic tensor, where the following is applied element-wise :math:`crossentropy(o,t) = -(t\cdot log(sigmoid(o)) + (1 - t) \cdot log(1 - sigmoid(o)))`.
 
    It is equivalent to `binary_crossentropy(sigmoid(output), target)`,
    but with more efficient and numerically stable computation, especially when

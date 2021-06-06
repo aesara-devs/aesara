@@ -6,8 +6,8 @@ Aesara at a Glance
 ==================
 
 Aesara is a Python library that lets you define, optimize, and evaluate
-mathematical expressions, especially ones with multi-dimensional arrays
-(numpy.ndarray).  Using Aesara it is
+mathematical expressions, especially ones involving multi-dimensional arrays
+(e.g. :class:`numpy.ndarray`\s).  Using Aesara it is
 possible to attain speeds rivaling hand-crafted C implementations for problems
 involving large amounts of data.
 
@@ -16,7 +16,7 @@ optimizing compiler. It can also generate customized C code for many
 mathematical operations.  This combination of CAS with optimizing compilation
 is particularly useful for tasks in which complicated mathematical expressions
 are evaluated repeatedly and evaluation speed is critical.  For situations
-where many different expressions are each evaluated once Aesara can minimize
+where many different expressions are each evaluated once, Aesara can minimize
 the amount of compilation/analysis overhead, but still provide symbolic
 features such as automatic differentiation.
 
@@ -29,11 +29,12 @@ limited to:
 * arithmetic simplification (e.g. ``x*y/x -> y``, ``--x -> x``)
 * inserting efficient BLAS_ operations (e.g. ``GEMM``) in a variety of
   contexts
-* using memory aliasing to avoid calculation
-* using inplace operations wherever it does not interfere with aliasing
-* loop fusion for elementwise sub-expressions
+* using memory aliasing to avoid unnecessary calculations
+* using in-place operations wherever it does not interfere with aliasing
+* loop fusion for element-wise sub-expressions
 * improvements to numerical stability (e.g.  :math:`\log(1+\exp(x))` and :math:`\log(\sum_i \exp(x[i]))`)
-* for a complete list, see :ref:`optimizations`
+
+For more information see :ref:`optimizations`.
 
 The library that Aesara is based on, Theano, was written at the LISA_ lab to
 support rapid development of efficient machine learning algorithms. Theano was
@@ -45,7 +46,7 @@ Sneak peek
 ==========
 
 Here is an example of how to use Aesara. It doesn't show off many of
-Aesara's features, but it illustrates concretely what Aesara is.
+its features, but it illustrates concretely what Aesara is.
 
 
 .. If you modify this code, also change :
@@ -75,35 +76,33 @@ Aesara is not a programming language in the normal sense because you
 write a program in Python that builds expressions for Aesara. Still it
 is like a programming language in the sense that you have to
 
-- declare variables (``a, b``) and give their types
+- declare variables ``a`` and ``b`` and give their types,
+- build expressions graphs using those variables,
+- compile the expression graphs into functions that can be used for computation.
 
-- build expressions for how to put those variables together
-
-- compile expression graphs to functions in order to use them for computation.
-
-It is good to think of ``aesara.function`` as the interface to a
+It is good to think of :func:`aesara.function` as the interface to a
 compiler which builds a callable object from a purely symbolic graph.
-One of Aesara's most important features is that ``aesara.function``
+One of Aesara's most important features is that :func:`aesara.function`
 can optimize a graph and even compile some or all of it into native
 machine instructions.
 
 
-What does it do that they don't?
-================================
+What does it do that NumPy doesn't
+==================================
 
-Aesara is a Python library and optimizing compiler for manipulating
-and evaluating expressions, especially matrix-valued
-ones. Manipulation of matrices is typically done using the numpy
-package, so what does Aesara do that Python and numpy do not?
+Aesara is a essentially an optimizing compiler for manipulating
+and evaluating expressions, especially tensor-valued
+ones. Manipulation of tensors is typically done using the NumPy
+package, so what does Aesara do that Python and NumPy don't do?
 
-- *execution speed optimizations*: Aesara can use `g++` or `nvcc` to compile
+- *execution speed optimizations*: Aesara can use C, Numba, or JAX to compile
   parts your expression graph into CPU or GPU instructions, which run
   much faster than pure Python.
 
 - *symbolic differentiation*: Aesara can automatically build symbolic graphs
   for computing gradients.
 
-- *stability optimizations*: Aesara can recognize [some] numerically unstable
+- *stability optimizations*: Aesara can recognize some numerically unstable
   expressions and compute them with more stable algorithms.
 
 The closest Python package to Aesara is sympy_.

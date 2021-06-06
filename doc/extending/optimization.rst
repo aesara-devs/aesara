@@ -5,12 +5,12 @@
 Graph optimization
 ==================
 
-In this section we will define a couple optimizations on doubles.
+In this document we will explain how optimizations work and construct a couple examples.
 
 .. todo::
 
    This tutorial goes way too far under the hood, for someone who just wants
-   to add yet another pattern to the libraries in `tensor.basic_opt` for example.
+   to add yet another pattern to the libraries in :py:mod:`aesara.tensor.basic_opt` for example.
 
    We need another tutorial that covers the decorator syntax, and explains how
    to register your optimization right away.  That's what you need to get
@@ -21,23 +21,22 @@ In this section we will define a couple optimizations on doubles.
 
 .. note::
 
-   The optimization tag `cxx_only` is used for optimizations that insert
-   Ops which have no Python implementation (so they only have C code).
+   The optimization tag ``cxx_only`` is used for optimizations that insert
+   :class:`Op`\s which have no Python implementation (so they only have C code).
    Optimizations with this tag are skipped when there is no C++ compiler
    available.
 
-Global and local optimizations
+Global and Local Optimizations
 ==============================
 
 First, let's lay out the way optimizations work in Aesara. There are
 two types of optimizations: *global* optimizations and *local*
-optimizations. A global optimization takes a ``FunctionGraph`` object (a
-FunctionGraph is a wrapper around a whole computation graph, you can see its
-:class:`documentation <FunctionGraph>` for more details) and navigates through it
-in a suitable way, replacing some Variables by others in the process. A
+optimizations. A global optimization takes a :class:`FunctionGraph` object (see its
+:doc:`documentation </library/graph/fgraph>` for more details) and navigates through it
+in a suitable way, replacing some :class:`Variable`\s by others in the process. A
 local optimization, on the other hand, is defined as a function on a
 *single* :ref:`apply` node and must return either ``False`` (to mean that
-nothing is to be done) or a list of new Variables that we would like to
+nothing is to be done) or a list of new :class:`Variable`\s that we would like to
 replace the node's outputs with. A :ref:`navigator` is a special kind
 of global optimization which navigates the computation graph in some
 fashion (in topological order, reverse-topological order, random
@@ -61,13 +60,13 @@ methods:
 
     .. method:: apply(fgraph)
 
-      This method takes a FunctionGraph object which contains the computation graph
+      This method takes a ``FunctionGraph`` object which contains the computation graph
       and does modifications in line with what the optimization is meant
       to do. This is one of the main methods of the optimizer.
 
     .. method:: add_requirements(fgraph)
 
-      This method takes a FunctionGraph object and adds :ref:`features
+      This method takes a ``FunctionGraph`` object and adds :ref:`features
       <libdoc_graph_fgraphfeature>` to it. These features are "plugins" that are needed
       for the ``apply`` method to do its job properly.
 
@@ -75,7 +74,7 @@ methods:
 
       This is the interface function called by Aesara.
 
-      *Default:* this is defined by GlobalOptimizer as ``add_requirement(fgraph);
+      *Default:* this is defined by ``GlobalOptimizer`` as ``add_requirement(fgraph);
       apply(fgraph)``.
 
 See the section about :class:`FunctionGraph` to understand how to define these
@@ -91,7 +90,7 @@ A local optimization is an object which defines the following methods:
 
     .. method:: transform(fgraph, node)
 
-      This method takes a :class:`FunctionGraph` and an :ref:`Apply` node and
+      This method takes a :class:`FunctionGraph` and an :class:`Apply` node and
       returns either ``False`` to signify that no changes are to be done or a
       list of :class:`Variable`\s which matches the length of the node's ``outputs``
       list. When the :class:`LocalOptimizer` is applied by a :class:`NavigatorOptimizer`, the outputs
@@ -110,7 +109,7 @@ For starters, let's define the following simplification:
    \frac{xy}{y} = x
 
 We will implement it in three ways: using a global optimization, a
-local optimization with a Navigator and then using the PatternSub
+local optimization with a :class:`NavigatorOptimizer` and then using the :class:`PatternSub`
 facility.
 
 Global optimization
@@ -147,22 +146,22 @@ simplification described above:
    What is add_requirements? Why would we know to do this? Are there other
    requirements we might want to  know about?
 
-Here's how it works: first, in ``add_requirements``, we add the
-``ReplaceValidate`` :ref:`libdoc_graph_fgraphfeature` located in
-:ref:`libdoc_graph_features`. This feature adds the ``replace_validate``
-method to ``fgraph``, which is an enhanced version of ``replace`` that
+Here's how it works: first, in :meth:`add_requirements`, we add the
+:class:`ReplaceValidate` :ref:`libdoc_graph_fgraphfeature` located in
+:ref:`libdoc_graph_features`. This feature adds the :meth:`replace_validate`
+method to ``fgraph``, which is an enhanced version of :meth:`replace` that
 does additional checks to ensure that we are not messing up the
-computation graph (note: if ``ReplaceValidate`` was already added by
+computation graph (note: if :class:`ReplaceValidate` was already added by
 another optimizer, ``extend`` will do nothing). In a nutshell,
-``features.ReplaceValidate`` grants access to ``fgraph.replace_validate``,
-and ``fgraph.replace_validate`` allows us to replace a Variable with
+:class:`ReplaceValidate` grants access to :meth:`fgraph.replace_validate`,
+and :meth:`fgraph.replace_validate` allows us to replace a :class:`Variable` with
 another while respecting certain validation constraints. You can
 browse the list of :ref:`libdoc_graph_fgraphfeaturelist` and see if some of
 them might be useful to write optimizations with. For example, as an
-exercise, try to rewrite Simplify using :class:`NodeFinder`. (Hint: you
+exercise, try to rewrite ``Simplify`` using :class:`NodeFinder`. (Hint: you
 want to use the method it publishes instead of the call to toposort!)
 
-Then, in ``apply`` we do the actual job of simplification. We start by
+Then, in :meth:`apply` we do the actual job of simplification. We start by
 iterating through the graph in topological order. For each node
 encountered, we check if it's a ``div`` node. If not, we have nothing
 to do here. If so, we put in ``x``, ``y`` and ``z`` the numerator,
@@ -172,7 +171,7 @@ so we check for that. If the numerator is a multiplication we put the
 two operands in ``a`` and ``b``, so
 we can now say that ``z == (a*b)/y``. If ``y==a`` then ``z==b`` and if
 ``y==b`` then ``z==a``. When either case happens then we can replace
-``z`` by either ``a`` or ``b`` using ``fgraph.replace_validate`` - else we do
+``z`` by either ``a`` or ``b`` using :meth:`fgraph.replace_validate` - else we do
 nothing. You might want to check the documentation about :ref:`variable`
 and :ref:`apply` to get a better understanding of the
 pointer-following game you need to get ahold of the nodes of interest
@@ -212,8 +211,8 @@ optimization you wrote. For example, consider the following:
 Nothing happened here. The reason is: ``add(y, z) != add(y,
 z)``. That is the case for efficiency reasons. To fix this problem we
 first need to merge the parts of the graph that represent the same
-computation, using the ``MergeOptimizer`` defined in
-``aesara.graph.opt``.
+computation, using the :class:`MergeOptimizer` defined in
+:mod:`aesara.graph.opt`.
 
 >>> from aesara.graph.opt import MergeOptimizer
 >>> MergeOptimizer().optimize(e)  # doctest: +ELLIPSIS
@@ -239,11 +238,11 @@ for this somewhere in the future.
    phase. It is used internally by function and is rarely
    exposed to the end user. You can use it to test out optimizations,
    etc. if you are comfortable with it, but it is recommended to use
-   the function frontend and to interface optimizations with
+   the function front-end and interface optimizations with
    :class:`optdb` (we'll see how to do that soon).
 
 
-Local optimization
+Local Optimization
 ------------------
 
 The local version of the above code would be the following:
@@ -272,18 +271,20 @@ The local version of the above code would be the following:
 
 .. todo::
 
-    Fix up previous example... it's bad and incomplete.
+    Fix up previous example.
 
-The definition of transform is the inner loop of the global optimizer,
-where the node is given as argument. If no changes are to be made,
-``False`` must be returned. Else, a list of what to replace the node's
-outputs with must be returned. This list must have the same length as
-node.outputs. If one of node.outputs don't have clients(it is not used
-in the graph), you can put None in the returned list to remove it.
+
+The definition of the transform is the inner loop of the global optimizer,
+where the node is given as an argument. If no changes are to be made,
+``False`` must be returned; otherwise, a list of replacements for the node's
+outputs must be returned. This list must have the same length as
+:attr:`node.outputs`. If one of :attr:`node.outputs` doesn't have clients
+(i.e. it is not used in the graph), you can put ``None`` in the returned
+list to remove it.
 
 In order to apply the local optimizer we must use it in conjunction
-with a :ref:`navigator`. Basically, a :ref:`navigator` is a global
-optimizer that loops through all nodes in the graph (or a well-defined
+with a :class:`NavigatorOptimizer`. Basically, a :class:`NavigatorOptimizer` is
+a global optimizer that loops through all nodes in the graph (or a well-defined
 subset of them) and applies one or several local optimizers on them.
 
 >>> x = float64('x')
@@ -299,21 +300,21 @@ subset of them) and applies one or several local optimizers on them.
 >>> e
 [add(z, mul(x, true_div(z, x)))]
 
-OpSub, OpRemove, PatternSub
-+++++++++++++++++++++++++++
+:class:`OpSub`, :class:`OpRemove`, :class:`PatternSub`
+++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-Aesara defines some shortcuts to make LocalOptimizers:
+Aesara defines some shortcuts to make :class:`LocalOptimizers`:
 
 .. function:: OpSub(op1, op2)
 
-  Replaces all uses of *op1* by *op2*. In other
-  words, the outputs of all :ref:`apply` involving *op1* by the outputs
-  of Apply nodes involving *op2*, where their inputs are the same.
+  Replaces all uses of `op1` by `op2`. In other
+  words, the outputs of all :ref:`apply` involving `op1` by the outputs
+  of :class:`Apply` nodes involving `op2`, where their inputs are the same.
 
 .. function:: OpRemove(op)
 
-  Removes all uses of *op* in the following way:
-  if ``y = op(x)`` then ``y`` is replaced by ``x``. *op* must have as many
+  Removes all uses of `op` in the following way:
+  if ``y = op(x)`` then ``y`` is replaced by ``x``. `op` must have as many
   outputs as it has inputs. The first output becomes the first input,
   the second output becomes the second input, and so on.
 
@@ -347,86 +348,89 @@ Aesara defines some shortcuts to make LocalOptimizers:
 
 .. note::
 
-   ``OpSub``, ``OpRemove`` and ``PatternSub`` produce local optimizers, which
+   :class:`OpSub`, :class:`OpRemove` and :class:`PatternSub` produce local optimizers, which
    means that everything we said previously about local optimizers
-   apply: they need to be wrapped in a Navigator, etc.
+   apply: they need to be wrapped in a :class:`NavigatorOptimizer`, etc.
 
 .. todo::
 
-   wtf is a navigator?
+   Explain what a :class:`NavigatorOptimizer`?
 
-When an optimization can be naturally expressed using ``OpSub``, ``OpRemove``
-or ``PatternSub``, it is highly recommended to use them.
+When an optimization can be naturally expressed using :class:`OpSub`, :class:`OpRemove`
+or :class:``PatternSub``, it is highly recommended to use them.
 
-WRITEME: more about using PatternSub (syntax for the patterns, how to
-use constraints, etc. - there's some decent doc at
-:class:`PatternSub` for those interested)
+.. todo::
 
+   More about using :class:`PatternSub` (syntax for the patterns, how to use
+   constraints, etc. - there's some decent doc at :class:`PatternSub` for those
+   interested)
 
 
 .. _optdb:
 
-The optimization database (optdb)
-=================================
+The optimization database (:obj:`optdb`)
+========================================
 
-Aesara exports a symbol called ``optdb`` which acts as a sort of
+Aesara exports a symbol called :obj:`optdb` which acts as a sort of
 ordered database of optimizations. When you make a new optimization,
 you must insert it at the proper place in the database. Furthermore,
 you can give each optimization in the database a set of tags that can
 serve as a basis for filtering.
 
-The point of optdb is that you might want to apply many optimizations
+The point of :obj:`optdb` is that you might want to apply many optimizations
 to a computation graph in many unique patterns. For example, you might
-want to do optimization X, then optimization Y, then optimization
-Z. And then maybe optimization Y is an EquilibriumOptimizer containing
-LocalOptimizers A, B and C which are applied on every node of the
-graph until they all fail to change it. If some optimizations act up,
-we want an easy way to turn them off. Ditto if some optimizations are
-very CPU-intensive and we don't want to take the time to apply them.
+want to do optimization X, then optimization Y, then optimization Z. And then
+maybe optimization Y is an :class:`EquilibriumOptimizer` containing :class:`LocalOptimizer`\s A, B
+and C which are applied on every node of the graph until they all fail to change
+it. If some optimizations act up, we want an easy way to turn them off. Ditto if
+some optimizations are very CPU-intensive and we don't want to take the time to
+apply them.
 
-The optdb system allows us to tag each optimization with a unique name
+The :obj:`optdb` system allows us to tag each optimization with a unique name
 as well as informative tags such as 'stable', 'buggy' or
 'cpu_intensive', all this without compromising the structure of the
 optimizations.
 
 
-Definition of optdb
--------------------
+Definition of :obj:`optdb`
+--------------------------
 
-optdb is an object which is an instance of
+:obj:`optdb` is an object which is an instance of
 :class:`SequenceDB <optdb.SequenceDB>`,
 itself a subclass of :class:`OptimizationDatabase <optdb.OptimizationDatabase>`.
-There exist (for now) two types of OptimizationDatabase, SequenceDB and EquilibriumDB.
-When given an appropriate OptimizationQuery, OptimizationDatabase objects build an Optimizer matching
+There exist (for now) two types of :class:`OptimizationDatabase`, :class:`SequenceDB` and :class:`EquilibriumDB`.
+When given an appropriate :class:`OptimizationQuery`, :class:`OptimizationDatabase` objects build an :class:`Optimizer` matching
 the query.
 
-A SequenceDB contains Optimizer or OptimizationDatabase objects. Each of them
+A :class:`SequenceDB` contains :class:`Optimizer` or :class:`OptimizationDatabase` objects. Each of them
 has a name, an arbitrary number of tags and an integer representing their order
-in the sequence. When a OptimizationQuery is applied to a SequenceDB, all Optimizers whose
-tags match the query are inserted in proper order in a SequenceOptimizer, which
-is returned. If the SequenceDB contains OptimizationDatabase instances, the OptimizationQuery will be passed
-to them as well and the optimizers they return will be put in their places.
+in the sequence. When a :class:`OptimizationQuery` is applied to a :class:`SequenceDB`, all :class:`Optimizer`\s whose
+tags match the query are inserted in proper order in a :class:`SequenceOptimizer`, which
+is returned. If the :class:`SequenceDB` contains :class:`OptimizationDatabase`
+instances, the :class:`OptimizationQuery` will be passed to them as well and the
+optimizers they return will be put in their places.
 
-An EquilibriumDB contains LocalOptimizer or OptimizationDatabase objects. Each of them
-has a name and an arbitrary number of tags. When a OptimizationQuery is applied to
-an EquilibriumDB, all LocalOptimizers that match the query are
-inserted into an EquilibriumOptimizer, which is returned. If the
-SequenceDB contains OptimizationDatabase instances, the OptimizationQuery will be passed to them as
-well and the LocalOptimizers they return will be put in their places
-(note that as of yet no OptimizationDatabase can produce LocalOptimizer objects, so this
+An :class:`EquilibriumDB` contains :class:`LocalOptimizer` or :class:`OptimizationDatabase` objects. Each of them
+has a name and an arbitrary number of tags. When a :class:`OptimizationQuery` is applied to
+an :class:`EquilibriumDB`, all :class:`LocalOptimizer`\s that match the query are
+inserted into an :class:`EquilibriumOptimizer`, which is returned. If the
+:class:`SequenceDB` contains :class:`OptimizationDatabase` instances, the
+:class:`OptimizationQuery` will be passed to them as well and the
+:class:`LocalOptimizer`\s they return will be put in their places
+(note that as of yet no :class:`OptimizationDatabase` can produce :class:`LocalOptimizer` objects, so this
 is a moot point).
 
-Aesara contains one principal OptimizationDatabase object, :class:`optdb`, which
+Aesara contains one principal :class:`OptimizationDatabase` object, :class:`optdb`, which
 contains all of Aesara's optimizers with proper tags. It is
-recommended to insert new Optimizers in it. As mentioned previously,
-optdb is a SequenceDB, so, at the top level, Aesara applies a sequence
+recommended to insert new :class:`Optimizer`\s in it. As mentioned previously,
+optdb is a :class:`SequenceDB`, so, at the top level, Aesara applies a sequence
 of global optimizations to the computation graphs.
 
 
 :class:`OptimizationQuery`
 --------------------------
 
-A OptimizationQuery is built by the following call:
+A :class:`OptimizationQuery` is built by the following call:
 
 .. code-block:: python
 
@@ -437,37 +441,37 @@ A OptimizationQuery is built by the following call:
     .. attribute:: include
 
        A set of tags (a tag being a string) such that every
-       optimization obtained through this OptimizationQuery must have **one** of the tags
+       optimization obtained through this :class:`OptimizationQuery` must have **one** of the tags
        listed. This field is required and basically acts as a starting point
        for the search.
 
     .. attribute:: require
 
        A set of tags such that every optimization obtained
-       through this OptimizationQuery must have **all** of these tags.
+       through this :class:`OptimizationQuery` must have **all** of these tags.
 
     .. attribute:: exclude
 
        A set of tags such that every optimization obtained
-       through this OptimizationQuery must have **none** of these tags.
+       through this :class:`OptimizationQuery` must have **none** of these tags.
 
     .. attribute:: subquery
 
-       optdb can contain sub-databases; subquery is a
-       dictionary mapping the name of a sub-database to a special OptimizationQuery.
-       If no subquery is given for a sub-database, the original OptimizationQuery will be
+       :obj:`optdb` can contain sub-databases; subquery is a
+       dictionary mapping the name of a sub-database to a special :class:`OptimizationQuery`.
+       If no subquery is given for a sub-database, the original :class:`OptimizationQuery` will be
        used again.
 
-Furthermore, a OptimizationQuery object includes three methods, ``including``,
-``requiring`` and ``excluding`` which each produce a new OptimizationQuery object
-with include, require and exclude sets refined to contain the new [WRITEME]
+Furthermore, a :class:`OptimizationQuery` object includes three methods, :meth:`including`,
+:meth:`requiring` and :meth:`excluding`, which each produce a new :class:`OptimizationQuery` object
+with the include, require, and exclude sets refined to contain the new entries.
 
 
 Examples
 --------
 
-Here are a few examples of how to use a OptimizationQuery on optdb to produce an
-Optimizer:
+Here are a few examples of how to use a :class:`OptimizationQuery` on :obj:`optdb` to produce an
+:class:`Optimizer`:
 
 .. testcode::
 
@@ -488,35 +492,35 @@ Optimizer:
                                            exclude=['inplace']))
 
 
-Registering an Optimizer
-------------------------
+Registering an :class:`Optimizer`
+---------------------------------
 
 Let's say we have a global optimizer called ``simplify``. We can add
-it to ``optdb`` as follows:
+it to :obj:`optdb` as follows:
 
 .. testcode::
 
    # optdb.register(name, optimizer, order, *tags)
    optdb.register('simplify', simplify, 0.5, 'fast_run')
 
-Once this is done, the FAST_RUN mode will automatically include your
-optimization (since you gave it the 'fast_run' tag). Of course,
+Once this is done, the ``FAST_RUN`` mode will automatically include your
+optimization (since you gave it the ``'fast_run'`` tag). Of course,
 already-compiled functions will see no change. The 'order' parameter
 (what it means and how to choose it) will be explained in
 :ref:`optdb-structure` below.
 
 
 
-Registering a LocalOptimizer
-----------------------------
+Registering a :class:`LocalOptimizer`
+-------------------------------------
 
-LocalOptimizers may be registered in two ways:
+:class:`LocalOptimizer`\s may be registered in two ways:
 
-* Wrap them in a Navigator and insert them like a global optimizer
+* Wrap them in a :class:`NavigatorOptimizer` and insert them like a global optimizer
   (see previous section).
-* Put them in an EquilibriumDB.
+* Put them in an :class:`EquilibriumDB`.
 
-Aesara defines two EquilibriumDBs where you can put local
+Aesara defines two :class:`EquilibriumDB`\s in which one can put local
 optimizations:
 
 
@@ -543,7 +547,7 @@ optimizations:
 
 
 For each group, all optimizations of the group that are selected by
-the OptimizationQuery will be applied on the graph over and over again until none
+the :class:`OptimizationQuery` will be applied on the graph over and over again until none
 of them is applicable, so keep that in mind when designing it: check
 carefully that your optimization leads to a fixpoint (a point where it
 cannot apply anymore) at which point it returns ``False`` to indicate its
@@ -554,10 +558,10 @@ two or more states and nothing will get done.
 
 .. _optdb-structure:
 
-optdb structure
----------------
+:obj:`optdb` structure
+----------------------
 
-optdb contains the following Optimizers and sub-DBs, with the given
+:obj:`optdb` contains the following :class:`Optimizer`\s and sub-DBs, with the given
 priorities and tags:
 
 +-------+---------------------+------------------------------+
@@ -605,8 +609,8 @@ under the assumption there are no inplace operations.
 
 .. _navigator:
 
-Navigator
--------------------
+:class:`NavigatorOptimizer`
+---------------------------
 
 WRITEME
 
@@ -651,12 +655,12 @@ return. The C code generation and compilation is cached, so the first
 time you compile a function and the following ones could take different
 amount of execution time.
 
-Detailed profiling of Aesara optimizer
---------------------------------------
+Detailed profiling of Aesara optimizations
+------------------------------------------
 
 You can get more detailed profiling information about the Aesara
-optimizer phase by setting to `True` the Aesara flags
-:attr:`config.profile_optimizer` (this require `config.profile` to be `True`
+optimizer phase by setting to ``True`` the Aesara flags
+:attr:`config.profile_optimizer` (this requires ``config.profile`` to be ``True``
 as well).
 
 This will output something like this:
@@ -852,15 +856,15 @@ This will output something like this:
 To understand this profile here is some explanation of how optimizations work:
 
 * Optimizations are organized in an hierarchy. At the top level, there
-  is a ``SeqOptimizer`` (Sequence Optimizer). It contains other optimizers,
+  is a :class:`SeqOptimizer`. It contains other optimizers,
   and applies them in the order they were specified. Those sub-optimizers can be
   of other types, but are all *global* optimizers.
 
-* Each Optimizer in the hierarchy will print some stats about
+* Each :class:`Optimizer` in the hierarchy will print some stats about
   itself. The information that it prints depends of the type of the
   optimizer.
 
-* The SeqOptimizer will print some stats at the start:
+* The :class:`SeqOptimizer` will print some stats at the start:
 
     .. code-block:: none
 
@@ -881,10 +885,12 @@ To understand this profile here is some explanation of how optimizations work:
   * 0.028s means it spent that time calls to ``fgraph.validate()``
   * 0.131s means it spent that time for callbacks. This is a mechanism that can trigger other execution when there is a change to the FunctionGraph.
   * ``time      - (name, class, index) - validate time`` tells how the information for each sub-optimizer get printed.
-  * All other instances of ``SeqOptimizer`` are described like this. In particular, some sub-optimizer from OPT_FAST_RUN that are also ``SeqOptimizer``.
+  * All other instances of :class:`SeqOptimizer` are described like this. In
+    particular, some sub-optimizer from ``OPT_FAST_RUN`` that are also
+    :class:`SeqOptimizer`.
 
 
-* The ``SeqOptimizer`` will print some stats at the start:
+* The :class:`SeqOptimizer` will print some stats at the start:
 
     .. code-block:: none
 
@@ -955,14 +961,14 @@ To understand this profile here is some explanation of how optimizations work:
              0.000s - local_subtensor_merge
 
   * ``0.751816s - ('canonicalize', 'EquilibriumOptimizer', 4) - 0.004s``
-    This line is from ``SeqOptimizer``, and indicates information related
+    This line is from :class:`SeqOptimizer`, and indicates information related
     to a sub-optimizer. It means that this sub-optimizer took
     a total of .7s. Its name is ``'canonicalize'``. It is an
-    ``EquilibriumOptimizer``. It was executed at index 4 by the
-    ``SeqOptimizer``. It spent 0.004s in the *validate* phase.
-  * All other lines are from the profiler of the ``EquilibriumOptimizer``.
+    :class:`EquilibriumOptimizer`. It was executed at index 4 by the
+    :class:`SeqOptimizer`. It spent 0.004s in the *validate* phase.
+  * All other lines are from the profiler of the :class:`EquilibriumOptimizer`.
 
-  * An ``EquilibriumOptimizer`` does multiple passes on the Apply nodes from
+  * An :class:`EquilibriumOptimizer` does multiple passes on the Apply nodes from
     the graph, trying to apply local and global optimizations.
     Conceptually, it tries to execute all global optimizations,
     and to apply all local optimizations on all
@@ -977,29 +983,29 @@ To understand this profile here is some explanation of how optimizations work:
     was 117.
 
   * Then it prints some global timing information: it spent 0.029s in
-    ``io_toposort``, all local optimizers took 0.687s together for all
+    :func:`io_toposort`, all local optimizers took 0.687s together for all
     passes, and global optimizers took a total of 0.010s.
 
   * Then we print the timing for each pass, the optimization that
     got applied, and the number of time they got applied. For example,
-    in pass 0, the ``local_dimshuffle_lift`` optimizer changed the graph 9
+    in pass 0, the :func:`local_dimshuffle_lift` optimizer changed the graph 9
     time.
 
   * Then we print the time spent in each optimizer, the number of times
     they changed the graph and the number of nodes they introduced in
     the graph.
 
-  * Optimizations with that pattern `local_op_lift` means that a node
+  * Optimizations with that pattern :func:`local_op_lift` means that a node
     with that op will be replaced by another node, with the same op,
     but will do computation closer to the inputs of the graph.
     For instance, ``local_op(f(x))`` getting replaced by ``f(local_op(x))``.
 
-  * Optimization with that pattern `local_op_sink` is the opposite of
-    `lift`. For instance ``f(local_op(x))`` getting replaced by ``local_op(f(x))``.
+  * Optimization with that pattern :func:`local_op_sink` is the opposite of
+    "lift". For instance ``f(local_op(x))`` getting replaced by ``local_op(f(x))``.
 
   * Local optimizers can replace any arbitrary node in the graph, not
     only the node it received as input. For this, it must return a
-    dict. The keys being nodes to replace and the
+    ``dict``. The keys being nodes to replace and the
     values being the corresponding replacement.
 
     This is useful to replace a client of the node received as

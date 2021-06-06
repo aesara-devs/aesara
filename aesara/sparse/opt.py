@@ -1845,10 +1845,10 @@ class SamplingDotCSR(_NoPythonCOp):
     multiplication.
 
     If we have the input of mixed dtype, we insert cast elemwise
-    in the graph to be able to call blas function as they don't
+    in the graph to be able to call BLAS function as they don't
     allow mixed dtype.
 
-    This op is used as an optimization for SamplingDot.
+    This `Op` is used as an optimization for `SamplingDot`.
 
     """
 

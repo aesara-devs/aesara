@@ -370,15 +370,15 @@ Here's a brief example.  The setup code is:
     g = function([], rv_n, no_default_updates=True)    #Not updating rv_n.rng
     nearly_zeros = function([], rv_u + rv_u - 2 * rv_u)
 
-Here, 'rv_u' represents a random stream of 2x2 matrices of draws from a uniform
-distribution.  Likewise,  'rv_n' represents a random stream of 2x2 matrices of
+Here, ``rv_u`` represents a random stream of 2x2 matrices of draws from a uniform
+distribution.  Likewise,  ``rv_n`` represents a random stream of 2x2 matrices of
 draws from a normal distribution.  The distributions that are implemented are
 defined as :class:`RandomVariable`\s
 in :ref:`basic<libdoc_tensor_random_basic>`. They only work on CPU.
 See `Other Implementations`_ for GPU version.
 
 
-Now let's use these objects.  If we call f(), we get random uniform numbers.
+Now let's use these objects.  If we call ``f()``, we get random uniform numbers.
 The internal state of the random number generator is automatically updated,
 so we get different random numbers every time.
 

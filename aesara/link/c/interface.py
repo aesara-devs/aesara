@@ -11,7 +11,7 @@ class CLinkerObject:
     def c_headers(self, **kwargs) -> List[Text]:
         """Return a list of header files required by code returned by this class.
 
-        These strings will be prefixed with ``#include``  and inserted at the
+        These strings will be prefixed with ``#include`` and inserted at the
         beginning of the C source code.
 
         Strings in this list that start neither with ``<`` nor ``"`` will be
@@ -35,8 +35,11 @@ class CLinkerObject:
         Provides search paths for headers, in addition to those in any relevant
         environment variables.
 
-        Note: for Unix compilers, these are the things that get `-I` prefixed
-        in the compiler command line arguments.
+        .. note::
+
+            For Unix compilers, these are the things that get ``-I`` prefixed
+            in the compiler command line arguments.
+
 
         Examples
         --------
@@ -53,10 +56,13 @@ class CLinkerObject:
         """Return a list of libraries required by code returned by this class.
 
         The compiler will search the directories specified by the environment
-        variable LD_LIBRARY_PATH in addition to any returned by `c_lib_dirs`.
+        variable ``LD_LIBRARY_PATH`` in addition to any returned by
+        :meth:`CLinkerOp.c_lib_dirs`.
 
-        Note: for Unix compilers, these are the things that get ``-l`` prefixed
-        in the compiler command line arguments.
+        .. note::
+
+            For Unix compilers, these are the things that get ``-l`` prefixed
+            in the compiler command line arguments.
 
 
         Examples
@@ -76,8 +82,11 @@ class CLinkerObject:
         Provides search paths for libraries, in addition to those in any
         relevant environment variables (e.g. ``LD_LIBRARY_PATH``).
 
-        Note: for Unix compilers, these are the things that get ``-L`` prefixed
-        in the compiler command line arguments.
+        .. note::
+
+            For Unix compilers, these are the things that get ``-L`` prefixed
+            in the compiler command line arguments.
+
 
         Examples
         --------
@@ -127,8 +136,8 @@ class CLinkerObject:
         """Return a list of incompatible ``gcc`` compiler arguments.
 
         We will remove those arguments from the command line of ``gcc``. So if
-        another Op adds a compile arg in the graph that is incompatible
-        with this Op, the incompatible arg will not be used.
+        another `Op` adds a compile arg in the graph that is incompatible
+        with this `Op`, the incompatible arg will not be used.
 
         This is used, for instance, to remove ``-ffast-math``.
 
@@ -142,7 +151,7 @@ class CLinkerObject:
     def c_code_cache_version(self) -> Union[Tuple[int], Tuple]:
         """Return a tuple of integers indicating the version of this `Op`.
 
-        An empty tuple indicates an 'unversioned' `Op` that will not be cached
+        An empty tuple indicates an "unversioned" `Op` that will not be cached
         between processes.
 
         The cache mechanism may erase cached modules that have been superseded
@@ -157,14 +166,7 @@ class CLinkerObject:
 
 
 class CLinkerOp(CLinkerObject):
-    """Interface definition for `Op` subclasses compiled by `CLinker`.
-
-    A subclass should implement WRITEME.
-
-    WRITEME: structure of automatically generated C code.
-    Put this in doc/code_structure.txt
-
-    """
+    """Interface definition for `Op` subclasses compiled by `CLinker`."""
 
     @abstractmethod
     def c_code(
@@ -175,9 +177,9 @@ class CLinkerOp(CLinkerObject):
         outputs: List[Text],
         sub: Dict[Text, Text],
     ) -> Text:
-        """Return the C implementation of an `Op`.
+        """Return the C implementation of an ``Op``.
 
-        Returns C code that does the computation associated to this `Op`,
+        Returns C code that does the computation associated to this ``Op``,
         given names for the inputs and outputs.
 
         Parameters
@@ -196,7 +198,7 @@ class CLinkerOp(CLinkerObject):
             can be accessed by prepending ``"py_"`` to the name in the
             list.
         outputs : list of strings
-            Each string is the name of a C variable where the Op should
+            Each string is the name of a C variable where the `Op` should
             store its output.  The type depends on the declared type of
             the output.  There is a corresponding Python variable that
             can be accessed by prepending ``"py_"`` to the name in the
@@ -204,8 +206,7 @@ class CLinkerOp(CLinkerObject):
             the value of the variable may be pre-filled.  The value for
             an unallocated output is type-dependent.
         sub : dict of strings
-            Extra symbols defined in `CLinker` sub symbols (such as 'fail').
-            WRITEME
+            Extra symbols defined in `CLinker` sub symbols (such as ``'fail'``).
 
         """
         raise NotImplementedError()
@@ -213,7 +214,7 @@ class CLinkerOp(CLinkerObject):
     def c_code_cache_version_apply(self, node: Apply) -> Tuple[int]:
         """Return a tuple of integers indicating the version of this `Op`.
 
-        An empty tuple indicates an 'unversioned' `Op` that will not be
+        An empty tuple indicates an "unversioned" `Op` that will not be
         cached between processes.
 
         The cache mechanism may erase cached modules that have been
@@ -221,7 +222,7 @@ class CLinkerOp(CLinkerObject):
 
         See Also
         --------
-        c_code_cache_version()
+        c_code_cache_version
 
         Notes
         -----
@@ -240,9 +241,9 @@ class CLinkerOp(CLinkerObject):
         outputs: List[Text],
         sub: Dict[Text, Text],
     ) -> Text:
-        """Return C code to run after `CLinkerOp.c_code`, whether it failed or not.
+        """Return C code to run after :meth:`CLinkerOp.c_code`, whether it failed or not.
 
-        This is a convenient place to clean up things allocated by `CLinkerOp.c_code`.
+        This is a convenient place to clean up things allocated by :meth:`CLinkerOp.c_code`.
 
         Parameters
         ----------
@@ -255,18 +256,17 @@ class CLinkerOp(CLinkerObject):
             There is a string for each input of the function, and the
             string is the name of a C variable pointing to that input.
             The type of the variable depends on the declared type of
-            the input. There is a corresponding python variable that
+            the input. There is a corresponding Python variable that
             can be accessed by prepending ``"py_"`` to the name in the
             list.
         outputs : list of str
             Each string is the name of a C variable corresponding to
-            one of the outputs of the Op. The type depends on the
+            one of the outputs of the `Op`. The type depends on the
             declared type of the output. There is a corresponding
-            python variable that can be accessed by prepending ``"py_"`` to
+            Python variable that can be accessed by prepending ``"py_"`` to
             the name in the list.
         sub : dict of str
-            extra symbols defined in `CLinker` sub symbols (such as 'fail').
-            WRITEME
+            Extra symbols defined in `CLinker` sub symbols (such as ``'fail'``).
 
         """
         return ""
@@ -276,24 +276,24 @@ class CLinkerOp(CLinkerObject):
 
         Parameters
         ----------
-        node: Apply
+        node : Apply
             The node in the graph being compiled.
-        name: str
+        name : str
             A string or number that serves to uniquely identify this node.
             Symbol names defined by this support code should include the name,
-            so that they can be called from the `CLinkerOp.c_code`, and so that
+            so that they can be called from the :meth:`CLinkerOp.c_code`, and so that
             they do not cause name collisions.
 
         Notes
         -----
-        This function is called in addition to `CLinkerObject.c_support_code`
+        This function is called in addition to :meth:`CLinkerObject.c_support_code`
         and will supplement whatever is returned from there.
 
         """
         return ""
 
     def c_init_code_apply(self, node: Apply, name: Text) -> Text:
-        """Return a code string specific to the apply to be inserted in the module initialization code.
+        """Return a code string specific to the `Apply` to be inserted in the module initialization code.
 
         Parameters
         ----------
@@ -302,13 +302,14 @@ class CLinkerOp(CLinkerObject):
         name : str
             A string or number that serves to uniquely identify this node.
             Symbol names defined by this support code should include the name,
-            so that they can be called from the c_code, and so that they do not
-            cause name collisions.
+            so that they can be called from :meth:`CLinkerOp.c_code`, and so
+            that they do not cause name collisions.
 
         Notes
         -----
-        This function is called in addition to c_init_code and will supplement
-        whatever is returned from there.
+        This function is called in addition to
+        :meth:`CLinkerObject.c_init_code` and will supplement whatever is
+        returned from there.
 
         """
         return ""
@@ -318,11 +319,11 @@ class CLinkerOp(CLinkerObject):
 
         Parameters
         ----------
-        node: Apply
+        node : Apply
             The node in the graph being compiled.
-        name: str
+        name : str
             A unique name to distinguish variables from those of other nodes.
-        sub: dict of str
+        sub : dict of str
             A dictionary of values to substitute in the code.
             Most notably it contains a ``'fail'`` entry that you should place
             in your code after setting a Python exception to indicate an error.
@@ -359,13 +360,10 @@ class CLinkerOp(CLinkerObject):
 
 
 class CLinkerType(CLinkerObject):
-    """
-    Interface specification for Types that can be arguments to a `CLinkerOp`.
+    r"""Interface specification for `Type`\s that can be arguments to a `CLinkerOp`.
 
-    A CLinkerType instance is mainly responsible  for providing the C code that
+    A `CLinkerType` instance is mainly responsible  for providing the C code that
     interfaces python objects with a C `CLinkerOp` implementation.
-
-    See WRITEME for a general overview of code generation by `CLinker`.
 
     """
 
@@ -373,13 +371,13 @@ class CLinkerType(CLinkerObject):
     def c_declare(
         self, name: Text, sub: Dict[Text, Text], check_input: bool = True
     ) -> Text:
-        """Return C code to declare variables that will be instantiated by `CLinkerType.c_extract`.
+        """Return C code to declare variables that will be instantiated by :meth:`CLinkerType.c_extract`.
 
         Parameters
         ----------
-        name : str
-            The name of the ``PyObject *`` pointer that will
-            the value for this Type
+        name
+            The name of the ``PyObject *`` pointer that will the value for this
+            `Type`.
         sub
             A dictionary of special codes.  Most importantly
             ``sub['fail']``. See `CLinker` for more info on ``sub`` and
@@ -391,9 +389,9 @@ class CLinkerType(CLinkerObject):
         are declared here, so that name collisions do not occur in the
         source file that is generated.
 
-        The variable called ``name`` is not necessarily defined yet
+        The variable called `name` is not necessarily defined yet
         where this code is inserted. This code might be inserted to
-        create class variables for example, whereas the variable ``name``
+        create class variables for example, whereas the variable `name`
         might only exist inside certain functions in that class.
 
         TODO: Why should variable declaration fail?  Is it even allowed to?
@@ -410,13 +408,13 @@ class CLinkerType(CLinkerObject):
 
     @abstractmethod
     def c_init(self, name: Text, sub: Dict[Text, Text]) -> Text:
-        """Return C code to initialize the variables that were declared by `CLinkerType.c_declare`.
+        """Return C code to initialize the variables that were declared by :meth:`CLinkerType.c_declare`.
 
         Notes
         -----
-        The variable called ``name`` is not necessarily defined yet
+        The variable called `name` is not necessarily defined yet
         where this code is inserted. This code might be inserted in a
-        class constructor for example, whereas the variable ``name``
+        class constructor for example, whereas the variable `name`
         might only exist inside certain functions in that class.
 
         TODO: Why should variable initialization fail?  Is it even allowed to?
@@ -450,10 +448,10 @@ class CLinkerType(CLinkerObject):
 
         Parameters
         ----------
-        name: str
+        name
             The name of the ``PyObject *`` pointer that will store the value
             for this type.
-        sub: dict string -> string
+        sub
             A dictionary of special codes. Most importantly
             ``sub['fail']``. See `CLinker` for more info on ``sub`` and
             ``fail``.
@@ -485,9 +483,9 @@ class CLinkerType(CLinkerObject):
 
         Parameters
         ----------
-        name : str
+        name
             WRITEME
-        sub : dict of str
+        sub
             WRITEME
 
         """
@@ -518,7 +516,7 @@ class CLinkerType(CLinkerObject):
 
         Parameters
         ----------
-        data : Constant
+        data
             The data to be converted into a C literal string.
 
         """
@@ -529,7 +527,7 @@ class CLinkerType(CLinkerObject):
     ) -> Text:
         """Return C code to extract a ``PyObject *`` instance.
 
-        Unlike `CLinkerType.c_extract`, `CLinkerType.c_extract_out` has to
+        Unlike :math:`CLinkerType.c_extract`, :meth:`CLinkerType.c_extract_out` has to
         accept ``Py_None``, meaning that the variable should be left
         uninitialized.
 
@@ -550,10 +548,10 @@ class CLinkerType(CLinkerObject):
         )
 
     def c_cleanup(self, name: Text, sub: Dict[Text, Text]) -> Text:
-        """Return C code to clean up after `CLinkerType.c_extract`.
+        """Return C code to clean up after :meth:`CLinkerType.c_extract`.
 
         This returns C code that should deallocate whatever
-        `CLinkerType.c_extract` allocated or decrease the reference counts. Do
+        :meth:`CLinkerType.c_extract` allocated or decrease the reference counts. Do
         not decrease ``py_%(name)s``'s reference count.
 
         Parameters
@@ -569,7 +567,7 @@ class CLinkerType(CLinkerObject):
     def c_code_cache_version(self) -> Union[Tuple, Tuple[int]]:
         """Return a tuple of integers indicating the version of this type.
 
-        An empty tuple indicates an 'unversioned' type that will not
+        An empty tuple indicates an "unversioned" type that will not
         be cached between processes.
 
         The cache mechanism may erase cached modules that have been

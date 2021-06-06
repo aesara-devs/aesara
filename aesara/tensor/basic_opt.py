@@ -216,8 +216,8 @@ def broadcast_like(value, template, fgraph, dtype=None):
 
 
 class InplaceElemwiseOptimizer(GlobalOptimizer):
-    """
-    We parametrise it to make it work for Elemwise and GpuElemwise op.
+    r"""
+    This is parameterized so that it works for `Elemwise` and `GpuElemwise` `Op`\s.
     """
 
     def __init__(self, OP):
@@ -1469,7 +1469,7 @@ class ShapeFeature(features.Feature):
 
 
 class ShapeOptimizer(GlobalOptimizer):
-    """Optimizer that serves to add ShapeFeature as an fgraph feature."""
+    """Optimizer that adds `ShapeFeature` as a feature."""
 
     def add_requirements(self, fgraph):
         fgraph.attach_feature(ShapeFeature())
@@ -1479,7 +1479,7 @@ class ShapeOptimizer(GlobalOptimizer):
 
 
 class UnShapeOptimizer(GlobalOptimizer):
-    """Optimizer remove ShapeFeature as an fgraph feature."""
+    """Optimizer that removes `ShapeFeature` as a feature."""
 
     def apply(self, fgraph):
         for feature in fgraph._features:
