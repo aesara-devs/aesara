@@ -1840,10 +1840,7 @@ def test_log1p():
     assert [node.op for node in f.maker.fgraph.toposort()] == [log1p]
 
 
-@pytest.mark.xfail(
-    reason="log(add(exp)) is not stabilized when adding more than 2 elements, see #623"
-)
-def test_log_add():
+def test_local_log_add_exp():
     m = config.mode
     if m == "FAST_COMPILE":
         m = "FAST_RUN"
@@ -1858,25 +1855,27 @@ def test_log_add():
     y = dvector()
     f = function([x, y], log(exp(x) + exp(y)), mode=m)
 
-    f([10000], [10000])  # causes overflow if handled incorrectly
-    assert np.isfinite(f([10000], [10000]))
-    utt.assert_allclose(f([10000], [10000]), 10000 + np.log1p(1))
-
-    # test that it give the same result when it don't overflow
-    f([10], [10])  # don't causes overflow
+    # test that it gives the correct result when it doesn't overflow
+    f([10], [10])  # doesn't causes overflow
     utt.assert_allclose(f([10], [10]), 10 + np.log1p(1))
 
-    # test that it also works with more than two args, (this currently fails)
+    assert np.isfinite(f([10000], [10000]))  # causes overflow if handled incorrectly
+    utt.assert_allclose(f([10000], [10000]), 10000 + np.log1p(1))
+
+    # test that when max = +-inf, optimized output still works correctly
+    assert f([-np.inf], [-np.inf]) == -np.inf
+    assert f([np.inf], [np.inf]) == np.inf
+    assert f([np.inf], [-np.inf]) == np.inf
+
+    # test that it also works with more than two args
     x = dvector()
     y = dvector()
     f = function([x, y], log(exp(x) + exp(y) + exp(x - y) + exp(x + y)), mode=m)
 
-    f([10000], [10000])  # causes overflow if handled incorrectly
+    assert np.isfinite(f([10000], [10000]))  # causes overflow if handled incorrectly
     utt.assert_allclose(f([10000], [10000]), 20000)
 
     # TODO: test that the optimization works in the presence of broadcasting.
-
-    # TODO: (write and) test that the optimization works with Sum in addition to working with Add.
 
 
 def test_local_subtensor_of_dot():
