@@ -20,6 +20,8 @@ class CLinkerObject:
         Examples
         --------
 
+        .. code-block:: python
+
             def c_headers(self, **kwargs):
                 return ['<iostream>', '<math.h>', '/full/path/to/header.h']
 
@@ -38,6 +40,8 @@ class CLinkerObject:
 
         Examples
         --------
+
+        .. code-block:: python
 
             def c_header_dirs(self, **kwargs):
                 return ['/usr/local/include', '/opt/weirdpath/src/include']
@@ -58,6 +62,8 @@ class CLinkerObject:
         Examples
         --------
 
+        .. code-block:: python
+
             def c_libraries(self, **kwargs):
                 return ['gsl', 'gslcblas', 'm', 'fftw3', 'g2c'].
 
@@ -75,6 +81,8 @@ class CLinkerObject:
 
         Examples
         --------
+
+        .. code-block:: python
 
             def c_lib_dirs(self, **kwargs):
                 return ['/usr/local/lib', '/opt/weirdpath/build/libs'].
@@ -106,6 +114,8 @@ class CLinkerObject:
 
         Examples
         --------
+
+        .. code-block:: python
 
             def c_compile_args(self, **kwargs):
                 return ['-ffast-math']
@@ -173,8 +183,8 @@ class CLinkerOp(CLinkerObject):
         Parameters
         ----------
         node : Apply instance
-            The node for which we are compiling the current c_code.
-           The same Op may be used in more than one node.
+            The node for which we are compiling the current C code.
+            The same ``Op`` may be used in more than one node.
         name : str
             A name that is automatically assigned and guaranteed to be
             unique.
@@ -183,13 +193,13 @@ class CLinkerOp(CLinkerObject):
             string is the name of a C variable pointing to that input.
             The type of the variable depends on the declared type of
             the input.  There is a corresponding python variable that
-            can be accessed by prepending "py_" to the name in the
+            can be accessed by prepending ``"py_"`` to the name in the
             list.
         outputs : list of strings
             Each string is the name of a C variable where the Op should
             store its output.  The type depends on the declared type of
-            the output.  There is a corresponding python variable that
-            can be accessed by prepending "py_" to the name in the
+            the output.  There is a corresponding Python variable that
+            can be accessed by prepending ``"py_"`` to the name in the
             list.  In some cases the outputs will be preallocated and
             the value of the variable may be pre-filled.  The value for
             an unallocated output is type-dependent.
@@ -246,13 +256,13 @@ class CLinkerOp(CLinkerObject):
             string is the name of a C variable pointing to that input.
             The type of the variable depends on the declared type of
             the input. There is a corresponding python variable that
-            can be accessed by prepending "py_" to the name in the
+            can be accessed by prepending ``"py_"`` to the name in the
             list.
         outputs : list of str
             Each string is the name of a C variable corresponding to
             one of the outputs of the Op. The type depends on the
             declared type of the output. There is a corresponding
-            python variable that can be accessed by prepending "py_" to
+            python variable that can be accessed by prepending ``"py_"`` to
             the name in the list.
         sub : dict of str
             extra symbols defined in `CLinker` sub symbols (such as 'fail').
@@ -287,7 +297,8 @@ class CLinkerOp(CLinkerObject):
 
         Parameters
         ----------
-        node : an Apply instance in the graph being compiled
+        node
+            An `Apply` instance in the graph being compiled
         name : str
             A string or number that serves to uniquely identify this node.
             Symbol names defined by this support code should include the name,
@@ -366,12 +377,13 @@ class CLinkerType(CLinkerObject):
 
         Parameters
         ----------
-        name: str
+        name : str
             The name of the ``PyObject *`` pointer that will
             the value for this Type
-        sub: dict string -> string
-            a dictionary of special codes.  Most importantly
-            sub['fail']. See CLinker for more info on `sub` and ``fail``.
+        sub
+            A dictionary of special codes.  Most importantly
+            ``sub['fail']``. See `CLinker` for more info on ``sub`` and
+            ``fail``.
 
         Notes
         -----
@@ -388,6 +400,7 @@ class CLinkerType(CLinkerObject):
 
         Examples
         --------
+
         .. code-block: python
 
             def c_declare(self, name, sub, check_input=True):
@@ -410,6 +423,7 @@ class CLinkerType(CLinkerObject):
 
         Examples
         --------
+
         .. code-block: python
 
             def c_init(self, name, sub):
@@ -421,15 +435,15 @@ class CLinkerType(CLinkerObject):
     def c_extract(
         self, name: Text, sub: Dict[Text, Text], check_input: bool = True, **kwargs
     ) -> Text:
-        """Return C code to extract a ``PyObject *`` instance.
+        r"""Return C code to extract a ``PyObject *`` instance.
 
         The code returned from this function must be templated using
         ``%(name)s``, representing the name that the caller wants to
         call this `Variable`. The Python object ``self.data`` is in a
         variable called ``"py_%(name)s"`` and this code must set the
-        variables declared by c_declare to something representative
-        of ``py_%(name)``s. If the data is improper, set an appropriate
-        exception and insert ``"%(fail)s"``.
+        variables declared by :meth:`CLinkerType.c_declare` to something
+        representative of ``py_%(name)``\s. If the data is improper, set an
+        appropriate exception and insert ``"%(fail)s"``.
 
         TODO: Point out that template filling (via sub) is now performed
         by this function. --jpt
@@ -446,6 +460,7 @@ class CLinkerType(CLinkerObject):
 
         Examples
         --------
+
         .. code-block: python
 
             def c_extract(self, name, sub, check_input=True, **kwargs):

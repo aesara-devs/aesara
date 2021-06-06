@@ -25,9 +25,9 @@ of using ``scan`` over `for` loops in python (among others) are:
 * it allows the number of iterations to be part of the symbolic graph
 * it allows computing gradients through the for loop
 * there exist a bunch of optimizations that help re-write your loop
-such that less memory is used and that it runs faster
+  such that less memory is used and that it runs faster
 * it ensures that data is not copied from host to gpu and gpu to
-host at each step
+  host at each step
 
 The Scan Op should typically be used by calling any of the following
 functions: ``scan()``, ``map()``, ``reduce()``, ``foldl()``,

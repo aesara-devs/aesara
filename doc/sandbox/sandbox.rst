@@ -33,9 +33,7 @@ you compute the gradient, **WRITEME**.
 Gradients for a particular variable can be one of four kinds:
 1) forgot to implement it
 
-You will get an exception of the following form.
-
-.. code-block:: python
+You will get an exception of the following form::
 
     aesara.graph.utils.MethodNotDefined: ('grad', <class 'pylearn.algorithms.sandbox.cost.LogFactorial'>, 'LogFactorial')
 

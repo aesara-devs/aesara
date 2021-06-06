@@ -89,7 +89,7 @@ incsubtensor_ops = (IncSubtensor, AdvancedIncSubtensor1)
 
 @singledispatch
 def jax_typify(data, dtype=None, **kwargs):
-    """Convert instances of Aesara `Type`s to JAX types."""
+    r"""Convert instances of Aesara `Type`\s to JAX types."""
     if dtype is None:
         return data
     else:

@@ -565,7 +565,7 @@ default, it will recompile the c code for each process.
 Shape and Shape_i
 =================
 
-We have 2 generic `Op`s, `Shape` and `Shape_i`, that return the shape of any
+We have 2 generic `Op`\s, `Shape` and `Shape_i`, that return the shape of any
 Aesara `Variable` that has a shape attribute (`Shape_i` returns only one of
 the elements of the shape).
 

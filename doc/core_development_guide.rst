@@ -31,9 +31,6 @@ some of them might be outdated though:
 
 * :ref:`sandbox_elemwise` -- Description of element wise operations.
 
-* :ref:`sandbox_maxgotcha` -- Describes the difference between ``numpy.max``
-  and Python max (something to consider when using max).
-
 * :ref:`sandbox_randnb` -- Description of how Aesara deals with random
   numbers.
 

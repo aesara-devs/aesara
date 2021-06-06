@@ -42,9 +42,9 @@ NoParams = object()
 
 
 class Node(MetaObject):
-    """A `Node` in an Aesara graph.
+    r"""A `Node` in an Aesara graph.
 
-    Currently, graphs contain two kinds of `Nodes`: `Variable`s and `Apply`s.
+    Currently, graphs contain two kinds of `Nodes`: `Variable`\s and `Apply`\s.
     Edges in the graph are not explicitly represented.  Instead each `Node`
     keeps track of its parents via `Variable.owner` / `Apply.inputs`.
 
@@ -283,7 +283,7 @@ class Apply(Node):
 
 
 class Variable(Node):
-    """
+    r"""
     A :term:`Variable` is a node in an expression graph that represents a
     variable.
 
@@ -299,15 +299,15 @@ class Variable(Node):
     - :literal:`type` a `Type` instance defining the kind of value this
       `Variable` can have,
 
-    - :literal:`owner` either `None` (for graph roots) or the `Apply` instance
-      of which `self` is an output,
+    - :literal:`owner` either ``None`` (for graph roots) or the `Apply` instance
+      of which ``self`` is an output,
 
-    - :literal:`index` the integer such that :literal:`owner.outputs[index] is
-      this_variable` (ignored if `owner` is `None`),
+    - :literal:`index` the integer such that ``owner.outputs[index] is this_variable``
+      (ignored if ``owner`` is ``None``),
 
     - :literal:`name` a string to use in pretty-printing and debugging.
 
-    There are a few kinds of `Variable`s to be aware of: A `Variable` which is the
+    There are a few kinds of `Variable`\s to be aware of: A `Variable` which is the
     output of a symbolic computation has a reference to the `Apply` instance to
     which it belongs (property: owner) and the position of itself in the owner's
     output list (property: index).
@@ -336,8 +336,8 @@ class Variable(Node):
 
     Using the `Variables`' owner field and the `Apply` nodes' inputs fields,
     one can navigate a graph from an output all the way to the inputs. The
-    opposite direction is possible with a `FunctionGraph` and its
-    `FunctionGraph.clients` `dict`, which maps `Variable`s to a list of their
+    opposite direction is possible with a ``FunctionGraph`` and its
+    ``FunctionGraph.clients`` ``dict``, which maps `Variable`\s to a list of their
     clients.
 
     Parameters
@@ -728,7 +728,7 @@ def walk(
 def ancestors(
     graphs: Iterable[Variable], blockers: Collection[Variable] = None
 ) -> Generator[Variable, None, None]:
-    """Return the variables that contribute to those in given graphs (inclusive).
+    r"""Return the variables that contribute to those in given graphs (inclusive).
 
     Parameters
     ----------
@@ -736,12 +736,12 @@ def ancestors(
         Output `Variable` instances from which to search backward through
         owners.
     blockers : list of `Variable` instances
-        A collection of `Variable`s that, when found, prevent the graph search
+        A collection of `Variable`\s that, when found, prevent the graph search
         from preceding from that point.
 
     Yields
     ------
-    `Variable`s
+    `Variable`\s
         All input nodes, in the order found by a left-recursive depth-first
         search started at the nodes in `graphs`.
 
@@ -757,7 +757,7 @@ def ancestors(
 def graph_inputs(
     graphs: Iterable[Variable], blockers: Collection[Variable] = None
 ) -> Generator[Variable, None, None]:
-    """Return the inputs required to compute the given Variables.
+    r"""Return the inputs required to compute the given Variables.
 
     Parameters
     ----------
@@ -765,12 +765,11 @@ def graph_inputs(
         Output `Variable` instances from which to search backward through
         owners.
     blockers : list of `Variable` instances
-        A collection of `Variable`s that, when found, prevent the graph search
+        A collection of `Variable`\s that, when found, prevent the graph search
         from preceding from that point.
 
     Yields
     ------
-    `Variable`s
         Input nodes with no owner, in the order found by a left-recursive
         depth-first search started at the nodes in `graphs`.
 
@@ -781,19 +780,19 @@ def graph_inputs(
 def vars_between(
     ins: Collection[Variable], outs: Iterable[Variable]
 ) -> Generator[Variable, None, None]:
-    """Extract the `Variable`s within the sub-graph between input and output nodes.
+    r"""Extract the `Variable`\s within the sub-graph between input and output nodes.
 
     Parameters
     ----------
     ins : list
-        Input `Variable`s.
+        Input `Variable`\s.
     outs : list
-        Output `Variable`s.
+        Output `Variable`\s.
 
     Yields
     ------
-    `Variable`s
-        The `Variable`s that are involved in the subgraph that lies
+    `Variable`\s
+        The `Variable`\s that are involved in the subgraph that lies
         between `ins` and `outs`. This includes `ins`, `outs`,
         ``orphans_between(ins, outs)`` and all values of all intermediary steps from
         `ins` to `outs`.
@@ -810,19 +809,19 @@ def vars_between(
 def orphans_between(
     ins: Collection[Variable], outs: Iterable[Variable]
 ) -> Generator[Variable, None, None]:
-    """Extract the `Variable`s not within the sub-graph between input and output nodes.
+    r"""Extract the `Variable`\s not within the sub-graph between input and output nodes.
 
     Parameters
     ----------
     ins : list
-        Input `Variable`s.
+        Input `Variable`\s.
     outs : list
-        Output `Variable`s.
+        Output `Variable`\s.
 
     Yields
     -------
-    `Variable`s
-        The `Variable`s upon which one or more Variables in `outs`
+    Variable
+        The `Variable`\s upon which one or more `Variable`\s in `outs`
         depend, but are neither in `ins` nor in the sub-graph that lies between
         them.
 
@@ -838,22 +837,21 @@ def orphans_between(
 def applys_between(
     ins: Collection[Variable], outs: Iterable[Variable]
 ) -> Generator[Apply, None, None]:
-    """Extract the `Apply`s contained within the sub-graph between given input and output variables.
+    r"""Extract the `Apply`\s contained within the sub-graph between given input and output variables.
 
     Parameters
     ----------
     ins : list
-        Input `Variable`s.
+        Input `Variable`\s.
     outs : list
-        Output `Variable`s.
+        Output `Variable`\s.
 
     Yields
     ------
-    `Apply`s
-        The `Apply`s that are contained within the sub-graph that lies
-        between `ins` and `outs`, including the owners of the `Variable`s in
-        `outs` and intermediary `Apply`s between `ins` and `outs`, but not the
-        owners of the `Variable`s in `ins`.
+    The `Apply`\s that are contained within the sub-graph that lies
+    between `ins` and `outs`, including the owners of the `Variable`\s in
+    `outs` and intermediary `Apply`\s between `ins` and `outs`, but not the
+    owners of the `Variable`\s in `ins`.
 
     """
     yield from (
@@ -867,25 +865,24 @@ def clone(
     copy_inputs: bool = True,
     copy_orphans: Optional[bool] = None,
 ) -> Tuple[Collection[Variable], Collection[Variable]]:
-    """Copies the sub-graph contained between inputs and outputs.
+    r"""Copies the sub-graph contained between inputs and outputs.
 
     Parameters
     ----------
-    inputs : list
-        Input Variables.
-    outputs : list
-        Output Variables.
-    copy_inputs : bool
-        If True, the inputs will be copied (defaults to True).
-    copy_orphans:
-        When None, use the copy_inputs value,
-        When True, new orphans nodes are created.
-        When False, original orphans nodes are reused in the new graph.
+    inputs
+        Input `Variable`\s.
+    outputs
+        Output `Variable`\s.
+    copy_inputs
+        If ``True``, the inputs will be copied (defaults to ``True``).
+    copy_orphans
+        When ``None``, use the `copy_inputs` value.
+        When ``True``, new orphans nodes are created.
+        When ``False``, original orphans nodes are reused in the new graph.
 
     Returns
     -------
-    object
-        The inputs and outputs of that copy.
+    The inputs and outputs of that copy.
 
     Notes
     -----
@@ -1048,18 +1045,17 @@ def general_toposort(
 
     Notes
     -----
-        deps(i) should behave like a pure function (no funny business with
-        internal state).
 
-        deps(i) will be cached by this function (to be fast).
+    ``deps(i)`` should behave like a pure function (no funny business with
+    internal state).
 
-        The order of the return value list is determined by the order of nodes
-        returned by the deps() function.
+    ``deps(i)`` will be cached by this function (to be fast).
 
-        deps should be provided or can be None and the caller provides
-        compute_deps_cache and deps_cache. The second option removes a Python
-        function call, and allows for more specialized code, so it can be
-        faster.
+    The order of the return value list is determined by the order of nodes
+    returned by the `deps` function.
+
+    The second option removes a Python function call, and allows for more
+    specialized code, so it can be faster.
 
     """
     if compute_deps_cache is None:
@@ -1316,14 +1312,14 @@ def as_string(
     leaf_formatter=default_leaf_formatter,
     node_formatter=default_node_formatter,
 ) -> List[str]:
-    """Returns a string representation of the subgraph between inputs and outputs.
+    r"""Returns a string representation of the subgraph between inputs and outputs.
 
     Parameters
     ----------
     inputs : list
-        Input `Variable` s.
+        Input `Variable`\s.
     outputs : list
-        Output `Variable` s.
+        Output `Variable`\s.
     leaf_formatter : callable
         Takes a `Variable`  and returns a string to describe it.
     node_formatter : callable
@@ -1414,15 +1410,14 @@ def view_roots(node: Variable) -> List[Variable]:
 def list_of_nodes(
     inputs: Collection[Variable], outputs: Iterable[Variable]
 ) -> List[Apply]:
-
-    """Return the `Apply` nodes of the graph between `inputs` and `outputs`.
+    r"""Return the `Apply` nodes of the graph between `inputs` and `outputs`.
 
     Parameters
     ----------
     inputs : list of Variable
-        Input `Variable`s.
+        Input `Variable`\s.
     outputs : list of Variable
-        Output `Variable`s.
+        Output `Variable`\s.
 
     """
     return list(
@@ -1512,10 +1507,10 @@ def equal_computations(xs, ys, in_xs=None, in_ys=None):
     `x` and `y` represent the same computations on the same variables
     (unless equivalences are provided using `in_xs`, `in_ys`).
 
-    If `in_xs` and `in_ys` are provided, then when comparing a node `x` with
-    a node `y` they are automatically considered as equal if there is some
-    index `i` such that `x == in_xs[i]` and `y == in_ys[i]`(and they both
-    have the same type). Note that `x` and `y` can be in the list `xs` and
+    If `in_xs` and `in_ys` are provided, then when comparing a node ``x`` with
+    a node ``y`` they are automatically considered as equal if there is some
+    index ``i`` such that ``x == in_xs[i]`` and ``y == in_ys[i]`` (and they both
+    have the same type). Note that ``x`` and ``y`` can be in the list `xs` and
     `ys`, but also represent subgraphs of a computational graph in `xs`
     or `ys`.
 

@@ -75,9 +75,10 @@ class GlobalOptimizer(abc.ABC):
     def optimize(self, fgraph, *args, **kwargs):
         """
 
-        This is meant as a shortcut to:
-          opt.add_requirements(fgraph)
-          opt.apply(fgraph)
+        This is meant as a shortcut for the following::
+
+            opt.add_requirements(fgraph)
+            opt.apply(fgraph)
 
         """
         self.add_requirements(fgraph)
@@ -93,13 +94,13 @@ class GlobalOptimizer(abc.ABC):
         return self.optimize(fgraph)
 
     def add_requirements(self, fgraph):
-        """
+        """Add features to `fgraph` that are required to apply the optimization.
 
-        Add features to the fgraph that are required to apply the optimization.
-        For example:
-          fgraph.attach_feature(History())
-          fgraph.attach_feature(MyFeature())
-          etc.
+        For example::
+
+            fgraph.attach_feature(History())
+            fgraph.attach_feature(MyFeature())
+            # etc.
 
         """
 
@@ -1478,8 +1479,9 @@ class OpSub(LocalOptimizer):
 
     Examples
     --------
-    OpSub(add, sub) ==>
-        add(div(x, y), add(y, x)) -> sub(div(x, y), sub(y, x))
+
+        OpSub(add, sub) ==>
+            add(div(x, y), add(y, x)) -> sub(div(x, y), sub(y, x))
 
     """
 
@@ -1554,20 +1556,20 @@ class PatternSub(LocalOptimizer):
 
     Replaces all occurrences of the input pattern by the output pattern:
 
-    input_pattern ::= (op, <sub_pattern1>, <sub_pattern2>, ...)
-    input_pattern ::= dict(pattern = <input_pattern>,
-                            constraint = <constraint>)
-    sub_pattern ::= input_pattern
-    sub_pattern ::= string
-    sub_pattern ::= a Constant instance
-    sub_pattern ::= int
-    sub_pattern ::= float
-    constraint ::= lambda fgraph, expr: additional matching condition
+        input_pattern ::= (op, <sub_pattern1>, <sub_pattern2>, ...)
+        input_pattern ::= dict(pattern = <input_pattern>,
+                                constraint = <constraint>)
+        sub_pattern ::= input_pattern
+        sub_pattern ::= string
+        sub_pattern ::= a Constant instance
+        sub_pattern ::= int
+        sub_pattern ::= float
+        constraint ::= lambda fgraph, expr: additional matching condition
 
-    output_pattern ::= (op, <output_pattern1>, <output_pattern2>, ...)
-    output_pattern ::= string
-    output_pattern ::= int
-    output_pattern ::= float
+        output_pattern ::= (op, <output_pattern1>, <output_pattern2>, ...)
+        output_pattern ::= string
+        output_pattern ::= int
+        output_pattern ::= float
 
     Each string in the input pattern is a variable that will be set to
     whatever expression is found in its place. If the same string is
@@ -1619,13 +1621,15 @@ class PatternSub(LocalOptimizer):
 
     Examples
     --------
-    PatternSub((add, 'x', 'y'), (add, 'y', 'x'))
-    PatternSub((multiply, 'x', 'x'), (square, 'x'))
-    PatternSub((subtract, (add, 'x', 'y'), 'y'), 'x')
-    PatternSub((power, 'x', Constant(double, 2.0)), (square, 'x'))
-    PatternSub((boggle, {'pattern': 'x',
-                         'constraint': lambda expr: expr.type == scrabble}),
-               (scrabble, 'x'))
+
+        PatternSub((add, 'x', 'y'), (add, 'y', 'x'))
+        PatternSub((multiply, 'x', 'x'), (square, 'x'))
+        PatternSub((subtract, (add, 'x', 'y'), 'y'), 'x')
+        PatternSub((power, 'x', Constant(double, 2.0)), (square, 'x'))
+        PatternSub((boggle, {'pattern': 'x',
+                            'constraint': lambda expr: expr.type == scrabble}),
+                (scrabble, 'x'))
+
     """
 
     def __init__(
@@ -1868,18 +1872,17 @@ class NavigatorOptimizer(GlobalOptimizer):
         - 'auto': let the local_opt set this parameter via its 'reentrant'
           attribute.
     failure_callback
-            A function that takes (exception, navigator, [(old, new),
-            (old,new),...]) and we call it if there's an exception.
+        A function with the signature ``(exception, navigator, [(old, new),
+        (old,new),...])`` that is called when there's an exception.
 
-            If the trouble is from local_opt.transform(), the new variables
-            will be 'None'.
+        If the exception is raised in ``local_opt.transform``, the ``new`` variables
+        will be ``None``.
 
-            If the trouble is from validation (the new types don't match for
-            example) then the new variables will be the ones created by
-            transform().
+        If the exception is raised during validation (e.g. the new types don't
+        match) then the new variables will be the ones created by ``self.transform``.
 
-            If this parameter is None, then exceptions are not caught here
-            (raised normally).
+        If this parameter is ``None``, then exceptions are not caught here and
+        are raised normally.
 
     """
 
@@ -3078,33 +3081,35 @@ def inherit_stack_trace(from_var):
 
 
 def check_stack_trace(f_or_fgraph, ops_to_check="last", bug_print="raise"):
-    """
+    r"""
     This function checks if the outputs of specific ops of a compiled graph
     have a stack.
 
     Parameters
     ----------
-    f_or_fgraph: aesara.compile.function.types.Function or
-          aesara.graph.fg.FunctionGraph
+    f_or_fgraph : Function or FunctionGraph
         The compiled function or the function graph to be analysed.
-    ops_to_check: it can be of four different types:
-          - classes or instances inheriting from aesara.graph.op.Op
-          - tuple/list of classes or instances inheriting from aesara.graph.op.Op
-          - string
-          - function returning a boolean and taking as input an instance of
-            aesara.graph.op.Op.
-        - if ops_to_check is a string, it should be either 'last' or 'all'.
-          'last' will check only the last op of the graph while 'all' will
-          check all the ops of the graph.
-        - if ops_to_check is an op or a tuple/list of ops, the function will
+    ops_to_check
+        This value can be of four different types:
+            - classes or instances inheriting from `Op`
+            - tuple/list of classes or instances inheriting from `Op`
+            - string
+            - function returning a boolean and taking as input an instance of `Op`
+
+        - if `ops_to_check` is a string, it should be either ``'last'`` or ``'all'``.
+          ``'last'`` will check only the last `Op` of the graph while ``'all'`` will
+          check all the `Op`\s of the graph.
+        - if `ops_to_check` is an `Op` or a tuple/list of `Op`\s, the function will
           check that all the outputs of their occurrences in the graph have a
           stack trace.
-        - if ops_to_check is a function, it should take as input a
-          aesara.graph.op.Op and return a boolean indicating if the input op should
+        - if `ops_to_check` is a function, it should take as input a
+          `Op` and return a boolean indicating if the input `Op` should
           be checked or not.
-    bug_print: string belonging to {'raise', 'warn', 'ignore'}
+
+    bug_print
+        This value is a string belonging to ``{'raise', 'warn', 'ignore'}``.
         You can specify the behaviour of the function when the specified
-        ops_to_check are not in the graph of f_or_fgraph: it can either raise
+        `ops_to_check` are not in the graph of `f_or_fgraph`: it can either raise
         an exception, write a warning or simply ignore it.
 
     Returns

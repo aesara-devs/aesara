@@ -38,7 +38,7 @@ Use Aesara's high order Ops when applicable
 
 Aesara provides some generic Op classes which allow you to generate a
 lot of Ops at a lesser effort. For instance, Elemwise can be used to
-make :term:`elementwise` operations easily whereas DimShuffle can be
+make :term:`elemwise` operations easily whereas DimShuffle can be
 used to make transpose-like transformations. These higher order Ops
 are mostly Tensor-related, as this is Aesara's specialty.
 

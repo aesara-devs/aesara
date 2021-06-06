@@ -91,11 +91,11 @@ A local optimization is an object which defines the following methods:
 
     .. method:: transform(fgraph, node)
 
-      This method takes a :ref:`FunctionGraph` and an :ref:`Apply` node and
+      This method takes a :class:`FunctionGraph` and an :ref:`Apply` node and
       returns either ``False`` to signify that no changes are to be done or a
-      list of `Variable`s which matches the length of the node's ``outputs``
-      list. When the `LocalOptimizer` is applied by a `Navigator`, the outputs
-      of the node passed as argument to the `LocalOptimizer` will be replaced by
+      list of :class:`Variable`\s which matches the length of the node's ``outputs``
+      list. When the :class:`LocalOptimizer` is applied by a :class:`NavigatorOptimizer`, the outputs
+      of the node passed as argument to the :class:`LocalOptimizer` will be replaced by
       the list returned.
 
 
@@ -423,8 +423,8 @@ optdb is a SequenceDB, so, at the top level, Aesara applies a sequence
 of global optimizations to the computation graphs.
 
 
-OptimizationQuery
------
+:class:`OptimizationQuery`
+--------------------------
 
 A OptimizationQuery is built by the following call:
 

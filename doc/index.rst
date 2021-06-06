@@ -55,12 +55,11 @@ Roughly in order of what you'll want to check out:
 * :ref:`extending` -- Learn to add a Type, Op, or graph optimization.
 * :ref:`dev_start_guide` -- How to contribute code to Aesara.
 * :ref:`internal` -- How to maintain Aesara and more...
-* :ref:`release` -- How our release should work.
 * :ref:`acknowledgement` -- What we took from other projects.
 * `Related Projects`_ -- link to other projects that implement new functionalities on top of Aesara
 
 
-.. _aesara_community:
+.. _aesara-community:
 
 Community
 =========
@@ -88,7 +87,6 @@ Community
    links
    internal/index
    acknowledgement
-   LICENSE
 
 
 .. _Theano: https://github.com/Theano/Theano

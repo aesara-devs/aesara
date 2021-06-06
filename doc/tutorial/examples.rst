@@ -30,8 +30,8 @@ the logistic curve, which is given by:
     A plot of the logistic function, with x on the x-axis and s(x) on the
     y-axis.
 
-You want to compute the function :ref:`elementwise
-<libdoc_tensor_elementwise>` on matrices of doubles, which means that
+You want to compute the function :ref:`element-wise
+<libdoc_tensor_elemwise>` on matrices of doubles, which means that
 you want to apply this function to each individual element of the
 matrix.
 
@@ -75,7 +75,7 @@ Computing More than one Thing at the Same Time
 ==============================================
 
 Aesara supports functions with multiple outputs. For example, we can
-compute the :ref:`elementwise <libdoc_tensor_elementwise>` difference, absolute difference, and
+compute the :ref:`element-wise <libdoc_tensor_elemwise>` difference, absolute difference, and
 squared difference between two matrices *a* and *b* at the same time:
 
 .. If you modify this code, also change :
@@ -373,7 +373,7 @@ Here's a brief example.  The setup code is:
 Here, 'rv_u' represents a random stream of 2x2 matrices of draws from a uniform
 distribution.  Likewise,  'rv_n' represents a random stream of 2x2 matrices of
 draws from a normal distribution.  The distributions that are implemented are
-defined as :class:`RandomVariable`s
+defined as :class:`RandomVariable`\s
 in :ref:`basic<libdoc_tensor_random_basic>`. They only work on CPU.
 See `Other Implementations`_ for GPU version.
 

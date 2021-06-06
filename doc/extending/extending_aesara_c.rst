@@ -435,7 +435,7 @@ wrong but DebugMode will not detect this.
 
 TODO: jpt: I don't understand the following sentence.
 
-`Op`s and `Type`s should usually be considered immutable -- you should
+`Op`\s and `Type`\s should usually be considered immutable -- you should
 definitely not make a change that would have an impact on ``__eq__``,
 ``__hash__``, or the mathematical value that would be computed by  ``perform``
 or ``c_code``.
@@ -969,7 +969,7 @@ In addition to these macros, the ``init_code_struct``, ``code``, and
       happy.
 
 *     ``PARAMS`` : Name of the params variable for this node.  (only
-      for `Op`s which have params, which is discussed elsewhere)
+      for `Op`\s which have params, which is discussed elsewhere)
 
 Finally the tag ``code`` and ``code_cleanup`` have macros to
 pass the inputs and output names.  These are name ``INPUT_{i}`` and

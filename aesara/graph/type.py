@@ -97,13 +97,13 @@ class Type(MetaObject):
     def filter_variable(
         self, other: Union[Variable, D], allow_convert: bool = True
     ) -> Variable:
-        """Convert a symbolic variable into this `Type`, if compatible.
+        r"""Convert a symbolic variable into this `Type`, if compatible.
 
-        For the moment, the only `Type`s compatible with one another are
+        For the moment, the only `Type`\s compatible with one another are
         `TensorType` and `GpuArrayType`, provided they have the same number of
         dimensions, same broadcasting pattern, and same dtype.
 
-        If `Type`s are not compatible, a ``TypeError`` should be raised.
+        If `Type`\s are not compatible, a ``TypeError`` should be raised.
 
         """
         if not isinstance(other, Variable):

@@ -321,7 +321,7 @@ class FunctionGraph(MetaObject):
 
         This will also import the `variable`'s `Apply` node.
 
-        Parameters:
+        Parameters
         ----------
         variable : aesara.graph.basic.Variable
             The variable to be imported.
@@ -361,7 +361,7 @@ class FunctionGraph(MetaObject):
     ) -> None:
         """Recursively import everything between an `Apply` node and the `FunctionGraph`'s outputs.
 
-        Parameters:
+        Parameters
         ----------
         apply_node : aesara.graph.basic.Apply
             The node to be imported.
@@ -492,7 +492,7 @@ class FunctionGraph(MetaObject):
         This is the main interface to manipulate the subgraph in `FunctionGraph`.
         For every node that uses `var` as input, makes it use `new_var` instead.
 
-        Parameters:
+        Parameters
         ----------
         var : aesara.graph.basic.Variable
             The variable to be replaced.
@@ -772,20 +772,21 @@ class FunctionGraph(MetaObject):
     def clone_get_equiv(
         self, check_integrity: bool = True, attach_feature: bool = True
     ) -> Union["FunctionGraph", Dict[Variable, Variable]]:
-        """Clone the graph and get a dict that maps old nodes to new ones
+        """Clone the graph and return a ``dict`` that maps old nodes to new nodes.
 
-        Parameters:
-            check_integrity: bool
-                Whether to check integrity. Default is True.
-            attach_feature: bool
-                Whether to attach feature of origin graph to cloned graph.
-                Default is True.
+        Parameters
+        ----------
+        check_integrity
+            Whether to check integrity.
+        attach_feature
+            Whether to attach feature of origin graph to cloned graph.
 
-        Returns:
-            e: FunctionGraph
-                Cloned fgraph. Every node in cloned graph is cloned.
-            equiv: dict
-                A dict that map old node to new node.
+        Returns
+        -------
+        e
+            Cloned fgraph. Every node in cloned graph is cloned.
+        equiv
+            A ``dict`` that maps old nodes to the new nodes.
         """
         equiv = clone_get_equiv(self.inputs, self.outputs)
 
