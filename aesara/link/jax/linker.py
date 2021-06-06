@@ -1,4 +1,4 @@
-from numpy.random import RandomState
+from numpy.random import Generator, RandomState
 
 from aesara.graph.basic import Constant
 from aesara.link.basic import JITLinker
@@ -28,7 +28,7 @@ class JAXLinker(JITLinker):
         thunk_inputs = []
         for n in self.fgraph.inputs:
             sinput = storage_map[n]
-            if isinstance(sinput[0], RandomState):
+            if isinstance(sinput[0], (RandomState, Generator)):
                 new_value = jax_typify(
                     sinput[0], dtype=getattr(sinput[0], "dtype", None)
                 )
