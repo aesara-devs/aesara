@@ -17,8 +17,8 @@ and ops which are particular to neural networks and deep learning.
     :maxdepth: 1
 
     conv
-    nnet
+    basic
     neighbours
-    bn
+    batchnorm
     blocksparse
     ctc

@@ -3278,6 +3278,9 @@ def parse_mul_tree(root):
 
     Examples
     --------
+
+    .. code-block:: python
+
         x * y               -> [False, [[False, x], [False, y]]]
         -(x * y)            -> [True, [[False, x], [False, y]]]
         -x * y              -> [False, [[True, x], [False, y]]]

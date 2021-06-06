@@ -465,7 +465,7 @@ TensorVariable
     you'll want to call.
 
 
-.. autoclass:: var._tensor_py_operators
+.. autoclass:: aesara.tensor.var._tensor_py_operators
    :members:
 
     This mix-in class adds convenient attributes, methods, and support
@@ -478,16 +478,19 @@ TensorVariable
         values that might be associated with this variable.
 
     .. attribute:: ndim
+       :noindex:
 
         The number of dimensions of this tensor.  Aliased to
         :attr:`TensorType.ndim`.
 
     .. attribute:: dtype
+       :noindex:
 
         The numeric type of this tensor. Aliased to
         :attr:`TensorType.dtype`.
 
     .. method:: reshape(shape, ndim=None)
+       :noindex:
 
         Returns a view of this tensor that has been reshaped as in
         numpy.reshape.  If the shape is a Variable argument, then you might
@@ -498,6 +501,7 @@ TensorVariable
         See :func:`reshape`.
 
     .. method:: dimshuffle(*pattern)
+       :noindex:
 
         Returns a view of this tensor with permuted dimensions.  Typically the
         pattern will include the integers 0, 1, ... ndim-1, and any number of
@@ -549,13 +553,19 @@ TensorVariable
     .. method:: copy() Return a new symbolic variable that is a copy of the variable. Does not copy the tag.
     .. method:: norm(L, axis=None)
     .. method:: nonzero(self, return_matrix=False)
+       :noindex:
     .. method:: nonzero_values(self)
+       :noindex:
     .. method:: sort(self, axis=-1, kind='quicksort', order=None)
+       :noindex:
     .. method:: argsort(self, axis=-1, kind='quicksort', order=None)
+       :noindex:
     .. method:: clip(self, a_min, a_max) with a_min <= a_max
     .. method:: conf()
     .. method:: repeat(repeats, axis=None)
+       :noindex:
     .. method:: round(mode="half_away_from_zero")
+       :noindex:
     .. method:: trace()
     .. method:: get_scalar_constant_value()
     .. method:: zeros_like(model, dtype=None)
@@ -577,6 +587,7 @@ dimensions, see :meth:`_tensor_py_operators.dimshuffle`.
     Returns an lvector representing the shape of `x`.
 
 .. function:: reshape(x, newshape, ndim=None)
+   :noindex:
 
     :type x: any TensorVariable (or compatible)
     :param x: variable to be reshaped
@@ -810,6 +821,7 @@ Creating Tensor
     (2, 2, 2, 3, 2)
 
 .. function:: stack(*tensors)
+   :noindex:
 
     .. warning::
 
@@ -1175,7 +1187,7 @@ Bitwise
    >>> ~a         # aet.invert(a)    bitwise invert (alias aet.bitwise_not)
 
 Inplace
--------------
+-------
 
 In-place operators are *not* supported.  Aesara's graph-optimizations
 will determine which intermediate values to use for in-place
@@ -1183,10 +1195,10 @@ computations.  If you would like to update the value of a
 :term:`shared variable`, consider using the ``updates`` argument to
 :func:`Aesara.function`.
 
-.. _libdoc_tensor_elementwise:
+.. _libdoc_tensor_elemwise:
 
-Elementwise
-===========
+:class:`Elemwise`
+=================
 
 Casting
 -------
@@ -1220,7 +1232,7 @@ Casting
 
 
 Comparisons
-------------
+-----------
 
 The six usual equality and inequality operators share the same interface.
   :Parameter:  *a* - symbolic Tensor (or compatible)
@@ -1456,6 +1468,7 @@ Mathematical
     Returns a variable representing the floor of a (for example floor(2.9) is 2).
 
 .. function:: round(a, mode="half_away_from_zero")
+   :noindex:
 
     Returns a variable representing the rounding of a in the same dtype as a. Implemented rounding mode are half_away_from_zero and half_to_even.
 

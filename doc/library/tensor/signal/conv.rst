@@ -16,7 +16,7 @@
     present in convolutional neural networks (where filters are 3D and pool
     over several input channels).
 
-.. module:: conv
+.. module:: aesara.tensor.signal.conv
    :platform: Unix, Windows
    :synopsis: ops for performing convolutions
 .. moduleauthor:: LISA

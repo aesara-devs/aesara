@@ -56,7 +56,7 @@ ThunkType = Callable[[PerformMethodType, StorageMapType, ComputeMapType, Apply],
 
 
 def compute_test_value(node: Apply):
-    """Computes the test value of a node.
+    r"""Computes the test value of a node.
 
     Parameters
     ----------
@@ -66,7 +66,7 @@ def compute_test_value(node: Apply):
     Returns
     -------
     None
-        The `tag.test_value`s are updated in each `Variable` in `node.outputs`.
+        The `tag.test_value`\s are updated in each `Variable` in `node.outputs`.
 
     """
     # Gather the test values for each input of the node
@@ -140,13 +140,11 @@ class Op(MetaObject):
 
     A `Op` instance has several responsibilities:
 
-    - construct `Apply` nodes via `Op.make_node` method,
-
-    - perform the numeric calculation of the modeled operation via
-    the `Op.perform` method,
-
-    - and (optionally) build the gradient-calculating sub-graphs via the
-    `Op.grad` method.
+    * construct `Apply` nodes via :meth:`Op.make_node` method,
+    * perform the numeric calculation of the modeled operation via the
+      :meth:`Op.perform` method,
+    * and (optionally) build the gradient-calculating sub-graphs via the
+      :meth:`Op.grad` method.
 
     To see how `Op`, `Type`, `Variable`, and `Apply` fit together see the
     page on :doc:`graph`.
@@ -173,8 +171,12 @@ class Op(MetaObject):
 
     Examples
     ========
+
+    .. code-block:: python
+
         view_map = {0: [1]} # first output is a view of second input
         view_map = {1: [0]} # second output is a view of first input
+
     """
 
     destroy_map: Dict[int, List[int]] = {}
@@ -184,6 +186,9 @@ class Op(MetaObject):
 
     Examples
     ========
+
+    .. code-block:: python
+
         destroy_map = {0: [1]} # first output operates in-place on second input
         destroy_map = {1: [0]} # second output operates in-place on first input
 
@@ -223,17 +228,17 @@ class Op(MetaObject):
         return Apply(self, inputs, [o() for o in self.otypes])
 
     def __call__(self, *inputs: Any, **kwargs) -> Union[Variable, List[Variable]]:
-        """Construct an `Apply` node using `self.make_node` and return its outputs.
+        r"""Construct an `Apply` node using `self.make_node` and return its outputs.
 
         This method is just a wrapper around `Op.make_node`.
 
         It is called by code such as:
 
-        .. python::
+        .. code-block:: python
 
-           x = tensor.matrix()
+           x = aesara.tensor.matrix()
+           y = aesara.tensor.exp(x)
 
-           y = tensor.exp(x)
 
         `tensor.exp` is an Op instance, so `tensor.exp(x)` calls
         `tensor.exp.__call__` (i.e. this method) and returns its single output
@@ -250,19 +255,19 @@ class Op(MetaObject):
             The `Op`'s inputs.
         kwargs
             Additional keyword arguments to be forwarded to
-            `make_node()` *except* for optional argument `return_list` (which
-            defaults to `False`). If `return_list` is `True`, then the returned
-            value is always a `list`. Otherwise it is either a single `Variable`
-            when the output of `make_node()` contains a single element, or this
+            :meth:`Op.make_node` *except* for optional argument ``return_list`` (which
+            defaults to ``False``). If ``return_list`` is ``True``, then the returned
+            value is always a ``list``. Otherwise it is either a single `Variable`
+            when the output of :meth:`Op.make_node` contains a single element, or this
             output (unchanged) when it contains multiple elements.
 
         Returns
         -------
         outputs : list of Variable or Variable
-            Either a list of output `Variable`s, or a single `Variable`.
+            Either a list of output `Variable`\s, or a single `Variable`.
             This is determined by the number of outputs produced by the
-            `Op`, the value of the keyword `return_list`, and the value of
-            the `Op.default_output` property.
+            `Op`, the value of the keyword ``return_list``, and the value of
+            the :attr:`Op.default_output` property.
 
         """
         return_list = kwargs.pop("return_list", False)
@@ -346,28 +351,24 @@ class Op(MetaObject):
     def R_op(
         self, inputs: List[Variable], eval_points: Union[Variable, List[Variable]]
     ) -> List[Variable]:
-        """Construct a graph for the R-operator.
+        r"""Construct a graph for the R-operator.
 
-        This method is primarily used by `Rop`
+        This method is primarily used by `Rop`.
 
-        Suppose the op outputs
-
-        [ f_1(inputs), ..., f_n(inputs) ]
+        Suppose the `Op` outputs ``[ f_1(inputs), ..., f_n(inputs) ]``.
 
         Parameters
         ----------
-        inputs : a Variable or list of Variables
+        inputs
+            The `Op` inputs.
         eval_points
-            A Variable or list of Variables with the same length as inputs.
-            Each element of eval_points specifies the value of the corresponding
-            input at the point where the R op is to be evaluated.
+            A `Variable` or list of `Variable`\s with the same length as inputs.
+            Each element of `eval_points` specifies the value of the corresponding
+            input at the point where the R-operator is to be evaluated.
 
         Returns
         -------
-        list of n elements
-            rval[i] should be Rop(f=f_i(inputs),
-                                  wrt=inputs,
-                                  eval_points=eval_points)
+        ``rval[i]`` should be ``Rop(f=f_i(inputs), wrt=inputs, eval_points=eval_points)``.
 
         """
         raise NotImplementedError()
@@ -682,14 +683,20 @@ def get_test_value(v: Variable) -> Any:
 
 
 def missing_test_message(msg: Text) -> None:
-    """
-    Displays msg, a message saying that some test_value is missing,
-    in the appropriate form based on config.compute_test_value:
+    """Display a message saying that some test_value is missing.
 
-        off: The interactive debugger is off, so we do nothing.
-        ignore: The interactive debugger is set to ignore missing inputs,
-                so do nothing.
-        warn: Display msg as a warning.
+    This uses the appropriate form based on ``config.compute_test_value``:
+
+        off:
+            The interactive debugger is off, so we do nothing.
+
+        ignore:
+            The interactive debugger is set to ignore missing inputs, so do
+            nothing.
+
+        warn:
+            Display `msg` as a warning.
+
 
     Raises
     ------
@@ -707,28 +714,33 @@ def missing_test_message(msg: Text) -> None:
 
 
 def get_test_values(*args: Variable) -> Union[Any, List[Any]]:
-    """Get test values for multiple `Variable`s.
+    r"""Get test values for multiple `Variable`\s.
 
     Intended use:
+
+    .. code-block:: python
 
         for val_1, ..., val_n in get_debug_values(var_1, ..., var_n):
             if some condition on val_1, ..., val_n is not met:
                 missing_test_message("condition was not met")
 
-    Given a list of variables, get_debug_values does one of three things:
 
-        1. If the interactive debugger is off, returns an empty list
-        2. If the interactive debugger is on, and all variables have
-            debug values, returns a list containing a single element.
-            This single element is either:
-                a) if there is only one variable, the element is its
-                   value
-                b) otherwise, a tuple containing debug values of all
-                   the variables.
-        3. If the interactive debugger is on, and some variable does
-            not have a debug value, issue a missing_test_message about
-            the variable, and, if still in control of execution, return
-            an empty list.
+    Given a list of variables, `get_debug_values` does one of three things:
+
+    1. If the interactive debugger is off, returns an empty list
+    2. If the interactive debugger is on, and all variables have
+       debug values, returns a list containing a single element.
+       This single element is either:
+
+           a) if there is only one variable, the element is its
+               value
+           b) otherwise, a tuple containing debug values of all
+               the variables.
+
+    3. If the interactive debugger is on, and some variable does
+       not have a debug value, issue a `missing_test_message` about
+       the variable, and, if still in control of execution, return
+       an empty list.
 
     """
 
@@ -754,10 +766,10 @@ def get_test_values(*args: Variable) -> Union[Any, List[Any]]:
 
 
 ops_with_inner_function: Dict[Op, Text] = {}
-"""
-Registry of Ops that have an inner compiled Aesara function.
+r"""
+Registry of `Op`\s that have an inner compiled Aesara function.
 
-The keys are Op classes (not instances), and values are the name of the
+The keys are `Op` classes (not instances), and values are the name of the
 attribute that contains the function. For instance, if the function is
 self.fn, the value will be 'fn'.
 

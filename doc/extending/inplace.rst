@@ -5,11 +5,11 @@
 Views and inplace operations
 ============================
 
-Aesara allows the definition of ``Op``s which return a :term:`view` on one
+Aesara allows the definition of ``Op``\s which return a :term:`view` on one
 of their inputs or operate :term:`inplace` on one or several
 inputs. This allows more efficient operations on NumPy's ``ndarray``
 data type than would be possible otherwise.
-However, in order to work correctly, these ``Op``s need to
+However, in order to work correctly, these ``Op``\s need to
 implement an additional interface.
 
 Aesara recognizes views and inplace operations specially. It ensures
@@ -206,7 +206,7 @@ input(s)'s memory). From there, go to the previous section.
 Inplace optimization and DebugMode
 ==================================
 
-It is recommended that during the graph construction, all ``Op``s are not inplace.
+It is recommended that during the graph construction, all ``Op``\s are not inplace.
 Then an optimization replaces them with inplace ones. Currently ``DebugMode`` checks
 all optimizations that were tried even if they got rejected. One reason an inplace
 optimization can get rejected is when there is another ``Op`` that is already being applied
@@ -218,6 +218,6 @@ checking a rejected inplace optimization, since it will lead to wrong results.
 In order to be able to use ``DebugMode`` in more situations, your inplace
 optimization can pre-check whether it will get rejected by using the
 ``aesara.graph.destroyhandler.fast_inplace_check()`` function, that will tell
-which ``Op``s can be performed inplace. You may then skip the optimization if it is
+which ``Op``\s can be performed inplace. You may then skip the optimization if it is
 incompatible with this check. Note however that this check does not cover all
 cases where an optimization may be rejected (it will not detect cycles).

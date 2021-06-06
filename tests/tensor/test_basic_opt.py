@@ -1065,7 +1065,7 @@ class TestFusion:
         self.do(self.mode, self._shared, shp)
 
     def test_fusion_35_inputs(self):
-        """Make sure we don't fuse too many `Op`s and go past the 31 function arguments limit."""
+        r"""Make sure we don't fuse too many `Op`\s and go past the 31 function arguments limit."""
         inpts = vectors(["i%i" % i for i in range(35)])
 
         # Make an elemwise graph looking like:
@@ -1228,7 +1228,7 @@ class TestFusion:
 
     @pytest.mark.skipif(not config.cxx, reason="No cxx compiler")
     def test_no_c_code(self):
-        """Make sure we avoid fusions for `Op`s without C code implementations."""
+        r"""Make sure we avoid fusions for `Op`\s without C code implementations."""
 
         # This custom `Op` has no `c_code` method
         class NoCCodeOp(aes.basic.UnaryScalarOp):

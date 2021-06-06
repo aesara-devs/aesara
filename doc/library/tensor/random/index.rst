@@ -7,11 +7,8 @@
 Low-level random numbers
 ------------------------
 
-.. module:: aesara.tensor.random
-   :synopsis: symbolic random variables
-
-The `aesara.tensor.random` module provides random-number drawing functionality
-that closely resembles the `numpy.random` module.
+The :mod:`aesara.tensor.random` module provides random-number drawing functionality
+that closely resembles the :mod:`numpy.random` module.
 
 .. toctree::
     :maxdepth: 2

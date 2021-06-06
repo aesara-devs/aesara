@@ -1,8 +1,8 @@
 
-.. _libdoc_tensor_random:
+.. _libdoc_tensor_random_basic:
 
 =============================================
-:mod:`random` -- Low-level random numbers
+:mod:`basic` -- Low-level random numbers
 =============================================
 
 .. module:: aesara.tensor.random
@@ -17,9 +17,9 @@ Reference
 
 .. class:: RandomStream()
 
-   A helper class that tracks changes in a shared ``numpy.random.RandomState``
-   and behaves like ``numpy.random.RandomState`` by managing access
-   to `RandomVariable`s.  For example:
+   A helper class that tracks changes in a shared :class:`numpy.random.RandomState`
+   and behaves like :class:`numpy.random.RandomState` by managing access
+   to :class:`RandomVariable`\s.  For example:
 
    .. testcode:: constructors
 

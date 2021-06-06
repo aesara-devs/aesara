@@ -254,8 +254,9 @@ def searchsorted(x, v, side="left", sorter=None):
 
     Notes
     -----
-    * Binary search is used to find the required insertion points.
-    * This Op is working **only on CPU** currently.
+
+        * Binary search is used to find the required insertion points.
+        * This Op is working **only on CPU** currently.
 
     Examples
     --------
@@ -778,7 +779,7 @@ def repeat(x, repeats, axis=None):
     axis to repeat values. By default, use the flattened input
     array, and return a flat output array.
 
-    The number of repetitions for each element is `repeat`.
+    The number of repetitions for each element is `repeats`.
     `repeats` is broadcasted to fit the length of the given `axis`.
 
     Parameters
@@ -1305,9 +1306,10 @@ def unique(
     Returns the sorted unique elements of an array. There are three optional
     outputs in addition to the unique elements:
 
-    * the indices of the input array that give the unique values
-    * the indices of the unique array that reconstruct the input array
-    * the number of times each unique value comes up in the input array
+        * the indices of the input array that give the unique values
+        * the indices of the unique array that reconstruct the input array
+        * the number of times each unique value comes up in the input array
+
     """
     return Unique(return_index, return_inverse, return_counts, axis)(ar)
 
@@ -1473,7 +1475,7 @@ def broadcast_shape(*arrays, **kwargs):
 
     Parameters
     ----------
-    *arrays: `TensorVariable`s
+    *arrays: TensorVariable
         The tensor variables, or their shapes (as tuples),
         for which the broadcast shape is computed.
     arrays_are_shapes: bool (Optional)

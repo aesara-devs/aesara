@@ -28,8 +28,8 @@ As an illustration, this tutorial shows how to write a simple Python-based
 .. note::
 
     This is an introductury tutorial and as such it does not cover how to make
-    an ``Op`` that returns a view or modifies the values in its inputs. Thus, all
-    ``Op``s created with the instructions described here MUST return newly
+    an :class:`Op` that returns a view or modifies the values in its inputs. Thus, all
+    :class:`Op`\s created with the instructions described here MUST return newly
     allocated memory or reuse the memory provided in the parameter
     ``output_storage`` of the :func:`perform` function. See
     :ref:`views_and_inplace` for an explanation on how to do this.
@@ -128,13 +128,13 @@ or :func:`make_thunk`.
   :func:`make_node` method creates an Apply node representing the application
   of the ``Op`` on the inputs provided. This method is responsible for three things:
 
-    - it first checks that the input ``Variable``s types are compatible
-      with the current ``Op``. If the ``Op`` cannot be applied on the provided
+    - it first checks that the input :class:`Variable`\s types are compatible
+      with the current :class:`Op`. If the :class:`Op` cannot be applied on the provided
       input types, it must raises an exception (such as :class:`TypeError`).
-    - it operates on the ``Variable``s found in
+    - it operates on the :class:`Variable`\s found in
       ``*inputs`` in Aesara's symbolic language to infer the type of
-      the symbolic output ``Variable``s. It creates output ``Variable``s of a suitable
-      symbolic `Type` to serve as the outputs of this ``Op``'s
+      the symbolic output :class:`Variable`\s. It creates output :class:`Variable`\s of a suitable
+      symbolic :class:`Type` to serve as the outputs of this :class:`Op`'s
       application.
     - it creates an Apply instance with the input and output ``Variable``, and
       return the Apply instance.
@@ -215,11 +215,11 @@ There are other methods that can be optionally defined by the ``Op``:
   your ``Op``.
 
   :func:`__eq__` and :func:`__hash__` define respectivelly equality
-  between two ``Op``s and the hash of an ``Op`` instance.
+  between two :class:`Op`\s and the hash of an :class:`Op` instance.
   They will be used by the optimization
   phase to merge nodes that are doing equivalent computations (same
   inputs, same operation).
-  Two ``Op``s that are equal according :func:`__eq__`
+  Two :class:`Op`\s that are equal according :func:`__eq__`
   should return the same output when they are applied on the same inputs.
 
   The :attr:`__props__` lists the properties
@@ -231,19 +231,20 @@ There are other methods that can be optionally defined by the ``Op``:
   :attr:`__props__` enables the  automatic generation of appropriate
   :func:`__eq__` and :func:`__hash__`.
   Given the method :func:`__eq__`, automatically generated from
-  :attr:`__props__`, two ``Op``s will be equal if they have the same values for all
+  :attr:`__props__`, two :class:`Op`\s will be equal if they have the same values for all
   the properties listed in :attr:`__props__`.
   Given to the method :func:`__hash__` automatically generated from
-  :attr:`__props__`, two ``Op``s will be have the same hash if they have the same
+  :attr:`__props__`, two :class:`Op`\s will be have the same hash if they have the same
   values for all the properties listed in :attr:`__props__`.
   :attr:`__props__` will also generate a  suitable :func:`__str__` for your ``Op``.
   This requires development version after September 1st, 2014 or version 0.7.
 
   The :func:`infer_shape` method allows an `Op` to infer the shape of its
   output variables without actually computing them.
-  It takes as input ``fgraph``, a `FunctionGraph`; ``node``, a reference to the ``Op`` Apply node;
-  and a list of Aesara symbolic Variables (``i0_shape``, ``i1_shape``, ...)
-  which are the shape of the ``Op`` input ``Variable``s.
+  It takes as input ``fgraph``, a :class:`FunctionGraph`; ``node``, a reference
+  to the :class:`Op`'s :class:`Apply` node;
+  and a list of :class:`Variables`\s (e.g. ``i0_shape``, ``i1_shape``, ...)
+  which are the dimensions of the :class:`Op` input :class:`Variable`\s.
   :func:`infer_shape` returns a list where each element is a tuple representing
   the shape of one output.
   This could be helpful if one only
@@ -253,10 +254,10 @@ There are other methods that can be optionally defined by the ``Op``:
   The :func:`grad` method is required if you want to differentiate some cost
   whose expression includes your ``Op``. The gradient may be
   specified symbolically in this method. It takes two arguments ``inputs`` and
-  ``output_gradients`` which are both lists of symbolic Aesara ``Variable``s and
-  those must be operated on using Aesara's symbolic language. The grad
-  method must return a list containing one ``Variable`` for each
-  input. Each returned ``Variable`` represents the gradient with respect
+  ``output_gradients``, which are both lists of :class:`Variable`\s, and
+  those must be operated on using Aesara's symbolic language. The :func:`grad`
+  method must return a list containing one :class:`Variable` for each
+  input. Each returned :class:`Variable` represents the gradient with respect
   to that input computed based on the symbolic gradients with respect
   to each output.
   If the output is not differentiable with respect to an input then
@@ -363,15 +364,15 @@ a ``.op`` attribute that refers to ``doubleOp1``.
 
 .. The first two methods in the ``Op`` are relatively boilerplate: ``__eq__``
 .. and ``__hash__``.
-.. When two ``Op``s are equal, Aesara will merge their outputs if they are applied to the same inputs.
-.. The base class (Op) says two objects are equal if (and only if)
+.. When two :class:`Op`\s are equal, Aesara will merge their outputs if they are applied to the same inputs.
+.. The base class says two objects are equal if (and only if)
 .. they are the same object.
 .. Writing these boilerplate definitions ensures that the logic of the equality comparison is always explicit.
 
-.. It is an essential part of the :ref:`op_contract` that if two ``Op``s compare
+.. It is an essential part of the :ref:`op_contract` that if two :class:`Op`\s compare
 .. equal, then they must compute the same result when presented with the same
 .. inputs.  Here, if we allocated another instance of ``Fibby`` by typing ``fibby2
-.. = Fibby()`` then we would have two ``Op``s that behave identically.
+.. = Fibby()`` then we would have two :class:`Op`\s that behave identically.
 ..
 .. When should the implementation of ``__eq__`` be more complicated?
 .. If ``Fibby.__init__`` had parameters, then we could
@@ -379,8 +380,8 @@ a ``.op`` attribute that refers to ``doubleOp1``.
 .. arguments to the constructor. If we had done that, and if that different
 .. configuration made ``fibby2`` compute different results from ``fibby`` (for the
 .. same inputs) then we would have to add logic to the ``__eq__`` and ``__hash__``
-.. function so that he two ``Fibby`` ``Op``s would *not be equal*.  The reason why: Aesara's merge
-.. optimization looks for ``Op``s comparing equal and merges them. If two ``Op``s compare
+.. function so that he two ``Fibby`` :class:`Op`\s would *not be equal*.  The reason why: Aesara's merge
+.. optimization looks for :class:`Op`\s comparing equal and merges them. If two :class:`Op`\s compare
 .. equal but don't always produce equal results from equal inputs, then you might
 .. see wrong calculation.
 
@@ -392,7 +393,7 @@ is important:  Aesara will call ``make_node(*inputs)`` to copy the graph,
 so it is important not to change the semantics of the expression by changing
 the argument order.
 
-All the ``inputs`` and ``outputs`` arguments to ``Apply`` must be ``Variable``s.
+All the ``inputs`` and ``outputs`` arguments to :class:`Apply` must be :class:`Variable`\s.
 A common and easy way to ensure inputs are variables is to run them through
 ``as_tensor_variable``. This function leaves TensorType variables alone, raises
 an error for non-TensorType variables, and copies any ``numpy.ndarray`` into
@@ -482,8 +483,8 @@ Example: __props__ definition
 We can modify the previous piece of code in order to demonstrate
 the usage of the :attr:`__props__` attribute.
 
-We create an ``Op`` that takes a variable ``x`` and returns ``a*x+b``.
-We want to say that two such ``Op``s are equal when their values of ``a``
+We create an :class:`Op` that takes a variable ``x`` and returns ``a*x+b``.
+We want to say that two such :class:`Op`\s are equal when their values of ``a``
 and ``b`` are equal.
 
 .. testcode:: properties
@@ -731,23 +732,21 @@ tests more reproducible, you need a way to get the same random
 numbers. You can do this by seeding NumPy's random number
 generator.
 
-For convenience, the classes InferShapeTester and RopLop_checker
-already do this for you. If you implement your own ``setUp`` function,
-don't forget to call the parent ``setUp`` function.
-
-For more details see :ref:`random_value_in_tests`.
+For convenience, the classes :class:`InferShapeTester` and :class:`RopLop_checker`
+already do this for you. If you implement your own :meth:`setUp` method,
+don't forget to call the parent :meth:`setUp` method.
 
 
 :download:`Solution<extending_aesara_solution_1.py>`
 
 
-as_op
------
+:func:`as_op`
+---------------------
 
-as_op is a python decorator that converts a python function into a
-basic Aesara ``Op`` that will call the supplied function during execution.
+:func:`as_op` is a Python decorator that converts a Python function into a
+basic Aesara :class:`Op` that will call the supplied function during execution.
 
-This isn't the recommended way to build an ``Op``, but allows for a quick
+This isn't the recommended way to build an :class:`Op`, but allows for a quick
 implementation.
 
 It takes an optional :func:`infer_shape` parameter that must have this
@@ -854,7 +853,7 @@ Final Note
 A more extensive discussion of this section's content may be found in
 the advanced tutorial :ref:`Extending Aesara<extending>`.
 
-The section :ref:`Other ``Op``s <other_ops>` includes more instructions for
+The section :ref:`Other Ops <other_ops>` includes more instructions for
 the following specific cases:
 
  - :ref:`scalar_ops`

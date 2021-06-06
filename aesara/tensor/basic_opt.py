@@ -4382,15 +4382,15 @@ register_specialize(topo_constant_folding, "fast_compile", final_opt=True)
 
 
 def local_elemwise_fusion_op(op_class, max_input_fct=lambda node: 32, maker=None):
-    """Create a recursive function that fuses `Elemwise` `Op`s.
+    r"""Create a recursive function that fuses `Elemwise` `Op`\s.
 
     The basic idea is that we loop through an `Elemwise` node's inputs, find
     other `Elemwise` nodes, determine the scalars input types for all of the
-    `Elemwise` `Op`s, construct a new scalar `Op` using the scalar input types
+    `Elemwise` `Op`\s, construct a new scalar `Op` using the scalar input types
     and each `Elemwise`'s scalar `Op`, and use the composite scalar `Op` in a
     new "fused" `Elemwise`.
 
-    It's parameterized in order to work for `Elemwise` and `GpuElemwise` `Op`s.
+    It's parameterized in order to work for `Elemwise` and `GpuElemwise` `Op`\s.
 
     Parameters
     ----------
@@ -4401,14 +4401,14 @@ def local_elemwise_fusion_op(op_class, max_input_fct=lambda node: 32, maker=None
         can take (useful for `GpuElemwise`).  The GPU kernel currently has a
         limit of 256 bytes for the size of all parameters passed to it. As
         currently we pass a lot of information only by parameter, we must limit how
-        many `Op`s we fuse together to avoid busting that 256 limit.
+        many `Op`\s we fuse together to avoid busting that 256 limit.
 
         On the CPU we limit to 32 input variables since that is the maximum
         NumPy support.
 
     maker: callable
-        A function with the signature `(node, *args)` that constructs an
-        `op_class` instance (e.g. `op_class(*args)`).
+        A function with the signature ``(node, *args)`` that constructs an
+        `op_class` instance (e.g. ``op_class(*args)``).
 
     """
     if maker is None:
@@ -4417,9 +4417,9 @@ def local_elemwise_fusion_op(op_class, max_input_fct=lambda node: 32, maker=None
             return op_class(scalar_op)
 
     def local_fuse(fgraph, node):
-        """Fuse `Elemwise` `Op`s in a node.
+        r"""Fuse `Elemwise` `Op`\s in a node.
 
-        As part of specialization, we fuse two consecutive elemwise `Op`s of the
+        As part of specialization, we fuse two consecutive `Elemwise` `Op`\s of the
         same shape.
 
         For mixed dtype, we let the `Composite` `Op` do the cast. It lets the C

@@ -79,7 +79,6 @@ make sure there are no broader problems.
 To run the test suite with the default options, see
 :ref:`test_aesara`.
 
-For more detail, see :ref:`metadocumentation_nightly_build`.
 
 Setting up your Editor for PEP8
 -------------------------------

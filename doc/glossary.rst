@@ -39,7 +39,7 @@ Glossary
         See also: :class:`graph.basic.Constant`
 
 
-    Elemwise (i.e. element-wise)
+    Elemwise
         An element-wise operation ``f`` on two tensor variables ``M`` and ``N``
         is one such that:
 

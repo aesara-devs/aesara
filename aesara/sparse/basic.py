@@ -4048,15 +4048,15 @@ class SamplingDot(Op):
 
 sampling_dot = SamplingDot()
 """
-Operand for calculating the dot product dot(`x`, `y`.T) = `z` when you
+Operand for calculating the dot product ``dot(x, y.T) = z`` when you
 only want to calculate a subset of `z`.
 
-It is equivalent to `p` o (`x` . `y`.T) where o is the element-wise
+It is equivalent to ``p o (x . y.T)`` where ``o`` is the element-wise
 product, `x` and `y` operands of the dot product and `p` is a matrix that
 contains 1 when the corresponding element of `z` should be calculated
 and 0 when it shouldn't. Note that SamplingDot has a different interface
-than `dot` because SamplingDot requires `x` to be a `m`x`k` matrix while
-`y` is a `n`x`k` matrix instead of the usual `k`x`n` matrix.
+than `dot` because SamplingDot requires `x` to be a ``m x k`` matrix while
+`y` is a ``n x k`` matrix instead of the usual ``k x n`` matrix.
 
 Notes
 -----
@@ -4079,7 +4079,7 @@ p
 Returns
 -------
 sparse matrix
-    A dense matrix containing the dot product of `x` by `y`.T only
+    A dense matrix containing the dot product of `x` by ``y.T`` only
     where `p` is 1.
 
 """
@@ -4333,22 +4333,26 @@ class ConstructSparseFromList(Op):
     def make_node(self, x, values, ilist):
         """
 
-        Parameters
-        ----------
-        x
-            A dense matrix that specify the output shape.
-        values
-            A dense matrix with the values to use for output.
-        ilist
-            A dense vector with the same length as the number of rows of values.
-            It specify where in the output to put the corresponding rows.
+        This creates a sparse matrix with the same shape as `x`. Its
+        values are the rows of `values` moved.  It operates similar to
+        the following pseudo-code:
 
-        This create a sparse matrix with the same shape as `x`. Its
-        values are the rows of `values` moved. Pseudo-code::
+        .. code-block:: python
 
             output = csc_matrix.zeros_like(x, dtype=values.dtype)
             for in_idx, out_idx in enumerate(ilist):
                 output[out_idx] = values[in_idx]
+
+
+        Parameters
+        ----------
+        x
+            A dense matrix that specifies the output shape.
+        values
+            A dense matrix with the values to use for output.
+        ilist
+            A dense vector with the same length as the number of rows of values.
+            It specifies where in the output to put the corresponding rows.
 
         """
         x_ = aet.as_tensor_variable(x)

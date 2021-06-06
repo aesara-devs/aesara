@@ -655,7 +655,7 @@ class JITLinker(PerformLinker):
     def create_jitable_thunk(
         self, compute_map, order, input_storage, output_storage, storage_map
     ):
-        """Create a thunk for each output of the `Linker`s `FunctionGraph`.
+        r"""Create a thunk for each output of the `Linker`\s `FunctionGraph`.
 
         This is differs from the other thunk-making function in that it only
         produces thunks for the `FunctionGraph` output nodes.

@@ -112,9 +112,9 @@ def indices_from_subtensor(
 
 
 def as_index_constant(a):
-    """Convert Python literals to Aesara constants--when possible--in Subtensor arguments.
+    r"""Convert Python literals to Aesara constants--when possible--in Subtensor arguments.
 
-    This will leave `Variable`s untouched.
+    This will leave `Variable`\s untouched.
     """
     if a is None:
         return a
@@ -351,10 +351,10 @@ def is_basic_idx(idx):
 
 
 def basic_shape(shape, indices):
-    """Computes the shape resulting from basic NumPy indexing.
+    r"""Computes the shape resulting from basic NumPy indexing.
 
-    Basic indices are either `slice`s or `None`s.
-    `Ellipsis` are not supported here; convert them to `slice`s first.
+    Basic indices are either ``slice``\s or ``None``\s.  ``Ellipsis`` are not
+    supported here; convert them to ``slice``\s first.
 
     Parameters
     ----------

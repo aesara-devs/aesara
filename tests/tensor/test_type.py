@@ -68,7 +68,7 @@ def test_filter_float_subclass():
 
 
 def test_filter_memmap():
-    """Make sure `TensorType.filter` can handle NumPy `memmap`s subclasses."""
+    r"""Make sure `TensorType.filter` can handle NumPy `memmap`\s subclasses."""
     data = np.arange(12, dtype=config.floatX)
     data.resize((3, 4))
     filename = path.join(mkdtemp(), "newfile.dat")

@@ -204,7 +204,7 @@ import ``aesara`` and print the config variable, as in:
     collection allows Aesara to reuse buffers for intermediate results between
     function calls. This speeds up Aesara by spending less time reallocating
     space during function evaluation and can provide significant speed-ups for
-    functions with many fast ``Op``s, but it also increases Aesara's memory
+    functions with many fast :class:`Op`\s, but it also increases Aesara's memory
     usage.
 
 .. note:: If :attr:`config.gpuarray__preallocate` is the default value
@@ -226,7 +226,7 @@ import ``aesara`` and print the config variable, as in:
 
     Default: ``False``
 
-    Allow garbage collection inside of ``Scan`` ``Op``s.
+    Allow garbage collection inside of :class:`Scan` :class:`Op`\s.
 
     If :attr:`config.allow_gc` is ``True``, but :attr:`config.scan__allow_gc` is
     ``False``, then Aesara will perform garbage collection during the inner
@@ -272,7 +272,7 @@ import ``aesara`` and print the config variable, as in:
     Default: ``False``
 
     Enable or disable parallel computation on the CPU with OpenMP.
-    It is the default value used by ``Op``s that support OpenMP.
+    It is the default value used by :class:`Op`\s that support OpenMP.
     It is best to specify this setting in ``.aesararc`` or in the environment
     variable ``AESARA_FLAGS``.
 
@@ -281,7 +281,7 @@ import ``aesara`` and print the config variable, as in:
     Positive int value, default: 200000.
 
     This specifies the minimum size of a vector for which OpenMP will be used by
-    ``Elemwise`` ``Op``s, when OpenMP is enabled.
+    :class:`Elemwise` :class:`Op`\s, when OpenMP is enabled.
 
 .. attribute:: cast_policy
 
@@ -382,7 +382,7 @@ import ``aesara`` and print the config variable, as in:
 
     Positive int value, default: 20.
 
-    The number of ``Op``s to print in the profiler output.
+    The number of :class:`Op`\s to print in the profiler output.
 
 .. attribute:: config.profiling__min_memory_size
 
@@ -664,7 +664,7 @@ import ``aesara`` and print the config variable, as in:
 
 .. attribute:: config.conv__assert_shape
 
-    If ``True``, ``AbstractConv*`` ``Op``s will verify that user-provided shapes
+    If ``True``, ``AbstractConv*`` :class:`Op`\s will verify that user-provided shapes
     match the run-time shapes. This is a debugging option, and may slow down
     compilation.
 
@@ -823,7 +823,7 @@ import ``aesara`` and print the config variable, as in:
 .. attribute:: compile
 
     This section contains attributes which influence the compilation of
-    C code for ``Op``s.  Due to historical reasons many attributes outside
+    C code for :class:`Op`\s.  Due to historical reasons many attributes outside
     of this section also have an influence over compilation, most
     notably ``cxx``.
 
@@ -972,7 +972,7 @@ import ``aesara`` and print the config variable, as in:
 
     If ``True``, will print a warning when compiling one or more ``Op`` with C
     code that can't be cached because there is no ``c_code_cache_version()``
-    function associated to at least one of those ``Op``s.
+    function associated to at least one of those :class:`Op`\s.
 
 .. attribute:: config.cmodule__remove_gxx_opt
 

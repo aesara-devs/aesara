@@ -1,5 +1,5 @@
-"""
-`Op`s that have their python implementations taken from SciPy.
+r"""
+`Op`\s that have their python implementations taken from SciPy.
 
 As SciPy is not always available, we treat them separately.
 """

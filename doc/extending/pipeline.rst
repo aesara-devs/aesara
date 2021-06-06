@@ -75,7 +75,7 @@ produce a ``thunk``, which is a function with no arguments that
 returns nothing. Along with the thunk, one list of input containers (a
 `aesara.link.basic.Container` is a sort of object that wraps another and does
 type casting) and one list of output containers are produced,
-corresponding to the input and output `Variable`s as well as the updates
+corresponding to the input and output :class:`Variable`\s as well as the updates
 defined for the inputs when applicable. To perform the computations,
 the inputs must be placed in the input containers, the thunk must be
 called, and the outputs must be retrieved from the output containers

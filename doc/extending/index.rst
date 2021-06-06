@@ -45,7 +45,6 @@ with Aesara itself.
     ctype
     cop
     using_params
-    extending_aesara_gpu
     optimization
     tips
     unittest

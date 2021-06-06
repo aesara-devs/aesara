@@ -1,6 +1,6 @@
-"""`Op` classes for working with ``numpy.ndarrays`` symbolically.
+r"""`Op` classes for working with ``numpy.ndarrays`` symbolically.
 
-This module primarily defines `Op`s for the creation, conversion, and
+This module primarily defines `Op`\s for the creation, conversion, and
 manipulation of tensors.
 
 """
@@ -2203,8 +2203,8 @@ def patternbroadcast(x, broadcastable):
 
 
 class Join(COp):
-    """
-    Concatenate multiple `TensorVariable`s along some axis.
+    r"""
+    Concatenate multiple `TensorVariable`\s along some axis.
 
     The axis must be given as first argument. All tensors must have the same
     shape along all dimensions other than this axis.
@@ -2533,8 +2533,8 @@ pprint.assign(Join, printing.FunctionPrinter("join"))
 
 
 def join(axis, *tensors_list):
-    """
-    Convenience function to concatenate `TensorType`s along the given axis.
+    r"""
+    Convenience function to concatenate `TensorType`\s along the given axis.
 
     This function will not add the op in the graph when it is not useful.
     For example, in the case that the list of tensors to be concatenated

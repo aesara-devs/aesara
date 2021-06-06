@@ -40,8 +40,6 @@ support rapid development of efficient machine learning algorithms. Theano was
 named after the `Greek mathematician`_, who may have been Pythagoras' wife.
 Aesara is an alleged daughter of Pythagoras and Theano.
 
-Aesara is released under a BSD license (:ref:`link <license>`).
-
 
 Sneak peek
 ==========

@@ -49,9 +49,9 @@ define the following methods.
 
 .. function:: make_node(*inputs)
 
-  This method is responsible for creating output Variables of a
-  suitable symbolic `Type` to serve as the outputs of this Op's
-  application.  The Variables found in ``*inputs`` must be operated on
+  This method is responsible for creating output :class:`Variable`\s of a
+  suitable symbolic `Type` to serve as the outputs of this :Class:`Op`'s
+  application.  The :class:`Variable`\s found in ``*inputs`` must be operated on
   using Aesara's symbolic language to compute the symbolic output
   Variables. This method should put these outputs into an Apply
   instance, and return the Apply instance.
