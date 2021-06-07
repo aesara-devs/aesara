@@ -23,7 +23,7 @@ This is a good way to make sure that proposed changes will be accepted.
 Resources
 =========
 
-See :ref:`aesara_community` for a list of Aesara resources.
+See :ref:`aesara-community` for a list of Aesara resources.
 
 The Theano Google group is also relevant to (early) Aesara versions:
 `theano-dev`_.

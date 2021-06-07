@@ -1,4 +1,4 @@
-|Tests Status| |Coverage|
+|Tests Status| |Coverage| |Gitter|
 
 |Project Name| is a Python library that allows one to define, optimize, and
 efficiently evaluate mathematical expressions involving multi-dimensional
@@ -83,7 +83,7 @@ Getting started
   #    |v [id K]
   #    |TensorConstant{0.0} [id L]
 
-The documentation is located `here <https://aesara.readthedocs.io/en/latest/>`__.
+See `the Aesara documentation <https://aesara.readthedocs.io/en/latest/>`__ for in-depth tutorials.
 
 
 Installation
@@ -110,13 +110,13 @@ The current development branch of |Project Name| can be installed from GitHub, a
     pip install git+https://github.com/aesara-devs/aesara
 
 
-For platform-specific installation information see the legacy documentation `here <http://deeplearning.net/software/theano/install.html>`__.
-
 
 Support
 =======
 
-The PyMC group operates under the NumFOCUS umbrella. If you want to support us financially, donate `here <https://numfocus.salsalabs.org/donate-to-pymc3/index.html>`__.
+Many Aesara developers are also PyMC developers, and, since the PyMC developers
+operate under the NumFOCUS umbrella, if you want to support them financially,
+consider donating `here <https://numfocus.salsalabs.org/donate-to-pymc3/index.html>`__.
 
 
 .. |Project Name| replace:: Aesara
@@ -124,3 +124,5 @@ The PyMC group operates under the NumFOCUS umbrella. If you want to support us f
   :target: https://github.com/aesara-devs/aesara/actions?query=workflow%3ATests
 .. |Coverage| image:: https://codecov.io/gh/aesara-devs/aesara/branch/main/graph/badge.svg?token=WVwr8nZYmc
   :target: https://codecov.io/gh/aesara-devs/aesara
+.. |Gitter| image:: https://badges.gitter.im/aesara-devs/aesara.svg
+  :target: https://gitter.im/aesara-devs/aesara?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge
