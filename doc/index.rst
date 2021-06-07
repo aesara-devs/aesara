@@ -29,7 +29,7 @@ Aesara is `available on PyPI`_, and can be installed via ``pip install Aesara``.
 Those interested in bleeding-edge features should obtain the latest development
 version, available via::
 
-    git clone git://github.com/pymc-devs/aesara.git
+    git clone git://github.com/aesara-devs/aesara.git
 
 You can then place the checkout directory on your ``$PYTHONPATH`` or use
 ``python setup.py develop`` to install a ``.pth`` into your ``site-packages``
@@ -38,7 +38,7 @@ automatically reflected the "installed" version. For more information about
 installation and configuration, see :ref:`installing Aesara <install>`.
 
 .. _available on PyPI: http://pypi.python.org/pypi/aesara
-.. _Related Projects: https://github.com/pymc-devs/aesara/wiki/Related-projects
+.. _Related Projects: https://github.com/aesara-devs/aesara/wiki/Related-projects
 
 Documentation
 =============
@@ -62,13 +62,13 @@ Roughly in order of what you'll want to check out:
 
 .. _aesara_community:
 
-* Visit `theano-users`_ if you want to talk to all Theano users.
+Community
+=========
 
-* Visit `theano-dev`_ if you want to talk to the developers.
-
+* Visit `aesara-users`_ if you want to talk to all Theano users.
+* Visit `aesara-dev`_ if you want to talk to the developers.
 * Ask/view questions/answers at `StackOverflow`_
-
-* We use `GitHub tickets <http://github.com/pymc-devs/aesara/issues>`__ to keep track of issues.
+* We use `GitHub tickets <http://github.com/aesara-devs/aesara/issues>`__ to keep track of issues.
 
 .. toctree::
    :maxdepth: 1
@@ -92,6 +92,6 @@ Roughly in order of what you'll want to check out:
 
 
 .. _Theano: https://github.com/Theano/Theano
-.. _theano-dev: http://groups.google.com/group/theano-dev
-.. _theano-users: http://groups.google.com/group/theano-users
+.. _aesara-dev: https://gitter.im/aesara-devs/community
+.. _aesara-users: https://gitter.im/aesara-devs/aesara
 .. _StackOverflow: http://stackoverflow.com/questions/tagged/theano

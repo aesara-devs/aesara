@@ -12,7 +12,7 @@ Acknowledgements
 * The developers of `NumPy <http://numpy.scipy.org/>`_. Theano is based on its ndarray object and uses much of its implementation.
 * The developers of `SciPy <http://scipy.org/>`_. Our sparse matrix support uses their sparse matrix objects. We also reuse other parts.
 * The developers of `Theano <https://github.com/Theano/Theano>`_
-* All `Aesara contributors <https://github.com/pymc-devs/aesara/graphs/contributors>`_.
+* All `Aesara contributors <https://github.com/aesara-devs/aesara/graphs/contributors>`_.
 * All Theano users that have given us feedback.
 * The GPU implementation of tensordot is based on code from Tijmen
   Tieleman's `gnumpy <http://www.cs.toronto.edu/~tijmen/gnumpy.html>`_

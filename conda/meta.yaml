@@ -28,10 +28,10 @@ test:
     - aesara
 
 about:
-  home: https://github.com/pymc-devs/aesara/
+  home: https://github.com/aesara-devs/aesara/
   license: BSD 3-Clause
   license_family: BSD
   summary: Optimizing compiler for evaluating mathematical expressions on CPUs and GPUs.
-  summary: Fork of Aesara for PyMC3. An optimizing compiler for evaluating mathematical expressions on CPUs and GPUs.
-  dev_url: https://github.com/pymc-devs/aesara/
+  summary: An optimizing compiler for evaluating mathematical expressions on CPUs and GPUs.
+  dev_url: https://github.com/aesara-devs/aesara/
   doc_url: https://aesara.readthedocs.io/en/latest/index.html

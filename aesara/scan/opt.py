@@ -111,6 +111,7 @@ __authors__ = (
     "Pascal Lamblin "
     "Arnaud Bergeron "
     "PyMC Developers "
+    "Aesara Developers "
 )
 __copyright__ = "(c) 2010, Universite de Montreal"
 

@@ -4,7 +4,7 @@ from aesara.graph.basic import Apply
 from aesara.graph.op import Op
 
 
-__authors__ = "James Bergstra" "PyMC Dev Team"
+__authors__ = "James Bergstra " "PyMC Dev Team " "Aesara Developers"
 __copyright__ = "(c) 2011, Universite de Montreal"
 __license__ = "3-clause BSD License"
 

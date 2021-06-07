@@ -107,7 +107,7 @@ The current development branch of |Project Name| can be installed from GitHub, a
 
 ::
 
-    pip install git+https://github.com/pymc-devs/aesara
+    pip install git+https://github.com/aesara-devs/aesara
 
 
 For platform-specific installation information see the legacy documentation `here <http://deeplearning.net/software/theano/install.html>`__.
@@ -120,7 +120,7 @@ The PyMC group operates under the NumFOCUS umbrella. If you want to support us f
 
 
 .. |Project Name| replace:: Aesara
-.. |Tests Status| image:: https://github.com/pymc-devs/aesara/workflows/Tests/badge.svg
-  :target: https://github.com/pymc-devs/aesara/actions?query=workflow%3ATests
-.. |Coverage| image:: https://codecov.io/gh/pymc-devs/aesara/branch/main/graph/badge.svg?token=WVwr8nZYmc
-  :target: https://codecov.io/gh/pymc-devs/aesara
+.. |Tests Status| image:: https://github.com/aesara-devs/aesara/workflows/Tests/badge.svg
+  :target: https://github.com/aesara-devs/aesara/actions?query=workflow%3ATests
+.. |Coverage| image:: https://codecov.io/gh/aesara-devs/aesara/branch/main/graph/badge.svg?token=WVwr8nZYmc
+  :target: https://codecov.io/gh/aesara-devs/aesara

@@ -26,7 +26,7 @@ from aesara.configdefaults import config
 from aesara.graph.basic import Constant, Variable
 
 
-__authors__ = "James Bergstra" "PyMC Developers"
+__authors__ = "James Bergstra " "PyMC Developers " "Aesara Developers "
 __copyright__ = "(c) 2011, Universite de Montreal"
 
 __docformat__ = "restructuredtext en"

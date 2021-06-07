@@ -12,7 +12,7 @@ from aesara.printing import var_descriptor
 from tests.record import Record, RecordMode
 
 
-__authors__ = "Ian Goodfellow" "PyMC Developers"
+__authors__ = "Ian Goodfellow " "PyMC Developers " "Aesara Developers "
 __license__ = "3-clause BSD"
 
 

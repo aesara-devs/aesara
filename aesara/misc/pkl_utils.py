@@ -31,7 +31,7 @@ from aesara.configdefaults import config
 
 
 __docformat__ = "restructuredtext en"
-__authors__ = "Pascal Lamblin" "PyMC Developers"
+__authors__ = "Pascal Lamblin " "PyMC Developers " "Aesara Developers "
 __copyright__ = "Copyright 2013, Universite de Montreal"
 __license__ = "3-clause BSD"
 

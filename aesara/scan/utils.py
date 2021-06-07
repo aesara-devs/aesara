@@ -6,8 +6,9 @@ __authors__ = (
     "Frederic Bastien "
     "James Bergstra "
     "Pascal Lamblin "
-    "Arnaud Bergeron"
-    "PyMC Developers"
+    "Arnaud Bergeron "
+    "PyMC Developers "
+    "Aesara Developers "
 )
 __copyright__ = "(c) 2010, Universite de Montreal"
 

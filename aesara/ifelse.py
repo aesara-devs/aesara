@@ -34,9 +34,9 @@ __authors__ = (
     "Dumitru Erhan "
     "David Warde-Farley"
     "PyMC Developers"
+    "Aesara Developers"
 )
 __copyright__ = "(c) 2010, Universite de Montreal"
-__contact__ = "Razvan Pascanu <r.pascanu@gmail>"
 
 _logger = logging.getLogger("aesara.ifelse")
 
