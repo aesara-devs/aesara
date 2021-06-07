@@ -137,7 +137,7 @@ Contact us
 ==========
 
 Questions and bug reports should be submitted in the form of an issue at
-pymc-aesara-dev_
+aesara-dev_
 
 We welcome all kinds of contributions. If you have any questions regarding how
 to extend Aesara, please feel free to ask.
@@ -152,4 +152,4 @@ to extend Aesara, please feel free to ask.
 .. _MATLAB: http://www.mathworks.com/products/matlab/
 .. _Mathematica: http://www.wolfram.com/mathematica/
 
-.. _pymc-aesara-dev: https://github.com/pymc-devs/aesara/issues
+.. _aesara-dev: https://github.com/aesara-devs/aesara/issues

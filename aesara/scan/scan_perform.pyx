@@ -48,7 +48,7 @@
 """
 
 
-__authors__ = "Razvan Pascanu" "PyMC Developers"
+__authors__ = "Razvan Pascanu " "PyMC Developers " "Aesara Developers "
 __copyright__ = "(c) 2011, Universite de Montreal"
 
 

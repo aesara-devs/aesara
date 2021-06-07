@@ -5,7 +5,7 @@ from aesara.link.vm import VMLinker
 from aesara.printing import hex_digest, min_informative_str
 
 
-__authors__ = ["PyMC Team", "Ian Goodfellow"]
+__authors__ = ["PyMC Team", "Ian Goodfellow", "Aesara Developers"]
 
 
 class MismatchError(Exception):

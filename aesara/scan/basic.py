@@ -4,7 +4,8 @@ __authors__ = (
     "Frederic Bastien "
     "James Bergstra "
     "Pascal Lamblin "
-    "PyMC Developers"
+    "PyMC Developers "
+    "Aesara Developers "
 )
 __copyright__ = "(c) 2010, Universite de Montreal"
 

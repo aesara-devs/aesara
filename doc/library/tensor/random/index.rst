@@ -9,7 +9,6 @@ Low-level random numbers
 
 .. module:: aesara.tensor.random
    :synopsis: symbolic random variables
-.. moduleauthor:: pymc-team
 
 The `aesara.tensor.random` module provides random-number drawing functionality
 that closely resembles the `numpy.random` module.

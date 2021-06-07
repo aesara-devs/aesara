@@ -10,9 +10,9 @@ Aesara is actively merging new changes. If you have a pull request on the origin
 cd /path/to/your/repo
 
 # If you'd like to add aesara as a remote
-git remote add aesara git@github.com:pymc-devs/aesara.git
+git remote add aesara git@github.com:aesara-devs/aesara.git
 
-# Verify the changes. You should see the pymc-devs/aesara.git
+# Verify the changes. You should see the aesara-devs/aesara.git
 git remote -v
 
 # Checkout the branch of your request
@@ -25,5 +25,5 @@ git push aesara branch_name
 If you would like to make Aesara the new "main" upstream remote:
 
 ```
-git remote set-url upstream git@github.com:pymc-devs/aesara.git
+git remote set-url upstream git@github.com:aesara-devs/aesara.git
 ```

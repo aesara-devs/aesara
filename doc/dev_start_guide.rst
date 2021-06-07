@@ -15,7 +15,7 @@ You want to contribute to Aesara? That is great! This page explain our
 workflow and some resource for doing so.
 
 Looking for an idea for a first contribution? Check the `GitHub issues
-<https://github.com/pymc-devs/aesara/issues>`_.
+<https://github.com/aesara-devs/aesara/issues>`_.
 
 We recommend creating an issue to discuss proposed changes before making them.
 This is a good way to make sure that proposed changes will be accepted.
@@ -23,8 +23,10 @@ This is a good way to make sure that proposed changes will be accepted.
 Resources
 =========
 
-See :ref:`aesara_community` for a list of Aesara resources. The Theano Google group
-is also relevant to (early) Aesara versions: `theano-dev`_.
+See :ref:`aesara_community` for a list of Aesara resources.
+
+The Theano Google group is also relevant to (early) Aesara versions:
+`theano-dev`_.
 
 .. _theano-dev: https://groups.google.com/group/theano-dev
 
@@ -306,7 +308,7 @@ Installation and configuration
 
 To obtain developer access: register with `GitHub
 <http://www.github.com/>`_ and create a fork of `Aesara
-<http://www.github.com/pymc-devs/aesara>`_.
+<http://www.github.com/aesara-devs/aesara>`_.
 
 This will create your own Aesara project on GitHub, referred later
 as "YourProfile/Aesara", or "origin", from which you will be able to
@@ -331,7 +333,7 @@ Then, add a reference to the original ("central") Aesara repository with
 
 .. code-block:: bash
 
-    git remote add central git://github.com/pymc-devs/aesara.git
+    git remote add central git://github.com/aesara-devs/aesara.git
 
 You can choose another name than "central" to reference Aesara/Aesara
 (for instance, NumPy uses "upstream"), but this documentation will stick

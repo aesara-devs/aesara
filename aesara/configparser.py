@@ -464,7 +464,7 @@ class DeviceParam(ConfigParam):
             raise ValueError(
                 "You are trying to use the old GPU back-end. "
                 "It was removed from Aesara. Use device=cuda* now. "
-                "See https://github.com/pymc-devs/aesara/wiki/Converting-to-the-new-gpu-back-end%28gpuarray%29 "
+                "See https://github.com/aesara-devs/aesara/wiki/Converting-to-the-new-gpu-back-end%28gpuarray%29 "
                 "for more information."
             )
         else:

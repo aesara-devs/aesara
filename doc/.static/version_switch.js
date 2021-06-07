@@ -53,7 +53,7 @@
 
     vswitch.push('<dl>');
     vswitch.push('<dt>On GitHub</dt>');
-    var git_master = "https://github.com/pymc-devs/aesara"
+    var git_master = "https://github.com/aesara-devs/aesara"
     vswitch.push('<dd><a href=\"', git_master + '\">', 'Fork me', '</a></dd>');
     vswitch.push('</dl>');
 

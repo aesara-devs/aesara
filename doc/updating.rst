@@ -48,7 +48,7 @@ The following command will update your bleeding-edge version of Aesara
 
 .. raw:: html
 
-    <div style="width:100%"><pre><span class="red">&#60;sudo&#62;</span> pip install <span class="blue">&#60;--user&#62;</span> <span class="pink">&#60;--no-deps&#62;</span> git+https://github.com/pymc-devs/aesara.git#egg=Aesara</pre></div>
+    <div style="width:100%"><pre><span class="red">&#60;sudo&#62;</span> pip install <span class="blue">&#60;--user&#62;</span> <span class="pink">&#60;--no-deps&#62;</span> git+https://github.com/aesara-devs/aesara.git#egg=Aesara</pre></div>
 
 - Use :red:`sudo` for a root installation.
 

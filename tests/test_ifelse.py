@@ -19,7 +19,7 @@ from tests import unittest_tools as utt
 
 
 __docformat__ = "restructedtext en"
-__authors__ = "Razvan Pascanu" "PyMC Development Team"
+__authors__ = "Razvan Pascanu " "PyMC Development Team " "Aesara Developers "
 __copyright__ = "(c) 2010, Universite de Montreal"
 
 
