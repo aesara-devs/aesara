@@ -62,10 +62,10 @@ Roughly in order of what you'll want to check out:
 Community
 =========
 
-* Visit `aesara-users`_ if you want to talk to all Theano users.
-* Visit `aesara-dev`_ if you want to talk to the developers.
-* Ask/view questions/answers at `StackOverflow`_
-* We use `GitHub tickets <http://github.com/aesara-devs/aesara/issues>`__ to keep track of issues.
+* Visit `aesara-users`_ to discuss the general use of Aesara with developers and other users
+* We use `GitHub issues <http://github.com/aesara-devs/aesara/issues>`__ to
+  keep track of issues and `GitHub Discussions <https://github.com/aesara-devs/aesara/discussions>`__ to discuss feature
+  additions and design changes
 
 .. toctree::
    :maxdepth: 1
@@ -88,6 +88,4 @@ Community
 
 
 .. _Theano: https://github.com/Theano/Theano
-.. _aesara-dev: https://gitter.im/aesara-devs/community
 .. _aesara-users: https://gitter.im/aesara-devs/aesara
-.. _StackOverflow: http://stackoverflow.com/questions/tagged/theano
