@@ -1477,6 +1477,12 @@ def add_numba_configvars():
         EnumStr("cpu", ["parallel", "cuda"], mutable=True),
         in_c_key=False,
     )
+    config.add(
+        "numba__fastmath",
+        ("If True, use Numba's fastmath mode."),
+        BoolParam(True),
+        in_c_key=False,
+    )
 
 
 def _get_default_gpuarray__cache_path():
