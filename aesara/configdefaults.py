@@ -1470,6 +1470,15 @@ def add_scan_configvars():
     )
 
 
+def add_numba_configvars():
+    config.add(
+        "numba__vectorize_target",
+        ("Default target for numba.vectorize."),
+        EnumStr("cpu", ["parallel", "cuda"], mutable=True),
+        in_c_key=False,
+    )
+
+
 def _get_default_gpuarray__cache_path():
     return os.path.join(config.compiledir, "gpuarray_kernels")
 
@@ -1701,6 +1710,7 @@ add_optimizer_configvars()
 add_metaopt_configvars()
 add_vm_configvars()
 add_deprecated_configvars()
+add_numba_configvars()
 
 # TODO: `gcc_version_str` is used by other modules.. Should it become an immutable config var?
 try:

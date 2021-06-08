@@ -2892,3 +2892,13 @@ def test_random_Generator():
                 if not isinstance(i, (SharedVariable, Constant))
             ],
         )
+
+
+@pytest.mark.xfail(reason="https://github.com/numba/numba/issues/7409")
+def test_config_options_parallel():
+    x = aet.dvector()
+
+    with config.change_flags(numba__vectorize_target="parallel"):
+        aesara_numba_fn = function([x], x * 2, mode=numba_mode)
+        numba_res = aesara_numba_fn(np.array([1, 2, 3], dtype=np.float64))
+        assert np.array_equal(numba_res, np.array([2, 4, 6], dtype=np.float64))

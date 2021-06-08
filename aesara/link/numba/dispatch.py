@@ -20,6 +20,7 @@ from numpy.core.multiarray import normalize_axis_index
 from numpy.random import RandomState
 
 import aesara.tensor.random.basic as aer
+from aesara import config
 from aesara.compile.ops import DeepCopyOp, ViewOp
 from aesara.graph.basic import Apply, Variable
 from aesara.graph.fg import FunctionGraph
@@ -461,9 +462,17 @@ def create_vectorize_func(op, node, use_signature=False, identity=None, **kwargs
     else:
         signature = []
 
-    numba_vectorize = numba.vectorize(signature, identity=identity)
+    target = (
+        getattr(node.tag, "numba__vectorize_target", None)
+        or config.numba__vectorize_target
+    )
+
+    numba_vectorize = numba.vectorize(signature, identity=identity, target=target)
+
+    py_scalar_func = getattr(scalar_op_fn, "py_func", scalar_op_fn)
+
     elemwise_fn = numba_vectorize(scalar_op_fn)
-    elemwise_fn.py_scalar_func = scalar_op_fn
+    elemwise_fn.py_scalar_func = py_scalar_func
 
     return elemwise_fn
 
