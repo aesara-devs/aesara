@@ -609,7 +609,7 @@ def create_axis_reducer(
             x_axis_first = x.transpose(reaxis_first)
 
             res = np.full(res_shape, to_scalar(identity), dtype=dtype)
-            for m in range(x.shape[axis]):
+            for m in numba.prange(x.shape[axis]):
                 reduce_fn(res, x_axis_first[m], res)
 
             return set_out_dims(res)
@@ -631,8 +631,9 @@ def create_axis_reducer(
         @numba.njit(boundscheck=False)
         def careduce_axis(x):
             res = to_scalar(identity)
-            for val in x:
-                res = reduce_fn(res, val)
+            x_ravel = x.ravel()
+            for i in numba.prange(x_ravel.size):
+                res = reduce_fn(res, x_ravel[i])
             return set_out_dims(res)
 
     return careduce_axis
@@ -1307,7 +1308,7 @@ def numba_funcify_CumOp(op, node, **kwargs):
         x_axis_first = x.transpose(reaxis_first)
         res = np.empty(x_axis_first.shape, dtype=out_dtype)
 
-        for m in range(x.shape[axis]):
+        for m in numba.prange(x.shape[axis]):
             if m == 0:
                 np_func(identity, x_axis_first[m], res[m])
             else:
