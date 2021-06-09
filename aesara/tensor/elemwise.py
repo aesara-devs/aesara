@@ -792,8 +792,10 @@ second dimension
 
         if nout == 1:
             variables = [variables]
-        i = 0
-        for variable, storage, nout in zip(variables, output_storage, node.outputs):
+
+        for i, (variable, storage, nout) in enumerate(
+            zip(variables, output_storage, node.outputs)
+        ):
             if getattr(variable, "dtype", "") == "object":
                 # Since numpy 1.6, function created with numpy.frompyfunc
                 # always return an ndarray with dtype object
@@ -803,6 +805,7 @@ second dimension
                 odat = inputs[self.inplace_pattern[i]]
                 odat[...] = variable
                 storage[0] = odat
+
             # Sometimes NumPy return a Python type.
             # Some Aesara op return a different dtype like floor, ceil,
             # trunc, eq, ...
@@ -821,7 +824,6 @@ second dimension
                 storage[0] = variable.copy()
             else:
                 storage[0] = variable
-            i += 1
 
     def infer_shape(self, fgraph, node, i_shapes):
         rval = []
