@@ -378,7 +378,7 @@ def {scalar_op_fn_name}({input_names}):
 
 @numba_funcify.register(Switch)
 def numba_funcify_Switch(op, node, **kwargs):
-    @numba.njit
+    @numba.njit(inline="always")
     def switch(condition, x, y):
         if condition:
             return x
@@ -411,7 +411,7 @@ def numba_funcify_Add(op, node, **kwargs):
 
     nary_add_fn = binary_to_nary_func(node.inputs, "add", "+")
 
-    return numba.njit(signature)(nary_add_fn)
+    return numba.njit(signature, inline="always")(nary_add_fn)
 
 
 @numba_funcify.register(Mul)
@@ -421,7 +421,7 @@ def numba_funcify_Mul(op, node, **kwargs):
 
     nary_mul_fn = binary_to_nary_func(node.inputs, "mul", "*")
 
-    return numba.njit(signature)(nary_mul_fn)
+    return numba.njit(signature, inline="always")(nary_mul_fn)
 
 
 def create_vectorize_func(op, node, use_signature=False, identity=None, **kwargs):
