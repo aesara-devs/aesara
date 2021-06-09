@@ -373,7 +373,7 @@ def {scalar_op_fn_name}({input_names}):
 
     signature = create_numba_signature(node, force_scalar=True)
 
-    return numba.njit(signature)(scalar_op_fn)
+    return numba.njit(signature, inline="always")(scalar_op_fn)
 
 
 @numba_funcify.register(Switch)
@@ -424,9 +424,13 @@ def numba_funcify_Mul(op, node, **kwargs):
     return numba.njit(signature)(nary_mul_fn)
 
 
-@numba_funcify.register(Elemwise)
-def numba_funcify_Elemwise(op, node, use_signature=False, identity=None, **kwargs):
-    scalar_op_fn = numba_funcify(op.scalar_op, node, **kwargs)
+def create_vectorize_func(op, node, use_signature=False, identity=None, **kwargs):
+    scalar_op_fn = numba_funcify(op.scalar_op, node, inline="always", **kwargs)
+
+    if len(node.outputs) > 1:
+        raise NotImplementedError(
+            "Multi-output Elemwise Ops are not supported by the Numba backend"
+        )
 
     if use_signature:
         signature = [create_numba_signature(node, force_scalar=True)]
@@ -441,14 +445,43 @@ def numba_funcify_Elemwise(op, node, use_signature=False, identity=None, **kwarg
     unique_names = unique_name_generator(
         [elemwise_fn_name, "scalar_op", "scalar_op", "numba_vectorize"], suffix_sep="_"
     )
-    input_names = ", ".join([unique_names(v, force_unique=True) for v in node.inputs])
+    input_names = [unique_names(v, force_unique=True) for v in node.inputs]
+    input_signature_str = ", ".join(input_names)
 
     elemwise_src = f"""
 @numba_vectorize
-def {elemwise_fn_name}({input_names}):
-    return scalar_op({input_names})
-    """
+def {elemwise_fn_name}({input_signature_str}):
+    return scalar_op({input_signature_str})
+        """
+
     elemwise_fn = compile_function_src(elemwise_src, elemwise_fn_name, global_env)
+
+    return elemwise_fn, input_names
+
+
+@numba_funcify.register(Elemwise)
+def numba_funcify_Elemwise(op, node, **kwargs):
+
+    elemwise_fn, input_names = create_vectorize_func(op, node, use_signature=False)
+    elemwise_fn_name = elemwise_fn.__name__
+
+    if op.inplace_pattern:
+        input_idx = op.inplace_pattern[0]
+        updated_input_name = input_names[input_idx]
+
+        inplace_global_env = {elemwise_fn_name: elemwise_fn}
+
+        inplace_elemwise_fn_name = f"{elemwise_fn_name}_inplace"
+        input_signature_str = ", ".join(input_names)
+        inplace_elemwise_src = f"""
+def {inplace_elemwise_fn_name}({input_signature_str}):
+    return {elemwise_fn_name}({input_signature_str + ", " + updated_input_name})
+        """
+
+        inplace_elemwise_fn = compile_function_src(
+            inplace_elemwise_src, inplace_elemwise_fn_name, inplace_global_env
+        )
+        return numba.njit(inline="always")(inplace_elemwise_fn)
 
     return elemwise_fn
 
@@ -591,7 +624,11 @@ def numba_funcify_CAReduce(op, node, **kwargs):
         [tensor(np_acc_dtype, [False]) for i in range(scalar_nfunc_spec[1])],
         [tensor(np_acc_dtype, [False]) for o in range(scalar_nfunc_spec[2])],
     )
-    elemwise_fn = numba_funcify_Elemwise(op, dummy_node, use_signature=True, **kwargs)
+
+    # TODO: Use `scalar_op_identity`?
+    elemwise_fn, *_ = create_vectorize_func(
+        op, dummy_node, use_signature=True, **kwargs
+    )
 
     input_name = get_name_for_object(node.inputs[0])
     ndim = node.inputs[0].ndim
@@ -965,7 +1002,7 @@ def numba_funcify_DimShuffle(op, **kwargs):
     # E       No match.
     # ...(on this line)...
     # E           shuffle_shape = res.shape[: len(shuffle)]
-    @numba.njit
+    @numba.njit(inline="always")
     def dimshuffle(x):
         return dimshuffle_inner(np.asarray(x), shuffle)
 

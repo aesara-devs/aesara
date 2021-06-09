@@ -11,6 +11,7 @@ import aesara.scalar.basic as aesb
 import aesara.scalar.math as aesm
 import aesara.tensor as aet
 import aesara.tensor.basic as aetb
+import aesara.tensor.inplace as ati
 import aesara.tensor.math as aem
 import aesara.tensor.nnet.basic as nnetb
 from aesara import config, shared
@@ -60,12 +61,19 @@ class MySingleOut(Op):
 
 
 class MyMultiOut(Op):
+    nin = 2
+    nout = 2
+
     def make_node(self, a, b):
         return Apply(self, [a, b], [a.type(), b.type()])
 
+    def impl(self, a, b):
+        res1 = 2 * a
+        res2 = 2 * b
+        return [res1, res2]
+
     def perform(self, node, inputs, outputs):
-        res1 = 2 * inputs[0]
-        res2 = 2 * inputs[1]
+        res1, res2 = self.impl(inputs[0], inputs[1])
         outputs[0][0] = res1
         outputs[1][0] = res2
 
@@ -273,29 +281,58 @@ def test_create_numba_signature(v, expected, force_scalar):
 
 
 @pytest.mark.parametrize(
-    "inputs, input_vals, output_fn",
+    "inputs, input_vals, output_fn, exc",
     [
         (
             [aet.vector()],
             [rng.randn(100).astype(config.floatX)],
             lambda x: aet.sigmoid(x),
+            None,
         ),
         (
             [aet.vector() for i in range(4)],
             [rng.randn(100).astype(config.floatX) for i in range(4)],
             lambda x, y, x1, y1: (x + y) * (x1 + y1) * y,
+            None,
         ),
         (
             # This also tests the use of repeated arguments
             [aet.matrix(), aet.scalar()],
             [rng.normal(size=(2, 2)).astype(config.floatX), 0.0],
             lambda a, b: aet.switch(a, b, a),
+            None,
+        ),
+        (
+            [aet.vector(), aet.vector()],
+            [
+                rng.randn(100).astype(config.floatX),
+                rng.randn(100).astype(config.floatX),
+            ],
+            lambda x, y: ati.add_inplace(x, y),
+            None,
+        ),
+        (
+            [aet.vector(), aet.vector()],
+            [
+                rng.randn(100).astype(config.floatX),
+                rng.randn(100).astype(config.floatX),
+            ],
+            lambda x, y: Elemwise(MyMultiOut())(x, y),
+            NotImplementedError,
         ),
     ],
 )
-def test_Elemwise(inputs, input_vals, output_fn):
-    out_fg = FunctionGraph(outputs=[output_fn(*inputs)])
-    compare_numba_and_py(out_fg, input_vals)
+def test_Elemwise(inputs, input_vals, output_fn, exc):
+
+    outputs = output_fn(*inputs)
+
+    out_fg = FunctionGraph(
+        outputs=[outputs] if not isinstance(outputs, list) else outputs
+    )
+
+    cm = contextlib.suppress() if exc is None else pytest.raises(exc)
+    with cm:
+        compare_numba_and_py(out_fg, input_vals)
 
 
 @pytest.mark.parametrize(
