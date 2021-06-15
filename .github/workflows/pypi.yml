@@ -9,6 +9,10 @@ on:
   release:
     types: [published]
 
+concurrency:
+  group: ${{ github.head_ref }}-pypi
+  cancel-in-progress: true
+
 jobs:
   build:
     name: Build source distribution
