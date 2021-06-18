@@ -1,3 +1,4 @@
+import builtins
 import warnings
 
 import numpy as np
@@ -43,6 +44,10 @@ from aesara.tensor.type import (
 from aesara.tensor.type_other import NoneConst
 from aesara.tensor.utils import as_list
 from aesara.tensor.var import TensorConstant, _tensor_py_operators
+
+
+# We capture the builtins that we are going to replace to follow the numpy API
+_abs = builtins.abs
 
 
 if int(config.tensor__cmp_sloppy) > 1:
@@ -955,8 +960,8 @@ def isclose(a, b, rtol=1.0e-5, atol=1.0e-8, equal_nan=False):
     """
     # close will be an int8 array of 1 where within tolerance
     # and 0 where not within tolerance or there was a nan or inf value.
-    diff = abs(a - b)
-    tolerance = atol + rtol * abs(b)
+    diff = _abs(a - b)
+    tolerance = atol + rtol * _abs(b)
     close_prelim = le(diff, tolerance)
 
     a_nan = isnan(a)
@@ -1033,13 +1038,12 @@ bitwise_not = invert  # numpy alias for it
 
 
 @scalar_elemwise
-def abs_(a):
-    """|`a`|
+def abs(a):
+    """|`a`|"""
 
-    TensorVariable overloads the `TensorVariable.__abs__` operator so that
-    this function is called when you type abs(a).
 
-    """
+# These are deprecated and will be removed
+abs_ = abs
 
 
 pprint.assign(abs_, printing.PatternPrinter(("|%(0)s|", -1000)))
@@ -2786,6 +2790,7 @@ __all__ = [
     "bitwise_xor",
     "invert",
     "bitwise_not",
+    "abs",
     "abs_",
     "exp",
     "exp2",

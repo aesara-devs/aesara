@@ -10,6 +10,7 @@ If you want to use a scalar variable in an Aesara graph,
 you probably want to use aesara.tensor.[c,z,f,d,b,w,i,l,]scalar!
 """
 
+import builtins
 import math
 from collections.abc import Callable
 from copy import copy
@@ -43,6 +44,10 @@ builtin_bool = bool
 builtin_complex = complex
 builtin_int = int
 builtin_float = float
+
+
+# We capture the builtins that we are going to replace to follow the numpy API
+_abs = builtins.abs
 
 
 class ComplexError(NotImplementedError):
@@ -383,7 +388,7 @@ class Scalar(CType):
         diff = a - b
         if diff == 0:
             return True
-        return abs(diff) <= (abs(a) * tolerance) + (abs(b) * tolerance)
+        return _abs(diff) <= (_abs(a) * tolerance) + (_abs(b) * tolerance)
 
     def c_element_type(self):
         return self.dtype_specs()[1]
@@ -757,7 +762,7 @@ class _scalar_py_operators:
 
     # UNARY
     def __abs__(self):
-        return abs_(self)
+        return abs(self)
 
     def __neg__(self):
         return neg(self)
@@ -2543,7 +2548,7 @@ class Abs(UnaryScalarOp):
 
         if x.type in float_types:
             return (gz * sgn(x),)
-        return (gz * x / abs(x),)  # formula works for complex and real
+        return (gz * x / _abs(x),)  # formula works for complex and real
 
     def c_code(self, node, name, inputs, outputs, sub):
         (x,) = inputs
@@ -2563,7 +2568,7 @@ class Abs(UnaryScalarOp):
         raise NotImplementedError("type not supported", type)
 
 
-abs_ = Abs(same_out)
+abs = Abs(same_out)
 
 
 class Sgn(UnaryScalarOp):
@@ -3862,7 +3867,7 @@ class Angle(UnaryScalarOp):
         (gtheta,) = gout
         x = real(c)
         y = imag(c)
-        r = abs(c)
+        r = _abs(c)
 
         gr = -gtheta * y / (r ** 2 * sqrt(1 - (y / r) ** 2))
         gx = gr * x / r

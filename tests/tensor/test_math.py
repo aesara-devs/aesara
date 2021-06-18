@@ -39,7 +39,7 @@ from aesara.tensor.math import (
     ProdWithoutZeros,
     Sum,
     _dot,
-    abs_,
+    abs,
     add,
     allclose,
     arccos,
@@ -345,8 +345,8 @@ TestPowBroadcast = makeBroadcastTester(
 )
 
 TestAbsBroadcast = makeBroadcastTester(
-    op=abs_,
-    expected=lambda x: abs(x),
+    op=abs,
+    expected=lambda x: builtins.abs(x),
     good=_good_broadcast_unary_normal,
     grad=_grad_broadcast_unary_normal,
 )

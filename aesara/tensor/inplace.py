@@ -54,7 +54,7 @@ def invert_inplace(a):
 
 
 @scalar_elemwise
-def abs__inplace(a):
+def abs_inplace(a):
     """|`a`| (inplace on `a`)"""
 
 
