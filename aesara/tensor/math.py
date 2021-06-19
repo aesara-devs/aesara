@@ -1046,7 +1046,7 @@ def abs(a):
 abs_ = abs
 
 
-pprint.assign(abs_, printing.PatternPrinter(("|%(0)s|", -1000)))
+pprint.assign(abs, printing.PatternPrinter(("|%(0)s|", -1000)))
 
 
 @scalar_elemwise

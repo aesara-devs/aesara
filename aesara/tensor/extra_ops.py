@@ -20,7 +20,7 @@ from aesara.scalar import int32 as int_t
 from aesara.scalar import upcast
 from aesara.tensor import basic as aet
 from aesara.tensor.exceptions import NotScalarConstantError
-from aesara.tensor.math import abs_
+from aesara.tensor.math import abs as aet_abs
 from aesara.tensor.math import all as aet_all
 from aesara.tensor.math import eq, ge, lt, maximum, minimum, or_, prod
 from aesara.tensor.math import sum as aet_sum
@@ -1084,7 +1084,7 @@ class FillDiagonalOffset(Op):
         # only valid for matrices
         wr_a = fill_diagonal_offset(grad, 0, offset)
 
-        offset_abs = abs_(offset)
+        offset_abs = aet_abs(offset)
         pos_offset_flag = ge(offset, 0)
         neg_offset_flag = lt(offset, 0)
         min_wh = minimum(width, height)

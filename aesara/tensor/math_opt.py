@@ -63,7 +63,9 @@ from aesara.tensor.math import (
     Prod,
     ProdWithoutZeros,
     Sum,
-    abs_,
+)
+from aesara.tensor.math import abs as aet_abs
+from aesara.tensor.math import (
     add,
     dot,
     eq,
@@ -2177,7 +2179,7 @@ def check_for_x_over_absX(numerators, denominators):
     # TODO: this function should dig/search through dimshuffles
     # This won't catch a dimshuffled absolute value
     for den in list(denominators):
-        if den.owner and den.owner.op == abs_ and den.owner.inputs[0] in numerators:
+        if den.owner and den.owner.op == aet_abs and den.owner.inputs[0] in numerators:
             if den.owner.inputs[0].type.dtype.startswith("complex"):
                 # TODO: Make an Op that projects a complex number to
                 #      have unit length but projects 0 to 0.  That
@@ -2197,7 +2199,7 @@ local_mul_canonizer.add_simplifier(check_for_x_over_absX, "X_over_absX")
 
 
 @register_canonicalize
-@local_optimizer([abs_])
+@local_optimizer([aet_abs])
 def local_abs_lift(fgraph, node):
     """
     Move the abs toward the input.
@@ -2205,13 +2207,13 @@ def local_abs_lift(fgraph, node):
     This is needed for check_for_x_over_absX to apply in more case.
 
     """
-    if node.op == abs_ and node.inputs[0].owner:
+    if node.op == aet_abs and node.inputs[0].owner:
         assert node.nin == 1
         if node.inputs[0].owner.op == mul:
-            return [mul(*[abs_(i) for i in node.inputs[0].owner.inputs])]
+            return [mul(*[aet_abs(i) for i in node.inputs[0].owner.inputs])]
         if node.inputs[0].owner.op == true_div:
             i = node.inputs[0].owner.inputs
-            return [true_div(abs_(i[0]), abs_(i[1]))]
+            return [true_div(aet_abs(i[0]), aet_abs(i[1]))]
 
 
 @register_specialize
@@ -2222,10 +2224,13 @@ def local_abs_merge(fgraph, node):
     need it anymore
 
     """
-    if node.op == mul and sum([i.owner.op == abs_ for i in node.inputs if i.owner]) > 1:
+    if (
+        node.op == mul
+        and sum([i.owner.op == aet_abs for i in node.inputs if i.owner]) > 1
+    ):
         inputs = []
         for i in node.inputs:
-            if i.owner and i.owner.op == abs_:
+            if i.owner and i.owner.op == aet_abs:
                 inputs.append(i.owner.inputs[0])
             elif isinstance(i, Constant):
                 try:
@@ -2237,13 +2242,13 @@ def local_abs_merge(fgraph, node):
                 inputs.append(i)
             else:
                 return False
-        return [abs_(mul(*inputs))]
+        return [aet_abs(mul(*inputs))]
     if (
         node.op == true_div
-        and sum([i.owner.op == abs_ for i in node.inputs if i.owner]) == 2
+        and sum([i.owner.op == aet_abs for i in node.inputs if i.owner]) == 2
     ):
         return [
-            abs_(
+            aet_abs(
                 true_div(node.inputs[0].owner.inputs[0], node.inputs[1].owner.inputs[0])
             )
         ]

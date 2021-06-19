@@ -346,7 +346,7 @@ TestPowBroadcast = makeBroadcastTester(
 
 TestAbsBroadcast = makeBroadcastTester(
     op=abs,
-    expected=lambda x: builtins.abs(x),
+    expected=lambda x: np.abs(x),
     good=_good_broadcast_unary_normal,
     grad=_grad_broadcast_unary_normal,
 )
@@ -640,19 +640,19 @@ TestArctanhBroadcast = makeBroadcastTester(
 
 # Complex operations
 _good_complex_from_polar = dict(
-    same_shapes=(abs(rand(2, 3)), rand(2, 3)),
-    not_same_dimensions=(abs(rand(2, 2)), rand(2)),
-    scalar=(abs(rand(2, 3)), rand(1, 1)),
-    row=(abs(rand(2, 3)), rand(1, 3)),
-    column=(abs(rand(2, 3)), rand(2, 1)),
-    integers=(abs(randint(2, 3)), randint(2, 3)),
+    same_shapes=(np.abs(rand(2, 3)), rand(2, 3)),
+    not_same_dimensions=(np.abs(rand(2, 2)), rand(2)),
+    scalar=(np.abs(rand(2, 3)), rand(1, 1)),
+    row=(np.abs(rand(2, 3)), rand(1, 3)),
+    column=(np.abs(rand(2, 3)), rand(2, 1)),
+    integers=(np.abs(randint(2, 3)), randint(2, 3)),
     empty=(np.asarray([], dtype=config.floatX), np.asarray([1], dtype=config.floatX)),
 )
 _grad_complex_from_polar = dict(
-    same_shapes=(abs(rand(2, 3)), rand(2, 3)),
-    scalar=(abs(rand(2, 3)), rand(1, 1)),
-    row=(abs(rand(2, 3)), rand(1, 3)),
-    column=(abs(rand(2, 3)), rand(2, 1)),
+    same_shapes=(np.abs(rand(2, 3)), rand(2, 3)),
+    scalar=(np.abs(rand(2, 3)), rand(1, 1)),
+    row=(np.abs(rand(2, 3)), rand(1, 3)),
+    column=(np.abs(rand(2, 3)), rand(2, 1)),
 )
 
 TestComplexFromPolarBroadcast = makeBroadcastTester(
