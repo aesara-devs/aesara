@@ -1421,19 +1421,19 @@ Here is an example using the bit-wise ``and_`` via the ``&`` operator:
 Mathematical
 ------------
 
-.. function:: abs_(a)
+.. function:: abs(a)
 
-    Returns a variable representing the absolute of a, ie ``|a|``.
+    Returns a variable representing the absolute of ``a``, i.e. ``|a|``.
 
-    .. note:: Can also be accessed with ``abs(a)``.
+    .. note:: Can also be accessed using `builtins.abs`: i.e. ``abs(a)``.
 
 .. function:: angle(a)
 
-    Returns a variable representing angular component of complex-valued Tensor `a`.
+    Returns a variable representing angular component of complex-valued Tensor ``a``.
 
 .. function:: exp(a)
 
-    Returns a variable representing the exponential of a, ie e^a.
+    Returns a variable representing the exponential of ``a``.
 
 .. function:: maximum(a, b)
 
@@ -1445,7 +1445,7 @@ Mathematical
 
 .. function:: neg(a)
 
-    Returns a variable representing the negation of `a` (also ``-a``).
+    Returns a variable representing the negation of ``a`` (also ``-a``).
 
 .. function:: reciprocal(a)
 

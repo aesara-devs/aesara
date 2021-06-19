@@ -5,7 +5,7 @@ from aesara import config
 from aesara.misc.safe_asarray import _asarray
 from aesara.scalar.basic import round_half_away_from_zero_vec, upcast
 from aesara.tensor.inplace import (
-    abs__inplace,
+    abs_inplace,
     add_inplace,
     arccos_inplace,
     arccosh_inplace,
@@ -184,7 +184,7 @@ TestSgnInplaceBroadcast = makeBroadcastTester(
 )
 
 TestAbsInplaceBroadcast = makeBroadcastTester(
-    op=abs__inplace,
+    op=abs_inplace,
     expected=lambda x: np.abs(x),
     good=_good_broadcast_unary_normal_abs,
     inplace=True,

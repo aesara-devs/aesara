@@ -28,7 +28,9 @@ from aesara.tensor.basic_opt import local_dimshuffle_lift
 from aesara.tensor.blas import Dot22, Gemv
 from aesara.tensor.blas_c import CGemv
 from aesara.tensor.elemwise import CAReduce, DimShuffle, Elemwise
-from aesara.tensor.math import Dot, MaxAndArgmax, Prod, Sum, abs_, add
+from aesara.tensor.math import Dot, MaxAndArgmax, Prod, Sum
+from aesara.tensor.math import abs as aet_abs
+from aesara.tensor.math import add
 from aesara.tensor.math import all as aet_all
 from aesara.tensor.math import any as aet_any
 from aesara.tensor.math import (
@@ -848,7 +850,7 @@ class TestAlgebraicCanonize:
         # 4 * x / abs(2*x) it get simplifier during canonicalisation.
 
         x = dscalar()
-        # a = aet.abs_(x)
+        # a = aet.aet_abs(x)
 
         if config.mode == "FAST_COMPILE":
             mode = get_mode("FAST_RUN").excluding("local_elemwise_fusion")
@@ -981,7 +983,7 @@ def test_merge_abs_bugfix():
     # normalize on rows
     step2 = step1 / step1.sum(1)
     # get l1 norm
-    l1_norm = abs_(step2).sum()
+    l1_norm = aet_abs(step2).sum()
     function([input], aesara.gradient.grad(l1_norm, input))
 
 

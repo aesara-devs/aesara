@@ -16,7 +16,7 @@ from aesara.tensor.utils import hash_from_ndarray
 
 class _tensor_py_operators:
     def __abs__(self):
-        return aet.math.abs_(self)
+        return aet.math.abs(self)
 
     def __neg__(self):
         return aet.math.neg(self)
@@ -695,7 +695,7 @@ class _tensor_py_operators:
             raise NotImplementedError()
         # optimizations will/should catch cases like L=1, L=2
         y = aet.math.pow(
-            aet.math.pow(aet.math.abs_(self), L).sum(axis=axis),
+            aet.math.pow(aet.math.abs(self), L).sum(axis=axis),
             1.0 / L,
         )
         if keepdims:
