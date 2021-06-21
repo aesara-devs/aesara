@@ -15,6 +15,7 @@ from numbers import Number
 from typing import Dict, Tuple, Union
 
 import numpy as np
+from numpy.core.multiarray import normalize_axis_index
 
 import aesara
 import aesara.scalar.sharedvar
@@ -4347,7 +4348,55 @@ def expand_dims(
     return a.reshape(shape)
 
 
+def _make_along_axis_idx(arr_shape, indices, axis):
+    """Take from `numpy.lib.shape_base`."""
+    # compute dimensions to iterate over
+    if str(indices.dtype) not in int_dtypes:
+        raise IndexError("`indices` must be an integer array")
+    shape_ones = (1,) * indices.ndim
+    dest_dims = list(range(axis)) + [None] + list(range(axis + 1, indices.ndim))
+
+    # build a fancy index, consisting of orthogonal aranges, with the
+    # requested index inserted at the right location
+    fancy_index = []
+    for dim, n in zip(dest_dims, arr_shape):
+        if dim is None:
+            fancy_index.append(indices)
+        else:
+            ind_shape = shape_ones[:dim] + (-1,) + shape_ones[dim + 1 :]
+            fancy_index.append(arange(n).reshape(ind_shape))
+
+    return tuple(fancy_index)
+
+
+def take_along_axis(arr, indices, axis=0):
+    """Take values from the input array by matching 1d index and data slices.
+
+    This iterates over matching 1d slices oriented along the specified axis in
+    the index and data arrays, and uses the former to look up values in the
+    latter. These slices can be different lengths.
+
+    Functions returning an index along an axis, like `argsort` and
+    `argpartition`, produce suitable indices for this function.
+    """
+    arr = as_tensor_variable(arr)
+    indices = as_tensor_variable(indices)
+    # normalize inputs
+    if axis is None:
+        arr = arr.flatten()
+        axis = 0
+    else:
+        axis = normalize_axis_index(axis, arr.ndim)
+
+    if arr.ndim != indices.ndim:
+        raise ValueError("`indices` and `arr` must have the same number of dimensions")
+
+    # use the fancy index
+    return arr[_make_along_axis_idx(arr.shape, indices, axis)]
+
+
 __all__ = [
+    "take_along_axis",
     "expand_dims",
     "atleast_Nd",
     "atleast_1d",
