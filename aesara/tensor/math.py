@@ -2764,6 +2764,34 @@ def power(x, y):
     return x ** y
 
 
+def logsumexp(x, axis=None, keepdims=False):
+    """Compute the log of the sum of exponentials of input elements.
+
+    See ``scipy.special.logsumexp``.
+
+    Parameters
+    ----------
+    x : symbolic tensor
+        Input
+
+    axis : None or int or tuple of ints, optional
+        Axis or axes over which the sum is taken. By default axis is None,
+        and all elements are summed.
+
+    keepdims : bool, optional
+        If this is set to True, the axes which are reduced are left in the
+        result as dimensions with size one. With this option, the result will
+        broadcast correctly against the original array.
+
+    Returns
+    -------
+    tensor
+
+    """
+
+    return log(sum(exp(x), axis=axis, keepdims=keepdims))
+
+
 __all__ = [
     "max_and_argmax",
     "max",
@@ -2885,4 +2913,5 @@ __all__ = [
     "all",
     "ptp",
     "power",
+    "logsumexp",
 ]
