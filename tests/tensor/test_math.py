@@ -9,6 +9,7 @@ from itertools import product
 import numpy as np
 import pytest
 from numpy.testing import assert_array_equal
+from scipy.special import logsumexp as scipy_logsumexp
 
 import aesara.scalar as aes
 from aesara.compile.debugmode import DebugMode
@@ -75,6 +76,7 @@ from aesara.tensor.math import (
     log1p,
     log2,
     log10,
+    logsumexp,
     max,
     max_and_argmax,
     maximum,
@@ -3273,3 +3275,35 @@ def test_tanh_grad_broadcast():
     grad(tanh(x).sum(), x)
     grad(tanh(x + y).sum(), y)
     grad(tanh(x + y).sum(), [x, y])
+
+
+@pytest.mark.parametrize(
+    ["shape", "axis"],
+    [
+        ((1,), 0),
+        ((3,), 0),
+        ((3, 4), None),
+        ((3, 4), 0),
+        ((3, 4), 1),
+        ((3, 4, 5), None),
+        ((3, 3, 5), 0),
+        ((3, 4, 5), 1),
+        ((3, 4, 5), 2),
+    ],
+)
+@pytest.mark.parametrize(
+    "keepdims",
+    [True, False],
+)
+def test_logsumexp(shape, axis, keepdims):
+    scipy_inp = np.zeros(shape)
+    scipy_out = scipy_logsumexp(scipy_inp, axis=axis, keepdims=keepdims)
+
+    aesara_inp = as_tensor_variable(scipy_inp)
+    f = function([], logsumexp(aesara_inp, axis=axis, keepdims=keepdims))
+    aesara_out = f()
+
+    np.testing.assert_array_almost_equal(
+        aesara_out,
+        scipy_out,
+    )
