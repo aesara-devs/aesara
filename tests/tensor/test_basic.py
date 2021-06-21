@@ -4175,3 +4175,44 @@ def test_expand_dims():
     exp_res = np.expand_dims(x_val, (2, 1))
     res_val = aesara.function([x_at], res_at)(x_val)
     assert np.array_equal(exp_res, res_val)
+
+
+class TestTakeAlongAxis:
+    @pytest.mark.parametrize(
+        ["shape", "axis", "samples"],
+        (
+            ((1,), None, 1),
+            ((1,), -1, 10),
+            ((3, 2, 1), -1, 1),
+            ((3, 2, 1), 0, 10),
+            ((3, 2, 1), -1, 10),
+        ),
+        ids=str,
+    )
+    def test_take_along_axis(self, shape, axis, samples):
+        rng = np.random.default_rng()
+        arr = rng.normal(size=shape).astype(config.floatX)
+        indices_size = list(shape)
+        indices_size[axis or 0] = samples
+        indices = rng.integers(low=0, high=shape[axis or 0], size=indices_size)
+
+        arr_in = aet.tensor(config.floatX, [s == 1 for s in arr.shape])
+        indices_in = aet.tensor(np.int64, [s == 1 for s in indices.shape])
+
+        out = aet.take_along_axis(arr_in, indices_in, axis)
+
+        func = aesara.function([arr_in, indices_in], out)
+
+        assert np.allclose(
+            np.take_along_axis(arr, indices, axis=axis), func(arr, indices)
+        )
+
+    def test_ndim_dtype_failures(self):
+        arr = aet.tensor(config.floatX, [False] * 2)
+        indices = aet.tensor(np.int64, [False] * 3)
+        with pytest.raises(ValueError):
+            aet.take_along_axis(arr, indices)
+
+        indices = aet.tensor(np.float64, [False] * 2)
+        with pytest.raises(IndexError):
+            aet.take_along_axis(arr, indices)
