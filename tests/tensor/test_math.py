@@ -76,6 +76,7 @@ from aesara.tensor.math import (
     log1p,
     log2,
     log10,
+    logaddexp,
     logsumexp,
     max,
     max_and_argmax,
@@ -125,6 +126,7 @@ from aesara.tensor.type import (
     matrices,
     matrix,
     scalar,
+    scalars,
     tensor,
     tensor3,
     tensor4,
@@ -3275,6 +3277,44 @@ def test_tanh_grad_broadcast():
     grad(tanh(x).sum(), x)
     grad(tanh(x + y).sum(), y)
     grad(tanh(x + y).sum(), [x, y])
+
+
+def test_logaddexp():
+    # Test more than two multidimensional inputs
+    x, y, z = matrices("x", "y", "z")
+    out = logaddexp(x, y, z)
+    f = function([x, y, z], out)
+
+    inp = np.zeros((3, 3), dtype=config.floatX)
+    np.testing.assert_allclose(
+        f(inp, inp, inp),
+        np.full((3, 3), np.log(3)),
+    )
+
+    # Test scalar inputs
+    x, y = scalars("x", "y")
+    out = logaddexp(x, y)
+    f = function([x, y], out)
+
+    res = f(0, 0)
+    assert np.ndim(res) == 0
+    assert np.isclose(res, np.log(2))
+
+    # Test scalar and matrix inputs
+    x = scalar("x")
+    y = matrix("y")
+    out = logaddexp(x, y)
+    f = function([x, y], out)
+
+    res = f(
+        np.array(0, dtype=config.floatX),
+        np.zeros((3, 3), dtype=config.floatX),
+    )
+    assert np.shape(res) == (3, 3)
+    np.testing.assert_allclose(
+        res,
+        np.full((3, 3), np.log(2)),
+    )
 
 
 @pytest.mark.parametrize(

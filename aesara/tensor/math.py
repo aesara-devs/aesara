@@ -2764,6 +2764,25 @@ def power(x, y):
     return x ** y
 
 
+def logaddexp(*xs):
+    """Logarithm of the sum of exponentiations of the inputs.
+
+    See ``numpy.logaddexp``.
+
+    Parameters
+    ----------
+    xs : symbolic tensors
+        Input
+
+    Returns
+    -------
+    tensor
+
+    """
+
+    return log(add(*[exp(x) for x in xs]))
+
+
 def logsumexp(x, axis=None, keepdims=False):
     """Compute the log of the sum of exponentials of input elements.
 
@@ -2913,5 +2932,6 @@ __all__ = [
     "all",
     "ptp",
     "power",
+    "logaddexp",
     "logsumexp",
 ]
