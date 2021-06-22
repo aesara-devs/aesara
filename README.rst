@@ -27,7 +27,6 @@ Getting started
 
   import aesara
   from aesara import tensor as aet
-  from aesara.printing import debugprint
 
   # Declare two symbolic floating-point scalars
   a = aet.dscalar("a")
@@ -58,7 +57,7 @@ Getting started
 
   d = a/a + (M + a).dot(v)
 
-  debugprint(d)
+  aesara.dprint(d)
   # Elemwise{add,no_inplace} [id A] ''
   #  |InplaceDimShuffle{x} [id B] ''
   #  | |Elemwise{true_div,no_inplace} [id C] ''
@@ -75,7 +74,7 @@ Getting started
 
   # `a/a` -> `1` and the dot product is replaced with a BLAS function
   # (i.e. CGemv)
-  debugprint(f_d)
+  aesara.dprint(f_d)
   # Elemwise{Add}[(0, 1)] [id A] ''   5
   #  |TensorConstant{(1,) of 1.0} [id B]
   #  |CGemv{inplace} [id C] ''   4
