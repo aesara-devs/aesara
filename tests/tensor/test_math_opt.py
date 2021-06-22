@@ -58,6 +58,7 @@ from aesara.tensor.math import (
     iround,
     le,
     log,
+    log1mexp,
     log1p,
     log2,
     log10,
@@ -70,7 +71,7 @@ from aesara.tensor.math import minimum, mul, neg, neq
 from aesara.tensor.math import pow as aet_pow
 from aesara.tensor.math import prod, rad2deg, reciprocal
 from aesara.tensor.math import round as aet_round
-from aesara.tensor.math import sgn, sigmoid, sin, sinh, sqr, sqrt, sub
+from aesara.tensor.math import sgn, sigmoid, sin, sinh, softplus, sqr, sqrt, sub
 from aesara.tensor.math import sum as aet_sum
 from aesara.tensor.math import tan, tanh, true_div, xor
 from aesara.tensor.math_opt import (
@@ -2510,9 +2511,10 @@ class TestExpLog:
         np.testing.assert_array_equal(f(data), data)
 
     def test_exp_log(self):
-        # exp(log(x)) -> switch(x > 0, x, nan)
+        # exp(log(x)) -> switch(x >= 0, x, nan)
         data_valid = np.random.random((4, 3)).astype("float32")
-        data_invalid = data_valid * -1
+        data_valid[0, 0] = 0  # edge case
+        data_invalid = data_valid - 1
         x = fmatrix()
         f = function([x], exp(log(x)), mode=self.mode)
         graph = f.maker.fgraph.toposort()
@@ -2527,8 +2529,9 @@ class TestExpLog:
         assert np.all(np.isnan(f(data_invalid)))
 
     def test_exp_log1p(self):
-        # exp(log1p(x)) -> switch(x > -1, x + 1, nan)
+        # exp(log1p(x)) -> switch(x >= -1, x + 1, nan)
         data_valid = np.random.random((4, 3)).astype("float32") * 2 - 1
+        data_valid[0, 0] = -1  # edge case
         data_invalid = data_valid - 2
         x = fmatrix()
         f = function([x], exp(log1p(x)), mode=self.mode)
@@ -2542,6 +2545,43 @@ class TestExpLog:
         assert len(ops_graph) == 0
         np.testing.assert_array_equal(f(data_valid), data_valid + 1)
         assert np.all(np.isnan(f(data_invalid)))
+
+    def test_exp_log1mexp(self):
+        # exp(log1mexp(x)) -> switch(x <= 0, 1 - exp(x), nan)
+        data_valid = -np.random.random((4, 3)).astype("float32")
+        data_valid[0, 0] = 0  # edge case
+        data_invalid = data_valid + 1
+        x = fmatrix()
+        f = function([x], exp(log1mexp(x)), mode=self.mode)
+        graph = f.maker.fgraph.toposort()
+        ops_graph = [
+            node
+            for node in graph
+            if isinstance(node.op, Elemwise)
+            and isinstance(node.op.scalar_op, (aes.Log, aes.Log1mexp))
+        ]
+        assert len(ops_graph) == 0
+        np.testing.assert_almost_equal(f(data_valid), 1 - np.exp(data_valid))
+        assert np.all(np.isnan(f(data_invalid)))
+
+    def test_exp_softplus(self):
+        # exp(softplus(x)) -> 1 + exp(x)
+        data_valid = np.random.random((4, 3)).astype("float32") * 2 - 1
+        x = fmatrix()
+        f = function([x], exp(softplus(x)), mode=self.mode)
+        graph = f.maker.fgraph.toposort()
+        ops_graph = [
+            node
+            for node in graph
+            if isinstance(node.op, Elemwise)
+            and isinstance(node.op.scalar_op, (aes.Log, aes.Softplus))
+        ]
+        assert len(ops_graph) == 0
+        np.testing.assert_almost_equal(
+            f(data_valid),
+            1 + np.exp(data_valid),
+            decimal=6,
+        )
 
 
 class TestLocalSwitchSink:
