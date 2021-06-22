@@ -11,6 +11,7 @@ from functools import reduce
 import numpy as np
 
 import aesara.scalar.basic as aes
+import aesara.scalar.math as aes_math
 from aesara.assert_op import assert_op
 from aesara.configdefaults import config
 from aesara.graph.basic import Constant, Variable
@@ -76,6 +77,7 @@ from aesara.tensor.math import (
     ge,
     int_div,
     isinf,
+    le,
     log,
     log1mexp,
     log1p,
@@ -261,6 +263,24 @@ def local_exp_log(fgraph, node):
         x = x.owner.inputs[0]
         old_out = node.outputs[0]
         new_out = switch(ge(x, -1), add(1, x), np.asarray(np.nan, old_out.dtype))
+        if new_out.type != old_out.type:
+            return
+        return [new_out]
+
+    # Case for exp(log1mexp(x))
+    if isinstance(prev_op, aes_math.Log1mexp) and isinstance(node_op, aes.Exp):
+        x = x.owner.inputs[0]
+        old_out = node.outputs[0]
+        new_out = switch(le(x, 0), sub(1, exp(x)), np.asarray(np.nan, old_out.dtype))
+        if new_out.type != old_out.type:
+            return
+        return [new_out]
+
+    # Case for exp(softplus(x)) aka exp(log1pexp)
+    if isinstance(prev_op, aes_math.Softplus) and isinstance(node_op, aes.Exp):
+        x = x.owner.inputs[0]
+        old_out = node.outputs[0]
+        new_out = add(1, exp(x))
         if new_out.type != old_out.type:
             return
         return [new_out]
