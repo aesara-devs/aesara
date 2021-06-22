@@ -77,6 +77,7 @@ from aesara.tensor.math import (
     int_div,
     isinf,
     log,
+    log1mexp,
     log1p,
     makeKeepDims,
 )
@@ -3664,3 +3665,11 @@ register_local_1msigmoid = False
 
 if register_local_1msigmoid:
     register_canonicalize(local_1msigmoid)
+
+
+log1pmexp_to_log1mexp = PatternSub(
+    (log1p, (neg, (exp, "x"))),
+    (log1mexp, "x"),
+    allow_multiple_clients=True,
+)
+register_stabilize(log1pmexp_to_log1mexp, name="log1pmexp_to_log1mexp")
