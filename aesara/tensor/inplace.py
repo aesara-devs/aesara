@@ -319,6 +319,11 @@ def softplus_inplace(x):
 
 
 @scalar_elemwise
+def log1mexp_inplace(x):
+    """Compute log(1 - exp(x)), also known as log1mexp"""
+
+
+@scalar_elemwise
 def second_inplace(a):
     """Fill `a` with `b`"""
 

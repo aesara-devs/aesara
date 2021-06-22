@@ -1425,6 +1425,11 @@ log1pexp = softplus
 
 
 @scalar_elemwise
+def log1mexp(x):
+    """Compute log(1 - exp(x)), also known as log1mexp"""
+
+
+@scalar_elemwise
 def real(z):
     """Return real component of complex-valued tensor `z`"""
 
@@ -2903,6 +2908,7 @@ __all__ = [
     "expit",
     "softplus",
     "log1pexp",
+    "log1mexp",
     "real",
     "imag",
     "angle",

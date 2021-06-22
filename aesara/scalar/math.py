@@ -20,6 +20,7 @@ from aesara.scalar.basic import (
     exp,
     float64,
     float_types,
+    true_div,
     upcast,
     upgrade_to_float,
     upgrade_to_float64,
@@ -997,3 +998,49 @@ class Softplus(UnaryScalarOp):
 
 
 softplus = Softplus(upgrade_to_float, name="scalar_softplus")
+
+
+class Log1mexp(UnaryScalarOp):
+    r"""
+    Compute log(1 - exp(x)), also known as log1mexp
+
+    This function is numerically more stable than the naive approach.
+
+    For details, see
+    https://cran.r-project.org/web/packages/Rmpfr/vignettes/log1mexp-note.pdf
+
+    References
+    ----------
+    .. [Machler2012] Martin Mächler (2012).
+        "Accurately computing `\log(1-\exp(- \mid a \mid))` Assessed by the Rmpfr package"
+    """
+
+    @staticmethod
+    def static_impl(x):
+        if x < np.log(0.5):
+            return np.log1p(-np.exp(x))
+        else:
+            return np.log(-np.expm1(x))
+
+    def impl(self, x):
+        return Log1mexp.static_impl(x)
+
+    def grad(self, inp, grads):
+        (x,) = inp
+        (gz,) = grads
+        return [gz * true_div(1.0, 1.0 - exp(-x))]
+
+    def c_code(self, node, name, inp, out, sub):
+        (x,) = inp
+        (z,) = out
+
+        if node.inputs[0].type in float_types:
+            if node.inputs[0].type == float64:
+                return f"{z} = {x} < -0.6931471805599453 ? log1p(-exp({x})) : log(-expm1({x}));"
+            else:
+                return f"{z} = {x} < -0.6931471805599453f ? log1p(-exp({x})) : log(-expm1({x}));"
+        else:
+            raise NotImplementedError("only floating point is implemented")
+
+
+log1mexp = Log1mexp(upgrade_to_float, name="scalar_log1mexp")

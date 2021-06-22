@@ -567,6 +567,39 @@ class TestSoftplus:
         np.testing.assert_allclose(y_th, y_np, rtol=10e-10)
 
 
+_good_broadcast_unary_log1mexp = dict(
+    normal=(random_ranged(-10.0, 0, (2, 3)),),
+    float32=(random_ranged(-10.0, 0, (2, 3)).astype("float32"),),
+    empty=(np.asarray([], dtype=config.floatX),),
+    int=(integers_ranged(-10, -1, (2, 3)),),
+)
+
+_grad_broadcast_unary_log1mexp = dict(
+    normal=(random_ranged(-10.0, 0.0, (2, 3)),),
+)
+
+
+def expected_log1mexp(x):
+    return check_floatX(x, np.log(-np.expm1(x)))
+
+
+TestLog1mexpBroadcast = makeBroadcastTester(
+    op=aet.log1mexp,
+    expected=expected_log1mexp,
+    good=_good_broadcast_unary_log1mexp,
+    grad=_grad_broadcast_unary_log1mexp,
+    eps=1e-8,
+)
+
+TestLog1mexpInplaceBroadcast = makeBroadcastTester(
+    op=inplace.log1mexp_inplace,
+    expected=expected_log1mexp,
+    good=_good_broadcast_unary_log1mexp,
+    eps=1e-8,
+    inplace=True,
+)
+
+
 def test_deprecated_module():
     with pytest.warns(DeprecationWarning):
         import aesara.scalar.basic_scipy  # noqa: F401
