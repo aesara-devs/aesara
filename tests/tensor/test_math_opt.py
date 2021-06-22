@@ -4439,3 +4439,24 @@ class TestSigmoidUtils:
             assert is_1pexp(1 + 2 * exp_op(x), False) is None
         finally:
             config.warn__identify_1pexp_bug = backup
+
+
+def test_log1mexp_stabilization():
+    mode = Mode("py").including("stabilize")
+
+    x = vector()
+    f = function([x], log(1 - exp(x)), mode=mode)
+
+    nodes = [node.op for node in f.maker.fgraph.toposort()]
+    assert nodes == [aet.log1mexp]
+
+    # Check values that would under or overflow without optimization
+    assert f([-(2.0 ** -55)]) != -np.inf
+    overflow_value = -500.0 if config.floatX == "float64" else -100.0
+    assert f([overflow_value]) < 0
+
+    # Check values around the optimization switch point np.log(0.5)
+    assert np.allclose(
+        f(np.array([-0.8, -0.6], dtype=config.floatX)),
+        np.log(1 - np.exp([-0.8, -0.6])),
+    )
