@@ -249,6 +249,30 @@ def local_exp_log(fgraph, node):
     if isinstance(prev_op, aes.Exp) and isinstance(node_op, aes.Log):
         return x.owner.inputs
 
+    # Case for exp(softplus(x)) aka exp(log1pexp)
+    if isinstance(prev_op, aes_math.Softplus) and isinstance(node_op, aes.Exp):
+        x = x.owner.inputs[0]
+        old_out = node.outputs[0]
+        new_out = add(1, exp(x))
+        if new_out.type != old_out.type:
+            return
+        return [new_out]
+
+
+@register_specialize
+@local_optimizer([Elemwise])
+def local_exp_log_nan_switch(fgraph, node):
+    # Rewrites of the kind exp(log...(x)) that require a `nan` switch
+    x = node.inputs[0]
+
+    if not isinstance(node.op, Elemwise):
+        return
+    if not x.owner or not isinstance(x.owner.op, Elemwise):
+        return
+
+    prev_op = x.owner.op.scalar_op
+    node_op = node.op.scalar_op
+
     # Case for exp(log(x))
     if isinstance(prev_op, aes.Log) and isinstance(node_op, aes.Exp):
         x = x.owner.inputs[0]
@@ -272,15 +296,6 @@ def local_exp_log(fgraph, node):
         x = x.owner.inputs[0]
         old_out = node.outputs[0]
         new_out = switch(le(x, 0), sub(1, exp(x)), np.asarray(np.nan, old_out.dtype))
-        if new_out.type != old_out.type:
-            return
-        return [new_out]
-
-    # Case for exp(softplus(x)) aka exp(log1pexp)
-    if isinstance(prev_op, aes_math.Softplus) and isinstance(node_op, aes.Exp):
-        x = x.owner.inputs[0]
-        old_out = node.outputs[0]
-        new_out = add(1, exp(x))
         if new_out.type != old_out.type:
             return
         return [new_out]

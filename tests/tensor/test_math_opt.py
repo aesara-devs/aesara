@@ -2493,7 +2493,10 @@ class TestFuncInverse:
 class TestExpLog:
     def setup_method(self):
         mode = get_default_mode()
-        self.mode = mode.including("local_exp_log").excluding("fusion")
+        self.mode = mode.including(
+            "local_exp_log",
+            "local_exp_log_nan_switch",
+        ).excluding("fusion")
 
     def test_log_exp(self):
         # log(exp(x)) -> x
@@ -2582,6 +2585,26 @@ class TestExpLog:
             1 + np.exp(data_valid),
             decimal=6,
         )
+
+    @pytest.mark.parametrize(
+        ["nested_expression", "expected_switches"],
+        [
+            (lambda x: exp(log(exp(log(exp(x))))), 0),
+            (lambda x: exp(log(exp(log(x)))), 1),
+        ],
+    )
+    def test_exp_log_nested(self, nested_expression, expected_switches):
+        # Make sure nested exp-log graphs have as little `nan` switches as necessary
+        x = fvector()
+        f = function([x], nested_expression(x), mode=self.mode)
+        graph = f.maker.fgraph.toposort()
+        ops_graph = [
+            node
+            for node in graph
+            if isinstance(node.op, Elemwise)
+            and isinstance(node.op.scalar_op, aes.Switch)
+        ]
+        assert len(ops_graph) == expected_switches
 
 
 class TestLocalSwitchSink:
