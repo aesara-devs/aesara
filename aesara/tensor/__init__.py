@@ -59,6 +59,7 @@ from aesara.tensor import (
     nlinalg,
     nnet,
     opt_uncanonicalize,
+    slinalg,
     xlogx,
 )
 from aesara.tensor.basic import *

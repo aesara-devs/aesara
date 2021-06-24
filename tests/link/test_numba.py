@@ -2000,7 +2000,7 @@ def test_Cholesky(x, lower, exc):
                 (lambda x: x.T.dot(x))(rng.random(size=(3, 3)).astype("float64")),
             ),
             set_test_value(aet.dvector(), rng.random(size=(3,)).astype("float64")),
-            "general",
+            "gen",
             None,
         ),
         (
@@ -2011,7 +2011,7 @@ def test_Cholesky(x, lower, exc):
                 ),
             ),
             set_test_value(aet.dvector(), rng.random(size=(3,)).astype("float64")),
-            "general",
+            "gen",
             None,
         ),
         (
@@ -2020,7 +2020,7 @@ def test_Cholesky(x, lower, exc):
                 (lambda x: x.T.dot(x))(rng.random(size=(3, 3)).astype("float64")),
             ),
             set_test_value(aet.dvector(), rng.random(size=(3,)).astype("float64")),
-            "lower_triangular",
+            "sym",
             UserWarning,
         ),
     ],

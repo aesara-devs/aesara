@@ -249,25 +249,25 @@ def tag_solve_triangular(fgraph, node):
     replace it with a triangular solve.
 
     """
-    if node.op == solve:
-        if node.op.A_structure == "general":
+    if isinstance(node.op, Solve):
+        if node.op.assume_a == "gen":
             A, b = node.inputs  # result is solution Ax=b
-            if A.owner and isinstance(A.owner.op, type(cholesky)):
+            if A.owner and isinstance(A.owner.op, Cholesky):
                 if A.owner.op.lower:
-                    return [Solve("lower_triangular")(A, b)]
+                    return [Solve(assume_a="sym", lower=True)(A, b)]
                 else:
-                    return [Solve("upper_triangular")(A, b)]
+                    return [Solve(assume_a="sym", lower=False)(A, b)]
             if (
                 A.owner
                 and isinstance(A.owner.op, DimShuffle)
                 and A.owner.op.new_order == (1, 0)
             ):
                 (A_T,) = A.owner.inputs
-                if A_T.owner and isinstance(A_T.owner.op, type(cholesky)):
+                if A_T.owner and isinstance(A_T.owner.op, Cholesky):
                     if A_T.owner.op.lower:
-                        return [Solve("upper_triangular")(A, b)]
+                        return [Solve(assume_a="sym", lower=False)(A, b)]
                     else:
-                        return [Solve("lower_triangular")(A, b)]
+                        return [Solve(assume_a="sym", lower=True)(A, b)]
 
 
 @register_canonicalize
@@ -286,15 +286,15 @@ def no_transpose_symmetric(fgraph, node):
 @register_stabilize
 @local_optimizer(None)  # XXX: solve is defined later and can't be used here
 def psd_solve_with_chol(fgraph, node):
-    if node.op == solve:
+    if isinstance(node.op, Solve):
         A, b = node.inputs  # result is solution Ax=b
         if is_psd(A):
             L = cholesky(A)
             # N.B. this can be further reduced to a yet-unwritten cho_solve Op
             #     __if__ no other Op makes use of the the L matrix during the
             #     stabilization
-            Li_b = Solve("lower_triangular")(L, b)
-            x = Solve("upper_triangular")(L.T, Li_b)
+            Li_b = Solve(assume_a="sym", lower=True)(L, b)
+            x = Solve(assume_a="sym", lower=False)(L.T, Li_b)
             return [x]
 
 

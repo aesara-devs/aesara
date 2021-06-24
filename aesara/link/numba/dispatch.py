@@ -1690,9 +1690,12 @@ def numba_funcify_Cholesky(op, node, **kwargs):
 @numba_funcify.register(Solve)
 def numba_funcify_Solve(op, node, **kwargs):
 
-    if op.A_structure == "lower_triangular" or op.A_structure == "upper_triangular":
+    assume_a = op.assume_a
+    # check_finite = op.check_finite
 
-        lower = op.A_structure == "lower_triangular"
+    if assume_a != "gen":
+
+        lower = op.lower
 
         warnings.warn(
             (
@@ -1707,16 +1710,26 @@ def numba_funcify_Solve(op, node, **kwargs):
         @numba.njit
         def solve(a, b):
             with numba.objmode(ret=ret_sig):
-                ret = scipy.linalg.solve_triangular(a, b, lower=lower)
+                ret = scipy.linalg.solve_triangular(
+                    a,
+                    b,
+                    lower=lower,
+                    # check_finite=check_finite
+                )
             return ret
 
     else:
         out_dtype = node.outputs[0].type.numpy_dtype
         inputs_cast = int_to_float_fn(node.inputs, out_dtype)
 
-        @numba.njit
+        @numba.njit(inline="always")
         def solve(a, b):
-            return np.linalg.solve(inputs_cast(a), inputs_cast(b)).astype(out_dtype)
+            return np.linalg.solve(
+                inputs_cast(a),
+                inputs_cast(b),
+                # assume_a=assume_a,
+                # check_finite=check_finite,
+            ).astype(out_dtype)
 
     return solve
 
