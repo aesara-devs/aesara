@@ -273,38 +273,48 @@ class TestSolve(utt.InferShapeTester):
 
             assert x.dtype == x_result.dtype
 
-    def verify_solve_grad(self, m, n, A_structure, lower, rng):
+    def verify_solve_grad(self, m, n, assume_a, lower, rng):
         # ensure diagonal elements of A relatively large to avoid numerical
         # precision issues
         A_val = (rng.normal(size=(m, m)) * 0.5 + np.eye(m)).astype(config.floatX)
-        if A_structure == "lower_triangular":
-            A_val = np.tril(A_val)
-        elif A_structure == "upper_triangular":
-            A_val = np.triu(A_val)
+
+        if assume_a != "gen":
+            if lower:
+                A_val = np.tril(A_val)
+            else:
+                A_val = np.triu(A_val)
+
         if n is None:
             b_val = rng.normal(size=m).astype(config.floatX)
         else:
             b_val = rng.normal(size=(m, n)).astype(config.floatX)
+
         eps = None
         if config.floatX == "float64":
             eps = 2e-8
-        solve_op = Solve(A_structure=A_structure, lower=lower)
+
+        solve_op = Solve(assume_a=assume_a, lower=lower)
         utt.verify_grad(solve_op, [A_val, b_val], 3, rng, eps=eps)
 
+    @pytest.mark.parametrize(
+        "m, n, assume_a, lower",
+        [
+            (5, None, "gen", False),
+            (5, None, "gen", True),
+            (4, 2, "gen", False),
+            (4, 2, "gen", True),
+            (5, None, "sym", False),
+            (5, None, "sym", True),
+            (4, 2, "sym", False),
+            (4, 2, "sym", True),
+        ],
+    )
+    def test_solve_grad(self, m, n, assume_a, lower):
         rng = np.random.default_rng(utt.fetch_seed())
-        structures = ["general", "lower_triangular", "upper_triangular"]
-        for A_structure in structures:
-            lower = A_structure == "lower_triangular"
-            self.verify_solve_grad(5, None, A_structure, lower, rng)
-            self.verify_solve_grad(6, 1, A_structure, lower, rng)
-            self.verify_solve_grad(4, 3, A_structure, lower, rng)
-        # lower should have no effect for A_structure == 'general' so also
-        # check lower=True case
-        self.verify_solve_grad(4, 3, "general", lower=True, rng=rng)
+        self.verify_solve_grad(m, n, assume_a, lower, rng)
 
 
 def test_expm():
-    scipy = pytest.importorskip("scipy")
     rng = np.random.default_rng(utt.fetch_seed())
     A = rng.standard_normal((5, 5)).astype(config.floatX)
 

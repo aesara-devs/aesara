@@ -144,12 +144,12 @@ def test_tag_solve_triangular():
     if config.mode != "FAST_COMPILE":
         for node in f.maker.fgraph.toposort():
             if isinstance(node.op, Solve):
-                assert node.op.A_structure == "lower_triangular"
+                assert node.op.assume_a != "gen" and node.op.lower
     f = aesara.function([A, x], b2)
     if config.mode != "FAST_COMPILE":
         for node in f.maker.fgraph.toposort():
             if isinstance(node.op, Solve):
-                assert node.op.A_structure == "upper_triangular"
+                assert node.op.assume_a != "gen" and not node.op.lower
 
 
 def test_matrix_inverse_solve():
