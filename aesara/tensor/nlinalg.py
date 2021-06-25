@@ -591,7 +591,7 @@ def svd(a, full_matrices=1, compute_uv=1):
     return SVD(full_matrices, compute_uv)(a)
 
 
-class lstsq(Op):
+class Lstsq(Op):
 
     __props__ = ()
 
@@ -616,6 +616,9 @@ class lstsq(Op):
         outputs[1][0] = zz[1]
         outputs[2][0] = np.array(zz[2])
         outputs[3][0] = zz[3]
+
+
+lstsq = Lstsq()
 
 
 def matrix_power(M, n):

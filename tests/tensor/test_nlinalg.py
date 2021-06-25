@@ -16,6 +16,7 @@ from aesara.tensor.nlinalg import (
     det,
     eig,
     eigh,
+    lstsq,
     matrix_dot,
     matrix_inverse,
     matrix_power,
@@ -372,7 +373,7 @@ class TestLstsq:
         x = lmatrix()
         y = lmatrix()
         z = lscalar()
-        b = aesara.tensor.nlinalg.lstsq()(x, y, z)
+        b = lstsq(x, y, z)
         f = function([x, y, z], b)
         TestMatrix1 = np.asarray([[2, 1], [3, 4]])
         TestMatrix2 = np.asarray([[17, 20], [43, 50]])
@@ -385,7 +386,7 @@ class TestLstsq:
         x = vector()
         y = vector()
         z = scalar()
-        b = aesara.tensor.nlinalg.lstsq()(x, y, z)
+        b = lstsq(x, y, z)
         f = function([x, y, z], b)
         with pytest.raises(np.linalg.linalg.LinAlgError):
             f([2, 1], [2, 1], 1)
@@ -394,7 +395,7 @@ class TestLstsq:
         x = vector()
         y = vector()
         z = vector()
-        b = aesara.tensor.nlinalg.lstsq()(x, y, z)
+        b = lstsq(x, y, z)
         f = function([x, y, z], b)
         with pytest.raises(np.linalg.LinAlgError):
             f([2, 1], [2, 1], [2, 1])
