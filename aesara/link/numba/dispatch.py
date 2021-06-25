@@ -69,7 +69,16 @@ from aesara.tensor.extra_ops import (
     UnravelIndex,
 )
 from aesara.tensor.math import Dot, MaxAndArgmax
-from aesara.tensor.nlinalg import SVD, Det, Eig, Eigh, MatrixInverse, QRFull
+from aesara.tensor.nlinalg import (
+    SVD,
+    Det,
+    Eig,
+    Eigh,
+    Inv,
+    MatrixInverse,
+    MatrixPinv,
+    QRFull,
+)
 from aesara.tensor.nnet.basic import LogSoftmax, Softmax
 from aesara.tensor.shape import Reshape, Shape, Shape_i, SpecifyShape
 from aesara.tensor.slinalg import Cholesky, Solve
@@ -1809,6 +1818,32 @@ def numba_funcify_MatrixInverse(op, node, **kwargs):
         return np.linalg.inv(inputs_cast(x)).astype(out_dtype)
 
     return matrix_inverse
+
+
+@numba_funcify.register(MatrixPinv)
+def numba_funcify_MatrixPinv(op, node, **kwargs):
+
+    out_dtype = node.outputs[0].type.numpy_dtype
+    inputs_cast = int_to_float_fn(node.inputs, out_dtype)
+
+    @numba.njit(inline="always")
+    def matrixpinv(x):
+        return np.linalg.pinv(inputs_cast(x)).astype(out_dtype)
+
+    return matrixpinv
+
+
+@numba_funcify.register(Inv)
+def numba_funcify_Inv(op, node, **kwargs):
+
+    out_dtype = node.outputs[0].type.numpy_dtype
+    inputs_cast = int_to_float_fn(node.inputs, out_dtype)
+
+    @numba.njit(inline="always")
+    def inv(x):
+        return np.linalg.inv(inputs_cast(x)).astype(out_dtype)
+
+    return inv
 
 
 @numba_funcify.register(QRFull)
