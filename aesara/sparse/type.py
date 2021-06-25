@@ -1,13 +1,5 @@
 import numpy as np
-
-
-try:
-    import scipy.sparse
-
-    imported_scipy = True
-except ImportError:
-    imported_scipy = False
-
+import scipy.sparse
 
 import aesara
 from aesara.graph.type import Type
@@ -54,12 +46,11 @@ class SparseType(Type):
 
     """
 
-    if imported_scipy:
-        format_cls = {
-            "csr": scipy.sparse.csr_matrix,
-            "csc": scipy.sparse.csc_matrix,
-            "bsr": scipy.sparse.bsr_matrix,
-        }
+    format_cls = {
+        "csr": scipy.sparse.csr_matrix,
+        "csc": scipy.sparse.csc_matrix,
+        "bsr": scipy.sparse.bsr_matrix,
+    }
     dtype_set = {
         "int8",
         "int16",
@@ -81,10 +72,6 @@ class SparseType(Type):
     Constant = None
 
     def __init__(self, format, dtype):
-        if not imported_scipy:
-            raise Exception(
-                "You can't make SparseType object as SciPy" " is not available."
-            )
         dtype = str(dtype)
         if dtype in self.dtype_set:
             self.dtype = dtype

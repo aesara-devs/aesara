@@ -3,7 +3,7 @@ import pytest
 
 import aesara
 import aesara.tensor as aet
-from aesara.tensor.nnet import conv, corr
+from aesara.tensor.nnet import corr
 from aesara.tensor.type import dmatrix, dtensor3, dtensor4, dvector, tensor4
 from tests import unittest_tools as utt
 from tests.tensor.nnet.test_abstract_conv import (
@@ -15,7 +15,7 @@ from tests.tensor.nnet.test_abstract_conv import (
 
 
 @pytest.mark.skipif(
-    aesara.config.cxx == "" or not conv.imported_scipy_signal,
+    aesara.config.cxx == "",
     reason="SciPy and cxx needed",
 )
 class TestCorr2D(utt.InferShapeTester):
@@ -323,7 +323,7 @@ class TestCorr2D(utt.InferShapeTester):
 
     @pytest.mark.slow
     @pytest.mark.skipif(
-        aesara.config.cxx == "" or not conv.imported_scipy_signal,
+        aesara.config.cxx == "",
         reason="SciPy and cxx needed",
     )
     def test_infer_shape_forward(self):
@@ -371,9 +371,7 @@ class TestCorr2D(utt.InferShapeTester):
 
     @pytest.mark.slow
     @pytest.mark.skipif(
-        aesara.config.mode == "FAST_COMPILE"
-        or aesara.config.cxx == ""
-        or not conv.imported_scipy_signal,
+        aesara.config.mode == "FAST_COMPILE" or aesara.config.cxx == "",
         reason="SciPy and cxx needed",
     )
     def test_infer_shape_gradW(self):

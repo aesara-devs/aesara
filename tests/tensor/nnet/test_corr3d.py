@@ -3,14 +3,14 @@ import pytest
 
 import aesara
 import aesara.tensor as aet
-from aesara.tensor.nnet import conv, corr3d
+from aesara.tensor.nnet import corr3d
 from aesara.tensor.type import dmatrix, dtensor3, dtensor4, dtensor5, tensor5, vector
 from tests import unittest_tools as utt
 from tests.tensor.nnet.test_abstract_conv import TestGroupedConv3dNoOptim
 
 
 @pytest.mark.skipif(
-    aesara.config.cxx == "" or not conv.imported_scipy_signal,
+    aesara.config.cxx == "",
     reason="SciPy and cxx needed",
 )
 class TestCorr3D(utt.InferShapeTester):

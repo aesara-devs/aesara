@@ -6,6 +6,9 @@ scipy = pytest.importorskip("scipy")
 
 from functools import partial
 
+import scipy.special
+import scipy.stats
+
 from aesara import tensor as aet
 from aesara.compile.mode import get_default_mode
 from aesara.configdefaults import config
@@ -31,16 +34,7 @@ from tests.tensor.utils import (
 )
 
 
-imported_scipy_special = False
 mode_no_scipy = get_default_mode()
-try:
-    import scipy.special
-    import scipy.stats
-
-    imported_scipy_special = True
-except ImportError:
-    if config.mode == "FAST_COMPILE":
-        mode_no_scipy = "FAST_RUN"
 
 
 def scipy_special_gammau(k, x):
@@ -51,60 +45,30 @@ def scipy_special_gammal(k, x):
     return scipy.special.gammainc(k, x) * scipy.special.gamma(k)
 
 
-# We can't test it if scipy is not installed!
 # Precomputing the result is brittle(it have been broken!)
 # As if we do any modification to random number here,
 # The input random number will change and the output!
-if imported_scipy_special:
-    expected_erf = scipy.special.erf
-    expected_erfc = scipy.special.erfc
-    expected_erfinv = scipy.special.erfinv
-    expected_erfcinv = scipy.special.erfcinv
-    expected_gamma = scipy.special.gamma
-    expected_gammaln = scipy.special.gammaln
-    expected_psi = scipy.special.psi
-    expected_tri_gamma = partial(scipy.special.polygamma, 1)
-    expected_chi2sf = scipy.stats.chi2.sf
-    expected_gammainc = scipy.special.gammainc
-    expected_gammaincc = scipy.special.gammaincc
-    expected_gammau = scipy_special_gammau
-    expected_gammal = scipy_special_gammal
-    expected_j0 = scipy.special.j0
-    expected_j1 = scipy.special.j1
-    expected_jv = scipy.special.jv
-    expected_i0 = scipy.special.i0
-    expected_i1 = scipy.special.i1
-    expected_iv = scipy.special.iv
-    expected_erfcx = scipy.special.erfcx
-    expected_sigmoid = scipy.special.expit
-    skip_scipy = False
-else:
-    expected_erf = []
-    expected_erfc = []
-    expected_erfcx = []
-    expected_erfinv = []
-    expected_erfcinv = []
-    expected_gamma = []
-    expected_gammaln = []
-    expected_psi = []
-    expected_tri_gamma = []
-    expected_chi2sf = []
-    expected_gammainc = []
-    expected_gammaincc = []
-    expected_gammau = []
-    expected_gammal = []
-    expected_j0 = []
-    expected_j1 = []
-    expected_jv = []
-    expected_i0 = []
-    expected_i1 = []
-    expected_iv = []
-    expected_sigmoid = (
-        upcast_int8_nfunc(
-            lambda inputs: check_floatX(inputs, np.log1p(np.exp(inputs)))
-        ),
-    )
-    skip_scipy = "scipy is not present"
+expected_erf = scipy.special.erf
+expected_erfc = scipy.special.erfc
+expected_erfinv = scipy.special.erfinv
+expected_erfcinv = scipy.special.erfcinv
+expected_gamma = scipy.special.gamma
+expected_gammaln = scipy.special.gammaln
+expected_psi = scipy.special.psi
+expected_tri_gamma = partial(scipy.special.polygamma, 1)
+expected_chi2sf = scipy.stats.chi2.sf
+expected_gammainc = scipy.special.gammainc
+expected_gammaincc = scipy.special.gammaincc
+expected_gammau = scipy_special_gammau
+expected_gammal = scipy_special_gammal
+expected_j0 = scipy.special.j0
+expected_j1 = scipy.special.j1
+expected_jv = scipy.special.jv
+expected_i0 = scipy.special.i0
+expected_i1 = scipy.special.i1
+expected_iv = scipy.special.iv
+expected_erfcx = scipy.special.erfcx
+expected_sigmoid = scipy.special.expit
 
 TestErfBroadcast = makeBroadcastTester(
     op=aet.erf,
@@ -113,7 +77,6 @@ TestErfBroadcast = makeBroadcastTester(
     grad=_grad_broadcast_unary_normal,
     eps=2e-10,
     mode=mode_no_scipy,
-    skip=skip_scipy,
 )
 TestErfInplaceBroadcast = makeBroadcastTester(
     op=inplace.erf_inplace,
@@ -122,7 +85,6 @@ TestErfInplaceBroadcast = makeBroadcastTester(
     mode=mode_no_scipy,
     eps=2e-10,
     inplace=True,
-    skip=skip_scipy,
 )
 
 TestErfcBroadcast = makeBroadcastTester(
@@ -132,7 +94,6 @@ TestErfcBroadcast = makeBroadcastTester(
     grad=_grad_broadcast_unary_normal,
     eps=2e-10,
     mode=mode_no_scipy,
-    skip=skip_scipy,
 )
 TestErfcInplaceBroadcast = makeBroadcastTester(
     op=inplace.erfc_inplace,
@@ -141,7 +102,6 @@ TestErfcInplaceBroadcast = makeBroadcastTester(
     eps=2e-10,
     mode=mode_no_scipy,
     inplace=True,
-    skip=skip_scipy,
 )
 
 TestErfcxBroadcast = makeBroadcastTester(
@@ -151,7 +111,6 @@ TestErfcxBroadcast = makeBroadcastTester(
     grad=_grad_broadcast_unary_normal_small_neg_range,
     eps=2e-10,
     mode=mode_no_scipy,
-    skip=skip_scipy,
 )
 TestErfcxInplaceBroadcast = makeBroadcastTester(
     op=inplace.erfcx_inplace,
@@ -160,7 +119,6 @@ TestErfcxInplaceBroadcast = makeBroadcastTester(
     eps=2e-10,
     mode=mode_no_scipy,
     inplace=True,
-    skip=skip_scipy,
 )
 
 TestErfinvBroadcast = makeBroadcastTester(
@@ -173,7 +131,6 @@ TestErfinvBroadcast = makeBroadcastTester(
     grad=_grad_broadcast_unary_abs1_no_complex,
     eps=2e-10,
     mode=mode_no_scipy,
-    skip=skip_scipy,
 )
 
 TestErfcinvBroadcast = makeBroadcastTester(
@@ -186,7 +143,6 @@ TestErfcinvBroadcast = makeBroadcastTester(
     grad=_grad_broadcast_unary_0_2_no_complex,
     eps=2e-10,
     mode=mode_no_scipy,
-    skip=skip_scipy,
 )
 
 _good_broadcast_unary_gammaln = dict(
@@ -209,7 +165,6 @@ TestGammaBroadcast = makeBroadcastTester(
     grad=_grad_broadcast_unary_gammaln,
     mode=mode_no_scipy,
     eps=1e-5,
-    skip=skip_scipy,
 )
 TestGammaInplaceBroadcast = makeBroadcastTester(
     op=inplace.gamma_inplace,
@@ -218,7 +173,6 @@ TestGammaInplaceBroadcast = makeBroadcastTester(
     mode=mode_no_scipy,
     eps=1e-5,
     inplace=True,
-    skip=skip_scipy,
 )
 
 TestGammalnBroadcast = makeBroadcastTester(
@@ -228,7 +182,6 @@ TestGammalnBroadcast = makeBroadcastTester(
     grad=_grad_broadcast_unary_gammaln,
     eps=2e-10,
     mode=mode_no_scipy,
-    skip=skip_scipy,
 )
 TestGammalnInplaceBroadcast = makeBroadcastTester(
     op=inplace.gammaln_inplace,
@@ -237,7 +190,6 @@ TestGammalnInplaceBroadcast = makeBroadcastTester(
     eps=2e-10,
     mode=mode_no_scipy,
     inplace=True,
-    skip=skip_scipy,
 )
 
 _good_broadcast_unary_psi = dict(
@@ -254,7 +206,6 @@ TestPsiBroadcast = makeBroadcastTester(
     good=_good_broadcast_unary_psi,
     eps=2e-10,
     mode=mode_no_scipy,
-    skip=skip_scipy,
 )
 TestPsiInplaceBroadcast = makeBroadcastTester(
     op=inplace.psi_inplace,
@@ -263,7 +214,6 @@ TestPsiInplaceBroadcast = makeBroadcastTester(
     eps=2e-10,
     mode=mode_no_scipy,
     inplace=True,
-    skip=skip_scipy,
 )
 
 _good_broadcast_unary_tri_gamma = _good_broadcast_unary_psi
@@ -274,7 +224,6 @@ TestTriGammaBroadcast = makeBroadcastTester(
     good=_good_broadcast_unary_psi,
     eps=2e-8,
     mode=mode_no_scipy,
-    skip=skip_scipy,
 )
 TestTriGammaInplaceBroadcast = makeBroadcastTester(
     op=inplace.tri_gamma_inplace,
@@ -283,7 +232,6 @@ TestTriGammaInplaceBroadcast = makeBroadcastTester(
     eps=2e-8,
     mode=mode_no_scipy,
     inplace=True,
-    skip=skip_scipy,
 )
 
 TestChi2SFBroadcast = makeBroadcastTester(
@@ -292,7 +240,6 @@ TestChi2SFBroadcast = makeBroadcastTester(
     good=_good_broadcast_unary_chi2sf,
     eps=2e-10,
     mode=mode_no_scipy,
-    skip=skip_scipy,
     name="Chi2SF",
 )
 
@@ -303,7 +250,6 @@ TestChi2SFInplaceBroadcast = makeBroadcastTester(
     eps=2e-10,
     mode=mode_no_scipy,
     inplace=True,
-    skip=skip_scipy,
     name="Chi2SF",
 )
 
@@ -331,7 +277,6 @@ TestGammaIncBroadcast = makeBroadcastTester(
     good=_good_broadcast_binary_gamma,
     eps=2e-8,
     mode=mode_no_scipy,
-    skip=skip_scipy,
 )
 
 TestGammaIncInplaceBroadcast = makeBroadcastTester(
@@ -341,7 +286,6 @@ TestGammaIncInplaceBroadcast = makeBroadcastTester(
     eps=2e-8,
     mode=mode_no_scipy,
     inplace=True,
-    skip=skip_scipy,
 )
 
 TestGammaInccBroadcast = makeBroadcastTester(
@@ -350,7 +294,6 @@ TestGammaInccBroadcast = makeBroadcastTester(
     good=_good_broadcast_binary_gamma,
     eps=2e-8,
     mode=mode_no_scipy,
-    skip=skip_scipy,
 )
 
 TestGammaInccInplaceBroadcast = makeBroadcastTester(
@@ -360,7 +303,6 @@ TestGammaInccInplaceBroadcast = makeBroadcastTester(
     eps=2e-8,
     mode=mode_no_scipy,
     inplace=True,
-    skip=skip_scipy,
 )
 
 TestGammaUBroadcast = makeBroadcastTester(
@@ -369,7 +311,6 @@ TestGammaUBroadcast = makeBroadcastTester(
     good=_good_broadcast_binary_gamma,
     eps=2e-8,
     mode=mode_no_scipy,
-    skip=skip_scipy,
 )
 
 TestGammaUInplaceBroadcast = makeBroadcastTester(
@@ -379,7 +320,6 @@ TestGammaUInplaceBroadcast = makeBroadcastTester(
     eps=2e-8,
     mode=mode_no_scipy,
     inplace=True,
-    skip=skip_scipy,
 )
 
 TestGammaLBroadcast = makeBroadcastTester(
@@ -388,7 +328,6 @@ TestGammaLBroadcast = makeBroadcastTester(
     good=_good_broadcast_binary_gamma,
     eps=2e-8,
     mode=mode_no_scipy,
-    skip=skip_scipy,
 )
 
 TestGammaLInplaceBroadcast = makeBroadcastTester(
@@ -398,7 +337,6 @@ TestGammaLInplaceBroadcast = makeBroadcastTester(
     eps=2e-8,
     mode=mode_no_scipy,
     inplace=True,
-    skip=skip_scipy,
 )
 
 _good_broadcast_unary_bessel = dict(
@@ -438,7 +376,6 @@ TestJ0Broadcast = makeBroadcastTester(
     grad=_grad_broadcast_unary_bessel,
     eps=2e-10,
     mode=mode_no_scipy,
-    skip=skip_scipy,
 )
 
 TestJ0InplaceBroadcast = makeBroadcastTester(
@@ -448,7 +385,6 @@ TestJ0InplaceBroadcast = makeBroadcastTester(
     eps=2e-10,
     mode=mode_no_scipy,
     inplace=True,
-    skip=skip_scipy,
 )
 
 TestJ1Broadcast = makeBroadcastTester(
@@ -458,7 +394,6 @@ TestJ1Broadcast = makeBroadcastTester(
     grad=_grad_broadcast_unary_bessel,
     eps=2e-10,
     mode=mode_no_scipy,
-    skip=skip_scipy,
 )
 
 TestJ1InplaceBroadcast = makeBroadcastTester(
@@ -468,7 +403,6 @@ TestJ1InplaceBroadcast = makeBroadcastTester(
     eps=2e-10,
     mode=mode_no_scipy,
     inplace=True,
-    skip=skip_scipy,
 )
 
 TestJvBroadcast = makeBroadcastTester(
@@ -477,7 +411,6 @@ TestJvBroadcast = makeBroadcastTester(
     good=_good_broadcast_binary_bessel,
     eps=2e-10,
     mode=mode_no_scipy,
-    skip=skip_scipy,
 )
 
 TestJvInplaceBroadcast = makeBroadcastTester(
@@ -487,7 +420,6 @@ TestJvInplaceBroadcast = makeBroadcastTester(
     eps=2e-10,
     mode=mode_no_scipy,
     inplace=True,
-    skip=skip_scipy,
 )
 
 
@@ -510,7 +442,6 @@ TestI0Broadcast = makeBroadcastTester(
     grad=_grad_broadcast_unary_bessel,
     eps=2e-10,
     mode=mode_no_scipy,
-    skip=skip_scipy,
 )
 
 TestI0InplaceBroadcast = makeBroadcastTester(
@@ -520,7 +451,6 @@ TestI0InplaceBroadcast = makeBroadcastTester(
     eps=2e-10,
     mode=mode_no_scipy,
     inplace=True,
-    skip=skip_scipy,
 )
 
 TestI1Broadcast = makeBroadcastTester(
@@ -530,7 +460,6 @@ TestI1Broadcast = makeBroadcastTester(
     grad=_grad_broadcast_unary_bessel,
     eps=2e-10,
     mode=mode_no_scipy,
-    skip=skip_scipy,
 )
 
 TestI1InplaceBroadcast = makeBroadcastTester(
@@ -540,7 +469,6 @@ TestI1InplaceBroadcast = makeBroadcastTester(
     eps=2e-10,
     mode=mode_no_scipy,
     inplace=True,
-    skip=skip_scipy,
 )
 
 TestIvBroadcast = makeBroadcastTester(
@@ -549,7 +477,6 @@ TestIvBroadcast = makeBroadcastTester(
     good=_good_broadcast_binary_bessel,
     eps=2e-10,
     mode=mode_no_scipy,
-    skip=skip_scipy,
 )
 
 TestIvInplaceBroadcast = makeBroadcastTester(
@@ -559,7 +486,6 @@ TestIvInplaceBroadcast = makeBroadcastTester(
     eps=2e-10,
     mode=mode_no_scipy,
     inplace=True,
-    skip=skip_scipy,
 )
 
 

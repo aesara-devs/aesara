@@ -23,7 +23,7 @@ from aesara.gpuarray.linalg import (
     gpu_svd,
 )
 from aesara.tensor.nlinalg import SVD, MatrixInverse, QRFull, eigh, matrix_inverse, qr
-from aesara.tensor.slinalg import Cholesky, cholesky, imported_scipy
+from aesara.tensor.slinalg import Cholesky, cholesky
 from aesara.tensor.type import fmatrix, matrix, tensor3, vector
 from tests import unittest_tools as utt
 from tests.gpuarray.config import mode_with_gpu, mode_without_gpu
@@ -183,9 +183,6 @@ class TestGpuCholesky:
         chol_A_res = np.array(res)
         utt.assert_allclose(chol_A_res, chol_A_val)
 
-    @pytest.mark.skipif(
-        not imported_scipy, reason="SciPy is not enabled, skipping test"
-    )
     def test_gpu_cholesky_opt(self):
         A = matrix("A", dtype="float32")
         fn = aesara.function([A], cholesky(A), mode=mode_with_gpu)
@@ -281,9 +278,6 @@ class TestGpuCholesky64:
         chol_A_res = np.array(res)
         utt.assert_allclose(chol_A_res, chol_A_val)
 
-    @pytest.mark.skipif(
-        not imported_scipy, reason="SciPy is not enabled, skipping test"
-    )
     def test_gpu_cholesky_opt(self):
         A = matrix("A", dtype="float64")
         fn = aesara.function([A], cholesky(A), mode=mode_with_gpu)

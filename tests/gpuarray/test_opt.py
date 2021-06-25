@@ -700,9 +700,7 @@ def test_no_complex():
 
 
 @utt.assertFailure_fast
-@pytest.mark.skipif(
-    not cusolver_available or not slinalg.imported_scipy, reason="No cuSolver or SciPy"
-)
+@pytest.mark.skipif(not cusolver_available, reason="No cuSolver or SciPy")
 def test_local_lift_solve():
     A = fmatrix()
     b = fmatrix()
@@ -722,9 +720,7 @@ def test_local_lift_solve():
     assert _check_stack_trace(f_gpu)
 
 
-@pytest.mark.skipif(
-    not cusolver_available or not slinalg.imported_scipy, reason="No cuSolver or SciPy"
-)
+@pytest.mark.skipif(not cusolver_available, reason="No cuSolver or SciPy")
 def test_gpu_solve_not_inplace():
     A = fmatrix()
     b = fmatrix()
@@ -746,9 +742,7 @@ def test_gpu_solve_not_inplace():
 
 
 @utt.assertFailure_fast
-@pytest.mark.skipif(
-    not cusolver_available or not slinalg.imported_scipy, reason="No cuSolver or SciPy"
-)
+@pytest.mark.skipif(not cusolver_available, reason="No cuSolver or SciPy")
 def test_local_lift_cholesky():
     A = fmatrix()
     o = slinalg.cholesky(A)
@@ -768,9 +762,7 @@ def test_local_lift_cholesky():
     utt.assert_allclose(f_cpu(A_val), f_gpu(A_val))
 
 
-@pytest.mark.skipif(
-    not cusolver_available or not slinalg.imported_scipy, reason="No cuSolver or SciPy"
-)
+@pytest.mark.skipif(not cusolver_available, reason="No cuSolver or SciPy")
 def test_gpu_cholesky_not_inplace():
     A = fmatrix()
     A_squared = A ** 2
