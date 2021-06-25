@@ -56,12 +56,18 @@ from aesara.tensor import (
     blas,
     blas_c,
     blas_scipy,
-    nlinalg,
     nnet,
     opt_uncanonicalize,
-    slinalg,
     xlogx,
 )
+
+
+# isort: off
+from aesara.tensor import linalg
+from aesara.tensor import nlinalg  # For backward compatibility
+from aesara.tensor import slinalg  # For backward compatibility
+
+# isort: on
 from aesara.tensor.basic import *
 from aesara.tensor.blas import batched_dot, batched_tensordot
 from aesara.tensor.extra_ops import (
