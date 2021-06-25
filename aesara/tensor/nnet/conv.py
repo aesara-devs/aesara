@@ -13,6 +13,8 @@ import logging
 import warnings
 
 import numpy as np
+from scipy.signal.signaltools import _bvalfromboundary, _valfrommode
+from scipy.signal.sigtools import _convolve2d
 
 import aesara
 from aesara.graph.basic import Apply
@@ -27,16 +29,6 @@ from aesara.tensor.exceptions import NotScalarConstantError
 from aesara.tensor.nnet.abstract_conv import get_conv_output_shape, get_conv_shape_1axis
 from aesara.tensor.type import discrete_dtypes, tensor
 
-
-try:
-    # TODO: move these back out to global scope when they no longer
-    # cause an atexit error
-    from scipy.signal.signaltools import _bvalfromboundary, _valfrommode
-    from scipy.signal.sigtools import _convolve2d
-
-    imported_scipy_signal = True
-except ImportError:
-    imported_scipy_signal = False
 
 __docformat__ = "restructuredtext en"
 _logger = logging.getLogger("aesara.tensor.nnet.conv")
@@ -808,15 +800,6 @@ class ConvOp(OpenMPOp):
         """
         img2d, filtersflipped = inp
         (z,) = out
-        if not imported_scipy_signal:
-            raise aesara.graph.utils.MethodNotDefined(
-                "c_headers",
-                type(self),
-                self.__class__.__name__,
-                "Need the python package for scipy.signal to be installed "
-                "for the python implementation. You can use the C"
-                " implementation instead.",
-            )
 
         # TODO: move these back out to global scope when they no longer
         #       cause an atexit error

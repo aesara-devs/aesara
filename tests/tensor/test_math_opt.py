@@ -2671,7 +2671,7 @@ class TestLocalSwitchSink:
 
 
 @pytest.mark.skipif(
-    config.cxx == "" and not aes.math.imported_scipy_special,
+    config.cxx == "",
     reason="erf need a c++ compiler or scipy",
 )
 class TestLocalErf:
@@ -2763,7 +2763,7 @@ class TestLocalErf:
 
 
 @pytest.mark.skipif(
-    config.cxx == "" and not aes.math.imported_scipy_special,
+    config.cxx == "",
     reason="erf need a c++ compiler or scipy",
 )
 class TestLocalErfc:

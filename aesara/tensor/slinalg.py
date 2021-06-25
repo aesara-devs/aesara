@@ -2,15 +2,7 @@ import logging
 import warnings
 
 import numpy as np
-
-
-try:
-    import scipy.linalg
-
-    imported_scipy = True
-except ImportError:
-    # some ops (e.g. Cholesky, Solve, A_Xinv_b) won't work
-    imported_scipy = False
+import scipy.linalg
 
 import aesara.tensor
 import aesara.tensor.basic as aet
@@ -69,9 +61,6 @@ class Cholesky(Op):
         return [shapes[0]]
 
     def make_node(self, x):
-        assert (
-            imported_scipy
-        ), "Scipy not available. Scipy is needed for the Cholesky op"
         x = as_tensor_variable(x)
         assert x.ndim == 2
         return Apply(self, [x], [x.type()])
@@ -233,7 +222,6 @@ class Solve(Op):
         return "Solve{%s}" % str(self._props())
 
     def make_node(self, A, b):
-        assert imported_scipy, "Scipy not available. Scipy is needed for the Solve op"
         A = as_tensor_variable(A)
         b = as_tensor_variable(b)
         assert A.ndim == 2
@@ -346,10 +334,6 @@ class Eigvalsh(Op):
         self.lower = lower
 
     def make_node(self, a, b):
-        assert (
-            imported_scipy
-        ), "Scipy not  available. Scipy is needed for the Eigvalsh op"
-
         if b == aesara.tensor.type_other.NoneConst:
             a = as_tensor_variable(a)
             assert a.ndim == 2
@@ -412,9 +396,6 @@ class EigvalshGrad(Op):
             self.tri1 = lambda a: np.tril(a, -1)
 
     def make_node(self, a, b, gw):
-        assert (
-            imported_scipy
-        ), "Scipy not available. Scipy is needed for the GEigvalsh op"
         a = as_tensor_variable(a)
         b = as_tensor_variable(b)
         gw = as_tensor_variable(gw)
@@ -498,8 +479,6 @@ class Expm(Op):
     __props__ = ()
 
     def make_node(self, A):
-        assert imported_scipy, "Scipy not available. Scipy is needed for the Expm op"
-
         A = as_tensor_variable(A)
         assert A.ndim == 2
         expm = matrix(dtype=A.dtype)
@@ -536,7 +515,6 @@ class ExpmGrad(Op):
     __props__ = ()
 
     def make_node(self, A, gw):
-        assert imported_scipy, "Scipy not available. Scipy is needed for the Expm op"
         A = as_tensor_variable(A)
         assert A.ndim == 2
         out = matrix(dtype=A.dtype)

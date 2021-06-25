@@ -1,6 +1,5 @@
 import numpy as np
 import numpy.linalg
-import pytest
 
 import aesara
 from aesara import function
@@ -11,7 +10,6 @@ from aesara.configdefaults import config
 from aesara.sandbox.linalg.ops import Cholesky  # PSD_hint,; op class
 from aesara.sandbox.linalg.ops import (
     Solve,
-    imported_scipy,
     inv_as_solve,
     matrix_inverse,
     solve,
@@ -134,8 +132,6 @@ def test_transinv_to_invtrans():
 
 
 def test_tag_solve_triangular():
-    if not imported_scipy:
-        pytest.skip("Scipy needed for the Cholesky op.")
     cholesky_lower = Cholesky(lower=True)
     cholesky_upper = Cholesky(lower=False)
     A = matrix("A")
@@ -157,8 +153,6 @@ def test_tag_solve_triangular():
 
 
 def test_matrix_inverse_solve():
-    if not imported_scipy:
-        pytest.skip("Scipy needed for the Solve op.")
     A = dmatrix("A")
     b = dmatrix("b")
     node = matrix_inverse(A).dot(b).owner

@@ -14,7 +14,7 @@ from tests import unittest_tools as utt
 
 
 @pytest.mark.skipif(
-    not conv.imported_scipy_signal and aesara.config.cxx == "",
+    aesara.config.cxx == "",
     reason="conv2d tests need SciPy or a c++ compiler",
 )
 class TestConv2D(utt.InferShapeTester):

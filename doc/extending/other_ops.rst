@@ -31,38 +31,6 @@ particular, see the following fixes:
 and `impl() methods related to SciPy
 <https://github.com/Theano/Theano/commit/08d16c0aa6681fc53d8d0f40342551eb47ff536e>`_.
 
-
-.. _scipy_ops:
-
-SciPy Ops
-=========
-
-We can wrap SciPy functions in Aesara. But SciPy is an optional dependency.
-Here is some code that allows the Op to be optional:
-
-.. code-block:: python
-
-
-    try:
-        import scipy.linalg
-        imported_scipy = True
-    except ImportError:
-        # some ops (e.g. Cholesky, Solve, A_Xinv_b) won't work
-        imported_scipy = False
-
-    class SomeOp(Op):
-        ...
-        def make_node(self, x):
-            assert imported_scipy, (
-            "SciPy not available. SciPy is needed for the SomeOp op.")
-            ...
-
-    class TestSomeOp(utt.InferShapeTester):
-        ...
-        @pytest.mark.skipif(not imported_scipy, reason="SciPy needed for the SomeOp op.")
-        def test_infer_shape(self):
-            ...
-
 .. _sparse_ops:
 
 Sparse Ops

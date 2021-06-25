@@ -1030,7 +1030,7 @@ class TestCorrConv2d(BaseTestConv2d):
 
 
 @pytest.mark.skipif(
-    config.cxx == "" or not aesara.tensor.nnet.abstract_conv.imported_scipy_signal,
+    config.cxx == "",
     reason="SciPy and cxx needed",
 )
 class TestAbstractConvNoOptim(BaseTestConv2d):
@@ -2050,7 +2050,7 @@ class TestConv2dGrads:
 
 
 @pytest.mark.skipif(
-    config.cxx == "" or not aesara.tensor.nnet.abstract_conv.imported_scipy_signal,
+    config.cxx == "",
     reason="SciPy and cxx needed",
 )
 class TestGroupedConvNoOptim:
@@ -2260,7 +2260,7 @@ class TestGroupedConvNoOptim:
 
 
 @pytest.mark.skipif(
-    config.cxx == "" or not aesara.tensor.nnet.abstract_conv.imported_scipy_signal,
+    config.cxx == "",
     reason="SciPy and cxx needed",
 )
 class TestGroupedConv3dNoOptim(TestGroupedConvNoOptim):
@@ -2499,7 +2499,7 @@ class TestSeparableConv:
 
 
 @pytest.mark.skipif(
-    config.cxx == "" or not aesara.tensor.nnet.abstract_conv.imported_scipy_signal,
+    config.cxx == "",
     reason="SciPy and cxx needed",
 )
 class TestUnsharedConv:
@@ -2750,7 +2750,7 @@ class TestAsymmetricPadding:
     border_mode = [((1, 2), (2, 1)), ((1, 1), (0, 3)), ((2, 1), (0, 0))]
 
     @pytest.mark.skipif(
-        config.cxx == "" or not aesara.tensor.nnet.abstract_conv.imported_scipy_signal,
+        config.cxx == "",
         reason="SciPy and cxx needed",
     )
     def test_fwd(self):
@@ -2800,7 +2800,7 @@ class TestAsymmetricPadding:
             utt.verify_grad(asymmetric_conv_op, [img, kern], mode=self.mode, eps=1)
 
     @pytest.mark.skipif(
-        config.cxx == "" or not aesara.tensor.nnet.abstract_conv.imported_scipy_signal,
+        config.cxx == "",
         reason="SciPy and cxx needed",
     )
     def test_gradweight(self):
@@ -2857,7 +2857,7 @@ class TestAsymmetricPadding:
             utt.verify_grad(conv_gradweight, [img, top], mode=self.mode, eps=1)
 
     @pytest.mark.skipif(
-        config.cxx == "" or not aesara.tensor.nnet.abstract_conv.imported_scipy_signal,
+        config.cxx == "",
         reason="SciPy and cxx needed",
     )
     def test_gradinput(self):
@@ -2934,7 +2934,7 @@ class TestCausalConv:
     ).astype(config.floatX)
 
     @pytest.mark.skipif(
-        config.cxx == "" or not aesara.tensor.nnet.abstract_conv.imported_scipy_signal,
+        config.cxx == "",
         reason="SciPy and cxx needed",
     )
     def test_interface(self):

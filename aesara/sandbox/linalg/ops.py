@@ -17,7 +17,7 @@ from aesara.tensor.math import Dot, Prod, dot, log
 from aesara.tensor.math import pow as aet_pow
 from aesara.tensor.math import prod
 from aesara.tensor.nlinalg import MatrixInverse, det, matrix_inverse, trace
-from aesara.tensor.slinalg import Cholesky, Solve, cholesky, imported_scipy, solve
+from aesara.tensor.slinalg import Cholesky, Solve, cholesky, solve
 
 
 logger = logging.getLogger(__name__)
@@ -229,8 +229,6 @@ def transinv_to_invtrans(fgraph, node):
 @register_stabilize
 @local_optimizer([Dot, Dot22])
 def inv_as_solve(fgraph, node):
-    if not imported_scipy:
-        return False
     if isinstance(node.op, (Dot, Dot22)):
         l, r = node.inputs
         if l.owner and l.owner.op == matrix_inverse:

@@ -3,6 +3,7 @@ import itertools
 import numpy as np
 import numpy.linalg
 import pytest
+import scipy
 
 import aesara
 from aesara import function, grad
@@ -39,7 +40,6 @@ def check_upper_triangular(pd, ch_f):
 
 
 def test_cholesky():
-    pytest.importorskip("scipy")
     rng = np.random.default_rng(utt.fetch_seed())
     r = rng.standard_normal((5, 5)).astype(config.floatX)
     pd = np.dot(r, r.T)
@@ -62,7 +62,6 @@ def test_cholesky():
 
 
 def test_cholesky_indef():
-    scipy = pytest.importorskip("scipy")
     x = matrix()
     mat = np.array([[1, 0.2], [0.2, -2]]).astype(config.floatX)
     cholesky = Cholesky(lower=True, on_error="raise")
@@ -75,8 +74,6 @@ def test_cholesky_indef():
 
 
 def test_cholesky_grad():
-    pytest.importorskip("scipy")
-
     rng = np.random.default_rng(utt.fetch_seed())
     r = rng.standard_normal((5, 5)).astype(config.floatX)
 
@@ -106,7 +103,6 @@ def test_cholesky_grad():
 
 
 def test_cholesky_grad_indef():
-    scipy = pytest.importorskip("scipy")
     x = matrix()
     mat = np.array([[1, 0.2], [0.2, -2]]).astype(config.floatX)
     cholesky = Cholesky(lower=True, on_error="raise")
@@ -120,8 +116,6 @@ def test_cholesky_grad_indef():
 
 @pytest.mark.slow
 def test_cholesky_and_cholesky_grad_shape():
-    pytest.importorskip("scipy")
-
     rng = np.random.default_rng(utt.fetch_seed())
     x = matrix()
     for l in (cholesky(x), Cholesky(lower=True)(x), Cholesky(lower=False)(x)):
@@ -142,8 +136,6 @@ def test_cholesky_and_cholesky_grad_shape():
 
 
 def test_eigvalsh():
-    scipy = pytest.importorskip("scipy")
-
     A = dmatrix("a")
     B = dmatrix("b")
     f = function([A, B], eigvalsh(A, B))
@@ -167,8 +159,6 @@ def test_eigvalsh():
 
 
 def test_eigvalsh_grad():
-    pytest.importorskip("scipy")
-
     rng = np.random.default_rng(utt.fetch_seed())
     a = rng.standard_normal((5, 5))
     a = a + a.T
@@ -185,7 +175,6 @@ class TestSolve(utt.InferShapeTester):
         super().setup_method()
 
     def test_infer_shape(self):
-        pytest.importorskip("scipy")
         rng = np.random.default_rng(utt.fetch_seed())
         A = matrix()
         b = matrix()
@@ -216,7 +205,6 @@ class TestSolve(utt.InferShapeTester):
         )
 
     def test_solve_correctness(self):
-        scipy = pytest.importorskip("scipy")
         rng = np.random.default_rng(utt.fetch_seed())
         A = matrix()
         b = matrix()
@@ -258,8 +246,6 @@ class TestSolve(utt.InferShapeTester):
         )
 
     def test_solve_dtype(self):
-        pytest.importorskip("scipy")
-
         dtypes = [
             "uint8",
             "uint16",
@@ -305,8 +291,6 @@ class TestSolve(utt.InferShapeTester):
         solve_op = Solve(A_structure=A_structure, lower=lower)
         utt.verify_grad(solve_op, [A_val, b_val], 3, rng, eps=eps)
 
-    def test_solve_grad(self):
-        pytest.importorskip("scipy")
         rng = np.random.default_rng(utt.fetch_seed())
         structures = ["general", "lower_triangular", "upper_triangular"]
         for A_structure in structures:
@@ -336,7 +320,6 @@ def test_expm():
 
 def test_expm_grad_1():
     # with symmetric matrix (real eigenvectors)
-    pytest.importorskip("scipy")
     rng = np.random.default_rng(utt.fetch_seed())
     # Always test in float64 for better numerical stability.
     A = rng.standard_normal((5, 5))
@@ -347,7 +330,6 @@ def test_expm_grad_1():
 
 def test_expm_grad_2():
     # with non-symmetric matrix with real eigenspecta
-    pytest.importorskip("scipy")
     rng = np.random.default_rng(utt.fetch_seed())
     # Always test in float64 for better numerical stability.
     A = rng.standard_normal((5, 5))
@@ -360,7 +342,6 @@ def test_expm_grad_2():
 
 def test_expm_grad_3():
     # with non-symmetric matrix (complex eigenvectors)
-    pytest.importorskip("scipy")
     rng = np.random.default_rng(utt.fetch_seed())
     # Always test in float64 for better numerical stability.
     A = rng.standard_normal((5, 5))
@@ -377,8 +358,6 @@ class TestKron(utt.InferShapeTester):
         super().setup_method()
 
     def test_perform(self):
-        scipy = pytest.importorskip("scipy")
-
         for shp0 in [(2,), (2, 3), (2, 3, 4), (2, 3, 4, 5)]:
             x = tensor(dtype="floatX", broadcastable=(False,) * len(shp0))
             a = np.asarray(self.rng.random(shp0)).astype(config.floatX)
