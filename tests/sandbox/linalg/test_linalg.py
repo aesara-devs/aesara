@@ -5,19 +5,11 @@ import aesara
 from aesara import function
 from aesara import tensor as aet
 from aesara.configdefaults import config
-
-# The one in comment are not tested...
-from aesara.sandbox.linalg.ops import Cholesky  # PSD_hint,; op class
-from aesara.sandbox.linalg.ops import (
-    Solve,
-    inv_as_solve,
-    matrix_inverse,
-    solve,
-    spectral_radius_bound,
-)
+from aesara.sandbox.linalg.ops import inv_as_solve, spectral_radius_bound
 from aesara.tensor.elemwise import DimShuffle
 from aesara.tensor.math import _allclose
-from aesara.tensor.nlinalg import MatrixInverse
+from aesara.tensor.nlinalg import MatrixInverse, matrix_inverse
+from aesara.tensor.slinalg import Cholesky, Solve, solve
 from aesara.tensor.type import dmatrix, matrix, vector
 from tests import unittest_tools as utt
 from tests.test_rop import break_op
@@ -120,7 +112,7 @@ def test_spectral_radius_bound():
 
 def test_transinv_to_invtrans():
     X = matrix("X")
-    Y = aesara.tensor.nlinalg.matrix_inverse(X)
+    Y = matrix_inverse(X)
     Z = Y.transpose()
     f = aesara.function([X], Z)
     if config.mode != "FAST_COMPILE":
