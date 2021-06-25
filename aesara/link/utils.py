@@ -588,7 +588,9 @@ def compile_function_src(src, function_name, global_env=None, local_env=None):
     mod_code = compile(src, filename, mode="exec")
     exec(mod_code, global_env, local_env)
 
-    return local_env[function_name]
+    res = local_env[function_name]
+    res.__source__ = src
+    return res
 
 
 def get_name_for_object(x: Any):
