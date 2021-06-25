@@ -821,3 +821,21 @@ def tensorsolve(a, b, axes=None):
     """
 
     return TensorSolve(axes)(a, b)
+
+
+__all__ = [
+    "pinv",
+    "inv",
+    "trace",
+    "matrix_dot",
+    "det",
+    "eig",
+    "eigh",
+    "qr",
+    "svd",
+    "lstsq",
+    "matrix_power",
+    "norm",
+    "tensorinv",
+    "tensorsolve",
+]
