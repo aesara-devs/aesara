@@ -774,7 +774,7 @@ class _tensor_py_operators:
         return aet.math.round(self, mode)
 
     def trace(self):
-        return aet.nlinalg.trace(self)
+        return aet.linalg.trace(self)
 
     # This value is set so that Aesara arrays will trump NumPy operators.
     __array_priority__ = 1000
