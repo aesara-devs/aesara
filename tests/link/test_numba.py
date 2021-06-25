@@ -2196,16 +2196,19 @@ def test_Eigh(x, uplo, exc):
 
 
 @pytest.mark.parametrize(
-    "x, exc",
+    "op, x, exc, op_args",
     [
         (
+            nlinalg.MatrixInverse,
             set_test_value(
                 aet.dmatrix(),
                 (lambda x: x.T.dot(x))(rng.random(size=(3, 3)).astype("float64")),
             ),
             None,
+            (),
         ),
         (
+            nlinalg.MatrixInverse,
             set_test_value(
                 aet.lmatrix(),
                 (lambda x: x.T.dot(x))(
@@ -2213,11 +2216,52 @@ def test_Eigh(x, uplo, exc):
                 ),
             ),
             None,
+            (),
+        ),
+        (
+            nlinalg.Inv,
+            set_test_value(
+                aet.dmatrix(),
+                (lambda x: x.T.dot(x))(rng.random(size=(3, 3)).astype("float64")),
+            ),
+            None,
+            (),
+        ),
+        (
+            nlinalg.Inv,
+            set_test_value(
+                aet.lmatrix(),
+                (lambda x: x.T.dot(x))(
+                    rng.integers(1, 10, size=(3, 3)).astype("int64")
+                ),
+            ),
+            None,
+            (),
+        ),
+        (
+            nlinalg.MatrixPinv,
+            set_test_value(
+                aet.dmatrix(),
+                (lambda x: x.T.dot(x))(rng.random(size=(3, 3)).astype("float64")),
+            ),
+            None,
+            (True,),
+        ),
+        (
+            nlinalg.MatrixPinv,
+            set_test_value(
+                aet.lmatrix(),
+                (lambda x: x.T.dot(x))(
+                    rng.integers(1, 10, size=(3, 3)).astype("int64")
+                ),
+            ),
+            None,
+            (False,),
         ),
     ],
 )
-def test_MatrixInverse(x, exc):
-    g = nlinalg.MatrixInverse()(x)
+def test_matrix_inverses(op, x, exc, op_args):
+    g = op(*op_args)(x)
     g_fg = FunctionGraph(outputs=[g])
 
     cm = contextlib.suppress() if exc is None else pytest.warns(exc)
