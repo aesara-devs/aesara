@@ -597,3 +597,14 @@ class ExpmGrad(Op):
 
 
 expm = Expm()
+
+__all__ = [
+    "cholesky",
+    "solve",
+    "solve_lower_triangular",
+    "solve_upper_triangular",
+    "solve_symmetric",
+    "eigvalsh",
+    "kron",
+    "expm",
+]
