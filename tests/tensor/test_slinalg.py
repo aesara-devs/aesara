@@ -12,7 +12,9 @@ from aesara.configdefaults import config
 from aesara.tensor.slinalg import (
     Cholesky,
     CholeskyGrad,
+    CholeskySolve,
     Solve,
+    cho_solve,
     cholesky,
     eigvalsh,
     expm,
@@ -312,6 +314,117 @@ class TestSolve(utt.InferShapeTester):
     def test_solve_grad(self, m, n, assume_a, lower):
         rng = np.random.default_rng(utt.fetch_seed())
         self.verify_solve_grad(m, n, assume_a, lower, rng)
+
+
+class TestCholeskySolve(utt.InferShapeTester):
+    def setup_method(self):
+        self.op_class = CholeskySolve
+        self.op = CholeskySolve()
+        self.op_upper = CholeskySolve(lower=False)
+        super().setup_method()
+
+    def test_repr(self):
+        assert repr(CholeskySolve()) == "CholeskySolve{(True, True)}"
+
+    def test_infer_shape(self):
+        rng = np.random.default_rng(utt.fetch_seed())
+        A = matrix()
+        b = matrix()
+        self._compile_and_check(
+            [A, b],  # aesara.function inputs
+            [self.op(A, b)],  # aesara.function outputs
+            # A must be square
+            [
+                np.asarray(rng.random((5, 5)), dtype=config.floatX),
+                np.asarray(rng.random((5, 1)), dtype=config.floatX),
+            ],
+            self.op_class,
+            warn=False,
+        )
+        rng = np.random.default_rng(utt.fetch_seed())
+        A = matrix()
+        b = vector()
+        self._compile_and_check(
+            [A, b],  # aesara.function inputs
+            [self.op(A, b)],  # aesara.function outputs
+            # A must be square
+            [
+                np.asarray(rng.random((5, 5)), dtype=config.floatX),
+                np.asarray(rng.random((5)), dtype=config.floatX),
+            ],
+            self.op_class,
+            warn=False,
+        )
+
+    def test_solve_correctness(self):
+        rng = np.random.default_rng(utt.fetch_seed())
+        A = matrix()
+        b = matrix()
+        y = self.op(A, b)
+        cho_solve_lower_func = aesara.function([A, b], y)
+
+        y = self.op_upper(A, b)
+        cho_solve_upper_func = aesara.function([A, b], y)
+
+        b_val = np.asarray(rng.random((5, 1)), dtype=config.floatX)
+
+        A_val = np.tril(np.asarray(rng.random((5, 5)), dtype=config.floatX))
+
+        assert np.allclose(
+            scipy.linalg.cho_solve((A_val, True), b_val),
+            cho_solve_lower_func(A_val, b_val),
+        )
+
+        A_val = np.triu(np.asarray(rng.random((5, 5)), dtype=config.floatX))
+        assert np.allclose(
+            scipy.linalg.cho_solve((A_val, False), b_val),
+            cho_solve_upper_func(A_val, b_val),
+        )
+
+    def test_solve_dtype(self):
+        dtypes = [
+            "uint8",
+            "uint16",
+            "uint32",
+            "uint64",
+            "int8",
+            "int16",
+            "int32",
+            "int64",
+            "float16",
+            "float32",
+            "float64",
+        ]
+
+        A_val = np.eye(2)
+        b_val = np.ones((2, 1))
+
+        # try all dtype combinations
+        for A_dtype, b_dtype in itertools.product(dtypes, dtypes):
+            A = matrix(dtype=A_dtype)
+            b = matrix(dtype=b_dtype)
+            x = self.op(A, b)
+            fn = function([A, b], x)
+            x_result = fn(A_val.astype(A_dtype), b_val.astype(b_dtype))
+
+            assert x.dtype == x_result.dtype
+
+
+def test_cho_solve():
+    rng = np.random.default_rng(utt.fetch_seed())
+    A = matrix()
+    b = matrix()
+    y = cho_solve((A, True), b)
+    cho_solve_lower_func = aesara.function([A, b], y)
+
+    b_val = np.asarray(rng.random((5, 1)), dtype=config.floatX)
+
+    A_val = np.tril(np.asarray(rng.random((5, 5)), dtype=config.floatX))
+
+    assert np.allclose(
+        scipy.linalg.cho_solve((A_val, True), b_val),
+        cho_solve_lower_func(A_val, b_val),
+    )
 
 
 def test_expm():
