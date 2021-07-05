@@ -330,10 +330,6 @@ class RandomVariable(Op):
     def make_node(self, rng, size, dtype, *dist_params):
         """Create a random variable node.
 
-        XXX: Unnamed/non-keyword arguments are considered distribution
-        parameters!  If you want to set `size`, `rng`, and/or `name`, use their
-        keywords.
-
         Parameters
         ----------
         rng: RandomGeneratorType or RandomStateType

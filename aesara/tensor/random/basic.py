@@ -29,8 +29,7 @@ except AttributeError:
     from numpy.lib.stride_tricks import _broadcast_shape
 
     def broadcast_shapes(*shapes):
-        arrays = [np.empty(x, dtype=[]) for x in shapes]
-        return _broadcast_shape(arrays)
+        return _broadcast_shape(*[np.empty(x, dtype=[]) for x in shapes])
 
 
 class ScipyRandomVariable(RandomVariable):

@@ -10,6 +10,7 @@ import aesara
 from aesara.compile.debugmode import str_diagnostic
 from aesara.configdefaults import config
 from aesara.gradient import verify_grad as orig_verify_grad
+from aesara.tensor.basic import as_tensor_variable
 from aesara.tensor.math import _allclose
 from aesara.tensor.math import add as aet_add
 
@@ -392,3 +393,10 @@ def assertFailure_fast(f):
         return test_with_assert
     else:
         return f
+
+
+def create_aesara_param(param_value):
+    """Create a `Variable` from a value and set its test value."""
+    p_aet = as_tensor_variable(param_value).type()
+    p_aet.tag.test_value = param_value
+    return p_aet
