@@ -17,7 +17,7 @@ from aesara.link.utils import fgraph_to_python
 from aesara.scalar import Softplus
 from aesara.scalar.basic import Cast, Clip, Composite, Identity, ScalarOp, Second
 from aesara.scan.op import Scan
-from aesara.scan.utils import scan_args as ScanArgs
+from aesara.scan.utils import ScanArgs
 from aesara.tensor.basic import (
     Alloc,
     AllocDiag,

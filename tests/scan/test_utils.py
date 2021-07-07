@@ -5,7 +5,7 @@ import pytest
 
 import aesara
 from aesara import tensor as aet
-from aesara.scan.utils import map_variables
+from aesara.scan.utils import ScanArgs, map_variables
 from aesara.tensor.type import scalar, vector
 
 
@@ -145,3 +145,15 @@ class TestMapVariables:
         shared.update = shared + 1
         with pytest.raises(NotImplementedError):
             map_variables(self.replacer, [t])
+
+
+def test_ScanArgs():
+    scan_args = ScanArgs.create_empty()
+    assert scan_args.n_steps is None
+    for name in scan_args.field_names:
+        if name == "n_steps":
+            continue
+        assert len(getattr(scan_args, name)) == 0
+
+    with pytest.raises(TypeError):
+        ScanArgs.from_node(aet.ones(2).owner)
