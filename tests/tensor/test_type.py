@@ -19,6 +19,20 @@ def test_filter_variable():
     with pytest.raises(TypeError):
         test_type.filter(test_type())
 
+    test_type = TensorType(config.floatX, [True, False])
+
+    with pytest.raises(TypeError):
+        test_type.filter(np.empty((0, 1), dtype=config.floatX))
+
+    with pytest.raises(TypeError, match=".*not aligned.*"):
+        test_val = np.empty((1, 2), dtype=config.floatX)
+        test_val.flags.aligned = False
+        test_type.filter(test_val)
+
+    with pytest.raises(ValueError, match="Non-finite"):
+        test_type.filter_checks_isfinite = True
+        test_type.filter(np.full((1, 2), np.inf, dtype=config.floatX))
+
 
 def test_filter_strict():
     test_type = TensorType(config.floatX, [])
