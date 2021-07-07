@@ -276,12 +276,12 @@ by usage.
 Accessing/manipulating Scan's inputs and outputs by type
 --------------------------------------------------------
 
-Declared in ``utils.py``, the class ``scan_args`` handles the
+Declared in ``utils.py``, the class ``ScanArgs`` handles the
 parsing of the inputs and outputs (both inner and outer) to a format
 that is easier to analyse and manipulate. Without this class,
 analysing Scan's inputs and outputs often required convoluted logic
 which make for code that is hard to read and to maintain. Because of
-this, you should favor using ``scan_args`` when it is practical and
+this, you should favor using ``ScanArgs`` when it is practical and
 appropriate to do so.
 
 The scan op also defines a few helper functions for this purpose, such as
