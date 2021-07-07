@@ -1,4 +1,5 @@
 from collections.abc import Collection
+from itertools import zip_longest
 from typing import Iterable, Tuple, Union
 
 import numpy as np
@@ -1562,7 +1563,11 @@ def broadcast_shape_iter(
 
 
 class BroadcastTo(Op):
-    """An `Op` for `numpy.broadcast_to`."""
+    """An `Op` for `numpy.broadcast_to`.
+
+    This implementation handles zero-dimensions without raising an error,
+    unlike NumPy's `broadcast_to`.
+    """
 
     view_map = {0: [0]}
 
@@ -1582,10 +1587,31 @@ class BroadcastTo(Op):
 
         return Apply(self, [a] + shape, [out])
 
+    @classmethod
+    def bcast_dim(cls, a, b):
+        if a != b and (a != 1 and b != 1):
+            raise ValueError(
+                "operands could not be broadcast together with remapped"
+                f" shapes [original->remapped]: {a} and requested shape {b}"
+            )
+
+        return 0 if a == 0 or b == 0 else max(a, b)
+
     def perform(self, node, inputs, output_storage):
         a, *shape = inputs
         z = output_storage[0]
-        z[0] = np.broadcast_to(a, shape)
+
+        if a.size == 0:
+            if any(a < 0 for a in shape):
+                raise ValueError("all elements of broadcast shape must be non-negative")
+
+            bcast_shape = tuple(
+                self.bcast_dim(a, b)
+                for a, b in zip_longest(reversed(a.shape), reversed(shape), fillvalue=1)
+            )
+            z[0] = np.empty(bcast_shape[::-1], dtype=a.dtype)
+        else:
+            z[0] = np.broadcast_to(a, shape)
 
     def grad(self, inputs, outputs_gradients):
         a, *shape = inputs

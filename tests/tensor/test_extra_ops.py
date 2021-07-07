@@ -1103,7 +1103,7 @@ class TestBroadcastTo(utt.InferShapeTester):
         self.op_class = BroadcastTo
         self.op = broadcast_to
 
-    @config.change_flags(compute_test_value="raise")
+    @config.change_flags(compute_test_value="ignore")
     def test_perform(self):
         a = scalar()
         a.tag.test_value = 5
@@ -1121,6 +1121,25 @@ class TestBroadcastTo(utt.InferShapeTester):
 
         assert np.array_equal(bcast_aet, bcast_np)
         assert np.shares_memory(bcast_aet, a.get_test_value())
+
+        b = vector()
+        bcast_res = broadcast_to(b, shape)
+        bcast_fn = function([b, s_1], bcast_res)
+
+        with pytest.raises(ValueError, match=".*non-negative.*"):
+            bcast_fn(np.empty((0,), dtype=config.floatX), -1)
+
+    def test_zero_dims(self):
+        a = tensor(np.int64, [False, False, False, False])
+        shape = (4, 1, 3, 1)
+        bcast_res = broadcast_to(a, shape)
+        bcast_fn = function([a], bcast_res)
+
+        res = bcast_fn(np.empty((4, 0, 3, 0), dtype=np.int64))
+        assert res.shape == (4, 0, 3, 0)
+
+        with pytest.raises(ValueError, match=".*not be broadcast.*"):
+            bcast_fn(np.empty((0, 1, 3, 0), dtype=np.int64))
 
     @pytest.mark.parametrize(
         "fn,input_dims",
