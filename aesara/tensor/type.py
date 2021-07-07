@@ -205,33 +205,18 @@ class TensorType(CType):
                 f" got {data.ndim} with shape {data.shape}."
             )
         if not data.flags.aligned:
-            try:
-                msg = "object buffer" + str(data.data)
-            except AttributeError:
-                msg = ""
             raise TypeError(
                 "The numpy.ndarray object is not aligned."
                 " Aesara C code does not support that.",
-                msg,
-                "object shape",
-                data.shape,
-                "object strides",
-                data.strides,
-                "object dtype",
-                data.dtype,
             )
 
         i = 0
         for b in self.broadcastable:
             if b and data.shape[i] != 1:
-                raise TypeError(
-                    "Non-unit value on shape on a broadcastable" " dimension.",
-                    data.shape,
-                    self.broadcastable,
-                )
+                raise TypeError("Non-unit value on shape on a broadcastable dimension.")
             i += 1
         if self.filter_checks_isfinite and not np.all(np.isfinite(data)):
-            raise ValueError("non-finite elements not allowed")
+            raise ValueError("Non-finite elements not allowed")
         return data
 
     def filter_variable(self, other, allow_convert=True):
