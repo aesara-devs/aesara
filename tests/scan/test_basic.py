@@ -13,7 +13,7 @@ import os
 import pickle
 import shutil
 import sys
-import time
+import timeit
 from collections import OrderedDict
 from tempfile import mkdtemp
 
@@ -4568,8 +4568,6 @@ def test_cvm_exception_handling():
     not config.cxx, reason="G++ not available, so we need to skip this test."
 )
 def test_speed():
-    from timeit import timeit
-
     n_timeit = 50
 
     # We need the CVM for this speed test
@@ -4579,7 +4577,7 @@ def test_speed():
         for i in range(1, 1000):
             r[i] += r[i - 1]
 
-    python_duration = timeit(lambda: f_py(), number=n_timeit)
+    python_duration = timeit.timeit(lambda: f_py(), number=n_timeit)
 
     r = np.arange(10000).astype(config.floatX).reshape(1000, 10)
 
@@ -4593,7 +4591,7 @@ def test_speed():
             except StopIteration:
                 break
 
-    python_iter_duration = timeit(lambda: f_py_iter(), number=n_timeit)
+    python_iter_duration = timeit.timeit(lambda: f_py_iter(), number=n_timeit)
 
     # r = np.arange(10000).astype(config.floatX).reshape(1000, 10)
     # s_r = matrix()
@@ -4607,7 +4605,7 @@ def test_speed():
     #
     # f_cvm = function([s_r], s_y)
     #
-    # cvm_duration = timeit(lambda: f_cvm(r), number=n_timeit)
+    # cvm_duration = timeit.timeit(lambda: f_cvm(r), number=n_timeit)
 
     # XXX: Why does this take so much longer than Python?!
     # assert cvm_duration - python_duration < python_duration * 0.15
@@ -4627,7 +4625,7 @@ def test_speed():
     )
     f_cvm_shared._check_for_aliased_inputs = False
 
-    cvm_shared_duration = timeit(lambda: f_cvm_shared(), number=n_timeit)
+    cvm_shared_duration = timeit.timeit(lambda: f_cvm_shared(), number=n_timeit)
 
     assert cvm_shared_duration < python_duration
     assert cvm_shared_duration < python_iter_duration
@@ -4637,8 +4635,6 @@ def test_speed():
     not config.cxx, reason="G++ not available, so we need to skip this test."
 )
 def test_speed_rnn():
-    from timeit import timeit
-
     n_timeit = 50
     L = 10000
     N = 50
@@ -4651,7 +4647,7 @@ def test_speed_rnn():
         for i in range(1, L):
             r[i] = np.tanh(np.dot(r[i - 1], w))
 
-    python_duration = timeit(lambda: f_py(), number=n_timeit)
+    python_duration = timeit.timeit(lambda: f_py(), number=n_timeit)
 
     # r = np.arange(L * N).astype(config.floatX).reshape(L, N)
     # s_r = matrix()
@@ -4665,7 +4661,7 @@ def test_speed_rnn():
     #
     # f_cvm = function([s_r], s_y, mode=Mode(linker="cvm"))
     #
-    # cvm_duration = timeit(lambda: f_cvm(r), number=n_timeit)
+    # cvm_duration = timeit.timeit(lambda: f_cvm(r), number=n_timeit)
 
     # XXX: Why does this take so much longer than Python?!
     # assert cvm_duration - python_duration < python_duration * 0.15
@@ -4685,7 +4681,7 @@ def test_speed_rnn():
         mode=Mode(linker="cvm"),
     )
 
-    cvm_shared_duration = timeit(lambda: f_cvm_shared(), number=n_timeit)
+    cvm_shared_duration = timeit.timeit(lambda: f_cvm_shared(), number=n_timeit)
 
     assert cvm_shared_duration < python_duration
 
@@ -4714,11 +4710,11 @@ def test_speed_batchrnn():
     r = np.arange(B * L * N).astype(config.floatX).reshape(L, B, N)
     w = np.random.default_rng(utt.fetch_seed()).random((N, N)).astype(config.floatX)
 
-    t0 = time.time()
-    for i in range(1, L):
-        r[i] = np.tanh(np.dot(r[i - 1], w))
-    t1 = time.time()
-    python_duration = t1 - t0
+    def ref_fn():
+        for i in range(1, L):
+            r[i] = np.tanh(np.dot(r[i - 1], w))
+
+    python_duration = timeit.timeit(ref_fn, number=20)
 
     r = np.arange(B * L * N).astype(config.floatX).reshape(L, B, N)
     shared_r = shared(r)
@@ -4734,12 +4730,8 @@ def test_speed_batchrnn():
         updates=[(s_i, s_i + 1), (shared_r, s_rinc)],
         mode=Mode(linker="cvm"),
     )
-    f_fn = f.fn
-    t2 = time.time()
-    f_fn(n_calls=L - 2)
-    f()  # 999 to update the profiling timers
-    t3 = time.time()
-    cvm_duration = t3 - t2
+
+    cvm_duration = timeit.timeit(f, number=20)
 
     assert cvm_duration < python_duration
 
