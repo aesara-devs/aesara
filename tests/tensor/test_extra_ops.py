@@ -971,7 +971,7 @@ class TestRavelMultiIndex(utt.InferShapeTester):
             ravel_multi_index(((3, 4),), ((3, 4),))
 
 
-def test_broadcast_shape():
+def test_broadcast_shape_basic():
     def shape_tuple(x, use_bcast=True):
         if use_bcast:
             return tuple(
@@ -1006,11 +1006,6 @@ def test_broadcast_shape():
         shape_tuple(x_aet), shape_tuple(y_aet), arrays_are_shapes=True
     )
     assert np.array_equal([z.eval() for z in b_aet], b.shape)
-    # These are all constants, so there shouldn't be any asserts in the
-    # resulting graph.
-    assert not any(
-        isinstance(node.op, Assert) for node in applys_between([x_aet, y_aet], b_aet)
-    )
 
     x = np.array([1, 2, 3])
     y = np.array([4, 5, 6])
@@ -1023,12 +1018,6 @@ def test_broadcast_shape():
         shape_tuple(x_aet), shape_tuple(y_aet), arrays_are_shapes=True
     )
     assert np.array_equal([z.eval() for z in b_aet], b.shape)
-    # TODO: This will work when/if we use a more sophisticated `is_same_graph`
-    # implementation.
-    # assert not any(
-    #     isinstance(node.op, Assert)
-    #     for node in graph_ops([x_aet, y_aet], b_aet)
-    # )
 
     x = np.empty((1, 2, 3))
     y = np.array(1)
@@ -1038,9 +1027,6 @@ def test_broadcast_shape():
     b_aet = broadcast_shape(x_aet, y_aet)
     assert b_aet[0].value == 1
     assert np.array_equal([z.eval() for z in b_aet], b.shape)
-    assert not any(
-        isinstance(node.op, Assert) for node in applys_between([x_aet, y_aet], b_aet)
-    )
     b_aet = broadcast_shape(
         shape_tuple(x_aet), shape_tuple(y_aet), arrays_are_shapes=True
     )
@@ -1054,12 +1040,6 @@ def test_broadcast_shape():
     b_aet = broadcast_shape(x_aet, y_aet)
     assert b_aet[1].value == 1
     assert np.array_equal([z.eval() for z in b_aet], b.shape)
-    # TODO: This will work when/if we use a more sophisticated `is_same_graph`
-    # implementation.
-    # assert not any(
-    #     isinstance(node.op, Assert)
-    #     for node in graph_ops([x_aet, y_aet], b_aet)
-    # )
     b_aet = broadcast_shape(
         shape_tuple(x_aet), shape_tuple(y_aet), arrays_are_shapes=True
     )
@@ -1073,12 +1053,6 @@ def test_broadcast_shape():
     y_shapes = (y1_shp_aet, 1, x2_shp_aet)
     y_aet = aet.ones(y_shapes)
     b_aet = broadcast_shape(x_aet, y_aet)
-    # TODO: This will work when/if we use a more sophisticated `is_same_graph`
-    # implementation.
-    # assert not any(
-    #     isinstance(node.op, Assert)
-    #     for node in graph_ops([x_aet, y_aet], b_aet)
-    # )
     res = aet.as_tensor(b_aet).eval(
         {
             x1_shp_aet: 10,
@@ -1092,6 +1066,36 @@ def test_broadcast_shape():
     y_aet = aet.ones(y_shapes)
     b_aet = broadcast_shape(x_aet, y_aet)
     assert isinstance(b_aet[-1].owner.op, Assert)
+
+
+@pytest.mark.parametrize(
+    ("s1_vals", "s2_vals", "exp_res"),
+    [
+        ((2, 2), (1, 2), (2, 2)),
+        ((0, 2), (1, 2), (0, 2)),
+    ],
+)
+@config.change_flags(compute_test_value="raise")
+def test_broadcast_shape_symbolic(s1_vals, s2_vals, exp_res):
+    s1_1, s1_2 = aet.lscalars("s1_1", "s1_2")
+    s2_1, s2_2 = aet.lscalars("s2_1", "s2_2")
+
+    s1_1.tag.test_value = s1_vals[0]
+    s1_2.tag.test_value = s1_vals[1]
+    s2_1.tag.test_value = s2_vals[0]
+    s2_2.tag.test_value = s2_vals[1]
+
+    res = broadcast_shape((s1_1, s1_2), (s2_1, s2_2), arrays_are_shapes=True)
+    res = aet.as_tensor(res)
+
+    assert (
+        tuple(
+            res.eval(
+                {s1_1: s1_vals[0], s1_2: s1_vals[1], s2_1: s2_vals[0], s2_2: s2_vals[1]}
+            )
+        )
+        == exp_res
+    )
 
 
 class TestBroadcastTo(utt.InferShapeTester):
