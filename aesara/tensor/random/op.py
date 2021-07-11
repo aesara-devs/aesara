@@ -20,6 +20,7 @@ from aesara.tensor.elemwise import Elemwise
 from aesara.tensor.exceptions import NotScalarConstantError
 from aesara.tensor.random.type import RandomType
 from aesara.tensor.random.utils import normalize_size_param, params_broadcast_shapes
+from aesara.tensor.shape import shape_tuple
 from aesara.tensor.type import TensorType, all_dtypes
 
 
@@ -199,7 +200,7 @@ class RandomVariable(Op):
 
         # Broadcast the parameters
         param_shapes = params_broadcast_shapes(
-            param_shapes or [p.shape for p in dist_params], self.ndims_params
+            param_shapes or [shape_tuple(p) for p in dist_params], self.ndims_params
         )
 
         def slice_ind_dims(p, ps, n):

@@ -129,6 +129,19 @@ shape = Shape()
 _shape = shape  # was used in the past, now use shape directly.
 
 
+def shape_tuple(x):
+    """Get a tuple of symbolic shape values.
+
+    This will return a `ScalarConstant` with the value ``1`` wherever
+    broadcastable is ``True``.
+    """
+    one_at = aesara.scalar.ScalarConstant(aesara.scalar.int64, 1)
+    return tuple(
+        one_at if getattr(sh, "value", sh) == 1 or bcast else sh
+        for sh, bcast in zip(shape(x), getattr(x, "broadcastable", (False,) * x.ndim))
+    )
+
+
 class Shape_i(COp):
     """
     L{Op} to return the shape of a matrix.
