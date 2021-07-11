@@ -42,6 +42,7 @@ from aesara.tensor.shape import (
     shape_padaxis,
     shape_padleft,
     shape_padright,
+    shape_tuple,
 )
 from aesara.tensor.type import (
     TensorType,
@@ -4152,7 +4153,7 @@ class Choose(Op):
         else:
             choice = as_tensor_variable(choices)
         (out_shape,) = self.infer_shape(
-            None, None, [tuple(a.shape), tuple(shape(choice))]
+            None, None, [shape_tuple(a), shape_tuple(choice)]
         )
 
         bcast = []
