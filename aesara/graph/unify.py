@@ -10,599 +10,284 @@ that satisfies the constraints. That's useful for pattern matching.
 
 """
 
-from copy import copy
-from functools import partial
-from typing import Dict
+from collections.abc import Mapping
+from numbers import Number
+from typing import Dict, Optional, Tuple, Union
+
+import numpy as np
+from cons.core import ConsError, _car, _cdr
+from etuples import apply, etuple, etuplize
+from etuples.core import ExpressionTuple
+from unification.core import _unify, assoc
+from unification.utils import transitive_get as walk
+from unification.variable import Var, isvar, var
+
+from aesara.graph.basic import Constant, Variable
+from aesara.graph.op import Op
+from aesara.graph.type import Type
 
 
-class Keyword:
-    def __init__(self, name, nonzero=True):
-        self.name = name
-        self.nonzero = nonzero
+def eval_if_etuple(x):
+    if isinstance(x, ExpressionTuple):
+        return x.evaled_obj
+    return x
 
-    def __nonzero__(self):
-        # Python 2.x
-        return self.__bool__()
 
-    def __bool__(self):
-        # Python 3.x
-        return self.nonzero
+class ConstrainedVar(Var):
+    """A logical variable with a constraint.
+
+    These will unify with other `Var`s regardless of the constraints.
+    """
+
+    __slots__ = ("constraint",)
+
+    def __new__(cls, constraint, token=None, prefix=""):
+        if token is None:
+            token = f"{prefix}_{Var._id}"
+            Var._id += 1
+
+        key = (token, constraint)
+        obj = cls._refs.get(key, None)
+
+        if obj is None:
+            obj = object.__new__(cls)
+            obj.token = token
+            obj.constraint = constraint
+            cls._refs[key] = obj
+
+        return obj
+
+    def __eq__(self, other):
+        if type(self) == type(other):
+            return self.token == other.token and self.constraint == other.constraint
+        return NotImplemented
+
+    def __hash__(self):
+        return hash((type(self), self.token, self.constraint))
 
     def __str__(self):
-        return f"<{self.name}>"
+        return f"~{self.token} [{self.constraint}]"
 
     def __repr__(self):
-        return f"<{self.name}>"
+        return f"ConstrainedVar({repr(self.constraint)}, {self.token})"
 
 
-ABORT = Keyword("ABORT", False)
-RETRY = Keyword("RETRY", False)
-FAILURE = Keyword("FAILURE", False)
-
-
-simple_types = (int, str, float, bool, type(None), Keyword)
-
-
-ANY_TYPE = Keyword("ANY_TYPE")
-FALL_THROUGH = Keyword("FALL_THROUGH")
-
-
-def comm_guard(type1, type2):
-    def wrap(f):
-        old_f = f.__globals__[f.__name__]
-
-        def new_f(arg1, arg2, *rest):
-            if (type1 is ANY_TYPE or isinstance(arg1, type1)) and (
-                type2 is ANY_TYPE or isinstance(arg2, type2)
-            ):
-                pass
-            elif (type1 is ANY_TYPE or isinstance(arg2, type1)) and (
-                type2 is ANY_TYPE or isinstance(arg1, type2)
-            ):
-                arg1, arg2 = arg2, arg1
-            else:
-                return old_f(arg1, arg2, *rest)
-
-            variable = f(arg1, arg2, *rest)
-            if variable is FALL_THROUGH:
-                return old_f(arg1, arg2, *rest)
-            else:
-                return variable
-
-        new_f.__name__ = f.__name__
-
-        def typename(type):
-            if isinstance(type, Keyword):
-                return str(type)
-            elif isinstance(type, (tuple, list)):
-                return "(" + ", ".join([x.__name__ for x in type]) + ")"
-            else:
-                return type.__name__
-
-        new_f.__doc__ = (
-            str(old_f.__doc__)
-            + "\n"
-            + ", ".join([typename(type) for type in (type1, type2)])
-            + "\n"
-            + str(f.__doc__ or "")
-        )
-        return new_f
-
-    return wrap
-
-
-def type_guard(type1):
-    def wrap(f):
-        old_f = f.__globals__[f.__name__]
-
-        def new_f(arg1, *rest):
-            if type1 is ANY_TYPE or isinstance(arg1, type1):
-                variable = f(arg1, *rest)
-                if variable is FALL_THROUGH:
-                    return old_f(arg1, *rest)
-                else:
-                    return variable
-            else:
-                return old_f(arg1, *rest)
-
-        new_f.__name__ = f.__name__
-
-        def typename(type):
-            if isinstance(type, Keyword):
-                return str(type)
-            elif isinstance(type, (tuple, list)):
-                return "(" + ", ".join([x.__name__ for x in type]) + ")"
-            else:
-                return type.__name__
-
-        new_f.__doc__ = (
-            str(old_f.__doc__)
-            + "\n"
-            + ", ".join([typename(type) for type in (type1,)])
-            + "\n"
-            + str(f.__doc__ or "")
-        )
-        return new_f
-
-    return wrap
-
-
-class Variable:
-    """
-    Serves as a base class of variables for the purpose of unification.
-    "Unification" here basically means matching two patterns, see the
-    module-level docstring.
-
-    Behavior for unifying various types of variables should be added as
-    overloadings of the 'unify' function.
-
-    Notes
-    -----
-    There are two Variable classes in aesara and this is the more rarely used
-    one.
-    This class is used internally by the PatternSub optimization,
-    and possibly other subroutines that have to perform graph queries.
-    If that doesn't sound like what you're doing, the Variable class you
-    want is probably aesara.graph.basic.Variable.
-
-    """
-
-    def __init__(self, name="?"):
-        self.name = name
-
-    def __str__(self):
-        return (
-            self.__class__.__name__
-            + "("
-            + ", ".join(
-                "{}={}".format(key, value) for key, value in self.__dict__.items()
-            )
-            + ")"
-        )
-
-    def __repr__(self):
-        return str(self)
-
-
-class FreeVariable(Variable):
-    """
-    This Variable can take any value.
-
-    """
-
-
-class BoundVariable(Variable):
-    """
-    This Variable is bound to a value accessible via the value field.
-
-    """
-
-    def __init__(self, name, value):
-        super().__init__(name=name)
-        self.value = value
-
-
-class OrVariable(Variable):
-    """
-    This Variable could be any value from a finite list of values,
-    accessible via the options field.
-
-    """
-
-    def __init__(self, name, options):
-        super().__init__(name=name)
-        self.options = options
-
-
-class NotVariable(Variable):
-    """
-    This Variable can take any value but a finite amount of forbidden
-    values, accessible via the not_options field.
-
-    """
-
-    def __init__(self, name, not_options):
-        super().__init__(name=name)
-        self.not_options = not_options
-
-
-class VariableInList:  # not a subclass of Variable
-    """
-    This special kind of variable is matched against a list and unifies
-    an inner Variable to an OrVariable of the values in the list.
-    For example, if we unify VariableInList(FreeVariable('x')) to [1,2,3],
-    the 'x' variable is unified to an OrVariable('?', [1,2,3]).
-
-    """
-
-    def __init__(self, variable):
-        self.variable = variable
-
-
-_all: Dict = {}
-
-
-def var_lookup(vartype, name, *args, **kwargs):
-    sig = (vartype, name)
-    if sig in _all:
-        return _all[sig]
+def car_Variable(x):
+    if x.owner:
+        return x.owner.op
     else:
-        v = vartype(name, *args)
-        _all[sig] = v
-        return v
+        raise ConsError("Not a cons pair.")
 
 
-Var = partial(var_lookup, FreeVariable)
-V = Var
-OrV = partial(var_lookup, OrVariable)
-NV = partial(var_lookup, NotVariable)
+_car.add((Variable,), car_Variable)
 
 
-class Unification:
-    """
-    This class represents a possible unification of a group of variables
-    with each other or with tangible values.
-    Parameters
-    ----------
-    inplace : bool
-        If inplace is False, the merge method will return a new Unification
-        that is independent from the previous one (which allows backtracking).
-
-    """
-
-    def __init__(self, inplace=False):
-        self.unif = {}
-        self.inplace = inplace
-
-    def merge(self, new_best, *vars):
-        """
-        Links all the specified vars to a Variable that represents their
-        unification.
-
-        """
-        if self.inplace:
-            U = self
-        else:
-            # Copy all the unification data.
-            U = Unification(self.inplace)
-            for var, (best, pool) in self.unif.items():
-                # The pool of a variable is the set of all the variables that
-                # are unified to it (all the variables that must have the same
-                # value). The best is the Variable that represents a set of
-                # values common to all the variables in the pool.
-                U.unif[var] = (best, pool)
-        # We create a new pool for our new set of unified variables, initially
-        # containing vars and new_best
-        new_pool = set(vars)
-        new_pool.add(new_best)
-        for var in copy(new_pool):
-            best, pool = U.unif.get(var, (var, set()))
-            # We now extend the new pool to contain the pools of all the variables.
-            new_pool.update(pool)
-        # All variables get the new pool.
-        for var in new_pool:
-            U.unif[var] = (new_best, new_pool)
-        return U
-
-    def __getitem__(self, v):
-        """
-        For a variable v, returns a Variable that represents the tightest
-        set of possible values it can take.
-
-        """
-        return self.unif.get(v, (v, None))[0]
-
-
-def unify_walk(a, b, U):
-    """
-    unify_walk(a, b, U) returns an Unification where a and b are unified,
-    given the unification that already exists in the Unification U. If the
-    unification fails, it returns False.
-
-    There are two ways to expand the functionality of unify_walk. The first way
-    is:
-    @comm_guard(type_of_a, type_of_b)
-    def unify_walk(a, b, U):
-        ...
-    A function defined as such will be executed whenever the types of a and b
-    match the declaration. Note that comm_guard automatically guarantees that
-    your function is commutative: it will try to match the types of a, b or
-    b, a.
-    It is recommended to define unify_walk in that fashion for new types of
-    Variable because different types of Variable interact a lot with each other,
-    e.g. when unifying an OrVariable with a NotVariable, etc. You can return
-    the special marker FALL_THROUGH to indicate that you want to relay execution
-    to the next match of the type signature. The definitions of unify_walk are
-    tried in the reverse order of their declaration.
-
-    Another way is to override __unify_walk__ in an user-defined class.
-
-    Limitations: cannot embed a Variable in another (the functionality could
-    be added if required)
-
-    Here is a list of unification rules with their associated behavior:
-
-    """
-    if a.__class__ != b.__class__:
-        return False
-    elif a == b:
-        return U
+def cdr_Variable(x):
+    if x.owner:
+        x_e = etuple(_car(x), *x.owner.inputs, evaled_obj=x)
     else:
-        return False
+        raise ConsError("Not a cons pair.")
+
+    return x_e[1:]
 
 
-@comm_guard(FreeVariable, ANY_TYPE)  # type: ignore[no-redef] # noqa
-def unify_walk(fv, o, U):
-    """
-    FreeV is unified to BoundVariable(other_object).
-
-    """
-    v = BoundVariable("?", o)
-    return U.merge(v, fv)
+_cdr.add((Variable,), cdr_Variable)
 
 
-@comm_guard(BoundVariable, ANY_TYPE)  # type: ignore[no-redef] # noqa
-def unify_walk(bv, o, U):
-    """
-    The unification succeed iff BV.value == other_object.
+def car_Op(x):
+    if hasattr(x, "__props__"):
+        return type(x)
 
-    """
-    if bv.value == o:
-        return U
+    raise ConsError("Not a cons pair.")
+
+
+_car.add((Op,), car_Op)
+
+
+def cdr_Op(x):
+    if not hasattr(x, "__props__"):
+        raise ConsError("Not a cons pair.")
+
+    x_e = etuple(
+        _car(x),
+        *[getattr(x, p) for p in getattr(x, "__props__", ())],
+        evaled_obj=x,
+    )
+    return x_e[1:]
+
+
+_cdr.add((Op,), cdr_Op)
+
+
+def car_Type(x):
+    return type(x)
+
+
+_car.add((Type,), car_Type)
+
+
+def cdr_Type(x):
+    x_e = etuple(
+        _car(x), *[getattr(x, p) for p in getattr(x, "__props__", ())], evaled_obj=x
+    )
+    return x_e[1:]
+
+
+_cdr.add((Type,), cdr_Type)
+
+
+def apply_Op_ExpressionTuple(op, etuple_arg):
+    res = op.make_node(*etuple_arg)
+
+    try:
+        return res.default_output()
+    except ValueError:
+        return res.outputs
+
+
+apply.add((Op, ExpressionTuple), apply_Op_ExpressionTuple)
+
+
+def _unify_etuplize_first_arg(u, v, s):
+    try:
+        u_et = etuplize(u, shallow=True)
+        yield _unify(u_et, v, s)
+    except TypeError:
+        yield False
+        return
+
+
+_unify.add((Op, ExpressionTuple, Mapping), _unify_etuplize_first_arg)
+_unify.add(
+    (ExpressionTuple, Op, Mapping), lambda u, v, s: _unify_etuplize_first_arg(v, u, s)
+)
+
+_unify.add((Type, ExpressionTuple, Mapping), _unify_etuplize_first_arg)
+_unify.add(
+    (ExpressionTuple, Type, Mapping), lambda u, v, s: _unify_etuplize_first_arg(v, u, s)
+)
+
+
+def _unify_Variable_Variable(u, v, s):
+    # Avoid converting to `etuple`s, when possible
+    if u == v:
+        yield s
+        return
+
+    if not u.owner and not v.owner:
+        yield False
+        return
+
+    yield _unify(
+        etuplize(u, shallow=True) if u.owner else u,
+        etuplize(v, shallow=True) if v.owner else v,
+        s,
+    )
+
+
+_unify.add((Variable, Variable, Mapping), _unify_Variable_Variable)
+
+
+def _unify_Constant_Constant(u, v, s):
+    # XXX: This ignores shape and type differences.  It's only implemented this
+    # way for backward compatibility
+    if np.array_equiv(u.data, v.data):
+        yield s
     else:
-        return False
+        yield False
 
 
-@comm_guard(OrVariable, ANY_TYPE)  # type: ignore[no-redef] # noqa
-def unify_walk(ov, o, U):
-    """
-    The unification succeeds iff other_object in OrV.options.
+_unify.add((Constant, Constant, Mapping), _unify_Constant_Constant)
 
-    """
-    if o in ov.options:
-        v = BoundVariable("?", o)
-        return U.merge(v, ov)
+
+def _unify_Variable_ExpressionTuple(u, v, s):
+    # `Constant`s are "atomic"
+    if not u.owner:
+        yield False
+        return
+
+    yield _unify(etuplize(u, shallow=True), v, s)
+
+
+_unify.add(
+    (Variable, ExpressionTuple, Mapping),
+    _unify_Variable_ExpressionTuple,
+)
+_unify.add(
+    (ExpressionTuple, Variable, Mapping),
+    lambda u, v, s: _unify_Variable_ExpressionTuple(v, u, s),
+)
+
+
+@_unify.register(ConstrainedVar, (ConstrainedVar, Var, object), Mapping)
+def _unify_ConstrainedVar_object(u, v, s):
+    u_w = walk(u, s)
+
+    if isvar(v):
+        v_w = walk(v, s)
     else:
-        return False
+        v_w = v
 
-
-@comm_guard(NotVariable, ANY_TYPE)  # type: ignore[no-redef] # noqa
-def unify_walk(nv, o, U):
-    """
-    The unification succeeds iff other_object not in NV.not_options.
-
-    """
-    if o in nv.not_options:
-        return False
+    if u_w == v_w:
+        yield s
+    elif isvar(u_w):
+        if (
+            not isvar(v_w)
+            and isinstance(u_w, ConstrainedVar)
+            and not u_w.constraint(eval_if_etuple(v_w))
+        ):
+            yield False
+            return
+        yield assoc(s, u_w, v_w)
+    elif isvar(v_w):
+        if (
+            not isvar(u_w)
+            and isinstance(v_w, ConstrainedVar)
+            and not v_w.constraint(eval_if_etuple(u_w))
+        ):
+            yield False
+            return
+        yield assoc(s, v_w, u_w)
     else:
-        v = BoundVariable("?", o)
-        return U.merge(v, nv)
+        yield _unify(u_w, v_w, s)
 
 
-@comm_guard(FreeVariable, Variable)  # type: ignore[no-redef] # noqa
-def unify_walk(fv, v, U):
+_unify.add((object, ConstrainedVar, Mapping), _unify_ConstrainedVar_object)
+
+
+def convert_strs_to_vars(
+    x: Union[Tuple, str, Dict], var_map: Optional[Dict[str, Var]] = None
+) -> Union[ExpressionTuple, Var]:
+    r"""Convert tuples and strings to `etuple`\s and logic variables, respectively.
+
+    Constrained logic variables are specified via `dict`s with the keys
+    `"pattern"`, which specifies the logic variable as a string, and
+    `"constraint"`, which provides the `Callable` constraint.
     """
-    Both variables are unified.
+    if var_map is None:
+        var_map = {}
 
-    """
-    v = U[v]
-    return U.merge(v, fv)
+    def _convert(y):
+        if isinstance(y, str):
+            v = var_map.get(y, var(y))
+            var_map[y] = v
+            return v
+        elif isinstance(y, dict):
+            pattern = y["pattern"]
+            if not isinstance(pattern, str):
+                raise TypeError(
+                    "Constraints can only be assigned to logic variables (i.e. strings)"
+                )
+            constraint = y["constraint"]
+            v = var_map.get(pattern, ConstrainedVar(constraint, pattern))
+            var_map[pattern] = v
+            return v
+        elif isinstance(y, tuple):
+            return etuple(*tuple(_convert(e) for e in y))
+        elif isinstance(y, (Number, np.ndarray)):
+            from aesara.tensor import as_tensor_variable
 
+            return as_tensor_variable(y)
+        return y
 
-@comm_guard(BoundVariable, Variable)  # type: ignore[no-redef] # noqa
-def unify_walk(bv, v, U):
-    """
-    V is unified to BV.value.
-
-    """
-    return unify_walk(v, bv.value, U)
-
-
-@comm_guard(OrVariable, OrVariable)  # type: ignore[no-redef] # noqa
-def unify_walk(a, b, U):
-    """
-    OrV(list1) == OrV(list2) == OrV(intersection(list1, list2))
-
-    """
-    opt = a.options.intersection(b.options)
-    if not opt:
-        return False
-    elif len(opt) == 1:
-        v = BoundVariable("?", opt[0])
-    else:
-        v = OrVariable("?", opt)
-    return U.merge(v, a, b)
-
-
-@comm_guard(NotVariable, NotVariable)  # type: ignore[no-redef] # noqa
-def unify_walk(a, b, U):
-    """
-    NV(list1) == NV(list2) == NV(union(list1, list2))
-
-    """
-    opt = a.not_options.union(b.not_options)
-    v = NotVariable("?", opt)
-    return U.merge(v, a, b)
-
-
-@comm_guard(OrVariable, NotVariable)  # type: ignore[no-redef] # noqa
-def unify_walk(o, n, U):
-    r"""
-    OrV(list1) == NV(list2) == OrV(list1 \ list2)
-
-    """
-    opt = [x for x in o.options if x not in n.not_options]
-    if not opt:
-        return False
-    elif len(opt) == 1:
-        v = BoundVariable("?", opt[0])
-    else:
-        v = OrVariable("?", opt)
-    return U.merge(v, o, n)
-
-
-@comm_guard(VariableInList, (list, tuple))  # type: ignore[no-redef] # noqa
-def unify_walk(vil, l, U):
-    """
-    Unifies VIL's inner Variable to OrV(list).
-
-    """
-    v = vil.variable
-    ov = OrVariable("?", l)
-    return unify_walk(v, ov, U)
-
-
-@comm_guard((list, tuple), (list, tuple))  # type: ignore[no-redef] # noqa
-def unify_walk(l1, l2, U):
-    """
-    Tries to unify each corresponding pair of elements from l1 and l2.
-
-    """
-    if len(l1) != len(l2):
-        return False
-    for x1, x2 in zip(l1, l2):
-        U = unify_walk(x1, x2, U)
-        if U is False:
-            return False
-    return U
-
-
-@comm_guard(dict, dict)  # type: ignore[no-redef] # noqa
-def unify_walk(d1, d2, U):
-    """
-    Tries to unify values of corresponding keys.
-
-    """
-    for (k1, v1) in d1.items():
-        if k1 in d2:
-            U = unify_walk(v1, d2[k1], U)
-            if U is False:
-                return False
-    return U
-
-
-@comm_guard(ANY_TYPE, ANY_TYPE)  # type: ignore[no-redef] # noqa
-def unify_walk(a, b, U):
-    """
-    Checks for the existence of the __unify_walk__ method for one of
-    the objects.
-
-    """
-    if (
-        not isinstance(a, Variable)
-        and not isinstance(b, Variable)
-        and hasattr(a, "__unify_walk__")
-    ):
-        return a.__unify_walk__(b, U)
-    else:
-        return FALL_THROUGH
-
-
-@comm_guard(Variable, ANY_TYPE)  # type: ignore[no-redef] # noqa
-def unify_walk(v, o, U):
-    """
-    This simply checks if the Var has an unification in U and uses it
-    instead of the Var. If the Var is already its tighest unification,
-    falls through.
-
-    """
-    best_v = U[v]
-    if v is not best_v:
-        return unify_walk(
-            o, best_v, U
-        )  # reverse argument order so if o is a Variable this block of code is run again
-    else:
-        return FALL_THROUGH  # call the next version of unify_walk that matches the type signature
-
-
-class FVar:
-    def __init__(self, fn, *args):
-        self.fn = fn
-        self.args = args
-
-    def __call__(self, u):
-        return self.fn(*[unify_build(arg, u) for arg in self.args])
-
-
-def unify_merge(a, b, U):
-    return a
-
-
-@comm_guard(Variable, ANY_TYPE)  # type: ignore[no-redef] # noqa
-def unify_merge(v, o, U):
-    return v
-
-
-@comm_guard(BoundVariable, ANY_TYPE)  # type: ignore[no-redef] # noqa
-def unify_merge(bv, o, U):
-    return bv.value
-
-
-@comm_guard(VariableInList, (list, tuple))  # type: ignore[no-redef] # noqa
-def unify_merge(vil, l, U):
-    return [unify_merge(x, x, U) for x in l]
-
-
-@comm_guard((list, tuple), (list, tuple))  # type: ignore[no-redef] # noqa
-def unify_merge(l1, l2, U):
-    return [unify_merge(x1, x2, U) for x1, x2 in zip(l1, l2)]
-
-
-@comm_guard(dict, dict)  # type: ignore[no-redef] # noqa
-def unify_merge(d1, d2, U):
-    d = d1.__class__()
-    for k1, v1 in d1.items():
-        if k1 in d2:
-            d[k1] = unify_merge(v1, d2[k1], U)
-        else:
-            d[k1] = unify_merge(v1, v1, U)
-    for k2, v2 in d2.items():
-        if k2 not in d1:
-            d[k2] = unify_merge(v2, v2, U)
-    return d
-
-
-@comm_guard(FVar, ANY_TYPE)  # type: ignore[no-redef] # noqa
-def unify_merge(vs, o, U):
-    return vs(U)
-
-
-@comm_guard(ANY_TYPE, ANY_TYPE)  # type: ignore[no-redef] # noqa
-def unify_merge(a, b, U):
-    if (
-        not isinstance(a, Variable)
-        and not isinstance(b, Variable)
-        and hasattr(a, "__unify_merge__")
-    ):
-        return a.__unify_merge__(b, U)
-    else:
-        return FALL_THROUGH
-
-
-@comm_guard(Variable, ANY_TYPE)  # type: ignore[no-redef] # noqa
-def unify_merge(v, o, U):
-    """
-    This simply checks if the Var has an unification in U and uses it
-    instead of the Var. If the Var is already its tighest unification,
-    falls through.
-
-    """
-    best_v = U[v]
-    if v is not best_v:
-        return unify_merge(
-            o, best_v, U
-        )  # reverse argument order so if o is a Variable this block of code is run again
-    else:
-        return FALL_THROUGH  # call the next version of unify_walk that matches the type signature
-
-
-def unify_build(x, U):
-    return unify_merge(x, x, U)
-
-
-def unify(a, b):
-    U = unify_walk(a, b, Unification())
-    if not U:
-        return None, False
-    else:
-        return unify_merge(a, b, U), U
+    return _convert(x)

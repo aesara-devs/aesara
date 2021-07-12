@@ -20,8 +20,6 @@ from functools import partial, reduce
 from itertools import chain
 from typing import Dict, List, Optional, Tuple, Union
 
-import numpy as np
-
 import aesara
 from aesara.configdefaults import config
 from aesara.graph import destroyhandler as dh
@@ -32,6 +30,7 @@ from aesara.graph.basic import (
     applys_between,
     io_toposort,
     nodes_constructed,
+    vars_between,
 )
 from aesara.graph.features import Feature, NodeFinder
 from aesara.graph.fg import FunctionGraph, InconsistencyError
@@ -1597,15 +1596,13 @@ class OpRemove(LocalOptimizer):
 
 
 class PatternSub(LocalOptimizer):
-    """
+    """Replace all occurrences of an input pattern with an output pattern.
 
-    @todo update
-
-    Replaces all occurrences of the input pattern by the output pattern:
+    The input and output patterns have the following syntax:
 
         input_pattern ::= (op, <sub_pattern1>, <sub_pattern2>, ...)
         input_pattern ::= dict(pattern = <input_pattern>,
-                                constraint = <constraint>)
+                               constraint = <constraint>)
         sub_pattern ::= input_pattern
         sub_pattern ::= string
         sub_pattern ::= a Constant instance
@@ -1651,8 +1648,6 @@ class PatternSub(LocalOptimizer):
     skip_identities_fn : TODO
     name :
         Allows to override this optimizer name.
-    pdb : bool
-        If True, we invoke pdb when the first node in the pattern matches.
     tracks : optional
         The values that :meth:`self.tracks` will return. Useful to speed up
         optimization sometimes.
@@ -1675,7 +1670,7 @@ class PatternSub(LocalOptimizer):
         PatternSub((power, 'x', Constant(double, 2.0)), (square, 'x'))
         PatternSub((boggle, {'pattern': 'x',
                             'constraint': lambda expr: expr.type == scrabble}),
-                (scrabble, 'x'))
+                   (scrabble, 'x'))
 
     """
 
@@ -1686,13 +1681,15 @@ class PatternSub(LocalOptimizer):
         allow_multiple_clients=False,
         skip_identities_fn=None,
         name=None,
-        pdb=False,
         tracks=(),
         get_nodes=None,
         values_eq_approx=None,
     ):
-        self.in_pattern = in_pattern
-        self.out_pattern = out_pattern
+        from aesara.graph.unify import convert_strs_to_vars
+
+        var_map = {}
+        self.in_pattern = convert_strs_to_vars(in_pattern, var_map=var_map)
+        self.out_pattern = convert_strs_to_vars(out_pattern, var_map=var_map)
         self.values_eq_approx = values_eq_approx
         if isinstance(in_pattern, (list, tuple)):
             self.op = self.in_pattern[0]
@@ -1709,7 +1706,6 @@ class PatternSub(LocalOptimizer):
         self.skip_identities_fn = skip_identities_fn
         if name:
             self.__name__ = name
-        self.pdb = pdb
         self._tracks = tracks
         self.get_nodes = get_nodes
         if tracks != ():
@@ -1729,7 +1725,16 @@ class PatternSub(LocalOptimizer):
         If it does, it constructs ``out_pattern`` and performs the replacement.
 
         """
-        from aesara.graph import unify
+        from etuples.core import ExpressionTuple
+        from unification import reify, unify
+
+        # TODO: We shouldn't need to iterate like this.
+        if not self.allow_multiple_clients and any(
+            len(fgraph.clients.get(v)) > 1
+            for v in vars_between(fgraph.inputs, node.outputs)
+            if v not in fgraph.inputs
+        ):
+            return False
 
         if get_nodes and self.get_nodes is not None:
             for real_node in self.get_nodes(fgraph, node):
@@ -1741,99 +1746,16 @@ class PatternSub(LocalOptimizer):
 
         if node.op != self.op:
             return False
-        # TODO: if we remove pdb, do this speed things up?
 
-        def match(pattern, expr, u, allow_multiple_clients=False, pdb=False):
-            # TODO move outside match
-            def retry_with_equiv():
-                if not self.skip_identities_fn:
-                    return False
-                expr_equiv = self.skip_identities_fn(expr)
-                if expr_equiv is None:
-                    return False
-                # TODO: Not sure how to handle multiple_clients flag
-                return match(
-                    pattern,
-                    expr_equiv,
-                    u,
-                    allow_multiple_clients=allow_multiple_clients,
-                )
+        s = unify(self.in_pattern, node.out)
 
-            if isinstance(pattern, (list, tuple)):
-                if expr.owner is None:
-                    return False
-                if not (expr.owner.op == pattern[0]) or (
-                    not allow_multiple_clients and len(fgraph.clients[expr]) > 1
-                ):
-                    return retry_with_equiv()
-                if len(pattern) - 1 != len(expr.owner.inputs):
-                    return retry_with_equiv()
-                for p, v in zip(pattern[1:], expr.owner.inputs):
-                    u = match(p, v, u, self.allow_multiple_clients)
-                    if not u:
-                        return False
-            elif isinstance(pattern, dict):
-                try:
-                    real_pattern = pattern["pattern"]
-                except KeyError:
-                    raise KeyError(
-                        f"Malformed pattern: {pattern} (expected key 'pattern')"
-                    )
-                constraint = pattern.get("constraint", lambda expr: True)
-                if constraint(expr):
-                    return match(
-                        real_pattern,
-                        expr,
-                        u,
-                        pattern.get("allow_multiple_clients", allow_multiple_clients),
-                    )
-                else:
-                    return retry_with_equiv()
-            elif isinstance(pattern, str):
-                v = unify.Var(pattern)
-                if u[v] is not v and u[v] is not expr:
-                    return retry_with_equiv()
-                else:
-                    u = u.merge(expr, v)
-            elif isinstance(pattern, (int, float)) and isinstance(expr, Constant):
-                if np.all(aesara.tensor.constant(pattern).value == expr.value):
-                    return u
-                else:
-                    return retry_with_equiv()
-            elif (
-                isinstance(pattern, Constant)
-                and isinstance(expr, Constant)
-                and pattern.equals(expr)
-            ):
-                return u
-            else:
-                return retry_with_equiv()
-            if pdb:
-                import pdb
-
-                pdb.set_trace()
-            return u
-
-        u = match(self.in_pattern, node.out, unify.Unification(), True, self.pdb)
-        if not u:
+        if s is False:
             return False
 
-        def build(pattern, u):
-            if isinstance(pattern, (list, tuple)):
-                args = [build(p, u) for p in pattern[1:]]
-                return pattern[0](*args)
-            elif isinstance(pattern, str):
-                return u[unify.Var(pattern)]
-            elif isinstance(pattern, (int, float)):
-                return pattern
-            else:
-                return pattern.clone()
+        ret = reify(self.out_pattern, s)
 
-        ret = build(self.out_pattern, u)
-
-        if isinstance(ret, (int, float)):
-            # TODO: Should we convert these to constants explicitly?
-            return [ret]
+        if isinstance(ret, ExpressionTuple):
+            ret = ret.evaled_obj
 
         if self.values_eq_approx:
             ret.tag.values_eq_approx = self.values_eq_approx

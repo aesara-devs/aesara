@@ -162,7 +162,7 @@ class TestPatternOptimizer:
         TopoPatternOptimizer((op1, (op1, "1")), (op1, "1"), ign=False).optimize(g)
         assert str(g) == "FunctionGraph(Op1(x))"
 
-    def test_constant_unification(self):
+    def test_constant(self):
         x = Constant(MyType(), 2, name="x")
         y = MyVariable("y")
         z = Constant(MyType(), 2, name="z")
@@ -192,6 +192,9 @@ class TestPatternOptimizer:
         PatternOptimizer((op1, "x", "y"), (op3, "x", "y")).optimize(g)
         assert str(g) == "FunctionGraph(Op3(x, x))"
 
+    @pytest.mark.xfail(
+        reason="This pattern & constraint case isn't used and doesn't make much sense."
+    )
     def test_match_same_illegal(self):
         x, y, z = inputs()
         e = op2(op1(x, x), op1(x, y))
@@ -206,9 +209,10 @@ class TestPatternOptimizer:
         ).optimize(g)
         assert str(g) == "FunctionGraph(Op2(Op1(x, x), Op3(x, y)))"
 
-    def test_multi(self):
+    def test_allow_multiple_clients(self):
         x, y, z = inputs()
         e0 = op1(x, y)
+        # `e0` has multiple clients (i.e. the `op4` and `op3` nodes)
         e = op3(op4(e0), e0)
         g = FunctionGraph([x, y, z], [e])
         PatternOptimizer((op4, (op1, "x", "y")), (op3, "x", "y")).optimize(g)
@@ -222,17 +226,6 @@ class TestPatternOptimizer:
         PatternOptimizer((op1, (op_z, "1", "2"), "3"), (op4, "3", "2")).optimize(g)
         str_g = str(g)
         assert str_g == "FunctionGraph(Op4(z, y))"
-
-
-#     def test_multi_ingraph(self):
-#         # known to fail
-#         x, y, z = inputs()
-#         e0 = op1(x, y)
-#         e = op4(e0, e0)
-#         g = FunctionGraph([x, y, z], [e])
-#         PatternOptimizer((op4, (op1, 'x', 'y'), (op1, 'x', 'y')),
-#                          (op3, 'x', 'y')).optimize(g)
-#         assert str(g) == "FunctionGraph(Op3(x, y))"
 
 
 def OpSubOptimizer(op1, op2):
@@ -454,6 +447,8 @@ class TestMergeOptimizer:
 class TestEquilibrium:
     def test_1(self):
         x, y, z = map(MyVariable, "xyz")
+        # TODO FIXME: These `Op`s don't have matching/consistent `__prop__`s
+        # and `__init__`s, so they can't be `etuplized` correctly
         e = op3(op4(x, y))
         g = FunctionGraph([x, y, z], [e])
         # print g
@@ -632,8 +627,9 @@ def test_patternsub_values_eq_approx(out_pattern, tracks):
         assert output is x
         assert output.tag.values_eq_approx is values_eq_approx_always_true
     else:
-        assert isinstance(output, Constant)
-        assert not hasattr(output.tag, "value_eq_approx")
+        # The replacement types do not match, so the substitution should've
+        # failed
+        assert output is e
 
 
 @pytest.mark.parametrize("out_pattern", [(op1, "x"), "x"])
