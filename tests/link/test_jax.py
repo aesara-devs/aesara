@@ -611,7 +611,7 @@ def test_jax_Subtensors():
     compare_jax_and_py(out_fg, [])
 
     # Advanced indexing
-    out_aet = x_aet[[1, 2]]
+    out_aet = aet_subtensor.advanced_subtensor1(x_aet, [1, 2])
     assert isinstance(out_aet.owner.op, aet_subtensor.AdvancedSubtensor1)
     out_fg = FunctionGraph([], [out_aet])
     compare_jax_and_py(out_fg, [])
@@ -623,7 +623,7 @@ def test_jax_Subtensors():
 
     # Advanced and basic indexing
     out_aet = x_aet[[1, 2], :]
-    assert isinstance(out_aet.owner.op, aet_subtensor.AdvancedSubtensor1)
+    assert isinstance(out_aet.owner.op, aet_subtensor.AdvancedSubtensor)
     out_fg = FunctionGraph([], [out_aet])
     compare_jax_and_py(out_fg, [])
 

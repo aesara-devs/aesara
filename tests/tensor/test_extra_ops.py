@@ -44,7 +44,7 @@ from aesara.tensor.extra_ops import (
     unravel_index,
 )
 from aesara.tensor.math import sum as aet_sum
-from aesara.tensor.subtensor import AdvancedIncSubtensor1
+from aesara.tensor.subtensor import AdvancedIncSubtensor
 from aesara.tensor.type import (
     TensorType,
     dmatrix,
@@ -1174,7 +1174,7 @@ class TestBroadcastTo(utt.InferShapeTester):
         e_fn = function([d], e, mode=py_mode)
 
         advincsub_node = e_fn.maker.fgraph.outputs[0].owner
-        assert isinstance(advincsub_node.op, AdvancedIncSubtensor1)
+        assert isinstance(advincsub_node.op, AdvancedIncSubtensor)
         assert isinstance(advincsub_node.inputs[0].owner.op, BroadcastTo)
 
         assert advincsub_node.op.inplace is False

@@ -1672,7 +1672,11 @@ class TestSubtensorIncSubtensor:
     @classmethod
     def setup_class(cls):
         cls.rng = np.random.default_rng(utt.fetch_seed())
-        cls.mode = get_default_mode().including("local_subtensor_inc_subtensor")
+        cls.mode = get_default_mode().including(
+            "local_subtensor_inc_subtensor",
+            "local_AdvancedIncSubtensor_to_AdvancedIncSubtensor1",
+            "local_replace_AdvancedSubtensor",
+        )
 
     @pytest.mark.parametrize(
         "val, indices, optype",
@@ -1685,11 +1689,13 @@ class TestSubtensorIncSubtensor:
     def test_inplace(self, val, indices, optype):
         x = matrix("x")
         y = set_subtensor((2 * x)[indices], val, inplace=False)
-        assert isinstance(y.owner.op, optype)
         assert y.owner.op.inplace is False
         f = function(
-            [x, val] + list(indices), y, mode=get_default_mode().including("inplace")
+            [x, val] + list(indices),
+            y,
+            mode=self.mode.including("inplace"),
         )
+        assert isinstance(f.maker.fgraph.outputs[0].owner.op, optype)
         assert f.maker.fgraph.outputs[0].owner.op.inplace is True
 
     def test_basic(self):
@@ -2602,7 +2608,11 @@ class TestLocalAdvSub1AdvIncSub1:
     def setup_method(self):
 
         mode = get_default_mode()
-        self.mode = mode.including("local_adv_sub1_adv_inc_sub1").excluding("fusion")
+        self.mode = mode.including(
+            "local_replace_AdvancedSubtensor",
+            "local_AdvancedIncSubtensor_to_AdvancedIncSubtensor1",
+            "local_adv_sub1_adv_inc_sub1",
+        ).excluding("fusion")
         self.mode_no_assert = self.mode.including("local_remove_all_assert")
 
     def test_basic(self):
@@ -2969,8 +2979,13 @@ def test_local_set_to_inc_subtensor():
     s = v[[2, 1]]
     g = s + 3
     r = set_subtensor(s, g)
-    moder = get_default_mode().excluding("local_set_to_inc_subtensor")
-    modet = get_default_mode().including("local_set_to_inc_subtensor")
+
+    mode = get_default_mode().including(
+        "local_replace_AdvancedSubtensor",
+        "local_AdvancedIncSubtensor_to_AdvancedIncSubtensor1",
+    )
+    moder = mode.excluding("local_set_to_inc_subtensor")
+    modet = mode.including("local_set_to_inc_subtensor")
     f1 = function([v], r, mode=moder)
     f2 = function([v], r, mode=modet)
 
@@ -3453,8 +3468,8 @@ class TestLocalUselessIncSubtensorAlloc:
         utt.assert_allclose(r1, r2)
 
         # Check stacktrace was copied over correctly after opt was applied
-        assert check_stack_trace(f1, ops_to_check=AdvancedIncSubtensor)
-        assert check_stack_trace(f2, ops_to_check=AdvancedIncSubtensor)
+        assert check_stack_trace(f1, ops_to_check=AdvancedIncSubtensor1)
+        assert check_stack_trace(f2, ops_to_check=AdvancedIncSubtensor1)
 
     def test_advanced_inc_subtensor1(self):
         x = vector("x")

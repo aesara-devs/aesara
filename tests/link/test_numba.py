@@ -410,15 +410,11 @@ def test_Subtensor(x, indices):
     "x, indices",
     [
         (aet.as_tensor(np.arange(3 * 4 * 5).reshape((3, 4, 5))), ([1, 2],)),
-        (
-            aet.as_tensor(np.arange(3 * 4 * 5).reshape((3, 4, 5))),
-            ([1, 2], slice(None)),
-        ),
     ],
 )
 def test_AdvancedSubtensor1(x, indices):
     """Test NumPy's advanced indexing in one dimension."""
-    out_aet = x[[1, 2]]
+    out_aet = aet_subtensor.advanced_subtensor1(x, *indices)
     assert isinstance(out_aet.owner.op, aet_subtensor.AdvancedSubtensor1)
     out_fg = FunctionGraph([], [out_aet])
     compare_numba_and_py(out_fg, [])
@@ -493,26 +489,21 @@ def test_IncSubtensor(x, y, indices):
             aet.as_tensor(rng.poisson(size=(2, 4, 5))),
             ([1, 2],),
         ),
-        (
-            aet.as_tensor(np.arange(3 * 4 * 5).reshape((3, 4, 5))),
-            aet.as_tensor(rng.poisson(size=(2, 4, 5))),
-            ([1, 2], slice(None)),
-        ),
     ],
 )
 def test_AdvancedIncSubtensor1(x, y, indices):
-    out_aet = aet.set_subtensor(x[indices], y)
+    out_aet = aet_subtensor.advanced_set_subtensor1(x, y, *indices)
     assert isinstance(out_aet.owner.op, aet_subtensor.AdvancedIncSubtensor1)
     out_fg = FunctionGraph([], [out_aet])
     compare_numba_and_py(out_fg, [])
 
-    out_aet = aet.inc_subtensor(x[indices], y)
+    out_aet = aet_subtensor.advanced_inc_subtensor1(x, y, *indices)
     assert isinstance(out_aet.owner.op, aet_subtensor.AdvancedIncSubtensor1)
     out_fg = FunctionGraph([], [out_aet])
     compare_numba_and_py(out_fg, [])
 
     x_at = x.type()
-    out_aet = aet.set_subtensor(x_at[indices], y, inplace=True)
+    out_aet = aet_subtensor.AdvancedIncSubtensor1(inplace=True)(x_at, y, *indices)
     assert isinstance(out_aet.owner.op, aet_subtensor.AdvancedIncSubtensor1)
     out_fg = FunctionGraph([x_at], [out_aet])
     compare_numba_and_py(out_fg, [x.data])

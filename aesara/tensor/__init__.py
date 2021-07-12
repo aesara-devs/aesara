@@ -58,6 +58,7 @@ from aesara.tensor import (
     blas_scipy,
     nnet,
     opt_uncanonicalize,
+    subtensor_opt,
     xlogx,
 )
 

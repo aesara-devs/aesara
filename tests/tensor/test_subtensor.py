@@ -33,6 +33,7 @@ from aesara.tensor.subtensor import (
     inc_subtensor,
     indexed_result_shape,
     set_subtensor,
+    take,
 )
 from aesara.tensor.type import (
     TensorType,
@@ -81,7 +82,11 @@ class TestSubtensor(utt.OptimizationTestMixin):
         self.shared = shared
         self.dtype = config.floatX
         mode = aesara.compile.mode.get_default_mode()
-        self.mode = mode.including("local_useless_subtensor")
+        self.mode = mode.including(
+            "local_replace_AdvancedSubtensor",
+            "local_AdvancedIncSubtensor_to_AdvancedIncSubtensor1",
+            "local_useless_subtensor",
+        )
         self.fast_compile = config.mode == "FAST_COMPILE"
 
     def function(
@@ -332,26 +337,24 @@ class TestSubtensor(utt.OptimizationTestMixin):
         numpy_n = np.arange(24, dtype=self.dtype).reshape((2, 3, 4))
         n = self.shared(numpy_n)
         test_cases = [
-            (0, Subtensor, Subtensor, np.index_exp[...]),
-            (1, Subtensor, Subtensor, np.index_exp[..., 1]),
-            (1, Subtensor, Subtensor, np.index_exp[1, ...]),
-            (1, Subtensor, Subtensor, np.index_exp[..., 1, 2, 3]),
-            (1, Subtensor, Subtensor, np.index_exp[1, ..., 2, 3]),
-            (1, Subtensor, Subtensor, np.index_exp[1, 2, 3, ...]),
-            (3, DimShuffle, DimShuffle, np.index_exp[..., [0, 2, 3]]),
-            (1, DimShuffle, DimShuffle, np.index_exp[np.newaxis, ...]),
+            (0, Subtensor, np.index_exp[...]),
+            (1, Subtensor, np.index_exp[..., 1]),
+            (1, Subtensor, np.index_exp[1, ...]),
+            (1, Subtensor, np.index_exp[..., 1, 2, 3]),
+            (1, Subtensor, np.index_exp[1, ..., 2, 3]),
+            (1, Subtensor, np.index_exp[1, 2, 3, ...]),
+            (3, DimShuffle, np.index_exp[..., [0, 2, 3]]),
+            (1, DimShuffle, np.index_exp[np.newaxis, ...]),
             (
                 1,
-                AdvancedSubtensor,
                 AdvancedSubtensor,
                 np.index_exp[..., np.newaxis, [1, 2]],
             ),
         ]
 
-        for length, op_type, op_type_opt, slice_ in test_cases:
+        for length, op_type_opt, slice_ in test_cases:
             numpy_tval = numpy_n[slice_]
             t = n[slice_]
-            assert isinstance(t.owner.op, op_type)
             tval = self.eval_output_and_check(t, op_type=op_type_opt, length=length)
             assert tval.shape == numpy_tval.shape
             assert_array_equal(tval, numpy_tval)
@@ -641,9 +644,6 @@ class TestSubtensor(utt.OptimizationTestMixin):
             n = self.shared(data)
             t = n[idx]
 
-            # We test again AdvancedSubtensor1 as we transfer data to the cpu.
-            assert isinstance(t.owner.op, AdvancedSubtensor1)
-
             val = self.eval_output_and_check(t, op_type=AdvancedSubtensor1)
             if isinstance(idx, list):
                 good = data[idx]
@@ -681,7 +681,6 @@ class TestSubtensor(utt.OptimizationTestMixin):
         idx = [2, 2, 0, 0, 1, 1]
         n = self.shared(data)
         t = n[self.shared(np.asarray(idx).astype("int64"))[::2]]
-        assert isinstance(t.owner.op, AdvancedSubtensor1)
         val = self.eval_output_and_check(t, op_type=AdvancedSubtensor1, length=2)
         utt.assert_allclose(data[idx[::2]], val)
 
@@ -699,12 +698,9 @@ class TestSubtensor(utt.OptimizationTestMixin):
         n = self.shared(np.ones((2, 3), dtype=self.dtype) * 5)
         l = lvector()
         t = n[l]
-        # We test again AdvancedSubtensor1 as we transfer data to the cpu.
-        assert isinstance(t.owner.op, AdvancedSubtensor1)
 
         f = self.function([l], t, op=AdvancedSubtensor1)
 
-        # the grad
         g = self.function(
             [l],
             inc_subtensor(t, np.asarray([[1.0]], self.dtype)),
@@ -722,7 +718,6 @@ class TestSubtensor(utt.OptimizationTestMixin):
         n = self.shared(v * 5, broadcastable=(True, False))
         idx = lvector()
         t = n[idx]
-        assert isinstance(t.owner.op, AdvancedSubtensor1)
 
         f = self.function([idx], t, op=AdvancedSubtensor1)
         topo = f.maker.fgraph.toposort()
@@ -806,7 +801,6 @@ class TestSubtensor(utt.OptimizationTestMixin):
         idx = TensorType(dtype="int64", broadcastable=(True,))()
         assert idx.type.broadcastable == (True,)
         t = n[idx]
-        assert isinstance(t.owner.op, AdvancedSubtensor1)
 
         f = self.function([idx], t, op=AdvancedSubtensor1)
         topo = f.maker.fgraph.toposort()
@@ -1435,12 +1429,41 @@ class TestSubtensor(utt.OptimizationTestMixin):
         finally:
             config.warn__inc_set_subtensor1 = orig_warn
 
-    def test_take(self):
-        a = matrix()
-        f = aesara.function(
-            [a], a.take(0, axis=-1), allow_input_downcast=True, mode=self.mode
-        )
-        f(np.random.normal(0, 1, (30, 4)))
+
+def test_take_basic():
+    with pytest.raises(TypeError):
+        take(matrix(), lvector(), axis=lscalar())
+
+
+@pytest.mark.parametrize(
+    "a, index, axis, mode",
+    [
+        (matrix(), lvector(), -1, None),
+        (matrix(), lvector(), 0, None),
+        (matrix(), lvector(), 1, None),
+        (matrix(), lvector(), 1, "clip"),
+        (matrix(), lvector(), 1, "wrap"),
+    ],
+)
+def test_take_cases(a, index, axis, mode):
+    fn_mode = aesara.compile.mode.get_default_mode()
+    fn_mode = fn_mode.including(
+        "local_useless_subtensor",
+        # "local_replace_AdvancedSubtensor",
+    )
+
+    f = aesara.function([a, index], a.take(index, axis=axis, mode=mode), mode=fn_mode)
+
+    a_val = np.arange(3 * 3).reshape((3, 3)).astype(config.floatX)
+
+    if mode is None:
+        index_val = np.array([0, 1], dtype=np.int64)
+    else:
+        index_val = np.array([-1, 2], dtype=np.int64)
+
+    py_res = a_val.take(index_val, axis=axis, mode=mode)
+    f_res = f(a_val, index_val)
+    assert np.array_equal(py_res, f_res)
 
 
 class TestIncSubtensor:
@@ -2237,7 +2260,7 @@ class TestInferShape(utt.InferShapeTester):
         aivec_val = [2, 3]
         self._compile_and_check(
             [admat, bdmat],
-            [set_subtensor(admat[aivec_val], bdmat)],
+            [advanced_set_subtensor1(admat, bdmat, aivec_val)],
             [admat_val, [[1, 2, 3, 4]]],
             AdvancedIncSubtensor1,
         )
@@ -2245,7 +2268,7 @@ class TestInferShape(utt.InferShapeTester):
         aivec_val = [1, 3, 2]
         self._compile_and_check(
             [admat, advec],
-            [set_subtensor(admat[aivec_val], advec)],
+            [advanced_set_subtensor1(admat, advec, aivec_val)],
             [admat_val, [1, 2, 3, 4]],
             AdvancedIncSubtensor1,
         )
@@ -2253,7 +2276,7 @@ class TestInferShape(utt.InferShapeTester):
         aivec_val = [0, 3, 0]
         self._compile_and_check(
             [admat, adscal],
-            [set_subtensor(admat[aivec_val], adscal)],
+            [advanced_set_subtensor1(admat, adscal, aivec_val)],
             [admat_val, 1],
             AdvancedIncSubtensor1,
         )
@@ -2264,7 +2287,7 @@ class TestInferShape(utt.InferShapeTester):
         aivec_val = [2, 3]
         self._compile_and_check(
             [adtens4, bdtens4],
-            [set_subtensor(adtens4[aivec_val], bdtens4)],
+            [advanced_set_subtensor1(adtens4, bdtens4, aivec_val)],
             [adtens4_val, [[[[1, 2, 3, 4, 5]]]]],
             AdvancedIncSubtensor1,
             warn=False,
@@ -2273,7 +2296,7 @@ class TestInferShape(utt.InferShapeTester):
         aivec_val = [1, 3, 2]
         self._compile_and_check(
             [adtens4, advec],
-            [set_subtensor(adtens4[aivec_val], advec)],
+            [advanced_set_subtensor1(adtens4, advec, aivec_val)],
             [adtens4_val, [1, 2, 3, 4, 5]],
             AdvancedIncSubtensor1,
         )
@@ -2281,7 +2304,7 @@ class TestInferShape(utt.InferShapeTester):
         aivec_val = [0, 3, 0]
         self._compile_and_check(
             [adtens4, adscal],
-            [set_subtensor(adtens4[aivec_val], adscal)],
+            [advanced_set_subtensor1(adtens4, adscal, aivec_val)],
             [adtens4_val, 1],
             AdvancedIncSubtensor1,
         )
@@ -2289,7 +2312,7 @@ class TestInferShape(utt.InferShapeTester):
         aivec_val = [2, 3]
         self._compile_and_check(
             [admat, bdmat],
-            [inc_subtensor(admat[aivec_val], bdmat)],
+            [advanced_set_subtensor1(admat, bdmat, aivec_val)],
             [admat_val, [[1, 2, 3, 4], [5, 6, 7, 8]]],
             AdvancedIncSubtensor1,
         )
@@ -2297,7 +2320,7 @@ class TestInferShape(utt.InferShapeTester):
         aivec_val = [1, 3, 2]
         self._compile_and_check(
             [admat, advec],
-            [inc_subtensor(admat[aivec_val], advec)],
+            [advanced_set_subtensor1(admat, advec, aivec_val)],
             [admat_val, [1, 2, 3, 4]],
             AdvancedIncSubtensor1,
         )
@@ -2305,7 +2328,7 @@ class TestInferShape(utt.InferShapeTester):
         aivec_val = [0, 3, 0]
         self._compile_and_check(
             [admat, adscal],
-            [inc_subtensor(admat[aivec_val], adscal)],
+            [advanced_set_subtensor1(admat, adscal, aivec_val)],
             [admat_val, 1],
             AdvancedIncSubtensor1,
         )
@@ -2315,7 +2338,7 @@ class TestInferShape(utt.InferShapeTester):
         aivec_val = [2, 3]
         self._compile_and_check(
             [adtens4, bdtens4],
-            [inc_subtensor(adtens4[aivec_val], bdtens4)],
+            [advanced_set_subtensor1(adtens4, bdtens4, aivec_val)],
             [adtens4_val, [[[[1, 2, 3, 4, 5]]], [[[6, 7, 8, 9, 10]]]]],
             AdvancedIncSubtensor1,
             warn=False,
@@ -2324,7 +2347,7 @@ class TestInferShape(utt.InferShapeTester):
         aivec_val = [1, 2, 1]
         self._compile_and_check(
             [adtens4, advec],
-            [inc_subtensor(adtens4[aivec_val], advec)],
+            [advanced_set_subtensor1(adtens4, advec, aivec_val)],
             [adtens4_val, [1, 2, 3, 4, 5]],
             AdvancedIncSubtensor1,
         )
@@ -2332,7 +2355,7 @@ class TestInferShape(utt.InferShapeTester):
         aivec_val = [0, 3, 0]
         self._compile_and_check(
             [adtens4, adscal],
-            [inc_subtensor(adtens4[aivec_val], adscal)],
+            [advanced_set_subtensor1(adtens4, adscal, aivec_val)],
             [adtens4_val, 2],
             AdvancedIncSubtensor1,
         )

@@ -528,11 +528,9 @@ class _tensor_py_operators:
         # used; if it fails with AdvancedIndexingError, advanced indexing is
         # used
         advanced = False
-        axis = None
         for i, arg in enumerate(args):
             if includes_bool(arg):
                 advanced = True
-                axis = None
                 break
 
             if arg is not np.newaxis:
@@ -540,43 +538,12 @@ class _tensor_py_operators:
                     aet.subtensor.Subtensor.convert(arg)
                 except AdvancedIndexingError:
                     if advanced:
-                        axis = None
                         break
                     else:
                         advanced = True
-                        axis = i
 
         if advanced:
-            if (
-                axis is not None
-                and all(isinstance(a, slice) and a == slice(None) for a in args[:axis])
-                and all(
-                    isinstance(a, slice) and a == slice(None) for a in args[axis + 1 :]
-                )
-                # I.e. if the first advanced index is a tensor or NumPy array,
-                # then it can't be boolean (in order to meet this condition).
-                # How could this possibly occur; we filter for booleans above,
-                # right?
-                # and (not hasattr(args[axis], "dtype") or args[axis].dtype != "bool")
-                and isinstance(
-                    args[axis],
-                    (
-                        np.ndarray,
-                        list,
-                        TensorVariable,
-                        TensorConstant,
-                        aet.sharedvar.TensorSharedVariable,
-                    ),
-                )
-            ):
-                # If we're here, it means that an advanced index was found
-                # (e.g. an array of indices) and it was surrounded by full
-                # slices--or no slices (e.g. `x[:, :, idx, ...]`).  The
-                # `take` function/`Op` serves exactly this type of indexing,
-                # so we simply return its result.
-                return self.take(args[axis], axis)
-            else:
-                return aet.subtensor.advanced_subtensor(self, *args)
+            return aet.subtensor.advanced_subtensor(self, *args)
         else:
             if np.newaxis in args:
                 # `np.newaxis` (i.e. `None`) in NumPy indexing mean "add a new
