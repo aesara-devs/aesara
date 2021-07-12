@@ -53,23 +53,6 @@ def fetch_seed(pseed=None):
     return seed
 
 
-# def seed_rng(pseed=None):
-#     """
-#     Seeds numpy's random number generator with the value returned by fetch_seed.
-#     Usage: unittest_tools.seed_rng()
-#     """
-
-#     seed = fetch_seed(pseed)
-#     if pseed and pseed != seed:
-#         print(
-#             "Warning: using seed given by config.unittests__rseed=%i"
-#             "instead of seed %i given as parameter" % (seed, pseed),
-#             file=sys.stderr,
-#         )
-#     np.random.seed(seed)
-#     return seed
-
-
 def verify_grad(op, pt, n_tests=2, rng=None, *args, **kwargs):
     """
     Wrapper for gradient.py:verify_grad
@@ -87,9 +70,12 @@ def verify_grad(op, pt, n_tests=2, rng=None, *args, **kwargs):
     orig_verify_grad(op, pt, n_tests, rng, *args, **kwargs)
 
 
-# A helpful class to check random values close to the boundaries
-# when designing new tests
 class MockRandomState:
+    """
+    A helpful class to check random values close to the boundaries when
+    designing new tests
+    """
+
     def __init__(self, val):
         self.val = val
 
