@@ -88,7 +88,7 @@ from aesara.tensor.basic import MakeVector
 from aesara.tensor.elemwise import DimShuffle, Elemwise
 from aesara.tensor.math import sum as aet_sum
 from aesara.tensor.shape import Shape_i
-from aesara.tensor.subtensor import AdvancedIncSubtensor1, AdvancedSubtensor1, Subtensor
+from aesara.tensor.subtensor import AdvancedIncSubtensor, AdvancedSubtensor1, Subtensor
 from aesara.tensor.type import (
     TensorType,
     float_dtypes,
@@ -644,11 +644,19 @@ class TestConstructSparseFromList:
     def test_adv_sub1_sparse_grad(self):
         v = ivector()
 
-        # Assert we don't create a sparse grad by default
         m = matrix()
+
+        with pytest.raises(TypeError):
+            aesara.sparse.sparse_grad(v)
+
+        with pytest.raises(TypeError):
+            sub = m[v, v]
+            aesara.sparse.sparse_grad(sub)
+
+        # Assert we don't create a sparse grad by default
         sub = m[v]
         g = aesara.grad(sub.sum(), m)
-        assert isinstance(g.owner.op, AdvancedIncSubtensor1)
+        assert isinstance(g.owner.op, AdvancedIncSubtensor)
 
         # Test that we create a sparse grad when asked
         # USER INTERFACE
@@ -685,7 +693,7 @@ class TestConstructSparseFromList:
 
             # Assert we don't create a sparse grad by default
             g = aesara.grad(sub.sum(), t)
-            assert isinstance(g.owner.op, AdvancedIncSubtensor1)
+            assert isinstance(g.owner.op, AdvancedIncSubtensor)
 
             # Test that we raise an error, as we can't create a sparse
             # grad from tensors that don't have 2 dimensions.

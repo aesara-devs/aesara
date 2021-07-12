@@ -504,3 +504,11 @@ def test_nonstandard_shapes():
 
     none_shape = shape(NoneConst)
     assert np.array_equal(none_shape.get_test_value(), [])
+
+
+def test_shape_i_basics():
+    with pytest.raises(TypeError):
+        Shape_i(0)([1, 2])
+
+    with pytest.raises(TypeError):
+        Shape_i(0)(scalar())

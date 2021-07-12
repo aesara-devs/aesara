@@ -2534,11 +2534,15 @@ def local_useless_inc_subtensor(fgraph, node):
 
 
 @register_canonicalize
+@register_specialize
 @local_optimizer([AdvancedIncSubtensor1])
 def local_set_to_inc_subtensor(fgraph, node):
-    """
+    r"""
     AdvancedIncSubtensor1(x, x[ilist]+other, ilist, set_instead_of_inc=True) ->
     AdvancedIncSubtensor1(x, other, ilist, set_instead_of_inc=False)
+
+    TODO FIXME: Why doesn't this apply to all `*IncSubtensor*` `Op`\s?  If it
+    did this wouldn't need to also be included in the "specialize" pass.
 
     """
     if (
@@ -2567,9 +2571,9 @@ def local_set_to_inc_subtensor(fgraph, node):
         if subn.inputs[1] != node.inputs[2] or subn.inputs[0] != node.inputs[0]:
             return
         ret = advanced_inc_subtensor1(node.inputs[0], other, node.inputs[2])
-        # Copy over previous output stacktrace
-        # Julian: I'm not sure about this at all...
+
         copy_stack_trace(node.outputs, ret)
+
         return [ret]
 
 
@@ -3448,7 +3452,7 @@ def local_setsubtensor_of_constants(fgraph, node):
 
 
 @register_canonicalize
-@register_stabilize
+@register_specialize
 @local_optimizer([AdvancedSubtensor1])
 def local_adv_sub1_adv_inc_sub1(fgraph, node):
     """Optimize the possible AdvSub1(AdvSetSub1(...), ...).
