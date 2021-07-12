@@ -7,7 +7,7 @@ from aesara.graph.type import Type
 
 def is_variable(x):
     if not isinstance(x, Variable):
-        raise TypeError("not a Variable", x)
+        raise TypeError(f"not a Variable: {x}")
     return x
 
 
