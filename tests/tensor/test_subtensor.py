@@ -1449,7 +1449,7 @@ def test_take_cases(a, index, axis, mode):
     fn_mode = aesara.compile.mode.get_default_mode()
     fn_mode = fn_mode.including(
         "local_useless_subtensor",
-        # "local_replace_AdvancedSubtensor",
+        "local_replace_AdvancedSubtensor",
     )
 
     f = aesara.function([a, index], a.take(index, axis=axis, mode=mode), mode=fn_mode)
