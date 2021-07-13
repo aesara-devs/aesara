@@ -2717,41 +2717,25 @@ def take(a, indices, axis=None, mode="raise"):
     """
     a = aesara.tensor.as_tensor_variable(a)
     indices = aesara.tensor.as_tensor_variable(indices)
-    # Reuse advanced_subtensor1 if indices is a vector
-    if indices.ndim == 1:
-        if mode == "clip":
-            indices = clip(indices, 0, a.shape[axis] - 1)
-        elif mode == "wrap":
-            indices = indices % a.shape[axis]
-        if axis is None:
-            return advanced_subtensor1(a.flatten(), indices)
-        elif axis == 0:
-            return advanced_subtensor1(a, indices)
-        else:
-            if axis < 0:
-                axis += a.ndim
-            assert axis >= 0
-            shuffle = list(range(a.ndim))
-            shuffle[0] = axis
-            shuffle[axis] = 0
-            return advanced_subtensor1(a.dimshuffle(shuffle), indices).dimshuffle(
-                shuffle
-            )
-    if axis is None:
-        shape = indices.shape
-        ndim = indices.ndim
-    else:
-        # If axis is 0, don't generate a useless concatenation.
-        if axis == 0:
-            shape = aesara.tensor.concatenate([indices.shape, a.shape[axis + 1 :]])
-        else:
-            if axis < 0:
-                axis += a.ndim
-            shape = aesara.tensor.concatenate(
-                [a.shape[:axis], indices.shape, a.shape[axis + 1 :]]
-            )
-        ndim = a.ndim + indices.ndim - 1
-    return take(a, indices.flatten(), axis, mode).reshape(shape, ndim)
+
+    if not isinstance(axis, (int, type(None))):
+        raise TypeError("`axis` must be an integer or None")
+
+    if axis is None and indices.ndim == 1:
+        return advanced_subtensor1(a.flatten(), indices)
+    elif axis == 0 and indices.ndim == 1:
+        return advanced_subtensor1(a, indices)
+    elif axis < 0:
+        axis += a.ndim
+
+    if mode == "clip":
+        indices = clip(indices, 0, a.shape[axis] - 1)
+    elif mode == "wrap":
+        indices = indices % a.shape[axis]
+
+    full_indices = (slice(None),) * axis + (indices,)
+
+    return a[full_indices]
 
 
 __all__ = [
