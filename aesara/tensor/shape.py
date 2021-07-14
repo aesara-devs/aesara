@@ -189,9 +189,9 @@ class Shape_i(COp):
 
     def make_node(self, x):
         if not isinstance(x, Variable):
-            raise TypeError("x must be Variable with ndim attribute", x)
+            raise TypeError(f"{x} must be Variable with ndim attribute")
         if x.ndim <= self.i:
-            raise TypeError("x has too few dimensions for Shape_i", (x, self.i))
+            raise TypeError(f"{x} has too few dimensions for Shape_i")
         return Apply(self, [x], [aesara.tensor.type.lscalar()])
 
     def perform(self, node, inp, out_, params):
@@ -526,7 +526,7 @@ class Reshape(COp):
             # It raises an error if shp is not of integer type,
             # except when shp is constant and empty
             # (in this case, shp.dtype does not matter anymore).
-            raise TypeError("Shape must be integers", shp, shp.dtype)
+            raise TypeError(f"Shape must be integers; got {shp.dtype}")
         assert shp.ndim == 1
         if isinstance(shp, TensorConstant):
             bcast = [s == 1 for s in shp.data]
@@ -559,8 +559,7 @@ class Reshape(COp):
                     "shape argument to Reshape.perform has incorrect"
                     f" length {len(shp)}"
                     f", should be {self.ndim}"
-                ),
-                shp,
+                )
             )
         try:
             out[0] = np.reshape(x, shp)
