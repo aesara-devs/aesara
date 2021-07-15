@@ -1560,11 +1560,11 @@ def broadcast_shape_iter(
 
             non_bcast_vec = aet.as_tensor(maybe_non_bcast_shapes)
             non_bcast_vec = aet.switch(eq(non_bcast_vec, 1), -one_at, non_bcast_vec)
-            dim_max = aet_max(non_bcast_vec)
+            dim_max = aet_abs(aet_max(non_bcast_vec))
 
             assert_dim = Assert("Could not broadcast dimensions")
             assert_cond = aet_all(
-                or_(eq(non_bcast_vec, -one_at), eq(non_bcast_vec, aet_abs(dim_max)))
+                or_(eq(non_bcast_vec, -one_at), eq(non_bcast_vec, dim_max))
             )
             bcast_dim = assert_dim(dim_max, assert_cond)
 

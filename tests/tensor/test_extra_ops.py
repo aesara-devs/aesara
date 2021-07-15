@@ -1073,29 +1073,25 @@ def test_broadcast_shape_basic():
     [
         ((2, 2), (1, 2), (2, 2)),
         ((0, 2), (1, 2), (0, 2)),
+        ((1, 2, 1), (2, 1, 2, 1), (2, 1, 2, 1)),
     ],
 )
-@config.change_flags(compute_test_value="raise")
 def test_broadcast_shape_symbolic(s1_vals, s2_vals, exp_res):
-    s1_1, s1_2 = aet.lscalars("s1_1", "s1_2")
-    s2_1, s2_2 = aet.lscalars("s2_1", "s2_2")
+    s1s = aet.lscalars(len(s1_vals))
+    eval_point = {}
+    for s, s_val in zip(s1s, s1_vals):
+        eval_point[s] = s_val
+        s.tag.test_value = s_val
 
-    s1_1.tag.test_value = s1_vals[0]
-    s1_2.tag.test_value = s1_vals[1]
-    s2_1.tag.test_value = s2_vals[0]
-    s2_2.tag.test_value = s2_vals[1]
+    s2s = aet.lscalars(len(s2_vals))
+    for s, s_val in zip(s2s, s2_vals):
+        eval_point[s] = s_val
+        s.tag.test_value = s_val
 
-    res = broadcast_shape((s1_1, s1_2), (s2_1, s2_2), arrays_are_shapes=True)
+    res = broadcast_shape(s1s, s2s, arrays_are_shapes=True)
     res = aet.as_tensor(res)
 
-    assert (
-        tuple(
-            res.eval(
-                {s1_1: s1_vals[0], s1_2: s1_vals[1], s2_1: s2_vals[0], s2_2: s2_vals[1]}
-            )
-        )
-        == exp_res
-    )
+    assert tuple(res.eval(eval_point)) == exp_res
 
 
 class TestBroadcastTo(utt.InferShapeTester):
