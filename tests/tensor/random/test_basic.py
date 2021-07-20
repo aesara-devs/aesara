@@ -47,6 +47,7 @@ from aesara.tensor.random.basic import (
     poisson,
     polyagamma,
     randint,
+    standard_normal,
     triangular,
     truncexpon,
     uniform,
@@ -290,7 +291,7 @@ def test_normal_samples(mean, sigma, size):
 
 
 def test_normal_default_args():
-    rv_numpy_tester(normal)
+    rv_numpy_tester(standard_normal)
 
 
 @pytest.mark.parametrize(

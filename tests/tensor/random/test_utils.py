@@ -109,6 +109,9 @@ class TestSharedRandomStream:
         with pytest.raises(AttributeError):
             random.blah
 
+        # test if standard_normal is available in the namespace, See: GH issue #528
+        random.standard_normal
+
         with pytest.raises(AttributeError):
             np_random = RandomStream(namespace=np, rng_ctor=rng_ctor)
             np_random.ndarray
