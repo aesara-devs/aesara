@@ -1,5 +1,4 @@
 import abc
-import functools
 from typing import List, Optional, Union
 
 import numpy as np
@@ -118,11 +117,14 @@ class NormalRV(RandomVariable):
 
 
 normal = NormalRV()
-# used as an alias of normal(loc=0, scale=1) in order to be consistent with np.random.RandomState
-standard_normal = functools.update_wrapper(
-    functools.partial(normal, loc=0.0, scale=1.0),
-    normal
-)
+
+
+class StandardNormalRV(NormalRV):
+    def __call__(self, size=None, **kwargs):
+        return super().__call__(loc=0.0, scale=1.0, size=size, **kwargs)
+
+
+standard_normal = StandardNormalRV()
 
 
 class HalfNormalRV(ScipyRandomVariable):
