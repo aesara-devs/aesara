@@ -4456,6 +4456,19 @@ class TestSoftplusOpts:
         assert isinstance(topo[0].op.scalar_op, aesara.scalar.Softplus)
         f(np.random.random((54)).astype(config.floatX))
 
+    def test_log1p_neg_sigmoid_to_softpuls(self):
+        x = scalar()
+        out = log1p(-sigmoid(x))
+        f = aesara.function([x], out, mode=self.m)
+
+        topo = f.maker.fgraph.toposort()
+        assert len(topo) == 2
+        assert isinstance(topo[0].op.scalar_op, aesara.scalar.Softplus)
+        assert isinstance(topo[1].op.scalar_op, aesara.scalar.Neg)
+
+        # This value would underflow to -inf without rewrite
+        assert np.isclose(f(37.0), -37.0)
+
 
 class TestSigmoidUtils:
     """
