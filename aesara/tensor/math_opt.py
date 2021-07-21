@@ -3096,7 +3096,8 @@ log1p_neg_sigmoid = PatternSub(
 register_stabilize(logsigm_to_softplus, name="logsigm_to_softplus")
 register_stabilize(log1msigm_to_softplus, name="log1msigm_to_softplus")
 register_stabilize(log1pexp_to_softplus, name="log1pexp_to_softplus")
-register_stabilize(log1p_neg_sigmoid, name="log1p_neg_sigmoid,")
+register_stabilize(log1p_neg_sigmoid, name="log1p_neg_sigmoid")
+register_specialize(log1p_neg_sigmoid, name="log1p_neg_sigmoid")
 
 
 def is_1pexp(t, only_process_constants=True):
