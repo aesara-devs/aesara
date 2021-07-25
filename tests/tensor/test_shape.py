@@ -320,7 +320,6 @@ class TestSpecifyShape(utt.InferShapeTester):
                     4,
                 ],
             )
-        pass
 
     def test_scalar_shapes(self):
         with pytest.raises(AssertionError, match="will never match"):
@@ -332,7 +331,6 @@ class TestSpecifyShape(utt.InferShapeTester):
         y = specify_shape(x, shape=())
         f = aesara.function([x], y, mode=self.mode)
         assert f(15) == 15
-        pass
 
     def test_python_perform(self):
         x = scalar()
@@ -355,7 +353,6 @@ class TestSpecifyShape(utt.InferShapeTester):
             AssertionError, match=r"Got shape \(3, 4\), expected \(2, 3\)."
         ):
             f(np.ones((3, 4)).astype(config.floatX), (2, 3))
-        pass
 
     def test_bad_shape(self):
         # Test that at run time we raise an exception when the shape
