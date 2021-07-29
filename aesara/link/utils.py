@@ -254,7 +254,7 @@ def gc_helper(node_list: List[Apply]):
 
 
 def raise_with_op(
-    fgraph: FunctionGraph, node, thunk=None, exc_info=None, storage_map=None
+    fgraph: FunctionGraph, node: Apply, thunk=None, exc_info=None, storage_map=None
 ):
     """
     Re-raise an exception while annotating the exception object with
@@ -262,12 +262,16 @@ def raise_with_op(
 
     Parameters
     ----------
+    fgraph
+        The `FunctionGraph` that contains `node`.
     node : Apply node
         The Apply node object that resulted in the raised exception.
+    thunk :
+        An optional thunk.
     exc_info : tuple, optional
         A tuple containing the exception type, exception object and
         associated traceback, as would be returned by a call to
-        `sys.exc_info()` (which is done if `None` is passed).
+        `sys.exc_info` (which is done if ``None`` is passed).
     storage_map: dict, optional
         storage map of the aesara function that resulted in the
         raised exception.
@@ -279,12 +283,12 @@ def raise_with_op(
     object with several new members which may be helpful for debugging
     Aesara graphs. They are:
 
-     * __op_instance__: The Op that is responsible for the exception
+     * ``__op_instance__``: The `Op` that is responsible for the exception
        being raised.
-     * __thunk_trace__: A traceback corresponding to the code that
+     * ``__thunk_trace__``: A traceback corresponding to the code that
        actually generated the exception, if it is available.
-     * __applynode_index__: The index of the Apply node corresponding
-       to this op in `op.fgraph.toposort()`.
+     * ``__applynode_index__``: The index of the `Apply` node corresponding
+       to this `Op` in ``op.fgraph.toposort``.
 
     The exception is not annotated if it is of type `KeyboardInterrupt`.
 
