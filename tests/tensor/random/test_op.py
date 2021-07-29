@@ -135,6 +135,9 @@ def test_RandomVariable_bcast():
     res = rv.compute_bcast([mu, sd], size)
     assert res == [True, False, False]
 
+    res = rv(0, 1, size=aet.as_tensor(1, dtype=np.int64))
+    assert res.broadcastable == (True,)
+
 
 def test_RandomVariable_floatX():
     test_rv_op = RandomVariable(
