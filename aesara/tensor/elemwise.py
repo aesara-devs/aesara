@@ -1145,7 +1145,7 @@ second dimension
                                 % locals()
                             )
                     if self.openmp:
-                        contig += """#pragma omp parallel for if(n>={int(config.openmp_elemwise_minsize)})
+                        contig += f"""#pragma omp parallel for if(n>={int(config.openmp_elemwise_minsize)})
                         """
                     contig += (
                         """
