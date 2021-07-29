@@ -10,6 +10,7 @@ import platform
 import sys
 import time
 import warnings
+from abc import ABC, abstractmethod
 from collections import defaultdict
 
 from aesara.configdefaults import config
@@ -121,17 +122,18 @@ def calculate_reallocate_info(order, fgraph, storage_map, compute_map_re, depend
     return reallocated_info
 
 
-class VM:
-    """
-    A VM object's __call__ method evaluates an Aesara program.
+class VM(ABC):
+    r"""An abstract class for evaluating Aesara programs.
 
-    The Stack should be considered the reference VM/Linker implementation.
-    It can correctly evaluate all graphs and is the easiest to read. The CVM
-    is a port of Stack, and should have the same behavior, but run faster.
-    The CVM's code is harder to read though.
+    The `VM.__call__` method evaluates an Aesara program.
 
-    The other python VMs are maybe not necessary anymore, and don't take
-    advantage of lazy computation, though they still produce the correct
+    `Stack` should be considered the reference `VM`/`Linker` implementation.
+    It can correctly evaluate all graphs and is the easiest to read. The `CVM`
+    is a port of `Stack` and should have the same behavior, but run faster.
+    The `CVM`'s code is harder to read though.
+
+    The other python `VM`\s are perhaps not necessary anymore, and don't take
+    advantage of lazy computation, although they still produce the correct
     output for lazy nodes.
 
     Parameters
@@ -148,18 +150,18 @@ class VM:
     Attributes
     ----------
     call_counts
-        List of integers, one for each thunk. call_count[i] is the number of
-        times thunks[i] was called in the course of computations performed by
-        call_with_timers().
+        List of integers, one for each thunk. ``call_count[i]`` is the number
+        of times ``thunks[i]`` was called in the course of computations
+        performed by `call_with_timers`.
     call_times
-        List of floats, one for each thunk. call_times[i] is the amount of
-        runtime spent on thunks[i] in the course of computations performed by
-        call_with_timers().
+        List of floats, one for each thunk. ``call_times[i]`` is the amount of
+        runtime spent on ``thunks[i]`` in the course of computations performed
+        by `call_with_timers`.
 
     need_update_inputs : bool
-        True indicates that Function.__call__ must implement the feedback from
-        output storage to input storage. False means it *must not* repeat that
-        feedback.
+        ``True`` indicates that `Function.__call__` must implement the feedback
+        from output storage to input storage. ``False`` means it *must not*
+        repeat that feedback.
 
     """
 
@@ -181,31 +183,24 @@ class VM:
         # defaults to 0 (aka False).
         self.need_update_inputs = True
 
+    @abstractmethod
     def __call__(self):
-        """
-        Run the machine.
+        r"""Run the virtual machine.
 
-        Postcondition - all output variables have been computed.  VMs vary in
-        what exactly this means and how it is done.
-
+        After this is executed, all the output variables will have been
+        computed.  `VM`\s may vary regarding what exactly this means and how it
+        is done.
         """
-        raise NotImplementedError()
 
     def clear_storage(self):
-        """
-        Free any internal references to temporary variables.
+        """Free any internal references to temporary variables.
 
-        Free internal variables and outputs.  Essentially, free as much memory
-        as possible without intefering with the ability to evaluate subsequent
-        calls.
-
+        Essentially, free as much memory as possible without interfering with
+        the ability to evaluate subsequent calls.
         """
-        raise NotImplementedError()
 
     def update_profile(self, profile):
-        """
-        Accumulate into the profile object
-        """
+        """Update a profile object."""
         for node, thunk, t, c in zip(
             self.nodes, self.thunks, self.call_times, self.call_counts
         ):
@@ -244,7 +239,6 @@ class Loop(VM):
 
     """
 
-    # Some other part of Aesara query that information
     allow_gc = False
 
     def __call__(self):
@@ -271,10 +265,9 @@ class Loop(VM):
 
 
 class LoopGC(VM):
-    """
-    Unconditional start-to-finish program execution in Python.
-    Garbage collection is possible on intermediate results.
+    """Unconditional start-to-finish program execution in Python.
 
+    Garbage collection is possible on intermediate results.
     """
 
     def __init__(self, fgraph, nodes, thunks, pre_call_clear, post_thunk_clear):
@@ -321,28 +314,30 @@ class LoopGC(VM):
 
 
 class Stack(VM):
-    """
-    Finish-to-start evaluation order of thunks.
+    """Finish-to-start evaluation order of thunks.
 
-    This supports lazy evaluation of subtrees and partial
-    computations of graphs when only some inputs have changed.
+    This supports lazy evaluation of subtrees and partial computations of
+    graphs when only some inputs have changed.
 
-    At a pseudo-code level, the basic idea is the following:
+    At a pseudo-code level, the basic idea is as follows:
 
-    def recursively_evaluate(var):
-        if var is up to date:
-            return
-        if var.owner.inputs are up to date:
-            update var
-            return
-        for input in var.owner.unputs:
-            recursively_evaluate(var)
+    .. code-block:: python
 
-    for output in outputs:
-        recursively_evaluate(output)
+        def recursively_evaluate(var):
+            if var is up to date:
+                return
+            if var.owner.inputs are up to date:
+                update var
+                return
+            for input in var.owner.inputs:
+                recursively_evaluate(var)
 
-    The actual logic is more complex to support intermediate
-    garbage collection, lazily-evaluated nodes, and better speed.
+        for output in outputs:
+            recursively_evaluate(output)
+
+
+    The actual logic is more complex to support intermediate garbage
+    collection, lazily-evaluated nodes, and better speed.
 
     """
 
@@ -695,38 +690,36 @@ class Stack(VM):
 
 
 class VMLinker(LocalLinker):
-    """
-    Class that satisfies the Linker interface by acting as a VM factory.
+    """Class that satisfies the `Linker` interface by acting as a `VM` factory.
 
     Parameters
     ----------
     allow_gc
-        Force the virtual machine to clean up unnecessary
-        references, in order to allow garbage collection on
-        intermediate values during computation of a function.
-        If None use as default the value of the Aesara flag allow_gc.
+        Force the virtual machine to clean up unnecessary references, in order
+        to allow garbage collection on intermediate values during computation
+        of a function.  If ``None``, use as default the value of the Aesara
+        flag `allow_gc`.
     use_cloop
         Use the C-based virtual machine if possible
     callback
-        A callable object to call after each call to a thunk within
-        the virtual machine.  It will be called with four arguments called
-        'node', 'thunk', 'storage_map', and 'compute_map'.
+        A callable object to call after each call to a thunk within the virtual
+        machine.  It will be called with four arguments: ``node``, ``thunk``,
+        ``storage_map``, and ``compute_map``.
     callback_input
-        A callable object to call on each input to the graph
-        (variables with no owner).  This includes constants and shared
-        variables values.  It will be called with two arguments:
-        'var', 'value'.
+        A callable object to call on each input to the graph (variables with no
+        owner).  This includes constants and shared variables values.  It will
+        be called with two arguments: ``var``, ``value``.
     lazy
-        Useful only when use_cloop is False. When lazy is None, use the
-        aesara flag vm__lazy value. Then if we have a None (default) we auto
-        detect if lazy evaluation is needed and use the appropriate
-        version. If lazy is True or False, we force the version used
-        between Loop/LoopGC and Stack.
+        Useful only when `use_cloop` is False. When `lazy` is ``None``, use the
+        Aesara flag ``vm__lazy`` value. Then if we have a ``None`` (default) we
+        auto detect if lazy evaluation is needed and use the appropriate
+        version. If `lazy` is ``True`` or ``False``, we force the version used
+        between `Loop`/`LoopGC` and `Stack`.
     c_thunks
-        If None or True, don't change the default. If False,
-        don't compile c code for the thunks.
+        If ``None`` or ``True``, don't change the default. If ``False``, don't
+        compile C code for the thunks.
     allow_partial_eval
-        If True, enforces usage of Stack or CVM, to allow for partial
+        If ``True``, enforces usage of `Stack` or `CVM`, to allow for partial
         evaluation of functions (calculating a subset of outputs).
 
     """
