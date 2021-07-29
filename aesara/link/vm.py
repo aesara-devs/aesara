@@ -166,7 +166,8 @@ class VM:
     def __init__(self, fgraph, nodes, thunks, pre_call_clear):
 
         if len(nodes) != len(thunks):
-            raise ValueError()
+            raise ValueError("`nodes` and `thunks` must be the same length")
+
         self.fgraph = fgraph
         self.nodes = nodes
         self.thunks = thunks
@@ -188,7 +189,7 @@ class VM:
         what exactly this means and how it is done.
 
         """
-        raise NotImplementedError("override me")
+        raise NotImplementedError()
 
     def clear_storage(self):
         """
@@ -199,7 +200,7 @@ class VM:
         calls.
 
         """
-        raise NotImplementedError("override me")
+        raise NotImplementedError()
 
     def update_profile(self, profile):
         """
@@ -282,7 +283,9 @@ class LoopGC(VM):
         # Some other part of Aesara query that information
         self.allow_gc = True
         if not (len(nodes) == len(thunks) == len(post_thunk_clear)):
-            raise ValueError()
+            raise ValueError(
+                "`nodes`, `thunks` and `post_thunk_clear` are not the same lengths"
+            )
 
     def __call__(self):
         if self.time_thunks:
@@ -1138,13 +1141,9 @@ class VMLinker(LocalLinker):
                     # So if they didn't specify that its lazy or not, it isn't.
                     # If this member isn't present, it will crash later.
                     thunks[-1].lazy = False
-            except Exception as e:
-                e.args = (
-                    "The following error happened while" " compiling the node",
-                    node,
-                    "\n",
-                ) + e.args
-                raise
+            except Exception:
+                raise_with_op(fgraph, node)
+
         t1 = time.time()
 
         if self.profile:
