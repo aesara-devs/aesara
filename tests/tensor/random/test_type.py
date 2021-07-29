@@ -1,5 +1,4 @@
 import pickle
-import sys
 
 import numpy as np
 import pytest
@@ -95,21 +94,6 @@ class TestRandomStateType:
         assert not rng_type.values_eq(rng_g, rng_a)
         assert not rng_type.values_eq(rng_e, rng_g)
 
-    def test_get_shape_info(self):
-        rng = np.random.RandomState(12)
-        rng_a = shared(rng)
-
-        assert isinstance(
-            random_state_type.get_shape_info(rng_a), np.random.RandomState
-        )
-
-    def test_get_size(self):
-        rng = np.random.RandomState(12)
-        rng_a = shared(rng)
-        shape_info = random_state_type.get_shape_info(rng_a)
-        size = random_state_type.get_size(shape_info)
-        assert size == sys.getsizeof(rng.get_state(legacy=False))
-
     def test_may_share_memory(self):
         bg1 = np.random.MT19937()
         bg2 = np.random.MT19937()
@@ -119,16 +103,23 @@ class TestRandomStateType:
 
         rng_var_a = shared(rng_a, borrow=True)
         rng_var_b = shared(rng_b, borrow=True)
-        shape_info_a = random_state_type.get_shape_info(rng_var_a)
-        shape_info_b = random_state_type.get_shape_info(rng_var_b)
 
-        assert random_state_type.may_share_memory(shape_info_a, shape_info_b) is False
+        assert (
+            random_state_type.may_share_memory(
+                rng_var_a.get_value(borrow=True), rng_var_b.get_value(borrow=True)
+            )
+            is False
+        )
 
         rng_c = np.random.RandomState(bg2)
         rng_var_c = shared(rng_c, borrow=True)
-        shape_info_c = random_state_type.get_shape_info(rng_var_c)
 
-        assert random_state_type.may_share_memory(shape_info_b, shape_info_c) is True
+        assert (
+            random_state_type.may_share_memory(
+                rng_var_b.get_value(borrow=True), rng_var_c.get_value(borrow=True)
+            )
+            is True
+        )
 
 
 class TestRandomGeneratorType:
@@ -197,21 +188,6 @@ class TestRandomGeneratorType:
         assert rng_type.is_valid_value(bitgen_g, strict=True)
         assert rng_type.is_valid_value(bitgen_h.__getstate__(), strict=False)
 
-    def test_get_shape_info(self):
-        rng = np.random.default_rng(12)
-        rng_a = shared(rng)
-
-        assert isinstance(
-            random_generator_type.get_shape_info(rng_a), np.random.Generator
-        )
-
-    def test_get_size(self):
-        rng = np.random.Generator(np.random.PCG64(12))
-        rng_a = shared(rng)
-        shape_info = random_generator_type.get_shape_info(rng_a)
-        size = random_generator_type.get_size(shape_info)
-        assert size == sys.getsizeof(rng.__getstate__())
-
     def test_may_share_memory(self):
         bg_a = np.random.PCG64()
         bg_b = np.random.PCG64()
@@ -220,13 +196,20 @@ class TestRandomGeneratorType:
 
         rng_var_a = shared(rng_a, borrow=True)
         rng_var_b = shared(rng_b, borrow=True)
-        shape_info_a = random_state_type.get_shape_info(rng_var_a)
-        shape_info_b = random_state_type.get_shape_info(rng_var_b)
 
-        assert random_state_type.may_share_memory(shape_info_a, shape_info_b) is False
+        assert (
+            random_state_type.may_share_memory(
+                rng_var_a.get_value(borrow=True), rng_var_b.get_value(borrow=True)
+            )
+            is False
+        )
 
         rng_c = np.random.Generator(bg_b)
         rng_var_c = shared(rng_c, borrow=True)
-        shape_info_c = random_state_type.get_shape_info(rng_var_c)
 
-        assert random_state_type.may_share_memory(shape_info_b, shape_info_c) is True
+        assert (
+            random_state_type.may_share_memory(
+                rng_var_b.get_value(borrow=True), rng_var_c.get_value(borrow=True)
+            )
+            is True
+        )

@@ -1,5 +1,3 @@
-import sys
-
 import numpy as np
 
 import aesara
@@ -29,10 +27,6 @@ class RandomType(Type):
             return data
         else:
             raise TypeError()
-
-    @staticmethod
-    def get_shape_info(obj):
-        return obj.get_value(borrow=True)
 
     @staticmethod
     def may_share_memory(a, b):
@@ -98,10 +92,6 @@ class RandomStateType(RandomType):
             return True
 
         return _eq(sa, sb)
-
-    @staticmethod
-    def get_size(shape_info):
-        return sys.getsizeof(shape_info.get_state(legacy=False))
 
 
 # Register `RandomStateType`'s C code for `ViewOp`.
@@ -183,11 +173,6 @@ class RandomGeneratorType(RandomType):
             return True
 
         return _eq(sa, sb)
-
-    @staticmethod
-    def get_size(shape_info):
-        state = shape_info.__getstate__()
-        return sys.getsizeof(state)
 
 
 # Register `RandomGeneratorType`'s C code for `ViewOp`.
