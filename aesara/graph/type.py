@@ -229,18 +229,6 @@ class Type(MetaObject):
         """
         return cls.values_eq(a, b)
 
-        #    def get_shape_info(self, obj):
-        """
-        Optional function. See TensorType().get_shape_info for definition.
-
-        """
-
-        #    def get_size(self, shape_info):
-        """
-        Optional function. See TensorType().get_size for definition.
-
-        """
-
 
 class CType(Type, CLinkerType):
     """Convenience wrapper combining `Type` and `CLinkerType`.

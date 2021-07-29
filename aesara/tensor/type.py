@@ -550,19 +550,19 @@ class TensorType(CType):
         return np.zeros(shape, dtype=self.dtype)
 
     def get_shape_info(self, obj):
-        """Return the information needed to compute the memory size of ``obj``.
+        """Return the information needed to compute the memory size of `obj`.
 
         The memory size is only the data, so this excludes the container.
         For an ndarray, this is the data, but not the ndarray object and
         other data structures such as shape and strides.
 
-        ``get_shape_info()`` and ``get_size()`` work in tandem for the memory
+        `get_shape_info` and `get_size` work in tandem for the memory
         profiler.
 
-        ``get_shape_info()`` is called during the execution of the function.
+        `get_shape_info` is called during the execution of the function.
         So it is better that it is not too slow.
 
-        ``get_size()`` will be called on the output of this function
+        `get_size` will be called on the output of this function
         when printing the memory profile.
 
         Parameters
@@ -573,7 +573,7 @@ class TensorType(CType):
         Returns
         -------
         object
-            Python object that ``self.get_size()`` understands.
+            Python object that can be passed to `get_size`.
 
         """
         return obj.shape
@@ -584,7 +584,7 @@ class TensorType(CType):
         Parameters
         ----------
         shape_info
-            The output of the call to get_shape_info().
+            The output of the call to `get_shape_info`.
 
         Returns
         -------
