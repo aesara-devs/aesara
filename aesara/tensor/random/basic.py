@@ -69,6 +69,34 @@ class ScipyRandomVariable(RandomVariable):
         )
 
 
+class ARMArv(RandomVariable):
+    name = "ARMA"
+    ndim_supp = 1
+    ndims_params = [1, 1]
+    dtype = "floatX"
+    _print_name = ("ARMA", "\\operatorname{ARMA}")
+
+    def __call__(
+            self,
+            loc: np.ndarray,
+            scale: np.ndarray,
+    ) -> RandomVariable:
+        return super().__call__(loc, scale, size=size)
+
+    @classmethod
+    def rng_fn_scipy(
+            cls,
+            rng: np.random.default_rng(),
+            phi: np.ndarray,
+            theta: np.ndarray,
+            size: tuple[int, ...],
+    ) -> np.ndarray:
+        x = scale * rng.normal(loc=0, scale=self.scale, size=size)
+        return scipy.signal.lfilter(theta, phi, x)
+
+
+ARMArv = ARMArv()
+
 class UniformRV(RandomVariable):
     name = "uniform"
     ndim_supp = 0
