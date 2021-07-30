@@ -4,6 +4,8 @@ import pytest
 from aesara import config, function
 from aesara.compile.mode import Mode
 from aesara.graph.optdb import OptimizationQuery
+from aesara.scan import scan
+from aesara.tensor.random.basic import NormalRV
 from aesara.tensor.random.utils import RandomStream, broadcast_params
 from aesara.tensor.type import matrix, tensor
 from tests import unittest_tools as utt
@@ -278,3 +280,14 @@ class TestSharedRandomStream:
             su2[0].set_value(su1[0].get_value())
 
         np.testing.assert_array_almost_equal(f1(), f2(), decimal=6)
+
+    def test_randomstream_with_scan(self):
+        srng = RandomStream(123)
+
+        def scan_fn():
+            return srng.normal()
+
+        out, updates = scan(scan_fn, n_steps=10)
+
+        assert len(out.owner.op.outputs) == 1
+        assert isinstance(out.owner.op.outputs[0].owner.op, NormalRV)

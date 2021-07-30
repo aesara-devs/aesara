@@ -29,6 +29,7 @@ from aesara.scan.op import Scan
 from aesara.scan.utils import safe_new, traverse
 from aesara.tensor.exceptions import NotScalarConstantError
 from aesara.tensor.math import minimum
+from aesara.tensor.random.var import RandomGeneratorSharedVariable
 from aesara.tensor.shape import shape_padleft
 from aesara.tensor.type import TensorType, integer_dtypes
 from aesara.updates import OrderedUpdates
@@ -882,7 +883,11 @@ def scan(
     shared_inner_outputs = []
     sit_sot_shared = []
     for input in dummy_f.maker.expanded_inputs:
-        if isinstance(input.variable, SharedVariable) and input.update:
+        if (
+            isinstance(input.variable, SharedVariable)
+            and input.update
+            and not isinstance(input.variable, RandomGeneratorSharedVariable)
+        ):
             new_var = safe_new(input.variable)
             if getattr(input.variable, "name", None) is not None:
                 new_var.name = input.variable.name + "_copy"
@@ -971,12 +976,18 @@ def scan(
         other_shared_scan_args = [
             arg.variable
             for arg in dummy_f.maker.expanded_inputs
-            if (isinstance(arg.variable, SharedVariable) and not arg.update)
+            if (
+                (isinstance(arg.variable, SharedVariable) and not arg.update)
+                or isinstance(arg.variable, RandomGeneratorSharedVariable)
+            )
         ]
         other_shared_inner_args = [
             safe_new(arg.variable, "_copy")
             for arg in dummy_f.maker.expanded_inputs
-            if (isinstance(arg.variable, SharedVariable) and not arg.update)
+            if (
+                (isinstance(arg.variable, SharedVariable) and not arg.update)
+                or isinstance(arg.variable, RandomGeneratorSharedVariable)
+            )
         ]
     givens.update(OrderedDict(zip(other_shared_scan_args, other_shared_inner_args)))
 
