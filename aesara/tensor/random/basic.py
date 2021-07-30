@@ -81,7 +81,7 @@ class ARMArv(RandomVariable):
             loc: np.ndarray,
             scale: np.ndarray,
     ) -> RandomVariable:
-        return super().__call__(loc, scale, size=size)
+        return super().__call__(loc, scale)
 
     @classmethod
     def rng_fn_scipy(
@@ -91,7 +91,7 @@ class ARMArv(RandomVariable):
             theta: np.ndarray,
             size: tuple[int, ...],
     ) -> np.ndarray:
-        x = scale * rng.normal(loc=0, scale=self.scale, size=size)
+        x = scale * rng.normal(loc=0, scale=scale, size=size)
         return scipy.signal.lfilter(theta, phi, x)
 
 
