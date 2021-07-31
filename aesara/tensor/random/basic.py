@@ -84,7 +84,7 @@ class ARMArv(RandomVariable):
         return super().__call__(loc, scale)
 
     @classmethod
-    def rng_fn_scipy(
+    def rng_fn(
             cls,
             rng: np.random.default_rng(),
             phi: np.ndarray,
