@@ -4042,9 +4042,14 @@ def test_local_expm1():
         for n in h.maker.fgraph.toposort()
     )
 
-    assert not any(
-        isinstance(n.op, Elemwise) and isinstance(n.op.scalar_op, aes.basic.Expm1)
-        for n in r.maker.fgraph.toposort()
+    # This rewrite works when `local_add_neg_to_sub` specialization rewrite is invoked
+    expect_rewrite = config.mode != "FAST_COMPILE"
+    assert (
+        any(
+            isinstance(n.op, Elemwise) and isinstance(n.op.scalar_op, aes.basic.Expm1)
+            for n in r.maker.fgraph.toposort()
+        )
+        == expect_rewrite
     )
 
 
@@ -4654,3 +4659,41 @@ def test_local_sub_neg_to_add_const():
 
     x_test = np.array([3, 4], dtype=config.floatX)
     assert np.allclose(f(x_test), x_test - (-const))
+
+
+@pytest.mark.parametrize("first_negative", (True, False))
+def test_local_add_neg_to_sub(first_negative):
+    x = scalar("x")
+    y = vector("y")
+    out = -x + y if first_negative else x + (-y)
+
+    f = function([x, y], out, mode=Mode("py"))
+
+    nodes = [
+        node.op
+        for node in f.maker.fgraph.toposort()
+        if not isinstance(node.op, DimShuffle)
+    ]
+    assert nodes == [at.sub]
+
+    x_test = np.full((), 1.0, dtype=config.floatX)
+    y_test = np.full(5, 2.0, dtype=config.floatX)
+    exp = -x_test + y_test if first_negative else x_test + (-y_test)
+    assert np.allclose(f(x_test, y_test), exp)
+
+
+def test_local_add_neg_to_sub_const():
+    x = vector("x")
+    const = 5.0
+
+    f = function([x], x + (-const), mode=Mode("py"))
+
+    nodes = [
+        node.op
+        for node in f.maker.fgraph.toposort()
+        if not isinstance(node.op, DimShuffle)
+    ]
+    assert nodes == [at.sub]
+
+    x_test = np.array([3, 4], dtype=config.floatX)
+    assert np.allclose(f(x_test), x_test + (-const))

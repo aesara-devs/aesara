@@ -1806,6 +1806,35 @@ def local_sub_neg_to_add(fgraph, node):
                 return [new_out]
 
 
+@register_specialize
+@node_rewriter([add])
+def local_add_neg_to_sub(fgraph, node):
+    """
+    -x + y -> y - x
+    x + (-y) -> x - y
+
+    """
+    # This rewrite is only registered during specialization, because the
+    # `local_neg_to_mul` rewrite modifies the relevant pattern during canonicalization
+
+    # Rewrite is only applicable when there are two inputs to add
+    if node.op == add and len(node.inputs) == 2:
+
+        # Look for pattern with either input order
+        for first, second in (node.inputs, reversed(node.inputs)):
+            if second.owner:
+                if second.owner.op == neg:
+                    pre_neg = second.owner.inputs[0]
+                    new_out = sub(first, pre_neg)
+                    return [new_out]
+
+            # Check if it is a negative constant
+            const = get_constant(second)
+            if const is not None and const < 0:
+                new_out = sub(first, np.abs(const))
+                return [new_out]
+
+
 @register_canonicalize
 @node_rewriter([mul])
 def local_mul_zero(fgraph, node):
