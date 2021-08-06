@@ -4618,3 +4618,39 @@ def test_deprecations():
     """Make sure we can import from deprecated modules."""
     with pytest.deprecated_call():
         from aesara.tensor.math_opt import AlgebraicCanonizer  # noqa: F401 F811
+
+
+def test_local_sub_neg_to_add():
+    x = scalar("x")
+    y = vector("y")
+
+    f = function([x, y], x - (-y), mode=Mode("py"))
+
+    nodes = [
+        node.op
+        for node in f.maker.fgraph.toposort()
+        if not isinstance(node.op, DimShuffle)
+    ]
+    assert nodes == [at.add]
+
+    x_test = np.full((), 1.0, dtype=config.floatX)
+    y_test = np.full(5, 2.0, dtype=config.floatX)
+    assert np.allclose(f(x_test, y_test), x_test - (-y_test))
+
+
+def test_local_sub_neg_to_add_const():
+    # This rewrite is achieved by the local_add_canonizer
+    x = vector("x")
+    const = 5.0
+
+    f = function([x], x - (-const), mode=Mode("py"))
+
+    nodes = [
+        node.op
+        for node in f.maker.fgraph.toposort()
+        if not isinstance(node.op, DimShuffle)
+    ]
+    assert nodes == [at.add]
+
+    x_test = np.array([3, 4], dtype=config.floatX)
+    assert np.allclose(f(x_test), x_test - (-const))

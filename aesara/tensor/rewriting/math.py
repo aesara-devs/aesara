@@ -1789,6 +1789,24 @@ def local_neg_div_neg(fgraph, node):
 
 
 @register_canonicalize
+@register_specialize
+@node_rewriter([sub])
+def local_sub_neg_to_add(fgraph, node):
+    """
+    x - (-y) -> x + y
+
+    """
+    if node.op == sub:
+        minuend, subtrahend = node.inputs
+
+        if subtrahend.owner:
+            if subtrahend.owner.op == neg:
+                pre_neg = subtrahend.owner.inputs[0]
+                new_out = add(minuend, pre_neg)
+                return [new_out]
+
+
+@register_canonicalize
 @node_rewriter([mul])
 def local_mul_zero(fgraph, node):
     """
