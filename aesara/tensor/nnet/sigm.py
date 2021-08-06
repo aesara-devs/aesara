@@ -58,7 +58,7 @@ class UltraFastScalarSigmoid(aes.UnaryScalarOp):
         dtype = node.outputs[0].type.dtype_specs()[1]
 
         return (
-            """
+            """{
         %(dtype)s x = 0.5 * %(x)s;
    // The if is a tanh approximate.
    if(x>=0) {
@@ -74,9 +74,13 @@ class UltraFastScalarSigmoid(aes.UnaryScalarOp):
 
         //%(z)s = 0.5*(ultrafasttanh(0.5*x)+1.);
         %(z)s = 0.5*(%(z)s+1.);
-        """
+        }"""
             % locals()
         )
+
+    @staticmethod
+    def c_code_cache_version():
+        return (5,)
 
 
 ultra_fast_scalar_sigmoid = UltraFastScalarSigmoid(

@@ -1,10 +1,18 @@
 import numpy as np
+import pytest
 
 import aesara
+from aesara.compile.mode import get_default_mode, get_mode
 from aesara.configdefaults import config
 from aesara.graph.opt import check_stack_trace
+from aesara.scalar.basic import Composite
+from aesara.tensor.elemwise import Elemwise
 from aesara.tensor.math import clip, sigmoid
-from aesara.tensor.nnet.sigm import hard_sigmoid, ultra_fast_sigmoid
+from aesara.tensor.nnet.sigm import (
+    hard_sigmoid,
+    ultra_fast_scalar_sigmoid,
+    ultra_fast_sigmoid,
+)
 from aesara.tensor.type import matrix
 from tests.tensor.utils import (
     _good_broadcast_unary_normal_no_complex,
@@ -59,9 +67,9 @@ class TestSpecialSigmoidOpts:
             excluding = []
         m = config.mode
         if m == "FAST_COMPILE":
-            mode = aesara.compile.mode.get_mode("FAST_RUN")
+            mode = get_mode("FAST_RUN")
         else:
-            mode = aesara.compile.mode.get_default_mode()
+            mode = get_default_mode()
         if excluding:
             return mode.excluding(*excluding)
         else:
@@ -84,7 +92,21 @@ class TestSpecialSigmoidOpts:
         topo = f.maker.fgraph.toposort()
         assert topo[0].op == ultra_fast_sigmoid
         assert len(topo) == 1
-        f([[-50, -10, -4, -1, 0, 1, 4, 10, 50]])
+
+    @pytest.mark.skipif(config.cxx == "", reason="Needs a C compiler.")
+    def test_composite_c_code(self):
+        """Make sure this `Op`'s `c_code` works within a `Composite`."""
+        x = matrix("x")
+        mode = get_mode("FAST_RUN").including("local_ultra_fast_sigmoid")
+        f = aesara.function([x], sigmoid(x) + sigmoid(x + 1), mode=mode)
+        topo = f.maker.fgraph.toposort()
+
+        assert isinstance(topo[0].op, Elemwise)
+        assert isinstance(topo[0].op.scalar_op, Composite)
+        assert ultra_fast_scalar_sigmoid in set(
+            node.op for node in topo[0].op.scalar_op.fgraph.toposort()
+        )
+        assert len(topo) == 1
 
     def test_local_hard_sigmoid(self):
         x = matrix("x")
