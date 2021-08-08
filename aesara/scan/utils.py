@@ -1069,9 +1069,9 @@ class ScanArgs:
 
     @property
     def var_mappings(self):
-        from aesara.scan.op import Scan
+        from aesara.scan.op import ScanMethodsMixin
 
-        return Scan.get_oinp_iinp_iout_oout_mappings(self)
+        return ScanMethodsMixin.get_oinp_iinp_iout_oout_mappings(self)
 
     @property
     def field_names(self):
