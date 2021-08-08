@@ -39,7 +39,6 @@ from aesara.tensor.subtensor import set_subtensor
 from aesara.tensor.var import TensorConstant
 
 
-# Logging function for sending warning or info
 _logger = logging.getLogger("aesara.scan.utils")
 
 
@@ -402,9 +401,9 @@ def get_updates_and_outputs(ls):
     list of outputs and the stopping condition returned by the
     lambda expression and arrange them in a predefined order.
 
-    WRITEME: what is the type of ls? how is it formatted?
-            if it's not in the predefined order already, how does
-            this function know how to put it in that order?
+    WRITEME: what is the type of ls? how is it formatted?  if it's not in the
+    predefined order already, how does this function know how to put it in that
+    order?
 
     """
 

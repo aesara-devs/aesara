@@ -896,13 +896,13 @@ def scan(
                 )
                 tensor_update = aet.as_tensor_variable(input.update)
                 sit_sot_inner_outputs.append(tensor_update)
-                # Not that pos is not a negative index. The sign of pos is used
+                # Note that `pos` is not a negative index. The sign of `pos` is used
                 # as a flag to indicate if this output should be part of the
-                # update rules or part of the standard outputs of scan.
-                # If `pos` is positive than it corresponds to the standard
-                # outputs of scan and it refers to output of index `pos`. If `pos`
-                # is negative that it corresponds to update rules of scan and it
-                # refers to update rule of index -1 - `pos`.
+                # update rules or part of the standard outputs of `scan`.
+                # If `pos` is positive then it corresponds to the standard
+                # outputs of `scan` and it refers to output of index `pos`. If `pos`
+                # is negative that it corresponds to update rules of `scan` and it
+                # refers to the update rule with index `-1 - pos`.
                 sit_sot_rightOrder.append(-1 - len(sit_sot_shared))
                 sit_sot_shared.append(input.variable)
                 givens[input.variable] = new_var
@@ -913,6 +913,7 @@ def scan(
                 shared_inner_outputs.append(input.update)
                 givens[input.variable] = new_var
                 n_shared_outs += 1
+
     n_sit_sot = len(sit_sot_inner_inputs)
     # Step 5.4 Outputs with no taps used in the input
     n_nit_sot = 0
@@ -1006,7 +1007,7 @@ def scan(
     # gpuarray is imported here, instead of being imported on top of
     # the file because that would force on the user some dependencies that we
     # might do not want to. Currently we are working on removing the
-    # dependencies on sandbox code completeley.
+    # dependencies on sandbox code completely.
     from aesara import gpuarray
 
     if gpuarray.pygpu_activated:
