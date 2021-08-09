@@ -225,7 +225,12 @@ def local_func_inv(fgraph, node):
         if is_inverse_pair(node_op, prev_op, inv_pair):
             # We don't need to copy stack trace, because the optimization
             # is trivial and maintains the earlier stack trace
-            return x.owner.inputs
+            ottype = node.out.dtype
+            inp = x.owner.inputs[0]
+            # Functions may have casted integer input to float
+            if inp.dtype != ottype:
+                inp = cast(inp, ottype)
+            return [inp]
 
     return
 
@@ -246,7 +251,12 @@ def local_exp_log(fgraph, node):
 
     # Case for log(exp(x))
     if isinstance(prev_op, aes.Exp) and isinstance(node_op, aes.Log):
-        return x.owner.inputs
+        new_out = x.owner.inputs[0]
+        old_out = node.outputs[0]
+        # Exp may have casted integer input to float
+        if new_out.dtype != old_out.dtype:
+            new_out = cast(new_out, old_out.dtype)
+        return [new_out]
 
     # Case for exp(softplus(x)) aka exp(log1pexp)
     if isinstance(prev_op, aes_math.Softplus) and isinstance(node_op, aes.Exp):
