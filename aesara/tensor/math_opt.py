@@ -1742,16 +1742,6 @@ def local_opt_alloc(fgraph, node):
 
 @register_specialize
 @local_optimizer([neg])
-def local_neg_neg(fgraph, node):
-    # other specializations shouldn't put this in,
-    # but sometimes they do
-    if node.op == neg:
-        if node.inputs[0].owner and node.inputs[0].owner.op == neg:
-            return [node.inputs[0].owner.inputs[0]]
-
-
-@register_specialize
-@local_optimizer([neg])
 def local_neg_div_neg(fgraph, node):
     """
     - (-a / b) -> a / b
