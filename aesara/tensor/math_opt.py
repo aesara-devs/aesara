@@ -6,7 +6,7 @@ import itertools
 import logging
 import operator
 import warnings
-from functools import reduce
+from functools import partial, reduce
 
 import numpy as np
 
@@ -23,6 +23,7 @@ from aesara.graph.opt import (
     in2out,
     local_optimizer,
 )
+from aesara.graph.opt_utils import get_clients_at_depth
 from aesara.misc.safe_asarray import _asarray
 from aesara.tensor.basic import (
     Alloc,
@@ -2596,26 +2597,8 @@ def local_greedy_distributor(fgraph, node):
     return [rval]
 
 
-def get_clients(fgraph, node):
-    """
-    Used by erf/erfc opt to track less frequent op.
-
-    """
-    return [c for c, i in fgraph.clients[node.outputs[0]] if c != "output"]
-
-
-def get_clients2(fgraph, node):
-    """
-    Used by erf/erfc opt to track less frequent op.
-
-    """
-    l = []
-    for c, i in fgraph.clients[node.outputs[0]]:
-        if c != "output":
-            for var in c.outputs:
-                l.extend([cc for cc, ii in fgraph.clients[var] if cc != "output"])
-    return l
-
+get_clients_at_depth1 = partial(get_clients_at_depth, depth=1)
+get_clients_at_depth2 = partial(get_clients_at_depth, depth=2)
 
 # 1+erf(x)=>erfc(-x)
 local_one_plus_erf = PatternSub(
@@ -2624,61 +2607,56 @@ local_one_plus_erf = PatternSub(
     allow_multiple_clients=True,
     name="local_one_plus_erf",
     tracks=[erf],
-    get_nodes=get_clients,
+    get_nodes=get_clients_at_depth1,
 )
 register_canonicalize(local_one_plus_erf)
 register_stabilize(local_one_plus_erf)
 register_specialize(local_one_plus_erf)
 
+# Only one of the two rewrites below is needed if a canonicalization is added
+# for sub(x, y) -> add(x, -y) or a specialization for add(x, -y) -> sub(x, y)
 # 1-erf(x)=>erfc(x)
 local_one_minus_erf = PatternSub(
     (sub, 1, (erf, "x")),
     (erfc, "x"),
     allow_multiple_clients=True,
     name="local_one_minus_erf",
+    tracks=[erf],
+    get_nodes=get_clients_at_depth1,
 )
 register_canonicalize(local_one_minus_erf)
 register_stabilize(local_one_minus_erf)
 register_specialize(local_one_minus_erf)
 
 local_one_minus_erf2 = PatternSub(
-    (add, 1, (mul, -1, (erf, "x"))),
+    (add, 1, (neg, (erf, "x"))),
     (erfc, "x"),
     allow_multiple_clients=True,
     name="local_one_minus_erf2",
+    tracks=[erf],
+    get_nodes=get_clients_at_depth2,
 )
 register_canonicalize(local_one_minus_erf2)
 register_stabilize(local_one_minus_erf2)
 register_specialize(local_one_minus_erf2)
 
-# 1+(-erf(x))=>erfc(x) This is a different graph then the previous as
-# the canonicalize don't work completely
-local_one_plus_neg_erf = PatternSub(
-    (add, 1, (neg, (erf, "x"))),
-    (erfc, "x"),
-    allow_multiple_clients=True,
-    name="local_one_plus_neg_erf",
-    tracks=[erf],
-    get_nodes=get_clients2,
-)
-register_canonicalize(local_one_plus_neg_erf)
-register_stabilize(local_one_plus_neg_erf)
-register_specialize(local_one_plus_neg_erf)
-
-# (-1)+erf(x) => -erfc(x) don't need erf(x)+(-1) as the canonicalize
-# will put the -1 as the first argument.
+# (-1)+erf(x) => -erfc(x)
+# There is no need for erf(x)+(-1) nor erf(x) - 1, as the canonicalize will
+# convert those to the matched pattern
 local_erf_minus_one = PatternSub(
     (add, -1, (erf, "x")),
     (neg, (erfc, "x")),
     allow_multiple_clients=True,
     name="local_erf_minus_one",
     tracks=[erf],
-    get_nodes=get_clients,
+    get_nodes=get_clients_at_depth1,
 )
 register_canonicalize(local_erf_minus_one)
 register_stabilize(local_erf_minus_one)
 register_specialize(local_erf_minus_one)
 
+# Only one of the two rewrites below is needed if a canonicalization is added
+# for sub(x, y) -> add(x, -y) or a specialization for add(x, -y) -> sub(x, y)
 # 1-erfc(x) => erf(x)
 local_one_minus_erfc = PatternSub(
     (sub, 1, (erfc, "x")),
@@ -2686,7 +2664,7 @@ local_one_minus_erfc = PatternSub(
     allow_multiple_clients=True,
     name="local_one_minus_erfc",
     tracks=[erfc],
-    get_nodes=get_clients,
+    get_nodes=get_clients_at_depth1,
 )
 register_canonicalize(local_one_minus_erfc)
 register_stabilize(local_one_minus_erfc)
@@ -2698,38 +2676,11 @@ local_one_minus_erfc2 = PatternSub(
     allow_multiple_clients=True,
     name="local_one_minus_erfc2",
     tracks=[erfc],
-    get_nodes=get_clients2,
+    get_nodes=get_clients_at_depth2,
 )
 register_canonicalize(local_one_minus_erfc2)
 register_stabilize(local_one_minus_erfc2)
 register_specialize(local_one_minus_erfc2)
-
-local_one_minus_erfc3 = PatternSub(
-    (add, 1, (mul, -1, (erfc, "x"))),
-    (erf, "x"),
-    allow_multiple_clients=True,
-    name="local_one_minus_erfc3",
-    tracks=[erfc],
-    get_nodes=get_clients2,
-)
-register_canonicalize(local_one_minus_erfc3)
-register_stabilize(local_one_minus_erfc3)
-register_specialize(local_one_minus_erfc3)
-
-# 1+(-erfc(x)) => erf(x) This is a different graph then the previous as
-# the canonicalize don't work completely
-local_one_add_neg_erfc = PatternSub(
-    (add, 1, (neg, (erfc, "x"))),
-    (erf, "x"),
-    allow_multiple_clients=True,
-    name="local_one_add_neg_erfc",
-    tracks=[erfc],
-    get_nodes=get_clients2,
-)
-
-register_canonicalize(local_one_add_neg_erfc)
-register_stabilize(local_one_add_neg_erfc)
-register_specialize(local_one_add_neg_erfc)
 
 # (-1)+erfc(-x)=>erf(x)
 local_erf_neg_minus_one = PatternSub(
@@ -2738,24 +2689,11 @@ local_erf_neg_minus_one = PatternSub(
     allow_multiple_clients=True,
     name="local_erf_neg_minus_one",
     tracks=[erfc],
-    get_nodes=get_clients,
+    get_nodes=get_clients_at_depth1,
 )
 register_canonicalize(local_erf_neg_minus_one)
 register_stabilize(local_erf_neg_minus_one)
 register_specialize(local_erf_neg_minus_one)
-
-# (-1)+erfc(-1*x)=>erf(x)
-local_erf_neg_minus_one2 = PatternSub(
-    (add, -1, (erfc, (mul, -1, "x"))),
-    (erf, "x"),
-    allow_multiple_clients=True,
-    name="local_erf_neg_minus_one2",
-    tracks=[erfc],
-    get_nodes=get_clients,
-)
-register_canonicalize(local_erf_neg_minus_one2)
-register_stabilize(local_erf_neg_minus_one2)
-register_specialize(local_erf_neg_minus_one2)
 
 
 @register_stabilize
