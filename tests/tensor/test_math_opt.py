@@ -2742,20 +2742,19 @@ class TestLocalErf:
         self.mode = (
             get_default_mode()
             .including("canonicalize", "fast_run")
-            .excluding("gpu", "fusion")
+            .excluding("gpu", "fusion", "inplace")
         )
-        self.mode._optimizer.position_cutoff = 1.50001
 
     def test_local_one_plus_erf(self):
         val = np.asarray([-30, -3, -2, -1, 0, 1, 2, 3, 30], dtype=config.floatX)
         x = vector()
 
         f = function([x], 1 + erf(x), mode=self.mode)
-        assert [n.op for n in f.maker.fgraph.toposort()] == [mul, erfc]
+        assert [n.op for n in f.maker.fgraph.toposort()] == [neg, erfc]
         f(val)
 
         f = function([x], erf(x) + 1, mode=self.mode)
-        assert [n.op for n in f.maker.fgraph.toposort()] == [mul, erfc]
+        assert [n.op for n in f.maker.fgraph.toposort()] == [neg, erfc]
         f(val)
 
         f = function([x], erf(x) + 2, mode=self.mode)
@@ -2780,6 +2779,9 @@ class TestLocalErf:
         f = function([x], (-erf(x)) + 1, mode=self.mode)
         assert [n.op for n in f.maker.fgraph.toposort()] == [erfc]
 
+        f = function([x], (-1.0 * erf(x)) + 1, mode=self.mode)
+        assert [n.op for n in f.maker.fgraph.toposort()] == [erfc]
+
         f = function([x], 2 - erf(x), mode=self.mode)
         topo = f.maker.fgraph.toposort()
         assert len(topo) == 2
@@ -2794,14 +2796,14 @@ class TestLocalErf:
         x = vector()
 
         f = function([x], erf(x) - 1, mode=self.mode)
-        assert [n.op for n in f.maker.fgraph.toposort()] == [erfc, mul]
+        assert [n.op for n in f.maker.fgraph.toposort()] == [erfc, neg]
         f(val)
 
         f = function([x], erf(x) + (-1), mode=self.mode)
-        assert [n.op for n in f.maker.fgraph.toposort()] == [erfc, mul]
+        assert [n.op for n in f.maker.fgraph.toposort()] == [erfc, neg]
 
         f = function([x], -1 + erf(x), mode=self.mode)
-        assert [n.op for n in f.maker.fgraph.toposort()] == [erfc, mul]
+        assert [n.op for n in f.maker.fgraph.toposort()] == [erfc, neg]
 
         f = function([x], erf(x) - 2, mode=self.mode)
         topo = f.maker.fgraph.toposort()
@@ -2821,12 +2823,10 @@ class TestLocalErfc:
     def setup_method(self):
         self.mode_fusion = (
             get_default_mode()
-            .including("canonicalize")
-            .including("fast_run")
-            .excluding("gpu")
+            .including("canonicalize", "fast_run")
+            .excluding("gpu", "inplace")
         )
         self.mode = self.mode_fusion.excluding("fusion")
-        self.mode._optimizer.position_cutoff = 1.50001
 
     def test_local_one_minus_erfc(self):
         # test opt: 1-erfc(x) => erf(x) and -erfc(x)+1 => erf(x)
@@ -2839,6 +2839,9 @@ class TestLocalErfc:
         f(val)
 
         f = function([x], (-erfc(x)) + 1, mode=self.mode)
+        assert [n.op for n in f.maker.fgraph.toposort()] == [erf]
+
+        f = function([x], (-1.0 * erfc(x)) + 1, mode=self.mode)
         assert [n.op for n in f.maker.fgraph.toposort()] == [erf]
 
         f = function([x], 2 - erfc(x), mode=self.mode)
@@ -2861,6 +2864,9 @@ class TestLocalErfc:
         assert [n.op for n in f.maker.fgraph.toposort()] == [erf]
 
         f = function([x], erfc(-x) + (-1), mode=self.mode)
+        assert [n.op for n in f.maker.fgraph.toposort()] == [erf]
+
+        f = function([x], erfc(-1.0 * x) + (-1), mode=self.mode)
         assert [n.op for n in f.maker.fgraph.toposort()] == [erf]
 
     @pytest.mark.xfail()
