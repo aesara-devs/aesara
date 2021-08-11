@@ -3009,6 +3009,8 @@ logsigm_to_softplus = PatternSub(
     allow_multiple_clients=True,
     values_eq_approx=values_eq_approx_remove_inf,
     skip_identities_fn=_skip_mul_1,
+    tracks=[sigmoid],
+    get_nodes=get_clients_at_depth1,
 )
 
 log1msigm_to_softplus = PatternSub(
@@ -3017,6 +3019,8 @@ log1msigm_to_softplus = PatternSub(
     allow_multiple_clients=True,
     values_eq_approx=values_eq_approx_remove_inf,
     skip_identities_fn=_skip_mul_1,
+    tracks=[sigmoid],
+    get_nodes=get_clients_at_depth2,
 )
 log1pexp_to_softplus = PatternSub(
     (log1p, (exp, "x")),
@@ -3029,6 +3033,8 @@ log1p_neg_sigmoid = PatternSub(
     (neg, (softplus, "x")),
     values_eq_approx=values_eq_approx_remove_inf,
     allow_multiple_clients=True,
+    tracks=[sigmoid],
+    get_nodes=get_clients_at_depth2,
 )
 
 register_stabilize(logsigm_to_softplus, name="logsigm_to_softplus")
