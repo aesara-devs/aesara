@@ -83,7 +83,6 @@ from aesara.tensor.math_opt import (
     mul_canonizer,
     parse_mul_tree,
     perform_sigm_times_exp,
-    register_local_1msigmoid,
     simplify_mul,
 )
 from aesara.tensor.shape import Reshape, Shape_i
@@ -4210,28 +4209,27 @@ class TestSigmoidOpts:
             # Restore config option.
             config.warn__identify_1pexp_bug = backup
 
-    def test_1msigmoid(self):
-        if not register_local_1msigmoid:
-            return
-
-        m = self.get_mode()
+    def test_local_1msigmoid(self):
+        m = self.get_mode(excluding=["fusion", "inplace"])
         x = fmatrix()
 
         # tests exp_over_1_plus_exp
         f = aesara.function([x], 1 - exp(x) / (1 + exp(x)), mode=m)
-        assert check_stack_trace(f, ops_to_check=[neg, inplace.sigmoid_inplace])
-        assert [node.op for node in f.maker.fgraph.toposort()] == [
-            neg,
-            inplace.sigmoid_inplace,
-        ]
+        # FIXME: PatternSub does not copy stack trace
+        #  (see https://github.com/Theano/Theano/issues/4581)
+        # assert check_stack_trace(f, ops_to_check=[neg, sigmoid])
+        assert [node.op for node in f.maker.fgraph.toposort()] == [neg, sigmoid]
 
         # tests inv_1_plus_exp
         f = aesara.function([x], 1 - aet.fill(x, 1.0) / (1 + exp(-x)), mode=m)
-        assert check_stack_trace(f, ops_to_check=[neg, inplace.sigmoid_inplace])
-        assert [node.op for node in f.maker.fgraph.toposort()] == [
-            neg,
-            inplace.sigmoid_inplace,
-        ]
+        # assert check_stack_trace(f, ops_to_check=[neg, sigmoid])
+        assert [node.op for node in f.maker.fgraph.toposort()] == [neg, sigmoid]
+
+        # Tests float constant
+        f = aesara.function(
+            [x], np.array(1.000001, dtype="float32") - sigmoid(x), mode=m
+        )
+        assert [node.op for node in f.maker.fgraph.toposort()] == [neg, sigmoid]
 
     def test_local_sigm_times_exp(self):
         # Test the `local_sigm_times_exp` optimization.
