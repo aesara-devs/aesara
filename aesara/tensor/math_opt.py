@@ -3012,7 +3012,6 @@ logsigm_to_softplus = PatternSub(
     tracks=[sigmoid],
     get_nodes=get_clients_at_depth1,
 )
-
 log1msigm_to_softplus = PatternSub(
     (log, (sub, dict(pattern="y", constraint=_is_1), (sigmoid, "x"))),
     (neg, (softplus, "x")),
@@ -3613,38 +3612,16 @@ def local_reciprocal_1_plus_exp(fgraph, node):
                         return out
 
 
-# Registration is below, and conditional.
-@local_optimizer([sub])
-def local_1msigmoid(fgraph, node):
-    """
-    1-sigm(x) -> sigm(-x)
-
-    """
-    if node.op == sub:
-        sub_l, sub_r = node.inputs
-        if len(fgraph.clients[sub_r]) > 1:
-            return  # graph is using both sigm and 1-sigm
-        if sub_r.owner and sub_r.owner.op == sigmoid:
-            try:
-                val_l = get_scalar_constant_value(sub_l)
-            except NotScalarConstantError:
-                return
-            if np.allclose(np.sum(val_l), 1):
-                out = sigmoid(-sub_r.owner.inputs[0])
-                copy_stack_trace([sub_r, node.outputs[0]], out)
-                return [out]
-
-
-register_local_1msigmoid = False
-# This is False because the Stabilize pattern above
-# is looking for 1-sigm.  Also AlgebraicCanonizer turns neg into *(-1) and so
-# this optimization might set off an unwanted chain of things.
-# OTH - this transformation can be seen as pushing normal arithmetic either  below or above the
-# sigmoidal nonlinearity... so if the canonicalized form had anything to say about that then it
-# would be a consideration... anyway leaving False for now.
-
-if register_local_1msigmoid:
-    register_canonicalize(local_1msigmoid)
+# 1 - sigmoid(x) -> sigmoid(-x)
+local_1msigmoid = PatternSub(
+    (sub, dict(pattern="y", constraint=_is_1), (sigmoid, "x")),
+    (sigmoid, (neg, "x")),
+    tracks=[sigmoid],
+    get_nodes=get_clients_at_depth1,
+    name="local_1msigmoid",
+)
+register_stabilize(local_1msigmoid)
+register_specialize(local_1msigmoid)
 
 
 log1pmexp_to_log1mexp = PatternSub(
