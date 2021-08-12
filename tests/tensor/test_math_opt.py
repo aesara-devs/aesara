@@ -4376,6 +4376,14 @@ class TestSoftplusOpts:
         # assert check_stack_trace(f, ops_to_check='all')
         f(np.random.random((54, 11)).astype(config.floatX))
 
+        # Test close to 1
+        out = log(1.000001 - sigmoid(x))
+        f = aesara.function([x], out, mode=self.m)
+        topo = f.maker.fgraph.toposort()
+        assert len(topo) == 2
+        assert isinstance(topo[0].op.scalar_op, aesara.scalar.Softplus)
+        assert isinstance(topo[1].op.scalar_op, aesara.scalar.Neg)
+
         # Same test with a flatten
         out = log(1 - aet.flatten(sigmoid(x)))
         f = aesara.function([x], out, mode=self.m)
