@@ -1692,9 +1692,6 @@ class PatternSub(LocalOptimizer):
                     continue
                 ret = self.transform(fgraph, real_node, get_nodes=False)
                 if ret is not False and ret is not None:
-                    assert len(real_node.outputs) == len(ret)
-                    if self.values_eq_approx:
-                        ret.tag.values_eq_approx = self.values_eq_approx
                     return dict(zip(real_node.outputs, ret))
 
         if node.op != self.op:
@@ -1710,7 +1707,6 @@ class PatternSub(LocalOptimizer):
                 if expr_equiv is None:
                     return False
                 # TODO: Not sure how to handle multiple_clients flag
-                # print 'retrying match', pattern, expr_equiv
                 return match(
                     pattern,
                     expr_equiv,
@@ -1774,26 +1770,30 @@ class PatternSub(LocalOptimizer):
             return u
 
         u = match(self.in_pattern, node.out, unify.Unification(), True, self.pdb)
-        if u:
-
-            def build(pattern, u):
-                if isinstance(pattern, (list, tuple)):
-                    args = [build(p, u) for p in pattern[1:]]
-                    return pattern[0](*args)
-                elif isinstance(pattern, str):
-                    return u[unify.Var(pattern)]
-                elif isinstance(pattern, (int, float)):
-                    return pattern
-                else:
-                    return pattern.clone()
-
-            p = self.out_pattern
-            ret = build(p, u)
-            if self.values_eq_approx:
-                ret.tag.values_eq_approx = self.values_eq_approx
-            return [ret]
-        else:
+        if not u:
             return False
+
+        def build(pattern, u):
+            if isinstance(pattern, (list, tuple)):
+                args = [build(p, u) for p in pattern[1:]]
+                return pattern[0](*args)
+            elif isinstance(pattern, str):
+                return u[unify.Var(pattern)]
+            elif isinstance(pattern, (int, float)):
+                return pattern
+            else:
+                return pattern.clone()
+
+        ret = build(self.out_pattern, u)
+
+        if isinstance(ret, (int, float)):
+            # TODO: Should we convert these to constants explicitly?
+            return [ret]
+
+        if self.values_eq_approx:
+            ret.tag.values_eq_approx = self.values_eq_approx
+
+        return [ret]
 
     def __str__(self):
         if getattr(self, "__name__", None):
