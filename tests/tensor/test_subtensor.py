@@ -1275,14 +1275,13 @@ class TestSubtensor(utt.OptimizationTestMixin):
                         )
 
         # Actual test (we compile a single Aesara function to make it faster).
-        with config.change_flags(warn__gpu_set_subtensor1=False):
-            f = self.function(
-                all_inputs_var,
-                all_outputs_var,
-                accept_inplace=True,
-                op=AdvancedIncSubtensor1,
-                N=len(all_outputs_var),
-            )
+        f = self.function(
+            all_inputs_var,
+            all_outputs_var,
+            accept_inplace=True,
+            op=AdvancedIncSubtensor1,
+            N=len(all_outputs_var),
+        )
 
         f_outs = f(*all_inputs_num)
         assert len(f_outs) == len(all_outputs_num)

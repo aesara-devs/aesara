@@ -1455,15 +1455,6 @@ def add_deprecated_configvars():
     )
 
     config.add(
-        "warn__gpu_set_subtensor1",
-        "Warn if previous versions of Aesara (before 0.6) could have given "
-        "incorrect results when moving to the gpu "
-        "set_subtensor(x[int vector], new_value)",
-        BoolParam(_warn_default("0.6")),
-        in_c_key=False,
-    )
-
-    config.add(
         "warn__vm_gc_bug",
         "There was a bug that existed in the default Aesara configuration,"
         " only in the development version between July 5th 2012"
