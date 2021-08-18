@@ -1455,16 +1455,6 @@ def add_deprecated_configvars():
     )
 
     config.add(
-        "warn__signal_conv2d_interface",
-        (
-            "Warn we use the new signal.conv2d() when its interface"
-            " changed mid June 2014"
-        ),
-        BoolParam(_warn_default("0.7")),
-        in_c_key=False,
-    )
-
-    config.add(
         "warn__reduce_join",
         (
             "Your current code is fine, but Aesara versions "
