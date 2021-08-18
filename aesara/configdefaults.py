@@ -1463,16 +1463,6 @@ def add_deprecated_configvars():
         in_c_key=False,
     )
 
-    config.add(
-        "warn__inc_subtensor1_opt",
-        "Warn if previous versions of Aesara (before 0.10) could have "
-        "given incorrect results when computing "
-        "inc_subtensor(zeros[idx], x)[idx], when idx is an array of integers "
-        "with duplicated values.",
-        BoolParam(_warn_default("0.10")),
-        in_c_key=False,
-    )
-
 
 def add_scan_configvars():
     config.add(
