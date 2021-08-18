@@ -1455,18 +1455,6 @@ def add_deprecated_configvars():
     )
 
     config.add(
-        "warn__inc_set_subtensor1",
-        (
-            "Warn if previous versions of Aesara (before 0.7) could have "
-            "given incorrect results for inc_subtensor and set_subtensor "
-            "when using some patterns of advanced indexing (indexing with "
-            "one vector or matrix of ints)."
-        ),
-        BoolParam(_warn_default("0.7")),
-        in_c_key=False,
-    )
-
-    config.add(
         "warn__round",
         "Warn when using `tensor.round` with the default mode. "
         "Round changed its default from `half_away_from_zero` to "
