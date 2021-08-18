@@ -1455,17 +1455,6 @@ def add_deprecated_configvars():
     )
 
     config.add(
-        "warn__gpusum_01_011_0111_bug",
-        (
-            "Warn if we are in a case where old version of Aesara had a "
-            "silent bug with GpuSum pattern 01,011 and 0111 when the first "
-            "dimensions was bigger then 4096. Was fixed 31 may 2010"
-        ),
-        BoolParam(_warn_default("0.3")),
-        in_c_key=False,
-    )
-
-    config.add(
         "warn__sum_sum_bug",
         (
             "Warn if we are in a case where Aesara version between version "
