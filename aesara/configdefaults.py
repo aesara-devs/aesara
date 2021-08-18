@@ -1455,19 +1455,6 @@ def add_deprecated_configvars():
     )
 
     config.add(
-        "warn__vm_gc_bug",
-        "There was a bug that existed in the default Aesara configuration,"
-        " only in the development version between July 5th 2012"
-        " and July 30th 2012. This was not in a released version."
-        " If your code was affected by this bug, a warning"
-        " will be printed during the code execution if you use the"
-        " `linker=vm,vm__lazy=True,warn__vm_gc_bug=True` Aesara flags."
-        " This warning is disabled by default as the bug was not released.",
-        BoolParam(False),
-        in_c_key=False,
-    )
-
-    config.add(
         "warn__signal_conv2d_interface",
         (
             "Warn we use the new signal.conv2d() when its interface"

@@ -569,23 +569,6 @@ class Stack(VM):
                                     # recomputed! This can cause wrong value
                                     # with some combination of inplace op.
                                     compute_map[i][0] = 2
-                                    if (
-                                        config.warn__vm_gc_bug
-                                        and current_apply in apply_stack
-                                        and current_apply.op.destroy_map
-                                    ):
-                                        warnings.warn(
-                                            "There was a bug that existed in "
-                                            "the default Aesara configuration,"
-                                            " only in the development version "
-                                            "between July 5th 2012 and "
-                                            "July 30th 2012. This was not in "
-                                            "a released version. The bug was "
-                                            "affecting this script.",
-                                            # The stack level is not good when
-                                            # inside a Scan.
-                                            stacklevel=3,
-                                        )
                     self.node_cleared_order.append(input_index)
 
                 elif not computed_ins:
