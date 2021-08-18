@@ -6,7 +6,6 @@ import logging
 import sys
 import time
 import traceback
-import warnings
 from collections import defaultdict
 from io import StringIO
 
@@ -3486,19 +3485,6 @@ def local_adv_sub1_adv_inc_sub1(fgraph, node):
         return
 
     if not inp.owner.op.set_instead_of_inc:
-        if config.warn__inc_subtensor1_opt:
-            warnings.warning(
-                "Your current code is fine, but Aesara versions "
-                "between 0.7rc1 and 0.10 (or development versions "
-                "between Nov. 2014 and May 2017) "
-                "might have given incorrect results. This graph has "
-                "following pattern: inc_subtensor(zeros[idx], x)[idx], "
-                "where idx is an array of integers. This used to be "
-                'optimized to "x", which is incorrect if there are '
-                "duplicated indices in idx. "
-                "To disable this warning, set the Aesara flag "
-                "warn__inc_subtensor1_opt to False."
-            )
         return
 
     cond = [aet_all(and_(lt(idx, x.shape[0]), ge(idx, -x.shape[0])))]
