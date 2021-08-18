@@ -1436,14 +1436,6 @@ def add_deprecated_configvars():
         in_c_key=False,
     )
 
-    # TODO: remove?
-    config.add(
-        "warn__identify_1pexp_bug",
-        "Warn if Aesara versions prior to 7987b51 (2011-12-18) could have "
-        "yielded a wrong result due to a bug in the is_1pexp function",
-        BoolParam(_warn_default("0.4.1")),
-        in_c_key=False,
-    )
     # TODO: this setting is not used anywhere
     config.add(
         "gpu__local_elemwise_fusion",

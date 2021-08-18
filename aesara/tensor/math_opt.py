@@ -3068,19 +3068,6 @@ def is_1pexp(t, only_process_constants=True):
                         scal_sum = scal_sum + s
                     if np.allclose(scal_sum, 1):
                         return False, maybe_exp.owner.inputs[0]
-                # Before 7987b51 there used to be a bug where *any* constant
-                # was considered as if it was equal to 1, and thus this
-                # function would incorrectly identify it as (1 + exp(x)).
-                if config.warn__identify_1pexp_bug:
-                    warnings.warn(
-                        "Although your current code is fine, please note that "
-                        "Aesara versions prior to 0.5 (more specifically, "
-                        "prior to commit 7987b51 on 2011-12-18) may have "
-                        "yielded an incorrect result. To remove this warning, "
-                        "either set the `warn__identify_1pexp_bug` config "
-                        "option to False, or `warn__ignore_bug_before` to at "
-                        "least '0.4.1'."
-                    )
     return None
 
 
