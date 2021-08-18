@@ -31,6 +31,7 @@ from tests.graph.utils import (
     op4,
     op5,
     op6,
+    op_cast_type2,
     op_y,
     op_z,
 )
@@ -677,3 +678,23 @@ def test_patternsub_values_eq_approx(out_pattern, tracks):
     else:
         assert isinstance(output, Constant)
         assert not hasattr(output.tag, "value_eq_approx")
+
+
+@pytest.mark.parametrize("out_pattern", [(op1, "x"), "x"])
+def test_patternsub_invalid_dtype(out_pattern):
+    # PatternSub would wrongly return output of different dtype as the original node
+    x = MyVariable("x")
+    e = op_cast_type2(x)
+    fg = FunctionGraph([x], [e])
+
+    opt = EquilibriumOptimizer(
+        [
+            PatternSub(
+                (op_cast_type2, "x"),
+                out_pattern,
+            )
+        ],
+        max_use_ratio=1,
+    )
+    opt.optimize(fg)
+    assert fg.apply_nodes.pop().op == op_cast_type2

@@ -85,6 +85,17 @@ class MyOp(Op):
             return id(self)
 
 
+class MyOpCastType2(MyOp):
+    def make_node(self, *inputs):
+        inputs = list(map(is_variable, inputs))
+        for input in inputs:
+            if not isinstance(input.type, MyType):
+                raise Exception("Error 1")
+
+        outputs = [MyType2()()]
+        return Apply(self, inputs, outputs)
+
+
 op1 = MyOp("Op1")
 op2 = MyOp("Op2")
 op3 = MyOp("Op3")
@@ -95,3 +106,5 @@ op_d = MyOp("OpD", {0: [0]})
 
 op_y = MyOp("OpY", x=1)
 op_z = MyOp("OpZ", x=1)
+
+op_cast_type2 = MyOpCastType2("OpCastType2")
