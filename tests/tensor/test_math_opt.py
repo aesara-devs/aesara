@@ -3567,8 +3567,7 @@ class TestLocalReduce:
         assert isinstance(topo[-1].op, Elemwise)
 
         # Test a case that was bugged in a old Aesara bug
-        with config.change_flags(warn__reduce_join=False):
-            f = function([], aet_sum(aet.stack([A, A]), axis=1), mode=self.mode)
+        f = function([], aet_sum(aet.stack([A, A]), axis=1), mode=self.mode)
 
         utt.assert_allclose(f(), [15, 15])
         topo = f.maker.fgraph.toposort()
@@ -3594,9 +3593,8 @@ class TestLocalReduce:
         # Test that the optimization does not crash in one case where it
         # is not applied.  Reported at
         # https://groups.google.com/d/topic/theano-users/EDgyCU00fFA/discussion
-        with config.change_flags(warn__reduce_join=False):
-            out = aet_sum([vx, vy, vz], axis=None)
-            f = function([vx, vy, vz], out)
+        out = aet_sum([vx, vy, vz], axis=None)
+        f = function([vx, vy, vz], out)
 
 
 class TestLocalSumProdDimshuffle:

@@ -1455,23 +1455,6 @@ def add_deprecated_configvars():
     )
 
     config.add(
-        "warn__reduce_join",
-        (
-            "Your current code is fine, but Aesara versions "
-            "prior to 0.7 (or this development version) "
-            "might have given an incorrect result. "
-            "To disable this warning, set the Aesara flag "
-            "warn__reduce_join to False. The problem was an "
-            "optimization, that modified the pattern "
-            '"Reduce{scalar.op}(Join(axis=0, a, b), axis=0)", '
-            "did not check the reduction axis. So if the "
-            "reduction axis was not 0, you got a wrong answer."
-        ),
-        BoolParam(_warn_default("0.7")),
-        in_c_key=False,
-    )
-
-    config.add(
         "warn__inc_set_subtensor1",
         (
             "Warn if previous versions of Aesara (before 0.7) could have "
