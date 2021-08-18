@@ -1793,6 +1793,17 @@ class PatternSub(LocalOptimizer):
         if self.values_eq_approx:
             ret.tag.values_eq_approx = self.values_eq_approx
 
+        if ret.owner:
+            if [out.type for out in ret.owner.outputs] != [
+                out.type for out in node.outputs
+            ]:
+                return False
+        else:
+            # ret is just an input variable
+            assert len(node.outputs) == 1
+            if ret.type != node.outputs[0].type:
+                return False
+
         return [ret]
 
     def __str__(self):
