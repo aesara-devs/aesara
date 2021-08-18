@@ -1436,24 +1436,6 @@ def add_deprecated_configvars():
         in_c_key=False,
     )
 
-    # TODO: this setting is not used anywhere
-    config.add(
-        "gpu__local_elemwise_fusion",
-        (
-            "Enable or not in fast_run mode(fast_run optimization) the gpu "
-            "elemwise fusion optimization"
-        ),
-        BoolParam(True),
-        in_c_key=False,
-    )
-    # TODO: this setting is not used anywhere
-    config.add(
-        "gpuelemwise__sync",
-        "when true, wait that the gpu fct finished and check it error code.",
-        BoolParam(True),
-        in_c_key=False,
-    )
-
     config.add(
         "warn__round",
         "Warn when using `tensor.round` with the default mode. "
