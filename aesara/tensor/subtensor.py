@@ -1,6 +1,5 @@
 import logging
 import sys
-import warnings
 from itertools import chain, groupby
 from textwrap import dedent
 from typing import Iterable, List, Tuple, Union
@@ -1337,22 +1336,6 @@ def inc_subtensor(
             if v != "x" and (v - dim_offset) >= 0:
                 y_order[v - dim_offset] = i
 
-        # Warn if this code path would have produced wrong results in the past
-        if config.warn__inc_set_subtensor1:
-            # Dimshuffle pattern for y that would be equivalent to past code
-            prev_y_order = ["x"] * (dim_offset) + list(range(y.ndim))
-            if y_order != prev_y_order:
-                warnings.warn(
-                    "Although your current code is fine, please note that "
-                    "earlier versions prior to 0.7 (or this development "
-                    "version) may have yielded an incorrect result in "
-                    "this `inc_subtensor` or `set_subtensor` operation. "
-                    "To remove this warning, you can either set the "
-                    "`warn__inc_set_subtensor1` config option to `False`, "
-                    'or `warn__ignore_bug_before` to at least "0.7".',
-                    stacklevel=2,
-                )
-
         inner_incsubtensor = inc_subtensor(
             inner_x,
             y.dimshuffle(y_order),
@@ -1384,20 +1367,6 @@ def inc_subtensor(
             flattened_y = expanded_y.reshape(inner_x.shape)
         else:
             flattened_y = y
-
-        # Warn if this code path would have produced wrong results in the past
-        if config.warn__inc_set_subtensor1:
-            if inner_x.ndim > 1 and sum(y.broadcastable) > 0:
-                warnings.warn(
-                    "Although your current code is fine, please note that "
-                    "earlier versions prior to 0.7 (or this development "
-                    "version) may have yielded an incorrect result in "
-                    "this `inc_subtensor` or `set_subtensor` operation. "
-                    "To remove this warning, you can either set the "
-                    "`warn__inc_set_subtensor1` config option to `False`, "
-                    'or `warn__ignore_bug_before` to at least "0.7".',
-                    stacklevel=2,
-                )
 
         inner_incsubtensor = inc_subtensor(
             inner_x,
