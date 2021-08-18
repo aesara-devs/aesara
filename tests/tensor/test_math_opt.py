@@ -3234,10 +3234,9 @@ class TestLocalSumProd:
         assert len(f.maker.fgraph.apply_nodes) == 1
         utt.assert_allclose(f(input), input.prod())
 
-        with config.change_flags(warn__sum_sum_bug=False):
-            f = function([a], a.sum(0).sum(0).sum(0), mode=self.mode)
-            assert len(f.maker.fgraph.apply_nodes) == 1
-            utt.assert_allclose(f(input), input.sum())
+        f = function([a], a.sum(0).sum(0).sum(0), mode=self.mode)
+        assert len(f.maker.fgraph.apply_nodes) == 1
+        utt.assert_allclose(f(input), input.sum())
 
     def test_local_sum_sum_prod_prod(self):
         a = tensor3()
@@ -3289,23 +3288,22 @@ class TestLocalSumProd:
                 dd = sorted(dd)
                 return data.sum(d).prod(dd[1]).prod(dd[0])
 
-        with config.change_flags(warn__sum_sum_bug=False):
-            for d, dd in dims:
-                expected = my_sum(input, d, dd)
-                f = function([a], a.sum(d).sum(dd), mode=self.mode)
-                utt.assert_allclose(f(input), expected)
-                assert len(f.maker.fgraph.apply_nodes) == 1
-            for d, dd in dims[:6]:
-                f = function([a], a.sum(d).sum(dd).sum(0), mode=self.mode)
-                utt.assert_allclose(f(input), input.sum(d).sum(dd).sum(0))
-                assert len(f.maker.fgraph.apply_nodes) == 1
-            for d in [0, 1, 2]:
-                f = function([a], a.sum(d).sum(None), mode=self.mode)
-                utt.assert_allclose(f(input), input.sum(d).sum())
-                assert len(f.maker.fgraph.apply_nodes) == 1
-            f = function([a], a.sum(None).sum(), mode=self.mode)
-            utt.assert_allclose(f(input), input.sum())
+        for d, dd in dims:
+            expected = my_sum(input, d, dd)
+            f = function([a], a.sum(d).sum(dd), mode=self.mode)
+            utt.assert_allclose(f(input), expected)
             assert len(f.maker.fgraph.apply_nodes) == 1
+        for d, dd in dims[:6]:
+            f = function([a], a.sum(d).sum(dd).sum(0), mode=self.mode)
+            utt.assert_allclose(f(input), input.sum(d).sum(dd).sum(0))
+            assert len(f.maker.fgraph.apply_nodes) == 1
+        for d in [0, 1, 2]:
+            f = function([a], a.sum(d).sum(None), mode=self.mode)
+            utt.assert_allclose(f(input), input.sum(d).sum())
+            assert len(f.maker.fgraph.apply_nodes) == 1
+        f = function([a], a.sum(None).sum(), mode=self.mode)
+        utt.assert_allclose(f(input), input.sum())
+        assert len(f.maker.fgraph.apply_nodes) == 1
 
         # test prod
         for d, dd in dims:
@@ -3401,14 +3399,13 @@ class TestLocalSumProd:
                 assert topo[-1].op == aet.alloc
                 assert not any([isinstance(node.op, Prod) for node in topo])
 
-            with config.change_flags(warn__sum_sum_bug=False):
-                for d, dd in [(0, 0), (1, 0), (2, 0), (0, 1), (1, 1), (2, 1)]:
-                    f = function([a], t_like(a).sum(d).sum(dd), mode=mode)
-                    utt.assert_allclose(f(input), n_like(input).sum(d).sum(dd))
-                    assert len(f.maker.fgraph.apply_nodes) == nb_nodes[3]
-                    topo = f.maker.fgraph.toposort()
-                    assert topo[-1].op == aet.alloc
-                    assert not any([isinstance(node.op, Sum) for node in topo])
+            for d, dd in [(0, 0), (1, 0), (2, 0), (0, 1), (1, 1), (2, 1)]:
+                f = function([a], t_like(a).sum(d).sum(dd), mode=mode)
+                utt.assert_allclose(f(input), n_like(input).sum(d).sum(dd))
+                assert len(f.maker.fgraph.apply_nodes) == nb_nodes[3]
+                topo = f.maker.fgraph.toposort()
+                assert topo[-1].op == aet.alloc
+                assert not any([isinstance(node.op, Sum) for node in topo])
 
     def test_local_sum_sum_int8(self):
         # Test that local_sum_sum works when combining two sums on an int8 array.
@@ -3653,9 +3650,7 @@ class TestLocalSumProdDimshuffle:
         c_val = rng.standard_normal((2, 2, 2)).astype(config.floatX)
         d_val = np.asarray(rng.standard_normal(), config.floatX)
 
-        with config.change_flags(
-            warn__sum_sum_bug=False, warn__sum_div_dimshuffle_bug=False
-        ):
+        with config.change_flags(warn__sum_div_dimshuffle_bug=False):
             for i, s in enumerate(sums):
                 f = function([a, b, c, d], s, mode=self.mode, on_unused_input="ignore")
                 g = f.maker.fgraph.toposort()
