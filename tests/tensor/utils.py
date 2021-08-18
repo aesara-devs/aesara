@@ -609,30 +609,24 @@ def makeTester(
 
         @pytest.mark.skipif(skip, reason="Skipped")
         def test_grad(self):
-            # Disable old warning that may be triggered by this test.
-            backup = config.warn__sum_div_dimshuffle_bug
-            config.warn__sum_div_dimshuffle_bug = False
-            try:
-                for testname, inputs in self.grad.items():
-                    inputs = [copy(input) for input in inputs]
-                    try:
-                        utt.verify_grad(
-                            self.op,
-                            inputs,
-                            mode=self.mode,
-                            rel_tol=_grad_rtol,
-                            eps=_grad_eps,
-                        )
-                    except Exception as exc:
-                        err_msg = (
-                            "Test %s::%s: Error occurred while"
-                            " computing the gradient on the following"
-                            " inputs: %s"
-                        ) % (self.op, testname, inputs)
-                        exc.args += (err_msg,)
-                        raise
-            finally:
-                config.warn__sum_div_dimshuffle_bug = backup
+            for testname, inputs in self.grad.items():
+                inputs = [copy(input) for input in inputs]
+                try:
+                    utt.verify_grad(
+                        self.op,
+                        inputs,
+                        mode=self.mode,
+                        rel_tol=_grad_rtol,
+                        eps=_grad_eps,
+                    )
+                except Exception as exc:
+                    err_msg = (
+                        "Test %s::%s: Error occurred while"
+                        " computing the gradient on the following"
+                        " inputs: %s"
+                    ) % (self.op, testname, inputs)
+                    exc.args += (err_msg,)
+                    raise
 
         @pytest.mark.skipif(skip, reason="Skipped")
         def test_grad_none(self):
