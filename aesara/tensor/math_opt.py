@@ -5,7 +5,6 @@
 import itertools
 import logging
 import operator
-import warnings
 from functools import partial, reduce
 
 import numpy as np
@@ -13,7 +12,6 @@ import numpy as np
 import aesara.scalar.basic as aes
 import aesara.scalar.math as aes_math
 from aesara.assert_op import assert_op
-from aesara.configdefaults import config
 from aesara.graph.basic import Constant, Variable
 from aesara.graph.opt import (
     LocalOptGroup,
@@ -1609,20 +1607,7 @@ def local_reduce_join(fgraph, node):
         if reduce_axis is None:
             reduce_axis = tuple(range(node.inputs[0].ndim))
 
-        # I put this warning late to don't add extra warning.
         if len(reduce_axis) != 1 or 0 not in reduce_axis:
-            if config.warn__reduce_join:
-                warnings.warning(
-                    "Your current code is fine, but Aesara versions "
-                    "prior to 0.7 (or this development version Sept 2014) "
-                    "might have given an incorrect result for this code. "
-                    "To disable this warning, set the Aesara flag "
-                    "warn__reduce_join to False. The problem was an "
-                    "optimization, that modified the pattern "
-                    '"Reduce{scalar.op}(Join(axis=0, a, b), axis=0)", '
-                    "did not check the reduction axis. So if the "
-                    "reduction axis was not 0, you got a wrong answer."
-                )
             return
 
         # We add the new check late to don't add extra warning.
