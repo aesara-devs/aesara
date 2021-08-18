@@ -1083,8 +1083,7 @@ def test_argmax_pushdown():
 
         assert hasattr(fgraph.outputs[0].tag, "trace")
 
-        with config.change_flags(warn__argmax_pushdown_bug=False):
-            optdb.query(OPT_FAST_RUN).optimize(fgraph)
+        optdb.query(OPT_FAST_RUN).optimize(fgraph)
 
         # print 'AFTER'
         # for node in fgraph.toposort():
@@ -1119,8 +1118,7 @@ def test_argmax_pushdown_bias():
     out = max_and_argmax(softmax_with_bias(x, b), axis=-1)[0]
     fgraph = FunctionGraph([x, b], [out])
 
-    with config.change_flags(warn__argmax_pushdown_bug=False):
-        optdb.query(OPT_FAST_RUN).optimize(fgraph)
+    optdb.query(OPT_FAST_RUN).optimize(fgraph)
 
     assert len(fgraph.toposort()) == 2
     assert isinstance(fgraph.toposort()[0].op, SoftmaxWithBias)

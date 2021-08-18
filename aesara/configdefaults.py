@@ -1453,17 +1453,6 @@ def add_deprecated_configvars():
         BoolParam(True),
         in_c_key=False,
     )
-    # TODO: most of these bugfix-related warnings can probably be removed
-    config.add(
-        "warn__argmax_pushdown_bug",
-        (
-            "Warn if in past version of Aesara we generated a bug with the "
-            "aesara.tensor.nnet.basic.local_argmax_pushdown optimization. "
-            "Was fixed 27 may 2010"
-        ),
-        BoolParam(_warn_default("0.3")),
-        in_c_key=False,
-    )
 
     config.add(
         "warn__gpusum_01_011_0111_bug",
