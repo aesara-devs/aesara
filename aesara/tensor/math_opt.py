@@ -1578,38 +1578,6 @@ def local_op_of_op(fgraph, node):
                     list(node_inps.owner.op.axis) + list(node.op.axis)
                 )
 
-                # The old bugged logic. We keep it there to generate a warning
-                # when we generated bad code.
-                alldims = list(range(node_inps.owner.inputs[0].type.ndim))
-                alldims = [
-                    d for i, d in enumerate(alldims) if i in node_inps.owner.op.axis
-                ]
-                alldims = [d for i, d in enumerate(alldims) if i in node.op.axis]
-                newaxis_old = [
-                    i
-                    for i in range(node_inps.owner.inputs[0].type.ndim)
-                    if i not in alldims
-                ]
-
-                if (
-                    config.warn__sum_sum_bug
-                    and newaxis != newaxis_old
-                    and len(newaxis) == len(newaxis_old)
-                ):
-                    _logger.warning(
-                        "(YOUR CURRENT CODE IS FINE): Aesara "
-                        "versions between version 9923a40c7b7a and August "
-                        "2nd, 2010 generated bugged code in this case. "
-                        "This happens when there are two consecutive sums "
-                        "in the graph and the intermediate sum is not "
-                        "used elsewhere in the code. Some safeguard "
-                        "removed some bad code, but not in all cases. You "
-                        "are in one such case. To disable this warning "
-                        "(that you can safely ignore since this bug has "
-                        "been fixed) set the aesara flag "
-                        "`warn__sum_sum_bug` to False."
-                    )
-
                 combined = opt_type(newaxis, dtype=out_dtype)
                 return [combined(node_inps.owner.inputs[0])]
 

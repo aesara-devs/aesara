@@ -1455,19 +1455,6 @@ def add_deprecated_configvars():
     )
 
     config.add(
-        "warn__sum_sum_bug",
-        (
-            "Warn if we are in a case where Aesara version between version "
-            "9923a40c7b7a and the 2 august 2010 (fixed date), generated an "
-            "error in that case. This happens when there are 2 consecutive "
-            "sums in the graph, bad code was generated. "
-            "Was fixed 2 August 2010"
-        ),
-        BoolParam(_warn_default("0.3")),
-        in_c_key=False,
-    )
-
-    config.add(
         "warn__sum_div_dimshuffle_bug",
         (
             "Warn if previous versions of Aesara (between rev. "
