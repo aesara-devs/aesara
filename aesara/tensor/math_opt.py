@@ -1415,33 +1415,6 @@ def local_sum_prod_div_dimshuffle(fgraph, node):
         if node_input.owner and node_input.owner.op == true_div:
             numerator, denominator = node_input.owner.inputs
 
-            # Old, bugged logic, reproduced here only to warn users
-            if (
-                config.warn__sum_div_dimshuffle_bug
-                and isinstance(node.op, Sum)
-                and numerator.owner
-                and isinstance(numerator.owner.op, DimShuffle)
-            ):
-                # Check compatibility
-                new_order = numerator.owner.op.new_order
-                compatible_dims = True
-                for ax in axis:
-                    if len(new_order) <= ax or new_order[ax] != "x":
-                        compatible_dims = False
-                        break
-
-                if compatible_dims:
-                    _logger.warning(
-                        "Your current code is fine, but"
-                        " Aesara versions between "
-                        "rev. 3bd9b789f5e8 (2010-06-16) and"
-                        " cfc6322e5ad4 (2010-08-03) would "
-                        "have given an incorrect result. "
-                        "To disable this warning, set the Aesara"
-                        " flag warn__sum_div_dimshuffle_bug to"
-                        " False."
-                    )
-
             if denominator.owner and isinstance(denominator.owner.op, DimShuffle):
                 dimshuffle_input = denominator.owner.inputs[0]
                 dimshuffle_order = denominator.owner.op.new_order
@@ -1482,21 +1455,6 @@ def local_sum_prod_div_dimshuffle(fgraph, node):
                             dimshuffle_input.type.broadcastable,
                             optimized_dimshuffle_order,
                         )(dimshuffle_input)
-
-                        if config.warn__sum_div_dimshuffle_bug and isinstance(
-                            node.op, Sum
-                        ):
-                            _logger.warning(
-                                "Your current code is fine,"
-                                " but Aesara versions between "
-                                "rev. 3bd9b789f5e8 (2010-06-16) and"
-                                " cfc6322e5ad4 (2010-08-03) would "
-                                "have given an incorrect result. "
-                                "To disable this warning, set the"
-                                " Aesara flag "
-                                "warn__sum_div_dimshuffle_bug"
-                                " to False."
-                            )
 
                     if isinstance(node.op, Sum):
                         op_on_compatible_dims = aet_sum(numerator, axis=compatible_dims)

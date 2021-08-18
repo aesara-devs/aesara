@@ -3650,12 +3650,11 @@ class TestLocalSumProdDimshuffle:
         c_val = rng.standard_normal((2, 2, 2)).astype(config.floatX)
         d_val = np.asarray(rng.standard_normal(), config.floatX)
 
-        with config.change_flags(warn__sum_div_dimshuffle_bug=False):
-            for i, s in enumerate(sums):
-                f = function([a, b, c, d], s, mode=self.mode, on_unused_input="ignore")
-                g = f.maker.fgraph.toposort()
-                assert isinstance(g[-1].op.scalar_op, aes.basic.TrueDiv)
-                f(a_val, b_val, c_val, d_val)
+        for i, s in enumerate(sums):
+            f = function([a, b, c, d], s, mode=self.mode, on_unused_input="ignore")
+            g = f.maker.fgraph.toposort()
+            assert isinstance(g[-1].op.scalar_op, aes.basic.TrueDiv)
+            f(a_val, b_val, c_val, d_val)
 
     def test_local_prod_div_dimshuffle(self):
         a = matrix("a")

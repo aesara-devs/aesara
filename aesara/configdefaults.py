@@ -1455,18 +1455,6 @@ def add_deprecated_configvars():
     )
 
     config.add(
-        "warn__sum_div_dimshuffle_bug",
-        (
-            "Warn if previous versions of Aesara (between rev. "
-            "3bd9b789f5e8, 2010-06-16, and cfc6322e5ad4, 2010-08-03) "
-            "would have given incorrect result. This bug was triggered by "
-            "sum of division of dimshuffled tensors."
-        ),
-        BoolParam(_warn_default("0.3")),
-        in_c_key=False,
-    )
-
-    config.add(
         "warn__subtensor_merge_bug",
         "Warn if previous versions of Aesara (before 0.5rc2) could have given "
         "incorrect results when indexing into a subtensor with negative "
