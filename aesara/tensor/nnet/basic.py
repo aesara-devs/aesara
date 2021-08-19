@@ -13,7 +13,6 @@ revisited later when all the intermediate part are on the GPU.
 
 """
 
-import logging
 import warnings
 
 import numpy as np
@@ -22,7 +21,6 @@ import aesara
 from aesara import scalar as aes
 from aesara.assert_op import Assert
 from aesara.compile import optdb
-from aesara.configdefaults import config
 from aesara.gradient import DisconnectedType, grad_not_implemented
 from aesara.graph.basic import Apply
 from aesara.graph.op import COp, Op
@@ -1674,31 +1672,6 @@ def local_softmax_grad_to_crossentropy_with_softmax_grad(fgraph, node):
 @register_specialize("fast_compile_gpu")
 @local_optimizer([MaxAndArgmax])
 def local_argmax_pushdown(fgraph, node):
-    if (
-        isinstance(node.op, MaxAndArgmax)
-        and node.inputs[0].owner
-        and len(fgraph.clients[node.outputs[0]]) > 0
-        and node.inputs[0].owner.op
-        in (
-            softmax_op,
-            softplus,
-            exp,
-            log,
-            tanh,
-            sigmoid,
-            softmax_with_bias,
-        )
-    ):
-        if config.warn__argmax_pushdown_bug:
-            logging.getLogger("aesara.tensor.nnet.basic").warn(
-                "There was a bug in Aesara fixed on May 27th, 2010 in this case."
-                " I.E. when we take the max of a softplus, softmax, exp, "
-                "log, tanh, sigmoid, softmax_with_bias op, we were doing "
-                "the max of the parent of the input. To remove this "
-                "warning set the Aesara flags 'warn__argmax_pushdown_bug' "
-                "to False"
-            )
-
     if (
         isinstance(node.op, MaxAndArgmax)
         and node.inputs[0].owner

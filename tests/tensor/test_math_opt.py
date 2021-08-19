@@ -83,7 +83,6 @@ from aesara.tensor.math_opt import (
     mul_canonizer,
     parse_mul_tree,
     perform_sigm_times_exp,
-    register_local_1msigmoid,
     simplify_mul,
 )
 from aesara.tensor.shape import Reshape, Shape_i
@@ -2742,26 +2741,19 @@ class TestLocalErf:
         self.mode = (
             get_default_mode()
             .including("canonicalize", "fast_run")
-            .excluding("gpu", "fusion")
+            .excluding("gpu", "fusion", "inplace")
         )
-        self.mode._optimizer.position_cutoff = 1.50001
 
     def test_local_one_plus_erf(self):
         val = np.asarray([-30, -3, -2, -1, 0, 1, 2, 3, 30], dtype=config.floatX)
         x = vector()
 
         f = function([x], 1 + erf(x), mode=self.mode)
-        assert [n.op for n in f.maker.fgraph.toposort()] == [
-            mul,
-            erfc,
-        ], f.maker.fgraph.toposort()
+        assert [n.op for n in f.maker.fgraph.toposort()] == [neg, erfc]
         f(val)
 
         f = function([x], erf(x) + 1, mode=self.mode)
-        assert [n.op for n in f.maker.fgraph.toposort()] == [
-            mul,
-            erfc,
-        ], f.maker.fgraph.toposort()
+        assert [n.op for n in f.maker.fgraph.toposort()] == [neg, erfc]
         f(val)
 
         f = function([x], erf(x) + 2, mode=self.mode)
@@ -2777,43 +2769,40 @@ class TestLocalErf:
         x = vector()
 
         f = function([x], 1 - erf(x), mode=self.mode)
-        assert [n.op for n in f.maker.fgraph.toposort()] == [
-            erfc
-        ], f.maker.fgraph.toposort()
+        assert [n.op for n in f.maker.fgraph.toposort()] == [erfc]
         f(val)
 
         f = function([x], 1 + (-erf(x)), mode=self.mode)
-        assert [n.op for n in f.maker.fgraph.toposort()] == [
-            erfc
-        ], f.maker.fgraph.toposort()
+        assert [n.op for n in f.maker.fgraph.toposort()] == [erfc]
 
         f = function([x], (-erf(x)) + 1, mode=self.mode)
-        assert [n.op for n in f.maker.fgraph.toposort()] == [
-            erfc
-        ], f.maker.fgraph.toposort()
+        assert [n.op for n in f.maker.fgraph.toposort()] == [erfc]
+
+        f = function([x], (-1.0 * erf(x)) + 1, mode=self.mode)
+        assert [n.op for n in f.maker.fgraph.toposort()] == [erfc]
 
         f = function([x], 2 - erf(x), mode=self.mode)
         topo = f.maker.fgraph.toposort()
-        assert len(topo) == 2, f.maker.fgraph.toposort()
-        assert topo[0].op == erf, f.maker.fgraph.toposort()
-        assert isinstance(topo[1].op, Elemwise), f.maker.fgraph.toposort()
+        assert len(topo) == 2
+        assert topo[0].op == erf
+        assert isinstance(topo[1].op, Elemwise)
         assert isinstance(topo[1].op.scalar_op, aes.Add) or isinstance(
             topo[1].op.scalar_op, aes.Sub
-        ), f.maker.fgraph.toposort()
+        )
 
     def test_local_erf_minus_one(self):
         val = np.asarray([-30, -3, -2, -1, 0, 1, 2, 3, 30], dtype=config.floatX)
         x = vector()
 
         f = function([x], erf(x) - 1, mode=self.mode)
-        assert [n.op for n in f.maker.fgraph.toposort()] == [erfc, mul]
+        assert [n.op for n in f.maker.fgraph.toposort()] == [erfc, neg]
         f(val)
 
         f = function([x], erf(x) + (-1), mode=self.mode)
-        assert [n.op for n in f.maker.fgraph.toposort()] == [erfc, mul]
+        assert [n.op for n in f.maker.fgraph.toposort()] == [erfc, neg]
 
         f = function([x], -1 + erf(x), mode=self.mode)
-        assert [n.op for n in f.maker.fgraph.toposort()] == [erfc, mul]
+        assert [n.op for n in f.maker.fgraph.toposort()] == [erfc, neg]
 
         f = function([x], erf(x) - 2, mode=self.mode)
         topo = f.maker.fgraph.toposort()
@@ -2833,12 +2822,10 @@ class TestLocalErfc:
     def setup_method(self):
         self.mode_fusion = (
             get_default_mode()
-            .including("canonicalize")
-            .including("fast_run")
-            .excluding("gpu")
+            .including("canonicalize", "fast_run")
+            .excluding("gpu", "inplace")
         )
         self.mode = self.mode_fusion.excluding("fusion")
-        self.mode._optimizer.position_cutoff = 1.50001
 
     def test_local_one_minus_erfc(self):
         # test opt: 1-erfc(x) => erf(x) and -erfc(x)+1 => erf(x)
@@ -2847,22 +2834,21 @@ class TestLocalErfc:
         x = vector("x")
 
         f = function([x], 1 - erfc(x), mode=self.mode)
-        assert [n.op for n in f.maker.fgraph.toposort()] == [
-            erf
-        ], f.maker.fgraph.toposort()
+        assert [n.op for n in f.maker.fgraph.toposort()] == [erf]
         f(val)
 
         f = function([x], (-erfc(x)) + 1, mode=self.mode)
-        assert [n.op for n in f.maker.fgraph.toposort()] == [
-            erf
-        ], f.maker.fgraph.toposort()
+        assert [n.op for n in f.maker.fgraph.toposort()] == [erf]
+
+        f = function([x], (-1.0 * erfc(x)) + 1, mode=self.mode)
+        assert [n.op for n in f.maker.fgraph.toposort()] == [erf]
 
         f = function([x], 2 - erfc(x), mode=self.mode)
         topo = f.maker.fgraph.toposort()
-        assert len(topo) == 2, f.maker.fgraph.toposort()
-        assert topo[0].op == erfc, f.maker.fgraph.toposort()
-        assert isinstance(topo[1].op, Elemwise), f.maker.fgraph.toposort()
-        assert isinstance(topo[1].op.scalar_op, aes.Sub), f.maker.fgraph.toposort()
+        assert len(topo) == 2
+        assert topo[0].op == erfc
+        assert isinstance(topo[1].op, Elemwise)
+        assert isinstance(topo[1].op.scalar_op, aes.Sub)
 
     def test_local_erf_neg_minus_one(self):
         # test opt: (-1)+erfc(-x)=>erf(x)
@@ -2870,22 +2856,18 @@ class TestLocalErfc:
         x = vector("x")
 
         f = function([x], -1 + erfc(-x), mode=self.mode)
-        assert [n.op for n in f.maker.fgraph.toposort()] == [
-            erf
-        ], f.maker.fgraph.toposort()
+        assert [n.op for n in f.maker.fgraph.toposort()] == [erf]
         f(val)
 
         f = function([x], erfc(-x) - 1, mode=self.mode)
-        assert [n.op for n in f.maker.fgraph.toposort()] == [
-            erf
-        ], f.maker.fgraph.toposort()
+        assert [n.op for n in f.maker.fgraph.toposort()] == [erf]
 
         f = function([x], erfc(-x) + (-1), mode=self.mode)
-        assert [n.op for n in f.maker.fgraph.toposort()] == [
-            erf
-        ], f.maker.fgraph.toposort()
+        assert [n.op for n in f.maker.fgraph.toposort()] == [erf]
 
-    @pytest.mark.xfail()
+        f = function([x], erfc(-1.0 * x) + (-1), mode=self.mode)
+        assert [n.op for n in f.maker.fgraph.toposort()] == [erf]
+
     def test_local_log_erfc(self):
         val = [-30, -27, -26, -11, -10, -3, -2, -1, 0, 1, 2, 3, 10, 11, 26, 27, 28, 30]
         if config.mode in ["DebugMode", "DEBUG_MODE", "FAST_COMPILE"]:
@@ -2902,46 +2884,27 @@ class TestLocalErfc:
         mode_fusion.check_isfinite = False
 
         f = function([x], log(erfc(x)), mode=mode)
-        assert len(f.maker.fgraph.apply_nodes) == 23, len(f.maker.fgraph.apply_nodes)
+        assert len(f.maker.fgraph.apply_nodes) == 22
         assert f.maker.fgraph.outputs[0].dtype == config.floatX
         assert all(np.isfinite(f(val)))
 
         f = function([x], log(erfc(-x)), mode=mode)
-        assert len(f.maker.fgraph.apply_nodes) == 24, len(f.maker.fgraph.apply_nodes)
+        assert len(f.maker.fgraph.apply_nodes) == 23
         assert f.maker.fgraph.outputs[0].dtype == config.floatX
         assert all(np.isfinite(f(-val)))
 
         f = function([x], log(erfc(x)), mode=mode_fusion)
-        assert len(f.maker.fgraph.apply_nodes) == 1, len(f.maker.fgraph.apply_nodes)
+        assert len(f.maker.fgraph.apply_nodes) == 1
         assert f.maker.fgraph.outputs[0].dtype == config.floatX
-        assert (
-            len(
-                f.maker.fgraph.toposort()[0]
-                .fgraph.toposort()[0]
-                .op.scalar_op.fgraph.apply_nodes
-            )
-            == 22
-        ), len(
-            f.maker.fgraph.toposort()[0]
-            .fgraph.toposort()[0]
-            .op.scalar_op.fgraph.apply_nodes
-        )
-        # TODO: fix this problem
-        assert not (
-            config.floatX == "float32"
-            and config.mode
-            in [
-                "DebugMode",
-                "DEBUG_MODE",
-            ]
-        ), (
-            "The python code upcast somewhere internally "
-            "some value of float32 to python float for "
-            "part of its computation. That make that the "
-            "c and python code don't generate the same value. "
-            "You can ignore this error."
-        )
-        assert all(np.isfinite(f(val)))
+        assert len(f.maker.fgraph.toposort()[0].op.scalar_op.fgraph.apply_nodes) == 22
+
+        # TODO: fix this problem: The python code upcast somewhere internally
+        #  some value of float32 to python float for part of its computation.
+        #  That makes the c and python code generate sligtly different values
+        if not (
+            config.floatX == "float32" and config.mode in ["DebugMode", "DEBUG_MODE"]
+        ):
+            assert all(np.isfinite(f(val)))
 
     @np.errstate(divide="ignore", invalid="ignore")
     def test_local_grad_log_erfc_neg(self):
@@ -3271,10 +3234,9 @@ class TestLocalSumProd:
         assert len(f.maker.fgraph.apply_nodes) == 1
         utt.assert_allclose(f(input), input.prod())
 
-        with config.change_flags(warn__sum_sum_bug=False):
-            f = function([a], a.sum(0).sum(0).sum(0), mode=self.mode)
-            assert len(f.maker.fgraph.apply_nodes) == 1
-            utt.assert_allclose(f(input), input.sum())
+        f = function([a], a.sum(0).sum(0).sum(0), mode=self.mode)
+        assert len(f.maker.fgraph.apply_nodes) == 1
+        utt.assert_allclose(f(input), input.sum())
 
     def test_local_sum_sum_prod_prod(self):
         a = tensor3()
@@ -3326,23 +3288,22 @@ class TestLocalSumProd:
                 dd = sorted(dd)
                 return data.sum(d).prod(dd[1]).prod(dd[0])
 
-        with config.change_flags(warn__sum_sum_bug=False):
-            for d, dd in dims:
-                expected = my_sum(input, d, dd)
-                f = function([a], a.sum(d).sum(dd), mode=self.mode)
-                utt.assert_allclose(f(input), expected)
-                assert len(f.maker.fgraph.apply_nodes) == 1
-            for d, dd in dims[:6]:
-                f = function([a], a.sum(d).sum(dd).sum(0), mode=self.mode)
-                utt.assert_allclose(f(input), input.sum(d).sum(dd).sum(0))
-                assert len(f.maker.fgraph.apply_nodes) == 1
-            for d in [0, 1, 2]:
-                f = function([a], a.sum(d).sum(None), mode=self.mode)
-                utt.assert_allclose(f(input), input.sum(d).sum())
-                assert len(f.maker.fgraph.apply_nodes) == 1
-            f = function([a], a.sum(None).sum(), mode=self.mode)
-            utt.assert_allclose(f(input), input.sum())
+        for d, dd in dims:
+            expected = my_sum(input, d, dd)
+            f = function([a], a.sum(d).sum(dd), mode=self.mode)
+            utt.assert_allclose(f(input), expected)
             assert len(f.maker.fgraph.apply_nodes) == 1
+        for d, dd in dims[:6]:
+            f = function([a], a.sum(d).sum(dd).sum(0), mode=self.mode)
+            utt.assert_allclose(f(input), input.sum(d).sum(dd).sum(0))
+            assert len(f.maker.fgraph.apply_nodes) == 1
+        for d in [0, 1, 2]:
+            f = function([a], a.sum(d).sum(None), mode=self.mode)
+            utt.assert_allclose(f(input), input.sum(d).sum())
+            assert len(f.maker.fgraph.apply_nodes) == 1
+        f = function([a], a.sum(None).sum(), mode=self.mode)
+        utt.assert_allclose(f(input), input.sum())
+        assert len(f.maker.fgraph.apply_nodes) == 1
 
         # test prod
         for d, dd in dims:
@@ -3438,14 +3399,13 @@ class TestLocalSumProd:
                 assert topo[-1].op == aet.alloc
                 assert not any([isinstance(node.op, Prod) for node in topo])
 
-            with config.change_flags(warn__sum_sum_bug=False):
-                for d, dd in [(0, 0), (1, 0), (2, 0), (0, 1), (1, 1), (2, 1)]:
-                    f = function([a], t_like(a).sum(d).sum(dd), mode=mode)
-                    utt.assert_allclose(f(input), n_like(input).sum(d).sum(dd))
-                    assert len(f.maker.fgraph.apply_nodes) == nb_nodes[3]
-                    topo = f.maker.fgraph.toposort()
-                    assert topo[-1].op == aet.alloc
-                    assert not any([isinstance(node.op, Sum) for node in topo])
+            for d, dd in [(0, 0), (1, 0), (2, 0), (0, 1), (1, 1), (2, 1)]:
+                f = function([a], t_like(a).sum(d).sum(dd), mode=mode)
+                utt.assert_allclose(f(input), n_like(input).sum(d).sum(dd))
+                assert len(f.maker.fgraph.apply_nodes) == nb_nodes[3]
+                topo = f.maker.fgraph.toposort()
+                assert topo[-1].op == aet.alloc
+                assert not any([isinstance(node.op, Sum) for node in topo])
 
     def test_local_sum_sum_int8(self):
         # Test that local_sum_sum works when combining two sums on an int8 array.
@@ -3607,8 +3567,7 @@ class TestLocalReduce:
         assert isinstance(topo[-1].op, Elemwise)
 
         # Test a case that was bugged in a old Aesara bug
-        with config.change_flags(warn__reduce_join=False):
-            f = function([], aet_sum(aet.stack([A, A]), axis=1), mode=self.mode)
+        f = function([], aet_sum(aet.stack([A, A]), axis=1), mode=self.mode)
 
         utt.assert_allclose(f(), [15, 15])
         topo = f.maker.fgraph.toposort()
@@ -3634,9 +3593,8 @@ class TestLocalReduce:
         # Test that the optimization does not crash in one case where it
         # is not applied.  Reported at
         # https://groups.google.com/d/topic/theano-users/EDgyCU00fFA/discussion
-        with config.change_flags(warn__reduce_join=False):
-            out = aet_sum([vx, vy, vz], axis=None)
-            f = function([vx, vy, vz], out)
+        out = aet_sum([vx, vy, vz], axis=None)
+        f = function([vx, vy, vz], out)
 
 
 class TestLocalSumProdDimshuffle:
@@ -3690,14 +3648,11 @@ class TestLocalSumProdDimshuffle:
         c_val = rng.standard_normal((2, 2, 2)).astype(config.floatX)
         d_val = np.asarray(rng.standard_normal(), config.floatX)
 
-        with config.change_flags(
-            warn__sum_sum_bug=False, warn__sum_div_dimshuffle_bug=False
-        ):
-            for i, s in enumerate(sums):
-                f = function([a, b, c, d], s, mode=self.mode, on_unused_input="ignore")
-                g = f.maker.fgraph.toposort()
-                assert isinstance(g[-1].op.scalar_op, aes.basic.TrueDiv)
-                f(a_val, b_val, c_val, d_val)
+        for i, s in enumerate(sums):
+            f = function([a, b, c, d], s, mode=self.mode, on_unused_input="ignore")
+            g = f.maker.fgraph.toposort()
+            assert isinstance(g[-1].op.scalar_op, aes.basic.TrueDiv)
+            f(a_val, b_val, c_val, d_val)
 
     def test_local_prod_div_dimshuffle(self):
         a = matrix("a")
@@ -4111,163 +4066,155 @@ class TestSigmoidOpts:
         x = vector()
         data = np.random.random((54)).astype(config.floatX)
 
-        backup = config.warn__identify_1pexp_bug
-        config.warn__identify_1pexp_bug = False
-        try:
-            # tests exp_over_1_plus_exp
-            f = aesara.function([x], exp(x) / (1 + exp(x)), mode=m)
-            assert [node.op for node in f.maker.fgraph.toposort()] == [sigmoid]
-            f(data)
-            f = aesara.function([x], exp(x) / (2 + exp(x)), mode=m)
-            assert [node.op for node in f.maker.fgraph.toposort()] != [sigmoid]
-            f(data)
-            f = aesara.function([x], exp(x) / (1 - exp(x)), mode=m)
-            assert [node.op for node in f.maker.fgraph.toposort()] != [sigmoid]
-            f(data)
-            f = aesara.function([x], exp(x + 1) / (1 + exp(x)), mode=m)
-            assert [node.op for node in f.maker.fgraph.toposort()] != [sigmoid]
-            f(data)
+        # tests exp_over_1_plus_exp
+        f = aesara.function([x], exp(x) / (1 + exp(x)), mode=m)
+        assert [node.op for node in f.maker.fgraph.toposort()] == [sigmoid]
+        f(data)
+        f = aesara.function([x], exp(x) / (2 + exp(x)), mode=m)
+        assert [node.op for node in f.maker.fgraph.toposort()] != [sigmoid]
+        f(data)
+        f = aesara.function([x], exp(x) / (1 - exp(x)), mode=m)
+        assert [node.op for node in f.maker.fgraph.toposort()] != [sigmoid]
+        f(data)
+        f = aesara.function([x], exp(x + 1) / (1 + exp(x)), mode=m)
+        assert [node.op for node in f.maker.fgraph.toposort()] != [sigmoid]
+        f(data)
 
-            # tests inv_1_plus_exp
-            f = aesara.function([x], aet.fill(x, 1.0) / (1 + exp(-x)), mode=m)
-            # todo: solve issue #4589 first
-            # assert check_stack_trace(f, ops_to_check=sigmoid)
-            assert [node.op for node in f.maker.fgraph.toposort()] == [sigmoid]
-            f(data)
-            f = aesara.function([x], aet.fill(x, 1.0) / (2 + exp(-x)), mode=m)
-            assert [node.op for node in f.maker.fgraph.toposort()] != [sigmoid]
-            f(data)
-            f = aesara.function([x], aet.fill(x, 1.0) / (1 - exp(-x)), mode=m)
-            assert [node.op for node in f.maker.fgraph.toposort()] != [sigmoid]
-            f(data)
-            f = aesara.function([x], aet.fill(x, 1.1) / (1 + exp(-x)), mode=m)
-            assert [node.op for node in f.maker.fgraph.toposort()] != [sigmoid]
-            f(data)
+        # tests inv_1_plus_exp
+        f = aesara.function([x], aet.fill(x, 1.0) / (1 + exp(-x)), mode=m)
+        # todo: solve issue #4589 first
+        # assert check_stack_trace(f, ops_to_check=sigmoid)
+        assert [node.op for node in f.maker.fgraph.toposort()] == [sigmoid]
+        f(data)
+        f = aesara.function([x], aet.fill(x, 1.0) / (2 + exp(-x)), mode=m)
+        assert [node.op for node in f.maker.fgraph.toposort()] != [sigmoid]
+        f(data)
+        f = aesara.function([x], aet.fill(x, 1.0) / (1 - exp(-x)), mode=m)
+        assert [node.op for node in f.maker.fgraph.toposort()] != [sigmoid]
+        f(data)
+        f = aesara.function([x], aet.fill(x, 1.1) / (1 + exp(-x)), mode=m)
+        assert [node.op for node in f.maker.fgraph.toposort()] != [sigmoid]
+        f(data)
 
-            # tests inv_1_plus_exp with neg
-            f = aesara.function([x], aet.fill(x, -1.0) / (1 + exp(-x)), mode=m)
-            # todo: solve issue #4589 first
-            # assert check_stack_trace(
-            #     f, ops_to_check=[sigmoid, neg_inplace])
-            assert [node.op for node in f.maker.fgraph.toposort()] == [
-                sigmoid,
-                inplace.neg_inplace,
-            ]
-            f(data)
-            f = aesara.function([x], aet.fill(x, -1.0) / (1 - exp(-x)), mode=m)
-            assert [node.op for node in f.maker.fgraph.toposort()] != [
-                sigmoid,
-                inplace.neg_inplace,
-            ]
-            f(data)
-            f = aesara.function([x], aet.fill(x, -1.0) / (2 + exp(-x)), mode=m)
-            assert [node.op for node in f.maker.fgraph.toposort()] != [
-                sigmoid,
-                inplace.neg_inplace,
-            ]
-            f(data)
-            f = aesara.function([x], aet.fill(x, -1.1) / (1 + exp(-x)), mode=m)
-            assert [node.op for node in f.maker.fgraph.toposort()] != [
-                sigmoid,
-                inplace.neg_inplace,
-            ]
-            f(data)
+        # tests inv_1_plus_exp with neg
+        f = aesara.function([x], aet.fill(x, -1.0) / (1 + exp(-x)), mode=m)
+        # todo: solve issue #4589 first
+        # assert check_stack_trace(
+        #     f, ops_to_check=[sigmoid, neg_inplace])
+        assert [node.op for node in f.maker.fgraph.toposort()] == [
+            sigmoid,
+            inplace.neg_inplace,
+        ]
+        f(data)
+        f = aesara.function([x], aet.fill(x, -1.0) / (1 - exp(-x)), mode=m)
+        assert [node.op for node in f.maker.fgraph.toposort()] != [
+            sigmoid,
+            inplace.neg_inplace,
+        ]
+        f(data)
+        f = aesara.function([x], aet.fill(x, -1.0) / (2 + exp(-x)), mode=m)
+        assert [node.op for node in f.maker.fgraph.toposort()] != [
+            sigmoid,
+            inplace.neg_inplace,
+        ]
+        f(data)
+        f = aesara.function([x], aet.fill(x, -1.1) / (1 + exp(-x)), mode=m)
+        assert [node.op for node in f.maker.fgraph.toposort()] != [
+            sigmoid,
+            inplace.neg_inplace,
+        ]
+        f(data)
 
-            # tests double inv_1_plus_exp with neg
-            # (-1)(exp(x)) / (1+exp(x))(1+exp(-x))
-            # = (-1)/(1+exp(-x)) * exp(x)/(1+exp(x))
-            # = - (sigm(x) * sigm(x))
-            f = aesara.function(
-                [x],
-                (aet.fill(x, -1.0) * exp(x)) / ((1 + exp(x)) * (1 + exp(-x))),
-                mode=m,
-            )
-            # todo: solve issue #4589 first
-            # assert check_stack_trace(f, ops_to_check=[sigmoid, mul])
-            assert [node.op for node in f.maker.fgraph.toposort()] == [sigmoid, mul]
-            f(data)
-            f = aesara.function(
-                [x],
-                (aet.fill(x, -1.1) * exp(x)) / ((1 + exp(x)) * (1 + exp(-x))),
-                mode=m,
-            )
-            assert [node.op for node in f.maker.fgraph.toposort()] != [
-                sigmoid,
-                mul,
-                inplace.neg_inplace,
-            ]
-            f(data)
-            f = aesara.function(
-                [x],
-                (aet.fill(x, -1.0) * exp(x)) / ((2 + exp(x)) * (1 + exp(-x))),
-                mode=m,
-            )
-            assert [node.op for node in f.maker.fgraph.toposort()] != [
-                sigmoid,
-                mul,
-                inplace.neg_inplace,
-            ]
-            f(data)
-            f = aesara.function(
-                [x],
-                (aet.fill(x, -1.0) * exp(x)) / ((1 + exp(x)) * (2 + exp(-x))),
-                mode=m,
-            )
-            assert [node.op for node in f.maker.fgraph.toposort()] != [
-                sigmoid,
-                mul,
-                inplace.neg_inplace,
-            ]
-            f(data)
-            f = aesara.function(
-                [x],
-                (aet.fill(x, -1.0) * exp(x)) / ((1 + exp(x)) * (1 + exp(x))),
-                mode=m,
-            )
-            assert [node.op for node in f.maker.fgraph.toposort()] != [
-                sigmoid,
-                mul,
-                inplace.neg_inplace,
-            ]
-            f(data)
-            f = aesara.function(
-                [x],
-                (aet.fill(x, -1.0) * exp(x)) / ((1 + exp(x)) * (2 + exp(-x))),
-                mode=m,
-            )
-            assert [node.op for node in f.maker.fgraph.toposort()] != [
-                sigmoid,
-                mul,
-                inplace.neg_inplace,
-            ]
-            f(data)
+        # tests double inv_1_plus_exp with neg
+        # (-1)(exp(x)) / (1+exp(x))(1+exp(-x))
+        # = (-1)/(1+exp(-x)) * exp(x)/(1+exp(x))
+        # = - (sigm(x) * sigm(x))
+        f = aesara.function(
+            [x],
+            (aet.fill(x, -1.0) * exp(x)) / ((1 + exp(x)) * (1 + exp(-x))),
+            mode=m,
+        )
+        # todo: solve issue #4589 first
+        # assert check_stack_trace(f, ops_to_check=[sigmoid, mul])
+        assert [node.op for node in f.maker.fgraph.toposort()] == [sigmoid, mul]
+        f(data)
+        f = aesara.function(
+            [x],
+            (aet.fill(x, -1.1) * exp(x)) / ((1 + exp(x)) * (1 + exp(-x))),
+            mode=m,
+        )
+        assert [node.op for node in f.maker.fgraph.toposort()] != [
+            sigmoid,
+            mul,
+            inplace.neg_inplace,
+        ]
+        f(data)
+        f = aesara.function(
+            [x],
+            (aet.fill(x, -1.0) * exp(x)) / ((2 + exp(x)) * (1 + exp(-x))),
+            mode=m,
+        )
+        assert [node.op for node in f.maker.fgraph.toposort()] != [
+            sigmoid,
+            mul,
+            inplace.neg_inplace,
+        ]
+        f(data)
+        f = aesara.function(
+            [x],
+            (aet.fill(x, -1.0) * exp(x)) / ((1 + exp(x)) * (2 + exp(-x))),
+            mode=m,
+        )
+        assert [node.op for node in f.maker.fgraph.toposort()] != [
+            sigmoid,
+            mul,
+            inplace.neg_inplace,
+        ]
+        f(data)
+        f = aesara.function(
+            [x],
+            (aet.fill(x, -1.0) * exp(x)) / ((1 + exp(x)) * (1 + exp(x))),
+            mode=m,
+        )
+        assert [node.op for node in f.maker.fgraph.toposort()] != [
+            sigmoid,
+            mul,
+            inplace.neg_inplace,
+        ]
+        f(data)
+        f = aesara.function(
+            [x],
+            (aet.fill(x, -1.0) * exp(x)) / ((1 + exp(x)) * (2 + exp(-x))),
+            mode=m,
+        )
+        assert [node.op for node in f.maker.fgraph.toposort()] != [
+            sigmoid,
+            mul,
+            inplace.neg_inplace,
+        ]
+        f(data)
 
-        finally:
-            # Restore config option.
-            config.warn__identify_1pexp_bug = backup
-
-    def test_1msigmoid(self):
-        if not register_local_1msigmoid:
-            return
-
-        m = self.get_mode()
+    def test_local_1msigmoid(self):
+        m = self.get_mode(excluding=["fusion", "inplace"])
         x = fmatrix()
 
         # tests exp_over_1_plus_exp
         f = aesara.function([x], 1 - exp(x) / (1 + exp(x)), mode=m)
-        assert check_stack_trace(f, ops_to_check=[neg, inplace.sigmoid_inplace])
-        assert [node.op for node in f.maker.fgraph.toposort()] == [
-            neg,
-            inplace.sigmoid_inplace,
-        ]
+        # FIXME: PatternSub does not copy stack trace
+        #  (see https://github.com/Theano/Theano/issues/4581)
+        # assert check_stack_trace(f, ops_to_check=[neg, sigmoid])
+        assert [node.op for node in f.maker.fgraph.toposort()] == [neg, sigmoid]
 
         # tests inv_1_plus_exp
         f = aesara.function([x], 1 - aet.fill(x, 1.0) / (1 + exp(-x)), mode=m)
-        assert check_stack_trace(f, ops_to_check=[neg, inplace.sigmoid_inplace])
-        assert [node.op for node in f.maker.fgraph.toposort()] == [
-            neg,
-            inplace.sigmoid_inplace,
-        ]
+        # assert check_stack_trace(f, ops_to_check=[neg, sigmoid])
+        assert [node.op for node in f.maker.fgraph.toposort()] == [neg, sigmoid]
+
+        # Tests float constant
+        f = aesara.function(
+            [x], np.array(1.000001, dtype="float32") - sigmoid(x), mode=m
+        )
+        assert [node.op for node in f.maker.fgraph.toposort()] == [neg, sigmoid]
 
     def test_local_sigm_times_exp(self):
         # Test the `local_sigm_times_exp` optimization.
@@ -4412,6 +4359,14 @@ class TestSoftplusOpts:
         # assert check_stack_trace(f, ops_to_check='all')
         f(np.random.random((54, 11)).astype(config.floatX))
 
+        # Test close to 1
+        out = log(1.000001 - sigmoid(x))
+        f = aesara.function([x], out, mode=self.m)
+        topo = f.maker.fgraph.toposort()
+        assert len(topo) == 2
+        assert isinstance(topo[0].op.scalar_op, aesara.scalar.Softplus)
+        assert isinstance(topo[1].op.scalar_op, aesara.scalar.Neg)
+
         # Same test with a flatten
         out = log(1 - aet.flatten(sigmoid(x)))
         f = aesara.function([x], out, mode=self.m)
@@ -4495,26 +4450,21 @@ class TestSigmoidUtils:
         ]
 
     def test_is_1pexp(self):
-        backup = config.warn__identify_1pexp_bug
-        config.warn__identify_1pexp_bug = False
-        try:
-            x = vector("x")
-            exp_op = exp
-            assert is_1pexp(1 + exp_op(x), False) == (False, x)
-            assert is_1pexp(exp_op(x) + 1, False) == (False, x)
-            for neg_, exp_arg in map(
-                lambda x: is_1pexp(x, only_process_constants=False),
-                [(1 + exp_op(-x)), (exp_op(-x) + 1)],
-            ):
-                assert not neg_ and is_same_graph(exp_arg, -x)
-            assert is_1pexp(1 - exp_op(x), False) is None
-            assert is_1pexp(2 + exp_op(x), False) is None
-            assert is_1pexp(exp_op(x) + 2, False) is None
-            assert is_1pexp(exp_op(x) - 1, False) is None
-            assert is_1pexp(-1 + exp_op(x), False) is None
-            assert is_1pexp(1 + 2 * exp_op(x), False) is None
-        finally:
-            config.warn__identify_1pexp_bug = backup
+        x = vector("x")
+        exp_op = exp
+        assert is_1pexp(1 + exp_op(x), False) == (False, x)
+        assert is_1pexp(exp_op(x) + 1, False) == (False, x)
+        for neg_, exp_arg in map(
+            lambda x: is_1pexp(x, only_process_constants=False),
+            [(1 + exp_op(-x)), (exp_op(-x) + 1)],
+        ):
+            assert not neg_ and is_same_graph(exp_arg, -x)
+        assert is_1pexp(1 - exp_op(x), False) is None
+        assert is_1pexp(2 + exp_op(x), False) is None
+        assert is_1pexp(exp_op(x) + 2, False) is None
+        assert is_1pexp(exp_op(x) - 1, False) is None
+        assert is_1pexp(-1 + exp_op(x), False) is None
+        assert is_1pexp(1 + 2 * exp_op(x), False) is None
 
 
 def test_log1mexp_stabilization():

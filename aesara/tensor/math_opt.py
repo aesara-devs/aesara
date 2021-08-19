@@ -5,15 +5,13 @@
 import itertools
 import logging
 import operator
-import warnings
-from functools import reduce
+from functools import partial, reduce
 
 import numpy as np
 
 import aesara.scalar.basic as aes
 import aesara.scalar.math as aes_math
 from aesara.assert_op import assert_op
-from aesara.configdefaults import config
 from aesara.graph.basic import Constant, Variable
 from aesara.graph.opt import (
     LocalOptGroup,
@@ -23,6 +21,7 @@ from aesara.graph.opt import (
     in2out,
     local_optimizer,
 )
+from aesara.graph.opt_utils import get_clients_at_depth
 from aesara.misc.safe_asarray import _asarray
 from aesara.tensor.basic import (
     Alloc,
@@ -1414,33 +1413,6 @@ def local_sum_prod_div_dimshuffle(fgraph, node):
         if node_input.owner and node_input.owner.op == true_div:
             numerator, denominator = node_input.owner.inputs
 
-            # Old, bugged logic, reproduced here only to warn users
-            if (
-                config.warn__sum_div_dimshuffle_bug
-                and isinstance(node.op, Sum)
-                and numerator.owner
-                and isinstance(numerator.owner.op, DimShuffle)
-            ):
-                # Check compatibility
-                new_order = numerator.owner.op.new_order
-                compatible_dims = True
-                for ax in axis:
-                    if len(new_order) <= ax or new_order[ax] != "x":
-                        compatible_dims = False
-                        break
-
-                if compatible_dims:
-                    _logger.warning(
-                        "Your current code is fine, but"
-                        " Aesara versions between "
-                        "rev. 3bd9b789f5e8 (2010-06-16) and"
-                        " cfc6322e5ad4 (2010-08-03) would "
-                        "have given an incorrect result. "
-                        "To disable this warning, set the Aesara"
-                        " flag warn__sum_div_dimshuffle_bug to"
-                        " False."
-                    )
-
             if denominator.owner and isinstance(denominator.owner.op, DimShuffle):
                 dimshuffle_input = denominator.owner.inputs[0]
                 dimshuffle_order = denominator.owner.op.new_order
@@ -1481,21 +1453,6 @@ def local_sum_prod_div_dimshuffle(fgraph, node):
                             dimshuffle_input.type.broadcastable,
                             optimized_dimshuffle_order,
                         )(dimshuffle_input)
-
-                        if config.warn__sum_div_dimshuffle_bug and isinstance(
-                            node.op, Sum
-                        ):
-                            _logger.warning(
-                                "Your current code is fine,"
-                                " but Aesara versions between "
-                                "rev. 3bd9b789f5e8 (2010-06-16) and"
-                                " cfc6322e5ad4 (2010-08-03) would "
-                                "have given an incorrect result. "
-                                "To disable this warning, set the"
-                                " Aesara flag "
-                                "warn__sum_div_dimshuffle_bug"
-                                " to False."
-                            )
 
                     if isinstance(node.op, Sum):
                         op_on_compatible_dims = aet_sum(numerator, axis=compatible_dims)
@@ -1577,38 +1534,6 @@ def local_op_of_op(fgraph, node):
                     list(node_inps.owner.op.axis) + list(node.op.axis)
                 )
 
-                # The old bugged logic. We keep it there to generate a warning
-                # when we generated bad code.
-                alldims = list(range(node_inps.owner.inputs[0].type.ndim))
-                alldims = [
-                    d for i, d in enumerate(alldims) if i in node_inps.owner.op.axis
-                ]
-                alldims = [d for i, d in enumerate(alldims) if i in node.op.axis]
-                newaxis_old = [
-                    i
-                    for i in range(node_inps.owner.inputs[0].type.ndim)
-                    if i not in alldims
-                ]
-
-                if (
-                    config.warn__sum_sum_bug
-                    and newaxis != newaxis_old
-                    and len(newaxis) == len(newaxis_old)
-                ):
-                    _logger.warning(
-                        "(YOUR CURRENT CODE IS FINE): Aesara "
-                        "versions between version 9923a40c7b7a and August "
-                        "2nd, 2010 generated bugged code in this case. "
-                        "This happens when there are two consecutive sums "
-                        "in the graph and the intermediate sum is not "
-                        "used elsewhere in the code. Some safeguard "
-                        "removed some bad code, but not in all cases. You "
-                        "are in one such case. To disable this warning "
-                        "(that you can safely ignore since this bug has "
-                        "been fixed) set the aesara flag "
-                        "`warn__sum_sum_bug` to False."
-                    )
-
                 combined = opt_type(newaxis, dtype=out_dtype)
                 return [combined(node_inps.owner.inputs[0])]
 
@@ -1682,20 +1607,7 @@ def local_reduce_join(fgraph, node):
         if reduce_axis is None:
             reduce_axis = tuple(range(node.inputs[0].ndim))
 
-        # I put this warning late to don't add extra warning.
         if len(reduce_axis) != 1 or 0 not in reduce_axis:
-            if config.warn__reduce_join:
-                warnings.warning(
-                    "Your current code is fine, but Aesara versions "
-                    "prior to 0.7 (or this development version Sept 2014) "
-                    "might have given an incorrect result for this code. "
-                    "To disable this warning, set the Aesara flag "
-                    "warn__reduce_join to False. The problem was an "
-                    "optimization, that modified the pattern "
-                    '"Reduce{scalar.op}(Join(axis=0, a, b), axis=0)", '
-                    "did not check the reduction axis. So if the "
-                    "reduction axis was not 0, you got a wrong answer."
-                )
             return
 
         # We add the new check late to don't add extra warning.
@@ -2596,26 +2508,8 @@ def local_greedy_distributor(fgraph, node):
     return [rval]
 
 
-def get_clients(fgraph, node):
-    """
-    Used by erf/erfc opt to track less frequent op.
-
-    """
-    return [c for c, i in fgraph.clients[node.outputs[0]] if c != "output"]
-
-
-def get_clients2(fgraph, node):
-    """
-    Used by erf/erfc opt to track less frequent op.
-
-    """
-    l = []
-    for c, i in fgraph.clients[node.outputs[0]]:
-        if c != "output":
-            for var in c.outputs:
-                l.extend([cc for cc, ii in fgraph.clients[var] if cc != "output"])
-    return l
-
+get_clients_at_depth1 = partial(get_clients_at_depth, depth=1)
+get_clients_at_depth2 = partial(get_clients_at_depth, depth=2)
 
 # 1+erf(x)=>erfc(-x)
 local_one_plus_erf = PatternSub(
@@ -2624,61 +2518,56 @@ local_one_plus_erf = PatternSub(
     allow_multiple_clients=True,
     name="local_one_plus_erf",
     tracks=[erf],
-    get_nodes=get_clients,
+    get_nodes=get_clients_at_depth1,
 )
 register_canonicalize(local_one_plus_erf)
 register_stabilize(local_one_plus_erf)
 register_specialize(local_one_plus_erf)
 
+# Only one of the two rewrites below is needed if a canonicalization is added
+# for sub(x, y) -> add(x, -y) or a specialization for add(x, -y) -> sub(x, y)
 # 1-erf(x)=>erfc(x)
 local_one_minus_erf = PatternSub(
     (sub, 1, (erf, "x")),
     (erfc, "x"),
     allow_multiple_clients=True,
     name="local_one_minus_erf",
+    tracks=[erf],
+    get_nodes=get_clients_at_depth1,
 )
 register_canonicalize(local_one_minus_erf)
 register_stabilize(local_one_minus_erf)
 register_specialize(local_one_minus_erf)
 
 local_one_minus_erf2 = PatternSub(
-    (add, 1, (mul, -1, (erf, "x"))),
+    (add, 1, (neg, (erf, "x"))),
     (erfc, "x"),
     allow_multiple_clients=True,
     name="local_one_minus_erf2",
+    tracks=[erf],
+    get_nodes=get_clients_at_depth2,
 )
 register_canonicalize(local_one_minus_erf2)
 register_stabilize(local_one_minus_erf2)
 register_specialize(local_one_minus_erf2)
 
-# 1+(-erf(x))=>erfc(x) This is a different graph then the previous as
-# the canonicalize don't work completely
-local_one_plus_neg_erf = PatternSub(
-    (add, 1, (neg, (erf, "x"))),
-    (erfc, "x"),
-    allow_multiple_clients=True,
-    name="local_one_plus_neg_erf",
-    tracks=[erf],
-    get_nodes=get_clients2,
-)
-register_canonicalize(local_one_plus_neg_erf)
-register_stabilize(local_one_plus_neg_erf)
-register_specialize(local_one_plus_neg_erf)
-
-# (-1)+erf(x) => -erfc(x) don't need erf(x)+(-1) as the canonicalize
-# will put the -1 as the first argument.
+# (-1)+erf(x) => -erfc(x)
+# There is no need for erf(x)+(-1) nor erf(x) - 1, as the canonicalize will
+# convert those to the matched pattern
 local_erf_minus_one = PatternSub(
     (add, -1, (erf, "x")),
     (neg, (erfc, "x")),
     allow_multiple_clients=True,
     name="local_erf_minus_one",
     tracks=[erf],
-    get_nodes=get_clients,
+    get_nodes=get_clients_at_depth1,
 )
 register_canonicalize(local_erf_minus_one)
 register_stabilize(local_erf_minus_one)
 register_specialize(local_erf_minus_one)
 
+# Only one of the two rewrites below is needed if a canonicalization is added
+# for sub(x, y) -> add(x, -y) or a specialization for add(x, -y) -> sub(x, y)
 # 1-erfc(x) => erf(x)
 local_one_minus_erfc = PatternSub(
     (sub, 1, (erfc, "x")),
@@ -2686,7 +2575,7 @@ local_one_minus_erfc = PatternSub(
     allow_multiple_clients=True,
     name="local_one_minus_erfc",
     tracks=[erfc],
-    get_nodes=get_clients,
+    get_nodes=get_clients_at_depth1,
 )
 register_canonicalize(local_one_minus_erfc)
 register_stabilize(local_one_minus_erfc)
@@ -2698,38 +2587,11 @@ local_one_minus_erfc2 = PatternSub(
     allow_multiple_clients=True,
     name="local_one_minus_erfc2",
     tracks=[erfc],
-    get_nodes=get_clients2,
+    get_nodes=get_clients_at_depth2,
 )
 register_canonicalize(local_one_minus_erfc2)
 register_stabilize(local_one_minus_erfc2)
 register_specialize(local_one_minus_erfc2)
-
-local_one_minus_erfc3 = PatternSub(
-    (add, 1, (mul, -1, (erfc, "x"))),
-    (erf, "x"),
-    allow_multiple_clients=True,
-    name="local_one_minus_erfc3",
-    tracks=[erfc],
-    get_nodes=get_clients2,
-)
-register_canonicalize(local_one_minus_erfc3)
-register_stabilize(local_one_minus_erfc3)
-register_specialize(local_one_minus_erfc3)
-
-# 1+(-erfc(x)) => erf(x) This is a different graph then the previous as
-# the canonicalize don't work completely
-local_one_add_neg_erfc = PatternSub(
-    (add, 1, (neg, (erfc, "x"))),
-    (erf, "x"),
-    allow_multiple_clients=True,
-    name="local_one_add_neg_erfc",
-    tracks=[erfc],
-    get_nodes=get_clients2,
-)
-
-register_canonicalize(local_one_add_neg_erfc)
-register_stabilize(local_one_add_neg_erfc)
-register_specialize(local_one_add_neg_erfc)
 
 # (-1)+erfc(-x)=>erf(x)
 local_erf_neg_minus_one = PatternSub(
@@ -2738,24 +2600,11 @@ local_erf_neg_minus_one = PatternSub(
     allow_multiple_clients=True,
     name="local_erf_neg_minus_one",
     tracks=[erfc],
-    get_nodes=get_clients,
+    get_nodes=get_clients_at_depth1,
 )
 register_canonicalize(local_erf_neg_minus_one)
 register_stabilize(local_erf_neg_minus_one)
 register_specialize(local_erf_neg_minus_one)
-
-# (-1)+erfc(-1*x)=>erf(x)
-local_erf_neg_minus_one2 = PatternSub(
-    (add, -1, (erfc, (mul, -1, "x"))),
-    (erf, "x"),
-    allow_multiple_clients=True,
-    name="local_erf_neg_minus_one2",
-    tracks=[erfc],
-    get_nodes=get_clients,
-)
-register_canonicalize(local_erf_neg_minus_one2)
-register_stabilize(local_erf_neg_minus_one2)
-register_specialize(local_erf_neg_minus_one2)
 
 
 @register_stabilize
@@ -3071,14 +2920,17 @@ logsigm_to_softplus = PatternSub(
     allow_multiple_clients=True,
     values_eq_approx=values_eq_approx_remove_inf,
     skip_identities_fn=_skip_mul_1,
+    tracks=[sigmoid],
+    get_nodes=get_clients_at_depth1,
 )
-
 log1msigm_to_softplus = PatternSub(
     (log, (sub, dict(pattern="y", constraint=_is_1), (sigmoid, "x"))),
     (neg, (softplus, "x")),
     allow_multiple_clients=True,
     values_eq_approx=values_eq_approx_remove_inf,
     skip_identities_fn=_skip_mul_1,
+    tracks=[sigmoid],
+    get_nodes=get_clients_at_depth2,
 )
 log1pexp_to_softplus = PatternSub(
     (log1p, (exp, "x")),
@@ -3091,6 +2943,8 @@ log1p_neg_sigmoid = PatternSub(
     (neg, (softplus, "x")),
     values_eq_approx=values_eq_approx_remove_inf,
     allow_multiple_clients=True,
+    tracks=[sigmoid],
+    get_nodes=get_clients_at_depth2,
 )
 
 register_stabilize(logsigm_to_softplus, name="logsigm_to_softplus")
@@ -3125,19 +2979,6 @@ def is_1pexp(t, only_process_constants=True):
                         scal_sum = scal_sum + s
                     if np.allclose(scal_sum, 1):
                         return False, maybe_exp.owner.inputs[0]
-                # Before 7987b51 there used to be a bug where *any* constant
-                # was considered as if it was equal to 1, and thus this
-                # function would incorrectly identify it as (1 + exp(x)).
-                if config.warn__identify_1pexp_bug:
-                    warnings.warn(
-                        "Although your current code is fine, please note that "
-                        "Aesara versions prior to 0.5 (more specifically, "
-                        "prior to commit 7987b51 on 2011-12-18) may have "
-                        "yielded an incorrect result. To remove this warning, "
-                        "either set the `warn__identify_1pexp_bug` config "
-                        "option to False, or `warn__ignore_bug_before` to at "
-                        "least '0.4.1'."
-                    )
     return None
 
 
@@ -3669,38 +3510,16 @@ def local_reciprocal_1_plus_exp(fgraph, node):
                         return out
 
 
-# Registration is below, and conditional.
-@local_optimizer([sub])
-def local_1msigmoid(fgraph, node):
-    """
-    1-sigm(x) -> sigm(-x)
-
-    """
-    if node.op == sub:
-        sub_l, sub_r = node.inputs
-        if len(fgraph.clients[sub_r]) > 1:
-            return  # graph is using both sigm and 1-sigm
-        if sub_r.owner and sub_r.owner.op == sigmoid:
-            try:
-                val_l = get_scalar_constant_value(sub_l)
-            except NotScalarConstantError:
-                return
-            if np.allclose(np.sum(val_l), 1):
-                out = sigmoid(-sub_r.owner.inputs[0])
-                copy_stack_trace([sub_r, node.outputs[0]], out)
-                return [out]
-
-
-register_local_1msigmoid = False
-# This is False because the Stabilize pattern above
-# is looking for 1-sigm.  Also AlgebraicCanonizer turns neg into *(-1) and so
-# this optimization might set off an unwanted chain of things.
-# OTH - this transformation can be seen as pushing normal arithmetic either  below or above the
-# sigmoidal nonlinearity... so if the canonicalized form had anything to say about that then it
-# would be a consideration... anyway leaving False for now.
-
-if register_local_1msigmoid:
-    register_canonicalize(local_1msigmoid)
+# 1 - sigmoid(x) -> sigmoid(-x)
+local_1msigmoid = PatternSub(
+    (sub, dict(pattern="y", constraint=_is_1), (sigmoid, "x")),
+    (sigmoid, (neg, "x")),
+    tracks=[sigmoid],
+    get_nodes=get_clients_at_depth1,
+    name="local_1msigmoid",
+)
+register_stabilize(local_1msigmoid)
+register_specialize(local_1msigmoid)
 
 
 log1pmexp_to_log1mexp = PatternSub(

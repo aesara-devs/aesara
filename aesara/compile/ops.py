@@ -206,6 +206,9 @@ class DeepCopyOp(COp):
         # Else, no C code
         raise NotImplementedError()
 
+    def infer_shape(self, fgraph, node, input_shapes):
+        return input_shapes
+
 
 deep_copy_op = DeepCopyOp()
 

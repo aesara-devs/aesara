@@ -900,9 +900,8 @@ class TestCrossEntropyCategorical1Hot(utt.InferShapeTester):
             assert crossentropy_softmax_argmax_1hot_with_bias in ops
             assert not [1 for o in ops if isinstance(o, AdvancedSubtensor)]
 
-            with config.change_flags(warn__sum_div_dimshuffle_bug=False):
-                fgraph = FunctionGraph([x, b, y], [grad(expr, x)])
-                optdb.query(OPT_FAST_RUN).optimize(fgraph)
+            fgraph = FunctionGraph([x, b, y], [grad(expr, x)])
+            optdb.query(OPT_FAST_RUN).optimize(fgraph)
 
             ops = [node.op for node in fgraph.toposort()]
             assert len(ops) <= 6
@@ -937,9 +936,8 @@ class TestCrossEntropyCategorical1Hot(utt.InferShapeTester):
             assert crossentropy_softmax_argmax_1hot_with_bias in ops
             assert not [1 for o in ops if isinstance(o, AdvancedSubtensor)]
 
-            with config.change_flags(warn__sum_div_dimshuffle_bug=False):
-                fgraph = FunctionGraph([x, b, y], [grad(expr, x)])
-                optdb.query(OPT_FAST_RUN).optimize(fgraph)
+            fgraph = FunctionGraph([x, b, y], [grad(expr, x)])
+            optdb.query(OPT_FAST_RUN).optimize(fgraph)
 
             ops = [node.op for node in fgraph.toposort()]
             assert len(ops) <= 6
@@ -975,9 +973,8 @@ class TestCrossEntropyCategorical1Hot(utt.InferShapeTester):
             assert crossentropy_softmax_argmax_1hot_with_bias in ops
             assert not [1 for o in ops if isinstance(o, AdvancedSubtensor)]
 
-            with config.change_flags(warn__sum_div_dimshuffle_bug=False):
-                fgraph = FunctionGraph([x, b, y], [grad(expr, x)])
-                optdb.query(OPT_FAST_RUN).optimize(fgraph)
+            fgraph = FunctionGraph([x, b, y], [grad(expr, x)])
+            optdb.query(OPT_FAST_RUN).optimize(fgraph)
 
             ops = [node.op for node in fgraph.toposort()]
             assert len(ops) <= 6
@@ -1083,8 +1080,7 @@ def test_argmax_pushdown():
 
         assert hasattr(fgraph.outputs[0].tag, "trace")
 
-        with config.change_flags(warn__argmax_pushdown_bug=False):
-            optdb.query(OPT_FAST_RUN).optimize(fgraph)
+        optdb.query(OPT_FAST_RUN).optimize(fgraph)
 
         # print 'AFTER'
         # for node in fgraph.toposort():
@@ -1119,8 +1115,7 @@ def test_argmax_pushdown_bias():
     out = max_and_argmax(softmax_with_bias(x, b), axis=-1)[0]
     fgraph = FunctionGraph([x, b], [out])
 
-    with config.change_flags(warn__argmax_pushdown_bug=False):
-        optdb.query(OPT_FAST_RUN).optimize(fgraph)
+    optdb.query(OPT_FAST_RUN).optimize(fgraph)
 
     assert len(fgraph.toposort()) == 2
     assert isinstance(fgraph.toposort()[0].op, SoftmaxWithBias)
@@ -1225,8 +1220,7 @@ class TestSoftmaxOpt:
         # test that function contains softmax and softmaxgrad
         w = matrix()
 
-        with config.change_flags(warn__sum_div_dimshuffle_bug=False):
-            g = aesara.function([c, w], grad((p_y * w).sum(), c))
+        g = aesara.function([c, w], grad((p_y * w).sum(), c))
 
         g_ops = [n.op for n in g.maker.fgraph.toposort()]
 
@@ -1246,8 +1240,7 @@ class TestSoftmaxOpt:
         aesara.function([c], p_y)
 
         # test that function contains softmax and no div.
-        with config.change_flags(warn__sum_div_dimshuffle_bug=False):
-            aesara.function([c], grad(p_y.sum(), c))
+        aesara.function([c], grad(p_y.sum(), c))
 
     @pytest.mark.skip(reason="Optimization not enabled for the moment")
     def test_1d_basic(self):
@@ -1259,8 +1252,7 @@ class TestSoftmaxOpt:
         aesara.function([c], p_y)
 
         # test that function contains softmax and no div.
-        with config.change_flags(warn__sum_div_dimshuffle_bug=False):
-            aesara.function([c], grad(p_y.sum(), c))
+        aesara.function([c], grad(p_y.sum(), c))
 
 
 def test_softmax_graph():

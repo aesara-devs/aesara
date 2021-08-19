@@ -6,7 +6,6 @@ import logging
 import sys
 import time
 import traceback
-import warnings
 from collections import defaultdict
 from io import StringIO
 
@@ -2910,13 +2909,6 @@ def merge_two_slices(fgraph, slice1, len1, slice2, len2):
             # the k-th element from sl.start but the k-th element from
             # sl.stop backwards
             n_val = sl1.stop - 1 - sl2 * sl1.step
-            if config.warn__subtensor_merge_bug:
-                warnings.warning(
-                    "Your current code is fine, but Aesara versions "
-                    "prior to 0.5rc2 might have given an incorrect result. "
-                    "To disable this warning, set the Aesara flag "
-                    "warn__subtensor_merge_bug to False."
-                )
             # we need to pick either n_val or p_val and then follow same
             # steps as above for covering the index error cases
             val = switch(lt(reverse1, 0), n_val, p_val)
@@ -3432,19 +3424,6 @@ def local_adv_sub1_adv_inc_sub1(fgraph, node):
         return
 
     if not inp.owner.op.set_instead_of_inc:
-        if config.warn__inc_subtensor1_opt:
-            warnings.warning(
-                "Your current code is fine, but Aesara versions "
-                "between 0.7rc1 and 0.10 (or development versions "
-                "between Nov. 2014 and May 2017) "
-                "might have given incorrect results. This graph has "
-                "following pattern: inc_subtensor(zeros[idx], x)[idx], "
-                "where idx is an array of integers. This used to be "
-                'optimized to "x", which is incorrect if there are '
-                "duplicated indices in idx. "
-                "To disable this warning, set the Aesara flag "
-                "warn__inc_subtensor1_opt to False."
-            )
         return
 
     cond = [aet_all(and_(lt(idx, x.shape[0]), ge(idx, -x.shape[0])))]

@@ -952,7 +952,7 @@ class TensorConstantSignature(tuple):
     no_nan = property(_get_no_nan)
 
 
-class TensorConstant(_tensor_py_operators, Constant):
+class TensorConstant(TensorVariable, Constant):
     """Subclass to add the tensor operators to the basic `Constant` class.
 
     To create a TensorConstant, use the `constant` function in this module.

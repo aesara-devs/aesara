@@ -188,6 +188,77 @@ class CholeskyGrad(Op):
         return [shapes[0]]
 
 
+class CholeskySolve(Op):
+
+    __props__ = ("lower", "check_finite")
+
+    def __init__(
+        self,
+        lower=True,
+        check_finite=True,
+    ):
+        self.lower = lower
+        self.check_finite = check_finite
+
+    def __repr__(self):
+        return "CholeskySolve{%s}" % str(self._props())
+
+    def make_node(self, C, b):
+        C = as_tensor_variable(C)
+        b = as_tensor_variable(b)
+        assert C.ndim == 2
+        assert b.ndim in [1, 2]
+
+        # infer dtype by solving the most simple
+        # case with (1, 1) matrices
+        o_dtype = scipy.linalg.solve(
+            np.eye(1).astype(C.dtype), np.eye(1).astype(b.dtype)
+        ).dtype
+        x = tensor(broadcastable=b.broadcastable, dtype=o_dtype)
+        return Apply(self, [C, b], [x])
+
+    def perform(self, node, inputs, output_storage):
+        C, b = inputs
+        rval = scipy.linalg.cho_solve(
+            (C, self.lower),
+            b,
+            check_finite=self.check_finite,
+        )
+
+        output_storage[0][0] = rval
+
+    def infer_shape(self, fgraph, node, shapes):
+        Cshape, Bshape = shapes
+        rows = Cshape[1]
+        if len(Bshape) == 1:  # b is a Vector
+            return [(rows,)]
+        else:
+            cols = Bshape[1]  # b is a Matrix
+            return [(rows, cols)]
+
+
+cho_solve = CholeskySolve()
+
+
+def cho_solve(c_and_lower, b, check_finite=True):
+    """Solve the linear equations A x = b, given the Cholesky factorization of A.
+
+    Parameters
+    ----------
+    (c, lower) : tuple, (array, bool)
+        Cholesky factorization of a, as given by cho_factor
+    b : array
+        Right-hand side
+    check_finite : bool, optional
+        Whether to check that the input matrices contain only finite numbers.
+        Disabling may give a performance gain, but may result in problems
+        (crashes, non-termination) if the inputs do contain infinities or NaNs.
+    """
+
+    A, lower = c_and_lower
+    return CholeskySolve(lower=lower, check_finite=check_finite)(A, b)
+
+
 class Solve(Op):
     """
     Solve a system of linear equations.

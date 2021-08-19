@@ -20,7 +20,7 @@ from aesara.graph.opt import (
 from aesara.tensor.basic_opt import constant_folding
 from aesara.tensor.math import dot
 from aesara.tensor.subtensor import AdvancedSubtensor
-from aesara.tensor.type import matrix
+from aesara.tensor.type import matrix, values_eq_approx_always_true
 from aesara.tensor.type_other import MakeSlice, SliceConstant, slicetype
 from tests.graph.utils import (
     MyType,
@@ -31,6 +31,7 @@ from tests.graph.utils import (
     op4,
     op5,
     op6,
+    op_cast_type2,
     op_y,
     op_z,
 )
@@ -644,3 +645,56 @@ def test_pre_greedy_local_optimizer():
 
     # Make sure constant of slice signature is hashable.
     assert isinstance(hash(cst.signature()), int)
+
+
+@pytest.mark.parametrize("tracks", [True, False])
+@pytest.mark.parametrize("out_pattern", [(op2, "x"), "x", 1.0])
+def test_patternsub_values_eq_approx(out_pattern, tracks):
+    # PatternSub would fail when `values_eq_approx` and `get_nodes` were specified
+    x = MyVariable("x")
+    e = op1(x)
+    fg = FunctionGraph([x], [e], clone=False)
+
+    opt = EquilibriumOptimizer(
+        [
+            PatternSub(
+                (op1, "x"),
+                out_pattern,
+                tracks=[op1] if tracks else (),
+                get_nodes=(lambda fgraph, node: [node]) if tracks else None,
+                values_eq_approx=values_eq_approx_always_true,
+            )
+        ],
+        max_use_ratio=1,
+    )
+    opt.optimize(fg)
+    output = fg.outputs[0]
+    if isinstance(out_pattern, tuple):
+        assert output.owner.op == op2
+        assert output.tag.values_eq_approx is values_eq_approx_always_true
+    elif out_pattern == "x":
+        assert output is x
+        assert output.tag.values_eq_approx is values_eq_approx_always_true
+    else:
+        assert isinstance(output, Constant)
+        assert not hasattr(output.tag, "value_eq_approx")
+
+
+@pytest.mark.parametrize("out_pattern", [(op1, "x"), "x"])
+def test_patternsub_invalid_dtype(out_pattern):
+    # PatternSub would wrongly return output of different dtype as the original node
+    x = MyVariable("x")
+    e = op_cast_type2(x)
+    fg = FunctionGraph([x], [e])
+
+    opt = EquilibriumOptimizer(
+        [
+            PatternSub(
+                (op_cast_type2, "x"),
+                out_pattern,
+            )
+        ],
+        max_use_ratio=1,
+    )
+    opt.optimize(fg)
+    assert fg.apply_nodes.pop().op == op_cast_type2

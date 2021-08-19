@@ -764,8 +764,8 @@ def scan(
             _logger.warning(
                 (
                     "When the number of steps is fixed and equal "
-                    "to 1, the provided stopping condition, {} is ignored",
-                ).format(condition)
+                    f"to 1, the provided stopping condition, {condition} is ignored"
+                )
             )
 
         for pos, inner_out in enumerate(outputs):
