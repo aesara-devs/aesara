@@ -1455,15 +1455,6 @@ def add_deprecated_configvars():
     )
 
     config.add(
-        "warn__subtensor_merge_bug",
-        "Warn if previous versions of Aesara (before 0.5rc2) could have given "
-        "incorrect results when indexing into a subtensor with negative "
-        "stride (for instance, for instance, x[a:b:-1][c]).",
-        BoolParam(_warn_default("0.5")),
-        in_c_key=False,
-    )
-
-    config.add(
         "warn__gpu_set_subtensor1",
         "Warn if previous versions of Aesara (before 0.6) could have given "
         "incorrect results when moving to the gpu "

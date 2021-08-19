@@ -362,7 +362,6 @@ Note that if you want to use a random variable ``d`` that will not be updated th
 
   import aesara
   import aesara.tensor as aet
-  aesara.config.warn__subtensor_merge_bug = False
 
   k = aet.iscalar("k")
   A = aet.vector("A")
@@ -396,7 +395,6 @@ Note that if you want to use a random variable ``d`` that will not be updated th
   import numpy
   import aesara
   import aesara.tensor as aet
-  aesara.config.warn__subtensor_merge_bug = False
 
   coefficients = aesara.tensor.vector("coefficients")
   x = aet.scalar("x")
