@@ -1,24 +1,24 @@
 import aesara
 from aesara.graph.opt import copy_stack_trace, local_optimizer
 from aesara.tensor.basic_opt import (
-    register_specialize, 
-    register_canonicalize, 
-    register_stabilize
+    register_canonicalize,
+    register_specialize,
+    register_stabilize,
 )
-
+from aesara.tensor.math import Dot, dot
 from aesara.tensor.shape import shape_tuple
 from aesara.tensor.sharedvar import TensorSharedVariable
 from aesara.tensor.subtensor import (
     AdvancedIncSubtensor,
     AdvancedSubtensor,
-    advanced_subtensor1,
     Subtensor,
-    inc_subtensor,
+    advanced_subtensor1,
     get_idx_list,
+    inc_subtensor,
 )
 from aesara.tensor.type_other import NoneTypeT, SliceConstant, SliceType
 from aesara.tensor.var import TensorConstant, TensorVariable
-from aesara.tensor.math import Dot, dot
+
 
 def transform_take(a, indices, axis):
     r"""Transform ``arr[:,:,:,indices,...]``-like operations into single-dimensional, vector index operations.
@@ -188,6 +188,7 @@ def local_AdvancedIncSubtensor_to_AdvancedIncSubtensor1(fgraph, node):
     )
     copy_stack_trace(node.outputs[0], new_res)
     return [new_res]
+
 
 @register_canonicalize
 @register_stabilize

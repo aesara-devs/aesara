@@ -76,12 +76,11 @@ from aesara.tensor.basic import (
 from aesara.tensor.elemwise import DimShuffle, Elemwise
 from aesara.tensor.exceptions import NotScalarConstantError, ShapeError
 from aesara.tensor.extra_ops import broadcast_shape
-from aesara.tensor.math import Dot, add
+from aesara.tensor.math import add
 from aesara.tensor.math import all as aet_all
 from aesara.tensor.math import (
     and_,
     ceil_intdiv,
-    dot,
     eq,
     ge,
     gt,
@@ -3121,6 +3120,7 @@ def local_subtensor_of_alloc(fgraph, node):
         rval[0] = patternbroadcast(rval[0], node.outputs[0].broadcastable)
 
     return rval
+
 
 @register_canonicalize
 @local_optimizer([add])
