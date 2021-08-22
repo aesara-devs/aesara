@@ -7,11 +7,13 @@ from aesara.configdefaults import config
 from aesara.graph.opt import check_stack_trace
 from aesara.scalar.basic import Composite
 from aesara.tensor.elemwise import Elemwise
+from aesara.tensor.inplace import sigmoid_inplace
 from aesara.tensor.math import clip, sigmoid
 from aesara.tensor.nnet.sigm import (
     hard_sigmoid,
     ultra_fast_scalar_sigmoid,
     ultra_fast_sigmoid,
+    ultra_fast_sigmoid_inplace,
 )
 from aesara.tensor.type import matrix
 from tests.tensor.utils import (
@@ -91,6 +93,13 @@ class TestSpecialSigmoidOpts:
         assert check_stack_trace(f, ops_to_check=ultra_fast_sigmoid)
         topo = f.maker.fgraph.toposort()
         assert topo[0].op == ultra_fast_sigmoid
+        assert len(topo) == 1
+
+        s = sigmoid_inplace(x)
+        f = aesara.function([x], s, mode=mode, accept_inplace=True)
+        assert check_stack_trace(f, ops_to_check=ultra_fast_sigmoid_inplace)
+        topo = f.maker.fgraph.toposort()
+        assert topo[0].op == ultra_fast_sigmoid_inplace
         assert len(topo) == 1
 
     @pytest.mark.skipif(config.cxx == "", reason="Needs a C compiler.")

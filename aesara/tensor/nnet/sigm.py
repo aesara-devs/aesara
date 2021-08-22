@@ -12,6 +12,7 @@ from aesara import scalar as aes
 from aesara.graph.opt import copy_stack_trace, local_optimizer
 from aesara.printing import pprint
 from aesara.scalar import sigmoid as scalar_sigmoid
+from aesara.scalar.math import Sigmoid
 from aesara.tensor.basic import constant
 from aesara.tensor.elemwise import Elemwise
 from aesara.tensor.math import clip, sigmoid
@@ -98,7 +99,7 @@ pprint.assign(ultra_fast_sigmoid, printing.FunctionPrinter("ultra_fast_sigmoid")
 
 
 # @opt.register_uncanonicalize
-@local_optimizer([sigmoid])
+@local_optimizer(None)
 def local_ultra_fast_sigmoid(fgraph, node):
     """
     When enabled, change all sigmoid to ultra_fast_sigmoid.
@@ -112,8 +113,13 @@ def local_ultra_fast_sigmoid(fgraph, node):
     to avoid interacting with them.
 
     """
-    if isinstance(node.op, Elemwise) and node.op.scalar_op == scalar_sigmoid:
-        out = ultra_fast_sigmoid(node.inputs[0])
+
+    if isinstance(node.op, Elemwise) and isinstance(node.op.scalar_op, Sigmoid):
+        if node.op.inplace_pattern:
+            out = ultra_fast_sigmoid_inplace(node.inputs[0])
+        else:
+            out = ultra_fast_sigmoid(node.inputs[0])
+
         copy_stack_trace(node.outputs[0], out)
 
         def values_eq_approx_remove_low_prec(a, b):

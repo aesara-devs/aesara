@@ -2488,6 +2488,16 @@ class TestFuncInverse:
         self.assert_func_pair_optimized(rad2deg, rad2deg, dx, should_copy=False)
         self.assert_func_pair_optimized(rad2deg, cosh, dx, should_copy=False)
 
+    def test_integer_upcast(self):
+        """
+        All invertible methods (except for `Neg`) can upgrade their input to float.
+        Here we test that the rewrite works with just one pair of methods
+        """
+        x = ivector("x")
+        f = function([x], deg2rad(rad2deg(x)), mode=self.mode)
+        topo = f.maker.fgraph.toposort()
+        assert len(topo) == 1
+
 
 class TestExpLog:
     def setup_method(self):
@@ -2511,6 +2521,17 @@ class TestExpLog:
         ]
         assert len(ops_graph) == 0
         np.testing.assert_array_equal(f(data), data)
+
+    def test_log_exp_integer_upcast(self):
+        x = ivector("x")
+        f = function([x], log(exp(x)), mode=self.mode)
+        ops_graph = [
+            node
+            for node in f.maker.fgraph.toposort()
+            if isinstance(node.op, Elemwise)
+            and isinstance(node.op.scalar_op, (aes.Log, aes.Exp))
+        ]
+        assert len(ops_graph) == 0
 
     def test_exp_log(self):
         # exp(log(x)) -> switch(x >= 0, x, nan)
