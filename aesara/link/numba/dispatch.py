@@ -921,7 +921,7 @@ def numba_funcify_ScalarFromTensor(op, **kwargs):
 @numba_funcify.register(AllocEmpty)
 def numba_funcify_AllocEmpty(op, node, **kwargs):
 
-    global_env = {"np": np, "to_scalar": to_scalar, "dtype": op.dtype}
+    global_env = {"np": np, "to_scalar": to_scalar, "dtype": np.dtype(op.dtype)}
 
     unique_names = unique_name_generator(
         ["np", "to_scalar", "dtype", "allocempty", "scalar_shape"], suffix_sep="_"
@@ -1114,7 +1114,6 @@ def direct_cast(typingctx, val, typ):
 def numba_funcify_Cast(op, node, **kwargs):
 
     dtype = np.dtype(op.o_type.dtype)
-    dtype = numba.np.numpy_support.from_dtype(dtype)
 
     @numba.njit(inline="always")
     def cast(x):
@@ -1169,7 +1168,6 @@ def numba_funcify_Clip(op, **kwargs):
 @numba_funcify.register(ARange)
 def numba_funcify_ARange(op, **kwargs):
     dtype = np.dtype(op.dtype)
-    dtype = numba.np.numpy_support.from_dtype(dtype)
 
     @numba.njit(inline="always")
     def arange(start, stop, step):
@@ -1213,7 +1211,6 @@ def numba_funcify_ExtractDiag(op, **kwargs):
 @numba_funcify.register(Eye)
 def numba_funcify_Eye(op, **kwargs):
     dtype = np.dtype(op.dtype)
-    dtype = numba.np.numpy_support.from_dtype(dtype)
 
     @numba.njit(inline="always")
     def eye(N, M, k):
