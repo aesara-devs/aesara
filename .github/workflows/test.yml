@@ -128,7 +128,7 @@ jobs:
       - name: Install dependencies
         shell: bash -l {0}
         run: |
-          mamba install --yes -q "python~=${PYTHON_VERSION}=*_cpython" mkl numpy scipy pip mkl-service graphviz cython libgpuarray pygpu
+          mamba install --yes -q "python~=${PYTHON_VERSION}=*_cpython" mkl numpy scipy pip mkl-service graphviz cython libgpuarray pygpu "numba>=0.52" numba-scipy
           if [[ "$PYTHON_VERSION" != "3.6" ]]; then mamba install --yes -q -c conda-forge "python~=${PYTHON_VERSION}=*_cpython" jax jaxlib; fi
           pip install -q -r requirements.txt
           mamba list && pip freeze
