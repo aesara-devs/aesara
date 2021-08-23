@@ -593,8 +593,7 @@ def test_AllocEmpty():
     x = aet.empty((2, 3), dtype="float32")
     x_fg = FunctionGraph([], [x])
 
-    # We need cannot compare the values in the arrays, only the shapes and
-    # dtypes
+    # We cannot compare the values in the arrays, only the shapes and dtypes
     compare_numba_and_py(x_fg, [], assert_fn=compare_shape_dtype)
 
 
