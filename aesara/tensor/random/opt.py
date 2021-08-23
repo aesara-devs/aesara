@@ -8,7 +8,7 @@ from aesara.tensor.extra_ops import broadcast_to
 from aesara.tensor.math import sum as aet_sum
 from aesara.tensor.random.op import RandomVariable
 from aesara.tensor.random.utils import broadcast_params
-from aesara.tensor.shape import Shape
+from aesara.tensor.shape import Shape, Shape_i
 from aesara.tensor.subtensor import (
     AdvancedSubtensor,
     AdvancedSubtensor1,
@@ -17,6 +17,26 @@ from aesara.tensor.subtensor import (
     get_idx_list,
     indexed_result_shape,
 )
+
+
+def is_rv_used_in_graph(base_rv, node, fgraph):
+    """Determine whether or not `base_rv` is used by a node other than `node` in `fgraph`.
+
+    If a node uses `Shape` or `Shape_i` on the `base_rv`, we ignore it, because
+    those `Op`s don't rely on the actual sample values of `base_rv`.
+
+    TODO: We should apply all the shape rewrites before these rewrites, since
+    that would properly remove the unnecessary dependencies on `base_rv` (when
+    possible).
+
+    """
+
+    def _node_check(n, i):
+        if n == "output":
+            n = fgraph.outputs[i].owner
+        return n == node or isinstance(n.op, (Shape, Shape_i))
+
+    return not all(_node_check(n, i) for n, i in fgraph.clients.get(base_rv, ()))
 
 
 @local_optimizer([RandomVariable], inplace=True)
@@ -118,10 +138,7 @@ def local_dimshuffle_rv_lift(fgraph, node):
 
     # If no one else is using the underlying `RandomVariable`, then we can
     # do this; otherwise, the graph would be internally inconsistent.
-    if not all(
-        (n == node or isinstance(n.op, Shape))
-        for n, i in fgraph.clients.get(base_rv, ())
-    ):
+    if is_rv_used_in_graph(base_rv, node, fgraph):
         return False
 
     rv_op = rv_node.op
@@ -273,10 +290,7 @@ def local_subtensor_rv_lift(fgraph, node):
 
     # If no one else is using the underlying `RandomVariable`, then we can
     # do this; otherwise, the graph would be internally inconsistent.
-    if not all(
-        (n == node or isinstance(n.op, Shape))
-        for n, i in fgraph.clients.get(base_rv, ())
-    ):
+    if is_rv_used_in_graph(base_rv, node, fgraph):
         return False
 
     rv_op = rv_node.op
