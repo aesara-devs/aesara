@@ -463,10 +463,18 @@ def test_Subtensor_lift_restrictions():
     assert isinstance(subtensor_node.op, Subtensor)
     assert subtensor_node.inputs[0].owner.op == normal
 
-    # The non-`Subtensor` client doesn't depend on the RNG state, so we can
-    # perform the lift
     z = aet.ones(x.shape) - x[1]
 
+    # We add `x` as an output to make sure that `is_rv_used_in_graph` handles
+    # `"output"` "nodes" correctly.
+    fg = FunctionGraph([rng], [z, x], clone=False)
+    EquilibriumOptimizer([local_subtensor_rv_lift], max_use_ratio=100).apply(fg)
+
+    assert fg.outputs[0] == z
+    assert fg.outputs[1] == x
+
+    # The non-`Subtensor` client doesn't depend on the RNG state, so we can
+    # perform the lift
     fg = FunctionGraph([rng], [z], clone=False)
     EquilibriumOptimizer([local_subtensor_rv_lift], max_use_ratio=100).apply(fg)
 
@@ -485,7 +493,7 @@ def test_Dimshuffle_lift_restrictions():
     # perform the lift
     z = x - y
 
-    fg = FunctionGraph([rng], [z], clone=False)
+    fg = FunctionGraph([rng], [z, y], clone=False)
     _ = EquilibriumOptimizer([local_dimshuffle_rv_lift], max_use_ratio=100).apply(fg)
 
     dimshuffle_node = fg.outputs[0].owner.inputs[1].owner
@@ -493,10 +501,18 @@ def test_Dimshuffle_lift_restrictions():
     assert isinstance(dimshuffle_node.op, DimShuffle)
     assert dimshuffle_node.inputs[0].owner.op == normal
 
-    # The non-`Dimshuffle` client doesn't depend on the RNG state, so we can
-    # perform the lift
     z = aet.ones(x.shape) - y
 
+    # We add `x` as an output to make sure that `is_rv_used_in_graph` handles
+    # `"output"` "nodes" correctly.
+    fg = FunctionGraph([rng], [z, x], clone=False)
+    EquilibriumOptimizer([local_dimshuffle_rv_lift], max_use_ratio=100).apply(fg)
+
+    assert fg.outputs[0] == z
+    assert fg.outputs[1] == x
+
+    # The non-`Dimshuffle` client doesn't depend on the RNG state, so we can
+    # perform the lift
     fg = FunctionGraph([rng], [z], clone=False)
     EquilibriumOptimizer([local_dimshuffle_rv_lift], max_use_ratio=100).apply(fg)
 
