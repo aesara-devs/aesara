@@ -4,9 +4,11 @@ from numpy.testing import assert_equal, assert_string_equal
 
 import aesara
 import tests.unittest_tools as utt
+from aesara.graph.basic import equal_computations
 from aesara.tensor.elemwise import DimShuffle
+from aesara.tensor.math import dot
 from aesara.tensor.subtensor import AdvancedSubtensor, Subtensor
-from aesara.tensor.type import TensorType, dmatrix, iscalar, ivector, matrix
+from aesara.tensor.type import TensorType, dmatrix, dvector, iscalar, ivector, matrix
 from aesara.tensor.type_other import MakeSlice
 from aesara.tensor.var import TensorConstant
 
@@ -47,6 +49,20 @@ def test_numpy_method(fct):
     y = fct(x)
     f = aesara.function([x], y)
     utt.assert_allclose(np.nan_to_num(f(data)), np.nan_to_num(fct(data)))
+
+
+def test_infix_dot_method():
+    X = dmatrix("X")
+    y = dvector("y")
+
+    res = X @ y
+    exp_res = X.dot(y)
+    assert equal_computations([res], [exp_res])
+
+    X_val = np.arange(2 * 3).reshape((2, 3))
+    res = X_val @ y
+    exp_res = dot(X_val, y)
+    assert equal_computations([res], [exp_res])
 
 
 def test_empty_list_indexing():

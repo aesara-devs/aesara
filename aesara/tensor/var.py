@@ -642,6 +642,8 @@ class _tensor_py_operators:
         return aet.math.dense_dot(left, right)
 
     dot = __dot__
+    __matmul__ = __dot__
+    __rmatmul__ = __rdot__
 
     def sum(self, axis=None, dtype=None, keepdims=False, acc_dtype=None):
         """See `aesara.tensor.math.sum`."""
