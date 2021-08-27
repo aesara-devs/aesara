@@ -783,6 +783,7 @@ def test_Cast(v, dtype):
 @pytest.mark.parametrize(
     "v, shape, ndim",
     [
+        (set_test_value(aet.vector(), np.array([4], dtype=config.floatX)), (), 0),
         (set_test_value(aet.vector(), np.arange(4, dtype=config.floatX)), (2, 2), 2),
         (
             set_test_value(aet.vector(), np.arange(4, dtype=config.floatX)),

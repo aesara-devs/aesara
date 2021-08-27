@@ -1126,9 +1126,17 @@ def numba_funcify_Cast(op, node, **kwargs):
 def numba_funcify_Reshape(op, **kwargs):
     ndim = op.ndim
 
-    @numba.njit(inline="always")
-    def reshape(x, shape):
-        return np.reshape(x, to_fixed_tuple(shape, ndim))
+    if ndim == 0:
+
+        @numba.njit(inline="always")
+        def reshape(x, shape):
+            return x.item()
+
+    else:
+
+        @numba.njit(inline="always")
+        def reshape(x, shape):
+            return np.reshape(np.ascontiguousarray(x), to_fixed_tuple(shape, ndim))
 
     return reshape
 
