@@ -319,7 +319,7 @@ def numba_funcify(op, node=None, storage_map=None, **kwargs):
     """Create a Numba compatible function from an Aesara `Op`."""
 
     warnings.warn(
-        (f"Numba will use object mode to run {op}'s perform method"),
+        f"Numba will use object mode to run {op}'s perform method",
         UserWarning,
     )
 
@@ -474,20 +474,37 @@ def numba_funcify_Elemwise(op, node, **kwargs):
     elemwise_fn_name = elemwise_fn.__name__
 
     if op.inplace_pattern:
+        input_idx = op.inplace_pattern[0]
         sign_obj = inspect.signature(elemwise_fn.py_scalar_func)
         input_names = list(sign_obj.parameters.keys())
 
-        input_idx = op.inplace_pattern[0]
+        unique_names = unique_name_generator([elemwise_fn_name, "np"], suffix_sep="_")
+        input_names = [unique_names(i, force_unique=True) for i in input_names]
+
         updated_input_name = input_names[input_idx]
 
-        inplace_global_env = {elemwise_fn_name: elemwise_fn}
+        inplace_global_env = {elemwise_fn_name: elemwise_fn, "np": np}
 
         inplace_elemwise_fn_name = f"{elemwise_fn_name}_inplace"
+
         input_signature_str = ", ".join(input_names)
-        inplace_elemwise_src = f"""
+
+        if node.inputs[input_idx].ndim > 0:
+            inplace_elemwise_src = f"""
 def {inplace_elemwise_fn_name}({input_signature_str}):
     return {elemwise_fn_name}({input_signature_str + ", " + updated_input_name})
-        """
+            """
+        else:
+            # We can't perform in-place updates on Numba scalars, so we need to
+            # convert them to NumPy scalars.
+            # TODO: We should really prevent the rewrites from creating
+            # in-place updates on scalars when the Numba mode is selected (or
+            # in general?).
+            inplace_elemwise_src = f"""
+def {inplace_elemwise_fn_name}({input_signature_str}):
+    {updated_input_name}_scalar = np.asarray({updated_input_name})
+    return {elemwise_fn_name}({input_signature_str + ", " + updated_input_name}_scalar).item()
+            """
 
         inplace_elemwise_fn = compile_function_src(
             inplace_elemwise_src, inplace_elemwise_fn_name, inplace_global_env
