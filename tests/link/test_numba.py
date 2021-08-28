@@ -18,7 +18,7 @@ import aesara.tensor.random.basic as aer
 from aesara import config, shared
 from aesara.compile.function import function
 from aesara.compile.mode import Mode
-from aesara.compile.ops import ViewOp
+from aesara.compile.ops import ViewOp, deep_copy_op
 from aesara.compile.sharedvalue import SharedVariable
 from aesara.graph.basic import Apply, Constant
 from aesara.graph.fg import FunctionGraph
@@ -132,8 +132,11 @@ def eval_python_only(fn_inputs, fgraph, inputs):
 
             def inner_vec(*args):
                 if len(args) > nparams:
+                    # An `out` argument has been specified for an in-place
+                    # operation
                     out = args[-1]
-                    out[:] = np.vectorize(fn)(*args[:nparams])
+                    out[...] = np.vectorize(fn)(*args[:nparams])
+                    return out
                 else:
                     return np.vectorize(fn)(*args)
 
@@ -313,12 +316,21 @@ def test_create_numba_signature(v, expected, force_scalar):
             None,
         ),
         (
+            [aet.scalar(), aet.scalar()],
+            [
+                np.array(1.0, dtype=config.floatX),
+                np.array(1.0, dtype=config.floatX),
+            ],
+            lambda x, y: ati.add_inplace(deep_copy_op(x), deep_copy_op(y)),
+            None,
+        ),
+        (
             [aet.vector(), aet.vector()],
             [
                 rng.standard_normal(100).astype(config.floatX),
                 rng.standard_normal(100).astype(config.floatX),
             ],
-            lambda x, y: ati.add_inplace(x, y),
+            lambda x, y: ati.add_inplace(deep_copy_op(x), deep_copy_op(y)),
             None,
         ),
         (
