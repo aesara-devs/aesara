@@ -448,7 +448,7 @@ def numba_funcify_Mul(op, node, **kwargs):
 
 
 def create_vectorize_func(op, node, use_signature=False, identity=None, **kwargs):
-    scalar_op_fn = numba_funcify(op.scalar_op, node, inline="always", **kwargs)
+    scalar_op_fn = numba_funcify(op.scalar_op, node=node, inline="always", **kwargs)
 
     if len(node.outputs) > 1:
         raise NotImplementedError(
