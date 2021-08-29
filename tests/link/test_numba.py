@@ -817,6 +817,21 @@ def test_Reshape(v, shape, ndim):
     )
 
 
+def test_Reshape_scalar():
+    v = aet.vector()
+    v.tag.test_value = np.array([1.0], dtype=config.floatX)
+    g = Reshape(1)(v[0], (1,))
+    g_fg = FunctionGraph(outputs=[g])
+    compare_numba_and_py(
+        g_fg,
+        [
+            i.tag.test_value
+            for i in g_fg.inputs
+            if not isinstance(i, (SharedVariable, Constant))
+        ],
+    )
+
+
 @pytest.mark.parametrize(
     "v, shape, fails",
     [

@@ -1154,7 +1154,10 @@ def numba_funcify_Reshape(op, **kwargs):
 
         @numba.njit(inline="always")
         def reshape(x, shape):
-            return np.reshape(np.ascontiguousarray(x), to_fixed_tuple(shape, ndim))
+            # TODO: Use this until https://github.com/numba/numba/issues/7353 is closed.
+            return np.reshape(
+                np.ascontiguousarray(np.asarray(x)), to_fixed_tuple(shape, ndim)
+            )
 
     return reshape
 
