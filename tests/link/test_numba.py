@@ -2807,6 +2807,16 @@ def test_shared():
             None,
         ),
         (
+            aer.bernoulli,
+            [
+                set_test_value(
+                    aet.dvector(),
+                    np.array([0.1, 0.9], dtype=np.float64),
+                ),
+            ],
+            None,
+        ),
+        (
             aer.randint,
             [
                 set_test_value(
