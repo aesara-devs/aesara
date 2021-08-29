@@ -2087,8 +2087,10 @@ def {bcast_fn_name}({bcast_fn_input_names}):
     )
 
     # Now, create a Numba JITable function that implements the `size` parameter
+    out_dtype = node.outputs[1].type.numpy_dtype
     random_fn_global_env = {
         bcast_fn_name: bcast_fn,
+        "out_dtype": out_dtype,
     }
 
     if tuple_size > 0:
@@ -2096,7 +2098,7 @@ def {bcast_fn_name}({bcast_fn_input_names}):
             f"""
         size = to_fixed_tuple(size, tuple_size)
 
-        data = np.empty(size)
+        data = np.empty(size, dtype=out_dtype)
         for i in np.ndindex(size[:size_dims]):
             data[i] = {bcast_fn_name}({bcast_fn_input_names})
 
