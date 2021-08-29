@@ -1183,9 +1183,15 @@ def numba_funcify_Clip(op, **kwargs):
     @numba.njit
     def clip(_x, _min, _max):
         x = to_scalar(_x)
-        min = to_scalar(_min)
-        max = to_scalar(_max)
-        return np.where(x < min, min, to_scalar(np.where(x > max, max, x)))
+        _min_scalar = to_scalar(_min)
+        _max_scalar = to_scalar(_max)
+
+        if x < _min_scalar:
+            return _min_scalar
+        elif x > _max_scalar:
+            return _max_scalar
+        else:
+            return x
 
     return clip
 

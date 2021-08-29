@@ -917,6 +917,17 @@ def test_Clip(v, min, max):
     )
 
 
+def test_scalar_Elemwise_Clip():
+    a = aet.scalar("a")
+    b = aet.scalar("b")
+
+    z = aet.switch(1, a, b)
+    c = aet.clip(z, 1, 3)
+    c_fg = FunctionGraph(outputs=[c])
+
+    compare_numba_and_py(c_fg, [1, 1])
+
+
 @pytest.mark.parametrize(
     "vals, dtype",
     [
