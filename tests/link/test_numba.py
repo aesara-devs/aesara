@@ -18,7 +18,7 @@ import aesara.tensor.random.basic as aer
 from aesara import config, shared
 from aesara.compile.function import function
 from aesara.compile.mode import Mode
-from aesara.compile.ops import ViewOp
+from aesara.compile.ops import ViewOp, deep_copy_op
 from aesara.compile.sharedvalue import SharedVariable
 from aesara.graph.basic import Apply, Constant
 from aesara.graph.fg import FunctionGraph
@@ -132,8 +132,11 @@ def eval_python_only(fn_inputs, fgraph, inputs):
 
             def inner_vec(*args):
                 if len(args) > nparams:
+                    # An `out` argument has been specified for an in-place
+                    # operation
                     out = args[-1]
-                    out[:] = np.vectorize(fn)(*args[:nparams])
+                    out[...] = np.vectorize(fn)(*args[:nparams])
+                    return out
                 else:
                     return np.vectorize(fn)(*args)
 
@@ -313,12 +316,21 @@ def test_create_numba_signature(v, expected, force_scalar):
             None,
         ),
         (
+            [aet.scalar(), aet.scalar()],
+            [
+                np.array(1.0, dtype=config.floatX),
+                np.array(1.0, dtype=config.floatX),
+            ],
+            lambda x, y: ati.add_inplace(deep_copy_op(x), deep_copy_op(y)),
+            None,
+        ),
+        (
             [aet.vector(), aet.vector()],
             [
                 rng.standard_normal(100).astype(config.floatX),
                 rng.standard_normal(100).astype(config.floatX),
             ],
-            lambda x, y: ati.add_inplace(x, y),
+            lambda x, y: ati.add_inplace(deep_copy_op(x), deep_copy_op(y)),
             None,
         ),
         (
@@ -783,6 +795,7 @@ def test_Cast(v, dtype):
 @pytest.mark.parametrize(
     "v, shape, ndim",
     [
+        (set_test_value(aet.vector(), np.array([4], dtype=config.floatX)), (), 0),
         (set_test_value(aet.vector(), np.arange(4, dtype=config.floatX)), (2, 2), 2),
         (
             set_test_value(aet.vector(), np.arange(4, dtype=config.floatX)),
@@ -793,6 +806,21 @@ def test_Cast(v, dtype):
 )
 def test_Reshape(v, shape, ndim):
     g = Reshape(ndim)(v, shape)
+    g_fg = FunctionGraph(outputs=[g])
+    compare_numba_and_py(
+        g_fg,
+        [
+            i.tag.test_value
+            for i in g_fg.inputs
+            if not isinstance(i, (SharedVariable, Constant))
+        ],
+    )
+
+
+def test_Reshape_scalar():
+    v = aet.vector()
+    v.tag.test_value = np.array([1.0], dtype=config.floatX)
+    g = Reshape(1)(v[0], (1,))
     g_fg = FunctionGraph(outputs=[g])
     compare_numba_and_py(
         g_fg,
@@ -902,6 +930,17 @@ def test_Clip(v, min, max):
             if not isinstance(i, (SharedVariable, Constant))
         ],
     )
+
+
+def test_scalar_Elemwise_Clip():
+    a = aet.scalar("a")
+    b = aet.scalar("b")
+
+    z = aet.switch(1, a, b)
+    c = aet.clip(z, 1, 3)
+    c_fg = FunctionGraph(outputs=[c])
+
+    compare_numba_and_py(c_fg, [1, 1])
 
 
 @pytest.mark.parametrize(
@@ -2778,6 +2817,16 @@ def test_shared():
                 set_test_value(
                     aet.dscalar(),
                     np.array(1.0, dtype=np.float64),
+                ),
+            ],
+            None,
+        ),
+        (
+            aer.bernoulli,
+            [
+                set_test_value(
+                    aet.dvector(),
+                    np.array([0.1, 0.9], dtype=np.float64),
                 ),
             ],
             None,

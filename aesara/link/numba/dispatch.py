@@ -4,7 +4,7 @@ import warnings
 from functools import reduce, singledispatch
 from numbers import Number
 from textwrap import dedent, indent
-from typing import List, Union
+from typing import Any, Callable, Dict, List, Optional, Union
 
 import numba
 import numpy as np
@@ -23,6 +23,7 @@ import aesara.tensor.random.basic as aer
 from aesara.compile.ops import DeepCopyOp, ViewOp
 from aesara.graph.basic import Apply, Variable
 from aesara.graph.fg import FunctionGraph
+from aesara.graph.op import Op
 from aesara.graph.type import Type
 from aesara.link.utils import (
     compile_function_src,
@@ -319,7 +320,7 @@ def numba_funcify(op, node=None, storage_map=None, **kwargs):
     """Create a Numba compatible function from an Aesara `Op`."""
 
     warnings.warn(
-        (f"Numba will use object mode to run {op}'s perform method"),
+        f"Numba will use object mode to run {op}'s perform method",
         UserWarning,
     )
 
@@ -448,7 +449,7 @@ def numba_funcify_Mul(op, node, **kwargs):
 
 
 def create_vectorize_func(op, node, use_signature=False, identity=None, **kwargs):
-    scalar_op_fn = numba_funcify(op.scalar_op, node, inline="always", **kwargs)
+    scalar_op_fn = numba_funcify(op.scalar_op, node=node, inline="always", **kwargs)
 
     if len(node.outputs) > 1:
         raise NotImplementedError(
@@ -474,20 +475,37 @@ def numba_funcify_Elemwise(op, node, **kwargs):
     elemwise_fn_name = elemwise_fn.__name__
 
     if op.inplace_pattern:
+        input_idx = op.inplace_pattern[0]
         sign_obj = inspect.signature(elemwise_fn.py_scalar_func)
         input_names = list(sign_obj.parameters.keys())
 
-        input_idx = op.inplace_pattern[0]
+        unique_names = unique_name_generator([elemwise_fn_name, "np"], suffix_sep="_")
+        input_names = [unique_names(i, force_unique=True) for i in input_names]
+
         updated_input_name = input_names[input_idx]
 
-        inplace_global_env = {elemwise_fn_name: elemwise_fn}
+        inplace_global_env = {elemwise_fn_name: elemwise_fn, "np": np}
 
         inplace_elemwise_fn_name = f"{elemwise_fn_name}_inplace"
+
         input_signature_str = ", ".join(input_names)
-        inplace_elemwise_src = f"""
+
+        if node.inputs[input_idx].ndim > 0:
+            inplace_elemwise_src = f"""
 def {inplace_elemwise_fn_name}({input_signature_str}):
     return {elemwise_fn_name}({input_signature_str + ", " + updated_input_name})
-        """
+            """
+        else:
+            # We can't perform in-place updates on Numba scalars, so we need to
+            # convert them to NumPy scalars.
+            # TODO: We should really prevent the rewrites from creating
+            # in-place updates on scalars when the Numba mode is selected (or
+            # in general?).
+            inplace_elemwise_src = f"""
+def {inplace_elemwise_fn_name}({input_signature_str}):
+    {updated_input_name}_scalar = np.asarray({updated_input_name})
+    return {elemwise_fn_name}({input_signature_str + ", " + updated_input_name}_scalar).item()
+            """
 
         inplace_elemwise_fn = compile_function_src(
             inplace_elemwise_src, inplace_elemwise_fn_name, inplace_global_env
@@ -1126,9 +1144,20 @@ def numba_funcify_Cast(op, node, **kwargs):
 def numba_funcify_Reshape(op, **kwargs):
     ndim = op.ndim
 
-    @numba.njit(inline="always")
-    def reshape(x, shape):
-        return np.reshape(x, to_fixed_tuple(shape, ndim))
+    if ndim == 0:
+
+        @numba.njit(inline="always")
+        def reshape(x, shape):
+            return x.item()
+
+    else:
+
+        @numba.njit(inline="always")
+        def reshape(x, shape):
+            # TODO: Use this until https://github.com/numba/numba/issues/7353 is closed.
+            return np.reshape(
+                np.ascontiguousarray(np.asarray(x)), to_fixed_tuple(shape, ndim)
+            )
 
     return reshape
 
@@ -1158,9 +1187,15 @@ def numba_funcify_Clip(op, **kwargs):
     @numba.njit
     def clip(_x, _min, _max):
         x = to_scalar(_x)
-        min = to_scalar(_min)
-        max = to_scalar(_max)
-        return np.where(x < min, min, to_scalar(np.where(x > max, max, x)))
+        _min_scalar = to_scalar(_min)
+        _max_scalar = to_scalar(_max)
+
+        if x < _min_scalar:
+            return _min_scalar
+        elif x > _max_scalar:
+            return _max_scalar
+        else:
+            return x
 
     return clip
 
@@ -2056,8 +2091,10 @@ def {bcast_fn_name}({bcast_fn_input_names}):
     )
 
     # Now, create a Numba JITable function that implements the `size` parameter
+    out_dtype = node.outputs[1].type.numpy_dtype
     random_fn_global_env = {
         bcast_fn_name: bcast_fn,
+        "out_dtype": out_dtype,
     }
 
     if tuple_size > 0:
@@ -2065,7 +2102,7 @@ def {bcast_fn_name}({bcast_fn_input_names}):
             f"""
         size = to_fixed_tuple(size, tuple_size)
 
-        data = np.empty(size)
+        data = np.empty(size, dtype=out_dtype)
         for i in np.ndindex(size[:size_dims]):
             data[i] = {bcast_fn_name}({bcast_fn_input_names})
 
@@ -2130,15 +2167,33 @@ def numba_funcify_RandomVariable(op, node, **kwargs):
     return make_numba_random_fn(node, np_random_func)
 
 
-@numba_funcify.register(aer.HalfNormalRV)
-def numba_funcify_HalfNormalRV(op, node, **kwargs):
+def create_numba_random_fn(
+    op: Op,
+    node: Apply,
+    scalar_fn: Callable[[str], str],
+    global_env: Optional[Dict[str, Any]] = None,
+) -> Callable:
+    """Create a vectorized function from a callable that generates the ``str`` function body.
 
+    TODO: This could/should be generalized for other simple function
+    construction cases that need unique-ified symbol names.
+    """
     np_random_fn_name = f"aesara_random_{get_name_for_object(op.name)}"
+
+    if global_env:
+        np_global_env = global_env.copy()
+    else:
+        np_global_env = {}
+
+    np_global_env["np"] = np
+    np_global_env["numba_vectorize"] = numba.vectorize
+
     unique_names = unique_name_generator(
         [
             np_random_fn_name,
-            "numba_vectorize",
-            "np_standard_norm",
+        ]
+        + list(np_global_env.keys())
+        + [
             "rng",
             "size",
             "dtype",
@@ -2148,17 +2203,38 @@ def numba_funcify_HalfNormalRV(op, node, **kwargs):
 
     np_names = [unique_names(i, force_unique=True) for i in node.inputs[3:]]
     np_input_names = ", ".join(np_names)
-    np_global_env = {
-        "np_standard_norm": np.random.standard_normal,
-        "numba_vectorize": numba.vectorize,
-    }
     np_random_fn_src = f"""
 @numba_vectorize
 def {np_random_fn_name}({np_input_names}):
-    return {np_names[0]} + {np_names[1]} * abs(np_standard_norm())
+{scalar_fn(*np_names)}
     """
     np_random_fn = compile_function_src(
         np_random_fn_src, np_random_fn_name, np_global_env
     )
 
     return make_numba_random_fn(node, np_random_fn)
+
+
+@numba_funcify.register(aer.HalfNormalRV)
+def numba_funcify_HalfNormalRV(op, node, **kwargs):
+    def body_fn(a, b):
+        return f"    return {a} + {b} * abs(np.random.normal(0, 1))"
+
+    return create_numba_random_fn(op, node, body_fn)
+
+
+@numba_funcify.register(aer.BernoulliRV)
+def numba_funcify_BernoulliRV(op, node, **kwargs):
+    out_dtype = node.outputs[1].type.numpy_dtype
+
+    def body_fn(a):
+        return f"""
+    if {a} < np.random.uniform(0, 1):
+        return direct_cast(0, out_dtype)
+    else:
+        return direct_cast(1, out_dtype)
+        """
+
+    return create_numba_random_fn(
+        op, node, body_fn, {"out_dtype": out_dtype, "direct_cast": direct_cast}
+    )
