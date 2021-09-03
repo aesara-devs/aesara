@@ -666,16 +666,47 @@ class Scan(Op, ScanMethodsMixin):
             )
             self._hash_inner_graph = hash(self._cmodule_key)
 
+        (
+            self.preallocated_mitmot_outs,
+            self.mitmots_preallocated,
+        ) = self._mitmot_preallocations()
+
+    def _mitmot_preallocations(self):
+        if config.scan__allow_output_prealloc:
+            preallocated_mitmot_outs = []
+
+            input_idx = self.n_seqs
+            for mitmot_idx in range(self.n_mit_mot):
+                for inp_tap in self.tap_array[mitmot_idx]:
+                    if inp_tap in self.mit_mot_out_slices[mitmot_idx]:
+                        # Figure out the index of the corresponding output
+                        output_idx = sum(
+                            [len(m) for m in self.mit_mot_out_slices[:mitmot_idx]]
+                        )
+                        output_idx += self.mit_mot_out_slices[mitmot_idx].index(inp_tap)
+                        preallocated_mitmot_outs.append(output_idx)
+
+                    input_idx += 1
+
+            preallocated_mitmot_outs.sort()
+
+        else:
+            # Output preallocation is not activated. Mark every mitmot output
+            # tap as not being preallocated
+            preallocated_mitmot_outs = []
+
+        # Store the list of mitmot output taps that have been altered so they
+        # can be preallocated
+        mitmots_preallocated = [
+            i in preallocated_mitmot_outs for i in range(self.n_mit_mot_outs)
+        ]
+
+        return preallocated_mitmot_outs, mitmots_preallocated
+
     def __setstate__(self, d):
         self.__dict__.update(d)
 
-        if hasattr(self, "fn"):
-            if not hasattr(self, "thunk_mit_mot_out_slices"):
-                # The thunk has been compiled before mit_mot preallocation
-                # feature was implemented. Mark every mit_mot output tap as
-                # not having been preallocated
-                self.mitmots_preallocated = [False] * self.n_mit_mot_outs
-
+        if getattr(self, "_fn", None) is not None:
             if not hasattr(self, "outs_is_tensor"):
                 # The thunk has been compiled before the analysis, at
                 # compilation time, of the location of the inputs and outputs.
@@ -1195,6 +1226,114 @@ class Scan(Op, ScanMethodsMixin):
             )
         )
 
+    @property
+    def fn(self):
+        """Lazily compile the inner function graph."""
+        if getattr(self, "_fn", None) is not None:
+            return self._fn
+
+        # If a shared variable is the result of a ViewOp it is a clear
+        # indication that we need to copy that value after the perform of
+        # scan is done
+        slices = self.n_mit_mot_outs + self.n_mit_sot + self.n_sit_sot + self.n_nit_sot
+
+        if config.scan__allow_output_prealloc:
+
+            # Go through the mitmots. Whenever a mitmot has a tap both as an
+            # input and an output, wrap the input such that the corresponding
+            # output variable becomes an update to be performed on it, possibly
+            # inplace at the end of the functions's execution.
+            wrapped_inputs = [In(x, borrow=False) for x in self.inputs[: self.n_seqs]]
+            new_outputs = [x for x in self.outputs]
+
+            input_idx = self.n_seqs
+            for mitmot_idx in range(self.n_mit_mot):
+                for inp_tap in self.tap_array[mitmot_idx]:
+                    if inp_tap in self.mit_mot_out_slices[mitmot_idx]:
+                        inp = self.inputs[input_idx]
+
+                        # Figure out the index of the corresponding output
+                        output_idx = sum(
+                            [len(m) for m in self.mit_mot_out_slices[:mitmot_idx]]
+                        )
+                        output_idx += self.mit_mot_out_slices[mitmot_idx].index(inp_tap)
+
+                        # Make it so the input is automatically updated to the
+                        # output value, possibly inplace, at the end of the
+                        # function execution. Also, since an update is
+                        # defined, a default value must also be (this is
+                        # verified by DebugMode). Use an array of size 0 but
+                        # the right ndim and dtype (use a shape of 1 on
+                        # broadcastable dimensions, 0 on the others).
+                        default_shape = [1 if _b else 0 for _b in inp.broadcastable]
+                        default_val = inp.type.value_zeros(default_shape)
+                        wrapped_inp = In(
+                            variable=inp,
+                            value=default_val,
+                            update=self.outputs[output_idx],
+                        )
+                        wrapped_inputs.append(wrapped_inp)
+                    else:
+                        # Wrap the corresponding input as usual. Leave the
+                        # output as-is.
+                        wrapped_inputs.append(In(self.inputs[input_idx], borrow=False))
+                    input_idx += 1
+
+            # Wrap the inputs not associated to mitmots and wrap the remaining
+            # outputs
+            wrapped_inputs += [In(x, borrow=False) for x in self.inputs[input_idx:]]
+            wrapped_outputs = [Out(x, borrow=True) for x in new_outputs[:slices]]
+            wrapped_outputs += new_outputs[slices:]
+
+            # Remove now useless outputs from the output list (start from the
+            # end to avoid altering the indices of the other outputs to be
+            # deleted.
+            for p in self.preallocated_mitmot_outs[::-1]:
+                del wrapped_outputs[p]
+
+            # Add an optimization to the compilation mode to attach a feature
+            # to the function graph just before the inplace optimizations are
+            # applied (inplace optimizations start at position 50 so the
+            # optimization to attach the feature is registered at position 49.9
+            # so that it runs before them). This feature will prevent mitsot,
+            # sitsot and nitsot outputs from being computed inplace (to allow
+            # their preallocation).
+            mitsot_start = self.n_mit_mot_outs - len(self.preallocated_mitmot_outs)
+            nitsot_end = mitsot_start + self.n_mit_sot + self.n_sit_sot + self.n_nit_sot
+            feature = NoOutputFromInplace(mitsot_start, nitsot_end)
+            opt = AddFeatureOptimizer(feature)
+            compilation_mode = self.mode_instance.register((opt, 49.9))
+
+        else:
+
+            wrapped_inputs = [In(x, borrow=True) for x in self.inputs]
+            wrapped_outputs = [Out(x, borrow=False) for x in self.outputs[:slices]]
+            wrapped_outputs += self.outputs[slices:]
+
+            compilation_mode = self.mode_instance
+
+        profile = None
+        if config.profile or (
+            isinstance(self.profile, (str, bool, (int,))) and self.profile
+        ):
+            if isinstance(self.profile, str):
+                profile = ScanProfileStats(name=self.profile)
+            else:
+                profile = ScanProfileStats(name=self.name)
+        elif self.profile:
+            profile = self.profile
+
+        self._fn = function(
+            wrapped_inputs,
+            wrapped_outputs,
+            mode=compilation_mode,
+            name=self.name,
+            profile=profile,
+            on_unused_input="ignore",
+        )
+
+        return self._fn
+
     def make_thunk(self, node, storage_map, compute_map, no_recycling, impl=None):
         """
 
@@ -1234,119 +1373,6 @@ class Scan(Op, ScanMethodsMixin):
 
         node_input_storage = [storage_map[r] for r in node.inputs]
         node_output_storage = [storage_map[r] for r in node.outputs]
-        # If a shared variable is the result of a ViewOp it is a clear
-        # indication that we need to copy that value after the perform of
-        # scan is done
-        slices = self.n_mit_mot_outs + self.n_mit_sot + self.n_sit_sot + self.n_nit_sot
-
-        if config.scan__allow_output_prealloc:
-
-            # Go through the mitmots. Whenever a mitmot has a tap both as an
-            # input and an output, wrap the input such that the corresponding
-            # output variable becomes an update to be performed on it, possibly
-            # inplace at the end of the functions's execution.
-            wrapped_inputs = [In(x, borrow=False) for x in self.inputs[: self.n_seqs]]
-            new_outputs = [x for x in self.outputs]
-            preallocated_mitmot_outs = []
-
-            input_idx = self.n_seqs
-            for mitmot_idx in range(self.n_mit_mot):
-                for inp_tap in self.tap_array[mitmot_idx]:
-                    if inp_tap in self.mit_mot_out_slices[mitmot_idx]:
-                        inp = self.inputs[input_idx]
-
-                        # Figure out the index of the corresponding output
-                        output_idx = sum(
-                            [len(m) for m in self.mit_mot_out_slices[:mitmot_idx]]
-                        )
-                        output_idx += self.mit_mot_out_slices[mitmot_idx].index(inp_tap)
-
-                        # Make it so the input is automatically updated to the
-                        # output value, possibly inplace, at the end of the
-                        # function execution. Also, since an update is
-                        # defined, a default value must also be (this is
-                        # verified by DebugMode). Use an array of size 0 but
-                        # the right ndim and dtype (use a shape of 1 on
-                        # broadcastable dimensions, 0 on the others).
-                        default_shape = [1 if _b else 0 for _b in inp.broadcastable]
-                        default_val = inp.type.value_zeros(default_shape)
-                        wrapped_inp = In(
-                            variable=inp,
-                            value=default_val,
-                            update=self.outputs[output_idx],
-                        )
-                        wrapped_inputs.append(wrapped_inp)
-                        preallocated_mitmot_outs.append(output_idx)
-                    else:
-                        # Wrap the corresponding input as usual. Leave the
-                        # output as-is.
-                        wrapped_inputs.append(In(self.inputs[input_idx], borrow=False))
-                    input_idx += 1
-
-            # Wrap the inputs not associated to mitmots and wrap the remaining
-            # outputs
-            wrapped_inputs += [In(x, borrow=False) for x in self.inputs[input_idx:]]
-            wrapped_outputs = [Out(x, borrow=True) for x in new_outputs[:slices]]
-            wrapped_outputs += new_outputs[slices:]
-
-            # Remove now useless outputs from the output list (start from the
-            # end to avoid altering the indices of the other outputs to be
-            # deleted.
-            preallocated_mitmot_outs.sort()
-            for p in preallocated_mitmot_outs[::-1]:
-                del wrapped_outputs[p]
-
-            # Store the list of mitmot output taps that have been altered
-            # so they can be preallocated
-            self.mitmots_preallocated = [
-                i in preallocated_mitmot_outs for i in range(self.n_mit_mot_outs)
-            ]
-
-            # Add an optimization to the compilation mode to attach a feature
-            # to the function graph just before the inplace optimizations are
-            # applied (inplace optimizations start at position 50 so the
-            # optimization to attach the feature is registered at position 49.9
-            # so that it runs before them). This feature will prevent mitsot,
-            # sitsot and nitsot outputs from being computed inplace (to allow
-            # their preallocation).
-            mitsot_start = self.n_mit_mot_outs - len(preallocated_mitmot_outs)
-            nitsot_end = mitsot_start + self.n_mit_sot + self.n_sit_sot + self.n_nit_sot
-            feature = NoOutputFromInplace(mitsot_start, nitsot_end)
-            opt = AddFeatureOptimizer(feature)
-            compilation_mode = self.mode_instance.register((opt, 49.9))
-
-        else:
-            # Output preallocation is not activated. Mark every mitmot output
-            # tap as not being preallocated
-            self.mitmots_preallocated = [False] * self.n_mit_mot_outs
-
-            wrapped_inputs = [In(x, borrow=True) for x in self.inputs]
-            wrapped_outputs = [Out(x, borrow=False) for x in self.outputs[:slices]]
-            wrapped_outputs += self.outputs[slices:]
-
-            compilation_mode = self.mode_instance
-
-        profile = None
-        if config.profile or (
-            isinstance(self.profile, (str, bool, (int,))) and self.profile
-        ):
-            if isinstance(self.profile, str):
-                profile = ScanProfileStats(name=self.profile)
-            else:
-                profile = ScanProfileStats(name=self.name)
-        elif self.profile:
-            profile = self.profile
-        # make_thunk can be called many times on the same op
-        # we do not want to recompile the inner fct every time.
-        if not getattr(self, "fn", None):
-            self.fn = function(
-                wrapped_inputs,
-                wrapped_outputs,
-                mode=compilation_mode,
-                name=self.name,
-                profile=profile,
-                on_unused_input="ignore",
-            )
 
         # Analyse the compile inner function to determine which inputs and
         # outputs are on the gpu and speed up some checks during the execution
