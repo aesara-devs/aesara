@@ -229,7 +229,7 @@ N.B.:
         for s in scan_ops:
             # prepare a dict which maps the scan op's inner inputs
             # to its outer inputs.
-            if hasattr(s.owner.op, "fn"):
+            if hasattr(s.owner.op, "_fn"):
                 # If the op was compiled, print the optimized version.
                 inner_inputs = s.owner.op.fn.maker.fgraph.inputs
             else:
@@ -255,7 +255,7 @@ N.B.:
                 scan_inner_to_outer_inputs=inner_to_outer_inputs,
                 used_ids=used_ids,
             )
-            if hasattr(s.owner.op, "fn"):
+            if hasattr(s.owner.op, "_fn"):
                 # If the op was compiled, print the optimized version.
                 outputs = s.owner.op.fn.maker.fgraph.outputs
             else:
@@ -1130,7 +1130,7 @@ def pydotprint(
             else:
                 new_name = basename + "_" + str(idx)
             new_name = os.path.join(path, new_name + ext)
-            if hasattr(scan_op.op, "fn"):
+            if hasattr(scan_op.op, "_fn"):
                 to_print = scan_op.op.fn
             else:
                 to_print = scan_op.op.outputs
