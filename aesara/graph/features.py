@@ -783,6 +783,8 @@ class PreserveVariableAttributes(Feature):
 
 
 class NoOutputFromInplace(Feature):
+    """Prevent `FunctionGraph` outputs within a range from being altered in-place."""
+
     def __init__(self, first_output_idx=0, last_output_idx=None):
         self.first_idx = first_output_idx
         self.last_idx = last_output_idx
@@ -791,19 +793,18 @@ class NoOutputFromInplace(Feature):
         if not hasattr(fgraph, "destroyers"):
             return True
 
-        outputs_to_validate = list(fgraph.outputs)[self.first_idx : self.last_idx]
+        for out in fgraph.outputs[self.first_idx : self.last_idx]:
 
-        for out in outputs_to_validate:
+            node = out.owner
 
-            if out.owner is None:
+            if node is None:
                 continue
 
             # Validate that the node that produces the output does not produce
-            # it by modifying something else inplace.
-            node = out.owner
+            # it by modifying something else in-place.
             op = node.op
             out_idx = node.outputs.index(out)
-            if op.destroy_map and out_idx in op.destroy_map:
+            if out_idx in op.destroy_map:
                 raise aesara.graph.fg.InconsistencyError(
                     "A function graph Feature has requested that outputs of the graph "
                     "be prevented from being the result of in-place "
