@@ -4341,7 +4341,7 @@ class TestScan:
             inp = scan_node.op.inner_non_seqs(scan_node.op.inputs)
             assert len(inp) == 1
             assert len(inp) == len(set(inp))
-            inp = scan_node.op.outer_non_seqs(scan_node)
+            inp = scan_node.op.outer_non_seqs(scan_node.inputs)
             assert len(inp) == 1
             assert len(inp) == len(set(inp))
 
@@ -4409,11 +4409,11 @@ class TestScan:
             assert len(scan_node.inputs[1:]) == len(set(scan_node.inputs[1:]))
             inp = scan_node.op.inner_seqs(scan_node.op.inputs)
             assert len(inp) == 1
-            inp = scan_node.op.outer_seqs(scan_node)
+            inp = scan_node.op.outer_seqs(scan_node.inputs)
             assert len(inp) == 1
             inp = scan_node.op.inner_non_seqs(scan_node.op.inputs)
             assert len(inp) == 1
-            inp = scan_node.op.outer_non_seqs(scan_node)
+            inp = scan_node.op.outer_non_seqs(scan_node.inputs)
             assert len(inp) == 1
 
     @pytest.mark.slow

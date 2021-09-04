@@ -715,7 +715,7 @@ class PushOutSeqScan(GlobalOptimizer):
                 reason="scanOp_pushout_seqs_ops",
             )
             return True
-        elif not to_keep_set and not op.as_while and not op.outer_mitmot(node):
+        elif not to_keep_set and not op.as_while and not op.outer_mitmot(node.inputs):
             # Nothing in the inner graph should be kept
             replace_with = {}
             for out, idx in to_replace_map.items():
@@ -725,12 +725,12 @@ class PushOutSeqScan(GlobalOptimizer):
                     ls = clean_outputs
                     if out in op.inner_mitsot_outs(ls):
                         odx = op.inner_mitsot_outs(ls).index(out)
-                        inp = op.outer_mitsot(node)[odx]
+                        inp = op.outer_mitsot(node.inputs)[odx]
                         st = abs(np.min(op.mitsot_taps()))
                         y = set_subtensor(inp[st:], _y)
                     elif out in op.inner_sitsot_outs(ls):
                         odx = op.inner_sitsot_outs(ls).index(out)
-                        inp = op.outer_sitsot(node)[odx]
+                        inp = op.outer_sitsot(node.inputs)[odx]
                         y = set_subtensor(inp[1:], _y)
                     elif out in op.inner_nitsot_outs(ls):
                         y = _y
@@ -2301,7 +2301,7 @@ class PushOutDot1(GlobalOptimizer):
         op = node.op
         sitsot_ins = op.inner_sitsot(op.inputs)
         sitsot_outs = op.inner_sitsot_outs(op.outputs)
-        outer_sitsot = op.outer_sitsot_outs(node)
+        outer_sitsot = op.outer_sitsot_outs(node.outputs)
         seqs = op.inner_seqs(op.inputs)
         for inp, out, outer_out in zip(sitsot_ins, sitsot_outs, outer_sitsot):
 
@@ -2345,23 +2345,23 @@ class PushOutDot1(GlobalOptimizer):
                         # corresponding categories
 
                         inner_seqs = op.inner_seqs(op.inputs)
-                        outer_seqs = op.outer_seqs(node)
+                        outer_seqs = op.outer_seqs(node.inputs)
                         inner_mitmot = op.inner_mitmot(op.inputs)
-                        outer_mitmot = op.outer_mitmot(node)
+                        outer_mitmot = op.outer_mitmot(node.inputs)
                         inner_mitmot_outs = op.inner_mitmot_outs(op.outputs)
                         inner_mitsot = op.inner_mitsot(op.inputs)
-                        outer_mitsot = op.outer_mitsot(node)
+                        outer_mitsot = op.outer_mitsot(node.inputs)
                         inner_mitsot_outs = op.inner_mitsot_outs(op.outputs)
                         inner_sitsot = op.inner_sitsot(op.inputs)
-                        outer_sitsot = op.outer_sitsot(node)
+                        outer_sitsot = op.outer_sitsot(node.inputs)
                         inner_sitsot_outs = op.inner_sitsot_outs(op.outputs)
-                        outer_nitsot = op.outer_nitsot(node)
+                        outer_nitsot = op.outer_nitsot(node.inputs)
                         inner_nitsot_outs = op.inner_nitsot_outs(op.outputs)
                         inner_shared = op.inner_shared(op.inputs)
-                        outer_shared = op.outer_shared(node)
+                        outer_shared = op.outer_shared(node.inputs)
                         inner_shared_outs = op.inner_shared_outs(op.outputs)
                         inner_non_seqs = op.inner_non_seqs(op.inputs)
-                        outer_non_seqs = op.outer_non_seqs(node)
+                        outer_non_seqs = op.outer_non_seqs(node.inputs)
 
                         st = len(op.mitmot_taps()) + len(op.mitsot_taps())
 
@@ -2437,7 +2437,7 @@ class PushOutDot1(GlobalOptimizer):
                         _val = outer_nitsot_outs[-1]
                         outer_nitsot_outs = outer_nitsot_outs[:-1]
                         if inp1 in seqs:
-                            _out_seq = op.outer_seqs(node)[seqs.index(inp1)]
+                            _out_seq = op.outer_seqs(node.inputs)[seqs.index(inp1)]
                             # We need to clip the seq to the number of steps
                             _out_seq = _out_seq[: node.inputs[0]]
                             sh0 = _out_seq.shape[0]
@@ -2452,7 +2452,7 @@ class PushOutDot1(GlobalOptimizer):
                             val = _val.reshape((sh0 * sh1, sh2))
                             new_out = dot(out_seq, val)
                         else:
-                            _out_seq = op.outer_seqs(node)[seqs.index(inp2)]
+                            _out_seq = op.outer_seqs(node.inputs)[seqs.index(inp2)]
                             out_seq = _out_seq.reshape(
                                 (
                                     _out_seq.shape[0] * _out_seq.shape[1],
