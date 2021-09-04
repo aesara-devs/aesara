@@ -5035,5 +5035,4 @@ def test_mintap_onestep():
     f = function(inputs=[seq], outputs=rs)
     _seq = np.arange(20).astype("int32")
     _sum = f(_seq)
-    print("sum %f" % _sum)
     assert _sum == 2
