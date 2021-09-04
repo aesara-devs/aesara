@@ -58,7 +58,7 @@ from aesara.link.utils import raise_with_op
 
 
 def get_version():
-    return 0.299
+    return 0.300
 
 @cython.boundscheck(False)
 def perform(
@@ -206,16 +206,18 @@ def perform(
             "Scan was asked to run for negative number of step %d" %
             n_steps)
     elif n_steps == 0:
-        raise NotImplementedError(
-            "We didn't implemented yet the case where scan do 0 iteration")
+        raise NotImplementedError("n_steps == 0")
     else:
         for idx in range(n_seqs):
             if args[<unsigned int>(1+idx)].shape[0] < n_steps:
-                raise ValueError(('Sequence is shorter than the required '
-                                 'number of steps : (n_steps, seq, '
-                                  'seq.shape):'), n_steps,
-                                  args[1+idx],
-                                  args[1+idx].shape)
+                raise ValueError((
+                    "Sequence %s has shape %s "
+                    "but the Scan's required number of steps is %s"
+                ) % (
+                    idx,
+                    args[1+idx].shape,
+                    n_steps,
+                ))
     # 2. Allocate memory for the outputs. Construct the list:
     #       store_steps  -- map containing the length of each output
     #       pos          -- map containing the current position of each output
