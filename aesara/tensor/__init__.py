@@ -1,7 +1,4 @@
-"""Define the tensor toplevel"""
-
-
-__docformat__ = "restructuredtext en"
+"""Symbolic tensor types and constructor functions."""
 
 import warnings
 from functools import singledispatch
@@ -106,6 +103,7 @@ from aesara.tensor.sort import argsort, argtopk, sort, topk, topk_and_argtopk
 from aesara.tensor.subtensor import *
 from aesara.tensor.type import *
 from aesara.tensor.type_other import *
+from aesara.tensor.var import TensorConstant, TensorVariable
 
 
 __all__ = ["random"]  # noqa: F405
