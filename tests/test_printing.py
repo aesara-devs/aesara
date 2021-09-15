@@ -14,7 +14,7 @@ from aesara.printing import (
     pydot_imported,
     pydotprint,
 )
-from aesara.tensor.type import dvector, matrix
+from aesara.tensor.type import dmatrix, dvector, matrix
 
 
 @pytest.mark.skipif(not pydot_imported, reason="pydot not available")
@@ -250,7 +250,30 @@ def test_debugprint():
     assert s == reference
 
 
-def test_subtensor():
+def test_debugprint_ids():
+    a_at = dvector()
+    b_at = dmatrix()
+
+    d_at = b_at.dot(a_at)
+    e_at = d_at + a_at
+
+    s = StringIO()
+    debugprint(e_at, ids="auto", file=s)
+    s = s.getvalue()
+
+    exp_res = f"""Elemwise{{add,no_inplace}} [id {e_at.auto_name}] ''
+ |dot [id {d_at.auto_name}] ''
+ | |<TensorType(float64, matrix)> [id {b_at.auto_name}]
+ | |<TensorType(float64, vector)> [id {a_at.auto_name}]
+ |<TensorType(float64, vector)> [id {a_at.auto_name}]
+    """
+
+    assert [l.strip() for l in s.split("\n")] == [
+        l.strip() for l in exp_res.split("\n")
+    ]
+
+
+def test_pprint():
     x = dvector()
     y = x[1]
     assert pp(y) == "<TensorType(float64, vector)>[ScalarConstant{1}]"

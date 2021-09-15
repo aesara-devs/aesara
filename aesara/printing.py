@@ -356,6 +356,7 @@ def _debugprint(
           - ``"id"``: print the python id value,
           - ``"int"``: print integer character,
           - ``"CHAR"``: print capital character,
+          - ``"auto"``: print the ``auto_name`` value,
           - ``""``: don't print an identifier.
     stop_on_name
         When True, if a node in the graph has a name, we don't print anything
@@ -408,6 +409,8 @@ def _debugprint(
             id_str = f"[id {len(used_ids)}]"
         elif ids == "CHAR":
             id_str = f"[id {char_from_number(len(used_ids))}]"
+        elif ids == "auto":
+            id_str = f"[id {r.auto_name}]"
         elif ids == "":
             id_str = ""
         if get_printed:
