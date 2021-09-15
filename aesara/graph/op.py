@@ -13,6 +13,7 @@ import sys
 import warnings
 from abc import abstractmethod
 from typing import (
+    TYPE_CHECKING,
     Any,
     Callable,
     ClassVar,
@@ -42,6 +43,9 @@ from aesara.graph.utils import (
 )
 from aesara.link.c.interface import CLinkerOp
 
+
+if TYPE_CHECKING:
+    from aesara.compile.function.types import Function
 
 StorageMapType = List[Optional[List[Any]]]
 ComputeMapType = List[bool]
@@ -574,6 +578,25 @@ class Op(MetaObject):
         return getattr(type(self), "__name__", super().__str__())
 
 
+class HasInnerGraph:
+    r"""A mixin for an `Op` that contain an inner graph."""
+
+    @property
+    @abstractmethod
+    def fn(self) -> "Function":
+        """The inner function."""
+
+    @property
+    @abstractmethod
+    def inner_inputs(self) -> List[Variable]:
+        """The inner function's inputs."""
+
+    @property
+    @abstractmethod
+    def inner_outputs(self) -> List[Variable]:
+        """The inner function's outputs."""
+
+
 class COp(Op, CLinkerOp):
     """An `Op` with a C implementation."""
 
@@ -765,22 +788,6 @@ def get_test_values(*args: Variable) -> Union[Any, List[Any]]:
         return rval
 
     return [tuple(rval)]
-
-
-ops_with_inner_function: Dict[Op, Text] = {}
-r"""
-Registry of `Op`\s that have an inner compiled Aesara function.
-
-The keys are `Op` classes (not instances), and values are the name of the
-attribute that contains the function. For instance, if the function is
-``self.fn``, the value will be ``'fn'``.
-
-We need that to be able not to run debug checks a number of times that is
-exponential in the nesting level of those `Op`\s.
-
-For instance, `Scan` will be registered here.
-
-"""
 
 
 class OpenMPOp(COp):

@@ -73,7 +73,7 @@ from aesara.graph.basic import (
 )
 from aesara.graph.features import NoOutputFromInplace
 from aesara.graph.fg import MissingInputError
-from aesara.graph.op import Op, ops_with_inner_function
+from aesara.graph.op import HasInnerGraph, Op
 from aesara.link.c.basic import CLinker
 from aesara.link.c.exceptions import MissingGXX
 from aesara.link.utils import raise_with_op
@@ -570,7 +570,7 @@ class ScanMethodsMixin:
                     )
 
 
-class Scan(Op, ScanMethodsMixin):
+class Scan(Op, ScanMethodsMixin, HasInnerGraph):
     def __init__(
         self,
         inputs: List[Variable],
@@ -3124,11 +3124,6 @@ class Scan(Op, ScanMethodsMixin):
         final_outs += [None] * self.n_shared_outs
 
         return final_outs
-
-
-# Since Scan is an op that contains an Aesara compiled function, it is
-# useful to let DebugMode know about it.
-ops_with_inner_function[Scan] = "fn"
 
 
 @register_profiler_printer
