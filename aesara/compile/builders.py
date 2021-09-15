@@ -18,7 +18,7 @@ from aesara.graph.basic import (
 )
 from aesara.graph.fg import FunctionGraph
 from aesara.graph.null_type import NullType
-from aesara.graph.op import Op, ops_with_inner_function
+from aesara.graph.op import HasInnerGraph, Op
 from aesara.graph.opt import in2out, local_optimizer
 from aesara.tensor.basic_opt import ShapeFeature
 
@@ -76,11 +76,11 @@ def infer_shape(outs, inputs, input_shapes):
     return ret
 
 
-class OpFromGraph(Op):
+class OpFromGraph(Op, HasInnerGraph):
     r"""
-    This creates an ``Op`` from inputs and outputs lists of variables.
+    This creates an `Op` from inputs and outputs lists of variables.
     The signature is similar to :func:`aesara.function <aesara.function>`
-    and the resulting ``Op``'s perform will do the same operation as::
+    and the resulting `Op`'s perform will do the same operation as::
 
         orig_function(inputs, outputs, **kwargs)
 
@@ -139,8 +139,8 @@ class OpFromGraph(Op):
         Must return list of :class:`Variable <aesara.graph.basic.Variable>`.
 
         Variable :
-            ``NullType() instance`` : Treat as non-differentiable
-            ``DisconnectedType() instance`` : Treat as disconnected gradient, numerically gives zero
+            `NullType` instance: Treat as non-differentiable
+            `DisconnectedType` instance: Treat as disconnected gradient, numerically gives zero
 
         list: Each OpFromGraph/callable must return a single
         :class:`Variable <aesara.graph.basic.Variable>`. Each list element corresponds to gradient of
@@ -160,8 +160,8 @@ class OpFromGraph(Op):
         Must return list of :class:`Variable <aesara.graph.basic.Variable>`.
 
         Variable :
-            ``NullType() instance`` : Treat as non-differentiable
-            ``DisconnectedType() instance`` : Treat as zero since DisconnectedType is not yet supported in R_op
+            `NullType` instance: Treat as non-differentiable
+            `DisconnectedType` instance: Treat as zero since DisconnectedType is not yet supported in R_op
 
         list: Each OpFromGraph/callable must return a single
         :class:`Variable <aesara.graph.basic.Variable>`. Each list element corresponds
@@ -363,8 +363,8 @@ class OpFromGraph(Op):
         assert not update_expr
         assert not shared_inputs
 
-        self.local_inputs = local_inputs
-        self.local_outputs = local_outputs
+        self._inner_inputs = local_inputs
+        self._inner_outputs = local_outputs
         self.inputs = inputs
         self.outputs = outputs
         self.kwargs = kwargs
@@ -411,8 +411,8 @@ class OpFromGraph(Op):
         converts self._lop_op from user supplied form to type(self) instance
 
         """
-        local_inputs = self.local_inputs
-        local_outputs = self.local_outputs
+        local_inputs = self.inner_inputs
+        local_outputs = self.inner_outputs
         inp_len = len(local_inputs)
         lop_op = self._lop_op
 
@@ -424,7 +424,7 @@ class OpFromGraph(Op):
             )
             if self._lop_type == "grad":
                 needed_ninps = inp_len + len(local_outputs)
-                ninps = len(lop_op.local_inputs)
+                ninps = len(lop_op.inner_inputs)
                 if needed_ninps != ninps:
                     raise ValueError(self.OV_INP_LEN_ERR_MSG % (needed_ninps, ninps))
                 # make a wrapper callable
@@ -435,7 +435,7 @@ class OpFromGraph(Op):
             elif self._lop_type == "lop":
                 # OfG can be directly used in L_op format
                 needed_ninps = inp_len + 2 * len(local_outputs)
-                ninps = len(lop_op.local_inputs)
+                ninps = len(lop_op.inner_inputs)
                 if needed_ninps != ninps:
                     raise ValueError(self.OV_INP_LEN_ERR_MSG % (needed_ninps, ninps))
                 self._lop_op_is_cached = True
@@ -551,8 +551,8 @@ class OpFromGraph(Op):
         converts self._rop_op from user supplied form to type(self) instance
 
         """
-        local_inputs = self.local_inputs
-        local_outputs = self.local_outputs
+        local_inputs = self.inner_inputs
+        local_outputs = self.inner_outputs
         out_len = len(local_outputs)
         rop_op = self._rop_op
 
@@ -728,7 +728,7 @@ class OpFromGraph(Op):
         return ret_l
 
     def make_node(self, *inputs):
-        num_expected_inps = len(self.local_inputs) - len(self.shared_inputs)
+        num_expected_inps = len(self.inner_inputs) - len(self.shared_inputs)
         if len(inputs) != num_expected_inps:
             raise ValueError(
                 f"Expected {int(num_expected_inps)} inputs, got {len(inputs)}"
@@ -741,8 +741,6 @@ class OpFromGraph(Op):
             list(inputs) + self.shared_inputs,
             [type() for type in self.output_types],
         )
-        apply_node.local_inputs = self.local_inputs
-        apply_node.local_outputs = self.local_outputs
         return apply_node
 
     def connection_pattern(self, node):
@@ -753,13 +751,13 @@ class OpFromGraph(Op):
         if self._connection_pattern is not None:
             return self._connection_pattern
 
-        inp_len = len(self.local_inputs)
-        out_len = len(self.local_outputs)
-        cpmat_self = io_connection_pattern(self.local_inputs, self.local_outputs)
+        inp_len = len(self.inner_inputs)
+        out_len = len(self.inner_outputs)
+        cpmat_self = io_connection_pattern(self.inner_inputs, self.inner_outputs)
 
         lop_op = self.get_lop_op()
         cpmat_grad = io_connection_pattern(
-            lop_op.local_inputs[inp_len:], lop_op.local_outputs
+            lop_op.inner_inputs[inp_len:], lop_op.inner_outputs
         )
 
         # cpmat_self |= cpmat_grad.T
@@ -781,7 +779,7 @@ class OpFromGraph(Op):
     def infer_shape(self, fgraph, node, shapes):
 
         # TODO: Use `fgraph.shape_feature` to do this instead.
-        out_shapes = infer_shape(self.local_outputs, self.local_inputs, shapes)
+        out_shapes = infer_shape(self.inner_outputs, self.inner_inputs, shapes)
 
         # Clone the output shape so that shape are computed from outer inputs.
         # Note:
@@ -791,7 +789,7 @@ class OpFromGraph(Op):
         # each shape call. Aesara optimizer will clean this up later, but this
         # will make extra work for the optimizer.
 
-        repl = dict(zip(self.local_inputs, node.inputs))
+        repl = dict(zip(self.inner_inputs, node.inputs))
         clone_out_shapes = [s for s in out_shapes if isinstance(s, tuple)]
         cloned = clone_replace(sum(clone_out_shapes, ()), replace=repl)
         ret = []
@@ -806,12 +804,24 @@ class OpFromGraph(Op):
 
         return ret
 
-    def prepare_node(self, node, storage_map, compute_map, impl):
-        if not hasattr(self, "fn") and impl == "py":
-            self.fn = orig_function(
-                self.local_inputs, self.local_outputs, **self.kwargs
-            )
-            self.fn.trust_input = True
+    @property
+    def fn(self):
+        """Lazily compile the inner function graph."""
+        if getattr(self, "_fn", None) is not None:
+            return self._fn
+
+        self._fn = orig_function(self.inner_inputs, self.inner_outputs, **self.kwargs)
+        self._fn.trust_input = True
+
+        return self._fn
+
+    @property
+    def inner_inputs(self):
+        return self._inner_inputs
+
+    @property
+    def inner_outputs(self):
+        return self._inner_outputs
 
     def perform(self, node, inputs, outputs):
         variables = self.fn(*inputs)
@@ -833,7 +843,7 @@ def inline_ofg_expansion(fgraph, node):
     if not op.is_inline:
         return False
     return clone_replace(
-        op.local_outputs, {u: v for u, v in zip(node.op.local_inputs, node.inputs)}
+        op.inner_outputs, {u: v for u, v in zip(op.inner_inputs, node.inputs)}
     )
 
 
@@ -846,7 +856,3 @@ optdb.register(
     "fast_compile",
     "fast_run",
 )
-
-# Since OpFromGraph contains an Aesara compiled function,
-# we should let DebugMode know about it
-ops_with_inner_function[OpFromGraph] = "fn"

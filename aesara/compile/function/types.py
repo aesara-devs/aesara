@@ -32,7 +32,7 @@ from aesara.graph.basic import (
 from aesara.graph.destroyhandler import DestroyHandler
 from aesara.graph.features import PreserveVariableAttributes
 from aesara.graph.fg import FunctionGraph, InconsistencyError
-from aesara.graph.op import ops_with_inner_function
+from aesara.graph.op import HasInnerGraph
 from aesara.graph.opt_utils import is_same_graph
 from aesara.graph.utils import get_variable_trace_string
 from aesara.link.basic import Container
@@ -548,7 +548,7 @@ class Function:
                 self.n_returned_outputs -= 1
 
         for node in self.maker.fgraph.apply_nodes:
-            if node.op in ops_with_inner_function:
+            if isinstance(node.op, HasInnerGraph):
                 self.nodes_with_inner_function.append(node.op)
 
     def __contains__(self, item):
@@ -1099,7 +1099,8 @@ class Function:
                     self.fn.storage_map[key][0] = None
 
             for node in self.nodes_with_inner_function:
-                ops_with_inner_function[node.op].free()
+                if hasattr(node.fn, "free"):
+                    node.fn.free()
 
     def get_shared(self):
         """

@@ -32,7 +32,7 @@ from aesara.graph.basic import Variable, graph_inputs, io_toposort
 from aesara.graph.destroyhandler import DestroyHandler
 from aesara.graph.features import BadOptimization
 from aesara.graph.fg import InconsistencyError
-from aesara.graph.op import COp, Op, ops_with_inner_function
+from aesara.graph.op import COp, HasInnerGraph, Op
 from aesara.graph.utils import MethodNotDefined
 from aesara.link.basic import Container, LocalLinker
 from aesara.link.utils import map_storage, raise_with_op
@@ -1370,13 +1370,10 @@ def _check_preallocated_output(
     # disable memory checks in that mode, since they were already run.
     try:
         changed_inner_mode = False
-        if type(getattr(node, "op", None)) in ops_with_inner_function:
-            fn_attr_name = ops_with_inner_function[type(node.op)]
-            fn = getattr(node.op, fn_attr_name, None)
+        if isinstance(getattr(node, "op", None), HasInnerGraph):
+            fn = node.op.fn
             if not fn or not hasattr(fn, "maker") or not hasattr(fn.maker, "mode"):
-                _logger.warning(
-                    f"Expected aesara function not found in {node.op}.{fn_attr_name}"
-                )
+                _logger.warning(f"Expected aesara function not found in {node.op}.fn")
             else:
                 if isinstance(fn.maker.mode, DebugMode):
                     backup_mode = fn.maker.mode
