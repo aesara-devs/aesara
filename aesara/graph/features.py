@@ -110,7 +110,7 @@ class BadOptimization(Exception):
         used_ids = dict()
 
         if isinstance(old_r, Variable):
-            self.old_graph = aesara.compile.debugmode.debugprint(
+            self.old_graph = aesara.printing._debugprint(
                 old_r,
                 prefix="  ",
                 depth=6,
@@ -123,7 +123,7 @@ class BadOptimization(Exception):
             self.old_graph = None
 
         if isinstance(new_r, Variable):
-            self.new_graph = aesara.compile.debugmode.debugprint(
+            self.new_graph = aesara.printing._debugprint(
                 new_r,
                 prefix="  ",
                 depth=6,
