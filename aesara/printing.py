@@ -10,16 +10,18 @@ import os
 import sys
 from copy import copy
 from functools import reduce
-from io import StringIO
+from io import IOBase, StringIO
+from typing import Dict, List, Optional, Union
 
 import numpy as np
 
 from aesara.compile import Function, SharedVariable
 from aesara.compile.io import In, Out
+from aesara.compile.profiling import ProfileStats
 from aesara.configdefaults import config
 from aesara.graph.basic import Apply, Constant, Variable, graph_inputs, io_toposort
 from aesara.graph.fg import FunctionGraph
-from aesara.graph.op import Op
+from aesara.graph.op import Op, StorageMapType
 from aesara.graph.utils import Scratchpad
 
 
@@ -80,46 +82,19 @@ def char_from_number(number):
 
 
 def debugprint(
-    obj,
-    depth=-1,
-    print_type=False,
-    file=None,
-    ids="CHAR",
-    stop_on_name=False,
-    done=None,
-    print_storage=False,
-    used_ids=None,
-):
+    obj: Union[
+        Union[Variable, Apply, Function], List[Union[Variable, Apply, Function]]
+    ],
+    depth: int = -1,
+    print_type: bool = False,
+    file: Optional[Union[str, IOBase]] = None,
+    ids: str = "CHAR",
+    stop_on_name: bool = False,
+    done: Optional[Dict[Apply, str]] = None,
+    print_storage: bool = False,
+    used_ids: Optional[Dict[Variable, str]] = None,
+) -> Union[str, IOBase]:
     """Print a computation graph as text to stdout or a file.
-
-    :type obj: :class:`~aesara.graph.basic.Variable`, Apply, or Function instance
-    :param obj: symbolic thing to print
-    :type depth: integer
-    :param depth: print graph to this depth (-1 for unlimited)
-    :type print_type: boolean
-    :param print_type: whether to print the type of printed objects
-    :type file: None, 'str', or file-like object
-    :param file: print to this file ('str' means to return a string)
-    :type ids: str
-    :param ids: How do we print the identifier of the variable
-                id - print the python id value
-                int - print integer character
-                CHAR - print capital character
-                "" - don't print an identifier
-    :param stop_on_name: When True, if a node in the graph has a name,
-                         we don't print anything below it.
-    :type done: None or dict
-    :param done: A dict where we store the ids of printed node.
-        Useful to have multiple call to debugprint share the same ids.
-    :type print_storage: bool
-    :param print_storage: If True, this will print the storage map
-        for Aesara functions. Combined with allow_gc=False, after the
-        execution of an Aesara function, we see the intermediate result.
-    :type used_ids: dict or None
-    :param used_ids: the id to use for some object, but maybe we only
-         referred to it yet.
-
-    :returns: string if `file` == 'str', else file arg
 
     Each line printed represents a Variable in the graph.
     The indentation of lines corresponds to its depth in the symbolic graph.
@@ -135,6 +110,43 @@ def debugprint(
 
     If an Apply has multiple outputs, then a '.N' suffix will be appended
     to the Apply's identifier, to indicate which output a line corresponds to.
+
+    Parameters
+    ----------
+    obj
+        The `Variable`, `Apply`, or `Function` instance to print (or a list
+        thereof).
+    depth
+        Print graph to this depth (``-1`` for unlimited).
+    print_type
+        Whether to print the type of printed objects
+    file
+        When `file` is extends `IOBase`, print to this file; when `file` is
+        equal to ``"str"``, return a string; when `file` is ``None``, print to
+        stdout.
+    ids
+        Determines the type of identifier used for variables.
+          - ``"id"``: print the python id value,
+          - ``"int"``: print integer character,
+          - ``"CHAR"``: print capital character,
+          - ``"auto"``: print the ``auto_name`` value,
+          - ``""``: don't print an identifier.
+    stop_on_name
+        When ``True``, if a node in the graph has a name, we don't print anything
+        below it.
+    done
+        A ``dict`` where we store the ids of printed nodes.
+        Useful to have multiple call to `debugprint` share the same ids.
+    print_storage
+        If ``True``, this will print the storage map for Aesara functions. When
+        combined with ``allow_gc=False``, after the execution of an Aesara
+        function, the output will show the intermediate results.
+    used_ids
+        A map between nodes and their printed ids.
+
+    Returns
+    -------
+    A string representing the printed graph, if `file` is a string, else `file`.
 
     """
     from aesara.scan.op import Scan
@@ -309,46 +321,46 @@ N.B.:
 
 
 def _debugprint(
-    r,
-    prefix="",
-    depth=-1,
-    done=None,
-    print_type=False,
-    file=sys.stdout,
-    print_destroy_map=False,
-    print_view_map=False,
-    order=None,
-    ids="CHAR",
-    stop_on_name=False,
-    prefix_child=None,
-    scan_ops=None,
-    profile=None,
-    scan_inner_to_outer_inputs=None,
-    smap=None,
-    used_ids=None,
-):
-    """Print the graph leading to `r`.
+    r: Variable,
+    prefix: str = "",
+    depth: int = -1,
+    done: Optional[Dict[Apply, str]] = None,
+    print_type: bool = False,
+    file: IOBase = sys.stdout,
+    print_destroy_map: bool = False,
+    print_view_map: bool = False,
+    order: Optional[List[Variable]] = None,
+    ids: str = "CHAR",
+    stop_on_name: bool = False,
+    prefix_child: Optional[str] = None,
+    scan_ops: Optional[List[Variable]] = None,
+    profile: Optional[ProfileStats] = None,
+    scan_inner_to_outer_inputs: Optional[Dict[Variable, Variable]] = None,
+    smap: Optional[StorageMapType] = None,
+    used_ids: Optional[Dict[Variable, str]] = None,
+) -> IOBase:
+    r"""Print the graph leading to `r`.
 
     Parameters
     ----------
     r
-        Variable instance.
+        A `Variable` instance.
     prefix
         Prefix to each line (typically some number of spaces).
     depth
-        Maximum recursion depth (Default -1 for unlimited).
+        Print graph to this depth (``-1`` for unlimited).
     done
+        A ``dict`` of `Apply` instances that have already been printed and
+        their associated printed ids.
         Internal. Used to pass information when recursing.
-        Dict of Apply instances that have already been printed and their
-        associated printed ids.
     print_type
-        Whether to print the Variable type after the other infos.
+        Whether to print the `Variable`'s type.
     file
         File-like object to which to print.
     print_destroy_map
-        Whether to print the op destroy_map after other info.
+        Whether to print `Op` ``destroy_map``\s.
     print_view_map
-        Whether to print the op view_map after other info.
+        Whether to print `Op` ``view_map``\s.
     order
         If not empty will print the index in the toposort.
     ids
@@ -359,20 +371,19 @@ def _debugprint(
           - ``"auto"``: print the ``auto_name`` value,
           - ``""``: don't print an identifier.
     stop_on_name
-        When True, if a node in the graph has a name, we don't print anything
+        When ``True``, if a node in the graph has a name, we don't print anything
         below it.
     scan_ops
-        Scan ops in the graph will be added inside this list for later printing
-        purposes.
+        `Scan` `Op`\s in the graph will be added inside this list for later
+        printing purposes.
     scan_inner_to_outer_inputs
-        A dictionary mapping a scan ops inner function inputs to the scan op
-        inputs (outer inputs) for printing purposes.
+        A dictionary mapping a `Scan` `Op`'s inner-inputs to its outer-inputs.
     smap
-        None or the storage_map when printing an Aesara function.
+        ``None`` or the ``storage_map`` when printing an Aesara function.
     used_ids
-        Internal. Used to pass information when recursing.
-        It is a dict from obj to the id used for it.
+        A map between nodes and their printed ids.
         It wasn't always printed, but at least a reference to it was printed.
+        Internal. Used to pass information when recursing.
     """
     if depth == 0:
         return
