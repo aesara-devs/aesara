@@ -90,4 +90,4 @@ def test_default_blas_ldflags(sys_mock, try_blas_flag_mock, caplog):
         with caplog.at_level(logging.WARNING):
             default_blas_ldflags()
 
-    assert "install mkl with" in caplog.text
+    assert caplog.text == ""
