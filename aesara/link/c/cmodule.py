@@ -2738,9 +2738,8 @@ def default_blas_ldflags():
         # numpy and scipy.
         try:
             import mkl  # noqa
-        except ImportError as e:
-            if any([m for m in ("conda", "Continuum") if m in sys.version]):
-                warn_record.append(f"install mkl with `conda install mkl-service`: {e}")
+        except ImportError:
+            pass
         else:
             # This branch is executed if no exception was raised
             if sys.platform == "win32":
