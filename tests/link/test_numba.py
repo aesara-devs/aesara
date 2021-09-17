@@ -25,7 +25,7 @@ from aesara.graph.fg import FunctionGraph
 from aesara.graph.op import Op
 from aesara.graph.optdb import OptimizationQuery
 from aesara.graph.type import Type
-from aesara.link.numba.dispatch import create_numba_signature, get_numba_type
+from aesara.link.numba.dispatch import basic as numba_basic
 from aesara.link.numba.linker import NumbaLinker
 from aesara.scalar.basic import Composite
 from aesara.tensor import blas
@@ -147,20 +147,21 @@ def eval_python_only(fn_inputs, fgraph, inputs):
         else:
             return wrap
 
-    with mock.patch("aesara.link.numba.dispatch.numba.njit", njit_noop), mock.patch(
-        "aesara.link.numba.dispatch.numba.vectorize",
+    with mock.patch("numba.njit", njit_noop), mock.patch(
+        "numba.vectorize",
         vectorize_noop,
     ), mock.patch(
-        "aesara.link.numba.dispatch.tuple_setitem", py_tuple_setitem
+        "aesara.link.numba.dispatch.elemwise.tuple_setitem",
+        py_tuple_setitem,
     ), mock.patch(
-        "aesara.link.numba.dispatch.direct_cast", lambda x, dtype: x
+        "aesara.link.numba.dispatch.basic.direct_cast", lambda x, dtype: x
     ), mock.patch(
-        "aesara.link.numba.dispatch.numba.np.numpy_support.from_dtype",
+        "aesara.link.numba.dispatch.basic.numba.np.numpy_support.from_dtype",
         lambda dtype: dtype,
     ), mock.patch(
-        "aesara.link.numba.dispatch.to_scalar", py_to_scalar
+        "aesara.link.numba.dispatch.basic.to_scalar", py_to_scalar
     ), mock.patch(
-        "aesara.link.numba.dispatch.to_fixed_tuple",
+        "numba.np.unsafe.ndarray.to_fixed_tuple",
         lambda x, n: tuple(x),
     ):
         aesara_numba_fn = function(
@@ -247,7 +248,7 @@ def test_get_numba_type(v, expected, force_scalar, not_implemented):
         else pytest.raises(NotImplementedError)
     )
     with cm:
-        res = get_numba_type(v, force_scalar=force_scalar)
+        res = numba_basic.get_numba_type(v, force_scalar=force_scalar)
         assert res == expected
 
 
@@ -289,7 +290,7 @@ def test_get_numba_type(v, expected, force_scalar, not_implemented):
     ],
 )
 def test_create_numba_signature(v, expected, force_scalar):
-    res = create_numba_signature(v, force_scalar=force_scalar)
+    res = numba_basic.create_numba_signature(v, force_scalar=force_scalar)
     assert res == expected
 
 
