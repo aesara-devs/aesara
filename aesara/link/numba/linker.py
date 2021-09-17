@@ -1,5 +1,3 @@
-from numpy.random import RandomState
-
 from aesara.link.basic import JITLinker
 
 
@@ -18,6 +16,8 @@ class NumbaLinker(JITLinker):
         return jitted_fn
 
     def create_thunk_inputs(self, storage_map):
+        from numpy.random import RandomState
+
         from aesara.link.numba.dispatch import numba_typify
 
         thunk_inputs = []
