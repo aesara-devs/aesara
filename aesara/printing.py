@@ -11,7 +11,7 @@ import sys
 from copy import copy
 from functools import reduce
 from io import IOBase, StringIO
-from typing import Dict, List, Optional, Union
+from typing import Dict, Iterable, List, Optional, Union
 
 import numpy as np
 
@@ -552,10 +552,11 @@ def _debugprint(
             id_str = get_id_str(r)
             outer_r = inner_to_outer_inputs[r]
 
-            if hasattr(outer_r.owner, "op"):
+            if outer_r.owner:
                 outer_id_str = get_id_str(outer_r.owner)
             else:
                 outer_id_str = get_id_str(outer_r)
+
             print(
                 f"{prefix}{r} {id_str}{type_str} -> {outer_id_str}",
                 file=file,
@@ -1643,3 +1644,38 @@ def hex_digest(x):
     rval = rval + "|strides=[" + ",".join(str(stride) for stride in x.strides) + "]"
     rval = rval + "|shape=[" + ",".join(str(s) for s in x.shape) + "]"
     return rval
+
+
+def get_node_by_id(
+    graphs: Iterable[Variable], target_var_id: str, ids: str = "CHAR"
+) -> Optional[Union[Variable, Apply]]:
+    r"""Get `Apply` nodes or `Variable`\s in a graph using their `debugprint` IDs.
+
+    Parameters
+    ----------
+    graphs:
+        The graph, or graphs, to search.
+    target_var_id:
+        The name to search for.
+    ids:
+        The ID scheme to use (see `debugprint.`).
+
+    Returns
+    -------
+    The `Apply`/`Variable` matching `target_var_id` or ``None``.
+
+    """
+    from aesara.printing import debugprint
+
+    if isinstance(graphs, Variable):
+        graphs = (graphs,)
+
+    used_ids = dict()
+
+    _ = debugprint(graphs, file="str", used_ids=used_ids, ids=ids)
+
+    id_to_node = {v: k for k, v in used_ids.items()}
+
+    id_str = f"[id {target_var_id}]"
+
+    return id_to_node.get(id_str, None)
