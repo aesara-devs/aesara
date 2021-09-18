@@ -51,7 +51,7 @@ def test_scan_debugprint1():
      | |ScalarConstant{1} [id U]
      |ScalarConstant{-1} [id V]
 
-    Inner graphs of the scan ops:
+    Inner graphs:
 
     for{cpu,scan_fn} [id C] ''
      >Elemwise{mul,no_inplace} [id W] ''
@@ -111,7 +111,7 @@ def test_scan_debugprint2():
        |Elemwise{scalar_minimum,no_inplace} [id C] ''
        |x [id W]
 
-    Inner graphs of the scan ops:
+    Inner graphs:
 
     for{cpu,scan_fn} [id B] ''
      >Elemwise{mul,no_inplace} [id X] ''
@@ -124,7 +124,6 @@ def test_scan_debugprint2():
         assert truth.strip() == out.strip()
 
 
-@aesara.config.change_flags(optimizer_verbose=True)
 def test_scan_debugprint3():
     coefficients = dvector("coefficients")
     max_coefficients_supported = 10
@@ -192,7 +191,7 @@ def test_scan_debugprint3():
        |A [id W]
        |k [id X]
 
-    Inner graphs of the scan ops:
+    Inner graphs:
 
     for{cpu,scan_fn} [id B] ''
      >Elemwise{mul,no_inplace} [id Y] ''
@@ -293,7 +292,7 @@ def test_scan_debugprint4():
        |for{cpu,scan_fn}.1 [id C] ''
        |ScalarConstant{2} [id BA]
 
-    Inner graphs of the scan ops:
+    Inner graphs:
 
     for{cpu,scan_fn}.0 [id C] ''
      >Elemwise{add,no_inplace} [id BB] ''
@@ -412,7 +411,7 @@ def test_scan_debugprint5():
     | |A [id P]
     |ScalarConstant{-1} [id CL]
 
-    Inner graphs of the scan ops:
+    Inner graphs:
 
     for{cpu,grad_of_scan_fn}.1 [id B] ''
     >Elemwise{add,no_inplace} [id CM] ''

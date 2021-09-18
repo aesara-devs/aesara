@@ -2015,7 +2015,7 @@ class TestLocalUselessElemwiseComparison:
          | |Subtensor{int64} [id C] ''
          |Y [id K]
 
-        Inner graphs of the scan ops:
+        Inner graphs:
 
         for{cpu,scan_fn} [id B] ''
          >Sum{acc_dtype=float64} [id L] ''
@@ -2050,7 +2050,7 @@ class TestLocalUselessElemwiseComparison:
          | |Shape_i{0} [id C] <TensorType(int64, scalar)> ''   0
          |Y [id M] <TensorType(float64, vector)>
 
-        Inner graphs of the scan ops:
+        Inner graphs:
 
         for{cpu,scan_fn} [id B] <TensorType(float64, vector)> ''
          >Sum{acc_dtype=float64} [id N] <TensorType(float64, scalar)> ''
