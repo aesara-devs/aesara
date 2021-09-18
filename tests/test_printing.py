@@ -9,6 +9,7 @@ import pytest
 import aesara
 from aesara.printing import (
     debugprint,
+    get_node_by_id,
     min_informative_str,
     pp,
     pydot_imported,
@@ -344,3 +345,48 @@ MyInnerGraphOp [id C] ''
 
     for exp_line, res_line in zip(exp_res.split("\n"), lines):
         assert exp_line.strip() == res_line.strip()
+
+
+def test_get_var_by_id():
+
+    r1, r2 = MyVariable("v1"), MyVariable("v2")
+    o1 = MyOp("op1")(r1, r2)
+    o1.name = "o1"
+
+    # Inner graph
+    igo_in_1 = MyVariable("v4")
+    igo_in_2 = MyVariable("v5")
+    igo_out_1 = MyOp("op2")(igo_in_1, igo_in_2)
+    igo_out_1.name = "igo1"
+
+    igo = MyInnerGraphOp([igo_in_1, igo_in_2], [igo_out_1])
+
+    r3 = MyVariable("v3")
+    o2 = igo(r3, o1)
+
+    # import aesara; aesara.dprint([o1, o2])
+    # op1 [id A] 'o1'
+    #  |1 [id B]
+    #  |2 [id C]
+    # MyInnerGraphOp [id D] ''
+    #  |3 [id E]
+    #  |op1 [id A] 'o1'
+    #
+    # Inner graphs:
+    #
+    # MyInnerGraphOp [id D] ''
+    #  >op2 [id F] 'igo1'
+    #  > |4 [id G]
+    #  > |5 [id H]
+
+    res = get_node_by_id(o1, "blah")
+
+    assert res is None
+
+    res = get_node_by_id([o1, o2], "C")
+
+    assert res == r2
+
+    res = get_node_by_id([o1, o2], "F")
+
+    assert res == igo_out_1.owner
