@@ -21,7 +21,7 @@ from aesara.compile.profiling import ProfileStats
 from aesara.configdefaults import config
 from aesara.graph.basic import Apply, Constant, Variable, graph_inputs, io_toposort
 from aesara.graph.fg import FunctionGraph
-from aesara.graph.op import Op, StorageMapType
+from aesara.graph.op import HasInnerGraph, Op, StorageMapType
 from aesara.graph.utils import Scratchpad
 
 
@@ -149,29 +149,32 @@ def debugprint(
     A string representing the printed graph, if `file` is a string, else `file`.
 
     """
-    from aesara.scan.op import Scan
-
     if not isinstance(depth, int):
         raise Exception("depth parameter must be an int")
+
     if file == "str":
         _file = StringIO()
     elif file is None:
         _file = sys.stdout
     else:
         _file = file
+
     if done is None:
         done = dict()
+
     if used_ids is None:
         used_ids = dict()
-    used_ids = dict()
+
     results_to_print = []
     profile_list = []
     order = []  # Toposort
     smap = []  # storage_map
+
     if isinstance(obj, (list, tuple, set)):
         lobj = obj
     else:
         lobj = [obj]
+
     for obj in lobj:
         if isinstance(obj, Variable):
             results_to_print.append(obj)
@@ -206,9 +209,9 @@ def debugprint(
             smap.append(None)
             order.append(None)
         else:
-            raise TypeError("debugprint cannot print an object of this type", obj)
+            raise TypeError(f"debugprint cannot print an object type {type(obj)}")
 
-    scan_ops = []
+    inner_graph_ops = []
     if any([p for p in profile_list if p is not None and p.fct_callcount > 0]):
         print(
             """
@@ -232,9 +235,8 @@ N.B.:
         )
 
     for r, p, s, o in zip(results_to_print, profile_list, smap, order):
-        # Add the parent scan op to the list as well
-        if hasattr(r.owner, "op") and isinstance(r.owner.op, Scan):
-            scan_ops.append(r)
+        if hasattr(r.owner, "op") and isinstance(r.owner.op, HasInnerGraph):
+            inner_graph_ops.append(r)
 
         _debugprint(
             r,
@@ -244,36 +246,48 @@ N.B.:
             file=_file,
             order=o,
             ids=ids,
-            scan_ops=scan_ops,
+            inner_graph_ops=inner_graph_ops,
             stop_on_name=stop_on_name,
             profile=p,
             smap=s,
             used_ids=used_ids,
         )
 
-    if len(scan_ops) > 0:
+    if len(inner_graph_ops) > 0:
         print("", file=_file)
         new_prefix = " >"
         new_prefix_child = " >"
-        print("Inner graphs of the scan ops:", file=_file)
+        print("Inner graphs:", file=_file)
 
-        for s in scan_ops:
-            # prepare a dict which maps the scan op's inner inputs
-            # to its outer inputs.
-            if hasattr(s.owner.op, "_fn"):
+        for s in inner_graph_ops:
+
+            # This is a work-around to maintain backward compatibility
+            # (e.g. to only print inner graphs that have been compiled through
+            # a call to `Op.prepare_node`)
+            inner_fn = getattr(s.owner.op, "_fn", None)
+
+            if inner_fn:
                 # If the op was compiled, print the optimized version.
-                inner_inputs = s.owner.op.fn.maker.fgraph.inputs
+                inner_inputs = inner_fn.maker.fgraph.inputs
+                inner_outputs = inner_fn.maker.fgraph.outputs
             else:
-                inner_inputs = s.owner.op.inputs
+                inner_inputs = s.owner.op.inner_inputs
+                inner_outputs = s.owner.op.inner_outputs
+
             outer_inputs = s.owner.inputs
-            inner_to_outer_inputs = {
-                inner_inputs[i]: outer_inputs[o]
-                for i, o in s.owner.op.get_oinp_iinp_iout_oout_mappings()[
-                    "outer_inp_from_inner_inp"
-                ].items()
-            }
+
+            if hasattr(s.owner.op, "get_oinp_iinp_iout_oout_mappings"):
+                inner_to_outer_inputs = {
+                    inner_inputs[i]: outer_inputs[o]
+                    for i, o in s.owner.op.get_oinp_iinp_iout_oout_mappings()[
+                        "outer_inp_from_inner_inp"
+                    ].items()
+                }
+            else:
+                inner_to_outer_inputs = None
 
             print("", file=_file)
+
             _debugprint(
                 s,
                 depth=depth,
@@ -281,21 +295,16 @@ N.B.:
                 print_type=print_type,
                 file=_file,
                 ids=ids,
-                scan_ops=scan_ops,
+                inner_graph_ops=inner_graph_ops,
                 stop_on_name=stop_on_name,
-                scan_inner_to_outer_inputs=inner_to_outer_inputs,
+                inner_to_outer_inputs=inner_to_outer_inputs,
                 used_ids=used_ids,
             )
-            if hasattr(s.owner.op, "_fn"):
-                # If the op was compiled, print the optimized version.
-                outputs = s.owner.op.fn.maker.fgraph.outputs
-            else:
-                outputs = s.owner.op.outputs
-            for idx, i in enumerate(outputs):
 
-                if hasattr(i, "owner") and hasattr(i.owner, "op"):
-                    if isinstance(i.owner.op, Scan):
-                        scan_ops.append(i)
+            for idx, i in enumerate(inner_outputs):
+
+                if isinstance(getattr(i.owner, "op", None), HasInnerGraph):
+                    inner_graph_ops.append(i)
 
                 _debugprint(
                     r=i,
@@ -307,8 +316,8 @@ N.B.:
                     ids=ids,
                     stop_on_name=stop_on_name,
                     prefix_child=new_prefix_child,
-                    scan_ops=scan_ops,
-                    scan_inner_to_outer_inputs=inner_to_outer_inputs,
+                    inner_graph_ops=inner_graph_ops,
+                    inner_to_outer_inputs=inner_to_outer_inputs,
                     used_ids=used_ids,
                 )
 
@@ -333,9 +342,9 @@ def _debugprint(
     ids: str = "CHAR",
     stop_on_name: bool = False,
     prefix_child: Optional[str] = None,
-    scan_ops: Optional[List[Variable]] = None,
+    inner_graph_ops: Optional[List[Variable]] = None,
     profile: Optional[ProfileStats] = None,
-    scan_inner_to_outer_inputs: Optional[Dict[Variable, Variable]] = None,
+    inner_to_outer_inputs: Optional[Dict[Variable, Variable]] = None,
     smap: Optional[StorageMapType] = None,
     used_ids: Optional[Dict[Variable, str]] = None,
 ) -> IOBase:
@@ -373,11 +382,10 @@ def _debugprint(
     stop_on_name
         When ``True``, if a node in the graph has a name, we don't print anything
         below it.
-    scan_ops
-        `Scan` `Op`\s in the graph will be added inside this list for later
-        printing purposes.
-    scan_inner_to_outer_inputs
-        A dictionary mapping a `Scan` `Op`'s inner-inputs to its outer-inputs.
+    inner_graph_ops
+        A list of `Op`\s with inner graphs.
+    inner_to_outer_inputs
+        A dictionary mapping an `Op`'s inner-inputs to its outer-inputs.
     smap
         ``None`` or the ``storage_map`` when printing an Aesara function.
     used_ids
@@ -394,8 +402,8 @@ def _debugprint(
     if done is None:
         done = dict()
 
-    if scan_ops is None:
-        scan_ops = []
+    if inner_graph_ops is None:
+        inner_graph_ops = []
 
     if print_type:
         type_str = f" <{r.type}>"
@@ -518,10 +526,8 @@ def _debugprint(
                         new_prefix_child = prefix_child + "  "
 
                     if hasattr(i, "owner") and hasattr(i.owner, "op"):
-                        from aesara.scan.op import Scan
-
-                        if isinstance(i.owner.op, Scan):
-                            scan_ops.append(i)
+                        if isinstance(i.owner.op, HasInnerGraph):
+                            inner_graph_ops.append(i)
 
                     _debugprint(
                         i,
@@ -534,17 +540,17 @@ def _debugprint(
                         ids=ids,
                         stop_on_name=stop_on_name,
                         prefix_child=new_prefix_child,
-                        scan_ops=scan_ops,
+                        inner_graph_ops=inner_graph_ops,
                         profile=profile,
-                        scan_inner_to_outer_inputs=scan_inner_to_outer_inputs,
+                        inner_to_outer_inputs=inner_to_outer_inputs,
                         smap=smap,
                         used_ids=used_ids,
                     )
     else:
-        if scan_inner_to_outer_inputs is not None and r in scan_inner_to_outer_inputs:
+        if inner_to_outer_inputs is not None and r in inner_to_outer_inputs:
 
             id_str = get_id_str(r)
-            outer_r = scan_inner_to_outer_inputs[r]
+            outer_r = inner_to_outer_inputs[r]
 
             if hasattr(outer_r.owner, "op"):
                 outer_id_str = get_id_str(outer_r.owner)
@@ -665,8 +671,8 @@ class OperatorPrinter:
         node = output.owner
         if node is None:
             raise TypeError(
-                "operator %s cannot represent a variable that is "
-                "not the result of an operation" % self.operator
+                f"operator {self.operator} cannot represent a variable that is "
+                "not the result of an operation"
             )
 
         # Precedence seems to be buggy, see #249
@@ -720,8 +726,8 @@ class PatternPrinter:
         node = output.owner
         if node is None:
             raise TypeError(
-                "Patterns %s cannot represent a variable that is "
-                "not the result of an operation" % self.patterns
+                f"Patterns {self.patterns} cannot represent a variable that is "
+                "not the result of an operation"
             )
         idx = node.outputs.index(output)
         pattern, precedences = self.patterns[idx]
@@ -760,8 +766,8 @@ class FunctionPrinter:
         node = output.owner
         if node is None:
             raise TypeError(
-                "function %s cannot represent a variable that is "
-                "not the result of an operation" % self.names
+                f"function {self.names} cannot represent a variable that is "
+                "not the result of an operation"
             )
         idx = node.outputs.index(output)
         name = self.names[idx]
@@ -1107,10 +1113,9 @@ def pydotprint(
         fgraph = fct
     if not pydot_imported:
         raise RuntimeError(
-            "Failed to import pydot. You must install graphviz"
-            " and either pydot or pydot-ng for "
-            "`pydotprint` to work.",
-            pydot_imported_msg,
+            "Failed to import pydot. You must install graphviz "
+            "and either pydot or pydot-ng for "
+            f"`pydotprint` to work:\n {pydot_imported_msg}",
         )
 
     g = pd.Dot()

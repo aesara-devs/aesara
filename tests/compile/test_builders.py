@@ -11,6 +11,7 @@ from aesara.gradient import DisconnectedType, Rop, disconnected_type, grad
 from aesara.graph.fg import FunctionGraph
 from aesara.graph.null_type import NullType
 from aesara.graph.opt_utils import optimize_graph
+from aesara.printing import debugprint
 from aesara.tensor.basic import as_tensor
 from aesara.tensor.basic_opt import ShapeOptimizer
 from aesara.tensor.math import dot, exp
@@ -433,3 +434,31 @@ class TestOpFromGraph(unittest_tools.InferShapeTester):
         f = op(y)
         grad_f = grad(f, y)
         assert grad_f.tag.test_value is not None
+
+
+def test_debugprint():
+    x, y, z = matrices("xyz")
+    e = x + y * z
+    op = OpFromGraph([x, y, z], [e])
+    out = op(x, y, z)
+
+    output_str = debugprint(out, file="str")
+    lines = output_str.split("\n")
+
+    exp_res = """OpFromGraph{inline=False} [id A] ''
+ |x [id B]
+ |y [id C]
+ |z [id D]
+
+Inner graphs:
+
+OpFromGraph{inline=False} [id A] ''
+ >Elemwise{add,no_inplace} [id E] ''
+ > |x [id F]
+ > |Elemwise{mul,no_inplace} [id G] ''
+ >   |y [id H]
+ >   |z [id I]
+"""
+
+    for truth, out in zip(exp_res.split("\n"), lines):
+        assert truth.strip() == out.strip()

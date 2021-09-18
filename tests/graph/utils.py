@@ -1,7 +1,7 @@
 import numpy as np
 
 from aesara.graph.basic import Apply, Constant, Variable
-from aesara.graph.op import Op
+from aesara.graph.op import HasInnerGraph, Op
 from aesara.graph.type import Type
 
 
@@ -108,3 +108,33 @@ op_y = MyOp("OpY", x=1)
 op_z = MyOp("OpZ", x=1)
 
 op_cast_type2 = MyOpCastType2("OpCastType2")
+
+
+class MyInnerGraphOp(Op, HasInnerGraph):
+    __props__ = ()
+
+    def __init__(self, inner_inputs, inner_outputs):
+        self._inner_inputs = inner_inputs
+        self._inner_outputs = inner_outputs
+
+    def make_node(self, *inputs):
+        for input in inputs:
+            assert isinstance(input, Variable)
+            assert isinstance(input.type, MyType)
+        outputs = [inputs[0].type()]
+        return Apply(self, list(inputs), outputs)
+
+    def perform(self, *args, **kwargs):
+        raise NotImplementedError("No Python implementation available.")
+
+    @property
+    def fn(self):
+        raise NotImplementedError("No Python implementation available.")
+
+    @property
+    def inner_inputs(self):
+        return self._inner_inputs
+
+    @property
+    def inner_outputs(self):
+        return self._inner_outputs

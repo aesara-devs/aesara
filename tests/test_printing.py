@@ -15,6 +15,7 @@ from aesara.printing import (
     pydotprint,
 )
 from aesara.tensor.type import dmatrix, dvector, matrix
+from tests.graph.utils import MyInnerGraphOp, MyOp, MyVariable
 
 
 @pytest.mark.skipif(not pydot_imported, reason="pydot not available")
@@ -109,6 +110,9 @@ def test_min_informative_str():
 
 
 def test_debugprint():
+    with pytest.raises(TypeError):
+        debugprint("blah")
+
     A = matrix(name="A")
     B = matrix(name="B")
     C = A + B
@@ -277,3 +281,66 @@ def test_pprint():
     x = dvector()
     y = x[1]
     assert pp(y) == "<TensorType(float64, vector)>[ScalarConstant{1}]"
+
+
+def test_debugprint_inner_graph():
+    r1, r2 = MyVariable("1"), MyVariable("2")
+    o1 = MyOp("op1")(r1, r2)
+    o1.name = "o1"
+
+    # Inner graph
+    igo_in_1 = MyVariable("4")
+    igo_in_2 = MyVariable("5")
+    igo_out_1 = MyOp("op2")(igo_in_1, igo_in_2)
+    igo_out_1.name = "igo1"
+
+    igo = MyInnerGraphOp([igo_in_1, igo_in_2], [igo_out_1])
+
+    r3, r4 = MyVariable("3"), MyVariable("4")
+    out = igo(r3, r4)
+
+    output_str = debugprint(out, file="str")
+    lines = output_str.split("\n")
+
+    exp_res = """MyInnerGraphOp [id A] ''
+ |3 [id B]
+ |4 [id C]
+
+Inner graphs:
+
+MyInnerGraphOp [id A] ''
+ >op2 [id D] 'igo1'
+ > |4 [id E]
+ > |5 [id F]
+    """
+
+    for exp_line, res_line in zip(exp_res.split("\n"), lines):
+        assert exp_line.strip() == res_line.strip()
+
+    # Test nested inner-graph `Op`s
+    igo_2 = MyInnerGraphOp([r3, r4], [out])
+
+    r5 = MyVariable("5")
+    out_2 = igo_2(r5)
+
+    output_str = debugprint(out_2, file="str")
+    lines = output_str.split("\n")
+
+    exp_res = """MyInnerGraphOp [id A] ''
+ |5 [id B]
+
+Inner graphs:
+
+MyInnerGraphOp [id A] ''
+ >MyInnerGraphOp [id C] ''
+ > |3 [id D]
+ > |4 [id E]
+
+MyInnerGraphOp [id C] ''
+ >op2 [id F] 'igo1'
+ > |4 [id G]
+ > |5 [id H]
+    """
+
+    for exp_line, res_line in zip(exp_res.split("\n"), lines):
+        assert exp_line.strip() == res_line.strip()
