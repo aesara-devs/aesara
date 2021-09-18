@@ -1648,3 +1648,40 @@ def equal_computations(xs, ys, in_xs=None, in_ys=None):
                 return False
 
     return True
+
+
+def get_var_by_name(
+    graphs: Iterable[Variable], target_var_id: str, ids: str = "CHAR"
+) -> Tuple[Variable]:
+    r"""Get variables in a graph using their names.
+
+    Parameters
+    ----------
+    graphs:
+        The graph, or graphs, to search.
+    target_var_id:
+        The name to match against either ``Variable.name`` or
+        ``Variable.auto_name``.
+
+    Returns
+    -------
+    A ``tuple`` containing all the `Variable`\s that match `target_var_id`.
+
+    """
+    from aesara.graph.op import HasInnerGraph
+
+    def expand(r):
+        if r.owner:
+            res = r.owner.inputs
+
+            if isinstance(r.owner.op, HasInnerGraph):
+                res.extend(r.owner.op.inner_outputs)
+
+            return res
+
+    results = ()
+    for var in walk(graphs, expand, False):
+        if target_var_id == var.name or target_var_id == var.auto_name:
+            results += (var,)
+
+    return results
