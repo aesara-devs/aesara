@@ -1299,6 +1299,14 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
 
         return self._fn
 
+    @property
+    def inner_inputs(self):
+        return self.inputs
+
+    @property
+    def inner_outputs(self):
+        return self.outputs
+
     def make_thunk(self, node, storage_map, compute_map, no_recycling, impl=None):
         """
 
