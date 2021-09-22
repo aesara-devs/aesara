@@ -2,7 +2,7 @@ import logging
 import sys
 from itertools import chain, groupby
 from textwrap import dedent
-from typing import Iterable, List, Tuple, Union
+from typing import Iterable, List, Optional, Tuple, Union
 
 import numpy as np
 
@@ -64,19 +64,19 @@ invalid_tensor_types = (
 
 
 def indices_from_subtensor(
-    op_indices: Iterable[Union[ScalarConstant]],
-    idx_list: List[Union[Type, slice, Variable]],
+    op_indices: Iterable[ScalarConstant],
+    idx_list: Optional[List[Union[Type, slice, Variable]]],
 ) -> Tuple[Union[slice, Variable]]:
     """Recreate the index tuple from which a ``*Subtensor**`` ``Op`` was created.
 
     Parameters
     ==========
     op_indices
-        The flattened indices obtained from ``x.owner.inputs``, when ``x`` is a
-        ``*Subtensor*`` ``Op``.
+        The flattened indices obtained from ``x.inputs``, when ``x`` is a
+        ``*Subtensor*`` node.
     idx_list
         The values describing the types of each dimension's index.  This is
-        obtained from ``x.owner.inputs``, when ``x`` is a ``*Subtensor*``
+        obtained from ``op.idx_list``, when ``op`` is a ``*Subtensor*``
         ``Op``.
 
     Example
