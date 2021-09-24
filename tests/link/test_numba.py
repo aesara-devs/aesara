@@ -26,6 +26,7 @@ from aesara.graph.op import Op
 from aesara.graph.optdb import OptimizationQuery
 from aesara.graph.type import Type
 from aesara.link.numba.dispatch import basic as numba_basic
+from aesara.link.numba.dispatch import elemwise as numba_elemwise
 from aesara.link.numba.linker import NumbaLinker
 from aesara.scalar.basic import Composite
 from aesara.tensor import blas
@@ -2893,3 +2894,39 @@ def test_random_Generator():
                 if not isinstance(i, (SharedVariable, Constant))
             ],
         )
+
+
+def test_get_broadcast_shape():
+    # broadcastable case
+    a = np.random.normal(size=(2, 2))
+    b = np.random.normal(size=(2,))
+    c = np.random.normal(size=(3, 2, 1))
+
+    try:
+        broadcast_shapes = np.broadcast_shapes
+    except AttributeError:
+        from numpy.lib.stride_tricks import _broadcast_shape
+
+        def broadcast_shapes(*shapes):
+            return _broadcast_shape(*[np.empty(x, dtype=[]) for x in shapes])
+
+    broadcast_shape_np = broadcast_shapes(*(np.shape(x) for x in (a, b, c)))
+    broadcast_shape_func = numba_elemwise.get_broadcast_shape(a, b, c)
+    broadcast_shape = broadcast_shape_func()
+    assert broadcast_shape_np == broadcast_shape
+
+    # not broadcastable case 1
+    a = np.random.normal(size=(2, 2))
+    b = np.random.normal(size=(3,))
+
+    broadcast_shape_func = numba_elemwise.get_broadcast_shape(a, b)
+    with pytest.raises(ValueError):
+        broadcast_shape_func()
+
+    # not broadcastable case 2
+    a = np.random.normal(size=(2, 2))
+    b = np.random.normal(size=(0))
+
+    broadcast_shape_func = numba_elemwise.get_broadcast_shape(a, b)
+    with pytest.raises(ValueError):
+        broadcast_shape_func()

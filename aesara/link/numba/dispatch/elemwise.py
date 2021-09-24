@@ -484,3 +484,27 @@ def numba_funcify_MaxAndArgmax(op, node, **kwargs):
             return max_res, max_idx_res
 
     return maxandargmax
+
+
+def get_broadcast_shape(*np_arrays: np.ndarray):
+    array_shapes = [np.shape(s) for s in np_arrays]
+    ndims = tuple(s.ndim for s in np_arrays)
+    res_ndim = max(ndims)
+    array_shapes = tuple((1,) * (res_ndim - len(s)) + s for s in array_shapes)
+    shape_func = create_tuple_creator(lambda _: 1, res_ndim)
+
+    @numba.njit
+    def np_broadcast_shape():
+        broadcast_shape = shape_func()
+        for i, dim_shapes in enumerate(zip(*array_shapes)):
+            max_d_s = max(dim_shapes)
+
+            for j in range(len(dim_shapes)):
+                if dim_shapes[j] != max_d_s and dim_shapes[j] != 1:
+                    raise ValueError("Not broadcastable")
+
+            broadcast_shape = tuple_setitem(broadcast_shape, i, max_d_s)
+
+        return broadcast_shape
+
+    return np_broadcast_shape
