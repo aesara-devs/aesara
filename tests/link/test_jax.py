@@ -30,7 +30,7 @@ from aesara.tensor import subtensor as aet_subtensor
 from aesara.tensor.elemwise import Elemwise
 from aesara.tensor.math import MaxAndArgmax
 from aesara.tensor.math import all as aet_all
-from aesara.tensor.math import clip, cosh, gammaln, log
+from aesara.tensor.math import clip, cosh, erf, erfc, erfinv, gammaln, log
 from aesara.tensor.math import max as aet_max
 from aesara.tensor.math import maximum, prod, sigmoid, softplus
 from aesara.tensor.math import sum as aet_sum
@@ -1254,3 +1254,27 @@ def test_RandomStream():
     jax_res_2 = fn()
 
     assert np.array_equal(jax_res_1, jax_res_2)
+
+
+def test_erf():
+    x = scalar("x")
+    out = erf(x)
+    fg = FunctionGraph([x], [out])
+
+    compare_jax_and_py(fg, [1.0])
+
+
+def test_erfc():
+    x = scalar("x")
+    out = erfc(x)
+    fg = FunctionGraph([x], [out])
+
+    compare_jax_and_py(fg, [1.0])
+
+
+def test_erfinv():
+    x = scalar("x")
+    out = erfinv(x)
+    fg = FunctionGraph([x], [out])
+
+    compare_jax_and_py(fg, [1.0])
