@@ -16,6 +16,7 @@ from aesara.ifelse import IfElse
 from aesara.link.utils import fgraph_to_python
 from aesara.scalar import Softplus
 from aesara.scalar.basic import Cast, Clip, Composite, Identity, ScalarOp, Second
+from aesara.scalar.math import Erf, Erfc, Erfinv
 from aesara.scan.op import Scan
 from aesara.scan.utils import ScanArgs
 from aesara.tensor.basic import (
@@ -1047,3 +1048,48 @@ def jax_funcify_RandomVariable(op, node, **kwargs):
         return (rng, smpl_value)
 
     return random_variable
+
+
+@jax_funcify.register(Erf)
+def jax_funcify_Erf(op, node, **kwargs):
+    def erf(x):
+        return jax.scipy.special.erf(x)
+
+    return erf
+
+
+@jax_funcify.register(Erfc)
+def jax_funcify_Erfc(op, **kwargs):
+    def erfc(x):
+        return jax.scipy.special.erfc(x)
+
+    return erfc
+
+
+# Commented out because jax.scipy does not have erfcx,
+# but leaving the implementation in here just in case we ever see
+# a JAX implementation of Erfcx.
+# See https://github.com/google/jax/issues/1987 for context.
+# @jax_funcify.register(Erfcx)
+# def jax_funcify_Erfcx(op, **kwargs):
+#     def erfcx(x):
+#         return jax.scipy.special.erfcx(x)
+#     return erfcx
+
+
+@jax_funcify.register(Erfinv)
+def jax_funcify_Erfinv(op, **kwargs):
+    def erfinv(x):
+        return jax.scipy.special.erfinv(x)
+
+    return erfinv
+
+
+# Commented out because jax.scipy does not have Erfcinv,
+# but leaving the implementation in here just in case we ever see
+# a JAX implementation of Erfcinv.
+# @jax_funcify.register(Erfcinv)
+# def jax_funcify_Erfcinv(op, **kwargs):
+#     def erfcinv(x):
+#         return jax.scipy.special.erfcinv(x)
+#     return erfcinv
