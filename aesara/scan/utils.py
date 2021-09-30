@@ -1163,7 +1163,7 @@ class ScanArgs:
             var_info = self.find_among_fields(var_info)
 
         alt_type = var_info.name[(var_info.name.index("_", 6) + 1) :]
-        alt_var = getattr(self, "inner_out_{}".format(alt_type))[var_info.index]
+        alt_var = getattr(self, f"{alt_prefix}_{alt_type}")[var_info.index]
         return alt_var
 
     def find_among_fields(
