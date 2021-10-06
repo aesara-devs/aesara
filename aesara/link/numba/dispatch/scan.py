@@ -1,8 +1,14 @@
 import numba
 import numpy as np
+from numba import types
+from numba.extending import overload
 
 from aesara.graph.fg import FunctionGraph
-from aesara.link.numba.dispatch.basic import create_tuple_string, numba_funcify
+from aesara.link.numba.dispatch.basic import (
+    create_arg_string,
+    create_tuple_string,
+    numba_funcify,
+)
 from aesara.link.utils import compile_function_src
 from aesara.scan.op import Scan
 
@@ -14,6 +20,16 @@ def idx_to_str(idx):
     elif idx > 0:
         res += "+" + str(idx)
     return res + "]"
+
+
+@overload(range)
+def array0d_range(x):
+    if isinstance(x, types.Array) and x.ndim == 0:
+
+        def range_arr(x):
+            return range(x.item())
+
+        return range_arr
 
 
 @numba_funcify.register(Scan)
@@ -57,7 +73,9 @@ def numba_funcify_Scan(op, node, **kwargs):
     allocate_mem_to_nit_sot = ""
 
     for _name in outer_in_seqs_names:
-        # TODO:Index sould be updating according to sequence's taps
+        # A sequence with multiple taps is provided as multiple modified
+        # input sequences to the Scan Op sliced appropriately
+        # to keep following the logic of a normal sequence.
         index = "[i]"
         inner_in_indexed.append(_name + index)
 
@@ -66,7 +84,7 @@ def numba_funcify_Scan(op, node, **kwargs):
     for _name in outer_in_feedback_names:
         if _name in outer_in_mit_sot_names:
             curr_taps = mit_sot_name_to_taps[_name]
-            min_tap = min(*curr_taps)
+            min_tap = min(curr_taps)
 
             for _tap in curr_taps:
                 index = idx_to_str(_tap - min_tap)
@@ -76,18 +94,23 @@ def numba_funcify_Scan(op, node, **kwargs):
             inner_out_indexed.append(_name + index)
 
         if _name in outer_in_sit_sot_names:
-            # TODO: Input according to taps
+            # Note that the outputs with single taps which are not
+            # -1 are (for instance taps = [-2]) are classified
+            # as mit-sot so the code for handling sit-sots remains
+            # constant as follows
             index = "[i]"
             inner_in_indexed.append(_name + index)
             index = "[i+1]"
             inner_out_indexed.append(_name + index)
 
         if _name in outer_in_nit_sot_names:
-            # TODO: Allocate this properly
             index = "[i]"
             inner_out_indexed.append(_name + index)
+            # In case of nit-sots we are provided shape of the array
+            # instead of actual arrays like other cases, hence we
+            # allocate space for the results accordingly.
             allocate_mem_to_nit_sot += f"""
-    {_name} = np.zeros(n_steps)
+    {_name} = np.zeros({_name}.item())
 """
     # The non_seqs are passed to inner function as-is
     inner_in_indexed += outer_in_non_seqs_names
@@ -97,23 +120,18 @@ def numba_funcify_Scan(op, node, **kwargs):
 
     scan_op_src = f"""
 def scan(n_steps, {", ".join(input_names)}):
-    outer_in_seqs = {create_tuple_string(outer_in_seqs_names)}
-    outer_in_mit_sot = {create_tuple_string(outer_in_mit_sot_names)}
-    outer_in_sit_sot = {create_tuple_string(outer_in_sit_sot_names)}
-    outer_in_shared = {create_tuple_string(outer_in_shared_names)}
-    outer_in_non_seqs = {create_tuple_string(outer_in_non_seqs_names)}
+
 {allocate_mem_to_nit_sot}
-    outer_in_nit_sot = {create_tuple_string(outer_in_nit_sot_names)}
 
     for i in range(n_steps):
         inner_args = {create_tuple_string(inner_in_indexed)}
         {create_tuple_string(inner_out_indexed)} = numba_aet_inner_func(*inner_args)
 
-    return (
-        outer_in_mit_sot +
-        outer_in_sit_sot +
-        outer_in_nit_sot
-        )
+    return {create_arg_string(
+        outer_in_mit_sot_names +
+        outer_in_sit_sot_names +
+        outer_in_nit_sot_names
+    )}
     """
     scalar_op_fn = compile_function_src(scan_op_src, "scan", global_env)
 
