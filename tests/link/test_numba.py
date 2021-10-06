@@ -29,6 +29,7 @@ from aesara.link.numba.dispatch import basic as numba_basic
 from aesara.link.numba.linker import NumbaLinker
 from aesara.scalar.basic import Composite
 from aesara.scan.basic import scan
+from aesara.scan.utils import until
 from aesara.tensor import blas
 from aesara.tensor import elemwise as aet_elemwise
 from aesara.tensor import extra_ops, nlinalg, slinalg
@@ -3042,5 +3043,25 @@ def test_scan_tap_output():
         np.array(10.0).astype(config.floatX),
         np.arange(11, dtype=config.floatX),
         np.arange(20, 31, dtype=config.floatX),
+    ]
+    compare_numba_and_py(out_fg, test_input_vals)
+
+
+def test_scan_while():
+    def power_of_2(previous_power, max_value):
+        return previous_power * 2, until(previous_power * 2 > max_value)
+
+    max_value = aet.scalar()
+    values, _ = scan(
+        power_of_2,
+        outputs_info=aet.constant(1.0),
+        non_sequences=max_value,
+        n_steps=1024,
+    )
+
+    out_fg = FunctionGraph([max_value], [values])
+
+    test_input_vals = [
+        np.array(45).astype(config.floatX),
     ]
     compare_numba_and_py(out_fg, test_input_vals)
