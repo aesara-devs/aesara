@@ -3031,7 +3031,7 @@ def test_scan_tap_output():
             None,
         ],
         non_sequences=[a_aet],
-        n_steps=10,
+        n_steps=5,
         name="yz_scan",
         strict=True,
     )
