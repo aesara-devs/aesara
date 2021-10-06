@@ -241,6 +241,11 @@ def create_tuple_string(x):
     return f"({args})"
 
 
+def create_arg_string(x):
+    args = ", ".join(x)
+    return args
+
+
 @singledispatch
 def numba_typify(data, dtype=None, **kwargs):
     return data

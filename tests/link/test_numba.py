@@ -2988,17 +2988,17 @@ def test_scan_tap_output():
     a_aet = aet.scalar("a")
     a_aet.tag.test_value = 10.0
 
-    b_aet = aet.arange(10).astype(config.floatX)
+    b_aet = aet.arange(11).astype(config.floatX)
     b_aet.name = "b"
 
-    c_aet = aet.arange(20, 30, dtype=config.floatX)
+    c_aet = aet.arange(20, 31, dtype=config.floatX)
     c_aet.name = "c"
 
-    def input_step_fn(b, c, x_tm1, y_tm1, y_tm3, a):
+    def input_step_fn(b, b2, c, x_tm1, y_tm1, y_tm3, a):
         x_tm1.name = "x_tm1"
         y_tm1.name = "y_tm1"
         y_tm3.name = "y_tm3"
-        y_t = (y_tm1 + y_tm3) * a + b
+        y_t = (y_tm1 + y_tm3) * a + b + b2
         z_t = y_t * c
         x_t = x_tm1 + 1
         x_t.name = "x_t"
@@ -3007,7 +3007,16 @@ def test_scan_tap_output():
 
     scan_res, _ = scan(
         fn=input_step_fn,
-        sequences=[b_aet, c_aet],
+        sequences=[
+            {
+                "input": b_aet,
+                "taps": [-1, -2],
+            },
+            {
+                "input": c_aet,
+                "taps": [-2],
+            },
+        ],
         outputs_info=[
             {
                 "initial": aet.as_tensor_variable(0.0, dtype=config.floatX),
@@ -3022,7 +3031,7 @@ def test_scan_tap_output():
             None,
         ],
         non_sequences=[a_aet],
-        # n_steps=10,
+        n_steps=10,
         name="yz_scan",
         strict=True,
     )
@@ -3031,7 +3040,7 @@ def test_scan_tap_output():
 
     test_input_vals = [
         np.array(10.0).astype(config.floatX),
-        np.arange(10, dtype=config.floatX),
-        np.arange(20, 30, dtype=config.floatX),
+        np.arange(11, dtype=config.floatX),
+        np.arange(20, 31, dtype=config.floatX),
     ]
     compare_numba_and_py(out_fg, test_input_vals)
