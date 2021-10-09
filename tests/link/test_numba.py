@@ -957,6 +957,17 @@ def test_scalar_Elemwise_Clip():
             ),
             config.floatX,
         ),
+        (
+            (
+                set_test_value(aet.dscalar(), np.array(1, dtype=np.float64)),
+                set_test_value(aet.lscalar(), np.array(3, dtype=np.int32)),
+            ),
+            "float64",
+        ),
+        (
+            (set_test_value(aet.iscalar(), np.array(1, dtype=np.int32)),),
+            "float64",
+        ),
     ],
 )
 def test_MakeVector(vals, dtype):

@@ -167,14 +167,29 @@ def numba_funcify_Eye(op, **kwargs):
 
 
 @numba_funcify.register(MakeVector)
-def numba_funcify_MakeVector(op, **kwargs):
+def numba_funcify_MakeVector(op, node, **kwargs):
     dtype = np.dtype(op.dtype)
 
-    @numba.njit
-    def makevector(*args):
-        return np.array([a.item() for a in args], dtype=dtype)
+    global_env = {"np": np, "to_scalar": numba_basic.to_scalar}
 
-    return makevector
+    unique_names = unique_name_generator(
+        ["np", "to_scalar"],
+        suffix_sep="_",
+    )
+    input_names = [unique_names(v, force_unique=True) for v in node.inputs]
+
+    def create_list_string(x):
+        args = ", ".join([f"to_scalar({i})" for i in x] + ([""] if len(x) == 1 else []))
+        return f"[{args}]"
+
+    makevector_def_src = f"""
+def makevector({", ".join(input_names)}):
+    return np.array({create_list_string(input_names)}, dtype=np.{dtype})
+    """
+
+    makevector_fn = compile_function_src(makevector_def_src, "makevector", global_env)
+
+    return numba.njit(makevector_fn)
 
 
 @numba_funcify.register(Rebroadcast)
