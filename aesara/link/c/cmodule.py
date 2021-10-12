@@ -2304,11 +2304,11 @@ class GCC_compiler(Compiler):
 
         # Figure out whether the current Python executable is 32
         # or 64 bit and compile accordingly. This step is ignored for
-        # ARM (32-bit and 64-bit) architectures in order to make
+        # ARM (32-bit and 64-bit) and RISC-V architectures in order to make
         # Aesara compatible with the Raspberry Pi, Raspberry Pi 2, or
-        # other systems with ARM processors.
-        if not any(["arm" in flag for flag in cxxflags]) and not any(
-            arch in platform.machine() for arch in ["arm", "aarch"]
+        # other systems with ARM or RISC-V processors.
+        if (not any("arm" in flag or "riscv" in flag for flag in cxxflags)) and (
+            not any(arch in platform.machine() for arch in ("arm", "aarch", "riscv"))
         ):
             n_bits = LOCAL_BITWIDTH
             cxxflags.append(f"-m{int(n_bits)}")
