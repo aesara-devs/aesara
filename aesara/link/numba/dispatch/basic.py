@@ -16,6 +16,7 @@ from aesara.compile.ops import DeepCopyOp
 from aesara.graph.basic import Apply
 from aesara.graph.fg import FunctionGraph
 from aesara.graph.type import Type
+from aesara.ifelse import IfElse
 from aesara.link.utils import (
     compile_function_src,
     fgraph_to_python,
@@ -682,3 +683,32 @@ def numba_funcify_BatchedDot(op, node, **kwargs):
 # NOTE: The remaining `aesara.tensor.blas` `Op`s appear unnecessary, because
 # they're only used to optimize basic `Dot` nodes, and those GEMV and GEMM
 # optimizations are apparently already performed by Numba
+
+
+@numba_funcify.register(IfElse)
+def numba_funcify_IfElse(op, **kwargs):
+    n_outs = op.n_outs
+
+    if n_outs > 1:
+
+        @numba.njit
+        def ifelse(cond, *args):
+            if cond:
+                res = args[:n_outs]
+            else:
+                res = args[n_outs:]
+
+            return res
+
+    else:
+
+        @numba.njit
+        def ifelse(cond, *args):
+            if cond:
+                res = args[:n_outs]
+            else:
+                res = args[n_outs:]
+
+            return res[0]
+
+    return ifelse
