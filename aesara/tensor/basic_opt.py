@@ -2536,7 +2536,7 @@ def local_useless_switch(fgraph, node):
         cond = extract_constant(node.inputs[0], only_process_constants=True)
 
         if (isinstance(cond, np.ndarray) and cond.ndim == 0) or isinstance(
-            cond, np.number
+            cond, (np.number, np.bool_)
         ):
             if cond == 0:
                 correct_out = node.inputs[2]

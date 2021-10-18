@@ -2325,12 +2325,16 @@ class TestLocalUselessSwitch:
     def setup_method(self):
         self.mode = mode_opt.excluding("constant_folding")
 
-    def test_const_0(self):
+    @pytest.mark.parametrize(
+        "cond",
+        [0, 1, np.array([True])],
+    )
+    def test_const(self, cond):
         for dtype1 in ["int32", "int64"]:
             for dtype2 in ["int32", "int64"]:
                 x = matrix("x", dtype=dtype1)
                 y = matrix("y", dtype=dtype2)
-                z = aet.switch(0, x, y)
+                z = aet.switch(cond, x, y)
                 f = function([x, y], z, mode=self.mode)
                 assert (
                     len(
@@ -2347,37 +2351,7 @@ class TestLocalUselessSwitch:
                 )
                 vx = np.array([[1, 2, 3], [4, 5, 6]], dtype=dtype1)
                 vy = np.array([[7, 8, 9], [10, 11, 12]], dtype=dtype2)
-                np_res = np.where(0, vx, vy)
-                assert np.array_equal(f(vx, vy), np_res)
-
-        res_non_bool_np = np.where(np.ones(10), 0, 1)
-        non_bool_graph = aet.switch(np.ones(10), 0, 1)
-        non_bool_fn = function([], non_bool_graph, mode=self.mode)
-        assert np.array_equal(non_bool_fn(), res_non_bool_np)
-
-    def test_const_1(self):
-        for dtype1 in ["int32", "int64"]:
-            for dtype2 in ["int32", "int64"]:
-                x = matrix("x", dtype=dtype1)
-                y = matrix("y", dtype=dtype2)
-                z = aet.switch(1, x, y)
-                f = function([x, y], z, mode=self.mode)
-                assert (
-                    len(
-                        [
-                            node.op
-                            for node in f.maker.fgraph.toposort()
-                            if (
-                                isinstance(node.op, Elemwise)
-                                and isinstance(node.op.scalar_op, aes.basic.Switch)
-                            )
-                        ]
-                    )
-                    == 0
-                )
-                vx = np.array([[1, 2, 3], [4, 5, 6]], dtype=dtype1)
-                vy = np.array([[7, 8, 9], [10, 11, 12]], dtype=dtype2)
-                np_res = np.where(1, vx, vy)
+                np_res = np.where(cond, vx, vy)
                 assert np.array_equal(f(vx, vy), np_res)
 
     def test_left_is_right(self):
