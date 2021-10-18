@@ -26,8 +26,10 @@ from aesara.graph.optdb import (
     TopoDB,
 )
 from aesara.link.basic import Linker, PerformLinker
+from aesara.link.c.basic import CLinker, OpWiseCLinker
 from aesara.link.jax.linker import JAXLinker
 from aesara.link.numba.linker import NumbaLinker
+from aesara.link.vm import VMLinker
 
 
 _logger = logging.getLogger("aesara.compile.mode")
@@ -47,6 +49,12 @@ predefined_linkers = {
     "cvm_nogc": NumbaLinker(),
     "jax": JAXLinker(),
     "numba": NumbaLinker(),
+}
+
+temporary_linkers = {
+    "c": CLinker(),
+    "c|py": OpWiseCLinker(),
+    "vm": VMLinker(use_cloop=False),
 }
 
 
