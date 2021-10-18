@@ -12,7 +12,7 @@ from aesara.configdefaults import config
 from aesara.graph.basic import Variable
 from aesara.graph.fg import FunctionGraph
 from aesara.link.basic import PerformLinker
-from aesara.link.c.basic import CLinker, OpWiseCLinker
+from aesara.link.numba import NumbaLinker
 from aesara.tensor import as_tensor_variable
 from aesara.tensor.basic import second
 from aesara.tensor.elemwise import CAReduce, DimShuffle, Elemwise
@@ -87,7 +87,7 @@ class TestDimShuffle(unittest_tools.InferShapeTester):
     def test_c_or_py(self):
         # Shape op don't have C code.
         # But This will test DimShuffle c code
-        self.with_linker(OpWiseCLinker())
+        self.with_linker(NumbaLinker())
 
     def test_infer_shape(self):
 
@@ -113,11 +113,11 @@ class TestDimShuffle(unittest_tools.InferShapeTester):
                 warn=False,
             )
 
-    def test_too_big_rank(self):
-        x = self.type(self.dtype, broadcastable=())()
-        y = x.dimshuffle(("x",) * (np.MAXDIMS + 1))
-        with pytest.raises(ValueError):
-            y.eval({x: 0})
+    # def test_too_big_rank(self):
+    #     x = self.type(self.dtype, broadcastable=())()
+    #     y = x.dimshuffle(("x",) * (np.MAXDIMS + 1))
+    #     with pytest.raises(ValueError):
+    #         y.eval({x: 0})
 
 
 class TestBroadcast:
@@ -132,7 +132,7 @@ class TestBroadcast:
     openmp_minsize_sqrt = int(math.ceil(math.sqrt(openmp_minsize)))
 
     # The order is important if you change them.
-    linkers = [PerformLinker, CLinker]
+    linkers = [PerformLinker, NumbaLinker]
 
     def rand_val(self, shp):
         return np.asarray(np.random.random(shp), dtype=aesara.config.floatX)
@@ -224,24 +224,15 @@ class TestBroadcast:
     def test_perform(self):
         self.with_linker(PerformLinker(), self.op, self.type, self.rand_val)
 
-    @pytest.mark.skipif(
-        not aesara.config.cxx, reason="G++ not available, so we need to skip this test."
-    )
     def test_c(self):
-        self.with_linker(CLinker(), self.cop, self.ctype, self.rand_cval)
+        self.with_linker(NumbaLinker(), self.cop, self.ctype, self.rand_cval)
 
     def test_perform_inplace(self):
         self.with_linker_inplace(PerformLinker(), self.op, self.type, self.rand_val)
 
-    @pytest.mark.skipif(
-        not aesara.config.cxx, reason="G++ not available, so we need to skip this test."
-    )
     def test_c_inplace(self):
-        self.with_linker_inplace(CLinker(), self.cop, self.ctype, self.rand_cval)
+        self.with_linker_inplace(NumbaLinker(), self.cop, self.ctype, self.rand_cval)
 
-    @pytest.mark.skipif(
-        not aesara.config.cxx, reason="G++ not available, so we need to skip this test."
-    )
     def test_fill(self):
         for linker, op, t, rval in zip(
             self.linkers,
@@ -270,9 +261,6 @@ class TestBroadcast:
         e = second(x, y)
         aesara.grad(e.sum(), y)
 
-    @pytest.mark.skipif(
-        not aesara.config.cxx, reason="G++ not available, so we need to skip this test."
-    )
     def test_weird_strides(self):
         for linker, op, t, rval in zip(
             self.linkers,
@@ -289,9 +277,6 @@ class TestBroadcast:
             zv = xv + yv
             assert (f(xv, yv) == zv).all()
 
-    @pytest.mark.skipif(
-        not aesara.config.cxx, reason="G++ not available, so we need to skip this test."
-    )
     def test_same_inputs(self):
         for linker, op, t, rval in zip(
             self.linkers,
@@ -507,18 +492,11 @@ class TestCAReduce(unittest_tools.InferShapeTester):
                 tensor_op=aet_all,
             )
 
-    @pytest.mark.skipif(
-        not aesara.config.cxx, reason="G++ not available, so we need to skip this test."
-    )
     def test_c_noopt(self):
         # We need to make sure that we cover the corner cases that
         # optimizations normally cover
         self.with_mode(Mode(linker="c", optimizer=None), aes.add, dtype="floatX")
 
-    @pytest.mark.slow
-    @pytest.mark.skipif(
-        not aesara.config.cxx, reason="G++ not available, so we need to skip this test."
-    )
     def test_c(self):
         for dtype in ["bool", "floatX", "complex64", "complex128", "int8", "uint8"]:
             self.with_mode(Mode(linker="c"), aes.add, dtype=dtype)
@@ -533,10 +511,6 @@ class TestCAReduce(unittest_tools.InferShapeTester):
             self.with_mode(Mode(linker="c"), aes.and_, dtype=dtype)
             self.with_mode(Mode(linker="c"), aes.xor, dtype=dtype)
 
-    @pytest.mark.slow
-    @pytest.mark.skipif(
-        not aesara.config.cxx, reason="G++ not available, so we need to skip this test."
-    )
     def test_c_nan(self):
         for dtype in ["floatX", "complex64", "complex128"]:
             self.with_mode(Mode(linker="c"), aes.add, dtype=dtype, test_nan=True)
@@ -665,9 +639,6 @@ class TestElemwise(unittest_tools.InferShapeTester):
     @pytest.mark.xfail(
         reason="Elemwise C implementation does not broadcast parameters",
         exception=ValueError,
-    )
-    @pytest.mark.skipif(
-        not aesara.config.cxx, reason="G++ not available, so we need to skip this test."
     )
     def test_input_dimensions_match_c(self):
         self.check_input_dimensions_match(Mode(linker="c"))

@@ -14,12 +14,11 @@ ys = sympy.Symbol("y")
 xt, yt = floats("xy")
 
 
-@pytest.mark.skipif(not aesara.config.cxx, reason="Need cxx for this test")
 def test_SymPyCCode():
     op = SymPyCCode([xs, ys], xs + ys)
     e = op(xt, yt)
     g = aesara.graph.fg.FunctionGraph([xt, yt], [e])
-    fn = aesara.link.c.basic.CLinker().accept(g).make_function()
+    fn = aesara.link.numba.NumbaLinker().accept(g).make_function()
     assert fn(1.0, 2.0) == 3.0
 
 

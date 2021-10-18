@@ -13,21 +13,7 @@ from aesara.tensor.random.type import (
 )
 
 
-# @pytest.mark.skipif(
-#     not config.cxx, reason="G++ not available, so we need to skip this test."
-# )
 def test_view_op_c_code():
-    # TODO: It might be good to make sure that the registered C code works
-    # (even though it's basically copy-paste from other registered `Op`s).
-    # from aesara.compile.ops import view_op
-    # from aesara.link.c.basic import CLinker
-    # rng_var = random_state_type()
-    # rng_view = view_op(rng_var)
-    # function(
-    #     [rng_var],
-    #     rng_view,
-    #     mode=Mode(optimizer=None, linker=CLinker()),
-    # )
     assert ViewOp.c_code_and_version[RandomStateType]
     assert ViewOp.c_code_and_version[RandomGeneratorType]
 

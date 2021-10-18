@@ -1151,8 +1151,6 @@ class TestFusion:
         shp = (3000, 3000)
         shp = (1000, 1000)
         nb_repeat = 50
-        # linker=CLinker
-        # linker=OpWiseCLinker
 
         mode1 = copy.copy(self.mode)
         mode1._optimizer = mode1._optimizer.including("local_elemwise_fusion")

@@ -6,7 +6,7 @@ import numpy as np
 import aesara
 from aesara.compile.mode import Mode
 from aesara.link.basic import PerformLinker
-from aesara.link.c.basic import OpWiseCLinker
+from aesara.link.numba import NumbaLinker
 from aesara.tensor.type import dvector, lvector
 
 
@@ -37,7 +37,7 @@ def test_gc_never_pickles_temporaries():
 
     for f_linker, g_linker in [
         (PerformLinker(allow_gc=True), PerformLinker(allow_gc=False)),
-        (OpWiseCLinker(allow_gc=True), OpWiseCLinker(allow_gc=False)),
+        (NumbaLinker(allow_gc=True), NumbaLinker(allow_gc=False)),
     ]:
         # f_linker has garbage collection
 

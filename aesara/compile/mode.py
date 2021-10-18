@@ -26,10 +26,8 @@ from aesara.graph.optdb import (
     TopoDB,
 )
 from aesara.link.basic import Linker, PerformLinker
-from aesara.link.c.basic import CLinker, OpWiseCLinker
 from aesara.link.jax.linker import JAXLinker
 from aesara.link.numba.linker import NumbaLinker
-from aesara.link.vm import VMLinker
 
 
 _logger = logging.getLogger("aesara.compile.mode")
@@ -40,13 +38,13 @@ _logger = logging.getLogger("aesara.compile.mode")
 # dictionary
 predefined_linkers = {
     "py": PerformLinker(),  # Use allow_gc Aesara flag
-    "c": CLinker(),  # Don't support gc. so don't check allow_gc
-    "c|py": OpWiseCLinker(),  # Use allow_gc Aesara flag
-    "c|py_nogc": OpWiseCLinker(allow_gc=False),
-    "vm": VMLinker(use_cloop=False),  # Use allow_gc Aesara flag
-    "cvm": VMLinker(use_cloop=True),  # Use allow_gc Aesara flag
-    "vm_nogc": VMLinker(allow_gc=False, use_cloop=False),
-    "cvm_nogc": VMLinker(allow_gc=False, use_cloop=True),
+    "c": NumbaLinker(),  # Don't support gc. so don't check allow_gc
+    "c|py": NumbaLinker(),  # Use allow_gc Aesara flag
+    "c|py_nogc": NumbaLinker(),
+    "vm": NumbaLinker(),  # Use allow_gc Aesara flag
+    "cvm": NumbaLinker(),  # Use allow_gc Aesara flag
+    "vm_nogc": NumbaLinker(),
+    "cvm_nogc": NumbaLinker(),
     "jax": JAXLinker(),
     "numba": NumbaLinker(),
 }
