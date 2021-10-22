@@ -176,11 +176,7 @@ def eval_python_only(fn_inputs, fgraph, inputs):
         _ = aesara_numba_fn(*inputs)
 
 
-def compare_numba_and_py(
-    fgraph,
-    inputs,
-    assert_fn=None,
-):
+def compare_numba_and_py(fgraph, inputs, assert_fn=None):
     """Function to compare python graph output and Numba compiled output for testing equality
 
     In the tests below computational graphs are defined in Aesara. These graphs are then passed to
@@ -1829,6 +1825,15 @@ def test_BroadcastTo(x, shape, exc):
         (
             set_test_value(aet.matrix(), rng.random(size=(3, 2)).astype(config.floatX)),
             set_test_value(aet.vector(), rng.random(size=(2,)).astype(config.floatX)),
+            None,
+        ),
+        (
+            set_test_value(
+                aet.matrix(dtype="float64"), rng.random(size=(3, 2)).astype("float64")
+            ),
+            set_test_value(
+                aet.vector(dtype="float32"), rng.random(size=(2,)).astype("float32")
+            ),
             None,
         ),
         (
