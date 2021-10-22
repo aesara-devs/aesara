@@ -3016,7 +3016,7 @@ def test_scan_tap_output():
         x_t = x_tm1 + 1
         x_t.name = "x_t"
         y_t.name = "y_t"
-        return x_t, y_t, z_t
+        return x_t, y_t, aet.fill((10,), z_t)
 
     scan_res, _ = scan(
         fn=input_step_fn,

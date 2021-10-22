@@ -106,8 +106,11 @@ def numba_funcify_Scan(op, node, **kwargs):
             # In case of nit-sots we are provided shape of the array
             # instead of actual arrays like other cases, hence we
             # allocate space for the results accordingly.
+            curr_nit_sot_position = input_names.index(_name) - n_seqs
+            curr_nit_sot = inner_fg.outputs[curr_nit_sot_position]
+            mem_shape = ["1"] * curr_nit_sot.ndim
             allocate_mem_to_nit_sot += f"""
-    {_name} = np.zeros({_name}.item())
+    {_name} = [np.zeros(({create_arg_string(mem_shape)}))]*{_name}.item()
 """
     # The non_seqs are passed to inner function as-is
     inner_in_indexed += outer_in_non_seqs_names
