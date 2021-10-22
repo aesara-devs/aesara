@@ -691,6 +691,14 @@ def test_AllocDiag(v, offset):
             (0,),
             True,
         ),
+        (
+            set_test_value(
+                aet.tensor(config.floatX, [True, True, True], name="a"),
+                np.array([[[1.0]]], dtype=config.floatX),
+            ),
+            (),
+            True,
+        ),
     ],
 )
 def test_Dimshuffle(v, new_order, inplace):
