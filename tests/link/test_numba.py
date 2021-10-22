@@ -797,6 +797,25 @@ def test_Cast(v, dtype):
 
 
 @pytest.mark.parametrize(
+    "v, dtype",
+    [
+        (set_test_value(aet.iscalar(), np.array(10, dtype="int32")), aesb.float64),
+    ],
+)
+def test_Inv(v, dtype):
+    g = aesb.inv(v)
+    g_fg = FunctionGraph(outputs=[g])
+    compare_numba_and_py(
+        g_fg,
+        [
+            i.tag.test_value
+            for i in g_fg.inputs
+            if not isinstance(i, (SharedVariable, Constant))
+        ],
+    )
+
+
+@pytest.mark.parametrize(
     "v, shape, ndim",
     [
         (set_test_value(aet.vector(), np.array([4], dtype=config.floatX)), (), 0),
