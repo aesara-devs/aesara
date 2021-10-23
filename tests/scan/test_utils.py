@@ -239,6 +239,9 @@ def test_ScanArgs():
     alt_test_v = scan_args.get_alt_field(test_v, "inner_out")
     assert alt_test_v == scan_args.inner_out_sit_sot[0]
 
+    alt_test_v = scan_args.get_alt_field(test_v, "outer_in")
+    assert alt_test_v == scan_args.outer_in_sit_sot[0]
+
     # Check the `__repr__` and `__str__`
     scan_args_repr = repr(scan_args)
     # Just make sure it doesn't err-out

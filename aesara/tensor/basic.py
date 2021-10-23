@@ -12,7 +12,7 @@ from collections import OrderedDict
 from collections.abc import Sequence
 from functools import partial
 from numbers import Number
-from typing import Dict, Tuple, Union
+from typing import Dict, Optional, Tuple, Union
 
 import numpy as np
 from numpy.core.multiarray import normalize_axis_index
@@ -4317,6 +4317,27 @@ def empty(shape, dtype=None):
     return AllocEmpty(dtype)(*shape)
 
 
+def empty_like(
+    prototype: TensorVariable, dtype: Optional[Union[str, np.generic, np.dtype]] = None
+) -> TensorVariable:
+    """Return a new array with the same shape and type as a given array.
+
+    See ``numpy.empty_like``.
+
+    Parameters
+    ----------
+    prototype
+        The shape and data-type of `prototype` define these same attributes
+        of the returned array.
+    dtype : data-type, optional
+        Overrides the data type of the result.
+    """
+    if dtype is None:
+        dtype = prototype.dtype
+
+    return empty(shape(prototype), dtype)
+
+
 def atleast_Nd(
     *arys: Union[np.ndarray, TensorVariable], n: int = 1, left: bool = True
 ) -> TensorVariable:
@@ -4481,4 +4502,5 @@ __all__ = [
     "full",
     "full_like",
     "empty",
+    "empty_like",
 ]

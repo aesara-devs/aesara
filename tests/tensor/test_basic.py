@@ -4105,7 +4105,7 @@ class TestChoose(utt.InferShapeTester):
         )
 
 
-def test_allocempty():
+def test_empty():
     # Test that we allocated correctly
     f = aesara.function([], AllocEmpty("float32")(2, 3))
     assert len(f.maker.fgraph.apply_nodes) == 1
@@ -4119,6 +4119,11 @@ def test_allocempty():
     assert res.shape == (2, 3)
 
     empty_at = aet.empty((2, 3), dtype="int64")
+    res = aesara.function([], empty_at)()
+    assert res.shape == (2, 3)
+    assert res.dtype == "int64"
+
+    empty_at = aet.empty_like(empty_at)
     res = aesara.function([], empty_at)()
     assert res.shape == (2, 3)
     assert res.dtype == "int64"

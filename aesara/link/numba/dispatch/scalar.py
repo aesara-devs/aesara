@@ -21,6 +21,7 @@ from aesara.scalar.basic import (
     Clip,
     Composite,
     Identity,
+    Inv,
     Mul,
     ScalarOp,
     Second,
@@ -170,3 +171,12 @@ def numba_funcify_Second(op, node, **kwargs):
         return y
 
     return second
+
+
+@numba_funcify.register(Inv)
+def numba_funcify_Inv(op, node, **kwargs):
+    @numba.njit(inline="always")
+    def inv(x):
+        return 1 / x
+
+    return inv

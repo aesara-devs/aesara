@@ -1,4 +1,5 @@
 from functools import partial
+from typing import Optional
 
 import numpy as np
 import pytest
@@ -29,7 +30,7 @@ from aesara.tensor import subtensor as aet_subtensor
 from aesara.tensor.elemwise import Elemwise
 from aesara.tensor.math import MaxAndArgmax
 from aesara.tensor.math import all as aet_all
-from aesara.tensor.math import clip, cosh, gammaln, log
+from aesara.tensor.math import clip, cosh, erf, erfc, erfinv, gammaln, log
 from aesara.tensor.math import max as aet_max
 from aesara.tensor.math import maximum, prod, sigmoid, softplus
 from aesara.tensor.math import sum as aet_sum
@@ -64,10 +65,10 @@ def set_aesara_flags():
 
 
 def compare_jax_and_py(
-    fgraph,
-    inputs,
-    assert_fn=None,
-    must_be_device_array=True,
+    fgraph: FunctionGraph,
+    test_inputs: iter,
+    assert_fn: Optional[callable] = None,
+    must_be_device_array: bool = True,
 ):
     """Function to compare python graph output and jax compiled output for testing equality
 
@@ -79,8 +80,8 @@ def compare_jax_and_py(
     ----------
     fgraph: FunctionGraph
         Aesara function Graph object
-    inputs: iter
-        Inputs for function graph
+    test_inputs: iter
+        Numerical inputs for testing the function graph
     assert_fn: func, opt
         Assert function used to check for equality between python and jax. If not
         provided uses np.testing.assert_allclose
@@ -98,7 +99,7 @@ def compare_jax_and_py(
 
     fn_inputs = [i for i in fgraph.inputs if not isinstance(i, SharedVariable)]
     aesara_jax_fn = function(fn_inputs, fgraph.outputs, mode=jax_mode)
-    jax_res = aesara_jax_fn(*inputs)
+    jax_res = aesara_jax_fn(*test_inputs)
 
     if must_be_device_array:
         if isinstance(jax_res, list):
@@ -109,7 +110,7 @@ def compare_jax_and_py(
             assert isinstance(jax_res, jax.interpreters.xla.DeviceArray)
 
     aesara_py_fn = function(fn_inputs, fgraph.outputs, mode=py_mode)
-    py_res = aesara_py_fn(*inputs)
+    py_res = aesara_py_fn(*test_inputs)
 
     if len(fgraph.outputs) > 1:
         for j, p in zip(jax_res, py_res):
@@ -1253,3 +1254,27 @@ def test_RandomStream():
     jax_res_2 = fn()
 
     assert np.array_equal(jax_res_1, jax_res_2)
+
+
+def test_erf():
+    x = scalar("x")
+    out = erf(x)
+    fg = FunctionGraph([x], [out])
+
+    compare_jax_and_py(fg, [1.0])
+
+
+def test_erfc():
+    x = scalar("x")
+    out = erfc(x)
+    fg = FunctionGraph([x], [out])
+
+    compare_jax_and_py(fg, [1.0])
+
+
+def test_erfinv():
+    x = scalar("x")
+    out = erfinv(x)
+    fg = FunctionGraph([x], [out])
+
+    compare_jax_and_py(fg, [1.0])
