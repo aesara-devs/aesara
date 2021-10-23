@@ -1613,6 +1613,24 @@ def full(shape, fill_value, dtype=None):
     return alloc(fill_value, *shape)
 
 
+def full_like(
+    a: TensorVariable,
+    fill_value: Union[TensorVariable, int, float],
+    dtype: Union[str, np.generic, np.dtype] = None,
+) -> TensorVariable:
+    """Equivalent of `numpy.full_like`.
+
+    Returns
+    -------
+    tensor
+        tensor the shape of `a` containing `fill_value` of the type of dtype.
+    """
+    fill_value = as_tensor_variable(fill_value)
+    if dtype is not None:
+        fill_value = fill_value.astype(dtype)
+    return fill(a, fill_value)
+
+
 class MakeVector(COp):
     """Concatenate a number of scalars together into a vector.
 
@@ -4482,6 +4500,7 @@ __all__ = [
     "as_tensor",
     "extract_diag",
     "full",
+    "full_like",
     "empty",
     "empty_like",
 ]
