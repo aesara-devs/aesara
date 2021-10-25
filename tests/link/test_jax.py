@@ -860,10 +860,6 @@ def test_jax_Dimshuffle():
     compare_jax_and_py(x_fg, [np.c_[[1.0, 2.0, 3.0, 4.0]].astype(config.floatX)])
 
 
-@pytest.mark.xfail(
-    version_parse(jax.__version__) >= version_parse("0.2.12"),
-    reason="Omnistaging cannot be disabled",
-)
 def test_jax_Join():
     a = matrix("a")
     b = matrix("b")
