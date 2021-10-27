@@ -948,23 +948,45 @@ def test_basic_allclose():
 
 
 def test_get_vector_length():
-    x = aesara.shared(np.zeros((2, 3, 4, 5)))
-    assert len(list(x.shape)) == 4
-    assert len(list(x.shape[2:4])) == 2
-    assert len(list(x.shape[2:])) == 2
-    assert len(list(x.shape[1:4])) == 3
-    assert len(list(x.shape[2:2])) == 0
-    assert len(list(x.shape[1:5])) == 3
-    assert len(list(x.shape[1:10])) == 3
-    # Test step
-    assert len(list(x.shape[1:10:2])) == 2
-    # Test neg start
-    assert len(list(x.shape[-1:4])) == 1
-    assert len(list(x.shape[-6:4])) == 4
-    # test neg stop
-    assert len(list(x.shape[1:-2])) == 1
-    assert len(list(x.shape[1:-1])) == 2
+    # Test `Constant`s
+    empty_tuple = as_tensor_variable(())
+    assert 0 == get_vector_length(empty_tuple)
 
+    x = as_tensor_variable((1, 2, 3))
+    assert 3 == get_vector_length(x)
+
+    # Test `TensorSharedVariable`s
+    x = aesara.shared(np.array((2, 3, 4, 5)))
+    res = get_vector_length(x)
+    assert res == 4
+
+    # Test `Shape`s
+    x = aesara.shared(np.zeros((2, 3, 4, 5)))
+    res = get_vector_length(x.shape)
+    assert res == 4
+
+    # Test `Subtensor`s
+    x = as_tensor_variable(np.arange(4))
+    assert get_vector_length(x[2:4]) == 2
+    assert get_vector_length(x[2:]) == 2
+    assert get_vector_length(x[1:4]) == 3
+    assert get_vector_length(x[2:2]) == 0
+    assert get_vector_length(x[1:10]) == 3
+    # Test step
+    assert get_vector_length(x[1:10:2]) == 2
+    # Test neg start
+    assert get_vector_length(x[-1:4]) == 1
+    assert get_vector_length(x[-6:4]) == 4
+    # test neg stop
+    assert get_vector_length(x[1:-2]) == 1
+    assert get_vector_length(x[1:-1]) == 2
+    assert get_vector_length(lvector()[1:1]) == 0
+    assert get_vector_length(lvector()[-1:-1:3]) == 0
+
+    with pytest.raises(ValueError, match="^Length of .*"):
+        get_vector_length(x[lscalar() :])
+
+    # Test `Join`s
     z = join(0, as_tensor_variable(1, ndim=1), as_tensor_variable(x.shape[0], ndim=1))
     assert isinstance(z.owner.op, Join)
     assert get_vector_length(z) == 2
@@ -975,9 +997,15 @@ def test_get_vector_length():
     assert isinstance(z.owner.op, Join)
     assert get_vector_length(z) == 3
 
-    empty_tuple = as_tensor_variable(())
-    assert 0 == get_vector_length(empty_tuple)
+    z = join(
+        lscalar(),
+        as_tensor_variable([1, 2], ndim=1),
+        as_tensor_variable([3, 4], ndim=1),
+    )
+    with pytest.raises(ValueError, match="^Length of .*"):
+        get_vector_length(z)
 
+    # Test `MakeVector`s
     x = lscalar("x")
     y = dscalar("y")
 

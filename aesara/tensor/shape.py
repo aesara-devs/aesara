@@ -10,6 +10,7 @@ from aesara.graph.op import COp
 from aesara.graph.params_type import ParamsType
 from aesara.misc.safe_asarray import _asarray
 from aesara.scalar import int32
+from aesara.tensor import _get_vector_length
 from aesara.tensor import basic as aet
 from aesara.tensor.exceptions import NotScalarConstantError
 from aesara.tensor.type import TensorType, int_dtypes, tensor
@@ -127,6 +128,11 @@ class Shape(COp):
 
 shape = Shape()
 _shape = shape  # was used in the past, now use shape directly.
+
+
+@_get_vector_length.register(Shape)
+def _get_vector_length_Shape(op, var):
+    return var.owner.inputs[0].type.ndim
 
 
 def shape_tuple(x):
