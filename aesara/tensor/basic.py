@@ -31,7 +31,12 @@ from aesara.misc.safe_asarray import _asarray
 from aesara.printing import min_informative_str, pprint
 from aesara.scalar import int32
 from aesara.scalar.basic import ScalarConstant, ScalarVariable
-from aesara.tensor import _as_tensor_variable, as_tensor_variable
+from aesara.tensor import (
+    _as_tensor_variable,
+    _get_vector_length,
+    as_tensor_variable,
+    get_vector_length,
+)
 from aesara.tensor.elemwise import DimShuffle, Elemwise, scalar_elemwise
 from aesara.tensor.exceptions import EmptyConstantError, NotScalarConstantError
 from aesara.tensor.shape import (
@@ -1743,6 +1748,11 @@ class MakeVector(COp):
 make_vector = MakeVector()
 
 
+@_get_vector_length.register(MakeVector)
+def _get_vector_length_MakeVector(op, var):
+    return len(var.owner.inputs)
+
+
 def transfer(var, target):
     """
     Return a version of `var` transferred to `target`.
@@ -2554,6 +2564,17 @@ join_ = Join()
 pprint.assign(Join, printing.FunctionPrinter("join"))
 
 
+@_get_vector_length.register(Join)
+def _get_vector_length_Join(op, var):
+    axis, *arrays = var.owner.inputs
+    try:
+        axis = get_scalar_constant_value(axis)
+        assert axis == 0 and builtins.all(a.ndim == 1 for a in arrays)
+        return builtins.sum(get_vector_length(a) for a in arrays)
+    except NotScalarConstantError:
+        raise ValueError(f"Length of {var} cannot be determined")
+
+
 def join(axis, *tensors_list):
     r"""
     Convenience function to concatenate `TensorType`\s along the given axis.
@@ -2735,7 +2756,7 @@ def stack(*tensors, **kwargs):
         # in case there is direct int
         tensors = list(map(as_tensor_variable, tensors))
         dtype = aes.upcast(*[i.dtype for i in tensors])
-        return aesara.tensor.basic_opt.MakeVector(dtype)(*tensors)
+        return MakeVector(dtype)(*tensors)
     return join(axis, *[shape_padaxis(t, axis) for t in tensors])
 
 
@@ -2763,96 +2784,6 @@ def concatenate(tensor_list, axis=0):
             tensor_list,
         )
     return join(axis, *tensor_list)
-
-
-def get_vector_length(v):
-    """Return the run-time length of a symbolic vector.
-
-    Parameters
-    ----------
-    v
-        A rank-1 TensorType variable.
-
-    Raises
-    ------
-    TypeError
-        `v` hasn't the proper type.
-    ValueError
-        No special case applies, the length is not known.
-        In general this is not possible, but for a number of special cases
-        the length can be determined at compile / graph-construction time.
-        This function implements these special cases.
-
-    """
-    v = as_tensor_variable(v)
-    if v.ndim != 1:
-        raise TypeError(f"argument must be symbolic vector, got '{v}'")
-    if v.type.broadcastable[0]:
-        return 1
-    if isinstance(v, aesara.tensor.sharedvar.TensorSharedVariable) and v.type.ndim == 1:
-        return len(v.get_value())
-    if isinstance(v, Constant) and v.type.ndim == 1:
-        return len(v.data)
-    if v.owner and isinstance(v.owner.op, aesara.tensor.basic_opt.MakeVector):
-        return len(v.owner.inputs)
-    if v.owner and isinstance(v.owner.op, Shape):
-        return v.owner.inputs[0].type.ndim
-
-    # We can skip `Op`s that don't affect the length, like unary `Elemwise`
-    # `Op`s
-    if (
-        v.owner
-        and isinstance(v.owner.op, Elemwise)
-        and len(v.owner.inputs) == 1
-        and len(v.owner.outputs) == 1
-    ):
-        return get_vector_length(v.owner.inputs[0])
-
-    if v.owner and isinstance(v.owner.op, Join):
-        axis, *arrays = v.owner.inputs
-        try:
-            axis = get_scalar_constant_value(axis)
-            if axis != 0:
-                raise ValueError()
-            if not builtins.all(a.ndim == 1 for a in arrays):
-                raise ValueError()
-            return builtins.sum(get_vector_length(a) for a in arrays)
-        except (ValueError, NotScalarConstantError):
-            raise ValueError(f"Length of {v} cannot be determined")
-
-    # If we take a slice, we know how many elements it will result in
-    # TODO: We can cover more `*Subtensor` cases.
-    if (
-        v.owner
-        and isinstance(v.owner.op, aesara.tensor.subtensor.Subtensor)
-        and isinstance(v.owner.op.idx_list[0], slice)
-    ):
-        try:
-            indices = aesara.tensor.subtensor.get_idx_list(
-                v.owner.inputs, v.owner.op.idx_list
-            )
-            start = (
-                None
-                if indices[0].start is None
-                else get_scalar_constant_value(indices[0].start)
-            )
-            stop = (
-                None
-                if indices[0].stop is None
-                else get_scalar_constant_value(indices[0].stop)
-            )
-            step = (
-                None
-                if indices[0].step is None
-                else get_scalar_constant_value(indices[0].step)
-            )
-
-            arg_len = get_vector_length(v.owner.inputs[0])
-            return len(range(*slice(start, stop, step).indices(arg_len)))
-        except (ValueError, NotScalarConstantError):
-            raise ValueError(f"Length of {v} cannot be determined")
-
-    raise ValueError(f"Length of {v} cannot be determined")
 
 
 def horizontal_stack(*args):

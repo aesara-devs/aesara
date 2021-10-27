@@ -4,6 +4,7 @@ import numpy as np
 
 from aesara.compile import SharedVariable, shared_constructor
 from aesara.misc.safe_asarray import _asarray
+from aesara.tensor import _get_vector_length
 from aesara.tensor.type import TensorType
 from aesara.tensor.var import _tensor_py_operators
 
@@ -21,6 +22,11 @@ def load_shared_variable(val):
 # _tensor_py_operators is first to have its version of __{gt,ge,lt,le}__
 class TensorSharedVariable(_tensor_py_operators, SharedVariable):
     pass
+
+
+@_get_vector_length.register(TensorSharedVariable)
+def _get_vector_length_TensorSharedVariable(var_inst, var):
+    return len(var.get_value(borrow=True))
 
 
 @shared_constructor

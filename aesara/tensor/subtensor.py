@@ -18,6 +18,7 @@ from aesara.graph.utils import MethodNotDefined
 from aesara.misc.safe_asarray import _asarray
 from aesara.printing import pprint
 from aesara.scalar.basic import ScalarConstant
+from aesara.tensor import _get_vector_length, get_vector_length
 from aesara.tensor.basic import addbroadcast, alloc, get_scalar_constant_value
 from aesara.tensor.elemwise import DimShuffle
 from aesara.tensor.exceptions import (
@@ -2703,6 +2704,39 @@ def take(a, indices, axis=None, mode="raise"):
     full_indices = (slice(None),) * axis + (indices,)
 
     return a[full_indices]
+
+
+@_get_vector_length.register(Subtensor)
+def _get_vector_length_Subtensor(op, var):
+    # If we take a slice, we know how many elements it will result in
+    # TODO: We can cover more `*Subtensor` cases.
+    try:
+        indices = aesara.tensor.subtensor.get_idx_list(
+            var.owner.inputs, var.owner.op.idx_list
+        )
+        start = (
+            None
+            if indices[0].start is None
+            else get_scalar_constant_value(indices[0].start)
+        )
+        stop = (
+            None
+            if indices[0].stop is None
+            else get_scalar_constant_value(indices[0].stop)
+        )
+        step = (
+            None
+            if indices[0].step is None
+            else get_scalar_constant_value(indices[0].step)
+        )
+
+        if start == stop:
+            return 0
+
+        arg_len = get_vector_length(var.owner.inputs[0])
+        return len(range(*slice(start, stop, step).indices(arg_len)))
+    except (ValueError, NotScalarConstantError):
+        raise ValueError(f"Length of {var} cannot be determined")
 
 
 __all__ = [

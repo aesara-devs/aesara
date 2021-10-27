@@ -20,7 +20,9 @@ from aesara.scalar.basic import Scalar
 from aesara.scalar.basic import bool as scalar_bool
 from aesara.scalar.basic import identity as scalar_identity
 from aesara.scalar.basic import transfer_type, upcast
+from aesara.tensor import _get_vector_length
 from aesara.tensor import elemwise_cgen as cgen
+from aesara.tensor import get_vector_length
 from aesara.tensor.type import (
     TensorType,
     continuous_dtypes,
@@ -1842,3 +1844,11 @@ def scalar_elemwise(*symbol, nfunc=None, nin=None, nout=None, symbolname=None):
         return construct(symbol[0])
     else:
         return construct
+
+
+@_get_vector_length.register(Elemwise)
+def _get_vector_length_Elemwise(op, var):
+    if len(var.owner.inputs) == 1 and len(var.owner.outputs) == 1:
+        return get_vector_length(var.owner.inputs[0])
+
+    raise ValueError(f"Length of {var} cannot be determined")
