@@ -1611,14 +1611,13 @@ class MakeVector(COp):
             dtype = aes.upcast(self.dtype, *[i.dtype for i in inputs])
             # upcast the input to the determined dtype,
             # but don't downcast anything
-            assert dtype == self.dtype, (
-                "The upcast of the inputs to MakeVector should match the "
-                "dtype given in __init__."
-            )
+            assert (
+                dtype == self.dtype
+            ), f"Upcasted inputs do not match the Op's dtype: {dtype} != {self.dtype}"
             if not all(self.dtype == cast(i, dtype=dtype).dtype for i in inputs):
                 raise TypeError(
-                    "MakeVector.make_node expected inputs"
-                    f" upcastable to {self.dtype}. got {[i.dtype for i in inputs]}"
+                    f"Expected inputs upcastable to {self.dtype}; "
+                    f"got {[i.dtype for i in inputs]}"
                 )
             inputs = [cast(i, dtype=dtype) for i in inputs]
         assert all(self.dtype == a.dtype for a in inputs)
