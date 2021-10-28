@@ -955,11 +955,6 @@ def test_get_vector_length():
     x = as_tensor_variable((1, 2, 3))
     assert 3 == get_vector_length(x)
 
-    # Test `TensorSharedVariable`s
-    x = aesara.shared(np.array((2, 3, 4, 5)))
-    res = get_vector_length(x)
-    assert res == 4
-
     # Test `Join`s
     z = join(0, as_tensor_variable(1, ndim=1), as_tensor_variable(x.shape[0], ndim=1))
     assert isinstance(z.owner.op, Join)
