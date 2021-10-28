@@ -2046,17 +2046,20 @@ class NavigatorOptimizer(GlobalOptimizer):
             replacements = list(replacements.values())
         elif not isinstance(replacements, (tuple, list)):
             raise TypeError(
-                f"Optimizer {lopt} gave wrong type of replacement. "
-                f"Expected list or tuple. Got {replacements}"
+                f"Local optimizer {lopt} gave wrong type of replacement. "
+                f"Expected list or tuple; got {replacements}"
             )
         if len(old_vars) != len(replacements):
-            raise ValueError(f"Optimizer {lopt} gave wrong number of replacements")
+            raise ValueError(
+                f"Local optimizer {lopt} gave wrong number of replacements"
+            )
         # None in the replacement mean that this variable isn't used
         # and we want to remove it
         for r, rnew in zip(old_vars, replacements):
             if rnew is None and len(fgraph.clients[r]) > 0:
                 raise ValueError(
-                    "A local optimizer tried to remove a Variable that is used"
+                    f"Local optimizer {lopt} tried to remove a variable"
+                    f" that is being used: {r}"
                 )
         # If an output would be replaced by itself, no need to perform
         # the replacement
