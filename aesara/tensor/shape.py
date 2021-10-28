@@ -498,6 +498,14 @@ class SpecifyShape(COp):
 specify_shape = SpecifyShape()
 
 
+@_get_vector_length.register(SpecifyShape)
+def _get_vector_length_SpecifyShape(op, var):
+    try:
+        return aet.get_scalar_constant_value(var.owner.inputs[1])
+    except NotScalarConstantError:
+        raise ValueError(f"Length of {var} cannot be determined")
+
+
 class Reshape(COp):
     """Perform a reshape operation of the input x to the new shape shp.
     The number of dimensions to which to reshape to (ndim) must be

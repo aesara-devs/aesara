@@ -960,11 +960,6 @@ def test_get_vector_length():
     res = get_vector_length(x)
     assert res == 4
 
-    # Test `Shape`s
-    x = aesara.shared(np.zeros((2, 3, 4, 5)))
-    res = get_vector_length(x.shape)
-    assert res == 4
-
     # Test `Subtensor`s
     x = as_tensor_variable(np.arange(4))
     assert get_vector_length(x[2:4]) == 2

@@ -7,6 +7,7 @@ from aesara.compile.ops import DeepCopyOp
 from aesara.configdefaults import config
 from aesara.graph.fg import FunctionGraph
 from aesara.misc.safe_asarray import _asarray
+from aesara.tensor import get_vector_length
 from aesara.tensor.basic import MakeVector, as_tensor_variable, constant
 from aesara.tensor.basic_opt import ShapeFeature
 from aesara.tensor.elemwise import DimShuffle, Elemwise
@@ -509,3 +510,13 @@ def test_shape_i_basics():
 
     with pytest.raises(TypeError):
         Shape_i(0)(scalar())
+
+
+def test_get_vector_length():
+    # Test `Shape`s
+    x = aesara.shared(np.zeros((2, 3, 4, 5)))
+    assert get_vector_length(x.shape) == 4
+
+    # Test `SpecifyShape`
+    x = specify_shape(ivector(), (10,))
+    assert get_vector_length(x) == 10
