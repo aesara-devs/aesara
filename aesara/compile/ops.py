@@ -213,11 +213,6 @@ class DeepCopyOp(COp):
 deep_copy_op = DeepCopyOp()
 
 
-# List of Aesara Types that one can add an extra dimension and for which
-# Scan can deal with.
-expandable_types = ()
-
-
 def load_back(mod, name):
     __import__(mod)
     import sys

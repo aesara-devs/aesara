@@ -598,9 +598,6 @@ class TensorType(CType):
             return np.dtype(self.dtype).itemsize
 
 
-aesara.compile.ops.expandable_types += (TensorType,)
-
-
 def values_eq_approx(
     a, b, allow_remove_inf=False, allow_remove_nan=False, rtol=None, atol=None
 ):
