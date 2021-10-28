@@ -960,27 +960,6 @@ def test_get_vector_length():
     res = get_vector_length(x)
     assert res == 4
 
-    # Test `Subtensor`s
-    x = as_tensor_variable(np.arange(4))
-    assert get_vector_length(x[2:4]) == 2
-    assert get_vector_length(x[2:]) == 2
-    assert get_vector_length(x[1:4]) == 3
-    assert get_vector_length(x[2:2]) == 0
-    assert get_vector_length(x[1:10]) == 3
-    # Test step
-    assert get_vector_length(x[1:10:2]) == 2
-    # Test neg start
-    assert get_vector_length(x[-1:4]) == 1
-    assert get_vector_length(x[-6:4]) == 4
-    # test neg stop
-    assert get_vector_length(x[1:-2]) == 1
-    assert get_vector_length(x[1:-1]) == 2
-    assert get_vector_length(lvector()[1:1]) == 0
-    assert get_vector_length(lvector()[-1:-1:3]) == 0
-
-    with pytest.raises(ValueError, match="^Length of .*"):
-        get_vector_length(x[lscalar() :])
-
     # Test `Join`s
     z = join(0, as_tensor_variable(1, ndim=1), as_tensor_variable(x.shape[0], ndim=1))
     assert isinstance(z.owner.op, Join)

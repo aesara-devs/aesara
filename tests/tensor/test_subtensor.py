@@ -15,6 +15,7 @@ from aesara.configdefaults import config
 from aesara.graph.op import get_test_value
 from aesara.graph.opt_utils import is_same_graph
 from aesara.scalar.basic import as_scalar
+from aesara.tensor import get_vector_length
 from aesara.tensor.elemwise import DimShuffle
 from aesara.tensor.math import exp, isinf
 from aesara.tensor.math import sum as aet_sum
@@ -2503,3 +2504,25 @@ def test_symbolic_slice():
     a, b = x.shape[:2]
     output = a.eval({x: np.zeros((5, 4, 3, 2), dtype=config.floatX)})
     assert output == np.array(5)
+
+
+def test_get_vector_length():
+    x = aet.as_tensor_variable(np.arange(4))
+    assert get_vector_length(x[2:4]) == 2
+    assert get_vector_length(x[2:]) == 2
+    assert get_vector_length(x[1:4]) == 3
+    assert get_vector_length(x[2:2]) == 0
+    assert get_vector_length(x[1:10]) == 3
+    # Test step
+    assert get_vector_length(x[1:10:2]) == 2
+    # Test neg start
+    assert get_vector_length(x[-1:4]) == 1
+    assert get_vector_length(x[-6:4]) == 4
+    # test neg stop
+    assert get_vector_length(x[1:-2]) == 1
+    assert get_vector_length(x[1:-1]) == 2
+    assert get_vector_length(lvector()[1:1]) == 0
+    assert get_vector_length(lvector()[-1:-1:3]) == 0
+
+    with pytest.raises(ValueError, match="^Length of .*"):
+        get_vector_length(x[lscalar() :])
