@@ -7,6 +7,7 @@ import aesara
 import aesara.sparse
 import aesara.tensor as aet
 from aesara.misc.may_share_memory import may_share_memory
+from aesara.tensor import get_vector_length
 from aesara.tensor.basic import MakeVector
 from aesara.tensor.shape import Shape_i, specify_shape
 from tests import unittest_tools as utt
@@ -700,3 +701,8 @@ def test_scalar_shared_options():
     # Simple test to make sure we do not loose that fonctionality.
     aesara.shared(value=0.0, name="lk", borrow=True)
     aesara.shared(value=np.float32(0.0), name="lk", borrow=True)
+
+
+def test_get_vector_length():
+    x = aesara.shared(np.array((2, 3, 4, 5)))
+    assert get_vector_length(x) == 4
