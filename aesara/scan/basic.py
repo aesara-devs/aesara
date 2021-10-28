@@ -4,7 +4,7 @@ from collections import OrderedDict
 import numpy as np
 
 import aesara.tensor as aet
-from aesara.compile import SharedVariable, ops
+from aesara.compile import SharedVariable
 from aesara.compile.function import function
 from aesara.compile.mode import Mode
 from aesara.configdefaults import config
@@ -869,7 +869,7 @@ def scan(
             new_var = safe_new(input.variable)
             if getattr(input.variable, "name", None) is not None:
                 new_var.name = input.variable.name + "_copy"
-            if isinstance(new_var.type, ops.expandable_types):
+            if isinstance(new_var.type, TensorType):
                 sit_sot_inner_inputs.append(new_var)
                 sit_sot_scan_inputs.append(
                     utils.expand_empty(
