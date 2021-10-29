@@ -39,8 +39,9 @@ class TestRandomStateType:
         rng_pkl = pickle.dumps(rng_r)
         rng_unpkl = pickle.loads(rng_pkl)
 
-        assert isinstance(rng_unpkl, type(rng_r))
-        assert isinstance(rng_unpkl.type, type(rng_r.type))
+        assert rng_r != rng_unpkl
+        assert rng_r.type == rng_unpkl.type
+        assert hash(rng_r.type) == hash(rng_unpkl.type)
 
     def test_repr(self):
         assert repr(random_state_type) == "RandomStateType"
@@ -129,8 +130,9 @@ class TestRandomGeneratorType:
         rng_pkl = pickle.dumps(rng_r)
         rng_unpkl = pickle.loads(rng_pkl)
 
-        assert isinstance(rng_unpkl, type(rng_r))
-        assert isinstance(rng_unpkl.type, type(rng_r.type))
+        assert rng_r != rng_unpkl
+        assert rng_r.type == rng_unpkl.type
+        assert hash(rng_r.type) == hash(rng_unpkl.type)
 
     def test_repr(self):
         assert repr(random_generator_type) == "RandomGeneratorType"

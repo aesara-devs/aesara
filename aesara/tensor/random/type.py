@@ -93,6 +93,12 @@ class RandomStateType(RandomType):
 
         return _eq(sa, sb)
 
+    def __eq__(self, other):
+        return type(self) == type(other)
+
+    def __hash__(self):
+        return hash(type(self))
+
 
 # Register `RandomStateType`'s C code for `ViewOp`.
 aesara.compile.register_view_op_c_code(
@@ -173,6 +179,12 @@ class RandomGeneratorType(RandomType):
             return True
 
         return _eq(sa, sb)
+
+    def __eq__(self, other):
+        return type(self) == type(other)
+
+    def __hash__(self):
+        return hash(type(self))
 
 
 # Register `RandomGeneratorType`'s C code for `ViewOp`.
