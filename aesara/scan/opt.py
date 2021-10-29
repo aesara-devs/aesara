@@ -786,7 +786,7 @@ def add_nitsot_outputs(
     fgraph.replace_all_validate_remove(
         list(zip(old_scan_node.outputs, new_node_old_outputs)),
         remove=[old_scan_node],
-        reason="scan_pushout_output",
+        reason="scan_pushout_add",
     )
     return new_scan_node, {}
 
@@ -1003,7 +1003,7 @@ class ScanInplaceOptimizer(GlobalOptimizer):
             fgraph.replace_all_validate_remove(
                 list(zip(node.outputs, new_outs)),
                 remove=[node],
-                reason="scanOp_make_inplace",
+                reason="scan_make_inplace",
             )
             return new_outs[0].owner
         except InconsistencyError:
@@ -1892,7 +1892,7 @@ class ScanMerge(GlobalOptimizer):
             if len(subset) > 1:
                 proposal = self.merge(subset)
                 fgraph.replace_all_validate_remove(
-                    proposal, remove=subset, reason="scanOp_merge"
+                    proposal, remove=subset, reason="scan_merge"
                 )
 
 
@@ -2341,14 +2341,14 @@ optdb.register("scan_eqopt1", scan_eqopt1, 0.05, "fast_run", "scan")
 optdb.register("scan_eqopt2", scan_eqopt2, 1.6, "fast_run", "scan")
 # ScanSaveMem should execute only once per node.
 optdb.register(
-    "scanOp_save_mem",
+    "scan_save_mem",
     in2out(save_mem_new_scan, ignore_newtrees=True),
     1.61,
     "fast_run",
     "scan",
 )
 optdb.register(
-    "scanOp_make_inplace",
+    "scan_make_inplace",
     ScanInplaceOptimizer(typeInfer=None),
     75,
     "fast_run",
@@ -2360,7 +2360,7 @@ scan_eqopt1.register("all_pushout_opt", scan_seqopt1, 1, "fast_run", "scan")
 
 
 scan_seqopt1.register(
-    "scanOp_remove_constants_and_unused_inputs0",
+    "scan_remove_constants_and_unused_inputs0",
     in2out(remove_constants_and_unused_inputs_scan, ignore_newtrees=True),
     1,
     "remove_constants_and_unused_inputs_scan",
@@ -2370,20 +2370,22 @@ scan_seqopt1.register(
 
 
 scan_seqopt1.register(
-    "scanOp_pushout_nonseqs_ops",
+    "scan_pushout_nonseqs_ops",
     in2out(push_out_non_seq_scan, ignore_newtrees=True),
     2,
     "fast_run",
     "scan",
+    "scan_pushout",
 )
 
 
 scan_seqopt1.register(
-    "scanOp_pushout_seqs_ops",
+    "scan_pushout_seqs_ops",
     in2out(push_out_seq_scan, ignore_newtrees=True),
     3,
     "fast_run",
     "scan",
+    "scan_pushout",
 )
 
 
@@ -2394,17 +2396,19 @@ scan_seqopt1.register(
     "fast_run",
     "more_mem",
     "scan",
+    "scan_pushout",
 )
 
 
 scan_seqopt1.register(
-    "scanOp_pushout_output",
+    "scan_pushout_add",
     # TODO: Perhaps this should be an `EquilibriumOptimizer`?
     in2out(push_out_add_scan, ignore_newtrees=False),
     5,
     "fast_run",
     "more_mem",
     "scan",
+    "scan_pushout",
 )
 
 
@@ -2418,7 +2422,7 @@ scan_eqopt2.register(
 
 
 scan_eqopt2.register(
-    "scanOp_remove_constants_and_unused_inputs1",
+    "scan_remove_constants_and_unused_inputs1",
     in2out(remove_constants_and_unused_inputs_scan, ignore_newtrees=True),
     2,
     "remove_constants_and_unused_inputs_scan",
@@ -2430,11 +2434,11 @@ scan_eqopt2.register(
 # after const merge but before stabilize so that we can have identity
 # for equivalent nodes but we still have the chance to hoist stuff out
 # of the scan later.
-scan_eqopt2.register("scanOp_merge", ScanMerge(), 4, "fast_run", "scan")
+scan_eqopt2.register("scan_merge", ScanMerge(), 4, "fast_run", "scan")
 
 # After Merge optimization
 scan_eqopt2.register(
-    "scanop_remove_constants_and_unused_inputs2",
+    "scan_remove_constants_and_unused_inputs2",
     in2out(remove_constants_and_unused_inputs_scan, ignore_newtrees=True),
     5,
     "remove_constants_and_unused_inputs_scan",
@@ -2443,17 +2447,16 @@ scan_eqopt2.register(
 )
 
 scan_eqopt2.register(
-    "scanOp_merge_inouts",
+    "scan_merge_inouts",
     in2out(scan_merge_inouts, ignore_newtrees=True),
     6,
-    "scan_merge_inouts",
     "fast_run",
     "scan",
 )
 
 # After everything else
 scan_eqopt2.register(
-    "scanOp_remove_constants_and_unused_inputs3",
+    "scan_remove_constants_and_unused_inputs3",
     in2out(remove_constants_and_unused_inputs_scan, ignore_newtrees=True),
     8,
     "remove_constants_and_unused_inputs_scan",
