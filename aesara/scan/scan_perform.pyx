@@ -58,7 +58,7 @@ from aesara.link.utils import raise_with_op
 
 
 def get_version():
-    return 0.300
+    return 0.301
 
 @cython.boundscheck(False)
 def perform(
@@ -545,11 +545,10 @@ def perform(
                         if i == 0:
                             raise
                         raise ValueError(
-                            "An output of the scan has changed shape. "
-                            "This may be caused by a pushout optimization."
-                            " Try adding "
-                            "'optimizer_excluding=scanOp_pushout_output' "
-                            "to your Aesara flags.")
+                            "An output of the Scan has changed shape. "
+                            "This may be caused by a push-out optimization."
+                            " Try adding 'optimizer_excluding=scan_pushout'"
+                            " to your Aesara flags.")
 
         # 5.6 Copy over the values for outputs corresponding to shared
         # variables

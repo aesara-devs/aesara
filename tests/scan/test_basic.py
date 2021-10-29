@@ -2523,7 +2523,7 @@ class TestScan:
         sy, upy = scan(sum, sequences=[y])
 
         f = function(
-            [x, y], [sx, sy], mode=mode_with_opt.excluding("scanOp_pushout_seqs_ops")
+            [x, y], [sx, sy], mode=mode_with_opt.excluding("scan_pushout_seqs_ops")
         )
         topo = f.maker.fgraph.toposort()
         scans = [n for n in topo if isinstance(n.op, Scan)]
@@ -2533,7 +2533,7 @@ class TestScan:
         sy, upy = scan(sum, sequences=[y], n_steps=3)
 
         f = function(
-            [x, y], [sx, sy], mode=mode_with_opt.excluding("scanOp_pushout_seqs_ops")
+            [x, y], [sx, sy], mode=mode_with_opt.excluding("scan_pushout_seqs_ops")
         )
         topo = f.maker.fgraph.toposort()
         scans = [n for n in topo if isinstance(n.op, Scan)]
@@ -2543,7 +2543,7 @@ class TestScan:
         sy, upy = scan(sum, sequences=[y], n_steps=4)
 
         f = function(
-            [x, y], [sx, sy], mode=mode_with_opt.excluding("scanOp_pushout_seqs_ops")
+            [x, y], [sx, sy], mode=mode_with_opt.excluding("scan_pushout_seqs_ops")
         )
         topo = f.maker.fgraph.toposort()
         scans = [n for n in topo if isinstance(n.op, Scan)]
@@ -2553,7 +2553,7 @@ class TestScan:
         sy, upy = scan(sum, sequences=[x])
 
         f = function(
-            [x], [sx, sy], mode=mode_with_opt.excluding("scanOp_pushout_seqs_ops")
+            [x], [sx, sy], mode=mode_with_opt.excluding("scan_pushout_seqs_ops")
         )
         topo = f.maker.fgraph.toposort()
         scans = [n for n in topo if isinstance(n.op, Scan)]
@@ -2563,7 +2563,7 @@ class TestScan:
         sy, upy = scan(sum, sequences=[x], mode="FAST_COMPILE")
 
         f = function(
-            [x], [sx, sy], mode=mode_with_opt.excluding("scanOp_pushout_seqs_ops")
+            [x], [sx, sy], mode=mode_with_opt.excluding("scan_pushout_seqs_ops")
         )
         topo = f.maker.fgraph.toposort()
         scans = [n for n in topo if isinstance(n.op, Scan)]
@@ -2573,7 +2573,7 @@ class TestScan:
         sy, upy = scan(sum, sequences=[x], truncate_gradient=1)
 
         f = function(
-            [x], [sx, sy], mode=mode_with_opt.excluding("scanOp_pushout_seqs_ops")
+            [x], [sx, sy], mode=mode_with_opt.excluding("scan_pushout_seqs_ops")
         )
         topo = f.maker.fgraph.toposort()
         scans = [n for n in topo if isinstance(n.op, Scan)]
@@ -2596,7 +2596,7 @@ class TestScan:
         sz, upz = scan(sum, sequences=[sx], n_steps=4, name="Z")
 
         f = function(
-            [x, y], [sy, sz], mode=mode_with_opt.excluding("scanOp_pushout_seqs_ops")
+            [x, y], [sy, sz], mode=mode_with_opt.excluding("scan_pushout_seqs_ops")
         )
         topo = f.maker.fgraph.toposort()
         scans = [n for n in topo if isinstance(n.op, Scan)]

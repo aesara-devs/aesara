@@ -156,7 +156,7 @@ class TestPushOutScanOutputDot:
         opt_mode = mode.including("scan")
         f_opt = aesara.function([v, m], jacobian(output, v), mode=opt_mode)
 
-        no_opt_mode = mode.excluding("scanOp_pushout_output")
+        no_opt_mode = mode.excluding("scan_pushout_add")
         f_no_opt = aesara.function([v, m], jacobian(output, v), mode=no_opt_mode)
 
         # Ensure that the optimization was performed correctly in f_opt
@@ -198,7 +198,7 @@ class TestPushOutScanOutputDot:
         opt_mode = mode.including("scan")
         f_opt = aesara.function([a, b], outputs, mode=opt_mode)
 
-        no_opt_mode = mode.excluding("scanOp_pushout_output")
+        no_opt_mode = mode.excluding("scan_pushout_add")
         f_no_opt = aesara.function([a, b], outputs, mode=no_opt_mode)
 
         # Ensure that the optimization was performed correctly in f_opt
@@ -244,7 +244,7 @@ class TestPushOutScanOutputDot:
         opt_mode = mode.including("scan")
         f_opt = aesara.function([a, b], outputs, mode=opt_mode)
 
-        no_opt_mode = mode.excluding("scanOp_pushout_output")
+        no_opt_mode = mode.excluding("scan_pushout_add")
         f_no_opt = aesara.function([a, b], outputs, mode=no_opt_mode)
 
         # Ensure that the optimization was performed correctly in f_opt
@@ -346,7 +346,7 @@ class TestPushOutSumOfDot:
         grad1 = grad(cost, [U, V, W])
         f_opt = aesara.function(inputs=[x, ri, zi], outputs=grad1, mode=opt_mode)
 
-        no_opt_mode = mode.excluding("scanOp_pushout_output")
+        no_opt_mode = mode.excluding("scan_pushout_add")
         h, _ = aesara.scan(
             rnn_step1,
             sequences=[x, ri, zi],
@@ -405,7 +405,7 @@ class TestPushOutSumOfDot:
         output = h[-1]
         f_opt = aesara.function([input1, input2, input3], output, mode=opt_mode)
 
-        no_opt_mode = mode.excluding("scanOp_pushout_output")
+        no_opt_mode = mode.excluding("scan_pushout_add")
         h, _ = aesara.scan(
             inner_fct,
             sequences=[input1, input2, input3],

@@ -1823,11 +1823,10 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
                                 # case we write about.
                                 raise
                             ne = ValueError(
-                                "An output of the scan has changed shape. "
-                                "This may be caused by a pushout optimization."
-                                " Try adding "
-                                "'optimizer_excluding=scanOp_pushout_output' "
-                                "to your Aesara flags."
+                                "An output of the Scan has changed shape. "
+                                "This may be caused by a push-out optimization."
+                                " Try adding 'optimizer_excluding=scan_pushout'"
+                                " to your Aesara flags."
                             )
                             raise ne from e
 
