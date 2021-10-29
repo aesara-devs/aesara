@@ -184,8 +184,8 @@ class DimShuffle(ExternalCOp):
                 else:
                     # we cannot drop non-broadcastable dimensions
                     raise ValueError(
-                        "You cannot drop a non-broadcastable dimension.",
-                        (input_broadcastable, new_order),
+                        "You cannot drop a non-broadcastable dimension:",
+                        f" {input_broadcastable}, {new_order}",
                     )
 
         # this is the list of the original dimensions that we keep

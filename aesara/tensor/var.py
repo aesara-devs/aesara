@@ -564,6 +564,9 @@ class _tensor_py_operators:
                         pattern.append(counter)
                         counter += 1
                         new_args.append(arg)
+
+                pattern.extend(list(range(counter, self.ndim)))
+
                 view = self.dimshuffle(pattern)
                 full_slices = True
                 for arg in new_args:

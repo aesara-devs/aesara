@@ -38,7 +38,6 @@ from aesara.tensor.subtensor import (
 from aesara.tensor.type import (
     TensorType,
     col,
-    cscalar,
     ctensor3,
     dmatrix,
     dscalar,
@@ -527,45 +526,6 @@ class TestSubtensor(utt.OptimizationTestMixin):
                 test_array.__getitem__(([0, 1], [0, False]))
             with pytest.raises(TypeError):
                 test_array.__getitem__(([0, 1], [0, aesara.shared(True)]))
-
-    def test_newaxis(self):
-        # newaxis support comes from logic in the __getitem__ of TensorType
-        # Variables, which currently inserts dimshuffle to get the right number
-        # of dimensions, and adjusts the slice tuple accordingly.
-        #
-        # So testing is done via square-bracket notation rather than direct
-        # interaction with the Subtensor Op (which has no support of its own for
-        # newaxis).
-
-        newaxis = np.newaxis
-
-        n = self.shared(np.arange(24, dtype=self.dtype).reshape((2, 3, 4)))
-        assert n.ndim == 3
-
-        n4 = n[newaxis, :, :, :]
-        assert n4.broadcastable == (True, False, False, False), n4
-
-        n4 = n[:, newaxis, :, :]
-        assert n4.broadcastable == (False, True, False, False), n4
-
-        n4 = n[:, :, newaxis, :]
-        assert n4.broadcastable == (False, False, True, False), n4
-
-        n4 = n[:, :, :, newaxis]
-        assert n4.broadcastable == (False, False, False, True), n4
-
-        n3 = n.flatten()[newaxis, :, newaxis]
-        assert n3.broadcastable == (True, False, True), n3
-
-        s = cscalar()
-        s1 = s[newaxis]
-        assert s1.broadcastable == (True,), s1
-
-        vs1, vn3, vn4 = aesara.function([s], [s1, n3, n4], mode=self.mode)(-2.0)
-
-        assert np.all(vs1 == [-2.0])
-        assert np.all(vn3 == np.arange(24)[newaxis, :, newaxis])
-        assert np.all(vn4 == np.arange(24).reshape((2, 3, 4))[:, :, :, newaxis])
 
     def test_grad_1d(self):
         subi = 0
