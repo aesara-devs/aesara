@@ -8,7 +8,16 @@ from aesara.graph.basic import equal_computations
 from aesara.tensor.elemwise import DimShuffle
 from aesara.tensor.math import dot
 from aesara.tensor.subtensor import AdvancedSubtensor, Subtensor
-from aesara.tensor.type import TensorType, dmatrix, dvector, iscalar, ivector, matrix
+from aesara.tensor.type import (
+    TensorType,
+    cscalar,
+    dmatrix,
+    dvector,
+    iscalar,
+    ivector,
+    matrix,
+    tensor3,
+)
 from aesara.tensor.type_other import MakeSlice
 from aesara.tensor.var import TensorConstant
 
@@ -185,3 +194,29 @@ def test__getitem__AdvancedSubtensor():
     z = x[i, None]
     op_types = [type(node.op) for node in aesara.graph.basic.io_toposort([x, i], [z])]
     assert op_types[-1] == AdvancedSubtensor
+
+
+@pytest.mark.parametrize(
+    "x, indices, new_order",
+    [
+        (tensor3(), (np.newaxis, slice(None), np.newaxis), ("x", 0, "x", 1, 2)),
+        (cscalar(), (np.newaxis,), ("x",)),
+        (matrix(), (np.newaxis,), ("x", 0, 1)),
+        (matrix(), (np.newaxis, np.newaxis), ("x", "x", 0, 1)),
+        (matrix(), (np.newaxis, slice(None)), ("x", 0, 1)),
+        (matrix(), (np.newaxis, slice(None), slice(None)), ("x", 0, 1)),
+        (matrix(), (np.newaxis, np.newaxis, slice(None)), ("x", "x", 0, 1)),
+        (matrix(), (slice(None), np.newaxis), (0, "x", 1)),
+        (matrix(), (slice(None), slice(None), np.newaxis), (0, 1, "x")),
+        (
+            matrix(),
+            (np.newaxis, slice(None), np.newaxis, slice(None), np.newaxis),
+            ("x", 0, "x", 1, "x"),
+        ),
+    ],
+)
+def test__getitem__newaxis(x, indices, new_order):
+    res = x[indices]
+    assert isinstance(res.owner.op, DimShuffle)
+    assert res.broadcastable == tuple(i == "x" for i in new_order)
+    assert res.owner.op.new_order == new_order
