@@ -2478,11 +2478,14 @@ def local_join_empty(fgraph, node):
 @register_useless
 @local_optimizer([Join])
 def local_join_make_vector(fgraph, node):
-    """Join(0, make_vector1, make_vector2, ...) => Join(0, make_vector12, ...)
+    r"""Merge `MakeVector` inputs within a `Join`.
 
-    Merge MakeVector inputs to Join. This can make the join completely
-    disappear with the local_join_1 opt.
+    For example:
 
+        Join(0, make_vector1, make_vector2, ...) => Join(0, make_vector12, ...)
+
+    This in combination with the `local_join_1` optimization can make `Join`\s
+    completely disappear.
     """
     if not isinstance(node.op, Join) or node.outputs[0].ndim != 1:
         return
