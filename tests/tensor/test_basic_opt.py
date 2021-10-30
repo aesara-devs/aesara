@@ -19,6 +19,7 @@ from aesara.graph.basic import Apply, Constant
 from aesara.graph.fg import FunctionGraph
 from aesara.graph.op import Op
 from aesara.graph.opt import check_stack_trace, local_optimizer, out2in
+from aesara.graph.opt_utils import optimize_graph
 from aesara.graph.optdb import OptimizationQuery
 from aesara.misc.safe_asarray import _asarray
 from aesara.tensor.basic import (
@@ -82,7 +83,7 @@ from aesara.tensor.math import sin, sinh, softplus, sqr, sqrt, sub
 from aesara.tensor.math import sum as aet_sum
 from aesara.tensor.math import tan, tanh, true_div, xor
 from aesara.tensor.math_opt import local_lift_transpose_through_dot
-from aesara.tensor.shape import Reshape, Shape_i, reshape
+from aesara.tensor.shape import Reshape, Shape_i, reshape, specify_shape
 from aesara.tensor.subtensor import (
     AdvancedIncSubtensor1,
     Subtensor,
@@ -3190,6 +3191,21 @@ class TestShapeFeature:
             shape_feature.same_shape(x, o, 1, 0)
         with pytest.raises(IndexError):
             shape_feature.same_shape(x, o, 0, 1)
+
+
+@pytest.mark.parametrize(
+    "shape",
+    [lscalar(), iscalar()],
+)
+def test_local_Shape_of_SpecifyShape(shape):
+    x = vector()
+    s = specify_shape(x, shape).shape
+
+    fgraph = FunctionGraph(outputs=[s], clone=False)
+    _ = optimize_graph(fgraph, clone=False)
+
+    assert x not in fgraph.variables
+    assert shape in fgraph.variables
 
 
 def test_assert_op_gradient():
