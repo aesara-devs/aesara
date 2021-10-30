@@ -2281,10 +2281,7 @@ def local_upcast_elemwise_constant_inputs(fgraph, node):
 @register_specialize
 @local_optimizer([Rebroadcast])
 def local_useless_rebroadcast(fgraph, node):
-    """
-    Remove Rebroadcast if id does not actually change the broadcasting pattern.
-
-    """
+    """Remove `Rebroadcast` if it does not actually change the broadcasting pattern."""
     if isinstance(node.op, Rebroadcast):
         x = node.inputs[0]
         if np.all(x.broadcastable == node.outputs[0].broadcastable):
