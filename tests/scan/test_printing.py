@@ -33,7 +33,7 @@ def test_scan_debugprint1():
      | | | | | |k [id D]
      | | | | | |Subtensor{int64} [id H] ''
      | | | | |   |Shape [id I] ''
-     | | | | |   | |Rebroadcast{0} [id J] ''
+     | | | | |   | |Rebroadcast{(0, False)} [id J] ''
      | | | | |   |   |InplaceDimShuffle{x,0} [id K] ''
      | | | | |   |     |Elemwise{second,no_inplace} [id L] ''
      | | | | |   |       |A [id M]
@@ -42,9 +42,9 @@ def test_scan_debugprint1():
      | | | | |   |ScalarConstant{0} [id P]
      | | | | |Subtensor{int64} [id Q] ''
      | | | |   |Shape [id R] ''
-     | | | |   | |Rebroadcast{0} [id J] ''
+     | | | |   | |Rebroadcast{(0, False)} [id J] ''
      | | | |   |ScalarConstant{1} [id S]
-     | | | |Rebroadcast{0} [id J] ''
+     | | | |Rebroadcast{(0, False)} [id J] ''
      | | | |ScalarFromTensor [id T] ''
      | | |   |Subtensor{int64} [id H] ''
      | | |A [id M]
@@ -208,7 +208,7 @@ def test_scan_debugprint3():
      >   | | | | | | |k_copy [id BF] -> [id X]
      >   | | | | | | |Subtensor{int64} [id BJ] ''
      >   | | | | | |   |Shape [id BK] ''
-     >   | | | | | |   | |Rebroadcast{0} [id BL] ''
+     >   | | | | | |   | |Rebroadcast{(0, False)} [id BL] ''
      >   | | | | | |   |   |InplaceDimShuffle{x,0} [id BM] ''
      >   | | | | | |   |     |Elemwise{second,no_inplace} [id BN] ''
      >   | | | | | |   |       |A_copy [id BO] -> [id W]
@@ -217,9 +217,9 @@ def test_scan_debugprint3():
      >   | | | | | |   |ScalarConstant{0} [id BR]
      >   | | | | | |Subtensor{int64} [id BS] ''
      >   | | | | |   |Shape [id BT] ''
-     >   | | | | |   | |Rebroadcast{0} [id BL] ''
+     >   | | | | |   | |Rebroadcast{(0, False)} [id BL] ''
      >   | | | | |   |ScalarConstant{1} [id BU]
-     >   | | | | |Rebroadcast{0} [id BL] ''
+     >   | | | | |Rebroadcast{(0, False)} [id BL] ''
      >   | | | | |ScalarFromTensor [id BV] ''
      >   | | | |   |Subtensor{int64} [id BJ] ''
      >   | | | |A_copy [id BO] -> [id W]
@@ -341,7 +341,7 @@ def test_scan_debugprint5():
     | | | |   | | | |k [id G]
     | | | |   | | | |Subtensor{int64} [id K] ''
     | | | |   | | |   |Shape [id L] ''
-    | | | |   | | |   | |Rebroadcast{0} [id M] ''
+    | | | |   | | |   | |Rebroadcast{(0, False)} [id M] ''
     | | | |   | | |   |   |InplaceDimShuffle{x,0} [id N] ''
     | | | |   | | |   |     |Elemwise{second,no_inplace} [id O] ''
     | | | |   | | |   |       |A [id P]
@@ -350,9 +350,9 @@ def test_scan_debugprint5():
     | | | |   | | |   |ScalarConstant{0} [id S]
     | | | |   | | |Subtensor{int64} [id T] ''
     | | | |   | |   |Shape [id U] ''
-    | | | |   | |   | |Rebroadcast{0} [id M] ''
+    | | | |   | |   | |Rebroadcast{(0, False)} [id M] ''
     | | | |   | |   |ScalarConstant{1} [id V]
-    | | | |   | |Rebroadcast{0} [id M] ''
+    | | | |   | |Rebroadcast{(0, False)} [id M] ''
     | | | |   | |ScalarFromTensor [id W] ''
     | | | |   |   |Subtensor{int64} [id K] ''
     | | | |   |A [id P]
