@@ -87,7 +87,7 @@ from aesara.tensor.basic import (
     zeros_like,
 )
 from aesara.tensor.elemwise import DimShuffle
-from aesara.tensor.exceptions import EmptyConstantError, NotScalarConstantError
+from aesara.tensor.exceptions import NotScalarConstantError
 from aesara.tensor.math import dense_dot, eq
 from aesara.tensor.math import sum as aet_sum
 from aesara.tensor.shape import Reshape, Shape, Shape_i, shape_padright
@@ -3140,6 +3140,15 @@ def test_dimshuffle_duplicate():
 
 class TestGetScalarConstantValue:
     def test_basic(self):
+
+        res = get_scalar_constant_value(aet.as_tensor(10))
+        assert res == 10
+        assert isinstance(res, np.ndarray)
+
+        res = get_scalar_constant_value(np.array(10))
+        assert res == 10
+        assert isinstance(res, np.ndarray)
+
         a = aet.stack([1, 2, 3])
         assert get_scalar_constant_value(a[0]) == 1
         assert get_scalar_constant_value(a[1]) == 2
@@ -3195,7 +3204,7 @@ class TestGetScalarConstantValue:
         assert get_scalar_constant_value(np.array(3)) == 3
         with pytest.raises(NotScalarConstantError):
             get_scalar_constant_value(np.array([0, 1]))
-        with pytest.raises(EmptyConstantError):
+        with pytest.raises(NotScalarConstantError):
             get_scalar_constant_value(np.array([]))
 
     def test_make_vector(self):

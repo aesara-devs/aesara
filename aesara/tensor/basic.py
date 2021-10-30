@@ -37,7 +37,7 @@ from aesara.tensor import (
     get_vector_length,
 )
 from aesara.tensor.elemwise import DimShuffle, Elemwise, scalar_elemwise
-from aesara.tensor.exceptions import EmptyConstantError, NotScalarConstantError
+from aesara.tensor.exceptions import NotScalarConstantError
 from aesara.tensor.shape import (
     Shape,
     Shape_i,
@@ -257,31 +257,6 @@ def _obj_is_wrappable_as_tensor(x):
         return False
 
 
-def numpy_scalar(data):
-    """Return a scalar stored in a numpy ndarray.
-
-    Raises
-    ------
-    NotScalarConstantError
-        If the numpy ndarray is not a scalar.
-    EmptyConstantError
-
-    """
-
-    # handle case where data is numpy.array([])
-    if data.ndim > 0 and (len(data.shape) == 0 or builtins.max(data.shape) == 0):
-        assert np.all(np.array([]) == data)
-        raise EmptyConstantError()
-    try:
-        complex(data)  # works for all numeric scalars
-        return data
-    except Exception:
-        raise NotScalarConstantError(
-            "v.data is non-numeric, non-scalar, or has more than one" " unique value",
-            data,
-        )
-
-
 _scalar_constant_value_elemwise_ops = (
     aes.Cast,
     aes.Switch,
@@ -344,7 +319,10 @@ def get_scalar_constant_value(
             return np.asarray(v)
 
         if isinstance(v, np.ndarray):
-            return numpy_scalar(v).copy()
+            try:
+                return np.array(v.item(), dtype=v.dtype)
+            except ValueError:
+                raise NotScalarConstantError()
 
         if isinstance(v, Constant):
             if getattr(v.tag, "unique_value", None) is not None:
@@ -353,7 +331,10 @@ def get_scalar_constant_value(
                 data = v.data
 
             if isinstance(data, np.ndarray):
-                return numpy_scalar(data).copy()
+                try:
+                    return np.array(data.item(), dtype=v.dtype)
+                except ValueError:
+                    raise NotScalarConstantError()
             else:
                 return data
 
@@ -575,7 +556,7 @@ def get_scalar_constant_value(
                     if isinstance(grandparent, Constant):
                         return np.asarray(np.shape(grandparent.data)[idx])
 
-        raise NotScalarConstantError(v)
+        raise NotScalarConstantError()
 
 
 class TensorFromScalar(Op):
