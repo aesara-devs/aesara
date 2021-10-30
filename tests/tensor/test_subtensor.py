@@ -28,6 +28,7 @@ from aesara.tensor.subtensor import (
     advanced_inc_subtensor1,
     advanced_set_subtensor,
     advanced_set_subtensor1,
+    as_index_literal,
     basic_shape,
     get_canonical_form_slice,
     inc_subtensor,
@@ -59,7 +60,7 @@ from aesara.tensor.type import (
     tensor4,
     vector,
 )
-from aesara.tensor.type_other import make_slice, slicetype
+from aesara.tensor.type_other import NoneConst, SliceConstant, make_slice, slicetype
 from tests import unittest_tools as utt
 from tests.tensor.utils import inplace_func, integers_ranged, random
 
@@ -70,6 +71,29 @@ subtensor_ops = (
     AdvancedSubtensor1,
     AdvancedIncSubtensor1,
 )
+
+
+def test_as_index_literal():
+    res = as_index_literal(slice(None, aet.as_tensor(1)))
+    assert res == slice(None, 1)
+    res = as_index_literal(slice(aet.as_tensor(1), None))
+    assert res == slice(1, None)
+    res = as_index_literal(slice(None, None, aet.as_tensor(2)))
+    assert res == slice(None, None, 2)
+    res = as_index_literal(SliceConstant(slicetype, slice(None)))
+    assert res == slice(None)
+    res = as_index_literal(make_slice(None, aet.as_tensor(1)))
+    assert res == slice(None, 1)
+
+    res = as_index_literal(aet.as_tensor(2))
+    assert res == 2
+
+    res = as_index_literal(np.newaxis)
+    assert res is np.newaxis
+    res = as_index_literal(NoneConst)
+    assert res is np.newaxis
+    res = as_index_literal(NoneConst.clone())
+    assert res is np.newaxis
 
 
 class TestSubtensor(utt.OptimizationTestMixin):

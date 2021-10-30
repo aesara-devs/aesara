@@ -10,7 +10,7 @@ import aesara
 from aesara import scalar as aes
 from aesara.configdefaults import config
 from aesara.gradient import DisconnectedType
-from aesara.graph.basic import Apply, Variable
+from aesara.graph.basic import Apply, Constant, Variable
 from aesara.graph.op import COp, Op
 from aesara.graph.params_type import ParamsType
 from aesara.graph.type import Type
@@ -130,6 +130,36 @@ def as_index_constant(a):
         return aesara.tensor.as_tensor(a)
     else:
         return a
+
+
+def as_index_literal(
+    idx: Union[Variable, slice, type(np.newaxis)]
+) -> Union[int, slice, type(np.newaxis)]:
+    """Convert a symbolic index element to its Python equivalent.
+
+    This is like the inverse of `as_index_constant`
+
+    Raises
+    ------
+    NotScalarConstantError
+    """
+    if idx == np.newaxis or isinstance(getattr(idx, "type", None), NoneTypeT):
+        return np.newaxis
+
+    if isinstance(idx, Constant):
+        return idx.data.item() if isinstance(idx, np.ndarray) else idx.data
+
+    if isinstance(getattr(idx, "type", None), SliceType):
+        idx = slice(*idx.owner.inputs)
+
+    if isinstance(idx, slice):
+        return slice(
+            as_index_literal(idx.start),
+            as_index_literal(idx.stop),
+            as_index_literal(idx.step),
+        )
+
+    raise NotScalarConstantError()
 
 
 def get_idx_list(inputs, idx_list):

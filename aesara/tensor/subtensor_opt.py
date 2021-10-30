@@ -1,4 +1,5 @@
 import sys
+from collections.abc import Iterable
 
 import numpy as np
 
@@ -16,6 +17,7 @@ from aesara.tensor.basic import (
     ScalarFromTensor,
     TensorFromScalar,
     alloc,
+    as_tensor,
     cast,
     extract_constant,
     get_scalar_constant_value,
@@ -45,7 +47,7 @@ from aesara.tensor.math import (
     minimum,
     or_,
 )
-from aesara.tensor.shape import shape_padleft, shape_tuple
+from aesara.tensor.shape import Shape, shape_padleft, shape_tuple
 from aesara.tensor.sharedvar import TensorSharedVariable
 from aesara.tensor.subtensor import (
     AdvancedIncSubtensor,
@@ -58,6 +60,7 @@ from aesara.tensor.subtensor import (
     advanced_subtensor,
     advanced_subtensor1,
     as_index_constant,
+    as_index_literal,
     get_canonical_form_slice,
     get_idx_list,
     inc_subtensor,
@@ -1560,3 +1563,58 @@ def local_useless_inc_subtensor_alloc(fgraph, node):
             copy_stack_trace(node.outputs, r)
 
             return [r]
+
+
+@register_specialize
+@register_canonicalize
+@local_optimizer([Subtensor])
+def local_subtensor_shape_constant(fgraph, node):
+    r"""Simplify constant `Subtensor`\s on `Shape`\s dimensions that are known.
+
+    We want to convert graphs like
+
+        Subtensor{int64} [id A] ''
+         |Shape [id B] ''
+         | |<TensorType(float64, row)> [id C]
+         |ScalarConstant{0} [id D]
+
+    into
+
+        TensorConstant{1}
+
+    TODO: Something like `local_shape_to_shape_i` should be a general
+    canonicalization, and not a `ShapeFeature`-dependent rewrite.  If that were
+    the case, we could change this to only operate on `Shape_i`\s.
+    Currently, we're not handling them because they should only appear when
+    `ShapeFeature` is present, and it will also simplify/remove them.
+
+    """
+    if not isinstance(node.op, Subtensor):
+        return False
+
+    shape = node.inputs[0]
+
+    if not (shape.owner and isinstance(shape.owner.op, Shape)):
+        return False
+
+    shape_arg = shape.owner.inputs[0]
+
+    (idx,) = get_idx_list(node.inputs, node.op.idx_list)
+
+    try:
+        idx_val = as_index_literal(idx)
+    except NotScalarConstantError:
+        return False
+
+    assert idx_val != np.newaxis
+
+    if not isinstance(shape_arg.type, TensorType):
+        return False
+
+    shape_parts = shape_arg.type.broadcastable[idx_val]
+
+    if isinstance(shape_parts, Iterable):
+        if all(shape_parts):
+            return [as_tensor([1] * len(shape_parts), dtype=np.int64, ndim=1)]
+    elif shape_parts:
+        return [as_tensor(1, dtype=np.int64)]
