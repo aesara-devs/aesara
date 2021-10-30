@@ -10,8 +10,10 @@ from aesara.compile.function import function
 from aesara.compile.mode import Mode, get_default_mode, get_mode
 from aesara.compile.ops import DeepCopyOp
 from aesara.configdefaults import config
-from aesara.graph.basic import Variable, ancestors
+from aesara.graph.basic import Constant, Variable, ancestors
 from aesara.graph.opt import check_stack_trace
+from aesara.graph.opt_utils import optimize_graph
+from aesara.graph.type import Type
 from aesara.tensor import inplace
 from aesara.tensor.basic import (
     Alloc,
@@ -22,7 +24,7 @@ from aesara.tensor.basic import (
 )
 from aesara.tensor.elemwise import DimShuffle, Elemwise
 from aesara.tensor.math import Dot, add, dot, exp, sqr
-from aesara.tensor.shape import SpecifyShape, specify_shape
+from aesara.tensor.shape import SpecifyShape, shape, specify_shape
 from aesara.tensor.subtensor import (
     AdvancedIncSubtensor,
     AdvancedIncSubtensor1,
@@ -33,7 +35,10 @@ from aesara.tensor.subtensor import (
     inc_subtensor,
     set_subtensor,
 )
-from aesara.tensor.subtensor_opt import local_replace_AdvancedSubtensor
+from aesara.tensor.subtensor_opt import (
+    local_replace_AdvancedSubtensor,
+    local_subtensor_shape_constant,
+)
 from aesara.tensor.type import (
     bmatrix,
     col,
@@ -41,6 +46,7 @@ from aesara.tensor.type import (
     fmatrix,
     iscalar,
     ivector,
+    lscalar,
     lscalars,
     matrix,
     row,
@@ -1036,14 +1042,14 @@ class TestLocalSubtensorMerge:
         ]
         x = matrix("x")
 
-        for shape, sl1, sl2 in cases:
+        for s, sl1, sl2 in cases:
             z = x[slice(*sl1)][slice(*sl2)]
             f = function([x], z, mode=mode_opt)
 
             # Check stacktrace was copied over correctly after opt was applied
             assert check_stack_trace(f, ops_to_check=Subtensor)
 
-            x_val = self.rng.uniform(size=shape).astype(config.floatX)
+            x_val = self.rng.uniform(size=s).astype(config.floatX)
             f(x_val)
 
     def test_scalar5(self):
@@ -1950,11 +1956,11 @@ def test_local_subtensor_of_alloc():
 
     # DebugMode should detect if something goes wrong.
     # test shape combination of odd and event shape.
-    for shape in [(3, 5), (4, 6), (3, 8), (4, 7), (1, 5), (5, 1)]:
-        x = tensor(dtype=config.floatX, broadcastable=(shape[0] == 1, shape[1] == 1))
+    for s in [(3, 5), (4, 6), (3, 8), (4, 7), (1, 5), (5, 1)]:
+        x = tensor(dtype=config.floatX, broadcastable=(s[0] == 1, s[1] == 1))
 
-        xval = np.zeros(shape, dtype=config.floatX)
-        yval = np.arange(shape[1], dtype=config.floatX)
+        xval = np.zeros(s, dtype=config.floatX)
+        yval = np.arange(s[1], dtype=config.floatX)
 
         for y in [shared(yval), aet.constant([1.0])]:
 
@@ -1970,9 +1976,9 @@ def test_local_subtensor_of_alloc():
             assert z_vec.ndim == 1
             # results are vector
             slicess = []
-            if shape[0] != 1:
+            if s[0] != 1:
                 slicess.append((2, slice(None)))
-            if shape[1] != 1:
+            if s[1] != 1:
                 slicess.append((slice(None), 3))
 
             # results are matrix
@@ -1992,3 +1998,46 @@ def test_local_subtensor_of_alloc():
                     assert not isinstance(f.maker.fgraph.toposort()[-1].op, Subtensor)
                 val = f(xval)
                 assert xval.__getitem__(slices).shape == val.shape
+
+
+def test_local_subtensor_shape_constant():
+    x = tensor(np.float64, [True, False]).shape[0]
+    (res,) = local_subtensor_shape_constant.transform(None, x.owner)
+    assert isinstance(res, Constant)
+    assert res.data == 1
+
+    # Make sure it's part of the canonicalizations
+    res = optimize_graph(x)
+    assert isinstance(res, Constant)
+    assert res.data == 1
+
+    x = tensor(np.float64, [True, False]).shape[lscalar()]
+    assert not local_subtensor_shape_constant.transform(None, x.owner)
+
+    x = tensor(np.float64, [True, False]).shape[0:]
+    assert not local_subtensor_shape_constant.transform(None, x.owner)
+
+    x = tensor(np.float64, [True, False]).shape[lscalar() :]
+    assert not local_subtensor_shape_constant.transform(None, x.owner)
+
+    x = tensor(np.float64, [True, True]).shape[1:]
+    (res,) = local_subtensor_shape_constant.transform(None, x.owner)
+    assert isinstance(res, Constant)
+    assert np.array_equal(res.data, [1])
+
+    x = tensor(np.float64, [False, True, True]).shape[1:]
+    (res,) = local_subtensor_shape_constant.transform(None, x.owner)
+    assert isinstance(res, Constant)
+    assert np.array_equal(res.data, [1, 1])
+
+    # A test for a non-`TensorType`
+    class MyType(Type):
+        def filter(self, *args, **kwargs):
+            raise NotImplementedError()
+
+        def __eq__(self, other):
+            return isinstance(other, MyType) and other.thingy == self.thingy
+
+    x = shape(Variable(MyType(), None, None))[0]
+
+    assert not local_subtensor_shape_constant.transform(None, x.owner)
