@@ -76,7 +76,7 @@ from aesara.tensor.exceptions import NotScalarConstantError, ShapeError
 from aesara.tensor.extra_ops import broadcast_shape
 from aesara.tensor.math import all as at_all
 from aesara.tensor.math import eq
-from aesara.tensor.shape import Reshape, Shape, Shape_i, shape_padleft
+from aesara.tensor.shape import Reshape, Shape, Shape_i, SpecifyShape, shape_padleft
 from aesara.tensor.sort import TopKOp
 from aesara.tensor.subtensor import Subtensor, get_idx_list
 from aesara.tensor.type import discrete_dtypes, integer_dtypes, lscalar
@@ -3536,3 +3536,20 @@ def local_useless_topk(fgraph, node):
     )(x, k)
     copy_stack_trace(node.outputs[0], new_output)
     return {old_output: new_output}
+
+
+@register_useless
+@register_canonicalize
+@local_optimizer([Shape])
+def local_Shape_of_SpecifyShape(fgraph, node):
+    """Replace ``specify_shape(x, s).shape`` with ``s``."""
+
+    if not isinstance(node.op, Shape):
+        return False
+
+    specified_shape = node.inputs[0]
+
+    if not isinstance(getattr(specified_shape.owner, "op", None), SpecifyShape):
+        return False
+
+    return [specified_shape.owner.inputs[1].astype(np.int64)]
