@@ -15,12 +15,13 @@ from aesara.compile.function import function
 from aesara.compile.mode import Mode, get_default_mode, get_mode
 from aesara.compile.ops import DeepCopyOp, deep_copy_op
 from aesara.configdefaults import config
-from aesara.graph.basic import Apply, Constant
+from aesara.graph.basic import Apply, Constant, Variable
 from aesara.graph.fg import FunctionGraph
 from aesara.graph.op import Op
 from aesara.graph.opt import check_stack_trace, local_optimizer, out2in
 from aesara.graph.opt_utils import optimize_graph
 from aesara.graph.optdb import OptimizationQuery
+from aesara.graph.type import Type
 from aesara.misc.safe_asarray import _asarray
 from aesara.tensor.basic import (
     Alloc,
@@ -3206,6 +3207,35 @@ def test_local_Shape_of_SpecifyShape(shape):
 
     assert x not in fgraph.variables
     assert shape in fgraph.variables
+
+
+def test_local_Shape_i_of_broadcastable():
+    x = tensor(np.float64, [False, True])
+    s = Shape_i(1)(x)
+
+    fgraph = FunctionGraph(outputs=[s], clone=False)
+    _ = optimize_graph(fgraph, clone=False)
+
+    assert x not in fgraph.variables
+    assert fgraph.outputs[0].data == 1
+
+    # A test for a non-`TensorType`
+    class MyType(Type):
+        def filter(self, *args, **kwargs):
+            raise NotImplementedError()
+
+        def __eq__(self, other):
+            return isinstance(other, MyType) and other.thingy == self.thingy
+
+    class MyVariable(Variable):
+        ndim = 1
+
+    x = MyVariable(MyType(), None, None)
+    s = Shape_i(0)(x)
+    fgraph = FunctionGraph(outputs=[s], clone=False)
+    _ = optimize_graph(fgraph, clone=False)
+
+    assert fgraph.outputs[0] == s
 
 
 def test_assert_op_gradient():

@@ -79,7 +79,7 @@ from aesara.tensor.math import eq
 from aesara.tensor.shape import Reshape, Shape, Shape_i, SpecifyShape, shape_padleft
 from aesara.tensor.sort import TopKOp
 from aesara.tensor.subtensor import Subtensor, get_idx_list
-from aesara.tensor.type import discrete_dtypes, integer_dtypes, lscalar
+from aesara.tensor.type import TensorType, discrete_dtypes, integer_dtypes, lscalar
 from aesara.tensor.var import TensorConstant
 from aesara.utils import NoDuplicateOptWarningFilter
 
@@ -3553,3 +3553,21 @@ def local_Shape_of_SpecifyShape(fgraph, node):
         return False
 
     return [specified_shape.owner.inputs[1].astype(np.int64)]
+
+
+@register_useless
+@register_canonicalize
+@local_optimizer([Shape_i])
+def local_Shape_i_of_broadcastable(fgraph, node):
+    """Replace ``shape_i(x, i)`` with ``1`` when ``x.broadcastable[i]`` is ``True``."""
+
+    if not isinstance(node.op, Shape_i):
+        return False
+
+    shape_arg = node.inputs[0]
+
+    if not isinstance(shape_arg.type, TensorType):
+        return False
+
+    if shape_arg.broadcastable[node.op.i]:
+        return [as_tensor_variable(1, dtype=np.int64)]
