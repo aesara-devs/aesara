@@ -1810,7 +1810,6 @@ def test_join_inplace():
     f = aesara.function([In(x, borrow=True), s], Out(c, borrow=True))
 
     data = np.array([3, 4, 5], dtype=config.floatX)
-    print(f(data, 0))
 
     if config.mode not in ["DebugMode", "DEBUG_MODE"]:
         assert f(data, 0) is data
@@ -3441,7 +3440,7 @@ class TestAllocDiag:
                 # Test infer_shape
                 f_shape = aesara.function([x], adiag_op(x).shape, mode="FAST_RUN")
 
-                aesara.printing.debugprint(f_shape.maker.fgraph.outputs[0])
+                # aesara.printing.debugprint(f_shape.maker.fgraph.outputs[0])
                 output_shape = f_shape(test_val)
                 assert not any(
                     isinstance(node.op, self.alloc_diag)

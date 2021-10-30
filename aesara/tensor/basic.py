@@ -579,11 +579,6 @@ def get_scalar_constant_value(
         raise NotScalarConstantError(v)
 
 
-#########################
-# Casting Operations
-#########################
-
-
 class TensorFromScalar(Op):
 
     __props__ = ()
