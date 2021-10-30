@@ -8,7 +8,6 @@ manipulation of tensors.
 import builtins
 import logging
 import warnings
-from collections import OrderedDict
 from collections.abc import Sequence
 from functools import partial
 from numbers import Number
@@ -697,7 +696,7 @@ class Rebroadcast(COp):
     def __init__(self, *axis):
         # Sort them to make sure we merge all possible case.
         items = sorted(axis)
-        self.axis = OrderedDict(items)
+        self.axis = dict(items)
         for axis, broad in self.axis.items():
             if not isinstance(axis, (np.integer, int)):
                 raise TypeError(f"Rebroadcast needs integer axes. Got {axis}")
@@ -714,13 +713,7 @@ class Rebroadcast(COp):
         return hash((type(self), tuple(items)))
 
     def __str__(self):
-        if len(self.axis) == 0:
-            broadcast_pattern = []
-        else:
-            broadcast_pattern = ["?" for i in range(1 + max(self.axis.keys()))]
-        for k, v in self.axis.items():
-            broadcast_pattern[k] = str(int(v))
-        return f"{self.__class__.__name__}{{{','.join(broadcast_pattern)}}}"
+        return f"{self.__class__.__name__}{{{','.join(str(i) for i in self.axis.items())}}}"
 
     def make_node(self, x):
         if self.axis.keys() and (x.ndim <= max(self.axis.keys())):
