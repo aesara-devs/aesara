@@ -537,10 +537,9 @@ class TestSubtensor(utt.OptimizationTestMixin):
         ret = f()
         assert ret.shape == (1, 1, 4)
 
-    def test_ellipsis(self):
-        numpy_n = np.arange(24, dtype=self.dtype).reshape((2, 3, 4))
-        n = self.shared(numpy_n)
-        test_cases = [
+    @pytest.mark.parametrize(
+        "length, op_type_opt, slice_",
+        [
             (0, Subtensor, np.index_exp[...]),
             (1, Subtensor, np.index_exp[..., 1]),
             (1, Subtensor, np.index_exp[1, ...]),
@@ -554,14 +553,16 @@ class TestSubtensor(utt.OptimizationTestMixin):
                 AdvancedSubtensor,
                 np.index_exp[..., np.newaxis, [1, 2]],
             ),
-        ]
-
-        for length, op_type_opt, slice_ in test_cases:
-            numpy_tval = numpy_n[slice_]
-            t = n[slice_]
-            tval = self.eval_output_and_check(t, op_type=op_type_opt, length=length)
-            assert tval.shape == numpy_tval.shape
-            assert_array_equal(tval, numpy_tval)
+        ],
+    )
+    def test_ellipsis(self, length, op_type_opt, slice_):
+        numpy_n = np.arange(24, dtype=self.dtype).reshape((2, 3, 4))
+        n = self.shared(numpy_n)
+        numpy_tval = numpy_n[slice_]
+        t = n[slice_]
+        tval = self.eval_output_and_check(t, op_type=op_type_opt, length=length)
+        assert tval.shape == numpy_tval.shape
+        assert_array_equal(tval, numpy_tval)
 
     def test_boolean(self):
         def numpy_inc_subtensor(x, idx, a):
