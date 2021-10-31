@@ -14,6 +14,7 @@ from aesara.compile.io import In
 from aesara.configdefaults import config
 from aesara.graph.op import get_test_value
 from aesara.graph.opt_utils import is_same_graph
+from aesara.scalar.basic import as_scalar
 from aesara.tensor.elemwise import DimShuffle
 from aesara.tensor.math import exp, isinf
 from aesara.tensor.math import sum as aet_sum
@@ -94,6 +95,186 @@ def test_as_index_literal():
     assert res is np.newaxis
     res = as_index_literal(NoneConst.clone())
     assert res is np.newaxis
+
+
+class TestGetCanonicalFormSlice:
+    def test_scalar_constant(self):
+        a = as_scalar(0)
+        length = lscalar()
+        res = get_canonical_form_slice(a, length)
+        assert res[0].owner.op == aet.switch
+        assert res[1] == 1
+
+    def test_all_symbolic(self):
+        start = iscalar("b")
+        stop = iscalar("e")
+        step = iscalar("s")
+        length = iscalar("l")
+        cnf = get_canonical_form_slice(slice(start, stop, step), length)
+        f = aesara.function(
+            [start, stop, step, length],
+            [
+                aet.as_tensor_variable(cnf[0].start),
+                aet.as_tensor_variable(cnf[0].stop),
+                aet.as_tensor_variable(cnf[0].step),
+                aet.as_tensor_variable(cnf[1]),
+            ],
+        )
+
+        length = 5
+        a = np.arange(length)
+        for start in [-8, -5, -4, -1, 0, 1, 4, 5, 8]:
+            for stop in [-8, -5, -4, -1, 0, 1, 4, 5, 8]:
+                for step in [-6, -3, -1, 2, 5]:
+                    out = f(start, stop, step, length)
+                    t_out = a[out[0] : out[1] : out[2]][:: out[3]]
+                    v_out = a[start:stop:step]
+                    assert np.all(t_out == v_out)
+                    assert np.all(t_out.shape == v_out.shape)
+
+    def test_start_None(self):
+        stop = iscalar("e")
+        step = iscalar("s")
+        length = iscalar("l")
+        cnf = get_canonical_form_slice(slice(None, stop, step), length)
+        f = aesara.function(
+            [stop, step, length],
+            [
+                aet.as_tensor_variable(cnf[0].start),
+                aet.as_tensor_variable(cnf[0].stop),
+                aet.as_tensor_variable(cnf[0].step),
+                aet.as_tensor_variable(cnf[1]),
+            ],
+        )
+
+        length = 5
+        a = np.arange(length)
+        for stop in [-8, -5, -4, -1, 0, 1, 4, 5, 8]:
+            for step in [-6, -3, -1, 2, 5]:
+                out = f(stop, step, length)
+                t_out = a[out[0] : out[1] : out[2]][:: out[3]]
+                v_out = a[:stop:step]
+                assert np.all(t_out == v_out)
+                assert np.all(t_out.shape == v_out.shape)
+
+    def test_stop_None(self):
+        start = iscalar("b")
+        step = iscalar("s")
+        length = iscalar("l")
+        cnf = get_canonical_form_slice(slice(start, None, step), length)
+        f = aesara.function(
+            [start, step, length],
+            [
+                aet.as_tensor_variable(cnf[0].start),
+                aet.as_tensor_variable(cnf[0].stop),
+                aet.as_tensor_variable(cnf[0].step),
+                aet.as_tensor_variable(cnf[1]),
+            ],
+        )
+
+        length = 5
+        a = np.arange(length)
+        for start in [-8, -5, -4, -1, 0, 1, 4, 5, 8]:
+            for step in [-6, -3, -1, 2, 5]:
+                out = f(start, step, length)
+                t_out = a[out[0] : out[1] : out[2]][:: out[3]]
+                v_out = a[start:None:step]
+                assert np.all(t_out == v_out)
+                assert np.all(t_out.shape == v_out.shape)
+
+    def test_step_None(self):
+        start = iscalar("b")
+        stop = iscalar("e")
+        length = iscalar("l")
+        cnf = get_canonical_form_slice(slice(start, stop, None), length)
+        f = aesara.function(
+            [start, stop, length],
+            [
+                aet.as_tensor_variable(cnf[0].start),
+                aet.as_tensor_variable(cnf[0].stop),
+                aet.as_tensor_variable(cnf[0].step),
+                aet.as_tensor_variable(cnf[1]),
+            ],
+        )
+
+        length = 5
+        a = np.arange(length)
+        for start in [-8, -5, -4, -1, 0, 1, 4, 5, 8]:
+            for stop in [-8, -5, -4, -1, 0, 1, 4, 5, 8]:
+                out = f(start, stop, length)
+                t_out = a[out[0] : out[1] : out[2]][:: out[3]]
+                v_out = a[start:stop:None]
+                assert np.all(t_out == v_out)
+                assert np.all(t_out.shape == v_out.shape)
+
+    def test_start_stop_None(self):
+        step = iscalar("s")
+        length = iscalar("l")
+        cnf = get_canonical_form_slice(slice(None, None, step), length)
+        f = aesara.function(
+            [step, length],
+            [
+                aet.as_tensor_variable(cnf[0].start),
+                aet.as_tensor_variable(cnf[0].stop),
+                aet.as_tensor_variable(cnf[0].step),
+                aet.as_tensor_variable(cnf[1]),
+            ],
+        )
+
+        length = 5
+        a = np.arange(length)
+        for step in [-6, -3, -1, 2, 5]:
+            out = f(step, length)
+            t_out = a[out[0] : out[1] : out[2]][:: out[3]]
+            v_out = a[None:None:step]
+            assert np.all(t_out == v_out)
+            assert np.all(t_out.shape == v_out.shape)
+
+    def test_stop_step_None(self):
+        start = iscalar("b")
+        length = iscalar("l")
+        cnf = get_canonical_form_slice(slice(start, None, None), length)
+        f = aesara.function(
+            [start, length],
+            [
+                aet.as_tensor_variable(cnf[0].start),
+                aet.as_tensor_variable(cnf[0].stop),
+                aet.as_tensor_variable(cnf[0].step),
+                aet.as_tensor_variable(cnf[1]),
+            ],
+        )
+
+        length = 5
+        a = np.arange(length)
+        for start in [-8, -5, -4, -1, 0, 1, 4, 5, 8]:
+            out = f(start, length)
+            t_out = a[out[0] : out[1] : out[2]][:: out[3]]
+            v_out = a[start:None:None]
+            assert np.all(t_out == v_out)
+            assert np.all(t_out.shape == v_out.shape)
+
+    def test_start_step_None(self):
+        stop = iscalar("e")
+        length = iscalar("l")
+        cnf = get_canonical_form_slice(slice(None, stop, None), length)
+        f = aesara.function(
+            [stop, length],
+            [
+                aet.as_tensor_variable(cnf[0].start),
+                aet.as_tensor_variable(cnf[0].stop),
+                aet.as_tensor_variable(cnf[0].step),
+                aet.as_tensor_variable(cnf[1]),
+            ],
+        )
+
+        length = 5
+        a = np.arange(length)
+        for stop in [-8, -5, -4, -1, 0, 1, 4, 5, 8]:
+            out = f(stop, length)
+            t_out = a[out[0] : out[1] : out[2]][:: out[3]]
+            v_out = a[None:stop:None]
+            assert np.all(t_out == v_out)
+            assert np.all(t_out.shape == v_out.shape)
 
 
 class TestSubtensor(utt.OptimizationTestMixin):
@@ -845,191 +1026,6 @@ class TestSubtensor(utt.OptimizationTestMixin):
             for stop in [-8, -5, -4, -1, 0, 1, 4, 5, 8]:
                 for step in [-3, -1, 2, 5]:
                     assert np.all(f(start, stop, step) == v_data[start:stop:step].shape)
-
-    def test_slice_canonical_form_0(self):
-        start = iscalar("b")
-        stop = iscalar("e")
-        step = iscalar("s")
-        length = iscalar("l")
-        cnf = get_canonical_form_slice(slice(start, stop, step), length)
-        f = self.function(
-            [start, stop, step, length],
-            [
-                aet.as_tensor_variable(cnf[0].start),
-                aet.as_tensor_variable(cnf[0].stop),
-                aet.as_tensor_variable(cnf[0].step),
-                aet.as_tensor_variable(cnf[1]),
-            ],
-            N=0,
-            op=subtensor_ops,
-        )
-
-        length = 5
-        a = np.arange(length)
-        for start in [-8, -5, -4, -1, 0, 1, 4, 5, 8]:
-            for stop in [-8, -5, -4, -1, 0, 1, 4, 5, 8]:
-                for step in [-6, -3, -1, 2, 5]:
-                    out = f(start, stop, step, length)
-                    t_out = a[out[0] : out[1] : out[2]][:: out[3]]
-                    v_out = a[start:stop:step]
-                    assert np.all(t_out == v_out)
-                    assert np.all(t_out.shape == v_out.shape)
-
-    def test_slice_canonical_form_1(self):
-        stop = iscalar("e")
-        step = iscalar("s")
-        length = iscalar("l")
-        cnf = get_canonical_form_slice(slice(None, stop, step), length)
-        f = self.function(
-            [stop, step, length],
-            [
-                aet.as_tensor_variable(cnf[0].start),
-                aet.as_tensor_variable(cnf[0].stop),
-                aet.as_tensor_variable(cnf[0].step),
-                aet.as_tensor_variable(cnf[1]),
-            ],
-            N=0,
-            op=subtensor_ops,
-        )
-
-        length = 5
-        a = np.arange(length)
-        for stop in [-8, -5, -4, -1, 0, 1, 4, 5, 8]:
-            for step in [-6, -3, -1, 2, 5]:
-                out = f(stop, step, length)
-                t_out = a[out[0] : out[1] : out[2]][:: out[3]]
-                v_out = a[:stop:step]
-                assert np.all(t_out == v_out)
-                assert np.all(t_out.shape == v_out.shape)
-
-    def test_slice_canonical_form_2(self):
-        start = iscalar("b")
-        step = iscalar("s")
-        length = iscalar("l")
-        cnf = get_canonical_form_slice(slice(start, None, step), length)
-        f = self.function(
-            [start, step, length],
-            [
-                aet.as_tensor_variable(cnf[0].start),
-                aet.as_tensor_variable(cnf[0].stop),
-                aet.as_tensor_variable(cnf[0].step),
-                aet.as_tensor_variable(cnf[1]),
-            ],
-            N=0,
-            op=subtensor_ops,
-        )
-
-        length = 5
-        a = np.arange(length)
-        for start in [-8, -5, -4, -1, 0, 1, 4, 5, 8]:
-            for step in [-6, -3, -1, 2, 5]:
-                out = f(start, step, length)
-                t_out = a[out[0] : out[1] : out[2]][:: out[3]]
-                v_out = a[start:None:step]
-                assert np.all(t_out == v_out)
-                assert np.all(t_out.shape == v_out.shape)
-
-    def test_slice_canonical_form_3(self):
-        start = iscalar("b")
-        stop = iscalar("e")
-        length = iscalar("l")
-        cnf = get_canonical_form_slice(slice(start, stop, None), length)
-        f = self.function(
-            [start, stop, length],
-            [
-                aet.as_tensor_variable(cnf[0].start),
-                aet.as_tensor_variable(cnf[0].stop),
-                aet.as_tensor_variable(cnf[0].step),
-                aet.as_tensor_variable(cnf[1]),
-            ],
-            N=0,
-            op=subtensor_ops,
-        )
-
-        length = 5
-        a = np.arange(length)
-        for start in [-8, -5, -4, -1, 0, 1, 4, 5, 8]:
-            for stop in [-8, -5, -4, -1, 0, 1, 4, 5, 8]:
-                out = f(start, stop, length)
-                t_out = a[out[0] : out[1] : out[2]][:: out[3]]
-                v_out = a[start:stop:None]
-                assert np.all(t_out == v_out)
-                assert np.all(t_out.shape == v_out.shape)
-
-    def test_slice_canonical_form_4(self):
-        step = iscalar("s")
-        length = iscalar("l")
-        cnf = get_canonical_form_slice(slice(None, None, step), length)
-        f = self.function(
-            [step, length],
-            [
-                aet.as_tensor_variable(cnf[0].start),
-                aet.as_tensor_variable(cnf[0].stop),
-                aet.as_tensor_variable(cnf[0].step),
-                aet.as_tensor_variable(cnf[1]),
-            ],
-            N=0,
-            op=subtensor_ops,
-        )
-
-        length = 5
-        a = np.arange(length)
-        for step in [-6, -3, -1, 2, 5]:
-            out = f(step, length)
-            t_out = a[out[0] : out[1] : out[2]][:: out[3]]
-            v_out = a[None:None:step]
-            assert np.all(t_out == v_out)
-            assert np.all(t_out.shape == v_out.shape)
-
-    def test_slice_canonical_form_5(self):
-        start = iscalar("b")
-        length = iscalar("l")
-        cnf = get_canonical_form_slice(slice(start, None, None), length)
-        f = self.function(
-            [start, length],
-            [
-                aet.as_tensor_variable(cnf[0].start),
-                aet.as_tensor_variable(cnf[0].stop),
-                aet.as_tensor_variable(cnf[0].step),
-                aet.as_tensor_variable(cnf[1]),
-            ],
-            N=0,
-            op=subtensor_ops,
-        )
-
-        length = 5
-        a = np.arange(length)
-        for start in [-8, -5, -4, -1, 0, 1, 4, 5, 8]:
-            out = f(start, length)
-            t_out = a[out[0] : out[1] : out[2]][:: out[3]]
-            v_out = a[start:None:None]
-            assert np.all(t_out == v_out)
-            assert np.all(t_out.shape == v_out.shape)
-
-    def test_slice_canonical_form_6(self):
-        stop = iscalar("e")
-        length = iscalar("l")
-        cnf = get_canonical_form_slice(slice(None, stop, None), length)
-        f = self.function(
-            [stop, length],
-            [
-                aet.as_tensor_variable(cnf[0].start),
-                aet.as_tensor_variable(cnf[0].stop),
-                aet.as_tensor_variable(cnf[0].step),
-                aet.as_tensor_variable(cnf[1]),
-            ],
-            N=0,
-            op=subtensor_ops,
-        )
-
-        length = 5
-        a = np.arange(length)
-        for stop in [-8, -5, -4, -1, 0, 1, 4, 5, 8]:
-            out = f(stop, length)
-            t_out = a[out[0] : out[1] : out[2]][:: out[3]]
-            v_out = a[None:stop:None]
-            assert np.all(t_out == v_out)
-            assert np.all(t_out.shape == v_out.shape)
 
     def grad_list_(self, idxs, data):
         n = self.shared(data)

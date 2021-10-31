@@ -168,7 +168,9 @@ def get_idx_list(inputs, idx_list):
     return indices_from_subtensor(inputs[1:], idx_list)
 
 
-def get_canonical_form_slice(theslice, length):
+def get_canonical_form_slice(
+    theslice: Union[slice, Variable], length: Variable
+) -> Tuple[Variable, int]:
     """Convert slices to canonical form.
 
     Given a slice [start:stop:step] transform it into a canonical form
@@ -179,160 +181,161 @@ def get_canonical_form_slice(theslice, length):
     if the resulting set of numbers needs to be reversed or not.
 
     """
-    from aesara.tensor import extract_constant, ge, lt, sgn, switch
+    from aesara.tensor import ge, lt, sgn, switch
 
-    if isinstance(theslice, slice):
+    if not isinstance(theslice, slice):
+        try:
+            value = as_index_literal(theslice)
+        except NotScalarConstantError:
+            value = theslice
 
-        def analyze(x):
-            try:
-                x_constant = get_scalar_constant_value(x)
-                is_constant = True
-            except NotScalarConstantError:
-                x_constant = extract_constant(x)
-                is_constant = False
-            return x_constant, is_constant
-
-        start, is_start_constant = analyze(theslice.start)
-        stop, is_stop_constant = analyze(theslice.stop)
-        step, is_step_constant = analyze(theslice.step)
-        length, is_length_constant = analyze(length)
-
-        if step is None:
-            step = 1
-            is_step_constant = True
-
-        # First handle the easier and common case where `step` is 1 and
-        # either `start` or `stop` is a range boundary. More specializations
-        # could be added later. This makes the resulting graph smaller than
-        # in the generic case below.
-        if step == 1:
-            is_start_0 = (
-                start is None
-                or start == 0
-                or (
-                    is_start_constant
-                    and is_length_constant
-                    and start < 0
-                    and start + length <= 0
-                )
-            )
-            is_stop_length = (
-                stop is None
-                or stop in [length, sys.maxsize]
-                or (is_stop_constant and is_length_constant and stop >= length)
-            )
-            if is_start_0:
-                # 0:stop:1
-                if is_stop_length:
-                    # Full slice.
-                    return slice(0, length, 1), 1
-                if is_stop_constant and stop >= 0:
-                    return (slice(0, switch(lt(stop, length), stop, length), 1), 1)
-                stop_plus_len = stop + length
-                stop = switch(
-                    lt(stop, 0),
-                    # stop < 0
-                    switch(
-                        lt(stop_plus_len, 0),
-                        # stop + len < 0
-                        0,
-                        # stop + len >= 0
-                        stop_plus_len,
-                    ),
-                    # stop >= 0: use min(stop, length)
-                    switch(lt(stop, length), stop, length),
-                )
-                return slice(0, stop, 1), 1
-            elif is_stop_length:
-                # start:length:1
-                if is_start_constant and start >= 0:
-                    return slice(switch(lt(start, length), start, length), length, 1), 1
-                start_plus_len = start + length
-                start = switch(
-                    lt(start, 0),
-                    # start < 0
-                    switch(
-                        lt(start_plus_len, 0),
-                        # start + len < 0
-                        0,
-                        # start + len >= 0
-                        start_plus_len,
-                    ),
-                    # start >= 0: use min(start, length)
-                    switch(lt(start, length), start, length),
-                )
-                return slice(start, length, 1), 1
-
-        # This is the generic case.
-
-        if is_step_constant:
-            # When we know the sign of `step`, the graph can be made simpler.
-            assert step != 0
-            if step > 0:
-
-                def switch_neg_step(a, b):
-                    return b
-
-                abs_step = step
-                sgn_step = 1
-            else:
-
-                def switch_neg_step(a, b):
-                    return a
-
-                abs_step = -step
-                sgn_step = -1
-        else:
-            is_step_neg = lt(step, 0)
-
-            def switch_neg_step(a, b):
-                return switch(is_step_neg, a, b)
-
-            abs_step = abs(step)
-            sgn_step = sgn(step)
-
-        defstart = switch_neg_step(length - 1, 0)
-        defstop = switch_neg_step(-1, length)
-        if start is None:
-            start = defstart
-        else:
-            start = switch(lt(start, 0), start + length, start)
-            start = switch(lt(start, 0), switch_neg_step(-1, 0), start)
-            start = switch(
-                ge(start, length), switch_neg_step(length - 1, length), start
-            )
-        if stop is None or stop == sys.maxsize:
-            # The special "maxsize" case is probably not needed here,
-            # as slices containing maxsize are not generated by
-            # __getslice__ anymore.
-            stop = defstop
-        else:
-            stop = switch(lt(stop, 0), stop + length, stop)
-            stop = switch(lt(stop, 0), -1, stop)
-            stop = switch(ge(stop, length), length, stop)
-
-        nw_stop = switch_neg_step(start + 1, stop)
-        slice_len = (start - stop - 1) // abs_step + 1
-        slice_len = switch(lt(slice_len, 0), 0, slice_len)
-        neg_start = nw_stop - (slice_len - 1) * abs_step - 1
-        neg_start = switch(lt(neg_start, 0), (nw_stop - 1), neg_start)
-        nw_start = switch_neg_step(neg_start, start)
-        nw_start = switch(lt(nw_start, 0), 0, nw_start)
-        nw_stop = switch(lt(nw_stop, 0), 0, nw_stop)
-        # Ensure start <= stop.
-        nw_start = switch(lt(nw_start, nw_stop), nw_start, nw_stop)
-
-        nw_step = abs_step
-        if step != 1:
-            reverse = sgn_step
-            return slice(nw_start, nw_stop, nw_step), reverse
-        else:
-            return slice(nw_start, nw_stop, nw_step), 1
-    else:
-        value = extract_constant(theslice)
         value = switch(lt(value, 0), (value + length), value)
 
         return value, 1
+
+    def analyze(x):
+        try:
+            x_constant = as_index_literal(x)
+            is_constant = True
+        except NotScalarConstantError:
+            x_constant = x
+            is_constant = False
+        return x_constant, is_constant
+
+    start, is_start_constant = analyze(theslice.start)
+    stop, is_stop_constant = analyze(theslice.stop)
+    step, is_step_constant = analyze(theslice.step)
+    length, is_length_constant = analyze(length)
+
+    if step is None:
+        step = 1
+        is_step_constant = True
+
+    # First handle the easier and common case where `step` is 1 and
+    # either `start` or `stop` is a range boundary. More specializations
+    # could be added later. This makes the resulting graph smaller than
+    # in the generic case below.
+    if step == 1:
+        is_start_0 = (
+            start is None
+            or start == 0
+            or (
+                is_start_constant
+                and is_length_constant
+                and start < 0
+                and start + length <= 0
+            )
+        )
+        is_stop_length = (
+            stop is None
+            or stop in [length, sys.maxsize]
+            or (is_stop_constant and is_length_constant and stop >= length)
+        )
+        if is_start_0:
+            # 0:stop:1
+            if is_stop_length:
+                # Full slice.
+                return slice(0, length, 1), 1
+            if is_stop_constant and stop >= 0:
+                return (slice(0, switch(lt(stop, length), stop, length), 1), 1)
+            stop_plus_len = stop + length
+            stop = switch(
+                lt(stop, 0),
+                # stop < 0
+                switch(
+                    lt(stop_plus_len, 0),
+                    # stop + len < 0
+                    0,
+                    # stop + len >= 0
+                    stop_plus_len,
+                ),
+                # stop >= 0: use min(stop, length)
+                switch(lt(stop, length), stop, length),
+            )
+            return slice(0, stop, 1), 1
+        elif is_stop_length:
+            # start:length:1
+            if is_start_constant and start >= 0:
+                return slice(switch(lt(start, length), start, length), length, 1), 1
+            start_plus_len = start + length
+            start = switch(
+                lt(start, 0),
+                # start < 0
+                switch(
+                    lt(start_plus_len, 0),
+                    # start + len < 0
+                    0,
+                    # start + len >= 0
+                    start_plus_len,
+                ),
+                # start >= 0: use min(start, length)
+                switch(lt(start, length), start, length),
+            )
+            return slice(start, length, 1), 1
+
+    # This is the generic case.
+
+    if is_step_constant:
+        # When we know the sign of `step`, the graph can be made simpler.
+        assert step != 0
+        if step > 0:
+
+            def switch_neg_step(a, b):
+                return b
+
+            abs_step = step
+            sgn_step = 1
+        else:
+
+            def switch_neg_step(a, b):
+                return a
+
+            abs_step = -step
+            sgn_step = -1
+    else:
+        is_step_neg = lt(step, 0)
+
+        def switch_neg_step(a, b):
+            return switch(is_step_neg, a, b)
+
+        abs_step = abs(step)
+        sgn_step = sgn(step)
+
+    defstart = switch_neg_step(length - 1, 0)
+    defstop = switch_neg_step(-1, length)
+    if start is None:
+        start = defstart
+    else:
+        start = switch(lt(start, 0), start + length, start)
+        start = switch(lt(start, 0), switch_neg_step(-1, 0), start)
+        start = switch(ge(start, length), switch_neg_step(length - 1, length), start)
+    if stop is None or stop == sys.maxsize:
+        # The special "maxsize" case is probably not needed here,
+        # as slices containing maxsize are not generated by
+        # __getslice__ anymore.
+        stop = defstop
+    else:
+        stop = switch(lt(stop, 0), stop + length, stop)
+        stop = switch(lt(stop, 0), -1, stop)
+        stop = switch(ge(stop, length), length, stop)
+
+    nw_stop = switch_neg_step(start + 1, stop)
+    slice_len = (start - stop - 1) // abs_step + 1
+    slice_len = switch(lt(slice_len, 0), 0, slice_len)
+    neg_start = nw_stop - (slice_len - 1) * abs_step - 1
+    neg_start = switch(lt(neg_start, 0), (nw_stop - 1), neg_start)
+    nw_start = switch_neg_step(neg_start, start)
+    nw_start = switch(lt(nw_start, 0), 0, nw_start)
+    nw_stop = switch(lt(nw_stop, 0), 0, nw_stop)
+    # Ensure start <= stop.
+    nw_start = switch(lt(nw_start, nw_stop), nw_start, nw_stop)
+
+    nw_step = abs_step
+    if step != 1:
+        reverse = sgn_step
+        return slice(nw_start, nw_stop, nw_step), reverse
+    else:
+        return slice(nw_start, nw_stop, nw_step), 1
 
 
 def range_len(slc):
