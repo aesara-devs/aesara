@@ -120,7 +120,7 @@ def _as_tensor_Scalar(x, name, ndim, **kwargs):
 def _as_tensor_Variable(x, name, ndim, **kwargs):
     if not isinstance(x.type, TensorType):
         raise TypeError(
-            "Tensor type field must be a TensorType; found {}.".format(type(x.type))
+            f"Tensor type field must be a TensorType; found {type(x.type)}."
         )
 
     if ndim is None:
@@ -134,9 +134,7 @@ def _as_tensor_Variable(x, name, ndim, **kwargs):
         x = x.dimshuffle(list(range(x.ndim))[first_non_broadcastable:])
         if x.ndim > ndim:
             raise ValueError(
-                "Tensor of type {} could not be cast to have {} dimensions".format(
-                    x.type, ndim
-                )
+                f"Tensor of type {x.type} could not be cast to have {ndim} dimensions"
             )
         return x
     elif x.type.ndim < ndim:
