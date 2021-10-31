@@ -111,7 +111,9 @@ def indices_from_subtensor(
     )
 
 
-def as_index_constant(a):
+def as_index_constant(
+    a: Optional[Union[slice, int, np.integer, Variable]]
+) -> Optional[Union[Variable, slice]]:
     r"""Convert Python literals to Aesara constants--when possible--in `Subtensor` arguments.
 
     This will leave `Variable`\s untouched.
