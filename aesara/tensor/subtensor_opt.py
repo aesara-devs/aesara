@@ -1031,13 +1031,8 @@ def merge_two_slices(fgraph, slice1, len1, slice2, len2):
     """
 
     if not isinstance(slice1, slice):
-        raise ValueError(
-            (
-                "First provided slice should actually be of type"
-                "slice and not an index !"
-            ),
-            slice1,
-        )
+        raise ValueError("slice1 should be of type `slice`")
+
     sl1, reverse1 = get_canonical_form_slice(slice1, len1)
     sl2, reverse2 = get_canonical_form_slice(slice2, len2)
 
