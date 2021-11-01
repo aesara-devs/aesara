@@ -2557,6 +2557,8 @@ def test_norm():
 
 
 def test_cov():
+    rng = np.random.default_rng(utt.fetch_seed())
+
     x = matrix("x")
     y = matrix("y")
 
@@ -2564,14 +2566,14 @@ def test_cov():
         c = cov(x, rowvar=rowvar, bias=bias, ddof=ddof)
         f = function([x], c)
 
-        data = np.asarray(np.random.random((3, 5)), dtype=config.floatX)
+        data = np.asarray(rng.random((3, 5)), dtype=config.floatX)
         assert np.allclose(f(data), np.cov(data, rowvar=rowvar, bias=bias, ddof=ddof))
 
         c = cov(x, y=y, rowvar=rowvar, bias=bias, ddof=ddof)
         f = function([x, y], c)
 
-        data = np.asarray(np.random.random((3, 5)), dtype=config.floatX)
-        y_val = np.asarray(np.random.random((3, 5)), dtype=config.floatX)
+        data = np.asarray(rng.random((3, 5)), dtype=config.floatX)
+        y_val = np.asarray(rng.random((3, 5)), dtype=config.floatX)
         assert np.allclose(
             f(data, y_val), np.cov(data, rowvar=rowvar, y=y_val, bias=bias, ddof=ddof)
         )
