@@ -60,7 +60,7 @@ from aesara.tensor.type import (
     uint_dtypes,
     values_eq_approx_always_true,
 )
-from aesara.tensor.var import TensorConstant, TensorVariable
+from aesara.tensor.var import TensorConstant, TensorVariable, get_unique_value
 
 
 _logger = logging.getLogger("aesara.tensor.basic")
@@ -323,8 +323,9 @@ def get_scalar_constant_value(
                 raise NotScalarConstantError()
 
         if isinstance(v, Constant):
-            if getattr(v.tag, "unique_value", None) is not None:
-                data = v.tag.unique_value
+            unique_value = get_unique_value(v)
+            if unique_value is not None:
+                data = unique_value
             else:
                 data = v.data
 

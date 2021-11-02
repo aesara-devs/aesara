@@ -2,6 +2,8 @@ import copy
 import traceback as tb
 import warnings
 from collections.abc import Iterable
+from numbers import Number
+from typing import Optional
 
 import numpy as np
 
@@ -957,6 +959,20 @@ class TensorConstantSignature(tuple):
     no_nan = property(_get_no_nan)
 
 
+def get_unique_value(x: TensorVariable) -> Optional[Number]:
+    """Return the unique value of a tensor, if there is one"""
+    if isinstance(x, Constant):
+        data = x.data
+
+        if isinstance(data, np.ndarray) and data.ndim > 0:
+            flat_data = data.ravel()
+            if flat_data.shape[0]:
+                if (flat_data == flat_data[0]).all():
+                    return flat_data[0]
+
+    return None
+
+
 class TensorConstant(TensorVariable, Constant):
     """Subclass to add the tensor operators to the basic `Constant` class.
 
@@ -966,16 +982,11 @@ class TensorConstant(TensorVariable, Constant):
 
     def __init__(self, type, data, name=None):
         Constant.__init__(self, type, data, name)
-        self.tag.unique_value = None
-        if isinstance(data, np.ndarray) and data.ndim > 0:
-            flat_data = data.ravel()
-            if flat_data.shape[0]:
-                if (flat_data == flat_data[0]).all():
-                    self.tag.unique_value = flat_data[0]
 
     def __str__(self):
-        if self.tag.unique_value is not None:
-            name = f"{self.data.shape} of {self.tag.unique_value}"
+        unique_val = get_unique_value(self)
+        if unique_val is not None:
+            name = f"{self.data.shape} of {unique_val}"
         else:
             name = f"{self.data}"
         if len(name) > 20:
