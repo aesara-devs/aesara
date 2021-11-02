@@ -52,7 +52,7 @@ from aesara.tensor.subtensor import (
     get_idx_list,
     set_subtensor,
 )
-from aesara.tensor.var import TensorConstant
+from aesara.tensor.var import TensorConstant, get_unique_value
 
 
 _logger = logging.getLogger("aesara.scan.opt")
@@ -118,7 +118,7 @@ def remove_constants_and_unused_inputs_scan(fgraph, node):
         node_inp = node.inputs[idx + 1]
         if (
             isinstance(node_inp, TensorConstant)
-            and node_inp.tag.unique_value is not None
+            and get_unique_value(node_inp) is not None
         ):
             try:
                 # This works if input is a constant that has all entries

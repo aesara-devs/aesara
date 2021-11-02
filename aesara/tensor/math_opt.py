@@ -92,7 +92,7 @@ from aesara.tensor.type import (
     values_eq_approx_remove_inf_nan,
     values_eq_approx_remove_nan,
 )
-from aesara.tensor.var import TensorConstant
+from aesara.tensor.var import TensorConstant, get_unique_value
 from aesara.utils import NoDuplicateOptWarningFilter
 
 
@@ -129,8 +129,9 @@ def get_constant(v):
 
     """
     if isinstance(v, Constant):
-        if getattr(v.tag, "unique_value", None) is not None:
-            data = v.tag.unique_value
+        unique_value = get_unique_value(v)
+        if unique_value is not None:
+            data = unique_value
         else:
             data = v.data
         if data.ndim == 0:
