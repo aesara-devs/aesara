@@ -1434,62 +1434,77 @@ class TestLocalCanonicalizeAlloc:
     def setup_method(self):
         self.rng = np.random.default_rng(utt.fetch_seed())
 
-    @config.change_flags(compute_test_value="off")
-    def test_basic(self):
+    def test_inconsistent_constant(self):
+        x = aet.as_tensor(self.rng.standard_normal((3, 7)))
+        a = aet.alloc(x, 6, 7)
+
+        assert a.owner and isinstance(a.owner.op, Alloc)
+
+        # with aesara.config.change_flags(optimizer_verbose=True):
+        with pytest.raises(AssertionError):
+            f = function([], a, mode=mode_opt)
+
+        x = aet.as_tensor(self.rng.standard_normal((6, 7)))
+        a = aet.alloc(x, 6, 7)
+
+        f = function([], a, mode=mode_opt)
+
+        # The optimization should then be applied, and remove Alloc
+        assert not any(
+            [isinstance(node.op, (Alloc, Assert)) for node in f.maker.fgraph.toposort()]
+        )
+
+    def test_inconsistent_shared(self):
+        # These shapes don't match!
         x = shared(self.rng.standard_normal((3, 7)))
         a = aet.alloc(x, 6, 7)
 
-        # It is a bad idea to have aet.alloc return x directly,
-        # because the shape mismatch cannot be caught.
         assert a.owner and isinstance(a.owner.op, Alloc)
 
         f = function([], a, mode=mode_opt)
+
         # The optimization should then be applied, and remove Alloc
-        assert [node.op for node in f.maker.fgraph.toposort()] == [deep_copy_op]
+        assert not any(
+            [isinstance(node.op, Alloc) for node in f.maker.fgraph.toposort()]
+        )
+        assert any([isinstance(node.op, Assert) for node in f.maker.fgraph.toposort()])
 
-        # In DebugMode, the shape mismatch should be detected
-        if isinstance(mode_opt, DebugMode):
-            with pytest.raises(ValueError):
-                f
+        with pytest.raises(AssertionError):
+            f()
 
-        # No need to check_stack_trace as the optimization
-        # local_canonicalize_alloc only removes nodes.
+        good_x_val = self.rng.standard_normal((6, 7))
+        x.set_value(good_x_val)
 
-    def test_basic_1(self):
-        # Test that alloc never gets instantiated during optimization
-        mode = mode_opt.excluding("local_canonicalize_alloc")
+        assert np.array_equal(f(), good_x_val)
 
+    def test_basic_fill(self):
         x = matrix("x")
-        xx = aet.fill(x, x)
+        y = aet.fill(x, x)
 
         # The optimization 'locall_fill_to_alloc' should call aet.alloc,
         # which should return x and not alloc(x, ...)
-        f = function([x], [xx], mode=mode)
-        op_classes = [node.op.__class__ for node in f.maker.fgraph.toposort()]
-        assert Alloc not in op_classes
-
-        # No need to check_stack_trace as the optimization
-        # local_canonicalize_alloc only removes nodes.
-
-    def test_basic_2(self):
-        # Test that alloc never gets instantiated during optimization
         mode = mode_opt.excluding("local_canonicalize_alloc")
+        f = function([x], [y], mode=mode)
+        assert not any(
+            [isinstance(node.op, Alloc) for node in f.maker.fgraph.toposort()]
+        )
 
+    def test_basic_tile(self):
         x = matrix("x")
         y = aet.tile(x, (1,) * 2)
 
+        mode = mode_opt.including("local_canonicalize_alloc")
         f = function([x], [y], mode=mode)
-        op_classes = [node.op.__class__ for node in f.maker.fgraph.toposort()]
+        [node.op.__class__ for node in f.maker.fgraph.toposort()]
 
-        # We are supposed to test if tensr.Alloc is not in op_classes,
-        # but since the proper proper optimization is not currently
-        # implemented it will fail. Once the correct optimization is in place,
-        # we have to change the following we should not see Alloc
-        # in op_classes and we have to change the assert.
-        assert Alloc in op_classes
-        # The correct opt removes nodes, no need for check_stack_trace
+        assert not any(
+            [isinstance(node.op, Alloc) for node in f.maker.fgraph.toposort()]
+        )
 
     def test_useless_alloc_with_shape_one(self):
+        """
+        TODO FIXME: Remove/replace the string output comparisons.
+        """
         alloc_lift = out2in(local_canonicalize_alloc)
         x = shared(self.rng.standard_normal((2,)))
         y = shared(self.rng.standard_normal())
@@ -2406,8 +2421,9 @@ class TestLocalUselessSwitch:
         z = aet.switch(1, x, y)
         f = function([x, y], z, mode=self.mode)
 
-        assert isinstance(f.maker.fgraph.outputs[0].owner.op, Elemwise)
-        assert isinstance(f.maker.fgraph.outputs[0].owner.op.scalar_op, aes.basic.Cast)
+        start_var = f.maker.fgraph.outputs[0].owner.inputs[0]
+        assert isinstance(start_var.owner.op, Elemwise)
+        assert isinstance(start_var.owner.op.scalar_op, aes.basic.Cast)
         assert not any(node.op == aet.switch for node in f.maker.fgraph.toposort())
 
         vx = np.array([[1, 2, 3], [4, 5, 6]], dtype="int32")

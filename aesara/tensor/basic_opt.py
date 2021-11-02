@@ -74,6 +74,7 @@ from aesara.tensor.basic import (
 from aesara.tensor.elemwise import DimShuffle, Elemwise
 from aesara.tensor.exceptions import NotScalarConstantError, ShapeError
 from aesara.tensor.extra_ops import broadcast_shape
+from aesara.tensor.math import all as at_all
 from aesara.tensor.math import eq
 from aesara.tensor.shape import Reshape, Shape, Shape_i, shape, shape_padleft
 from aesara.tensor.sort import TopKOp
@@ -1782,25 +1783,28 @@ def local_useless_fill(fgraph, node):
 @register_stabilize
 @register_canonicalize
 @register_useless
-@local_optimizer([alloc])
+@local_optimizer([Alloc])
 def local_useless_alloc(fgraph, node):
     """
     If the input type is the same as the output type (dtype and broadcast)
     there is no change in the shape of the input. So this is just a simple copy
     of the input. This is not needed.
-
     """
-    op = node.op
-    if not isinstance(op, Alloc):
+    if not isinstance(node.op, Alloc):
         return False
 
     input = node.inputs[0]
     output = node.outputs[0]
 
-    # Check if dtype and broadcast remain the same.
     if input.type == output.type:
-        # We don't need to copy over any stack traces here
-        return [input]
+        if input.ndim == 0:
+            return [input]
+        else:
+            return [
+                Assert("Shapes must be equal")(
+                    input, at_all(eq(input.shape, node.inputs[1:]))
+                )
+            ]
 
 
 @register_specialize
