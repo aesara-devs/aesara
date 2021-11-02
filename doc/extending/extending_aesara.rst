@@ -853,7 +853,6 @@ The section :ref:`Other Ops <other_ops>` includes more instructions for
 the following specific cases:
 
  - :ref:`scalar_ops`
- - :ref:`scipy_ops`
  - :ref:`sparse_ops`
  - :ref:`Random ops <random_ops>`
  - :ref:`openmp_ops`
