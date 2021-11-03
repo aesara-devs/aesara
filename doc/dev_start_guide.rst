@@ -4,18 +4,11 @@
 Developer Start Guide
 =====================
 
-.. warning::
-   This document is outdated.
-
-
 Contributing
 ============
 
-You want to contribute to Aesara? That is great! This page explain our
-workflow and some resource for doing so.
-
 Looking for an idea for a first contribution? Check the `GitHub issues
-<https://github.com/aesara-devs/aesara/issues>`_.
+<https://github.com/aesara-devs/aesara/issues?q=is%3Aissue+is%3Aopen+label%3A%22help+wanted%22>`_.
 
 We recommend creating an issue to discuss proposed changes before making them.
 This is a good way to make sure that proposed changes will be accepted.
@@ -128,7 +121,7 @@ Installation and configuration
 To submit PRs, create an account on `GitHub <http://www.github.com/>`_ and fork
 `Aesara <http://www.github.com/aesara-devs/aesara>`_.
 
-This will create your own clone of the Aesara project on GitHub. It is customary
+This will create your own clone of the Aesara project on GitHub's servers. It is customary
 to assign this Git remote the name "origin", and the official Aesara repository
 the name "upstream".
 
@@ -147,17 +140,17 @@ For this URL to work, you must set your public SSH keys inside your
 
 From your local repository, your fork on GitHub will be called "origin" by default.
 
-Next, add a reference to the original ("upstream") Aesara repository with
+Next, create a remote entry for the original (i.e. upstream) Aesara repository
+with the following:
 
 .. code-block:: bash
 
     git remote add upstream git://github.com/aesara-devs/aesara.git
 
-You can choose a name other than "upstream" to reference the official Aesara
-repository, but this documentation will stick to "upstream."
+.. note::
 
-You can then test your installation of Aesara by following the steps of :ref:`test_aesara`.
-
+    You can choose a name other than "upstream" to reference the official Aesara
+    repository.
 
 Setting up the your local development environment
 -------------------------------------------------
@@ -165,14 +158,14 @@ Setting up the your local development environment
 You will need to create a virtual environment and install the project requirements within it.
 
 The recommended approach is to install `conda <https://conda.io/projects/conda/en/latest/user-guide/install/index.html>`_ and
-create a virtual environment in the project directory with the following:
+create a virtual environment in the project directory:
 
 .. code-block:: bash
 
     conda env create -n aesara-dev -f environment.yaml
     conda activate aesara-dev
 
-Afterward, you can install the development dependencies with the following:
+Afterward, you can install the development dependencies:
 
 .. code-block:: bash
 
@@ -190,12 +183,14 @@ The virtual environment will need to be activated in any environment
 (e.g. shells, IDEs, etc.) that plans to run the Aesara tests or add commits to the
 project repository.
 
+You can now test your environment/code by running ``pytest`` in the project's root
+directory.  See :ref:`test_aesara` for more information about testing.
+
 
 For a general guide on how to provide open source contributions see `here
 <https://opensource.guide/how-to-contribute/#how-to-submit-a-contribution>`_.
 For a good overview of the development workflow (e.g. relevant ``git`` commands)
 see the `NumPy development guide <https://numpy.org/doc/stable/dev/>`_.
-
 
 Other tools that might help
 ===========================
