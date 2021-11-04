@@ -12,7 +12,7 @@ from aesara.graph.op import COp, Op
 from aesara.graph.type import Generic, Type
 from aesara.graph.utils import MethodNotDefined, TestValueError
 from aesara.tensor.math import log
-from aesara.tensor.type import dmatrix, vector
+from aesara.tensor.type import dmatrix, dscalar, dvector, vector
 
 
 def as_variable(x):
@@ -340,3 +340,16 @@ def test_get_test_values_exc():
     with pytest.raises(TestValueError):
         x = vector()
         assert op.get_test_values(x) == []
+
+
+def test_op_invalid_input_types():
+    class TestOp(aesara.graph.op.Op):
+        itypes = [dvector, dvector, dvector]
+        otypes = [dvector]
+
+        def perform(self, node, inputs, outputs):
+            pass
+
+    msg = r"^Invalid input types for Op TestOp:\nInput 2/3: Expected TensorType\(float64, vector\)"
+    with pytest.raises(TypeError, match=msg):
+        TestOp()(dvector(), dscalar(), dvector())
