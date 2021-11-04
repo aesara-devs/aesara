@@ -225,7 +225,15 @@ class Op(MetaObject):
             )
         if not all(inp.type == it for inp, it in zip(inputs, self.itypes)):
             raise TypeError(
-                f"We expected inputs of types '{str(self.itypes)}' but got types '{str([inp.type for inp in inputs])}'"
+                f"Invalid input types for Op {self}:\n"
+                + "\n".join(
+                    f"Input {i}/{len(inputs)}: Expected {inp}, got {out}"
+                    for i, (inp, out) in enumerate(
+                        zip(self.itypes, (inp.type for inp in inputs)),
+                        start=1,
+                    )
+                    if inp != out
+                )
             )
         return Apply(self, inputs, [o() for o in self.otypes])
 
