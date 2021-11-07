@@ -514,14 +514,18 @@ def numba_funcify_CAReduce(op, node, **kwargs):
 
 @numba_funcify.register(DimShuffle)
 def numba_funcify_DimShuffle(op, **kwargs):
-    shuffle = tuple(op.shuffle)
+    n_shuffle = len(op.shuffle)
     transposition = tuple(op.transposition)
     augment = tuple(op.augment)
     inplace = op.inplace
 
-    ndim_new_shape = len(shuffle) + len(augment)
+    return construct_dimshuffle_fn(n_shuffle, transposition, augment, inplace)
 
-    if len(shuffle) > 0:
+
+def construct_dimshuffle_fn(n_shuffle, transposition, augment, inplace):
+    ndim_new_shape = n_shuffle + len(augment)
+
+    if n_shuffle > 0:
 
         @numba_basic.numba_njit
         def populate_new_shape(i, j, new_shape, shuffle_shape):
@@ -547,14 +551,18 @@ def numba_funcify_DimShuffle(op, **kwargs):
         )
 
         @numba_basic.numba_njit
-        def dimshuffle_inner(x, shuffle):
-            res = np.transpose(x, transposition)
-            shuffle_shape = res.shape[: len(shuffle)]
+        def dimshuffle(x):
+            res = np.asarray(x)
+
+            if transposition:
+                res = np.transpose(res, transposition)
+
+            shuffle_shape = res.shape[:n_shuffle]
 
             new_shape = create_zeros_tuple()
 
             j = 0
-            for i in range(len(new_shape)):
+            for i in range(ndim_new_shape):
                 j, new_shape = populate_new_shape(i, j, new_shape, shuffle_shape)
 
             # FIXME: Numba's `array.reshape` only accepts C arrays.
@@ -567,25 +575,9 @@ def numba_funcify_DimShuffle(op, **kwargs):
 
     else:
 
-        @numba_basic.numba_njit
-        def dimshuffle_inner(x, shuffle):
+        @numba_basic.numba_njit(inline="always")
+        def dimshuffle(x):
             return x.item()
-
-    # Without the following wrapper function we would see this error:
-    # E   No implementation of function Function(<built-in function getitem>) found for signature:
-    # E
-    # E    >>> getitem(UniTuple(int64 x 2), slice<a:b>)
-    # E
-    # E   There are 22 candidate implementations:
-    # E      - Of which 22 did not match due to:
-    # E      Overload of function 'getitem': File: <numerous>: Line N/A.
-    # E        With argument(s): '(UniTuple(int64 x 2), slice<a:b>)':
-    # E       No match.
-    # ...(on this line)...
-    # E           shuffle_shape = res.shape[: len(shuffle)]
-    @numba_basic.numba_njit(inline="always")
-    def dimshuffle(x):
-        return dimshuffle_inner(np.asarray(x), shuffle)
 
     return dimshuffle
 

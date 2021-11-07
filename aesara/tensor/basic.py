@@ -1929,19 +1929,363 @@ def extract_constant(x, elemwise=True, only_process_constants=False):
     return x
 
 
+class TransposeOp(COp):
+
+    __props__ = ("axes", "inplace")
+
+    def __init__(self, axes=None, inplace=True):
+        super().__init__()
+        self.axes = tuple(axes) if axes is not None else axes
+
+        self.inplace = inplace
+
+        if self.inplace:
+            self.view_map = {0: [0]}
+
+    def make_node(self, input_arr):
+        input_arr = as_tensor_variable(input_arr)
+
+        if self.axes is None:
+            axes = tuple(range(input_arr.type.ndim - 1, -1, -1))
+        elif len(self.axes) != input_arr.type.ndim:
+            raise ValueError("axes don't match array")
+        else:
+            axes = self.axes
+
+        output_static_shape = ()
+        for a in axes:
+            a = normalize_axis_index(a, input_arr.type.ndim)
+
+            if a >= input_arr.type.ndim:
+                raise ValueError(
+                    f"Axis {a} is out of bounds for array of dimension {input_arr.type.ndim}"
+                )
+
+            output_static_shape += (input_arr.type.shape[a],)
+
+        output = TensorType(dtype=input_arr.type.dtype, shape=output_static_shape)()
+
+        if input_arr.name:
+            output.name = input_arr.name + ".T"
+
+        return Apply(self, [input_arr], [output])
+
+    def perform(self, node, inputs_storage, output_storage):
+        (input_arr,) = inputs_storage
+        (storage,) = output_storage
+
+        res = np.transpose(input_arr, self.axes).copy()
+
+        if not self.inplace:
+            res = np.copy(res)
+
+        storage[0] = res
+
+    def infer_shape(self, fgraph, node, shapes):
+        in_shape = shapes[0]
+
+        if self.axes is None:
+            axes = tuple(range(len(in_shape) - 1, -1, -1))
+        else:
+            axes = self.axes
+
+        axis = tuple(normalize_axis_index(a, len(in_shape)) for a in axes)
+        out_shape = [in_shape[a] for a in axis]
+        return [out_shape]
+
+    def R_op(self, inputs, eval_points):
+        if None in eval_points:
+            return [None]
+        return self(*eval_points, return_list=True)
+
+    def grad(self, inp, grads):
+        (x,) = inp
+        (gz,) = grads
+        gz = as_tensor_variable(gz)
+
+        if self.axes is None:
+            axes = tuple(range(x.type.ndim - 1, -1, -1))
+        else:
+            axes = self.axes
+
+        new_axes = [0] * x.type.ndim
+        for i, a in enumerate(axes):
+            new_axes[a] = i
+
+        if inp[0].dtype in discrete_dtypes:
+            return [inp[0].zeros_like(dtype=config.floatX)]
+        else:
+            return [TransposeOp(new_axes)(gz)]
+
+    def c_code(self, node, name, inames, onames, sub):
+        iname = inames[0]
+        oname = onames[0]
+
+        if self.inplace:
+            input_setup = f"""
+            _input = {iname};
+            Py_INCREF((PyObject *)_input);
+            """
+        else:
+            input_setup = f"""
+            _input = (PyArrayObject *)PyArray_FromAny(
+                (PyObject *){iname}, NULL, 0, 0, NPY_ARRAY_ALIGNED | NPY_ARRAY_ENSURECOPY,
+                NULL);
+            """
+
+        res = f"""
+        {{
+            PyArrayObject *_input;
+
+            // if (*{oname})
+            //     Py_XDECREF(*{oname});
+
+            {input_setup}
+
+        """
+
+        if self.axes is None:
+            res = f"""
+            {res}
+
+            {oname} = (PyArrayObject *)PyArray_Transpose(_input, NULL);
+
+            Py_DECREF(_input);
+
+            if(!{oname}){{
+                {sub["fail"]}
+            }}
+        }}
+            """
+        else:
+            axes_c_str = ", ".join([str(a) for a in self.axes])
+            axes_c_str = f"{{{axes_c_str}}}"
+            res = f"""
+            {res}
+
+            npy_intp _reshape_shape[{len(self.axes)}] = {axes_c_str};
+
+            PyArray_Dims permute = {{.ptr = _reshape_shape, .len = (int){len(self.axes)}}};
+
+            {oname} = (PyArrayObject *)PyArray_Transpose(_input, &permute);
+
+            Py_DECREF(_input);
+
+            // PyDimMem_FREE(permute.ptr);
+
+            if(!{oname}){{
+                {sub["fail"]}
+            }}
+
+        }}
+            """
+
+        return res
+
+    def c_code_cache_version(self):
+        return (0,)
+
+
 def transpose(x, axes=None):
-    """
-    Reorder the dimensions of x. (Default: reverse them)
+    """Transpose a tensor."""
+    return TransposeOp(axes)(x)
 
-    This is a macro around dimshuffle that matches the numpy.transpose function.
+
+class SqueezeOp(COp):
+    """
+    NOTE: When `axis` is ``None``, only the "statically" recognized
+    broadcastable dimensions will be squeezed, because we can't remove an
+    unknown number of dimensions (there's no `Type` for that).
+    """
+
+    __props__ = ("axis", "inplace")
+
+    def __init__(self, axis, inplace=True):
+        super().__init__()
+        self.axis = tuple(axis)
+
+        self.inplace = inplace
+
+        if self.inplace:
+            self.view_map = {0: [0]}
+
+    def make_node(self, input_arr):
+        input_arr = as_tensor_variable(input_arr)
+
+        axis = tuple(normalize_axis_index(a, input_arr.type.ndim) for a in self.axis)
+
+        output_static_shape = ()
+        for i, a in enumerate(input_arr.type.shape):
+
+            if i not in axis:
+                output_static_shape += (a,)
+            else:
+                if a is not None and a != 1:
+                    raise ValueError(
+                        "cannot select an axis to squeeze out which has size not equal to one"
+                    )
+
+        output = TensorType(dtype=input_arr.type.dtype, shape=output_static_shape)()
+
+        return Apply(self, [input_arr], [output])
+
+    def perform(self, node, inputs_storage, output_storage):
+        (input_arr,) = inputs_storage
+        (storage,) = output_storage
+
+        res = np.squeeze(input_arr, self.axis)
+
+        if not self.inplace:
+            res = np.copy(res)
+
+        storage[0] = res
+
+    def infer_shape(self, fgraph, node, shapes):
+        in_shape = shapes[0]
+        axis = tuple(normalize_axis_index(a, len(in_shape)) for a in self.axis)
+
+        out_shape = []
+        for i, a in enumerate(in_shape):
+            if i not in axis:
+                out_shape.append(a)
+
+        return [out_shape]
+
+    def R_op(self, inputs, eval_points):
+        if None in eval_points:
+            return [None]
+        return self(*eval_points, return_list=True)
+
+    def grad(self, inp, grads):
+        (x,) = inp
+        (gz,) = grads
+        gz = as_tensor_variable(gz)
+
+        if inp[0].dtype in discrete_dtypes:
+            return [inp[0].zeros_like(dtype=config.floatX)]
+        else:
+            return [ExpandDimsOp(self.axis)(gz)]
+
+
+def squeeze(x, axis=None):
+    """
+    Remove broadcastable (length 1) dimensions from the shape of an array.
+
+    It returns the input array, but with the broadcastable dimensions
+    removed. This is always `x` itself or a view into `x`.
+
+    .. versionadded:: 0.6
+
+    Parameters
+    ----------
+    x :
+        Input data, tensor variable.
+    axis : None or int or tuple of ints, optional
+        Selects a subset of broadcastable dimensions to be removed.
+        If a non broadcastable dimension is selected, an error is raised.
+        If `axis` is ``None``, all broadcastable dimensions will be removed.
+
+    Notes
+    -----
+    The behavior can differ from that of NumPy in two ways:
+        1. If an axis is chosen for a dimension that is not known to be broadcastable
+        an error is raised, even if this dimension would be broadcastable when the
+        variable is evaluated.
+        2. Similarly, if `axis` is ``None``, only dimensions known to be broadcastable will be
+        removed, even if there are more dimensions that happen to be broadcastable when
+        the variable is evaluated.
+
+    Returns
+    -------
+    `x` without `axis` dimensions.
 
     """
-    if axes is None:
-        axes = list(range((x.ndim - 1), -1, -1))
-    ret = DimShuffle(x.broadcastable, axes)(x)
-    if x.name and axes == list(range((x.ndim - 1), -1, -1)):
-        ret.name = x.name + ".T"
-    return ret
+    if axis is None:
+        # By default exclude all broadcastable (length=1) axes
+        axis_ = tuple(i for i, s in enumerate(x.type.shape) if s == 1)
+    elif not isinstance(axis, Sequence):
+        axis_ = (axis,)
+    elif len(axis) == 0:
+        return x
+    else:
+        axis_ = axis
+
+    return SqueezeOp(axis_)(x)
+
+
+class ExpandDimsOp(Op):
+
+    __props__ = ("axis", "inplace")
+
+    def __init__(self, axis, inplace=True):
+        super().__init__()
+        self.axis = tuple(axis)
+
+        self.inplace = inplace
+
+        if self.inplace:
+            self.view_map = {0: [0]}
+
+    def make_node(self, input_arr):
+        input_arr = as_tensor_variable(input_arr)
+
+        output_static_shape = list(input_arr.type.shape)
+        out_ndim = len(output_static_shape) + len(self.axis)
+        axis = sorted(normalize_axis_index(a, out_ndim) for a in self.axis)
+        for a in axis:
+            output_static_shape.insert(a, 1)
+
+        output = TensorType(dtype=input_arr.type.dtype, shape=output_static_shape)()
+
+        return Apply(self, [input_arr], [output])
+
+    def perform(self, node, inputs_storage, output_storage):
+        (input_arr,) = inputs_storage
+        (storage,) = output_storage
+
+        res = np.expand_dims(input_arr, self.axis)
+
+        if not self.inplace:
+            res = np.copy(res)
+
+        storage[0] = res
+
+    def infer_shape(self, fgraph, node, shapes):
+        in_shape = shapes[0]
+
+        out_shape = list(in_shape)
+        out_ndim = len(out_shape) + len(self.axis)
+        axis = sorted(normalize_axis_index(a, out_ndim) for a in self.axis)
+        for a in axis:
+            out_shape.insert(a, 1)
+
+        return [out_shape]
+
+    def R_op(self, inputs, eval_points):
+        if None in eval_points:
+            return [None]
+        return self(*eval_points, return_list=True)
+
+    def grad(self, inp, grads):
+        (x,) = inp
+        (gz,) = grads
+        gz = as_tensor_variable(gz)
+
+        if inp[0].dtype in discrete_dtypes:
+            return [inp[0].zeros_like(dtype=config.floatX)]
+        else:
+            return [SqueezeOp(self.axis)(gz)]
+
+
+def expand_dims(x, axis):
+    if not isinstance(axis, Sequence):
+        axis_ = (axis,)
+    elif len(axis) == 0:
+        return x
+    else:
+        axis_ = axis
+
+    return ExpandDimsOp(axis_)(x)
 
 
 def split(x, splits_size, n_splits, axis=0):
@@ -4341,28 +4685,6 @@ atleast_2d = partial(atleast_Nd, n=2)
 atleast_3d = partial(atleast_Nd, n=3)
 
 
-def expand_dims(
-    a: Union[np.ndarray, TensorVariable], axis: Tuple[int, ...]
-) -> TensorVariable:
-    """Expand the shape of an array.
-
-    Insert a new axis that will appear at the `axis` position in the expanded
-    array shape.
-    """
-    a = as_tensor(a)
-
-    if not isinstance(axis, (tuple, list)):
-        axis = (axis,)
-
-    out_ndim = len(axis) + a.ndim
-    axis = np.core.numeric.normalize_axis_tuple(axis, out_ndim)
-
-    shape_it = iter(a.shape)
-    shape = [1 if ax in axis else next(shape_it) for ax in range(out_ndim)]
-
-    return a.reshape(shape)
-
-
 def _make_along_axis_idx(arr_shape, indices, axis):
     """Take from `numpy.lib.shape_base`."""
     # compute dimensions to iterate over
@@ -4411,6 +4733,8 @@ def take_along_axis(arr, indices, axis=0):
 
 
 __all__ = [
+    "squeeze",
+    "transpose",
     "take_along_axis",
     "expand_dims",
     "atleast_Nd",
@@ -4441,7 +4765,6 @@ __all__ = [
     "unbroadcast",
     "addbroadcast",
     "split",
-    "transpose",
     "extract_constant",
     "default",
     "tensor_copy",

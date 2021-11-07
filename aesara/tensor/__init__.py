@@ -131,7 +131,6 @@ from aesara.tensor.extra_ops import (  # noqa
     fill_diagonal_offset,
     ravel_multi_index,
     repeat,
-    squeeze,
     unique,
     unravel_index,
     linspace,

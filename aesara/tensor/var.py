@@ -796,7 +796,7 @@ class _tensor_py_operators:
         """
         return at.basic.choose(self, choices, out=None, mode="raise")
 
-    def squeeze(self):
+    def squeeze(self, axis=None):
         """
         Remove broadcastable dimensions from the shape of an array.
 
@@ -804,7 +804,7 @@ class _tensor_py_operators:
         removed. This is always `x` itself or a view into `x`.
 
         """
-        return at.extra_ops.squeeze(self)
+        return at.basic.squeeze(self, axis)
 
     def compress(self, a, axis=None):
         """Return selected slices only."""

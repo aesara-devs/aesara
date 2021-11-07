@@ -11,13 +11,16 @@ from aesara.tensor.basic import (
     AllocDiag,
     AllocEmpty,
     ARange,
+    ExpandDimsOp,
     ExtractDiag,
     Eye,
     Join,
     MakeVector,
     Rebroadcast,
     ScalarFromTensor,
+    SqueezeOp,
     TensorFromScalar,
+    TransposeOp,
 )
 
 
@@ -228,3 +231,50 @@ def numba_funcify_ScalarFromTensor(op, **kwargs):
         return x.item()
 
     return scalar_from_tensor
+
+
+@numba_funcify.register(TransposeOp)
+def numba_funcify_TransposeOp(op, **kwargs):
+    op_axes = op.axes
+
+    @numba.njit(inline="always")
+    def transpose(x):
+        return np.transpose(x, op_axes)
+
+    return transpose
+
+
+@numba_funcify.register(ExpandDimsOp)
+def numba_funcify_ExpandDimsOp(op, node, **kwargs):
+    from aesara.link.numba.dispatch.elemwise import construct_dimshuffle_fn
+
+    op_axis = op.axis
+    in_ndim = node.inputs[0].type.ndim
+    return construct_dimshuffle_fn(in_ndim, (), op_axis, True)
+
+
+@numba_funcify.register(SqueezeOp)
+def numba_funcify_SqueezeOp(op, node, **kwargs):
+    from aesara.link.numba.dispatch.elemwise import construct_dimshuffle_fn
+
+    op_axis = op.axis
+    in_shape = node.inputs[0].type.shape
+    in_ndim = node.inputs[0].type.ndim
+    out_ndim = node.outputs[0].type.ndim
+    # Transpose all the squeezed dimensions to the end of the shape, then
+    # truncate the shape at the number of output dimensions (i.e. all the
+    # original dimensions minus the squeezed ones)
+    if op_axis is not None:
+        transpositions = tuple(i for i in range(in_ndim) if i not in op_axis) + op_axis
+    else:
+        dropped_idx = ()
+        not_dropped_idx = ()
+        for i, s in enumerate(in_shape):
+            if s == 1:
+                dropped_idx += (i,)
+            else:
+                not_dropped_idx += (i,)
+
+        transpositions = not_dropped_idx + dropped_idx
+
+    return construct_dimshuffle_fn(out_ndim, transpositions, (), True)

@@ -1,5 +1,3 @@
-import re
-
 import numpy as np
 import pytest
 
@@ -11,7 +9,6 @@ from aesara.configdefaults import config
 from aesara.graph.basic import applys_between
 from aesara.graph.optdb import OptimizationQuery
 from aesara.raise_op import Assert
-from aesara.tensor.elemwise import DimShuffle
 from aesara.tensor.extra_ops import (
     Bartlett,
     BroadcastTo,
@@ -42,7 +39,6 @@ from aesara.tensor.extra_ops import (
     ravel_multi_index,
     repeat,
     searchsorted,
-    squeeze,
     to_one_hot,
     unravel_index,
 )
@@ -332,101 +328,6 @@ class TestDiff(utt.InferShapeTester):
                         assert out.type.shape[i] is None
                     else:
                         assert out.type.shape[i] == out_test.shape[i]
-
-
-class TestSqueeze(utt.InferShapeTester):
-    shape_list = [(1, 3), (1, 2, 3), (1, 5, 1, 1, 6)]
-    broadcast_list = [
-        [True, False],
-        [True, False, False],
-        [True, False, True, True, False],
-    ]
-
-    def setup_method(self):
-        super().setup_method()
-        self.op = squeeze
-
-    def test_op(self):
-        for shape, broadcast in zip(self.shape_list, self.broadcast_list):
-            data = np.random.random(size=shape).astype(config.floatX)
-            variable = TensorType(config.floatX, broadcast)()
-
-            f = aesara.function([variable], self.op(variable))
-
-            expected = np.squeeze(data)
-            tested = f(data)
-
-            assert tested.shape == expected.shape
-            assert np.allclose(tested, expected)
-
-    def test_infer_shape(self):
-        for shape, broadcast in zip(self.shape_list, self.broadcast_list):
-            data = np.random.random(size=shape).astype(config.floatX)
-            variable = TensorType(config.floatX, broadcast)()
-
-            self._compile_and_check(
-                [variable], [self.op(variable)], [data], DimShuffle, warn=False
-            )
-
-    def test_grad(self):
-        for shape, broadcast in zip(self.shape_list, self.broadcast_list):
-            data = np.random.random(size=shape).astype(config.floatX)
-
-            utt.verify_grad(self.op, [data])
-
-    def test_var_interface(self):
-        # same as test_op, but use a_aesara_var.squeeze.
-        for shape, broadcast in zip(self.shape_list, self.broadcast_list):
-            data = np.random.random(size=shape).astype(config.floatX)
-            variable = TensorType(config.floatX, broadcast)()
-
-            f = aesara.function([variable], variable.squeeze())
-
-            expected = np.squeeze(data)
-            tested = f(data)
-
-            assert tested.shape == expected.shape
-            assert np.allclose(tested, expected)
-
-    def test_axis(self):
-        variable = TensorType(config.floatX, [False, True, False])()
-        res = squeeze(variable, axis=1)
-
-        assert res.broadcastable == (False, False)
-
-        variable = TensorType(config.floatX, [False, True, False])()
-        res = squeeze(variable, axis=(1,))
-
-        assert res.broadcastable == (False, False)
-
-        variable = TensorType(config.floatX, [False, True, False, True])()
-        res = squeeze(variable, axis=(1, 3))
-
-        assert res.broadcastable == (False, False)
-
-        variable = TensorType(config.floatX, [True, False, True, False, True])()
-        res = squeeze(variable, axis=(0, -1))
-
-        assert res.broadcastable == (False, True, False)
-
-    def test_invalid_axis(self):
-        # Test that trying to squeeze a non broadcastable dimension raises error
-        variable = TensorType(config.floatX, [True, False])()
-        with pytest.raises(
-            ValueError, match="Cannot drop a non-broadcastable dimension"
-        ):
-            squeeze(variable, axis=1)
-
-    def test_scalar_input(self):
-        x = at.scalar("x")
-
-        assert squeeze(x, axis=(0,)).eval({x: 5}) == 5
-
-        with pytest.raises(
-            np.AxisError,
-            match=re.escape("axis (1,) is out of bounds for array of dimension 0"),
-        ):
-            squeeze(x, axis=1)
 
 
 class TestCompress(utt.InferShapeTester):
