@@ -514,7 +514,7 @@ and ``b`` are equal.
             return i0_shapes
 
         def grad(self, inputs, output_grads):
-            return [a * output_grads[0] + b]
+            return [self.a * output_grads[0]]
 
 
 The use of :attr:`__props__` saves
