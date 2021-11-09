@@ -622,6 +622,8 @@ def is_dimshuffle_useless(new_order, input):
     return is_useless
 
 
+@register_canonicalize
+@register_specialize
 @local_optimizer([DimShuffle])
 def local_dimshuffle_lift(fgraph, node):
     """
@@ -704,9 +706,6 @@ def local_useless_dimshuffle_in_reshape(fgraph, node):
         copy_stack_trace(node.outputs[0], ret)
         return [ret]
 
-
-register_canonicalize(local_dimshuffle_lift)
-register_specialize(local_dimshuffle_lift)
 
 ######################
 # Casting operations #
@@ -1633,6 +1632,7 @@ def local_elemwise_alloc(fgraph, node):
     return ret
 
 
+@register_canonicalize
 @local_optimizer([Elemwise])
 def local_fill_sink(fgraph, node):
     """
@@ -1678,9 +1678,6 @@ def local_fill_sink(fgraph, node):
                 continue
             replacements.update(r)
     return replacements
-
-
-register_canonicalize(local_fill_sink)
 
 
 @register_specialize

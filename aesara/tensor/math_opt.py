@@ -1071,13 +1071,11 @@ local_mul_canonizer = AlgebraicCanonizer(
 register_canonicalize(local_mul_canonizer, name="local_mul_canonizer")
 
 
+@register_canonicalize
 @local_optimizer([neg])
 def local_neg_to_mul(fgraph, node):
     if node.op == neg:
         return [mul(np.array(-1, dtype=node.inputs[0].dtype), node.inputs[0])]
-
-
-register_canonicalize(local_neg_to_mul)
 
 
 @register_specialize
@@ -1779,6 +1777,7 @@ def local_neg_div_neg(fgraph, node):
                     return [true_div(new_num, denom)]
 
 
+@register_canonicalize
 @local_optimizer([mul])
 def local_mul_zero(fgraph, node):
     """
@@ -1800,9 +1799,8 @@ def local_mul_zero(fgraph, node):
                 return fill_chain(_asarray(0, dtype=otype.dtype), node.inputs)
 
 
-register_canonicalize(local_mul_zero)
-
-
+# TODO: Add this to the canonicalization to reduce redundancy.
+@register_specialize
 @local_optimizer([true_div])
 def local_div_to_reciprocal(fgraph, node):
     if node.op == true_div and np.all(
@@ -1821,10 +1819,7 @@ def local_div_to_reciprocal(fgraph, node):
         return False
 
 
-# TODO: Add this to the canonicalization to reduce redundancy.
-register_specialize(local_div_to_reciprocal)
-
-
+@register_canonicalize
 @local_optimizer([reciprocal])
 def local_reciprocal_canon(fgraph, node):
     if node.op == reciprocal:
@@ -1833,9 +1828,7 @@ def local_reciprocal_canon(fgraph, node):
         return False
 
 
-register_canonicalize(local_reciprocal_canon)
-
-
+@register_canonicalize
 @local_optimizer([aet_pow])
 def local_pow_canonicalize(fgraph, node):
     if node.op == aet_pow:
@@ -1846,9 +1839,6 @@ def local_pow_canonicalize(fgraph, node):
             return [broadcast_like(node.inputs[0], node.outputs[0], fgraph)]
     else:
         return False
-
-
-register_canonicalize(local_pow_canonicalize)
 
 
 @register_specialize
@@ -1892,6 +1882,7 @@ def local_zero_div(fgraph, node):
             return [ret]
 
 
+@register_specialize
 @local_optimizer([aet_pow])
 def local_pow_specialize(fgraph, node):
     # here, we are past the point of canonicalization, so we don't want
@@ -1927,9 +1918,6 @@ def local_pow_specialize(fgraph, node):
                 return rval
     else:
         return False
-
-
-register_specialize(local_pow_specialize)
 
 
 @register_specialize_device
@@ -1999,6 +1987,7 @@ def local_pow_specialize_device(fgraph, node):
                 return rval
 
 
+@register_specialize
 @local_optimizer([mul])
 def local_mul_specialize(fgraph, node):
     """
@@ -2074,9 +2063,7 @@ def local_mul_specialize(fgraph, node):
                     return [broadcast_like(1, node.outputs[0], fgraph)]
 
 
-register_specialize(local_mul_specialize)
-
-
+@register_specialize
 @local_optimizer([add])
 def local_add_specialize(fgraph, node):
     def _fill_chain(v):
@@ -2118,8 +2105,6 @@ def local_add_specialize(fgraph, node):
     else:
         return False
 
-
-register_specialize(local_add_specialize)
 
 mul_canonizer = in2out(
     LocalOptGroup(local_mul_canonizer, local_fill_sink, apply_all_opts=True),
