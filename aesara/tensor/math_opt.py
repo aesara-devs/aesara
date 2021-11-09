@@ -1,6 +1,4 @@
 """ Tensor optimizations addressing the ops in math.py."""
-# TODO: intelligent merge for mul/add
-# TODO: 0*x -> 0
 
 import itertools
 import logging
@@ -2225,12 +2223,15 @@ def local_log1p(fgraph, node):
             return [log1p(neg(other))]
 
 
-# TODO: in canonicalize, change log10 and log2 -> log
 @register_stabilize
 @register_specialize
 @local_optimizer([log])
 def local_log_add_exp(fgraph, node):
-    # log(exp(x)+exp(y)+exp(z)) = max + log(x-max, y-max, z-max)
+    """
+    ``log(exp(x)+exp(y)+exp(z)) = max + log(x-max, y-max, z-max)``
+
+    TODO: in canonicalize, change log10 and log2 -> log
+    """
 
     if node.op == log:
         z = node.inputs[0]
