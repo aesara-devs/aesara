@@ -88,12 +88,6 @@ _logger = logging.getLogger("aesara.tensor.basic_opt")
 _logger.addFilter(NoDuplicateOptWarningFilter())
 
 
-def _fill_chain(new_out, orig_inputs):
-    for i in orig_inputs:
-        new_out = fill(i, new_out)
-    return [new_out]
-
-
 def encompasses_broadcastable(b1, b2):
     """
 
