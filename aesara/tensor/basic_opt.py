@@ -1887,19 +1887,24 @@ def local_shape_to_shape_i(fgraph, node):
 # TODO: Not sure what type of node we are expecting here
 @register_specialize
 @register_canonicalize
-@local_optimizer(None)
+@local_optimizer([Shape_i])
 def local_track_shape_i(fgraph, node):
+    if not isinstance(node.op, Shape_i):
+        return False
+
     try:
         shape_feature = fgraph.shape_feature
     except AttributeError:
-        return
-    if node in shape_feature.scheduled:
-        # Don't unschedule node as it could be reinserted in the
-        # fgraph as we don't change it in the shapefeature internal
-        # structure.
-        assert isinstance(node.op, Shape_i)
-        replacement = shape_feature.scheduled[node]
-        return [shape_feature.shape_of[replacement][node.op.i]]
+        return False
+
+    if node not in shape_feature.scheduled:
+        return False
+
+    # Don't unschedule node as it could be reinserted in the
+    # fgraph as we don't change it in the shapefeature internal
+    # structure.
+    replacement = shape_feature.scheduled[node]
+    return [shape_feature.shape_of[replacement][node.op.i]]
 
 
 # TODO: the other optimization for and, or, xor, le and ge see ticket #496.
