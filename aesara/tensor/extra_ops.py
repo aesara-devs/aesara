@@ -794,7 +794,7 @@ def repeat(x, repeats, axis=None):
     .. versionadded:: 0.6
 
     """
-    repeats = aet.as_tensor_variable(repeats)
+    repeats = aet.as_tensor_variable(repeats, dtype=np.int64)
 
     if repeats.ndim > 1:
         raise ValueError("The dimension of repeats should not exceed 1.")
