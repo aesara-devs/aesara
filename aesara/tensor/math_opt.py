@@ -2062,44 +2062,50 @@ def local_mul_specialize(fgraph, node):
 @register_specialize
 @local_optimizer([add])
 def local_add_specialize(fgraph, node):
-    def _fill_chain(v):
-        out = fill_chain(v, node.inputs)
-        return out
+    """Remove zeros from ``add``s.
 
+    TODO: This should be a canonicalization, no?
+    """
     # here, we are past the point of canonicalization, so we don't want
     # to put in un-necessary fills.
-    if node.op == add:
-        new_inputs = []
-        for inp in node.inputs:
-            try:
-                y = get_scalar_constant_value(inp)
-            except NotScalarConstantError:
-                y = inp
-            if np.all(y == 0.0):
-                continue
-            new_inputs.append(inp)
-
-        if len(new_inputs) < len(node.inputs):
-            dtype = node.outputs[0].type.dtype
-            if len(new_inputs) == 0:
-                # we got rid of the entire expression!
-                ndim = node.outputs[0].type.ndim
-                # Reuse call to constant for cache()
-                cst = constant(np.zeros((1,) * ndim, dtype=dtype))
-                assert cst.type.broadcastable == (True,) * ndim
-                return _fill_chain(cst)
-
-            if len(new_inputs) == 1:
-                ret = _fill_chain(new_inputs[0])
-            else:
-                ret = _fill_chain(add(*new_inputs))
-            # The dtype should not be changed. It can happen if the input
-            # that was forcing upcasting was equal to 0.
-            if ret[0].dtype != dtype:
-                ret = [cast(ret[0], dtype)]
-            return ret
-    else:
+    if node.op != add:
         return False
+
+    new_inputs = []
+    for inp in node.inputs:
+        try:
+            y = get_scalar_constant_value(inp)
+        except NotScalarConstantError:
+            y = inp
+        if np.all(y == 0.0):
+            continue
+        new_inputs.append(inp)
+
+    if len(new_inputs) == len(node.inputs):
+        return False
+
+    node_output = node.outputs[0]
+    dtype = node_output.type.dtype
+
+    if len(new_inputs) == 0:
+        # we got rid of the entire expression!
+        ndim = node_output.type.ndim
+        # Reuse call to constant for cache()
+        cst = constant(np.zeros((1,) * ndim, dtype=dtype))
+        assert cst.type.broadcastable == (True,) * ndim
+        return fill_chain(cst, node.inputs)
+
+    if len(new_inputs) == 1:
+        ret = fill_chain(new_inputs[0], node.inputs)
+    else:
+        ret = fill_chain(add(*new_inputs), node.inputs)
+
+    # The dtype should not be changed. It can happen if the input
+    # that was forcing upcasting was equal to 0.
+    if ret[0].dtype != dtype:
+        ret = [cast(ret[0], dtype)]
+
+    return ret
 
 
 mul_canonizer = in2out(

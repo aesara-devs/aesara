@@ -77,7 +77,6 @@ from aesara.tensor.math import tan, tanh, true_div, xor
 from aesara.tensor.math_opt import (
     compute_mul,
     is_1pexp,
-    local_add_specialize,
     local_grad_log_erfc_neg,
     local_greedy_distributor,
     mul_canonizer,
@@ -3781,24 +3780,41 @@ class TestLocalSumProdDimshuffle:
     # test_local_sum_divprod_dimshuffle ((a * b) / (c * d))
 
 
-def test_local_add_specialize():
+def test_local_useless_adds():
+    default_mode = get_default_mode()
+
+    # Test for all zeros
+    a = scalar()
+    s = add(aet.zeros_like(a))
+    mode_with_opt = default_mode.including("canonicalization", "local_useless_fill")
+    f = function([a], s, mode=mode_with_opt)
+    assert not any(node.op == add for node in f.maker.fgraph.apply_nodes)
+
     # test of non-zero dimension
     a = vector()
     s = add(aet.zeros_like(a))
-    assert local_add_specialize.transform(None, s.owner)
+    mode_with_opt = default_mode.including("canonicalization", "local_useless_elemwise")
+    f = function([a], s, mode=mode_with_opt)
+    assert not any(node.op == add for node in f.maker.fgraph.apply_nodes)
 
     # test of 0-d
     a = scalar()
     s = add(aet.zeros_like(a))
-    assert local_add_specialize.transform(None, s.owner)
+    mode_with_opt = default_mode.including(
+        "canonicalization", "local_useless_fill", "local_useless_elemwise"
+    )
+    f = function([a], s, mode=mode_with_opt)
+    assert not any(node.op == add for node in f.maker.fgraph.apply_nodes)
 
     # Test when the 0 input is forcing upcasting
     a = aet.constant(0, dtype="int64")
     b = aet.constant(1, dtype="int32")
     s = a + b
-    transformed = local_add_specialize.transform(None, s.owner)
-    assert transformed
-    assert transformed[0].type == s.type
+    mode_with_opt = default_mode.including("canonicalization", "local_add_canonizer")
+    f = function([], s, mode=mode_with_opt)
+    transformed = f.maker.fgraph.outputs[0]
+    assert not any(node.op == add for node in f.maker.fgraph.apply_nodes)
+    assert transformed.type == s.type
 
 
 def test_local_div_to_reciprocal():
