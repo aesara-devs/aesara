@@ -3141,6 +3141,9 @@ def test_dimshuffle_duplicate():
 class TestGetScalarConstantValue:
     def test_basic(self):
 
+        with pytest.raises(NotScalarConstantError):
+            get_scalar_constant_value(aes.int64())
+
         res = get_scalar_constant_value(aet.as_tensor(10))
         assert res == 10
         assert isinstance(res, np.ndarray)
@@ -3189,6 +3192,11 @@ class TestGetScalarConstantValue:
         )
         assert isinstance(res, np.ndarray)
         assert 10 == res
+
+    @pytest.mark.xfail(reason="Incomplete implementation")
+    def test_DimShufle(self):
+        a = as_tensor_variable(1.0)[None][0]
+        assert get_scalar_constant_value(a) == 1
 
     def test_subtensor_of_constant(self):
         c = constant(random(5))
