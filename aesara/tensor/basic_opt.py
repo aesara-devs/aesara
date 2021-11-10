@@ -644,10 +644,10 @@ def local_dimshuffle_lift(fgraph, node):
     if not isinstance(op, DimShuffle):
         return False
 
-    input = node.inputs[0]
-    inode = input.owner
+    inp = node.inputs[0]
+    inode = inp.owner
     new_order = op.new_order
-    if inode and isinstance(inode.op, Elemwise) and (len(fgraph.clients[input]) == 1):
+    if inode and isinstance(inode.op, Elemwise) and (len(fgraph.clients[inp]) == 1):
         # Don't use make_node to have tag.test_value set.
         new_inputs = []
         for inp in inode.inputs:
@@ -658,12 +658,12 @@ def local_dimshuffle_lift(fgraph, node):
         return ret
     if inode and isinstance(inode.op, DimShuffle):
         new_order = [x == "x" and "x" or inode.op.new_order[x] for x in new_order]
-        input = inode.inputs[0]
+        inp = inode.inputs[0]
 
-    if is_dimshuffle_useless(new_order, input):
-        return [input]
+    if is_dimshuffle_useless(new_order, inp):
+        return [inp]
     elif inode and isinstance(inode.op, DimShuffle):
-        ret = op.__class__(input.type.broadcastable, new_order)(input)
+        ret = op.__class__(inp.type.broadcastable, new_order)(inp)
         ret = apply_local_dimshuffle_lift(fgraph, ret)
         copy_stack_trace(node.outputs[0], ret)
         return [ret]
@@ -691,7 +691,7 @@ def local_useless_dimshuffle_in_reshape(fgraph, node):
         return False
 
     new_order = node.inputs[0].owner.op.new_order
-    input = node.inputs[0].owner.inputs[0]
+    inp = node.inputs[0].owner.inputs[0]
     broadcastables = node.inputs[0].broadcastable
     new_order_of_nonbroadcast = []
     for i, bd in zip(new_order, broadcastables):
@@ -703,7 +703,7 @@ def local_useless_dimshuffle_in_reshape(fgraph, node):
     )
     if no_change_in_order:
         shape = node.inputs[1]
-        ret = op.__class__(node.outputs[0].ndim)(input, shape)
+        ret = op.__class__(node.outputs[0].ndim)(inp, shape)
         copy_stack_trace(node.outputs[0], ret)
         return [ret]
 
@@ -744,7 +744,7 @@ class MakeVectorPrinter:
             old_precedence = getattr(pstate, "precedence", None)
             try:
                 pstate.precedence = 1000
-                s = [pstate.pprinter.process(input) for input in r.owner.inputs]
+                s = [pstate.pprinter.process(inp) for inp in r.owner.inputs]
             finally:
                 pstate.precedence = old_precedence
             return f"[{', '.join(s)}]"
@@ -1636,12 +1636,12 @@ def local_fill_sink(fgraph, node):
         return False
     models = []
     inputs = []
-    for input in node.inputs:
-        if input.owner and input.owner.op == fill:
-            models.append(input.owner.inputs[0])
-            inputs.append(input.owner.inputs[1])
+    for inp in node.inputs:
+        if inp.owner and inp.owner.op == fill:
+            models.append(inp.owner.inputs[0])
+            inputs.append(inp.owner.inputs[1])
         else:
-            inputs.append(input)
+            inputs.append(inp)
     if not models:
         return False
     c = node.op(*inputs)
@@ -1765,16 +1765,16 @@ def local_useless_alloc(fgraph, node):
     if not isinstance(node.op, Alloc):
         return False
 
-    input = node.inputs[0]
+    inp = node.inputs[0]
     output = node.outputs[0]
 
-    if input.type == output.type:
-        if input.ndim == 0:
-            return [input]
+    if inp.type == output.type:
+        if inp.ndim == 0:
+            return [inp]
         else:
             return [
                 Assert("Shapes must be equal")(
-                    input, at_all(eq(input.shape, node.inputs[1:]))
+                    inp, at_all(eq(inp.shape, node.inputs[1:]))
                 )
             ]
 
@@ -1799,13 +1799,13 @@ def local_canonicalize_alloc(fgraph, node):
     if not isinstance(op, Alloc):
         return False
 
-    input = node.inputs[0]
+    inp = node.inputs[0]
     output = node.outputs[0]
 
     # Check if dtype and broadcast remain the same.
-    if input.type == output.type:
+    if inp.type == output.type:
         # We don't need to copy over any stack traces here
-        return [input]
+        return [inp]
 
     # Allow local_merge_alloc to do its work first
     clients = fgraph.clients[output]
@@ -1817,20 +1817,20 @@ def local_canonicalize_alloc(fgraph, node):
 
     output_shape = node.inputs[1:]
     num_dims_with_size_1_added_to_left = 0
-    for i in range(len(output_shape) - input.ndim):
+    for i in range(len(output_shape) - inp.ndim):
         if extract_constant(output_shape[i], only_process_constants=True) == 1:
             num_dims_with_size_1_added_to_left += 1
         else:
             break
     new_output_shape = output_shape[num_dims_with_size_1_added_to_left:]
-    if num_dims_with_size_1_added_to_left > 0 and len(new_output_shape) >= input.ndim:
+    if num_dims_with_size_1_added_to_left > 0 and len(new_output_shape) >= inp.ndim:
         if (
             output.broadcastable[num_dims_with_size_1_added_to_left:]
-            == input.broadcastable
+            == inp.broadcastable
         ):
-            inner = input
+            inner = inp
         else:
-            inner = op(*([input] + new_output_shape))
+            inner = op(*([inp] + new_output_shape))
         dimshuffle_new_order = ["x"] * num_dims_with_size_1_added_to_left + list(
             range(len(new_output_shape))
         )
@@ -2292,14 +2292,14 @@ def local_rebroadcast_lift(fgraph, node):
     if not isinstance(op, Rebroadcast):
         return False
 
-    input = node.inputs[0]
-    inode = input.owner
+    inp = node.inputs[0]
+    inode = inp.owner
     if inode and isinstance(inode.op, Elemwise) and len(inode.inputs) == 1:
         # It may happen that `input` has no client because this optimization
         # is called from `apply_rebroadcast_opt`, which in particular is used
         # by the `unbroadcast` function before we are in the actual function
         # compilation phase.
-        if len(fgraph.clients.get(input, ())) == 1:
+        if len(fgraph.clients.get(inp, ())) == 1:
             rebroadcasted = Rebroadcast(*list(op.axis.items()))(inode.inputs[0])
             # Copy over stacktrace from previous output (after rebroadcasting)
             # to new output, because an error in the new graph right after
@@ -2755,28 +2755,24 @@ def local_useless_reshape(fgraph, node):
     if not isinstance(op, Reshape):
         return False
 
-    input = node.inputs[0]
+    inp = node.inputs[0]
     output = node.outputs[0]
     output_shape = node.inputs[1]
 
-    if input.ndim != output.ndim:
+    if inp.ndim != output.ndim:
         return False
 
     # Simple case: both input and output have a single dimension.
     # This could hide errors if the user provides inconsistent shapes.
-    if (
-        input.ndim == 1
-        and output.ndim == 1
-        and input.broadcastable == output.broadcastable
-    ):
-        return [input]
+    if inp.ndim == 1 and output.ndim == 1 and inp.broadcastable == output.broadcastable:
+        return [inp]
 
     # Second case: all the shapes match the input shape
     # Match Reshape(x, x.shape)
     if output_shape.owner and isinstance(output_shape.owner.op, Shape):
         shape_input = output_shape.owner.inputs[0]
-        if shape_input == input:
-            return [input]
+        if shape_input == inp:
+            return [inp]
 
     # Match Reshape(x, [x.shape[0], ..., x.shape[-1]]), accounting for
     # broadcastable and constant dimensions
@@ -2786,15 +2782,15 @@ def local_useless_reshape(fgraph, node):
         shape_feature = getattr(fgraph, "shape_feature", None)
 
         nb_m1 = 0
-        shape_match = [False] * input.ndim
-        for dim in range(input.ndim):
+        shape_match = [False] * inp.ndim
+        for dim in range(inp.ndim):
             outshp_i = output_shape_is[dim]
             # Match Shape_i{dim}(input)
             if (
                 outshp_i.owner
                 and isinstance(outshp_i.owner.op, Shape_i)
                 and outshp_i.owner.op.i == dim
-                and outshp_i.owner.inputs[0] == input
+                and outshp_i.owner.inputs[0] == inp
             ):
                 shape_match[dim] = True
                 continue
@@ -2809,13 +2805,13 @@ def local_useless_reshape(fgraph, node):
                 subtensor_inp = outshp_i.owner.inputs[0]
                 if subtensor_inp.owner and isinstance(subtensor_inp.owner.op, Shape):
                     shape_input_i = subtensor_inp.owner.inputs[0]
-                    if shape_input_i == input:
+                    if shape_input_i == inp:
                         shape_match[dim] = True
                         continue
 
             # Match 1 if input.broadcastable[dim] is True
             cst_outshp_i = extract_constant(outshp_i, only_process_constants=1)
-            if input.broadcastable[dim] and cst_outshp_i == 1:
+            if inp.broadcastable[dim] and cst_outshp_i == 1:
                 shape_match[dim] = True
                 continue
 
@@ -2827,7 +2823,7 @@ def local_useless_reshape(fgraph, node):
 
             # Match shape_of[input][dim] or its constant equivalent
             if shape_feature:
-                inpshp_i = shape_feature.get_shape(input, dim)
+                inpshp_i = shape_feature.get_shape(inp, dim)
                 if inpshp_i == outshp_i or (
                     extract_constant(inpshp_i, only_process_constants=1)
                     == extract_constant(outshp_i, only_process_constants=1)
@@ -2836,7 +2832,7 @@ def local_useless_reshape(fgraph, node):
                     continue
 
         if all(shape_match) and nb_m1 <= 1:
-            return [input]
+            return [inp]
 
         # TODO later: if all the shapes except one match, we may want to
         # consider it useless as well, like we do in the 1-dim case.
@@ -2862,7 +2858,7 @@ def local_reshape_to_dimshuffle(fgraph, node):
     if not isinstance(op, Reshape):
         return False
 
-    input = node.inputs[0]
+    inp = node.inputs[0]
     output = node.outputs[0]
     output_shape = node.inputs[1]
 
@@ -2883,7 +2879,7 @@ def local_reshape_to_dimshuffle(fgraph, node):
             new_output_shape.append(dim)
             index = index + 1
     if index != output.ndim:
-        inner = op.__class__(len(new_output_shape))(input, new_output_shape)
+        inner = op.__class__(len(new_output_shape))(inp, new_output_shape)
         copy_stack_trace(output, inner)
         new_node = [DimShuffle(inner.type.broadcastable, dimshuffle_new_order)(inner)]
         copy_stack_trace(output, new_node)
@@ -2937,8 +2933,8 @@ register_canonicalize(OpRemove(tensor_copy), name="remove_tensor_copy")
 
 @local_optimizer(None)
 def constant_folding(fgraph, node):
-    for input in node.inputs:
-        if not isinstance(input, Constant):
+    for inp in node.inputs:
+        if not isinstance(inp, Constant):
             return False
     # condition:  all inputs are constant
     if not node.op.do_constant_folding(fgraph, node):
