@@ -48,7 +48,6 @@ from aesara.tensor.basic_opt import (
     register_stabilize,
     register_uncanonicalize,
     register_useless,
-    scalarconsts_rest,
 )
 from aesara.tensor.elemwise import CAReduce, DimShuffle, Elemwise
 from aesara.tensor.exceptions import NotScalarConstantError
@@ -99,6 +98,24 @@ from aesara.utils import NoDuplicateOptWarningFilter
 
 _logger = logging.getLogger("aesara.tensor.math_opt")
 _logger.addFilter(NoDuplicateOptWarningFilter())
+
+
+def scalarconsts_rest(inputs, elemwise=True, only_process_constants=False):
+    """Partition a list of variables into two kinds:
+    scalar constants, and the rest."""
+    consts = []
+    origconsts = []
+    nonconsts = []
+    for i in inputs:
+        try:
+            v = get_scalar_constant_value(
+                i, elemwise=elemwise, only_process_constants=only_process_constants
+            )
+            consts.append(v)
+            origconsts.append(i)
+        except NotScalarConstantError:
+            nonconsts.append(i)
+    return consts, origconsts, nonconsts
 
 
 def get_constant(v):
