@@ -113,24 +113,6 @@ def merge_broadcastables(broadcastables):
     return [all(bcast) for bcast in zip(*broadcastables)]
 
 
-def scalarconsts_rest(inputs, elemwise=True, only_process_constants=False):
-    """Partition a list of variables into two kinds:
-    scalar constants, and the rest."""
-    consts = []
-    origconsts = []
-    nonconsts = []
-    for i in inputs:
-        try:
-            v = get_scalar_constant_value(
-                i, elemwise=elemwise, only_process_constants=only_process_constants
-            )
-            consts.append(v)
-            origconsts.append(i)
-        except NotScalarConstantError:
-            nonconsts.append(i)
-    return consts, origconsts, nonconsts
-
-
 def broadcast_like(value, template, fgraph, dtype=None):
     """
     Return a Variable with the same shape and dtype as the template,
