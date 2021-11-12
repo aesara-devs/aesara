@@ -348,8 +348,8 @@ def get_scalar_constant_value(
             return numpy_scalar(v).copy()
 
         if isinstance(v, Constant):
-            if getattr(v.tag, "unique_value", None) is not None:
-                data = v.tag.unique_value
+            if get_unique_value(v) is not None:
+                data = get_unique_value(v)
             else:
                 data = v.data
 
@@ -975,6 +975,15 @@ def second(a, b):
 fill = second
 pprint.assign(fill, printing.FunctionPrinter("fill"))
 
+def get_unique_value(x):
+    """Returns the unique value of the tensor taken as input if there is one"""
+    if isinstance(x, np.ndarray) and x.ndim > 0:
+            flat_data = x.ravel()
+            if flat_data.shape[0]:
+                if (flat_data == flat_data[0]).all():
+                    return flat_data[0]
+                else:
+                    return None
 
 def ones_like(model, dtype=None, opt=False):
     """equivalent of numpy.ones_like

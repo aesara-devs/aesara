@@ -965,13 +965,7 @@ class TensorConstant(TensorVariable, Constant):
     """
 
     def __init__(self, type, data, name=None):
-        Constant.__init__(self, type, data, name)
-        self.tag.unique_value = None
-        if isinstance(data, np.ndarray) and data.ndim > 0:
-            flat_data = data.ravel()
-            if flat_data.shape[0]:
-                if (flat_data == flat_data[0]).all():
-                    self.tag.unique_value = flat_data[0]
+        Constant.__init__(self, type, data, name)      
 
     def __str__(self):
         if self.tag.unique_value is not None:

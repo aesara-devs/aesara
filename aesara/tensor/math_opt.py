@@ -786,8 +786,8 @@ class AlgebraicCanonizer(LocalOptimizer):
 
         """
         if isinstance(v, Constant):
-            if getattr(v.tag, "unique_value", None) is not None:
-                data = v.tag.unique_value
+            if get_unique_value(v) is not None:
+                data = get_unique_value(v)
             else:
                 data = v.data
             if data.ndim == 0:
