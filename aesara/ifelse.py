@@ -634,7 +634,6 @@ class CondMerge(GlobalOptimizer):
                     gpu=False,
                     name=mn_name + "&" + pl_name,
                 )
-                print("here")
                 new_outs = new_ifelse(*new_ins, return_list=True)
                 new_outs = [clone_replace(x) for x in new_outs]
                 old_outs = []
