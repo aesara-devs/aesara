@@ -1462,13 +1462,6 @@ def add_scan_configvars():
         in_c_key=False,
     )
 
-    config.add(
-        "scan__debug",
-        "If True, enable extra verbose output related to scan",
-        BoolParam(False),
-        in_c_key=False,
-    )
-
 
 def _get_default_gpuarray__cache_path():
     return os.path.join(config.compiledir, "gpuarray_kernels")

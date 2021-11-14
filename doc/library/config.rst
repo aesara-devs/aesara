@@ -232,14 +232,6 @@ import ``aesara`` and print the config variable, as in:
     ``False``, then Aesara will perform garbage collection during the inner
     operations of a :class:`Scan` after each iterations.
 
-.. attribute:: config.scan__debug
-
-    Bool value, either ``True`` or ``False``
-
-    Default: ``False``
-
-    If ``True``, Aesara will print extra :class:`Scan` debug information.
-
 .. attribute:: cycle_detection
 
     String value, either ``regular`` or ``fast```

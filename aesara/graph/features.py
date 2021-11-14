@@ -553,12 +553,9 @@ class ReplaceValidate(History, Validator):
         self, fgraph, replacements, reason=None, verbose=None, **kwargs
     ):
         chk = fgraph.checkpoint()
+
         if verbose is None:
             verbose = config.optimizer_verbose
-        if config.scan__debug:
-            from aesara.scan.op import Scan
-
-            scans = [n for n in fgraph.apply_nodes if isinstance(n.op, Scan)]
 
         for r, new_r in replacements:
             try:
@@ -600,27 +597,10 @@ class ReplaceValidate(History, Validator):
                     f"optimizer: validate failed on node {r}.\n Reason: {reason}, {e}"
                 )
             raise
-        if config.scan__debug:
-            from aesara.scan.op import Scan
 
-            scans2 = [n for n in fgraph.apply_nodes if isinstance(n.op, Scan)]
-            nb = len(scans)
-            nb2 = len(scans2)
-            if nb2 > nb:
-                print(
-                    "Extra scan introduced",
-                    nb,
-                    nb2,
-                    getattr(reason, "name", reason),
-                    r,
-                    new_r,
-                )
-            elif nb2 < nb:
-                print(
-                    "Scan removed", nb, nb2, getattr(reason, "name", reason), r, new_r
-                )
         if verbose:
             print(f"optimizer: rewrite {reason} replaces {r} with {new_r}")
+
         # The return is needed by replace_all_validate_remove
         return chk
 
