@@ -256,6 +256,19 @@ class TestFunctionGraph:
         assert fg.apply_nodes == {var4.owner, var5.owner}
         assert var4.owner.inputs == [var1, var2]
 
+    def test_replace_verbose(self, capsys):
+
+        var1 = MyVariable("var1")
+        var2 = MyVariable("var2")
+        var3 = op1(var2, var1)
+        fg = FunctionGraph([var1, var2], [var3], clone=False)
+
+        fg.replace(var3, var1, reason="test-reason", verbose=True)
+
+        capres = capsys.readouterr()
+        assert capres.err == ""
+        assert "optimizer: rewrite test-reason replaces Op1.0 with var1" in capres.out
+
     def test_replace_circular(self):
         """`FunctionGraph` allows cycles--for better or worse."""
 
