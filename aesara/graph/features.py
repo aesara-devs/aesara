@@ -596,7 +596,9 @@ class ReplaceValidate(History, Validator):
         except Exception as e:
             fgraph.revert(chk)
             if verbose:
-                print(f"validate failed on node {r}.\n Reason: {reason}, {e}")
+                print(
+                    f"optimizer: validate failed on node {r}.\n Reason: {reason}, {e}"
+                )
             raise
         if config.scan__debug:
             from aesara.scan.op import Scan
@@ -618,7 +620,7 @@ class ReplaceValidate(History, Validator):
                     "Scan removed", nb, nb2, getattr(reason, "name", reason), r, new_r
                 )
         if verbose:
-            print(reason, r, new_r)
+            print(f"optimizer: rewrite {reason} replaces {r} with {new_r}")
         # The return is needed by replace_all_validate_remove
         return chk
 

@@ -7,12 +7,14 @@ from aesara.graph.fg import FunctionGraph
 from aesara.graph.op import Op
 from aesara.graph.opt import (
     EquilibriumOptimizer,
+    LocalOptGroup,
     MergeOptimizer,
     OpKeyOptimizer,
     OpSub,
     PatternSub,
     TopoOptimizer,
     aesara,
+    local_optimizer,
     logging,
     pre_constant_merge,
     pre_greedy_local_optimizer,
@@ -698,3 +700,42 @@ def test_patternsub_invalid_dtype(out_pattern):
     )
     opt.optimize(fg)
     assert fg.apply_nodes.pop().op == op_cast_type2
+
+
+class TestLocalOptGroup:
+    def test_optimizer_verbose(self, capsys):
+
+        x = MyVariable("x")
+        y = MyVariable("y")
+        o1 = op1(x, y)
+
+        fgraph = FunctionGraph([x, y], [o1], clone=False)
+
+        @local_optimizer(None)
+        def local_opt_1(fgraph, node):
+            if node.inputs[0] == x:
+                res = op2(y, *node.inputs[1:])
+                return [res]
+
+        @local_optimizer(None)
+        def local_opt_2(fgraph, node):
+            if node.inputs[0] == y:
+                res = op2(x, *node.inputs[1:])
+                return [res]
+
+        opt_group = LocalOptGroup(local_opt_1, local_opt_2)
+
+        with config.change_flags(optimizer_verbose=True):
+            (new_res,) = opt_group.transform(fgraph, o1.owner)
+            _ = opt_group.transform(fgraph, new_res.owner)
+
+        capres = capsys.readouterr()
+        assert capres.err == ""
+        assert (
+            "optimizer: rewrite local_opt_1 replaces Op1(x, y) with [Op2.0]"
+            in capres.out
+        )
+        assert (
+            "optimizer: rewrite local_opt_2 replaces Op2(y, y) with [Op2.0]"
+            in capres.out
+        )

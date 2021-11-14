@@ -1,8 +1,11 @@
+import pytest
+
 from aesara.graph.basic import Apply, Variable
-from aesara.graph.features import NodeFinder
+from aesara.graph.features import Feature, NodeFinder, ReplaceValidate
 from aesara.graph.fg import FunctionGraph
 from aesara.graph.op import Op
 from aesara.graph.type import Type
+from tests.graph.utils import MyVariable, op1
 
 
 class TestNodeFinder:
@@ -82,3 +85,35 @@ class TestNodeFinder:
         for type, num in ((add, 4), (sigmoid, 3), (dot, 1)):
             if not len([t for t in g.get_nodes(type)]) == num:
                 raise Exception("Expected: %i times %s" % (num, type))
+
+
+class TestReplaceValidate:
+    def test_verbose(self, capsys):
+        var1 = MyVariable("var1")
+        var2 = MyVariable("var2")
+        var3 = op1(var2, var1)
+        fg = FunctionGraph([var1, var2], [var3], clone=False)
+
+        rv_feature = ReplaceValidate()
+        fg.attach_feature(rv_feature)
+        rv_feature.replace_all_validate(
+            fg, [(var3, var1)], reason="test-reason", verbose=True
+        )
+
+        capres = capsys.readouterr()
+        assert capres.err == ""
+        assert "optimizer: rewrite test-reason replaces Op1.0 with var1" in capres.out
+
+        class TestFeature(Feature):
+            def validate(self, *args):
+                raise Exception()
+
+        fg.attach_feature(TestFeature())
+
+        with pytest.raises(Exception):
+            rv_feature.replace_all_validate(
+                fg, [(var3, var1)], reason="test-reason", verbose=True
+            )
+
+        capres = capsys.readouterr()
+        assert "optimizer: validate failed on node Op1.0" in capres.out

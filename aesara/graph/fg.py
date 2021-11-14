@@ -510,7 +510,7 @@ class FunctionGraph(MetaObject):
         if verbose is None:
             verbose = config.optimizer_verbose
         if verbose:
-            print(reason, var, new_var)
+            print(f"optimizer: rewrite {reason} replaces {var} with {new_var}")
 
         new_var = var.type.filter_variable(new_var, allow_convert=True)
 

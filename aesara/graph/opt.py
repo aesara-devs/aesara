@@ -1347,6 +1347,10 @@ class LocalOptGroup(LocalOptimizer):
                     new_vars = new_repl
                 else:  # It must be a dict
                     new_vars = list(new_repl.values())
+
+                if config.optimizer_verbose:
+                    print(f"optimizer: rewrite {opt} replaces {node} with {new_repl}")
+
                 if self.profile:
                     self.node_created[opt] += len(
                         list(applys_between(fgraph.variables, new_vars))
