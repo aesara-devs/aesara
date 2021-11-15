@@ -7,6 +7,7 @@ from aesara.assert_op import Assert
 from aesara.gradient import NullTypeGradError, grad
 from aesara.tensor.math import eq
 from aesara.tensor.random.op import RandomVariable, default_shape_from_params
+from aesara.tensor.shape import specify_shape
 from aesara.tensor.type import all_dtypes, iscalar, tensor
 
 
@@ -137,6 +138,27 @@ def test_RandomVariable_bcast():
 
     res = rv(0, 1, size=aet.as_tensor(1, dtype=np.int64))
     assert res.broadcastable == (True,)
+
+
+def test_RandomVariable_bcast_specify_shape():
+    rv = RandomVariable("normal", 0, [0, 0], config.floatX, inplace=True)
+
+    s1 = aet.as_tensor(1, dtype=np.int64)
+    s2 = iscalar()
+    s2.tag.test_value = 2
+    s3 = iscalar()
+    s3.tag.test_value = 3
+    s3 = Assert("testing")(s3, eq(s1, 1))
+
+    size = specify_shape(aet.as_tensor([s1, s3, s2, s2, s1]), (5,))
+    mu = tensor(config.floatX, [False, False, True])
+    mu.tag.test_value = np.random.normal(size=(2, 2, 1)).astype(config.floatX)
+
+    std = tensor(config.floatX, [False, True, True])
+    std.tag.test_value = np.ones((2, 1, 1)).astype(config.floatX)
+
+    res = rv(mu, std, size=size)
+    assert res.broadcastable == (True, False, False, False, True)
 
 
 def test_RandomVariable_floatX():

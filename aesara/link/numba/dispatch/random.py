@@ -37,7 +37,7 @@ def make_numba_random_fn(node, np_random_func):
     argument to the Numba-supported scalar ``np.random`` functions.
     """
 
-    tuple_size = get_vector_length(node.inputs[1])
+    tuple_size = int(get_vector_length(node.inputs[1]))
     size_dims = tuple_size - max(i.ndim for i in node.inputs[3:])
 
     # Make a broadcast-capable version of the Numba supported scalar sampling
