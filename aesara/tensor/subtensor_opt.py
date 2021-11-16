@@ -46,7 +46,13 @@ from aesara.tensor.math import (
     minimum,
     or_,
 )
-from aesara.tensor.shape import Shape, shape_padleft, shape_tuple
+from aesara.tensor.shape import (
+    Shape,
+    SpecifyShape,
+    shape_padleft,
+    shape_tuple,
+    specify_shape,
+)
 from aesara.tensor.sharedvar import TensorSharedVariable
 from aesara.tensor.subtensor import (
     AdvancedIncSubtensor,
@@ -1614,3 +1620,42 @@ def local_subtensor_shape_constant(fgraph, node):
             return [as_tensor([1] * len(shape_parts), dtype=np.int64, ndim=1)]
     elif shape_parts:
         return [as_tensor(1, dtype=np.int64)]
+
+
+@register_canonicalize
+@local_optimizer([Subtensor])
+def local_subtensor_SpecifyShape_lift(fgraph, node):
+    """Lift ``specify_shape(x, s)[i]`` to ``specify_shape(x[i], s[i])``."""
+
+    if not isinstance(node.op, Subtensor):
+        return False
+
+    specify_shape_node = node.inputs[0]
+
+    if not (
+        specify_shape_node.owner
+        and isinstance(specify_shape_node.owner.op, SpecifyShape)
+    ):
+        return False
+
+    obj_arg = specify_shape_node.owner.inputs[0]
+    shape_arg = specify_shape_node.owner.inputs[1]
+
+    indices = get_idx_list(node.inputs, node.op.idx_list)
+
+    if len(indices) > 1 or len(indices) == 0:
+        return False
+
+    if isinstance(indices[0], slice) or isinstance(
+        getattr(indices[0], "type", None), SliceType
+    ):
+        return False
+
+    new_obj_arg = obj_arg[indices]
+
+    if new_obj_arg.ndim == 0:
+        new_shape_arg = as_tensor([], dtype=np.int64)
+    else:
+        new_shape_arg = as_tensor(shape_arg[indices], dtype=np.int64, ndim=1)
+
+    return [specify_shape(new_obj_arg, new_shape_arg)]
