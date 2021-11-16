@@ -45,6 +45,7 @@ from aesara.tensor.type import (
     dmatrix,
     fmatrix,
     iscalar,
+    iscalars,
     ivector,
     lscalar,
     lscalars,
@@ -566,6 +567,30 @@ class TestLocalSubtensorMakeVector:
         assert len(prog) == 1
         assert isinstance(prog[0].op, DeepCopyOp)
         assert f(0, 1, 2) == 0
+
+    def test_idx_sybmolic(self):
+        x, y, z = iscalars("xyz")
+        v = MakeVector("int32")(x, y, z)
+        idx = aet.as_tensor([0], dtype=np.int64)
+        f = function([x, y, z], v[idx], mode=mode_opt)
+
+        opt_fgraph = f.maker.fgraph
+        assert opt_fgraph.outputs[0].dtype == "int32"
+        assert isinstance(opt_fgraph.outputs[0].owner.op, Rebroadcast)
+        assert isinstance(opt_fgraph.outputs[0].owner.inputs[0].owner.op, MakeVector)
+        assert f(0, 1, 2) == np.array([0], dtype=np.int32)
+
+    def test_slice_idx_start(self):
+        x, y, z = iscalars("xyz")
+        v = MakeVector("int32")(x, y, z)
+        f = function([x, y, z], v[1:], mode=mode_opt, on_unused_input="ignore")
+
+        opt_fgraph = f.maker.fgraph
+        assert opt_fgraph.outputs[0].dtype == "int32"
+        assert isinstance(opt_fgraph.outputs[0].owner.op, MakeVector)
+        assert len(opt_fgraph.outputs[0].owner.inputs) == 2
+        r = f(0, 1, 2)
+        assert r[0] == 1 and r[1] == 2
 
     def test_slice_idx_stop(self):
         x, y, z = lscalars("xyz")
