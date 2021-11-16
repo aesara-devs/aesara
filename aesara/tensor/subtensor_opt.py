@@ -21,7 +21,6 @@ from aesara.tensor.basic import (
     cast,
     extract_constant,
     get_scalar_constant_value,
-    make_vector,
     patternbroadcast,
     switch,
 )
@@ -714,6 +713,8 @@ def local_subtensor_make_vector(fgraph, node):
     if not x.owner or not isinstance(x.owner.op, MakeVector):
         return False
 
+    make_vector_op = x.owner.op
+
     if isinstance(node.op, Subtensor):
         # This optimization needs ShapeOpt and fgraph.shape_feature
         try:
@@ -753,7 +754,7 @@ def local_subtensor_make_vector(fgraph, node):
                 pass
         elif idx.ndim == 1 and isinstance(idx, Constant):
             values = list(map(int, list(idx.value)))
-            ret = make_vector(*[x.owner.inputs[v] for v in values])
+            ret = make_vector_op(*[x.owner.inputs[v] for v in values])
 
             # Copy over stack trace from previous output to new output
             copy_stack_trace(node.outputs[0], ret)
@@ -767,7 +768,7 @@ def local_subtensor_make_vector(fgraph, node):
         # it can, then try to unpack them.
         try:
             const_slice = node.op.get_constant_idx(node.inputs, allow_partial=False)[0]
-            ret = make_vector(*x.owner.inputs[const_slice])
+            ret = make_vector_op(*x.owner.inputs[const_slice])
             # Copy over stack trace from previous outputs to new output
             copy_stack_trace(node.outputs, ret)
             ret = patternbroadcast(ret, node.outputs[0].broadcastable)
