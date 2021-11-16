@@ -13,6 +13,7 @@ from aesara.configdefaults import config
 from aesara.graph.basic import Constant, Variable, ancestors
 from aesara.graph.opt import check_stack_trace
 from aesara.graph.opt_utils import optimize_graph
+from aesara.graph.optdb import OptimizationQuery
 from aesara.graph.type import Type
 from aesara.tensor import inplace
 from aesara.tensor.basic import (
@@ -57,6 +58,7 @@ from aesara.tensor.type import (
     tensor4,
     vector,
 )
+from aesara.tensor.type_other import slicetype
 from tests import unittest_tools as utt
 from tests.unittest_tools import create_aesara_param
 
@@ -2066,3 +2068,71 @@ def test_local_subtensor_shape_constant():
     x = shape(Variable(MyType(), None, None))[0]
 
     assert not local_subtensor_shape_constant.transform(None, x.owner)
+
+
+@pytest.mark.parametrize(
+    "x, s, idx, x_val, s_val",
+    [
+        (
+            matrix(),
+            (iscalar(), iscalar()),
+            (1,),
+            np.array([[1, 2], [3, 4]], dtype=config.floatX),
+            np.array([2, 2], dtype=np.int64),
+        ),
+        (
+            vector(),
+            (iscalar(),),
+            (1,),
+            np.array([1, 2], dtype=config.floatX),
+            np.array([2], dtype=np.int64),
+        ),
+    ],
+)
+def test_local_subtensor_SpecifyShape_lift(x, s, idx, x_val, s_val):
+    y = specify_shape(x, s)[idx]
+
+    opts = OptimizationQuery(include=[None])
+    no_opt_mode = Mode(optimizer=opts)
+
+    y_val_fn = function([x] + list(s), y, on_unused_input="ignore", mode=no_opt_mode)
+    y_val = y_val_fn(*([x_val] + [s_ for s_ in s_val]))
+
+    # This optimization should appear in the canonicalizations
+    y_opt = optimize_graph(y, clone=False)
+
+    assert isinstance(y_opt.owner.op, SpecifyShape)
+
+    y_opt_fn = function([x] + list(s), y_opt, on_unused_input="ignore")
+    y_opt_val = y_opt_fn(*([x_val] + [s_ for s_ in s_val]))
+
+    assert np.allclose(y_val, y_opt_val)
+
+
+@pytest.mark.parametrize(
+    "x, s, idx",
+    [
+        (
+            matrix(),
+            (iscalar(), iscalar()),
+            (slice(1, None),),
+        ),
+        (
+            matrix(),
+            (iscalar(), iscalar()),
+            (slicetype(),),
+        ),
+        (
+            matrix(),
+            (iscalar(), iscalar()),
+            (1, 0),
+        ),
+    ],
+)
+def test_local_subtensor_SpecifyShape_lift_fail(x, s, idx):
+    y = specify_shape(x, s)[idx]
+
+    # This optimization should appear in the canonicalizations
+    y_opt = optimize_graph(y, clone=False)
+
+    assert not isinstance(y_opt.owner.op, SpecifyShape)
