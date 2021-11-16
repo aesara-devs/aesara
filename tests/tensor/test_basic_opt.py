@@ -93,7 +93,7 @@ from aesara.tensor.math import sin, sinh, softplus, sqr, sqrt, sub
 from aesara.tensor.math import sum as aet_sum
 from aesara.tensor.math import tan, tanh, true_div, xor
 from aesara.tensor.math_opt import local_lift_transpose_through_dot
-from aesara.tensor.shape import Reshape, Shape_i, reshape, specify_shape
+from aesara.tensor.shape import Reshape, Shape_i, SpecifyShape, reshape, specify_shape
 from aesara.tensor.subtensor import (
     AdvancedIncSubtensor1,
     Subtensor,
@@ -3602,3 +3602,18 @@ def test_local_Unique_second(
 
     y_exp_val, y_val = y_fn(x_val)
     assert np.array_equal(y_exp_val, y_val)
+
+
+def test_local_useless_SpecifyShape():
+    x = matrix()
+    s = aet.as_tensor([iscalar(), iscalar()])
+    y = specify_shape(specify_shape(x, s), s)
+
+    y_fg = FunctionGraph(outputs=[y], copy_inputs=False)
+    y_opt_fg = optimize_graph(
+        y_fg, clone=False, include=["canonicalize", "local_useless_SpecifyShape"]
+    )
+    y_opt = y_opt_fg.outputs[0]
+
+    assert isinstance(y_opt.owner.op, SpecifyShape)
+    assert y_opt.owner.inputs[0] == x

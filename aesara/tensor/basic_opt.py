@@ -3464,6 +3464,25 @@ def local_useless_topk(fgraph, node):
 
 @register_useless
 @register_canonicalize
+@local_optimizer([SpecifyShape])
+def local_useless_SpecifyShape(fgraph, node):
+    """Replace ``specify_shape(specify_shape(x, s1), s2)`` with ``specify_shape(x, s1)``."""
+
+    if not isinstance(node.op, SpecifyShape):
+        return False
+
+    obj = node.inputs[0]
+    if not (obj.owner and isinstance(obj.owner.op, SpecifyShape)):
+        return False
+
+    # TODO: We could make sure that the shapes of the two `SpecifyShape`s are
+    # the same.
+
+    return [obj]
+
+
+@register_useless
+@register_canonicalize
 @local_optimizer([Shape])
 def local_Shape_of_SpecifyShape(fgraph, node):
     """Replace ``specify_shape(x, s).shape`` with ``s``."""
