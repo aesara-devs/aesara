@@ -17,7 +17,7 @@ short_version = full_version.split("+")[0]
 try:
     int(short_version.split(".")[2])
     release = True
-except ValueError:
+except (ValueError, IndexError):
     release = False
 
 if release and info["error"] is None:
