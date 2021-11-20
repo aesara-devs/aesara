@@ -274,15 +274,16 @@ class CType(Type, CLinkerType):
 
 
 class Generic(CType, Singleton):
-    """
-    Represents a generic Python object.
+    r"""A type for a generic Python object exposed directly in C.
 
     This class implements the `CType` and `CLinkerType` interfaces
-    for generic PyObject instances.
+    for generic ``PyObject`` instances.
 
-    EXAMPLE of what this means, or when you would use this type.
+    It can be used to easily expose Python objects to `COp`\s.
 
-    WRITEME
+    For example, ``obj_const = Constant(Generic(), my_obj)`` will construct
+    an Aesara constant that can be used to access the Python object ``my_obj``
+    directly in a `COp` (e.g. as a ``PyObject *``).
 
     """
 
