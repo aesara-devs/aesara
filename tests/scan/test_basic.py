@@ -20,7 +20,6 @@ from tempfile import mkdtemp
 import numpy as np
 import pytest
 
-from aesara.assert_op import assert_op
 from aesara.compile.debugmode import DebugMode
 from aesara.compile.function import function
 from aesara.compile.function.pfunc import rebuild_collect_shared
@@ -41,6 +40,7 @@ from aesara.graph.basic import Apply, clone_replace, graph_inputs
 from aesara.graph.fg import MissingInputError
 from aesara.graph.op import Op
 from aesara.misc.safe_asarray import _asarray
+from aesara.raise_op import assert_op
 from aesara.scan.basic import scan
 from aesara.scan.op import Scan
 from aesara.scan.opt import ScanMerge

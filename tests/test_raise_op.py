@@ -5,7 +5,8 @@ import aesara
 import aesara.tensor as at
 from aesara.compile.mode import OPT_FAST_RUN, Mode
 from aesara.graph.basic import Constant, equal_computations
-from aesara.raise_op import CheckAndRaise, assert_op
+from aesara.raise_op import Assert, CheckAndRaise, assert_op
+from tests import unittest_tools as utt
 
 
 class CustomException(ValueError):
@@ -88,3 +89,27 @@ def test_CheckAndRaise_basic_c(linker):
     y_fn = aesara.function([x], y_grad, mode=Mode(linker, OPT_FAST_RUN))
 
     assert np.array_equal(y_fn(1.0), [1.0])
+
+
+class TestCheckAndRaiseInferShape(utt.InferShapeTester):
+    def setup_method(self):
+        super().setup_method()
+
+    def test_infer_shape(self):
+
+        adscal = at.dscalar()
+        bdscal = at.dscalar()
+        adscal_val = np.random.random()
+        bdscal_val = np.random.random() + 1
+        out = assert_op(adscal, bdscal)
+        self._compile_and_check(
+            [adscal, bdscal], [out], [adscal_val, bdscal_val], Assert
+        )
+
+        admat = at.dmatrix()
+        admat_val = np.random.random((3, 4))
+        adscal_val += 1
+        out = assert_op(admat, adscal, bdscal)
+        self._compile_and_check(
+            [admat, adscal, bdscal], [out], [admat_val, adscal_val, bdscal_val], Assert
+        )

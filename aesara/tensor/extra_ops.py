@@ -4,7 +4,6 @@ from typing import Iterable, Tuple, Union
 import numpy as np
 
 import aesara
-from aesara.assert_op import Assert
 from aesara.gradient import (
     DisconnectedType,
     _float_zeros_like,
@@ -16,6 +15,7 @@ from aesara.graph.op import COp, Op
 from aesara.graph.params_type import ParamsType
 from aesara.graph.type import EnumList, Generic
 from aesara.misc.safe_asarray import _asarray
+from aesara.raise_op import Assert
 from aesara.scalar import int32 as int_t
 from aesara.scalar import upcast
 from aesara.tensor import basic as aet

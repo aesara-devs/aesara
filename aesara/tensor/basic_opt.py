@@ -12,7 +12,6 @@ import numpy as np
 import aesara
 import aesara.scalar.basic as aes
 from aesara import compile
-from aesara.assert_op import Assert, assert_op
 from aesara.compile.ops import ViewOp
 from aesara.configdefaults import config
 from aesara.graph import features
@@ -40,6 +39,7 @@ from aesara.graph.utils import (
     get_variable_trace_string,
 )
 from aesara.printing import pprint
+from aesara.raise_op import Assert, CheckAndRaise, assert_op
 from aesara.tensor.basic import (
     Alloc,
     AllocEmpty,
@@ -2086,31 +2086,33 @@ def is_an_upcast(type1, type2):
         return False
 
 
+@register_useless
 @register_specialize
-@local_optimizer([Assert])
+@local_optimizer(None)
 def local_remove_useless_assert(fgraph, node):
-    if isinstance(node.op, Assert):
-        cond = []
-        for c in node.inputs[1:]:
-            try:
-                const = get_scalar_constant_value(c)
+    if not isinstance(node.op, CheckAndRaise):
+        return False
 
-                if 0 != const.ndim or const == 0:
-                    # Should we raise an error here? How to be sure it
-                    # is not caught?
-                    cond.append(c)
-            except NotScalarConstantError:
-                cond.append(c)
+    new_conds = []
+    n_conds = len(node.inputs[1:])
+    for c in node.inputs[1:]:
+        try:
+            const = get_scalar_constant_value(c)
 
-        if len(cond) == 0:
-            # We don't need to copy over any stack traces here
-            return [node.inputs[0]]
-        if len(cond) != len(node.inputs) - 1:
-            ret = assert_op(node.inputs[0], *cond)
+            if 0 != const.ndim or const == 0:
+                # Should we raise an error here? How to be sure it
+                # is not caught?
+                new_conds.append(c)
+        except NotScalarConstantError:
+            new_conds.append(c)
 
-            # We copy over stack trace from the output of the original assert
-            copy_stack_trace(node.outputs[0], ret)
-            return [ret]
+    if len(new_conds) == 0:
+        return [node.inputs[0]]
+
+    if len(new_conds) < n_conds:
+        new_var = node.op(*(node.inputs[:1] + new_conds))
+        copy_stack_trace(node.outputs[0], new_var)
+        return [new_var]
 
 
 @local_optimizer([Assert])
@@ -2126,7 +2128,6 @@ def local_remove_all_assert(fgraph, node):
     if not isinstance(node.op, Assert):
         return
 
-    # We don't need to copy over any stack traces here
     return [node.inputs[0]]
 
 

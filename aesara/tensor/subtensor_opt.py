@@ -6,9 +6,9 @@ import numpy as np
 import aesara
 import aesara.scalar.basic as aes
 from aesara import compile
-from aesara.assert_op import Assert
 from aesara.graph.basic import Constant, Variable
 from aesara.graph.opt import TopoOptimizer, copy_stack_trace, in2out, local_optimizer
+from aesara.raise_op import Assert
 from aesara.tensor.basic import (
     Alloc,
     ARange,

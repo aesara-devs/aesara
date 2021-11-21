@@ -20,10 +20,10 @@ from scipy.signal.sigtools import _convolve2d
 
 import aesara
 from aesara import tensor as aet
-from aesara.assert_op import Assert
 from aesara.configdefaults import config
 from aesara.graph.basic import Apply, Variable
 from aesara.graph.op import Op
+from aesara.raise_op import Assert
 from aesara.tensor.basic import (
     as_tensor_variable,
     get_scalar_constant_value,

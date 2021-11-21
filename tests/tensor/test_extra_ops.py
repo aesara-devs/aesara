@@ -4,12 +4,12 @@ import pytest
 import aesara
 from aesara import function
 from aesara import tensor as aet
-from aesara.assert_op import Assert
 from aesara.compile.mode import Mode
 from aesara.configdefaults import config
 from aesara.gradient import grad
 from aesara.graph.basic import applys_between
 from aesara.graph.optdb import OptimizationQuery
+from aesara.raise_op import Assert
 from aesara.tensor.elemwise import DimShuffle
 from aesara.tensor.extra_ops import (
     Bartlett,

@@ -3,8 +3,8 @@ from pytest import fixture, raises
 
 import aesara.tensor as aet
 from aesara import config
-from aesara.assert_op import Assert
 from aesara.gradient import NullTypeGradError, grad
+from aesara.raise_op import Assert
 from aesara.tensor.math import eq
 from aesara.tensor.random.op import RandomVariable, default_shape_from_params
 from aesara.tensor.shape import specify_shape

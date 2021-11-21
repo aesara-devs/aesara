@@ -20,7 +20,6 @@ import aesara
 import aesara.scalar.sharedvar
 from aesara import compile, config, printing
 from aesara import scalar as aes
-from aesara.assert_op import Assert, assert_op
 from aesara.gradient import DisconnectedType, grad_not_implemented, grad_undefined
 from aesara.graph.basic import Apply, Constant, Variable
 from aesara.graph.op import COp, Op
@@ -28,6 +27,7 @@ from aesara.graph.params_type import ParamsType
 from aesara.graph.type import Type
 from aesara.misc.safe_asarray import _asarray
 from aesara.printing import min_informative_str, pprint
+from aesara.raise_op import CheckAndRaise, assert_op
 from aesara.scalar import int32
 from aesara.scalar.basic import ScalarConstant, ScalarVariable
 from aesara.tensor import (
@@ -369,13 +369,13 @@ def get_scalar_constant_value(
             elif isinstance(v.owner.op, (ScalarFromTensor, TensorFromScalar)):
                 v = v.owner.inputs[0]
                 continue
-            elif isinstance(v.owner.op, Assert):
+            elif isinstance(v.owner.op, CheckAndRaise):
                 # check if all conditions are constant and true
-                cond = [
+                conds = [
                     get_scalar_constant_value(c, max_recur=max_recur)
                     for c in v.owner.inputs[1:]
                 ]
-                if builtins.all([0 == c.ndim and c != 0 for c in cond]):
+                if builtins.all([0 == c.ndim and c != 0 for c in conds]):
                     v = v.owner.inputs[0]
                     continue
             elif isinstance(v.owner.op, aes.ScalarOp):
@@ -2487,8 +2487,8 @@ class Join(COp):
         # The joining dimension could be negative, but we need it to be
         # in [0, n_dim) in the loop below.
         # An axis < -n_dim or >= ndim would be invalid, but this is
-        # not checked here. An Assert op would be a way of addressing that,
-        # but it may disrupt optimizations.
+        # not checked here. A `CheckAndRaise` `Op` would be a way of
+        # addressing that, but it may disrupt optimizations.
         join_dim = switch(ge(node.inputs[0], 0), node.inputs[0], node.inputs[0] + n_dim)
         out_shapes = []
         for dim in range(n_dim):

@@ -21,7 +21,6 @@ from typing import Dict, List, Optional, Tuple, Union
 import numpy as np
 
 import aesara
-from aesara.assert_op import Assert
 from aesara.configdefaults import config
 from aesara.graph import destroyhandler as dh
 from aesara.graph.basic import (
@@ -37,6 +36,7 @@ from aesara.graph.fg import FunctionGraph, InconsistencyError
 from aesara.graph.op import Op
 from aesara.graph.utils import AssocList
 from aesara.misc.ordered_set import OrderedSet
+from aesara.raise_op import CheckAndRaise
 from aesara.utils import flatten
 
 
@@ -783,7 +783,7 @@ class MergeOptimizer(GlobalOptimizer):
                     # nodes removed
                     cand_inputs_assert_removed = []
                     for i in candidate.inputs:
-                        if i.owner and isinstance(i.owner.op, Assert):
+                        if i.owner and isinstance(i.owner.op, CheckAndRaise):
                             cand_inputs_assert_removed.append(i.owner.inputs[0])
                         else:
                             cand_inputs_assert_removed.append(i)
@@ -791,7 +791,7 @@ class MergeOptimizer(GlobalOptimizer):
                     # Get input list of the node with assert nodes removed
                     node_inputs_assert_removed = []
                     for i in node.inputs:
-                        if i.owner and isinstance(i.owner.op, Assert):
+                        if i.owner and isinstance(i.owner.op, CheckAndRaise):
                             node_inputs_assert_removed.append(i.owner.inputs[0])
                         else:
                             node_inputs_assert_removed.append(i)
