@@ -62,7 +62,7 @@ class MyOp(Op):
         return Apply(self, inputs, outputs)
 
     def perform(self, node, inputs, outputs):
-        outputs[0] = np.array(inputs, dtype=np.object)
+        outputs[0] = np.array(inputs, dtype=object)
 
     def __str__(self):
         return self.name
