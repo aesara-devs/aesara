@@ -27,6 +27,7 @@ from aesara.graph.optdb import OptimizationQuery
 from aesara.graph.type import Type
 from aesara.ifelse import ifelse
 from aesara.link.numba.dispatch import basic as numba_basic
+from aesara.link.numba.dispatch import numba_typify
 from aesara.link.numba.linker import NumbaLinker
 from aesara.scalar.basic import Composite
 from aesara.scan.basic import scan
@@ -291,6 +292,26 @@ def test_get_numba_type(v, expected, force_scalar, not_implemented):
 def test_create_numba_signature(v, expected, force_scalar):
     res = numba_basic.create_numba_signature(v, force_scalar=force_scalar)
     assert res == expected
+
+
+@pytest.mark.parametrize(
+    "input, wrapper_fn, check_fn",
+    [
+        (
+            np.random.RandomState(1),
+            numba_typify,
+            lambda x, y: np.all(x.get_state()[1] == y.get_state()[1]),
+        )
+    ],
+)
+def test_numba_box_unbox(input, wrapper_fn, check_fn):
+    input = wrapper_fn(input)
+
+    pass_through = numba.njit(lambda x: x)
+    res = pass_through(input)
+
+    assert isinstance(res, type(input))
+    assert check_fn(res, input)
 
 
 @pytest.mark.parametrize(
@@ -2923,6 +2944,17 @@ def test_RandomVariable(rv_op, dist_args, size):
             if not isinstance(i, (SharedVariable, Constant))
         ],
     )
+
+
+def test_RandomState_updates():
+    rng = shared(np.random.RandomState(1))
+    rng_new = shared(np.random.RandomState(2))
+
+    x = aet.random.normal(size=10, rng=rng)
+    res = function([], x, updates={rng: rng_new}, mode=numba_mode)()
+
+    ref = np.random.RandomState(2).normal(size=10)
+    assert np.allclose(res, ref)
 
 
 def test_random_Generator():

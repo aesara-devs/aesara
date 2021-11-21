@@ -430,7 +430,9 @@ def numba_funcify_DeepCopyOp(op, node, **kwargs):
 
     # Scalars are apparently returned as actual Python scalar types and not
     # NumPy scalars, so we need two separate Numba functions for each case.
-    if node.outputs[0].type.ndim == 0:
+
+    # The type can also be RandomType with no ndims
+    if not hasattr(node.outputs[0].type, "ndim") or node.outputs[0].type.ndim == 0:
         # TODO: Do we really need to compile a pass-through function like this?
         @numba.njit(inline="always")
         def deepcopyop(x):
