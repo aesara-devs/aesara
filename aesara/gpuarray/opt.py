@@ -13,7 +13,6 @@ import aesara.tensor.signal.pool as pool
 import aesara.tensor.slinalg as slinalg
 from aesara import scalar as aes
 from aesara import tensor as aet
-from aesara.assert_op import Assert
 from aesara.breakpoint import PdbBreakpoint
 from aesara.compile import optdb
 from aesara.configdefaults import config
@@ -162,6 +161,7 @@ from aesara.graph.opt import (
 from aesara.ifelse import IfElse
 from aesara.link.c.basic import CLinker
 from aesara.misc.ordered_set import OrderedSet
+from aesara.raise_op import Assert
 from aesara.scalar.basic import Cast, Pow, Scalar, log, neg, true_div
 from aesara.scalar.math import Erfcinv, Erfinv
 from aesara.scan.op import Scan

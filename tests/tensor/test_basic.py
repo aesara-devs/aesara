@@ -13,7 +13,6 @@ import aesara.scalar as aes
 import aesara.tensor.basic as aet
 import aesara.tensor.math as tm
 from aesara import compile, config, function, shared
-from aesara.assert_op import Assert
 from aesara.compile.io import In, Out
 from aesara.compile.mode import get_default_mode
 from aesara.compile.ops import DeepCopyOp
@@ -21,6 +20,7 @@ from aesara.gradient import grad, hessian
 from aesara.graph.basic import Apply
 from aesara.graph.op import Op
 from aesara.misc.safe_asarray import _asarray
+from aesara.raise_op import Assert
 from aesara.scalar import autocast_float, autocast_float_as
 from aesara.tensor.basic import (
     Alloc,

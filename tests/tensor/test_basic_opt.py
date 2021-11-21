@@ -7,9 +7,7 @@ import aesara
 import aesara.scalar as aes
 import aesara.tensor as aet
 from aesara import shared
-from aesara.assert_op import Assert
 from aesara.compile import optdb
-from aesara.compile.debugmode import DebugMode
 from aesara.compile.function import function
 from aesara.compile.mode import OPT_NONE, Mode, get_default_mode, get_mode
 from aesara.compile.ops import DeepCopyOp, deep_copy_op
@@ -22,6 +20,7 @@ from aesara.graph.opt_utils import optimize_graph
 from aesara.graph.optdb import OptimizationQuery
 from aesara.graph.type import Type
 from aesara.misc.safe_asarray import _asarray
+from aesara.raise_op import Assert, CheckAndRaise
 from aesara.tensor.basic import (
     Alloc,
     Join,
@@ -1763,112 +1762,66 @@ class TestShapeOptimizer:
         f([[1, 2], [2, 3]])
 
 
-class TestAssert(utt.InferShapeTester):
-    def setup_method(self):
-        super().setup_method()
-
+class TestUselessCheckAndRaise:
     def test_basic(self):
+        mode = get_default_mode().including(
+            "canonicalize", "local_remove_useless_assert"
+        )
         x = scalar()
         y = scalar()
-        f = function([x, y], assert_op(x, eq(x, y)))
-        f(1, 1)
-        with pytest.raises(AssertionError):
-            f(1, 0)
-
-    def test_local_remove_useless_assert1(self):
-        # remove assert that are always true
-        mode = config.mode
-        if mode == "FAST_COMPILE":
-            mode = "FAST_RUN"
-        mode = get_mode(mode)
-
-        x = scalar()
-        f = function([x], assert_op(x, 1), mode=mode)
-        assert f(1) == 1
-        assert f(5) == 5
-        topo = f.maker.fgraph.toposort()
-        assert len(topo) == 1
-        assert topo[0].op == deep_copy_op
-
-    def test_test_local_remove_useless_assert2(self):
-        # remove assert condition that are always true
-        mode = config.mode
-        if mode == "FAST_COMPILE":
-            mode = "FAST_RUN"
-        mode = get_mode(mode)
-
-        x = scalar()
-        y = scalar()
-        f = function([x, y], assert_op(x, y, 1), mode=mode)
+        f = function([x, y], assert_op(x, eq(x, y)), mode=mode)
         assert f(1, 1) == 1
-        assert f(5, 1) == 5
-        topo = f.maker.fgraph.toposort()
-        assert len(topo) == 2
-        assert len(topo[0].inputs) == 2
-        assert topo[1].op == deep_copy_op
-
-    def test_local_remove_useless_assert3(self):
-        # don't remove assert condition that are always false
-        mode = config.mode
-        if mode == "FAST_COMPILE":
-            mode = "FAST_RUN"
-        mode = get_mode(mode)
-
-        x = scalar()
-        y = scalar()
-        f = function([x, y], assert_op(x, y, 0), mode=mode)
         with pytest.raises(AssertionError):
             f(1, 0)
-        topo = f.maker.fgraph.toposort()
-        assert len(topo) == 2
-        assert len(topo[0].inputs) == 3
-        assert topo[1].op == deep_copy_op
 
-    def test_local_remove_all_assert1(self):
-        # remove assert condition that are unknown
-        mode = config.mode
-        if mode == "FAST_COMPILE":
-            mode = "FAST_RUN"
-        mode = get_mode(mode).including("local_remove_all_assert")
+    def test_local_remove_useless_1(self):
+        """Remove `CheckAndRaise`s when all the conditions are always true."""
+        x = scalar()
+        fg = FunctionGraph(outputs=[assert_op(x, 1)], clone=False)
+        fg_res = optimize_graph(fg, include=["canonicalize", "specialize"])
+        topo = fg_res.toposort()
+        assert not any([isinstance(node.op, CheckAndRaise) for node in topo])
 
+    def test_local_remove_useless_2(self):
+        """Remove `CheckAndRaise` conditions that are always true."""
         x = scalar()
         y = scalar()
-        f = function([x, y], assert_op(x, y), mode=mode)
-        if isinstance(mode, DebugMode):
-            # DebugMode will run the original version with the Assert
-            with pytest.raises(AssertionError):
-                f(1, 0)
-        else:
-            f(1, 0)  # Without opt, it should fail.
-        topo = f.maker.fgraph.toposort()
-        assert len(topo) == 1, topo
-        assert topo[0].op == deep_copy_op, topo
+        fg = FunctionGraph(outputs=[assert_op(x, y, 1)], clone=False)
+        fg_res = optimize_graph(fg, include=["canonicalize", "specialize"])
+        topo = fg_res.toposort()
+        (assert_node,) = [node for node in topo if isinstance(node.op, CheckAndRaise)]
+        assert assert_node.inputs == [x, y]
 
-        mode = get_default_mode()
-        a = assert_op(x, eq(x, 0).any())
-        f = function([x], a, mode=mode.excluding("unsafe"))
-        topo = f.maker.fgraph.toposort()
-        a_op = [n for n in topo if isinstance(n.op, Assert)]
-        assert len(a_op) == 1
+    def test_local_remove_useless_3(self):
+        """Don't remove `CheckAndRaise` conditions that are always false."""
+        x = scalar()
+        y = scalar()
+        fg = FunctionGraph(outputs=[assert_op(x, y, 0)], clone=False)
+        fg_res = optimize_graph(fg, include=["canonicalize", "specialize"])
+        topo = fg_res.toposort()
+        (assert_node,) = [node for node in topo if isinstance(node.op, CheckAndRaise)]
+        assert assert_node.inputs[:2] == [x, y]
+        assert assert_node.inputs[-1].data == 0
 
-    def test_infer_shape(self):
 
-        adscal = dscalar()
-        bdscal = dscalar()
-        adscal_val = np.random.random()
-        bdscal_val = np.random.random() + 1
-        out = assert_op(adscal, bdscal)
-        self._compile_and_check(
-            [adscal, bdscal], [out], [adscal_val, bdscal_val], Assert
-        )
+def test_local_remove_all_assert():
+    r"""Remove all `Assert`\s."""
+    mode = get_default_mode().including("canonicalize", "local_remove_all_assert")
 
-        admat = dmatrix()
-        admat_val = np.random.random((3, 4))
-        adscal_val += 1
-        out = assert_op(admat, adscal, bdscal)
-        self._compile_and_check(
-            [admat, adscal, bdscal], [out], [admat_val, adscal_val, bdscal_val], Assert
-        )
+    x = scalar()
+    y = scalar()
+    f = function([x, y], assert_op(x, y), mode=mode)
+    # Without the optimization, this would fail
+    assert f(1, 0) == 1
+    topo = f.maker.fgraph.toposort()
+    assert not any([isinstance(node.op, CheckAndRaise) for node in topo])
+
+    mode = get_default_mode()
+    a = assert_op(x, eq(x, 0).any())
+    f = function([x], a, mode=mode.excluding("unsafe"))
+    topo = f.maker.fgraph.toposort()
+    a_op = [n for n in topo if isinstance(n.op, Assert)]
+    assert len(a_op) == 1
 
 
 class TestTile:

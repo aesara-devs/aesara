@@ -1,6 +1,5 @@
 import pytest
 
-from aesara.assert_op import assert_op
 from aesara.configdefaults import config
 from aesara.graph.basic import Apply, Constant, equal_computations
 from aesara.graph.features import Feature
@@ -19,6 +18,7 @@ from aesara.graph.opt import (
     pre_constant_merge,
     pre_greedy_local_optimizer,
 )
+from aesara.raise_op import assert_op
 from aesara.tensor.basic_opt import constant_folding
 from aesara.tensor.math import Dot, add, dot
 from aesara.tensor.subtensor import AdvancedSubtensor

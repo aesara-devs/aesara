@@ -5,7 +5,6 @@ import aesara
 import aesara.scalar as aes
 import aesara.tensor as aet
 from aesara import shared
-from aesara.assert_op import Assert
 from aesara.compile.function import function
 from aesara.compile.mode import Mode, get_default_mode, get_mode
 from aesara.compile.ops import DeepCopyOp
@@ -15,6 +14,7 @@ from aesara.graph.opt import check_stack_trace
 from aesara.graph.opt_utils import optimize_graph
 from aesara.graph.optdb import OptimizationQuery
 from aesara.graph.type import Type
+from aesara.raise_op import Assert
 from aesara.tensor import inplace
 from aesara.tensor.basic import (
     Alloc,

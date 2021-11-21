@@ -9,7 +9,6 @@ import numpy as np
 
 import aesara.scalar.basic as aes
 import aesara.scalar.math as aes_math
-from aesara.assert_op import assert_op
 from aesara.graph.basic import Constant, Variable
 from aesara.graph.opt import (
     LocalOptGroup,
@@ -21,6 +20,7 @@ from aesara.graph.opt import (
 )
 from aesara.graph.opt_utils import get_clients_at_depth
 from aesara.misc.safe_asarray import _asarray
+from aesara.raise_op import assert_op
 from aesara.tensor.basic import (
     Alloc,
     Join,

@@ -5,7 +5,6 @@ import aesara
 import aesara.gpuarray
 import aesara.tensor.slinalg as slinalg
 from aesara import tensor as aet
-from aesara.assert_op import Assert, assert_op
 from aesara.breakpoint import PdbBreakpoint
 from aesara.configdefaults import config
 from aesara.gpuarray import basic_ops, blas, dnn, opt
@@ -30,6 +29,7 @@ from aesara.gpuarray.linalg import GpuCholesky, GpuCusolverSolve, cusolver_avail
 from aesara.gpuarray.subtensor import GpuSubtensor
 from aesara.gpuarray.type import GpuArrayType, get_context, gpuarray_shared_constructor
 from aesara.graph.opt import check_stack_trace
+from aesara.raise_op import Assert, assert_op
 from aesara.tensor.basic import Alloc, AllocEmpty, MakeVector, Rebroadcast
 from aesara.tensor.blas import batched_dot
 from aesara.tensor.math import dot, eq, exp, gt, tanh

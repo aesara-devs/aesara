@@ -11,7 +11,6 @@ import aesara
 import aesara.gpuarray.pathparse
 import aesara.tensor.basic as aet
 import aesara.tensor.math as tm
-from aesara.assert_op import Assert
 from aesara.compile.io import Out
 from aesara.compile.mode import Mode
 from aesara.configdefaults import SUPPORTED_DNN_CONV_ALGO_RUNTIME, config
@@ -33,6 +32,7 @@ from aesara.graph.op import ExternalCOp, _NoPythonCOp, _NoPythonExternalCOp
 from aesara.graph.params_type import ParamsType
 from aesara.graph.type import CDataType, EnumList, Generic
 from aesara.link.c.cmodule import GCC_compiler
+from aesara.raise_op import Assert
 from aesara.scalar import as_scalar
 from aesara.scalar import bool as bool_t
 from aesara.scalar import constant, get_scalar_type
