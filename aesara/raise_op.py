@@ -7,7 +7,7 @@ import numpy as np
 
 from aesara.gradient import DisconnectedType
 from aesara.graph.basic import Apply, Variable
-from aesara.graph.op import COp, Op
+from aesara.graph.op import COp
 from aesara.graph.params_type import ParamsType
 from aesara.graph.type import Generic
 
@@ -21,29 +21,6 @@ class ExceptionType(Generic):
 
 
 exception_type = ExceptionType()
-
-
-class Raise(Op):
-    """Op whose perform() raises an exception."""
-
-    __props__ = ("msg", "exc")
-
-    def __init__(self, msg="", exc=NotImplementedError):
-        """
-        msg - the argument to the exception
-        exc - an exception class to raise in self.perform
-        """
-        self.msg = msg
-        self.exc = exc
-
-    def __str__(self):
-        return f"Raise{{{self.exc}({self.msg})}}"
-
-    def make_node(self, x):
-        return Apply(self, [x], [x.type()])
-
-    def perform(self, node, inputs, out_storage):
-        raise self.exc(self.msg)
 
 
 class CheckAndRaise(COp):
