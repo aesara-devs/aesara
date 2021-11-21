@@ -4,7 +4,9 @@ from typing import Any, Callable, Dict, Optional
 import numba
 import numba.np.unsafe.ndarray as numba_ndarray
 import numpy as np
-from numba import _helperlib
+from numba import _helperlib, types
+from numba.core import cgutils
+from numba.extending import NativeValue, box, models, register_model, typeof_impl, unbox
 from numpy.random import RandomState
 
 import aesara.tensor.random.basic as aer
@@ -22,12 +24,71 @@ from aesara.tensor.random.type import RandomStateType
 from aesara.tensor.random.var import RandomStateSharedVariable
 
 
+class RandomStateNumbaType(types.Type):
+    def __init__(self):
+        super(RandomStateNumbaType, self).__init__(name="RandomState")
+
+
+random_state_numba_type = RandomStateNumbaType()
+
+
+@typeof_impl.register(RandomState)
+def typeof_index(val, c):
+    return random_state_numba_type
+
+
+@register_model(RandomStateNumbaType)
+class RandomStateNumbaModel(models.StructModel):
+    def __init__(self, dmm, fe_type):
+        members = [
+            # TODO: We can add support for boxing and unboxing
+            # the attributes that describe a RandomState so that
+            # they can be accessed inside njit functions, if required.
+            ("state_key", types.Array(types.uint32, 1, "C")),
+        ]
+        models.StructModel.__init__(self, dmm, fe_type, members)
+
+
+@unbox(RandomStateNumbaType)
+def unbox_random_state(typ, obj, c):
+    """Convert a `RandomState` object to a native `RandomStateNumbaModel` structure.
+
+    Note that this will create a 'fake' structure which will just get the
+    `RandomState` objects accepted in Numba functions but the actual information
+    of the Numba's random state is stored internally and can be accessed
+    anytime using ``numba._helperlib.rnd_get_np_state_ptr()``.
+    """
+    interval = cgutils.create_struct_proxy(typ)(c.context, c.builder)
+    is_error = cgutils.is_not_null(c.builder, c.pyapi.err_occurred())
+    return NativeValue(interval._getvalue(), is_error=is_error)
+
+
+@box(RandomStateNumbaType)
+def box_random_state(typ, val, c):
+    """Convert a native `RandomStateNumbaModel` structure to an `RandomState` object
+    using Numba's internal state array.
+
+    Note that `RandomStateNumbaModel` is just a placeholder structure with no
+    inherent information about Numba internal random state, all that information
+    is instead retrieved from Numba using ``_helperlib.rnd_get_state()`` and a new
+    `RandomState` is constructed using the Numba's current internal state.
+    """
+    pos, state_list = _helperlib.rnd_get_state(_helperlib.rnd_get_np_state_ptr())
+    rng = RandomState()
+    rng.set_state(("MT19937", state_list, pos))
+    class_obj = c.pyapi.unserialize(c.pyapi.serialize_object(rng))
+    return class_obj
+
+
 @numba_typify.register(RandomState)
 def numba_typify_RandomState(state, **kwargs):
+    # The numba_typify in this case is just an passthrough function
+    # that synchronizes Numba's internal random state with the current
+    # RandomState object
     ints, index = state.get_state()[1:3]
     ptr = _helperlib.rnd_get_np_state_ptr()
     _helperlib.rnd_set_state(ptr, (index, [int(x) for x in ints]))
-    return ints
+    return state
 
 
 def make_numba_random_fn(node, np_random_func):
