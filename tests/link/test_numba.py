@@ -1894,6 +1894,51 @@ def test_Dot(x, y, exc):
 
 
 @pytest.mark.parametrize(
+    "dy, sm, axis, exc",
+    [
+        (
+            set_test_value(
+                aet.matrix(), np.array([[1, 1, 1], [0, 0, 0]], dtype=config.floatX)
+            ),
+            set_test_value(aet.matrix(), rng.random(size=(2, 3)).astype(config.floatX)),
+            None,
+            None,
+        ),
+        (
+            set_test_value(
+                aet.matrix(), np.array([[1, 1, 1], [0, 0, 0]], dtype=config.floatX)
+            ),
+            set_test_value(aet.matrix(), rng.random(size=(2, 3)).astype(config.floatX)),
+            0,
+            None,
+        ),
+        (
+            set_test_value(
+                aet.matrix(), np.array([[1, 1, 1], [0, 0, 0]], dtype=config.floatX)
+            ),
+            set_test_value(aet.matrix(), rng.random(size=(2, 3)).astype(config.floatX)),
+            1,
+            None,
+        ),
+    ],
+)
+def test_SoftmaxGrad(dy, sm, axis, exc):
+    g = nnetb.SoftmaxGrad(axis=axis)(dy, sm)
+    g_fg = FunctionGraph(outputs=[g])
+
+    cm = contextlib.suppress() if exc is None else pytest.warns(exc)
+    with cm:
+        compare_numba_and_py(
+            g_fg,
+            [
+                i.tag.test_value
+                for i in g_fg.inputs
+                if not isinstance(i, (SharedVariable, Constant))
+            ],
+        )
+
+
+@pytest.mark.parametrize(
     "x, axis, exc",
     [
         (
