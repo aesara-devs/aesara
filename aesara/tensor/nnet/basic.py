@@ -822,34 +822,34 @@ class LogSoftmax(COp):
 
     """
 
-    __props__ = ()
+    nin = 1
+    nout = 1
+    __props__ = ("axis",)
+
+    def __init__(self, axis):
+        if axis is not None and not isinstance(axis, int):
+            raise TypeError("axis must be an integer or `None`")
+        self.axis = axis
 
     def make_node(self, x):
         x = aet.as_tensor_variable(x)
-        if x.type.ndim not in (1, 2) or x.type.dtype not in float_dtypes:
-            raise ValueError(f"x must be 1-d or 2-d tensor of floats. Got {x.type}")
-        if x.ndim == 1:
-            warnings.warn(
-                "If x is a vector, LogSoftmax will not automatically pad x "
-                "anymore in next releases. If you need it, please do it manually. The "
-                "vector case is gonna be supported soon and the output will be a vector.",
-                category=PendingDeprecationWarning,
-                stacklevel=4,
+
+        if self.axis is not None and (self.axis >= x.ndim or self.axis < -x.ndim):
+            raise ValueError(
+                f"LogSoftmax axis(={self.axis}) out of bounds for {x.ndim}D array {x}"
             )
-            x = shape_padleft(x, n_ones=1)
 
         return Apply(self, [x], [x.type()])
 
     def perform(self, node, input_storage, output_storage):
         (x,) = input_storage
-        xdev = x - x.max(axis=1)[:, None]
-        lsm = xdev - np.log(np.sum(np.exp(xdev), axis=1, keepdims=True))
-        output_storage[0][0] = lsm
+        (z,) = output_storage
+        z[0] = scipy.special.log_softmax(x, axis=self.axis)
 
     def grad(self, inp, grads):
         (x,) = inp
-        sm = softmax_legacy(x)
-        return [grads[0] - aet_sum(grads[0], axis=1, keepdims=True) * sm]
+        sm = Softmax(axis=self.axis)(x)
+        return [grads[0] - aet_sum(grads[0], axis=self.axis, keepdims=True) * sm]
 
     def R_op(self, inputs, eval_points):
         # I think the Jacobian is symmetric so the R_op
@@ -864,100 +864,196 @@ class LogSoftmax(COp):
     def c_headers(self, **kwargs):
         return ["<cmath>"]
 
-    @staticmethod
-    def c_code_template(dtype):
-        init_decl = """
-          npy_intp* Nx = PyArray_DIMS(%(x)s);
-          npy_intp Sx1 = 0;
-          npy_intp Ssm1 = 0;
-
-          if (PyArray_NDIM(%(x)s) != 2)
-          {
-              PyErr_SetString(PyExc_ValueError, "not a 2d tensor");
-              %(fail)s;
-          }
-          if ((PyArray_TYPE(%(x)s) != NPY_DOUBLE) &&
-              (PyArray_TYPE(%(x)s) != NPY_FLOAT))
-          {
-              PyErr_SetString(PyExc_TypeError, "not a float");
-              %(fail)s;
-          }
-
-          if ((NULL == %(sm)s)
-              || (PyArray_DIMS(%(sm)s)[0] != PyArray_DIMS(%(x)s)[0])
-              || (PyArray_DIMS(%(sm)s)[1] != PyArray_DIMS(%(x)s)[1]))
-          {
-              Py_XDECREF(%(sm)s);
-              %(sm)s = (PyArrayObject*)PyArray_SimpleNew(
-                  2, PyArray_DIMS(%(x)s),
-                  PyArray_TYPE(%(x)s));
-              if(!%(sm)s) {
-                  PyErr_SetString(PyExc_MemoryError,
-                       "failed to alloc sm output");
-                  %(fail)s
-              }
-          }
-          Sx1 = PyArray_STRIDES(%(x)s)[1]/sizeof(dtype_%(x)s);
-          Ssm1 = PyArray_STRIDES(%(sm)s)[1]/sizeof(dtype_%(sm)s);
-          """
-
-        begin_row_loop = """
-          // minibatch loop
-          for (size_t i = 0; i < Nx[0]; ++i)
-          {
-              size_t j;
-              double sum = 0.0;
-
-              const dtype_%(x)s* __restrict__ x_i = (dtype_%(x)s*)(
-                  PyArray_BYTES(%(x)s) + PyArray_STRIDES(%(x)s)[0] * i);
-              dtype_%(sm)s* __restrict__ sm_i = (dtype_%(sm)s*)(
-                  PyArray_BYTES(%(sm)s) + PyArray_STRIDES(%(sm)s)[0] * i);
-
-              dtype_%(sm)s row_max = x_i[0];
-              // Get the maximum value of the row
-              for (j = 1; j < Nx[1]; ++j)
-              {
-                  dtype_%(sm)s x_ij = x_i[j * Sx1] ;
-                  row_max = (x_ij > row_max) ? x_ij : row_max;
-              }
-              """
-
-        inside_row_loop = """
-              // Compute xdev and sum(exp(xdev), axis=1)
-              double xdev_exp_row_sum = 0.0;
-              for (j = 0; j < Nx[1]; j++)
-              {
-                  // use sm_i to temporary store xdev
-                  sm_i[j * Ssm1] = (dtype_%(sm)s) (x_i[j * Sx1] - row_max);
-                  xdev_exp_row_sum += exp(sm_i[j * Ssm1]);
-              }
-
-              // Write sm = xdev - log(sum(exp(xdev), axis=1))
-              xdev_exp_row_sum = log(xdev_exp_row_sum);
-              for (j = 0; j < Nx[1]; ++j)
-              {
-                  sm_i[j * Ssm1] -= (dtype_%(sm)s) xdev_exp_row_sum;
-              }
-              """
-        end_row_loop = """
-          }
-          """
-        return (init_decl, begin_row_loop, inside_row_loop, end_row_loop)
-
     def c_code(self, node, name, inp, out, sub):
         (x,) = inp
         (sm,) = out
-        code_template = "".join(
-            self.c_code_template(node.inputs[0].type.dtype_specs()[1])
+        axis = self.axis if self.axis is not None else np.MAXDIMS
+        fail = sub["fail"]
+
+        return dedent(
+            f"""
+            PyArrayObject* op[2];
+            npy_uint32 op_flags[2];
+            npy_uint32 iter_flags;
+            NpyIter* iter;
+            NpyIter_IterNextFunc* get_next;
+            char** data_ptr;
+
+            int x_ndim = PyArray_NDIM({x});
+            int axis = {axis};
+            int iterate_axis = !(axis == NPY_MAXDIMS || x_ndim == 1);
+
+            // Validate inputs
+            if ((PyArray_TYPE({x}) != NPY_DOUBLE) &&
+                (PyArray_TYPE({x}) != NPY_FLOAT))
+            {{
+                PyErr_SetString(PyExc_TypeError, "not a float");
+                {fail}
+            }}
+
+            if (axis < 0) axis = x_ndim + axis;
+            if ((axis < 0) || (iterate_axis && (axis > x_ndim)))
+            {{
+                PyErr_SetString(PyExc_ValueError, "invalid axis in LogSoftmax");
+                {fail}
+            }}
+
+            // Allocate Output Array
+            if (({sm}) == NULL || !(PyArray_CompareLists(PyArray_DIMS({sm}), PyArray_DIMS({x}), x_ndim)))
+            {{
+                Py_XDECREF({sm});
+                {sm} = (PyArrayObject*)PyArray_SimpleNew(x_ndim, PyArray_DIMS({x}), PyArray_TYPE({x}));
+                if(!{sm}) {{
+                    PyErr_SetString(PyExc_MemoryError, "failed to alloc LogSoftmax output");
+                    {fail}
+                }}
+            }}
+
+            // Create numpy iterator
+            op[0] = {x};
+            op[1] = {sm};
+            op_flags[0] = NPY_ITER_READONLY;
+            op_flags[1] = NPY_ITER_READWRITE;
+            iter_flags = (iterate_axis)? NPY_ITER_MULTI_INDEX : 0;
+            iter = NpyIter_MultiNew(
+                2,
+                op,
+                iter_flags,
+                NPY_KEEPORDER,
+                NPY_NO_CASTING,
+                op_flags,
+                NULL
+            );
+
+            if (iter == NULL)
+            {{
+                PyErr_SetString(PyExc_MemoryError, "failed to create LogSoftmax iterator");
+                {fail}
+            }}
+
+            // LogSoftmax is applied across the entire array
+            if (!iterate_axis)
+            {{
+                get_next = NpyIter_GetIterNext(iter, NULL);
+                if (get_next == NULL)
+                {{
+                    NpyIter_Deallocate(iter);
+                    PyErr_SetString(PyExc_RuntimeError, "Failed to obtain LogSoftmax GetIterNext");
+                    {fail}
+                }}
+                data_ptr = NpyIter_GetDataPtrArray(iter);
+
+                // Find axis max
+                dtype_{x}* x_ptr = (dtype_{x}*)data_ptr[0];
+                dtype_{x} max = *x_ptr;
+                if (get_next(iter))
+                {{
+                    do
+                    {{
+                        dtype_{x}* x_ptr = (dtype_{x}*)data_ptr[0];
+                        max = (*x_ptr > max)? *x_ptr : max;
+                    }} while(get_next(iter));
+                }}
+
+                // Reset Iterator
+                if (NpyIter_GotoIterIndex(iter, 0) == NPY_FAIL)
+                {{
+                    PyErr_SetString(PyExc_RuntimeError, "Failed to reset LogSoftmax iterator");
+                    {fail}
+                }}
+
+                // Compute xdev and sum(exp(xdev))
+                dtype_{sm} sum_exp_xdev = 0.0;
+                do
+                {{
+                    dtype_{x}* x_ptr = (dtype_{x}*)data_ptr[0];
+                    dtype_{sm}* sm_ptr = (dtype_{sm}*)data_ptr[1];
+                    *sm_ptr = (dtype_{sm})((*x_ptr) - max);
+                    sum_exp_xdev += exp(*sm_ptr);
+                }} while(get_next(iter));
+
+                // Reset Iterator
+                if (NpyIter_GotoIterIndex(iter, 0) == NPY_FAIL)
+                {{
+                    PyErr_SetString(PyExc_RuntimeError, "Failed to reset LogSoftmax iterator");
+                    {fail}
+                }}
+
+                // Subtract log(sum(exp(xdev)))
+                dtype_{sm} log_sum_exp_xdev = log(sum_exp_xdev);
+                do
+                {{
+                    dtype_{sm}* sm_ptr = (dtype_{sm}*)data_ptr[1];
+                    *sm_ptr -= log_sum_exp_xdev;
+                }} while(get_next(iter));
+            }}
+
+            // LogSoftmax is applied across a specific axis
+            else {{
+                // Collect axis strides and remove it from iteration
+                npy_intp axis_size = PyArray_DIM({x}, axis);
+                npy_intp* axis_stride = NpyIter_GetAxisStrideArray(iter, axis);
+                if  (axis_stride == NULL)
+                {{
+                    PyErr_SetString(PyExc_RuntimeError, "Failed to obtain LogSoftmax axis strides");
+                    {fail}
+                }}
+                npy_intp x_axis_stride = axis_stride[0] / sizeof(dtype_{x});
+                npy_intp sm_axis_stride = axis_stride[1] / sizeof(dtype_{sm});
+
+                if (NpyIter_RemoveAxis(iter, axis) == NPY_FAIL)
+                {{
+                    PyErr_SetString(PyExc_RuntimeError, "Failed to remove LogSoftmax axis from iterator");
+                    {fail}
+                }}
+
+                // Iterate over remaining axes
+                get_next = NpyIter_GetIterNext(iter, NULL);
+                if (get_next == NULL)
+                {{
+                    NpyIter_Deallocate(iter);
+                    PyErr_SetString(PyExc_RuntimeError, "Failed to obtain LogSoftmax GetIterNext");
+                    {fail}
+                }}
+
+                data_ptr = NpyIter_GetDataPtrArray(iter);
+                do
+                {{
+                    dtype_{x}* x_axis = (dtype_{x}*)data_ptr[0];
+                    dtype_{sm}* sm_axis = (dtype_{sm}*)data_ptr[1];
+
+                    // Find axis max
+                    dtype_{x} max = x_axis[0];
+                    for (npy_intp i = 1; i < axis_size; i++)
+                    {{
+                        dtype_{x} x_val = x_axis[i * x_axis_stride];
+                        max = (x_val > max)? x_val : max;
+                    }}
+
+                    // Compute xdev and sum(exp(xdev))
+                    dtype_{sm} sum_exp_xdev = 0.0;
+                    for (npy_intp i = 0; i < axis_size; i++)
+                    {{
+                        sm_axis[i * sm_axis_stride] = (dtype_{x})(x_axis[i * x_axis_stride] - max);
+                        sum_exp_xdev += exp(sm_axis[i * sm_axis_stride]);
+                    }}
+
+                    // Subtract log(sum(exp(xdev))
+                    dtype_{sm} log_sum_exp_xdev = log(sum_exp_xdev);
+                    for (npy_intp i = 0; i < axis_size; i++)
+                    {{
+                        sm_axis[i * sm_axis_stride] -= log_sum_exp_xdev;
+                    }}
+
+                }} while(get_next(iter));
+            }}
+            NpyIter_Deallocate(iter);
+            """
         )
-        return code_template % dict(locals(), **sub)
 
     @staticmethod
     def c_code_cache_version():
-        return (0,)
-
-
-logsoftmax_op = LogSoftmax()
+        return (1,)
 
 
 # This is not registered in stabilize, as it cause some crossentropy
@@ -975,11 +1071,10 @@ def local_logsoftmax(fgraph, node):
         and isinstance(node.op.scalar_op, aes.Log)
         and len(node.inputs) == 1
         and node.inputs[0].owner is not None
-        and node.inputs[0].owner.op == softmax_legacy
-        and node.inputs[0].ndim == 2
+        and isinstance(node.inputs[0].owner.op, Softmax)
     ):
         inVars = node.inputs[0].owner.inputs[0]
-        new_op = LogSoftmax()
+        new_op = LogSoftmax(axis=node.inputs[0].owner.op.axis)
         ret = new_op(inVars)
         ret.tag.values_eq_approx = values_eq_approx_remove_inf
         copy_stack_trace([node.inputs[0], node.outputs[0]], ret)
@@ -1054,8 +1149,23 @@ def softmax(c, axis=UNSET_AXIS):
     return Softmax(axis=axis)(c)
 
 
-def logsoftmax(c):
-    return logsoftmax_op(c)
+def logsoftmax(c, axis=UNSET_AXIS):
+    if axis is UNSET_AXIS:
+        warnings.warn(
+            "logsoftmax now accepts an axis argument. For backwards-compatibility it defaults to -1 when not specified, "
+            "but in the future the default will be `None`.\nTo suppress this warning specify axis explicitly.",
+            FutureWarning,
+        )
+        axis = -1
+
+    c = as_tensor_variable(c)
+    if c.ndim == 1:
+        # TODO: Create Specific warning type that can be suppressed?
+        warnings.warn(
+            "Softmax no longer converts a vector to a row matrix.",
+            UserWarning,
+        )
+    return LogSoftmax(axis=axis)(c)
 
 
 @register_specialize("fast_compile_gpu")

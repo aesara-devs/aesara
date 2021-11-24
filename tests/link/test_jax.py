@@ -969,16 +969,21 @@ def test_nnet():
     fgraph = FunctionGraph([x], [out])
     compare_jax_and_py(fgraph, [get_test_value(i) for i in fgraph.inputs])
 
-    out = aet_nnet.logsoftmax(x)
-    fgraph = FunctionGraph([x], [out])
-    compare_jax_and_py(fgraph, [get_test_value(i) for i in fgraph.inputs])
-
 
 @pytest.mark.parametrize("axis", [None, 0, 1])
 def test_softmax(axis):
     x = matrix("x")
     x.tag.test_value = np.arange(6, dtype=config.floatX).reshape(2, 3)
     out = aet_nnet.softmax(x, axis=axis)
+    fgraph = FunctionGraph([x], [out])
+    compare_jax_and_py(fgraph, [get_test_value(i) for i in fgraph.inputs])
+
+
+@pytest.mark.parametrize("axis", [None, 0, 1])
+def test_logsoftmax(axis):
+    x = matrix("x")
+    x.tag.test_value = np.arange(6, dtype=config.floatX).reshape(2, 3)
+    out = aet_nnet.logsoftmax(x, axis=axis)
     fgraph = FunctionGraph([x], [out])
     compare_jax_and_py(fgraph, [get_test_value(i) for i in fgraph.inputs])
 

@@ -47,7 +47,6 @@ from aesara.tensor.nnet.basic import (
     elu,
     h_softmax,
     logsoftmax,
-    logsoftmax_op,
     relu,
     selu,
     sigmoid_binary_crossentropy,
@@ -205,47 +204,28 @@ class TestSoftmaxWithBias(utt.InferShapeTester):
 
 
 class TestLogSoftmax(utt.InferShapeTester):
-    def test_basic(self):
+    @pytest.mark.parametrize("column", [0, 1, 2, 3])
+    @pytest.mark.parametrize("axis", [None, 0, 1])
+    def test_matrix_grad(self, axis, column):
         def f(a):
-            return logsoftmax_op(a)[:, 0]
+            return logsoftmax(a, axis=axis)[:, column]
 
         utt.verify_grad(f, [np.random.random((3, 4))])
 
-        def f(a):
-            return logsoftmax_op(a)[:, 1]
-
-        utt.verify_grad(f, [np.random.random((3, 4))])
-
-        def f(a):
-            return logsoftmax_op(a)[:, 2]
-
-        utt.verify_grad(f, [np.random.random((3, 4))])
-
-        def f(a):
-            return logsoftmax_op(a)[:, 3]
-
-        utt.verify_grad(f, [np.random.random((3, 4))])
-
-    def test_matrix(self):
-        def f(a):
-            return logsoftmax_op(a)
-
-        utt.verify_grad(f, [np.random.random((3, 4))])
-
-    def test_vector(self):
+    def test_vector_perform(self):
         x = vector()
-        f = aesara.function([x], logsoftmax_op(x))
+        f = aesara.function([x], logsoftmax(x, axis=None))
 
         xv = np.random.randn(6).astype(config.floatX)
-        assert np.allclose(f(xv), np.log(np.exp(xv) / np.exp(xv).sum()))
+        assert np.allclose(f(xv), sp.log_softmax(xv))
 
     def test_vector_grad(self):
         def f(a):
-            return logsoftmax_op(a)
+            return logsoftmax(a, axis=None)
 
         utt.verify_grad(f, [np.random.random((4))])
 
-    def test_allclose(self):
+    def test_matrix_perform_and_opt(self):
         m = config.mode
         m = aesara.compile.get_mode(m)
         m.check_isfinite = False
@@ -284,18 +264,15 @@ class TestLogSoftmax(utt.InferShapeTester):
         grad_ = f3(a, b)
         assert not np.any(np.isnan(grad_))
 
-    def test_isclose(self):
-        def f(a):
-            return logsoftmax_op(a)
-
-    def test_local_softmax_optimization(self):
+    @pytest.mark.parametrize("axis", [None, 0, -1])
+    def test_local_logsoftmax_opt(self, axis):
         # Test the Logsoftmax substitution
         #
         # Check that Log(Softmax(x)) is substituted with Logsoftmax(x). Note that
         # only the forward pass is checked (i.e., doesn't check the gradient)
 
-        x, y = matrices("xy")
-        sm = softmax(x)
+        x = matrix("x")
+        sm = softmax(x, axis=axis)
         logsm = log(sm)
         f = aesara.function([x], logsm)
         assert isinstance(f.maker.fgraph.outputs[0].owner.op, LogSoftmax)
@@ -350,6 +327,9 @@ class TestLogSoftmax(utt.InferShapeTester):
         optdb.query(OPT_FAST_RUN).optimize(fgraph)
 
         assert softmax_grad_legacy in [n.op for n in fgraph.toposort()]
+
+    def test_valid_axis(self):
+        valid_axis_tester(LogSoftmax)
 
 
 class TestSoftmaxGrad(utt.InferShapeTester):

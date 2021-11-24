@@ -430,15 +430,22 @@ def numba_funcify_LogSoftmax(op, node, **kwargs):
     x_at = node.inputs[0]
     x_dtype = x_at.type.numpy_dtype
     x_dtype = numba.np.numpy_support.from_dtype(x_dtype)
+    axis = op.axis
 
-    # np.max(x, axis=1)
-    reduce_max = create_axis_reducer(np.maximum, -np.inf, 1, x_at.ndim, x_dtype)
-    # np.sum(x, axis=1, keepdims=True)
-    reduce_sum = create_axis_reducer(np.add, 0.0, 1, x_at.ndim, x_dtype, keepdims=True)
+    if axis is not None:
+        reduce_max = create_axis_reducer(
+            np.maximum, -np.inf, axis, x_at.ndim, x_dtype, keepdims=True
+        )
+        reduce_sum = create_axis_reducer(
+            np.add, 0.0, axis, x_at.ndim, x_dtype, keepdims=True
+        )
+    else:
+        reduce_max = np.max
+        reduce_sum = np.sum
 
     @numba.njit
     def log_softmax(x):
-        xdev = x - np.expand_dims(reduce_max(x), -1)
+        xdev = x - reduce_max(x)
         lsm = xdev - np.log(reduce_sum(np.exp(xdev)))
         return lsm
 
