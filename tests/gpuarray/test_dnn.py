@@ -32,7 +32,7 @@ from aesara.tensor.math import (
     sqrt,
 )
 from aesara.tensor.math import sum as aet_sum
-from aesara.tensor.nnet import batchnorm, conv2d, softmax, softmax_op
+from aesara.tensor.nnet import batchnorm, conv2d, softmax, softmax_legacy
 from aesara.tensor.nnet.abstract_conv import (
     get_conv_gradinputs_shape,
     get_conv_output_shape,
@@ -1456,7 +1456,7 @@ class TestSoftMax(test_nnet.TestSoftMax):
     def test_softmax_f16(self):
         x = matrix("x", "float16")
         x_gpu = tensor4("x_gpu", "float16")
-        f_z = softmax_op
+        f_z = softmax_legacy
         f_gpu = dnn.GpuDnnSoftmax("accurate", "channel")
 
         def cmp(n, m, f, f_gpu):
@@ -1480,7 +1480,7 @@ class TestSoftMax(test_nnet.TestSoftMax):
 
         x = matrix("x")
         x_gpu = tensor4("x_gpu")
-        f_z = softmax_op
+        f_z = softmax_legacy
         f_gpu = dnn.GpuDnnSoftmax("accurate", "channel")
 
         # Verify the grad operation

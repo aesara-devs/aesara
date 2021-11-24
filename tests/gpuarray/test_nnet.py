@@ -210,7 +210,7 @@ def softmax_unittest_template(dtypeInput):
     z = aesara.tensor.nnet.softmax(x)
     f = aesara.function([x], z, mode=mode_without_gpu)
     f_gpu = aesara.function([x], z, mode=mode_wo_cudnn)
-    assert f.maker.fgraph.toposort()[-1].op == aesara.tensor.nnet.softmax_op
+    assert f.maker.fgraph.toposort()[-1].op == aesara.tensor.nnet.softmax_legacy
     assert isinstance(f_gpu.maker.fgraph.toposort()[-2].op, GpuSoftmax)
 
     def cmp(n, m):
@@ -300,7 +300,7 @@ class TestSoftMax:
 
     def test_softmax(self):
         x = fmatrix("x")
-        z = aesara.tensor.nnet.softmax_op
+        z = aesara.tensor.nnet.softmax_legacy
 
         f, f_gpu = self._test_softmax(x, x, z, z, self._cmp)
 
@@ -308,7 +308,7 @@ class TestSoftMax:
 
     def test_softmax_shape_0(self):
         x = fmatrix("x")
-        z = aesara.tensor.nnet.softmax_op
+        z = aesara.tensor.nnet.softmax_legacy
 
         f, f_gpu = self._test_softmax(x, x, z, z, self._cmp)
         # Aesara can handle that case, but cudnn can't

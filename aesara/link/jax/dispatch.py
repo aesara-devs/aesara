@@ -198,8 +198,10 @@ def jax_funcify_Identity(op, **kwargs):
 
 @jax_funcify.register(Softmax)
 def jax_funcify_Softmax(op, **kwargs):
+    axis = op.axis
+
     def softmax(x):
-        return jax.nn.softmax(x)
+        return jax.nn.softmax(x, axis=axis)
 
     return softmax
 
