@@ -47,7 +47,7 @@ from aesara.tensor.extra_ops import (
 )
 from aesara.tensor.math import Dot, MaxAndArgmax
 from aesara.tensor.nlinalg import SVD, Det, Eig, Eigh, MatrixInverse, QRFull
-from aesara.tensor.nnet.basic import LogSoftmax, Softmax
+from aesara.tensor.nnet.basic import LogSoftmax, Softmax, SoftmaxGrad
 from aesara.tensor.random.op import RandomVariable
 from aesara.tensor.shape import Reshape, Shape, Shape_i, SpecifyShape
 from aesara.tensor.slinalg import Cholesky, Solve
@@ -204,6 +204,17 @@ def jax_funcify_Softmax(op, **kwargs):
         return jax.nn.softmax(x, axis=axis)
 
     return softmax
+
+
+@jax_funcify.register(SoftmaxGrad)
+def jax_funcify_SoftmaxGrad(op, **kwargs):
+    axis = op.axis
+
+    def softmax_grad(dy, sm):
+        dy_times_sm = dy * sm
+        return dy_times_sm - jnp.sum(dy_times_sm, axis=axis, keepdims=True) * sm
+
+    return softmax_grad
 
 
 @jax_funcify.register(LogSoftmax)
