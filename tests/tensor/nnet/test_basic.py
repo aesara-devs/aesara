@@ -1,5 +1,8 @@
+from contextlib import ExitStack as does_not_raise
+
 import numpy as np
 import pytest
+import scipy.special as sp
 
 import aesara
 import aesara.tensor as aet
@@ -49,13 +52,13 @@ from aesara.tensor.nnet.basic import (
     selu,
     sigmoid_binary_crossentropy,
     softmax,
-    softmax_grad,
+    softmax_grad_legacy,
     softmax_graph,
-    softmax_op,
+    softmax_legacy,
     softmax_with_bias,
     softsign,
 )
-from aesara.tensor.shape import shape_padleft, specify_shape
+from aesara.tensor.shape import shape_padleft
 from aesara.tensor.subtensor import AdvancedSubtensor
 from aesara.tensor.type import (
     dmatrix,
@@ -67,6 +70,7 @@ from aesara.tensor.type import (
     matrices,
     matrix,
     scalar,
+    tensor3,
     tensor4,
     vector,
     vectors,
@@ -80,45 +84,63 @@ from tests.tensor.utils import (
 )
 
 
+def valid_axis_tester(Op):
+    with pytest.raises(TypeError):
+        Op(1.5)
+
+    x = [tensor3()] * Op.nin
+    with does_not_raise():
+        Op(2)(*x)
+
+    with pytest.raises(ValueError):
+        Op(3)(*x)
+
+    with does_not_raise():
+        Op(-3)(*x)
+
+    with pytest.raises(ValueError):
+        Op(-4)(*x)
+
+
 class TestSoftmax(utt.InferShapeTester):
-    def test_basic(self):
+    @pytest.mark.parametrize("axis", [None, 0, 1, 2, 3, -1, -2])
+    def test_perform(self, axis):
+        x = tensor4("x")
+        xv = np.random.randn(2, 3, 4, 5).astype(config.floatX)
+
+        f = aesara.function([x], softmax(x, axis=axis))
+        assert np.allclose(f(xv), sp.softmax(xv, axis=axis))
+
+    @pytest.mark.parametrize("column", [0, 1, 2, 3])
+    @pytest.mark.parametrize("axis", [None, 0, 1])
+    def test_grad(self, axis, column):
         def f(a):
-            return softmax_op(a)[:, 0]
+            return softmax(a, axis=axis)[:, column]
 
-        utt.verify_grad(f, [np.random.random((3, 4))])
-
-        def f(a):
-            return softmax_op(a)[:, 1]
-
-        utt.verify_grad(f, [np.random.random((3, 4))])
-
-        def f(a):
-            return softmax_op(a)[:, 2]
-
-        utt.verify_grad(f, [np.random.random((3, 4))])
-
-        def f(a):
-            return softmax_op(a)[:, 3]
-
-        utt.verify_grad(f, [np.random.random((3, 4))])
+        utt.verify_grad(f, [np.random.random((3, 4, 2))])
 
     def test_infer_shape(self):
         admat = matrix()
         admat_val = np.random.random((3, 4)).astype(config.floatX)
-        self._compile_and_check([admat], [Softmax()(admat)], [admat_val], Softmax)
+        self._compile_and_check(
+            [admat], [Softmax(axis=-1)(admat)], [admat_val], Softmax
+        )
 
-    def test_vector(self):
+    def test_vector_perform(self):
         x = vector()
-        f = aesara.function([x], softmax_op(x))
+        f = aesara.function([x], softmax(x, axis=None))
 
         xv = np.random.randn(6).astype(config.floatX)
-        assert np.allclose(f(xv), np.exp(xv) / np.exp(xv).sum())
+        assert np.allclose(f(xv), sp.softmax(xv))
 
     def test_vector_grad(self):
         def f(a):
-            return softmax_op(a)
+            return softmax(a, axis=None)
 
         utt.verify_grad(f, [np.random.random((4))])
+
+    def test_valid_axis(self):
+        valid_axis_tester(Softmax)
 
 
 class TestSoftmaxWithBias(utt.InferShapeTester):
@@ -154,10 +176,10 @@ class TestSoftmaxWithBias(utt.InferShapeTester):
         W = aesara.shared(value=initial_W, name="W")
         vbias = aesara.shared(value=0.1, name="vbias")  # 0.01
         hid = vector("hid")
-        f = aesara.function([hid], softmax_op(dot(hid, W.T) + vbias))
+        f = aesara.function([hid], softmax_legacy(dot(hid, W.T) + vbias))
         ops = [node.op for node in f.maker.fgraph.toposort()]
         assert softmax_with_bias not in ops
-        assert softmax_op in ops
+        assert softmax_legacy in ops
 
         f([0, 1, 0])
         # print f.maker.fgraph.toposort()
@@ -315,17 +337,19 @@ class TestLogSoftmax(utt.InferShapeTester):
         g = grad(y.sum(), x)
 
         softmax_grad_node = g.owner
-        assert softmax_grad_node.op == softmax_grad
+        assert softmax_grad_node.op == softmax_grad_legacy
         true_div_node = softmax_grad_node.inputs[0].owner
         assert true_div_node.op == true_div
 
         # We replace the elemwise true_div op by an elemwise add.
-        new_g = softmax_grad(add(*true_div_node.inputs), softmax_grad_node.inputs[1])
+        new_g = softmax_grad_legacy(
+            add(*true_div_node.inputs), softmax_grad_node.inputs[1]
+        )
 
         fgraph = FunctionGraph([x], [new_g])
         optdb.query(OPT_FAST_RUN).optimize(fgraph)
 
-        assert softmax_grad in [n.op for n in fgraph.toposort()]
+        assert softmax_grad_legacy in [n.op for n in fgraph.toposort()]
 
 
 class TestSoftmaxGrad(utt.InferShapeTester):
@@ -336,10 +360,13 @@ class TestSoftmaxGrad(utt.InferShapeTester):
         bdmat_val = np.random.random((3, 4)).astype(config.floatX)
         self._compile_and_check(
             [admat, bdmat],
-            [SoftmaxGrad()(admat, bdmat)],
+            [SoftmaxGrad(axis=-1)(admat, bdmat)],
             [admat_val, bdmat_val],
             SoftmaxGrad,
         )
+
+    def test_valid_axis(self):
+        valid_axis_tester(SoftmaxGrad)
 
 
 class TestCrossEntropySoftmax1Hot:
@@ -611,17 +638,7 @@ class TestCrossEntropyCategorical1Hot(utt.InferShapeTester):
         op = crossentropy_categorical_1hot
         # xe = op(x, one_of_n)
 
-        fgraph = FunctionGraph([x, one_of_n], [op(softmax_op(x), one_of_n)])
-        assert fgraph.outputs[0].owner.op == op
-
-        optdb.query(OPT_FAST_RUN).optimize(fgraph)
-        assert fgraph.outputs[0].owner.op == crossentropy_softmax_argmax_1hot_with_bias
-
-    def test_softmax_optimizations_vector(self):
-        x = vector("x")
-        one_of_n = lvector("one_of_n")
-        op = crossentropy_categorical_1hot
-        fgraph = FunctionGraph([x, one_of_n], [op(softmax_op(x), one_of_n)])
+        fgraph = FunctionGraph([x, one_of_n], [op(softmax_legacy(x), one_of_n)])
         assert fgraph.outputs[0].owner.op == op
 
         optdb.query(OPT_FAST_RUN).optimize(fgraph)
@@ -633,7 +650,7 @@ class TestCrossEntropyCategorical1Hot(utt.InferShapeTester):
         one_of_n = lvector("one_of_n")
         op = crossentropy_categorical_1hot
 
-        fgraph = FunctionGraph([x, b, one_of_n], [op(softmax_op(x + b), one_of_n)])
+        fgraph = FunctionGraph([x, b, one_of_n], [op(softmax_legacy(x + b), one_of_n)])
         assert fgraph.outputs[0].owner.op == op
 
         optdb.query(OPT_FAST_RUN).optimize(fgraph)
@@ -649,21 +666,8 @@ class TestCrossEntropyCategorical1Hot(utt.InferShapeTester):
         op = crossentropy_categorical_1hot
 
         fgraph = FunctionGraph(
-            [x, b, c, one_of_n], [op(softmax_op(add(x, b, c)), one_of_n)]
+            [x, b, c, one_of_n], [op(softmax_legacy(add(x, b, c)), one_of_n)]
         )
-        assert fgraph.outputs[0].owner.op == op
-
-        optdb.query(OPT_FAST_RUN).optimize(fgraph)
-
-        assert len(fgraph.toposort()) == 2
-        assert fgraph.outputs[0].owner.op == crossentropy_softmax_argmax_1hot_with_bias
-
-    def test_softmax_optimizations_w_bias_vector(self):
-        x = vector("x")
-        b = vector("b")
-        one_of_n = lvector("one_of_n")
-        op = crossentropy_categorical_1hot
-        fgraph = FunctionGraph([x, b, one_of_n], [op(softmax_op(x + b), one_of_n)])
         assert fgraph.outputs[0].owner.op == op
 
         optdb.query(OPT_FAST_RUN).optimize(fgraph)
@@ -675,12 +679,13 @@ class TestCrossEntropyCategorical1Hot(utt.InferShapeTester):
         x = matrix("x")
         one_of_n = lvector("one_of_n")
         op = crossentropy_categorical_1hot
-        xe = op(softmax_op(x), one_of_n)
+        xe = op(softmax_legacy(x), one_of_n)
         sum_xe = aet_sum(xe)
         g_x = grad(sum_xe, x)
         fgraph = FunctionGraph([x, one_of_n], [g_x])
         assert check_stack_trace(
-            fgraph, ops_to_check=[crossentropy_softmax_1hot_with_bias_dx, softmax_op]
+            fgraph,
+            ops_to_check=[crossentropy_softmax_1hot_with_bias_dx, softmax_legacy],
         )
 
         optdb.query(OPT_FAST_RUN).optimize(fgraph)
@@ -688,25 +693,8 @@ class TestCrossEntropyCategorical1Hot(utt.InferShapeTester):
         ops = {node.op for node in fgraph.toposort()}
         assert crossentropy_softmax_argmax_1hot_with_bias not in ops
         assert crossentropy_softmax_1hot_with_bias_dx in ops
-        assert softmax_op in ops
-        assert softmax_grad not in ops
-
-    def test_softmax_grad_optimizations_vector(self):
-        x = vector("x")
-        one_of_n = lvector("one_of_n")
-        op = crossentropy_categorical_1hot
-        xe = op(softmax_op(x), one_of_n)
-        sum_xe = aet_sum(xe)
-        g_x = grad(sum_xe, x)
-        fgraph = FunctionGraph([x, one_of_n], [g_x])
-
-        optdb.query(OPT_FAST_RUN).optimize(fgraph)
-
-        ops = {node.op for node in fgraph.toposort()}
-        assert crossentropy_softmax_argmax_1hot_with_bias not in ops
-        assert crossentropy_softmax_1hot_with_bias_dx in ops
-        assert softmax_op in ops
-        assert softmax_grad not in ops
+        assert softmax_legacy in ops
+        assert softmax_grad_legacy not in ops
 
     def test_get_rid_of_advanced_indexing_version_of_xent(self):
         x = matrix("x")
@@ -737,8 +725,8 @@ class TestCrossEntropyCategorical1Hot(utt.InferShapeTester):
             ops = [node.op for node in fgraph.toposort()]
             assert len(ops) == 2
             assert crossentropy_softmax_1hot_with_bias_dx in ops
-            assert softmax_op in ops
-            assert softmax_grad not in ops
+            assert softmax_legacy in ops
+            assert softmax_grad_legacy not in ops
 
         # Test that a biased softmax is optimized correctly
         bias_expressions = [
@@ -763,7 +751,7 @@ class TestCrossEntropyCategorical1Hot(utt.InferShapeTester):
             assert len(ops) == 2
             assert crossentropy_softmax_1hot_with_bias_dx in ops
             assert softmax_with_bias in ops
-            assert softmax_grad not in ops
+            assert softmax_grad_legacy not in ops
 
         # Test that using "mean" instead of sum works, too
         mean_expressions = [
@@ -791,8 +779,8 @@ class TestCrossEntropyCategorical1Hot(utt.InferShapeTester):
             # there's an extra dimshuffle in there
             # but I can't think of a good rule to get rid of it
             assert crossentropy_softmax_1hot_with_bias_dx in ops
-            assert softmax_op in ops
-            assert softmax_grad not in ops
+            assert softmax_legacy in ops
+            assert softmax_grad_legacy not in ops
 
         mean_bias_expressions = [
             mean(-log(softmax(x + b)[aet.arange(y.shape[0]), y])),
@@ -818,7 +806,7 @@ class TestCrossEntropyCategorical1Hot(utt.InferShapeTester):
             assert len(ops) == 5
             assert crossentropy_softmax_1hot_with_bias_dx in ops
             assert softmax_with_bias in ops
-            assert softmax_grad not in ops
+            assert softmax_grad_legacy not in ops
 
     def test_xent_thing_int32(self):
         x = matrix("x")
@@ -847,141 +835,8 @@ class TestCrossEntropyCategorical1Hot(utt.InferShapeTester):
             ops = [node.op for node in fgraph.toposort()]
             assert len(ops) == 3
             assert crossentropy_softmax_1hot_with_bias_dx in ops
-            assert softmax_op in ops
-            assert softmax_grad not in ops
-
-    def test_optimize_xent_vector(self):
-        x = vector("x")
-        y = lvector("y")
-
-        # Test that a biased softmax is optimized correctly
-        bias_expressions = [
-            aet_sum(-log(softmax(x)[aet.arange(y.shape[0]), y])),
-            -aet_sum(log(softmax(x)[aet.arange(y.shape[0]), y])),
-        ]
-
-        for expr in bias_expressions:
-            fgraph = FunctionGraph([x, y], [expr])
-            optdb.query(OPT_FAST_RUN).optimize(fgraph)
-
-            ops = [node.op for node in fgraph.toposort()]
-            assert len(ops) == 5
-            assert crossentropy_softmax_argmax_1hot_with_bias in ops
-            assert not [1 for o in ops if isinstance(o, AdvancedSubtensor)]
-
-            fgraph = FunctionGraph([x, y], [grad(expr, x)])
-            optdb.query(OPT_FAST_RUN).optimize(fgraph)
-
-            ops = [node.op for node in fgraph.toposort()]
-            assert len(ops) == 4
-            assert crossentropy_softmax_1hot_with_bias_dx in ops
-            assert softmax_op in ops
-            assert softmax_grad not in ops
-
-    def test_optimize_xent_vector2(self):
-        x = vector("x")
-        b = vector("b")
-        y = lvector("y")
-
-        # Test that a biased softmax is optimized correctly
-        bias_expressions = [
-            aet_sum(-log(softmax(x + b)[aet.arange(y.shape[0]), y])),
-            -aet_sum(log(softmax(b + x)[aet.arange(y.shape[0]), y])),
-            -aet_sum(log(softmax(x + b))[aet.arange(y.shape[0]), y]),
-            aet_sum(-log(softmax(b + x))[aet.arange(y.shape[0]), y]),
-        ]
-
-        for expr in bias_expressions:
-            fgraph = FunctionGraph([x, b, y], [expr])
-            optdb.query(OPT_FAST_RUN).optimize(fgraph)
-
-            ops = [node.op for node in fgraph.toposort()]
-            # [big_op, sum, dim_shuffle]
-            assert len(ops) == 3
-            assert crossentropy_softmax_argmax_1hot_with_bias in ops
-            assert not [1 for o in ops if isinstance(o, AdvancedSubtensor)]
-
-            fgraph = FunctionGraph([x, b, y], [grad(expr, x)])
-            optdb.query(OPT_FAST_RUN).optimize(fgraph)
-
-            ops = [node.op for node in fgraph.toposort()]
-            assert len(ops) <= 6
-            assert crossentropy_softmax_1hot_with_bias_dx in ops
-            assert softmax_with_bias in ops
-            assert softmax_grad not in ops
-
-    def test_optimize_xent_vector3(self):
-        # Same as test_optimize_xent_vector2, but y is the result of
-        # a "flatten", and it used to make the constant-folding
-        # of arange(y.shape[0]) happen before the xent optimization
-        x = vector("x")
-        b = vector("b")
-        y_ = lvector("y_")
-        y = y_.flatten()
-
-        # Test that a biased softmax is optimized correctly
-        bias_expressions = [
-            aet_sum(-log(softmax(x + b)[aet.arange(y.shape[0]), y])),
-            -aet_sum(log(softmax(b + x)[aet.arange(y.shape[0]), y])),
-            -aet_sum(log(softmax(x + b))[aet.arange(y.shape[0]), y]),
-            aet_sum(-log(softmax(b + x))[aet.arange(y.shape[0]), y]),
-        ]
-
-        for expr in bias_expressions:
-            fgraph = FunctionGraph([x, b, y_], [expr])
-            optdb.query(OPT_FAST_RUN).optimize(fgraph)
-
-            ops = [node.op for node in fgraph.toposort()]
-            # [big_op, sum, dim_shuffle, flatten]
-            assert len(ops) <= 4
-            assert crossentropy_softmax_argmax_1hot_with_bias in ops
-            assert not [1 for o in ops if isinstance(o, AdvancedSubtensor)]
-
-            fgraph = FunctionGraph([x, b, y], [grad(expr, x)])
-            optdb.query(OPT_FAST_RUN).optimize(fgraph)
-
-            ops = [node.op for node in fgraph.toposort()]
-            assert len(ops) <= 6
-            assert crossentropy_softmax_1hot_with_bias_dx in ops
-            assert softmax_with_bias in ops
-            assert softmax_grad not in ops
-
-    def test_optimize_xent_vector4(self):
-        # Same as test_optimize_xent_vector2, but y is the result of a
-        # "specify_shape" that indicates its length is 1, so the
-        # constant-folding of arange(y.shape[0]) happen before the xent
-        # optimization
-        x = vector("x")
-        b = vector("b")
-        y_ = lvector("y_")
-        y = specify_shape(y_, (1,))
-
-        # Test that a biased softmax is optimized correctly
-        bias_expressions = [
-            aet_sum(-log(softmax(x + b)[aet.arange(y.shape[0]), y])),
-            -aet_sum(log(softmax(b + x)[aet.arange(y.shape[0]), y])),
-            -aet_sum(log(softmax(x + b))[aet.arange(y.shape[0]), y]),
-            aet_sum(-log(softmax(b + x))[aet.arange(y.shape[0]), y]),
-        ]
-
-        for expr in bias_expressions:
-            fgraph = FunctionGraph([x, b, y_], [expr])
-            optdb.query(OPT_FAST_RUN).optimize(fgraph)
-
-            ops = [node.op for node in fgraph.toposort()]
-            # [big_op, sum, dim_shuffle, specify_shape]
-            assert len(ops) <= 4
-            assert crossentropy_softmax_argmax_1hot_with_bias in ops
-            assert not [1 for o in ops if isinstance(o, AdvancedSubtensor)]
-
-            fgraph = FunctionGraph([x, b, y], [grad(expr, x)])
-            optdb.query(OPT_FAST_RUN).optimize(fgraph)
-
-            ops = [node.op for node in fgraph.toposort()]
-            assert len(ops) <= 6
-            assert crossentropy_softmax_1hot_with_bias_dx in ops
-            assert softmax_with_bias in ops
-            assert softmax_grad not in ops
+            assert softmax_legacy in ops
+            assert softmax_grad_legacy not in ops
 
     def test_crossentropy_softmax_1hot_with_bias_dxcale_cost(self):
         x = matrix("x")
@@ -996,9 +851,9 @@ class TestCrossEntropyCategorical1Hot(utt.InferShapeTester):
             for node in func.maker.fgraph.toposort():
                 if node.op == crossentropy_softmax_1hot_with_bias_dx:
                     has_cx1hotdx = True
-                if node.op == softmax_op:
+                if node.op == softmax_legacy:
                     has_softmax = True
-                if node.op == softmax_grad:
+                if node.op == softmax_grad_legacy:
                     has_softmaxdx = True
 
             assert has_cx1hotdx
@@ -1033,7 +888,7 @@ class TestCrossEntropyCategorical1Hot(utt.InferShapeTester):
 
             ops = {node.op for node in fgraph.toposort()}
             assert crossentropy_softmax_argmax_1hot_with_bias in ops
-            assert softmax_op not in ops
+            assert softmax_legacy not in ops
 
             # Verify the gradient wrt x
             fgraph = FunctionGraph([x, y, a], [grad(expr, x)])
@@ -1043,8 +898,8 @@ class TestCrossEntropyCategorical1Hot(utt.InferShapeTester):
 
             ops = {node.op for node in fgraph.toposort()}
             assert crossentropy_softmax_1hot_with_bias_dx in ops
-            assert softmax_op in ops
-            assert softmax_grad not in ops
+            assert softmax_legacy in ops
+            assert softmax_grad_legacy not in ops
 
             # Verify the gradient when providing output gradient
             fgraph = FunctionGraph(
@@ -1056,13 +911,13 @@ class TestCrossEntropyCategorical1Hot(utt.InferShapeTester):
 
             ops = {node.op for node in fgraph.toposort()}
             assert crossentropy_softmax_1hot_with_bias_dx in ops
-            assert softmax_op in ops
-            assert softmax_grad not in ops
+            assert softmax_legacy in ops
+            assert softmax_grad_legacy not in ops
 
 
 def test_argmax_pushdown():
     x = matrix()
-    for sm in [softmax_graph, softmax_op]:
+    for sm in [softmax_graph, softmax_legacy]:
         # test that the max_and_argmax is pushed down if the max is not used
         out = max_and_argmax(sm(exp(tanh(sigmoid(x)))), axis=-1)[1]
         fgraph = FunctionGraph([x], [out])
@@ -1188,12 +1043,12 @@ class TestSoftmaxOpt:
         # test that function contains softmax and no div.
         f = aesara.function([c], p_y, mode=self.mode)
 
-        assert check_stack_trace(f, ops_to_check=softmax_op)
+        assert check_stack_trace(f, ops_to_check=softmax_legacy)
 
         f_ops = [n.op for n in f.maker.fgraph.toposort()]
 
         assert len(f_ops) == 1
-        assert softmax_op in f_ops
+        assert softmax_legacy in f_ops
 
         f(self.rng.random((3, 4)).astype(config.floatX))
 
@@ -1204,12 +1059,12 @@ class TestSoftmaxOpt:
         # test that function contains softmax and no div.
         f = aesara.function([c], p_y, mode=self.mode)
 
-        assert check_stack_trace(f, ops_to_check=softmax_op)
+        assert check_stack_trace(f, ops_to_check=softmax_legacy)
 
         f_ops = [n.op for n in f.maker.fgraph.toposort()]
 
         assert len(f_ops) == 1
-        assert softmax_op in f_ops
+        assert softmax_legacy in f_ops
 
         f(self.rng.random((3, 4)).astype(config.floatX))
 
@@ -1226,8 +1081,8 @@ class TestSoftmaxOpt:
         g_ops = [n.op for n in g.maker.fgraph.toposort()]
 
         assert len(g_ops) == 2
-        assert softmax_op in g_ops
-        assert softmax_grad in g_ops
+        assert softmax_legacy in g_ops
+        assert softmax_grad_legacy in g_ops
 
         g(self.rng.random((3, 4)), self.rng.uniform(0.5, 1, (3, 4)))
 
@@ -1272,7 +1127,7 @@ def test_grad_softmax_grad():
     x = aesara.shared(rng.normal(size=(3, 4)))
 
     def f(inputs):
-        y = softmax_op(x)
+        y = softmax_legacy(x)
         return aesara.grad(None, x, known_grads={y: inputs})
 
     utt.verify_grad(f, [rng.random((3, 4))])

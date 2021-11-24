@@ -1894,20 +1894,27 @@ def test_Dot(x, y, exc):
 
 
 @pytest.mark.parametrize(
-    "x, exc",
+    "x, axis, exc",
     [
         (
             set_test_value(aet.vector(), rng.random(size=(2,)).astype(config.floatX)),
+            None,
             None,
         ),
         (
             set_test_value(aet.matrix(), rng.random(size=(2, 3)).astype(config.floatX)),
             None,
+            None,
+        ),
+        (
+            set_test_value(aet.matrix(), rng.random(size=(2, 3)).astype(config.floatX)),
+            0,
+            None,
         ),
     ],
 )
-def test_Softmax(x, exc):
-    g = nnetb.Softmax()(x)
+def test_Softmax(x, axis, exc):
+    g = nnetb.Softmax(axis=axis)(x)
     g_fg = FunctionGraph(outputs=[g])
 
     cm = contextlib.suppress() if exc is None else pytest.warns(exc)
