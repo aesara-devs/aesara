@@ -1036,37 +1036,48 @@ class TestSoftmaxOpt:
         self.mode = aesara.compile.mode.get_default_mode()
         self.mode = self.mode.including("canonicalize")
 
-    def test_basic(self):
+    @pytest.mark.parametrize("axis", [None, 0, 1, -1, (0, 1)])
+    def test_basic(self, axis):
         c = matrix()
-        p_y = exp(c) / exp(c).sum(axis=1).dimshuffle(0, "x")
+        if axis is None:
+            p_y = exp(c) / exp(c).sum(axis=axis).dimshuffle("x", "x")
+        elif axis == 0:
+            p_y = exp(c) / exp(c).sum(axis=axis).dimshuffle("x", 0)
+        elif axis == (0, 1):
+            p_y = exp(c) / exp(c).sum(axis=axis).dimshuffle("x", "x")
+        else:
+            p_y = exp(c) / exp(c).sum(axis=axis).dimshuffle(0, "x")
 
         # test that function contains softmax and no div.
         f = aesara.function([c], p_y, mode=self.mode)
 
-        assert check_stack_trace(f, ops_to_check=softmax_legacy)
+        assert check_stack_trace(f, ops_to_check=Softmax)
 
         f_ops = [n.op for n in f.maker.fgraph.toposort()]
 
         assert len(f_ops) == 1
-        assert softmax_legacy in f_ops
+        assert isinstance(f_ops[0], Softmax)
 
-        f(self.rng.random((3, 4)).astype(config.floatX))
+        c_val = self.rng.random((3, 4)).astype(config.floatX)
+        assert np.allclose(f(c_val), sp.softmax(c_val, axis=axis))
 
-    def test_basic_keepdims(self):
-        c = matrix()
-        p_y = exp(c) / exp(c).sum(axis=1, keepdims=True)
+    @pytest.mark.parametrize("axis", [None, 0, 1, 2, -1, -2, -3, (0, 1, 2)])
+    def test_basic_keepdims(self, axis):
+        c = tensor3()
+        p_y = exp(c) / exp(c).sum(axis=axis, keepdims=True)
 
         # test that function contains softmax and no div.
         f = aesara.function([c], p_y, mode=self.mode)
 
-        assert check_stack_trace(f, ops_to_check=softmax_legacy)
+        assert check_stack_trace(f, ops_to_check=Softmax)
 
         f_ops = [n.op for n in f.maker.fgraph.toposort()]
 
         assert len(f_ops) == 1
-        assert softmax_legacy in f_ops
+        assert isinstance(f_ops[0], Softmax)
 
-        f(self.rng.random((3, 4)).astype(config.floatX))
+        c_val = self.rng.random((3, 4, 5)).astype(config.floatX)
+        assert np.allclose(f(c_val), sp.softmax(c_val, axis=axis))
 
     @pytest.mark.skip(reason="Optimization not enabled for the moment")
     def test_grad(self):
@@ -1076,39 +1087,83 @@ class TestSoftmaxOpt:
         # test that function contains softmax and softmaxgrad
         w = matrix()
 
-        g = aesara.function([c, w], grad((p_y * w).sum(), c))
+        g = aesara.function([c, w], grad((p_y * w).sum(), c), mode=self.mode)
 
         g_ops = [n.op for n in g.maker.fgraph.toposort()]
 
-        assert len(g_ops) == 2
-        assert softmax_legacy in g_ops
-        assert softmax_grad_legacy in g_ops
+        assert len(g_ops) == 2, g_ops
+        assert isinstance(g_ops[0], Softmax)
+        assert isinstance(g_ops[1], SoftmaxGrad)
 
         g(self.rng.random((3, 4)), self.rng.uniform(0.5, 1, (3, 4)))
 
-    @pytest.mark.skip(reason="Optimization not enabled for the moment")
     def test_transpose_basic(self):
         # this should be a transposed softmax
         c = matrix()
         p_y = exp(c) / exp(c).sum(axis=0)
 
         # test that function contains softmax and no div.
-        aesara.function([c], p_y)
-
-        # test that function contains softmax and no div.
-        aesara.function([c], grad(p_y.sum(), c))
+        f = aesara.function([c], p_y, mode=self.mode)
+        f_ops = [n.op for n in f.maker.fgraph.toposort()]
+        assert len(f_ops) == 1
+        assert isinstance(f_ops[0], Softmax)
 
     @pytest.mark.skip(reason="Optimization not enabled for the moment")
+    def test_transpose_grad(self):
+        # this should be a transposed softmax
+        c = matrix()
+        p_y = exp(c) / exp(c).sum(axis=0)
+
+        # test that function contains softmax and no div.
+        g = aesara.function([c], grad(p_y.sum(), c), mode=self.mode)
+        g_ops = [n.op for n in g.maker.fgraph.toposort()]
+        assert len(g_ops) == 2
+        assert isinstance(g_ops[0], Softmax)
+        assert isinstance(g_ops[1], SoftmaxGrad)
+
     def test_1d_basic(self):
-        # this should be a softmax, but of a one-row matrix
         c = vector()
         p_y = exp(c) / exp(c).sum()
 
         # test that function contains softmax and no div.
-        aesara.function([c], p_y)
+        f = aesara.function([c], p_y, mode=self.mode)
+        f_ops = [n.op for n in f.maker.fgraph.toposort()]
+        assert len(f_ops) == 1
+        assert isinstance(f_ops[0], Softmax)
+
+    @pytest.mark.skip(reason="Optimization not enabled for the moment")
+    def test_1D_grad(self):
+        c = vector()
+        p_y = exp(c) / exp(c).sum()
 
         # test that function contains softmax and no div.
-        aesara.function([c], grad(p_y.sum(), c))
+        g = aesara.function([c], grad(p_y.sum(), c), mode=self.mode)
+        g_ops = [n.op for n in g.maker.fgraph.toposort()]
+        assert len(g_ops) == 2
+        assert isinstance(g_ops[0], Softmax)
+        assert isinstance(g_ops[1], SoftmaxGrad)
+
+    @pytest.mark.parametrize(
+        "f",
+        [
+            lambda c: exp(c) / exp(c).sum(axis=0).dimshuffle(0, 1, "x"),
+            lambda c: exp(c) / exp(c).sum(axis=0).dimshuffle("x", 0, 1, "x"),
+            lambda c: exp(c) / exp(c).sum(axis=0).dimshuffle("x", 1, 0),
+            lambda c: exp(c) / exp(c).sum(axis=(0, 1), keepdims=True),
+        ],
+    )
+    def test_invalid_softmax_expressions(self, f):
+        # Test that graphs are not rewritten into a softmax when a dimshuffle
+        # swaps or adds extra dimensions, or when more than one but not all axis
+        # are summed over (which is not allowed by the Softmax Op but otherwise
+        # valid)
+        c = tensor3("c")
+        out = f(c)
+        f = aesara.function([c], out, mode=self.mode)
+
+        f_ops = [n.op for n in f.maker.fgraph.toposort()]
+        assert len(f_ops) > 1
+        assert not any(isinstance(op, Softmax) for op in f_ops)
 
 
 def test_softmax_graph():
