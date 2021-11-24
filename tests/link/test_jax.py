@@ -34,6 +34,7 @@ from aesara.tensor.math import clip, cosh, erf, erfc, erfinv, gammaln, log
 from aesara.tensor.math import max as aet_max
 from aesara.tensor.math import maximum, prod, psi, sigmoid, softplus
 from aesara.tensor.math import sum as aet_sum
+from aesara.tensor.nnet.basic import SoftmaxGrad
 from aesara.tensor.random.basic import RandomVariable, normal
 from aesara.tensor.random.utils import RandomStream
 from aesara.tensor.shape import Shape, Shape_i, SpecifyShape, reshape
@@ -985,6 +986,17 @@ def test_logsoftmax(axis):
     x.tag.test_value = np.arange(6, dtype=config.floatX).reshape(2, 3)
     out = aet_nnet.logsoftmax(x, axis=axis)
     fgraph = FunctionGraph([x], [out])
+    compare_jax_and_py(fgraph, [get_test_value(i) for i in fgraph.inputs])
+
+
+@pytest.mark.parametrize("axis", [None, 0, 1])
+def test_softmax_grad(axis):
+    dy = matrix("dy")
+    dy.tag.test_value = np.array([[1, 1, 1], [0, 0, 0]], dtype=config.floatX)
+    sm = matrix("sm")
+    sm.tag.test_value = np.arange(6, dtype=config.floatX).reshape(2, 3)
+    out = SoftmaxGrad(axis=axis)(dy, sm)
+    fgraph = FunctionGraph([dy, sm], [out])
     compare_jax_and_py(fgraph, [get_test_value(i) for i in fgraph.inputs])
 
 
