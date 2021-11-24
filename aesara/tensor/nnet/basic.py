@@ -1127,34 +1127,61 @@ def local_softmax_with_bias(fgraph, node):
 
 def softmax_simplifier(numerators, denominators):
     for numerator in list(numerators):
-        # TODO: a single softmax'd vector??
         if not numerator.type.dtype.startswith("float"):
             continue
 
-        if numerator.ndim != 2:
-            continue
-        if numerator.owner and numerator.owner.op == exp:
-            x = numerator.owner.inputs[0]
-        else:
+        if not (numerator.owner and numerator.owner.op == exp):
             continue
 
         matching_denom = None
 
         for denominator in denominators:
+            # Division with dimshuffle
             if denominator.owner and isinstance(denominator.owner.op, DimShuffle):
-                if denominator.owner.op.new_order == (0, "x"):
-                    z = denominator.owner.inputs[0]
-                    # thing getting dimshuffled
-                    if z.owner and isinstance(z.owner.op, Sum):
-                        # print 'ASDF', denominator.owner.op.new_order
-                        # print z.owner.op.axis
-                        if z.owner.op.axis == (1,):
-                            # print "almost there.. softmax", x, z.owner.inputs[0]
-                            if z.owner.inputs[0] is numerator:
-                                matching_denom = denominator
-                                break
+                ds_order = denominator.owner.op.new_order
+                # Check that at most only one dimension is being reintroduced by
+                # a dimshuffle. The cases where all dimensions are reintroduced
+                # after a complete sum reduction end up in the else branch
+                if ds_order.count("x") != 1:
+                    continue
+                # Check that dimshuffle does not change order of original dims
+                ds_order_without_x = tuple(dim for dim in ds_order if dim != "x")
+                if tuple(sorted(ds_order_without_x)) != ds_order_without_x:
+                    continue
+                new_dim = ds_order.index("x")
+                z = denominator.owner.inputs[0]
+                if z.owner and isinstance(z.owner.op, Sum):
+                    sum_axis = z.owner.op.axis
+                    # Check that reintroduced dim was the one reduced
+                    if (
+                        (sum_axis is not None)
+                        and (len(sum_axis) == 1)
+                        and (sum_axis[0] == new_dim)
+                    ):
+                        if z.owner.inputs[0] is numerator:
+                            (sum_axis,) = sum_axis
+                            matching_denom = denominator
+                            break
+
+            # Division without dimshuffle
+            else:
+                z = denominator
+                if z.owner and isinstance(z.owner.op, Sum):
+                    sum_axis = z.owner.op.axis
+                    # Filter out partial summations over more than one axis
+                    # The cases where all axis of summation are explicitly given
+                    # as in `sum(matrix, axis=(0, 1))` are eventually rewritten
+                    # to `sum(matrix)` and this branch is not a blocker
+                    if sum_axis is not None and len(sum_axis) != 1:
+                        continue
+                    if z.owner.inputs[0] is numerator:
+                        if sum_axis is not None:
+                            (sum_axis,) = sum_axis
+                        matching_denom = denominator
+                        break
+
         if matching_denom:
-            softmax = softmax_legacy(x)
+            softmax = Softmax(axis=sum_axis)(numerator.owner.inputs[0])
             copy_stack_trace(numerator, softmax)
             numerators.remove(numerator)
             denominators.remove(matching_denom)
