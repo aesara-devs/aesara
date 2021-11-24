@@ -35,7 +35,6 @@ from aesara.tensor.nnet.basic import (
     sigmoid_binary_crossentropy,
     softmax,
     softmax_grad_legacy,
-    softmax_graph,
     softmax_legacy,
     softmax_simplifier,
     softmax_with_bias,

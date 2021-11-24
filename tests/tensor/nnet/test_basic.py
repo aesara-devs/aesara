@@ -52,7 +52,6 @@ from aesara.tensor.nnet.basic import (
     sigmoid_binary_crossentropy,
     softmax,
     softmax_grad_legacy,
-    softmax_graph,
     softmax_legacy,
     softmax_with_bias,
     softsign,
@@ -81,6 +80,10 @@ from tests.tensor.utils import (
     makeBroadcastTester,
     upcast_int8_nfunc,
 )
+
+
+def softmax_graph(c):
+    return exp(c) / exp(c).sum(axis=-1, keepdims=True)
 
 
 def valid_axis_tester(Op):
