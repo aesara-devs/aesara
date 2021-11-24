@@ -1930,20 +1930,27 @@ def test_Softmax(x, axis, exc):
 
 
 @pytest.mark.parametrize(
-    "x, exc",
+    "x, axis, exc",
     [
         (
             set_test_value(aet.vector(), rng.random(size=(2,)).astype(config.floatX)),
             None,
+            None,
         ),
         (
             set_test_value(aet.matrix(), rng.random(size=(2, 3)).astype(config.floatX)),
+            0,
+            None,
+        ),
+        (
+            set_test_value(aet.matrix(), rng.random(size=(2, 3)).astype(config.floatX)),
+            1,
             None,
         ),
     ],
 )
-def test_LogSoftmax(x, exc):
-    g = nnetb.LogSoftmax()(x)
+def test_LogSoftmax(x, axis, exc):
+    g = nnetb.LogSoftmax(axis=axis)(x)
     g_fg = FunctionGraph(outputs=[g])
 
     cm = contextlib.suppress() if exc is None else pytest.warns(exc)

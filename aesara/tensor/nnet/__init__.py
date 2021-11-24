@@ -27,7 +27,6 @@ from aesara.tensor.nnet.basic import (
     graph_merge_softmax_with_crossentropy_softmax,
     h_softmax,
     logsoftmax,
-    logsoftmax_op,
     prepend_0_to_each_row,
     prepend_1_to_each_row,
     prepend_scalar_to_each_row,

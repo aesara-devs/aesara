@@ -208,8 +208,10 @@ def jax_funcify_Softmax(op, **kwargs):
 
 @jax_funcify.register(LogSoftmax)
 def jax_funcify_LogSoftmax(op, **kwargs):
+    axis = op.axis
+
     def log_softmax(x):
-        return jax.nn.log_softmax(x)
+        return jax.nn.log_softmax(x, axis=axis)
 
     return log_softmax
 
