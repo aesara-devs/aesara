@@ -56,7 +56,7 @@ from aesara.tensor.math import all as aet_all
 from aesara.tensor.math import dot, mean, sigmoid
 from aesara.tensor.math import sum as aet_sum
 from aesara.tensor.math import tanh
-from aesara.tensor.nnet import categorical_crossentropy, softmax_graph
+from aesara.tensor.nnet import categorical_crossentropy
 from aesara.tensor.random.utils import RandomStream
 from aesara.tensor.shape import Shape_i, reshape, shape, specify_shape
 from aesara.tensor.sharedvar import SharedVariable
@@ -81,6 +81,7 @@ from aesara.tensor.type import (
     vector,
 )
 from tests import unittest_tools as utt
+from tests.tensor.nnet.test_basic import softmax_graph
 
 
 if config.mode == "FAST_COMPILE":

@@ -1121,10 +1121,6 @@ def local_logsoftmax_grad(fgraph, node):
         return [ret]
 
 
-def softmax_graph(c):
-    return exp(c) / exp(c).sum(axis=-1, keepdims=True)
-
-
 UNSET_AXIS = object()
 
 
