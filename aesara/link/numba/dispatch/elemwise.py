@@ -21,7 +21,7 @@ from aesara.link.utils import (
 )
 from aesara.tensor.elemwise import CAReduce, DimShuffle, Elemwise
 from aesara.tensor.math import MaxAndArgmax
-from aesara.tensor.nnet.basic import LogSoftmax, Softmax
+from aesara.tensor.nnet.basic import LogSoftmax, Softmax, SoftmaxGrad
 from aesara.tensor.type import tensor
 
 
@@ -422,6 +422,31 @@ def numba_funcify_Softmax(op, node, **kwargs):
         return sm
 
     return softmax
+
+
+@numba_funcify.register(SoftmaxGrad)
+def numba_funcify_SoftmaxGrad(op, node, **kwargs):
+
+    sm_at = node.inputs[1]
+    sm_dtype = sm_at.type.numpy_dtype
+    sm_dtype = numba.np.numpy_support.from_dtype(sm_dtype)
+
+    axis = op.axis
+    if axis is not None:
+        reduce_sum = create_axis_reducer(
+            np.add, 0.0, axis, sm_at.ndim, sm_dtype, keepdims=True
+        )
+    else:
+        reduce_sum = np.sum
+
+    @numba.njit
+    def softmax_grad(dy, sm):
+        dy_times_sm = dy * sm
+        sum_dy_times_sm = reduce_sum(dy_times_sm)
+        dx = dy_times_sm - sum_dy_times_sm * sm
+        return dx
+
+    return softmax_grad
 
 
 @numba_funcify.register(LogSoftmax)
