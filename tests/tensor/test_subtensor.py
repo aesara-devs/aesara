@@ -23,6 +23,7 @@ from aesara.tensor.math import sum as aet_sum
 from aesara.tensor.subtensor import (
     AdvancedIncSubtensor,
     AdvancedIncSubtensor1,
+    AdvancedIndexingError,
     AdvancedSubtensor,
     AdvancedSubtensor1,
     IncSubtensor,
@@ -35,6 +36,7 @@ from aesara.tensor.subtensor import (
     basic_shape,
     get_canonical_form_slice,
     inc_subtensor,
+    index_vars_to_types,
     indexed_result_shape,
     set_subtensor,
     take,
@@ -2558,3 +2560,16 @@ def test_pprint_IncSubtensor(indices, set_instead_of_inc, exp_res):
     z = tensor3("z")
     y = inc_subtensor(x[indices], z, set_instead_of_inc=set_instead_of_inc)
     assert pprint(y) == exp_res
+
+
+def test_index_vars_to_types():
+    x = aet.as_tensor_variable(np.array([True, False]))
+
+    with pytest.raises(AdvancedIndexingError):
+        index_vars_to_types(x)
+
+    with pytest.raises(TypeError):
+        index_vars_to_types(1)
+
+    res = index_vars_to_types(iscalar)
+    assert isinstance(res, scal.Scalar)

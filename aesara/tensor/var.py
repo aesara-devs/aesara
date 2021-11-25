@@ -526,8 +526,8 @@ class _tensor_py_operators:
         )
 
         # Determine if advanced indexing is needed or not.  The logic is
-        # already in `Subtensor.convert`: if it succeeds, standard indexing is
-        # used; if it fails with AdvancedIndexingError, advanced indexing is
+        # already in `index_vars_to_types`: if it succeeds, standard indexing is
+        # used; if it fails with `AdvancedIndexingError`, advanced indexing is
         # used
         advanced = False
         for i, arg in enumerate(args):
@@ -537,7 +537,7 @@ class _tensor_py_operators:
 
             if arg is not np.newaxis:
                 try:
-                    aet.subtensor.Subtensor.convert(arg)
+                    aet.subtensor.index_vars_to_types(arg)
                 except AdvancedIndexingError:
                     if advanced:
                         break
@@ -589,7 +589,7 @@ class _tensor_py_operators:
             else:
                 return aet.subtensor.Subtensor(args)(
                     self,
-                    *aet.subtensor.Subtensor.collapse(
+                    *aet.subtensor.get_slice_elements(
                         args, lambda entry: isinstance(entry, Variable)
                     ),
                 )
