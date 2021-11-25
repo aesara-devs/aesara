@@ -50,6 +50,7 @@ from aesara.tensor.subtensor import (
     Subtensor,
     get_canonical_form_slice,
     get_idx_list,
+    get_slice_elements,
     set_subtensor,
 )
 from aesara.tensor.var import TensorConstant, get_unique_value
@@ -1548,7 +1549,7 @@ def save_mem_new_scan(fgraph, node):
 
                     subtens = Subtensor(nw_slice)
                     # slice inputs
-                    sl_ins = Subtensor.collapse(
+                    sl_ins = get_slice_elements(
                         nw_slice, lambda entry: isinstance(entry, Variable)
                     )
                     new_o = subtens(new_outs[nw_pos], *sl_ins)
@@ -1598,7 +1599,7 @@ def save_mem_new_scan(fgraph, node):
 
                         nw_slice = (sanitize(position),) + tuple(old_slices[1:])
                     subtens = Subtensor(nw_slice)
-                    sl_ins = Subtensor.collapse(
+                    sl_ins = get_slice_elements(
                         nw_slice, lambda entry: isinstance(entry, Variable)
                     )
                     new_o = subtens(new_outs[nw_pos], *sl_ins)

@@ -58,7 +58,12 @@ from aesara.tensor.math import sum as aet_sum
 from aesara.tensor.math import tanh, tensordot, true_div
 from aesara.tensor.nnet.blocksparse import sparse_block_dot
 from aesara.tensor.shape import shape, shape_padleft
-from aesara.tensor.subtensor import AdvancedIncSubtensor, AdvancedSubtensor, Subtensor
+from aesara.tensor.subtensor import (
+    AdvancedIncSubtensor,
+    AdvancedSubtensor,
+    Subtensor,
+    get_constant_idx,
+)
 from aesara.tensor.type import (
     TensorType,
     discrete_dtypes,
@@ -1736,8 +1741,8 @@ def _check_rows_is_arange_len_labels(fgraph, rows, labels):
         # ShapeOptimizer, but we keep it if ShapeOptimizer is not present
         if isinstance(stop.owner.op, Subtensor):
             shape_subtensor = stop.owner
-            if shape_subtensor.op.get_constant_idx(
-                shape_subtensor.inputs, allow_partial=True
+            if get_constant_idx(
+                shape_subtensor.op.idx_list, shape_subtensor.inputs, allow_partial=True
             ) == [0]:
                 shape_var = shape_subtensor.inputs[0]
                 if shape_var.owner and shape_var.owner.op == shape:

@@ -67,7 +67,9 @@ from aesara.tensor.subtensor import (
     as_index_constant,
     as_index_literal,
     get_canonical_form_slice,
+    get_constant_idx,
     get_idx_list,
+    get_slice_elements,
     inc_subtensor,
 )
 from aesara.tensor.type import TensorType
@@ -347,7 +349,7 @@ def local_useless_slice(fgraph, node):
         # check if we removed something
         if last_slice < len(slices):
             subtens = Subtensor(slices[:last_slice])
-            sl_ins = Subtensor.collapse(
+            sl_ins = get_slice_elements(
                 slices[:last_slice], lambda x: isinstance(x, Variable)
             )
             out = subtens(node.inputs[0], *sl_ins)
@@ -518,7 +520,7 @@ def local_subtensor_merge(fgraph, node):
             merged_slices = tuple(as_index_constant(s) for s in merged_slices)
             subtens = Subtensor(merged_slices)
 
-            sl_ins = Subtensor.collapse(
+            sl_ins = get_slice_elements(
                 merged_slices, lambda x: isinstance(x, Variable)
             )
             # Do not call make_node for test_value
@@ -766,7 +768,9 @@ def local_subtensor_make_vector(fgraph, node):
         # The index is a slice.  If it's a constant slice, we can perform the
         # index operation here.
         try:
-            const_slice = node.op.get_constant_idx(node.inputs, allow_partial=False)[0]
+            const_slice = get_constant_idx(
+                node.op.idx_list, node.inputs, allow_partial=False
+            )[0]
             ret = make_vector_op(*x.owner.inputs[const_slice])
             copy_stack_trace(node.outputs, ret)
             ret = patternbroadcast(ret, node.outputs[0].broadcastable)
@@ -896,8 +900,11 @@ def local_useless_subtensor(fgraph, node):
     shape_of = fgraph.shape_feature.shape_of
 
     if isinstance(node.op, Subtensor):
-        cdata = node.op.get_constant_idx(
-            node.inputs, allow_partial=True, only_process_constants=True
+        cdata = get_constant_idx(
+            node.op.idx_list,
+            node.inputs,
+            allow_partial=True,
+            only_process_constants=True,
         )
         for pos, idx in enumerate(cdata):
             if not isinstance(idx, slice):

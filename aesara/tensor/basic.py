@@ -417,7 +417,9 @@ def get_scalar_constant_value(
                 and v.ndim == 0
             ):
                 if isinstance(v.owner.inputs[0], TensorConstant):
-                    cdata = tuple(v.owner.op.get_constant_idx(v.owner.inputs))
+                    from aesara.tensor.subtensor import get_constant_idx
+
+                    cdata = tuple(get_constant_idx(v.owner.op.idx_list, v.owner.inputs))
                     try:
                         return v.owner.inputs[0].data.__getitem__(cdata).copy()
                     except IndexError:
