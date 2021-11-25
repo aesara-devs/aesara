@@ -865,8 +865,9 @@ class ScalarVariable(_scalar_py_operators, Variable):
     pass
 
 
-class ScalarConstant(_scalar_py_operators, Constant):
-    pass
+class ScalarConstant(ScalarVariable, Constant):
+    def __init__(self, *args, **kwargs):
+        Constant.__init__(self, *args, **kwargs)
 
 
 # Register ScalarConstant as the type of Constant corresponding to Scalar
