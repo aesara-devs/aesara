@@ -846,8 +846,7 @@ class VMLinker(LocalLinker):
             if k.owner and self.fgraph.clients[k]:
                 ls = []
                 for cl in self.fgraph.clients[k]:
-                    if cl[0] != "output":
-                        ls += cl[0].outputs
+                    ls += cl[0].outputs
                 dependencies[k] += ls
         return dependencies
 

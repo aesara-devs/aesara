@@ -32,8 +32,6 @@ def is_rv_used_in_graph(base_rv, node, fgraph):
     """
 
     def _node_check(n, i):
-        if n == "output":
-            n = fgraph.outputs[i].owner
         return n == node or isinstance(n.op, (Shape, Shape_i))
 
     return not all(_node_check(n, i) for n, i in fgraph.clients.get(base_rv, ()))

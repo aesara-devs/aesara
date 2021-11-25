@@ -1509,11 +1509,7 @@ class Alloc(COp):
             return False
 
         for client in clients:
-            if client[0] == "output":
-                # If the output is a constant, it will have to be deepcopied
-                # each time the function is called.  So we do not fold.
-                return False
-            elif (
+            if (
                 # The following ops work inplace of their input id 0.
                 client[1] == 0
                 and isinstance(

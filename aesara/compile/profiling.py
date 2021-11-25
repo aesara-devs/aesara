@@ -1085,10 +1085,9 @@ class ProfileStats:
             executable_nodes = set()
             for var in fgraph.inputs:
                 for c, _ in fgraph.clients[var]:
-                    if c != "output":
-                        deps = c.inputs + c.destroy_dependencies
-                        if all(compute_map[v][0] for v in deps):
-                            executable_nodes.add(c)
+                    deps = c.inputs + c.destroy_dependencies
+                    if all(compute_map[v][0] for v in deps):
+                        executable_nodes.add(c)
 
             def min_memory_generator(executable_nodes, viewed_by, view_of):
                 """
@@ -1211,10 +1210,9 @@ class ProfileStats:
 
                         for var in node.outputs:
                             for c, _ in fgraph.clients[var]:
-                                if c != "output":
-                                    deps = c.inputs + c.destroy_dependencies
-                                    if all(compute_map[v][0] for v in deps):
-                                        new_exec_nodes.add(c)
+                                deps = c.inputs + c.destroy_dependencies
+                                if all(compute_map[v][0] for v in deps):
+                                    new_exec_nodes.add(c)
 
                         if not new_exec_nodes:
                             # Check and Update mem_bound

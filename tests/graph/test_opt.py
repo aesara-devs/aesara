@@ -739,3 +739,7 @@ class TestLocalOptGroup:
             "optimizer: rewrite local_opt_2 replaces Op2(y, y) with [Op2.0]"
             in capres.out
         )
+
+
+x = TestPatternOptimizer()
+x.test_multiple()

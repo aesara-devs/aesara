@@ -971,8 +971,6 @@ class AlgebraicCanonizer(LocalOptimizer):
         # this canonized graph...  if so, we do nothing and wait for
         # them to be transformed.
         for c, c_idx in out_clients:
-            if c == "output":
-                continue
             while (
                 isinstance(getattr(c, "op", None), DimShuffle)
                 and len(fgraph.clients[c.outputs[0]]) <= 1

@@ -484,19 +484,19 @@ class MergeFeature(Feature):
         for node in fgraph.toposort():
             self.on_import(fgraph, node, "on_attach")
 
-    def on_change_input(self, fgraph, node, i, r, new_r, reason):
-        # If inputs to node change, it is not guaranteed that it is distinct
-        # from the other nodes in nodes_seen
-        if node in self.nodes_seen:
-            self.nodes_seen.discard(node)
-            self.process_node(fgraph, node)
+    # def on_replace_nodes(self, fgraph, old_clients, memo, reason):
+    # If inputs to node change, it is not guaranteed that it is distinct
+    # from the other nodes in nodes_seen
+    # if node in self.nodes_seen:
+    #     self.nodes_seen.discard(node)
+    #     self.process_node(fgraph, new_node)
 
-        # Since we are in on_change_input, node should have inputs.
-        if not isinstance(node, str):
-            assert node.inputs
+    # Since we are in on_change_input, node should have inputs.
+    # if not isinstance(node, str):
+    #     assert node.inputs
 
-        if isinstance(new_r, Constant):
-            self.process_constant(fgraph, new_r)
+    # if isinstance(new_node.inputs[i], Constant):
+    #     self.process_constant(fgraph, new_node.inputs[i])
 
     def on_import(self, fgraph, node, reason):
         for c in node.inputs:
@@ -812,7 +812,7 @@ class MergeOptimizer(GlobalOptimizer):
                                 [
                                     i in flatten(c.op.destroy_map.values())
                                     for c, i in clients
-                                    if c != "output" and c.op.destroy_map
+                                    if c.op.destroy_map
                                 ]
                             )
                             > 1
@@ -833,7 +833,8 @@ class MergeOptimizer(GlobalOptimizer):
                     # Only need to check one of the var of each pairs.
                     # If it is a Constant, the other must also be a Constant as we merge them.
                     if all([isinstance(old, Constant) for old, new in pairs]):
-                        fgraph.replace_all(pairs, reason="MergeOptimizer")
+                        repl_dict = {old: new for old, new in pairs}
+                        fgraph.replace(repl_dict, reason="MergeOptimizer")
                     else:
                         fgraph.replace_all_validate(pairs, reason="MergeOptimizer")
                 except InconsistencyError:
@@ -1692,8 +1693,6 @@ class PatternSub(LocalOptimizer):
 
         if get_nodes and self.get_nodes is not None:
             for real_node in self.get_nodes(fgraph, node):
-                if real_node == "output":
-                    continue
                 ret = self.transform(fgraph, real_node, get_nodes=False)
                 if ret is not False and ret is not None:
                     return dict(zip(real_node.outputs, ret))
@@ -1862,9 +1861,9 @@ class Updater(Feature):
         if self.pruner:
             self.pruner(node)
 
-    def on_change_input(self, fgraph, node, i, r, new_r, reason):
-        if self.chin:
-            self.chin(node, i, r, new_r, reason)
+    # def on_replace_nodes(self, fgraph, old_clients, memo, reason):
+    # if self.chin:
+    #     self.chin(node, new_node, i, reason)
 
     def on_detach(self, fgraph):
         # To allow pickling this object
@@ -2288,7 +2287,7 @@ class ChangeTracker(Feature):
         self.nb_imported += 1
         self.changed = True
 
-    def on_change_input(self, fgraph, node, i, r, new_r, reason):
+    def on_replace_nodes(self, fgraph, old_clients, memo, reason):
         self.changed = True
 
     def reset(self):

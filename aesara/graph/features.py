@@ -295,10 +295,9 @@ class Feature:
 
         """
 
-    def on_change_input(self, fgraph, node, i, var, new_var, reason=None):
+    def on_replace_nodes(self, fgraph, old_clients, memo, reason=None):
         """
-        Called whenever ``node.inputs[i]`` is changed from `var` to `new_var`.
-        At the moment the callback is done, the change has already taken place.
+        This will replace the current nodes with different clones.
 
         If you raise an exception in this function, the state of the graph
         might be broken for all intents and purposes.
@@ -411,11 +410,14 @@ class History(Feature):
         del fgraph.revert
         del self.history[fgraph]
 
-    def on_change_input(self, fgraph, node, i, r, new_r, reason=None):
-        if self.history[fgraph] is None:
-            return
-        h = self.history[fgraph]
-        h.append(LambdaExtract(fgraph, node, i, r, reason))
+    # def on_replace_nodes(self, fgraph, old_clients, memo, reason=None):
+    #     if self.history[fgraph] is None:
+    #         return
+    #     h = self.history[fgraph]
+    #     for _old_node, (_new_node, _idx) in memo.items():
+    #         h.append(
+    #             LambdaExtract(fgraph, _old_node, _idx, _new_node.inputs[_idx], reason)
+    #         )
 
     def revert(self, fgraph, checkpoint):
         """
@@ -557,49 +559,53 @@ class ReplaceValidate(History, Validator):
         if verbose is None:
             verbose = config.optimizer_verbose
 
-        for r, new_r in replacements:
-            try:
-                fgraph.replace(r, new_r, reason=reason, verbose=False, **kwargs)
-            except Exception as e:
-                msg = str(e)
-                s1 = "The type of the replacement must be the same"
-                s2 = "does not belong to this FunctionGraph"
-                s3 = "maximum recursion depth exceeded"
-                if s3 in msg:
-                    # There is nothing safe we can do to recover from this.
-                    # So don't revert as this raise a different error
-                    # that isn't helpful.
-                    e.args += (
-                        " As a temporary work around, you can raise Python"
-                        " stack limit with:"
-                        " import sys; sys.setrecursionlimit(10000)",
-                    )
-                    raise
-                elif s1 not in msg and s2 not in msg:
-                    out = sys.stderr
-                    print(
-                        "<<!! BUG IN FGRAPH.REPLACE OR A LISTENER !!>>",
-                        type(e),
-                        e,
-                        reason,
-                        file=out,
-                    )
-                # this might fail if the error is in a listener:
-                # (fgraph.replace kinda needs better internal error handling)
-                fgraph.revert(chk)
+        replacements_dict = {}
+        for _var, _new_var in replacements:
+            replacements_dict[_var] = _new_var
+
+        try:
+            fgraph.replace(replacements_dict, reason=reason, verbose=False, **kwargs)
+        except Exception as e:
+            msg = str(e)
+            s1 = "The type of the replacement must be the same"
+            s2 = "does not belong to this FunctionGraph"
+            s3 = "maximum recursion depth exceeded"
+            if s3 in msg:
+                # There is nothing safe we can do to recover from this.
+                # So don't revert as this raise a different error
+                # that isn't helpful.
+                e.args += (
+                    " As a temporary work around, you can raise Python"
+                    " stack limit with:"
+                    " import sys; sys.setrecursionlimit(10000)",
+                )
                 raise
+            elif s1 not in msg and s2 not in msg:
+                out = sys.stderr
+                print(
+                    "<<!! BUG IN FGRAPH.REPLACE OR A LISTENER !!>>",
+                    type(e),
+                    e,
+                    reason,
+                    file=out,
+                )
+            # this might fail if the error is in a listener:
+            # (fgraph.replace kinda needs better internal error handling)
+            fgraph.revert(chk)
+            raise
         try:
             fgraph.validate()
         except Exception as e:
             fgraph.revert(chk)
             if verbose:
                 print(
-                    f"optimizer: validate failed on node {r}.\n Reason: {reason}, {e}"
+                    f"optimizer: validate failed to do replacements {replacements_dict}.\n Reason: {reason}, {e}"
                 )
             raise
 
-        if verbose:
-            print(f"optimizer: rewrite {reason} replaces {r} with {new_r}")
+        for r, new_r in replacements_dict.items():
+            if verbose:
+                print(f"optimizer: rewrite {reason} replaces {r} with {new_r}")
 
         # The return is needed by replace_all_validate_remove
         return chk
@@ -697,6 +703,17 @@ class NodeFinder(Bookkeeper):
         if not nodes:
             del self.d[node.op]
 
+    # def on_replace_node(self, fgraph, old_clients, memo, reason):
+    #     # Remove the apply Node itself
+    #     try:
+    #         self.d[node.op].remove(node)
+    #     except TypeError:  # node.op is unhashable
+    #         return
+    #     try:
+    #         self.d[new_node.op].append(new_node)
+    #     except TypeError:  # node.op is unhashable
+    #         return
+
     def query(self, fgraph, op):
         try:
             all = self.d.get(op, [])
@@ -732,9 +749,9 @@ class PrintListener(Feature):
         if self.active:
             print(f"-- pruning: {node}, reason: {reason}")
 
-    def on_change_input(self, fgraph, node, i, r, new_r, reason=None):
-        if self.active:
-            print(f"-- changing ({node}.inputs[{i}]) from {r} to {new_r}")
+    # def on_replace_nodes(self, fgraph, old_clients, memo, reason=None):
+    #     if self.active:
+    #         print(f"-- cloning {node} to {new_node} for changing inputs[{i}]")
 
 
 class PreserveNames(Feature):
@@ -744,9 +761,10 @@ class PreserveNames(Feature):
     Deprecated. We need to keep it to allow unpickling.
     """
 
-    def on_change_input(self, fgraph, node, i, r, new_r, reason=None):
-        if r.name is not None and new_r.name is None:
-            new_r.name = r.name
+    # Is this necessary ?
+    # def on_replace_nodes(self, fgraph, old_clients, memo, reason=None):
+    #     if node.inputs[i].name is not None and new_node.inputs[i].name is None:
+    #         new_node.inputs[i].name = node.inputs[i].name
 
 
 class PreserveVariableAttributes(Feature):
@@ -754,14 +772,16 @@ class PreserveVariableAttributes(Feature):
     This preserve some variables attributes and tag during optimization.
     """
 
-    def on_change_input(self, fgraph, node, i, r, new_r, reason=None):
-        if r.name is not None and new_r.name is None:
-            new_r.name = r.name
-        if (
-            getattr(r.tag, "nan_guard_mode_check", False)
-            and getattr(new_r.tag, "nan_guard_mode_check", False) is False
-        ):
-            new_r.tag.nan_guard_mode_check = r.tag.nan_guard_mode_check
+    # def on_replace_nodes(self, fgraph, old_clients, memo, reason=None):
+    #     if node.inputs[i].name is not None and new_node.inputs[i].name is None:
+    #         new_node.inputs[i].name = node.inputs[i].name
+    #     if (
+    #         getattr(node.inputs[i].tag, "nan_guard_mode_check", False)
+    #         and getattr(new_node.inputs[i].tag, "nan_guard_mode_check", False) is False
+    #     ):
+    #         new_node.inputs[i].tag.nan_guard_mode_check = node.inputs[
+    #             i
+    #         ].tag.nan_guard_mode_check
 
 
 class NoOutputFromInplace(Feature):
