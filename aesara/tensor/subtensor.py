@@ -809,7 +809,6 @@ class Subtensor(COp):
         return rval
 
     def __hash__(self):
-        # TODO: optimize by cache this hash value
         msg = []
         for entry in self.idx_list:
             if isinstance(entry, slice):
@@ -2404,18 +2403,16 @@ class AdvancedIncSubtensor1(COp):
         return (8,)
 
     def perform(self, node, inp, out_, params):
-        # TODO opt to make this inplace
         x, y, idx = inp
         (out,) = out_
         if not self.inplace:
             x = x.copy()
-        # In Numpy, x[idx] += y doesn't work if the same index is present
-        # many times: it does it only once. Is it a bug? In any case, for
-        # this reason we implement our own 'inc' iteration.
 
         if self.set_instead_of_inc:
             x[idx] = y
         else:
+            # In Numpy, `x[idx] += y` doesn't work if the same index is present
+            # many times: it does it only once.
             np.add.at(x, idx, y)
 
         out[0] = x
