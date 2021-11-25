@@ -1098,8 +1098,7 @@ def local_logsoftmax_grad(fgraph, node):
         and node.inputs[0].owner.op == true_div
         and len(node.inputs[0].owner.inputs) >= 2
         and node.inputs[0].owner.inputs[1].owner is not None
-        and node.inputs[0].owner.inputs[1].owner.op == softmax_legacy
-        and node.inputs[0].owner.inputs[1].ndim == 2
+        and isinstance(node.inputs[0].owner.inputs[1].owner.op, Softmax)
         and node.inputs[1] == node.inputs[0].owner.inputs[1]
         and not (
             # skip if it will be optimized by
@@ -1109,15 +1108,14 @@ def local_logsoftmax_grad(fgraph, node):
             and isinstance(
                 node.inputs[0].owner.inputs[0].owner.op, AdvancedIncSubtensor
             )
+            # the rewrite only applies to legacy SoftmaxGrad
+            and node.op == softmax_grad_legacy
+            and node.inputs[0].owner.inputs[1].ndim == 2
         )
     ):
         # get parameters from unoptimized op
-        sm = node.inputs[0].owner.inputs[1]
-        # sm_input = node.inputs[1].owner.inputs[0]
-        grads = node.inputs[0].owner.inputs[0]
-        if grads.broadcastable[1] and not sm.broadcastable[1]:
-            grads = aet.alloc(grads, grads.shape[0], sm.shape[1])
-        ret = grads - aet_sum(grads, axis=1, keepdims=True) * sm
+        grads, sm = node.inputs[0].owner.inputs
+        ret = grads - aet_sum(grads, axis=sm.owner.op.axis, keepdims=True) * sm
         ret.tag.values_eq_approx = values_eq_approx_remove_nan
         copy_stack_trace(node.outputs[0], ret)
         return [ret]

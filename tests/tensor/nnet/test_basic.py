@@ -278,7 +278,8 @@ class TestLogSoftmax(utt.InferShapeTester):
         assert isinstance(f.maker.fgraph.outputs[0].owner.op, LogSoftmax)
         assert check_stack_trace(f, ops_to_check=LogSoftmax)
 
-    def test_local_softmax_grad_optimization_and_big_input(self):
+    @pytest.mark.parametrize("axis", [None, 0, -1])
+    def test_local_logsoftmax_grad_opt(self, axis):
         # Test the Logsoftmax's grad substitution.
         #
         # Check that Log(Softmax(x))'s grad is substituted with Logsoftmax(x)'s
@@ -294,7 +295,7 @@ class TestLogSoftmax(utt.InferShapeTester):
         a = np.exp(10 * rng.random((5, 10)).astype(config.floatX))
 
         def myfunc(x):
-            sm = softmax(x)
+            sm = softmax(x, axis=axis)
             logsm = log(sm)
             return logsm
 
