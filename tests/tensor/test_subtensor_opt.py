@@ -630,9 +630,6 @@ class TestLocalSubtensorMakeVector:
         r = f(0, 1, 2)
         assert r[0] == 0 and r[1] == 2
 
-    @pytest.mark.xfail(
-        reason="local_subtensor_make_vector doesn't handle all index cases"
-    )
     def test_MakeVector_idx(self):
         x, y, z, q = lscalars("xyzq")
         v = make_vector(x, y, z)
