@@ -704,53 +704,51 @@ def local_subtensor_inc_subtensor(fgraph, node):
 @register_useless
 @local_optimizer([Subtensor, AdvancedSubtensor1])
 def local_subtensor_make_vector(fgraph, node):
-    """
-    Replace all subtensor(make_vector) like:
-    [a,b,c][0] -> a
-    [a,b,c][0:2] -> [a,b]
+    """Perform ``*Subtensor*`` operations on ``MakeVector`` outputs when the indices are constant.
 
-    Replace all AdvancedSubtensor1(make_vector) like:
-    [a,b,c][[0,2]] -> [a,c]
+    Replace all ``Subtensor`` and ``MakeVector`` cases like:
+        [a,b,c][0] -> a
+        [a,b,c][0:2] -> [a,b]
+
+    Replace all ``AdvancedSubtensor1`` and ``MakeVector`` cases like:
+        [a,b,c][[0,2]] -> [a,c]
 
     We can do this for constant indexes.
 
+    .. note:
+
+        This optimization implicitly relies on shape optimizations.
+
+    TODO: This only applies to a single indexed dimension; we should have
+    something more general for constant ``*Subtensor*`` graphs (or perhaps
+    include this kind of work in the constant folding).
     """
+
+    if not isinstance(node.op, (Subtensor, AdvancedSubtensor1)):
+        return False
+
     x = node.inputs[0]
+
     if not x.owner or not isinstance(x.owner.op, MakeVector):
         return False
 
     make_vector_op = x.owner.op
 
     if isinstance(node.op, Subtensor):
-        # This optimization needs ShapeOpt and fgraph.shape_feature
-        try:
-            (idx,) = node.op.idx_list
-        except Exception:
-            # 'how can you have multiple indexes into a shape?'
-            raise
+        (idx,) = node.op.idx_list
 
         if isinstance(idx, (aes.Scalar, TensorType)):
-            # The idx is a Scalar, ie a Type. This means the actual index
-            # is contained in node.inputs[1]
             old_idx, idx = idx, node.inputs[1]
             assert idx.type == old_idx
     elif isinstance(node.op, AdvancedSubtensor1):
         idx = node.inputs[1]
-    else:
-        return
 
     if isinstance(idx, (int, np.integer)):
-        # We don't need to copy over any stack traces here
         return [x.owner.inputs[idx]]
     elif isinstance(idx, Variable):
         if idx.ndim == 0:
-            # if it is a constant we can do something with it
             try:
                 v = get_scalar_constant_value(idx, only_process_constants=True)
-                if isinstance(v, np.integer):
-                    # Python 2.4 wants to index only with Python integers
-                    v = int(v)
-                # We don't need to copy over any stack traces here
                 try:
                     ret = [x.owner.inputs[v]]
                 except IndexError:
@@ -761,28 +759,20 @@ def local_subtensor_make_vector(fgraph, node):
         elif idx.ndim == 1 and isinstance(idx, Constant):
             values = list(map(int, list(idx.value)))
             ret = make_vector_op(*[x.owner.inputs[v] for v in values])
-
-            # Copy over stack trace from previous output to new output
             copy_stack_trace(node.outputs[0], ret)
             ret = patternbroadcast(ret, node.outputs[0].broadcastable)
             return [ret]
-        else:
-            raise TypeError("case not expected")
     elif isinstance(idx, slice):
-        # it is a slice of ints and/or Variables
-        # check subtensor to see if it can contain constant variables, and if
-        # it can, then try to unpack them.
+        # The index is a slice.  If it's a constant slice, we can perform the
+        # index operation here.
         try:
             const_slice = node.op.get_constant_idx(node.inputs, allow_partial=False)[0]
             ret = make_vector_op(*x.owner.inputs[const_slice])
-            # Copy over stack trace from previous outputs to new output
             copy_stack_trace(node.outputs, ret)
             ret = patternbroadcast(ret, node.outputs[0].broadcastable)
             return [ret]
         except NotScalarConstantError:
             pass
-    else:
-        raise TypeError("case not expected")
 
 
 @register_useless
