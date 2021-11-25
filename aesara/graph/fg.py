@@ -294,11 +294,16 @@ class FunctionGraph(MetaObject):
     def _replace_nodes(self, pairs_to_replace, old_clients, memo, reason):
         def replace_clients(_old_var, _new_var):
             self.clients.pop(_old_var)
+            # The new variable might already be part of FunctionGraph.
             if _new_var not in self.clients.keys():
                 self.setup_var(_new_var)
             for node, idx in old_clients[_old_var]:
+                # If its a client it must have an owner and inputs
                 curr_node = memo[node.out].owner
                 for i, _inp in enumerate(node.inputs):
+                    # If an input is not in memo that means it's
+                    # an unchanged variable, in that case we
+                    # need to update the node in it's clients.
                     if (
                         _inp not in memo.keys()
                         and (curr_node, i) not in self.clients[_inp]
@@ -306,12 +311,17 @@ class FunctionGraph(MetaObject):
                         self.clients[_inp].remove((node, i))
                         self.clients[_inp].append((curr_node, i))
                 self.clients[_new_var].append((curr_node, idx))
+                # If node.out is not in self.clients.keys() that means
+                # it is either an output or has already been processed
+                # due to it being output of some other variable.
                 if node.out in self.clients.keys():
                     replace_clients(node.out, curr_node.out)
 
         for old_var, new_var in pairs_to_replace.items():
             replace_clients(old_var, new_var)
 
+        # We update the veiables, apply nodes, inputs and outputs
+        # according to memo
         for old_var, new_var in memo.items():
             self.variables.remove(old_var)
             self.variables.add(new_var)
@@ -324,6 +334,9 @@ class FunctionGraph(MetaObject):
             elif old_var in self.outputs:
                 self.outputs[self.outputs.index(old_var)] = new_var
 
+        # The following logic is to determine and remove any variables that are no
+        # longer used in the FunctionGraph i.e they were only used to calculate
+        # the old variables but not the new ones.
         unused_vars = set()
         for var, new_var in pairs_to_replace.items():
             unused_vars.add(var)
@@ -543,6 +556,7 @@ class FunctionGraph(MetaObject):
 
         """
 
+        # TODO: Remove this if replace isn't supposed to be user facing
         assert isinstance(pairs_to_replace, dict), "Please switch to new interface"
 
         # Make a semi shallow copy of clients for later references
@@ -605,11 +619,10 @@ class FunctionGraph(MetaObject):
                         new_inputs[_idx] = memo[_var]
                 new_inputs[i] = new_var
                 new_node = curr_node.op.make_node(*new_inputs)
-                # The memo will be a dictionary of original Apply nodes to a tuple
-                # containing the new/cloned apply nodes and a list of all the changed
-                # inputs
                 memo = self.create_next_nodes_memo(node, new_node, i, memo, old_clients)
 
+        # By this time the memo will have all the mappings for the every replacements
+        # that needs to happen in the FunctionGraph
         assert all(
             [
                 isinstance(key, Variable) and isinstance(item, Variable)
