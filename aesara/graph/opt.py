@@ -484,7 +484,7 @@ class MergeFeature(Feature):
         for node in fgraph.toposort():
             self.on_import(fgraph, node, "on_attach")
 
-    # def on_replace_nodes(self, fgraph, old_clients, memo, reason):
+    # def on_replace_nodes(self, fgraph, pairs_to_replace, unused_vars, old_clients, memo, reason=None):
     # If inputs to node change, it is not guaranteed that it is distinct
     # from the other nodes in nodes_seen
     # if node in self.nodes_seen:
@@ -1861,7 +1861,7 @@ class Updater(Feature):
         if self.pruner:
             self.pruner(node)
 
-    # def on_replace_nodes(self, fgraph, old_clients, memo, reason):
+    # def on_replace_nodes(self, fgraph, pairs_to_replace, unused_vars, old_clients, memo, reason=None):
     # if self.chin:
     #     self.chin(node, new_node, i, reason)
 
@@ -2287,7 +2287,9 @@ class ChangeTracker(Feature):
         self.nb_imported += 1
         self.changed = True
 
-    def on_replace_nodes(self, fgraph, old_clients, memo, reason):
+    def on_replace_nodes(
+        self, fgraph, pairs_to_replace, unused_vars, old_clients, memo, reason=None
+    ):
         self.changed = True
 
     def reset(self):

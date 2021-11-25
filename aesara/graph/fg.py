@@ -630,9 +630,16 @@ class FunctionGraph(MetaObject):
             ]
         )
 
-        self._replace_nodes(pairs_to_replace, old_clients, memo, reason)
+        unused_vars = self._replace_nodes(pairs_to_replace, old_clients, memo, reason)
 
-        self.execute_callbacks("on_replace_nodes", old_clients, memo, reason=reason)
+        self.execute_callbacks(
+            "on_replace_nodes",
+            pairs_to_replace,
+            unused_vars,
+            old_clients,
+            memo,
+            reason=reason,
+        )
 
         return memo
 

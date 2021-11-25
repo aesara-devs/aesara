@@ -581,7 +581,7 @@ class DestroyHandler(Bookkeeper):  # noqa
         if app in self.fail_validate:
             del self.fail_validate[app]
 
-    # def on_replace_nodes(self, fgraph, old_clients, memo, reason=None):
+    # def on_replace_nodes(self, fgraph, pairs_to_replace, unused_vars, old_clients, memo, reason=None):
     #     """
     #     app.inputs[i] changed from old_r to new_r.
 

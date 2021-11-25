@@ -1357,7 +1357,7 @@ class _VariableEquivalenceTracker:
                 self.reasons.setdefault(r, [])
                 self.replaced_by.setdefault(r, [])
 
-    # def on_replace_nodes(self, fgraph, old_clients, memo, reason=None):
+    # def on_replace_nodes(self, fgraph, pairs_to_replace, unused_vars, old_clients, memo, reason=None):
     # reason = str(reason)
     # self.event_list.append(
     #     _FunctionGraphEvent("change", node, reason=reason, idx=i)

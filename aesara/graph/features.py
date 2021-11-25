@@ -295,7 +295,9 @@ class Feature:
 
         """
 
-    def on_replace_nodes(self, fgraph, old_clients, memo, reason=None):
+    def on_replace_nodes(
+        self, fgraph, pairs_to_replace, unused_vars, old_clients, memo, reason=None
+    ):
         """
         This will replace the current nodes with different clones.
 
@@ -357,17 +359,16 @@ class GetCheckpoint:
 
 
 class LambdaExtract:
-    def __init__(self, fgraph, node, i, r, reason=None):
+    def __init__(self, fgraph, pairs_to_replace, reason=None):
         self.fgraph = fgraph
-        self.node = node
-        self.i = i
-        self.r = r
+        self.pairs_to_replace = pairs_to_replace
         self.reason = reason
 
     def __call__(self):
-        return self.fgraph.change_input(
-            self.node, self.i, self.r, reason=("Revert", self.reason)
-        )
+        reverted_pairs = {}
+        for old_var, new_var in self.pairs_to_replace:
+            reverted_pairs[new_var] = old_var
+        return self.fgraph.replace(reverted_pairs, reason=("Revert", self.reason))
 
 
 class History(Feature):
@@ -410,14 +411,13 @@ class History(Feature):
         del fgraph.revert
         del self.history[fgraph]
 
-    # def on_replace_nodes(self, fgraph, old_clients, memo, reason=None):
-    #     if self.history[fgraph] is None:
-    #         return
-    #     h = self.history[fgraph]
-    #     for _old_node, (_new_node, _idx) in memo.items():
-    #         h.append(
-    #             LambdaExtract(fgraph, _old_node, _idx, _new_node.inputs[_idx], reason)
-    #         )
+    def on_replace_nodes(
+        self, fgraph, pairs_to_replace, unused_vars, old_clients, memo, reason=None
+    ):
+        if self.history[fgraph] is None:
+            return
+        h = self.history[fgraph]
+        h.append(LambdaExtract(fgraph, pairs_to_replace, reason))
 
     def revert(self, fgraph, checkpoint):
         """
@@ -749,9 +749,19 @@ class PrintListener(Feature):
         if self.active:
             print(f"-- pruning: {node}, reason: {reason}")
 
-    # def on_replace_nodes(self, fgraph, old_clients, memo, reason=None):
-    #     if self.active:
-    #         print(f"-- cloning {node} to {new_node} for changing inputs[{i}]")
+    def on_replace_nodes(
+        self, fgraph, pairs_to_replace, unused_vars, old_clients, memo, reason=None
+    ):
+        if self.active:
+            print("Making the following replacements:")
+            for old_var, new_var in pairs_to_replace.items():
+                print(f"-- Replacing {old_var} with {new_var}")
+
+            print("The following node were also replaced during these replacements:")
+            for old_var, new_var in memo.items():
+                if self.active:
+                    print(f"-- Replacing {old_var} with {new_var}")
+            print("----------------------------------------------------")
 
 
 class PreserveNames(Feature):
@@ -762,9 +772,12 @@ class PreserveNames(Feature):
     """
 
     # Is this necessary ?
-    # def on_replace_nodes(self, fgraph, old_clients, memo, reason=None):
-    #     if node.inputs[i].name is not None and new_node.inputs[i].name is None:
-    #         new_node.inputs[i].name = node.inputs[i].name
+    def on_replace_nodes(
+        self, fgraph, pairs_to_replace, unused_vars, old_clients, memo, reason=None
+    ):
+        for old_var, new_var in memo.items():
+            if old_var.name is not None and new_var.name is None:
+                new_var.name = old_var.name
 
 
 class PreserveVariableAttributes(Feature):
@@ -772,16 +785,17 @@ class PreserveVariableAttributes(Feature):
     This preserve some variables attributes and tag during optimization.
     """
 
-    # def on_replace_nodes(self, fgraph, old_clients, memo, reason=None):
-    #     if node.inputs[i].name is not None and new_node.inputs[i].name is None:
-    #         new_node.inputs[i].name = node.inputs[i].name
-    #     if (
-    #         getattr(node.inputs[i].tag, "nan_guard_mode_check", False)
-    #         and getattr(new_node.inputs[i].tag, "nan_guard_mode_check", False) is False
-    #     ):
-    #         new_node.inputs[i].tag.nan_guard_mode_check = node.inputs[
-    #             i
-    #         ].tag.nan_guard_mode_check
+    def on_replace_nodes(
+        self, fgraph, pairs_to_replace, unused_vars, old_clients, memo, reason=None
+    ):
+        for old_var, new_var in memo.items():
+            if old_var.name is not None and new_var.name is None:
+                new_var.name = old_var.name
+            if (
+                getattr(old_var.tag, "nan_guard_mode_check", False)
+                and getattr(new_var.tag, "nan_guard_mode_check", False) is False
+            ):
+                new_var.tag.nan_guard_mode_check = old_var.tag.nan_guard_mode_check
 
 
 class NoOutputFromInplace(Feature):

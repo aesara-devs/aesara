@@ -1291,7 +1291,7 @@ class ShapeFeature(features.Feature):
         for r, s in zip(node.outputs, o_shapes):
             self.set_shape(r, s)
 
-    # def on_replace_nodes(self, fgraph, old_clients, memo, reason):
+    # def on_replace_nodes(self, fgraph, pairs_to_replace, unused_vars, old_clients, memo, reason=None):
     # if new_r not in self.shape_of:
     #     # It happen that the fgraph didn't called on_import for some
     #     # new_r.  This happen when new_r don't have an
