@@ -23,7 +23,6 @@ from aesara.tensor.random.opt import (
     local_rv_size_lift,
     local_subtensor_rv_lift,
 )
-from aesara.tensor.shape import SpecifyShape
 from aesara.tensor.subtensor import AdvancedSubtensor, AdvancedSubtensor1, Subtensor
 from aesara.tensor.type import iscalar, vector
 
@@ -84,9 +83,7 @@ def test_inplace_optimization():
         np.array_equal(a.data, b.data)
         for a, b in zip(new_out.owner.inputs[2:], out.owner.inputs[2:])
     )
-    # A `SpecifyShape` is added
-    assert isinstance(new_out.owner.inputs[1].owner.op, SpecifyShape)
-    assert new_out.owner.inputs[1].owner.inputs[0].equals(out.owner.inputs[1])
+    assert np.array_equal(new_out.owner.inputs[1].data, [])
 
 
 @config.change_flags(compute_test_value="raise")
