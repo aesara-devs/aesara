@@ -5,7 +5,7 @@ from itertools import zip_longest
 import numpy as np
 
 from aesara.compile.sharedvalue import shared
-from aesara.graph.basic import Variable
+from aesara.graph.basic import Constant, Variable
 from aesara.tensor import get_vector_length
 from aesara.tensor.basic import as_tensor_variable, cast, constant
 from aesara.tensor.extra_ops import broadcast_to
@@ -123,9 +123,12 @@ def normalize_size_param(size):
         )
     else:
         size = cast(as_tensor_variable(size, ndim=1), "int64")
-        # This should help ensure that the length of `size` will be available
-        # after certain types of cloning (e.g. the kind `Scan` performs)
-        size = specify_shape(size, (get_vector_length(size),))
+
+        if not isinstance(size, Constant):
+            # This should help ensure that the length of non-constant `size`s
+            # will be available after certain types of cloning (e.g. the kind
+            # `Scan` performs)
+            size = specify_shape(size, (get_vector_length(size),))
 
     assert size.dtype in int_dtypes
 
