@@ -8,6 +8,7 @@ import hashlib
 import logging
 import os
 import sys
+from abc import ABC, abstractmethod
 from copy import copy
 from functools import reduce
 from io import IOBase, StringIO
@@ -658,7 +659,13 @@ class PrinterState(Scratchpad):
         self.memo = {}
 
 
-class OperatorPrinter:
+class Printer(ABC):
+    @abstractmethod
+    def process(self, var: Variable, pstate: PrinterState) -> str:
+        """Construct a string representation for a `Variable`."""
+
+
+class OperatorPrinter(Printer):
     def __init__(self, operator, precedence, assoc="left"):
         self.operator = operator
         self.precedence = precedence
@@ -711,7 +718,7 @@ class OperatorPrinter:
         return r
 
 
-class PatternPrinter:
+class PatternPrinter(Printer):
     def __init__(self, *patterns):
         self.patterns = []
         for pattern in patterns:
@@ -756,7 +763,7 @@ class PatternPrinter:
         return r
 
 
-class FunctionPrinter:
+class FunctionPrinter(Printer):
     def __init__(self, *names):
         self.names = names
 
@@ -787,7 +794,7 @@ class FunctionPrinter:
         return r
 
 
-class IgnorePrinter:
+class IgnorePrinter(Printer):
     def process(self, output, pstate):
         if output in pstate.memo:
             return pstate.memo[output]
@@ -804,7 +811,7 @@ class IgnorePrinter:
         return r
 
 
-class LeafPrinter:
+class LeafPrinter(Printer):
     def process(self, output, pstate):
         if output in pstate.memo:
             return pstate.memo[output]
@@ -819,7 +826,7 @@ class LeafPrinter:
 leaf_printer = LeafPrinter()
 
 
-class DefaultPrinter:
+class DefaultPrinter(Printer):
     def process(self, output, pstate):
         if output in pstate.memo:
             return pstate.memo[output]
@@ -845,7 +852,7 @@ class DefaultPrinter:
 default_printer = DefaultPrinter()
 
 
-class PPrinter:
+class PPrinter(Printer):
     def __init__(self):
         self.printers = []
         self.printers_dict = {}

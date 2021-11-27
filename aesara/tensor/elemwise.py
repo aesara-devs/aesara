@@ -14,7 +14,7 @@ from aesara.graph.utils import MethodNotDefined
 from aesara.link.c.basic import failure_code
 from aesara.misc.frozendict import frozendict
 from aesara.misc.safe_asarray import _asarray
-from aesara.printing import FunctionPrinter, pprint
+from aesara.printing import FunctionPrinter, Printer, pprint
 from aesara.scalar import get_scalar_type
 from aesara.scalar.basic import Scalar
 from aesara.scalar.basic import bool as scalar_bool
@@ -300,7 +300,7 @@ class DimShuffle(ExternalCOp):
             ]
 
 
-class DimShufflePrinter:
+class DimShufflePrinter(Printer):
     def __p(self, new_order, pstate, r):
         if new_order != () and new_order[0] == "x":
             return f"{self.__p(new_order[1:], pstate, r)}"
