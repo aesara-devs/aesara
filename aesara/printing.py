@@ -12,7 +12,7 @@ from abc import ABC, abstractmethod
 from copy import copy
 from functools import reduce
 from io import IOBase, StringIO
-from typing import Dict, Iterable, List, Optional, Union
+from typing import Callable, Dict, Iterable, List, Optional, Union
 
 import numpy as np
 
@@ -889,14 +889,13 @@ class PPrinter(Printer):
         self.printers = []
         self.printers_dict = {}
 
-    def assign(self, condition, printer):
-        # condition can be a class or an instance of an Op.
+    def assign(self, condition: Union[Op, type, Callable], printer: Printer):
         if isinstance(condition, (Op, type)):
             self.printers_dict[condition] = printer
-            return
-        self.printers.insert(0, (condition, printer))
+        else:
+            self.printers.insert(0, (condition, printer))
 
-    def process(self, r, pstate=None):
+    def process(self, r: Variable, pstate: Optional[PrinterState] = None) -> str:
         if pstate is None:
             pstate = PrinterState(pprinter=self)
         elif isinstance(pstate, dict):
