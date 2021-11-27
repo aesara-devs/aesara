@@ -815,7 +815,7 @@ register_rebroadcast_c_code(
 def _conversion(real_value, name):
     __oplist_tag(real_value, "casting")
     real_value.__module__ = "tensor.basic"
-    pprint.assign(real_value, printing.FunctionPrinter(name))
+    pprint.assign(real_value, printing.FunctionPrinter([name]))
     return real_value
 
 
@@ -927,7 +927,7 @@ def second(a, b):
 
 
 fill = second
-pprint.assign(fill, printing.FunctionPrinter("fill"))
+pprint.assign(fill, printing.FunctionPrinter(["fill"]))
 
 
 def ones_like(model, dtype=None, opt=False):
@@ -1547,7 +1547,7 @@ class Alloc(COp):
 
 
 alloc = Alloc()
-pprint.assign(alloc, printing.FunctionPrinter("alloc"))
+pprint.assign(alloc, printing.FunctionPrinter(["alloc"]))
 
 
 def full(shape, fill_value, dtype=None):
@@ -2514,7 +2514,7 @@ class Join(COp):
 
 
 join_ = Join()
-pprint.assign(Join, printing.FunctionPrinter("join"))
+pprint.assign(Join, printing.FunctionPrinter(["join"]))
 
 
 @_get_vector_length.register(Join)

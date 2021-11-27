@@ -764,8 +764,21 @@ class PatternPrinter(Printer):
 
 
 class FunctionPrinter(Printer):
-    def __init__(self, *names):
+    def __init__(self, names: List[str], keywords: Optional[List[str]] = None):
+        """
+        Parameters
+        ----------
+        names
+            The function names used for each output.
+        keywords
+            The `Op` keywords to include in the output.
+        """
         self.names = names
+
+        if keywords is None:
+            keywords = []
+
+        self.keywords = keywords
 
     def process(self, output, pstate):
         if output in pstate.memo:
@@ -783,10 +796,17 @@ class FunctionPrinter(Printer):
         try:
             old_precedence = getattr(pstate, "precedence", None)
             pstate.precedence = new_precedence
-            r = "{}({})".format(
-                name,
-                ", ".join([pprinter.process(input, pstate) for input in node.inputs]),
+            inputs_str = ", ".join(
+                [pprinter.process(input, pstate) for input in node.inputs]
             )
+            keywords_str = ", ".join(
+                [f"{kw}={getattr(node.op, kw)}" for kw in self.keywords]
+            )
+
+            if keywords_str and inputs_str:
+                keywords_str = f", {keywords_str}"
+
+            r = f"{name}({inputs_str}{keywords_str})"
         finally:
             pstate.precedence = old_precedence
 

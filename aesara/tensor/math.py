@@ -2495,7 +2495,7 @@ def sum(input, axis=None, dtype=None, keepdims=False, acc_dtype=None):
     return out
 
 
-pprint.assign(Sum(), printing.FunctionPrinter("sum"))
+pprint.assign(Sum, printing.FunctionPrinter(["sum"], ["axis"]))
 
 
 class Prod(CAReduceDtype):
