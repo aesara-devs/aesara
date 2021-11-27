@@ -38,7 +38,7 @@ from aesara.graph.utils import (
     TestValueError,
     get_variable_trace_string,
 )
-from aesara.printing import pprint
+from aesara.printing import Printer, pprint
 from aesara.raise_op import Assert, CheckAndRaise, assert_op
 from aesara.tensor.basic import (
     Alloc,
@@ -718,7 +718,7 @@ def local_scalar_tensor_scalar(fgraph, node):
             return [s]
 
 
-class MakeVectorPrinter:
+class MakeVectorPrinter(Printer):
     def process(self, r, pstate):
         if r.owner is None:
             raise TypeError("Can only print make_vector.")

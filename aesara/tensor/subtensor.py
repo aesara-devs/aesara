@@ -16,7 +16,7 @@ from aesara.graph.params_type import ParamsType
 from aesara.graph.type import Type
 from aesara.graph.utils import MethodNotDefined
 from aesara.misc.safe_asarray import _asarray
-from aesara.printing import pprint
+from aesara.printing import Printer, pprint
 from aesara.scalar.basic import ScalarConstant
 from aesara.tensor import _get_vector_length, get_vector_length
 from aesara.tensor.basic import addbroadcast, alloc, get_scalar_constant_value
@@ -1188,7 +1188,7 @@ class Subtensor(COp):
         return self(eval_points[0], *inputs[1:], return_list=True)
 
 
-class SubtensorPrinter:
+class SubtensorPrinter(Printer):
     def process(self, r, pstate):
         if r.owner is None:
             raise TypeError("Can only print Subtensor.")
