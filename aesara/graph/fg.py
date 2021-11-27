@@ -561,6 +561,10 @@ class FunctionGraph(MetaObject):
 
         # Make a semi shallow copy of clients for later references
         old_clients = {}
+        for var, new_var in list(pairs_to_replace.items()):
+            if var == new_var:
+                pairs_to_replace.pop(var)
+
         memo = pairs_to_replace.copy()
         for _var, _clients in self.clients.items():
             old_clients.update({_var: _clients.copy()})
@@ -641,7 +645,7 @@ class FunctionGraph(MetaObject):
             reason=reason,
         )
 
-        return memo
+        return memo, unused_vars
 
     def attach_feature(self, feature: Feature) -> None:
         """Add a ``graph.features.Feature`` to this function graph and trigger its ``on_attach`` callback."""

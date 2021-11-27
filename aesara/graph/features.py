@@ -366,7 +366,7 @@ class LambdaExtract:
 
     def __call__(self):
         reverted_pairs = {}
-        for old_var, new_var in self.pairs_to_replace:
+        for old_var, new_var in self.pairs_to_replace.items():
             reverted_pairs[new_var] = old_var
         return self.fgraph.replace(reverted_pairs, reason=("Revert", self.reason))
 
@@ -562,9 +562,12 @@ class ReplaceValidate(History, Validator):
         replacements_dict = {}
         for _var, _new_var in replacements:
             replacements_dict[_var] = _new_var
-
+        memo = {}
         try:
-            fgraph.replace(replacements_dict, reason=reason, verbose=False, **kwargs)
+            new_replacements, unused_vars = fgraph.replace(
+                replacements_dict, reason=reason, verbose=False, **kwargs
+            )
+            memo.update(new_replacements)
         except Exception as e:
             msg = str(e)
             s1 = "The type of the replacement must be the same"
@@ -608,7 +611,7 @@ class ReplaceValidate(History, Validator):
                 print(f"optimizer: rewrite {reason} replaces {r} with {new_r}")
 
         # The return is needed by replace_all_validate_remove
-        return chk
+        return memo, chk
 
     def replace_all_validate_remove(
         self, fgraph, replacements, remove, reason=None, warn=True, **kwargs
@@ -618,7 +621,7 @@ class ReplaceValidate(History, Validator):
         in the list remove are still in the graph. Also print a warning.
 
         """
-        chk = fgraph.replace_all_validate(replacements, reason=reason, **kwargs)
+        memo, chk = fgraph.replace_all_validate(replacements, reason=reason, **kwargs)
         self._nodes_removed.update(remove)
         for rm in remove:
             if rm in fgraph.apply_nodes or rm in fgraph.variables:
@@ -631,6 +634,7 @@ class ReplaceValidate(History, Validator):
                         f"{reason}: {replacements}",
                     )
                 raise ReplacementDidNotRemoveError()
+        return memo
 
     def __getstate__(self):
         d = self.__dict__.copy()
@@ -703,16 +707,23 @@ class NodeFinder(Bookkeeper):
         if not nodes:
             del self.d[node.op]
 
-    # def on_replace_node(self, fgraph, old_clients, memo, reason):
-    #     # Remove the apply Node itself
-    #     try:
-    #         self.d[node.op].remove(node)
-    #     except TypeError:  # node.op is unhashable
-    #         return
-    #     try:
-    #         self.d[new_node.op].append(new_node)
-    #     except TypeError:  # node.op is unhashable
-    #         return
+    def on_replace_nodes(
+        self, fgraph, pairs_to_replace, unused_vars, old_clients, memo, reason=None
+    ):
+        for old_var, new_var in memo.items():
+            if old_var.owner:
+                node = old_var.owner
+                # Remove the apply Node itself
+                try:
+                    self.d[node.op].remove(node)
+                except TypeError:  # node.op is unhashable
+                    return
+            if new_var.owner:
+                new_node = new_var.owner
+                try:
+                    self.d[new_node.op].append(new_node)
+                except TypeError:  # node.op is unhashable
+                    return
 
     def query(self, fgraph, op):
         try:
