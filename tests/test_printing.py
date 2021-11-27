@@ -281,7 +281,7 @@ def test_debugprint_ids():
 def test_pprint():
     x = dvector()
     y = x[1]
-    assert pp(y) == "<TensorType(float64, vector)>[ScalarConstant{1}]"
+    assert pp(y) == "<TensorType(float64, vector)>[1]"
 
 
 def test_debugprint_inner_graph():

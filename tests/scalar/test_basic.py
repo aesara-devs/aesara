@@ -176,9 +176,9 @@ class TestComposite:
         assert str(g) == (
             "FunctionGraph(*1 -> Composite{((i0 + i1) + i2),"
             " (i0 + (i1 * i2)), (i0 / i1), "
-            "(i0 // ScalarConstant{5}), "
+            "(i0 // 5), "
             "(-i0), (i0 - i1), ((i0 ** i1) + (-i2)),"
-            " (i0 % ScalarConstant{3})}(x, y, z), "
+            " (i0 % 3)}(x, y, z), "
             "*1::1, *1::2, *1::3, *1::4, *1::5, *1::6, *1::7)"
         )
 
