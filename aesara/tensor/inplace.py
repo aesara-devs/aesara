@@ -334,7 +334,7 @@ def second_inplace(a):
 
 
 fill_inplace = second_inplace
-pprint.assign(fill_inplace, printing.FunctionPrinter("fill="))
+pprint.assign(fill_inplace, printing.FunctionPrinter(["fill="]))
 
 
 @scalar_elemwise(symbolname="scalar_maximum_inplace")

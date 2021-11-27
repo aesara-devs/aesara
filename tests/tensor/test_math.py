@@ -22,6 +22,7 @@ from aesara.graph.basic import Variable, applys_between
 from aesara.graph.fg import FunctionGraph
 from aesara.link.c.basic import DualLinker
 from aesara.misc.safe_asarray import _asarray
+from aesara.printing import pprint
 from aesara.tensor import blas, blas_c
 from aesara.tensor.basic import (
     as_tensor_variable,
@@ -3336,3 +3337,9 @@ def test_logsumexp(shape, axis, keepdims):
         aesara_out,
         scipy_out,
     )
+
+
+def test_pprint():
+    x = vector("x")
+    y = aet_sum(x, axis=0)
+    assert pprint(y) == "sum(x, axis=(0,))"

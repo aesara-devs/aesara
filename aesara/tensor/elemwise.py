@@ -1833,7 +1833,7 @@ def scalar_elemwise(*symbol, nfunc=None, nin=None, nout=None, symbolname=None):
         rval.__epydoc_asRoutine = symbol
         rval.__module__ = symbol.__module__
 
-        pprint.assign(rval, FunctionPrinter(symbolname.replace("_inplace", "=")))
+        pprint.assign(rval, FunctionPrinter([symbolname.replace("_inplace", "=")]))
 
         return rval
 

@@ -95,7 +95,7 @@ ultra_fast_sigmoid_inplace = Elemwise(
     name="ultra_fast_sigmoid_inplace",
 )
 
-pprint.assign(ultra_fast_sigmoid, printing.FunctionPrinter("ultra_fast_sigmoid"))
+pprint.assign(ultra_fast_sigmoid, printing.FunctionPrinter(["ultra_fast_sigmoid"]))
 
 
 # @opt.register_uncanonicalize

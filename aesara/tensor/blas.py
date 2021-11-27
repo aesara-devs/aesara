@@ -1098,8 +1098,8 @@ gemm_inplace = Gemm(inplace=True)
 gemm_no_inplace = Gemm(inplace=False)
 # For the user interface. Aesara optimization will make them inplace
 gemm = gemm_no_inplace
-pprint.assign(gemm_inplace, FunctionPrinter("gemm_inplace"))
-pprint.assign(gemm_no_inplace, FunctionPrinter("gemm_no_inplace"))
+pprint.assign(gemm_inplace, FunctionPrinter(["gemm_inplace"]))
+pprint.assign(gemm_no_inplace, FunctionPrinter(["gemm_no_inplace"]))
 
 
 def res_is_a(fgraph, var, op, maxclients=None):
