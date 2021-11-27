@@ -846,6 +846,18 @@ class LeafPrinter(Printer):
 leaf_printer = LeafPrinter()
 
 
+class ConstantPrinter(Printer):
+    def process(self, output, pstate):
+        if output in pstate.memo:
+            return pstate.memo[output]
+        r = str(output.data)
+        pstate.memo[output] = r
+        return r
+
+
+constant_printer = ConstantPrinter()
+
+
 class DefaultPrinter(Printer):
     def process(self, output, pstate):
         if output in pstate.memo:
@@ -995,6 +1007,8 @@ else:
 
 pprint = PPrinter()
 pprint.assign(lambda pstate, r: True, default_printer)
+pprint.assign(lambda pstate, r: isinstance(r, Constant), constant_printer)
+
 
 pp = pprint
 """
