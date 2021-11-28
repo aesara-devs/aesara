@@ -9,6 +9,7 @@ import logging
 import os
 import sys
 from abc import ABC, abstractmethod
+from contextlib import contextmanager
 from copy import copy
 from functools import reduce
 from io import IOBase, StringIO
@@ -665,6 +666,17 @@ class Printer(ABC):
         """Construct a string representation for a `Variable`."""
 
 
+@contextmanager
+def set_precedence(pstate: PrinterState, precedence: int = -1000):
+    """Temporarily set the precedence of a `PrinterState`."""
+    old_precedence = getattr(pstate, "precedence", None)
+    pstate.precedence = precedence
+    try:
+        yield
+    finally:
+        pstate.precedence = old_precedence
+
+
 class OperatorPrinter(Printer):
     def __init__(self, operator, precedence, assoc="left"):
         self.operator = operator
@@ -699,12 +711,10 @@ class OperatorPrinter(Printer):
             new_precedence = self.precedence
             if self.assoc == "left" and i != 0 or self.assoc == "right" and i != max_i:
                 new_precedence += 1e-6
-            try:
-                old_precedence = getattr(pstate, "precedence", None)
-                pstate.precedence = new_precedence
+
+            with set_precedence(pstate, new_precedence):
                 s = pprinter.process(input, pstate)
-            finally:
-                pstate.precedence = old_precedence
+
             input_strings.append(s)
         if len(input_strings) == 1:
             s = self.operator + input_strings[0]
@@ -742,13 +752,8 @@ class PatternPrinter(Printer):
         precedences += (1000,) * len(node.inputs)
 
         def pp_process(input, new_precedence):
-            try:
-                old_precedence = getattr(pstate, "precedence", None)
-                pstate.precedence = new_precedence
+            with set_precedence(pstate, new_precedence):
                 r = pprinter.process(input, pstate)
-            finally:
-                pstate.precedence = old_precedence
-
             return r
 
         d = {
@@ -792,10 +797,7 @@ class FunctionPrinter(Printer):
             )
         idx = node.outputs.index(output)
         name = self.names[idx]
-        new_precedence = -1000
-        try:
-            old_precedence = getattr(pstate, "precedence", None)
-            pstate.precedence = new_precedence
+        with set_precedence(pstate):
             inputs_str = ", ".join(
                 [pprinter.process(input, pstate) for input in node.inputs]
             )
@@ -807,8 +809,6 @@ class FunctionPrinter(Printer):
                 keywords_str = f", {keywords_str}"
 
             r = f"{name}({inputs_str}{keywords_str})"
-        finally:
-            pstate.precedence = old_precedence
 
         pstate.memo[output] = r
         return r
@@ -866,16 +866,11 @@ class DefaultPrinter(Printer):
         node = output.owner
         if node is None:
             return leaf_printer.process(output, pstate)
-        new_precedence = -1000
-        try:
-            old_precedence = getattr(pstate, "precedence", None)
-            pstate.precedence = new_precedence
+        with set_precedence(pstate):
             r = "{}({})".format(
                 str(node.op),
                 ", ".join([pprinter.process(input, pstate) for input in node.inputs]),
             )
-        finally:
-            pstate.precedence = old_precedence
 
         pstate.memo[output] = r
         return r

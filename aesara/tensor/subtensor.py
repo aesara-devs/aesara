@@ -16,7 +16,7 @@ from aesara.graph.params_type import ParamsType
 from aesara.graph.type import Type
 from aesara.graph.utils import MethodNotDefined
 from aesara.misc.safe_asarray import _asarray
-from aesara.printing import Printer, pprint
+from aesara.printing import Printer, pprint, set_precedence
 from aesara.scalar.basic import ScalarConstant
 from aesara.tensor import _get_vector_length, get_vector_length
 from aesara.tensor.basic import addbroadcast, alloc, get_scalar_constant_value
@@ -1196,14 +1196,11 @@ class SubtensorPrinter(Printer):
         inputs = list(op_inputs)
         input = inputs.pop(0)
         sidxs = []
-        old_precedence = getattr(pstate, "precedence", None)
+        getattr(pstate, "precedence", None)
         for entry in idxs:
             if isinstance(entry, aes.Scalar):
-                pstate.precedence = -1000
-                try:
+                with set_precedence(pstate):
                     sidxs.append(pstate.pprinter.process(inputs.pop()))
-                finally:
-                    pstate.precedence = old_precedence
             elif isinstance(entry, slice):
                 if entry.start is None or entry.start == 0:
                     msg1 = ""
@@ -1222,11 +1219,9 @@ class SubtensorPrinter(Printer):
 
                 sidxs.append(f"{msg1}:{msg2}{msg3}")
 
-        try:
-            pstate.precedence = 1000
+        with set_precedence(pstate, 1000):
             sub = pstate.pprinter.process(input, pstate)
-        finally:
-            pstate.precedence = old_precedence
+
         return f"{sub}[{', '.join(sidxs)}]"
 
 
@@ -1839,12 +1834,8 @@ class IncSubtensorPrinter(SubtensorPrinter):
 
         res = self._process(r.owner.op.idx_list, [x] + idx_args, pstate)
 
-        old_precedence = pstate.precedence
-        try:
-            pstate.precedence = 1000
+        with set_precedence(pstate, 1000):
             y_str = pstate.pprinter.process(r.owner.inputs[1], pstate)
-        finally:
-            pstate.precedence = old_precedence
 
         if r.owner.op.set_instead_of_inc:
             res = f"set_subtensor({res}, {y_str})"

@@ -38,7 +38,7 @@ from aesara.graph.utils import (
     TestValueError,
     get_variable_trace_string,
 )
-from aesara.printing import Printer, pprint
+from aesara.printing import Printer, pprint, set_precedence
 from aesara.raise_op import Assert, CheckAndRaise, assert_op
 from aesara.tensor.basic import (
     Alloc,
@@ -723,12 +723,8 @@ class MakeVectorPrinter(Printer):
         if r.owner is None:
             raise TypeError("Can only print make_vector.")
         elif isinstance(r.owner.op, MakeVector):
-            old_precedence = getattr(pstate, "precedence", None)
-            try:
-                pstate.precedence = 1000
+            with set_precedence(pstate):
                 s = [pstate.pprinter.process(inp) for inp in r.owner.inputs]
-            finally:
-                pstate.precedence = old_precedence
             return f"[{', '.join(s)}]"
         else:
             raise TypeError("Can only print make_vector.")
