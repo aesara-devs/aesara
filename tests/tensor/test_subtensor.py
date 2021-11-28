@@ -14,6 +14,7 @@ from aesara.compile.io import In
 from aesara.configdefaults import config
 from aesara.graph.op import get_test_value
 from aesara.graph.opt_utils import is_same_graph
+from aesara.printing import pprint
 from aesara.scalar.basic import as_scalar
 from aesara.tensor import get_vector_length
 from aesara.tensor.elemwise import DimShuffle
@@ -2524,3 +2525,36 @@ def test_get_vector_length():
 
     with pytest.raises(ValueError, match="^Length of .*"):
         get_vector_length(x[lscalar() :])
+
+
+@pytest.mark.parametrize(
+    "indices, exp_res",
+    [
+        ((0,), "x[0]"),
+        # TODO: The numbers should be printed
+        ((slice(None, 2),), "x[:int64]"),
+        ((slice(0, None),), "x[int64:]"),
+        ((slice(0, 2),), "x[int64:int64]"),
+        ((slice(0, 2, 2),), "x[int64:int64:int64]"),
+        ((slice(0, 2), 0, slice(0, 2)), "x[int64:int64, 2, int64:int64]"),
+    ],
+)
+def test_pprint_Subtensor(indices, exp_res):
+    x = tensor4("x")
+    y = x[indices]
+    assert pprint(y) == exp_res
+
+
+@pytest.mark.parametrize(
+    "indices, set_instead_of_inc, exp_res",
+    [
+        ((0,), False, "inc_subtensor(x[0], z)"),
+        ((0,), True, "set_subtensor(x[0], z)"),
+        ((slice(0, 2),), True, "set_subtensor(x[int64:int64], z)"),
+    ],
+)
+def test_pprint_IncSubtensor(indices, set_instead_of_inc, exp_res):
+    x = tensor4("x")
+    z = tensor3("z")
+    y = inc_subtensor(x[indices], z, set_instead_of_inc=set_instead_of_inc)
+    assert pprint(y) == exp_res
