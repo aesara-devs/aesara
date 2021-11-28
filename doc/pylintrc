@@ -1,11 +1,11 @@
 # lint Python modules using external checkers.
-# 
+#
 # This is the main checker controlling the other ones and the reports
 # generation. It is itself both a raw checker and an astng checker in order
 # to:
 # * handle message activation / deactivation at the module level
 # * handle some basic but necessary stats'data (number of classes, methods...)
-# 
+#
 [MASTER]
 
 # Specify a configuration file.
@@ -70,12 +70,12 @@ include-ids=no
 # written in a file name "pylint_global.[txt|html]".
 files-output=yes
 
-# Tells wether to display a full report or only the messages
+# Tells whether to display a full report or only the messages
 reports=yes
 
 # Python expression which should return a note less than 10 (10 is the highest
 # note). You have access to the variables errors warning, statement which
-# respectivly contain the number of errors / warnings messages and the total
+# respectively contain the number of errors / warnings messages and the total
 # number of statements analyzed. This is used by the global evaluation report
 # (R0004).
 evaluation=10.0 - ((float(5 * error + warning + refactor + convention) / statement) * 10)
@@ -92,15 +92,15 @@ comment=no
 
 
 # try to find bugs in the code using type inference
-# 
+#
 [TYPECHECK]
 
-# Tells wether missing members accessed in mixin class should be ignored. A
+# Tells whether missing members accessed in mixin class should be ignored. A
 # mixin class is detected if its name ends with "mixin" (case insensitive).
 ignore-mixin-members=yes
 
 # List of classes names for which member attributes should not be checked
-# (useful for classes with attributes dynamicaly set).
+# (useful for classes with attributes dynamically set).
 ignored-classes=SQLObject
 
 # When zope mode is activated, add a predefined set of Zope acquired attributes
@@ -116,11 +116,11 @@ generated-members=REQUEST,acl_users,aq_parent
 # * unused variables / imports
 # * undefined variables
 # * redefinition of variable from builtins or from an outer scope
-# * use of variable before assigment
-# 
+# * use of variable before assignment
+#
 [VARIABLES]
 
-# Tells wether we should check for unused import in __init__ files.
+# Tells whether we should check for unused import in __init__ files.
 init-import=no
 
 # A regular expression matching names used for dummy variables (i.e. not used).
@@ -134,13 +134,13 @@ additional-builtins=
 # checks for :
 # * doc strings
 # * modules / classes / functions / methods / arguments / variables name
-# * number of arguments, local variables, branchs, returns and statements in
+# * number of arguments, local variables, branches, returns and statements in
 # functions, methods
 # * required module attributes
 # * dangerous default values as arguments
 # * redefinition of function / method / class
 # * uses of the global statement
-# 
+#
 [BASIC]
 
 # Required attributes for module, separated by a comma
@@ -191,7 +191,7 @@ bad-functions=map,filter,apply,input
 # checks for sign of poor/misdesign:
 # * number of methods, attributes, local variables...
 # * size, complexity of functions, methods
-# 
+#
 [DESIGN]
 
 # Maximum number of arguments for function / method
@@ -225,11 +225,11 @@ max-public-methods=20
 # checks for :
 # * methods without self as first argument
 # * overridden methods signature
-# * access only to existant members via self
+# * access only to existent members via self
 # * attributes not defined in the __init__ method
 # * supported interfaces implementation
 # * unreachable code
-# 
+#
 [CLASSES]
 
 # List of interface methods to ignore, separated by a comma. This is used for
@@ -245,7 +245,7 @@ defining-attr-methods=__init__,__new__,setUp
 # * relative / wildcard imports
 # * cyclic imports
 # * uses of deprecated modules
-# 
+#
 [IMPORTS]
 
 # Deprecated modules which should not be used, separated by a comma
@@ -269,7 +269,7 @@ int-import-graph=
 # * strict indentation
 # * line length
 # * use of <> instead of !=
-# 
+#
 [FORMAT]
 
 # Maximum number of characters on a single line.
@@ -287,7 +287,7 @@ indent-string='    '
 # checks for similarities and duplicated code. This computation may be
 # memory / CPU intensive, so you should disable it if you experiments some
 # problems.
-# 
+#
 [SIMILARITIES]
 
 # Minimum lines number of a similarity.
@@ -303,7 +303,7 @@ ignore-docstrings=yes
 # checks for:
 # * warning notes in the code like FIXME, XXX
 # * PEP 263: source code with non ascii character but no encoding declaration
-# 
+#
 [MISCELLANEOUS]
 
 # List of note tags to take in consideration, separated by a comma.

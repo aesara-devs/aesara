@@ -13,6 +13,8 @@ import logging
 import warnings
 
 import numpy as np
+from scipy.signal.signaltools import _bvalfromboundary, _valfrommode
+from scipy.signal.sigtools import _convolve2d
 
 import aesara
 from aesara.graph.basic import Apply
@@ -27,16 +29,6 @@ from aesara.tensor.exceptions import NotScalarConstantError
 from aesara.tensor.nnet.abstract_conv import get_conv_output_shape, get_conv_shape_1axis
 from aesara.tensor.type import discrete_dtypes, tensor
 
-
-try:
-    # TODO: move these back out to global scope when they no longer
-    # cause an atexit error
-    from scipy.signal.signaltools import _bvalfromboundary, _valfrommode
-    from scipy.signal.sigtools import _convolve2d
-
-    imported_scipy_signal = True
-except ImportError:
-    imported_scipy_signal = False
 
 __docformat__ = "restructuredtext en"
 _logger = logging.getLogger("aesara.tensor.nnet.conv")
@@ -268,7 +260,7 @@ class ConvOp(OpenMPOp):
         Passed to GpuConv.
     version: int or str
         Passed to GpuConv, if version='no_fft', fft
-        optimization will be desactivated at the op level.
+        optimization will be deactivated at the op level.
     direction_hint: {'forward', 'bprop weights', 'bprop inputs'}
         Passed to GpuConv, used by graph optimizers to aid algorithm choice.
 
@@ -412,7 +404,7 @@ class ConvOp(OpenMPOp):
         """
         # The formula would be ceil((i + s * k - s * 1) / float(d)),
         # with s=1 for mode=='full' and s=-1 for mode=='valid'.
-        # To support symbolic shapes, we express this with integer arithmetics.
+        # To support symbolic shapes, we express this with integer arithmetic.
         warnings.warn(
             "The method `getOutputShape` is deprecated use"
             "`get_conv_output_shape` instead.",
@@ -808,15 +800,6 @@ class ConvOp(OpenMPOp):
         """
         img2d, filtersflipped = inp
         (z,) = out
-        if not imported_scipy_signal:
-            raise aesara.graph.utils.MethodNotDefined(
-                "c_headers",
-                type(self),
-                self.__class__.__name__,
-                "Need the python package for scipy.signal to be installed "
-                "for the python implementation. You can use the C"
-                " implementation instead.",
-            )
 
         # TODO: move these back out to global scope when they no longer
         #       cause an atexit error
@@ -1231,7 +1214,7 @@ using namespace std;
         d["mode"] = self.out_mode.upper()
         d["affectation"] = "="
 
-        # Default values, will be overrided if the shape info is provided
+        # Default values, will be overridden if the shape info is provided
         d["self_bsize"] = f"PyArray_DIMS({d['img2d']})[0]"
         d["self_nkern"] = f"PyArray_DIMS({d['filtersflipped']})[0]"
         d["self_outshp0"] = "-1"

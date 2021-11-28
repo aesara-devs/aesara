@@ -33,9 +33,9 @@ class TestSP:
         bias = dvector()
         kerns = dmatrix()
         input = dmatrix()
-        rng = np.random.RandomState(3423489)
-        filters = rng.randn(nkern, np.prod(kshp))
-        biasvals = rng.randn(nkern)
+        rng = np.random.default_rng(3423489)
+        filters = rng.standard_normal((nkern, np.prod(kshp)))
+        biasvals = rng.standard_normal((nkern))
 
         for mode in ("FAST_COMPILE", "FAST_RUN"):
             ttot, ntot = 0, 0
@@ -133,7 +133,7 @@ class TestSP:
         # symbolic stuff
         kerns = [dmatrix(), dmatrix()]
         input = dmatrix()
-        # rng = np.random.RandomState(3423489)
+        # rng = np.random.default_rng(3423489)
 
         # build actual input images
         img2d = np.arange(bsize * np.prod(imshp)).reshape((bsize,) + imshp)
@@ -184,7 +184,7 @@ class TestSP:
     def test_maxpool(self):
         # generate flatted images
         maxpoolshps = ((2, 2), (3, 3), (4, 4), (5, 5), (6, 6))
-        imval = np.random.rand(4, 5, 10, 10)
+        imval = np.random.random((4, 5, 10, 10))
 
         images = dmatrix()
         for maxpoolshp in maxpoolshps:

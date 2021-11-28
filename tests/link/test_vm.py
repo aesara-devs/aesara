@@ -11,14 +11,24 @@ from aesara.compile.mode import Mode, get_mode
 from aesara.compile.sharedvalue import shared
 from aesara.configdefaults import config
 from aesara.graph.basic import Apply
+from aesara.graph.fg import FunctionGraph
 from aesara.graph.op import Op
 from aesara.ifelse import ifelse
 from aesara.link.c.basic import OpWiseCLinker
 from aesara.link.c.exceptions import MissingGXX
-from aesara.link.vm import Loop, VMLinker
+from aesara.link.utils import map_storage
+from aesara.link.vm import VM, Loop, LoopGC, VMLinker
 from aesara.tensor.math import cosh, sin, tanh
 from aesara.tensor.type import dvector, lscalar, scalar, scalars, vector, vectors
 from aesara.tensor.var import TensorConstant
+
+
+class SomeOp(Op):
+    def perform(self, node, inputs, outputs):
+        pass
+
+    def make_node(self, x):
+        return Apply(self, [x], [x.type()])
 
 
 class TestCallbacks:
@@ -411,7 +421,7 @@ def test_reallocation():
     x = scalar("x")
     y = scalar("y")
     z = tanh(3 * x + y) + cosh(x + 5 * y)
-    # The functinality is currently implement for non lazy and non c VM only.
+    # The functionality is currently implement for non lazy and non c VM only.
     for linker in [
         VMLinker(allow_gc=False, lazy=False, use_cloop=False),
         VMLinker(allow_gc=True, lazy=False, use_cloop=False),
@@ -494,3 +504,58 @@ def test_VMLinker_make_vm_no_cvm():
 
             f = function([a], a, mode=Mode(optimizer=None, linker=linker))
             assert isinstance(f.fn, Loop)
+
+
+def test_VMLinker_exception():
+    class BadOp(Op):
+        def perform(self, node, inputs, outputs):
+            pass
+
+        def make_node(self, x):
+            return Apply(self, [x], [x.type()])
+
+        def make_thunk(self, *args, **kwargs):
+            raise Exception("bad Op")
+
+    a = scalar()
+    linker = VMLinker(allow_gc=False, use_cloop=True)
+
+    z = BadOp()(a)
+
+    with pytest.raises(Exception, match=".*Apply node that caused the error.*"):
+        function([a], z, mode=Mode(optimizer=None, linker=linker))
+
+
+def test_VM_exception():
+    class SomeVM(VM):
+        def __call__(self):
+            pass
+
+    a = scalar()
+    fg = FunctionGraph(outputs=[SomeOp()(a)])
+
+    with pytest.raises(ValueError, match="`nodes` and `thunks`.*"):
+        SomeVM(fg, fg.apply_nodes, [], [])
+
+
+def test_LoopGC_exception():
+
+    a = scalar()
+    fg = FunctionGraph(outputs=[SomeOp()(a)])
+
+    # Create valid(ish) `VM` arguments
+    nodes = fg.toposort()
+    input_storage, output_storage, storage_map = map_storage(
+        fg, nodes, None, None, None
+    )
+
+    compute_map = {}
+    for k in storage_map:
+        compute_map[k] = [k.owner is None]
+
+    thunks = [
+        node.op.make_thunk(node, storage_map, compute_map, True) for node in nodes
+    ]
+
+    with pytest.raises(ValueError, match="`nodes`, `thunks` and `post_thunk_clear`.*"):
+        LoopGC(fg, fg.apply_nodes, thunks, [], [])

@@ -54,7 +54,7 @@ def invert_inplace(a):
 
 
 @scalar_elemwise
-def abs__inplace(a):
+def abs_inplace(a):
     """|`a`| (inplace on `a`)"""
 
 
@@ -79,7 +79,7 @@ def neg_inplace(a):
 
 
 @scalar_elemwise
-def inv_inplace(a):
+def reciprocal_inplace(a):
     """1.0/a (inplace on a)"""
 
 
@@ -306,6 +306,26 @@ def i1_inplace(x):
 @scalar_elemwise
 def iv_inplace(v, x):
     """Modified Bessel function of the first kind of order v (real)."""
+
+
+@scalar_elemwise
+def sigmoid_inplace(x):
+    """Logistic sigmoid function (1 / (1 + exp(x)), also known as expit or inverse logit"""
+
+
+@scalar_elemwise
+def softplus_inplace(x):
+    """Compute log(1 + exp(x)), also known as softplus or log1pexp"""
+
+
+@scalar_elemwise
+def log1mexp_inplace(x):
+    """Compute log(1 - exp(x)), also known as log1mexp"""
+
+
+@scalar_elemwise
+def betainc_inplace(a, b, x):
+    """Regularized incomplete beta function"""
 
 
 @scalar_elemwise

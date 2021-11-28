@@ -10,6 +10,7 @@ from aesara.graph.op import COp
 from aesara.graph.params_type import ParamsType
 from aesara.misc.safe_asarray import _asarray
 from aesara.scalar import int32
+from aesara.tensor import _get_vector_length
 from aesara.tensor import basic as aet
 from aesara.tensor.exceptions import NotScalarConstantError
 from aesara.tensor.type import TensorType, int_dtypes, tensor
@@ -104,7 +105,7 @@ class Shape(COp):
 
     def c_code_cache_version(self):
         version = []
-        # If any of the c code is unversionned, we have to return ()
+        # If any of the c code is unversioned, we have to return ()
         # Else, we will return a list of (type name, version) pairs.
         for t, (c, v) in sorted(
             self.c_code_and_version.items(), key=lambda pair: str(pair[0])
@@ -127,6 +128,24 @@ class Shape(COp):
 
 shape = Shape()
 _shape = shape  # was used in the past, now use shape directly.
+
+
+@_get_vector_length.register(Shape)
+def _get_vector_length_Shape(op, var):
+    return var.owner.inputs[0].type.ndim
+
+
+def shape_tuple(x):
+    """Get a tuple of symbolic shape values.
+
+    This will return a `ScalarConstant` with the value ``1`` wherever
+    broadcastable is ``True``.
+    """
+    one_at = aesara.scalar.ScalarConstant(aesara.scalar.int64, 1)
+    return tuple(
+        one_at if getattr(sh, "value", sh) == 1 or bcast else sh
+        for sh, bcast in zip(shape(x), getattr(x, "broadcastable", (False,) * x.ndim))
+    )
 
 
 class Shape_i(COp):
@@ -165,7 +184,7 @@ class Shape_i(COp):
     #    when params_type is defined directly in class code.
     # 2) We wrap scalar into ParamsType (instead of directly using scalar as op param)
     #    to avoid Aesara converting scalar param to constant that would be later
-    #    hardcoded as litteral in C code, making us loose all the advantages of
+    #    hardcoded as literal in C code, making us loose all the advantages of
     #    using params.
     @property
     def params_type(self):
@@ -176,9 +195,9 @@ class Shape_i(COp):
 
     def make_node(self, x):
         if not isinstance(x, Variable):
-            raise TypeError("x must be Variable with ndim attribute", x)
+            raise TypeError(f"{x} must be Variable with ndim attribute")
         if x.ndim <= self.i:
-            raise TypeError("x has too few dimensions for Shape_i", (x, self.i))
+            raise TypeError(f"{x} has too few dimensions for Shape_i")
         return Apply(self, [x], [aesara.tensor.type.lscalar()])
 
     def perform(self, node, inp, out_, params):
@@ -191,7 +210,7 @@ class Shape_i(COp):
 
     def c_code_cache_version(self):
         version = []
-        # If any of the c code is unversionned, we have to return ()
+        # If any of the c code is unversioned, we have to return ()
         # Else, we will return a list of (type name, version) pairs.
         for t, (c, ci, v) in sorted(
             self.c_code_and_version.items(), key=lambda pair: str(pair[0])
@@ -371,22 +390,33 @@ class SpecifyShape(COp):
     def make_node(self, x, shape):
         if not isinstance(x, Variable):
             x = aet.as_tensor_variable(x)
-        shape = aet.as_tensor_variable(shape)
-        if shape.ndim > 1:
-            raise AssertionError()
-        if shape.dtype not in aesara.tensor.type.integer_dtypes:
-            raise AssertionError()
-        if isinstance(shape, TensorConstant) and shape.data.size != x.ndim:
-            raise AssertionError()
-        return Apply(self, [x, shape], [x.type()])
+        if shape == () or shape == []:
+            tshape = aet.constant([], dtype="int64")
+        else:
+            tshape = aet.as_tensor_variable(shape, ndim=1)
+            if tshape.dtype not in aesara.tensor.type.integer_dtypes:
+                raise AssertionError(
+                    f"The `shape` must be an integer type. Got {tshape.dtype} instead."
+                )
+        if isinstance(tshape, TensorConstant) and tshape.data.size != x.ndim:
+            ndim = len(tshape.data)
+            raise AssertionError(
+                f"Input `x` is {x.ndim}-dimensional and will never match a {ndim}-dimensional shape."
+            )
+        return Apply(self, [x, tshape], [x.type()])
 
     def perform(self, node, inp, out_):
         x, shape = inp
         (out,) = out_
-        if x.ndim != shape.size:
-            raise AssertionError()
+        ndim = len(shape)
+        if x.ndim != ndim:
+            raise AssertionError(
+                f"SpecifyShape: Got {x.ndim} dimensions (shape {x.shape}), expected {ndim} dimensions with shape {tuple(shape)}."
+            )
         if not np.all(x.shape == shape):
-            raise AssertionError(f"Got shape {x.shape}, expected {shape}")
+            raise AssertionError(
+                f"SpecifyShape: Got shape {x.shape}, expected {tuple(shape)}."
+            )
         out[0] = x
 
     def infer_shape(self, fgraph, node, shapes):
@@ -446,7 +476,7 @@ class SpecifyShape(COp):
 
     def c_code_cache_version(self):
         version = []
-        # If any of the c code is unversionned, we have to return ()
+        # If any of the c code is unversioned, we have to return ()
         # Else, we will return a list of (type name, version) pairs.
         for t, (c, v, _) in sorted(
             self.c_code_and_version.items(), key=lambda pair: str(pair[0])
@@ -466,6 +496,14 @@ class SpecifyShape(COp):
 
 
 specify_shape = SpecifyShape()
+
+
+@_get_vector_length.register(SpecifyShape)
+def _get_vector_length_SpecifyShape(op, var):
+    try:
+        return aet.get_scalar_constant_value(var.owner.inputs[1])
+    except NotScalarConstantError:
+        raise ValueError(f"Length of {var} cannot be determined")
 
 
 class Reshape(COp):
@@ -502,7 +540,7 @@ class Reshape(COp):
             # It raises an error if shp is not of integer type,
             # except when shp is constant and empty
             # (in this case, shp.dtype does not matter anymore).
-            raise TypeError("Shape must be integers", shp, shp.dtype)
+            raise TypeError(f"Shape must be integers; got {shp.dtype}")
         assert shp.ndim == 1
         if isinstance(shp, TensorConstant):
             bcast = [s == 1 for s in shp.data]
@@ -535,8 +573,7 @@ class Reshape(COp):
                     "shape argument to Reshape.perform has incorrect"
                     f" length {len(shp)}"
                     f", should be {self.ndim}"
-                ),
-                shp,
+                )
             )
         try:
             out[0] = np.reshape(x, shp)
@@ -554,7 +591,7 @@ class Reshape(COp):
     def R_op(self, inputs, eval_points):
         if eval_points[0] is None:
             return [None]
-        return self(eval_points[0], *inputs[1:], **dict(return_list=True))
+        return self(eval_points[0], *inputs[1:], return_list=True)
 
     def infer_shape(self, fgraph, node, ishapes):
         from aesara.tensor.math import eq, maximum, mul
@@ -804,10 +841,10 @@ register_specify_shape_c_code(
     """
         if (PyArray_NDIM(%(iname)s) != PyArray_DIMS(%(shape)s)[0]) {
             PyErr_Format(PyExc_AssertionError,
-                         "SpecifyShape: vector of shape has %%d elements,"
-                         " but the input has %%d dimensions.",
-                         PyArray_DIMS(%(shape)s)[0],
-                         PyArray_NDIM(%(iname)s));
+                "SpecifyShape: Got %%d dimensions, expected %%d dimensions.",
+                PyArray_NDIM(%(iname)s),
+                PyArray_DIMS(%(shape)s)[0]
+            );
             %(fail)s;
         }
         for(int i = 0; i < PyArray_NDIM(%(iname)s); i++){

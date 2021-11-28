@@ -9,7 +9,7 @@ from tests.sparse.test_basic import as_sparse_format
 
 
 def test_hash_from_sparse():
-    hashs = []
+    hashes = []
     rng = np.random.rand(5, 5)
 
     for format in ["csc", "csr"]:
@@ -41,11 +41,11 @@ def test_hash_from_sparse():
         ]:
             data = as_sparse_format(data, format)
 
-            hashs.append(hash_from_sparse(data))
+            hashes.append(hash_from_sparse(data))
 
         # test that different type of views and their copy give the same hash
         assert hash_from_sparse(rng[1:]) == hash_from_sparse(rng[1:].copy())
         assert hash_from_sparse(rng[1:3]) == hash_from_sparse(rng[1:3].copy())
         assert hash_from_sparse(rng[:4]) == hash_from_sparse(rng[:4].copy())
 
-    assert len(set(hashs)) == len(hashs)
+    assert len(set(hashes)) == len(hashes)

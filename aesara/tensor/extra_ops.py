@@ -1,9 +1,9 @@
 from collections.abc import Collection
+from typing import Iterable, Tuple, Union
 
 import numpy as np
 
 import aesara
-from aesara.assert_op import Assert
 from aesara.gradient import (
     DisconnectedType,
     _float_zeros_like,
@@ -15,13 +15,16 @@ from aesara.graph.op import COp, Op
 from aesara.graph.params_type import ParamsType
 from aesara.graph.type import EnumList, Generic
 from aesara.misc.safe_asarray import _asarray
+from aesara.raise_op import Assert
 from aesara.scalar import int32 as int_t
 from aesara.scalar import upcast
 from aesara.tensor import basic as aet
 from aesara.tensor.exceptions import NotScalarConstantError
-from aesara.tensor.math import abs_
+from aesara.tensor.math import abs as aet_abs
 from aesara.tensor.math import all as aet_all
-from aesara.tensor.math import eq, ge, lt, maximum, minimum, or_, prod
+from aesara.tensor.math import eq, ge, lt
+from aesara.tensor.math import max as aet_max
+from aesara.tensor.math import maximum, minimum, or_, prod
 from aesara.tensor.math import sum as aet_sum
 from aesara.tensor.subtensor import advanced_inc_subtensor1, set_subtensor
 from aesara.tensor.type import (
@@ -32,13 +35,15 @@ from aesara.tensor.type import (
     integer_dtypes,
     vector,
 )
+from aesara.tensor.var import TensorVariable
 from aesara.utils import LOCAL_BITWIDTH, PYTHON_INT_BITWIDTH
 
 
 class CpuContiguous(COp):
     """
-    Check to see if the input is c-contiguous,
-    if it is, do nothing, else return a contiguous array.
+    Check to see if the input is c-contiguous.
+
+    If it is, do nothing, else return a contiguous array.
     """
 
     __props__ = ()
@@ -52,7 +57,7 @@ class CpuContiguous(COp):
     def perform(self, node, inputs, output_storage):
         (x,) = inputs
         y = output_storage[0]
-        # if the ouput is contiguous do nothing, else copy
+        # if the output is contiguous do nothing, else copy
         # the input
         if not x.flags["C_CONTIGUOUS"]:
             x = x.copy()
@@ -97,13 +102,13 @@ cpu_contiguous = CpuContiguous()
 
 
 class SearchsortedOp(COp):
-    """Wrapper of numpy.searchsorted.
+    """Wrapper for ``numpy.searchsorted``.
 
     For full documentation, see :func:`searchsorted`.
 
     See Also
     --------
-    searchsorted : numpy-like function to use the SearchsortedOp
+    searchsorted : numpy-like function that uses `SearchsortedOp`
 
     """
 
@@ -220,24 +225,24 @@ class SearchsortedOp(COp):
 def searchsorted(x, v, side="left", sorter=None):
     """Find indices where elements should be inserted to maintain order.
 
-    Wrapping of numpy.searchsorted. Find the indices into a sorted array
+    This wraps ``numpy.searchsorted``. Find the indices into a sorted array
     `x` such that, if the corresponding elements in `v` were inserted
     before the indices, the order of `x` would be preserved.
 
     Parameters
     ----------
-    x: 1-D tensor (array-like)
-        Input array. If `sorter` is None, then it must be sorted in
+    x : 1-D tensor (array-like)
+        Input array. If `sorter` is ``None``, then it must be sorted in
         ascending order, otherwise `sorter` must be an array of indices
         which sorts it.
-    v: tensor (array-like)
+    v : tensor (array-like)
         Contains the values to be inserted into `x`.
-    side: {'left', 'right'}, optional.
-        If 'left' (default), the index of the first suitable
-        location found is given. If 'right', return the last such index. If
+    side : {'left', 'right'}, optional.
+        If ``'left'`` (default), the index of the first suitable
+        location found is given. If ``'right'``, return the last such index. If
         there is no suitable index, return either 0 or N (where N is the length
         of `x`).
-    sorter: 1-D tensor of integers (array-like), optional
+    sorter : 1-D tensor of integers (array-like), optional
         Contains indices that sort array `x` into ascending order.
         They are typically the result of argsort.
 
@@ -252,8 +257,9 @@ def searchsorted(x, v, side="left", sorter=None):
 
     Notes
     -----
-    * Binary search is used to find the required insertion points.
-    * This Op is working **only on CPU** currently.
+
+        * Binary search is used to find the required insertion points.
+        * This Op is working **only on CPU** currently.
 
     Examples
     --------
@@ -407,9 +413,9 @@ class CumOp(COp):
 
 
 def cumsum(x, axis=None):
-    """Return the cumulative sum of the elements along a given axis.
+    """Return the cumulative sum of the elements along a given `axis`.
 
-    Wraping of numpy.cumsum.
+    This wraps ``numpy.cumsum``.
 
     Parameters
     ----------
@@ -427,18 +433,17 @@ def cumsum(x, axis=None):
 
 
 def cumprod(x, axis=None):
-    """Return the cumulative product of the elements along a given axis.
+    """Return the cumulative product of the elements along a given `axis`.
 
-    Wraping of numpy.cumprod.
+    This wraps ``numpy.cumprod``.
 
     Parameters
     ----------
     x
         Input tensor variable.
-
     axis
         The axis along which the cumulative product is computed.
-        The default (None) is to compute the cumprod over the flattened array.
+        The default (None) is to compute the `cumprod` over the flattened array.
 
 
     .. versionadded:: 0.7
@@ -517,20 +522,18 @@ class DiffOp(Op):
 
 
 def diff(x, n=1, axis=-1):
-    """Calculate the n-th order discrete difference along given axis.
+    """Calculate the `n`-th order discrete difference along the given `axis`.
 
-    The first order difference is given by out[i] = a[i + 1] - a[i]
-    along the given axis, higher order differences are calculated by
-    using diff recursively. Wraping of numpy.diff.
+    The first order difference is given by ``out[i] = a[i + 1] - a[i]``
+    along the given `axis`, higher order differences are calculated by
+    using `diff` recursively. This wraps ``numpy.diff``.
 
     Parameters
     ----------
     x
         Input tensor variable.
-
     n
         The number of times values are differenced, default is 1.
-
     axis
         The axis along which the difference is taken, default is the last axis.
 
@@ -542,27 +545,28 @@ def diff(x, n=1, axis=-1):
 
 
 def bincount(x, weights=None, minlength=None, assert_nonneg=False):
-    """Count number of occurrences of each value in array of ints.
+    """Count number of occurrences of each value in an array of integers.
 
     The number of bins (of size 1) is one larger than the largest
-    value in x. If minlength is specified, there will be at least
+    value in `x`. If minlength is specified, there will be at least
     this number of bins in the output array (though it will be longer
-    if necessary, depending on the contents of x). Each bin gives the
-    number of occurrences of its index value in x. If weights is
-    specified the input array is weighted by it, i.e. if a value n
-    is found at position i, out[n] += weight[i] instead of out[n] += 1.
+    if necessary, depending on the contents of `x`). Each bin gives the
+    number of occurrences of its index value in `x`. If `weights` is
+    specified the input array is weighted by it, i.e. if a value ``n`` is found
+    at position ``i``, ``out[n] += weight[i]`` instead of ``out[n] += 1``.
 
     Parameters
     ----------
-    x : 1 dimension, nonnegative ints
-    weights : array of the same shape as x with corresponding weights.
+    x
+        A one dimensional array of non-negative integers
+    weights
+        An array of the same shape as `x` with corresponding weights.
         Optional.
-    minlength : A minimum number of bins for the output array.
-        Optional.
-    assert_nonneg : A flag that inserts an assert_op to check if
-        every input x is nonnegative.
-        Optional.
-
+    minlength
+        A minimum number of bins for the output array.  Optional.
+    assert_nonneg
+        A flag that inserts an ``assert_op`` to check if
+        every input `x` is non-negative.  Optional.
 
     .. versionadded:: 0.6
 
@@ -594,27 +598,23 @@ def squeeze(x, axis=None):
     """
     Remove broadcastable dimensions from the shape of an array.
 
-    It returns the input array, but with the
-    broadcastable dimensions removed. This is
-    always `x` itself or a view into `x`.
+    It returns the input array, but with the broadcastable dimensions
+    removed. This is always `x` itself or a view into `x`.
 
     .. versionadded:: 0.6
 
     Parameters
     ----------
-    x
+    x :
         Input data, tensor variable.
-
     axis : None or int or tuple of ints, optional
-
         Selects a subset of the single-dimensional entries in the
         shape. If an axis is selected with shape entry greater than
         one, an error is raised.
 
     Returns
     -------
-    object
-        `x` without its broadcastable dimensions.
+    `x` without its broadcastable dimensions.
 
     """
     if axis is None:
@@ -632,31 +632,32 @@ def compress(condition, x, axis=None):
     """
     Return selected slices of an array along given axis.
 
-    It returns the input tensor, but with selected slices along a given axis
-    retained. If no axis is provided, the tensor is flattened.
-    Corresponds to numpy.compress
+    It returns the input tensor, but with selected slices along a given `axis`
+    retained. If no `axis` is provided, the tensor is flattened.
+    Corresponds to ``numpy.compress``
 
     .. versionadded:: 0.7
 
     Parameters
     ----------
+    condition
+        One dimensional array of non-zero and zero values
+        corresponding to indices of slices along a selected axis.
     x
         Input data, tensor variable.
-    condition
-         1 dimensional array of non-zero and zero values
-         corresponding to indices of slices along a selected axis.
+    axis
+        The axis along which to slice.
 
     Returns
     -------
-    object
-        `x` with selected slices.
+    `x` with selected slices.
 
     """
     indices = aet.flatnonzero(condition)
     return x.take(indices, axis=axis)
 
 
-class RepeatOp(Op):
+class Repeat(Op):
     # See the repeat function for docstring
 
     __props__ = ("axis",)
@@ -771,13 +772,12 @@ class RepeatOp(Op):
 def repeat(x, repeats, axis=None):
     """Repeat elements of an array.
 
-    It returns an array which has the same shape as `x`, except
-    along the given axis. The axis is used to speficy along which
-    axis to repeat values. By default, use the flattened input
-    array, and return a flat output array.
+    It returns an array which has the same shape as `x`, except along the given
+    `axis`. The `axis` parameter is used to specify the axis along which values
+    are repeated. By default, a flattened version of `x` is used.
 
-    The number of repetitions for each element is `repeat`.
-    `repeats` is broadcasted to fit the length of the given `axis`.
+    The number of repetitions for each element is `repeats`.  `repeats` is
+    broadcasted to fit the length of the given `axis`.
 
     Parameters
     ----------
@@ -794,13 +794,13 @@ def repeat(x, repeats, axis=None):
     .. versionadded:: 0.6
 
     """
-    repeats = aet.as_tensor_variable(repeats)
+    repeats = aet.as_tensor_variable(repeats, dtype=np.int64)
 
     if repeats.ndim > 1:
         raise ValueError("The dimension of repeats should not exceed 1.")
 
     if repeats.ndim == 1 and not repeats.broadcastable[0]:
-        return RepeatOp(axis=axis)(x, repeats)
+        return Repeat(axis=axis)(x, repeats)
     else:
         if repeats.ndim == 1:
             repeats = repeats[0]
@@ -970,8 +970,8 @@ fill_diagonal_ = FillDiagonal()
 # I create a function only to have the doc show well.
 def fill_diagonal(a, val):
     """
-    Returns a copy of an array with all
-    elements of the main diagonal set to a specified scalar value.
+    Returns a copy of an array with all elements of the main diagonal set to a
+    specified scalar value.
 
     .. versionadded:: 0.6
 
@@ -981,18 +981,18 @@ def fill_diagonal(a, val):
         Rectangular array of at least two dimensions.
     val
         Scalar value to fill the diagonal whose type must be
-        compatible with that of array 'a' (i.e. 'val' cannot be viewed
-        as an upcast of 'a').
+        compatible with that of array `a` (i.e. `val` cannot be viewed
+        as an upcast of `a`).
 
     Returns
     -------
     array
-        An array identical to 'a' except that its main diagonal
-        is filled with scalar 'val'. (For an array 'a' with a.ndim >=
-        2, the main diagonal is the list of locations a[i, i, ..., i]
+        An array identical to `a` except that its main diagonal
+        is filled with scalar `val`. (For an array `a` with ``a.ndim >=
+        2``, the main diagonal is the list of locations ``a[i, i, ..., i]``
         (i.e. with indices all identical).)
 
-    Support rectangular matrix and tensor with more than 2 dimensions
+    Support rectangular matrix and tensor with more than two dimensions
     if the later have all dimensions are equals.
 
 
@@ -1086,7 +1086,7 @@ class FillDiagonalOffset(Op):
         # only valid for matrices
         wr_a = fill_diagonal_offset(grad, 0, offset)
 
-        offset_abs = abs_(offset)
+        offset_abs = aet_abs(offset)
         pos_offset_flag = ge(offset, 0)
         neg_offset_flag = lt(offset, 0)
         min_wh = minimum(width, height)
@@ -1131,8 +1131,8 @@ def fill_diagonal_offset(a, val, offset):
         Rectangular array of two dimensions.
     val
         Scalar value to fill the diagonal whose type must be
-        compatible with that of array 'a' (i.e. 'val' cannot be viewed
-        as an upcast of 'a').
+        compatible with that of array `a` (i.e. `val` cannot be viewed
+        as an upcast of `a`).
     offset
         Scalar value Offset of the diagonal from the main
         diagonal. Can be positive or negative integer.
@@ -1140,8 +1140,8 @@ def fill_diagonal_offset(a, val, offset):
     Returns
     -------
     array
-        An array identical to 'a' except that its offset diagonal
-        is filled with scalar 'val'. The output is unwrapped.
+        An array identical to `a` except that its offset diagonal
+        is filled with scalar `val`. The output is unwrapped.
 
     """
     return fill_diagonal_offset_(a, val, offset)
@@ -1150,21 +1150,21 @@ def fill_diagonal_offset(a, val, offset):
 def to_one_hot(y, nb_class, dtype=None):
     """
     Return a matrix where each row correspond to the one hot
-    encoding of each element in y.
+    encoding of each element in `y`.
 
     Parameters
     ----------
     y
-        A vector of integer value between 0 and nb_class - 1.
+        A vector of integer value between ``0`` and ``nb_class - 1``.
     nb_class : int
-        The number of class in y.
+        The number of class in `y`.
     dtype : data-type
-        The dtype of the returned matrix. Default floatX.
+        The dtype of the returned matrix. Default ``aesara.config.floatX``.
 
     Returns
     -------
     object
-        A matrix of shape (y.shape[0], nb_class), where each row ``i`` is
+        A matrix of shape ``(y.shape[0], nb_class)``, where each row ``i`` is
         the one hot encoding of the corresponding ``y[i]`` value.
 
     """
@@ -1175,7 +1175,7 @@ def to_one_hot(y, nb_class, dtype=None):
 
 class Unique(Op):
     """
-    Wraps numpy.unique. This op is not implemented on the GPU.
+    Wraps `numpy.unique`. This `Op` is not implemented on the GPU.
 
     Examples
     --------
@@ -1303,9 +1303,10 @@ def unique(
     Returns the sorted unique elements of an array. There are three optional
     outputs in addition to the unique elements:
 
-    * the indices of the input array that give the unique values
-    * the indices of the unique array that reconstruct the input array
-    * the number of times each unique value comes up in the input array
+        * the indices of the input array that give the unique values
+        * the indices of the unique array that reconstruct the input array
+        * the number of times each unique value comes up in the input array
+
     """
     return Unique(return_index, return_inverse, return_counts, axis)(ar)
 
@@ -1364,9 +1365,9 @@ def unravel_index(indices, dims, order="C"):
     ----------
     indices : Aesara or NumPy array
         An integer array whose elements are indices into the flattened
-        version of an array of dimensions ``dims``.
+        version of an array of dimensions `dims`.
     dims : tuple of ints
-        The shape of the array to use for unraveling ``indices``.
+        The shape of the array to use for unraveling `indices`.
     order : {'C', 'F'}, optional
         Determines whether the indices should be viewed as indexing in
         row-major (C-style) or column-major (Fortran-style) order.
@@ -1374,7 +1375,7 @@ def unravel_index(indices, dims, order="C"):
     Returns
     -------
     unraveled_coords : tuple of ndarray
-        Each array in the tuple has the same shape as the ``indices``
+        Each array in the tuple has the same shape as the `indices`
         array.
 
     See Also
@@ -1451,7 +1452,7 @@ def ravel_multi_index(multi_index, dims, mode="raise", order="C"):
 
     Returns
     -------
-    raveled_indices : Aesara array
+    raveled_indices : TensorVariable
         An array of indices into the flattened version of an array
         of dimensions ``dims``.
 
@@ -1471,96 +1472,109 @@ def broadcast_shape(*arrays, **kwargs):
 
     Parameters
     ----------
-    *arrays: `TensorVariable`s
+    *arrays: TensorVariable
         The tensor variables, or their shapes (as tuples),
         for which the broadcast shape is computed.
     arrays_are_shapes: bool (Optional)
         Indicates whether or not the `arrays` contains shape tuples.
         If you use this approach, make sure that the broadcastable dimensions
-        are (scalar) constants with the value `1` or `1` exactly.
+        are (scalar) constants with the value ``1``--or simply the integer
+        ``1``.
 
     """
     return broadcast_shape_iter(arrays, **kwargs)
 
 
-def broadcast_shape_iter(arrays, **kwargs):
-    """Compute the shape resulting from broadcasting arrays.
+def broadcast_shape_iter(
+    arrays: Iterable[Union[TensorVariable, Tuple[TensorVariable, ...]]],
+    arrays_are_shapes: bool = False,
+):
+    r"""Compute the shape resulting from broadcasting arrays.
+
+
+    .. warning::
+
+        This function will not make copies, so be careful when calling it with
+        a generator/iterator!
+
 
     Parameters
     ----------
-    arrays: Iterable[TensorVariable] or Iterable[Tuple[Variable]]
+    arrays
         An iterable of tensors, or a tuple of shapes (as tuples),
         for which the broadcast shape is computed.
-        XXX: Do not call this with a generator/iterator; this function will not
-        make copies!
-    arrays_are_shapes: bool (Optional)
+    arrays_are_shapes
         Indicates whether or not the `arrays` contains shape tuples.
         If you use this approach, make sure that the broadcastable dimensions
-        are (scalar) constants with the value `1` or `1` exactly.
+        are (scalar) constants with the value ``1``--or simply the integer
+        ``1``.
 
     """
-    one = aesara.scalar.ScalarConstant(aesara.scalar.int64, 1)
+    one_at = aesara.scalar.ScalarConstant(aesara.scalar.int64, 1)
 
-    arrays_are_shapes = kwargs.pop("arrays_are_shapes", False)
     if arrays_are_shapes:
         max_dims = max(len(a) for a in arrays)
 
         array_shapes = [
-            (one,) * (max_dims - len(a))
-            + tuple(one if getattr(sh, "value", sh) == 1 else sh for sh in a)
+            (one_at,) * (max_dims - len(a))
+            + tuple(one_at if getattr(sh, "value", sh) == 1 else sh for sh in a)
             for a in arrays
         ]
     else:
         max_dims = max(a.ndim for a in arrays)
 
         array_shapes = [
-            (one,) * (max_dims - a.ndim)
-            + tuple(one if bcast else sh for sh, bcast in zip(a.shape, a.broadcastable))
+            (one_at,) * (max_dims - a.ndim)
+            + tuple(
+                one_at if bcast else sh for sh, bcast in zip(a.shape, a.broadcastable)
+            )
             for a in arrays
         ]
 
     result_dims = []
 
     for dim_shapes in zip(*array_shapes):
-        non_bcast_shapes = [shape for shape in dim_shapes if shape != one]
+        # Get the shapes in this dimension that are not definitively
+        # broadcastable (i.e. not symbolically known to be broadcastable)
+        maybe_non_bcast_shapes = [shape for shape in dim_shapes if shape != one_at]
 
-        if len(non_bcast_shapes) > 0:
-            # Either there's only one non-broadcastable dimensions--and that's
-            # what determines the dimension size, or there are multiple
-            # non-broadcastable dimensions that must be equal
-            i_dim = non_bcast_shapes.pop()
+        if len(maybe_non_bcast_shapes) == 0:
+            # Every shape was broadcastable in this dimension
+            result_dims.append(one_at)
+        elif len(maybe_non_bcast_shapes) == 1:
+            # Only one shape might not be broadcastable in this dimension
+            result_dims.extend(maybe_non_bcast_shapes)
+        else:
+            # More than one shape might not be broadcastable in this dimension
 
-            potentially_unequal_dims = [
-                dim
-                for dim in non_bcast_shapes
+            all_dims_equal = all(
                 # TODO FIXME: This is a largely deficient means of comparing graphs
                 # (and especially shapes)
-                if not equal_computations([i_dim], [dim])
-            ]
+                equal_computations([maybe_non_bcast_shapes[0]], [dim])
+                for dim in maybe_non_bcast_shapes[1:]
+            )
 
-            if potentially_unequal_dims:
-                # In this case, we can't tell whether or not the dimensions are
-                # equal, so we'll need to assert their equality and move the error
-                # handling to evaluation time.
-                assert_dim = Assert("Could not broadcast dimensions")
-                eq_condition = aet_all(
-                    [
-                        or_(eq(dim, one), eq(i_dim, dim))
-                        for dim in potentially_unequal_dims
-                    ]
-                )
-                eq_condition = or_(eq(i_dim, one), eq_condition)
-                result_dims.append(assert_dim(i_dim, eq_condition))
-            else:
-                result_dims.append(i_dim)
-        else:
-            # Every array was broadcastable in this dimension
-            result_dims.append(one)
+            if all_dims_equal:
+                result_dims.append(maybe_non_bcast_shapes[0])
+                continue
+
+            non_bcast_vec = aet.as_tensor(maybe_non_bcast_shapes)
+            non_bcast_vec = aet.switch(eq(non_bcast_vec, 1), -one_at, non_bcast_vec)
+            dim_max = aet_abs(aet_max(non_bcast_vec))
+
+            assert_dim = Assert("Could not broadcast dimensions")
+            assert_cond = aet_all(
+                or_(eq(non_bcast_vec, -one_at), eq(non_bcast_vec, dim_max))
+            )
+            bcast_dim = assert_dim(dim_max, assert_cond)
+
+            result_dims.append(bcast_dim)
 
     return tuple(result_dims)
 
 
 class BroadcastTo(Op):
+    """An `Op` for `numpy.broadcast_to`."""
 
     view_map = {0: [0]}
 
@@ -1574,6 +1588,9 @@ class BroadcastTo(Op):
         shape, bcast = aet.alloc_validate_shape(shape)
 
         out = type(a.type)(dtype=a.type.dtype, broadcastable=bcast)()
+
+        # Attempt to prevent in-place operations on this view-based output
+        out.tag.indestructible = True
 
         return Apply(self, [a] + shape, [out])
 
@@ -1611,3 +1628,15 @@ class BroadcastTo(Op):
 
 
 broadcast_to = BroadcastTo()
+
+
+def broadcast_arrays(*args: TensorVariable) -> Tuple[TensorVariable, ...]:
+    """Broadcast any number of arrays against each other.
+
+    Parameters
+    ----------
+    *args
+        The arrays to broadcast.
+
+    """
+    return tuple(broadcast_to(a, broadcast_shape(*args)) for a in args)

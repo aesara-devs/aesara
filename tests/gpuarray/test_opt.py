@@ -5,7 +5,6 @@ import aesara
 import aesara.gpuarray
 import aesara.tensor.slinalg as slinalg
 from aesara import tensor as aet
-from aesara.assert_op import Assert, assert_op
 from aesara.breakpoint import PdbBreakpoint
 from aesara.configdefaults import config
 from aesara.gpuarray import basic_ops, blas, dnn, opt
@@ -30,6 +29,7 @@ from aesara.gpuarray.linalg import GpuCholesky, GpuCusolverSolve, cusolver_avail
 from aesara.gpuarray.subtensor import GpuSubtensor
 from aesara.gpuarray.type import GpuArrayType, get_context, gpuarray_shared_constructor
 from aesara.graph.opt import check_stack_trace
+from aesara.raise_op import Assert, assert_op
 from aesara.tensor.basic import Alloc, AllocEmpty, MakeVector, Rebroadcast
 from aesara.tensor.blas import batched_dot
 from aesara.tensor.math import dot, eq, exp, gt, tanh
@@ -291,7 +291,7 @@ def test_local_gpualloc_empty():
     topo = f.maker.fgraph.toposort()
     assert len(topo) == 1
     assert isinstance(topo[0].op, AllocEmpty)
-    # This return not initilized data, so we can only check the shape
+    # This return not initialized data, so we can only check the shape
     assert f(3).shape == (3,)
     assert _check_stack_trace(f)
 
@@ -302,7 +302,7 @@ def test_local_gpualloc_empty():
     topo = f.maker.fgraph.toposort()
     assert len(topo) == 3
     assert isinstance(topo[0].op, GpuAllocEmpty)
-    # This return not initilized data, so we can only check the shape
+    # This return not initialized data, so we can only check the shape
     assert f(3).shape == (3,)
     assert _check_stack_trace(f)
 
@@ -312,7 +312,7 @@ def test_local_gpualloc_empty():
     topo = f.maker.fgraph.toposort()
     assert len(topo) == 3
     assert isinstance(topo[0].op, GpuAllocEmpty)
-    # This return not initilized data, so we can only check the shape
+    # This return not initialized data, so we can only check the shape
     assert f(3, 4).shape == (3, 4)
     assert _check_stack_trace(f)
 
@@ -550,7 +550,7 @@ def test_local_gpu_elemwise():
     utt.assert_allclose(f(a_v, b_v, c_v), a_v + b_v + c_v)
     assert _check_stack_trace(f)
 
-    return  # Not yet implemeted
+    return  # Not yet implemented
     # Test multiple output
     a_s = aesara.scalar.float32()
     a = fmatrix()
@@ -595,14 +595,15 @@ def test_many_arg_elemwise():
     # This test checks whether the + and * elemwise ops can handle
     # extremely large numbers of arguments on gpu.
 
-    rng = np.random.RandomState([1, 2, 3])
+    rng = np.random.default_rng([1, 2, 3])
     nb_of_inputs_overflows = []
     for num_args in [64]:
         for op_to_test in [aesara.tensor.add, aesara.tensor.mul]:
             for nb_dim in [2, 8]:
-                shapes = [rng.randint(1, 5) for i in range(nb_dim)]
+                shapes = [rng.integers(1, 5) for i in range(nb_dim)]
                 args = [
-                    np.cast["float32"](rng.randn(*shapes)) for arg in range(0, num_args)
+                    np.cast["float32"](rng.standard_normal(shapes))
+                    for arg in range(0, num_args)
                 ]
 
                 symb_args = [
@@ -645,8 +646,8 @@ def test_not_useless_scalar_gpuelemwise():
 
     with config.change_flags(warn_float64="ignore"):
         X = fmatrix()
-        x = np.random.randn(32, 32).astype(np.float32)
-        m1 = aesara.shared(np.random.randn(32, 32).astype(np.float32))
+        x = np.random.standard_normal((32, 32)).astype(np.float32)
+        m1 = aesara.shared(np.random.standard_normal((32, 32)).astype(np.float32))
         loss = (X - dot(X, m1)).norm(L=2)
         lr = aesara.shared(np.asarray(0.001, dtype=np.float32))
         grad = aesara.grad(loss, m1)
@@ -672,7 +673,7 @@ def test_local_lift_abstractconv_gpu_shape():
 
 
 def test_local_assert_no_cpu_op():
-    rng = np.random.RandomState(utt.fetch_seed())
+    rng = np.random.default_rng(utt.fetch_seed())
     m = rng.uniform(-1, 1, (10, 10)).astype("float32")
     ms = gpuarray_shared_constructor(m, name="m_shared")
     out = tanh(ms).dot(ms.T)
@@ -699,9 +700,7 @@ def test_no_complex():
 
 
 @utt.assertFailure_fast
-@pytest.mark.skipif(
-    not cusolver_available or not slinalg.imported_scipy, reason="No cuSolver or SciPy"
-)
+@pytest.mark.skipif(not cusolver_available, reason="No cuSolver or SciPy")
 def test_local_lift_solve():
     A = fmatrix()
     b = fmatrix()
@@ -721,9 +720,7 @@ def test_local_lift_solve():
     assert _check_stack_trace(f_gpu)
 
 
-@pytest.mark.skipif(
-    not cusolver_available or not slinalg.imported_scipy, reason="No cuSolver or SciPy"
-)
+@pytest.mark.skipif(not cusolver_available, reason="No cuSolver or SciPy")
 def test_gpu_solve_not_inplace():
     A = fmatrix()
     b = fmatrix()
@@ -745,9 +742,7 @@ def test_gpu_solve_not_inplace():
 
 
 @utt.assertFailure_fast
-@pytest.mark.skipif(
-    not cusolver_available or not slinalg.imported_scipy, reason="No cuSolver or SciPy"
-)
+@pytest.mark.skipif(not cusolver_available, reason="No cuSolver or SciPy")
 def test_local_lift_cholesky():
     A = fmatrix()
     o = slinalg.cholesky(A)
@@ -767,9 +762,7 @@ def test_local_lift_cholesky():
     utt.assert_allclose(f_cpu(A_val), f_gpu(A_val))
 
 
-@pytest.mark.skipif(
-    not cusolver_available or not slinalg.imported_scipy, reason="No cuSolver or SciPy"
-)
+@pytest.mark.skipif(not cusolver_available, reason="No cuSolver or SciPy")
 def test_gpu_cholesky_not_inplace():
     A = fmatrix()
     A_squared = A ** 2
@@ -806,17 +799,17 @@ def test_local_gpua_advanced_incsubtensor():
 def test_batched_dot_lifter():
     # The CPU Op accepts 2D and 3D inputs, as well as mixed dtypes.
     # Make sure the lifter adds the appropriate dimshuffles and casts
-    rng = np.random.RandomState(utt.fetch_seed())
+    rng = np.random.default_rng(utt.fetch_seed())
 
     def randX(*args):
-        return rng.rand(*args).astype(config.floatX)
+        return rng.random(args).astype(config.floatX)
 
     cases = [
         (randX(3, 5, 7), randX(3, 7)),
         (randX(3, 5), randX(3, 5, 7)),
         (randX(3, 5), randX(3, 5)),
-        (rng.rand(3, 5, 7).astype("float32"), randX(3, 7, 9)),
-        (rng.rand(3, 5, 7).astype("float64"), randX(3, 7, 9)),
+        (rng.random((3, 5, 7)).astype("float32"), randX(3, 7, 9)),
+        (rng.random((3, 5, 7)).astype("float64"), randX(3, 7, 9)),
     ]
     for x_val, y_val in cases:
         x = TensorType(broadcastable=[s == 1 for s in x_val.shape], dtype=x_val.dtype)(
@@ -832,7 +825,7 @@ def test_batched_dot_lifter():
 
 
 def test_crossentropycategorical1hot_lifter():
-    rng = np.random.RandomState(utt.fetch_seed())
+    rng = np.random.default_rng(utt.fetch_seed())
     x = matrix()
     y = lvector()
     z = aesara.tensor.nnet.crossentropy_categorical_1hot(x, y)
@@ -850,7 +843,7 @@ def test_crossentropycategorical1hot_lifter():
     )
     f(
         rng.uniform(0.1, 0.9, (13, 5)).astype(config.floatX),
-        rng.randint(5, size=(13,)),
+        rng.integers(5, size=(13,)),
     )
 
 

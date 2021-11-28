@@ -3,7 +3,7 @@ import pytest
 
 from aesara import config, function
 from aesara.compile.mode import Mode
-from aesara.graph.optdb import Query
+from aesara.graph.optdb import OptimizationQuery
 from aesara.tensor.random.utils import RandomStream, broadcast_params
 from aesara.tensor.type import matrix, tensor
 from tests import unittest_tools as utt
@@ -11,7 +11,7 @@ from tests import unittest_tools as utt
 
 @pytest.fixture(scope="module", autouse=True)
 def set_aesara_flags():
-    opts = Query(include=[None], exclude=[])
+    opts = OptimizationQuery(include=[None], exclude=[])
     py_mode = Mode("py", opts)
     with config.change_flags(mode=py_mode, compute_test_value="warn"):
         yield
@@ -82,9 +82,6 @@ def test_broadcast_params():
 
 
 class TestSharedRandomStream:
-    def setup_method(self):
-        utt.seed_rng()
-
     def test_tutorial(self):
         srng = RandomStream(seed=234)
         rv_u = srng.uniform(0, 1, size=(2, 2))
@@ -100,19 +97,23 @@ class TestSharedRandomStream:
         assert np.all(f() != f())
         assert np.all(g() == g())
         assert np.all(abs(nearly_zeros()) < 1e-5)
-        assert isinstance(rv_u.rng.get_value(borrow=True), np.random.RandomState)
+        assert isinstance(rv_u.rng.get_value(borrow=True), np.random.Generator)
 
-    def test_basics(self):
-        random = RandomStream(seed=utt.fetch_seed())
+    @pytest.mark.parametrize("rng_ctor", [np.random.RandomState, np.random.default_rng])
+    def test_basics(self, rng_ctor):
+        random = RandomStream(seed=utt.fetch_seed(), rng_ctor=rng_ctor)
 
-        with pytest.raises(TypeError):
-            random.uniform(0, 1, size=(2, 2), rng=np.random.RandomState(23))
+        with pytest.raises(ValueError):
+            random.uniform(0, 1, size=(2, 2), rng=np.random.default_rng(23))
 
         with pytest.raises(AttributeError):
             random.blah
 
+        # test if standard_normal is available in the namespace, See: GH issue #528
+        random.standard_normal
+
         with pytest.raises(AttributeError):
-            np_random = RandomStream(namespace=np)
+            np_random = RandomStream(namespace=np, rng_ctor=rng_ctor)
             np_random.ndarray
 
         fn = function([], random.uniform(0, 1, size=(2, 2)), updates=random.updates())
@@ -120,8 +121,8 @@ class TestSharedRandomStream:
         fn_val0 = fn()
         fn_val1 = fn()
 
-        rng_seed = np.random.RandomState(utt.fetch_seed()).randint(2 ** 30)
-        rng = np.random.RandomState(int(rng_seed))  # int() is for 32bit
+        rng_seed = np.random.default_rng(utt.fetch_seed()).integers(2 ** 30)
+        rng = rng_ctor(int(rng_seed))  # int() is for 32bit
 
         numpy_val0 = rng.uniform(0, 1, size=(2, 2))
         numpy_val1 = rng.uniform(0, 1, size=(2, 2))
@@ -129,33 +130,31 @@ class TestSharedRandomStream:
         assert np.allclose(fn_val0, numpy_val0)
         assert np.allclose(fn_val1, numpy_val1)
 
-    def test_seed(self):
+    @pytest.mark.parametrize("rng_ctor", [np.random.RandomState, np.random.default_rng])
+    def test_seed(self, rng_ctor):
         init_seed = 234
-        random = RandomStream(init_seed)
+        random = RandomStream(init_seed, rng_ctor=rng_ctor)
 
-        ref_state = np.random.RandomState(init_seed).get_state()
-        random_state = random.gen_seedgen.get_state()
+        ref_state = np.random.default_rng(init_seed).__getstate__()
+        random_state = random.gen_seedgen.__getstate__()
         assert random.default_instance_seed == init_seed
-        assert np.array_equal(random_state[1], ref_state[1])
-        assert random_state[0] == ref_state[0]
-        assert random_state[2:] == ref_state[2:]
+        assert random_state["bit_generator"] == ref_state["bit_generator"]
+        assert random_state["state"] == ref_state["state"]
 
         new_seed = 43298
         random.seed(new_seed)
 
-        ref_state = np.random.RandomState(new_seed).get_state()
-        random_state = random.gen_seedgen.get_state()
-        assert np.array_equal(random_state[1], ref_state[1])
-        assert random_state[0] == ref_state[0]
-        assert random_state[2:] == ref_state[2:]
+        ref_state = np.random.default_rng(new_seed).__getstate__()
+        random_state = random.gen_seedgen.__getstate__()
+        assert random_state["bit_generator"] == ref_state["bit_generator"]
+        assert random_state["state"] == ref_state["state"]
 
         random.seed()
-        ref_state = np.random.RandomState(init_seed).get_state()
-        random_state = random.gen_seedgen.get_state()
+        ref_state = np.random.default_rng(init_seed).__getstate__()
+        random_state = random.gen_seedgen.__getstate__()
         assert random.default_instance_seed == init_seed
-        assert np.array_equal(random_state[1], ref_state[1])
-        assert random_state[0] == ref_state[0]
-        assert random_state[2:] == ref_state[2:]
+        assert random_state["bit_generator"] == ref_state["bit_generator"]
+        assert random_state["state"] == ref_state["state"]
 
         # Reset the seed
         random.seed(new_seed)
@@ -166,33 +165,43 @@ class TestSharedRandomStream:
         # Now, change the seed when there are state updates
         random.seed(new_seed)
 
-        rng = np.random.RandomState(new_seed)
-        update_seed = rng.randint(2 ** 30)
-        ref_state = np.random.RandomState(update_seed).get_state()
-        random_state = random.state_updates[0][0].get_value(borrow=True).get_state()
-        assert np.array_equal(random_state[1], ref_state[1])
-        assert random_state[0] == ref_state[0]
-        assert random_state[2:] == ref_state[2:]
+        update_seed = np.random.default_rng(new_seed).integers(2 ** 30)
+        ref_rng = rng_ctor(update_seed)
+        state_rng = random.state_updates[0][0].get_value(borrow=True)
 
-    def test_uniform(self):
+        if hasattr(state_rng, "get_state"):
+            ref_state = ref_rng.get_state()
+            random_state = state_rng.get_state()
+            assert np.array_equal(random_state[1], ref_state[1])
+            assert random_state[0] == ref_state[0]
+            assert random_state[2:] == ref_state[2:]
+        else:
+            ref_state = ref_rng.__getstate__()
+            random_state = state_rng.__getstate__()
+            assert random_state["bit_generator"] == ref_state["bit_generator"]
+            assert random_state["state"] == ref_state["state"]
+
+    @pytest.mark.parametrize("rng_ctor", [np.random.RandomState, np.random.default_rng])
+    def test_uniform(self, rng_ctor):
         # Test that RandomStream.uniform generates the same results as numpy
         # Check over two calls to see if the random state is correctly updated.
-        random = RandomStream(utt.fetch_seed())
+        random = RandomStream(utt.fetch_seed(), rng_ctor=rng_ctor)
         fn = function([], random.uniform(-1, 1, size=(2, 2)))
         fn_val0 = fn()
         fn_val1 = fn()
 
-        rng_seed = np.random.RandomState(utt.fetch_seed()).randint(2 ** 30)
-        rng = np.random.RandomState(int(rng_seed))  # int() is for 32bit
+        rng_seed = np.random.default_rng(utt.fetch_seed()).integers(2 ** 30)
+        rng = rng_ctor(int(rng_seed))  # int() is for 32bit
         numpy_val0 = rng.uniform(-1, 1, size=(2, 2))
         numpy_val1 = rng.uniform(-1, 1, size=(2, 2))
 
         assert np.allclose(fn_val0, numpy_val0)
         assert np.allclose(fn_val1, numpy_val1)
 
-    def test_default_updates(self):
+    @pytest.mark.parametrize("rng_ctor", [np.random.RandomState, np.random.default_rng])
+    def test_default_updates(self, rng_ctor):
         # Basic case: default_updates
-        random_a = RandomStream(utt.fetch_seed())
+        random_a = RandomStream(utt.fetch_seed(), rng_ctor=rng_ctor)
         out_a = random_a.uniform(0, 1, size=(2, 2))
         fn_a = function([], out_a)
         fn_a_val0 = fn_a()
@@ -203,7 +212,7 @@ class TestSharedRandomStream:
         assert np.all(abs(nearly_zeros()) < 1e-5)
 
         # Explicit updates #1
-        random_b = RandomStream(utt.fetch_seed())
+        random_b = RandomStream(utt.fetch_seed(), rng_ctor=rng_ctor)
         out_b = random_b.uniform(0, 1, size=(2, 2))
         fn_b = function([], out_b, updates=random_b.updates())
         fn_b_val0 = fn_b()
@@ -212,7 +221,7 @@ class TestSharedRandomStream:
         assert np.all(fn_b_val1 == fn_a_val1)
 
         # Explicit updates #2
-        random_c = RandomStream(utt.fetch_seed())
+        random_c = RandomStream(utt.fetch_seed(), rng_ctor=rng_ctor)
         out_c = random_c.uniform(0, 1, size=(2, 2))
         fn_c = function([], out_c, updates=[out_c.update])
         fn_c_val0 = fn_c()
@@ -221,7 +230,7 @@ class TestSharedRandomStream:
         assert np.all(fn_c_val1 == fn_a_val1)
 
         # No updates at all
-        random_d = RandomStream(utt.fetch_seed())
+        random_d = RandomStream(utt.fetch_seed(), rng_ctor=rng_ctor)
         out_d = random_d.uniform(0, 1, size=(2, 2))
         fn_d = function([], out_d, no_default_updates=True)
         fn_d_val0 = fn_d()
@@ -230,7 +239,7 @@ class TestSharedRandomStream:
         assert np.all(fn_d_val1 == fn_d_val0)
 
         # No updates for out
-        random_e = RandomStream(utt.fetch_seed())
+        random_e = RandomStream(utt.fetch_seed(), rng_ctor=rng_ctor)
         out_e = random_e.uniform(0, 1, size=(2, 2))
         fn_e = function([], out_e, no_default_updates=[out_e.rng])
         fn_e_val0 = fn_e()
@@ -238,24 +247,26 @@ class TestSharedRandomStream:
         assert np.all(fn_e_val0 == fn_a_val0)
         assert np.all(fn_e_val1 == fn_e_val0)
 
-    def test_multiple_rng_aliasing(self):
+    @pytest.mark.parametrize("rng_ctor", [np.random.RandomState, np.random.default_rng])
+    def test_multiple_rng_aliasing(self, rng_ctor):
         # Test that when we have multiple random number generators, we do not alias
         # the state_updates member. `state_updates` can be useful when attempting to
         # copy the (random) state between two similar aesara graphs. The test is
         # meant to detect a previous bug where state_updates was initialized as a
         # class-attribute, instead of the __init__ function.
 
-        rng1 = RandomStream(1234)
-        rng2 = RandomStream(2392)
+        rng1 = RandomStream(1234, rng_ctor=rng_ctor)
+        rng2 = RandomStream(2392, rng_ctor=rng_ctor)
         assert rng1.state_updates is not rng2.state_updates
         assert rng1.gen_seedgen is not rng2.gen_seedgen
 
-    def test_random_state_transfer(self):
+    @pytest.mark.parametrize("rng_ctor", [np.random.RandomState, np.random.default_rng])
+    def test_random_state_transfer(self, rng_ctor):
         # Test that random state can be transferred from one aesara graph to another.
 
         class Graph:
             def __init__(self, seed=123):
-                self.rng = RandomStream(seed)
+                self.rng = RandomStream(seed, rng_ctor=rng_ctor)
                 self.y = self.rng.uniform(0, 1, size=(1,))
 
         g1 = Graph(seed=123)

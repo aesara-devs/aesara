@@ -708,7 +708,7 @@ class CLinker(Linker):
         tasks = []
 
         # (init_)blocks contain CodeBlock instances. There is a direct
-        # correspondance with (init_)tasks.
+        # correspondence with (init_)tasks.
         init_blocks = []
         blocks = []
 

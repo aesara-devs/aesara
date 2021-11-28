@@ -10,16 +10,18 @@ import os
 import sys
 from copy import copy
 from functools import reduce
-from io import StringIO
+from io import IOBase, StringIO
+from typing import Dict, Iterable, List, Optional, Union
 
 import numpy as np
 
-from aesara.compile import Function, SharedVariable, debugmode
+from aesara.compile import Function, SharedVariable
 from aesara.compile.io import In, Out
+from aesara.compile.profiling import ProfileStats
 from aesara.configdefaults import config
 from aesara.graph.basic import Apply, Constant, Variable, graph_inputs, io_toposort
 from aesara.graph.fg import FunctionGraph
-from aesara.graph.op import Op
+from aesara.graph.op import HasInnerGraph, Op, StorageMapType
 from aesara.graph.utils import Scratchpad
 
 
@@ -60,47 +62,39 @@ _logger = logging.getLogger("aesara.printing")
 VALID_ASSOC = {"left", "right", "either"}
 
 
+def char_from_number(number):
+    """Convert numbers to strings by rendering it in base 26 using capital letters as digits."""
+
+    base = 26
+
+    rval = ""
+
+    if number == 0:
+        rval = "A"
+
+    while number != 0:
+        remainder = number % base
+        new_char = chr(ord("A") + remainder)
+        rval = new_char + rval
+        number //= base
+
+    return rval
+
+
 def debugprint(
-    obj,
-    depth=-1,
-    print_type=False,
-    file=None,
-    ids="CHAR",
-    stop_on_name=False,
-    done=None,
-    print_storage=False,
-    used_ids=None,
-):
+    obj: Union[
+        Union[Variable, Apply, Function], List[Union[Variable, Apply, Function]]
+    ],
+    depth: int = -1,
+    print_type: bool = False,
+    file: Optional[Union[str, IOBase]] = None,
+    ids: str = "CHAR",
+    stop_on_name: bool = False,
+    done: Optional[Dict[Apply, str]] = None,
+    print_storage: bool = False,
+    used_ids: Optional[Dict[Variable, str]] = None,
+) -> Union[str, IOBase]:
     """Print a computation graph as text to stdout or a file.
-
-    :type obj: :class:`~aesara.graph.basic.Variable`, Apply, or Function instance
-    :param obj: symbolic thing to print
-    :type depth: integer
-    :param depth: print graph to this depth (-1 for unlimited)
-    :type print_type: boolean
-    :param print_type: whether to print the type of printed objects
-    :type file: None, 'str', or file-like object
-    :param file: print to this file ('str' means to return a string)
-    :type ids: str
-    :param ids: How do we print the identifier of the variable
-                id - print the python id value
-                int - print integer character
-                CHAR - print capital character
-                "" - don't print an identifier
-    :param stop_on_name: When True, if a node in the graph has a name,
-                         we don't print anything below it.
-    :type done: None or dict
-    :param done: A dict where we store the ids of printed node.
-        Useful to have multiple call to debugprint share the same ids.
-    :type print_storage: bool
-    :param print_storage: If True, this will print the storage map
-        for Aesara functions. Combined with allow_gc=False, after the
-        execution of an Aesara function, we see the intermediate result.
-    :type used_ids: dict or None
-    :param used_ids: the id to use for some object, but maybe we only
-         referred to it yet.
-
-    :returns: string if `file` == 'str', else file arg
 
     Each line printed represents a Variable in the graph.
     The indentation of lines corresponds to its depth in the symbolic graph.
@@ -117,30 +111,70 @@ def debugprint(
     If an Apply has multiple outputs, then a '.N' suffix will be appended
     to the Apply's identifier, to indicate which output a line corresponds to.
 
-    """
-    from aesara.scan.op import Scan
+    Parameters
+    ----------
+    obj
+        The `Variable`, `Apply`, or `Function` instance to print (or a list
+        thereof).
+    depth
+        Print graph to this depth (``-1`` for unlimited).
+    print_type
+        Whether to print the type of printed objects
+    file
+        When `file` is extends `IOBase`, print to this file; when `file` is
+        equal to ``"str"``, return a string; when `file` is ``None``, print to
+        stdout.
+    ids
+        Determines the type of identifier used for variables.
+          - ``"id"``: print the python id value,
+          - ``"int"``: print integer character,
+          - ``"CHAR"``: print capital character,
+          - ``"auto"``: print the ``auto_name`` value,
+          - ``""``: don't print an identifier.
+    stop_on_name
+        When ``True``, if a node in the graph has a name, we don't print anything
+        below it.
+    done
+        A ``dict`` where we store the ids of printed nodes.
+        Useful to have multiple call to `debugprint` share the same ids.
+    print_storage
+        If ``True``, this will print the storage map for Aesara functions. When
+        combined with ``allow_gc=False``, after the execution of an Aesara
+        function, the output will show the intermediate results.
+    used_ids
+        A map between nodes and their printed ids.
 
+    Returns
+    -------
+    A string representing the printed graph, if `file` is a string, else `file`.
+
+    """
     if not isinstance(depth, int):
         raise Exception("depth parameter must be an int")
+
     if file == "str":
         _file = StringIO()
     elif file is None:
         _file = sys.stdout
     else:
         _file = file
+
     if done is None:
         done = dict()
+
     if used_ids is None:
         used_ids = dict()
-    used_ids = dict()
+
     results_to_print = []
     profile_list = []
     order = []  # Toposort
     smap = []  # storage_map
+
     if isinstance(obj, (list, tuple, set)):
         lobj = obj
     else:
         lobj = [obj]
+
     for obj in lobj:
         if isinstance(obj, Variable):
             results_to_print.append(obj)
@@ -175,9 +209,9 @@ def debugprint(
             smap.append(None)
             order.append(None)
         else:
-            raise TypeError("debugprint cannot print an object of this type", obj)
+            raise TypeError(f"debugprint cannot print an object type {type(obj)}")
 
-    scan_ops = []
+    inner_graph_ops = []
     if any([p for p in profile_list if p is not None and p.fct_callcount > 0]):
         print(
             """
@@ -201,11 +235,10 @@ N.B.:
         )
 
     for r, p, s, o in zip(results_to_print, profile_list, smap, order):
-        # Add the parent scan op to the list as well
-        if hasattr(r.owner, "op") and isinstance(r.owner.op, Scan):
-            scan_ops.append(r)
+        if hasattr(r.owner, "op") and isinstance(r.owner.op, HasInnerGraph):
+            inner_graph_ops.append(r)
 
-        debugmode.debugprint(
+        _debugprint(
             r,
             depth=depth,
             done=done,
@@ -213,58 +246,67 @@ N.B.:
             file=_file,
             order=o,
             ids=ids,
-            scan_ops=scan_ops,
+            inner_graph_ops=inner_graph_ops,
             stop_on_name=stop_on_name,
             profile=p,
             smap=s,
             used_ids=used_ids,
         )
 
-    if len(scan_ops) > 0:
+    if len(inner_graph_ops) > 0:
         print("", file=_file)
         new_prefix = " >"
         new_prefix_child = " >"
-        print("Inner graphs of the scan ops:", file=_file)
+        print("Inner graphs:", file=_file)
 
-        for s in scan_ops:
-            # prepare a dict which maps the scan op's inner inputs
-            # to its outer inputs.
-            if hasattr(s.owner.op, "fn"):
+        for s in inner_graph_ops:
+
+            # This is a work-around to maintain backward compatibility
+            # (e.g. to only print inner graphs that have been compiled through
+            # a call to `Op.prepare_node`)
+            inner_fn = getattr(s.owner.op, "_fn", None)
+
+            if inner_fn:
                 # If the op was compiled, print the optimized version.
-                inner_inputs = s.owner.op.fn.maker.fgraph.inputs
+                inner_inputs = inner_fn.maker.fgraph.inputs
+                inner_outputs = inner_fn.maker.fgraph.outputs
             else:
-                inner_inputs = s.owner.op.inputs
+                inner_inputs = s.owner.op.inner_inputs
+                inner_outputs = s.owner.op.inner_outputs
+
             outer_inputs = s.owner.inputs
-            inner_to_outer_inputs = {
-                inner_inputs[i]: outer_inputs[o]
-                for i, o in s.owner.op.var_mappings["outer_inp_from_inner_inp"].items()
-            }
+
+            if hasattr(s.owner.op, "get_oinp_iinp_iout_oout_mappings"):
+                inner_to_outer_inputs = {
+                    inner_inputs[i]: outer_inputs[o]
+                    for i, o in s.owner.op.get_oinp_iinp_iout_oout_mappings()[
+                        "outer_inp_from_inner_inp"
+                    ].items()
+                }
+            else:
+                inner_to_outer_inputs = None
 
             print("", file=_file)
-            debugmode.debugprint(
+
+            _debugprint(
                 s,
                 depth=depth,
                 done=done,
                 print_type=print_type,
                 file=_file,
                 ids=ids,
-                scan_ops=scan_ops,
+                inner_graph_ops=inner_graph_ops,
                 stop_on_name=stop_on_name,
-                scan_inner_to_outer_inputs=inner_to_outer_inputs,
+                inner_to_outer_inputs=inner_to_outer_inputs,
                 used_ids=used_ids,
             )
-            if hasattr(s.owner.op, "fn"):
-                # If the op was compiled, print the optimized version.
-                outputs = s.owner.op.fn.maker.fgraph.outputs
-            else:
-                outputs = s.owner.op.outputs
-            for idx, i in enumerate(outputs):
 
-                if hasattr(i, "owner") and hasattr(i.owner, "op"):
-                    if isinstance(i.owner.op, Scan):
-                        scan_ops.append(i)
+            for idx, i in enumerate(inner_outputs):
 
-                debugmode.debugprint(
+                if isinstance(getattr(i.owner, "op", None), HasInnerGraph):
+                    inner_graph_ops.append(i)
+
+                _debugprint(
                     r=i,
                     prefix=new_prefix,
                     depth=depth,
@@ -274,8 +316,8 @@ N.B.:
                     ids=ids,
                     stop_on_name=stop_on_name,
                     prefix_child=new_prefix_child,
-                    scan_ops=scan_ops,
-                    scan_inner_to_outer_inputs=inner_to_outer_inputs,
+                    inner_graph_ops=inner_graph_ops,
+                    inner_to_outer_inputs=inner_to_outer_inputs,
                     used_ids=used_ids,
                 )
 
@@ -285,6 +327,249 @@ N.B.:
         return _file.getvalue()
     else:
         _file.flush()
+
+
+def _debugprint(
+    r: Variable,
+    prefix: str = "",
+    depth: int = -1,
+    done: Optional[Dict[Apply, str]] = None,
+    print_type: bool = False,
+    file: IOBase = sys.stdout,
+    print_destroy_map: bool = False,
+    print_view_map: bool = False,
+    order: Optional[List[Variable]] = None,
+    ids: str = "CHAR",
+    stop_on_name: bool = False,
+    prefix_child: Optional[str] = None,
+    inner_graph_ops: Optional[List[Variable]] = None,
+    profile: Optional[ProfileStats] = None,
+    inner_to_outer_inputs: Optional[Dict[Variable, Variable]] = None,
+    smap: Optional[StorageMapType] = None,
+    used_ids: Optional[Dict[Variable, str]] = None,
+) -> IOBase:
+    r"""Print the graph leading to `r`.
+
+    Parameters
+    ----------
+    r
+        A `Variable` instance.
+    prefix
+        Prefix to each line (typically some number of spaces).
+    depth
+        Print graph to this depth (``-1`` for unlimited).
+    done
+        A ``dict`` of `Apply` instances that have already been printed and
+        their associated printed ids.
+        Internal. Used to pass information when recursing.
+    print_type
+        Whether to print the `Variable`'s type.
+    file
+        File-like object to which to print.
+    print_destroy_map
+        Whether to print `Op` ``destroy_map``\s.
+    print_view_map
+        Whether to print `Op` ``view_map``\s.
+    order
+        If not empty will print the index in the toposort.
+    ids
+        Determines the type of identifier used for variables.
+          - ``"id"``: print the python id value,
+          - ``"int"``: print integer character,
+          - ``"CHAR"``: print capital character,
+          - ``"auto"``: print the ``auto_name`` value,
+          - ``""``: don't print an identifier.
+    stop_on_name
+        When ``True``, if a node in the graph has a name, we don't print anything
+        below it.
+    inner_graph_ops
+        A list of `Op`\s with inner graphs.
+    inner_to_outer_inputs
+        A dictionary mapping an `Op`'s inner-inputs to its outer-inputs.
+    smap
+        ``None`` or the ``storage_map`` when printing an Aesara function.
+    used_ids
+        A map between nodes and their printed ids.
+        It wasn't always printed, but at least a reference to it was printed.
+        Internal. Used to pass information when recursing.
+    """
+    if depth == 0:
+        return
+
+    if order is None:
+        order = []
+
+    if done is None:
+        done = dict()
+
+    if inner_graph_ops is None:
+        inner_graph_ops = []
+
+    if print_type:
+        type_str = f" <{r.type}>"
+    else:
+        type_str = ""
+
+    if prefix_child is None:
+        prefix_child = prefix
+
+    if used_ids is None:
+        used_ids = dict()
+
+    def get_id_str(obj, get_printed=True) -> str:
+        id_str: str = ""
+        if obj in used_ids:
+            id_str = used_ids[obj]
+        elif obj == "output":
+            id_str = "output"
+        elif ids == "id":
+            id_str = f"[id {id(r)}]"
+        elif ids == "int":
+            id_str = f"[id {len(used_ids)}]"
+        elif ids == "CHAR":
+            id_str = f"[id {char_from_number(len(used_ids))}]"
+        elif ids == "auto":
+            id_str = f"[id {r.auto_name}]"
+        elif ids == "":
+            id_str = ""
+        if get_printed:
+            done[obj] = id_str
+        used_ids[obj] = id_str
+        return id_str
+
+    if hasattr(r.owner, "op"):
+        # this variable is the output of computation,
+        # so just print out the apply
+        a = r.owner
+
+        r_name = getattr(r, "name", "")
+        # normally if the name isn't set, it'll be None, so
+        # r_name is None here
+        if r_name is None:
+            r_name = ""
+
+        if print_destroy_map:
+            destroy_map_str = str(r.owner.op.destroy_map)
+        else:
+            destroy_map_str = ""
+
+        if print_view_map:
+            view_map_str = str(r.owner.op.view_map)
+        else:
+            view_map_str = ""
+        if destroy_map_str and destroy_map_str != "{}":
+            destroy_map_str = "d=" + destroy_map_str
+        if view_map_str and view_map_str != "{}":
+            view_map_str = "v=" + view_map_str
+
+        o = ""
+        if order:
+            o = str(order.index(r.owner))
+
+        already_printed = a in done  # get_id_str put it in the dict
+        id_str = get_id_str(a)
+
+        if len(a.outputs) == 1:
+            idx = ""
+        else:
+            idx = f".{a.outputs.index(r)}"
+        data = ""
+        if smap:
+            data = " " + str(smap.get(a.outputs[0], ""))
+        clients = ""
+        if profile is None or a not in profile.apply_time:
+            print(
+                f"{prefix}{a.op}{idx} {id_str}{type_str} '{r_name}' {destroy_map_str} {view_map_str} {o}{data}{clients}",
+                file=file,
+            )
+        else:
+            op_time = profile.apply_time[a]
+            op_time_percent = (op_time / profile.fct_call_time) * 100
+            tot_time_dict = profile.compute_total_times()
+            tot_time = tot_time_dict[a]
+            tot_time_percent = (tot_time_dict[a] / profile.fct_call_time) * 100
+
+            if len(a.outputs) == 1:
+                idx = ""
+            else:
+                idx = f".{a.outputs.index(r)}"
+            print(
+                "%s%s%s %s%s '%s' %s %s %s%s%s --> "
+                "%8.2es %4.1f%% %8.2es %4.1f%%"
+                % (
+                    prefix,
+                    a.op,
+                    idx,
+                    id_str,
+                    type_str,
+                    r_name,
+                    destroy_map_str,
+                    view_map_str,
+                    o,
+                    data,
+                    clients,
+                    op_time,
+                    op_time_percent,
+                    tot_time,
+                    tot_time_percent,
+                ),
+                file=file,
+            )
+
+        if not already_printed:
+            if not stop_on_name or not (hasattr(r, "name") and r.name is not None):
+                new_prefix = prefix_child + " |"
+                new_prefix_child = prefix_child + " |"
+
+                for idx, i in enumerate(a.inputs):
+                    if idx == len(a.inputs) - 1:
+                        new_prefix_child = prefix_child + "  "
+
+                    if hasattr(i, "owner") and hasattr(i.owner, "op"):
+                        if isinstance(i.owner.op, HasInnerGraph):
+                            inner_graph_ops.append(i)
+
+                    _debugprint(
+                        i,
+                        new_prefix,
+                        depth=depth - 1,
+                        done=done,
+                        print_type=print_type,
+                        file=file,
+                        order=order,
+                        ids=ids,
+                        stop_on_name=stop_on_name,
+                        prefix_child=new_prefix_child,
+                        inner_graph_ops=inner_graph_ops,
+                        profile=profile,
+                        inner_to_outer_inputs=inner_to_outer_inputs,
+                        smap=smap,
+                        used_ids=used_ids,
+                    )
+    else:
+        if inner_to_outer_inputs is not None and r in inner_to_outer_inputs:
+
+            id_str = get_id_str(r)
+            outer_r = inner_to_outer_inputs[r]
+
+            if outer_r.owner:
+                outer_id_str = get_id_str(outer_r.owner)
+            else:
+                outer_id_str = get_id_str(outer_r)
+
+            print(
+                f"{prefix}{r} {id_str}{type_str} -> {outer_id_str}",
+                file=file,
+            )
+        else:
+            # this is an input variable
+            data = ""
+            if smap:
+                data = " " + str(smap.get(r, ""))
+            id_str = get_id_str(r)
+            print(f"{prefix}{r} {id_str}{type_str}{data}", file=file)
+
+    return file
 
 
 def _print_fn(op, xin):
@@ -387,8 +672,8 @@ class OperatorPrinter:
         node = output.owner
         if node is None:
             raise TypeError(
-                "operator %s cannot represent a variable that is "
-                "not the result of an operation" % self.operator
+                f"operator {self.operator} cannot represent a variable that is "
+                "not the result of an operation"
             )
 
         # Precedence seems to be buggy, see #249
@@ -442,8 +727,8 @@ class PatternPrinter:
         node = output.owner
         if node is None:
             raise TypeError(
-                "Patterns %s cannot represent a variable that is "
-                "not the result of an operation" % self.patterns
+                f"Patterns {self.patterns} cannot represent a variable that is "
+                "not the result of an operation"
             )
         idx = node.outputs.index(output)
         pattern, precedences = self.patterns[idx]
@@ -482,8 +767,8 @@ class FunctionPrinter:
         node = output.owner
         if node is None:
             raise TypeError(
-                "function %s cannot represent a variable that is "
-                "not the result of an operation" % self.names
+                f"function {self.names} cannot represent a variable that is "
+                "not the result of an operation"
             )
         idx = node.outputs.index(output)
         name = self.names[idx]
@@ -829,10 +1114,9 @@ def pydotprint(
         fgraph = fct
     if not pydot_imported:
         raise RuntimeError(
-            "Failed to import pydot. You must install graphviz"
-            " and either pydot or pydot-ng for "
-            "`pydotprint` to work.",
-            pydot_imported_msg,
+            "Failed to import pydot. You must install graphviz "
+            "and either pydot or pydot-ng for "
+            f"`pydotprint` to work:\n {pydot_imported_msg}",
         )
 
     g = pd.Dot()
@@ -997,11 +1281,11 @@ def pydotprint(
             param = {}
             if label:
                 param["label"] = label
-            if hasattr(node.op, "view_map") and idx in reduce(
+            if node.op.view_map and idx in reduce(
                 list.__add__, node.op.view_map.values(), []
             ):
                 param["color"] = colorCodes["Output"]
-            elif hasattr(node.op, "destroy_map") and idx in reduce(
+            elif node.op.destroy_map and idx in reduce(
                 list.__add__, node.op.destroy_map.values(), []
             ):
                 param["color"] = "red"
@@ -1098,7 +1382,7 @@ def pydotprint(
                 g.add_edge(pd.Edge(aid, varid, **param))
                 g.add_node(pd.Node(varid, shape=var_shape, label=varstr))
     #            else:
-    # don't add egde here as it is already added from the inputs.
+    # don't add edge here as it is already added from the inputs.
 
     # The var that represent updates, must be linked to the input var.
     for sha, up in input_update.items():
@@ -1128,7 +1412,7 @@ def pydotprint(
             else:
                 new_name = basename + "_" + str(idx)
             new_name = os.path.join(path, new_name + ext)
-            if hasattr(scan_op.op, "fn"):
+            if hasattr(scan_op.op, "_fn"):
                 to_print = scan_op.op.fn
             else:
                 to_print = scan_op.op.outputs
@@ -1174,7 +1458,7 @@ class _TagGenerator:
         self.cur_tag_number = 0
 
     def get_tag(self):
-        rval = debugmode.char_from_number(self.cur_tag_number)
+        rval = char_from_number(self.cur_tag_number)
 
         self.cur_tag_number += 1
 
@@ -1229,7 +1513,7 @@ def min_informative_str(obj, indent_level=0, _prev_obs=None, _tag_generator=None
     typical graph, such an error message is considerably less
     informative. Error messages based on this function should convey
     much more information about the location in the graph of the error
-    while remaining succint.
+    while remaining succinct.
 
     One final note: the use of capital letters to uniquely identify
     nodes within the graph is motivated by legibility. I do not use
@@ -1360,3 +1644,38 @@ def hex_digest(x):
     rval = rval + "|strides=[" + ",".join(str(stride) for stride in x.strides) + "]"
     rval = rval + "|shape=[" + ",".join(str(s) for s in x.shape) + "]"
     return rval
+
+
+def get_node_by_id(
+    graphs: Iterable[Variable], target_var_id: str, ids: str = "CHAR"
+) -> Optional[Union[Variable, Apply]]:
+    r"""Get `Apply` nodes or `Variable`\s in a graph using their `debugprint` IDs.
+
+    Parameters
+    ----------
+    graphs:
+        The graph, or graphs, to search.
+    target_var_id:
+        The name to search for.
+    ids:
+        The ID scheme to use (see `debugprint.`).
+
+    Returns
+    -------
+    The `Apply`/`Variable` matching `target_var_id` or ``None``.
+
+    """
+    from aesara.printing import debugprint
+
+    if isinstance(graphs, Variable):
+        graphs = (graphs,)
+
+    used_ids = dict()
+
+    _ = debugprint(graphs, file="str", used_ids=used_ids, ids=ids)
+
+    id_to_node = {v: k for k, v in used_ids.items()}
+
+    id_str = f"[id {target_var_id}]"
+
+    return id_to_node.get(id_str, None)

@@ -21,13 +21,13 @@ from aesara.tensor.signal.pool import (
 )
 from tests import unittest_tools as utt
 from tests.gpuarray.config import mode_with_gpu, mode_without_gpu
-from tests.gpuarray.test_basic_ops import rand
+from tests.gpuarray.test_basic_ops import random
 
 
 class TestPool:
     def test_pool_py_interface(self):
         shp = (2, 2, 2, 2)
-        inp = aesara.shared(rand(*shp), "a")
+        inp = aesara.shared(random(*shp), "a")
         inp = aet.as_tensor_variable(inp)
         with pytest.raises(ValueError):
             # test when pad >= ws
@@ -43,7 +43,7 @@ class TestPool:
         gpu_mode.check_py_code = False
 
         shp = (2, 2, 2, 2)
-        inp = aesara.shared(rand(*shp), "a")
+        inp = aesara.shared(random(*shp), "a")
         inp = aet.as_tensor_variable(inp)
         with pytest.raises(ValueError):
             # test when ignore_border and pad >= 0
@@ -57,7 +57,7 @@ class TestPool:
         gpu_mode.check_py_code = False
 
         shp = (2, 2, 2, 2)
-        inp = aesara.shared(rand(*shp), "a")
+        inp = aesara.shared(random(*shp), "a")
         inp = aet.as_tensor_variable(inp)
         ds_op = GpuPool(ignore_border=False, mode="average_exc_pad", ndim=2)
         pad = aet.as_tensor_variable([0, 0])
@@ -102,7 +102,7 @@ def test_pool2d():
         (3, 2, 6, 6, 6, 5, 7),
     ]
 
-    np.random.RandomState(utt.fetch_seed()).shuffle(shps)
+    np.random.default_rng(utt.fetch_seed()).shuffle(shps)
     test_ws = (2, 2), (3, 2), (1, 1)
     test_st = (2, 2), (3, 2), (1, 1)
     test_mode = ["max", "sum", "average_inc_pad", "average_exc_pad"]
@@ -124,7 +124,7 @@ def test_pool2d():
                 # print('test_pool2d', shp, ws, st, pad, mode, ignore_border)
                 ds_op = Pool(ndim=len(ws), mode=mode, ignore_border=ignore_border)
 
-                a = aesara.shared(rand(*shp), "a")
+                a = aesara.shared(random(*shp), "a")
                 a_pooled = ds_op(aet.as_tensor_variable(a), ws, st, pad)
 
                 f = aesara.function([], a_pooled, mode=gpu_mode)
@@ -163,7 +163,7 @@ def test_pool2d():
                 if mode != "max":
                     continue
 
-                ea = aesara.shared(rand(*shp), "ea")
+                ea = aesara.shared(random(*shp), "ea")
 
                 gr = aesara.function([], Rop(a_pooled, a, ea), mode=gpu_mode)
                 gr2 = aesara.function([], Rop(a_pooled, a, ea), mode=ref_mode)
@@ -226,7 +226,7 @@ def test_pool3d():
         (3, 2, 6, 6, 6, 5, 7),
     ]
 
-    np.random.RandomState(utt.fetch_seed()).shuffle(shps)
+    np.random.default_rng(utt.fetch_seed()).shuffle(shps)
     test_ws = (2, 2, 2), (3, 2, 3), (1, 1, 1)
     test_st = (2, 2, 2), (2, 3, 2), (1, 1, 1)
     test_mode = ["max", "sum", "average_inc_pad", "average_exc_pad"]
@@ -250,7 +250,7 @@ def test_pool3d():
                 # print('test_pool3d', shp, ws, st, pad, mode, ignore_border)
                 ds_op = Pool(ndim=len(ws), mode=mode, ignore_border=ignore_border)
 
-                a = aesara.shared(rand(*shp), "a")
+                a = aesara.shared(random(*shp), "a")
                 a_pooled = ds_op(aet.as_tensor_variable(a), ws, st, pad)
 
                 f = aesara.function([], a_pooled, mode=gpu_mode)
@@ -289,7 +289,7 @@ def test_pool3d():
                 if mode != "max":
                     continue
 
-                ea = aesara.shared(rand(*shp), "ea")
+                ea = aesara.shared(random(*shp), "ea")
 
                 gr = aesara.function([], Rop(a_pooled, a, ea), mode=gpu_mode)
                 gr2 = aesara.function([], Rop(a_pooled, a, ea), mode=ref_mode)

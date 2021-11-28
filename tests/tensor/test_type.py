@@ -8,11 +8,30 @@ from aesara.configdefaults import config
 from aesara.tensor.type import TensorType
 
 
+def test_numpy_dtype():
+    test_type = TensorType(np.int32, [])
+    assert test_type.dtype == "int32"
+
+
 def test_filter_variable():
     test_type = TensorType(config.floatX, [])
 
     with pytest.raises(TypeError):
         test_type.filter(test_type())
+
+    test_type = TensorType(config.floatX, [True, False])
+
+    with pytest.raises(TypeError):
+        test_type.filter(np.empty((0, 1), dtype=config.floatX))
+
+    with pytest.raises(TypeError, match=".*not aligned.*"):
+        test_val = np.empty((1, 2), dtype=config.floatX)
+        test_val.flags.aligned = False
+        test_type.filter(test_val)
+
+    with pytest.raises(ValueError, match="Non-finite"):
+        test_type.filter_checks_isfinite = True
+        test_type.filter(np.full((1, 2), np.inf, dtype=config.floatX))
 
 
 def test_filter_strict():
@@ -63,7 +82,7 @@ def test_filter_float_subclass():
 
 
 def test_filter_memmap():
-    """Make sure `TensorType.filter` can handle NumPy `memmap`s subclasses."""
+    r"""Make sure `TensorType.filter` can handle NumPy `memmap`\s subclasses."""
     data = np.arange(12, dtype=config.floatX)
     data.resize((3, 4))
     filename = path.join(mkdtemp(), "newfile.dat")

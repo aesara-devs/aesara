@@ -37,9 +37,9 @@ class MonitorMode(Mode):
 
     """
 
-    def __init__(self, pre_func=None, post_func=None, optimizer="default", linker=None):
-        self.pre_func = pre_func
-        self.post_func = post_func
+    def __init__(
+        self, pre_func=None, post_func=None, optimizer="default", linker=None, db=None
+    ):
         wrap_linker = WrapLinkerMany([OpWiseCLinker()], [self.eval])
         if optimizer == "default":
             optimizer = config.optimizer
@@ -50,14 +50,22 @@ class MonitorMode(Mode):
                 linker,
             )
 
-        super().__init__(wrap_linker, optimizer=optimizer)
+        super().__init__(linker=wrap_linker, optimizer=optimizer, db=db)
+        self.pre_func = pre_func
+        self.post_func = post_func
 
     def __getstate__(self):
         lnk, opt = super().__getstate__()
         return (lnk, opt, self.pre_func, self.post_func)
 
     def __setstate__(self, state):
-        lnk, opt, pre_func, post_func = state
+        lnk, opt, *funcs = state
+
+        if funcs:
+            pre_func, post_func = funcs
+        else:
+            pre_func, post_func = None, None
+
         self.pre_func = pre_func
         self.post_func = post_func
         super().__setstate__((lnk, opt))
@@ -97,7 +105,7 @@ def detect_nan(fgraph, i, node, fn):
 
     for output in fn.outputs:
         if (
-            not isinstance(output[0], np.random.RandomState)
+            not isinstance(output[0], (np.random.RandomState, np.random.Generator))
             and np.isnan(output[0]).any()
         ):
             print("*** NaN detected ***")

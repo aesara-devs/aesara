@@ -14,7 +14,7 @@ from tests import unittest_tools as utt
 
 
 @pytest.mark.skipif(
-    not conv.imported_scipy_signal and aesara.config.cxx == "",
+    aesara.config.cxx == "",
     reason="conv2d tests need SciPy or a c++ compiler",
 )
 class TestConv2D(utt.InferShapeTester):
@@ -408,7 +408,7 @@ class TestConv2D(utt.InferShapeTester):
 
     @pytest.mark.slow
     def test_invalid_input_shape(self):
-        # Tests that when the shape gived at build time is not the same as
+        # Tests that when the shape given at build time is not the same as
         # run time we raise an error
 
         for unroll_batch in [None, 1, 3]:

@@ -3,13 +3,12 @@ from pytest import fixture, raises
 
 import aesara.tensor as aet
 from aesara import config
-from aesara.assert_op import Assert
 from aesara.gradient import NullTypeGradError, grad
+from aesara.raise_op import Assert
 from aesara.tensor.math import eq
-from aesara.tensor.random.basic import normal
-from aesara.tensor.random.op import RandomVariable, default_shape_from_params, observed
-from aesara.tensor.type import all_dtypes, iscalar, tensor, vector
-from aesara.tensor.type_other import NoneTypeT
+from aesara.tensor.random.op import RandomVariable, default_shape_from_params
+from aesara.tensor.shape import specify_shape
+from aesara.tensor.type import all_dtypes, iscalar, tensor
 
 
 @fixture(scope="module", autouse=True)
@@ -44,12 +43,12 @@ def test_RandomVariable_basics():
             "normal",
             0,
             [0, 0],
-            config.floatX,
+            "float32",
             inplace=True,
         )
     )
 
-    assert str_res == "normal_rv"
+    assert str_res == "normal_rv{0, (0, 0), float32, True}"
 
     # `ndims_params` should be a `Sequence` type
     with raises(TypeError, match="^Parameter ndims_params*"):
@@ -90,7 +89,7 @@ def test_RandomVariable_basics():
     )
 
     assert rv.inplace
-    assert rv.destroy_map == {0: [3]}
+    assert rv.destroy_map == {0: [0]}
 
     # A no-params `RandomVariable`
     rv = RandomVariable(name="test_rv", ndim_supp=0, ndims_params=())
@@ -113,6 +112,8 @@ def test_RandomVariable_basics():
     with raises(NullTypeGradError):
         grad(rv_out, [rv_node.inputs[0]])
 
+
+def test_RandomVariable_bcast():
     rv = RandomVariable("normal", 0, [0, 0], config.floatX, inplace=True)
 
     mu = tensor(config.floatX, [True, False, False])
@@ -130,6 +131,34 @@ def test_RandomVariable_basics():
 
     res = rv.compute_bcast([mu, sd], (s1, s2, s3))
     assert res == [False] * 3
+
+    size = aet.as_tensor((1, 2, 3), dtype=np.int32).astype(np.int64)
+    res = rv.compute_bcast([mu, sd], size)
+    assert res == [True, False, False]
+
+    res = rv(0, 1, size=aet.as_tensor(1, dtype=np.int64))
+    assert res.broadcastable == (True,)
+
+
+def test_RandomVariable_bcast_specify_shape():
+    rv = RandomVariable("normal", 0, [0, 0], config.floatX, inplace=True)
+
+    s1 = aet.as_tensor(1, dtype=np.int64)
+    s2 = iscalar()
+    s2.tag.test_value = 2
+    s3 = iscalar()
+    s3.tag.test_value = 3
+    s3 = Assert("testing")(s3, eq(s1, 1))
+
+    size = specify_shape(aet.as_tensor([s1, s3, s2, s2, s1]), (5,))
+    mu = tensor(config.floatX, [False, False, True])
+    mu.tag.test_value = np.random.normal(size=(2, 2, 1)).astype(config.floatX)
+
+    std = tensor(config.floatX, [False, True, True])
+    std.tag.test_value = np.ones((2, 1, 1)).astype(config.floatX)
+
+    res = rv(mu, std, size=size)
+    assert res.broadcastable == (True, False, False, False, True)
 
 
 def test_RandomVariable_floatX():
@@ -149,28 +178,3 @@ def test_RandomVariable_floatX():
 
     with config.change_flags(floatX=new_floatX):
         assert test_rv_op(0, 1).dtype == new_floatX
-
-
-def test_observed():
-    rv_var = normal(0, 1, size=3)
-    obs_var = observed(rv_var, np.array([0.2, 0.1, -2.4], dtype=config.floatX))
-
-    assert obs_var.owner.inputs[0] is rv_var
-
-    with raises(TypeError):
-        observed(rv_var, np.array([1, 2], dtype=int))
-
-    with raises(TypeError):
-        observed(rv_var, np.array([[1.0, 2.0]], dtype=rv_var.dtype))
-
-    obs_rv = observed(None, np.array([0.2, 0.1, -2.4], dtype=config.floatX))
-
-    assert isinstance(obs_rv.owner.inputs[0].type, NoneTypeT)
-
-    rv_val = vector()
-    rv_val.tag.test_value = np.array([0.2, 0.1, -2.4], dtype=config.floatX)
-
-    obs_var = observed(rv_var, rv_val)
-
-    with raises(NullTypeGradError):
-        grad(obs_var.sum(), [rv_val])

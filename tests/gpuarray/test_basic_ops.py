@@ -35,14 +35,13 @@ from tests.tensor.test_basic import (
     TestJoinAndSplit,
     TestReshape,
 )
-from tests.tensor.utils import rand, safe_make_node
+from tests.tensor.utils import random, safe_make_node
 
 
 pygpu = pytest.importorskip("pygpu")
 gpuarray = pygpu.gpuarray
 
-utt.seed_rng()
-rng = np.random.RandomState(seed=utt.fetch_seed())
+rng = np.random.default_rng(seed=utt.fetch_seed())
 
 
 def inplace_func(
@@ -79,7 +78,7 @@ def fake_shared(value, name=None, strict=False, allow_downcast=None, **kwargs):
 
 
 def rand_gpuarray(*shape, **kwargs):
-    r = rng.rand(*shape) * 2 - 1
+    r = rng.random(shape) * 2 - 1
     dtype = kwargs.pop("dtype", aesara.config.floatX)
     cls = kwargs.pop("cls", None)
     if len(kwargs) != 0:
@@ -206,7 +205,7 @@ def makeTester(
 
             for description, check in self.checks.items():
                 assert check(inputs, variables), (
-                    "Test %s::%s: Failed check: %s " "(inputs were %s, ouputs were %s)"
+                    "Test %s::%s: Failed check: %s " "(inputs were %s, outputs were %s)"
                 ) % (self.op, testname, description, inputs, variables)
 
     Checker.__name__ = name
@@ -219,7 +218,7 @@ def test_transfer_cpu_gpu():
     a = fmatrix("a")
     g = GpuArrayType(dtype="float32", broadcastable=(False, False))("g")
 
-    av = np.asarray(rng.rand(5, 4), dtype="float32")
+    av = np.asarray(rng.random((5, 4)), dtype="float32")
     gv = gpuarray.array(av, context=get_context(test_ctx_name))
 
     f = aesara.function([a], GpuFromHost(test_ctx_name)(a))
@@ -236,7 +235,7 @@ def test_transfer_gpu_gpu():
         dtype="float32", broadcastable=(False, False), context_name=test_ctx_name
     )()
 
-    av = np.asarray(rng.rand(5, 4), dtype="float32")
+    av = np.asarray(rng.random((5, 4)), dtype="float32")
     gv = gpuarray.array(av, context=get_context(test_ctx_name))
     mode = mode_with_gpu.excluding(
         "cut_gpua_host_transfers", "local_cut_gpua_host_gpua"
@@ -256,7 +255,7 @@ def test_transfer_strided():
     a = fmatrix("a")
     g = GpuArrayType(dtype="float32", broadcastable=(False, False))("g")
 
-    av = np.asarray(rng.rand(5, 8), dtype="float32")
+    av = np.asarray(rng.random((5, 8)), dtype="float32")
     gv = gpuarray.array(av, context=get_context(test_ctx_name))
 
     av = av[:, ::2]
@@ -283,14 +282,14 @@ TestGpuAlloc = makeTester(
     op=lambda *args: alloc(*args) + 1,
     gpu_op=GpuAlloc(test_ctx_name),
     cases=dict(
-        correct01=(rand(), np.int32(7)),
+        correct01=(random(), np.int32(7)),
         # just gives a DeepCopyOp with possibly wrong results on the CPU
-        # correct01_bcast=(rand(1), np.int32(7)),
-        correct02=(rand(), np.int32(4), np.int32(7)),
-        correct12=(rand(7), np.int32(4), np.int32(7)),
-        correct13=(rand(7), np.int32(2), np.int32(4), np.int32(7)),
-        correct23=(rand(4, 7), np.int32(2), np.int32(4), np.int32(7)),
-        bad_shape12=(rand(7), np.int32(7), np.int32(5)),
+        # correct01_bcast=(random(1), np.int32(7)),
+        correct02=(random(), np.int32(4), np.int32(7)),
+        correct12=(random(7), np.int32(4), np.int32(7)),
+        correct13=(random(7), np.int32(2), np.int32(4), np.int32(7)),
+        correct23=(random(4, 7), np.int32(2), np.int32(4), np.int32(7)),
+        bad_shape12=(random(7), np.int32(7), np.int32(5)),
     ),
 )
 
@@ -357,7 +356,7 @@ def test_shape():
 def test_gpu_contiguous():
     a = fmatrix("a")
     i = iscalar("i")
-    a_val = np.asarray(np.random.rand(4, 5), dtype="float32")
+    a_val = np.asarray(np.random.random(4, 5), dtype="float32")
     # The reshape is needed otherwise we make the subtensor on the CPU
     # to transfer less data.
     f = aesara.function(
@@ -390,7 +389,6 @@ class TestGPUReshape(TestReshape):
 
 class TestGPUComparison(TestComparison):
     def setup_method(self):
-        utt.seed_rng()
         self.mode = mode_with_gpu
         self.shared = gpuarray_shared_constructor
         self.dtypes = ["float64", "float32"]
@@ -415,8 +413,8 @@ class TestGPUJoinAndSplit(TestJoinAndSplit):
     def test_gpusplit_opt(self):
         # Test that we move the node to the GPU
         # Also test float16 computation at the same time.
-        rng = np.random.RandomState(seed=utt.fetch_seed())
-        m = self.shared(rng.rand(4, 6).astype("float16"))
+        rng = np.random.default_rng(seed=utt.fetch_seed())
+        m = self.shared(rng.random((4, 6)).astype("float16"))
         o = Split(2)(m, 0, [2, 2])
         assert o[0].dtype == "float16"
         f = aesara.function([], o, mode=self.mode)
@@ -433,9 +431,9 @@ class TestGPUJoinAndSplit(TestJoinAndSplit):
 
 def test_gpujoin_gpualloc():
     a = fmatrix("a")
-    a_val = np.asarray(np.random.rand(4, 5), dtype="float32")
+    a_val = np.asarray(np.random.random(4, 5), dtype="float32")
     b = fmatrix("b")
-    b_val = np.asarray(np.random.rand(3, 5), dtype="float32")
+    b_val = np.asarray(np.random.random(3, 5), dtype="float32")
 
     f = aesara.function(
         [a, b],
@@ -514,9 +512,9 @@ def test_hostfromgpu_shape_i():
     )
     a = fmatrix("a")
     ca = aesara.gpuarray.type.GpuArrayType("float32", (False, False))()
-    av = np.asarray(np.random.rand(5, 4), dtype="float32")
+    av = np.asarray(np.random.random(5, 4), dtype="float32")
     cv = gpuarray.asarray(
-        np.random.rand(5, 4), dtype="float32", context=get_context(test_ctx_name)
+        np.random.random(5, 4), dtype="float32", context=get_context(test_ctx_name)
     )
 
     f = aesara.function([a], GpuFromHost(test_ctx_name)(a), mode=m)
@@ -583,12 +581,11 @@ def test_gpu_tril_triu():
         assert result.dtype == np.dtype(dtype)
         assert any([isinstance(node.op, GpuTri) for node in f.maker.fgraph.toposort()])
 
-    utt.seed_rng()
-    test_rng = np.random.RandomState(seed=utt.fetch_seed())
+    test_rng = np.random.default_rng(seed=utt.fetch_seed())
 
     for dtype in ["float64", "float32", "float16"]:
         # try a big one
-        m = np.asarray(test_rng.rand(5000, 5000) * 2 - 1, dtype=dtype)
+        m = np.asarray(test_rng.random((5000, 5000)) * 2 - 1, dtype=dtype)
         check_l(m, 0)
         check_l(m, 1)
         check_l(m, -1)
@@ -597,7 +594,7 @@ def test_gpu_tril_triu():
         check_u(m, 1)
         check_u(m, -1)
 
-        m = np.asarray(test_rng.rand(10, 10) * 2 - 1, dtype=dtype)
+        m = np.asarray(test_rng.random((10, 10)) * 2 - 1, dtype=dtype)
         check_l(m, 0)
         check_l(m, 1)
         check_l(m, -1)
@@ -606,7 +603,7 @@ def test_gpu_tril_triu():
         check_u(m, 1)
         check_u(m, -1)
 
-        m = np.asarray(test_rng.rand(10, 5) * 2 - 1, dtype=dtype)
+        m = np.asarray(test_rng.random((10, 5)) * 2 - 1, dtype=dtype)
         check_l(m, 0)
         check_l(m, 1)
         check_l(m, -1)

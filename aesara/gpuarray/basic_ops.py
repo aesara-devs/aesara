@@ -1076,7 +1076,7 @@ class GpuAllocEmpty(HideC, AllocEmpty):
             dtype=self.dtype, broadcastable=bcast, context_name=self.context_name
         )()
         output.tag.values_eq_approx = values_eq_approx_always_true
-        # The outut can contain nan/inf.
+        # The output can contain nan/inf.
         output.type.filter_checks_isfinite = False
         output.tag.nan_guard_mode_check = False
         return Apply(self, sh, [output])

@@ -1,2 +1,2 @@
 from .basic import *
-from .basic_scipy import *
+from .math import *

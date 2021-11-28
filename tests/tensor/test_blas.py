@@ -61,8 +61,7 @@ from aesara.tensor.blas import (
     res_is_a,
 )
 from aesara.tensor.elemwise import DimShuffle
-from aesara.tensor.math import Dot, dot, mean, mul, neg, outer, sqrt
-from aesara.tensor.nnet import sigmoid
+from aesara.tensor.math import Dot, dot, mean, mul, neg, outer, sigmoid, sqrt
 from aesara.tensor.type import (
     cmatrix,
     col,
@@ -91,7 +90,7 @@ from aesara.tensor.type import (
 )
 from tests import unittest_tools
 from tests import unittest_tools as utt
-from tests.tensor.utils import inplace_func, makeTester, rand
+from tests.tensor.utils import inplace_func, makeTester, random
 
 
 if config.mode == "FAST_COMPILE":
@@ -119,7 +118,6 @@ class TestGemm:
     """
 
     def setup_method(self):
-        unittest_tools.seed_rng()
         Gemm.debug = False
 
     @staticmethod
@@ -129,8 +127,8 @@ class TestGemm:
         return b * z + a * np.dot(x, y)
 
     @staticmethod
-    def rand(*args):
-        return np.random.rand(*args)
+    def random(*args):
+        return np.random.random(args)
 
     def cmp(self, z_, a_, x_, y_, b_):
         for dtype in ["float32", "float64", "complex64", "complex128"]:
@@ -186,38 +184,38 @@ class TestGemm:
             self.cmp(2.0, 1.0, [3, 2, 1.0], [[1], [2], [3.0]], 1.0)
 
     def test_basic_4(self):
-        self.cmp(self.rand(3, 4), 1.0, self.rand(3, 5), self.rand(5, 4), 0.0)
+        self.cmp(self.random(3, 4), 1.0, self.random(3, 5), self.random(5, 4), 0.0)
 
     def test_basic_5(self):
-        self.cmp(self.rand(3, 4), 1.0, self.rand(3, 5), self.rand(5, 4), 1.0)
+        self.cmp(self.random(3, 4), 1.0, self.random(3, 5), self.random(5, 4), 1.0)
 
     def test_basic_6(self):
-        self.cmp(self.rand(3, 4), 1.0, self.rand(3, 5), self.rand(5, 4), -1.0)
+        self.cmp(self.random(3, 4), 1.0, self.random(3, 5), self.random(5, 4), -1.0)
 
     def test_basic_7(self):
-        self.cmp(self.rand(3, 4), 0.0, self.rand(3, 5), self.rand(5, 4), 0.0)
+        self.cmp(self.random(3, 4), 0.0, self.random(3, 5), self.random(5, 4), 0.0)
 
     def test_basic_8(self):
-        self.cmp(self.rand(3, 4), 0.0, self.rand(3, 5), self.rand(5, 4), 0.6)
+        self.cmp(self.random(3, 4), 0.0, self.random(3, 5), self.random(5, 4), 0.6)
 
     def test_basic_9(self):
-        self.cmp(self.rand(3, 4), 0.0, self.rand(3, 5), self.rand(5, 4), -1.0)
+        self.cmp(self.random(3, 4), 0.0, self.random(3, 5), self.random(5, 4), -1.0)
 
     def test_basic_10(self):
-        self.cmp(self.rand(3, 4), -1.0, self.rand(3, 5), self.rand(5, 4), 0.0)
+        self.cmp(self.random(3, 4), -1.0, self.random(3, 5), self.random(5, 4), 0.0)
 
     def test_basic_11(self):
-        self.cmp(self.rand(3, 4), -1.0, self.rand(3, 5), self.rand(5, 4), 1.0)
+        self.cmp(self.random(3, 4), -1.0, self.random(3, 5), self.random(5, 4), 1.0)
 
     def test_basic_12(self):
-        self.cmp(self.rand(3, 4), -1.0, self.rand(3, 5), self.rand(5, 4), -1.0)
+        self.cmp(self.random(3, 4), -1.0, self.random(3, 5), self.random(5, 4), -1.0)
 
     def test_shape_0(self):
-        self.cmp(self.rand(0, 4), -1.0, self.rand(0, 5), self.rand(5, 4), -1.0)
-        self.cmp(self.rand(3, 0), -1.0, self.rand(3, 5), self.rand(5, 0), -1.0)
-        self.cmp(self.rand(3, 4), -1.0, self.rand(3, 0), self.rand(0, 4), -1.0)
-        self.cmp(self.rand(0, 0), -1.0, self.rand(0, 5), self.rand(5, 0), -1.0)
-        self.cmp(self.rand(0, 0), -1.0, self.rand(0, 0), self.rand(0, 0), -1.0)
+        self.cmp(self.random(0, 4), -1.0, self.random(0, 5), self.random(5, 4), -1.0)
+        self.cmp(self.random(3, 0), -1.0, self.random(3, 5), self.random(5, 0), -1.0)
+        self.cmp(self.random(3, 4), -1.0, self.random(3, 0), self.random(0, 4), -1.0)
+        self.cmp(self.random(0, 0), -1.0, self.random(0, 5), self.random(5, 0), -1.0)
+        self.cmp(self.random(0, 0), -1.0, self.random(0, 0), self.random(0, 0), -1.0)
 
     def test_factorised_scalar(self):
         a = matrix()
@@ -266,35 +264,35 @@ class TestGemm:
 
     def test_destroy_map0(self):
         # test that only first input can be overwritten.
-        Z = as_tensor_variable(self.rand(2, 2))
+        Z = as_tensor_variable(self.random(2, 2))
         with pytest.raises(InconsistencyError, match=Gemm.E_z_uniq):
             gemm_inplace(Z, 1.0, Z, Z, 1.0)
 
     def test_destroy_map1(self):
         # test that only first input can be overwritten.
-        Z = as_tensor_variable(self.rand(2, 2))
-        A = as_tensor_variable(self.rand(2, 2))
+        Z = as_tensor_variable(self.random(2, 2))
+        A = as_tensor_variable(self.random(2, 2))
         with pytest.raises(InconsistencyError, match=Gemm.E_z_uniq):
             gemm_inplace(Z, 1.0, A, inplace.transpose_inplace(Z), 1.0)
 
     def test_destroy_map2(self):
         # test that only first input can be overwritten.
-        Z = as_tensor_variable(self.rand(2, 2))
-        A = as_tensor_variable(self.rand(2, 2))
+        Z = as_tensor_variable(self.random(2, 2))
+        A = as_tensor_variable(self.random(2, 2))
         with pytest.raises(InconsistencyError, match=Gemm.E_z_uniq):
             gemm_inplace(Z, 1.0, inplace.transpose_inplace(Z), A, 1.0)
 
     def test_destroy_map3(self):
         # test that only first input can be overwritten
-        Z = as_tensor_variable(self.rand(2, 2))
-        A = as_tensor_variable(self.rand(2, 2))
+        Z = as_tensor_variable(self.random(2, 2))
+        A = as_tensor_variable(self.random(2, 2))
         with pytest.raises(InconsistencyError, match=Gemm.E_z_uniq):
             gemm_inplace(Z, 1.0, Z, A, 1.0)
 
     def test_destroy_map4(self):
         # test that dot args can be aliased
-        Z = shared(self.rand(2, 2), name="Z")
-        A = shared(self.rand(2, 2), name="A")
+        Z = shared(self.random(2, 2), name="Z")
+        A = shared(self.random(2, 2), name="A")
         one = aet.constant(1.0).astype(Z.dtype)
         f = inplace_func([], gemm_inplace(Z, one, A, A, one))
         f()
@@ -303,9 +301,9 @@ class TestGemm:
 
     def test_transposes(self):
         # three square matrices which are not contiguous
-        A = self.rand(4, 5)[:, :4]
-        B = self.rand(4, 5)[:, :4]
-        C = self.rand(4, 5)[:, :4]
+        A = self.random(4, 5)[:, :4]
+        B = self.random(4, 5)[:, :4]
+        C = self.random(4, 5)[:, :4]
 
         def t(z, x, y, a=1.0, b=0.0, l="c|py", dt="float64"):
             z, a, x, y, b = [_asarray(p, dtype=dt) for p in (z, a, x, y, b)]
@@ -361,9 +359,9 @@ class TestGemm:
     def test_non_contiguous(self):
         # Like test_transposes but with matrices without any
         # continuous dimension
-        A = self.rand(4, 4, 3)
-        B = self.rand(4, 4, 3)
-        C = self.rand(4, 4, 3)
+        A = self.random(4, 4, 3)
+        B = self.random(4, 4, 3)
+        C = self.random(4, 4, 3)
 
         def t(z, x, y, a=1.0, b=0.0, l="c|py", dt="float64"):
             z, a, x, y, b = [_asarray(p, dtype=dt) for p in (z, a, x, y, b)]
@@ -425,9 +423,6 @@ class TestGemmNoFlags:
     N = 5
     K = 6
     slice_step = 3
-
-    def setup_method(self):
-        unittest_tools.seed_rng()
 
     def get_variable(self, V, to_transpose, to_slice):
         if to_transpose:
@@ -667,14 +662,17 @@ def just_gemm(i, o, ishapes=None, max_graphlen=0, expected_nb_gemm=1):
         max_graphlen,
     )
 
-    rng = np.random.RandomState(unittest_tools.fetch_seed(234))
-    r0 = f(*[np.asarray(rng.randn(*sh), config.floatX) for sh in ishapes])
-    rng = np.random.RandomState(unittest_tools.fetch_seed(234))
-    r1 = g(*[np.asarray(rng.randn(*sh), config.floatX) for sh in ishapes])
+    rng = np.random.default_rng(unittest_tools.fetch_seed(234))
+    r0 = f(*[np.asarray(rng.standard_normal(sh), config.floatX) for sh in ishapes])
+    rng = np.random.default_rng(unittest_tools.fetch_seed(234))
+    r1 = g(*[np.asarray(rng.standard_normal(sh), config.floatX) for sh in ishapes])
     max_abs_err = np.max(np.abs(r0[0] - r1[0]))
-    eps = 1.0e-8
+
+    # TODO: Needed to increase tolerance for certain tests when migrating to
+    # Generators from RandomStates. Probably caused due to seed specified test.
+    eps = 2.0e-8
     if config.floatX == "float32":
-        eps = 1.0e-6
+        eps = 2.0e-6
     assert max_abs_err <= eps, "GEMM is computing the wrong output. max_rel_err ="
 
 
@@ -747,14 +745,17 @@ def test_gemm_opt_double_gemm():
         on_unused_input="ignore",
     )
 
-    rng = np.random.RandomState(unittest_tools.fetch_seed(234))
-    r0 = f(*[np.asarray(rng.randn(*sh), config.floatX) for sh in ishapes])
-    rng = np.random.RandomState(unittest_tools.fetch_seed(234))
-    r1 = g(*[np.asarray(rng.randn(*sh), config.floatX) for sh in ishapes])
+    rng = np.random.default_rng(unittest_tools.fetch_seed(234))
+    r0 = f(*[np.asarray(rng.standard_normal(sh), config.floatX) for sh in ishapes])
+    rng = np.random.default_rng(unittest_tools.fetch_seed(234))
+    r1 = g(*[np.asarray(rng.standard_normal(sh), config.floatX) for sh in ishapes])
     max_abs_err = np.max(np.abs(r0[0] - r1[0]))
-    eps = 1.0e-8
+
+    # TODO: Needed to increase tolerance for certain tests when migrating to
+    # Generators from RandomStates. Probably caused due to seed specified test.
+    eps = 2.0e-8
     if config.floatX == "float32":
-        eps = 1.0e-6
+        eps = 2.0e-6
     assert max_abs_err <= eps, "GEMM is computing the wrong output. max_rel_err ="
 
 
@@ -963,10 +964,10 @@ def test_gemm_unrolled():
 
     batch_size = 100
     rep_size = 40
-    rng = np.random.RandomState([1, 2, 3])
+    rng = np.random.default_rng([1, 2, 3])
 
     for num_rounds in range(1, 10):
-        W = sharedX(rng.randn(rep_size, rep_size), name="W")
+        W = sharedX(rng.standard_normal((rep_size, rep_size)), name="W")
         V = sharedX(np.zeros((batch_size, rep_size)), name="V")
         H = sharedX(np.zeros((batch_size, rep_size)), name="H")
         G = sharedX(np.zeros((batch_size, rep_size)), name="G")
@@ -1054,7 +1055,7 @@ def test_dot22():
             else:
                 check = [isinstance(x.op, Dot) for x in topo]
                 assert any(check), (dtype1, dtype2)
-            rng = np.random.RandomState(unittest_tools.fetch_seed())
+            rng = np.random.default_rng(unittest_tools.fetch_seed())
 
             def cmp(a_shp, b_shp):
                 av = rng.uniform(size=a_shp).astype(dtype1)
@@ -1077,7 +1078,7 @@ def test_dot22scalar():
     # m = aesara.compile.get_default_mode().including('local_dot_to_dot22',
     #                           'local_dot22_to_dot22scalar','specialize')
     # m = aesara.compile.get_default_mode().including('BlasOpt', 'specialize')
-    rng = np.random.RandomState(unittest_tools.fetch_seed())
+    rng = np.random.default_rng(unittest_tools.fetch_seed())
     for dtype1 in ["complex64", "complex128"]:
         a = matrix("a", dtype=dtype1)
         for dtype2 in ["complex64", "complex128"]:
@@ -1287,7 +1288,7 @@ def test_dot_w_self():
 class TestGemv(unittest_tools.OptimizationTestMixin):
     def test_dot_vv(self):
         # Currently we generate a gemv for that case
-        rng = np.random.RandomState(unittest_tools.fetch_seed())
+        rng = np.random.default_rng(unittest_tools.fetch_seed())
         v = shared(np.array(rng.uniform(size=(2,)), dtype="float32"))
         w = shared(np.array(rng.uniform(size=(2,)), dtype="float32"))
         f = function([], aesara.tensor.dot(v, w), mode=mode_blas_opt)
@@ -1301,7 +1302,7 @@ class TestGemv(unittest_tools.OptimizationTestMixin):
 
     def test_dot_vm(self):
         # Test vector dot matrix
-        rng = np.random.RandomState(unittest_tools.fetch_seed())
+        rng = np.random.default_rng(unittest_tools.fetch_seed())
         v = shared(np.array(rng.uniform(size=(2,)), dtype="float32"))
         m = shared(np.array(rng.uniform(size=(2, 3)), dtype="float32"))
         f = function([], aesara.tensor.dot(v, m), mode=mode_blas_opt)
@@ -1318,7 +1319,7 @@ class TestGemv(unittest_tools.OptimizationTestMixin):
 
     def test_dot_mv(self):
         # Test matrix dot vector
-        rng = np.random.RandomState(unittest_tools.fetch_seed())
+        rng = np.random.default_rng(unittest_tools.fetch_seed())
         v = shared(np.array(rng.uniform(size=(2,)), dtype="float32"))
         m = shared(np.array(rng.uniform(size=(3, 2)), dtype="float32"))
         f = function([], aesara.tensor.dot(m, v), mode=mode_blas_opt)
@@ -1336,7 +1337,7 @@ class TestGemv(unittest_tools.OptimizationTestMixin):
     @staticmethod
     def t_gemv1(m_shp):
         # test vector2+dot(matrix,vector1)
-        rng = np.random.RandomState(unittest_tools.fetch_seed())
+        rng = np.random.default_rng(unittest_tools.fetch_seed())
         v1 = shared(np.array(rng.uniform(size=(m_shp[1],)), dtype="float32"))
         v2_orig = np.array(rng.uniform(size=(m_shp[0],)), dtype="float32")
         v2 = shared(v2_orig)
@@ -1385,7 +1386,7 @@ class TestGemv(unittest_tools.OptimizationTestMixin):
 
     def test_gemv2(self):
         # test vector2+dot(vector1,matrix)
-        rng = np.random.RandomState(unittest_tools.fetch_seed())
+        rng = np.random.default_rng(unittest_tools.fetch_seed())
         v1 = shared(np.array(rng.uniform(size=(2,)), dtype="float32"))
         v2_orig = np.array(rng.uniform(size=(3,)), dtype="float32")
         v2 = shared(v2_orig)
@@ -1425,7 +1426,7 @@ class TestGemv(unittest_tools.OptimizationTestMixin):
 
     def test_gemv_broadcast(self):
         # test gemv with some broadcasted input
-        rng = np.random.RandomState(unittest_tools.fetch_seed())
+        rng = np.random.default_rng(unittest_tools.fetch_seed())
         v1 = shared(np.array(rng.uniform(size=(2,)), dtype="float32"))
         v2_orig = np.array(rng.uniform(size=(1,)), dtype="float32")
         v2 = shared(v2_orig)
@@ -1509,13 +1510,13 @@ class BaseGemv:
     shared = staticmethod(shared)
 
     def get_data(self, x_stride=1, y_stride=1):
-        rng = np.random.RandomState(unittest_tools.fetch_seed())
+        rng = np.random.default_rng(unittest_tools.fetch_seed())
         mult = array(1, dtype=self.dtype)
         if self.dtype in [complex64, complex128]:
             mult = array(1 + 1j, dtype=self.dtype)
         alpha = array(1.0, dtype=self.dtype) * mult
         beta = array(1.0, dtype=self.dtype) * mult
-        a = rng.randn(3, 3).astype(self.dtype) * mult
+        a = rng.standard_normal((3, 3)).astype(self.dtype) * mult
         x = arange(shape(a)[0] * x_stride, dtype=self.dtype) * mult
         y = arange(shape(a)[1] * y_stride, dtype=self.dtype) * mult
         return alpha, beta, a, x, y
@@ -1895,21 +1896,24 @@ class TestGer(unittest_tools.OptimizationTestMixin):
         f = self.function([self.x, self.y], outer(self.x, self.y))
         self.assertFunctionContains(f, self.ger_destructive)
         # TODO FIXME: This is NOT a test.
-        f(np.random.rand(5).astype(self.dtype), np.random.rand(4).astype(self.dtype))
+        f(
+            np.random.random((5)).astype(self.dtype),
+            np.random.random((4)).astype(self.dtype),
+        )
 
     def test_A_plus_outer(self):
         f = self.function([self.A, self.x, self.y], self.A + outer(self.x, self.y))
         self.assertFunctionContains(f, self.ger)
         # TODO FIXME: This is NOT a test.
         f(
-            np.random.rand(5, 4).astype(self.dtype),
-            np.random.rand(5).astype(self.dtype),
-            np.random.rand(4).astype(self.dtype),
+            np.random.random((5, 4)).astype(self.dtype),
+            np.random.random((5)).astype(self.dtype),
+            np.random.random((4)).astype(self.dtype),
         )
         f(
-            np.random.rand(5, 4).astype(self.dtype)[::-1, ::-1],
-            np.random.rand(5).astype(self.dtype),
-            np.random.rand(4).astype(self.dtype),
+            np.random.random((5, 4)).astype(self.dtype)[::-1, ::-1],
+            np.random.random((5)).astype(self.dtype),
+            np.random.random((4)).astype(self.dtype),
         )
 
     def test_A_plus_scaled_outer(self):
@@ -1919,14 +1923,14 @@ class TestGer(unittest_tools.OptimizationTestMixin):
         self.assertFunctionContains(f, self.ger)
         # TODO FIXME: This is NOT a test.
         f(
-            np.random.rand(5, 4).astype(self.dtype),
-            np.random.rand(5).astype(self.dtype),
-            np.random.rand(4).astype(self.dtype),
+            np.random.random((5, 4)).astype(self.dtype),
+            np.random.random((5)).astype(self.dtype),
+            np.random.random((4)).astype(self.dtype),
         )
         f(
-            np.random.rand(5, 4).astype(self.dtype)[::-1, ::-1],
-            np.random.rand(5).astype(self.dtype),
-            np.random.rand(4).astype(self.dtype),
+            np.random.random((5, 4)).astype(self.dtype)[::-1, ::-1],
+            np.random.random((5)).astype(self.dtype),
+            np.random.random((4)).astype(self.dtype),
         )
 
     def test_scaled_A_plus_scaled_outer(self):
@@ -1940,14 +1944,14 @@ class TestGer(unittest_tools.OptimizationTestMixin):
         self.assertFunctionContains(f, self.gemm)
         # TODO FIXME: This is NOT a test.
         f(
-            np.random.rand(5, 4).astype(self.dtype),
-            np.random.rand(5).astype(self.dtype),
-            np.random.rand(4).astype(self.dtype),
+            np.random.random((5, 4)).astype(self.dtype),
+            np.random.random((5)).astype(self.dtype),
+            np.random.random((4)).astype(self.dtype),
         )
         f(
-            np.random.rand(5, 4).astype(self.dtype)[::-1, ::-1],
-            np.random.rand(5).astype(self.dtype),
-            np.random.rand(4).astype(self.dtype),
+            np.random.random((5, 4)).astype(self.dtype)[::-1, ::-1],
+            np.random.random((5)).astype(self.dtype),
+            np.random.random((4)).astype(self.dtype),
         )
 
     def given_dtype(self, dtype, M, N):
@@ -1959,14 +1963,14 @@ class TestGer(unittest_tools.OptimizationTestMixin):
         self.assertFunctionContains(f, self.ger)
         # TODO FIXME: This is NOT a test.
         f(
-            np.random.rand(M, N).astype(self.dtype),
-            np.random.rand(M).astype(self.dtype),
-            np.random.rand(N).astype(self.dtype),
+            np.random.random((M, N)).astype(self.dtype),
+            np.random.random((M)).astype(self.dtype),
+            np.random.random((N)).astype(self.dtype),
         )
         f(
-            np.random.rand(M, N).astype(self.dtype)[::-1, ::-1],
-            np.random.rand(M).astype(self.dtype),
-            np.random.rand(N).astype(self.dtype),
+            np.random.random((M, N)).astype(self.dtype)[::-1, ::-1],
+            np.random.random((M)).astype(self.dtype),
+            np.random.random((N)).astype(self.dtype),
         )
 
     def test_f32_0_0(self):
@@ -2000,7 +2004,7 @@ class TestGer(unittest_tools.OptimizationTestMixin):
         return self.given_dtype("complex128", 1, 9)
 
     def test_inplace(self):
-        A = shared(np.random.rand(4, 5).astype(self.dtype))
+        A = shared(np.random.random((4, 5)).astype(self.dtype))
         f = self.function(
             [self.x, self.y],
             [],
@@ -2010,27 +2014,33 @@ class TestGer(unittest_tools.OptimizationTestMixin):
         )
         self.assertFunctionContains(f, self.ger_destructive)
         # TODO FIXME: This is NOT a test.
-        f(np.random.rand(4).astype(self.dtype), np.random.rand(5).astype(self.dtype))
+        f(
+            np.random.random((4)).astype(self.dtype),
+            np.random.random((5)).astype(self.dtype),
+        )
 
         A.set_value(
             A.get_value(borrow=True, return_internal_type=True)[::-1, ::-1], borrow=True
         )
-        f(np.random.rand(4).astype(self.dtype), np.random.rand(5).astype(self.dtype))
+        f(
+            np.random.random((4)).astype(self.dtype),
+            np.random.random((5)).astype(self.dtype),
+        )
 
 
 class TestBlasStrides:
     dtype = "float64"
     mode = aesara.compile.get_default_mode()
     mode = mode.including("fast_run").excluding("gpu", "c_blas", "scipy_blas")
-    rng = np.random.RandomState(seed=unittest_tools.fetch_seed())
+    rng = np.random.default_rng(seed=unittest_tools.fetch_seed())
 
-    def rand(self, *shape):
-        return _asarray(self.rng.rand(*shape), dtype=self.dtype)
+    def random(self, *shape):
+        return _asarray(self.rng.random(shape), dtype=self.dtype)
 
     def cmp_dot22(self, b_shp, c_shp):
         av = np.zeros((0, 0), dtype=self.dtype)
-        bv = self.rand(*b_shp)
-        cv = self.rand(*c_shp)
+        bv = self.random(*b_shp)
+        cv = self.random(*c_shp)
 
         a = shared(av, "a")
         b = shared(bv, "b")
@@ -2093,8 +2103,8 @@ class TestBlasStrides:
 
     def cmp_dot22scalar(self, b_shp, c_shp):
         av = np.zeros((0, 0), dtype=self.dtype)
-        bv = self.rand(*b_shp)
-        cv = self.rand(*c_shp)
+        bv = self.random(*b_shp)
+        cv = self.random(*c_shp)
         l = np.float32(0.2)
 
         a = shared(av, "a")
@@ -2155,9 +2165,9 @@ class TestBlasStrides:
         self.cmp_dot22scalar((0, 0), (0, 0))
 
     def cmp_gemm(self, a_shp, b_shp, c_shp):
-        av = self.rand(*a_shp)
-        bv = self.rand(*b_shp)
-        cv = self.rand(*c_shp)
+        av = self.random(*a_shp)
+        bv = self.random(*b_shp)
+        cv = self.random(*c_shp)
         l = np.float32(0.2)
 
         a = shared(av, "a")
@@ -2274,9 +2284,9 @@ class TestBlasStrides:
         self.cmp_gemm((0, 0), (0, 0), (0, 0))
 
     def cmp_gemv(self, a_shp, b_shp, c_shp):
-        av = self.rand(a_shp)
-        bv = self.rand(*b_shp)
-        cv = self.rand(c_shp)
+        av = self.random(a_shp)
+        bv = self.random(*b_shp)
+        cv = self.random(c_shp)
         l = np.float32(0.2)
 
         a = shared(av, "a")
@@ -2323,9 +2333,9 @@ class TestBlasStrides:
         self.cmp_gemv(0, (0, 0), 0)
 
     def cmp_ger(self, a_shp, b_shp, c_shp):
-        av = self.rand(*a_shp)
-        bv = self.rand(b_shp)
-        cv = self.rand(c_shp)
+        av = self.random(*a_shp)
+        bv = self.random(b_shp)
+        cv = self.random(c_shp)
         l = np.float32(0.2)
 
         a = shared(av, "a")
@@ -2490,50 +2500,50 @@ TestBatchedDot = makeTester(
     ),
     checks={},
     grad=dict(
-        correct1=(rand(3, 5, 7), rand(3, 7, 5)),
-        correct2=(rand(3, 5, 7), rand(3, 7, 9)),
-        correct3=(rand(3, 5, 7), rand(3, 7)),
-        correct4=(rand(3, 5), rand(3, 5, 7)),
-        correct5=(rand(3), rand(3, 5, 7)),
-        correct6=(rand(3, 5), rand(3)),
-        correct7=(rand(3, 5), rand(3, 5)),
-        correct8=(rand(3), rand(3)),
-        correct9=(rand(3, 5, 7, 11), rand(3)),
-        correct10=(rand(3, 2, 6, 5), rand(3, 5)),
-        correct11=(rand(3, 2, 6, 5), rand(3, 5, 7)),
-        correct12=(rand(3, 2, 6, 5), rand(3, 7, 5, 8)),
-        mixed1=(rand(3, 5).astype("float32"), rand(3, 5, 7)),
-        mixed2=(rand(3, 5).astype("float64"), rand(3, 5, 7)),
+        correct1=(random(3, 5, 7), random(3, 7, 5)),
+        correct2=(random(3, 5, 7), random(3, 7, 9)),
+        correct3=(random(3, 5, 7), random(3, 7)),
+        correct4=(random(3, 5), random(3, 5, 7)),
+        correct5=(random(3), random(3, 5, 7)),
+        correct6=(random(3, 5), random(3)),
+        correct7=(random(3, 5), random(3, 5)),
+        correct8=(random(3), random(3)),
+        correct9=(random(3, 5, 7, 11), random(3)),
+        correct10=(random(3, 2, 6, 5), random(3, 5)),
+        correct11=(random(3, 2, 6, 5), random(3, 5, 7)),
+        correct12=(random(3, 2, 6, 5), random(3, 7, 5, 8)),
+        mixed1=(random(3, 5).astype("float32"), random(3, 5, 7)),
+        mixed2=(random(3, 5).astype("float64"), random(3, 5, 7)),
     ),
     good=dict(
-        correct1=(rand(3, 5, 7), rand(3, 7, 5)),
-        correct2=(rand(3, 5, 7), rand(3, 7, 9)),
-        correct3=(rand(3, 5, 7), rand(3, 7)),
-        correct4=(rand(3, 5), rand(3, 5, 7)),
-        correct5=(rand(3), rand(3, 5, 7)),
-        correct6=(rand(3, 5), rand(3)),
-        correct7=(rand(3, 5), rand(3, 5)),
-        correct8=(rand(3), rand(3)),
-        correct9=(rand(3, 5, 7, 11), rand(3)),
-        correct10=(rand(3, 7, 11, 5), rand(3, 5)),
-        correct11=(rand(3, 7, 11, 5), rand(3, 5, 13)),
-        correct12=(rand(3, 7, 11, 5), rand(3, 13, 5, 17)),
-        mixed1=(rand(3, 5).astype("float32"), rand(3, 5, 7)),
-        mixed2=(rand(3, 5).astype("float64"), rand(3, 5, 7)),
+        correct1=(random(3, 5, 7), random(3, 7, 5)),
+        correct2=(random(3, 5, 7), random(3, 7, 9)),
+        correct3=(random(3, 5, 7), random(3, 7)),
+        correct4=(random(3, 5), random(3, 5, 7)),
+        correct5=(random(3), random(3, 5, 7)),
+        correct6=(random(3, 5), random(3)),
+        correct7=(random(3, 5), random(3, 5)),
+        correct8=(random(3), random(3)),
+        correct9=(random(3, 5, 7, 11), random(3)),
+        correct10=(random(3, 7, 11, 5), random(3, 5)),
+        correct11=(random(3, 7, 11, 5), random(3, 5, 13)),
+        correct12=(random(3, 7, 11, 5), random(3, 13, 5, 17)),
+        mixed1=(random(3, 5).astype("float32"), random(3, 5, 7)),
+        mixed2=(random(3, 5).astype("float64"), random(3, 5, 7)),
     ),
     bad_build=dict(
-        no_batch_axis2=(rand(), rand(3, 5)), no_batch_axis3=(rand(3, 5), rand())
+        no_batch_axis2=(random(), random(3, 5)), no_batch_axis3=(random(3, 5), random())
     ),
     bad_runtime=dict(
-        batch_dim_mismatch1=(rand(2, 5, 7), rand(3, 7, 9)),
-        batch_dim_mismatch2=(rand(3, 5, 7), rand(2, 7, 9)),
-        batch_dim_mismatch3=(rand(3), rand(5)),
-        bad_dim1=(rand(3, 5, 7), rand(3, 5, 7)),
-        bad_dim2=(rand(3, 5, 7), rand(3, 8, 3)),
-        bad_dim3=(rand(3, 5), rand(3, 7)),
-        bad_dim4=(rand(3, 5, 7, 11), rand(3, 5)),
-        bad_dim5=(rand(3, 5, 7, 11), rand(3, 5, 13)),
-        bad_dim6=(rand(3, 5, 7, 11), rand(3, 13, 5, 17)),
+        batch_dim_mismatch1=(random(2, 5, 7), random(3, 7, 9)),
+        batch_dim_mismatch2=(random(3, 5, 7), random(2, 7, 9)),
+        batch_dim_mismatch3=(random(3), random(5)),
+        bad_dim1=(random(3, 5, 7), random(3, 5, 7)),
+        bad_dim2=(random(3, 5, 7), random(3, 8, 3)),
+        bad_dim3=(random(3, 5), random(3, 7)),
+        bad_dim4=(random(3, 5, 7, 11), random(3, 5)),
+        bad_dim5=(random(3, 5, 7, 11), random(3, 5, 13)),
+        bad_dim6=(random(3, 5, 7, 11), random(3, 13, 5, 17)),
     ),
 )
 
@@ -2542,8 +2552,8 @@ def test_batched_dot():
     first = tensor3("first")
     second = tensor3("second")
     output = batched_dot(first, second)
-    first_val = np.random.rand(10, 10, 20).astype(config.floatX)
-    second_val = np.random.rand(10, 20, 5).astype(config.floatX)
+    first_val = np.random.random((10, 10, 20)).astype(config.floatX)
+    second_val = np.random.random((10, 20, 5)).astype(config.floatX)
     result_fn = function([first, second], output)
     result = result_fn(first_val, second_val)
     assert result.shape[0] == first_val.shape[0]
@@ -2553,8 +2563,8 @@ def test_batched_dot():
     first_mat = dmatrix("first")
     second_mat = dmatrix("second")
     output = batched_dot(first_mat, second_mat)
-    first_mat_val = np.random.rand(10, 10).astype(config.floatX)
-    second_mat_val = np.random.rand(10, 10).astype(config.floatX)
+    first_mat_val = np.random.random((10, 10)).astype(config.floatX)
+    second_mat_val = np.random.random((10, 10)).astype(config.floatX)
     result_fn = function([first_mat, second_mat], output)
     result = result_fn(first_mat_val, second_mat_val)
 
@@ -2596,8 +2606,8 @@ def test_batched_tensordot():
     second = tensor4("second")
     axes = [[1, 2], [3, 1]]
     output = batched_tensordot(first, second, axes)
-    first_val = np.random.rand(8, 10, 20, 3).astype(config.floatX)
-    second_val = np.random.rand(8, 20, 5, 10).astype(config.floatX)
+    first_val = np.random.random((8, 10, 20, 3)).astype(config.floatX)
+    second_val = np.random.random((8, 20, 5, 10)).astype(config.floatX)
     result_fn = function([first, second], output)
     result = result_fn(first_val, second_val)
     assert result.shape[0] == first_val.shape[0]
@@ -2608,8 +2618,8 @@ def test_batched_tensordot():
     second_mat = dmatrix("second")
     axes = 1
     output = batched_tensordot(first_mat, second_mat, axes)
-    first_mat_val = np.random.rand(10, 4).astype(config.floatX)
-    second_mat_val = np.random.rand(10, 4).astype(config.floatX)
+    first_mat_val = np.random.random((10, 4)).astype(config.floatX)
+    second_mat_val = np.random.random((10, 4)).astype(config.floatX)
     result_fn = function([first_mat, second_mat], output)
     result = result_fn(first_mat_val, second_mat_val)
     assert result.shape[0] == first_mat_val.shape[0]

@@ -107,10 +107,11 @@ def _filter_mode(val):
         "FAST_COMPILE",
         "DEBUG_MODE",
         "JAX",
+        "NUMBA",
     ]
     if val in str_options:
         return val
-    # This can be executed before Aesara is completly imported, so
+    # This can be executed before Aesara is completely imported, so
     # aesara.compile.mode.Mode is not always available.
     # Instead of isinstance(val, aesara.compile.mode.Mode),
     # we can inspect the __mro__ of the object!
@@ -327,7 +328,7 @@ def add_basic_configvars():
         "If `more`, sometimes we will select some implementation that "
         "are more deterministic, but slower. In particular, on the GPU, "
         "we will avoid using AtomicAdd. Sometimes we will still use "
-        "non-deterministic implementaion, e.g. when we do not have a GPU "
+        "non-deterministic implementation, e.g. when we do not have a GPU "
         "implementation that is deterministic. Also see "
         "the dnn.conv.algo* flags to cover more cases.",
         EnumStr("default", ["more"]),
@@ -919,7 +920,7 @@ def add_experimental_configvars():
         " optimization local_alloc_elemwise."
         " Generates error if not True. Use"
         " optimizer_excluding=local_alloc_elemwise"
-        " to dsiable.",
+        " to disable.",
         BoolParam(True),
         in_c_key=False,
     )
@@ -1435,165 +1436,12 @@ def add_deprecated_configvars():
         in_c_key=False,
     )
 
-    # TODO: remove?
-    config.add(
-        "warn__identify_1pexp_bug",
-        "Warn if Aesara versions prior to 7987b51 (2011-12-18) could have "
-        "yielded a wrong result due to a bug in the is_1pexp function",
-        BoolParam(_warn_default("0.4.1")),
-        in_c_key=False,
-    )
-    # TODO: this setting is not used anywhere
-    config.add(
-        "gpu__local_elemwise_fusion",
-        (
-            "Enable or not in fast_run mode(fast_run optimization) the gpu "
-            "elemwise fusion optimization"
-        ),
-        BoolParam(True),
-        in_c_key=False,
-    )
-    # TODO: this setting is not used anywhere
-    config.add(
-        "gpuelemwise__sync",
-        "when true, wait that the gpu fct finished and check it error code.",
-        BoolParam(True),
-        in_c_key=False,
-    )
-    # TODO: most of these bugfix-related warnings can probably be removed
-    config.add(
-        "warn__argmax_pushdown_bug",
-        (
-            "Warn if in past version of Aesara we generated a bug with the "
-            "aesara.tensor.nnet.basic.local_argmax_pushdown optimization. "
-            "Was fixed 27 may 2010"
-        ),
-        BoolParam(_warn_default("0.3")),
-        in_c_key=False,
-    )
-
-    config.add(
-        "warn__gpusum_01_011_0111_bug",
-        (
-            "Warn if we are in a case where old version of Aesara had a "
-            "silent bug with GpuSum pattern 01,011 and 0111 when the first "
-            "dimensions was bigger then 4096. Was fixed 31 may 2010"
-        ),
-        BoolParam(_warn_default("0.3")),
-        in_c_key=False,
-    )
-
-    config.add(
-        "warn__sum_sum_bug",
-        (
-            "Warn if we are in a case where Aesara version between version "
-            "9923a40c7b7a and the 2 august 2010 (fixed date), generated an "
-            "error in that case. This happens when there are 2 consecutive "
-            "sums in the graph, bad code was generated. "
-            "Was fixed 2 August 2010"
-        ),
-        BoolParam(_warn_default("0.3")),
-        in_c_key=False,
-    )
-
-    config.add(
-        "warn__sum_div_dimshuffle_bug",
-        (
-            "Warn if previous versions of Aesara (between rev. "
-            "3bd9b789f5e8, 2010-06-16, and cfc6322e5ad4, 2010-08-03) "
-            "would have given incorrect result. This bug was triggered by "
-            "sum of division of dimshuffled tensors."
-        ),
-        BoolParam(_warn_default("0.3")),
-        in_c_key=False,
-    )
-
-    config.add(
-        "warn__subtensor_merge_bug",
-        "Warn if previous versions of Aesara (before 0.5rc2) could have given "
-        "incorrect results when indexing into a subtensor with negative "
-        "stride (for instance, for instance, x[a:b:-1][c]).",
-        BoolParam(_warn_default("0.5")),
-        in_c_key=False,
-    )
-
-    config.add(
-        "warn__gpu_set_subtensor1",
-        "Warn if previous versions of Aesara (before 0.6) could have given "
-        "incorrect results when moving to the gpu "
-        "set_subtensor(x[int vector], new_value)",
-        BoolParam(_warn_default("0.6")),
-        in_c_key=False,
-    )
-
-    config.add(
-        "warn__vm_gc_bug",
-        "There was a bug that existed in the default Aesara configuration,"
-        " only in the development version between July 5th 2012"
-        " and July 30th 2012. This was not in a released version."
-        " If your code was affected by this bug, a warning"
-        " will be printed during the code execution if you use the"
-        " `linker=vm,vm__lazy=True,warn__vm_gc_bug=True` Aesara flags."
-        " This warning is disabled by default as the bug was not released.",
-        BoolParam(False),
-        in_c_key=False,
-    )
-
-    config.add(
-        "warn__signal_conv2d_interface",
-        (
-            "Warn we use the new signal.conv2d() when its interface"
-            " changed mid June 2014"
-        ),
-        BoolParam(_warn_default("0.7")),
-        in_c_key=False,
-    )
-
-    config.add(
-        "warn__reduce_join",
-        (
-            "Your current code is fine, but Aesara versions "
-            "prior to 0.7 (or this development version) "
-            "might have given an incorrect result. "
-            "To disable this warning, set the Aesara flag "
-            "warn__reduce_join to False. The problem was an "
-            "optimization, that modified the pattern "
-            '"Reduce{scalar.op}(Join(axis=0, a, b), axis=0)", '
-            "did not check the reduction axis. So if the "
-            "reduction axis was not 0, you got a wrong answer."
-        ),
-        BoolParam(_warn_default("0.7")),
-        in_c_key=False,
-    )
-
-    config.add(
-        "warn__inc_set_subtensor1",
-        (
-            "Warn if previous versions of Aesara (before 0.7) could have "
-            "given incorrect results for inc_subtensor and set_subtensor "
-            "when using some patterns of advanced indexing (indexing with "
-            "one vector or matrix of ints)."
-        ),
-        BoolParam(_warn_default("0.7")),
-        in_c_key=False,
-    )
-
     config.add(
         "warn__round",
         "Warn when using `tensor.round` with the default mode. "
         "Round changed its default from `half_away_from_zero` to "
         "`half_to_even` to have the same default as NumPy.",
         BoolParam(_warn_default("0.9")),
-        in_c_key=False,
-    )
-
-    config.add(
-        "warn__inc_subtensor1_opt",
-        "Warn if previous versions of Aesara (before 0.10) could have "
-        "given incorrect results when computing "
-        "inc_subtensor(zeros[idx], x)[idx], when idx is an array of integers "
-        "with duplicated values.",
-        BoolParam(_warn_default("0.10")),
         in_c_key=False,
     )
 
@@ -1611,13 +1459,6 @@ def add_scan_configvars():
         "Allow/disallow memory preallocation for outputs inside of scan "
         "(default: True)",
         BoolParam(True),
-        in_c_key=False,
-    )
-
-    config.add(
-        "scan__debug",
-        "If True, enable extra verbose output related to scan",
-        BoolParam(False),
         in_c_key=False,
     )
 

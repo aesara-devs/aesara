@@ -4,9 +4,20 @@ from numpy.testing import assert_equal, assert_string_equal
 
 import aesara
 import tests.unittest_tools as utt
+from aesara.graph.basic import equal_computations
 from aesara.tensor.elemwise import DimShuffle
-from aesara.tensor.subtensor import AdvancedSubtensor, AdvancedSubtensor1, Subtensor
-from aesara.tensor.type import TensorType, dmatrix, iscalar, ivector, matrix
+from aesara.tensor.math import dot
+from aesara.tensor.subtensor import AdvancedSubtensor, Subtensor
+from aesara.tensor.type import (
+    TensorType,
+    cscalar,
+    dmatrix,
+    dvector,
+    iscalar,
+    ivector,
+    matrix,
+    tensor3,
+)
 from aesara.tensor.type_other import MakeSlice
 from aesara.tensor.var import TensorConstant
 
@@ -47,6 +58,20 @@ def test_numpy_method(fct):
     y = fct(x)
     f = aesara.function([x], y)
     utt.assert_allclose(np.nan_to_num(f(data)), np.nan_to_num(fct(data)))
+
+
+def test_infix_dot_method():
+    X = dmatrix("X")
+    y = dvector("y")
+
+    res = X @ y
+    exp_res = X.dot(y)
+    assert equal_computations([res], [exp_res])
+
+    X_val = np.arange(2 * 3).reshape((2, 3))
+    res = X_val @ y
+    exp_res = dot(X_val, y)
+    assert equal_computations([res], [exp_res])
 
 
 def test_empty_list_indexing():
@@ -149,19 +174,18 @@ def test__getitem__AdvancedSubtensor():
     # This is a `__getitem__` call that's redirected to `_tensor_py_operators.take`
     z = x[i]
     op_types = [type(node.op) for node in aesara.graph.basic.io_toposort([x, i], [z])]
-    assert op_types[-1] == AdvancedSubtensor1
+    assert op_types[-1] == AdvancedSubtensor
 
     # This should index nothing (i.e. return an empty copy of `x`)
     # We check that the index is empty
     z = x[[]]
     op_types = [type(node.op) for node in aesara.graph.basic.io_toposort([x, i], [z])]
-    assert op_types == [AdvancedSubtensor1]
+    assert op_types == [AdvancedSubtensor]
     assert isinstance(z.owner.inputs[1], TensorConstant)
 
-    # This is also a `__getitem__` call that's redirected to `_tensor_py_operators.take`
     z = x[:, i]
     op_types = [type(node.op) for node in aesara.graph.basic.io_toposort([x, i], [z])]
-    assert op_types == [DimShuffle, AdvancedSubtensor1, DimShuffle]
+    assert op_types == [MakeSlice, AdvancedSubtensor]
 
     z = x[..., i, None]
     op_types = [type(node.op) for node in aesara.graph.basic.io_toposort([x, i], [z])]
@@ -170,3 +194,29 @@ def test__getitem__AdvancedSubtensor():
     z = x[i, None]
     op_types = [type(node.op) for node in aesara.graph.basic.io_toposort([x, i], [z])]
     assert op_types[-1] == AdvancedSubtensor
+
+
+@pytest.mark.parametrize(
+    "x, indices, new_order",
+    [
+        (tensor3(), (np.newaxis, slice(None), np.newaxis), ("x", 0, "x", 1, 2)),
+        (cscalar(), (np.newaxis,), ("x",)),
+        (matrix(), (np.newaxis,), ("x", 0, 1)),
+        (matrix(), (np.newaxis, np.newaxis), ("x", "x", 0, 1)),
+        (matrix(), (np.newaxis, slice(None)), ("x", 0, 1)),
+        (matrix(), (np.newaxis, slice(None), slice(None)), ("x", 0, 1)),
+        (matrix(), (np.newaxis, np.newaxis, slice(None)), ("x", "x", 0, 1)),
+        (matrix(), (slice(None), np.newaxis), (0, "x", 1)),
+        (matrix(), (slice(None), slice(None), np.newaxis), (0, 1, "x")),
+        (
+            matrix(),
+            (np.newaxis, slice(None), np.newaxis, slice(None), np.newaxis),
+            ("x", 0, "x", 1, "x"),
+        ),
+    ],
+)
+def test__getitem__newaxis(x, indices, new_order):
+    res = x[indices]
+    assert isinstance(res.owner.op, DimShuffle)
+    assert res.broadcastable == tuple(i == "x" for i in new_order)
+    assert res.owner.op.new_order == new_order

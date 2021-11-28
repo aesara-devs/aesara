@@ -277,7 +277,7 @@ class BaseCorr3dMM(OpenMPOp, _NoPythonOp):
             or the gradient of the filters in backprop wrt. weights
         :param top: Variable name of the output images / feature maps in the
             forward pass, or the gradient of the outputs in the backprop passes
-        :param sub: Dictionary of substitutions useable to help generating the
+        :param sub: Dictionary of substitutions usable to help generating the
             C code.
         :param height: If self.subsample[0] != 1, a variable giving the height
             of the filters for direction="backprop weights" or the height of

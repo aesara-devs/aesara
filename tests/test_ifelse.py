@@ -19,7 +19,7 @@ from tests import unittest_tools as utt
 
 
 __docformat__ = "restructedtext en"
-__authors__ = "Razvan Pascanu" "PyMC Development Team"
+__authors__ = "Razvan Pascanu " "PyMC Development Team " "Aesara Developers "
 __copyright__ = "(c) 2010, Universite de Montreal"
 
 
@@ -59,10 +59,10 @@ class TestIfelse(utt.OptimizationTestMixin):
         c = iscalar("c")
         f = function([c, x, y], ifelse(c, x, y), mode=self.mode)
         self.assertFunctionContains1(f, self.get_ifelse(1))
-        rng = np.random.RandomState(utt.fetch_seed())
+        rng = np.random.default_rng(utt.fetch_seed())
 
-        xlen = rng.randint(200)
-        ylen = rng.randint(200)
+        xlen = rng.integers(200)
+        ylen = rng.integers(200)
 
         vx = np.asarray(rng.uniform(size=(xlen,)), self.dtype)
         vy = np.asarray(rng.uniform(size=(ylen,)), self.dtype)
@@ -91,10 +91,10 @@ class TestIfelse(utt.OptimizationTestMixin):
         ifnode = [n for n in f.maker.fgraph.toposort() if isinstance(n.op, IfElse)]
         assert len(ifnode) == 1
         assert not ifnode[0].op.as_view
-        rng = np.random.RandomState(utt.fetch_seed())
+        rng = np.random.default_rng(utt.fetch_seed())
 
-        xlen = rng.randint(200)
-        ylen = rng.randint(200)
+        xlen = rng.integers(200)
+        ylen = rng.integers(200)
 
         vx = np.asarray(rng.uniform(size=(xlen,)), self.dtype)
         vy = np.asarray(rng.uniform(size=(ylen,)), self.dtype)
@@ -110,10 +110,10 @@ class TestIfelse(utt.OptimizationTestMixin):
         c = iscalar("c")
         f = function([c, x1, x2, y1, y2], ifelse(c, (x1, x2), (y1, y2)), mode=self.mode)
         self.assertFunctionContains1(f, self.get_ifelse(2))
-        rng = np.random.RandomState(utt.fetch_seed())
+        rng = np.random.default_rng(utt.fetch_seed())
 
-        xlen = rng.randint(200)
-        ylen = rng.randint(200)
+        xlen = rng.integers(200)
+        ylen = rng.integers(200)
 
         vx1 = np.asarray(rng.uniform(size=(xlen,)) * 3, "int32")
         vx2 = np.asarray(rng.uniform(size=(xlen,)), self.dtype)
@@ -153,10 +153,10 @@ class TestIfelse(utt.OptimizationTestMixin):
         # There is only 2 of the 3 ifelse that are moved on the GPU.
         # The one that stay on the CPU is for the shape.
         self.assertFunctionContains(f, self.get_ifelse(1), min=2, max=3)
-        rng = np.random.RandomState(utt.fetch_seed())
+        rng = np.random.default_rng(utt.fetch_seed())
 
-        xlen = rng.randint(200)
-        ylen = rng.randint(200)
+        xlen = rng.integers(200)
+        ylen = rng.integers(200)
 
         vx = np.asarray(rng.uniform(size=(xlen,)), self.dtype)
         vy = np.asarray(rng.uniform(size=(ylen,)), self.dtype)
@@ -195,12 +195,12 @@ class TestIfelse(utt.OptimizationTestMixin):
         ifnode = [x for x in f.maker.fgraph.toposort() if isinstance(x.op, IfElse)][0]
         assert len(ifnode.outputs) == 2
 
-        rng = np.random.RandomState(utt.fetch_seed())
+        rng = np.random.default_rng(utt.fetch_seed())
 
-        x1len = rng.randint(200)
-        x2len = rng.randint(200)
-        y1len = rng.randint(200)
-        y2len = rng.randint(200)
+        x1len = rng.integers(200)
+        x2len = rng.integers(200)
+        y1len = rng.integers(200)
+        y2len = rng.integers(200)
 
         vx1 = np.asarray(rng.uniform(size=(x1len,)), self.dtype)
         vx2 = np.asarray(rng.uniform(size=(x2len,)), self.dtype)
@@ -225,9 +225,9 @@ class TestIfelse(utt.OptimizationTestMixin):
         grads = aesara.grad(z[0].sum() + z[1].sum(), [x1, x2, y1, y2])
 
         f = function([c, x1, x2, y1, y2], grads)
-        rng = np.random.RandomState(utt.fetch_seed())
+        rng = np.random.default_rng(utt.fetch_seed())
 
-        lens = [rng.randint(200) for i in range(4)]
+        lens = [rng.integers(200) for i in range(4)]
         values = [
             np.asarray(rng.uniform(size=(l,)), aesara.config.floatX) for l in lens
         ]
@@ -286,8 +286,8 @@ class TestIfelse(utt.OptimizationTestMixin):
         f(i1, i2, i3, i4)
 
     def test_dtype_mismatch(self):
-        rng = np.random.RandomState(utt.fetch_seed())
-        data = rng.rand(5).astype(self.dtype)
+        rng = np.random.default_rng(utt.fetch_seed())
+        data = rng.random((5)).astype(self.dtype)
         x = self.shared(data)
         y = aet.cast(x * 10, "int8")
         cond = iscalar("cond")
@@ -298,8 +298,8 @@ class TestIfelse(utt.OptimizationTestMixin):
             ifelse(cond, y, x)
 
     def test_ndim_mismatch(self):
-        rng = np.random.RandomState(utt.fetch_seed())
-        data = rng.rand(5).astype(self.dtype)
+        rng = np.random.default_rng(utt.fetch_seed())
+        data = rng.random((5)).astype(self.dtype)
         x = self.shared(data)
         y = col("y", self.dtype)
         cond = iscalar("cond")
@@ -310,8 +310,8 @@ class TestIfelse(utt.OptimizationTestMixin):
             ifelse(cond, y, x)
 
     def test_broadcast_mismatch(self):
-        rng = np.random.RandomState(utt.fetch_seed())
-        data = rng.rand(5).astype(self.dtype)
+        rng = np.random.default_rng(utt.fetch_seed())
+        data = rng.random((5)).astype(self.dtype)
         x = self.shared(data)
         # print x.broadcastable
         y = row("y", self.dtype)
@@ -328,8 +328,8 @@ class TestIfelse(utt.OptimizationTestMixin):
 
         import aesara.sparse
 
-        rng = np.random.RandomState(utt.fetch_seed())
-        data = rng.rand(2, 3).astype(self.dtype)
+        rng = np.random.default_rng(utt.fetch_seed())
+        data = rng.random((2, 3)).astype(self.dtype)
         x = self.shared(data)
         y = aesara.sparse.matrix("csc", dtype=self.dtype, name="y")
         z = aesara.sparse.matrix("csr", dtype=self.dtype, name="z")
@@ -400,7 +400,7 @@ class TestIfelse(utt.OptimizationTestMixin):
 
         f = function([x1, x2, y1, y2, w1, w2, c], out, allow_input_downcast=True)
         assert isinstance(f.maker.fgraph.toposort()[-1].op, IfElse)
-        rng = np.random.RandomState(utt.fetch_seed())
+        rng = np.random.default_rng(utt.fetch_seed())
         vx1 = rng.uniform()
         vx2 = rng.uniform()
         vy1 = rng.uniform()
@@ -426,7 +426,7 @@ class TestIfelse(utt.OptimizationTestMixin):
 
         f = function([x1, y1, y2, c], out, allow_input_downcast=True)
         assert isinstance(f.maker.fgraph.toposort()[-1].op, IfElse)
-        rng = np.random.RandomState(utt.fetch_seed())
+        rng = np.random.default_rng(utt.fetch_seed())
         vx1 = rng.uniform()
         vy1 = rng.uniform()
         vy2 = rng.uniform()
@@ -449,7 +449,7 @@ class TestIfelse(utt.OptimizationTestMixin):
 
         f = function([x1, x2, y1, y2, w1, w2, c], out, allow_input_downcast=True)
         assert isinstance(f.maker.fgraph.toposort()[-1].op, IfElse)
-        rng = np.random.RandomState(utt.fetch_seed())
+        rng = np.random.default_rng(utt.fetch_seed())
         vx1 = rng.uniform()
         vx2 = rng.uniform()
         vy1 = rng.uniform()
@@ -488,7 +488,7 @@ class TestIfelse(utt.OptimizationTestMixin):
             len([x for x in f.maker.fgraph.toposort() if isinstance(x.op, IfElse)]) == 1
         )
 
-        rng = np.random.RandomState(utt.fetch_seed())
+        rng = np.random.default_rng(utt.fetch_seed())
         vx1 = rng.uniform()
         vx2 = rng.uniform()
         vy1 = rng.uniform()
@@ -507,8 +507,8 @@ class TestIfelse(utt.OptimizationTestMixin):
             aesara.grad(ifelse(0, x, x), x)
 
     def test_grad_int_value(self):
-        w = aesara.shared(np.random.rand(10))
-        b = aesara.shared(np.random.rand())
+        w = aesara.shared(np.random.random((10)))
+        b = aesara.shared(np.random.random())
         params = [w, b]
 
         x = vector()
@@ -519,6 +519,17 @@ class TestIfelse(utt.OptimizationTestMixin):
 
         loss = ifelse(correct, 0, 1)
         [(param, param - 0.5 * aesara.grad(cost=loss, wrt=param)) for param in params]
+
+    def test_str(self):
+        x = vector("x", dtype=self.dtype)
+        y = vector("y", dtype=self.dtype)
+        c = iscalar("c")
+        res = ifelse(c, x, y)
+        assert str(res.owner).startswith("if{}")
+        res.owner.op.name = "name"
+        res.owner.op.as_view = True
+        res.owner.op.gpu = True
+        assert str(res.owner).startswith("if{name,inplace,gpu}")
 
 
 class IfElseIfElseIf(Op):

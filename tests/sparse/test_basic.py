@@ -88,7 +88,7 @@ from aesara.tensor.basic import MakeVector
 from aesara.tensor.elemwise import DimShuffle, Elemwise
 from aesara.tensor.math import sum as aet_sum
 from aesara.tensor.shape import Shape_i
-from aesara.tensor.subtensor import AdvancedIncSubtensor1, AdvancedSubtensor1, Subtensor
+from aesara.tensor.subtensor import AdvancedIncSubtensor, AdvancedSubtensor1, Subtensor
 from aesara.tensor.type import (
     TensorType,
     float_dtypes,
@@ -140,8 +140,8 @@ def random_lil(shape, dtype, nnz):
     huge = 2 ** 30
     for k in range(nnz):
         # set non-zeros in random locations (row x, col y)
-        idx = np.random.randint(1, huge + 1, size=2) % shape
-        value = np.random.rand()
+        idx = np.random.default_rng().integers(1, huge + 1, size=2) % shape
+        value = np.random.random()
         # if dtype *int*, value will always be zeros!
         if dtype in sparse.integer_dtypes:
             value = int(value * 100)
@@ -201,11 +201,11 @@ def sparse_random_inputs(
 
         if out_dtype in sparse.discrete_dtypes:
             if not gap:
-                value = np.random.randint(50, size=shape)
+                value = np.random.default_rng().integers(50, size=shape)
             elif len(gap) == 2:
-                value = np.random.randint(gap[0], gap[1], size=shape)
+                value = np.random.default_rng().integers(gap[0], gap[1], size=shape)
             else:
-                value = np.random.randint(gap[0], size=shape)
+                value = np.random.default_rng().integers(gap[0], size=shape)
         else:
             if not gap:
                 value = np.random.random(shape)
@@ -240,7 +240,7 @@ def sparse_random_inputs(
     if explicit_zero:
         for idx in range(n):
             assert data[idx].nnz > 1, "can't make a sparse matrix with explicit 0"
-            d_idx = np.random.randint(data[idx].nnz)
+            d_idx = np.random.default_rng().integers(data[idx].nnz)
             data[idx].data[d_idx] = 0
 
     # numpy 1.5.0 with scipy 0.9.0 have sp.sparse.XXX_matrix return
@@ -379,9 +379,6 @@ class TestVerifyGradSparse:
 
 
 class TestTranspose:
-    def setup_method(self):
-        utt.seed_rng()
-
     def test_transpose_csc(self):
         spe = sp.sparse.csc_matrix(sp.sparse.eye(5, 3))
         a = as_sparse_variable(spe)
@@ -491,7 +488,7 @@ class TestSparseInferShape(utt.InferShapeTester):
             [x + y],
             [
                 sp.sparse.csr_matrix(random_lil((10, 40), config.floatX, 3)),
-                np.random.randn(10, 40).astype(config.floatX),
+                np.random.standard_normal((10, 40)).astype(config.floatX),
             ],
             (AddSD, sparse.opt.AddSD_ccode),
         )
@@ -517,7 +514,7 @@ class TestSparseInferShape(utt.InferShapeTester):
             [x * y],
             [
                 sp.sparse.csr_matrix(random_lil((10, 40), config.floatX, 3)),
-                np.random.randn(10, 40).astype(config.floatX),
+                np.random.standard_normal((10, 40)).astype(config.floatX),
             ],
             MulSD,
             excluding=["local_mul_s_d"],
@@ -621,7 +618,7 @@ class TestSparseInferShape(utt.InferShapeTester):
         self._compile_and_check(
             [x],
             [csc_from_dense(x)],
-            [np.random.randn(10, 40).astype(config.floatX)],
+            [np.random.standard_normal((10, 40)).astype(config.floatX)],
             csc_from_dense.__class__,
         )
 
@@ -636,8 +633,8 @@ class TestSparseInferShape(utt.InferShapeTester):
             [out],
             [
                 np.zeros((40, 10), dtype=config.floatX),
-                np.random.randn(12, 10).astype(config.floatX),
-                np.random.randint(low=0, high=40, size=(12,)),
+                np.random.standard_normal((12, 10)).astype(config.floatX),
+                np.random.default_rng().integers(low=0, high=40, size=(12,)),
             ],
             ConstructSparseFromList,
         )
@@ -647,11 +644,19 @@ class TestConstructSparseFromList:
     def test_adv_sub1_sparse_grad(self):
         v = ivector()
 
-        # Assert we don't create a sparse grad by default
         m = matrix()
+
+        with pytest.raises(TypeError):
+            aesara.sparse.sparse_grad(v)
+
+        with pytest.raises(TypeError):
+            sub = m[v, v]
+            aesara.sparse.sparse_grad(sub)
+
+        # Assert we don't create a sparse grad by default
         sub = m[v]
         g = aesara.grad(sub.sum(), m)
-        assert isinstance(g.owner.op, AdvancedIncSubtensor1)
+        assert isinstance(g.owner.op, AdvancedIncSubtensor)
 
         # Test that we create a sparse grad when asked
         # USER INTERFACE
@@ -670,8 +675,8 @@ class TestConstructSparseFromList:
         assert isinstance(g.owner.op, ConstructSparseFromList)
 
         # Test the sparse grad
-        valm = np.random.rand(5, 4).astype(config.floatX)
-        valv = np.random.randint(0, 5, 10)
+        valm = np.random.random((5, 4)).astype(config.floatX)
+        valv = np.random.default_rng().integers(0, 5, 10)
         m = matrix()
         shared_v = aesara.shared(valv)
 
@@ -688,7 +693,7 @@ class TestConstructSparseFromList:
 
             # Assert we don't create a sparse grad by default
             g = aesara.grad(sub.sum(), t)
-            assert isinstance(g.owner.op, AdvancedIncSubtensor1)
+            assert isinstance(g.owner.op, AdvancedIncSubtensor)
 
             # Test that we raise an error, as we can't create a sparse
             # grad from tensors that don't have 2 dimensions.
@@ -884,13 +889,11 @@ class TestAddMul:
 
 
 class TestComparison:
-    def setup_method(self):
-        utt.seed_rng()
 
     # took from tensor basic_test.py
     def _rand_ranged(self, min, max, shape):
         return np.asarray(
-            np.random.rand(*shape) * (max - min) + min, dtype=config.floatX
+            np.random.random(shape) * (max - min) + min, dtype=config.floatX
         )
 
     tests = [
@@ -1014,12 +1017,9 @@ class TestComparison:
 
 
 class TestConversion:
-    def setup_method(self):
-        utt.seed_rng()
-
     @pytest.mark.skip
     def test_basic(self):
-        a = aet.as_tensor_variable(np.random.rand(5))
+        a = aet.as_tensor_variable(np.random.random((5)))
         s = csc_from_dense(a)
         val = eval_outputs([s])
         assert str(val.dtype) == "float64"
@@ -1027,7 +1027,7 @@ class TestConversion:
 
     @pytest.mark.skip
     def test_basic_1(self):
-        a = aet.as_tensor_variable(np.random.rand(5))
+        a = aet.as_tensor_variable(np.random.random((5)))
         s = csr_from_dense(a)
         val = eval_outputs([s])
         assert str(val.dtype) == "float64"
@@ -1078,9 +1078,6 @@ class TestConversion:
 
 
 class TestCsmProperties:
-    def setup_method(self):
-        utt.seed_rng()
-
     def test_csm_properties_grad(self):
         sp_types = {"csc": sp.sparse.csc_matrix, "csr": sp.sparse.csr_matrix}
 
@@ -1123,9 +1120,6 @@ class TestCsmProperties:
 
 
 class TestCsm:
-    def setup_method(self):
-        utt.seed_rng()
-
     def test_csm_grad(self):
         sp_types = {"csc": sp.sparse.csc_matrix, "csr": sp.sparse.csr_matrix}
 
@@ -1223,9 +1217,6 @@ class TestCsm:
 
 
 class TestStructuredDot:
-    def setup_method(self):
-        utt.seed_rng()
-
     def test_structureddot_csc_grad(self):
 
         # shortcut: testing csc in float32, testing csr in float64
@@ -1233,7 +1224,7 @@ class TestStructuredDot:
         # allocate a random sparse matrix
         spmat = sp.sparse.csc_matrix(random_lil((4, 3), "float32", 3))
 
-        mat = np.asarray(np.random.randn(3, 2), "float32")
+        mat = np.asarray(np.random.standard_normal((3, 2)), "float32")
 
         verify_grad_sparse(structured_dot, [spmat, mat], structured=True)
 
@@ -1249,7 +1240,7 @@ class TestStructuredDot:
         # allocate a random sparse matrix
         spmat = sp.sparse.csr_matrix(random_lil((4, 3), "float64", 3))
 
-        mat = np.asarray(np.random.randn(3, 2), "float64")
+        mat = np.asarray(np.random.standard_normal((3, 2)), "float64")
 
         verify_grad_sparse(structured_dot, [spmat, mat], structured=True)
 
@@ -1289,7 +1280,9 @@ class TestStructuredDot:
                 # The lil makes an intc on my computer when sparse_dtype
                 # is int32.
                 spmat.dtype = np.dtype(sparse_dtype)
-                mat = np.asarray(np.random.randn(N, K) * 9, dtype=dense_dtype)
+                mat = np.asarray(
+                    np.random.standard_normal((N, K)) * 9, dtype=dense_dtype
+                )
                 # print 'DTYPES', sparse_dtype, dense_dtype
                 # print 'sym types', a.type, b.type
                 # print 'dtype strings', spmat.dtype, mat.dtype
@@ -1316,9 +1309,9 @@ class TestStructuredDot:
         spmat = sp.sparse.lil_matrix((4, 6), dtype="int64")
         for i in range(5):
             # set non-zeros in random locations (row x, col y)
-            x = np.floor(np.random.rand() * spmat.shape[0])
-            y = np.floor(np.random.rand() * spmat.shape[1])
-            spmat[x, y] = np.random.rand() * 10
+            x = np.floor(np.random.random() * spmat.shape[0])
+            y = np.floor(np.random.random() * spmat.shape[1])
+            spmat[x, y] = np.random.random() * 10
         spmat = sp.sparse.csc_matrix(spmat)
 
         images = TensorType(dtype="float32", broadcastable=[False, False])("images")
@@ -1392,7 +1385,7 @@ class TestStructuredDot:
             (400, 3000, 200, 6000),
         ]:
             spmat = sp.sparse.csc_matrix(random_lil((M, N), sparse_dtype, nnz))
-            mat = np.asarray(np.random.randn(N, K), dense_dtype)
+            mat = np.asarray(np.random.standard_normal((N, K)), dense_dtype)
             aesara_times = []
             scipy_times = []
             for i in range(5):
@@ -1440,7 +1433,7 @@ class TestStructuredDot:
             (400, 3000, 200, 6000),
         ]:
             spmat = sp.sparse.csr_matrix(random_lil((M, N), sparse_dtype, nnz))
-            mat = np.asarray(np.random.randn(N, K), dense_dtype)
+            mat = np.asarray(np.random.standard_normal((N, K)), dense_dtype)
             t0 = time.time()
             aesara_result = f(spmat, mat)
             t1 = time.time()
@@ -1469,7 +1462,6 @@ class TestDots(utt.InferShapeTester):
         super().setup_method()
         x_size = (10, 100)
         y_size = (100, 1000)
-        utt.seed_rng()
 
         self.x_csr = sp.sparse.csr_matrix(
             np.random.binomial(1, 0.5, x_size), dtype=aesara.config.floatX
@@ -1604,7 +1596,9 @@ class TestDots(utt.InferShapeTester):
 
         f = aesara.function(inputs=[I, C], outputs=y)
         i = np.asarray([[4, 3, 7, 7], [2, 8, 4, 5]], dtype=intX)
-        a = np.asarray(np.random.randint(0, 100, (size, size)), dtype=intX)
+        a = np.asarray(
+            np.random.default_rng().integers(0, 100, (size, size)), dtype=intX
+        )
         f(i, a)
 
     def test_csr_dense_grad(self):
@@ -1614,7 +1608,7 @@ class TestDots(utt.InferShapeTester):
         # allocate a random sparse matrix
         spmat = sp.sparse.csr_matrix(random_lil((4, 3), "float64", 3))
 
-        mat = np.asarray(np.random.randn(2, 4), "float64")
+        mat = np.asarray(np.random.standard_normal((2, 4)), "float64")
 
         def buildgraph_T(mat):
             return Dot()(mat, spmat)
@@ -1632,7 +1626,7 @@ class TestUsmm:
         y_size = (100, 200)
         z_size = (x_size[0], y_size[1])
 
-        self.rng = np.random.RandomState(seed=utt.fetch_seed())
+        self.rng = np.random.default_rng(seed=utt.fetch_seed())
         self.x = np.asarray(
             self.rng.binomial(1, 0.5, x_size), dtype=aesara.config.floatX
         )
@@ -2305,7 +2299,7 @@ class TestRemove0(utt.InferShapeTester):
 
 class TestGetItem:
     def setup_method(self):
-        self.rng = np.random.RandomState(utt.fetch_seed())
+        self.rng = np.random.default_rng(utt.fetch_seed())
 
     def test_GetItemList(self):
 
@@ -2728,7 +2722,7 @@ def _hv_switch(op, expected_function):
 
     :Parameters:
     - `op`: HStack or VStack class.
-    - `expected_function`: function from scipy for comparaison.
+    - `expected_function`: function from scipy for comparison.
     """
 
     class TestXStack(_TestHVStack):
@@ -2759,7 +2753,8 @@ class TestAddSSData(utt.InferShapeTester):
             variable = getattr(aesara.sparse, format + "_matrix")
 
             rand = np.array(
-                np.random.randint(1, 4, size=(3, 4)) - 1, dtype=aesara.config.floatX
+                np.random.default_rng(utt.fetch_seed()).integers(1, 4, size=(3, 4)) - 1,
+                dtype=aesara.config.floatX,
             )
             constant = as_sparse_format(rand, format)
 
@@ -2833,7 +2828,6 @@ def elemwise_checker(
             else:
                 self.gap_grad = gap
             # Ensure the test's name is correct.
-            utt.seed_rng()
             assert eval(self.__class__.__name__) is self.__class__
 
         def test_op(self):
@@ -3143,16 +3137,13 @@ ConjTester = elemwise_checker(sparse.conj, np.conj, grad_test=False)
 
 
 class TestMulSV:
-    def setup_method(self):
-        utt.seed_rng()
-
     def test_mul_s_v_grad(self):
         sp_types = {"csc": sp.sparse.csc_matrix, "csr": sp.sparse.csr_matrix}
 
         for format in ["csr", "csc"]:
             for dtype in ["float32", "float64"]:
                 spmat = sp_types[format](random_lil((4, 3), dtype, 3))
-                mat = np.asarray(np.random.rand(3), dtype=dtype)
+                mat = np.asarray(np.random.random((3)), dtype=dtype)
 
                 verify_grad_sparse(mul_s_v, [spmat, mat], structured=True)
 
@@ -3166,7 +3157,7 @@ class TestMulSV:
                 f = aesara.function([x, y], mul_s_v(x, y))
 
                 spmat = sp_types[format](random_lil((4, 3), dtype, 3))
-                mat = np.asarray(np.random.rand(3), dtype=dtype)
+                mat = np.asarray(np.random.random((3)), dtype=dtype)
 
                 out = f(spmat, mat)
 
@@ -3174,16 +3165,13 @@ class TestMulSV:
 
 
 class TestStructuredAddSV:
-    def setup_method(self):
-        utt.seed_rng()
-
     def test_structured_add_s_v_grad(self):
         sp_types = {"csc": sp.sparse.csc_matrix, "csr": sp.sparse.csr_matrix}
 
         for format in ["csr", "csc"]:
             for dtype in ["float32", "float64"]:
                 spmat = sp_types[format](random_lil((4, 3), dtype, 3))
-                mat = np.asarray(np.random.rand(3), dtype=dtype)
+                mat = np.asarray(np.random.random((3)), dtype=dtype)
 
                 verify_grad_sparse(structured_add_s_v, [spmat, mat], structured=True)
 
@@ -3199,7 +3187,7 @@ class TestStructuredAddSV:
                 spmat = sp_types[format](random_lil((4, 3), dtype, 3))
                 spones = spmat.copy()
                 spones.data = np.ones_like(spones.data)
-                mat = np.asarray(np.random.rand(3), dtype=dtype)
+                mat = np.asarray(np.random.random((3)), dtype=dtype)
 
                 out = f(spmat, mat)
 
@@ -3285,9 +3273,18 @@ class TestSamplingDot(utt.InferShapeTester):
     x.append(sparse.csr_matrix())
     # unsquare shape
     a = [
-        np.array(np.random.randint(1, 6, size=(4, 3)) - 1, dtype=aesara.config.floatX),
-        np.array(np.random.randint(1, 6, size=(5, 3)) - 1, dtype=aesara.config.floatX),
-        np.array(np.random.randint(1, 3, size=(4, 5)) - 1, dtype=aesara.config.floatX),
+        np.array(
+            np.random.default_rng().integers(1, 6, size=(4, 3)) - 1,
+            dtype=aesara.config.floatX,
+        ),
+        np.array(
+            np.random.default_rng().integers(1, 6, size=(5, 3)) - 1,
+            dtype=aesara.config.floatX,
+        ),
+        np.array(
+            np.random.default_rng().integers(1, 3, size=(4, 5)) - 1,
+            dtype=aesara.config.floatX,
+        ),
     ]
     a[2] = sp.sparse.csr_matrix(a[2])
 

@@ -15,7 +15,7 @@
          These are inputs over which scan loops and gets data but into which
          scan also writes data. The shorthand mit_mot describes how scan
          deal with them at each step : at each step take several slices as
-         input and produce sevaral slices as outputs
+         input and produce several slices as outputs
 
          iii) mit_sot : multiple input taps single output tap arguments.
          As before scan reads from these but also writes. At each step scan
@@ -33,25 +33,19 @@
          At each step use its value as input, and afterwards replace it with
          a new value.
          vii) other_args: arguments that are passed to every call of the
-         inner function as they are ( no slicing is perfomed)
+         inner function as they are ( no slicing is performed)
 
     All these outputs are one after the other in the inputs list (named in
     this code as args) in a given order ( namely the one described above
-    with little discrepencies depending if we are talking about the outputs
+    with little discrepancies depending if we are talking about the outputs
     of the Scan op or the inputs of the Scan op Node, and if we are talking
     about the inputs of the inner function of scan or of the scan op).
 
     Because of this, all we need to be able to separate and tell arguments
     apart is how many of which we have as well as how many taps and which
-    ones (where applicable). All this information is desribed (more or less)
+    ones (where applicable). All this information is described (more or less)
     by describing the arguments of this function)
 """
-
-
-__authors__ = "Razvan Pascanu" "PyMC Developers"
-__copyright__ = "(c) 2011, Universite de Montreal"
-
-
 import cython
 import numpy
 
@@ -64,7 +58,7 @@ from aesara.link.utils import raise_with_op
 
 
 def get_version():
-    return 0.298
+    return 0.301
 
 @cython.boundscheck(False)
 def perform(
@@ -98,18 +92,18 @@ def perform(
     Parameters
     ----------
     n_shared_outs: unsigned int
-        Number of arugments that correspond to shared variables with
+        Number of arguments that correspond to shared variables with
         updates
     n_mit_mot_outs: unsigned int
         Sum over the number of output taps for each mit_mot sequence
     n_seqs: unsigned int
         Number of sequences provided as input
     n_mit_mot : unsigned int
-        Number of mit_mot arguemnts
+        Number of mit_mot arguments
     n_mit_sot: unsigned int
         Number of mit_sot arguments
     n_sit_sot: unsigned int
-        Number of sit sot arguemnts
+        Number of sit sot arguments
     n_nit_sot: unsigned int
         Number of nit_sot arguments
     n_steps: unsigned int
@@ -153,9 +147,7 @@ def perform(
         starting point of implementing this function in C ( we need to take
         all the code around the call of this function and put in C inside
         that code)
-    fnct: python object
-        Only used to attach some timings for the profile mode ( can be
-        skiped if we don't care about Aesara's profile mode)
+    fnct: Function
     destroy_map
         Array of boolean saying if an output is computed inplace
     args: list of ndarrays (and random states)
@@ -167,7 +159,7 @@ def perform(
         figure things out on the outside - python)
     self: python object
         The scan op itself. I only use it to attach to it some timing
-        informations .. but I don;t need to.
+        information .. but I don;t need to.
 
     """
     # 1. Unzip the number of steps and sequences. If number of steps is
@@ -214,18 +206,20 @@ def perform(
             "Scan was asked to run for negative number of step %d" %
             n_steps)
     elif n_steps == 0:
-        raise NotImplementedError(
-            "We didn't implemented yet the case where scan do 0 iteration")
+        raise NotImplementedError("n_steps == 0")
     else:
         for idx in range(n_seqs):
             if args[<unsigned int>(1+idx)].shape[0] < n_steps:
-                raise ValueError(('Sequence is shorter than the required '
-                                 'number of steps : (n_steps, seq, '
-                                  'seq.shape):'), n_steps,
-                                  args[1+idx],
-                                  args[1+idx].shape)
+                raise ValueError((
+                    "Sequence %s has shape %s "
+                    "but the Scan's required number of steps is %s"
+                ) % (
+                    idx,
+                    args[1+idx].shape,
+                    n_steps,
+                ))
     # 2. Allocate memory for the outputs. Construct the list:
-    #       store_steps  -- map containting the length of each output
+    #       store_steps  -- map containing the length of each output
     #       pos          -- map containing the current position of each output
 
     for idx in range(n_mit_mot + n_mit_sot + n_sit_sot):
@@ -404,7 +398,7 @@ def perform(
                 # done by raise_with_op is not implemented in C.
                 if hasattr(fn, 'thunks'):
                     # For the CVM
-                    raise_with_op(fn.maker.fgraph,
+                    raise_with_op(fnct.maker.fgraph,
                                   fn.nodes[fn.position_of_error],
                                   fn.thunks[fn.position_of_error])
                 else:
@@ -412,7 +406,7 @@ def perform(
                     # We don't have access from python to all the
                     # temps values So for now, we just don't print
                     # the extra shapes/strides info
-                    raise_with_op(fn.maker.fgraph, fn.nodes[fn.position_of_error])
+                    raise_with_op(fnct.maker.fgraph, fn.nodes[fn.position_of_error])
             else:
                 # old-style linkers raise their own exceptions
                 raise
@@ -551,11 +545,10 @@ def perform(
                         if i == 0:
                             raise
                         raise ValueError(
-                            "An output of the scan has changed shape. "
-                            "This may be caused by a pushout optimization."
-                            " Try adding "
-                            "'optimizer_excluding=scanOp_pushout_output' "
-                            "to your Aesara flags.")
+                            "An output of the Scan has changed shape. "
+                            "This may be caused by a push-out optimization."
+                            " Try adding 'optimizer_excluding=scan_pushout'"
+                            " to your Aesara flags.")
 
         # 5.6 Copy over the values for outputs corresponding to shared
         # variables
@@ -597,7 +590,7 @@ def perform(
                 outs[idx][0][store_steps[idx]-pdx:] = outs[idx][0][:pdx]
                 outs[idx][0][:store_steps[idx]-pdx] = tmp
         # This would normally happen only when doing truncated
-        # backpropagation through time. In such a scenarion Scan is
+        # backpropagation through time. In such a scenario Scan is
         # expected to return 0 for all entries for which the gradient is
         # not actually computed
         elif store_steps[idx] > i - self.mintaps[idx]:
@@ -612,11 +605,11 @@ def perform(
             # do not get applied
             if i < n_steps:
 
-	    # Cython can not handle negative indices ( because of a
-	    # derictive at the beginning of the function that says not
-	    # to do boundschecks). The directive is used to make the
-	    # code faster, so this workaround is better then removing
-	    # the directive.
+                # Cython can not handle negative indices ( because of a
+                # directive at the beginning of the function that says not
+                # to do boundschecks). The directive is used to make the
+                # code faster, so this workaround is better then removing
+                # the directive.
                 sh0 = outs[idx][0].shape[0]
                 outs[idx][0] = outs[idx][0][:sh0-(n_steps - i)]
 
@@ -639,15 +632,5 @@ def perform(
             if hasattr(fn, 'update_profile'):
                 fn.update_profile(profile)
 
-    ### Old Profile Mode
-    #if hasattr(fnct.maker.mode,'fct_call_time'):
-    #    fnct.maker.mode.fct_call_time[fnct] += t_fn
-    #    fnct.maker.mode.fct_call[fnct] += n_steps
-
-    #fnct.maker.mode.call_time += t_fn
-    #fnct.maker.mode.fn_time += t_fn
-
-    # DEBUG PRINT :
     self.t_call = t_call
     self.t_fn   = t_fn
-    # print 'Cython > timing', t_call, t_fn, 'in percentage', 100.*t_fn/t_call

@@ -10,7 +10,7 @@ from aesara.tensor import basic as aet
 from aesara.tensor.basic import as_tensor_variable
 from aesara.tensor.basic_opt import register_specialize_device
 from aesara.tensor.elemwise import Elemwise
-from aesara.tensor.math import inv, mean, prod, sqrt
+from aesara.tensor.math import mean, prod, reciprocal, sqrt
 from aesara.tensor.math import sum as aet_sum
 from aesara.tensor.type import TensorType
 
@@ -185,7 +185,7 @@ def batch_normalization_train(
         axes = (0,) + tuple(range(2, inputs.ndim))
         mean = inputs.mean(axes, keepdims=True)
         var = inputs.var(axes, keepdims=True)
-        invstd = aet.inv(aet.sqrt(var + epsilon))
+        invstd = aet.reciprocal(aet.sqrt(var + epsilon))
         out = (inputs - mean) * gamma * invstd + beta
 
         m = aet.cast(ate.prod(inputs.shape) / aet.prod(mean.shape), 'float32')
@@ -497,7 +497,7 @@ class AbstractBatchNormTrain(Op):
         )
 
     def connection_pattern(self, node):
-        # Specificy that epsilon and running_average_factor are not connected to outputs.
+        # Specify that epsilon and running_average_factor are not connected to outputs.
         patterns = [
             [True, True, True],  # x
             [True, True, True],  # scale
@@ -629,7 +629,7 @@ class AbstractBatchNormInference(Op):
         return [dx, dscale, dbias, dmean, dvar, aesara.gradient.DisconnectedType()()]
 
     def connection_pattern(self, node):
-        # Specificy that epsilon is not connected to outputs.
+        # Specify that epsilon is not connected to outputs.
         return [[True], [True], [True], [True], [True], [False]]
 
     def perform(self, node, inputs, output_storage):
@@ -802,7 +802,7 @@ def local_abstract_batch_norm_train(fgraph, node):
     # The epsilon should not upcast the dtype.
     if var.dtype == "float32" and epsilon.dtype == "float64":
         epsilon = epsilon.astype("float32")
-    invstd = inv(sqrt(var + epsilon))
+    invstd = reciprocal(sqrt(var + epsilon))
     out = (x - mean) * (scale * invstd) + bias
     results = [out, mean, invstd]
 
@@ -902,7 +902,7 @@ def local_abstract_batch_norm_inference(fgraph, node):
     return [result]
 
 
-# Register Cpu Optmization
+# Register Cpu Optimization
 bn_groupopt = aesara.graph.optdb.LocalGroupDB()
 bn_groupopt.__name__ = "batchnorm_opts"
 register_specialize_device(bn_groupopt, "fast_compile", "fast_run")

@@ -18,26 +18,10 @@ logger = logging.getLogger(__name__)
 
 
 class MatrixPinv(Op):
-    """Computes the pseudo-inverse of a matrix :math:`A`.
+    __props__ = ("hermitian",)
 
-    The pseudo-inverse of a matrix :math:`A`, denoted :math:`A^+`, is
-    defined as: "the matrix that 'solves' [the least-squares problem]
-    :math:`Ax = b`," i.e., if :math:`\\bar{x}` is said solution, then
-    :math:`A^+` is that matrix such that :math:`\\bar{x} = A^+b`.
-
-    Note that :math:`Ax=AA^+b`, so :math:`AA^+` is close to the identity matrix.
-    This method is not faster than `matrix_inverse`. Its strength comes from
-    that it works for non-square matrices.
-    If you have a square matrix though, `matrix_inverse` can be both more
-    exact and faster to compute. Also this op does not get optimized into a
-    solve op.
-
-    """
-
-    __props__ = ()
-
-    def __init__(self):
-        pass
+    def __init__(self, hermitian):
+        self.hermitian = hermitian
 
     def make_node(self, x):
         x = as_tensor_variable(x)
@@ -47,7 +31,7 @@ class MatrixPinv(Op):
     def perform(self, node, inputs, outputs):
         (x,) = inputs
         (z,) = outputs
-        z[0] = np.linalg.pinv(x).astype(x.dtype)
+        z[0] = np.linalg.pinv(x, hermitian=self.hermitian).astype(x.dtype)
 
     def L_op(self, inputs, outputs, g_outputs):
         r"""The gradient function should return
@@ -75,8 +59,46 @@ class MatrixPinv(Op):
         ).T
         return [grad]
 
+    def infer_shape(self, fgraph, node, shapes):
+        return [list(reversed(shapes[0]))]
 
-pinv = MatrixPinv()
+
+def pinv(x, hermitian=False):
+    """Computes the pseudo-inverse of a matrix :math:`A`.
+
+    The pseudo-inverse of a matrix :math:`A`, denoted :math:`A^+`, is
+    defined as: "the matrix that 'solves' [the least-squares problem]
+    :math:`Ax = b`," i.e., if :math:`\\bar{x}` is said solution, then
+    :math:`A^+` is that matrix such that :math:`\\bar{x} = A^+b`.
+
+    Note that :math:`Ax=AA^+b`, so :math:`AA^+` is close to the identity matrix.
+    This method is not faster than `matrix_inverse`. Its strength comes from
+    that it works for non-square matrices.
+    If you have a square matrix though, `matrix_inverse` can be both more
+    exact and faster to compute. Also this op does not get optimized into a
+    solve op.
+
+    """
+    return MatrixPinv(hermitian=hermitian)(x)
+
+
+class Inv(Op):
+    """Computes the inverse of one or more matrices."""
+
+    def make_node(self, x):
+        x = as_tensor_variable(x)
+        return Apply(self, [x], [x.type()])
+
+    def perform(self, node, inputs, outputs):
+        (x,) = inputs
+        (z,) = outputs
+        z[0] = np.linalg.inv(x).astype(x.dtype)
+
+    def infer_shape(self, fgraph, node, shapes):
+        return shapes
+
+
+inv = Inv()
 
 
 class MatrixInverse(Op):
@@ -270,7 +292,7 @@ class Eigh(Eig):
         # input.
         w_dtype = self._numop([[np.dtype(x.dtype).type()]])[0].dtype.name
         w = vector(dtype=w_dtype)
-        v = matrix(dtype=x.dtype)
+        v = matrix(dtype=w_dtype)
         return Apply(self, [x], [w, v])
 
     def perform(self, node, inputs, outputs):
@@ -407,48 +429,35 @@ class QRFull(Op):
 
     def make_node(self, x):
         x = as_tensor_variable(x)
+
         assert x.ndim == 2, "The input of qr function should be a matrix."
-        q = matrix(dtype=x.dtype)
+
+        in_dtype = x.type.numpy_dtype
+        out_dtype = np.dtype(f"f{in_dtype.itemsize}")
+
+        q = matrix(dtype=out_dtype)
+
         if self.mode != "raw":
-            r = matrix(dtype=x.dtype)
+            r = matrix(dtype=out_dtype)
         else:
-            r = vector(dtype=x.dtype)
+            r = vector(dtype=out_dtype)
 
-        return Apply(self, [x], [q, r])
+        if self.mode != "r":
+            q = matrix(dtype=out_dtype)
+            outputs = [q, r]
+        else:
+            outputs = [r]
 
-    def perform(self, node, inputs, outputs):
-        (x,) = inputs
-        (q, r) = outputs
-        assert x.ndim == 2, "The input of qr function should be a matrix."
-        q[0], r[0] = self._numop(x, self.mode)
-
-
-class QRIncomplete(Op):
-    """
-    Incomplete QR Decomposition.
-
-    Computes the QR decomposition of a matrix.
-    Factor the matrix a as qr and return a single matrix R.
-
-    """
-
-    _numop = staticmethod(np.linalg.qr)
-    __props__ = ("mode",)
-
-    def __init__(self, mode):
-        self.mode = mode
-
-    def make_node(self, x):
-        x = as_tensor_variable(x)
-        assert x.ndim == 2, "The input of qr function should be a matrix."
-        r = matrix(dtype=x.dtype)
-        return Apply(self, [x], [r])
+        return Apply(self, [x], outputs)
 
     def perform(self, node, inputs, outputs):
         (x,) = inputs
-        (r,) = outputs
         assert x.ndim == 2, "The input of qr function should be a matrix."
-        r[0] = self._numop(x, self.mode)
+        res = self._numop(x, self.mode)
+        if self.mode != "r":
+            outputs[0][0], outputs[1][0] = res
+        else:
+            outputs[0][0] = res
 
 
 def qr(a, mode="reduced"):
@@ -493,12 +502,7 @@ def qr(a, mode="reduced"):
         The upper-triangular matrix.
 
     """
-
-    x = [[2, 1], [3, 4]]
-    if isinstance(np.linalg.qr(x, mode), tuple):
-        return QRFull(mode)(a)
-    else:
-        return QRIncomplete(mode)(a)
+    return QRFull(mode)(a)
 
 
 class SVD(Op):
@@ -528,10 +532,15 @@ class SVD(Op):
     def make_node(self, x):
         x = as_tensor_variable(x)
         assert x.ndim == 2, "The input of svd function should be a matrix."
-        s = vector(dtype=x.dtype)
+
+        in_dtype = x.type.numpy_dtype
+        out_dtype = np.dtype(f"f{in_dtype.itemsize}")
+
+        s = vector(dtype=out_dtype)
+
         if self.compute_uv:
-            u = matrix(dtype=x.dtype)
-            vt = matrix(dtype=x.dtype)
+            u = matrix(dtype=out_dtype)
+            vt = matrix(dtype=out_dtype)
             return Apply(self, [x], [u, s, vt])
         else:
             return Apply(self, [x], [s])
@@ -582,7 +591,7 @@ def svd(a, full_matrices=1, compute_uv=1):
     return SVD(full_matrices, compute_uv)(a)
 
 
-class lstsq(Op):
+class Lstsq(Op):
 
     __props__ = ()
 
@@ -607,6 +616,9 @@ class lstsq(Op):
         outputs[1][0] = zz[1]
         outputs[2][0] = np.array(zz[2])
         outputs[3][0] = zz[3]
+
+
+lstsq = Lstsq()
 
 
 def matrix_power(M, n):
@@ -809,3 +821,21 @@ def tensorsolve(a, b, axes=None):
     """
 
     return TensorSolve(axes)(a, b)
+
+
+__all__ = [
+    "pinv",
+    "inv",
+    "trace",
+    "matrix_dot",
+    "det",
+    "eig",
+    "eigh",
+    "qr",
+    "svd",
+    "lstsq",
+    "matrix_power",
+    "norm",
+    "tensorinv",
+    "tensorsolve",
+]

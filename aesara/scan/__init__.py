@@ -20,14 +20,14 @@ Special cases:
 
 Often a for-loop or while-loop can be expressed as a ``scan()`` operation,
 and ``scan`` is the closest that aesara comes to looping. The advantages
-of using ``scan`` over `for` loops in python (amongs other) are:
+of using ``scan`` over `for` loops in python (among others) are:
 
 * it allows the number of iterations to be part of the symbolic graph
 * it allows computing gradients through the for loop
 * there exist a bunch of optimizations that help re-write your loop
-such that less memory is used and that it runs faster
+  such that less memory is used and that it runs faster
 * it ensures that data is not copied from host to gpu and gpu to
-host at each step
+  host at each step
 
 The Scan Op should typically be used by calling any of the following
 functions: ``scan()``, ``map()``, ``reduce()``, ``foldl()``,
@@ -44,6 +44,7 @@ __authors__ = (
     "Pascal Lamblin "
     "Arnaud Bergeron "
     "PyMC Developers "
+    "Aesara Developers "
 )
 __copyright__ = "(c) 2010, Universite de Montreal"
 

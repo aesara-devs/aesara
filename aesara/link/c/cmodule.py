@@ -25,16 +25,17 @@ from typing import Dict, List, Set
 
 import numpy.distutils
 
-import aesara
-
 # we will abuse the lockfile mechanism when reading and writing the registry
 from aesara.compile.compilelock import lock_ctx
 from aesara.configdefaults import config, gcc_version_str
+from aesara.configparser import BoolParam, StrParam
+from aesara.graph.op import Op
 from aesara.link.c.exceptions import CompileError, MissingGXX
 from aesara.utils import (
     LOCAL_BITWIDTH,
     flatten,
     hash_from_code,
+    maybe_add_to_os_environ_pathlist,
     output_subprocess_Popen,
     subprocess_Popen,
 )
@@ -288,6 +289,11 @@ def dlimport(fullpath, suffix=None):
     _logger.debug(f"module_name {module_name}")
 
     sys.path[0:0] = [workdir]  # insert workdir at beginning (temporarily)
+    # Explicitly add gcc dll directory on Python 3.8+ on Windows
+    if (sys.platform == "win32") & (hasattr(os, "add_dll_directory")):
+        gcc_path = shutil.which("gcc")
+        if gcc_path is not None:
+            os.add_dll_directory(os.path.dirname(gcc_path))
     global import_time
     try:
         importlib.invalidate_caches()
@@ -1123,7 +1129,7 @@ class ModuleCache:
             self.loaded_key_pkl.add(key_pkl)
         elif config.cmodule__warn_no_version:
             key_flat = flatten(key)
-            ops = [k for k in key_flat if isinstance(k, aesara.graph.op.Op)]
+            ops = [k for k in key_flat if isinstance(k, Op)]
             _logger.warning(
                 "not all the"
                 " following op(s) implement"
@@ -1170,8 +1176,8 @@ class ModuleCache:
             #    When device=gpu, we compile during Aesara
             #    import. This triggers the loading of the cache. But
             #    unpickling the cache asks that the external Ops are
-            #    completly loaded, which isn't always the case!
-            #    If a module isn't completly loaded and its unpickling
+            #    completely loaded, which isn't always the case!
+            #    If a module isn't completely loaded and its unpickling
             #    fails, it means it is safe for this function
             #    compilation to skip them, but not for future
             #    compilations. So reloading the cache here
@@ -1894,7 +1900,7 @@ class Compiler:
     def _try_flags(
         cls,
         flag_list,
-        preambule="",
+        preamble="",
         body="",
         try_run=False,
         output=False,
@@ -1916,7 +1922,7 @@ class Compiler:
 
         code = (
             """
-        %(preambule)s
+        %(preamble)s
         int main(int argc, char** argv)
         {
             %(body)s
@@ -1994,7 +2000,7 @@ def try_march_flag(flags):
             """
     )
 
-    cflags = flags + ["-L" + d for d in aesara.link.c.cmodule.std_lib_dirs()]
+    cflags = flags + ["-L" + d for d in std_lib_dirs()]
     compilation_result, execution_result = GCC_compiler.try_compile_tmp(
         test_code, tmp_prefix="try_march_", flags=cflags, try_run=True
     )
@@ -2304,11 +2310,11 @@ class GCC_compiler(Compiler):
 
         # Figure out whether the current Python executable is 32
         # or 64 bit and compile accordingly. This step is ignored for
-        # ARM (32-bit and 64-bit) architectures in order to make
+        # ARM (32-bit and 64-bit) and RISC-V architectures in order to make
         # Aesara compatible with the Raspberry Pi, Raspberry Pi 2, or
-        # other systems with ARM processors.
-        if not any(["arm" in flag for flag in cxxflags]) and not any(
-            arch in platform.machine() for arch in ["arm", "aarch"]
+        # other systems with ARM or RISC-V processors.
+        if (not any("arm" in flag or "riscv" in flag for flag in cxxflags)) and (
+            not any(arch in platform.machine() for arch in ("arm", "aarch", "riscv"))
         ):
             n_bits = LOCAL_BITWIDTH
             cxxflags.append(f"-m{int(n_bits)}")
@@ -2366,14 +2372,14 @@ class GCC_compiler(Compiler):
     def try_flags(
         cls,
         flag_list,
-        preambule="",
+        preamble="",
         body="",
         try_run=False,
         output=False,
         comp_args=True,
     ):
         return cls._try_flags(
-            flag_list, preambule, body, try_run, output, config.cxx, comp_args
+            flag_list, preamble, body, try_run, output, config.cxx, comp_args
         )
 
     @staticmethod
@@ -2738,9 +2744,8 @@ def default_blas_ldflags():
         # numpy and scipy.
         try:
             import mkl  # noqa
-        except ImportError as e:
-            if any([m for m in ("conda", "Continuum") if m in sys.version]):
-                warn_record.append(f"install mkl with `conda install mkl-service`: {e}")
+        except ImportError:
+            pass
         else:
             # This branch is executed if no exception was raised
             if sys.platform == "win32":
@@ -2774,7 +2779,7 @@ def default_blas_ldflags():
             res = try_blas_flag(flags)
             if res:
                 check_mkl_openmp()
-                aesara.utils.maybe_add_to_os_environ_pathlist("PATH", lib_path[0])
+                maybe_add_to_os_environ_pathlist("PATH", lib_path[0])
                 return res
 
         # to support path that includes spaces, we need to wrap it with double quotes on Windows
@@ -2845,7 +2850,7 @@ def add_blas_configvars():
     config.add(
         "blas__ldflags",
         "lib[s] to include for [Fortran] level-3 blas implementation",
-        aesara.configparser.StrParam(default_blas_ldflags),
+        StrParam(default_blas_ldflags),
         # Added elsewhere in the c key only when needed.
         in_c_key=False,
     )
@@ -2853,7 +2858,7 @@ def add_blas_configvars():
     config.add(
         "blas__check_openmp",
         "Check for openmp library conflict.\nWARNING: Setting this to False leaves you open to wrong results in blas-related operations.",
-        aesara.configparser.BoolParam(True),
+        BoolParam(True),
         in_c_key=False,
     )
 

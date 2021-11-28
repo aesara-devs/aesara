@@ -1,8 +1,8 @@
 import logging
 import sys
-import warnings
 from itertools import chain, groupby
 from textwrap import dedent
+from typing import Iterable, List, Optional, Tuple, Union
 
 import numpy as np
 
@@ -10,13 +10,15 @@ import aesara
 from aesara import scalar as aes
 from aesara.configdefaults import config
 from aesara.gradient import DisconnectedType
-from aesara.graph.basic import Apply, Variable
+from aesara.graph.basic import Apply, Constant, Variable
 from aesara.graph.op import COp, Op
 from aesara.graph.params_type import ParamsType
-from aesara.graph.type import CType
+from aesara.graph.type import Type
 from aesara.graph.utils import MethodNotDefined
 from aesara.misc.safe_asarray import _asarray
 from aesara.printing import pprint
+from aesara.scalar.basic import ScalarConstant
+from aesara.tensor import _get_vector_length, get_vector_length
 from aesara.tensor.basic import addbroadcast, alloc, get_scalar_constant_value
 from aesara.tensor.elemwise import DimShuffle
 from aesara.tensor.exceptions import (
@@ -62,10 +64,59 @@ invalid_tensor_types = (
 )
 
 
-def as_index_constant(a):
-    """Convert Python literals to Aesara constants--when possible--in Subtensor arguments.
+def indices_from_subtensor(
+    op_indices: Iterable[ScalarConstant],
+    idx_list: Optional[List[Union[Type, slice, Variable]]],
+) -> Tuple[Union[slice, Variable]]:
+    """Recreate the index tuple from which a ``*Subtensor**`` ``Op`` was created.
 
-    This will leave `Variable`s untouched.
+    Parameters
+    ==========
+    op_indices
+        The flattened indices obtained from ``x.inputs``, when ``x`` is a
+        ``*Subtensor*`` node.
+    idx_list
+        The values describing the types of each dimension's index.  This is
+        obtained from ``op.idx_list``, when ``op`` is a ``*Subtensor*``
+        ``Op``.
+
+    Example
+    =======
+        array, *op_indices = subtensor_node.inputs
+        idx_list = getattr(subtensor_node.op, "idx_list", None)
+        indices = indices_from_subtensor(op_indices, idx_list)
+
+    """
+
+    def convert_indices(indices, entry):
+        """Reconstruct ``*Subtensor*`` index input parameter entries."""
+        if indices and isinstance(entry, Type):
+            rval = indices.pop(0)
+            return rval
+        elif isinstance(entry, slice):
+            return slice(
+                convert_indices(indices, entry.start),
+                convert_indices(indices, entry.stop),
+                convert_indices(indices, entry.step),
+            )
+        else:
+            return entry
+
+    op_indices = list(op_indices)
+
+    return (
+        tuple(convert_indices(op_indices, idx) for idx in idx_list)
+        if idx_list
+        else tuple(op_indices)
+    )
+
+
+def as_index_constant(
+    a: Optional[Union[slice, int, np.integer, Variable]]
+) -> Optional[Union[Variable, slice]]:
+    r"""Convert Python literals to Aesara constants--when possible--in `Subtensor` arguments.
+
+    This will leave `Variable`\s untouched.
     """
     if a is None:
         return a
@@ -83,41 +134,43 @@ def as_index_constant(a):
         return a
 
 
-def get_idx_list(inputs, idx_list, get_count=False):
+def as_index_literal(
+    idx: Union[Variable, slice, type(np.newaxis)]
+) -> Union[int, slice, type(np.newaxis)]:
+    """Convert a symbolic index element to its Python equivalent.
+
+    This is like the inverse of `as_index_constant`
+
+    Raises
+    ------
+    NotScalarConstantError
     """
-    Given a list of inputs to the subtensor and its idx_list reorders
-    the inputs according to the idx list to get the right values.
+    if idx == np.newaxis or isinstance(getattr(idx, "type", None), NoneTypeT):
+        return np.newaxis
 
-    If get_counts=True, instead returns the number of inputs consumed
-    during this process.
+    if isinstance(idx, Constant):
+        return idx.data.item() if isinstance(idx, np.ndarray) else idx.data
 
-    """
+    if isinstance(getattr(idx, "type", None), SliceType):
+        idx = slice(*idx.owner.inputs)
 
-    # The number of indices
-    n = len(inputs) - 1
+    if isinstance(idx, slice):
+        return slice(
+            as_index_literal(idx.start),
+            as_index_literal(idx.stop),
+            as_index_literal(idx.step),
+        )
 
-    # The subtensor (or idx_list) does not depend on the inputs.
-    if n == 0:
-        return tuple(idx_list)
-    indices = list(reversed(list(inputs[1:])))
-
-    # General case
-    def convert(entry):
-        if isinstance(entry, CType):
-            return indices.pop()
-        elif isinstance(entry, slice):
-            return slice(convert(entry.start), convert(entry.stop), convert(entry.step))
-        else:
-            return entry
-
-    cdata = tuple(map(convert, idx_list))
-    if get_count:
-        return n - len(indices)
-    else:
-        return cdata
+    raise NotScalarConstantError()
 
 
-def get_canonical_form_slice(theslice, length):
+def get_idx_list(inputs, idx_list):
+    return indices_from_subtensor(inputs[1:], idx_list)
+
+
+def get_canonical_form_slice(
+    theslice: Union[slice, Variable], length: Variable
+) -> Tuple[Variable, int]:
     """Convert slices to canonical form.
 
     Given a slice [start:stop:step] transform it into a canonical form
@@ -128,160 +181,161 @@ def get_canonical_form_slice(theslice, length):
     if the resulting set of numbers needs to be reversed or not.
 
     """
-    from aesara.tensor import extract_constant, ge, lt, sgn, switch
+    from aesara.tensor import ge, lt, sgn, switch
 
-    if isinstance(theslice, slice):
+    if not isinstance(theslice, slice):
+        try:
+            value = as_index_literal(theslice)
+        except NotScalarConstantError:
+            value = theslice
 
-        def analyze(x):
-            try:
-                x_constant = get_scalar_constant_value(x)
-                is_constant = True
-            except NotScalarConstantError:
-                x_constant = extract_constant(x)
-                is_constant = False
-            return x_constant, is_constant
-
-        start, is_start_constant = analyze(theslice.start)
-        stop, is_stop_constant = analyze(theslice.stop)
-        step, is_step_constant = analyze(theslice.step)
-        length, is_length_constant = analyze(length)
-
-        if step is None:
-            step = 1
-            is_step_constant = True
-
-        # First handle the easier and common case where `step` is 1 and
-        # either `start` or `stop` is a range boundary. More specializations
-        # could be added later. This makes the resulting graph smaller than
-        # in the generic case below.
-        if step == 1:
-            is_start_0 = (
-                start is None
-                or start == 0
-                or (
-                    is_start_constant
-                    and is_length_constant
-                    and start < 0
-                    and start + length <= 0
-                )
-            )
-            is_stop_length = (
-                stop is None
-                or stop in [length, sys.maxsize]
-                or (is_stop_constant and is_length_constant and stop >= length)
-            )
-            if is_start_0:
-                # 0:stop:1
-                if is_stop_length:
-                    # Full slice.
-                    return slice(0, length, 1), 1
-                if is_stop_constant and stop >= 0:
-                    return (slice(0, switch(lt(stop, length), stop, length), 1), 1)
-                stop_plus_len = stop + length
-                stop = switch(
-                    lt(stop, 0),
-                    # stop < 0
-                    switch(
-                        lt(stop_plus_len, 0),
-                        # stop + len < 0
-                        0,
-                        # stop + len >= 0
-                        stop_plus_len,
-                    ),
-                    # stop >= 0: use min(stop, length)
-                    switch(lt(stop, length), stop, length),
-                )
-                return slice(0, stop, 1), 1
-            elif is_stop_length:
-                # start:length:1
-                if is_start_constant and start >= 0:
-                    return slice(switch(lt(start, length), start, length), length, 1), 1
-                start_plus_len = start + length
-                start = switch(
-                    lt(start, 0),
-                    # start < 0
-                    switch(
-                        lt(start_plus_len, 0),
-                        # start + len < 0
-                        0,
-                        # start + len >= 0
-                        start_plus_len,
-                    ),
-                    # start >= 0: use min(start, length)
-                    switch(lt(start, length), start, length),
-                )
-                return slice(start, length, 1), 1
-
-        # This is the generic case.
-
-        if is_step_constant:
-            # When we know the sign of `step`, the graph can be made simpler.
-            assert step != 0
-            if step > 0:
-
-                def switch_neg_step(a, b):
-                    return b
-
-                abs_step = step
-                sgn_step = 1
-            else:
-
-                def switch_neg_step(a, b):
-                    return a
-
-                abs_step = -step
-                sgn_step = -1
-        else:
-            is_step_neg = lt(step, 0)
-
-            def switch_neg_step(a, b):
-                return switch(is_step_neg, a, b)
-
-            abs_step = abs(step)
-            sgn_step = sgn(step)
-
-        defstart = switch_neg_step(length - 1, 0)
-        defstop = switch_neg_step(-1, length)
-        if start is None:
-            start = defstart
-        else:
-            start = switch(lt(start, 0), start + length, start)
-            start = switch(lt(start, 0), switch_neg_step(-1, 0), start)
-            start = switch(
-                ge(start, length), switch_neg_step(length - 1, length), start
-            )
-        if stop is None or stop == sys.maxsize:
-            # The special "maxsize" case is probably not needed here,
-            # as slices containing maxsize are not generated by
-            # __getslice__ anymore.
-            stop = defstop
-        else:
-            stop = switch(lt(stop, 0), stop + length, stop)
-            stop = switch(lt(stop, 0), -1, stop)
-            stop = switch(ge(stop, length), length, stop)
-
-        nw_stop = switch_neg_step(start + 1, stop)
-        slice_len = (start - stop - 1) // abs_step + 1
-        slice_len = switch(lt(slice_len, 0), 0, slice_len)
-        neg_start = nw_stop - (slice_len - 1) * abs_step - 1
-        neg_start = switch(lt(neg_start, 0), (nw_stop - 1), neg_start)
-        nw_start = switch_neg_step(neg_start, start)
-        nw_start = switch(lt(nw_start, 0), 0, nw_start)
-        nw_stop = switch(lt(nw_stop, 0), 0, nw_stop)
-        # Ensure start <= stop.
-        nw_start = switch(lt(nw_start, nw_stop), nw_start, nw_stop)
-
-        nw_step = abs_step
-        if step != 1:
-            reverse = sgn_step
-            return slice(nw_start, nw_stop, nw_step), reverse
-        else:
-            return slice(nw_start, nw_stop, nw_step), 1
-    else:
-        value = extract_constant(theslice)
         value = switch(lt(value, 0), (value + length), value)
 
         return value, 1
+
+    def analyze(x):
+        try:
+            x_constant = as_index_literal(x)
+            is_constant = True
+        except NotScalarConstantError:
+            x_constant = x
+            is_constant = False
+        return x_constant, is_constant
+
+    start, is_start_constant = analyze(theslice.start)
+    stop, is_stop_constant = analyze(theslice.stop)
+    step, is_step_constant = analyze(theslice.step)
+    length, is_length_constant = analyze(length)
+
+    if step is None:
+        step = 1
+        is_step_constant = True
+
+    # First handle the easier and common case where `step` is 1 and
+    # either `start` or `stop` is a range boundary. More specializations
+    # could be added later. This makes the resulting graph smaller than
+    # in the generic case below.
+    if step == 1:
+        is_start_0 = (
+            start is None
+            or start == 0
+            or (
+                is_start_constant
+                and is_length_constant
+                and start < 0
+                and start + length <= 0
+            )
+        )
+        is_stop_length = (
+            stop is None
+            or stop in [length, sys.maxsize]
+            or (is_stop_constant and is_length_constant and stop >= length)
+        )
+        if is_start_0:
+            # 0:stop:1
+            if is_stop_length:
+                # Full slice.
+                return slice(0, length, 1), 1
+            if is_stop_constant and stop >= 0:
+                return (slice(0, switch(lt(stop, length), stop, length), 1), 1)
+            stop_plus_len = stop + length
+            stop = switch(
+                lt(stop, 0),
+                # stop < 0
+                switch(
+                    lt(stop_plus_len, 0),
+                    # stop + len < 0
+                    0,
+                    # stop + len >= 0
+                    stop_plus_len,
+                ),
+                # stop >= 0: use min(stop, length)
+                switch(lt(stop, length), stop, length),
+            )
+            return slice(0, stop, 1), 1
+        elif is_stop_length:
+            # start:length:1
+            if is_start_constant and start >= 0:
+                return slice(switch(lt(start, length), start, length), length, 1), 1
+            start_plus_len = start + length
+            start = switch(
+                lt(start, 0),
+                # start < 0
+                switch(
+                    lt(start_plus_len, 0),
+                    # start + len < 0
+                    0,
+                    # start + len >= 0
+                    start_plus_len,
+                ),
+                # start >= 0: use min(start, length)
+                switch(lt(start, length), start, length),
+            )
+            return slice(start, length, 1), 1
+
+    # This is the generic case.
+
+    if is_step_constant:
+        # When we know the sign of `step`, the graph can be made simpler.
+        assert step != 0
+        if step > 0:
+
+            def switch_neg_step(a, b):
+                return b
+
+            abs_step = step
+            sgn_step = 1
+        else:
+
+            def switch_neg_step(a, b):
+                return a
+
+            abs_step = -step
+            sgn_step = -1
+    else:
+        is_step_neg = lt(step, 0)
+
+        def switch_neg_step(a, b):
+            return switch(is_step_neg, a, b)
+
+        abs_step = abs(step)
+        sgn_step = sgn(step)
+
+    defstart = switch_neg_step(length - 1, 0)
+    defstop = switch_neg_step(-1, length)
+    if start is None:
+        start = defstart
+    else:
+        start = switch(lt(start, 0), start + length, start)
+        start = switch(lt(start, 0), switch_neg_step(-1, 0), start)
+        start = switch(ge(start, length), switch_neg_step(length - 1, length), start)
+    if stop is None or stop == sys.maxsize:
+        # The special "maxsize" case is probably not needed here,
+        # as slices containing maxsize are not generated by
+        # __getslice__ anymore.
+        stop = defstop
+    else:
+        stop = switch(lt(stop, 0), stop + length, stop)
+        stop = switch(lt(stop, 0), -1, stop)
+        stop = switch(ge(stop, length), length, stop)
+
+    nw_stop = switch_neg_step(start + 1, stop)
+    slice_len = (start - stop - 1) // abs_step + 1
+    slice_len = switch(lt(slice_len, 0), 0, slice_len)
+    neg_start = nw_stop - (slice_len - 1) * abs_step - 1
+    neg_start = switch(lt(neg_start, 0), (nw_stop - 1), neg_start)
+    nw_start = switch_neg_step(neg_start, start)
+    nw_start = switch(lt(nw_start, 0), 0, nw_start)
+    nw_stop = switch(lt(nw_stop, 0), 0, nw_stop)
+    # Ensure start <= stop.
+    nw_start = switch(lt(nw_start, nw_stop), nw_start, nw_stop)
+
+    nw_step = abs_step
+    if step != 1:
+        reverse = sgn_step
+        return slice(nw_start, nw_stop, nw_step), reverse
+    else:
+        return slice(nw_start, nw_stop, nw_step), 1
 
 
 def range_len(slc):
@@ -332,10 +386,10 @@ def is_basic_idx(idx):
 
 
 def basic_shape(shape, indices):
-    """Computes the shape resulting from basic NumPy indexing.
+    r"""Computes the shape resulting from basic NumPy indexing.
 
-    Basic indices are either `slice`s or `None`s.
-    `Ellipsis` are not supported here; convert them to `slice`s first.
+    Basic indices are either ``slice``\s or ``None``\s.  ``Ellipsis`` are not
+    supported here; convert them to ``slice``\s first.
 
     Parameters
     ----------
@@ -508,7 +562,7 @@ class Subtensor(COp):
 
         if isinstance(entry, Variable) and entry.type in scal_types:
             return entry.type
-        elif isinstance(entry, CType) and entry in scal_types:
+        elif isinstance(entry, Type) and entry in scal_types:
             return entry
 
         if (
@@ -518,7 +572,7 @@ class Subtensor(COp):
         ):
             return aes.get_scalar_type(entry.type.dtype)
         elif (
-            isinstance(entry, CType)
+            isinstance(entry, Type)
             and entry in tensor_types
             and np.all(entry.broadcastable)
         ):
@@ -641,7 +695,7 @@ class Subtensor(COp):
             raise IndexError("too many indices for array")
 
         input_types = Subtensor.collapse(
-            idx_list, lambda entry: isinstance(entry, CType)
+            idx_list, lambda entry: isinstance(entry, Type)
         )
         if len(inputs) != len(input_types):
             raise IndexError(
@@ -859,7 +913,7 @@ class Subtensor(COp):
                 inc_spec_pos(1)
                 if depth == 0:
                     is_slice.append(0)
-            elif isinstance(entry, CType):
+            elif isinstance(entry, Type):
                 init_cmds.append(
                     "subtensor_spec[%i] = %s;" % (spec_pos(), inputs[input_pos()])
                 )
@@ -1131,7 +1185,7 @@ class Subtensor(COp):
         # (they should be defaulted to zeros_like by the global R_op)
         if eval_points[0] is None:
             return [None]
-        return self(eval_points[0], *inputs[1:], **dict(return_list=True))
+        return self(eval_points[0], *inputs[1:], return_list=True)
 
 
 class SubtensorPrinter:
@@ -1318,22 +1372,6 @@ def inc_subtensor(
             if v != "x" and (v - dim_offset) >= 0:
                 y_order[v - dim_offset] = i
 
-        # Warn if this code path would have produced wrong results in the past
-        if config.warn__inc_set_subtensor1:
-            # Dimshuffle pattern for y that would be equivalent to past code
-            prev_y_order = ["x"] * (dim_offset) + list(range(y.ndim))
-            if y_order != prev_y_order:
-                warnings.warn(
-                    "Although your current code is fine, please note that "
-                    "earlier versions prior to 0.7 (or this development "
-                    "version) may have yielded an incorrect result in "
-                    "this `inc_subtensor` or `set_subtensor` operation. "
-                    "To remove this warning, you can either set the "
-                    "`warn__inc_set_subtensor1` config option to `False`, "
-                    'or `warn__ignore_bug_before` to at least "0.7".',
-                    stacklevel=2,
-                )
-
         inner_incsubtensor = inc_subtensor(
             inner_x,
             y.dimshuffle(y_order),
@@ -1365,20 +1403,6 @@ def inc_subtensor(
             flattened_y = expanded_y.reshape(inner_x.shape)
         else:
             flattened_y = y
-
-        # Warn if this code path would have produced wrong results in the past
-        if config.warn__inc_set_subtensor1:
-            if inner_x.ndim > 1 and sum(y.broadcastable) > 0:
-                warnings.warn(
-                    "Although your current code is fine, please note that "
-                    "earlier versions prior to 0.7 (or this development "
-                    "version) may have yielded an incorrect result in "
-                    "this `inc_subtensor` or `set_subtensor` operation. "
-                    "To remove this warning, you can either set the "
-                    "`warn__inc_set_subtensor1` config option to `False`, "
-                    'or `warn__ignore_bug_before` to at least "0.7".',
-                    stacklevel=2,
-                )
 
         inner_incsubtensor = inc_subtensor(
             inner_x,
@@ -1477,7 +1501,7 @@ class IncSubtensor(COp):
             raise IndexError("too many indices for array")
 
         input_types = Subtensor.collapse(
-            idx_list, lambda entry: isinstance(entry, CType)
+            idx_list, lambda entry: isinstance(entry, Type)
         )
         if len(inputs) != len(input_types):
             raise IndexError(
@@ -1501,7 +1525,7 @@ class IncSubtensor(COp):
         indices = list(reversed(inputs[2:]))
 
         def convert(entry):
-            if isinstance(entry, CType):
+            if isinstance(entry, Type):
                 return indices.pop()
             elif isinstance(entry, slice):
                 return slice(
@@ -1776,9 +1800,7 @@ class IncSubtensor(COp):
             return [None]
         # Again we ignore eval points for indices because incsubtensor is
         # not differentiable wrt to those
-        return self(
-            eval_points[0], eval_points[1], *inputs[2:], **dict(return_list=True)
-        )
+        return self(eval_points[0], eval_points[1], *inputs[2:], return_list=True)
 
     def connection_pattern(self, node):
 
@@ -2586,13 +2608,10 @@ class AdvancedIncSubtensor(Op):
     __props__ = ("inplace", "set_instead_of_inc")
 
     def __init__(self, inplace=False, set_instead_of_inc=False):
-        self.inplace = inplace
         self.set_instead_of_inc = set_instead_of_inc
-        # The assert is needed as in the pass the first argument was
-        # something else that was not used.
-        assert isinstance(inplace, bool)
-        if self.inplace:
-            raise NotImplementedError("In place computation is not" " implemented")
+        self.inplace = inplace
+        if inplace:
+            self.destroy_map = {0: [0]}
 
     def __str__(self):
         return "{}{{{}, {}}}".format(
@@ -2617,8 +2636,6 @@ class AdvancedIncSubtensor(Op):
         )
 
     def perform(self, node, inputs, out_):
-        # TODO: 1. opt to make this in place 2. generalize as described in
-        # AdvancedSubtensor's perform TODO
 
         check_advanced_indexing_dimensions(inputs[0], inputs[2:])
 
@@ -2703,41 +2720,58 @@ def take(a, indices, axis=None, mode="raise"):
     """
     a = aesara.tensor.as_tensor_variable(a)
     indices = aesara.tensor.as_tensor_variable(indices)
-    # Reuse advanced_subtensor1 if indices is a vector
-    if indices.ndim == 1:
-        if mode == "clip":
-            indices = clip(indices, 0, a.shape[axis] - 1)
-        elif mode == "wrap":
-            indices = indices % a.shape[axis]
-        if axis is None:
-            return advanced_subtensor1(a.flatten(), indices)
-        elif axis == 0:
-            return advanced_subtensor1(a, indices)
-        else:
-            if axis < 0:
-                axis += a.ndim
-            assert axis >= 0
-            shuffle = list(range(a.ndim))
-            shuffle[0] = axis
-            shuffle[axis] = 0
-            return advanced_subtensor1(a.dimshuffle(shuffle), indices).dimshuffle(
-                shuffle
-            )
-    if axis is None:
-        shape = indices.shape
-        ndim = indices.ndim
-    else:
-        # If axis is 0, don't generate a useless concatenation.
-        if axis == 0:
-            shape = aesara.tensor.concatenate([indices.shape, a.shape[axis + 1 :]])
-        else:
-            if axis < 0:
-                axis += a.ndim
-            shape = aesara.tensor.concatenate(
-                [a.shape[:axis], indices.shape, a.shape[axis + 1 :]]
-            )
-        ndim = a.ndim + indices.ndim - 1
-    return take(a, indices.flatten(), axis, mode).reshape(shape, ndim)
+
+    if not isinstance(axis, (int, type(None))):
+        raise TypeError("`axis` must be an integer or None")
+
+    if axis is None and indices.ndim == 1:
+        return advanced_subtensor1(a.flatten(), indices)
+    elif axis == 0 and indices.ndim == 1:
+        return advanced_subtensor1(a, indices)
+    elif axis < 0:
+        axis += a.ndim
+
+    if mode == "clip":
+        indices = clip(indices, 0, a.shape[axis] - 1)
+    elif mode == "wrap":
+        indices = indices % a.shape[axis]
+
+    full_indices = (slice(None),) * axis + (indices,)
+
+    return a[full_indices]
+
+
+@_get_vector_length.register(Subtensor)
+def _get_vector_length_Subtensor(op, var):
+    # If we take a slice, we know how many elements it will result in
+    # TODO: We can cover more `*Subtensor` cases.
+    try:
+        indices = aesara.tensor.subtensor.get_idx_list(
+            var.owner.inputs, var.owner.op.idx_list
+        )
+        start = (
+            None
+            if indices[0].start is None
+            else get_scalar_constant_value(indices[0].start)
+        )
+        stop = (
+            None
+            if indices[0].stop is None
+            else get_scalar_constant_value(indices[0].stop)
+        )
+        step = (
+            None
+            if indices[0].step is None
+            else get_scalar_constant_value(indices[0].step)
+        )
+
+        if start == stop:
+            return 0
+
+        arg_len = get_vector_length(var.owner.inputs[0])
+        return len(range(*slice(start, stop, step).indices(arg_len)))
+    except (ValueError, NotScalarConstantError):
+        raise ValueError(f"Length of {var} cannot be determined")
 
 
 __all__ = [

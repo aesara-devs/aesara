@@ -329,7 +329,7 @@ def convolve(
                     will flatten to batchsize x outsize*nkern
 
     :return: out1, symbolic result
-    :return: out2, logical shape of the output img (nkern,heigt,width)
+    :return: out2, logical shape of the output img (nkern,height,width)
 
     :TODO: test for 1D and think of how to do n-d convolutions
     """

@@ -22,6 +22,7 @@ from aesara.compile.mode import (
     FAST_COMPILE,
     FAST_RUN,
     JAX,
+    NUMBA,
     OPT_FAST_COMPILE,
     OPT_FAST_RUN,
     OPT_FAST_RUN_STABLE,

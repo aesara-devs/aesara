@@ -677,7 +677,7 @@ int lazy_rec_eval(CLazyLinker * self, Py_ssize_t var_idx, PyObject*one, PyObject
 
       Py_DECREF(rval);
     }
-  else //owner is not a lazy op. Ensure all intputs are evaluated.
+  else //owner is not a lazy op. Ensure all inputs are evaluated.
     {
       // loop over inputs to owner
       // call lazy_rec_eval on each one that is not computed.

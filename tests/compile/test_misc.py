@@ -3,9 +3,8 @@ import numpy as np
 from aesara.compile.function.pfunc import pfunc
 from aesara.compile.sharedvalue import shared
 from aesara.gradient import grad
-from aesara.tensor.math import dot
+from aesara.tensor.math import dot, sigmoid
 from aesara.tensor.math import sum as aet_sum
-from aesara.tensor.nnet import sigmoid
 from aesara.tensor.type import dvector
 
 
@@ -55,8 +54,8 @@ class NNet:
 
 
 def test_nnet():
-    rng = np.random.RandomState(1827)
-    data = rng.rand(10, 4)
+    rng = np.random.default_rng(279)
+    data = rng.random((10, 4))
     nnet = NNet(n_input=3, n_hidden=10)
     for epoch in range(3):
         mean_cost = 0
@@ -67,7 +66,8 @@ def test_nnet():
             mean_cost += cost
         mean_cost /= float(len(data))
         # print 'Mean cost at epoch %s: %s' % (epoch, mean_cost)
-    assert abs(mean_cost - 0.20588975452) < 1e-6
+    # Seed based test
+    assert abs(mean_cost - 0.2301901) < 1e-6
     # Just call functions to make sure they do not crash.
     nnet.compute_output(input)
     nnet.output_from_hidden(np.ones(10))

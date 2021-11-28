@@ -10,8 +10,6 @@ import aesara.tensor as aet
 
 # 1. First example
 
-aesara.config.warn__subtensor_merge_bug = False
-
 k = aet.iscalar("k")
 A = aet.vector("A")
 
@@ -57,8 +55,6 @@ print(calculate_polynomial1(test_coeff, 3))
 # 19.0
 
 # 3. Reduction performed inside scan
-
-aesara.config.warn__subtensor_merge_bug = False
 
 coefficients = aet.vector("coefficients")
 x = aet.scalar("x")

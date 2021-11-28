@@ -2,37 +2,18 @@ import logging
 import warnings
 
 import numpy as np
-
-
-try:
-    import scipy.linalg
-
-    imported_scipy = True
-except ImportError:
-    # some ops (e.g. Cholesky, Solve, A_Xinv_b) won't work
-    imported_scipy = False
+import scipy.linalg
 
 import aesara.tensor
-import aesara.tensor.basic as aet
-import aesara.tensor.math as tm
 from aesara.graph.basic import Apply
 from aesara.graph.op import Op
 from aesara.tensor import as_tensor_variable
+from aesara.tensor import basic as aet
+from aesara.tensor import math as atm
 from aesara.tensor.type import matrix, tensor, vector
 
 
 logger = logging.getLogger(__name__)
-
-MATRIX_STRUCTURES = (
-    "general",
-    "symmetric",
-    "lower_triangular",
-    "upper_triangular",
-    "hermitian",
-    "banded",
-    "diagonal",
-    "toeplitz",
-)
 
 
 class Cholesky(Op):
@@ -69,9 +50,6 @@ class Cholesky(Op):
         return [shapes[0]]
 
     def make_node(self, x):
-        assert (
-            imported_scipy
-        ), "Scipy not available. Scipy is needed for the Cholesky op"
         x = as_tensor_variable(x)
         assert x.ndim == 2
         return Apply(self, [x], [x.type()])
@@ -106,7 +84,7 @@ class Cholesky(Op):
         # Replace the cholesky decomposition with 1 if there are nans
         # or solve_upper_triangular will throw a ValueError.
         if self.on_error == "nan":
-            ok = ~tm.any(tm.isnan(chol_x))
+            ok = ~atm.any(atm.isnan(chol_x))
             chol_x = aet.switch(ok, chol_x, 1)
             dz = aet.switch(ok, dz, 1)
 
@@ -210,6 +188,77 @@ class CholeskyGrad(Op):
         return [shapes[0]]
 
 
+class CholeskySolve(Op):
+
+    __props__ = ("lower", "check_finite")
+
+    def __init__(
+        self,
+        lower=True,
+        check_finite=True,
+    ):
+        self.lower = lower
+        self.check_finite = check_finite
+
+    def __repr__(self):
+        return "CholeskySolve{%s}" % str(self._props())
+
+    def make_node(self, C, b):
+        C = as_tensor_variable(C)
+        b = as_tensor_variable(b)
+        assert C.ndim == 2
+        assert b.ndim in [1, 2]
+
+        # infer dtype by solving the most simple
+        # case with (1, 1) matrices
+        o_dtype = scipy.linalg.solve(
+            np.eye(1).astype(C.dtype), np.eye(1).astype(b.dtype)
+        ).dtype
+        x = tensor(broadcastable=b.broadcastable, dtype=o_dtype)
+        return Apply(self, [C, b], [x])
+
+    def perform(self, node, inputs, output_storage):
+        C, b = inputs
+        rval = scipy.linalg.cho_solve(
+            (C, self.lower),
+            b,
+            check_finite=self.check_finite,
+        )
+
+        output_storage[0][0] = rval
+
+    def infer_shape(self, fgraph, node, shapes):
+        Cshape, Bshape = shapes
+        rows = Cshape[1]
+        if len(Bshape) == 1:  # b is a Vector
+            return [(rows,)]
+        else:
+            cols = Bshape[1]  # b is a Matrix
+            return [(rows, cols)]
+
+
+cho_solve = CholeskySolve()
+
+
+def cho_solve(c_and_lower, b, check_finite=True):
+    """Solve the linear equations A x = b, given the Cholesky factorization of A.
+
+    Parameters
+    ----------
+    (c, lower) : tuple, (array, bool)
+        Cholesky factorization of a, as given by cho_factor
+    b : array
+        Right-hand side
+    check_finite : bool, optional
+        Whether to check that the input matrices contain only finite numbers.
+        Disabling may give a performance gain, but may result in problems
+        (crashes, non-termination) if the inputs do contain infinities or NaNs.
+    """
+
+    A, lower = c_and_lower
+    return CholeskySolve(lower=lower, check_finite=check_finite)(A, b)
+
+
 class Solve(Op):
     """
     Solve a system of linear equations.
@@ -217,23 +266,29 @@ class Solve(Op):
     For on CPU and GPU.
     """
 
-    __props__ = ("A_structure", "lower", "overwrite_A", "overwrite_b")
+    __props__ = (
+        "assume_a",
+        "lower",
+        "check_finite",  # "transposed"
+    )
 
     def __init__(
-        self, A_structure="general", lower=False, overwrite_A=False, overwrite_b=False
+        self,
+        assume_a="gen",
+        lower=False,
+        check_finite=True,  # transposed=False
     ):
-        if A_structure not in MATRIX_STRUCTURES:
-            raise ValueError("Invalid matrix structure argument", A_structure)
-        self.A_structure = A_structure
+        if assume_a not in ("gen", "sym", "her", "pos"):
+            raise ValueError(f"{assume_a} is not a recognized matrix structure")
+        self.assume_a = assume_a
         self.lower = lower
-        self.overwrite_A = overwrite_A
-        self.overwrite_b = overwrite_b
+        self.check_finite = check_finite
+        # self.transposed = transposed
 
     def __repr__(self):
         return "Solve{%s}" % str(self._props())
 
     def make_node(self, A, b):
-        assert imported_scipy, "Scipy not available. Scipy is needed for the Solve op"
         A = as_tensor_variable(A)
         b = as_tensor_variable(b)
         assert A.ndim == 2
@@ -249,12 +304,33 @@ class Solve(Op):
 
     def perform(self, node, inputs, output_storage):
         A, b = inputs
-        if self.A_structure == "lower_triangular":
-            rval = scipy.linalg.solve_triangular(A, b, lower=True)
-        elif self.A_structure == "upper_triangular":
-            rval = scipy.linalg.solve_triangular(A, b, lower=False)
+
+        if self.assume_a != "gen":
+            # if self.transposed:
+            #     if self.assume_a == "her":
+            #         trans = "C"
+            #     else:
+            #         trans = "T"
+            # else:
+            #     trans = "N"
+
+            rval = scipy.linalg.solve_triangular(
+                A,
+                b,
+                lower=self.lower,
+                check_finite=self.check_finite,
+                # trans=trans
+            )
         else:
-            rval = scipy.linalg.solve(A, b)
+            rval = scipy.linalg.solve(
+                A,
+                b,
+                assume_a=self.assume_a,
+                lower=self.lower,
+                check_finite=self.check_finite,
+                # transposed=self.transposed,
+            )
+
         output_storage[0][0] = rval
 
     # computes shape of x where x = inv(A) * b
@@ -269,7 +345,7 @@ class Solve(Op):
 
     def L_op(self, inputs, outputs, output_gradients):
         r"""
-        Reverse-mode gradient updates for matrix solve operation c = A \\\ b.
+        Reverse-mode gradient updates for matrix solve operation :math:`c = A^{-1} b`.
 
         Symbolic expression for updates taken from [#]_.
 
@@ -281,53 +357,84 @@ class Solve(Op):
 
         """
         A, b = inputs
+
         c = outputs[0]
+        # C is a scalar representing the entire graph
+        # `output_gradients` is (dC/dc,)
+        # We need to return (dC/d[inv(A)], dC/db)
         c_bar = output_gradients[0]
-        trans_map = {
-            "lower_triangular": "upper_triangular",
-            "upper_triangular": "lower_triangular",
-        }
+
         trans_solve_op = Solve(
-            # update A_structure and lower to account for a transpose operation
-            A_structure=trans_map.get(self.A_structure, self.A_structure),
+            assume_a=self.assume_a,
+            check_finite=self.check_finite,
             lower=not self.lower,
         )
         b_bar = trans_solve_op(A.T, c_bar)
         # force outer product if vector second input
-        A_bar = -tm.outer(b_bar, c) if c.ndim == 1 else -b_bar.dot(c.T)
-        if self.A_structure == "lower_triangular":
-            A_bar = aet.tril(A_bar)
-        elif self.A_structure == "upper_triangular":
-            A_bar = aet.triu(A_bar)
+        A_bar = -atm.outer(b_bar, c) if c.ndim == 1 else -b_bar.dot(c.T)
+
+        if self.assume_a != "gen":
+            if self.lower:
+                A_bar = aet.tril(A_bar)
+            else:
+                A_bar = aet.triu(A_bar)
+
         return [A_bar, b_bar]
 
 
 solve = Solve()
-"""
-Solves the equation ``a x = b`` for x, where ``a`` is a matrix and
-``b`` can be either a vector or a matrix.
-
-Parameters
-----------
-a : `(M, M) symbolix matrix`
-    A square matrix
-b : `(M,) or (M, N) symbolic vector or matrix`
-    Right hand side matrix in ``a x = b``
 
 
-Returns
--------
-x : `(M, ) or (M, N) symbolic vector or matrix`
-    x will have the same shape as b
-"""
-# lower and upper triangular solves
-solve_lower_triangular = Solve(A_structure="lower_triangular", lower=True)
-"""Optimized implementation of :func:`aesara.tensor.slinalg.solve` when A is lower triangular."""
-solve_upper_triangular = Solve(A_structure="upper_triangular", lower=False)
-"""Optimized implementation of :func:`aesara.tensor.slinalg.solve` when A is upper triangular."""
-# symmetric solves
-solve_symmetric = Solve(A_structure="symmetric")
-"""Optimized implementation of :func:`aesara.tensor.slinalg.solve` when A is symmetric."""
+def solve(a, b, assume_a="gen", lower=False, check_finite=True):
+    """
+    Solves the linear equation set ``a * x = b`` for the unknown ``x``
+    for square ``a`` matrix.
+
+    If the data matrix is known to be a particular type then supplying the
+    corresponding string to ``assume_a`` key chooses the dedicated solver.
+    The available options are
+
+    ===================  ========
+    generic matrix       'gen'
+    symmetric            'sym'
+    hermitian            'her'
+    positive definite    'pos'
+    ===================  ========
+
+    If omitted, ``'gen'`` is the default structure.
+
+    The datatype of the arrays define which solver is called regardless
+    of the values. In other words, even when the complex array entries have
+    precisely zero imaginary parts, the complex solver will be called based
+    on the data type of the array.
+
+    Parameters
+    ----------
+    a : (N, N) array_like
+        Square input data
+    b : (N, NRHS) array_like
+        Input data for the right hand side.
+    lower : bool, optional
+        If True, only the data contained in the lower triangle of `a`. Default
+        is to use upper triangle. (ignored for ``'gen'``)
+    check_finite : bool, optional
+        Whether to check that the input matrices contain only finite numbers.
+        Disabling may give a performance gain, but may result in problems
+        (crashes, non-termination) if the inputs do contain infinities or NaNs.
+    assume_a : str, optional
+        Valid entries are explained above.
+    """
+    return Solve(
+        lower=lower,
+        check_finite=check_finite,
+        assume_a=assume_a,
+    )(a, b)
+
+
+# TODO: These are deprecated; emit a warning
+solve_lower_triangular = Solve(assume_a="sym", lower=True)
+solve_upper_triangular = Solve(assume_a="sym", lower=False)
+solve_symmetric = Solve(assume_a="sym")
 
 # TODO: Optimizations to replace multiplication by matrix inverse
 #      with solve() Op (still unwritten)
@@ -346,10 +453,6 @@ class Eigvalsh(Op):
         self.lower = lower
 
     def make_node(self, a, b):
-        assert (
-            imported_scipy
-        ), "Scipy not  available. Scipy is needed for the Eigvalsh op"
-
         if b == aesara.tensor.type_other.NoneConst:
             a = as_tensor_variable(a)
             assert a.ndim == 2
@@ -396,7 +499,7 @@ class EigvalshGrad(Op):
     # But this can only be done once scipy.linalg.eigh is available as an Op
     # (currently the Eigh uses numpy.linalg.eigh, which doesn't let you
     # pass the right-hand-side matrix for a generalized eigenproblem.) See the
-    # discussion on github at
+    # discussion on GitHub at
     # https://github.com/Theano/Theano/pull/1846#discussion-diff-12486764
 
     __props__ = ("lower",)
@@ -412,9 +515,6 @@ class EigvalshGrad(Op):
             self.tri1 = lambda a: np.tril(a, -1)
 
     def make_node(self, a, b, gw):
-        assert (
-            imported_scipy
-        ), "Scipy not available. Scipy is needed for the GEigvalsh op"
         a = as_tensor_variable(a)
         b = as_tensor_variable(b)
         gw = as_tensor_variable(gw)
@@ -475,7 +575,7 @@ def kron(a, b):
             "kron: inputs dimensions must sum to 3 or more. "
             f"You passed {int(a.ndim)} and {int(b.ndim)}."
         )
-    o = tm.outer(a, b)
+    o = atm.outer(a, b)
     o = o.reshape(aet.concatenate((a.shape, b.shape)), a.ndim + b.ndim)
     shf = o.dimshuffle(0, 2, 1, *list(range(3, o.ndim)))
     if shf.ndim == 3:
@@ -498,8 +598,6 @@ class Expm(Op):
     __props__ = ()
 
     def make_node(self, A):
-        assert imported_scipy, "Scipy not available. Scipy is needed for the Expm op"
-
         A = as_tensor_variable(A)
         assert A.ndim == 2
         expm = matrix(dtype=A.dtype)
@@ -536,7 +634,6 @@ class ExpmGrad(Op):
     __props__ = ()
 
     def make_node(self, A, gw):
-        assert imported_scipy, "Scipy not available. Scipy is needed for the Expm op"
         A = as_tensor_variable(A)
         assert A.ndim == 2
         out = matrix(dtype=A.dtype)
@@ -571,3 +668,14 @@ class ExpmGrad(Op):
 
 
 expm = Expm()
+
+__all__ = [
+    "cholesky",
+    "solve",
+    "solve_lower_triangular",
+    "solve_upper_triangular",
+    "solve_symmetric",
+    "eigvalsh",
+    "kron",
+    "expm",
+]

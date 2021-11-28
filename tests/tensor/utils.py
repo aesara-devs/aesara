@@ -33,8 +33,7 @@ if config.floatX == "float32":
     div_grad_rtol = 0.025
 
 # Use a seeded random number generator so that unittests are deterministic
-utt.seed_rng()
-test_rng = np.random.RandomState(seed=utt.fetch_seed())
+test_rng = np.random.default_rng(seed=utt.fetch_seed())
 # In order to check random values close to the boundaries when designing
 # new tests, you can use utt.MockRandomState, for instance:
 # test_rng = MockRandomState(0)
@@ -65,8 +64,8 @@ def multi_dtype_checks(shape1, shape2, dtypes=ALL_DTYPES, nameprefix=""):
     for dtype1, dtype2 in combinations(dtypes, 2):
         name1 = f"{nameprefix}_{dtype1}_{dtype2}"
         name2 = f"{nameprefix}_{dtype2}_{dtype1}"
-        obj1 = rand_of_dtype(shape1, dtype1)
-        obj2 = rand_of_dtype(shape2, dtype2)
+        obj1 = random_of_dtype(shape1, dtype1)
+        obj2 = random_of_dtype(shape2, dtype2)
         yield (name1, (obj1, obj2))
         yield (name2, (obj2, obj1))
 
@@ -75,8 +74,8 @@ def multi_dtype_cast_checks(shape, dtypes=ALL_DTYPES, nameprefix=""):
     for dtype1, dtype2 in combinations(dtypes, 2):
         name1 = f"{nameprefix}_{dtype1}_{dtype2}"
         name2 = f"{nameprefix}_{dtype2}_{dtype1}"
-        obj1 = rand_of_dtype(shape, dtype1)
-        obj2 = rand_of_dtype(shape, dtype2)
+        obj1 = random_of_dtype(shape, dtype1)
+        obj2 = random_of_dtype(shape, dtype2)
         yield (name1, (obj1, dtype2))
         yield (name2, (obj2, dtype1))
 
@@ -248,15 +247,15 @@ def upcast_int8_nfunc(fn):
     return ret
 
 
-def rand(*shape):
-    r = test_rng.rand(*shape) * 2 - 1
+def random(*shape):
+    r = test_rng.random(shape) * 2 - 1
     return np.asarray(r, dtype=config.floatX)
 
 
-def rand_nonzero(shape, eps=3e-4):
-    # Like rand, but the absolute value has to be at least eps
+def random_nonzero(shape, eps=3e-4):
+    # Like random, but the absolute value has to be at least eps
     # covers [0, 1)
-    r = np.asarray(test_rng.rand(*shape), dtype=config.floatX)
+    r = np.asarray(test_rng.random(shape), dtype=config.floatX)
     # covers [0, (1 - eps) / 2) U [(1 + eps) / 2, 1)
     r = r * (1 - eps) + eps * (r >= 0.5)
     # covers [-1, -eps) U [eps, 1)
@@ -264,52 +263,52 @@ def rand_nonzero(shape, eps=3e-4):
     return r
 
 
-def randint(*shape):
-    return test_rng.randint(-5, 6, shape)
+def integers(*shape):
+    return test_rng.integers(-5, 6, shape)
 
 
-def randuint32(*shape):
-    return np.array(test_rng.randint(5, size=shape), dtype=np.uint32)
+def integers_uint32(*shape):
+    return np.array(test_rng.integers(5, size=shape), dtype=np.uint32)
 
 
-def randuint16(*shape):
-    return np.array(test_rng.randint(5, size=shape), dtype=np.uint16)
+def integers_uint16(*shape):
+    return np.array(test_rng.integers(5, size=shape), dtype=np.uint16)
 
 
 # XXX: this so-called complex random array as all-zero imaginary parts
-def randcomplex(*shape):
-    r = np.asarray(test_rng.rand(*shape), dtype=config.floatX)
+def random_complex(*shape):
+    r = np.asarray(test_rng.random(shape), dtype=config.floatX)
     return np.complex128(2 * r - 1)
 
 
-def randcomplex_nonzero(shape, eps=1e-4):
-    return np.complex128(rand_nonzero(shape, eps))
+def random_complex_nonzero(shape, eps=1e-4):
+    return np.complex128(random_nonzero(shape, eps))
 
 
-def randint_nonzero(*shape):
-    r = test_rng.randint(-5, 5, shape)
+def integers_nonzero(*shape):
+    r = test_rng.integers(-5, 5, shape)
     return r + (r == 0) * 5
 
 
-def rand_ranged(min, max, shape):
-    return np.asarray(test_rng.rand(*shape) * (max - min) + min, dtype=config.floatX)
+def random_ranged(min, max, shape):
+    return np.asarray(test_rng.random(shape) * (max - min) + min, dtype=config.floatX)
 
 
-def randint_ranged(min, max, shape):
-    return test_rng.randint(min, max + 1, shape)
+def integers_ranged(min, max, shape):
+    return test_rng.integers(min, max + 1, shape)
 
 
-def randc128_ranged(min, max, shape):
-    return np.asarray(test_rng.rand(*shape) * (max - min) + min, dtype="complex128")
+def random_complex128_ranged(min, max, shape):
+    return np.asarray(test_rng.random(shape) * (max - min) + min, dtype="complex128")
 
 
-def rand_of_dtype(shape, dtype):
+def random_of_dtype(shape, dtype):
     if dtype in discrete_dtypes:
-        return randint(*shape).astype(dtype)
+        return integers(*shape).astype(dtype)
     elif dtype in float_dtypes:
-        return rand(*shape).astype(dtype)
+        return random(*shape).astype(dtype)
     elif dtype in complex_dtypes:
-        return randcomplex(*shape).astype(dtype)
+        return random_complex(*shape).astype(dtype)
     else:
         raise TypeError()
 
@@ -610,30 +609,24 @@ def makeTester(
 
         @pytest.mark.skipif(skip, reason="Skipped")
         def test_grad(self):
-            # Disable old warning that may be triggered by this test.
-            backup = config.warn__sum_div_dimshuffle_bug
-            config.warn__sum_div_dimshuffle_bug = False
-            try:
-                for testname, inputs in self.grad.items():
-                    inputs = [copy(input) for input in inputs]
-                    try:
-                        utt.verify_grad(
-                            self.op,
-                            inputs,
-                            mode=self.mode,
-                            rel_tol=_grad_rtol,
-                            eps=_grad_eps,
-                        )
-                    except Exception as exc:
-                        err_msg = (
-                            "Test %s::%s: Error occurred while"
-                            " computing the gradient on the following"
-                            " inputs: %s"
-                        ) % (self.op, testname, inputs)
-                        exc.args += (err_msg,)
-                        raise
-            finally:
-                config.warn__sum_div_dimshuffle_bug = backup
+            for testname, inputs in self.grad.items():
+                inputs = [copy(input) for input in inputs]
+                try:
+                    utt.verify_grad(
+                        self.op,
+                        inputs,
+                        mode=self.mode,
+                        rel_tol=_grad_rtol,
+                        eps=_grad_eps,
+                    )
+                except Exception as exc:
+                    err_msg = (
+                        "Test %s::%s: Error occurred while"
+                        " computing the gradient on the following"
+                        " inputs: %s"
+                    ) % (self.op, testname, inputs)
+                    exc.args += (err_msg,)
+                    raise
 
         @pytest.mark.skipif(skip, reason="Skipped")
         def test_grad_none(self):
@@ -744,27 +737,27 @@ corner_case_grad = np.asarray(
 )
 
 _good_broadcast_unary_normal = dict(
-    normal=[np.asarray(rand_ranged(-5, 5, (2, 3)), dtype=config.floatX)],
-    integers=[randint_ranged(-5, 5, (2, 3))],
+    normal=[np.asarray(random_ranged(-5, 5, (2, 3)), dtype=config.floatX)],
+    integers=[integers_ranged(-5, 5, (2, 3))],
     # not using -128 because np.allclose would return False
     int8=[np.arange(-127, 128, dtype="int8")],
     uint8=[np.arange(0, 255, dtype="uint8")],
     uint16=[np.arange(0, 65535, dtype="uint16")],
     corner_case=[corner_case],
-    complex=[randcomplex(2, 3)],
+    complex=[random_complex(2, 3)],
     empty=[np.asarray([], dtype=config.floatX)],
 )
 
 _grad_broadcast_unary_normal = dict(
-    normal=[np.asarray(rand_ranged(-5, 5, (2, 3)), dtype=config.floatX)],
+    normal=[np.asarray(random_ranged(-5, 5, (2, 3)), dtype=config.floatX)],
     corner_case=[corner_case_grad],
     # empty = [np.asarray([])] # XXX: should this be included?
 )
 
 _good_broadcast_unary_normal_float = dict(
-    normal=[rand_ranged(-5, 5, (2, 3))],
+    normal=[random_ranged(-5, 5, (2, 3))],
     corner_case=[corner_case],
-    complex=[randcomplex(2, 3)],
+    complex=[random_complex(2, 3)],
     empty=[np.asarray([], dtype=config.floatX)],
 )
 
@@ -773,45 +766,47 @@ _good_broadcast_unary_normal_float_no_complex = copymod(
 )
 
 _good_broadcast_unary_normal_float_no_complex_small_neg_range = dict(
-    normal=[rand_ranged(-2, 5, (2, 3))],
+    normal=[random_ranged(-2, 5, (2, 3))],
     corner_case=[corner_case],
     empty=[np.asarray([], dtype=config.floatX)],
 )
 
 _grad_broadcast_unary_normal_small_neg_range = dict(
-    normal=[np.asarray(rand_ranged(-2, 5, (2, 3)), dtype=config.floatX)],
+    normal=[np.asarray(random_ranged(-2, 5, (2, 3)), dtype=config.floatX)],
     corner_case=[corner_case_grad],
 )
 
 _grad_broadcast_unary_abs1_no_complex = dict(
-    normal=[np.asarray(rand_ranged(-1 + _eps, 1 - _eps, (2, 3)), dtype=config.floatX)],
+    normal=[
+        np.asarray(random_ranged(-1 + _eps, 1 - _eps, (2, 3)), dtype=config.floatX)
+    ],
 )
 
 _grad_broadcast_unary_0_2_no_complex = dict(
     # Don't go too close to 0 or 2 for tests in float32
-    normal=[np.asarray(rand_ranged(_eps, 1 - _eps, (2, 3)), dtype=config.floatX)],
+    normal=[np.asarray(random_ranged(_eps, 1 - _eps, (2, 3)), dtype=config.floatX)],
 )
 
 # chi2sf takes two inputs, a value (x) and a degrees of freedom (k).
 # not sure how to deal with that here...
 
 _good_broadcast_unary_chi2sf = dict(
-    normal=(rand_ranged(1, 10, (2, 3)), np.asarray(1, dtype=config.floatX)),
+    normal=(random_ranged(1, 10, (2, 3)), np.asarray(1, dtype=config.floatX)),
     empty=(np.asarray([], dtype=config.floatX), np.asarray(1, dtype=config.floatX)),
-    integers=(randint_ranged(1, 10, (2, 3)), np.asarray(1, dtype=config.floatX)),
+    integers=(integers_ranged(1, 10, (2, 3)), np.asarray(1, dtype=config.floatX)),
     uint8=(
-        randint_ranged(1, 10, (2, 3)).astype("uint8"),
+        integers_ranged(1, 10, (2, 3)).astype("uint8"),
         np.asarray(1, dtype=config.floatX),
     ),
     uint16=(
-        randint_ranged(1, 10, (2, 3)).astype("uint16"),
+        integers_ranged(1, 10, (2, 3)).astype("uint16"),
         np.asarray(1, dtype=config.floatX),
     ),
 )
 
 _good_broadcast_unary_normal_no_complex = dict(
-    normal=[np.asarray(rand_ranged(-5, 5, (2, 3)), dtype=config.floatX)],
-    integers=[randint_ranged(-5, 5, (2, 3))],
+    normal=[np.asarray(random_ranged(-5, 5, (2, 3)), dtype=config.floatX)],
+    integers=[integers_ranged(-5, 5, (2, 3))],
     int8=[np.arange(-127, 128, dtype="int8")],
     uint8=[np.arange(0, 89, dtype="uint8")],
     uint16=[np.arange(0, 89, dtype="uint16")],
@@ -823,41 +818,42 @@ _good_broadcast_unary_normal_no_complex = dict(
 _bad_build_broadcast_binary_normal = dict()
 
 _bad_runtime_broadcast_binary_normal = dict(
-    bad_shapes=(rand(2, 3), rand(3, 2)), bad_row=(rand(2, 3), rand(1, 2))
+    bad_shapes=(random(2, 3), random(3, 2)), bad_row=(random(2, 3), random(1, 2))
 )
 
 _grad_broadcast_binary_normal = dict(
-    same_shapes=(rand(2, 3), rand(2, 3)),
-    scalar=(rand(2, 3), rand(1, 1)),
-    row=(rand(2, 3), rand(1, 3)),
-    column=(rand(2, 3), rand(2, 1)),
+    same_shapes=(random(2, 3), random(2, 3)),
+    scalar=(random(2, 3), random(1, 1)),
+    row=(random(2, 3), random(1, 3)),
+    column=(random(2, 3), random(2, 1)),
     # This don't work as verify grad don't support that
     # empty=(np.asarray([]), np.asarray([1]))
-    # complex1=(randcomplex(2,3),randcomplex(2,3)),
-    # complex2=(randcomplex(2,3),rand(2,3)),
+    # complex1=(random_complex(2,3),random_complex(2,3)),
+    # complex2=(random_complex(2,3),random(2,3)),
     # Disabled as we test the case where we reuse the same output as the
     # first inputs.
-    # complex3=(rand(2,3),randcomplex(2,3)),
+    # complex3=(random(2,3),random_complex(2,3)),
 )
 
-_good_inv = dict(
-    normal=[5 * rand_nonzero((2, 3))],
-    integers=[randint_nonzero(2, 3)],
+_good_reciprocal = dict(
+    normal=[5 * random_nonzero((2, 3))],
+    integers=[integers_nonzero(2, 3)],
     int8=[np.array(list(range(-127, 0)) + list(range(1, 127)), dtype="int8")],
     uint8=[np.array(list(range(0, 255)), dtype="uint8")],
     uint16=[np.array(list(range(0, 65535)), dtype="uint16")],
-    complex=[randcomplex_nonzero((2, 3))],
+    complex=[random_complex_nonzero((2, 3))],
     empty=[np.asarray([], dtype=config.floatX)],
 )
 
-_good_inv_inplace = copymod(
-    _good_inv, without=["integers", "int8", "uint8", "uint16", "complex"]
+_good_reciprocal_inplace = copymod(
+    _good_reciprocal, without=["integers", "int8", "uint8", "uint16", "complex"]
 )
-_grad_inv = copymod(
-    _good_inv, without=["integers", "int8", "uint8", "uint16", "complex", "empty"]
+_grad_reciprocal = copymod(
+    _good_reciprocal,
+    without=["integers", "int8", "uint8", "uint16", "complex", "empty"],
 )
 
-_bad_runtime_inv = dict(
+_bad_runtime_reciprocal = dict(
     float=[np.zeros((2, 3))],
     integers=[np.zeros((2, 3), dtype="int64")],
     int8=[np.zeros((2, 3), dtype="int8")],
@@ -866,26 +862,26 @@ _bad_runtime_inv = dict(
 
 
 _good_broadcast_pow_normal_float = dict(
-    same_shapes=(rand_ranged(1, 5, (2, 3)), rand_ranged(-3, 3, (2, 3))),
-    scalar=(rand_ranged(1, 5, (2, 3)), rand_ranged(-3, 3, (1, 1))),
-    row=(rand_ranged(1, 5, (2, 3)), rand_ranged(-3, 3, (1, 3))),
-    column=(rand_ranged(1, 5, (2, 3)), rand_ranged(-3, 3, (2, 1))),
-    dtype_mixup=(rand_ranged(-3, 3, (2, 3)), randint_ranged(-3, 3, (2, 3))),
-    complex1=(randcomplex(2, 3), randcomplex(2, 3)),
-    complex2=(randcomplex(2, 3), rand(2, 3)),
-    # complex3 = (rand(2,3),randcomplex(2,3)), # Inplace on the first element.
+    same_shapes=(random_ranged(1, 5, (2, 3)), random_ranged(-3, 3, (2, 3))),
+    scalar=(random_ranged(1, 5, (2, 3)), random_ranged(-3, 3, (1, 1))),
+    row=(random_ranged(1, 5, (2, 3)), random_ranged(-3, 3, (1, 3))),
+    column=(random_ranged(1, 5, (2, 3)), random_ranged(-3, 3, (2, 1))),
+    dtype_mixup=(random_ranged(-3, 3, (2, 3)), integers_ranged(-3, 3, (2, 3))),
+    complex1=(random_complex(2, 3), random_complex(2, 3)),
+    complex2=(random_complex(2, 3), random(2, 3)),
+    # complex3 = (random(2,3),random_complex(2,3)), # Inplace on the first element.
     empty1=(np.asarray([], dtype=config.floatX), np.asarray([1], dtype=config.floatX)),
     empty2=(np.asarray([0], dtype=config.floatX), np.asarray([], dtype=config.floatX)),
     empty3=(np.asarray([], dtype=config.floatX), np.asarray([], dtype=config.floatX)),
 )
 _grad_broadcast_pow_normal = dict(
-    same_shapes=(rand_ranged(1, 5, (2, 3)), rand_ranged(-3, 3, (2, 3))),
-    scalar=(rand_ranged(1, 5, (2, 3)), rand_ranged(-3, 3, (1, 1))),
-    row=(rand_ranged(1, 5, (2, 3)), rand_ranged(-3, 3, (1, 3))),
-    column=(rand_ranged(1, 5, (2, 3)), rand_ranged(-3, 3, (2, 1))),
-    # complex1 = (randcomplex(2,3),randcomplex(2,3)),
-    # complex2 = (randcomplex(2,3),rand(2,3)),
-    # complex3 = (rand(2,3),randcomplex(2,3)),
+    same_shapes=(random_ranged(1, 5, (2, 3)), random_ranged(-3, 3, (2, 3))),
+    scalar=(random_ranged(1, 5, (2, 3)), random_ranged(-3, 3, (1, 1))),
+    row=(random_ranged(1, 5, (2, 3)), random_ranged(-3, 3, (1, 3))),
+    column=(random_ranged(1, 5, (2, 3)), random_ranged(-3, 3, (2, 1))),
+    # complex1 = (random_complex(2,3),random_complex(2,3)),
+    # complex2 = (random_complex(2,3),random(2,3)),
+    # complex3 = (random(2,3),random_complex(2,3)),
     # empty1 = (np.asarray([]), np.asarray([1])),
     # empty2 = (np.asarray([0]), np.asarray([])),
     x_eq_zero=(
@@ -907,13 +903,15 @@ _good_broadcast_unary_normal_float_no_empty_no_complex = copymod(
 )
 
 _grad_broadcast_unary_normal_no_complex = dict(
-    normal=[np.asarray(rand_ranged(-5, 5, (2, 3)), dtype=config.floatX)],
+    normal=[np.asarray(random_ranged(-5, 5, (2, 3)), dtype=config.floatX)],
     corner_case=[corner_case_grad],
 )
 
 # Avoid epsilon around integer values
 _grad_broadcast_unary_normal_noint = dict(
-    normal=[(rand_ranged(_eps, 1 - _eps, (2, 3)) + randint(2, 3)).astype(config.floatX)]
+    normal=[
+        (random_ranged(_eps, 1 - _eps, (2, 3)) + integers(2, 3)).astype(config.floatX)
+    ]
 )
 
 _grad_broadcast_unary_normal_no_complex_no_corner_case = copymod(
@@ -921,12 +919,12 @@ _grad_broadcast_unary_normal_no_complex_no_corner_case = copymod(
 )
 
 _good_broadcast_binary_arctan2 = dict(
-    same_shapes=(rand(2, 3), rand(2, 3)),
-    not_same_dimensions=(rand(2, 2), rand(2)),
-    scalar=(rand(2, 3), rand(1, 1)),
-    row=(rand(2, 3), rand(1, 3)),
-    column=(rand(2, 3), rand(2, 1)),
-    integers=(randint(2, 3), randint(2, 3)),
+    same_shapes=(random(2, 3), random(2, 3)),
+    not_same_dimensions=(random(2, 2), random(2)),
+    scalar=(random(2, 3), random(1, 1)),
+    row=(random(2, 3), random(1, 3)),
+    column=(random(2, 3), random(2, 1)),
+    integers=(integers(2, 3), integers(2, 3)),
     int8=[
         np.arange(-127, 128, dtype="int8"),
         np.arange(-127, 128, dtype="int8")[:, np.newaxis],
@@ -939,26 +937,26 @@ _good_broadcast_binary_arctan2 = dict(
         np.arange(0, 128, dtype="uint16"),
         np.arange(0, 128, dtype="uint16")[:, np.newaxis],
     ],
-    dtype_mixup_1=(rand(2, 3), randint(2, 3)),
-    dtype_mixup_2=(randint(2, 3), rand(2, 3)),
+    dtype_mixup_1=(random(2, 3), integers(2, 3)),
+    dtype_mixup_2=(integers(2, 3), random(2, 3)),
     empty=(np.asarray([], dtype=config.floatX), np.asarray([1], dtype=config.floatX)),
 )
 
 _good_broadcast_unary_arccosh = dict(
-    normal=(rand_ranged(1, 1000, (2, 3)),),
-    integers=(randint_ranged(1, 1000, (2, 3)),),
+    normal=(random_ranged(1, 1000, (2, 3)),),
+    integers=(integers_ranged(1, 1000, (2, 3)),),
     uint8=[np.arange(1, 256, dtype="uint8")],
-    complex=(randc128_ranged(1, 1000, (2, 3)),),
+    complex=(random_complex128_ranged(1, 1000, (2, 3)),),
     empty=(np.asarray([], dtype=config.floatX),),
 )
 
 _good_broadcast_unary_arctanh = dict(
-    normal=(rand_ranged(-1 + _eps, 1 - _eps, (2, 3)),),
-    integers=(randint_ranged(-1 + _eps, 1 - _eps, (2, 3)),),
+    normal=(random_ranged(-1 + _eps, 1 - _eps, (2, 3)),),
+    integers=(integers_ranged(-1 + _eps, 1 - _eps, (2, 3)),),
     int8=[np.arange(0, 1, dtype="int8")],
     uint8=[np.arange(0, 1, dtype="uint8")],
     uint16=[np.arange(0, 1, dtype="uint16")],
-    complex=(randc128_ranged(-1 + _eps, 1 - _eps, (2, 3)),),
+    complex=(random_complex128_ranged(-1 + _eps, 1 - _eps, (2, 3)),),
     empty=(np.asarray([], dtype=config.floatX),),
 )
 
@@ -968,10 +966,10 @@ del _good_broadcast_unary_normal_abs["complex"]
 
 
 _good_broadcast_unary_positive = dict(
-    normal=(rand_ranged(0.001, 5, (2, 3)),),
-    integers=(randint_ranged(1, 5, (2, 3)),),
+    normal=(random_ranged(0.001, 5, (2, 3)),),
+    integers=(integers_ranged(1, 5, (2, 3)),),
     uint8=[np.arange(1, 256, dtype="uint8")],
-    complex=(randc128_ranged(1, 5, (2, 3)),),
+    complex=(random_complex128_ranged(1, 5, (2, 3)),),
     empty=(np.asarray([], dtype=config.floatX),),
 )
 
@@ -980,23 +978,23 @@ _good_broadcast_unary_positive_float = copymod(
 )
 
 _good_broadcast_unary_tan = dict(
-    normal=(rand_ranged(-3.14, 3.14, (2, 3)),),
-    shifted=(rand_ranged(3.15, 6.28, (2, 3)),),
-    integers=(randint_ranged(-3, 3, (2, 3)),),
+    normal=(random_ranged(-3.14, 3.14, (2, 3)),),
+    shifted=(random_ranged(3.15, 6.28, (2, 3)),),
+    integers=(integers_ranged(-3, 3, (2, 3)),),
     int8=[np.arange(-3, 4, dtype="int8")],
     uint8=[np.arange(0, 4, dtype="uint8")],
     uint16=[np.arange(0, 4, dtype="uint16")],
-    complex=(randc128_ranged(-3.14, 3.14, (2, 3)),),
+    complex=(random_complex128_ranged(-3.14, 3.14, (2, 3)),),
     empty=(np.asarray([], dtype=config.floatX),),
 )
 
 _good_broadcast_unary_wide = dict(
-    normal=(rand_ranged(-1000, 1000, (2, 3)),),
-    integers=(randint_ranged(-1000, 1000, (2, 3)),),
+    normal=(random_ranged(-1000, 1000, (2, 3)),),
+    integers=(integers_ranged(-1000, 1000, (2, 3)),),
     int8=[np.arange(-127, 128, dtype="int8")],
     uint8=[np.arange(0, 255, dtype="uint8")],
     uint16=[np.arange(0, 65535, dtype="uint16")],
-    complex=(randc128_ranged(-1000, 1000, (2, 3)),),
+    complex=(random_complex128_ranged(-1000, 1000, (2, 3)),),
     empty=(np.asarray([], dtype=config.floatX),),
 )
 _good_broadcast_unary_wide_float = copymod(
@@ -1004,34 +1002,34 @@ _good_broadcast_unary_wide_float = copymod(
 )
 
 _good_broadcast_binary_normal = dict(
-    same_shapes=(rand(2, 3), rand(2, 3)),
-    not_same_dimensions=(rand(2, 2), rand(2)),
-    scalar=(rand(2, 3), rand(1, 1)),
-    row=(rand(2, 3), rand(1, 3)),
-    column=(rand(2, 3), rand(2, 1)),
-    integers=(randint(2, 3), randint(2, 3)),
-    uint32=(randuint32(2, 3), randuint32(2, 3)),
-    uint16=(randuint16(2, 3), randuint16(2, 3)),
-    dtype_mixup_1=(rand(2, 3), randint(2, 3)),
-    dtype_mixup_2=(randint(2, 3), rand(2, 3)),
-    complex1=(randcomplex(2, 3), randcomplex(2, 3)),
-    complex2=(randcomplex(2, 3), rand(2, 3)),
+    same_shapes=(random(2, 3), random(2, 3)),
+    not_same_dimensions=(random(2, 2), random(2)),
+    scalar=(random(2, 3), random(1, 1)),
+    row=(random(2, 3), random(1, 3)),
+    column=(random(2, 3), random(2, 1)),
+    integers=(integers(2, 3), integers(2, 3)),
+    uint32=(integers_uint32(2, 3), integers_uint32(2, 3)),
+    uint16=(integers_uint16(2, 3), integers_uint16(2, 3)),
+    dtype_mixup_1=(random(2, 3), integers(2, 3)),
+    dtype_mixup_2=(integers(2, 3), random(2, 3)),
+    complex1=(random_complex(2, 3), random_complex(2, 3)),
+    complex2=(random_complex(2, 3), random(2, 3)),
     # Disabled as we test the case where we reuse the same output as the
     # first inputs.
-    # complex3=(rand(2,3),randcomplex(2,3)),
+    # complex3=(random(2,3),random_complex(2,3)),
     empty=(np.asarray([], dtype=config.floatX), np.asarray([1], dtype=config.floatX)),
 )
 
 _good_broadcast_div_mod_normal_float_no_complex = dict(
-    same_shapes=(rand(2, 3), rand_nonzero((2, 3))),
-    scalar=(rand(2, 3), rand_nonzero((1, 1))),
-    row=(rand(2, 3), rand_nonzero((1, 3))),
-    column=(rand(2, 3), rand_nonzero((2, 1))),
-    dtype_mixup_1=(rand(2, 3), randint_nonzero(2, 3)),
-    dtype_mixup_2=(randint_nonzero(2, 3), rand_nonzero((2, 3))),
-    integer=(randint(2, 3), randint_nonzero(2, 3)),
-    uint8=(randint(2, 3).astype("uint8"), randint_nonzero(2, 3).astype("uint8")),
-    uint16=(randint(2, 3).astype("uint16"), randint_nonzero(2, 3).astype("uint16")),
+    same_shapes=(random(2, 3), random_nonzero((2, 3))),
+    scalar=(random(2, 3), random_nonzero((1, 1))),
+    row=(random(2, 3), random_nonzero((1, 3))),
+    column=(random(2, 3), random_nonzero((2, 1))),
+    dtype_mixup_1=(random(2, 3), integers_nonzero(2, 3)),
+    dtype_mixup_2=(integers_nonzero(2, 3), random_nonzero((2, 3))),
+    integer=(integers(2, 3), integers_nonzero(2, 3)),
+    uint8=(integers(2, 3).astype("uint8"), integers_nonzero(2, 3).astype("uint8")),
+    uint16=(integers(2, 3).astype("uint16"), integers_nonzero(2, 3).astype("uint16")),
     int8=[
         np.tile(np.arange(-127, 128, dtype="int8"), [254, 1]).T,
         np.tile(
@@ -1054,12 +1052,12 @@ _good_broadcast_div_mod_normal_float = copymod(
 )
 
 _good_broadcast_unary_arcsin = dict(
-    normal=(rand_ranged(-1, 1, (2, 3)),),
-    integers=(randint_ranged(-1, 1, (2, 3)),),
+    normal=(random_ranged(-1, 1, (2, 3)),),
+    integers=(integers_ranged(-1, 1, (2, 3)),),
     int8=[np.arange(-1, 2, dtype="int8")],
     uint8=[np.arange(0, 2, dtype="uint8")],
     uint16=[np.arange(0, 2, dtype="uint16")],
-    complex=(randc128_ranged(-1, 1, (2, 3)),),
+    complex=(random_complex128_ranged(-1, 1, (2, 3)),),
     empty=(np.asarray([], dtype=config.floatX),),
 )
 

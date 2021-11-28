@@ -42,9 +42,9 @@ NoParams = object()
 
 
 class Node(MetaObject):
-    """A `Node` in an Aesara graph.
+    r"""A `Node` in an Aesara graph.
 
-    Currently, graphs contain two kinds of `Nodes`: `Variable`s and `Apply`s.
+    Currently, graphs contain two kinds of `Nodes`: `Variable`\s and `Apply`\s.
     Edges in the graph are not explicitly represented.  Instead each `Node`
     keeps track of its parents via `Variable.owner` / `Apply.inputs`.
 
@@ -283,11 +283,11 @@ class Apply(Node):
 
 
 class Variable(Node):
-    """
+    r"""
     A :term:`Variable` is a node in an expression graph that represents a
     variable.
 
-    The inputs and outputs of every `Apply` (aesara.graph.basic.Apply) are `Variable`
+    The inputs and outputs of every `Apply` are `Variable`
     instances. The input and output arguments to create a `function` are also
     `Variable` instances. A `Variable` is like a strongly-typed variable in
     some other languages; each `Variable` contains a reference to a `Type`
@@ -299,15 +299,15 @@ class Variable(Node):
     - :literal:`type` a `Type` instance defining the kind of value this
       `Variable` can have,
 
-    - :literal:`owner` either `None` (for graph roots) or the `Apply` instance
-      of which `self` is an output,
+    - :literal:`owner` either ``None`` (for graph roots) or the `Apply` instance
+      of which ``self`` is an output,
 
-    - :literal:`index` the integer such that :literal:`owner.outputs[index] is
-      this_variable` (ignored if `owner` is `None`),
+    - :literal:`index` the integer such that ``owner.outputs[index] is this_variable``
+      (ignored if ``owner`` is ``None``),
 
     - :literal:`name` a string to use in pretty-printing and debugging.
 
-    There are a few kinds of `Variable`s to be aware of: A `Variable` which is the
+    There are a few kinds of `Variable`\s to be aware of: A `Variable` which is the
     output of a symbolic computation has a reference to the `Apply` instance to
     which it belongs (property: owner) and the position of itself in the owner's
     output list (property: index).
@@ -318,26 +318,26 @@ class Variable(Node):
     - `Constant`: a subclass which adds a default and un-replaceable
       :literal:`value`, and requires that owner is None.
 
-    - `TensorVariable` subclass of `Variable` that represents a `numpy.ndarray`
+    - `TensorVariable` subclass of `Variable` that represents a ``numpy.ndarray``
        object.
 
     - `TensorSharedVariable`: a shared version of `TensorVariable`.
 
     - `SparseVariable`: a subclass of `Variable` that represents
-      a `scipy.sparse.{csc,csr}_matrix` object.
+      a ``scipy.sparse.{csc,csr}_matrix`` object.
 
     - `GpuArrayVariable`: a subclass of `Variable` that represents our object on
-      the GPU that is a subset of `numpy.ndarray`.
+      the GPU that is a subset of ``numpy.ndarray``.
 
     - `RandomVariable`.
 
     A `Variable` which is the output of a symbolic computation will have an owner
     not equal to None.
 
-    Using the `Variables`' owner field and the `Apply` nodes' inputs fields,
+    Using a `Variable`\s' owner field and an `Apply` node's inputs fields,
     one can navigate a graph from an output all the way to the inputs. The
-    opposite direction is possible with a `FunctionGraph` and its
-    `FunctionGraph.clients` `dict`, which maps `Variable`s to a list of their
+    opposite direction is possible with a ``FunctionGraph`` and its
+    ``FunctionGraph.clients`` ``dict``, which maps `Variable`\s to a list of their
     clients.
 
     Parameters
@@ -346,9 +346,9 @@ class Variable(Node):
         The type governs the kind of data that can be associated with this
         variable.
     owner : None or Apply instance
-        The Apply instance which computes the value for this variable.
+        The `Apply` instance which computes the value for this variable.
     index : None or int
-        The position of this Variable in owner.outputs.
+        The position of this `Variable` in owner.outputs.
     name : None or str
         A string for pretty-printing and debugging.
 
@@ -374,8 +374,8 @@ class Variable(Node):
         aesara.function([a,b], [c])     # compilation error because a is constant, it can't be an input
 
 
-    The python variables :literal:`a,b,c` all refer to instances of type
-    `Variable`. The `Variable` referred to by `a` is also an instance of
+    The python variables ``a, b, c`` all refer to instances of type
+    `Variable`. The `Variable` referred to by ``a`` is also an instance of
     `Constant`.
 
     """
@@ -421,7 +421,7 @@ class Variable(Node):
         return self.tag.test_value
 
     def __str__(self):
-        """Return a str representation of the Variable."""
+        """Return a ``str`` representation of the `Variable`."""
         if self.name is not None:
             return self.name
         if self.owner is not None:
@@ -434,7 +434,7 @@ class Variable(Node):
             return f"<{self.type}>"
 
     def __repr_test_value__(self):
-        """Return a repr of the test value.
+        """Return a ``repr`` of the test value.
 
         Return a printable representation of the test value. It can be
         overridden by classes with non printable test_value to provide a
@@ -443,11 +443,11 @@ class Variable(Node):
         return repr(self.get_test_value())
 
     def __repr__(self, firstPass=True):
-        """Return a repr of the Variable.
+        """Return a ``repr`` of the `Variable`.
 
         Return a printable name or description of the Variable. If
-        config.print_test_value is True it will also print the test_value if
-        any.
+        ``config.print_test_value`` is ``True`` it will also print the test
+        value, if any.
         """
         to_print = [str(self)]
         if config.print_test_value and firstPass:
@@ -458,13 +458,12 @@ class Variable(Node):
         return "\n".join(to_print)
 
     def clone(self):
-        """
-        Return a new Variable like self.
+        """Return a new `Variable` like `self`.
 
         Returns
         -------
         Variable instance
-            A new Variable instance (or subclass instance) with no owner or
+            A new `Variable` instance (or subclass instance) with no owner or
             index.
 
         Notes
@@ -505,13 +504,12 @@ class Variable(Node):
         return []
 
     def eval(self, inputs_to_values=None):
-        """
-        Evaluates this variable.
+        r"""Evaluate the `Variable`.
 
         Parameters
         ----------
-        inputs_to_values
-            A dictionary mapping aesara Variables to values.
+        inputs_to_values :
+            A dictionary mapping Aesara `Variable`\s to values.
 
         Examples
         --------
@@ -524,16 +522,16 @@ class Variable(Node):
         >>> np.allclose(z.eval({x : 16.3, y : 12.1}), 28.4)
         True
 
-        We passed :func:`eval` a dictionary mapping symbolic aesara
-        variables to the values to substitute for them, and it returned
+        We passed :meth:`eval` a dictionary mapping symbolic Aesara
+        `Variable`\s to the values to substitute for them, and it returned
         the numerical value of the expression.
 
         Notes
         -----
 
-        `eval` will be slow the first time you call it on a variable --
+        :meth:`eval` will be slow the first time you call it on a variable --
         it needs to call :func:`function` to compile the expression behind
-        the scenes. Subsequent calls to :func:`eval` on that same variable
+        the scenes. Subsequent calls to :meth:`eval` on that same variable
         will be fast, because the variable caches the compiled function.
 
         This way of computing has more overhead than a normal Aesara
@@ -562,7 +560,7 @@ class Variable(Node):
         if (not config.pickle_test_value) and (hasattr(self.tag, "test_value")):
             if not type(config).pickle_test_value.is_default:
                 warnings.warn(
-                    "pickle_test_value is not defaut value (True).\n"
+                    "pickle_test_value is not default value (True).\n"
                     f"Test value of variable {d['auto_name']}({d['name']}) will not be dumped."
                 )
             t = copy(d["tag"])
@@ -588,10 +586,10 @@ class Variable(Node):
 
 
 class Constant(Variable):
-    """A `Variable` with a fixed `value` field.
+    """A `Variable` with a fixed `data` field.
 
-    Constant nodes make numerous optimizations possible (e.g. constant inlining
-    in C code, constant folding, etc.)
+    `Constant` nodes make numerous optimizations possible (e.g. constant
+    in-lining in C code, constant folding, etc.)
 
     Notes
     -----
@@ -630,7 +628,8 @@ class Constant(Variable):
             return f"{type(self).__name__}{{{name}}}"
 
     def clone(self):
-        """
+        """Create a shallow clone.
+
         We clone this object, but we don't clone the data to lower memory
         requirement. We suppose that the data will never change.
 
@@ -640,13 +639,12 @@ class Constant(Variable):
         return cp
 
     def __set_owner(self, value):
-        """
-        WRITEME
+        """Prevent the :prop:`owner` property from being set.
 
         Raises
         ------
         ValueError
-            If `value` is not `None`.
+            If `value` is not ``None``.
 
         """
         if value is not None:
@@ -728,7 +726,7 @@ def walk(
 def ancestors(
     graphs: Iterable[Variable], blockers: Collection[Variable] = None
 ) -> Generator[Variable, None, None]:
-    """Return the variables that contribute to those in given graphs (inclusive).
+    r"""Return the variables that contribute to those in given graphs (inclusive).
 
     Parameters
     ----------
@@ -736,12 +734,12 @@ def ancestors(
         Output `Variable` instances from which to search backward through
         owners.
     blockers : list of `Variable` instances
-        A collection of `Variable`s that, when found, prevent the graph search
+        A collection of `Variable`\s that, when found, prevent the graph search
         from preceding from that point.
 
     Yields
     ------
-    `Variable`s
+    `Variable`\s
         All input nodes, in the order found by a left-recursive depth-first
         search started at the nodes in `graphs`.
 
@@ -757,7 +755,7 @@ def ancestors(
 def graph_inputs(
     graphs: Iterable[Variable], blockers: Collection[Variable] = None
 ) -> Generator[Variable, None, None]:
-    """Return the inputs required to compute the given Variables.
+    r"""Return the inputs required to compute the given Variables.
 
     Parameters
     ----------
@@ -765,12 +763,11 @@ def graph_inputs(
         Output `Variable` instances from which to search backward through
         owners.
     blockers : list of `Variable` instances
-        A collection of `Variable`s that, when found, prevent the graph search
+        A collection of `Variable`\s that, when found, prevent the graph search
         from preceding from that point.
 
     Yields
     ------
-    `Variable`s
         Input nodes with no owner, in the order found by a left-recursive
         depth-first search started at the nodes in `graphs`.
 
@@ -781,19 +778,19 @@ def graph_inputs(
 def vars_between(
     ins: Collection[Variable], outs: Iterable[Variable]
 ) -> Generator[Variable, None, None]:
-    """Extract the `Variable`s within the sub-graph between input and output nodes.
+    r"""Extract the `Variable`\s within the sub-graph between input and output nodes.
 
     Parameters
     ----------
     ins : list
-        Input `Variable`s.
+        Input `Variable`\s.
     outs : list
-        Output `Variable`s.
+        Output `Variable`\s.
 
     Yields
     ------
-    `Variable`s
-        The `Variable`s that are involved in the subgraph that lies
+    `Variable`\s
+        The `Variable`\s that are involved in the subgraph that lies
         between `ins` and `outs`. This includes `ins`, `outs`,
         ``orphans_between(ins, outs)`` and all values of all intermediary steps from
         `ins` to `outs`.
@@ -810,19 +807,19 @@ def vars_between(
 def orphans_between(
     ins: Collection[Variable], outs: Iterable[Variable]
 ) -> Generator[Variable, None, None]:
-    """Extract the `Variable`s not within the sub-graph between input and output nodes.
+    r"""Extract the `Variable`\s not within the sub-graph between input and output nodes.
 
     Parameters
     ----------
     ins : list
-        Input `Variable`s.
+        Input `Variable`\s.
     outs : list
-        Output `Variable`s.
+        Output `Variable`\s.
 
     Yields
     -------
-    `Variable`s
-        The `Variable`s upon which one or more Variables in `outs`
+    Variable
+        The `Variable`\s upon which one or more `Variable`\s in `outs`
         depend, but are neither in `ins` nor in the sub-graph that lies between
         them.
 
@@ -838,22 +835,21 @@ def orphans_between(
 def applys_between(
     ins: Collection[Variable], outs: Iterable[Variable]
 ) -> Generator[Apply, None, None]:
-    """Extract the `Apply`s contained within the sub-graph between given input and output variables.
+    r"""Extract the `Apply`\s contained within the sub-graph between given input and output variables.
 
     Parameters
     ----------
     ins : list
-        Input `Variable`s.
+        Input `Variable`\s.
     outs : list
-        Output `Variable`s.
+        Output `Variable`\s.
 
     Yields
     ------
-    `Apply`s
-        The `Apply`s that are contained within the sub-graph that lies
-        between `ins` and `outs`, including the owners of the `Variable`s in
-        `outs` and intermediary `Apply`s between `ins` and `outs`, but not the
-        owners of the `Variable`s in `ins`.
+    The `Apply`\s that are contained within the sub-graph that lies
+    between `ins` and `outs`, including the owners of the `Variable`\s in
+    `outs` and intermediary `Apply`\s between `ins` and `outs`, but not the
+    owners of the `Variable`\s in `ins`.
 
     """
     yield from (
@@ -867,32 +863,31 @@ def clone(
     copy_inputs: bool = True,
     copy_orphans: Optional[bool] = None,
 ) -> Tuple[Collection[Variable], Collection[Variable]]:
-    """Copies the sub-graph contained between inputs and outputs.
+    r"""Copies the sub-graph contained between inputs and outputs.
 
     Parameters
     ----------
-    inputs : list
-        Input Variables.
-    outputs : list
-        Output Variables.
-    copy_inputs : bool
-        If True, the inputs will be copied (defaults to True).
-    copy_orphans:
-        When None, use the copy_inputs value,
-        When True, new orphans nodes are created.
-        When False, original orphans nodes are reused in the new graph.
+    inputs
+        Input `Variable`\s.
+    outputs
+        Output `Variable`\s.
+    copy_inputs
+        If ``True``, the inputs will be copied (defaults to ``True``).
+    copy_orphans
+        When ``None``, use the `copy_inputs` value.
+        When ``True``, new orphans nodes are created.
+        When ``False``, original orphans nodes are reused in the new graph.
 
     Returns
     -------
-    object
-        The inputs and outputs of that copy.
+    The inputs and outputs of that copy.
 
     Notes
     -----
 
     A constant, if in the `inputs` list is not an orphan. So it will be copied
-    depending of the `copy_inputs` parameter. Otherwise it will be copied
-    depending of the `copy_orphans` parameter.
+    conditional on the `copy_inputs` parameter; otherwise, it will be copied
+    conditional on the `copy_orphans` parameter.
 
     """
     if copy_orphans is None:
@@ -909,7 +904,7 @@ def clone_get_equiv(
     memo: Optional[Dict[Variable, Variable]] = None,
 ):
     """
-    Return a dictionary that maps from Variable and Apply nodes in the
+    Return a dictionary that maps from `Variable` and `Apply` nodes in the
     original graph to a new node (a clone) in a new graph.
 
     This function works by recursively cloning inputs... rebuilding a directed
@@ -924,8 +919,8 @@ def clone_get_equiv(
         nodes (the bottom of a feed-upward graph).
         False means to clone a graph that is rooted at the original input
         nodes.
-    copy_orphans:
-        When True, new constant nodes are created. When False, original
+    copy_orphans :
+        When ``True``, new constant nodes are created. When ``False``, original
         constant nodes are reused in the new graph.
     memo : None or dict
         Optionally start with a partly-filled dictionary for the return value.
@@ -987,8 +982,8 @@ def clone_replace(
     replace : dict
         Dictionary describing which subgraphs should be replaced by what.
     share_inputs : bool
-        If True, use the same inputs (and shared variables) as the original
-        graph. If False, clone them. Note that cloned shared variables still
+        If ``True``, use the same inputs (and shared variables) as the original
+        graph. If ``False``, clone them. Note that cloned shared variables still
         use the same underlying storage, so they will always have the same
         value.
 
@@ -1035,31 +1030,30 @@ def general_toposort(
     Parameters
     ----------
     deps : callable
-        A python function that takes a node as input and returns its dependence.
+        A Python function that takes a node as input and returns its dependence.
     compute_deps_cache : optional
-        If provided deps_cache should also be provided. This is a function like
-        deps, but that also cache its results in a dict passed as deps_cache.
+        If provided, `deps_cache` should also be provided. This is a function like
+        `deps`, but that also caches its results in a ``dict`` passed as `deps_cache`.
     deps_cache : dict
-        A dict mapping nodes to their children.  This is populated by
+        A ``dict`` mapping nodes to their children.  This is populated by
         `compute_deps_cache`.
     clients : dict
-        If a dict is passed it will be filled with a mapping of
+        If a ``dict`` is passed, it will be filled with a mapping of
         nodes-to-clients for each node in the subgraph.
 
     Notes
     -----
-        deps(i) should behave like a pure function (no funny business with
-        internal state).
 
-        deps(i) will be cached by this function (to be fast).
+    ``deps(i)`` should behave like a pure function (no funny business with
+    internal state).
 
-        The order of the return value list is determined by the order of nodes
-        returned by the deps() function.
+    ``deps(i)`` will be cached by this function (to be fast).
 
-        deps should be provided or can be None and the caller provides
-        compute_deps_cache and deps_cache. The second option removes a Python
-        function call, and allows for more specialized code, so it can be
-        faster.
+    The order of the return value list is determined by the order of nodes
+    returned by the `deps` function.
+
+    The second option removes a Python function call, and allows for more
+    specialized code, so it can be faster.
 
     """
     if compute_deps_cache is None:
@@ -1230,11 +1224,7 @@ def default_node_formatter(op, argstrings):
 
 
 def io_connection_pattern(inputs, outputs):
-    """
-    Returns the connection pattern of a subgraph defined by given
-    inputs and outputs.
-
-    """
+    """Return the connection pattern of a subgraph defined by given inputs and outputs."""
     inner_nodes = io_toposort(inputs, outputs)
 
     # Initialize 'connect_pattern_by_var' by establishing each input as
@@ -1286,7 +1276,7 @@ def io_connection_pattern(inputs, outputs):
             connect_pattern_by_var[out] = out_connection_pattern
 
     # Obtain the global connection pattern by combining the
-    # connnection patterns of the individual outputs
+    # connection patterns of the individual outputs
     global_connection_pattern = [[] for o in range(len(inputs))]
     for out in outputs:
         out_connection_pattern = connect_pattern_by_var.get(out)
@@ -1302,10 +1292,7 @@ def io_connection_pattern(inputs, outputs):
 def op_as_string(
     i, op, leaf_formatter=default_leaf_formatter, node_formatter=default_node_formatter
 ):
-    """
-    Op to return a string representation of the subgraph
-    between i and o
-    """
+    """Return a function that returns a string representation of the subgraph between `i` and :attr:`op.inputs`"""
     strs = as_string(i, op.inputs, leaf_formatter, node_formatter)
     return node_formatter(op, strs)
 
@@ -1316,18 +1303,18 @@ def as_string(
     leaf_formatter=default_leaf_formatter,
     node_formatter=default_node_formatter,
 ) -> List[str]:
-    """Returns a string representation of the subgraph between inputs and outputs.
+    r"""Returns a string representation of the subgraph between `inputs` and `outputs`.
 
     Parameters
     ----------
     inputs : list
-        Input `Variable` s.
+        Input `Variable`\s.
     outputs : list
-        Output `Variable` s.
+        Output `Variable`\s.
     leaf_formatter : callable
-        Takes a `Variable`  and returns a string to describe it.
+        Takes a `Variable` and returns a string to describe it.
     node_formatter : callable
-        Takes an `Op`  and the list of strings corresponding to its arguments
+        Takes an `Op` and the list of strings corresponding to its arguments
         and returns a string to describe it.
 
     Returns
@@ -1336,7 +1323,7 @@ def as_string(
         Returns a string representation of the subgraph between `inputs` and
         `outputs`. If the same node is used by several other nodes, the first
         occurrence will be marked as :literal:`*n -> description` and all
-        subsequent occurrences will be marked as :literal:`*n`, where n is an id
+        subsequent occurrences will be marked as :literal:`*n`, where ``n`` is an id
         number (ids are attributed in an unspecified order and only exist for
         viewing convenience).
 
@@ -1414,15 +1401,14 @@ def view_roots(node: Variable) -> List[Variable]:
 def list_of_nodes(
     inputs: Collection[Variable], outputs: Iterable[Variable]
 ) -> List[Apply]:
-
-    """Return the `Apply` nodes of the graph between `inputs` and `outputs`.
+    r"""Return the `Apply` nodes of the graph between `inputs` and `outputs`.
 
     Parameters
     ----------
     inputs : list of Variable
-        Input `Variable`s.
+        Input `Variable`\s.
     outputs : list of Variable
-        Output `Variable`s.
+        Output `Variable`\s.
 
     """
     return list(
@@ -1470,29 +1456,29 @@ def is_in_ancestors(l_apply: Apply, f_node: Apply) -> bool:
 
 @contextlib.contextmanager
 def nodes_constructed():
-    """
-    A contextmanager that is used in inherit_stack_trace and keeps track
+    r"""
+    A context manager that is used in ``inherit_stack_trace`` and keeps track
     of all the newly created variable nodes inside an optimization. A list
-    of new_nodes is instantiated but will be filled in a lazy manner (when
-    Variable.notify_construction_observers is called).
+    of ``new_nodes`` is instantiated but will be filled in a lazy manner (when
+    ``Variable.notify_construction_observers`` is called).
 
 
-    `observer` is the entity that updates the new_nodes list.
-    construction_observers is a list inside Variable class and contains
+    ``observer`` is the entity that updates the ``new_nodes`` list.
+    ``construction_observers`` is a list inside `Variable` class and contains
     a list of observer functions. The observer functions inside
-    construction_observers are only called when a variable node is
-    instantiated (where Variable.notify_construction_observers is called).
-    When the observer function is called, a new variable node is added to
-    the new_nodes list.
+    ``construction_observers`` are only called when a `Variable` is
+    instantiated (where ``Variable.notify_construction_observers`` is called).
+    When the observer function is called, a new `Variable` is added to
+    the `new_nodes` list.
 
 
     Parameters
     ----------
     new_nodes
-        A list of all the variable nodes that are created inside the optimization.
+        A list of all the `Variable`\s that are created inside the optimization.
 
     yields
-        new_nodes list.
+        ``new_nodes`` list.
     """
     new_nodes = []
 
@@ -1508,14 +1494,14 @@ def equal_computations(xs, ys, in_xs=None, in_ys=None):
     """Checks if Aesara graphs represent the same computations.
 
     The two lists `xs`, `ys` should have the same number of entries. The
-    function checks if for any corresponding pair `(x,y)` from `zip(xs,ys)`
-    `x` and `y` represent the same computations on the same variables
+    function checks if for any corresponding pair ``(x, y)`` from ``zip(xs, ys)``
+    ``x`` and ``y`` represent the same computations on the same variables
     (unless equivalences are provided using `in_xs`, `in_ys`).
 
-    If `in_xs` and `in_ys` are provided, then when comparing a node `x` with
-    a node `y` they are automatically considered as equal if there is some
-    index `i` such that `x == in_xs[i]` and `y == in_ys[i]`(and they both
-    have the same type). Note that `x` and `y` can be in the list `xs` and
+    If `in_xs` and `in_ys` are provided, then when comparing a node ``x`` with
+    a node ``y`` they are automatically considered as equal if there is some
+    index ``i`` such that ``x == in_xs[i]`` and ``y == in_ys[i]`` (and they both
+    have the same type). Note that ``x`` and ``y`` can be in the list `xs` and
     `ys`, but also represent subgraphs of a computational graph in `xs`
     or `ys`.
 
@@ -1662,3 +1648,40 @@ def equal_computations(xs, ys, in_xs=None, in_ys=None):
                 return False
 
     return True
+
+
+def get_var_by_name(
+    graphs: Iterable[Variable], target_var_id: str, ids: str = "CHAR"
+) -> Tuple[Variable]:
+    r"""Get variables in a graph using their names.
+
+    Parameters
+    ----------
+    graphs:
+        The graph, or graphs, to search.
+    target_var_id:
+        The name to match against either ``Variable.name`` or
+        ``Variable.auto_name``.
+
+    Returns
+    -------
+    A ``tuple`` containing all the `Variable`\s that match `target_var_id`.
+
+    """
+    from aesara.graph.op import HasInnerGraph
+
+    def expand(r):
+        if r.owner:
+            res = r.owner.inputs
+
+            if isinstance(r.owner.op, HasInnerGraph):
+                res.extend(r.owner.op.inner_outputs)
+
+            return res
+
+    results = ()
+    for var in walk(graphs, expand, False):
+        if target_var_id == var.name or target_var_id == var.auto_name:
+            results += (var,)
+
+    return results

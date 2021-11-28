@@ -146,7 +146,7 @@ class HiddenLayer:
 
         Hidden unit activation is given by: tanh(dot(input,W) + b)
 
-        :type rng: numpy.random.RandomState
+        :type rng: numpy.random.Generator
         :param rng: a random number generator used to initialize weights
 
         :type input: dmatrix
@@ -164,7 +164,7 @@ class HiddenLayer:
         """
         self.input = input
 
-        # `W` is initialized with `W_values` which is uniformely sampled
+        # `W` is initialized with `W_values` which is uniformly sampled
         # from -6./sqrt(n_in+n_hidden) and 6./sqrt(n_in+n_hidden)
         # the output of uniform if converted using asarray to dtype
         # aesara.config.floatX so that the code is runable on GPU
@@ -188,7 +188,7 @@ class MLP:
 
     A multilayer perceptron is a feedforward artificial neural network model
     that has one layer or more of hidden units and nonlinear activations.
-    Intermidiate layers usually have as activation function thanh or the
+    Intermediate layers usually have as activation function thanh or the
     sigmoid function (defined here by a ``SigmoidalLayer`` class)  while the
     top layer is a softamx layer (defined here by a ``LogisticRegression``
     class).
@@ -197,7 +197,7 @@ class MLP:
     def __init__(self, rng, input, n_in, n_hidden, n_out):
         """Initialize the parameters for the multilayer perceptron
 
-        :type rng: numpy.random.RandomState
+        :type rng: numpy.random.Generator
         :param rng: a random number generator used to initialize weights
 
         :type input: TensorType
@@ -293,7 +293,7 @@ def test_mlp():
     y = ivector("y")  # the labels are presented as 1D vector of
     # [int] labels
 
-    rng = np.random.RandomState(1234)
+    rng = np.random.default_rng(1234)
 
     # construct the MLP class
     classifier = MLP(rng=rng, input=x, n_in=28 * 28, n_hidden=500, n_out=10)

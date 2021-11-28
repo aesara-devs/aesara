@@ -29,7 +29,7 @@ def _ctc_find_lib():
 
 
 def _ctc_check_compile(ctc_lib_path):
-    preambule = """
+    preamble = """
 #include <string.h>
 #include "ctc.h"
 """
@@ -47,7 +47,7 @@ options.num_threads = 1;
         params.extend([f"-L{ctc_lib_path}"])
     params.extend(["-l", "warpctc"])
     compiler_res = GCC_compiler.try_flags(
-        params, preambule=preambule, body=body, try_run=False, output=True
+        params, preamble=preamble, body=body, try_run=False, output=True
     )
 
     avail, out, err = (

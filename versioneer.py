@@ -37,7 +37,7 @@ Source trees come from a variety of places:
 
 * a version-control system checkout (mostly used by developers)
 * a nightly tarball, produced by build automation
-* a snapshot tarball, produced by a web-based VCS browser, like github's
+* a snapshot tarball, produced by a web-based VCS browser, like GitHub's
   "tarball from tag" feature
 * a release tarball, produced by "setup.py sdist", distributed through PyPI
 
@@ -165,7 +165,7 @@ which may help identify what went wrong).
 ## Known Limitations
 
 Some situations are known to cause problems for Versioneer. This details the
-most significant ones. More can be found on Github
+most significant ones. More can be found on GitHub
 [issues page](https://github.com/warner/python-versioneer/issues).
 
 ### Subprojects
@@ -180,7 +180,7 @@ two common reasons why `setup.py` might not be in the root:
   `setup.cfg`, and `tox.ini`. Projects like these produce multiple PyPI
   distributions (and upload multiple independently-installable tarballs).
 * Source trees whose main purpose is to contain a C library, but which also
-  provide bindings to Python (and perhaps other langauges) in subdirectories.
+  provide bindings to Python (and perhaps other languages) in subdirectories.
 
 Versioneer will look for `.git` in parent directories, and most operations
 should get the right version string. However `pip` and `setuptools` have bugs
@@ -688,7 +688,7 @@ def git_pieces_from_vcs(tag_prefix, root, verbose, run_command=run_command):
         # TAG-NUM-gHEX
         mo = re.search(r'^(.+)-(\d+)-g([0-9a-f]+)$', git_describe)
         if not mo:
-            # unparseable. Maybe git-describe is misbehaving?
+            # unparsable. Maybe git-describe is misbehaving?
             pieces["error"] = ("unable to parse git-describe output: '%%s'"
                                %% describe_out)
             return pieces
@@ -1080,7 +1080,7 @@ def git_pieces_from_vcs(tag_prefix, root, verbose, run_command=run_command):
         # TAG-NUM-gHEX
         mo = re.search(r'^(.+)-(\d+)-g([0-9a-f]+)$', git_describe)
         if not mo:
-            # unparseable. Maybe git-describe is misbehaving?
+            # unparsable. Maybe git-describe is misbehaving?
             pieces["error"] = f"unable to parse git-describe output: '{describe_out}'"
             return pieces
 
@@ -1423,7 +1423,7 @@ def get_versions(verbose=False):
     # extract version from first of: _version.py, VCS command (e.g. 'git
     # describe'), parentdir. This is meant to work for developers using a
     # source checkout, for users of a tarball created by 'setup.py sdist',
-    # and for users of a tarball/zipball created by 'git archive' or github's
+    # and for users of a tarball/zipball created by 'git archive' or GitHub's
     # download-from-tag feature or the equivalent in other VCSes.
 
     get_keywords_f = handlers.get("get_keywords")

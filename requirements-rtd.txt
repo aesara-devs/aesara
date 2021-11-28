@@ -9,4 +9,4 @@ pydot
 pydot2
 pydot-ng
 Cython
-scipy==0.13
+scipy>=0.13

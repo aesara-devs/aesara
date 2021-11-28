@@ -1,6 +1,6 @@
-"""`Op` classes for working with ``numpy.ndarrays`` symbolically.
+r"""`Op` classes for working with ``numpy.ndarrays`` symbolically.
 
-This module primarily defines `Op`s for the creation, conversion, and
+This module primarily defines `Op`\s for the creation, conversion, and
 manipulation of tensors.
 
 """
@@ -8,30 +8,36 @@ manipulation of tensors.
 import builtins
 import logging
 import warnings
-from collections import OrderedDict
 from collections.abc import Sequence
+from functools import partial
 from numbers import Number
-from typing import Dict
+from typing import Dict, Optional, Tuple, Union
 
 import numpy as np
+from numpy.core.multiarray import normalize_axis_index
 
 import aesara
 import aesara.scalar.sharedvar
 from aesara import compile, config, printing
 from aesara import scalar as aes
-from aesara.assert_op import Assert, assert_op
 from aesara.gradient import DisconnectedType, grad_not_implemented, grad_undefined
 from aesara.graph.basic import Apply, Constant, Variable
 from aesara.graph.op import COp, Op
 from aesara.graph.params_type import ParamsType
-from aesara.graph.type import CType
+from aesara.graph.type import Type
 from aesara.misc.safe_asarray import _asarray
 from aesara.printing import min_informative_str, pprint
+from aesara.raise_op import CheckAndRaise, assert_op
 from aesara.scalar import int32
 from aesara.scalar.basic import ScalarConstant, ScalarVariable
-from aesara.tensor import _as_tensor_variable, as_tensor_variable
+from aesara.tensor import (
+    _as_tensor_variable,
+    _get_vector_length,
+    as_tensor_variable,
+    get_vector_length,
+)
 from aesara.tensor.elemwise import DimShuffle, Elemwise, scalar_elemwise
-from aesara.tensor.exceptions import EmptyConstantError, NotScalarConstantError
+from aesara.tensor.exceptions import NotScalarConstantError
 from aesara.tensor.shape import (
     Shape,
     Shape_i,
@@ -39,6 +45,8 @@ from aesara.tensor.shape import (
     shape,
     shape_padaxis,
     shape_padleft,
+    shape_padright,
+    shape_tuple,
 )
 from aesara.tensor.type import (
     TensorType,
@@ -52,7 +60,7 @@ from aesara.tensor.type import (
     uint_dtypes,
     values_eq_approx_always_true,
 )
-from aesara.tensor.var import TensorConstant, TensorVariable
+from aesara.tensor.var import TensorConstant, TensorVariable, get_unique_value
 
 
 _logger = logging.getLogger("aesara.tensor.basic")
@@ -69,7 +77,9 @@ def check_equal_numpy(x, y):
     """
     if isinstance(x, np.ndarray) and isinstance(y, np.ndarray):
         return x.dtype == y.dtype and x.shape == y.shape and np.all(abs(x - y) < 1e-10)
-    elif isinstance(x, np.random.RandomState) and isinstance(y, np.random.RandomState):
+    elif isinstance(x, (np.random.Generator, np.random.RandomState)) and isinstance(
+        y, (np.random.Generator, np.random.RandomState)
+    ):
         return builtins.all(
             np.all(a == b) for a, b in zip(x.__getstate__(), y.__getstate__())
         )
@@ -87,7 +97,7 @@ def __oplist_tag(thing, tag):
 
 
 @_as_tensor_variable.register(Apply)
-def _as_tensor_Apply(x, name, ndim):
+def _as_tensor_Apply(x, name, ndim, **kwargs):
     # use Apply's default output mechanism
     if (x.op.default_output is None) and (len(x.outputs) != 1):
         raise TypeError(
@@ -97,20 +107,20 @@ def _as_tensor_Apply(x, name, ndim):
 
     x = x.default_output()
 
-    return as_tensor_variable(x, name=name, ndim=ndim)
+    return as_tensor_variable(x, name=name, ndim=ndim, **kwargs)
 
 
 @_as_tensor_variable.register(ScalarVariable)
 @_as_tensor_variable.register(ScalarConstant)
-def _as_tensor_Scalar(x, name, ndim):
-    return as_tensor_variable(tensor_from_scalar(x), name=name, ndim=ndim)
+def _as_tensor_Scalar(x, name, ndim, **kwargs):
+    return as_tensor_variable(tensor_from_scalar(x), name=name, ndim=ndim, **kwargs)
 
 
 @_as_tensor_variable.register(Variable)
-def _as_tensor_Variable(x, name, ndim):
+def _as_tensor_Variable(x, name, ndim, **kwargs):
     if not isinstance(x.type, TensorType):
         raise TypeError(
-            "Tensor type field must be a TensorType; found {}.".format(type(x.type))
+            f"Tensor type field must be a TensorType; found {type(x.type)}."
         )
 
     if ndim is None:
@@ -124,9 +134,7 @@ def _as_tensor_Variable(x, name, ndim):
         x = x.dimshuffle(list(range(x.ndim))[first_non_broadcastable:])
         if x.ndim > ndim:
             raise ValueError(
-                "Tensor of type {} could not be cast to have {} dimensions".format(
-                    x.type, ndim
-                )
+                f"Tensor of type {x.type} could not be cast to have {ndim} dimensions"
             )
         return x
     elif x.type.ndim < ndim:
@@ -137,10 +145,10 @@ def _as_tensor_Variable(x, name, ndim):
 
 @_as_tensor_variable.register(list)
 @_as_tensor_variable.register(tuple)
-def _as_tensor_Sequence(x, name, ndim):
+def _as_tensor_Sequence(x, name, ndim, dtype=None, **kwargs):
 
     if len(x) == 0:
-        return constant(x, name=name, ndim=ndim)
+        return constant(x, name=name, ndim=ndim, dtype=dtype)
 
     # If a sequence has `Variable`s in it, then we want
     # to customize the conversion to a tensor type.
@@ -161,7 +169,8 @@ def _as_tensor_Sequence(x, name, ndim):
         ):
             # In this instance, we have a sequence of constants with which we
             # want to construct a vector, so we can use `MakeVector` directly.
-            dtype = aes.upcast(*[i.dtype for i in x if hasattr(i, "dtype")])
+            if dtype is None:
+                dtype = aes.upcast(*[i.dtype for i in x if hasattr(i, "dtype")])
             return MakeVector(dtype)(*x)
 
         # In this case, we have at least one non-`Constant` term, so we
@@ -169,19 +178,19 @@ def _as_tensor_Sequence(x, name, ndim):
         # symbolically join terms.
         return stack(x)
 
-    return constant(x, name=name, ndim=ndim)
+    return constant(x, name=name, ndim=ndim, dtype=dtype)
 
 
 @_as_tensor_variable.register(np.bool_)
 @_as_tensor_variable.register(np.number)
 @_as_tensor_variable.register(Number)
 @_as_tensor_variable.register(np.ndarray)
-def _as_tensor_numbers(x, name, ndim):
-    return constant(x, name=name, ndim=ndim)
+def _as_tensor_numbers(x, name, ndim, dtype=None, **kwargs):
+    return constant(x, name=name, ndim=ndim, dtype=dtype)
 
 
 @_as_tensor_variable.register(bool)
-def _as_tensor_bool(x, name, ndim):
+def _as_tensor_bool(x, name, ndim, **kwargs):
     raise TypeError(
         "Cannot cast True or False as a tensor variable. Please use "
         "np.array(True) or np.array(False) if you need these constants. "
@@ -246,30 +255,6 @@ def _obj_is_wrappable_as_tensor(x):
         return False
 
 
-def numpy_scalar(data):
-    """Return a scalar stored in a numpy ndarray.
-
-    Raises
-    ------
-     NotScalarConstantError
-        If the numpy ndarray is not a scalar.
-
-    """
-
-    # handle case where data is numpy.array([])
-    if data.ndim > 0 and (len(data.shape) == 0 or builtins.max(data.shape) == 0):
-        assert np.all(np.array([]) == data)
-        raise EmptyConstantError()
-    try:
-        np.complex(data)  # works for all numeric scalars
-        return data
-    except Exception:
-        raise NotScalarConstantError(
-            "v.data is non-numeric, non-scalar, or has more than one" " unique value",
-            data,
-        )
-
-
 _scalar_constant_value_elemwise_ops = (
     aes.Cast,
     aes.Switch,
@@ -332,16 +317,23 @@ def get_scalar_constant_value(
             return np.asarray(v)
 
         if isinstance(v, np.ndarray):
-            return numpy_scalar(v).copy()
+            try:
+                return np.array(v.item(), dtype=v.dtype)
+            except ValueError:
+                raise NotScalarConstantError()
 
         if isinstance(v, Constant):
-            if getattr(v.tag, "unique_value", None) is not None:
-                data = v.tag.unique_value
+            unique_value = get_unique_value(v)
+            if unique_value is not None:
+                data = unique_value
             else:
                 data = v.data
 
             if isinstance(data, np.ndarray):
-                return numpy_scalar(data).copy()
+                try:
+                    return np.array(data.item(), dtype=v.dtype)
+                except ValueError:
+                    raise NotScalarConstantError()
             else:
                 return data
 
@@ -378,13 +370,13 @@ def get_scalar_constant_value(
             elif isinstance(v.owner.op, (ScalarFromTensor, TensorFromScalar)):
                 v = v.owner.inputs[0]
                 continue
-            elif isinstance(v.owner.op, Assert):
+            elif isinstance(v.owner.op, CheckAndRaise):
                 # check if all conditions are constant and true
-                cond = [
+                conds = [
                     get_scalar_constant_value(c, max_recur=max_recur)
                     for c in v.owner.inputs[1:]
                 ]
-                if builtins.all([0 == c.ndim and c != 0 for c in cond]):
+                if builtins.all([0 == c.ndim and c != 0 for c in conds]):
                     v = v.owner.inputs[0]
                     continue
             elif isinstance(v.owner.op, aes.ScalarOp):
@@ -448,28 +440,14 @@ def get_scalar_constant_value(
                     and isinstance(v.owner.inputs[0].owner.op, Join)
                     and len(v.owner.op.idx_list) == 1
                 ):
-                    # Ensure the Join is joining only scalar variables (so that
-                    # the constant value can be found at the same index as the
-                    # one used in the sub-tensor).
-                    if builtins.all(
-                        var.ndim == 0 for var in v.owner.inputs[0].owner.inputs[1:]
-                    ):
-                        idx = v.owner.op.idx_list[0]
-                        if isinstance(idx, CType):
-                            idx = get_scalar_constant_value(
-                                v.owner.inputs[1], max_recur=max_recur
-                            )
-                        # Note the '+ 1' is because the first argument to Join
-                        # is the axis.
-                        ret = v.owner.inputs[0].owner.inputs[idx + 1]
-                        ret = get_scalar_constant_value(ret, max_recur=max_recur)
-                        # join can cast implicitly its input in some case.
-                        return _asarray(ret, dtype=v.type.dtype)
+                    # Ensure the Join is joining only (effectively) scalar
+                    # variables (so that the constant value can be found at the
+                    # same index as the one used in the sub-tensor).
                     if builtins.all(
                         var.ndim == 1 for var in v.owner.inputs[0].owner.inputs[1:]
                     ):
                         idx = v.owner.op.idx_list[0]
-                        if isinstance(idx, CType):
+                        if isinstance(idx, Type):
                             idx = get_scalar_constant_value(
                                 v.owner.inputs[1], max_recur=max_recur
                             )
@@ -504,7 +482,7 @@ def get_scalar_constant_value(
                 ):
 
                     idx = v.owner.op.idx_list[0]
-                    if isinstance(idx, CType):
+                    if isinstance(idx, Type):
                         idx = get_scalar_constant_value(
                             v.owner.inputs[1], max_recur=max_recur
                         )
@@ -526,7 +504,7 @@ def get_scalar_constant_value(
                     op = owner.op
                     idx_list = op.idx_list
                     idx = idx_list[0]
-                    if isinstance(idx, CType):
+                    if isinstance(idx, Type):
                         idx = get_scalar_constant_value(
                             owner.inputs[1], max_recur=max_recur
                         )
@@ -563,12 +541,7 @@ def get_scalar_constant_value(
                     if isinstance(grandparent, Constant):
                         return np.asarray(np.shape(grandparent.data)[idx])
 
-        raise NotScalarConstantError(v)
-
-
-#########################
-# Casting Operations
-#########################
+        raise NotScalarConstantError()
 
 
 class TensorFromScalar(Op):
@@ -689,7 +662,7 @@ class Rebroadcast(COp):
     def __init__(self, *axis):
         # Sort them to make sure we merge all possible case.
         items = sorted(axis)
-        self.axis = OrderedDict(items)
+        self.axis = dict(items)
         for axis, broad in self.axis.items():
             if not isinstance(axis, (np.integer, int)):
                 raise TypeError(f"Rebroadcast needs integer axes. Got {axis}")
@@ -706,13 +679,7 @@ class Rebroadcast(COp):
         return hash((type(self), tuple(items)))
 
     def __str__(self):
-        if len(self.axis) == 0:
-            broadcast_pattern = []
-        else:
-            broadcast_pattern = ["?" for i in range(1 + max(self.axis.keys()))]
-        for k, v in self.axis.items():
-            broadcast_pattern[k] = str(int(v))
-        return f"{self.__class__.__name__}{{{','.join(broadcast_pattern)}}}"
+        return f"{self.__class__.__name__}{{{','.join(str(i) for i in self.axis.items())}}}"
 
     def make_node(self, x):
         if self.axis.keys() and (x.ndim <= max(self.axis.keys())):
@@ -763,7 +730,7 @@ class Rebroadcast(COp):
     def R_op(self, inputs, eval_points):
         if eval_points[0] is None:
             return [None]
-        return self(*eval_points, **dict(return_list=True))
+        return self(*eval_points, return_list=True)
 
     def c_code(self, node, nodename, inp, out, sub):
         (iname,) = inp
@@ -789,7 +756,7 @@ class Rebroadcast(COp):
 
     def c_code_cache_version(self):
         version = []
-        # If any of the c code is unversionned, we have to return ()
+        # If any of the c code is unversioned, we have to return ()
         # Else, we will return a list of (type name, version) pairs.
         for t, (c, v) in sorted(
             self.c_code_and_version.items(), key=lambda pair: str(pair[0])
@@ -919,18 +886,21 @@ _cast_mapping = {
 
 def cast(x, dtype):
     """Symbolically cast `x` to a Tensor of type `dtype`."""
-    if dtype == "floatX":
+
+    if isinstance(dtype, str) and dtype == "floatX":
         dtype = config.floatX
 
+    dtype_name = np.dtype(dtype).name
+
     _x = as_tensor_variable(x)
-    if _x.type.dtype == dtype:
+    if _x.type.dtype == dtype_name:
         return _x
-    if _x.type.dtype.startswith("complex") and not dtype.startswith("complex"):
+    if _x.type.dtype.startswith("complex") and not dtype_name.startswith("complex"):
         raise TypeError(
             "Casting from complex to real is ambiguous: consider real(), "
             "imag(), angle() or abs()"
         )
-    return _cast_mapping[dtype](x)
+    return _cast_mapping[dtype_name](x)
 
 
 ##########################
@@ -1531,7 +1501,7 @@ class Alloc(COp):
     def R_op(self, inputs, eval_points):
         if eval_points[0] is None:
             return [None]
-        return self(eval_points[0], *inputs[1:], **dict(return_list=True))
+        return self(eval_points[0], *inputs[1:], return_list=True)
 
     def do_constant_folding(self, fgraph, node):
         clients = fgraph.clients[node.outputs[0]]
@@ -1580,6 +1550,46 @@ alloc = Alloc()
 pprint.assign(alloc, printing.FunctionPrinter("alloc"))
 
 
+def full(shape, fill_value, dtype=None):
+    """Return a new array of given shape and type, filled with `fill_value`.
+
+    See ``numpy.full``.
+
+    Parameters
+    ----------
+    shape : int or sequence of ints
+        Shape of the new array, e.g., ``(2, 3)`` or ``2``.
+    fill_value : scalar or array_like
+        Fill value.
+    dtype : data-type, optional
+        The desired data-type for the array  The default, None, means
+        `np.array(fill_value).dtype`.
+
+    """
+    fill_value = as_tensor_variable(fill_value)
+    if dtype:
+        fill_value = fill_value.astype(dtype)
+    return alloc(fill_value, *shape)
+
+
+def full_like(
+    a: TensorVariable,
+    fill_value: Union[TensorVariable, int, float],
+    dtype: Union[str, np.generic, np.dtype] = None,
+) -> TensorVariable:
+    """Equivalent of `numpy.full_like`.
+
+    Returns
+    -------
+    tensor
+        tensor the shape of `a` containing `fill_value` of the type of dtype.
+    """
+    fill_value = as_tensor_variable(fill_value)
+    if dtype is not None:
+        fill_value = fill_value.astype(dtype)
+    return fill(a, fill_value)
+
+
 class MakeVector(COp):
     """Concatenate a number of scalars together into a vector.
 
@@ -1602,14 +1612,13 @@ class MakeVector(COp):
             dtype = aes.upcast(self.dtype, *[i.dtype for i in inputs])
             # upcast the input to the determined dtype,
             # but don't downcast anything
-            assert dtype == self.dtype, (
-                "The upcast of the inputs to MakeVector should match the "
-                "dtype given in __init__."
-            )
+            assert (
+                dtype == self.dtype
+            ), f"Upcasted inputs do not match the Op's dtype: {dtype} != {self.dtype}"
             if not all(self.dtype == cast(i, dtype=dtype).dtype for i in inputs):
                 raise TypeError(
-                    "MakeVector.make_node expected inputs"
-                    f" upcastable to {self.dtype}. got {[i.dtype for i in inputs]}"
+                    f"Expected inputs upcastable to {self.dtype}; "
+                    f"got {[i.dtype for i in inputs]}"
                 )
             inputs = [cast(i, dtype=dtype) for i in inputs]
         assert all(self.dtype == a.dtype for a in inputs)
@@ -1690,6 +1699,11 @@ class MakeVector(COp):
 
 
 make_vector = MakeVector()
+
+
+@_get_vector_length.register(MakeVector)
+def _get_vector_length_MakeVector(op, var):
+    return len(var.owner.inputs)
 
 
 def transfer(var, target):
@@ -1912,7 +1926,7 @@ class Split(COp):
     def grad(self, inputs, g_outputs):
         """Join the gradients along the axis that was used to split x."""
         x, axis, n = inputs
-        outputs = self(*inputs, **dict(return_list=True))
+        outputs = self(*inputs, return_list=True)
         # If all the output gradients are disconnected, then so are the inputs
         if builtins.all([isinstance(g.type, DisconnectedType) for g in g_outputs]):
             return [
@@ -2174,8 +2188,8 @@ def patternbroadcast(x, broadcastable):
 
 
 class Join(COp):
-    """
-    Concatenate multiple `TensorVariable`s along some axis.
+    r"""
+    Concatenate multiple `TensorVariable`\s along some axis.
 
     The axis must be given as first argument. All tensors must have the same
     shape along all dimensions other than this axis.
@@ -2474,8 +2488,8 @@ class Join(COp):
         # The joining dimension could be negative, but we need it to be
         # in [0, n_dim) in the loop below.
         # An axis < -n_dim or >= ndim would be invalid, but this is
-        # not checked here. An Assert op would be a way of addressing that,
-        # but it may disrupt optimizations.
+        # not checked here. A `CheckAndRaise` `Op` would be a way of
+        # addressing that, but it may disrupt optimizations.
         join_dim = switch(ge(node.inputs[0], 0), node.inputs[0], node.inputs[0] + n_dim)
         out_shapes = []
         for dim in range(n_dim):
@@ -2503,9 +2517,20 @@ join_ = Join()
 pprint.assign(Join, printing.FunctionPrinter("join"))
 
 
+@_get_vector_length.register(Join)
+def _get_vector_length_Join(op, var):
+    axis, *arrays = var.owner.inputs
+    try:
+        axis = get_scalar_constant_value(axis)
+        assert axis == 0 and builtins.all(a.ndim == 1 for a in arrays)
+        return builtins.sum(get_vector_length(a) for a in arrays)
+    except NotScalarConstantError:
+        raise ValueError(f"Length of {var} cannot be determined")
+
+
 def join(axis, *tensors_list):
-    """
-    Convenience function to concatenate `TensorType`s along the given axis.
+    r"""
+    Convenience function to concatenate `TensorType`\s along the given axis.
 
     This function will not add the op in the graph when it is not useful.
     For example, in the case that the list of tensors to be concatenated
@@ -2591,7 +2616,7 @@ def stack(*tensors, **kwargs):
     of tensors passed.
 
     Note: The interface stack(*tensors) is deprecated, you should use
-    stack(tensors, axis=0) insted.
+    stack(tensors, axis=0) instead.
 
     Parameters
     ----------
@@ -2684,7 +2709,7 @@ def stack(*tensors, **kwargs):
         # in case there is direct int
         tensors = list(map(as_tensor_variable, tensors))
         dtype = aes.upcast(*[i.dtype for i in tensors])
-        return aesara.tensor.basic_opt.MakeVector(dtype)(*tensors)
+        return MakeVector(dtype)(*tensors)
     return join(axis, *[shape_padaxis(t, axis) for t in tensors])
 
 
@@ -2712,96 +2737,6 @@ def concatenate(tensor_list, axis=0):
             tensor_list,
         )
     return join(axis, *tensor_list)
-
-
-def get_vector_length(v):
-    """Return the run-time length of a symbolic vector.
-
-    Parameters
-    ----------
-    v
-        A rank-1 TensorType variable.
-
-    Raises
-    ------
-    TypeError
-        `v` hasn't the proper type.
-    ValueError
-        No special case applies, the length is not known.
-        In general this is not possible, but for a number of special cases
-        the length can be determined at compile / graph-construction time.
-        This function implements these special cases.
-
-    """
-    v = as_tensor_variable(v)
-    if v.ndim != 1:
-        raise TypeError(f"argument must be symbolic vector, got '{v}'")
-    if v.type.broadcastable[0]:
-        return 1
-    if isinstance(v, aesara.tensor.sharedvar.TensorSharedVariable) and v.type.ndim == 1:
-        return len(v.get_value())
-    if isinstance(v, Constant) and v.type.ndim == 1:
-        return len(v.data)
-    if v.owner and isinstance(v.owner.op, aesara.tensor.basic_opt.MakeVector):
-        return len(v.owner.inputs)
-    if v.owner and isinstance(v.owner.op, Shape):
-        return v.owner.inputs[0].type.ndim
-
-    # We can skip `Op`s that don't affect the length, like unary `Elemwise`
-    # `Op`s
-    if (
-        v.owner
-        and isinstance(v.owner.op, Elemwise)
-        and len(v.owner.inputs) == 1
-        and len(v.owner.outputs) == 1
-    ):
-        return get_vector_length(v.owner.inputs[0])
-
-    if v.owner and isinstance(v.owner.op, Join):
-        axis, *arrays = v.owner.inputs
-        try:
-            axis = get_scalar_constant_value(axis)
-            if axis != 0:
-                raise ValueError()
-            if not builtins.all(a.ndim == 1 for a in arrays):
-                raise ValueError()
-            return builtins.sum(get_vector_length(a) for a in arrays)
-        except (ValueError, NotScalarConstantError):
-            raise ValueError(f"Length of {v} cannot be determined")
-
-    # If we take a slice, we know how many elements it will result in
-    # TODO: We can cover more `*Subtensor` cases.
-    if (
-        v.owner
-        and isinstance(v.owner.op, aesara.tensor.subtensor.Subtensor)
-        and isinstance(v.owner.op.idx_list[0], slice)
-    ):
-        try:
-            indices = aesara.tensor.subtensor.get_idx_list(
-                v.owner.inputs, v.owner.op.idx_list
-            )
-            start = (
-                None
-                if indices[0].start is None
-                else get_scalar_constant_value(indices[0].start)
-            )
-            stop = (
-                None
-                if indices[0].stop is None
-                else get_scalar_constant_value(indices[0].stop)
-            )
-            step = (
-                None
-                if indices[0].step is None
-                else get_scalar_constant_value(indices[0].step)
-            )
-
-            arg_len = get_vector_length(v.owner.inputs[0])
-            return len(range(*slice(start, stop, step).indices(arg_len)))
-        except (ValueError, NotScalarConstantError):
-            raise ValueError(f"Length of {v} cannot be determined")
-
-    raise ValueError(f"Length of {v} cannot be determined")
 
 
 def horizontal_stack(*args):
@@ -3040,7 +2975,7 @@ def flatten(x, ndim=1):
     Returns
     -------
     aesara.tensor.var.TensorVariable
-        the flattend variable with dimensionality of outdim
+        the flattened variable with dimensionality of outdim
     """
     if ndim is None:
         ndim = 1
@@ -4120,7 +4055,7 @@ class Choose(Op):
         else:
             choice = as_tensor_variable(choices)
         (out_shape,) = self.infer_shape(
-            None, None, [tuple(a.shape), tuple(shape(choice))]
+            None, None, [shape_tuple(a), shape_tuple(choice)]
         )
 
         bcast = []
@@ -4167,7 +4102,7 @@ class AllocEmpty(COp):
         output = otype()
 
         output.tag.values_eq_approx = values_eq_approx_always_true
-        # The outut can contain nan/inf.  output.type is a new
+        # The output can contain nan/inf.  output.type is a new
         # instance, so we can do this only for that variable.
         output.type.filter_checks_isfinite = False
 
@@ -4248,7 +4183,151 @@ class AllocEmpty(COp):
         return [zeros(inputs, self.dtype)]
 
 
+def empty(shape, dtype=None):
+    """Return a new array of given shape and type, without initializing entries.
+
+    See ``numpy.empty``.
+
+    Parameters
+    ----------
+    shape : int or tuple of int
+        Shape of the empty array, e.g., ``(2, 3)`` or ``2``.
+    dtype : data-type, optional
+        Desired output data-type for the array, e.g, `numpy.int8`. Default is
+        `numpy.float64`.
+    """
+    if dtype is None:
+        dtype = config.floatX
+    return AllocEmpty(dtype)(*shape)
+
+
+def empty_like(
+    prototype: TensorVariable, dtype: Optional[Union[str, np.generic, np.dtype]] = None
+) -> TensorVariable:
+    """Return a new array with the same shape and type as a given array.
+
+    See ``numpy.empty_like``.
+
+    Parameters
+    ----------
+    prototype
+        The shape and data-type of `prototype` define these same attributes
+        of the returned array.
+    dtype : data-type, optional
+        Overrides the data type of the result.
+    """
+    if dtype is None:
+        dtype = prototype.dtype
+
+    return empty(shape(prototype), dtype)
+
+
+def atleast_Nd(
+    *arys: Union[np.ndarray, TensorVariable], n: int = 1, left: bool = True
+) -> TensorVariable:
+    """Convert inputs to arrays with at least `n` dimensions."""
+    res = []
+    for ary in arys:
+        ary = as_tensor(ary)
+
+        if ary.ndim >= n:
+            result = ary
+        else:
+            result = (
+                shape_padleft(ary, n - ary.ndim)
+                if left
+                else shape_padright(ary, n - ary.ndim)
+            )
+
+        res.append(result)
+
+    if len(res) == 1:
+        return res[0]
+    else:
+        return res
+
+
+atleast_1d = partial(atleast_Nd, n=1)
+atleast_2d = partial(atleast_Nd, n=2)
+atleast_3d = partial(atleast_Nd, n=3)
+
+
+def expand_dims(
+    a: Union[np.ndarray, TensorVariable], axis: Tuple[int, ...]
+) -> TensorVariable:
+    """Expand the shape of an array.
+
+    Insert a new axis that will appear at the `axis` position in the expanded
+    array shape.
+    """
+    a = as_tensor(a)
+
+    if not isinstance(axis, (tuple, list)):
+        axis = (axis,)
+
+    out_ndim = len(axis) + a.ndim
+    axis = np.core.numeric.normalize_axis_tuple(axis, out_ndim)
+
+    shape_it = iter(a.shape)
+    shape = [1 if ax in axis else next(shape_it) for ax in range(out_ndim)]
+
+    return a.reshape(shape)
+
+
+def _make_along_axis_idx(arr_shape, indices, axis):
+    """Take from `numpy.lib.shape_base`."""
+    # compute dimensions to iterate over
+    if str(indices.dtype) not in int_dtypes:
+        raise IndexError("`indices` must be an integer array")
+    shape_ones = (1,) * indices.ndim
+    dest_dims = list(range(axis)) + [None] + list(range(axis + 1, indices.ndim))
+
+    # build a fancy index, consisting of orthogonal aranges, with the
+    # requested index inserted at the right location
+    fancy_index = []
+    for dim, n in zip(dest_dims, arr_shape):
+        if dim is None:
+            fancy_index.append(indices)
+        else:
+            ind_shape = shape_ones[:dim] + (-1,) + shape_ones[dim + 1 :]
+            fancy_index.append(arange(n).reshape(ind_shape))
+
+    return tuple(fancy_index)
+
+
+def take_along_axis(arr, indices, axis=0):
+    """Take values from the input array by matching 1d index and data slices.
+
+    This iterates over matching 1d slices oriented along the specified axis in
+    the index and data arrays, and uses the former to look up values in the
+    latter. These slices can be different lengths.
+
+    Functions returning an index along an axis, like `argsort` and
+    `argpartition`, produce suitable indices for this function.
+    """
+    arr = as_tensor_variable(arr)
+    indices = as_tensor_variable(indices)
+    # normalize inputs
+    if axis is None:
+        arr = arr.flatten()
+        axis = 0
+    else:
+        axis = normalize_axis_index(axis, arr.ndim)
+
+    if arr.ndim != indices.ndim:
+        raise ValueError("`indices` and `arr` must have the same number of dimensions")
+
+    # use the fancy index
+    return arr[_make_along_axis_idx(arr.shape, indices, axis)]
+
+
 __all__ = [
+    "take_along_axis",
+    "expand_dims",
+    "atleast_Nd",
+    "atleast_1d",
+    "atleast_2d",
+    "atleast_3d",
     "choose",
     "swapaxes",
     "stacklists",
@@ -4304,4 +4383,8 @@ __all__ = [
     "as_tensor_variable",
     "as_tensor",
     "extract_diag",
+    "full",
+    "full_like",
+    "empty",
+    "empty_like",
 ]

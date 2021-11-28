@@ -10,7 +10,7 @@ from aesara.graph.utils import MethodNotDefined
 from aesara.link.c.interface import HideC
 from aesara.scalar import Composite, Scalar
 from aesara.scalar.basic import complex_types, upgrade_to_float_no_complex
-from aesara.scalar.basic_scipy import Erfcinv, Erfinv
+from aesara.scalar.math import Erfcinv, Erfinv
 from aesara.tensor.elemwise import CAReduceDtype, DimShuffle, Elemwise
 
 
@@ -327,7 +327,7 @@ class GpuElemwise(_NoPythonOp, HideC, Elemwise):
                 (dims[i] != PyGpuArray_DIMS(%(iname)s)[i]))
             {
                 PyErr_Format(PyExc_ValueError,
-                             "GpuElemwise. Input dimension mis-match. Input"
+                             "GpuElemwise. Input dimension mismatch. Input"
                              " %(idx)d (indices start at 0) has shape[%%d] == %%llu"
                              ", but the output's size on that axis is %%llu.",
                              i,
@@ -386,7 +386,7 @@ class GpuElemwise(_NoPythonOp, HideC, Elemwise):
             if (dims[i] != PyGpuArray_DIMS(%(oname)s)[i])
             {
                 PyErr_Format(PyExc_ValueError,
-                             "GpuElemwise. Output dimension mis-match. Output"
+                             "GpuElemwise. Output dimension mismatch. Output"
                              " %(idx)d (indices start at 0), working inplace"
                              " on input %(input_idx)s, has shape[%%i] == %%llu"
                              ", but the output's size on that axis is %%llu.",

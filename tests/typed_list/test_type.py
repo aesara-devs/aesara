@@ -5,14 +5,10 @@ import aesara
 from aesara.tensor.type import TensorType
 from aesara.typed_list.basic import TypedListVariable
 from aesara.typed_list.type import TypedListType
-from tests import unittest_tools as utt
-from tests.tensor.utils import rand_ranged
+from tests.tensor.utils import random_ranged
 
 
 class TestTypedListType:
-    def setup_method(self):
-        utt.seed_rng()
-
     def test_wrong_input_on_creation(self):
         # Typed list type should raises an
         # error if the argument passed for
@@ -63,7 +59,7 @@ class TestTypedListType:
 
         myType = TypedListType(TensorType(aesara.config.floatX, (False, False)))
 
-        x = rand_ranged(-1000, 1000, [100, 100])
+        x = random_ranged(-1000, 1000, [100, 100])
 
         assert np.array_equal(myType.filter([x]), [x])
 
@@ -81,7 +77,7 @@ class TestTypedListType:
     def test_load_alot(self):
         myType = TypedListType(TensorType(aesara.config.floatX, (False, False)))
 
-        x = rand_ranged(-1000, 1000, [10, 10])
+        x = random_ranged(-1000, 1000, [10, 10])
         testList = []
         for i in range(10000):
             testList.append(x)
@@ -95,7 +91,7 @@ class TestTypedListType:
 
         myType = TypedListType(myNestedType)
 
-        x = rand_ranged(-1000, 1000, [100, 100])
+        x = random_ranged(-1000, 1000, [100, 100])
 
         assert np.array_equal(myType.filter([[x]]), [[x]])
 
@@ -111,7 +107,7 @@ class TestTypedListType:
         assert myNestedType2 != myNestedType3
 
     def test_nested_list_arg(self):
-        # test for the 'depth' optionnal argument
+        # test for the 'depth' optional argument
 
         myNestedType = TypedListType(
             TensorType(aesara.config.floatX, (False, False)), 3

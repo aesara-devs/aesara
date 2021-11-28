@@ -13,6 +13,11 @@ from aesara.scalar.basic import (
 )
 
 
+def test_numpy_dtype():
+    test_type = Scalar(np.int32)
+    assert test_type.dtype == "int32"
+
+
 def test_div_types():
     a = int8()
     b = int32()
@@ -49,5 +54,9 @@ def test_filter_float_subclass():
         nan = np.array([np.nan], dtype="float32")[0]
         assert isinstance(nan, np.floating)
 
+        filtered_nan = test_type.filter(nan)
+        assert isinstance(filtered_nan, np.floating)
+
+    with config.change_flags(floatX="float64"):
         filtered_nan = test_type.filter(nan)
         assert isinstance(filtered_nan, np.floating)

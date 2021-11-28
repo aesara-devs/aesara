@@ -1,6 +1,11 @@
 from aesara.compile import optdb
 from aesara.graph.opt import GraphToGPULocalOptGroup, TopoOptimizer, local_optimizer
-from aesara.graph.optdb import DB, EquilibriumDB, LocalGroupDB, SequenceDB
+from aesara.graph.optdb import (
+    EquilibriumDB,
+    LocalGroupDB,
+    OptimizationDatabase,
+    SequenceDB,
+)
 
 
 gpu_optimizer = EquilibriumDB()
@@ -62,7 +67,7 @@ def register_opt2(tracks, *tags, **kwargs):
 
     def f(local_opt):
         name = (kwargs and kwargs.pop("name")) or local_opt.__name__
-        if isinstance(local_opt, DB):
+        if isinstance(local_opt, OptimizationDatabase):
             opt = local_opt
         else:
             opt = local_optimizer(tracks)(local_opt)
@@ -97,7 +102,7 @@ abstractconv_groupopt.__name__ = "gpuarray_abstractconv_opts"
 register_opt("fast_compile")(abstractconv_groupopt)
 
 
-class GraphToGPUDB(DB):
+class GraphToGPUDB(OptimizationDatabase):
     """
     Retrieves the list local optimizers based on the optimizer flag's value
     from EquilibriumOptimizer by calling the method query.

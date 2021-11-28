@@ -490,7 +490,7 @@ def local_conv2d_gradinputs_cpu(fgraph, node):
     return [din]
 
 
-# Register Cpu Optmization
+# Register Cpu Optimization
 conv_groupopt = aesara.graph.optdb.LocalGroupDB()
 conv_groupopt.__name__ = "conv_opts"
 register_specialize_device(conv_groupopt, "fast_compile", "fast_run")

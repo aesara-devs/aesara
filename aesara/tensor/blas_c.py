@@ -663,7 +663,7 @@ def check_force_gemv_init():
         situation, since we are introducing the NaN's, we need to test
         whether the BLAS performs correctly. If it *does*, i.e. it
         actually performs the multiplication beta*y which will result
-        in NaN's in the result, then we need intialize the memory to
+        in NaN's in the result, then we need initialize the memory to
         zeros.
         """
         test_code = """

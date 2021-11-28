@@ -10,6 +10,7 @@ If you want to use a scalar variable in an Aesara graph,
 you probably want to use aesara.tensor.[c,z,f,d,b,w,i,l,]scalar!
 """
 
+import builtins
 import math
 from collections.abc import Callable
 from copy import copy
@@ -45,6 +46,10 @@ builtin_int = int
 builtin_float = float
 
 
+# We capture the builtins that we are going to replace to follow the numpy API
+_abs = builtins.abs
+
+
 class ComplexError(NotImplementedError):
     """
     Raised if complex numbers are used in an unsupported operation.
@@ -61,7 +66,7 @@ class IntegerDivisionError(Exception):
 
 def upcast(dtype, *dtypes):
     # This tries to keep data in floatX or lower precision, unless we
-    # explicitely request a higher precision datatype.
+    # explicitly request a higher precision datatype.
     keep_float32 = [
         (config.cast_policy == "numpy+floatX" and config.floatX == "float32")
     ]
@@ -332,8 +337,11 @@ class Scalar(CType):
     ndim = 0
 
     def __init__(self, dtype):
-        if dtype == "floatX":
+        if isinstance(dtype, str) and dtype == "floatX":
             dtype = config.floatX
+        else:
+            dtype = np.dtype(dtype).name
+
         self.dtype = dtype
         self.dtype_specs()  # error checking
 
@@ -360,7 +368,7 @@ class Scalar(CType):
                     and isinstance(data, (float, np.floating))
                     and self.dtype == config.floatX
                 )
-                or data == converted_data
+                or np.array_equal(data, converted_data, equal_nan=True)
             ):
                 return py_type(data)
             else:
@@ -380,7 +388,7 @@ class Scalar(CType):
         diff = a - b
         if diff == 0:
             return True
-        return abs(diff) <= (abs(a) * tolerance) + (abs(b) * tolerance)
+        return _abs(diff) <= (_abs(a) * tolerance) + (_abs(b) * tolerance)
 
     def c_element_type(self):
         return self.dtype_specs()[1]
@@ -754,7 +762,7 @@ class _scalar_py_operators:
 
     # UNARY
     def __abs__(self):
-        return abs_(self)
+        return abs(self)
 
     def __neg__(self):
         return neg(self)
@@ -857,8 +865,9 @@ class ScalarVariable(_scalar_py_operators, Variable):
     pass
 
 
-class ScalarConstant(_scalar_py_operators, Constant):
-    pass
+class ScalarConstant(ScalarVariable, Constant):
+    def __init__(self, *args, **kwargs):
+        Constant.__init__(self, *args, **kwargs)
 
 
 # Register ScalarConstant as the type of Constant corresponding to Scalar
@@ -2413,7 +2422,7 @@ class Cast(UnaryScalarOp):
             raise TypeError(o_type)
         super().__init__(specific_out(o_type), name=name)
         self.o_type = o_type
-        self.ctor = getattr(np, o_type.dtype)
+        self.ctor = np.dtype(o_type.dtype).type
 
     def __str__(self):
         return f"{self.__class__.__name__}{{{self.o_type.dtype}}}"
@@ -2540,7 +2549,7 @@ class Abs(UnaryScalarOp):
 
         if x.type in float_types:
             return (gz * sgn(x),)
-        return (gz * x / abs(x),)  # formula works for complex and real
+        return (gz * x / _abs(x),)  # formula works for complex and real
 
     def c_code(self, node, name, inputs, outputs, sub):
         (x,) = inputs
@@ -2560,7 +2569,7 @@ class Abs(UnaryScalarOp):
         raise NotImplementedError("type not supported", type)
 
 
-abs_ = Abs(same_out)
+abs = Abs(same_out)
 
 
 class Sgn(UnaryScalarOp):
@@ -2843,11 +2852,8 @@ pprint.assign(pow, printing.OperatorPrinter("**", 1, "right"))
 pprint.assign(mod, printing.OperatorPrinter("%", -1, "left"))
 
 
-class Inv(UnaryScalarOp):
-    """
-    Multiplicative inverse. Also called reciprocal.
-
-    """
+class Reciprocal(UnaryScalarOp):
+    """Multiplicative inverse."""
 
     nfunc_spec = ("reciprocal", 1, 1)
 
@@ -2875,7 +2881,11 @@ class Inv(UnaryScalarOp):
         return f"{z} = 1.0 / {x};"
 
 
-inv = Inv(upgrade_to_float, name="inv")
+reciprocal = Reciprocal(upgrade_to_float, name="reciprocal")
+
+# These are deprecated and will be removed
+Inv = Reciprocal
+inv = reciprocal
 
 
 class Log(UnaryScalarOp):
@@ -3858,7 +3868,7 @@ class Angle(UnaryScalarOp):
         (gtheta,) = gout
         x = real(c)
         y = imag(c)
-        r = abs(c)
+        r = _abs(c)
 
         gr = -gtheta * y / (r ** 2 * sqrt(1 - (y / r) ** 2))
         gx = gr * x / r
@@ -4052,7 +4062,7 @@ class Composite(ScalarOp):
         # But we don't have an efficient execution. We will execute
         # like a tree, so nodes that have more then 1 client will be
         # executed as many times as there number of clients. In the
-        # example aboce, it will calculate *1 twice. Doing otherwise
+        # example above, it will calculate *1 twice. Doing otherwise
         # imply making a complicated execution engine.
 
         # We need the fast creation of the executor as we always do it
@@ -4132,7 +4142,7 @@ class Composite(ScalarOp):
         # Also, if there is Composite in the inner graph, we want to
         # remove them. In that case, we do a more complicated clone
         # that will flatten Composite. We don't need to do this
-        # recusively, as the way the fusion optimizer work, we have
+        # recursively, as the way the fusion optimizer work, we have
         # only 1 new Composite each time at the output.
         for i in inputs:
             assert i not in outputs  # This isn't supported, use identity

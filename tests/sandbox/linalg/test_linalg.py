@@ -1,25 +1,15 @@
 import numpy as np
 import numpy.linalg
-import pytest
 
 import aesara
 from aesara import function
 from aesara import tensor as aet
 from aesara.configdefaults import config
-
-# The one in comment are not tested...
-from aesara.sandbox.linalg.ops import Cholesky  # PSD_hint,; op class
-from aesara.sandbox.linalg.ops import (
-    Solve,
-    imported_scipy,
-    inv_as_solve,
-    matrix_inverse,
-    solve,
-    spectral_radius_bound,
-)
+from aesara.sandbox.linalg.ops import inv_as_solve, spectral_radius_bound
 from aesara.tensor.elemwise import DimShuffle
 from aesara.tensor.math import _allclose
-from aesara.tensor.nlinalg import MatrixInverse
+from aesara.tensor.nlinalg import MatrixInverse, matrix_inverse
+from aesara.tensor.slinalg import Cholesky, Solve, solve
 from aesara.tensor.type import dmatrix, matrix, vector
 from tests import unittest_tools as utt
 from tests.test_rop import break_op
@@ -41,9 +31,9 @@ def test_rop_lop():
     )
     scan_f = function([mx, mv], sy)
 
-    rng = np.random.RandomState(utt.fetch_seed())
-    vx = np.asarray(rng.randn(4, 4), aesara.config.floatX)
-    vv = np.asarray(rng.randn(4, 4), aesara.config.floatX)
+    rng = np.random.default_rng(utt.fetch_seed())
+    vx = np.asarray(rng.standard_normal((4, 4)), aesara.config.floatX)
+    vv = np.asarray(rng.standard_normal((4, 4)), aesara.config.floatX)
 
     v1 = rop_f(vx, vv)
     v2 = scan_f(vx, vv)
@@ -75,13 +65,13 @@ def test_rop_lop():
 
 def test_spectral_radius_bound():
     tol = 10 ** (-6)
-    rng = np.random.RandomState(utt.fetch_seed())
+    rng = np.random.default_rng(utt.fetch_seed())
     x = matrix()
     radius_bound = spectral_radius_bound(x, 5)
     f = aesara.function([x], radius_bound)
 
     shp = (3, 4)
-    m = rng.rand(*shp)
+    m = rng.random(shp)
     m = np.cov(m).astype(config.floatX)
     radius_bound_aesara = f(m)
 
@@ -122,7 +112,7 @@ def test_spectral_radius_bound():
 
 def test_transinv_to_invtrans():
     X = matrix("X")
-    Y = aesara.tensor.nlinalg.matrix_inverse(X)
+    Y = matrix_inverse(X)
     Z = Y.transpose()
     f = aesara.function([X], Z)
     if config.mode != "FAST_COMPILE":
@@ -134,8 +124,6 @@ def test_transinv_to_invtrans():
 
 
 def test_tag_solve_triangular():
-    if not imported_scipy:
-        pytest.skip("Scipy needed for the Cholesky op.")
     cholesky_lower = Cholesky(lower=True)
     cholesky_upper = Cholesky(lower=False)
     A = matrix("A")
@@ -148,17 +136,15 @@ def test_tag_solve_triangular():
     if config.mode != "FAST_COMPILE":
         for node in f.maker.fgraph.toposort():
             if isinstance(node.op, Solve):
-                assert node.op.A_structure == "lower_triangular"
+                assert node.op.assume_a != "gen" and node.op.lower
     f = aesara.function([A, x], b2)
     if config.mode != "FAST_COMPILE":
         for node in f.maker.fgraph.toposort():
             if isinstance(node.op, Solve):
-                assert node.op.A_structure == "upper_triangular"
+                assert node.op.assume_a != "gen" and not node.op.lower
 
 
 def test_matrix_inverse_solve():
-    if not imported_scipy:
-        pytest.skip("Scipy needed for the Solve op.")
     A = dmatrix("A")
     b = dmatrix("b")
     node = matrix_inverse(A).dot(b).owner

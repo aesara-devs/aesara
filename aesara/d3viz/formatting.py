@@ -186,11 +186,11 @@ class PyDotFormatter:
                     graph.add_node(pd_var)
 
                 edge_params = {}
-                if hasattr(node.op, "view_map") and id in reduce(
+                if node.op.view_map and id in reduce(
                     list.__add__, node.op.view_map.values(), []
                 ):
                     edge_params["color"] = self.node_colors["output"]
-                elif hasattr(node.op, "destroy_map") and id in reduce(
+                elif node.op.destroy_map and id in reduce(
                     list.__add__, node.op.destroy_map.values(), []
                 ):
                     edge_params["color"] = "red"
@@ -232,7 +232,6 @@ class PyDotFormatter:
                 gf = PyDotFormatter()
                 # Use different node prefix for sub-graphs
                 gf.__node_prefix = __node_id
-                node.op.prepare_node(node, None, None, "py")
                 gf(node.op.fn, subgraph)
                 graph.add_subgraph(subgraph)
                 pd_node.get_attributes()["subg"] = subgraph.get_name()
@@ -242,14 +241,14 @@ class PyDotFormatter:
 
                 # Inputs mapping
                 ext_inputs = [self.__node_id(x) for x in node.inputs]
-                int_inputs = [gf.__node_id(x) for x in node.op.local_inputs]
+                int_inputs = [gf.__node_id(x) for x in node.op.inner_inputs]
                 assert len(ext_inputs) == len(int_inputs)
                 h = format_map(zip(ext_inputs, int_inputs))
                 pd_node.get_attributes()["subg_map_inputs"] = h
 
                 # Outputs mapping
                 ext_outputs = [self.__node_id(x) for x in node.outputs]
-                int_outputs = [gf.__node_id(x) for x in node.op.local_outputs]
+                int_outputs = [gf.__node_id(x) for x in node.op.inner_outputs]
                 assert len(ext_outputs) == len(int_outputs)
                 h = format_map(zip(int_outputs, ext_outputs))
                 pd_node.get_attributes()["subg_map_outputs"] = h
@@ -300,7 +299,7 @@ def apply_label(node):
 
 
 def apply_profile(fgraph, node, profile):
-    """Return apply profiling informaton."""
+    """Return apply profiling information."""
     if not profile or profile.fct_call_time == 0:
         return None
     time = profile.apply_time.get((fgraph, node), 0)

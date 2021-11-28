@@ -1,0 +1,28 @@
+.. _libdoc_tensor_signal_conv:
+
+======================================================
+:mod:`conv` -- Convolution
+======================================================
+
+.. note::
+
+    Two similar implementation exists for conv2d:
+
+        :func:`signal.conv2d <aesara.tensor.signal.conv.conv2d>` and
+        :func:`nnet.conv2d <aesara.tensor.nnet.conv.conv2d>`.
+
+    The former implements a traditional
+    2D convolution, while the latter implements the convolutional layers
+    present in convolutional neural networks (where filters are 3D and pool
+    over several input channels).
+
+.. module:: aesara.tensor.signal.conv
+   :platform: Unix, Windows
+   :synopsis: ops for performing convolutions
+.. moduleauthor:: LISA
+
+.. autofunction:: aesara.tensor.signal.conv.conv2d
+
+.. function:: fft(*todo)
+
+    [James has some code for this, but hasn't gotten it into the source tree yet.]

@@ -1,3 +1,4 @@
+import builtins
 import warnings
 
 import numpy as np
@@ -43,6 +44,10 @@ from aesara.tensor.type import (
 from aesara.tensor.type_other import NoneConst
 from aesara.tensor.utils import as_list
 from aesara.tensor.var import TensorConstant, _tensor_py_operators
+
+
+# We capture the builtins that we are going to replace to follow the numpy API
+_abs = builtins.abs
 
 
 if int(config.tensor__cmp_sloppy) > 1:
@@ -955,8 +960,8 @@ def isclose(a, b, rtol=1.0e-5, atol=1.0e-8, equal_nan=False):
     """
     # close will be an int8 array of 1 where within tolerance
     # and 0 where not within tolerance or there was a nan or inf value.
-    diff = abs(a - b)
-    tolerance = atol + rtol * abs(b)
+    diff = _abs(a - b)
+    tolerance = atol + rtol * _abs(b)
     close_prelim = le(diff, tolerance)
 
     a_nan = isnan(a)
@@ -1033,16 +1038,15 @@ bitwise_not = invert  # numpy alias for it
 
 
 @scalar_elemwise
-def abs_(a):
-    """|`a`|
-
-    TensorVariable overloads the `TensorVariable.__abs__` operator so that
-    this function is called when you type abs(a).
-
-    """
+def abs(a):
+    """|`a`|"""
 
 
-pprint.assign(abs_, printing.PatternPrinter(("|%(0)s|", -1000)))
+# These are deprecated and will be removed
+abs_ = abs
+
+
+pprint.assign(abs, printing.PatternPrinter(("|%(0)s|", -1000)))
 
 
 @scalar_elemwise
@@ -1065,11 +1069,13 @@ def neg(a):
     """-a"""
 
 
-# numpy.reciprocal does integer division on integer inputs
-# (which is not very interesting)
 @scalar_elemwise
-def inv(a):
+def reciprocal(a):
     """1.0/a"""
+
+
+# This is deprecated and will be removed
+inv = reciprocal
 
 
 @scalar_elemwise
@@ -1400,6 +1406,32 @@ def i1(x):
 @scalar_elemwise
 def iv(v, x):
     """Modified Bessel function of the first kind of order v (real)."""
+
+
+@scalar_elemwise
+def sigmoid(x):
+    """Logistic sigmoid function (1 / (1 + exp(x)), also known as expit or inverse logit"""
+
+
+expit = sigmoid
+
+
+@scalar_elemwise
+def softplus(x):
+    """Compute log(1 + exp(x)), also known as softplus or log1pexp"""
+
+
+log1pexp = softplus
+
+
+@scalar_elemwise
+def log1mexp(x):
+    """Compute log(1 - exp(x)), also known as log1mexp"""
+
+
+@scalar_elemwise
+def betainc(a, b, x):
+    """Regularized incomplete beta function"""
 
 
 @scalar_elemwise
@@ -1926,7 +1958,7 @@ class Dot(Op):
         return rval
 
     def R_op(self, inputs, eval_points):
-        # R_op for a \dot b evaluted at c for a and d for b is
+        # R_op for a \dot b evaluated at c for a and d for b is
         # simply c \dot b + a \dot d
 
         assert len(inputs) == 2
@@ -2019,7 +2051,7 @@ def dense_dot(a, b):
         2.  If either a or b has more than 2 dimensions, it calls Aesara's
             tensordot function with appropriate axes. The tensordot function
             expresses high-dimensional dot products in terms of 2D matrix
-            multiplications, so it may be possible to futherize optimize for
+            multiplications, so it may be possible to further optimize for
             performance.
 
         3.  If both a and b have either 1 or 2 dimensions, it calls Aesara's
@@ -2430,7 +2462,7 @@ class Sum(CAReduceDtype):
         # part of self
         if None in eval_points:
             return [None]
-        return self(*eval_points, **dict(return_list=True))
+        return self(*eval_points, return_list=True)
 
 
 def sum(input, axis=None, dtype=None, keepdims=False, acc_dtype=None):
@@ -2745,6 +2777,53 @@ def power(x, y):
     return x ** y
 
 
+def logaddexp(*xs):
+    """Logarithm of the sum of exponentiations of the inputs.
+
+    See ``numpy.logaddexp``.
+
+    Parameters
+    ----------
+    xs : symbolic tensors
+        Input
+
+    Returns
+    -------
+    tensor
+
+    """
+
+    return log(add(*[exp(x) for x in xs]))
+
+
+def logsumexp(x, axis=None, keepdims=False):
+    """Compute the log of the sum of exponentials of input elements.
+
+    See ``scipy.special.logsumexp``.
+
+    Parameters
+    ----------
+    x : symbolic tensor
+        Input
+
+    axis : None or int or tuple of ints, optional
+        Axis or axes over which the sum is taken. By default axis is None,
+        and all elements are summed.
+
+    keepdims : bool, optional
+        If this is set to True, the axes which are reduced are left in the
+        result as dimensions with size one. With this option, the result will
+        broadcast correctly against the original array.
+
+    Returns
+    -------
+    tensor
+
+    """
+
+    return log(sum(exp(x), axis=axis, keepdims=keepdims))
+
+
 __all__ = [
     "max_and_argmax",
     "max",
@@ -2771,11 +2850,13 @@ __all__ = [
     "bitwise_xor",
     "invert",
     "bitwise_not",
+    "abs",
     "abs_",
     "exp",
     "exp2",
     "expm1",
     "neg",
+    "reciprocal",
     "inv",
     "log",
     "log2",
@@ -2828,6 +2909,12 @@ __all__ = [
     "i0",
     "i1",
     "iv",
+    "sigmoid",
+    "expit",
+    "softplus",
+    "log1pexp",
+    "log1mexp",
+    "betainc",
     "real",
     "imag",
     "angle",
@@ -2861,4 +2948,6 @@ __all__ = [
     "all",
     "ptp",
     "power",
+    "logaddexp",
+    "logsumexp",
 ]

@@ -1,15 +1,22 @@
+import builtins
 import io
+import re
 import sys
 import traceback
 import warnings
+from collections import Counter
+from keyword import iskeyword
 from operator import itemgetter
-from typing import Callable, Dict, Iterable, List, NoReturn, Optional, Tuple, Union
+from tempfile import NamedTemporaryFile
+from textwrap import indent
+from types import FunctionType
+from typing import Any, Callable, Dict, Iterable, List, NoReturn, Optional, Tuple, Union
 
 import numpy as np
 
 from aesara import utils
 from aesara.configdefaults import config
-from aesara.graph.basic import Apply, Constant
+from aesara.graph.basic import Apply, Constant, Variable
 from aesara.graph.fg import FunctionGraph
 
 
@@ -247,7 +254,7 @@ def gc_helper(node_list: List[Apply]):
 
 
 def raise_with_op(
-    fgraph: FunctionGraph, node, thunk=None, exc_info=None, storage_map=None
+    fgraph: FunctionGraph, node: Apply, thunk=None, exc_info=None, storage_map=None
 ):
     """
     Re-raise an exception while annotating the exception object with
@@ -255,12 +262,16 @@ def raise_with_op(
 
     Parameters
     ----------
+    fgraph
+        The `FunctionGraph` that contains `node`.
     node : Apply node
         The Apply node object that resulted in the raised exception.
+    thunk :
+        An optional thunk.
     exc_info : tuple, optional
         A tuple containing the exception type, exception object and
         associated traceback, as would be returned by a call to
-        `sys.exc_info()` (which is done if `None` is passed).
+        `sys.exc_info` (which is done if ``None`` is passed).
     storage_map: dict, optional
         storage map of the aesara function that resulted in the
         raised exception.
@@ -272,12 +283,12 @@ def raise_with_op(
     object with several new members which may be helpful for debugging
     Aesara graphs. They are:
 
-     * __op_instance__: The Op that is responsible for the exception
+     * ``__op_instance__``: The `Op` that is responsible for the exception
        being raised.
-     * __thunk_trace__: A traceback corresponding to the code that
+     * ``__thunk_trace__``: A traceback corresponding to the code that
        actually generated the exception, if it is available.
-     * __applynode_index__: The index of the Apply node corresponding
-       to this op in `op.fgraph.toposort()`.
+     * ``__applynode_index__``: The index of the `Apply` node corresponding
+       to this `Op` in ``op.fgraph.toposort``.
 
     The exception is not annotated if it is of type `KeyboardInterrupt`.
 
@@ -430,8 +441,8 @@ def raise_with_op(
                         total_size_inputs += sz
                     else:
                         # If it is a view, don't count it twice.
-                        if getattr(k.owner.op, "view_map", None):
-                            vmap = k.owner.op.view_map
+                        vmap = k.owner.op.view_map
+                        if vmap:
                             out_idx = k.owner.outputs.index(k)
                             data = storage_map[k][0]
                             if out_idx in vmap:
@@ -445,14 +456,14 @@ def raise_with_op(
                         # shouldn't be in the storage_map anymore
                         # except if there is a special flag used. So
                         # we still must check it.
-                        if getattr(k.owner.op, "destroy_map", None):
-                            vmap = k.owner.op.destroy_map
+                        dmap = k.owner.op.destroy_map
+                        if dmap:
                             out_idx = k.owner.outputs.index(k)
                             data = storage_map[k][0]
-                            if out_idx in vmap:
-                                assert len(vmap[out_idx]) == 1
+                            if out_idx in dmap:
+                                assert len(dmap[out_idx]) == 1
                                 input_data = storage_map[
-                                    k.owner.inputs[vmap[out_idx][0]]
+                                    k.owner.inputs[dmap[out_idx][0]]
                                 ][0]
                                 if k.type.may_share_memory(data, input_data):
                                     total_size -= sz
@@ -564,3 +575,200 @@ def register_thunk_trace_excepthook(handler: io.TextIOWrapper = sys.stdout):
 
 
 register_thunk_trace_excepthook()
+
+
+def compile_function_src(src, function_name, global_env=None, local_env=None):
+
+    with NamedTemporaryFile(delete=False) as f:
+        filename = f.name
+        f.write(src.encode())
+
+    if global_env is None:
+        global_env = {}
+
+    if local_env is None:
+        local_env = {}
+
+    mod_code = compile(src, filename, mode="exec")
+    exec(mod_code, global_env, local_env)
+
+    res = local_env[function_name]
+    res.__source__ = src
+    return res
+
+
+def get_name_for_object(x: Any):
+    """Get the name for an arbitrary object."""
+
+    if isinstance(x, Variable):
+        name = re.sub("[^0-9a-zA-Z]+", "_", x.name) if x.name else ""
+        name = (
+            name
+            if (
+                name.isidentifier()
+                and not iskeyword(name)
+                and name not in dir(builtins)
+            )
+            else x.auto_name
+        )
+    else:
+        name = getattr(x, "__name__", None)
+
+    if not name or (not name.isidentifier() or iskeyword(name)):
+        name = type(x).__name__
+
+    return name
+
+
+def unique_name_generator(
+    external_names: Optional[List[str]] = None, suffix_sep: str = ""
+) -> Callable:
+    """Create a function that generates unique names."""
+
+    if external_names is None:
+        external_names = []
+
+    def unique_name(x, force_unique=False):
+        if not force_unique and x in unique_name.obj_to_names:
+            return unique_name.obj_to_names[x]
+
+        name = get_name_for_object(x)
+
+        name_suffix = unique_name.names_counter.get(name, "")
+        if name_suffix:
+            local_name = f"{name}{suffix_sep}{name_suffix}"
+            unique_name.names_counter.update((name,))
+        else:
+            local_name = name
+
+        unique_name.names_counter.update((local_name,))
+        unique_name.obj_to_names[x] = local_name
+
+        return local_name
+
+    unique_name.names_counter = Counter(external_names)
+    unique_name.obj_to_names = {}
+
+    return unique_name
+
+
+def fgraph_to_python(
+    fgraph: FunctionGraph,
+    op_conversion_fn: Callable,
+    *,
+    type_conversion_fn: Optional[Callable] = lambda x, **kwargs: x,
+    order: Optional[List[Variable]] = None,
+    input_storage: Optional[List[Any]] = None,
+    output_storage: Optional[List[Any]] = None,
+    storage_map: Optional[Dict[Variable, List[Any]]] = None,
+    fgraph_name: str = "fgraph_to_python",
+    global_env: Optional[Dict[Any, Any]] = None,
+    local_env: Optional[Dict[Any, Any]] = None,
+    get_name_for_object: Callable[[Any], str] = get_name_for_object,
+    squeeze_output: bool = False,
+    **kwargs,
+) -> FunctionType:
+    """Convert a ``FunctionGraph`` into a regular Python function.
+
+    Parameters
+    ==========
+    fgraph
+        The ``FunctionGraph`` to convert.
+    op_conversion_fn
+        A callable used to convert nodes inside `fgraph` based on their ``Op``
+        types.  It must have the signature
+        ``(op: Op, node: Apply=None, storage_map: Dict[Variable, List[Optional[Any]]]=None, **kwargs)``.
+    type_conversion_fn
+        A callable used to convert the values in `storage_map`.  It must have
+        the signature
+        ``(value: Optional[Any], variable: Variable=None, storage: List[Optional[Any]]=None, **kwargs)``.
+    order
+        The ``order`` argument to ``map_storage``.
+    input_storage
+        The ``input_storage`` argument to ``map_storage``.
+    output_storage
+        The ``output_storage`` argument to ``map_storage``.
+    storage_map
+        The ``storage_map`` argument to ``map_storage``.
+    fgraph_name
+        The name used for the resulting function.
+    global_env
+        The global environment used when the function is constructed.
+        The default is an empty ``dict``.
+    local_env
+        The local environment used when the function is constructed.
+        The default is ``locals()``.
+    get_name_for_object
+        A function used to provide names for the objects referenced within the
+        generated function.
+    squeeze_output
+        If the ``FunctionGraph`` has only one output and this option is
+        ``True``, return the single output instead of a tuple with the output.
+    **kwargs
+        The remaining keywords are passed to `python_conversion_fn`
+    """
+
+    if order is None:
+        order = fgraph.toposort()
+    input_storage, output_storage, storage_map = map_storage(
+        fgraph, order, input_storage, output_storage, storage_map
+    )
+
+    unique_name = unique_name_generator([fgraph_name])
+
+    if global_env is None:
+        global_env = {}
+
+    body_assigns = []
+    for node in order:
+        compiled_func = op_conversion_fn(
+            node.op, node=node, storage_map=storage_map, **kwargs
+        )
+
+        # Create a local alias with a unique name
+        local_compiled_func_name = unique_name(compiled_func)
+        global_env[local_compiled_func_name] = compiled_func
+
+        node_input_names = []
+        for i in node.inputs:
+            local_input_name = unique_name(i)
+            if storage_map[i][0] is not None or isinstance(i, Constant):
+                # Constants need to be assigned locally and referenced
+                global_env[local_input_name] = type_conversion_fn(
+                    storage_map[i][0], variable=i, storage=storage_map[i], **kwargs
+                )
+                # TODO: We could attempt to use the storage arrays directly
+                # E.g. `local_input_name = f"{local_input_name}[0]"`
+            node_input_names.append(local_input_name)
+
+        node_output_names = [unique_name(v) for v in node.outputs]
+
+        body_assigns.append(
+            f"{', '.join(node_output_names)} = {local_compiled_func_name}({', '.join(node_input_names)})"
+        )
+
+    fgraph_input_names = [unique_name(v) for v in fgraph.inputs]
+    fgraph_output_names = [unique_name(v) for v in fgraph.outputs]
+    joined_body_assigns = indent("\n".join(body_assigns), "    ")
+
+    if len(fgraph_output_names) == 1:
+        fgraph_return_src = (
+            fgraph_output_names[0] if squeeze_output else f"({fgraph_output_names[0]},)"
+        )
+    else:
+        fgraph_return_src = ", ".join(fgraph_output_names)
+
+    fgraph_def_src = f"""
+def {fgraph_name}({", ".join(fgraph_input_names)}):
+{joined_body_assigns}
+    return {fgraph_return_src}
+    """
+
+    if local_env is None:
+        local_env = locals()
+
+    fgraph_def = compile_function_src(
+        fgraph_def_src, fgraph_name, global_env, local_env
+    )
+
+    return fgraph_def

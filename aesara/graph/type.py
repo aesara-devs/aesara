@@ -4,7 +4,7 @@ import ctypes
 import platform
 import re
 from abc import abstractmethod
-from typing import Any, NoReturn, Optional, Text, TypeVar, Union
+from typing import Any, Optional, Text, TypeVar, Union
 
 from aesara.graph import utils
 from aesara.graph.basic import Constant, Variable
@@ -33,11 +33,15 @@ class Type(MetaObject):
 
     """
 
-    # the type that will be created by a call to make_variable.
     Variable = Variable
+    """
+    The `Type` that will be created by a call to `Type.make_variable`.
+    """
 
-    # the type that will be created by a call to make_constant
     Constant = Constant
+    """
+    The `Type` that will be created by a call to `Type.make_constant`.
+    """
 
     @abstractmethod
     def filter(
@@ -71,7 +75,7 @@ class Type(MetaObject):
         storage: Any,
         strict: bool = False,
         allow_downcast: Optional[bool] = None,
-    ) -> NoReturn:
+    ) -> None:
         """Return data or an appropriately wrapped/converted data by converting it in-place.
 
         This method allows one to reuse old allocated memory.  If this method
@@ -97,13 +101,13 @@ class Type(MetaObject):
     def filter_variable(
         self, other: Union[Variable, D], allow_convert: bool = True
     ) -> Variable:
-        """Convert a symbolic variable into this `Type`, if compatible.
+        r"""Convert a symbolic variable into this `Type`, if compatible.
 
-        For the moment, the only `Type`s compatible with one another are
+        For the moment, the only `Type`\s compatible with one another are
         `TensorType` and `GpuArrayType`, provided they have the same number of
         dimensions, same broadcasting pattern, and same dtype.
 
-        If `Type`s are not compatible, a ``TypeError`` should be raised.
+        If `Type`\s are not compatible, a ``TypeError`` should be raised.
 
         """
         if not isinstance(other, Variable):
@@ -225,18 +229,6 @@ class Type(MetaObject):
         """
         return cls.values_eq(a, b)
 
-        #    def get_shape_info(self, obj):
-        """
-        Optional function. See TensorType().get_shape_info for definition.
-
-        """
-
-        #    def get_size(self, shape_info):
-        """
-        Optional function. See TensorType().get_size for definition.
-
-        """
-
 
 class CType(Type, CLinkerType):
     """Convenience wrapper combining `Type` and `CLinkerType`.
@@ -282,15 +274,16 @@ class CType(Type, CLinkerType):
 
 
 class Generic(CType, Singleton):
-    """
-    Represents a generic Python object.
+    r"""A type for a generic Python object exposed directly in C.
 
     This class implements the `CType` and `CLinkerType` interfaces
-    for generic PyObject instances.
+    for generic ``PyObject`` instances.
 
-    EXAMPLE of what this means, or when you would use this type.
+    It can be used to easily expose Python objects to `COp`\s.
 
-    WRITEME
+    For example, ``obj_const = Constant(Generic(), my_obj)`` will construct
+    an Aesara constant that can be used to access the Python object ``my_obj``
+    directly in a `COp` (e.g. as a ``PyObject *``).
 
     """
 
@@ -619,7 +612,7 @@ class EnumType(CType, dict):
 
         # An alias defined in an EnumType will be correctly converted with non-strict filtering.
         value = enum.filter('delta', strict=False)
-        # value now contaisn enum.D, ie. 4.
+        # value now contains enum.D, ie. 4.
 
     .. note::
 
@@ -803,7 +796,7 @@ class EnumType(CType, dict):
 
         If given value is unknown, the C function sets a Python ValueError exception and returns a non-zero.
 
-        This C function may be useful to retrieve some runtime informations.
+        This C function may be useful to retrieve some runtime information.
         It is available in C code when aesara flag ``config.cmodule__debug`` is set to ``True``.
         """
         return """

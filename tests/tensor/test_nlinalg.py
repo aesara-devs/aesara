@@ -16,6 +16,7 @@ from aesara.tensor.nlinalg import (
     det,
     eig,
     eigh,
+    lstsq,
     matrix_dot,
     matrix_inverse,
     matrix_power,
@@ -40,10 +41,10 @@ from tests import unittest_tools as utt
 
 
 def test_pseudoinverse_correctness():
-    rng = np.random.RandomState(utt.fetch_seed())
-    d1 = rng.randint(4) + 2
-    d2 = rng.randint(4) + 2
-    r = rng.randn(d1, d2).astype(config.floatX)
+    rng = np.random.default_rng(utt.fetch_seed())
+    d1 = rng.integers(4) + 2
+    d2 = rng.integers(4) + 2
+    r = rng.standard_normal((d1, d2)).astype(config.floatX)
 
     x = matrix()
     xi = pinv(x)
@@ -52,16 +53,16 @@ def test_pseudoinverse_correctness():
     assert ri.shape[0] == r.shape[1]
     assert ri.shape[1] == r.shape[0]
     assert ri.dtype == r.dtype
-    # Note that pseudoinverse can be quite unprecise so I prefer to compare
+    # Note that pseudoinverse can be quite imprecise so I prefer to compare
     # the result with what np.linalg returns
     assert _allclose(ri, np.linalg.pinv(r))
 
 
 def test_pseudoinverse_grad():
-    rng = np.random.RandomState(utt.fetch_seed())
-    d1 = rng.randint(4) + 2
-    d2 = rng.randint(4) + 2
-    r = rng.randn(d1, d2).astype(config.floatX)
+    rng = np.random.default_rng(utt.fetch_seed())
+    d1 = rng.integers(4) + 2
+    d2 = rng.integers(4) + 2
+    r = rng.standard_normal((d1, d2)).astype(config.floatX)
 
     utt.verify_grad(pinv, [r])
 
@@ -71,11 +72,11 @@ class TestMatrixInverse(utt.InferShapeTester):
         super().setup_method()
         self.op_class = MatrixInverse
         self.op = matrix_inverse
-        self.rng = np.random.RandomState(utt.fetch_seed())
+        self.rng = np.random.default_rng(utt.fetch_seed())
 
     def test_inverse_correctness(self):
 
-        r = self.rng.randn(4, 4).astype(config.floatX)
+        r = self.rng.standard_normal((4, 4)).astype(config.floatX)
 
         x = matrix()
         xi = self.op(x)
@@ -92,7 +93,7 @@ class TestMatrixInverse(utt.InferShapeTester):
 
     def test_infer_shape(self):
 
-        r = self.rng.randn(4, 4).astype(config.floatX)
+        r = self.rng.standard_normal((4, 4)).astype(config.floatX)
 
         x = matrix()
         xi = self.op(x)
@@ -101,12 +102,12 @@ class TestMatrixInverse(utt.InferShapeTester):
 
 
 def test_matrix_dot():
-    rng = np.random.RandomState(utt.fetch_seed())
-    n = rng.randint(4) + 2
+    rng = np.random.default_rng(utt.fetch_seed())
+    n = rng.integers(4) + 2
     rs = []
     xs = []
     for k in range(n):
-        rs += [rng.randn(4, 4).astype(config.floatX)]
+        rs += [rng.standard_normal((4, 4)).astype(config.floatX)]
         xs += [matrix()]
     sol = matrix_dot(*xs)
 
@@ -119,10 +120,10 @@ def test_matrix_dot():
 
 
 def test_qr_modes():
-    rng = np.random.RandomState(utt.fetch_seed())
+    rng = np.random.default_rng(utt.fetch_seed())
 
     A = matrix("A", dtype=config.floatX)
-    a = rng.rand(4, 4).astype(config.floatX)
+    a = rng.random((4, 4)).astype(config.floatX)
 
     f = function([A], qr(A))
     t_qr = f(a)
@@ -154,7 +155,7 @@ class TestSvd(utt.InferShapeTester):
 
     def setup_method(self):
         super().setup_method()
-        self.rng = np.random.RandomState(utt.fetch_seed())
+        self.rng = np.random.default_rng(utt.fetch_seed())
         self.A = matrix(dtype=self.dtype)
         self.op = svd
 
@@ -162,7 +163,7 @@ class TestSvd(utt.InferShapeTester):
         A = matrix("A", dtype=self.dtype)
         U, S, VT = svd(A)
         fn = function([A], [U, S, VT])
-        a = self.rng.rand(4, 4).astype(self.dtype)
+        a = self.rng.random((4, 4)).astype(self.dtype)
         n_u, n_s, n_vt = np.linalg.svd(a)
         t_u, t_s, t_vt = fn(a)
 
@@ -183,7 +184,7 @@ class TestSvd(utt.InferShapeTester):
 
     def validate_shape(self, shape, compute_uv=True, full_matrices=True):
         A = self.A
-        A_v = self.rng.rand(*shape).astype(self.dtype)
+        A_v = self.rng.random(shape).astype(self.dtype)
         outputs = self.op(A, full_matrices=full_matrices, compute_uv=compute_uv)
         if not compute_uv:
             outputs = [outputs]
@@ -191,7 +192,7 @@ class TestSvd(utt.InferShapeTester):
 
 
 def test_tensorsolve():
-    rng = np.random.RandomState(utt.fetch_seed())
+    rng = np.random.default_rng(utt.fetch_seed())
 
     A = tensor4("A", dtype=config.floatX)
     B = matrix("B", dtype=config.floatX)
@@ -201,7 +202,7 @@ def test_tensorsolve():
     # slightly modified example from np.linalg.tensorsolve docstring
     a = np.eye(2 * 3 * 4).astype(config.floatX)
     a.shape = (2 * 3, 4, 2, 3 * 4)
-    b = rng.rand(2 * 3, 4).astype(config.floatX)
+    b = rng.random((2 * 3, 4)).astype(config.floatX)
 
     n_x = np.linalg.tensorsolve(a, b)
     t_x = fn(a, b)
@@ -215,7 +216,7 @@ def test_tensorsolve():
 
     c = np.eye(2 * 3 * 4, dtype="float32")
     c.shape = (2 * 3, 4, 2, 3 * 4)
-    d = rng.rand(2 * 3, 4).astype("float64")
+    d = rng.random((2 * 3, 4)).astype("float64")
     n_y = np.linalg.tensorsolve(c, d)
     t_y = fn(c, d)
     assert _allclose(n_y, t_y)
@@ -229,7 +230,7 @@ def test_tensorsolve():
 
     e = np.eye(2 * 3 * 4, dtype="int32")
     e.shape = (2 * 3, 4, 2, 3 * 4)
-    f = rng.rand(2 * 3, 4).astype("float64")
+    f = rng.random((2 * 3, 4)).astype("float64")
     n_z = np.linalg.tensorsolve(e, f)
     t_z = fn(e, f)
     assert _allclose(n_z, t_z)
@@ -245,35 +246,35 @@ def test_inverse_singular():
 
 
 def test_inverse_grad():
-    rng = np.random.RandomState(utt.fetch_seed())
-    r = rng.randn(4, 4)
+    rng = np.random.default_rng(utt.fetch_seed())
+    r = rng.standard_normal((4, 4))
     utt.verify_grad(matrix_inverse, [r], rng=np.random)
 
-    rng = np.random.RandomState(utt.fetch_seed())
+    rng = np.random.default_rng(utt.fetch_seed())
 
-    r = rng.randn(4, 4)
+    r = rng.standard_normal((4, 4))
     utt.verify_grad(matrix_inverse, [r], rng=np.random)
 
 
 def test_det():
-    rng = np.random.RandomState(utt.fetch_seed())
+    rng = np.random.default_rng(utt.fetch_seed())
 
-    r = rng.randn(5, 5).astype(config.floatX)
+    r = rng.standard_normal((5, 5)).astype(config.floatX)
     x = matrix()
     f = aesara.function([x], det(x))
     assert np.allclose(np.linalg.det(r), f(r))
 
 
 def test_det_grad():
-    rng = np.random.RandomState(utt.fetch_seed())
+    rng = np.random.default_rng(utt.fetch_seed())
 
-    r = rng.randn(5, 5).astype(config.floatX)
+    r = rng.standard_normal((5, 5)).astype(config.floatX)
     utt.verify_grad(det, [r], rng=np.random)
 
 
 def test_det_shape():
-    rng = np.random.RandomState(utt.fetch_seed())
-    r = rng.randn(5, 5).astype(config.floatX)
+    rng = np.random.default_rng(utt.fetch_seed())
+    r = rng.standard_normal((5, 5)).astype(config.floatX)
 
     x = matrix()
     f = aesara.function([x], det(x))
@@ -282,13 +283,13 @@ def test_det_shape():
 
 
 def test_trace():
-    rng = np.random.RandomState(utt.fetch_seed())
+    rng = np.random.default_rng(utt.fetch_seed())
     x = matrix()
     g = trace(x)
     f = aesara.function([x], g)
 
     for shp in [(2, 3), (3, 2), (3, 3)]:
-        m = rng.rand(*shp).astype(config.floatX)
+        m = rng.random(shp).astype(config.floatX)
         v = np.trace(m)
         assert v == f(m)
 
@@ -311,9 +312,9 @@ class TestEig(utt.InferShapeTester):
 
     def setup_method(self):
         super().setup_method()
-        self.rng = np.random.RandomState(utt.fetch_seed())
+        self.rng = np.random.default_rng(utt.fetch_seed())
         self.A = matrix(dtype=self.dtype)
-        self.X = np.asarray(self.rng.rand(5, 5), dtype=self.dtype)
+        self.X = np.asarray(self.rng.random((5, 5)), dtype=self.dtype)
         self.S = self.X.dot(self.X.T)
 
     def test_infer_shape(self):
@@ -372,7 +373,7 @@ class TestLstsq:
         x = lmatrix()
         y = lmatrix()
         z = lscalar()
-        b = aesara.tensor.nlinalg.lstsq()(x, y, z)
+        b = lstsq(x, y, z)
         f = function([x, y, z], b)
         TestMatrix1 = np.asarray([[2, 1], [3, 4]])
         TestMatrix2 = np.asarray([[17, 20], [43, 50]])
@@ -385,7 +386,7 @@ class TestLstsq:
         x = vector()
         y = vector()
         z = scalar()
-        b = aesara.tensor.nlinalg.lstsq()(x, y, z)
+        b = lstsq(x, y, z)
         f = function([x, y, z], b)
         with pytest.raises(np.linalg.linalg.LinAlgError):
             f([2, 1], [2, 1], 1)
@@ -394,7 +395,7 @@ class TestLstsq:
         x = vector()
         y = vector()
         z = vector()
-        b = aesara.tensor.nlinalg.lstsq()(x, y, z)
+        b = lstsq(x, y, z)
         f = function([x, y, z], b)
         with pytest.raises(np.linalg.LinAlgError):
             f([2, 1], [2, 1], [2, 1])
@@ -443,16 +444,16 @@ class TestNormTests:
 
     def test_tensor_input(self):
         with pytest.raises(NotImplementedError):
-            norm(np.random.rand(3, 4, 5), None)
+            norm(np.random.random((3, 4, 5)), None)
 
     def test_numpy_compare(self):
-        rng = np.random.RandomState(utt.fetch_seed())
+        rng = np.random.default_rng(utt.fetch_seed())
 
         M = matrix("A", dtype=config.floatX)
         V = vector("V", dtype=config.floatX)
 
-        a = rng.rand(4, 4).astype(config.floatX)
-        b = rng.rand(4).astype(config.floatX)
+        a = rng.random((4, 4)).astype(config.floatX)
+        b = rng.random((4)).astype(config.floatX)
 
         A = (
             [None, "fro", "inf", "-inf", 1, -1, None, "inf", "-inf", 0, 1, -1, 2, -2],
@@ -473,9 +474,9 @@ class TestTensorInv(utt.InferShapeTester):
         super().setup_method()
         self.A = tensor4("A", dtype=config.floatX)
         self.B = tensor3("B", dtype=config.floatX)
-        self.a = np.random.rand(4, 6, 8, 3).astype(config.floatX)
-        self.b = np.random.rand(2, 15, 30).astype(config.floatX)
-        self.b1 = np.random.rand(30, 2, 15).astype(
+        self.a = np.random.random((4, 6, 8, 3)).astype(config.floatX)
+        self.b = np.random.random((2, 15, 30)).astype(config.floatX)
+        self.b1 = np.random.random((30, 2, 15)).astype(
             config.floatX
         )  # for ind=1 since we need prod(b1.shape[:ind]) == prod(b1.shape[ind:])
 

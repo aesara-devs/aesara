@@ -1,38 +1,40 @@
-"""Define the tensor toplevel"""
+"""Symbolic tensor types and constructor functions."""
 
-
-__docformat__ = "restructuredtext en"
-
-import warnings
 from functools import singledispatch
-from typing import Callable, NoReturn, Optional
+from typing import Any, Callable, NoReturn, Optional, Union
+
+from aesara.graph.basic import Constant, Variable
+from aesara.graph.op import Op
 
 
 def as_tensor_variable(
-    x, name: Optional[str] = None, ndim: Optional[int] = None, **kwargs
+    x: Any, name: Optional[str] = None, ndim: Optional[int] = None, **kwargs
 ) -> Callable:
-    """Convert `x` into the appropriate `TensorType`.
+    """Convert `x` into the appropriate ``TensorType``.
 
-    This function is often used by `make_node` methods of `Op` subclasses to
-    turn ndarrays, numbers, `Scalar` instances, `Apply` instances and
-    `TensorType` instances into valid input list elements.
+    This function is often used by ``make_node`` methods of ``Op`` subclasses
+    to turn ndarrays, numbers, ``Scalar`` instances, ``Apply`` instances and
+    ``TensorType`` instances into valid input list elements.
 
     Parameters
     ----------
-    x : Apply or Variable or numpy.ndarray or number
-        This thing will be transformed into a `Variable` in a sensible way. An
-        ndarray argument will not be copied, but a list of numbers will be
-        copied to make an ndarray.
-    name : str or None
-        If a new `Variable` instance is created, it will be named with this
+    x
+        The object to be converted into a ``Variable`` type. A
+        ``numpy.ndarray`` argument will not be copied, but a list of numbers
+        will be copied to make an ``numpy.ndarray``.
+    name
+        If a new ``Variable`` instance is created, it will be named with this
         string.
-    ndim : None or integer
-        Return a Variable with this many dimensions.
+    ndim
+        Return a ``Variable`` with this many dimensions.
+    dtype
+        The dtype to use for the resulting ``Variable``.  If `x` is already
+        a ``Variable`` type, then the dtype will not be changed.
 
     Raises
     ------
     TypeError
-        If `x` cannot be converted to a TensorType Variable.
+        If `x` cannot be converted to a ``TensorType`` Variable.
 
     """
     return _as_tensor_variable(x, name, ndim, **kwargs)
@@ -42,27 +44,81 @@ def as_tensor_variable(
 def _as_tensor_variable(
     x, name: Optional[str], ndim: Optional[int], **kwargs
 ) -> NoReturn:
-    raise NotImplementedError("")
+    raise NotImplementedError(f"Cannot convert {x} to a tensor variable.")
 
 
-import aesara.tensor.exceptions
-from aesara.gradient import consider_constant, grad, hessian, jacobian
-from aesara.tensor import sharedvar  # adds shared-variable constructors
-from aesara.tensor import (
+def get_vector_length(v: Any):
+    """Return the run-time length of a symbolic vector, when possible.
+
+    Parameters
+    ----------
+    v
+        A rank-1 `TensorType` variable.
+
+    Raises
+    ------
+    TypeError
+        `v` hasn't the proper type.
+    ValueError
+        No special case applies, the length is not known.
+        In general this is not possible, but for a number of special cases
+        the length can be determined at compile / graph-construction time.
+        This function implements these special cases.
+
+    """
+    v = as_tensor_variable(v)
+
+    if v.type.ndim != 1:
+        raise TypeError(f"Argument must be a vector; got {v.type}")
+
+    if v.type.broadcastable[0]:
+        return 1
+
+    return _get_vector_length(getattr(v.owner, "op", v), v)
+
+
+@singledispatch
+def _get_vector_length(op: Union[Op, Variable], var: Variable) -> NoReturn:
+    """`Op`-based dispatch for `get_vector_length`."""
+    raise ValueError(f"Length of {var} cannot be determined")
+
+
+@_get_vector_length.register(Constant)
+def _get_vector_length_Constant(var_inst, var):
+    return len(var.data)
+
+
+import aesara.tensor.exceptions  # noqa
+from aesara.gradient import consider_constant, grad, hessian, jacobian  # noqa
+
+# adds shared-variable constructors
+from aesara.tensor import sharedvar  # noqa
+from aesara.tensor import (  # noqa
     basic_opt,
     blas,
     blas_c,
     blas_scipy,
-    nlinalg,
     nnet,
     opt_uncanonicalize,
+    subtensor_opt,
     xlogx,
 )
-from aesara.tensor.basic import *
-from aesara.tensor.blas import batched_dot, batched_tensordot
-from aesara.tensor.extra_ops import (
+
+
+# isort: off
+from aesara.tensor import linalg  # noqa
+
+# For backward compatibility
+from aesara.tensor import nlinalg  # noqa
+from aesara.tensor import slinalg  # noqa
+
+# isort: on
+from aesara.tensor.basic import *  # noqa
+from aesara.tensor.blas import batched_dot, batched_tensordot  # noqa
+from aesara.tensor.extra_ops import (  # noqa
     bartlett,
     bincount,
+    broadcast_arrays,
     broadcast_shape,
     broadcast_shape_iter,
     broadcast_to,
@@ -77,9 +133,7 @@ from aesara.tensor.extra_ops import (
     unique,
     unravel_index,
 )
-from aesara.tensor.io import *
-from aesara.tensor.math import *
-from aesara.tensor.shape import (
+from aesara.tensor.shape import (  # noqa
     reshape,
     shape,
     shape_padaxis,
@@ -88,164 +142,17 @@ from aesara.tensor.shape import (
     specify_shape,
 )
 
+
+from aesara.tensor.io import *  # noqa
+from aesara.tensor.math import *  # noqa
+
 # We import as `_shared` instead of `shared` to avoid confusion between
 # `aesara.shared` and `tensor._shared`.
-from aesara.tensor.sort import argsort, argtopk, sort, topk, topk_and_argtopk
-from aesara.tensor.subtensor import *
-from aesara.tensor.type import (
-    TensorType,
-    bcol,
-    bmatrix,
-    brow,
-    bscalar,
-    btensor3,
-    btensor4,
-    btensor5,
-    btensor6,
-    btensor7,
-    bvector,
-    ccol,
-    cmatrix,
-    col,
-    cols,
-    complex_matrix_types,
-    complex_scalar_types,
-    complex_types,
-    complex_vector_types,
-    crow,
-    cscalar,
-    ctensor3,
-    ctensor4,
-    ctensor5,
-    ctensor6,
-    ctensor7,
-    cvector,
-    dcol,
-    dcols,
-    dmatrices,
-    dmatrix,
-    drow,
-    drows,
-    dscalar,
-    dscalars,
-    dtensor3,
-    dtensor3s,
-    dtensor4,
-    dtensor4s,
-    dtensor5,
-    dtensor5s,
-    dtensor6,
-    dtensor6s,
-    dtensor7,
-    dtensor7s,
-    dvector,
-    dvectors,
-    fcol,
-    fcols,
-    float_matrix_types,
-    float_scalar_types,
-    float_types,
-    float_vector_types,
-    fmatrices,
-    fmatrix,
-    frow,
-    frows,
-    fscalar,
-    fscalars,
-    ftensor3,
-    ftensor3s,
-    ftensor4,
-    ftensor4s,
-    ftensor5,
-    ftensor5s,
-    ftensor6,
-    ftensor6s,
-    ftensor7,
-    ftensor7s,
-    fvector,
-    fvectors,
-    icol,
-    icols,
-    imatrices,
-    imatrix,
-    int_matrix_types,
-    int_scalar_types,
-    int_types,
-    int_vector_types,
-    irow,
-    irows,
-    iscalar,
-    iscalars,
-    itensor3,
-    itensor3s,
-    itensor4,
-    itensor4s,
-    itensor5,
-    itensor5s,
-    itensor6,
-    itensor6s,
-    itensor7,
-    itensor7s,
-    ivector,
-    ivectors,
-    lcol,
-    lcols,
-    lmatrices,
-    lmatrix,
-    lrow,
-    lrows,
-    lscalar,
-    lscalars,
-    ltensor3,
-    ltensor3s,
-    ltensor4,
-    ltensor4s,
-    ltensor5,
-    ltensor5s,
-    ltensor6,
-    ltensor6s,
-    ltensor7,
-    ltensor7s,
-    lvector,
-    lvectors,
-    matrices,
-    matrix,
-    row,
-    rows,
-    scalar,
-    scalars,
-    tensor,
-    tensor3,
-    tensor3s,
-    tensor4,
-    tensor4s,
-    tensor5,
-    tensor5s,
-    tensor6,
-    tensor6s,
-    tensor7,
-    tensor7s,
-    values_eq_approx_always_true,
-    vector,
-    vectors,
-    wcol,
-    wrow,
-    wscalar,
-    wtensor3,
-    wtensor4,
-    wtensor5,
-    wtensor6,
-    wtensor7,
-    wvector,
-    zcol,
-    zmatrix,
-    zrow,
-    zscalar,
-    ztensor3,
-    ztensor4,
-    ztensor5,
-    ztensor6,
-    ztensor7,
-    zvector,
-)
-from aesara.tensor.type_other import *
+from aesara.tensor.sort import argsort, argtopk, sort, topk, topk_and_argtopk  # noqa
+from aesara.tensor.subtensor import *  # noqa
+from aesara.tensor.type import *  # noqa
+from aesara.tensor.type_other import *  # noqa
+from aesara.tensor.var import TensorConstant, TensorVariable  # noqa
+
+
+__all__ = ["random"]  # noqa: F405

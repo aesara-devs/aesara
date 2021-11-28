@@ -5,7 +5,7 @@ import pytest
 
 from aesara.configdefaults import config
 from aesara.graph.fg import FunctionGraph, MissingInputError
-from tests.graph.utils import MyVariable, MyVariable2, op1, op2, op3
+from tests.graph.utils import MyConstant, MyVariable, MyVariable2, op1, op2, op3
 
 
 class TestFunctionGraph:
@@ -62,7 +62,9 @@ class TestFunctionGraph:
         assert fg.get_clients(var3) == [(var4.owner, 0), ("output", 0)]
         assert fg.get_clients(var4) == [("output", 1)]
 
-        fg = FunctionGraph(outputs=[var3, var4], clone=False)
+        varC = MyConstant("varC")
+        var5 = op1(var1, varC)
+        fg = FunctionGraph(outputs=[var3, var4, var5], clone=False)
         assert fg.inputs == [var1, var2]
 
         memo = {}
@@ -253,6 +255,19 @@ class TestFunctionGraph:
         assert var3 not in fg.variables
         assert fg.apply_nodes == {var4.owner, var5.owner}
         assert var4.owner.inputs == [var1, var2]
+
+    def test_replace_verbose(self, capsys):
+
+        var1 = MyVariable("var1")
+        var2 = MyVariable("var2")
+        var3 = op1(var2, var1)
+        fg = FunctionGraph([var1, var2], [var3], clone=False)
+
+        fg.replace(var3, var1, reason="test-reason", verbose=True)
+
+        capres = capsys.readouterr()
+        assert capres.err == ""
+        assert "optimizer: rewrite test-reason replaces Op1.0 with var1" in capres.out
 
     def test_replace_circular(self):
         """`FunctionGraph` allows cycles--for better or worse."""

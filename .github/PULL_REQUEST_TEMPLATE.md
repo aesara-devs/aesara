@@ -6,7 +6,7 @@ Here are a few important guidelines and requirements to check before your PR can
 + [ ] The description and/or commit message(s) references the relevant GitHub issue(s).
 + [ ] [`pre-commit`](https://pre-commit.com/#installation) is installed and [set up](https://pre-commit.com/#3-install-the-git-hook-scripts).
 + [ ] The commit messages follow [these guidelines](https://tbaggery.com/2008/04/19/a-note-about-git-commit-messages.html).
-+ [ ] The commits correspond to [_relevant logical changes_](https://wiki.openstack.org/wiki/GitCommitMessages#Structural_split_of_changes), and there are **no commits that fix changes introduced by other commits in the same branch/BR**.  If your commit description starts with "Fix...", then you're probably making this mistake.
++ [ ] The commits correspond to [_relevant logical changes_](https://wiki.openstack.org/wiki/GitCommitMessages#Structural_split_of_changes), and there are **no commits that fix changes introduced by other commits in the same branch/BR**.
 + [ ] There are tests covering the changes introduced in the PR.
 
 Don't worry, your PR doesn't need to be in perfect order to submit it.  As development progresses and/or reviewers request changes, you can always [rewrite the history](https://git-scm.com/book/en/v2/Git-Tools-Rewriting-History#_rewriting_history) of your feature/PR branches.

@@ -1,19 +1,14 @@
 """ Tensor optimizations addressing the ops in math.py."""
-# TODO: intelligent merge for mul/add
-# TODO: 0*x -> 0
 
 import itertools
 import logging
 import operator
-import warnings
-from functools import reduce
+from functools import partial, reduce
 
 import numpy as np
 
 import aesara.scalar.basic as aes
-from aesara import compile
-from aesara.assert_op import assert_op
-from aesara.configdefaults import config
+import aesara.scalar.math as aes_math
 from aesara.graph.basic import Constant, Variable
 from aesara.graph.opt import (
     LocalOptGroup,
@@ -23,7 +18,9 @@ from aesara.graph.opt import (
     in2out,
     local_optimizer,
 )
+from aesara.graph.opt_utils import get_clients_at_depth
 from aesara.misc.safe_asarray import _asarray
+from aesara.raise_op import assert_op
 from aesara.tensor.basic import (
     Alloc,
     Join,
@@ -41,7 +38,6 @@ from aesara.tensor.basic import (
 )
 from aesara.tensor.basic_opt import (
     FusionOptimizer,
-    _fill_chain,
     broadcast_like,
     encompasses_broadcastable,
     fuse_seqopt,
@@ -52,7 +48,6 @@ from aesara.tensor.basic_opt import (
     register_stabilize,
     register_uncanonicalize,
     register_useless,
-    scalarconsts_rest,
 )
 from aesara.tensor.elemwise import CAReduce, DimShuffle, Elemwise
 from aesara.tensor.exceptions import NotScalarConstantError
@@ -64,7 +59,9 @@ from aesara.tensor.math import (
     Prod,
     ProdWithoutZeros,
     Sum,
-    abs_,
+)
+from aesara.tensor.math import abs as aet_abs
+from aesara.tensor.math import (
     add,
     dot,
     eq,
@@ -72,16 +69,19 @@ from aesara.tensor.math import (
     erfc,
     exp,
     expm1,
+    ge,
     int_div,
-    inv,
+    isinf,
+    le,
     log,
+    log1mexp,
     log1p,
     makeKeepDims,
 )
 from aesara.tensor.math import max as aet_max
 from aesara.tensor.math import maximum, mul, neg
 from aesara.tensor.math import pow as aet_pow
-from aesara.tensor.math import prod, sgn, sqr, sqrt, sub
+from aesara.tensor.math import prod, reciprocal, sgn, sigmoid, softplus, sqr, sqrt, sub
 from aesara.tensor.math import sum as aet_sum
 from aesara.tensor.math import true_div
 from aesara.tensor.shape import Shape, Shape_i
@@ -92,12 +92,62 @@ from aesara.tensor.type import (
     values_eq_approx_remove_inf_nan,
     values_eq_approx_remove_nan,
 )
-from aesara.tensor.var import TensorConstant
+from aesara.tensor.var import TensorConstant, get_unique_value
 from aesara.utils import NoDuplicateOptWarningFilter
 
 
 _logger = logging.getLogger("aesara.tensor.math_opt")
 _logger.addFilter(NoDuplicateOptWarningFilter())
+
+
+def scalarconsts_rest(inputs, elemwise=True, only_process_constants=False):
+    """Partition a list of variables into two kinds:
+    scalar constants, and the rest."""
+    consts = []
+    origconsts = []
+    nonconsts = []
+    for i in inputs:
+        try:
+            v = get_scalar_constant_value(
+                i, elemwise=elemwise, only_process_constants=only_process_constants
+            )
+            consts.append(v)
+            origconsts.append(i)
+        except NotScalarConstantError:
+            nonconsts.append(i)
+    return consts, origconsts, nonconsts
+
+
+def get_constant(v):
+    """
+
+    Returns
+    -------
+    object
+        A numeric constant if v is a Constant or, well, a
+        numeric constant. If v is a plain Variable, returns None.
+
+    """
+    if isinstance(v, Constant):
+        unique_value = get_unique_value(v)
+        if unique_value is not None:
+            data = unique_value
+        else:
+            data = v.data
+        if data.ndim == 0:
+            return data
+        else:
+            return None
+    elif isinstance(v, Variable):
+        return None
+    else:
+        return v
+
+
+def fill_chain(new_out, orig_inputs):
+    for i in orig_inputs:
+        new_out = fill(i, new_out)
+    return [new_out]
 
 
 @register_canonicalize
@@ -205,7 +255,7 @@ def local_func_inv(fgraph, node):
         (aes.Sinh, aes.ArcSinh),
         (aes.Conj, aes.Conj),
         (aes.Neg, aes.Neg),
-        (aes.Inv, aes.Inv),
+        (aes.Reciprocal, aes.Reciprocal),
     )
     x = node.inputs[0]
 
@@ -221,9 +271,89 @@ def local_func_inv(fgraph, node):
         if is_inverse_pair(node_op, prev_op, inv_pair):
             # We don't need to copy stack trace, because the optimization
             # is trivial and maintains the earlier stack trace
-            return x.owner.inputs
+            ottype = node.out.dtype
+            inp = x.owner.inputs[0]
+            # Functions may have casted integer input to float
+            if inp.dtype != ottype:
+                inp = cast(inp, ottype)
+            return [inp]
 
     return
+
+
+@register_canonicalize
+@register_specialize
+@local_optimizer([Elemwise])
+def local_exp_log(fgraph, node):
+    x = node.inputs[0]
+
+    if not isinstance(node.op, Elemwise):
+        return
+    if not x.owner or not isinstance(x.owner.op, Elemwise):
+        return
+
+    prev_op = x.owner.op.scalar_op
+    node_op = node.op.scalar_op
+
+    # Case for log(exp(x))
+    if isinstance(prev_op, aes.Exp) and isinstance(node_op, aes.Log):
+        new_out = x.owner.inputs[0]
+        old_out = node.outputs[0]
+        # Exp may have casted integer input to float
+        if new_out.dtype != old_out.dtype:
+            new_out = cast(new_out, old_out.dtype)
+        return [new_out]
+
+    # Case for exp(softplus(x)) aka exp(log1pexp)
+    if isinstance(prev_op, aes_math.Softplus) and isinstance(node_op, aes.Exp):
+        x = x.owner.inputs[0]
+        old_out = node.outputs[0]
+        new_out = add(1, exp(x))
+        if new_out.type != old_out.type:
+            return
+        return [new_out]
+
+
+@register_specialize
+@local_optimizer([Elemwise])
+def local_exp_log_nan_switch(fgraph, node):
+    # Rewrites of the kind exp(log...(x)) that require a `nan` switch
+    x = node.inputs[0]
+
+    if not isinstance(node.op, Elemwise):
+        return
+    if not x.owner or not isinstance(x.owner.op, Elemwise):
+        return
+
+    prev_op = x.owner.op.scalar_op
+    node_op = node.op.scalar_op
+
+    # Case for exp(log(x))
+    if isinstance(prev_op, aes.Log) and isinstance(node_op, aes.Exp):
+        x = x.owner.inputs[0]
+        old_out = node.outputs[0]
+        new_out = switch(ge(x, 0), x, np.asarray(np.nan, old_out.dtype))
+        if new_out.type != old_out.type:
+            return
+        return [new_out]
+
+    # Case for exp(log1p(x))
+    if isinstance(prev_op, aes.Log1p) and isinstance(node_op, aes.Exp):
+        x = x.owner.inputs[0]
+        old_out = node.outputs[0]
+        new_out = switch(ge(x, -1), add(1, x), np.asarray(np.nan, old_out.dtype))
+        if new_out.type != old_out.type:
+            return
+        return [new_out]
+
+    # Case for exp(log1mexp(x))
+    if isinstance(prev_op, aes_math.Log1mexp) and isinstance(node_op, aes.Exp):
+        x = x.owner.inputs[0]
+        old_out = node.outputs[0]
+        new_out = switch(le(x, 0), sub(1, exp(x)), np.asarray(np.nan, old_out.dtype))
+        if new_out.type != old_out.type:
+            return
+        return [new_out]
 
 
 @register_canonicalize
@@ -473,28 +603,29 @@ def local_div_switch_sink(fgraph, node):
 
 
 class AlgebraicCanonizer(LocalOptimizer):
-    r"""
-    Simplification tool. The variable is a local_optimizer. It is best used
-    with a TopoOptimizer in in_to_out order.
+    r"""Simplification tool.
 
-    Usage: AlgebraicCanonizer(main, inverse, reciprocal, calculate)
+    The variable is a ``local_optimizer``. It is best used
+    with a ``TopoOptimizer`` in ``in_to_out`` order.
+
+    Usage: ``AlgebraicCanonizer(main, inverse, reciprocal, calculate)``
 
     Parameters
     ----------
     main
-        A suitable Op class that is commutative, associative and
+        A suitable ``Op`` class that is commutative, associative and
         takes one to an arbitrary number of inputs, e.g. add or
         mul
     inverse
-        An Op class such that inverse(main(x, y), y) == x
-        e.g. sub or true_div
+        An ``Op`` class such that ``inverse(main(x, y), y) == x``
+        e.g. ``sub`` or true_div
     reciprocal
-        A function such that main(x, reciprocal(y)) == inverse(x, y)
-        e.g. neg or inv
+        A function such that ``main(x, reciprocal(y)) == inverse(x, y)``
+        e.g. ``neg`` or ``reciprocal``
     calculate
         Function that takes a list of numpy.ndarray instances
         for the numerator, another list for the denumerator,
-        and calculates inverse(main(\*num), main(\*denum)). It
+        and calculates ``inverse(main(\*num), main(\*denum))``. It
         takes a keyword argument, aslist. If True, the value
         should be returned as a list of one element, unless
         the value is such that value = main(). In that case,
@@ -509,7 +640,7 @@ class AlgebraicCanonizer(LocalOptimizer):
     >>> mul_canonizer = AlgebraicCanonizer(mul, true_div, inv, \\
     ...                                    lambda n, d: prod(n) / prod(d))
 
-    Examples of optimizations mul_canonizer can perform:
+    Examples of optimizations ``mul_canonizer`` can perform:
 
     | x / x -> 1
     | (x * y) / x -> y
@@ -524,10 +655,10 @@ class AlgebraicCanonizer(LocalOptimizer):
 
     """
 
-    def __init__(self, main, inverse, reciprocal, calculate, use_reciprocal=True):
+    def __init__(self, main, inverse_fn, reciprocal_fn, calculate, use_reciprocal=True):
         self.main = main
-        self.inverse = inverse
-        self.reciprocal = reciprocal
+        self.inverse = inverse_fn
+        self.reciprocal = reciprocal_fn
         self.calculate = calculate
         self.use_reciprocal = use_reciprocal
 
@@ -539,13 +670,13 @@ class AlgebraicCanonizer(LocalOptimizer):
     def tracks(self):
         return [self.main, self.inverse, self.reciprocal]
 
-    def get_num_denum(self, input):
+    def get_num_denum(self, inp):
         r"""
-        This extract two lists, num and denum, such that the input is:
-        self.inverse(self.main(\*num), self.main(\*denum)). It returns
-        the two lists in a (num, denum) pair.
+        This extract two lists, ``num`` and ``denum``, such that the input is:
+        ``self.inverse(self.main(\*num), self.main(\*denum))``. It returns
+        the two lists in a ``(num, denum)`` pair.
 
-        For example, for main, inverse and reciprocal = \*, / and inv(),
+        For example, for main, inverse and ``reciprocal = \*, / and inv()``,
 
         | input -> returned value (num, denum)
 
@@ -568,12 +699,12 @@ class AlgebraicCanonizer(LocalOptimizer):
         # argument. The leaf-Variables of the graph covered by the
         # recursion may be of any Variable type.
 
-        if input.owner is None or input.owner.op not in [
+        if inp.owner is None or inp.owner.op not in [
             self.main,
             self.inverse,
             self.reciprocal,
         ]:
-            if input.owner and isinstance(input.owner.op, DimShuffle):
+            if inp.owner and isinstance(inp.owner.op, DimShuffle):
                 # If input is a DimShuffle of some input which does
                 # something like this:
 
@@ -583,7 +714,7 @@ class AlgebraicCanonizer(LocalOptimizer):
                 #   with broadcastable 1s to the *left*
                 # Then we will simply discard the DimShuffle and return
                 # the num/denum of its input
-                dsn = input.owner  # dimshuffle node
+                dsn = inp.owner  # dimshuffle node
                 dsop = dsn.op  # dimshuffle op
 
                 # the first input of the dimshuffle i.e. the ndarray to redim
@@ -599,22 +730,22 @@ class AlgebraicCanonizer(LocalOptimizer):
                 # different numbers of dimensions (hence why we can
                 # discard its information - we know we can retrieve it
                 # later on).
-                compatible_order = ("x",) * (input.type.ndim - dsi0.type.ndim) + tuple(
+                compatible_order = ("x",) * (inp.type.ndim - dsi0.type.ndim) + tuple(
                     range(dsi0.type.ndim)
                 )
                 if dsop.new_order == compatible_order:
                     # If the "new_order" is the one we recognize,
                     # we return the num_denum of the dimshuffled input.
-                    return self.get_num_denum(input.owner.inputs[0])
+                    return self.get_num_denum(inp.owner.inputs[0])
                 else:
                     # This is when the input isn't produced by main,
                     # inverse or reciprocal.
-                    return [input], []
+                    return [inp], []
             else:
-                return [input], []
+                return [inp], []
         num = []
         denum = []
-        parent = input.owner
+        parent = inp.owner
 
         # We get the (num, denum) pairs for each input
         # pairs = [self.get_num_denum(input2) if input2.type.dtype ==
@@ -688,31 +819,6 @@ class AlgebraicCanonizer(LocalOptimizer):
         return self.inverse(
             self.merge_num_denum(num, []), self.merge_num_denum(denum, [])
         )
-
-    @staticmethod
-    def get_constant(v):
-        """
-
-        Returns
-        -------
-        object
-            A numeric constant if v is a Constant or, well, a
-            numeric constant. If v is a plain Variable, returns None.
-
-        """
-        if isinstance(v, Constant):
-            if getattr(v.tag, "unique_value", None) is not None:
-                data = v.tag.unique_value
-            else:
-                data = v.data
-            if data.ndim == 0:
-                return data
-            else:
-                return None
-        elif isinstance(v, Variable):
-            return None
-        else:
-            return v
 
     def simplify(self, num, denum, out_type):
         """
@@ -791,7 +897,7 @@ class AlgebraicCanonizer(LocalOptimizer):
         numct, denumct = [], []
 
         for v in orig_num:
-            ct = self.get_constant(v)
+            ct = get_constant(v)
             if ct is not None:
                 # We found a constant in the numerator!
                 # We add it to numct
@@ -799,7 +905,7 @@ class AlgebraicCanonizer(LocalOptimizer):
             else:
                 num.append(v)
         for v in orig_denum:
-            ct = self.get_constant(v)
+            ct = get_constant(v)
             if ct is not None:
                 denumct.append(ct)
             else:
@@ -826,7 +932,7 @@ class AlgebraicCanonizer(LocalOptimizer):
         if orig_num and len(numct) == 1 and len(denumct) == 0 and ct:
             # In that case we should only have one constant in `ct`.
             assert len(ct) == 1
-            first_num_ct = self.get_constant(orig_num[0])
+            first_num_ct = get_constant(orig_num[0])
             if first_num_ct is not None and ct[0].type.values_eq(
                 ct[0].data, first_num_ct
             ):
@@ -916,7 +1022,7 @@ class AlgebraicCanonizer(LocalOptimizer):
         assert (new.type == out.type) == (not (new.type != out.type))
 
         if not (new.type == out.type):
-            new = _fill_chain(new, node.inputs)[0]
+            new = fill_chain(new, node.inputs)[0]
 
         if new.type == out.type:
             # This happen with test
@@ -975,17 +1081,17 @@ def mul_calculate(num, denum, aslist=False, out_type=None):
     return v
 
 
-local_mul_canonizer = AlgebraicCanonizer(mul, true_div, inv, mul_calculate, False)
+local_mul_canonizer = AlgebraicCanonizer(
+    mul, true_div, reciprocal, mul_calculate, False
+)
 register_canonicalize(local_mul_canonizer, name="local_mul_canonizer")
 
 
+@register_canonicalize
 @local_optimizer([neg])
 def local_neg_to_mul(fgraph, node):
     if node.op == neg:
         return [mul(np.array(-1, dtype=node.inputs[0].dtype), node.inputs[0])]
-
-
-register_canonicalize(local_neg_to_mul)
 
 
 @register_specialize
@@ -1336,33 +1442,6 @@ def local_sum_prod_div_dimshuffle(fgraph, node):
         if node_input.owner and node_input.owner.op == true_div:
             numerator, denominator = node_input.owner.inputs
 
-            # Old, bugged logic, reproduced here only to warn users
-            if (
-                config.warn__sum_div_dimshuffle_bug
-                and isinstance(node.op, Sum)
-                and numerator.owner
-                and isinstance(numerator.owner.op, DimShuffle)
-            ):
-                # Check compatibility
-                new_order = numerator.owner.op.new_order
-                compatible_dims = True
-                for ax in axis:
-                    if len(new_order) <= ax or new_order[ax] != "x":
-                        compatible_dims = False
-                        break
-
-                if compatible_dims:
-                    _logger.warning(
-                        "Your current code is fine, but"
-                        " Aesara versions between "
-                        "rev. 3bd9b789f5e8 (2010-06-16) and"
-                        " cfc6322e5ad4 (2010-08-03) would "
-                        "have given an incorrect result. "
-                        "To disable this warning, set the Aesara"
-                        " flag warn__sum_div_dimshuffle_bug to"
-                        " False."
-                    )
-
             if denominator.owner and isinstance(denominator.owner.op, DimShuffle):
                 dimshuffle_input = denominator.owner.inputs[0]
                 dimshuffle_order = denominator.owner.op.new_order
@@ -1403,21 +1482,6 @@ def local_sum_prod_div_dimshuffle(fgraph, node):
                             dimshuffle_input.type.broadcastable,
                             optimized_dimshuffle_order,
                         )(dimshuffle_input)
-
-                        if config.warn__sum_div_dimshuffle_bug and isinstance(
-                            node.op, Sum
-                        ):
-                            _logger.warning(
-                                "Your current code is fine,"
-                                " but Aesara versions between "
-                                "rev. 3bd9b789f5e8 (2010-06-16) and"
-                                " cfc6322e5ad4 (2010-08-03) would "
-                                "have given an incorrect result. "
-                                "To disable this warning, set the"
-                                " Aesara flag "
-                                "warn__sum_div_dimshuffle_bug"
-                                " to False."
-                            )
 
                     if isinstance(node.op, Sum):
                         op_on_compatible_dims = aet_sum(numerator, axis=compatible_dims)
@@ -1499,38 +1563,6 @@ def local_op_of_op(fgraph, node):
                     list(node_inps.owner.op.axis) + list(node.op.axis)
                 )
 
-                # The old bugged logic. We keep it there to generate a warning
-                # when we generated bad code.
-                alldims = list(range(node_inps.owner.inputs[0].type.ndim))
-                alldims = [
-                    d for i, d in enumerate(alldims) if i in node_inps.owner.op.axis
-                ]
-                alldims = [d for i, d in enumerate(alldims) if i in node.op.axis]
-                newaxis_old = [
-                    i
-                    for i in range(node_inps.owner.inputs[0].type.ndim)
-                    if i not in alldims
-                ]
-
-                if (
-                    config.warn__sum_sum_bug
-                    and newaxis != newaxis_old
-                    and len(newaxis) == len(newaxis_old)
-                ):
-                    _logger.warning(
-                        "(YOUR CURRENT CODE IS FINE): Aesara "
-                        "versions between version 9923a40c7b7a and August "
-                        "2nd, 2010 generated bugged code in this case. "
-                        "This happens when there are two consecutive sums "
-                        "in the graph and the intermediate sum is not "
-                        "used elsewhere in the code. Some safeguard "
-                        "removed some bad code, but not in all cases. You "
-                        "are in one such case. To disable this warning "
-                        "(that you can safely ignore since this bug has "
-                        "been fixed) set the aesara flag "
-                        "`warn__sum_sum_bug` to False."
-                    )
-
                 combined = opt_type(newaxis, dtype=out_dtype)
                 return [combined(node_inps.owner.inputs[0])]
 
@@ -1558,7 +1590,7 @@ def local_reduce_join(fgraph, node):
 
     Notes
     -----
-    Supported scalar.op are Maximum, Mimimum in some cases and Add and Mul in
+    Supported scalar.op are Maximum, Minimum in some cases and Add and Mul in
     all cases.
 
     Currently we must reduce on axis 0. It is probably extensible to the case
@@ -1604,20 +1636,7 @@ def local_reduce_join(fgraph, node):
         if reduce_axis is None:
             reduce_axis = tuple(range(node.inputs[0].ndim))
 
-        # I put this warning late to don't add extra warning.
         if len(reduce_axis) != 1 or 0 not in reduce_axis:
-            if config.warn__reduce_join:
-                warnings.warning(
-                    "Your current code is fine, but Aesara versions "
-                    "prior to 0.7 (or this development version Sept 2014) "
-                    "might have given an incorrect result for this code. "
-                    "To disable this warning, set the Aesara flag "
-                    "warn__reduce_join to False. The problem was an "
-                    "optimization, that modified the pattern "
-                    '"Reduce{scalar.op}(Join(axis=0, a, b), axis=0)", '
-                    "did not check the reduction axis. So if the "
-                    "reduction axis was not 0, you got a wrong answer."
-                )
             return
 
         # We add the new check late to don't add extra warning.
@@ -1698,22 +1717,22 @@ def local_opt_alloc(fgraph, node):
     if isinstance(node.op, Sum) or isinstance(node.op, Prod):
         (node_inps,) = node.inputs
         if node_inps.owner and isinstance(node_inps.owner.op, Alloc):
-            input = node_inps.owner.inputs[0]
+            inp = node_inps.owner.inputs[0]
             shapes = node_inps.owner.inputs[1:]
             try:
-                val = get_scalar_constant_value(input, only_process_constants=True)
+                val = get_scalar_constant_value(inp, only_process_constants=True)
                 assert val.size == 1
                 val = val.reshape(1)[0]
                 # check which type of op
                 size = mul(*shapes)
-                if input.dtype in ["float16", "float32"]:
+                if inp.dtype in ["float16", "float32"]:
                     # shapes are ints and normally int64.
                     # We don't want to have a float64 upcast
                     # We don't want to downcast to float16
                     # as we fear it could loose too much precision
                     # that will be amplified by the mul/pow below.
                     size = size.astype("float32")
-                if node.op.axis is None or node.op.axis == tuple(range(input.ndim)):
+                if node.op.axis is None or node.op.axis == tuple(range(inp.ndim)):
                     if isinstance(node.op, Sum):
                         val = val * size
                     else:
@@ -1752,16 +1771,6 @@ def local_opt_alloc(fgraph, node):
 
 @register_specialize
 @local_optimizer([neg])
-def local_neg_neg(fgraph, node):
-    # other specializations shouldn't put this in,
-    # but sometimes they do
-    if node.op == neg:
-        if node.inputs[0].owner and node.inputs[0].owner.op == neg:
-            return [node.inputs[0].owner.inputs[0]]
-
-
-@register_specialize
-@local_optimizer([neg])
 def local_neg_div_neg(fgraph, node):
     """
     - (-a / b) -> a / b
@@ -1784,6 +1793,7 @@ def local_neg_div_neg(fgraph, node):
                     return [true_div(new_num, denom)]
 
 
+@register_canonicalize
 @local_optimizer([mul])
 def local_mul_zero(fgraph, node):
     """
@@ -1802,19 +1812,16 @@ def local_mul_zero(fgraph, node):
             # print 'MUL by value', value, node.inputs
             if value == 0:
                 # print '... returning zeros'
-                return _fill_chain(_asarray(0, dtype=otype.dtype), node.inputs)
+                return fill_chain(_asarray(0, dtype=otype.dtype), node.inputs)
 
 
-register_canonicalize(local_mul_zero)
-
-
+# TODO: Add this to the canonicalization to reduce redundancy.
+@register_specialize
 @local_optimizer([true_div])
-def local_div_to_inv(fgraph, node):
-    if node.op == true_div and np.all(
-        local_mul_canonizer.get_constant(node.inputs[0]) == 1.0
-    ):
+def local_div_to_reciprocal(fgraph, node):
+    if node.op == true_div and np.all(get_constant(node.inputs[0]) == 1.0):
         out = node.outputs[0]
-        new_out = inv(local_mul_canonizer.merge_num_denum(node.inputs[1:], []))
+        new_out = reciprocal(local_mul_canonizer.merge_num_denum(node.inputs[1:], []))
         # The ones could have forced upcasting
         if new_out.dtype != out.dtype:
             new_out = cast(new_out, dtype=out.dtype)
@@ -1826,33 +1833,26 @@ def local_div_to_inv(fgraph, node):
         return False
 
 
-register_specialize(local_div_to_inv)
-
-
-@local_optimizer([inv])
-def local_inv_canon(fgraph, node):
-    if node.op == inv:
+@register_canonicalize
+@local_optimizer([reciprocal])
+def local_reciprocal_canon(fgraph, node):
+    if node.op == reciprocal:
         return [aet_pow(node.inputs[0], -1.0)]
     else:
         return False
 
 
-register_canonicalize(local_inv_canon)
-
-
+@register_canonicalize
 @local_optimizer([aet_pow])
 def local_pow_canonicalize(fgraph, node):
     if node.op == aet_pow:
-        cst = local_mul_canonizer.get_constant(node.inputs[1])
+        cst = get_constant(node.inputs[1])
         if cst == 0:
             return [broadcast_like(1, node.outputs[0], fgraph)]
         if cst == 1:
             return [broadcast_like(node.inputs[0], node.outputs[0], fgraph)]
     else:
         return False
-
-
-register_canonicalize(local_pow_canonicalize)
 
 
 @register_specialize
@@ -1890,12 +1890,13 @@ def local_zero_div(fgraph, node):
     if isinstance(node.op, Elemwise) and isinstance(
         node.op.scalar_op, (aes.IntDiv, aes.TrueDiv)
     ):
-        if local_mul_canonizer.get_constant(node.inputs[0]) == 0:
+        if get_constant(node.inputs[0]) == 0:
             ret = broadcast_like(0, node.outputs[0], fgraph)
             ret.tag.values_eq_approx = values_eq_approx_remove_nan
             return [ret]
 
 
+@register_specialize
 @local_optimizer([aet_pow])
 def local_pow_specialize(fgraph, node):
     # here, we are past the point of canonicalization, so we don't want
@@ -1905,7 +1906,7 @@ def local_pow_specialize(fgraph, node):
         odtype = node.outputs[0].dtype
         xsym = node.inputs[0]
         ysym = node.inputs[1]
-        y = local_mul_canonizer.get_constant(ysym)
+        y = get_constant(ysym)
         if (y is not None) and encompasses_broadcastable(
             xsym.type.broadcastable, ysym.type.broadcastable
         ):
@@ -1920,20 +1921,17 @@ def local_pow_specialize(fgraph, node):
             if np.all(y == 0.5):
                 rval = [sqrt(xsym)]
             if np.all(y == -0.5):
-                rval = [inv(sqrt(xsym))]
+                rval = [reciprocal(sqrt(xsym))]
             if np.all(y == -1):
-                rval = [inv(xsym)]
+                rval = [reciprocal(xsym)]
             if np.all(y == -2):
-                rval = [inv(sqr(xsym))]
+                rval = [reciprocal(sqr(xsym))]
             if rval:
                 rval[0] = cast(rval[0], odtype)
                 assert rval[0].type == node.outputs[0].type, (rval, node.outputs)
                 return rval
     else:
         return False
-
-
-register_specialize(local_pow_specialize)
 
 
 @register_specialize_device
@@ -1947,7 +1945,7 @@ def local_pow_specialize_device(fgraph, node):
         odtype = node.outputs[0].dtype
         xsym = node.inputs[0]
         ysym = node.inputs[1]
-        y = local_mul_canonizer.get_constant(ysym)
+        y = get_constant(ysym)
 
         # the next line is needed to fix a strange case that I don't
         # know how to make a separate test.
@@ -1955,7 +1953,7 @@ def local_pow_specialize_device(fgraph, node):
         # y is a ndarray with dtype int8 and value 2,4 or 6. This make
         # the abs(y) <= 512 fail!
         # taking the value outside ndarray solve the problem.
-        # it could be that in that case, numpy make the comparaison
+        # it could be that in that case, numpy make the comparison
         # into the wrong type(do in int8 that overflow.)
         if isinstance(y, np.ndarray):
             assert y.size == 1
@@ -1994,7 +1992,7 @@ def local_pow_specialize_device(fgraph, node):
                         aes.Composite([pow2_scal[0]], [rval1_scal])
                     ).make_node(xsym)
                 if y < 0:
-                    rval = [inv(rval1)]
+                    rval = [reciprocal(rval1)]
                 else:
                     rval = [rval1]
             if rval:
@@ -2003,6 +2001,7 @@ def local_pow_specialize_device(fgraph, node):
                 return rval
 
 
+@register_specialize
 @local_optimizer([mul])
 def local_mul_specialize(fgraph, node):
     """
@@ -2027,15 +2026,15 @@ def local_mul_specialize(fgraph, node):
         new_inputs = []
         nb_neg_node = 0
         nb_cst = 0
-        for input in node.inputs:
+        for inp in node.inputs:
             # remove any neg arguments
-            while input.owner and input.owner.op == neg:
+            while inp.owner and inp.owner.op == neg:
                 has_neg ^= True
-                input = input.owner.inputs[0]
+                inp = inp.owner.inputs[0]
                 nb_neg_node += 1
 
             # remove special case arguments of 1, -1 or 0
-            y = local_mul_canonizer.get_constant(input)
+            y = get_constant(inp)
             if y == 1.0:
                 nb_cst += 1
             elif y == -1.0:
@@ -2045,7 +2044,7 @@ def local_mul_specialize(fgraph, node):
                 # if we find any zero, we just return right away
                 return [broadcast_like(0, node.outputs[0], fgraph)]
             else:
-                new_inputs.append(input)
+                new_inputs.append(inp)
 
         if new_inputs != node.inputs:
             if new_inputs:
@@ -2078,52 +2077,54 @@ def local_mul_specialize(fgraph, node):
                     return [broadcast_like(1, node.outputs[0], fgraph)]
 
 
-register_specialize(local_mul_specialize)
-
-
+@register_specialize
 @local_optimizer([add])
 def local_add_specialize(fgraph, node):
-    def fill_chain(v):
-        out = _fill_chain(v, node.inputs)
-        return out
+    """Remove zeros from ``add``s.
 
+    TODO: This should be a canonicalization, no?
+    """
     # here, we are past the point of canonicalization, so we don't want
     # to put in un-necessary fills.
-    if node.op == add:
-        new_inputs = []
-        for input in node.inputs:
-            try:
-                y = get_scalar_constant_value(input)
-            except NotScalarConstantError:
-                y = input
-            if np.all(y == 0.0):
-                continue
-            new_inputs.append(input)
-
-        if len(new_inputs) < len(node.inputs):
-            dtype = node.outputs[0].type.dtype
-            if len(new_inputs) == 0:
-                # we got rid of the entire expression!
-                ndim = node.outputs[0].type.ndim
-                # Reuse call to constant for cache()
-                cst = constant(np.zeros((1,) * ndim, dtype=dtype))
-                assert cst.type.broadcastable == (True,) * ndim
-                return fill_chain(cst)
-
-            if len(new_inputs) == 1:
-                ret = fill_chain(new_inputs[0])
-            else:
-                ret = fill_chain(add(*new_inputs))
-            # The dtype should not be changed. It can happen if the input
-            # that was forcing upcasting was equal to 0.
-            if ret[0].dtype != dtype:
-                ret = [cast(ret[0], dtype)]
-            return ret
-    else:
+    if node.op != add:
         return False
 
+    new_inputs = []
+    for inp in node.inputs:
+        try:
+            y = get_scalar_constant_value(inp)
+        except NotScalarConstantError:
+            y = inp
+        if np.all(y == 0.0):
+            continue
+        new_inputs.append(inp)
 
-register_specialize(local_add_specialize)
+    if len(new_inputs) == len(node.inputs):
+        return False
+
+    node_output = node.outputs[0]
+    dtype = node_output.type.dtype
+
+    if len(new_inputs) == 0:
+        # we got rid of the entire expression!
+        ndim = node_output.type.ndim
+        # Reuse call to constant for cache()
+        cst = constant(np.zeros((1,) * ndim, dtype=dtype))
+        assert cst.type.broadcastable == (True,) * ndim
+        return fill_chain(cst, node.inputs)
+
+    if len(new_inputs) == 1:
+        ret = fill_chain(new_inputs[0], node.inputs)
+    else:
+        ret = fill_chain(add(*new_inputs), node.inputs)
+
+    # The dtype should not be changed. It can happen if the input
+    # that was forcing upcasting was equal to 0.
+    if ret[0].dtype != dtype:
+        ret = [cast(ret[0], dtype)]
+
+    return ret
+
 
 mul_canonizer = in2out(
     LocalOptGroup(local_mul_canonizer, local_fill_sink, apply_all_opts=True),
@@ -2136,7 +2137,7 @@ def check_for_x_over_absX(numerators, denominators):
     # TODO: this function should dig/search through dimshuffles
     # This won't catch a dimshuffled absolute value
     for den in list(denominators):
-        if den.owner and den.owner.op == abs_ and den.owner.inputs[0] in numerators:
+        if den.owner and den.owner.op == aet_abs and den.owner.inputs[0] in numerators:
             if den.owner.inputs[0].type.dtype.startswith("complex"):
                 # TODO: Make an Op that projects a complex number to
                 #      have unit length but projects 0 to 0.  That
@@ -2156,7 +2157,7 @@ local_mul_canonizer.add_simplifier(check_for_x_over_absX, "X_over_absX")
 
 
 @register_canonicalize
-@local_optimizer([abs_])
+@local_optimizer([aet_abs])
 def local_abs_lift(fgraph, node):
     """
     Move the abs toward the input.
@@ -2164,13 +2165,13 @@ def local_abs_lift(fgraph, node):
     This is needed for check_for_x_over_absX to apply in more case.
 
     """
-    if node.op == abs_ and node.inputs[0].owner:
+    if node.op == aet_abs and node.inputs[0].owner:
         assert node.nin == 1
         if node.inputs[0].owner.op == mul:
-            return [mul(*[abs_(i) for i in node.inputs[0].owner.inputs])]
+            return [mul(*[aet_abs(i) for i in node.inputs[0].owner.inputs])]
         if node.inputs[0].owner.op == true_div:
             i = node.inputs[0].owner.inputs
-            return [true_div(abs_(i[0]), abs_(i[1]))]
+            return [true_div(aet_abs(i[0]), aet_abs(i[1]))]
 
 
 @register_specialize
@@ -2181,10 +2182,13 @@ def local_abs_merge(fgraph, node):
     need it anymore
 
     """
-    if node.op == mul and sum([i.owner.op == abs_ for i in node.inputs if i.owner]) > 1:
+    if (
+        node.op == mul
+        and sum([i.owner.op == aet_abs for i in node.inputs if i.owner]) > 1
+    ):
         inputs = []
         for i in node.inputs:
-            if i.owner and i.owner.op == abs_:
+            if i.owner and i.owner.op == aet_abs:
                 inputs.append(i.owner.inputs[0])
             elif isinstance(i, Constant):
                 try:
@@ -2196,13 +2200,13 @@ def local_abs_merge(fgraph, node):
                 inputs.append(i)
             else:
                 return False
-        return [abs_(mul(*inputs))]
+        return [aet_abs(mul(*inputs))]
     if (
         node.op == true_div
-        and sum([i.owner.op == abs_ for i in node.inputs if i.owner]) == 2
+        and sum([i.owner.op == aet_abs for i in node.inputs if i.owner]) == 2
     ):
         return [
-            abs_(
+            aet_abs(
                 true_div(node.inputs[0].owner.inputs[0], node.inputs[1].owner.inputs[0])
             )
         ]
@@ -2229,7 +2233,7 @@ def local_log1p(fgraph, node):
                         ninp = nonconsts[0]
                     if ninp.dtype != log_arg.type.dtype:
                         ninp = ninp.astype(node.outputs[0].dtype)
-                    return _fill_chain(log1p(ninp), scalar_inputs)
+                    return fill_chain(log1p(ninp), scalar_inputs)
 
         elif log_arg.owner and log_arg.owner.op == sub:
             one = extract_constant(log_arg.owner.inputs[0], only_process_constants=True)
@@ -2241,38 +2245,40 @@ def local_log1p(fgraph, node):
             return [log1p(neg(other))]
 
 
-# TODO: in canonicalize, change log10 and log2 -> log
 @register_stabilize
 @register_specialize
 @local_optimizer([log])
-def local_log_add(fgraph, node):
-    # log(exp(x)+exp(y))
-    #
-    # Suppose x >= y
-    # log(exp(x) + exp(y))
-    # log(exp(x) * (1 + exp(y)/exp(x)))
-    # x + log(1 + exp(y)/exp(x))
-    # x + log1p(exp(y)/exp(x))
-    # x + log1p(exp(y-x))
+def local_log_add_exp(fgraph, node):
+    """
+    ``log(exp(x)+exp(y)+exp(z)) = max + log(x-max, y-max, z-max)``
+
+    TODO: in canonicalize, change log10 and log2 -> log
+    """
+
     if node.op == log:
         z = node.inputs[0]
         if z.owner and z.owner.op == add:
             zi = z.owner.inputs
-            if len(zi) != 2:
-                # -- upgrading Maximum to handle multiple inputs wasn't trivial
-                #    TODO
-                # raise NotImplementedError()
-                return
             pre_exp = [x.owner.inputs[0] for x in zi if x.owner and x.owner.op == exp]
+            # all arguments to add are exp(<something>)
             if len(pre_exp) == len(zi):
-                # all arguments to add are exp(<something>)
-                max_pre = maximum(*pre_exp)
-
-                ret = max_pre + log1p(exp(add(*[p - max_pre for p in pre_exp])))
-                ret.tag.values_eq_approx = values_eq_approx_remove_inf
+                # Do not offset when max_pre = -np.inf, to avoid nan in the output
+                # Switch statement is placed directly inside add to break the self-symmetry
+                # of the returned output (otherwise the optimization would not stabilize)
+                max_pre = reduce(maximum, pre_exp)
+                ret = max_pre + log(
+                    add(
+                        *[
+                            switch(isinf(max_pre), exp(max_pre), exp(p - max_pre))
+                            for p in pre_exp
+                        ]
+                    )
+                )
                 return [ret]
 
 
+@register_stabilize
+@register_specialize
 @local_optimizer([log])
 def local_log_sum_exp(fgraph, node):
     # log(sum_i(exp(x_i))) = x_max + log(sum_i(exp(x_i - x_max)))
@@ -2301,21 +2307,25 @@ def local_log_sum_exp(fgraph, node):
     max_pre_exp = aet_max(pre_exp, axis=axis)
     max_pre_exp_keepdims = makeKeepDims(pre_exp, max_pre_exp, axis)
 
-    ret = max_pre_exp + log(aet_sum(exp(pre_exp - max_pre_exp_keepdims), axis=axis))
+    # Do not offset when max_pre = -np.inf, to avoid nan in the output
+    # Switch statement is placed directly inside sum to break the self-symmetry
+    # of the returned output (otherwise the optimization would not stabilize)
+    ret = max_pre_exp + log(
+        aet_sum(
+            switch(
+                isinf(max_pre_exp_keepdims),
+                exp(max_pre_exp_keepdims),
+                exp(pre_exp - max_pre_exp_keepdims),
+            ),
+            axis=axis,
+        ),
+    )
 
     # Restore the dimshuffle op, if any.
     if dimshuffle_op:
         ret = dimshuffle_op(ret)
 
     return [ret]
-
-
-compile.optdb.register(
-    "local_log_sum_exp",
-    in2out(local_log_sum_exp, ignore_newtrees=True),
-    1.6,
-    "fast_run",
-)
 
 
 def add_calculate(num, denum, aslist=False, out_type=None):
@@ -2438,7 +2448,7 @@ def attempt_distribution(factor, num, denum, out_type):
 
 @register_canonicalize
 @register_stabilize
-@local_optimizer([mul, true_div, inv])
+@local_optimizer([mul, true_div, reciprocal])
 def local_greedy_distributor(fgraph, node):
     """
     Optimize by reducing the number of multiplications and/or divisions.
@@ -2511,26 +2521,8 @@ def local_greedy_distributor(fgraph, node):
     return [rval]
 
 
-def get_clients(fgraph, node):
-    """
-    Used by erf/erfc opt to track less frequent op.
-
-    """
-    return [c for c, i in fgraph.clients[node.outputs[0]] if c != "output"]
-
-
-def get_clients2(fgraph, node):
-    """
-    Used by erf/erfc opt to track less frequent op.
-
-    """
-    l = []
-    for c, i in fgraph.clients[node.outputs[0]]:
-        if c != "output":
-            for var in c.outputs:
-                l.extend([cc for cc, ii in fgraph.clients[var] if cc != "output"])
-    return l
-
+get_clients_at_depth1 = partial(get_clients_at_depth, depth=1)
+get_clients_at_depth2 = partial(get_clients_at_depth, depth=2)
 
 # 1+erf(x)=>erfc(-x)
 local_one_plus_erf = PatternSub(
@@ -2539,61 +2531,56 @@ local_one_plus_erf = PatternSub(
     allow_multiple_clients=True,
     name="local_one_plus_erf",
     tracks=[erf],
-    get_nodes=get_clients,
+    get_nodes=get_clients_at_depth1,
 )
 register_canonicalize(local_one_plus_erf)
 register_stabilize(local_one_plus_erf)
 register_specialize(local_one_plus_erf)
 
+# Only one of the two rewrites below is needed if a canonicalization is added
+# for sub(x, y) -> add(x, -y) or a specialization for add(x, -y) -> sub(x, y)
 # 1-erf(x)=>erfc(x)
 local_one_minus_erf = PatternSub(
     (sub, 1, (erf, "x")),
     (erfc, "x"),
     allow_multiple_clients=True,
     name="local_one_minus_erf",
+    tracks=[erf],
+    get_nodes=get_clients_at_depth1,
 )
 register_canonicalize(local_one_minus_erf)
 register_stabilize(local_one_minus_erf)
 register_specialize(local_one_minus_erf)
 
 local_one_minus_erf2 = PatternSub(
-    (add, 1, (mul, -1, (erf, "x"))),
+    (add, 1, (neg, (erf, "x"))),
     (erfc, "x"),
     allow_multiple_clients=True,
     name="local_one_minus_erf2",
+    tracks=[erf],
+    get_nodes=get_clients_at_depth2,
 )
 register_canonicalize(local_one_minus_erf2)
 register_stabilize(local_one_minus_erf2)
 register_specialize(local_one_minus_erf2)
 
-# 1+(-erf(x))=>erfc(x) This is a different graph then the previous as
-# the canonicalize don't work completly
-local_one_plus_neg_erf = PatternSub(
-    (add, 1, (neg, (erf, "x"))),
-    (erfc, "x"),
-    allow_multiple_clients=True,
-    name="local_one_plus_neg_erf",
-    tracks=[erf],
-    get_nodes=get_clients2,
-)
-register_canonicalize(local_one_plus_neg_erf)
-register_stabilize(local_one_plus_neg_erf)
-register_specialize(local_one_plus_neg_erf)
-
-# (-1)+erf(x) => -erfc(x) don't need erf(x)+(-1) as the canonicalize
-# will put the -1 as the first argument.
+# (-1)+erf(x) => -erfc(x)
+# There is no need for erf(x)+(-1) nor erf(x) - 1, as the canonicalize will
+# convert those to the matched pattern
 local_erf_minus_one = PatternSub(
     (add, -1, (erf, "x")),
     (neg, (erfc, "x")),
     allow_multiple_clients=True,
     name="local_erf_minus_one",
     tracks=[erf],
-    get_nodes=get_clients,
+    get_nodes=get_clients_at_depth1,
 )
 register_canonicalize(local_erf_minus_one)
 register_stabilize(local_erf_minus_one)
 register_specialize(local_erf_minus_one)
 
+# Only one of the two rewrites below is needed if a canonicalization is added
+# for sub(x, y) -> add(x, -y) or a specialization for add(x, -y) -> sub(x, y)
 # 1-erfc(x) => erf(x)
 local_one_minus_erfc = PatternSub(
     (sub, 1, (erfc, "x")),
@@ -2601,7 +2588,7 @@ local_one_minus_erfc = PatternSub(
     allow_multiple_clients=True,
     name="local_one_minus_erfc",
     tracks=[erfc],
-    get_nodes=get_clients,
+    get_nodes=get_clients_at_depth1,
 )
 register_canonicalize(local_one_minus_erfc)
 register_stabilize(local_one_minus_erfc)
@@ -2613,38 +2600,11 @@ local_one_minus_erfc2 = PatternSub(
     allow_multiple_clients=True,
     name="local_one_minus_erfc2",
     tracks=[erfc],
-    get_nodes=get_clients2,
+    get_nodes=get_clients_at_depth2,
 )
 register_canonicalize(local_one_minus_erfc2)
 register_stabilize(local_one_minus_erfc2)
 register_specialize(local_one_minus_erfc2)
-
-local_one_minus_erfc3 = PatternSub(
-    (add, 1, (mul, -1, (erfc, "x"))),
-    (erf, "x"),
-    allow_multiple_clients=True,
-    name="local_one_minus_erfc3",
-    tracks=[erfc],
-    get_nodes=get_clients2,
-)
-register_canonicalize(local_one_minus_erfc3)
-register_stabilize(local_one_minus_erfc3)
-register_specialize(local_one_minus_erfc3)
-
-# 1+(-erfc(x)) => erf(x) This is a different graph then the previous as
-# the canonicalize don't work completly
-local_one_add_neg_erfc = PatternSub(
-    (add, 1, (neg, (erfc, "x"))),
-    (erf, "x"),
-    allow_multiple_clients=True,
-    name="local_one_add_neg_erfc",
-    tracks=[erfc],
-    get_nodes=get_clients2,
-)
-
-register_canonicalize(local_one_add_neg_erfc)
-register_stabilize(local_one_add_neg_erfc)
-register_specialize(local_one_add_neg_erfc)
 
 # (-1)+erfc(-x)=>erf(x)
 local_erf_neg_minus_one = PatternSub(
@@ -2653,24 +2613,11 @@ local_erf_neg_minus_one = PatternSub(
     allow_multiple_clients=True,
     name="local_erf_neg_minus_one",
     tracks=[erfc],
-    get_nodes=get_clients,
+    get_nodes=get_clients_at_depth1,
 )
 register_canonicalize(local_erf_neg_minus_one)
 register_stabilize(local_erf_neg_minus_one)
 register_specialize(local_erf_neg_minus_one)
-
-# (-1)+erfc(-1*x)=>erf(x)
-local_erf_neg_minus_one2 = PatternSub(
-    (add, -1, (erfc, (mul, -1, "x"))),
-    (erf, "x"),
-    allow_multiple_clients=True,
-    name="local_erf_neg_minus_one2",
-    tracks=[erfc],
-    get_nodes=get_clients,
-)
-register_canonicalize(local_erf_neg_minus_one2)
-register_stabilize(local_erf_neg_minus_one2)
-register_specialize(local_erf_neg_minus_one2)
 
 
 @register_stabilize
@@ -2681,7 +2628,7 @@ def local_log_erfc(fgraph, node):
 
     log(erfc(x)) => when x>threshold,
                 -x**2-log(x)-.5*log(pi)+log(1-1/(2*x**2)+3/(4*x**4)-15/(8*x**6))
-    for float64: threshold=26.641747557 was choosed with:
+    for float64: threshold=26.641747557 was chosen with:
     [(i,numpy.log(scipy.special.erfc(numpy.asarray([i],dtype='float64'))))
     for i in numpy.arange(26.641747557,26.6417475571,.00000000001)]
     for float32: threshold=10.0541949, [(i,numpy.log(scipy.special.erfc(
@@ -2729,7 +2676,7 @@ def local_grad_log_erfc_neg(fgraph, node):
     for float64: threshold=26.63 see at the end of the fct for the explanation
     for float32: threshold=9.3 see at the end of the fct for the explanation
 
-    TODO: remove the contraint that there are only 2 inputs to exp(x**2)
+    TODO: remove the constraint that there are only 2 inputs to exp(x**2)
         is the second.
     TODO: at the test point 10 in float32, there is instability in the original
         value. The original gives -30.0, the stab -20.1 and in float64 -18.1.
@@ -2903,7 +2850,7 @@ def local_add_mul_fusion(fgraph, node):
     It is better to fuse add/mul that way then in a Composite node as
     this make the inner graph of the Composite smaller. This allow to
     put more computation in a Composite before hitting the max
-    recusion limit when pickling Composite.
+    recursion limit when pickling Composite.
 
     """
     if not isinstance(node.op, Elemwise) or not isinstance(
@@ -2955,3 +2902,668 @@ fuse_seqopt.register(
     "fast_run",
     "fusion",
 )
+
+
+def _skip_mul_1(r):
+    if r.owner and r.owner.op == mul:
+        not_is_1 = [i for i in r.owner.inputs if not _is_1(i)]
+        if len(not_is_1) == 1:
+            return not_is_1[0]
+
+
+def _is_1(expr):
+    """
+
+    Returns
+    -------
+    bool
+        True iff expr is a constant close to 1.
+
+    """
+    try:
+        v = get_scalar_constant_value(expr)
+        return np.allclose(v, 1)
+    except NotScalarConstantError:
+        return False
+
+
+logsigm_to_softplus = PatternSub(
+    (log, (sigmoid, "x")),
+    (neg, (softplus, (neg, "x"))),
+    allow_multiple_clients=True,
+    values_eq_approx=values_eq_approx_remove_inf,
+    skip_identities_fn=_skip_mul_1,
+    tracks=[sigmoid],
+    get_nodes=get_clients_at_depth1,
+)
+log1msigm_to_softplus = PatternSub(
+    (log, (sub, dict(pattern="y", constraint=_is_1), (sigmoid, "x"))),
+    (neg, (softplus, "x")),
+    allow_multiple_clients=True,
+    values_eq_approx=values_eq_approx_remove_inf,
+    skip_identities_fn=_skip_mul_1,
+    tracks=[sigmoid],
+    get_nodes=get_clients_at_depth2,
+)
+log1pexp_to_softplus = PatternSub(
+    (log1p, (exp, "x")),
+    (softplus, "x"),
+    values_eq_approx=values_eq_approx_remove_inf,
+    allow_multiple_clients=True,
+)
+log1p_neg_sigmoid = PatternSub(
+    (log1p, (neg, (sigmoid, "x"))),
+    (neg, (softplus, "x")),
+    values_eq_approx=values_eq_approx_remove_inf,
+    allow_multiple_clients=True,
+    tracks=[sigmoid],
+    get_nodes=get_clients_at_depth2,
+)
+
+register_stabilize(logsigm_to_softplus, name="logsigm_to_softplus")
+register_stabilize(log1msigm_to_softplus, name="log1msigm_to_softplus")
+register_stabilize(log1pexp_to_softplus, name="log1pexp_to_softplus")
+register_stabilize(log1p_neg_sigmoid, name="log1p_neg_sigmoid")
+register_specialize(log1p_neg_sigmoid, name="log1p_neg_sigmoid")
+
+
+def is_1pexp(t, only_process_constants=True):
+    """
+
+    Returns
+    -------
+    object
+        If 't' is of the form (1+exp(x)), return (False, x).
+        Else return None.
+
+    """
+    if t.owner and t.owner.op == add:
+        scalars, scalar_inputs, nonconsts = scalarconsts_rest(
+            t.owner.inputs, only_process_constants=only_process_constants
+        )
+        # scalar_inputs are potentially dimshuffled and filled with scalars
+        if len(nonconsts) == 1:
+            maybe_exp = nonconsts[0]
+            if maybe_exp.owner and maybe_exp.owner.op == exp:
+                # Verify that the constant terms sum to 1.
+                if scalars:
+                    scal_sum = scalars[0]
+                    for s in scalars[1:]:
+                        scal_sum = scal_sum + s
+                    if np.allclose(scal_sum, 1):
+                        return False, maybe_exp.owner.inputs[0]
+    return None
+
+
+def is_exp(var):
+    """
+    Match a variable with either of the `exp(x)` or `-exp(x)` patterns.
+
+    Parameters
+    ----------
+    var
+        The Variable to analyze.
+
+    Returns
+    -------
+    tuple
+        A pair (b, x) with `b` a boolean set to True if `var` is of the
+        form `-exp(x)` and False if `var` is of the form `exp(x)`. If `var`
+        cannot be cast into either form, then return `None`.
+
+    """
+    _neg = False
+    neg_info = is_neg(var)
+    if neg_info is not None:
+        _neg = True
+        var = neg_info
+    if var.owner and var.owner.op == exp:
+        return _neg, var.owner.inputs[0]
+
+
+def is_mul(var):
+    """
+    Match a variable with `x * y * z * ...`.
+
+    Parameters
+    ----------
+    var
+        The Variable to analyze.
+
+    Returns
+    -------
+    object
+        A list [x, y, z, ...] if `var` is of the form `x * y * z * ...`,
+        or None if `var` cannot be cast into this form.
+
+    """
+    if var.owner and var.owner.op == mul:
+        return var.owner.inputs
+    else:
+        return None
+
+
+def partition_num_or_denom(r, f):
+    if r.owner and r.owner.op == mul:
+        a = r.owner.inputs
+    else:
+        a = [r]
+
+    # ugly 2.4-compatible thing
+    f_terms = []
+    _neg = False
+    rest = []
+    for t in a:
+        f_t = f(t)
+        if f_t is None:
+            rest.append(t)
+        else:
+            neg_t, f_t = f_t
+            f_terms.append(f_t)
+            _neg ^= neg_t  # bit flip if neg_t is true
+    return f_terms, rest, _neg
+
+
+def is_neg(var):
+    """
+    Match a variable with the `-x` pattern.
+
+    Parameters
+    ----------
+    var
+        The Variable to analyze.
+
+    Returns
+    -------
+    object
+        `x` if `var` is of the form `-x`, or None otherwise.
+
+    """
+    var_node = var.owner
+    if not var_node:
+        return None
+    # First match against `neg`.
+    if var_node.op == neg:
+        return var_node.inputs[0]
+    # Then match against a multiplication by -1.
+    if var_node.op == mul and len(var_node.inputs) >= 2:
+        for idx, mul_input in enumerate(var_node.inputs):
+            try:
+                constant = get_scalar_constant_value(mul_input)
+                is_minus_1 = np.allclose(constant, -1)
+            except NotScalarConstantError:
+                is_minus_1 = False
+            if is_minus_1:
+                # Found a multiplication by -1.
+                if len(var_node.inputs) == 2:
+                    # Only return the other input.
+                    return var_node.inputs[1 - idx]
+                else:
+                    # Return the multiplication of all other inputs.
+                    return mul(*(var_node.inputs[0:idx] + var_node.inputs[idx + 1 :]))
+    # No match.
+    return None
+
+
+@register_stabilize
+@local_optimizer([true_div])
+def local_exp_over_1_plus_exp(fgraph, node):
+    """
+    exp(x)/(1+exp(x)) -> sigm(x)
+    c/(1+exp(x)) -> c*sigm(-x)
+
+    """
+    # this optimization should be done for numerical stability
+    # so we don't care to check client counts
+    if node.op == true_div:
+
+        # find all the exp() terms in the numerator
+        num, denom = node.inputs
+        num_exp_x, num_rest, num_neg = partition_num_or_denom(num, is_exp)
+        denom_1pexp, denom_rest, denom_neg = partition_num_or_denom(denom, is_1pexp)
+
+        sigmoids = []
+        for t in denom_1pexp:
+            if t in num_exp_x:
+                # case: exp(x) /(1+exp(x))
+                sigmoids.append(sigmoid(t))
+                del num_exp_x[num_exp_x.index(t)]
+            else:
+                # case: 1/(1+exp(x))
+                sigmoids.append(sigmoid(-t))
+            copy_stack_trace(node.outputs[0], sigmoids[-1])
+
+        if not sigmoids:  # we didn't find any.  abort
+            return
+        # put the new numerator together
+        new_num = sigmoids + [exp(t) for t in num_exp_x] + num_rest
+        if len(new_num) == 1:
+            new_num = new_num[0]
+        else:
+            new_num = mul(*new_num)
+
+        if num_neg ^ denom_neg:
+            new_num = -new_num
+
+        copy_stack_trace(num, new_num)
+
+        if len(denom_rest) == 0:
+            return [new_num]
+        elif len(denom_rest) == 1:
+            out = new_num / denom_rest[0]
+        else:
+            out = new_num / mul(*denom_rest)
+
+        copy_stack_trace(node.outputs[0], out)
+        return [out]
+
+
+def parse_mul_tree(root):
+    """
+    Parse a tree of multiplications starting at the given root.
+
+    Parameters
+    ----------
+    root
+        The variable at the root of the tree.
+
+    Returns
+    -------
+    object
+        A tree where each non-leaf node corresponds to a multiplication
+        in the computation of `root`, represented by the list of its inputs.
+        Each input is a pair [n, x] with `n` a boolean value indicating whether
+        sub-tree `x` should be negated.
+
+    Examples
+    --------
+
+    .. code-block:: python
+
+        x * y               -> [False, [[False, x], [False, y]]]
+        -(x * y)            -> [True, [[False, x], [False, y]]]
+        -x * y              -> [False, [[True, x], [False, y]]]
+        -x                  -> [True, x]
+        (x * y) * -z        -> [False, [[False, [[False, x], [False, y]]],
+                                        [True, z]]]
+
+    """
+    # Is it a multiplication?
+    mul_info = is_mul(root)
+    if mul_info is None:
+        # Is it a negation?
+        neg_info = is_neg(root)
+        if neg_info is None:
+            # Keep the root "as is".
+            return [False, root]
+        else:
+            # Recurse, inverting the negation.
+            neg, sub_tree = parse_mul_tree(neg_info)
+            return [not neg, sub_tree]
+    else:
+        # Recurse into inputs.
+        return [False, list(map(parse_mul_tree, mul_info))]
+
+
+def replace_leaf(arg, leaves, new_leaves, op, neg):
+    """
+    Attempt to replace a leaf of a multiplication tree.
+
+    We search for a leaf in `leaves` whose argument is `arg`, and if we find
+    one, we remove it from `leaves` and add to `new_leaves` a leaf with
+    argument `arg` and variable `op(arg)`.
+
+    Parameters
+    ----------
+    arg
+        The argument of the leaf we are looking for.
+    leaves
+        List of leaves to look into. Each leaf should be a pair
+        (x, l) with `x` the argument of the Op found in the leaf, and `l` the
+        actual leaf as found in a multiplication tree output by `parse_mul_tree`
+        (i.e. a pair [boolean, variable]).
+    new_leaves
+        If a replacement occurred, then the leaf is removed from `leaves`
+        and added to the list `new_leaves` (after being modified by `op`).
+    op
+        A function that, when applied to `arg`, returns the Variable
+        we want to replace the original leaf variable with.
+    neg : bool
+        If True, then the boolean value associated to the leaf should
+        be swapped. If False, then this value should remain unchanged.
+
+    Returns
+    -------
+    bool
+        True if a replacement occurred, or False otherwise.
+
+    """
+    for idx, x in enumerate(leaves):
+        if x[0] == arg:
+            x[1][0] ^= neg
+            x[1][1] = op(arg)
+            leaves.pop(idx)
+            new_leaves.append(x)
+            return True
+    return False
+
+
+def simplify_mul(tree):
+    """
+    Simplify a multiplication tree.
+
+    Parameters
+    ----------
+    tree
+        A multiplication tree (as output by `parse_mul_tree`).
+
+    Returns
+    -------
+    object
+        A multiplication tree computing the same output as `tree` but without
+        useless multiplications by 1 nor -1 (identified by leaves of the form
+        [False, None] or [True, None] respectively). Useless multiplications
+        (with less than two inputs) are also removed from the tree.
+
+    """
+    neg, inputs = tree
+    if isinstance(inputs, list):
+        # Recurse through inputs.
+        s_inputs = []
+        for s_i in map(simplify_mul, inputs):
+            if s_i[1] is None:
+                # Multiplication by +/-1.
+                neg ^= s_i[0]
+            else:
+                s_inputs.append(s_i)
+        if not s_inputs:
+            # The multiplication is empty.
+            rval = [neg, None]
+        elif len(s_inputs) == 1:
+            # The multiplication has a single input.
+            s_inputs[0][0] ^= neg
+            rval = s_inputs[0]
+        else:
+            rval = [neg, s_inputs]
+    else:
+        rval = tree
+    # print 'simplify_mul: %s -> %s' % (tree, rval)
+    return rval
+
+
+def compute_mul(tree):
+    """
+    Compute the Variable that is the output of a multiplication tree.
+
+    This is the inverse of the operation performed by `parse_mul_tree`, i.e.
+    compute_mul(parse_mul_tree(tree)) == tree.
+
+    Parameters
+    ----------
+    tree
+        A multiplication tree (as output by `parse_mul_tree`).
+
+    Returns
+    -------
+    object
+        A Variable that computes the multiplication represented by the tree.
+
+    """
+    neg, inputs = tree
+    if inputs is None:
+        raise AssertionError(
+            "Function `compute_mul` found a missing leaf, did you forget to "
+            "call `simplify_mul` on the tree first?"
+        )
+    elif isinstance(inputs, list):
+        # Recurse through inputs.
+        rval = mul(*list(map(compute_mul, inputs)))
+    else:
+        rval = inputs
+    if neg:
+        rval = -rval
+    return rval
+
+
+def perform_sigm_times_exp(
+    tree,
+    exp_x=None,
+    exp_minus_x=None,
+    sigm_x=None,
+    sigm_minus_x=None,
+    parent=None,
+    child_idx=None,
+    full_tree=None,
+):
+    """
+    Core processing of the `local_sigm_times_exp` optimization.
+
+    This recursive function operates on a multiplication tree as output by
+    `parse_mul_tree`. It walks through the tree and modifies it in-place
+    by replacing matching pairs (exp, sigmoid) with the desired optimized
+    version.
+
+    Parameters
+    ----------
+    tree
+        The sub-tree to operate on.
+    exp_x
+        List of arguments x so that `exp(x)` exists somewhere in the whole
+        multiplication tree. Each argument is a pair (x, leaf) with `x` the
+        argument of the exponential, and `leaf` the corresponding leaf in the
+        multiplication tree (of the form [n, exp(x)] -- see `parse_mul_tree`).
+        If None, this argument is initialized to an empty list.
+    exp_minus_x
+        Similar to `exp_x`, but for `exp(-x)`.
+    sigm_x
+        Similar to `exp_x`, but for `sigmoid(x)`.
+    sigm_minus_x
+        Similar to `exp_x`, but for `sigmoid(-x)`.
+    parent
+        Parent of `tree` (None if `tree` is the global root).
+    child_idx
+        Index of `tree` in its parent's inputs (None if `tree` is the global
+        root).
+    full_tree
+        The global multiplication tree (should not be set except by recursive
+        calls to this function). Used for debugging only.
+
+    Returns
+    -------
+    bool
+        True if a modification was performed somewhere in the whole multiplication
+        tree, or False otherwise.
+
+    """
+    if exp_x is None:
+        exp_x = []
+    if exp_minus_x is None:
+        exp_minus_x = []
+    if sigm_x is None:
+        sigm_x = []
+    if sigm_minus_x is None:
+        sigm_minus_x = []
+    if full_tree is None:
+        full_tree = tree
+    if False:  # Debug code.
+        print("<perform_sigm_times_exp>")
+        print(f"  full_tree   = {full_tree}")
+        print(f"  tree        = {tree}")
+        print(f"  exp_x       = {exp_x}")
+        print(f"  exp_minus_x = {exp_minus_x}")
+        print(f"  sigm_x      = {sigm_x}")
+        print(f"  sigm_minus_x= {sigm_minus_x}")
+    neg, inputs = tree
+    if isinstance(inputs, list):
+        # Recurse through inputs of the multiplication.
+        rval = False
+        for sub_idx, sub_tree in enumerate(inputs):
+            rval |= perform_sigm_times_exp(
+                tree=sub_tree,
+                parent=tree,
+                child_idx=sub_idx,
+                exp_x=exp_x,
+                exp_minus_x=exp_minus_x,
+                sigm_x=sigm_x,
+                sigm_minus_x=sigm_minus_x,
+                full_tree=full_tree,
+            )
+        return rval
+    else:
+        # Reached a leaf: if it is an exponential or a sigmoid, then we
+        # first attempt to find a match in leaves already visited.
+        # If there is such a match, we modify the already-visited leaf
+        # accordingly: for instance if we visited a leaf sigmoid(x), then
+        # find later a -exp(-x), we replace the previous leaf by
+        # -sigmoid(-x) and remove the -exp(-x) from the tree.
+        # If no match is found, then we register this leaf so that it can
+        # be found later while walking the tree.
+        var = inputs
+        keep_it = False
+        exp_info = is_exp(var)
+        if exp_info is not None:
+            exp_neg, exp_arg = exp_info
+            neg ^= exp_neg
+            neg_arg = is_neg(exp_arg)
+            if neg_arg is None:
+                if not replace_leaf(exp_arg, sigm_minus_x, sigm_x, sigmoid, neg):
+                    exp_x.append((exp_arg, tree))
+                    keep_it = True
+            else:
+                if not replace_leaf(
+                    neg_arg, sigm_x, sigm_minus_x, lambda x: sigmoid(-x), neg
+                ):
+                    exp_minus_x.append((neg_arg, tree))
+                    keep_it = True
+        elif var.owner and var.owner.op == sigmoid:
+            sigm_arg = var.owner.inputs[0]
+            neg_arg = is_neg(sigm_arg)
+            if neg_arg is None:
+                if not replace_leaf(
+                    sigm_arg, exp_minus_x, sigm_minus_x, lambda x: sigmoid(-x), neg
+                ):
+                    sigm_x.append((sigm_arg, tree))
+                    keep_it = True
+            else:
+                if not replace_leaf(neg_arg, exp_x, sigm_x, sigmoid, neg):
+                    sigm_minus_x.append((neg_arg, tree))
+                    keep_it = True
+        else:
+            # It is not an exponential nor a sigmoid.
+            keep_it = True
+        if not keep_it:
+            # Delete this leaf, i.e. replace it by [False, None] (corresponding
+            # to a multiplication by 1).
+            assert parent is not None
+            parent[1][child_idx] = [False, None]
+        return not keep_it
+
+
+@register_stabilize
+@local_optimizer([mul])
+def local_sigm_times_exp(fgraph, node):
+    """
+    exp(x) * sigm(-x) -> sigm(x)
+    exp(-x) * sigm(x) -> sigm(-x)
+
+    todo: add stack traces to the intermediate variables
+    """
+    # Bail early if it is not a multiplication.
+    if node.op != mul:
+        return None
+    # Obtain tree of multiplications starting at this node.
+    mul_tree = parse_mul_tree(node.outputs[0])
+    # Perform core optimization.
+    did_something = perform_sigm_times_exp(mul_tree)
+    if not did_something:
+        # No change.
+        return None
+    # The optimization may have introduced multiplications by 1 in the tree:
+    # get rid of them.
+    mul_tree = simplify_mul(mul_tree)
+    # Recompute final output based on the updated tree.
+    out = compute_mul(mul_tree)
+    # keep the stack trace
+    copy_stack_trace(node.outputs[0], out)
+    return [out]
+
+
+@register_stabilize
+@local_optimizer([reciprocal])
+def local_reciprocal_1_plus_exp(fgraph, node):
+    """``reciprocal(1+exp(x)) -> sigm(-x)``
+
+    TODO: This is redundant; we can just decided on *one* canonical form
+    for division (e.g. either `true_div` or `reciprocal`) and have this
+    taken care of with existing rewrites.
+    """
+    # this optimization should be done for numerical stability
+    # so we don't care to check client counts
+    if node.op == reciprocal:
+        reciprocal_arg = node.inputs[0]
+        if reciprocal_arg.owner and reciprocal_arg.owner.op == add:
+            scalars_, scalar_inputs, nonconsts = scalarconsts_rest(
+                reciprocal_arg.owner.inputs, only_process_constants=True
+            )
+            # scalar_inputs are potentially dimshuffled and fill'd scalars
+            if len(nonconsts) == 1:
+                if nonconsts[0].owner and nonconsts[0].owner.op == exp:
+                    if scalars_ and np.allclose(np.sum(scalars_), 1):
+                        out = fill_chain(
+                            sigmoid(neg(nonconsts[0].owner.inputs[0])),
+                            scalar_inputs,
+                        )
+                        # keep combined stack traces of
+                        #     exp(x):           nonconsts[0],
+                        #     1 + exp(x):       reciprocal_arg,
+                        #     1 / (1 + exp(x)): node.outputs[0]
+                        copy_stack_trace(
+                            [nonconsts[0], reciprocal_arg, node.outputs[0]], out
+                        )
+                        return out
+
+
+# 1 - sigmoid(x) -> sigmoid(-x)
+local_1msigmoid = PatternSub(
+    (sub, dict(pattern="y", constraint=_is_1), (sigmoid, "x")),
+    (sigmoid, (neg, "x")),
+    tracks=[sigmoid],
+    get_nodes=get_clients_at_depth1,
+    name="local_1msigmoid",
+)
+register_stabilize(local_1msigmoid)
+register_specialize(local_1msigmoid)
+
+
+log1pmexp_to_log1mexp = PatternSub(
+    (log1p, (neg, (exp, "x"))),
+    (log1mexp, "x"),
+    allow_multiple_clients=True,
+)
+register_stabilize(log1pmexp_to_log1mexp, name="log1pmexp_to_log1mexp")
+
+
+# log(sigmoid(x) / (1 - sigmoid(x))) -> x
+# i.e logit(sigmoid(x)) -> x
+local_logit_sigmoid = PatternSub(
+    (log, (true_div, (sigmoid, "x"), (sub, 1, (sigmoid, "x")))),
+    "x",
+    tracks=[sigmoid],
+    get_nodes=get_clients_at_depth2,
+    allow_multiple_clients=True,
+    name="local_logit_sigmoid",
+)
+register_canonicalize(local_logit_sigmoid)
+register_specialize(local_logit_sigmoid)
+
+
+# sigmoid(log(x / (1-x)) -> x
+# i.e., sigmoid(logit(x)) -> x
+local_sigmoid_logit = PatternSub(
+    (sigmoid, (log, (true_div, "x", (sub, 1, "x")))),
+    "x",
+    allow_multiple_clients=True,
+    name="local_sigmoid_logit",
+)
+register_canonicalize(local_sigmoid_logit)
+register_specialize(local_sigmoid_logit)

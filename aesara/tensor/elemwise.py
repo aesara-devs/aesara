@@ -20,7 +20,9 @@ from aesara.scalar.basic import Scalar
 from aesara.scalar.basic import bool as scalar_bool
 from aesara.scalar.basic import identity as scalar_identity
 from aesara.scalar.basic import transfer_type, upcast
+from aesara.tensor import _get_vector_length, as_tensor_variable
 from aesara.tensor import elemwise_cgen as cgen
+from aesara.tensor import get_vector_length
 from aesara.tensor.type import (
     TensorType,
     continuous_dtypes,
@@ -182,8 +184,8 @@ class DimShuffle(ExternalCOp):
                 else:
                     # we cannot drop non-broadcastable dimensions
                     raise ValueError(
-                        "You cannot drop a non-broadcastable dimension.",
-                        (input_broadcastable, new_order),
+                        "You cannot drop a non-broadcastable dimension:",
+                        f" {input_broadcastable}, {new_order}",
                     )
 
         # this is the list of the original dimensions that we keep
@@ -204,7 +206,7 @@ class DimShuffle(ExternalCOp):
             super().__init__([self.c_func_file], self.c_func_name)
 
     def make_node(self, _input):
-        input = aesara.tensor.basic.as_tensor_variable(_input)
+        input = as_tensor_variable(_input)
         ib = tuple(input.type.broadcastable)
         if not ib == self.input_broadcastable:
             if len(ib) != len(self.input_broadcastable):
@@ -274,10 +276,9 @@ class DimShuffle(ExternalCOp):
     def R_op(self, inputs, eval_points):
         if None in eval_points:
             return [None]
-        return self(*eval_points, **dict(return_list=True))
+        return self(*eval_points, return_list=True)
 
     def grad(self, inp, grads):
-        from aesara.tensor.basic import as_tensor_variable
 
         (x,) = inp
         (gz,) = grads
@@ -482,7 +483,7 @@ second dimension
         is left-completed to the greatest number of dimensions with 1s
         using DimShuffle.
         """
-        inputs = list(map(aesara.tensor.basic.as_tensor_variable, inputs))
+        inputs = [as_tensor_variable(i) for i in inputs]
         out_dtypes, out_broadcastables, inputs = self.get_output_info(
             DimShuffle, *inputs
         )
@@ -504,7 +505,7 @@ second dimension
             return self.name
 
     def R_op(self, inputs, eval_points):
-        outs = self(*inputs, **dict(return_list=True))
+        outs = self(*inputs, return_list=True)
         rval = [None for x in outs]
         # For each output
         for idx, out in enumerate(outs):
@@ -792,8 +793,10 @@ second dimension
 
         if nout == 1:
             variables = [variables]
-        i = 0
-        for variable, storage, nout in zip(variables, output_storage, node.outputs):
+
+        for i, (variable, storage, nout) in enumerate(
+            zip(variables, output_storage, node.outputs)
+        ):
             if getattr(variable, "dtype", "") == "object":
                 # Since numpy 1.6, function created with numpy.frompyfunc
                 # always return an ndarray with dtype object
@@ -803,6 +806,7 @@ second dimension
                 odat = inputs[self.inplace_pattern[i]]
                 odat[...] = variable
                 storage[0] = odat
+
             # Sometimes NumPy return a Python type.
             # Some Aesara op return a different dtype like floor, ceil,
             # trunc, eq, ...
@@ -821,7 +825,6 @@ second dimension
                 storage[0] = variable.copy()
             else:
                 storage[0] = variable
-            i += 1
 
     def infer_shape(self, fgraph, node, i_shapes):
         rval = []
@@ -1143,7 +1146,7 @@ second dimension
                                 % locals()
                             )
                     if self.openmp:
-                        contig += """#pragma omp parallel for if(n>={int(config.openmp_elemwise_minsize)})
+                        contig += f"""#pragma omp parallel for if(n>={int(config.openmp_elemwise_minsize)})
                         """
                     contig += (
                         """
@@ -1311,8 +1314,6 @@ class CAReduce(COp):
         return input_dtype
 
     def make_node(self, input):
-        from aesara.tensor.basic import as_tensor_variable
-
         input = as_tensor_variable(input)
         inp_dims = input.type.ndim
         inp_bdcast = input.type.broadcastable
@@ -1756,7 +1757,7 @@ class CAReduceDtype(CAReduce):
         # We need to redefine make_node so that, if self.dtype is None,
         # we can infer what dtype should be, and create a node from an Op
         # of the appropriate dtype.
-        input = aesara.tensor.basic.as_tensor_variable(input)
+        input = as_tensor_variable(input)
         dtype = self._output_dtype(input.dtype)
         acc_dtype = self._acc_dtype(input.dtype)
 
@@ -1840,3 +1841,11 @@ def scalar_elemwise(*symbol, nfunc=None, nin=None, nout=None, symbolname=None):
         return construct(symbol[0])
     else:
         return construct
+
+
+@_get_vector_length.register(Elemwise)
+def _get_vector_length_Elemwise(op, var):
+    if len(var.owner.inputs) == 1 and len(var.owner.outputs) == 1:
+        return get_vector_length(var.owner.inputs[0])
+
+    raise ValueError(f"Length of {var} cannot be determined")

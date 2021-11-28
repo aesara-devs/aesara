@@ -135,13 +135,10 @@ class TestBroadcast:
     linkers = [PerformLinker, CLinker]
 
     def rand_val(self, shp):
-        return np.asarray(np.random.rand(*shp), dtype=aesara.config.floatX)
+        return np.asarray(np.random.random(shp), dtype=aesara.config.floatX)
 
     def rand_cval(self, shp):
-        return np.asarray(np.random.rand(*shp), dtype=aesara.config.floatX)
-
-    def setup_method(self):
-        unittest_tools.seed_rng()
+        return np.asarray(np.random.random(shp), dtype=aesara.config.floatX)
 
     def with_linker(self, linker, op, type, rand_val):
         for xsh, ysh in [
@@ -356,7 +353,7 @@ class TestCAReduce(unittest_tools.InferShapeTester):
                 tosum = list(range(len(xsh)))
 
             f = aesara.function([x], e, mode=mode)
-            xv = np.asarray(np.random.rand(*xsh))
+            xv = np.asarray(np.random.random(xsh))
 
             if dtype not in discrete_dtypes:
                 xv = np.asarray(xv, dtype=dtype)
@@ -561,7 +558,7 @@ class TestCAReduce(unittest_tools.InferShapeTester):
                 x = pre_scalar_op(x)
             if tosum is None:
                 tosum = list(range(len(xsh)))
-            xv = np.asarray(np.random.rand(*xsh), dtype=dtype)
+            xv = np.asarray(np.random.random(xsh), dtype=dtype)
             d = {}
             if pre_scalar_op is not None:
                 xv = x.eval({x.owner.inputs[0]: xv})
@@ -578,7 +575,7 @@ class TestCAReduce(unittest_tools.InferShapeTester):
 
 class TestBitOpReduceGrad:
     def setup_method(self):
-        self.rng = np.random.RandomState(unittest_tools.fetch_seed())
+        self.rng = np.random.default_rng(unittest_tools.fetch_seed())
 
     def test_all_grad(self):
         x = bmatrix("x")

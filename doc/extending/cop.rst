@@ -1,0 +1,377 @@
+.. _cop:
+
+=====================================
+Implementing the arithmetic COps in C
+=====================================
+
+Now that we have set up our ``double`` type properly to allow C
+implementations for operations that work on it, all we have to do now
+is to actually define these operations in C.
+
+
+How does it work?
+=================
+
+Before a C :ref:`COp` is executed, the variables related to each of its
+inputs will be declared and will be filled appropriately, either from
+an input provided by the end user (using `c_extract`) or it might simply
+have been calculated by another operation. For each of the outputs,
+the variables associated to them will be declared and initialized.
+
+The operation then has to compute what it needs to using the
+input variables and place the variables in the output variables.
+
+
+What needs to be defined
+========================
+
+There are less methods to define for a `COp` than for a `Type`:
+
+.. class:: COp
+
+    .. method:: c_code(node, name, input_names, output_names, sub)
+
+       This must return C code that carries the computation we want to
+       do.
+
+       `sub` is a dictionary of extras parameters to the c_code
+       method. It contains the following values:
+
+       ``sub['fail']``
+
+          A string of code that you should execute (after ensuring
+          that a python exception is set) if your C code needs to
+          raise an exception.
+
+       ``sub['params']``
+
+          (optional) The name of the variable which holds the context
+          for the node.  This will only appear if the op has requested
+          a context by having a :meth:`get_params()` method that return
+          something other than None.
+
+    .. method:: c_code_cleanup(node, name, input_names, output_names, sub)
+
+       This must return C code that cleans up whatever c_code
+       allocated and that we must free.
+
+       *Default:* The default behavior is to do nothing.
+
+    .. method:: c_headers([c_compiler])
+
+       Returns a list of headers to include in the file. 'Python.h' is
+       included by default so you don't need to specify it.  Also all
+       of the headers required by the Types involved (inputs and
+       outputs) will also be included.
+
+       The `c_compiler` [#2v]_ parameter is the C compiler that will
+       be used to compile the code for the node. You may get multiple
+       calls with different C compilers.
+
+    .. method:: c_header_dirs([c_compiler])
+
+       Returns a list of directories to search for headers (arguments
+       to -I).
+
+       The `c_compiler` [#2v]_ parameter is the C compiler that will
+       be used to compile the code for the node. You may get multiple
+       calls with different C compilers.
+
+    .. method:: c_libraries([c_compiler])
+
+       Returns a list of library names that your op needs to link to.
+       All ops are automatically linked with 'python' and the
+       libraries their types require. (arguments to -l)
+
+       The `c_compiler` [#2v]_ parameter is the C compiler that will
+       be used to compile the code for the node. You may get multiple
+       calls with different C compilers.
+
+    .. method:: c_lib_dirs([c_compiler])
+
+       Returns a list of directory to search for libraries (arguments
+       to -L).
+
+       The `c_compiler` [#2v]_ parameter is the C compiler that will
+       be used to compile the code for the node. You may get multiple
+       calls with different C compilers.
+
+    .. method:: c_compile_args([c_compiler])
+
+       Allows to specify additional arbitrary arguments to the C
+       compiler.  This is not usually required.
+
+       The `c_compiler` [#2v]_ parameter is the C compiler that will
+       be used to compile the code for the node. You may get multiple
+       calls with different C compilers.
+
+    .. method:: c_no_compile_args([c_compiler])
+
+       Returns a list of C compiler arguments that are forbidden when
+       compiling this Op.
+
+       The `c_compiler` [#2v]_ parameter is the C compiler that will
+       be used to compile the code for the node. You may get multiple
+       calls with different C compilers.
+
+    .. method:: c_init_code()
+
+       Allows you to specify code that will be executed once when the
+       module is initialized, before anything else is executed.  This
+       is for code that will be executed once per Op.
+
+    .. method:: c_init_code_apply(node, name)
+
+       Allows you to specify code that will be executed once when the
+       module is initialized, before anything else is executed and is
+       specialized for a particular `Apply` of an :ref:`Op`.
+
+    .. method:: c_init_code_struct(node, name, sub)
+
+       Allows you to specify code that will be inserted in the struct
+       constructor of the Op.  This is for code which should be
+       executed once per thunk (Apply node, more or less).
+
+       `sub` is a dictionary of extras parameters to the
+       c_code_init_code_struct method. It contains the following
+       values:
+
+       ``sub['fail']``
+
+          A string of code that you should execute (after ensuring
+          that a python exception is set) if your C code needs to
+          raise an exception.
+
+       ``sub['params']``
+
+          (optional) The name of the variable which holds the context
+          for the node.  This will only appear if the op has requested
+          a context by having a :meth:`get_params()` method that return
+          something other than None.
+
+    .. method:: c_support_code()
+
+       Allows you to specify helper functions/structs (in a string or a list of string) that the
+       :ref:`op` needs.  That code will be reused for each apply of
+       this op. It will be inserted at global scope.
+
+    .. method:: c_support_code_apply(node, name)
+
+       Allows you to specify helper functions/structs specialized for
+       a particular apply of an :ref:`op`. Use :meth:`c_support_code`
+       if the code is the same for each apply of an op.  It will be
+       inserted at global scope.
+
+    .. method:: c_support_code_struct(node, name)
+
+       Allows you to specify helper functions of variables that will
+       be specific to one particular thunk.  These are inserted at
+       struct scope.
+
+       :note:
+         You cannot specify CUDA kernels in the code returned by this
+         since that isn't supported by CUDA.  You should place your
+         kernels in :meth:`c_support_code()` or
+         :meth:`c_support_code_apply()` and call them from this code.
+
+    .. method:: c_cleanup_code_struct(node, name)
+
+       Allows you to specify code that will be inserted in the struct
+       destructor of the `Op`.  This is for cleaninp up allocations and
+       stuff like this when the thunk is released (when you "free" a
+       compiled function using this op).
+
+    .. method:: infer_shape(fgraph, node, (i0_shapes,i1_shapes,...))
+
+       Allow optimizations to lift the `Shape` `Op` over this `Op`.  An
+       example of why this is good is when we only need the shape of a
+       variable: we will be able to obtain it without computing the
+       variable itself.
+
+       Must return a list where each element is a tuple representing
+       the shape of one output.
+
+       For example, for the matrix-matrix product ``infer_shape`` will
+       have as inputs ``(fgraph, node, ((x0,x1), (y0,y1)))`` and should return
+       ``[(x0, y1)]``. Both the inputs and the return value may be Aesara
+       variables.
+
+    .. method:: c_code_cache_version()
+
+       Must return a tuple of hashable objects like integers. This
+       specifies the version of the code. It is used to cache the
+       compiled code. You MUST change the returned tuple for each
+       change in the code. If you don't want to cache the compiled
+       code return an empty tuple or don't implement it.
+
+    .. method:: c_code_cache_version_apply(node)
+
+       Overrides :meth:`c_code_cache_version` if defined, but
+       otherwise has the same contract.
+
+    .. method:: get_params(node)
+
+       (optional) If defined, should return the runtime params the op
+       needs.  These parameters will be passed to the C code through the
+       variable named in `sub['params']`.  The variable is also
+       available for use in the code returned by
+       :meth:`c_init_code_struct`.  If it returns `None` this is
+       considered the same as if the method was not defined.
+
+       If this method is defined and does not return `None`, then the
+       `Op` *must* have a `params_type` property with the `Type` to use
+       for the params variable.
+
+    .. attribute:: _f16_ok
+
+       (optional) If this attribute is absent or evaluates to `False`,
+       C code will be disabled for the op if any of its inputs or
+       outputs contains float16 data. This is added as a check to make
+       sure we don't compute wrong results since there is no hardware
+       float16 type so special care must be taken to make sure
+       operations are done correctly.
+
+       If you don't intend to deal with float16 data you can leave
+       this undefined.
+
+       This attribute is internal and may go away at any point during
+       development if a better solution is found.
+
+The ``name`` argument is currently given an invalid value, so steer
+away from it. As was the case with `Type`, ``sub['fail']`` provides
+failure code that you *must* use if you want to raise an exception,
+after setting the exception message.
+
+The ``node`` argument is an :ref:`apply` node representing an
+application of the current Op on a list of inputs, producing a list of
+outputs. ``input_names`` and ``output_names`` arguments contain as
+many strings as there are inputs and outputs to the application of the
+Op and they correspond to the ``name`` that is passed to the type of
+each Variable in these lists. For example, if ``node.inputs[0].type ==
+double``, then ``input_names[0]`` is the ``name`` argument passed to
+``double.c_declare`` etc. when the first input is processed by Aesara.
+
+In a nutshell, ``input_names`` and ``output_names`` parameterize the
+names of the inputs your operation needs to use and the outputs it
+needs to put variables into. But this will be clear with the examples.
+
+.. rubric:: Footnotes
+
+.. [#2v] There are actually two versions of this method one with a
+         `c_compiler` parameter and one without. The calling code will
+         try the version with c_compiler and try the version without
+         if it does not work.  Defining both versions is pointless
+         since the one without `c_compiler` will never get called.
+
+         Note that these methods are not specific to a single apply
+         node so they may get called more than once on the same object
+         with different values for c_compiler.
+
+
+Defining the methods
+====================
+
+We will be defining C code for the multiplication `COp` on doubles.
+
+**c_code**
+
+.. testsetup::
+
+   from aesara.graph.op import COp
+   mul = COp()
+
+.. testcode::
+
+   def c_code(node, name, input_names, output_names, sub):
+       x_name, y_name = input_names[0], input_names[1]
+       output_name = output_names[0]
+       return """
+       %(output_name)s = %(x_name)s * %(y_name)s;
+       """ % locals()
+   mul.c_code = c_code
+
+And that's it. As we enter the scope of the C code we are defining in
+the method above, many variables are defined for us. Namely, the
+variables x_name, y_name and output_name are all of the primitive C
+``double`` type and they were declared using the C code returned by
+``double.c_declare``.
+
+Implementing multiplication is as simple as multiplying the two input
+doubles and setting the output double to what comes out of it. If you
+had more than one output, you would just set the variable(s) for
+each output to what they should be.
+
+.. warning::
+   Do *NOT* use C's ``return`` statement to return the variable(s) of
+   the computations. Set the output variables directly as shown
+   above. Aesara will pick them up for you.
+
+
+**c_code_cleanup**
+
+There is nothing to cleanup after multiplying two doubles. Typically,
+you won't need to define this method unless you malloc() some
+temporary storage (which you would free() here) or create temporary
+Python objects (which you would Py_XDECREF() here).
+
+
+Final version
+=============
+
+As before, I tried to organize the code in order to minimize
+repetition. You can check that mul produces the same C code in this
+version that it produces in the code I gave above.
+
+.. testcode::
+
+   from aesara.graph.basic import Apply, Constant
+   from aesara.graph.op import COp
+
+
+   class BinaryDoubleOp(COp):
+
+       __props__ = ("name", "fn", "ccode")
+
+       def __init__(self, name, fn, ccode):
+           self.name = name
+           self.fn = fn
+           self.ccode = ccode
+
+       def make_node(self, x, y):
+           if isinstance(x, (int, float)):
+               x = Constant(double, x)
+           if isinstance(y, (int, float)):
+               y = Constant(double, y)
+           if x.type != double or y.type != double:
+               raise TypeError('%s only works on doubles' % self.name)
+           return Apply(self, [x, y], [double()])
+
+       def perform(self, node, inp, out):
+           x, y = inp
+           z, = out
+           z[0] = self.fn(x, y)
+
+       def __str__(self):
+           return self.name
+
+       def c_code(self, node, name, inp, out, sub):
+           x, y = inp
+           z, = out
+           return self.ccode % locals()
+
+
+   add = BinaryDoubleOp(name='add',
+                        fn=lambda x, y: x + y,
+                        ccode="%(z)s = %(x)s + %(y)s;")
+
+   sub = BinaryDoubleOp(name='sub',
+                        fn=lambda x, y: x - y,
+                        ccode="%(z)s = %(x)s - %(y)s;")
+
+   mul = BinaryDoubleOp(name='mul',
+                        fn=lambda x, y: x * y,
+                        ccode="%(z)s = %(x)s * %(y)s;")
+
+   div = BinaryDoubleOp(name='div',
+                        fn=lambda x, y: x / y,
+                        ccode="%(z)s = %(x)s / %(y)s;")

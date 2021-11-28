@@ -122,7 +122,7 @@ class NoneTypeT(Generic):
 
     @staticmethod
     def may_share_memory(a, b):
-        # None never share memory between object, in the sence of DebugMode.
+        # None never share memory between object, in the sense of DebugMode.
         # Python None are singleton
         return False
 

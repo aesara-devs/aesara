@@ -1,20 +1,24 @@
-|Tests Status| |Coverage|
+|Tests Status| |Coverage| |Gitter|
 
-|Project Name| is a Python library that allows you to define, optimize, and
+.. raw:: html
+
+  <div align="center">
+  <img src="./doc/images/aesara_logo_2400.png" alt="logo"></img>
+  </div>
+
+
+|Project Name| is a Python library that allows one to define, optimize, and
 efficiently evaluate mathematical expressions involving multi-dimensional
-arrays.  It can use GPUs and perform efficient symbolic differentiation.
-
-This is a fork of the `original Theano library <https://github.com/Theano/Theano>`__ that is being
-maintained by the `PyMC team <https://github.com/pymc-devs>`__.
+arrays.
 
 Features
 ========
 
 - A hackable, pure-Python codebase
-- Extensible graph framework suitable for rapid development of custom symbolic optimizations
+- Extensible graph framework suitable for rapid development of custom operators and symbolic optimizations
 - Implements an extensible graph transpilation framework that currently provides
-  compilation to C and JAX JITed Python functions
-- Built on top of one of the most widely-used Python tensor libraries: Theano
+  compilation via C, `JAX <https://github.com/google/jax>`__, and `Numba <https://github.com/numba/numba>`__
+- Based on one of the most widely-used Python tensor libraries: `Theano <https://github.com/Theano/Theano>`__
 
 Getting started
 ===============
@@ -23,7 +27,6 @@ Getting started
 
   import aesara
   from aesara import tensor as aet
-  from aesara.printing import debugprint
 
   # Declare two symbolic floating-point scalars
   a = aet.dscalar("a")
@@ -54,7 +57,7 @@ Getting started
 
   d = a/a + (M + a).dot(v)
 
-  debugprint(d)
+  aesara.dprint(d)
   # Elemwise{add,no_inplace} [id A] ''
   #  |InplaceDimShuffle{x} [id B] ''
   #  | |Elemwise{true_div,no_inplace} [id C] ''
@@ -71,7 +74,7 @@ Getting started
 
   # `a/a` -> `1` and the dot product is replaced with a BLAS function
   # (i.e. CGemv)
-  debugprint(f_d)
+  aesara.dprint(f_d)
   # Elemwise{Add}[(0, 1)] [id A] ''   5
   #  |TensorConstant{(1,) of 1.0} [id B]
   #  |CGemv{inplace} [id C] ''   4
@@ -86,7 +89,7 @@ Getting started
   #    |v [id K]
   #    |TensorConstant{0.0} [id L]
 
-The documentation is located `here <https://aesara.readthedocs.io/en/latest/>`__.
+See `the Aesara documentation <https://aesara.readthedocs.io/en/latest/>`__ for in-depth tutorials.
 
 
 Installation
@@ -110,20 +113,25 @@ The current development branch of |Project Name| can be installed from GitHub, a
 
 ::
 
-    pip install git+https://github.com/pymc-devs/aesara
+    pip install git+https://github.com/aesara-devs/aesara
 
-
-For platform-specific installation information see the legacy documentation `here <http://deeplearning.net/software/theano/install.html>`__.
 
 
 Support
 =======
 
-The PyMC group operates under the NumFOCUS umbrella. If you want to support us financially, you can donate `here <https://numfocus.salsalabs.org/donate-to-pymc3/index.html>`__.
+Many Aesara developers are also PyMC developers, and, since the PyMC developers
+operate under the NumFOCUS umbrella, if you want to support them financially,
+consider donating `here <https://numfocus.salsalabs.org/donate-to-pymc3/index.html>`__.
+
+
+Special thanks to `Bram Timmer <http://beside.ca>`__ for the logo.
 
 
 .. |Project Name| replace:: Aesara
-.. |Tests Status| image:: https://github.com/pymc-devs/aesara/workflows/Tests/badge.svg
-  :target: https://github.com/pymc-devs/aesara/actions?query=workflow%3ATests
-.. |Coverage| image:: https://codecov.io/gh/pymc-devs/aesara/branch/master/graph/badge.svg?token=WVwr8nZYmc
-  :target: https://codecov.io/gh/pymc-devs/aesara
+.. |Tests Status| image:: https://github.com/aesara-devs/aesara/workflows/Tests/badge.svg
+  :target: https://github.com/aesara-devs/aesara/actions?query=workflow%3ATests
+.. |Coverage| image:: https://codecov.io/gh/aesara-devs/aesara/branch/main/graph/badge.svg?token=WVwr8nZYmc
+  :target: https://codecov.io/gh/aesara-devs/aesara
+.. |Gitter| image:: https://badges.gitter.im/aesara-devs/aesara.svg
+  :target: https://gitter.im/aesara-devs/aesara?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge

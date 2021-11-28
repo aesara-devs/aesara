@@ -1,26 +1,29 @@
 from collections.abc import Sequence
 from copy import copy
+from typing import List, Optional, Tuple
 
 import numpy as np
 
 import aesara
-from aesara.assert_op import Assert
 from aesara.configdefaults import config
 from aesara.graph.basic import Apply, Variable
+from aesara.graph.fg import FunctionGraph
 from aesara.graph.op import Op
+from aesara.graph.opt_utils import optimize_graph
 from aesara.misc.safe_asarray import _asarray
+from aesara.scalar import ScalarVariable
 from aesara.tensor.basic import (
     as_tensor_variable,
-    cast,
     constant,
     get_scalar_constant_value,
     get_vector_length,
 )
-from aesara.tensor.exceptions import NotScalarConstantError
-from aesara.tensor.random.type import RandomStateType
-from aesara.tensor.random.utils import params_broadcast_shapes
-from aesara.tensor.type import TensorType, all_dtypes, int_dtypes
-from aesara.tensor.type_other import NoneConst
+from aesara.tensor.basic_opt import ShapeFeature, topo_constant_folding
+from aesara.tensor.random.type import RandomType
+from aesara.tensor.random.utils import normalize_size_param, params_broadcast_shapes
+from aesara.tensor.shape import shape_tuple
+from aesara.tensor.type import TensorType, all_dtypes
+from aesara.tensor.var import TensorVariable
 
 
 def default_shape_from_params(
@@ -91,7 +94,6 @@ class RandomVariable(Op):
 
     __props__ = ("name", "ndim_supp", "ndims_params", "dtype", "inplace")
     default_output = 1
-    nondeterministic = True
 
     def __init__(
         self,
@@ -146,7 +148,7 @@ class RandomVariable(Op):
         self.ndims_params = tuple(self.ndims_params)
 
         if self.inplace:
-            self.destroy_map = {0: [len(self.ndims_params) + 1]}
+            self.destroy_map = {0: [0]}
 
     def _shape_from_params(self, dist_params, **kwargs):
         """Determine the shape of a `RandomVariable`'s output given its parameters.
@@ -159,29 +161,31 @@ class RandomVariable(Op):
 
     def rng_fn(self, rng, *args, **kwargs):
         """Sample a numeric random variate."""
-        return getattr(np.random.RandomState, self.name)(rng, *args, **kwargs)
+        return getattr(rng, self.name)(*args, **kwargs)
 
     def __str__(self):
-        return "{}_rv".format(self.name)
+        props_str = ", ".join((f"{getattr(self, prop)}" for prop in self.__props__[1:]))
+        return f"{self.name}_rv{{{props_str}}}"
 
-    def _infer_shape(self, size, dist_params, param_shapes=None):
+    def _infer_shape(
+        self,
+        size: Tuple[TensorVariable],
+        dist_params: List[TensorVariable],
+        param_shapes: Optional[List[Tuple[TensorVariable]]] = None,
+    ) -> Tuple[ScalarVariable]:
         """Compute the output shape given the size and distribution parameters.
 
         Parameters
         ----------
-        size : TensorVariable
+        size
             The size parameter specified for this `RandomVariable`.
-        dist_params : list of TensorVariable
+        dist_params
             The symbolic parameter for this `RandomVariable`'s distribution.
-        param_shapes : list of tuples of TensorVariable (optional)
+        param_shapes
             The shapes of the `dist_params` as given by `ShapeFeature`'s
             via `Op.infer_shape`'s `input_shapes` argument.  This parameter's
             values are essentially more accurate versions of ``[d.shape for d
             in dist_params]``.
-
-        Outputs
-        -------
-        shape : tuple of `ScalarVariable`
 
         """
 
@@ -199,7 +203,7 @@ class RandomVariable(Op):
 
         # Broadcast the parameters
         param_shapes = params_broadcast_shapes(
-            param_shapes or [p.shape for p in dist_params], self.ndims_params
+            param_shapes or [shape_tuple(p) for p in dist_params], self.ndims_params
         )
 
         def slice_ind_dims(p, ps, n):
@@ -286,27 +290,27 @@ class RandomVariable(Op):
         """
         shape = self._infer_shape(size, dist_params)
 
-        # Let's try to do a better job than `_infer_ndim_bcast` when
-        # dimension sizes are symbolic.
-        bcast = []
-        for s in shape:
-            s_owner = getattr(s, "owner", None)
+        shape_fg = FunctionGraph(
+            outputs=[as_tensor_variable(s, ndim=0) for s in shape],
+            features=[ShapeFeature()],
+            clone=True,
+        )
+        folded_shape = optimize_graph(
+            shape_fg, custom_opt=topo_constant_folding
+        ).outputs
 
-            # Get rid of the `Assert`s added by `broadcast_shape`
-            if s_owner and isinstance(s_owner.op, Assert):
-                s = s_owner.inputs[0]
-
-            try:
-                s_val = get_scalar_constant_value(s)
-            except NotScalarConstantError:
-                s_val = False
-
-            bcast += [s_val == 1]
-        return bcast
+        return [getattr(s, "data", s) == 1 for s in folded_shape]
 
     def infer_shape(self, fgraph, node, input_shapes):
         _, size, _, *dist_params = node.inputs
-        _, _, _, *param_shapes = input_shapes
+        _, size_shape, _, *param_shapes = input_shapes
+
+        try:
+            size_len = get_vector_length(size)
+        except ValueError:
+            size_len = get_scalar_constant_value(size_shape[0])
+
+        size = tuple(size[n] for n in range(size_len))
 
         shape = self._infer_shape(size, dist_params, param_shapes=param_shapes)
 
@@ -323,14 +327,10 @@ class RandomVariable(Op):
     def make_node(self, rng, size, dtype, *dist_params):
         """Create a random variable node.
 
-        XXX: Unnamed/non-keyword arguments are considered distribution
-        parameters!  If you want to set `size`, `rng`, and/or `name`, use their
-        keywords.
-
         Parameters
         ----------
-        rng: RandomStateType
-            Existing Aesara `RandomState` object to be used.  Creates a
+        rng: RandomGeneratorType or RandomStateType
+            Existing Aesara `Generator` or `RandomState` object to be used.  Creates a
             new one, if `None`.
         size: int or Sequence
             Numpy-like size of the output (i.e. replications).
@@ -348,18 +348,7 @@ class RandomVariable(Op):
             `(rng_var, out_var)`.
 
         """
-        if size is None:
-            size = constant([], dtype="int64")
-        elif isinstance(size, int):
-            size = as_tensor_variable([size], ndim=1)
-        elif not isinstance(size, (np.ndarray, Variable, Sequence)):
-            raise TypeError(
-                "Parameter size must be None, an integer, or a sequence with integers."
-            )
-        else:
-            size = cast(as_tensor_variable(size, ndim=1), "int64")
-
-        assert size.dtype in int_dtypes
+        size = normalize_size_param(size)
 
         dist_params = tuple(
             as_tensor_variable(p) if not isinstance(p, Variable) else p
@@ -367,9 +356,11 @@ class RandomVariable(Op):
         )
 
         if rng is None:
-            rng = aesara.shared(np.random.RandomState())
-        elif not isinstance(rng.type, RandomStateType):
-            raise TypeError("The type of rng should be an instance of RandomStateType")
+            rng = aesara.shared(np.random.default_rng())
+        elif not isinstance(rng.type, RandomType):
+            raise TypeError(
+                "The type of rng should be an instance of either RandomGeneratorType or RandomStateType"
+            )
 
         bcast = self.compute_bcast(dist_params, size)
         dtype = self.dtype or dtype
@@ -434,55 +425,3 @@ class RandomVariable(Op):
 
     def R_op(self, inputs, eval_points):
         return [None for i in eval_points]
-
-
-class Observed(Op):
-    """An `Op` that represents an observed random variable.
-
-    This `Op` establishes an observation relationship between a random
-    variable and a specific value.
-    """
-
-    default_output = 0
-    view_map = {0: [1]}
-
-    def make_node(self, rv, val):
-        """Make an `Observed` random variable.
-
-        Parameters
-        ----------
-        rv: RandomVariable
-            The distribution from which `val` is assumed to be a sample value.
-        val: Variable
-            The observed value.
-        """
-        val = as_tensor_variable(val)
-
-        if rv is not None:
-            if not hasattr(rv, "type") or rv.type.convert_variable(val) is None:
-                raise TypeError(
-                    (
-                        "`rv` and `val` do not have compatible types:"
-                        f" rv={rv}, val={val}"
-                    )
-                )
-        else:
-            rv = NoneConst.clone()
-
-        inputs = [rv, val]
-
-        return Apply(self, inputs, [val.type()])
-
-    def perform(self, node, inputs, out):
-        out[0][0] = inputs[1]
-
-    def grad(self, inputs, outputs):
-        return [
-            aesara.gradient.grad_undefined(
-                self, k, inp, "No gradient defined for random variables"
-            )
-            for k, inp in enumerate(inputs)
-        ]
-
-
-observed = Observed()

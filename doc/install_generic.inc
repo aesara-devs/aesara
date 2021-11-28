@@ -21,7 +21,7 @@ will be automatically installed as a dependency of pygpu.
 
 .. warning::
 
-   The PyMC developers do not maintain ``pygpu``, so compatibility isn't
+   The Aesara developers do not maintain ``pygpu``, so compatibility isn't
    guaranteed.
 
 With ``pip``
@@ -68,7 +68,7 @@ Install the latest, bleeding-edge, development version of Aesara with:
 
 .. raw:: html
 
-    <div class='highlight'><pre><span class="red">&lt;sudo&gt;</span> pip install <span class="blue">&lt;--user&gt;</span> <span class="pink">&lt;--no-deps&gt;</span> git+https://github.com/pymc-devs/aesara.git#egg=aesara</pre></div>
+    <div class='highlight'><pre><span class="red">&lt;sudo&gt;</span> pip install <span class="blue">&lt;--user&gt;</span> <span class="pink">&lt;--no-deps&gt;</span> git+https://github.com/aesara-devs/aesara.git#egg=aesara</pre></div>
 
 - Any argument between <...> is optional.
 
@@ -100,7 +100,7 @@ Install the developer version of Aesara with:
 
 .. raw:: html
 
-    <div class="highlight"><pre>git clone git://github.com/pymc-devs/aesara.git
+    <div class="highlight"><pre>git clone git://github.com/aesara-devs/aesara.git
     cd aesara
     <span class="red">&lt;sudo&gt;</span> pip install <span class="blue">&lt;--user&gt;</span> <span class="pink">&lt;--no-deps&gt;</span> <span class="green">-e .</span></pre></div>
 

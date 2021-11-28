@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+import sys
+
 from setuptools import find_packages, setup
 
 import versioneer
@@ -10,16 +12,16 @@ def read_file(filename):
 
 
 NAME = "aesara"
-MAINTAINER = "PyMC developers"
-MAINTAINER_EMAIL = "pymc-devs@gmail.com"
+MAINTAINER = "Aesara developers"
+MAINTAINER_EMAIL = "aesara.devs@gmail.com"
 DESCRIPTION = (
     "Optimizing compiler for evaluating mathematical expressions on CPUs and GPUs."
 )
 LONG_DESCRIPTION = read_file("DESCRIPTION.txt")
-URL = "https://github.com/pymc-devs/aesara"
+URL = "https://github.com/aesara-devs/aesara"
 LICENSE = "BSD"
-AUTHOR = "pymc-devs"
-AUTHOR_EMAIL = "pymc-devs@gmail.com"
+AUTHOR = "aesara-devs"
+AUTHOR_EMAIL = "aesara.devs@gmail.com"
 PLATFORMS = ["Windows", "Linux", "Solaris", "Mac OS-X", "Unix"]
 CLASSIFIERS = """\
 Development Status :: 6 - Mature
@@ -43,6 +45,11 @@ Programming Language :: Python :: 3.9
 """
 CLASSIFIERS = [_f for _f in CLASSIFIERS.split("\n") if _f]
 
+install_requires = ["numpy>=1.17.0", "scipy>=0.14", "filelock"]
+
+if sys.version_info[0:2] < (3, 7):
+    install_requires += ["dataclasses"]
+
 if __name__ == "__main__":
     setup(
         name=NAME,
@@ -57,7 +64,7 @@ if __name__ == "__main__":
         license=LICENSE,
         platforms=PLATFORMS,
         packages=find_packages(exclude=["tests", "tests.*"]),
-        install_requires=["numpy>=1.9.1", "scipy>=0.14", "filelock"],
+        install_requires=install_requires,
         package_data={
             "": [
                 "*.txt",

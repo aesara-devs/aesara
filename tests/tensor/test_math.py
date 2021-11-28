@@ -9,6 +9,7 @@ from itertools import product
 import numpy as np
 import pytest
 from numpy.testing import assert_array_equal
+from scipy.special import logsumexp as scipy_logsumexp
 
 import aesara.scalar as aes
 from aesara.compile.debugmode import DebugMode
@@ -39,7 +40,7 @@ from aesara.tensor.math import (
     ProdWithoutZeros,
     Sum,
     _dot,
-    abs_,
+    abs,
     add,
     allclose,
     arccos,
@@ -67,7 +68,6 @@ from aesara.tensor.math import (
     exp2,
     expm1,
     floor,
-    inv,
     isclose,
     isinf,
     isnan,
@@ -76,6 +76,8 @@ from aesara.tensor.math import (
     log1p,
     log2,
     log10,
+    logaddexp,
+    logsumexp,
     max,
     max_and_argmax,
     maximum,
@@ -90,9 +92,11 @@ from aesara.tensor.math import (
     power,
     ptp,
     rad2deg,
+    reciprocal,
     round_half_away_from_zero,
     round_half_to_even,
     sgn,
+    sigmoid,
     sin,
     sinh,
     smallest,
@@ -102,7 +106,6 @@ from aesara.tensor.math import (
 )
 from aesara.tensor.math import sum as aet_sum
 from aesara.tensor.math import tan, tanh, tensordot, true_div, trunc, var
-from aesara.tensor.nnet import sigmoid
 from aesara.tensor.type import (
     TensorType,
     complex_dtypes,
@@ -123,6 +126,7 @@ from aesara.tensor.type import (
     matrices,
     matrix,
     scalar,
+    scalars,
     tensor,
     tensor3,
     tensor4,
@@ -136,7 +140,7 @@ from tests import unittest_tools as utt
 from tests.tensor.utils import (
     _bad_build_broadcast_binary_normal,
     _bad_runtime_broadcast_binary_normal,
-    _bad_runtime_inv,
+    _bad_runtime_reciprocal,
     _eps,
     _good_broadcast_binary_arctan2,
     _good_broadcast_binary_normal,
@@ -153,14 +157,14 @@ from tests.tensor.utils import (
     _good_broadcast_unary_positive,
     _good_broadcast_unary_tan,
     _good_broadcast_unary_wide,
-    _good_inv,
+    _good_reciprocal,
     _grad_broadcast_binary_normal,
     _grad_broadcast_pow_normal,
     _grad_broadcast_unary_normal,
     _grad_broadcast_unary_normal_no_complex,
     _grad_broadcast_unary_normal_no_complex_no_corner_case,
     _grad_broadcast_unary_normal_noint,
-    _grad_inv,
+    _grad_reciprocal,
     _numpy_true_div,
     angle_eps,
     check_floatX,
@@ -170,14 +174,14 @@ from tests.tensor.utils import (
     get_numeric_types,
     ignore_isfinite_mode,
     inplace_func,
+    integers,
+    integers_uint32,
     makeBroadcastTester,
     makeTester,
-    rand,
-    rand_nonzero,
-    rand_ranged,
-    randcomplex,
-    randint,
-    randuint32,
+    random,
+    random_complex,
+    random_nonzero,
+    random_ranged,
     upcast_float16_ufunc,
     upcast_int8_nfunc,
 )
@@ -193,13 +197,13 @@ TestAddBroadcast = makeBroadcastTester(
     op=add,
     expected=lambda *inputs: check_floatX(inputs, reduce(lambda x, y: x + y, inputs)),
     good=dict(
-        three_inputs_same_shapes=(rand(2, 3), rand(2, 3), rand(2, 3)),
+        three_inputs_same_shapes=(random(2, 3), random(2, 3), random(2, 3)),
         three_inputs_same_shapes_uint=(
-            randuint32(2, 3),
-            randuint32(2, 3),
-            randuint32(2, 3),
+            integers_uint32(2, 3),
+            integers_uint32(2, 3),
+            integers_uint32(2, 3),
         ),
-        four_inputs_broadcast=(rand(2, 3), rand(1, 3), rand(2, 1), rand(1, 1)),
+        four_inputs_broadcast=(random(2, 3), random(1, 3), random(2, 1), random(1, 1)),
         **_good_broadcast_binary_normal,
     ),
     bad_build=_bad_build_broadcast_binary_normal,
@@ -252,15 +256,15 @@ TestMulBroadcast = makeBroadcastTester(
     op=mul,
     expected=lambda *inputs: check_floatX(inputs, reduce(lambda x, y: x * y, inputs)),
     good=dict(
-        three_inputs_same_shapes=(rand(2, 3), rand(2, 3), rand(2, 3)),
-        four_inputs_broadcast=(rand(2, 3), rand(1, 3), rand(2, 1), rand(1, 1)),
+        three_inputs_same_shapes=(random(2, 3), random(2, 3), random(2, 3)),
+        four_inputs_broadcast=(random(2, 3), random(1, 3), random(2, 1), random(1, 1)),
         **_good_broadcast_binary_normal,
     ),
     bad_build=_bad_build_broadcast_binary_normal,
     bad_runtime=_bad_runtime_broadcast_binary_normal,
     grad=dict(
-        three_inputs_same_shapes=(rand(2, 3), rand(2, 3), rand(2, 3)),
-        four_inputs_broadcast=(rand(2, 3), rand(1, 3), rand(2, 1), rand(1, 1)),
+        three_inputs_same_shapes=(random(2, 3), random(2, 3), random(2, 3)),
+        four_inputs_broadcast=(random(2, 3), random(1, 3), random(2, 1), random(1, 1)),
         **_grad_broadcast_binary_normal,
     ),
 )
@@ -285,15 +289,15 @@ _grad_broadcast_div_mod_normal = dict(
         np.array([[0.04506636, 0.05725927, -0.94947897], [0.39868416, -0.12655465, -0.87068554]]),
         np.array([[-0.39040176], [0.76164576]])
     ),
-    # same_shapes=(rand(2, 3), rand_nonzero((2, 3))),
-    # scalar=(rand(2, 3), rand_nonzero((1, 1))),
-    # row=(rand(2, 3), rand_nonzero((1, 3))),
-    # column=(rand(2, 3), rand_nonzero((2, 1))),
-    # complex1=(randcomplex(2, 3), randcomplex_nonzero((2, 3))),
-    # complex2=(randcomplex(2, 3), rand_nonzero((2, 3))),
-    # complex3=(rand(2, 3), randcomplex_nonzero((2, 3))),
-    # dtype_mixup_1=(rand(2, 3), randint_nonzero(2, 3)),
-    # dtype_mixup_2=(randint_nonzero(2, 3), rand_nonzero((2, 3))),
+    # same_shapes=(random(2, 3), random((2, 3))),
+    # scalar=(random(2, 3), random((1, 1))),
+    # row=(random(2, 3), random((1, 3))),
+    # column=(random(2, 3), random((2, 1))),
+    # complex1=(random_complex(2, 3), randcomplex_nonzero((2, 3))),
+    # complex2=(random_complex(2, 3), random((2, 3))),
+    # complex3=(random(2, 3), randcomplex_nonzero((2, 3))),
+    # dtype_mixup_1=(random(2, 3), integers_nonzero(2, 3)),
+    # dtype_mixup_2=(integers_nonzero(2, 3), random((2, 3))),
     # empty1=(np.asarray([]), np.asarray([1.])),
     # empty2=(np.asarray([0]), np.asarray([])),
 )
@@ -308,11 +312,11 @@ TestTrueDivBroadcast = makeBroadcastTester(
 )
 
 TestInvBroadcast = makeBroadcastTester(
-    op=inv,
+    op=reciprocal,
     expected=lambda x: upcast_int8_nfunc(np.true_divide)(np.int8(1), x),
-    good=_good_inv,
-    bad_runtime=_bad_runtime_inv,
-    grad=_grad_inv,
+    good=_good_reciprocal,
+    bad_runtime=_bad_runtime_reciprocal,
+    grad=_grad_reciprocal,
     grad_rtol=div_grad_rtol,
 )
 
@@ -345,8 +349,8 @@ TestPowBroadcast = makeBroadcastTester(
 )
 
 TestAbsBroadcast = makeBroadcastTester(
-    op=abs_,
-    expected=lambda x: abs(x),
+    op=abs,
+    expected=lambda x: np.abs(x),
     good=_good_broadcast_unary_normal,
     grad=_grad_broadcast_unary_normal,
 )
@@ -445,7 +449,7 @@ TestExpm1Broadcast = makeBroadcastTester(
 
 
 _grad_broadcast_unary_positive = dict(
-    normal=(rand_ranged(_eps, 5, (2, 3)),),
+    normal=(random_ranged(_eps, 5, (2, 3)),),
 )
 
 TestLogBroadcast = makeBroadcastTester(
@@ -484,7 +488,7 @@ TestSqrtBroadcast = makeBroadcastTester(
 )
 
 _grad_broadcast_unary_wide = dict(
-    normal=(rand_ranged(-1000, 1000, (2, 3)),),
+    normal=(random_ranged(-1000, 1000, (2, 3)),),
 )
 
 TestDeg2radBroadcast = makeBroadcastTester(
@@ -513,7 +517,7 @@ TestSinBroadcast = makeBroadcastTester(
 # The actual range is [-1, 1] but the numerical gradient is too
 # unstable near those values
 _grad_broadcast_unary_arcsin = dict(
-    normal=(rand_ranged(-0.9, 0.9, (2, 3)),),
+    normal=(random_ranged(-0.9, 0.9, (2, 3)),),
 )
 
 TestArcsinBroadcast = makeBroadcastTester(
@@ -547,7 +551,8 @@ TestArccosBroadcast = makeBroadcastTester(
 
 # We do not want to test around the discontinuity.
 _grad_broadcast_unary_tan = dict(
-    normal=(rand_ranged(-1.5, 1.5, (2, 3)),), shifted=(rand_ranged(1.6, 4.6, (2, 3)),)
+    normal=(random_ranged(-1.5, 1.5, (2, 3)),),
+    shifted=(random_ranged(1.6, 4.6, (2, 3)),),
 )
 
 TestTanBroadcast = makeBroadcastTester(
@@ -565,10 +570,10 @@ TestArctanBroadcast = makeBroadcastTester(
 )
 
 _grad_broadcast_binary_arctan2 = dict(
-    same_shapes=(rand(2, 3), rand(2, 3)),
-    scalar=(rand(2, 3), rand(1, 1)),
-    row=(rand(2, 3), rand(1, 3)),
-    column=(rand(2, 3), rand(2, 1)),
+    same_shapes=(random(2, 3), random(2, 3)),
+    scalar=(random(2, 3), random(1, 1)),
+    row=(random(2, 3), random(1, 3)),
+    column=(random(2, 3), random(2, 1)),
 )
 
 TestArctan2Broadcast = makeBroadcastTester(
@@ -591,7 +596,7 @@ TestCoshBroadcast = makeBroadcastTester(
 )
 
 _grad_broadcast_unary_arccosh = dict(
-    normal=(rand_ranged(1 + _eps, 1000, (2, 3)),),
+    normal=(random_ranged(1 + _eps, 1000, (2, 3)),),
 )
 
 TestArccoshBroadcast = makeBroadcastTester(
@@ -628,7 +633,7 @@ TestTanhBroadcast = makeBroadcastTester(
 )
 
 _grad_broadcast_unary_arctanh = dict(
-    normal=(rand_ranged(-1 + _eps, 1 - _eps, (2, 3)),),
+    normal=(random_ranged(-1 + _eps, 1 - _eps, (2, 3)),),
 )
 
 TestArctanhBroadcast = makeBroadcastTester(
@@ -640,19 +645,19 @@ TestArctanhBroadcast = makeBroadcastTester(
 
 # Complex operations
 _good_complex_from_polar = dict(
-    same_shapes=(abs(rand(2, 3)), rand(2, 3)),
-    not_same_dimensions=(abs(rand(2, 2)), rand(2)),
-    scalar=(abs(rand(2, 3)), rand(1, 1)),
-    row=(abs(rand(2, 3)), rand(1, 3)),
-    column=(abs(rand(2, 3)), rand(2, 1)),
-    integers=(abs(randint(2, 3)), randint(2, 3)),
+    same_shapes=(np.abs(random(2, 3)), random(2, 3)),
+    not_same_dimensions=(np.abs(random(2, 2)), random(2)),
+    scalar=(np.abs(random(2, 3)), random(1, 1)),
+    row=(np.abs(random(2, 3)), random(1, 3)),
+    column=(np.abs(random(2, 3)), random(2, 1)),
+    integers=(np.abs(integers(2, 3)), integers(2, 3)),
     empty=(np.asarray([], dtype=config.floatX), np.asarray([1], dtype=config.floatX)),
 )
 _grad_complex_from_polar = dict(
-    same_shapes=(abs(rand(2, 3)), rand(2, 3)),
-    scalar=(abs(rand(2, 3)), rand(1, 1)),
-    row=(abs(rand(2, 3)), rand(1, 3)),
-    column=(abs(rand(2, 3)), rand(2, 1)),
+    same_shapes=(np.abs(random(2, 3)), random(2, 3)),
+    scalar=(np.abs(random(2, 3)), random(1, 1)),
+    row=(np.abs(random(2, 3)), random(1, 3)),
+    column=(np.abs(random(2, 3)), random(2, 1)),
 )
 
 TestComplexFromPolarBroadcast = makeBroadcastTester(
@@ -672,24 +677,26 @@ TestDenseDot = makeTester(
     expected=lambda x, y: np.dot(x, y),
     checks={},
     good=dict(
-        correct1=(rand(5, 7), rand(7, 5)),
-        correct2=(rand(5, 7), rand(7, 9)),
-        correct3=(rand(5, 7), rand(7)),
-        correct4=(rand(5), rand(5, 7)),
-        mixed1=(rand(5).astype("float32"), rand(5, 7)),
-        mixed2=(rand(5).astype("float64"), rand(5, 7)),
-        complex1=(randcomplex(5, 7), randcomplex(7)),
-        complex2=(rand(5, 7), randcomplex(7)),
-        complex3=(randcomplex(5, 7), rand(7)),
+        correct1=(random(5, 7), random(7, 5)),
+        correct2=(random(5, 7), random(7, 9)),
+        correct3=(random(5, 7), random(7)),
+        correct4=(random(5), random(5, 7)),
+        mixed1=(random(5).astype("float32"), random(5, 7)),
+        mixed2=(random(5).astype("float64"), random(5, 7)),
+        complex1=(random_complex(5, 7), random_complex(7)),
+        complex2=(random(5, 7), random_complex(7)),
+        complex3=(random_complex(5, 7), random(7)),
         empty1=(
             np.asarray([], dtype=config.floatX),
             np.asarray([], dtype=config.floatX),
         ),
-        empty2=(rand(5, 0), rand(0, 2)),
-        empty3=(rand(0, 5), rand(5, 0)),
+        empty2=(random(5, 0), random(0, 2)),
+        empty3=(random(0, 5), random(5, 0)),
     ),
     bad_build=dict(),
-    bad_runtime=dict(bad1=(rand(5, 7), rand(5, 7)), bad2=(rand(5, 7), rand(8, 3))),
+    bad_runtime=dict(
+        bad1=(random(5, 7), random(5, 7)), bad2=(random(5, 7), random(8, 3))
+    ),
 )
 
 
@@ -709,7 +716,6 @@ def test_isnan():
 
 class TestMaxAndArgmax:
     def setup_method(self):
-        utt.seed_rng()
         MaxAndArgmax.debug = 0
 
     def test_basic(self):
@@ -733,7 +739,7 @@ class TestMaxAndArgmax:
         assert len(v) == 0
 
     def test_basic_2(self):
-        data = rand(2, 3)
+        data = random(2, 3)
         n = as_tensor_variable(data)
         for (axis, np_axis) in [
             (-1, -1),
@@ -754,7 +760,7 @@ class TestMaxAndArgmax:
 
     def test_basic_2_float16(self):
         # Test negative values and bigger range to make sure numpy don't do the argmax as on uint16
-        data = (rand(20, 30).astype("float16") - 0.5) * 20
+        data = (random(20, 30).astype("float16") - 0.5) * 20
         n = shared(data)
         for (axis, np_axis) in [
             (-1, -1),
@@ -774,16 +780,16 @@ class TestMaxAndArgmax:
             assert tuple(v_shape) == np.max(data, np_axis).shape
 
     def test_basic_2_invalid(self):
-        n = as_tensor_variable(rand(2, 3))
+        n = as_tensor_variable(random(2, 3))
         with pytest.raises(ValueError):
             eval_outputs(max_and_argmax(n, 3))
 
-        n = as_tensor_variable(rand(2, 3))
+        n = as_tensor_variable(random(2, 3))
         with pytest.raises(ValueError):
             eval_outputs(max_and_argmax(n, -3))
 
     def test_basic_2_valid_neg(self):
-        n = as_tensor_variable(rand(2, 3))
+        n = as_tensor_variable(random(2, 3))
         v, i = eval_outputs(max_and_argmax(n, -1))
         assert i.dtype == "int64"
         assert v.shape == (2,)
@@ -802,7 +808,7 @@ class TestMaxAndArgmax:
         assert v == (3)
 
     def test_basic_3(self):
-        data = rand(2, 3, 4)
+        data = random(2, 3, 4)
         n = as_tensor_variable(data)
         for (axis, np_axis) in [
             (-1, -1),
@@ -829,7 +835,7 @@ class TestMaxAndArgmax:
         assert val == 0.0
 
     def test_grad(self):
-        data = rand(2, 3)
+        data = random(2, 3)
         n = as_tensor_variable(data)
 
         def safe_verify_grad(func, data):
@@ -887,14 +893,14 @@ class TestMaxAndArgmax:
             check_grad_max(data, eval_outputs(grad(max_and_argmax(n.flatten())[0], n)))
 
         # Test 3d inner dimensions
-        data = rand(3, 4, 5)
+        data = random(3, 4, 5)
 
         for i in [0, 1, 2]:
             safe_verify_grad(lambda v: max_and_argmax(v, axis=[i])[0], [data])
             safe_verify_grad(lambda v: max_and_argmax(v, axis=[i])[1], [data])
 
         # Test 4d inner dimensions
-        data = rand(2, 3, 4, 5)
+        data = random(2, 3, 4, 5)
 
         for i in [0, 1, 2, 3]:
             safe_verify_grad(lambda v: max_and_argmax(v, axis=[i])[0], [data])
@@ -939,7 +945,6 @@ class TestMaxAndArgmax:
 
 class TestArgminArgmax:
     def setup_method(self):
-        utt.seed_rng()
         MaxAndArgmax.debug = 0
 
     def test_scalar(self):
@@ -964,7 +969,7 @@ class TestArgminArgmax:
         assert len(v) == 0
 
     def test2(self):
-        data = rand(2, 3)
+        data = random(2, 3)
         n = as_tensor_variable(data)
         for fct, nfct in [(argmax, np.argmax), (argmin, np.argmin)]:
             for (axis, np_axis) in [
@@ -982,7 +987,7 @@ class TestArgminArgmax:
 
     def test2_float16(self):
         # Test negative values and bigger range to make sure numpy don't do the argmax as on uint16
-        data = (rand(20, 30).astype("float16") - 0.5) * 20
+        data = (random(20, 30).astype("float16") - 0.5) * 20
         n = shared(data)
         mode = get_default_mode().including("local_max_and_argmax", "uncanonicalize")
         for fct, nfct in [(argmax, np.argmax), (argmin, np.argmin)]:
@@ -1001,7 +1006,7 @@ class TestArgminArgmax:
 
     def test2_invalid(self):
         for fct, nfct in [(argmax, np.argmax), (argmin, np.argmin)]:
-            n = as_tensor_variable(rand(2, 3))
+            n = as_tensor_variable(random(2, 3))
             with pytest.raises(ValueError):
                 eval_outputs(fct(n, 3))
             with pytest.raises(ValueError):
@@ -1009,7 +1014,7 @@ class TestArgminArgmax:
 
     def test2_valid_neg(self):
         for fct, nfct in [(argmax, np.argmax), (argmin, np.argmin)]:
-            n = as_tensor_variable(rand(2, 3))
+            n = as_tensor_variable(random(2, 3))
             i = eval_outputs(fct(n, -1))
             assert i.shape == (2,)
             assert np.all(i == nfct(n.value, -1))
@@ -1023,7 +1028,7 @@ class TestArgminArgmax:
             assert v == (3)
 
     def test3(self):
-        data = rand(2, 3, 4)
+        data = random(2, 3, 4)
         n = as_tensor_variable(data)
         for fct, nfct in [(argmax, np.argmax), (argmin, np.argmin)]:
             for (axis, np_axis) in [
@@ -1041,7 +1046,7 @@ class TestArgminArgmax:
                 assert tuple(v_shape) == nfct(data, np_axis).shape
 
     def test_grad_argmin(self):
-        data = rand(2, 3)
+        data = random(2, 3)
         n = as_tensor_variable(data)
         n.name = "n"
 
@@ -1063,7 +1068,7 @@ class TestArgminArgmax:
             pass
 
     def test_grad_argmax(self):
-        data = rand(2, 3)
+        data = random(2, 3)
         n = as_tensor_variable(data)
 
         # test grad of argmax
@@ -1102,7 +1107,6 @@ class TestArgminArgmax:
 
 class TestMinMax:
     def setup_method(self):
-        utt.seed_rng()
         MaxAndArgmax.debug = 0
 
     def test_scalar(self):
@@ -1124,7 +1128,7 @@ class TestMinMax:
             assert len(v) == 0
 
     def test2(self):
-        data = rand(2, 3)
+        data = random(2, 3)
         n = as_tensor_variable(data)
         for fct, nfct in [(max, np.max), (min, np.min)]:
             for (axis, np_axis) in [
@@ -1142,7 +1146,7 @@ class TestMinMax:
 
     def test2_invalid(self):
         for fct in [max, min]:
-            n = as_tensor_variable(rand(2, 3))
+            n = as_tensor_variable(random(2, 3))
             with pytest.raises(ValueError):
                 eval_outputs(fct(n, 3))
             with pytest.raises(ValueError):
@@ -1150,7 +1154,7 @@ class TestMinMax:
 
     def test2_valid_neg(self):
         for fct, nfct in [(max, np.max), (min, np.min)]:
-            n = as_tensor_variable(rand(2, 3))
+            n = as_tensor_variable(random(2, 3))
             v = eval_outputs(fct(n, -1))
             assert v.shape == (2,)
             assert np.all(v == nfct(n.value, -1))
@@ -1165,7 +1169,7 @@ class TestMinMax:
 
     def test3(self):
         # Test with 1 axis or all axis out of 3 dims
-        data = rand(2, 3, 4)
+        data = random(2, 3, 4)
         n = as_tensor_variable(data)
         for fct, nfct in [(max, np.max), (min, np.min)]:
             for (axis, np_axis) in [
@@ -1184,7 +1188,7 @@ class TestMinMax:
 
     def test3b(self):
         # Test with 2 axis out of 3 dims
-        data = rand(2, 3, 4)
+        data = random(2, 3, 4)
         n = as_tensor_variable(data)
         for fct, nfct in [(max, np.max), (min, np.min)]:
             for axis in [[0, 1], [1, 2], [0, 2]]:
@@ -1195,7 +1199,7 @@ class TestMinMax:
                 assert tuple(v_shape) == np_v.shape
 
     def test_grad_max(self):
-        data = rand(2, 3)
+        data = random(2, 3)
         n = as_tensor_variable(data)
 
         def check_grad_max(data, max_grad_data, axis=None):
@@ -1227,7 +1231,7 @@ class TestMinMax:
         check_grad_max(data, eval_outputs(grad(max(n.flatten()), n)))
 
     def test_grad_min(self):
-        data = rand(2, 3)
+        data = random(2, 3)
         n = as_tensor_variable(data)
 
         def check_grad_min(data, min_grad_data, axis=None):
@@ -1263,7 +1267,7 @@ class TestMinMax:
         #
         # This not implemented, so we disable the test. See ticket:
         # http://www.assembla.com/spaces/aesara/tickets/511
-        data = rand(2, 3)
+        data = random(2, 3)
         for fct in [max_and_argmax, max, min]:
             utt.verify_grad(lambda v: fct(v, axis=[0, 1]), [data])
         # n = as_tensor_variable(data)
@@ -1301,43 +1305,43 @@ TestClip = makeTester(
     expected=lambda x, y, z: np.clip(x, y, z),
     good=dict(
         correct1=(
-            (5 * rand(5, 5)).astype("float32"),
+            (5 * random(5, 5)).astype("float32"),
             np.array(-1, dtype="float32"),
             np.array(1, dtype="float32"),
         ),
         correct2=(
-            (5 * rand(5, 5)).astype("float64"),
+            (5 * random(5, 5)).astype("float64"),
             np.array(-1, dtype="float64"),
             np.array(1, dtype="float64"),
         ),
         correct3=(
-            randint(5, 5).astype("int8"),
+            integers(5, 5).astype("int8"),
             np.array(-1, dtype="int8"),
             np.array(1, dtype="int8"),
         ),
         correct4=(
-            randint(5, 5).astype("int16"),
+            integers(5, 5).astype("int16"),
             np.array(-1, dtype="int16"),
             np.array(1, dtype="int16"),
         ),
         correct5=(
-            randint(5, 5).astype("int32"),
+            integers(5, 5).astype("int32"),
             np.array(-1, dtype="int32"),
             np.array(1, dtype="int32"),
         ),
         correct6=(
-            randint(5, 5).astype("int64"),
+            integers(5, 5).astype("int64"),
             np.array(-1, dtype="int64"),
             np.array(1, dtype="int64"),
         ),
         # min > max case moved below as numpy has changed
         correct8=(
-            randint(0, 5).astype("uint8"),
+            integers(0, 5).astype("uint8"),
             np.array(2, dtype="uint8"),
             np.array(4, dtype="uint8"),
         ),
         correct9=(
-            randint(0, 5).astype("uint16"),
+            integers(0, 5).astype("uint16"),
             np.array(2, dtype="uint16"),
             np.array(4, dtype="uint16"),
         ),
@@ -1354,7 +1358,7 @@ TestBackwardsClip = makeTester(
     expected=lambda x, y, z: np.where(x < y, y, np.minimum(x, z)),
     good=dict(
         correct7=(
-            (5 * rand(5, 5)).astype("float64"),
+            (5 * random(5, 5)).astype("float64"),
             np.array(1, dtype="float64"),
             np.array(-1, dtype="float64"),
         ),
@@ -1388,15 +1392,15 @@ class TestClip:
         g3 = grad(a3.sum(), x)
         fn3 = function([x], [g3])
 
-        rng = np.random.RandomState(utt.fetch_seed())
+        rng = np.random.default_rng(utt.fetch_seed())
 
         nvals = 50
-        xval = rng.rand(nvals).astype(config.floatX)
+        xval = rng.random(nvals).astype(config.floatX)
         # To ensure that the min < x
-        yval_mn = rng.rand(nvals).astype(config.floatX) - 1.0
+        yval_mn = rng.random(nvals).astype(config.floatX) - 1.0
 
         # To ensure that the max > x
-        yval_mx = rng.rand(nvals).astype(config.floatX) + 1.0
+        yval_mx = rng.random(nvals).astype(config.floatX) + 1.0
 
         (aval,) = fn(xval, yval_mn)
         (aval2,) = fn2(xval, yval_mx)
@@ -1407,25 +1411,27 @@ class TestClip:
 
     def test_clip_repeat_verify_grad(self):
         # Additional tests for issue gh-633
-        utt.verify_grad(op=lambda x: clip(x, 0, x), pt=[rand_nonzero((3, 7))])
+        utt.verify_grad(op=lambda x: clip(x, 0, x), pt=[random_nonzero(3, 7)])
 
-        utt.verify_grad(op=lambda x: clip(x, x, 0), pt=[rand_nonzero((3, 7))])
+        utt.verify_grad(op=lambda x: clip(x, x, 0), pt=[random_nonzero(3, 7)])
 
-        utt.verify_grad(op=lambda x: clip(0, x, x), pt=[rand_nonzero((3, 7))])
+        utt.verify_grad(op=lambda x: clip(0, x, x), pt=[random_nonzero(3, 7)])
 
-        utt.verify_grad(op=lambda x: clip(x, x, x), pt=[rand_nonzero((3, 7))])
+        utt.verify_grad(op=lambda x: clip(x, x, x), pt=[random_nonzero(3, 7)])
 
 
 class TestOuter:
+    rng = np.random.default_rng(utt.fetch_seed())
+
     def test_outer(self):
         for m in range(4):
             for n in range(4):
                 x = tensor(dtype="floatX", broadcastable=(False,) * m)
                 y = tensor(dtype="floatX", broadcastable=(False,) * n)
-                s1 = np.random.randint(1, 10, m)
-                s2 = np.random.randint(1, 10, n)
-                v1 = np.asarray(np.random.rand(*s1)).astype(config.floatX)
-                v2 = np.asarray(np.random.rand(*s2)).astype(config.floatX)
+                s1 = self.rng.integers(1, 10, m)
+                s2 = self.rng.integers(1, 10, n)
+                v1 = np.asarray(self.rng.random(s1)).astype(config.floatX)
+                v2 = np.asarray(self.rng.random(s2)).astype(config.floatX)
                 o = outer(x, y).eval({x: v1, y: v2})
                 utt.assert_allclose(o, np.outer(v1, v2))
 
@@ -1446,8 +1452,8 @@ class TestOuter:
             ((1, 1), (4, 5)),
             ((1, 1), (1, 1)),
         ]:
-            data0 = np.random.rand(*shp0).astype(config.floatX)
-            data1 = np.random.rand(*shp1).astype(config.floatX)
+            data0 = self.rng.random(shp0).astype(config.floatX)
+            data1 = self.rng.random(shp1).astype(config.floatX)
             utt.verify_grad(outer, [data0, data1])
 
 
@@ -1460,7 +1466,6 @@ class TestComparison:
     # be in the release 1.8 of NumPy), it will work.  So we assert it
     # work(futur behavior) or raise an error(current NumPy release).
     def setup_method(self):
-        utt.seed_rng()
         self.mode = None
         self.shared = shared
         self.dtypes = ["float64", "float32", "complex64", "complex128"]
@@ -1714,9 +1719,6 @@ class TestBitwise:
 
 
 class TestAdd:
-    def setup_method(self):
-        utt.seed_rng()
-
     def test_complex_all_ops(self):
         for nbits in (64, 128):
             a = shared(np.ones(3, dtype="complex%i" % nbits) + 0.5j)
@@ -1734,16 +1736,16 @@ class TestAdd:
                 assert a.type.values_eq_approx(fn(a.get_value(), b.get_value()), f())
 
     def test_grad_scalar_l(self):
-        utt.verify_grad(add, [np.asarray([3.0]), rand(3)])
+        utt.verify_grad(add, [np.asarray([3.0]), random(3)])
 
     def test_grad_scalar_r(self):
-        utt.verify_grad(add, [rand(3), np.asarray([3.0])])
+        utt.verify_grad(add, [random(3), np.asarray([3.0])])
 
     def test_grad_row(self):
-        utt.verify_grad(add, [rand(3, 5), rand(1, 5)])
+        utt.verify_grad(add, [random(3, 5), random(1, 5)])
 
     def test_grad_col(self):
-        utt.verify_grad(add, [rand(3, 5), rand(3, 1)])
+        utt.verify_grad(add, [random(3, 5), random(3, 1)])
 
 
 class TestCeil:
@@ -1818,7 +1820,7 @@ class TestMean:
     def test_basic(self):
         x = vector()
         f = function([x], mean(x))
-        data = rand(50)
+        data = random(50)
         assert np.allclose(f(data), np.mean(data))
 
     def test_list(self):
@@ -1836,9 +1838,6 @@ def test_dot_numpy_inputs():
 
 
 class TestDot:
-    def setup_method(self):
-        utt.seed_rng()
-
     def test_Op_dims(self):
         d0 = scalar()
         d1 = vector()
@@ -1875,11 +1874,11 @@ class TestDot:
             _dot(d3, d3)
 
     def test_grad(self):
-        utt.verify_grad(dense_dot, [rand(2, 3), rand(3, 2)])
-        utt.verify_grad(dense_dot, [rand(2), rand(2, 3)])
-        utt.verify_grad(dense_dot, [rand(3, 2), rand(2)])
-        utt.verify_grad(dense_dot, [rand(2), rand(2)])
-        utt.verify_grad(dense_dot, [rand(), rand()])
+        utt.verify_grad(dense_dot, [random(2, 3), random(3, 2)])
+        utt.verify_grad(dense_dot, [random(2), random(2, 3)])
+        utt.verify_grad(dense_dot, [random(3, 2), random(2)])
+        utt.verify_grad(dense_dot, [random(2), random(2)])
+        utt.verify_grad(dense_dot, [random(), random()])
         # TODO: What about the broadcastable conditions in `Dot.grad`?
 
     def test_broadcastable_patterns(self):
@@ -1951,19 +1950,15 @@ class TestTensordot:
         # to allow easy use of verify_grad.
         return lambda a, b: tensordot(a, b, axes)
 
-    def setup_method(self):
-        utt.seed_rng()
-
     def test_basic(self):
-
         # Test vector-vector
         avec = vector()
         bvec = vector()
         axes = ((0,), (0,))
         c = tensordot(avec, bvec, axes)
         f1 = inplace_func([avec, bvec], c)
-        aval = rand(5)
-        bval = rand(5)
+        aval = random(5)
+        bval = random(5)
         out0 = np.tensordot(aval, bval, axes)
         out1 = f1(aval, bval)
         utt.assert_allclose(out0, out1)
@@ -1974,8 +1969,8 @@ class TestTensordot:
         axes = ((0,), (1,))
         c = tensordot(avec, bmat, axes)
         f2 = inplace_func([avec, bmat], c)
-        aval = rand(5)
-        bval = rand(8, 5)
+        aval = random(5)
+        bval = random(8, 5)
         utt.assert_allclose(np.tensordot(aval, bval, axes), f2(aval, bval))
         utt.verify_grad(self.TensorDot(axes), [aval, bval])
 
@@ -1993,8 +1988,8 @@ class TestTensordot:
         ]:
             c = tensordot(amat, bmat, axes)
             f3 = inplace_func([amat, bmat], c)
-            aval = rand(*shps[0])
-            bval = rand(*shps[1])
+            aval = random(*shps[0])
+            bval = random(*shps[1])
             utt.assert_allclose(np.tensordot(aval, bval, axes), f3(aval, bval))
             utt.verify_grad(self.TensorDot(axes), [aval, bval])
 
@@ -2011,8 +2006,8 @@ class TestTensordot:
             atens = tensor4()
             c = tensordot(atens, bmat, axes)
             f4 = inplace_func([atens, bmat], c)
-            aval = rand(*shps[0])
-            bval = rand(*shps[1])
+            aval = random(*shps[0])
+            bval = random(*shps[1])
             utt.assert_allclose(np.tensordot(aval, bval, axes), f4(aval, bval))
             utt.verify_grad(self.TensorDot(axes), [aval, bval])
 
@@ -2022,8 +2017,8 @@ class TestTensordot:
         axes = ((1, 3), (0, 2))
         c = tensordot(atens, btens, axes)
         f5 = inplace_func([atens, btens], c)
-        aval = rand(4, 3, 5, 2)
-        bval = rand(3, 4, 2)
+        aval = random(4, 3, 5, 2)
+        bval = random(3, 4, 2)
         utt.assert_allclose(np.tensordot(aval, bval, axes), f5(aval, bval))
         utt.verify_grad(self.TensorDot(axes), [aval, bval])
 
@@ -2065,8 +2060,8 @@ class TestTensordot:
         for axes in [0, (1, 0), [1, 0], (1, (0,)), ((1,), 0), ([1], [0]), ([], [])]:
             c = tensordot(amat, bmat, axes)
             f3 = inplace_func([amat, bmat], c)
-            aval = rand(4, 7)
-            bval = rand(7, 9)
+            aval = random(4, 7)
+            bval = random(7, 9)
             utt.assert_allclose(np.tensordot(aval, bval, axes), f3(aval, bval))
             utt.verify_grad(self.TensorDot(axes), [aval, bval])
 
@@ -2076,8 +2071,8 @@ class TestTensordot:
         bmat = dmatrix()
         # We let at float64 to test mix of float32 and float64.
         axes = 1
-        aval = rand(4, 5).astype("float32")
-        bval = rand(5, 3)
+        aval = random(4, 5).astype("float32")
+        bval = random(5, 3)
         c = tensordot(amat, bmat, axes)
         f3 = inplace_func([amat, bmat], c)
         assert np.allclose(np.tensordot(aval, bval, axes), f3(aval, bval))
@@ -2087,8 +2082,8 @@ class TestTensordot:
         amat = tensor3()
         bmat = tensor3()
         axes = 2
-        aval = rand(3, 4, 5)
-        bval = rand(4, 5, 3)
+        aval = random(3, 4, 5)
+        bval = random(4, 5, 3)
         c = tensordot(amat, bmat, axes)
         f3 = inplace_func([amat, bmat], c)
         assert np.allclose(np.tensordot(aval, bval, axes), f3(aval, bval))
@@ -2099,8 +2094,8 @@ class TestTensordot:
         amat = matrix()
         bmat = matrix()
         axes = 0
-        aval = rand(4, 5)
-        bval = rand(5, 4)
+        aval = random(4, 5)
+        bval = random(5, 4)
         c = tensordot(amat, bmat, axes)
         f3 = inplace_func([amat, bmat], c)
         assert np.allclose(np.tensordot(aval, bval, axes), f3(aval, bval))
@@ -2112,8 +2107,8 @@ class TestTensordot:
         z = tensordot(x, y)
         assert z.broadcastable == (True, False)
         f = inplace_func([x, y], z)
-        xv = rand(1, 3, 4)
-        yv = rand(3, 4, 5)
+        xv = random(1, 3, 4)
+        yv = random(3, 4, 5)
         zv = f(xv, yv)
         assert np.allclose(np.tensordot(xv, yv), zv)
 
@@ -2124,8 +2119,8 @@ class TestTensordot:
         z = tensordot(x, y, axes=axes)
         assert z.broadcastable == (True, False)
         f = inplace_func([x, y], z)
-        xv = rand(1, 3, 4)
-        yv = rand(4, 3, 5)
+        xv = random(1, 3, 4)
+        yv = random(4, 3, 5)
         zv = f(xv, yv)
         assert np.allclose(np.tensordot(xv, yv, axes=axes), zv)
 
@@ -2396,7 +2391,7 @@ def test_mod_compile():
 class TestInferShape(utt.InferShapeTester):
     def test_Mean(self):
         adtens3 = dtensor3()
-        adtens3_val = rand(3, 4, 5)
+        adtens3_val = random(3, 4, 5)
         aiscal_val = 2
         self._compile_and_check([adtens3], [Mean(None)(adtens3)], [adtens3_val], Mean)
         self._compile_and_check(
@@ -2406,7 +2401,7 @@ class TestInferShape(utt.InferShapeTester):
     def test_MaxAndArgmax(self):
 
         adtens3 = dtensor3()
-        adtens3_val = rand(4, 5, 3)
+        adtens3_val = random(4, 5, 3)
         self._compile_and_check(
             [adtens3], max_and_argmax(adtens3, None), [adtens3_val], MaxAndArgmax
         )
@@ -2433,8 +2428,8 @@ class TestInferShape(utt.InferShapeTester):
         # vec/vec
         advec = dvector()
         bdvec = dvector()
-        advec_val = rand(4)
-        bdvec_val = rand(4)
+        advec_val = random(4)
+        bdvec_val = random(4)
         self._compile_and_check(
             [advec, bdvec],
             [Dot()(advec, bdvec)],
@@ -2445,8 +2440,8 @@ class TestInferShape(utt.InferShapeTester):
         # mat/mat
         admat = dmatrix()
         bdmat = dmatrix()
-        admat_val = rand(4, 5)
-        bdmat_val = rand(5, 3)
+        admat_val = random(4, 5)
+        bdmat_val = random(5, 3)
         self._compile_and_check(
             [admat, bdmat],
             [Dot()(admat, bdmat)],
@@ -2455,7 +2450,7 @@ class TestInferShape(utt.InferShapeTester):
         )
 
         # vec/mat
-        bdmat_val = rand(4, 5)
+        bdmat_val = random(4, 5)
         self._compile_and_check(
             [advec, bdmat],
             [Dot()(advec, bdmat)],
@@ -2464,7 +2459,7 @@ class TestInferShape(utt.InferShapeTester):
         )
 
         # mat/vec
-        admat_val = rand(5, 4)
+        admat_val = random(5, 4)
         self._compile_and_check(
             [admat, bdvec],
             [Dot()(admat, bdvec)],
@@ -2476,7 +2471,7 @@ class TestInferShape(utt.InferShapeTester):
 class TestTensorInstanceMethods:
     def setup_method(self):
         self.vars = matrices("X", "Y")
-        self.vals = [m.astype(config.floatX) for m in [rand(2, 2), rand(2, 2)]]
+        self.vals = [m.astype(config.floatX) for m in [random(2, 2), random(2, 2)]]
 
     def test_argmin(self):
         X, _ = self.vars
@@ -2562,6 +2557,8 @@ def test_norm():
 
 
 def test_cov():
+    rng = np.random.default_rng(utt.fetch_seed())
+
     x = matrix("x")
     y = matrix("y")
 
@@ -2569,14 +2566,14 @@ def test_cov():
         c = cov(x, rowvar=rowvar, bias=bias, ddof=ddof)
         f = function([x], c)
 
-        data = np.asarray(np.random.rand(3, 5), dtype=config.floatX)
+        data = np.asarray(rng.random((3, 5)), dtype=config.floatX)
         assert np.allclose(f(data), np.cov(data, rowvar=rowvar, bias=bias, ddof=ddof))
 
         c = cov(x, y=y, rowvar=rowvar, bias=bias, ddof=ddof)
         f = function([x, y], c)
 
-        data = np.asarray(np.random.rand(3, 5), dtype=config.floatX)
-        y_val = np.asarray(np.random.rand(3, 5), dtype=config.floatX)
+        data = np.asarray(rng.random((3, 5)), dtype=config.floatX)
+        y_val = np.asarray(rng.random((3, 5)), dtype=config.floatX)
         assert np.allclose(
             f(data, y_val), np.cov(data, rowvar=rowvar, y=y_val, bias=bias, ddof=ddof)
         )
@@ -2588,7 +2585,7 @@ def test_ptp():
     p = ptp(x)
     f = function([x], p)
 
-    y = np.asarray(rand() * 20 - 10, dtype=config.floatX)
+    y = np.asarray(random() * 20 - 10, dtype=config.floatX)
     result = f(y)
     numpyResult = np.ptp(y)
 
@@ -2597,11 +2594,11 @@ def test_ptp():
 
 class TestPower:
     def test_numpy_compare(self):
-        rng = np.random.RandomState(utt.fetch_seed())
+        rng = np.random.default_rng(utt.fetch_seed())
         A = matrix("A", dtype=config.floatX)
         Q = power(A, 3)
         fn = function([A], [Q])
-        a = rng.rand(4, 4).astype(config.floatX)
+        a = rng.random((4, 4)).astype(config.floatX)
 
         n_p = np.power(a, 3)
         t_p = fn(a)
@@ -2625,18 +2622,14 @@ class TestPower:
 
 class TestProd:
     def setup_method(self):
-        utt.seed_rng()
-
         # we want to allow nans in the matrices, so we disable this
         # DEBUG_MODE check
         mode = get_default_mode()
         mode = copy(mode)
         mode.check_isfinite = False
-
         self.mode = mode
 
     def test_verify_grad(self):
-
         # including zeros, as the case with zeros is important
         # (and special cases: 1 zero in the row, more than 1 zero in the row)
         x_val = np.asarray(
@@ -2726,7 +2719,7 @@ class TestProd:
         x_val2 = np.array(
             [[1, 2, 0], [0, 5, 6], [7, 8, 9], [9, 10, 0]], dtype="float32"
         )
-        rng = rng = np.random.RandomState(43)
+        rng = rng = np.random.default_rng(43)
 
         p = Prod(axis=1)
         grad_p = grad(p(x).sum(), x)
@@ -2836,7 +2829,7 @@ class TestSumProdReduceDtype:
                 f = function([x], s, mode=self.mode)
                 topo = f.maker.fgraph.toposort()
                 assert [n for n in topo if isinstance(n.op, self.op)], (topo, dtype)
-                data = np.random.rand(3, 4) * 10
+                data = np.random.random((3, 4)) * 10
                 data = data.astype(dtype)
                 f(data)
 
@@ -2867,7 +2860,7 @@ class TestSumProdReduceDtype:
                 f = function([x], s, mode=self.mode)
                 topo = f.maker.fgraph.toposort()
                 assert [n for n in topo if isinstance(n.op, self.op)], (topo, dtype)
-                data = np.random.rand(3, 4) * 10
+                data = np.random.random((3, 4)) * 10
                 data = data.astype(dtype)
                 f(data)
 
@@ -2897,7 +2890,7 @@ class TestSumProdReduceDtype:
                         topo,
                         output_dtype,
                     )
-                    data = np.random.rand(3, 4) * 10
+                    data = np.random.random((3, 4)) * 10
                     data = data.astype(input_dtype)
                     if method == "prod" and output_dtype in [
                         "float16",
@@ -2984,7 +2977,7 @@ class TestMeanDtype:
             else:
                 assert m.dtype == dtype, (m, m.dtype, dtype)
             f = function([x], m)
-            data = np.random.rand(3, 4) * 10
+            data = np.random.random((3, 4)) * 10
             data = data.astype(dtype)
             f(data)
 
@@ -3016,7 +3009,7 @@ class TestMeanDtype:
                     ) and input_dtype != sum_dtype:
                         continue
                     f = function([x], mean_var)
-                    data = np.random.rand(3, 4) * 10
+                    data = np.random.random((3, 4)) * 10
                     data = data.astype(input_dtype)
                     f(data)
                     # Check that we can take the gradient, when implemented
@@ -3093,7 +3086,7 @@ class TestProdWithoutZerosDtype:
             if "complex" in dtype:
                 continue
             f = function([x], p)
-            data = np.random.rand(2, 3) * 3
+            data = np.random.random((2, 3)) * 3
             data = data.astype(dtype)
             f(data)
 
@@ -3114,7 +3107,7 @@ class TestProdWithoutZerosDtype:
                 if "complex" in output_dtype or "complex" in input_dtype:
                     continue
                 f = function([x], prod_woz_var)
-                data = np.random.rand(2, 3) * 3
+                data = np.random.random((2, 3)) * 3
                 data = data.astype(input_dtype)
                 f(data)
 
@@ -3141,7 +3134,7 @@ class TestProdWithoutZerosDtype:
                     if acc_dtype.startswith("complex") and input_dtype != acc_dtype:
                         continue
                     f = function([x], prod_woz_var)
-                    data = np.random.rand(2, 3) * 3
+                    data = np.random.random((2, 3)) * 3
                     data = data.astype(input_dtype)
                     f(data)
                 else:
@@ -3273,3 +3266,73 @@ def test_tanh_grad_broadcast():
     grad(tanh(x).sum(), x)
     grad(tanh(x + y).sum(), y)
     grad(tanh(x + y).sum(), [x, y])
+
+
+def test_logaddexp():
+    # Test more than two multidimensional inputs
+    x, y, z = matrices("x", "y", "z")
+    out = logaddexp(x, y, z)
+    f = function([x, y, z], out)
+
+    inp = np.zeros((3, 3), dtype=config.floatX)
+    np.testing.assert_allclose(
+        f(inp, inp, inp),
+        np.full((3, 3), np.log(3)),
+    )
+
+    # Test scalar inputs
+    x, y = scalars("x", "y")
+    out = logaddexp(x, y)
+    f = function([x, y], out)
+
+    res = f(0, 0)
+    assert np.ndim(res) == 0
+    assert np.isclose(res, np.log(2))
+
+    # Test scalar and matrix inputs
+    x = scalar("x")
+    y = matrix("y")
+    out = logaddexp(x, y)
+    f = function([x, y], out)
+
+    res = f(
+        np.array(0, dtype=config.floatX),
+        np.zeros((3, 3), dtype=config.floatX),
+    )
+    assert np.shape(res) == (3, 3)
+    np.testing.assert_allclose(
+        res,
+        np.full((3, 3), np.log(2)),
+    )
+
+
+@pytest.mark.parametrize(
+    ["shape", "axis"],
+    [
+        ((1,), 0),
+        ((3,), 0),
+        ((3, 4), None),
+        ((3, 4), 0),
+        ((3, 4), 1),
+        ((3, 4, 5), None),
+        ((3, 3, 5), 0),
+        ((3, 4, 5), 1),
+        ((3, 4, 5), 2),
+    ],
+)
+@pytest.mark.parametrize(
+    "keepdims",
+    [True, False],
+)
+def test_logsumexp(shape, axis, keepdims):
+    scipy_inp = np.zeros(shape)
+    scipy_out = scipy_logsumexp(scipy_inp, axis=axis, keepdims=keepdims)
+
+    aesara_inp = as_tensor_variable(scipy_inp)
+    f = function([], logsumexp(aesara_inp, axis=axis, keepdims=keepdims))
+    aesara_out = f()
+
+    np.testing.assert_array_almost_equal(
+        aesara_out,
+        scipy_out,
+    )

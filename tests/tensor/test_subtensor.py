@@ -13,7 +13,9 @@ from aesara.compile import DeepCopyOp, shared
 from aesara.compile.io import In
 from aesara.configdefaults import config
 from aesara.graph.op import get_test_value
-from aesara.graph.toolbox import is_same_graph
+from aesara.graph.opt_utils import is_same_graph
+from aesara.scalar.basic import as_scalar
+from aesara.tensor import get_vector_length
 from aesara.tensor.elemwise import DimShuffle
 from aesara.tensor.math import exp, isinf
 from aesara.tensor.math import sum as aet_sum
@@ -28,16 +30,17 @@ from aesara.tensor.subtensor import (
     advanced_inc_subtensor1,
     advanced_set_subtensor,
     advanced_set_subtensor1,
+    as_index_literal,
     basic_shape,
     get_canonical_form_slice,
     inc_subtensor,
     indexed_result_shape,
     set_subtensor,
+    take,
 )
 from aesara.tensor.type import (
     TensorType,
     col,
-    cscalar,
     ctensor3,
     dmatrix,
     dscalar,
@@ -59,9 +62,9 @@ from aesara.tensor.type import (
     tensor4,
     vector,
 )
-from aesara.tensor.type_other import make_slice, slicetype
+from aesara.tensor.type_other import NoneConst, SliceConstant, make_slice, slicetype
 from tests import unittest_tools as utt
-from tests.tensor.utils import inplace_func, rand, randint_ranged
+from tests.tensor.utils import inplace_func, integers_ranged, random
 
 
 subtensor_ops = (
@@ -70,6 +73,209 @@ subtensor_ops = (
     AdvancedSubtensor1,
     AdvancedIncSubtensor1,
 )
+
+
+def test_as_index_literal():
+    res = as_index_literal(slice(None, aet.as_tensor(1)))
+    assert res == slice(None, 1)
+    res = as_index_literal(slice(aet.as_tensor(1), None))
+    assert res == slice(1, None)
+    res = as_index_literal(slice(None, None, aet.as_tensor(2)))
+    assert res == slice(None, None, 2)
+    res = as_index_literal(SliceConstant(slicetype, slice(None)))
+    assert res == slice(None)
+    res = as_index_literal(make_slice(None, aet.as_tensor(1)))
+    assert res == slice(None, 1)
+
+    res = as_index_literal(aet.as_tensor(2))
+    assert res == 2
+
+    res = as_index_literal(np.newaxis)
+    assert res is np.newaxis
+    res = as_index_literal(NoneConst)
+    assert res is np.newaxis
+    res = as_index_literal(NoneConst.clone())
+    assert res is np.newaxis
+
+
+class TestGetCanonicalFormSlice:
+    def test_scalar_constant(self):
+        a = as_scalar(0)
+        length = lscalar()
+        res = get_canonical_form_slice(a, length)
+        assert res[0].owner.op == aet.switch
+        assert res[1] == 1
+
+    def test_all_symbolic(self):
+        start = iscalar("b")
+        stop = iscalar("e")
+        step = iscalar("s")
+        length = iscalar("l")
+        cnf = get_canonical_form_slice(slice(start, stop, step), length)
+        f = aesara.function(
+            [start, stop, step, length],
+            [
+                aet.as_tensor_variable(cnf[0].start),
+                aet.as_tensor_variable(cnf[0].stop),
+                aet.as_tensor_variable(cnf[0].step),
+                aet.as_tensor_variable(cnf[1]),
+            ],
+        )
+
+        length = 5
+        a = np.arange(length)
+        for start in [-8, -5, -4, -1, 0, 1, 4, 5, 8]:
+            for stop in [-8, -5, -4, -1, 0, 1, 4, 5, 8]:
+                for step in [-6, -3, -1, 2, 5]:
+                    out = f(start, stop, step, length)
+                    t_out = a[out[0] : out[1] : out[2]][:: out[3]]
+                    v_out = a[start:stop:step]
+                    assert np.all(t_out == v_out)
+                    assert np.all(t_out.shape == v_out.shape)
+
+    def test_start_None(self):
+        stop = iscalar("e")
+        step = iscalar("s")
+        length = iscalar("l")
+        cnf = get_canonical_form_slice(slice(None, stop, step), length)
+        f = aesara.function(
+            [stop, step, length],
+            [
+                aet.as_tensor_variable(cnf[0].start),
+                aet.as_tensor_variable(cnf[0].stop),
+                aet.as_tensor_variable(cnf[0].step),
+                aet.as_tensor_variable(cnf[1]),
+            ],
+        )
+
+        length = 5
+        a = np.arange(length)
+        for stop in [-8, -5, -4, -1, 0, 1, 4, 5, 8]:
+            for step in [-6, -3, -1, 2, 5]:
+                out = f(stop, step, length)
+                t_out = a[out[0] : out[1] : out[2]][:: out[3]]
+                v_out = a[:stop:step]
+                assert np.all(t_out == v_out)
+                assert np.all(t_out.shape == v_out.shape)
+
+    def test_stop_None(self):
+        start = iscalar("b")
+        step = iscalar("s")
+        length = iscalar("l")
+        cnf = get_canonical_form_slice(slice(start, None, step), length)
+        f = aesara.function(
+            [start, step, length],
+            [
+                aet.as_tensor_variable(cnf[0].start),
+                aet.as_tensor_variable(cnf[0].stop),
+                aet.as_tensor_variable(cnf[0].step),
+                aet.as_tensor_variable(cnf[1]),
+            ],
+        )
+
+        length = 5
+        a = np.arange(length)
+        for start in [-8, -5, -4, -1, 0, 1, 4, 5, 8]:
+            for step in [-6, -3, -1, 2, 5]:
+                out = f(start, step, length)
+                t_out = a[out[0] : out[1] : out[2]][:: out[3]]
+                v_out = a[start:None:step]
+                assert np.all(t_out == v_out)
+                assert np.all(t_out.shape == v_out.shape)
+
+    def test_step_None(self):
+        start = iscalar("b")
+        stop = iscalar("e")
+        length = iscalar("l")
+        cnf = get_canonical_form_slice(slice(start, stop, None), length)
+        f = aesara.function(
+            [start, stop, length],
+            [
+                aet.as_tensor_variable(cnf[0].start),
+                aet.as_tensor_variable(cnf[0].stop),
+                aet.as_tensor_variable(cnf[0].step),
+                aet.as_tensor_variable(cnf[1]),
+            ],
+        )
+
+        length = 5
+        a = np.arange(length)
+        for start in [-8, -5, -4, -1, 0, 1, 4, 5, 8]:
+            for stop in [-8, -5, -4, -1, 0, 1, 4, 5, 8]:
+                out = f(start, stop, length)
+                t_out = a[out[0] : out[1] : out[2]][:: out[3]]
+                v_out = a[start:stop:None]
+                assert np.all(t_out == v_out)
+                assert np.all(t_out.shape == v_out.shape)
+
+    def test_start_stop_None(self):
+        step = iscalar("s")
+        length = iscalar("l")
+        cnf = get_canonical_form_slice(slice(None, None, step), length)
+        f = aesara.function(
+            [step, length],
+            [
+                aet.as_tensor_variable(cnf[0].start),
+                aet.as_tensor_variable(cnf[0].stop),
+                aet.as_tensor_variable(cnf[0].step),
+                aet.as_tensor_variable(cnf[1]),
+            ],
+        )
+
+        length = 5
+        a = np.arange(length)
+        for step in [-6, -3, -1, 2, 5]:
+            out = f(step, length)
+            t_out = a[out[0] : out[1] : out[2]][:: out[3]]
+            v_out = a[None:None:step]
+            assert np.all(t_out == v_out)
+            assert np.all(t_out.shape == v_out.shape)
+
+    def test_stop_step_None(self):
+        start = iscalar("b")
+        length = iscalar("l")
+        cnf = get_canonical_form_slice(slice(start, None, None), length)
+        f = aesara.function(
+            [start, length],
+            [
+                aet.as_tensor_variable(cnf[0].start),
+                aet.as_tensor_variable(cnf[0].stop),
+                aet.as_tensor_variable(cnf[0].step),
+                aet.as_tensor_variable(cnf[1]),
+            ],
+        )
+
+        length = 5
+        a = np.arange(length)
+        for start in [-8, -5, -4, -1, 0, 1, 4, 5, 8]:
+            out = f(start, length)
+            t_out = a[out[0] : out[1] : out[2]][:: out[3]]
+            v_out = a[start:None:None]
+            assert np.all(t_out == v_out)
+            assert np.all(t_out.shape == v_out.shape)
+
+    def test_start_step_None(self):
+        stop = iscalar("e")
+        length = iscalar("l")
+        cnf = get_canonical_form_slice(slice(None, stop, None), length)
+        f = aesara.function(
+            [stop, length],
+            [
+                aet.as_tensor_variable(cnf[0].start),
+                aet.as_tensor_variable(cnf[0].stop),
+                aet.as_tensor_variable(cnf[0].step),
+                aet.as_tensor_variable(cnf[1]),
+            ],
+        )
+
+        length = 5
+        a = np.arange(length)
+        for stop in [-8, -5, -4, -1, 0, 1, 4, 5, 8]:
+            out = f(stop, length)
+            t_out = a[out[0] : out[1] : out[2]][:: out[3]]
+            v_out = a[None:stop:None]
+            assert np.all(t_out == v_out)
+            assert np.all(t_out.shape == v_out.shape)
 
 
 class TestSubtensor(utt.OptimizationTestMixin):
@@ -81,9 +287,12 @@ class TestSubtensor(utt.OptimizationTestMixin):
         self.shared = shared
         self.dtype = config.floatX
         mode = aesara.compile.mode.get_default_mode()
-        self.mode = mode.including("local_useless_subtensor")
+        self.mode = mode.including(
+            "local_replace_AdvancedSubtensor",
+            "local_AdvancedIncSubtensor_to_AdvancedIncSubtensor1",
+            "local_useless_subtensor",
+        )
         self.fast_compile = config.mode == "FAST_COMPILE"
-        utt.seed_rng()
 
     def function(
         self,
@@ -322,40 +531,39 @@ class TestSubtensor(utt.OptimizationTestMixin):
         np.allclose(res, x[[slice(1, -1)] * x.ndim])
 
     def test_slice_symbol(self):
-        x = self.shared(np.random.rand(5, 4).astype(self.dtype))
-        y = self.shared(np.random.rand(1, 2, 3).astype(self.dtype))
+        x = self.shared(np.random.random((5, 4)).astype(self.dtype))
+        y = self.shared(np.random.random((1, 2, 3)).astype(self.dtype))
         o = x[: y.shape[0], None, :]
         f = aesara.function([], o, mode=self.mode)
         ret = f()
         assert ret.shape == (1, 1, 4)
 
-    def test_ellipsis(self):
-        numpy_n = np.arange(24, dtype=self.dtype).reshape((2, 3, 4))
-        n = self.shared(numpy_n)
-        test_cases = [
-            (0, Subtensor, Subtensor, np.index_exp[...]),
-            (1, Subtensor, Subtensor, np.index_exp[..., 1]),
-            (1, Subtensor, Subtensor, np.index_exp[1, ...]),
-            (1, Subtensor, Subtensor, np.index_exp[..., 1, 2, 3]),
-            (1, Subtensor, Subtensor, np.index_exp[1, ..., 2, 3]),
-            (1, Subtensor, Subtensor, np.index_exp[1, 2, 3, ...]),
-            (3, DimShuffle, DimShuffle, np.index_exp[..., [0, 2, 3]]),
-            (1, DimShuffle, DimShuffle, np.index_exp[np.newaxis, ...]),
+    @pytest.mark.parametrize(
+        "length, op_type_opt, slice_",
+        [
+            (0, Subtensor, np.index_exp[...]),
+            (1, Subtensor, np.index_exp[..., 1]),
+            (1, Subtensor, np.index_exp[1, ...]),
+            (1, Subtensor, np.index_exp[..., 1, 2, 3]),
+            (1, Subtensor, np.index_exp[1, ..., 2, 3]),
+            (1, Subtensor, np.index_exp[1, 2, 3, ...]),
+            (3, DimShuffle, np.index_exp[..., [0, 2, 3]]),
+            (1, DimShuffle, np.index_exp[np.newaxis, ...]),
             (
                 1,
                 AdvancedSubtensor,
-                AdvancedSubtensor,
                 np.index_exp[..., np.newaxis, [1, 2]],
             ),
-        ]
-
-        for length, op_type, op_type_opt, slice_ in test_cases:
-            numpy_tval = numpy_n[slice_]
-            t = n[slice_]
-            assert isinstance(t.owner.op, op_type)
-            tval = self.eval_output_and_check(t, op_type=op_type_opt, length=length)
-            assert tval.shape == numpy_tval.shape
-            assert_array_equal(tval, numpy_tval)
+        ],
+    )
+    def test_ellipsis(self, length, op_type_opt, slice_):
+        numpy_n = np.arange(24, dtype=self.dtype).reshape((2, 3, 4))
+        n = self.shared(numpy_n)
+        numpy_tval = numpy_n[slice_]
+        t = n[slice_]
+        tval = self.eval_output_and_check(t, op_type=op_type_opt, length=length)
+        assert tval.shape == numpy_tval.shape
+        assert_array_equal(tval, numpy_tval)
 
     def test_boolean(self):
         def numpy_inc_subtensor(x, idx, a):
@@ -526,48 +734,9 @@ class TestSubtensor(utt.OptimizationTestMixin):
             with pytest.raises(TypeError):
                 test_array.__getitem__(([0, 1], [0, aesara.shared(True)]))
 
-    def test_newaxis(self):
-        # newaxis support comes from logic in the __getitem__ of TensorType
-        # Variables, which currently inserts dimshuffle to get the right number
-        # of dimensions, and adjusts the slice tuple accordingly.
-        #
-        # So testing is done via square-bracket notation rather than direct
-        # interaction with the Subtensor Op (which has no support of its own for
-        # newaxis).
-
-        newaxis = np.newaxis
-
-        n = self.shared(np.arange(24, dtype=self.dtype).reshape((2, 3, 4)))
-        assert n.ndim == 3
-
-        n4 = n[newaxis, :, :, :]
-        assert n4.broadcastable == (True, False, False, False), n4
-
-        n4 = n[:, newaxis, :, :]
-        assert n4.broadcastable == (False, True, False, False), n4
-
-        n4 = n[:, :, newaxis, :]
-        assert n4.broadcastable == (False, False, True, False), n4
-
-        n4 = n[:, :, :, newaxis]
-        assert n4.broadcastable == (False, False, False, True), n4
-
-        n3 = n.flatten()[newaxis, :, newaxis]
-        assert n3.broadcastable == (True, False, True), n3
-
-        s = cscalar()
-        s1 = s[newaxis]
-        assert s1.broadcastable == (True,), s1
-
-        vs1, vn3, vn4 = aesara.function([s], [s1, n3, n4], mode=self.mode)(-2.0)
-
-        assert np.all(vs1 == [-2.0])
-        assert np.all(vn3 == np.arange(24)[newaxis, :, newaxis])
-        assert np.all(vn4 == np.arange(24).reshape((2, 3, 4))[:, :, :, newaxis])
-
     def test_grad_1d(self):
         subi = 0
-        data = np.asarray(rand(2, 3), dtype=self.dtype)
+        data = np.asarray(random(2, 3), dtype=self.dtype)
         n = self.shared(data)
         z = scal.constant(subi).astype("int32")
         t = n[z:, z]
@@ -595,11 +764,11 @@ class TestSubtensor(utt.OptimizationTestMixin):
         ]:
             for op in [inc_subtensor, set_subtensor]:
                 subi = 2
-                data = np.asarray(rand(*n_shape), dtype=self.dtype)
+                data = np.asarray(random(*n_shape), dtype=self.dtype)
                 n = self.shared(data)
                 z = scal.constant(subi)
                 m = matrix("m", dtype=self.dtype)
-                mv = np.asarray(rand(*m_shape), dtype=self.dtype)
+                mv = np.asarray(random(*m_shape), dtype=self.dtype)
 
                 t = op(n[:z, :z], m)
                 gn, gm = aesara.grad(aet_sum(t), [n, m])
@@ -607,7 +776,7 @@ class TestSubtensor(utt.OptimizationTestMixin):
                 utt.verify_grad(lambda nn: op(nn[:z, :z], mv), [data], mode=self.mode)
 
     def test_grad_0d(self):
-        data = np.asarray(rand(2, 3), dtype=self.dtype)
+        data = np.asarray(random(2, 3), dtype=self.dtype)
         n = self.shared(data)
         t = n[1, 0]
         gn = aesara.grad(aet_sum(exp(t)), n)
@@ -626,24 +795,21 @@ class TestSubtensor(utt.OptimizationTestMixin):
 
     def test_ok_list(self):
         for data, idx in [
-            (rand(4), [1, 0]),
-            (rand(4, 5), [2, 3, -1]),
-            (rand(4, 2, 3), [0, 3]),
-            (rand(4, 2, 3), [3, 3, 1, 1, 2, 2, 0, 0]),
-            (rand(4, 2, 3), [3, 3, 1, 1, 2, 2, 0, 0, -1, -2, -3, -4]),
+            (random(4), [1, 0]),
+            (random(4, 5), [2, 3, -1]),
+            (random(4, 2, 3), [0, 3]),
+            (random(4, 2, 3), [3, 3, 1, 1, 2, 2, 0, 0]),
+            (random(4, 2, 3), [3, 3, 1, 1, 2, 2, 0, 0, -1, -2, -3, -4]),
             # Test 4 dims as gpu code use another algo
             # in that case This new algo is not as much
             # optimized for that case.
-            (rand(4, 4, 2, 3), [3, 3, 1, 1, 2, 2, 0, 0, -1, -2, -3, -4]),
+            (random(4, 4, 2, 3), [3, 3, 1, 1, 2, 2, 0, 0, -1, -2, -3, -4]),
             # Test with TensorConstant index.
-            (rand(4, 2, 3), aet.constant([3, 3, 1, 1, 2, 2, 0, 0])),
+            (random(4, 2, 3), aet.constant([3, 3, 1, 1, 2, 2, 0, 0])),
         ]:
             data = np.asarray(data, dtype=self.dtype)
             n = self.shared(data)
             t = n[idx]
-
-            # We test again AdvancedSubtensor1 as we transfer data to the cpu.
-            assert isinstance(t.owner.op, AdvancedSubtensor1)
 
             val = self.eval_output_and_check(t, op_type=AdvancedSubtensor1)
             if isinstance(idx, list):
@@ -671,18 +837,17 @@ class TestSubtensor(utt.OptimizationTestMixin):
             g = self.function([], gn, op=AdvancedIncSubtensor1)
             utt.verify_grad(
                 lambda m: m[[1, 3]],
-                [np.random.rand(5, 5).astype(self.dtype)],
+                [np.random.random((5, 5)).astype(self.dtype)],
                 mode=self.mode,
             )
             g()
             utt.verify_grad(lambda m: m[idx], [data], mode=self.mode)
 
     def test_noncontiguous_idx(self):
-        data = rand(4, 2, 3)
+        data = random(4, 2, 3)
         idx = [2, 2, 0, 0, 1, 1]
         n = self.shared(data)
         t = n[self.shared(np.asarray(idx).astype("int64"))[::2]]
-        assert isinstance(t.owner.op, AdvancedSubtensor1)
         val = self.eval_output_and_check(t, op_type=AdvancedSubtensor1, length=2)
         utt.assert_allclose(data[idx[::2]], val)
 
@@ -700,12 +865,9 @@ class TestSubtensor(utt.OptimizationTestMixin):
         n = self.shared(np.ones((2, 3), dtype=self.dtype) * 5)
         l = lvector()
         t = n[l]
-        # We test again AdvancedSubtensor1 as we transfer data to the cpu.
-        assert isinstance(t.owner.op, AdvancedSubtensor1)
 
         f = self.function([l], t, op=AdvancedSubtensor1)
 
-        # the grad
         g = self.function(
             [l],
             inc_subtensor(t, np.asarray([[1.0]], self.dtype)),
@@ -723,7 +885,6 @@ class TestSubtensor(utt.OptimizationTestMixin):
         n = self.shared(v * 5, broadcastable=(True, False))
         idx = lvector()
         t = n[idx]
-        assert isinstance(t.owner.op, AdvancedSubtensor1)
 
         f = self.function([idx], t, op=AdvancedSubtensor1)
         topo = f.maker.fgraph.toposort()
@@ -752,7 +913,7 @@ class TestSubtensor(utt.OptimizationTestMixin):
 
         utt.verify_grad(
             lambda m: m[[1, 3]],
-            [np.random.rand(5, 5).astype(self.dtype)],
+            [np.random.random((5, 5)).astype(self.dtype)],
             mode=self.mode,
         )
 
@@ -762,8 +923,8 @@ class TestSubtensor(utt.OptimizationTestMixin):
         utt.verify_grad(
             fun,
             [
-                np.random.rand(5, 5).astype(self.dtype),
-                np.random.rand(2, 5).astype(self.dtype),
+                np.random.random((5, 5)).astype(self.dtype),
+                np.random.random((2, 5)).astype(self.dtype),
             ],
             mode=self.mode,
         )
@@ -774,8 +935,8 @@ class TestSubtensor(utt.OptimizationTestMixin):
         utt.verify_grad(
             fun,
             [
-                np.random.rand(5, 5).astype(self.dtype),
-                np.random.rand(2, 5).astype(self.dtype),
+                np.random.random((5, 5)).astype(self.dtype),
+                np.random.random((2, 5)).astype(self.dtype),
             ],
             mode=self.mode,
         )
@@ -785,7 +946,7 @@ class TestSubtensor(utt.OptimizationTestMixin):
 
         x = tensor4("x", dtype=self.dtype)
         indexes = aesara.shared(np.int32([1, 2, 3, 4]))
-        W = self.shared(np.random.random((10, 10, 3, 3)).astype(self.dtype))
+        W = self.shared(np.random.random(((10, 10, 3, 3))).astype(self.dtype))
 
         h = x + W
         h = set_subtensor(h[indexes], h[indexes])
@@ -798,7 +959,7 @@ class TestSubtensor(utt.OptimizationTestMixin):
             N = 3
         f = self.function([x], g, op=AdvancedIncSubtensor1, N=N)
 
-        f(np.random.random((10, 10, 3, 3)).astype(self.dtype))
+        f(np.random.random(((10, 10, 3, 3))).astype(self.dtype))
 
     def test_adv_sub1_idx_broadcast(self):
         # The idx can be a broadcastable vector.
@@ -807,7 +968,6 @@ class TestSubtensor(utt.OptimizationTestMixin):
         idx = TensorType(dtype="int64", broadcastable=(True,))()
         assert idx.type.broadcastable == (True,)
         t = n[idx]
-        assert isinstance(t.owner.op, AdvancedSubtensor1)
 
         f = self.function([idx], t, op=AdvancedSubtensor1)
         topo = f.maker.fgraph.toposort()
@@ -868,191 +1028,6 @@ class TestSubtensor(utt.OptimizationTestMixin):
             for stop in [-8, -5, -4, -1, 0, 1, 4, 5, 8]:
                 for step in [-3, -1, 2, 5]:
                     assert np.all(f(start, stop, step) == v_data[start:stop:step].shape)
-
-    def test_slice_canonical_form_0(self):
-        start = iscalar("b")
-        stop = iscalar("e")
-        step = iscalar("s")
-        length = iscalar("l")
-        cnf = get_canonical_form_slice(slice(start, stop, step), length)
-        f = self.function(
-            [start, stop, step, length],
-            [
-                aet.as_tensor_variable(cnf[0].start),
-                aet.as_tensor_variable(cnf[0].stop),
-                aet.as_tensor_variable(cnf[0].step),
-                aet.as_tensor_variable(cnf[1]),
-            ],
-            N=0,
-            op=subtensor_ops,
-        )
-
-        length = 5
-        a = np.arange(length)
-        for start in [-8, -5, -4, -1, 0, 1, 4, 5, 8]:
-            for stop in [-8, -5, -4, -1, 0, 1, 4, 5, 8]:
-                for step in [-6, -3, -1, 2, 5]:
-                    out = f(start, stop, step, length)
-                    t_out = a[out[0] : out[1] : out[2]][:: out[3]]
-                    v_out = a[start:stop:step]
-                    assert np.all(t_out == v_out)
-                    assert np.all(t_out.shape == v_out.shape)
-
-    def test_slice_canonical_form_1(self):
-        stop = iscalar("e")
-        step = iscalar("s")
-        length = iscalar("l")
-        cnf = get_canonical_form_slice(slice(None, stop, step), length)
-        f = self.function(
-            [stop, step, length],
-            [
-                aet.as_tensor_variable(cnf[0].start),
-                aet.as_tensor_variable(cnf[0].stop),
-                aet.as_tensor_variable(cnf[0].step),
-                aet.as_tensor_variable(cnf[1]),
-            ],
-            N=0,
-            op=subtensor_ops,
-        )
-
-        length = 5
-        a = np.arange(length)
-        for stop in [-8, -5, -4, -1, 0, 1, 4, 5, 8]:
-            for step in [-6, -3, -1, 2, 5]:
-                out = f(stop, step, length)
-                t_out = a[out[0] : out[1] : out[2]][:: out[3]]
-                v_out = a[:stop:step]
-                assert np.all(t_out == v_out)
-                assert np.all(t_out.shape == v_out.shape)
-
-    def test_slice_canonical_form_2(self):
-        start = iscalar("b")
-        step = iscalar("s")
-        length = iscalar("l")
-        cnf = get_canonical_form_slice(slice(start, None, step), length)
-        f = self.function(
-            [start, step, length],
-            [
-                aet.as_tensor_variable(cnf[0].start),
-                aet.as_tensor_variable(cnf[0].stop),
-                aet.as_tensor_variable(cnf[0].step),
-                aet.as_tensor_variable(cnf[1]),
-            ],
-            N=0,
-            op=subtensor_ops,
-        )
-
-        length = 5
-        a = np.arange(length)
-        for start in [-8, -5, -4, -1, 0, 1, 4, 5, 8]:
-            for step in [-6, -3, -1, 2, 5]:
-                out = f(start, step, length)
-                t_out = a[out[0] : out[1] : out[2]][:: out[3]]
-                v_out = a[start:None:step]
-                assert np.all(t_out == v_out)
-                assert np.all(t_out.shape == v_out.shape)
-
-    def test_slice_canonical_form_3(self):
-        start = iscalar("b")
-        stop = iscalar("e")
-        length = iscalar("l")
-        cnf = get_canonical_form_slice(slice(start, stop, None), length)
-        f = self.function(
-            [start, stop, length],
-            [
-                aet.as_tensor_variable(cnf[0].start),
-                aet.as_tensor_variable(cnf[0].stop),
-                aet.as_tensor_variable(cnf[0].step),
-                aet.as_tensor_variable(cnf[1]),
-            ],
-            N=0,
-            op=subtensor_ops,
-        )
-
-        length = 5
-        a = np.arange(length)
-        for start in [-8, -5, -4, -1, 0, 1, 4, 5, 8]:
-            for stop in [-8, -5, -4, -1, 0, 1, 4, 5, 8]:
-                out = f(start, stop, length)
-                t_out = a[out[0] : out[1] : out[2]][:: out[3]]
-                v_out = a[start:stop:None]
-                assert np.all(t_out == v_out)
-                assert np.all(t_out.shape == v_out.shape)
-
-    def test_slice_canonical_form_4(self):
-        step = iscalar("s")
-        length = iscalar("l")
-        cnf = get_canonical_form_slice(slice(None, None, step), length)
-        f = self.function(
-            [step, length],
-            [
-                aet.as_tensor_variable(cnf[0].start),
-                aet.as_tensor_variable(cnf[0].stop),
-                aet.as_tensor_variable(cnf[0].step),
-                aet.as_tensor_variable(cnf[1]),
-            ],
-            N=0,
-            op=subtensor_ops,
-        )
-
-        length = 5
-        a = np.arange(length)
-        for step in [-6, -3, -1, 2, 5]:
-            out = f(step, length)
-            t_out = a[out[0] : out[1] : out[2]][:: out[3]]
-            v_out = a[None:None:step]
-            assert np.all(t_out == v_out)
-            assert np.all(t_out.shape == v_out.shape)
-
-    def test_slice_canonical_form_5(self):
-        start = iscalar("b")
-        length = iscalar("l")
-        cnf = get_canonical_form_slice(slice(start, None, None), length)
-        f = self.function(
-            [start, length],
-            [
-                aet.as_tensor_variable(cnf[0].start),
-                aet.as_tensor_variable(cnf[0].stop),
-                aet.as_tensor_variable(cnf[0].step),
-                aet.as_tensor_variable(cnf[1]),
-            ],
-            N=0,
-            op=subtensor_ops,
-        )
-
-        length = 5
-        a = np.arange(length)
-        for start in [-8, -5, -4, -1, 0, 1, 4, 5, 8]:
-            out = f(start, length)
-            t_out = a[out[0] : out[1] : out[2]][:: out[3]]
-            v_out = a[start:None:None]
-            assert np.all(t_out == v_out)
-            assert np.all(t_out.shape == v_out.shape)
-
-    def test_slice_canonical_form_6(self):
-        stop = iscalar("e")
-        length = iscalar("l")
-        cnf = get_canonical_form_slice(slice(None, stop, None), length)
-        f = self.function(
-            [stop, length],
-            [
-                aet.as_tensor_variable(cnf[0].start),
-                aet.as_tensor_variable(cnf[0].stop),
-                aet.as_tensor_variable(cnf[0].step),
-                aet.as_tensor_variable(cnf[1]),
-            ],
-            N=0,
-            op=subtensor_ops,
-        )
-
-        length = 5
-        a = np.arange(length)
-        for stop in [-8, -5, -4, -1, 0, 1, 4, 5, 8]:
-            out = f(stop, length)
-            t_out = a[out[0] : out[1] : out[2]][:: out[3]]
-            v_out = a[None:stop:None]
-            assert np.all(t_out == v_out)
-            assert np.all(t_out.shape == v_out.shape)
 
     def grad_list_(self, idxs, data):
         n = self.shared(data)
@@ -1119,7 +1094,7 @@ class TestSubtensor(utt.OptimizationTestMixin):
 
     @pytest.mark.slow
     def test_grad_list(self):
-        data = rand(4)
+        data = random(4)
         data = np.asarray(data, dtype=self.dtype)
         idxs = [[i] for i in range(data.shape[0])]
         for i in range(data.shape[0]):
@@ -1127,22 +1102,22 @@ class TestSubtensor(utt.OptimizationTestMixin):
                 idxs.append([i, j, (i + 1) % data.shape[0]])
         self.grad_list_(idxs, data)
 
-        data = rand(4, 3)
+        data = random(4, 3)
         data = np.asarray(data, dtype=self.dtype)
         self.grad_list_(idxs, data)
 
-        data = rand(4, 3, 2)
+        data = random(4, 3, 2)
         data = np.asarray(data, dtype=self.dtype)
         self.grad_list_(idxs, data)
 
     def test_shape_list(self):
         # TODO for all type of subtensor shape
         for data, idx in [
-            (rand(4), [1, 0]),
-            (rand(4, 2), [2, 3]),
-            (rand(4, 2, 3), [0, 3]),
+            (random(4), [1, 0]),
+            (random(4, 2), [2, 3]),
+            (random(4, 2, 3), [0, 3]),
             (
-                rand(4, 2, 3),
+                random(4, 2, 3),
                 [
                     3,
                     3,
@@ -1174,7 +1149,7 @@ class TestSubtensor(utt.OptimizationTestMixin):
     def test_advanced1_inc_and_set(self):
         # Test advanced increment and set.
 
-        rng = np.random.RandomState(seed=utt.fetch_seed())
+        rng = np.random.default_rng(seed=utt.fetch_seed())
         all_inputs_var = []
         all_inputs_num = []
         all_outputs_var = []
@@ -1204,7 +1179,7 @@ class TestSubtensor(utt.OptimizationTestMixin):
                         )()
                         # Symbolic variable with rows to be incremented.
                         idx_var = vector(dtype="int64")
-                        n_to_inc = rng.randint(data_shape[0])
+                        n_to_inc = rng.integers(data_shape[0])
                         if (
                             n_to_inc == 1
                             and len(inc_shape) > 0
@@ -1282,14 +1257,13 @@ class TestSubtensor(utt.OptimizationTestMixin):
                         )
 
         # Actual test (we compile a single Aesara function to make it faster).
-        with config.change_flags(warn__gpu_set_subtensor1=False):
-            f = self.function(
-                all_inputs_var,
-                all_outputs_var,
-                accept_inplace=True,
-                op=AdvancedIncSubtensor1,
-                N=len(all_outputs_var),
-            )
+        f = self.function(
+            all_inputs_var,
+            all_outputs_var,
+            accept_inplace=True,
+            op=AdvancedIncSubtensor1,
+            N=len(all_outputs_var),
+        )
 
         f_outs = f(*all_inputs_num)
         assert len(f_outs) == len(all_outputs_num)
@@ -1321,8 +1295,8 @@ class TestSubtensor(utt.OptimizationTestMixin):
         m2 = inc_subtensor(m[:, i], 1)
         f = aesara.function([m, i], [m1, m2], mode=self.mode)
 
-        m_val = rand(3, 5)
-        i_val = randint_ranged(min=0, max=4, shape=(4,))
+        m_val = random(3, 5)
+        i_val = integers_ranged(min=0, max=4, shape=(4,))
         m1_ref = m_val.copy()
         m2_ref = m_val.copy()
 
@@ -1346,8 +1320,8 @@ class TestSubtensor(utt.OptimizationTestMixin):
 
         f = aesara.function([m, i], [m1, m2], mode=self.mode)
 
-        m_val = rand(5, 7)
-        i_val = randint_ranged(min=0, max=6, shape=(4, 2))
+        m_val = random(5, 7)
+        i_val = integers_ranged(min=0, max=6, shape=(4, 2))
         m1_ref = m_val.copy()
         m2_ref = m_val.copy()
 
@@ -1370,31 +1344,24 @@ class TestSubtensor(utt.OptimizationTestMixin):
         shape_i = ((4,), (4, 2))
         shape_val = ((3, 1), (3, 1, 1))
 
-        # Disable the warning emitted for that case
-        orig_warn = config.warn__inc_set_subtensor1
-        try:
-            config.warn__inc_set_subtensor1 = False
+        for i, shp_i, shp_v in zip(sym_i, shape_i, shape_val):
+            sub_m = m[:, i]
+            m1 = set_subtensor(sub_m, np.zeros(shp_v))
+            m2 = inc_subtensor(sub_m, np.ones(shp_v))
+            f = aesara.function([m, i], [m1, m2], mode=self.mode)
 
-            for i, shp_i, shp_v in zip(sym_i, shape_i, shape_val):
-                sub_m = m[:, i]
-                m1 = set_subtensor(sub_m, np.zeros(shp_v))
-                m2 = inc_subtensor(sub_m, np.ones(shp_v))
-                f = aesara.function([m, i], [m1, m2], mode=self.mode)
+            m_val = random(3, 5)
+            i_val = integers_ranged(min=0, max=4, shape=shp_i)
+            m1_ref = m_val.copy()
+            m2_ref = m_val.copy()
 
-                m_val = rand(3, 5)
-                i_val = randint_ranged(min=0, max=4, shape=shp_i)
-                m1_ref = m_val.copy()
-                m2_ref = m_val.copy()
+            m1_val, m2_val = f(m_val, i_val)
+            for idx in i_val.ravel():
+                m1_ref[:, idx] = 0
+                m2_ref[:, idx] += 1
 
-                m1_val, m2_val = f(m_val, i_val)
-                for idx in i_val.ravel():
-                    m1_ref[:, idx] = 0
-                    m2_ref[:, idx] += 1
-
-                assert np.allclose(m1_val, m1_ref), (m1_val, m1_ref)
-                assert np.allclose(m2_val, m2_ref), (m2_val, m2_ref)
-        finally:
-            config.warn__inc_set_subtensor1 = orig_warn
+            assert np.allclose(m1_val, m1_ref), (m1_val, m1_ref)
+            assert np.allclose(m2_val, m2_ref), (m2_val, m2_ref)
 
     def test_adv1_inc_sub_notlastdim_1_2dval_no_broadcast(self):
         # Test that taking 1-dimensional advanced indexing
@@ -1407,41 +1374,63 @@ class TestSubtensor(utt.OptimizationTestMixin):
         shape_i = ((4,), (4, 2))
         shape_val = ((3, 4), (3, 4, 2))
 
-        # Disable the warning emitted for that case
-        orig_warn = config.warn__inc_set_subtensor1
+        for i, shp_i, shp_v in zip(sym_i, shape_i, shape_val):
+            sub_m = m[:, i]
+            m1 = set_subtensor(sub_m, np.zeros(shp_v))
+            m2 = inc_subtensor(sub_m, np.ones(shp_v))
+            f = aesara.function([m, i], [m1, m2], mode=self.mode)
 
-        try:
-            config.warn__inc_set_subtensor1 = False
-            for i, shp_i, shp_v in zip(sym_i, shape_i, shape_val):
-                sub_m = m[:, i]
-                m1 = set_subtensor(sub_m, np.zeros(shp_v))
-                m2 = inc_subtensor(sub_m, np.ones(shp_v))
-                f = aesara.function([m, i], [m1, m2], mode=self.mode)
+            m_val = random(3, 5)
+            i_val = integers_ranged(min=0, max=4, shape=shp_i)
+            m1_ref = m_val.copy()
+            m2_ref = m_val.copy()
 
-                m_val = rand(3, 5)
-                i_val = randint_ranged(min=0, max=4, shape=shp_i)
-                m1_ref = m_val.copy()
-                m2_ref = m_val.copy()
+            m1_val, m2_val = f(m_val, i_val)
+            # We have to explicitly loop over all individual indices,
+            # not as a list or array, numpy only increments the indexed
+            # elements once even if the indices are repeated.
+            for idx in i_val.ravel():
+                m1_ref[:, idx] = 0
+                m2_ref[:, idx] += 1
 
-                m1_val, m2_val = f(m_val, i_val)
-                # We have to explicitly loop over all individual indices,
-                # not as a list or array, numpy only increments the indexed
-                # elements once even if the indices are repeated.
-                for idx in i_val.ravel():
-                    m1_ref[:, idx] = 0
-                    m2_ref[:, idx] += 1
+            assert np.allclose(m1_val, m1_ref), (m1_val, m1_ref)
+            assert np.allclose(m2_val, m2_ref), (m2_val, m2_ref)
 
-                assert np.allclose(m1_val, m1_ref), (m1_val, m1_ref)
-                assert np.allclose(m2_val, m2_ref), (m2_val, m2_ref)
-        finally:
-            config.warn__inc_set_subtensor1 = orig_warn
 
-    def test_take(self):
-        a = matrix()
-        f = aesara.function(
-            [a], a.take(0, axis=-1), allow_input_downcast=True, mode=self.mode
-        )
-        f(np.random.normal(0, 1, (30, 4)))
+def test_take_basic():
+    with pytest.raises(TypeError):
+        take(matrix(), lvector(), axis=lscalar())
+
+
+@pytest.mark.parametrize(
+    "a, index, axis, mode",
+    [
+        (matrix(), lvector(), -1, None),
+        (matrix(), lvector(), 0, None),
+        (matrix(), lvector(), 1, None),
+        (matrix(), lvector(), 1, "clip"),
+        (matrix(), lvector(), 1, "wrap"),
+    ],
+)
+def test_take_cases(a, index, axis, mode):
+    fn_mode = aesara.compile.mode.get_default_mode()
+    fn_mode = fn_mode.including(
+        "local_useless_subtensor",
+        "local_replace_AdvancedSubtensor",
+    )
+
+    f = aesara.function([a, index], a.take(index, axis=axis, mode=mode), mode=fn_mode)
+
+    a_val = np.arange(3 * 3).reshape((3, 3)).astype(config.floatX)
+
+    if mode is None:
+        index_val = np.array([0, 1], dtype=np.int64)
+    else:
+        index_val = np.array([-1, 2], dtype=np.int64)
+
+    py_res = a_val.take(index_val, axis=axis, mode=mode)
+    f_res = f(a_val, index_val)
+    assert np.array_equal(py_res, f_res)
 
 
 class TestIncSubtensor:
@@ -1459,9 +1448,6 @@ class TestIncSubtensor:
     the new (read: not deprecated) inc_subtensor, set_subtensor
     functions.
     """
-
-    def setup_method(self):
-        utt.seed_rng()
 
     def test_simple_2d(self):
         # Increments or sets part of a tensor by a scalar using full slice and
@@ -1512,10 +1498,10 @@ class TestIncSubtensor:
 
         # These symbolic graphs legitimate, as long as increment has exactly
         # one element. So it should fail at runtime, not at compile time.
-        rng = np.random.RandomState(utt.fetch_seed())
+        rng = np.random.default_rng(utt.fetch_seed())
 
         def rng_randX(*shape):
-            return rng.rand(*shape).astype(aesara.config.floatX)
+            return rng.random((shape)).astype(aesara.config.floatX)
 
         for op in (set_subtensor, inc_subtensor):
             for base in (a[:], a[0]):
@@ -1634,7 +1620,7 @@ class TestIncSubtensor1:
     # also tests set_subtensor
 
     def setup_method(self):
-        self.rng = np.random.RandomState(seed=utt.fetch_seed())
+        self.rng = np.random.default_rng(seed=utt.fetch_seed())
 
         self.s = iscalar()
         self.v = fvector()
@@ -1689,7 +1675,7 @@ class TestIncSubtensor1:
         a2 = inc_subtensor(a, a)
         f = aesara.function([self.m, idx], a2)
 
-        mval = self.rng.random_sample((4, 10))
+        mval = self.rng.random((4, 10))
         idxval = np.array([[1, 2], [3, 2]])
         a2val = f(mval, idxval)
 
@@ -1706,8 +1692,8 @@ class TestIncSubtensor1:
         out2 = inc_subtensor(self.m[:, idx], m_inc)
 
         f = aesara.function([self.m, c_inc, m_inc], [out1, out2])
-        mval = self.rng.random_sample((10, 5))
-        incval = self.rng.random_sample((10, 1)).astype(config.floatX)
+        mval = self.rng.random((10, 5))
+        incval = self.rng.random((10, 1)).astype(config.floatX)
 
         out1val, out2val = f(mval, incval, incval)
         utt.assert_allclose(out1val, out2val)
@@ -1732,7 +1718,14 @@ class TestAdvancedSubtensor:
         self.ix2 = lmatrix()
         self.ixr = lrow()
 
-    def test_advinc_subtensor(self):
+    @pytest.mark.parametrize(
+        "inplace",
+        [
+            True,
+            False,
+        ],
+    )
+    def test_advinc_subtensor(self, inplace):
         x_shp = (20, 15, 10, 5)
 
         def check(idx, y_val, x_val, true):
@@ -1741,8 +1734,12 @@ class TestAdvancedSubtensor:
                 dtype="float32", broadcastable=(False,) * len(y_val.shape), name="y"
             )
             sym_idx = [aet.as_tensor_variable(ix) for ix in idx]
-            expr = advanced_inc_subtensor(x, y, *sym_idx)
-            f = aesara.function([y], expr, mode=self.mode)
+            expr = AdvancedIncSubtensor(inplace=inplace)(x, y, *sym_idx)
+            f = aesara.function(
+                [y], expr, mode=self.mode.excluding("inplace"), accept_inplace=inplace
+            )
+            fgraph = f.maker.fgraph
+            assert fgraph.outputs[0].owner.op.inplace == inplace
             rval = f(y_val)
             assert np.allclose(rval, true)
 
@@ -1759,11 +1756,14 @@ class TestAdvancedSubtensor:
                 x_val = np.arange(np.prod(x_shp), dtype="float32").reshape(x_shp) + 1
                 y_val = np.arange(np.prod(y_shp), dtype="float32").reshape(y_shp) + 1
                 rep = x_val.copy()
+
                 try:
                     rep[idx] += y_val
                 except ValueError:
                     continue
+
                 check(idx, y_val, x_val, rep)
+
             x_val = np.arange(np.prod(x_shp), dtype="float32").reshape(x_shp) + 1
             y_val = np.array(1).astype(np.float32)
             rep = x_val.copy()
@@ -1804,16 +1804,16 @@ class TestAdvancedSubtensor:
         # like test_ok_list, but with a single index on the first one
         # data has to have at least 2 dimensions
         for data, idx in [
-            (rand(4, 5), [2, 3]),
-            (rand(2, 4, 3), [0, 3]),
-            (rand(2, 4, 3), [3, 3, 1, 1, 2, 2, 0, 0]),
-            (rand(2, 4, 3), [3, 3, 1, 1, 2, 2, 0, 0, -1, -2, -3, -4]),
+            (random(4, 5), [2, 3]),
+            (random(2, 4, 3), [0, 3]),
+            (random(2, 4, 3), [3, 3, 1, 1, 2, 2, 0, 0]),
+            (random(2, 4, 3), [3, 3, 1, 1, 2, 2, 0, 0, -1, -2, -3, -4]),
             # Test 4 dims as gpu code use another algo
             # in that case This new algo is not as much
             # optimized for that case.
-            (rand(4, 4, 2, 3), [3, 3, 1, 1, 2, 2, 0, 0, -1, -2, -3, -4]),
+            (random(4, 4, 2, 3), [3, 3, 1, 1, 2, 2, 0, 0, -1, -2, -3, -4]),
             # Test with TensorConstant index.
-            (rand(2, 4, 3), aet.constant([3, 3, 1, 1, 2, 2, 0, 0])),
+            (random(2, 4, 3), aet.constant([3, 3, 1, 1, 2, 2, 0, 0])),
         ]:
             data = np.asarray(data, dtype=self.dtype)
             n = self.shared(data)
@@ -1843,7 +1843,7 @@ class TestAdvancedSubtensor:
     def test_adv_subtensor_w_int_and_matrix(self):
         subt = self.ft4[0, :, self.ix2, :]
         f = aesara.function([self.ft4, self.ix2], subt, mode=self.mode)
-        ft4v = np.random.random((2, 3, 4, 5)).astype("float32")
+        ft4v = np.random.random(((2, 3, 4, 5))).astype("float32")
         ix2v = np.asarray([[0, 1], [1, 0]])
         aval = f(ft4v, ix2v)
         rval = ft4v[0, :, ix2v, :]
@@ -1852,7 +1852,7 @@ class TestAdvancedSubtensor:
     def test_adv_subtensor_w_none_and_matrix(self):
         subt = self.ft4[:, None, :, self.ix2, :]
         f = aesara.function([self.ft4, self.ix2], subt, mode=self.mode)
-        ft4v = np.random.random((2, 3, 4, 5)).astype("float32")
+        ft4v = np.random.random(((2, 3, 4, 5))).astype("float32")
         ix2v = np.asarray([[0, 1], [1, 0]])
         aval = f(ft4v, ix2v)
         rval = ft4v[:, None, :, ix2v, :]
@@ -1861,7 +1861,7 @@ class TestAdvancedSubtensor:
     def test_adv_subtensor_w_slice_and_matrix(self):
         subt = self.ft4[:, 0:1, self.ix2, :]
         f = aesara.function([self.ft4, self.ix2], subt, mode=self.mode)
-        ft4v = np.random.random((2, 3, 4, 5)).astype("float32")
+        ft4v = np.random.random(((2, 3, 4, 5))).astype("float32")
         ix2v = np.asarray([[0, 1], [1, 0]])
         aval = f(ft4v, ix2v)
         rval = ft4v[:, 0:1, ix2v, :]
@@ -1870,7 +1870,7 @@ class TestAdvancedSubtensor:
     def test_adv_subtensor_w_matrix_and_int(self):
         subt = self.ft4[:, :, self.ix2, 0]
         f = aesara.function([self.ft4, self.ix2], subt, mode=self.mode)
-        ft4v = np.random.random((2, 3, 4, 5)).astype("float32")
+        ft4v = np.random.random(((2, 3, 4, 5))).astype("float32")
         ix2v = np.asarray([[0, 1], [1, 0]])
         aval = f(ft4v, ix2v)
         rval = ft4v[:, :, ix2v, 0]
@@ -1879,7 +1879,7 @@ class TestAdvancedSubtensor:
     def test_adv_subtensor_w_matrix_and_none(self):
         subt = self.ft4[:, :, self.ix2, None, :]
         f = aesara.function([self.ft4, self.ix2], subt, mode=self.mode)
-        ft4v = np.random.random((2, 3, 4, 5)).astype("float32")
+        ft4v = np.random.random(((2, 3, 4, 5))).astype("float32")
         ix2v = np.asarray([[0, 1], [1, 0]])
         aval = f(ft4v, ix2v)
         rval = ft4v[:, :, ix2v, None, :]
@@ -1964,7 +1964,7 @@ class TestAdvancedSubtensor:
         ), aval
 
     def test_2d_3d_tensors(self):
-        rng = np.random.RandomState(utt.fetch_seed())
+        rng = np.random.default_rng(utt.fetch_seed())
         a = rng.uniform(size=(3, 3))
         b = aesara.shared(a)
         i = iscalar()
@@ -2013,10 +2013,10 @@ class TestAdvancedSubtensor:
 
     def test_adv_grouped(self):
         # Reported in https://github.com/Theano/Theano/issues/6152
-        rng = np.random.RandomState(utt.fetch_seed())
-        var_v = rng.rand(3, 63, 4).astype(config.floatX)
+        rng = np.random.default_rng(utt.fetch_seed())
+        var_v = rng.random((3, 63, 4)).astype(config.floatX)
         var = self.shared(var_v)
-        idx1_v = rng.randint(0, 61, size=(5, 4)).astype("int32")
+        idx1_v = rng.integers(0, 61, size=(5, 4)).astype("int32")
         idx1 = self.shared(idx1_v)
         idx2 = aet.arange(4)
         out = var[:, idx1, idx2]
@@ -2037,7 +2037,7 @@ class TestAdvancedSubtensor:
 
         utt.verify_grad(
             lambda m: m[[1, 3], [2, 4]],
-            [np.random.rand(5, 5).astype(self.dtype)],
+            [np.random.random((5, 5)).astype(self.dtype)],
             mode=self.mode,
         )
 
@@ -2047,8 +2047,8 @@ class TestAdvancedSubtensor:
         utt.verify_grad(
             fun,
             [
-                np.random.rand(5, 5).astype(self.dtype),
-                np.random.rand(2).astype(self.dtype),
+                np.random.random((5, 5)).astype(self.dtype),
+                np.random.random((2)).astype(self.dtype),
             ],
             mode=self.mode,
         )
@@ -2059,8 +2059,8 @@ class TestAdvancedSubtensor:
         utt.verify_grad(
             fun,
             [
-                np.random.rand(5, 5).astype(self.dtype),
-                np.random.rand(2).astype(self.dtype),
+                np.random.random((5, 5)).astype(self.dtype),
+                np.random.random((2)).astype(self.dtype),
             ],
             mode=self.mode,
         )
@@ -2074,8 +2074,8 @@ class TestAdvancedSubtensor:
         utt.verify_grad(
             fun,
             [
-                np.random.rand(2, 2).astype(self.dtype),
-                np.random.rand(2).astype(self.dtype),
+                np.random.random((2, 2)).astype(self.dtype),
+                np.random.random((2)).astype(self.dtype),
             ],
             mode=self.mode,
         )
@@ -2088,8 +2088,8 @@ class TestAdvancedSubtensor:
         utt.verify_grad(
             fun,
             [
-                np.random.rand(2, 2).astype(self.dtype),
-                np.random.rand(2).astype(self.dtype),
+                np.random.random((2, 2)).astype(self.dtype),
+                np.random.random((2)).astype(self.dtype),
             ],
             mode=self.mode,
         )
@@ -2101,7 +2101,7 @@ class TestInferShape(utt.InferShapeTester):
         bdmat = dmatrix()
         advec = dvector()
         adscal = dscalar()
-        admat_val = rand(5, 4)
+        admat_val = random(5, 4)
         self._compile_and_check(
             [admat, bdmat],
             [inc_subtensor(admat[2:4], bdmat)],
@@ -2160,7 +2160,7 @@ class TestInferShape(utt.InferShapeTester):
 
         adtens4 = dtensor4()
         bdtens4 = dtensor4()
-        adtens4_val = rand(3, 4, 2, 5)
+        adtens4_val = random(3, 4, 2, 5)
         self._compile_and_check(
             [adtens4, bdtens4],
             [inc_subtensor(adtens4[::, 2:4, ::, ::], bdtens4)],
@@ -2223,11 +2223,11 @@ class TestInferShape(utt.InferShapeTester):
         bdmat = dmatrix()
         advec = dvector()
         adscal = dscalar()
-        admat_val = rand(5, 4)
+        admat_val = random(5, 4)
         aivec_val = [2, 3]
         self._compile_and_check(
             [admat, bdmat],
-            [set_subtensor(admat[aivec_val], bdmat)],
+            [advanced_set_subtensor1(admat, bdmat, aivec_val)],
             [admat_val, [[1, 2, 3, 4]]],
             AdvancedIncSubtensor1,
         )
@@ -2235,7 +2235,7 @@ class TestInferShape(utt.InferShapeTester):
         aivec_val = [1, 3, 2]
         self._compile_and_check(
             [admat, advec],
-            [set_subtensor(admat[aivec_val], advec)],
+            [advanced_set_subtensor1(admat, advec, aivec_val)],
             [admat_val, [1, 2, 3, 4]],
             AdvancedIncSubtensor1,
         )
@@ -2243,18 +2243,18 @@ class TestInferShape(utt.InferShapeTester):
         aivec_val = [0, 3, 0]
         self._compile_and_check(
             [admat, adscal],
-            [set_subtensor(admat[aivec_val], adscal)],
+            [advanced_set_subtensor1(admat, adscal, aivec_val)],
             [admat_val, 1],
             AdvancedIncSubtensor1,
         )
 
         adtens4 = dtensor4()
         bdtens4 = dtensor4()
-        adtens4_val = rand(4, 3, 2, 5)
+        adtens4_val = random(4, 3, 2, 5)
         aivec_val = [2, 3]
         self._compile_and_check(
             [adtens4, bdtens4],
-            [set_subtensor(adtens4[aivec_val], bdtens4)],
+            [advanced_set_subtensor1(adtens4, bdtens4, aivec_val)],
             [adtens4_val, [[[[1, 2, 3, 4, 5]]]]],
             AdvancedIncSubtensor1,
             warn=False,
@@ -2263,7 +2263,7 @@ class TestInferShape(utt.InferShapeTester):
         aivec_val = [1, 3, 2]
         self._compile_and_check(
             [adtens4, advec],
-            [set_subtensor(adtens4[aivec_val], advec)],
+            [advanced_set_subtensor1(adtens4, advec, aivec_val)],
             [adtens4_val, [1, 2, 3, 4, 5]],
             AdvancedIncSubtensor1,
         )
@@ -2271,7 +2271,7 @@ class TestInferShape(utt.InferShapeTester):
         aivec_val = [0, 3, 0]
         self._compile_and_check(
             [adtens4, adscal],
-            [set_subtensor(adtens4[aivec_val], adscal)],
+            [advanced_set_subtensor1(adtens4, adscal, aivec_val)],
             [adtens4_val, 1],
             AdvancedIncSubtensor1,
         )
@@ -2279,7 +2279,7 @@ class TestInferShape(utt.InferShapeTester):
         aivec_val = [2, 3]
         self._compile_and_check(
             [admat, bdmat],
-            [inc_subtensor(admat[aivec_val], bdmat)],
+            [advanced_set_subtensor1(admat, bdmat, aivec_val)],
             [admat_val, [[1, 2, 3, 4], [5, 6, 7, 8]]],
             AdvancedIncSubtensor1,
         )
@@ -2287,7 +2287,7 @@ class TestInferShape(utt.InferShapeTester):
         aivec_val = [1, 3, 2]
         self._compile_and_check(
             [admat, advec],
-            [inc_subtensor(admat[aivec_val], advec)],
+            [advanced_set_subtensor1(admat, advec, aivec_val)],
             [admat_val, [1, 2, 3, 4]],
             AdvancedIncSubtensor1,
         )
@@ -2295,17 +2295,17 @@ class TestInferShape(utt.InferShapeTester):
         aivec_val = [0, 3, 0]
         self._compile_and_check(
             [admat, adscal],
-            [inc_subtensor(admat[aivec_val], adscal)],
+            [advanced_set_subtensor1(admat, adscal, aivec_val)],
             [admat_val, 1],
             AdvancedIncSubtensor1,
         )
 
         bdtens4 = dtensor4()
-        adtens4_val = rand(4, 3, 2, 5)
+        adtens4_val = random(4, 3, 2, 5)
         aivec_val = [2, 3]
         self._compile_and_check(
             [adtens4, bdtens4],
-            [inc_subtensor(adtens4[aivec_val], bdtens4)],
+            [advanced_set_subtensor1(adtens4, bdtens4, aivec_val)],
             [adtens4_val, [[[[1, 2, 3, 4, 5]]], [[[6, 7, 8, 9, 10]]]]],
             AdvancedIncSubtensor1,
             warn=False,
@@ -2314,7 +2314,7 @@ class TestInferShape(utt.InferShapeTester):
         aivec_val = [1, 2, 1]
         self._compile_and_check(
             [adtens4, advec],
-            [inc_subtensor(adtens4[aivec_val], advec)],
+            [advanced_set_subtensor1(adtens4, advec, aivec_val)],
             [adtens4_val, [1, 2, 3, 4, 5]],
             AdvancedIncSubtensor1,
         )
@@ -2322,7 +2322,7 @@ class TestInferShape(utt.InferShapeTester):
         aivec_val = [0, 3, 0]
         self._compile_and_check(
             [adtens4, adscal],
-            [inc_subtensor(adtens4[aivec_val], adscal)],
+            [advanced_set_subtensor1(adtens4, adscal, aivec_val)],
             [adtens4_val, 2],
             AdvancedIncSubtensor1,
         )
@@ -2330,7 +2330,7 @@ class TestInferShape(utt.InferShapeTester):
     def test_AdvancedIncSubtensor(self):
         admat = dmatrix()
         advec = dvector()
-        admat_val = rand(5, 4)
+        admat_val = random(5, 4)
         aivec_val = [1, 3, 2]
         bivec_val = [0, 3, 3]
         advec_val = [23, 24, 25]
@@ -2346,7 +2346,7 @@ class TestInferShape(utt.InferShapeTester):
         aivec = lvector()
         bivec = lvector()
 
-        admat_val = rand(5, 4)
+        admat_val = random(5, 4)
         aivec_val = [1, 3, 2]
         bivec_val = [0, 3, 3]
         self._compile_and_check(
@@ -2504,3 +2504,25 @@ def test_symbolic_slice():
     a, b = x.shape[:2]
     output = a.eval({x: np.zeros((5, 4, 3, 2), dtype=config.floatX)})
     assert output == np.array(5)
+
+
+def test_get_vector_length():
+    x = aet.as_tensor_variable(np.arange(4))
+    assert get_vector_length(x[2:4]) == 2
+    assert get_vector_length(x[2:]) == 2
+    assert get_vector_length(x[1:4]) == 3
+    assert get_vector_length(x[2:2]) == 0
+    assert get_vector_length(x[1:10]) == 3
+    # Test step
+    assert get_vector_length(x[1:10:2]) == 2
+    # Test neg start
+    assert get_vector_length(x[-1:4]) == 1
+    assert get_vector_length(x[-6:4]) == 4
+    # test neg stop
+    assert get_vector_length(x[1:-2]) == 1
+    assert get_vector_length(x[1:-1]) == 2
+    assert get_vector_length(lvector()[1:1]) == 0
+    assert get_vector_length(lvector()[-1:-1:3]) == 0
+
+    with pytest.raises(ValueError, match="^Length of .*"):
+        get_vector_length(x[lscalar() :])

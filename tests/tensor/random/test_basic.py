@@ -1,24 +1,29 @@
 import pickle
-from functools import partial
+from copy import copy
 
 import numpy as np
+import pytest
 import scipy.stats as stats
-from pytest import fixture, importorskip, raises
 
 import aesara.tensor as aet
-from aesara import shared
+from aesara import function, shared
+from aesara.compile.mode import Mode
+from aesara.compile.sharedvalue import SharedVariable
 from aesara.configdefaults import config
 from aesara.graph.basic import Constant, Variable, graph_inputs
 from aesara.graph.fg import FunctionGraph
 from aesara.graph.op import get_test_value
+from aesara.graph.optdb import OptimizationQuery
 from aesara.tensor.basic_opt import ShapeFeature
 from aesara.tensor.random.basic import (
     bernoulli,
     beta,
     betabinom,
     binomial,
+    broadcast_shapes,
     categorical,
     cauchy,
+    chisquare,
     choice,
     dirichlet,
     exponential,
@@ -28,6 +33,7 @@ from aesara.tensor.random.basic import (
     halfcauchy,
     halfnormal,
     hypergeometric,
+    integers,
     invgamma,
     laplace,
     logistic,
@@ -41,6 +47,7 @@ from aesara.tensor.random.basic import (
     poisson,
     polyagamma,
     randint,
+    standard_normal,
     triangular,
     truncexpon,
     uniform,
@@ -49,19 +56,33 @@ from aesara.tensor.random.basic import (
     weibull,
 )
 from aesara.tensor.type import iscalar, scalar, tensor
+from tests.unittest_tools import create_aesara_param
 
 
-@fixture(scope="module", autouse=True)
-def set_aesara_flags():
-    with config.change_flags(cxx="", compute_test_value="raise"):
-        yield
+opts = OptimizationQuery(include=[None], exclude=["cxx_only", "BlasOpt"])
+py_mode = Mode("py", opts)
 
 
-def rv_numpy_tester(rv, *params, **kwargs):
+def fixed_scipy_rvs(rvs_name):
+    def _rvs(*args, size=None, **kwargs):
+        res = getattr(stats, rvs_name).rvs(*args, size=size, **kwargs)
+        res = np.broadcast_to(
+            res,
+            size
+            if size is not None
+            else broadcast_shapes(*[np.shape(a) for a in args]),
+        )
+        return res
+
+    return _rvs
+
+
+def rv_numpy_tester(rv, *params, rng=None, test_fn=None, **kwargs):
     """Test for correspondence between `RandomVariable` and NumPy shape and
     broadcast dimensions.
     """
-    test_fn = kwargs.pop("test_fn", None)
+    if rng is None:
+        rng = np.random.default_rng()
 
     if test_fn is None:
         name = getattr(rv, "name", None)
@@ -69,9 +90,8 @@ def rv_numpy_tester(rv, *params, **kwargs):
         if name is None:
             name = rv.__name__
 
-        test_fn = getattr(np.random, name)
-
-    aesara_res = rv(*params, **kwargs)
+        def test_fn(*args, random_state=None, **kwargs):
+            return getattr(random_state, name)(*args, **kwargs)
 
     param_vals = [get_test_value(p) if isinstance(p, Variable) else p for p in params]
     kwargs_vals = {
@@ -79,10 +99,11 @@ def rv_numpy_tester(rv, *params, **kwargs):
         for k, v in kwargs.items()
     }
 
-    if "size" in kwargs:
-        kwargs["size"] = get_test_value(kwargs["size"])
+    at_rng = shared(rng, borrow=True)
 
-    numpy_res = np.asarray(test_fn(*param_vals, **kwargs_vals))
+    numpy_res = np.asarray(test_fn(*param_vals, random_state=copy(rng), **kwargs_vals))
+
+    aesara_res = rv(*params, rng=at_rng, **kwargs)
 
     assert aesara_res.type.numpy_dtype.kind == numpy_res.dtype.kind
 
@@ -90,79 +111,148 @@ def rv_numpy_tester(rv, *params, **kwargs):
     numpy_bcast = [s == 1 for s in numpy_shape]
     np.testing.assert_array_equal(aesara_res.type.broadcastable, numpy_bcast)
 
-    aesara_res_val = aesara_res.get_test_value()
+    fn_inputs = [
+        i
+        for i in graph_inputs([aesara_res])
+        if not isinstance(i, (Constant, SharedVariable))
+    ]
+    aesara_fn = function(fn_inputs, aesara_res, mode=py_mode)
+
+    aesara_res_val = aesara_fn()
+
     np.testing.assert_array_equal(aesara_res_val.shape, numpy_res.shape)
 
-
-def test_uniform_samples():
-
-    rv_numpy_tester(uniform)
-    rv_numpy_tester(uniform, size=())
-
-    test_low = np.array(10, dtype=config.floatX)
-    test_high = np.array(20, dtype=config.floatX)
-
-    rv_numpy_tester(uniform, test_low, test_high)
-    rv_numpy_tester(uniform, test_low, test_high, size=[3])
+    np.testing.assert_allclose(aesara_res_val, numpy_res)
 
 
-def test_triangular_samples():
-    test_left = np.array(10, dtype=config.floatX)
-    test_mode = np.array(12, dtype=config.floatX)
-    test_right = np.array(20, dtype=config.floatX)
-
-    rv_numpy_tester(triangular, test_left, test_mode, test_right)
-    rv_numpy_tester(triangular, test_left, test_mode, test_right, size=[2, 3])
-
-
-def test_beta_samples():
-
-    test_a = np.array(0.5, dtype=config.floatX)
-    test_b = np.array(0.5, dtype=config.floatX)
-
-    rv_numpy_tester(beta, test_a, test_b)
-    rv_numpy_tester(beta, test_a, test_b, size=[3])
-
-
-def test_normal_infer_shape():
-    M_aet = iscalar("M")
-    M_aet.tag.test_value = 3
-    sd_aet = scalar("sd")
-    sd_aet.tag.test_value = np.array(1.0, dtype=config.floatX)
-
-    test_params = [
-        ([aet.as_tensor_variable(np.array(1.0, dtype=config.floatX)), sd_aet], None),
+@pytest.mark.parametrize(
+    "u, l, size",
+    [
+        (np.array(10, dtype=config.floatX), np.array(20, dtype=config.floatX), None),
+        (np.array(10, dtype=config.floatX), np.array(20, dtype=config.floatX), []),
         (
-            [aet.as_tensor_variable(np.array(1.0, dtype=config.floatX)), sd_aet],
+            np.full((1, 2), 10, dtype=config.floatX),
+            np.array(20, dtype=config.floatX),
+            None,
+        ),
+    ],
+)
+def test_uniform_samples(u, l, size):
+    rv_numpy_tester(uniform, u, l, size=size)
+
+
+def test_uniform_default_args():
+    rv_numpy_tester(uniform)
+
+
+@pytest.mark.parametrize(
+    "left, mode, right, size",
+    [
+        (
+            np.array(10, dtype=config.floatX),
+            np.array(12, dtype=config.floatX),
+            np.array(20, dtype=config.floatX),
+            None,
+        ),
+        (
+            np.array(10, dtype=config.floatX),
+            np.array(12, dtype=config.floatX),
+            np.array(20, dtype=config.floatX),
+            [],
+        ),
+        (
+            np.full((1, 2), 10, dtype=config.floatX),
+            np.array(12, dtype=config.floatX),
+            np.array(20, dtype=config.floatX),
+            None,
+        ),
+    ],
+)
+def test_triangular_samples(left, mode, right, size):
+    rv_numpy_tester(triangular, left, mode, right, size=size)
+
+
+@pytest.mark.parametrize(
+    "a, b, size",
+    [
+        (np.array(0.5, dtype=config.floatX), np.array(0.5, dtype=config.floatX), None),
+        (np.array(0.5, dtype=config.floatX), np.array(0.5, dtype=config.floatX), []),
+        (
+            np.full((1, 2), 0.5, dtype=config.floatX),
+            np.array(0.5, dtype=config.floatX),
+            None,
+        ),
+    ],
+)
+def test_beta_samples(a, b, size):
+    rv_numpy_tester(beta, a, b, size=size)
+
+
+M_aet = iscalar("M")
+M_aet.tag.test_value = 3
+sd_aet = scalar("sd")
+sd_aet.tag.test_value = np.array(1.0, dtype=config.floatX)
+
+
+@pytest.mark.parametrize(
+    "M, sd, size",
+    [
+        (aet.as_tensor_variable(np.array(1.0, dtype=config.floatX)), sd_aet, ()),
+        (
+            aet.as_tensor_variable(np.array(1.0, dtype=config.floatX)),
+            sd_aet,
             (M_aet,),
         ),
         (
-            [aet.as_tensor_variable(np.array(1.0, dtype=config.floatX)), sd_aet],
+            aet.as_tensor_variable(np.array(1.0, dtype=config.floatX)),
+            sd_aet,
             (2, M_aet),
         ),
-        ([aet.zeros((M_aet,)), sd_aet], None),
-        ([aet.zeros((M_aet,)), sd_aet], (M_aet,)),
-        ([aet.zeros((M_aet,)), sd_aet], (2, M_aet)),
-        ([aet.zeros((M_aet,)), aet.ones((M_aet,))], None),
-        ([aet.zeros((M_aet,)), aet.ones((M_aet,))], (2, M_aet)),
+        (aet.zeros((M_aet,)), sd_aet, ()),
+        (aet.zeros((M_aet,)), sd_aet, (M_aet,)),
+        (aet.zeros((M_aet,)), sd_aet, (2, M_aet)),
+        (aet.zeros((M_aet,)), aet.ones((M_aet,)), ()),
+        (aet.zeros((M_aet,)), aet.ones((M_aet,)), (2, M_aet)),
         (
-            [
-                np.array([[-1, 20], [300, -4000]], dtype=config.floatX),
-                np.array([[1e-6, 2e-6]], dtype=config.floatX),
-            ],
+            create_aesara_param(
+                np.array([[-1, 20], [300, -4000]], dtype=config.floatX)
+            ),
+            create_aesara_param(np.array([[1e-6, 2e-6]], dtype=config.floatX)),
             (3, 2, 2),
         ),
         (
-            [np.array([1], dtype=config.floatX), np.array([10], dtype=config.floatX)],
+            create_aesara_param(np.array([1], dtype=config.floatX)),
+            create_aesara_param(np.array([10], dtype=config.floatX)),
             (1, 2),
         ),
+    ],
+)
+def test_normal_infer_shape(M, sd, size):
+    rv = normal(M, sd, size=size)
+    rv_shape = list(normal._infer_shape(size or (), [M, sd], None))
+
+    all_args = (M, sd) + size
+    fn_inputs = [
+        i
+        for i in graph_inputs([a for a in all_args if isinstance(a, Variable)])
+        if not isinstance(i, (Constant, SharedVariable))
     ]
-    for args, size in test_params:
-        rv = normal(*args, size=size)
-        rv_shape = tuple(normal._infer_shape(size or (), args, None))
-        assert tuple(get_test_value(rv_shape)) == tuple(get_test_value(rv).shape)
+    aesara_fn = function(
+        fn_inputs, [aet.as_tensor(o) for o in rv_shape + [rv]], mode=py_mode
+    )
+
+    *rv_shape_val, rv_val = aesara_fn(
+        *[
+            i.tag.test_value
+            for i in fn_inputs
+            if not isinstance(i, (SharedVariable, Constant))
+        ]
+    )
+
+    assert tuple(rv_shape_val) == tuple(rv_val.shape)
 
 
+@config.change_flags(compute_test_value="raise")
 def test_normal_ShapeFeature():
     M_aet = iscalar("M")
     M_aet.tag.test_value = 3
@@ -184,187 +274,302 @@ def test_normal_ShapeFeature():
     assert get_test_value(s2) == get_test_value(d_rv).shape[1]
 
 
-def test_normal_samples():
+@pytest.mark.parametrize(
+    "mean, sigma, size",
+    [
+        (np.array(100, dtype=config.floatX), np.array(1e-2, dtype=config.floatX), None),
+        (np.array(100, dtype=config.floatX), np.array(1e-2, dtype=config.floatX), []),
+        (
+            np.full((1, 2), 100, dtype=config.floatX),
+            np.array(1e-2, dtype=config.floatX),
+            None,
+        ),
+    ],
+)
+def test_normal_samples(mean, sigma, size):
+    rv_numpy_tester(normal, mean, sigma, size=size)
 
-    rv_numpy_tester(normal)
 
-    test_mean = np.array(0, dtype=config.floatX)
-    test_stddev = np.array(1, dtype=config.floatX)
+def test_normal_default_args():
+    rv_numpy_tester(standard_normal)
 
-    rv_numpy_tester(normal, test_mean, test_stddev)
-    rv_numpy_tester(normal, test_mean, test_stddev, size=[3])
 
-    # Broadcast sd over independent means...
-    test_mean = np.array([0, 1, 2], dtype=config.floatX)
-    test_stddev = np.array(1, dtype=config.floatX)
-    rv_numpy_tester(normal, test_mean, test_stddev)
-    rv_numpy_tester(normal, test_mean, test_stddev, size=[3, 3])
-
-    test_mean = np.array([0], dtype=config.floatX)
-    test_stddev = np.array([1], dtype=config.floatX)
-    rv_numpy_tester(normal, test_mean, test_stddev, size=[1])
-    rv_numpy_tester(normal, aet.as_tensor(test_mean), test_stddev, size=[1])
+@pytest.mark.parametrize(
+    "mean, sigma, size",
+    [
+        (np.array(100, dtype=config.floatX), np.array(1e-2, dtype=config.floatX), None),
+        (np.array(100, dtype=config.floatX), np.array(1e-2, dtype=config.floatX), []),
+        (
+            np.full((1, 2), 100, dtype=config.floatX),
+            np.array(1e-2, dtype=config.floatX),
+            None,
+        ),
+    ],
+)
+def test_halfnormal_samples(mean, sigma, size):
     rv_numpy_tester(
-        normal,
-        aet.as_tensor_variable(test_mean),
-        test_stddev,
-        size=aet.as_tensor_variable([1]),
+        halfnormal, mean, sigma, size=size, test_fn=fixed_scipy_rvs("halfnorm")
     )
 
 
-def test_halfnormal_samples():
-    test_mean = np.array(0, dtype=config.floatX)
-    test_stddev = np.array(1, dtype=config.floatX)
+@pytest.mark.parametrize(
+    "mean, sigma, size",
+    [
+        (np.array(10, dtype=config.floatX), np.array(1e-2, dtype=config.floatX), None),
+        (np.array(10, dtype=config.floatX), np.array(1e-2, dtype=config.floatX), []),
+        (
+            np.full((1, 2), 10, dtype=config.floatX),
+            np.array(1e-2, dtype=config.floatX),
+            None,
+        ),
+    ],
+)
+def test_lognormal_samples(mean, sigma, size):
+    rv_numpy_tester(lognormal, mean, sigma, size=size)
 
-    rv_numpy_tester(halfnormal, test_fn=stats.halfnorm.rvs)
-    rv_numpy_tester(halfnormal, test_mean, test_stddev, test_fn=stats.halfnorm.rvs)
+
+@pytest.mark.parametrize(
+    "a, b, size",
+    [
+        (np.array(0.5, dtype=config.floatX), np.array(0.5, dtype=config.floatX), None),
+        (np.array(0.5, dtype=config.floatX), np.array(0.5, dtype=config.floatX), []),
+        (
+            np.full((1, 2), 0.5, dtype=config.floatX),
+            np.array(0.5, dtype=config.floatX),
+            None,
+        ),
+    ],
+)
+def test_gamma_samples(a, b, size):
+    gamma_test_fn = fixed_scipy_rvs("gamma")
+
+    def test_fn(shape, rate, **kwargs):
+        return gamma_test_fn(shape, scale=1.0 / rate, **kwargs)
+
     rv_numpy_tester(
-        halfnormal,
-        test_mean,
-        test_stddev,
-        size=[2, 3],
-        test_fn=stats.halfnorm.rvs,
+        gamma,
+        a,
+        b,
+        size=size,
+        test_fn=test_fn,
     )
 
 
-def test_lognormal_samples():
-    test_mean = np.array(0, dtype=config.floatX)
-    test_sigma = np.array(1, dtype=config.floatX)
-
-    rv_numpy_tester(lognormal)
-    rv_numpy_tester(lognormal, test_mean)
-    rv_numpy_tester(lognormal, test_mean, test_sigma, size=[2, 3])
-
-
-def test_gamma_samples():
-    test_a = np.array(0.5, dtype=config.floatX)
-    test_b = np.array(0.5, dtype=config.floatX)
-
-    rv_numpy_tester(gamma, test_a, test_b, test_fn=stats.gamma.rvs)
-    rv_numpy_tester(gamma, test_a, test_b, size=[2, 3], test_fn=stats.gamma.rvs)
+@pytest.mark.parametrize(
+    "df, size",
+    [
+        (np.array(2, dtype=config.floatX), None),
+        (np.array(2, dtype=config.floatX), []),
+        (np.full((1, 2), 2, dtype=np.int64), None),
+    ],
+)
+def test_chisquare_samples(df, size):
+    rv_numpy_tester(chisquare, df, size=size, test_fn=fixed_scipy_rvs("chi2"))
 
 
-def test_gumbel_samples():
-    test_mu = np.array(0.0, dtype=config.floatX)
-    test_beta = np.array(1.0, dtype=config.floatX)
+@pytest.mark.parametrize(
+    "mu, beta, size",
+    [
+        (np.array(0, dtype=config.floatX), np.array(1, dtype=config.floatX), None),
+        (np.array(0, dtype=config.floatX), np.array(1, dtype=config.floatX), []),
+        (
+            np.full((1, 2), 0, dtype=config.floatX),
+            np.array(1, dtype=config.floatX),
+            None,
+        ),
+    ],
+)
+def test_gumbel_samples(mu, beta, size):
+    rv_numpy_tester(gumbel, mu, beta, size=size, test_fn=fixed_scipy_rvs("gumbel_r"))
 
-    rv_numpy_tester(gumbel, test_mu, test_beta, test_fn=stats.gumbel_r.rvs)
-    rv_numpy_tester(gumbel, test_mu, test_beta, size=[2, 3], test_fn=stats.gumbel_r.rvs)
+
+@pytest.mark.parametrize(
+    "lam, size",
+    [
+        (np.array(10, dtype=config.floatX), None),
+        (np.array(10, dtype=config.floatX), []),
+        (
+            np.full((1, 2), 10, dtype=config.floatX),
+            None,
+        ),
+    ],
+)
+def test_exponential_samples(lam, size):
+    rv_numpy_tester(exponential, lam, size=size)
 
 
-def test_exponential_samples():
-
+def test_exponential_default_args():
     rv_numpy_tester(exponential)
 
-    test_lambda = np.array(10, dtype=config.floatX)
 
-    rv_numpy_tester(exponential, test_lambda)
-    rv_numpy_tester(exponential, test_lambda, size=[2, 3])
+@pytest.mark.parametrize(
+    "alpha, size",
+    [
+        (np.array(10, dtype=config.floatX), None),
+        (np.array(10, dtype=config.floatX), []),
+        (
+            np.full((1, 2), 10, dtype=config.floatX),
+            None,
+        ),
+    ],
+)
+def test_weibull_samples(alpha, size):
+    rv_numpy_tester(weibull, alpha, size=size)
 
 
-def test_weibull_samples():
-    test_alpha = np.array(3, dtype=config.floatX)
+@pytest.mark.parametrize(
+    "loc, scale, size",
+    [
+        (np.array(2, dtype=config.floatX), np.array(0.5, dtype=config.floatX), None),
+        (np.array(2, dtype=config.floatX), np.array(0.5, dtype=config.floatX), []),
+        (
+            np.full((1, 2), 2, dtype=config.floatX),
+            np.array(0.5, dtype=config.floatX),
+            None,
+        ),
+    ],
+)
+def test_logistic_samples(loc, scale, size):
+    rv_numpy_tester(logistic, loc, scale, size=size)
 
-    rv_numpy_tester(weibull, test_alpha)
-    rv_numpy_tester(weibull, test_alpha, size=[2, 3])
 
-
-def test_logistic_samples():
-    test_loc = np.array(2, dtype=config.floatX)
-    test_scale = np.array(0.5, dtype=config.floatX)
-
+def test_logistic_default_args():
     rv_numpy_tester(logistic)
-    rv_numpy_tester(logistic, test_loc)
-    rv_numpy_tester(logistic, test_loc, test_scale, size=[2, 3])
 
 
-def test_vonmises_samples():
-    test_mu = np.array(np.pi, dtype=config.floatX)
-    test_kappa = np.array(0.5, dtype=config.floatX)
-
-    rv_numpy_tester(vonmises, test_mu, test_kappa)
-    rv_numpy_tester(vonmises, test_mu, test_kappa, size=[2, 3])
-
-
-def test_pareto_samples():
-    test_alpha = np.array(0.5, dtype=config.floatX)
-
-    rv_numpy_tester(pareto, test_alpha, test_fn=stats.pareto.rvs)
-    rv_numpy_tester(pareto, test_alpha, size=[2, 3], test_fn=stats.pareto.rvs)
-
-
-def test_mvnormal_samples():
-    def test_fn(mean=None, cov=None, size=None, rng=None):
-        if mean is None:
-            mean = np.array([0.0], dtype=config.floatX)
-        if cov is None:
-            cov = np.array([[1.0]], dtype=config.floatX)
-        if size is None:
-            size = ()
-        return multivariate_normal.rng_fn(rng, mean, cov, size)
-
-    rv_numpy_tester(multivariate_normal, test_fn=test_fn)
-
-    test_mean = np.array([0], dtype=config.floatX)
-    test_covar = np.diag(np.array([1], dtype=config.floatX))
-    rv_numpy_tester(multivariate_normal, test_mean, test_covar, test_fn=test_fn)
-    rv_numpy_tester(
-        multivariate_normal, test_mean, test_covar, size=[1], test_fn=test_fn
-    )
-    rv_numpy_tester(
-        multivariate_normal, test_mean, test_covar, size=[4], test_fn=test_fn
-    )
-    rv_numpy_tester(
-        multivariate_normal, test_mean, test_covar, size=[4, 1], test_fn=test_fn
-    )
-    rv_numpy_tester(
-        multivariate_normal, test_mean, test_covar, size=[4, 1, 1], test_fn=test_fn
-    )
-    rv_numpy_tester(
-        multivariate_normal, test_mean, test_covar, size=[1, 5, 8], test_fn=test_fn
-    )
-    test_mean = np.array(
-        [0, 1, 2],
-        dtype=config.floatX,
-    )
-    test_covar = np.diag(np.array([1, 10, 100], dtype=config.floatX))
-    rv_numpy_tester(multivariate_normal, test_mean, test_covar, test_fn=test_fn)
-
-    # Test parameter broadcasting
-    rv_numpy_tester(
-        multivariate_normal,
-        np.array([[0, 1, 2], [4, 5, 6]], dtype=config.floatX),
-        test_covar,
-        test_fn=test_fn,
-    )
-
-    test_covar = np.stack([test_covar, test_covar * 10.0])
-    rv_numpy_tester(
-        multivariate_normal,
-        np.array([0, 1, 2], dtype=config.floatX),
-        test_covar,
-        size=[2, 3],
-        test_fn=test_fn,
-    )
-
-    test_covar = np.stack([test_covar, test_covar * 10.0])
-    rv_numpy_tester(
-        multivariate_normal,
-        np.array([[0, 1, 2]], dtype=config.floatX),
-        test_covar,
-        size=[2, 3],
-        test_fn=test_fn,
-    )
-
-    rv_numpy_tester(
-        multivariate_normal,
-        np.array([[0], [10], [100]], dtype=config.floatX),
-        np.diag(np.array([1e-6], dtype=config.floatX)),
-        size=[2, 3],
-        test_fn=test_fn,
-    )
+@pytest.mark.parametrize(
+    "mu, kappa, size",
+    [
+        (
+            np.array(np.pi, dtype=config.floatX),
+            np.array(0.5, dtype=config.floatX),
+            None,
+        ),
+        (np.array(np.pi, dtype=config.floatX), np.array(0.5, dtype=config.floatX), []),
+        (
+            np.full((1, 2), np.pi, dtype=config.floatX),
+            np.array(0.5, dtype=config.floatX),
+            None,
+        ),
+    ],
+)
+def test_vonmises_samples(mu, kappa, size):
+    rv_numpy_tester(vonmises, mu, kappa, size=size)
 
 
+@pytest.mark.parametrize(
+    "alpha, size",
+    [
+        (np.array(0.5, dtype=config.floatX), None),
+        (np.array(0.5, dtype=config.floatX), []),
+        (
+            np.full((1, 2), 0.5, dtype=config.floatX),
+            None,
+        ),
+    ],
+)
+def test_pareto_samples(alpha, size):
+    rv_numpy_tester(pareto, alpha, size=size, test_fn=fixed_scipy_rvs("pareto"))
+
+
+def mvnormal_test_fn(mean=None, cov=None, size=None, random_state=None):
+    if mean is None:
+        mean = np.array([0.0], dtype=config.floatX)
+    if cov is None:
+        cov = np.array([[1.0]], dtype=config.floatX)
+    if size is None:
+        size = ()
+    return multivariate_normal.rng_fn(random_state, mean, cov, size)
+
+
+@pytest.mark.parametrize(
+    "mu, cov, size",
+    [
+        (
+            np.array([0], dtype=config.floatX),
+            np.eye(1, dtype=config.floatX),
+            None,
+        ),
+        (
+            np.array([0], dtype=config.floatX),
+            np.eye(1, dtype=config.floatX),
+            [1],
+        ),
+        (
+            np.array([0], dtype=config.floatX),
+            np.eye(1, dtype=config.floatX),
+            [4],
+        ),
+        (
+            np.array([0], dtype=config.floatX),
+            np.eye(1, dtype=config.floatX),
+            [4, 1],
+        ),
+        (
+            np.array([0], dtype=config.floatX),
+            np.eye(1, dtype=config.floatX),
+            [4, 1, 1],
+        ),
+        (
+            np.array([0], dtype=config.floatX),
+            np.eye(1, dtype=config.floatX),
+            [1, 4, 1],
+        ),
+        (
+            np.array([0], dtype=config.floatX),
+            np.eye(1, dtype=config.floatX),
+            [1, 5, 8],
+        ),
+        (
+            np.array([0, 1, 2], dtype=config.floatX),
+            np.diag(
+                np.array([1, 10, 100], dtype=config.floatX),
+            ),
+            None,
+        ),
+        (
+            np.array([0, 1, 2], dtype=config.floatX),
+            np.stack(
+                [
+                    np.eye(3, dtype=config.floatX),
+                    np.eye(3, dtype=config.floatX) * 10.0,
+                ]
+            ),
+            [2, 3],
+        ),
+        (
+            np.array([[0, 1, 2], [4, 5, 6]], dtype=config.floatX),
+            np.diag(
+                np.array([1, 10, 100], dtype=config.floatX),
+            ),
+            None,
+        ),
+        (
+            np.array([[0, 1, 2], [4, 5, 6]], dtype=config.floatX),
+            np.stack(
+                [
+                    np.eye(3, dtype=config.floatX),
+                    np.eye(3, dtype=config.floatX) * 10.0,
+                ]
+            ),
+            [2, 3],
+        ),
+        (
+            np.array([[0], [10], [100]], dtype=config.floatX),
+            np.eye(1, dtype=config.floatX) * 1e-6,
+            [2, 3],
+        ),
+    ],
+)
+def test_mvnormal_samples(mu, cov, size):
+    rv_numpy_tester(multivariate_normal, mu, cov, size=size, test_fn=mvnormal_test_fn)
+
+
+def test_mvnormal_default_args():
+    rv_numpy_tester(multivariate_normal, test_fn=mvnormal_test_fn)
+
+
+@config.change_flags(compute_test_value="raise")
 def test_mvnormal_ShapeFeature():
     M_aet = iscalar("M")
     M_aet.tag.test_value = 2
@@ -409,55 +614,67 @@ def test_mvnormal_ShapeFeature():
     assert s4.get_test_value() == 3
 
 
-def test_dirichlet_samples():
+@pytest.mark.parametrize(
+    "alphas, size",
+    [
+        (np.array([[100, 1, 1], [1, 100, 1], [1, 1, 100]], dtype=config.floatX), None),
+        (np.array([[100, 1, 1], [1, 100, 1], [1, 1, 100]], dtype=config.floatX), 10),
+        (
+            np.array([[100, 1, 1], [1, 100, 1], [1, 1, 100]], dtype=config.floatX),
+            (10, 2),
+        ),
+    ],
+)
+def test_dirichlet_samples(alphas, size):
+    def dirichlet_test_fn(mean=None, cov=None, size=None, random_state=None):
+        if size is None:
+            size = ()
+        return dirichlet.rng_fn(random_state, alphas, size)
 
-    alphas = np.array([[100, 1, 1], [1, 100, 1], [1, 1, 100]], dtype=config.floatX)
+    rv_numpy_tester(dirichlet, alphas, size=size, test_fn=dirichlet_test_fn)
 
-    res = get_test_value(dirichlet(alphas))
-    assert np.all(np.diag(res) >= res)
 
-    res = get_test_value(dirichlet(alphas, size=2))
-    assert res.shape == (2, 3, 3)
-    assert all(np.all(np.diag(r) >= r) for r in res)
+M_aet = iscalar("M")
+M_aet.tag.test_value = 3
 
-    for i in range(alphas.shape[0]):
-        res = get_test_value(dirichlet(alphas[i]))
-        assert np.all(res[i] > np.delete(res, [i]))
 
-        res = get_test_value(dirichlet(alphas[i], size=2))
-        assert res.shape == (2, 3)
-        assert all(np.all(r[i] > np.delete(r, [i])) for r in res)
+@pytest.mark.parametrize(
+    "M, size",
+    [
+        (aet.ones((M_aet,)), ()),
+        (aet.ones((M_aet,)), (M_aet + 1,)),
+        (aet.ones((M_aet,)), (2, M_aet)),
+        (aet.ones((M_aet, M_aet + 1)), ()),
+        (aet.ones((M_aet, M_aet + 1)), (M_aet + 2,)),
+        (aet.ones((M_aet, M_aet + 1)), (2, M_aet + 2, M_aet + 3)),
+    ],
+)
+def test_dirichlet_infer_shape(M, size):
+    rv = dirichlet(M, size=size)
+    rv_shape = list(dirichlet._infer_shape(size or (), [M], None))
 
-    rng_state = np.random.RandomState(np.random.MT19937(np.random.SeedSequence(1234)))
-
-    alphas = np.array([[1000, 1, 1], [1, 1000, 1], [1, 1, 1000]], dtype=config.floatX)
-
-    assert dirichlet.rng_fn(rng_state, alphas, None).shape == alphas.shape
-    assert dirichlet.rng_fn(rng_state, alphas, size=10).shape == (10,) + alphas.shape
-    assert (
-        dirichlet.rng_fn(rng_state, alphas, size=(10, 2)).shape
-        == (10, 2) + alphas.shape
+    all_args = (M,) + size
+    fn_inputs = [
+        i
+        for i in graph_inputs([a for a in all_args if isinstance(a, Variable)])
+        if not isinstance(i, (Constant, SharedVariable))
+    ]
+    aesara_fn = function(
+        fn_inputs, [aet.as_tensor(o) for o in rv_shape + [rv]], mode=py_mode
     )
 
+    *rv_shape_val, rv_val = aesara_fn(
+        *[
+            i.tag.test_value
+            for i in fn_inputs
+            if not isinstance(i, (SharedVariable, Constant))
+        ]
+    )
 
-def test_dirichlet_infer_shape():
-    M_aet = iscalar("M")
-    M_aet.tag.test_value = 3
-
-    test_params = [
-        ([aet.ones((M_aet,))], None),
-        ([aet.ones((M_aet,))], (M_aet + 1,)),
-        ([aet.ones((M_aet,))], (2, M_aet)),
-        ([aet.ones((M_aet, M_aet + 1))], None),
-        ([aet.ones((M_aet, M_aet + 1))], (M_aet + 2,)),
-        ([aet.ones((M_aet, M_aet + 1))], (2, M_aet + 2, M_aet + 3)),
-    ]
-    for args, size in test_params:
-        rv = dirichlet(*args, size=size)
-        rv_shape = tuple(dirichlet._infer_shape(size or (), args, None))
-        assert tuple(get_test_value(rv_shape)) == tuple(get_test_value(rv).shape)
+    assert tuple(rv_shape_val) == tuple(rv_val.shape)
 
 
+@config.change_flags(compute_test_value="raise")
 def test_dirichlet_ShapeFeature():
     """Make sure `RandomVariable.infer_shape` works with `ShapeFeature`."""
     M_aet = iscalar("M")
@@ -480,227 +697,470 @@ def test_dirichlet_ShapeFeature():
     assert N_aet in graph_inputs([s2])
 
 
-def test_poisson_samples():
+@pytest.mark.parametrize(
+    "lam, size",
+    [
+        (np.array(10, dtype=np.int64), None),
+        (np.array(10, dtype=np.int64), []),
+        (
+            np.full((1, 2), 10, dtype=np.int64),
+            None,
+        ),
+    ],
+)
+def test_poisson_samples(lam, size):
+    rv_numpy_tester(poisson, lam, size=size)
 
+
+def test_poisson_default_args():
     rv_numpy_tester(poisson)
-    rv_numpy_tester(poisson, size=aet.as_tensor((2, 3)))
-
-    test_lambda = np.array(10, dtype="int64")
-
-    rv_numpy_tester(poisson, test_lambda)
-    rv_numpy_tester(poisson, test_lambda, size=[2, 3])
 
 
-def test_geometric_samples():
-    test_p = np.array(0.1, dtype=config.floatX)
+@pytest.mark.parametrize(
+    "p, size",
+    [
+        (np.array(0.1, dtype=config.floatX), None),
+        (np.array(0.1, dtype=config.floatX), []),
+        (
+            np.full((1, 2), 0.1, dtype=config.floatX),
+            None,
+        ),
+    ],
+)
+def test_geometric_samples(p, size):
+    rv_numpy_tester(geometric, p, size=size)
 
-    rv_numpy_tester(geometric, test_p)
-    rv_numpy_tester(geometric, test_p, size=[2, 3])
+
+@pytest.mark.parametrize(
+    "ngood, nbad, nsample, size",
+    [
+        (
+            np.array(10, dtype=np.int64),
+            np.array(20, dtype=np.int64),
+            np.array(5, dtype=np.int64),
+            None,
+        ),
+        (
+            np.array(10, dtype=np.int64),
+            np.array(20, dtype=np.int64),
+            np.array(5, dtype=np.int64),
+            [],
+        ),
+        (
+            np.full((1, 2), 10, dtype=np.int64),
+            np.array(20, dtype=np.int64),
+            np.array(5, dtype=np.int64),
+            None,
+        ),
+    ],
+)
+def test_hypergeometric_samples(ngood, nbad, nsample, size):
+    rv_numpy_tester(hypergeometric, ngood, nbad, nsample, size=size)
 
 
-def test_hypergeometric_samples():
-    test_ngood = np.array(10, dtype="int64")
-    test_nbad = np.array(20, dtype="int64")
-    test_nsample = np.array(5, dtype="int64")
+@pytest.mark.parametrize(
+    "loc, scale, size",
+    [
+        (np.array(10, dtype=config.floatX), np.array(0.1, dtype=config.floatX), None),
+        (np.array(10, dtype=config.floatX), np.array(0.1, dtype=config.floatX), []),
+        (np.array(10, dtype=config.floatX), np.array(0.1, dtype=config.floatX), [2, 3]),
+        (
+            np.full((1, 2), 10, dtype=config.floatX),
+            np.array(0.1, dtype=config.floatX),
+            None,
+        ),
+    ],
+)
+def test_cauchy_samples(loc, scale, size):
+    rv_numpy_tester(cauchy, loc, scale, size=size, test_fn=fixed_scipy_rvs("cauchy"))
 
-    rv_numpy_tester(hypergeometric, test_ngood, test_nbad, test_nsample)
-    rv_numpy_tester(hypergeometric, test_ngood, test_nbad, test_nsample, size=[2, 3])
 
-
-def test_cauchy_samples():
+def test_cauchy_default_args():
     rv_numpy_tester(cauchy, test_fn=stats.cauchy.rvs)
 
-    test_loc = np.array(10, dtype=config.floatX)
-    test_scale = np.array(0.1, dtype=config.floatX)
 
-    rv_numpy_tester(cauchy, test_loc, test_scale, test_fn=stats.cauchy.rvs)
-    rv_numpy_tester(cauchy, test_loc, test_scale, size=[2, 3], test_fn=stats.cauchy.rvs)
+@pytest.mark.parametrize(
+    "loc, scale, size",
+    [
+        (np.array(10, dtype=config.floatX), np.array(0.1, dtype=config.floatX), None),
+        (np.array(10, dtype=config.floatX), np.array(0.1, dtype=config.floatX), []),
+        (np.array(10, dtype=config.floatX), np.array(0.1, dtype=config.floatX), [2, 3]),
+        (
+            np.full((1, 2), 10, dtype=config.floatX),
+            np.array(0.1, dtype=config.floatX),
+            None,
+        ),
+    ],
+)
+def test_halfcauchy_samples(loc, scale, size):
+    rv_numpy_tester(
+        halfcauchy, loc, scale, size=size, test_fn=fixed_scipy_rvs("halfcauchy")
+    )
 
 
-def test_halfcauchy_samples():
+def test_halfcauchy_default_args():
     rv_numpy_tester(halfcauchy, test_fn=stats.halfcauchy.rvs)
 
-    test_loc = np.array(10, dtype=config.floatX)
-    test_scale = np.array(0.1, dtype=config.floatX)
 
-    rv_numpy_tester(halfcauchy, test_loc, test_scale, test_fn=stats.halfcauchy.rvs)
-    rv_numpy_tester(
-        halfcauchy,
-        test_loc,
-        test_scale,
-        size=[2, 3],
-        test_fn=stats.halfcauchy.rvs,
-    )
-
-
-def test_invgamma_samples():
-    test_loc = np.array(2, dtype=config.floatX)
-    test_scale = np.array(2, dtype=config.floatX)
-
-    rv_numpy_tester(
-        invgamma, test_loc, test_scale, test_fn=partial(invgamma.rng_fn, None)
-    )
+@pytest.mark.parametrize(
+    "loc, scale, size",
+    [
+        (np.array(2, dtype=config.floatX), np.array(1, dtype=config.floatX), None),
+        (np.array(2, dtype=config.floatX), np.array(1, dtype=config.floatX), []),
+        (np.array(2, dtype=config.floatX), np.array(1, dtype=config.floatX), [2, 3]),
+        (
+            np.full((1, 2), 2, dtype=config.floatX),
+            np.array(1, dtype=config.floatX),
+            None,
+        ),
+    ],
+)
+def test_invgamma_samples(loc, scale, size):
     rv_numpy_tester(
         invgamma,
-        test_loc,
-        test_scale,
-        size=[2, 3],
-        test_fn=partial(invgamma.rng_fn, None),
+        loc,
+        scale,
+        size=size,
+        test_fn=lambda *args, size=None, random_state=None, **kwargs: invgamma.rng_fn(
+            random_state, *(args + (size,))
+        ),
     )
 
 
-def test_wald_samples():
-    test_mean = np.array(10, dtype=config.floatX)
-    test_scale = np.array(1, dtype=config.floatX)
+@pytest.mark.parametrize(
+    "mean, scale, size",
+    [
+        (np.array(10, dtype=config.floatX), np.array(1, dtype=config.floatX), None),
+        (np.array(10, dtype=config.floatX), np.array(1, dtype=config.floatX), []),
+        (np.array(10, dtype=config.floatX), np.array(1, dtype=config.floatX), [2, 3]),
+        (
+            np.full((1, 2), 10, dtype=config.floatX),
+            np.array(1, dtype=config.floatX),
+            None,
+        ),
+    ],
+)
+def test_wald_samples(mean, scale, size):
+    rv_numpy_tester(wald, mean, scale, size=size)
 
-    rv_numpy_tester(wald, test_mean, test_scale)
-    rv_numpy_tester(wald, test_mean, test_scale, size=[2, 3])
 
-
-def test_truncexpon_samples():
-    test_b = np.array(5, dtype=config.floatX)
-    test_loc = np.array(0, dtype=config.floatX)
-    test_scale = np.array(1, dtype=config.floatX)
-
+@pytest.mark.parametrize(
+    "b, loc, scale, size",
+    [
+        (
+            np.array(5, dtype=config.floatX),
+            np.array(0, dtype=config.floatX),
+            np.array(1, dtype=config.floatX),
+            None,
+        ),
+        (
+            np.array(5, dtype=config.floatX),
+            np.array(0, dtype=config.floatX),
+            np.array(1, dtype=config.floatX),
+            [],
+        ),
+        (
+            np.array(5, dtype=config.floatX),
+            np.array(0, dtype=config.floatX),
+            np.array(1, dtype=config.floatX),
+            [2, 3],
+        ),
+        (
+            np.full((1, 2), 5, dtype=config.floatX),
+            np.array(0, dtype=config.floatX),
+            np.array(1, dtype=config.floatX),
+            None,
+        ),
+    ],
+)
+def test_truncexpon_samples(b, loc, scale, size):
     rv_numpy_tester(
         truncexpon,
-        test_b,
-        test_loc,
-        test_scale,
-        test_fn=partial(truncexpon.rng_fn, None),
-    )
-    rv_numpy_tester(
-        truncexpon,
-        test_b,
-        test_loc,
-        test_scale,
-        size=[2, 3],
-        test_fn=partial(truncexpon.rng_fn, None),
+        b,
+        loc,
+        scale,
+        size=size,
+        test_fn=lambda *args, size=None, random_state=None, **kwargs: truncexpon.rng_fn(
+            random_state, *(args + (size,))
+        ),
     )
 
 
-def test_bernoulli_samples():
-    test_p = np.array(0.5, dtype=config.floatX)
-
-    rv_numpy_tester(bernoulli, test_p, test_fn=partial(bernoulli.rng_fn, None))
+@pytest.mark.parametrize(
+    "p, size",
+    [
+        (
+            np.array(0.5, dtype=config.floatX),
+            None,
+        ),
+        (
+            np.array(0.5, dtype=config.floatX),
+            [],
+        ),
+        (
+            np.array(0.5, dtype=config.floatX),
+            [2, 3],
+        ),
+        (
+            np.full((1, 2), 0.5, dtype=config.floatX),
+            None,
+        ),
+    ],
+)
+def test_bernoulli_samples(p, size):
     rv_numpy_tester(
         bernoulli,
-        test_p,
-        size=[2, 3],
-        test_fn=partial(bernoulli.rng_fn, None),
+        p,
+        size=size,
+        test_fn=lambda *args, size=None, random_state=None, **kwargs: bernoulli.rng_fn(
+            random_state, *(args + (size,))
+        ),
     )
 
 
-def test_laplace_samples():
-    test_loc = np.array(10, dtype=config.floatX)
-    test_scale = np.array(5, dtype=config.floatX)
+@pytest.mark.parametrize(
+    "loc, scale, size",
+    [
+        (
+            np.array(10, dtype=config.floatX),
+            np.array(5, dtype=config.floatX),
+            None,
+        ),
+        (
+            np.array(10, dtype=config.floatX),
+            np.array(5, dtype=config.floatX),
+            [],
+        ),
+        (
+            np.array(10, dtype=config.floatX),
+            np.array(5, dtype=config.floatX),
+            [2, 3],
+        ),
+        (
+            np.full((1, 2), 10, dtype=config.floatX),
+            np.array(5, dtype=config.floatX),
+            None,
+        ),
+    ],
+)
+def test_laplace_samples(loc, scale, size):
+    rv_numpy_tester(laplace, loc, scale, size=size)
 
-    rv_numpy_tester(laplace, test_loc, test_scale)
-    rv_numpy_tester(laplace, test_loc, test_scale, size=[2, 3])
+
+@pytest.mark.parametrize(
+    "M, p, size",
+    [
+        (
+            np.array(10, dtype=np.int64),
+            np.array(0.5, dtype=config.floatX),
+            None,
+        ),
+        (
+            np.array(10, dtype=np.int64),
+            np.array(0.5, dtype=config.floatX),
+            [],
+        ),
+        (
+            np.array(10, dtype=np.int64),
+            np.array(0.5, dtype=config.floatX),
+            [2, 3],
+        ),
+        (
+            np.full((1, 2), 10, dtype=np.int64),
+            np.array(0.5, dtype=config.floatX),
+            None,
+        ),
+    ],
+)
+def test_binomial_samples(M, p, size):
+    rv_numpy_tester(binomial, M, p, size=size)
 
 
-def test_binomial_samples():
-    test_M = np.array(10, dtype="int64")
-    test_p = np.array(0.5, dtype=config.floatX)
-
-    rv_numpy_tester(binomial, test_M, test_p)
-    rv_numpy_tester(binomial, test_M, test_p, size=[2, 3])
-
-
-def test_nbinom_samples():
-    test_M = np.array(10, dtype="int64")
-    test_p = np.array(0.5, dtype=config.floatX)
-
-    rv_numpy_tester(nbinom, test_M, test_p, test_fn=partial(nbinom.rng_fn, None))
+@pytest.mark.parametrize(
+    "M, p, size",
+    [
+        (
+            np.array(10, dtype=np.int64),
+            np.array(0.5, dtype=config.floatX),
+            None,
+        ),
+        (
+            np.array(10, dtype=np.int64),
+            np.array(0.5, dtype=config.floatX),
+            [],
+        ),
+        (
+            np.array(10, dtype=np.int64),
+            np.array(0.5, dtype=config.floatX),
+            [2, 3],
+        ),
+        (
+            np.full((1, 2), 10, dtype=np.int64),
+            np.array(0.5, dtype=config.floatX),
+            None,
+        ),
+    ],
+)
+def test_nbinom_samples(M, p, size):
     rv_numpy_tester(
         nbinom,
-        test_M,
-        test_p,
-        size=[2, 3],
-        test_fn=partial(nbinom.rng_fn, None),
+        M,
+        p,
+        size=size,
+        test_fn=lambda *args, size=None, random_state=None, **kwargs: nbinom.rng_fn(
+            random_state, *(args + (size,))
+        ),
     )
 
 
-def test_betabinom_samples():
-    test_M = np.array(10, dtype="int64")
-    test_a = np.array(0.5, dtype=config.floatX)
-    test_b = np.array(0.5, dtype=config.floatX)
-
-    rv_numpy_tester(
-        betabinom, test_M, test_a, test_b, test_fn=partial(betabinom.rng_fn, None)
-    )
+@pytest.mark.parametrize(
+    "M, a, p, size",
+    [
+        (
+            np.array(10, dtype=np.int64),
+            np.array(0.5, dtype=config.floatX),
+            np.array(0.5, dtype=config.floatX),
+            None,
+        ),
+        (
+            np.array(10, dtype=np.int64),
+            np.array(0.5, dtype=config.floatX),
+            np.array(0.5, dtype=config.floatX),
+            [],
+        ),
+        (
+            np.array(10, dtype=np.int64),
+            np.array(0.5, dtype=config.floatX),
+            np.array(0.5, dtype=config.floatX),
+            [2, 3],
+        ),
+        (
+            np.full((1, 2), 10, dtype=np.int64),
+            np.array(0.5, dtype=config.floatX),
+            np.array(0.5, dtype=config.floatX),
+            None,
+        ),
+    ],
+)
+def test_betabinom_samples(M, a, p, size):
     rv_numpy_tester(
         betabinom,
-        test_M,
-        test_a,
-        test_b,
-        size=[2, 3],
-        test_fn=partial(betabinom.rng_fn, None),
+        M,
+        a,
+        p,
+        size=size,
+        test_fn=lambda *args, size=None, random_state=None, **kwargs: betabinom.rng_fn(
+            random_state, *(args + (size,))
+        ),
     )
 
 
-def test_multinomial_samples():
-    test_M = np.array(10, dtype="int64")
-    test_p = np.array([0.7, 0.3], dtype=config.floatX)
-
-    rv_numpy_tester(multinomial, test_M, test_p)
+@pytest.mark.parametrize(
+    "M, p, size, test_fn",
+    [
+        (
+            np.array(10, dtype=np.int64),
+            np.array([0.7, 0.3], dtype=config.floatX),
+            None,
+            None,
+        ),
+        (
+            np.array(10, dtype=np.int64),
+            np.array([0.7, 0.3], dtype=config.floatX),
+            [],
+            None,
+        ),
+        (
+            np.array(10, dtype=np.int64),
+            np.array([0.7, 0.3], dtype=config.floatX),
+            [2, 3],
+            None,
+        ),
+        (
+            np.full((1, 2), 10, dtype=np.int64),
+            np.array([0.7, 0.3], dtype=config.floatX),
+            None,
+            lambda *args, size=None, random_state=None, **kwargs: multinomial.rng_fn(
+                random_state, *(args + (size,))
+            ),
+        ),
+        (
+            np.array([10, 20], dtype=np.int64),
+            np.array([[0.999, 0.001], [0.001, 0.999]], dtype=config.floatX),
+            None,
+            lambda *args, **kwargs: np.array([[10, 0], [0, 20]]),
+        ),
+        (
+            np.array([10, 20], dtype=np.int64),
+            np.array([[0.999, 0.001], [0.001, 0.999]], dtype=config.floatX),
+            (3,),
+            lambda *args, **kwargs: np.stack([np.array([[10, 0], [0, 20]])] * 3),
+        ),
+    ],
+)
+def test_multinomial_samples(M, p, size, test_fn):
+    rng = np.random.default_rng(1234)
     rv_numpy_tester(
         multinomial,
-        test_M,
-        test_p,
-        size=[2, 3],
+        M,
+        p,
+        size=size,
+        test_fn=test_fn,
+        rng=rng,
     )
 
-    rng_state = shared(
-        np.random.RandomState(np.random.MT19937(np.random.SeedSequence(1234)))
+
+@pytest.mark.parametrize(
+    "p, size, test_fn",
+    [
+        (
+            np.array([100000, 1, 1], dtype=config.floatX),
+            None,
+            lambda *args, **kwargs: np.array(0, dtype=np.int64),
+        ),
+        (
+            np.array(
+                [[100000, 1, 1], [1, 100000, 1], [1, 1, 100000]], dtype=config.floatX
+            ),
+            (10, 3),
+            lambda *args, **kwargs: np.tile(np.arange(3).astype(np.int64), (10, 1)),
+        ),
+        (
+            np.array(
+                [[100000, 1, 1], [1, 100000, 1], [1, 1, 100000]], dtype=config.floatX
+            ),
+            (10, 2, 3),
+            lambda *args, **kwargs: np.tile(np.arange(3).astype(np.int64), (10, 2, 1)),
+        ),
+    ],
+)
+def test_categorical_samples(p, size, test_fn):
+    p = p / p.sum(axis=-1)
+    rng = np.random.default_rng(232)
+
+    rv_numpy_tester(
+        categorical,
+        p,
+        size=size,
+        test_fn=test_fn,
+        rng=rng,
     )
 
-    test_M = np.array([10, 20], dtype="int64")
-    test_p = np.array([[0.999, 0.001], [0.001, 0.999]], dtype=config.floatX)
 
-    res = multinomial(test_M, test_p, rng=rng_state).eval()
-    exp_res = np.array([[10, 0], [0, 20]])
-    assert np.array_equal(res, exp_res)
-
-    res = multinomial(test_M, test_p, size=(3,), rng=rng_state).eval()
-    exp_res = np.stack([exp_res] * 3)
-    assert np.array_equal(res, exp_res)
-
-
-def test_categorical_samples():
-
-    rng_state = np.random.RandomState(np.random.MT19937(np.random.SeedSequence(1234)))
-
-    assert categorical.rng_fn(rng_state, np.array([1.0 / 3.0] * 3), size=10).shape == (
-        10,
-    )
-
+def test_categorical_basic():
     p = np.array([[100000, 1, 1], [1, 100000, 1], [1, 1, 100000]], dtype=config.floatX)
     p = p / p.sum(axis=-1)
 
-    assert categorical.rng_fn(rng_state, p, size=None).shape == p.shape[:-1]
+    rng = np.random.default_rng()
 
-    with raises(ValueError):
-        categorical.rng_fn(rng_state, p, size=10)
-
-    assert categorical.rng_fn(rng_state, p, size=(10, 3)).shape == (10, 3)
-    assert categorical.rng_fn(rng_state, p, size=(10, 2, 3)).shape == (10, 2, 3)
-
-    res = categorical(p)
-    assert np.array_equal(get_test_value(res), np.arange(3))
-
-    res = categorical(p, size=(10, 3))
-    exp_res = np.tile(np.arange(3), (10, 1))
-    assert np.array_equal(get_test_value(res), exp_res)
-
-    res = categorical(p, size=(10, 2, 3))
-    exp_res = np.tile(np.arange(3), (10, 2, 1))
-    assert np.array_equal(get_test_value(res), exp_res)
+    with pytest.raises(ValueError):
+        categorical.rng_fn(rng, p, size=10)
 
 
+@config.change_flags(compute_test_value="raise")
 def test_polyagamma_samples():
 
-    _ = importorskip("pypolyagamma")
+    _ = pytest.importorskip("pypolyagamma")
 
     # Sampled values should be scalars
     a = np.array(1.1, dtype=config.floatX)
@@ -730,29 +1190,59 @@ def test_polyagamma_samples():
     assert np.all(np.abs(np.diff(bcast_smpl.flat)) > 0.0)
 
 
-def test_random_integer_samples():
+def test_randint_samples():
 
-    rv_numpy_tester(randint, 10, None)
-    rv_numpy_tester(randint, 0, 1)
-    rv_numpy_tester(randint, 0, 1, size=[3])
-    rv_numpy_tester(randint, [0, 1, 2], 5)
-    rv_numpy_tester(randint, [0, 1, 2], 5, size=[3, 3])
-    rv_numpy_tester(randint, [0], [5], size=[1])
-    rv_numpy_tester(randint, aet.as_tensor_variable([-1]), [1], size=[1])
+    with pytest.raises(TypeError):
+        randint(10, rng=shared(np.random.default_rng()))
+
+    rng = np.random.RandomState(2313)
+    rv_numpy_tester(randint, 10, None, rng=rng)
+    rv_numpy_tester(randint, 0, 1, rng=rng)
+    rv_numpy_tester(randint, 0, 1, size=[3], rng=rng)
+    rv_numpy_tester(randint, [0, 1, 2], 5, rng=rng)
+    rv_numpy_tester(randint, [0, 1, 2], 5, size=[3, 3], rng=rng)
+    rv_numpy_tester(randint, [0], [5], size=[1], rng=rng)
+    rv_numpy_tester(randint, aet.as_tensor_variable([-1]), [1], size=[1], rng=rng)
     rv_numpy_tester(
-        randint, aet.as_tensor_variable([-1]), [1], size=aet.as_tensor_variable([1])
+        randint,
+        aet.as_tensor_variable([-1]),
+        [1],
+        size=aet.as_tensor_variable([1]),
+        rng=rng,
+    )
+
+
+def test_integers_samples():
+
+    with pytest.raises(TypeError):
+        integers(10, rng=shared(np.random.RandomState()))
+
+    rng = np.random.default_rng(2313)
+    rv_numpy_tester(integers, 10, None, rng=rng)
+    rv_numpy_tester(integers, 0, 1, rng=rng)
+    rv_numpy_tester(integers, 0, 1, size=[3], rng=rng)
+    rv_numpy_tester(integers, [0, 1, 2], 5, rng=rng)
+    rv_numpy_tester(integers, [0, 1, 2], 5, size=[3, 3], rng=rng)
+    rv_numpy_tester(integers, [0], [5], size=[1], rng=rng)
+    rv_numpy_tester(integers, aet.as_tensor_variable([-1]), [1], size=[1], rng=rng)
+    rv_numpy_tester(
+        integers,
+        aet.as_tensor_variable([-1]),
+        [1],
+        size=aet.as_tensor_variable([1]),
+        rng=rng,
     )
 
 
 def test_choice_samples():
-    with raises(NotImplementedError):
+    with pytest.raises(NotImplementedError):
         choice._shape_from_params(np.asarray(5))
 
-    rv_numpy_tester(choice, np.asarray(5))
+    rv_numpy_tester(choice, np.asarray([5]))
     rv_numpy_tester(choice, np.array([1.0, 5.0], dtype=config.floatX))
-    rv_numpy_tester(choice, np.asarray(5), 3)
+    rv_numpy_tester(choice, np.asarray([5]), 3)
 
-    with raises(ValueError):
+    with pytest.raises(ValueError):
         rv_numpy_tester(choice, np.array([[1, 2], [3, 4]]))
 
     rv_numpy_tester(choice, [1, 2, 3], 1)
@@ -763,7 +1253,9 @@ def test_choice_samples():
 
 def test_permutation_samples():
     rv_numpy_tester(
-        permutation, np.asarray(5), test_fn=lambda x: np.random.permutation(x.item())
+        permutation,
+        np.asarray(5),
+        test_fn=lambda x, random_state=None: random_state.permutation(x.item()),
     )
     rv_numpy_tester(permutation, [1, 2, 3])
     rv_numpy_tester(permutation, [[1, 2], [3, 4]])

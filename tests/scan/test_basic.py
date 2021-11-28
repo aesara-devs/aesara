@@ -13,14 +13,13 @@ import os
 import pickle
 import shutil
 import sys
-import time
+import timeit
 from collections import OrderedDict
 from tempfile import mkdtemp
 
 import numpy as np
 import pytest
 
-from aesara.assert_op import assert_op
 from aesara.compile.debugmode import DebugMode
 from aesara.compile.function import function
 from aesara.compile.function.pfunc import rebuild_collect_shared
@@ -37,9 +36,11 @@ from aesara.gradient import (
     hessian,
     jacobian,
 )
-from aesara.graph.basic import clone_replace, graph_inputs
+from aesara.graph.basic import Apply, clone_replace, graph_inputs
 from aesara.graph.fg import MissingInputError
+from aesara.graph.op import Op
 from aesara.misc.safe_asarray import _asarray
+from aesara.raise_op import assert_op
 from aesara.scan.basic import scan
 from aesara.scan.op import Scan
 from aesara.scan.opt import ScanMerge
@@ -52,10 +53,10 @@ from aesara.tensor.blas import Dot22
 from aesara.tensor.elemwise import Elemwise
 from aesara.tensor.math import Dot
 from aesara.tensor.math import all as aet_all
-from aesara.tensor.math import dot, mean
+from aesara.tensor.math import dot, mean, sigmoid
 from aesara.tensor.math import sum as aet_sum
 from aesara.tensor.math import tanh
-from aesara.tensor.nnet import categorical_crossentropy, sigmoid, softmax_graph
+from aesara.tensor.nnet import categorical_crossentropy, softmax_graph
 from aesara.tensor.random.utils import RandomStream
 from aesara.tensor.shape import Shape_i, reshape, shape, specify_shape
 from aesara.tensor.sharedvar import SharedVariable
@@ -253,8 +254,6 @@ def scan_nodes_from_fct(fct):
 
 
 class TestScan:
-    def setup_method(self):
-        utt.seed_rng()
 
     # generator network, only one output , type scalar ; no sequence or
     # non sequence arguments
@@ -298,7 +297,7 @@ class TestScan:
             if tmpdir is not None:
                 shutil.rmtree(tmpdir)
 
-        rng = np.random.RandomState(utt.fetch_seed())
+        rng = np.random.default_rng(utt.fetch_seed())
         state = rng.uniform()
         steps = 5
 
@@ -331,7 +330,7 @@ class TestScan:
         assert all(i.value is None for i in scan_node.op.fn.input_storage)
         assert all(o.value is None for o in scan_node.op.fn.output_storage)
 
-        rng = np.random.RandomState(utt.fetch_seed())
+        rng = np.random.default_rng(utt.fetch_seed())
         state = rng.uniform()
         steps = 5
 
@@ -364,7 +363,7 @@ class TestScan:
             [state, n_steps], output, updates=updates, allow_input_downcast=True
         )
 
-        rng = np.random.RandomState(utt.fetch_seed())
+        rng = np.random.default_rng(utt.fetch_seed())
         state = rng.uniform()
         steps = 5
 
@@ -372,11 +371,13 @@ class TestScan:
         aesara_values = my_f(state, steps)
         utt.assert_allclose(numpy_values, aesara_values[0])
 
+    @pytest.mark.xfail(
+        reason="This is a very poorly specified test that needs to be rewritten"
+    )
     def test_subtensor_multiple_slices(self):
-        # This addresses a bug reported by Matthias Zoehrer
-        # the bug happens when you have multiple subtensors on the output of
-        # scan (the bug requires the reshape to be produced, and it has
-        # which has something to do with how the subtensors overlap
+        # This addresses a bug that happens when you have multiple subtensors
+        # on the output of scan (the bug requires the reshape to be produced,
+        # and it has which has something to do with how the subtensors overlap
         def f_pow2(x_tm1):
             return 2 * x_tm1
 
@@ -403,7 +404,7 @@ class TestScan:
         # This assertion fails if savemem optimization failed on scan
         if config.mode != "FAST_COMPILE":
             assert nodes[0].op._scan_savemem_visited
-        rng = np.random.RandomState(utt.fetch_seed())
+        rng = np.random.default_rng(utt.fetch_seed())
         my_f(rng.uniform(size=(3,)), 4, np.int64([2, 2, 3]))
 
     @pytest.mark.slow
@@ -450,7 +451,7 @@ class TestScan:
             [u, x0, W_in, W], output, updates=updates, allow_input_downcast=True
         )
         # get random initial values
-        rng = np.random.RandomState(utt.fetch_seed())
+        rng = np.random.default_rng(utt.fetch_seed())
         v_u = rng.uniform(-5.0, 5.0, size=(4,))
         v_x0 = rng.uniform()
         W = rng.uniform()
@@ -467,7 +468,7 @@ class TestScan:
     # simple rnn, one input, one state, weights for each; input/state
     # are vectors, weights are scalars; using shared variables
     def test_one_sequence_one_output_weights_shared(self):
-        rng = np.random.RandomState(utt.fetch_seed())
+        rng = np.random.default_rng(utt.fetch_seed())
         u = vector("u")
         x0 = scalar("x0")
         W_in = shared(asarrayX(rng.uniform()), name="w_in")
@@ -502,7 +503,7 @@ class TestScan:
     # some rnn with multiple outputs and multiple inputs; other
     # dimension instead of scalars/vectors
     def test_multiple_inputs_multiple_outputs(self):
-        rng = np.random.RandomState(utt.fetch_seed())
+        rng = np.random.default_rng(utt.fetch_seed())
         vW_in2 = asarrayX(rng.uniform(-5.0, 5.0, size=(2,)))
         vW = asarrayX(rng.uniform(-5.0, 5.0, size=(2, 2)))
         vWout = asarrayX(rng.uniform(-5.0, 5.0, size=(2,)))
@@ -556,7 +557,7 @@ class TestScan:
 
     def test_multiple_outs_taps(self):
         l = 5
-        rng = np.random.RandomState(utt.fetch_seed())
+        rng = np.random.default_rng(utt.fetch_seed())
 
         vW_in2 = asarrayX(rng.uniform(-2.0, 2.0, size=(2,)))
         vW = asarrayX(rng.uniform(-2.0, 2.0, size=(2, 2)))
@@ -699,11 +700,12 @@ class TestScan:
         # outer_inp_from_inner_inp produce the correct results
         scan_node = a.owner.inputs[0].owner
 
-        result = scan_node.op.var_mappings["outer_inp_from_outer_out"]
+        var_mappings = scan_node.op.get_oinp_iinp_iout_oout_mappings()
+        result = var_mappings["outer_inp_from_outer_out"]
         expected_result = {0: 1, 1: 2}
         assert result == expected_result
 
-        result = scan_node.op.var_mappings["outer_inp_from_inner_inp"]
+        result = var_mappings["outer_inp_from_inner_inp"]
         expected_result = {0: 1, 1: 1, 2: 2, 3: 2}
         assert result == expected_result
 
@@ -732,11 +734,12 @@ class TestScan:
         # outer_inp_from_inner_inp produce the correct results
         scan_node = out.owner.inputs[0].owner
 
-        result = scan_node.op.var_mappings["outer_inp_from_outer_out"]
+        var_mappings = scan_node.op.get_oinp_iinp_iout_oout_mappings()
+        result = var_mappings["outer_inp_from_outer_out"]
         expected_result = {0: 2}
         assert result == expected_result
 
-        result = scan_node.op.var_mappings["outer_inp_from_inner_inp"]
+        result = var_mappings["outer_inp_from_inner_inp"]
         expected_result = {0: 1, 1: 2, 2: 2}
         assert result == expected_result
 
@@ -777,7 +780,9 @@ class TestScan:
 
         # Call verify_grad to ensure the correctness of the second gradients
         floatX = config.floatX
-        inputs_test_values = [np.random.random(3).astype(floatX)]
+        inputs_test_values = [
+            np.random.default_rng(utt.fetch_seed()).random(3).astype(floatX)
+        ]
         utt.verify_grad(get_sum_of_grad, inputs_test_values)
 
     def test_verify_second_grad_mitsot1(self):
@@ -804,11 +809,13 @@ class TestScan:
 
         # Call verify_grad to ensure the correctness of the second gradients
         floatX = config.floatX
+        rng = np.random.default_rng(utt.fetch_seed())
         inputs_test_values = [
-            np.random.random((2, 3)).astype(floatX),
-            np.random.random(3).astype(floatX),
+            rng.random((2, 3)).astype(floatX),
+            rng.random(3).astype(floatX),
         ]
-        utt.verify_grad(get_sum_of_grad, inputs_test_values)
+
+        utt.verify_grad(get_sum_of_grad, inputs_test_values, rng=rng)
 
     def test_grad_two_scans(self):
 
@@ -817,7 +824,11 @@ class TestScan:
         t = imatrix("t")
 
         # forward pass
-        W = shared(np.random.randn(2, 2).astype("float32"), name="W", borrow=True)
+        W = shared(
+            np.random.default_rng(utt.fetch_seed()).random((2, 2)).astype("float32"),
+            name="W",
+            borrow=True,
+        )
 
         def forward_scanner(x_t):
             a2_t = dot(x_t, W)
@@ -840,7 +851,7 @@ class TestScan:
     # vectors, weights are scalars; using shared variables and past
     # taps (sequences and outputs)
     def test_using_taps_input_output(self):
-        rng = np.random.RandomState(utt.fetch_seed())
+        rng = np.random.default_rng(utt.fetch_seed())
         vW = asarrayX(rng.uniform())
         vW_in = asarrayX(rng.uniform())
         vu = asarrayX(rng.uniform(-5.0, 5.0, size=(4,)))
@@ -871,7 +882,7 @@ class TestScan:
         # a bit of explaining:
         # due to the definition of sequences taps in scan, v_0[0] is
         # actually v_0[-2], and v_0[1] is v_0[-1]. The values v_0[2]
-        # and v_0[3] do not get uesd ( because you do not use v_0[t]
+        # and v_0[3] do not get used ( because you do not use v_0[t]
         # in scan) which might seem strange, but then again why not use
         # v_0[t] instead of v_0[t-2] in a real application ??
         # also vx0[0] corresponds to vx0[-2], vx0[1] to vx0[-1]
@@ -884,7 +895,7 @@ class TestScan:
     # vectors, weights are scalars; using shared variables and past
     # taps (sequences and outputs) and future taps for sequences
     def test_past_future_taps_shared(self):
-        rng = np.random.RandomState(utt.fetch_seed())
+        rng = np.random.default_rng(utt.fetch_seed())
         vW = asarrayX(rng.uniform())
         vW_in = asarrayX(rng.uniform())
         vu = asarrayX(rng.uniform(-5.0, 5.0, size=(6,)))
@@ -921,7 +932,7 @@ class TestScan:
     # simple rnn ; compute inplace version 1
     @utt.assertFailure_fast
     def test_inplace1(self):
-        rng = np.random.RandomState(utt.fetch_seed())
+        rng = np.random.default_rng(utt.fetch_seed())
         vW = asarrayX(np.random.uniform())
         vW_in = asarrayX(np.random.uniform())
         vu0 = asarrayX(rng.uniform(-5.0, 5.0, size=(3,)))
@@ -988,7 +999,7 @@ class TestScan:
     # simple rnn ; compute inplace version 2
     @utt.assertFailure_fast
     def test_inplace2(self):
-        rng = np.random.RandomState(utt.fetch_seed())
+        rng = np.random.default_rng(utt.fetch_seed())
         vW = asarrayX(np.random.uniform())
         vW_in = asarrayX(np.random.uniform())
         vu0 = asarrayX(rng.uniform(-5.0, 5.0, size=(3,)))
@@ -1056,7 +1067,7 @@ class TestScan:
 
     @utt.assertFailure_fast
     def test_inplace3(self):
-        rng = np.random.RandomState(utt.fetch_seed())
+        rng = np.random.default_rng(utt.fetch_seed())
 
         vx0 = asarrayX(rng.uniform())
         vx1 = asarrayX(rng.uniform())
@@ -1078,15 +1089,15 @@ class TestScan:
 
     # Shared variable with updates
     def test_shared_arguments_with_updates(self):
-        rng = np.random.RandomState(utt.fetch_seed())
+        rng = np.random.default_rng(utt.fetch_seed())
 
-        vW1 = asarrayX(rng.rand(2, 3))
-        vW2 = asarrayX(rng.rand(3, 2))
-        vu1 = asarrayX(rng.rand(3, 2))
-        vu2 = asarrayX(rng.rand(3, 3))
-        vy0 = asarrayX(rng.rand(3, 2))
-        vy1 = asarrayX(rng.rand(2))
-        vu1 = asarrayX(rng.rand(3, 2))
+        vW1 = asarrayX(rng.random((2, 3)))
+        vW2 = asarrayX(rng.random((3, 2)))
+        vu1 = asarrayX(rng.random((3, 2)))
+        vu2 = asarrayX(rng.random((3, 3)))
+        vy0 = asarrayX(rng.random((3, 2)))
+        vy1 = asarrayX(rng.random((2)))
+        vu1 = asarrayX(rng.random((3, 2)))
 
         W1 = shared(vW1, "W1")
         W2 = shared(vW2, "W2")
@@ -1181,8 +1192,8 @@ class TestScan:
         )
         my_f = function([], values, updates=updates, allow_input_downcast=True)
 
-        rng_seed = np.random.RandomState(utt.fetch_seed()).randint(2 ** 30)
-        rng = np.random.RandomState(int(rng_seed))  # int() is for 32bit
+        rng_seed = np.random.default_rng(utt.fetch_seed()).integers(2 ** 30)
+        rng = np.random.default_rng(int(rng_seed))  # int() is for 32bit
 
         numpy_v = np.zeros((10, 2))
         for i in range(10):
@@ -1194,8 +1205,8 @@ class TestScan:
         utt.assert_allclose(aesara_v, numpy_v[5:, :])
 
     def test_gibbs_chain(self):
-        rng = np.random.RandomState(utt.fetch_seed())
-        v_W = np.array(rng.rand(20, 30) - 0.5, dtype="float32")
+        rng = np.random.default_rng(utt.fetch_seed())
+        v_W = np.array(rng.random((20, 30)) - 0.5, dtype="float32")
         v_vsample = np.array(
             rng.binomial(
                 1,
@@ -1204,8 +1215,8 @@ class TestScan:
             ),
             dtype="float32",
         )
-        v_bvis = np.array(rng.rand(20) - 0.5, dtype="float32")
-        v_bhid = np.array(rng.rand(30) - 0.5, dtype="float32")
+        v_bvis = np.array(rng.random((20)) - 0.5, dtype="float32")
+        v_bhid = np.array(rng.random((30)) - 0.5, dtype="float32")
         W = shared(v_W, "vW")
         bhid = shared(v_bhid, "vbhid")
         bvis = shared(v_bvis, "vbvis")
@@ -1230,12 +1241,12 @@ class TestScan:
             [vsample], aesara_vsamples[-1], updates=updates, allow_input_downcast=True
         )
 
-        _rng = np.random.RandomState(utt.fetch_seed())
-        rng_seed = _rng.randint(2 ** 30)
-        nrng1 = np.random.RandomState(int(rng_seed))  # int() is for 32bit
+        _rng = np.random.default_rng(utt.fetch_seed())
+        rng_seed = _rng.integers(2 ** 30)
+        nrng1 = np.random.default_rng(int(rng_seed))  # int() is for 32bit
 
-        rng_seed = _rng.randint(2 ** 30)
-        nrng2 = np.random.RandomState(int(rng_seed))  # int() is for 32bit
+        rng_seed = _rng.integers(2 ** 30)
+        nrng2 = np.random.default_rng(int(rng_seed))  # int() is for 32bit
 
         def numpy_implementation(vsample):
             for idx in range(10):
@@ -1255,7 +1266,7 @@ class TestScan:
         utt.assert_allclose(t_result, n_result)
 
     def test_only_shared_no_input_no_output(self):
-        rng = np.random.RandomState(utt.fetch_seed())
+        rng = np.random.default_rng(utt.fetch_seed())
         v_state = asarrayX(rng.uniform())
         state = shared(v_state, "vstate")
 
@@ -1283,7 +1294,7 @@ class TestScan:
         )
 
         f2 = function([u], outputs, updates=updates, allow_input_downcast=True)
-        rng = np.random.RandomState(utt.fetch_seed())
+        rng = np.random.default_rng(utt.fetch_seed())
 
         v_u = rng.uniform(-5.0, 5.0, size=(5,))
         numpy_result = v_u + 3
@@ -1298,7 +1309,7 @@ class TestScan:
 
         f = function([v], abs_expr, updates=abs_updates, allow_input_downcast=True)
 
-        rng = np.random.RandomState(utt.fetch_seed())
+        rng = np.random.default_rng(utt.fetch_seed())
         vals = rng.uniform(-5.0, 5.0, size=(10,))
         abs_vals = abs(vals)
         aesara_vals = f(vals)
@@ -1327,7 +1338,7 @@ class TestScan:
             [u, x0, W_in, W], output, updates=updates, allow_input_downcast=True
         )
         # get random initial values
-        rng = np.random.RandomState(utt.fetch_seed())
+        rng = np.random.default_rng(utt.fetch_seed())
         v_u = rng.uniform(-5.0, 5.0, size=(4,))
         v_x0 = rng.uniform()
         W = rng.uniform()
@@ -1348,7 +1359,7 @@ class TestScan:
         result, updates = aet_reduce(lambda x, y: x + y, v, s)
 
         f = function([v, s], result, updates=updates, allow_input_downcast=True)
-        rng = np.random.RandomState(utt.fetch_seed())
+        rng = np.random.default_rng(utt.fetch_seed())
         v_v = rng.uniform(-5.0, 5.0, size=(5,))
         assert abs(np.sum(v_v) - f(v_v, 0.0)) < 1e-3
 
@@ -1387,7 +1398,7 @@ class TestScan:
         )
 
         # get random initial values
-        rng = np.random.RandomState(utt.fetch_seed())
+        rng = np.random.default_rng(utt.fetch_seed())
         v_u = np.array(rng.uniform(-0.5, 0.5, size=(10,)), dtype=config.floatX)
         v_x0 = np.array(rng.uniform(), dtype=config.floatX)
         W = np.array(rng.uniform(), dtype=config.floatX)
@@ -1400,7 +1411,7 @@ class TestScan:
         assert max_err <= 1e-2
 
     def test_grad_multiple_outs(self):
-        rng = np.random.RandomState(utt.fetch_seed())
+        rng = np.random.default_rng(utt.fetch_seed())
         vW_in2 = asarrayX(rng.uniform(-0.1, 0.1, size=(2,)))
         vW = asarrayX(rng.uniform(-0.1, 0.1, size=(2, 2)))
         vWout = asarrayX(rng.uniform(-0.1, 0.1, size=(2,)))
@@ -1463,7 +1474,7 @@ class TestScan:
     @pytest.mark.slow
     def test_grad_multiple_outs_taps(self):
         n = 5
-        rng = np.random.RandomState(utt.fetch_seed())
+        rng = np.random.default_rng(utt.fetch_seed())
 
         vW_in2 = asarrayX(rng.uniform(-0.2, 0.2, size=(2,)))
         vW = asarrayX(rng.uniform(-0.2, 0.2, size=(2, 2)))
@@ -1542,7 +1553,7 @@ class TestScan:
     @pytest.mark.slow
     def test_grad_multiple_outs_taps_backwards(self):
         n = 5
-        rng = np.random.RandomState(utt.fetch_seed())
+        rng = np.random.default_rng(utt.fetch_seed())
         vW_in2 = asarrayX(rng.uniform(-0.2, 0.2, size=(2,)))
         vW = asarrayX(rng.uniform(-0.2, 0.2, size=(2, 2)))
         vWout = asarrayX(rng.uniform(-0.2, 0.2, size=(2,)))
@@ -1602,7 +1613,7 @@ class TestScan:
         assert max_err <= 1e-2
 
     def test_grad_multiple_outs_some_uncomputable(self):
-        rng = np.random.RandomState(utt.fetch_seed())
+        rng = np.random.default_rng(utt.fetch_seed())
         vW_in = asarrayX(rng.uniform(-3.0, 3.0, size=(2, 2)))
         v_u = asarrayX(rng.uniform(-3.0, 3.0, size=(5, 2)))
         v_u2 = np.array([1, 3, 4, 6, 8], dtype="int32")
@@ -1651,9 +1662,9 @@ class TestScan:
 
         def reset_rng_fn(fn, *args):
             for idx, arg in enumerate(fn.maker.expanded_inputs):
-                if arg.value and isinstance(arg.value.data, np.random.RandomState):
+                if arg.value and isinstance(arg.value.data, np.random.Generator):
                     obj = fn.maker.expanded_inputs[idx].value
-                    obj.data = np.random.RandomState(123)
+                    obj.data = np.random.default_rng(123)
                     fn.maker.expanded_inputs[idx].value = obj
             return fn(*args)
 
@@ -1676,16 +1687,17 @@ class TestScan:
         # outer_inp_from_inner_inp produce the correct results
         scan_node = list(updates.values())[0].owner
 
-        result = scan_node.op.var_mappings["outer_inp_from_outer_out"]
+        var_mappings = scan_node.op.get_oinp_iinp_iout_oout_mappings()
+        result = var_mappings["outer_inp_from_outer_out"]
         expected_result = {0: 3, 1: 5, 2: 4}
         assert result == expected_result
 
-        result = scan_node.op.var_mappings["outer_inp_from_inner_inp"]
+        result = var_mappings["outer_inp_from_inner_inp"]
         expected_result = {0: 1, 1: 2, 2: 3, 3: 4, 4: 6}
         assert result == expected_result
 
     def test_grad_multiple_outs_some_truncate(self):
-        rng = np.random.RandomState(utt.fetch_seed())
+        rng = np.random.default_rng(utt.fetch_seed())
         vW_in = asarrayX(rng.uniform(-0.1, 0.1, size=(2, 2)))
         v_u = asarrayX(rng.uniform(-0.1, 0.1, size=(5, 2)))
         v_x0 = asarrayX(rng.uniform(-0.1, 0.1, size=(2,)))
@@ -1732,9 +1744,9 @@ class TestScan:
 
         def reset_rng_fn(fn, *args):
             for idx, arg in enumerate(fn.maker.expanded_inputs):
-                if arg.value and isinstance(arg.value.data, np.random.RandomState):
+                if arg.value and isinstance(arg.value.data, np.random.Generator):
                     obj = fn.maker.expanded_inputs[idx].value
-                    obj.data = np.random.RandomState(123)
+                    obj.data = np.random.default_rng(123)
                     fn.maker.expanded_inputs[idx].value = obj
             out = fn(*args)
             return out
@@ -1762,7 +1774,7 @@ class TestScan:
     def _grad_mout_helper(self, n_iters, mode):
         # Created on Tue Oct 07 13:28:51 2014
         # @author: vaneetke
-        rng = np.random.RandomState(utt.fetch_seed())
+        rng = np.random.default_rng(utt.fetch_seed())
         n_hid = 3
         n_in = 1
         n_out = 1
@@ -1841,7 +1853,7 @@ class TestScan:
 
         f = function([x], [y, z], updates=updates, allow_input_downcast=True)
 
-        rng = np.random.RandomState(utt.fetch_seed())
+        rng = np.random.default_rng(utt.fetch_seed())
         nx = rng.uniform(size=(10, 10))
         ny1, nz1 = f(nx)
         ny2, nz2 = f(nx)
@@ -1920,7 +1932,7 @@ class TestScan:
 
         a = vector()
         init_a = vector()
-        b = shared(np.random.rand(5, 4))
+        b = shared(np.random.default_rng(utt.fetch_seed()).random((5, 4)))
 
         def inner_func(a):
             return a + 1, OrderedDict([(b, 2 * b)])
@@ -2063,7 +2075,7 @@ class TestScan:
     # some rnn with multiple outputs and multiple inputs; other
     # dimension instead of scalars/vectors
     def test_reordering(self):
-        rng = np.random.RandomState(utt.fetch_seed())
+        rng = np.random.default_rng(utt.fetch_seed())
 
         vW_in2 = asarrayX(rng.uniform(-0.5, 0.5, size=(2,)))
         vW = asarrayX(rng.uniform(-0.5, 0.5, size=(2, 2)))
@@ -2140,7 +2152,7 @@ class TestScan:
         function(inputs=[to_scan, seq, f1], outputs=t_grad, allow_input_downcast=True)
 
     def test_save_mem(self):
-        rng = np.random.RandomState(utt.fetch_seed())
+        rng = np.random.default_rng(utt.fetch_seed())
 
         vW_in2 = asarrayX(rng.uniform(-0.5, 0.5, size=(2,)))
         vW = asarrayX(rng.uniform(-0.5, 0.5, size=(2, 2)))
@@ -2254,7 +2266,7 @@ class TestScan:
             allow_input_downcast=True,
         )
         # get random initial values
-        rng = np.random.RandomState(utt.fetch_seed())
+        rng = np.random.default_rng(utt.fetch_seed())
         v_u = rng.uniform(-5.0, 5.0, size=(20,))
 
         # compute the output in numpy
@@ -2313,7 +2325,7 @@ class TestScan:
         )
 
         # get random initial values
-        rng = np.random.RandomState(utt.fetch_seed())
+        rng = np.random.default_rng(utt.fetch_seed())
         v_u = rng.uniform(-5.0, 5.0, size=(20,))
 
         # compute the output in numpy
@@ -2511,7 +2523,7 @@ class TestScan:
         sy, upy = scan(sum, sequences=[y])
 
         f = function(
-            [x, y], [sx, sy], mode=mode_with_opt.excluding("scanOp_pushout_seqs_ops")
+            [x, y], [sx, sy], mode=mode_with_opt.excluding("scan_pushout_seqs_ops")
         )
         topo = f.maker.fgraph.toposort()
         scans = [n for n in topo if isinstance(n.op, Scan)]
@@ -2521,7 +2533,7 @@ class TestScan:
         sy, upy = scan(sum, sequences=[y], n_steps=3)
 
         f = function(
-            [x, y], [sx, sy], mode=mode_with_opt.excluding("scanOp_pushout_seqs_ops")
+            [x, y], [sx, sy], mode=mode_with_opt.excluding("scan_pushout_seqs_ops")
         )
         topo = f.maker.fgraph.toposort()
         scans = [n for n in topo if isinstance(n.op, Scan)]
@@ -2531,7 +2543,7 @@ class TestScan:
         sy, upy = scan(sum, sequences=[y], n_steps=4)
 
         f = function(
-            [x, y], [sx, sy], mode=mode_with_opt.excluding("scanOp_pushout_seqs_ops")
+            [x, y], [sx, sy], mode=mode_with_opt.excluding("scan_pushout_seqs_ops")
         )
         topo = f.maker.fgraph.toposort()
         scans = [n for n in topo if isinstance(n.op, Scan)]
@@ -2541,7 +2553,7 @@ class TestScan:
         sy, upy = scan(sum, sequences=[x])
 
         f = function(
-            [x], [sx, sy], mode=mode_with_opt.excluding("scanOp_pushout_seqs_ops")
+            [x], [sx, sy], mode=mode_with_opt.excluding("scan_pushout_seqs_ops")
         )
         topo = f.maker.fgraph.toposort()
         scans = [n for n in topo if isinstance(n.op, Scan)]
@@ -2551,7 +2563,7 @@ class TestScan:
         sy, upy = scan(sum, sequences=[x], mode="FAST_COMPILE")
 
         f = function(
-            [x], [sx, sy], mode=mode_with_opt.excluding("scanOp_pushout_seqs_ops")
+            [x], [sx, sy], mode=mode_with_opt.excluding("scan_pushout_seqs_ops")
         )
         topo = f.maker.fgraph.toposort()
         scans = [n for n in topo if isinstance(n.op, Scan)]
@@ -2561,7 +2573,7 @@ class TestScan:
         sy, upy = scan(sum, sequences=[x], truncate_gradient=1)
 
         f = function(
-            [x], [sx, sy], mode=mode_with_opt.excluding("scanOp_pushout_seqs_ops")
+            [x], [sx, sy], mode=mode_with_opt.excluding("scan_pushout_seqs_ops")
         )
         topo = f.maker.fgraph.toposort()
         scans = [n for n in topo if isinstance(n.op, Scan)]
@@ -2584,13 +2596,13 @@ class TestScan:
         sz, upz = scan(sum, sequences=[sx], n_steps=4, name="Z")
 
         f = function(
-            [x, y], [sy, sz], mode=mode_with_opt.excluding("scanOp_pushout_seqs_ops")
+            [x, y], [sy, sz], mode=mode_with_opt.excluding("scan_pushout_seqs_ops")
         )
         topo = f.maker.fgraph.toposort()
         scans = [n for n in topo if isinstance(n.op, Scan)]
         assert len(scans) == 2
 
-        rng = np.random.RandomState(utt.fetch_seed())
+        rng = np.random.default_rng(utt.fetch_seed())
         x_val = rng.uniform(size=(4,)).astype(config.floatX)
         y_val = rng.uniform(size=(4,)).astype(config.floatX)
         # Run it so DebugMode can detect optimization problems.
@@ -2644,9 +2656,9 @@ class TestScan:
 
         M = init_predictive_output(inputs, targets, hyp, x_star, s_star)
 
-        X = np.random.random((10, 4))
-        Y = np.random.random((10, 3))
-        test_m = np.random.random((4,))
+        X = np.random.default_rng(utt.fetch_seed()).random((10, 4))
+        Y = np.random.default_rng(utt.fetch_seed()).random((10, 3))
+        test_m = np.random.default_rng(utt.fetch_seed()).random((4,))
         test_s = np.eye(4)
 
         # Compute expected outputs (jacobian of M wrt x_star)
@@ -2736,7 +2748,9 @@ class TestScan:
 
         mem_val = np.zeros((2,), dtype="float32")
         memory = shared(mem_val)
-        W = shared(np.random.random((5, 2)).astype("float32"))
+        W = shared(
+            np.random.default_rng(utt.fetch_seed()).random((5, 2)).astype("float32")
+        )
 
         def f(inp, mem):
             i = aet.join(0, inp, mem)
@@ -2750,7 +2764,7 @@ class TestScan:
         f = function([x], outs[0])
         f2 = function([x], outs[1])
 
-        x_val = np.random.random((4, 3)).astype("float32")
+        x_val = np.random.default_rng(utt.fetch_seed()).random((4, 3)).astype("float32")
 
         f_vals = f(x_val)
         memory.set_value(mem_val)
@@ -2857,7 +2871,7 @@ class TestScan:
     @pytest.mark.slow
     def test_rop2(self):
         seed = utt.fetch_seed()
-        rng = np.random.RandomState(seed)
+        rng = np.random.default_rng(seed)
         floatX = config.floatX
         v_u = np.array(rng.uniform(size=(3, 5)) - 0.5, dtype=floatX)
         v_W = np.array(rng.uniform(size=(5, 5)) - 0.5, dtype=floatX)
@@ -2939,7 +2953,7 @@ class TestScan:
 
     def test_rop(self):
         seed = utt.fetch_seed()
-        rng = np.random.RandomState(seed)
+        rng = np.random.default_rng(seed)
         floatX = config.floatX
         v_u = np.array(rng.uniform(size=(20, 5)), dtype=floatX)
         v_W = np.array(rng.uniform(size=(5, 5)), dtype=floatX)
@@ -3047,7 +3061,7 @@ class TestScan:
         assert len(scan_nodes) == 0
 
         seed = utt.fetch_seed()
-        rng = np.random.RandomState(seed)
+        rng = np.random.default_rng(seed)
         floatX = config.floatX
         v_h = np.array(rng.uniform(size=(2,)), dtype=floatX)
         v_W1 = np.array(rng.uniform(size=(2, 2)), dtype=floatX)
@@ -3093,8 +3107,8 @@ class TestScan:
 
         # Compare the results of the two implementations
         input_values = [
-            np.random.random((5, 5)).astype("float32"),
-            np.random.random((5, 5)).astype("float32"),
+            np.random.default_rng(utt.fetch_seed()).random((5, 5)).astype("float32"),
+            np.random.default_rng(utt.fetch_seed()).random((5, 5)).astype("float32"),
             np.arange(5).astype("float32"),
         ]
 
@@ -3266,7 +3280,7 @@ class TestScan:
 
     @pytest.mark.skip(
         reason="This test fails because not typed outputs_info "
-        "are always gived the smallest dtype. There is "
+        "are always given the smallest dtype. There is "
         "no upcast of outputs_info in scan for now.",
     )
     def test_outputs_info_not_typed(self):
@@ -3480,7 +3494,7 @@ class TestScan:
 
         # Compare the mappings with the expected values
         scan_node = scan_outputs[0].owner.inputs[0].owner
-        mappings = scan_node.op.var_mappings
+        mappings = scan_node.op.get_oinp_iinp_iout_oout_mappings()
 
         assert mappings["inner_inp_from_outer_inp"] == {
             0: [],
@@ -3584,9 +3598,13 @@ class TestScan:
 
         # Run the function and validate the outputs
         dtype = config.floatX
-        seq_value = np.random.random((10, 3)).astype(dtype)
-        out_init_value = np.random.random((3, 3)).astype(dtype)
-        non_seq_value = np.random.random(3).astype(dtype)
+        seq_value = (
+            np.random.default_rng(utt.fetch_seed()).random((10, 3)).astype(dtype)
+        )
+        out_init_value = (
+            np.random.default_rng(utt.fetch_seed()).random((3, 3)).astype(dtype)
+        )
+        non_seq_value = np.random.default_rng(utt.fetch_seed()).random(3).astype(dtype)
 
         outputs = fct(seq_value, out_init_value, non_seq_value)
 
@@ -3638,7 +3656,7 @@ class TestScan:
 
         grad(scan_outputs[0].sum(), out_init[1])
 
-        # Validate the connnection pattern is as it should be
+        # Validate the connection pattern is as it should be
         node = scan_outputs[0].owner
         connection_pattern = node.op.connection_pattern(node)
         expected_connection_pattern = [
@@ -3688,7 +3706,7 @@ class TestScan:
         assert tf([1.0, 2.0, -3.0, 4.0], 2.0) == 42
 
     def test_return_steps(self):
-        rng = np.random.RandomState(utt.fetch_seed())
+        rng = np.random.default_rng(utt.fetch_seed())
 
         vW_in2 = asarrayX(rng.uniform(-0.5, 0.5, size=(2,)))
         vW = asarrayX(rng.uniform(-0.5, 0.5, size=(2, 2)))
@@ -3816,8 +3834,14 @@ class TestScan:
         f = function(inputs=[x, w], outputs=get_outputs(x, w))
 
         # Test the function to ensure it returns valid results
-        x_value = np.random.random((2, 2, 3)).astype(config.floatX)
-        w_value = np.random.random((3, 3)).astype(config.floatX)
+        x_value = (
+            np.random.default_rng(utt.fetch_seed())
+            .random((2, 2, 3))
+            .astype(config.floatX)
+        )
+        w_value = (
+            np.random.default_rng(utt.fetch_seed()).random((3, 3)).astype(config.floatX)
+        )
         expected_output = np.tile(x_value[:, 0].sum(0), (3, 1)).transpose()
 
         output = f(x_value, w_value)
@@ -3845,7 +3869,7 @@ class TestScan:
 
         gw, gx = grad(loss, [w, xinit])
         grad_fn = function([xinit, w], [gx, gw], allow_input_downcast=True)
-        rng = np.random.RandomState(utt.fetch_seed())
+        rng = np.random.default_rng(utt.fetch_seed())
         # If numbers are small, the gradients with respect to x are small
         # and the numeric differentiation becomes unstable.
         # To fix this issue I ensure we are sampling numbers larger in
@@ -4084,7 +4108,7 @@ class TestScan:
         f = function([v], gv)
 
         # Ensure the output of the function is valid
-        output = f(np.random.random(5))
+        output = f(np.random.default_rng(utt.fetch_seed()).random(5))
         utt.assert_allclose(output, np.ones(5))
 
     def test_dot_optimization(self):
@@ -4096,7 +4120,7 @@ class TestScan:
             outputs_info=[aet.zeros_like(A)],
         )
         f = function([A, B], S.owner.inputs[0][-1])
-        rng = np.random.RandomState(utt.fetch_seed())
+        rng = np.random.default_rng(utt.fetch_seed())
         vA = rng.uniform(size=(5, 5)).astype(config.floatX)
         vB = rng.uniform(size=(5, 5)).astype(config.floatX)
         utt.assert_allclose(f(vA, vB), np.dot(vA.T, vB))
@@ -4158,7 +4182,7 @@ class TestScan:
             mode=Mode(linker="py"),
             allow_input_downcast=True,
         )
-        rng = np.random.RandomState(utt.fetch_seed())
+        rng = np.random.default_rng(utt.fetch_seed())
         v_u = asarrayX(rng.uniform(size=(5,)))
         outs = f(v_u, [0, 0, 0], 0)
         utt.assert_allclose(outs[0], v_u + 1)
@@ -4195,7 +4219,7 @@ class TestScan:
             mode=Mode(linker="py"),
             allow_input_downcast=True,
         )
-        rng = np.random.RandomState(utt.fetch_seed())
+        rng = np.random.default_rng(utt.fetch_seed())
         v_w = asarrayX(rng.uniform())
         outs = f(v_w, [0, 0, 0], 0)
         utt.assert_allclose(outs[0], v_w + 1)
@@ -4317,7 +4341,7 @@ class TestScan:
             inp = scan_node.op.inner_non_seqs(scan_node.op.inputs)
             assert len(inp) == 1
             assert len(inp) == len(set(inp))
-            inp = scan_node.op.outer_non_seqs(scan_node)
+            inp = scan_node.op.outer_non_seqs(scan_node.inputs)
             assert len(inp) == 1
             assert len(inp) == len(set(inp))
 
@@ -4385,11 +4409,11 @@ class TestScan:
             assert len(scan_node.inputs[1:]) == len(set(scan_node.inputs[1:]))
             inp = scan_node.op.inner_seqs(scan_node.op.inputs)
             assert len(inp) == 1
-            inp = scan_node.op.outer_seqs(scan_node)
+            inp = scan_node.op.outer_seqs(scan_node.inputs)
             assert len(inp) == 1
             inp = scan_node.op.inner_non_seqs(scan_node.op.inputs)
             assert len(inp) == 1
-            inp = scan_node.op.outer_non_seqs(scan_node)
+            inp = scan_node.op.outer_non_seqs(scan_node.inputs)
             assert len(inp) == 1
 
     @pytest.mark.slow
@@ -4522,9 +4546,33 @@ class TestScan:
 @pytest.mark.skipif(
     not config.cxx, reason="G++ not available, so we need to skip this test."
 )
-def test_speed():
-    from timeit import timeit
+def test_cvm_exception_handling():
+    class MyOp(Op):
+        def make_node(self, input):
+            return Apply(self, [input], [vector()])
 
+        def perform(self, node, inputs, outputs):
+            raise Exception("blah")
+
+    myop = MyOp()
+
+    def scan_fn():
+        return myop(aet.as_tensor(1))
+
+    mode = Mode(optimizer=None, linker="cvm")
+
+    res, _ = scan(scan_fn, n_steps=4, mode=mode)
+
+    res_fn = function([], res, mode=mode)
+
+    with pytest.raises(Exception, match="blah"):
+        res_fn()
+
+
+@pytest.mark.skipif(
+    not config.cxx, reason="G++ not available, so we need to skip this test."
+)
+def test_speed():
     n_timeit = 50
 
     # We need the CVM for this speed test
@@ -4534,7 +4582,7 @@ def test_speed():
         for i in range(1, 1000):
             r[i] += r[i - 1]
 
-    python_duration = timeit(lambda: f_py(), number=n_timeit)
+    python_duration = timeit.timeit(lambda: f_py(), number=n_timeit)
 
     r = np.arange(10000).astype(config.floatX).reshape(1000, 10)
 
@@ -4548,7 +4596,7 @@ def test_speed():
             except StopIteration:
                 break
 
-    python_iter_duration = timeit(lambda: f_py_iter(), number=n_timeit)
+    python_iter_duration = timeit.timeit(lambda: f_py_iter(), number=n_timeit)
 
     # r = np.arange(10000).astype(config.floatX).reshape(1000, 10)
     # s_r = matrix()
@@ -4562,7 +4610,7 @@ def test_speed():
     #
     # f_cvm = function([s_r], s_y)
     #
-    # cvm_duration = timeit(lambda: f_cvm(r), number=n_timeit)
+    # cvm_duration = timeit.timeit(lambda: f_cvm(r), number=n_timeit)
 
     # XXX: Why does this take so much longer than Python?!
     # assert cvm_duration - python_duration < python_duration * 0.15
@@ -4582,7 +4630,7 @@ def test_speed():
     )
     f_cvm_shared._check_for_aliased_inputs = False
 
-    cvm_shared_duration = timeit(lambda: f_cvm_shared(), number=n_timeit)
+    cvm_shared_duration = timeit.timeit(lambda: f_cvm_shared(), number=n_timeit)
 
     assert cvm_shared_duration < python_duration
     assert cvm_shared_duration < python_iter_duration
@@ -4592,21 +4640,19 @@ def test_speed():
     not config.cxx, reason="G++ not available, so we need to skip this test."
 )
 def test_speed_rnn():
-    from timeit import timeit
-
     n_timeit = 50
     L = 10000
     N = 50
 
     np.random.seed(2523452)
     r = np.arange(L * N).astype(config.floatX).reshape(L, N)
-    w = np.random.randn(N, N).astype(config.floatX)
+    w = np.random.default_rng(utt.fetch_seed()).random((N, N)).astype(config.floatX)
 
     def f_py():
         for i in range(1, L):
             r[i] = np.tanh(np.dot(r[i - 1], w))
 
-    python_duration = timeit(lambda: f_py(), number=n_timeit)
+    python_duration = timeit.timeit(lambda: f_py(), number=n_timeit)
 
     # r = np.arange(L * N).astype(config.floatX).reshape(L, N)
     # s_r = matrix()
@@ -4620,7 +4666,7 @@ def test_speed_rnn():
     #
     # f_cvm = function([s_r], s_y, mode=Mode(linker="cvm"))
     #
-    # cvm_duration = timeit(lambda: f_cvm(r), number=n_timeit)
+    # cvm_duration = timeit.timeit(lambda: f_cvm(r), number=n_timeit)
 
     # XXX: Why does this take so much longer than Python?!
     # assert cvm_duration - python_duration < python_duration * 0.15
@@ -4640,7 +4686,7 @@ def test_speed_rnn():
         mode=Mode(linker="cvm"),
     )
 
-    cvm_shared_duration = timeit(lambda: f_cvm_shared(), number=n_timeit)
+    cvm_shared_duration = timeit.timeit(lambda: f_cvm_shared(), number=n_timeit)
 
     assert cvm_shared_duration < python_duration
 
@@ -4667,13 +4713,13 @@ def test_speed_batchrnn():
 
     np.random.seed(2523452)
     r = np.arange(B * L * N).astype(config.floatX).reshape(L, B, N)
-    w = np.random.randn(N, N).astype(config.floatX)
+    w = np.random.default_rng(utt.fetch_seed()).random((N, N)).astype(config.floatX)
 
-    t0 = time.time()
-    for i in range(1, L):
-        r[i] = np.tanh(np.dot(r[i - 1], w))
-    t1 = time.time()
-    python_duration = t1 - t0
+    def ref_fn():
+        for i in range(1, L):
+            r[i] = np.tanh(np.dot(r[i - 1], w))
+
+    python_duration = timeit.timeit(ref_fn, number=20)
 
     r = np.arange(B * L * N).astype(config.floatX).reshape(L, B, N)
     shared_r = shared(r)
@@ -4689,12 +4735,8 @@ def test_speed_batchrnn():
         updates=[(s_i, s_i + 1), (shared_r, s_rinc)],
         mode=Mode(linker="cvm"),
     )
-    f_fn = f.fn
-    t2 = time.time()
-    f_fn(n_calls=L - 2)
-    f()  # 999 to update the profiling timers
-    t3 = time.time()
-    cvm_duration = t3 - t2
+
+    cvm_duration = timeit.timeit(f, number=20)
 
     assert cvm_duration < python_duration
 
@@ -4775,7 +4817,12 @@ def test_compute_test_value_grad_cast():
         h = matrix("h")
         h.tag.test_value = np.array([[1, 2, 3, 4], [5, 6, 7, 8]], dtype=config.floatX)
 
-        w = shared(np.random.randn(4, 3).astype(config.floatX), name="w")
+        w = shared(
+            np.random.default_rng(utt.fetch_seed())
+            .random((4, 3))
+            .astype(config.floatX),
+            name="w",
+        )
 
         outputs, _ = scan(
             lambda i, h, w: (dot(h[i], w), i),
@@ -4821,7 +4868,9 @@ def test_default_value_broadcasted():
         return np.asarray(X, dtype=config.floatX)
 
     def init_weights(shape, name):
-        return shared(floatx(np.random.randn(*shape) * 0.1), name)
+        return shared(
+            floatx(np.random.default_rng(utt.fetch_seed()).random(shape) * 0.1), name
+        )
 
     X = matrix("X")
     in_size = 2
@@ -4842,7 +4891,7 @@ def test_default_value_broadcasted():
     gW_x = grad(cost, W_x)
     updates = [(W_x, W_x - 0.1 * gW_x)]
     f = function([X], outputs=cost, updates=updates)
-    f(np.random.rand(10, in_size).astype(X.dtype))
+    f(np.random.default_rng(utt.fetch_seed()).random((10, in_size)).astype(X.dtype))
 
 
 class TestInconsistentBroadcast:
@@ -4986,5 +5035,77 @@ def test_mintap_onestep():
     f = function(inputs=[seq], outputs=rs)
     _seq = np.arange(20).astype("int32")
     _sum = f(_seq)
-    print("sum %f" % _sum)
     assert _sum == 2
+
+
+def test_inner_get_vector_length():
+    """Make sure we can handle/preserve fixed shape terms when cloning the body of a `Scan`."""
+
+    rng_at = RandomStream()
+
+    s1 = lscalar("s1")
+    s2 = lscalar("s2")
+    size_at = aet.as_tensor([s1, s2])
+
+    def scan_body(size):
+        # `size` will be cloned and replaced with an ownerless `TensorVariable`.
+        # This will cause `RandomVariable.infer_shape` to fail, because it expects
+        # `get_vector_length` to work on all `size` arguments.
+        return rng_at.normal(0, 1, size=size)
+
+    res, _ = scan(
+        scan_body,
+        non_sequences=[size_at],
+        n_steps=10,
+        strict=True,
+    )
+
+    assert isinstance(res.owner.op, Scan)
+
+    # Make sure the `size` in `scan_body` is a plain `Variable` instance
+    # carrying no information with which we can derive its length
+    size_clone = res.owner.op.inputs[1]
+    assert size_clone.owner is None
+
+    # Make sure the cloned `size` maps to the original `size_at`
+    inner_outer_map = res.owner.op.get_oinp_iinp_iout_oout_mappings()
+    outer_input_idx = inner_outer_map["outer_inp_from_inner_inp"][1]
+    original_size = res.owner.inputs[outer_input_idx]
+    assert original_size == size_at
+
+    with config.change_flags(on_opt_error="raise", on_shape_error="raise"):
+        res_fn = function([size_at], res.shape)
+
+    assert np.array_equal(res_fn((1, 2)), (10, 1, 2))
+
+    # Second case has an empty size non-sequence
+    size_at = aet.as_tensor([], dtype=np.int64)
+
+    res, _ = scan(
+        scan_body,
+        non_sequences=[size_at],
+        n_steps=10,
+        strict=True,
+    )
+
+    assert isinstance(res.owner.op, Scan)
+    with config.change_flags(on_opt_error="raise", on_shape_error="raise"):
+        res_fn = function([], res.shape)
+
+    assert np.array_equal(res_fn(), (10,))
+
+    # Third case has a constant size non-sequence
+    size_at = aet.as_tensor([3], dtype=np.int64)
+
+    res, _ = scan(
+        scan_body,
+        non_sequences=[size_at],
+        n_steps=10,
+        strict=True,
+    )
+
+    assert isinstance(res.owner.op, Scan)
+    with config.change_flags(on_opt_error="raise", on_shape_error="raise"):
+        res_fn = function([], res.shape)
+
+    assert np.array_equal(res_fn(), (10, 3))

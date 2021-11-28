@@ -22,13 +22,13 @@ from aesara.tensor.math import (
     clip,
     dot,
     floor,
-    inv,
     log,
     max_and_argmax,
     mean,
     minimum,
     mod,
     prod,
+    reciprocal,
     sqrt,
 )
 from aesara.tensor.math import sum as aet_sum
@@ -170,7 +170,6 @@ def test_dnn_conv_merge():
 def test_dnn_conv_inplace():
     # This test that we have inplace work correctly even when
     # GpuAllocEmpty get merged together.
-    utt.seed_rng()
 
     img_shp = [2, 5, 6, 8]
     kern_shp = [3, 5, 5, 6]
@@ -312,7 +311,6 @@ def test_dnn_conv3d_mixed_dtype():
 
 
 def test_pooling():
-    utt.seed_rng()
 
     modes = get_dnn_pool_modes()
 
@@ -420,7 +418,6 @@ def test_pooling():
 # This test will be run with different values of 'mode'
 # (see next test below).
 def run_pooling_with_tensor_vars(mode):
-    utt.seed_rng()
 
     x = tensor4()
     ws = aesara.shared(np.array([2, 2], dtype="int32"))
@@ -473,7 +470,6 @@ def test_pooling_with_tensor_vars():
 @pytest.mark.skipif(dnn.version(raises=False) < 3000, reason=dnn.dnn_available.msg)
 def test_pooling3d():
     # 3d pooling requires version 3 or newer.
-    utt.seed_rng()
 
     # We force the FAST_RUN as we don't want the reference to run in DebugMode.
     mode_without_gpu_ref = aesara.compile.mode.get_mode("FAST_RUN").excluding(
@@ -582,7 +578,6 @@ def test_pooling3d():
 
 
 def test_pooling_opt():
-    utt.seed_rng()
 
     # 2D pooling
     x = matrix()
@@ -654,7 +649,6 @@ def test_pooling_opt():
 def test_pooling_opt_arbitrary_dimensions():
     # test if input with an arbitrary number of non-pooling dimensions
     # is correctly reshaped to run on the GPU
-    utt.seed_rng()
 
     modes = get_dnn_pool_modes()
 
@@ -1081,7 +1075,6 @@ def test_dnn_conv_border_mode():
 
 
 def test_dnn_conv_alpha_output_merge():
-    utt.seed_rng()
 
     img = tensor4()
     kern = tensor4()
@@ -1151,7 +1144,6 @@ def test_dnn_conv_alpha_output_merge():
 
 
 def test_dnn_conv_grad():
-    utt.seed_rng()
 
     b = 1
     c = 4
@@ -1261,7 +1253,6 @@ def run_conv_small_batched_vs_multicall(inputs_shape, filters_shape, batch_sub):
 
     batch_size = inputs_shape[0]
 
-    utt.seed_rng()
     inputs_val = np.random.random(inputs_shape).astype("float32")
     filters_val = np.random.random(filters_shape).astype("float32")
     # Scale down the input values to prevent very large absolute errors
@@ -1284,7 +1275,7 @@ def run_conv_small_batched_vs_multicall(inputs_shape, filters_shape, batch_sub):
     f = aesara.function([], [conv, sub_conv_top, sub_conv_bottom], mode=mode_with_gpu)
     res_all, res_batch_top, res_batch_bottom = f()
     for i in range(batch_sub):
-        # Check first ouputs.
+        # Check first outputs.
         utt.assert_allclose(res_batch_top[i], res_all[i])
         # Then check last outputs.
         p = batch_size - batch_sub + i
@@ -1311,8 +1302,6 @@ def test_batched_conv3d_small():
 
 
 def test_conv3d_fwd():
-    utt.seed_rng()
-
     def run_conv3d_fwd(
         inputs_shape, filters_shape, subsample, dilation, border_mode, conv_mode
     ):
@@ -1378,8 +1367,6 @@ def test_conv3d_fwd():
 
 
 def test_conv3d_bwd():
-    utt.seed_rng()
-
     def run_conv3d_bwd(
         inputs_shape, filters_shape, subsample, dilation, border_mode, conv_mode
     ):
@@ -1819,7 +1806,6 @@ def test_dnn_maxandargmax_opt():
 
 
 def test_dnn_batchnorm_train():
-    utt.seed_rng()
 
     for mode in ("per-activation", "spatial"):
         for vartype in (
@@ -1879,7 +1865,7 @@ def test_dnn_batchnorm_train():
                 axes = (0,) + tuple(range(2, ndim))
             x_mean_ref = x.mean(axis=axes, keepdims=True)
             x_var_ref = x.var(axis=axes, keepdims=True)
-            x_invstd_ref = inv(sqrt(x_var_ref + eps))
+            x_invstd_ref = reciprocal(sqrt(x_var_ref + eps))
             scale_ref = aet.addbroadcast(scale, *axes)
             bias_ref = aet.addbroadcast(bias, *axes)
             m = aet.cast(prod(x.shape) / prod(scale.shape), aesara.config.floatX)
@@ -2022,7 +2008,6 @@ def test_dnn_batchnorm_train():
 
 def test_dnn_batchnorm_train_without_running_averages():
     # compile and run batch_normalization_train without running averages
-    utt.seed_rng()
 
     x, scale, bias, dy = (
         tensor4("x"),
@@ -2096,7 +2081,6 @@ def test_dnn_batchnorm_train_without_running_averages():
 def test_without_dnn_batchnorm_train_without_running_averages():
     # compile and run batch_normalization_train without running averages
     # But disable cudnn and make sure it run on the GPU.
-    utt.seed_rng()
 
     x, scale, bias, dy = (
         tensor4("x"),
@@ -2163,7 +2147,6 @@ def test_without_dnn_batchnorm_train_without_running_averages():
 @utt.assertFailure_fast
 def test_dnn_batchnorm_train_inplace():
     # test inplace_running_mean and inplace_running_var
-    utt.seed_rng()
 
     x, scale, bias = tensor4("x"), tensor4("scale"), tensor4("bias")
     data_shape = (5, 10, 30, 25)
@@ -2218,7 +2201,6 @@ def test_dnn_batchnorm_train_inplace():
 
 
 def test_batchnorm_inference():
-    utt.seed_rng()
 
     for mode in ("per-activation", "spatial"):
         for vartype in (
@@ -2344,7 +2326,6 @@ def test_batchnorm_inference():
 @utt.assertFailure_fast
 def test_batchnorm_inference_inplace():
     # test inplace
-    utt.seed_rng()
 
     x, scale, bias, mean, var = (
         tensor4(n) for n in ("x", "scale", "bias", "mean", "var")
@@ -2460,7 +2441,6 @@ def test_dnn_batchnorm_valid_and_invalid_axes():
 
 
 def test_dnn_rnn_gru():
-    utt.seed_rng()
 
     # test params
     input_dim = 32
@@ -2569,7 +2549,6 @@ def test_dnn_rnn_gru():
 
 
 def test_dnn_rnn_gru_bidi():
-    utt.seed_rng()
 
     # test params
     input_dim = 32
@@ -2630,7 +2609,6 @@ def test_dnn_rnn_gru_bidi():
 
 
 def test_dnn_rnn_lstm():
-    utt.seed_rng()
 
     # test params
     input_dim = 32
@@ -2716,7 +2694,6 @@ def test_dnn_rnn_lstm():
 
 
 def test_dnn_rnn_lstm_grad_c():
-    utt.seed_rng()
 
     # test params
     input_dim = 32
@@ -2819,7 +2796,6 @@ class Cudnn_grouped_conv3d(TestGroupedConv3dNoOptim):
 
 
 def test_dnn_spatialtf():
-    utt.seed_rng()
 
     """
     Spatial Transformer implementation using Aesara from Lasagne
@@ -3023,7 +2999,6 @@ def test_dnn_spatialtf_invalid_shapes():
 
 
 def test_dnn_spatialtf_grad():
-    utt.seed_rng()
 
     inputs = tensor4("inputs")
     theta = tensor3("theta")
@@ -3097,7 +3072,7 @@ class TestDnnConv2DRuntimeAlgorithms:
     ]
 
     def __init__(self):
-        utt.seed_rng()
+
         self.runtime_algorithms = (
             "time_once",
             "guess_once",
@@ -3286,7 +3261,7 @@ class TestDnnConv3DRuntimeAlgorithms(TestDnnConv2DRuntimeAlgorithms):
 def test_conv_guess_once_with_dtypes():
     # This test checks that runtime conv algorithm selection does not raise any exception
     # when consecutive functions with different dtypes and precisions are executed.
-    utt.seed_rng()
+
     inputs_shape = (2, 3, 5, 5)
     filters_shape = (2, 3, 40, 4)
     border_mode = "full"

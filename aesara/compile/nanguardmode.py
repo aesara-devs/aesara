@@ -7,7 +7,7 @@ import numpy as np
 import aesara
 from aesara.compile.mode import Mode, get_mode
 from aesara.configdefaults import config
-from aesara.tensor.math import abs_
+from aesara.tensor.math import abs as aet_abs
 from aesara.tensor.math import max as aet_max
 from aesara.tensor.math import min as aet_min
 from aesara.tensor.type import discrete_dtypes
@@ -44,7 +44,7 @@ def _is_numeric_value(arr, var):
     """
     if isinstance(arr, aesara.graph.type._cdata_type):
         return False
-    elif isinstance(arr, np.random.mtrand.RandomState):
+    elif isinstance(arr, (np.random.mtrand.RandomState, np.random.Generator)):
         return False
     elif var and getattr(var.tag, "is_rng", False):
         return False
@@ -174,7 +174,7 @@ def f_compute(op):
 
 f_gpua_min = f_compute(aet_min)
 f_gpua_max = f_compute(aet_max)
-f_gpua_absmax = f_compute(lambda x: aet_max(abs_(x)))
+f_gpua_absmax = f_compute(lambda x: aet_max(aet_abs(x)))
 
 
 class NanGuardMode(Mode):
@@ -207,6 +207,7 @@ class NanGuardMode(Mode):
         big_is_error=None,
         optimizer="default",
         linker=None,
+        db=None,
     ):
         self.provided_optimizer = optimizer
         if nan_is_error is None:
@@ -298,4 +299,4 @@ class NanGuardMode(Mode):
         wrap_linker = aesara.link.vm.VMLinker(
             callback=nan_check, callback_input=nan_check_input
         )
-        super().__init__(wrap_linker, optimizer=self.provided_optimizer)
+        super().__init__(linker=wrap_linker, optimizer=self.provided_optimizer, db=db)

@@ -15,13 +15,15 @@ except ImportError:
 import warnings
 
 import numpy as np
+from scipy.signal.signaltools import _bvalfromboundary, _valfrommode, convolve
+from scipy.signal.sigtools import _convolve2d
 
 import aesara
 from aesara import tensor as aet
-from aesara.assert_op import Assert
 from aesara.configdefaults import config
 from aesara.graph.basic import Apply, Variable
 from aesara.graph.op import Op
+from aesara.raise_op import Assert
 from aesara.tensor.basic import (
     as_tensor_variable,
     get_scalar_constant_value,
@@ -29,15 +31,6 @@ from aesara.tensor.basic import (
 )
 from aesara.tensor.exceptions import NotScalarConstantError
 from aesara.tensor.var import TensorConstant, TensorVariable
-
-
-try:
-    from scipy.signal.signaltools import _bvalfromboundary, _valfrommode, convolve
-    from scipy.signal.sigtools import _convolve2d
-
-    imported_scipy_signal = True
-except ImportError:
-    imported_scipy_signal = False
 
 
 __docformat__ = "restructuredtext en"
@@ -1416,7 +1409,7 @@ def conv2d_grad_wrt_weights(
     """Compute conv output gradient w.r.t its weights
 
     This function will build the symbolic graph for getting the
-    gradient of the output of a convolution (output_grad) w.r.t its wights.
+    gradient of the output of a convolution (output_grad) w.r.t its weights.
 
     Parameters
     ----------
@@ -2342,11 +2335,6 @@ class BaseAbstractConv(Op):
         """
         Basic slow Python 2D or 3D convolution for DebugMode
         """
-        if not imported_scipy_signal:
-            raise NotImplementedError(
-                "AbstractConv perform requires the python package"
-                " for scipy.signal to be installed."
-            )
         if not (mode in ("valid", "full")):
             raise ValueError(
                 "invalid mode {}, which must be either "

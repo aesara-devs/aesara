@@ -20,7 +20,7 @@ from aesara.tensor.type import fmatrix, ftensor3, ftensor4, imatrix
 
 class TestBlockSparseGemvAndOuter(utt.InferShapeTester):
     def setup_method(self):
-        utt.seed_rng()
+
         mode = None
         if aesara.config.mode == "FAST_COMPILE":
             mode = "FAST_RUN"
@@ -174,7 +174,7 @@ class TestBlockSparseGemvAndOuter(utt.InferShapeTester):
         utt.assert_allclose(ref_out, th_out)
 
     def test_sparseblockgemvF(self):
-        # Test the fortan order for W (which can happen in the grad for some
+        # Test the fortran order for W (which can happen in the grad for some
         # graphs).
 
         b = fmatrix()
@@ -255,7 +255,7 @@ class TestBlockSparseGemvAndOuter(utt.InferShapeTester):
 
         W_val, h_val, iIdx_val, b_val, oIdx_val = self.gemv_data()
 
-        # just make sure that it runs correcly and all the shapes are ok.
+        # just make sure that it runs correctly and all the shapes are ok.
         b_g, W_g, h_g = f(W_val, h_val, iIdx_val, b_val, oIdx_val)
 
         assert b_g.shape == b_val.shape

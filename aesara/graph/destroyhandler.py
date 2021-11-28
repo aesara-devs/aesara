@@ -9,8 +9,8 @@ from collections import OrderedDict, deque
 import aesara
 from aesara.configdefaults import config
 from aesara.graph.basic import Constant
+from aesara.graph.features import AlreadyThere, Bookkeeper
 from aesara.graph.fg import InconsistencyError
-from aesara.graph.toolbox import AlreadyThere, Bookkeeper
 from aesara.misc.ordered_set import OrderedSet
 
 
@@ -117,7 +117,7 @@ def _contains_cycle(fgraph, orderings):
         if owner:
             # insert node in node_to_children[r]
             # (if r is not already in node_to_children,
-            # intialize it to [])
+            # initialize it to [])
             node_to_children.setdefault(owner, []).append(var)
             parent_counts[var] = 1
         else:
@@ -136,7 +136,7 @@ def _contains_cycle(fgraph, orderings):
             for parent in parents:
                 # insert node in node_to_children[r]
                 # (if r is not already in node_to_children,
-                # intialize it to [])
+                # initialize it to [])
                 node_to_children.setdefault(parent, []).append(a_n)
             parent_counts[a_n] = len(parents)
         else:
@@ -187,7 +187,7 @@ def _build_droot_impact(destroy_handler):
             input_idx = input_idx_list[0]
             input = app.inputs[input_idx]
 
-            # Find non-view variable which is ultimatly viewed by input.
+            # Find non-view variable which is ultimately viewed by input.
             view_i = destroy_handler.view_i
             _r = input
             while _r is not None:
@@ -224,7 +224,7 @@ def _build_droot_impact(destroy_handler):
 
 def fast_inplace_check(fgraph, inputs):
     """
-    Return the variables in inputs that are posible candidate for as inputs of
+    Return the variables in inputs that are possible candidate for as inputs of
     inplace operation.
 
     Parameters
@@ -413,13 +413,13 @@ class DestroyHandler(Bookkeeper):  # noqa
                 for (app, idx) in fgraph.clients[protected_var]:
                     if app == "output":
                         continue
-                    destroy_maps = getattr(app.op, "destroy_map", {}).values()
+                    destroy_maps = app.op.destroy_map.values()
                     # If True means that the apply node, destroys the protected_var.
                     if idx in [dmap for sublist in destroy_maps for dmap in sublist]:
                         return True
-                    for var_idx in getattr(app.op, "view_map", {}).keys():
+                    for var_idx in app.op.view_map.keys():
                         if idx in app.op.view_map[var_idx]:
-                            # We need to recursivly check the destroy_map of all the
+                            # We need to recursively check the destroy_map of all the
                             # outputs that we have a view_map on.
                             if recursive_destroys_finder(app.outputs[var_idx]):
                                 return True
@@ -467,7 +467,7 @@ class DestroyHandler(Bookkeeper):  # noqa
         - Allow sequence of view.
         - But don't allow to destroy view
         """
-        dm = getattr(app.op, "destroy_map", None)
+        dm = app.op.destroy_map
         if not dm:
             return
         inputs = set(
@@ -486,8 +486,8 @@ class DestroyHandler(Bookkeeper):  # noqa
             elif inp.owner:
                 app2 = inp.owner
                 inp_idx2 = app2.outputs.index(inp)
-                v = getattr(app2.op, "view_map", {})
-                d = getattr(app2.op, "destroy_map", {})
+                v = app2.op.view_map
+                d = app2.op.destroy_map
                 if v:
                     v = v.get(inp_idx2, [])
                     if len(v) > 0:
@@ -517,8 +517,8 @@ class DestroyHandler(Bookkeeper):  # noqa
         # print 'DH IMPORT', app, id(app), id(self), len(self.debug_all_apps)
 
         # If it's a destructive op, add it to our watch list
-        dmap = getattr(app.op, "destroy_map", None)
-        vmap = getattr(app.op, "view_map", {})
+        dmap = app.op.destroy_map
+        vmap = app.op.view_map
         if dmap:
             self.destroyers.add(app)
             if self.algo == "fast":
@@ -558,7 +558,7 @@ class DestroyHandler(Bookkeeper):  # noqa
         for input in set(app.inputs):
             del self.clients[input][app]
 
-        if getattr(app.op, "destroy_map", OrderedDict()):
+        if app.op.destroy_map:
             self.destroyers.remove(app)
 
         # Note: leaving empty client dictionaries in the struct.
@@ -566,7 +566,7 @@ class DestroyHandler(Bookkeeper):  # noqa
         # deleted on_detach().
 
         # UPDATE self.view_i, self.view_o
-        for o_idx, i_idx_list in getattr(app.op, "view_map", OrderedDict()).items():
+        for o_idx, i_idx_list in app.op.view_map.items():
             if len(i_idx_list) > 1:
                 # destroying this output invalidates multiple inputs
                 raise NotImplementedError()
@@ -605,7 +605,7 @@ class DestroyHandler(Bookkeeper):  # noqa
             self.clients[new_r][app] += 1
 
             # UPDATE self.view_i, self.view_o
-            for o_idx, i_idx_list in getattr(app.op, "view_map", OrderedDict()).items():
+            for o_idx, i_idx_list in app.op.view_map.items():
                 if len(i_idx_list) > 1:
                     # destroying this output invalidates multiple inputs
                     raise NotImplementedError()

@@ -1,5 +1,4 @@
 import copy
-import time
 
 import numpy as np
 import pytest
@@ -8,20 +7,20 @@ import aesara
 import aesara.scalar as aes
 import aesara.tensor as aet
 from aesara import shared
-from aesara.assert_op import Assert
 from aesara.compile import optdb
-from aesara.compile.debugmode import DebugMode
 from aesara.compile.function import function
-from aesara.compile.mode import Mode, get_default_mode, get_mode
+from aesara.compile.mode import OPT_NONE, Mode, get_default_mode, get_mode
 from aesara.compile.ops import DeepCopyOp, deep_copy_op
 from aesara.configdefaults import config
-from aesara.graph.basic import Apply, Constant
+from aesara.graph.basic import Apply, Constant, Variable
 from aesara.graph.fg import FunctionGraph
 from aesara.graph.op import Op
 from aesara.graph.opt import check_stack_trace, local_optimizer, out2in
-from aesara.graph.optdb import Query
+from aesara.graph.opt_utils import optimize_graph
+from aesara.graph.optdb import OptimizationQuery
+from aesara.graph.type import Type
 from aesara.misc.safe_asarray import _asarray
-from aesara.tensor import inplace
+from aesara.raise_op import Assert, CheckAndRaise
 from aesara.tensor.basic import (
     Alloc,
     Join,
@@ -30,10 +29,10 @@ from aesara.tensor.basic import (
     ScalarFromTensor,
     Split,
     TensorFromScalar,
-    _convert_to_int8,
+    alloc,
     as_tensor_variable,
     join,
-    make_vector,
+    second,
     tile,
 )
 from aesara.tensor.basic_opt import (
@@ -51,8 +50,15 @@ from aesara.tensor.basic_opt import (
     register_specialize,
 )
 from aesara.tensor.elemwise import DimShuffle, Elemwise
+from aesara.tensor.extra_ops import (
+    BroadcastTo,
+    Repeat,
+    Unique,
+    broadcast_to,
+    repeat,
+    unique,
+)
 from aesara.tensor.math import (
-    Dot,
     add,
     bitwise_and,
     bitwise_or,
@@ -66,7 +72,6 @@ from aesara.tensor.math import (
     ge,
     gt,
     int_div,
-    inv,
     invert,
     iround,
     le,
@@ -81,19 +86,15 @@ from aesara.tensor.math import (
     neq,
 )
 from aesara.tensor.math import pow as aet_pow
+from aesara.tensor.math import reciprocal
 from aesara.tensor.math import round as aet_round
-from aesara.tensor.math import sin, sinh, sqr, sqrt, sub
+from aesara.tensor.math import sin, sinh, softplus, sqr, sqrt, sub
 from aesara.tensor.math import sum as aet_sum
 from aesara.tensor.math import tan, tanh, true_div, xor
 from aesara.tensor.math_opt import local_lift_transpose_through_dot
-from aesara.tensor.nnet.sigm import softplus
 from aesara.tensor.shape import Reshape, Shape_i, SpecifyShape, reshape, specify_shape
 from aesara.tensor.subtensor import (
-    AdvancedIncSubtensor,
     AdvancedIncSubtensor1,
-    AdvancedSubtensor,
-    AdvancedSubtensor1,
-    IncSubtensor,
     Subtensor,
     advanced_inc_subtensor,
     advanced_inc_subtensor1,
@@ -102,9 +103,7 @@ from aesara.tensor.subtensor import (
 )
 from aesara.tensor.type import (
     TensorType,
-    bmatrix,
     bscalar,
-    col,
     dmatrices,
     dmatrix,
     dscalar,
@@ -117,11 +116,9 @@ from aesara.tensor.type import (
     iscalar,
     ivector,
     lscalar,
-    lscalars,
     lvector,
     matrices,
     matrix,
-    row,
     scalar,
     scalars,
     tensor,
@@ -141,15 +138,15 @@ mode_opt = get_mode(mode_opt)
 
 dimshuffle_lift = out2in(local_dimshuffle_lift)
 
-_optimizer_stabilize = Query(include=["fast_run"])
+_optimizer_stabilize = OptimizationQuery(include=["fast_run"])
 _optimizer_stabilize.position_cutoff = 1.51
 _optimizer_stabilize = optdb.query(_optimizer_stabilize)
 
-_optimizer_specialize = Query(include=["fast_run"])
+_optimizer_specialize = OptimizationQuery(include=["fast_run"])
 _optimizer_specialize.position_cutoff = 2.01
 _optimizer_specialize = optdb.query(_optimizer_specialize)
 
-_optimizer_fast_run = Query(include=["fast_run"])
+_optimizer_fast_run = OptimizationQuery(include=["fast_run"])
 _optimizer_fast_run = optdb.query(_optimizer_fast_run)
 
 
@@ -352,7 +349,7 @@ def test_local_useless_dimshuffle_in_reshape():
 
 
 class TestFusion:
-    opts = Query(
+    opts = OptimizationQuery(
         include=[
             "local_elemwise_fusion",
             "composite_elemwise_fusion",
@@ -365,45 +362,36 @@ class TestFusion:
     _shared = staticmethod(shared)
     topo_exclude = ()
 
-    def do(self, mode, shared_fn, shp, nb_repeat=1, assert_len_topo=True, slice=None):
-        """
-        param shared_fn: if None, will use function
-        verify that the elemwise fusion work
-        Test with and without DimShuffle
-        """
-        # TODO: disable the canonizer?
-        def my_init(shp, dtype="float64", num=0):
-            ret = np.zeros(shp, dtype=dtype) + num
-            return ret
+    def my_init(dtype="float64", num=0):
+        return np.zeros((5, 5), dtype=dtype) + num
 
-        fw, fx, fy, fz = [
-            tensor(dtype="float32", broadcastable=[False] * len(shp), name=n)
-            for n in "wxyz"
-        ]
-        dw, dx, dy, dz = [
-            tensor(dtype="float64", broadcastable=[False] * len(shp), name=n)
-            for n in "wxyz"
-        ]
-        ix, iy, iz = [
-            tensor(dtype="int32", broadcastable=[False] * len(shp), name=n)
-            for n in "xyz"
-        ]
-        fv = fvector("v")
-        fs = fscalar("s")
+    fw, fx, fy, fz = [
+        tensor(dtype="float32", broadcastable=[False] * 2, name=n) for n in "wxyz"
+    ]
+    dw, dx, dy, dz = [
+        tensor(dtype="float64", broadcastable=[False] * 2, name=n) for n in "wxyz"
+    ]
+    ix, iy, iz = [
+        tensor(dtype="int32", broadcastable=[False] * 2, name=n) for n in "xyz"
+    ]
+    fv = fvector("v")
+    fs = fscalar("s")
+    fwv = my_init("float32", 1)
+    fxv = my_init("float32", 2)
+    fyv = my_init("float32", 3)
+    fzv = my_init("float32", 4)
+    fvv = _asarray(np.random.random(5), dtype="float32")
+    fsv = np.asarray(np.random.random(), dtype="float32")
+    dwv = my_init("float64", 5)
+    ixv = _asarray(my_init(num=60), dtype="int32")
+    iyv = _asarray(my_init(num=70), dtype="int32")
+    izv = _asarray(my_init(num=70), dtype="int32")
+    fwx = fw + fx
+    ftanx = tan(fx)
 
-        fwv = my_init(shp, "float32", 1)
-        fxv = my_init(shp, "float32", 2)
-        fyv = my_init(shp, "float32", 3)
-        fzv = my_init(shp, "float32", 4)
-        fvv = _asarray(np.random.rand(shp[0]), dtype="float32")
-        fsv = np.asarray(np.random.rand(), dtype="float32")
-        dwv = my_init(shp, "float64", 5)
-        ixv = _asarray(my_init(shp, num=60), dtype="int32")
-        iyv = _asarray(my_init(shp, num=70), dtype="int32")
-        izv = _asarray(my_init(shp, num=70), dtype="int32")
-        fwx = fw + fx
-        ftanx = tan(fx)
-        cases = [
+    @pytest.mark.parametrize(
+        "case",
+        [
             (
                 fx + fy + fz,
                 (fx, fy, fz),
@@ -846,7 +834,7 @@ class TestFusion:
                 "float32",
             ),
             (
-                fx - fy + inv(fz),
+                fx - fy + reciprocal(fz),
                 (fx, fy, fz),
                 (fxv, fyv, fzv),
                 1,
@@ -1002,71 +990,55 @@ class TestFusion:
                 fxv * np.sin(fsv),
                 "float32",
             ),
-        ]
-        if slice:
-            cases = cases[slice]
-        times = np.zeros(len(cases))
-        fail1 = []
-        fail2 = []
-        fail3 = []
-        fail4 = []
-        for (
-            id,
-            [g, sym_inputs, val_inputs, nb_elemwise, answer, out_dtype],
-        ) in enumerate(cases):
-            if isinstance(out_dtype, dict):
-                out_dtype = out_dtype[config.cast_policy]
+        ],
+    )
+    def test_elemwise_fusion(self, case, nb_repeat=1, assert_len_topo=True):
+        """Verify that `Elemwise` fusion works."""
 
-            if shared_fn is None:
-                f = function(list(sym_inputs), g, mode=mode)
-                for x in range(nb_repeat):
-                    out = f(*val_inputs)
-                t1 = time.time()
-            else:
-                out = shared_fn(np.zeros(shp, dtype=out_dtype), "out")
-                assert out.dtype == g.dtype
-                f = function(sym_inputs, [], updates=[(out, g)], mode=mode)
-                t0 = time.time()
-                for x in range(nb_repeat):
-                    f(*val_inputs)
-                t1 = time.time()
-                out = out.get_value()
+        g, sym_inputs, val_inputs, nb_elemwise, answer, out_dtype = case
 
-            times[id] = t1 - t0
-            atol = 1e-8
-            if out_dtype == "float32":
-                atol = 1e-6
-            if not np.allclose(out, answer * nb_repeat, atol=atol):
-                fail1.append(id)
-            topo = f.maker.fgraph.toposort()
-            topo_ = [n for n in topo if not isinstance(n.op, self.topo_exclude)]
-            if assert_len_topo:
-                if not len(topo_) == nb_elemwise:
-                    fail3.append((id, topo_, nb_elemwise))
-                if nb_elemwise == 1:
-                    # if no variable appears multiple times in the
-                    # input of g,
-                    # check that the number of input to the Composite
-                    # Elemwise is ok
-                    if len(set(g.owner.inputs)) == len(g.owner.inputs):
-                        expected_len_sym_inputs = np.sum(
-                            [not isinstance(x, Constant) for x in topo_[0].inputs]
-                        )
-                        assert expected_len_sym_inputs == len(sym_inputs)
+        if isinstance(out_dtype, dict):
+            out_dtype = out_dtype[config.cast_policy]
 
-            if not out_dtype == out.dtype:
-                fail4.append((id, out_dtype, out.dtype))
+        if self._shared is None:
+            f = function(list(sym_inputs), g, mode=self.mode)
+            for x in range(nb_repeat):
+                out = f(*val_inputs)
+        else:
+            out = self._shared(np.zeros((5, 5), dtype=out_dtype), "out")
+            assert out.dtype == g.dtype
+            f = function(sym_inputs, [], updates=[(out, g)], mode=self.mode)
+            for x in range(nb_repeat):
+                f(*val_inputs)
+            out = out.get_value()
 
-        assert len(fail1 + fail2 + fail3 + fail4) == 0
+        atol = 1e-8
+        if out_dtype == "float32":
+            atol = 1e-6
 
-        return times
+        assert np.allclose(out, answer * nb_repeat, atol=atol)
 
-    def test_elemwise_fusion(self):
-        shp = (5, 5)
-        self.do(self.mode, self._shared, shp)
+        topo = f.maker.fgraph.toposort()
+        topo_ = [n for n in topo if not isinstance(n.op, self.topo_exclude)]
+        if assert_len_topo:
+
+            assert len(topo_) == nb_elemwise
+
+            if nb_elemwise == 1:
+                # if no variable appears multiple times in the
+                # input of g,
+                # check that the number of input to the Composite
+                # Elemwise is ok
+                if len(set(g.owner.inputs)) == len(g.owner.inputs):
+                    expected_len_sym_inputs = np.sum(
+                        [not isinstance(x, Constant) for x in topo_[0].inputs]
+                    )
+                    assert expected_len_sym_inputs == len(sym_inputs)
+
+        assert out_dtype == out.dtype
 
     def test_fusion_35_inputs(self):
-        """Make sure we don't fuse too many `Op`s and go past the 31 function arguments limit."""
+        r"""Make sure we don't fuse too many `Op`\s and go past the 31 function arguments limit."""
         inpts = vectors(["i%i" % i for i in range(35)])
 
         # Make an elemwise graph looking like:
@@ -1126,7 +1098,7 @@ class TestFusion:
 
     def test_add_mul_fusion_inplace(self):
 
-        opts = Query(
+        opts = OptimizationQuery(
             include=[
                 "local_elemwise_fusion",
                 "composite_elemwise_fusion",
@@ -1155,81 +1127,9 @@ class TestFusion:
             np.random.random((5, 5)), np.random.random((5, 5)), np.random.random((5, 5))
         )
 
-    def speed_fusion(self, s=None):
-        """
-        param type s: a slice object
-        param s: a slice to apply to the case to execute. If None, exec all case.
-        """
-
-        shp = (3000, 3000)
-        shp = (1000, 1000)
-        nb_repeat = 50
-        # linker=CLinker
-        # linker=OpWiseCLinker
-
-        mode1 = copy.copy(self.mode)
-        mode1._optimizer = mode1._optimizer.including("local_elemwise_fusion")
-        # TODO:clinker is much faster... but use to much memory
-        # Possible cause: as their is do deletion of intermediate value when we don't keep the fct.
-        # More plausible cause: we keep a link to the output data?
-        # Follow up. Clinker do the same... second cause?
-        mode2 = copy.copy(self.mode)
-        mode2._optimizer = mode2._optimizer.excluding("local_elemwise_fusion")
-        print("test with linker", str(mode1.linker))
-        times1 = self.do(
-            mode1,
-            self._shared,
-            shp,
-            nb_repeat=nb_repeat,
-            assert_len_topo=False,
-            slice=s,
-        )
-        times2 = self.do(
-            mode2,
-            self._shared,
-            shp,
-            nb_repeat=nb_repeat,
-            assert_len_topo=False,
-            slice=s,
-        )
-        print("times1 with local_elemwise_fusion")
-        print(times1, times1.min(), times1.max(), times1.sum())
-        print("times2 without local_elemwise_fusion")
-        print(times2, times2.min(), times2.max(), times2.sum())
-        d = times2 / times1
-
-        print("times2/times1")
-        print(d)
-        print(
-            "min",
-            d.min(),
-            "argmin",
-            d.argmin(),
-            "max",
-            d.max(),
-            "mean",
-            d.mean(),
-            "std",
-            d.std(),
-        )
-
-    def speed_log_exp(self):
-        s = slice(31, 36)
-        print(
-            "time",
-            self.do(
-                self.mode,
-                self._shared,
-                shp=(1000, 1000),
-                assert_len_topo=False,
-                slice=s,
-                nb_repeat=100,
-            ),
-        )
-
     @pytest.mark.skipif(not config.cxx, reason="No cxx compiler")
     def test_no_c_code(self):
-        """Make sure we avoid fusions for `Op`s without C code implementations."""
+        r"""Make sure we avoid fusions for `Op`\s without C code implementations."""
 
         # This custom `Op` has no `c_code` method
         class NoCCodeOp(aes.basic.UnaryScalarOp):
@@ -1354,7 +1254,8 @@ def test_local_useless_slice():
     o = 2 * x[0, :]
     f_unopt = function([x], o, mode=mode_unopt)
     f_opt = function([x], o, mode=mode_opt)
-    test_inp = np.random.randint(-10, 10, (4, 4)).astype("float32")
+    rng = np.random.default_rng(utt.fetch_seed())
+    test_inp = rng.integers(-10, 10, (4, 4)).astype("float32")
     assert all(
         f_opt(test_inp) == f_unopt(test_inp)
     ), "The optimization caused a mismatch in the result"
@@ -1392,1849 +1293,6 @@ def test_local_useless_slice():
     assert check_stack_trace(f_opt_check_apply, ops_to_check=Subtensor)
 
 
-def test_local_useless_inc_subtensor():
-    x = matrix("x")
-    y = matrix("y")
-    mode = get_default_mode().including("local_useless_inc_subtensor")
-    for s in [slice(None), slice(None, None, -1)]:
-        o = set_subtensor(x[::, s], y)
-        f = function([x, y], o, mode=mode)
-        o_shape = set_subtensor(x[::, s], specify_shape(y, x.shape))
-        f_shape = function([x, y], o_shape, mode=mode)
-
-        # Test with shape info
-        topo = f_shape.maker.fgraph.toposort()
-        assert not any(isinstance(n.op, IncSubtensor) for n in topo)
-        out = f_shape([[2, 3]], [[3, 4]])
-        assert (out == np.asarray([[3, 4]])[::, s]).all()
-
-        # Test that without shape info, we don't apply the opt.
-        topo = f.maker.fgraph.toposort()
-        assert len(topo) == 1
-        assert isinstance(topo[0].op, IncSubtensor)
-        out = f([[2, 3]], [[3, 4]])
-        assert (out == np.asarray([[3, 4]])[::, s]).all()
-
-        # Test that we don't remove shape error
-        with pytest.raises(ValueError):
-            f([[2, 3]], [[3, 4], [4, 5]])
-
-        # Test that we don't remove broadcastability
-        out = f([[2, 3], [3, 4]], [[5, 6]])
-        assert (out == np.asarray([[5, 6], [5, 6]])[::, s]).all()
-
-    # Test that we do not optimize others strides even when sub and y
-    # have same shapes
-    s = x[::, ::2]
-    o_shape = set_subtensor(s, specify_shape(y, s.shape))
-    f_shape = function([x, y], o_shape)
-    topo = f_shape.maker.fgraph.toposort()
-    assert any(isinstance(n.op, IncSubtensor) for n in topo)
-    out = f_shape([[2, 3, 6, 7]], [[8, 9]])
-    assert (out == np.asarray([[8, 3, 9, 7]])).all()
-
-
-def test_local_useless_subtensor():
-    x = matrix("x")
-
-    # Test default
-    for dims in [
-        (slice(0, None),),
-        (slice(0, None), slice(0, None)),
-    ]:
-        f = function([x], exp(x).__getitem__(dims), mode=mode_opt)
-        prog = f.maker.fgraph.toposort()
-        assert prog[0].op == exp
-        assert len(prog) == 1
-        f([[0, 1, 2], [3, 4, 5]])  # let debugmode test something
-
-    x_c = specify_shape(x, (2, 3))
-    # Test constant
-    for dims, res in [
-        ((slice(0, 2),), True),
-        ((slice(0, 2), slice(0, None)), True),
-        ((slice(0, 2), slice(0, 3)), True),
-        ((slice(0, None), slice(0, 3)), True),
-        ((slice(0, 3), slice(0, 13)), True),
-        ((slice(0, 3), slice(0, 2)), False),
-        ((slice(0, 1), slice(0, None)), False),
-        ((slice(0, 1), 1), False),
-    ]:
-        f = function([x], exp(x_c).__getitem__(dims), mode=mode_opt)
-        prog = f.maker.fgraph.toposort()
-        if res:
-            assert isinstance(prog[0].op, SpecifyShape), dims
-            assert prog[1].op == exp, (dims, prog)
-            assert len(prog) == 2, dims
-        else:
-            assert any([isinstance(node.op, Subtensor) for node in prog])
-        f([[0, 1, 2], [3, 4, 5]])  # let debugmode test something
-
-    # Test Variable
-    for idx, (dims, res) in enumerate(
-        [
-            ((slice(0, x.shape[0]),), True),
-            ((slice(0, x.shape[1]),), False),
-            (
-                (
-                    slice(0, x.shape[0]),
-                    slice(0, x.shape[1]),
-                ),
-                True,
-            ),
-            (
-                (
-                    slice(0, x.shape[0]),
-                    slice(0, x.shape[0]),
-                ),
-                False,
-            ),
-            (
-                (
-                    slice(0, x.shape[1]),
-                    slice(0, x.shape[0]),
-                ),
-                False,
-            ),
-            (
-                (
-                    slice(0, x.shape[1]),
-                    slice(0, x.shape[1]),
-                ),
-                False,
-            ),
-            ((slice(0, x.shape[1]), 2), False),
-            (
-                (
-                    slice(0, x.shape[1]),
-                    slice(x.shape[0] - x.shape[0], x.shape[1]),
-                ),
-                False,
-            ),
-            ((slice(0, aet.scalar_from_tensor(x.shape[0])),), True),
-        ]
-    ):
-        f = function([x], exp(x).__getitem__(dims), mode=mode_opt)
-        prog = f.maker.fgraph.toposort()
-        if res:
-            assert prog[0].op == exp, dims
-            assert len(prog) == 1, dims
-        else:
-            assert any([isinstance(node.op, Subtensor) for node in prog])
-        f([[0, 1, 2], [3, 4, 5]])  # let debugmode test something
-    # Test mix Variable and Constant
-    # Currently not supported
-    for idx, (dims, res) in enumerate(
-        [
-            ((slice(0, x.shape[0]), slice(0, 3)), False),
-            ((slice(0, 3), slice(0, x.shape[1])), False),
-        ]
-    ):
-        f = function([x], exp(x_c).__getitem__(dims), mode=mode_opt)
-        prog = f.maker.fgraph.toposort()
-        if res:
-            assert prog[0].op == exp, dims
-            assert len(prog) == 1, dims
-        else:
-            assert any([isinstance(node.op, Subtensor) for node in prog])
-        f([[0, 1, 2], [3, 4, 5]])  # let debugmode test something
-
-    # Test scalar variable
-    s = aes.int32("s")
-    for idx, (dims, res) in enumerate(
-        [
-            ((slice(0, s),), False),
-        ]
-    ):
-        f = function([x, s], exp(x).__getitem__(dims), mode=mode_opt)
-        prog = f.maker.fgraph.toposort()
-        if res:
-            assert prog[0].op == exp, dims
-            assert len(prog) == 1, dims
-        else:
-            assert any([isinstance(node.op, Subtensor) for node in prog])
-        f([[1, 2, 3], [4, 5, 6]], 1)
-        f([[1, 2, 3], [4, 5, 6]], 3)
-
-    # Test AdvancedSubtensor1 case when all rows are selected by a list/vector
-    # or ARange op
-    for dims, res in (
-        ([0, 1], True),
-        ([1, 0], False),
-        ([0, 0], False),
-        ([0, 0, 1], False),
-        (aet.arange(2), True),
-        (aet.arange(0, 2), True),
-        (aet.arange(0, 2, 2), False),
-        (aet.arange(0, 2, -1), False),
-        (aet.arange(1, 2), False),
-    ):
-        f = function([x], exp(x_c).__getitem__(dims), mode=mode_opt)
-        prog = f.maker.fgraph.toposort()
-        if res:
-            assert isinstance(prog[0].op, SpecifyShape), dims
-            assert prog[1].op == exp, dims
-            assert len(prog) == 2, dims
-        else:
-            assert any([isinstance(node.op, AdvancedSubtensor1) for node in prog])
-        f([[0, 1, 2], [3, 4, 5]])  # let debugmode test something
-
-
-def test_local_subtensor_remove_broadcastable_index():
-    # testing local_subtensor_remove_broadcastable_index optimization
-    #
-    # tests removing broadcastable dimensions with index 0 or -1,
-    # otherwise the optimzation should not be applied
-
-    mode = get_default_mode()
-    mode = mode.including("local_subtensor_remove_broadcastable_index")
-    x = dmatrix("x")
-    y1 = x.dimshuffle(0, "x", 1)
-    y2 = x.dimshuffle("x", 1, 0, "x")
-    y3 = x.dimshuffle("x", 1, "x", 0, "x")
-
-    # testing for cases that the optimzation should be applied
-    z1 = y1[:, 0, :]
-    z2 = y1[:, -1, :]
-    z3 = y2[0, :, :, -1]
-    z4 = y2[0, :, :, 0]
-    z5 = y2[-1, :, :, -1]
-    z6 = y3[-1, :, 0, :, -1]
-    z7 = y3[-1, :, -1, :, -1]
-    z8 = y3[0, :, 0, :, 0]
-    f = function([x], [z1, z2, z3, z4, z5, z6, z7, z8], mode=mode)
-    for elem in f.maker.fgraph.toposort():
-        assert type(elem.op) not in [
-            Subtensor,
-            AdvancedSubtensor,
-            AdvancedSubtensor1,
-            IncSubtensor,
-            AdvancedIncSubtensor,
-            AdvancedIncSubtensor1,
-        ]
-
-    rng = np.random.RandomState(seed=utt.fetch_seed())
-    xn = rng.rand(5, 5)
-    f(xn)
-
-    # testing for cases that the optimzation should not be applied
-    # to verify that other subtensor usage are passed without errors
-    w1 = y1[3, 0, :]
-    w2 = y1[2:4, -1, :]
-    w3 = y2[0, :, 4:, -1]
-    w4 = y2[:, :, 0, -1]
-    w5 = y2[0, 2:4, :, 0]
-    w6 = y2[0, -1, :, -1]
-    w7 = y2[-1, 4:, :, -1]
-    w8 = y2[-1, :, :3, -1]
-    w9 = y2[-1, :, -1, -1]
-    w10 = y3[-1, 2, 0, :, -1]
-    w11 = y3[-1, 0, -1, :, -1]
-    w12 = y3[-1, :, -1, -1, -1]
-    w13 = y3[0, 0, 0, :, 0]
-    w14 = y3[-1, 2:4, 0, 1:5, -1]
-    w15 = y3[-1, 0, -1, 0, -1]
-    w16 = y3[0, 2, 0, 4, 0]
-    w17 = y3[:, 0, :, 1]
-    w18 = y3[0, :, :, 2]
-    w19 = y3[:, 2, 0]
-    w20 = y3[:, 3]
-    f2 = function(
-        [x],
-        [
-            w1,
-            w2,
-            w3,
-            w4,
-            w5,
-            w6,
-            w7,
-            w8,
-            w9,
-            w10,
-            w11,
-            w12,
-            w13,
-            w14,
-            w15,
-            w16,
-            w17,
-            w18,
-            w19,
-            w20,
-        ],
-        mode=mode,
-    )
-    f2(xn)
-
-
-class TestSubtensorIncSubtensor:
-    @classmethod
-    def setup_class(cls):
-        cls.mode = get_default_mode().including("local_subtensor_inc_subtensor")
-
-    def test_basic(self):
-        # basic test
-        x = matrix("x")
-        i = iscalar("i")
-        v = vector("v")
-        y = set_subtensor(x[i], v)
-        z = y[i]
-        f = function([x, i, v], z, mode=self.mode)
-        prog = f.maker.fgraph.toposort()
-        assert len(prog) == 1
-        assert isinstance(prog[0].op, DeepCopyOp)
-        # basic test, numerical check
-        x_ = np.random.uniform(size=[3, 4]).astype(config.floatX)
-        v_ = np.random.uniform(
-            size=[
-                4,
-            ]
-        ).astype(config.floatX)
-        i_ = 1
-        assert np.array_equal(f(x_, i_, v_), v_)
-
-    def test_multiple_idx(self):
-        # complicated test
-        x = tensor4("x")
-        i1 = iscalar("i1")
-        i2 = iscalar("i2")
-        i3 = iscalar("i3")
-        i4 = iscalar("i4")
-        v = tensor3("v")
-        y = set_subtensor(x[i1, :i2, i3:, ::i4], v)
-        z = y[i1, :i2, i3:, ::i4]
-        f = function([x, i1, i2, i3, i4, v], z, mode=self.mode)
-        prog = f.maker.fgraph.toposort()
-        assert len(prog) == 1
-        assert isinstance(prog[0].op, DeepCopyOp)
-        # complicated test, numerical check
-        x_ = np.random.uniform(size=[3, 4, 5, 6]).astype(config.floatX)
-        v_ = np.random.uniform(size=[2, 2, 2]).astype(config.floatX)
-        i1_, i2_, i3_, i4_ = 1, 2, 3, 4
-        assert np.array_equal(f(x_, i1_, i2_, i3_, i4_, v_), v_)
-
-    def test_not_applied(self):
-        # case not use this optimization
-        x = tensor4("x")
-        i1 = iscalar("i1")
-        i2 = iscalar("i2")
-        i3 = iscalar("i3")
-        i4 = iscalar("i4")
-        v = tensor3("v")
-        y = set_subtensor(x[i1, :i2, i3:, ::i4], v)
-        z = y[i1, :i3, i2:, ::i4]
-        f = function([x, i1, i2, i3, i4, v], z, mode=self.mode)
-        prog = f.maker.fgraph.toposort()
-        assert len(prog) != 1
-        assert any(isinstance(x.op, IncSubtensor) for x in prog)
-        assert any(isinstance(x.op, Subtensor) for x in prog)
-        # case not use this optimization, numerical check
-        x_ = np.random.uniform(size=[3, 4, 5, 6]).astype(config.floatX)
-        v_ = np.random.uniform(size=[2, 2, 2]).astype(config.floatX)
-        i1_, i2_, i3_, i4_ = 1, 2, 3, 4
-        x_[i1_, :i2_, i3_:, ::i4_] = v_
-        assert np.array_equal(f(x_, i1_, i2_, i3_, i4_, v_), x_[i1_, :i3_, i2_:, ::i4_])
-
-    def test_fewer_dims(self):
-        # case when v has fewer dimensions
-        x = matrix("x")
-        i1 = iscalar("i")
-        i2 = iscalar("i")
-        v = vector("v")
-        y = set_subtensor(x[:i1, :i2], v)
-        z = y[:i1, :i2]
-        f = function([x, i1, i2, v], z, mode=self.mode)
-        prog = f.maker.fgraph.toposort()
-        assert any(isinstance(x.op, Alloc) for x in prog)
-        # case when v is broadcastable, numerical check
-        x_ = np.random.uniform(size=[3, 4]).astype(config.floatX)
-        v_ = np.random.uniform(
-            size=[
-                2,
-            ]
-        ).astype(config.floatX)
-        i1_, i2_ = 2, 2
-        x_[:i1_, :i2_] = v_
-        assert np.array_equal(f(x_, i1_, i2_, v_), x_[:i1_, :i2_])
-
-    def test_broadcasted(self):
-        # case when v has the same number of dimensions, some broadcastable
-        x = matrix("x")
-        i1 = iscalar("i")
-        i2 = iscalar("i")
-        v = col("v")
-        y = set_subtensor(x[:i1, :i2], v)
-        z = y[:i1, :i2]
-        f = function([x, i1, i2, v], z, mode=self.mode)
-        prog = f.maker.fgraph.toposort()
-        assert any(isinstance(x.op, Alloc) for x in prog)
-        # case when v is broadcastable, numerical check
-        x_ = np.random.uniform(size=[3, 4]).astype(config.floatX)
-        v_ = np.random.uniform(size=[2, 1]).astype(config.floatX)
-        i1_, i2_ = 2, 2
-        x_[:i1_, :i2_] = v_
-        assert np.array_equal(f(x_, i1_, i2_, v_), x_[:i1_, :i2_])
-
-    def test_different_dtypes(self):
-        # Case when the dtype differs
-        x = bmatrix("x")
-        i = iscalar("i")
-        v = vector("v")
-        y = set_subtensor(x[i], v)
-        z = y[i]
-        f = function([x, i, v], z, mode=self.mode)
-        prog = f.maker.fgraph.toposort()
-        assert len(prog) == 1
-        assert prog[0].op == _convert_to_int8
-        # basic test, numerical check
-        x_ = np.random.randint(12, size=[3, 4]).astype("int8")
-        v_ = np.random.uniform(
-            12,
-            size=[
-                4,
-            ],
-        ).astype(config.floatX)
-        i_ = 1
-        assert np.array_equal(f(x_, i_, v_), v_.astype("int8"))
-
-
-class TestLocalSubtensorMakeVector:
-    def test_scalar_idx(self):
-        x, y, z = lscalars("xyz")
-        v = make_vector(x, y, z)
-        f = function([x, y, z], v[0], mode=mode_opt)
-
-        prog = f.maker.fgraph.toposort()
-        assert len(prog) == 1
-        assert isinstance(prog[0].op, DeepCopyOp)
-        assert f(0, 1, 2) == 0
-
-    def test_slice_idx_stop(self):
-        x, y, z = lscalars("xyz")
-        v = make_vector(x, y, z)
-        f = function([x, y, z], v[:2], mode=mode_opt)
-
-        prog = f.maker.fgraph.toposort()
-        assert len(prog) == 1
-        assert isinstance(prog[0].op, MakeVector)
-        assert len(prog[0].inputs) == 2
-        r = f(0, 1, 2)
-        assert r[0] == 0 and r[1] == 1
-
-    def test_slice_idx_step(self):
-        x, y, z = lscalars("xyz")
-        v = make_vector(x, y, z)
-        f = function([x, y, z], v[::2], mode=mode_opt)
-
-        prog = f.maker.fgraph.toposort()
-        assert len(prog) == 1
-        assert isinstance(prog[0].op, MakeVector)
-        assert len(prog[0].inputs) == 2
-        r = f(0, 1, 2)
-        assert r[0] == 0 and r[1] == 2
-
-    def test_AdvancedSubtensor1_idx(self):
-        x, y, z = lscalars("xyz")
-        v = make_vector(x, y, z)
-        f = function([x, y, z], v[[0, 2]], mode=mode_opt)
-
-        prog = f.maker.fgraph.toposort()
-        assert len(prog) == 1
-        assert isinstance(prog[0].op, MakeVector)
-        assert len(prog[0].inputs) == 2
-        r = f(0, 1, 2)
-        assert r[0] == 0 and r[1] == 2
-
-    @pytest.mark.xfail(
-        reason="local_subtensor_make_vector doesn't handle all index cases"
-    )
-    def test_MakeVector_idx(self):
-        x, y, z, q = lscalars("xyzq")
-        v = make_vector(x, y, z)
-        q = make_vector(0, 2)
-        f = function([x, y, z], v[q], mode=mode_opt)
-
-        prog = f.maker.fgraph.toposort()
-        assert len(prog) == 1
-        assert isinstance(prog[0].op, MakeVector)
-        assert len(prog[0].inputs) == 2
-        r = f(0, 1, 2)
-        assert r[0] == 0 and r[1] == 2
-
-    def test_stack_trace(self):
-        x, y, z = lscalars("xyz")
-        v = make_vector(x, y, z)
-
-        mode = get_default_mode().including("local_subtensor_make_vector")
-
-        # list of subtensor cases, where local_subtensor_make_vector
-        # inserts a new MakeVector node
-        v_subtensors = [v[:2], v[::2], v[[0, 2]]]
-
-        for v_subtensor in v_subtensors:
-            f = function([x, y, z], v_subtensor, mode=mode)
-            assert check_stack_trace(f, ops_to_check="all")
-
-
-class TestLocalSubtensorLift:
-    def test_basic(self):
-        # basic test that the Op works
-        x = matrix("x")
-        f = function([x], exp(x)[0], mode=mode_opt)
-
-        # Check stacktrace was copied over correctly after opt was applied
-        assert check_stack_trace(f, ops_to_check="all")
-
-        prog = f.maker.fgraph.toposort()
-        assert isinstance(prog[0].op, Subtensor)  # first subtensor
-        assert prog[1].op == exp
-        assert len(prog) == 2
-        f([[0, 1], [2, 3]])  # let debugmode test something
-
-    def test_basic_1(self):
-        # as test0, but we reuse the output of the elemwise
-        # So we should not lift the subtensor
-        x = matrix("x")
-        f = function([x], [exp(x)[0], exp(x)], mode=mode_opt)
-
-        # Check stacktrace was copied over correctly after opt was applied
-        assert check_stack_trace(f, ops_to_check=[Subtensor, Elemwise])
-
-        prog = f.maker.fgraph.toposort()
-        assert prog[0].op == exp
-        assert isinstance(prog[1].op, Subtensor)  # first subtensor
-        assert isinstance(prog[2].op, DeepCopyOp)
-        assert len(prog) == 3
-        f([[0, 1], [2, 3]])  # let debugmode test something
-
-    def test_basic_2(self):
-        # basic test that the optimization work with scalar broadcasted
-        x = matrix("x")
-        y = scalar("y")
-        z = matrix("z")
-        f = function([x, y, z], exp(x + y + z)[0], mode=mode_opt)
-
-        prog = f.maker.fgraph.toposort()
-        assert isinstance(prog[0].op, Subtensor)
-        assert isinstance(prog[1].op, DimShuffle)
-        assert isinstance(prog[2].op, Subtensor)
-        assert isinstance(prog[3].op.scalar_op, aes.Composite)  # Composite{add,add}
-        assert len(prog) == 4
-
-        # Check stacktrace was copied over correctly after opt was applied
-        assert check_stack_trace(f, ops_to_check=[Subtensor])
-
-        # let debugmode test something
-        f([[0, 1], [2, 3]], 4, [[4, 5], [6, 7]])
-
-    def test_basic_3(self):
-        # as 1, but take a slice
-        x = matrix("x")
-        y = scalar("y")
-        z = matrix("z")
-        f = function([x, y, z], exp(x + y + z)[0:2], mode=mode_opt)
-
-        prog = f.maker.fgraph.toposort()
-        assert isinstance(prog[0].op, Subtensor)
-        assert isinstance(prog[1].op, DimShuffle)
-        assert isinstance(prog[2].op, Subtensor)
-        assert isinstance(prog[3].op.scalar_op, aes.Composite)  # Composite{add,add}
-        assert len(prog) == 4
-
-        # Check stacktrace was copied over correctly after opt was applied
-        assert check_stack_trace(f, ops_to_check=[Subtensor])
-
-        # let debugmode test something
-        f([[0, 1], [2, 3]], 4, [[4, 5], [6, 7]])
-
-    def test_basic_4(self):
-        # basic test that the optimization does work with broadcasting
-        # for unary elemwise.
-        y = vector("y")
-        f = function([y], exp(y.dimshuffle(0, "x"))[0], mode=mode_opt)
-
-        # Check stacktrace was copied over correctly after opt was applied
-        assert check_stack_trace(f, ops_to_check="all")
-
-        prog = f.maker.fgraph.toposort()
-        assert isinstance(prog[0].op, DimShuffle)
-        assert isinstance(prog[1].op, Subtensor)
-        assert prog[2].op == exp
-        assert len(prog) == 3
-        f([4, 5])  # let debugmode test something
-
-    @utt.assertFailure_fast
-    def test_basic_5(self):
-        # basic test that the optimization doesn't work with broadcasting
-        # ... It *could* be extended to,
-        # ... but right now it doesn't, so it shouldn't try.
-        x = matrix("x")
-        y = vector("y")
-        f = function([x, y], exp(x + y)[0], mode=mode_opt)
-
-        # Opt doesn't apply, so no need for check_stack_trace
-        # assert check_stack_trace(f, ops_to_check='all')
-
-        prog = f.maker.fgraph.toposort()
-        assert isinstance(prog[0].op, DimShuffle)
-        assert prog[1].op == add
-        assert isinstance(prog[2].op, Subtensor)  # first subtensor
-        assert prog[3].op == inplace.exp_inplace
-        assert len(prog) == 4
-        f([[0, 1], [2, 3]], [4, 5])  # let debugmode test something
-
-    def test_basic_6(self):
-        # test that we don't lift when we reuse the output of the
-        # elemwise for other computation.
-        x = matrix("x")
-        y = vector("y")
-        f = function([x, y], [exp(x + y)[0], exp(x + y) + x], mode=mode_opt)
-
-        # Opt doesn't apply, so no need for check_stack_trace
-        # assert check_stack_trace(f, ops_to_check=Subtensor)
-
-        prog = f.maker.fgraph.toposort()
-        assert isinstance(prog[0].op, DimShuffle)
-        assert isinstance(prog[1].op.scalar_op, aes.Composite)  # Composite{add,exp}
-        assert prog[2].op == add or prog[3].op == add
-        # first subtensor
-        assert isinstance(prog[2].op, Subtensor) or isinstance(prog[3].op, Subtensor)
-        assert len(prog) == 4
-        f([[0, 1], [2, 3]], [4, 5])  # let debugmode test something
-
-    def test_basic_7(self):
-        # basic test that the optimization works with a scalar as input,
-        # and a scalar as output (no broadcasting of the scalar needed).
-        # The optimization used to fail and display an ERROR message.
-
-        x = vector("x")
-        y = scalar("y")
-        f = function([x, y], exp(x + y)[0], mode=mode_opt)
-
-        # Check stacktrace was copied over correctly after opt was applied
-        assert check_stack_trace(f, ops_to_check=Subtensor)
-
-        prog = f.maker.fgraph.toposort()
-        assert isinstance(prog[0].op, Subtensor)
-        # Composite{add,exp}
-        assert isinstance(prog[1].op.scalar_op, aes.Composite)
-        assert len(prog) == 2
-        f([1, 2, 3], 4)  # let debugmode test something
-
-    def test_basic_8(self):
-        # Test that Subtensor(Rebroadcast(x)) gets optimized into
-        # Rebroadcast(Subtensor(x)).
-
-        # test basic case
-        x = matrix("x")
-        xval = np.random.rand(1, 10).astype(config.floatX)
-        assert x.broadcastable == (False, False)
-        newx = Rebroadcast((0, True), (1, False))(x)
-        assert newx.broadcastable == (True, False)
-
-        f1 = function([x], newx[:2, :5], mode=mode_opt)
-        # Check stacktrace was copied over correctly after opt was applied
-        assert check_stack_trace(f1, ops_to_check=[Subtensor, Rebroadcast])
-        prog = f1.maker.fgraph.toposort()
-        assert isinstance(prog[0].op, Subtensor)
-        assert isinstance(prog[1].op, Rebroadcast)
-        assert (f1(xval) == xval[:2, :5]).all()
-
-        # corner case 1: rebroadcast changes dims which are dropped through subtensor
-        y = tensor4("x")
-        yval = np.random.rand(1, 10, 1, 3).astype(config.floatX)
-        assert y.broadcastable == (False, False, False, False)
-        newy = Rebroadcast((0, True), (2, True))(y)
-        assert newy.broadcastable == (True, False, True, False)
-
-        f2 = function([y], newy[:, 3, 0, :], mode=mode_opt)
-        # Check stacktrace was copied over correctly after opt was applied
-        assert check_stack_trace(f2, ops_to_check=[Subtensor, Rebroadcast])
-        prog = f2.maker.fgraph.toposort()
-        assert isinstance(prog[0].op, Subtensor)
-        assert isinstance(prog[1].op, Rebroadcast)
-        assert (f2(yval) == yval[:, 3, 0, :]).all()
-
-        # corner case 2: subtensor idx_list is shorter than resulting broadcast pattern
-        f3 = function([y], newy[:, 3, 0], mode=mode_opt)
-        # Check stacktrace was copied over correctly after opt was applied
-        assert check_stack_trace(f3, ops_to_check=[Subtensor, Rebroadcast])
-        prog = f3.maker.fgraph.toposort()
-        assert isinstance(prog[0].op, Subtensor)
-        assert isinstance(prog[1].op, Rebroadcast)
-        assert (f3(yval) == yval[:, 3, 0]).all()
-
-        # corner case 3: subtensor idx_list is shorter than rebroadcast.axis
-        z = tensor4("x")
-        zval = np.random.rand(4, 10, 3, 1).astype(config.floatX)
-        assert z.broadcastable == (False, False, False, False)
-        newz = Rebroadcast((3, True))(z)
-        assert newz.broadcastable == (False, False, False, True)
-
-        f4 = function([z], newz[:, 3, 0], mode=mode_opt)
-        # Check stacktrace was copied over correctly after opt was applied
-        assert check_stack_trace(f4, ops_to_check=[Subtensor, Rebroadcast])
-        prog = f4.maker.fgraph.toposort()
-        assert isinstance(prog[0].op, Subtensor)
-        assert isinstance(prog[1].op, Rebroadcast)
-        assert (f4(zval) == zval[:, 3, 0]).all()
-
-
-class TestLocalSubtensorMerge:
-    def setup_method(self):
-        utt.seed_rng()
-        self.x_shapes = [(2, 2), (5, 3), (4, 1), (1, 2), (0, 2), (2, 0), (1, 0), (0, 0)]
-        self.rng = np.random.RandomState(seed=utt.fetch_seed())
-
-    def test_const(self):
-        # var[const::][-1] -> var[-1]
-        x = matrix("x")
-        for idx in range(-7, 6):
-            f = function([x], x[idx::][-1], mode=mode_opt)
-            g = function(
-                [x], x[idx::][-1], mode=mode_opt.excluding("local_subtensor_merge")
-            )
-
-            # Check stacktrace was copied over correctly after opt was applied
-            assert check_stack_trace(f, ops_to_check=Subtensor)
-
-            topo = f.maker.fgraph.toposort()
-            assert len([t for t in topo if isinstance(t.op, Subtensor)]) == 1
-            assert isinstance(topo[-1].op, DeepCopyOp)
-
-            for x_s in self.x_shapes:
-                x_val = self.rng.uniform(size=x_s).astype(config.floatX)
-
-                if idx < x_s[0] and x_s[0] > 0:
-                    # The first subtensor is non-empty, so it makes sense
-                    f(x_val)  # let debugmode test something
-                else:
-                    # A non-empty subtensor of an empty one should be
-                    # an IndexError
-                    with pytest.raises(IndexError):
-                        f(x_val)
-                    with pytest.raises(IndexError):
-                        g(x_val)
-
-    def test_scalar(self):
-        # var[int::][-1] -> var[-1]
-        x = matrix("x")
-        y = iscalar("y")
-        f = function([x, y], x[y::][-1], mode=mode_opt)
-        g = function(
-            [x, y], x[y::][-1], mode=mode_opt.excluding("local_subtensor_merge")
-        )
-
-        # Check stacktrace was copied over correctly after opt was applied
-        assert check_stack_trace(f, ops_to_check=Subtensor)
-
-        topo = f.maker.fgraph.toposort()
-        assert len([t for t in topo if isinstance(t.op, Subtensor)]) == 1
-        assert isinstance(topo[-1].op, DeepCopyOp)
-
-        for x_s in self.x_shapes:
-            x_val = self.rng.uniform(size=x_s).astype(config.floatX)
-
-            for idx in range(-9, 8):
-                if (idx < x_s[0]) and (x_s[0] > 0):
-                    # The first subtensor is non-empty
-                    f(x_val, idx)  # let debugmode test something
-                else:
-                    with pytest.raises(IndexError):
-                        f(x_val, idx)
-                    with pytest.raises(IndexError):
-                        g(x_val, idx)
-
-    @pytest.mark.slow
-    def test_const2(self):
-        # var[::-1][const] -> var[-1]
-        x = matrix("x")
-        for idx in range(-8, 7):
-            f = function([x], x[::-1][idx], mode=mode_opt)
-            g = function(
-                [x], x[::-1][idx], mode=mode_opt.excluding("local_subtensor_merge")
-            )
-
-            # Check stacktrace was copied over correctly after opt was applied
-            assert check_stack_trace(f, ops_to_check=Subtensor)
-
-            topo = f.maker.fgraph.toposort()
-            assert len([t for t in topo if isinstance(t.op, Subtensor)]) == 1
-            assert isinstance(topo[-1].op, DeepCopyOp)
-
-            for x_s in self.x_shapes:
-                x_val = self.rng.uniform(size=x_s).astype(config.floatX)
-                if (idx < x_s[0]) and (idx >= -x_s[0]):
-                    # The first subtensor is non-empty, so it makes sense
-                    f(x_val)  # let debugmode test something
-                else:
-                    # A non-empty subtensor of an empty one should be
-                    # an IndexError
-                    with pytest.raises(IndexError):
-                        f(x_val)
-                    with pytest.raises(IndexError):
-                        g(x_val)
-
-    def test_scalar2(self):
-        # var[::-1][int] -> var[-1]
-        x = matrix("x")
-        y = iscalar("y")
-        f = function([x, y], x[::-1][y], mode=mode_opt)
-        g = function(
-            [x, y], x[::-1][y], mode=mode_opt.excluding("local_subtensor_merge")
-        )
-
-        # Check stacktrace was copied over correctly after opt was applied
-        assert check_stack_trace(f, ops_to_check=Subtensor)
-
-        topo = f.maker.fgraph.toposort()
-        assert len([t for t in topo if isinstance(t.op, Subtensor)]) == 1
-        assert isinstance(topo[-1].op, DeepCopyOp)
-
-        for x_s in self.x_shapes:
-            x_val = self.rng.uniform(size=x_s).astype(config.floatX)
-
-            for idx in range(-x_s[0], x_s[0]):
-                f(x_val, idx)  # let debugmode test something
-            for idx in list(range(x_s[0], 9)) + list(range(-9, -x_s[0])):
-                with pytest.raises(IndexError):
-                    f(x_val, idx)
-                with pytest.raises(IndexError):
-                    g(x_val, idx)
-
-    def test_const3(self):
-        # var[::-1][:const] -> var[-1]
-        x = matrix("x")
-        for idx in range(-9, 8):
-            f = function([x], x[::-1][:idx], mode=mode_opt)
-
-            # Check stacktrace was copied over correctly after opt was applied
-            assert check_stack_trace(f, ops_to_check=Subtensor)
-
-            topo = f.maker.fgraph.toposort()
-            assert len([t for t in topo if isinstance(t.op, Subtensor)]) == 1
-            assert isinstance(topo[-1].op, DeepCopyOp)
-
-            for x_s in self.x_shapes:
-                x_val = self.rng.uniform(size=x_s).astype(config.floatX)
-                f(x_val)  # let debugmode test something
-
-    def test_scalar3(self):
-        # var[::-1][:int] -> var[-1]
-        x = matrix("x")
-        y = iscalar("y")
-        f = function([x, y], x[::-1][:y], mode=mode_opt)
-
-        # Check stacktrace was copied over correctly after opt was applied
-        assert check_stack_trace(f, ops_to_check=Subtensor)
-
-        topo = f.maker.fgraph.toposort()
-        assert len([t for t in topo if isinstance(t.op, Subtensor)]) == 1
-        assert isinstance(topo[-1].op, DeepCopyOp)
-
-        for x_s in self.x_shapes:
-            x_val = self.rng.uniform(size=x_s).astype(config.floatX)
-            for idx in range(-7, 7):
-                f(x_val, idx)  # let debugmode test something
-
-    def test_const4(self):
-        # var[const1::][:const2]
-        x = matrix("x")
-        for idx1 in range(-7, 7):
-            for idx2 in range(-7, 7):
-                f = function([x], x[idx1:][:idx2], mode=mode_opt)
-
-                # Check stacktrace was copied over correctly after opt was applied
-                assert check_stack_trace(f, ops_to_check=Subtensor)
-
-                topo = f.maker.fgraph.toposort()
-                assert len([t for t in topo if isinstance(t.op, Subtensor)]) == 1
-                assert isinstance(topo[-1].op, DeepCopyOp)
-
-                for x_s in self.x_shapes:
-                    x_val = self.rng.uniform(size=x_s).astype(config.floatX)
-                    f(x_val)  # let debugmode test something
-
-    def test_scalar4(self):
-        # var[int1:][:int2]
-        x = matrix("x")
-        y = iscalar("y")
-        z = iscalar("y")
-        f = function([x, y, z], x[y:][:z], mode=mode_opt)
-
-        # Check stacktrace was copied over correctly after opt was applied
-        assert check_stack_trace(f, ops_to_check=Subtensor)
-
-        topo = f.maker.fgraph.toposort()
-        assert len([t for t in topo if isinstance(t.op, Subtensor)]) == 1
-        assert isinstance(topo[-1].op, DeepCopyOp)
-
-        for x_s in self.x_shapes:
-            x_val = self.rng.uniform(size=x_s).astype(config.floatX)
-            for idx1 in range(-11, 11):
-                for idx2 in range(-11, 11):
-                    f(x_val, idx1, idx2)  # let debugmode test something
-
-    def test_const_general(self):
-        # Some cases of merge: shape, (start, stop, step) of first,
-        # (start, stop, step) of second subtensor
-        cases = [
-            ((2, 3), (None, None, None), (None, None, -1)),
-            ((12, 1), (None, None, -4), (None, None, 1)),
-            ((5, 3), (1, 4, 2), (None, None, -1)),
-        ]
-        x = matrix("x")
-
-        for shape, sl1, sl2 in cases:
-            z = x[slice(*sl1)][slice(*sl2)]
-            f = function([x], z, mode=mode_opt)
-
-            # Check stacktrace was copied over correctly after opt was applied
-            assert check_stack_trace(f, ops_to_check=Subtensor)
-
-            x_val = self.rng.uniform(size=shape).astype(config.floatX)
-            f(x_val)
-
-    def test_scalar5(self):
-        # General case with two real slices
-        # var[b1:e1:s1][b2:e2:s2]
-        x = matrix("x")
-        b1 = iscalar("b1")
-        e1 = iscalar("e1")
-        s1 = iscalar("s1")
-        b2 = iscalar("b2")
-        e2 = iscalar("e2")
-        s2 = iscalar("s2")
-        f = function([x, b1, e1, s1, b2, e2, s2], x[b1:e1:s1][b2:e2:s2], mode=mode_opt)
-
-        # Check stacktrace was copied over correctly after opt was applied
-        assert check_stack_trace(f, ops_to_check=Subtensor)
-
-        topo = f.maker.fgraph.toposort()
-        assert len([t for t in topo if isinstance(t.op, Subtensor)]) == 1
-        assert isinstance(topo[-1].op, DeepCopyOp)
-
-        b1r = self.rng.permutation(list(range(-8, 8)))[:2]
-        e1r = self.rng.permutation(list(range(-8, 8)))[:2]
-        b2r = self.rng.permutation(list(range(-8, 8)))[:2]
-        e2r = self.rng.permutation(list(range(-8, 8)))[:2]
-
-        s1r = self.rng.permutation([-7, -6, -5, -4, -3, -2, -1, 1, 2, 3, 4, 5, 6, 7])[
-            :2
-        ]
-        s2r = self.rng.permutation([-7, -6, -5, -4, -3, -2, -1, 1, 2, 3, 4, 5, 6, 7])[
-            :2
-        ]
-
-        for x_s in self.x_shapes:
-            x_val = self.rng.uniform(size=x_s).astype(config.floatX)
-            for b1 in b1r:
-                for e1 in e1r:
-                    for s1 in s1r:
-                        for b2 in b2r:
-                            for e2 in e2r:
-                                for s2 in s2r:
-                                    f(x_val, b1, e1, s1, b2, e2, s2)
-
-    def test_const5(self):
-        # Bug reported by Razvan
-        data = np.asarray(np.arange(8), dtype=config.floatX)
-        x = vector("x")
-        y = x[7:1:-1]
-        t = shared(np.int64(0))
-
-        fun = function([x], y[t])
-
-        val = fun(data)
-        assert val == data[7:1:-1][0]
-
-    def test_const6(self):
-        # Bug reported by Graham
-        data = self.rng.uniform(size=(8, 8, 8)).astype(config.floatX)
-        x = tensor3("x")
-
-        nops = 1
-        if config.mode == "FAST_COMPILE":
-            nops = 2
-
-        # test 1)
-        y = x[3:6, 2:6, 1:7][1]
-        fun = function([x], y)
-        val = fun(data)
-        assert np.all(val == data[3:6, 2:6, 1:7][1])
-        assert (
-            len([n for n in fun.maker.fgraph.toposort() if isinstance(n.op, Subtensor)])
-            == nops
-        )
-
-        # test 2)
-        y = x[2, 3][1]
-        fun = function([x], y)
-        val = fun(data)
-        assert np.all(val == data[2, 3][1])
-        assert (
-            len([n for n in fun.maker.fgraph.toposort() if isinstance(n.op, Subtensor)])
-            == nops
-        )
-
-        # test 3)
-        y = x[3:6, 2, 1:7][1]
-        fun = function([x], y)
-        val = fun(data)
-        assert np.all(val == data[3:6, 2, 1:7][1])
-        assert (
-            len([n for n in fun.maker.fgraph.toposort() if isinstance(n.op, Subtensor)])
-            == nops
-        )
-
-    def test_scalar6(self):
-        # General case with one slice and one index
-        # var[b:e:s][i]
-        x = matrix("x")
-        b = iscalar("b")
-        e = iscalar("e")
-        s = iscalar("s")
-        i = iscalar("i")
-        f = function([x, b, e, s, i], x[b:e:s][i], mode=mode_opt)
-
-        # Check stacktrace was copied over correctly after opt was applied
-        assert check_stack_trace(f, ops_to_check=Subtensor)
-
-        topo = f.maker.fgraph.toposort()
-        assert len([t for t in topo if isinstance(t.op, Subtensor)]) == 1
-        assert isinstance(topo[-1].op, DeepCopyOp)
-
-        b_r = self.rng.permutation(list(range(-4, 4)))[:3]
-        e_r = self.rng.permutation(list(range(-4, 4)))[:3]
-        i_r = self.rng.permutation(list(range(-4, 4)))[:3]
-
-        s_r = self.rng.permutation([-3, -2, -1, 1, 2, 3])[:3]
-
-        for x_s in self.x_shapes:
-            n_index_err = 0
-            n_ok = 0
-            x_val = self.rng.uniform(size=x_s).astype(config.floatX)
-            for b_v in b_r:
-                for e_v in e_r:
-                    for s_v in s_r:
-                        for i_v in i_r:
-                            # The index could be out of bounds
-                            # In that case, an Exception should be raised,
-                            # otherwise, we let DebugMode check f
-                            try:
-                                x_val[b_v:e_v:s_v][i_v]
-                            except IndexError:
-                                n_index_err += 1
-                                with pytest.raises(IndexError):
-                                    f(x_val, b_v, e_v, s_v, i_v)
-                            else:
-                                # Executed if the "try" clause did not raise
-                                # any exception
-                                n_ok += 1
-                                f(x_val, b_v, e_v, s_v, i_v)
-
-    @pytest.mark.slow
-    def test_none_slice(self):
-        # Test case of two slices, var[b1:e1:s1][b2:e2:s2]
-        # where any of the b, e, and s can be None
-        x = matrix("x")
-        b1 = iscalar("b1")
-        e1 = iscalar("e1")
-        s1 = iscalar("s1")
-        b2 = iscalar("b2")
-        e2 = iscalar("e2")
-        s2 = iscalar("s2")
-
-        # Generate all possible lists of positions for None in those 6 slots
-        # A 1 indicates None is present, 0 that there is an Aesara scalar.
-        none_positions = np.ndindex(2, 2, 2, 2, 2, 2)
-
-        # Ranges to be used when not None
-        b1r = self.rng.permutation(list(range(-4, 4)))[:]
-        e1r = self.rng.permutation(list(range(-4, 4)))[:]
-        b2r = self.rng.permutation(list(range(-4, 4)))[:]
-        e2r = self.rng.permutation(list(range(-4, 4)))[:]
-        s1r = self.rng.permutation([-4, -3, -2, -1, 1, 2, 3, 4])[:]
-        s2r = self.rng.permutation([-4, -3, -2, -1, 1, 2, 3, 4])[:]
-
-        scalar_vars = [b1, e1, s1, b2, e2, s2]
-        scalar_ranges = [b1r, e1r, s1r, b2r, e2r, s2r]
-
-        # For each case, we will build a graph, function, and list of values
-        # Then, we test it on each input shape.
-        for none_pos in none_positions:
-            slice_inputs = []
-            input_vars = []
-            values = []
-            if sum(none_pos) == 0:
-                # Those case are already tested in test_scalar4
-                continue
-
-            for i, none_i in enumerate(none_pos):
-                if none_i:
-                    slice_inputs.append(None)
-                else:
-                    slice_inputs.append(scalar_vars[i])
-                    input_vars.append(scalar_vars[i])
-                    values.append(scalar_ranges[i])
-
-            slice1 = slice(*slice_inputs[:3])
-            slice2 = slice(*slice_inputs[3:])
-            sub_x = x[slice1][slice2]
-            f = function([x] + input_vars, sub_x, mode=mode_opt)
-
-            # Check stacktrace was copied over correctly after opt was applied
-            # for some cases, the optimization may remove all Subtensors,
-            # which is why we pass "bug_print='ignore'".
-            assert check_stack_trace(f, ops_to_check=Subtensor, bug_print="ignore")
-
-            topo = f.maker.fgraph.toposort()
-            assert len([t for t in topo if isinstance(t.op, Subtensor)]) <= 1
-            assert isinstance(topo[-1].op, DeepCopyOp)
-
-            for x_s in self.x_shapes:
-                x_val = self.rng.uniform(size=x_s).astype(config.floatX)
-                for i_val in zip(*values):
-                    f(x_val, *i_val)
-
-    def test_none_index(self):
-        # Test the general case of indexing into a subvector,
-        # like x[b:e:s][i], where any of b, e, and s can be None
-        x = matrix("x")
-        b = iscalar("b")
-        e = iscalar("e")
-        s = iscalar("s")
-        i = iscalar("i")
-
-        # Generate all possible lists of positions for None in those 6 slots
-        # A 1 indicates None is present, 0 that there is an Aesara scalar.
-        # The last index (i) is never None
-        none_positions = np.ndindex(2, 2, 2, 1)
-
-        # Ranges to be used when not None
-        b_r = self.rng.permutation(list(range(-4, 4)))[:]
-        e_r = self.rng.permutation(list(range(-4, 4)))[:]
-        i_r = self.rng.permutation(list(range(-4, 4)))[:]
-        s_r = self.rng.permutation([-4, -3, -2, -1, 1, 2, 3, 4])[:]
-
-        scalar_vars = [b, e, s, i]
-        scalar_ranges = [b_r, e_r, s_r, i_r]
-
-        # For each case, we will build a graph, function, and list of values
-        # Then, we test it on each input shape.
-        for none_pos in none_positions:
-            slice_inputs = []
-            input_vars = []
-            values = []
-            if sum(none_pos) == 0:
-                # Those case are already tested in test_scalar6
-                continue
-
-            for j, none_j in enumerate(none_pos):
-                if none_j:
-                    slice_inputs.append(None)
-
-                else:
-                    slice_inputs.append(scalar_vars[j])
-                    input_vars.append(scalar_vars[j])
-                    values.append(scalar_ranges[j])
-
-            symbol_slice = slice(*slice_inputs[:3])
-            sub_x = x[symbol_slice][i]
-            f = function([x] + input_vars, sub_x, mode=mode_opt)
-
-            # Check stacktrace was copied over correctly after opt was applied
-            assert check_stack_trace(f, ops_to_check=Subtensor)
-
-            topo = f.maker.fgraph.toposort()
-            assert len([t for t in topo if isinstance(t.op, Subtensor)]) <= 1
-            assert isinstance(topo[-1].op, DeepCopyOp)
-
-            for x_s in self.x_shapes:
-                x_val = self.rng.uniform(size=x_s).astype(config.floatX)
-                for i_val in zip(*values):
-                    # The index could be out of bounds
-                    # In that case, an Exception should be raised,
-                    # otherwise, we let DebugMode check f
-                    # For that, we need to create a numerical slice.
-                    i_val_idx = 0
-                    num_slice_inputs = []
-                    for none_j in none_pos:
-                        if none_j:
-                            num_slice_inputs.append(None)
-                        else:
-                            num_slice_inputs.append(i_val[i_val_idx])
-                            i_val_idx += 1
-                    num_slice = slice(*num_slice_inputs[:3])
-                    num_i = num_slice_inputs[3]
-
-                    try:
-                        x_val[num_slice][num_i]
-                    except IndexError:
-                        with pytest.raises(IndexError):
-                            f(x_val, *i_val)
-                    else:
-                        # Executed if the "try" clause did not raise
-                        # any exception
-                        f(x_val, *i_val)
-
-
-class TestLocalAdvSub1AdvIncSub1:
-    def setup_method(self):
-        utt.seed_rng()
-        mode = get_default_mode()
-        self.mode = mode.including("local_adv_sub1_adv_inc_sub1").excluding("fusion")
-        self.mode_no_assert = self.mode.including("local_remove_all_assert")
-
-    def test_basic(self):
-        for dtype1, dtype2 in [
-            ("float32", "float32"),
-            ("float32", "float64"),
-            ("float64", "float32"),
-            ("float64", "float64"),
-        ]:
-            x = matrix(dtype=dtype1)
-            y = matrix(dtype=dtype2)
-            idx = ivector()
-
-            dx = np.random.rand(4, 5).astype(dtype1)
-            dy = np.random.rand(2, 5).astype(dtype2)
-            # Duplicate the last row of dy
-            dy = np.vstack([dy, dy[-1:]])
-            # Use the same index twice, with the same corresponding value.
-            # That makes set_subtensor well-defined, and tests
-            # duplication for inc_subtensor.
-            didx = np.asarray([1, 3, 3], "int32")
-
-            # set_subtensor
-            inc = set_subtensor(x[idx], y)
-            o = inc[idx]
-            f = function([x, y, idx], o, self.mode_no_assert)
-
-            res = f(dx, dy, didx)
-            utt.assert_allclose(dy, res)
-            topo = f.maker.fgraph.toposort()
-            assert len(topo) == 1
-            assert isinstance(topo[0].op, (DeepCopyOp, Elemwise))
-
-            # inc_subtensor(data[idx], y)
-            inc = inc_subtensor(x[idx], y)
-            o = inc[idx]
-            f = function([x, y, idx], o, self.mode_no_assert)
-
-            res = f(dx, dy, didx)
-            _dx = dx.copy()
-            np.add.at(_dx, didx, dy)
-            utt.assert_allclose(_dx[didx], res)
-            topo = f.maker.fgraph.toposort()
-            len(topo) == 2
-
-            # inc_subtensor(0[idx], y)
-            inc = inc_subtensor(x.zeros_like()[idx], y)
-            o = inc[idx]
-            f = function([x, y, idx], o, self.mode_no_assert)
-
-            res = f(dx, dy, didx)
-            utt.assert_allclose(np.vstack([dy[0], 2 * dy[1], 2 * dy[2]]), res)
-
-    def test_assert(self):
-        x = matrix("x")
-        y = matrix("y")
-        idx = ivector()
-
-        dx = np.random.rand(4, 5).astype(config.floatX)
-        dy = np.random.rand(2, 5).astype(config.floatX)
-
-        # set_subtensor
-        inc = set_subtensor(x[idx], y)
-        o = inc[idx]
-        f = function([x, y, idx], o, self.mode)
-        # test wrong index
-        for i in [dx.shape[0], -dx.shape[0] - 1]:
-            with pytest.raises((AssertionError, IndexError)):
-                f(dx, dy, [i, i])
-        # test wrong shape
-        with pytest.raises((AssertionError, IndexError)):
-            f(dx, dy, [1])
-
-    def test_stack_trace(self):
-        x = matrix("x")
-        # test cases with y.dtype
-        # - equal to x.dtype
-        # - different from x.dtype (to trigger the cast in
-        #   local_adv_sub1_adv_inc_sub1)
-        ys = [matrix("y"), dmatrix("y")]
-        idx = ivector()
-
-        # set_subtensor and then subtensor with both ys
-        incs = [set_subtensor(x[idx], y) for y in ys]
-        outs = [inc[idx] for inc in incs]
-
-        for y, out in zip(ys, outs):
-            f = function([x, y, idx], out, self.mode)
-            assert check_stack_trace(f, ops_to_check=(Assert, aes.Cast))
-
-
-class TestAllocZero:
-    def setup_method(self):
-        mode = get_default_mode()
-        self.mode = mode.including(
-            "local_incsubtensor_of_zeros",
-            "local_setsubtensor_of_constants",
-            "local_0_dot_x",
-        )
-
-    def test_setsubtensor_allocs0(self):
-        x = matrix()
-        y = matrix()
-        x0 = aet.zeros_like(x)
-        y0 = aet.zeros_like(y)
-        z = set_subtensor(x0[:4], y0)
-        f = function([x, y], z, mode=self.mode)
-        assert np.all(
-            [not isinstance(n.op, IncSubtensor) for n in f.maker.fgraph.toposort()]
-        )
-
-    def test_setsubtensor_allocs1(self):
-        y = matrix()
-        x0 = aet.constant(np.asarray(np.zeros((4, 4)), dtype=config.floatX))
-        y0 = aet.zeros_like(y)
-        z = set_subtensor(x0[:4], y0)
-        f = function([y], z, mode=self.mode)
-        assert np.all(
-            [not isinstance(n.op, IncSubtensor) for n in f.maker.fgraph.toposort()]
-        )
-
-    def test_setsubtensor_allocs1t(self):
-        y = matrix()
-        x0 = aet.constant(np.asarray(np.zeros((4, 4)), dtype=config.floatX))
-        y0 = aet.zeros_like(y)
-        z = set_subtensor(x0[:4], y0.T)
-        f = function([y], z, mode=mode_opt)
-        assert np.all(
-            [not isinstance(n.op, IncSubtensor) for n in f.maker.fgraph.toposort()]
-        )
-
-    def test_setsubtensor_allocs2(self):
-        x = matrix()
-        y0 = aet.constant(np.asarray(np.zeros_like((4, 4)), dtype=config.floatX))
-        x0 = aet.zeros_like(x)
-        z = set_subtensor(x0[:4], y0)
-        f = function([x], z, mode=self.mode)
-        assert np.all(
-            [not isinstance(n.op, IncSubtensor) for n in f.maker.fgraph.toposort()]
-        )
-
-    def test_incsubtensor_allocs0(self):
-        x = matrix()
-        y = matrix()
-        y0 = aet.zeros_like(y)
-        z = inc_subtensor(x[:4], y0)
-        f = function([x, y], z, mode=self.mode)
-        assert np.all(
-            [not isinstance(n.op, IncSubtensor) for n in f.maker.fgraph.toposort()]
-        )
-
-    def test_incsubtensor_allocs0t(self):
-        x = matrix()
-        y = matrix()
-        y0 = aet.zeros_like(y)
-        z = inc_subtensor(x[:4], y0.T)
-        f = function([x, y], z, mode=mode_opt)
-        assert np.all(
-            [not isinstance(n.op, IncSubtensor) for n in f.maker.fgraph.toposort()]
-        )
-
-    def test_incsubtensor_allocs1(self):
-        x = matrix()
-        y0 = aet.constant(np.asarray(np.zeros_like((4, 4)), dtype=config.floatX))
-        z = inc_subtensor(x[:4], y0)
-        f = function([x], z, mode=self.mode)
-        assert np.all(
-            [not isinstance(n.op, IncSubtensor) for n in f.maker.fgraph.toposort()]
-        )
-
-    def test_incsubtensor_x_zeros(self):
-        x = aet.constant(np.asarray(np.zeros((4, 4)), dtype=config.floatX))
-        y = matrix()
-        z = inc_subtensor(x[:4], y)
-        f = function([y], z)
-        inc_nodes = [
-            n for n in f.maker.fgraph.toposort() if isinstance(n.op, IncSubtensor)
-        ]
-
-        assert len(inc_nodes) == 1
-        node_is_set_instead_of_inc = inc_nodes[0].op.set_instead_of_inc
-        mode = config.mode
-        assert (mode != "FAST_COMPILE" and node_is_set_instead_of_inc) or (
-            mode == "FAST_COMPILE" and not node_is_set_instead_of_inc
-        )
-        test_X = np.random.random((4, 4)).astype(config.floatX)
-        utt.assert_allclose(f(test_X), test_X)
-
-        # also check the flag doesn't get set if first input is not zeros:
-        not_all_zeros = np.zeros((4, 4))
-        not_all_zeros[1, 0] = 0.001
-        x = aet.constant(np.asarray(not_all_zeros, dtype=config.floatX))
-        y = matrix()
-        z = inc_subtensor(x[:4], y)
-        f = function([y], z)
-        inc_nodes = [
-            n for n in f.maker.fgraph.toposort() if isinstance(n.op, IncSubtensor)
-        ]
-        assert len(inc_nodes) == 1
-        assert inc_nodes[0].op.set_instead_of_inc is False
-        test_X = np.random.random((4, 4)).astype(config.floatX)
-        utt.assert_allclose(f(test_X), test_X + not_all_zeros)
-
-    def test_advancedincsubtensor1_allocs0(self):
-        x = matrix()
-        y = matrix()
-        y0 = aet.zeros_like(y)
-        z = inc_subtensor(x[[0, 1, 2, 3]], y0)
-        f = function([x, y], z, mode=self.mode)
-        assert np.all(
-            [
-                not isinstance(n.op, AdvancedIncSubtensor1)
-                for n in f.maker.fgraph.toposort()
-            ]
-        )
-
-    def test_advancedincsubtensor1_allocs0t(self):
-        x = matrix()
-        y = matrix()
-        y0 = aet.zeros_like(y)
-        z = inc_subtensor(x[[0, 1, 2, 3]], y0.T)
-        f = function([x, y], z, mode=mode_opt)
-        assert np.all(
-            [
-                not isinstance(n.op, AdvancedIncSubtensor1)
-                for n in f.maker.fgraph.toposort()
-            ]
-        )
-
-    def test_advancedincsubtensor1_allocs1(self):
-        x = matrix()
-        y0 = aet.constant(np.asarray(np.zeros_like((4, 4)), dtype=config.floatX))
-        z = inc_subtensor(x[[0, 1, 2, 3]], y0)
-        f = function([x], z, mode=self.mode)
-        assert np.all(
-            [
-                not isinstance(n.op, AdvancedIncSubtensor1)
-                for n in f.maker.fgraph.toposort()
-            ]
-        )
-
-    def test_advancedincsubtensor_allocs0(self):
-        x = matrix()
-        y = matrix()
-        y0 = aet.zeros_like(y)
-        z = inc_subtensor(x[[[0, 0], [1, 1]], [[0, 1], [0, 1]]], y0)
-        f = function([x, y], z, mode=self.mode)
-        assert np.all(
-            [
-                not isinstance(n.op, AdvancedIncSubtensor)
-                for n in f.maker.fgraph.toposort()
-            ]
-        )
-
-    def test_advancedincsubtensor_allocs0t(self):
-        x = matrix()
-        y = matrix()
-        y0 = aet.zeros_like(y)
-        z = inc_subtensor(x[[[0, 0], [1, 1]], [[0, 1], [0, 1]]], y0.T)
-        f = function([x, y], z, mode=mode_opt)
-        assert np.all(
-            [
-                not isinstance(n.op, AdvancedIncSubtensor)
-                for n in f.maker.fgraph.toposort()
-            ]
-        )
-
-    def test_advancedincsubtensor_allocs1(self):
-        x = matrix()
-        y0 = aet.constant(np.asarray(np.zeros_like((2, 2)), dtype=config.floatX))
-        z = inc_subtensor(x[[[0, 0], [1, 1]], [[0, 1], [0, 1]]], y0)
-        f = function([x], z, mode=self.mode)
-        assert np.all(
-            [
-                not isinstance(n.op, AdvancedIncSubtensor)
-                for n in f.maker.fgraph.toposort()
-            ]
-        )
-
-    def test_dot_allocs_0(self):
-        v1 = vector("v1")
-        v2 = vector("v2")
-        m1 = matrix("m1")
-        m2 = matrix("m2")
-        vv2 = np.asarray([0, 1], dtype=config.floatX)
-        vm2 = np.asarray([[1, 2], [4, 5]], dtype=config.floatX)
-        vv3 = np.asarray([0, 1, 2], dtype=config.floatX)
-        vm3 = np.asarray([[1, 2, 3], [4, 5, 6], [7, 8, 9]], dtype=config.floatX)
-        for _e1 in [(v1, vv2, vv3), (m1, vm2, vm3)]:
-            for _e2 in [(v2, vv2, vv3), (m2, vm2, vm3)]:
-                for p in [0, 1]:
-                    if p == 0:
-                        e1 = aet.zeros_like(_e1[0])
-                        e2 = _e2[0]
-                    else:
-                        e1 = _e1[0]
-                        e2 = aet.zeros_like(_e2[0])
-                    o = dot(e1, e2)
-                    f = function([_e1[0], _e2[0]], o, mode=self.mode)
-                    f(_e1[1], _e2[1])
-                    f(_e1[2], _e2[2])
-                    assert np.all(
-                        [not isinstance(n.op, Dot) for n in f.maker.fgraph.toposort()]
-                    )
-
-                    # test that we don't remove shape errors
-                    with pytest.raises((ValueError, AssertionError)):
-                        f(_e1[1], _e2[2])
-                    with pytest.raises((ValueError, AssertionError)):
-                        f(_e1[2], _e2[1])
-
-
-def test_local_IncSubtensor_serialize():
-    d = np.random.normal(0, 0.01, size=(100, 100))
-    d = d.astype(config.floatX)
-
-    W = shared(d, name="W")
-    i = vector("i", dtype="int64")
-    j = vector("j", dtype="int64")
-    t = scalar("t")
-    y = (W[i] + W[j] + W[1] + W[i, j]).sum()
-    cost = sqr(t - y)
-    dW = aesara.grad(cost, W)
-    mode = get_default_mode().excluding("fusion")
-    mode = mode.including("local_IncSubtensor_serialize")
-    f = function([i, j, t], updates=[(W, W - 0.01 * dW)], mode=mode)
-    topo = f.maker.fgraph.toposort()
-    adds = [
-        n
-        for n in topo
-        if isinstance(n.op, Elemwise) and isinstance(n.op.scalar_op, aes.Add)
-    ]
-    for a in adds:
-        assert not any(
-            [
-                inp.owner
-                and isinstance(
-                    inp.owner.op,
-                    (
-                        IncSubtensor,
-                        AdvancedIncSubtensor,
-                        AdvancedIncSubtensor1,
-                    ),
-                )
-                for inp in a.inputs
-            ]
-        )
-
-    # Now test that the stack trace is copied over properly,
-    # if we return the gradients. We need to use same mode as before.
-    f = function([i, j, t], dW, mode=mode)
-    assert check_stack_trace(
-        f,
-        ops_to_check=[
-            IncSubtensor,
-            AdvancedIncSubtensor,
-            AdvancedIncSubtensor1,
-        ],
-    )
-
-
-def test_local_set_to_inc_subtensor():
-    v = fmatrix()
-    s = v[[2, 1]]
-    g = s + 3
-    r = set_subtensor(s, g)
-    moder = get_default_mode().excluding("local_set_to_inc_subtensor")
-    modet = get_default_mode().including("local_set_to_inc_subtensor")
-    f1 = function([v], r, mode=moder)
-    f2 = function([v], r, mode=modet)
-
-    advi1 = [
-        n for n in f1.maker.fgraph.toposort() if isinstance(n.op, AdvancedIncSubtensor1)
-    ]
-
-    advi2 = [
-        n for n in f2.maker.fgraph.toposort() if isinstance(n.op, AdvancedIncSubtensor1)
-    ]
-
-    # We only have SetSubtensor in f1
-    assert all(n.op.set_instead_of_inc for n in advi1)
-    # We don't have any SetSubtensor in f2
-    assert all(not n.op.set_instead_of_inc for n in advi2)
-
-    val = np.random.randn(3, 2).astype("float32")
-
-    r1 = f1(val)
-    r2 = f2(val)
-
-    utt.assert_allclose(r1, r2)
-
-    # Finally, test that the stack trace is copied over properly,
-    # before and after optimization.
-    assert check_stack_trace(f1, ops_to_check=AdvancedIncSubtensor1)
-    assert check_stack_trace(f2, ops_to_check="all")
-
-
-class TestLocalElemwiseAlloc:
-    dtype = config.floatX
-
-    def setup_method(self):
-        self.fast_compile_mode = get_mode("FAST_COMPILE")
-        self.fast_run_mode = get_mode("FAST_RUN")
-
-        self.vec = vector("vec", dtype=self.dtype)
-        self.mat = matrix("mat", dtype=self.dtype)
-        self.tens = tensor3("tens", dtype=self.dtype)
-
-        self.alloc_wo_dep = aet.alloc(self.vec, 2, 2)
-        self.alloc_wo_dep_broad = aet.alloc(self.vec, 1, 2)
-        self.alloc_w_dep = aet.alloc(self.vec, *self.mat.shape)
-        self.alloc_w_dep_broad = aet.alloc(self.vec, 1, *self.mat.shape)
-        self.alloc_w_dep_broad2 = aet.alloc(
-            self.vec, self.mat.shape[0], self.mat.shape[1], 1
-        )
-        self.alloc_w_dep_tens = aet.alloc(
-            self.vec, self.tens.shape[0], self.tens.shape[1]
-        )
-        self.tv_wo_dep = aet.alloc(self.vec, 5, 5)
-        self.tm_wo_dep = aet.alloc(self.mat, 5, 5, 5)
-        self.s = iscalar("s")
-        self.tv_w_dep = aet.alloc(self.vec, self.s, self.s)
-        self.tm_w_dep = aet.alloc(self.mat, 5, 5, 5)
-        self.row = row(dtype=self.dtype)
-        self.o = aet.alloc(self.row, 5, 5)
-
-    def _verify_alloc_count(self, f, count):
-        assert (
-            sum(
-                [
-                    isinstance(elem.op, Alloc)
-                    for elem in f.maker.fgraph.toposort()
-                    if elem.op is not None
-                ]
-            )
-            == count
-        )
-
-    def _verify_assert_count(self, f, count):
-        assert (
-            sum(
-                [
-                    isinstance(elem.op, Assert)
-                    for elem in f.maker.fgraph.toposort()
-                    if elem.op is not None
-                ]
-            )
-            == count
-        )
-
-    def test_remove_alloc_wo_dimshuffle(self):
-        # Exclude local_useless_alloc, since it does not introduce
-        # assert in all the same cases.
-        self.fast_run_mode = self.fast_run_mode.excluding(
-            "local_useless_alloc", "local_canonicalize_alloc"
-        )
-        # No optimization on alloc
-        func = function(
-            [self.vec, self.mat],
-            self.alloc_wo_dep + self.mat,
-            mode=self.fast_compile_mode,
-        )
-        self._verify_alloc_count(func, 1)
-        self._verify_assert_count(func, 0)
-        # Check stacktrace was copied over correctly after opt was applied
-        assert check_stack_trace(func, ops_to_check="all")
-
-        # Optimization on alloc with assert
-        func = function(
-            [self.vec, self.mat], self.alloc_wo_dep + self.mat, mode=self.fast_run_mode
-        )
-        self._verify_alloc_count(func, 0)
-        self._verify_assert_count(func, 1)
-
-        # Optimization on alloc with assert and broadcast
-        func = function(
-            [self.vec, self.mat],
-            self.alloc_wo_dep_broad + self.mat,
-            mode=self.fast_run_mode,
-        )
-        self._verify_alloc_count(func, 0)
-        self._verify_assert_count(func, 1)
-
-        # No optimization on alloc without assert
-        func = function(
-            [self.vec, self.mat],
-            self.alloc_w_dep + self.mat,
-            mode=self.fast_compile_mode,
-        )
-        self._verify_alloc_count(func, 1)
-        self._verify_assert_count(func, 0)
-
-        # Optimization on alloc without assert
-        func = function(
-            [self.vec, self.mat], self.alloc_w_dep + self.mat, mode=self.fast_run_mode
-        )
-        self._verify_alloc_count(func, 0)
-        self._verify_assert_count(func, 0)
-
-        # Optimization on alloc without assert and with broadcast
-        func = function(
-            [self.vec, self.mat],
-            self.alloc_w_dep_broad + self.mat,
-            mode=self.fast_run_mode,
-        )
-        self._verify_alloc_count(func, 0)
-        self._verify_assert_count(func, 0)
-
-        # Not optimized case on alloc and with broadcast
-        func = function(
-            [self.vec, self.mat],
-            self.alloc_w_dep_broad2 + self.mat,
-            mode=self.fast_run_mode,
-        )
-        self._verify_alloc_count(func, 1)
-        self._verify_assert_count(func, 0)
-
-    def test_remove_alloc_w_dimshuffle(self):
-        # No optimization on dimshuffle with assert
-        func = function(
-            [self.vec, self.tens],
-            self.alloc_wo_dep.dimshuffle(0, 1, "x") + self.tens,
-            mode=self.fast_compile_mode,
-        )
-        self._verify_alloc_count(func, 1)
-        self._verify_assert_count(func, 0)
-
-        # Optimization on dimshuffle with assert
-        func = function(
-            [self.vec, self.tens],
-            self.alloc_wo_dep.dimshuffle(0, 1, "x") + self.tens,
-            mode=self.fast_run_mode,
-        )
-        self._verify_alloc_count(func, 0)
-        self._verify_assert_count(func, 1)
-
-        # No optimization on dimshuffle without assert
-        func = function(
-            [self.vec, self.tens],
-            self.alloc_w_dep_tens.dimshuffle(0, 1, "x") + self.tens,
-            mode=self.fast_compile_mode,
-        )
-        self._verify_alloc_count(func, 1)
-        self._verify_assert_count(func, 0)
-
-        # Optimization on dimshuffle without assert
-        func = function(
-            [self.vec, self.tens],
-            self.alloc_w_dep_tens.dimshuffle(0, 1, "x") + self.tens,
-            mode=self.fast_run_mode,
-        )
-        self._verify_alloc_count(func, 0)
-        self._verify_assert_count(func, 0)
-
-    def test_multi_input_single_alloc(self):
-        # No optimization on dimshuffle with assert
-        func = function(
-            [self.vec, self.mat],
-            self.tv_wo_dep + self.tm_wo_dep,
-            mode=self.fast_compile_mode,
-        )
-        self._verify_alloc_count(func, 2)
-        self._verify_assert_count(func, 0)
-
-        # Optimization on dimshuffle with assert
-        func = function(
-            [self.vec, self.mat],
-            self.tv_wo_dep + self.tm_wo_dep,
-            mode=self.fast_run_mode,
-        )
-        self._verify_alloc_count(func, 1)
-        self._verify_assert_count(func, 0)
-
-        # No optimization on dimshuffle without assert
-        func = function(
-            [self.vec, self.mat, self.s],
-            self.tv_w_dep + self.tm_w_dep,
-            mode=self.fast_compile_mode,
-        )
-        self._verify_alloc_count(func, 2)
-        self._verify_assert_count(func, 0)
-
-        # Optimization on dimshuffle without assert
-        func = function(
-            [self.vec, self.mat, self.s],
-            self.tv_w_dep + self.tm_w_dep,
-            mode=self.fast_run_mode,
-        )
-        self._verify_alloc_count(func, 1)
-        self._verify_assert_count(func, 1)
-
-    def test_error(self):
-        t3fft = tensor(dtype=self.dtype, broadcastable=(False, False, True))
-        o = self.o.dimshuffle(0, 1, "x") + t3fft
-        func = function([t3fft, self.row], o, mode=self.fast_run_mode)
-        self._verify_alloc_count(func, 0)
-        self._verify_assert_count(func, 1)
-        d = np.random.rand(5, 5, 1).astype(self.dtype)
-        r = np.random.rand(1, 5).astype(self.dtype)
-        func(d, r)
-
-
-def test_local_subtensor_of_alloc():
-
-    # DebugMode should detect if something goes wrong.
-    # test shape combination of odd and event shape.
-    for shape in [(3, 5), (4, 6), (3, 8), (4, 7), (1, 5), (5, 1)]:
-        x = tensor(dtype=config.floatX, broadcastable=(shape[0] == 1, shape[1] == 1))
-
-        xval = np.zeros(shape, dtype=config.floatX)
-        yval = np.arange(shape[1], dtype=config.floatX)
-
-        for y in [shared(yval), aet.constant([1.0])]:
-
-            # The rows of yx are copies of y
-            yx = aet.alloc(y, x.shape[0], x.shape[1])
-
-            # Slice of each row
-            z_mat = yx[:, 3:]
-            assert z_mat.ndim == 2
-
-            # Only one column
-            z_vec = yx[:, 3]
-            assert z_vec.ndim == 1
-            # results are vector
-            slicess = []
-            if shape[0] != 1:
-                slicess.append((2, slice(None)))
-            if shape[1] != 1:
-                slicess.append((slice(None), 3))
-
-            # results are matrix
-            slicess += [
-                (slice(None), slice(3, None)),
-                (slice(3, None),),
-                (slice(3, None), slice(3, None)),
-                (slice(1, 3), slice(None, -1)),
-                (slice(None, None, 2)),
-                (slice(1, None, 2)),
-            ]
-            for slices in slicess:
-                z = yx.__getitem__(slices)
-                f = function([x], z)
-                if config.mode != "FAST_COMPILE":
-                    # Subtensor can be in the input of Alloc
-                    assert not isinstance(f.maker.fgraph.toposort()[-1].op, Subtensor)
-                val = f(xval)
-                assert xval.__getitem__(slices).shape == val.shape
-
-
 def test_local_fill_useless():
     # Test opt local_fill_useless
     x = dvector()
@@ -3242,19 +1300,10 @@ def test_local_fill_useless():
     z = lvector()
     m = dmatrix()
 
-    x_ = np.random.rand(
-        5,
-    )
-    y_ = np.random.rand(
-        5,
-    )
-    z_ = (
-        np.random.rand(
-            5,
-        )
-        * 5
-    ).astype("int64")
-    m_ = np.random.rand(5, 5)
+    x_ = np.random.random((5,))
+    y_ = np.random.random((5,))
+    z_ = (np.random.random((5,)) * 5).astype("int64")
+    m_ = np.random.random((5, 5))
 
     # basic case
     f = function([x], aet.fill(x, x) * 2, mode=mode_opt)
@@ -3296,73 +1345,84 @@ def test_local_fill_useless():
 
 class TestLocalCanonicalizeAlloc:
     def setup_method(self):
-        self.rng = np.random.RandomState(utt.fetch_seed())
+        self.rng = np.random.default_rng(utt.fetch_seed())
 
-    @config.change_flags(compute_test_value="off")
-    def test_basic(self):
-        x = shared(self.rng.randn(3, 7))
+    def test_inconsistent_constant(self):
+        x = aet.as_tensor(self.rng.standard_normal((3, 7)))
         a = aet.alloc(x, 6, 7)
 
-        # It is a bad idea to have aet.alloc return x directly,
-        # because the shape mismatch cannot be caught.
+        assert a.owner and isinstance(a.owner.op, Alloc)
+
+        # with aesara.config.change_flags(optimizer_verbose=True):
+        with pytest.raises(AssertionError):
+            f = function([], a, mode=mode_opt)
+
+        x = aet.as_tensor(self.rng.standard_normal((6, 7)))
+        a = aet.alloc(x, 6, 7)
+
+        f = function([], a, mode=mode_opt)
+
+        # The optimization should then be applied, and remove Alloc
+        assert not any(
+            [isinstance(node.op, (Alloc, Assert)) for node in f.maker.fgraph.toposort()]
+        )
+
+    def test_inconsistent_shared(self):
+        # These shapes don't match!
+        x = shared(self.rng.standard_normal((3, 7)))
+        a = aet.alloc(x, 6, 7)
+
         assert a.owner and isinstance(a.owner.op, Alloc)
 
         f = function([], a, mode=mode_opt)
+
         # The optimization should then be applied, and remove Alloc
-        assert [node.op for node in f.maker.fgraph.toposort()] == [deep_copy_op]
+        assert not any(
+            [isinstance(node.op, Alloc) for node in f.maker.fgraph.toposort()]
+        )
+        assert any([isinstance(node.op, Assert) for node in f.maker.fgraph.toposort()])
 
-        # In DebugMode, the shape mismatch should be detected
-        if isinstance(mode_opt, DebugMode):
-            with pytest.raises(ValueError):
-                f
+        with pytest.raises(AssertionError):
+            f()
 
-        # No need to check_stack_trace as the optimization
-        # local_canonicalize_alloc only removes nodes.
+        good_x_val = self.rng.standard_normal((6, 7))
+        x.set_value(good_x_val)
 
-    def test_basic_1(self):
-        # Test that alloc never gets instantiated during optimization
-        mode = mode_opt.excluding("local_canonicalize_alloc")
+        assert np.array_equal(f(), good_x_val)
 
+    def test_basic_fill(self):
         x = matrix("x")
-        xx = aet.fill(x, x)
+        y = aet.fill(x, x)
 
         # The optimization 'locall_fill_to_alloc' should call aet.alloc,
         # which should return x and not alloc(x, ...)
-        f = function([x], [xx], mode=mode)
-        op_classes = [node.op.__class__ for node in f.maker.fgraph.toposort()]
-        assert Alloc not in op_classes
-
-        # No need to check_stack_trace as the optimization
-        # local_canonicalize_alloc only removes nodes.
-
-    def test_basic_2(self):
-        # Test that alloc never gets instantiated during optimization
         mode = mode_opt.excluding("local_canonicalize_alloc")
+        f = function([x], [y], mode=mode)
+        assert not any(
+            [isinstance(node.op, Alloc) for node in f.maker.fgraph.toposort()]
+        )
 
+    def test_basic_tile(self):
         x = matrix("x")
         y = aet.tile(x, (1,) * 2)
 
+        mode = mode_opt.including("local_canonicalize_alloc")
         f = function([x], [y], mode=mode)
-        op_classes = [node.op.__class__ for node in f.maker.fgraph.toposort()]
+        [node.op.__class__ for node in f.maker.fgraph.toposort()]
 
-        # We are supposed to test if tensr.Alloc is not in op_classes,
-        # but since the proper proper optimization is not currently
-        # implemented it will fail. Once the correct optimization is in place,
-        # we have to change the following we should not see Alloc
-        # in op_classes and we have to change the assert.
-        assert Alloc in op_classes
-        # The correct opt removes nodes, no need for check_stack_trace
+        assert not any(
+            [isinstance(node.op, Alloc) for node in f.maker.fgraph.toposort()]
+        )
 
     def test_useless_alloc_with_shape_one(self):
+        """
+        TODO FIXME: Remove/replace the string output comparisons.
+        """
         alloc_lift = out2in(local_canonicalize_alloc)
-        x = shared(
-            self.rng.randn(
-                2,
-            )
-        )
-        y = shared(self.rng.randn())
-        z = shared(self.rng.randn(1, 1))
-        w = shared(self.rng.randn(1, 1))
+        x = shared(self.rng.standard_normal((2,)))
+        y = shared(self.rng.standard_normal())
+        z = shared(self.rng.standard_normal((1, 1)))
+        w = shared(self.rng.standard_normal((1, 1)))
         alloc_x = aet.alloc(x, 1, 3, 2)
         alloc_y = aet.alloc(y, 1, 1)
         alloc_z = aet.alloc(z, 1, 1, 2)
@@ -3417,6 +1477,7 @@ class TestLocalUselessIncSubtensorAlloc:
         if mode == "FAST_COMPILE":
             mode = "FAST_RUN"
         self.mode = get_mode(mode)
+        self.rng = np.random.default_rng(utt.fetch_seed())
 
     def test_advanced_inc_subtensor(self):
         x = vector("x")
@@ -3437,9 +1498,9 @@ class TestLocalUselessIncSubtensorAlloc:
             len([n for n in f2.maker.fgraph.toposort() if isinstance(n.op, Alloc)]) == 0
         )
 
-        x_value = np.random.randn(5).astype(config.floatX)
-        y_value = np.random.randn()
-        i_value = np.random.randint(0, 3, size=(2, 3))
+        x_value = np.random.standard_normal((5)).astype(config.floatX)
+        y_value = np.random.standard_normal()
+        i_value = self.rng.integers(0, 3, size=(2, 3))
 
         r1 = f1(x_value, i_value, y_value)
         r2 = f2(x_value, i_value, y_value)
@@ -3447,8 +1508,8 @@ class TestLocalUselessIncSubtensorAlloc:
         utt.assert_allclose(r1, r2)
 
         # Check stacktrace was copied over correctly after opt was applied
-        assert check_stack_trace(f1, ops_to_check=AdvancedIncSubtensor)
-        assert check_stack_trace(f2, ops_to_check=AdvancedIncSubtensor)
+        assert check_stack_trace(f1, ops_to_check=AdvancedIncSubtensor1)
+        assert check_stack_trace(f2, ops_to_check=AdvancedIncSubtensor1)
 
     def test_advanced_inc_subtensor1(self):
         x = vector("x")
@@ -3469,9 +1530,9 @@ class TestLocalUselessIncSubtensorAlloc:
             len([n for n in f2.maker.fgraph.toposort() if isinstance(n.op, Alloc)]) == 0
         )
 
-        x_value = np.random.randn(5).astype(config.floatX)
-        y_value = np.random.randn()
-        i_value = np.random.randint(0, 3, size=2)
+        x_value = np.random.standard_normal((5)).astype(config.floatX)
+        y_value = np.random.standard_normal()
+        i_value = self.rng.integers(0, 3, size=2)
 
         r1 = f1(x_value, i_value, y_value)
         r2 = f2(x_value, i_value, y_value)
@@ -3501,8 +1562,8 @@ class TestLocalUselessIncSubtensorAlloc:
             len([n for n in f2.maker.fgraph.toposort() if isinstance(n.op, Alloc)]) == 0
         )
 
-        x_value = np.random.randn(5).astype(config.floatX)
-        y_value = np.random.randn()
+        x_value = np.random.standard_normal((5)).astype(config.floatX)
+        y_value = np.random.standard_normal()
         i_value = 3
 
         r1 = f1(x_value, i_value, y_value)
@@ -3516,9 +1577,6 @@ class TestLocalUselessIncSubtensorAlloc:
 
 
 class TestShapeOptimizer:
-    def setup_method(self):
-        utt.seed_rng()
-
     def test_basic(self):
         mode = config.mode
         if mode == "FAST_COMPILE":
@@ -3592,8 +1650,8 @@ class TestShapeOptimizer:
     def test_broadcasted_dims(self):
         # This test a case that caused a crash during optimization
         shp = (1, 1, 1, 1)
-        rng = np.random.RandomState(utt.fetch_seed())
-        a = shared(rng.rand(*shp).astype(config.floatX))
+        rng = np.random.default_rng(utt.fetch_seed())
+        a = shared(rng.random(shp).astype(config.floatX))
         out = self.max_pool_c01b(a, 1, 1, 1)
 
         # max_pool_c01b use -inf and this will trigger DebugMode error.
@@ -3655,13 +1713,13 @@ class TestShapeOptimizer:
                 return [identity_shape(node.inputs[0])]
 
         mode = get_default_mode().including("ShapeOpt", "specialize")
-        rng = np.random.RandomState(utt.fetch_seed())
+        rng = np.random.default_rng(utt.fetch_seed())
         x = tensor3("x")
         ins_x = identity_noshape(x)
 
         # Without the optimization
         f = function([x], ins_x.shape, mode=mode)
-        xval = rng.randn(3, 4, 7).astype(config.floatX)
+        xval = rng.standard_normal((3, 4, 7)).astype(config.floatX)
         assert np.all(f(xval) == [3, 4, 7])
         f_ops = [node.op for node in f.maker.fgraph.toposort()]
         assert len(f_ops) == 5
@@ -3676,7 +1734,7 @@ class TestShapeOptimizer:
         # The identity_shape op should not be needed anymore to compute
         # the shape
         g = function([x], ins_x.shape, mode=mode)
-        xval = rng.randn(6, 1, 2).astype(config.floatX)
+        xval = rng.standard_normal((6, 1, 2)).astype(config.floatX)
         assert np.all(g(xval) == [6, 1, 2])
         g_ops = [node.op for node in g.maker.fgraph.toposort()]
         assert len(g_ops) == 4
@@ -3686,7 +1744,7 @@ class TestShapeOptimizer:
         # test multiple level of op without infer_shape
         ins_x3 = identity_noshape(identity_noshape(identity_noshape(x)))
         h = function([x], ins_x3.shape, mode=mode)
-        xval = rng.randn(6, 1, 2).astype(config.floatX)
+        xval = rng.standard_normal((6, 1, 2)).astype(config.floatX)
         assert np.all(h(xval) == [6, 1, 2])
         h_ops = [node.op for node in h.maker.fgraph.toposort()]
         assert len(h_ops) == 4
@@ -3704,112 +1762,66 @@ class TestShapeOptimizer:
         f([[1, 2], [2, 3]])
 
 
-class TestAssert(utt.InferShapeTester):
-    def setup_method(self):
-        super().setup_method()
-
+class TestUselessCheckAndRaise:
     def test_basic(self):
+        mode = get_default_mode().including(
+            "canonicalize", "local_remove_useless_assert"
+        )
         x = scalar()
         y = scalar()
-        f = function([x, y], assert_op(x, eq(x, y)))
-        f(1, 1)
-        with pytest.raises(AssertionError):
-            f(1, 0)
-
-    def test_local_remove_useless_assert1(self):
-        # remove assert that are always true
-        mode = config.mode
-        if mode == "FAST_COMPILE":
-            mode = "FAST_RUN"
-        mode = get_mode(mode)
-
-        x = scalar()
-        f = function([x], assert_op(x, 1), mode=mode)
-        assert f(1) == 1
-        assert f(5) == 5
-        topo = f.maker.fgraph.toposort()
-        assert len(topo) == 1
-        assert topo[0].op == deep_copy_op
-
-    def test_test_local_remove_useless_assert2(self):
-        # remove assert condition that are always true
-        mode = config.mode
-        if mode == "FAST_COMPILE":
-            mode = "FAST_RUN"
-        mode = get_mode(mode)
-
-        x = scalar()
-        y = scalar()
-        f = function([x, y], assert_op(x, y, 1), mode=mode)
+        f = function([x, y], assert_op(x, eq(x, y)), mode=mode)
         assert f(1, 1) == 1
-        assert f(5, 1) == 5
-        topo = f.maker.fgraph.toposort()
-        assert len(topo) == 2
-        assert len(topo[0].inputs) == 2
-        assert topo[1].op == deep_copy_op
-
-    def test_local_remove_useless_assert3(self):
-        # don't remove assert condition that are always false
-        mode = config.mode
-        if mode == "FAST_COMPILE":
-            mode = "FAST_RUN"
-        mode = get_mode(mode)
-
-        x = scalar()
-        y = scalar()
-        f = function([x, y], assert_op(x, y, 0), mode=mode)
         with pytest.raises(AssertionError):
             f(1, 0)
-        topo = f.maker.fgraph.toposort()
-        assert len(topo) == 2
-        assert len(topo[0].inputs) == 3
-        assert topo[1].op == deep_copy_op
 
-    def test_local_remove_all_assert1(self):
-        # remove assert condition that are unknown
-        mode = config.mode
-        if mode == "FAST_COMPILE":
-            mode = "FAST_RUN"
-        mode = get_mode(mode).including("local_remove_all_assert")
+    def test_local_remove_useless_1(self):
+        """Remove `CheckAndRaise`s when all the conditions are always true."""
+        x = scalar()
+        fg = FunctionGraph(outputs=[assert_op(x, 1)], clone=False)
+        fg_res = optimize_graph(fg, include=["canonicalize", "specialize"])
+        topo = fg_res.toposort()
+        assert not any([isinstance(node.op, CheckAndRaise) for node in topo])
 
+    def test_local_remove_useless_2(self):
+        """Remove `CheckAndRaise` conditions that are always true."""
         x = scalar()
         y = scalar()
-        f = function([x, y], assert_op(x, y), mode=mode)
-        if isinstance(mode, DebugMode):
-            # DebugMode will run the original version with the Assert
-            with pytest.raises(AssertionError):
-                f(1, 0)
-        else:
-            f(1, 0)  # Without opt, it should fail.
-        topo = f.maker.fgraph.toposort()
-        assert len(topo) == 1, topo
-        assert topo[0].op == deep_copy_op, topo
+        fg = FunctionGraph(outputs=[assert_op(x, y, 1)], clone=False)
+        fg_res = optimize_graph(fg, include=["canonicalize", "specialize"])
+        topo = fg_res.toposort()
+        (assert_node,) = [node for node in topo if isinstance(node.op, CheckAndRaise)]
+        assert assert_node.inputs == [x, y]
 
-        mode = get_default_mode()
-        a = assert_op(x, eq(x, 0).any())
-        f = function([x], a, mode=mode.excluding("unsafe"))
-        topo = f.maker.fgraph.toposort()
-        a_op = [n for n in topo if isinstance(n.op, Assert)]
-        assert len(a_op) == 1
+    def test_local_remove_useless_3(self):
+        """Don't remove `CheckAndRaise` conditions that are always false."""
+        x = scalar()
+        y = scalar()
+        fg = FunctionGraph(outputs=[assert_op(x, y, 0)], clone=False)
+        fg_res = optimize_graph(fg, include=["canonicalize", "specialize"])
+        topo = fg_res.toposort()
+        (assert_node,) = [node for node in topo if isinstance(node.op, CheckAndRaise)]
+        assert assert_node.inputs[:2] == [x, y]
+        assert assert_node.inputs[-1].data == 0
 
-    def test_infer_shape(self):
 
-        adscal = dscalar()
-        bdscal = dscalar()
-        adscal_val = np.random.rand()
-        bdscal_val = np.random.rand() + 1
-        out = assert_op(adscal, bdscal)
-        self._compile_and_check(
-            [adscal, bdscal], [out], [adscal_val, bdscal_val], Assert
-        )
+def test_local_remove_all_assert():
+    r"""Remove all `Assert`\s."""
+    mode = get_default_mode().including("canonicalize", "local_remove_all_assert")
 
-        admat = dmatrix()
-        admat_val = np.random.rand(3, 4)
-        adscal_val += 1
-        out = assert_op(admat, adscal, bdscal)
-        self._compile_and_check(
-            [admat, adscal, bdscal], [out], [admat_val, adscal_val, bdscal_val], Assert
-        )
+    x = scalar()
+    y = scalar()
+    f = function([x, y], assert_op(x, y), mode=mode)
+    # Without the optimization, this would fail
+    assert f(1, 0) == 1
+    topo = f.maker.fgraph.toposort()
+    assert not any([isinstance(node.op, CheckAndRaise) for node in topo])
+
+    mode = get_default_mode()
+    a = assert_op(x, eq(x, 0).any())
+    f = function([x], a, mode=mode.excluding("unsafe"))
+    topo = f.maker.fgraph.toposort()
+    a_op = [n for n in topo if isinstance(n.op, Assert)]
+    assert len(a_op) == 1
 
 
 class TestTile:
@@ -3875,8 +1887,8 @@ class TestUselessElemwise:
         x = dmatrix()
         y = dmatrix()
         f = function([x, y], eq(x, y), mode=self.mode)
-        vx = np.random.rand(5, 4)
-        vy = np.random.rand(5, 4)
+        vx = np.random.random((5, 4))
+        vy = np.random.random((5, 4))
         f(vx, vy)
         topo = f.maker.fgraph.toposort()
         assert len(topo) == 1
@@ -3895,8 +1907,8 @@ class TestUselessElemwise:
         x = dmatrix()
         y = dmatrix()
         f = function([x, y], neq(x, y), mode=self.mode)
-        vx = np.random.rand(5, 4)
-        vy = np.random.rand(5, 4)
+        vx = np.random.random((5, 4))
+        vy = np.random.random((5, 4))
         f(vx, vy)
         topo = f.maker.fgraph.toposort()
         assert len(topo) == 1
@@ -3912,8 +1924,8 @@ class TestUselessElemwise:
         x = dmatrix()
         y = dmatrix()
         f = function([x], mul(x), mode=self.mode)
-        vx = np.random.rand(5, 4)
-        vy = np.random.rand(5, 4)
+        vx = np.random.random((5, 4))
+        vy = np.random.random((5, 4))
         f(vx)
         topo = f.maker.fgraph.toposort()
         assert len(topo) == 1
@@ -3929,8 +1941,8 @@ class TestUselessElemwise:
         x = dmatrix()
         y = dmatrix()
         f = function([x], add(x), mode=self.mode)
-        vx = np.random.rand(5, 4)
-        vy = np.random.rand(5, 4)
+        vx = np.random.random((5, 4))
+        vy = np.random.random((5, 4))
         f(vx)
         topo = f.maker.fgraph.toposort()
         assert len(topo) == 1
@@ -3947,7 +1959,7 @@ class TestUselessElemwise:
         # tensor_copy, and view
         x = matrix()
         f = function([x], aet.tensor_copy(x), mode=self.mode)
-        vx = np.random.rand(5, 4).astype(config.floatX)
+        vx = np.random.random((5, 4)).astype(config.floatX)
         f(vx)
         topo = f.maker.fgraph.toposort()
         assert len(topo) == 1
@@ -3963,7 +1975,7 @@ class TestCastCast:
         x = fmatrix()
         o = Elemwise(aes.Cast(aes.Scalar("float64")))(x.astype("float64"))
         f = function([x], o, mode=self.mode)
-        dx = np.random.rand(5, 4).astype("float32")
+        dx = np.random.random((5, 4)).astype("float32")
         f(dx)
         topo = f.maker.fgraph.toposort()
         assert len(topo) == 1
@@ -3972,7 +1984,7 @@ class TestCastCast:
         x = dmatrix()
         o = Elemwise(aes.Cast(aes.Scalar("float32")))(x.astype("float32"))
         f = function([x], o, mode=self.mode)
-        dx = np.random.rand(5, 4)
+        dx = np.random.random((5, 4))
         f(dx)
         topo = f.maker.fgraph.toposort()
         assert len(topo) == 1
@@ -3983,7 +1995,7 @@ class TestCastCast:
         x = fmatrix()
         o = Elemwise(aes.Cast(aes.Scalar("complex128")))(x.astype("complex64"))
         f = function([x], o, mode=self.mode)
-        dx = np.random.rand(5, 4).astype("float32")
+        dx = np.random.random((5, 4)).astype("float32")
         f(dx)
         topo = f.maker.fgraph.toposort()
         assert len(topo) == 1
@@ -3993,7 +2005,7 @@ class TestCastCast:
         x = fmatrix()
         o = Elemwise(aes.Cast(aes.Scalar("float32")))(x.astype("float64"))
         f = function([x], o, mode=self.mode)
-        dx = np.random.rand(5, 4).astype("float32")
+        dx = np.random.random((5, 4)).astype("float32")
         f(dx)
         topo = f.maker.fgraph.toposort()
         assert len(topo) == 1
@@ -4004,7 +2016,7 @@ class TestCastCast:
         x = dmatrix()
         o = Elemwise(aes.Cast(aes.Scalar("float64")))(x.astype("float32"))
         f = function([x], o, mode=self.mode)
-        dx = np.random.rand(5, 4)
+        dx = np.random.random((5, 4))
         f(dx)
         topo = f.maker.fgraph.toposort()
         assert (
@@ -4195,104 +2207,87 @@ class TestLocalUselessSwitch:
     def setup_method(self):
         self.mode = mode_opt.excluding("constant_folding")
 
-    def test_const_0(self):
-        for dtype1 in ["int32", "int64"]:
-            for dtype2 in ["int32", "int64"]:
-                x = matrix("x", dtype=dtype1)
-                y = matrix("y", dtype=dtype2)
-                z = aet.switch(0, x, y)
-                f = function([x, y], z, mode=self.mode)
-                assert (
-                    len(
-                        [
-                            node.op
-                            for node in f.maker.fgraph.toposort()
-                            if (
-                                isinstance(node.op, Elemwise)
-                                and isinstance(node.op.scalar_op, aes.basic.Switch)
-                            )
-                        ]
-                    )
-                    == 0
+    @pytest.mark.parametrize(
+        "dtype1",
+        ["int32", "int64"],
+    )
+    @pytest.mark.parametrize(
+        "dtype2",
+        ["int32", "int64"],
+    )
+    @pytest.mark.parametrize(
+        "cond",
+        [0, 1, np.array([True])],
+    )
+    def test_const(self, dtype1, dtype2, cond):
+        x = matrix("x", dtype=dtype1)
+        y = matrix("y", dtype=dtype2)
+        z = aet.switch(cond, x, y)
+        f = function([x, y], z, mode=self.mode)
+        assert not any(
+            [
+                node.op
+                for node in f.maker.fgraph.toposort()
+                if (
+                    isinstance(node.op, Elemwise)
+                    and isinstance(node.op.scalar_op, aes.basic.Switch)
                 )
-                vx = np.array([[1, 2, 3], [4, 5, 6]], dtype=dtype1)
-                vy = np.array([[7, 8, 9], [10, 11, 12]], dtype=dtype2)
-                np_res = np.where(0, vx, vy)
-                assert np.array_equal(f(vx, vy), np_res)
+            ]
+        )
+        vx = np.array([[1, 2, 3], [4, 5, 6]], dtype=dtype1)
+        vy = np.array([[7, 8, 9], [10, 11, 12]], dtype=dtype2)
+        np_res = np.where(cond, vx, vy)
+        assert np.array_equal(f(vx, vy), np_res)
 
-        res_non_bool_np = np.where(np.ones(10), 0, 1)
-        non_bool_graph = aet.switch(np.ones(10), 0, 1)
-        non_bool_fn = function([], non_bool_graph, mode=self.mode)
-        assert np.array_equal(non_bool_fn(), res_non_bool_np)
+    @pytest.mark.parametrize(
+        "dtype1",
+        ["int32", "int64"],
+    )
+    def test_left_is_right(self, dtype1):
+        x = matrix("x", dtype=dtype1)
+        varc = matrix("varc", dtype=dtype1)
+        z1 = aet.switch(1, x, x)
+        z0 = aet.switch(0, x, x)
+        z2 = aet.switch(varc, x, x)
+        f1 = function([x], z1, mode=self.mode)
+        f0 = function([x], z0, mode=self.mode)
+        f2 = function([x, varc], z2, mode=self.mode)
 
-    def test_const_1(self):
-        for dtype1 in ["int32", "int64"]:
-            for dtype2 in ["int32", "int64"]:
-                x = matrix("x", dtype=dtype1)
-                y = matrix("y", dtype=dtype2)
-                z = aet.switch(1, x, y)
-                f = function([x, y], z, mode=self.mode)
-                assert (
-                    len(
-                        [
-                            node.op
-                            for node in f.maker.fgraph.toposort()
-                            if (
-                                isinstance(node.op, Elemwise)
-                                and isinstance(node.op.scalar_op, aes.basic.Switch)
-                            )
-                        ]
-                    )
-                    == 0
-                )
-                vx = np.array([[1, 2, 3], [4, 5, 6]], dtype=dtype1)
-                vy = np.array([[7, 8, 9], [10, 11, 12]], dtype=dtype2)
-                np_res = np.where(1, vx, vy)
-                assert np.array_equal(f(vx, vy), np_res)
+        topo = f1.maker.fgraph.toposort()
+        assert len(topo) == 1
+        assert topo[0].op == deep_copy_op
 
-    def test_left_is_right(self):
-        for dtype1 in ["int32", "int64"]:
-            x = matrix("x", dtype=dtype1)
-            varc = matrix("varc", dtype=dtype1)
-            z1 = aet.switch(1, x, x)
-            z0 = aet.switch(0, x, x)
-            z2 = aet.switch(varc, x, x)
-            f1 = function([x], z1, mode=self.mode)
-            f0 = function([x], z0, mode=self.mode)
-            f2 = function([x, varc], z2, mode=self.mode)
+        topo = f0.maker.fgraph.toposort()
+        assert len(topo) == 1
+        assert topo[0].op == deep_copy_op
 
-            topo = f1.maker.fgraph.toposort()
-            assert len(topo) == 1
-            assert topo[0].op == deep_copy_op
+        topo = f2.maker.fgraph.toposort()
+        assert len(topo) == 1
+        assert topo[0].op == deep_copy_op
 
-            topo = f0.maker.fgraph.toposort()
-            assert len(topo) == 1
-            assert topo[0].op == deep_copy_op
+        vx = np.array([[1, 2, 3], [4, 5, 6]], dtype=dtype1)
+        vc = np.array([[1, 2, 3], [4, 5, 6]], dtype=dtype1)
+        assert np.array_equal(f1(vx), vx)
+        assert np.array_equal(f0(vx), vx)
+        assert np.array_equal(f2(vx, vc), vx)
 
-            topo = f2.maker.fgraph.toposort()
-            assert len(topo) == 1
-            assert topo[0].op == deep_copy_op
+    @pytest.mark.parametrize(
+        "dtype1",
+        ["float32", "float64"],
+    )
+    def test_shape_le_0(self, dtype1):
+        x = matrix("x", dtype=dtype1)
+        z0 = aet.switch(le(x.shape[0], 0), 0, x.shape[0])
+        f0 = function([x], z0, mode=self.mode)
+        assert isinstance(f0.maker.fgraph.toposort()[0].op, Shape_i)
 
-            vx = np.array([[1, 2, 3], [4, 5, 6]], dtype=dtype1)
-            vc = np.array([[1, 2, 3], [4, 5, 6]], dtype=dtype1)
-            assert np.array_equal(f1(vx), vx)
-            assert np.array_equal(f0(vx), vx)
-            assert np.array_equal(f2(vx, vc), vx)
+        z1 = aet.switch(le(x.shape[1], 0), 0, x.shape[1])
+        f1 = function([x], z1, mode=self.mode)
+        assert isinstance(f1.maker.fgraph.toposort()[0].op, Shape_i)
 
-    def test_shape_le_0(self):
-        for dtype1 in ["float32", "float64"]:
-            x = matrix("x", dtype=dtype1)
-            z0 = aet.switch(le(x.shape[0], 0), 0, x.shape[0])
-            f0 = function([x], z0, mode=self.mode)
-            assert isinstance(f0.maker.fgraph.toposort()[0].op, Shape_i)
-
-            z1 = aet.switch(le(x.shape[1], 0), 0, x.shape[1])
-            f1 = function([x], z1, mode=self.mode)
-            assert isinstance(f1.maker.fgraph.toposort()[0].op, Shape_i)
-
-            vx = np.random.randn(0, 5).astype(dtype1)
-            assert f0(vx) == 0
-            assert f1(vx) == 5
+        vx = np.random.standard_normal((0, 5)).astype(dtype1)
+        assert f0(vx) == 0
+        assert f1(vx) == 5
 
     def test_broadcasting_1(self):
         # test switch(cst, matrix, row)
@@ -4302,8 +2297,9 @@ class TestLocalUselessSwitch:
         z = aet.switch(1, x, y)
         f = function([x, y], z, mode=self.mode)
 
-        assert isinstance(f.maker.fgraph.outputs[0].owner.op, Elemwise)
-        assert isinstance(f.maker.fgraph.outputs[0].owner.op.scalar_op, aes.basic.Cast)
+        start_var = f.maker.fgraph.outputs[0].owner.inputs[0]
+        assert isinstance(start_var.owner.op, Elemwise)
+        assert isinstance(start_var.owner.op.scalar_op, aes.basic.Cast)
         assert not any(node.op == aet.switch for node in f.maker.fgraph.toposort())
 
         vx = np.array([[1, 2, 3], [4, 5, 6]], dtype="int32")
@@ -4367,13 +2363,9 @@ class TestLocalUselessSwitch:
 
 
 class TestLocalMergeSwitchSameCond:
-    def test_elemwise(self):
-        # float Ops
-        mats = matrices("cabxy")
-        c, a, b, x, y = mats
-        s1 = aet.switch(c, a, b)
-        s2 = aet.switch(c, x, y)
-        for op in (
+    @pytest.mark.parametrize(
+        "op",
+        [
             add,
             sub,
             mul,
@@ -4389,30 +2381,53 @@ class TestLocalMergeSwitchSameCond:
             eq,
             neq,
             aet_pow,
-        ):
-            g = optimize(FunctionGraph(mats, [op(s1, s2)]))
-            assert str(g).count("Switch") == 1
+        ],
+    )
+    def test_elemwise_float_ops(self, op):
+        # float Ops
+        mats = matrices("cabxy")
+        c, a, b, x, y = mats
+        s1 = aet.switch(c, a, b)
+        s2 = aet.switch(c, x, y)
+
+        g = optimize(FunctionGraph(mats, [op(s1, s2)]))
+        assert str(g).count("Switch") == 1
+
+    @pytest.mark.parametrize(
+        "op",
+        [
+            bitwise_and,
+            bitwise_or,
+            bitwise_xor,
+        ],
+    )
+    def test_elemwise_int_ops(self, op):
         # integer Ops
         mats = imatrices("cabxy")
         c, a, b, x, y = mats
         s1 = aet.switch(c, a, b)
         s2 = aet.switch(c, x, y)
-        for op in (
-            bitwise_and,
-            bitwise_or,
-            bitwise_xor,
-        ):
-            g = optimize(FunctionGraph(mats, [op(s1, s2)]))
-            assert str(g).count("Switch") == 1
+        g = optimize(FunctionGraph(mats, [op(s1, s2)]))
+        assert str(g).count("Switch") == 1
+
+    @pytest.mark.parametrize("op", [add, mul])
+    def test_elemwise_multi_inputs(self, op):
         # add/mul with more than two inputs
+        mats = imatrices("cabxy")
+        c, a, b, x, y = mats
+        s1 = aet.switch(c, a, b)
+        s2 = aet.switch(c, x, y)
         u, v = matrices("uv")
         s3 = aet.switch(c, u, v)
-        for op in (add, mul):
-            g = optimize(FunctionGraph(mats + [u, v], [op(s1, s2, s3)]))
-            assert str(g).count("Switch") == 1
+        g = optimize(FunctionGraph(mats + [u, v], [op(s1, s2, s3)]))
+        assert str(g).count("Switch") == 1
 
 
 class TestLocalOptAlloc:
+    """
+    TODO FIXME: These tests are incomplete; they need to `assert` something.
+    """
+
     dtype = "float32"
 
     def test_sum_upcast(self):
@@ -4449,19 +2464,17 @@ class TestLocalOptAllocF16(TestLocalOptAlloc):
 
 
 class TestMakeVector(utt.InferShapeTester):
+    b = bscalar()
+    i = iscalar()
+    d = dscalar()
+
     def setup_method(self):
+        self.rng = np.random.default_rng(utt.fetch_seed())
         super().setup_method()
 
-    def test_make_vector(self):
-        b = bscalar()
-        i = iscalar()
-        d = dscalar()
-
-        # TODO: draw random values instead. Not really important.
-        val = {b: 2, i: -3, d: 0.7}
-
-        # Should work
-        for (dtype, inputs) in [
+    @pytest.mark.parametrize(
+        "dtype, inputs",
+        [
             ("int8", (b, b)),
             ("int32", (i, b)),
             ("int32", (b, i)),
@@ -4470,56 +2483,63 @@ class TestMakeVector(utt.InferShapeTester):
             ("float64", (d, i)),
             ("float64", ()),
             ("int64", ()),
-        ]:
-            mv = MakeVector(dtype=dtype)(*inputs)
-            assert mv.dtype == dtype
-            f = function([b, i, d], mv, on_unused_input="ignore")
-            f(val[b], val[i], val[d])
+        ],
+    )
+    def test_make_vector(self, dtype, inputs):
+        b, i, d = self.b, self.i, self.d
 
-            s = mv.sum()
-            gb = aesara.gradient.grad(s, b, disconnected_inputs="ignore")
-            gi = aesara.gradient.grad(s, i, disconnected_inputs="ignore")
-            gd = aesara.gradient.grad(s, d, disconnected_inputs="ignore")
+        val = {b: 2, i: -3, d: 0.7}
 
-            g = function([b, i, d], [gb, gi, gd])
-            g_val = g(val[b], val[i], val[d])
+        mv = MakeVector(dtype=dtype)(*inputs)
+        assert mv.dtype == dtype
+        f = function([b, i, d], mv, on_unused_input="ignore")
+        f(val[b], val[i], val[d])
 
-            if dtype in int_dtypes:
-                # The gradient should be 0
-                utt.assert_allclose(g_val, 0)
-            else:
-                for var, grval in zip((b, i, d), g_val):
-                    float_inputs = []
-                    if var.dtype in int_dtypes:
-                        pass
-                        # Currently we don't do any checks on these variables
-                        # verify_grad doesn't support integer inputs yet
-                        # however, the gradient on them is *not* defined to
-                        # be 0
-                    elif var not in inputs:
-                        assert grval == 0
-                    else:
-                        float_inputs.append(var)
+        s = mv.sum()
+        gb = aesara.gradient.grad(s, b, disconnected_inputs="ignore")
+        gi = aesara.gradient.grad(s, i, disconnected_inputs="ignore")
+        gd = aesara.gradient.grad(s, d, disconnected_inputs="ignore")
 
-                # Build a function that takes float_inputs, use fix values for the
-                # other inputs, and returns the MakeVector. Use it for verify_grad.
-                if float_inputs:
+        g = function([b, i, d], [gb, gi, gd])
+        g_val = g(val[b], val[i], val[d])
 
-                    def fun(*fl_inputs):
-                        f_inputs = []
-                        for var in f_inputs:
-                            if var in fl_inputs:
-                                # use symbolic variable
-                                f_inputs.append(var)
-                            else:
-                                # use constant value
-                                f_inputs.append(val[var])
-                        return MakeVector(dtype=dtype)(*f_inputs)
+        if dtype in int_dtypes:
+            # The gradient should be 0
+            utt.assert_allclose(g_val, 0)
+        else:
+            for var, grval in zip((b, i, d), g_val):
+                float_inputs = []
+                if var.dtype in int_dtypes:
+                    pass
+                    # Currently we don't do any checks on these variables
+                    # verify_grad doesn't support integer inputs yet
+                    # however, the gradient on them is *not* defined to
+                    # be 0
+                elif var not in inputs:
+                    assert grval == 0
+                else:
+                    float_inputs.append(var)
 
-                    utt.verify_grad(fun, [val[ri] for ri in float_inputs])
+            # Build a function that takes float_inputs, use fix values for the
+            # other inputs, and returns the MakeVector. Use it for verify_grad.
+            if float_inputs:
 
-        # should fail
-        for (dtype, inputs) in [
+                def fun(*fl_inputs):
+                    f_inputs = []
+                    for var in f_inputs:
+                        if var in fl_inputs:
+                            # use symbolic variable
+                            f_inputs.append(var)
+                        else:
+                            # use constant value
+                            f_inputs.append(val[var])
+                    return MakeVector(dtype=dtype)(*f_inputs)
+
+                utt.verify_grad(fun, [val[ri] for ri in float_inputs])
+
+    @pytest.mark.parametrize(
+        "dtype, inputs",
+        [
             ("int8", (b, i)),
             ("int8", (i, b)),
             ("int8", (b, d)),
@@ -4527,12 +2547,11 @@ class TestMakeVector(utt.InferShapeTester):
             ("int32", (d, i)),
             ("int32", (i, d)),
             ("float32", (i, d)),
-        ]:
-            try:
-                MakeVector(dtype=dtype)(*inputs)
-                raise Exception("Aesara should have raised an error")
-            except AssertionError:
-                pass
+        ],
+    )
+    def test_make_vector_fail(self, dtype, inputs):
+        with pytest.raises(AssertionError):
+            MakeVector(dtype=dtype)(*inputs)
 
     def test_infer_shape(self):
         adscal = dscalar()
@@ -4541,12 +2560,12 @@ class TestMakeVector(utt.InferShapeTester):
         biscal = iscalar()
         ciscal = iscalar()
         discal = iscalar()
-        adscal_val = np.random.rand()
-        bdscal_val = np.random.rand()
-        aiscal_val = np.random.randint(10)
-        biscal_val = np.random.randint(10)
-        ciscal_val = np.random.randint(10)
-        discal_val = np.random.randint(10)
+        adscal_val = np.random.random()
+        bdscal_val = np.random.random()
+        aiscal_val = self.rng.integers(10)
+        biscal_val = self.rng.integers(10)
+        ciscal_val = self.rng.integers(10)
+        discal_val = self.rng.integers(10)
         self._compile_and_check(
             [adscal, aiscal],
             [MakeVector("float64")(adscal, aiscal)],
@@ -4701,8 +2720,9 @@ def test_local_join_make_vector():
     assert check_stack_trace(f, ops_to_check="all")
 
 
-def test_local_tensor_scalar_tensor():
-    dtypes = [
+@pytest.mark.parametrize(
+    "dtype",
+    [
         "int8",
         "int16",
         "int32",
@@ -4715,25 +2735,24 @@ def test_local_tensor_scalar_tensor():
         "float64",
         "complex64",
         "complex128",
-    ]
+    ],
+)
+def test_local_tensor_scalar_tensor(dtype):
+    t_type = TensorType(dtype=dtype, broadcastable=())
+    t = t_type()
+    s = aet.scalar_from_tensor(t)
+    t2 = aet.tensor_from_scalar(s)
 
-    for dtype in dtypes:
-        t_type = TensorType(dtype=dtype, broadcastable=())
-        t = t_type()
-        s = aet.scalar_from_tensor(t)
-        t2 = aet.tensor_from_scalar(s)
-
-        f = function([t], t2, mode=mode_opt)
-        e = f.maker.fgraph.toposort()
-        cast_nodes = [
-            n for n in e if isinstance(n.op, (TensorFromScalar, ScalarFromTensor))
-        ]
-        assert len(cast_nodes) == 0
-        f(0)
+    f = function([t], t2, mode=mode_opt)
+    e = f.maker.fgraph.toposort()
+    assert not any(
+        [n for n in e if isinstance(n.op, (TensorFromScalar, ScalarFromTensor))]
+    )
 
 
-def test_local_scalar_tensor_scalar():
-    dtypes = [
+@pytest.mark.parametrize(
+    "dtype",
+    [
         "int8",
         "int16",
         "int32",
@@ -4746,21 +2765,19 @@ def test_local_scalar_tensor_scalar():
         "float64",
         "complex64",
         "complex128",
-    ]
+    ],
+)
+def test_local_scalar_tensor_scalar(dtype):
+    s_type = aes.Scalar(dtype=dtype)
+    s = s_type()
+    t = aet.tensor_from_scalar(s)
+    s2 = aet.scalar_from_tensor(t)
 
-    for dtype in dtypes:
-        s_type = aes.Scalar(dtype=dtype)
-        s = s_type()
-        t = aet.tensor_from_scalar(s)
-        s2 = aet.scalar_from_tensor(t)
-
-        f = function([s], s2, mode=mode_opt)
-        e = f.maker.fgraph.toposort()
-        cast_nodes = [
-            n for n in e if isinstance(n.op, (TensorFromScalar, ScalarFromTensor))
-        ]
-        assert len(cast_nodes) == 0
-        f(0)
+    f = function([s], s2, mode=mode_opt)
+    e = f.maker.fgraph.toposort()
+    assert not any(
+        [n for n in e if isinstance(n.op, (TensorFromScalar, ScalarFromTensor))]
+    )
 
 
 def test_local_useless_split():
@@ -4773,8 +2790,8 @@ def test_local_useless_split():
     f_opt = function([x, splits], opt, mode=mode)
     f_nonopt = function([x, splits], nonopt, mode=mode)
 
-    f_opt(np.random.rand(4, 4).astype(config.floatX), [4])
-    f_nonopt(np.random.rand(4, 4).astype(config.floatX), [1, 2, 1])
+    f_opt(np.random.random((4, 4)).astype(config.floatX), [4])
+    f_nonopt(np.random.random((4, 4)).astype(config.floatX), [1, 2, 1])
     graph_opt = f_opt.maker.fgraph.toposort()
     graph_nonopt = f_nonopt.maker.fgraph.toposort()
 
@@ -4786,25 +2803,23 @@ def test_local_useless_split():
     assert check_stack_trace(f_nonopt, ops_to_check="all")
 
 
-def test_local_flatten_lift():
-    for i in range(1, 4):
-        x = tensor4()
-        out = aet.flatten(exp(x), i)
-        assert out.ndim == i
-        mode = get_default_mode()
-        mode = mode.including("local_reshape_lift")
-        f = function([x], out, mode=mode)
-        x_np = np.random.rand(5, 4, 3, 2).astype(config.floatX)
-        out_np = f(x_np)
-        topo = f.maker.fgraph.toposort()
-        shape_out_np = tuple(x_np.shape[: i - 1]) + (np.prod(x_np.shape[i - 1 :]),)
-        assert shape_out_np == out_np.shape
+@pytest.mark.parametrize("i", list(range(1, 4)))
+def test_local_flatten_lift(i):
+    x = tensor4()
+    out = aet.flatten(exp(x), i)
+    assert out.ndim == i
+    mode = get_default_mode()
+    mode = mode.including("local_reshape_lift")
+    f = function([x], out, mode=mode)
+    x_np = np.random.random((5, 4, 3, 2)).astype(config.floatX)
+    out_np = f(x_np)
+    topo = f.maker.fgraph.toposort()
+    shape_out_np = tuple(x_np.shape[: i - 1]) + (np.prod(x_np.shape[i - 1 :]),)
+    assert shape_out_np == out_np.shape
 
-        reshape_nodes = [n for n in topo if isinstance(n.op, Reshape)]
-        assert len(reshape_nodes) == 1 and aet.is_flat(
-            reshape_nodes[0].outputs[0], ndim=i
-        )
-        assert isinstance(topo[-1].op, Elemwise)
+    reshape_nodes = [n for n in topo if isinstance(n.op, Reshape)]
+    assert len(reshape_nodes) == 1 and aet.is_flat(reshape_nodes[0].outputs[0], ndim=i)
+    assert isinstance(topo[-1].op, Elemwise)
 
 
 class TestReshape:
@@ -4826,7 +2841,7 @@ class TestReshape:
 
 class TestLocalUselessReshape:
     def setup_method(self):
-        self.rng = np.random.RandomState(utt.fetch_seed())
+        self.rng = np.random.default_rng(utt.fetch_seed())
 
     def test_0(self):
         mode = get_default_mode().including("local_useless_reshape")
@@ -4889,17 +2904,13 @@ class TestLocalUselessReshape:
 
 class TestLocalReshapeToDimshuffle:
     def setup_method(self):
-        self.rng = np.random.RandomState(utt.fetch_seed())
+        self.rng = np.random.default_rng(utt.fetch_seed())
 
     def test_1(self):
         reshape_lift = out2in(local_reshape_to_dimshuffle)
         useless_reshape = out2in(local_useless_reshape)
-        x = shared(
-            self.rng.randn(
-                4,
-            )
-        )
-        y = shared(self.rng.randn(5, 6))
+        x = shared(self.rng.standard_normal((4,)))
+        y = shared(self.rng.standard_normal((5, 6)))
         reshape_x = reshape(x, (1, 4))
         reshape_y = reshape(y, (1, 5, 1, 6, 1, 1))
 
@@ -4934,7 +2945,7 @@ def test_local_reshape_lift():
     mode = get_default_mode()
     mode = mode.including("local_reshape_lift")
     f = function([x], out, mode=mode)
-    f(np.random.rand(5, 4, 3, 2).astype(config.floatX))
+    f(np.random.random((5, 4, 3, 2)).astype(config.floatX))
     topo = f.maker.fgraph.toposort()
     assert isinstance(topo[-2].op, Reshape)
     assert isinstance(topo[-1].op, Elemwise)
@@ -4999,15 +3010,16 @@ class TestShapeI(utt.InferShapeTester):
         super().setup_method()
 
     def test_perform(self):
+        rng = np.random.default_rng(utt.fetch_seed())
 
         advec = vector()
-        advec_val = np.random.rand(3).astype(config.floatX)
+        advec_val = rng.random((3)).astype(config.floatX)
         f = function([advec], Shape_i(0)(advec))
         out = f(advec_val)
         utt.assert_allclose(out, advec_val.shape[0])
 
         admat = matrix()
-        admat_val = np.random.rand(4, 3).astype(config.floatX)
+        admat_val = rng.random((4, 3)).astype(config.floatX)
         for i in range(2):
             f = function([admat], Shape_i(i)(admat))
             out = f(admat_val)
@@ -5015,7 +3027,7 @@ class TestShapeI(utt.InferShapeTester):
 
     def test_infer_shape(self):
         admat = matrix()
-        admat_val = np.random.rand(3, 4).astype(config.floatX)
+        admat_val = np.random.random((3, 4)).astype(config.floatX)
         self._compile_and_check([admat], [Shape_i(0)(admat)], [admat_val], Shape_i)
 
         self._compile_and_check([admat], [Shape_i(1)(admat)], [admat_val], Shape_i)
@@ -5073,6 +3085,50 @@ class TestShapeFeature:
             shape_feature.same_shape(x, o, 1, 0)
         with pytest.raises(IndexError):
             shape_feature.same_shape(x, o, 0, 1)
+
+
+@pytest.mark.parametrize(
+    "shape",
+    [lscalar(), iscalar()],
+)
+def test_local_Shape_of_SpecifyShape(shape):
+    x = vector()
+    s = specify_shape(x, shape).shape
+
+    fgraph = FunctionGraph(outputs=[s], clone=False)
+    _ = optimize_graph(fgraph, clone=False)
+
+    assert x not in fgraph.variables
+    assert shape in fgraph.variables
+
+
+def test_local_Shape_i_of_broadcastable():
+    x = tensor(np.float64, [False, True])
+    s = Shape_i(1)(x)
+
+    fgraph = FunctionGraph(outputs=[s], clone=False)
+    _ = optimize_graph(fgraph, clone=False)
+
+    assert x not in fgraph.variables
+    assert fgraph.outputs[0].data == 1
+
+    # A test for a non-`TensorType`
+    class MyType(Type):
+        def filter(self, *args, **kwargs):
+            raise NotImplementedError()
+
+        def __eq__(self, other):
+            return isinstance(other, MyType) and other.thingy == self.thingy
+
+    class MyVariable(Variable):
+        ndim = 1
+
+    x = MyVariable(MyType(), None, None)
+    s = Shape_i(0)(x)
+    fgraph = FunctionGraph(outputs=[s], clone=False)
+    _ = optimize_graph(fgraph, clone=False)
+
+    assert fgraph.outputs[0] == s
 
 
 def test_assert_op_gradient():
@@ -5200,3 +3256,317 @@ def test_apply_rebroadcast_opt():
 
     res = apply_rebroadcast_opt(rval)
     assert res is rval
+
+
+@pytest.mark.parametrize("return_index", [False])
+@pytest.mark.parametrize("return_counts", [False])
+@pytest.mark.parametrize("return_inverse", [False])
+def test_local_Unique_scalar(return_index, return_counts, return_inverse):
+    x = dscalar()
+    y = unique(
+        x,
+        return_index=return_index,
+        return_counts=return_counts,
+        return_inverse=return_inverse,
+        axis=None,
+    )
+
+    y_fg = FunctionGraph(outputs=[y], copy_inputs=False)
+    y_opt_fg = optimize_graph(
+        y_fg, clone=False, include=["canonicalize", "local_Unique_scalar"]
+    )
+    y_opt = y_opt_fg.outputs[0]
+    y_opt_start = y_opt
+
+    if isinstance(y_opt.owner.op, Rebroadcast):
+        y_opt_start = y_opt.owner.inputs[0]
+
+    assert isinstance(y_opt_start.owner.op, DimShuffle)
+    assert y_opt_start.owner.inputs[0] == x
+
+    default_mode = get_default_mode()
+    opt_mode = default_mode.excluding("local_Unique_scalar")
+    y_fn = function([x], [y, y_opt], mode=opt_mode)
+
+    x_val = np.array(-10.0, dtype=np.float64)
+    y_exp_val, y_val = y_fn(x_val)
+    assert np.array_equal(y_exp_val, y_val)
+
+
+@pytest.mark.parametrize(
+    "x_val, axis, new_shape",
+    [
+        (np.array(-10, dtype=np.int64), None, ()),
+        (np.array(-10, dtype=np.int64), None, (2, 3)),
+        (np.array([[-10, -3], [-10, 2], [-10, 2]], dtype=np.int64), None, (2, 3, 2)),
+    ],
+)
+@pytest.mark.parametrize("return_index", [False])
+@pytest.mark.parametrize("return_counts", [False])
+@pytest.mark.parametrize("return_inverse", [False])
+def test_local_Unique_Alloc_lift(
+    x_val, axis, new_shape, return_index, return_counts, return_inverse
+):
+    x = as_tensor_variable(x_val).type()
+    y = unique(
+        alloc(x, *new_shape),
+        return_index=return_index,
+        return_counts=return_counts,
+        return_inverse=return_inverse,
+        axis=axis,
+    )
+
+    if isinstance(y, list):
+        y, *_ = y
+
+    # This approach allows us to directly confirm that `x` is in the result.
+    y_fg = FunctionGraph(outputs=[y], copy_inputs=False)
+    y_opt_fg = optimize_graph(
+        y_fg,
+        clone=False,
+        include=["canonicalize", "local_Unique_Alloc_lift"],
+        exclude=["local_Unique_scalar"],
+    )
+    y_opt = y_opt_fg.outputs[0]
+    y_opt_start = y_opt
+
+    # Ignore any initial `Rebroadcast`s (they serve to
+    # make the replacement match the original type)
+    if isinstance(y_opt.owner.op, Rebroadcast):
+        y_opt_start = y_opt.owner.inputs[0]
+
+    assert isinstance(y_opt_start.owner.op, Unique)
+    assert y_opt_start.owner.inputs[0] == x
+    assert not any(isinstance(node.op, Alloc) for node in y_opt_fg.apply_nodes)
+
+    default_mode = get_default_mode()
+    # The optimization has already been applied to `y_opt`, so we can--and
+    # should--exclude it from the compilation of both our reference, `y`, and
+    # the optimized result, `y_opt`.
+    # The remaining exclusions simply allow us to perform the check below that
+    # makes sure the original `Alloc` is present in our reference (sub)graph.
+    opt_mode = default_mode.excluding(
+        "local_useless_alloc", "local_canonicalize_alloc", "local_Unique_Alloc_lift"
+    )
+    y_fn = function([x], [y, y_opt], mode=opt_mode)
+    # Make sure that the original `Alloc` is used to compute the reference `y`
+    # result
+    assert any(isinstance(node.op, Alloc) for node in y_fn.maker.fgraph.apply_nodes)
+
+    y_exp_val, y_val = y_fn(x_val)
+    assert np.array_equal(y_exp_val, y_val)
+
+
+@pytest.mark.parametrize(
+    "x_val, axis, new_shape",
+    [
+        (np.array(-10, dtype=np.int64), None, ()),
+        (np.array(-10, dtype=np.int64), None, (2, 3)),
+        (np.array([[-10, -3], [-10, 2], [-10, 2]], dtype=np.int64), None, (2, 3, 2)),
+    ],
+)
+@pytest.mark.parametrize("return_index", [False])
+@pytest.mark.parametrize("return_counts", [False])
+@pytest.mark.parametrize("return_inverse", [False])
+def test_local_Unique_BroadcastTo(
+    x_val, axis, new_shape, return_index, return_counts, return_inverse
+):
+    x = as_tensor_variable(x_val).type()
+    y = unique(
+        broadcast_to(x, tuple(new_shape)),
+        return_index=return_index,
+        return_counts=return_counts,
+        return_inverse=return_inverse,
+        axis=axis,
+    )
+
+    if isinstance(y, list):
+        y, *_ = y
+
+    # This approach allows us to directly confirm that `x` is in the result.
+    y_fg = FunctionGraph(outputs=[y], copy_inputs=False)
+    y_opt_fg = optimize_graph(
+        y_fg,
+        clone=False,
+        include=["canonicalize", "local_Unique_BroadcastTo_lift"],
+        exclude=["local_Unique_scalar"],
+    )
+    y_opt = y_opt_fg.outputs[0]
+    y_opt_start = y_opt
+
+    # Ignore any initial `Rebroadcast`s (they serve to
+    # make the replacement match the original type)
+    if isinstance(y_opt.owner.op, Rebroadcast):
+        y_opt_start = y_opt.owner.inputs[0]
+
+    assert isinstance(y_opt_start.owner.op, Unique)
+    assert y_opt_start.owner.inputs[0] == x
+    assert not any(isinstance(node.op, BroadcastTo) for node in y_opt_fg.apply_nodes)
+
+    default_mode = get_default_mode()
+    # The optimization has already been applied to `y_opt`, so we can--and
+    # should--exclude it from the compilation of both our reference, `y`, and
+    # the optimized result, `y_opt`.
+    opt_mode = default_mode.excluding("local_Unique_BroadcastTo_lift")
+    y_fn = function([x], [y, y_opt], mode=opt_mode)
+    # Make sure that the original `BroadcastTo` is used to compute the
+    # reference `y` result
+    assert any(
+        isinstance(node.op, BroadcastTo) for node in y_fn.maker.fgraph.apply_nodes
+    )
+
+    y_exp_val, y_val = y_fn(x_val)
+    assert np.array_equal(y_exp_val, y_val)
+
+
+@pytest.mark.parametrize(
+    "x_val, unique_axis, repeats, repeat_axis",
+    [
+        (np.array([[-10, -3], [-10, 2]], dtype=np.int64), None, (1, 2), 0),
+    ],
+)
+@pytest.mark.parametrize("return_index", [False])
+@pytest.mark.parametrize("return_counts", [False])
+@pytest.mark.parametrize("return_inverse", [False])
+def test_local_Unique_Repeat(
+    x_val,
+    unique_axis,
+    repeats,
+    repeat_axis,
+    return_index,
+    return_counts,
+    return_inverse,
+):
+    x = as_tensor_variable(x_val).type()
+    y = unique(
+        repeat(x, tuple(repeats), axis=repeat_axis),
+        return_index=return_index,
+        return_counts=return_counts,
+        return_inverse=return_inverse,
+        axis=unique_axis,
+    )
+
+    if isinstance(y, list):
+        y, *_ = y
+
+    # This approach allows us to directly confirm that `x` is in the result.
+    y_fg = FunctionGraph(outputs=[y], copy_inputs=False)
+    y_opt_fg = optimize_graph(
+        y_fg,
+        clone=False,
+        include=["canonicalize", "local_Unique_Repeat_lift"],
+        exclude=["local_Unique_scalar"],
+    )
+    y_opt = y_opt_fg.outputs[0]
+    y_opt_start = y_opt
+
+    # Ignore any initial `Rebroadcast`s (they serve to
+    # make the replacement match the original type)
+    if isinstance(y_opt.owner.op, Rebroadcast):
+        y_opt_start = y_opt.owner.inputs[0]
+
+    assert isinstance(y_opt_start.owner.op, Unique)
+    assert y_opt_start.owner.inputs[0] == x
+    assert not any(isinstance(node.op, Repeat) for node in y_opt_fg.apply_nodes)
+
+    default_mode = get_default_mode()
+    # The optimization has already been applied to `y_opt`, so we can--and
+    # should--exclude it from the compilation of both our reference, `y`, and
+    # the optimized result, `y_opt`.
+    opt_mode = default_mode.excluding("local_Unique_Repeat_lift")
+    y_fn = function([x], [y, y_opt], mode=opt_mode)
+    # Make sure that the original `BroadcastTo` is used to compute the
+    # reference `y` result
+    assert any(isinstance(node.op, Repeat) for node in y_fn.maker.fgraph.apply_nodes)
+
+    y_exp_val, y_val = y_fn(x_val)
+    assert np.array_equal(y_exp_val, y_val)
+
+
+@pytest.mark.parametrize(
+    "x_val, unique_axis, new_shape",
+    [
+        (np.array(-10, dtype=np.int64), None, ()),
+        (np.array(-10, dtype=np.int64), None, (2, 3)),
+        (np.array([[-10, -3], [-10, 2], [-10, 2]], dtype=np.int64), None, (2, 3, 2)),
+    ],
+)
+@pytest.mark.parametrize("return_index", [False])
+@pytest.mark.parametrize("return_counts", [False])
+@pytest.mark.parametrize("return_inverse", [False])
+def test_local_Unique_second(
+    x_val, unique_axis, new_shape, return_index, return_counts, return_inverse
+):
+    x = as_tensor_variable(x_val).type()
+    a = np.zeros(tuple(new_shape), dtype=x.dtype)
+    y = unique(
+        second(a, x),
+        return_index=return_index,
+        return_counts=return_counts,
+        return_inverse=return_inverse,
+        axis=unique_axis,
+    )
+
+    if isinstance(y, list):
+        y, *_ = y
+
+    # This approach allows us to directly confirm that `x` is in the result.
+    y_fg = FunctionGraph(outputs=[y], copy_inputs=False)
+    y_opt_fg = optimize_graph(
+        y_fg,
+        clone=False,
+        include=["canonicalize", "local_Unique_second_lift"],
+        exclude=["local_Unique_scalar", "topo_constant_folding"],
+    )
+    y_opt = y_opt_fg.outputs[0]
+    y_opt_start = y_opt
+
+    # Ignore any initial `Rebroadcast`s (they serve to
+    # make the replacement match the original type)
+    if y_opt.owner and isinstance(y_opt.owner.op, Rebroadcast):
+        y_opt_start = y_opt.owner.inputs[0]
+
+    assert isinstance(y_opt_start.owner.op, Unique)
+
+    y_opt_start = y_opt_start.owner.inputs[0]
+
+    if y_opt_start.owner and isinstance(y_opt_start.owner.op, DimShuffle):
+        y_opt_start = y_opt_start.owner.inputs[0]
+
+    assert y_opt_start == x
+    assert not any(
+        isinstance(node.op.scalar_op, aes.Second)
+        for node in y_opt_fg.apply_nodes
+        if isinstance(node.op, Elemwise)
+    )
+
+    # The optimization has already been applied to `y_opt`, so we can--and
+    # should--exclude it from the compilation of both our reference, `y`, and
+    # the optimized result, `y_opt`.
+    y_fn = function([x], [y, y_opt], mode=Mode(optimizer=OPT_NONE))
+
+    # Make sure that the original `BroadcastTo` is used to compute the
+    # reference `y` result
+    assert any(
+        isinstance(node.op.scalar_op, aes.Second)
+        for node in y_fn.maker.fgraph.apply_nodes
+        if isinstance(node.op, Elemwise)
+    )
+
+    y_exp_val, y_val = y_fn(x_val)
+    assert np.array_equal(y_exp_val, y_val)
+
+
+def test_local_useless_SpecifyShape():
+    x = matrix()
+    s = aet.as_tensor([iscalar(), iscalar()])
+    y = specify_shape(specify_shape(x, s), s)
+
+    y_fg = FunctionGraph(outputs=[y], copy_inputs=False)
+    y_opt_fg = optimize_graph(
+        y_fg, clone=False, include=["canonicalize", "local_useless_SpecifyShape"]
+    )
+    y_opt = y_opt_fg.outputs[0]
+
+    assert isinstance(y_opt.owner.op, SpecifyShape)
+    assert y_opt.owner.inputs[0] == x

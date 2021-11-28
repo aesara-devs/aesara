@@ -30,9 +30,10 @@ from aesara.graph.basic import (
     vars_between,
 )
 from aesara.graph.destroyhandler import DestroyHandler
+from aesara.graph.features import PreserveVariableAttributes
 from aesara.graph.fg import FunctionGraph, InconsistencyError
-from aesara.graph.op import ops_with_inner_function
-from aesara.graph.toolbox import PreserveVariableAttributes, is_same_graph
+from aesara.graph.op import HasInnerGraph
+from aesara.graph.opt_utils import is_same_graph
 from aesara.graph.utils import get_variable_trace_string
 from aesara.link.basic import Container
 from aesara.link.utils import raise_with_op
@@ -57,8 +58,8 @@ def alias_root(v):
     """
     if v.owner is None:
         return v
-    vmap = getattr(v.owner.op, "view_map", {})
-    dmap = getattr(v.owner.op, "destroy_map", {})
+    vmap = v.owner.op.view_map
+    dmap = v.owner.op.destroy_map
     outpos = v.owner.outputs.index(v)
     v_views = vmap.get(outpos, []) + dmap.get(outpos, [])
     if len(v_views) > 1:
@@ -83,8 +84,8 @@ def view_tree_set(fgraph, v, treeset):
     for cl, v_input_pos_to_cl in fgraph.clients[v]:
         if cl == "output":
             continue
-        vmap = getattr(cl.op, "view_map", {})
-        dmap = getattr(cl.op, "destroy_map", {})
+        vmap = cl.op.view_map
+        dmap = cl.op.destroy_map
         for opos, iposlist in chain(vmap.items(), dmap.items()):
             if v_input_pos_to_cl in iposlist:
                 if cl.outputs[opos] not in treeset:
@@ -145,13 +146,13 @@ class Supervisor:
     def validate(self, fgraph):
         if config.cycle_detection == "fast" and hasattr(fgraph, "has_destroyers"):
             if fgraph.has_destroyers(self.protected):
-                raise InconsistencyError("Trying to destroy a protected" "Variable.")
+                raise InconsistencyError("Trying to destroy protected variables.")
             return True
         if not hasattr(fgraph, "destroyers"):
             return True
         for r in self.protected + list(fgraph.outputs):
             if fgraph.destroyers(r):
-                raise InconsistencyError("Trying to destroy a protected" "Variable.", r)
+                raise InconsistencyError(f"Trying to destroy a protected variable: {r}")
 
 
 def std_fgraph(input_specs, output_specs, accept_inplace=False):
@@ -189,7 +190,7 @@ def std_fgraph(input_specs, output_specs, accept_inplace=False):
     fgraph = FunctionGraph(orig_inputs, orig_outputs, update_mapping=update_mapping)
 
     for node in fgraph.apply_nodes:
-        if getattr(node.op, "destroy_map", None):
+        if node.op.destroy_map:
             if not accept_inplace:
                 raise TypeError(
                     "Graph must not contain inplace operations", node, node.op
@@ -281,7 +282,7 @@ class Function:
     Meaningful settings are: 'ignore', 'warn', 'raise'.
 
     If the value is 'warn', then a message will be printed to stderr
-    if aliased storage is dectected during pickle.dump.
+    if aliased storage is detected during pickle.dump.
 
     If the value is 'raise', then an AliasedMemoryError will be raised
     if aliased storage is detected during pickle.dump.
@@ -454,7 +455,7 @@ class Function:
                         # stored in the container, since the container is
                         # shared.
                         # For safety, we make sure 'refeed' is False, since
-                        # there is no need to refeed the defaullt value.
+                        # there is no need to refeed the default value.
                         assert not refeed
                     else:
                         c.value = value
@@ -547,7 +548,7 @@ class Function:
                 self.n_returned_outputs -= 1
 
         for node in self.maker.fgraph.apply_nodes:
-            if node.op in ops_with_inner_function:
+            if isinstance(node.op, HasInnerGraph):
                 self.nodes_with_inner_function.append(node.op)
 
     def __contains__(self, item):
@@ -780,7 +781,7 @@ class Function:
             container = f_cpy.finder.pop(in_cpy.variable)
             if not swapped:
                 f_cpy.finder[in_ori.variable] = container
-                in_cpy.vairable = in_ori.variable
+                in_cpy.variable = in_ori.variable
             else:
                 f_cpy.finder[swap[in_ori.variable]] = container
                 in_cpy.variable = swap[in_ori.variable]
@@ -1098,7 +1099,8 @@ class Function:
                     self.fn.storage_map[key][0] = None
 
             for node in self.nodes_with_inner_function:
-                ops_with_inner_function[node.op].free()
+                if hasattr(node.fn, "free"):
+                    node.fn.free()
 
     def get_shared(self):
         """
@@ -1469,7 +1471,7 @@ class FunctionMaker:
                             )
                         )
 
-                        # hack to remove inconstent entry in givens
+                        # hack to remove inconsistent entry in givens
                         # seems to work that but source of inconsistency
                         # could be worth investigating.
                         for key, value in temp.items():
@@ -1527,8 +1529,8 @@ class FunctionMaker:
         output_keys=None,
         name=None,
     ):
-        # Save the provided mode, not the instanciated mode.
-        # The instanciated mode don't pickle and if we unpickle an Aesara
+        # Save the provided mode, not the instantiated mode.
+        # The instantiated mode don't pickle and if we unpickle an Aesara
         # function and it get re-compiled, we want the current optimizer to be
         # used, not the optimizer when it was saved.
         self.mode = mode
@@ -1540,7 +1542,7 @@ class FunctionMaker:
         self.profile = profile
         if profile:
             # This is very important:
-            # 1) We preload the cache here to don't have its timming
+            # 1) We preload the cache here to not have its timing
             #    included in optimization that compile function.
             # 2) Do not refresh the cache here by default. It cause
             #    too much execution time during testing as we compile

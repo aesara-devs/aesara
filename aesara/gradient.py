@@ -171,7 +171,7 @@ def Rop(f, wrt, eval_points, disconnected_outputs="raise", return_disconnected="
         variables for which you compute the R operator of the expression
         described by `f`
     eval_points : :class:`~aesara.graph.basic.Variable` or list of Variables
-        evalutation points for each of the variables in `wrt`
+        evaluation points for each of the variables in `wrt`
     disconnected_outputs : str
         Defines the behaviour if some of the variables in `f`
         have no dependency on any of the variable in `wrt` (or if
@@ -374,7 +374,7 @@ def Lop(f, wrt, eval_points, consider_constant=None, disconnected_inputs="raise"
         variables for which you compute the L operator of the expression
         described by `f`
     eval_points : :class:`~aesara.graph.basic.Variable` or list of Variables
-        evalutation points for each of the variables in `f`
+        evaluation points for each of the variables in `f`
 
     Returns
     -------
@@ -580,7 +580,7 @@ def grad(
 
         # DO NOT check that these gradients are equal to 0 if var is int
         # The gradient is allowed to be non-zero on var in that case
-        # Ops outputing var should not backpropagate its gradient further
+        # Ops outputting var should not backpropagate its gradient further
         # but that is enforced elsewhere (grep for only_connected_to_int)
 
         grad_dict[var] = g_var
@@ -1822,7 +1822,7 @@ def verify_grad(
 
     if isinstance(o_output, list):
         raise NotImplementedError(
-            "Cant (yet) auto-test the gradient of a function with multiple outputs"
+            "Can't (yet) auto-test the gradient of a function with multiple outputs"
         )
         # we could make loop over outputs making random projections R for each,
         # but this doesn't handle the case where not all the outputs are
@@ -1841,7 +1841,7 @@ def verify_grad(
     # random_projection should not have elements too small,
     # otherwise too much precision is lost in numerical gradient
     def random_projection():
-        plain = rng.rand(*o_fn_out.shape) + 0.5
+        plain = rng.random(o_fn_out.shape) + 0.5
         if cast_to_output_type and o_output.dtype == "float32":
             return np.array(plain, o_output.dtype)
         return plain

@@ -1804,16 +1804,18 @@ register_specialize(local_structured_add_s_v, "cxx_only")
 
 
 class SamplingDotCSR(_NoPythonCOp):
-    """
-    Operand optimized for calculating the dot product dot(`x`, `y`.T) = `z`
-    when you only want to calculate a subset of `z`.
+    r"""
+    Operand optimized for calculating the dot product :math:`x y^\top = z`
+    when you only want to calculate a subset of :math:`z`.
 
-    It is equivalent to `p` o (`x` . `y`.T) where o is the element-wise
-    product, `x` and `y` operands of the dot product and `p` is a matrix
-    that contains 1 when the corresponding element of `z` should be
-    calculated and 0 when it shouldn't. Note that SamplingDot has a different
-    interface than `dot` because SamplingDot requires `x` to be a `m`x`k`
-    matrix while `y` is a `n`x`k` matrix instead of the usual `k`x`n` matrix.
+    It is equivalent to :math:`p \circ (x \cdot y^\top)` where :math:`\circ` is
+    the element-wise product, :math:`x` and :math:`y` operands of the dot
+    product, and :math:`p` is a matrix that contains 1 when the corresponding
+    element of :math:`z` should be calculated and 0 when it shouldn't. Note
+    that `SamplingDot` has a different interface than ``dot`` because
+    `SamplingDot` requires :math:`x` to be a :math:`m \times k` matrix while
+    :math:`y` is a :math:`n \times k` matrix instead of the usual :math:``k
+    \times n` matrix.
 
     Parameters
     ----------
@@ -1832,8 +1834,8 @@ class SamplingDotCSR(_NoPythonCOp):
 
     Returns
     -------
-    A dense matrix containing the dot product of `x` by `y`.T only
-    where `p` is 1.
+    A dense matrix containing the dot product of :math:`x` by :math:`y^\top` only
+    where :math:`p` is 1.
 
     Notes
     -----
@@ -1843,10 +1845,10 @@ class SamplingDotCSR(_NoPythonCOp):
     multiplication.
 
     If we have the input of mixed dtype, we insert cast elemwise
-    in the graph to be able to call blas function as they don't
+    in the graph to be able to call BLAS function as they don't
     allow mixed dtype.
 
-    This op is used as an optimization for SamplingDot.
+    This `Op` is used as an optimization for `SamplingDot`.
 
     """
 

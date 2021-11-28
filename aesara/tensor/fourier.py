@@ -25,7 +25,7 @@ class Fourier(Op):
     provides real-input FFTs. Gradients are supported, as well as optimization
     transfers to GPU ops.
 
-    An instance of this class returns a finite fourier transform calcutated
+    An instance of this class returns a finite fourier transform calculated
     along one dimension of an input array.
 
     inputs:

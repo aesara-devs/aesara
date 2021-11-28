@@ -9,13 +9,6 @@ class NotScalarConstantError(Exception):
     """
 
 
-class EmptyConstantError(NotScalarConstantError):
-    """
-    Raised by get_scalar_const_value if called on something that is a
-    zero dimensional constant.
-    """
-
-
 class AdvancedIndexingError(TypeError):
     """
     Raised when Subtensor is asked to perform advanced indexing.

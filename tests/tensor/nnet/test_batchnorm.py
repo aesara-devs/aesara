@@ -28,12 +28,12 @@ def test_BNComposite():
             n = (x - M) / V
             return n * G + B
 
-        np.random.seed(1234)
-        X = 1 + np.random.random([10, 20]).astype("float32")
-        B = 1 + np.random.random([20]).astype("float32")
-        G = 1 + np.random.random([20]).astype("float32")
-        M = 1 + np.random.random([20]).astype("float32")
-        V = 1 + np.random.random([20]).astype("float32")
+        rng = np.random.default_rng(1234)
+        X = 1 + rng.random([10, 20]).astype("float32")
+        B = 1 + rng.random([20]).astype("float32")
+        G = 1 + rng.random([20]).astype("float32")
+        M = 1 + rng.random([20]).astype("float32")
+        V = 1 + rng.random([20]).astype("float32")
 
         x = matrix("x")
         b = vector("b")
@@ -41,11 +41,11 @@ def test_BNComposite():
         m = vector("m")
         v = vector("v")
 
-        x.tag.test_value = np.random.rand(2, 2).astype(aesara.config.floatX)
-        b.tag.test_value = np.random.rand(2).astype(aesara.config.floatX)
-        g.tag.test_value = np.random.rand(2).astype(aesara.config.floatX)
-        m.tag.test_value = np.random.rand(2).astype(aesara.config.floatX)
-        v.tag.test_value = np.random.rand(2).astype(aesara.config.floatX)
+        x.tag.test_value = rng.random((2, 2)).astype(aesara.config.floatX)
+        b.tag.test_value = rng.random((2)).astype(aesara.config.floatX)
+        g.tag.test_value = rng.random((2)).astype(aesara.config.floatX)
+        m.tag.test_value = rng.random((2)).astype(aesara.config.floatX)
+        v.tag.test_value = rng.random((2)).astype(aesara.config.floatX)
 
         bn_ref_op = bn_ref(x, g, b, m, v)
         f_ref = aesara.function([x, b, g, m, v], [bn_ref_op])
@@ -62,12 +62,12 @@ def test_batch_normalization():
         n = (x - M) / V
         return n * G + B
 
-    np.random.seed(1234)
-    X = 1 + np.random.random([10, 20]).astype("float32")
-    B = 1 + np.random.random([20]).astype("float32")
-    G = 1 + np.random.random([20]).astype("float32")
-    M = 1 + np.random.random([20]).astype("float32")
-    V = 1 + np.random.random([20]).astype("float32")
+    rng = np.random.default_rng(1234)
+    X = 1 + rng.random([10, 20]).astype("float32")
+    B = 1 + rng.random([20]).astype("float32")
+    G = 1 + rng.random([20]).astype("float32")
+    M = 1 + rng.random([20]).astype("float32")
+    V = 1 + rng.random([20]).astype("float32")
 
     x = matrix("x")
     b = vector("b")
@@ -124,12 +124,12 @@ def test_bn_feature_maps():
         n = (x - M) / V
         return n * G + B
 
-    np.random.seed(1234)
-    X = 1 + np.random.random([2, 3, 4, 4]).astype("float32")
-    B = 1 + np.random.random([3]).astype("float32")
-    G = 1 + np.random.random([3]).astype("float32")
-    M = 1 + np.random.random([3]).astype("float32")
-    V = 1 + np.random.random([3]).astype("float32")
+    rng = np.random.default_rng(1234)
+    X = 1 + rng.random([2, 3, 4, 4]).astype("float32")
+    B = 1 + rng.random([3]).astype("float32")
+    G = 1 + rng.random([3]).astype("float32")
+    M = 1 + rng.random([3]).astype("float32")
+    V = 1 + rng.random([3]).astype("float32")
 
     x = tensor4("x")
     b = vector("b")
@@ -175,7 +175,6 @@ def test_bn_feature_maps():
 
 @pytest.mark.slow
 def test_batch_normalization_train():
-    utt.seed_rng()
 
     for axes in ("per-activation", "spatial", (1, 2, 3, 4)):
         for vartype in (tensor5, tensor3, vector):
@@ -219,7 +218,7 @@ def test_batch_normalization_train():
                 axes2 = axes
             x_mean2 = x.mean(axis=axes2, keepdims=True)
             x_var2 = x.var(axis=axes2, keepdims=True)
-            x_invstd2 = aet.inv(aet.sqrt(x_var2 + eps))
+            x_invstd2 = aet.reciprocal(aet.sqrt(x_var2 + eps))
             scale2 = aet.addbroadcast(scale, *axes2)
             bias2 = aet.addbroadcast(bias, *axes2)
             out2 = (x - x_mean2) * (scale2 * x_invstd2) + bias2
@@ -320,19 +319,18 @@ def test_batch_normalization_train():
                 param_shape = tuple(
                     1 if d in axes2 else s for d, s in enumerate(data_shape)
                 )
-                X = 4 + 3 * np.random.randn(*data_shape).astype(aesara.config.floatX)
-                Dy = -1 + 2 * np.random.randn(*data_shape).astype(aesara.config.floatX)
-                Scale = np.random.randn(*param_shape).astype(aesara.config.floatX)
-                Bias = np.random.randn(*param_shape).astype(aesara.config.floatX)
-                Running_mean = np.random.randn(*param_shape).astype(
-                    aesara.config.floatX
-                )
-                Running_var = np.random.randn(*param_shape).astype(aesara.config.floatX)
-                Dx = 4 + 3 * np.random.randn(*data_shape).astype(aesara.config.floatX)
-                Dscale = -1 + 2 * np.random.randn(*param_shape).astype(
-                    aesara.config.floatX
-                )
-                Dbias = np.random.randn(*param_shape).astype(aesara.config.floatX)
+
+                rng = np.random.default_rng(1234)
+
+                X = 4 + 3 * rng.random(data_shape).astype(aesara.config.floatX)
+                Dy = -1 + 2 * rng.random(data_shape).astype(aesara.config.floatX)
+                Scale = rng.random(param_shape).astype(aesara.config.floatX)
+                Bias = rng.random(param_shape).astype(aesara.config.floatX)
+                Running_mean = rng.random(param_shape).astype(aesara.config.floatX)
+                Running_var = rng.random(param_shape).astype(aesara.config.floatX)
+                Dx = 4 + 3 * rng.random(data_shape).astype(aesara.config.floatX)
+                Dscale = -1 + 2 * rng.random(param_shape).astype(aesara.config.floatX)
+                Dbias = rng.random(param_shape).astype(aesara.config.floatX)
 
                 outputs = f(
                     X, Scale, Bias, Running_mean, Running_var, Dy, Dx, Dscale, Dbias
@@ -361,7 +359,6 @@ def test_batch_normalization_train():
 
 @pytest.mark.slow
 def test_batch_normalization_train_grad_grad():
-    utt.seed_rng()
 
     for axes in ("per-activation", "spatial", (1, 2, 3, 4)):
         for vartype in (tensor5, tensor4, tensor3, matrix, vector):
@@ -407,12 +404,13 @@ def test_batch_normalization_train_grad_grad():
                 param_shape = tuple(
                     1 if d in axes else s for d, s in enumerate(data_shape)
                 )
+                rng = np.random.default_rng(1234)
                 # force float64 for sufficient numerical stability
-                x_val = 4 + 3 * np.random.randn(*data_shape).astype("float64")
-                dy_val = -1 + 2 * np.random.randn(*data_shape).astype("float64")
-                scale_val = np.random.randn(*param_shape).astype("float64")
-                x_mean_val = np.random.randn(*param_shape).astype("float64")
-                x_invstd_val = np.random.randn(*param_shape).astype("float64")
+                x_val = 4 + 3 * rng.random(data_shape).astype("float64")
+                dy_val = -1 + 2 * rng.random(data_shape).astype("float64")
+                scale_val = rng.random(param_shape).astype("float64")
+                x_mean_val = rng.random(param_shape).astype("float64")
+                x_invstd_val = rng.random(param_shape).astype("float64")
 
                 utt.verify_grad(
                     bn_grad_wrt_inputs_f,
@@ -432,7 +430,6 @@ def test_batch_normalization_train_grad_grad():
 
 def test_batch_normalization_train_without_running_averages():
     # compile and run batch_normalization_train without running averages
-    utt.seed_rng()
 
     x, scale, bias, dy = (
         tensor4("x"),
@@ -466,10 +463,11 @@ def test_batch_normalization_train_without_running_averages():
         ]
     )
     # run
-    X = 4 + 3 * np.random.randn(*data_shape).astype(aesara.config.floatX)
-    Dy = -1 + 2 * np.random.randn(*data_shape).astype(aesara.config.floatX)
-    Scale = np.random.randn(*param_shape).astype(aesara.config.floatX)
-    Bias = np.random.randn(*param_shape).astype(aesara.config.floatX)
+    rng = np.random.default_rng(1234)
+    X = 4 + 3 * rng.random(data_shape).astype(aesara.config.floatX)
+    Dy = -1 + 2 * rng.random(data_shape).astype(aesara.config.floatX)
+    Scale = rng.random(param_shape).astype(aesara.config.floatX)
+    Bias = rng.random(param_shape).astype(aesara.config.floatX)
     f(X, Scale, Bias, Dy)
 
 
@@ -565,7 +563,7 @@ def test_batch_normalization_train_broadcast():
                 assert len(nodes) == 1
                 assert isinstance(nodes[0].op, aesara.compile.DeepCopyOp)
             inputs = [
-                np.asarray(np.random.rand(*((4,) * n)), x.dtype)
+                np.asarray(np.random.random(((4,) * n)), x.dtype)
                 for n in [
                     x.ndim,
                     scale.ndim,
@@ -641,12 +639,13 @@ def test_batch_normalization_test():
                 param_shape = tuple(
                     1 if d in axes2 else s for d, s in enumerate(data_shape)
                 )
-                X = 4 + 3 * np.random.randn(*data_shape).astype(aesara.config.floatX)
-                Dy = -1 + 2 * np.random.randn(*data_shape).astype(aesara.config.floatX)
-                Scale = np.random.randn(*param_shape).astype(aesara.config.floatX)
-                Bias = np.random.randn(*param_shape).astype(aesara.config.floatX)
-                Mean = np.random.randn(*param_shape).astype(aesara.config.floatX)
-                Var = np.random.rand(*param_shape).astype(aesara.config.floatX)
+                rng = np.random.default_rng(1234)
+                X = 4 + 3 * rng.random(data_shape).astype(aesara.config.floatX)
+                Dy = -1 + 2 * rng.random(data_shape).astype(aesara.config.floatX)
+                Scale = rng.random(param_shape).astype(aesara.config.floatX)
+                Bias = rng.random(param_shape).astype(aesara.config.floatX)
+                Mean = rng.random(param_shape).astype(aesara.config.floatX)
+                Var = rng.random(param_shape).astype(aesara.config.floatX)
                 outputs = f(X, Scale, Bias, Mean, Var, Dy)
                 # compare outputs
                 utt.assert_allclose(outputs[0], outputs[1])  # out

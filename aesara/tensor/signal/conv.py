@@ -5,10 +5,8 @@ generic 2D convolution.
 """
 
 import logging
-import warnings
 
 from aesara import tensor as aet
-from aesara.configdefaults import config
 from aesara.tensor.nnet import conv
 from aesara.tensor.shape import reshape
 
@@ -113,14 +111,6 @@ def conv2d(
 
     # flatten to 3D tensor if convolving with single filter or single image
     if input.ndim == 2 and filters.ndim == 2:
-        if config.warn__signal_conv2d_interface:
-            warnings.warn(
-                "aesara.tensor.signal.conv2d() now outputs a 2d tensor when both"
-                " inputs are 2d. To disable this warning, set the Aesara flag"
-                " warn__signal_conv2d_interface to False",
-                stacklevel=3,
-            )
-
         output = aet.flatten(output.T, ndim=2).T
     elif input.ndim == 2 or filters.ndim == 2:
         output = aet.flatten(output.T, ndim=3).T

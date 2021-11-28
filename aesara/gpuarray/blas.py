@@ -663,7 +663,7 @@ class BaseGpuCorrMM(CGpuKernelBase):
             and "backprop inputs" to do a full convolution of top with weights
             (swapping the first two dimensions) and store results in bottom.
         sub
-            Dictionary of substitutions useable to help generating the C code.
+            Dictionary of substitutions usable to help generating the C code.
         height
             Required if self.subsample[0] != 1, a variable giving the height of
             the filters for direction="backprop weights" or the height of the
@@ -1468,7 +1468,7 @@ class BaseGpuCorr3dMM(CGpuKernelBase, _NoPythonCOp):
             and "backprop inputs" to do a full convolution of top with weights
             (swapping the first two dimensions) and store results in bottom.
         sub
-            Dictionary of substitutions useable to help generating the C code.
+            Dictionary of substitutions usable to help generating the C code.
         height
             Required if self.subsample[0] != 1, a variable giving the height of
             the filters for direction="backprop weights" or the height of the

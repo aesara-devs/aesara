@@ -21,7 +21,6 @@ from aesara.tensor.opt_uncanonicalize import (
 )
 from aesara.tensor.shape import reshape
 from aesara.tensor.type import dtensor4, iscalar, matrix, tensor, vector
-from tests import unittest_tools as utt
 
 
 class TestMaxAndArgmax:
@@ -48,7 +47,6 @@ class TestMaxAndArgmax:
 
 class TestMinMax:
     def setup_method(self):
-        utt.seed_rng()
         self.mode = aesara.compile.mode.get_default_mode().including(
             "canonicalize", "fast_run"
         )

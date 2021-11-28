@@ -296,7 +296,7 @@ class Images2Neibs(COp):
             # number of patch in width
             grid_d = 1 + ((ten4.shape[3] + d - 2) // step_y)
         else:
-            raise TypeError(f"Images2Neibs: unknow mode '{mode}'")
+            raise TypeError(f"Images2Neibs: unknown mode '{mode}'")
         z_dim0 = grid_c * grid_d * ten4.shape[1] * ten4.shape[0]
         z_dim1 = c * d
         z[0] = np.empty((z_dim0, z_dim1), dtype=node.outputs[0].dtype)
@@ -368,7 +368,7 @@ class Images2Neibs(COp):
             grid_c = 1 + ((in_shape[2] + c - 2) // step_x)
             grid_d = 1 + ((in_shape[3] + d - 2) // step_y)
         else:
-            raise TypeError(f"Images2Neibs: unknow mode '{self.mode}'")
+            raise TypeError(f"Images2Neibs: unknown mode '{self.mode}'")
         z_dim0 = grid_c * grid_d * in_shape[1] * in_shape[0]
         z_dim1 = c * d
         return [(z_dim0, z_dim1)]
@@ -537,7 +537,7 @@ class Images2Neibs(COp):
             grid_d = 1+(((PyArray_DIMS(%(ten4)s))[3]+d-2)/step_y);
         } else {
             PyErr_Format(PyExc_TypeError,
-                         "Images2Neibs: unknow mode %%d", %(mode)s);
+                         "Images2Neibs: unknown mode %%d", %(mode)s);
             %(fail)s;
         }
 
@@ -745,27 +745,27 @@ def neibs2images(neibs, neib_shape, original_shape, mode="valid"):
     """
     Function :func:`neibs2images <aesara.sandbox.neighbours.neibs2images>`
     performs the inverse operation of
-    :func:`images2neibs <aesara.sandbox.neigbours.neibs2images>`. It inputs
-    the output of :func:`images2neibs <aesara.sandbox.neigbours.neibs2images>`
+    :func:`images2neibs <aesara.sandbox.neighbours.neibs2images>`. It inputs
+    the output of :func:`images2neibs <aesara.sandbox.neighbours.neibs2images>`
     and reconstructs its input.
 
     Parameters
     ----------
     neibs : 2d tensor
         Like the one obtained by
-        :func:`images2neibs <aesara.sandbox.neigbours.neibs2images>`.
+        :func:`images2neibs <aesara.sandbox.neighbours.neibs2images>`.
     neib_shape
         `neib_shape` that was used in
-        :func:`images2neibs <aesara.sandbox.neigbours.neibs2images>`.
+        :func:`images2neibs <aesara.sandbox.neighbours.neibs2images>`.
     original_shape
         Original shape of the 4d tensor given to
-        :func:`images2neibs <aesara.sandbox.neigbours.neibs2images>`
+        :func:`images2neibs <aesara.sandbox.neighbours.neibs2images>`
 
     Returns
     -------
     object
         Reconstructs the input of
-        :func:`images2neibs <aesara.sandbox.neigbours.neibs2images>`,
+        :func:`images2neibs <aesara.sandbox.neighbours.neibs2images>`,
         a 4d tensor of shape `original_shape`.
 
     Notes
@@ -773,15 +773,15 @@ def neibs2images(neibs, neib_shape, original_shape, mode="valid"):
     Currently, the function doesn't support tensors created with
     `neib_step` different from default value. This means that it may be
     impossible to compute the gradient of a variable gained by
-    :func:`images2neibs <aesara.sandbox.neigbours.neibs2images>` w.r.t.
+    :func:`images2neibs <aesara.sandbox.neighbours.neibs2images>` w.r.t.
     its inputs in this case, because it uses
-    :func:`images2neibs <aesara.sandbox.neigbours.neibs2images>` for
+    :func:`images2neibs <aesara.sandbox.neighbours.neibs2images>` for
     gradient computation.
 
     Examples
     --------
     Example, which uses a tensor gained in example for
-    :func:`images2neibs <aesara.sandbox.neigbours.neibs2images>`:
+    :func:`images2neibs <aesara.sandbox.neighbours.neibs2images>`:
 
     .. code-block:: python
 

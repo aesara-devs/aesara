@@ -5,7 +5,7 @@ from aesara import config
 from aesara.misc.safe_asarray import _asarray
 from aesara.scalar.basic import round_half_away_from_zero_vec, upcast
 from aesara.tensor.inplace import (
-    abs__inplace,
+    abs_inplace,
     add_inplace,
     arccos_inplace,
     arccosh_inplace,
@@ -24,7 +24,6 @@ from aesara.tensor.inplace import (
     expm1_inplace,
     floor_inplace,
     int_div_inplace,
-    inv_inplace,
     log1p_inplace,
     log2_inplace,
     log10_inplace,
@@ -36,6 +35,7 @@ from aesara.tensor.inplace import (
     neg_inplace,
     pow_inplace,
     rad2deg_inplace,
+    reciprocal_inplace,
     round_half_away_from_zero_inplace,
     round_half_to_even_inplace,
     sgn_inplace,
@@ -55,7 +55,7 @@ from tests import unittest_tools as utt
 from tests.tensor.utils import (
     _bad_build_broadcast_binary_normal,
     _bad_runtime_broadcast_binary_normal,
-    _bad_runtime_inv,
+    _bad_runtime_reciprocal,
     _good_broadcast_binary_arctan2,
     _good_broadcast_binary_normal,
     _good_broadcast_div_mod_normal_float_inplace,
@@ -72,7 +72,7 @@ from tests.tensor.utils import (
     _good_broadcast_unary_positive_float,
     _good_broadcast_unary_tan,
     _good_broadcast_unary_wide_float,
-    _good_inv_inplace,
+    _good_reciprocal_inplace,
     _numpy_true_div,
     angle_eps,
     check_floatX,
@@ -142,11 +142,11 @@ TestTrueDivInplaceBroadcast = makeBroadcastTester(
     inplace=True,
 )
 
-TestInvInplaceBroadcast = makeBroadcastTester(
-    op=inv_inplace,
+TestReciprocalInplaceBroadcast = makeBroadcastTester(
+    op=reciprocal_inplace,
     expected=lambda x: _numpy_true_div(np.int8(1), x),
-    good=_good_inv_inplace,
-    bad_runtime=_bad_runtime_inv,
+    good=_good_reciprocal_inplace,
+    bad_runtime=_bad_runtime_reciprocal,
     grad_rtol=div_grad_rtol,
     inplace=True,
 )
@@ -184,7 +184,7 @@ TestSgnInplaceBroadcast = makeBroadcastTester(
 )
 
 TestAbsInplaceBroadcast = makeBroadcastTester(
-    op=abs__inplace,
+    op=abs_inplace,
     expected=lambda x: np.abs(x),
     good=_good_broadcast_unary_normal_abs,
     inplace=True,

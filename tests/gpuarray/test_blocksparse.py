@@ -17,7 +17,6 @@ from tests.tensor.nnet.test_blocksparse import TestBlockSparseGemvAndOuter
 
 class TestBlockSparseGemvAndOuterGPUarray(TestBlockSparseGemvAndOuter):
     def setup_method(self):
-        utt.seed_rng()
         self.mode = mode_with_gpu.excluding("constant_folding")
         self.gemv_op = gpu_sparse_block_gemv
         self.outer_op = gpu_sparse_block_outer
@@ -28,7 +27,7 @@ class TestBlockSparseGemvAndOuterGPUarray(TestBlockSparseGemvAndOuter):
     @pytest.mark.skip(
         reason="""
         This test is temporarily disabled since we disabled the output_merge
-        and alpha_merge optimizations for blocksparse due to brokeness.
+        and alpha_merge optimizations for blocksparse due to brokenness.
         Re-enable when those are re-added.
         """
     )

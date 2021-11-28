@@ -13,7 +13,6 @@ import aesara.tensor.signal.pool as pool
 import aesara.tensor.slinalg as slinalg
 from aesara import scalar as aes
 from aesara import tensor as aet
-from aesara.assert_op import Assert
 from aesara.breakpoint import PdbBreakpoint
 from aesara.compile import optdb
 from aesara.configdefaults import config
@@ -149,7 +148,7 @@ from aesara.gpuarray.type import (
     get_context,
     move_to_gpu,
 )
-from aesara.graph import toolbox
+from aesara.graph import features
 from aesara.graph.basic import Constant, Variable, applys_between, clone_replace
 from aesara.graph.fg import FunctionGraph
 from aesara.graph.opt import (
@@ -162,8 +161,9 @@ from aesara.graph.opt import (
 from aesara.ifelse import IfElse
 from aesara.link.c.basic import CLinker
 from aesara.misc.ordered_set import OrderedSet
+from aesara.raise_op import Assert
 from aesara.scalar.basic import Cast, Pow, Scalar, log, neg, true_div
-from aesara.scalar.basic_scipy import Erfcinv, Erfinv
+from aesara.scalar.math import Erfcinv, Erfinv
 from aesara.scan.op import Scan
 from aesara.scan.opt import ScanInplaceOptimizer
 from aesara.tensor.basic import (
@@ -244,7 +244,7 @@ class InputToGpuOptimizer(GlobalOptimizer):
     """
 
     def add_requirements(self, fgraph):
-        fgraph.attach_feature(toolbox.ReplaceValidate())
+        fgraph.attach_feature(features.ReplaceValidate())
 
     def apply(self, fgraph):
         for input in fgraph.inputs:
@@ -305,7 +305,7 @@ class GraphToGPU(GlobalOptimizer):
         self.local_optimizers_map = local_optimizers_map
 
     def add_requirements(self, fgraph):
-        fgraph.attach_feature(toolbox.ReplaceValidate())
+        fgraph.attach_feature(features.ReplaceValidate())
 
     def apply(self, fgraph):
         mapping = {}
@@ -2884,23 +2884,6 @@ def local_gpu_magma_qr(fgraph, op, context_name, inputs, outputs):
     out = gpu_qr(x, complete=True)
     if inputs[0].dtype == "float16":
         return [o.astype("float16") for o in out]
-    return out
-
-
-@register_opt("magma", "fast_compile")
-@op_lifter([nlinalg.QRIncomplete])
-@register_opt2([nlinalg.QRIncomplete], "magma", "fast_compile")
-def local_gpu_magma_qr_incomplete(fgraph, op, context_name, inputs, outputs):
-    if not config.magma__enabled:
-        return
-    if inputs[0].dtype not in ["float16", "float32"]:
-        return
-    x = inputs[0]
-    if inputs[0].dtype == "float16":
-        x = inputs[0].astype("float32")
-    out = gpu_qr(x, complete=False)
-    if inputs[0].dtype == "float16":
-        return [out.astype("float16")]
     return out
 
 

@@ -11,7 +11,6 @@ import aesara
 import aesara.gpuarray.pathparse
 import aesara.tensor.basic as aet
 import aesara.tensor.math as tm
-from aesara.assert_op import Assert
 from aesara.compile.io import Out
 from aesara.compile.mode import Mode
 from aesara.configdefaults import SUPPORTED_DNN_CONV_ALGO_RUNTIME, config
@@ -33,6 +32,7 @@ from aesara.graph.op import ExternalCOp, _NoPythonCOp, _NoPythonExternalCOp
 from aesara.graph.params_type import ParamsType
 from aesara.graph.type import CDataType, EnumList, Generic
 from aesara.link.c.cmodule import GCC_compiler
+from aesara.raise_op import Assert
 from aesara.scalar import as_scalar
 from aesara.scalar import bool as bool_t
 from aesara.scalar import constant, get_scalar_type
@@ -147,7 +147,7 @@ def _make_handle(ctx):
 
 
 def _dnn_check_compile():
-    preambule = """
+    preamble = """
 #include <stdio.h>
 #include <cudnn.h>
 #include <cudnn_helper.h>
@@ -180,7 +180,7 @@ if ((err = cudnnCreate(&_handle)) != CUDNN_STATUS_SUCCESS) {
 
     # NB: GCC_compiler.try_flags() may return just a boolean instead of a tuple (avail, out, here).
     compiler_res = GCC_compiler.try_flags(
-        params, preambule=preambule, body=body, try_run=False, output=True
+        params, preamble=preamble, body=body, try_run=False, output=True
     )
 
     avail, out, err = (
@@ -470,11 +470,7 @@ def get_precision(precision, inputs, for_grad=False):
 
 
 class DnnBase(_NoPythonExternalCOp):
-
-    """
-    Creates a handle for cudnn and pulls in the cudnn libraries and headers.
-
-    """
+    """An `Op` that creates a handle for cudnn and pulls in the cudnn libraries and headers."""
 
     # dnn does not know about broadcasting, so we do not need to assert
     # the input broadcasting pattern.
@@ -2420,7 +2416,7 @@ class GpuDnnBatchNorm(DnnBase):
         )
 
     def connection_pattern(self, node):
-        # Specificy that epsilon and running_average_factor are not connected to outputs.
+        # Specify that epsilon and running_average_factor are not connected to outputs.
         patterns = [
             [True, True, True],  # x
             [True, True, True],  # scale
@@ -2535,7 +2531,7 @@ class GpuDnnBatchNormInference(DnnBase):
         return [dx, dscale, dbias, dmean, dvar, DisconnectedType()()]
 
     def connection_pattern(self, node):
-        # Specificy that epsilon is not connected to outputs.
+        # Specify that epsilon is not connected to outputs.
         return [[True], [True], [True], [True], [True], [False]]
 
 
@@ -3385,7 +3381,7 @@ def dnn_batch_normalization_train(
         axes = 0 if mode == 'per-activation' else (0, 2, 3)
         mean = inputs.mean(axes, keepdims=True)
         var = inputs.var(axes, keepdims=True)
-        invstd = aet.inv(aet.sqrt(var + epsilon))
+        invstd = aet.reciprocal(aet.sqrt(var + epsilon))
         out = (inputs - mean) * gamma * invstd + beta
 
         m = aet.cast(aet.prod(inputs.shape) / aet.prod(mean.shape), 'float32')

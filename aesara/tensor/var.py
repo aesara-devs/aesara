@@ -2,6 +2,8 @@ import copy
 import traceback as tb
 import warnings
 from collections.abc import Iterable
+from numbers import Number
+from typing import Optional
 
 import numpy as np
 
@@ -16,7 +18,7 @@ from aesara.tensor.utils import hash_from_ndarray
 
 class _tensor_py_operators:
     def __abs__(self):
-        return aet.math.abs_(self)
+        return aet.math.abs(self)
 
     def __neg__(self):
         return aet.math.neg(self)
@@ -105,7 +107,7 @@ class _tensor_py_operators:
         # compute_test_value is used
         # Evidently, we need to catch NotImplementedError
         # TypeError from as_tensor_variable are caught in Elemwise.make_node
-        # Oterwise TensorVariable * SparseVariable won't work!
+        # Otherwise TensorVariable * SparseVariable won't work!
         except (NotImplementedError, TypeError):
             # We must return NotImplemented and not an
             # NotImplementedError or raise an NotImplementedError.
@@ -115,7 +117,7 @@ class _tensor_py_operators:
             return NotImplemented
 
     def __sub__(self, other):
-        # See explanation in __add__ for the error catched
+        # See explanation in __add__ for the error caught
         # and the return value in that case
         try:
             return aet.math.sub(self, other)
@@ -123,7 +125,7 @@ class _tensor_py_operators:
             return NotImplemented
 
     def __mul__(self, other):
-        # See explanation in __add__ for the error catched
+        # See explanation in __add__ for the error caught
         # and the return value in that case
         try:
             return aet.math.mul(self, other)
@@ -131,7 +133,7 @@ class _tensor_py_operators:
             return NotImplemented
 
     def __div__(self, other):
-        # See explanation in __add__ for the error catched
+        # See explanation in __add__ for the error caught
         # and the return value in that case
         try:
             return aet.math.div_proxy(self, other)
@@ -145,7 +147,7 @@ class _tensor_py_operators:
     __truediv__ = __div__
 
     def __pow__(self, other):
-        # See explanation in __add__ for the error catched
+        # See explanation in __add__ for the error caught
         # and the return value in that case
         try:
             return aet.math.pow(self, other)
@@ -153,7 +155,7 @@ class _tensor_py_operators:
             return NotImplemented
 
     def __mod__(self, other):
-        # See explanation in __add__ for the error catched
+        # See explanation in __add__ for the error caught
         # and the return value in that case
         try:
             return aet.math.mod_check(self, other)
@@ -528,11 +530,9 @@ class _tensor_py_operators:
         # used; if it fails with AdvancedIndexingError, advanced indexing is
         # used
         advanced = False
-        axis = None
         for i, arg in enumerate(args):
             if includes_bool(arg):
                 advanced = True
-                axis = None
                 break
 
             if arg is not np.newaxis:
@@ -540,43 +540,12 @@ class _tensor_py_operators:
                     aet.subtensor.Subtensor.convert(arg)
                 except AdvancedIndexingError:
                     if advanced:
-                        axis = None
                         break
                     else:
                         advanced = True
-                        axis = i
 
         if advanced:
-            if (
-                axis is not None
-                and all(isinstance(a, slice) and a == slice(None) for a in args[:axis])
-                and all(
-                    isinstance(a, slice) and a == slice(None) for a in args[axis + 1 :]
-                )
-                # I.e. if the first advanced index is a tensor or NumPy array,
-                # then it can't be boolean (in order to meet this condition).
-                # How could this possibly occur; we filter for booleans above,
-                # right?
-                # and (not hasattr(args[axis], "dtype") or args[axis].dtype != "bool")
-                and isinstance(
-                    args[axis],
-                    (
-                        np.ndarray,
-                        list,
-                        TensorVariable,
-                        TensorConstant,
-                        aet.sharedvar.TensorSharedVariable,
-                    ),
-                )
-            ):
-                # If we're here, it means that an advanced index was found
-                # (e.g. an array of indices) and it was surrounded by full
-                # slices--or no slices (e.g. `x[:, :, idx, ...]`).  The
-                # `take` function/`Op` serves exactly this type of indexing,
-                # so we simply return its result.
-                return self.take(args[axis], axis)
-            else:
-                return aet.subtensor.advanced_subtensor(self, *args)
+            return aet.subtensor.advanced_subtensor(self, *args)
         else:
             if np.newaxis in args:
                 # `np.newaxis` (i.e. `None`) in NumPy indexing mean "add a new
@@ -597,6 +566,9 @@ class _tensor_py_operators:
                         pattern.append(counter)
                         counter += 1
                         new_args.append(arg)
+
+                pattern.extend(list(range(counter, self.ndim)))
+
                 view = self.dimshuffle(pattern)
                 full_slices = True
                 for arg in new_args:
@@ -675,6 +647,8 @@ class _tensor_py_operators:
         return aet.math.dense_dot(left, right)
 
     dot = __dot__
+    __matmul__ = __dot__
+    __rmatmul__ = __rdot__
 
     def sum(self, axis=None, dtype=None, keepdims=False, acc_dtype=None):
         """See `aesara.tensor.math.sum`."""
@@ -695,7 +669,7 @@ class _tensor_py_operators:
             raise NotImplementedError()
         # optimizations will/should catch cases like L=1, L=2
         y = aet.math.pow(
-            aet.math.pow(aet.math.abs_(self), L).sum(axis=axis),
+            aet.math.pow(aet.math.abs(self), L).sum(axis=axis),
             1.0 / L,
         )
         if keepdims:
@@ -774,7 +748,7 @@ class _tensor_py_operators:
         return aet.math.round(self, mode)
 
     def trace(self):
-        return aet.nlinalg.trace(self)
+        return aet.linalg.trace(self)
 
     # This value is set so that Aesara arrays will trump NumPy operators.
     __array_priority__ = 1000
@@ -985,7 +959,21 @@ class TensorConstantSignature(tuple):
     no_nan = property(_get_no_nan)
 
 
-class TensorConstant(_tensor_py_operators, Constant):
+def get_unique_value(x: TensorVariable) -> Optional[Number]:
+    """Return the unique value of a tensor, if there is one"""
+    if isinstance(x, Constant):
+        data = x.data
+
+        if isinstance(data, np.ndarray) and data.ndim > 0:
+            flat_data = data.ravel()
+            if flat_data.shape[0]:
+                if (flat_data == flat_data[0]).all():
+                    return flat_data[0]
+
+    return None
+
+
+class TensorConstant(TensorVariable, Constant):
     """Subclass to add the tensor operators to the basic `Constant` class.
 
     To create a TensorConstant, use the `constant` function in this module.
@@ -994,16 +982,11 @@ class TensorConstant(_tensor_py_operators, Constant):
 
     def __init__(self, type, data, name=None):
         Constant.__init__(self, type, data, name)
-        self.tag.unique_value = None
-        if isinstance(data, np.ndarray) and data.ndim > 0:
-            flat_data = data.ravel()
-            if flat_data.shape[0]:
-                if (flat_data == flat_data[0]).all():
-                    self.tag.unique_value = flat_data[0]
 
     def __str__(self):
-        if self.tag.unique_value is not None:
-            name = f"{self.data.shape} of {self.tag.unique_value}"
+        unique_val = get_unique_value(self)
+        if unique_val is not None:
+            name = f"{self.data.shape} of {unique_val}"
         else:
             name = f"{self.data}"
         if len(name) > 20:
@@ -1015,7 +998,7 @@ class TensorConstant(_tensor_py_operators, Constant):
         return TensorConstantSignature((self.type, self.data))
 
     def equals(self, other):
-        # Override Contant.equals to allow to compare with
+        # Override Constant.equals to allow to compare with
         # numpy.ndarray, and python type.
         if isinstance(other, (np.ndarray, int, float)):
             # Make a TensorConstant to be able to compare

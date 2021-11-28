@@ -13,20 +13,18 @@ revisited later when all the intermediate part are on the GPU.
 
 """
 
-import logging
 import warnings
 
 import numpy as np
 
 import aesara
 from aesara import scalar as aes
-from aesara.assert_op import Assert
 from aesara.compile import optdb
-from aesara.configdefaults import config
 from aesara.gradient import DisconnectedType, grad_not_implemented
 from aesara.graph.basic import Apply
 from aesara.graph.op import COp, Op
 from aesara.graph.opt import copy_stack_trace, local_optimizer, optimizer
+from aesara.raise_op import Assert
 from aesara.scalar import UnaryScalarOp
 
 # Work-around for Python 3.6 issue that prevents `import aesara.tensor as aet`
@@ -53,11 +51,12 @@ from aesara.tensor.math import (
     mul,
     neg,
     or_,
+    sigmoid,
+    softplus,
 )
 from aesara.tensor.math import sum as aet_sum
 from aesara.tensor.math import tanh, tensordot, true_div
 from aesara.tensor.nnet.blocksparse import sparse_block_dot
-from aesara.tensor.nnet.sigm import sigmoid, softplus
 from aesara.tensor.shape import shape, shape_padleft
 from aesara.tensor.subtensor import AdvancedIncSubtensor, AdvancedSubtensor, Subtensor
 from aesara.tensor.type import (
@@ -1676,31 +1675,6 @@ def local_argmax_pushdown(fgraph, node):
     if (
         isinstance(node.op, MaxAndArgmax)
         and node.inputs[0].owner
-        and len(fgraph.clients[node.outputs[0]]) > 0
-        and node.inputs[0].owner.op
-        in (
-            softmax_op,
-            softplus,
-            exp,
-            log,
-            tanh,
-            sigmoid,
-            softmax_with_bias,
-        )
-    ):
-        if config.warn__argmax_pushdown_bug:
-            logging.getLogger("aesara.tensor.nnet.basic").warn(
-                "There was a bug in Aesara fixed on May 27th, 2010 in this case."
-                " I.E. when we take the max of a softplus, softmax, exp, "
-                "log, tanh, sigmoid, softmax_with_bias op, we were doing "
-                "the max of the parent of the input. To remove this "
-                "warning set the Aesara flags 'warn__argmax_pushdown_bug' "
-                "to False"
-            )
-
-    if (
-        isinstance(node.op, MaxAndArgmax)
-        and node.inputs[0].owner
         and len(fgraph.clients[node.outputs[0]]) == 0
     ):
         x_max, x_argmax = node.outputs
@@ -1927,7 +1901,7 @@ def local_advanced_indexing_crossentropy_onehot_grad(fgraph, node):
                 adv_subtensor = denom
                 # out_grad /= 1.
             elif denom.owner.op == mul:
-                # Try to find the AdvancedSubtensor node mentionned above,
+                # Try to find the AdvancedSubtensor node mentioned above,
                 # and the output gradient
                 for i, input in enumerate(denom.owner.inputs):
                     if input.owner and isinstance(input.owner.op, AdvancedSubtensor):
@@ -2518,7 +2492,7 @@ def h_softmax(
     # First softmax that computes the probabilities of belonging to each class
     class_probs = softmax(dot(x, W1) + b1)
 
-    if target is None:  # Computes the probabilites of all the outputs
+    if target is None:  # Computes the probabilities of all the outputs
 
         # Second softmax that computes the output probabilities
         activations = tensordot(x, W2, (1, 1)) + b2

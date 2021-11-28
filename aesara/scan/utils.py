@@ -1,21 +1,11 @@
 """This module provides utility functions for the `Scan` `Op`."""
 
-__docformat__ = "restructedtext en"
-__authors__ = (
-    "Razvan Pascanu "
-    "Frederic Bastien "
-    "James Bergstra "
-    "Pascal Lamblin "
-    "Arnaud Bergeron"
-    "PyMC Developers"
-)
-__copyright__ = "(c) 2010, Universite de Montreal"
-
-
 import copy
+import dataclasses
 import logging
 import warnings
-from collections import OrderedDict
+from collections import OrderedDict, namedtuple
+from typing import TYPE_CHECKING, Callable, List, Optional, Set, Tuple, Union
 
 import numpy as np
 
@@ -38,15 +28,20 @@ from aesara.tensor.subtensor import set_subtensor
 from aesara.tensor.var import TensorConstant
 
 
-# Logging function for sending warning or info
+if TYPE_CHECKING:
+    from aesara.scan.op import ScanInfo
+
 _logger = logging.getLogger("aesara.scan.utils")
 
 
-def safe_new(x, tag="", dtype=None):
-    """
-    Internal function that constructs a new variable from x with the same
+def safe_new(
+    x: Variable, tag: str = "", dtype: Optional[Union[str, np.dtype]] = None
+) -> Variable:
+    """Clone variables.
+
+    Internal function that constructs a new variable from `x` with the same
     type, but with a different name (old name + tag). This function is used
-    by gradient, or the R-op to construct new variables for the inputs of
+    by `gradient`, or the R-op to construct new variables for the inputs of
     the inner graph such that there is no interference between the original
     graph and the newly constructed graph.
 
@@ -59,14 +54,14 @@ def safe_new(x, tag="", dtype=None):
     if isinstance(x, Constant):
         if dtype and x.dtype != dtype:
             casted_x = x.astype(dtype)
-            nwx = x.__class__(casted_x.type, x.data, x.name)
+            nwx = type(x)(casted_x.type, x.data, x.name)
             nwx.tag = copy.copy(x.tag)
             return nwx
         else:
             return x.clone()
-    # Note, as_tensor_variable will convert the Scalar into a
-    # TensorScalar that will require a ScalarFromTensor op,
-    # making the pushout optimization fail
+    # Note, `as_tensor_variable` will convert the `Scalar` into a
+    # `TensorScalar` that will require a `ScalarFromTensor` `Op`, making the
+    # push-out optimization fail
     elif isinstance(x, aes.ScalarVariable):
         if dtype:
             nw_x = aes.get_scalar_type(dtype=dtype)()
@@ -90,13 +85,13 @@ def safe_new(x, tag="", dtype=None):
             # This could happen for example for random states
             pass
 
-    # Cast x if needed. If x has a test value, this will also cast it.
+    # Cast `x` if needed. If `x` has a test value, this will also cast it.
     if dtype and x.dtype != dtype:
         x = x.astype(dtype)
 
     nw_x = x.type()
     nw_x.name = nw_name
-    # Preserve test values so that the 'compute_test_value' option can be used.
+    # Preserve test values so that the `compute_test_value` option can be used.
     # The test value is deep-copied to ensure there can be no interactions
     # between test values, due to inplace operations for instance. This may
     # not be the most efficient memory-wise, though.
@@ -168,21 +163,6 @@ def traverse(out, x, x_copy, d, visited=None):
         for inp in out.owner.inputs:
             d = traverse(inp, x, x_copy, d, visited)
         return d
-
-
-# Hashing a dictionary/list/tuple by xoring the hash of each element
-def hash_listsDictsTuples(x):
-    hash_value = 0
-    if isinstance(x, dict):
-        for k, v in x.items():
-            hash_value ^= hash_listsDictsTuples(k)
-            hash_value ^= hash_listsDictsTuples(v)
-    elif isinstance(x, (list, tuple)):
-        for v in x:
-            hash_value ^= hash_listsDictsTuples(v)
-    else:
-        hash_value ^= hash(x)
-    return hash_value
 
 
 def map_variables(replacer, graphs, additional_inputs=None):
@@ -277,6 +257,7 @@ def map_variables(replacer, graphs, additional_inputs=None):
                     new_inner_inputs,
                     new_inner_outputs,
                     node.op.info,
+                    node.op.mode,
                     # FIXME: infer this someday?
                     typeConstructor=None,
                 )
@@ -401,9 +382,9 @@ def get_updates_and_outputs(ls):
     list of outputs and the stopping condition returned by the
     lambda expression and arrange them in a predefined order.
 
-    WRITEME: what is the type of ls? how is it formatted?
-            if it's not in the predefined order already, how does
-            this function know how to put it in that order?
+    WRITEME: what is the type of ls? how is it formatted?  if it's not in the
+    predefined order already, how does this function know how to put it in that
+    order?
 
     """
 
@@ -682,7 +663,7 @@ def scan_can_remove_outs(op, out_idxs):
     offset = op.n_seqs
     lim = op.n_mit_mot + op.n_mit_sot + op.n_sit_sot
     for idx in range(lim):
-        n_ins = len(op.info["tap_array"][idx])
+        n_ins = len(op.info.tap_array[idx])
         out_ins += [op.inputs[offset : offset + n_ins]]
         offset += n_ins
     out_ins += [[] for k in range(op.n_nit_sot)]
@@ -715,23 +696,19 @@ def compress_outs(op, not_required, inputs):
     node inputs, and changing the dictionary.
 
     """
-    info = OrderedDict()
-    info["tap_array"] = []
-    info["n_seqs"] = op.info["n_seqs"]
-    info["n_mit_mot"] = 0
-    info["n_mit_mot_outs"] = 0
-    info["mit_mot_out_slices"] = []
-    info["n_mit_sot"] = 0
-    info["n_sit_sot"] = 0
-    info["n_shared_outs"] = 0
-    info["n_nit_sot"] = 0
-    info["truncate_gradient"] = op.info["truncate_gradient"]
-    info["name"] = op.info["name"]
-    info["gpua"] = op.info["gpua"]
-    info["mode"] = op.info["mode"]
-    info["as_while"] = op.info["as_while"]
-    info["profile"] = op.info["profile"]
-    info["allow_gc"] = op.info["allow_gc"]
+    from aesara.scan.op import ScanInfo
+
+    info = ScanInfo(
+        tap_array=(),
+        n_seqs=op.info.n_seqs,
+        n_mit_mot=0,
+        n_mit_mot_outs=0,
+        mit_mot_out_slices=(),
+        n_mit_sot=0,
+        n_sit_sot=0,
+        n_shared_outs=0,
+        n_nit_sot=0,
+    )
 
     op_inputs = op.inputs[: op.n_seqs]
     op_outputs = []
@@ -743,13 +720,17 @@ def compress_outs(op, not_required, inputs):
     i_offset = op.n_seqs
     o_offset = 0
     curr_pos = 0
-    for idx in range(op.info["n_mit_mot"]):
+    for idx in range(op.info.n_mit_mot):
         if offset + idx not in not_required:
             map_old_new[offset + idx] = curr_pos
             curr_pos += 1
-            info["n_mit_mot"] += 1
-            info["tap_array"] += [op.tap_array[offset + idx]]
-            info["mit_mot_out_slices"] += [op.mit_mot_out_slices[offset + idx]]
+            info = dataclasses.replace(
+                info,
+                n_mit_mot=info.n_mit_mot + 1,
+                tap_array=info.tap_array + (tuple(op.tap_array[offset + idx]),),
+                mit_mot_out_slices=info.mit_mot_out_slices
+                + (tuple(op.mit_mot_out_slices[offset + idx]),),
+            )
             # input taps
             for jdx in op.tap_array[offset + idx]:
                 op_inputs += [op.inputs[i_offset]]
@@ -763,16 +744,19 @@ def compress_outs(op, not_required, inputs):
         else:
             o_offset += len(op.mit_mot_out_slices[offset + idx])
             i_offset += len(op.tap_array[offset + idx])
-    info["n_mit_mot_outs"] = len(op_outputs)
+    info = dataclasses.replace(info, n_mit_mot_outs=len(op_outputs))
     offset += op.n_mit_mot
     ni_offset += op.n_mit_mot
 
-    for idx in range(op.info["n_mit_sot"]):
+    for idx in range(op.info.n_mit_sot):
         if offset + idx not in not_required:
             map_old_new[offset + idx] = curr_pos
             curr_pos += 1
-            info["n_mit_sot"] += 1
-            info["tap_array"] += [op.tap_array[offset + idx]]
+            info = dataclasses.replace(
+                info,
+                n_mit_sot=info.n_mit_sot + 1,
+                tap_array=info.tap_array + (tuple(op.tap_array[offset + idx]),),
+            )
             # input taps
             for jdx in op.tap_array[offset + idx]:
                 op_inputs += [op.inputs[i_offset]]
@@ -788,12 +772,15 @@ def compress_outs(op, not_required, inputs):
 
     offset += op.n_mit_sot
     ni_offset += op.n_mit_sot
-    for idx in range(op.info["n_sit_sot"]):
+    for idx in range(op.info.n_sit_sot):
         if offset + idx not in not_required:
             map_old_new[offset + idx] = curr_pos
             curr_pos += 1
-            info["n_sit_sot"] += 1
-            info["tap_array"] += [op.tap_array[offset + idx]]
+            info = dataclasses.replace(
+                info,
+                n_sit_sot=info.n_sit_sot + 1,
+                tap_array=info.tap_array + (tuple(op.tap_array[offset + idx]),),
+            )
             # input taps
             op_inputs += [op.inputs[i_offset]]
             i_offset += 1
@@ -809,11 +796,11 @@ def compress_outs(op, not_required, inputs):
     offset += op.n_sit_sot
     ni_offset += op.n_sit_sot
     nit_sot_ins = []
-    for idx in range(op.info["n_nit_sot"]):
+    for idx in range(op.info.n_nit_sot):
         if offset + idx not in not_required:
             map_old_new[offset + idx] = curr_pos
             curr_pos += 1
-            info["n_nit_sot"] += 1
+            info = dataclasses.replace(info, n_nit_sot=info.n_nit_sot + 1)
             op_outputs += [op.outputs[o_offset]]
             o_offset += 1
             nit_sot_ins += [inputs[ni_offset + idx + op.n_shared_outs]]
@@ -822,11 +809,11 @@ def compress_outs(op, not_required, inputs):
 
     offset += op.n_nit_sot
     shared_ins = []
-    for idx in range(op.info["n_shared_outs"]):
+    for idx in range(op.info.n_shared_outs):
         if offset + idx not in not_required:
             map_old_new[offset + idx] = curr_pos
             curr_pos += 1
-            info["n_shared_outs"] += 1
+            info = dataclasses.replace(info, n_shared_outs=info.n_shared_outs + 1)
             op_outputs += [op.outputs[o_offset]]
             o_offset += 1
             op_inputs += [op.inputs[i_offset]]
@@ -871,18 +858,47 @@ def reconstruct_graph(inputs, outputs, tag=None):
     return (nw_inputs, nw_outputs)
 
 
-class scan_args:
-    """
-    Parses the inputs and outputs of scan in an easy to manipulate format.
+FieldInfo = namedtuple(
+    "FieldInfo", ("name", "agg_name", "index", "inner_index", "agg_index")
+)
 
-    """
+
+def safe_index(lst, x):
+    try:
+        return lst.index(x)
+    except ValueError:
+        return None
+
+
+def default_filter_scanargs(x):
+    return x.startswith("inner_") or x.startswith("outer_")
+
+
+class ScanArgs:
+    """Parses the inputs and outputs of `Scan` in an easy to manipulate format."""
+
+    default_filter = default_filter_scanargs
+    nested_list_fields = ("inner_in_mit_mot", "inner_in_mit_sot", "inner_out_mit_mot")
 
     def __init__(
-        self, outer_inputs, outer_outputs, _inner_inputs, _inner_outputs, info
+        self,
+        outer_inputs,
+        outer_outputs,
+        _inner_inputs,
+        _inner_outputs,
+        info,
+        as_while,
+        clone=True,
     ):
         self.n_steps = outer_inputs[0]
-        rval = reconstruct_graph(_inner_inputs, _inner_outputs, "")
-        if info["as_while"]:
+        self.as_while = as_while
+
+        if clone:
+            rval = reconstruct_graph(_inner_inputs, _inner_outputs, "")
+        else:
+            rval = (_inner_inputs, _inner_outputs)
+
+        if self.as_while:
             self.cond = [rval[1][-1]]
             inner_outputs = rval[1][:-1]
         else:
@@ -893,17 +909,17 @@ class scan_args:
         p = 1
         q = 0
 
-        n_seqs = info["n_seqs"]
+        n_seqs = info.n_seqs
         self.outer_in_seqs = outer_inputs[p : p + n_seqs]
         self.inner_in_seqs = inner_inputs[q : q + n_seqs]
         p += n_seqs
         q += n_seqs
 
-        n_mit_mot = info["n_mit_mot"]
-        n_mit_sot = info["n_mit_sot"]
+        n_mit_mot = info.n_mit_mot
+        n_mit_sot = info.n_mit_sot
 
-        self.mit_mot_in_slices = info["tap_array"][:n_mit_mot]
-        self.mit_sot_in_slices = info["tap_array"][n_mit_mot : n_mit_mot + n_mit_sot]
+        self.mit_mot_in_slices = info.tap_array[:n_mit_mot]
+        self.mit_sot_in_slices = info.tap_array[n_mit_mot : n_mit_mot + n_mit_sot]
 
         n_mit_mot_ins = sum(len(s) for s in self.mit_mot_in_slices)
         n_mit_sot_ins = sum(len(s) for s in self.mit_sot_in_slices)
@@ -929,19 +945,19 @@ class scan_args:
         self.outer_in_mit_sot = outer_inputs[p : p + n_mit_sot]
         p += n_mit_sot
 
-        n_sit_sot = info["n_sit_sot"]
+        n_sit_sot = info.n_sit_sot
         self.outer_in_sit_sot = outer_inputs[p : p + n_sit_sot]
         self.inner_in_sit_sot = inner_inputs[q : q + n_sit_sot]
         p += n_sit_sot
         q += n_sit_sot
 
-        n_shared_outs = info["n_shared_outs"]
+        n_shared_outs = info.n_shared_outs
         self.outer_in_shared = outer_inputs[p : p + n_shared_outs]
         self.inner_in_shared = inner_inputs[q : q + n_shared_outs]
         p += n_shared_outs
         q += n_shared_outs
 
-        n_nit_sot = info["n_nit_sot"]
+        n_nit_sot = info.n_nit_sot
         self.outer_in_nit_sot = outer_inputs[p : p + n_nit_sot]
         p += n_nit_sot
 
@@ -952,14 +968,14 @@ class scan_args:
         p = 0
         q = 0
 
-        self.mit_mot_out_slices = info["mit_mot_out_slices"]
-        n_mit_mot_outs = info["n_mit_mot_outs"]
+        self.mit_mot_out_slices = info.mit_mot_out_slices
+        n_mit_mot_outs = info.n_mit_mot_outs
         self.outer_out_mit_mot = outer_outputs[p : p + n_mit_mot]
         iomm = inner_outputs[q : q + n_mit_mot_outs]
-        self.inner_out_mit_mot = []
+        self.inner_out_mit_mot = ()
         qq = 0
         for sl in self.mit_mot_out_slices:
-            self.inner_out_mit_mot.append(iomm[qq : qq + len(sl)])
+            self.inner_out_mit_mot += (iomm[qq : qq + len(sl)],)
             qq += len(sl)
         p += n_mit_mot
         q += n_mit_mot_outs
@@ -987,19 +1003,77 @@ class scan_args:
         assert p == len(outer_outputs)
         assert q == len(inner_outputs)
 
-        self.other_info = OrderedDict()
-        for k in (
-            "truncate_gradient",
-            "name",
-            "mode",
-            "destroy_map",
-            "gpua",
-            "as_while",
-            "profile",
-            "allow_gc",
-        ):
-            if k in info:
-                self.other_info[k] = info[k]
+    @staticmethod
+    def from_node(node, clone=False) -> "ScanArgs":
+        from aesara.scan.op import Scan
+
+        if not isinstance(node.op, Scan):
+            raise TypeError("{} is not a Scan node".format(node))
+        return ScanArgs(
+            node.inputs,
+            node.outputs,
+            node.op.inputs,
+            node.op.outputs,
+            node.op.info,
+            node.op.as_while,
+            clone=clone,
+        )
+
+    @classmethod
+    def create_empty(cls) -> "ScanArgs":
+        from aesara.scan.op import ScanInfo
+
+        info = ScanInfo(
+            n_seqs=0,
+            n_mit_mot=0,
+            n_mit_sot=0,
+            tap_array=(),
+            n_sit_sot=0,
+            n_nit_sot=0,
+            n_shared_outs=0,
+            n_mit_mot_outs=0,
+            mit_mot_out_slices=(),
+        )
+        res = cls([1], [], [], [], info, False)
+        res.n_steps = None
+        return res
+
+    @property
+    def n_nit_sot(self):
+        # This is just a hack that allows us to use `Scan.get_oinp_iinp_iout_oout_mappings`
+        return self.info.n_nit_sot
+
+    @property
+    def inputs(self):
+        # This is just a hack that allows us to use `Scan.get_oinp_iinp_iout_oout_mappings`
+        return self.inner_inputs
+
+    @property
+    def n_mit_mot(self):
+        # This is just a hack that allows us to use `Scan.get_oinp_iinp_iout_oout_mappings`
+        return self.info.n_mit_mot
+
+    @property
+    def var_mappings(self):
+        from aesara.scan.op import ScanMethodsMixin
+
+        return ScanMethodsMixin.get_oinp_iinp_iout_oout_mappings(self)
+
+    @property
+    def field_names(self):
+        res = ["mit_mot_out_slices", "mit_mot_in_slices", "mit_sot_in_slices"]
+        res.extend(
+            [
+                attr
+                for attr in self.__dict__
+                if attr.startswith("inner_in")
+                or attr.startswith("inner_out")
+                or attr.startswith("outer_in")
+                or attr.startswith("outer_out")
+                or attr == "n_steps"
+            ]
+        )
+        return res
 
     @property
     def inner_inputs(self):
@@ -1047,23 +1121,211 @@ class scan_args:
         )
 
     @property
-    def info(self):
-        return OrderedDict(
+    def info(self) -> "ScanInfo":
+        from aesara.scan.op import ScanInfo
+
+        return ScanInfo(
             n_seqs=len(self.outer_in_seqs),
             n_mit_mot=len(self.outer_in_mit_mot),
             n_mit_sot=len(self.outer_in_mit_sot),
             tap_array=(
-                self.mit_mot_in_slices
-                + self.mit_sot_in_slices
-                + [[-1]] * len(self.inner_in_sit_sot)
+                tuple(tuple(v) for v in self.mit_mot_in_slices)
+                + tuple(tuple(v) for v in self.mit_sot_in_slices)
+                + ((-1,),) * len(self.inner_in_sit_sot)
             ),
             n_sit_sot=len(self.outer_in_sit_sot),
             n_nit_sot=len(self.outer_in_nit_sot),
             n_shared_outs=len(self.outer_in_shared),
             n_mit_mot_outs=sum(len(s) for s in self.mit_mot_out_slices),
-            mit_mot_out_slices=self.mit_mot_out_slices,
-            **self.other_info,
+            mit_mot_out_slices=tuple(self.mit_mot_out_slices),
         )
+
+    def get_alt_field(
+        self, var_info: Union[Variable, FieldInfo], alt_prefix: str
+    ) -> Variable:
+        """Get the alternate input/output field for a given element of `ScanArgs`.
+
+        For example, if `var_info` is in ``ScanArgs.outer_out_sit_sot``, then
+        ``get_alt_field(var_info, "inner_out")`` returns the element corresponding
+        `var_info` in ``ScanArgs.inner_out_sit_sot``.
+
+        Parameters
+        ----------
+        var_info:
+            The element for which we want the alternate
+        alt_prefix:
+            The string prefix for the alternate field type.  It can be one of
+            the following: ``"inner_out"``, ``"inner_in"``, ``"outer_in"``, and
+            ``"outer_out"``.
+
+        Outputs
+        -------
+        The alternate variable.
+        """
+        if not isinstance(var_info, FieldInfo):
+            var_info = self.find_among_fields(var_info)
+
+        alt_type = var_info.name[(var_info.name.index("_", 6) + 1) :]
+        alt_var = getattr(self, f"{alt_prefix}_{alt_type}")[var_info.index]
+        return alt_var
+
+    def find_among_fields(
+        self, i: Variable, field_filter: Callable[[str], bool] = default_filter
+    ) -> Optional[Tuple[str, int, int, int]]:
+        """Find the type and indices of the field containing a given element.
+
+        NOTE: This only returns the *first* field containing the given element.
+
+        Parameters
+        ----------
+        i:
+            The element to find among this object's fields.
+        field_filter:
+            A function passed to `filter` that determines which fields to
+            consider.  It must take a string field name and return a truthy
+            value.
+
+        Returns
+        -------
+        A tuple of length 4 containing the field name string, the first index,
+        the second index (for nested lists), and the "major" index (i.e. the
+        index within the aggregate lists like `self.inner_inputs`,
+        `self.outer_outputs`, etc.), or a triple of `None` when no match is
+        found.
+        """
+
+        field_names = filter(field_filter, self.field_names)
+
+        for field_name in field_names:
+            lst = getattr(self, field_name)
+
+            field_prefix = field_name[:8]
+            if field_prefix.endswith("in"):
+                agg_field_name = "{}puts".format(field_prefix)
+            else:
+                agg_field_name = "{}tputs".format(field_prefix)
+
+            agg_list = getattr(self, agg_field_name)
+
+            if field_name in self.nested_list_fields:
+                for n, sub_lst in enumerate(lst):
+                    idx = safe_index(sub_lst, i)
+                    if idx is not None:
+                        agg_idx = safe_index(agg_list, i)
+                        return FieldInfo(field_name, agg_field_name, n, idx, agg_idx)
+            else:
+                idx = safe_index(lst, i)
+                if idx is not None:
+                    agg_idx = safe_index(agg_list, i)
+                    return FieldInfo(field_name, agg_field_name, idx, None, agg_idx)
+
+        return None
+
+    def _remove_from_fields(
+        self, i: Variable, field_filter: Callable[[str], bool] = default_filter
+    ) -> Optional[FieldInfo]:
+
+        field_info = self.find_among_fields(i, field_filter=field_filter)
+
+        if field_info is None:
+            return None
+
+        if field_info.inner_index is not None:
+            getattr(self, field_info.name)[field_info.index].remove(i)
+        else:
+            getattr(self, field_info.name).remove(i)
+
+        return field_info
+
+    def get_dependent_nodes(
+        self, i: Variable, seen: Optional[Set[int]] = None
+    ) -> Set[Variable]:
+        if seen is None:
+            seen = {i}
+        else:
+            seen.add(i)
+
+        var_mappings = self.var_mappings
+
+        field_info = self.find_among_fields(i)
+
+        if field_info is None:
+            raise ValueError("{} not found among fields.".format(i))
+
+        # Find the `var_mappings` key suffix that matches the field/set of
+        # arguments containing our source node
+        if field_info.name[:8].endswith("_in"):
+            map_key_suffix = "{}p".format(field_info.name[:8])
+        else:
+            map_key_suffix = field_info.name[:9]
+
+        dependent_nodes = set()
+        for k, v in var_mappings.items():
+
+            if not k.endswith(map_key_suffix):
+                continue
+
+            dependent_idx = v[field_info.agg_index]
+            dependent_idx = (
+                dependent_idx if isinstance(dependent_idx, list) else [dependent_idx]
+            )
+
+            # Get the `ScanArgs` field name for the aggregate list property
+            # corresponding to these dependent argument types (i.e. either
+            # "outer_inputs", "inner_inputs", "inner_outputs", or
+            # "outer_outputs").
+            # To do this, we need to parse the "shared" prefix of the
+            # current `var_mappings` key and append the missing parts so that
+            # it either forms `"*_inputs"` or `"*_outputs"`.
+            to_agg_field_prefix = k[:9]
+            if to_agg_field_prefix.endswith("p"):
+                to_agg_field_name = "{}uts".format(to_agg_field_prefix)
+            else:
+                to_agg_field_name = "{}puts".format(to_agg_field_prefix)
+
+            to_agg_field = getattr(self, to_agg_field_name)
+
+            for d_id in dependent_idx:
+                if d_id < 0:
+                    continue
+
+                dependent_var = to_agg_field[d_id]
+
+                if dependent_var not in seen:
+                    dependent_nodes.add(dependent_var)
+
+        if field_info.name.startswith("inner_in"):
+            # If starting from an inner-input, then we need to find any
+            # inner-outputs that depend on it.
+            for out_n in self.inner_outputs:
+                if i in graph_inputs([out_n]):
+                    if out_n not in seen:
+                        dependent_nodes.add(out_n)
+
+        for n in tuple(dependent_nodes):
+            if n in seen:
+                continue
+            sub_dependent_nodes = self.get_dependent_nodes(n, seen=seen)
+            dependent_nodes |= sub_dependent_nodes
+            seen |= sub_dependent_nodes
+
+        return dependent_nodes
+
+    def remove_from_fields(
+        self, i: Variable, rm_dependents: bool = True
+    ) -> List[FieldInfo]:
+
+        if rm_dependents:
+            vars_to_remove = self.get_dependent_nodes(i) | {i}
+        else:
+            vars_to_remove = {i}
+
+        rm_info = []
+        for v in vars_to_remove:
+            dependent_rm_info = self._remove_from_fields(v)
+            rm_info.append((v, dependent_rm_info))
+
+        return rm_info
 
     def __copy__(self):
         res = object.__new__(type(self))
@@ -1080,13 +1342,12 @@ class scan_args:
                     "mit_mot_out_slices",
                     "mit_mot_in_slices",
                     "mit_sot_in_slices",
-                    "other_info",
                 )
             ):
                 setattr(res, attr, copy.copy(getattr(self, attr)))
         return res
 
-    def merge(self, other):
+    def merge(self, other: "ScanArgs") -> "ScanArgs":
         res = copy.copy(self)
         for attr in self.__dict__:
             if (
@@ -1099,6 +1360,52 @@ class scan_args:
             ):
                 getattr(res, attr).extend(getattr(other, attr))
         return res
+
+    def __str__(self):
+        inner_arg_strs = [
+            "\t{}={}".format(p, getattr(self, p))
+            for p in self.field_names
+            if p.startswith("outer_in") or p == "n_steps"
+        ]
+        inner_arg_strs += [
+            "\t{}={}".format(p, getattr(self, p))
+            for p in self.field_names
+            if p.startswith("inner_in")
+        ]
+        inner_arg_strs += [
+            "\tmit_mot_in_slices={}".format(self.mit_mot_in_slices),
+            "\tmit_sot_in_slices={}".format(self.mit_sot_in_slices),
+        ]
+        inner_arg_strs += [
+            "\t{}={}".format(p, getattr(self, p))
+            for p in self.field_names
+            if p.startswith("inner_out")
+        ]
+        inner_arg_strs += [
+            "\tmit_mot_out_slices={}".format(self.mit_mot_out_slices),
+        ]
+        inner_arg_strs += [
+            "\t{}={}".format(p, getattr(self, p))
+            for p in self.field_names
+            if p.startswith("outer_out")
+        ]
+        res = "ScanArgs(\n{})".format(",\n".join(inner_arg_strs))
+        return res
+
+    def __repr__(self):
+        return self.__str__()
+
+    def __eq__(self, other):
+        if not isinstance(other, type(self)):
+            return NotImplemented
+
+        for field_name in self.field_names:
+            if not hasattr(other, field_name) or getattr(self, field_name) != getattr(
+                other, field_name
+            ):
+                return False
+
+        return True
 
 
 def forced_replace(out, x, y):

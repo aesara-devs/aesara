@@ -1,8 +1,9 @@
 import copy
 import math
 import sys
+from functools import cmp_to_key
 from io import StringIO
-from typing import Dict, Optional
+from typing import Dict, Optional, Sequence, Union
 
 from aesara.configdefaults import config
 from aesara.graph import opt
@@ -10,70 +11,75 @@ from aesara.misc.ordered_set import OrderedSet
 from aesara.utils import DefaultOrderedDict
 
 
-class DB:
-    def __hash__(self):
-        if not hasattr(self, "_optimizer_idx"):
-            self._optimizer_idx = opt._optimizer_idx[0]
-            opt._optimizer_idx[0] += 1
-        return self._optimizer_idx
+OptimizersType = Union[opt.GlobalOptimizer, opt.LocalOptimizer]
+
+
+class OptimizationDatabase:
+    """A class that represents a collection/database of optimizations.
+
+    These databases are used to logically organize collections of optimizers
+    (i.e. ``GlobalOptimizer``s and ``LocalOptimizer``).
+    """
 
     def __init__(self):
         self.__db__ = DefaultOrderedDict(OrderedSet)
         self._names = set()
-        self.name = None  # will be reset by register
-        # (via obj.name by the thing doing the registering)
+        # This will be reset by `self.register` (via `obj.name` by the thing
+        # doing the registering)
+        self.name = None
 
-    def register(self, name, obj, *tags, **kwargs):
-        """
+    def register(
+        self,
+        name: str,
+        optimizer: Union["OptimizationDatabase", OptimizersType],
+        *tags: str,
+        use_db_name_as_tag=True,
+    ):
+        """Register a new optimizer to the database.
 
         Parameters
         ----------
-        name : str
+        name:
             Name of the optimizer.
-        obj
+        opt:
             The optimizer to register.
-        tags
+        tags:
             Tag name that allow to select the optimizer.
-        kwargs
-            If non empty, should contain only use_db_name_as_tag=False.
-            By default, all optimizations registered in EquilibriumDB
-            are selected when the EquilibriumDB name is used as a
-            tag. We do not want this behavior for some optimizer like
-            local_remove_all_assert. use_db_name_as_tag=False remove
-            that behavior. This mean only the optimizer name and the
-            tags specified will enable that optimization.
+        use_db_name_as_tag:
+            Add the database's name as a tag, so that its name can be used in a
+            query.
+            By default, all optimizations registered in ``EquilibriumDB`` are
+            selected when the ``"EquilibriumDB"`` name is used as a tag. We do
+            not want this behavior for some optimizers like
+            ``local_remove_all_assert``. Setting `use_db_name_as_tag` to
+            ``False`` removes that behavior. This mean only the optimizer name
+            and the tags specified will enable that optimization.
 
         """
-        # N.B. obj is not an instance of class `GlobalOptimizer`.
-        # It is an instance of a DB.In the tests for example,
-        # this is not always the case.
-        if not isinstance(obj, (DB, opt.GlobalOptimizer, opt.LocalOptimizer)):
-            raise TypeError("Object cannot be registered in OptDB", obj)
+        if not isinstance(
+            optimizer, (OptimizationDatabase, opt.GlobalOptimizer, opt.LocalOptimizer)
+        ):
+            raise TypeError(f"{optimizer} is not a valid optimizer type.")
+
         if name in self.__db__:
-            raise ValueError(
-                "The name of the object cannot be an existing"
-                " tag or the name of another existing object.",
-                obj,
-                name,
-            )
-        if kwargs:
-            assert "use_db_name_as_tag" in kwargs
-            assert kwargs["use_db_name_as_tag"] is False
-        else:
+            raise ValueError(f"The tag '{name}' is already present in the database.")
+
+        if use_db_name_as_tag:
             if self.name is not None:
                 tags = tags + (self.name,)
-        obj.name = name
+
+        optimizer.name = name
         # This restriction is there because in many place we suppose that
-        # something in the DB is there only once.
-        if obj.name in self.__db__:
+        # something in the OptimizationDatabase is there only once.
+        if optimizer.name in self.__db__:
             raise ValueError(
-                f"Tried to register {obj.name} again under the new name {name}. "
-                "You can't register the same optimization multiple time in a DB. "
-                "Use ProxyDB to work around that."
+                f"Tried to register {optimizer.name} again under the new name {name}. "
+                "The same optimization cannot be registered multiple times in"
+                " an ``OptimizationDatabase``; use ProxyDB instead."
             )
-        self.__db__[name] = OrderedSet([obj])
+        self.__db__[name] = OrderedSet([optimizer])
         self._names.add(name)
-        self.__db__[obj.__class__.__name__].add(obj)
+        self.__db__[optimizer.__class__.__name__].add(optimizer)
         self.add_tags(name, *tags)
 
     def add_tags(self, name, *tags):
@@ -83,7 +89,7 @@ class DB:
         for tag in tags:
             if tag in self._names:
                 raise ValueError(
-                    "The tag of the object collides with a name.", obj, tag
+                    f"The tag '{tag}' for the {obj} collides with an existing name."
                 )
             self.__db__[tag].add(obj)
 
@@ -94,13 +100,11 @@ class DB:
         for tag in tags:
             if tag in self._names:
                 raise ValueError(
-                    "The tag of the object collides with a name.", obj, tag
+                    f"The tag '{tag}' for the {obj} collides with an existing name."
                 )
             self.__db__[tag].remove(obj)
 
     def __query__(self, q):
-        if not isinstance(q, Query):
-            raise TypeError("Expected a Query.", q)
         # The ordered set is needed for deterministic optimization.
         variables = OrderedSet()
         for tag in q.include:
@@ -112,7 +116,7 @@ class DB:
         remove = OrderedSet()
         add = OrderedSet()
         for obj in variables:
-            if isinstance(obj, DB):
+            if isinstance(obj, OptimizationDatabase):
                 def_sub_query = q
                 if q.extra_optimizations:
                     def_sub_query = copy.copy(q)
@@ -128,13 +132,11 @@ class DB:
         return variables
 
     def query(self, *tags, **kwtags):
-        if len(tags) >= 1 and isinstance(tags[0], Query):
+        if len(tags) >= 1 and isinstance(tags[0], OptimizationQuery):
             if len(tags) > 1 or kwtags:
                 raise TypeError(
-                    "If the first argument to query is a Query,"
-                    " there should be no other arguments.",
-                    tags,
-                    kwtags,
+                    "If the first argument to query is an `OptimizationQuery`,"
+                    " there should be no other arguments."
                 )
             return self.__query__(tags[0])
         include = [tag[1:] for tag in tags if tag.startswith("+")]
@@ -143,11 +145,12 @@ class DB:
         if len(include) + len(require) + len(exclude) < len(tags):
             raise ValueError(
                 "All tags must start with one of the following"
-                " characters: '+', '&' or '-'",
-                tags,
+                " characters: '+', '&' or '-'"
             )
         return self.__query__(
-            Query(include=include, require=require, exclude=exclude, subquery=kwtags)
+            OptimizationQuery(
+                include=include, require=require, exclude=exclude, subquery=kwtags
+            )
         )
 
     def __getitem__(self, name):
@@ -167,27 +170,54 @@ class DB:
         print("  names", self._names, file=stream)
         print("  db", self.__db__, file=stream)
 
+    def __hash__(self):
+        if not hasattr(self, "_optimizer_idx"):
+            self._optimizer_idx = opt._optimizer_idx[0]
+            opt._optimizer_idx[0] += 1
+        return self._optimizer_idx
 
-class Query:
-    """
 
-    Parameters
-    ----------
-    position_cutoff : float
-        Used by SequenceDB to keep only optimizer that are positioned before
-        the cut_off point.
+# This is deprecated and will be removed.
+DB = OptimizationDatabase
 
-    """
+
+class OptimizationQuery:
+    """An object that specifies a set of optimizations by tag/name."""
 
     def __init__(
         self,
-        include,
-        require=None,
-        exclude=None,
-        subquery=None,
-        position_cutoff=math.inf,
-        extra_optimizations=None,
+        include: Sequence[str],
+        require: Optional[Sequence[str]] = None,
+        exclude: Optional[Sequence[str]] = None,
+        subquery: Optional[Dict[str, "OptimizationQuery"]] = None,
+        position_cutoff: float = math.inf,
+        extra_optimizations: Optional[Sequence[OptimizersType]] = None,
     ):
+        """
+
+        Parameters
+        ==========
+        include:
+            A set of tags such that every optimization obtained through this
+            ``OptimizationQuery`` must have **one** of the tags listed. This
+            field is required and basically acts as a starting point for the
+            search.
+        require:
+            A set of tags such that every optimization obtained through this
+            ``OptimizationQuery`` must have **all** of these tags.
+        exclude:
+            A set of tags such that every optimization obtained through this
+            ``OptimizationQuery`` must have **none** of these tags.
+        subquery:
+            A dictionary mapping the name of a sub-database to a special
+            ``OptimizationQuery``.  If no subquery is given for a sub-database,
+            the original ``OptimizationQuery`` will be used again.
+        position_cutoff:
+            Only optimizations with position less than the cutoff are returned.
+        extra_optimizations:
+            Extra optimizations to be added.
+
+        """
         self.include = OrderedSet(include)
         self.require = require or OrderedSet()
         self.exclude = exclude or OrderedSet()
@@ -204,16 +234,11 @@ class Query:
 
     def __str__(self):
         return (
-            "Query{inc=%s,ex=%s,require=%s,subquery=%s,"
-            "position_cutoff=%f,extra_opts=%s}"
-            % (
-                self.include,
-                self.exclude,
-                self.require,
-                self.subquery,
-                self.position_cutoff,
-                self.extra_optimizations,
-            )
+            "OptimizationQuery("
+            + f"inc={self.include},ex={self.exclude},"
+            + f"require={self.require},subquery={self.subquery},"
+            + f"position_cutoff={self.position_cutoff},"
+            + f"extra_opts={self.extra_optimizations})"
         )
 
     def __setstate__(self, state):
@@ -223,7 +248,7 @@ class Query:
 
     # add all opt with this tag
     def including(self, *tags):
-        return Query(
+        return OptimizationQuery(
             self.include.union(tags),
             self.require,
             self.exclude,
@@ -234,7 +259,7 @@ class Query:
 
     # remove all opt with this tag
     def excluding(self, *tags):
-        return Query(
+        return OptimizationQuery(
             self.include,
             self.require,
             self.exclude.union(tags),
@@ -245,7 +270,7 @@ class Query:
 
     # keep only opt with this tag.
     def requiring(self, *tags):
-        return Query(
+        return OptimizationQuery(
             self.include,
             self.require.union(tags),
             self.exclude,
@@ -255,7 +280,7 @@ class Query:
         )
 
     def register(self, *optimizations):
-        return Query(
+        return OptimizationQuery(
             self.include,
             self.require,
             self.exclude,
@@ -265,7 +290,11 @@ class Query:
         )
 
 
-class EquilibriumDB(DB):
+# This is deprecated and will be removed.
+Query = OptimizationQuery
+
+
+class EquilibriumDB(OptimizationDatabase):
     """
     A set of potential optimizations which should be applied in an arbitrary
     order until equilibrium is reached.
@@ -296,17 +325,29 @@ class EquilibriumDB(DB):
     """
 
     def __init__(self, ignore_newtrees=True, tracks_on_change_inputs=False):
+        """
+        Parameters
+        ==========
+        ignore_newtrees:
+            If False, we will apply local opt on new node introduced during local
+            optimization application. This could result in less fgraph iterations,
+            but this doesn't mean it will be faster globally.
+
+        tracks_on_change_inputs:
+            If True, we will re-apply local opt on nodes whose inputs
+            changed during local optimization application. This could
+            result in less fgraph iterations, but this doesn't mean it
+            will be faster globally.
+        """
         super().__init__()
         self.ignore_newtrees = ignore_newtrees
         self.tracks_on_change_inputs = tracks_on_change_inputs
         self.__final__ = {}
         self.__cleanup__ = {}
 
-    def register(self, name, obj, *tags, **kwtags):
-        final_opt = kwtags.pop("final_opt", False)
-        cleanup = kwtags.pop("cleanup", False)
-        # An opt should not be final and clean up
-        assert not (final_opt and cleanup)
+    def register(self, name, obj, *tags, final_opt=False, cleanup=False, **kwtags):
+        if final_opt and cleanup:
+            raise ValueError("`final_opt` and `cleanup` cannot both be true.")
         super().register(name, obj, *tags, **kwtags)
         self.__final__[name] = final_opt
         self.__cleanup__[name] = cleanup
@@ -331,9 +372,8 @@ class EquilibriumDB(DB):
         )
 
 
-class SequenceDB(DB):
-    """
-    A sequence of potential optimizations.
+class SequenceDB(OptimizationDatabase):
+    """A sequence of potential optimizations.
 
     Retrieve a sequence of optimizations (a SeqOptimizer) by calling query().
 
@@ -353,18 +393,21 @@ class SequenceDB(DB):
         self.__position__ = {}
         self.failure_callback = failure_callback
 
-    def register(self, name, obj, position, *tags):
-        super().register(name, obj, *tags)
+    def register(self, name, obj, position: Union[str, int, float], *tags, **kwargs):
+        super().register(name, obj, *tags, **kwargs)
         if position == "last":
             if len(self.__position__) == 0:
                 self.__position__[name] = 0
             else:
                 self.__position__[name] = max(self.__position__.values()) + 1
-        else:
-            assert isinstance(position, ((int,), float))
+        elif isinstance(position, (int, float)):
             self.__position__[name] = position
+        else:
+            raise TypeError(f"`position` must be numeric; got {position}")
 
-    def query(self, *tags, **kwtags):
+    def query(
+        self, *tags, position_cutoff: Optional[Union[int, float]] = None, **kwtags
+    ):
         """
 
         Parameters
@@ -375,16 +418,18 @@ class SequenceDB(DB):
         """
         opts = super().query(*tags, **kwtags)
 
-        position_cutoff = kwtags.pop("position_cutoff", config.optdb__position_cutoff)
+        if position_cutoff is None:
+            position_cutoff = config.optdb__position_cutoff
+
         position_dict = self.__position__
 
-        if len(tags) >= 1 and isinstance(tags[0], Query):
+        if len(tags) >= 1 and isinstance(tags[0], OptimizationQuery):
             # the call to super should have raise an error with a good message
             assert len(tags) == 1
             if getattr(tags[0], "position_cutoff", None):
                 position_cutoff = tags[0].position_cutoff
 
-            # The Query instance might contain extra optimizations which need
+            # The OptimizationQuery instance might contain extra optimizations which need
             # to be added the the sequence of optimizations (don't alter the
             # original dictionary)
             if len(tags[0].extra_optimizations) > 0:
@@ -403,10 +448,12 @@ class SequenceDB(DB):
 
         opts = [o for o in opts if position_dict[o.name] < position_cutoff]
         opts.sort(key=lambda obj: (position_dict[obj.name], obj.name))
-        kwargs = {}
+
         if self.failure_callback:
-            kwargs["failure_callback"] = self.failure_callback
-        ret = self.seq_opt(opts, **kwargs)
+            ret = self.seq_opt(opts, failure_callback=self.failure_callback)
+        else:
+            ret = self.seq_opt(opts)
+
         if hasattr(tags[0], "name"):
             ret.name = tags[0].name
         return ret
@@ -418,11 +465,11 @@ class SequenceDB(DB):
         def c(a, b):
             return (a[1] > b[1]) - (a[1] < b[1])
 
-        positions.sort(c)
+        positions.sort(key=cmp_to_key(c))
 
-        print("  position", positions, file=stream)
-        print("  names", self._names, file=stream)
-        print("  db", self.__db__, file=stream)
+        print("\tposition", positions, file=stream)
+        print("\tnames", self._names, file=stream)
+        print("\tdb", self.__db__, file=stream)
 
     def __str__(self):
         sio = StringIO()
@@ -430,7 +477,7 @@ class SequenceDB(DB):
         return sio.getvalue()
 
 
-class LocalGroupDB(DB):
+class LocalGroupDB(SequenceDB):
     """
     Generate a local optimizer of type LocalOptGroup instead
     of a global optimizer.
@@ -445,43 +492,25 @@ class LocalGroupDB(DB):
         profile: bool = False,
         local_opt=opt.LocalOptGroup,
     ):
-        super().__init__()
-        self.failure_callback = None
+        super().__init__(failure_callback=None)
         self.apply_all_opts = apply_all_opts
         self.profile = profile
-        self.__position__: Dict = {}
         self.local_opt = local_opt
         self.__name__: str = ""
 
-    def register(self, name, obj, *tags, **kwargs):
-        super().register(name, obj, *tags)
-        position = kwargs.pop("position", "last")
-        if position == "last":
-            if len(self.__position__) == 0:
-                self.__position__[name] = 0
-            else:
-                self.__position__[name] = max(self.__position__.values()) + 1
-        else:
-            assert isinstance(position, ((int,), float))
-            self.__position__[name] = position
+    def register(self, name, obj, *tags, position="last", **kwargs):
+        super().register(name, obj, position, *tags, **kwargs)
 
     def query(self, *tags, **kwtags):
-        # For the new `useless` optimizer
         opts = list(super().query(*tags, **kwtags))
-        opts.sort(key=lambda obj: (self.__position__[obj.name], obj.name))
-
         ret = self.local_opt(
             *opts, apply_all_opts=self.apply_all_opts, profile=self.profile
         )
         return ret
 
 
-class TopoDB(DB):
-    """
-
-    Generate a `GlobalOptimizer` of type TopoOptimizer.
-
-    """
+class TopoDB(OptimizationDatabase):
+    """Generate a `GlobalOptimizer` of type TopoOptimizer."""
 
     def __init__(
         self, db, order="in_to_out", ignore_newtrees=False, failure_callback=None
@@ -501,17 +530,18 @@ class TopoDB(DB):
         )
 
 
-class ProxyDB(DB):
-    """
-    Wrap an existing proxy.
+class ProxyDB(OptimizationDatabase):
+    """A object that wraps an existing ``OptimizationDatabase``.
 
-    This is needed as we can't register the same DB mutiple times in
-    different positions in a SequentialDB.
+    This is needed because we can't register the same ``OptimizationDatabase``
+    multiple times in different positions in a ``SequentialDB``.
 
     """
 
     def __init__(self, db):
-        assert isinstance(db, DB), ""
+        if not isinstance(db, OptimizationDatabase):
+            raise TypeError("`db` must be an `OptimizationDatabase`.")
+
         self.db = db
 
     def query(self, *tags, **kwtags):

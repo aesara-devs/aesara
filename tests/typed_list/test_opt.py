@@ -7,7 +7,7 @@ from aesara.compile.io import In
 from aesara.tensor.type import TensorType, matrix, scalar
 from aesara.typed_list.basic import Append, Extend, Insert, Remove, Reverse
 from aesara.typed_list.type import TypedListType
-from tests.tensor.utils import rand_ranged
+from tests.tensor.utils import random_ranged
 
 
 class TestInplace:
@@ -26,9 +26,9 @@ class TestInplace:
         )
         assert f.maker.fgraph.toposort()[0].op.inplace
 
-        x = rand_ranged(-1000, 1000, [100, 101])
+        x = random_ranged(-1000, 1000, [100, 101])
 
-        y = rand_ranged(-1000, 1000, [100, 101])
+        y = random_ranged(-1000, 1000, [100, 101])
 
         assert np.array_equal(f([x, y]), [y, x])
 
@@ -50,9 +50,9 @@ class TestInplace:
         )
         assert f.maker.fgraph.toposort()[0].op.inplace
 
-        x = rand_ranged(-1000, 1000, [100, 101])
+        x = random_ranged(-1000, 1000, [100, 101])
 
-        y = rand_ranged(-1000, 1000, [100, 101])
+        y = random_ranged(-1000, 1000, [100, 101])
 
         assert np.array_equal(f([x], y), [x, y])
 
@@ -77,9 +77,9 @@ class TestInplace:
         )
         assert f.maker.fgraph.toposort()[0].op.inplace
 
-        x = rand_ranged(-1000, 1000, [100, 101])
+        x = random_ranged(-1000, 1000, [100, 101])
 
-        y = rand_ranged(-1000, 1000, [100, 101])
+        y = random_ranged(-1000, 1000, [100, 101])
 
         assert np.array_equal(f([x], [y]), [x, y])
 
@@ -105,9 +105,9 @@ class TestInplace:
         )
         assert f.maker.fgraph.toposort()[0].op.inplace
 
-        x = rand_ranged(-1000, 1000, [100, 101])
+        x = random_ranged(-1000, 1000, [100, 101])
 
-        y = rand_ranged(-1000, 1000, [100, 101])
+        y = random_ranged(-1000, 1000, [100, 101])
 
         assert np.array_equal(f([x], np.asarray(1, dtype="int64"), y), [x, y])
 
@@ -129,9 +129,9 @@ class TestInplace:
         )
         assert f.maker.fgraph.toposort()[0].op.inplace
 
-        x = rand_ranged(-1000, 1000, [100, 101])
+        x = random_ranged(-1000, 1000, [100, 101])
 
-        y = rand_ranged(-1000, 1000, [100, 101])
+        y = random_ranged(-1000, 1000, [100, 101])
 
         assert np.array_equal(f([x, y], y), [x])
 

@@ -77,7 +77,7 @@ poisson = Poisson()
 
 class Binomial(Op):
     """Return a sparse matrix having random values from a binomial
-    density having number of experiment `n` and probability of succes
+    density having number of experiment `n` and probability of success
     `p`.
 
     WARNING: This Op is NOT deterministic, as calling it twice with the
@@ -146,7 +146,7 @@ csc_dbinomial = Binomial("csc", "float64")
 
 class Multinomial(Op):
     """Return a sparse matrix having random values from a multinomial
-    density having number of experiment `n` and probability of succes
+    density having number of experiment `n` and probability of success
     `p`.
 
     WARNING: This Op is NOT deterministic, as calling it twice with the
@@ -157,7 +157,7 @@ class Multinomial(Op):
               experiment for each row. If `n` is a scalar, it will be
               used for each row.
     :param p: Sparse matrix of probability where each row is a probability
-              vector representing the probability of succes. N.B. Each row
+              vector representing the probability of success. N.B. Each row
               must sum to one.
 
     :return: A sparse matrix of random integers from a multinomial density

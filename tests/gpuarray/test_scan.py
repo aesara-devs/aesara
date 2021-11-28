@@ -32,9 +32,6 @@ else:
 
 
 class TestScan:
-    def setup_method(self):
-        utt.seed_rng()
-
     def test_one_sequence_one_output_weights_gpu1(self):
         def f_rnn(u_t, x_tm1, W_in, W):
             return u_t * W_in + x_tm1 * W
@@ -65,7 +62,7 @@ class TestScan:
             mode=mode,
         )
 
-        rng = np.random.RandomState(utt.fetch_seed())
+        rng = np.random.default_rng(utt.fetch_seed())
         v_u = rng.uniform(size=(4,), low=-5.0, high=5.0)
         v_x0 = rng.uniform()
         W = rng.uniform()
@@ -134,7 +131,7 @@ class TestScan:
         )
 
         # get random initial values
-        rng = np.random.RandomState(utt.fetch_seed())
+        rng = np.random.default_rng(utt.fetch_seed())
         v_u = rng.uniform(size=(4,), low=-5.0, high=5.0)
         v_x0 = rng.uniform()
         W = rng.uniform()
@@ -193,7 +190,7 @@ class TestScan:
         )
 
         # get random initial values
-        rng = np.random.RandomState(utt.fetch_seed())
+        rng = np.random.default_rng(utt.fetch_seed())
         v_u = rng.uniform(size=(4,), low=-5.0, high=5.0)
         v_x0 = rng.uniform()
         W = rng.uniform()
@@ -225,7 +222,7 @@ class TestScan:
         assert not any([isinstance(node.op, GpuFromHost) for node in scan_node_topo])
 
     def test_gpu4_gibbs_chain(self):
-        rng = np.random.RandomState(utt.fetch_seed())
+        rng = np.random.default_rng(utt.fetch_seed())
         v_vsample = np.array(
             rng.binomial(
                 1,
@@ -313,7 +310,7 @@ class ScanGpuTests:
         )
 
         # get random initial values
-        rng = np.random.RandomState(utt.fetch_seed())
+        rng = np.random.default_rng(utt.fetch_seed())
         v_u = rng.uniform(size=(4,), low=-5.0, high=5.0)
         v_x0 = rng.uniform()
         W = rng.uniform()
@@ -402,7 +399,7 @@ class ScanGpuTests:
         )
 
         # get random initial values
-        rng = np.random.RandomState(utt.fetch_seed())
+        rng = np.random.default_rng(utt.fetch_seed())
         v_u = rng.uniform(size=(4,), low=-5.0, high=5.0)
         v_x0 = rng.uniform()
         W = rng.uniform()
@@ -481,7 +478,7 @@ class ScanGpuTests:
         )
 
         # get random initial values
-        rng = np.random.RandomState(utt.fetch_seed())
+        rng = np.random.default_rng(utt.fetch_seed())
         v_u = rng.uniform(size=(4,), low=-5.0, high=5.0)
         v_x0 = rng.uniform()
         W = rng.uniform()
@@ -507,7 +504,7 @@ class ScanGpuTests:
         assert self.is_scan_on_gpu(scan_node)
 
     def test_gibbs_chain(self):
-        rng = np.random.RandomState(utt.fetch_seed())
+        rng = np.random.default_rng(utt.fetch_seed())
         v_vsample = np.array(
             rng.binomial(
                 1,
@@ -549,7 +546,7 @@ class ScanGpuTests:
 
     def test_gpu_memory_usage(self):
         # This test validates that the memory usage of the defined aesara
-        # function is reasonnable when executed on the GPU. It checks for
+        # function is reasonable when executed on the GPU. It checks for
         # a bug in which one of scan's optimization was not applied which
         # made the scan node compute large and unnecessary outputs which
         # brought memory usage on the GPU to ~12G.
@@ -680,8 +677,6 @@ class TestScanGpuarray(ScanGpuTests):
         # Skip the test if pygpu is not available
         if not self.gpu_backend.pygpu_activated:
             pytest.skip("Optional package pygpu disabled")
-
-        utt.seed_rng()
 
     def is_scan_on_gpu(self, node):
         return node.op.info.get("gpua", False)

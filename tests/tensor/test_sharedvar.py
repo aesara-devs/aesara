@@ -7,12 +7,10 @@ import aesara
 import aesara.sparse
 import aesara.tensor as aet
 from aesara.misc.may_share_memory import may_share_memory
+from aesara.tensor import get_vector_length
 from aesara.tensor.basic import MakeVector
 from aesara.tensor.shape import Shape_i, specify_shape
 from tests import unittest_tools as utt
-
-
-utt.seed_rng()
 
 
 def makeSharedTester(
@@ -85,7 +83,7 @@ def makeSharedTester(
             if dtype is None:
                 dtype = aesara.config.floatX
 
-            rng = np.random.RandomState(utt.fetch_seed())
+            rng = np.random.default_rng(utt.fetch_seed())
             x = np.asarray(rng.uniform(0, 1, [2, 4]), dtype=dtype)
             x = self.cast_value(x)
 
@@ -130,7 +128,7 @@ def makeSharedTester(
             if dtype is None:
                 dtype = aesara.config.floatX
 
-            rng = np.random.RandomState(utt.fetch_seed())
+            rng = np.random.default_rng(utt.fetch_seed())
             x = np.asarray(rng.uniform(0, 1, [2, 4]), dtype=dtype)
             x = self.cast_value(x)
 
@@ -153,7 +151,7 @@ def makeSharedTester(
             if dtype is None:
                 dtype = aesara.config.floatX
 
-            rng = np.random.RandomState(utt.fetch_seed())
+            rng = np.random.default_rng(utt.fetch_seed())
             x = np.asarray(rng.uniform(0, 1, [2, 4]), dtype=dtype)
             x = self.cast_value(x)
 
@@ -174,7 +172,7 @@ def makeSharedTester(
             if dtype is None:
                 dtype = aesara.config.floatX
 
-            rng = np.random.RandomState(utt.fetch_seed())
+            rng = np.random.default_rng(utt.fetch_seed())
             x = np.asarray(rng.uniform(0, 1, [2, 4]), dtype=dtype)
             x = self.cast_value(x)
 
@@ -207,7 +205,7 @@ def makeSharedTester(
             if dtype is None:
                 dtype = aesara.config.floatX
 
-            rng = np.random.RandomState(utt.fetch_seed())
+            rng = np.random.default_rng(utt.fetch_seed())
             x_orig = np.asarray(rng.uniform(0, 1, [2, 4]), dtype=dtype)
             x_cast = self.cast_value(x_orig)
             if self.shared_constructor_accept_ndarray:
@@ -222,7 +220,7 @@ def makeSharedTester(
             if dtype is None:
                 dtype = aesara.config.floatX
 
-            rng = np.random.RandomState(utt.fetch_seed())
+            rng = np.random.default_rng(utt.fetch_seed())
             x = np.asarray(rng.uniform(0, 1, [2, 4]), dtype=dtype)
             x = self.cast_value(x)
 
@@ -264,7 +262,7 @@ def makeSharedTester(
             if dtype is None:
                 dtype = aesara.config.floatX
 
-            rng = np.random.RandomState(utt.fetch_seed())
+            rng = np.random.default_rng(utt.fetch_seed())
             x = np.asarray(rng.uniform(1, 2, [4, 2]), dtype=dtype)
             x = self.cast_value(x)
             x_ref = self.ref_fct(x)
@@ -327,7 +325,7 @@ def makeSharedTester(
             if x.__class__.__name__ != "csr_matrix":
                 # sparse matrix don't support inplace affectation
                 nd += 1
-                # THIS DOENS'T DO WHAT WE EXPECT the content of a is
+                # THIS DOESN'T DO WHAT WE EXPECT the content of a is
                 # not updated for GpuArray, but it is for ndarray
                 x_shared.get_value(borrow=True)[:] = nd
                 assert may_share_memory(old_data, x_shared.container.storage[0])
@@ -347,7 +345,7 @@ def makeSharedTester(
             )
 
             # Test by set_value with borrow=False when new data cast.
-            # specificaly useful for gpu data
+            # specifically useful for gpu data
             nd += 1
             old_data = x_shared.container.storage[0]
             x_shared.set_value(self.cast_value(nd), borrow=False)
@@ -391,7 +389,7 @@ def makeSharedTester(
             if dtype is None:
                 dtype = aesara.config.floatX
 
-            rng = np.random.RandomState(utt.fetch_seed())
+            rng = np.random.default_rng(utt.fetch_seed())
             x1_1 = np.asarray(rng.uniform(1, 2, [4, 2]), dtype=dtype)
             x1_1 = self.cast_value(x1_1)
             x1_2 = np.asarray(rng.uniform(1, 2, [4, 2]), dtype=dtype)
@@ -460,7 +458,7 @@ def makeSharedTester(
             if dtype is None:
                 dtype = aesara.config.floatX
 
-            rng = np.random.RandomState(utt.fetch_seed())
+            rng = np.random.default_rng(utt.fetch_seed())
             x1_1 = np.asarray(rng.uniform(1, 2, [4, 2]), dtype=dtype)
             x1_1 = self.cast_value(x1_1)
             x1_2 = np.asarray(rng.uniform(1, 2, [4, 2]), dtype=dtype)
@@ -524,7 +522,7 @@ def makeSharedTester(
             if dtype is None:
                 dtype = aesara.config.floatX
 
-            rng = np.random.RandomState(utt.fetch_seed())
+            rng = np.random.default_rng(utt.fetch_seed())
             a = np.asarray(rng.uniform(1, 2, [40, 40]), dtype=dtype)
             a = self.cast_value(a)
             a_shared = self.shared_constructor(a)
@@ -654,9 +652,9 @@ def makeSharedTester(
             shp = (1024, 1024)
 
             # Test the case with all zeros element
-            rng = np.random.RandomState(utt.fetch_seed())
+            rng = np.random.default_rng(utt.fetch_seed())
             for x in [
-                np.asarray(rng.rand(*shp), dtype=dtype),
+                np.asarray(rng.random(shp), dtype=dtype),
                 np.zeros(shp, dtype=dtype),
             ]:
                 zeros = (x == 0).all()
@@ -703,3 +701,8 @@ def test_scalar_shared_options():
     # Simple test to make sure we do not loose that fonctionality.
     aesara.shared(value=0.0, name="lk", borrow=True)
     aesara.shared(value=np.float32(0.0), name="lk", borrow=True)
+
+
+def test_get_vector_length():
+    x = aesara.shared(np.array((2, 3, 4, 5)))
+    assert get_vector_length(x) == 4

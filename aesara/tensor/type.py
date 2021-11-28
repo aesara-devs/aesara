@@ -24,7 +24,7 @@ all_dtypes = list(map(str, aes.all_types))
 int_dtypes = list(map(str, aes.int_types))
 uint_dtypes = list(map(str, aes.uint_types))
 
-# TODO: add more type correspondances for e.g. int32, int64, float32,
+# TODO: add more type correspondences for e.g. int32, int64, float32,
 # complex64, etc.
 dtype_specs_map = {
     "float16": (float, "npy_float16", "NPY_FLOAT16"),
@@ -75,9 +75,11 @@ class TensorType(CType):
     """
 
     def __init__(self, dtype, broadcastable, name=None):
-        self.dtype = str(dtype)
-        if self.dtype == "floatX":
+        if isinstance(dtype, str) and dtype == "floatX":
             self.dtype = config.floatX
+        else:
+            self.dtype = np.dtype(dtype).name
+
         # broadcastable is immutable, and all elements are either
         # True or False
         self.broadcastable = tuple(bool(b) for b in broadcastable)
@@ -203,33 +205,18 @@ class TensorType(CType):
                 f" got {data.ndim} with shape {data.shape}."
             )
         if not data.flags.aligned:
-            try:
-                msg = "object buffer" + str(data.data)
-            except AttributeError:
-                msg = ""
             raise TypeError(
                 "The numpy.ndarray object is not aligned."
                 " Aesara C code does not support that.",
-                msg,
-                "object shape",
-                data.shape,
-                "object strides",
-                data.strides,
-                "object dtype",
-                data.dtype,
             )
 
         i = 0
         for b in self.broadcastable:
             if b and data.shape[i] != 1:
-                raise TypeError(
-                    "Non-unit value on shape on a broadcastable" " dimension.",
-                    data.shape,
-                    self.broadcastable,
-                )
+                raise TypeError("Non-unit value on shape on a broadcastable dimension.")
             i += 1
         if self.filter_checks_isfinite and not np.all(np.isfinite(data)):
-            raise ValueError("non-finite elements not allowed")
+            raise ValueError("Non-finite elements not allowed")
         return data
 
     def filter_variable(self, other, allow_convert=True):
@@ -563,19 +550,19 @@ class TensorType(CType):
         return np.zeros(shape, dtype=self.dtype)
 
     def get_shape_info(self, obj):
-        """Return the information needed to compute the memory size of ``obj``.
+        """Return the information needed to compute the memory size of `obj`.
 
         The memory size is only the data, so this excludes the container.
         For an ndarray, this is the data, but not the ndarray object and
         other data structures such as shape and strides.
 
-        ``get_shape_info()`` and ``get_size()`` work in tandem for the memory
+        `get_shape_info` and `get_size` work in tandem for the memory
         profiler.
 
-        ``get_shape_info()`` is called during the execution of the function.
+        `get_shape_info` is called during the execution of the function.
         So it is better that it is not too slow.
 
-        ``get_size()`` will be called on the output of this function
+        `get_size` will be called on the output of this function
         when printing the memory profile.
 
         Parameters
@@ -586,7 +573,7 @@ class TensorType(CType):
         Returns
         -------
         object
-            Python object that ``self.get_size()`` understands.
+            Python object that can be passed to `get_size`.
 
         """
         return obj.shape
@@ -597,7 +584,7 @@ class TensorType(CType):
         Parameters
         ----------
         shape_info
-            The output of the call to get_shape_info().
+            The output of the call to `get_shape_info`.
 
         Returns
         -------
@@ -609,9 +596,6 @@ class TensorType(CType):
             return np.prod(shape_info) * np.dtype(self.dtype).itemsize
         else:  # a scalar
             return np.dtype(self.dtype).itemsize
-
-
-aesara.compile.ops.expandable_types += (TensorType,)
 
 
 def values_eq_approx(
@@ -1075,3 +1059,161 @@ def tensor7(name=None, dtype=None):
 tensor7s, ftensor7s, dtensor7s, itensor7s, ltensor7s = apply_across_args(
     tensor7, ftensor7, dtensor7, itensor7, ltensor7
 )
+
+
+__all__ = [
+    "TensorType",
+    "bcol",
+    "bmatrix",
+    "brow",
+    "bscalar",
+    "btensor3",
+    "btensor4",
+    "btensor5",
+    "btensor6",
+    "btensor7",
+    "bvector",
+    "ccol",
+    "cmatrix",
+    "col",
+    "cols",
+    "complex_matrix_types",
+    "complex_scalar_types",
+    "complex_types",
+    "complex_vector_types",
+    "crow",
+    "cscalar",
+    "ctensor3",
+    "ctensor4",
+    "ctensor5",
+    "ctensor6",
+    "ctensor7",
+    "cvector",
+    "dcol",
+    "dcols",
+    "dmatrices",
+    "dmatrix",
+    "drow",
+    "drows",
+    "dscalar",
+    "dscalars",
+    "dtensor3",
+    "dtensor3s",
+    "dtensor4",
+    "dtensor4s",
+    "dtensor5",
+    "dtensor5s",
+    "dtensor6",
+    "dtensor6s",
+    "dtensor7",
+    "dtensor7s",
+    "dvector",
+    "dvectors",
+    "fcol",
+    "fcols",
+    "float_matrix_types",
+    "float_scalar_types",
+    "float_types",
+    "float_vector_types",
+    "fmatrices",
+    "fmatrix",
+    "frow",
+    "frows",
+    "fscalar",
+    "fscalars",
+    "ftensor3",
+    "ftensor3s",
+    "ftensor4",
+    "ftensor4s",
+    "ftensor5",
+    "ftensor5s",
+    "ftensor6",
+    "ftensor6s",
+    "ftensor7",
+    "ftensor7s",
+    "fvector",
+    "fvectors",
+    "icol",
+    "icols",
+    "imatrices",
+    "imatrix",
+    "int_matrix_types",
+    "int_scalar_types",
+    "int_types",
+    "int_vector_types",
+    "irow",
+    "irows",
+    "iscalar",
+    "iscalars",
+    "itensor3",
+    "itensor3s",
+    "itensor4",
+    "itensor4s",
+    "itensor5",
+    "itensor5s",
+    "itensor6",
+    "itensor6s",
+    "itensor7",
+    "itensor7s",
+    "ivector",
+    "ivectors",
+    "lcol",
+    "lcols",
+    "lmatrices",
+    "lmatrix",
+    "lrow",
+    "lrows",
+    "lscalar",
+    "lscalars",
+    "ltensor3",
+    "ltensor3s",
+    "ltensor4",
+    "ltensor4s",
+    "ltensor5",
+    "ltensor5s",
+    "ltensor6",
+    "ltensor6s",
+    "ltensor7",
+    "ltensor7s",
+    "lvector",
+    "lvectors",
+    "matrices",
+    "matrix",
+    "row",
+    "rows",
+    "scalar",
+    "scalars",
+    "tensor",
+    "tensor3",
+    "tensor3s",
+    "tensor4",
+    "tensor4s",
+    "tensor5",
+    "tensor5s",
+    "tensor6",
+    "tensor6s",
+    "tensor7",
+    "tensor7s",
+    "values_eq_approx_always_true",
+    "vector",
+    "vectors",
+    "wcol",
+    "wrow",
+    "wscalar",
+    "wtensor3",
+    "wtensor4",
+    "wtensor5",
+    "wtensor6",
+    "wtensor7",
+    "wvector",
+    "zcol",
+    "zmatrix",
+    "zrow",
+    "zscalar",
+    "ztensor3",
+    "ztensor4",
+    "ztensor5",
+    "ztensor6",
+    "ztensor7",
+    "zvector",
+]

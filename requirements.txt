@@ -1,4 +1,5 @@
 -e ./
+dataclasses>=0.7; python_version < '3.7'
 filelock
 flake8==3.8.4
 pep8
@@ -13,6 +14,8 @@ sympy
 versioneer
 jax; python_version > '3.6'
 jaxlib; python_version > '3.6'
+numba
+numba-scipy>=0.3.0
 diff-cover
 pre-commit
 isort

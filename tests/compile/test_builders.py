@@ -3,20 +3,25 @@ from functools import partial
 import numpy as np
 import pytest
 
-import aesara
-from aesara import shared
+from aesara.compile import shared
 from aesara.compile.builders import OpFromGraph
 from aesara.compile.function import function
 from aesara.configdefaults import config
-from aesara.gradient import DisconnectedType, Rop, grad
+from aesara.gradient import DisconnectedType, Rop, disconnected_type, grad
+from aesara.graph.fg import FunctionGraph
 from aesara.graph.null_type import NullType
+from aesara.graph.opt_utils import optimize_graph
+from aesara.printing import debugprint
+from aesara.tensor.basic import as_tensor
+from aesara.tensor.basic_opt import ShapeOptimizer
 from aesara.tensor.math import dot, exp
 from aesara.tensor.math import round as aet_round
+from aesara.tensor.math import sigmoid
 from aesara.tensor.math import sum as aet_sum
-from aesara.tensor.nnet import sigmoid
 from aesara.tensor.random.utils import RandomStream
 from aesara.tensor.type import TensorType, matrices, matrix, scalar, vector, vectors
 from tests import unittest_tools
+from tests.graph.utils import MyVariable
 
 
 class TestOpFromGraph(unittest_tools.InferShapeTester):
@@ -88,7 +93,7 @@ class TestOpFromGraph(unittest_tools.InferShapeTester):
         xv = np.ones((2, 2), dtype=config.floatX)
         yv = np.ones((2, 2), dtype=config.floatX) * 3
         zv = np.ones((2, 2), dtype=config.floatX) * 5
-        assert np.allclose(6.0, fn(xv, yv, zv))
+        np.testing.assert_array_almost_equal(6.0, fn(xv, yv, zv), 4)
 
     @pytest.mark.parametrize(
         "cls_ofg", [OpFromGraph, partial(OpFromGraph, inline=True)]
@@ -107,8 +112,8 @@ class TestOpFromGraph(unittest_tools.InferShapeTester):
         zv = np.ones((2, 2), dtype=config.floatX) * 5
         # print function, function.__module__
         # print fn.maker.fgraph.toposort()
-        assert np.allclose(8.0, fn(xv, yv, zv))
-        assert np.allclose(8.0, fn(xv, yv, zv))
+        np.testing.assert_array_almost_equal(8.0, fn(xv, yv, zv), 4)
+        np.testing.assert_array_almost_equal(8.0, fn(xv, yv, zv), 4)
 
     @pytest.mark.parametrize(
         "cls_ofg", [OpFromGraph, partial(OpFromGraph, inline=True)]
@@ -124,13 +129,13 @@ class TestOpFromGraph(unittest_tools.InferShapeTester):
         xv = np.ones((2, 2), dtype=config.floatX)
         yv = np.ones((2, 2), dtype=config.floatX) * 3
         zv = np.ones((2, 2), dtype=config.floatX) * 5
-        assert np.allclose(11.0 + s.get_value(), fn(xv, yv, zv))
+        np.testing.assert_array_almost_equal(11.0 + s.get_value(), fn(xv, yv, zv), 4)
 
         # grad again the shared variable
         f = op(x, y, z)
         f = f - grad(aet_sum(f), s)
         fn = function([x, y, z], f)
-        assert np.allclose(15.0 + s.get_value(), fn(xv, yv, zv))
+        np.testing.assert_array_almost_equal(15.0 + s.get_value(), fn(xv, yv, zv), 4)
 
     @pytest.mark.parametrize(
         "cls_ofg", [OpFromGraph, partial(OpFromGraph, inline=True)]
@@ -158,8 +163,8 @@ class TestOpFromGraph(unittest_tools.InferShapeTester):
             xv = np.random.rand(16).astype(config.floatX)
             yv = np.random.rand(16).astype(config.floatX)
             dxv, dyv = fn(xv, yv)
-            assert np.allclose(yv * 2, dxv)
-            assert np.allclose(xv * 1.5, dyv)
+            np.testing.assert_array_almost_equal(yv * 2, dxv, 4)
+            np.testing.assert_array_almost_equal(xv * 1.5, dyv, 4)
 
         # list override case
         def go1(inps, gs):
@@ -185,9 +190,9 @@ class TestOpFromGraph(unittest_tools.InferShapeTester):
         wv = np.random.rand(16).astype(config.floatX)
         bv = np.random.rand(16).astype(config.floatX)
         dxv, dwv, dbv = fn(xv, wv, bv)
-        assert np.allclose(wv * 2, dxv)
-        assert np.allclose(xv * 1.5, dwv)
-        assert np.allclose(np.ones(16, dtype=config.floatX), dbv)
+        np.testing.assert_array_almost_equal(wv * 2, dxv, 4)
+        np.testing.assert_array_almost_equal(xv * 1.5, dwv, 4)
+        np.testing.assert_array_almost_equal(np.ones(16, dtype=config.floatX), dbv, 4)
 
         # NullType and DisconnectedType
         op_linear2 = cls_ofg(
@@ -235,7 +240,7 @@ class TestOpFromGraph(unittest_tools.InferShapeTester):
 
             xval = np.random.rand(32).astype(config.floatX)
             y1val, y2val = fn(xval)
-            assert np.allclose(y1val, y2val)
+            np.testing.assert_array_almost_equal(y1val, y2val, 4)
 
     @pytest.mark.parametrize(
         "cls_ofg", [OpFromGraph, partial(OpFromGraph, inline=True)]
@@ -256,7 +261,7 @@ class TestOpFromGraph(unittest_tools.InferShapeTester):
         duval = np.random.rand(16).astype(config.floatX)
         dvval = np.dot(duval, Wval)
         dvval2 = fn(xval, Wval, duval)
-        assert np.allclose(dvval2, dvval)
+        np.testing.assert_array_almost_equal(dvval2, dvval, 4)
 
     @pytest.mark.parametrize(
         "cls_ofg", [OpFromGraph, partial(OpFromGraph, inline=True)]
@@ -283,7 +288,9 @@ class TestOpFromGraph(unittest_tools.InferShapeTester):
             fn = function([xx, yy, du, dv], dw)
             vals = np.random.rand(4, 32).astype(config.floatX)
             dwval = fn(*vals)
-            assert np.allclose(dwval, vals[0] * vals[3] * 1.5 + vals[1] * vals[2] * 2.0)
+            np.testing.assert_array_almost_equal(
+                dwval, vals[0] * vals[3] * 1.5 + vals[1] * vals[2] * 2.0, 4
+            )
 
         # TODO list override case
 
@@ -300,7 +307,7 @@ class TestOpFromGraph(unittest_tools.InferShapeTester):
             return y + aet_round(y)
 
         def f1_back(inputs, output_gradients):
-            return [output_gradients[0], aesara.gradient.disconnected_type()]
+            return [output_gradients[0], disconnected_type()]
 
         op = cls_ofg(
             inputs=[x, y],
@@ -312,12 +319,12 @@ class TestOpFromGraph(unittest_tools.InferShapeTester):
 
         c = op(x, y)
 
-        g1 = aesara.grad(c.sum(), x)
+        g1 = grad(c.sum(), x)
 
         out = g1.eval(
             {x: np.ones((5,), dtype=np.float32), y: np.ones((5,), dtype=np.float32)}
         )
-        assert np.allclose(out, [1.0] * 5)
+        np.testing.assert_array_almost_equal(out, [1.0] * 5, 4)
 
     @pytest.mark.parametrize(
         "cls_ofg", [OpFromGraph, partial(OpFromGraph, inline=True)]
@@ -335,8 +342,8 @@ class TestOpFromGraph(unittest_tools.InferShapeTester):
         xv = np.random.rand(16).astype(config.floatX)
         yv = np.random.rand(16).astype(config.floatX)
         xv2, yv2 = fn(xv, yv)
-        assert np.allclose(xv, xv2)
-        assert np.allclose(yv, yv2)
+        np.testing.assert_array_almost_equal(xv, xv2, 4)
+        np.testing.assert_array_almost_equal(yv, yv2, 4)
 
     @pytest.mark.parametrize(
         "cls_ofg", [OpFromGraph, partial(OpFromGraph, inline=True)]
@@ -401,6 +408,22 @@ class TestOpFromGraph(unittest_tools.InferShapeTester):
             OpFromGraph,
         )
 
+        # Make sure `OpFromGraph.infer_shape` can handle objects without a
+        # shape
+        x = MyVariable("x")
+        y = matrix("y")
+        z = as_tensor([1, 2])
+
+        op_graph = OpFromGraph([x, y, z], [x, y])
+
+        op_var = op_graph(x, y, z)
+
+        fg = FunctionGraph(outputs=[op_var[1]], clone=False)
+        opt_res = optimize_graph(fg, custom_opt=ShapeOptimizer())
+
+        assert opt_res.shape_feature.shape_of[x] is None
+        assert opt_res.shape_feature.shape_of[z][0].data == 2
+
     @config.change_flags(compute_test_value="raise")
     def test_compute_test_value(self):
         x = scalar("x")
@@ -411,3 +434,31 @@ class TestOpFromGraph(unittest_tools.InferShapeTester):
         f = op(y)
         grad_f = grad(f, y)
         assert grad_f.tag.test_value is not None
+
+
+def test_debugprint():
+    x, y, z = matrices("xyz")
+    e = x + y * z
+    op = OpFromGraph([x, y, z], [e])
+    out = op(x, y, z)
+
+    output_str = debugprint(out, file="str")
+    lines = output_str.split("\n")
+
+    exp_res = """OpFromGraph{inline=False} [id A] ''
+ |x [id B]
+ |y [id C]
+ |z [id D]
+
+Inner graphs:
+
+OpFromGraph{inline=False} [id A] ''
+ >Elemwise{add,no_inplace} [id E] ''
+ > |x [id F]
+ > |Elemwise{mul,no_inplace} [id G] ''
+ >   |y [id H]
+ >   |z [id I]
+"""
+
+    for truth, out in zip(exp_res.split("\n"), lines):
+        assert truth.strip() == out.strip()

@@ -5,9 +5,8 @@ import aesara.tensor.basic as aet
 from aesara.configdefaults import config
 from aesara.gradient import Rop, grad, jacobian
 from aesara.scan.op import Scan
-from aesara.tensor import nnet
 from aesara.tensor.elemwise import Elemwise
-from aesara.tensor.math import Dot, dot
+from aesara.tensor.math import Dot, dot, sigmoid
 from aesara.tensor.math import sum as aet_sum
 from aesara.tensor.math import tanh
 from aesara.tensor.type import matrix, tensor3, vector
@@ -25,7 +24,7 @@ class TestGaussNewton:
     """
 
     def setup_method(self):
-        self.rng = np.random.RandomState(utt.fetch_seed())
+        self.rng = np.random.default_rng(utt.fetch_seed())
 
     def _run(self, num_features, num_timesteps, batch_size, mode):
         # determine shapes of inputs and targets depending on the batch size
@@ -157,7 +156,7 @@ class TestPushOutScanOutputDot:
         opt_mode = mode.including("scan")
         f_opt = aesara.function([v, m], jacobian(output, v), mode=opt_mode)
 
-        no_opt_mode = mode.excluding("scanOp_pushout_output")
+        no_opt_mode = mode.excluding("scan_pushout_add")
         f_no_opt = aesara.function([v, m], jacobian(output, v), mode=no_opt_mode)
 
         # Ensure that the optimization was performed correctly in f_opt
@@ -199,7 +198,7 @@ class TestPushOutScanOutputDot:
         opt_mode = mode.including("scan")
         f_opt = aesara.function([a, b], outputs, mode=opt_mode)
 
-        no_opt_mode = mode.excluding("scanOp_pushout_output")
+        no_opt_mode = mode.excluding("scan_pushout_add")
         f_no_opt = aesara.function([a, b], outputs, mode=no_opt_mode)
 
         # Ensure that the optimization was performed correctly in f_opt
@@ -208,7 +207,7 @@ class TestPushOutScanOutputDot:
         scan_node = [
             node for node in f_opt.maker.fgraph.toposort() if isinstance(node.op, Scan)
         ][0]
-        # NOTE: WHEN INFER_SHAPE IS REENABLED, BELOW THE SCAN MUST
+        # NOTE: WHEN INFER_SHAPE IS RE-ENABLED, BELOW THE SCAN MUST
         # HAVE ONLY 1 OUTPUT.
         assert len(scan_node.op.outputs) == 2
         assert not isinstance(scan_node.op.outputs[0], Dot)
@@ -245,7 +244,7 @@ class TestPushOutScanOutputDot:
         opt_mode = mode.including("scan")
         f_opt = aesara.function([a, b], outputs, mode=opt_mode)
 
-        no_opt_mode = mode.excluding("scanOp_pushout_output")
+        no_opt_mode = mode.excluding("scan_pushout_add")
         f_no_opt = aesara.function([a, b], outputs, mode=no_opt_mode)
 
         # Ensure that the optimization was performed correctly in f_opt
@@ -283,7 +282,7 @@ class TestPushOutSumOfDot:
         #
         # 'dim' has been reduced from 1000 to 5 to make the test run faster
 
-        # Parameters from an actual machine tranlation run
+        # Parameters from an actual machine translation run
         batch_size = 80
         seq_len = 50
         dim = 5
@@ -322,8 +321,8 @@ class TestPushOutSumOfDot:
         ):
             pre_r = ri + h.dot(U)
             pre_z = zi + h.dot(V)
-            r = nnet.sigmoid(pre_r)
-            z = nnet.sigmoid(pre_z)
+            r = sigmoid(pre_r)
+            z = sigmoid(pre_z)
 
             after_r = r * h
             pre_h = x + after_r.dot(W)
@@ -347,7 +346,7 @@ class TestPushOutSumOfDot:
         grad1 = grad(cost, [U, V, W])
         f_opt = aesara.function(inputs=[x, ri, zi], outputs=grad1, mode=opt_mode)
 
-        no_opt_mode = mode.excluding("scanOp_pushout_output")
+        no_opt_mode = mode.excluding("scan_pushout_add")
         h, _ = aesara.scan(
             rnn_step1,
             sequences=[x, ri, zi],
@@ -406,7 +405,7 @@ class TestPushOutSumOfDot:
         output = h[-1]
         f_opt = aesara.function([input1, input2, input3], output, mode=opt_mode)
 
-        no_opt_mode = mode.excluding("scanOp_pushout_output")
+        no_opt_mode = mode.excluding("scan_pushout_add")
         h, _ = aesara.scan(
             inner_fct,
             sequences=[input1, input2, input3],

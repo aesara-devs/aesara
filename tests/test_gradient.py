@@ -33,7 +33,7 @@ from aesara.graph.basic import Apply, graph_inputs
 from aesara.graph.null_type import NullType
 from aesara.graph.op import Op
 from aesara.sandbox.rng_mrg import MRG_RandomStream
-from aesara.tensor.math import add, dot, exp, sqr
+from aesara.tensor.math import add, dot, exp, sigmoid, sqr
 from aesara.tensor.math import sum as aet_sum
 from aesara.tensor.math import tanh
 from aesara.tensor.type import (
@@ -384,9 +384,9 @@ class TestGrad:
         def output(x):
             return x * x
 
-        rng = np.random.RandomState([2012, 8, 28])
+        rng = np.random.default_rng([2012, 8, 28])
 
-        vx = rng.randn(2)
+        vx = rng.standard_normal((2))
 
         utt.verify_grad(output, [vx])
 
@@ -396,10 +396,10 @@ class TestGrad:
         def cost(x, A):
             return dot(x, dot(A, x))
 
-        rng = np.random.RandomState([2012, 8, 28])
+        rng = np.random.default_rng([2012, 8, 28])
 
-        vx = rng.randn(2)
-        vA = rng.randn(2, 2)
+        vx = rng.standard_normal((2))
+        vA = rng.standard_normal((2, 2))
 
         utt.verify_grad(cost, [vx, vA])
 
@@ -409,10 +409,10 @@ class TestGrad:
         def output(x, A):
             return dot(x * x, A)
 
-        rng = np.random.RandomState([2012, 8, 28])
+        rng = np.random.default_rng([2012, 8, 28])
 
-        vx = rng.randn(2)
-        vA = rng.randn(2, 2)
+        vx = rng.standard_normal((2))
+        vA = rng.standard_normal((2, 2))
 
         utt.verify_grad(output, [vx, vA])
 
@@ -422,10 +422,10 @@ class TestGrad:
         def cost(x, A):
             return dot(x * x, dot(A, x))
 
-        rng = np.random.RandomState([2012, 8, 28])
+        rng = np.random.default_rng([2012, 8, 28])
 
-        vx = rng.randn(2)
-        vA = rng.randn(2, 2)
+        vx = rng.standard_normal((2))
+        vA = rng.standard_normal((2, 2))
 
         utt.verify_grad(cost, [vx, vA])
 
@@ -436,10 +436,10 @@ class TestGrad:
             orig_cost = dot(x, dot(A, x))
             return grad(orig_cost, x)
 
-        rng = np.random.RandomState([2012, 8, 28])
+        rng = np.random.default_rng([2012, 8, 28])
 
-        vx = rng.randn(2)
-        vA = rng.randn(2, 2)
+        vx = rng.standard_normal((2))
+        vA = rng.standard_normal((2, 2))
 
         utt.verify_grad(output, [vx, vA])
 
@@ -450,10 +450,10 @@ class TestGrad:
             orig_cost = dot(x * x, dot(A, x))
             return grad(orig_cost, x)
 
-        rng = np.random.RandomState([2012, 8, 28])
+        rng = np.random.default_rng([2012, 8, 28])
 
-        vx = rng.randn(2)
-        vA = rng.randn(2, 2)
+        vx = rng.standard_normal((2))
+        vA = rng.standard_normal((2, 2))
 
         utt.verify_grad(output, [vx, vA])
 
@@ -466,7 +466,7 @@ class TestGrad:
 
         def make_grad_func(X):
             Z = dot(X, W) + b
-            H = aesara.tensor.nnet.sigmoid(Z)
+            H = sigmoid(Z)
             cost = H.sum()
             g = grad(cost, X)
             return aesara.function([X, W, b], g, on_unused_input="ignore")
@@ -480,14 +480,14 @@ class TestGrad:
         m = 5
         d = 3
         n = 4
-        rng = np.random.RandomState([2012, 9, 5])
+        rng = np.random.default_rng([2012, 9, 5])
 
         int_type = imatrix().dtype
         float_type = "float64"
 
-        X = np.cast[int_type](rng.randn(m, d) * 127.0)
-        W = np.cast[W.dtype](rng.randn(d, n))
-        b = np.cast[b.dtype](rng.randn(n))
+        X = np.cast[int_type](rng.standard_normal((m, d)) * 127.0)
+        W = np.cast[W.dtype](rng.standard_normal((d, n)))
+        b = np.cast[b.dtype](rng.standard_normal((n)))
 
         int_result = int_func(X, W, b)
         float_result = float_func(np.cast[float_type](X), W, b)
@@ -511,8 +511,8 @@ class TestGrad:
         # we still need to pass in x because it determines the shape of
         # the output
         f = aesara.function([x], g)
-        rng = np.random.RandomState([2012, 9, 5])
-        x = np.cast[x.dtype](rng.randn(3))
+        rng = np.random.default_rng([2012, 9, 5])
+        x = np.cast[x.dtype](rng.standard_normal((3)))
         g = f(x)
         assert np.allclose(g, np.ones(x.shape, dtype=x.dtype))
 
@@ -632,8 +632,8 @@ def test_known_grads():
 
     inputs = [coeffs, t, x]
 
-    rng = np.random.RandomState([2012, 11, 15])
-    values = [rng.randn(10), rng.randint(10), rng.randn()]
+    rng = np.random.default_rng([2012, 11, 15])
+    values = [rng.standard_normal((10)), rng.integers(10), rng.standard_normal()]
     values = [np.cast[ipt.dtype](value) for ipt, value in zip(inputs, values)]
 
     true_grads = grad(cost, inputs, disconnected_inputs="ignore")
@@ -732,8 +732,8 @@ def test_subgraph_grad():
 
     x = fvector("x")
     t = fvector("t")
-    w1 = aesara.shared(np.random.randn(3, 4))
-    w2 = aesara.shared(np.random.randn(4, 2))
+    w1 = aesara.shared(np.random.standard_normal((3, 4)))
+    w2 = aesara.shared(np.random.standard_normal((4, 2)))
     a1 = tanh(dot(x, w1))
     a2 = tanh(dot(a1, w2))
     cost2 = sqr(a2 - t).sum()
@@ -745,8 +745,8 @@ def test_subgraph_grad():
     grad_ends = [[a1], [x]]
 
     inputs = [t, x]
-    rng = np.random.RandomState([2012, 11, 15])
-    values = [rng.randn(2), rng.randn(3)]
+    rng = np.random.default_rng([2012, 11, 15])
+    values = [rng.standard_normal((2)), rng.standard_normal((3))]
     values = [np.cast[ipt.dtype](value) for ipt, value in zip(inputs, values)]
 
     wrt = [w2, w1]
@@ -772,8 +772,7 @@ def test_subgraph_grad():
 
 class TestConsiderConstant:
     def setup_method(self):
-        utt.seed_rng()
-        self.rng = np.random.RandomState(seed=utt.fetch_seed())
+        self.rng = np.random.default_rng(seed=utt.fetch_seed())
 
     def test_op_removed(self):
         x = matrix("x")
@@ -784,7 +783,7 @@ class TestConsiderConstant:
         assert consider_constant_ not in [node.op for node in f.maker.fgraph.toposort()]
 
     def test_grad(self):
-        a = np.asarray(self.rng.randn(5, 5), dtype=config.floatX)
+        a = np.asarray(self.rng.standard_normal((5, 5)), dtype=config.floatX)
 
         x = matrix("x")
 
@@ -807,8 +806,7 @@ class TestConsiderConstant:
 
 class TestZeroGrad:
     def setup_method(self):
-        utt.seed_rng()
-        self.rng = np.random.RandomState(seed=utt.fetch_seed())
+        self.rng = np.random.default_rng(seed=utt.fetch_seed())
 
     def test_op_removed(self):
         x = matrix("x")
@@ -819,7 +817,7 @@ class TestZeroGrad:
         assert zero_grad_ not in [node.op for node in f.maker.fgraph.toposort()]
 
     def test_grad(self):
-        a = np.asarray(self.rng.randn(5, 5), dtype=config.floatX)
+        a = np.asarray(self.rng.standard_normal((5, 5)), dtype=config.floatX)
 
         x = matrix("x")
 
@@ -847,16 +845,15 @@ class TestZeroGrad:
         rop = Rop(y, x, v)
         f = aesara.function([x, v], rop, on_unused_input="ignore")
 
-        a = np.asarray(self.rng.randn(5), dtype=config.floatX)
-        u = np.asarray(self.rng.randn(5), dtype=config.floatX)
+        a = np.asarray(self.rng.standard_normal((5)), dtype=config.floatX)
+        u = np.asarray(self.rng.standard_normal((5)), dtype=config.floatX)
 
         assert np.count_nonzero(f(a, u)) == 0
 
 
 class TestDisconnectedGrad:
     def setup_method(self):
-        utt.seed_rng()
-        self.rng = np.random.RandomState(seed=utt.fetch_seed())
+        self.rng = np.random.default_rng(seed=utt.fetch_seed())
 
     def test_op_removed(self):
         x = matrix("x")
@@ -867,7 +864,7 @@ class TestDisconnectedGrad:
         assert disconnected_grad_ not in [node.op for node in f.maker.fgraph.toposort()]
 
     def test_grad(self):
-        a = np.asarray(self.rng.randn(5, 5), dtype=config.floatX)
+        a = np.asarray(self.rng.standard_normal((5, 5)), dtype=config.floatX)
 
         x = matrix("x")
 
@@ -896,12 +893,12 @@ class TestDisconnectedGrad:
     def test_disconnected_paths(self):
         # Test that taking gradient going through a disconnected
         # path rasises an exception
-        a = np.asarray(self.rng.randn(5, 5), dtype=config.floatX)
+        a = np.asarray(self.rng.standard_normal((5, 5)), dtype=config.floatX)
 
         x = matrix("x")
 
         # This MUST raise a DisconnectedInputError error.
-        # This also rasies an additional warning from gradients.py.
+        # This also raises an additional warning from gradients.py.
         with pytest.raises(DisconnectedInputError):
             grad(disconnected_grad(x).sum(), x)
 
@@ -912,7 +909,7 @@ class TestDisconnectedGrad:
         b = matrix("b")
         y = a + disconnected_grad(b)
         # This MUST raise a DisconnectedInputError error.
-        # This also rasies an additional warning from gradients.py.
+        # This also raises an additional warning from gradients.py.
         with pytest.raises(DisconnectedInputError):
             grad(y.sum(), b)
 
@@ -955,9 +952,9 @@ def test_grad_scale():
 @config.change_flags(compute_test_value="off")
 def test_undefined_grad_opt():
     # Make sure that undefined grad get removed in optimized graph.
-    random = MRG_RandomStream(np.random.randint(1, 2147462579))
+    random = MRG_RandomStream(np.random.default_rng().integers(1, 2147462579))
 
-    pvals = aesara.shared(np.random.rand(10, 20).astype(config.floatX))
+    pvals = aesara.shared(np.random.random((10, 20)).astype(config.floatX))
     pvals = pvals / pvals.sum(axis=1)
     pvals = zero_grad(pvals)
 
@@ -977,7 +974,7 @@ def test_undefined_grad_opt():
 def test_jacobian_vector():
     x = vector()
     y = x * 2
-    rng = np.random.RandomState(seed=utt.fetch_seed())
+    rng = np.random.default_rng(seed=utt.fetch_seed())
 
     # test when the jacobian is called with a tensor as wrt
     Jx = jacobian(y, x)
@@ -1018,7 +1015,7 @@ def test_jacobian_vector():
 def test_jacobian_matrix():
     x = matrix()
     y = 2 * x.sum(axis=0)
-    rng = np.random.RandomState(seed=utt.fetch_seed())
+    rng = np.random.default_rng(seed=utt.fetch_seed())
     ev = np.zeros((10, 10, 10))
     for dx in range(10):
         ev[dx, :, dx] = 2.0
@@ -1063,7 +1060,7 @@ def test_jacobian_matrix():
 def test_jacobian_scalar():
     x = scalar()
     y = x * 2
-    rng = np.random.RandomState(seed=utt.fetch_seed())
+    rng = np.random.default_rng(seed=utt.fetch_seed())
 
     # test when the jacobian is called with a tensor as wrt
     Jx = jacobian(y, x)

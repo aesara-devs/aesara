@@ -1,1 +1,1 @@
-﻿from aesara.link.jax.jax_linker import JAXLinker
+﻿from aesara.link.jax.linker import JAXLinker

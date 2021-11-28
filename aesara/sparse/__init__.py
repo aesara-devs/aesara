@@ -26,9 +26,22 @@ if enable_sparse:
 
         .. versionadded:: 0.6rc4
         """
-        from aesara.tensor.subtensor import AdvancedSubtensor1
+        from aesara.tensor.subtensor import AdvancedSubtensor, AdvancedSubtensor1
 
-        assert isinstance(var.owner.op, AdvancedSubtensor1)
+        if var.owner is None or not isinstance(
+            var.owner.op, (AdvancedSubtensor, AdvancedSubtensor1)
+        ):
+            raise TypeError(
+                "Sparse gradient is only implemented for AdvancedSubtensor and AdvancedSubtensor1"
+            )
 
-        ret = var.owner.op.__class__(sparse_grad=True)(*var.owner.inputs)
+        x = var.owner.inputs[0]
+        indices = var.owner.inputs[1:]
+
+        if len(indices) > 1:
+            raise TypeError(
+                "Sparse gradient is only implemented for single advanced indexing"
+            )
+
+        ret = AdvancedSubtensor1(sparse_grad=True)(x, indices[0])
         return ret

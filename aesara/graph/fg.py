@@ -1,15 +1,14 @@
 """A container for specifying and manipulating a graph with distinct inputs and outputs."""
 import time
-import warnings
 from collections import OrderedDict
-from typing import Any, Dict, List, NoReturn, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import aesara
 from aesara.configdefaults import config
 from aesara.graph.basic import Apply, Constant, Variable, applys_between
 from aesara.graph.basic import as_string as graph_as_string
 from aesara.graph.basic import clone_get_equiv, graph_inputs, io_toposort, vars_between
-from aesara.graph.toolbox import AlreadyThere, Feature, ReplaceValidate
+from aesara.graph.features import AlreadyThere, Feature, ReplaceValidate
 from aesara.graph.utils import MetaObject, TestValueError, get_variable_trace_string
 from aesara.misc.ordered_set import OrderedSet
 
@@ -114,7 +113,7 @@ class FunctionGraph(MetaObject):
             raise ValueError("No outputs specified")
 
         if inputs is None:
-            inputs = [i for i in graph_inputs(outputs)]
+            inputs = [i for i in graph_inputs(outputs) if not isinstance(i, Constant)]
 
         if clone:
             memo = clone_get_equiv(
@@ -144,6 +143,7 @@ class FunctionGraph(MetaObject):
         # outputs even if they aren't used in the graph.
         self.variables = set()
 
+        self.inputs = []
         self.outputs = list(outputs)
         self.clients = {}
 
@@ -152,7 +152,6 @@ class FunctionGraph(MetaObject):
 
         self.attach_feature(ReplaceValidate())
 
-        self.inputs = []
         for in_var in inputs:
             if in_var.owner is not None:
                 raise ValueError(
@@ -172,7 +171,7 @@ class FunctionGraph(MetaObject):
         self.profile = None
         self.update_mapping = update_mapping
 
-    def add_input(self, var: Variable, check: bool = True) -> NoReturn:
+    def add_input(self, var: Variable, check: bool = True) -> None:
         """Add a new variable as an input to this `FunctionGraph`.
 
         Parameters
@@ -187,7 +186,7 @@ class FunctionGraph(MetaObject):
         self.setup_var(var)
         self.variables.add(var)
 
-    def setup_var(self, var: Variable) -> NoReturn:
+    def setup_var(self, var: Variable) -> None:
         """Set up a variable so it belongs to this `FunctionGraph`.
 
         Parameters
@@ -197,7 +196,7 @@ class FunctionGraph(MetaObject):
         """
         self.clients.setdefault(var, [])
 
-    def setup_node(self, node: Apply) -> NoReturn:
+    def setup_node(self, node: Apply) -> None:
         """Set up node so it belongs to this `FunctionGraph`.
 
         Parameters
@@ -205,14 +204,14 @@ class FunctionGraph(MetaObject):
         node : aesara.graph.basic.Apply
 
         """
-        if hasattr(node.op, "view_map") and not all(
+        if node.op.view_map and not all(
             isinstance(view, (list, tuple)) for view in node.op.view_map.values()
         ):
             raise Exception(
                 f"Op '{node.op}' have a bad view map '{node.op.view_map}',"
                 " the values must be tuples or lists."
             )
-        if hasattr(node.op, "destroy_map") and not all(
+        if node.op.destroy_map and not all(
             isinstance(destroy, (list, tuple))
             for destroy in node.op.destroy_map.values()
         ):
@@ -221,7 +220,7 @@ class FunctionGraph(MetaObject):
                 " the values must be tuples or lists."
             )
 
-    def disown(self) -> NoReturn:
+    def disown(self) -> None:
         """Clear internal variables."""
         for f in self._features:
             self.remove_feature(f)
@@ -237,22 +236,23 @@ class FunctionGraph(MetaObject):
         """Return a list of all the `(node, i)` pairs such that `node.inputs[i]` is `var`."""
         return self.clients[var]
 
-    def add_client(self, var: Variable, new_client: Tuple[Apply, int]) -> NoReturn:
+    def add_client(self, var: Variable, new_client: Tuple[Apply, int]) -> None:
         """Update the clients of `var` with `new_clients`.
 
         Parameters
         ----------
-        var : Variable.
+        var : Variable
+            The `Variable` to be updated.
         new_client : (Apply, int)
-            A `(node, i)` pair such that `node.inputs[i]` is `var`.
+            A ``(node, i)`` pair such that ``node.inputs[i]`` is `var`.
 
         """
         self.clients[var].append(new_client)
 
     def remove_client(
         self, var: Variable, client_to_remove: Tuple[Apply, int], reason: str = None
-    ) -> NoReturn:
-        """Recursively removes clients of a variable.
+    ) -> None:
+        """Recursively remove clients of a variable.
 
         This is the main method to remove variables or `Apply` nodes from
         a `FunctionGraph`.
@@ -266,7 +266,7 @@ class FunctionGraph(MetaObject):
         var : Variable
             The clients of `var` that will be removed.
         client_to_remove : pair of (Apply, int)
-            A `(node, i)` pair such that `node.inputs[i]` will no longer be
+            A ``(node, i)`` pair such that ``node.inputs[i]`` will no longer be
             `var` in this `FunctionGraph`.
 
         """
@@ -317,12 +317,12 @@ class FunctionGraph(MetaObject):
 
     def import_var(
         self, var: Variable, reason: str = None, import_missing: bool = False
-    ) -> NoReturn:
+    ) -> None:
         """Import variables into this `FunctionGraph`.
 
         This will also import the `variable`'s `Apply` node.
 
-        Parameters:
+        Parameters
         ----------
         variable : aesara.graph.basic.Variable
             The variable to be imported.
@@ -359,12 +359,12 @@ class FunctionGraph(MetaObject):
         check: bool = True,
         reason: str = None,
         import_missing: bool = False,
-    ) -> NoReturn:
-        """Recursively import everything between an `Apply` node and the `FunctionGraph`'s outputs.
+    ) -> None:
+        """Recursively import everything between an ``Apply`` node and the ``FunctionGraph``'s outputs.
 
-        Parameters:
+        Parameters
         ----------
-        apply_node : aesara.graph.basic.Apply
+        apply_node : Apply
             The node to be imported.
         check : bool
             Check that the inputs for the imported nodes are also present in
@@ -420,12 +420,12 @@ class FunctionGraph(MetaObject):
 
     def change_input(
         self,
-        node: Apply,
+        node: Union[Apply, str],
         i: int,
         new_var: Variable,
         reason: str = None,
         import_missing: bool = False,
-    ) -> NoReturn:
+    ) -> None:
         """Change ``node.inputs[i]`` to `new_var`.
 
         ``new_var.type == old_var.type`` must be ``True``, where ``old_var`` is the
@@ -436,15 +436,15 @@ class FunctionGraph(MetaObject):
 
         Parameters
         ----------
-        node : aesara.graph.basic.Apply or str
+        node
             The node for which an input is to be changed.  If the value is
             the string ``"output"`` then the ``self.outputs`` will be used
             instead of ``node.inputs``.
-        i : int
+        i
             The index in `node.inputs` that we want to change.
-        new_var : aesara.graph.basic.Variable
+        new_var
             The new variable to take the place of ``node.inputs[i]``.
-        import_missing : bool
+        import_missing
             Add missing inputs instead of raising an exception.
         """
         # TODO: ERROR HANDLING FOR LISTENERS (should it complete the change or revert it?)
@@ -487,30 +487,30 @@ class FunctionGraph(MetaObject):
         reason: str = None,
         verbose: bool = None,
         import_missing: bool = False,
-    ) -> NoReturn:
+    ) -> None:
         """Replace a variable in the `FunctionGraph`.
 
         This is the main interface to manipulate the subgraph in `FunctionGraph`.
         For every node that uses `var` as input, makes it use `new_var` instead.
 
-        Parameters:
+        Parameters
         ----------
-        var : aesara.graph.basic.Variable
+        var
             The variable to be replaced.
-        new_var : aesara.graph.basic.Variable
+        new_var
             The variable to replace `var`.
-        reason : str
+        reason
             The name of the optimization or operation in progress.
-        verbose : bool
+        verbose
             Print `reason`, `var`, and `new_var`.
-        import_missing : bool
+        import_missing
             Import missing variables.
 
         """
         if verbose is None:
             verbose = config.optimizer_verbose
         if verbose:
-            print(reason, var, new_var)
+            print(f"optimizer: rewrite {reason} replaces {var} with {new_var}")
 
         new_var = var.type.filter_variable(new_var, allow_convert=True)
 
@@ -522,9 +522,6 @@ class FunctionGraph(MetaObject):
             # easier to implement some optimizations for
             # multiple-output ops
             # raise ValueError()
-            warnings.warn(
-                f"Variable {var} cannot be replaced; it isn't in the FunctionGraph"
-            )
             return
 
         if config.compute_test_value != "off":
@@ -551,17 +548,13 @@ class FunctionGraph(MetaObject):
                 node, i, new_var, reason=reason, import_missing=import_missing
             )
 
-    def replace_all(self, pairs: List[Tuple[Variable, Variable]], **kwargs) -> NoReturn:
-        """Replace variables in the `FunctionGraph` according to `(var, new_var)` pairs in a list."""
+    def replace_all(self, pairs: List[Tuple[Variable, Variable]], **kwargs) -> None:
+        """Replace variables in the `FunctionGraph` according to ``(var, new_var)`` pairs in a list."""
         for var, new_var in pairs:
             self.replace(var, new_var, **kwargs)
 
-    def attach_feature(self, feature: Feature) -> NoReturn:
-        """
-        Adds a graph.toolbox.Feature to this function_graph and triggers its
-        on_attach callback.
-
-        """
+    def attach_feature(self, feature: Feature) -> None:
+        """Add a ``graph.features.Feature`` to this function graph and trigger its ``on_attach`` callback."""
         # Filter out literally identical `Feature`s
         if feature in self._features:
             return  # the feature is already present
@@ -586,16 +579,15 @@ class FunctionGraph(MetaObject):
         # Add the feature
         self._features.append(feature)
 
-    def remove_feature(self, feature: Feature) -> NoReturn:
-        """
-        Removes the feature from the graph.
+    def remove_feature(self, feature: Feature) -> None:
+        """Remove a feature from the graph.
 
-        Calls feature.on_detach(function_graph) if an on_detach method
+        Calls ``feature.on_detach(function_graph)`` if an ``on_detach`` method
         is defined.
 
         """
         try:
-            # Why do we catch the exeception anyway?
+            # Why do we catch the exception anyway?
             self._features.remove(feature)
         except ValueError:
             return
@@ -603,10 +595,10 @@ class FunctionGraph(MetaObject):
         if detach is not None:
             detach(self)
 
-    def execute_callbacks(self, name: str, *args, **kwargs) -> NoReturn:
-        """Execute callbacks
+    def execute_callbacks(self, name: str, *args, **kwargs) -> None:
+        """Execute callbacks.
 
-        Calls `getattr(feature, name)(*args)` for each feature which has
+        Calls ``getattr(feature, name)(*args)`` for each feature which has
         a method called after name.
 
         """
@@ -616,7 +608,7 @@ class FunctionGraph(MetaObject):
                 fn = getattr(feature, name)
             except AttributeError:
                 # this is safe because there is no work done inside the
-                # try; the AttributeError reall must come from feature.${name}
+                # try; the AttributeError really must come from feature.${name}
                 # not existing
                 continue
             tf0 = time.time()
@@ -627,8 +619,7 @@ class FunctionGraph(MetaObject):
     def collect_callbacks(self, name: str, *args) -> Dict[Feature, Any]:
         """Collects callbacks
 
-        Returns a dictionary d such that
-        `d[feature] == getattr(feature, name)(*args)`
+        Returns a dictionary d such that ``d[feature] == getattr(feature, name)(*args)``
         For each feature which has a method called after name.
         """
         d = {}
@@ -641,17 +632,17 @@ class FunctionGraph(MetaObject):
         return d
 
     def toposort(self) -> List[Apply]:
-        """Toposort
+        """Return a toposorted list of the nodes.
 
-        Return an ordering of the graph's Apply nodes such that
+        Return an ordering of the graph's ``Apply`` nodes such that:
 
-        * All the nodes of the inputs of a node are before that node.
-        * Satisfies the orderings provided by each feature that has
-          an 'orderings' method.
+        * all the nodes of the inputs of a node are before that node and
+        * they satisfy the orderings provided by each feature that has
+          an ``orderings`` method.
 
-        If a feature has an 'orderings' method, it will be called with
-        this FunctionGraph as sole argument. It should return a dictionary of
-        `{node: predecessors}` where predecessors is a list of nodes that
+        If a feature has an ``orderings`` method, it will be called with
+        this `FunctionGraph` as sole argument. It should return a dictionary of
+        ``{node: predecessors}`` where predecessors is a list of nodes that
         should be computed before the key node.
         """
         if len(self.apply_nodes) < 2:
@@ -669,15 +660,15 @@ class FunctionGraph(MetaObject):
         return order
 
     def orderings(self) -> Dict[Apply, List[Apply]]:
-        """Return `dict` `d` s.t. `d[node]` is a list of nodes that must be evaluated before `node` itself can be evaluated.
+        """Return ``dict`` ``d`` s.t. ``d[node]`` is a list of nodes that must be evaluated before ``node`` itself can be evaluated.
 
-        This is used primarily by the destroy_handler feature to ensure that
+        This is used primarily by the ``destroy_handler`` feature to ensure that
         the clients of any destroyed inputs have already computed their
         outputs.
 
         Notes
         -----
-        This only calls the `orderings()` function on all features. It does not
+        This only calls the ``orderings()`` function on all features. It does not
         take care of computing the dependencies by itself.
 
         """
@@ -714,11 +705,8 @@ class FunctionGraph(MetaObject):
                     ords.setdefault(node, []).extend(prereqs)
             return ords
 
-    def check_integrity(self) -> NoReturn:
-        """
-        Call this for a diagnosis if things go awry.
-
-        """
+    def check_integrity(self) -> None:
+        """Check the integrity of nodes in the graph."""
         nodes = set(applys_between(self.inputs, self.outputs))
         if self.apply_nodes != nodes:
             missing = nodes.difference(self.apply_nodes)
@@ -771,29 +759,27 @@ class FunctionGraph(MetaObject):
         return f"FunctionGraph({', '.join(graph_as_string(self.inputs, self.outputs))})"
 
     def clone(self, check_integrity=True) -> "FunctionGraph":
-        """
-        Clone the graph and get a memo( a dict )that map old node to new node
-
-        """
+        """Clone the graph."""
         return self.clone_get_equiv(check_integrity)[0]
 
     def clone_get_equiv(
         self, check_integrity: bool = True, attach_feature: bool = True
     ) -> Union["FunctionGraph", Dict[Variable, Variable]]:
-        """Clone the graph and get a dict that maps old nodes to new ones
+        """Clone the graph and return a ``dict`` that maps old nodes to new nodes.
 
-        Parameters:
-            check_integrity: bool
-                Whether to check integrity. Default is True.
-            attach_feature: bool
-                Whether to attach feature of origin graph to cloned graph.
-                Default is True.
+        Parameters
+        ----------
+        check_integrity
+            Whether to check integrity.
+        attach_feature
+            Whether to attach feature of origin graph to cloned graph.
 
-        Returns:
-            e: FunctionGraph
-                Cloned fgraph. Every node in cloned graph is cloned.
-            equiv: dict
-                A dict that map old node to new node.
+        Returns
+        -------
+        e
+            Cloned fgraph. Every node in cloned graph is cloned.
+        equiv
+            A ``dict`` that maps old nodes to the new nodes.
         """
         equiv = clone_get_equiv(self.inputs, self.outputs)
 
@@ -813,11 +799,8 @@ class FunctionGraph(MetaObject):
         return e, equiv
 
     def __getstate__(self):
-        """
-        This is needed as some features introduce instance methods.
-        This is not picklable.
-
-        """
+        # This is needed as some features introduce instance methods
+        # This is not picklable
         d = self.__dict__.copy()
         for feature in self._features:
             for attr in getattr(feature, "pickle_rm_attr", []):

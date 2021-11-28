@@ -4,10 +4,12 @@ import pytest
 import aesara
 from aesara import function
 from aesara import tensor as aet
-from aesara.assert_op import Assert
+from aesara.compile.mode import Mode
 from aesara.configdefaults import config
 from aesara.gradient import grad
 from aesara.graph.basic import applys_between
+from aesara.graph.optdb import OptimizationQuery
+from aesara.raise_op import Assert
 from aesara.tensor.elemwise import DimShuffle
 from aesara.tensor.extra_ops import (
     Bartlett,
@@ -18,12 +20,13 @@ from aesara.tensor.extra_ops import (
     FillDiagonal,
     FillDiagonalOffset,
     RavelMultiIndex,
-    RepeatOp,
+    Repeat,
     SearchsortedOp,
     Unique,
     UnravelIndex,
     bartlett,
     bincount,
+    broadcast_arrays,
     broadcast_shape,
     broadcast_to,
     compress,
@@ -41,6 +44,7 @@ from aesara.tensor.extra_ops import (
     unravel_index,
 )
 from aesara.tensor.math import sum as aet_sum
+from aesara.tensor.subtensor import AdvancedIncSubtensor
 from aesara.tensor.type import (
     TensorType,
     dmatrix,
@@ -65,7 +69,7 @@ from tests import unittest_tools as utt
 def test_cpu_contiguous():
     a = fmatrix("a")
     i = iscalar("i")
-    a_val = np.asarray(np.random.rand(4, 5), dtype="float32")
+    a_val = np.asarray(np.random.random((4, 5)), dtype="float32")
     f = aesara.function([a, i], cpu_contiguous(a.reshape((5, 4))[::i]))
     topo = f.maker.fgraph.toposort()
     assert any([isinstance(node.op, CpuContiguous) for node in topo])
@@ -74,7 +78,7 @@ def test_cpu_contiguous():
     assert f(a_val, 3).flags["C_CONTIGUOUS"]
     # Test the grad:
 
-    utt.verify_grad(cpu_contiguous, [np.random.rand(5, 7, 2)])
+    utt.verify_grad(cpu_contiguous, [np.random.random((5, 7, 2))])
 
 
 class TestSearchsortedOp(utt.InferShapeTester):
@@ -85,9 +89,9 @@ class TestSearchsortedOp(utt.InferShapeTester):
 
         self.x = vector("x")
         self.v = tensor3("v")
-
-        self.a = 30 * np.random.random(50).astype(config.floatX)
-        self.b = 30 * np.random.random((8, 10, 5)).astype(config.floatX)
+        self.rng = np.random.default_rng(utt.fetch_seed())
+        self.a = 30 * self.rng.random(50).astype(config.floatX)
+        self.b = 30 * self.rng.random((8, 10, 5)).astype(config.floatX)
         self.idx_sorted = np.argsort(self.a).astype("int32")
 
     def test_searchsortedOp_on_sorted_input(self):
@@ -181,7 +185,7 @@ class TestSearchsortedOp(utt.InferShapeTester):
         )
 
     def test_grad(self):
-        utt.verify_grad(self.op, [self.a[self.idx_sorted], self.b])
+        utt.verify_grad(self.op, [self.a[self.idx_sorted], self.b], rng=self.rng)
 
 
 class TestCumOp(utt.InferShapeTester):
@@ -434,14 +438,14 @@ class TestCompress(utt.InferShapeTester):
             assert np.allclose(tested, expected)
 
 
-class TestRepeatOp(utt.InferShapeTester):
+class TestRepeat(utt.InferShapeTester):
     def _possible_axis(self, ndim):
         return [None] + list(range(ndim)) + [-i for i in range(ndim)]
 
     def setup_method(self):
         super().setup_method()
-        self.op_class = RepeatOp
-        self.op = RepeatOp()
+        self.op_class = Repeat
+        self.op = Repeat()
         # uint64 always fails
         # int64 and uint32 also fail if python int are 32-bit
         if LOCAL_BITWIDTH == 64:
@@ -449,7 +453,7 @@ class TestRepeatOp(utt.InferShapeTester):
         if LOCAL_BITWIDTH == 32:
             self.numpy_unsupported_dtypes = ("uint32", "int64", "uint64")
 
-    def test_repeatOp(self):
+    def test_basic(self):
         for ndim in [1, 3]:
             x = TensorType(config.floatX, [False] * ndim)()
             a = np.random.random((10,) * ndim).astype(config.floatX)
@@ -486,7 +490,7 @@ class TestRepeatOp(utt.InferShapeTester):
                         assert np.allclose(np.repeat(a, r, axis=axis), f(a))
                         assert not np.any(
                             [
-                                isinstance(n.op, RepeatOp)
+                                isinstance(n.op, Repeat)
                                 for n in f.maker.fgraph.toposort()
                             ]
                         )
@@ -498,7 +502,7 @@ class TestRepeatOp(utt.InferShapeTester):
                         assert np.allclose(np.repeat(a, r[0], axis=axis), f(a, r))
                         assert not np.any(
                             [
-                                isinstance(n.op, RepeatOp)
+                                isinstance(n.op, Repeat)
                                 for n in f.maker.fgraph.toposort()
                             ]
                         )
@@ -521,7 +525,7 @@ class TestRepeatOp(utt.InferShapeTester):
                     else:
                         self._compile_and_check(
                             [x, r_var],
-                            [RepeatOp(axis=axis)(x, r_var)],
+                            [Repeat(axis=axis)(x, r_var)],
                             [a, r],
                             self.op_class,
                         )
@@ -538,7 +542,7 @@ class TestRepeatOp(utt.InferShapeTester):
 
                         self._compile_and_check(
                             [x, r_var],
-                            [RepeatOp(axis=axis)(x, r_var)],
+                            [Repeat(axis=axis)(x, r_var)],
                             [a, r],
                             self.op_class,
                         )
@@ -548,15 +552,15 @@ class TestRepeatOp(utt.InferShapeTester):
             a = np.random.random((10,) * ndim).astype(config.floatX)
 
             for axis in self._possible_axis(ndim):
-                utt.verify_grad(lambda x: RepeatOp(axis=axis)(x, 3), [a])
+                utt.verify_grad(lambda x: Repeat(axis=axis)(x, 3), [a])
 
     def test_broadcastable(self):
         x = TensorType(config.floatX, [False, True, False])()
-        r = RepeatOp(axis=1)(x, 2)
+        r = Repeat(axis=1)(x, 2)
         assert r.broadcastable == (False, False, False)
-        r = RepeatOp(axis=1)(x, 1)
+        r = Repeat(axis=1)(x, 1)
         assert r.broadcastable == (False, True, False)
-        r = RepeatOp(axis=0)(x, 2)
+        r = Repeat(axis=0)(x, 2)
         assert r.broadcastable == (False, True, False)
 
 
@@ -587,7 +591,7 @@ class TestBartlett(utt.InferShapeTester):
 
 class TestFillDiagonal(utt.InferShapeTester):
 
-    rng = np.random.RandomState(43)
+    rng = np.random.default_rng(43)
 
     def setup_method(self):
         super().setup_method()
@@ -599,19 +603,19 @@ class TestFillDiagonal(utt.InferShapeTester):
         y = scalar()
         f = function([x, y], fill_diagonal(x, y))
         for shp in [(8, 8), (5, 8), (8, 5)]:
-            a = np.random.rand(*shp).astype(config.floatX)
-            val = np.cast[config.floatX](np.random.rand())
+            a = np.random.random(shp).astype(config.floatX)
+            val = np.cast[config.floatX](np.random.random())
             out = f(a, val)
             # We can't use np.fill_diagonal as it is bugged.
             assert np.allclose(np.diag(out), val)
             assert (out == val).sum() == min(a.shape)
 
         # test for 3dtt
-        a = np.random.rand(3, 3, 3).astype(config.floatX)
+        a = np.random.random((3, 3, 3)).astype(config.floatX)
         x = tensor3()
         y = scalar()
         f = function([x, y], fill_diagonal(x, y))
-        val = np.cast[config.floatX](np.random.rand() + 10)
+        val = np.cast[config.floatX](np.random.random() + 10)
         out = f(a, val)
         # We can't use np.fill_diagonal as it is bugged.
         assert out[0, 0, 0] == val
@@ -623,13 +627,13 @@ class TestFillDiagonal(utt.InferShapeTester):
     def test_gradient(self):
         utt.verify_grad(
             fill_diagonal,
-            [np.random.rand(5, 8), np.random.rand()],
+            [np.random.random((5, 8)), np.random.random()],
             n_tests=1,
             rng=TestFillDiagonal.rng,
         )
         utt.verify_grad(
             fill_diagonal,
-            [np.random.rand(8, 5), np.random.rand()],
+            [np.random.random((8, 5)), np.random.random()],
             n_tests=1,
             rng=TestFillDiagonal.rng,
         )
@@ -641,14 +645,14 @@ class TestFillDiagonal(utt.InferShapeTester):
         self._compile_and_check(
             [x, y],
             [self.op(x, y)],
-            [np.random.rand(8, 5), np.random.rand()],
+            [np.random.random((8, 5)), np.random.random()],
             self.op_class,
         )
         self._compile_and_check(
             [z, y],
             [self.op(z, y)],
             # must be square when nd>2
-            [np.random.rand(8, 8, 8), np.random.rand()],
+            [np.random.random((8, 8, 8)), np.random.random()],
             self.op_class,
             warn=False,
         )
@@ -656,7 +660,7 @@ class TestFillDiagonal(utt.InferShapeTester):
 
 class TestFillDiagonalOffset(utt.InferShapeTester):
 
-    rng = np.random.RandomState(43)
+    rng = np.random.default_rng(43)
 
     def setup_method(self):
         super().setup_method()
@@ -671,8 +675,8 @@ class TestFillDiagonalOffset(utt.InferShapeTester):
         f = function([x, y, z], fill_diagonal_offset(x, y, z))
         for test_offset in (-5, -4, -1, 0, 1, 4, 5):
             for shp in [(8, 8), (5, 8), (8, 5), (5, 5)]:
-                a = np.random.rand(*shp).astype(config.floatX)
-                val = np.cast[config.floatX](np.random.rand())
+                a = np.random.random(shp).astype(config.floatX)
+                val = np.cast[config.floatX](np.random.random())
                 out = f(a, val, test_offset)
                 # We can't use np.fill_diagonal as it is bugged.
                 assert np.allclose(np.diag(out, test_offset), val)
@@ -693,19 +697,19 @@ class TestFillDiagonalOffset(utt.InferShapeTester):
 
             utt.verify_grad(
                 fill_diagonal_with_fix_offset,
-                [np.random.rand(5, 8), np.random.rand()],
+                [np.random.random((5, 8)), np.random.random()],
                 n_tests=1,
                 rng=TestFillDiagonalOffset.rng,
             )
             utt.verify_grad(
                 fill_diagonal_with_fix_offset,
-                [np.random.rand(8, 5), np.random.rand()],
+                [np.random.random((8, 5)), np.random.random()],
                 n_tests=1,
                 rng=TestFillDiagonalOffset.rng,
             )
             utt.verify_grad(
                 fill_diagonal_with_fix_offset,
-                [np.random.rand(5, 5), np.random.rand()],
+                [np.random.random((5, 5)), np.random.random()],
                 n_tests=1,
                 rng=TestFillDiagonalOffset.rng,
             )
@@ -718,13 +722,13 @@ class TestFillDiagonalOffset(utt.InferShapeTester):
             self._compile_and_check(
                 [x, y, z],
                 [self.op(x, y, z)],
-                [np.random.rand(8, 5), np.random.rand(), test_offset],
+                [np.random.random((8, 5)), np.random.random(), test_offset],
                 self.op_class,
             )
             self._compile_and_check(
                 [x, y, z],
                 [self.op(x, y, z)],
-                [np.random.rand(5, 8), np.random.rand(), test_offset],
+                [np.random.random((5, 8)), np.random.random(), test_offset],
                 self.op_class,
             )
 
@@ -967,7 +971,7 @@ class TestRavelMultiIndex(utt.InferShapeTester):
             ravel_multi_index(((3, 4),), ((3, 4),))
 
 
-def test_broadcast_shape():
+def test_broadcast_shape_basic():
     def shape_tuple(x, use_bcast=True):
         if use_bcast:
             return tuple(
@@ -1002,11 +1006,6 @@ def test_broadcast_shape():
         shape_tuple(x_aet), shape_tuple(y_aet), arrays_are_shapes=True
     )
     assert np.array_equal([z.eval() for z in b_aet], b.shape)
-    # These are all constants, so there shouldn't be any asserts in the
-    # resulting graph.
-    assert not any(
-        isinstance(node.op, Assert) for node in applys_between([x_aet, y_aet], b_aet)
-    )
 
     x = np.array([1, 2, 3])
     y = np.array([4, 5, 6])
@@ -1019,12 +1018,6 @@ def test_broadcast_shape():
         shape_tuple(x_aet), shape_tuple(y_aet), arrays_are_shapes=True
     )
     assert np.array_equal([z.eval() for z in b_aet], b.shape)
-    # TODO: This will work when/if we use a more sophisticated `is_same_graph`
-    # implementation.
-    # assert not any(
-    #     isinstance(node.op, Assert)
-    #     for node in graph_ops([x_aet, y_aet], b_aet)
-    # )
 
     x = np.empty((1, 2, 3))
     y = np.array(1)
@@ -1034,9 +1027,6 @@ def test_broadcast_shape():
     b_aet = broadcast_shape(x_aet, y_aet)
     assert b_aet[0].value == 1
     assert np.array_equal([z.eval() for z in b_aet], b.shape)
-    assert not any(
-        isinstance(node.op, Assert) for node in applys_between([x_aet, y_aet], b_aet)
-    )
     b_aet = broadcast_shape(
         shape_tuple(x_aet), shape_tuple(y_aet), arrays_are_shapes=True
     )
@@ -1050,12 +1040,6 @@ def test_broadcast_shape():
     b_aet = broadcast_shape(x_aet, y_aet)
     assert b_aet[1].value == 1
     assert np.array_equal([z.eval() for z in b_aet], b.shape)
-    # TODO: This will work when/if we use a more sophisticated `is_same_graph`
-    # implementation.
-    # assert not any(
-    #     isinstance(node.op, Assert)
-    #     for node in graph_ops([x_aet, y_aet], b_aet)
-    # )
     b_aet = broadcast_shape(
         shape_tuple(x_aet), shape_tuple(y_aet), arrays_are_shapes=True
     )
@@ -1069,12 +1053,6 @@ def test_broadcast_shape():
     y_shapes = (y1_shp_aet, 1, x2_shp_aet)
     y_aet = aet.ones(y_shapes)
     b_aet = broadcast_shape(x_aet, y_aet)
-    # TODO: This will work when/if we use a more sophisticated `is_same_graph`
-    # implementation.
-    # assert not any(
-    #     isinstance(node.op, Assert)
-    #     for node in graph_ops([x_aet, y_aet], b_aet)
-    # )
     res = aet.as_tensor(b_aet).eval(
         {
             x1_shp_aet: 10,
@@ -1090,9 +1068,35 @@ def test_broadcast_shape():
     assert isinstance(b_aet[-1].owner.op, Assert)
 
 
+@pytest.mark.parametrize(
+    ("s1_vals", "s2_vals", "exp_res"),
+    [
+        ((2, 2), (1, 2), (2, 2)),
+        ((0, 2), (1, 2), (0, 2)),
+        ((1, 2, 1), (2, 1, 2, 1), (2, 1, 2, 1)),
+    ],
+)
+def test_broadcast_shape_symbolic(s1_vals, s2_vals, exp_res):
+    s1s = aet.lscalars(len(s1_vals))
+    eval_point = {}
+    for s, s_val in zip(s1s, s1_vals):
+        eval_point[s] = s_val
+        s.tag.test_value = s_val
+
+    s2s = aet.lscalars(len(s2_vals))
+    for s, s_val in zip(s2s, s2_vals):
+        eval_point[s] = s_val
+        s.tag.test_value = s_val
+
+    res = broadcast_shape(s1s, s2s, arrays_are_shapes=True)
+    res = aet.as_tensor(res)
+
+    assert tuple(res.eval(eval_point)) == exp_res
+
+
 class TestBroadcastTo(utt.InferShapeTester):
 
-    rng = np.random.RandomState(43)
+    rng = np.random.default_rng(43)
 
     def setup_method(self):
         super().setup_method()
@@ -1130,7 +1134,7 @@ class TestBroadcastTo(utt.InferShapeTester):
     def test_gradient(self, fn, input_dims):
         utt.verify_grad(
             fn,
-            [np.random.rand(*input_dims).astype(config.floatX)],
+            [np.random.random(input_dims).astype(config.floatX)],
             n_tests=1,
             rng=self.rng,
         )
@@ -1143,7 +1147,7 @@ class TestBroadcastTo(utt.InferShapeTester):
         self._compile_and_check(
             [a] + shape,
             [out],
-            [np.random.rand(2, 1, 3).astype(config.floatX), 2, 1, 3],
+            [np.random.random((2, 1, 3)).astype(config.floatX), 2, 1, 3],
             self.op_class,
         )
 
@@ -1152,6 +1156,41 @@ class TestBroadcastTo(utt.InferShapeTester):
         self._compile_and_check(
             [a] + shape,
             [self.op(a, shape)],
-            [np.random.rand(2, 1, 3).astype(config.floatX), 6, 2, 5, 3],
+            [np.random.random((2, 1, 3)).astype(config.floatX), 6, 2, 5, 3],
             self.op_class,
         )
+
+    def test_inplace(self):
+        """Make sure that in-place optimizations are *not* performed on the output of a ``BroadcastTo``."""
+        a = aet.zeros((5,))
+        d = aet.vector("d")
+        c = aet.set_subtensor(a[np.r_[0, 1, 3]], d)
+        b = broadcast_to(c, (5,))
+        q = b[np.r_[0, 1, 3]]
+        e = aet.set_subtensor(q, np.r_[0, 0, 0])
+
+        opts = OptimizationQuery(include=["inplace"])
+        py_mode = Mode("py", opts)
+        e_fn = function([d], e, mode=py_mode)
+
+        advincsub_node = e_fn.maker.fgraph.outputs[0].owner
+        assert isinstance(advincsub_node.op, AdvancedIncSubtensor)
+        assert isinstance(advincsub_node.inputs[0].owner.op, BroadcastTo)
+
+        assert advincsub_node.op.inplace is False
+
+
+def test_broadcast_arrays():
+    x, y = aet.dvector(), aet.dmatrix()
+    x_bcast, y_bcast = broadcast_arrays(x, y)
+
+    py_mode = Mode("py", None)
+    bcast_fn = function([x, y], [x_bcast, y_bcast], mode=py_mode)
+
+    x_val = np.array([1.0], dtype=np.float64)
+    y_val = np.array([[1.0, 2.0], [3.0, 4.0]], dtype=np.float64)
+    x_bcast_val, y_bcast_val = bcast_fn(x_val, y_val)
+    x_bcast_exp, y_bcast_exp = np.broadcast_arrays(x_val, y_val)
+
+    assert np.array_equal(x_bcast_val, x_bcast_exp)
+    assert np.array_equal(y_bcast_val, y_bcast_exp)

@@ -214,7 +214,7 @@ class MultinomialFromUniform(COp):
                 unis_n = unis[c * nb_multi + n]
                 # The dtype='float64' is important. Otherwise we don't
                 # have the same answer as the c code as in the c code
-                # the cumul is in double precission.
+                # the cumul is in double precision.
                 cumsum = pvals[n].cumsum(dtype="float64")
                 z[0][n, np.searchsorted(cumsum, unis_n)] += 1
 

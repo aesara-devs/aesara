@@ -736,7 +736,7 @@ class MRG_RandomStream:
 
     def set_rstate(self, seed):
         # TODO : need description for method, parameter
-        if isinstance(seed, int):
+        if isinstance(seed, (int, np.int32, np.int64)):
             if seed == 0:
                 raise ValueError("seed should not be 0", seed)
             elif seed >= M2:

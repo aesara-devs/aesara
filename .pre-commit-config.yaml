@@ -6,6 +6,20 @@ exclude: |
         bin/.*
     )$
 repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v2.1.0
+    hooks:
+      - id: debug-statements
+        exclude: |
+          (?x)^(
+              aesara/breakpoint\.py|
+              aesara/graph/op\.py|
+              aesara/compile/nanguardmode\.py|
+              aesara/graph/opt\.py|
+              aesara/tensor/var\.py|
+              aesara/gpuarray/opt\.py
+          )$
+      - id: check-merge-conflict
   - repo: https://github.com/psf/black
     rev: 20.8b1
     hooks:
@@ -19,3 +33,17 @@ repos:
     rev: 5.6.4
     hooks:
       - id: isort
+  - repo: https://github.com/humitos/mirrors-autoflake.git
+    rev: v1.1
+    hooks:
+      - id: autoflake
+        exclude: |
+          (?x)^(
+              .*/?__init__\.py|
+              aesara/graph/toolbox\.py|
+              aesara/link/jax/jax_dispatch\.py|
+              aesara/link/jax/jax_linker\.py|
+              aesara/scalar/basic_scipy\.py|
+              aesara/tensor/linalg\.py
+          )$
+        args: ['--in-place', '--remove-all-unused-imports', '--remove-unused-variable']

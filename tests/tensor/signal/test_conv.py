@@ -12,9 +12,6 @@ _ = pytest.importorskip("scipy.signal")
 
 
 class TestSignalConv2D:
-    def setup_method(self):
-        utt.seed_rng()
-
     def validate(self, image_shape, filter_shape, out_dim, verify_grad=True):
 
         image_dim = len(image_shape)

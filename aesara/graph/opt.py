@@ -15,12 +15,12 @@ import traceback
 import warnings
 from collections import OrderedDict, UserList, defaultdict, deque
 from collections.abc import Iterable
-from functools import reduce
+from functools import partial, reduce
+from typing import Dict, List, Optional, Tuple, Union
 
 import numpy as np
 
 import aesara
-from aesara.assert_op import Assert, assert_op
 from aesara.configdefaults import config
 from aesara.graph import destroyhandler as dh
 from aesara.graph.basic import (
@@ -31,11 +31,12 @@ from aesara.graph.basic import (
     io_toposort,
     nodes_constructed,
 )
-from aesara.graph.fg import InconsistencyError
+from aesara.graph.features import Feature, NodeFinder
+from aesara.graph.fg import FunctionGraph, InconsistencyError
 from aesara.graph.op import Op
-from aesara.graph.toolbox import Feature, NodeFinder
 from aesara.graph.utils import AssocList
 from aesara.misc.ordered_set import OrderedSet
+from aesara.raise_op import CheckAndRaise
 from aesara.utils import flatten
 
 
@@ -52,22 +53,20 @@ class LocalMetaOptimizerSkipAssertionError(AssertionError):
 
 
 class GlobalOptimizer(abc.ABC):
-    """
+    """A optimizer that can be applied to a `FunctionGraph` in order to transform it.
 
-    A L{GlobalOptimizer} can be applied to an L{FunctionGraph} to transform it.
-    It can represent an optimization or in general any kind
-    of transformation you could apply to an L{FunctionGraph}.
+    It can represent an optimization or, in general, any kind of transformation
+    one could apply to a `FunctionGraph`.
 
     """
 
     @abc.abstractmethod
     def apply(self, fgraph):
-        """
+        """Apply the optimization to a `FunctionGraph`.
 
-        Applies the optimization to the provided L{FunctionGraph}. It may
-        use all the methods defined by the L{FunctionGraph}. If the
-        L{GlobalOptimizer} needs to use a certain tool, such as an
-        L{InstanceFinder}, it can do so in its L{add_requirements} method.
+        It may use all the methods defined by the `FunctionGraph`. If the
+        `GlobalOptimizer` needs to use a certain tool, such as an
+        `InstanceFinder`, it can do so in its `add_requirements` method.
 
         """
         raise NotImplementedError()
@@ -75,9 +74,10 @@ class GlobalOptimizer(abc.ABC):
     def optimize(self, fgraph, *args, **kwargs):
         """
 
-        This is meant as a shortcut to:
-          opt.add_requirements(fgraph)
-          opt.apply(fgraph)
+        This is meant as a shortcut for the following::
+
+            opt.add_requirements(fgraph)
+            opt.apply(fgraph)
 
         """
         self.add_requirements(fgraph)
@@ -85,21 +85,21 @@ class GlobalOptimizer(abc.ABC):
         return ret
 
     def __call__(self, fgraph):
-        """
+        """Optimize a `FunctionGraph`.
 
-        Same as self.optimize(fgraph).
+        This is the same as ``self.optimize(fgraph)``.
 
         """
         return self.optimize(fgraph)
 
     def add_requirements(self, fgraph):
-        """
+        """Add features to `fgraph` that are required to apply the optimization.
 
-        Add features to the fgraph that are required to apply the optimization.
-        For example:
-          fgraph.attach_feature(History())
-          fgraph.attach_feature(MyFeature())
-          etc.
+        For example::
+
+            fgraph.attach_feature(History())
+            fgraph.attach_feature(MyFeature())
+            # etc.
 
         """
 
@@ -114,7 +114,7 @@ class GlobalOptimizer(abc.ABC):
     def print_profile(stream, prof, level=0):
         if prof is not None:
             raise NotImplementedError(
-                "The function print_profile must be overrided if the"
+                "The function print_profile must be overridden if the"
                 " optimizer return profiling information."
             )
 
@@ -150,20 +150,14 @@ class FromFunctionOptimizer(GlobalOptimizer):
 
 
 def optimizer(f):
-    """
-    Decorator for FromFunctionOptimizer.
-
-    """
+    """Decorator for `FromFunctionOptimizer`."""
     rval = FromFunctionOptimizer(f)
     rval.__name__ = f.__name__
     return rval
 
 
 def inplace_optimizer(f):
-    """
-    Decorator for FromFunctionOptimizer.
-
-    """
+    """Decorator for `FromFunctionOptimizer` that also adds the `DestroyHandler` features."""
     dh_handler = dh.DestroyHandler
     requirements = (lambda fgraph: fgraph.attach_feature(dh_handler()),)
     rval = FromFunctionOptimizer(f, requirements)
@@ -176,10 +170,7 @@ class SeqOptimizer(GlobalOptimizer, UserList):
 
     @staticmethod
     def warn(exc, self, optimizer):
-        """
-        Default failure_callback for SeqOptimizer.
-
-        """
+        """Default ``failure_callback`` for `SeqOptimizer`."""
         _logger.error(f"SeqOptimizer apply {optimizer}")
         _logger.error("Traceback:")
         _logger.error(traceback.format_exc())
@@ -188,7 +179,7 @@ class SeqOptimizer(GlobalOptimizer, UserList):
         elif config.on_opt_error == "pdb":
             pdb.post_mortem(sys.exc_info()[2])
 
-    def __init__(self, *opts, **kw):
+    def __init__(self, *opts, failure_callback=None):
         """
         Parameters
         ----------
@@ -204,15 +195,10 @@ class SeqOptimizer(GlobalOptimizer, UserList):
 
         super().__init__(opts)
 
-        self.failure_callback = kw.pop("failure_callback", None)
-        assert len(kw) == 0
+        self.failure_callback = failure_callback
 
     def apply(self, fgraph):
-        """
-
-        Applies each L{GlobalOptimizer} in self in turn.
-
-        """
+        """Applies each `GlobalOptimizer` in ``self.data`` to `fgraph`."""
         l = []
         if fgraph.profile:
             validate_before = fgraph.profile.validate_time
@@ -374,10 +360,7 @@ class SeqOptimizer(GlobalOptimizer, UserList):
 
     @staticmethod
     def merge_profile(prof1, prof2):
-        """
-        Merge 2 profiles returned by this cass apply() fct.
-
-        """
+        """Merge two profiles."""
         new_t = []  # the time for the optimization
         new_l = []  # the optimization
         new_sub_profile = []
@@ -535,10 +518,7 @@ class MergeFeature(Feature):
                 self.seen_constants.discard(id(c))
 
     def process_constant(self, fgraph, c):
-        """
-        Check if a constant can be merged, and queue that replacement.
-
-        """
+        """Check if a constant `c` can be merged, and queue that replacement."""
         if id(c) in self.seen_constants:
             return
         sig = c.merge_signature()
@@ -556,10 +536,7 @@ class MergeFeature(Feature):
             self.seen_constants.add(id(c))
 
     def process_node(self, fgraph, node):
-        """
-        Check if a node can be merged, and queue that replacement.
-
-        """
+        """Check if a `node` can be merged, and queue that replacement."""
         if node in self.nodes_seen:
             return
 
@@ -586,24 +563,25 @@ class MergeFeature(Feature):
 
             merge_candidates = [c for c, i in clients if c in self.nodes_seen]
 
-            # Put all clients of Assert inputs (if exist) into merge_candidates
-            # TODO: Deactivated for now as this cause cycle in the graph.
-            # (There is a second deactivation part below.)
-            for i in []:  # node.inputs:
-                if i.owner and isinstance(i.owner.op, Assert):
-                    node_has_assert = True
-                    i_clients = fgraph.clients[i.owner.inputs[0]]
-                    assert_clients = [c for (c, _) in i_clients if c in self.nodes_seen]
-
-                    for idx in range(len(assert_clients)):
-                        client = assert_clients[idx]
-                        if isinstance(i.owner.op, Assert):
-                            o_clients = fgraph.clients[client.outputs[0]]
-                            for c in o_clients:
-                                if c[0] in self.nodes_seen:
-                                    assert_clients.append(c[0])
-
-                    merge_candidates.extend(assert_clients)
+            # Put all clients of `CheckAndRaise` inputs (if exist) into
+            # `merge_candidates`
+            # TODO: Deactivated for now, because it can create cycles in a
+            # graph.  (There is a second deactivation part below.)
+            # for i in node.inputs:
+            #     if i.owner and isinstance(i.owner.op, CheckAndRaise):
+            #         node_has_assert = True
+            #         i_clients = fgraph.clients[i.owner.inputs[0]]
+            #         assert_clients = [c for (c, _) in i_clients if c in self.nodes_seen]
+            #
+            #         for idx in range(len(assert_clients)):
+            #             client = assert_clients[idx]
+            #             if isinstance(i.owner.op, CheckAndRaise):
+            #                 o_clients = fgraph.clients[client.outputs[0]]
+            #                 for c in o_clients:
+            #                     if c[0] in self.nodes_seen:
+            #                         assert_clients.append(c[0])
+            #
+            #         merge_candidates.extend(assert_clients)
         else:
             # If two nodes have no input, but perform the same operation,
             # they are not always constant-folded, so we want to merge them.
@@ -621,29 +599,31 @@ class MergeFeature(Feature):
 
             # Get input list of the candidate with assert removed
             cand_inputs_assert_removed = []
-            # TODO: Deactivated while Assert merging is disabled. (See above and below.)
-            for i in []:  # candidate.inputs:
-                if i.owner and isinstance(i.owner.op, Assert):
-                    cand_has_assert = True
-                    cand_inputs_assert_removed.append(i.owner.inputs[0])
-                else:
-                    cand_inputs_assert_removed.append(i)
+            # TODO: Deactivated while `CheckAndRaise` merging is disabled. (See
+            # above and below.)
+            # for i in candidate.inputs:
+            #     if i.owner and isinstance(i.owner.op, CheckAndRaise):
+            #         cand_has_assert = True
+            #         cand_inputs_assert_removed.append(i.owner.inputs[0])
+            #     else:
+            #         cand_inputs_assert_removed.append(i)
 
-            # TODO: Remove this when Assert merging is re-enabled. (See above.)
-            # Without Assert merging we can still look for identical Asserts,
-            # so we should not treat Asserts separately for now.
+            # TODO: Remove this when `CheckAndRaise` merging is
+            # re-enabled. (See above.)  Without `CheckAndRaise` merging we can
+            # still look for identical `CheckAndRaise`, so we should not treat
+            # `CheckAndRaise`s separately for now.
             cand_inputs_assert_removed = candidate.inputs
 
             # Get input list of the node with assert removed
-            if node_has_assert:
-                node_inputs_assert_removed = []
-                for i in node.inputs:
-                    if i.owner and isinstance(i.owner.op, Assert):
-                        node_inputs_assert_removed.append(i.owner.inputs[0])
-                    else:
-                        node_inputs_assert_removed.append(i)
-            else:
-                node_inputs_assert_removed = node.inputs
+            # if node_has_assert:
+            #     node_inputs_assert_removed = []
+            #     for i in node.inputs:
+            #         if i.owner and isinstance(i.owner.op, CheckAndRaise):
+            #             node_inputs_assert_removed.append(i.owner.inputs[0])
+            #         else:
+            #             node_inputs_assert_removed.append(i)
+            # else:
+            node_inputs_assert_removed = node.inputs
 
             inputs_match = all(
                 node_in is cand_in
@@ -658,7 +638,7 @@ class MergeFeature(Feature):
                     continue
 
                 # replace node with candidate
-                if not (node_has_assert or cand_has_assert):
+                if not node_has_assert and not cand_has_assert:
                     # Schedule transfer of clients from node to candidate
                     pairs = list(
                         zip(
@@ -668,32 +648,32 @@ class MergeFeature(Feature):
                         )
                     )
 
-                # if the current node has assert input, it should not be
-                # replaced with a candidate node which has no assert input
-                elif node_has_assert and not cand_has_assert:
-                    pairs = list(
-                        zip(
-                            candidate.outputs,
-                            node.outputs,
-                            ["merge"] * len(node.outputs),
-                        )
-                    )
-                else:
-                    new_inputs = self.get_merged_assert_input(node, candidate)
-                    new_node = node.op(*new_inputs)
-                    pairs = list(
-                        zip(
-                            node.outputs,
-                            new_node.owner.outputs,
-                            ["new_node"] * len(node.outputs),
-                        )
-                    ) + list(
-                        zip(
-                            candidate.outputs,
-                            new_node.owner.outputs,
-                            ["new_node"] * len(node.outputs),
-                        )
-                    )
+                # # if the current node has assert input, it should not be
+                # # replaced with a candidate node which has no assert input
+                # elif node_has_assert and not cand_has_assert:
+                #     pairs = list(
+                #         zip(
+                #             candidate.outputs,
+                #             node.outputs,
+                #             ["merge"] * len(node.outputs),
+                #         )
+                #     )
+                # else:
+                #     new_inputs = self.get_merged_assert_input(node, candidate)
+                #     new_node = node.op(*new_inputs)
+                #     pairs = list(
+                #         zip(
+                #             node.outputs,
+                #             new_node.owner.outputs,
+                #             ["new_node"] * len(node.outputs),
+                #         )
+                #     ) + list(
+                #         zip(
+                #             candidate.outputs,
+                #             new_node.owner.outputs,
+                #             ["new_node"] * len(node.outputs),
+                #         )
+                #     )
 
                 # transfer names
                 for pair in pairs:
@@ -712,42 +692,48 @@ class MergeFeature(Feature):
             if not node.inputs:
                 self.noinput_nodes.add(node)
 
-    def get_merged_assert_input(self, node, candidate):
-        new_inputs = []
-        for node_i, cand_i in zip(node.inputs, candidate.inputs):
-            # if node_i is assert
-            if node_i.owner and isinstance(node_i.owner.op, Assert):
-                # node_i is assert, cand_i is assert
-                if cand_i.owner and isinstance(cand_i.owner.op, Assert):
-                    # Here two assert nodes are merged.
-                    # Step 1. Merge conditions of both assert nodes.
-                    # Step 2. Make the new assert node
-                    node_cond = node_i.owner.inputs[1:]
-                    cand_cond = cand_i.owner.inputs[1:]
-                    new_cond = list(set(node_cond + cand_cond))
-                    new_inputs.append(assert_op(node_i.owner.inputs[0], *new_cond))
-
-                # node_i is assert, cand_i is not assert
-                else:
-                    new_inputs.append(node_i)
-            else:
-                # if node_i is not an assert node, append cand_i
-                new_inputs.append(cand_i)
-
-        return new_inputs
+    # def get_merged_assert_input(self, node, candidate):
+    #     new_inputs = []
+    #     for node_i, cand_i in zip(node.inputs, candidate.inputs):
+    #         if node_i.owner and isinstance(node_i.owner.op, CheckAndRaise):
+    #             if (
+    #                 cand_i.owner
+    #                 and isinstance(cand_i.owner.op, CheckAndRaise)
+    #                 and node_i.owner.op.exc_type == cand_i.owner.op.exc_type
+    #             ):
+    #                 # Here two assert nodes are merged.
+    #                 # Step 1. Merge conditions of both assert nodes.
+    #                 # Step 2. Make the new assert node
+    #                 node_cond = node_i.owner.inputs[1:]
+    #                 cand_cond = cand_i.owner.inputs[1:]
+    #                 new_cond = list(set(node_cond + cand_cond))
+    #                 new_raise_op = CheckAndRaise(
+    #                     node_i.owner.op.exc_type,
+    #                     "; ".join([node_i.owner.op.msg, cand_i.owner.op.msg]),
+    #                 )
+    #                 new_inputs.append(new_raise_op(*(node_i.owner.inputs[:1] + new_cond)))
+    #
+    #             # node_i is assert, cand_i is not assert
+    #             else:
+    #                 new_inputs.append(node_i)
+    #         else:
+    #             # if node_i is not an assert node, append cand_i
+    #             new_inputs.append(cand_i)
+    #
+    #     return new_inputs
 
 
 class MergeOptimizer(GlobalOptimizer):
-    """
-    Merges parts of the graph that are identical and redundant.
+    r"""Merges parts of the graph that are identical and redundant.
 
-    The basic principle is that if two Applies have ops that compare equal, and
+    The basic principle is that if two `Apply`\s have `Op`\s that compare equal, and
     identical inputs, then they do not both need to be computed. The clients of
     one are transferred to the other and one of them is removed from the graph.
-    This procedure is carried out in input->output order through the graph.
+    This procedure is carried out in input-to-output order throughout the graph.
 
     The first step of merging is constant-merging, so that all clients of an
-    int(1) for example, are transferred to a particular instance of int(1).
+    ``int(1)`` for example, are transferred to just one particular instance of
+    ``int(1)``.
 
     """
 
@@ -797,7 +783,7 @@ class MergeOptimizer(GlobalOptimizer):
                     # nodes removed
                     cand_inputs_assert_removed = []
                     for i in candidate.inputs:
-                        if i.owner and isinstance(i.owner.op, Assert):
+                        if i.owner and isinstance(i.owner.op, CheckAndRaise):
                             cand_inputs_assert_removed.append(i.owner.inputs[0])
                         else:
                             cand_inputs_assert_removed.append(i)
@@ -805,7 +791,7 @@ class MergeOptimizer(GlobalOptimizer):
                     # Get input list of the node with assert nodes removed
                     node_inputs_assert_removed = []
                     for i in node.inputs:
-                        if i.owner and isinstance(i.owner.op, Assert):
+                        if i.owner and isinstance(i.owner.op, CheckAndRaise):
                             node_inputs_assert_removed.append(i.owner.inputs[0])
                         else:
                             node_inputs_assert_removed.append(i)
@@ -835,7 +821,7 @@ class MergeOptimizer(GlobalOptimizer):
                                 [
                                     i in flatten(c.op.destroy_map.values())
                                     for c, i in clients
-                                    if c != "output" and hasattr(c.op, "destroy_map")
+                                    if c != "output" and c.op.destroy_map
                                 ]
                             )
                             > 1
@@ -964,17 +950,24 @@ class MergeOptimizer(GlobalOptimizer):
 
 
 def pre_constant_merge(fgraph, variables):
-    """Merge constants in the graphs for a list of `variables`.
+    """Merge constants in the graphs given by `variables`.
 
-    XXX: This changes the nodes in a graph in-place!
+    .. warning::
 
-    `variables` is a list of nodes, and we want to merge together nodes that
-    are constant inputs used to compute nodes in that list.
+        This changes the nodes in a graph in-place!
 
-    We also want to avoid terms in the graphs for `variables` that are
-    contained in the `FunctionGraph` given by `fgraph`.  The reason for that:
-    it will break consistency of `fgraph` and its features
-    (e.g. `ShapeFeature`).
+    Parameters
+    ----------
+    fgraph
+        A `FunctionGraph` instance in which some of these `variables` may
+        reside.
+
+        We want to avoid terms in `variables` that are contained in `fgraph`.
+        The reason for that: it will break consistency of `fgraph` and its
+        features (e.g. `ShapeFeature`).
+
+    variables
+        A list of nodes for which we want to merge constant inputs.
 
     Notes
     -----
@@ -1033,54 +1026,51 @@ class LocalOptimizer(abc.ABC):
         return self._optimizer_idx
 
     def tracks(self):
-        """
-        Return the list of op classes that this opt applies to.
+        """Return the list of `Op` classes to which this optimization applies.
 
-        Return None to apply to all nodes.
+        Returns ``None`` when the optimization applies to all nodes.
 
         """
         return None
 
     @abc.abstractmethod
-    def transform(self, fgraph, node, *args, **kwargs):
-        """
-        Transform a subgraph whose output is `node`.
+    def transform(
+        self, fgraph: FunctionGraph, node: Apply, *args, **kwargs
+    ) -> Union[bool, List[Variable], Dict[Variable, Variable]]:
+        r"""Transform a subgraph whose output is `node`.
 
-        Subclasses should implement this function so that it returns one of two
-        kinds of things:
+        Subclasses should implement this function so that it returns one of the
+        following:
 
-        - False to indicate that no optimization can be applied to this `node`;
-          or
-        - <list of variables> to use in place of `node`'s outputs in the
-          greater graph.
-        - dict(old variables -> new variables). A dictionary that map
-          from old variables to new variables to replace.
+        - ``False`` to indicate that no optimization can be applied to this `node`;
+        - A list of `Variable`\s to use in place of the `node`'s current outputs.
+        - A ``dict`` mapping old `Variable`\s to `Variable`\s.
+
 
         Parameters
         ----------
-        node : an Apply instance
+        fgraph :
+            A `FunctionGraph` containing `node`.
+        node :
+            An `Apply` node to be transformed.
 
         """
 
         raise NotImplementedError()
 
     def add_requirements(self, fgraph):
-        """
-        If this local optimization wants to add some requirements to the
-        fgraph, this is the place to do it.
-
-        """
+        r"""Add required `Feature`\s to `fgraph`."""
 
     def print_summary(self, stream=sys.stdout, level=0, depth=-1):
         print(f"{' ' * level}{self.__class__.__name__} id={id(self)}", file=stream)
 
 
 class LocalMetaOptimizer(LocalOptimizer):
-    """
-    Base class for meta-optimizers that try a set of LocalOptimizers
+    r"""
+    Base class for meta-optimizers that try a set of `LocalOptimizer`\s
     to replace a node and choose the one that executes the fastest.
 
-    If the error LocalMetaOptimizerSkipAssertionError is raised during
+    If the error ``LocalMetaOptimizerSkipAssertionError`` is raised during
     compilation, we will skip that function compilation and not print
     the error.
 
@@ -1174,17 +1164,17 @@ class LocalMetaOptimizer(LocalOptimizer):
         return
 
     def provide_inputs(self, node, inputs):
-        """
-        If implemented, returns a dictionary mapping all symbolic variables
-        in ``inputs`` to SharedVariable instances of suitable dummy values.
-        The ``node`` can be inspected to infer required input shapes.
+        """Return a dictionary mapping some `inputs` to `SharedVariable` instances of with dummy values.
+
+        The `node` argument can be inspected to infer required input shapes.
 
         """
         raise NotImplementedError()
 
     def get_opts(self, node):
-        """
-        Can be overrided to change the way opts are selected
+        """Return the optimizations that apply to `node`.
+
+        This uses ``self.track_dict[type(node.op)]`` by default.
         """
         return self.track_dict[type(node.op)]
 
@@ -1195,7 +1185,7 @@ class LocalMetaOptimizer(LocalOptimizer):
 
 
 class FromFunctionLocalOptimizer(LocalOptimizer):
-    """An optimizer constructed from a given function."""
+    """A `LocalOptimizer` constructed from a function."""
 
     def __init__(self, fn, tracks=None, requirements=()):
         self.fn = fn
@@ -1219,12 +1209,30 @@ class FromFunctionLocalOptimizer(LocalOptimizer):
         print(f"{' ' * level}{self.transform} id={id(self)}", file=stream)
 
 
-def local_optimizer(tracks, inplace=False, requirements=()):
-    def decorator(f):
-        """
-        WRITEME
+def local_optimizer(
+    tracks: Optional[List[Union[Op, type]]],
+    inplace: bool = False,
+    requirements: Optional[Tuple[type, ...]] = (),
+):
+    r"""A decorator used to construct `FromFunctionLocalOptimizer` instances.
 
-        """
+    Parameters
+    ----------
+    tracks :
+        The `Op` types or instances to which this optimization applies.
+    inplace :
+        A boolean indicating whether or not the optimization works in-place.
+        If ``True``, a `DestroyHandler` `Feature` is added automatically added
+        to the `FunctionGraph`\s applied to this optimization.
+    requirements :
+        `Feature` types required by this optimization.
+
+    """
+
+    if requirements is None:
+        requirements = ()
+
+    def decorator(f):
         if tracks is not None:
             if len(tracks) == 0:
                 raise ValueError(
@@ -1251,25 +1259,31 @@ def local_optimizer(tracks, inplace=False, requirements=()):
 
 
 class LocalOptGroup(LocalOptimizer):
-    """Takes a list of LocalOptimizer and applies them to the node.
+    r"""An optimizer that applies a list of `LocalOptimizer`\s to a node.
 
     Parameters
     ----------
     optimizers :
-        The List of optimizers to be applied to a node
-    reentrant : bool (Default True)
-        Keyword only argument. Reentrant information. Some global
-        optimizer like NavigatorOptimizer can use this value to
-        determine if it ignore new nodes during a pass on the
-        nodes. Sometimes, ignore_newtrees is not reentrant.
+        A list of optimizers to be applied to nodes.
     apply_all_opts : bool (Default False)
-        If False, it will return after the new node after the first optimizer
+        If ``False``, it will return after the new node after the first optimizer
         applied. Otherwise, it will start again with the new node until no new
         optimization apply.
+    profile :
+        Whether or not to profile the optimizations.
 
+    Attributes
+    ----------
+    reentrant : bool
+        Some global optimizer like `NavigatorOptimizer` can use this value to
+        determine if it ignore new nodes during a pass on the nodes. Sometimes,
+        ``ignore_newtrees`` is not reentrant.
+    retains_inputs : bool
+        States whether or not the inputs of a transformed node are transferred
+        to the outputs.
     """
 
-    def __init__(self, *optimizers, **kwargs):
+    def __init__(self, *optimizers, apply_all_opts=False, profile=False):
         if len(optimizers) == 1 and isinstance(optimizers[0], list):
             # This happen when created by LocalGroupDB.
             optimizers = tuple(optimizers[0])
@@ -1281,10 +1295,9 @@ class LocalOptGroup(LocalOptimizer):
             getattr(opt, "retains_inputs", False) for opt in optimizers
         )
 
-        self.apply_all_opts = kwargs.pop("apply_all_opts", False)
-        self.profile = kwargs.pop("profile", False)
+        self.apply_all_opts = apply_all_opts
+        self.profile = profile
         self.track_map = defaultdict(lambda: [])
-        assert len(kwargs) == 0
         if self.profile:
             self.time_opts = {}
             self.process_count = {}
@@ -1343,6 +1356,10 @@ class LocalOptGroup(LocalOptimizer):
                     new_vars = new_repl
                 else:  # It must be a dict
                     new_vars = list(new_repl.values())
+
+                if config.optimizer_verbose:
+                    print(f"optimizer: rewrite {opt} replaces {node} with {new_repl}")
+
                 if self.profile:
                     self.node_created[opt] += len(
                         list(applys_between(fgraph.variables, new_vars))
@@ -1428,13 +1445,13 @@ class LocalOptGroup(LocalOptimizer):
 
 
 class GraphToGPULocalOptGroup(LocalOptGroup):
-    """This is the equivalent of LocalOptGroup for GraphToGPU.
+    """This is the equivalent of `LocalOptGroup` for `GraphToGPU`.
 
     The main different is the function signature of the local
-    optimizer that use the GraphToGPU signature and not the normal
-    LocalOptimizer signature.
+    optimizer that use the `GraphToGPU` signature and not the normal
+    `LocalOptimizer` signature.
 
-    apply_all_opts=True is not supported
+    ``apply_all_opts=True`` is not supported
 
     """
 
@@ -1467,19 +1484,20 @@ class GraphToGPULocalOptGroup(LocalOptGroup):
 class OpSub(LocalOptimizer):
     """
 
-    Replaces the application of a certain op by the application of
-    another op that takes the same inputs as what they are replacing.
+    Replaces the application of a certain `Op` by the application of
+    another `Op` that takes the same inputs as what it is replacing.
 
     Parameters
     ----------
     op1, op2
-        op1.make_node and op2.make_node must take the same number of
+        ``op1.make_node`` and ``op2.make_node`` must take the same number of
         inputs and have the same number of outputs.
 
     Examples
     --------
-    OpSub(add, sub) ==>
-        add(div(x, y), add(y, x)) -> sub(div(x, y), sub(y, x))
+
+        OpSub(add, sub) ==>
+            add(div(x, y), add(y, x)) -> sub(div(x, y), sub(y, x))
 
     """
 
@@ -1515,8 +1533,7 @@ class OpSub(LocalOptimizer):
 
 class OpRemove(LocalOptimizer):
     """
-
-    Removes all applications of an op by transferring each of its
+    Removes all applications of an `Op` by transferring each of its
     outputs to the corresponding input.
 
     """
@@ -1554,20 +1571,20 @@ class PatternSub(LocalOptimizer):
 
     Replaces all occurrences of the input pattern by the output pattern:
 
-    input_pattern ::= (op, <sub_pattern1>, <sub_pattern2>, ...)
-    input_pattern ::= dict(pattern = <input_pattern>,
-                            constraint = <constraint>)
-    sub_pattern ::= input_pattern
-    sub_pattern ::= string
-    sub_pattern ::= a Constant instance
-    sub_pattern ::= int
-    sub_pattern ::= float
-    constraint ::= lambda fgraph, expr: additional matching condition
+        input_pattern ::= (op, <sub_pattern1>, <sub_pattern2>, ...)
+        input_pattern ::= dict(pattern = <input_pattern>,
+                                constraint = <constraint>)
+        sub_pattern ::= input_pattern
+        sub_pattern ::= string
+        sub_pattern ::= a Constant instance
+        sub_pattern ::= int
+        sub_pattern ::= float
+        constraint ::= lambda fgraph, expr: additional matching condition
 
-    output_pattern ::= (op, <output_pattern1>, <output_pattern2>, ...)
-    output_pattern ::= string
-    output_pattern ::= int
-    output_pattern ::= float
+        output_pattern ::= (op, <output_pattern1>, <output_pattern2>, ...)
+        output_pattern ::= string
+        output_pattern ::= int
+        output_pattern ::= float
 
     Each string in the input pattern is a variable that will be set to
     whatever expression is found in its place. If the same string is
@@ -1581,31 +1598,31 @@ class PatternSub(LocalOptimizer):
     match iff a constant variable with the same value and the same type
     is found in its place.
 
-    You can add a constraint to the match by using the dict(...)  form
-    described above with a 'constraint' key. The constraint must be a
+    You can add a constraint to the match by using the ``dict(...)`` form
+    described above with a ``'constraint'`` key. The constraint must be a
     function that takes the fgraph and the current Variable that we are
     trying to match and returns True or False according to an
     arbitrary criterion.
 
-    The constructor creates a PatternSub that replaces occurrences of
-    in_pattern by occurrences of out_pattern.
+    The constructor creates a `PatternSub` that replaces occurrences of
+    `in_pattern` by occurrences of `out_pattern`.
 
     Parameters
     ----------
-    in_pattern
+    in_pattern :
         The input pattern that we want to replace.
-    out_pattern
+    out_pattern :
         The replacement pattern.
     allow_multiple_clients : bool
         If False, the pattern matching will fail if one of the subpatterns has
         more than one client.
     skip_identities_fn : TODO
-    name
+    name :
         Allows to override this optimizer name.
     pdb : bool
         If True, we invoke pdb when the first node in the pattern matches.
     tracks : optional
-        The values that self.tracks() will return. Useful to speed up
+        The values that :meth:`self.tracks` will return. Useful to speed up
         optimization sometimes.
     get_nodes : optional
         If you provide `tracks`, you must provide this parameter. It must be a
@@ -1615,17 +1632,19 @@ class PatternSub(LocalOptimizer):
     Notes
     -----
     `tracks` and `get_nodes` can be used to make this optimizer track a less
-    frequent Op, so this will make this optimizer tried less frequently.
+    frequent `Op`, so this will make this optimizer tried less frequently.
 
     Examples
     --------
-    PatternSub((add, 'x', 'y'), (add, 'y', 'x'))
-    PatternSub((multiply, 'x', 'x'), (square, 'x'))
-    PatternSub((subtract, (add, 'x', 'y'), 'y'), 'x')
-    PatternSub((power, 'x', Constant(double, 2.0)), (square, 'x'))
-    PatternSub((boggle, {'pattern': 'x',
-                         'constraint': lambda expr: expr.type == scrabble}),
-               (scrabble, 'x'))
+
+        PatternSub((add, 'x', 'y'), (add, 'y', 'x'))
+        PatternSub((multiply, 'x', 'x'), (square, 'x'))
+        PatternSub((subtract, (add, 'x', 'y'), 'y'), 'x')
+        PatternSub((power, 'x', Constant(double, 2.0)), (square, 'x'))
+        PatternSub((boggle, {'pattern': 'x',
+                            'constraint': lambda expr: expr.type == scrabble}),
+                (scrabble, 'x'))
+
     """
 
     def __init__(
@@ -1649,7 +1668,7 @@ class PatternSub(LocalOptimizer):
             self.op = self.in_pattern["pattern"][0]
         else:
             raise TypeError(
-                "The pattern to search for must start with " "a specific Op instance."
+                "The pattern to search for must start with a specific Op instance."
             )
         self.__doc__ = (
             self.__class__.__doc__ + "\n\nThis instance does: " + str(self) + "\n"
@@ -1673,9 +1692,9 @@ class PatternSub(LocalOptimizer):
         return [self.op]
 
     def transform(self, fgraph, node, get_nodes=True):
-        """
-        Checks if the graph from node corresponds to in_pattern. If it does,
-        constructs out_pattern and performs the replacement.
+        """Check if the graph from node corresponds to ``in_pattern``.
+
+        If it does, it constructs ``out_pattern`` and performs the replacement.
 
         """
         from aesara.graph import unify
@@ -1686,9 +1705,6 @@ class PatternSub(LocalOptimizer):
                     continue
                 ret = self.transform(fgraph, real_node, get_nodes=False)
                 if ret is not False and ret is not None:
-                    assert len(real_node.outputs) == len(ret)
-                    if self.values_eq_approx:
-                        ret.tag.values_eq_approx = self.values_eq_approx
                     return dict(zip(real_node.outputs, ret))
 
         if node.op != self.op:
@@ -1704,7 +1720,6 @@ class PatternSub(LocalOptimizer):
                 if expr_equiv is None:
                     return False
                 # TODO: Not sure how to handle multiple_clients flag
-                # print 'retrying match', pattern, expr_equiv
                 return match(
                     pattern,
                     expr_equiv,
@@ -1768,26 +1783,41 @@ class PatternSub(LocalOptimizer):
             return u
 
         u = match(self.in_pattern, node.out, unify.Unification(), True, self.pdb)
-        if u:
-
-            def build(pattern, u):
-                if isinstance(pattern, (list, tuple)):
-                    args = [build(p, u) for p in pattern[1:]]
-                    return pattern[0](*args)
-                elif isinstance(pattern, str):
-                    return u[unify.Var(pattern)]
-                elif isinstance(pattern, (int, float)):
-                    return pattern
-                else:
-                    return pattern.clone()
-
-            p = self.out_pattern
-            ret = build(p, u)
-            if self.values_eq_approx:
-                ret.tag.values_eq_approx = self.values_eq_approx
-            return [ret]
-        else:
+        if not u:
             return False
+
+        def build(pattern, u):
+            if isinstance(pattern, (list, tuple)):
+                args = [build(p, u) for p in pattern[1:]]
+                return pattern[0](*args)
+            elif isinstance(pattern, str):
+                return u[unify.Var(pattern)]
+            elif isinstance(pattern, (int, float)):
+                return pattern
+            else:
+                return pattern.clone()
+
+        ret = build(self.out_pattern, u)
+
+        if isinstance(ret, (int, float)):
+            # TODO: Should we convert these to constants explicitly?
+            return [ret]
+
+        if self.values_eq_approx:
+            ret.tag.values_eq_approx = self.values_eq_approx
+
+        if ret.owner:
+            if [out.type for out in ret.owner.outputs] != [
+                out.type for out in node.outputs
+            ]:
+                return False
+        else:
+            # ret is just an input variable
+            assert len(node.outputs) == 1
+            if ret.type != node.outputs[0].type:
+                return False
+
+        return [ret]
 
     def __str__(self):
         if getattr(self, "__name__", None):
@@ -1853,42 +1883,42 @@ class Updater(Feature):
 
 
 class NavigatorOptimizer(GlobalOptimizer):
-    """
-    Abstract class.
+    r"""An optimizer that applies a `LocalOptimizer` with considerations for the new nodes it creates.
+
+
+    This optimizer also allows the `LocalOptimizer` to use a special ``"remove"`` value
+    in the ``dict``\s returned by :meth:`LocalOptimizer`.  `Variable`\s mapped to this
+    value are removed from the `FunctionGraph`.
 
     Parameters
     ----------
-    local_opt
-        A LocalOptimizer to apply over a FunctionGraph (or None is Ok too).
-    ignore_newtrees
-        - True: new subgraphs returned by an optimization is not a
+    local_opt :
+        A `LocalOptimizer` to apply over a `FunctionGraph` (or ``None``).
+    ignore_newtrees :
+        - ``True``: new subgraphs returned by an optimization are not a
           candidate for optimization.
-        - False: new subgraphs returned by an optimization is a candidate
+        - ``False``: new subgraphs returned by an optimization is a candidate
           for optimization.
-        - 'auto': let the local_opt set this parameter via its 'reentrant'
+        - ``'auto'``: let the `local_opt` set this parameter via its :attr:`reentrant`
           attribute.
     failure_callback
-            A function that takes (exception, navigator, [(old, new),
-            (old,new),...]) and we call it if there's an exception.
+        A function with the signature ``(exception, navigator, [(old, new),
+        (old,new),...])`` that is called when there's an exception.
 
-            If the trouble is from local_opt.transform(), the new variables
-            will be 'None'.
+        If the exception is raised in ``local_opt.transform``, the ``new`` variables
+        will be ``None``.
 
-            If the trouble is from validation (the new types don't match for
-            example) then the new variables will be the ones created by
-            transform().
+        If the exception is raised during validation (e.g. the new types don't
+        match) then the new variables will be the ones created by ``self.transform``.
 
-            If this parameter is None, then exceptions are not caught here
-            (raised normally).
+        If this parameter is ``None``, then exceptions are not caught here and
+        are raised normally.
 
     """
 
     @staticmethod
     def warn(exc, nav, repl_pairs, local_opt, node):
-        """
-        Failure_callback for NavigatorOptimizer: print traceback.
-
-        """
+        """A failure callback that prints a traceback."""
         if config.on_opt_error != "ignore":
             _logger.error(f"Optimization failure due to: {local_opt}")
             _logger.error(f"node: {node}")
@@ -1903,12 +1933,10 @@ class NavigatorOptimizer(GlobalOptimizer):
 
     @staticmethod
     def warn_inplace(exc, nav, repl_pairs, local_opt, node):
-        """
-        Failure_callback for NavigatorOptimizer.
+        r"""A failure callback that ignores ``InconsistencyError``\s and prints a traceback.
 
-        Ignore InconsistencyErrors, print traceback.
-
-        If error during replacement repl_pairs is set. Otherwise None.
+        If the error occurred during replacement, ``repl_pairs`` is set;
+        otherwise, its value is ``None``.
 
         """
         if isinstance(exc, InconsistencyError):
@@ -1917,10 +1945,7 @@ class NavigatorOptimizer(GlobalOptimizer):
 
     @staticmethod
     def warn_ignore(exc, nav, repl_pairs, local_opt, node):
-        """
-        Failure_callback for NavigatorOptimizer: ignore all errors.
-
-        """
+        """A failure callback that ignores all errors."""
 
     def __init__(self, local_opt, ignore_newtrees="auto", failure_callback=None):
         self.local_opt = local_opt
@@ -1931,28 +1956,25 @@ class NavigatorOptimizer(GlobalOptimizer):
         self.failure_callback = failure_callback
 
     def attach_updater(self, fgraph, importer, pruner, chin=None, name=None):
-        """
-        Install some FunctionGraph listeners to help the navigator deal with
-        the ignore_trees-related functionality.
+        r"""Install `FunctionGraph` listeners to help the navigator deal with the ``ignore_trees``-related functionality.
 
         Parameters
         ----------
-        importer
+        importer :
             Function that will be called whenever optimizations add stuff
             to the graph.
-        pruner
+        pruner :
             Function to be called when optimizations remove stuff
             from the graph.
-        chin
+        chin :
             "on change input" called whenever a node's inputs change.
-        name
-            name of the Updater to attach.
+        name :
+            name of the ``Updater`` to attach.
 
         Returns
         -------
-        object
-            The FunctionGraph plugin that handles the three tasks.
-            Keep this around so that you can detach later!
+        The `FunctionGraph` plugin that handles the three tasks.
+        Keep this around so that `Feature`\s can be detached later.
 
         """
         if self.ignore_newtrees:
@@ -1966,13 +1988,14 @@ class NavigatorOptimizer(GlobalOptimizer):
         return u
 
     def detach_updater(self, fgraph, u):
-        """
-        Undo the work of attach_updater.
+        """Undo the work of ``attach_updater``.
 
         Parameters
         ----------
+        fgraph
+            The `FunctionGraph`.
         u
-            A return-value of attach_updater.
+            A return-value of ``attach_updater``.
 
         Returns
         -------
@@ -1983,31 +2006,31 @@ class NavigatorOptimizer(GlobalOptimizer):
             fgraph.remove_feature(u)
 
     def process_node(self, fgraph, node, lopt=None):
-        """
-        This function will use `lopt` to `transform` the `node`. The
-        `transform` method will return either False or a list of Variables
-        that are intended to replace `node.outputs`.
+        r"""Apply `lopt` to `node`.
 
-        If the fgraph accepts the replacement, then the optimization is
-        successful, and this function returns True.
+        The :meth:`lopt.transform` method will return either ``False`` or a
+        list of `Variable`\s that are intended to replace :attr:`node.outputs`.
 
-        If there are no replacement candidates or the fgraph rejects the
-        replacements, this function returns False.
+        If the `fgraph` accepts the replacement, then the optimization is
+        successful, and this function returns ``True``.
+
+        If there are no replacement candidates or the `fgraph` rejects the
+        replacements, this function returns ``False``.
 
         Parameters
         ----------
-        fgraph
-            A FunctionGraph.
-        node
-            An Apply instance in `fgraph`
-        lopt
-            A LocalOptimizer instance that may have a better idea for
+        fgraph :
+            A `FunctionGraph`.
+        node :
+            An `Apply` instance in `fgraph`
+        lopt :
+            A `LocalOptimizer` instance that may have a better idea for
             how to compute node's outputs.
 
         Returns
         -------
         bool
-            True iff the `node`'s outputs were replaced in the `fgraph`.
+            ``True`` iff the `node`'s outputs were replaced in the `fgraph`.
 
         """
         lopt = lopt or self.local_opt
@@ -2032,17 +2055,20 @@ class NavigatorOptimizer(GlobalOptimizer):
             replacements = list(replacements.values())
         elif not isinstance(replacements, (tuple, list)):
             raise TypeError(
-                f"Optimizer {lopt} gave wrong type of replacement. "
-                f"Expected list or tuple. Got {replacements}"
+                f"Local optimizer {lopt} gave wrong type of replacement. "
+                f"Expected list or tuple; got {replacements}"
             )
         if len(old_vars) != len(replacements):
-            raise ValueError(f"Optimizer {lopt} gave wrong number of replacements")
+            raise ValueError(
+                f"Local optimizer {lopt} gave wrong number of replacements"
+            )
         # None in the replacement mean that this variable isn't used
         # and we want to remove it
         for r, rnew in zip(old_vars, replacements):
             if rnew is None and len(fgraph.clients[r]) > 0:
                 raise ValueError(
-                    "A local optimizer tried to remove a Variable that is used"
+                    f"Local optimizer {lopt} tried to remove a variable"
+                    f" that is being used: {r}"
                 )
         # If an output would be replaced by itself, no need to perform
         # the replacement
@@ -2082,11 +2108,7 @@ class NavigatorOptimizer(GlobalOptimizer):
 
 
 class TopoOptimizer(NavigatorOptimizer):
-    """
-    TopoOptimizer has one local optimizer. It tries to apply to each node, in topological order (or reverse).
-    Each time the local optimizer applies, the node gets replaced, and the topooptimizer moves on to the next one.
-
-    """
+    """An optimizer that applies a single `LocalOptimizer` to each node in topological order (or reverse)."""
 
     def __init__(
         self, local_opt, order="in_to_out", ignore_newtrees=False, failure_callback=None
@@ -2193,34 +2215,11 @@ class TopoOptimizer(NavigatorOptimizer):
         return getattr(self, "__name__", "<TopoOptimizer instance>")
 
 
-def out2in(*local_opts, **kwargs):
-    """
-    Uses the TopoOptimizer from the output nodes to input nodes of the graph.
-    """
-    name = kwargs and kwargs.pop("name", None)
-    if len(local_opts) > 1:
-        # Don't wrap it uselessly if their is only 1 optimization.
-        local_opts = LocalOptGroup(*local_opts)
-    else:
-        (local_opts,) = local_opts
-        if not name:
-            name = local_opts.__name__
-    ret = TopoOptimizer(
-        local_opts,
-        order="out_to_in",
-        failure_callback=TopoOptimizer.warn_inplace,
-        **kwargs,
-    )
-    if name:
-        ret.__name__ = name
-    return ret
+def topogroup_optimizer(order, *local_opts, name=None, **kwargs):
+    """Apply `local_opts` from the input/output nodes to the output/input nodes of a graph.
 
-
-def in2out(*local_opts, **kwargs):
+    This uses a combination of `LocalOptGroup` and `TopoOptimizer`.
     """
-    Uses the TopoOptimizer from the input nodes to output nodes of the graph.
-    """
-    name = kwargs and kwargs.pop("name", None)
     if len(local_opts) > 1:
         # Don't wrap it uselessly if their is only 1 optimization.
         local_opts = LocalOptGroup(*local_opts)
@@ -2239,17 +2238,24 @@ def in2out(*local_opts, **kwargs):
     return ret
 
 
+in2out = partial(topogroup_optimizer, "in_to_out")
+out2in = partial(topogroup_optimizer, "out_to_in")
+
+
 class OpKeyOptimizer(NavigatorOptimizer):
-    """
-    WRITEME
+    r"""An optimizer that applies a `LocalOptimizer` to specific `Op`\s.
+
+    The `Op`\s are provided by a :meth:`LocalOptimizer.op_key` method (either
+    as a list of `Op`\s or a single `Op`), and discovered within a
+    `FunctionGraph` using the `NodeFinder` `Feature`.
+
+    This is similar to the ``tracks`` feature used by other optimizers.
 
     """
 
     def __init__(self, local_opt, ignore_newtrees=False, failure_callback=None):
         if not hasattr(local_opt, "op_key"):
-            raise TypeError(
-                "LocalOptimizer for OpKeyOptimizer must have " "an 'op_key' method."
-            )
+            raise TypeError(f"{local_opt} must have an `op_key` method.")
         super().__init__(local_opt, ignore_newtrees, failure_callback)
 
     def apply(self, fgraph):
@@ -2278,12 +2284,6 @@ class OpKeyOptimizer(NavigatorOptimizer):
             self.detach_updater(fgraph, u)
 
     def add_requirements(self, fgraph):
-        """
-        Requires the following features:
-          - NodeFinder
-          - ReplaceValidate(Added by default)
-
-        """
         super().add_requirements(fgraph)
         fgraph.attach_feature(NodeFinder())
 
@@ -2311,9 +2311,7 @@ class ChangeTracker(Feature):
 
 
 def merge_dict(d1, d2):
-    """
-    merge 2 dicts by adding the values.
-    """
+    r"""Merge two ``dict``\s by adding their values."""
     d = d1.copy()
     for k, v in d2.items():
         if k in d:
@@ -2324,8 +2322,7 @@ def merge_dict(d1, d2):
 
 
 class EquilibriumOptimizer(NavigatorOptimizer):
-    """
-    Apply optimizations until equilibrium point.
+    """An optimizer that applies an optimization until a fixed-point/equilibrium is reached.
 
     Parameters
     ----------
@@ -2334,13 +2331,13 @@ class EquilibriumOptimizer(NavigatorOptimizer):
         The global optimizer will be run at the start of each iteration before
         the local optimizer.
     max_use_ratio : int or float
-        Each optimizer can be applied at most (size of graph * this number)
+        Each optimizer can be applied at most ``(size of graph * this number)``
         times.
-    ignore_newtrees
-        See EquilibriumDB ignore_newtrees parameter definition.
-    final_optimizers
+    ignore_newtrees :
+        See :attr:`EquilibriumDB.ignore_newtrees`.
+    final_optimizers :
         Global optimizers that will be run after each iteration.
-    cleanup_optimizers
+    cleanup_optimizers :
         Global optimizers that apply a list of pre determined optimization.
         They must not traverse the graph as they are called very frequently.
         The MergeOptimizer is one example of optimization that respect this.
@@ -2928,9 +2925,11 @@ def pre_greedy_local_optimizer(fgraph, optimizations, out):
 
     This function traverses the computation graph in the graph before the
     variable `out` but that are not in the `fgraph`. It applies
-    `local_optimizations` to each variable on the traversed graph.
+    `optimizations` to each variable on the traversed graph.
 
-    XXX: This changes the nodes in a graph in-place!
+    .. warning::
+
+        This changes the nodes in a graph in-place.
 
     Its main use is to apply locally constant folding when generating
     the graph of the indices of a subtensor.
@@ -2940,10 +2939,10 @@ def pre_greedy_local_optimizer(fgraph, optimizations, out):
 
     Notes
     -----
-    This doesn't do an equilibrium optimization, so, if there is optimization
-    like `local_upcast_elemwise_constant_inputs` in the list that adds
-    additional nodes to the inputs of the node, it might be necessary to call
-    this function multiple times.
+    This doesn't do an equilibrium optimization, so, if there is an
+    optimization--like `local_upcast_elemwise_constant_inputs`--in the list
+    that adds additional nodes to the inputs of the node, it might be necessary
+    to call this function multiple times.
 
     Parameters
     ----------
@@ -3010,23 +3009,21 @@ def pre_greedy_local_optimizer(fgraph, optimizations, out):
 
 
 def copy_stack_trace(from_var, to_var):
-    """
-    Copies the stack trace from one or more tensor variables to
-    one or more tensor variables and returns the destination variables.
+    r"""Copy the stack traces from `from_var` to `to_var`.
 
     Parameters
     ----------
-    from_var
-        Tensor variable or list of tensor variables to copy stack traces from.
-    to_var
-        Tensor variable or list of tensor variables to copy stack traces to.
+    from_var :
+        `Variable` or list `Variable`\s to copy stack traces from.
+    to_var :
+        `Variable` or list `Variable`\s to copy stack traces to.
 
     Notes
     -----
     The stacktrace is assumed to be of the form of a list of lists
     of tuples. Each tuple contains the filename, line number, function name
     and so on. Each list of tuples contains the truples belonging to a
-    particular variable.
+    particular `Variable`.
 
     """
 
@@ -3062,14 +3059,14 @@ def copy_stack_trace(from_var, to_var):
 @contextlib.contextmanager
 def inherit_stack_trace(from_var):
     """
-    Contextmanager that copies the stack trace from one or more variable nodes to all
-    variable nodes constructed in the body. new_nodes is the list of all the newly created
-    variable nodes inside an optimization that is managed by graph.nodes_constructed().
+    A context manager that copies the stack trace from one or more variable nodes to all
+    variable nodes constructed in the body. ``new_nodes`` is the list of all the newly created
+    variable nodes inside an optimization that is managed by ``graph.nodes_constructed``.
 
     Parameters
     ----------
-    from_var
-        Variable node or a list of variable nodes to copy stack traces from.
+    from_var :
+        `Variable` node or a list of `Variable` nodes to copy stack traces from.
 
     """
     with nodes_constructed() as new_nodes:
@@ -3078,39 +3075,40 @@ def inherit_stack_trace(from_var):
 
 
 def check_stack_trace(f_or_fgraph, ops_to_check="last", bug_print="raise"):
-    """
-    This function checks if the outputs of specific ops of a compiled graph
-    have a stack.
+    r"""Checks if the outputs of specific `Op`\s have a stack trace.
 
     Parameters
     ----------
-    f_or_fgraph: aesara.compile.function.types.Function or
-          aesara.graph.fg.FunctionGraph
+    f_or_fgraph : Function or FunctionGraph
         The compiled function or the function graph to be analysed.
-    ops_to_check: it can be of four different types:
-          - classes or instances inheriting from aesara.graph.op.Op
-          - tuple/list of classes or instances inheriting from aesara.graph.op.Op
-          - string
-          - function returning a boolean and taking as input an instance of
-            aesara.graph.op.Op.
-        - if ops_to_check is a string, it should be either 'last' or 'all'.
-          'last' will check only the last op of the graph while 'all' will
-          check all the ops of the graph.
-        - if ops_to_check is an op or a tuple/list of ops, the function will
+    ops_to_check
+        This value can be of four different types:
+            - classes or instances inheriting from `Op`
+            - tuple/list of classes or instances inheriting from `Op`
+            - string
+            - function returning a boolean and taking as input an instance of `Op`
+
+        - if `ops_to_check` is a string, it should be either ``'last'`` or ``'all'``.
+          ``'last'`` will check only the last `Op` of the graph while ``'all'`` will
+          check all the `Op`\s of the graph.
+        - if `ops_to_check` is an `Op` or a tuple/list of `Op`\s, the function will
           check that all the outputs of their occurrences in the graph have a
           stack trace.
-        - if ops_to_check is a function, it should take as input a
-          aesara.graph.op.Op and return a boolean indicating if the input op should
+        - if `ops_to_check` is a function, it should take as input a
+          `Op` and return a boolean indicating if the input `Op` should
           be checked or not.
-    bug_print: string belonging to {'raise', 'warn', 'ignore'}
+
+    bug_print
+        This value is a string belonging to ``{'raise', 'warn', 'ignore'}``.
         You can specify the behaviour of the function when the specified
-        ops_to_check are not in the graph of f_or_fgraph: it can either raise
+        `ops_to_check` are not in the graph of `f_or_fgraph`: it can either raise
         an exception, write a warning or simply ignore it.
 
     Returns
     -------
     boolean
-        True if the outputs of the specified ops have a stack, False otherwise.
+        ``True`` if the outputs of the specified ops have a stack, ``False``
+        otherwise.
 
     """
     if isinstance(f_or_fgraph, aesara.compile.function.types.Function):
@@ -3226,7 +3224,7 @@ class CheckStackTraceFeature(Feature):
 
 
 class CheckStackTraceOptimization(GlobalOptimizer):
-    """Optimizer that serves to add CheckStackTraceOptimization as an fgraph feature."""
+    """Optimizer that serves to add `CheckStackTraceOptimization` as a feature."""
 
     def add_requirements(self, fgraph):
         if not hasattr(fgraph, "CheckStackTraceFeature"):

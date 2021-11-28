@@ -63,14 +63,14 @@ except ImportError:
 templates_path = [".templates"]
 
 # The suffix of source filenames.
-source_suffix = ".txt"
+source_suffix = ".rst"
 
 # The master toctree document.
 master_doc = "index"
 
 # General substitutions.
 project = "Aesara"
-copyright = "PyMC Developers, 2020-2021; 2008--2019, LISA lab"
+copyright = "Aesara Developers, 2021; PyMC Developers, 2020-2021; 2008--2019, LISA lab"
 
 # The default replacements for |version| and |release|, also used in various
 # other places throughout the built documents.
@@ -102,7 +102,7 @@ exclude_dirs = ["images", "scripts", "sandbox"]
 
 # The reST default role (used for this markup: `text`) to use for all
 # documents.
-# default_role = None
+default_role = "py:obj"
 
 # If true, '()' will be appended to :func: etc. cross-reference text.
 # add_function_parentheses = True
@@ -144,7 +144,7 @@ if os.environ.get("READTHEDOCS") != "True":
 
 
 def setup(app):
-    app.add_stylesheet("fix_rtd.css")
+    app.add_css_file("fix_rtd.css")
 
 
 # The name for this set of Sphinx documents.  If None, it defaults to
@@ -236,7 +236,7 @@ def linkcode_resolve(domain, info):
     tag = subprocess.Popen(
         ["git", "rev-parse", "HEAD"], stdout=subprocess.PIPE, universal_newlines=True
     ).communicate()[0][:-1]
-    return f"https://github.com/pymc-devs/aesara/blob/{tag}/{filename}"
+    return f"https://github.com/aesara-devs/aesara/blob/{tag}/{filename}"
 
 
 # Options for LaTeX output
@@ -255,7 +255,7 @@ latex_elements = {
 # (source start file, target name, title, author, document class
 # [howto/manual]).
 latex_documents = [
-    ("index", "aesara.tex", "aesara Documentation", "PyMC Developers", "manual"),
+    ("index", "aesara.tex", "Aesara Documentation", "Aesara Developers", "manual"),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of

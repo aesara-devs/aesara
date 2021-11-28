@@ -3,11 +3,18 @@ name: Tests
 on:
   push:
     branches:
-      - master
+      - main
       - checks
   pull_request:
     branches:
-      - master
+      - main
+
+# Cancels all previous workflow runs for pull requests that have not completed.
+concurrency:
+  # The concurrency group contains the workflow name and the branch name for pull requests
+  # or the commit hash for any other events.
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.head_ref || github.sha }}
+  cancel-in-progress: true
 
 jobs:
   changes:
@@ -38,8 +45,6 @@ jobs:
             - '.github/**/*.yml'
             - 'setup.cfg'
             - 'requirements.txt'
-            - '.coveragerc'
-
 
   style:
     name: Check code style
@@ -66,8 +71,8 @@ jobs:
         float32: [0]
         part:
           - "tests --ignore=tests/tensor --ignore=tests/sparse --ignore=tests/tensor/nnet"
-          - "tests/tensor tests/sparse --ignore=tests/tensor/test_basic.py --ignore=tests/tensor/test_math.py --ignore=tests/tensor/test_basic_scipy.py --ignore=tests/tensor/test_inplace.py --ignore=tests/tensor/test_elemwise.py --ignore=tests/tensor/test_basic_opt.py --ignore=tests/tensor/test_math_opt.py --ignore=tests/tensor/nnet"
-          - "tests/tensor/test_basic.py tests/tensor/test_math.py tests/tensor/test_basic_scipy.py tests/tensor/test_inplace.py"
+          - "tests/tensor tests/sparse --ignore=tests/tensor/test_basic.py --ignore=tests/tensor/test_math.py --ignore=tests/tensor/test_math_scipy.py --ignore=tests/tensor/test_inplace.py --ignore=tests/tensor/test_elemwise.py --ignore=tests/tensor/test_basic_opt.py --ignore=tests/tensor/test_math_opt.py --ignore=tests/tensor/nnet"
+          - "tests/tensor/test_basic.py tests/tensor/test_math.py tests/tensor/test_math_scipy.py tests/tensor/test_inplace.py"
           - "tests/tensor/test_elemwise.py tests/tensor/test_basic_opt.py tests/tensor/test_math_opt.py"
           - "tests/tensor/nnet --ignore-glob='*/test_abstract_conv.py'"
           - "tests/tensor/nnet/test_abstract_conv.py"
@@ -123,7 +128,7 @@ jobs:
       - name: Install dependencies
         shell: bash -l {0}
         run: |
-          mamba install --yes -q "python~=${PYTHON_VERSION}=*_cpython" mkl numpy scipy pip mkl-service graphviz cython libgpuarray pygpu
+          mamba install --yes -q "python~=${PYTHON_VERSION}=*_cpython" mkl numpy scipy pip mkl-service graphviz cython libgpuarray pygpu "numba>=0.52" numba-scipy
           if [[ "$PYTHON_VERSION" != "3.6" ]]; then mamba install --yes -q -c conda-forge "python~=${PYTHON_VERSION}=*_cpython" jax jaxlib; fi
           pip install -q -r requirements.txt
           mamba list && pip freeze
