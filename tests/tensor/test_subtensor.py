@@ -1533,10 +1533,8 @@ class TestIncSubtensor:
         val_sl2_end = 2
 
         for method in [set_subtensor, inc_subtensor]:
-            print("MethodSet", method)
 
             resut = method(a[sl1, sl3, sl2], increment)
-
             f = aesara.function([a, increment, sl2_end], resut)
 
             expected_result = np.copy(val_a)
