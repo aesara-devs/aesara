@@ -1190,50 +1190,44 @@ class Subtensor(COp):
 
 class SubtensorPrinter(Printer):
     def process(self, r, pstate):
-        if r.owner is None:
-            raise TypeError("Can only print Subtensor.")
-        elif isinstance(r.owner.op, Subtensor):
-            idxs = r.owner.op.idx_list
-            inputs = list(r.owner.inputs)
-            input = inputs.pop(0)
-            sidxs = []
-            old_precedence = getattr(pstate, "precedence", None)
-            try:
+        return self._process(r.owner.op.idx_list, r.owner.inputs, pstate)
+
+    def _process(self, idxs, op_inputs, pstate):
+        inputs = list(op_inputs)
+        input = inputs.pop(0)
+        sidxs = []
+        old_precedence = getattr(pstate, "precedence", None)
+        for entry in idxs:
+            if isinstance(entry, aes.Scalar):
                 pstate.precedence = -1000
+                try:
+                    sidxs.append(pstate.pprinter.process(inputs.pop()))
+                finally:
+                    pstate.precedence = old_precedence
+            elif isinstance(entry, slice):
+                if entry.start is None or entry.start == 0:
+                    msg1 = ""
+                else:
+                    msg1 = entry.start
 
-                for entry in idxs:
-                    if isinstance(entry, int):
-                        sidxs.append(str(entry))
-                    elif isinstance(entry, aes.Scalar):
-                        sidxs.append(pstate.pprinter.process(inputs.pop()))
-                    elif isinstance(entry, slice):
-                        if entry.start is None or entry.start == 0:
-                            msg1 = ""
-                        else:
-                            msg1 = entry.start
+                if entry.stop is None or entry.stop == sys.maxsize:
+                    msg2 = ""
+                else:
+                    msg2 = entry.stop
 
-                        if entry.stop is None or entry.stop == sys.maxsize:
-                            msg2 = ""
-                        else:
-                            msg2 = entry.stop
+                if entry.step is None:
+                    msg3 = ""
+                else:
+                    msg3 = f":{entry.step}"
 
-                        if entry.step is None:
-                            msg3 = ""
-                        else:
-                            msg3 = f":{entry.step}"
+                sidxs.append(f"{msg1}:{msg2}{msg3}")
 
-                        sidxs.append(f"{msg1}:{msg2}{msg3}")
-            finally:
-                pstate.precedence = old_precedence
-
-            try:
-                pstate.precedence = 1000
-                sub = pstate.pprinter.process(input, pstate)
-            finally:
-                pstate.precedence = old_precedence
-            return f"{sub}[{', '.join(sidxs)}]"
-        else:
-            raise TypeError("Can only print Subtensor.")
+        try:
+            pstate.precedence = 1000
+            sub = pstate.pprinter.process(input, pstate)
+        finally:
+            pstate.precedence = old_precedence
+        return f"{sub}[{', '.join(sidxs)}]"
 
 
 pprint.assign(Subtensor, SubtensorPrinter())
@@ -1837,6 +1831,29 @@ class IncSubtensor(COp):
             gy = _sum_grad_over_bcasted_dims(y, gy)
 
         return [gx, gy] + [DisconnectedType()()] * len(idx_list)
+
+
+class IncSubtensorPrinter(SubtensorPrinter):
+    def process(self, r, pstate):
+        x, y, *idx_args = r.owner.inputs
+
+        res = self._process(r.owner.op.idx_list, [x] + idx_args, pstate)
+
+        old_precedence = pstate.precedence
+        try:
+            pstate.precedence = 1000
+            y_str = pstate.pprinter.process(r.owner.inputs[1], pstate)
+        finally:
+            pstate.precedence = old_precedence
+
+        if r.owner.op.set_instead_of_inc:
+            res = f"set_subtensor({res}, {y_str})"
+        else:
+            res = f"inc_subtensor({res}, {y_str})"
+        return res
+
+
+pprint.assign(IncSubtensor, IncSubtensorPrinter())
 
 
 def _sum_grad_over_bcasted_dims(x, gx):
