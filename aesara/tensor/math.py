@@ -1348,6 +1348,9 @@ def psi(a):
     """derivative of log gamma function"""
 
 
+digamma = psi
+
+
 @scalar_elemwise
 def tri_gamma(a):
     """second derivative of the log gamma function"""
@@ -2897,6 +2900,7 @@ __all__ = [
     "gamma",
     "gammaln",
     "psi",
+    "digamma",
     "tri_gamma",
     "chi2sf",
     "gammainc",
