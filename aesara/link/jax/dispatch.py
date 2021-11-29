@@ -16,7 +16,7 @@ from aesara.ifelse import IfElse
 from aesara.link.utils import fgraph_to_python
 from aesara.scalar import Softplus
 from aesara.scalar.basic import Cast, Clip, Composite, Identity, ScalarOp, Second
-from aesara.scalar.math import Erf, Erfc, Erfinv
+from aesara.scalar.math import Erf, Erfc, Erfinv, Psi
 from aesara.scan.op import Scan
 from aesara.scan.utils import ScanArgs
 from aesara.tensor.basic import (
@@ -1087,3 +1087,11 @@ def jax_funcify_Erfinv(op, **kwargs):
 #     def erfcinv(x):
 #         return jax.scipy.special.erfcinv(x)
 #     return erfcinv
+
+
+@jax_funcify.register(Psi)
+def jax_funcify_Psi(op, node, **kwargs):
+    def psi(x):
+        return jax.scipy.special.digamma(x)
+
+    return psi

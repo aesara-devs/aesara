@@ -32,7 +32,7 @@ from aesara.tensor.math import MaxAndArgmax
 from aesara.tensor.math import all as aet_all
 from aesara.tensor.math import clip, cosh, erf, erfc, erfinv, gammaln, log
 from aesara.tensor.math import max as aet_max
-from aesara.tensor.math import maximum, prod, sigmoid, softplus
+from aesara.tensor.math import maximum, prod, psi, sigmoid, softplus
 from aesara.tensor.math import sum as aet_sum
 from aesara.tensor.random.basic import RandomVariable, normal
 from aesara.tensor.random.utils import RandomStream
@@ -1274,3 +1274,10 @@ def test_erfinv():
     fg = FunctionGraph([x], [out])
 
     compare_jax_and_py(fg, [1.0])
+
+
+def test_psi():
+    x = scalar("x")
+    out = psi(x)
+    fg = FunctionGraph([x], [out])
+    compare_jax_and_py(fg, [3.0])
