@@ -8,7 +8,10 @@ import pytest
 
 import aesara
 from aesara.printing import (
+    PatternPrinter,
+    PPrinter,
     debugprint,
+    default_printer,
     get_node_by_id,
     min_informative_str,
     pp,
@@ -390,3 +393,18 @@ def test_get_var_by_id():
     res = get_node_by_id([o1, o2], "F")
 
     assert res == igo_out_1.owner
+
+
+def test_PatternPrinter():
+    r1, r2 = MyVariable("1"), MyVariable("2")
+    op1 = MyOp("op1")
+    o1 = op1(r1, r2)
+    o1.name = "o1"
+
+    pprint = PPrinter()
+    pprint.assign(op1, PatternPrinter(("|%(0)s - %(1)s|", -1000)))
+    pprint.assign(lambda pstate, r: True, default_printer)
+
+    res = pprint(o1)
+
+    assert res == "|1 - 2|"
