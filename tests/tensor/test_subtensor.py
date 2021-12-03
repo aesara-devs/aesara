@@ -522,7 +522,7 @@ class TestSubtensor(utt.OptimizationTestMixin):
         # This test checks that using a long that does not fit raises an error.
         n = self.shared(np.arange(12, dtype=self.dtype).reshape((4, 3)))
         with pytest.raises(Exception):
-            (lambda: n[: (2 ** 63)])()
+            n[: (2 ** 63)]
 
     def test_list_slice(self):
         x = aet.arange(100).reshape((5, 5, 4))
@@ -1628,7 +1628,7 @@ class TestIncSubtensor1:
 
     def test_cant_adv_idx_into_scalar(self):
         with pytest.raises(IndexError):
-            (lambda: self.s[self.adv1q])()
+            self.s[self.adv1q]
 
     def test_index_into_vec_w_vec(self):
         a = self.v[self.adv1q]
@@ -1671,7 +1671,7 @@ class TestIncSubtensor1:
 
     def test_assigning_matrix_to_vector_selection(self):
         with pytest.raises(TypeError):
-            (lambda: inc_subtensor(self.v[self.adv1q](fmatrix())))()
+            inc_subtensor(self.v[self.adv1q](fmatrix()))
 
     def test_matrix_idx(self):
         idx = lmatrix()
