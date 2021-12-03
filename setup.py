@@ -51,6 +51,7 @@ install_requires = [
     "filelock",
     "etuples",
     "logical-unification",
+    "miniKanren",
     "cons",
 ]
 
