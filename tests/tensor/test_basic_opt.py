@@ -20,6 +20,7 @@ from aesara.graph.opt_utils import optimize_graph
 from aesara.graph.optdb import OptimizationQuery
 from aesara.graph.type import Type
 from aesara.misc.safe_asarray import _asarray
+from aesara.printing import pprint
 from aesara.raise_op import Assert, CheckAndRaise
 from aesara.tensor.basic import (
     Alloc,
@@ -3570,3 +3571,10 @@ def test_local_useless_SpecifyShape():
 
     assert isinstance(y_opt.owner.op, SpecifyShape)
     assert y_opt.owner.inputs[0] == x
+
+
+def test_printing():
+    a, b = scalars("ab")
+    mv = MakeVector(config.floatX)
+    v = mv(a, b)
+    assert pprint(v) == "[a, b]"
