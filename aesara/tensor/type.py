@@ -67,6 +67,8 @@ class TensorType(CType):
 
     """
 
+    __props__ = ("dtype", "broadcastable")
+
     context_name = "cpu"
     filter_checks_isfinite = False
     """
