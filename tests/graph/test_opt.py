@@ -25,6 +25,7 @@ from aesara.tensor.subtensor import AdvancedSubtensor
 from aesara.tensor.type import matrix, values_eq_approx_always_true
 from aesara.tensor.type_other import MakeSlice, SliceConstant, slicetype
 from tests.graph.utils import (
+    MyOp,
     MyType,
     MyVariable,
     op1,
@@ -691,3 +692,15 @@ class TestLocalOptGroup:
             "optimizer: rewrite local_opt_2 replaces Op2(y, y) with [Op2.0]"
             in capres.out
         )
+
+
+def test_local_optimizer_str():
+    @local_optimizer([op1, MyOp])
+    def local_opt_1(fgraph, node):
+        pass
+
+    assert str(local_opt_1) == "local_opt_1"
+    res = repr(local_opt_1)
+    assert res.startswith("FromFunctionLocalOptimizer(")
+    assert "Op1" in res
+    assert "local_opt_1" in res

@@ -1200,7 +1200,10 @@ class FromFunctionLocalOptimizer(LocalOptimizer):
         return self._tracks
 
     def __str__(self):
-        return getattr(self, "__name__", "<FromFunctionLocalOptimizer instance>")
+        return getattr(self, "__name__", repr(self))
+
+    def __repr__(self):
+        return f"FromFunctionLocalOptimizer({repr(self.fn)}, {repr(self._tracks)}, {repr(self.requirements)})"
 
     def print_summary(self, stream=sys.stdout, level=0, depth=-1):
         print(f"{' ' * level}{self.transform} id={id(self)}", file=stream)
