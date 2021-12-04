@@ -170,12 +170,6 @@ class OptimizationDatabase:
         print("  names", self._names, file=stream)
         print("  db", self.__db__, file=stream)
 
-    def __hash__(self):
-        if not hasattr(self, "_optimizer_idx"):
-            self._optimizer_idx = opt._optimizer_idx[0]
-            opt._optimizer_idx[0] += 1
-        return self._optimizer_idx
-
 
 # This is deprecated and will be removed.
 DB = OptimizationDatabase
