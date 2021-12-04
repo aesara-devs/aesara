@@ -704,3 +704,54 @@ def test_local_optimizer_str():
     assert res.startswith("FromFunctionLocalOptimizer(")
     assert "Op1" in res
     assert "local_opt_1" in res
+
+
+def test_local_optimizer():
+
+    with pytest.raises(ValueError):
+
+        @local_optimizer([])
+        def local_bad_1(fgraph, node):
+            return node.outputs
+
+    with pytest.raises(TypeError):
+
+        @local_optimizer([None])
+        def local_bad_2(fgraph, node):
+            return node.outputs
+
+    x = MyVariable("x")
+    y = MyVariable("y")
+
+    o1 = op1(x, y)
+
+    class MyNewOp(MyOp):
+        pass
+
+    o2 = MyNewOp("MyNewOp")(x, y)
+
+    class MyNewOp2(MyOp):
+        pass
+
+    o3 = MyNewOp2("MyNewOp2")(x, y)
+
+    fgraph = FunctionGraph([x, y], [o1, o2, o3], clone=False)
+
+    hits = [0]
+
+    @local_optimizer([op1, MyNewOp])
+    def local_opt_1(fgraph, node, hits=hits):
+        hits[0] += 1
+        return node.outputs
+
+    # This is allowed by the `op1` in `tracks`
+    local_opt_1.transform(fgraph, fgraph.outputs[0].owner)
+    assert hits[0] == 1
+
+    # This is allowed by the `MyOp` in `tracks`
+    local_opt_1.transform(fgraph, fgraph.outputs[1].owner)
+    assert hits[0] == 2
+
+    # This is not allowed by `tracks`
+    local_opt_1.transform(fgraph, fgraph.outputs[2].owner)
+    assert hits[0] == 2
