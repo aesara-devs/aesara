@@ -1187,10 +1187,19 @@ class FromFunctionLocalOptimizer(LocalOptimizer):
     def __init__(self, fn, tracks=None, requirements=()):
         self.fn = fn
         self._tracks = tracks
+        self._tracked_types = (
+            tuple(t for t in tracks if isinstance(t, type)) if tracks else ()
+        )
         self.requirements = requirements
 
-    def transform(self, *args, **kwargs):
-        return self.fn(*args, **kwargs)
+    def transform(self, fgraph, node):
+        if self._tracks:
+            if not (
+                node.op in self._tracks or isinstance(node.op, self._tracked_types)
+            ):
+                return False
+
+        return self.fn(fgraph, node)
 
     def add_requirements(self, fgraph):
         for req in self.requirements:
@@ -1218,13 +1227,15 @@ def local_optimizer(
 
     Parameters
     ----------
-    tracks :
+    tracks
         The `Op` types or instances to which this optimization applies.
-    inplace :
+        Use ``None`` instead of an empty list to have the optimization apply to
+        all `Op`s`.
+    inplace
         A boolean indicating whether or not the optimization works in-place.
         If ``True``, a `DestroyHandler` `Feature` is added automatically added
         to the `FunctionGraph`\s applied to this optimization.
-    requirements :
+    requirements
         `Feature` types required by this optimization.
 
     """
@@ -1236,14 +1247,14 @@ def local_optimizer(
         if tracks is not None:
             if len(tracks) == 0:
                 raise ValueError(
-                    "Use None instead of an empty list to apply to all nodes.",
-                    f.__module__,
-                    f.__name__,
+                    "Use `None` instead of an empty list to make an optimization apply to all nodes."
                 )
             for t in tracks:
-                if not (isinstance(t, Op) or issubclass(t, Op)):
-                    raise ValueError(
-                        "Tracks are op classes or instances", f.__module__, f.__name__
+                if not (
+                    isinstance(t, Op) or (isinstance(t, type) and issubclass(t, Op))
+                ):
+                    raise TypeError(
+                        "`tracks` must consist of `Op` classes or instances."
                     )
         req = requirements
         if inplace:
