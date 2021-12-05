@@ -8,6 +8,7 @@ from aesara.graph.op import Op
 from aesara.graph.opt import (
     EquilibriumOptimizer,
     LocalOptGroup,
+    LocalOptTracker,
     MergeOptimizer,
     OpKeyOptimizer,
     OpSub,
@@ -755,3 +756,59 @@ def test_local_optimizer():
     # This is not allowed by `tracks`
     local_opt_1.transform(fgraph, fgraph.outputs[2].owner)
     assert hits[0] == 2
+
+
+def test_TrackingLocalOptimizer():
+    @local_optimizer(None)
+    def local_opt_1(fgraph, node):
+        pass
+
+    @local_optimizer([op1])
+    def local_opt_2(fgraph, node):
+        pass
+
+    @local_optimizer([Op])
+    def local_opt_3(fgraph, node):
+        pass
+
+    @local_optimizer([MyOp])
+    def local_opt_4(fgraph, node):
+        pass
+
+    @local_optimizer([MyOp])
+    def local_opt_5(fgraph, node):
+        pass
+
+    tracker = LocalOptTracker()
+    tracker.add_tracker(local_opt_1)
+    tracker.add_tracker(local_opt_2)
+    tracker.add_tracker(local_opt_3)
+    tracker.add_tracker(local_opt_4)
+    tracker.add_tracker(local_opt_5)
+
+    assert tracker.tracked_instances == {op1: [local_opt_2]}
+    assert tracker.tracked_types == {
+        Op: [local_opt_3],
+        MyOp: [local_opt_4, local_opt_5],
+    }
+    assert tracker.untracked_opts == [local_opt_1]
+
+    res = tracker.get_trackers(op1)
+    assert res == [local_opt_4, local_opt_5, local_opt_3, local_opt_2, local_opt_1]
+
+    class MyNewOp(Op):
+        def perform(self, *args):
+            pass
+
+    new_op = MyNewOp()
+
+    res = tracker.get_trackers(new_op)
+    assert res == [local_opt_3, local_opt_1]
+
+    assert list(tracker.get_rewriters()) == [
+        local_opt_3,
+        local_opt_4,
+        local_opt_5,
+        local_opt_2,
+        local_opt_1,
+    ]

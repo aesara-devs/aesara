@@ -29,8 +29,8 @@ class GraphToGPULocalOptGroup(LocalOptGroup):
     def transform(self, fgraph, op, context_name, inputs, outputs):
         if len(self.opts) == 0:
             return
-        opts = self.track_map[type(op)] + self.track_map[op] + self.track_map[None]
-        for opt in opts:
+
+        for opt in self.tracker.get_trackers(op):
             opt_start = time.time()
             new_repl = opt.transform(fgraph, op, context_name, inputs, outputs)
             opt_finish = time.time()
