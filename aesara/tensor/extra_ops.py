@@ -1585,7 +1585,7 @@ class BroadcastTo(Op):
         a = aet.as_tensor_variable(a)
         shape = aet.as_tensor_variable(shape, ndim=1)
 
-        shape, bcast = aet.alloc_validate_shape(shape)
+        shape, bcast = aet.infer_broadcastable(shape)
 
         out = type(a.type)(dtype=a.type.dtype, broadcastable=bcast)()
 
@@ -1609,7 +1609,7 @@ class BroadcastTo(Op):
         d_wrt_a = broadcast_to(dout, shape).sum(axis=new_dims)
 
         # Determine the dimensions that were broadcast
-        _, shape_bcast = aet.alloc_validate_shape(shape)
+        _, shape_bcast = aet.infer_broadcastable(shape)
         bcast_sums = [
             i
             for i, (a_b, s_b) in enumerate(zip(a.broadcastable, shape_bcast[-a.ndim :]))

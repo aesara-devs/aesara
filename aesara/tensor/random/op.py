@@ -7,9 +7,7 @@ import numpy as np
 import aesara
 from aesara.configdefaults import config
 from aesara.graph.basic import Apply, Variable
-from aesara.graph.fg import FunctionGraph
 from aesara.graph.op import Op
-from aesara.graph.opt_utils import optimize_graph
 from aesara.misc.safe_asarray import _asarray
 from aesara.scalar import ScalarVariable
 from aesara.tensor.basic import (
@@ -17,8 +15,8 @@ from aesara.tensor.basic import (
     constant,
     get_scalar_constant_value,
     get_vector_length,
+    infer_broadcastable,
 )
-from aesara.tensor.basic_opt import ShapeFeature, topo_constant_folding
 from aesara.tensor.random.type import RandomType
 from aesara.tensor.random.utils import normalize_size_param, params_broadcast_shapes
 from aesara.tensor.shape import shape_tuple
@@ -276,31 +274,6 @@ class RandomVariable(Op):
 
         return shape
 
-    @config.change_flags(compute_test_value="off")
-    def compute_bcast(self, dist_params, size):
-        """Compute the broadcast array for this distribution's `TensorType`.
-
-        Parameters
-        ----------
-        dist_params: list
-            Distribution parameters.
-        size: int or Sequence (optional)
-            Numpy-like size of the output (i.e. replications).
-
-        """
-        shape = self._infer_shape(size, dist_params)
-
-        shape_fg = FunctionGraph(
-            outputs=[as_tensor_variable(s, ndim=0) for s in shape],
-            features=[ShapeFeature()],
-            clone=True,
-        )
-        folded_shape = optimize_graph(
-            shape_fg, custom_opt=topo_constant_folding
-        ).outputs
-
-        return [getattr(s, "data", s) == 1 for s in folded_shape]
-
     def infer_shape(self, fgraph, node, input_shapes):
         _, size, _, *dist_params = node.inputs
         _, size_shape, _, *param_shapes = input_shapes
@@ -362,7 +335,8 @@ class RandomVariable(Op):
                 "The type of rng should be an instance of either RandomGeneratorType or RandomStateType"
             )
 
-        bcast = self.compute_bcast(dist_params, size)
+        shape = self._infer_shape(size, dist_params)
+        _, bcast = infer_broadcastable(shape)
         dtype = self.dtype or dtype
 
         if dtype == "floatX":

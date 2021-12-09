@@ -59,6 +59,7 @@ from aesara.tensor.basic import (
     get_scalar_constant_value,
     get_vector_length,
     horizontal_stack,
+    infer_broadcastable,
     inverse_permutation,
     join,
     make_vector,
@@ -90,7 +91,7 @@ from aesara.tensor.elemwise import DimShuffle
 from aesara.tensor.exceptions import NotScalarConstantError
 from aesara.tensor.math import dense_dot, eq
 from aesara.tensor.math import sum as aet_sum
-from aesara.tensor.shape import Reshape, Shape, Shape_i, shape_padright
+from aesara.tensor.shape import Reshape, Shape, Shape_i, shape_padright, specify_shape
 from aesara.tensor.type import (
     TensorType,
     bvector,
@@ -656,6 +657,24 @@ class TestAlloc:
         full_at = aet.full((2, 3), 3, dtype="int64")
         res = aesara.function([], full_at, mode=self.mode)()
         assert np.array_equal(res, np.full((2, 3), 3, dtype="int64"))
+
+
+def test_infer_broadcastable():
+    with pytest.raises(TypeError, match="^Shapes must be scalar integers.*"):
+        infer_broadcastable([constant(1.0)])
+
+    with config.change_flags(exception_verbosity="high"), pytest.raises(
+        TypeError, match=r"A\. x"
+    ):
+        infer_broadcastable([dscalar("x")])
+
+    with pytest.raises(ValueError, match=".*could not be cast to have 0 dimensions"):
+        infer_broadcastable((as_tensor_variable([[1, 2]]),))
+
+    constant_size = constant([1])
+    specify_size = specify_shape(constant_size, [1])
+    sh, bcast = infer_broadcastable(specify_size)
+    assert bcast == (True,)
 
 
 # This is slow for the ('int8', 3) version.
