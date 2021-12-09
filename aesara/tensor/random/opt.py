@@ -177,9 +177,10 @@ def local_dimshuffle_rv_lift(fgraph, node):
         # Update the `size` array to reflect the `DimShuffle`d dimensions,
         # since the trailing dimensions in `size` represent the independent
         # variates dimensions (for univariate distributions, at least)
+        has_size = get_vector_length(size) > 0
         new_size = (
             [constant(1, dtype="int64") if o == "x" else size[o] for o in ds_new_order]
-            if get_vector_length(size) > 0
+            if has_size
             else size
         )
 
@@ -190,6 +191,14 @@ def local_dimshuffle_rv_lift(fgraph, node):
                 d - reps_ind_split_idx if isinstance(d, int) else d
                 for d in ds_new_order[ds_ind_new_dims[0][0] :]
             ]
+
+            if not has_size and len(ds_new_order[: ds_ind_new_dims[0][0]]) > 0:
+                # Additional broadcast dimensions need to be added to the
+                # independent dimensions (i.e. parameters), since there's no
+                # `size` to which they can be added
+                rv_params_new_order = (
+                    list(ds_new_order[: ds_ind_new_dims[0][0]]) + rv_params_new_order
+                )
         else:
             # This case is reached when, for example, `ds_new_order` only
             # consists of new broadcastable dimensions (i.e. `"x"`s)

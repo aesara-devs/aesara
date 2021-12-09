@@ -148,6 +148,17 @@ def test_local_rv_size_lift(dist_op, dist_params, size):
     "ds_order, lifted, dist_op, dist_params, size, rtol",
     [
         (
+            ("x", 0),
+            True,
+            normal,
+            (
+                np.array([0.0, -100.0], dtype=np.float64),
+                np.array(1e-6, dtype=np.float64),
+            ),
+            (),
+            1e-7,
+        ),
+        (
             ("x",),
             True,
             normal,
