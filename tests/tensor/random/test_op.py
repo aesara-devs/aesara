@@ -129,12 +129,12 @@ def test_RandomVariable_bcast():
     s3.tag.test_value = 3
     s3 = Assert("testing")(s3, eq(s1, 1))
 
-    res = rv.compute_bcast([mu, sd], (s1, s2, s3))
-    assert res == [False] * 3
+    res = rv(mu, sd, size=(s1, s2, s3))
+    assert res.broadcastable == (False,) * 3
 
     size = aet.as_tensor((1, 2, 3), dtype=np.int32).astype(np.int64)
-    res = rv.compute_bcast([mu, sd], size)
-    assert res == [True, False, False]
+    res = rv(mu, sd, size=size)
+    assert res.broadcastable == (True, False, False)
 
     res = rv(0, 1, size=aet.as_tensor(1, dtype=np.int64))
     assert res.broadcastable == (True,)

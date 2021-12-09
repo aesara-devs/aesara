@@ -22,7 +22,9 @@ from aesara import compile, config, printing
 from aesara import scalar as aes
 from aesara.gradient import DisconnectedType, grad_not_implemented, grad_undefined
 from aesara.graph.basic import Apply, Constant, Variable
+from aesara.graph.fg import FunctionGraph
 from aesara.graph.op import COp, Op
+from aesara.graph.opt_utils import optimize_graph
 from aesara.graph.params_type import ParamsType
 from aesara.graph.type import Type
 from aesara.misc.safe_asarray import _asarray
@@ -1324,43 +1326,44 @@ def identity_like(x):
     return eye(x.shape[0], x.shape[1], k=0, dtype=x.dtype)
 
 
-def alloc_validate_shape(shape):
-    sh = [as_tensor_variable(s) for s in shape]
-    bcast = []
-    for i, s in enumerate(sh):
+def infer_broadcastable(shape):
+    """Infer the broadcastable dimensions for `shape`.
 
-        def err_str():
-            if config.exception_verbosity == "high":
-                return "\n" + min_informative_str(s)
-            else:
-                return str(s)
+    `shape` will be validated and constant folded in order to determine
+    which dimensions are broadcastable (i.e. equal to ``1``).
+    """
+    from aesara.tensor.basic_opt import ShapeFeature, topo_constant_folding
 
-        if s.type.dtype not in integer_dtypes:
-            s_as_str = err_str()
-            raise TypeError(
-                "Shape arguments to Alloc must be integers, "
-                f"but argument {i} is not for apply node: {s_as_str}"
-            )
-        if s.ndim != 0:
-            s_as_str = err_str()
-            raise TypeError(
-                "Each shape dimension to Alloc must be a scalar, ",
-                f"but dimension {i} have {int(s.ndim)} dimensions for apply node: {s_as_str}",
-            )
+    def check_type(s):
+        if s.type.dtype in integer_dtypes:
+            return s
 
-        # if s is constant 1, then we're broadcastable in that dim
-        try:
-            const_shp = get_scalar_constant_value(s)
-        except NotScalarConstantError:
-            const_shp = None
-        bcast.append(1 == const_shp)
+        if config.exception_verbosity == "high":
+            s_as_str = "\n" + min_informative_str(s)
+        else:
+            s_as_str = str(s)
+
+        raise TypeError(f"Shapes must be scalar integers; got {s_as_str}")
+
+    sh = [check_type(as_tensor_variable(s, ndim=0)) for s in shape]
+
+    shape_fg = FunctionGraph(
+        outputs=sh,
+        features=[ShapeFeature()],
+        clone=True,
+    )
+    folded_shape = optimize_graph(shape_fg, custom_opt=topo_constant_folding).outputs
+
+    bcast = tuple(getattr(s, "data", s) == 1 for s in folded_shape)
     return sh, bcast
 
 
 class Alloc(COp):
     """Create a `TensorVariable` from an initial value and a desired shape.
 
-    alloc(value, shape0, shape1, ..., shapeN)
+    Usage:
+
+        alloc(value, shape0, shape1, ..., shapeN)
 
     Returns an N-dimensional tensor initialized by a value, using something
     equivalent to
@@ -1380,12 +1383,9 @@ class Alloc(COp):
     _f16_ok = True
     __props__ = ()
 
-    def validate_shape(self, shape):
-        return alloc_validate_shape(shape)
-
     def make_node(self, value, *shape):
         v = as_tensor_variable(value)
-        sh, bcast = alloc_validate_shape(shape)
+        sh, bcast = infer_broadcastable(shape)
         if v.ndim > len(sh):
             raise TypeError(
                 "The Alloc value to use has more dimensions"
@@ -4102,7 +4102,7 @@ class AllocEmpty(COp):
         return np.dtype(self.dtype).num
 
     def make_node(self, *_shape):
-        _shape, bcast = alloc_validate_shape(_shape)
+        _shape, bcast = infer_broadcastable(_shape)
         otype = TensorType(dtype=self.dtype, broadcastable=bcast)
         output = otype()
 
@@ -4363,7 +4363,6 @@ __all__ = [
     "tensor_copy",
     "transfer",
     "alloc",
-    "alloc_validate_shape",
     "identity_like",
     "eye",
     "triu",

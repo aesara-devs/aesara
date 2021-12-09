@@ -19,7 +19,7 @@ from aesara.graph.utils import MethodNotDefined
 from aesara.link.c.interface import HideC
 from aesara.scalar import bool as bool_t
 from aesara.scalar import int32 as int32_t
-from aesara.tensor.basic import Alloc, AllocEmpty, Join, Split, alloc_validate_shape
+from aesara.tensor.basic import Alloc, AllocEmpty, Join, Split, infer_broadcastable
 from aesara.tensor.shape import Reshape
 from aesara.tensor.type import TensorType, values_eq_approx_always_true
 
@@ -909,7 +909,7 @@ class GpuAlloc(HideC, Alloc):
 
     def make_node(self, value, *shape):
         value = as_gpuarray_variable(value, context_name=self.context_name)
-        sh, bcast = alloc_validate_shape(shape)
+        sh, bcast = infer_broadcastable(shape)
         if value.ndim > len(sh):
             TypeError(
                 "The GpuAlloc value to use has more dimensions "
@@ -1071,7 +1071,7 @@ class GpuAllocEmpty(HideC, AllocEmpty):
         )
 
     def make_node(self, *shape):
-        sh, bcast = alloc_validate_shape(shape)
+        sh, bcast = infer_broadcastable(shape)
         output = GpuArrayType(
             dtype=self.dtype, broadcastable=bcast, context_name=self.context_name
         )()
