@@ -127,11 +127,14 @@ def _as_tensor_Variable(x, name, ndim, **kwargs):
         return x
 
     if x.type.ndim > ndim:
-        # strip off leading broadcastable dimensions
-        first_non_broadcastable = [
-            idx for idx in range(x.ndim) if not x.broadcastable[idx]
-        ][0]
-        x = x.dimshuffle(list(range(x.ndim))[first_non_broadcastable:])
+        # Strip off leading broadcastable dimensions
+        non_broadcastables = [idx for idx in range(x.ndim) if not x.broadcastable[idx]]
+
+        if non_broadcastables:
+            x = x.dimshuffle(list(range(x.ndim))[non_broadcastables[0] :])
+        else:
+            x = x.dimshuffle()
+
         if x.ndim > ndim:
             raise ValueError(
                 f"Tensor of type {x.type} could not be cast to have {ndim} dimensions"
