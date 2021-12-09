@@ -447,14 +447,20 @@ class TestAsTensorVariable:
         with pytest.raises(ValueError):
             as_tensor_variable(bad_apply_var)
 
-    def test_strip_leading_broadcastable(self):
+    def test_ndim_strip_leading_broadcastable(self):
         x = TensorType(config.floatX, (True, False))("x")
         x = as_tensor_variable(x, ndim=1)
         assert x.ndim == 1
 
-        x = matrix("x", dtype=config.floatX)
-        with pytest.raises(ValueError):
-            as_tensor_variable(x, ndim=1)
+    def test_ndim_all_broadcastable(self):
+        x = TensorType(config.floatX, (True, True))("x")
+        res = as_tensor_variable(x, ndim=0)
+        assert res.ndim == 0
+
+    def test_ndim_incompatible(self):
+        x = TensorType(config.floatX, (True, False))("x")
+        with pytest.raises(ValueError, match="^Tensor of type.*"):
+            as_tensor_variable(x, ndim=0)
 
     def test_bool(self):
         # We should not allow `as_tensor_variable` to accept `True` or `False`,
