@@ -63,8 +63,8 @@ Advanced configuration and debugging
     nan_tutorial
     profiling
 
-Further readings
-----------------
+Further reading
+---------------
 
 .. toctree::
 
