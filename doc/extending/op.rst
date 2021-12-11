@@ -1,51 +1,13 @@
 
-=========================================
-Making arithmetic :class:`Op`\s on double
-=========================================
-
-.. testsetup:: *
-
-   from aesara.graph.type import Type
-
-   class Double(Type):
-
-       def filter(self, x, strict=False, allow_downcast=None):
-           if strict:
-               if isinstance(x, float):
-                   return x
-               else:
-                   raise TypeError('Expected a float!')
-           elif allow_downcast:
-               return float(x)
-           else:   # Covers both the False and None cases.
-               x_float = float(x)
-               if x_float == x:
-                   return x_float
-               else:
-                    raise TypeError('The double type cannot accurately represent '
-                                    'value %s (of type %s): you must explicitly '
-                                    'allow downcasting if you want to do this.'
-                                    % (x, type(x)))
-
-       def values_eq_approx(self, x, y, tolerance=1e-4):
-           return abs(x - y) / (abs(x) + abs(y)) < tolerance
-
-       def __str__(self):
-           return "double"
-
-   double = Double()
-
-
-Now that we have a ``double`` type, we have yet to use it to perform
-computations. We'll start by defining multiplication.
-
 .. _op_contract:
 
-:class:`Op`'s contract
-======================
+=============
+:class:`Op`\s
+=============
 
-An `Op` is any object which inherits from :class:`Op`.  It has to
-define the following methods.
+An :class:`Op` is a :ref:`graph object <graphstructures>` that defines and performs computations in a graph.
+
+It has to define the following methods.
 
 .. function:: make_node(*inputs)
 
@@ -110,9 +72,6 @@ define the following methods.
   operations <views_and_inplace>` before writing a :meth:`Op.perform`
   implementation that does either of these things.
 
-Instead (or in addition to) ``perform()`` You can also provide a
-:ref:`C implementation <cop>` of For more details, refer to the
-documentation for :class:`Op`.
 
 .. function:: __eq__(other)
 
@@ -274,9 +233,9 @@ Optional methods or attributes
    Undefined by default.
 
    If you define this function then it will be used instead of C code
-   or perform() to do the computation while debugging (currently
+   or :meth:`Op.perform` to do the computation while debugging (currently
    DebugMode, but others may also use it in the future).  It has the
-   same signature and contract as :func:`perform`.
+   same signature and contract as :meth:`Op.perform`.
 
    This enables :class:`Op`\s that cause trouble with DebugMode with their
    normal behaviour to adopt a different one when run under that
@@ -364,26 +323,26 @@ These are the function required to work with :func:`aesara.gradient.grad`.
   derivative :math:`\frac{d f}{d x}` of the latter with respect to the
   primitive :class:`Variable` (this has to be computed).
 
-  In mathematics, the total derivative of a scalar variable (C) with
-  respect to a vector of scalar variables (x), i.e. the gradient, is
+  In mathematics, the total derivative of a scalar variable :math:`C` with
+  respect to a vector of scalar variables :math:`x`, i.e. the gradient, is
   customarily represented as the row vector of the partial
   derivatives, whereas the total derivative of a vector of scalar
-  variables (f) with respect to another (x), is customarily
-  represented by the matrix of the partial derivatives, i.e.the
-  jacobian matrix. In this convenient setting, the chain rule
-  instructs that the gradient of the final scalar variable C with
-  respect to the primitive scalar variables in x through those in f is
-  simply given by the matrix product: :math:`\frac{d C}{d x} = \frac{d
-  C}{d f} * \frac{d f}{d x}`.
+  variables :math:`f` with respect to another :math:`x`, is customarily
+  represented by the matrix of the partial derivatives, i.e. the
+  Jacobian matrix. In this convenient setting, the chain rule
+  says that the gradient of the final scalar variable :math:`C` with
+  respect to the primitive scalar variables in :math:`x` through those in
+  :math:`f` is simply given by the matrix product:
+  :math:`\frac{d C}{d x} = \frac{d C}{d f} * \frac{d f}{d x}`.
 
   Here, the chain rule must be implemented in a similar but slightly
   more complex setting: Aesara provides in the list
   ``output_gradients`` one gradient for each of the :class:`Variable`\s returned
-  by the `Op`. Where f is one such particular :class:`Variable`, the
+  by the `Op`. Where :math:`f` is one such particular :class:`Variable`, the
   corresponding gradient found in ``output_gradients`` and
   representing :math:`\frac{d C}{d f}` is provided with a shape
-  similar to f and thus not necessarily as a row vector of scalars.
-  Furthermore, for each :class:`Variable` x of the Op's list of input variables
+  similar to :math:`f` and thus not necessarily as a row vector of scalars.
+  Furthermore, for each :class:`Variable` :math:`x` of the :class:`Op`'s list of input variables
   ``inputs``, the returned gradient representing :math:`\frac{d C}{d
   x}` must have a shape similar to that of :class:`Variable` x.
 
@@ -407,7 +366,7 @@ These are the function required to work with :func:`aesara.gradient.grad`.
   1) They must be :class:`Variable` instances.
   2) When they are types that have dtypes, they must never have an integer dtype.
 
-  The output gradients passed *to* `Op.grad` will also obey these constraints.
+  The output gradients passed *to* :meth:`Op.grad` will also obey these constraints.
 
   Integers are a tricky subject. Integers are the main reason for
   having :class:`DisconnectedType`, :class:`NullType` or zero gradient. When you have an
@@ -449,30 +408,30 @@ These are the function required to work with :func:`aesara.gradient.grad`.
 
   Examples:
 
-  1) :math:`f(x,y)` is a dot product between x and y. x and y are integers.
-     Since the output is also an integer, f is a step function.
+  1) :math:`f(x,y)` is a dot product between :math:`x` and :math:`y`. :math:`x` and :math:`y` are integers.
+     Since the output is also an integer, :math:`f` is a step function.
      Its gradient is zero almost everywhere, so :meth:`Op.grad` should return
-     zeros in the shape of x and y.
-  2) :math:`f(x,y)` is a dot product between x and y. x is floating point and y is an integer.
-     In this case the output is floating point. It doesn't matter
-     that y is an integer.  We consider f to still be defined at
-     :math:`f(x,y+\epsilon)`. The gradient is exactly the same as if y were
-     floating point.
-  3) :math:`f(x,y)` is the argmax of x along axis y.
-     The gradient with respect to y is undefined, because :math:`f(x,y)` is
-     not defined for floating point y. How could you take an argmax
-     along a fractional axis?  The gradient with respect to x is
-     0, because :math:`f(x+\epsilon, y) = f(x)` almost everywhere.
-  4) :math:`f(x,y)` is a vector with y elements, each of which taking on the value x
-     The :meth:`Op.grad` method should return :class:`DisconnectedType` for y,
-     because the elements of f don't depend on y. Only the shape of
-     f depends on y. You probably also want to implement a
-     connection_pattern method to encode this.
-  5) :math:`f(x) = int(x)` converts float x into an int. :math:`g(y) = float(y)`
-     converts an integer y into a float.  If the final cost :math:`C = 0.5 *
-     g(y) = 0.5 g(f(x))`, then the gradient with respect to y will be 0.5,
-     even if y is an integer. However, the gradient with respect to x will be
-     0, because the output of f is integer-valued.
+     zeros in the shape of :math:`x` and :math:`y`.
+  2) :math:`f(x,y)` is a dot product between :math:`x` and :math:`y`. :math:`x`
+     is floating point and :math:`y` is an integer.  In this case the output is
+     floating point. It doesn't matter that :math:`y` is an integer.  We
+     consider :math:`f` to still be defined at :math:`f(x,y+\epsilon)`. The
+     gradient is exactly the same as if :math:`y` were floating point.
+  3) :math:`f(x,y)` is the argmax of :math:`x` along axis :math:`y`.  The
+     gradient with respect to :math:`y` is undefined, because :math:`f(x,y)` is
+     not defined for floating point :math:`y`. How could you take an argmax
+     along a fractional axis?  The gradient with respect to :math:`x` is 0,
+     because :math:`f(x+\epsilon, y) = f(x)` almost everywhere.
+  4) :math:`f(x,y)` is a vector with :math:`y` elements, each of which taking on
+     the value :math:`x` The :meth:`Op.grad` method should return
+     :class:`DisconnectedType` for :math:`y`, because the elements of :math:`f`
+     don't depend on :math:`y`. Only the shape of :math:`f` depends on
+     :math:`y`. You probably also want to implement a connection_pattern method to encode this.
+  5) :math:`f(x) = int(x)` converts float :math:`x` into an integer. :math:`g(y) = float(y)`
+     converts an integer :math:`y` into a float.  If the final cost :math:`C = 0.5 *
+     g(y) = 0.5 g(f(x))`, then the gradient with respect to :math:`y` will be 0.5,
+     even if :math:`y` is an integer. However, the gradient with respect to :math:`x` will be
+     0, because the output of :math:`f` is integer-valued.
 
 .. function:: connection_pattern(node):
 
@@ -484,9 +443,8 @@ These are the function required to work with :func:`aesara.gradient.grad`.
   elements of ``inputs[input_idx]`` have an effect on the elements of
   ``outputs[output_idx]``.
 
-  The ``node`` parameter is needed to determine the number of
-  inputs. Some :class:`Op`\s such as :class:`Subtensor` take a variable number of
-  inputs.
+  The ``node`` parameter is needed to determine the number of inputs. Some
+  :class:`Op`\s such as :class:`Subtensor` take a variable number of inputs.
 
   If no connection_pattern is specified, :func:`aesara.gradient.grad` will
   assume that all inputs have some elements connected to some
@@ -496,15 +454,14 @@ These are the function required to work with :func:`aesara.gradient.grad`.
   not part of the Aesara graph:
 
   1) Which of the :class:`Op`'s inputs are truly ancestors of each of the
-     :class:`Op`'s outputs. Suppose an :class:`Op` has two inputs, ``x`` and ``y``, and
-     outputs ``f(x)`` and ``g(y)``. ``y`` is not really an ancestor of ``f``, but
+     :class:`Op`'s outputs. Suppose an :class:`Op` has two inputs, :math:`x` and :math:`y`, and
+     outputs :math:`f(x)` and :math:`g(y)`. :math:`y` is not really an ancestor of :math:`f`, but
      it appears to be so in the Aesara graph.
-  2) Whether the actual elements of each input/output are relevant
-     to a computation.
+  2) Whether the actual elements of each input/output are relevant to a
+     computation.
      For example, the shape :class:`Op` does not read its input's elements,
      only its shape metadata. :math:`\frac{d shape(x)}{dx}` should thus raise
-     a disconnected input exception (if these exceptions are
-     enabled).
+     a disconnected input exception (if these exceptions are enabled).
      As another example, the elements of the :class:`Alloc` :class:`Op`'s outputs
      are not affected by the shape arguments to the :class:`Alloc` :class:`Op`.
 
@@ -531,9 +488,9 @@ These are the function required to work with :func:`aesara.gradient.grad`.
    point, namely: :math:`\frac{\partial f}{\partial x} v`.
 
    ``inputs`` are the symbolic variables corresponding to the value of
-   the input where you want to evaluate the jacobian, and ``eval_points``
+   the input where you want to evaluate the Jacobian, and ``eval_points``
    are the symbolic variables corresponding to the value you want to
-   right multiply the jacobian with.
+   right multiply the Jacobian with.
 
    Same conventions as for the :meth:`Op.grad` method hold. If your :class:`Op`
    is not differentiable, you can return None. Note that in contrast to the
@@ -543,242 +500,10 @@ These are the function required to work with :func:`aesara.gradient.grad`.
    into a single vector :math:`x`. You do the same with the evaluation
    points (which are as many as inputs and of the shame shape) and obtain
    another vector :math:`v`. For each output, you reshape it into a vector,
-   compute the jacobian of that vector with respect to :math:`x` and
+   compute the Jacobian of that vector with respect to :math:`x` and
    multiply it by :math:`v`. As a last step you reshape each of these
    vectors you obtained for each outputs (that have the same shape as
    the outputs) back to their corresponding shapes and return them as the
    output of the :meth:`Op.R_op` method.
 
    :ref:`List of op with r op support <R_op_list>`.
-
-Defining an :class:`Op`: ``mul``
-================================
-
-We'll define multiplication as a *binary* operation, even though a
-multiplication `Op` could take an arbitrary number of arguments.
-
-First, we'll instantiate a ``mul`` :class:`Op`:
-
-.. testcode:: mul
-
-   from aesara.graph.op import Op
-
-
-   mul = Op()
-
-
-**make_node**
-
-This function must take as many arguments as the operation we are
-defining is supposed to take as inputs---in this example that would be
-two.  This function ensures that both inputs have the ``double`` type.
-Since multiplying two doubles yields a double, this function makes an
-:class:`Apply` node with an output :class:`Variable` of type ``double``.
-
-.. testcode:: mul
-
-   def make_node(x, y):
-       if x.type != double or y.type != double:
-           raise TypeError('mul only works on doubles')
-       return Apply(mul, [x, y], [double()])
-   mul.make_node = make_node
-
-
-The first two lines make sure that both inputs are :class:`Variable`\s of the
-``double`` type that we created in the previous section. We would not
-want to multiply two arbitrary types, it would not make much sense
-(and we'd be screwed when we implement this in C!)
-
-The last line is the meat of the definition. There we create an :class:`Apply`
-node representing the application of the `Op` ``mul`` to inputs ``x`` and
-``y``, giving a :class:`Variable` instance of type ``double`` as the output.
-
-.. note::
-
-   Aesara relies on the fact that if you call the :meth:`Op.make_node` method
-   of :class:`Apply`'s first argument on the inputs passed as the :class:`Apply`'s
-   second argument, the call will not fail and the returned :class:`Apply`
-   instance will be equivalent.  This is how graphs are copied.
-
-**perform**
-
-This code actually computes the function.
-In our example, the data in ``inputs`` will be instances of Python's
-built-in type ``float`` because this is the type that ``double.filter()``
-will always return, per our own definition. ``output_storage`` will
-contain a single storage cell for the multiplication's variable.
-
-.. testcode:: mul
-
-   def perform(node, inputs, output_storage):
-       x, y = inputs[0], inputs[1]
-       z = output_storage[0]
-       z[0] = x * y
-   mul.perform = perform
-
-Here, ``z`` is a list of one element. By default, ``z == [None]``.
-
-.. note::
-
-   It is possible that ``z`` does not contain ``None``. If it contains
-   anything else, Aesara guarantees that whatever it contains is what
-   :meth:`Op.perform` put there the last time it was called with this
-   particular storage. Furthermore, Aesara gives you permission to do
-   whatever you want with ``z``'s contents, chiefly reusing it or the
-   memory allocated for it. More information can be found in the
-   :class:`Op` documentation.
-
-.. warning::
-
-   We gave ``z`` the Aesara type ``double`` in :meth:`Op.make_node`, which means
-   that a Python ``float`` must be put there. You should not put, say, an
-   ``int`` in ``z[0]`` because Aesara assumes :class:`Op`\s handle typing properly.
-
-
-Trying out our new :class:`Op`
-==============================
-
-In the following code, we use our new `Op`:
-
-.. doctest:: mul
-
-   >>> import aesara
-   >>> x, y = double('x'), double('y')
-   >>> z = mul(x, y)
-   >>> f = aesara.function([x, y], z)
-   >>> f(5, 6)
-   30.0
-   >>> f(5.6, 6.7)
-   37.519999999999996
-
-Note that there is an implicit call to
-``double.filter()`` on each argument, so if we give integers as inputs
-they are magically cast to the right type. Now, what if we try this?
-
-.. doctest:: mul
-
-   >>> x = double('x')
-   >>> z = mul(x, 2)
-   Traceback (most recent call last):
-     File "<stdin>", line 1, in <module>
-     File "/u/breuleuo/hg/aesara/aesara/graph/op.py", line 207, in __call__
-     File "<stdin>", line 2, in make_node
-   AttributeError: 'int' object has no attribute 'type'
-
-Automatic Constant Wrapping
----------------------------
-
-Well, OK. We'd like our `Op` to be a bit more flexible. This can be done
-by modifying :meth:`Op.make_node` to accept Python ``int`` or ``float`` as
-``x`` and/or ``y``:
-
-.. testcode:: mul
-
-   def make_node(x, y):
-       if isinstance(x, (int, float)):
-           x = Constant(double, x)
-       if isinstance(y, (int, float)):
-           y = Constant(double, y)
-       if x.type != double or y.type != double:
-           raise TypeError('mul only works on doubles')
-       return Apply(mul, [x, y], [double()])
-   mul.make_node = make_node
-
-Whenever we pass a Python int or float instead of a :class:`Variable` as ``x`` or
-``y``, :meth:`Op.make_node` will convert it to :ref:`constant` for us. ``Constant``
-is a :ref:`variable` we statically know the value of.
-
-.. doctest:: mul
-
-   >>> import numpy
-   >>> x = double('x')
-   >>> z = mul(x, 2)
-   >>> f = aesara.function([x], z)
-   >>> f(10)
-   20.0
-   >>> numpy.allclose(f(3.4), 6.8)
-   True
-
-Now the code works the way we want it to.
-
-.. note::
-   Most Aesara :class:`Op`\s follow this convention of up-casting literal
-   :meth:`Op.make_node` arguments to :class:`Constant`\s.
-   This makes typing expressions more natural.  If you do
-   not want a constant somewhere in your graph, you have to pass a :class:`Variable`
-   (like ``double('x')`` here).
-
-
-
-Final version
-=============
-
-The above example is pedagogical.  When you define other basic arithmetic
-operations ``add``, ``sub`` and ``div``, code for :meth:`Op.make_node` can be
-shared between these :class:`Op`\s. Here is revised implementation of these four
-arithmetic operators:
-
-.. testcode::
-
-   from aesara.graph.basic import Apply, Constant
-   from aesara.graph.op import Op
-
-
-   class BinaryDoubleOp(Op):
-
-       __props__ = ("name", "fn")
-
-       def __init__(self, name, fn):
-           self.name = name
-           self.fn = fn
-
-       def make_node(self, x, y):
-           if isinstance(x, (int, float)):
-               x = Constant(double, x)
-           if isinstance(y, (int, float)):
-               y = Constant(double, y)
-           if x.type != double or y.type != double:
-               raise TypeError('%s only works on doubles' % self.name)
-           return Apply(self, [x, y], [double()])
-
-       def perform(self, node, inp, out):
-           x, y = inp
-           z, = out
-           z[0] = self.fn(x, y)
-
-       def __str__(self):
-           return self.name
-
-   add = BinaryDoubleOp(name='add',
-                        fn=lambda x, y: x + y)
-
-   sub = BinaryDoubleOp(name='sub',
-                        fn=lambda x, y: x - y)
-
-   mul = BinaryDoubleOp(name='mul',
-                        fn=lambda x, y: x * y)
-
-   div = BinaryDoubleOp(name='div',
-                        fn=lambda x, y: x / y)
-
-Instead of working directly on an instance of `Op`, we create a subclass of
-`Op` that we can parametrize. All the operations we define are binary. They
-all work on two inputs with type ``double``. They all return a single
-:class:`Variable` of type ``double``. Therefore, :meth:`Op.make_node` does the same thing
-for all these operations, except for the `Op` reference ``self`` passed
-as first argument to :class:`Apply`.  We define :meth:`Op.perform` using the function
-``fn`` passed in the constructor.
-
-This design is a flexible way to define basic operations without
-duplicating code. The same way a `Type` subclass represents a set of
-structurally similar types (see previous section), an `Op` subclass
-represents a set of structurally similar operations: operations that
-have the same input/output types, operations that only differ in one
-small detail, etc. If you see common patterns in several :class:`Op`\s that you
-want to define, it can be a good idea to abstract out what you can.
-Remember that an `Op` is just an object which satisfies the contract
-described above on this page and that you should use all the tools at
-your disposal to create these objects as efficiently as possible.
-
-**Exercise**: Make a generic ``DoubleOp``, where the number of
-arguments can also be given as a parameter.

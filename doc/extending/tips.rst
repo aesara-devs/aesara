@@ -3,10 +3,11 @@ Tips
 ====
 
 
-Reusing outputs
-===============
+..
+   Reusing outputs
+   ===============
 
-.. todo:: Write this.
+   .. todo:: Write this.
 
 
 Don't define new :class:`Op`\s unless you have to
@@ -17,7 +18,7 @@ implemented using other already existing :class:`Op`\s. For example, instead of
 writing a "sum_square_difference" :class:`Op`, you should probably just write a
 simple function:
 
-.. testcode::
+.. code::
 
    from aesara import tensor as aet
 
@@ -41,13 +42,14 @@ used to make transpose-like transformations. These higher order :class:`Op`\s
 are mostly tensor-related, as this is Aesara's specialty.
 
 
-.. _opchecklist:
+..
+   .. _opchecklist:
 
-:class:`Op` Checklist
-=====================
+   :class:`Op` Checklist
+   =====================
 
-Use this list to make sure you haven't forgotten anything when
-defining a new :class:`Op`. It might not be exhaustive but it covers a lot of
-common mistakes.
+   Use this list to make sure you haven't forgotten anything when
+   defining a new :class:`Op`. It might not be exhaustive but it covers a lot of
+   common mistakes.
 
-.. todo:: Write a list.
+   .. todo:: Write a list.

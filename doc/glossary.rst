@@ -105,9 +105,10 @@ Glossary
         The ``.op`` of an :term:`Apply`, together with its symbolic inputs
         fully determines what kind of computation will be carried out for that
         :class:`Apply` at run-time.  Mathematical functions such as addition
-        (``T.add``) and indexing  ``x[i]`` are :class:`Op`\s in Aesara.  Much of the
-        library documentation is devoted to describing the various :class:`Op`\s that
-        are provided with Aesara, but you can add more.
+        (i.e. :func:`aesara.tensor.add`) and indexing ``x[i]`` are :class:`Op`\s
+        in Aesara.  Much of the library documentation is devoted to describing
+        the various :class:`Op`\s that are provided with Aesara, but you can add
+        more.
 
         See also :term:`Variable`, :term:`Type`, and :term:`Apply`,
         or read more about :ref:`graphstructures`.

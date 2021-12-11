@@ -5,59 +5,40 @@
 Overview of the compilation pipeline
 ====================================
 
-The purpose of this page is to explain each step of defining and
-compiling an Aesara function.
+Once one has an Aesara graph, they can use :func:`aesara.function` to compile a
+function that will perform the computations modeled by the graph in Python, C,
+Numba, or JAX.
 
+More specifically, :func:`aesara.function` takes a list of input and output
+:ref:`Variables <variable>` that define the precise sub-graphs that
+correspond to the desired computations.
 
-Definition of the computation graph
------------------------------------
-
-By creating Aesara :ref:`Variables <variable>` using
-``aesara.tensor.lscalar`` or ``aesara.tensor.dmatrix`` or by using
-Aesara functions such as ``aesara.tensor.sin`` or
-``aesara.tensor.log``, the user builds a computation graph. The
-structure of that graph and details about its components can be found
-in the :ref:`graphstructures` article.
-
-
-
-Compilation of the computation graph
-------------------------------------
-
-Once the user has built a computation graph, they can use
-:func:`aesara.function` in order to make one or more functions that
-operate on real data. function takes a list of input :ref:`Variables
-<variable>` as well as a list of output :class:`Variable`\s that define a
-precise subgraph corresponding to the function(s) we want to define,
-compile that subgraph and produce a callable.
-
-Here is an overview of the various steps that are done with the
-computation graph in the compilation phase:
+Here is an overview of the various steps that are taken during the
+compilation performed by :func:`aesara.function`.
 
 
 Step 1 - Create a :class:`FunctionGraph`
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The subgraph given by the end user is wrapped in a structure called
-:class:`FunctionGraph`. That structure defines several hooks on adding and
-removing (pruning) nodes as well as on modifying links between nodes
-(for example, modifying an input of an :ref:`apply` node) (see the
-article about :ref:`libdoc_graph_fgraph` for more information).
+The subgraph specified by the end-user is wrapped in a structure called
+:class:`FunctionGraph`. This structure defines several callback hooks for when specific
+changes are made to a :class:`FunctionGraph`--like adding and
+removing nodes, as well as modifying links between nodes
+(e.g. modifying an input of an :ref:`apply` node). See :ref:`libdoc_graph_fgraph`.
 
 :class:`FunctionGraph` provides a method to change the input of an :class:`Apply` node from one
-:class:`Variable` to another and a more high-level method to replace a :class:`Variable`
-with another. This is the structure that :ref:`Optimizers
-<optimization>` work on.
+:class:`Variable` to another, and a more high-level method to replace a :class:`Variable`
+with another. These are the primary means of performing :ref:`graph rewrites <graph_rewriting>`.
 
 Some relevant :ref:`Features <libdoc_graph_fgraphfeature>` are typically added to the
-:class:`FunctionGraph`, namely to prevent any optimization from operating inplace on
-inputs declared as immutable.
+:class:`FunctionGraph` at this stage.  Namely, :class:`Feature`\s that prevent
+rewrites from operating in-place on inputs declared as immutable.
 
 
-Step 2 - Execute main :class:`Optimizer`
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Step 2 - Perform graph optimizations
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Once the :class:`FunctionGraph` is made, an :term:`optimizer` is produced by
+Once the :class:`FunctionGraph` is constructed, an :term:`optimizer` is produced by
 the :term:`mode` passed to :func:`function` (the :class:`Mode` basically has two
 important fields, :attr:`linker` and :attr:`optimizer`). That optimizer is
 applied on the :class:`FunctionGraph` using its :meth:`Optimizer.optimize` method.

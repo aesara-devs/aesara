@@ -1,25 +1,25 @@
 
-.. _extending_aesara_c:
+.. _creating_a_c_op:
 
-============================
-Extending Aesara with a C Op
-============================
+=====================================
+Extending Aesara with a C :Class:`Op`
+=====================================
 
-This tutorial covers how to extend Aesara with an op that offers a C
-implementation. It does not cover ops that run on a GPU but it does introduce
-many elements and concepts which are relevant for GPU ops. This tutorial is
+This tutorial covers how to extend Aesara with an :class:`Op` that offers a C
+implementation. It does not cover :class:`Op`\s that run on a GPU but it does introduce
+many elements and concepts which are relevant for GPU :class:`Op`\s. This tutorial is
 aimed at individuals who already know how to extend Aesara (see tutorial
-:ref:`extending_aesara`) by adding a new op with a Python implementation
-and will only cover the additional knowledge required to also produce ops
+:ref:`creating_an_op`) by adding a new :class:`Op` with a Python implementation
+and will only cover the additional knowledge required to also produce :class:`Op`\s
 with C implementations.
 
-Providing an Aesara op with a C implementation requires to interact with
+Providing an Aesara :class:`Op` with a C implementation requires to interact with
 Python's C-API and Numpy's C-API. Thus, the first step of this tutorial is to
 introduce both and highlight their features which are most relevant to the
-task of implementing a C op. This tutorial then introduces the most important
-methods that the op needs to implement in order to provide a usable C
+task of implementing a C :class:`Op`. This tutorial then introduces the most important
+methods that the :class:`Op` needs to implement in order to provide a usable C
 implementation. Finally, it shows how to combine these elements to write a
-simple C op for performing the simple task of multiplying every element in a
+simple C :class:`Op` for performing the simple task of multiplying every element in a
 vector by a scalar.
 
 Python C-API
@@ -46,11 +46,11 @@ an object is still being used by other entities. When the reference count
 for an object drops to 0, it means it is not used by anyone any longer and can
 be safely deleted.
 
-PyObjects implement reference counting and the Python C-API defines a number
+``PyObject``\s implement reference counting and the Python C-API defines a number
 of macros to help manage those reference counts. The definition of these
 macros can be found here : `Python C-API Reference Counting
 <https://docs.python.org/2/c-api/refcounting.html>`_. Listed below are the
-two macros most often used in Aesara C ops.
+two macros most often used in Aesara C :class:`Op`\s.
 
 
 .. method:: void Py_XINCREF(PyObject *o)
@@ -84,12 +84,12 @@ NumPy C-API
 ===========
 
 The NumPy library provides a C-API to allow users to create, access and
-manipulate NumPy arrays from within their own C routines. NumPy's ndarrays
-are used extensively inside Aesara and so extending Aesara with a C op will
+manipulate NumPy arrays from within their own C routines. NumPy's :class:`ndarray`\s
+are used extensively inside Aesara and so extending Aesara with a C :class:`Op` will
 require interaction with the NumPy C-API.
 
 This sections covers the API's elements that are often required to write code
-for an Aesara C op. The full documentation for the API can be found here :
+for an Aesara C :class:`Op`. The full documentation for the API can be found here :
 `NumPy C-API <http://docs.scipy.org/doc/numpy/reference/c-api.html>`_.
 
 
@@ -98,7 +98,7 @@ NumPy data types
 
 To allow portability between platforms, the NumPy C-API defines its own data
 types which should be used whenever you are manipulating a NumPy array's
-internal data. The data types most commonly used to implement C ops are the
+internal data. The data types most commonly used to implement C :class:`Op`\s are the
 following : ``npy_int{8,16,32,64}``, ``npy_uint{8,16,32,64}`` and
 ``npy_float{32,64}``.
 
@@ -114,8 +114,8 @@ The full list of defined data types can be found here :
 <http://docs.scipy.org/doc/numpy/reference/c-api.dtype.html#c-type-names>`_.
 
 
-NumPy ndarrays
---------------
+NumPy :class:`ndarray`\s
+------------------------
 
 In the NumPy C-API, NumPy arrays are represented as instances of the
 PyArrayObject class which is a descendant of the PyObject class. This means
@@ -154,10 +154,10 @@ This distance between consecutive elements of an array over a given dimension,
 is called the stride of that dimension.
 
 
-Accessing NumPy ndarrays' data and properties
----------------------------------------------
+Accessing NumPy :class`ndarray`\s' data and properties
+------------------------------------------------------
 
-The following macros serve to access various attributes of NumPy ndarrays.
+The following macros serve to access various attributes of NumPy :class:`ndarray`\s.
 
 .. method:: void* PyArray_DATA(PyArrayObject* arr)
 
@@ -214,19 +214,19 @@ The following macros serve to access various attributes of NumPy ndarrays.
     bitwise or to an ensemble of flags.
 
     The flags that can be used in with this macro are :
-    NPY_ARRAY_C_CONTIGUOUS, NPY_ARRAY_F_CONTIGUOUS, NPY_ARRAY_OWNDATA,
-    NPY_ARRAY_ALIGNED, NPY_ARRAY_WRITEABLE, NPY_ARRAY_UPDATEIFCOPY.
+    ``NPY_ARRAY_C_CONTIGUOUS``, ``NPY_ARRAY_F_CONTIGUOUS``, ``NPY_ARRAY_OWNDATA``,
+    ``NPY_ARRAY_ALIGNED``, ``NPY_ARRAY_WRITEABLE``, ``NPY_ARRAY_UPDATEIFCOPY``.
 
 
-Creating NumPy ndarrays
------------------------
+Creating NumPy :class:`ndarray`\s
+---------------------------------
 
 The following functions allow the creation and copy of NumPy arrays :
 
 .. method:: PyObject* PyArray_EMPTY(int nd, npy_intp* dims, typenum dtype,
                                     int fortran)
 
-    Constructs a new ndarray with the number of dimensions specified by
+    Constructs a new :class:`ndarray` with the number of dimensions specified by
     ``nd``, shape specified by ``dims`` and data type specified by ``dtype``.
     If ``fortran`` is equal to 0, the data is organized in a C-contiguous
     layout, otherwise it is organized in a F-contiguous layout. The array
@@ -239,7 +239,7 @@ The following functions allow the creation and copy of NumPy arrays :
 .. method:: PyObject* PyArray_ZEROS(int nd, npy_intp* dims, typenum dtype,
                                     int fortran)
 
-    Constructs a new ndarray with the number of dimensions specified by
+    Constructs a new :class:`ndarray` with the number of dimensions specified by
     ``nd``, shape specified by ``dims`` and data type specified by ``dtype``.
     If ``fortran`` is equal to 0, the data is organized in a C-contiguous
     layout, otherwise it is organized in a F-contiguous layout. Every element
@@ -251,64 +251,64 @@ The following functions allow the creation and copy of NumPy arrays :
 
 .. method:: PyArrayObject* PyArray_GETCONTIGUOUS(PyObject* op)
 
-    Returns a C-contiguous and well-behaved copy of the array op. If op is
+    Returns a C-contiguous and well-behaved copy of the array :class:`Op`. If :class:`Op` is
     already C-contiguous and well-behaved, this function simply returns a
-    new reference to op.
+    new reference to :class:`Op`.
 
 
 
-Methods the C Op needs to define
-================================
+Methods the C :Class:`Op` needs to define
+=========================================
 
-There is a key difference between an op defining a Python implementation for
+There is a key difference between an :class:`Op` defining a Python implementation for
 its computation and defining a C implementation. In the case of a Python
-implementation, the op defines a function ``perform()`` which executes the
-required Python code to realize the op. In the case of a C implementation,
-however, the op does **not** define a function that will execute the C code; it
+implementation, the :class:`Op` defines a function ``perform()`` which executes the
+required Python code to realize the :class:`Op`. In the case of a C implementation,
+however, the :class:`Op` does **not** define a function that will execute the C code; it
 instead defines functions that will **return** the C code to the caller.
 
 This is because calling C code from Python code comes with a significant
-overhead. If every op was responsible for executing its own C code, every
+overhead. If every :class:`Op` was responsible for executing its own C code, every
 time an Aesara function was called, this overhead would occur as many times
-as the number of ops with C implementations in the function's computational
+as the number of :class:`Op`\s with C implementations in the function's computational
 graph.
 
-To maximize performance, Aesara instead requires the C ops to simply return
+To maximize performance, Aesara instead requires the C :class:`Op`\s to simply return
 the code needed for their execution and takes upon itself the task of
-organizing, linking and compiling the code from the various ops. Through this,
+organizing, linking and compiling the code from the various :class:`Op`\s. Through this,
 Aesara is able to minimize the number of times C code is called from Python
 code.
 
 The following is a very simple example to illustrate how it's possible to
 obtain performance gains with this process. Suppose you need to execute,
-from Python code, 10 different ops, each one having a C implementation. If
-each op was responsible for executing its own C code, the overhead of
+from Python code, 10 different :class:`Op`\s, each one having a C implementation. If
+each :class:`Op` was responsible for executing its own C code, the overhead of
 calling C code from Python code would occur 10 times. Consider now the case
-where the ops instead return the C code for their execution. You could get
-the C code from each op and then define your own C module that would call
-the C code from each op in succession. In this case, the overhead would only
+where the :class:`Op`\s instead return the C code for their execution. You could get
+the C code from each :class:`Op` and then define your own C module that would call
+the C code from each :class:`Op` in succession. In this case, the overhead would only
 occur once; when calling your custom module itself.
 
 Moreover, the fact that Aesara itself takes care of compiling the C code,
-instead of the individual ops, allows Aesara to easily cache the compiled C
+instead of the individual :class:`Op`\s, allows Aesara to easily cache the compiled C
 code. This allows for faster compilation times.
 
-See :ref:`cop` for the full documentation of the various methods of the
-class Op that are related to the C implementation. Of particular interest are:
+The following are some of the various methods of the class :class:`COp` that are
+related to the C implementation:
 
-*       The methods :meth:`CLinkerObject.c_libraries` and :meth:`CLinkerObject.c_lib_dirs` to allow
-        your op to use external libraries.
+* The methods :meth:`CLinkerObject.c_libraries` and :meth:`CLinkerObject.c_lib_dirs` to allow
+  your :class:`Op` to use external libraries.
 
-*       The method :meth:`CLinkerOp.c_code_cleanup` to specify how the op should
-        clean up what it has allocated during its execution.
+* The method :meth:`CLinkerOp.c_code_cleanup` to specify how the :class:`Op` should
+  clean up what it has allocated during its execution.
 
-*       The methods :meth:`COp.c_init_code` and :meth:`CLinkerOp.c_init_code_apply`
-        to specify code that should be executed once when the module is
-        initialized, before anything else is executed.
+* The methods :meth:`COp.c_init_code` and :meth:`CLinkerOp.c_init_code_apply`
+  to specify code that should be executed once when the module is
+  initialized, before anything else is executed.
 
-*       The methods :meth:`CLinkerObject.c_compile_args` and
-        :meth:`CLinkerObject.c_no_compile_args` to specify requirements regarding how
-        the `Op`'s C code should be compiled.
+* The methods :meth:`CLinkerObject.c_compile_args` and
+  :meth:`CLinkerObject.c_no_compile_args` to specify requirements regarding how
+  the :class:`Op`'s C code should be compiled.
 
 This section describes the methods :meth:`CLinkerOp.c_code`,
 :meth:`CLinkerObject.c_support_code`, :meth:`Op.c_support_code_apply` and
@@ -395,7 +395,7 @@ commonly used.
 .. method:: c_code_cache_version()
 
     Returns a tuple of integers representing the version of the C code in this
-    op. Ex : (1, 4, 0) for version 1.4.0
+    :class:`Op`. Ex : (1, 4, 0) for version 1.4.0
 
     This tuple is used by Aesara to cache the compiled C code for this `Op`. As
     such, the return value **MUST BE CHANGED** every time the C code is altered
@@ -410,8 +410,8 @@ commonly used.
         this function should return a tuple of integers as previously
         described.
 
-Important restrictions when implementing a COp
-==============================================
+Important restrictions when implementing a :class:`COp`
+=======================================================
 
 There are some important restrictions to remember when implementing an `COp`.
 Unless your `COp` correctly defines a ``view_map`` attribute, the ``perform`` and ``c_code`` must not
@@ -441,23 +441,23 @@ definitely not make a change that would have an impact on ``__eq__``,
 or ``c_code``.
 
 
-Simple COp example
-===================
+Simple :class:`COp` example
+===========================
 
 In this section, we put together the concepts that were covered in this
-tutorial to generate an op which multiplies every element in a vector
+tutorial to generate an :class:`Op` which multiplies every element in a vector
 by a scalar and returns the resulting vector. This is intended to be a simple
 example so the methods ``c_support_code`` and ``c_support_code_apply`` are
 not used because they are not required.
 
 In the C code below notice how the reference count on the output variable is
-managed. Also take note of how the new variables required for the op's
+managed. Also take note of how the new variables required for the :class:`Op`'s
 computation are declared in a new scope to avoid cross-initialization errors.
 
 Also, in the C code, it is very important to properly validate the inputs
 and outputs storage. Aesara guarantees that the inputs exist and have the
 right number of dimensions but it does not guarantee their exact shape. For
-instance, if an op computes the sum of two vectors, it needs to validate that
+instance, if an :class:`Op` computes the sum of two vectors, it needs to validate that
 its two inputs have the same shape. In our case, we do not need to validate
 the exact shapes of the inputs because we don't have a need that they match
 in any way.
@@ -563,37 +563,37 @@ The ``c_code`` method accepts variable names as arguments (``name``, ``inp``,
 output. In case of error, the ``%(fail)s`` statement cleans up and returns
 properly.
 
-More complex C Op example
-=========================
+More complex C :Class:`Op` example
+==================================
 
 This section introduces a new example, slightly more complex than the previous
-one, with an op to perform an element-wise multiplication between the elements
+one, with an :class:`Op` to perform an element-wise multiplication between the elements
 of two vectors. This new example differs from the previous one in its use
 of the methods ``c_support_code`` and ``c_support_code_apply`` (it does
 not `need` to use them but it does so to explain their use) and its capacity
 to support inputs of different dtypes.
 
 Recall the method ``c_support_code`` is meant to produce code that will
-be used for every apply of the op. This means that the C code in this
-method must be valid in every setting your op supports. If the op is meant
+be used for every apply of the :class:`Op`. This means that the C code in this
+method must be valid in every setting your :class:`Op` supports. If the :class:`Op` is meant
 to supports inputs of various dtypes, the C code in this method should be
-generic enough to work with every supported dtype. If the op operates on
+generic enough to work with every supported dtype. If the :class:`Op` operates on
 inputs that can be vectors or matrices, the C code in this method should
 be able to accommodate both kinds of inputs.
 
 In our example, the method ``c_support_code`` is used to declare a C
 function to validate that two vectors have the same shape. Because our
-op only supports vectors as inputs, this function is allowed to rely
-on its inputs being vectors. However, our op should support multiple
+:class:`Op` only supports vectors as inputs, this function is allowed to rely
+on its inputs being vectors. However, our :class:`Op` should support multiple
 dtypes so this function cannot rely on a specific dtype in its inputs.
 
 The method ``c_support_code_apply``, on the other hand, is allowed
-to depend on the inputs to the op because it is apply-specific. Therefore, we
+to depend on the inputs to the :class:`Op` because it is apply-specific. Therefore, we
 use it to define a function to perform the multiplication between two vectors.
 Variables or functions defined in the method ``c_support_code_apply`` will
-be included at the global scale for every apply of the Op. Because of this,
-the names of those variables and functions should include the name of the op,
-like in the example. Otherwise, using the op twice in the same graph will give
+be included at the global scale for every apply of the :Class:`Op`. Because of this,
+the names of those variables and functions should include the name of the :class:`Op`,
+like in the example. Otherwise, using the :class:`Op` twice in the same graph will give
 rise to conflicts as some elements will be declared more than once.
 
 The last interesting difference occurs in the ``c_code()`` method. Because the
@@ -712,20 +712,20 @@ C code.
             return c_code % locals()
 
 
-Alternate way of defining C Ops
-===============================
+Alternate way of defining C :class:`Op`\s
+=========================================
 
-The two previous examples have covered the standard way of implementing C Ops
+The two previous examples have covered the standard way of implementing C :class:`Op`\s
 in Aesara by inheriting from the class :class:`Op`. This process is mostly
 simple but it still involves defining many methods as well as mixing, in the
 same file, both Python and C code which tends to make the result less
 readable.
 
-To help with this, Aesara defines a class, ``ExternalCOp``, from which new C ops
+To help with this, Aesara defines a class, ``ExternalCOp``, from which new C :class:`Op`\s
 can inherit. The class ``ExternalCOp`` aims to simplify the process of implementing
-C ops by doing the following :
+C :class:`Op`\s by doing the following :
 
-*      It allows you to define the C implementation of your op in a distinct
+*      It allows you to define the C implementation of your :class:`Op` in a distinct
        C code file. This makes it easier to keep your Python and C code
        readable and well indented.
 
@@ -734,13 +734,13 @@ C ops by doing the following :
        provided external C implementation.
 
 To illustrate how much simpler the class ``ExternalCOp`` makes the process of defining
-a new op with a C implementation, let's revisit the second example of this
-tutorial, the ``VectorTimesVector`` op. In that example, we implemented an op
+a new :class:`Op` with a C implementation, let's revisit the second example of this
+tutorial, the ``VectorTimesVector`` :class:`Op`. In that example, we implemented an :class:`Op`
 to perform the task of element-wise vector-vector multiplication. The two
-following blocks of code illustrate what the op would look like if it was
+following blocks of code illustrate what the :class:`Op` would look like if it was
 implemented using the ``ExternalCOp`` class.
 
-The new op is defined inside a Python file with the following code :
+The new :class:`Op` is defined inside a Python file with the following code :
 
 .. testcode::
 
@@ -770,8 +770,8 @@ The new op is defined inside a Python file with the following code :
 
             return Apply(self, [x, y], [output_var])
 
-And the following is the C implementation of the op, defined in an external
-C file named vectorTimesVector.c :
+And the following is the C implementation of the :class:`Op`, defined in an external
+C file named ``vectorTimesVector.c``:
 
 .. code-block:: c
 
@@ -935,7 +935,7 @@ defined to False. In these descrptions 'i' refers to the position
 *       ``DTYPE_INPUT_{i}`` : NumPy dtype of the data in the array.
         This is the variable type corresponding to the NumPy dtype, not the
         string representation of the NumPy dtype. For instance, if the `Op`'s
-        first input is a float32 ndarray, then the macro ``DTYPE_INPUT_0``
+        first input is a float32 :class:`ndarray`, then the macro ``DTYPE_INPUT_0``
         corresponds to ``npy_float32`` and can directly be used to declare a
         new variable of the same dtype as the data in the array :
 
@@ -1028,8 +1028,8 @@ macros and also because it calls ``vector_elemwise_mult`` which is
 an apply-specific function.
 
 
-Using GDB to debug COp's C code
-===============================
+Using GDB to debug :class:`COp`'s C code
+========================================
 
 When debugging C code, it can be useful to use GDB for code compiled
 by Aesara.

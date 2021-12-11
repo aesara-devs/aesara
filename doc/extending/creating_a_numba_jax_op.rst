@@ -14,7 +14,7 @@ Find the source for the Aesara :class:`Op` you’d like to be supported in JAX, 
 identify the function signature and return values.  These can be determined by
 looking at the :meth:`Op.make_node` implementation.  In general, one needs to be familiar
 with Aesara :class:`Op`\s in order to provide a conversion implementation, so first read
-:ref:`extending_aesara` if you are not familiar.
+:ref:`creating_an_op` if you are not familiar.
 
 For example, the :class:`Eye`\ :class:`Op` current has an :meth:`Op.make_node` as follows:
 

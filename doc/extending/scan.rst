@@ -32,7 +32,7 @@ Pre-requisites
 
 The following sections assumes the reader is familiar with the following :
 
-1. Aesara's :ref:`graph structure <extending_aesara>` (`Apply` nodes, `Variable` nodes and `Op`\s)
+1. Aesara's :ref:`graph structure <graphstructures>` (`Apply` nodes, `Variable` nodes and `Op`\s)
 
 2. The interface and usage of Aesara's :ref:`scan <lib_scan>` function
 

@@ -28,7 +28,7 @@ local optimization, on the other hand, is defined as a function on a
 nothing is to be done) or a list of new :class:`Variable`\s that we would like to
 replace the node's outputs with. A :ref:`navigator` is a special kind
 of global optimization which navigates the computation graph in some
-fashion (in topological order, reverse-topological order, random
+fashion (e.g. in topological order, reverse-topological order, random
 order, etc.) and applies one or more local optimizations at each step.
 
 Optimizations which are holistic, meaning that they must take into
@@ -42,32 +42,24 @@ we want to define are local.
 Global optimization
 -------------------
 
-A global optimization (or optimizer) is an object which defines the following
-methods:
-
 .. class:: GlobalOptimizer
 
     .. method:: apply(fgraph)
 
-      This method takes a ``FunctionGraph`` object which contains the computation graph
+      This method takes a :class:`FunctionGraph` object which contains the computation graph
       and does modifications in line with what the optimization is meant
       to do. This is one of the main methods of the optimizer.
 
     .. method:: add_requirements(fgraph)
 
-      This method takes a ``FunctionGraph`` object and adds :ref:`features
+      This method takes a :class:`FunctionGraph` object and adds :ref:`features
       <libdoc_graph_fgraphfeature>` to it. These features are "plugins" that are needed
-      for the ``apply`` method to do its job properly.
+      for the :meth:`GlobalOptimizer.apply` method to do its job properly.
 
     .. method:: optimize(fgraph)
 
-      This is the interface function called by Aesara.
-
-      *Default:* this is defined by ``GlobalOptimizer`` as ``add_requirement(fgraph);
-      apply(fgraph)``.
-
-See the section about :class:`FunctionGraph` to understand how to define these
-methods.
+      This is the interface function called by Aesara.  It calls
+      :meth:`GlobalOptimizer.apply` by default.
 
 
 Local optimization
@@ -87,9 +79,8 @@ A local optimization is an object which defines the following methods:
       the list returned.
 
 
-
-One simplification rule
-=======================
+A simplification rule
+=====================
 
 For starters, let's define the following simplification:
 
@@ -116,6 +107,7 @@ simplification described above:
    class Simplify(GlobalOptimizer):
        def add_requirements(self, fgraph):
            fgraph.attach_feature(ReplaceValidate())
+
        def apply(self, fgraph):
            for node in fgraph.toposort():
                if node.op == true_div:
@@ -130,25 +122,21 @@ simplification described above:
 
    simplify = Simplify()
 
-.. todo::
-
-   What is add_requirements? Why would we know to do this? Are there other
-   requirements we might want to  know about?
 
 Here's how it works: first, in :meth:`add_requirements`, we add the
 :class:`ReplaceValidate` :class:`Feature` located in
 :ref:`libdoc_graph_features`. This feature adds the :meth:`replace_validate`
-method to ``fgraph``, which is an enhanced version of :meth:`replace` that
+method to ``fgraph``, which is an enhanced version of :meth:`FunctionGraph.replace` that
 does additional checks to ensure that we are not messing up the
-computation graph (note: if :class:`ReplaceValidate` was already added by
-another optimizer, ``extend`` will do nothing). In a nutshell,
-:class:`ReplaceValidate` grants access to :meth:`fgraph.replace_validate`,
+computation graph.
+
+In a nutshell, :class:`ReplaceValidate` grants access to :meth:`fgraph.replace_validate`,
 and :meth:`fgraph.replace_validate` allows us to replace a :class:`Variable` with
 another while respecting certain validation constraints. As an
-exercise, try to rewrite ``Simplify`` using :class:`NodeFinder`. (Hint: you
-want to use the method it publishes instead of the call to toposort!)
+exercise, try to rewrite :class:`Simplify` using :class:`NodeFinder`. (Hint: you
+want to use the method it publishes instead of the call to toposort)
 
-Then, in :meth:`apply` we do the actual job of simplification. We start by
+Then, in :meth:`GlobalOptimizer.apply` we do the actual job of simplification. We start by
 iterating through the graph in topological order. For each node
 encountered, we check if it's a ``div`` node. If not, we have nothing
 to do here. If so, we put in ``x``, ``y`` and ``z`` the numerator,
@@ -158,28 +146,24 @@ so we check for that. If the numerator is a multiplication we put the
 two operands in ``a`` and ``b``, so
 we can now say that ``z == (a*b)/y``. If ``y==a`` then ``z==b`` and if
 ``y==b`` then ``z==a``. When either case happens then we can replace
-``z`` by either ``a`` or ``b`` using :meth:`fgraph.replace_validate` - else we do
-nothing. You might want to check the documentation about :ref:`variable`
-and :ref:`apply` to get a better understanding of the
-pointer-following game you need to get ahold of the nodes of interest
-for the simplification (``x``, ``y``, ``z``, ``a``, ``b``, etc.).
+``z`` by either ``a`` or ``b`` using :meth:`FunctionGraph.replace_validate`; otherwise, we do
+nothing.
 
-
-Test time:
+Now, we test the optimization:
 
 >>> from aesara.scalar import float64, add, mul, true_div
 >>> x = float64('x')
 >>> y = float64('y')
 >>> z = float64('z')
 >>> a = add(z, mul(true_div(mul(y, x), y), true_div(z, x)))
->>> e = graph.fg.FunctionGraph([x, y, z], [a])
+>>> e = aesara.graph.fg.FunctionGraph([x, y, z], [a])
 >>> e
-[add(z, mul(true_div(mul(y, x), y), true_div(z, x)))]
+FunctionGraph(add(z, mul(true_div(mul(y, x), y), true_div(z, x))))
 >>> simplify.optimize(e)
 >>> e
-[add(z, mul(x, true_div(z, x)))]
+FunctionGraph(add(z, mul(x, true_div(z, x))))
 
-Cool! It seems to work. You can check what happens if you put many
+You can check what happens if you put many
 instances of :math:`\frac{xy}{y}` in the graph. Note that it sometimes
 won't work for reasons that have nothing to do with the quality of the
 optimization you wrote. For example, consider the following:
@@ -188,12 +172,12 @@ optimization you wrote. For example, consider the following:
 >>> y = float64('y')
 >>> z = float64('z')
 >>> a = true_div(mul(add(y, z), x), add(y, z))
->>> e = graph.fg.FunctionGraph([x, y, z], [a])
+>>> e = aesara.graph.fg.FunctionGraph([x, y, z], [a])
 >>> e
-[true_div(mul(add(y, z), x), add(y, z))]
+FunctionGraph(true_div(mul(add(y, z), x), add(y, z)))
 >>> simplify.optimize(e)
 >>> e
-[true_div(mul(add(y, z), x), add(y, z))]
+FunctionGraph(true_div(mul(add(y, z), x), add(y, z)))
 
 Nothing happened here. The reason is: ``add(y, z) != add(y,
 z)``. That is the case for efficiency reasons. To fix this problem we
@@ -205,10 +189,10 @@ computation, using the :class:`MergeOptimizer` defined in
 >>> MergeOptimizer().optimize(e)  # doctest: +ELLIPSIS
 (0, ..., None, None, {}, 1, 0)
 >>> e
-[true_div(mul(*1 -> add(y, z), x), *1)]
+FunctionGraph(true_div(mul(*1 -> add(y, z), x), *1))
 >>> simplify.optimize(e)
 >>> e
-[x]
+FunctionGraph(x)
 
 Once the merge is done, both occurrences of ``add(y, z)`` are
 collapsed into a single one and is used as an input in two
@@ -222,11 +206,8 @@ for this somewhere in the future.
 .. note::
 
    :class:`FunctionGraph` is an Aesara structure intended for the optimization
-   phase. It is used internally by function and is rarely
-   exposed to the end user. You can use it to test out optimizations,
-   etc. if you are comfortable with it, but it is recommended to use
-   the function front-end and interface optimizations with
-   :class:`optdb` (we'll see how to do that soon).
+   phase. It is used internally by :func:`aesara.function` and is rarely
+   exposed to the end user.
 
 
 Local Optimization
@@ -237,7 +218,10 @@ The local version of the above code would be the following:
 
 .. testcode::
 
-   class LocalSimplify(graph.opt.LocalOptimizer):
+   from aesara.graph.opt import LocalOptimizer
+
+
+   class LocalSimplify(LocalOptimizer):
        def transform(self, fgraph, node):
            if node.op == true_div:
                x, y = node.inputs
@@ -248,60 +232,59 @@ The local version of the above code would be the following:
                    elif y == b:
                        return [a]
            return False
+
        def tracks(self):
-           # This should be needed for the EquilibriumOptimizer
-           # but it isn't now
-           # TODO: do this and explain it
-           return [] # that's not what you should do
+           # This tells certain navigators to only apply this `LocalOptimizer`
+           # on these kinds of `Op`s
+           return [true_div]
 
    local_simplify = LocalSimplify()
 
-.. todo::
 
-    Fix up previous example.
+In this case, the transformation is defined in the
+:meth:`LocalOptimizer.transform` method, which is given an explicit
+:class:`Apply` node on which to work.  The entire graph--as a ``fgraph``--is
+also provided, in case global information is needed.
 
-
-The definition of the transform is the inner loop of the global optimizer,
-where the node is given as an argument. If no changes are to be made,
-``False`` must be returned; otherwise, a list of replacements for the node's
-outputs must be returned. This list must have the same length as
+If no changes are to be made, ``False`` must be returned; otherwise, a list of replacements for the node's
+outputs are returned. This list must have the same length as
 :attr:`node.outputs`. If one of :attr:`node.outputs` doesn't have clients
-(i.e. it is not used in the graph), you can put ``None`` in the returned
-list to remove it.
+(e.g. available via ``fgraph.clients``), then it is not used elsewhere in the graph and
+you can put ``None`` in the returned list to remove it.
 
-In order to apply the local optimizer we must use it in conjunction
+In order to apply the local optimizer we can use it in conjunction
 with a :class:`NavigatorOptimizer`. Basically, a :class:`NavigatorOptimizer` is
 a global optimizer that loops through all nodes in the graph (or a well-defined
-subset of them) and applies one or several local optimizers on them.
+subset of them) and applies one or several local optimizers.
 
 >>> x = float64('x')
 >>> y = float64('y')
 >>> z = float64('z')
 >>> a = add(z, mul(true_div(mul(y, x), y), true_div(z, x)))
->>> e = graph.fg.FunctionGraph([x, y, z], [a])
+>>> e = aesara.graph.fg.FunctionGraph([x, y, z], [a])
 >>> e
-[add(z, mul(true_div(mul(y, x), y), true_div(z, x)))]
->>> simplify = graph.opt.TopoOptimizer(local_simplify)
+FunctionGraph(add(z, mul(true_div(mul(y, x), y), true_div(z, x))))
+>>> simplify = aesara.graph.opt.TopoOptimizer(local_simplify)
 >>> simplify.optimize(e)
 (<aesara.graph.opt.TopoOptimizer object at 0x...>, 1, 5, 3, ..., ..., ...)
 >>> e
-[add(z, mul(x, true_div(z, x)))]
+FunctionGraph(add(z, mul(x, true_div(z, x))))
 
 :class:`OpSub`, :class:`OpRemove`, :class:`PatternSub`
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-Aesara defines some shortcuts to make :class:`LocalOptimizers`:
+Aesara defines some shortcuts to make :class:`LocalOptimizer`\s:
 
 .. function:: OpSub(op1, op2)
 
-  Replaces all uses of `op1` by `op2`. In other
-  words, the outputs of all :ref:`apply` involving `op1` by the outputs
-  of :class:`Apply` nodes involving `op2`, where their inputs are the same.
+  Replaces all uses of ``op1`` by ``op2``. In other
+  words, the outputs of all :class:`Apply` nodes using ``op1`` by the outputs
+  of :class:`Apply` nodes involving ``op2``, where their inputs are the same.
 
 .. function:: OpRemove(op)
 
-  Removes all uses of `op` in the following way:
-  if ``y = op(x)`` then ``y`` is replaced by ``x``. `op` must have as many
+  Removes all uses of ``op`` in the following way:
+  if ``y = op(x)`` then ``y`` is replaced by ``x``. ``op`` must have as many
   outputs as it has inputs. The first output becomes the first input,
   the second output becomes the second input, and so on.
 
@@ -310,47 +293,35 @@ Aesara defines some shortcuts to make :class:`LocalOptimizers`:
   Replaces all occurrences of the first pattern by the second pattern.
   See :class:`PatternSub`.
 
-.. testsetup::
+.. code::
 
    from aesara.scalar import identity
-
-.. testcode::
-
    from aesara.graph.opt import OpSub, OpRemove, PatternSub
 
-   # Replacing add by mul (this is not recommended for primarily
+   # Replacing `add` by `mul` (this is not recommended for primarily
    # mathematical reasons):
    add_to_mul = OpSub(add, mul)
 
-   # Removing identity
+   # Removing `identity`
    remove_identity = OpRemove(identity)
 
    # The "simplify" operation we've been defining in the past few
    # sections. Note that we need two patterns to account for the
-   # permutations of the arguments to mul.
-   local_simplify_1 = PatternSub((true_div, (mul, 'x', 'y'), 'y'),
-                                 'x')
-   local_simplify_2 = PatternSub((true_div, (mul, 'x', 'y'), 'x'),
-                                 'y')
+   # permutations of the arguments to `mul`.
+   local_simplify_1 = PatternSub((true_div, (mul, 'x', 'y'), 'y'), 'x')
+   local_simplify_2 = PatternSub((true_div, (mul, 'x', 'y'), 'x'), 'y')
 
 .. note::
 
    :class:`OpSub`, :class:`OpRemove` and :class:`PatternSub` produce local optimizers, which
    means that everything we said previously about local optimizers
-   apply: they need to be wrapped in a :class:`NavigatorOptimizer`, etc.
+   apply (e.g. they need to be wrapped in a :class:`NavigatorOptimizer`, etc.)
 
-.. todo::
-
-   Explain what a :class:`NavigatorOptimizer`?
 
 When an optimization can be naturally expressed using :class:`OpSub`, :class:`OpRemove`
-or :class:``PatternSub``, it is highly recommended to use them.
+or :class:`PatternSub`, it is highly recommended to use them.
 
-.. todo::
 
-   More about using :class:`PatternSub` (syntax for the patterns, how to use
-   constraints, etc. - there's some decent doc at :class:`PatternSub` for those
-   interested)
 
 
 .. _optdb:
