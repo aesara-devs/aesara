@@ -13,8 +13,7 @@ The optimizations are listed in roughly chronological order.  The table below
 gives a quick summary of the optimizations included in the default modes.
 The descriptions are brief and point to further reading.
 
-If you would like to add an additional optimization, refer to
-:ref:`optimization` in the guide to extending Aesara.
+If you would like to add an additional optimization, see :ref:`graph_rewriting`.
 
 When compiling, we can make a tradeoff between compile-time and run-time.
 Faster compile times will result in fewer optimizations being applied, hence generally slower run-times.

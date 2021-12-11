@@ -17,7 +17,7 @@ some of them might be outdated though:
   describing how Aesara works internally; it talks about views and inplace
   operations.
 
-* :ref:`optimization` -- Tutorial on how optimization work in Aesara.
+* :ref:`graph_rewriting` -- Tutorial on how graph rewriting works in Aesara.
 
 * :ref:`pipeline` -- Describes the steps of compiling an Aesara Function.
 

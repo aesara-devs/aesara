@@ -32,6 +32,7 @@ with Aesara itself.
 
 .. toctree::
 
+    graph_rewriting
     extending_aesara
     extending_aesara_c
     pipeline
@@ -44,7 +45,6 @@ with Aesara itself.
     ctype
     cop
     using_params
-    optimization
     tips
     unittest
     scan

@@ -39,7 +39,7 @@ The following sections assumes the reader is familiar with the following :
 Additionally, the :ref:`scan_internals_optimizations` section below assumes
 knowledge of:
 
-3. Aesara's :ref:`graph optimizations <optimization>`
+3. Aesara's :ref:`graph rewriting <graph_rewriting>`
 
 
 Relevant code files
