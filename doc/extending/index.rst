@@ -5,15 +5,15 @@
 Extending Aesara
 ================
 
-This advanced tutorial is for users who want to extend Aesara with new Types,
-new Operations (Ops), and new graph optimizations. This first page of the
-tutorial mainly focuses on the Python implementation of an Op and then
-proposes an overview of the most important methods that define an op.
-The second page of the tutorial (:ref:`extending_aesara_c`) provides then
-information on the C implementation of an Op. The rest of the tutorial
-goes more in depth on advanced topics related to Ops, such as how to write
-efficient code for an Op and how to write an optimization to speed up the
-execution of an Op.
+This advanced tutorial is for users who want to extend Aesara with new :class:`Type`\s,
+new Operations (:Class:`Op`\S), and new graph optimizations. This first page of the
+tutorial mainly focuses on the Python implementation of an :Class:`Op` and then
+proposes an overview of the most important methods that define an :class:`Op`.
+The second page of the tutorial (:ref:`creating_a_c_op`) provides then
+information on the C implementation of an :Class:`Op`. The rest of the tutorial
+goes more in depth on advanced topics related to :Class:`Op`\s, such as how to write
+efficient code for an :Class:`Op` and how to write an optimization to speed up the
+execution of an :Class:`Op`.
 
 Along the way, this tutorial also introduces many aspects of how Aesara works,
 so it is also good for you if you are interested in getting more under the hood
@@ -23,7 +23,7 @@ with Aesara itself.
 
     Before tackling this more advanced presentation, it is highly recommended
     to read the introductory :ref:`Tutorial<tutorial>`, especially the sections
-    that introduce the Aesara Graphs, as providing a novel Aesara op requires a
+    that introduce the Aesara Graphs, as providing a novel Aesara :class:`Op` requires a
     basic understanting of the Aesara Graphs.
 
     See also the :ref:`dev_start_guide` for information regarding the
@@ -32,21 +32,19 @@ with Aesara itself.
 
 .. toctree::
 
-    graph_rewriting
-    extending_aesara
-    extending_aesara_c
-    pipeline
-    aesara_vs_c
     graphstructures
-    type
+    graph_rewriting
     op
-    inplace
-    other_ops
+    creating_an_op
+    creating_a_c_op
+    creating_a_numba_jax_op
+    pipeline
+    type
     ctype
-    cop
-    using_params
-    tips
-    unittest
+    inplace
     scan
+    other_ops
+    using_params
+    unittest
     extending_faq
-    jax_op
+    tips

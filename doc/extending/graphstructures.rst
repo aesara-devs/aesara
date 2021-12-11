@@ -5,28 +5,24 @@
 Graph Structures
 ================
 
-Debugging or profiling code written in Aesara is not that simple if you
-do not know what goes on under the hood. This chapter is meant to
-introduce you to a required minimum of the inner workings of Aesara.
+Aesara works by modeling mathematical operations and their outputs using
+symbolic placeholders, or :term:`variables <variable>`, which inherit from the class
+:class:`Variable`.  When writing expressions in Aesara one uses operations like
+``+``, ``-``, ``**``, ``sum()``, ``tanh()``. These are represented
+internally as :term:`Op`\s.  An :class:`Op` represents a computation that is
+performed on a set of symbolic inputs and produces a set of symbolic outputs.
+These symbolic input and output :class:`Variable`\s carry information about
+their types, like their data type (e.g. float, int), the number of dimensions,
+etc.
 
-The first step in writing Aesara code is to write down all mathematical
-relations using symbolic placeholders (**variables**). When writing down
-these expressions you use operations like ``+``, ``-``, ``**``,
-``sum()``, ``tanh()``. All these are represented internally as **ops**.
-An *op* represents a certain computation on some type of inputs
-producing some type of output. You can see it as a *function definition*
-in most programming languages.
+Aesara graphs are composed of interconnected :term:`Apply`, :term:`Variable` and
+:class:`Op` nodes. An :class:`Apply` node represents the application of an
+:class:`Op` to specific :class:`Variable`\s. It is important to draw the
+difference between the definition of a computation represented by an :class:`Op`
+and its application to specific inputs, which is represented by the
+:class:`Apply` node.
 
-Aesara represents symbolic mathematical computations as graphs. These
-graphs are composed of interconnected :ref:`apply`, :ref:`variable` and
-:ref:`op` nodes. *Apply* node represents the application of an *op* to some
-*variables*. It is important to draw the difference between the
-definition of a computation represented by an *op* and its application
-to some actual data which is represented by the *apply* node.
-Furthermore, data types are represented by :ref:`type` instances. Here is a
-piece of code and a diagram showing the structure built by that piece of code.
-This should help you understand how these pieces fit together:
-
+The following illustrates these elements:
 
 **Code**
 
@@ -46,30 +42,24 @@ This should help you understand how these pieces fit together:
     :align: center
 
 
-Arrows represent references to the Python objects pointed at. The blue
-box is an :ref:`Apply` node. Red boxes are :ref:`Variable` nodes. Green
-circles are :ref:`Ops <op>`. Purple boxes are :ref:`Types <type>`.
+The blue box is an :class:`Apply` node. Red boxes are :class:`Variable`\s. Green
+circles are :class:`Op`\s. Purple boxes are :class:`Type`\s.
 
 .. TODO
     Clarify the 'acyclic' graph and the 'back' pointers or references that
     'don't count'.
 
-When we create :ref:`Variables <variable>` and then :ref:`apply`
-:ref:`Ops <op>` to them to make more Variables, we build a
-bi-partite, directed, acyclic graph. Variables point to the Apply nodes
+When we create :class:`Variable`\s and then :class:`Apply`
+:class:`Op`\s to them to make more :class:`Variable`\s, we build a
+bi-partite, directed, acyclic graph. :class:`Variable`\s point to the :class:`Apply` nodes
 representing the function application producing them via their
-``owner`` field. These Apply nodes point in turn to their input and
-output Variables via their ``inputs`` and ``outputs`` fields.
-(Apply instances also contain a list of references to their ``outputs``, but
-those pointers don't count in this graph.)
+:attr:`Variable.owner` field. These :class:`Apply` nodes point in turn to their input and
+output :class:`Variable`\s via their :attr:`Apply.inputs` and :attr:`Apply.outputs` fields.
 
-The ``owner`` field of both ``x`` and ``y`` point to ``None`` because
+The :attr:`Variable.owner` field of both ``x`` and ``y`` point to ``None`` because
 they are not the result of another computation. If one of them was the
-result of another computation, it's ``owner`` field would point to another
+result of another computation, its :attr:`Variable.owner` field would point to another
 blue box like ``z`` does, and so on.
-
-Note that the ``Apply`` instance's outputs points to
-``z``, and ``z.owner`` points back to the ``Apply`` instance.
 
 
 Traversing the graph
@@ -84,14 +74,14 @@ Take for example the following code:
 >>> y = x * 2.
 
 If you enter ``type(y.owner)`` you get ``<class 'aesara.graph.basic.Apply'>``,
-which is the apply node that connects the op and the inputs to get this
-output. You can now print the name of the op that is applied to get
-*y*:
+which is the :class:`Apply` node that connects the :class:`Op` and the inputs to get this
+output. You can now print the name of the :class:`Op` that is applied to get
+``y``:
 
 >>> y.owner.op.name
 'Elemwise{mul,no_inplace}'
 
-Hence, an element-wise multiplication is used to compute *y*. This
+Hence, an element-wise multiplication is used to compute ``y``. This
 multiplication is done between the inputs:
 
 >>> len(y.owner.inputs)
@@ -101,9 +91,9 @@ x
 >>> y.owner.inputs[1]
 InplaceDimShuffle{x,x}.0
 
-Note that the second input is not 2 as we would have expected. This is
-because 2 was first :term:`broadcasted <broadcasting>` to a matrix of
-same shape as *x*. This is done by using the op ``DimShuffle`` :
+Note that the second input is not ``2`` as we would have expected. This is
+because ``2`` was first :term:`broadcasted <broadcasting>` to a matrix of
+same shape as ``x``. This is done by using the :class:`Op`\ :class:`DimShuffle`:
 
 >>> type(y.owner.inputs[1])
 <class 'aesara.tensor.var.TensorVariable'>
@@ -114,19 +104,25 @@ same shape as *x*. This is done by using the op ``DimShuffle`` :
 >>> y.owner.inputs[1].owner.inputs
 [TensorConstant{2.0}]
 
+All of the above can be succinctly summarized with the :func:`aesara.dprint`
+function:
+
+>>> aesara.dprint(y)
+Elemwise{mul,no_inplace} [id A] ''
+ |x [id B]
+ |InplaceDimShuffle{x,x} [id C] ''
+   |TensorConstant{2.0} [id D]
 
 Starting from this graph structure it is easier to understand how
 *automatic differentiation* proceeds and how the symbolic relations
-can be *optimized* for performance or stability.
+can be rewritten for performance or stability.
 
 
 Graph Structures
 ================
 
 The following section outlines each type of structure that may be used
-in an Aesara-built computation graph. The following structures are
-explained: :ref:`apply`, :ref:`constant`, :ref:`op`, :ref:`variable` and
-:ref:`type`.
+in an Aesara-built computation graph.
 
 
 .. index::
@@ -135,42 +131,42 @@ explained: :ref:`apply`, :ref:`constant`, :ref:`op`, :ref:`variable` and
 
 .. _apply:
 
-Apply
------
+:class:`Apply`
+--------------
 
-An *Apply node* is a type of internal node used to represent a
+An :class:`Apply` node is a type of internal node used to represent a
 :term:`computation graph <graph>` in Aesara. Unlike
-:ref:`Variable nodes <variable>`, Apply nodes are usually not
+:class:`Variable`, :class:`Apply` nodes are usually not
 manipulated directly by the end user. They may be accessed via
-a Variable's ``owner`` field.
+the :attr:`Variable.owner` field.
 
-An Apply node is typically an instance of the :class:`Apply`
+An :class:`Apply` node is typically an instance of the :class:`Apply`
 class. It represents the application
-of an :ref:`op` on one or more inputs, where each input is a
-:ref:`variable`. By convention, each Op is responsible for
-knowing how to build an Apply node from a list of
-inputs. Therefore, an Apply node may be obtained from an Op
+of an :class:`Op` on one or more inputs, where each input is a
+:class:`Variable`. By convention, each :class:`Op` is responsible for
+knowing how to build an :class:`Apply` node from a list of
+inputs. Therefore, an :class:`Apply` node may be obtained from an :class:`Op`
 and a list of inputs by calling ``Op.make_node(*inputs)``.
 
-Comparing with the Python language, an :ref:`apply` node is
-Aesara's version of a function call whereas an :ref:`op` is
+Comparing with the Python language, an :class:`Apply` node is
+Aesara's version of a function call whereas an :class:`Op` is
 Aesara's version of a function definition.
 
-An Apply instance has three important fields:
+An :class:`Apply` instance has three important fields:
 
 **op**
-  An :ref:`op` that determines the function/transformation being
+  An :class:`Op` that determines the function/transformation being
   applied here.
 
 **inputs**
-  A list of :ref:`Variables <variable>` that represent the arguments of
+  A list of :class:`Variable`\s that represent the arguments of
   the function.
 
 **outputs**
-  A list of :ref:`Variables <variable>` that represent the return values
+  A list of :class:`Variable`\s that represent the return values
   of the function.
 
-An Apply instance can be created by calling ``graph.basic.Apply(op, inputs, outputs)``.
+An :class:`Apply` instance can be created by calling ``graph.basic.Apply(op, inputs, outputs)``.
 
 
 
@@ -181,21 +177,21 @@ An Apply instance can be created by calling ``graph.basic.Apply(op, inputs, outp
 .. _op:
 
 
-Op
---
+:class:`Op`
+-----------
 
-An :ref:`op` in Aesara defines a certain computation on some types of
+An :class:`Op` in Aesara defines a certain computation on some types of
 inputs, producing some types of outputs. It is equivalent to a
 function definition in most programming languages. From a list of
-input :ref:`Variables <variable>` and an Op, you can build an :ref:`apply`
-node representing the application of the Op to the inputs.
+input :ref:`Variables <variable>` and an :class:`Op`, you can build an :ref:`apply`
+node representing the application of the :class:`Op` to the inputs.
 
-It is important to understand the distinction between an Op (the
-definition of a function) and an Apply node (the application of a
+It is important to understand the distinction between an :class:`Op` (the
+definition of a function) and an :class:`Apply` node (the application of a
 function). If you were to interpret the Python language using Aesara's
-structures, code going like ``def f(x): ...`` would produce an Op for
+structures, code going like ``def f(x): ...`` would produce an :class:`Op` for
 ``f`` whereas code like ``a = f(x)`` or ``g(f(4), 5)`` would produce an
-Apply node involving the ``f`` Op.
+:class:`Apply` node involving the ``f`` :class:`Op`.
 
 
 .. index::
@@ -204,18 +200,17 @@ Apply node involving the ``f`` Op.
 
 .. _type:
 
+:class:`Type`
+-------------
 
-Type
-----
-
-A :ref:`type` in Aesara represents a set of constraints on potential
+A :class:`Type` in Aesara represents a set of constraints on potential
 data objects. These constraints allow Aesara to tailor C code to handle
 them and to statically optimize the computation graph. For instance,
-the :ref:`irow <libdoc_tensor_creation>` type in the ``aesara.tensor`` package
-gives the following constraints on the data the Variables of type ``irow``
+the :ref:`irow <libdoc_tensor_creation>` type in the :mod:`aesara.tensor` package
+gives the following constraints on the data the :class:`Variable`\s of type ``irow``
 may contain:
 
-#. Must be an instance of ``numpy.ndarray``: ``isinstance(x, numpy.ndarray)``
+#. Must be an instance of :class:`numpy.ndarray`: ``isinstance(x, numpy.ndarray)``
 #. Must be an array of 32-bit integers: ``str(x.dtype) == 'int32'``
 #. Must have a shape of 1xN: ``len(x.shape) == 2 and x.shape[0] == 1``
 
@@ -223,24 +218,21 @@ Knowing these restrictions, Aesara may generate C code for addition, etc.
 that declares the right data types and that contains the right number
 of loops over the dimensions.
 
-Note that an Aesara :ref:`type` is not equivalent to a Python type or
+Note that an Aesara :class:`Type` is not equivalent to a Python type or
 class. Indeed, in Aesara, :ref:`irow <libdoc_tensor_creation>` and :ref:`dmatrix
-<libdoc_tensor_creation>` both use ``numpy.ndarray`` as the underlying type
+<libdoc_tensor_creation>` both use :class:`numpy.ndarray` as the underlying type
 for doing computations and storing data, yet they are different Aesara
-Types. Indeed, the constraints set by ``dmatrix`` are:
+:class:`Type`\s. Indeed, the constraints set by `dmatrix` are:
 
-#. Must be an instance of ``numpy.ndarray``: ``isinstance(x, numpy.ndarray)``
+#. Must be an instance of :class:`numpy.ndarray`: ``isinstance(x, numpy.ndarray)``
 #. Must be an array of 64-bit floating point numbers: ``str(x.dtype) == 'float64'``
-#. Must have a shape of MxN, no restriction on M or N: ``len(x.shape) == 2``
+#. Must have a shape of ``MxN``, no restriction on ``M`` or ``N``: ``len(x.shape) == 2``
 
 These restrictions are different from those of ``irow`` which are listed above.
 
-There are cases in which a Type can fully correspond to a Python type,
-such as the ``double`` Type we will define here, which corresponds to
-Python's ``float``. But, it's good to know that this is not necessarily
-the case. Unless specified otherwise, when we say "Type" we mean a
-Aesara Type.
-
+There are cases in which a :class:`Type` can fully correspond to a Python type,
+such as the `double`\ :class:`Type`, which corresponds to
+Python's ``float``.
 
 .. index::
    single: Variable
@@ -248,53 +240,51 @@ Aesara Type.
 
 .. _variable:
 
+:class:`Variable`
+-----------------
 
-
-Variable
---------
-
-A :ref:`variable` is the main data structure you work with when using
-Aesara. The symbolic inputs that you operate on are Variables and what
-you get from applying various Ops to these inputs are also
-Variables. For example, when I type
+A :class:`Variable` is the main data structure you work with when using
+Aesara. The symbolic inputs that you operate on are :class:`Variable`\s and what
+you get from applying various :class:`Op`\s to these inputs are also
+:class:`Variable`\s. For example, when one inputs
 
 >>> import aesara
 >>> x = aesara.tensor.ivector()
 >>> y = -x
 
-``x`` and ``y`` are both Variables, i.e. instances of the :class:`Variable` class. The :ref:`type` of both ``x`` and
-``y`` is ``aesara.tensor.ivector``.
+``x`` and ``y`` are both :class:`Variable`\s. The :class:`Type` of both ``x`` and
+``y`` is `aesara.tensor.ivector`.
 
-Unlike ``x``, ``y`` is a Variable produced by a computation (in this
-case, it is the negation of ``x``). ``y`` is the Variable corresponding to
-the output of the computation, while ``x`` is the Variable
+Unlike ``x``, ``y`` is a :class:`Variable` produced by a computation (in this
+case, it is the negation of ``x``). ``y`` is the :class:`Variable` corresponding to
+the output of the computation, while ``x`` is the :class:`Variable`
 corresponding to its input. The computation itself is represented by
-another type of node, an :ref:`apply` node, and may be accessed
+another type of node, an :class:`Apply` node, and may be accessed
 through ``y.owner``.
 
-More specifically, a Variable is a basic structure in Aesara that
+More specifically, a :class:`Variable` is a basic structure in Aesara that
 represents a datum at a certain point in computation. It is typically
 an instance of the class :class:`Variable` or
 one of its subclasses.
 
-A Variable ``r`` contains four important fields:
+A :class:`Variable` ``r`` contains four important fields:
 
 **type**
-  a :ref:`type` defining the kind of value this Variable can hold in
+  a :class:`Type` defining the kind of value this :class:`Variable` can hold in
   computation.
 
 **owner**
-  this is either None or an :ref:`apply` node of which the Variable is
+  this is either ``None`` or an :class:`Apply` node of which the :class:`Variable` is
   an output.
 
 **index**
   the integer such that ``owner.outputs[index] is r`` (ignored if
-  ``owner`` is None)
+  :attr:`Variable.owner` is ``None``)
 
 **name**
   a string to use in pretty-printing and debugging.
 
-Variable has one special subclass: :ref:`Constant <constant>`.
+:class:`Variable` has an important subclass: :ref:`Constant <constant>`.
 
 .. index::
    single: Constant
@@ -303,127 +293,58 @@ Variable has one special subclass: :ref:`Constant <constant>`.
 .. _constant:
 
 
-Constant
-^^^^^^^^
+:class:`Constant`
+^^^^^^^^^^^^^^^^^
 
-A Constant is a :ref:`Variable` with one extra field, *data* (only
-settable once). When used in a computation graph as the input of an
-:ref:`Op` :ref:`application <Apply>`, it is assumed that said input
-will *always* take the value contained in the constant's data
-field. Furthermore, it is assumed that the :ref:`Op` will not under
-any circumstances modify the input. This means that a constant is
-eligible to participate in numerous optimizations: constant inlining
+A :class:`Constant` is a :class:`Variable` with one extra, immutable field:
+:attr:`Constant.data`.
+When used in a computation graph as the input of an
+:class:`Op`\ :class:`Apply`, it is assumed that said input
+will *always* take the value contained in the :class:`Constant`'s data
+field. Furthermore, it is assumed that the :class:`Op` will not under
+any circumstances modify the input. This means that a :class:`Constant` is
+eligible to participate in numerous optimizations: constant in-lining
 in C code, constant folding, etc.
-
-A constant does not need to be specified in a :func:`function
-<function.function>`'s list
-of inputs.  In fact, doing so will raise an exception.
-
-
-
-Graph Structures Extension
-==========================
-
-When we start the compilation of an Aesara function, we compute some
-extra information. This section describes a portion of the information
-that is made available.
-
-The graph gets cloned at the start of compilation, so modifications done
-during compilation won't affect the user graph.
-
-Each variable receives a new field called clients. It is a list with
-references to every place in the graph where this variable is used. If
-its length is 0, it means the variable isn't used. Each place where it
-is used is described by a tuple of 2 elements. There are two types of
-pairs:
-
-- The first element is an Apply node.
-- The first element is the string "output". It means the
-  function outputs this variable.
-
-In both types of pairs, the second element of the tuple is an index,
-such that: ``fgraph.clients[var][*][0].inputs[index]`` or
-``fgraph.outputs[index]`` is that variable.
-
-
->>> import aesara
->>> v = aesara.tensor.vector()
->>> f = aesara.function([v], (v+1).sum())
->>> aesara.printing.debugprint(f)
-Sum{acc_dtype=float64} [id A] ''   1
- |Elemwise{add,no_inplace} [id B] ''   0
-   |TensorConstant{(1,) of 1.0} [id C]
-   |<TensorType(float64, vector)> [id D]
->>> # Sorted list of all nodes in the compiled graph.
->>> fgraph = f.maker.fgraph
->>> topo = fgraph.toposort()
->>> fgraph.clients[topo[0].outputs[0]]
-[(Sum{acc_dtype=float64}(Elemwise{add,no_inplace}.0), 0)]
->>> fgraph.clients[topo[1].outputs[0]]
-[('output', 0)]
-
->>> # An internal variable
->>> var = topo[0].outputs[0]
->>> client = fgraph.clients[var][0]
->>> client
-(Sum{acc_dtype=float64}(Elemwise{add,no_inplace}.0), 0)
->>> type(client[0])
-<class 'aesara.graph.basic.Apply'>
->>> assert client[0].inputs[client[1]] is var
-
->>> # An output of the graph
->>> var = topo[1].outputs[0]
->>> client = fgraph.clients[var][0]
->>> client
-('output', 0)
->>> assert fgraph.outputs[client[1]] is var
-
 
 Automatic Differentiation
 =========================
 
 Having the graph structure, computing automatic differentiation is
 simple. The only thing :func:`aesara.grad` has to do is to traverse the
-graph from the outputs back towards the inputs through all *apply*
-nodes (*apply* nodes are those that define which computations the
-graph does). For each such *apply* node, its *op* defines
-how to compute the *gradient* of the node's outputs with respect to its
-inputs. Note that if an *op* does not provide this information,
-it is assumed that the *gradient* is not defined.
-Using the
-`chain rule <http://en.wikipedia.org/wiki/Chain_rule>`_
+graph from the outputs back towards the inputs through all :class:`Apply`
+nodes. For each such :class:`Apply` node, its :class:`Op` defines
+how to compute the gradient of the node's outputs with respect to its
+inputs. Note that if an :class:`Op` does not provide this information,
+it is assumed that the gradient is not defined.
+
+Using the `chain rule <http://en.wikipedia.org/wiki/Chain_rule>`_,
 these gradients can be composed in order to obtain the expression of the
-*gradient* of the graph's output with respect to the graph's inputs.
+gradient of the graph's output with respect to the graph's inputs.
 
-A following section of this tutorial will examine the topic of :ref:`differentiation<tutcomputinggrads>`
-in greater detail.
-
+A following section of this tutorial will examine the topic of
+:ref:`differentiation<tutcomputinggrads>` in greater detail.
 
 Optimizations
 =============
 
-When compiling an Aesara function, what you give to the
-:func:`aesara.function <function.function>` is actually a graph
-(starting from the output variables you can traverse the graph up to
-the input variables). While this graph structure shows how to compute
-the output from the input, it also offers the possibility to improve the
-way this computation is carried out. The way optimizations work in
-Aesara is by identifying and replacing certain patterns in the graph
-with other specialized patterns that produce the same results but are either
-faster or more stable. Optimizations can also detect
-identical subgraphs and ensure that the same values are not computed
-twice or reformulate parts of the graph to a GPU specific version.
+When compiling an Aesara graph using :func:`aesara.function`, a graph is
+necessarily provided.  While this graph structure shows how to compute the
+output from the input, it also offers the possibility to improve the way this
+computation is carried out. The way optimizations work in Aesara is by
+identifying and replacing certain patterns in the graph with other specialized
+patterns that produce the same results but are either faster or more
+stable. Optimizations can also detect identical subgraphs and ensure that the
+same values are not computed twice or reformulate parts of the graph to a GPU
+specific version.
 
 For example, one (simple) optimization that Aesara uses is to replace
-the pattern :math:`\frac{xy}{y}` by *x.*
-
+the pattern :math:`\frac{xy}{y}` by :math:`x`.
 
 See :ref:`graph_rewriting` and :ref:`optimizations` for more information.
 
 **Example**
 
-Symbolic programming involves a change of paradigm: it will become clearer
-as we apply it. Consider the following example of optimization:
+Consider the following example of optimization:
 
 >>> import aesara
 >>> a = aesara.tensor.vector("a")      # declare symbolic variable

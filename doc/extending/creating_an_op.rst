@@ -1,5 +1,5 @@
 
-.. _extending_aesara:
+.. _creating_an_op:
 
 Creating a new :class:`Op`: Python implementation
 =================================================
@@ -13,17 +13,10 @@ has no bugs, and potentially profits from optimizations that have already been
 implemented.
 
 However, if you cannot implement an :class:`Op` in terms of an existing :class:`Op`, you have to
-write a new one. Don't worry, Aesara was designed to make it easy to add a new
-:class:`Op`, :class:`Type`, and :class:`Optimization`.
+write a new one.
 
-.. These first few pages will walk you through the definition of a new :ref:`type`,
-.. ``double``, and a basic arithmetic :ref:`operations <op>` on that :class:`Type`.
-
-As an illustration, this tutorial shows how to write a simple Python-based
-:ref:`operations <op>` which performs operations on
-:ref:`type`, ``double<Double>``.
-.. It also shows how to implement tests that
-.. ensure the proper working of an :class:`Op`.
+As an illustration, this tutorial will demonstrate how a simple Python-based
+:class:`Op` that performs operations on ``np.float64``\s is written.
 
 .. note::
 
@@ -31,15 +24,15 @@ As an illustration, this tutorial shows how to write a simple Python-based
     an :class:`Op` that returns a view or modifies the values in its inputs. Thus, all
     :class:`Op`\s created with the instructions described here MUST return newly
     allocated memory or reuse the memory provided in the parameter
-    ``output_storage`` of the :func:`perform` function. See
+    ``output_storage`` of the :meth:`Op.perform` method. See
     :ref:`views_and_inplace` for an explanation on how to do this.
 
     If your :class:`Op` returns a view or changes the value of its inputs
     without doing as prescribed in that page, Aesara will run, but will
     return correct results for some graphs and wrong results for others.
 
-    It is recommended that you run your tests in DebugMode (Aesara *flag*
-    ``mode=DebugMode``) since it verifies if your :class:`Op` behaves correctly in this
+    It is recommended that you run your tests in :class:`DebugMode`, since it
+    can help verify whether or not your :class:`Op` behaves correctly in this
     regard.
 
 
@@ -50,7 +43,7 @@ Aesara Graphs refresher
     :width: 500 px
 
 Aesara represents symbolic mathematical computations as graphs. Those graphs
-are bi-partite graphs (graphs with 2 types of nodes), they are composed of
+are bi-partite graphs (graphs with two types of nodes), they are composed of
 interconnected :ref:`apply` and :ref:`variable` nodes.
 :class:`Variable` nodes represent data in the graph, either inputs, outputs or
 intermediary values. As such, inputs and outputs of a graph are lists of Aesara
@@ -168,7 +161,7 @@ or :func:`make_thunk`.
 
   An :class:`Op`\s implementation can be defined in other ways, as well.
   For instance, it is possible to define a C-implementation via :meth:`COp.c_code`.
-  Please refers to tutorial :ref:`extending_aesara_c` for a description of
+  Please refers to tutorial :ref:`creating_a_c_op` for a description of
   :meth:`COp.c_code` and other related ``c_**`` methods. Note that an
   :class:`Op` can provide both Python and C implementations.
 
