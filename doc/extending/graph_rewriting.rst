@@ -1,30 +1,19 @@
 
-.. _optimization:
+.. _graph_rewriting:
 
-==================
-Graph optimization
-==================
+===============
+Graph Rewriting
+===============
 
-In this document we will explain how optimizations work and construct a couple examples.
+In this document we will explain how graph rewriting works and how graph
+optimizations can be constructed using graph rewriting.
 
 .. todo::
+   The old "optimization" nomenclature is still in use throughout these documents
+   and the codebase; however, this is being changed to more accurately distinguish
+   between general graph rewriting for any purpose and the kind that is explicitly
+   intended to "optimize" a graph in some way.
 
-   This tutorial goes way too far under the hood, for someone who just wants
-   to add yet another pattern to the libraries in :py:mod:`aesara.tensor.basic_opt` for example.
-
-   We need another tutorial that covers the decorator syntax, and explains how
-   to register your optimization right away.  That's what you need to get
-   going.
-
-   Later, the rest is more useful for when that decorator syntax type thing
-   doesn't work. (There are optimizations that don't fit that model).
-
-.. note::
-
-   The optimization tag ``cxx_only`` is used for optimizations that insert
-   :class:`Op`\s which have no Python implementation (so they only have C code).
-   Optimizations with this tag are skipped when there is no C++ compiler
-   available.
 
 Global and Local Optimizations
 ==============================
@@ -147,7 +136,7 @@ simplification described above:
    requirements we might want to  know about?
 
 Here's how it works: first, in :meth:`add_requirements`, we add the
-:class:`ReplaceValidate` :ref:`libdoc_graph_fgraphfeature` located in
+:class:`ReplaceValidate` :class:`Feature` located in
 :ref:`libdoc_graph_features`. This feature adds the :meth:`replace_validate`
 method to ``fgraph``, which is an enhanced version of :meth:`replace` that
 does additional checks to ensure that we are not messing up the
@@ -155,9 +144,7 @@ computation graph (note: if :class:`ReplaceValidate` was already added by
 another optimizer, ``extend`` will do nothing). In a nutshell,
 :class:`ReplaceValidate` grants access to :meth:`fgraph.replace_validate`,
 and :meth:`fgraph.replace_validate` allows us to replace a :class:`Variable` with
-another while respecting certain validation constraints. You can
-browse the list of :ref:`libdoc_graph_fgraphfeaturelist` and see if some of
-them might be useful to write optimizations with. For example, as an
+another while respecting certain validation constraints. As an
 exercise, try to rewrite ``Simplify`` using :class:`NodeFinder`. (Hint: you
 want to use the method it publishes instead of the call to toposort!)
 
@@ -390,6 +377,11 @@ The :obj:`optdb` system allows us to tag each optimization with a unique name
 as well as informative tags such as 'stable', 'buggy' or
 'cpu_intensive', all this without compromising the structure of the
 optimizations.
+
+For instance, the optimization tag ``cxx_only`` is used for optimizations that
+insert :class:`Op`\s that have no Python implementation (i.e. they only have C
+implementations).  Optimizations with this tag can be skipped when the C backend
+is not being used.
 
 
 Definition of :obj:`optdb`

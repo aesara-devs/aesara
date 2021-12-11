@@ -112,13 +112,18 @@ Glossary
         See also :term:`Variable`, :term:`Type`, and :term:`Apply`,
         or read more about :ref:`graphstructures`.
 
+    Rewriter
+        A function or class that transforms an Aesara :term:`graph`.
+
     Optimizer
-        An instance of :class:`Optimizer`, which has the capacity to provide
-        an :term:`optimization` (or optimizations).
+        An instance of a :term:`rewriter` that has the capacity to provide
+        an improvement to the performance of a graph.
 
     Optimization
         A :term:`graph` transformation applied by an :term:`optimizer` during
-        the compilation of a :term:`graph` by :term:`aesara.function`.
+        the compilation of a :term:`graph` by :term:`aesara.function`.  These
+        are graph rewrites that are intended to improve the performance of
+        a compiled :term:`Graph`.
 
     Pure
         An :term:`Op` is *pure* if it has no :term:`destructive` side-effects.

@@ -417,10 +417,8 @@ twice or reformulate parts of the graph to a GPU specific version.
 For example, one (simple) optimization that Aesara uses is to replace
 the pattern :math:`\frac{xy}{y}` by *x.*
 
-Further information regarding the optimization
-:ref:`process<optimization>` and the specific :ref:`optimizations<optimizations>` that are applicable
-is respectively available in the library and on the entrance page of the documentation.
 
+See :ref:`graph_rewriting` and :ref:`optimizations` for more information.
 
 **Example**
 
