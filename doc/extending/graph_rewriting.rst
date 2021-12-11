@@ -321,7 +321,100 @@ Aesara defines some shortcuts to make :class:`LocalOptimizer`\s:
 When an optimization can be naturally expressed using :class:`OpSub`, :class:`OpRemove`
 or :class:`PatternSub`, it is highly recommended to use them.
 
+.. _unification:
 
+Unification and reification
+===========================
+
+The :class:`PatternSub` class uses `unification and reification
+<https://en.wikipedia.org/wiki/Unification_(computer_science)>`_ to implement a
+more succinct and reusable form of "pattern matching and replacement".
+In general, *use of the unification and reification tools is preferable when
+a rewrite's matching and replacement are non-trivial*, so we will briefly explain
+them in the following.
+
+Aesara's unification and reification tools are provided by the
+`logical-unification <https://github.com/pythological/unification>`_ package.
+The basic tools are :func:`unify`, :func:`reify`, and :class:`var`.  The class :class:`var`
+construct *logic variables*, which represent the elements to be unified/matched, :func:`unify`
+performs the "matching", and :func:`reify` performs the "replacements".
+
+See :mod:`unification`'s documentation for an introduction to unification and reification.
+
+In order to use :func:`unify` and :func:`reify` with Aesara graphs, we need an intermediate
+structure that will allow us to represent Aesara graphs that contain :class:`var`\s, because
+Aesara :class:`Op`\s and :class:`Apply` nodes will not accept these foreign objects as inputs.
+
+:class:`PatternSub` uses Python ``tuple``\s to effectively represent :class:`Apply` nodes and
+``str``\s to represent logic variables (i.e. :class:`var`\s in the :mod:`unification` library).
+Behind the scenes, these ``tuple``\s are converted to a ``tuple`` subclass called :class:`ExpressionTuple`\s,
+which behave just like normal ``tuple``\s except for some special caching features that allow for easy
+evaluation and caching.  These :class:`ExpressionTuple`\s are provided by the
+`etuples <https://github.com/pythological/etuples>`_ library.
+
+Here is an illustration of all the above components used together:
+
+>>> from unification import unify, reify, var
+>>> from etuples import etuple
+>>> y_lv = var()  # Create a logic variable
+>>> y_lv
+~_1
+>>> s = unify(add(x, y), etuple(add, x, y_lv))
+>>> s
+{~_1: y}
+
+In this example, :func:`unify` matched the Aesara graph in the first argument with the "pattern"
+given by the :func:`etuple` in the second.  The result is a ``dict`` mapping logic variables to
+the objects to which they were successfully unified.  When a :func:`unify` doesn't succeed, it will
+return ``False``.
+
+:func:`reify` uses ``dict``\s like the kind produced by :func:`unify` to replace
+logic variables within structures:
+
+>>> res = reify(etuple(add, y_lv, y_lv), s)
+>>> res
+e(<aesara.scalar.basic.Add at 0x7f54dfa5a350>, y, y)
+
+Since :class:`ExpressionTuple`\s can be evaluated, we can produce a complete Aesara graph from these
+results as follows:
+
+>>> res.evaled_obj
+add.0
+>>> aesara.dprint(res.evaled_obj)
+add [id A] ''
+ |y [id B]
+ |y [id B]
+
+
+Because :class:`ExpressionTuple`\s effectively model `S-expressions
+<https://en.wikipedia.org/wiki/S-expression>`_, they can be used with the `cons
+<https://github.com/pythological/python-cons>`_ package to unify and reify
+graphs structurally.
+
+Let's say we want to match graphs that use the :class:`add`\ :class:`Op` but could have a
+varying number of arguments:
+
+>>> from cons import cons
+>>> op_lv = var()
+>>> args_lv = var()
+>>> s = unify(cons(op_lv, args_lv), add(x, y))
+>>> s
+{~_2: <aesara.scalar.basic.Add at 0x7f54dfa5a350>, ~_3: e(x, y)}
+>>> s = unify(cons(op_lv, args_lv), add(x, y, z))
+>>> s
+{~_2: <aesara.scalar.basic.Add at 0x7f54dfa5a350>, ~_3: e(x, y, z)}
+
+From here, we can check ``s[op_lv] == add`` to confirm that we have the correct :class:`Op` and
+proceed with our rewrite.
+
+>>> res = reify(cons(mul, args_lv), s)
+>>> res
+e(<aesara.scalar.basic.Mul at 0x7f54dfa5ae10>, x, y, z)
+>>> aesara.dprint(res.evaled_obj)
+mul [id A] ''
+ |x [id B]
+ |y [id C]
+ |z [id D]
 
 
 .. _optdb:
