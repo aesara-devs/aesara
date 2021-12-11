@@ -34,7 +34,6 @@ with Aesara itself.
 
     extending_aesara
     extending_aesara_c
-    fibby
     pipeline
     aesara_vs_c
     graphstructures
