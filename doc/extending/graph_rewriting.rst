@@ -417,6 +417,136 @@ mul [id A] ''
  |z [id D]
 
 
+.. _miniKanren_rewrites:
+
+miniKanren
+==========
+
+Given that unification and reification are fully implemented for Aesara objects via the :mod:`unificiation` package,
+the `kanren <https://github.com/pythological/kanren>`_ package can be used with Aesara graphs, as well.
+:mod:`kanren` implements the `miniKanren <http://minikanren.org/>`_ domain-specific language for relational programming.
+
+Refer to the links above for a proper introduction to miniKanren, but suffice it to say that
+miniKanren orchestrates the unification and reification operations described in :ref:`unification`, and
+it does so in the context of relational operators (e.g. equations like :math:`x + x = 2 x`).
+This means that a relation that--say--represents :math:`x + x = 2 x` can be
+utilized in both directions.
+
+Currently, the local optimizer :class:`KanrenRelationSub` provides a means of
+turning :mod:`kanren` relations into :class:`LocalOptimizer`\s; however,
+:mod:`kanren` can always be used directly from within a custom :class:`Rewriter`, so
+:class:`KanrenRelationSub` is not necessary.
+
+The following is an example that distributes dot products across additions.
+
+.. code::
+
+    import aesara
+    import aesara.tensor as at
+    from aesara.graph.kanren import KanrenRelationSub
+    from aesara.graph.opt import EquilibriumOptimizer
+    from aesara.graph.opt_utils import optimize_graph
+    from aesara.tensor.math import _dot
+    from etuples import etuple
+    from kanren import conso, eq, fact, heado, tailo
+    from kanren.assoccomm import assoc_flatten, associative
+    from kanren.core import lall
+    from kanren.graph import mapo
+    from unification import vars as lvars
+
+
+    # Make the graph pretty printing results a little more readable
+    aesara.pprint.assign(
+        _dot, aesara.printing.OperatorPrinter("@", -1, "left")
+    )
+
+    # Tell `kanren` that `add` is associative
+    fact(associative, at.add)
+
+
+    def dot_distributeo(in_lv, out_lv):
+        """A `kanren` goal constructor relation for the relation ``A.dot(a + b ...) == A.dot(a) + A.dot(b) ...``."""
+        A_lv, add_term_lv, add_cdr_lv, dot_cdr_lv, add_flat_lv = lvars(5)
+
+        return lall(
+            # Make sure the input is a `_dot`
+            eq(in_lv, etuple(_dot, A_lv, add_term_lv)),
+            # Make sure the term being `_dot`ed is an `add`
+            heado(at.add, add_term_lv),
+            # Flatten the associative pairings of `add` operations
+            assoc_flatten(add_term_lv, add_flat_lv),
+            # Get the flattened `add` arguments
+            tailo(add_cdr_lv, add_flat_lv),
+            # Add all the `_dot`ed arguments and set the output
+            conso(at.add, dot_cdr_lv, out_lv),
+            # Apply the `_dot` to all the flattened `add` arguments
+            mapo(lambda x, y: conso(_dot, etuple(A_lv, x), y), add_cdr_lv, dot_cdr_lv),
+        )
+
+
+    dot_distribute_opt = EquilibriumOptimizer([KanrenRelationSub(dot_distributeo)], max_use_ratio=10)
+
+
+Below, we apply `dot_distribute_opt` to a few example graphs.  First we create simple test graph:
+
+>>> x_at = at.vector("x")
+>>> y_at = at.vector("y")
+>>> A_at = at.matrix("A")
+>>> test_at = A_at.dot(x_at + y_at)
+>>> print(aesara.pprint(test_at))
+(A @ (x + y))
+
+Next we apply the rewrite to the graph:
+
+>>> res = optimize_graph(test_at, include=[], custom_opt=dot_distribute_opt, clone=False)
+>>> print(aesara.pprint(res))
+((A @ x) + (A @ y))
+
+We see that the dot product has been distributed, as desired.  Now, let's try a
+few more test cases:
+
+>>> z_at = at.vector("z")
+>>> w_at = at.vector("w")
+>>> test_at = A_at.dot((x_at + y_at) + (z_at + w_at))
+>>> print(aesara.pprint(test_at))
+(A @ ((x + y) + (z + w)))
+>>> res = optimize_graph(test_at, include=[], custom_opt=dot_distribute_opt, clone=False)
+>>> print(aesara.pprint(res))
+(((A @ x) + (A @ y)) + ((A @ z) + (A @ w)))
+
+>>> B_at = at.matrix("B")
+>>> w_at = at.vector("w")
+>>> test_at = A_at.dot(x_at + (y_at + B_at.dot(z_at + w_at)))
+>>> print(aesara.pprint(test_at))
+(A @ (x + (y + ((B @ z) + (B @ w)))))
+>>> res = optimize_graph(test_at, include=[], custom_opt=dot_distribute_opt, clone=False)
+>>> print(aesara.pprint(res))
+((A @ x) + ((A @ y) + ((A @ (B @ z)) + (A @ (B @ w)))))
+
+
+This example demonstrates how non-trivial matching and replacement logic can
+be neatly expressed in miniKanren's DSL, but it doesn't quite demonstrate miniKanren's
+relational properties.
+
+To do that, we will create another :class:`Rewriter` that simply reverses the arguments
+to the relation :func:`dot_distributeo` and apply it to the distributed result in ``res``:
+
+>>> dot_gather_opt = EquilibriumOptimizer([KanrenRelationSub(lambda x, y: dot_distributeo(y, x))], max_use_ratio=10)
+>>> rev_res = optimize_graph(res, include=[], custom_opt=dot_gather_opt, clone=False)
+>>> print(aesara.pprint(rev_res))
+(A @ (x + (y + (B @ (z + w)))))
+
+As we can see, the :mod:`kanren` relation works both ways, just like the underlying
+mathematical relation does.
+
+miniKanren relations can be used to explore rewrites of graphs in sophisticated
+ways.  It also provides a framework that more directly maps to the mathematical
+identities that drive graph rewrites.  For some simple examples of relational graph rewriting
+in :mod:`kanren` see `here <https://github.com/pythological/kanren/blob/master/doc/graphs.md>`_.  For a
+high-level overview of miniKanren's use as a tool for symbolic computation see
+`"miniKanren as a Tool for Symbolic Computation in Python" <https://arxiv.org/abs/2005.11644>`_.
+
+
 .. _optdb:
 
 The optimization database (:obj:`optdb`)
