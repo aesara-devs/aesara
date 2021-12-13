@@ -68,7 +68,6 @@ Further reading
 
 .. toctree::
 
-    ../extending/graphstructures
     loading_and_saving
     aliasing
     multi_cores

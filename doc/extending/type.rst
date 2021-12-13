@@ -1,8 +1,8 @@
 .. _aesara_type:
 
-===============================
-Making the double :class:`Type`
-===============================
+===============
+:class:`Type`\s
+===============
 
 
 .. _type_contract:
@@ -184,8 +184,8 @@ can't be done.
 Then register that function by calling :func:`register_transfer()`
 with it as argument.
 
-Defining double
-===============
+An example
+==========
 
 We are going to base :class:`Type` ``double`` on Python's ``float``. We
 must define ``filter`` and shall override ``values_eq_approx``.
