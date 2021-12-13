@@ -1,29 +1,22 @@
 .. _aesara_ctype:
 
 
-========================
-Implementing double in C
-========================
-
-The previous two sections described how to define a double :ref:`type`
-and arithmetic operations on that `Type`, but all of them were
-implemented in pure Python. In this section we will see how to define
-the double type in such a way that it can be used by operations
-implemented in C (which we will define in the section after that).
-
+==========================================
+Implementing C support for :class:`Type`\s
+==========================================
 
 How does it work?
 =================
 
-In order to be C-compatible, a `Type` must provide a C interface to the
+In order to be C-compatible, a :class:`Type` must provide a C interface to the
 Python data that satisfy the constraints it puts forward. In other
 words, it must define C code that can convert a Python reference into
 some type suitable for manipulation in C and it must define C code
 that can convert some C structure in which the C implementation of an
 operation stores its variables into a reference to an object that can be
-used from Python and is a valid value for the `Type`.
+used from Python and is a valid value for the :class:`Type`.
 
-For example, in the current example, we have a `Type` which represents a
+For example, in the current example, we have a :class:`Type` which represents a
 Python float. First, we will choose a corresponding C type. The
 natural choice would be the primitive ``double`` type. Then, we need
 to write code that will take a ``PyObject*``, check that it is a
@@ -42,10 +35,10 @@ find here_.
 What needs to be defined
 ========================
 
-In order to be C-compatible, the `Type` subclass interface `CType` must be used.
+In order to be C-compatible, the :class:`Type` subclass interface :class:`CType` must be used.
 It defines several additional methods, which all start with the ``c_``
 prefix. The complete list can be found in the documentation for
-:class:`.graph.type.CType`. Here, we'll focus on the most important ones:
+:class:`CType`. Here, we'll focus on the most important ones:
 
 
 .. class:: CLinkerType
@@ -59,13 +52,13 @@ prefix. The complete list can be found in the documentation for
     .. method:: c_init(name, sub)
 
         This must return C code which initializes the variables declared in
-        ``c_declare``. Either this or ``c_extract`` will be called.
+        :meth:`CLinkerType.c_declare`. Either this or :meth:`CLinkerType.c_extract` will be called.
 
     .. method:: c_extract(name, sub, check_input=True, **kwargs)
 
         This must return C code which takes a reference to a Python object
-        and initializes the variables declared in ``c_declare`` to match the
-        Python object's data. Either this or ``c_init`` will be called.
+        and initializes the variables declared in :meth:`CLinkerType.c_declare` to match the
+        Python object's data. Either this or :meth:`CLinkerType.c_init` will be called.
 
     .. method:: c_sync(name, sub)
 
@@ -85,11 +78,11 @@ prefix. The complete list can be found in the documentation for
 
         Allows you to specify headers, libraries and associated directories.
 
-        These methods have two versions, one with a `c_compiler`
+        These methods have two versions, one with a :meth:`CLinkerType.c_compiler`
         argument and one without. The version with c_compiler is tried
         first and if it doesn't work, the one without is.
 
-        The `c_compiler` argument is the C compiler that will be used
+        The :meth:`CLinkerType.c_compiler` argument is the C compiler that will be used
         to compile the C code for the node that uses this type.
 
     .. method:: c_compile_args([c_compiler])
@@ -97,11 +90,11 @@ prefix. The complete list can be found in the documentation for
 
         Allows to specify special compiler arguments to add/exclude.
 
-        These methods have two versions, one with a `c_compiler`
+        These methods have two versions, one with a :meth:`CLinkerType.c_compiler`
         argument and one without. The version with c_compiler is tried
         first and if it doesn't work, the one without is.
 
-        The `c_compiler` argument is the C compiler that will be used
+        The :meth:`CLinkerType.c_compiler` argument is the C compiler that will be used
         to compile the C code for the node that uses this type.
 
     .. method:: c_init_code()
@@ -110,17 +103,18 @@ prefix. The complete list can be found in the documentation for
         module is initialized, before anything else is executed.
         For instance, if a type depends on NumPy's C API, then
         ``'import_array();'`` has to be among the snippets returned
-        by ``c_init_code()``.
+        by :meth:`CLinkerType.c_init_code`.
 
     .. method:: c_support_code()
 
-        Allows to add helper functions/structs (in a string or a list of strings) that the :ref:`type` needs.
+        Allows to add helper functions/structs (in a string or a list of
+        strings) that the :class:`Type` needs.
 
     .. method:: c_compiler()
 
-        Allows to specify a special compiler. This will force this compiler
-        for the current compilation block (a particular op or the full graph).
-        This is used for the GPU code.
+        Allows to specify a special compiler. This will force this compiler for
+        the current compilation block (a particular :class:`Op` or the full
+        graph).  This is used for the GPU code.
 
     .. method:: c_code_cache_version()
 
@@ -133,7 +127,7 @@ prefix. The complete list can be found in the documentation for
     .. method:: c_element_type()
 
        Optional: should return the name of the primitive C type of
-       items into variables handled by this Aesara type. For example,
+       for the variables handled by this Aesara type. For example,
        for a matrix of 32-bit signed NumPy integers, it should return
        ``"npy_int32"``. If C type may change from an instance to another
        (e.g. ``Scalar('int32')`` vs ``Scalar('int64')``), consider
@@ -143,18 +137,18 @@ prefix. The complete list can be found in the documentation for
 
 Each of these functions take two arguments, ``name`` and ``sub`` which
 must be used to parameterize the C code they return. ``name`` is a
-string which is chosen by the compiler to represent a :ref:`variable` of
-the `CType` in such a way that there are no name conflicts between
+string which is chosen by the compiler to represent a :class:`Variable` of
+the :class:`CType` in such a way that there are no name conflicts between
 different pieces of data. Therefore, all variables declared in
-``c_declare`` should have a name which includes ``name``. Furthermore,
+:meth:`CType.c_declare` should have a name which includes ``name``. Furthermore,
 the name of the variable containing a pointer to the Python object
-associated to the Variable is ``py_<name>``.
+associated to the :class:`Variable` is ``py_<name>``.
 
 ``sub``, on the other hand, is a dictionary containing bits of C code
 suitable for use in certain situations. For instance, ``sub['fail']``
 contains code that should be inserted wherever an error is identified.
 
-``c_declare`` and ``c_extract`` also accept a third ``check_input``
+:meth:`CType.c_declare` and :meth:`CType.c_extract` also accept a third ``check_input``
 optional argument. If you want your type to validate its inputs, it must
 only do it when ``check_input`` is True.
 
@@ -163,8 +157,8 @@ out:
 
 .. warning::
    If some error condition occurs and you want to fail and/or raise an
-   Exception, you must use the ``fail`` code contained in
-   ``sub['fail']`` (there is an example in the definition of ``c_extract``
+   exception, you must use the ``fail`` code contained in
+   ``sub['fail']`` (there is an example in the definition of :meth:`CType.c_extract`
    below). You must *NOT* use the ``return`` statement anywhere, ever,
    nor ``break`` outside of your own loops or ``goto`` to strange
    places or anything like that. Failure to comply with this
@@ -197,9 +191,9 @@ Defining the methods
 Very straightforward. All we need to do is write C code to declare a
 double. That double will be named whatever is passed to our function
 in the ``name`` argument. That will usually be some mangled name like
-"V0", "V2" or "V92" depending on how many nodes there are in the
+``"V0"``, ``"V2"`` or ``"V92"`` depending on how many nodes there are in the
 computation graph and what rank the current node has. This function
-will be called for all Variables whose type is ``double``.
+will be called for all :class:`Variable`\s whose type is ``double``.
 
 You can declare as many variables as you want there and you can also
 do typedefs. Make sure that the name of each variable contains the
@@ -210,7 +204,7 @@ here). Also note that you cannot declare a variable called
 them.
 
 What you declare there is basically the C interface you are giving to
-your `CType`. If you wish people to develop operations that make use of
+your :class:`CType`. If you wish people to develop operations that make use of
 it, it's best to publish it somewhere.
 
 
@@ -223,19 +217,19 @@ it, it's best to publish it somewhere.
             %(name)s = 0.0;
             """ % dict(name = name)
 
-This function has to initialize the
-double we declared previously to a suitable value. This is useful if
-we want to avoid dealing with garbage values, especially if our data
-type is a pointer. This is not going to be called for all Variables with
-the ``double`` type. Indeed, if a Variable is an input that we pass
+This function has to initialize the double we declared previously to a suitable
+value. This is useful if we want to avoid dealing with garbage values,
+especially if our data type is a pointer. This is not going to be called for all
+:class:`Variable`\s with
+the ``double`` type. Indeed, if a :class:`Variable` is an input that we pass
 from Python, we will want to extract that input from a Python object,
-therefore it is the ``c_extract`` method that will be called instead of
-``c_init``. You can therefore not assume, when writing ``c_extract``, that the
+therefore it is the :meth:`COp.c_extract` method that will be called instead of
+:meth:`COp.c_init`. You can therefore not assume, when writing :meth:`COp.c_extract`, that the
 initialization has been done (in fact you can assume that it *hasn't*
 been done).
 
-``c_init`` will typically be called on output Variables, but in general
-you should only assume that either ``c_init`` or ``c_extract`` has been
+:meth:`COp.c_init` will typically be called on output :class:`Variable`\s, but in general
+you should only assume that either :meth:`COp.c_init` or :meth:`COp.c_extract` has been
 called, without knowing for sure which of the two.
 
 
@@ -258,7 +252,7 @@ we have a reference to a Python object which Aesara has placed in
 given in the inputs. This special variable is declared by Aesara as
 ``PyObject* py_%(name)s`` where ``PyObject*`` is a pointer to a Python
 object as defined by CPython's C API. This is the reference that
-corresponds, on the Python side of things, to a Variable with the
+corresponds, on the Python side of things, to a :class:`Variable` with the
 ``double`` type. It is what the end user will give and what he or she
 expects to get back.
 
@@ -296,7 +290,7 @@ into the double variable ``%(name)s``. Now, we need to put this data
 into a Python object that we can manipulate on the Python side of
 things. This Python object must be put into the ``py_%(name)s``
 variable which Aesara recognizes (this is the same pointer we get in
-c_extract).
+:meth:`CType.c_extract`).
 
 Now, that pointer is already a pointer to a valid Python object
 (unless you or a careless implementer did terribly wrong things with
@@ -325,8 +319,7 @@ situation is unlikely to ever happen, but if it ever does, better safe
 than sorry.
 
 .. warning::
-   I said this already but it really needs to be emphasized that if
-   you are going to change the ``py_%(name)s`` pointer to point to a
+   If you are going to change the ``py_%(name)s`` pointer to point to a
    new reference, you *must* decrease the reference count of whatever
    it was pointing to before you do the change. This is only valid if
    you change the pointer, if you are not going to change the pointer,
@@ -349,36 +342,36 @@ anything with it. Therefore, we have nothing to cleanup. Sweet!
 
 There are however two important things to keep in mind:
 
-First, note that ``c_sync`` and ``c_cleanup`` might be called in
+First, note that :meth:`CType.c_sync` and :meth:`CType.c_cleanup` might be called in
 sequence, so they need to play nice together. In particular, let's
-say that you allocate memory in ``c_init`` or ``c_extract`` for some
+say that you allocate memory in :meth:`CType.c_init` or :meth:`CType.c_extract` for some
 reason. You might want to either embed what you allocated to some Python
-object in ``c_sync`` or to free it in ``c_cleanup``. If you do the
+object in :meth:`CType.c_sync` or to free it in :meth:`CType.c_cleanup`. If you do the
 former, you don't want to free the allocated storage so you should set
-the pointer to it to ``NULL`` to avoid that ``c_cleanup`` mistakenly
-frees it. Another option is to declare a variable in ``c_declare`` that
-you set to true in ``c_sync`` to notify ``c_cleanup`` that ``c_sync``
+the pointer to it to ``NULL`` to avoid that :meth:`CType.c_cleanup` mistakenly
+frees it. Another option is to declare a variable in :meth:`CType.c_declare` that
+you set to true in :meth:`CType.c_sync` to notify :meth:`CType.c_cleanup` that :meth:`CType.c_sync`
 was called.
 
-Second, whenever you use ``%(fail)s`` in ``c_extract`` or in the code of an
-:ref:`operation <op>`, you can count on ``c_cleanup`` being called right
-after that. Therefore, it's important to make sure that ``c_cleanup``
+Second, whenever you use ``%(fail)s`` in :meth:`CType.c_extract` or in the code of an
+:ref:`operation <op>`, you can count on :meth:`CType.c_cleanup` being called right
+after that. Therefore, it's important to make sure that :meth:`CType.c_cleanup`
 doesn't depend on any code placed after a reference to
 ``%(fail)s``. Furthermore, because of the way Aesara blocks code together,
-only the variables declared in ``c_declare`` will be visible in ``c_cleanup``!
+only the variables declared in :meth:`CType.c_declare` will be visible in :meth:`CType.c_cleanup`!
 
 
 What the generated C will look like
 ===================================
 
-``c_init`` and ``c_extract`` will only be called if there is a Python
+:meth:`CType.c_init` and :meth:`CType.c_extract` will only be called if there is a Python
 object on which we want to apply computations using C
-code. Conversely, ``c_sync`` will only be called if we want to
-communicate the values we have computed to Python, and ``c_cleanup``
+code. Conversely, :meth:`CType.c_sync` will only be called if we want to
+communicate the values we have computed to Python, and :meth:`CType.c_cleanup`
 will only be called when we don't need to process the data with C
-anymore. In other words, the use of these functions for a given Variable
+anymore. In other words, the use of these functions for a given :class:`Variable`
 depends on the the relationship between Python and C with respect to
-that Variable. For instance, imagine you define the following function
+that :class:`Variable`. For instance, imagine you define the following function
 and call it:
 
 .. code-block:: python
@@ -517,36 +510,36 @@ Final version
    double = Double()
 
 
-DeepCopyOp
-==========
+:class:`DeepCopyOp`
+===================
 
-We have an internal Op called DeepCopyOp. It is used to make sure we
-respect the user vs Aesara memory region as described in the :ref:`tutorial
+We have an internal :class:`Op` called :class:`DeepCopyOp`. It is used to make sure we
+respect the user vs. Aesara memory region as described in the :ref:`tutorial
 <aliasing>`. Aesara has a Python implementation that calls the object's
-``copy()`` or ``deepcopy()`` method for Aesara types for which it does not
+``copy`` or ``deepcopy`` method for Aesara types for which it does not
 know how to generate C code.
 
-You can implement c_code for this op. You register it like this:
+You can implement :meth:`COp.c_code` for this :class:`Op`. It is registered as follows:
 
 .. code-block:: python
 
    aesara.compile.ops.register_deep_copy_op_c_code(YOUR_TYPE_CLASS, THE_C_CODE, version=())
 
-In your C code, you should use %(iname)s and %(oname)s to represent
-the C variable names of the DeepCopyOp input and output
+In your C code, you should use ``%(iname)s`` and ``%(oname)s`` to represent
+the C variable names of the :class:`DeepCopyOp` input and output
 respectively. See an example for the type ``GpuArrayType`` (GPU
-array) in the file `aesara/gpuarray/type.py`. The version
-parameter is what is returned by DeepCopyOp.c_code_cache_version(). By
-default, it will recompile the c code for each process.
+array) in the file ``aesara/gpuarray/type.py``. The version
+parameter is what is returned by :meth:`DeepCopyOp.c_code_cache_version`. By
+default, it will recompile the C code for each process.
 
-ViewOp
-======
+:class:`ViewOp`
+===============
 
-We have an internal Op called ViewOp. It is used for some
-verification of inplace/view Ops. Its C implementation increments and
+We have an internal :class:`Op` called :class:`ViewOp`. It is used for some
+verification of inplace/view :class:`Op`\s. Its C implementation increments and
 decrements Python reference counts, and thus only works with Python
 objects. If your new type represents Python objects, you should tell
-ViewOp to generate C code when working with this type, as
+:class:`ViewOp` to generate C code when working with this type, as
 otherwise it will use Python code instead. This is achieved by
 calling:
 
@@ -554,19 +547,12 @@ calling:
 
    aesara.compile.ops.register_view_op_c_code(YOUR_TYPE_CLASS, THE_C_CODE, version=())
 
-In your C code, you should use %(iname)s and %(oname)s to represent
-the C variable names of the ViewOp input and output
-respectively. See an example for the type ``GpuArrayType`` (GPU
-array) in the file `thean/gpuarray/type.py`. The version
-parameter is what is returned by ViewOp.c_code_cache_version(). By
-default, it will recompile the c code for each process.
 
+:class:`Shape` and :class:`Shape_i`
+===================================
 
-Shape and Shape_i
-=================
-
-We have 2 generic `Op`\s, `Shape` and `Shape_i`, that return the shape of any
-Aesara `Variable` that has a shape attribute (`Shape_i` returns only one of
+We have two generic :class:`Op`\s, :class:`Shape` and :class:`Shape_i`, that return the shape of any
+Aesara :class:`Variable` that has a shape attribute (:class:`Shape_i` returns only one of
 the elements of the shape).
 
 
@@ -577,8 +563,8 @@ the elements of the shape).
    register_shape_c_code(YOUR_TYPE_CLASS, THE_C_CODE, version=())
    register_shape_i_c_code(YOUR_TYPE_CLASS, THE_C_CODE, CHECK_INPUT, version=())
 
-The C code works as the `ViewOp`. `Shape_i` has the additional ``i`` parameter
+The C code works as the :class:`ViewOp`. :class:`Shape_i` has the additional ``i`` parameter
 that you can use with ``%(i)s``.
 
-In your CHECK_INPUT, you must check that the input has enough dimensions to
-be able to access the i-th one.
+In your ``CHECK_INPUT``, you must check that the input has enough dimensions to
+be able to access the ``i``-th one.
