@@ -653,7 +653,7 @@ def test_AllocDiag(v, offset):
 
 
 @pytest.mark.parametrize(
-    "v, new_order, inplace",
+    "v, new_order",
     [
         # `{'drop': [], 'shuffle': [], 'augment': [0, 1]}`
         (
@@ -662,7 +662,6 @@ def test_AllocDiag(v, offset):
                 np.array(1, dtype=np.int64),
             ),
             ("x", "x"),
-            True,
         ),
         # I.e. `a_aet.T`
         # `{'drop': [], 'shuffle': [1, 0], 'augment': []}`
@@ -671,7 +670,6 @@ def test_AllocDiag(v, offset):
                 aet.matrix("a"), np.array([[1.0, 2.0], [3.0, 4.0]], dtype=config.floatX)
             ),
             (1, 0),
-            True,
         ),
         # `{'drop': [], 'shuffle': [0, 1], 'augment': [2]}`
         (
@@ -679,7 +677,6 @@ def test_AllocDiag(v, offset):
                 aet.matrix("a"), np.array([[1.0, 2.0], [3.0, 4.0]], dtype=config.floatX)
             ),
             (1, 0, "x"),
-            True,
         ),
         # `{'drop': [1], 'shuffle': [2, 0], 'augment': [0, 2, 4]}`
         (
@@ -688,7 +685,6 @@ def test_AllocDiag(v, offset):
                 np.array([[[1.0, 2.0]], [[3.0, 4.0]]], dtype=config.floatX),
             ),
             ("x", 2, "x", 0, "x"),
-            True,
         ),
         # I.e. `a_aet.dimshuffle((0,))`
         # `{'drop': [1], 'shuffle': [0], 'augment': []}`
@@ -698,7 +694,6 @@ def test_AllocDiag(v, offset):
                 np.array([[1.0], [2.0], [3.0], [4.0]], dtype=config.floatX),
             ),
             (0,),
-            True,
         ),
         (
             set_test_value(
@@ -706,7 +701,6 @@ def test_AllocDiag(v, offset):
                 np.array([[1.0], [2.0], [3.0], [4.0]], dtype=config.floatX),
             ),
             (0,),
-            True,
         ),
         (
             set_test_value(
@@ -714,12 +708,11 @@ def test_AllocDiag(v, offset):
                 np.array([[[1.0]]], dtype=config.floatX),
             ),
             (),
-            True,
         ),
     ],
 )
-def test_Dimshuffle(v, new_order, inplace):
-    g = aet_elemwise.DimShuffle(v.broadcastable, new_order, inplace=inplace)(v)
+def test_Dimshuffle(v, new_order):
+    g = aet_elemwise.DimShuffle(v.broadcastable, new_order)(v)
     g_fg = FunctionGraph(outputs=[g])
     compare_numba_and_py(
         g_fg,
