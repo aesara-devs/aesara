@@ -14,7 +14,7 @@ from aesara.tensor import _get_vector_length
 from aesara.tensor import basic as aet
 from aesara.tensor.exceptions import NotScalarConstantError
 from aesara.tensor.type import TensorType, int_dtypes, tensor
-from aesara.tensor.var import TensorConstant, TensorVariable
+from aesara.tensor.var import TensorConstant
 
 
 def register_shape_c_code(type, code, version=()):
@@ -570,15 +570,11 @@ class Reshape(COp):
         if len(shp) != self.ndim:
             raise ValueError(
                 (
-                    "shape argument to Reshape.perform has incorrect"
-                    f" length {len(shp)}"
-                    f", should be {self.ndim}"
+                    "Shape argument to Reshape has incorrect"
+                    f" length: {len(shp)}, should be {self.ndim}"
                 )
             )
-        try:
-            out[0] = np.reshape(x, shp)
-        except Exception:
-            raise ValueError(f"Cannot reshape input of shape {x.shape} to shape {shp}")
+        out[0] = np.reshape(x, shp)
 
     def connection_pattern(self, node):
         return [[True], [False]]
@@ -669,44 +665,38 @@ class Reshape(COp):
             ]
 
     def c_code_cache_version(self):
-        return (8,)
+        return (9,)
 
     def c_code(self, node, name, inputs, outputs, sub):
-        if isinstance(node.inputs[0], TensorVariable):
-            x, shp = inputs
-            (z,) = outputs
-            sdtype = node.inputs[1].type.dtype_specs()[1]
-            fail = sub["fail"]
-            params = sub["params"]
-            return (
-                """
-            assert (PyArray_NDIM(%(shp)s) == 1);
-            npy_intp new_dims[%(params)s->ndim];
-            PyArray_Dims newshape;
-            newshape.ptr = new_dims;
-            newshape.len = %(params)s->ndim;
-            for (int ii = 0; ii < %(params)s->ndim; ++ii)
-            {
-                // -- We do not want an explicit cast here. the shp can be any
-                // -- int* dtype. The compiler will explicitly upcast it, but
-                // -- will err if this will downcast. This could happen if the
-                // -- user pass an int64 dtype, but npy_intp endup being int32.
-                new_dims[ii] = ((%(sdtype)s*)(
-                        PyArray_BYTES(%(shp)s) +
-                        ii * PyArray_STRIDES(%(shp)s)[0]))[0];
-            }
-            Py_XDECREF(%(z)s);
-            %(z)s = (PyArrayObject *) PyArray_Newshape(%(x)s, &newshape, NPY_CORDER);
-            if (!%(z)s)
-            {
-                //The error message should have been set by PyArray_Newshape
-                %(fail)s;
-            }
-            """
-                % locals()
-            )
-        else:
-            raise NotImplementedError()
+        x, shp = inputs
+        (z,) = outputs
+        fail = sub["fail"]
+        params = sub["params"]
+        return f"""
+        assert (PyArray_NDIM({shp}) == 1);
+
+        PyArray_Dims newshape;
+
+        if (!PyArray_IntpConverter((PyObject *){shp}, &newshape)) {{
+            {fail};
+        }}
+
+        if ({params}->ndim != newshape.len) {{
+            PyErr_SetString(PyExc_ValueError, "Shape argument to Reshape has incorrect length");
+            PyDimMem_FREE(newshape.ptr);
+            {fail};
+        }}
+
+        Py_XDECREF({z});
+        {z} = (PyArrayObject *) PyArray_Newshape({x}, &newshape, NPY_CORDER);
+
+        PyDimMem_FREE(newshape.ptr);
+
+        if (!{z}) {{
+            //The error message should have been set by PyArray_Newshape
+            {fail};
+        }}
+        """
 
 
 def reshape(x, newshape, ndim=None):
