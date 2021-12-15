@@ -601,7 +601,7 @@ def test_jax_scan_tap_output():
 
 def test_jax_Subtensors():
     # Basic indices
-    x_aet = aet.arange(3 * 4 * 5).reshape((3, 4, 5))
+    x_aet = aet.as_tensor(np.arange(3 * 4 * 5).reshape((3, 4, 5)))
     out_aet = x_aet[1, 2, 0]
     assert isinstance(out_aet.owner.op, aet_subtensor.Subtensor)
     out_fg = FunctionGraph([], [out_aet])
