@@ -52,12 +52,12 @@ class TestDimShuffle(unittest_tools.InferShapeTester):
             ib = [(entry == 1) for entry in xsh]
             x = self.type(self.dtype, ib)("x")
             e = self.op(ib, shuffle)(x)
-            f = copy(linker).accept(FunctionGraph([x], [e])).make_function()
+            f = aesara.function([x], e, mode=Mode(linker=linker))
             assert f(np.ones(xsh, dtype=self.dtype)).shape == zsh
             # test that DimShuffle.infer_shape work correctly
             x = self.type(self.dtype, ib)("x")
             e = self.op(ib, shuffle)(x)
-            f = copy(linker).accept(FunctionGraph([x], [e.shape])).make_function()
+            f = aesara.function([x], e.shape, mode=Mode(linker=linker))
             assert all(f(np.ones(xsh, dtype=self.dtype))) == all(zsh)
 
         # Test when we drop a axis that is not broadcastable
@@ -70,7 +70,7 @@ class TestDimShuffle(unittest_tools.InferShapeTester):
         ib = [True, True, False]
         x = self.type(self.dtype, ib)("x")
         e = self.op(ib, (1, 2))(x)
-        f = copy(linker).accept(FunctionGraph([x], [e.shape])).make_function()
+        f = aesara.function([x], e.shape, mode=Mode(linker=linker))
         with pytest.raises(TypeError):
             f(np.ones((2, 1, 4)))
 
@@ -118,6 +118,25 @@ class TestDimShuffle(unittest_tools.InferShapeTester):
         y = x.dimshuffle(("x",) * (np.MAXDIMS + 1))
         with pytest.raises(ValueError):
             y.eval({x: 0})
+
+    def test_c_views(self):
+        x_at = vector()
+        thunk, inputs, outputs = (
+            CLinker().accept(FunctionGraph([x_at], [x_at[None]])).make_thunk()
+        )
+
+        # This is a little hackish, but we're hoping that--by running this more than
+        # a few times--we're more likely to run into random memory that isn't the same
+        # as the broadcasted value; that way, we'll be able to tell that we're getting
+        # junk data from a poorly constructed array view.
+        x_val = np.broadcast_to(2039, (5000,))
+        for i in range(1000):
+            inputs[0].storage[0] = x_val
+            thunk()
+            # Make sure it's a view of the original data
+            assert np.shares_memory(x_val, outputs[0].storage[0])
+            # Confirm the broadcasted value in the output
+            assert np.array_equiv(outputs[0].storage[0], 2039)
 
 
 class TestBroadcast:

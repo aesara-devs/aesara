@@ -468,7 +468,7 @@ class GpuDimShuffle(DimShuffle):
 
         res = input
 
-        res = res.transpose(self.shuffle + self.drop)
+        res = res.transpose(self.transposition)
 
         shape = list(res.shape[: len(self.shuffle)])
         for augm in self.augment:

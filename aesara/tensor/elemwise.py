@@ -119,47 +119,27 @@ class DimShuffle(ExternalCOp):
 
     @property
     def params_type(self):
-        # We can't directly create `params_type` as class attribute
-        # because of importation issues related to TensorType.
         return ParamsType(
-            input_broadcastable=TensorType(dtype="bool", broadcastable=(False,)),
-            _new_order=lvector,
-            transposition=TensorType(dtype="uint32", broadcastable=(False,)),
+            shuffle=lvector,
+            augment=lvector,
+            transposition=lvector,
             inplace=scalar_bool,
         )
 
-    @property
-    def _new_order(self):
-        # Param for C code.
-        # self.new_order may contain 'x', which is not a valid integer value.
-        # We replace it with -1.
-        return [(-1 if x == "x" else x) for x in self.new_order]
-
-    @property
-    def transposition(self):
-        return self.shuffle + self.drop
-
-    def __init__(self, input_broadcastable, new_order, inplace=True):
+    def __init__(self, input_broadcastable, new_order):
         super().__init__([self.c_func_file], self.c_func_name)
+
         self.input_broadcastable = tuple(input_broadcastable)
         self.new_order = tuple(new_order)
-        if inplace is True:
-            self.inplace = inplace
-        else:
-            raise ValueError(
-                "DimShuffle is inplace by default and hence the inplace for DimShuffle must be true"
-            )
+
+        self.inplace = True
 
         for i, j in enumerate(new_order):
             if j != "x":
-                # There is a bug in numpy that results in
-                # isinstance(x, integer_types) returning False for
-                # numpy integers.  See
-                # <http://projects.scipy.org/numpy/ticket/2235>.
                 if not isinstance(j, (int, np.integer)):
                     raise TypeError(
-                        "DimShuffle indices must be python ints. "
-                        f"Got: '{j}' of type '{type(j)}'."
+                        "DimShuffle indices must be Python ints; got "
+                        f"{j} of type {type(j)}."
                     )
                 if j >= len(input_broadcastable):
                     raise ValueError(
@@ -169,31 +149,30 @@ class DimShuffle(ExternalCOp):
                 if j in new_order[(i + 1) :]:
                     raise ValueError(
                         "The same input dimension may not appear "
-                        "twice in the list of output dimensions",
-                        new_order,
+                        f"twice in the list of output dimensions: {new_order}"
                     )
 
-        # list of dimensions of the input to drop
-        self.drop = []
+        # List of input dimensions to drop
+        drop = []
         for i, b in enumerate(input_broadcastable):
             if i not in new_order:
-                # we want to drop this dimension because it's not a value in
-                # new_order
-                if b == 1:  # 1 aka True
-                    self.drop.append(i)
+                # We want to drop this dimension because it's not a value in
+                # `new_order`
+                if b == 1:
+                    drop.append(i)
                 else:
-                    # we cannot drop non-broadcastable dimensions
+                    # We cannot drop non-broadcastable dimensions
                     raise ValueError(
-                        "You cannot drop a non-broadcastable dimension:",
-                        f" {input_broadcastable}, {new_order}",
+                        "Cannot drop a non-broadcastable dimension: "
+                        f"{input_broadcastable}, {new_order}"
                     )
 
-        # this is the list of the original dimensions that we keep
+        # This is the list of the original dimensions that we keep
         self.shuffle = [x for x in new_order if x != "x"]
-
-        # list of dimensions of the output that are broadcastable and were not
+        self.transposition = self.shuffle + drop
+        # List of dimensions of the output that are broadcastable and were not
         # in the original input
-        self.augment = [i for i, x in enumerate(new_order) if x == "x"]
+        self.augment = sorted([i for i, x in enumerate(new_order) if x == "x"])
 
         if self.inplace:
             self.view_map = {0: [0]}
@@ -241,27 +220,23 @@ class DimShuffle(ExternalCOp):
             return "DimShuffle{%s}" % ",".join(str(x) for x in self.new_order)
 
     def perform(self, node, inp, out, params):
-        (input,) = inp
+        (res,) = inp
         (storage,) = out
-        # drop
-        res = input
+
         if type(res) != np.ndarray and type(res) != np.memmap:
             raise TypeError(res)
 
-        # transpose
-        res = res.transpose(self.shuffle + self.drop)
+        res = res.transpose(self.transposition)
 
-        # augment
         shape = list(res.shape[: len(self.shuffle)])
         for augm in self.augment:
             shape.insert(augm, 1)
         res = res.reshape(shape)
 
-        # copy (if not inplace)
         if not self.inplace:
             res = np.copy(res)
 
-        storage[0] = np.asarray(res)  # asarray puts scalars back into array
+        storage[0] = np.asarray(res)
 
     def infer_shape(self, fgraph, node, shapes):
         (ishp,) = shapes

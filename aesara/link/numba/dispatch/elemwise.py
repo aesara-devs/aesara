@@ -319,7 +319,7 @@ def numba_funcify_CAReduce(op, node, **kwargs):
 @numba_funcify.register(DimShuffle)
 def numba_funcify_DimShuffle(op, **kwargs):
     shuffle = tuple(op.shuffle)
-    drop = tuple(op.drop)
+    transposition = tuple(op.transposition)
     augment = tuple(op.augment)
     inplace = op.inplace
 
@@ -352,7 +352,7 @@ def numba_funcify_DimShuffle(op, **kwargs):
 
         @numba.njit
         def dimshuffle_inner(x, shuffle):
-            res = np.transpose(x, shuffle + drop)
+            res = np.transpose(x, transposition)
             shuffle_shape = res.shape[: len(shuffle)]
 
             new_shape = create_zeros_tuple()

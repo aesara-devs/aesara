@@ -856,7 +856,7 @@ def test_jax_Dimshuffle():
     compare_jax_and_py(x_fg, [np.c_[[1.0, 2.0, 3.0, 4.0]].astype(config.floatX)])
 
     a_aet = tensor(dtype=config.floatX, broadcastable=[False, True])
-    x = aet_elemwise.DimShuffle([False, True], (0,), inplace=True)(a_aet)
+    x = aet_elemwise.DimShuffle([False, True], (0,))(a_aet)
     x_fg = FunctionGraph([a_aet], [x])
     compare_jax_and_py(x_fg, [np.c_[[1.0, 2.0, 3.0, 4.0]].astype(config.floatX)])
 

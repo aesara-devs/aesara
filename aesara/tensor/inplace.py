@@ -399,4 +399,4 @@ pprint.assign(pow_inplace, printing.OperatorPrinter("**=", 1, "right"))
 def transpose_inplace(x, **kwargs):
     "Perform a transpose on a tensor without copying the underlying storage"
     dims = list(range(x.ndim - 1, -1, -1))
-    return DimShuffle(x.broadcastable, dims, inplace=True)(x)
+    return DimShuffle(x.broadcastable, dims)(x)
