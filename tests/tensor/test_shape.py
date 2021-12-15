@@ -222,6 +222,10 @@ class TestReshape(utt.InferShapeTester, utt.OptimizationTestMixin):
             f(a_val, [7, 5])
         with pytest.raises(ValueError):
             f(a_val, [-1, -1])
+        with pytest.raises(
+            ValueError, match=".*Shape argument to Reshape has incorrect length.*"
+        ):
+            f(a_val, [3, 4, 1])
 
     def test_0(self):
         x = fvector("x")
@@ -267,14 +271,14 @@ class TestReshape(utt.InferShapeTester, utt.OptimizationTestMixin):
             [admat], [Reshape(ndim)(admat, [-1, 4])], [admat_val], Reshape
         )
 
-        # enable when infer_shape is generalized:
-        # self._compile_and_check([admat, aivec],
-        #                        [Reshape(ndim)(admat, aivec)],
-        #                        [admat_val, [4, 3]], Reshape)
-        #
-        # self._compile_and_check([admat, aivec],
-        #                        [Reshape(ndim)(admat, aivec)],
-        #                        [admat_val, [4, -1]], Reshape)
+        aivec = ivector()
+        self._compile_and_check(
+            [admat, aivec], [Reshape(ndim)(admat, aivec)], [admat_val, [4, 3]], Reshape
+        )
+
+        self._compile_and_check(
+            [admat, aivec], [Reshape(ndim)(admat, aivec)], [admat_val, [4, -1]], Reshape
+        )
 
         adtens4 = dtensor4()
         ndim = 4
@@ -287,14 +291,19 @@ class TestReshape(utt.InferShapeTester, utt.OptimizationTestMixin):
             [adtens4], [Reshape(ndim)(adtens4, [1, 3, 10, 4])], [adtens4_val], Reshape
         )
 
-        # enable when infer_shape is generalized:
-        # self._compile_and_check([adtens4, aivec],
-        #                        [Reshape(ndim)(adtens4, aivec)],
-        #                        [adtens4_val, [1, -1, 10, 4]], Reshape)
-        #
-        # self._compile_and_check([adtens4, aivec],
-        #                        [Reshape(ndim)(adtens4, aivec)],
-        #                        [adtens4_val, [1, 3, 10, 4]], Reshape)
+        self._compile_and_check(
+            [adtens4, aivec],
+            [Reshape(ndim)(adtens4, aivec)],
+            [adtens4_val, [1, -1, 10, 4]],
+            Reshape,
+        )
+
+        self._compile_and_check(
+            [adtens4, aivec],
+            [Reshape(ndim)(adtens4, aivec)],
+            [adtens4_val, [1, 3, 10, 4]],
+            Reshape,
+        )
 
 
 def test_shape_i_hash():
