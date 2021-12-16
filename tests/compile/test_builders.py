@@ -19,12 +19,28 @@ from aesara.tensor.math import round as aet_round
 from aesara.tensor.math import sigmoid
 from aesara.tensor.math import sum as aet_sum
 from aesara.tensor.random.utils import RandomStream
+from aesara.tensor.shape import specify_shape
 from aesara.tensor.type import TensorType, matrices, matrix, scalar, vector, vectors
 from tests import unittest_tools
 from tests.graph.utils import MyVariable
 
 
 class TestOpFromGraph(unittest_tools.InferShapeTester):
+    def test_valid_input(self):
+        x, y, z = matrices("xyz")
+
+        with pytest.raises(TypeError):
+            OpFromGraph((x,), (x,))
+
+        with pytest.raises(TypeError):
+            OpFromGraph([1], [1])
+
+        with pytest.raises(TypeError):
+            OpFromGraph([x, as_tensor(1)], [x])
+
+        with pytest.raises(NotImplementedError):
+            OpFromGraph([x], [x], updates={})
+
     @pytest.mark.parametrize(
         "cls_ofg", [OpFromGraph, partial(OpFromGraph, inline=True)]
     )
@@ -39,9 +55,6 @@ class TestOpFromGraph(unittest_tools.InferShapeTester):
         xv = np.ones((2, 2), dtype=config.floatX)
         yv = np.ones((2, 2), dtype=config.floatX) * 3
         zv = np.ones((2, 2), dtype=config.floatX) * 5
-        # print function, function.__module__
-        # print fn.maker.fgraph.toposort()
-        fn(xv, yv, zv)
         assert np.all(8.0 == fn(xv, yv, zv))
         assert np.all(8.0 == fn(xv, yv, zv))
 
@@ -412,7 +425,7 @@ class TestOpFromGraph(unittest_tools.InferShapeTester):
         # shape
         x = MyVariable("x")
         y = matrix("y")
-        z = as_tensor([1, 2])
+        z = specify_shape(vector("z"), (2,))
 
         op_graph = OpFromGraph([x, y, z], [x, y])
 
