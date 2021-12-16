@@ -64,7 +64,7 @@ def alias_root(v):
     v_views = vmap.get(outpos, []) + dmap.get(outpos, [])
     if len(v_views) > 1:
         raise NotImplementedError(
-            str(v) + " is a view/destroyed version of more then one inputs. "
+            f"{v} is a view/destroyed version of more then one inputs. "
             "Currently, we only support the case where an output is a view or "
             "a destroyed version of one input."
         )
@@ -192,9 +192,7 @@ def std_fgraph(input_specs, output_specs, accept_inplace=False):
     for node in fgraph.apply_nodes:
         if node.op.destroy_map:
             if not accept_inplace:
-                raise TypeError(
-                    "Graph must not contain inplace operations", node, node.op
-                )
+                raise TypeError(f"Graph must not contain inplace operations: {node}")
             else:
                 fgraph.attach_feature(DestroyHandler())
                 break
@@ -1333,7 +1331,9 @@ class FunctionMaker:
             if len(input) == 2:
                 return SymbolicInput(input[0], update=input[1])
             else:
-                raise TypeError("Expected two elements in the list or tuple.", input)
+                raise TypeError(
+                    f"Expected two elements in the list or tuple; got {input}"
+                )
         else:
             raise TypeError(
                 f"Unknown input type: {type(input)} ({input}), expected Variable "
@@ -1748,10 +1748,9 @@ class FunctionMaker:
                     raise UnusedInputError(msg % (inputs.index(i), i.variable, err_msg))
                 else:
                     raise ValueError(
-                        "Invalid value for keyword "
-                        "on_unused_input of aesara.function: "
-                        "'%s'.\nValid values are 'raise', "
-                        "'warn', and 'ignore'." % on_unused_input
+                        "Invalid value for keyword on_unused_input of aesara.function: "
+                        f"'{on_unused_input}'.\n"
+                        "Valid values are 'raise', 'warn', and 'ignore'."
                     )
 
     def create(self, input_storage=None, trustme=False, storage_map=None):
@@ -2016,7 +2015,7 @@ def convert_function_input(input):
     if isinstance(input, SymbolicInput):
         return input
     elif isinstance(input, Constant):
-        raise TypeError("A Constant instance is not a legal function input", input)
+        raise TypeError(f"A Constant instance is not a legal function input: {input}")
     elif isinstance(input, Variable):
         return In(input)
     elif isinstance(input, (list, tuple)):
@@ -2059,13 +2058,11 @@ def convert_function_input(input):
 
         if not isinstance(variable, Variable):
             raise TypeError(
-                f"Unknown input type: {type(variable)}, expected Variable instance",
-                variable,
+                f"Unknown input type: {type(variable)}, expected Variable instance"
             )
         if update is not None and not isinstance(update, Variable):
             raise TypeError(
-                f"Unknown update type: {type(update)}, expected Variable instance",
-                update,
+                f"Unknown update type: {type(update)}, expected Variable instance"
             )
         if value is not None and isinstance(value, (Variable, SymbolicInput)):
             raise TypeError(
@@ -2076,7 +2073,7 @@ def convert_function_input(input):
         return In(variable, name=name, value=value, update=update)
     else:
         raise TypeError(
-            f"Unknown input type: {type(input)}, expected Variable instance", input
+            f"Unknown input type: {type(input)}, expected Variable instance"
         )
 
 
