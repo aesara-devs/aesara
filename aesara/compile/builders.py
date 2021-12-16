@@ -11,6 +11,7 @@ from aesara.configdefaults import config
 from aesara.gradient import DisconnectedType, Rop, grad
 from aesara.graph.basic import (
     Apply,
+    Constant,
     Variable,
     clone_replace,
     graph_inputs,
@@ -331,13 +332,21 @@ class OpFromGraph(Op, HasInnerGraph):
         name=None,
         **kwargs,
     ):
-        if not isinstance(outputs, list):
-            raise TypeError(f"outputs must be list, got {type(outputs)}")
+
+        if not (isinstance(inputs, list) and isinstance(outputs, list)):
+            raise TypeError("Inputs and outputs must be lists")
+
         for i in inputs + outputs:
             if not isinstance(i, Variable):
-                raise TypeError("inputs and outputs must be Variable instances", i)
+                raise TypeError(
+                    f"Inputs and outputs must be Variable instances; got {i}"
+                )
+            if i in inputs and isinstance(i, Constant):
+                raise TypeError(f"Constants not allowed as inputs; {i}")
+
         if "updates" in kwargs or "givens" in kwargs:
-            raise TypeError("updates and givens are not allowed here")
+            raise NotImplementedError("Updates and givens are not allowed here")
+
         self.is_inline = inline
         # To correctly support shared variables the inner fct should
         # not see them. Otherwise there is a problem with the gradient.
