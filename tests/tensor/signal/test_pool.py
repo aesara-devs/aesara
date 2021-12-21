@@ -19,10 +19,12 @@ from aesara.tensor.signal.pool import (
 )
 from aesara.tensor.type import (
     TensorType,
+    fmatrix,
     dmatrix,
     dtensor3,
     dtensor4,
     ftensor4,
+    ftensor3,
     ivector,
     tensor,
     tensor4,
@@ -1291,7 +1293,7 @@ class TestDownsampleFactorMax(utt.InferShapeTester):
                 utt.assert_allclose(var_dx, fix_dx)
 
     def test_pool_2d_checks(self):
-        x = ftensor4()
+        x = fmatrix()
 
         with pytest.raises(
                 ValueError,
@@ -1305,7 +1307,7 @@ class TestDownsampleFactorMax(utt.InferShapeTester):
 
         with pytest.raises(
                 ValueError,
-                match="You can't provide a tuple value to both 'st and 'stride'. Please provide a value only to 'stride'."):
+                match=r"You can't provide a tuple value to both 'st and 'stride'."):
             pool_2d(input=x, ws=(1, 1), st=(1,1), stride=(1, 1))
 
         with pytest.raises(
@@ -1315,5 +1317,32 @@ class TestDownsampleFactorMax(utt.InferShapeTester):
 
         with pytest.deprecated_call():
             out = pool_2d(input=x, ws=(1, 1))
+        assert not out.owner.op.ignore_border
+
+    def test_pool_3d_checks(self):
+        x = ftensor3()
+
+        with pytest.raises(
+                ValueError,
+                match=r"You can't provide a tuple value to both 'ws' and 'ds'."):
+            pool_3d(input=x, ds=(1, 1, 1), ws=(1, 1, 1))
+
+        with pytest.raises(
+                ValueError,
+                match="You must provide a tuple value for the window size."):
+            pool_3d(input=x)
+
+        with pytest.raises(
+                ValueError,
+                match=r"You can't provide a tuple value to both 'st and 'stride'"):
+            pool_3d(input=x, ws=(1, 1, 1), st=(1, 1, 1), stride=(1, 1, 1))
+
+        with pytest.raises(
+                NotImplementedError,
+                match="pool_3d requires a dimension >= 3"):
+            pool_3d(input=fmatrix(), ws=(1, 1, 1))
+
+        with pytest.deprecated_call():
+            out = pool_3d(input=x, ws=(1, 1, 1))
         assert not out.owner.op.ignore_border
 
