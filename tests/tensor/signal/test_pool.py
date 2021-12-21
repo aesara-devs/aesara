@@ -1289,3 +1289,31 @@ class TestDownsampleFactorMax(utt.InferShapeTester):
                 fix_y, fix_dx = fix_fct(data)
                 utt.assert_allclose(var_y, fix_y)
                 utt.assert_allclose(var_dx, fix_dx)
+
+    def test_pool_2d_checks(self):
+        x = ftensor4()
+
+        with pytest.raises(
+                ValueError,
+                match=r"You can't provide a tuple value to both 'ws' and 'ds'."):
+            pool_2d(input=x, ds=(1,1), ws=(1, 1))
+
+        with pytest.raises(
+                ValueError,
+                match="You must provide a tuple value for the window size."):
+            pool_2d(input=x)
+
+        with pytest.raises(
+                ValueError,
+                match="You can't provide a tuple value to both 'st and 'stride'. Please provide a value only to 'stride'."):
+            pool_2d(input=x, ws=(1, 1), st=(1,1), stride=(1, 1))
+
+        with pytest.raises(
+                NotImplementedError,
+                match="pool_2d requires a dimension >= 2"):
+            pool_2d(input=vector(), ws=(1, 1))
+
+        with pytest.deprecated_call():
+            out = pool_2d(input=x, ws=(1, 1))
+        assert not out.owner.op.ignore_border
+
