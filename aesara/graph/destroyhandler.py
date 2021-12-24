@@ -411,8 +411,6 @@ class DestroyHandler(Bookkeeper):  # noqa
             def recursive_destroys_finder(protected_var):
                 # protected_var is the idx'th input of app.
                 for (app, idx) in fgraph.clients[protected_var]:
-                    if app == "output":
-                        continue
                     destroy_maps = app.op.destroy_map.values()
                     # If True means that the apply node, destroys the protected_var.
                     if idx in [dmap for sublist in destroy_maps for dmap in sublist]:
@@ -583,51 +581,46 @@ class DestroyHandler(Bookkeeper):  # noqa
         if app in self.fail_validate:
             del self.fail_validate[app]
 
-    def on_change_input(self, fgraph, app, i, old_r, new_r, reason):
-        """
-        app.inputs[i] changed from old_r to new_r.
+    # def on_replace_nodes(self, fgraph, pairs_to_replace, unused_vars, old_clients, memo, reason=None):
+    #     """
+    #     app.inputs[i] changed from old_r to new_r.
 
-        """
-        if app == "output":
-            # app == 'output' is special key that means FunctionGraph is redefining which nodes are being
-            # considered 'outputs' of the graph.
-            pass
-        else:
-            if app not in self.debug_all_apps:
-                raise ProtocolError("change without import")
+    #     """
+    #     if app not in self.debug_all_apps:
+    #         raise ProtocolError("change without import")
 
-            # UPDATE self.clients
-            self.clients[old_r][app] -= 1
-            if self.clients[old_r][app] == 0:
-                del self.clients[old_r][app]
+    #     # UPDATE self.clients
+    #     self.clients[old_r][app] -= 1
+    #     if self.clients[old_r][app] == 0:
+    #         del self.clients[old_r][app]
 
-            self.clients.setdefault(new_r, OrderedDict()).setdefault(app, 0)
-            self.clients[new_r][app] += 1
+    #     self.clients.setdefault(new_r, OrderedDict()).setdefault(app, 0)
+    #     self.clients[new_r][app] += 1
 
-            # UPDATE self.view_i, self.view_o
-            for o_idx, i_idx_list in app.op.view_map.items():
-                if len(i_idx_list) > 1:
-                    # destroying this output invalidates multiple inputs
-                    raise NotImplementedError()
-                i_idx = i_idx_list[0]
-                output = app.outputs[o_idx]
-                if i_idx == i:
-                    if app.inputs[i_idx] is not new_r:
-                        raise ProtocolError("wrong new_r on change")
+    #     # UPDATE self.view_i, self.view_o
+    #     for o_idx, i_idx_list in app.op.view_map.items():
+    #         if len(i_idx_list) > 1:
+    #             # destroying this output invalidates multiple inputs
+    #             raise NotImplementedError()
+    #         i_idx = i_idx_list[0]
+    #         output = app.outputs[o_idx]
+    #         if i_idx == i:
+    #             if app.inputs[i_idx] is not new_r:
+    #                 raise ProtocolError("wrong new_r on change")
 
-                    self.view_i[output] = new_r
+    #             self.view_i[output] = new_r
 
-                    self.view_o[old_r].remove(output)
-                    if not self.view_o[old_r]:
-                        del self.view_o[old_r]
+    #             self.view_o[old_r].remove(output)
+    #             if not self.view_o[old_r]:
+    #                 del self.view_o[old_r]
 
-                    self.view_o.setdefault(new_r, OrderedSet()).add(output)
+    #             self.view_o.setdefault(new_r, OrderedSet()).add(output)
 
-            if self.algo == "fast":
-                if app in self.fail_validate:
-                    del self.fail_validate[app]
-                self.fast_destroy(fgraph, app, reason)
-        self.stale_droot = True
+    #     if self.algo == "fast":
+    #         if app in self.fail_validate:
+    #             del self.fail_validate[app]
+    #         self.fast_destroy(fgraph, app, reason)
+    #     self.stale_droot = True
 
     def validate(self, fgraph):
         """

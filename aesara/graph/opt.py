@@ -531,19 +531,21 @@ class MergeFeature(Feature):
         for node in fgraph.toposort():
             self.on_import(fgraph, node, "on_attach")
 
-    def on_change_input(self, fgraph, node, i, r, new_r, reason):
+    def on_replace_nodes(
+        self, fgraph, pairs_to_replace, unused_vars, old_clients, memo, reason=None
+    ):
         # If inputs to node change, it is not guaranteed that it is distinct
         # from the other nodes in nodes_seen
-        if node in self.nodes_seen:
-            self.nodes_seen.discard(node)
-            self.process_node(fgraph, node)
+        for old_var, new_var in memo.items():
+            if old_var.owner and new_var.owner:
+                node = old_var.owner
+                new_node = new_var.owner
+                if node in self.nodes_seen:
+                    self.nodes_seen.discard(node)
+                    self.process_node(fgraph, new_node)
 
-        # Since we are in on_change_input, node should have inputs.
-        if not isinstance(node, str):
-            assert node.inputs
-
-        if isinstance(new_r, Constant):
-            self.process_constant(fgraph, new_r)
+            if isinstance(new_var, Constant):
+                self.process_constant(fgraph, new_var)
 
     def on_import(self, fgraph, node, reason):
         for c in node.inputs:
@@ -801,6 +803,7 @@ class MergeOptimizer(GlobalOptimizer):
 
         nb_merged = 0
         nb_constant = 0
+        memo = {}
         while sched:
             pairs_list = sched.pop()
             success = True
@@ -814,13 +817,24 @@ class MergeOptimizer(GlobalOptimizer):
                 # skipped by validate() if the graph doesn't contain
                 # destroyers.
                 var, candidate, merge_mode = pairs_[0]
+
+                def get_latest_var(_var):
+                    while _var in memo.keys():
+                        _var = memo[_var]
+                    return _var
+
+                var = get_latest_var(var)
+                candidate = get_latest_var(candidate)
                 if merge_mode == "new_node" and var in fgraph.variables:
                     pass
                 elif var not in fgraph.variables or candidate not in fgraph.variables:
                     continue
 
                 # Keep len(item) == 2 for item in pairs
-                pairs = [pair[:2] for pair in pairs_]
+                pairs = [
+                    (get_latest_var(pair[0]), get_latest_var(pair[1]))
+                    for pair in pairs_
+                ]
 
                 if var.owner and candidate.owner:
                     node = var.owner
@@ -868,7 +882,7 @@ class MergeOptimizer(GlobalOptimizer):
                                 [
                                     i in flatten(c.op.destroy_map.values())
                                     for c, i in clients
-                                    if c != "output" and c.op.destroy_map
+                                    if c.op.destroy_map
                                 ]
                             )
                             > 1
@@ -889,9 +903,13 @@ class MergeOptimizer(GlobalOptimizer):
                     # Only need to check one of the var of each pairs.
                     # If it is a Constant, the other must also be a Constant as we merge them.
                     if all([isinstance(old, Constant) for old, new in pairs]):
-                        fgraph.replace_all(pairs, reason="MergeOptimizer")
+                        repl_dict = {old: new for old, new in pairs}
+                        new_reps, _ = fgraph.replace(repl_dict, reason="MergeOptimizer")
                     else:
-                        fgraph.replace_all_validate(pairs, reason="MergeOptimizer")
+                        new_reps, _ = fgraph.replace_all_validate(
+                            pairs, reason="MergeOptimizer"
+                        )
+                    memo.update(new_reps)
                 except InconsistencyError:
                     success = False
                     nb_fail += 1
@@ -1738,8 +1756,6 @@ class PatternSub(LocalOptimizer):
 
         if get_nodes and self.get_nodes is not None:
             for real_node in self.get_nodes(fgraph, node):
-                if real_node == "output":
-                    continue
                 ret = self.transform(fgraph, real_node, get_nodes=False)
                 if ret is not False and ret is not None:
                     return dict(zip(real_node.outputs, ret))
@@ -1825,9 +1841,9 @@ class Updater(Feature):
         if self.pruner:
             self.pruner(node)
 
-    def on_change_input(self, fgraph, node, i, r, new_r, reason):
-        if self.chin:
-            self.chin(node, i, r, new_r, reason)
+    # def on_replace_nodes(self, fgraph, pairs_to_replace, unused_vars, old_clients, memo, reason=None):
+    # if self.chin:
+    #     self.chin(node, new_node, i, reason)
 
     def on_detach(self, fgraph):
         # To allow pickling this object
@@ -1995,11 +2011,11 @@ class NavigatorOptimizer(GlobalOptimizer):
                 self.failure_callback(
                     e, self, [(x, None) for x in node.outputs], lopt, node
                 )
-                return False
+                return False, {}
             else:
                 raise
         if replacements is False or replacements is None:
-            return False
+            return False, {}
         old_vars = node.outputs
         remove = []
         if isinstance(replacements, dict):
@@ -2033,10 +2049,12 @@ class NavigatorOptimizer(GlobalOptimizer):
         ]
 
         if len(repl_pairs) == 0:
-            return False
+            return False, {}
         try:
-            fgraph.replace_all_validate_remove(repl_pairs, reason=lopt, remove=remove)
-            return True
+            memo = fgraph.replace_all_validate_remove(
+                repl_pairs, reason=lopt, remove=remove
+            )
+            return True, memo
         except Exception as e:
             # This means the replacements were rejected by the fgraph.
             #
@@ -2044,7 +2062,7 @@ class NavigatorOptimizer(GlobalOptimizer):
             # will print a traceback as a warning.
             if self.failure_callback is not None:
                 self.failure_callback(e, self, repl_pairs, lopt, node)
-                return False
+                return False, {}
             else:
                 raise
 
@@ -2089,6 +2107,7 @@ class TopoOptimizer(NavigatorOptimizer):
             fgraph, importer, None, name=getattr(self, "name", None)
         )
         nb = 0
+        memo = {}
         try:
             t0 = time.time()
             while q:
@@ -2096,10 +2115,15 @@ class TopoOptimizer(NavigatorOptimizer):
                     node = q.pop()
                 else:
                     node = q.popleft()
-                if node not in fgraph.apply_nodes:
+                new_node = node
+                while new_node.out in memo.keys():
+                    new_node = memo[new_node.out].owner
+                if new_node not in fgraph.apply_nodes:
                     continue
-                current_node = node
-                nb += self.process_node(fgraph, node)
+                current_node = new_node
+                a, curr_memo = self.process_node(fgraph, new_node)
+                nb += a
+                memo.update(curr_memo)
             loop_t = time.time() - t0
         finally:
             self.detach_updater(fgraph, u)
@@ -2251,7 +2275,9 @@ class ChangeTracker(Feature):
         self.nb_imported += 1
         self.changed = True
 
-    def on_change_input(self, fgraph, node, i, r, new_r, reason):
+    def on_replace_nodes(
+        self, fgraph, pairs_to_replace, unused_vars, old_clients, memo, reason=None
+    ):
         self.changed = True
 
     def reset(self):
@@ -2468,7 +2494,7 @@ class EquilibriumOptimizer(NavigatorOptimizer):
                     for lopt in self.local_tracker.get_trackers(node.op):
                         nb = change_tracker.nb_imported
                         t_opt = time.time()
-                        lopt_change = self.process_node(fgraph, node, lopt)
+                        lopt_change, _ = self.process_node(fgraph, node, lopt)
                         time_opts[lopt] += time.time() - t_opt
                         if not lopt_change:
                             continue

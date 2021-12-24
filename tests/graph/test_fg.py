@@ -37,13 +37,10 @@ class TestFunctionGraph:
         with pytest.raises(TypeError):
             FunctionGraph([var1], var2)
 
-        with pytest.raises(ValueError):
-            var3 = op1(var1)
-            FunctionGraph([var3], [var2], clone=False)
-
-        with pytest.raises(ValueError):
-            var3 = op1(var1)
-            FunctionGraph([var3], clone=False)
+        # Will no longer raise because Apply nodes now allowed as inputs
+        # with pytest.raises(ValueError):
+        var3 = op1(var1)
+        FunctionGraph([var3], [var2], clone=False)
 
     def test_init(self):
         var1 = MyVariable("var1")
@@ -59,8 +56,8 @@ class TestFunctionGraph:
         assert fg.variables == {var1, var2, var3, var4}
         assert fg.get_clients(var1) == [(var3.owner, 0)]
         assert fg.get_clients(var2) == [(var4.owner, 1)]
-        assert fg.get_clients(var3) == [(var4.owner, 0), ("output", 0)]
-        assert fg.get_clients(var4) == [("output", 1)]
+        assert fg.get_clients(var3) == [(var4.owner, 0)]
+        assert fg.outputs == [var3, var4]
 
         varC = MyConstant("varC")
         var5 = op1(var1, varC)
@@ -182,39 +179,6 @@ class TestFunctionGraph:
 
             fg.import_var(NullType()(), "testing")
 
-    def test_change_input(self):
-
-        var1 = MyVariable("var1")
-        var2 = MyVariable("var2")
-        var3 = op1(var2, var1)
-        var4 = op2(var3, var2)
-        var5 = op3(var4, var2, var2)
-        fg = FunctionGraph([var1, var2], [var3, var5], clone=False)
-
-        var6 = MyVariable2("var6")
-        with pytest.raises(TypeError):
-            fg.change_input("output", 1, var6)
-
-        with pytest.raises(TypeError):
-            fg.change_input(var5.owner, 1, var6)
-
-        old_apply_nodes = set(fg.apply_nodes)
-        old_variables = set(fg.variables)
-        old_var5_clients = list(fg.get_clients(var5))
-
-        # We're replacing with the same variable, so nothing should happen
-        fg.change_input(var5.owner, 1, var2)
-
-        assert old_apply_nodes == fg.apply_nodes
-        assert old_variables == fg.variables
-        assert old_var5_clients == fg.get_clients(var5)
-
-        # Perform a valid `Apply` node input change
-        fg.change_input(var5.owner, 1, var1)
-
-        assert var5.owner.inputs[1] is var1
-        assert (var5.owner, 1) not in fg.get_clients(var2)
-
     @config.change_flags(compute_test_value="raise")
     def test_replace_test_value(self):
 
@@ -234,7 +198,7 @@ class TestFunctionGraph:
         assert var6.tag.test_value.shape != var4.tag.test_value.shape
 
         with pytest.raises(AssertionError, match="The replacement.*"):
-            fg.replace(var4, var6)
+            fg.replace({var4: var6})
 
     def test_replace(self):
 
@@ -248,13 +212,25 @@ class TestFunctionGraph:
         with pytest.raises(TypeError):
             var0 = MyVariable2("var0")
             # The types don't match and one cannot be converted to the other
-            fg.replace(var3, var0)
+            fg.replace({var3: var0})
 
         # Test a basic replacement
-        fg.replace_all([(var3, var1)])
+        fg.replace({var3: var1})
         assert var3 not in fg.variables
-        assert fg.apply_nodes == {var4.owner, var5.owner}
-        assert var4.owner.inputs == [var1, var2]
+
+        apply_nodes = list(fg.apply_nodes)
+        # There should be two apply nodes
+        assert len(apply_nodes) == 2
+
+        if apply_nodes[0].op == op3:
+            new_var5, new_var4 = apply_nodes
+        else:
+            new_var4, new_var5 = apply_nodes
+        # The remaining node is an var4 with var1 and var2 as inputs
+        assert new_var4.inputs == [var1, var2]
+        # The other node is a new var5 which needs to be cloned
+        # since it depends on var4
+        assert new_var5.inputs == [new_var4.out, var2, var2]
 
     def test_replace_verbose(self, capsys):
 
@@ -263,12 +239,37 @@ class TestFunctionGraph:
         var3 = op1(var2, var1)
         fg = FunctionGraph([var1, var2], [var3], clone=False)
 
-        fg.replace(var3, var1, reason="test-reason", verbose=True)
+        fg.replace({var3: var1}, reason="test-reason", verbose=True)
 
         capres = capsys.readouterr()
         assert capres.err == ""
         assert "optimizer: rewrite test-reason replaces Op1.0 with var1" in capres.out
 
+    def test_replace_not_inplace(self):
+        var1 = MyVariable("var1")
+        var2 = MyVariable("var2")
+        var3 = op1(var2, var1)
+        var3.name = "var3"
+        var30 = op1(var1, var2)
+        var30.name = "var30"
+        var4 = op2(var3, var2, var30)
+        var4.name = "var4"
+        var5 = op3(var4, var2, var2)
+        var5.name = "var5"
+        fg = FunctionGraph([var1, var2], [var3, var5])
+
+        assert var30 in fg.variables
+
+        fg.replace({var4: var1})
+
+        new_var5 = fg.outputs[1]
+        assert new_var5 is not var5
+        assert fg.variables == {var1, var2, var3, new_var5}
+        assert var4.owner not in fg.apply_nodes
+        assert var4 not in new_var5.owner.inputs
+        assert fg.apply_nodes == {var3.owner, new_var5.owner}
+
+    @pytest.mark.xfail(reason="Behavior not accounted for")
     def test_replace_circular(self):
         """`FunctionGraph` allows cycles--for better or worse."""
 
@@ -279,7 +280,7 @@ class TestFunctionGraph:
         var5 = op3(var4, var2, var2)
         fg = FunctionGraph([var1, var2], [var3, var5], clone=False)
 
-        fg.replace_all([(var3, var4)])
+        fg.replace({var3: var4})
 
         # The following works (and is kind of gross), because `var4` has been
         # mutated in-place
@@ -287,7 +288,6 @@ class TestFunctionGraph:
         assert var4.owner.inputs == [var4, var2]
 
     def test_replace_bad_state(self):
-
         var1 = MyVariable("var1")
         var2 = MyVariable("var2")
         var3 = op1(var2, var1)
@@ -300,7 +300,7 @@ class TestFunctionGraph:
 
             # FIXME TODO XXX: This breaks the state of the `FunctionGraph`,
             # because it doesn't check for validity of the replacement *first*.
-            fg.replace(var1, var0, verbose=True)
+            fg.replace({var1: var0}, verbose=True)
 
     def test_check_integrity(self):
 
@@ -341,15 +341,6 @@ class TestFunctionGraph:
 
         fg.variables.remove(var6)
         var5.owner.inputs.remove(var6)
-
-        # TODO: What if the index value is greater than 1?  It will throw an
-        # `IndexError`, but that doesn't sound like anything we'd want.
-        with pytest.raises(Exception, match="Inconsistent clients list.*"):
-            fg.add_client(var4, ("output", 1))
-
-            fg.check_integrity()
-
-        fg.remove_client(var4, ("output", 1))
 
         with pytest.raises(Exception, match="Client not in FunctionGraph.*"):
             fg.add_client(var4, (var6.owner, 0))

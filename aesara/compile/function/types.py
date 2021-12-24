@@ -82,8 +82,6 @@ def view_tree_set(fgraph, v, treeset):
     """
     treeset.add(v)
     for cl, v_input_pos_to_cl in fgraph.clients[v]:
-        if cl == "output":
-            continue
         vmap = cl.op.view_map
         dmap = cl.op.destroy_map
         for opos, iposlist in chain(vmap.items(), dmap.items()):
@@ -1221,12 +1219,14 @@ def insert_deepcopy(fgraph, wrapped_inputs, wrapped_outputs):
             # and not(wrapped_outputs[i].borrow and wrapped_outputs[j].borrow):
             if fgraph.outputs[j] in views_of_output_i:
                 if wrapped_outputs[i].borrow and wrapped_outputs[j].borrow:
-                    fgraph.change_input(
-                        "output", i, view_op(fgraph.outputs[i]), reason=reason
+                    fgraph.replace(
+                        fgraph.outputs[i], view_op(fgraph.outputs[i]), reason=reason
                     )
                 else:
-                    fgraph.change_input(
-                        "output", i, deep_copy_op(fgraph.outputs[i]), reason=reason
+                    fgraph.replace(
+                        fgraph.outputs[i],
+                        deep_copy_op(fgraph.outputs[i]),
+                        reason=reason,
                     )
                 copied = True
                 break
@@ -1248,33 +1248,29 @@ def insert_deepcopy(fgraph, wrapped_inputs, wrapped_outputs):
                     if input_j in fgraph.inputs:
                         j = fgraph.inputs.index(input_j)
                         if wrapped_outputs[i].borrow and wrapped_inputs[j].borrow:
-                            fgraph.change_input(
-                                "output",
-                                i,
+                            fgraph.replace(
+                                fgraph.outputs[i],
                                 view_op(fgraph.outputs[i]),
                                 reason="insert_deepcopy",
                             )
                             break
                         else:
-                            fgraph.change_input(
-                                "output",
-                                i,
+                            fgraph.replace(
+                                fgraph.outputs[i],
                                 deep_copy_op(fgraph.outputs[i]),
                                 reason="insert_deepcopy",
                             )
                             break
                     elif wrapped_outputs[i].borrow:
-                        fgraph.change_input(
-                            "output",
-                            i,
+                        fgraph.replace(
+                            fgraph.outputs[i],
                             view_op(fgraph.outputs[i]),
                             reason="insert_deepcopy",
                         )
                         break
                     else:
-                        fgraph.change_input(
-                            "output",
-                            i,
+                        fgraph.replace(
+                            fgraph.outputs[i],
                             deep_copy_op(fgraph.outputs[i]),
                             reason="insert_deepcopy",
                         )

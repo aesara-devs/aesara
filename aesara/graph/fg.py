@@ -79,7 +79,7 @@ class FunctionGraph(MetaObject):
         inputs: Optional[List[Variable]] = None,
         outputs: Optional[List[Variable]] = None,
         features: Optional[List[Feature]] = None,
-        clone: bool = True,
+        clone: bool = False,
         update_mapping: Optional[Dict[Variable, Variable]] = None,
         memo: Optional[Dict[Variable, Variable]] = None,
         copy_inputs: bool = True,
@@ -153,20 +153,19 @@ class FunctionGraph(MetaObject):
         self.attach_feature(ReplaceValidate())
 
         for in_var in inputs:
-            if in_var.owner is not None:
-                raise ValueError(
-                    "One of the provided inputs is the output of "
-                    "an already existing node. "
-                    "If that is okay, either discard that "
-                    "input's owner or use graph.clone."
-                )
-
+            # if in_var.owner is not None:
+            #     raise ValueError(
+            #         "One of the provided inputs is the output of "
+            #         "an already existing node. "
+            #         "If that is okay, either discard that "
+            #         "input's owner or use graph.clone."
+            #     )
             self.add_input(in_var, check=False)
 
         for output in outputs:
             self.import_var(output, reason="init")
-        for i, output in enumerate(outputs):
-            self.clients[output].append(("output", i))
+        # for i, output in enumerate(outputs):
+        #     self.clients[output].append(("output", i))
 
         self.profile = None
         self.update_mapping = update_mapping
@@ -208,7 +207,7 @@ class FunctionGraph(MetaObject):
             isinstance(view, (list, tuple)) for view in node.op.view_map.values()
         ):
             raise Exception(
-                f"Op '{node.op}' have a bad view map '{node.op.view_map}',"
+                f"Op '{node.op}' has a bad view map '{node.op.view_map}',"
                 " the values must be tuples or lists."
             )
         if node.op.destroy_map and not all(
@@ -216,7 +215,7 @@ class FunctionGraph(MetaObject):
             for destroy in node.op.destroy_map.values()
         ):
             raise Exception(
-                f"Op '{node.op}' have a bad destroy map '{node.op.destroy_map}',"
+                f"Op '{node.op}' has a bad destroy map '{node.op.destroy_map}',"
                 " the values must be tuples or lists."
             )
 
@@ -248,6 +247,116 @@ class FunctionGraph(MetaObject):
 
         """
         self.clients[var].append(new_client)
+
+    def create_next_nodes_memo(self, node, new_node, i, memo, old_clients):
+        # This will add the new node as mapping to memo object
+
+        memo[node.out] = new_node.out
+
+        if not old_clients[node.out]:
+            # This is an output variable
+            assert node.out in self.outputs
+
+        curr_clients = old_clients[node.out]
+
+        for old_node, idx in curr_clients:
+            # For every old clients of current node, make a new node
+            # by along with changed inputs and calling the function
+            # recursively.
+            curr_node = (
+                memo[old_node.out].owner if old_node.out in memo.keys() else old_node
+            )
+            next_new_inputs = list(curr_node.inputs)
+            for _idx, _var in enumerate(next_new_inputs):
+                if _var and _var in memo.keys():
+                    next_new_inputs[_idx] = memo[_var]
+            next_new_inputs[idx] = new_node.out
+            next_new_node = curr_node.op.make_node(*next_new_inputs)
+            memo.update(
+                self.create_next_nodes_memo(
+                    old_node, next_new_node, idx, memo, old_clients
+                )
+            )
+
+        return memo
+
+    def _get_unused_var_inputs(self, node):
+        unused_vars = set()
+        curr_inputs = node.inputs
+        for i, _input in enumerate(curr_inputs):
+            self.clients[_input].remove((node, i))
+            if not self.clients[_input] and _input not in self.outputs:
+                unused_vars.add(_input)
+                if _input.owner:
+                    unused_vars.update(self._get_unused_var_inputs(_input.owner))
+        return unused_vars
+
+    def _replace_nodes(self, pairs_to_replace, old_clients, memo, reason):
+        def replace_clients(_old_var, _new_var):
+            self.clients.pop(_old_var)
+            # The new variable might already be part of FunctionGraph.
+            if _new_var not in self.clients.keys():
+                self.setup_var(_new_var)
+            for node, idx in old_clients[_old_var]:
+                # If its a client it must have an owner and inputs
+                curr_node = memo[node.out].owner
+                for i, _inp in enumerate(node.inputs):
+                    # If an input is not in memo that means it's
+                    # an unchanged variable, in that case we
+                    # need to update the node in it's clients.
+                    if (
+                        _inp not in memo.keys()
+                        and (curr_node, i) not in self.clients[_inp]
+                    ):
+                        self.clients[_inp].remove((node, i))
+                        self.clients[_inp].append((curr_node, i))
+                self.clients[_new_var].append((curr_node, idx))
+                # If node.out is not in self.clients.keys() that means
+                # it is either an output or has already been processed
+                # due to it being output of some other variable.
+                if node.out in self.clients.keys():
+                    replace_clients(node.out, curr_node.out)
+
+        for old_var, new_var in pairs_to_replace.items():
+            replace_clients(old_var, new_var)
+
+        # We update the veiables, apply nodes, inputs and outputs
+        # according to memo
+        for old_var, new_var in memo.items():
+            self.variables.remove(old_var)
+            self.variables.add(new_var)
+            if old_var.owner:
+                self.apply_nodes.remove(old_var.owner)
+            if new_var.owner:
+                self.apply_nodes.add(new_var.owner)
+            if old_var in self.inputs:
+                self.inputs[self.inputs.index(old_var)] = new_var
+            elif old_var in self.outputs:
+                self.outputs[self.outputs.index(old_var)] = new_var
+
+        # The following logic is to determine and remove any variables that are no
+        # longer used in the FunctionGraph i.e they were only used to calculate
+        # the old variables but not the new ones.
+        unused_vars = set()
+        for var, new_var in pairs_to_replace.items():
+            unused_vars.add(var)
+            if var.owner:
+                unused_vars.update(self._get_unused_var_inputs(var.owner))
+
+        for var in list(unused_vars):
+            if var in self.clients.keys():
+                if self.clients[var] or var in self.outputs:
+                    unused_vars.remove(var)
+                    continue
+                else:
+                    self.clients.pop(var)
+            if var in self.variables:
+                self.variables.remove(var)
+            if var.owner and var.owner in self.apply_nodes:
+                self.execute_callbacks("on_prune", var.owner, reason)
+                self.apply_nodes.remove(var.owner)
+
+        return unused_vars
 
     def remove_client(
         self, var: Variable, client_to_remove: Tuple[Apply, int], reason: str = None
@@ -285,7 +394,7 @@ class FunctionGraph(MetaObject):
                 # if it were removed here.
                 var_clients = None
 
-            if var_clients:
+            if var_clients or (var in self.outputs):
                 continue
 
             # Now, `var` has no more clients, so check if we need to remove it
@@ -418,87 +527,26 @@ class FunctionGraph(MetaObject):
                 self.add_client(input, (node, i))
             self.execute_callbacks("on_import", node, reason)
 
-    def change_input(
-        self,
-        node: Union[Apply, str],
-        i: int,
-        new_var: Variable,
-        reason: str = None,
-        import_missing: bool = False,
-    ) -> None:
-        """Change ``node.inputs[i]`` to `new_var`.
-
-        ``new_var.type == old_var.type`` must be ``True``, where ``old_var`` is the
-        current value of ``node.inputs[i]`` which we want to replace.
-
-        For each feature that has an `on_change_input` method, this method calls:
-        ``feature.on_change_input(function_graph, node, i, old_var, new_var, reason)``
-
-        Parameters
-        ----------
-        node
-            The node for which an input is to be changed.  If the value is
-            the string ``"output"`` then the ``self.outputs`` will be used
-            instead of ``node.inputs``.
-        i
-            The index in `node.inputs` that we want to change.
-        new_var
-            The new variable to take the place of ``node.inputs[i]``.
-        import_missing
-            Add missing inputs instead of raising an exception.
-        """
-        # TODO: ERROR HANDLING FOR LISTENERS (should it complete the change or revert it?)
-        if node == "output":
-            r = self.outputs[i]
-            if not r.type == new_var.type:
-                raise TypeError(
-                    "The type of the replacement must be the"
-                    " same as the type of the original Variable.",
-                    r,
-                    new_var,
-                )
-            self.outputs[i] = new_var
-        else:
-            r = node.inputs[i]
-            if not r.type == new_var.type:
-                raise TypeError(
-                    "The type of the replacement must be the"
-                    " same as the type of the original Variable.",
-                    r,
-                    new_var,
-                )
-            node.inputs[i] = new_var
-
-        if r is new_var:
-            return
-
-        self.import_var(new_var, reason=reason, import_missing=import_missing)
-        self.add_client(new_var, (node, i))
-        self.remove_client(r, (node, i), reason=reason)
-        # Precondition: the substitution is semantically valid However it may
-        # introduce cycles to the graph, in which case the transaction will be
-        # reverted later.
-        self.execute_callbacks("on_change_input", node, i, r, new_var, reason=reason)
-
     def replace(
         self,
-        var: Variable,
-        new_var: Variable,
+        pairs_to_replace: dict,
         reason: str = None,
         verbose: bool = None,
         import_missing: bool = False,
     ) -> None:
-        """Replace a variable in the `FunctionGraph`.
+        """Replaces pairs of variables in the `FunctionGraph`.
 
         This is the main interface to manipulate the subgraph in `FunctionGraph`.
         For every node that uses `var` as input, makes it use `new_var` instead.
 
+        Returns a dictionary with that maps old to new variables along with a
+        list of all the changed input indices.
+        memo = {old_variable: new_variable}
+
         Parameters
         ----------
-        var
-            The variable to be replaced.
-        new_var
-            The variable to replace `var`.
+        pairs_to_replacepairs_to_replace
+            A dictionary in form of {var: new_var}
         reason
             The name of the optimization or operation in progress.
         verbose
@@ -507,51 +555,97 @@ class FunctionGraph(MetaObject):
             Import missing variables.
 
         """
-        if verbose is None:
-            verbose = config.optimizer_verbose
-        if verbose:
-            print(f"optimizer: rewrite {reason} replaces {var} with {new_var}")
 
-        new_var = var.type.filter_variable(new_var, allow_convert=True)
+        # TODO: Remove this if replace isn't supposed to be user facing
+        assert isinstance(pairs_to_replace, dict), "Please switch to new interface"
 
-        if var not in self.variables:
-            # TODO: Raise an actual exception here.
-            # Old comment:
-            # this variable isn't in the graph... don't raise an
-            # exception here, just return silently because it makes it
-            # easier to implement some optimizations for
-            # multiple-output ops
-            # raise ValueError()
-            return
+        # Make a semi shallow copy of clients for later references
+        old_clients = {}
+        for var, new_var in list(pairs_to_replace.items()):
+            if var == new_var:
+                pairs_to_replace.pop(var)
 
-        if config.compute_test_value != "off":
-            try:
-                tval = aesara.graph.op.get_test_value(var)
-                new_tval = aesara.graph.op.get_test_value(new_var)
-            except TestValueError:
-                pass
-            else:
-                tval_shape = getattr(tval, "shape", None)
-                new_tval_shape = getattr(new_tval, "shape", None)
-                if tval_shape != new_tval_shape:
-                    raise AssertionError(
-                        "The replacement variable has a test value with "
-                        "a shape different from the original variable's "
-                        f"test value. Original: {tval_shape}, new: {new_tval_shape}"
-                    )
+        memo = pairs_to_replace.copy()
+        for _var, _clients in self.clients.items():
+            old_clients.update({_var: _clients.copy()})
 
-        for node, i in list(self.clients[var]):
-            assert (node == "output" and self.outputs[i] is var) or (
-                node.inputs[i] is var
-            )
-            self.change_input(
-                node, i, new_var, reason=reason, import_missing=import_missing
-            )
+        for var, new_var in pairs_to_replace.items():
+            if verbose is None:
+                verbose = config.optimizer_verbose
+            if verbose:
+                print(f"optimizer: rewrite {reason} replaces {var} with {new_var}")
 
-    def replace_all(self, pairs: List[Tuple[Variable, Variable]], **kwargs) -> None:
-        """Replace variables in the `FunctionGraph` according to ``(var, new_var)`` pairs in a list."""
-        for var, new_var in pairs:
-            self.replace(var, new_var, **kwargs)
+            new_var = var.type.filter_variable(new_var, allow_convert=True)
+
+            if not var.type == new_var.type:
+                raise TypeError(
+                    "The type of the replacement must be the"
+                    " same as the type of the original Variable.",
+                    var,
+                    new_var,
+                )
+
+            if config.compute_test_value != "off":
+                try:
+                    tval = aesara.graph.op.get_test_value(var)
+                    new_tval = aesara.graph.op.get_test_value(new_var)
+                except TestValueError:
+                    pass
+                else:
+                    tval_shape = getattr(tval, "shape", None)
+                    new_tval_shape = getattr(new_tval, "shape", None)
+                    if tval_shape != new_tval_shape:
+                        raise AssertionError(
+                            "The replacement variable has a test value with "
+                            "a shape different from the original variable's "
+                            f"test value. Original: {tval_shape}, new: {new_tval_shape}"
+                        )
+
+            if var not in self.variables:
+                raise ValueError(
+                    f"Given variable {var} is not a part of the FunctionGraph"
+                )
+
+            self.import_var(new_var, reason=reason, import_missing=import_missing)
+
+            for node, i in old_clients[var]:
+                assert node.inputs[i] == var
+                # If an entry already exists in memo, that means the node has been
+                # previously changed/cloned for changing some other input, hence the
+                # new clone will be made using inputs of the previously cloned node
+                # rather than original.
+                curr_node = memo[node.out] if node in memo.keys() else node
+                new_inputs = list(curr_node.inputs)
+                # We make sure every input node is also updated according to memo,
+                # since the input nodes other than ones specified may change.
+                for _idx, _var in enumerate(new_inputs):
+                    if _var in memo.keys():
+                        new_inputs[_idx] = memo[_var]
+                new_inputs[i] = new_var
+                new_node = curr_node.op.make_node(*new_inputs)
+                memo = self.create_next_nodes_memo(node, new_node, i, memo, old_clients)
+
+        # By this time the memo will have all the mappings for the every replacements
+        # that needs to happen in the FunctionGraph
+        assert all(
+            [
+                isinstance(key, Variable) and isinstance(item, Variable)
+                for key, item in memo.items()
+            ]
+        )
+
+        unused_vars = self._replace_nodes(pairs_to_replace, old_clients, memo, reason)
+
+        self.execute_callbacks(
+            "on_replace_nodes",
+            pairs_to_replace,
+            unused_vars,
+            old_clients,
+            memo,
+            reason=reason,
+        )
+
+        return memo, unused_vars
 
     def attach_feature(self, feature: Feature) -> None:
         """Add a ``graph.features.Feature`` to this function graph and trigger its ``on_attach`` callback."""
@@ -736,16 +830,11 @@ class FunctionGraph(MetaObject):
             if (
                 variable.owner is None
                 and variable not in self.inputs
+                and variable not in self.outputs
                 and not isinstance(variable, Constant)
             ):
                 raise Exception(f"Undeclared input: {variable}")
             for node, i in self.clients[variable]:
-                if node == "output":
-                    if self.outputs[i] is not variable:
-                        raise Exception(
-                            f"Inconsistent clients list: {variable}, {self.outputs[i]}"
-                        )
-                    continue
                 if node not in nodes:
                     raise Exception(
                         f"Client not in FunctionGraph: {variable}, {(node, i)}"

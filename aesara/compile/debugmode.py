@@ -629,7 +629,7 @@ def _is_used_in_graph(fgraph, var):
         True if `var` is used by another node in the graph.
 
     """
-    return not (fgraph.clients[var] == [("output", 1)] or fgraph.clients[var] == [])
+    return var in fgraph.outputs or not fgraph.clients[var] == []
 
 
 def _check_strides_match(a, b, warn_err, op):
@@ -1251,21 +1251,14 @@ class _FunctionGraphEvent:
 
     def __init__(self, kind, node, idx=None, reason=None):
         self.kind = kind
-        if node == "output":
-            self.node = "output"
-            self.op = "output"
-        else:
-            self.node = node
-            self.op = node.op
+        self.node = node
+        self.op = node.op
         self.idx = idx
         self.reason = str(reason)
 
     def __str__(self):
         if self.kind == "change":
-            if self.op != "output":
-                msg = str(len(self.node.inputs))
-            else:
-                msg = ""
+            msg = str(len(self.node.inputs))
 
             return " ".join(["change", self.reason, str(self.op), str(self.idx), msg])
         else:
@@ -1364,75 +1357,75 @@ class _VariableEquivalenceTracker:
                 self.reasons.setdefault(r, [])
                 self.replaced_by.setdefault(r, [])
 
-    def on_change_input(self, fgraph, node, i, r, new_r, reason=None):
-        reason = str(reason)
-        self.event_list.append(
-            _FunctionGraphEvent("change", node, reason=reason, idx=i)
-        )
+    # def on_replace_nodes(self, fgraph, pairs_to_replace, unused_vars, old_clients, memo, reason=None):
+    # reason = str(reason)
+    # self.event_list.append(
+    #     _FunctionGraphEvent("change", node, reason=reason, idx=i)
+    # )
 
-        self.reasons.setdefault(new_r, [])
-        self.replaced_by.setdefault(new_r, [])
+    # self.reasons.setdefault(new_r, [])
+    # self.replaced_by.setdefault(new_r, [])
 
-        append_reason = True
-        for tup in self.reasons[new_r]:
-            if tup[0] == reason and tup[1] is r:
-                append_reason = False
+    # append_reason = True
+    # for tup in self.reasons[new_r]:
+    #     if tup[0] == reason and tup[1] is r:
+    #         append_reason = False
 
-        if append_reason:
-            # N.B. compute the debugprint now, because future
-            # optimizations will change the graph
-            done = dict()
-            used_ids = dict()
-            self.reasons[new_r].append(
-                (
-                    reason,
-                    r,
-                    _debugprint(
-                        r,
-                        prefix="  ",
-                        depth=6,
-                        file=StringIO(),
-                        done=done,
-                        print_type=True,
-                        used_ids=used_ids,
-                    ).getvalue(),
-                    _debugprint(
-                        new_r,
-                        prefix="  ",
-                        depth=6,
-                        file=StringIO(),
-                        done=done,
-                        print_type=True,
-                        used_ids=used_ids,
-                    ).getvalue(),
-                )
-            )
-            self.replaced_by[r].append((reason, new_r))
+    # if append_reason:
+    #     # N.B. compute the debugprint now, because future
+    #     # optimizations will change the graph
+    #     done = dict()
+    #     used_ids = dict()
+    #     self.reasons[new_r].append(
+    #         (
+    #             reason,
+    #             r,
+    #             _debugprint(
+    #                 r,
+    #                 prefix="  ",
+    #                 depth=6,
+    #                 file=StringIO(),
+    #                 done=done,
+    #                 print_type=True,
+    #                 used_ids=used_ids,
+    #             ).getvalue(),
+    #             _debugprint(
+    #                 new_r,
+    #                 prefix="  ",
+    #                 depth=6,
+    #                 file=StringIO(),
+    #                 done=done,
+    #                 print_type=True,
+    #                 used_ids=used_ids,
+    #             ).getvalue(),
+    #         )
+    #     )
+    #     self.replaced_by[r].append((reason, new_r))
 
-        if r in self.equiv:
-            r_set = self.equiv[r]
-        else:
-            r_set = self.equiv.setdefault(r, {r})
-            self.all_variables_ever.append(r)
+    # if r in self.equiv:
+    #     r_set = self.equiv[r]
+    # else:
+    #     r_set = self.equiv.setdefault(r, {r})
+    #     self.all_variables_ever.append(r)
 
-        if new_r in self.equiv:
-            new_r_set = self.equiv[new_r]
-        else:
-            new_r_set = self.equiv.setdefault(new_r, {new_r})
-            self.all_variables_ever.append(new_r)
+    # if new_r in self.equiv:
+    #     new_r_set = self.equiv[new_r]
+    # else:
+    #     new_r_set = self.equiv.setdefault(new_r, {new_r})
+    #     self.all_variables_ever.append(new_r)
 
-        assert new_r in new_r_set
-        assert r in r_set
+    # assert new_r in new_r_set
+    # assert r in r_set
 
-        # update one equivalence set to contain the other
-        # transfer all the elements of the old one to the new one
-        r_set.update(new_r_set)
-        for like_new_r in new_r_set:
-            self.equiv[like_new_r] = r_set
-            assert like_new_r in r_set
+    # # update one equivalence set to contain the other
+    # # transfer all the elements of the old one to the new one
+    # r_set.update(new_r_set)
+    # for like_new_r in new_r_set:
+    #     self.equiv[like_new_r] = r_set
+    #     assert like_new_r in r_set
 
-        assert self.equiv[r] is r_set
-        assert self.equiv[new_r] is r_set
+    # assert self.equiv[r] is r_set
+    # assert self.equiv[new_r] is r_set
 
     def printstuff(self):
         for key in self.equiv:

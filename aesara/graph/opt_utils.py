@@ -213,8 +213,6 @@ def get_clients_at_depth(
     for node in node.outputs:
         if depth > 0:
             for out_node, _ in fgraph.clients[node]:
-                if out_node == "output":
-                    continue
                 yield from get_clients_at_depth(fgraph, out_node, depth - 1)
         else:
             yield node.owner

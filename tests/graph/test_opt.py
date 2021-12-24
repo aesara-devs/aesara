@@ -599,7 +599,7 @@ def test_pre_greedy_local_optimizer():
 
 
 @pytest.mark.parametrize("tracks", [True, False])
-@pytest.mark.parametrize("out_pattern", [(op2, "x"), "x", 1.0])
+@pytest.mark.parametrize("out_pattern", [(op2, "x"), "x", Constant(MyType(), 1, "c")])
 def test_patternsub_values_eq_approx(out_pattern, tracks):
     # PatternSub would fail when `values_eq_approx` and `get_nodes` were specified
     x = MyVariable("x")
