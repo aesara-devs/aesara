@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-import os
 import sys
 
 from setuptools import find_packages, setup
@@ -61,18 +60,18 @@ if sys.version_info[0:2] < (3, 7):
     install_requires += ["dataclasses"]
 
 # Handle builds of nightly release
-if "BUILD_AESARA_NIGHTLY" in os.environ:
+NIGHTLY_VERSION_SUFFIX = None
+if NIGHTLY_VERSION_SUFFIX is not None:
     nightly = True
     NAME += "-nightly"
 
     from versioneer import get_versions as original_get_versions
 
     def get_versions():
-        from datetime import datetime, timezone
-
-        suffix = datetime.now(timezone.utc).strftime(r".dev%Y%m%d")
         versions = original_get_versions()
-        versions["version"] = versions["version"].split("+")[0] + suffix
+        if versions["version"].endswith(NIGHTLY_VERSION_SUFFIX):
+            return versions
+        versions["version"] = versions["version"].split("+")[0] + NIGHTLY_VERSION_SUFFIX
         return versions
 
     versioneer.get_versions = get_versions

@@ -18,10 +18,10 @@ jobs:
         run: |
           python -m pip install -U pip
           python -m pip install build
+      - name: Inject 'nightly' into setup.py
+        run: python .github/workflows/nightly.py
       - name: Build the sdist
         run: python -m build --sdist .
-        env:
-          BUILD_AESARA_NIGHTLY: true
       - uses: pypa/gh-action-pypi-publish@v1.4.2
         with:
           user: __token__
