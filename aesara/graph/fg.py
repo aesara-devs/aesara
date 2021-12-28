@@ -452,20 +452,16 @@ class FunctionGraph(MetaObject):
             r = self.outputs[i]
             if not r.type == new_var.type:
                 raise TypeError(
-                    "The type of the replacement must be the"
-                    " same as the type of the original Variable.",
-                    r,
-                    new_var,
+                    f"The type of the replacement ({new_var.type}) must be the"
+                    f" same as the type of the original Variable ({r.type})."
                 )
             self.outputs[i] = new_var
         else:
             r = node.inputs[i]
             if not r.type == new_var.type:
                 raise TypeError(
-                    "The type of the replacement must be the"
-                    " same as the type of the original Variable.",
-                    r,
-                    new_var,
+                    f"The type of the replacement ({new_var.type}) must be the"
+                    f" same as the type of the original Variable ({r.type})."
                 )
             node.inputs[i] = new_var
 
