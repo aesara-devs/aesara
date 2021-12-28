@@ -344,19 +344,6 @@ class TensorType(CType):
 
     """
 
-    def make_variable(self, name=None):
-        """
-        Return a `TensorVariable` of this type.
-
-        Parameters
-        ----------
-        name : str
-            A pretty name to identify this `Variable` when printing and
-            debugging
-
-        """
-        return self.Variable(self, name=name)
-
     def __str__(self):
         if self.name:
             return self.name
