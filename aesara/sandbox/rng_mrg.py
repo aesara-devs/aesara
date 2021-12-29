@@ -268,13 +268,13 @@ def ff_2p72(rstate):
 def mrg_next_value(rstate, new_rstate, NORM, mask, offset):
     # TODO : need description for method, parameter and return
     x11, x12, x13, x21, x22, x23 = rstate
-    assert type(x11) == np.int32
+    assert isinstance(x11, np.int32)
 
     i0, i7, i9, i15, i16, i22, i24 = np_int32_vals
     # first component
     y1 = ((x12 & MASK12) << i22) + (x12 >> i9) + ((x13 & MASK13) << i7) + (x13 >> i24)
 
-    assert type(y1) == np.int32
+    assert isinstance(y1, np.int32)
     if y1 < 0 or y1 >= M1:  # must also check overflow
         y1 -= M1
     y1 += x13
@@ -287,11 +287,11 @@ def mrg_next_value(rstate, new_rstate, NORM, mask, offset):
 
     # second component
     y1 = ((x21 & MASK2) << i15) + (MULT2 * (x21 >> i16))
-    assert type(y1) == np.int32
+    assert isinstance(y1, np.int32)
     if y1 < 0 or y1 >= M2:
         y1 -= M2
     y2 = ((x23 & MASK2) << i15) + (MULT2 * (x23 >> i16))
-    assert type(y2) == np.int32
+    assert isinstance(y2, np.int32)
     if y2 < 0 or y2 >= M2:
         y2 -= M2
     y2 += x23

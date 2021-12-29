@@ -195,7 +195,7 @@ class Images2Neibs(COp):
         ten4, neib_shape, neib_step = inp
         (z,) = out_
         # GpuImages2Neibs should not run this perform in DebugMode
-        if type(self) != Images2Neibs:
+        if not isinstance(self, Images2Neibs):
             raise aesara.graph.utils.MethodNotDefined()
 
         def CEIL_INTDIV(a, b):

@@ -262,7 +262,7 @@ class InplaceElemwiseOptimizer(GlobalOptimizer):
         for node in list(io_toposort(fgraph.inputs, fgraph.outputs)):
             op = node.op
             # gpuarray GpuElemwise inherit from Elemwise
-            if not type(op) == self.op:
+            if not isinstance(op, self.op):
                 continue
             # If big graph and the outputs are scalar, do not make it
             # inplace.

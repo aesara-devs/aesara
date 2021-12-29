@@ -1200,7 +1200,7 @@ def save_mem_new_scan(fgraph, node):
 
             # 2.1 outputs of the function
             # => output needs all its intermediate values
-            if type(cl) == str:
+            if isinstance(cl, str):
                 # if the node is actually an output, then
                 # we need to store the entire thing
                 global_nsteps = None
@@ -1263,13 +1263,13 @@ def save_mem_new_scan(fgraph, node):
                     if isinstance(stop, Variable):
                         global_nsteps["sym"] += [stop]
                     # not if it is maxsize
-                    elif type(stop) == int and stop == maxsize:
+                    elif isinstance(stop, int) and stop == maxsize:
                         global_nsteps = None
                     # yes if it is a int k, 0 < k < maxsize
-                    elif type(stop) == int and global_nsteps["real"] < stop:
+                    elif isinstance(stop, int) and global_nsteps["real"] < stop:
                         global_nsteps["real"] = stop
                     # yes if it is a int k, 0 < k < maxsize
-                    elif type(stop) == int and stop > 0:
+                    elif isinstance(stop, int) and stop > 0:
                         pass
                     # not otherwise
                     else:
@@ -1311,7 +1311,7 @@ def save_mem_new_scan(fgraph, node):
     for i, out in enumerate(node.outputs[:c_outs]):
         # look at all its clients
         for cl, _ in fgraph.clients[out]:
-            if type(cl) == str:
+            if isinstance(cl, str):
                 store_steps[i] = 0
                 break
             elif not isinstance(cl.op, Subtensor):
@@ -2275,7 +2275,7 @@ def push_out_dot1_scan(fgraph, node):
                     )
 
                     new_outs = new_op(*_scan_inputs)
-                    if type(new_outs) not in (list, tuple):
+                    if not isinstance(new_outs, (list, tuple)):
                         new_outs = [new_outs]
 
                     # We need now to pair correctly the new outputs

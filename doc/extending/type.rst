@@ -345,7 +345,7 @@ There are several ways to make sure that equality testing works properly:
     .. testcode::
 
         def __eq__(self, other):
-            return type(self) is Double and type(other) is Double
+            return type(self) == type(other)
 
  #. Override :meth:`Double.__new__` to always return the same instance.
  #. Hide the Double class and only advertise a single instance of it.

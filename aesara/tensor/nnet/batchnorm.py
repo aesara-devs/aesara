@@ -736,7 +736,9 @@ class AbstractBatchNormTrainGrad(Op):
             aesara.gradient.DisconnectedType()(),
         ]
         return [
-            aesara.gradient.DisconnectedType()() if (type(r) == int and r == 0) else r
+            aesara.gradient.DisconnectedType()()
+            if (isinstance(r, int) and r == 0)
+            else r
             for r in results
         ]
 

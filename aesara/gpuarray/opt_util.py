@@ -358,7 +358,7 @@ def inplace_allocempty(op, idx):
         @local_optimizer([op], inplace=True)
         @wraps(maker)
         def opt(fgraph, node):
-            if type(node.op) != op or node.op.inplace:
+            if not isinstance(node.op, op) or node.op.inplace:
                 return
             inputs = list(node.inputs)
             alloc = inputs[idx]
@@ -460,7 +460,7 @@ def op_lifter(OP, cuda_only=False):
 
     def f(maker):
         def local_opt(fgraph, node):
-            if type(node.op) in OP:
+            if isinstance(node.op, OP):
                 # Either one of our inputs is on the gpu or
                 # all of our clients are on the gpu
                 replace = False

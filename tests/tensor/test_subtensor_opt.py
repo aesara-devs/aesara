@@ -339,15 +339,17 @@ def test_local_subtensor_remove_broadcastable_index():
     z8 = y3[0, :, 0, :, 0]
     f = function([x], [z1, z2, z3, z4, z5, z6, z7, z8], mode=mode)
     for elem in f.maker.fgraph.toposort():
-        assert type(elem.op) not in [
-            Subtensor,
-            AdvancedSubtensor,
-            AdvancedSubtensor1,
-            IncSubtensor,
-            AdvancedIncSubtensor,
-            AdvancedIncSubtensor1,
-        ]
-
+        assert not isinstance(
+            elem.op,
+            (
+                Subtensor,
+                AdvancedSubtensor,
+                AdvancedSubtensor1,
+                IncSubtensor,
+                AdvancedIncSubtensor,
+                AdvancedIncSubtensor1,
+            ),
+        )
     rng = np.random.default_rng(seed=utt.fetch_seed())
     xn = rng.random((5, 5))
     f(xn)

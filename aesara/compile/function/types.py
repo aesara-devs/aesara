@@ -731,7 +731,7 @@ class Function:
                 message = str(profile.message) + " copy"
             profile = aesara.compile.profiling.ProfileStats(message=message)
             # profile -> object
-        elif type(profile) == str:
+        elif isinstance(profile, str):
             profile = aesara.compile.profiling.ProfileStats(message=profile)
 
         f_cpy = maker.__class__(
