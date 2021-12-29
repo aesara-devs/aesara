@@ -79,7 +79,7 @@ class SymbolicInput:
             raise TypeError(f"name must be a string! (got: {self.name})")
         self.update = update
         if update is not None:
-            if not variable.type == update.type:
+            if variable.type != update.type:
                 raise TypeError(
                     f"Variable '{variable}' has type {variable.type} but an update of "
                     f"type {update.type}. The type of the update should be "

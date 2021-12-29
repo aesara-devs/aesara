@@ -1085,7 +1085,7 @@ class ConvOp(OpenMPOp):
 
         # Determine gradient on inputs ########
         mode = "valid"
-        if not self.out_mode == "full":
+        if self.out_mode != "full":
             mode = "full"
 
         filters = kerns.dimshuffle((1, 0, 2, 3))
@@ -1416,7 +1416,7 @@ if(%(value)s != %(expected)s){
             d["self_imshp_logical_stride_c"] = int(
                 np.ceil(self.imshp_logical[2] / float(self.imshp[2]))
             )
-            if not self.imshp[0] == 1:
+            if self.imshp[0] != 1:
                 d["affectation"] = "+="
             d["all_shape"] = "1"
             d["dim_zz_const"] = "const"
@@ -1473,7 +1473,7 @@ if(kerns_dim[1] != img2d_dim[1]){
                 f"Type {node.inputs[0].type.dtype} not implemented"
             )
         d["gemm"] = "dgemm_"
-        if not d["type"] == "double":
+        if d["type"] != "double":
             d["gemm"] = "sgemm_"
 
         if self.imshp != self.imshp_logical or self.kshp != self.kshp_logical:

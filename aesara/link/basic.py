@@ -565,7 +565,7 @@ class WrapLinker(Linker):
 
         order_list0 = order_lists[0]
         for order_list in order_lists[1:]:
-            if not order_list0 == order_list:
+            if order_list0 != order_list:
                 raise Exception(
                     "All linkers to WrapLinker should execute operations in the same order."
                 )

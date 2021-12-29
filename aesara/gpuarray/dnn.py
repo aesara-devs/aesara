@@ -248,7 +248,7 @@ def dnn_available(context_name):
 
     ctx = get_context(context_name)
 
-    if not ctx.kind == b"cuda":
+    if ctx.kind != b"cuda":
         dnn_available.msg = "Not on a CUDA device."
         return False
 
@@ -719,7 +719,7 @@ def ensure_dt(val, default, name, dtype):
         val = as_scalar(val)
     if not isinstance(val.type, aesara.scalar.Scalar):
         raise TypeError(f"{name}: expected a scalar value")
-    if not val.type.dtype == dtype:
+    if val.type.dtype != dtype:
         val = val.astype(dtype)
     return val
 

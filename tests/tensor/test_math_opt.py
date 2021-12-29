@@ -1740,7 +1740,7 @@ class TestFusion:
             topo = f.maker.fgraph.toposort()
             topo_ = [n for n in topo if not isinstance(n.op, self.topo_exclude)]
             if assert_len_topo:
-                if not len(topo_) == nb_elemwise:
+                if len(topo_) != nb_elemwise:
                     fail3.append((id, topo_, nb_elemwise))
                 if nb_elemwise == 1:
                     # if no variable appears multiple times in the
@@ -1753,7 +1753,7 @@ class TestFusion:
                         )
                         assert expected_len_sym_inputs == len(sym_inputs)
 
-            if not out_dtype == out.dtype:
+            if out_dtype != out.dtype:
                 fail4.append((id, out_dtype, out.dtype))
 
         assert len(fail1 + fail2 + fail3 + fail4) == 0

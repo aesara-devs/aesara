@@ -1128,7 +1128,7 @@ def _pickle_Function(f):
     # HACK to detect aliased storage.
     # This is here because aliased relationships are not [currently]
     # preserved across the pickle operation
-    if not (f.pickle_aliased_memory_strategy == "ignore"):
+    if f.pickle_aliased_memory_strategy != "ignore":
         all_data = input_storage + inputs_data
         for i, d_i in enumerate(all_data):
             for j, d_j in enumerate(all_data):

@@ -1390,7 +1390,7 @@ class ShapeFeature(features.Feature):
                 return False
             opx = dx.owner.op
             opy = dy.owner.op
-            if not (opx.i == opy.i):
+            if opx.i != opy.i:
                 return False
             # FB I'm not sure if this handle correctly constants.
             if dx.owner.inputs[0] == dy.owner.inputs[0]:
@@ -1633,7 +1633,7 @@ def local_fill_sink(fgraph, node):
         if (
             hasattr(client, "op")
             and isinstance(client.op, Elemwise)
-            and not client.op == fill
+            and client.op != fill
         ):
             client_inputs = client.inputs[:]
             client_inputs[cl_idx] = c

@@ -75,7 +75,7 @@ class TypedListType(CType):
             return 0
 
     def values_eq(self, a, b):
-        if not len(a) == len(b):
+        if len(a) != len(b):
             return False
 
         for x in range(len(a)):

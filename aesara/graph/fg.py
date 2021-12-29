@@ -450,7 +450,7 @@ class FunctionGraph(MetaObject):
         # TODO: ERROR HANDLING FOR LISTENERS (should it complete the change or revert it?)
         if node == "output":
             r = self.outputs[i]
-            if not r.type == new_var.type:
+            if r.type != new_var.type:
                 raise TypeError(
                     f"The type of the replacement ({new_var.type}) must be the"
                     f" same as the type of the original Variable ({r.type})."
@@ -458,7 +458,7 @@ class FunctionGraph(MetaObject):
             self.outputs[i] = new_var
         else:
             r = node.inputs[i]
-            if not r.type == new_var.type:
+            if r.type != new_var.type:
                 raise TypeError(
                     f"The type of the replacement ({new_var.type}) must be the"
                     f" same as the type of the original Variable ({r.type})."
