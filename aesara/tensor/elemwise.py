@@ -1212,24 +1212,15 @@ second dimension
 
 
 class CAReduce(COp):
-    """
-    CAReduce = Commutative Associative Reduce
-    Reduces a scalar operation along the specified axis(es).
-    (The scalar op should be both commutative and assocative)
+    """Reduces a scalar operation along specified axes.
+
+    The scalar op should be both commutative and associative.
+
+    `CAReduce` = Commutative Associative Reduce.
 
     The output will have the same shape as the input minus the reduced
     dimensions. It will contain the variable of accumulating all values
-    over the reduced dimensions using the specified scalar op.
-
-    Parameters
-    ----------
-    scalar_op
-        A binary scalar op with only one output.
-        It must be commutative and associative.
-    axis
-        - The dimension along which we want to reduce
-        - List of dimensions that we want to reduce
-        - If None, all dimensions are reduced
+    over the reduced dimensions using the specified scalar `Op`.
 
     Notes
     -----
@@ -1246,7 +1237,7 @@ class CAReduce(COp):
                            # even number ...
 
     In order to (eventually) optimize memory usage patterns,
-    CAReduce makes zero guarantees on the order in which it
+    `CAReduce` makes zero guarantees on the order in which it
     iterates over the dimensions and the elements of the
     array(s). Therefore, to ensure consistent variables, the scalar
     operation represented by the reduction must be both commutative
@@ -1260,6 +1251,19 @@ class CAReduce(COp):
     ] = ("scalar_op", "axis")
 
     def __init__(self, scalar_op, axis=None):
+        """
+
+        Parameters
+        ----------
+        scalar_op
+            A binary scalar `Op` with only one output. It must be commutative
+            and associative.
+        axis
+            - The dimension along which we want to reduce
+            - List of dimensions that we want to reduce
+            - If ``None``, all dimensions are reduced
+
+        """
         if scalar_op.nin not in (-1, 2) or scalar_op.nout != 1:
             raise NotImplementedError(
                 "CAReduce only supports binary functions with a single " "output."
@@ -1588,55 +1592,14 @@ class CAReduce(COp):
 
 
 class CAReduceDtype(CAReduce):
-    """
-    Reduces a scalar operation along the specified axis(es).
+    """A subclass of `CAReduce` that accepts an additional output "dtype" parameter.
 
-    This subclass of CAReduce accepts an additional "dtype" parameter,
-    that specifies which dtype the output should be.
+    It also accepts an optional `acc_dtype`, which specifies the dtype that
+    will be used for the accumulation.  The accumulation will be done using an
+    array of dtype `acc_dtype`, then it will be cast into `dtype` and returned.
 
-    It also accepts an optional "acc_dtype", which specify the dtype that
-    will be used for the accumulation.
-
-    So, the accumulation will be done into a tensor of dtype "acc_dtype",
-    then it will be casted into "dtype" and returned.
-
-    If no dtype is provided, one will be inferred so as not to lose
+    If no `dtype` is provided, one will be inferred so as not to lose
     too much precision.
-
-    Parameters
-    ----------
-    scalar_op
-        A binary scalar op with only one output.
-        It must be commutative and associative.
-
-    axis
-        * the dimension along which we want to reduce
-        * list of dimensions that we want to reduce
-        * if None, all dimensions are reduced
-
-    dtype
-        The dtype of the returned tensor. If None, then we use the default
-        dtype which is the same as the input tensor's dtype except when:
-
-        * the input dtype is a signed integer of precision < 64 bit, in which
-          case we use int64
-        * the input dtype is an unsigned integer of precision < 64 bit, in
-          which case we use uint64
-
-        This default dtype does _not_ depend on the value of "acc_dtype".
-        This behavior is similar in spirit to that of numpy (except numpy
-        uses the default machine integer while we always use 64 bit
-        integers to avoid platform-dependent behavior).
-
-    acc_dtype
-        The dtype of the internal accumulator.
-        If None (default), we use the dtype in the list below,
-        or the input dtype if its precision is higher:
-
-        * for int dtypes, we use at least int64;
-        * for uint dtypes, we use at least uint64;
-        * for float dtypes, we use at least float64;
-        * for complex dtypes, we use at least complex128.
 
     """
 
@@ -1648,6 +1611,41 @@ class CAReduceDtype(CAReduce):
     )
 
     def __init__(self, scalar_op, axis=None, dtype=None, acc_dtype=None):
+        """
+
+        Parameters
+        ----------
+        scalar_op
+            A binary scalar `Op` with only one output.
+            It must be commutative and associative.
+        axis
+            * the dimension along which we want to reduce
+            * list of dimensions that we want to reduce
+            * if ``None``, all dimensions are reduced
+        dtype
+            The dtype of the returned tensor. If ``None``, then we use the default
+            dtype which is the same as the input array's dtype except when:
+
+            * the input dtype is a signed integer of precision < 64 bit, in which
+            case we use int64
+            * the input dtype is an unsigned integer of precision < 64 bit, in
+            which case we use uint64
+
+            This default dtype does _not_ depend on the value of `acc_dtype`.
+            This behavior is similar in spirit to that of NumPy, except that
+            NumPy uses the default machine integer while we always use 64 bit
+            integers to avoid platform-dependent behavior.
+        acc_dtype
+            The dtype of the internal accumulator.
+            If ``None`` (default), we use the dtype in the list below,
+            or the input dtype if its precision is higher:
+
+            * for int dtypes, we use at least int64;
+            * for uint dtypes, we use at least uint64;
+            * for float dtypes, we use at least float64;
+            * for complex dtypes, we use at least complex128.
+
+        """
         super().__init__(scalar_op, axis=axis)
         self.dtype = dtype
         self.acc_dtype = acc_dtype
