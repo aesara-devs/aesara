@@ -2832,7 +2832,7 @@ def _check_chain(r, chain):
         elif r.owner is None:
             return False
         elif isinstance(elem, Op):
-            if not r.owner.op == elem:
+            if r.owner.op != elem:
                 return False
         else:
             try:

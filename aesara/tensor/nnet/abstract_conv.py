@@ -3300,7 +3300,7 @@ class AbstractConv_gradInputs(BaseAbstractConv):
         expected_topgrad_shape = get_conv_output_shape(
             imshp, kern.shape, self.border_mode, self.subsample, self.filter_dilation
         )
-        if not tuple(expected_topgrad_shape) == tuple(topgrad.shape):
+        if tuple(expected_topgrad_shape) != tuple(topgrad.shape):
             raise ValueError(
                 "invalid input_shape for gradInputs: the given input_shape "
                 "would produce an output of shape {}, but the given topgrad "

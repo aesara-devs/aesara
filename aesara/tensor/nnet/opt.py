@@ -448,7 +448,7 @@ def local_conv2d_gradinputs_cpu(fgraph, node):
             return None
 
     mode = "valid"
-    if not node.op.border_mode == "full":
+    if node.op.border_mode != "full":
         mode = "full"
     filters = kern.dimshuffle((1, 0, 2, 3))
     filters = filters[:, :, ::-1, ::-1]

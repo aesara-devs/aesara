@@ -249,7 +249,7 @@ class Apply(Node):
         remake_node = False
         new_inputs = inputs[:]
         for i, (curr, new) in enumerate(zip(self.inputs, new_inputs)):
-            if not curr.type == new.type:
+            if curr.type != new.type:
                 if strict:
                     # If compatible, casts new into curr.type
                     new_inputs[i] = curr.type.filter_variable(new)

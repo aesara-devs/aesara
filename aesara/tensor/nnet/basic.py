@@ -2527,7 +2527,7 @@ class Prepend_scalar_constant_to_each_row(Op):
     def make_node(self, mat):
         # check type of input
         x = at.as_tensor_variable(mat)
-        if not mat.type.broadcastable == (False, False):
+        if mat.type.broadcastable != (False, False):
             raise TypeError("Expected a matrix as input")
         y = at.as_tensor_variable(self.val)
         assert y.ndim == 0
@@ -2574,7 +2574,7 @@ class Prepend_scalar_to_each_row(Op):
         x = at.as_tensor_variable(mat)
         if isinstance(val, float):
             val = aes.constant(val)
-        if not mat.type.broadcastable == (False, False):
+        if mat.type.broadcastable != (False, False):
             raise TypeError("Expected a matrix as input")
         y = at.as_tensor_variable(val)
         assert y.ndim == 0

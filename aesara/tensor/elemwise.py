@@ -187,7 +187,7 @@ class DimShuffle(ExternalCOp):
     def make_node(self, _input):
         input = as_tensor_variable(_input)
         ib = tuple(input.type.broadcastable)
-        if not ib == self.input_broadcastable:
+        if ib != self.input_broadcastable:
             if len(ib) != len(self.input_broadcastable):
                 raise TypeError(
                     "The number of dimensions of the "

@@ -258,7 +258,7 @@ class GpuAveragePoolGrad(CGpuKernelBase):
         if pad is None:
             pad = (0,) * nd
         elif isinstance(pad, (tuple, list)):
-            if max(pad) != 0 and not self.mode == "average_exc_pad":
+            if max(pad) != 0 and self.mode != "average_exc_pad":
                 raise ValueError("Padding must be zero for average_exc_pad")
         ws = as_tensor_variable(ws)
         stride = as_tensor_variable(stride)

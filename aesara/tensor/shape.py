@@ -413,7 +413,7 @@ class SpecifyShape(COp):
             raise AssertionError(
                 f"SpecifyShape: Got {x.ndim} dimensions (shape {x.shape}), expected {ndim} dimensions with shape {tuple(shape)}."
             )
-        if not np.all(x.shape == shape):
+        if x.shape != tuple(shape):
             raise AssertionError(
                 f"SpecifyShape: Got shape {x.shape}, expected {tuple(shape)}."
             )

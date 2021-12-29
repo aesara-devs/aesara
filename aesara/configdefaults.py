@@ -1240,7 +1240,7 @@ def add_multiprocessing_configvars():
                 f"The environment variable OMP_NUM_THREADS should be a number, got '{var}'."
             )
         else:
-            default_openmp = not int(var) == 1
+            default_openmp = int(var) != 1
     else:
         # Check the number of cores availables.
         count = os.cpu_count()

@@ -74,7 +74,7 @@ class TestNodeFinder:
 
         assert hasattr(g, "get_nodes")
         for type, num in ((add, 3), (sigmoid, 3), (dot, 2)):
-            if not len([t for t in g.get_nodes(type)]) == num:
+            if len([t for t in g.get_nodes(type)]) != num:
                 raise Exception("Expected: %i times %s" % (num, type))
         new_e0 = add(y, z)
         assert e0.owner in g.get_nodes(dot)
@@ -83,7 +83,7 @@ class TestNodeFinder:
         assert e0.owner not in g.get_nodes(dot)
         assert new_e0.owner in g.get_nodes(add)
         for type, num in ((add, 4), (sigmoid, 3), (dot, 1)):
-            if not len([t for t in g.get_nodes(type)]) == num:
+            if len([t for t in g.get_nodes(type)]) != num:
                 raise Exception("Expected: %i times %s" % (num, type))
 
 

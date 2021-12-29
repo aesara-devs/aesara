@@ -1021,7 +1021,7 @@ class AlgebraicCanonizer(LocalOptimizer):
 
         assert (new.type == out.type) == (not (new.type != out.type))
 
-        if not (new.type == out.type):
+        if new.type != out.type:
             new = fill_chain(new, node.inputs)[0]
 
         if new.type == out.type:
@@ -1138,7 +1138,7 @@ def local_sum_prod_mul_by_scalar(fgraph, node):
                 new_op_input_nb_elements = new_op_input.size
                 new_op_output = node.op(new_op_input)
 
-            if not len(non_scalars) == 0:
+            if len(non_scalars) != 0:
                 # Copy over stacktrace from previous output to new mul op,
                 # for same reason as above.
                 copy_stack_trace(node.outputs, new_op_output)
@@ -2519,7 +2519,7 @@ def local_greedy_distributor(fgraph, node):
 
     rval = local_mul_canonizer.merge_num_denum(new_num, new_denum)
 
-    if not (rval.type == out.type):
+    if rval.type != out.type:
         # WHY DOES THIS HAPPEN?
         return False
 
