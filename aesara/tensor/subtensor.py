@@ -697,15 +697,13 @@ class Subtensor(COp):
         input_types = get_slice_elements(
             idx_list, lambda entry: isinstance(entry, Type)
         )
-        if len(inputs) != len(input_types):
-            raise IndexError(
-                "Not enough inputs to fill in the Subtensor template.", inputs, idx_list
-            )
+
+        assert len(inputs) == len(input_types)
+
         for input, expected_type in zip(inputs, input_types):
             if input.type != expected_type:
                 raise TypeError(
-                    "Wrong type for Subtensor template. Expected %s, got %s."
-                    % (input.type, expected_type)
+                    f"Incompatible types for Subtensor template. Expected {input.type}, got {expected_type}."
                 )
 
         # infer the broadcasting pattern
@@ -1533,8 +1531,7 @@ class IncSubtensor(COp):
         for input, expected_type in zip(inputs, input_types):
             if input.type != expected_type:
                 raise TypeError(
-                    "Wrong type for Subtensor template. Expected %s, got %s."
-                    % (input.type, expected_type)
+                    f"Wrong type for Subtensor template. Expected {input.type}, got {expected_type}."
                 )
 
         return Apply(self, (x, y) + inputs, [x.type()])

@@ -4,6 +4,7 @@ import pytest
 import aesara.tensor as at
 from aesara.compile import UnusedInputError
 from aesara.compile.function import function, pfunc
+from aesara.compile.function.pfunc import rebuild_collect_shared
 from aesara.compile.io import In
 from aesara.compile.sharedvalue import shared
 from aesara.configdefaults import config
@@ -1045,3 +1046,12 @@ class TestRebuildStrict:
         z_val = f(np.ones((3, 5), dtype="int32"), np.arange(5, dtype="int32"))
         assert z_val.ndim == 2
         assert np.all(z_val == np.ones((3, 5)) * np.arange(5))
+
+
+def test_rebuild_collect_shared():
+
+    x, y = ivectors("x", "y")
+    z = x * y
+
+    with pytest.raises(TypeError):
+        rebuild_collect_shared([z], replace={1: 2})

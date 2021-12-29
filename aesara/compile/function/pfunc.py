@@ -113,9 +113,8 @@ def rebuild_collect_shared(
                         )
                         if v_update.type != v.type:
                             raise TypeError(
-                                "an update must have the same type as "
-                                "the original shared variable",
-                                (v, v.type, v_update, v_update.type),
+                                "An update must have a type compatible with "
+                                "the original shared variable"
                             )
                         update_d[v] = v_update
                         update_expr.append((v, v_update))
@@ -134,7 +133,7 @@ def rebuild_collect_shared(
 
     for v_orig, v_repl in replace_pairs:
         if not isinstance(v_orig, Variable):
-            raise TypeError("given keys must be Variable", v_orig)
+            raise TypeError("`givens` keys must be Variables")
         if not isinstance(v_repl, Variable):
             v_repl = shared(v_repl)
 
