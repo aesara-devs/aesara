@@ -961,7 +961,7 @@ class transfer_type(MetaObject):
     __props__ = ("transfer",)
 
     def __init__(self, *transfer):
-        assert all(type(x) in [int, str] or x is None for x in transfer)
+        assert all(isinstance(x, (int, str)) or x is None for x in transfer)
         self.transfer = transfer
 
     def __str__(self):
@@ -4363,7 +4363,7 @@ class Compositef32:
                     else:
                         ni = i
                     mapping[i] = ni
-            if type(node.op) in self.special:
+            if isinstance(node.op, tuple(self.special.keys())):
                 self.special[type(node.op)](node, mapping)
                 continue
             new_node = node.clone_with_new_inputs(

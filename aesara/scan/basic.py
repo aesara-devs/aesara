@@ -1073,7 +1073,7 @@ def scan(
             pass
         scan_inputs += [arg]
     scan_outs = local_op(*scan_inputs)
-    if type(scan_outs) not in (list, tuple):
+    if not isinstance(scan_outs, (list, tuple)):
         scan_outs = [scan_outs]
     ##
     # Step 9. Figure out which outs are update rules for shared variables

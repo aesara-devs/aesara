@@ -656,7 +656,7 @@ def local_subtensor_of_alloc(fgraph, node):
     if nw_val.ndim > len(nw_dims):
         return False
     rval = alloc(nw_val, *nw_dims)
-    if type(rval) not in (list, tuple):
+    if not isinstance(rval, (list, tuple)):
         rval = [rval]
     if rval[0].type != node.outputs[0].type:
         # It happen that the make_node() isn't able to infer the same pattern.

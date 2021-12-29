@@ -2263,7 +2263,7 @@ class ConvMetaOptimizer(LocalMetaOptimizer):
         ):
             return result
 
-        if type(node.op) in [AbstractConv2d, AbstractConv3d]:
+        if isinstance(node.op, (AbstractConv2d, AbstractConv3d)):
             img, kern = node.inputs
             for (var, shape) in zip((img, kern), shapes):
                 result[var] = aesara.shared(
@@ -2273,7 +2273,9 @@ class ConvMetaOptimizer(LocalMetaOptimizer):
                     borrow=True,
                 )
 
-        if type(node.op) in [AbstractConv2d_gradWeights, AbstractConv3d_gradWeights]:
+        if isinstance(
+            node.op, (AbstractConv2d_gradWeights, AbstractConv3d_gradWeights)
+        ):
             img, top, kshape = node.inputs
 
             tshp = get_conv_output_shape(
@@ -2295,7 +2297,7 @@ class ConvMetaOptimizer(LocalMetaOptimizer):
                     borrow=True,
                 )
 
-        if type(node.op) in [AbstractConv2d_gradInputs, AbstractConv3d_gradInputs]:
+        if isinstance(node.op, (AbstractConv2d_gradInputs, AbstractConv3d_gradInputs)):
             kern, top, ishape = node.inputs
 
             tshp = get_conv_output_shape(

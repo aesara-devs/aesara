@@ -209,7 +209,7 @@ class multiple_outputs_numeric_grad:
 def scan_project_sum(*args, **kwargs):
     rng = RandomStream(123)
     scan_outputs, updates = scan(*args, **kwargs)
-    if type(scan_outputs) not in [list, tuple]:
+    if not isinstance(scan_outputs, (list, tuple)):
         scan_outputs = [scan_outputs]
     # we should ignore the random-state updates so that
     # the uniform numbers are the same every evaluation and on every call

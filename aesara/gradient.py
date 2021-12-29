@@ -386,7 +386,7 @@ def Lop(f, wrt, eval_points, consider_constant=None, disconnected_inputs="raise"
         coordinates of the tensor element in the last
         If `f` is a list/tuple, then return a list/tuple with the results.
     """
-    if type(eval_points) not in (list, tuple):
+    if not isinstance(eval_points, (list, tuple)):
         eval_points = [eval_points]
 
     using_list = isinstance(wrt, list)

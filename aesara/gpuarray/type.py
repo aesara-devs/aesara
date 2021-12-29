@@ -279,7 +279,7 @@ class GpuArrayType(CType):
             # fallthrough to ndim check
         elif allow_downcast or (
             allow_downcast is None
-            and type(data) == float
+            and isinstance(data, float)
             and self.dtype == config.floatX
         ):
             if not isinstance(data, gpuarray.GpuArray):
@@ -427,7 +427,7 @@ class GpuArrayType(CType):
     def convert_variable(self, var):
         vt = var.type
         if (
-            type(self) == type(vt)
+            isinstance(vt, type(self))
             and self.typecode == vt.typecode
             and self.ndim == vt.ndim
             and self.context_name == vt.context_name

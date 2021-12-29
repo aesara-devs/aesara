@@ -308,7 +308,7 @@ class Mode:
     ):
         if linker is None:
             linker = config.linker
-        if type(optimizer) == str and optimizer == "default":
+        if isinstance(optimizer, str) and optimizer == "default":
             optimizer = config.optimizer
 
         self.__setstate__((linker, optimizer))

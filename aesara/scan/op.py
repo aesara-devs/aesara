@@ -2778,7 +2778,7 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
             allow_gc=self.allow_gc,
         )
         outputs = local_op(*outer_inputs)
-        if type(outputs) not in (list, tuple):
+        if not isinstance(outputs, (list, tuple)):
             outputs = [outputs]
         # Re-order the gradients correctly
         gradients = [DisconnectedType()()]
@@ -2922,7 +2922,7 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
         if self.info.n_shared_outs > 0:
             rop_self_outputs = rop_self_outputs[: -self.info.n_shared_outs]
         rop_outs = Rop(rop_self_outputs, rop_of_inputs, inner_eval_points)
-        if type(rop_outs) not in (list, tuple):
+        if not isinstance(rop_outs, (list, tuple)):
             rop_outs = [rop_outs]
         # Step 2. Figure out what corresponds to what in the scan
 
@@ -3112,7 +3112,7 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
             allow_gc=self.allow_gc,
         )
         outputs = local_op(*scan_inputs)
-        if type(outputs) not in (list, tuple):
+        if not isinstance(outputs, (list, tuple)):
             outputs = [outputs]
         # Select only the result of the R_op results
         final_outs = []

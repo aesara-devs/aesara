@@ -223,7 +223,7 @@ class DimShuffle(ExternalCOp):
         (res,) = inp
         (storage,) = out
 
-        if type(res) != np.ndarray and type(res) != np.memmap:
+        if not isinstance(res, (np.ndarray, np.memmap)):
             raise TypeError(res)
 
         res = res.transpose(self.transposition)
