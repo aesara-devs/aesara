@@ -12,20 +12,20 @@ from aesara.tensor.signal.pool import (
     AveragePoolGrad,
     DownsampleFactorMaxGradGrad,
     MaxPoolGrad,
-    PoolGrad,
     Pool,
+    PoolGrad,
     max_pool_2d_same_size,
     pool_2d,
     pool_3d,
 )
 from aesara.tensor.type import (
     TensorType,
-    fmatrix,
     dmatrix,
     dtensor3,
     dtensor4,
-    ftensor4,
+    fmatrix,
     ftensor3,
+    ftensor4,
     ivector,
     tensor,
     tensor4,
@@ -1296,33 +1296,35 @@ class TestDownsampleFactorMax(utt.InferShapeTester):
     @staticmethod
     def checks_helper(func, x, ws, stride, pad):
         with pytest.raises(
-                ValueError,
-                match=r"You can't provide a tuple value to both 'ws' and 'ds'."):
+            ValueError, match=r"You can't provide a tuple value to both 'ws' and 'ds'."
+        ):
             func(x, ds=ws, ws=ws)
 
         with pytest.raises(
-                ValueError,
-                match="You must provide a tuple value for the window size."):
+            ValueError, match="You must provide a tuple value for the window size."
+        ):
             func(x)
 
         with pytest.raises(
-                ValueError,
-                match=r"You can't provide a tuple value to both 'st and 'stride'."):
+            ValueError,
+            match=r"You can't provide a tuple value to both 'st and 'stride'.",
+        ):
             func(x, ws=ws, st=stride, stride=stride)
 
         with pytest.raises(
-                ValueError,
-                match=r"You can't provide a tuple value to both 'padding' and pad."):
+            ValueError,
+            match=r"You can't provide a tuple value to both 'padding' and pad.",
+        ):
             func(x, ws=ws, pad=pad, padding=pad)
-            
+
     def test_pool_2d_checks(self):
         x = fmatrix()
 
         self.checks_helper(pool_2d, x, ws=(1, 1), stride=(1, 1), pad=(1, 1))
 
         with pytest.raises(
-                NotImplementedError,
-                match="pool_2d requires a dimension >= 2"):
+            NotImplementedError, match="pool_2d requires a dimension >= 2"
+        ):
             pool_2d(input=vector(), ws=(1, 1))
 
         with pytest.deprecated_call():
@@ -1335,8 +1337,8 @@ class TestDownsampleFactorMax(utt.InferShapeTester):
         self.checks_helper(pool_3d, x, ws=(1, 1, 1), stride=(1, 1, 1), pad=(1, 1, 1))
 
         with pytest.raises(
-                NotImplementedError,
-                match="pool_3d requires a dimension >= 3"):
+            NotImplementedError, match="pool_3d requires a dimension >= 3"
+        ):
             pool_3d(input=fmatrix(), ws=(1, 1, 1))
 
         with pytest.deprecated_call():
@@ -1349,7 +1351,58 @@ class TestDownsampleFactorMax(utt.InferShapeTester):
 
         self.checks_helper(func, x, ws=(1, 1), stride=(1, 1), pad=(1, 1))
 
-        with pytest.raises(
-                TypeError,
-                match="imgshape must have at least 3 dimensions"):
+        with pytest.raises(TypeError, match="imgshape must have at least 3 dimensions"):
             func(x, (2, 2), ndim=3)
+
+    def test_Pool_make_node_checks(self):
+        x = fmatrix()
+
+        with pytest.raises(
+            NotImplementedError, match="padding works only with ignore_border=True"
+        ):
+            op = Pool(ignore_border=False, ndim=2)
+            op(x, (1, 1), pad=(1, 1))
+
+        with pytest.raises(
+            NotImplementedError, match="padding must be smaller than strides"
+        ):
+            op = Pool(ignore_border=True, ndim=2)
+            op(x, (1, 1), pad=(2, 2))
+
+        with pytest.raises(TypeError):
+            op = Pool(ignore_border=True, ndim=3)
+            op(x, (1, 1))
+
+        op = Pool(ignore_border=True, ndim=2)
+        with pytest.raises(TypeError, match="Pool downsample parameters must be ints."):
+            op(x, (1.0, 1.0))
+
+        with pytest.raises(TypeError, match="Stride parameters must be ints."):
+            op(x, (1, 1), stride=(1.0, 1.0))
+
+        with pytest.raises(TypeError, match="Padding parameters must be ints."):
+            op(x, (2, 2), pad=(1.0, 1.0))
+
+    def test_MaxPoolGrad_make_node_checks(self):
+        x = fmatrix()
+        op = MaxPoolGrad(ignore_border=True, ndim=2)
+        with pytest.raises(TypeError, match="Pool downsample parameters must be ints."):
+            op(x, maxout=[[1, 1], [1, 1]], gz=[[1, 1], [1, 1]], ws=(1.0, 1, 0))
+
+        with pytest.raises(TypeError, match="Stride parameters must be ints."):
+            op(
+                x,
+                maxout=[[1, 1], [1, 1]],
+                gz=[[1, 1], [1, 1]],
+                ws=(1, 1),
+                stride=(1.0, 1.0),
+            )
+
+        with pytest.raises(TypeError, match="Padding parameters must be ints."):
+            op(
+                x,
+                maxout=[[1, 1], [1, 1]],
+                gz=[[1, 1], [1, 1]],
+                ws=(1, 1),
+                pad=(1.0, 1.0),
+            )
