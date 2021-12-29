@@ -303,39 +303,20 @@ pprint.assign(DimShuffle, DimShufflePrinter())
 
 
 class Elemwise(OpenMPOp):
-    """
-    Generalizes a scalar op to tensors.
+    """Generalizes a scalar `Op` to tensors.
 
     All the inputs must have the same number of dimensions. When the
-    Op is performed, for each dimension, each input's size for that
-    dimension must be the same. As a special case, it can also be 1
-    but only if the input's broadcastable flag is True for that
+    `Op` is performed, for each dimension, each input's size for that
+    dimension must be the same. As a special case, it can also be one
+    but only if the input's `broadcastable` flag is ``True`` for that
     dimension. In that case, the tensor is (virtually) replicated
     along that dimension to match the size of the others.
 
-    The dtypes of the outputs mirror those of the scalar Op that is
+    The dtypes of the outputs mirror those of the scalar `Op` that is
     being generalized to tensors. In particular, if the calculations
-    for an output are done inplace on an input, the output type must
+    for an output are done in-place on an input, the output type must
     be the same as the corresponding input type (see the doc of
     `ScalarOp` to get help about controlling the output type)
-
-    Parameters
-    ----------
-    scalar_op
-        An instance of a subclass of `ScalarOp` which works uniquely
-        on scalars.
-    inplace_pattern
-        A dictionary that maps the index of an output to the
-        index of an input so the output is calculated inplace using
-        the input's storage. (Just like destroymap, but without the lists.)
-    nfunc_spec
-        Either None or a tuple of three elements,
-        (nfunc_name, nin, nout) such that getattr(numpy, nfunc_name)
-        implements this operation, takes nin inputs and nout outputs.
-        Note that nin cannot always be inferred from the scalar op's
-        own nin field because that value is sometimes 0 (meaning a
-        variable number of inputs), whereas the numpy function may
-        not have varargs.
 
     Notes
     -----
@@ -356,6 +337,26 @@ second dimension
     def __init__(
         self, scalar_op, inplace_pattern=None, name=None, nfunc_spec=None, openmp=None
     ):
+        """
+
+        Parameters
+        ----------
+        scalar_op
+            An instance of a subclass of `ScalarOp` which works uniquely
+            on scalars.
+        inplace_pattern
+            A dictionary that maps the index of an output to the
+            index of an input so the output is calculated inplace using
+            the input's storage. (Just like `Op.destroy_map`, but without the lists.)
+        nfunc_spec
+            Either ``None`` or a tuple of three elements, ``(nfunc_name, nin,
+            nout)`` such that ``getattr(numpy, nfunc_name)`` implements this
+            operation, takes ``nin``-many inputs and ``nout``-many outputs.  Note
+            that ``nin`` cannot always be inferred from the scalar `Op`'s own
+            ``nin`` field, because that value is sometimes zero (meaning a variable
+            number of inputs), whereas the NumPy function may not have var-args.
+
+        """
         assert not isinstance(scalar_op, type(self))
         if inplace_pattern is None:
             inplace_pattern = frozendict({})
