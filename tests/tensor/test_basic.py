@@ -513,7 +513,7 @@ class ApplyDefaultTestOp(Op):
 
 
 def test_constant():
-    int8_vector_type = TensorType(dtype="int8", broadcastable=(False,))
+    int8_vector_type = TensorType(dtype="int8", shape=(False,))
 
     # Make sure we return a `TensorConstant` unchanged
     x = TensorConstant(int8_vector_type, [1, 2])
@@ -521,7 +521,7 @@ def test_constant():
     assert y is x
 
     # Make sure we can add and remove broadcastable dimensions
-    int8_scalar_type = TensorType(dtype="int8", broadcastable=())
+    int8_scalar_type = TensorType(dtype="int8", shape=())
     x_data = np.array(2, dtype="int8")
 
     x = TensorConstant(int8_scalar_type, x_data)
@@ -658,12 +658,12 @@ class TestAsTensorVariable:
     def test_constant_identity(self):
         # Values that are already `TensorType`s shouldn't be recreated by
         # `as_tensor_variable`
-        x_scalar = TensorConstant(TensorType(dtype="int8", broadcastable=()), 2)
+        x_scalar = TensorConstant(TensorType(dtype="int8", shape=()), 2)
         a_scalar = as_tensor_variable(x_scalar)
         assert x_scalar is a_scalar
 
         x_vector = TensorConstant(
-            TensorType(dtype="int8", broadcastable=(False,)),
+            TensorType(dtype="int8", shape=(False,)),
             np.array([1, 2], dtype="int8"),
         )
         a_vector = as_tensor_variable(x_vector)
@@ -915,7 +915,7 @@ class TestNonzero:
     @config.change_flags(compute_test_value="raise")
     def test_nonzero(self):
         def check(m):
-            m_symb = tensor(dtype=m.dtype, broadcastable=(False,) * m.ndim)
+            m_symb = tensor(dtype=m.dtype, shape=(False,) * m.ndim)
             m_symb.tag.test_value = m
 
             res_tuple_at = nonzero(m_symb, return_matrix=False)
@@ -944,7 +944,7 @@ class TestNonzero:
     @config.change_flags(compute_test_value="raise")
     def test_flatnonzero(self):
         def check(m):
-            m_symb = tensor(dtype=m.dtype, broadcastable=(False,) * m.ndim)
+            m_symb = tensor(dtype=m.dtype, shape=(False,) * m.ndim)
             m_symb.tag.test_value = m
 
             res_at = flatnonzero(m_symb)
@@ -967,7 +967,7 @@ class TestNonzero:
     @config.change_flags(compute_test_value="raise")
     def test_nonzero_values(self):
         def check(m):
-            m_symb = tensor(dtype=m.dtype, broadcastable=(False,) * m.ndim)
+            m_symb = tensor(dtype=m.dtype, shape=(False,) * m.ndim)
             m_symb.tag.test_value = m
 
             res_at = nonzero_values(m_symb)
@@ -1633,8 +1633,8 @@ class TestJoinAndSplit:
         a_val = rng.random((1, 4, 1)).astype(self.floatX)
         b_val = rng.random((1, 3, 1)).astype(self.floatX)
 
-        a = self.shared(a_val, broadcastable=(False, False, True))
-        b = self.shared(b_val, broadcastable=(True, False, True))
+        a = self.shared(a_val, shape=(False, False, True))
+        b = self.shared(b_val, shape=(True, False, True))
         c = self.join_op(1, a, b)
         assert c.type.broadcastable[0] and c.type.broadcastable[2]
         assert not c.type.broadcastable[1]
@@ -1671,8 +1671,8 @@ class TestJoinAndSplit:
         a_val = rng.random((2, 4, 1)).astype(self.floatX)
         b_val = rng.random((1, 4, 1)).astype(self.floatX)
 
-        a = self.shared(a_val, broadcastable=(False, False, True))
-        b = self.shared(b_val, broadcastable=(True, False, True))
+        a = self.shared(a_val, shape=(False, False, True))
+        b = self.shared(b_val, shape=(True, False, True))
         c = self.join_op(0, a, b)
         assert not c.type.broadcastable[0]
 
@@ -1688,8 +1688,8 @@ class TestJoinAndSplit:
         # We can't set the value|
         with pytest.raises(TypeError):
             b.set_value(rng.random((3, 4, 1)).astype(self.floatX))
-        a = TensorType(dtype=self.floatX, broadcastable=[0, 0, 1])()
-        b = TensorType(dtype=self.floatX, broadcastable=[1, 0, 1])()
+        a = TensorType(dtype=self.floatX, shape=[False, False, True])()
+        b = TensorType(dtype=self.floatX, shape=[True, False, True])()
         c = self.join_op(0, a, b)
         f = function([a, b], c, mode=self.mode)
         bad_b_val = rng.random((3, 4, 1)).astype(self.floatX)
@@ -1704,8 +1704,8 @@ class TestJoinAndSplit:
         a_val = rng.random((1, 4, 1)).astype(self.floatX)
         b_val = rng.random((1, 4, 1)).astype(self.floatX)
 
-        a = self.shared(a_val, broadcastable=(True, False, True))
-        b = self.shared(b_val, broadcastable=(True, False, True))
+        a = self.shared(a_val, shape=(True, False, True))
+        b = self.shared(b_val, shape=(True, False, True))
         c = self.join_op(0, a, b)
         assert not c.type.broadcastable[0]
 
@@ -1723,7 +1723,7 @@ class TestJoinAndSplit:
         # single-input join.
         rng = np.random.default_rng(seed=utt.fetch_seed())
         a_val = rng.random((1, 4, 1)).astype(self.floatX)
-        a = self.shared(a_val, broadcastable=(True, False, True))
+        a = self.shared(a_val, shape=(True, False, True))
         b = self.join_op(0, a)
         assert b.type.broadcastable[0]
         assert b.type.broadcastable[2]
@@ -1747,11 +1747,21 @@ class TestJoinAndSplit:
     def test_broadcastable_flags_many_dims_and_inputs(self):
         # Test that the right broadcastable flags get set for a join
         # with many inputs and many input dimensions.
-        a = TensorType(dtype=self.floatX, broadcastable=[1, 0, 1, 0, 0, 0])()
-        b = TensorType(dtype=self.floatX, broadcastable=[1, 1, 1, 0, 0, 0])()
-        c = TensorType(dtype=self.floatX, broadcastable=[1, 0, 0, 0, 0, 0])()
-        d = TensorType(dtype=self.floatX, broadcastable=[1, 0, 1, 1, 0, 1])()
-        e = TensorType(dtype=self.floatX, broadcastable=[1, 0, 1, 0, 0, 1])()
+        a = TensorType(
+            dtype=self.floatX, shape=[True, False, True, False, False, False]
+        )()
+        b = TensorType(
+            dtype=self.floatX, shape=[True, True, True, False, False, False]
+        )()
+        c = TensorType(
+            dtype=self.floatX, shape=[True, False, False, False, False, False]
+        )()
+        d = TensorType(
+            dtype=self.floatX, shape=[True, False, True, True, False, True]
+        )()
+        e = TensorType(
+            dtype=self.floatX, shape=[True, False, True, False, False, True]
+        )()
         f = self.join_op(0, a, b, c, d, e)
         fb = f.type.broadcastable
         assert not fb[0] and fb[1] and fb[2] and fb[3] and not fb[4] and fb[5]
@@ -3202,7 +3212,7 @@ class TestBroadcast:
         assert unbroadcast(unbroadcast(x, 0), 0).owner.inputs[0] is x
 
         # Test that consecutive Rebroadcast op are fused
-        x = TensorType(dtype="float64", broadcastable=(True, True))()
+        x = TensorType(dtype="float64", shape=(True, True))()
         assert unbroadcast(unbroadcast(x, 1), 0).owner.inputs[0] is x
         assert addbroadcast(unbroadcast(x, 1), 0).owner.inputs[0] is x
         assert addbroadcast(unbroadcast(x, 0), 0) is x
@@ -3277,7 +3287,7 @@ class TestRebroadcast(utt.InferShapeTester):
 
 def test_len():
     for shape_ in [(5,), (3, 4), (7, 4, 6)]:
-        x = tensor(dtype="floatX", broadcastable=(False,) * len(shape_))
+        x = tensor(dtype="floatX", shape=(False,) * len(shape_))
         with pytest.raises(TypeError):
             len(x)
 
@@ -3419,7 +3429,7 @@ class TestGetScalarConstantValue:
         assert get_scalar_constant_value(s) == 3
         s = Shape_i(1)(c)
         assert get_scalar_constant_value(s) == 4
-        d = aesara.shared(np.random.standard_normal((1, 1)), broadcastable=(True, True))
+        d = aesara.shared(np.random.standard_normal((1, 1)), shape=(True, True))
         f = ScalarFromTensor()(Shape_i(0)(d))
         assert get_scalar_constant_value(f) == 1
 
@@ -3498,7 +3508,7 @@ class TestSize:
     def test_scalar(self):
         x = scalar()
         y = np.array(7, dtype=config.floatX)
-        assert y.size == function([x], x.size)(y)
+        assert y.size == function([], x.size)()
 
     def test_shared(self):
         # NB: we also test higher order tensors at the same time.
@@ -3605,7 +3615,7 @@ class TestAllocDiag:
         for d in range(1, dims + 1):
             # Create a TensorType of the same dimensions as
             # as the data we want to test.
-            x = TensorType(dtype=config.floatX, broadcastable=(False,) * d)("x")
+            x = TensorType(dtype=config.floatX, shape=(False,) * d)("x")
 
             # Make a slice of the test data that has the
             # dimensions we need by doing xv[0,...,0]
@@ -4293,8 +4303,8 @@ class TestChoose(utt.InferShapeTester):
             ((4,), (1,)),
             ((1,), (1,)),
         ]:
-            a = tensor(dtype="int32", broadcastable=[n == 1 for n in shp1])
-            c = tensor(dtype="float32", broadcastable=[n == 1 for n in shp2])
+            a = tensor(dtype="int32", shape=[n == 1 for n in shp1])
+            c = tensor(dtype="float32", shape=[n == 1 for n in shp2])
             A = np.asarray(np.random.random(shp1) * shp2[0], dtype="int32")
             C = np.asarray(np.random.random(shp2) * shp2[0], dtype="float32")
             self._compile_and_check(

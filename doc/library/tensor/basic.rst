@@ -44,7 +44,7 @@ for a 0-dimensional ndarray of integers with the name ``'myvar'``:
 
 >>> x = scalar('myvar', dtype='int32')
 >>> x = iscalar('myvar')
->>> x = TensorType(dtype='int32', broadcastable=())('myvar')
+>>> x = TensorType(dtype='int32', shape=())('myvar')
 
 Constructors with optional dtype
 ----------------------------------------

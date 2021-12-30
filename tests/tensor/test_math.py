@@ -559,7 +559,7 @@ TestCosBroadcast = makeBroadcastTester(
 
 
 def test_py_c_match():
-    a = TensorType(dtype="int8", broadcastable=(False,))()
+    a = TensorType(dtype="int8", shape=(False,))()
     f = function([a], arccos(a), mode="DebugMode")
     # This can fail in DebugMode
     f(np.asarray([1, 0, -1], dtype="int8"))
@@ -1457,8 +1457,8 @@ class TestOuter:
     def test_outer(self):
         for m in range(4):
             for n in range(4):
-                x = tensor(dtype="floatX", broadcastable=(False,) * m)
-                y = tensor(dtype="floatX", broadcastable=(False,) * n)
+                x = tensor(dtype="floatX", shape=(False,) * m)
+                y = tensor(dtype="floatX", shape=(False,) * n)
                 s1 = self.rng.integers(1, 10, m)
                 s2 = self.rng.integers(1, 10, n)
                 v1 = np.asarray(self.rng.random(s1)).astype(config.floatX)
@@ -1958,7 +1958,7 @@ class TestDot:
                     (False, True),
                     (False, False),
                 ):
-                    x = TensorType(dtype=dtype0, broadcastable=bc0)()
+                    x = TensorType(dtype=dtype0, shape=bc0)()
                     for bc1 in (
                         (True,),
                         (False,),
@@ -1968,7 +1968,7 @@ class TestDot:
                         (False, False),
                     ):
 
-                        y = TensorType(dtype=dtype1, broadcastable=bc1)()
+                        y = TensorType(dtype=dtype1, shape=bc1)()
                         z = dense_dot(x, y)
 
                         if dtype0.startswith("float") and dtype1.startswith("float"):
@@ -2141,7 +2141,7 @@ class TestTensordot:
 
     def test_broadcastable1(self):
         rng = np.random.default_rng(seed=utt.fetch_seed())
-        x = TensorType(dtype=config.floatX, broadcastable=(True, False, False))("x")
+        x = TensorType(dtype=config.floatX, shape=(True, False, False))("x")
         y = tensor3("y")
         z = tensordot(x, y)
         assert z.broadcastable == (True, False)
@@ -2153,7 +2153,7 @@ class TestTensordot:
 
     def test_broadcastable2(self):
         rng = np.random.default_rng(seed=utt.fetch_seed())
-        x = TensorType(dtype=config.floatX, broadcastable=(True, False, False))("x")
+        x = TensorType(dtype=config.floatX, shape=(True, False, False))("x")
         y = tensor3("y")
         axes = [[2, 1], [0, 1]]
         z = tensordot(x, y, axes=axes)
@@ -2180,7 +2180,7 @@ def test_smallest():
 
 
 def test_var():
-    a = TensorType(dtype="float64", broadcastable=[False, False, False])()
+    a = TensorType(dtype="float64", shape=[False, False, False])()
     f = function([a], var(a))
 
     a_val = np.arange(6).reshape(1, 2, 3)
@@ -2230,7 +2230,7 @@ def test_var():
 class TestSum:
     def test_sum_overflow(self):
         # Ensure that overflow errors are a little bit harder to get
-        a = TensorType(dtype="int8", broadcastable=[False])()
+        a = TensorType(dtype="int8", shape=[False])()
         f = function([a], at_sum(a))
         assert f([1] * 300) == 300
 
@@ -3321,8 +3321,8 @@ def test_tanh_grad_broadcast():
     # FIXME: This is not a real test.
     # This crashed in the past.
 
-    x = tensor(dtype="float32", broadcastable=(True, False, False, False))
-    y = tensor(dtype="float32", broadcastable=(True, True, False, False))
+    x = tensor(dtype="float32", shape=(True, False, False, False))
+    y = tensor(dtype="float32", shape=(True, True, False, False))
 
     # TODO FIXME: This is a bad test
     grad(tanh(x).sum(), x)

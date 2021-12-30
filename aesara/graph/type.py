@@ -48,8 +48,11 @@ class Type(MetaObject):
 
         A "class" of types could be something like "float64 tensors with four
         dimensions".  One `Type` could represent a set containing only a type
-        for "float64 tensor with shape (1, 2, 3, 4)" and another the set of
+        for "float64 tensors with shape (1, 2, 3, 4)" and another the set of
         "float64 tensors with shape (1, x, x, x)" for all suitable "x".
+
+        It's up to each subclass of `Type` to determine to which "classes" of types this
+        method applies.
 
         The default implementation assumes that all "classes" have only one
         unique element (i.e. it uses `self.__eq__`).

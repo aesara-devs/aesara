@@ -65,7 +65,7 @@ Aesara also provides :func:`aesara.printing.pydotprint` that creates a png image
 The parameter in at.dscalar('x') in the first line is the name of this variable
 in the graph. This name is used when printing the graph to make it more readable.
 If no name is provided the variable x is printed as its type as returned by
-x.type(). In this example - <TensorType(float64, scalar)>.
+``x.type()``. In this example - ``<TensorType(float64, ())>``.
 
 The name parameter can be any string. There are no naming restrictions:
 in particular, you can have many variables with the same name.

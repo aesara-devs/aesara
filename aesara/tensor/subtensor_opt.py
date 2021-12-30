@@ -225,9 +225,6 @@ def local_replace_AdvancedSubtensor(fgraph, node):
         return
 
     new_res = transform_take(indexed_var, indices[axis], axis)
-
-    assert new_res.broadcastable == node.outputs[0].broadcastable
-
     copy_stack_trace(node.outputs[0], new_res)
     return [new_res]
 

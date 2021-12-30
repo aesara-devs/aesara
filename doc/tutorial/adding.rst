@@ -71,9 +71,9 @@ field, as you can see here:
 >>> type(x)
 <class 'aesara.tensor.var.TensorVariable'>
 >>> x.type
-TensorType(float64, scalar)
+TensorType(float64, ())
 >>> at.dscalar
-TensorType(float64, scalar)
+TensorType(float64, ())
 >>> x.type is at.dscalar
 True
 

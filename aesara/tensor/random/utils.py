@@ -130,6 +130,7 @@ def normalize_size_param(size):
             # `Scan` performs)
             size = specify_shape(size, (get_vector_length(size),))
 
+    assert not any(s is None for s in size.type.shape)
     assert size.dtype in int_dtypes
 
     return size

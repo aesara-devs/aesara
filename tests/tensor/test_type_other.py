@@ -10,8 +10,14 @@ from aesara.tensor.type_other import (
     NoneConst,
     NoneTypeT,
     SliceConstant,
+    SliceType,
     make_slice,
 )
+
+
+def test_SliceType():
+    st = SliceType()
+    assert st == st.clone()
 
 
 def test_make_slice_merge():

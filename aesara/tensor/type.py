@@ -1,4 +1,5 @@
 import logging
+from typing import Iterable, Optional, Union
 
 import numpy as np
 
@@ -47,7 +48,7 @@ dtype_specs_map = {
 class TensorType(CType):
     r"""Symbolic `Type` representing `numpy.ndarray`\s."""
 
-    __props__ = ("dtype", "broadcastable")
+    __props__ = ("dtype", "shape")
 
     context_name = "cpu"
     filter_checks_isfinite = False
@@ -56,20 +57,25 @@ class TensorType(CType):
     ``numpy.nan`` or ``numpy.inf`` entries. (Used in `DebugMode`)
     """
 
-    def __init__(self, dtype, broadcastable, name=None):
-        """
+    def __init__(
+        self,
+        dtype: Union[str, np.dtype],
+        shape: Iterable[Optional[Union[bool, int]]],
+        name: Optional[str] = None,
+    ):
+        r"""
 
         Parameters
         ----------
-        dtype: str
+        dtype
             A NumPy dtype (e.g. ``"int64"``).
-        broadcastable: tuple, list of bools
-            This argument serves two purposes. First, the ``True`` elements of
-            this list indicate the dimensions where the shape of an associated
-            value must be ``1``. Secondly, the length of this list is the
-            number of dimensions that an associated value must have. See
-            :doc:`broadcasting` for an explanation of how this list is used.
-        name: str
+        shape
+            The static shape information.  ``None``\s are used to indicate
+            unknown shape values for their respective dimensions.
+            If `shape` is a list of ``bool``\s, the ``True`` elements of are
+            converted to ``1``\s and the ``False`` values are converted to
+            ``None``\s.
+        name
             Optional name for this type.
 
         """
@@ -78,29 +84,26 @@ class TensorType(CType):
         else:
             self.dtype = np.dtype(dtype).name
 
-        # broadcastable is immutable, and all elements are either
-        # True or False
-        self.broadcastable = tuple(bool(b) for b in broadcastable)
+        def parse_bcast_and_shape(s):
+            if isinstance(s, (bool, np.bool_)):
+                return 1 if s else None
+            else:
+                return s
+
+        self.shape = tuple(parse_bcast_and_shape(s) for s in shape)
         self.dtype_specs()  # error checking is done there
         self.name = name
         self.numpy_dtype = np.dtype(self.dtype)
 
-    def clone(self, dtype=None, broadcastable=None):
-        """
-        Return a copy of the type optionally with a new dtype or
-        broadcastable pattern.
-
-        """
+    def clone(self, dtype=None, shape=None, **kwargs):
         if dtype is None:
             dtype = self.dtype
-        if broadcastable is None:
-            broadcastable = self.broadcastable
-        return self.__class__(dtype, broadcastable, name=self.name)
+        if shape is None:
+            shape = self.shape
+        return type(self)(dtype, shape, name=self.name)
 
     def filter(self, data, strict=False, allow_downcast=None):
-        """
-        Convert `data` to something which can be associated to a
-        `TensorVariable`.
+        """Convert `data` to something which can be associated to a `TensorVariable`.
 
         This function is not meant to be called in user code. It is for
         `Linker` instances to use when running a compiled graph.
@@ -129,7 +132,9 @@ class TensorType(CType):
             # If any of the two conditions above was not met,
             # we raise a meaningful TypeError.
             if not isinstance(data, np.ndarray):
-                raise TypeError(f"{self} expected a ndarray object (got {type(data)}).")
+                raise TypeError(
+                    f"{self} expected an ndarray object (got {type(data)})."
+                )
             if data.dtype != self.numpy_dtype:
                 raise TypeError(
                     f"{self} expected an ndarray with dtype={self.numpy_dtype} (got {data.dtype})."
@@ -208,11 +213,14 @@ class TensorType(CType):
                 " Aesara C code does not support that.",
             )
 
-        i = 0
-        for b in self.broadcastable:
-            if b and data.shape[i] != 1:
-                raise TypeError("Non-unit value on shape on a broadcastable dimension.")
-            i += 1
+        if not all(
+            ds == ts if ts is not None else True
+            for ds, ts in zip(data.shape, self.shape)
+        ):
+            raise TypeError(
+                f"The type's shape ({self.shape}) is not compatible with the data's ({data.shape})"
+            )
+
         if self.filter_checks_isfinite and not np.all(np.isfinite(data)):
             raise ValueError("Non-finite elements not allowed")
         return data
@@ -255,18 +263,18 @@ class TensorType(CType):
     def to_scalar_type(self):
         return aes.get_scalar_type(dtype=self.dtype)
 
-    def __eq__(self, other):
-        """
-        Compare True iff other is the same kind of TensorType.
-
-        """
-        return (
-            type(self) == type(other)
-            and other.dtype == self.dtype
-            and other.broadcastable == self.broadcastable
-        )
-
     def in_same_class(self, otype):
+        r"""Determine if `otype` is in the same class of fixed broadcastable types as `self`.
+
+        A class of fixed broadcastable types is a set of `TensorType`\s that all have the
+        same pattern of static ``1``\s in their shape.  For instance, `Type`\s with the
+        shapes ``(2, 1)``, ``(3, 1)``, and ``(None, 1)`` all belong to the same class
+        of fixed broadcastable types, whereas ``(2, None)`` does not belong to that class.
+        Although the last dimension of the partial shape information ``(2, None)`` could
+        technically be ``1`` (i.e. broadcastable), it's not *guaranteed* to be ``1``, and
+        that's what prevents membership into the class.
+
+        """
         if (
             isinstance(otype, TensorType)
             and otype.dtype == self.dtype
@@ -282,10 +290,7 @@ class TensorType(CType):
             and otype.ndim == self.ndim
             # `otype` is allowed to be as or more shape-specific than `self`,
             # but not less
-            and all(
-                sb == ob or ob
-                for sb, ob in zip(self.broadcastable, otype.broadcastable)
-            )
+            and all(sb == ob or sb is None for sb, ob in zip(self.shape, otype.shape))
         ):
             return True
 
@@ -303,24 +308,21 @@ class TensorType(CType):
             # covered by the branch above.
 
             # Use the more specific broadcast/shape information of the two
-            # TODO: Why do we need/want `Rebroadcast`?  It's basically just
-            # another `CheckAndRaise` `Op` that can be avoided entirely.
             return aesara.tensor.basic.Rebroadcast(
                 *[(i, b) for i, b in enumerate(self.broadcastable)]
             )(var)
 
-    @staticmethod
-    def may_share_memory(a, b):
-        # This is a method of TensorType, so both a and b should be ndarrays
-        if isinstance(a, np.ndarray) and isinstance(b, np.ndarray):
-            return np.may_share_memory(a, b)
-        else:
-            return False
+    def value_zeros(self, shape):
+        """Create an numpy ndarray full of 0 values.
+
+        TODO: Remove this trivial method.
+        """
+        return np.zeros(shape, dtype=self.dtype)
 
     @staticmethod
     def values_eq(a, b, force_same_dtype=True):
-        # TODO: check to see if the shapes must match
-        #      for now, we err on safe side...
+        # TODO: check to see if the shapes must match; for now, we err on safe
+        # side...
         if a.shape != b.shape:
             return False
         if force_same_dtype and a.dtype != b.dtype:
@@ -343,41 +345,89 @@ class TensorType(CType):
     ):
         return values_eq_approx(a, b, allow_remove_inf, allow_remove_nan, rtol, atol)
 
+    def __eq__(self, other):
+        if type(self) != type(other):
+            return NotImplemented
+
+        return other.dtype == self.dtype and other.shape == self.shape
+
     def __hash__(self):
-        return hash((type(self), self.dtype, self.broadcastable))
+        return hash((type(self), self.dtype, self.shape))
 
-    ndim = property(lambda self: len(self.broadcastable), doc="number of dimensions")
-    """
-    Number of dimensions.
+    @property
+    def broadcastable(self):
+        """A boolean tuple indicating which dimensions have a shape equal to one."""
+        return tuple(s == 1 for s in self.shape)
 
-    This read-only property is the preferred way to get the number of
-    dimensions of a `TensorType`.
-
-    """
+    @property
+    def ndim(self):
+        """The number of dimensions."""
+        return len(self.shape)
 
     def __str__(self):
         if self.name:
             return self.name
         else:
-            b = self.broadcastable
-            named_broadcastable = {
-                (): "scalar",
-                (False,): "vector",
-                (False, True): "col",
-                (True, False): "row",
-                (False, False): "matrix",
-            }
-            if b in named_broadcastable:
-                bcast = named_broadcastable[b]
-            else:
-                if any(b):
-                    bcast = str(b)
-                else:
-                    bcast = f"{len(b)}D"
-            return f"TensorType({self.dtype}, {bcast})"
+            return f"TensorType({self.dtype}, {self.shape})"
 
     def __repr__(self):
         return str(self)
+
+    @staticmethod
+    def may_share_memory(a, b):
+        # This is a method of TensorType, so both a and b should be ndarrays
+        if isinstance(a, np.ndarray) and isinstance(b, np.ndarray):
+            return np.may_share_memory(a, b)
+        else:
+            return False
+
+    def get_shape_info(self, obj):
+        """Return the information needed to compute the memory size of `obj`.
+
+        The memory size is only the data, so this excludes the container.
+        For an ndarray, this is the data, but not the ndarray object and
+        other data structures such as shape and strides.
+
+        `get_shape_info` and `get_size` work in tandem for the memory
+        profiler.
+
+        `get_shape_info` is called during the execution of the function.
+        So it is better that it is not too slow.
+
+        `get_size` will be called on the output of this function
+        when printing the memory profile.
+
+        Parameters
+        ----------
+        obj
+            The object that this Type represents during execution.
+
+        Returns
+        -------
+        object
+            Python object that can be passed to `get_size`.
+
+        """
+        return obj.shape
+
+    def get_size(self, shape_info):
+        """Number of bytes taken by the object represented by `shape_info`.
+
+        Parameters
+        ----------
+        shape_info
+            The output of the call to `get_shape_info`.
+
+        Returns
+        -------
+        int
+            The number of bytes taken by the object described by ``shape_info``.
+
+        """
+        if shape_info:
+            return np.prod(shape_info) * np.dtype(self.dtype).itemsize
+        else:  # a scalar
+            return np.dtype(self.dtype).itemsize
 
     def c_element_type(self):
         return self.dtype_specs()[1]
@@ -544,58 +594,6 @@ class TensorType(CType):
             return (11,) + scalar_version
         else:
             return ()
-
-    def value_zeros(self, shape):
-        """Create an numpy ndarray full of 0 values."""
-        return np.zeros(shape, dtype=self.dtype)
-
-    def get_shape_info(self, obj):
-        """Return the information needed to compute the memory size of `obj`.
-
-        The memory size is only the data, so this excludes the container.
-        For an ndarray, this is the data, but not the ndarray object and
-        other data structures such as shape and strides.
-
-        `get_shape_info` and `get_size` work in tandem for the memory
-        profiler.
-
-        `get_shape_info` is called during the execution of the function.
-        So it is better that it is not too slow.
-
-        `get_size` will be called on the output of this function
-        when printing the memory profile.
-
-        Parameters
-        ----------
-        obj
-            The object that this Type represents during execution.
-
-        Returns
-        -------
-        object
-            Python object that can be passed to `get_size`.
-
-        """
-        return obj.shape
-
-    def get_size(self, shape_info):
-        """Number of bytes taken by the object represented by `shape_info`.
-
-        Parameters
-        ----------
-        shape_info
-            The output of the call to `get_shape_info`.
-
-        Returns
-        -------
-        int
-            The number of bytes taken by the object described by ``shape_info``.
-
-        """
-        if shape_info:
-            return np.prod(shape_info) * np.dtype(self.dtype).itemsize
-        else:  # a scalar
-            return np.dtype(self.dtype).itemsize
 
 
 def values_eq_approx(
@@ -858,7 +856,7 @@ lrow = TensorType("int64", (True, False))
 
 
 def row(name=None, dtype=None):
-    """Return a symbolic row variable (ndim=2, broadcastable=[True,False]).
+    """Return a symbolic row variable (ndim=2, shape=[True,False]).
 
     Parameters
     ----------
@@ -887,7 +885,7 @@ lcol = TensorType("int64", (False, True))
 
 
 def col(name=None, dtype=None):
-    """Return a symbolic column variable (ndim=2, broadcastable=[False,True]).
+    """Return a symbolic column variable (ndim=2, shape=[False,True]).
 
     Parameters
     ----------

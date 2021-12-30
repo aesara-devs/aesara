@@ -1,17 +1,19 @@
 import warnings
-from typing import Dict
+from numbers import Number
+from typing import Dict, List, Tuple, Union
 
 import numpy as np
 
 import aesara
 from aesara.gradient import DisconnectedType
-from aesara.graph.basic import Apply, Variable
+from aesara.graph.basic import Apply, Constant, Variable
 from aesara.graph.op import COp
 from aesara.graph.params_type import ParamsType
 from aesara.misc.safe_asarray import _asarray
 from aesara.scalar import int32
 from aesara.tensor import _get_vector_length
 from aesara.tensor import basic as at
+from aesara.tensor import get_vector_length
 from aesara.tensor.exceptions import NotScalarConstantError
 from aesara.tensor.type import TensorType, int_dtypes, tensor
 from aesara.tensor.var import TensorConstant
@@ -60,8 +62,8 @@ class Shape(COp):
         if not isinstance(x, Variable):
             x = at.as_tensor_variable(x)
 
-        if hasattr(x, "ndim") and x.ndim == 1:
-            out_var = TensorType(np.int64, (True,))()
+        if isinstance(x.type, TensorType):
+            out_var = TensorType("int64", (x.ndim,))()
         else:
             out_var = aesara.tensor.type.lvector()
 
@@ -130,8 +132,22 @@ class Shape(COp):
         return tuple(version)
 
 
-shape = Shape()
-_shape = shape  # was used in the past, now use shape directly.
+_shape = Shape()
+
+
+def shape(x: Union[np.ndarray, Number, Variable]) -> Variable:
+    """Return the shape of `x`."""
+    if not isinstance(x, Variable):
+        x = at.as_tensor_variable(x)
+
+    x_type = x.type
+
+    if isinstance(x_type, TensorType) and all(s is not None for s in x_type.shape):
+        res = at.as_tensor_variable(x_type.shape, ndim=1, dtype=np.int64)
+    else:
+        res = _shape(x)
+
+    return res
 
 
 @_get_vector_length.register(Shape)
@@ -139,7 +155,7 @@ def _get_vector_length_Shape(op, var):
     return var.owner.inputs[0].type.ndim
 
 
-def shape_tuple(x):
+def shape_tuple(x: Variable) -> Tuple[Variable]:
     """Get a tuple of symbolic shape values.
 
     This will return a `ScalarConstant` with the value ``1`` wherever
@@ -394,20 +410,29 @@ class SpecifyShape(COp):
     def make_node(self, x, shape):
         if not isinstance(x, Variable):
             x = at.as_tensor_variable(x)
-        if shape == () or shape == []:
-            tshape = at.constant([], dtype="int64")
+
+        shape = at.as_tensor_variable(shape, ndim=1)
+
+        if isinstance(shape, Constant):
+            shape = tuple(shape.data)
         else:
-            tshape = at.as_tensor_variable(shape, ndim=1)
-            if tshape.dtype not in aesara.tensor.type.integer_dtypes:
-                raise AssertionError(
-                    f"The `shape` must be an integer type. Got {tshape.dtype} instead."
-                )
-        if isinstance(tshape, TensorConstant) and tshape.data.size != x.ndim:
-            ndim = len(tshape.data)
-            raise AssertionError(
-                f"Input `x` is {x.ndim}-dimensional and will never match a {ndim}-dimensional shape."
+            shape = tuple(at.as_tensor_variable(s, ndim=0) for s in shape)
+
+        if any(s.dtype not in aesara.tensor.type.integer_dtypes for s in shape):
+            raise TypeError("Shape values must be integer types")
+
+        if len(shape) != x.ndim:
+            raise ValueError(
+                f"Input `x` is {x.ndim}-dimensional and will never match a shape of length {len(shape)}."
             )
-        return Apply(self, [x, tshape], [x.type()])
+
+        if isinstance(x.type, TensorType) and all(isinstance(s, Number) for s in shape):
+            out_var = TensorType(x.type.dtype, shape)()
+        else:
+            out_var = x.type()
+
+        in_shape = at.as_tensor_variable(shape, ndim=1)
+        return Apply(self, [x, in_shape], [out_var])
 
     def perform(self, node, inp, out_):
         x, shape = inp
@@ -499,7 +524,32 @@ class SpecifyShape(COp):
         return tuple(version)
 
 
-specify_shape = SpecifyShape()
+_specify_shape = SpecifyShape()
+
+
+def specify_shape(
+    x: Union[np.ndarray, Number, Variable],
+    shape: Union[
+        int, List[Union[int, Variable]], Tuple[Union[int, Variable]], Variable
+    ],
+):
+    """Specify a fixed shape for a `Variable`."""
+
+    if not isinstance(x, Variable):
+        x = at.as_tensor_variable(x)
+
+    if np.ndim(shape) == 0:
+        shape = at.as_tensor_variable([shape])
+
+    try:
+        _ = get_vector_length(shape)
+    except ValueError:
+        raise ValueError("Shape must have fixed dimensions")
+
+    if isinstance(shape, Constant):
+        shape = tuple(shape.data)
+
+    return _specify_shape(x, shape)
 
 
 @_get_vector_length.register(SpecifyShape)
@@ -712,7 +762,7 @@ def reshape(x, newshape, ndim=None):
                 f" scalar. Got {newshape} after conversion to a vector."
             )
         try:
-            ndim = at.get_vector_length(newshape)
+            ndim = get_vector_length(newshape)
         except ValueError:
             raise ValueError(
                 f"The length of the provided shape ({newshape}) cannot "

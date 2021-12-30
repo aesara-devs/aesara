@@ -153,9 +153,9 @@ def optimize(g, level="fast_run"):
 
 
 def inputs(xbc=(0, 0), ybc=(0, 0), zbc=(0, 0)):
-    x = TensorType(broadcastable=xbc, dtype="float64")("x")
-    y = TensorType(broadcastable=ybc, dtype="float64")("y")
-    z = TensorType(broadcastable=zbc, dtype="float64")("z")
+    x = TensorType(shape=xbc, dtype="float64")("x")
+    y = TensorType(shape=ybc, dtype="float64")("y")
+    z = TensorType(shape=zbc, dtype="float64")("z")
     return x, y, z
 
 
@@ -1076,16 +1076,13 @@ class TestFusion:
             return ret
 
         fw, fx, fy, fz = [
-            tensor(dtype="float32", broadcastable=[False] * len(shp), name=n)
-            for n in "wxyz"
+            tensor(dtype="float32", shape=[False] * len(shp), name=n) for n in "wxyz"
         ]
         dw, dx, dy, dz = [
-            tensor(dtype="float64", broadcastable=[False] * len(shp), name=n)
-            for n in "wxyz"
+            tensor(dtype="float64", shape=[False] * len(shp), name=n) for n in "wxyz"
         ]
         ix, iy, iz = [
-            tensor(dtype="int32", broadcastable=[False] * len(shp), name=n)
-            for n in "xyz"
+            tensor(dtype="int32", shape=[False] * len(shp), name=n) for n in "xyz"
         ]
         fv = fvector("v")
         fs = fscalar("s")
@@ -4023,7 +4020,7 @@ def test_local_log_sum_exp1():
     check_max_log_sum_exp(x, axis=2, dimshuffle_op=transpose_op)
 
     # If the sum is performed with keepdims=True
-    x = TensorType(dtype="floatX", broadcastable=(False, True, False))("x")
+    x = TensorType(dtype="floatX", shape=(False, True, False))("x")
     sum_keepdims_op = x.sum(axis=(0, 1), keepdims=True).owner.op
     check_max_log_sum_exp(x, axis=(0, 1), dimshuffle_op=sum_keepdims_op)
 

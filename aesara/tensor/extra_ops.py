@@ -1222,8 +1222,8 @@ class Unique(Op):
                 b if axis != self_axis else False
                 for axis, b in enumerate(x.broadcastable)
             ]
-        outputs = [TensorType(broadcastable=broadcastable, dtype=x.dtype)()]
-        typ = TensorType(broadcastable=[False], dtype="int64")
+        outputs = [TensorType(shape=broadcastable, dtype=x.dtype)()]
+        typ = TensorType(shape=[False], dtype="int64")
         if self.return_index:
             outputs.append(typ())
         if self.return_inverse:
@@ -1329,7 +1329,7 @@ class UnravelIndex(Op):
             self,
             [indices, dims],
             [
-                TensorType(dtype="int64", broadcastable=(False,) * indices.ndim)()
+                TensorType(dtype="int64", shape=(False,) * indices.ndim)()
                 for i in range(at.get_vector_length(dims))
             ],
         )
@@ -1408,7 +1408,7 @@ class RavelMultiIndex(Op):
         return Apply(
             self,
             multi_index + [dims],
-            [TensorType(dtype="int64", broadcastable=(False,) * multi_index[0].ndim)()],
+            [TensorType(dtype="int64", shape=(False,) * multi_index[0].ndim)()],
         )
 
     def infer_shape(self, fgraph, node, input_shapes):
@@ -1581,7 +1581,7 @@ class BroadcastTo(Op):
 
         shape, bcast = at.infer_broadcastable(shape)
 
-        out = type(a.type)(dtype=a.type.dtype, broadcastable=bcast)()
+        out = TensorType(dtype=a.type.dtype, shape=bcast)()
 
         # Attempt to prevent in-place operations on this view-based output
         out.tag.indestructible = True

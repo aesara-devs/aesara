@@ -180,13 +180,13 @@ class TestSolveBase(utt.InferShapeTester):
         [
             (vector, matrix, "`A` must be a matrix.*"),
             (
-                functools.partial(tensor, dtype="floatX", broadcastable=(False,) * 3),
+                functools.partial(tensor, dtype="floatX", shape=(False,) * 3),
                 matrix,
                 "`A` must be a matrix.*",
             ),
             (
                 matrix,
-                functools.partial(tensor, dtype="floatX", broadcastable=(False,) * 3),
+                functools.partial(tensor, dtype="floatX", shape=(False,) * 3),
                 "`b` must be a matrix or a vector.*",
             ),
         ],
@@ -525,12 +525,12 @@ class TestKron(utt.InferShapeTester):
 
     def test_perform(self):
         for shp0 in [(2,), (2, 3), (2, 3, 4), (2, 3, 4, 5)]:
-            x = tensor(dtype="floatX", broadcastable=(False,) * len(shp0))
+            x = tensor(dtype="floatX", shape=(False,) * len(shp0))
             a = np.asarray(self.rng.random(shp0)).astype(config.floatX)
             for shp1 in [(6,), (6, 7), (6, 7, 8), (6, 7, 8, 9)]:
                 if len(shp0) + len(shp1) == 2:
                     continue
-                y = tensor(dtype="floatX", broadcastable=(False,) * len(shp1))
+                y = tensor(dtype="floatX", shape=(False,) * len(shp1))
                 f = function([x, y], kron(x, y))
                 b = self.rng.random(shp1).astype(config.floatX)
                 out = f(a, b)
@@ -544,12 +544,12 @@ class TestKron(utt.InferShapeTester):
 
     def test_numpy_2d(self):
         for shp0 in [(2, 3)]:
-            x = tensor(dtype="floatX", broadcastable=(False,) * len(shp0))
+            x = tensor(dtype="floatX", shape=(False,) * len(shp0))
             a = np.asarray(self.rng.random(shp0)).astype(config.floatX)
             for shp1 in [(6, 7)]:
                 if len(shp0) + len(shp1) == 2:
                     continue
-                y = tensor(dtype="floatX", broadcastable=(False,) * len(shp1))
+                y = tensor(dtype="floatX", shape=(False,) * len(shp1))
                 f = function([x, y], kron(x, y))
                 b = self.rng.random(shp1).astype(config.floatX)
                 out = f(a, b)

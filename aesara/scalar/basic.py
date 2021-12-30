@@ -335,6 +335,7 @@ class Scalar(CType):
 
     __props__ = ("dtype",)
     ndim = 0
+    shape = ()
 
     def __init__(self, dtype):
         if isinstance(dtype, str) and dtype == "floatX":

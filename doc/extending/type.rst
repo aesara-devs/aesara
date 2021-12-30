@@ -136,7 +136,7 @@ default values.
         :return: the number of bytes taken by the object described by
             ``shape_info``.
 
-    .. method:: clone(dtype=None, broadcastable=None)
+    .. method:: clone(dtype=None, shape=None)
 
        Optional, for TensorType-alikes.
 

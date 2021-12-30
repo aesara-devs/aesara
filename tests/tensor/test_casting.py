@@ -60,7 +60,7 @@ class TestCasting:
             "float32",
             "float64",
         ]:
-            x = TensorType(dtype=type1, broadcastable=(False,))()
+            x = TensorType(dtype=type1, shape=(False,))()
             for type2, converter in zip(
                 ["int8", "int16", "int32", "int64", "float32", "float64"],
                 [

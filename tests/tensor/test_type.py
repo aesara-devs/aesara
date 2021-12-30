@@ -6,6 +6,7 @@ import pytest
 
 import aesara.tensor as at
 from aesara.configdefaults import config
+from aesara.tensor.basic import Rebroadcast
 from aesara.tensor.type import TensorType
 
 
@@ -121,7 +122,7 @@ def test_filter_ndarray_subclass():
 def test_filter_float_subclass():
     """Make sure `TensorType.filter` can handle `float` subclasses."""
     with config.change_flags(floatX="float64"):
-        test_type = TensorType("float64", broadcastable=[])
+        test_type = TensorType("float64", shape=[])
 
         nan = np.array([np.nan], dtype="float64")[0]
         assert isinstance(nan, float) and not isinstance(nan, np.ndarray)
@@ -131,7 +132,7 @@ def test_filter_float_subclass():
 
     with config.change_flags(floatX="float32"):
         # Try again, except this time `nan` isn't a `float`
-        test_type = TensorType("float32", broadcastable=[])
+        test_type = TensorType("float32", shape=[])
 
         nan = np.array([np.nan], dtype="float32")[0]
         assert isinstance(nan, np.floating) and not isinstance(nan, np.ndarray)
@@ -151,6 +152,17 @@ def test_filter_memmap():
 
     res = test_type.filter(fp)
     assert res is fp
+
+
+def test_may_share_memory():
+    a = np.array(2)
+    b = np.broadcast_to(a, (2, 3))
+
+    res = TensorType.may_share_memory(a, b)
+    assert res
+
+    res = TensorType.may_share_memory(a, None)
+    assert res is False
 
 
 def test_tensor_values_eq_approx():
@@ -179,3 +191,98 @@ def test_tensor_values_eq_approx():
     b = np.asarray([-np.inf, -1, 0, 1, np.inf, 6])
     with pytest.warns(RuntimeWarning):
         assert not TensorType.values_eq_approx(a, b, allow_remove_nan=False)
+
+
+def test_fixed_shape_basic():
+    t1 = TensorType("float64", (1, 1))
+    assert t1.shape == (1, 1)
+    assert t1.broadcastable == (True, True)
+
+    t1 = TensorType("float64", (0,))
+    assert t1.shape == (0,)
+    assert t1.broadcastable == (False,)
+
+    t1 = TensorType("float64", (False, False))
+    assert t1.shape == (None, None)
+    assert t1.broadcastable == (False, False)
+
+    t1 = TensorType("float64", (2, 3))
+    assert t1.shape == (2, 3)
+    assert t1.broadcastable == (False, False)
+    assert t1.value_zeros(t1.shape).shape == t1.shape
+
+    assert str(t1) == "TensorType(float64, (2, 3))"
+
+    t1 = TensorType("float64", (1,))
+    assert t1.shape == (1,)
+    assert t1.broadcastable == (True,)
+
+    t2 = t1.clone()
+    assert t1 is not t2
+    assert t1 == t2
+
+    t2 = t1.clone(dtype="float32", shape=(2, 4))
+    assert t2.dtype == "float32"
+    assert t2.shape == (2, 4)
+
+
+def test_fixed_shape_clone():
+    t1 = TensorType("float64", (1,))
+
+    t2 = t1.clone(dtype="float32", shape=(2, 4))
+    assert t2.shape == (2, 4)
+
+    t2 = t1.clone(dtype="float32", shape=(False, False))
+    assert t2.shape == (None, None)
+
+
+def test_fixed_shape_comparisons():
+    t1 = TensorType("float64", (True, True))
+    t2 = TensorType("float64", (1, 1))
+    assert t1 == t2
+
+    assert t1.is_super(t2)
+    assert t2.is_super(t1)
+
+    assert hash(t1) == hash(t2)
+
+    t3 = TensorType("float64", (True, False))
+    t4 = TensorType("float64", (1, 2))
+    assert t3 != t4
+
+    t1 = TensorType("float64", (True, True))
+    t2 = TensorType("float64", ())
+    assert t1 != t2
+
+
+def test_fixed_shape_convert_variable():
+    # These are equivalent types
+    t1 = TensorType("float64", (True, True))
+    t2 = TensorType("float64", (1, 1))
+
+    assert t1 == t2
+    assert t1.shape == t2.shape
+
+    t2_var = t2()
+    res = t2.convert_variable(t2_var)
+    assert res is t2_var
+
+    res = t1.convert_variable(t2_var)
+    assert res is t2_var
+
+    t1_var = t1()
+    res = t2.convert_variable(t1_var)
+    assert res is t1_var
+
+    t3 = TensorType("float64", (False, True))
+    t3_var = t3()
+    res = t2.convert_variable(t3_var)
+    assert isinstance(res.owner.op, Rebroadcast)
+
+    t3 = TensorType("float64", (False, False))
+    t4 = TensorType("float64", (3, 2))
+    t4_var = t4()
+    assert t3.shape == (None, None)
+    res = t3.convert_variable(t4_var)
+    assert res.type == t4
+    assert res.type.shape == (3, 2)

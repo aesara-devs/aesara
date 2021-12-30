@@ -45,7 +45,7 @@ class MultinomialFromUniform(COp):
             odtype = pvals.dtype
         else:
             odtype = self.odtype
-        out = at.tensor(dtype=odtype, broadcastable=pvals.type.broadcastable)
+        out = at.tensor(dtype=odtype, shape=pvals.type.broadcastable)
         return Apply(self, [pvals, unis, as_scalar(n)], [out])
 
     def grad(self, ins, outgrads):
@@ -251,7 +251,7 @@ class ChoiceFromUniform(MultinomialFromUniform):
             odtype = "int64"
         else:
             odtype = self.odtype
-        out = at.tensor(dtype=odtype, broadcastable=pvals.type.broadcastable)
+        out = at.tensor(dtype=odtype, shape=pvals.type.shape)
         return Apply(self, [pvals, unis, as_scalar(n)], [out])
 
     def c_code_cache_version(self):

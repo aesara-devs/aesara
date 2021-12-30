@@ -166,9 +166,9 @@ def optimize(g, level="fast_run"):
 
 
 def inputs(xbc=(0, 0), ybc=(0, 0), zbc=(0, 0)):
-    x = TensorType(broadcastable=xbc, dtype="float64")("x")
-    y = TensorType(broadcastable=ybc, dtype="float64")("y")
-    z = TensorType(broadcastable=zbc, dtype="float64")("z")
+    x = TensorType(shape=xbc, dtype="float64")("x")
+    y = TensorType(shape=ybc, dtype="float64")("y")
+    z = TensorType(shape=zbc, dtype="float64")("z")
     return x, y, z
 
 
@@ -247,10 +247,10 @@ class TestDimshuffleLift:
         init_str_g = (
             "FunctionGraph(InplaceDimShuffle{1,0}(Elemwise{mul,no_inplace}"
             "(InplaceDimShuffle{x,0}(Elemwise{add,no_inplace}"
-            "(<TensorType(float64, vector)>, "
+            "(<TensorType(float64, (None,))>, "
             "InplaceDimShuffle{x}(TensorConstant{42}))), "
             "Elemwise{add,no_inplace}"
-            "(<TensorType(float64, matrix)>, "
+            "(<TensorType(float64, (None, None))>, "
             "InplaceDimShuffle{x,x}(TensorConstant{84})))))"
         )
         assert str(g) == init_str_g
@@ -258,10 +258,10 @@ class TestDimshuffleLift:
         new_g = FunctionGraph(g.inputs, [new_out])
         opt_str_g = (
             "FunctionGraph(Elemwise{mul,no_inplace}(Elemwise{add,no_inplace}"
-            "(InplaceDimShuffle{0,x}(<TensorType(float64, vector)>), "
+            "(InplaceDimShuffle{0,x}(<TensorType(float64, (None,))>), "
             "InplaceDimShuffle{x,x}(TensorConstant{42})), "
             "Elemwise{add,no_inplace}(InplaceDimShuffle{1,0}"
-            "(<TensorType(float64, matrix)>), "
+            "(<TensorType(float64, (None, None))>), "
             "InplaceDimShuffle{x,x}(TensorConstant{84}))))"
         )
         assert str(new_g) == opt_str_g
@@ -300,10 +300,10 @@ class TestDimshuffleLift:
 
 
 def test_local_useless_dimshuffle_in_reshape():
-    vec = TensorType(broadcastable=(False,), dtype="float64")("vector")
-    mat = TensorType(broadcastable=(False, False), dtype="float64")("mat")
-    row = TensorType(broadcastable=(True, False), dtype="float64")("row")
-    col = TensorType(broadcastable=(False, True), dtype="float64")("col")
+    vec = TensorType(shape=(False,), dtype="float64")("vector")
+    mat = TensorType(shape=(False, False), dtype="float64")("mat")
+    row = TensorType(shape=(True, False), dtype="float64")("row")
+    col = TensorType(shape=(False, True), dtype="float64")("col")
 
     reshape_dimshuffle_vector = reshape(vec.dimshuffle("x", 0), vec.shape)
     reshape_dimshuffle_mat = reshape(mat.dimshuffle("x", 0, "x", 1), mat.shape)
@@ -365,14 +365,12 @@ class TestFusion:
         return np.zeros((5, 5), dtype=dtype) + num
 
     fw, fx, fy, fz = [
-        tensor(dtype="float32", broadcastable=[False] * 2, name=n) for n in "wxyz"
+        tensor(dtype="float32", shape=[False] * 2, name=n) for n in "wxyz"
     ]
     dw, dx, dy, dz = [
-        tensor(dtype="float64", broadcastable=[False] * 2, name=n) for n in "wxyz"
+        tensor(dtype="float64", shape=[False] * 2, name=n) for n in "wxyz"
     ]
-    ix, iy, iz = [
-        tensor(dtype="int32", broadcastable=[False] * 2, name=n) for n in "xyz"
-    ]
+    ix, iy, iz = [tensor(dtype="int32", shape=[False] * 2, name=n) for n in "xyz"]
     fv = fvector("v")
     fs = fscalar("s")
     fwv = my_init("float32", 1)
@@ -1895,8 +1893,8 @@ class TestUselessElemwise:
         f2 = function([x], eq(x, x), mode=self.mode)
         assert np.all(f2(vx) == np.ones((5, 4)))
         topo2 = f2.maker.fgraph.toposort()
-        # Shape_i{1}(<TensorType(float64, matrix)>),
-        # Shape_i{0}(<TensorType(float64, matrix)>), Alloc([[1]], Shape_i{0}.0,
+        # Shape_i{1}(<TensorType(float64, (None, None))>),
+        # Shape_i{0}(<TensorType(float64, (None, None))>), Alloc([[1]], Shape_i{0}.0,
         # Shape_i{1}.0
         assert len(topo2) == 3
         assert isinstance(topo2[-1].op, Alloc)
@@ -2611,7 +2609,7 @@ def test_local_join_make_vector():
     ],
 )
 def test_local_tensor_scalar_tensor(dtype):
-    t_type = TensorType(dtype=dtype, broadcastable=())
+    t_type = TensorType(dtype=dtype, shape=())
     t = t_type()
     s = at.scalar_from_tensor(t)
     t2 = at.tensor_from_scalar(s)
@@ -2790,10 +2788,10 @@ class TestLocalReshapeToDimshuffle:
         g = FunctionGraph([x, y], [reshape_x, reshape_y])
         assert str(g) == (
             "FunctionGraph(Reshape{2}"
-            "(<TensorType(float64, vector)>, "
+            "(<TensorType(float64, (None,))>, "
             "TensorConstant{[1 4]}), "
             "Reshape{6}"
-            "(<TensorType(float64, matrix)>, "
+            "(<TensorType(float64, (None, None))>, "
             "TensorConstant{[1 5 1 6 1 1]}))"
         )
 
@@ -2801,9 +2799,9 @@ class TestLocalReshapeToDimshuffle:
         useless_reshape.optimize(g)
         assert str(g) == (
             "FunctionGraph(InplaceDimShuffle{x,0}"
-            "(<TensorType(float64, vector)>), "
+            "(<TensorType(float64, (None,))>), "
             "InplaceDimShuffle{x,0,x,1,x,x}"
-            "(Reshape{2}(<TensorType(float64, matrix)>, "
+            "(Reshape{2}(<TensorType(float64, (None, None))>, "
             "TensorConstant{[5 6]})))"
         )
 

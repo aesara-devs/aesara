@@ -1204,7 +1204,7 @@ class TestDownsampleFactorMax(utt.InferShapeTester):
                         warn=False,
                     )
         # checking with broadcastable input
-        image = tensor(dtype="float64", broadcastable=(False, False, True, True))
+        image = tensor(dtype="float64", shape=(False, False, True, True))
         image_val = rng.random((4, 6, 1, 1))
         self._compile_and_check(
             [image],

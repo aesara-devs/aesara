@@ -36,7 +36,7 @@ def tensor_constructor(
     strict=False,
     allow_downcast=None,
     borrow=False,
-    broadcastable=None,
+    shape=None,
     target="cpu",
 ):
     """
@@ -44,10 +44,9 @@ def tensor_constructor(
 
     Notes
     -----
-    Regarding the inference of the broadcastable pattern...
-    The default is to assume that the value might be resized in any
-    dimension, so the default broadcastable is ``(False,)*len(value.shape)``.
-    The optional `broadcastable` argument will override this default.
+    The default is to assume that the `shape` value might be resized in any
+    dimension, so the default shape is ``(None,) * len(value.shape)``.  The
+    optional `shape` argument will override this default.
 
     """
     if target != "cpu":
@@ -56,12 +55,12 @@ def tensor_constructor(
     if not isinstance(value, np.ndarray):
         raise TypeError()
 
-    # if no broadcastable is given, then the default is to assume that
+    # if no shape is given, then the default is to assume that
     # the value might be resized in any dimension in the future.
     #
-    if broadcastable is None:
-        broadcastable = (False,) * len(value.shape)
-    type = TensorType(value.dtype, broadcastable=broadcastable)
+    if shape is None:
+        shape = (False,) * len(value.shape)
+    type = TensorType(value.dtype, shape=shape)
     return TensorSharedVariable(
         type=type,
         value=np.array(value, copy=(not borrow)),
@@ -110,7 +109,7 @@ def scalar_constructor(
 
     dtype = str(dtype)
     value = _asarray(value, dtype=dtype)
-    tensor_type = TensorType(dtype=str(value.dtype), broadcastable=[])
+    tensor_type = TensorType(dtype=str(value.dtype), shape=[])
 
     try:
         # Do not pass the dtype to asarray because we want this to fail if

@@ -491,7 +491,7 @@ class CSMProperties(Op):
     def make_node(self, csm):
         csm = as_sparse_variable(csm)
         assert csm.format in ("csr", "csc")
-        data = TensorType(dtype=csm.type.dtype, broadcastable=(False,))()
+        data = TensorType(dtype=csm.type.dtype, shape=(False,))()
         return Apply(self, [csm], [data, ivector(), ivector(), ivector()])
 
     def perform(self, node, inputs, out):
@@ -929,7 +929,7 @@ class DenseFromSparse(Op):
         return Apply(
             self,
             [x],
-            [TensorType(dtype=x.type.dtype, broadcastable=(False, False))()],
+            [TensorType(dtype=x.type.dtype, shape=(False, False))()],
         )
 
     def perform(self, node, inputs, outputs):
@@ -1751,7 +1751,7 @@ class SpSum(Op):
         if self.axis is not None:
             b = (False,)
 
-        z = TensorType(broadcastable=b, dtype=x.dtype)()
+        z = TensorType(shape=b, dtype=x.dtype)()
         return Apply(self, [x], [z])
 
     def perform(self, node, inputs, outputs):
@@ -1850,7 +1850,7 @@ class Diag(Op):
     def make_node(self, x):
         x = as_sparse_variable(x)
         assert x.format in ("csr", "csc")
-        return Apply(self, [x], [tensor(broadcastable=(False,), dtype=x.dtype)])
+        return Apply(self, [x], [tensor(shape=(False,), dtype=x.dtype)])
 
     def perform(self, node, inputs, outputs):
         (x,) = inputs
@@ -2145,7 +2145,7 @@ class AddSD(Op):
         return Apply(
             self,
             [x, y],
-            [TensorType(dtype=out_dtype, broadcastable=y.type.broadcastable)()],
+            [TensorType(dtype=out_dtype, shape=y.type.broadcastable)()],
         )
 
     def perform(self, node, inputs, outputs):
@@ -2634,7 +2634,7 @@ class __ComparisonOpSD(Op):
         x, y = as_sparse_variable(x), at.as_tensor_variable(y)
 
         assert y.type.ndim == 2
-        out = TensorType(dtype="uint8", broadcastable=(False, False))()
+        out = TensorType(dtype="uint8", shape=(False, False))()
         return Apply(self, [x, y], [out])
 
     def perform(self, node, inputs, outputs):
@@ -4156,9 +4156,7 @@ class Dot(Op):
             broadcast_out = broadcast_x[:-1] + broadcast_y[1:]
         elif len(broadcast_y) == 1:
             broadcast_out = broadcast_x[:-1]
-        return Apply(
-            self, [x, y], [tensor(dtype=dtype_out, broadcastable=broadcast_out)]
-        )
+        return Apply(self, [x, y], [tensor(dtype=dtype_out, shape=broadcast_out)])
 
     def perform(self, node, inputs, out):
         x, y = inputs
@@ -4275,7 +4273,7 @@ class Usmm(Op):
         return Apply(
             self,
             [alpha, x, y, z],
-            [tensor(dtype=dtype_out, broadcastable=(False, False))],
+            [tensor(dtype=dtype_out, shape=(False, False))],
         )
 
     def perform(self, node, inputs, outputs):

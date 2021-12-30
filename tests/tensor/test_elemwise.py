@@ -57,7 +57,9 @@ class TestDimShuffle(unittest_tools.InferShapeTester):
             # test that DimShuffle.infer_shape work correctly
             x = self.type(self.dtype, ib)("x")
             e = self.op(ib, shuffle)(x)
-            f = aesara.function([x], e.shape, mode=Mode(linker=linker))
+            f = aesara.function(
+                [x], e.shape, mode=Mode(linker=linker), on_unused_input="ignore"
+            )
             assert all(f(np.ones(xsh, dtype=self.dtype))) == all(zsh)
 
         # Test when we drop a axis that is not broadcastable
@@ -114,7 +116,7 @@ class TestDimShuffle(unittest_tools.InferShapeTester):
             )
 
     def test_too_big_rank(self):
-        x = self.type(self.dtype, broadcastable=())()
+        x = self.type(self.dtype, shape=())()
         y = x.dimshuffle(("x",) * (np.MAXDIMS + 1))
         with pytest.raises(ValueError):
             y.eval({x: 0})
@@ -268,8 +270,8 @@ class TestBroadcast:
             [self.type, self.ctype],
             [self.rand_val, self.rand_cval],
         ):
-            x = t(aesara.config.floatX, [0, 0])("x")
-            y = t(aesara.config.floatX, [1, 1])("y")
+            x = t(aesara.config.floatX, (False, False))("x")
+            y = t(aesara.config.floatX, (True, True))("y")
             e = op(aes.Second(aes.transfer_type(0)), {0: 0})(x, y)
             f = linker().accept(FunctionGraph([x, y], [e])).make_function()
             xv = rval((5, 5))
@@ -284,8 +286,8 @@ class TestBroadcast:
     def test_fill_grad(self):
         # Fix bug reported at
         # https://groups.google.com/d/topic/theano-users/nQshB8gUA6k/discussion
-        x = TensorType(config.floatX, [0, 1, 0])("x")
-        y = TensorType(config.floatX, [0, 1, 0])("y")
+        x = TensorType(config.floatX, (False, True, False))("x")
+        y = TensorType(config.floatX, (False, True, False))("y")
         e = second(x, y)
         aesara.grad(e.sum(), y)
 
@@ -299,8 +301,8 @@ class TestBroadcast:
             [self.type, self.ctype],
             [self.rand_val, self.rand_cval],
         ):
-            x = t(aesara.config.floatX, [0, 0, 0, 0, 0])("x")
-            y = t(aesara.config.floatX, [0, 0, 0, 0, 0])("y")
+            x = t(aesara.config.floatX, (False,) * 5)("x")
+            y = t(aesara.config.floatX, (False,) * 5)("y")
             e = op(aes.add)(x, y)
             f = linker().accept(FunctionGraph([x, y], [e])).make_function()
             xv = rval((2, 2, 2, 2, 2))
@@ -318,7 +320,7 @@ class TestBroadcast:
             [self.type, self.ctype],
             [self.rand_val, self.rand_cval],
         ):
-            x = t(aesara.config.floatX, [0, 0])("x")
+            x = t(aesara.config.floatX, (False,) * 2)("x")
             e = op(aes.add)(x, x)
             f = linker().accept(FunctionGraph([x], [e])).make_function()
             xv = rval((2, 2))
@@ -371,7 +373,7 @@ class TestCAReduce(unittest_tools.InferShapeTester):
             if tosum is None:
                 tosum = list(range(len(xsh)))
 
-            f = aesara.function([x], e, mode=mode)
+            f = aesara.function([x], e, mode=mode, on_unused_input="ignore")
             xv = np.asarray(np.random.random(xsh))
 
             if dtype not in discrete_dtypes:
@@ -474,7 +476,7 @@ class TestCAReduce(unittest_tools.InferShapeTester):
                 e = tensor_op(x, axis=tosum)
             if tosum is None:
                 tosum = list(range(len(xsh)))
-            f = aesara.function([x], e.shape, mode=mode)
+            f = aesara.function([x], e.shape, mode=mode, on_unused_input="ignore")
             if not (
                 scalar_op in [aes.scalar_maximum, aes.scalar_minimum]
                 and (xsh == () or np.prod(xsh) == 0)

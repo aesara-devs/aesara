@@ -196,7 +196,7 @@ def copy_var_format(var, as_var):
         rval = as_var.type.filter_variable(rval)
     else:
         tmp = as_var.type.clone(
-            broadcastable=(tuple(var.broadcastable[:1]) + tuple(as_var.broadcastable))
+            shape=(tuple(var.broadcastable[:1]) + tuple(as_var.broadcastable))
         )
         rval = tmp.filter_variable(rval)
     return rval
@@ -694,8 +694,8 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
         # build a list of output types for any Apply node using this op.
         self.output_types = []
 
-        def tensorConstructor(broadcastable, dtype):
-            return TensorType(broadcastable=broadcastable, dtype=dtype)
+        def tensorConstructor(shape, dtype):
+            return TensorType(dtype=dtype, shape=shape)
 
         if typeConstructor is None:
             typeConstructor = tensorConstructor
@@ -708,7 +708,7 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
             o = outputs[idx]
             self.output_types.append(
                 typeConstructor(
-                    broadcastable=(False,) + o.type.broadcastable, dtype=o.type.dtype
+                    shape=(False,) + o.type.broadcastable, dtype=o.type.dtype
                 )
             )
 
@@ -721,7 +721,7 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
         for o in outputs[idx:end]:
             self.output_types.append(
                 typeConstructor(
-                    broadcastable=(False,) + o.type.broadcastable, dtype=o.type.dtype
+                    shape=(False,) + o.type.broadcastable, dtype=o.type.dtype
                 )
             )
 

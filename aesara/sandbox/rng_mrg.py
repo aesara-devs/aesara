@@ -374,7 +374,7 @@ class mrg_uniform(COp, mrg_uniform_base):
         broad = []
         for i in range(self.output_type.ndim):
             broad.append(at.extract_constant(size[i]) == 1)
-        output_type = self.output_type.clone(broadcastable=broad)()
+        output_type = self.output_type.clone(shape=broad)()
         rstate = as_tensor_variable(rstate)
         size = as_tensor_variable(size)
         return Apply(self, [rstate, size], [rstate.type(), output_type])

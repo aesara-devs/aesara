@@ -280,7 +280,7 @@ expression that evaluates to a tensor of same shape and dtype.
     dimensions. Shared variable size can change over time, so we can't
     use the shape to find the broadcastable pattern. If you want a
     different pattern, just pass it as a parameter
-    ``aesara.shared(..., broadcastable=(True, False))``
+    ``aesara.shared(..., shape=(True, False))``
 
 Copying functions
 =================

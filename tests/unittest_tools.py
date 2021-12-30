@@ -244,8 +244,14 @@ class InferShapeTester:
                     break
 
         outputs_function = aesara.function(inputs, outputs, mode=mode)
-        shapes_function = aesara.function(inputs, [o.shape for o in outputs], mode=mode)
-        # aesara.printing.debugprint(shapes_function)
+
+        # Now that we have full shape information at the type level, it's
+        # possible/more likely that shape-computing graphs will not need the
+        # inputs to the graph for which the shape is computed
+        shapes_function = aesara.function(
+            inputs, [o.shape for o in outputs], mode=mode, on_unused_input="ignore"
+        )
+
         # Check that the Op is removed from the compiled function.
         if check_topo:
             topo_shape = shapes_function.maker.fgraph.toposort()

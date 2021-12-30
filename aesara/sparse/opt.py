@@ -131,7 +131,7 @@ class AddSD_ccode(_NoPythonCOp):
         # The magic number two here arises because L{scipy.sparse}
         # objects must be matrices (have dimension 2)
         assert y.type.ndim == 2
-        out = TensorType(dtype=out_dtype, broadcastable=y.type.broadcastable)()
+        out = TensorType(dtype=out_dtype, shape=y.type.broadcastable)()
         return Apply(self, [data, indices, indptr, y], [out])
 
     def c_code(self, node, name, inputs, outputs, sub):
@@ -1875,9 +1875,9 @@ class SamplingDotCSR(_NoPythonCOp):
             self,
             [x, y, p_data, p_ind, p_ptr, p_ncols],
             [
-                tensor(dtype=dtype_out, broadcastable=(False,)),
-                tensor(dtype=p_ind.type.dtype, broadcastable=(False,)),
-                tensor(dtype=p_ptr.type.dtype, broadcastable=(False,)),
+                tensor(dtype=dtype_out, shape=(False,)),
+                tensor(dtype=p_ind.type.dtype, shape=(False,)),
+                tensor(dtype=p_ptr.type.dtype, shape=(False,)),
             ],
         )
 

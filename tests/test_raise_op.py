@@ -71,7 +71,6 @@ def test_CheckAndRaise_basic_c(linker):
     exc_msg = "this is the exception"
     check_and_raise = CheckAndRaise(CustomException, exc_msg)
 
-    x = at.scalar()
     conds = at.scalar()
     y = check_and_raise(at.as_tensor(1), conds)
     y_fn = aesara.function([conds], y, mode=Mode(linker))
@@ -79,16 +78,18 @@ def test_CheckAndRaise_basic_c(linker):
     with pytest.raises(CustomException, match=exc_msg):
         y_fn(0)
 
-    y = check_and_raise(at.as_tensor(1), conds)
-    y_fn = aesara.function([conds], y.shape, mode=Mode(linker, OPT_FAST_RUN))
+    x = at.vector()
+    y = check_and_raise(x, conds)
+    y_fn = aesara.function([conds, x], y.shape, mode=Mode(linker, OPT_FAST_RUN))
 
-    assert np.array_equal(y_fn(0), [])
+    x_val = np.array([1.0], dtype=aesara.config.floatX)
+    assert np.array_equal(y_fn(0, x_val), x_val)
 
     y = check_and_raise(x, at.as_tensor(0))
-    y_grad = aesara.grad(y, [x])
+    y_grad = aesara.grad(y.sum(), [x])
     y_fn = aesara.function([x], y_grad, mode=Mode(linker, OPT_FAST_RUN))
 
-    assert np.array_equal(y_fn(1.0), [1.0])
+    assert np.array_equal(y_fn(x_val), [x_val])
 
 
 class TestCheckAndRaiseInferShape(utt.InferShapeTester):

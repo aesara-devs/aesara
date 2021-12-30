@@ -9,14 +9,15 @@ from aesara.graph.basic import Variable
 from aesara.graph.fg import FunctionGraph
 from aesara.graph.type import Type
 from aesara.misc.safe_asarray import _asarray
-from aesara.tensor import get_vector_length
-from aesara.tensor.basic import MakeVector, as_tensor_variable, constant
+from aesara.tensor import as_tensor_variable, get_vector_length
+from aesara.tensor.basic import MakeVector, constant
 from aesara.tensor.basic_opt import ShapeFeature
 from aesara.tensor.elemwise import DimShuffle, Elemwise
 from aesara.tensor.shape import (
     Reshape,
     Shape_i,
     SpecifyShape,
+    _specify_shape,
     reshape,
     shape,
     shape_i,
@@ -29,6 +30,7 @@ from aesara.tensor.type import (
     dtensor4,
     dvector,
     fvector,
+    iscalar,
     ivector,
     lscalar,
     matrix,
@@ -37,6 +39,7 @@ from aesara.tensor.type import (
     vector,
 )
 from aesara.tensor.type_other import NoneConst
+from aesara.tensor.var import TensorVariable
 from aesara.typed_list import make_list
 from tests import unittest_tools as utt
 from tests.tensor.utils import eval_outputs, random
@@ -336,27 +339,26 @@ class TestSpecifyShape(utt.InferShapeTester):
     mode = None
     input_type = TensorType
 
-    def shortDescription(self):
-        return None
-
     def test_check_inputs(self):
-        with pytest.raises(AssertionError, match="must be an integer type"):
+        with pytest.raises(TypeError, match="must be integer types"):
             specify_shape([[1, 2, 3], [4, 5, 6]], (2.2, 3))
-        specify_shape([[1, 2, 3], [4, 5, 6]], (2, 3))
 
-        # Incompatible dimensionality is detected right away
-        with pytest.raises(AssertionError, match="will never match"):
-            specify_shape(
-                matrix(),
-                [
-                    4,
-                ],
-            )
+        with pytest.raises(TypeError, match="must be integer types"):
+            _specify_shape([[1, 2, 3], [4, 5, 6]], (2.2, 3))
+
+        with pytest.raises(ValueError, match="will never match"):
+            specify_shape(matrix(), [4])
+
+        with pytest.raises(ValueError, match="will never match"):
+            _specify_shape(matrix(), [4])
+
+        with pytest.raises(ValueError, match="must have fixed dimensions"):
+            specify_shape(matrix(), vector(dtype="int32"))
 
     def test_scalar_shapes(self):
-        with pytest.raises(AssertionError, match="will never match"):
+        with pytest.raises(ValueError, match="will never match"):
             specify_shape(vector(), shape=())
-        with pytest.raises(AssertionError, match="will never match"):
+        with pytest.raises(ValueError, match="will never match"):
             specify_shape(matrix(), shape=[])
 
         x = scalar()
@@ -364,41 +366,55 @@ class TestSpecifyShape(utt.InferShapeTester):
         f = aesara.function([x], y, mode=self.mode)
         assert f(15) == 15
 
-    def test_python_perform(self):
-        x = scalar()
-        s = vector(dtype="int32")
-        y = specify_shape(x, s)
-        f = aesara.function([x, s], y, mode=Mode("py"))
-        assert f(12, ()) == 12
-        with pytest.raises(
-            AssertionError,
-            match=r"Got 0 dimensions \(shape \(\)\), expected 1 dimensions with shape \(2,\).",
-        ):
-            f(12, (2,))
+        x = vector()
+        s = lscalar()
+        y = specify_shape(x, shape=s)
+        f = aesara.function([x, s], y, mode=self.mode)
+        assert f([15], 1) == [15]
 
-        x = matrix()
-        s = vector(dtype="int32")
+        x = vector()
+        s = as_tensor_variable(1, dtype=np.int64)
+        y = specify_shape(x, shape=s)
+        f = aesara.function([x], y, mode=self.mode)
+        assert f([15]) == [15]
+
+    def test_fixed_shapes(self):
+        x = vector()
+        shape = as_tensor_variable([2])
+        y = specify_shape(x, shape)
+        assert y.type.shape == (2,)
+        assert y.shape.equals(shape)
+
+    def test_python_perform(self):
+        """Test the Python `Op.perform` implementation."""
+        x = scalar()
+        s = as_tensor_variable([], dtype=np.int32)
         y = specify_shape(x, s)
-        f = aesara.function([x, s], y, mode=Mode("py"))
-        f(np.ones((2, 3)).astype(config.floatX), (2, 3))
-        with pytest.raises(
-            AssertionError, match=r"Got shape \(3, 4\), expected \(2, 3\)."
-        ):
-            f(np.ones((3, 4)).astype(config.floatX), (2, 3))
+        f = aesara.function([x], y, mode=Mode("py"))
+        assert f(12) == 12
+
+        x = vector()
+        s1 = iscalar()
+        shape = as_tensor_variable([s1])
+        y = specify_shape(x, shape)
+        f = aesara.function([x, shape], y, mode=Mode("py"))
+        assert f([1], (1,)) == [1]
+
+        with pytest.raises(AssertionError, match="SpecifyShape:.*"):
+            assert f([1], (2,)) == [1]
 
     def test_bad_shape(self):
-        # Test that at run time we raise an exception when the shape
-        # is not the one specified
+        """Test that at run-time we raise an exception when the shape is not the one specified."""
         specify_shape = SpecifyShape()
 
         x = vector()
         xval = np.random.random((2)).astype(config.floatX)
         f = aesara.function([x], specify_shape(x, [2]), mode=self.mode)
-        f(xval)
+
+        assert np.array_equal(f(xval), xval)
+
         xval = np.random.random((3)).astype(config.floatX)
-        expected = r"(Got shape \(3,\), expected \(2,\))"
-        expected += r"|(dim 0 of input has shape 3, expected 2.)"
-        with pytest.raises(AssertionError, match=expected):
+        with pytest.raises(AssertionError, match="SpecifyShape:.*"):
             f(xval)
 
         assert isinstance(
@@ -417,77 +433,23 @@ class TestSpecifyShape(utt.InferShapeTester):
             .type,
             self.input_type,
         )
-        f(xval)
+
+        assert np.array_equal(f(xval), xval)
+
         for shape_ in [(4, 3), (2, 8)]:
             xval = np.random.random(shape_).astype(config.floatX)
-            s_exp = str(shape_).replace("(", r"\(").replace(")", r"\)")
-            expected = rf"(Got shape {s_exp}, expected \(2, 3\).)"
-            expected += r"|(dim 0 of input has shape 4, expected 2)"
-            expected += r"|(dim 1 of input has shape 8, expected 3)"
-            with pytest.raises(AssertionError, match=expected):
+            with pytest.raises(AssertionError, match="SpecifyShape:.*"):
                 f(xval)
-
-    def test_bad_number_of_shape(self):
-        # Test that the number of dimensions provided is good
-        specify_shape = SpecifyShape()
-
-        x = vector()
-        shape_vec = ivector()
-        xval = np.random.random((2)).astype(config.floatX)
-        with pytest.raises(AssertionError, match="will never match"):
-            specify_shape(x, [])
-        with pytest.raises(AssertionError, match="will never match"):
-            specify_shape(x, [2, 2])
-
-        f = aesara.function([x, shape_vec], specify_shape(x, shape_vec), mode=self.mode)
-        assert isinstance(
-            [n for n in f.maker.fgraph.toposort() if isinstance(n.op, SpecifyShape)][0]
-            .inputs[0]
-            .type,
-            self.input_type,
-        )
-        expected = r"(Got 1 dimensions \(shape \(2,\)\), expected 0 dimensions with shape \(\).)"
-        expected += r"|(Got 1 dimensions, expected 0 dimensions.)"
-        with pytest.raises(AssertionError, match=expected):
-            f(xval, [])
-        expected = r"(Got 1 dimensions \(shape \(2,\)\), expected 2 dimensions with shape \(2, 2\).)"
-        expected += r"|(SpecifyShape: Got 1 dimensions, expected 2 dimensions.)"
-        with pytest.raises(AssertionError, match=expected):
-            f(xval, [2, 2])
-
-        x = matrix()
-        xval = np.random.random((2, 3)).astype(config.floatX)
-        for shape_ in [(), (1,), (2, 3, 4)]:
-            with pytest.raises(AssertionError, match="will never match"):
-                specify_shape(x, shape_)
-            f = aesara.function(
-                [x, shape_vec], specify_shape(x, shape_vec), mode=self.mode
-            )
-            assert isinstance(
-                [
-                    n
-                    for n in f.maker.fgraph.toposort()
-                    if isinstance(n.op, SpecifyShape)
-                ][0]
-                .inputs[0]
-                .type,
-                self.input_type,
-            )
-            s_exp = str(shape_).replace("(", r"\(").replace(")", r"\)")
-            expected = rf"(Got 2 dimensions \(shape \(2, 3\)\), expected {len(shape_)} dimensions with shape {s_exp}.)"
-            expected += rf"|(SpecifyShape: Got 2 dimensions, expected {len(shape_)} dimensions.)"
-            with pytest.raises(AssertionError, match=expected):
-                f(xval, shape_)
 
     def test_infer_shape(self):
         rng = np.random.default_rng(3453)
         adtens4 = dtensor4()
-        aivec = ivector()
+        aivec = TensorVariable(TensorType("int64", (4,)))
         aivec_val = [3, 4, 2, 5]
         adtens4_val = rng.random(aivec_val)
         self._compile_and_check(
             [adtens4, aivec],
-            [SpecifyShape()(adtens4, aivec)],
+            [specify_shape(adtens4, aivec)],
             [adtens4_val, aivec_val],
             SpecifyShape,
         )

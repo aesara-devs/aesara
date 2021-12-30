@@ -216,7 +216,7 @@ class CholeskySolve(Op):
         o_dtype = scipy.linalg.solve(
             np.eye(1).astype(C.dtype), np.eye(1).astype(b.dtype)
         ).dtype
-        x = tensor(broadcastable=b.broadcastable, dtype=o_dtype)
+        x = tensor(shape=b.broadcastable, dtype=o_dtype)
         return Apply(self, [C, b], [x])
 
     def perform(self, node, inputs, output_storage):
@@ -293,7 +293,7 @@ class SolveBase(Op):
         o_dtype = scipy.linalg.solve(
             np.eye(1).astype(A.dtype), np.eye(1).astype(b.dtype)
         ).dtype
-        x = tensor(broadcastable=b.broadcastable, dtype=o_dtype)
+        x = tensor(shape=b.broadcastable, dtype=o_dtype)
         return Apply(self, [A, b], [x])
 
     def infer_shape(self, fgraph, node, shapes):

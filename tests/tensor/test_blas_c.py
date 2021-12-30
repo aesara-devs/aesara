@@ -41,10 +41,10 @@ class TestCGer(OptimizationTestMixin):
         # This tests can run even when aesara.config.blas__ldflags is empty.
         self.dtype = dtype
         self.mode = aesara.compile.get_default_mode().including("fast_run")
-        self.A = tensor(dtype=dtype, broadcastable=(False, False))
-        self.a = tensor(dtype=dtype, broadcastable=())
-        self.x = tensor(dtype=dtype, broadcastable=(False,))
-        self.y = tensor(dtype=dtype, broadcastable=(False,))
+        self.A = tensor(dtype=dtype, shape=(False, False))
+        self.a = tensor(dtype=dtype, shape=())
+        self.x = tensor(dtype=dtype, shape=(False,))
+        self.y = tensor(dtype=dtype, shape=(False,))
         self.Aval = np.ones((2, 3), dtype=dtype)
         self.xval = np.asarray([1, 2], dtype=dtype)
         self.yval = np.asarray([1.5, 2.7, 3.9], dtype=dtype)
@@ -131,17 +131,17 @@ class TestCGemv(OptimizationTestMixin):
         self.dtype = dtype
         self.mode = aesara.compile.get_default_mode().including("fast_run")
         # matrix
-        self.A = tensor(dtype=dtype, broadcastable=(False, False))
+        self.A = tensor(dtype=dtype, shape=(False, False))
         self.Aval = np.ones((2, 3), dtype=dtype)
 
         # vector
-        self.x = tensor(dtype=dtype, broadcastable=(False,))
-        self.y = tensor(dtype=dtype, broadcastable=(False,))
+        self.x = tensor(dtype=dtype, shape=(False,))
+        self.y = tensor(dtype=dtype, shape=(False,))
         self.xval = np.asarray([1, 2], dtype=dtype)
         self.yval = np.asarray([1.5, 2.7, 3.9], dtype=dtype)
 
         # scalar
-        self.a = tensor(dtype=dtype, broadcastable=())
+        self.a = tensor(dtype=dtype, shape=())
 
     def test_nan_beta_0(self):
         mode = self.mode.including()

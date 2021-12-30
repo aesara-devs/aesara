@@ -735,7 +735,7 @@ class Subtensor(COp):
         return Apply(
             self,
             (x,) + inputs,
-            [tensor(dtype=x.type.dtype, broadcastable=broadcastable)],
+            [tensor(dtype=x.type.dtype, shape=broadcastable)],
         )
 
     def perform(self, node, inputs, out_):
@@ -1937,9 +1937,7 @@ class AdvancedSubtensor1(COp):
         if x_.type.ndim == 0:
             raise TypeError("cannot index into a scalar")
         bcast = (ilist_.broadcastable[0],) + x_.broadcastable[1:]
-        return Apply(
-            self, [x_, ilist_], [TensorType(dtype=x.dtype, broadcastable=bcast)()]
-        )
+        return Apply(self, [x_, ilist_], [TensorType(dtype=x.dtype, shape=bcast)()])
 
     def perform(self, node, inp, out_):
         x, i = inp
@@ -2547,7 +2545,7 @@ class AdvancedSubtensor(Op):
         # entire subtensor operation.
         with config.change_flags(compute_test_value="off"):
             fake_shape = tuple(
-                tensor(dtype="int64", broadcastable=()) if not bcast else 1
+                tensor(dtype="int64", shape=()) if not bcast else 1
                 for bcast in x.broadcastable
             )
 
@@ -2569,7 +2567,7 @@ class AdvancedSubtensor(Op):
         return Apply(
             self,
             (x,) + index,
-            [tensor(dtype=x.type.dtype, broadcastable=bcast)],
+            [tensor(dtype=x.type.dtype, shape=bcast)],
         )
 
     def R_op(self, inputs, eval_points):
@@ -2672,7 +2670,7 @@ class AdvancedIncSubtensor(Op):
         return Apply(
             self,
             (x, y) + tuple(new_inputs),
-            [tensor(dtype=x.type.dtype, broadcastable=x.type.broadcastable)],
+            [tensor(dtype=x.type.dtype, shape=x.type.broadcastable)],
         )
 
     def perform(self, node, inputs, out_):
