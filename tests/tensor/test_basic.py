@@ -1178,6 +1178,13 @@ class TestJoinAndSplit:
             return variables[0]
         return variables
 
+    def test_input_validation(self):
+        with pytest.raises(TypeError, match=".*integer.*"):
+            Split(2)(matrix(), dscalar(), [1, 1])
+
+        with pytest.raises(TypeError, match=".*integer.*"):
+            join(dscalar(), matrix(), matrix())
+
     def test_join_scalar(self):
         a = as_tensor_variable(1)
         b = as_tensor_variable(2)
@@ -2951,6 +2958,9 @@ def test_default():
     assert f(None, 2) == 2
     assert f(1, None) == 1
 
+    with pytest.raises(TypeError, match=".*compatible types.*"):
+        default(x, vector())
+
 
 @pytest.mark.skipif(
     isinstance(get_default_mode(), aesara.compile.debugmode.DebugMode),
@@ -3144,6 +3154,11 @@ class TestLongTensor:
 
 
 class TestBroadcast:
+    def test_addbroadcast_validation(self):
+        x = as_tensor_variable(np.zeros((2, 3)))
+        with pytest.raises(ValueError, match=".*pattern does not.*"):
+            addbroadcast(x, 4)
+
     def test_broadcast_bigdim(self):
         def f():
             x = matrix()

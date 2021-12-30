@@ -223,7 +223,7 @@ class Op(MetaObject):
             raise ValueError(
                 f"We expected {len(self.itypes)} inputs but got {len(inputs)}."
             )
-        if not all(inp.type == it for inp, it in zip(inputs, self.itypes)):
+        if not all(it.in_same_class(inp.type) for inp, it in zip(inputs, self.itypes)):
             raise TypeError(
                 f"Invalid input types for Op {self}:\n"
                 + "\n".join(

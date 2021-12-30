@@ -231,7 +231,7 @@ class Extend(COp):
 
     def make_node(self, x, toAppend):
         assert isinstance(x.type, TypedListType)
-        assert x.type == toAppend.type
+        assert toAppend.type.is_super(x.type)
         return Apply(self, [x, toAppend], [x.type()])
 
     def perform(self, node, inputs, outputs):
@@ -651,7 +651,7 @@ class MakeList(Op):
             if not isinstance(elem, Variable):
                 elem = at.as_tensor_variable(elem)
             a2.append(elem)
-        if not all(a2[0].type == elem.type for elem in a2):
+        if not all(a2[0].type.is_super(elem.type) for elem in a2):
             raise TypeError("MakeList need all input variable to be of the same type.")
         tl = TypedListType(a2[0].type)()
 

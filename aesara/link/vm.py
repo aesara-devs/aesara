@@ -87,7 +87,7 @@ def calculate_reallocate_info(order, fgraph, storage_map, compute_map_re, depend
                             if (
                                 getattr(out, "ndim", None) == 0
                                 and out not in pre_allocated
-                                and ins.type == out.type
+                                and out.type.in_same_class(ins.type)
                             ):
                                 reuse_out = out
                                 pre_allocated.add(out)
@@ -110,7 +110,7 @@ def calculate_reallocate_info(order, fgraph, storage_map, compute_map_re, depend
                                 if (
                                     getattr(out, "ndim", None) == 0
                                     and out not in pre_allocated
-                                    and ins.type == out.type
+                                    and (out.type.in_same_class(ins.type))
                                 ):
                                     reuse_out = out
                                     pre_allocated.add(out)

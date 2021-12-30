@@ -425,11 +425,13 @@ class FunctionGraph(MetaObject):
         new_var: Variable,
         reason: str = None,
         import_missing: bool = False,
+        check: bool = True,
     ) -> None:
         """Change ``node.inputs[i]`` to `new_var`.
 
-        ``new_var.type == old_var.type`` must be ``True``, where ``old_var`` is the
-        current value of ``node.inputs[i]`` which we want to replace.
+        ``new_var.type.is_super(old_var.type)`` must be ``True``, where
+        ``old_var`` is the current value of ``node.inputs[i]`` which we want to
+        replace.
 
         For each feature that has an `on_change_input` method, this method calls:
         ``feature.on_change_input(function_graph, node, i, old_var, new_var, reason)``
@@ -446,22 +448,27 @@ class FunctionGraph(MetaObject):
             The new variable to take the place of ``node.inputs[i]``.
         import_missing
             Add missing inputs instead of raising an exception.
+        check
+            When ``True``, perform a type check between the variable being
+            replaced and its replacement.  This is primarily used by the
+            `History` `Feature`, which needs to revert types that have been
+            narrowed and would otherwise fail this check.
         """
         # TODO: ERROR HANDLING FOR LISTENERS (should it complete the change or revert it?)
         if node == "output":
             r = self.outputs[i]
-            if r.type != new_var.type:
+            if check and not r.type.is_super(new_var.type):
                 raise TypeError(
-                    f"The type of the replacement ({new_var.type}) must be the"
-                    f" same as the type of the original Variable ({r.type})."
+                    f"The type of the replacement ({new_var.type}) must be "
+                    f"compatible with the type of the original Variable ({r.type})."
                 )
             self.outputs[i] = new_var
         else:
             r = node.inputs[i]
-            if r.type != new_var.type:
+            if check and not r.type.is_super(new_var.type):
                 raise TypeError(
-                    f"The type of the replacement ({new_var.type}) must be the"
-                    f" same as the type of the original Variable ({r.type})."
+                    f"The type of the replacement ({new_var.type}) must be "
+                    f"compatible with the type of the original Variable ({r.type})."
                 )
             node.inputs[i] = new_var
 

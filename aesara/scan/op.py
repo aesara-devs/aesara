@@ -534,12 +534,15 @@ class ScanMethodsMixin:
 
                 type_input = self.inputs[inner_iidx].type
                 type_output = self.outputs[inner_oidx].type
-                if type_input != type_output:
+                if (
+                    type_input.dtype != type_output.dtype
+                    or type_input.broadcastable != type_output.broadcastable
+                ):
                     raise TypeError(
                         "Inconsistency in the inner graph of "
                         f"scan '{self.name}' : an input and an output are "
                         "associated with the same recurrent state "
-                        "and should have the same type but have "
+                        "and should have compatible types but have "
                         f"type '{type_input}' and '{type_output}' respectively."
                     )
 
@@ -1068,11 +1071,11 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
         ):
             outer_nonseq = copy_var_format(_outer_nonseq, as_var=inner_nonseq)
             new_inputs.append(outer_nonseq)
-            if inner_nonseq.type != outer_nonseq.type:
+            if not outer_nonseq.type.in_same_class(inner_nonseq.type):
                 raise ValueError(
                     (
-                        f"Argument {outer_nonseq} given to the scan node does not"
-                        f" match its corresponding loop function variable {inner_nonseq}"
+                        f"Argument {outer_nonseq} given to the scan node is not"
+                        f" compatible with its corresponding loop function variable {inner_nonseq}"
                     )
                 )
 

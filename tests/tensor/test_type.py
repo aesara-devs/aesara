@@ -4,6 +4,7 @@ from tempfile import mkdtemp
 import numpy as np
 import pytest
 
+import aesara.tensor as at
 from aesara.configdefaults import config
 from aesara.tensor.type import TensorType
 
@@ -11,6 +12,53 @@ from aesara.tensor.type import TensorType
 def test_numpy_dtype():
     test_type = TensorType(np.int32, [])
     assert test_type.dtype == "int32"
+
+
+def test_in_same_class():
+    test_type = TensorType(config.floatX, [False, False])
+    test_type2 = TensorType(config.floatX, [False, True])
+
+    assert test_type.in_same_class(test_type)
+    assert not test_type.in_same_class(test_type2)
+
+
+def test_is_super():
+    test_type = TensorType(config.floatX, [False, False])
+    test_type2 = TensorType(config.floatX, [False, True])
+
+    assert test_type.is_super(test_type)
+    assert test_type.is_super(test_type2)
+    assert not test_type2.is_super(test_type)
+
+    test_type3 = TensorType(config.floatX, [False, False, False])
+    assert not test_type3.is_super(test_type)
+
+
+def test_convert_variable():
+    test_type = TensorType(config.floatX, [False, False])
+    test_var = test_type()
+
+    test_type2 = TensorType(config.floatX, [True, False])
+    test_var2 = test_type2()
+
+    res = test_type.convert_variable(test_var)
+    assert res is test_var
+
+    res = test_type.convert_variable(test_var2)
+    assert res is test_var2
+
+    res = test_type2.convert_variable(test_var)
+    assert res.type == test_type2
+
+    test_type3 = TensorType(config.floatX, [True, False, True])
+    test_var3 = test_type3()
+
+    res = test_type2.convert_variable(test_var3)
+    assert res is None
+
+    const_var = at.as_tensor([[1, 2], [3, 4]], dtype=config.floatX)
+    res = test_type.convert_variable(const_var)
+    assert res is const_var
 
 
 def test_filter_variable():
@@ -32,6 +80,17 @@ def test_filter_variable():
     with pytest.raises(ValueError, match="Non-finite"):
         test_type.filter_checks_isfinite = True
         test_type.filter(np.full((1, 2), np.inf, dtype=config.floatX))
+
+    test_type2 = TensorType(config.floatX, [False, False])
+    test_var = test_type()
+    test_var2 = test_type2()
+
+    res = test_type.filter_variable(test_var, allow_convert=True)
+    assert res is test_var
+
+    # Make sure it returns the more specific type
+    res = test_type.filter_variable(test_var2, allow_convert=True)
+    assert res.type == test_type
 
 
 def test_filter_strict():

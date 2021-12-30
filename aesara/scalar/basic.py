@@ -1231,13 +1231,7 @@ class UnaryScalarOp(ScalarOp):
     def c_code_contiguous(self, node, name, inputs, outputs, sub):
         (x,) = inputs
         (z,) = outputs
-        if (
-            not config.lib__amblibm
-            or
-            # We compare the dtype AND the broadcast flag
-            # as this function do not broadcast
-            node.inputs[0].type != node.outputs[0].type
-        ):
+        if not config.lib__amblibm or node.inputs[0].type != node.outputs[0].type:
             raise MethodNotDefined()
 
         dtype = node.inputs[0].type.dtype_specs()[1]

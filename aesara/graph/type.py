@@ -43,6 +43,37 @@ class Type(MetaObject):
     The `Type` that will be created by a call to `Type.make_constant`.
     """
 
+    def in_same_class(self, otype: "Type") -> Optional[bool]:
+        """Determine if another `Type` represents a subset from the same "class" of types represented by `self`.
+
+        A "class" of types could be something like "float64 tensors with four
+        dimensions".  One `Type` could represent a set containing only a type
+        for "float64 tensor with shape (1, 2, 3, 4)" and another the set of
+        "float64 tensors with shape (1, x, x, x)" for all suitable "x".
+
+        The default implementation assumes that all "classes" have only one
+        unique element (i.e. it uses `self.__eq__`).
+
+        """
+        if self == otype:
+            return True
+
+        return False
+
+    def is_super(self, otype: "Type") -> Optional[bool]:
+        """Determine if `self` represents a superset of the types represented by `otype`.
+
+        See `Type.in_same_class`.
+
+        In general, ``t1.is_super(t2) == True`` implies that ``t1`` can be
+        replaced with ``t2``.
+
+        """
+        if self.in_same_class(otype):
+            return True
+
+        return None
+
     @abstractmethod
     def filter(
         self, data: D, strict: bool = False, allow_downcast: Optional[bool] = None
@@ -101,14 +132,9 @@ class Type(MetaObject):
     def filter_variable(
         self, other: Union[Variable, D], allow_convert: bool = True
     ) -> Variable:
-        r"""Convert a symbolic variable into this `Type`, if compatible.
+        r"""Convert a `other` into a `Variable` with a `Type` that's compatible with `self`.
 
-        For the moment, the only `Type`\s compatible with one another are
-        `TensorType` and `GpuArrayType`, provided they have the same number of
-        dimensions, same broadcasting pattern, and same dtype.
-
-        If `Type`\s are not compatible, a ``TypeError`` should be raised.
-
+        If the involved `Type`\s are not compatible, a `TypeError` will be raised.
         """
         if not isinstance(other, Variable):
             # The value is not a Variable: we cast it into
@@ -122,30 +148,36 @@ class Type(MetaObject):
 
         if other.type != self:
             raise TypeError(
-                "Cannot convert Type %(othertype)s "
-                "(of Variable %(other)s) into Type %(self)s. "
-                "You can try to manually convert %(other)s into a %(self)s."
-                % dict(othertype=other.type, other=other, self=self)
+                f"Cannot convert Type {other.type} "
+                f"(of Variable {other}) into Type {self}. "
+                f"You can try to manually convert {other} into a {self}."
             )
         return other
 
-    def convert_variable(self, var: Union[Variable, D]) -> Optional[Variable]:
-        """Patch a variable so that its `Type` will match ``self``, if possible.
+    def convert_variable(self, var: Variable) -> Optional[Variable]:
+        """Produce a `Variable` that's compatible with both `self` and `var.type`, if possible.
 
-        If the variable can't be converted, this should return None.
+        A compatible `Variable` is a `Variable` with a `Type` that's the
+        "narrower" of `self` and `var.type`.
 
-        The conversion can only happen if the following implication is
-        true for all possible `val`.
-
-          self.is_valid_value(val) => var.type.is_valid_value(val)
-
-        For the majority of types this means that you can only have
-        non-broadcastable dimensions become broadcastable and not the
-        inverse.
-
-        The default is to not convert anything which is always safe.
+        If a compatible `Type` cannot be found, this method will return
+        ``None``.
 
         """
+        var_type = var.type
+
+        if self.is_super(var_type):
+            # `var.type` is at least as specific as `self`, so we return it
+            # as-is
+            return var
+        elif var_type.is_super(self):
+            # `var.type` is less specific than `self`, so we need to convert it
+            # to `self`'s `Type`.
+            #
+            # Note that, in this case, `var.type != self`, because equality is
+            # covered by the branch above.
+            raise NotImplementedError()
+
         return None
 
     def is_valid_value(self, data: D) -> bool:

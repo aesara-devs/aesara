@@ -28,14 +28,7 @@ from aesara.tensor.math import max as at_max
 from aesara.tensor.math import maximum, minimum, or_, prod
 from aesara.tensor.math import sum as at_sum
 from aesara.tensor.subtensor import advanced_inc_subtensor1, set_subtensor
-from aesara.tensor.type import (
-    TensorType,
-    dvector,
-    int_dtypes,
-    int_vector_types,
-    integer_dtypes,
-    vector,
-)
+from aesara.tensor.type import TensorType, dvector, int_dtypes, integer_dtypes, vector
 from aesara.tensor.var import TensorVariable
 from aesara.utils import LOCAL_BITWIDTH, PYTHON_INT_BITWIDTH
 
@@ -139,7 +132,7 @@ class SearchsortedOp(COp):
                     "numpy.searchsorted with Python 32bit do not support a"
                     " sorter of int64."
                 )
-            if sorter.type not in int_vector_types:
+            if sorter.type.ndim == 1 and sorter.type.dtype not in int_dtypes:
                 raise TypeError("sorter must be an integer vector", sorter.type)
             return Apply(self, [x, v, sorter], [out_type()])
 

@@ -218,14 +218,6 @@ class TensorType(CType):
         return data
 
     def filter_variable(self, other, allow_convert=True):
-        """
-        Convert a symbolic Variable into a TensorType, if compatible.
-
-        For the moment, only a TensorType and GpuArrayType will be
-        converted, provided they have the same number of dimensions
-        and dtype and have "compatible" broadcastable pattern.
-
-        """
         if not isinstance(other, Variable):
             # The value is not a Variable: we cast it into
             # a Constant of the appropriate Type.
@@ -235,9 +227,8 @@ class TensorType(CType):
             return other
 
         if allow_convert:
-            # Attempt safe broadcast conversion.
             other2 = self.convert_variable(other)
-            if other2 is not None and other2.type == self:
+            if other2 is not None:
                 return other2
 
         raise TypeError(
@@ -275,17 +266,48 @@ class TensorType(CType):
             and other.broadcastable == self.broadcastable
         )
 
-    def convert_variable(self, var):
+    def in_same_class(self, otype):
         if (
-            isinstance(self, type(var.type))
-            and self.dtype == var.type.dtype  # noqa
-            and self.ndim == var.type.ndim
+            isinstance(otype, TensorType)
+            and otype.dtype == self.dtype
+            and otype.broadcastable == self.broadcastable
+        ):
+            return True
+        return False
+
+    def is_super(self, otype):
+        if (
+            isinstance(otype, type(self))
+            and otype.dtype == self.dtype
+            and otype.ndim == self.ndim
+            # `otype` is allowed to be as or more shape-specific than `self`,
+            # but not less
             and all(
                 sb == ob or ob
-                for sb, ob in zip(self.broadcastable, var.type.broadcastable)
+                for sb, ob in zip(self.broadcastable, otype.broadcastable)
             )
         ):
-            return aesara.tensor.patternbroadcast(var, self.broadcastable)
+            return True
+
+        return False
+
+    def convert_variable(self, var):
+        if self.is_super(var.type):
+            # `var.type` is at least as specific as `self`, so we return
+            # `var` as-is
+            return var
+        elif var.type.is_super(self):
+            # `var.type` is less specific than `self`, so we convert
+            # `var` to `self`'s `Type`.
+            # Note that, in this case, `var.type != self`, because that's
+            # covered by the branch above.
+
+            # Use the more specific broadcast/shape information of the two
+            # TODO: Why do we need/want `Rebroadcast`?  It's basically just
+            # another `CheckAndRaise` `Op` that can be avoided entirely.
+            return aesara.tensor.basic.Rebroadcast(
+                *[(i, b) for i, b in enumerate(self.broadcastable)]
+            )(var)
 
     @staticmethod
     def may_share_memory(a, b):

@@ -121,7 +121,7 @@ def broadcast_like(value, template, fgraph, dtype=None):
 
     """
     value = as_tensor_variable(value)
-    if value.type == template.type:
+    if value.type.is_super(template.type):
         return value
     if template not in fgraph.variables:
         raise NotImplementedError(
@@ -131,7 +131,7 @@ def broadcast_like(value, template, fgraph, dtype=None):
     if dtype is None:
         dtype = template.dtype
     value = cast(value, dtype)
-    if value.type == template.type:
+    if value.type.is_super(template.type):
         return value
     if hasattr(fgraph, "shape_feature"):
         new_shape = fgraph.shape_feature.shape_of[template]
@@ -1593,9 +1593,9 @@ def local_elemwise_alloc(fgraph, node):
         if (
             i.owner
             and isinstance(i.owner.op, Alloc)
-            and i.owner.inputs[0].type != i.owner.outputs[0].type
+            and not i.owner.inputs[0].type.is_super(i.owner.outputs[0].type)
         ):
-            # when `i.owner.inputs[0].type == i.owner.outputs[0].type` we
+            # when `i.owner.inputs[0].type.is_super(i.owner.outputs[0].type)` we
             # will remove that `Alloc` later
             assert i.type.ndim == cmp_op.ndim
             if config.experimental__local_alloc_elemwise_assert:
@@ -1673,7 +1673,10 @@ def local_fill_sink(fgraph, node):
         return False
     c = node.op(*inputs)
     for model in models:
-        if model.type != c.type:
+        if (
+            model.type.dtype != c.type.dtype
+            or model.type.broadcastable != c.type.broadcastable
+        ):
             c = fill(model, c)
 
     # The newly created node c doesn't has 'clients',
@@ -1762,12 +1765,14 @@ def local_useless_fill(fgraph, node):
     opt.
 
     """
-    if node.op == fill:
-        r, v = node.inputs
-        if v.type == node.outputs[0].type:
-            # this is a useless fill, erase it.
-            # also, we don't need to copy over any stack traces here
-            return [v]
+    r, v = node.inputs
+    out_type = node.outputs[0].type
+
+    if (
+        v.type.dtype == out_type.dtype
+        and v.type.broadcastable == out_type.broadcastable
+    ):
+        return [v]
 
 
 @register_specialize
@@ -1787,7 +1792,10 @@ def local_useless_alloc(fgraph, node):
     inp = node.inputs[0]
     output = node.outputs[0]
 
-    if inp.type == output.type:
+    if (
+        inp.type.dtype == output.type.dtype
+        and inp.type.broadcastable == output.type.broadcastable
+    ):
         if inp.ndim == 0:
             return [inp]
         else:
@@ -1822,7 +1830,10 @@ def local_canonicalize_alloc(fgraph, node):
     output = node.outputs[0]
 
     # Check if dtype and broadcast remain the same.
-    if inp.type == output.type:
+    if (
+        inp.type.dtype == output.type.dtype
+        and inp.type.broadcastable == output.type.broadcastable
+    ):
         # We don't need to copy over any stack traces here
         return [inp]
 
@@ -2253,7 +2264,7 @@ def local_upcast_elemwise_constant_inputs(fgraph, node):
 
             if new_inputs != node.inputs:
                 rval = [node.op(*new_inputs)]
-                if rval[0].type != node.outputs[0].type:
+                if not node.outputs[0].type.is_super(rval[0].type):
                     # This can happen for example when floatX=float32
                     # and we do the true division between and int64
                     # and a constant that will get typed as int8.
@@ -2449,7 +2460,7 @@ def local_join_empty(fgraph, node):
         # by an error in the old join op.
         copy_stack_trace(node.outputs, ret)
 
-        if ret.type != o.type:
+        if not o.type.is_super(ret.type):
             assert ret.dtype == o.dtype
             assert ret.ndim == o.ndim
             ret = patternbroadcast(ret, node.outputs[0].broadcastable)
@@ -2554,7 +2565,7 @@ def local_useless_switch(fgraph, node):
         if node.inputs[1] is node.inputs[2]:
             # Note: No need to copy over stacktrace, because the input node
             # already has its own stacktrace
-            if cond.type == node.inputs[1].type:
+            if cond.type.is_super(node.inputs[1].type):
                 return [node.inputs[1]]
 
             ret = fill(cond, node.inputs[1])
@@ -2579,7 +2590,7 @@ def local_useless_switch(fgraph, node):
             and extract_constant(left, only_process_constants=True) == 0
             and right is cond_var.owner.inputs[0]
         ):
-            assert right.type == node.outputs[0].type
+            assert node.outputs[0].type.is_super(right.type)
             # No need to copy over stacktrace, because the right input node
             # already has its own stacktrace
             return [right]
@@ -2935,7 +2946,7 @@ def local_reshape_lift(fgraph, node):
 
         # In rare case the original broadcast was (False, True), but
         # the new one is (False, False). So don't crash in that case.
-        if e.type != node.outputs[0].type:
+        if not node.outputs[0].type.is_super(e.type):
             re = patternbroadcast(e, node.outputs[0].broadcastable)
 
             # Copy over stack trace.
@@ -2953,12 +2964,11 @@ register_canonicalize(OpRemove(tensor_copy), name="remove_tensor_copy")
 
 @local_optimizer(None)
 def constant_folding(fgraph, node):
-    for inp in node.inputs:
-        if not isinstance(inp, Constant):
-            return False
-    # condition:  all inputs are constant
+
     if not node.op.do_constant_folding(fgraph, node):
-        # The op asks not to be constant folded.
+        return False
+
+    if not all(isinstance(inp, Constant) for inp in node.inputs):
         return False
 
     storage_map = {i: [i.data] for i in node.inputs}
@@ -2969,21 +2979,37 @@ def constant_folding(fgraph, node):
 
     thunk = node.op.make_thunk(node, storage_map, compute_map, no_recycling=[])
     required = thunk()
+
     # A node whose inputs are all provided should always return successfully
     assert not required
 
     rval = []
     for output in node.outputs:
-        assert compute_map[output][0], (output, storage_map[output][0])
-        try:
-            constant = output.type.Constant
-        except AttributeError:
-            constant = Constant
+        data = storage_map[output][0]
+        assert compute_map[output][0], (output, data)
 
-        v = constant(output.type, storage_map[output][0])
+        # TODO: `Type` itself should provide an interface for constructing
+        # instances appropriate for a given constant.
+        if isinstance(output.type, TensorType):
+            output_type = TensorType(
+                output.type.dtype,
+                tuple(s == 1 for s in data.shape),
+                name=output.type.name,
+            )
+        else:
+            output_type = output.type
+
+        v = output_type.make_constant(data)
+
+        # We need to "narrow" types when we have additional information,
+        # and not "broaden" them.  This is a case in which types are
+        # unnecessarily "broadened"
+        # assert not hasattr(output.type, "broadcastable") or output.type.broadcastable == tuple(s == 1 for s in data.shape)
+
         copy_stack_trace(output, v)
 
         rval.append(v)
+
     return rval
 
 

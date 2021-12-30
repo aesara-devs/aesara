@@ -111,7 +111,7 @@ def rebuild_collect_shared(
                         v_update = v.type.filter_variable(
                             v.default_update, allow_convert=False
                         )
-                        if v_update.type != v.type:
+                        if not v.type.is_super(v_update.type):
                             raise TypeError(
                                 "An update must have a type compatible with "
                                 "the original shared variable"
@@ -205,7 +205,7 @@ def rebuild_collect_shared(
             )
 
             raise TypeError(err_msg, err_sug)
-        assert update_val.type == store_into.type
+        assert store_into.type.is_super(update_val.type)
 
         update_d[store_into] = update_val
         update_expr.append((store_into, update_val))

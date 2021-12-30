@@ -309,7 +309,7 @@ def local_exp_log(fgraph, node):
         x = x.owner.inputs[0]
         old_out = node.outputs[0]
         new_out = add(1, exp(x))
-        if new_out.type != old_out.type:
+        if not old_out.type.is_super(new_out.type):
             return
         return [new_out]
 
@@ -333,7 +333,7 @@ def local_exp_log_nan_switch(fgraph, node):
         x = x.owner.inputs[0]
         old_out = node.outputs[0]
         new_out = switch(ge(x, 0), x, np.asarray(np.nan, old_out.dtype))
-        if new_out.type != old_out.type:
+        if not old_out.type.is_super(new_out.type):
             return
         return [new_out]
 
@@ -342,7 +342,7 @@ def local_exp_log_nan_switch(fgraph, node):
         x = x.owner.inputs[0]
         old_out = node.outputs[0]
         new_out = switch(ge(x, -1), add(1, x), np.asarray(np.nan, old_out.dtype))
-        if new_out.type != old_out.type:
+        if not old_out.type.is_super(new_out.type):
             return
         return [new_out]
 
@@ -351,7 +351,7 @@ def local_exp_log_nan_switch(fgraph, node):
         x = x.owner.inputs[0]
         old_out = node.outputs[0]
         new_out = switch(le(x, 0), sub(1, exp(x)), np.asarray(np.nan, old_out.dtype))
-        if new_out.type != old_out.type:
+        if not old_out.type.is_super(new_out.type):
             return
         return [new_out]
 
@@ -425,7 +425,8 @@ def local_expm1(fgraph, node):
 
             if new_out.dtype != out.dtype:
                 new_out = cast(new_out, dtype=out.dtype)
-            if new_out.type != out.type:
+
+            if not out.type.is_super(new_out.type):
                 return
             return [new_out]
 
@@ -1018,8 +1019,6 @@ class AlgebraicCanonizer(LocalOptimizer):
         new = self.merge_num_denum(num, denum)
         if new.type.dtype != out.type.dtype:
             new = cast(new, out.type.dtype)
-
-        assert (new.type == out.type) == (not (new.type != out.type))
 
         if new.type != out.type:
             new = fill_chain(new, node.inputs)[0]
@@ -1831,7 +1830,7 @@ def local_div_to_reciprocal(fgraph, node):
         if new_out.dtype != out.dtype:
             new_out = cast(new_out, dtype=out.dtype)
         # The ones could have forced a specific length
-        if new_out.type != out.type:
+        if not out.type.is_super(new_out.type):
             new_out = broadcast_like(new_out, out, fgraph)
         return [new_out]
     else:
