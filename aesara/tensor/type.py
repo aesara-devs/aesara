@@ -45,38 +45,34 @@ dtype_specs_map = {
 
 
 class TensorType(CType):
-    """
-    Symbolic `Type` representing a numpy.ndarray value.
-
-    Initialize self.dtype and self.broadcastable.
-
-    Parameters
-    ----------
-    dtype: str
-        Corresponding to numpy dtype (e.g., 'int64')
-        The value (ndarray) associated to a `Variable` of this `Type` will
-        have this dtype.
-    broadcastable: tuple, list, or array of boolean values
-        This argument serves two purposes. First, the True elements of this
-        list indicate the dimensions where the shape of an associated value
-        must be 1. Secondly, the length of this list is the number of
-        dimensions that an associated value must have. See
-        doc:`broadcasting` for an explanation of how this list is used.
-    name : str
-        Optional name for this type.
-
-    """
+    r"""Symbolic `Type` representing `numpy.ndarray`\s."""
 
     __props__ = ("dtype", "broadcastable")
 
     context_name = "cpu"
     filter_checks_isfinite = False
     """
-    When this is True, strict filtering rejects data containing NaN or
-    Inf entries. (Used in `DebugMode`)
+    When this is ``True``, strict filtering rejects data containing
+    ``numpy.nan`` or ``numpy.inf`` entries. (Used in `DebugMode`)
     """
 
     def __init__(self, dtype, broadcastable, name=None):
+        """
+
+        Parameters
+        ----------
+        dtype: str
+            A NumPy dtype (e.g. ``"int64"``).
+        broadcastable: tuple, list of bools
+            This argument serves two purposes. First, the ``True`` elements of
+            this list indicate the dimensions where the shape of an associated
+            value must be ``1``. Secondly, the length of this list is the
+            number of dimensions that an associated value must have. See
+            :doc:`broadcasting` for an explanation of how this list is used.
+        name: str
+            Optional name for this type.
+
+        """
         if isinstance(dtype, str) and dtype == "floatX":
             self.dtype = config.floatX
         else:
