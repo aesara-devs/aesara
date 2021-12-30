@@ -95,15 +95,18 @@ def test_filter_memmap():
 
 
 def test_tensor_values_eq_approx():
-    # test, inf, -inf and nan equal themself
+    # test, inf, -inf and nan equal themselves
     a = np.asarray([-np.inf, -1, 0, 1, np.inf, np.nan])
-    assert TensorType.values_eq_approx(a, a)
+    with pytest.warns(RuntimeWarning):
+        assert TensorType.values_eq_approx(a, a)
 
-    # test inf, -inf don't equal themself
+    # test inf, -inf don't equal themselves
     b = np.asarray([np.inf, -1, 0, 1, np.inf, np.nan])
-    assert not TensorType.values_eq_approx(a, b)
+    with pytest.warns(RuntimeWarning):
+        assert not TensorType.values_eq_approx(a, b)
     b = np.asarray([-np.inf, -1, 0, 1, -np.inf, np.nan])
-    assert not TensorType.values_eq_approx(a, b)
+    with pytest.warns(RuntimeWarning):
+        assert not TensorType.values_eq_approx(a, b)
 
     # test allow_remove_inf
     b = np.asarray([np.inf, -1, 0, 1, 5, np.nan])
@@ -115,4 +118,5 @@ def test_tensor_values_eq_approx():
     b = np.asarray([np.inf, -1, 0, 1, 5, np.nan])
     assert not TensorType.values_eq_approx(a, b, allow_remove_nan=False)
     b = np.asarray([-np.inf, -1, 0, 1, np.inf, 6])
-    assert not TensorType.values_eq_approx(a, b, allow_remove_nan=False)
+    with pytest.warns(RuntimeWarning):
+        assert not TensorType.values_eq_approx(a, b, allow_remove_nan=False)
