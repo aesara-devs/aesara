@@ -1292,12 +1292,10 @@ def test_local_fill_useless():
     x = dvector()
     y = dvector()
     z = lvector()
-    m = dmatrix()
 
     x_ = np.random.random((5,))
     y_ = np.random.random((5,))
     z_ = (np.random.random((5,)) * 5).astype("int64")
-    m_ = np.random.random((5, 5))
 
     # basic case
     f = function([x], at.fill(x, x) * 2, mode=mode_opt)
@@ -1329,12 +1327,35 @@ def test_local_fill_useless():
     assert [node.op for node in f.maker.fgraph.toposort()] == [mul]
     f(x_, y_)
 
-    # Test with different number of dimensions
-    # The fill is not useless, so it should stay
-    f = function([m, x], at.fill(m, x) * 2, mode=mode_opt)
-    ops = [node.op.__class__ for node in f.maker.fgraph.toposort()]
-    assert Alloc in ops
-    f(m_, x_)
+
+def test_local_fill_to_alloc():
+    x = dvector()
+    m = dmatrix()
+
+    x_ = np.random.random((5,))
+    m_ = np.random.random((5, 5))
+
+    y = at.fill(m, x)
+
+    mode = mode_opt.including("stabilize", "local_fill_to_alloc").excluding(
+        "useless", "local_useless_fill"
+    )
+
+    f = function([m, x], y, mode=mode)
+    assert Alloc in [node.op.__class__ for node in f.maker.fgraph.toposort()]
+
+    res = f(m_, x_)
+    exp_res = np.broadcast_to(x_, m_.shape)
+    assert np.array_equal(res, exp_res)
+
+    y = at.fill(x, m)
+
+    f = function([m, x], y, mode=mode)
+
+    assert Alloc not in [node.op.__class__ for node in f.maker.fgraph.toposort()]
+
+    res = f(m_, x_)
+    assert np.array_equal(res, m_)
 
 
 class TestLocalCanonicalizeAlloc:
