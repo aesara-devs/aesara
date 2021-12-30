@@ -1347,7 +1347,7 @@ class TestLocalCanonicalizeAlloc:
 
         assert a.owner and isinstance(a.owner.op, Alloc)
 
-        # with aesara.config.change_flags(optimizer_verbose=True):
+        # `local_useless_alloc` should replace the `Alloc` with an `Assert`
         with pytest.raises(AssertionError):
             f = function([], a, mode=mode_opt)
 
