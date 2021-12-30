@@ -242,12 +242,9 @@ def constant(x, name=None, ndim=None, dtype=None):
 
         assert x_.ndim == ndim
 
-    ttype = TensorType(dtype=x_.dtype, broadcastable=[s == 1 for s in x_.shape])
+    ttype = TensorType(dtype=x_.dtype, shape=x_.shape)
 
-    try:
-        return TensorConstant(ttype, x_, name=name)
-    except Exception:
-        raise TypeError(f"Could not convert {x} to TensorType", type(x))
+    return TensorConstant(ttype, x_, name=name)
 
 
 def _obj_is_wrappable_as_tensor(x):
@@ -395,7 +392,7 @@ def get_scalar_constant_value(
                     ]
                     ret = [[None]]
                     v.owner.op.perform(v.owner, const, ret)
-                    return ret[0][0].copy()
+                    return np.asarray(ret[0][0].copy())
             # In fast_compile, we don't enable local_fill_to_alloc, so
             # we need to investigate Second as Alloc. So elemwise
             # don't disable the check for Second.
@@ -414,7 +411,7 @@ def get_scalar_constant_value(
                     ]
                     ret = [[None]]
                     v.owner.op.perform(v.owner, const, ret)
-                    return ret[0][0].copy()
+                    return np.asarray(ret[0][0].copy())
             elif (
                 isinstance(v.owner.op, aesara.tensor.subtensor.Subtensor)
                 and v.ndim == 0
@@ -424,7 +421,9 @@ def get_scalar_constant_value(
 
                     cdata = tuple(get_constant_idx(v.owner.op.idx_list, v.owner.inputs))
                     try:
-                        return v.owner.inputs[0].data.__getitem__(cdata).copy()
+                        return np.asarray(
+                            v.owner.inputs[0].data.__getitem__(cdata).copy()
+                        )
                     except IndexError:
                         raise IndexError(
                             str(tuple(v.owner.op.idx_list))
@@ -557,7 +556,7 @@ class TensorFromScalar(Op):
         if not isinstance(s.type, aes.Scalar):
             raise TypeError("Input must be a `Scalar` `Type`")
 
-        return Apply(self, [s], [tensor(dtype=s.type.dtype, broadcastable=())])
+        return Apply(self, [s], [tensor(dtype=s.type.dtype, shape=())])
 
     def perform(self, node, inp, out_):
         (s,) = inp
@@ -693,9 +692,7 @@ class Rebroadcast(COp):
         if self.axis.keys() and (x.ndim <= max(self.axis.keys())):
             raise ValueError("Trying to rebroadcast non-existent dimension")
         t = x.type.clone(
-            broadcastable=[
-                self.axis.get(i, b) for i, b in enumerate(x.type.broadcastable)
-            ]
+            shape=[self.axis.get(i, b) for i, b in enumerate(x.type.broadcastable)]
         )
         return Apply(self, [x], [t()])
 
@@ -1033,9 +1030,7 @@ class Nonzero(Op):
         a = as_tensor_variable(a)
         if a.ndim == 0:
             raise ValueError("Nonzero only supports non-scalar arrays.")
-        output = [
-            TensorType(dtype="int64", broadcastable=(False,))() for i in range(a.ndim)
-        ]
+        output = [TensorType(dtype="int64", shape=(False,))() for i in range(a.ndim)]
         return Apply(self, [a], output)
 
     def perform(self, node, inp, out_):
@@ -1164,7 +1159,7 @@ class Tri(Op):
         return Apply(
             self,
             [N, M, k],
-            [TensorType(dtype=self.dtype, broadcastable=(False, False))()],
+            [TensorType(dtype=self.dtype, shape=(False, False))()],
         )
 
     def perform(self, node, inp, out_):
@@ -1278,7 +1273,7 @@ class Eye(Op):
         return Apply(
             self,
             [n, m, k],
-            [TensorType(dtype=self.dtype, broadcastable=(False, False))()],
+            [TensorType(dtype=self.dtype, shape=(False, False))()],
         )
 
     def perform(self, node, inp, out_):
@@ -1396,7 +1391,7 @@ class Alloc(COp):
                 v.ndim,
                 len(sh),
             )
-        otype = TensorType(dtype=v.dtype, broadcastable=bcast)
+        otype = TensorType(dtype=v.dtype, shape=bcast)
         return Apply(self, [v] + sh, [otype()])
 
     def perform(self, node, inputs, out_):
@@ -1635,7 +1630,7 @@ class MakeVector(COp):
         else:
             dtype = self.dtype
 
-        otype = TensorType(dtype=dtype, broadcastable=(len(inputs) == 1,))
+        otype = TensorType(dtype, (len(inputs),))
         return Apply(self, inputs, [otype()])
 
     def perform(self, node, inputs, out_):
@@ -2122,6 +2117,13 @@ def addbroadcast(x, *axes):
         A aesara tensor, which is broadcastable along the specified dimensions.
 
     """
+    x = as_tensor_variable(x)
+
+    if isinstance(x.type, TensorType) and not any(s is None for s in x.type.shape):
+        if not set(i for i, b in enumerate(x.broadcastable) if b).issuperset(axes):
+            raise ValueError(f"{x}'s fixed broadcast pattern does not match {axes}")
+        return x
+
     rval = Rebroadcast(*[(axis, True) for axis in axes])(x)
     return aesara.tensor.basic_opt.apply_rebroadcast_opt(rval)
 
@@ -2152,6 +2154,7 @@ def unbroadcast(x, *axes):
         A aesara tensor, which is unbroadcastable along the specified dimensions.
 
     """
+    x = as_tensor_variable(x)
     rval = Rebroadcast(*[(axis, False) for axis in axes])(x)
     return aesara.tensor.basic_opt.apply_rebroadcast_opt(rval)
 
@@ -2322,7 +2325,7 @@ class Join(COp):
         if inputs[0].type.dtype not in int_dtypes:
             raise TypeError(f"Axis value {inputs[0]} must be an integer type")
 
-        return Apply(self, inputs, [tensor(dtype=out_dtype, broadcastable=bcastable)])
+        return Apply(self, inputs, [tensor(dtype=out_dtype, shape=bcastable)])
 
     def perform(self, node, axis_and_tensors, out_):
         (out,) = out_
@@ -3426,7 +3429,7 @@ class PermuteRowElements(Op):
         out_broadcastable = [
             xb and yb for xb, yb in zip(x.type.broadcastable, y.type.broadcastable)
         ]
-        out_type = tensor(dtype=x.type.dtype, broadcastable=out_broadcastable)
+        out_type = tensor(dtype=x.type.dtype, shape=out_broadcastable)
 
         inputlist = [x, y, inverse]
         outputlist = [out_type]
@@ -3657,7 +3660,7 @@ class ExtractDiag(Op):
         return Apply(
             self,
             [x],
-            [x.type.__class__(dtype=x.dtype, broadcastable=[False] * (x.ndim - 1))()],
+            [x.type.__class__(dtype=x.dtype, shape=[False] * (x.ndim - 1))()],
         )
 
     def perform(self, node, inputs, outputs):
@@ -3779,11 +3782,7 @@ class AllocDiag(Op):
         return Apply(
             self,
             [diag],
-            [
-                diag.type.__class__(
-                    dtype=diag.dtype, broadcastable=[False] * (diag.ndim + 1)
-                )()
-            ],
+            [diag.type.clone(shape=[False] * (diag.ndim + 1))()],
         )
 
     def perform(self, node, inputs, outputs):
@@ -4068,7 +4067,7 @@ class AllocEmpty(COp):
 
     def make_node(self, *_shape):
         _shape, bcast = infer_broadcastable(_shape)
-        otype = TensorType(dtype=self.dtype, broadcastable=bcast)
+        otype = TensorType(dtype=self.dtype, shape=bcast)
         output = otype()
 
         output.tag.values_eq_approx = values_eq_approx_always_true

@@ -55,7 +55,7 @@ def test_scan_debugprint1():
 
     for{cpu,scan_fn} [id C] ''
      >Elemwise{mul,no_inplace} [id W] ''
-     > |<TensorType(float64, vector)> [id X] -> [id E]
+     > |<TensorType(float64, (None,))> [id X] -> [id E]
      > |A_copy [id Y] -> [id M]"""
 
     for truth, out in zip(expected_output.split("\n"), lines):
@@ -118,7 +118,7 @@ def test_scan_debugprint2():
      > |coefficients[t] [id Y] -> [id S]
      > |Elemwise{pow,no_inplace} [id Z] ''
      >   |x_copy [id BA] -> [id W]
-     >   |<TensorType(int64, scalar)> [id BB] -> [id U]"""
+     >   |<TensorType(int64, ())> [id BB] -> [id U]"""
 
     for truth, out in zip(expected_output.split("\n"), lines):
         assert truth.strip() == out.strip()
@@ -226,11 +226,11 @@ def test_scan_debugprint3():
      >   | | |ScalarConstant{1} [id BW]
      >   | |ScalarConstant{-1} [id BX]
      >   |InplaceDimShuffle{x} [id BY] ''
-     >     |<TensorType(int64, scalar)> [id BZ] -> [id U]
+     >     |<TensorType(int64, ())> [id BZ] -> [id U]
 
     for{cpu,scan_fn} [id BE] ''
      >Elemwise{mul,no_inplace} [id CA] ''
-     > |<TensorType(float64, vector)> [id CB] -> [id BG]
+     > |<TensorType(float64, (None,))> [id CB] -> [id BG]
      > |A_copy [id CC] -> [id BO]"""
 
     for truth, out in zip(expected_output.split("\n"), lines):
@@ -268,7 +268,7 @@ def test_scan_debugprint4():
      | | | |   |Subtensor{int64} [id H] ''
      | | | |     |Shape [id I] ''
      | | | |     | |Subtensor{:int64:} [id J] ''
-     | | | |     |   |<TensorType(int64, vector)> [id K]
+     | | | |     |   |<TensorType(int64, (None,))> [id K]
      | | | |     |   |ScalarConstant{2} [id L]
      | | | |     |ScalarConstant{0} [id M]
      | | | |Subtensor{:int64:} [id J] ''
@@ -281,7 +281,7 @@ def test_scan_debugprint4():
      | |   |   |Subtensor{int64} [id R] ''
      | |   |     |Shape [id S] ''
      | |   |     | |Subtensor{:int64:} [id T] ''
-     | |   |     |   |<TensorType(int64, vector)> [id U]
+     | |   |     |   |<TensorType(int64, (None,))> [id U]
      | |   |     |   |ScalarConstant{2} [id V]
      | |   |     |ScalarConstant{0} [id W]
      | |   |Subtensor{:int64:} [id T] ''
@@ -296,11 +296,11 @@ def test_scan_debugprint4():
 
     for{cpu,scan_fn}.0 [id C] ''
      >Elemwise{add,no_inplace} [id BB] ''
-     > |<TensorType(int64, scalar)> [id BC] -> [id E]
-     > |<TensorType(int64, scalar)> [id BD] -> [id E]
+     > |<TensorType(int64, ())> [id BC] -> [id E]
+     > |<TensorType(int64, ())> [id BD] -> [id E]
      >Elemwise{add,no_inplace} [id BE] ''
-     > |<TensorType(int64, scalar)> [id BF] -> [id O]
-     > |<TensorType(int64, scalar)> [id BG] -> [id O]
+     > |<TensorType(int64, ())> [id BF] -> [id O]
+     > |<TensorType(int64, ())> [id BG] -> [id O]
 
     for{cpu,scan_fn}.1 [id C] ''
      >Elemwise{add,no_inplace} [id BB] ''
@@ -416,18 +416,18 @@ def test_scan_debugprint5():
     for{cpu,grad_of_scan_fn}.1 [id B] ''
     >Elemwise{add,no_inplace} [id CM] ''
     > |Elemwise{mul} [id CN] ''
-    > | |<TensorType(float64, vector)> [id CO] -> [id BL]
+    > | |<TensorType(float64, (None,))> [id CO] -> [id BL]
     > | |A_copy [id CP] -> [id P]
-    > |<TensorType(float64, vector)> [id CQ] -> [id BL]
+    > |<TensorType(float64, (None,))> [id CQ] -> [id BL]
     >Elemwise{add,no_inplace} [id CR] ''
     > |Elemwise{mul} [id CS] ''
-    > | |<TensorType(float64, vector)> [id CO] -> [id BL]
-    > | |<TensorType(float64, vector)> [id CT] -> [id Z]
-    > |<TensorType(float64, vector)> [id CU] -> [id CE]
+    > | |<TensorType(float64, (None,))> [id CO] -> [id BL]
+    > | |<TensorType(float64, (None,))> [id CT] -> [id Z]
+    > |<TensorType(float64, (None,))> [id CU] -> [id CE]
 
     for{cpu,scan_fn} [id F] ''
     >Elemwise{mul,no_inplace} [id CV] ''
-    > |<TensorType(float64, vector)> [id CT] -> [id H]
+    > |<TensorType(float64, (None,))> [id CT] -> [id H]
     > |A_copy [id CP] -> [id P]
 
     for{cpu,scan_fn} [id F] ''

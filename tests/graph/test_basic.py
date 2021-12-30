@@ -327,8 +327,8 @@ class TestAutoName:
         # Get counter value
         autoname_id = next(Variable.__count__)
         Variable.__count__ = count(autoname_id)
-        r1 = TensorType(dtype="int32", broadcastable=())("myvar")
-        r2 = TensorVariable(TensorType(dtype="int32", broadcastable=()))
+        r1 = TensorType(dtype="int32", shape=())("myvar")
+        r2 = TensorVariable(TensorType(dtype="int32", shape=()))
         r3 = shared(np.random.randn(3, 4))
         assert r1.auto_name == "auto_" + str(autoname_id)
         assert r2.auto_name == "auto_" + str(autoname_id + 1)

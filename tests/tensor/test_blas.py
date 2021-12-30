@@ -1454,7 +1454,7 @@ class TestGemv(unittest_tools.OptimizationTestMixin):
         v2 = shared(v2_orig)
         m = shared(
             np.array(rng.uniform(size=(1, 2)), dtype="float32"),
-            broadcastable=(True, False),
+            shape=(True, False),
         )
         o = aesara.tensor.dot(m, v1)
         f = function([], o + v2, mode=mode_blas_opt)
@@ -1760,20 +1760,20 @@ class TestDgemv(BaseGemv, unittest_tools.OptimizationTestMixin):
 
 class TestGerMakeNode:
     def setup_method(self):
-        self.iv = tensor(dtype="int32", broadcastable=(False,))
-        self.fv = tensor(dtype="float32", broadcastable=(False,))
-        self.fv1 = tensor(dtype="float32", broadcastable=(True,))
-        self.dv = tensor(dtype="float64", broadcastable=(False,))
-        self.dv1 = tensor(dtype="float64", broadcastable=(True,))
-        self.cv = tensor(dtype="complex64", broadcastable=(False,))
-        self.zv = tensor(dtype="complex128", broadcastable=(False,))
+        self.iv = tensor(dtype="int32", shape=(False,))
+        self.fv = tensor(dtype="float32", shape=(False,))
+        self.fv1 = tensor(dtype="float32", shape=(True,))
+        self.dv = tensor(dtype="float64", shape=(False,))
+        self.dv1 = tensor(dtype="float64", shape=(True,))
+        self.cv = tensor(dtype="complex64", shape=(False,))
+        self.zv = tensor(dtype="complex128", shape=(False,))
 
-        self.fv_2 = tensor(dtype="float32", broadcastable=(False,))
-        self.fv1_2 = tensor(dtype="float32", broadcastable=(True,))
-        self.dv_2 = tensor(dtype="float64", broadcastable=(False,))
-        self.dv1_2 = tensor(dtype="float64", broadcastable=(True,))
-        self.cv_2 = tensor(dtype="complex64", broadcastable=(False,))
-        self.zv_2 = tensor(dtype="complex128", broadcastable=(False,))
+        self.fv_2 = tensor(dtype="float32", shape=(False,))
+        self.fv1_2 = tensor(dtype="float32", shape=(True,))
+        self.dv_2 = tensor(dtype="float64", shape=(False,))
+        self.dv1_2 = tensor(dtype="float64", shape=(True,))
+        self.cv_2 = tensor(dtype="complex64", shape=(False,))
+        self.zv_2 = tensor(dtype="complex128", shape=(False,))
 
         self.fm = fmatrix()
         self.dm = dmatrix()
@@ -1847,10 +1847,10 @@ class TestGer(unittest_tools.OptimizationTestMixin):
         self.mode = aesara.compile.get_default_mode().including("fast_run")
         self.mode = self.mode.excluding("c_blas", "scipy_blas")
         dtype = self.dtype = "float64"  # optimization isn't dtype-dependent
-        self.A = tensor(dtype=dtype, broadcastable=(False, False))
-        self.a = tensor(dtype=dtype, broadcastable=())
-        self.x = tensor(dtype=dtype, broadcastable=(False,))
-        self.y = tensor(dtype=dtype, broadcastable=(False,))
+        self.A = tensor(dtype=dtype, shape=(False, False))
+        self.a = tensor(dtype=dtype, shape=())
+        self.x = tensor(dtype=dtype, shape=(False,))
+        self.y = tensor(dtype=dtype, shape=(False,))
         self.ger = ger
         self.ger_destructive = ger_destructive
         self.gemm = gemm_no_inplace

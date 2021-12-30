@@ -496,7 +496,7 @@ class TestRepeat(utt.InferShapeTester):
                         )
 
                         # check when r is  aesara tensortype that broadcastable is (True,)
-                        r_var = TensorType(broadcastable=(True,), dtype=dtype)()
+                        r_var = TensorType(shape=(True,), dtype=dtype)()
                         r = np.random.randint(1, 6, size=(1,)).astype(dtype)
                         f = aesara.function([x, r_var], repeat(x, r_var, axis=axis))
                         assert np.allclose(np.repeat(a, r[0], axis=axis), f(a, r))

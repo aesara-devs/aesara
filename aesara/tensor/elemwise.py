@@ -209,7 +209,7 @@ class DimShuffle(ExternalCOp):
             else:
                 ob.append(ib[value])
 
-        output = TensorType(dtype=input.type.dtype, broadcastable=ob)()
+        output = TensorType(dtype=input.type.dtype, shape=ob)()
 
         return Apply(self, [input], [output])
 
@@ -464,7 +464,7 @@ second dimension
             DimShuffle, *inputs
         )
         outputs = [
-            TensorType(dtype=dtype, broadcastable=broadcastable)()
+            TensorType(dtype=dtype, shape=broadcastable)()
             for dtype, broadcastable in zip(out_dtypes, out_broadcastables)
         ]
         return Apply(self, inputs, outputs)
@@ -1326,9 +1326,7 @@ class CAReduce(COp):
 
         broadcastable = [x for i, x in enumerate(inp_bdcast) if i not in axis]
 
-        output = TensorType(
-            dtype=self._output_dtype(inp_dtype), broadcastable=broadcastable
-        )()
+        output = TensorType(dtype=self._output_dtype(inp_dtype), shape=broadcastable)()
 
         return Apply(op, [input], [output])
 
@@ -1409,9 +1407,7 @@ class CAReduce(COp):
         if acc_dtype is not None:
             if acc_dtype == "float16":
                 raise MethodNotDefined("no c_code for float16")
-            acc_type = TensorType(
-                broadcastable=node.outputs[0].broadcastable, dtype=acc_dtype
-            )
+            acc_type = TensorType(shape=node.outputs[0].broadcastable, dtype=acc_dtype)
             adtype = acc_type.dtype_specs()[1]
         else:
             adtype = odtype

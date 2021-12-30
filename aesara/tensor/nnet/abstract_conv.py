@@ -2516,7 +2516,7 @@ class AbstractConv(BaseAbstractConv):
             img = as_tensor_variable(img)
         if not isinstance(kern, Variable):
             kern = as_tensor_variable(kern)
-        ktype = img.type.clone(dtype=kern.dtype, broadcastable=kern.broadcastable)
+        ktype = img.type.clone(dtype=kern.dtype, shape=kern.type.shape)
         kern = ktype.filter_variable(kern)
 
         if img.type.ndim != 2 + self.convdim:
@@ -2547,7 +2547,7 @@ class AbstractConv(BaseAbstractConv):
         broadcastable = [img.broadcastable[0], kern.broadcastable[0]] + (
             [False] * self.convdim
         )
-        output = img.type.clone(broadcastable=broadcastable)()
+        output = img.type.clone(shape=broadcastable)()
         return Apply(self, [img, kern], [output])
 
     def perform(self, node, inp, out_):
@@ -2864,7 +2864,7 @@ class AbstractConv_gradWeights(BaseAbstractConv):
             img = as_tensor_variable(img)
         if not isinstance(topgrad, Variable):
             topgrad = as_tensor_variable(topgrad)
-        gtype = img.type.clone(dtype=topgrad.dtype, broadcastable=topgrad.broadcastable)
+        gtype = img.type.clone(dtype=topgrad.dtype, shape=topgrad.type.shape)
         topgrad = gtype.filter_variable(topgrad)
 
         if img.type.ndim != 2 + self.convdim:
@@ -2891,7 +2891,7 @@ class AbstractConv_gradWeights(BaseAbstractConv):
             broadcastable = [topgrad.broadcastable[1], img.broadcastable[1]] + (
                 [False] * self.convdim
             )
-        output = img.type.clone(broadcastable=broadcastable)()
+        output = img.type.clone(shape=broadcastable)()
         return Apply(self, [img, topgrad, shape], [output])
 
     def perform(self, node, inp, out_):
@@ -3230,9 +3230,7 @@ class AbstractConv_gradInputs(BaseAbstractConv):
             kern = as_tensor_variable(kern)
         if not isinstance(topgrad, Variable):
             topgrad = as_tensor_variable(topgrad)
-        gtype = kern.type.clone(
-            dtype=topgrad.dtype, broadcastable=topgrad.broadcastable
-        )
+        gtype = kern.type.clone(dtype=topgrad.dtype, shape=topgrad.broadcastable)
         topgrad = gtype.filter_variable(topgrad)
 
         if self.unshared:
@@ -3269,7 +3267,7 @@ class AbstractConv_gradInputs(BaseAbstractConv):
                 topgrad.type.broadcastable[0],
                 kern.type.broadcastable[-self.convdim - 1],
             ] + ([False] * self.convdim)
-        output = kern.type.clone(broadcastable=broadcastable)()
+        output = kern.type.clone(shape=broadcastable)()
         return Apply(self, [kern, topgrad, shape], [output])
 
     def perform(self, node, inp, out_):

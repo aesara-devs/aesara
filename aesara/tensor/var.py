@@ -11,6 +11,7 @@ from aesara import tensor as at
 from aesara.configdefaults import config
 from aesara.graph.basic import Constant, Variable
 from aesara.scalar import ComplexError, IntegerDivisionError
+from aesara.tensor import _get_vector_length, as_tensor_variable
 from aesara.tensor.exceptions import AdvancedIndexingError
 from aesara.tensor.type import TensorType
 from aesara.tensor.utils import hash_from_ndarray
@@ -253,6 +254,9 @@ class _tensor_py_operators:
 
     @property
     def shape(self):
+        if not any(s is None for s in self.type.shape):
+            return as_tensor_variable(self.type.shape, ndim=1, dtype=np.int64)
+
         return at.shape(self)
 
     @property
@@ -850,6 +854,13 @@ class TensorVariable(_tensor_py_operators, Variable):
                 pdb.set_trace()
 
 
+@_get_vector_length.register(TensorVariable)
+def _get_vector_length_TensorVariable(op_or_var, var):
+    if var.type.shape[0] is None:
+        raise ValueError(f"Length of {var} cannot be determined")
+    return var.type.shape[0]
+
+
 TensorType.Variable = TensorVariable
 
 
@@ -968,14 +979,24 @@ def get_unique_value(x: TensorVariable) -> Optional[Number]:
 
 
 class TensorConstant(TensorVariable, Constant):
-    """Subclass to add the tensor operators to the basic `Constant` class.
-
-    To create a TensorConstant, use the `constant` function in this module.
-
-    """
+    """Subclass to add the tensor operators to the basic `Constant` class."""
 
     def __init__(self, type, data, name=None):
-        Constant.__init__(self, type, data, name)
+        data_shape = np.shape(data)
+
+        if len(data_shape) != type.ndim or any(
+            ds != ts for ds, ts in zip(np.shape(data), type.shape) if ts is not None
+        ):
+            raise ValueError(
+                f"Shape of data ({data_shape}) does not match shape of type ({type.shape})"
+            )
+
+        # We want all the shape information from `data`
+        new_type = type.clone(shape=data_shape)
+
+        assert not any(s is None for s in new_type.shape)
+
+        Constant.__init__(self, new_type, data, name)
 
     def __str__(self):
         unique_val = get_unique_value(self)

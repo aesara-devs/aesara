@@ -7,6 +7,7 @@ from numpy.testing import assert_array_almost_equal
 import aesara
 from aesara import function
 from aesara.configdefaults import config
+from aesara.graph.basic import Constant
 from aesara.tensor.math import _allclose
 from aesara.tensor.nlinalg import (
     SVD,
@@ -273,13 +274,10 @@ def test_det_grad():
 
 
 def test_det_shape():
-    rng = np.random.default_rng(utt.fetch_seed())
-    r = rng.standard_normal((5, 5)).astype(config.floatX)
-
     x = matrix()
-    f = aesara.function([x], det(x))
-    f_shape = aesara.function([x], det(x).shape)
-    assert np.all(f(r).shape == f_shape(r))
+    det_shape = det(x).shape
+    assert isinstance(det_shape, Constant)
+    assert tuple(det_shape.data) == ()
 
 
 def test_trace():

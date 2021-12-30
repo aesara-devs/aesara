@@ -517,7 +517,7 @@ def makeSharedTester(
             )
             topo = f.maker.fgraph.toposort()
             f()
-            # [Gemm{inplace}(<TensorType(float64, matrix)>, 0.01, <TensorType(float64, matrix)>, <TensorType(float64, matrix)>, 2e-06)]
+            # [Gemm{inplace}(<TensorType(float64, (None, None))>, 0.01, <TensorType(float64, (None, None))>, <TensorType(float64, (None, None))>, 2e-06)]
             if aesara.config.mode != "FAST_COMPILE":
                 assert (
                     sum(

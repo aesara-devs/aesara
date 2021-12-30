@@ -758,8 +758,7 @@ class ConvOp(OpenMPOp):
         bcastable23 = [self.outshp[0] == 1, self.outshp[1] == 1]
         output = tensor(
             dtype=_inputs.type.dtype,
-            broadcastable=[_inputs.broadcastable[0], _kerns.broadcastable[0]]
-            + bcastable23,
+            shape=[_inputs.broadcastable[0], _kerns.broadcastable[0]] + bcastable23,
         )
 
         return Apply(self, [_inputs, _kerns], [output])

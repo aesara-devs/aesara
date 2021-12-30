@@ -175,11 +175,10 @@ class ArgSortOp(Op):
     def make_node(self, input, axis=-1):
         input = as_tensor_variable(input)
         axis = as_tensor_variable(axis)
-        bcast = input.type.broadcastable
         return Apply(
             self,
             [input, axis],
-            [TensorType(dtype="int64", broadcastable=bcast)()],
+            [TensorType(dtype="int64", shape=input.type.shape)()],
         )
 
     def perform(self, node, inputs, output_storage):
@@ -415,12 +414,11 @@ class TopKOp(Op):
 
         kth = as_tensor_variable(kth)
         _check_tensor_is_scalar(kth)
-        bcast = inp.type.broadcastable
         outs = []
         if self.return_values:
             outs.append(inp.type())
         if self.return_indices:
-            outs.append(TensorType(dtype=self.idx_dtype, broadcastable=bcast)())
+            outs.append(TensorType(dtype=self.idx_dtype, shape=inp.type.shape)())
         return Apply(self, [inp, kth], outs)
 
     def perform(self, node, inputs, output_storage):

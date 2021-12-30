@@ -1824,7 +1824,7 @@ class CrossentropyCategorical1Hot(Op):
         return Apply(
             self,
             [_coding_dist, _true_one_of_n],
-            [TensorType(dtype=_coding_dist.dtype, broadcastable=[False])()],
+            [TensorType(dtype=_coding_dist.dtype, shape=[False])()],
         )
 
     def perform(self, node, inp, out):

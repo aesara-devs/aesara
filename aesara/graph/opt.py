@@ -1109,7 +1109,7 @@ class LocalMetaOptimizer(LocalOptimizer):
                 givens[input] = aesara.shared(
                     input.type.filter(input.tag.test_value),
                     input.name,
-                    broadcastable=input.broadcastable,
+                    shape=input.broadcastable,
                     borrow=True,
                 )
             else:

@@ -46,6 +46,7 @@ class SparseType(Type):
 
     """
 
+    __props__ = ("dtype", "format", "shape")
     format_cls = {
         "csr": scipy.sparse.csr_matrix,
         "csc": scipy.sparse.csc_matrix,
@@ -71,7 +72,7 @@ class SparseType(Type):
     Variable = None
     Constant = None
 
-    def __init__(self, format, dtype):
+    def __init__(self, format, dtype, shape=None):
         dtype = str(dtype)
         if dtype in self.dtype_set:
             self.dtype = dtype
@@ -79,6 +80,11 @@ class SparseType(Type):
             raise NotImplementedError(
                 f'unsupported dtype "{dtype}" not in list', list(self.dtype_set)
             )
+
+        if shape is None:
+            shape = (None, None)
+
+        self.shape = shape
 
         assert isinstance(format, str)
         if format in self.format_cls:
@@ -89,12 +95,14 @@ class SparseType(Type):
                 list(self.format_cls.keys()),
             )
 
-    def clone(self, format=None, dtype=None, **kwargs):
+    def clone(self, format=None, dtype=None, shape=None, **kwargs):
         if format is None:
             format = self.format
         if dtype is None:
             dtype = self.dtype
-        return type(self)(format, dtype)
+        if shape is None:
+            shape = self.shape
+        return type(self)(format, dtype, shape)
 
     def filter(self, value, strict=False, allow_downcast=None):
         if (

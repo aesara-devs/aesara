@@ -350,7 +350,7 @@ class RandomVariable(Op):
             dtype_idx = constant(dtype, dtype="int64")
             dtype = all_dtypes[dtype_idx.data]
 
-        outtype = TensorType(dtype=dtype, broadcastable=bcast)
+        outtype = TensorType(dtype=dtype, shape=bcast)
         out_var = outtype()
         inputs = (rng, size, dtype_idx) + dist_params
         outputs = (rng.type(), out_var)

@@ -112,7 +112,7 @@ input *x* is stored on the GPU.
    :hide:
    :options: +ELLIPSIS
 
-   [Elemwise{exp,no_inplace}(<TensorType(float64, vector)>)]
+   [Elemwise{exp,no_inplace}(<TensorType(float64, (None,))>)]
    Looping 1000 times took ... seconds
    Result is ...
    Used the cpu
@@ -120,7 +120,7 @@ input *x* is stored on the GPU.
 .. code-block:: none
 
   $ AESARA_FLAGS=device=cpu python gpu_tutorial1.py
-  [Elemwise{exp,no_inplace}(<TensorType(float64, vector)>)]
+  [Elemwise{exp,no_inplace}(<TensorType(float64, (None,))>)]
   Looping 1000 times took 2.271284 seconds
   Result is [ 1.23178032  1.61879341  1.52278065 ...,  2.20771815  2.29967753
     1.62323285]

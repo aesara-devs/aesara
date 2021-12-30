@@ -36,9 +36,7 @@ class LoadFromDisk(Op):
     def make_node(self, path):
         if isinstance(path, str):
             path = Constant(Generic(), path)
-        return Apply(
-            self, [path], [tensor(self.dtype, broadcastable=self.broadcastable)]
-        )
+        return Apply(self, [path], [tensor(self.dtype, shape=self.broadcastable)])
 
     def perform(self, node, inp, out):
         path = inp[0]
@@ -139,7 +137,7 @@ class MPIRecv(Op):
             [],
             [
                 Variable(Generic()),
-                tensor(self.dtype, broadcastable=self.broadcastable),
+                tensor(self.dtype, shape=self.broadcastable),
             ],
         )
 
@@ -184,7 +182,7 @@ class MPIRecvWait(Op):
         return Apply(
             self,
             [request, data],
-            [tensor(data.dtype, broadcastable=data.broadcastable)],
+            [tensor(data.dtype, shape=data.broadcastable)],
         )
 
     def perform(self, node, inp, out):

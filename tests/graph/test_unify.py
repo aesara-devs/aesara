@@ -75,7 +75,7 @@ def test_cons():
     tt1 = TensorType("float32", [True, False])
 
     assert car(tt1) == TensorType
-    assert cdr(tt1) == ("float32", (True, False))
+    assert cdr(tt1) == ("float32", (1, None))
 
     op1_np = CustomOpNoProps(1)
 
@@ -95,7 +95,7 @@ def test_cons():
     car_res = car(atype_at)
     cdr_res = cdr(atype_at)
     assert car_res is type(atype_at)
-    assert cdr_res == [atype_at.dtype, atype_at.broadcastable]
+    assert cdr_res == [atype_at.dtype, atype_at.shape]
 
 
 def test_etuples():
@@ -255,7 +255,7 @@ def test_unify_Type():
     assert s == {}
 
     # `Type`, `ExpressionTuple`
-    s = unify(t1, etuple(TensorType, "float64", (True, False)))
+    s = unify(t1, etuple(TensorType, "float64", (1, None)))
     assert s == {}
 
     from aesara.scalar.basic import Scalar
