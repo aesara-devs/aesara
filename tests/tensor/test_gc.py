@@ -2,6 +2,7 @@ import pickle
 import time
 
 import numpy as np
+import pytest
 
 import aesara
 from aesara.compile.mode import Mode
@@ -96,6 +97,9 @@ def test_gc_never_pickles_temporaries():
         assert abs(len_post_f - len_post_g) < 256, (f_linker, len_post_f, len_post_g)
 
 
+@pytest.mark.skip(
+    reason="This test is directly affected by external factors (e.g. the compilation cache locking)."
+)
 def test_merge_opt_runtime():
     # In the original merge optimization, the following graph took
     # like caused the MERGE optimizer to exhibit really bad performance

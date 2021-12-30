@@ -621,7 +621,7 @@ class Function:
                 "type",
                 type(sv_ori),
             )
-            assert sv_ori.type == sv_rpl.type, (
+            assert sv_rpl.type.in_same_class(sv_ori.type), (
                 "Type of given SharedVariable conflicts with original one",
                 "Type of given SharedVariable:",
                 sv_rpl.type,

@@ -1762,14 +1762,15 @@ class PatternSub(LocalOptimizer):
             ret.tag.values_eq_approx = self.values_eq_approx
 
         if ret.owner:
-            if [out.type for out in ret.owner.outputs] != [
-                out.type for out in node.outputs
-            ]:
+            if not all(
+                o.type.is_super(new_o.type)
+                for o, new_o in zip(node.outputs, ret.owner.outputs)
+            ):
                 return False
         else:
             # ret is just an input variable
             assert len(node.outputs) == 1
-            if ret.type != node.outputs[0].type:
+            if not node.outputs[0].type.is_super(ret.type):
                 return False
 
         return [ret]

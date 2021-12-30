@@ -588,6 +588,13 @@ class TestCrossEntropyCategorical1HotGrad(utt.InferShapeTester):
 
 
 class TestCrossEntropyCategorical1Hot(utt.InferShapeTester):
+    def test_input_validation(self):
+        with pytest.raises(TypeError, match="Matrix.*"):
+            crossentropy_categorical_1hot(vector(), lvector())
+
+        with pytest.raises(TypeError, match="Integer.*"):
+            crossentropy_categorical_1hot(matrix(), vector())
+
     def test_grad(self):
         x = matrix("x")
         one_of_n = lvector("one_of_n")

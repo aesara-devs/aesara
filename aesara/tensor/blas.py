@@ -1112,7 +1112,7 @@ def res_is_a(fgraph, var, op, maxclients=None):
 
 
 def _as_scalar(res, dtype=None):
-    """Return ``None`` or a `TensorVariable` whose type is in `float_scalar_types`"""
+    """Return ``None`` or a `TensorVariable` of float type"""
     if dtype is None:
         dtype = config.floatX
     if np.all(res.type.broadcastable):
@@ -1367,7 +1367,7 @@ def _gemm_from_factored_list(fgraph, lst):
         for j in range(i + 1, len(lst)):
             s_j, M_j = lst[j]
 
-            if M_i.type != M_j.type:
+            if not M_j.type.in_same_class(M_i.type):
                 continue
 
             # print 'TRYING', (s_i, M_i, s_j, M_j)
@@ -1393,11 +1393,11 @@ def _gemm_from_factored_list(fgraph, lst):
 
 def _gemm_from_node2(fgraph, node):
     """
-    :todo: In many expressions, there are many ways to turn it into a
-        gemm.  For example dot(a,b) + c + d.  This function should
-        return all of them, so that if one version of gemm causes a
-        cycle in the graph, then another application of gemm can be
-        tried.
+
+    TODO: In many expressions, there are many ways to turn it into a
+    gemm.  For example dot(a,b) + c + d.  This function should return all
+    of them, so that if one version of gemm causes a cycle in the graph, then
+    another application of gemm can be tried.
 
     """
     lst = []
@@ -1405,7 +1405,6 @@ def _gemm_from_node2(fgraph, node):
     _gemm_canonicalize(fgraph, node.outputs[0], 1.0, lst, 0)
     t1 = time.time()
 
-    # print "GEMM CANON", lst
     if len(lst) > 1:
         lst = _factor_canonicalized(lst)
         t2 = time.time()
@@ -1421,7 +1420,7 @@ def _gemm_from_node2(fgraph, node):
         # http://groups.google.com/group/theano-dev/browse_thread/thread/a3096c82856e3ad5,
         # but never made it into a trac ticket.
 
-        if rval and (rval[0][0].type == node.outputs[0].type):
+        if rval and rval[0][0].type.in_same_class(node.outputs[0].type):
             return rval, t1 - t0, t2 - t1, t3 - t2
 
     return None, t1 - t0, 0, 0

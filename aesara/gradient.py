@@ -301,7 +301,7 @@ def Rop(f, wrt, eval_points, disconnected_outputs="raise", return_disconnected="
                     # correctly, the same as grad
                     y = aesara.tensor.cast(y, x.type.dtype)
                     y = x.type.filter_variable(y)
-                assert x.type == y.type
+                assert x.type.in_same_class(y.type)
                 same_type_eval_points.append(y)
             else:
                 same_type_eval_points.append(y)

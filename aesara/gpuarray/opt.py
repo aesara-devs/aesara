@@ -458,7 +458,7 @@ class GraphToGPU(GlobalOptimizer):
                 if (
                     new_o.owner
                     and isinstance(new_o.owner.op, GpuFromHost)
-                    and new_o.owner.inputs[0].type == o.type
+                    and o.type.in_same_class(new_o.owner.inputs[0].type)
                 ):
                     new_o = new_o.owner.inputs[0]
                 else:

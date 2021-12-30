@@ -25,7 +25,6 @@ from aesara.graph.op import _NoPythonOp
 from aesara.graph.opt import GlobalOptimizer, in2out, local_optimizer
 from aesara.tensor import basic
 from aesara.tensor.shape import Reshape, Shape, SpecifyShape
-from aesara.tensor.type import TensorType
 
 
 __docformat__ = "restructedtext en"
@@ -190,9 +189,9 @@ class IfElse(_NoPythonOp):
             # TODO: Attempt to convert types so that they match?
             # new_f = t.type.filter_variable(f)
 
-            if t.type != f.type:
+            if not t.type.is_super(f.type):
                 raise TypeError(
-                    "IfElse requires same types for true and false return values: "
+                    "IfElse requires compatible types for true and false return values: "
                     f"true_branch={t.type}, false_branch={f.type}"
                 )
         if c.ndim > 0:
@@ -369,34 +368,9 @@ def ifelse(
         if not isinstance(else_branch_elem, Variable):
             else_branch_elem = at.basic.as_tensor_variable(else_branch_elem)
 
-        if then_branch_elem.type != else_branch_elem.type:
-            # If one of them is a TensorType, and the other one can be
-            # converted into one, then we try to do that.
-            # This case happens when one of the elements has a GPU type,
-            # for instance a shared variable that was silently moved to GPU.
-            if isinstance(then_branch_elem.type, TensorType) and not isinstance(
-                else_branch_elem.type, TensorType
-            ):
-                else_branch_elem = then_branch_elem.type.filter_variable(
-                    else_branch_elem
-                )
-
-            elif isinstance(else_branch_elem.type, TensorType) and not isinstance(
-                then_branch_elem.type, TensorType
-            ):
-                then_branch_elem = else_branch_elem.type.filter_variable(
-                    then_branch_elem
-                )
-
-            if then_branch_elem.type != else_branch_elem.type:
-                # If the types still don't match, there is a problem.
-                raise TypeError(
-                    "The two branches should have identical types, but "
-                    f"they are {then_branch_elem.type} and {else_branch_elem.type} respectively. This error could be "
-                    "raised if for example you provided a one element "
-                    "list on the `then` branch but a tensor on the `else` "
-                    "branch."
-                )
+        # Make sure the types are compatible
+        else_branch_elem = then_branch_elem.type.filter_variable(else_branch_elem)
+        then_branch_elem = else_branch_elem.type.filter_variable(then_branch_elem)
 
         new_then_branch.append(then_branch_elem)
         new_else_branch.append(else_branch_elem)

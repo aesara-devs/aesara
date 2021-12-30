@@ -537,7 +537,7 @@ def local_subtensor_merge(fgraph, node):
 
             # Restore original broadcastable dimensions that `subtens()` may
             # have been unable to infer again
-            if out.type != orig_out.type:
+            if not orig_out.type.is_super(out.type):
                 assert out.dtype == orig_out.dtype
                 assert out.ndim == orig_out.ndim
                 out = patternbroadcast(out, orig_out.broadcastable)
@@ -659,7 +659,7 @@ def local_subtensor_of_alloc(fgraph, node):
     rval = alloc(nw_val, *nw_dims)
     if not isinstance(rval, (list, tuple)):
         rval = [rval]
-    if rval[0].type != node.outputs[0].type:
+    if not node.outputs[0].type.is_super(rval[0].type):
         # It happen that the make_node() isn't able to infer the same pattern.
         # We know it is safe, so fix that.
         rval[0] = patternbroadcast(rval[0], node.outputs[0].broadcastable)
@@ -690,7 +690,10 @@ def local_subtensor_inc_subtensor(fgraph, node):
             # If the dtypes differ, cast y into x.dtype
             if x.dtype != y.dtype:
                 y = y.astype(x.dtype)
-            if out.type == y.type:
+            if (
+                out.type.dtype == y.type.dtype
+                and out.type.broadcastable == y.type.broadcastable
+            ):
                 # if x[idx] and y have the same type, directly return y
                 return [y]
             else:
@@ -743,7 +746,7 @@ def local_subtensor_make_vector(fgraph, node):
 
         if isinstance(idx, (aes.Scalar, TensorType)):
             old_idx, idx = idx, node.inputs[1]
-            assert idx.type == old_idx
+            assert idx.type.is_super(old_idx)
     elif isinstance(node.op, AdvancedSubtensor1):
         idx = node.inputs[1]
 
@@ -1185,7 +1188,7 @@ def local_IncSubtensor_serialize(fgraph, node):
                     AdvancedIncSubtensor,
                 ),
             )
-            and i.type == o_type
+            and i.type.is_super(o_type)
             and len(fgraph.clients[i]) == 1
             and not i.owner.op.set_instead_of_inc
         )
@@ -1212,8 +1215,8 @@ def local_IncSubtensor_serialize(fgraph, node):
             # stack up the new incsubtensors
             tip = new_add
             for mi in movable_inputs:
-                assert tip.type == o_type
-                assert tip.type == mi.owner.inputs[0].type
+                assert o_type.is_super(tip.type)
+                assert mi.owner.inputs[0].type.is_super(tip.type)
                 tip = mi.owner.op(tip, *mi.owner.inputs[1:])
                 # Copy over stacktrace from outputs of the original
                 # "movable" operation to the new operation.

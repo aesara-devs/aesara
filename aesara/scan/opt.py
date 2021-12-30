@@ -308,7 +308,7 @@ def push_out_non_seq_scan(fgraph, node):
     for out, idx in to_replace_map.items():
         if (  # If types are different, conversion Op will be inserted,
             # and it may trigger an infinite loop.
-            replace_with_in[idx].type == out.type
+            out.type.is_super(replace_with_in[idx].type)
             and out in to_keep_set
             and out.owner not in existent_nodes_set
         ):
@@ -557,7 +557,7 @@ def push_out_seq_scan(fgraph, node):
             and
             # If types are different, conversion Op will be inserted,
             # and it may trigger an infinite loop.
-            replace_with_in[idx].type == out.type
+            out.type.is_super(replace_with_in[idx].type)
         ):
 
             clean_to_replace.append(out)

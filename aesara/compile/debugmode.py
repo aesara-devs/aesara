@@ -715,7 +715,7 @@ def _find_bad_optimizations(order, reasons, r_vals):
                 # check if the value for new_r doesn't match the value for r
                 new_r_val = r_vals[new_r]
                 r_val = r_vals[r]
-                assert r.type == new_r.type
+                assert r.type.is_super(new_r.type)
 
                 if hasattr(new_r.tag, "values_eq_approx"):
                     check = new_r.tag.values_eq_approx(r_val, new_r_val)

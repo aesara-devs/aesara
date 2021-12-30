@@ -649,7 +649,7 @@ def test_patternsub_invalid_dtype(out_pattern):
         max_use_ratio=1,
     )
     opt.optimize(fg)
-    assert fg.apply_nodes.pop().op == op_cast_type2
+    assert e.type.is_super(fg.outputs[0].type)
 
 
 class TestLocalOptGroup:

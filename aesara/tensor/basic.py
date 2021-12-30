@@ -55,8 +55,6 @@ from aesara.tensor.type import (
     discrete_dtypes,
     float_dtypes,
     int_dtypes,
-    int_types,
-    int_vector_types,
     integer_dtypes,
     tensor,
     uint_dtypes,
@@ -653,7 +651,7 @@ class Rebroadcast(COp):
 
     Examples
     --------
-    `Rebroadcast((0, True), (1, False))(x)` would make `x` broadcastable in
+    ``Rebroadcast((0, True), (1, False))(x)`` would make `x` broadcastable in
     axis 0 and not broadcastable in axis 1.
 
     """
@@ -958,6 +956,7 @@ def ones_like(model, dtype=None, opt=False):
     if dtype is None:
         dtype = model.type.dtype
     ret = constant(1.0, dtype=dtype)
+    # TODO: Remove this weird option
     if opt and ret.type == model.type:
         return ret
     return fill(model, ret)
@@ -982,6 +981,7 @@ def zeros_like(model, dtype=None, opt=False):
     if dtype is None:
         dtype = model.type.dtype
     ret = constant(0.0, dtype=dtype)
+    # TODO: Remove this weird option
     if opt and ret.type == model.type:
         return ret
     return fill(model, ret)
@@ -1769,8 +1769,8 @@ class Default(Op):
 
     def make_node(self, x, default):
         x, default = as_tensor_variable(x), as_tensor_variable(default)
-        if x.type != default.type:
-            raise TypeError("Both default() arguments must have same type", x, default)
+        if not x.type.in_same_class(default.type):
+            raise TypeError("Both arguments must have compatible types")
         return Apply(self, [x, default], [default.type()])
 
     def perform(self, node, inp, out_):
@@ -1872,16 +1872,11 @@ class Split(COp):
         axis = as_tensor_variable(axis)
         splits = as_tensor_variable(splits)
 
-        if splits.type not in int_vector_types:
+        if splits.type.ndim == 1 and splits.type.dtype not in integer_dtypes:
             raise TypeError("`splits` parameter must be tensors of integer type")
-        if axis.type not in int_types:
-            raise TypeError("`axis` parameter must be an integer scalar")
 
-        #         # The following lines are necessary if we allow splits of zero
-        #         if isinstance(axis, Constant):
-        #             x = unbroadcast(x, int(axis.data))
-        #         else:
-        #             x = unbroadcast(x, *range(x.type.ndim))
+        if axis.type.dtype not in integer_dtypes:
+            raise TypeError("`axis` parameter must be an integer scalar")
 
         inputs = [x, axis, splits]
         outputs = [x.type() for i in range(self.len_splits)]

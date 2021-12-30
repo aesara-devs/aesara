@@ -367,7 +367,7 @@ class LambdaExtract:
 
     def __call__(self):
         return self.fgraph.change_node_input(
-            self.node, self.i, self.r, reason=("Revert", self.reason)
+            self.node, self.i, self.r, reason=("Revert", self.reason), check=False
         )
 
 

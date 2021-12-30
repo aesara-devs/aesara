@@ -79,11 +79,11 @@ class SymbolicInput:
             raise TypeError(f"name must be a string! (got: {self.name})")
         self.update = update
         if update is not None:
-            if variable.type != update.type:
+            if not variable.type.in_same_class(update.type):
                 raise TypeError(
                     f"Variable '{variable}' has type {variable.type} but an update of "
                     f"type {update.type}. The type of the update should be "
-                    "the same as the type of the variable"
+                    "compatible with the type of the variable."
                 )
 
         if mutable is not None:

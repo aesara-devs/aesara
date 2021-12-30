@@ -1507,7 +1507,7 @@ class TestConvTypes:
         # Check the forward Op
         output = conv.abstract_conv2d(constant_tensor, filters)
         grad_filters = aesara.grad(output.sum(), wrt=filters)
-        assert grad_filters.type == filters.type, (
+        assert filters.type.is_super(grad_filters.type), (
             grad_filters,
             grad_filters.type,
             filters,
@@ -1516,7 +1516,7 @@ class TestConvTypes:
 
         output = conv.abstract_conv2d(input, constant_tensor)
         grad_input = aesara.grad(output.sum(), wrt=input)
-        assert grad_input.type == input.type, (
+        assert input.type.is_super(grad_input.type), (
             grad_input,
             grad_input.type,
             input,
@@ -1528,7 +1528,7 @@ class TestConvTypes:
             constant_tensor, topgrad, out_shape
         )
         grad_topgrad = aesara.grad(grad_filters.sum(), wrt=topgrad)
-        assert grad_topgrad.type == topgrad.type, (
+        assert topgrad.type.is_super(grad_topgrad.type), (
             grad_topgrad,
             grad_topgrad.type,
             topgrad,
@@ -1551,7 +1551,7 @@ class TestConvTypes:
             constant_tensor, topgrad, out_shape
         )
         grad_topgrad = aesara.grad(grad_input.sum(), wrt=topgrad)
-        assert grad_topgrad.type == topgrad.type, (
+        assert topgrad.type.is_super(grad_topgrad.type), (
             grad_topgrad,
             grad_topgrad.type,
             topgrad,

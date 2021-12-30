@@ -63,8 +63,7 @@ from aesara.tensor.type import (
     TensorType,
     discrete_dtypes,
     float_dtypes,
-    ivector,
-    lvector,
+    integer_dtypes,
     values_eq_approx_remove_inf,
     values_eq_approx_remove_nan,
 )
@@ -1216,7 +1215,11 @@ def local_softmax_with_bias(fgraph, node):
                     # forget about it
                     return
 
-                if sm_bias.type == node.outputs[0].type:
+                out_type = node.outputs[0].type
+                if (
+                    out_type.dtype == sm_bias.type.dtype
+                    and out_type.broadcastable == sm_bias.type.broadcastable
+                ):
                     # This condition is not always true. See the test
                     # nnet/tests/test_basic.py:T_SoftmaxWithBias.test_broadcast
                     return [sm_bias]
@@ -1811,12 +1814,12 @@ class CrossentropyCategorical1Hot(Op):
         _coding_dist = at.as_tensor_variable(coding_dist)
         _true_one_of_n = at.as_tensor_variable(true_one_of_n)
         if _coding_dist.type.ndim != 2:
-            raise TypeError("matrix required for argument: coding_dist")
-        if _true_one_of_n.type not in (lvector, ivector):
-            raise TypeError(
-                "integer vector required for argument: true_one_of_n"
-                f"(got type: {_true_one_of_n.type} instead of: {lvector})"
-            )
+            raise TypeError("Matrix required for argument `coding_dist`")
+        if not (
+            _true_one_of_n.type.ndim == 1
+            and _true_one_of_n.type.dtype in integer_dtypes
+        ):
+            raise TypeError("Integer vector required for argument `true_one_of_n`")
 
         return Apply(
             self,
