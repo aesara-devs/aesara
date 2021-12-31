@@ -1287,8 +1287,7 @@ def test_local_useless_slice():
     assert check_stack_trace(f_opt_check_apply, ops_to_check=Subtensor)
 
 
-def test_local_fill_useless():
-    # Test opt local_fill_useless
+def test_local_useless_fill():
     x = dvector()
     y = dvector()
     z = lvector()
