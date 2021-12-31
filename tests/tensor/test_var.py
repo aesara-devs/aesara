@@ -12,6 +12,7 @@ from aesara.tensor.type import (
     TensorType,
     cscalar,
     dmatrix,
+    dscalar,
     dvector,
     iscalar,
     ivector,
@@ -23,41 +24,37 @@ from aesara.tensor.var import TensorConstant
 
 
 @pytest.mark.parametrize(
-    "fct",
+    "fct, value",
     [
-        np.arccos,
-        np.arccosh,
-        np.arcsin,
-        np.arcsinh,
-        np.arctan,
-        np.arctanh,
-        # np.ceil, np.floor, np.trunc,
-        np.cos,
-        np.cosh,
-        np.deg2rad,
-        np.exp,
-        np.exp2,
-        np.expm1,
-        np.log,
-        np.log10,
-        np.log1p,
-        np.log2,
-        np.rad2deg,
-        np.sin,
-        np.sinh,
-        np.sqrt,
-        np.tan,
-        np.tanh,
+        (np.arccos, 0.5),
+        (np.arccosh, 1.0),
+        (np.arcsin, 0.5),
+        (np.arcsinh, 0.5),
+        (np.arctan, 0.5),
+        (np.arctanh, 0.5),
+        (np.cos, 0.5),
+        (np.cosh, 0.5),
+        (np.deg2rad, 0.5),
+        (np.exp, 0.5),
+        (np.exp2, 0.5),
+        (np.expm1, 0.5),
+        (np.log, 0.5),
+        (np.log10, 0.5),
+        (np.log1p, 0.5),
+        (np.log2, 0.5),
+        (np.rad2deg, 0.5),
+        (np.sin, 0.5),
+        (np.sinh, 0.5),
+        (np.sqrt, 0.5),
+        (np.tan, 0.5),
+        (np.tanh, 0.5),
     ],
 )
-def test_numpy_method(fct):
-    # This type of code is used frequently by PyMC3 users
-    x = dmatrix("x")
-    data = np.random.rand(5, 5)
-    x.tag.test_value = data
+def test_numpy_method(fct, value):
+    x = dscalar("x")
     y = fct(x)
     f = aesara.function([x], y)
-    utt.assert_allclose(np.nan_to_num(f(data)), np.nan_to_num(fct(data)))
+    utt.assert_allclose(np.nan_to_num(f(value)), np.nan_to_num(fct(value)))
 
 
 def test_infix_dot_method():
