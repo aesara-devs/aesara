@@ -127,46 +127,81 @@ def test_local_replace_AdvancedSubtensor(indices, is_none):
         assert np.array_equal(res_val, exp_res_val)
 
 
-def test_local_useless_inc_subtensor():
+@pytest.mark.parametrize("s", [slice(None), slice(None, None, -1)])
+def test_local_useless_inc_subtensor(s):
     x = matrix("x")
     y = matrix("y")
+
+    o = set_subtensor(x[:, s], y)
+
     mode = get_default_mode().including("local_useless_inc_subtensor")
-    for s in [slice(None), slice(None, None, -1)]:
-        o = set_subtensor(x[::, s], y)
-        f = function([x, y], o, mode=mode)
-        o_shape = set_subtensor(x[::, s], specify_shape(y, x.shape))
-        f_shape = function([x, y], o_shape, mode=mode)
 
-        # Test with shape info
-        topo = f_shape.maker.fgraph.toposort()
-        assert not any(isinstance(n.op, IncSubtensor) for n in topo)
-        out = f_shape([[2, 3]], [[3, 4]])
-        assert (out == np.asarray([[3, 4]])[::, s]).all()
+    # Test without shape info (i.e. don't apply the opt)
+    f = function([x, y], o, mode=mode)
 
-        # Test that without shape info, we don't apply the opt.
-        topo = f.maker.fgraph.toposort()
-        assert len(topo) == 1
-        assert isinstance(topo[0].op, IncSubtensor)
-        out = f([[2, 3]], [[3, 4]])
-        assert (out == np.asarray([[3, 4]])[::, s]).all()
+    topo = f.maker.fgraph.toposort()
+    assert len(topo) == 1
+    assert isinstance(topo[0].op, IncSubtensor)
 
-        # Test that we don't remove shape error
-        with pytest.raises(ValueError):
-            f([[2, 3]], [[3, 4], [4, 5]])
+    # Test with shape info
+    o_shape = set_subtensor(x[:, s], specify_shape(y, x.shape))
+    f_shape = function([x, y], o_shape, mode=mode)
 
-        # Test that we don't remove broadcastability
-        out = f([[2, 3], [3, 4]], [[5, 6]])
-        assert (out == np.asarray([[5, 6], [5, 6]])[::, s]).all()
+    topo = f_shape.maker.fgraph.toposort()
+    assert not any(isinstance(n.op, IncSubtensor) for n in topo)
 
-    # Test that we do not optimize others strides even when sub and y
-    # have same shapes
-    s = x[::, ::2]
+    out = f_shape([[2, 3]], [[3, 4]])
+    assert np.array_equal(out, np.asarray([[3, 4]])[::, s])
+
+
+def test_local_useless_inc_subtensor_increment_zeros():
+    r"""Make sure we remove `IncSubtensor`\s that are increments on entire zero arrays."""
+    y = matrix("y")
+
+    s = aet.zeros((2, 2))[:, :]
+    o_shape = inc_subtensor(s, specify_shape(y, s.shape))
+
+    mode = get_default_mode().including("local_useless_inc_subtensor")
+    f_shape = function([y], o_shape, mode=mode)
+
+    topo = f_shape.maker.fgraph.toposort()
+    assert not any(isinstance(n.op, IncSubtensor) for n in topo)
+
+
+def test_local_useless_inc_subtensor_no_opt():
+    r"""Make sure we don't remove `IncSubtensor`\s that involve slices with steps that skip elements and non-zero increments."""
+    x = matrix("x")
+    y = matrix("y")
+
+    s = x[:, ::2]
     o_shape = set_subtensor(s, specify_shape(y, s.shape))
-    f_shape = function([x, y], o_shape)
+
+    mode = get_default_mode().including("local_useless_inc_subtensor")
+    f_shape = function([x, y], o_shape, mode=mode)
+
     topo = f_shape.maker.fgraph.toposort()
     assert any(isinstance(n.op, IncSubtensor) for n in topo)
+
     out = f_shape([[2, 3, 6, 7]], [[8, 9]])
-    assert (out == np.asarray([[8, 3, 9, 7]])).all()
+    assert np.array_equal(out, np.asarray([[8, 3, 9, 7]]))
+
+    # This is an increment with a non-constant target array
+    s = x[:, :]
+    o_shape = inc_subtensor(s, specify_shape(y, s.shape))
+
+    f_shape = function([x, y], o_shape, mode=mode)
+
+    topo = f_shape.maker.fgraph.toposort()
+    assert any(isinstance(n.op, IncSubtensor) for n in topo)
+
+    # This is an increment with a non-zero target array
+    s = aet.ones((2, 2))[:, :]
+    o_shape = inc_subtensor(s, specify_shape(y, s.shape))
+
+    f_shape = function([y], o_shape, mode=mode)
+
+    topo = f_shape.maker.fgraph.toposort()
+    assert any(isinstance(n.op, IncSubtensor) for n in topo)
 
 
 def test_local_useless_subtensor():

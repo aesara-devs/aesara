@@ -71,6 +71,7 @@ from aesara.tensor.subtensor import (
     get_idx_list,
     get_slice_elements,
     inc_subtensor,
+    indices_from_subtensor,
 )
 from aesara.tensor.type import TensorType
 from aesara.tensor.type_other import NoneTypeT, SliceConstant, SliceType
@@ -785,34 +786,38 @@ def local_subtensor_make_vector(fgraph, node):
 @register_specialize
 @local_optimizer([IncSubtensor])
 def local_useless_inc_subtensor(fgraph, node):
-    """
-    Remove IncSubtensor, when we overwrite the full inputs with the
-    new value.
+    r"""Remove redundant `IncSubtensor`\s.
 
+    More specifically, ``set_subtensor(x[indices], y)`` is replaced by
+    ``y[indices]`` when ``indices`` are full `slice`\s and ``y``'s shape is
+    equal to ``x[indices]``, and ``inc_subtensor(x[indices], y)`` is replaced
+    by ``y[indices]`` when ``x[indices]`` is some array of ``0``\s, ``indices``
+    are full slices, and the shapes are equal.
     """
     if not isinstance(node.op, IncSubtensor):
         return
+
+    if not hasattr(fgraph, "shape_feature"):
+        return
+
+    x, y, *index_inputs = node.inputs
+
     if node.op.set_instead_of_inc is False:
-        # This is an IncSubtensor, so the init value must be zeros
+        # This is an increment operation, so the array being incremented must
+        # consist of all zeros in order for the entire operation to be useless
         try:
-            c = get_scalar_constant_value(node.inputs[0], only_process_constants=True)
+            c = get_scalar_constant_value(x)
             if c != 0:
                 return
         except NotScalarConstantError:
             return
-    if (
-        node.inputs[0].ndim != node.inputs[1].ndim
-        or node.inputs[0].broadcastable != node.inputs[1].broadcastable
-    ):
-        # FB: I didn't check if this case can happen, but this opt
-        # don't support it.
-        return
-    # We have a SetSubtensor or an IncSubtensor on zeros
-    # If is this IncSubtensor useful?
 
-    # Check that we keep all the original data.
-    # Put the constant inputs in the slice.
-    idx_cst = get_idx_list(node.inputs[1:], node.op.idx_list)
+    idx_cst = indices_from_subtensor(list(index_inputs), node.op.idx_list)
+
+    # Check that all indices are full slices with only reversals and no step
+    # sizes
+    # TODO: It seems like there should be a basic `IncSubtensor`
+    # canonicalization that removes these redundant slices.
     if all(
         isinstance(e, slice)
         and e.start is None
@@ -823,20 +828,22 @@ def local_useless_inc_subtensor(fgraph, node):
         )
         for e in idx_cst
     ):
-        # IncSubtensor broadcast node.inputs[1] on node.inputs[0]
-        # based on run time shapes, so we must check they are the same.
-        if not hasattr(fgraph, "shape_feature"):
+
+        # `IncSubtensor` broadcasts `x` on `y` based on run-time shapes, so we
+        # must check that they are the same
+        if not fgraph.shape_feature.same_shape(x, y):
             return
-        if not fgraph.shape_feature.same_shape(node.inputs[0], node.inputs[1]):
-            return
-        # There is no reverse, so we don't need a replacement.
+
+        # There are no reversals, so we don't need a replacement.
         if all(e.step is None for e in node.op.idx_list):
-            # They are the same shape, so we can remove this IncSubtensor
-            return [node.inputs[1]]
-        ret = Subtensor(node.op.idx_list)(*node.inputs[1:])
-        # Copy over previous output stacktrace
-        copy_stack_trace(node.outputs, ret)
-        return [ret]
+            # They are exactly the same shapes, so we can remove this `IncSubtensor`
+            return [y]
+
+        new_node = Subtensor(node.op.idx_list).make_node(y, *index_inputs)
+        new_out = new_node.outputs[0]
+        copy_stack_trace(node.outputs, new_out)
+
+        return [new_out]
 
 
 @register_canonicalize
