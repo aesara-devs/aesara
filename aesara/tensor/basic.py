@@ -1607,7 +1607,7 @@ class MakeVector(COp):
     __props__ = ("dtype",)
 
     def __init__(self, dtype="int64"):
-        self.dtype = dtype
+        self.dtype = np.dtype(dtype).name
 
     def make_node(self, *inputs):
         inputs = list(map(as_tensor_variable, inputs))
