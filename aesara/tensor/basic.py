@@ -2240,47 +2240,32 @@ class Join(COp):
         if not hasattr(self, "view"):
             self.view = -1
 
-    def make_node(self, *axis_and_tensors):
+    def make_node(self, axis, *tensors):
         """
         Parameters
         ----------
-        axis: an Int or integer-valued Variable
+        axis
+            The axis upon which to join `tensors`.
         tensors
-            A variable number (but not zero) of tensors to
-            concatenate along the specified axis.  These tensors must have
-            the same shape along all dimensions other than this axis.
-
-        Returns
-        -------
-        A symbolic Variable
-            It has the same ndim as the input tensors, and the most inclusive
-            dtype.
+            A variable number of tensors to join along the specified axis.
+            These tensors must have the same shape along all dimensions other
+            than `axis`.
 
         """
-        axis, tens = axis_and_tensors[0], axis_and_tensors[1:]
-        if not tens:
+        if not tensors:
             raise ValueError("Cannot join an empty list of tensors")
-        as_tensor_variable_args = [as_tensor_variable(x) for x in tens]
 
-        dtypes = [x.type.dtype for x in as_tensor_variable_args]
-        out_dtype = aes.upcast(*dtypes)
+        tensors = [as_tensor_variable(x) for x in tensors]
+        out_dtype = aes.upcast(*[x.type.dtype for x in tensors])
 
-        def output_maker(bcastable):
-            return tensor(dtype=out_dtype, broadcastable=bcastable)
-
-        return self._make_node_internal(
-            axis, tens, as_tensor_variable_args, output_maker
-        )
-
-    def _make_node_internal(self, axis, tens, as_tensor_variable_args, output_maker):
-        if not builtins.all(targs.type.ndim for targs in as_tensor_variable_args):
+        if not builtins.all(targs.type.ndim for targs in tensors):
             raise TypeError(
                 "Join cannot handle arguments of dimension 0."
-                " For joining scalar values, see @stack"
+                " Use `stack` to join scalar values."
             )
         # Handle single-tensor joins immediately.
-        if len(as_tensor_variable_args) == 1:
-            bcastable = list(as_tensor_variable_args[0].type.broadcastable)
+        if len(tensors) == 1:
+            bcastable = list(tensors[0].type.broadcastable)
         else:
             # When the axis is fixed, a dimension should be
             # broadcastable if at least one of the inputs is
@@ -2288,17 +2273,15 @@ class Join(COp):
             # except for the axis dimension.
             # Initialize bcastable all false, and then fill in some trues with
             # the loops.
-            bcastable = [False] * len(as_tensor_variable_args[0].type.broadcastable)
+            bcastable = [False] * len(tensors[0].type.broadcastable)
             ndim = len(bcastable)
-            # Axis can also be a constant
+
             if not isinstance(axis, int):
                 try:
-                    # Note : `get_scalar_constant_value` returns a ndarray not
-                    # an int
                     axis = int(get_scalar_constant_value(axis))
-
                 except NotScalarConstantError:
                     pass
+
             if isinstance(axis, int):
                 # Basically, broadcastable -> length 1, but the
                 # converse does not hold. So we permit e.g. T/F/T
@@ -2310,12 +2293,12 @@ class Join(COp):
 
                 if axis < -ndim:
                     raise IndexError(
-                        f"Join axis {int(axis)} out of bounds [0, {int(ndim)})"
+                        f"Axis value {axis} is out of range for the given input dimensions"
                     )
                 if axis < 0:
                     axis += ndim
 
-                for x in as_tensor_variable_args:
+                for x in tensors:
                     for current_axis, bflag in enumerate(x.type.broadcastable):
                         # Constant negative axis can no longer be negative at
                         # this point. It safe to compare this way.
@@ -2327,34 +2310,24 @@ class Join(COp):
                     bcastable[axis] = False
                 except IndexError:
                     raise ValueError(
-                        'Join argument "axis" is out of range'
-                        " (given input dimensions)"
+                        f"Axis value {axis} is out of range for the given input dimensions"
                     )
             else:
                 # When the axis may vary, no dimension can be guaranteed to be
                 # broadcastable.
-                bcastable = [False] * len(as_tensor_variable_args[0].type.broadcastable)
+                bcastable = [False] * len(tensors[0].type.broadcastable)
 
-        if not builtins.all(
-            [x.ndim == len(bcastable) for x in as_tensor_variable_args[1:]]
-        ):
+        if not builtins.all([x.ndim == len(bcastable) for x in tensors]):
             raise TypeError(
-                "Join() can only join tensors with the same " "number of dimensions."
+                "Only tensors with the same number of dimensions can be joined"
             )
 
-        inputs = [as_tensor_variable(axis)] + list(as_tensor_variable_args)
-        if inputs[0].type not in int_types:
-            raise TypeError(
-                "Axis could not be cast to an integer type",
-                axis,
-                inputs[0].type,
-                int_types,
-            )
+        inputs = [as_tensor_variable(axis)] + list(tensors)
 
-        outputs = [output_maker(bcastable)]
+        if inputs[0].type.dtype not in int_dtypes:
+            raise TypeError(f"Axis value {inputs[0]} must be an integer type")
 
-        node = Apply(self, inputs, outputs)
-        return node
+        return Apply(self, inputs, [tensor(dtype=out_dtype, broadcastable=bcastable)])
 
     def perform(self, node, axis_and_tensors, out_):
         (out,) = out_
