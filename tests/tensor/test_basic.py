@@ -1844,6 +1844,9 @@ def test_TensorFromScalar():
     g = grad(t, s)
     assert eval_outputs([g]) == 0.0
 
+    with pytest.raises(TypeError):
+        tensor_from_scalar(vector())
+
 
 def test_ScalarFromTensor():
     tc = constant(56)  # aes.constant(56)
@@ -1871,6 +1874,9 @@ def test_ScalarFromTensor():
     assert v == 5
     assert isinstance(v, np.int64)
     assert v.shape == ()
+
+    with pytest.raises(TypeError):
+        scalar_from_tensor(vector())
 
 
 class TestOpCache:

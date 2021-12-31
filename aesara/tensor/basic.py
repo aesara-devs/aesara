@@ -556,7 +556,9 @@ class TensorFromScalar(Op):
     __props__ = ()
 
     def make_node(self, s):
-        assert isinstance(s.type, aes.Scalar)
+        if not isinstance(s.type, aes.Scalar):
+            raise TypeError("Input must be a `Scalar` `Type`")
+
         return Apply(self, [s], [tensor(dtype=s.type.dtype, broadcastable=())])
 
     def perform(self, node, inp, out_):
@@ -592,8 +594,9 @@ class ScalarFromTensor(COp):
     __props__ = ()
 
     def make_node(self, t):
-        assert isinstance(t.type, TensorType)
-        assert t.type.broadcastable == ()
+        if not isinstance(t.type, TensorType) or t.type.ndim > 0:
+            raise TypeError("Input must be a scalar `TensorType`")
+
         return Apply(
             self, [t], [aes.get_scalar_type(dtype=t.type.dtype).make_variable()]
         )
