@@ -195,17 +195,27 @@ else:
     mode_opt = get_default_mode()
 
 
+rng = np.random.default_rng(seed=utt.fetch_seed())
 TestAddBroadcast = makeBroadcastTester(
     op=add,
     expected=lambda *inputs: check_floatX(inputs, reduce(lambda x, y: x + y, inputs)),
     good=dict(
-        three_inputs_same_shapes=(random(2, 3), random(2, 3), random(2, 3)),
-        three_inputs_same_shapes_uint=(
-            integers_uint32(2, 3),
-            integers_uint32(2, 3),
-            integers_uint32(2, 3),
+        three_inputs_same_shapes=(
+            random(2, 3, rng=rng),
+            random(2, 3, rng=rng),
+            random(2, 3, rng=rng),
         ),
-        four_inputs_broadcast=(random(2, 3), random(1, 3), random(2, 1), random(1, 1)),
+        three_inputs_same_shapes_uint=(
+            integers_uint32(2, 3, rng=rng),
+            integers_uint32(2, 3, rng=rng),
+            integers_uint32(2, 3, rng=rng),
+        ),
+        four_inputs_broadcast=(
+            random(2, 3, rng=rng),
+            random(1, 3, rng=rng),
+            random(2, 1, rng=rng),
+            random(1, 1, rng=rng),
+        ),
         **_good_broadcast_binary_normal,
     ),
     bad_build=_bad_build_broadcast_binary_normal,
@@ -254,19 +264,38 @@ TestMinimumBroadcast = makeBroadcastTester(
     grad=_grad_broadcast_binary_normal,
 )
 
+rng = np.random.default_rng(seed=utt.fetch_seed())
 TestMulBroadcast = makeBroadcastTester(
     op=mul,
     expected=lambda *inputs: check_floatX(inputs, reduce(lambda x, y: x * y, inputs)),
     good=dict(
-        three_inputs_same_shapes=(random(2, 3), random(2, 3), random(2, 3)),
-        four_inputs_broadcast=(random(2, 3), random(1, 3), random(2, 1), random(1, 1)),
+        three_inputs_same_shapes=(
+            random(2, 3, rng=rng),
+            random(2, 3, rng=rng),
+            random(2, 3, rng=rng),
+        ),
+        four_inputs_broadcast=(
+            random(2, 3, rng=rng),
+            random(1, 3, rng=rng),
+            random(2, 1, rng=rng),
+            random(1, 1, rng=rng),
+        ),
         **_good_broadcast_binary_normal,
     ),
     bad_build=_bad_build_broadcast_binary_normal,
     bad_runtime=_bad_runtime_broadcast_binary_normal,
     grad=dict(
-        three_inputs_same_shapes=(random(2, 3), random(2, 3), random(2, 3)),
-        four_inputs_broadcast=(random(2, 3), random(1, 3), random(2, 1), random(1, 1)),
+        three_inputs_same_shapes=(
+            random(2, 3, rng=rng),
+            random(2, 3, rng=rng),
+            random(2, 3, rng=rng),
+        ),
+        four_inputs_broadcast=(
+            random(2, 3, rng=rng),
+            random(1, 3, rng=rng),
+            random(2, 1, rng=rng),
+            random(1, 1, rng=rng),
+        ),
         **_grad_broadcast_binary_normal,
     ),
 )
@@ -291,17 +320,6 @@ _grad_broadcast_div_mod_normal = dict(
         np.array([[0.04506636, 0.05725927, -0.94947897], [0.39868416, -0.12655465, -0.87068554]]),
         np.array([[-0.39040176], [0.76164576]])
     ),
-    # same_shapes=(random(2, 3), random((2, 3))),
-    # scalar=(random(2, 3), random((1, 1))),
-    # row=(random(2, 3), random((1, 3))),
-    # column=(random(2, 3), random((2, 1))),
-    # complex1=(random_complex(2, 3), randcomplex_nonzero((2, 3))),
-    # complex2=(random_complex(2, 3), random((2, 3))),
-    # complex3=(random(2, 3), randcomplex_nonzero((2, 3))),
-    # dtype_mixup_1=(random(2, 3), integers_nonzero(2, 3)),
-    # dtype_mixup_2=(integers_nonzero(2, 3), random((2, 3))),
-    # empty1=(np.asarray([]), np.asarray([1.])),
-    # empty2=(np.asarray([0]), np.asarray([])),
 )
 # fmt: on
 
@@ -450,8 +468,9 @@ TestExpm1Broadcast = makeBroadcastTester(
 )
 
 
+rng = np.random.default_rng(seed=utt.fetch_seed())
 _grad_broadcast_unary_positive = dict(
-    normal=(random_ranged(_eps, 5, (2, 3)),),
+    normal=(random_ranged(_eps, 5, (2, 3), rng=rng),),
 )
 
 TestLogBroadcast = makeBroadcastTester(
@@ -489,8 +508,9 @@ TestSqrtBroadcast = makeBroadcastTester(
     grad=_grad_broadcast_unary_positive,
 )
 
+rng = np.random.default_rng(seed=utt.fetch_seed())
 _grad_broadcast_unary_wide = dict(
-    normal=(random_ranged(-1000, 1000, (2, 3)),),
+    normal=(random_ranged(-1000, 1000, (2, 3), rng=rng),),
 )
 
 TestDeg2radBroadcast = makeBroadcastTester(
@@ -518,8 +538,9 @@ TestSinBroadcast = makeBroadcastTester(
 
 # The actual range is [-1, 1] but the numerical gradient is too
 # unstable near those values
+rng = np.random.default_rng(seed=utt.fetch_seed())
 _grad_broadcast_unary_arcsin = dict(
-    normal=(random_ranged(-0.9, 0.9, (2, 3)),),
+    normal=(random_ranged(-0.9, 0.9, (2, 3), rng=rng),),
 )
 
 TestArcsinBroadcast = makeBroadcastTester(
@@ -552,9 +573,10 @@ TestArccosBroadcast = makeBroadcastTester(
 )
 
 # We do not want to test around the discontinuity.
+rng = np.random.default_rng(seed=utt.fetch_seed())
 _grad_broadcast_unary_tan = dict(
-    normal=(random_ranged(-1.5, 1.5, (2, 3)),),
-    shifted=(random_ranged(1.6, 4.6, (2, 3)),),
+    normal=(random_ranged(-1.5, 1.5, (2, 3), rng=rng),),
+    shifted=(random_ranged(1.6, 4.6, (2, 3), rng=rng),),
 )
 
 TestTanBroadcast = makeBroadcastTester(
@@ -571,11 +593,12 @@ TestArctanBroadcast = makeBroadcastTester(
     grad=_grad_broadcast_unary_wide,
 )
 
+rng = np.random.default_rng(seed=utt.fetch_seed())
 _grad_broadcast_binary_arctan2 = dict(
-    same_shapes=(random(2, 3), random(2, 3)),
-    scalar=(random(2, 3), random(1, 1)),
-    row=(random(2, 3), random(1, 3)),
-    column=(random(2, 3), random(2, 1)),
+    same_shapes=(random(2, 3, rng=rng), random(2, 3, rng=rng)),
+    scalar=(random(2, 3, rng=rng), random(1, 1, rng=rng)),
+    row=(random(2, 3, rng=rng), random(1, 3, rng=rng)),
+    column=(random(2, 3, rng=rng), random(2, 1, rng=rng)),
 )
 
 TestArctan2Broadcast = makeBroadcastTester(
@@ -597,8 +620,9 @@ TestCoshBroadcast = makeBroadcastTester(
     grad=_grad_broadcast_unary_normal,
 )
 
+rng = np.random.default_rng(seed=utt.fetch_seed())
 _grad_broadcast_unary_arccosh = dict(
-    normal=(random_ranged(1 + _eps, 1000, (2, 3)),),
+    normal=(random_ranged(1 + _eps, 1000, (2, 3), rng=rng),),
 )
 
 TestArccoshBroadcast = makeBroadcastTester(
@@ -634,8 +658,9 @@ TestTanhBroadcast = makeBroadcastTester(
     grad=_grad_broadcast_unary_normal,
 )
 
+rng = np.random.default_rng(seed=utt.fetch_seed())
 _grad_broadcast_unary_arctanh = dict(
-    normal=(random_ranged(-1 + _eps, 1 - _eps, (2, 3)),),
+    normal=(random_ranged(-1 + _eps, 1 - _eps, (2, 3), rng=rng),),
 )
 
 TestArctanhBroadcast = makeBroadcastTester(
@@ -646,20 +671,21 @@ TestArctanhBroadcast = makeBroadcastTester(
 )
 
 # Complex operations
+rng = np.random.default_rng(seed=utt.fetch_seed())
 _good_complex_from_polar = dict(
-    same_shapes=(np.abs(random(2, 3)), random(2, 3)),
-    not_same_dimensions=(np.abs(random(2, 2)), random(2)),
-    scalar=(np.abs(random(2, 3)), random(1, 1)),
-    row=(np.abs(random(2, 3)), random(1, 3)),
-    column=(np.abs(random(2, 3)), random(2, 1)),
-    integers=(np.abs(integers(2, 3)), integers(2, 3)),
+    same_shapes=(np.abs(random(2, 3, rng=rng)), random(2, 3, rng=rng)),
+    not_same_dimensions=(np.abs(random(2, 2, rng=rng)), random(2, rng=rng)),
+    scalar=(np.abs(random(2, 3, rng=rng)), random(1, 1, rng=rng)),
+    row=(np.abs(random(2, 3, rng=rng)), random(1, 3, rng=rng)),
+    column=(np.abs(random(2, 3, rng=rng)), random(2, 1, rng=rng)),
+    integers=(np.abs(integers(2, 3, rng=rng)), integers(2, 3, rng=rng)),
     empty=(np.asarray([], dtype=config.floatX), np.asarray([1], dtype=config.floatX)),
 )
 _grad_complex_from_polar = dict(
-    same_shapes=(np.abs(random(2, 3)), random(2, 3)),
-    scalar=(np.abs(random(2, 3)), random(1, 1)),
-    row=(np.abs(random(2, 3)), random(1, 3)),
-    column=(np.abs(random(2, 3)), random(2, 1)),
+    same_shapes=(np.abs(random(2, 3, rng=rng)), random(2, 3, rng=rng)),
+    scalar=(np.abs(random(2, 3, rng=rng)), random(1, 1, rng=rng)),
+    row=(np.abs(random(2, 3, rng=rng)), random(1, 3, rng=rng)),
+    column=(np.abs(random(2, 3, rng=rng)), random(2, 1, rng=rng)),
 )
 
 TestComplexFromPolarBroadcast = makeBroadcastTester(
@@ -673,31 +699,33 @@ TestConjBroadcast = makeBroadcastTester(
 )
 
 
+rng = np.random.default_rng(seed=utt.fetch_seed())
 TestDenseDot = makeTester(
     name="DenseDotTester",
     op=dense_dot,
     expected=lambda x, y: np.dot(x, y),
     checks={},
     good=dict(
-        correct1=(random(5, 7), random(7, 5)),
-        correct2=(random(5, 7), random(7, 9)),
-        correct3=(random(5, 7), random(7)),
-        correct4=(random(5), random(5, 7)),
-        mixed1=(random(5).astype("float32"), random(5, 7)),
-        mixed2=(random(5).astype("float64"), random(5, 7)),
-        complex1=(random_complex(5, 7), random_complex(7)),
-        complex2=(random(5, 7), random_complex(7)),
-        complex3=(random_complex(5, 7), random(7)),
+        correct1=(random(5, 7, rng=rng), random(7, 5, rng=rng)),
+        correct2=(random(5, 7, rng=rng), random(7, 9, rng=rng)),
+        correct3=(random(5, 7, rng=rng), random(7, rng=rng)),
+        correct4=(random(5, rng=rng), random(5, 7, rng=rng)),
+        mixed1=(random(5, rng=rng).astype("float32"), random(5, 7, rng=rng)),
+        mixed2=(random(5, rng=rng).astype("float64"), random(5, 7, rng=rng)),
+        complex1=(random_complex(5, 7, rng=rng), random_complex(7, rng=rng)),
+        complex2=(random(5, 7, rng=rng), random_complex(7, rng=rng)),
+        complex3=(random_complex(5, 7, rng=rng), random(7, rng=rng)),
         empty1=(
             np.asarray([], dtype=config.floatX),
             np.asarray([], dtype=config.floatX),
         ),
-        empty2=(random(5, 0), random(0, 2)),
-        empty3=(random(0, 5), random(5, 0)),
+        empty2=(random(5, 0, rng=rng), random(0, 2, rng=rng)),
+        empty3=(random(0, 5, rng=rng), random(5, 0, rng=rng)),
     ),
     bad_build=dict(),
     bad_runtime=dict(
-        bad1=(random(5, 7), random(5, 7)), bad2=(random(5, 7), random(8, 3))
+        bad1=(random(5, 7, rng=rng), random(5, 7, rng=rng)),
+        bad2=(random(5, 7, rng=rng), random(8, 3, rng=rng)),
     ),
 )
 
@@ -1301,49 +1329,50 @@ class TestMinMax:
         assert np.all(i)
 
 
+rng = np.random.default_rng(seed=utt.fetch_seed())
 TestClip = makeTester(
     name="ClipTester",
     op=clip,
     expected=lambda x, y, z: np.clip(x, y, z),
     good=dict(
         correct1=(
-            (5 * random(5, 5)).astype("float32"),
+            (5 * random(5, 5, rng=rng)).astype("float32"),
             np.array(-1, dtype="float32"),
             np.array(1, dtype="float32"),
         ),
         correct2=(
-            (5 * random(5, 5)).astype("float64"),
+            (5 * random(5, 5, rng=rng)).astype("float64"),
             np.array(-1, dtype="float64"),
             np.array(1, dtype="float64"),
         ),
         correct3=(
-            integers(5, 5).astype("int8"),
+            integers(5, 5, rng=rng).astype("int8"),
             np.array(-1, dtype="int8"),
             np.array(1, dtype="int8"),
         ),
         correct4=(
-            integers(5, 5).astype("int16"),
+            integers(5, 5, rng=rng).astype("int16"),
             np.array(-1, dtype="int16"),
             np.array(1, dtype="int16"),
         ),
         correct5=(
-            integers(5, 5).astype("int32"),
+            integers(5, 5, rng=rng).astype("int32"),
             np.array(-1, dtype="int32"),
             np.array(1, dtype="int32"),
         ),
         correct6=(
-            integers(5, 5).astype("int64"),
+            integers(5, 5, rng=rng).astype("int64"),
             np.array(-1, dtype="int64"),
             np.array(1, dtype="int64"),
         ),
         # min > max case moved below as numpy has changed
         correct8=(
-            integers(0, 5).astype("uint8"),
+            integers(0, 5, rng=rng).astype("uint8"),
             np.array(2, dtype="uint8"),
             np.array(4, dtype="uint8"),
         ),
         correct9=(
-            integers(0, 5).astype("uint16"),
+            integers(0, 5, rng=rng).astype("uint16"),
             np.array(2, dtype="uint16"),
             np.array(4, dtype="uint16"),
         ),
@@ -1360,7 +1389,7 @@ TestBackwardsClip = makeTester(
     expected=lambda x, y, z: np.where(x < y, y, np.minimum(x, z)),
     good=dict(
         correct7=(
-            (5 * random(5, 5)).astype("float64"),
+            (5 * random(5, 5, rng=rng)).astype("float64"),
             np.array(1, dtype="float64"),
             np.array(-1, dtype="float64"),
         ),
@@ -1744,10 +1773,12 @@ class TestAdd:
         utt.verify_grad(add, [random(3), np.asarray([3.0])])
 
     def test_grad_row(self):
-        utt.verify_grad(add, [random(3, 5), random(1, 5)])
+        rng = np.random.default_rng(seed=utt.fetch_seed())
+        utt.verify_grad(add, [random(3, 5, rng=rng), random(1, 5, rng=rng)])
 
     def test_grad_col(self):
-        utt.verify_grad(add, [random(3, 5), random(3, 1)])
+        rng = np.random.default_rng(seed=utt.fetch_seed())
+        utt.verify_grad(add, [random(3, 5, rng=rng), random(3, 1, rng=rng)])
 
 
 class TestCeil:
@@ -1876,11 +1907,12 @@ class TestDot:
             _dot(d3, d3)
 
     def test_grad(self):
-        utt.verify_grad(dense_dot, [random(2, 3), random(3, 2)])
-        utt.verify_grad(dense_dot, [random(2), random(2, 3)])
-        utt.verify_grad(dense_dot, [random(3, 2), random(2)])
-        utt.verify_grad(dense_dot, [random(2), random(2)])
-        utt.verify_grad(dense_dot, [random(), random()])
+        rng = np.random.default_rng(seed=utt.fetch_seed())
+        utt.verify_grad(dense_dot, [random(2, 3, rng=rng), random(3, 2, rng=rng)])
+        utt.verify_grad(dense_dot, [random(2, rng=rng), random(2, 3, rng=rng)])
+        utt.verify_grad(dense_dot, [random(3, 2, rng=rng), random(2, rng=rng)])
+        utt.verify_grad(dense_dot, [random(2, rng=rng), random(2, rng=rng)])
+        utt.verify_grad(dense_dot, [random(rng=rng), random(rng=rng)])
         # TODO: What about the broadcastable conditions in `Dot.grad`?
 
     def test_broadcastable_patterns(self):
@@ -1954,13 +1986,14 @@ class TestTensordot:
 
     def test_basic(self):
         # Test vector-vector
+        rng = np.random.default_rng(seed=utt.fetch_seed())
         avec = vector()
         bvec = vector()
         axes = ((0,), (0,))
         c = tensordot(avec, bvec, axes)
         f1 = inplace_func([avec, bvec], c)
-        aval = random(5)
-        bval = random(5)
+        aval = random(5, rng=rng)
+        bval = random(5, rng=rng)
         out0 = np.tensordot(aval, bval, axes)
         out1 = f1(aval, bval)
         utt.assert_allclose(out0, out1)
@@ -1971,8 +2004,8 @@ class TestTensordot:
         axes = ((0,), (1,))
         c = tensordot(avec, bmat, axes)
         f2 = inplace_func([avec, bmat], c)
-        aval = random(5)
-        bval = random(8, 5)
+        aval = random(5, rng=rng)
+        bval = random(8, 5, rng=rng)
         utt.assert_allclose(np.tensordot(aval, bval, axes), f2(aval, bval))
         utt.verify_grad(self.TensorDot(axes), [aval, bval])
 
@@ -1990,8 +2023,8 @@ class TestTensordot:
         ]:
             c = tensordot(amat, bmat, axes)
             f3 = inplace_func([amat, bmat], c)
-            aval = random(*shps[0])
-            bval = random(*shps[1])
+            aval = random(*shps[0], rng=rng)
+            bval = random(*shps[1], rng=rng)
             utt.assert_allclose(np.tensordot(aval, bval, axes), f3(aval, bval))
             utt.verify_grad(self.TensorDot(axes), [aval, bval])
 
@@ -2008,8 +2041,8 @@ class TestTensordot:
             atens = tensor4()
             c = tensordot(atens, bmat, axes)
             f4 = inplace_func([atens, bmat], c)
-            aval = random(*shps[0])
-            bval = random(*shps[1])
+            aval = random(*shps[0], rng=rng)
+            bval = random(*shps[1], rng=rng)
             utt.assert_allclose(np.tensordot(aval, bval, axes), f4(aval, bval))
             utt.verify_grad(self.TensorDot(axes), [aval, bval])
 
@@ -2019,8 +2052,8 @@ class TestTensordot:
         axes = ((1, 3), (0, 2))
         c = tensordot(atens, btens, axes)
         f5 = inplace_func([atens, btens], c)
-        aval = random(4, 3, 5, 2)
-        bval = random(3, 4, 2)
+        aval = random(4, 3, 5, 2, rng=rng)
+        bval = random(3, 4, 2, rng=rng)
         utt.assert_allclose(np.tensordot(aval, bval, axes), f5(aval, bval))
         utt.verify_grad(self.TensorDot(axes), [aval, bval])
 
@@ -2057,24 +2090,26 @@ class TestTensordot:
 
     def test_weird_valid_axes(self):
         # Test matrix-matrix
+        rng = np.random.default_rng(seed=utt.fetch_seed())
         amat = matrix()
         bmat = matrix()
         for axes in [0, (1, 0), [1, 0], (1, (0,)), ((1,), 0), ([1], [0]), ([], [])]:
             c = tensordot(amat, bmat, axes)
             f3 = inplace_func([amat, bmat], c)
-            aval = random(4, 7)
-            bval = random(7, 9)
+            aval = random(4, 7, rng=rng)
+            bval = random(7, 9, rng=rng)
             utt.assert_allclose(np.tensordot(aval, bval, axes), f3(aval, bval))
             utt.verify_grad(self.TensorDot(axes), [aval, bval])
 
     def test_scalar_axes(self):
         # Test matrix-matrix
+        rng = np.random.default_rng(seed=utt.fetch_seed())
         amat = fmatrix()
         bmat = dmatrix()
         # We let at float64 to test mix of float32 and float64.
         axes = 1
-        aval = random(4, 5).astype("float32")
-        bval = random(5, 3)
+        aval = random(4, 5, rng=rng).astype("float32")
+        bval = random(5, 3, rng=rng)
         c = tensordot(amat, bmat, axes)
         f3 = inplace_func([amat, bmat], c)
         assert np.allclose(np.tensordot(aval, bval, axes), f3(aval, bval))
@@ -2084,8 +2119,8 @@ class TestTensordot:
         amat = tensor3()
         bmat = tensor3()
         axes = 2
-        aval = random(3, 4, 5)
-        bval = random(4, 5, 3)
+        aval = random(3, 4, 5, rng=rng)
+        bval = random(4, 5, 3, rng=rng)
         c = tensordot(amat, bmat, axes)
         f3 = inplace_func([amat, bmat], c)
         assert np.allclose(np.tensordot(aval, bval, axes), f3(aval, bval))
@@ -2093,36 +2128,39 @@ class TestTensordot:
 
     def test_scalar0(self):
         # Test tensor-tensor
+        rng = np.random.default_rng(seed=utt.fetch_seed())
         amat = matrix()
         bmat = matrix()
         axes = 0
-        aval = random(4, 5)
-        bval = random(5, 4)
+        aval = random(4, 5, rng=rng)
+        bval = random(5, 4, rng=rng)
         c = tensordot(amat, bmat, axes)
         f3 = inplace_func([amat, bmat], c)
         assert np.allclose(np.tensordot(aval, bval, axes), f3(aval, bval))
         utt.verify_grad(self.TensorDot(axes), [aval, bval])
 
     def test_broadcastable1(self):
+        rng = np.random.default_rng(seed=utt.fetch_seed())
         x = TensorType(dtype=config.floatX, broadcastable=(True, False, False))("x")
         y = tensor3("y")
         z = tensordot(x, y)
         assert z.broadcastable == (True, False)
         f = inplace_func([x, y], z)
-        xv = random(1, 3, 4)
-        yv = random(3, 4, 5)
+        xv = random(1, 3, 4, rng=rng)
+        yv = random(3, 4, 5, rng=rng)
         zv = f(xv, yv)
         assert np.allclose(np.tensordot(xv, yv), zv)
 
     def test_broadcastable2(self):
+        rng = np.random.default_rng(seed=utt.fetch_seed())
         x = TensorType(dtype=config.floatX, broadcastable=(True, False, False))("x")
         y = tensor3("y")
         axes = [[2, 1], [0, 1]]
         z = tensordot(x, y, axes=axes)
         assert z.broadcastable == (True, False)
         f = inplace_func([x, y], z)
-        xv = random(1, 3, 4)
-        yv = random(4, 3, 5)
+        xv = random(1, 3, 4, rng=rng)
+        yv = random(4, 3, 5, rng=rng)
         zv = f(xv, yv)
         assert np.allclose(np.tensordot(xv, yv, axes=axes), zv)
 
@@ -2426,12 +2464,13 @@ class TestInferShape(utt.InferShapeTester):
 
     def test_Dot(self):
         # Dot
+        rng = np.random.default_rng(seed=utt.fetch_seed())
 
         # vec/vec
         advec = dvector()
         bdvec = dvector()
-        advec_val = random(4)
-        bdvec_val = random(4)
+        advec_val = random(4, rng=rng)
+        bdvec_val = random(4, rng=rng)
         self._compile_and_check(
             [advec, bdvec],
             [Dot()(advec, bdvec)],
@@ -2442,8 +2481,8 @@ class TestInferShape(utt.InferShapeTester):
         # mat/mat
         admat = dmatrix()
         bdmat = dmatrix()
-        admat_val = random(4, 5)
-        bdmat_val = random(5, 3)
+        admat_val = random(4, 5, rng=rng)
+        bdmat_val = random(5, 3, rng=rng)
         self._compile_and_check(
             [admat, bdmat],
             [Dot()(admat, bdmat)],
@@ -2452,7 +2491,7 @@ class TestInferShape(utt.InferShapeTester):
         )
 
         # vec/mat
-        bdmat_val = random(4, 5)
+        bdmat_val = random(4, 5, rng=rng)
         self._compile_and_check(
             [advec, bdmat],
             [Dot()(advec, bdmat)],
@@ -2461,7 +2500,7 @@ class TestInferShape(utt.InferShapeTester):
         )
 
         # mat/vec
-        admat_val = random(5, 4)
+        admat_val = random(5, 4, rng=rng)
         self._compile_and_check(
             [admat, bdvec],
             [Dot()(admat, bdvec)],
@@ -2472,8 +2511,12 @@ class TestInferShape(utt.InferShapeTester):
 
 class TestTensorInstanceMethods:
     def setup_method(self):
+        rng = np.random.default_rng(seed=utt.fetch_seed())
         self.vars = matrices("X", "Y")
-        self.vals = [m.astype(config.floatX) for m in [random(2, 2), random(2, 2)]]
+        self.vals = [
+            m.astype(config.floatX)
+            for m in [random(2, 2, rng=rng), random(2, 2, rng=rng)]
+        ]
 
     def test_argmin(self):
         X, _ = self.vars
@@ -2833,6 +2876,7 @@ class TestSumProdReduceDtype:
                 assert [n for n in topo if isinstance(n.op, self.op)], (topo, dtype)
                 data = np.random.random((3, 4)) * 10
                 data = data.astype(dtype)
+                # TODO FIXME: This is a bad test
                 f(data)
 
     def test_reduce_default_acc_dtype(self):
@@ -2864,6 +2908,7 @@ class TestSumProdReduceDtype:
                 assert [n for n in topo if isinstance(n.op, self.op)], (topo, dtype)
                 data = np.random.random((3, 4)) * 10
                 data = data.astype(dtype)
+                # TODO FIXME: This is a bad test
                 f(data)
 
     @pytest.mark.slow
@@ -2905,10 +2950,12 @@ class TestSumProdReduceDtype:
                         # or the overflow will be different between CPU and GPU,
                         # and DebugMode will complain.
                         data = data[0:1]
+                        # TODO FIXME: This is a bad test
                     f(data)
                     if "complex" in input_dtype:
                         continue
                     # Check that we can take the gradient
+                    # TODO FIXME: This is a bad test
                     grad(var.sum(), x, disconnected_inputs="ignore")
                     idx += 1
 
@@ -2943,6 +2990,7 @@ class TestSumProdReduceDtype:
                         if "complex" in input_dtype:
                             continue
                         # Check that we can take the gradient
+                        # TODO FIXME: This is a bad test
                         grad(var.sum(), x, disconnected_inputs="ignore")
                     else:
                         with pytest.raises(TypeError):
@@ -2981,6 +3029,7 @@ class TestMeanDtype:
             f = function([x], m)
             data = np.random.random((3, 4)) * 10
             data = data.astype(dtype)
+            # TODO FIXME: This is a bad test
             f(data)
 
     @pytest.mark.slow
@@ -3013,6 +3062,7 @@ class TestMeanDtype:
                     f = function([x], mean_var)
                     data = np.random.random((3, 4)) * 10
                     data = data.astype(input_dtype)
+                    # TODO FIXME: This is a bad test
                     f(data)
                     # Check that we can take the gradient, when implemented
                     if "complex" in mean_var.dtype:
@@ -3090,6 +3140,7 @@ class TestProdWithoutZerosDtype:
             f = function([x], p)
             data = np.random.random((2, 3)) * 3
             data = data.astype(dtype)
+            # TODO FIXME: This is a bad test
             f(data)
 
     @pytest.mark.slow
@@ -3111,6 +3162,7 @@ class TestProdWithoutZerosDtype:
                 f = function([x], prod_woz_var)
                 data = np.random.random((2, 3)) * 3
                 data = data.astype(input_dtype)
+                # TODO FIXME: This is a bad test
                 f(data)
 
     @pytest.mark.slow
@@ -3138,6 +3190,7 @@ class TestProdWithoutZerosDtype:
                     f = function([x], prod_woz_var)
                     data = np.random.random((2, 3)) * 3
                     data = data.astype(input_dtype)
+                    # TODO FIXME: This is a bad test
                     f(data)
                 else:
                     with pytest.raises(TypeError):
@@ -3151,36 +3204,42 @@ class TestSumMeanMaxMinArgMaxVarReduceAxes:
         axes = [None, 0, 1, [0, 1], np.array(1), [np.array(0), np.array(1)]]
         for a in axes:
             x = matrix()
+            # TODO FIXME: This is a bad test
             x.sum(a)
 
     def test_mean_axes(self):
         axes = [None, 0, 1, [0, 1], np.array(1), [np.array(0), np.array(1)]]
         for a in axes:
             x = matrix()
+            # TODO FIXME: This is a bad test
             x.mean(a)
 
     def test_max_axes(self):
         axes = [None, 0, 1, [0, 1], np.array(1), [np.array(0), np.array(1)]]
         for a in axes:
             x = matrix()
+            # TODO FIXME: This is a bad test
             x.max(a)
 
     def test_min_axes(self):
         axes = [None, 0, 1, [0, 1], np.array(1), [np.array(0), np.array(1)]]
         for a in axes:
             x = matrix()
+            # TODO FIXME: This is a bad test
             x.min(a)
 
     def test_argmax_axes(self):
         axes = [None, 0, 1, [0, 1], np.array(1), [np.array(0), np.array(1)]]
         for a in axes:
             x = matrix()
+            # TODO FIXME: This is a bad test
             x.argmax(a)
 
     def test_var_axes(self):
         axes = [None, 0, 1, [0, 1], np.array(1), [np.array(0), np.array(1)]]
         for a in axes:
             x = matrix()
+            # TODO FIXME: This is a bad test
             x.var(a)
 
 
@@ -3212,12 +3271,12 @@ def test_clip_grad():
 
 
 def test_clip_grad_int():
-    # FIXME: This is not a real test.
     # test that integers don't crash clip gradient
     x = iscalar()
     y = iscalar()
     z = iscalar()
     c = clip(x, y, z)
+    # TODO FIXME: This is a bad test
     grad(c, [x, y, z])
 
 
@@ -3265,8 +3324,11 @@ def test_tanh_grad_broadcast():
     x = tensor(dtype="float32", broadcastable=(True, False, False, False))
     y = tensor(dtype="float32", broadcastable=(True, True, False, False))
 
+    # TODO FIXME: This is a bad test
     grad(tanh(x).sum(), x)
+    # TODO FIXME: This is a bad test
     grad(tanh(x + y).sum(), y)
+    # TODO FIXME: This is a bad test
     grad(tanh(x + y).sum(), [x, y])
 
 
