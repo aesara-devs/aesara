@@ -2622,28 +2622,23 @@ def default_blas_ldflags():
 
     warn_record = []
     try:
-        if hasattr(numpy.distutils, "__config__") and numpy.distutils.__config__:
-            # If the old private interface is available use it as it
-            # don't print information to the user.
-            blas_info = numpy.distutils.__config__.blas_opt_info
-        else:
-            # We do this import only here, as in some setup, if we
-            # just import aesara and exit, with the import at global
-            # scope, we get this error at exit: "Exception TypeError:
-            # "'NoneType' object is not callable" in <bound method
-            # Popen.__del__ of <subprocess.Popen object at 0x21359d0>>
-            # ignored"
+        # We do this import only here, as in some setup, if we
+        # just import aesara and exit, with the import at global
+        # scope, we get this error at exit: "Exception TypeError:
+        # "'NoneType' object is not callable" in <bound method
+        # Popen.__del__ of <subprocess.Popen object at 0x21359d0>>
+        # ignored"
 
-            # This happen with Python 2.7.3 |EPD 7.3-1 and numpy 1.8.1
-            # isort: off
-            import numpy.distutils.system_info  # noqa
+        # This happen with Python 2.7.3 |EPD 7.3-1 and numpy 1.8.1
+        # isort: off
+        import numpy.distutils.system_info  # noqa
 
-            # We need to catch warnings as in some cases NumPy print
-            # stuff that we don't want the user to see.
-            # I'm not able to remove all printed stuff
-            with warnings.catch_warnings(record=True):
-                numpy.distutils.system_info.system_info.verbosity = 0
-                blas_info = numpy.distutils.system_info.get_info("blas_opt")
+        # We need to catch warnings as in some cases NumPy print
+        # stuff that we don't want the user to see.
+        # I'm not able to remove all printed stuff
+        with warnings.catch_warnings(record=True):
+            numpy.distutils.system_info.system_info.verbosity = 0
+            blas_info = numpy.distutils.system_info.get_info("blas_opt")
 
         # If we are in a EPD installation, mkl is available
         if "EPD" in sys.version:
