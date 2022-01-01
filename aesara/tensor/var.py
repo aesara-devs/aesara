@@ -986,13 +986,17 @@ class TensorConstant(TensorVariable, Constant):
     def __str__(self):
         unique_val = get_unique_value(self)
         if unique_val is not None:
-            name = f"{self.data.shape} of {unique_val}"
+            val = f"{self.data.shape} of {unique_val}"
         else:
-            name = f"{self.data}"
-        if len(name) > 20:
-            name = name[:10] + ".." + name[-10:]
+            val = f"{self.data}"
+        if len(val) > 20:
+            val = val[:10] + ".." + val[-10:]
 
-        return "TensorConstant{%s}" % name
+        if self.name is not None:
+            name = self.name
+        else:
+            name = "TensorConstant"
+        return "%s{%s}" % (name, val)
 
     def signature(self):
         return TensorConstantSignature((self.type, self.data))
