@@ -27,7 +27,7 @@ class MyType2(Type):
         return data
 
     def __eq__(self, other):
-        return isinstance(other, MyType)
+        return isinstance(other, MyType2)
 
     def __hash__(self):
         return hash(MyType)
