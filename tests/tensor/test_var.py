@@ -198,7 +198,7 @@ def test__getitem__AdvancedSubtensor():
 
 def test_print_constant():
     c = aesara.tensor.constant(1, name="const")
-    assert str(c) == "const{1}"
+    assert str(c) == "const"
     d = aesara.tensor.constant(1)
     assert str(d) == "TensorConstant{1}"
 

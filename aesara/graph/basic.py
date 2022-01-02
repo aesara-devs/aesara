@@ -424,6 +424,12 @@ class Variable(Node):
         """Return a ``str`` representation of the `Variable`."""
         if self.name is not None:
             return self.name
+        return self._debug_str
+
+    @property
+    def _debug_str(self):
+        """Return a ''str'' representation for debugprint and in case name
+        is not set."""
         if self.owner is not None:
             op = self.owner.op
             if self.index == op.default_output:
