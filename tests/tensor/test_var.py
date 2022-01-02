@@ -196,6 +196,13 @@ def test__getitem__AdvancedSubtensor():
     assert op_types[-1] == AdvancedSubtensor
 
 
+def test_print_constant():
+    c = aesara.tensor.constant(1, name="const")
+    assert str(c) == "const{1}"
+    d = aesara.tensor.constant(1)
+    assert str(d) == "TensorConstant{1}"
+
+
 @pytest.mark.parametrize(
     "x, indices, new_order",
     [
