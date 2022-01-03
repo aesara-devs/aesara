@@ -50,10 +50,6 @@ class _tensor_py_operators:
         rval._is_nonzero = False
         return rval
 
-    def __nonzero__(self):
-        # Python 2.x
-        return self.__bool__()
-
     def __bool__(self):
         # This is meant to prohibit stuff like a < b < c, which is internally
         # implemented as (a < b) and (b < c). The trouble with this is the

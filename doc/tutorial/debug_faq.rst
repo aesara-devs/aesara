@@ -360,7 +360,6 @@ shows how to print all inputs and outputs:
 
 .. testcode::
 
-    from __future__ import print_function
     import aesara
 
     def inspect_inputs(fgraph, i, node, fn):

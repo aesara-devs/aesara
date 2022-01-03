@@ -1,10 +1,9 @@
 -e ./
-dataclasses>=0.7; python_version < '3.7'
 filelock
-flake8==3.8.4
+flake8>=3.8.4
 pep8
 pyflakes
-black==20.8b1; platform.python_implementation!='PyPy'
+black>=20.8b1
 pytest-cov>=2.6.1
 coverage>=5.1
 pytest
@@ -12,8 +11,8 @@ coveralls
 cython
 sympy
 versioneer
-jax; python_version > '3.6'
-jaxlib; python_version > '3.6'
+jax
+jaxlib
 numba
 numba-scipy>=0.3.0
 diff-cover

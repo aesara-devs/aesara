@@ -28,8 +28,6 @@ from aesara.graph.op import COp, Op
 from aesara.graph.opt import copy_stack_trace, local_optimizer, optimizer
 from aesara.raise_op import Assert
 from aesara.scalar import UnaryScalarOp
-
-# Work-around for Python 3.6 issue that prevents `import aesara.tensor as aet`
 from aesara.tensor import basic as aet
 from aesara.tensor import extra_ops, math_opt
 from aesara.tensor.basic import ARange, as_tensor_variable

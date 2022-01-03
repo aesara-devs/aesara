@@ -460,7 +460,6 @@ corresponding to the random number generation process (i.e. RandomFunction{unifo
 An example of how "random states" can be transferred from one aesara function
 to another is shown below.
 
->>> from __future__ import print_function
 >>> import aesara
 >>> import numpy
 >>> import aesara.tensor as aet
