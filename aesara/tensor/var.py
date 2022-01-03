@@ -144,8 +144,6 @@ class _tensor_py_operators:
         except (NotImplementedError, TypeError):
             return NotImplemented
 
-    __truediv__ = __div__
-
     def __pow__(self, other):
         # See explanation in __add__ for the error caught
         # and the return value in that case
@@ -455,7 +453,7 @@ class _tensor_py_operators:
                         return True
             return False
 
-        if isinstance(args, list) and any([isinstance(a, slice) for a in args]):
+        if isinstance(args, list) and any(isinstance(a, slice) for a in args):
             pass
         elif not isinstance(args, tuple):
             args = (args,)

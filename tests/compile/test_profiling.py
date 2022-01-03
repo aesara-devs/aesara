@@ -34,7 +34,7 @@ class TestProfiling:
 
             p = ProfileStats(False, gpu_checks=False)
 
-            if config.mode in ["DebugMode", "DEBUG_MODE", "FAST_COMPILE"]:
+            if config.mode in ("DebugMode", "DEBUG_MODE", "FAST_COMPILE"):
                 m = "FAST_RUN"
             else:
                 m = None
@@ -89,7 +89,7 @@ class TestProfiling:
 
             p = ProfileStats(False, gpu_checks=False)
 
-            if config.mode in ["DebugMode", "DEBUG_MODE", "FAST_COMPILE"]:
+            if config.mode in ("DebugMode", "DEBUG_MODE", "FAST_COMPILE"):
                 m = "FAST_RUN"
             else:
                 m = None

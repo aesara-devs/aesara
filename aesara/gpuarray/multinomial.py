@@ -49,8 +49,9 @@ class GPUAMultinomialFromUniform(GpuKernelBaseCOp, _NoPythonOp):
         ctx_name = infer_context_name(pvals, unis)
         pvals = as_gpuarray_variable(pvals, ctx_name)
         unis = as_gpuarray_variable(unis, ctx_name)
-        assert pvals.dtype in ["float32", "float16", "float64"]
-        assert unis.dtype in ["float32", "float16", "float64"]
+        valid_dtypes = ("float32", "float16", "float64")
+        assert pvals.dtype in valid_dtypes
+        assert unis.dtype in valid_dtypes
 
         if pvals.ndim != 2:
             raise NotImplementedError("pvals ndim should be 2", pvals.ndim)

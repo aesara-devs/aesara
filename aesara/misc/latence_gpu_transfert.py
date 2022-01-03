@@ -11,7 +11,7 @@ f1 = aesara.function([y], updates={x: y})
 f2 = aesara.function([], x.transfer("cpu"))
 print(f1.maker.fgraph.toposort())
 print(f2.maker.fgraph.toposort())
-for i in [1, 10, 100, 1000, 10000, 100000, 1000000, 10000000]:
+for i in (1, 10, 100, 1000, 10000, 100000, 1000000, 10000000):
     o = np.zeros(i, dtype="float32")
     t0 = time.time()
     f1(o)

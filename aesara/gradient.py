@@ -1324,7 +1324,7 @@ def _populate_grad_dict(var_to_app_to_idx, grad_dict, wrt, cost_name=None):
                         # The only other valid thing it can be is 0
 
                         is_zero = _is_zero(term)
-                        assert is_zero in ["yes", "no", "maybe"]
+                        assert is_zero in ("yes", "no", "maybe")
                         if is_zero == "maybe":
                             msg = (
                                 f"{node.op}.grad returned {term} of type {type(term)} for input"

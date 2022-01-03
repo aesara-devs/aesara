@@ -547,7 +547,7 @@ class BaseTestConv:
         f = aesara.function([], c, mode=mode)
 
         if target_op is not None:
-            assert any([isinstance(n.op, target_op) for n in f.maker.fgraph.toposort()])
+            assert any(isinstance(n.op, target_op) for n in f.maker.fgraph.toposort())
             if check_trace:
                 assert check_stack_trace(f, ops_to_check=target_op)
 
@@ -632,7 +632,7 @@ class BaseTestConv:
         f_ref = aesara.function([], c_ref, mode="FAST_RUN")
 
         if target_op is not None:
-            assert any([isinstance(n.op, target_op) for n in f.maker.fgraph.toposort()])
+            assert any(isinstance(n.op, target_op) for n in f.maker.fgraph.toposort())
             if check_trace:
                 assert check_stack_trace(f, ops_to_check=target_op)
 
@@ -717,7 +717,7 @@ class BaseTestConv:
             f_ref = aesara.function([], c_ref, mode="FAST_RUN")
 
         if target_op is not None:
-            assert any([isinstance(n.op, target_op) for n in f.maker.fgraph.toposort()])
+            assert any(isinstance(n.op, target_op) for n in f.maker.fgraph.toposort())
             if check_trace:
                 assert check_stack_trace(f, ops_to_check=target_op)
 

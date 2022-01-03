@@ -1725,7 +1725,7 @@ def local_opt_alloc(fgraph, node):
                 val = val.reshape(1)[0]
                 # check which type of op
                 size = mul(*shapes)
-                if inp.dtype in ["float16", "float32"]:
+                if inp.dtype in ("float16", "float32"):
                     # shapes are ints and normally int64.
                     # We don't want to have a float64 upcast
                     # We don't want to downcast to float16

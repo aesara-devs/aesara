@@ -458,7 +458,7 @@ def _ldflags(ldflags_str, libs, flags, libs_dir, include_dir):
         for d in dirs:
             for f in os.listdir(d.strip('"')):
                 if f.endswith(".so") or f.endswith(".dylib") or f.endswith(".dll"):
-                    if any([f.find(ll) >= 0 for ll in l]):
+                    if any(f.find(ll) >= 0 for ll in l):
                         found_dyn = True
         if not found_dyn and dirs:
             _logger.warning(
@@ -491,7 +491,7 @@ def _ldflags(ldflags_str, libs, flags, libs_dir, include_dir):
             rval.append(t[2:])
         elif libs and t1 == "l":  # example -lmkl
             rval.append(t[2:])
-        elif flags and t1 not in ["L", "I", "l"]:  # example -openmp
+        elif flags and t1 not in ("L", "I", "l"):  # example -openmp
             rval.append(t)
         elif flags and t1 == "L":
             # to find it when we load the compiled op if the env of the
@@ -1672,7 +1672,7 @@ def local_dot_to_dot22(fgraph, node):
         _logger.info(f"Not optimizing dot with inputs {x} {y} {x.type} {y.type}")
         return
 
-    if y.type.dtype in ["float16", "float32", "float64", "complex64", "complex128"]:
+    if y.type.dtype in ("float16", "float32", "float64", "complex64", "complex128"):
         with inherit_stack_trace(node.outputs):
             if x.ndim == 2 and y.ndim == 2:
                 return [_dot22(*node.inputs)]
@@ -1973,7 +1973,7 @@ def local_dot22_to_dot22scalar(fgraph, node):
         i_mul = [
             x.owner
             and x.owner.op == mul
-            and any([_as_scalar(x_i, dtype=d.dtype) for x_i in x.owner.inputs])
+            and any(_as_scalar(x_i, dtype=d.dtype) for x_i in x.owner.inputs)
             for x in node.inputs
         ]
         if not any(i_mul):

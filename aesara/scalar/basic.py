@@ -946,7 +946,7 @@ def same_out_min8(type):
 
 
 def upcast_out_no_complex(*types):
-    if any([type in complex_types for type in types]):
+    if any(type in complex_types for type in types):
         raise TypeError("complex type are not supported")
     return (get_scalar_type(dtype=Scalar.upcast(*types)),)
 
@@ -1160,7 +1160,7 @@ class ScalarOp(COp):
                 (k, v)
                 for k, v in self.__dict__.items()
                 if k
-                not in ["name", "_op_use_c_code", "bool", "output_types_preference"]
+                not in ("name", "_op_use_c_code", "bool", "output_types_preference")
             ]
             if param:
                 return "{}{{{}}}".format(
@@ -1744,7 +1744,7 @@ class ScalarMaximum(BinaryScalarOp):
     def c_code(self, node, name, inputs, outputs, sub):
         (x, y) = inputs
         (z,) = outputs
-        if any([i.type in complex_types for i in node.inputs]):
+        if any(i.type in complex_types for i in node.inputs):
             raise NotImplementedError()
         # Test for both y>x and x>=y to detect NaN
         return f"{z} = (({y})>({x})? ({y}): " f'(({x})>=({y})? ({x}): nan("")));'
@@ -1787,7 +1787,7 @@ class ScalarMinimum(BinaryScalarOp):
     def c_code(self, node, name, inputs, outputs, sub):
         (x, y) = inputs
         (z,) = outputs
-        if any([i.type in complex_types for i in node.inputs]):
+        if any(i.type in complex_types for i in node.inputs):
             raise NotImplementedError()
         return f"{z} = (({y})<({x})? ({y}): " f'(({x})<=({y})? ({x}): nan("")));'
 
@@ -2158,8 +2158,8 @@ class Mod(BinaryScalarOp):
         t = node.inputs[0].type.upcast(*[i.type for i in node.inputs[1:]])
         if (
             str(t) in map(str, discrete_types)
-            or t in ["uint8", "int8", "uint16", "int16"]
-            or t in ["uint32", "int32", "uint64", "int64"]
+            or t in ("uint8", "int8", "uint16", "int16")
+            or t in ("uint32", "int32", "uint64", "int64")
             or t in discrete_types
         ):
             # The above or's should not be needed anymore. However, for now we
@@ -2186,7 +2186,7 @@ class Mod(BinaryScalarOp):
             )
         elif (
             str(t) in map(str, float_types)
-            or t in ["float32", "float64"]
+            or t in ("float32", "float64")
             or t in float_types
         ):
             # The above or's should not be needed anymore. However, for now we
@@ -2723,7 +2723,7 @@ class RoundHalfToEven(UnaryScalarOp):
         (x,) = inputs
         (z,) = outputs
         typ = node.outputs[0].type.dtype
-        if typ not in ["float32", "float64"]:
+        if typ not in ("float32", "float64"):
             raise NotImplementedError("The output should be float32 or float64")
         if typ == "float32":
             ctype = "float"
@@ -2805,7 +2805,7 @@ class RoundHalfAwayFromZero(UnaryScalarOp):
     def c_code(self, node, name, inputs, outputs, sub):
         (x,) = inputs
         (z,) = outputs
-        if node.outputs[0].type.dtype in ["float32", "float64"]:
+        if node.outputs[0].type.dtype in ("float32", "float64"):
             return f"{z} = round({x});"
         else:
             raise NotImplementedError("The output should be float32 or float64")

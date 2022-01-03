@@ -489,7 +489,7 @@ def op_lifter(OP, cuda_only=False):
                 if (
                     not replace
                     or (cuda_only and get_context(context_name).kind != b"cuda")
-                    or any(["complex" in getattr(i, "dtype", "") for i in node.inputs])
+                    or any("complex" in getattr(i, "dtype", "") for i in node.inputs)
                 ):
                     return False
 

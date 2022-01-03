@@ -1154,7 +1154,7 @@ def io_toposort(
             # We suppose that all outputs are always computed
             if cur.outputs[0] in computed:
                 continue
-            if all([i in computed or i.owner is None for i in cur.inputs]):
+            if all(i in computed or i.owner is None for i in cur.inputs):
                 computed.update(cur.outputs)
                 order.append(cur)
             else:
@@ -1444,7 +1444,7 @@ def is_in_ancestors(l_apply: Apply, f_node: Apply) -> bool:
         cur = todo.pop()
         if cur.outputs[0] in computed:
             continue
-        if all([i in computed or i.owner is None for i in cur.inputs]):
+        if all(i in computed or i.owner is None for i in cur.inputs):
             computed.update(cur.outputs)
             if cur is f_node:
                 return True

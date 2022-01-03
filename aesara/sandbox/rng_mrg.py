@@ -672,7 +672,7 @@ def guess_n_streams(size, warn=False):
     # TODO: a smart way of choosing the number of streams, see #612.
     # Note that this code was moved out of `MRG_RandomStream` so that it can
     # be easily accessed from tests, where we want to disable the warning.
-    if isinstance(size, (tuple, list)) and all([isinstance(i, int) for i in size]):
+    if isinstance(size, (tuple, list)) and all(isinstance(i, int) for i in size):
         # We can make a guess.
         r = 1
         for s in size:
@@ -893,8 +893,8 @@ class MRG_RandomStream:
 
         if isinstance(size, tuple):
             msg = "size must be a tuple of int or an Aesara variable"
-            assert all([isinstance(i, (np.integer, int, Variable)) for i in size]), msg
-            if any([isinstance(i, (np.integer, int)) and i <= 0 for i in size]):
+            assert all(isinstance(i, (np.integer, int, Variable)) for i in size), msg
+            if any(isinstance(i, (np.integer, int)) and i <= 0 for i in size):
                 raise ValueError(
                     "The specified size contains a dimension with value <= 0", size
                 )
@@ -987,7 +987,7 @@ class MRG_RandomStream:
         pvals = as_tensor_variable(pvals)
         pvals = undefined_grad(pvals)
         if size is not None:
-            if any([isinstance(i, int) and i <= 0 for i in size]):
+            if any(isinstance(i, int) and i <= 0 for i in size):
                 raise ValueError(
                     "The specified size contains a dimension with value <= 0", size
                 )

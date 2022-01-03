@@ -254,7 +254,7 @@ def test_uniform():
     # TODO: test bad seed
     # TODO: test size=Var, with shape that change from call to call
     if (
-        config.mode in ["DEBUG_MODE", "DebugMode", "FAST_COMPILE"]
+        config.mode in ("DEBUG_MODE", "DebugMode", "FAST_COMPILE")
         or config.mode == "Mode"
         and config.linker in ["py"]
     ):
@@ -398,7 +398,7 @@ def test_binomial():
     # we test the param p with int.
 
     if (
-        config.mode in ["DEBUG_MODE", "DebugMode", "FAST_COMPILE"]
+        config.mode in ("DEBUG_MODE", "DebugMode", "FAST_COMPILE")
         or config.mode == "Mode"
         and config.linker in ["py"]
     ):
@@ -426,7 +426,7 @@ def test_normal0():
     steps = 50
     std = 2.0
     if (
-        config.mode in ["DEBUG_MODE", "DebugMode", "FAST_COMPILE"]
+        config.mode in ("DEBUG_MODE", "DebugMode", "FAST_COMPILE")
         or config.mode == "Mode"
         and config.linker in ["py"]
     ):
@@ -535,7 +535,7 @@ def test_normal_truncation():
     target_std = 0.87962566103423978 * std
 
     if (
-        config.mode in ["DEBUG_MODE", "DebugMode", "FAST_COMPILE"]
+        config.mode in ("DEBUG_MODE", "DebugMode", "FAST_COMPILE")
         or config.mode == "Mode"
         and config.linker in ["py"]
     ):
@@ -635,7 +635,7 @@ def test_truncated_normal():
     std = 2.0
 
     if (
-        config.mode in ["DEBUG_MODE", "DebugMode", "FAST_COMPILE"]
+        config.mode in ("DEBUG_MODE", "DebugMode", "FAST_COMPILE")
         or config.mode == "Mode"
         and config.linker in ["py"]
     ):
@@ -747,7 +747,7 @@ def test_multinomial():
     steps = 100
 
     if (
-        config.mode in ["DEBUG_MODE", "DebugMode", "FAST_COMPILE"]
+        config.mode in ("DEBUG_MODE", "DebugMode", "FAST_COMPILE")
         or config.mode == "Mode"
         and config.linker in ["py"]
     ):
@@ -767,7 +767,7 @@ def test_multinomial():
 
 def test_multinomial_n_samples():
     if (
-        config.mode in ["DEBUG_MODE", "DebugMode", "FAST_COMPILE"]
+        config.mode in ("DEBUG_MODE", "DebugMode", "FAST_COMPILE")
         or config.mode == "Mode"
         and config.linker in ["py"]
     ):

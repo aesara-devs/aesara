@@ -23,7 +23,7 @@ pygpu = pytest.importorskip("pygpu")
 
 
 def test_deep_copy():
-    for dtype in ["float16", "float32"]:
+    for dtype in ("float16", "float32"):
         a = rand_gpuarray(20, dtype=dtype)
         g = GpuArrayType(dtype=dtype, broadcastable=(False,))("g")
 
@@ -37,7 +37,7 @@ def test_deep_copy():
 
 
 def test_view():
-    for dtype in ["float16", "float32"]:
+    for dtype in ("float16", "float32"):
         a = rand_gpuarray(20, dtype=dtype)
         g = GpuArrayType(dtype=dtype, broadcastable=(False,))("g")
 
@@ -52,7 +52,7 @@ def test_view():
 
 
 def test_rebroadcast():
-    for dtype in ["float16", "float32"]:
+    for dtype in ("float16", "float32"):
         a = rand_gpuarray(1, dtype=dtype)
         g = GpuArrayType(dtype=dtype, broadcastable=(False,))("g")
 
@@ -77,7 +77,7 @@ def test_values_eq_approx():
 
 
 def test_specify_shape():
-    for dtype in ["float16", "float32"]:
+    for dtype in ("float16", "float32"):
         a = rand_gpuarray(20, dtype=dtype)
         g = GpuArrayType(dtype=dtype, broadcastable=(False,))("g")
         f = aesara.function([g], specify_shape(g, [20]))

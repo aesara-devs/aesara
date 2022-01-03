@@ -1195,10 +1195,10 @@ def conv2d_grad_wrt_inputs(
     output_grad = as_tensor_variable(output_grad)
 
     # checking the type of input_shape
-    for dim in [0, 1]:
+    for dim in (0, 1):
         if not isinstance(input_shape[dim], (TensorConstant, int, type(None))):
             raise ValueError(f"input_shape[{int(dim)}] must be a constant or None.")
-    for dim in [2, 3]:
+    for dim in (2, 3):
         if not isinstance(
             input_shape[dim],
             (TensorVariable, TensorConstant, int),
@@ -1230,7 +1230,7 @@ def conv2d_grad_wrt_inputs(
     # setting the last two dimensions of input_shape to None, if
     # the type of these dimensions is TensorVariable.
     numerical_input_shape = list(input_shape)
-    for dim in [2, 3]:
+    for dim in (2, 3):
         if isinstance(input_shape[dim], TensorVariable):
             numerical_input_shape[dim] = None
 
@@ -1358,9 +1358,9 @@ def conv3d_grad_wrt_inputs(
     output_grad = as_tensor_variable(output_grad)
 
     # checking the type of input_shape
-    for dim in [0, 1]:
+    for dim in (0, 1):
         assert isinstance(input_shape[dim], (TensorConstant, int, type(None)))
-    for dim in [2, 3, 4]:
+    for dim in (2, 3, 4):
         assert isinstance(
             input_shape[dim],
             (TensorVariable, TensorConstant, int),
@@ -1368,7 +1368,7 @@ def conv3d_grad_wrt_inputs(
 
     # checking the type of filter_shape
     if filter_shape is not None:
-        for dim in [0, 1, 2, 3, 4]:
+        for dim in (0, 1, 2, 3, 4):
             assert isinstance(
                 filter_shape[dim],
                 (TensorConstant, int, type(None)),
@@ -1377,7 +1377,7 @@ def conv3d_grad_wrt_inputs(
     # setting the last three dimensions of input_shape to None, if
     # the type of these dimensions is TensorVariable.
     numerical_input_shape = list(input_shape)
-    for dim in [2, 3, 4]:
+    for dim in (2, 3, 4):
         if isinstance(input_shape[dim], TensorVariable):
             numerical_input_shape[dim] = None
 
@@ -1511,15 +1511,15 @@ def conv2d_grad_wrt_weights(
     output_grad = as_tensor_variable(output_grad)
 
     # checking the type of filter_shape
-    for dim in [0, 1]:
+    for dim in (0, 1):
         assert isinstance(filter_shape[dim], (TensorConstant, int, type(None)))
     if unshared:
-        for dim in [2, 3]:
+        for dim in (2, 3):
             assert isinstance(
                 filter_shape[dim],
                 (TensorConstant, int, type(None)),
             )
-    for dim in [-2, -1]:
+    for dim in (-2, -1):
         assert isinstance(
             filter_shape[dim],
             (TensorVariable, TensorConstant, int),
@@ -1527,7 +1527,7 @@ def conv2d_grad_wrt_weights(
 
     # checking the type of input_shape
     if input_shape is not None:
-        for dim in [0, 1, 2, 3]:
+        for dim in (0, 1, 2, 3):
             assert isinstance(
                 input_shape[dim],
                 (TensorConstant, int, type(None)),
@@ -1536,7 +1536,7 @@ def conv2d_grad_wrt_weights(
     # setting the last two dimensions of filter_shape to None, if
     # the type of these dimensions is TensorVariable.
     numerical_filter_shape = list(filter_shape)
-    for dim in [-2, -1]:
+    for dim in (-2, -1):
         if isinstance(filter_shape[dim], TensorVariable):
             numerical_filter_shape[dim] = None
 
@@ -1655,9 +1655,9 @@ def conv3d_grad_wrt_weights(
     output_grad = as_tensor_variable(output_grad)
 
     # checking the type of filter_shape
-    for dim in [0, 1]:
+    for dim in (0, 1):
         assert isinstance(filter_shape[dim], (TensorConstant, int, type(None)))
-    for dim in [2, 3, 4]:
+    for dim in (2, 3, 4):
         assert isinstance(
             filter_shape[dim],
             (TensorVariable, TensorConstant, int),
@@ -1665,7 +1665,7 @@ def conv3d_grad_wrt_weights(
 
     # checking the type of input_shape
     if input_shape is not None:
-        for dim in [0, 1, 2, 3, 4]:
+        for dim in (0, 1, 2, 3, 4):
             assert isinstance(
                 input_shape[dim],
                 (TensorConstant, int, type(None)),
@@ -1674,7 +1674,7 @@ def conv3d_grad_wrt_weights(
     # setting the last three dimensions of filter_shape to None, if
     # the type of these dimensions is TensorVariable.
     numerical_filter_shape = list(filter_shape)
-    for dim in [2, 3, 4]:
+    for dim in (2, 3, 4):
         if isinstance(filter_shape[dim], TensorVariable):
             numerical_filter_shape[dim] = None
 

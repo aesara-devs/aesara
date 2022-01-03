@@ -72,7 +72,7 @@ def test_cpu_contiguous():
     a_val = np.asarray(np.random.random((4, 5)), dtype="float32")
     f = aesara.function([a, i], cpu_contiguous(a.reshape((5, 4))[::i]))
     topo = f.maker.fgraph.toposort()
-    assert any([isinstance(node.op, CpuContiguous) for node in topo])
+    assert any(isinstance(node.op, CpuContiguous) for node in topo)
     assert f(a_val, 1).flags["C_CONTIGUOUS"]
     assert f(a_val, 2).flags["C_CONTIGUOUS"]
     assert f(a_val, 3).flags["C_CONTIGUOUS"]

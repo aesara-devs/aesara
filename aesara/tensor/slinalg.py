@@ -44,7 +44,7 @@ class Cholesky(Op):
     def __init__(self, lower=True, on_error="raise"):
         self.lower = lower
         self.destructive = False
-        if on_error not in ["raise", "nan"]:
+        if on_error not in ("raise", "nan"):
             raise ValueError('on_error must be one of "raise" or ""nan"')
         self.on_error = on_error
 
@@ -209,7 +209,7 @@ class CholeskySolve(Op):
         C = as_tensor_variable(C)
         b = as_tensor_variable(b)
         assert C.ndim == 2
-        assert b.ndim in [1, 2]
+        assert b.ndim in (1, 2)
 
         # infer dtype by solving the most simple
         # case with (1, 1) matrices
@@ -286,7 +286,7 @@ class SolveBase(Op):
 
         if A.ndim != 2:
             raise ValueError(f"`A` must be a matrix; got {A.type} instead.")
-        if b.ndim not in [1, 2]:
+        if b.ndim not in (1, 2):
             raise ValueError(f"`b` must be a matrix or a vector; got {b.type} instead.")
 
         # Infer dtype by solving the most simple case with 1x1 matrices

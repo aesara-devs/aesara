@@ -487,7 +487,7 @@ class CSMProperties(Op):
 
     def make_node(self, csm):
         csm = as_sparse_variable(csm)
-        assert csm.format in ["csr", "csc"]
+        assert csm.format in ("csr", "csc")
         data = TensorType(dtype=csm.type.dtype, broadcastable=(False,))()
         return Apply(self, [csm], [data, ivector(), ivector(), ivector()])
 
@@ -838,7 +838,7 @@ class Cast(Op):
 
     def make_node(self, x):
         x = as_sparse_variable(x)
-        assert x.format in ["csr", "csc"]
+        assert x.format in ("csr", "csc")
         return Apply(self, [x], [SparseType(dtype=self.out_type, format=x.format)()])
 
     def perform(self, node, inputs, outputs):
@@ -1073,7 +1073,7 @@ class GetItemList(Op):
 
     def make_node(self, x, index):
         x = as_sparse_variable(x)
-        assert x.format in ["csr", "csc"]
+        assert x.format in ("csr", "csc")
 
         ind = aet.as_tensor_variable(index)
         assert ind.ndim == 1
@@ -1127,8 +1127,8 @@ class GetItemListGrad(Op):
         x = as_sparse_variable(x)
         gz = as_sparse_variable(gz)
 
-        assert x.format in ["csr", "csc"]
-        assert gz.format in ["csr", "csc"]
+        assert x.format in ("csr", "csc")
+        assert gz.format in ("csr", "csc")
 
         ind = aet.as_tensor_variable(index)
         assert ind.ndim == 1
@@ -1166,7 +1166,7 @@ class GetItem2Lists(Op):
 
     def make_node(self, x, ind1, ind2):
         x = as_sparse_variable(x)
-        assert x.format in ["csr", "csc"]
+        assert x.format in ("csr", "csc")
         ind1 = aet.as_tensor_variable(ind1)
         ind2 = aet.as_tensor_variable(ind2)
         assert ind1.dtype in integer_dtypes
@@ -1227,7 +1227,7 @@ class GetItem2ListsGrad(Op):
     def make_node(self, x, ind1, ind2, gz):
         x = as_sparse_variable(x)
 
-        assert x.format in ["csr", "csc"]
+        assert x.format in ("csr", "csc")
 
         ind1 = aet.as_tensor_variable(ind1)
         ind2 = aet.as_tensor_variable(ind2)
@@ -1271,8 +1271,8 @@ class GetItem2d(Op):
     def make_node(self, x, index):
         scipy_ver = [int(n) for n in scipy.__version__.split(".")[:2]]
         x = as_sparse_variable(x)
-        assert x.format in ["csr", "csc"]
-        assert len(index) in [1, 2]
+        assert x.format in ("csr", "csc")
+        assert len(index) in (1, 2)
 
         input_op = [x]
         generic_None = Constant(aesara.graph.type.generic, None)
@@ -1407,7 +1407,7 @@ class GetItemScalar(Op):
 
     def make_node(self, x, index):
         x = as_sparse_variable(x)
-        assert x.format in ["csr", "csc"]
+        assert x.format in ("csr", "csc")
         assert len(index) == 2
 
         input_op = [x]
@@ -1477,7 +1477,7 @@ class Transpose(Op):
 
     def make_node(self, x):
         x = as_sparse_variable(x)
-        assert x.format in ["csr", "csc"]
+        assert x.format in ("csr", "csc")
         return Apply(
             self,
             [x],
@@ -1534,7 +1534,7 @@ class Neg(Op):
 
     def make_node(self, x):
         x = as_sparse_variable(x)
-        assert x.format in ["csr", "csc"]
+        assert x.format in ("csr", "csc")
         return Apply(self, [x], [x.type()])
 
     def perform(self, node, inputs, outputs):
@@ -1637,7 +1637,7 @@ class RowScaleCSC(Op):
 
     def make_node(self, x, s):
         x = as_sparse_variable(x)
-        assert x.format in ["csr", "csc"]
+        assert x.format in ("csr", "csc")
         return Apply(self, [x, s], [x.type()])
 
     def perform(self, node, inputs, outputs):
@@ -1743,7 +1743,7 @@ class SpSum(Op):
 
     def make_node(self, x):
         x = as_sparse_variable(x)
-        assert x.format in ["csr", "csc"]
+        assert x.format in ("csr", "csc")
         b = ()
         if self.axis is not None:
             b = (False,)
@@ -1846,7 +1846,7 @@ class Diag(Op):
 
     def make_node(self, x):
         x = as_sparse_variable(x)
-        assert x.format in ["csr", "csc"]
+        assert x.format in ("csr", "csc")
         return Apply(self, [x], [tensor(broadcastable=(False,), dtype=x.dtype)])
 
     def perform(self, node, inputs, outputs):
@@ -1953,7 +1953,7 @@ class EnsureSortedIndices(Op):
 
     def make_node(self, x):
         x = as_sparse_variable(x)
-        assert x.format in ["csr", "csc"]
+        assert x.format in ("csr", "csc")
         return Apply(self, [x], [x.type()])
 
     def perform(self, node, inputs, outputs):
@@ -2038,8 +2038,8 @@ class AddSS(Op):
 
     def make_node(self, x, y):
         x, y = map(as_sparse_variable, [x, y])
-        assert x.format in ["csr", "csc"]
-        assert y.format in ["csr", "csc"]
+        assert x.format in ("csr", "csc")
+        assert y.format in ("csr", "csc")
         out_dtype = aes.upcast(x.type.dtype, y.type.dtype)
         return Apply(
             self, [x, y], [SparseType(dtype=out_dtype, format=x.type.format)()]
@@ -2072,8 +2072,8 @@ class AddSSData(Op):
 
     def make_node(self, x, y):
         x, y = map(as_sparse_variable, [x, y])
-        assert x.format in ["csr", "csc"]
-        assert y.format in ["csr", "csc"]
+        assert x.format in ("csr", "csc")
+        assert y.format in ("csr", "csc")
         if x.type.dtype != y.type.dtype:
             raise NotImplementedError()
         if x.type.format != y.type.format:
@@ -2133,7 +2133,7 @@ class AddSD(Op):
 
     def make_node(self, x, y):
         x, y = as_sparse_variable(x), aet.as_tensor_variable(y)
-        assert x.format in ["csr", "csc"]
+        assert x.format in ("csr", "csc")
         out_dtype = aes.upcast(x.type.dtype, y.type.dtype)
 
         # The magic number two here arises because L{scipy.sparse}
@@ -2174,7 +2174,7 @@ class StructuredAddSV(Op):
 
     def make_node(self, x, y):
         x = as_sparse_variable(x)
-        assert x.format in ["csr", "csc"]
+        assert x.format in ("csr", "csc")
         y = aet.as_tensor_variable(y)
 
         assert y.type.ndim == 1
@@ -2318,8 +2318,8 @@ class MulSS(Op):
 
     def make_node(self, x, y):
         x, y = as_sparse_variable(x), as_sparse_variable(y)
-        assert x.format in ["csr", "csc"]
-        assert y.format in ["csr", "csc"]
+        assert x.format in ("csr", "csc")
+        assert y.format in ("csr", "csc")
         out_dtype = aes.upcast(x.type.dtype, y.type.dtype)
         return Apply(
             self, [x, y], [SparseType(dtype=out_dtype, format=x.type.format)()]
@@ -2355,7 +2355,7 @@ class MulSD(Op):
     def make_node(self, x, y):
         x, y = as_sparse_variable(x), aet.as_tensor_variable(y)
 
-        assert x.format in ["csr", "csc"]
+        assert x.format in ("csr", "csc")
 
         # upcast the tensor. Is the cast of sparse done implemented?
         dtype = aes.upcast(x.type.dtype, y.type.dtype)
@@ -2364,7 +2364,7 @@ class MulSD(Op):
         # objects must be matrices (have dimension 2)
         # Broadcasting of the sparse matrix is not supported.
         # We support nd == 0 used by grad of SpSum()
-        assert y.type.ndim in [0, 2]
+        assert y.type.ndim in (0, 2)
         out = SparseType(dtype=dtype, format=x.type.format)()
         return Apply(self, [x, y], [out])
 
@@ -2444,7 +2444,7 @@ class MulSV(Op):
 
     def make_node(self, x, y):
         x = as_sparse_variable(x)
-        assert x.format in ["csr", "csc"]
+        assert x.format in ("csr", "csc")
         y = aet.as_tensor_variable(y)
 
         assert y.type.ndim == 1
@@ -2944,7 +2944,7 @@ class HStack(Op):
         var = [as_sparse_variable(x) for x in mat]
 
         for x in var:
-            assert x.format in ["csr", "csc"]
+            assert x.format in ("csr", "csc")
 
         return Apply(self, var, [SparseType(dtype=self.dtype, format=self.format)()])
 
@@ -3120,7 +3120,7 @@ class Remove0(Op):
 
     def make_node(self, x):
         x = as_sparse_variable(x)
-        assert x.format in ["csr", "csc"]
+        assert x.format in ("csr", "csc")
         return Apply(self, [x], [x.type()])
 
     def perform(self, node, inputs, outputs):
@@ -3174,7 +3174,7 @@ def structured_monoid(tensor_op):
     def decorator(f):
         def wrapper(*args):
             x = as_sparse_variable(args[0])
-            assert x.format in ["csr", "csc"]
+            assert x.format in ("csr", "csc")
 
             xs = [aes.as_scalar(arg) for arg in args[1:]]
 
@@ -3562,10 +3562,10 @@ def true_dot(x, y, grad_preserves_dense=True):
 
     if hasattr(x, "getnnz"):
         x = as_sparse_variable(x)
-        assert x.format in ["csr", "csc"]
+        assert x.format in ("csr", "csc")
     if hasattr(y, "getnnz"):
         y = as_sparse_variable(y)
-        assert y.format in ["csr", "csc"]
+        assert y.format in ("csr", "csc")
 
     x_is_sparse_variable = _is_sparse_variable(x)
     y_is_sparse_variable = _is_sparse_variable(y)
@@ -3587,7 +3587,7 @@ class StructuredDot(Op):
     def make_node(self, a, b):
 
         a = as_sparse_variable(a)
-        assert a.format in ["csr", "csc", "bsr"]
+        assert a.format in ("csr", "csc", "bsr")
 
         if not _is_sparse_variable(a):
             raise TypeError(
@@ -3699,10 +3699,10 @@ def structured_dot(x, y):
 
     if hasattr(x, "getnnz"):
         x = as_sparse_variable(x)
-        assert x.format in ["csr", "csc"]
+        assert x.format in ("csr", "csc")
     if hasattr(y, "getnnz"):
         y = as_sparse_variable(y)
-        assert y.format in ["csr", "csc"]
+        assert y.format in ("csr", "csc")
 
     x_is_sparse_variable = _is_sparse_variable(x)
     y_is_sparse_variable = _is_sparse_variable(y)
@@ -4011,7 +4011,7 @@ class SamplingDot(Op):
         x = aet.as_tensor_variable(x)
         y = aet.as_tensor_variable(y)
         p = as_sparse_variable(p)
-        assert p.format in ["csr", "csc"]
+        assert p.format in ("csr", "csc")
 
         if not _is_sparse_variable(p):
             raise TypeError(p)
@@ -4130,7 +4130,7 @@ class Dot(Op):
         else:
             x = aet.as_tensor_variable(x)
             broadcast_x = x.type.broadcastable
-            assert y.format in ["csr", "csc"]
+            assert y.format in ("csr", "csc")
             if x.ndim not in (1, 2):
                 raise TypeError(
                     "Input 0 (0-indexed) must have ndim of "
@@ -4142,7 +4142,7 @@ class Dot(Op):
         else:
             y = aet.as_tensor_variable(y)
             broadcast_y = y.type.broadcastable
-            assert x.format in ["csr", "csc"]
+            assert x.format in ("csr", "csc")
             if y.ndim not in (1, 2):
                 raise TypeError(
                     "Input 1 (1-indexed) must have ndim of "
@@ -4262,11 +4262,11 @@ class Usmm(Op):
         assert alpha.type.broadcastable == (True,) * alpha.ndim
         if not _is_sparse_variable(x):
             x = aet.as_tensor_variable(x)
-            assert y.format in ["csr", "csc"]
+            assert y.format in ("csr", "csc")
             assert x.ndim == 2
         if not _is_sparse_variable(y):
             y = aet.as_tensor_variable(y)
-            assert x.format in ["csr", "csc"]
+            assert x.format in ("csr", "csc")
             assert y.ndim == 2
 
         return Apply(

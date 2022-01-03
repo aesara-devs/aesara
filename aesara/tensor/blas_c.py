@@ -353,9 +353,9 @@ def use_c_ger(fgraph, node):
     if not config.blas__ldflags:
         return
     # Only float32 and float64 are supported for now.
-    if node.op == ger and node.outputs[0].dtype in ["float32", "float64"]:
+    if node.op == ger and node.outputs[0].dtype in ("float32", "float64"):
         return [CGer(False)(*node.inputs)]
-    if node.op == ger_destructive and node.outputs[0].dtype in ["float32", "float64"]:
+    if node.op == ger_destructive and node.outputs[0].dtype in ("float32", "float64"):
         return [CGer(True)(*node.inputs)]
 
 
@@ -708,9 +708,9 @@ def use_c_gemv(fgraph, node):
     if not config.blas__ldflags:
         return
     # Only float32 and float64 are supported for now.
-    if node.op == gemv_no_inplace and node.outputs[0].dtype in ["float32", "float64"]:
+    if node.op == gemv_no_inplace and node.outputs[0].dtype in ("float32", "float64"):
         return [cgemv_no_inplace(*node.inputs)]
-    if node.op == gemv_inplace and node.outputs[0].dtype in ["float32", "float64"]:
+    if node.op == gemv_inplace and node.outputs[0].dtype in ("float32", "float64"):
         return [cgemv_inplace(*node.inputs)]
 
 

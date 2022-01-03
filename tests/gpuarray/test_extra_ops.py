@@ -57,7 +57,7 @@ class TestGpuCumOp(TestCumOp):
         np_func = dict(add=np.cumsum, mul=np.cumprod)[mode]
         x = fvector("x")
 
-        for axis in [0, None, -1]:
+        for axis in (0, None, -1):
             a = np.random.random((42,)).astype("float32")
             cumop_function = aesara.function(
                 [x], op_class(axis=axis)(x), mode=self.mode
@@ -88,7 +88,7 @@ class TestGpuCumOp(TestCumOp):
         op_class = partial(self.op_class, mode=mode)
         x = fmatrix("x")
 
-        for axis in [0, 1, None, -1, -2]:
+        for axis in (0, 1, None, -1, -2):
             a = np.random.random((42, 30)).astype("float32")
             cumop_function = aesara.function(
                 [x], op_class(axis=axis)(x), mode=self.mode
@@ -119,7 +119,7 @@ class TestGpuCumOp(TestCumOp):
         op_class = partial(self.op_class, mode=mode)
         x = ftensor3("x")
 
-        for axis in [0, 1, 2, None, -1, -2, -3]:
+        for axis in (0, 1, 2, None, -1, -2, -3):
             a = np.random.random((42, 30, 25)).astype("float32")
             cumop_function = aesara.function(
                 [x], op_class(axis=axis)(x), mode=self.mode

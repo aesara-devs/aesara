@@ -927,7 +927,7 @@ def test_grad_clip():
 
     if config.mode != "FAST_COMPILE":
         topo = f.maker.fgraph.toposort()
-        assert not any([isinstance(node.op, GradClip) for node in topo])
+        assert not any(isinstance(node.op, GradClip) for node in topo)
     out = f(2.0)
     assert np.allclose(out, (1, 4))
     assert not np.allclose(out[0], out[1])
@@ -943,7 +943,7 @@ def test_grad_scale():
 
     if config.mode != "FAST_COMPILE":
         topo = f.maker.fgraph.toposort()
-        assert not any([isinstance(node.op, GradScale) for node in topo])
+        assert not any(isinstance(node.op, GradScale) for node in topo)
     out = f(2.0)
 
     assert np.allclose(out, (8, 4))

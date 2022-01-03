@@ -468,16 +468,16 @@ def test_local_gpu_subtensor():
     t = aesara.shared(np.zeros(20, "float32"))
     f = aesara.function([], t[3:4], mode=mode_with_gpu)
     topo = f.maker.fgraph.toposort()
-    assert any([type(node.op) is aesara.tensor.subtensor.Subtensor for node in topo])
-    assert not any([isinstance(node.op, GpuSubtensor) for node in topo])
+    assert any(type(node.op) is aesara.tensor.subtensor.Subtensor for node in topo)
+    assert not any(isinstance(node.op, GpuSubtensor) for node in topo)
     assert _check_stack_trace(f)
 
     # Test graph input.
     t = fmatrix()
     f = aesara.function([t], t[3:4], mode=mode_with_gpu)
     topo = f.maker.fgraph.toposort()
-    assert any([type(node.op) is aesara.tensor.subtensor.Subtensor for node in topo])
-    assert not any([isinstance(node.op, GpuSubtensor) for node in topo])
+    assert any(type(node.op) is aesara.tensor.subtensor.Subtensor for node in topo)
+    assert not any(isinstance(node.op, GpuSubtensor) for node in topo)
     assert _check_stack_trace(f)
 
     # Test multiple use of the input
@@ -485,10 +485,8 @@ def test_local_gpu_subtensor():
     t = fmatrix()
     f = aesara.function([t], [t[3:4], t + 1], mode=mode_with_gpu)
     topo = f.maker.fgraph.toposort()
-    assert not any(
-        [type(node.op) is aesara.tensor.subtensor.Subtensor for node in topo]
-    )
-    assert any([isinstance(node.op, GpuSubtensor) for node in topo])
+    assert not any(type(node.op) is aesara.tensor.subtensor.Subtensor for node in topo)
+    assert any(isinstance(node.op, GpuSubtensor) for node in topo)
     assert _check_stack_trace(f)
 
     # Test multiple use of the input + input as output
@@ -496,10 +494,8 @@ def test_local_gpu_subtensor():
     t = fmatrix()
     f = aesara.function([t], [t[3:4], t + 1, t], mode=mode_with_gpu)
     topo = f.maker.fgraph.toposort()
-    assert not any(
-        [type(node.op) is aesara.tensor.subtensor.Subtensor for node in topo]
-    )
-    assert any([isinstance(node.op, GpuSubtensor) for node in topo])
+    assert not any(type(node.op) is aesara.tensor.subtensor.Subtensor for node in topo)
+    assert any(isinstance(node.op, GpuSubtensor) for node in topo)
     assert _check_stack_trace(f)
 
     # Test shared forced on CPU end we do computation on the output of
@@ -507,12 +503,12 @@ def test_local_gpu_subtensor():
     t = aesara.shared(np.zeros(20, "float32"))
     f = aesara.function([], t[3:4] + 1, mode=mode_with_gpu)
     topo = f.maker.fgraph.toposort()
-    assert any([type(node.op) is aesara.tensor.subtensor.Subtensor for node in topo])
-    assert not any([isinstance(node.op, GpuSubtensor) for node in topo])
+    assert any(type(node.op) is aesara.tensor.subtensor.Subtensor for node in topo)
+    assert not any(isinstance(node.op, GpuSubtensor) for node in topo)
     # Our optimizer isn't smart enough to move to the GPU Elemwise.
     # If it where just a little bit smarter, it could wrongly move it to the GPU.
     # If it where super smart, it would know it should not move it to the GPU.
-    assert any([isinstance(node.op, aesara.tensor.elemwise.Elemwise) for node in topo])
+    assert any(isinstance(node.op, aesara.tensor.elemwise.Elemwise) for node in topo)
     assert _check_stack_trace(f)
 
 

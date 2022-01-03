@@ -674,7 +674,7 @@ def scan_can_remove_outs(op, out_idxs):
     while added:
         added = False
         for pos, idx in enumerate(out_idxs):
-            if out_idxs_mask[pos] and any([x in required_inputs for x in out_ins[idx]]):
+            if out_idxs_mask[pos] and any(x in required_inputs for x in out_ins[idx]):
                 # This output is required ..
                 out_idxs_mask[pos] = 0
                 required_inputs += list(graph_inputs([op.outputs[idx]]))

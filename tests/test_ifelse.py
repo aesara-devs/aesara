@@ -232,14 +232,14 @@ class TestIfelse(utt.OptimizationTestMixin):
             np.asarray(rng.uniform(size=(l,)), aesara.config.floatX) for l in lens
         ]
         outs_1 = f(1, *values)
-        assert all([x.shape[0] == y for x, y in zip(outs_1, lens)])
+        assert all(x.shape[0] == y for x, y in zip(outs_1, lens))
         assert np.all(outs_1[0] == 1.0)
         assert np.all(outs_1[1] == 1.0)
         assert np.all(outs_1[2] == 0.0)
         assert np.all(outs_1[3] == 0.0)
 
         outs_0 = f(0, *values)
-        assert all([x.shape[0] == y for x, y in zip(outs_1, lens)])
+        assert all(x.shape[0] == y for x, y in zip(outs_1, lens))
         assert np.all(outs_0[0] == 0.0)
         assert np.all(outs_0[1] == 0.0)
         assert np.all(outs_0[2] == 1.0)

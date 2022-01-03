@@ -190,7 +190,7 @@ def test_dnn_conv_inplace():
     topo = f.maker.fgraph.toposort()
     convs = [n for n in topo if isinstance(n.op, dnn.GpuDnnConv)]
     assert len(convs) == 2
-    assert all([node.op.inplace for node in convs])
+    assert all(node.op.inplace for node in convs)
     assert len([n for n in topo if isinstance(n.op, GpuAllocEmpty)]) == 2
 
     # Test grad w op
@@ -201,7 +201,7 @@ def test_dnn_conv_inplace():
     topo = f.maker.fgraph.toposort()
     convs = [n for n in topo if isinstance(n.op, dnn.GpuDnnConvGradW)]
     assert len(convs) == 2
-    assert all([node.op.inplace for node in convs])
+    assert all(node.op.inplace for node in convs)
     assert len([n for n in topo if isinstance(n.op, GpuAllocEmpty)]) == 2
 
     # Test grad i op
@@ -212,7 +212,7 @@ def test_dnn_conv_inplace():
     topo = f.maker.fgraph.toposort()
     convs = [n for n in topo if isinstance(n.op, dnn.GpuDnnConvGradI)]
     assert len(convs) == 2
-    assert all([node.op.inplace for node in convs])
+    assert all(node.op.inplace for node in convs)
     assert len([n for n in topo if isinstance(n.op, GpuAllocEmpty)]) == 2
 
 
@@ -438,16 +438,16 @@ def run_pooling_with_tensor_vars(mode):
     # GPU implementation
     f_gpu = aesara.function([x], fn(x), mode=mode_with_gpu)
     assert any(
-        [isinstance(node.op, dnn.GpuDnnPool) for node in f_gpu.maker.fgraph.apply_nodes]
+        isinstance(node.op, dnn.GpuDnnPool) for node in f_gpu.maker.fgraph.apply_nodes
     )
 
     # CPU implementation
     out_cpu = pool_2d(x, ws, ignore_border=True, stride=stride, pad=pad, mode=mode)
     f_cpu = aesara.function([x], out_cpu, mode=mode_without_gpu2)
     assert not any(
-        [isinstance(node.op, dnn.GpuDnnPool) for node in f_cpu.maker.fgraph.apply_nodes]
+        isinstance(node.op, dnn.GpuDnnPool) for node in f_cpu.maker.fgraph.apply_nodes
     )
-    assert any([isinstance(node.op, Pool) for node in f_cpu.maker.fgraph.apply_nodes])
+    assert any(isinstance(node.op, Pool) for node in f_cpu.maker.fgraph.apply_nodes)
 
     i = 1
     for shp in [(1, 10, 100, 100), (1, 3, 99, 99), (32, 1, 147, 197)]:
@@ -588,7 +588,7 @@ def test_pooling_opt():
         mode=mode_with_gpu,
     )
 
-    assert any([isinstance(n.op, dnn.GpuDnnPool) for n in f.maker.fgraph.toposort()])
+    assert any(isinstance(n.op, dnn.GpuDnnPool) for n in f.maker.fgraph.toposort())
 
     f(np.zeros((10, 10), dtype=aesara.config.floatX))
 
@@ -601,9 +601,7 @@ def test_pooling_opt():
         mode=mode_with_gpu.including("cudnn"),
     )
 
-    assert any(
-        [isinstance(n.op, dnn.GpuDnnPoolGrad) for n in f.maker.fgraph.toposort()]
-    )
+    assert any(isinstance(n.op, dnn.GpuDnnPoolGrad) for n in f.maker.fgraph.toposort())
 
     f(np.zeros((10, 10), dtype=aesara.config.floatX))
 
@@ -612,7 +610,7 @@ def test_pooling_opt():
         [x], pool_2d(x, ws=(2, 3), mode="sum", ignore_border=True), mode=mode_with_gpu
     )
 
-    assert any([isinstance(n.op, dnn.GpuDnnPool) for n in f.maker.fgraph.toposort()])
+    assert any(isinstance(n.op, dnn.GpuDnnPool) for n in f.maker.fgraph.toposort())
     data = np.random.rand(10, 10).astype(aesara.config.floatX)
     f(data)
 
@@ -625,7 +623,7 @@ def test_pooling_opt():
         mode=mode_with_gpu,
     )
 
-    assert any([isinstance(n.op, dnn.GpuDnnPool) for n in f.maker.fgraph.toposort()])
+    assert any(isinstance(n.op, dnn.GpuDnnPool) for n in f.maker.fgraph.toposort())
 
     f(np.zeros((10, 10, 10), dtype=aesara.config.floatX))
 
@@ -639,9 +637,7 @@ def test_pooling_opt():
         mode=mode_with_gpu.including("cudnn"),
     )
 
-    assert any(
-        [isinstance(n.op, dnn.GpuDnnPoolGrad) for n in f.maker.fgraph.toposort()]
-    )
+    assert any(isinstance(n.op, dnn.GpuDnnPoolGrad) for n in f.maker.fgraph.toposort())
 
     f(np.zeros((10, 10, 10), dtype=aesara.config.floatX))
 
@@ -2949,9 +2945,9 @@ def test_dnn_spatialtf():
     st_dnn_func = aesara.function([t_img, t_theta], st_dnn, mode=mode_with_gpu)
     # Check if function graph contains the spatial transformer's grid and sampler Ops
     apply_nodes = st_dnn_func.maker.fgraph.apply_nodes
-    assert any([isinstance(node.op, dnn.GpuDnnTransformerGrid) for node in apply_nodes])
+    assert any(isinstance(node.op, dnn.GpuDnnTransformerGrid) for node in apply_nodes)
     assert any(
-        [isinstance(node.op, dnn.GpuDnnTransformerSampler) for node in apply_nodes]
+        isinstance(node.op, dnn.GpuDnnTransformerSampler) for node in apply_nodes
     )
 
     img_out_gpu = st_dnn_func(img, theta)

@@ -124,7 +124,7 @@ class BaseCorr3dMM(OpenMPOp, _NoPythonOp):
             else:
                 self.blas_type = ""
 
-        if self._direction not in ["forward", "backprop weights", "backprop inputs"]:
+        if self._direction not in ("forward", "backprop weights", "backprop inputs"):
             raise ValueError(
                 "_direction must be one of 'forward', "
                 "'backprop weights', 'backprop inputs'"

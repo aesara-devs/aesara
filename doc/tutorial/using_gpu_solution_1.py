@@ -48,11 +48,11 @@ train = aesara.function(
 predict = aesara.function(inputs=[], outputs=prediction,
             name="predict")
 
-if any([n.op.__class__.__name__ in ['Gemv', 'CGemv', 'Gemm', 'CGemm'] for n in
-train.maker.fgraph.toposort()]):
+if any(n.op.__class__.__name__ in ('Gemv', 'CGemv', 'Gemm', 'CGemm') for n in
+train.maker.fgraph.toposort()):
     print('Used the cpu')
-elif any([n.op.__class__.__name__ in ['GpuGemm', 'GpuGemv'] for n in
-train.maker.fgraph.toposort()]):
+elif any(n.op.__class__.__name__ in ('GpuGemm', 'GpuGemv') for n in
+train.maker.fgraph.toposort()):
     print('Used the gpu')
 else:
     print('ERROR, not able to tell if aesara used the cpu or the gpu')

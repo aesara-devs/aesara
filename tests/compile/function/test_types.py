@@ -329,7 +329,7 @@ class TestFunction:
         out = tanh((x + y + 2) / (x + z - 0.2) ** 2)
 
         # Test for different linkers
-        for mode in ["FAST_RUN", "FAST_COMPILE"]:
+        for mode in ("FAST_RUN", "FAST_COMPILE"):
             ori = function([x], [out], mode=mode, updates={z: z + 1})
             cpy = ori.copy(share_memory=True)
 
@@ -348,7 +348,7 @@ class TestFunction:
                 if key not in i_o_variables or isinstance(key, Constant)
             ]
             for storage in l:
-                assert any([storage is s for s in ori_storages])
+                assert any(storage is s for s in ori_storages)
 
             # Assert storages of SharedVariable without updates are shared
             for (input, _1, _2), here, there in zip(
@@ -377,7 +377,7 @@ class TestFunction:
         # Test for different linkers
         # for mode in ["FAST_RUN","FAST_COMPILE"]:
         second_time = False
-        for mode in ["FAST_RUN", "FAST_COMPILE"]:
+        for mode in ("FAST_RUN", "FAST_COMPILE"):
             ori = function(
                 [i],
                 [out],
@@ -462,7 +462,7 @@ class TestFunction:
         # Test for different linkers
         # for mode in ["FAST_RUN","FAST_COMPILE"]:
         # second_time = False
-        for mode in ["FAST_RUN", "FAST_COMPILE"]:
+        for mode in ("FAST_RUN", "FAST_COMPILE"):
             ori = function([x], out, mode=mode, updates={z: z * 2})
             cpy = ori.copy(delete_updates=True)
 
@@ -472,7 +472,7 @@ class TestFunction:
 
         # Test if unused implicit and explicit inputs from delete_updates
         # are ignored as intended.
-        for mode in ["FAST_RUN", "FAST_COMPILE"]:
+        for mode in ("FAST_RUN", "FAST_COMPILE"):
             ori = function([x], x, mode=mode, updates={z: z * 2})
             cpy = ori.copy(delete_updates=True)
 
@@ -683,7 +683,7 @@ class TestFunction:
         for key, val in func.fn.storage_map.items():
             if not isinstance(key, Constant):
                 check_list.append(val)
-        assert any([val[0] for val in check_list])
+        assert any(val[0] for val in check_list)
 
         func.free()
 

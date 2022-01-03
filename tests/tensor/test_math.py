@@ -3251,7 +3251,7 @@ def test_grad_useless_sum():
     finally:
         TensorType.values_eq_approx = old_values_eq_approx
 
-    assert not any([isinstance(node.op, Sum) for node in applys_between([x], [g])])
+    assert not any(isinstance(node.op, Sum) for node in applys_between([x], [g]))
     assert np.allclose(
         outputs, [[-3.72007598e-44], [-0.26894142], [-0.5], [-0.73105858], [-1.0]]
     )

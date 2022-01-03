@@ -491,7 +491,7 @@ class Pool(OpenMPOp):
         if mode == "max_deterministic":
             # It seems max pool algo is already deterministic in CPU.
             mode = "max"
-        if mode not in ["max", "average_inc_pad", "average_exc_pad", "sum"]:
+        if mode not in ("max", "average_inc_pad", "average_exc_pad", "sum"):
             raise ValueError(
                 "Pool mode parameter only support 'max', 'sum',"
                 f" 'average_inc_pad' and 'average_exc_pad'. Got {mode}"
@@ -1130,7 +1130,7 @@ class PoolGrad(OpenMPOp):
         if mode == "max_deterministic":
             # It seems max pool grad algo is already deterministic in CPU.
             mode = "max"
-        if mode not in ["max", "sum", "average_inc_pad", "average_exc_pad"]:
+        if mode not in ("max", "sum", "average_inc_pad", "average_exc_pad"):
             raise ValueError(
                 "Pool mode parameter only support 'max', 'sum',"
                 " 'average_inc_pad' and 'average_exc_pad'. Got {mode}"
@@ -1504,7 +1504,7 @@ class AveragePoolGrad(PoolGrad):
     # ignore_border is used for perform, but not c code. No need in params_type
 
     def __init__(self, ignore_border, mode="average_inc_pad", ndim=2):
-        assert mode in ["sum", "average_inc_pad", "average_exc_pad"]
+        assert mode in ("sum", "average_inc_pad", "average_exc_pad")
         PoolGrad.__init__(self, ignore_border, mode, ndim)
 
     # There is an extra dummy parameter to match the parameter count

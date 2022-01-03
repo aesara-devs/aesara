@@ -266,7 +266,7 @@ optdb.register("merge3", MergeOptimizer(), 100, "fast_run", "merge")
 
 _tags: Union[Tuple[str, str], Tuple]
 
-if config.check_stack_trace in ["raise", "warn", "log"]:
+if config.check_stack_trace in ("raise", "warn", "log"):
     _tags = ("fast_run", "fast_compile")
 
 if config.check_stack_trace == "off":
@@ -488,7 +488,7 @@ def get_mode(orig_string):
         if instantiated_default_mode.__class__.__name__ == default_mode_class:
             return instantiated_default_mode
 
-    if string in ["Mode", "DebugMode", "NanGuardMode"]:
+    if string in ("Mode", "DebugMode", "NanGuardMode"):
         if string == "DebugMode":
             # need to import later to break circular dependency.
             from .debugmode import DebugMode

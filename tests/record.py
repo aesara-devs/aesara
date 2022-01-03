@@ -234,7 +234,7 @@ class RecordMode(Mode):
             handle_line(fgraph, line, i, node, fn)
             line = f"Node {i}:{node}\n"
             handle_line(fgraph, line, i, node, fn)
-            assert all([isinstance(x, list) and len(x) == 1 for x in fn.inputs])
+            assert all(isinstance(x, list) and len(x) == 1 for x in fn.inputs)
 
             def digest(x):
                 x = x[0]

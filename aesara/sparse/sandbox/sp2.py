@@ -54,7 +54,7 @@ class Poisson(Op):
         (x,) = inputs
         (out,) = outputs
         assert _is_sparse(x)
-        assert x.format in ["csr", "csc"]
+        assert x.format in ("csr", "csc")
         out[0] = x.copy()
         out[0].data = np.asarray(np.random.poisson(out[0].data), dtype=x.dtype)
         out[0].eliminate_zeros()
@@ -171,7 +171,7 @@ class Multinomial(Op):
     def make_node(self, n, p):
         n = aet.as_tensor_variable(n)
         p = as_sparse_variable(p)
-        assert p.format in ["csr", "csc"]
+        assert p.format in ("csr", "csc")
 
         return Apply(self, [n, p], [p.type()])
 

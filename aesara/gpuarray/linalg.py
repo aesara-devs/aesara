@@ -200,7 +200,7 @@ class GpuCusolverSolve(Op):
         assert len(A.shape) == 2
         assert len(b.shape) == 2
 
-        if self.trans in ["T", "C"]:
+        if self.trans in ("T", "C"):
             trans = 1
             l, n = A.shape
             k, m = b.shape
@@ -379,7 +379,7 @@ class GpuCublasTriangularSolve(Op):
         inp2 = gpu_contiguous(inp2)
 
         assert inp1.ndim == 2
-        assert inp2.ndim in [1, 2]
+        assert inp2.ndim in (1, 2)
         assert inp1.dtype == inp2.dtype
 
         return Apply(
@@ -411,13 +411,13 @@ class GpuCublasTriangularSolve(Op):
         b = inputs[1]
 
         assert len(A.shape) == 2
-        assert len(b.shape) in [1, 2]
+        assert len(b.shape) in (1, 2)
 
         # implicitly deal with the difference between C order
         # and fortran order by flipping the trans and lower flags
         lower = not self.lower
         trans = self.trans
-        if trans in ["T", "C"]:
+        if trans in ("T", "C"):
             trans = "N"
             l, n = A.shape
         elif trans == "N":
@@ -1021,7 +1021,7 @@ class GpuMagmaEigh(GpuMagmaBase):
     params_type = ParamsType(lower=bool_t, compute_v=bool_t, context=gpu_context_type)
 
     def __init__(self, UPLO="L", compute_v=True):
-        assert UPLO in ["L", "U"]
+        assert UPLO in ("L", "U")
         self.lower = UPLO == "L"
         self.compute_v = compute_v
         ExternalCOp.__init__(

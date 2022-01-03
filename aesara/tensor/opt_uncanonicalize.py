@@ -210,7 +210,7 @@ def local_dimshuffle_subtensor(fgraph, node):
             for dim in new_order:
                 missing_dims.remove(dim)
 
-            if not all([broadcastable[i] for i in missing_dims]):
+            if not all(broadcastable[i] for i in missing_dims):
                 return False
 
             # create a new idx_list for a new Subtensor object

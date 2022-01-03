@@ -381,7 +381,7 @@ def get_scalar_constant_value(
                     get_scalar_constant_value(c, max_recur=max_recur)
                     for c in v.owner.inputs[1:]
                 ]
-                if builtins.all([0 == c.ndim and c != 0 for c in conds]):
+                if builtins.all(0 == c.ndim and c != 0 for c in conds):
                     v = v.owner.inputs[0]
                     continue
             elif isinstance(v.owner.op, aes.ScalarOp):
@@ -1899,7 +1899,7 @@ class Split(COp):
             raise ValueError(
                 f"The splits sum to {np.sum(splits)}; expected {len_along_axis}"
             )
-        if builtins.any([nb < 0 for nb in splits]):
+        if builtins.any(nb < 0 for nb in splits):
             raise ValueError(
                 "Attempted to make an array with a " "negative number of elements"
             )
@@ -1933,7 +1933,7 @@ class Split(COp):
         x, axis, n = inputs
         outputs = self(*inputs, return_list=True)
         # If all the output gradients are disconnected, then so are the inputs
-        if builtins.all([isinstance(g.type, DisconnectedType) for g in g_outputs]):
+        if builtins.all(isinstance(g.type, DisconnectedType) for g in g_outputs):
             return [
                 DisconnectedType()(),
                 grad_undefined(self, 1, axis),

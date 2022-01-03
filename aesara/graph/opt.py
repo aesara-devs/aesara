@@ -888,7 +888,7 @@ class MergeOptimizer(GlobalOptimizer):
                     # If all Constants, no need to call validate.
                     # Only need to check one of the var of each pairs.
                     # If it is a Constant, the other must also be a Constant as we merge them.
-                    if all([isinstance(old, Constant) for old, new in pairs]):
+                    if all(isinstance(old, Constant) for old, new in pairs):
                         fgraph.replace_all(pairs, reason="MergeOptimizer")
                     else:
                         fgraph.replace_all_validate(pairs, reason="MergeOptimizer")
@@ -2067,7 +2067,7 @@ class TopoOptimizer(NavigatorOptimizer):
     def __init__(
         self, local_opt, order="in_to_out", ignore_newtrees=False, failure_callback=None
     ):
-        if order not in ["out_to_in", "in_to_out"]:
+        if order not in ("out_to_in", "in_to_out"):
             raise ValueError("order must be 'out_to_in' or 'in_to_out'")
         self.order = order
         super().__init__(local_opt, ignore_newtrees, failure_callback)
@@ -3138,7 +3138,7 @@ class CheckStackTraceFeature(Feature):
                     "Empty stack trace! The optimization that inserted this variable is "
                     + str(reason)
                 )
-            elif config.check_stack_trace in ["log", "warn"]:
+            elif config.check_stack_trace in ("log", "warn"):
                 apply_nodes_to_check = fgraph.apply_nodes
                 for node in apply_nodes_to_check:
                     for output in node.outputs:
