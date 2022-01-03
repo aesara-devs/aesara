@@ -15,15 +15,16 @@ Requirements
 .. _skcuda: http://scikit-cuda.readthedocs.io/en/latest/
 .. _warp-ctc: https://github.com/baidu-research/warp-ctc
 
-    Python_ == 2.7* or ( >= 3.4 and < 3.6 )
+    Python_ == >= 3.7
         |PythonDistRecommended|. Python 2.4 was supported up to and including the
         release 0.6. Python 2.6 was supported up to and including the
         release 0.8.2. Python 3.3 was supported up to and including release 0.9.
+        Python 3.6 was supported up to and including release 2.3.4.
 
-    `NumPy <http://numpy.scipy.org/>`_ >= 1.9.1 <= 1.12
+    `NumPy <http://numpy.scipy.org/>`_ >= 1.9.1
         Earlier versions could work, but we don’t test it.
 
-    `SciPy <http://scipy.org>`_ >= 0.14 < 0.17.1
+    `SciPy <http://scipy.org>`_ >= 0.14
         Only currently required for sparse matrix and special functions support, but highly recommended. SciPy >=0.8 could work, but earlier versions have known bugs with sparse matrices.
 
     `BLAS`_ installation (with Level 3 functionality)

@@ -1,12 +1,8 @@
-# import aesara.tensor.basic as aet
-
 from aesara.configdefaults import config
 from aesara.graph.op import COp
 from aesara.graph.opt import in2out
 from aesara.graph.params_type import ParamsType
 from aesara.scalar import bool as bool_t
-
-# Work-around for Python 3.6 issue that prevents `import aesara.tensor as aet`
 from aesara.tensor import basic as aet
 from aesara.tensor.blas import (
     Gemv,

@@ -14,7 +14,7 @@ help:
 
 conda:  # Set up a conda environment for development.
 	@printf "Creating conda environment...\n"
-	${CONDA} create --yes --name ${PROJECT_NAME}-env python=3.6
+	${CONDA} create --yes --name ${PROJECT_NAME}-env python=3.9
 	( \
 	${CONDA} activate ${PROJECT_NAME}-env; \
 	${PIP} install -U pip; \
