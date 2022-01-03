@@ -124,7 +124,7 @@ do is to loop over the entries in *y* and compute the gradient of
 >>> import aesara.tensor as aet
 >>> x = aet.dvector('x')
 >>> y = x ** 2
->>> J, updates = aesara.scan(lambda i, y, x : aet.grad(y[i], x), sequences=T.arange(y.shape[0]), non_sequences=[y, x])
+>>> J, updates = aesara.scan(lambda i, y, x : aet.grad(y[i], x), sequences=aet.arange(y.shape[0]), non_sequences=[y, x])
 >>> f = aesara.function([x], J, updates=updates)
 >>> f([4, 4])
 array([[ 8.,  0.],
@@ -163,7 +163,7 @@ scalar.
 >>> y = x ** 2
 >>> cost = y.sum()
 >>> gy = aet.grad(cost, x)
->>> H, updates = aesara.scan(lambda i, gy,x : aet.grad(gy[i], x), sequences=T.arange(gy.shape[0]), non_sequences=[gy, x])
+>>> H, updates = aesara.scan(lambda i, gy,x : aet.grad(gy[i], x), sequences=aet.arange(gy.shape[0]), non_sequences=[gy, x])
 >>> f = aesara.function([x], H, updates=updates)
 >>> f([4, 4])
 array([[ 2.,  0.],

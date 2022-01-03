@@ -45,7 +45,7 @@ The equivalent Aesara code would be:
 
   # Symbolic description of the result
   result, updates = aesara.scan(fn=lambda prior_result, A: prior_result * A,
-                                outputs_info=T.ones_like(A),
+                                outputs_info=aet.ones_like(A),
                                 non_sequences=A,
                                 n_steps=k)
 
@@ -174,7 +174,7 @@ downcast** of the latter.
     seq = aet.arange(up_to)
 
     # An unauthorized implicit downcast from the dtype of 'seq', to that of
-    # 'T.as_tensor_variable(0)' which is of dtype 'int8' by default would occur
+    # 'aet.as_tensor_variable(0)' which is of dtype 'int8' by default would occur
     # if this instruction were to be used instead of the next one:
     # outputs_info = aet.as_tensor_variable(0)
 
