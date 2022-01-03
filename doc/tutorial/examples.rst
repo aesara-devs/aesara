@@ -562,7 +562,7 @@ It will be used repeatedly.
     print(b.get_value())
 
     # Construct Aesara expression graph
-    p_1 = 1 / (1 + aet.exp(-T.dot(x, w) - b))        # Probability that target = 1
+    p_1 = 1 / (1 + aet.exp(-aet.dot(x, w) - b))        # Probability that target = 1
     prediction = p_1 > 0.5                          # The prediction thresholded
     xent = -y * aet.log(p_1) - (1-y) * aet.log(1-p_1) # Cross-entropy loss function
     cost = xent.mean() + 0.01 * (w ** 2).sum()      # The cost to minimize
