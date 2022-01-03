@@ -1044,16 +1044,12 @@ class TestSubtensor(utt.OptimizationTestMixin):
             topo = f.maker.fgraph.toposort()
             if not self.fast_compile:
                 assert any(
-                    [
-                        isinstance(node.op, AdvancedIncSubtensor1) and node.op.inplace
-                        for node in topo
-                    ]
+                    isinstance(node.op, AdvancedIncSubtensor1) and node.op.inplace
+                    for node in topo
                 )
             else:
-                assert any(
-                    [isinstance(node.op, AdvancedIncSubtensor1) for node in topo]
-                )
-            assert any([isinstance(node.op, AdvancedSubtensor1) for node in topo])
+                assert any(isinstance(node.op, AdvancedIncSubtensor1) for node in topo)
+            assert any(isinstance(node.op, AdvancedSubtensor1) for node in topo)
             gval, gshape = f()
             good = np.zeros_like(data)
             # don't work when the same index is used many time

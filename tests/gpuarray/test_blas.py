@@ -81,7 +81,7 @@ def test_float16():
     out = f()
     utt.assert_allclose(np.asarray(out), alpha * np.dot(A, x) + beta * y)
     topo = f.maker.fgraph.toposort()
-    assert any([isinstance(n.op, GpuGemm) for n in topo])
+    assert any(isinstance(n.op, GpuGemm) for n in topo)
 
     # gemm
     float16_data = [

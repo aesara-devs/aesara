@@ -748,7 +748,7 @@ class Repeat(Op):
 
         # uint64 shape are not supported.
         dtype = None
-        if repeats.dtype in ["uint8", "uint16", "uint32"]:
+        if repeats.dtype in ("uint8", "uint16", "uint32"):
             dtype = "int64"
         if self.axis is None:
             if repeats.ndim == 0:

@@ -2083,7 +2083,7 @@ class GCC_compiler(Compiler):
                             or "-march=native" in line
                         ):
                             continue
-                        for reg in ["-march=", "-mtune=", "-target-cpu", "-mabi="]:
+                        for reg in ("-march=", "-mtune=", "-target-cpu", "-mabi="):
                             if reg in line:
                                 selected_lines.append(line.strip())
                     lines = list(set(selected_lines))  # to remove duplicate
@@ -2650,7 +2650,7 @@ def default_blas_ldflags():
                     # Why on Windows, the library used are not the
                     # same as what is in
                     # blas_info['libraries']?
-                    [f"-l{l}" for l in ["mk2_core", "mk2_intel_thread", "mk2_rt"]]
+                    [f"-l{l}" for l in ("mk2_core", "mk2_intel_thread", "mk2_rt")]
                 )
             elif sys.platform == "darwin":
                 # The env variable is needed to link with mkl
@@ -2723,7 +2723,7 @@ def default_blas_ldflags():
                     +
                     # Why on Windows, the library used are not the
                     # same as what is in blas_info['libraries']?
-                    [f"-l{l}" for l in ["mk2_core", "mk2_intel_thread", "mk2_rt"]]
+                    [f"-l{l}" for l in ("mk2_core", "mk2_intel_thread", "mk2_rt")]
                 )
 
         # MKL
@@ -2750,13 +2750,13 @@ def default_blas_ldflags():
             else:
                 thr = "mkl_intel_thread"
             base_flags = list(flags)
-            flags += [f"-l{l}" for l in ["mkl_core", thr, "mkl_rt"]]
+            flags += [f"-l{l}" for l in ("mkl_core", thr, "mkl_rt")]
             res = try_blas_flag(flags)
 
             if not res and sys.platform == "win32" and thr == "mkl_gnu_thread":
                 # Check if it would work for intel OpenMP on windows
                 flags = base_flags + [
-                    f"-l{l}" for l in ["mkl_core", "mkl_intel_thread", "mkl_rt"]
+                    f"-l{l}" for l in ("mkl_core", "mkl_intel_thread", "mkl_rt")
                 ]
                 res = try_blas_flag(flags)
 

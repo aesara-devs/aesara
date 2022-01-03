@@ -313,7 +313,7 @@ def function(
         )
 
     # compute some features of the arguments:
-    uses_tuple = any([isinstance(i, (list, tuple)) for i in inputs])
+    uses_tuple = any(isinstance(i, (list, tuple)) for i in inputs)
     uses_updates = bool(updates)
     uses_givens = bool(givens)
 

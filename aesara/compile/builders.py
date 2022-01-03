@@ -421,7 +421,7 @@ class OpFromGraph(Op, HasInnerGraph):
         if isinstance(lop_op, OpFromGraph):
             if self._lop_op_is_cached:
                 return
-            assert self._lop_type in ["lop", "grad"], (
+            assert self._lop_type in ("lop", "grad"), (
                 self.LOP_TYPE_ERR_MSG % self._lop_type
             )
             if self._lop_type == "grad":
@@ -455,7 +455,7 @@ class OpFromGraph(Op, HasInnerGraph):
             known_grads=OrderedDict(zip(local_outputs, output_grads)),
         )
 
-        assert self._lop_type in ["lop", "grad"], self.LOP_TYPE_ERR_MSG % self._lop_type
+        assert self._lop_type in ("lop", "grad"), self.LOP_TYPE_ERR_MSG % self._lop_type
         if self._lop_type == "lop":
             callable_args = (local_inputs, local_outputs, output_grads)
         elif self._lop_type == "grad":

@@ -94,7 +94,7 @@ def d3viz(fct, outfile, copy_deps=True, *args, **kwargs):
     src_deps = __path__
     if copy_deps:
         dst_deps = "d3viz"
-        for d in ["js", "css"]:
+        for d in ("js", "css"):
             dep = os.path.join(outdir, dst_deps, d)
             if not os.path.exists(dep):
                 shutil.copytree(os.path.join(src_deps, d), dep)

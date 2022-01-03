@@ -72,7 +72,7 @@ def calculate_reallocate_info(order, fgraph, storage_map, compute_map_re, depend
                 and not storage_map[ins][0]
                 and ins not in fgraph.outputs
                 and ins.owner
-                and all([compute_map_re[v][0] for v in dependencies.get(ins, [])])
+                and all(compute_map_re[v][0] for v in dependencies.get(ins, []))
                 and ins not in allocated
             ):
                 # Constant Memory cannot be changed
@@ -1031,7 +1031,7 @@ class VMLinker(LocalLinker):
             if lazy is None:
                 lazy = config.vm__lazy
             if lazy is None:
-                lazy = not all([(not th.lazy) for th in thunks])
+                lazy = any(th.lazy for th in thunks)
             if not lazy:
                 # there is no conditional in the graph
                 if self.allow_gc:
@@ -1134,7 +1134,7 @@ class VMLinker(LocalLinker):
         if lazy is None:
             lazy = config.vm__lazy
         if lazy is None:
-            lazy = not all([(not th.lazy) for th in thunks])
+            lazy = any(th.lazy for th in thunks)
         if not (
             lazy
             or ((config.profile or config.print_global_stats) and config.profile_memory)

@@ -551,7 +551,7 @@ class GpuArrayType(CType):
 
     def c_header_dirs(self, **kwargs):
         other_dirs = []
-        for dir_to_add in ["Library/include", "include"]:
+        for dir_to_add in ("Library/include", "include"):
             alt_inc_dir = os.path.abspath(
                 os.path.normpath(sys.exec_prefix + "/" + dir_to_add)
             )
@@ -561,7 +561,7 @@ class GpuArrayType(CType):
 
     def c_lib_dirs(self, **kwargs):
         dirs = []
-        for dir_to_add in ["Library/lib", "lib"]:
+        for dir_to_add in ("Library/lib", "lib"):
             alt_lib_dir = os.path.abspath(
                 os.path.normpath(sys.exec_prefix + "/" + dir_to_add)
             )

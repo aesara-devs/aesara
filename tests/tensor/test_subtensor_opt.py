@@ -202,7 +202,7 @@ def test_local_useless_subtensor():
             assert prog[1].op == exp, (dims, prog)
             assert len(prog) == 2, dims
         else:
-            assert any([isinstance(node.op, Subtensor) for node in prog])
+            assert any(isinstance(node.op, Subtensor) for node in prog)
         f([[0, 1, 2], [3, 4, 5]])  # let debugmode test something
 
     # Test Variable
@@ -255,7 +255,7 @@ def test_local_useless_subtensor():
             assert prog[0].op == exp, dims
             assert len(prog) == 1, dims
         else:
-            assert any([isinstance(node.op, Subtensor) for node in prog])
+            assert any(isinstance(node.op, Subtensor) for node in prog)
         f([[0, 1, 2], [3, 4, 5]])  # let debugmode test something
     # Test mix Variable and Constant
     # Currently not supported
@@ -271,7 +271,7 @@ def test_local_useless_subtensor():
             assert prog[0].op == exp, dims
             assert len(prog) == 1, dims
         else:
-            assert any([isinstance(node.op, Subtensor) for node in prog])
+            assert any(isinstance(node.op, Subtensor) for node in prog)
         f([[0, 1, 2], [3, 4, 5]])  # let debugmode test something
 
     # Test scalar variable
@@ -287,7 +287,7 @@ def test_local_useless_subtensor():
             assert prog[0].op == exp, dims
             assert len(prog) == 1, dims
         else:
-            assert any([isinstance(node.op, Subtensor) for node in prog])
+            assert any(isinstance(node.op, Subtensor) for node in prog)
         f([[1, 2, 3], [4, 5, 6]], 1)
         f([[1, 2, 3], [4, 5, 6]], 3)
 
@@ -311,7 +311,7 @@ def test_local_useless_subtensor():
             assert prog[1].op == exp, dims
             assert len(prog) == 2, dims
         else:
-            assert any([isinstance(node.op, AdvancedSubtensor1) for node in prog])
+            assert any(isinstance(node.op, AdvancedSubtensor1) for node in prog)
         f([[0, 1, 2], [3, 4, 5]])  # let debugmode test something
 
 
@@ -1759,7 +1759,7 @@ def test_local_set_to_inc_subtensor():
     # We only have SetSubtensor in f1
     assert all(n.op.set_instead_of_inc for n in advi1)
     # We don't have any SetSubtensor in f2
-    assert all(not n.op.set_instead_of_inc for n in advi2)
+    assert not any(n.op.set_instead_of_inc for n in advi2)
 
     val = np.random.standard_normal((3, 2)).astype("float32")
 

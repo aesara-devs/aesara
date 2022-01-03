@@ -133,7 +133,7 @@ def test_local_alloc_dimshuffle():
     alloc_dimshuffle(g)
 
     topo = g.toposort()
-    assert any([not isinstance(x, DimShuffle) for x in topo])
+    assert not all(isinstance(x, DimShuffle) for x in topo)
 
 
 def test_local_reshape_dimshuffle():
@@ -149,7 +149,7 @@ def test_local_reshape_dimshuffle():
     reshape_dimshuffle(g)
 
     topo = g.toposort()
-    assert any([not isinstance(x, DimShuffle) for x in topo])
+    assert not all(isinstance(x, DimShuffle) for x in topo)
 
 
 def test_local_dimshuffle_alloc():
@@ -170,7 +170,7 @@ def test_local_dimshuffle_alloc():
     assert f([3, 4]).ndim == 4
 
     topo = g.toposort()
-    assert any([not isinstance(x, DimShuffle) for x in topo])
+    assert not all(isinstance(x, DimShuffle) for x in topo)
 
 
 def test_local_dimshuffle_subtensor():
@@ -187,7 +187,7 @@ def test_local_dimshuffle_subtensor():
     dimshuffle_subtensor(g)
 
     topo = g.toposort()
-    assert any([not isinstance(x, DimShuffle) for x in topo])
+    assert not all(isinstance(x, DimShuffle) for x in topo)
 
     # Test dimshuffle remove dimensions the subtensor don't "see".
     x = tensor(broadcastable=(False, True, False), dtype="float64")
@@ -197,7 +197,7 @@ def test_local_dimshuffle_subtensor():
     dimshuffle_subtensor(g)
 
     topo = g.toposort()
-    assert any([not isinstance(x, DimShuffle) for x in topo])
+    assert not all(isinstance(x, DimShuffle) for x in topo)
 
     # Test dimshuffle remove dimensions the subtensor don't "see" but
     # have in between dimensions.
@@ -207,7 +207,7 @@ def test_local_dimshuffle_subtensor():
     f = aesara.function([x, i], out)
 
     topo = f.maker.fgraph.toposort()
-    assert any([not isinstance(x, DimShuffle) for x in topo])
+    assert not all(isinstance(x, DimShuffle) for x in topo)
     assert f(np.random.rand(5, 1, 4, 1), 2).shape == (4,)
 
     # Test a corner case that had Aesara return a bug.

@@ -614,7 +614,7 @@ class GpuDnnConvDesc(_NoPythonExternalCOp):
     ):
         super().__init__(["c_code/conv_desc.c"], "APPLY_SPECIFIC(conv_desc)")
 
-        if version() < 6000 and any([d != 1 for d in dilation]):
+        if version() < 6000 and any(d != 1 for d in dilation):
             raise RuntimeError("Dilation > 1 not supported for cuDNN version < 6.")
 
         if isinstance(border_mode, int):
@@ -2018,11 +2018,11 @@ class GpuDnnPoolGrad(GpuDnnPoolBase):
     def make_node(self, inp, out, out_grad, ws, stride, pad):
         ctx_name = infer_context_name(inp, out, out_grad)
         inp = as_gpuarray_variable(inp, ctx_name)
-        assert inp.ndim in [4, 5]
+        assert inp.ndim in (4, 5)
         out_grad = as_gpuarray_variable(out_grad, ctx_name)
-        assert out_grad.ndim in [4, 5]
+        assert out_grad.ndim in (4, 5)
         out = as_gpuarray_variable(out, ctx_name)
-        assert out.ndim in [4, 5]
+        assert out.ndim in (4, 5)
 
         assert out_grad.ndim == inp.ndim
         assert inp.ndim == out.ndim
@@ -2209,9 +2209,10 @@ class GpuDnnReduction(DnnBase):
         super().__init__(["c_code/dnn_redux.c"], "APPLY_SPECIFIC(dnn_redux)")
         assert cudnn.cudnnReduceTensorOp_t.has_alias(red_op)
         self.red_op = red_op
-        assert acc_dtype in ["float16", "float32", "float64"]
+        valid_dtypes = ("float16", "float32", "float64")
+        assert acc_dtype in valid_dtypes
         self.acc_dtype = acc_dtype
-        assert dtype in ["float16", "float32", "float64"]
+        assert dtype in valid_dtypes
         self.dtype = dtype
         # 8 is the current limit for cudnn
         if axis is not None:
@@ -2242,7 +2243,7 @@ class GpuDnnReduction(DnnBase):
         inp = gpu_contiguous(inp)
         if inp.ndim > 8:
             raise ValueError("cuDNN reduction doesn't support nd > 8")
-        assert inp.dtype in ["float16", "float32", "float64"]
+        assert inp.dtype in ("float16", "float32", "float64")
 
         # These restrictions where guessed from vague clues since
         # there is no actual documentation on this

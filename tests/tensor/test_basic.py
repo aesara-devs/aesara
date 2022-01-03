@@ -1013,7 +1013,7 @@ def test_get_vector_length():
     mode = aesara.compile.get_default_mode().excluding("constant_folding")
     f = function([x, y], [b, c, a], mode=mode)
     topo = f.maker.fgraph.toposort()
-    assert any([True for node in topo if isinstance(node.op, MakeVector)])
+    assert any(True for node in topo if isinstance(node.op, MakeVector))
 
     assert np.allclose(f(4, 5), [5, 9, 4])
 

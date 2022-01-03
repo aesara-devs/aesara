@@ -743,7 +743,7 @@ def missing_test_message(msg: Text) -> None:
     elif action == "warn":
         warnings.warn(msg, stacklevel=2)
     else:
-        assert action in ["ignore", "off"]
+        assert action in ("ignore", "off")
 
 
 def get_test_values(*args: Variable) -> Union[Any, List[Any]]:

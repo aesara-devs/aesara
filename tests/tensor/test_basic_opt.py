@@ -1365,7 +1365,7 @@ class TestLocalCanonicalizeAlloc:
 
         # The optimization should then be applied, and remove Alloc
         assert not any(
-            [isinstance(node.op, (Alloc, Assert)) for node in f.maker.fgraph.toposort()]
+            isinstance(node.op, (Alloc, Assert)) for node in f.maker.fgraph.toposort()
         )
 
     def test_inconsistent_shared(self):
@@ -1378,10 +1378,8 @@ class TestLocalCanonicalizeAlloc:
         f = function([], a, mode=mode_opt)
 
         # The optimization should then be applied, and remove Alloc
-        assert not any(
-            [isinstance(node.op, Alloc) for node in f.maker.fgraph.toposort()]
-        )
-        assert any([isinstance(node.op, Assert) for node in f.maker.fgraph.toposort()])
+        assert not any(isinstance(node.op, Alloc) for node in f.maker.fgraph.toposort())
+        assert any(isinstance(node.op, Assert) for node in f.maker.fgraph.toposort())
 
         with pytest.raises(AssertionError):
             f()
@@ -1781,7 +1779,7 @@ class TestUselessCheckAndRaise:
         fg = FunctionGraph(outputs=[assert_op(x, 1)], clone=False)
         fg_res = optimize_graph(fg, include=["canonicalize", "specialize"])
         topo = fg_res.toposort()
-        assert not any([isinstance(node.op, CheckAndRaise) for node in topo])
+        assert not any(isinstance(node.op, CheckAndRaise) for node in topo)
 
     def test_local_remove_useless_2(self):
         """Remove `CheckAndRaise` conditions that are always true."""
@@ -1815,7 +1813,7 @@ def test_local_remove_all_assert():
     # Without the optimization, this would fail
     assert f(1, 0) == 1
     topo = f.maker.fgraph.toposort()
-    assert not any([isinstance(node.op, CheckAndRaise) for node in topo])
+    assert not any(isinstance(node.op, CheckAndRaise) for node in topo)
 
     mode = get_default_mode()
     a = assert_op(x, eq(x, 0).any())
@@ -2043,7 +2041,7 @@ def test_constant_folding():
     f = function([], [x * 2, x + x], mode=mode)
     topo = f.maker.fgraph.toposort()
     assert len(topo) == 2
-    assert all([isinstance(n.op, DeepCopyOp) for n in topo])
+    assert all(isinstance(n.op, DeepCopyOp) for n in topo)
 
 
 @pytest.mark.xfail(

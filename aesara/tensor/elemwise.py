@@ -849,8 +849,8 @@ second dimension
         # This is to protect again futur change of uniq.
         assert len(inames) == len(inputs)
         ii, iii = list(zip(*uniq(list(zip(_inames, node.inputs)))))
-        assert all([x == y for x, y in zip(ii, inames)])
-        assert all([x == y for x, y in zip(iii, inputs)])
+        assert all(x == y for x, y in zip(ii, inames))
+        assert all(x == y for x, y in zip(iii, inputs))
 
         defines = ""
         undefs = ""
@@ -1072,7 +1072,7 @@ second dimension
         # and the scalar op define optimized code for that case
         # use it! The scalar_op need to check the broadcast flag himself.
         if (
-            all([o.ndim >= 1 for o in node.outputs])
+            all(o.ndim >= 1 for o in node.outputs)
             and
             # Don't use the contig code for broadcasted scalar.
             not all(node.outputs[0].broadcastable)
@@ -1260,7 +1260,7 @@ class CAReduce(COp):
     ] = ("scalar_op", "axis")
 
     def __init__(self, scalar_op, axis=None):
-        if scalar_op.nin not in [-1, 2] or scalar_op.nout != 1:
+        if scalar_op.nin not in (-1, 2) or scalar_op.nout != 1:
             raise NotImplementedError(
                 "CAReduce only supports binary functions with a single " "output."
             )
@@ -1480,14 +1480,14 @@ class CAReduce(COp):
         identity = self.scalar_op.identity
 
         if np.isposinf(identity):
-            if input.type.dtype in ["float32", "float64"]:
+            if input.type.dtype in ("float32", "float64"):
                 identity = "__builtin_inf()"
             elif input.type.dtype.startswith("uint") or input.type.dtype == "bool":
                 identity = "1"
             else:
                 identity = "NPY_MAX_" + str(input.type.dtype).upper()
         elif np.isneginf(identity):
-            if input.type.dtype in ["float32", "float64"]:
+            if input.type.dtype in ("float32", "float64"):
                 identity = "-__builtin_inf()"
             elif input.type.dtype.startswith("uint") or input.type.dtype == "bool":
                 identity = "0"

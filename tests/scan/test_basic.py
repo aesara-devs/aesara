@@ -3780,7 +3780,7 @@ class TestScan:
         f = function([x, A], z)
         topo = f.maker.fgraph.toposort()
         if config.mode != "FAST_COMPILE":
-            assert any([isinstance(node.op, Dot22) for node in topo])
+            assert any(isinstance(node.op, Dot22) for node in topo)
 
         vx = np.array([[1.0, 1.0], [2.0, 2.0]], dtype=config.floatX)
         vA = np.array([[1.0, 1.0], [1.0, 0.0]], dtype=config.floatX)

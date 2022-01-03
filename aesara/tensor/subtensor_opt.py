@@ -392,7 +392,7 @@ def local_subtensor_lift(fgraph, node):
 
         if isinstance(u.owner.op, Elemwise):
             new_inputs = []
-            if all([sum(i.type.broadcastable) == 0 for i in u.owner.inputs]):
+            if all(sum(i.type.broadcastable) == 0 for i in u.owner.inputs):
                 # There is no broadcastable in the inputs
                 idx = node.inputs[1:]
                 new_inputs = [node.op(i, *idx) for i in u.owner.inputs]
@@ -404,9 +404,7 @@ def local_subtensor_lift(fgraph, node):
                 # and stacktrace from previous unary operation
                 copy_stack_trace([node.outputs[0], node.inputs[0]], ret)
                 return [ret]
-            elif all(
-                [sum(i.type.broadcastable) in [i.ndim, 0] for i in u.owner.inputs]
-            ):
+            elif all(sum(i.type.broadcastable) in [i.ndim, 0] for i in u.owner.inputs):
                 # There is no broadcastable in the inputs or it is scalar
                 idx = node.inputs[1:]
                 new_inputs = []
@@ -572,7 +570,7 @@ def local_subtensor_remove_broadcastable_index(fgraph, node):
             dim_index = node.inputs[node_inputs_idx]
             if isinstance(dim_index, aes.ScalarConstant):
                 dim_index = dim_index.value
-            if dim_index in [0, -1] and node.inputs[0].broadcastable[dim]:
+            if dim_index in (0, -1) and node.inputs[0].broadcastable[dim]:
                 remove_dim.append(dim)
                 node_inputs_idx += 1
             else:
@@ -581,7 +579,7 @@ def local_subtensor_remove_broadcastable_index(fgraph, node):
             if elem != slice(None):
                 return
         elif isinstance(elem, (int, np.integer)):
-            if elem in [0, -1] and node.inputs[0].broadcastable[dim]:
+            if elem in (0, -1) and node.inputs[0].broadcastable[dim]:
                 remove_dim.append(dim)
         else:
             raise TypeError("case not expected")

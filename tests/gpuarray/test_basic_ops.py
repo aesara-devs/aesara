@@ -363,8 +363,8 @@ def test_gpu_contiguous():
         [a, i], gpu_contiguous(a.reshape((5, 4))[::i]), mode=mode_with_gpu
     )
     topo = f.maker.fgraph.toposort()
-    assert any([isinstance(node.op, GpuSubtensor) for node in topo])
-    assert any([isinstance(node.op, GpuContiguous) for node in topo])
+    assert any(isinstance(node.op, GpuSubtensor) for node in topo)
+    assert any(isinstance(node.op, GpuContiguous) for node in topo)
     assert f(a_val, 1).flags.c_contiguous
     assert f(a_val, 2).flags.c_contiguous
     assert f(a_val, 2).flags.c_contiguous
@@ -479,7 +479,7 @@ def test_gpueye():
         result = np.asarray(f(N, M, k)) - np.array(1).astype(dtype)
         assert np.allclose(result, np.eye(N, M_, k, dtype=dtype))
         assert result.dtype == np.dtype(dtype)
-        assert any([isinstance(node.op, GpuEye) for node in f.maker.fgraph.toposort()])
+        assert any(isinstance(node.op, GpuEye) for node in f.maker.fgraph.toposort())
 
     for dtype in ["float32", "int32", "float16"]:
         check(dtype, 3)
@@ -568,7 +568,7 @@ def test_gpu_tril_triu():
         result = f(m, k)
         assert np.allclose(result, np.tril(m, k))
         assert result.dtype == np.dtype(dtype)
-        assert any([isinstance(node.op, GpuTri) for node in f.maker.fgraph.toposort()])
+        assert any(isinstance(node.op, GpuTri) for node in f.maker.fgraph.toposort())
 
     def check_u(m, k=0):
         m_symb = matrix(dtype=m.dtype)
@@ -579,7 +579,7 @@ def test_gpu_tril_triu():
         result = f(m, k)
         assert np.allclose(result, np.triu(m, k))
         assert result.dtype == np.dtype(dtype)
-        assert any([isinstance(node.op, GpuTri) for node in f.maker.fgraph.toposort()])
+        assert any(isinstance(node.op, GpuTri) for node in f.maker.fgraph.toposort())
 
     test_rng = np.random.default_rng(seed=utt.fetch_seed())
 
@@ -630,9 +630,9 @@ def test_gputri():
         result = np.asarray(f(N, M, k)) - np.array(1).astype(dtype)
         assert np.allclose(result, np.tri(N, M_, k, dtype=dtype))
         assert result.dtype == np.dtype(dtype)
-        assert any([isinstance(node.op, GpuTri) for node in f.maker.fgraph.toposort()])
+        assert any(isinstance(node.op, GpuTri) for node in f.maker.fgraph.toposort())
 
-    for dtype in ["float64", "float32", "int32", "float16"]:
+    for dtype in ("float64", "float32", "int32", "float16"):
         # try a big one
         check(dtype, 1000, 1000, 0)
         check(dtype, 1000, 1000, -400)

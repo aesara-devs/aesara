@@ -214,7 +214,7 @@ def debugprint(
             raise TypeError(f"debugprint cannot print an object type {type(obj)}")
 
     inner_graph_ops = []
-    if any([p for p in profile_list if p is not None and p.fct_callcount > 0]):
+    if any(p for p in profile_list if p is not None and p.fct_callcount > 0):
         print(
             """
 Timing Info

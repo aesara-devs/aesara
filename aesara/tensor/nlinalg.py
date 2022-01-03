@@ -279,7 +279,7 @@ class Eigh(Eig):
     __props__ = ("UPLO",)
 
     def __init__(self, UPLO="L"):
-        assert UPLO in ["L", "U"]
+        assert UPLO in ("L", "U")
         self.UPLO = UPLO
 
     def make_node(self, x):
@@ -350,7 +350,7 @@ class EighGrad(Op):
     __props__ = ("UPLO",)
 
     def __init__(self, UPLO="L"):
-        assert UPLO in ["L", "U"]
+        assert UPLO in ("L", "U")
         self.UPLO = UPLO
         if UPLO == "L":
             self.tri0 = np.tril

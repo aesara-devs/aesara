@@ -79,7 +79,7 @@ def shape_of_variables(fgraph, input_shapes):
 
     compute_shapes = aesara.function(input_dims, output_dims)
 
-    if any([i not in fgraph.inputs for i in input_shapes.keys()]):
+    if any(i not in fgraph.inputs for i in input_shapes.keys()):
         raise ValueError(
             "input_shapes keys aren't in the fgraph.inputs. FunctionGraph()"
             " interface changed. Now by default, it clones the graph it receives."

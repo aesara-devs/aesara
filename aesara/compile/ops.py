@@ -310,11 +310,11 @@ def as_op(itypes, otypes, infer_shape=None):
     """
     if not isinstance(itypes, (list, tuple)):
         itypes = [itypes]
-    if any(not isinstance(t, CType) for t in itypes):
+    if not all(isinstance(t, CType) for t in itypes):
         raise TypeError("itypes has to be a list of Aesara types")
     if not isinstance(otypes, (list, tuple)):
         otypes = [otypes]
-    if any(not isinstance(t, CType) for t in otypes):
+    if not all(isinstance(t, CType) for t in otypes):
         raise TypeError("otypes has to be a list of Aesara types")
 
     # make sure they are lists and not tuples

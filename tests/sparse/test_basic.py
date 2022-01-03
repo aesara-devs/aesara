@@ -1081,8 +1081,8 @@ class TestCsmProperties:
     def test_csm_properties_grad(self):
         sp_types = {"csc": sp.sparse.csc_matrix, "csr": sp.sparse.csr_matrix}
 
-        for format in ["csc", "csr"]:
-            for dtype in ["float32", "float64"]:
+        for format in ("csc", "csr"):
+            for dtype in ("float32", "float64"):
                 spmat = sp_types[format](random_lil((4, 3), dtype, 3))
 
                 verify_grad_sparse(
@@ -1104,8 +1104,8 @@ class TestCsmProperties:
     def test_csm_properties(self):
         sp_types = {"csc": sp.sparse.csc_matrix, "csr": sp.sparse.csr_matrix}
 
-        for format in ["csc", "csr"]:
-            for dtype in ["float32", "float64"]:
+        for format in ("csc", "csr"):
+            for dtype in ("float32", "float64"):
                 x = SparseType(format, dtype=dtype)()
                 f = aesara.function([x], csm_properties(x))
 
@@ -1123,8 +1123,8 @@ class TestCsm:
     def test_csm_grad(self):
         sp_types = {"csc": sp.sparse.csc_matrix, "csr": sp.sparse.csr_matrix}
 
-        for format in ["csc", "csr"]:
-            for dtype in ["float32", "float64"]:
+        for format in ("csc", "csr"):
+            for dtype in ("float32", "float64"):
                 spmat = sp_types[format](random_lil((4, 3), dtype, 3))
 
                 verify_grad_sparse(
@@ -1140,8 +1140,8 @@ class TestCsm:
 
         sp_types = {"csc": sp.sparse.csc_matrix, "csr": sp.sparse.csr_matrix}
 
-        for format in ["csc", "csr"]:
-            for dtype in ["float32", "float64"]:
+        for format in ("csc", "csr"):
+            for dtype in ("float32", "float64"):
                 x = tensor(dtype=dtype, broadcastable=(False,))
                 y = ivector()
                 z = ivector()
@@ -1174,7 +1174,7 @@ class TestCsm:
             "csr",
             "csc",
         ]:
-            for dtype in ["float32", "float64"]:
+            for dtype in ("float32", "float64"):
                 # Sparse advanced indexing produces unsorted sparse matrices
                 a = sparse_random_inputs(
                     format, (8, 6), out_dtype=dtype, unsorted_indices=True
@@ -1193,8 +1193,8 @@ class TestCsm:
     def test_csm(self):
         sp_types = {"csc": sp.sparse.csc_matrix, "csr": sp.sparse.csr_matrix}
 
-        for format in ["csc", "csr"]:
-            for dtype in ["float32", "float64"]:
+        for format in ("csc", "csr"):
+            for dtype in ("float32", "float64"):
                 x = tensor(dtype=dtype, broadcastable=(False,))
                 y = ivector()
                 z = ivector()
@@ -3140,8 +3140,8 @@ class TestMulSV:
     def test_mul_s_v_grad(self):
         sp_types = {"csc": sp.sparse.csc_matrix, "csr": sp.sparse.csr_matrix}
 
-        for format in ["csr", "csc"]:
-            for dtype in ["float32", "float64"]:
+        for format in ("csr", "csc"):
+            for dtype in ("float32", "float64"):
                 spmat = sp_types[format](random_lil((4, 3), dtype, 3))
                 mat = np.asarray(np.random.random((3)), dtype=dtype)
 
@@ -3150,8 +3150,8 @@ class TestMulSV:
     def test_mul_s_v(self):
         sp_types = {"csc": sp.sparse.csc_matrix, "csr": sp.sparse.csr_matrix}
 
-        for format in ["csr", "csc"]:
-            for dtype in ["float32", "float64"]:
+        for format in ("csr", "csc"):
+            for dtype in ("float32", "float64"):
                 x = sparse.SparseType(format, dtype=dtype)()
                 y = vector(dtype=dtype)
                 f = aesara.function([x, y], mul_s_v(x, y))
@@ -3168,8 +3168,8 @@ class TestStructuredAddSV:
     def test_structured_add_s_v_grad(self):
         sp_types = {"csc": sp.sparse.csc_matrix, "csr": sp.sparse.csr_matrix}
 
-        for format in ["csr", "csc"]:
-            for dtype in ["float32", "float64"]:
+        for format in ("csr", "csc"):
+            for dtype in ("float32", "float64"):
                 spmat = sp_types[format](random_lil((4, 3), dtype, 3))
                 mat = np.asarray(np.random.random((3)), dtype=dtype)
 
@@ -3178,8 +3178,8 @@ class TestStructuredAddSV:
     def test_structured_add_s_v(self):
         sp_types = {"csc": sp.sparse.csc_matrix, "csr": sp.sparse.csr_matrix}
 
-        for format in ["csr", "csc"]:
-            for dtype in ["float32", "float64"]:
+        for format in ("csr", "csc"):
+            for dtype in ("float32", "float64"):
                 x = sparse.SparseType(format, dtype=dtype)()
                 y = vector(dtype=dtype)
                 f = aesara.function([x, y], structured_add_s_v(x, y))

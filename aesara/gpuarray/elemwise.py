@@ -1339,7 +1339,7 @@ class GpuCAReduceCuda(GpuKernelBase, HideC, CAReduceDtype, _NoPythonOp):
 
         """
 
-        assert N in [1, 2, 3]
+        assert N in (1, 2, 3)
         verbose = self.verbose
         in_dtype = "npy_" + node.inputs[0].dtype
         out_dtype = "npy_" + node.outputs[0].dtype
@@ -2149,7 +2149,7 @@ class GpuCAReduceCuda(GpuKernelBase, HideC, CAReduceDtype, _NoPythonOp):
         if (
             0 == self.reduce_mask[0]
             and all(self.reduce_mask[1:])
-            and nd_in in [2, 3, 4]
+            and nd_in in (2, 3, 4)
         ):
             # this kernel uses one block for each row.
             # threads per block for each element per row.

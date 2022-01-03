@@ -121,7 +121,7 @@ class Images2Neibs(COp):
         x, neib_shape, neib_step = inp
         (gz,) = grads
 
-        if self.mode in ["valid", "ignore_borders"]:
+        if self.mode in ("valid", "ignore_borders"):
             if (
                 neib_shape is neib_step
                 or neib_shape == neib_step
@@ -816,7 +816,7 @@ def neibs2images(neibs, neib_shape, original_shape, mode="valid"):
         )
         output_4d = output_2d.reshape(valid_shape, ndim=4)
         # padding the borders with zeros
-        for d in [2, 3]:
+        for d in (2, 3):
             pad_shape = list(output_4d.shape)
             pad_shape[d] = original_shape[d] - valid_shape[d]
             output_4d = concatenate([output_4d, zeros(pad_shape)], axis=d)

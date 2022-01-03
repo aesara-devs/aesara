@@ -87,7 +87,7 @@ def test_use_c_thunks():
             ),
         )
         assert np.array_equal(a * b, f(a, b))
-        assert any([hasattr(t, "cthunk") for t in f.fn.thunks]) == use_c_thunks
+        assert any(hasattr(t, "cthunk") for t in f.fn.thunks) == use_c_thunks
 
 
 @pytest.mark.skipif(

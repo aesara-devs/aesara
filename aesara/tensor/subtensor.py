@@ -2218,7 +2218,7 @@ class AdvancedIncSubtensor1(COp):
             ]
         ]
 
-        complex_types = ["npy_" + t for t in ["complex32", "complex64", "complex128"]]
+        complex_types = ["npy_" + t for t in ("complex32", "complex64", "complex128")]
 
         inplace_map_template = """
         #if defined(%(typen)s)

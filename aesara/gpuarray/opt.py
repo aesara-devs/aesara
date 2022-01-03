@@ -801,7 +801,7 @@ def local_gpua_elemwise(fgraph, op, context_name, inputs, outputs):
         # Only transfer the computation on the gpu if the output dtype is
         # floating point. Else, give up on the transfer to the gpu.
         out_dtype = outputs[0].dtype
-        if out_dtype not in ["float16", "float32", "float64"]:
+        if out_dtype not in ("float16", "float32", "float64"):
             return
 
         # Transfer the inputs on the GPU and cast them to the right dtype.
@@ -1343,7 +1343,7 @@ def local_gpua_gemv(fgraph, op, context_name, inputs, outputs):
             inputs[0][:, None], inputs[1], inputs[2], inputs[3][:, None], inputs[4]
         ).dimshuffle(0)
 
-    if inputs[0].dtype not in ["float32", "float64"]:
+    if inputs[0].dtype not in ("float32", "float64"):
         return
     if op.inplace:
         return gpugemv_inplace
@@ -1355,7 +1355,7 @@ def local_gpua_gemv(fgraph, op, context_name, inputs, outputs):
 @op_lifter([aesara.tensor.blas.Gemm])
 @register_opt2([aesara.tensor.blas.Gemm], "fast_compile")
 def local_gpua_gemm(fgraph, op, context_name, inputs, outputs):
-    if inputs[0].dtype not in ["float16", "float32", "float64"]:
+    if inputs[0].dtype not in ("float16", "float32", "float64"):
         return
     if op.inplace:
         return gpugemm_inplace
@@ -1367,7 +1367,7 @@ def local_gpua_gemm(fgraph, op, context_name, inputs, outputs):
 @op_lifter([aesara.tensor.blas.BatchedDot])
 @register_opt2([aesara.tensor.blas.BatchedDot], "fast_compile")
 def local_gpua_gemmbatch(fgraph, op, context_name, inputs, outputs):
-    if inputs[0].dtype not in ["float16", "float32", "float64"]:
+    if inputs[0].dtype not in ("float16", "float32", "float64"):
         return
     with inherit_stack_trace(outputs):
         a, b = inputs
@@ -1440,7 +1440,7 @@ def local_gpua_gemmbatch_output_merge(fgraph, node, *inputs):
     "fast_compile",
 )
 def local_gpua_ger(fgraph, op, context_name, inputs, outputs):
-    if inputs[0].dtype not in ["float32", "float64"]:
+    if inputs[0].dtype not in ("float32", "float64"):
         return
     return GpuGer(inplace=op.destructive)
 
@@ -2259,7 +2259,7 @@ class ConvMetaOptimizer(LocalMetaOptimizer):
         if (
             node.op.imshp is None
             or node.op.kshp is None
-            or any([s is None for shape in shapes for s in shape])
+            or any(s is None for shape in shapes for s in shape)
         ):
             return result
 
@@ -2739,7 +2739,7 @@ def local_gpu_maxandargmax(fgraph, op, context_name, inputs, outputs):
 @op_lifter([Images2Neibs])
 @register_opt2([Images2Neibs], "fast_compile")
 def local_gpua_images2neibs(fgraph, op, context_name, inputs, outputs):
-    if op.mode in ["valid", "half", "full", "ignore_borders", "wrap_centered"]:
+    if op.mode in ("valid", "half", "full", "ignore_borders", "wrap_centered"):
         return GpuImages2Neibs(op.mode)
 
 
@@ -2748,12 +2748,12 @@ def local_gpua_images2neibs(fgraph, op, context_name, inputs, outputs):
 @op_lifter([slinalg.Solve])
 @register_opt2([aesara.tensor.slinalg.Solve], "fast_compile")
 def local_gpu_solve(fgraph, op, context_name, inputs, outputs):
-    if inputs[0].dtype not in ["float16", "float32", "float64"]:
+    if inputs[0].dtype not in ("float16", "float32", "float64"):
         return
     if op.A_structure not in MATRIX_STRUCTURES_SOLVE:
         return
 
-    if op.A_structure in ["lower_triangular", "upper_triangular"]:
+    if op.A_structure in ("lower_triangular", "upper_triangular"):
         if not cublas_available:
             return
         lower = op.A_structure == "lower_triangular"
@@ -2786,7 +2786,7 @@ def local_inplace_gpu_solve(fgraph, node):
 def local_gpu_cholesky(fgraph, op, context_name, inputs, outputs):
     if not cusolver_available:
         return
-    if inputs[0].dtype not in ["float16", "float32", "float64"]:
+    if inputs[0].dtype not in ("float16", "float32", "float64"):
         return
     op = GpuCholesky(lower=op.lower, inplace=op.destructive)
     if inputs[0].dtype == "float16":
@@ -2833,7 +2833,7 @@ def local_inplace_gpu_cholesky(fgraph, node):
 def local_gpu_magma_cholesky(fgraph, op, context_name, inputs, outputs):
     if not config.magma__enabled:
         return
-    if inputs[0].dtype not in ["float16", "float32"]:
+    if inputs[0].dtype not in ("float16", "float32"):
         return
     op = GpuMagmaCholesky(lower=op.lower, inplace=op.destructive)
     if inputs[0].dtype == "float16":
@@ -2876,7 +2876,7 @@ def local_inplace_gpu_magma_cholesky(fgraph, node):
 def local_gpu_magma_qr(fgraph, op, context_name, inputs, outputs):
     if not config.magma__enabled or op.mode != "reduced":
         return
-    if inputs[0].dtype not in ["float16", "float32"]:
+    if inputs[0].dtype not in ("float16", "float32"):
         return
     x = inputs[0]
     if inputs[0].dtype == "float16":
@@ -2894,7 +2894,7 @@ def local_gpu_magma_qr(fgraph, op, context_name, inputs, outputs):
 def local_gpu_magma_matrix_inverse(fgraph, op, context_name, inputs, outputs):
     if not config.magma__enabled:
         return
-    if inputs[0].dtype not in ["float16", "float32"]:
+    if inputs[0].dtype not in ("float16", "float32"):
         return
     op = GpuMagmaMatrixInverse()
     if inputs[0].dtype == "float16":
@@ -2917,7 +2917,7 @@ def local_inplace_gpu_magma_matrix_inverse(fgraph, node):
 def local_gpu_magma_eigh(fgraph, op, context_name, inputs, outputs):
     if not config.magma__enabled:
         return
-    if inputs[0].dtype not in ["float16", "float32"]:
+    if inputs[0].dtype not in ("float16", "float32"):
         return
     op = GpuMagmaEigh(UPLO=op.UPLO, compute_v=True)
     if inputs[0].dtype == "float16":
@@ -2932,7 +2932,7 @@ def local_gpu_magma_eigh(fgraph, op, context_name, inputs, outputs):
 def local_gpu_magma_svd(fgraph, op, context_name, inputs, outputs):
     if not config.magma__enabled:
         return
-    if inputs[0].dtype not in ["float16", "float32"]:
+    if inputs[0].dtype not in ("float16", "float32"):
         return
     x = inputs[0]
     if inputs[0].dtype == "float16":

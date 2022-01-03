@@ -708,7 +708,7 @@ def local_dnn_reduction(fgraph, node):
         if acc_dtype != "float32":
             return
 
-    if node.inputs[0].dtype not in ["float16", "float32", "float64"]:
+    if node.inputs[0].dtype not in ("float16", "float32", "float64"):
         return
 
     if node.inputs[0].dtype == "float64" and acc_dtype != "float64":
@@ -773,7 +773,7 @@ def local_cudnn_maxandargmax(fgraph, node):
     if node.inputs[0].dtype != node.outputs[0].dtype:
         return
 
-    if node.inputs[0].dtype not in ["float16", "float32", "float64"]:
+    if node.inputs[0].dtype not in ("float16", "float32", "float64"):
         return
 
     # order of the axes influences the output indices
@@ -804,7 +804,7 @@ def local_dnn_argmax(op, ctx_name, inputs, outputs):
     if inputs[0].ndim > 8:
         return
 
-    if inputs[0].dtype not in ["float16", "float32", "float64"]:
+    if inputs[0].dtype not in ("float16", "float32", "float64"):
         return
 
     # order of the axes influences the output indices

@@ -41,7 +41,7 @@ class GpuPool(CGpuKernelBase):
         self.mode = mode
         CGpuKernelBase.__init__(self, ["c_code/pool.c"], "APPLY_SPECIFIC(pool)")
         assert PoolingMode_t.has_alias(self.mode)
-        assert self.ndim in [2, 3]
+        assert self.ndim in (2, 3)
 
     def get_params(self, node):
         return self.params_type.get_params(self, context=node.inputs[0].type.context)
@@ -152,7 +152,7 @@ class GpuMaxPoolGrad(CGpuKernelBase):
             self, ["c_code/pool_max_grad.c"], "APPLY_SPECIFIC(max_pool_grad)"
         )
         assert mode == "max"
-        assert ndim in [2, 3]
+        assert ndim in (2, 3)
 
     def c_headers(self, **kwargs):
         return ["gpuarray_api.h", "gpuarray_helper.h", "numpy_compat.h"]
@@ -232,7 +232,7 @@ class GpuAveragePoolGrad(CGpuKernelBase):
             self, ["c_code/pool_ave_grad.c"], "APPLY_SPECIFIC(ave_pool_grad)"
         )
         assert mode in ("sum", "average_inc_pad", "average_exc_pad")
-        assert ndim in [2, 3]
+        assert ndim in (2, 3)
 
     def get_params(self, node):
         return self.params_type.get_params(self, context=node.inputs[0].type.context)
@@ -311,7 +311,7 @@ class GpuDownsampleFactorMaxGradGrad(CGpuKernelBase):
             self, ["c_code/pool_grad_grad.c"], "APPLY_SPECIFIC(pool_grad_grad)"
         )
         assert self.mode == "max"
-        assert self.ndim in [2, 3]
+        assert self.ndim in (2, 3)
 
     def c_headers(self, **kwargs):
         return ["gpuarray_api.h", "gpuarray_helper.h", "numpy_compat.h"]
@@ -389,7 +389,7 @@ class GpuMaxPoolRop(CGpuKernelBase):
             self, ["c_code/pool_max_rop.c"], "APPLY_SPECIFIC(max_pool_rop)"
         )
         assert mode == "max"
-        assert ndim in [2, 3]
+        assert ndim in (2, 3)
 
     def get_params(self, node):
         return self.params_type.get_params(self, context=node.inputs[0].type.context)

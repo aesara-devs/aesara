@@ -1035,7 +1035,7 @@ class ProfileStats:
                         dependencies[ins]
                         and ins not in fgraph.outputs
                         and ins.owner
-                        and all([compute_map[v][0] for v in dependencies[ins]])
+                        and all(compute_map[v][0] for v in dependencies[ins])
                     ):
                         if ins not in view_of and not viewed_by.get(ins, []):
                             running_memory_size[cg] -= var_mem[ins]
@@ -1178,7 +1178,7 @@ class ProfileStats:
                             dependencies[ins]
                             and ins not in fgraph.outputs
                             and ins.owner
-                            and all([compute_map[v][0] for v in dependencies[ins]])
+                            and all(compute_map[v][0] for v in dependencies[ins])
                         ):
                             if ins not in view_of and not viewed_by.get(ins, []):
                                 mem_freed += var_mem[ins]
@@ -1432,7 +1432,7 @@ class ProfileStats:
                 code[out] = "v"
             shapes = str(fct_shapes[fgraph][node])
 
-            if all([hasattr(out.type, "get_size") for out in node.outputs]):
+            if all(hasattr(out.type, "get_size") for out in node.outputs):
                 size = "{node_outputs_size:9d}B"
                 if node_outputs_size < config.profiling__min_memory_size:
                     N = idx
@@ -1607,7 +1607,7 @@ class ProfileStats:
                 return False
             else:
                 l = list_scalar_op(op)
-                return any([s_op.__class__ in [aes.Exp] for s_op in l])
+                return any(s_op.__class__ in [aes.Exp] for s_op in l)
 
         printed_tip = False
         # tip 1

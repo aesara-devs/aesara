@@ -266,7 +266,7 @@ def local_conv2d_cpu(fgraph, node):
     img, kern = node.inputs
     if not isinstance(img.type, TensorType) or not isinstance(kern.type, TensorType):
         return None
-    if node.op.border_mode not in ["full", "valid"]:
+    if node.op.border_mode not in ("full", "valid"):
         return None
     if not node.op.filter_flip:
         # Not tested yet
@@ -301,7 +301,7 @@ def local_conv2d_gradweight_cpu(fgraph, node):
 
     if not isinstance(img.type, TensorType) or not isinstance(topgrad.type, TensorType):
         return None
-    if node.op.border_mode not in ["full", "valid"]:
+    if node.op.border_mode not in ("full", "valid"):
         return None
     if not node.op.filter_flip:
         # Not tested yet
@@ -414,7 +414,7 @@ def local_conv2d_gradinputs_cpu(fgraph, node):
         topgrad.type, TensorType
     ):
         return None
-    if node.op.border_mode not in ["full", "valid"]:
+    if node.op.border_mode not in ("full", "valid"):
         return None
     if not node.op.filter_flip:
         # Not tested yet

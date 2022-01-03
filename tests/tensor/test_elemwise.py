@@ -390,7 +390,7 @@ class TestCAReduce(unittest_tools.InferShapeTester):
             if pre_scalar_op is not None:
                 zv = Elemwise(scalar_op=pre_scalar_op)(x).eval({x: xv})
 
-            if len(tosum) > 1 and any([a < 0 for a in tosum]):
+            if len(tosum) > 1 and any(a < 0 for a in tosum):
                 # In that case, we need to use the good order of axis
                 # in the reduction.
                 axis2 = []

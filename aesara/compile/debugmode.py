@@ -1277,7 +1277,7 @@ class _FunctionGraphEvent:
             # nodes are not compared because this comparison is
             # supposed to be true for corresponding events that happen
             # in different FunctionGraph instances (different graphs)
-            for attr in ["kind", "op", "idx", "reason"]:
+            for attr in ("kind", "op", "idx", "reason"):
                 rval = rval and getattr(self, attr) == getattr(other, attr)
         return rval
 

@@ -604,7 +604,7 @@ class ConvOp(OpenMPOp):
 
         self.out_mode = output_mode
 
-        if self.out_mode not in ["valid", "full"]:
+        if self.out_mode not in ("valid", "full"):
             raise NotImplementedError(f"Mode {self.out_mode} not implemented")
 
         if any((shp is not None) and (shp <= 0) for shp in self.outshp):
@@ -772,12 +772,12 @@ class ConvOp(OpenMPOp):
         # replace symbolic shapes with known shapes
         if self.bsize is not None:
             bsize = self.bsize
-        for i in [0, 1, 2]:
+        for i in (0, 1, 2):
             if self.imshp_logical[i] is not None:
                 imshp[i] = self.imshp_logical[i]
         if self.nkern is not None:
             nkern = self.nkern
-        for i in [0, 1]:
+        for i in (0, 1):
             if self.kshp_logical[i] is not None:
                 kshp[i] = self.kshp_logical[i]
         # infer output shape from what we have

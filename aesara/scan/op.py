@@ -2254,7 +2254,7 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
             connected_inputs = [
                 i
                 for i in range(len(scan_node.inputs))
-                if any([connection_pattern[i][odx] for odx in out_indices])
+                if any(connection_pattern[i][odx] for odx in out_indices)
             ]
 
             wrt = [

@@ -189,6 +189,6 @@ def test_cpu_target_with_shared_variable():
         fz = aesara.function([], z, mode=mode)
 
         nodes = fz.maker.fgraph.toposort()
-        assert not any([isinstance(node.op, GPUA_mrg_uniform) for node in nodes])
+        assert not any(isinstance(node.op, GPUA_mrg_uniform) for node in nodes)
     finally:
         aesara.compile.shared_constructor(gpuarray_shared_constructor, remove=True)

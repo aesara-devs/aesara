@@ -98,9 +98,9 @@ class TestScan:
         scan_node_topo = scan_node.op.fn.maker.fgraph.toposort()
 
         # check that there is no gpu transfer in the inner loop.
-        assert any([isinstance(node.op, GpuElemwise) for node in scan_node_topo])
-        assert not any([isinstance(node.op, HostFromGpu) for node in scan_node_topo])
-        assert not any([isinstance(node.op, GpuFromHost) for node in scan_node_topo])
+        assert any(isinstance(node.op, GpuElemwise) for node in scan_node_topo)
+        assert not any(isinstance(node.op, HostFromGpu) for node in scan_node_topo)
+        assert not any(isinstance(node.op, GpuFromHost) for node in scan_node_topo)
 
     # This second version test the second case in the optimizer to the gpu.
     def test_one_sequence_one_output_weights_gpu2(self):
@@ -156,9 +156,9 @@ class TestScan:
         scan_node_topo = scan_node.op.fn.maker.fgraph.toposort()
 
         # check that there is no gpu transfer in the inner loop.
-        assert any([isinstance(node.op, GpuElemwise) for node in scan_node_topo])
-        assert not any([isinstance(node.op, HostFromGpu) for node in scan_node_topo])
-        assert not any([isinstance(node.op, GpuFromHost) for node in scan_node_topo])
+        assert any(isinstance(node.op, GpuElemwise) for node in scan_node_topo)
+        assert not any(isinstance(node.op, HostFromGpu) for node in scan_node_topo)
+        assert not any(isinstance(node.op, GpuFromHost) for node in scan_node_topo)
 
     # This third test checks that scan can deal with a mixture of dtypes as
     # outputs when is running on GPU
@@ -218,8 +218,8 @@ class TestScan:
         scan_node_topo = scan_node.op.fn.maker.fgraph.toposort()
 
         # check that there is no gpu transfer in the inner loop.
-        assert not any([isinstance(node.op, HostFromGpu) for node in scan_node_topo])
-        assert not any([isinstance(node.op, GpuFromHost) for node in scan_node_topo])
+        assert not any(isinstance(node.op, HostFromGpu) for node in scan_node_topo)
+        assert not any(isinstance(node.op, GpuFromHost) for node in scan_node_topo)
 
     def test_gpu4_gibbs_chain(self):
         rng = np.random.default_rng(utt.fetch_seed())

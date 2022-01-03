@@ -56,7 +56,7 @@ def execute(execute=True, verbose=True, M=2000, N=2000, K=2000, iters=10, order=
     c = aesara.shared(np.ones((M, K), dtype=config.floatX, order=order))
     f = aesara.function([], updates=[(c, 0.4 * c + 0.8 * dot(a, b))])
 
-    if any([x.op.__class__.__name__ == "Gemm" for x in f.maker.fgraph.toposort()]):
+    if any(x.op.__class__.__name__ == "Gemm" for x in f.maker.fgraph.toposort()):
         c_impl = [
             hasattr(thunk, "cthunk")
             for node, thunk in zip(f.fn.nodes, f.fn.thunks)
@@ -67,7 +67,7 @@ def execute(execute=True, verbose=True, M=2000, N=2000, K=2000, iters=10, order=
             impl = "CPU (with direct Aesara binding to blas)"
         else:
             impl = "CPU (without direct Aesara binding to blas but with numpy/scipy binding to blas)"
-    elif any([x.op.__class__.__name__ == "GpuGemm" for x in f.maker.fgraph.toposort()]):
+    elif any(x.op.__class__.__name__ == "GpuGemm" for x in f.maker.fgraph.toposort()):
         impl = "GPU"
     else:
         impl = "ERROR, unable to tell if Aesara used the cpu or the gpu:\n"
