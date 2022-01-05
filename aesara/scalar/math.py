@@ -20,10 +20,13 @@ from aesara.scalar.basic import (
     complex_types,
     discrete_types,
     exp,
+    expm1,
     float64,
     float_types,
+    isinf,
     log,
     log1p,
+    switch,
     true_div,
     upcast,
     upgrade_to_float,
@@ -1201,7 +1204,10 @@ class Log1mexp(UnaryScalarOp):
     def grad(self, inp, grads):
         (x,) = inp
         (gz,) = grads
-        return [gz * true_div(1.0, 1.0 - exp(-x))]
+        res = true_div(-1.0, expm1(-x))
+        # Correct gradient at 0.0 to be -inf
+        res = switch(isinf(res), -np.inf, res)
+        return [gz * res]
 
     def c_code(self, node, name, inp, out, sub):
         (x,) = inp

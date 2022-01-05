@@ -74,6 +74,7 @@ from aesara.tensor.math import (
     isnan,
     isnan_,
     log,
+    log1mexp,
     log1p,
     log2,
     log10,
@@ -3343,3 +3344,13 @@ def test_pprint():
     x = vector("x")
     y = aet_sum(x, axis=0)
     assert pprint(y) == "sum(x, axis=(0,))"
+
+
+def test_log1mexp_grad_lim():
+    x = dscalar("x")
+    grad_x = grad(log1mexp(x), [x])[0]
+    grad_x_fn = function([x], grad_x)
+    assert grad_x_fn(0.0) == -np.inf
+    assert grad_x_fn(-0.0) == -np.inf
+    assert grad_x_fn(-1e-309) == -np.inf
+    assert grad_x_fn(-1e-308) != -np.inf
