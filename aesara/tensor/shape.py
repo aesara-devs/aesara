@@ -57,11 +57,15 @@ class Shape(COp):
     __props__ = ()
 
     def make_node(self, x):
-        # Must work for all type that have a shape attribute.
-        # This will fail at execution time.
         if not isinstance(x, Variable):
             x = at.as_tensor_variable(x)
-        return Apply(self, [x], [aesara.tensor.type.lvector()])
+
+        if hasattr(x, "ndim") and x.ndim == 1:
+            out_var = TensorType(np.int64, (True,))()
+        else:
+            out_var = aesara.tensor.type.lvector()
+
+        return Apply(self, [x], [out_var])
 
     def perform(self, node, inp, out_):
         (x,) = inp

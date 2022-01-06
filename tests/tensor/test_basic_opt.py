@@ -86,7 +86,14 @@ from aesara.tensor.math import sin, sinh, softplus, sqr, sqrt, sub
 from aesara.tensor.math import sum as at_sum
 from aesara.tensor.math import tan, tanh, true_div, xor
 from aesara.tensor.math_opt import local_lift_transpose_through_dot
-from aesara.tensor.shape import Reshape, Shape_i, SpecifyShape, reshape, specify_shape
+from aesara.tensor.shape import (
+    Reshape,
+    Shape_i,
+    SpecifyShape,
+    reshape,
+    shape,
+    specify_shape,
+)
 from aesara.tensor.subtensor import (
     AdvancedIncSubtensor1,
     Subtensor,
@@ -97,7 +104,6 @@ from aesara.tensor.subtensor import (
 )
 from aesara.tensor.type import (
     TensorType,
-    bscalar,
     dmatrices,
     dmatrix,
     dscalar,
@@ -106,7 +112,6 @@ from aesara.tensor.type import (
     fscalar,
     fvector,
     imatrices,
-    int_dtypes,
     iscalar,
     ivector,
     lscalar,
@@ -2456,131 +2461,6 @@ class TestLocalOptAllocF16(TestLocalOptAlloc):
     dtype = "float16"
 
 
-class TestMakeVector(utt.InferShapeTester):
-    b = bscalar()
-    i = iscalar()
-    d = dscalar()
-
-    def setup_method(self):
-        self.rng = np.random.default_rng(utt.fetch_seed())
-        super().setup_method()
-
-    @pytest.mark.parametrize(
-        "dtype, inputs",
-        [
-            ("int8", (b, b)),
-            ("int32", (i, b)),
-            ("int32", (b, i)),
-            ("float64", (b, i)),
-            ("float64", (b, d)),
-            ("float64", (d, i)),
-            ("float64", ()),
-            ("int64", ()),
-        ],
-    )
-    def test_make_vector(self, dtype, inputs):
-        b, i, d = self.b, self.i, self.d
-
-        val = {b: 2, i: -3, d: 0.7}
-
-        mv = MakeVector(dtype=dtype)(*inputs)
-        assert mv.dtype == dtype
-        f = function([b, i, d], mv, on_unused_input="ignore")
-        f(val[b], val[i], val[d])
-
-        s = mv.sum()
-        gb = aesara.gradient.grad(s, b, disconnected_inputs="ignore")
-        gi = aesara.gradient.grad(s, i, disconnected_inputs="ignore")
-        gd = aesara.gradient.grad(s, d, disconnected_inputs="ignore")
-
-        g = function([b, i, d], [gb, gi, gd])
-        g_val = g(val[b], val[i], val[d])
-
-        if dtype in int_dtypes:
-            # The gradient should be 0
-            utt.assert_allclose(g_val, 0)
-        else:
-            for var, grval in zip((b, i, d), g_val):
-                float_inputs = []
-                if var.dtype in int_dtypes:
-                    pass
-                    # Currently we don't do any checks on these variables
-                    # verify_grad doesn't support integer inputs yet
-                    # however, the gradient on them is *not* defined to
-                    # be 0
-                elif var not in inputs:
-                    assert grval == 0
-                else:
-                    float_inputs.append(var)
-
-            # Build a function that takes float_inputs, use fix values for the
-            # other inputs, and returns the MakeVector. Use it for verify_grad.
-            if float_inputs:
-
-                def fun(*fl_inputs):
-                    f_inputs = []
-                    for var in f_inputs:
-                        if var in fl_inputs:
-                            # use symbolic variable
-                            f_inputs.append(var)
-                        else:
-                            # use constant value
-                            f_inputs.append(val[var])
-                    return MakeVector(dtype=dtype)(*f_inputs)
-
-                utt.verify_grad(fun, [val[ri] for ri in float_inputs])
-
-    @pytest.mark.parametrize(
-        "dtype, inputs",
-        [
-            ("int8", (b, i)),
-            ("int8", (i, b)),
-            ("int8", (b, d)),
-            ("int8", (i, i)),
-            ("int32", (d, i)),
-            ("int32", (i, d)),
-            ("float32", (i, d)),
-        ],
-    )
-    def test_make_vector_fail(self, dtype, inputs):
-        with pytest.raises(AssertionError):
-            MakeVector(dtype=dtype)(*inputs)
-
-    def test_infer_shape(self):
-        adscal = dscalar()
-        bdscal = dscalar()
-        aiscal = iscalar()
-        biscal = iscalar()
-        ciscal = iscalar()
-        discal = iscalar()
-        adscal_val = np.random.random()
-        bdscal_val = np.random.random()
-        aiscal_val = self.rng.integers(10)
-        biscal_val = self.rng.integers(10)
-        ciscal_val = self.rng.integers(10)
-        discal_val = self.rng.integers(10)
-        self._compile_and_check(
-            [adscal, aiscal],
-            [MakeVector("float64")(adscal, aiscal)],
-            [adscal_val, aiscal_val],
-            MakeVector,
-        )
-
-        self._compile_and_check(
-            [adscal, bdscal, aiscal],
-            [MakeVector("float64")(adscal, bdscal, aiscal)],
-            [adscal_val, bdscal_val, aiscal_val],
-            MakeVector,
-        )
-
-        self._compile_and_check(
-            [aiscal, biscal, ciscal, discal],
-            [MakeVector("int32")(aiscal, biscal, ciscal, discal)],
-            [aiscal_val, biscal_val, ciscal_val, discal_val],
-            MakeVector,
-        )
-
-
 def test_local_join_1():
     # test for vector
     a = vector("a")
@@ -3582,3 +3462,48 @@ def test_local_remove_scalar_BroadcastTo():
     )
 
     assert res is x
+
+
+def test_local_useless_dimshuffle_makevector():
+    a = scalar()
+    x = MakeVector(config.floatX)(a)
+    y = x.dimshuffle(())
+
+    y_fg = FunctionGraph(outputs=[y], copy_inputs=False)
+
+    y_opt_fg = optimize_graph(
+        y_fg,
+        clone=False,
+        include=["canonicalize", "local_useless_dimshuffle_makevector"],
+    )
+
+    assert y_opt_fg.outputs[0] == a
+
+
+def test_Shape_i_canonicalize():
+    """Make sure the canonicalizations work together to produce the correct graphs for shapes in a single dimension.
+
+    In other words, ``shape(x)[i]`` should result in a simple ``Shape_i(0)(x)``
+    and nothing else.  The rewrites `local_shape_to_shape_i`,
+    `local_subtensor_remove_broadcastable_index`, and
+    `local_useless_dimshuffle_makevector` need to work together to accomplish
+    this, and we confirm that here.
+    """
+    x = vector()
+    y = shape(x)[0]
+
+    y_fg = FunctionGraph(outputs=[y], copy_inputs=False, features=[ShapeFeature()])
+
+    y_opt_fg = optimize_graph(
+        y_fg,
+        clone=False,
+        include=[
+            "canonicalize",
+        ],
+    )
+
+    y_opt = y_opt_fg.outputs[0]
+
+    assert isinstance(y_opt.owner.op, Shape_i)
+    assert y_opt.owner.op.i == 0
+    assert y_opt.owner.inputs[0] == x

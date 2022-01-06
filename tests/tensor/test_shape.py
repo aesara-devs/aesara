@@ -5,7 +5,9 @@ import aesara
 from aesara import Mode, function
 from aesara.compile.ops import DeepCopyOp
 from aesara.configdefaults import config
+from aesara.graph.basic import Variable
 from aesara.graph.fg import FunctionGraph
+from aesara.graph.type import Type
 from aesara.misc.safe_asarray import _asarray
 from aesara.tensor import get_vector_length
 from aesara.tensor.basic import MakeVector, as_tensor_variable, constant
@@ -28,6 +30,7 @@ from aesara.tensor.type import (
     dvector,
     fvector,
     ivector,
+    lscalar,
     matrix,
     scalar,
     tensor3,
@@ -41,6 +44,25 @@ from tests.test_rop import RopLopChecker
 
 
 def test_shape_basic():
+    s = shape([])
+    assert s.type.broadcastable == (True,)
+
+    s = shape([10])
+    assert s.type.broadcastable == (True,)
+
+    s = shape(lscalar())
+    assert s.type.broadcastable == (False,)
+
+    class MyType(Type):
+        def filter(self, *args, **kwargs):
+            raise NotImplementedError()
+
+        def __eq__(self, other):
+            return isinstance(other, MyType) and other.thingy == self.thingy
+
+    s = shape(Variable(MyType()))
+    assert s.type.broadcastable == (False,)
+
     s = shape(np.array(1))
     assert np.array_equal(eval_outputs([s]), [])
 
