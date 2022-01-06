@@ -57,13 +57,8 @@ from aesara.tensor.math import (
 from aesara.tensor.math import sum as at_sum
 from aesara.tensor.math import tanh, tensordot, true_div
 from aesara.tensor.nnet.blocksparse import sparse_block_dot
-from aesara.tensor.shape import shape, shape_padleft
-from aesara.tensor.subtensor import (
-    AdvancedIncSubtensor,
-    AdvancedSubtensor,
-    Subtensor,
-    get_constant_idx,
-)
+from aesara.tensor.shape import Shape, shape_padleft
+from aesara.tensor.subtensor import AdvancedIncSubtensor, AdvancedSubtensor
 from aesara.tensor.type import (
     TensorType,
     discrete_dtypes,
@@ -2024,6 +2019,7 @@ def _check_rows_is_arange_len_labels(fgraph, rows, labels):
 
     """
 
+    shape_of = None
     if hasattr(fgraph, "shape_feature"):
         shape_of = fgraph.shape_feature.shape_of
         # TODO: consider cases where shape_of[labels] is constant, and
@@ -2045,15 +2041,11 @@ def _check_rows_is_arange_len_labels(fgraph, rows, labels):
 
         # Not sure if that case happens any more after the introduction of
         # ShapeOptimizer, but we keep it if ShapeOptimizer is not present
-        if isinstance(stop.owner.op, Subtensor):
-            shape_subtensor = stop.owner
-            if get_constant_idx(
-                shape_subtensor.op.idx_list, shape_subtensor.inputs, allow_partial=True
-            ) == [0]:
-                shape_var = shape_subtensor.inputs[0]
-                if shape_var.owner and shape_var.owner.op == shape:
-                    return shape_var.owner.inputs[0] is labels
-        else:
+        if isinstance(stop.owner.op, DimShuffle) and stop.owner.op.new_order == ():
+            shape_var = stop.owner.inputs[0]
+            if shape_var.owner and isinstance(shape_var.owner.op, Shape):
+                return shape_var.owner.inputs[0] is labels
+        elif shape_of:
             shape_of = fgraph.shape_feature.shape_of
             return shape_of[labels][0] is stop
 

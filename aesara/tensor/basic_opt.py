@@ -654,6 +654,36 @@ def local_dimshuffle_lift(fgraph, node):
 
 
 @register_canonicalize
+@register_specialize
+@local_optimizer([DimShuffle])
+def local_useless_dimshuffle_makevector(fgraph, node):
+    r"""Remove `DimShuffle`\s that drop one dimensional broadcastable `MakeVector`s.
+
+    This rewrite is needed in order to clean up after
+    `local_subtensor_remove_broadcastable_index`, which produces a
+    not-so-intuitive canonical form for `x[0]` when `x.shape == (1,)`
+    (i.e. one broadcastable dimension): i.e. `x.dimshuffle(())`.
+    """
+
+    # The `DimShuffle` should be removing the single broadcastable dimension
+    if node.op.new_order != ():
+        return
+
+    makevector_out = node.inputs[0]
+
+    if (
+        not makevector_out.owner
+        or not isinstance(makevector_out.owner.op, MakeVector)
+        or not makevector_out.broadcastable == (True,)
+    ):
+        return
+
+    assert len(makevector_out.owner.inputs) == 1
+
+    return [makevector_out.owner.inputs[0]]
+
+
+@register_canonicalize
 @local_optimizer([Reshape])
 def local_useless_dimshuffle_in_reshape(fgraph, node):
     """

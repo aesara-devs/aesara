@@ -2110,6 +2110,8 @@ class TestLocalUselessElemwiseComparison:
             "local_shape_to_shape_i",
             "local_track_shape_i",
             "local_subtensor_make_vector",
+            "local_subtensor_remove_broadcastable_index",
+            "local_useless_dimshuffle_makevector",
         )
         f = function([x], lt(x.shape[0], 0), mode=mode)
         self.assert_eqs_const(f, 0)

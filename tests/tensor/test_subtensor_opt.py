@@ -158,7 +158,7 @@ def test_local_useless_inc_subtensor_increment_zeros():
     r"""Make sure we remove `IncSubtensor`\s that are increments on entire zero arrays."""
     y = matrix("y")
 
-    s = aet.zeros((2, 2))[:, :]
+    s = at.zeros((2, 2))[:, :]
     o_shape = inc_subtensor(s, specify_shape(y, s.shape))
 
     mode = get_default_mode().including("local_useless_inc_subtensor")
@@ -195,7 +195,7 @@ def test_local_useless_inc_subtensor_no_opt():
     assert any(isinstance(n.op, IncSubtensor) for n in topo)
 
     # This is an increment with a non-zero target array
-    s = aet.ones((2, 2))[:, :]
+    s = at.ones((2, 2))[:, :]
     o_shape = inc_subtensor(s, specify_shape(y, s.shape))
 
     f_shape = function([y], o_shape, mode=mode)
@@ -618,8 +618,7 @@ class TestLocalSubtensorMakeVector:
 
         opt_fgraph = f.maker.fgraph
         assert opt_fgraph.outputs[0].dtype == "int32"
-        assert isinstance(opt_fgraph.outputs[0].owner.op, Rebroadcast)
-        assert isinstance(opt_fgraph.outputs[0].owner.inputs[0].owner.op, MakeVector)
+        assert isinstance(opt_fgraph.outputs[0].owner.op, MakeVector)
         assert f(0, 1, 2) == np.array([0], dtype=np.int32)
 
     def test_slice_idx_start(self):

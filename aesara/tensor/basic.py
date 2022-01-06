@@ -1613,32 +1613,29 @@ class MakeVector(COp):
         self.dtype = np.dtype(dtype).name
 
     def make_node(self, *inputs):
-        inputs = list(map(as_tensor_variable, inputs))
-        if not all(a.type == inputs[0].type for a in inputs) or (
+        inputs = [as_tensor_variable(x) for x in inputs]
+
+        if not all(a.ndim == 0 for a in inputs):
+            raise ValueError("All inputs to MakeVector must be scalars")
+
+        if not all(a.type.dtype == inputs[0].type.dtype for a in inputs) or (
             len(inputs) > 0 and inputs[0].dtype != self.dtype
         ):
             dtype = aes.upcast(self.dtype, *[i.dtype for i in inputs])
-            # upcast the input to the determined dtype,
-            # but don't downcast anything
-            assert (
-                dtype == self.dtype
-            ), f"Upcasted inputs do not match the Op's dtype: {dtype} != {self.dtype}"
-            if not all(self.dtype == cast(i, dtype=dtype).dtype for i in inputs):
+            inputs = [cast(i, dtype=dtype) for i in inputs]
+
+            if not all(self.dtype == i.dtype for i in inputs):
                 raise TypeError(
-                    f"Expected inputs upcastable to {self.dtype}; "
+                    f"Expected inputs to be upcastable to {self.dtype}; "
                     f"got {[i.dtype for i in inputs]}"
                 )
-            inputs = [cast(i, dtype=dtype) for i in inputs]
-        assert all(self.dtype == a.dtype for a in inputs)
-        assert all(a.ndim == 0 for a in inputs)
 
         if inputs:
             dtype = inputs[0].type.dtype
         else:
             dtype = self.dtype
-        # bcastable = (len(inputs) == 1)
-        bcastable = False
-        otype = TensorType(broadcastable=(bcastable,), dtype=dtype)
+
+        otype = TensorType(dtype=dtype, broadcastable=(len(inputs) == 1,))
         return Apply(self, inputs, [otype()])
 
     def perform(self, node, inputs, out_):

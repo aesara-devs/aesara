@@ -94,6 +94,7 @@ from aesara.tensor.math import sum as at_sum
 from aesara.tensor.shape import Reshape, Shape, Shape_i, shape_padright, specify_shape
 from aesara.tensor.type import (
     TensorType,
+    bscalar,
     bvector,
     col,
     dmatrix,
@@ -370,6 +371,133 @@ TestOnesLikeBroadcast = makeBroadcastTester(
     grad=_grad_broadcast_unary_normal,
     name="OnesLike",
 )
+
+
+class TestMakeVector(utt.InferShapeTester):
+    b = bscalar()
+    i = iscalar()
+    d = dscalar()
+
+    def setup_method(self):
+        self.rng = np.random.default_rng(utt.fetch_seed())
+        super().setup_method()
+
+    @pytest.mark.parametrize(
+        "dtype, inputs",
+        [
+            ("int8", (b, b)),
+            ("int32", (i, b)),
+            ("int32", (b, i)),
+            ("float64", (b, i)),
+            ("float64", (b, d)),
+            ("float64", (d, i)),
+            ("float64", ()),
+            ("int64", ()),
+        ],
+    )
+    def test_make_vector(self, dtype, inputs):
+        b, i, d = self.b, self.i, self.d
+
+        val = {b: 2, i: -3, d: 0.7}
+
+        mv = MakeVector(dtype=dtype)(*inputs)
+        assert mv.dtype == dtype
+        f = function([b, i, d], mv, on_unused_input="ignore")
+        f(val[b], val[i], val[d])
+
+        s = mv.sum()
+        gb = aesara.gradient.grad(s, b, disconnected_inputs="ignore")
+        gi = aesara.gradient.grad(s, i, disconnected_inputs="ignore")
+        gd = aesara.gradient.grad(s, d, disconnected_inputs="ignore")
+
+        g = function([b, i, d], [gb, gi, gd])
+        g_val = g(val[b], val[i], val[d])
+
+        if dtype in int_dtypes:
+            # The gradient should be 0
+            utt.assert_allclose(g_val, 0)
+        else:
+            for var, grval in zip((b, i, d), g_val):
+                float_inputs = []
+                if var.dtype in int_dtypes:
+                    pass
+                    # Currently we don't do any checks on these variables
+                    # verify_grad doesn't support integer inputs yet
+                    # however, the gradient on them is *not* defined to
+                    # be 0
+                elif var not in inputs:
+                    assert grval == 0
+                else:
+                    float_inputs.append(var)
+
+            # Build a function that takes float_inputs, use fix values for the
+            # other inputs, and returns the MakeVector. Use it for verify_grad.
+            if float_inputs:
+
+                def fun(*fl_inputs):
+                    f_inputs = []
+                    for var in f_inputs:
+                        if var in fl_inputs:
+                            # use symbolic variable
+                            f_inputs.append(var)
+                        else:
+                            # use constant value
+                            f_inputs.append(val[var])
+                    return MakeVector(dtype=dtype)(*f_inputs)
+
+                utt.verify_grad(fun, [val[ri] for ri in float_inputs])
+
+    def test_make_vector_fail(self):
+        with pytest.raises(ValueError):
+            a, b = vector(), vector()
+            MakeVector()(a, b)
+
+        a, b = iscalar(), lscalar()
+        res = MakeVector("int64")(a, b)
+        assert res.dtype == "int64"
+
+        with pytest.raises(TypeError):
+            res = MakeVector("int32")(a, b)
+
+        res = MakeVector()(a)
+        assert res.broadcastable == (True,)
+
+        res = MakeVector()()
+        assert res.broadcastable == (False,)
+
+    def test_infer_shape(self):
+        adscal = dscalar()
+        bdscal = dscalar()
+        aiscal = iscalar()
+        biscal = iscalar()
+        ciscal = iscalar()
+        discal = iscalar()
+        adscal_val = np.random.random()
+        bdscal_val = np.random.random()
+        aiscal_val = self.rng.integers(10)
+        biscal_val = self.rng.integers(10)
+        ciscal_val = self.rng.integers(10)
+        discal_val = self.rng.integers(10)
+        self._compile_and_check(
+            [adscal, aiscal],
+            [MakeVector("float64")(adscal, aiscal)],
+            [adscal_val, aiscal_val],
+            MakeVector,
+        )
+
+        self._compile_and_check(
+            [adscal, bdscal, aiscal],
+            [MakeVector("float64")(adscal, bdscal, aiscal)],
+            [adscal_val, bdscal_val, aiscal_val],
+            MakeVector,
+        )
+
+        self._compile_and_check(
+            [aiscal, biscal, ciscal, discal],
+            [MakeVector("int32")(aiscal, biscal, ciscal, discal)],
+            [aiscal_val, biscal_val, ciscal_val, discal_val],
+            MakeVector,
+        )
 
 
 class ApplyDefaultTestOp(Op):
