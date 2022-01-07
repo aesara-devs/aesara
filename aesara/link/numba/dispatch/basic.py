@@ -1,5 +1,6 @@
 import operator
 import warnings
+from contextlib import contextmanager
 from functools import singledispatch
 
 import numba
@@ -57,14 +58,31 @@ def numba_vectorize(*args, **kwargs):
 
 
 def get_numba_type(
-    aesara_type: Type, layout: str = "A", force_scalar: bool = False
+    aesara_type: Type,
+    layout: str = "A",
+    force_scalar: bool = False,
+    reduce_to_scalar: bool = False,
 ) -> numba.types.Type:
-    """Create a Numba type object for a ``Type``."""
+    r"""Create a Numba type object for a :class:`Type`.
+
+    Parameters
+    ----------
+    aesara_type
+        The :class:`Type` to convert.
+    layout
+        The :class:`numpy.ndarray` layout to use.
+    force_scalar
+        Ignore dimension information and return the corresponding Numba scalar types.
+    reduce_to_scalar
+        Return Numba scalars for zero dimensional :class:`TensorType`\s.
+    """
 
     if isinstance(aesara_type, TensorType):
         dtype = aesara_type.numpy_dtype
         numba_dtype = numba.from_dtype(dtype)
-        if force_scalar:
+        if force_scalar or (
+            reduce_to_scalar and getattr(aesara_type, "ndim", None) == 0
+        ):
             return numba_dtype
         return numba.types.Array(numba_dtype, aesara_type.ndim, layout)
     elif isinstance(aesara_type, Scalar):
@@ -75,15 +93,25 @@ def get_numba_type(
         raise NotImplementedError(f"Numba type not implemented for {aesara_type}")
 
 
-def create_numba_signature(node: Apply, force_scalar: bool = False) -> numba.types.Type:
+def create_numba_signature(
+    node: Apply, force_scalar: bool = False, reduce_to_scalar: bool = False
+) -> numba.types.Type:
     """Create a Numba type for the signature of an ``Apply`` node."""
     input_types = []
     for inp in node.inputs:
-        input_types.append(get_numba_type(inp.type, force_scalar=force_scalar))
+        input_types.append(
+            get_numba_type(
+                inp.type, force_scalar=force_scalar, reduce_to_scalar=reduce_to_scalar
+            )
+        )
 
     output_types = []
     for out in node.outputs:
-        output_types.append(get_numba_type(out.type, force_scalar=force_scalar))
+        output_types.append(
+            get_numba_type(
+                out.type, force_scalar=force_scalar, reduce_to_scalar=reduce_to_scalar
+            )
+        )
 
     if len(output_types) > 1:
         return numba.types.Tuple(output_types)(*input_types)
@@ -261,6 +289,23 @@ def create_tuple_string(x):
 def create_arg_string(x):
     args = ", ".join(x)
     return args
+
+
+@contextmanager
+def use_optimized_cheap_pass(*args, **kwargs):
+    """Temporarily replace the cheap optimization pass with a better one."""
+    from numba.core.registry import cpu_target
+
+    context = cpu_target.target_context._internal_codegen
+    old_pm = context._mpm_cheap
+    new_pm = context._module_pass_manager(
+        loop_vectorize=True, slp_vectorize=True, opt=3, cost="cheap"
+    )
+    context._mpm_cheap = new_pm
+    try:
+        yield
+    finally:
+        context._mpm_cheap = old_pm
 
 
 @singledispatch

@@ -37,6 +37,7 @@ from aesara.tensor import elemwise as at_elemwise
 from aesara.tensor import extra_ops, nlinalg, slinalg
 from aesara.tensor import subtensor as at_subtensor
 from aesara.tensor.elemwise import Elemwise
+from aesara.tensor.math import All, Any, Max, Mean, Min, Prod, ProdWithoutZeros, Sum
 from aesara.tensor.shape import Reshape, Shape, Shape_i, SpecifyShape
 
 
@@ -1049,94 +1050,132 @@ def test_ARange(start, stop, step, dtype):
 
 
 @pytest.mark.parametrize(
-    "careduce_fn, axis, v, keepdims",
+    "careduce_fn, axis, v",
     [
         (
-            at.sum,
+            lambda x, axis=None, dtype=None, acc_dtype=None: Sum(
+                axis=axis, dtype=dtype, acc_dtype=acc_dtype
+            )(x),
             0,
             set_test_value(at.vector(), np.arange(3, dtype=config.floatX)),
-            False,
         ),
         (
-            at.all,
+            lambda x, axis=None, dtype=None, acc_dtype=None: All(axis)(x),
             0,
             set_test_value(at.vector(), np.arange(3, dtype=config.floatX)),
-            False,
         ),
         (
-            at.sum,
+            lambda x, axis=None, dtype=None, acc_dtype=None: Any(axis)(x),
+            0,
+            set_test_value(at.vector(), np.arange(3, dtype=config.floatX)),
+        ),
+        (
+            lambda x, axis=None, dtype=None, acc_dtype=None: Mean(axis)(x),
+            0,
+            set_test_value(at.vector(), np.arange(3, dtype=config.floatX)),
+        ),
+        (
+            lambda x, axis=None, dtype=None, acc_dtype=None: Mean(axis)(x),
             0,
             set_test_value(
                 at.matrix(), np.arange(3 * 2, dtype=config.floatX).reshape((3, 2))
             ),
-            False,
         ),
         (
-            at.sum,
+            lambda x, axis=None, dtype=None, acc_dtype=None: Sum(
+                axis=axis, dtype=dtype, acc_dtype=acc_dtype
+            )(x),
+            0,
+            set_test_value(
+                at.matrix(), np.arange(3 * 2, dtype=config.floatX).reshape((3, 2))
+            ),
+        ),
+        (
+            lambda x, axis=None, dtype=None, acc_dtype=None: Sum(
+                axis=axis, dtype=dtype, acc_dtype=acc_dtype
+            )(x),
             (0, 1),
             set_test_value(
                 at.matrix(), np.arange(3 * 2, dtype=config.floatX).reshape((3, 2))
             ),
-            False,
         ),
         (
-            at.sum,
+            lambda x, axis=None, dtype=None, acc_dtype=None: Sum(
+                axis=axis, dtype=dtype, acc_dtype=acc_dtype
+            )(x),
             (1, 0),
             set_test_value(
                 at.matrix(), np.arange(3 * 2, dtype=config.floatX).reshape((3, 2))
             ),
-            False,
         ),
         (
-            at.sum,
+            lambda x, axis=None, dtype=None, acc_dtype=None: Sum(
+                axis=axis, dtype=dtype, acc_dtype=acc_dtype
+            )(x),
             None,
             set_test_value(
                 at.matrix(), np.arange(3 * 2, dtype=config.floatX).reshape((3, 2))
             ),
-            False,
         ),
         (
-            at.sum,
+            lambda x, axis=None, dtype=None, acc_dtype=None: Sum(
+                axis=axis, dtype=dtype, acc_dtype=acc_dtype
+            )(x),
             1,
             set_test_value(
                 at.matrix(), np.arange(3 * 2, dtype=config.floatX).reshape((3, 2))
             ),
-            False,
         ),
         (
-            at.prod,
+            lambda x, axis=None, dtype=None, acc_dtype=None: Prod(
+                axis=axis, dtype=dtype, acc_dtype=acc_dtype
+            )(x),
             0,
             set_test_value(at.vector(), np.arange(3, dtype=config.floatX)),
-            False,
         ),
         (
-            at.prod,
+            lambda x, axis=None, dtype=None, acc_dtype=None: ProdWithoutZeros(
+                axis=axis, dtype=dtype, acc_dtype=acc_dtype
+            )(x),
+            0,
+            set_test_value(at.vector(), np.arange(3, dtype=config.floatX)),
+        ),
+        (
+            lambda x, axis=None, dtype=None, acc_dtype=None: Prod(
+                axis=axis, dtype=dtype, acc_dtype=acc_dtype
+            )(x),
             0,
             set_test_value(
                 at.matrix(), np.arange(3 * 2, dtype=config.floatX).reshape((3, 2))
             ),
-            False,
         ),
         (
-            at.prod,
+            lambda x, axis=None, dtype=None, acc_dtype=None: Prod(
+                axis=axis, dtype=dtype, acc_dtype=acc_dtype
+            )(x),
             1,
             set_test_value(
                 at.matrix(), np.arange(3 * 2, dtype=config.floatX).reshape((3, 2))
             ),
-            False,
         ),
         (
-            at.max,
+            lambda x, axis=None, dtype=None, acc_dtype=None: Max(axis)(x),
             None,
             set_test_value(
                 at.matrix(), np.arange(3 * 2, dtype=config.floatX).reshape((3, 2))
             ),
-            True,
+        ),
+        (
+            lambda x, axis=None, dtype=None, acc_dtype=None: Min(axis)(x),
+            None,
+            set_test_value(
+                at.matrix(), np.arange(3 * 2, dtype=config.floatX).reshape((3, 2))
+            ),
         ),
     ],
 )
-def test_CAReduce(careduce_fn, axis, v, keepdims):
-    g = careduce_fn(v, axis=axis, keepdims=keepdims)
+def test_CAReduce(careduce_fn, axis, v):
+    g = careduce_fn(v, axis=axis)
     g_fg = FunctionGraph(outputs=[g])
 
     compare_numba_and_py(
