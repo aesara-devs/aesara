@@ -1299,32 +1299,44 @@ def test_local_useless_fill():
     # basic case
     f = function([x], at.fill(x, x) * 2, mode=mode_opt)
     assert [node.op for node in f.maker.fgraph.toposort()] == [mul]
-    f(x_)
+    res = f(x_)
+    exp_res = np.broadcast_to(x_, x_.shape) * 2
+    assert np.array_equal(res, exp_res)
 
     # basic case
     f = function([x, y], at.second(y, x) * 2, mode=mode_opt)
     assert [node.op for node in f.maker.fgraph.toposort()] == [mul]
-    f(x_, y_)
+    res = f(x_, y_)
+    exp_res = np.broadcast_to(x_, y_.shape) * 2
+    assert np.array_equal(res, exp_res)
 
     # basic case
     f = function([x, y], at.fill(x, y) * 2, mode=mode_opt)
     assert [node.op for node in f.maker.fgraph.toposort()] == [mul]
-    f(x_, y_)
+    res = f(x_, y_)
+    exp_res = np.broadcast_to(y_, x_.shape) * 2
+    assert np.array_equal(res, exp_res)
 
     # now with different type(cast)
     f = function([x, z], at.fill(z, x) * 2, mode=mode_opt)
     assert [node.op for node in f.maker.fgraph.toposort()] == [mul]
-    f(x_, z_)
+    res = f(x_, z_)
+    exp_res = np.broadcast_to(x_, z_.shape) * 2
+    assert np.array_equal(res, exp_res)
 
     # now with different type(cast)
     f = function([x, z], at.fill(x, z) * 2, mode=mode_opt)
     assert [node.op for node in f.maker.fgraph.toposort()] == [mul]
-    f(x_, z_)
+    res = f(x_, z_)
+    exp_res = np.broadcast_to(z_, x_.shape) * 2
+    assert np.array_equal(res, exp_res)
 
     # now cutting out the input ??
     f = function([x, y], at.fill(x, y) * 2, mode=mode_opt)
     assert [node.op for node in f.maker.fgraph.toposort()] == [mul]
-    f(x_, y_)
+    res = f(x_, y_)
+    exp_res = np.broadcast_to(y_, x_.shape) * 2
+    assert np.array_equal(res, exp_res)
 
 
 def test_local_fill_to_alloc():
