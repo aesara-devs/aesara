@@ -195,7 +195,7 @@ class TestFunction:
 
         p = fmatrix()
         n = iscalar()
-        m = th_rng.multinomial_wo_replacement(pvals=p, n=n)
+        m = th_rng.choice(size=n, p=p, replace=False)
 
         f = function([p, n], m, allow_input_downcast=True)
 
