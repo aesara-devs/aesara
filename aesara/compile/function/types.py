@@ -1221,11 +1221,11 @@ def insert_deepcopy(fgraph, wrapped_inputs, wrapped_outputs):
             # and not(wrapped_outputs[i].borrow and wrapped_outputs[j].borrow):
             if fgraph.outputs[j] in views_of_output_i:
                 if wrapped_outputs[i].borrow and wrapped_outputs[j].borrow:
-                    fgraph.change_input(
+                    fgraph.change_node_input(
                         "output", i, view_op(fgraph.outputs[i]), reason=reason
                     )
                 else:
-                    fgraph.change_input(
+                    fgraph.change_node_input(
                         "output", i, deep_copy_op(fgraph.outputs[i]), reason=reason
                     )
                 copied = True
@@ -1248,7 +1248,7 @@ def insert_deepcopy(fgraph, wrapped_inputs, wrapped_outputs):
                     if input_j in fgraph.inputs:
                         j = fgraph.inputs.index(input_j)
                         if wrapped_outputs[i].borrow and wrapped_inputs[j].borrow:
-                            fgraph.change_input(
+                            fgraph.change_node_input(
                                 "output",
                                 i,
                                 view_op(fgraph.outputs[i]),
@@ -1256,7 +1256,7 @@ def insert_deepcopy(fgraph, wrapped_inputs, wrapped_outputs):
                             )
                             break
                         else:
-                            fgraph.change_input(
+                            fgraph.change_node_input(
                                 "output",
                                 i,
                                 deep_copy_op(fgraph.outputs[i]),
@@ -1264,7 +1264,7 @@ def insert_deepcopy(fgraph, wrapped_inputs, wrapped_outputs):
                             )
                             break
                     elif wrapped_outputs[i].borrow:
-                        fgraph.change_input(
+                        fgraph.change_node_input(
                             "output",
                             i,
                             view_op(fgraph.outputs[i]),
@@ -1272,7 +1272,7 @@ def insert_deepcopy(fgraph, wrapped_inputs, wrapped_outputs):
                         )
                         break
                     else:
-                        fgraph.change_input(
+                        fgraph.change_node_input(
                             "output",
                             i,
                             deep_copy_op(fgraph.outputs[i]),
