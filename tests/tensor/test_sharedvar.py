@@ -439,14 +439,6 @@ def makeSharedTester(
             with pytest.raises(AssertionError):
                 specify_shape_fct()
 
-            # No assertion will be raised as the Op is removed from the graph
-            # when their is optimization
-            if aesara.config.mode not in ["FAST_COMPILE", "DebugMode", "DEBUG_MODE"]:
-                shape_constant_fct()
-            else:
-                with pytest.raises(AssertionError):
-                    shape_constant_fct()
-
         def test_specify_shape_partial(self):
             dtype = self.dtype
             if dtype is None:
@@ -501,13 +493,6 @@ def makeSharedTester(
             x1_shared.set_value(x2)
             with pytest.raises(AssertionError):
                 specify_shape_fct()
-
-            # No assertion will be raised as the Op is removed from the graph
-            if aesara.config.mode not in ["FAST_COMPILE", "DebugMode", "DEBUG_MODE"]:
-                shape_constant_fct()
-            else:
-                with pytest.raises(AssertionError):
-                    shape_constant_fct()
 
         def test_specify_shape_inplace(self):
             # test that specify_shape don't break inserting inplace op

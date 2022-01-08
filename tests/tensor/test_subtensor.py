@@ -1077,7 +1077,8 @@ class TestSubtensor(utt.OptimizationTestMixin):
             else:
                 ops = subtensor_ops
             if idx is idxs[0]:
-                f = self.function([], [gn.shape, n[idx_].shape], op=ops, N=0, N_fast=2)
+                # TODO FIXME: This is a very poorly specified test.
+                f = self.function([], [gn.shape, n[idx_].shape], op=ops, N=0, N_fast=0)
                 f()
 
     def test_wrong_exception_regression(self):
@@ -1129,7 +1130,7 @@ class TestSubtensor(utt.OptimizationTestMixin):
             data = np.asarray(data, dtype=self.dtype)
             n = self.shared(data)
             t = n[idx]
-            f = self.function([], t.shape, op=subtensor_ops, N=0, N_fast=1)
+            f = self.function([], t.shape, op=subtensor_ops, N=0, N_fast=0)
             val = f()
             assert np.allclose(val, data[idx].shape)
 

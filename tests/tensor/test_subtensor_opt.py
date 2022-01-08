@@ -1174,10 +1174,6 @@ class TestLocalSubtensorMerge:
         data = self.rng.uniform(size=(8, 8, 8)).astype(config.floatX)
         x = tensor3("x")
 
-        nops = 1
-        if config.mode == "FAST_COMPILE":
-            nops = 2
-
         # test 1)
         y = x[3:6, 2:6, 1:7][1]
         fun = function([x], y)
@@ -1185,7 +1181,7 @@ class TestLocalSubtensorMerge:
         assert np.all(val == data[3:6, 2:6, 1:7][1])
         assert (
             len([n for n in fun.maker.fgraph.toposort() if isinstance(n.op, Subtensor)])
-            == nops
+            == 1
         )
 
         # test 2)
@@ -1195,7 +1191,7 @@ class TestLocalSubtensorMerge:
         assert np.all(val == data[2, 3][1])
         assert (
             len([n for n in fun.maker.fgraph.toposort() if isinstance(n.op, Subtensor)])
-            == nops
+            == 1
         )
 
         # test 3)
@@ -1205,7 +1201,7 @@ class TestLocalSubtensorMerge:
         assert np.all(val == data[3:6, 2, 1:7][1])
         assert (
             len([n for n in fun.maker.fgraph.toposort() if isinstance(n.op, Subtensor)])
-            == nops
+            == 1
         )
 
     def test_scalar6(self):
@@ -1590,10 +1586,7 @@ class TestAllocZero:
 
         assert len(inc_nodes) == 1
         node_is_set_instead_of_inc = inc_nodes[0].op.set_instead_of_inc
-        mode = config.mode
-        assert (mode != "FAST_COMPILE" and node_is_set_instead_of_inc) or (
-            mode == "FAST_COMPILE" and not node_is_set_instead_of_inc
-        )
+        assert node_is_set_instead_of_inc
         test_X = np.random.random((4, 4)).astype(config.floatX)
         utt.assert_allclose(f(test_X), test_X)
 
