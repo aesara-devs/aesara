@@ -1,5 +1,4 @@
 import copy
-import os
 import pickle
 import time
 
@@ -28,7 +27,6 @@ from aesara.tensor.type import (
     dscalar,
     dscalars,
     dvector,
-    fmatrix,
     fscalar,
     iscalar,
     matrix,
@@ -1221,40 +1219,3 @@ def test_sync_update():
     d1 = t_1 - t_0
     d2 = t_2 - t_1
     assert d1 > d2, (d1, d2)
-
-
-def test_FunctionMaker_cache_optimizations():
-
-    opt_db_file = os.path.join(config.compiledir, "optimized_graphs.pkl")
-    if os.path.exists(opt_db_file):
-        os.remove(opt_db_file)
-
-    floatX = "float32"
-    mode = config.mode
-    if mode in ["DEBUG_MODE", "DebugMode"]:
-        mode = "FAST_RUN"
-
-    graph_db_file = os.path.join(config.compiledir, "optimized_graphs.pkl")
-    assert not os.path.exists(graph_db_file)
-
-    with config.change_flags(cache_optimizations=True):
-        a = fmatrix("a")
-        b = fmatrix("b")
-        c = shared(np.ones((10, 10), dtype=floatX))
-        d = shared(np.ones((10, 10), dtype=floatX))
-        e = aet_sum(aet_sum(aet_sum(a ** 2 + b) + c) + d)
-        f1 = function([a, b], e, mode=mode)
-
-        # FIXME: We can do much better about testing this.
-        assert os.path.exists(graph_db_file)
-
-        m = fmatrix("x1")
-        n = fmatrix("x2")
-        p = shared(np.ones((10, 10), dtype=floatX))
-        q = shared(np.ones((10, 10), dtype=floatX))
-        j = aet_sum(aet_sum(aet_sum(m ** 2 + n) + p) + q)
-        f2 = function([m, n], j, mode=mode)
-
-        in1 = np.ones((10, 10), dtype=floatX)
-        in2 = np.ones((10, 10), dtype=floatX)
-        assert f1(in1, in2) == f2(in1, in2)
