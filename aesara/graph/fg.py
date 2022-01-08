@@ -418,7 +418,7 @@ class FunctionGraph(MetaObject):
                 self.add_client(input, (node, i))
             self.execute_callbacks("on_import", node, reason)
 
-    def change_input(
+    def change_node_input(
         self,
         node: Union[Apply, str],
         i: int,
@@ -544,7 +544,7 @@ class FunctionGraph(MetaObject):
             assert (node == "output" and self.outputs[i] is var) or (
                 node.inputs[i] is var
             )
-            self.change_input(
+            self.change_node_input(
                 node, i, new_var, reason=reason, import_missing=import_missing
             )
 

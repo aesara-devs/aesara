@@ -193,24 +193,24 @@ class TestFunctionGraph:
 
         var6 = MyVariable2("var6")
         with pytest.raises(TypeError):
-            fg.change_input("output", 1, var6)
+            fg.change_node_input("output", 1, var6)
 
         with pytest.raises(TypeError):
-            fg.change_input(var5.owner, 1, var6)
+            fg.change_node_input(var5.owner, 1, var6)
 
         old_apply_nodes = set(fg.apply_nodes)
         old_variables = set(fg.variables)
         old_var5_clients = list(fg.get_clients(var5))
 
         # We're replacing with the same variable, so nothing should happen
-        fg.change_input(var5.owner, 1, var2)
+        fg.change_node_input(var5.owner, 1, var2)
 
         assert old_apply_nodes == fg.apply_nodes
         assert old_variables == fg.variables
         assert old_var5_clients == fg.get_clients(var5)
 
         # Perform a valid `Apply` node input change
-        fg.change_input(var5.owner, 1, var1)
+        fg.change_node_input(var5.owner, 1, var1)
 
         assert var5.owner.inputs[1] is var1
         assert (var5.owner, 1) not in fg.get_clients(var2)
