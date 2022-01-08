@@ -1415,17 +1415,6 @@ def add_vm_configvars():
 
 
 def add_deprecated_configvars():
-    # TODO: remove this?
-    config.add(
-        "cache_optimizations",
-        "WARNING: work in progress, does not work yet. "
-        "Specify if the optimization cache should be used. This cache will "
-        "any optimized graph and its optimization. Actually slow downs a lot "
-        "the first optimization, and could possibly still contains some bugs. "
-        "Use at your own risks.",
-        BoolParam(False),
-        in_c_key=False,
-    )
 
     # TODO: remove this?
     config.add(
