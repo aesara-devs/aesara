@@ -1563,18 +1563,8 @@ class TestDots(utt.InferShapeTester):
 
                 assert np.all(f_a(vx, vy) == f_b(vx, vy))
                 topo = f_a.maker.fgraph.toposort()
-                if aesara.config.mode != "FAST_COMPILE":
-                    nb = 0
-                else:
-                    nb = 1
-                assert (
-                    sum(
-                        [
-                            isinstance(node.op, (Dot, Usmm, UsmmCscDense))
-                            for node in topo
-                        ]
-                    )
-                    == nb
+                assert not any(
+                    isinstance(node.op, (Dot, Usmm, UsmmCscDense)) for node in topo
                 )
 
     def test_int32_dtype(self):
@@ -1822,13 +1812,8 @@ class TestUsmm:
             )
             assert all(f_shape(a_data, x_data, y_data) == f_b_out.shape)
             topo = f_shape.maker.fgraph.toposort()
-            if aesara.config.mode != "FAST_COMPILE":
-                nb = 0
-            else:
-                nb = 1
-            assert (
-                sum([isinstance(node.op, (Dot, Usmm, UsmmCscDense)) for node in topo])
-                == nb
+            assert not any(
+                isinstance(node.op, (Dot, Usmm, UsmmCscDense)) for node in topo
             )
 
 

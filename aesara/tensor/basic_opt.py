@@ -507,7 +507,9 @@ def register_canonicalize(lopt, *tags, **kwargs):
         return register
     else:
         name = kwargs.pop("name", None) or lopt.__name__
-        compile.optdb["canonicalize"].register(name, lopt, "fast_run", *tags, **kwargs)
+        compile.optdb["canonicalize"].register(
+            name, lopt, "fast_run", "fast_compile", *tags, **kwargs
+        )
         return lopt
 
 

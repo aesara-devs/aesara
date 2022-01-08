@@ -1028,11 +1028,6 @@ class TestJoinAndSplit:
         self.split_op_class = Split
         self.make_vector_op = MakeVector()
         self.floatX = config.floatX
-        self.hide_error = config.mode not in [
-            "DebugMode",
-            "DEBUG_MODE",
-            "FAST_COMPILE",
-        ]
         self.shared = shared
 
     def eval_outputs_and_check_join(self, outputs):
@@ -1711,17 +1706,6 @@ class TestJoinAndSplit:
         if config.mode != "FAST_COMPILE":
             for node in topo:
                 assert not isinstance(node.op, type(self.join_op))
-
-        with config.change_flags(compute_test_value="off"):
-            # Test hide error
-            x1.set_value(get_mat(3, 4))
-            x2.set_value(get_mat(3, 4))
-            x3.set_value(get_mat(2, 5))
-            if not self.hide_error:
-                with pytest.raises(ValueError):
-                    f()
-            else:
-                f()
 
     def test_rebroadcast(self):
         # Regression test for a crash that used to happen when rebroadcasting.

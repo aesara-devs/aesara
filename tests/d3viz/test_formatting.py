@@ -48,7 +48,7 @@ class TestPyDotFormatter:
         assert len(sub_graphs) == 2
         ofg1, ofg2 = sub_graphs
         if config.mode == "FAST_COMPILE":
-            assert len(ofg1.get_nodes()) == 9
+            assert len(ofg1.get_nodes()) == 8
         else:
             assert len(ofg1.get_nodes()) == 5
         assert len(ofg1.get_nodes()) == len(ofg2.get_nodes())
