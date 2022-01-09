@@ -55,9 +55,10 @@ def apply_local_opt_to_rv(opt, op_fn, dist_op, dist_params, size, rng, name=None
         f_inputs,
         dist_st,
         mode=mode,
+        no_default_updates=True,
     )
 
-    (new_out,) = f_opt.maker.fgraph.outputs
+    (new_out, *_) = f_opt.maker.fgraph.outputs
 
     return new_out, f_inputs, dist_st, f_opt
 
@@ -322,6 +323,7 @@ def test_DimShuffle_lift(ds_order, lifted, dist_op, dist_params, size, rtol):
         f_inputs,
         dist_st,
         mode=no_mode,
+        no_default_updates=True,
     )
 
     arg_values = [p.get_test_value() for p in f_inputs]
@@ -447,6 +449,7 @@ def test_Subtensor_lift(indices, lifted, dist_op, dist_params, size):
         f_inputs,
         dist_st,
         mode=no_mode,
+        no_default_updates=True,
     )
 
     arg_values = [p.get_test_value() for p in f_inputs]

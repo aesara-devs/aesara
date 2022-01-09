@@ -1,3 +1,4 @@
+import warnings
 from collections.abc import Sequence
 from copy import copy
 from typing import List, Optional, Tuple
@@ -350,8 +351,21 @@ class RandomVariable(Op):
 
         outtype = TensorType(dtype=dtype, broadcastable=bcast)
         out_var = outtype()
+        out_rng = rng.type()
+
+        if getattr(rng, "default_update", None) is None:
+            # This allows the state of an RNG to change within a `Scan` by
+            # default
+            rng.default_update = out_rng
+        elif hasattr(rng, "default_update"):
+            warnings.warn(
+                f"{rng} already has a `default_update` value.  Using this variable "
+                "in update-dependent `Op`s like `Scan` may produce confusing results. "
+                "Consider using a `RandomStream` instance instead."
+            )
+
         inputs = (rng, size, dtype_idx) + dist_params
-        outputs = (rng.type(), out_var)
+        outputs = (out_rng, out_var)
 
         return Apply(self, inputs, outputs)
 

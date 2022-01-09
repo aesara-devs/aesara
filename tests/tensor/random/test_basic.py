@@ -6,7 +6,7 @@ import pytest
 import scipy.stats as stats
 
 import aesara.tensor as at
-from aesara import function, shared
+from aesara import function, scan, shared
 from aesara.compile.mode import Mode
 from aesara.compile.sharedvalue import SharedVariable
 from aesara.configdefaults import config
@@ -1272,3 +1272,25 @@ def test_pickle():
     a_unpkl = pickle.loads(a_pkl)
 
     assert a_unpkl.owner.op._props() == sample_a.owner.op._props()
+
+
+def test_rng_default_updates():
+    rng = shared(np.random.default_rng(42343))
+
+    v1 = normal(rng=rng)
+
+    assert rng.default_update == v1.owner.outputs[0]
+
+    with pytest.warns(Warning, match="default_update"):
+        normal(rng=rng)
+
+
+def test_rng_state_scan():
+    rng = shared(np.random.default_rng(42343))
+
+    def inner_fn(rng):
+        return normal(rng=rng)
+
+    out, updates = scan(inner_fn, non_sequences=[rng], n_steps=10)
+
+    assert len(set(out.eval())) == 10
