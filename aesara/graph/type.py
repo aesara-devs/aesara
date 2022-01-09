@@ -156,10 +156,6 @@ class Type(MetaObject):
         except (TypeError, ValueError):
             return False
 
-    def value_validity_msg(self, data: D) -> Text:
-        """Return a message explaining the output of `Type.is_valid_value`."""
-        return "none"
-
     def make_variable(self, name: Optional[Text] = None) -> Variable:
         """Return a new `Variable` instance of this `Type`.
 

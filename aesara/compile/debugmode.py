@@ -1174,7 +1174,7 @@ def _check_preallocated_output(
                         r,
                         storage_map[r][0],
                         hint=thunk_name,
-                        specific_hint=r.type.value_validity_msg(storage_map[r][0]),
+                        specific_hint=validity_hint(r.type, storage_map[r][0]),
                     )
 
             _check_inputs(
@@ -1212,6 +1212,14 @@ def _check_preallocated_output(
         if changed_inner_mode:
             _logger.info("changing mode back")
             fn.maker.mode = backup_mode
+
+
+def validity_hint(type, x):
+    try:
+        type.filter(x, strict=True)
+    except Exception as e:
+        return str(e)
+    return "value is valid"
 
 
 class _FunctionGraphEvent:
@@ -1756,7 +1764,7 @@ class _Linker(LocalLinker):
                         # check output values for type-correctness
                         for r in node.outputs:
                             if not r.type.is_valid_value(storage_map[r][0]):
-                                hint2 = r.type.value_validity_msg(storage_map[r][0])
+                                hint2 = validity_hint(r.type, storage_map[r][0])
                                 raise InvalidValueError(
                                     r,
                                     storage_map[r][0],
