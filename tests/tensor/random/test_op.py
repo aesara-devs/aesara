@@ -71,7 +71,7 @@ def test_RandomVariable_basics():
         )(0, 1, size={1, 2})
 
     # No dtype
-    with raises(TypeError, match="^dtype*"):
+    with raises(TypeError, match="^`dtype`.*"):
         RandomVariable(
             "normal",
             0,

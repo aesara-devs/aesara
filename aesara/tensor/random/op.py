@@ -331,9 +331,7 @@ class RandomVariable(Op):
         if rng is None:
             rng = aesara.shared(np.random.default_rng())
         elif not isinstance(rng.type, RandomType):
-            raise TypeError(
-                "The type of rng should be an instance of either RandomGeneratorType or RandomStateType"
-            )
+            raise TypeError("The type of `rng` must be a subclass of RandomType")
 
         shape = self._infer_shape(size, dist_params)
         _, bcast = infer_broadcastable(shape)
@@ -342,7 +340,7 @@ class RandomVariable(Op):
         if dtype == "floatX":
             dtype = config.floatX
         elif dtype is None or (isinstance(dtype, str) and dtype not in all_dtypes):
-            raise TypeError("dtype is unspecified")
+            raise TypeError("`dtype` is unspecified")
 
         if isinstance(dtype, str):
             dtype_idx = constant(all_dtypes.index(dtype), dtype="int64")
