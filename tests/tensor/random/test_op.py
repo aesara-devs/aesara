@@ -79,6 +79,15 @@ def test_RandomVariable_basics():
             inplace=True,
         )(0, 1)
 
+    with raises(TypeError, match="^The type of `rng`*"):
+        RandomVariable(
+            "normal",
+            0,
+            [0, 0],
+            "normal",
+            inplace=True,
+        )(rng=at.as_tensor(1))
+
     # Confirm that `inplace` works
     rv = RandomVariable(
         "normal",
