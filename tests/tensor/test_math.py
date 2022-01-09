@@ -35,11 +35,13 @@ from aesara.tensor.elemwise import CAReduce, Elemwise
 from aesara.tensor.math import (
     Argmax,
     Dot,
+    MatMul,
     MaxAndArgmax,
     Mean,
     Prod,
     ProdWithoutZeros,
     Sum,
+    _allclose,
     _dot,
     abs,
     add,
@@ -80,6 +82,7 @@ from aesara.tensor.math import (
     log10,
     logaddexp,
     logsumexp,
+    matmul,
     max,
     max_and_argmax,
     maximum,
@@ -3382,3 +3385,142 @@ def test_log1mexp_grad_lim():
     assert grad_x_fn(-0.0) == -np.inf
     assert grad_x_fn(-1e-309) == -np.inf
     assert grad_x_fn(-1e-308) != -np.inf
+
+
+class TestMatMul(utt.InferShapeTester):
+    def setup_method(self):
+        super().setup_method()
+        self.rng = np.random.default_rng(utt.fetch_seed())
+        self.op = matmul
+        self.op_class = MatMul
+
+    def _validate_output(self, a, b):
+        aesara_sol = self.op(a, b).eval()
+        numpy_sol = np.matmul(a, b)
+        assert _allclose(numpy_sol, aesara_sol)
+
+    @pytest.mark.parametrize(
+        "x1, x2",
+        [
+            # test output when both inputs are vectors
+            (np.arange(3).astype(config.floatX), np.arange(3).astype(config.floatX)),
+            # test output when both inputs are matrices
+            (
+                np.arange(3 * 5).reshape((5, 3)).astype(config.floatX),
+                np.arange(2 * 3).reshape((3, 2)).astype(config.floatX),
+            ),
+            # test behaviour when one of the inputs is has dimension > 2
+            (
+                np.arange(3 * 5).reshape((5, 3)).astype(config.floatX),
+                np.arange(2 * 3 * 5).reshape((2, 3, 5)).astype(config.floatX),
+            ),
+            # test behaviour when one of the inputs is a vector
+            (
+                np.arange(3 * 5).reshape((5, 3)).astype(config.floatX),
+                np.arange(3).astype(config.floatX),
+            ),
+            (
+                np.arange(5).astype(config.floatX),
+                np.arange(3 * 5).reshape((5, 3)).astype(config.floatX),
+            ),
+            # check if behaviour is correct N-D arrays where N > 2.
+            (
+                np.arange(2 * 2 * 4).reshape((2, 2, 4)).astype(config.floatX),
+                np.arange(2 * 2 * 4).reshape((2, 4, 2)).astype(config.floatX),
+            ),
+        ],
+    )
+    def test_op(self, x1, x2):
+        self._validate_output(x1, x2)
+
+    def test_scalar_error(self):
+        with pytest.raises(ValueError, match="cannot be scalar"):
+            self.op(4, [4, 1])
+
+    @pytest.mark.parametrize("dtype", (np.float16, np.float32, np.float64))
+    def test_dtype_param(self, dtype):
+        sol = self.op([1, 2, 3], [3, 2, 1], dtype=dtype)
+        assert sol.eval().dtype == dtype
+
+    @pytest.mark.parametrize(
+        "x1_shape,x2_shape,exp_res,error_regex",
+        [
+            ((1,), (3,), None, "inputs must have the same length"),
+            ((2,), (3, 1), None, "length of input 1.*2nd-last dimension of input 2"),
+            ((2, 5), (3,), None, "length of input 2.*of the last dimension of input 1"),
+            (
+                (2, 5),
+                (3, 4),
+                None,
+                "number of columns of input 1 .* number of rows of input 2",
+            ),
+            (
+                (2, 1, 3),
+                (5, 4),
+                None,
+                "number of rows of input 2 .* last dimension of input 1",
+            ),
+            (
+                (2, 5),
+                (2, 4, 3),
+                None,
+                "number of columns of input 1 .* 2nd-last dimension of input 2",
+            ),
+            (
+                (3, 2, 4, 5),
+                (1, 6, 7),
+                None,
+                "length of the last dimension of input 1 .* 2nd-last dimension of input 2",
+            ),
+            (
+                (4, 5, 4),
+                (3, 2, 2),
+                None,
+                "cannot be broadcast to a single shape",
+            ),
+            (
+                (4, None, 2),
+                (4, 2, None),
+                (4, None, None),
+                None,
+            ),
+        ],
+    )
+    def test_get_output_shape(self, x1_shape, x2_shape, exp_res, error_regex):
+        x1 = tensor(dtype=np.float64, shape=x1_shape)
+        x2 = tensor(dtype=np.float64, shape=x2_shape)
+
+        if error_regex is not None:
+            with pytest.raises(ValueError, match=error_regex):
+                self.op_class._get_output_shape(
+                    x1, x2, (x1_shape, x2_shape), validate=True
+                )
+        else:
+            assert (
+                self.op_class._get_output_shape(
+                    x1, x2, (x1_shape, x2_shape), validate=True
+                )
+                == exp_res
+            )
+
+    def test_infer_shape(self):
+        for shape_x1, shape_x2 in [
+            ((5,), (5,)),
+            ((5,), (2, 5, 3)),
+            ((2, 5, 3), (3,)),
+            ((2, 5), (5, 4)),
+            ((2, 5), (2, 5, 3)),
+            ((2, 1, 3), (3, 4)),
+            ((3, 2, 4, 5), (1, 5, 7)),
+        ]:
+            a = tensor(dtype=config.floatX, shape=shape_x1)
+            b = tensor(dtype=config.floatX, shape=shape_x2)
+            x1 = self.rng.random(shape_x1).astype(config.floatX)
+            x2 = self.rng.random(shape_x2).astype(config.floatX)
+
+            self._compile_and_check(
+                [a, b],
+                [self.op(a, b)],
+                [x1, x2],
+                self.op_class,
+            )
