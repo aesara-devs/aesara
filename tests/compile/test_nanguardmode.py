@@ -7,7 +7,7 @@ import logging
 import numpy as np
 import pytest
 
-import aesara.tensor as aet
+import aesara.tensor as at
 from aesara.compile import shared
 from aesara.compile.function import function
 from aesara.compile.nanguardmode import NanGuardMode
@@ -52,7 +52,7 @@ def test_NanGuardMode():
     biga = np.tile(np.asarray(1e20).astype(config.floatX), (3, 4, 5))
 
     x = tensor3()
-    y = x[:, aet.arange(2), aet.arange(2), None]
+    y = x[:, at.arange(2), at.arange(2), None]
     fun = function([x], y, mode=NanGuardMode(nan_is_error=True, inf_is_error=True))
     fun(a)  # normal values
     try:

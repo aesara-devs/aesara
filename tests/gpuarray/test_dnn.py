@@ -11,7 +11,7 @@ from io import StringIO
 from itertools import chain, product
 
 import aesara
-import aesara.tensor as aet
+import aesara.tensor as at
 import tests.unittest_tools as utt
 from aesara.configdefaults import SUPPORTED_DNN_CONV_ALGO_FWD
 from aesara.gpuarray import dnn
@@ -31,7 +31,7 @@ from aesara.tensor.math import (
     reciprocal,
     sqrt,
 )
-from aesara.tensor.math import sum as aet_sum
+from aesara.tensor.math import sum as at_sum
 from aesara.tensor.nnet import batchnorm, conv2d, softmax, softmax_legacy
 from aesara.tensor.nnet.abstract_conv import (
     get_conv_gradinputs_shape,
@@ -111,7 +111,7 @@ def set_precision(floatX):
 
 
 def test_dnn_conv_desc_merge():
-    kern_shp = aet.as_tensor_variable(np.asarray([3, 1, 2, 2]).astype("int64"))
+    kern_shp = at.as_tensor_variable(np.asarray([3, 1, 2, 2]).astype("int64"))
     desc1 = dnn.GpuDnnConvDesc(
         border_mode="valid", subsample=(2, 2), dilation=(1, 1), conv_mode="conv"
     )(kern_shp)
@@ -658,7 +658,7 @@ def test_pooling_opt_arbitrary_dimensions():
 
             for mode in modes:
                 out_pool = Pool(ndim=len(ws), mode=mode, ignore_border=True)(input, ws)
-                out_pool_grad = aesara.grad(aet_sum(out_pool), wrt=input)
+                out_pool_grad = aesara.grad(at_sum(out_pool), wrt=input)
                 out = [out_pool, out_pool_grad]
 
                 # run on GPU
@@ -712,7 +712,7 @@ def test_pooling_empty_batch():
     d = f(np.random.rand(*img_shp).astype("float32"))
     assert d.shape == (0, 5, 3, 4)
 
-    g = aesara.grad(aet_sum(o), wrt=img)
+    g = aesara.grad(at_sum(o), wrt=img)
     f = aesara.function([img], g, mode=mode_with_gpu)
     d = f(np.random.rand(*img_shp).astype("float32"))
     # Not sure what to assert, it should just pass, that's all.
@@ -1530,7 +1530,7 @@ class TestSoftMax(test_nnet.TestSoftMax):
         # more recent. Don't test if the cuDNN version is too old.
         x = tensor4()
         softmax_out = dnn.GpuDnnSoftmax("accurate", "channel")(x)
-        log_out = log(aet.as_tensor_variable(softmax_out))
+        log_out = log(at.as_tensor_variable(softmax_out))
 
         f = aesara.function([x], log_out, mode=mode_with_gpu)
 
@@ -1766,8 +1766,8 @@ def test_dnn_reduction_error():
     slow_output = np.sum(slow_output.transpose(), axis=1)
 
     vecT = vector(dtype=aesara.config.floatX)
-    outputT = aet.alloc(2.0 * vecT, 5, vecT.shape[0])
-    outputSummedT = aet_sum(aet.transpose(outputT), axis=1)
+    outputT = at.alloc(2.0 * vecT, 5, vecT.shape[0])
+    outputSummedT = at_sum(at.transpose(outputT), axis=1)
     f3 = aesara.function(inputs=[vecT], outputs=outputSummedT)
 
     output = f3(vec)
@@ -1862,9 +1862,9 @@ def test_dnn_batchnorm_train():
             x_mean_ref = x.mean(axis=axes, keepdims=True)
             x_var_ref = x.var(axis=axes, keepdims=True)
             x_invstd_ref = reciprocal(sqrt(x_var_ref + eps))
-            scale_ref = aet.addbroadcast(scale, *axes)
-            bias_ref = aet.addbroadcast(bias, *axes)
-            m = aet.cast(prod(x.shape) / prod(scale.shape), aesara.config.floatX)
+            scale_ref = at.addbroadcast(scale, *axes)
+            bias_ref = at.addbroadcast(bias, *axes)
+            m = at.cast(prod(x.shape) / prod(scale.shape), aesara.config.floatX)
             out_ref = (x - x_mean_ref) * (scale_ref * x_invstd_ref) + bias_ref
             out_running_mean_ref = (
                 running_mean * (1 - running_average_factor)
@@ -2227,7 +2227,7 @@ def test_batchnorm_inference():
             elif mode == "spatial":
                 axes = (0,) + tuple(range(2, ndim))
             scale_ref, bias_ref, mean_ref, var_ref = (
-                aet.addbroadcast(t, *axes) for t in (scale, bias, mean, var)
+                at.addbroadcast(t, *axes) for t in (scale, bias, mean, var)
             )
             out_ref = (x - mean_ref) * (scale_ref / sqrt(var_ref + eps)) + bias_ref
             # backward pass
@@ -2484,7 +2484,7 @@ def test_dnn_rnn_gru():
     ref_y = last_layer.output()
 
     # This will grab the hy from the scan implementation
-    ref_hy = aet.stack(
+    ref_hy = at.stack(
         [model.layers[0].Y[-1], model.layers[1].Y[-1], model.layers[2].Y[-1]]
     )
 
@@ -2730,7 +2730,7 @@ def test_dnn_rnn_lstm_grad_c():
         return grad_fn
 
     _, _, cy = rnnb.apply(params_cudnn, X, h0, c0)
-    ref_cy = aet.stack(
+    ref_cy = at.stack(
         [model.layers[0].C[-1], model.layers[1].C[-1], model.layers[2].C[-1]]
     )
 
@@ -2803,8 +2803,8 @@ def test_dnn_spatialtf():
         theta = reshape(theta, (-1, 2, 3))
 
         # grid of (x_t, y_t, 1), eq (1) in ref [1]
-        out_height = aet.cast(ceil(height * scale_height), "int64")
-        out_width = aet.cast(ceil(width * scale_width), "int64")
+        out_height = at.cast(ceil(height * scale_height), "int64")
+        out_width = at.cast(ceil(width * scale_width), "int64")
         grid = _meshgrid(out_height, out_width)
         # transform a x (x_t, y_t, 1)^t -> (x_s, y_s)
         t_g = dot(theta, grid)
@@ -2828,8 +2828,8 @@ def test_dnn_spatialtf():
     def _interpolate(im, x, y, out_height, out_width, border_mode):
         # *_f are floats
         num_batch, height, width, channels = im.shape
-        height_f = aet.cast(height, aesara.config.floatX)
-        width_f = aet.cast(width, aesara.config.floatX)
+        height_f = at.cast(height, aesara.config.floatX)
+        width_f = at.cast(width, aesara.config.floatX)
 
         # scale coordinates from [-1, 1] to [0, dimension - 1], where dimension
         # can be the width or height
@@ -2865,15 +2865,15 @@ def test_dnn_spatialtf():
             raise ValueError(
                 "border_mode must be one of " "'nearest', 'mirror', 'wrap'"
             )
-        x0, x1, y0, y1 = (aet.cast(v, "int64") for v in (x0, x1, y0, y1))
+        x0, x1, y0, y1 = (at.cast(v, "int64") for v in (x0, x1, y0, y1))
 
         # The input is [num_batch, height, width, channels]. We do the lookup in
         # the flattened input, i.e [num_batch*height*width, channels]. We need
         # to offset all indices to match the flat version
         dim2 = width
         dim1 = width * height
-        base = aet.repeat(
-            aet.arange(num_batch, dtype="int64") * dim1, out_height * out_width
+        base = at.repeat(
+            at.arange(num_batch, dtype="int64") * dim1, out_height * out_width
         )
         base_y0 = base + y0 * dim2
         base_y1 = base + y1 * dim2
@@ -2894,16 +2894,16 @@ def test_dnn_spatialtf():
         wb = ((x1_f - x) * (y - y0_f)).dimshuffle(0, "x")
         wc = ((x - x0_f) * (y1_f - y)).dimshuffle(0, "x")
         wd = ((x - x0_f) * (y - y0_f)).dimshuffle(0, "x")
-        output = aet_sum([wa * Ia, wb * Ib, wc * Ic, wd * Id], axis=0)
+        output = at_sum([wa * Ia, wb * Ib, wc * Ic, wd * Id], axis=0)
         return output
 
     def _linspace(start, stop, num):
         # aesara linspace. Behaves similar to np.linspace
-        start = aet.cast(start, aesara.config.floatX)
-        stop = aet.cast(stop, aesara.config.floatX)
-        num = aet.cast(num, aesara.config.floatX)
+        start = at.cast(start, aesara.config.floatX)
+        stop = at.cast(stop, aesara.config.floatX)
+        num = at.cast(num, aesara.config.floatX)
         step = (stop - start) / (num - 1)
-        return aet.arange(num, dtype=aesara.config.floatX) * step + start
+        return at.arange(num, dtype=aesara.config.floatX) * step + start
 
     def _meshgrid(height, width):
         # This function is the grid generator from eq. (1) in reference [1].
@@ -2916,13 +2916,13 @@ def test_dnn_spatialtf():
         # Note: If the image size is known at layer construction time, we could
         # compute the meshgrid offline in numpy instead of doing it dynamically
         # in Aesara. However, it hardly affected performance when we tried.
-        x_t = dot(aet.ones((height, 1)), _linspace(-1.0, 1.0, width).dimshuffle("x", 0))
-        y_t = dot(_linspace(-1.0, 1.0, height).dimshuffle(0, "x"), aet.ones((1, width)))
+        x_t = dot(at.ones((height, 1)), _linspace(-1.0, 1.0, width).dimshuffle("x", 0))
+        y_t = dot(_linspace(-1.0, 1.0, height).dimshuffle(0, "x"), at.ones((1, width)))
 
         x_t_flat = x_t.reshape((1, -1))
         y_t_flat = y_t.reshape((1, -1))
-        ones = aet.ones_like(x_t_flat)
-        grid = aet.concatenate([x_t_flat, y_t_flat, ones], axis=0)
+        ones = at.ones_like(x_t_flat)
+        grid = at.concatenate([x_t_flat, y_t_flat, ones], axis=0)
         return grid
 
     img_dims = (5, 3, 16, 16)

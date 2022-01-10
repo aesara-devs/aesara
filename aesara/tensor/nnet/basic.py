@@ -28,7 +28,7 @@ from aesara.graph.op import COp, Op
 from aesara.graph.opt import copy_stack_trace, local_optimizer, optimizer
 from aesara.raise_op import Assert
 from aesara.scalar import UnaryScalarOp
-from aesara.tensor import basic as aet
+from aesara.tensor import basic as at
 from aesara.tensor import extra_ops, math_opt
 from aesara.tensor.basic import ARange, as_tensor_variable
 from aesara.tensor.basic_opt import (
@@ -54,7 +54,7 @@ from aesara.tensor.math import (
     sigmoid,
     softplus,
 )
-from aesara.tensor.math import sum as aet_sum
+from aesara.tensor.math import sum as at_sum
 from aesara.tensor.math import tanh, tensordot, true_div
 from aesara.tensor.nnet.blocksparse import sparse_block_dot
 from aesara.tensor.shape import shape, shape_padleft
@@ -94,8 +94,8 @@ class SoftmaxWithBias(COp):
     __props__ = ()
 
     def make_node(self, x, b):
-        x = aet.as_tensor_variable(x)
-        b = aet.as_tensor_variable(b)
+        x = at.as_tensor_variable(x)
+        b = at.as_tensor_variable(b)
         if x.type.ndim != 2 or x.type.dtype not in float_dtypes:
             raise ValueError("x must be 2-d tensor of floats")
         if b.type.ndim != 1 or b.type.dtype not in float_dtypes:
@@ -141,7 +141,7 @@ class SoftmaxWithBias(COp):
             return [DisconnectedType()(), DisconnectedType()()]
 
         dx = softmax_grad_legacy(g_sm, outputs[0])
-        db = aet_sum(dx, axis=0)
+        db = at_sum(dx, axis=0)
         return dx, db
 
     def infer_shape(self, fgraph, node, shape):
@@ -347,8 +347,8 @@ class SoftmaxGrad(COp):
         self.axis = axis
 
     def make_node(self, dy, sm):
-        dy = aet.as_tensor_variable(dy)
-        sm = aet.as_tensor_variable(sm)
+        dy = at.as_tensor_variable(dy)
+        sm = at.as_tensor_variable(sm)
 
         if self.axis is not None and (self.axis >= sm.ndim or self.axis < -sm.ndim):
             raise ValueError(
@@ -368,10 +368,10 @@ class SoftmaxGrad(COp):
         dy, sm = inp
         (g,) = grads
 
-        tmp = g + neg(aet_sum(g * sm, axis=self.axis, keepdims=True))
+        tmp = g + neg(at_sum(g * sm, axis=self.axis, keepdims=True))
         g_dy = tmp * sm
 
-        tmp2 = aet_sum(dy * sm, axis=self.axis, keepdims=True)
+        tmp2 = at_sum(dy * sm, axis=self.axis, keepdims=True)
         g_sm = tmp * dy - g * tmp2
 
         return g_dy, g_sm
@@ -580,7 +580,7 @@ class Softmax(COp):
         self.axis = axis
 
     def make_node(self, x):
-        x = aet.as_tensor_variable(x)
+        x = at.as_tensor_variable(x)
 
         if self.axis is not None and (self.axis >= x.ndim or self.axis < -x.ndim):
             raise ValueError(
@@ -830,7 +830,7 @@ class LogSoftmax(COp):
         self.axis = axis
 
     def make_node(self, x):
-        x = aet.as_tensor_variable(x)
+        x = at.as_tensor_variable(x)
 
         if self.axis is not None and (self.axis >= x.ndim or self.axis < -x.ndim):
             raise ValueError(
@@ -847,7 +847,7 @@ class LogSoftmax(COp):
     def grad(self, inp, grads):
         (x,) = inp
         sm = Softmax(axis=self.axis)(x)
-        return [grads[0] - aet_sum(grads[0], axis=self.axis, keepdims=True) * sm]
+        return [grads[0] - at_sum(grads[0], axis=self.axis, keepdims=True) * sm]
 
     def R_op(self, inputs, eval_points):
         # I think the Jacobian is symmetric so the R_op
@@ -1113,7 +1113,7 @@ def local_logsoftmax_grad(fgraph, node):
     ):
         # get parameters from unoptimized op
         grads, sm = node.inputs[0].owner.inputs
-        ret = grads - aet_sum(grads, axis=sm.owner.op.axis, keepdims=True) * sm
+        ret = grads - at_sum(grads, axis=sm.owner.op.axis, keepdims=True) * sm
         ret.tag.values_eq_approx = values_eq_approx_remove_nan
         copy_stack_trace(node.outputs[0], ret)
         return [ret]
@@ -1336,9 +1336,9 @@ class CrossentropySoftmaxArgmax1HotWithBias(COp):
         super().__init__(**kwargs)
 
     def make_node(self, x, b, y_idx):
-        x = aet.as_tensor_variable(x)
-        b = aet.as_tensor_variable(b)
-        y_idx = aet.as_tensor_variable(y_idx)
+        x = at.as_tensor_variable(x)
+        b = at.as_tensor_variable(b)
+        y_idx = at.as_tensor_variable(y_idx)
         if x.type.ndim != 2 or x.type.dtype not in float_dtypes:
             raise ValueError("x must be 2-d tensor of floats", x.type)
         if b.type.ndim != 1 or x.type.dtype not in float_dtypes:
@@ -1431,7 +1431,7 @@ class CrossentropySoftmaxArgmax1HotWithBias(COp):
         if not isinstance(g_nll.type, DisconnectedType):
             nll, sm = crossentropy_softmax_1hot_with_bias(x, b, y_idx)
             dx = crossentropy_softmax_1hot_with_bias_dx(g_nll, sm, y_idx)
-            db = aet_sum(dx, axis=[0])
+            db = at_sum(dx, axis=[0])
             dx_terms.append(dx)
             db_terms.append(db)
 
@@ -1565,9 +1565,9 @@ class CrossentropySoftmax1HotWithBiasDx(COp):
     __props__ = ()
 
     def make_node(self, dy, sm, y_idx, **kwargs):
-        dy = aet.as_tensor_variable(dy)
-        sm = aet.as_tensor_variable(sm)
-        y_idx = aet.as_tensor_variable(y_idx)
+        dy = at.as_tensor_variable(dy)
+        sm = at.as_tensor_variable(sm)
+        y_idx = at.as_tensor_variable(y_idx)
         if dy.type.ndim > 1 or dy.type.dtype not in float_dtypes:
             raise ValueError("dy must be {0,1}-d tensor of floats", dy.type)
         if sm.type.ndim != 2 or sm.type.dtype not in float_dtypes:
@@ -1600,9 +1600,9 @@ class CrossentropySoftmax1HotWithBiasDx(COp):
         # advanced indexing is not working yet. When it works, do it to avoid
         # potentially misleading behavior in gradient computations! (although
         # typically we should not need the gradient w.r.t. dy).
-        y_idx_range = aet.arange(y_idx.shape[0])
-        g_dy = aet_sum(
-            g_dx * AdvancedIncSubtensor()(sm, aet.fill(dy, -1), y_idx_range, y_idx),
+        y_idx_range = at.arange(y_idx.shape[0])
+        g_dy = at_sum(
+            g_dx * AdvancedIncSubtensor()(sm, at.fill(dy, -1), y_idx_range, y_idx),
             axis=1,
         )
         g_sm = dy.dimshuffle(0, "x") * g_dx
@@ -1730,7 +1730,7 @@ def crossentropy_softmax_1hot_with_bias(x, b, y_idx, **kwargs):
 
 
 def crossentropy_softmax_1hot(x, y_idx, **kwargs):
-    b = aet.zeros_like(x[0, :])
+    b = at.zeros_like(x[0, :])
     return crossentropy_softmax_1hot_with_bias(x, b, y_idx, **kwargs)
 
 
@@ -1756,7 +1756,7 @@ def crossentropy_softmax_max_and_argmax_1hot_with_bias(x, b, y_idx, **kwargs):
 
 
 def crossentropy_softmax_max_and_argmax_1hot(x, y_idx, **kwargs):
-    b = aet.zeros_like(x[0, :])
+    b = at.zeros_like(x[0, :])
     return crossentropy_softmax_max_and_argmax_1hot_with_bias(x, b, y_idx, **kwargs)
 
 
@@ -1813,8 +1813,8 @@ class CrossentropyCategorical1Hot(Op):
         dvector
 
         """
-        _coding_dist = aet.as_tensor_variable(coding_dist)
-        _true_one_of_n = aet.as_tensor_variable(true_one_of_n)
+        _coding_dist = at.as_tensor_variable(coding_dist)
+        _true_one_of_n = at.as_tensor_variable(true_one_of_n)
         if _coding_dist.type.ndim != 2:
             raise TypeError("matrix required for argument: coding_dist")
         if _true_one_of_n.type not in (lvector, ivector):
@@ -1921,7 +1921,7 @@ def crossentropy_to_crossentropy_with_softmax(fgraph):
                         new_sm,
                         new_am,
                     ) = crossentropy_softmax_argmax_1hot_with_bias(
-                        x, aet.zeros_like(x[0]), one_of_n
+                        x, at.zeros_like(x[0]), one_of_n
                     )
                     fgraph.replace_all_validate(
                         [(nll, new_nll), (sm, new_sm)],
@@ -2016,10 +2016,10 @@ def local_argmax_pushdown(fgraph, node):
 
 
 def _check_rows_is_arange_len_labels(fgraph, rows, labels):
-    """Check that `rows` is the same node as `aet.arange(labels.shape[0])`.
+    """Check that `rows` is the same node as `at.arange(labels.shape[0])`.
 
     Also considers the case where `labels.shape[0]` is constant and equal to 1,
-    and `aet.arange(labels.shape[0])` has been constant-folded into
+    and `at.arange(labels.shape[0])` has been constant-folded into
     0.
 
     """
@@ -2060,7 +2060,7 @@ def _check_rows_is_arange_len_labels(fgraph, rows, labels):
 
 def _is_const(z, val, approx=False):
     try:
-        maybe = aet.get_scalar_constant_value(z)
+        maybe = at.get_scalar_constant_value(z)
     except NotScalarConstantError:
         return False
     if approx:
@@ -2104,7 +2104,7 @@ def local_advanced_indexing_crossentropy_onehot(fgraph, node):
             x_var, b_var = sm_w_bias[0].owner.inputs
         else:
             x_var = sm.owner.inputs[0]
-            b_var = aet.zeros_like(x_var[0])
+            b_var = at.zeros_like(x_var[0])
 
         # Check that rows == arange(labels.shape[0])
         if _check_rows_is_arange_len_labels(fgraph, rows, labels):
@@ -2239,7 +2239,7 @@ def local_advanced_indexing_crossentropy_onehot_grad(fgraph, node):
                 return
 
             # The output gradient needs to be a vector
-            out_grad = aet.fill(x_var[:, 0], out_grad)
+            out_grad = at.fill(x_var[:, 0], out_grad)
 
             if adv_subtensor is not None:
                 try:
@@ -2371,8 +2371,8 @@ def local_useless_crossentropy_softmax_1hot_with_bias_dx_alloc(fgraph, node):
 
         assert dy.ndim == 1
 
-        if dy.owner is not None and isinstance(dy.owner.op, aet.Alloc):
-            # dz is the input of the Alloc op, i.e. aet.alloc(dz, <shape>)
+        if dy.owner is not None and isinstance(dy.owner.op, at.Alloc):
+            # dz is the input of the Alloc op, i.e. at.alloc(dz, <shape>)
             dz = dy.owner.inputs[0]
 
             try:
@@ -2505,7 +2505,7 @@ def categorical_crossentropy(coding_dist, true_dist):
 
     """
     if true_dist.ndim == coding_dist.ndim:
-        return -aet_sum(true_dist * log(coding_dist), axis=coding_dist.ndim - 1)
+        return -at_sum(true_dist * log(coding_dist), axis=coding_dist.ndim - 1)
     elif true_dist.ndim == coding_dist.ndim - 1:
         return crossentropy_categorical_1hot(coding_dist, true_dist)
     else:
@@ -2526,10 +2526,10 @@ class Prepend_scalar_constant_to_each_row(Op):
 
     def make_node(self, mat):
         # check type of input
-        x = aet.as_tensor_variable(mat)
+        x = at.as_tensor_variable(mat)
         if not mat.type.broadcastable == (False, False):
             raise TypeError("Expected a matrix as input")
-        y = aet.as_tensor_variable(self.val)
+        y = at.as_tensor_variable(self.val)
         assert y.ndim == 0
         if x.type.dtype != y.type.dtype:
             TypeError("the value to prepend don't have the same type as the matrix")
@@ -2571,12 +2571,12 @@ class Prepend_scalar_to_each_row(Op):
 
     def make_node(self, val, mat):
         # check type of input
-        x = aet.as_tensor_variable(mat)
+        x = at.as_tensor_variable(mat)
         if isinstance(val, float):
             val = aes.constant(val)
         if not mat.type.broadcastable == (False, False):
             raise TypeError("Expected a matrix as input")
-        y = aet.as_tensor_variable(val)
+        y = at.as_tensor_variable(val)
         assert y.ndim == 0
         if x.type.dtype != y.type.dtype:
             TypeError("the value to prepend don't have the same type as the matrix")
@@ -2655,7 +2655,7 @@ def relu(x, alpha=0):
         # We can't use 0.5 and 1 for one and half.  as if alpha is a
         # numpy dtype, they will be considered as float64, so would
         # cause upcast to float64.
-        alpha = aet.as_tensor_variable(alpha)
+        alpha = at.as_tensor_variable(alpha)
         f1 = 0.5 * (1 + alpha)
         f2 = 0.5 * (1 - alpha)
         return f1 * x + f2 * abs(x)
@@ -2756,7 +2756,7 @@ def h_softmax(
 
     >>> import numpy as np
     >>> import aesara
-    >>> import aesara.tensor as aet
+    >>> import aesara.tensor as at
     >>> from aesara.tensor.nnet import h_softmax
     >>>
     >>> # Parameters
@@ -2782,15 +2782,15 @@ def h_softmax(
     >>> # We can now build the graph to compute a loss function, typically the
     >>> # negative log-likelihood:
     >>>
-    >>> x = aet.imatrix('x')
-    >>> target = aet.imatrix('target')
+    >>> x = at.imatrix('x')
+    >>> target = at.imatrix('target')
     >>>
     >>> # This only computes the output corresponding to the target.
     >>> # The complexity is O(n_classes + n_outputs_per_class).
     >>> y_hat_tg = h_softmax(x, batch_size, output_size, n_classes,
     ...                      n_outputs_per_class, W1, b1, W2, b2, target)
     >>>
-    >>> negll = -aet.mean(aet.log(y_hat_tg))
+    >>> negll = -at.mean(at.log(y_hat_tg))
     >>>
     >>> # We may need to compute all the outputs (at test time usually):
     >>>
@@ -2836,14 +2836,14 @@ def h_softmax(
         activations = sparse_block_dot(
             W2.dimshuffle("x", 0, 1, 2),
             x.dimshuffle(0, "x", 1),
-            aet.zeros((batch_size, 1), dtype="int32"),
+            at.zeros((batch_size, 1), dtype="int32"),
             b2,
             target_classes.dimshuffle(0, "x"),
         )
 
         output_probs = softmax(activations.dimshuffle(0, 2))
-        target_class_probs = class_probs[aet.arange(batch_size), target_classes]
-        output_probs = output_probs[aet.arange(batch_size), target_outputs_in_class]
+        target_class_probs = class_probs[at.arange(batch_size), target_classes]
+        output_probs = output_probs[at.arange(batch_size), target_outputs_in_class]
         output_probs = target_class_probs * output_probs
 
     return output_probs
@@ -2873,7 +2873,7 @@ def elu(x, alpha=1):
         "Fast and Accurate Deep Network Learning by
         Exponential Linear Units (ELUs)" <http://arxiv.org/abs/1511.07289>`.
     """
-    return aet.switch(x > 0, x, alpha * expm1(x))
+    return at.switch(x > 0, x, alpha * expm1(x))
 
 
 def selu(x):
@@ -2960,11 +2960,11 @@ def confusion_matrix(actual, pred):
     Examples
     --------
     >>> import aesara
-    >>> import aesara.tensor as aet
+    >>> import aesara.tensor as at
     >>> from aesara.tensor.nnet import confusion_matrix
 
-    >>> x = aet.vector()
-    >>> y = aet.vector()
+    >>> x = at.vector()
+    >>> y = at.vector()
     >>> f = aesara.function([x, y], confusion_matrix(x, y))
     >>> y_true = [2, 0, 2, 2, 0, 1]
     >>> y_pred = [0, 0, 2, 2, 0, 2]
@@ -2978,7 +2978,7 @@ def confusion_matrix(actual, pred):
     if pred.ndim != 1:
         raise ValueError("pred must be 1-d tensor variable")
 
-    order = extra_ops.Unique(False, False, False)(aet.concatenate([actual, pred]))
+    order = extra_ops.Unique(False, False, False)(at.concatenate([actual, pred]))
 
     colA = actual.dimshuffle(0, "x")
     colP = pred.dimshuffle(0, "x")

@@ -27,7 +27,7 @@ Consider again the logistic regression example:
 
 >>> import numpy
 >>> import aesara
->>> import aesara.tensor as aet
+>>> import aesara.tensor as at
 >>> rng = numpy.random
 >>> # Training data
 >>> N = 400
@@ -35,19 +35,19 @@ Consider again the logistic regression example:
 >>> D = (rng.randn(N, feats).astype(aesara.config.floatX), rng.randint(size=N,low=0, high=2).astype(aesara.config.floatX))
 >>> training_steps = 10000
 >>> # Declare Aesara symbolic variables
->>> x = aet.matrix("x")
->>> y = aet.vector("y")
+>>> x = at.matrix("x")
+>>> y = at.vector("y")
 >>> w = aesara.shared(rng.randn(feats).astype(aesara.config.floatX), name="w")
 >>> b = aesara.shared(numpy.asarray(0., dtype=aesara.config.floatX), name="b")
 >>> x.tag.test_value = D[0]
 >>> y.tag.test_value = D[1]
 >>> # Construct Aesara expression graph
->>> p_1 = 1 / (1 + aet.exp(-aet.dot(x, w)-b)) # Probability of having a one
+>>> p_1 = 1 / (1 + at.exp(-at.dot(x, w)-b)) # Probability of having a one
 >>> prediction = p_1 > 0.5 # The prediction that is done: 0 or 1
 >>> # Compute gradients
->>> xent = -y*aet.log(p_1) - (1-y)*aet.log(1-p_1) # Cross-entropy
+>>> xent = -y*at.log(p_1) - (1-y)*at.log(1-p_1) # Cross-entropy
 >>> cost = xent.mean() + 0.01*(w**2).sum() # The cost to optimize
->>> gw,gb = aet.grad(cost, [w,b])
+>>> gw,gb = at.grad(cost, [w,b])
 >>> # Training and prediction function
 >>> train = aesara.function(inputs=[x,y], outputs=[prediction, xent], updates=[[w, w-0.01*gw], [b, b-0.01*gb]], name = "train")
 >>> predict = aesara.function(inputs=[x], outputs=prediction, name = "predict")

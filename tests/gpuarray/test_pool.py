@@ -5,7 +5,7 @@ import numpy as np
 import pytest
 
 import aesara
-from aesara import tensor as aet
+from aesara import tensor as at
 from aesara.gpuarray.pool import (
     GpuAveragePoolGrad,
     GpuDownsampleFactorMaxGradGrad,
@@ -28,7 +28,7 @@ class TestPool:
     def test_pool_py_interface(self):
         shp = (2, 2, 2, 2)
         inp = aesara.shared(random(*shp), "a")
-        inp = aet.as_tensor_variable(inp)
+        inp = at.as_tensor_variable(inp)
         with pytest.raises(ValueError):
             # test when pad >= ws
             ds_op = GpuPool(ignore_border=True, ndim=2)
@@ -44,11 +44,11 @@ class TestPool:
 
         shp = (2, 2, 2, 2)
         inp = aesara.shared(random(*shp), "a")
-        inp = aet.as_tensor_variable(inp)
+        inp = at.as_tensor_variable(inp)
         with pytest.raises(ValueError):
             # test when ignore_border and pad >= 0
             ds_op = GpuPool(ignore_border=False, ndim=2)
-            pad = aet.as_tensor_variable([1, 1])
+            pad = at.as_tensor_variable([1, 1])
             f = aesara.function([], ds_op(inp, [2, 2], pad=pad), mode=gpu_mode)
             f()
 
@@ -58,9 +58,9 @@ class TestPool:
 
         shp = (2, 2, 2, 2)
         inp = aesara.shared(random(*shp), "a")
-        inp = aet.as_tensor_variable(inp)
+        inp = at.as_tensor_variable(inp)
         ds_op = GpuPool(ignore_border=False, mode="average_exc_pad", ndim=2)
-        pad = aet.as_tensor_variable([0, 0])
+        pad = at.as_tensor_variable([0, 0])
         f = aesara.function(
             [], ds_op(inp, [5, 5], stride=[1, 1], pad=pad), mode=gpu_mode
         )
@@ -125,7 +125,7 @@ def test_pool2d():
                 ds_op = Pool(ndim=len(ws), mode=mode, ignore_border=ignore_border)
 
                 a = aesara.shared(random(*shp), "a")
-                a_pooled = ds_op(aet.as_tensor_variable(a), ws, st, pad)
+                a_pooled = ds_op(at.as_tensor_variable(a), ws, st, pad)
 
                 f = aesara.function([], a_pooled, mode=gpu_mode)
                 f2 = aesara.function([], a_pooled, mode=ref_mode)
@@ -251,7 +251,7 @@ def test_pool3d():
                 ds_op = Pool(ndim=len(ws), mode=mode, ignore_border=ignore_border)
 
                 a = aesara.shared(random(*shp), "a")
-                a_pooled = ds_op(aet.as_tensor_variable(a), ws, st, pad)
+                a_pooled = ds_op(at.as_tensor_variable(a), ws, st, pad)
 
                 f = aesara.function([], a_pooled, mode=gpu_mode)
                 f2 = aesara.function([], a_pooled, mode=ref_mode)

@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 
 import aesara
-import aesara.tensor.basic as aet
+import aesara.tensor.basic as at
 from aesara.configdefaults import config
 from aesara.gradient import (
     DisconnectedInputError,
@@ -34,7 +34,7 @@ from aesara.graph.null_type import NullType
 from aesara.graph.op import Op
 from aesara.sandbox.rng_mrg import MRG_RandomStream
 from aesara.tensor.math import add, dot, exp, sigmoid, sqr
-from aesara.tensor.math import sum as aet_sum
+from aesara.tensor.math import sum as at_sum
 from aesara.tensor.math import tanh
 from aesara.tensor.type import (
     discrete_dtypes,
@@ -52,7 +52,7 @@ from aesara.tensor.type import (
 from tests import unittest_tools as utt
 
 
-one = aet.as_tensor_variable(1.0)
+one = at.as_tensor_variable(1.0)
 
 
 def grad_sources_inputs(sources, inputs):
@@ -276,7 +276,7 @@ class TestGrad:
         o = TestGrad.Obj1()
         a1 = o.make_node()
         g = grad(a1.outputs[0], a1.outputs[1], disconnected_inputs="ignore")
-        assert g.owner.op == aet.fill
+        assert g.owner.op == at.fill
         assert g.owner.inputs[1].data == 0
         with pytest.raises(TypeError):
             grad(a1.outputs[0], "wtf")
@@ -290,7 +290,7 @@ class TestGrad:
         )
         assert o.gval0 is g0
         assert o.gval1 is g1
-        assert g2.owner.op == aet.fill
+        assert g2.owner.op == at.fill
         assert g2.owner.inputs[1].data == 0
 
     def test_zero_gradient_shape(self):
@@ -502,7 +502,7 @@ class TestGrad:
         total.name = "total"
         num_elements = x.shape[0]
         num_elements.name = "num_elements"
-        silly_vector = aet.alloc(total / num_elements, num_elements)
+        silly_vector = at.alloc(total / num_elements, num_elements)
         silly_vector.name = "silly_vector"
         cost = silly_vector.sum()
         cost.name = "cost"
@@ -613,7 +613,7 @@ def test_known_grads():
     # matches what happens if you put its own known_grads
     # in for each variable
 
-    full_range = aet.arange(10)
+    full_range = at.arange(10)
     x = scalar("x")
     t = iscalar("t")
     ft = full_range[t]
@@ -790,7 +790,7 @@ class TestConsiderConstant:
         expressions_gradients = [
             (x * consider_constant(x), x),
             (x * consider_constant(exp(x)), exp(x)),
-            (consider_constant(x), aet.constant(0.0)),
+            (consider_constant(x), at.constant(0.0)),
             (x ** 2 * consider_constant(x), 2 * x ** 2),
         ]
 
@@ -824,7 +824,7 @@ class TestZeroGrad:
         expressions_gradients = [
             (x * zero_grad(x), x),
             (x * zero_grad(exp(x)), exp(x)),
-            (zero_grad(x), aet.constant(0.0)),
+            (zero_grad(x), at.constant(0.0)),
             (x ** 2 * zero_grad(x), 2 * x ** 2),
         ]
 
@@ -959,10 +959,10 @@ def test_undefined_grad_opt():
     pvals = zero_grad(pvals)
 
     samples = random.multinomial(pvals=pvals, n=1)
-    samples = aet.cast(samples, pvals.dtype)
+    samples = at.cast(samples, pvals.dtype)
     samples = zero_grad(samples)
 
-    cost = aet_sum(samples + pvals)
+    cost = at_sum(samples + pvals)
     grad_res = grad(cost, samples)
 
     f = aesara.function([], grad_res)
@@ -1097,7 +1097,7 @@ def test_jacobian_scalar():
 
 def test_hessian():
     x = vector()
-    y = aet_sum(x ** 2)
+    y = at_sum(x ** 2)
     Hx = hessian(y, x)
     f = aesara.function([x], Hx)
     vx = np.arange(10).astype(aesara.config.floatX)

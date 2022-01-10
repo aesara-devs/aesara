@@ -2,7 +2,7 @@ import logging
 
 import numpy as np
 
-from aesara import tensor as aet
+from aesara import tensor as at
 from aesara.gpuarray.basic_ops import (
     as_gpuarray_variable,
     gpuarray_helper_inc_dir,
@@ -120,7 +120,7 @@ class GpuSparseBlockOuter(_NoPythonExternalCOp):
 
     def make_node(self, o, x, y, xIdx, yIdx, alpha=None):
         ctx = infer_context_name(o, x, y)
-        one = aet.constant(np.asarray(1.0, dtype="float32"))
+        one = at.constant(np.asarray(1.0, dtype="float32"))
         o = as_gpuarray_variable(o, ctx)
         x = as_gpuarray_variable(x, ctx)
         y = as_gpuarray_variable(y, ctx)

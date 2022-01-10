@@ -3,7 +3,7 @@ import numpy.linalg
 
 import aesara
 from aesara import function
-from aesara import tensor as aet
+from aesara import tensor as at
 from aesara.configdefaults import config
 from aesara.sandbox.linalg.ops import inv_as_solve, spectral_radius_bound
 from aesara.tensor.elemwise import DimShuffle
@@ -26,7 +26,7 @@ def test_rop_lop():
 
     sy, _ = aesara.scan(
         lambda i, y, x, v: (aesara.gradient.grad(y[i], x) * v).sum(),
-        sequences=aet.arange(y.shape[0]),
+        sequences=at.arange(y.shape[0]),
         non_sequences=[y, mx, mv],
     )
     scan_f = function([mx, mv], sy)

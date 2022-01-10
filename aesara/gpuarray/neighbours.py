@@ -1,4 +1,4 @@
-import aesara.tensor as aet
+import aesara.tensor as at
 from aesara.graph.basic import Apply
 from aesara.graph.op import _NoPythonOp
 from aesara.graph.params_type import ParamsType
@@ -33,11 +33,11 @@ class GpuImages2Neibs(GpuKernelBaseCOp, Images2Neibs, _NoPythonOp):
 
     def make_node(self, ten4, neib_shape, neib_step=None):
         ten4 = as_gpuarray_variable(ten4, infer_context_name(ten4))
-        neib_shape = aet.as_tensor_variable(neib_shape)
+        neib_shape = at.as_tensor_variable(neib_shape)
         if neib_step is None:
             neib_step = neib_shape
         else:
-            neib_step = aet.as_tensor_variable(neib_step)
+            neib_step = at.as_tensor_variable(neib_step)
 
         assert ten4.ndim == 4
         assert neib_shape.ndim == 1

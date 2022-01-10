@@ -7,9 +7,9 @@ import numpy as np
 import aesara
 from aesara.compile.mode import Mode, get_mode
 from aesara.configdefaults import config
-from aesara.tensor.math import abs as aet_abs
-from aesara.tensor.math import max as aet_max
-from aesara.tensor.math import min as aet_min
+from aesara.tensor.math import abs as at_abs
+from aesara.tensor.math import max as at_max
+from aesara.tensor.math import min as at_min
 from aesara.tensor.type import discrete_dtypes
 
 
@@ -172,9 +172,9 @@ def f_compute(op):
     return result
 
 
-f_gpua_min = f_compute(aet_min)
-f_gpua_max = f_compute(aet_max)
-f_gpua_absmax = f_compute(lambda x: aet_max(aet_abs(x)))
+f_gpua_min = f_compute(at_min)
+f_gpua_max = f_compute(at_max)
+f_gpua_absmax = f_compute(lambda x: at_max(at_abs(x)))
 
 
 class NanGuardMode(Mode):

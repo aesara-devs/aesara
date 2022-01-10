@@ -9,7 +9,7 @@ import aesara.tensor
 from aesara.graph.basic import Apply
 from aesara.graph.op import Op
 from aesara.tensor import as_tensor_variable
-from aesara.tensor import basic as aet
+from aesara.tensor import basic as at
 from aesara.tensor import math as atm
 from aesara.tensor.type import matrix, tensor, vector
 from aesara.tensor.var import TensorVariable
@@ -87,8 +87,8 @@ class Cholesky(Op):
         # or solve_upper_triangular will throw a ValueError.
         if self.on_error == "nan":
             ok = ~atm.any(atm.isnan(chol_x))
-            chol_x = aet.switch(ok, chol_x, 1)
-            dz = aet.switch(ok, dz, 1)
+            chol_x = at.switch(ok, chol_x, 1)
+            dz = at.switch(ok, dz, 1)
 
         # deal with upper triangular by converting to lower triangular
         if not self.lower:
@@ -97,7 +97,7 @@ class Cholesky(Op):
 
         def tril_and_halve_diagonal(mtx):
             """Extracts lower triangle of square matrix and halves diagonal."""
-            return aet.tril(mtx) - aet.diag(aet.diagonal(mtx) / 2.0)
+            return at.tril(mtx) - at.diag(at.diagonal(mtx) / 2.0)
 
         def conjugate_solve_triangular(outer, inner):
             """Computes L^{-T} P L^{-1} for lower-triangular L."""
@@ -110,12 +110,12 @@ class Cholesky(Op):
         )
 
         if self.lower:
-            grad = aet.tril(s + s.T) - aet.diag(aet.diagonal(s))
+            grad = at.tril(s + s.T) - at.diag(at.diagonal(s))
         else:
-            grad = aet.triu(s + s.T) - aet.diag(aet.diagonal(s))
+            grad = at.triu(s + s.T) - at.diag(at.diagonal(s))
 
         if self.on_error == "nan":
-            return [aet.switch(ok, grad, np.nan)]
+            return [at.switch(ok, grad, np.nan)]
         else:
             return [grad]
 
@@ -377,9 +377,9 @@ class SolveTriangular(SolveBase):
         res = super().L_op(inputs, outputs, output_gradients)
 
         if self.lower:
-            res[0] = aet.tril(res[0])
+            res[0] = at.tril(res[0])
         else:
-            res[0] = aet.triu(res[0])
+            res[0] = at.triu(res[0])
 
         return res
 
@@ -654,7 +654,7 @@ def kron(a, b):
             f"You passed {int(a.ndim)} and {int(b.ndim)}."
         )
     o = atm.outer(a, b)
-    o = o.reshape(aet.concatenate((a.shape, b.shape)), a.ndim + b.ndim)
+    o = o.reshape(at.concatenate((a.shape, b.shape)), a.ndim + b.ndim)
     shf = o.dimshuffle(0, 2, 1, *list(range(3, o.ndim)))
     if shf.ndim == 3:
         shf = o.dimshuffle(1, 0, 2)

@@ -6,7 +6,7 @@ import pytest
 
 import aesara
 import aesara.ifelse
-import aesara.tensor.basic as aet
+import aesara.tensor.basic as at
 from aesara import function
 from aesara.compile.mode import Mode, get_mode
 from aesara.graph.basic import Apply
@@ -26,7 +26,7 @@ __copyright__ = "(c) 2010, Universite de Montreal"
 class TestIfelse(utt.OptimizationTestMixin):
     mode = None
     dtype = aesara.config.floatX
-    cast_output = staticmethod(aet.as_tensor_variable)
+    cast_output = staticmethod(at.as_tensor_variable)
     shared = staticmethod(aesara.shared)
 
     def get_ifelse(self, n):
@@ -267,7 +267,7 @@ class TestIfelse(utt.OptimizationTestMixin):
 
         fsub = [fsub0, fsub1, fsub2, fsub3]
 
-        acc = aet.constant(1, "int8") >= 0
+        acc = at.constant(1, "int8") >= 0
 
         new_positions = ifelse(acc, fsub, p)
 
@@ -289,7 +289,7 @@ class TestIfelse(utt.OptimizationTestMixin):
         rng = np.random.default_rng(utt.fetch_seed())
         data = rng.random((5)).astype(self.dtype)
         x = self.shared(data)
-        y = aet.cast(x * 10, "int8")
+        y = at.cast(x * 10, "int8")
         cond = iscalar("cond")
 
         with pytest.raises(TypeError):

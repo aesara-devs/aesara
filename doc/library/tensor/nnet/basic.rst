@@ -50,11 +50,11 @@
 
    .. testcode::
 
-       import aesara.tensor as aet
+       import aesara.tensor as at
 
-       x, y, b = aet.dvectors('x', 'y', 'b')
-       W = aet.dmatrix('W')
-       y = aet.sigmoid(aet.dot(W, x) + b)
+       x, y, b = at.dvectors('x', 'y', 'b')
+       W = at.dmatrix('W')
+       y = at.sigmoid(at.dot(W, x) + b)
 
    .. note:: The underlying code will return an exact 0 or 1 if an
       element of x is too small or too big.
@@ -112,9 +112,9 @@
 
    .. testcode::
 
-       x, y, b = aet.dvectors('x', 'y', 'b')
-       W = aet.dmatrix('W')
-       y = aet.nnet.softplus(aet.dot(W,x) + b)
+       x, y, b = at.dvectors('x', 'y', 'b')
+       W = at.dmatrix('W')
+       y = at.nnet.softplus(at.dot(W,x) + b)
 
 .. function:: softsign(x)
 
@@ -143,9 +143,9 @@
 
    .. testcode::
 
-       x, y, b = aet.dvectors('x', 'y', 'b')
-       W = aet.dmatrix('W')
-       y = aet.nnet.softmax(aet.dot(W,x) + b)
+       x, y, b = at.dvectors('x', 'y', 'b')
+       W = at.dmatrix('W')
+       y = at.nnet.softmax(at.dot(W,x) + b)
 
 .. autofunction:: aesara.tensor.nnet.relu
 
@@ -171,12 +171,12 @@
 
    .. testcode::
 
-       x, y, b, c = aet.dvectors('x', 'y', 'b', 'c')
-       W = aet.dmatrix('W')
-       V = aet.dmatrix('V')
-       h = aet.sigmoid(aet.dot(W, x) + b)
-       x_recons = aet.sigmoid(aet.dot(V, h) + c)
-       recon_cost = aet.nnet.binary_crossentropy(x_recons, x).mean()
+       x, y, b, c = at.dvectors('x', 'y', 'b', 'c')
+       W = at.dmatrix('W')
+       V = at.dmatrix('V')
+       h = at.sigmoid(at.dot(W, x) + b)
+       x_recons = at.sigmoid(at.dot(V, h) + c)
+       recon_cost = at.nnet.binary_crossentropy(x_recons, x).mean()
 
 .. function:: sigmoid_binary_crossentropy(output,target)
 
@@ -200,14 +200,14 @@
 
    .. testcode::
 
-       x, y, b, c = aet.dvectors('x', 'y', 'b', 'c')
-       W = aet.dmatrix('W')
-       V = aet.dmatrix('V')
-       h = aet.sigmoid(aet.dot(W, x) + b)
-       x_precons = aet.dot(V, h) + c
+       x, y, b, c = at.dvectors('x', 'y', 'b', 'c')
+       W = at.dmatrix('W')
+       V = at.dmatrix('V')
+       h = at.sigmoid(at.dot(W, x) + b)
+       x_precons = at.dot(V, h) + c
        # final reconstructions are given by sigmoid(x_precons), but we leave
        # them unnormalized as sigmoid_binary_crossentropy applies sigmoid
-       recon_cost = aet.sigmoid_binary_crossentropy(x_precons, x).mean()
+       recon_cost = at.sigmoid_binary_crossentropy(x_precons, x).mean()
 
 .. function:: categorical_crossentropy(coding_dist,true_dist)
 
@@ -244,8 +244,8 @@
 
    .. testcode::
 
-       y = aet.nnet.softmax(aet.dot(W, x) + b)
-       cost = aet.nnet.categorical_crossentropy(y, o)
+       y = at.nnet.softmax(at.dot(W, x) + b)
+       cost = at.nnet.categorical_crossentropy(y, o)
        # o is either the above-mentioned 1-of-N vector or 2D tensor
 
 

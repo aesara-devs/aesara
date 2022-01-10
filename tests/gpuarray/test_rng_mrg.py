@@ -3,7 +3,7 @@ import functools
 import numpy as np
 
 import aesara
-from aesara import tensor as aet
+from aesara import tensor as at
 from aesara.configdefaults import config
 from aesara.gpuarray.rng_mrg import GPUA_mrg_uniform
 from aesara.gpuarray.type import gpuarray_shared_constructor
@@ -45,7 +45,7 @@ def test_consistency_GPUA_serial():
             sample.update = (rstate, new_rstate)
 
             # We need the sample back in the main memory
-            cpu_sample = aet.as_tensor_variable(sample)
+            cpu_sample = at.as_tensor_variable(sample)
             f = aesara.function([], cpu_sample, mode=mode)
             for k in range(n_samples):
                 s = f()
@@ -92,7 +92,7 @@ def test_consistency_GPUA_parallel():
         sample.update = (rstate, new_rstate)
 
         # We need the sample back in the main memory
-        cpu_sample = aet.as_tensor_variable(sample)
+        cpu_sample = at.as_tensor_variable(sample)
         f = aesara.function([], cpu_sample, mode=mode)
 
         for k in range(n_samples):

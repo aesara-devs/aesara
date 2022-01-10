@@ -80,10 +80,10 @@ A non-None `value` argument makes an In() instance an optional parameter
 of the compiled function.  For example, in the following code we are
 defining an arity-2 function ``inc``.
 
->>> import aesara.tensor as aet
+>>> import aesara.tensor as at
 >>> from aesara import function
 >>> from aesara.compile.io import In
->>> u, x, s = aet.scalars('u', 'x', 's')
+>>> u, x, s = at.scalars('u', 'x', 's')
 >>> inc = function([u, In(x, value=3), In(s, update=(s+x*u), value=10.0)], [])
 
 Since we provided a ``value`` for ``s`` and ``x``, we can call it with just a value for ``u`` like this:
@@ -183,8 +183,8 @@ method to access values by indexing a Function directly by typing
 To show some examples of these access methods...
 
 
->>> from aesara import tensor as aet, function
->>> a, b, c = aet.scalars('xys') # set the internal names of graph nodes
+>>> from aesara import tensor as at, function
+>>> a, b, c = at.scalars('xys') # set the internal names of graph nodes
 >>> # Note that the name of c is 's', not 'c'!
 >>> fn = function([a, b, ((c, c+a+b), 10.0)], [])
 
@@ -236,12 +236,12 @@ Every element of the inputs list will be upgraded to an In instance if necessary
 Example:
 
 >>> import aesara
->>> from aesara import tensor as aet
+>>> from aesara import tensor as at
 >>> from aesara.compile.io import In
->>> x = aet.scalar()
->>> y = aet.scalar('y')
->>> z = aet.scalar('z')
->>> w = aet.scalar('w')
+>>> x = at.scalar()
+>>> y = at.scalar('y')
+>>> z = at.scalar('z')
+>>> w = at.scalar('w')
 
 >>> fn = aesara.function(inputs=[x, y, In(z, value=42), ((w, w+x), 0)],
 ...                      outputs=x + y + z)
@@ -308,7 +308,7 @@ If a list of ``Variable`` or ``Out`` instances is given as argument, then the co
 
 >>> import numpy
 >>> from aesara.compile.io import Out
->>> x, y, s = aet.matrices('xys')
+>>> x, y, s = at.matrices('xys')
 
 >>> # print a list of 2 ndarrays
 >>> fn1 = aesara.function([x], [x+x, Out((x+x).T, borrow=True)])

@@ -14,8 +14,8 @@ from aesara.tensor.type import TensorType
 
 class ProdOp(Op):
     def make_node(self, x, y):
-        x = aet.as_tensor_variable(x)
-        y = aet.as_tensor_variable(y)
+        x = at.as_tensor_variable(x)
+        y = at.as_tensor_variable(y)
         outdim = x.ndim
         output = TensorType(
             dtype=aesara.scalar.upcast(x.dtype, y.dtype), broadcastable=[False] * outdim
@@ -39,8 +39,8 @@ class ProdOp(Op):
 
 class SumDiffOp(Op):
     def make_node(self, x, y):
-        x = aet.as_tensor_variable(x)
-        y = aet.as_tensor_variable(y)
+        x = at.as_tensor_variable(x)
+        y = at.as_tensor_variable(y)
         outdim = x.ndim
         output1 = TensorType(
             dtype=aesara.scalar.upcast(x.dtype, y.dtype), broadcastable=[False] * outdim
@@ -62,9 +62,9 @@ class SumDiffOp(Op):
     def grad(self, inputs, output_grads):
         og1, og2 = output_grads
         if og1 is None:
-            og1 = aet.zeros_like(og2)
+            og1 = at.zeros_like(og2)
         if og2 is None:
-            og2 = aet.zeros_like(og1)
+            og2 = at.zeros_like(og1)
         return [og1 + og2, og1 - og2]
 
 
@@ -74,7 +74,7 @@ import numpy as np
 
 from tests import unittest_tools as utt
 from aesara import function, printing
-from aesara import tensor as aet
+from aesara import tensor as at
 from aesara.graph.basic import Apply
 from aesara.graph.op import Op
 from aesara.tensor.type import dmatrix, matrix
@@ -181,8 +181,8 @@ def infer_shape_numpy_dot(fgraph, node, input_shapes):
 
 
 @as_op(
-    itypes=[aet.fmatrix, aet.fmatrix],
-    otypes=[aet.fmatrix],
+    itypes=[at.fmatrix, at.fmatrix],
+    otypes=[at.fmatrix],
     infer_shape=infer_shape_numpy_dot,
 )
 def numpy_add(a, b):
@@ -196,8 +196,8 @@ def infer_shape_numpy_add_sub(fgraph, node, input_shapes):
 
 
 @as_op(
-    itypes=[aet.fmatrix, aet.fmatrix],
-    otypes=[aet.fmatrix],
+    itypes=[at.fmatrix, at.fmatrix],
+    otypes=[at.fmatrix],
     infer_shape=infer_shape_numpy_add_sub,
 )
 def numpy_add(a, b):
@@ -205,8 +205,8 @@ def numpy_add(a, b):
 
 
 @as_op(
-    itypes=[aet.fmatrix, aet.fmatrix],
-    otypes=[aet.fmatrix],
+    itypes=[at.fmatrix, at.fmatrix],
+    otypes=[at.fmatrix],
     infer_shape=infer_shape_numpy_add_sub,
 )
 def numpy_sub(a, b):

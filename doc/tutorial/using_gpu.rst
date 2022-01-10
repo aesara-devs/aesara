@@ -80,7 +80,7 @@ Use the Aesara flag ``device=cuda`` to require the use of the GPU. Use the flag
 
 .. testcode::
 
-  from aesara import function, config, shared, tensor as aet
+  from aesara import function, config, shared, tensor as at
   import numpy
   import time
 
@@ -89,7 +89,7 @@ Use the Aesara flag ``device=cuda`` to require the use of the GPU. Use the flag
 
   rng = numpy.random.RandomState(22)
   x = shared(numpy.asarray(rng.rand(vlen), config.floatX))
-  f = function([], aet.exp(x))
+  f = function([], at.exp(x))
   print(f.maker.fgraph.toposort())
   t0 = time.time()
   for i in range(iters):
@@ -150,7 +150,7 @@ the GPU object directly.  The following code is modified to do just that.
 
 .. testcode::
 
-  from aesara import function, config, shared, tensor as aet
+  from aesara import function, config, shared, tensor as at
   import numpy
   import time
 
@@ -159,7 +159,7 @@ the GPU object directly.  The following code is modified to do just that.
 
   rng = numpy.random.RandomState(22)
   x = shared(numpy.asarray(rng.rand(vlen), config.floatX))
-  f = function([], aet.exp(x).transfer(None))
+  f = function([], at.exp(x).transfer(None))
   print(f.maker.fgraph.toposort())
   t0 = time.time()
   for i in range(iters):
@@ -174,7 +174,7 @@ the GPU object directly.  The following code is modified to do just that.
   else:
       print('Used the gpu')
 
-Here ``aet.exp(x).transfer(None)`` means "copy ``exp(x)`` to the GPU",
+Here ``at.exp(x).transfer(None)`` means "copy ``exp(x)`` to the GPU",
 with ``None`` the default GPU context when not explicitly given.
 For information on how to set GPU contexts, see :ref:`tut_using_multi_gpu`.
 
@@ -313,7 +313,7 @@ Consider again the logistic regression:
 
     import numpy
     import aesara
-    import aesara.tensor as aet
+    import aesara.tensor as at
     rng = numpy.random
 
     N = 400
@@ -323,19 +323,19 @@ Consider again the logistic regression:
     training_steps = 10000
 
     # Declare Aesara symbolic variables
-    x = aet.matrix("x")
-    y = aet.vector("y")
+    x = at.matrix("x")
+    y = at.vector("y")
     w = aesara.shared(rng.randn(feats).astype(aesara.config.floatX), name="w")
     b = aesara.shared(numpy.asarray(0., dtype=aesara.config.floatX), name="b")
     x.tag.test_value = D[0]
     y.tag.test_value = D[1]
 
     # Construct Aesara expression graph
-    p_1 = 1 / (1 + aet.exp(-aet.dot(x, w)-b)) # Probability of having a one
+    p_1 = 1 / (1 + at.exp(-at.dot(x, w)-b)) # Probability of having a one
     prediction = p_1 > 0.5 # The prediction that is done: 0 or 1
-    xent = -y*aet.log(p_1) - (1-y)*aet.log(1-p_1) # Cross-entropy
+    xent = -y*at.log(p_1) - (1-y)*at.log(1-p_1) # Cross-entropy
     cost = xent.mean() + 0.01*(w**2).sum() # The cost to optimize
-    gw,gb = aet.grad(cost, [w,b])
+    gw,gb = at.grad(cost, [w,b])
 
     # Compile expressions to functions
     train = aesara.function(

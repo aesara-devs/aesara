@@ -6,7 +6,7 @@ Glossary
 .. testsetup::
 
    import aesara
-   import aesara.tensor as aet
+   import aesara.tensor as at
 
 .. glossary::
 
@@ -31,7 +31,7 @@ Glossary
         A variable with an immutable value.
         For example, when you type
 
-        >>> x = aet.ivector()
+        >>> x = at.ivector()
         >>> y = x + 3
 
         Then a `constant` is created to represent the ``3`` in the graph.
@@ -155,7 +155,7 @@ Glossary
         The the main data structure you work with when using Aesara.
         For example,
 
-        >>> x = aet.ivector()
+        >>> x = at.ivector()
         >>> y = -x**2
 
         ``x`` and ``y`` are both :class:`Variable`\s, i.e. instances of the :class:`Variable` class.

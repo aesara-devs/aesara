@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING, Callable, List, Optional, Set, Tuple, Union
 import numpy as np
 
 from aesara import scalar as aes
-from aesara import tensor as aet
+from aesara import tensor as at
 from aesara.configdefaults import config
 from aesara.graph.basic import (
     Constant,
@@ -80,7 +80,7 @@ def safe_new(
         return nw_x
     else:
         try:
-            x = aet.as_tensor_variable(x)
+            x = at.as_tensor_variable(x)
         except TypeError:
             # This could happen for example for random states
             pass
@@ -119,7 +119,7 @@ class until:
     """
 
     def __init__(self, condition):
-        self.condition = aet.as_tensor_variable(condition)
+        self.condition = at.as_tensor_variable(condition)
         assert self.condition.ndim == 0
 
 
@@ -157,7 +157,7 @@ def traverse(out, x, x_copy, d, visited=None):
     elif out.owner is None:
         return d
     elif pygpu_activated and out.owner.op == host_from_gpu and out.owner.inputs == [x]:
-        d[out] = aet.as_tensor_variable(x_copy)
+        d[out] = at.as_tensor_variable(x_copy)
         return d
     else:
         for inp in out.owner.inputs:

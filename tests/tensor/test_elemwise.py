@@ -16,8 +16,8 @@ from aesara.link.c.basic import CLinker, OpWiseCLinker
 from aesara.tensor import as_tensor_variable
 from aesara.tensor.basic import second
 from aesara.tensor.elemwise import CAReduce, DimShuffle, Elemwise
-from aesara.tensor.math import all as aet_all
-from aesara.tensor.math import any as aet_any
+from aesara.tensor.math import all as at_all
+from aesara.tensor.math import any as at_any
 from aesara.tensor.type import (
     TensorType,
     bmatrix,
@@ -401,12 +401,12 @@ class TestCAReduce(unittest_tools.InferShapeTester):
                         axis2.append(a)
                 assert len(axis2) == len(tosum)
                 tosum = tuple(axis2)
-            if tensor_op == aet_all:
+            if tensor_op == at_all:
                 for axis in reversed(sorted(tosum)):
                     zv = np.all(zv, axis)
                 if len(tosum) == 0:
                     zv = zv != 0
-            elif tensor_op == aet_any:
+            elif tensor_op == at_any:
                 for axis in reversed(sorted(tosum)):
                     zv = np.any(zv, axis)
                 if len(tosum) == 0:
@@ -494,8 +494,8 @@ class TestCAReduce(unittest_tools.InferShapeTester):
             self.with_mode(Mode(linker="py"), aes.mul, dtype=dtype)
             self.with_mode(Mode(linker="py"), aes.scalar_maximum, dtype=dtype)
             self.with_mode(Mode(linker="py"), aes.scalar_minimum, dtype=dtype)
-            self.with_mode(Mode(linker="py"), aes.and_, dtype=dtype, tensor_op=aet_all)
-            self.with_mode(Mode(linker="py"), aes.or_, dtype=dtype, tensor_op=aet_any)
+            self.with_mode(Mode(linker="py"), aes.and_, dtype=dtype, tensor_op=at_all)
+            self.with_mode(Mode(linker="py"), aes.or_, dtype=dtype, tensor_op=at_any)
         for dtype in ["int8", "uint8"]:
             self.with_mode(Mode(linker="py"), aes.or_, dtype=dtype)
             self.with_mode(Mode(linker="py"), aes.and_, dtype=dtype)
@@ -516,14 +516,14 @@ class TestCAReduce(unittest_tools.InferShapeTester):
                 aes.or_,
                 dtype=dtype,
                 test_nan=True,
-                tensor_op=aet_any,
+                tensor_op=at_any,
             )
             self.with_mode(
                 Mode(linker="py"),
                 aes.and_,
                 dtype=dtype,
                 test_nan=True,
-                tensor_op=aet_all,
+                tensor_op=at_all,
             )
 
     @pytest.mark.skipif(
@@ -545,8 +545,8 @@ class TestCAReduce(unittest_tools.InferShapeTester):
         for dtype in ["bool", "floatX", "int8", "uint8"]:
             self.with_mode(Mode(linker="c"), aes.scalar_minimum, dtype=dtype)
             self.with_mode(Mode(linker="c"), aes.scalar_maximum, dtype=dtype)
-            self.with_mode(Mode(linker="c"), aes.and_, dtype=dtype, tensor_op=aet_all)
-            self.with_mode(Mode(linker="c"), aes.or_, dtype=dtype, tensor_op=aet_any)
+            self.with_mode(Mode(linker="c"), aes.and_, dtype=dtype, tensor_op=at_all)
+            self.with_mode(Mode(linker="c"), aes.or_, dtype=dtype, tensor_op=at_any)
         for dtype in ["bool", "int8", "uint8"]:
             self.with_mode(Mode(linker="c"), aes.or_, dtype=dtype)
             self.with_mode(Mode(linker="c"), aes.and_, dtype=dtype)

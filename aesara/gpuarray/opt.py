@@ -12,7 +12,7 @@ import aesara.tensor.nlinalg as nlinalg
 import aesara.tensor.signal.pool as pool
 import aesara.tensor.slinalg as slinalg
 from aesara import scalar as aes
-from aesara import tensor as aet
+from aesara import tensor as at
 from aesara.breakpoint import PdbBreakpoint
 from aesara.compile import optdb
 from aesara.configdefaults import config
@@ -646,7 +646,7 @@ def local_gpua_alloc2(fgraph, node):
         c != "output"
         and isinstance(c.op, Join)
         and all(
-            i.owner and i.owner.op in [host_from_gpu, aet.alloc] for i in c.inputs[1:]
+            i.owner and i.owner.op in [host_from_gpu, at.alloc] for i in c.inputs[1:]
         )
         for c, idx in fgraph.clients[node.outputs[0]]
     ):
@@ -751,7 +751,7 @@ def local_gpua_flatten(fgraph, op, context_name, inputs, outputs):
         shp = [inputs[0].shape[i] for i in range(op.outdim - 1)]
     shp += [-1]
     res = GpuReshape(op.outdim)
-    o = res(inputs[0], aet.as_tensor_variable(shp))
+    o = res(inputs[0], at.as_tensor_variable(shp))
     return o
 
 
@@ -1311,7 +1311,7 @@ def local_gpua_careduce(fgraph, op, context_name, inputs, outputs):
                 acc_dtype=adtype,
             )
             with inherit_stack_trace(outputs):
-                reshaped_x = x.reshape(aet.stack(new_in_shp))
+                reshaped_x = x.reshape(at.stack(new_in_shp))
                 gpu_reshaped_x = as_gpuarray_variable(reshaped_x, context_name)
                 # We need to have the make node called, otherwise the mask can
                 # be None
@@ -1326,7 +1326,7 @@ def local_gpua_careduce(fgraph, op, context_name, inputs, outputs):
                             if i not in op.axis:
                                 out_shp.append(shape_i(x, i))
                         unreshaped_reduce = GpuReshape(len(out_shp))(
-                            reduce_reshaped_x, aet.stack(out_shp)
+                            reduce_reshaped_x, at.stack(out_shp)
                         )
                     else:
                         unreshaped_reduce = reduce_reshaped_x
@@ -1522,7 +1522,7 @@ def local_gpu_crossentropycategorical1hot(fgraph, op, context_name, inputs, outp
     #   coding, one_of_n = inputs
     #   -log(coding[arange(coding.shape[0]), one_of_n])
     coding, one_of_n = inputs
-    idx0 = aet.arange(shape_i(coding, 0))
+    idx0 = at.arange(shape_i(coding, 0))
     return [gpu_neg(gpu_log(coding[idx0, one_of_n]))]
 
 
@@ -1540,7 +1540,7 @@ def local_gpu_crossentropycategorical1hotgrad(
     #   gcoding[arange(coding.shape[0]), one_of_n] = -g / (
     #       coding[arange(coding.shape[0]), one_of_n])
     gy, coding, one_of_n = inputs
-    idx0 = aet.arange(shape_i(coding, 0))
+    idx0 = at.arange(shape_i(coding, 0))
     z = GpuAlloc(context_name, memset_0=True)(
         as_gpuarray_variable(np.zeros((), dtype=coding.dtype), context_name),
         *[shape_i(coding, i) for i in range(coding.ndim)],
@@ -1645,7 +1645,7 @@ def local_conv_gpu_conv(fgraph, node):
             inps[1] = as_gpuarray_variable(inps[1], context_name=ctx)
             out = conv(*inps)
             # out is on the GPU because both inputs are.
-            out = aet.patternbroadcast(out, node.outputs[0].broadcastable)
+            out = at.patternbroadcast(out, node.outputs[0].broadcastable)
             return [out]
 
     if isinstance(node.op, BaseAbstractConv):
@@ -1671,10 +1671,10 @@ def local_conv_gpu_conv(fgraph, node):
             inps[1] = as_gpuarray_variable(inps[1], context_name=ctx)
             out = conv(*inps)
             # out is on the GPU because both inputs are.
-            out = aet.patternbroadcast(out, node.outputs[0].broadcastable)
+            out = at.patternbroadcast(out, node.outputs[0].broadcastable)
             # If the original output was on CPU, we have to transfer it
             if isinstance(node.outputs[0].type, TensorType):
-                return [aet.as_tensor_variable(out)]
+                return [at.as_tensor_variable(out)]
             else:
                 return [out]
 
@@ -2035,7 +2035,7 @@ def local_abstractconv_gradweights_gemm(fgraph, node):
     flip = (slice(None),) * (rval.ndim - 2) + (slice(None, None, -1),) * 2
     if node.op.filter_flip:
         rval = rval[flip]
-    rval = aet.patternbroadcast(rval, node.outputs[0].broadcastable)
+    rval = at.patternbroadcast(rval, node.outputs[0].broadcastable)
     rval = as_gpuarray_variable(rval, context_name=ctx)
     return [rval]
 
@@ -2072,7 +2072,7 @@ def local_abstractconv_gemm_gradweights_alt(fgraph, node):
             rval = rval[:, :, ::-1, ::-1]
 
         rval = rval.dimshuffle(1, 0, 2, 3)
-        rval = aet.patternbroadcast(rval, node.outputs[0].broadcastable)
+        rval = at.patternbroadcast(rval, node.outputs[0].broadcastable)
         rval = as_gpuarray_variable(rval, context_name=ctx)
         return [rval]
     else:
@@ -2109,7 +2109,7 @@ def local_abstractconv3d_gemm_gradweights_alt(fgraph, node):
             rval = rval[:, :, ::-1, ::-1, ::-1]
 
         rval = rval.dimshuffle(1, 0, 2, 3, 4)
-        rval = aet.patternbroadcast(rval, node.outputs[0].broadcastable)
+        rval = at.patternbroadcast(rval, node.outputs[0].broadcastable)
         rval = as_gpuarray_variable(rval, context_name=ctx)
         return [rval]
     else:
@@ -2135,7 +2135,7 @@ def local_abstractconv3d_gradweights_gemm(fgraph, node):
     )(gpu_contiguous(img), gpu_contiguous(topgrad), shape)
     if node.op.filter_flip:
         rval = rval[:, :, ::-1, ::-1, ::-1]
-    rval = aet.patternbroadcast(rval, node.outputs[0].broadcastable)
+    rval = at.patternbroadcast(rval, node.outputs[0].broadcastable)
     rval = as_gpuarray_variable(rval, context_name=ctx)
     return [rval]
 
@@ -2285,7 +2285,7 @@ class ConvMetaOptimizer(LocalMetaOptimizer):
             )
             convdim = img.ndim - 2
 
-            result[kshape] = aet.as_tensor_variable(node.op.kshp[-convdim:])
+            result[kshape] = at.as_tensor_variable(node.op.kshp[-convdim:])
 
             for (var, shape) in zip((img, top), (node.op.imshp, tshp)):
                 result[var] = aesara.shared(
@@ -2306,7 +2306,7 @@ class ConvMetaOptimizer(LocalMetaOptimizer):
                 node.op.filter_dilation,
             )
 
-            result[ishape] = aet.as_tensor_variable(node.op.imshp[2:])
+            result[ishape] = at.as_tensor_variable(node.op.imshp[2:])
 
             for (var, shape) in zip((kern, top), (node.op.kshp, tshp)):
                 result[var] = aesara.shared(

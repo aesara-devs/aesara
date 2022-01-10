@@ -14,7 +14,7 @@ from aesara.sandbox import rng_mrg
 from aesara.sandbox.rng_mrg import MRG_RandomStream, mrg_uniform
 from aesara.scan.basic import scan
 from aesara.tensor.basic import as_tensor_variable, cast
-from aesara.tensor.math import sum as aet_sum
+from aesara.tensor.math import sum as at_sum
 from aesara.tensor.random.utils import RandomStream
 from aesara.tensor.type import iscalar, ivector, lmatrix, matrix, scalar, vector
 from tests import unittest_tools as utt
@@ -318,7 +318,7 @@ def test_broadcastable():
     pvals_1 = np.random.uniform(0, 1, size=size1)
     pvals_1 = pvals_1 / sum(pvals_1)
     pvals_2 = R.uniform(size=size2)
-    pvals_2 = pvals_2 / aet_sum(pvals_2)
+    pvals_2 = pvals_2 / at_sum(pvals_2)
 
     for distribution in [
         R.uniform,
@@ -854,7 +854,7 @@ def test_gradient_scan():
 
     x = vector(dtype="float32")
     values, updates = scan(one_step, outputs_info=x, n_steps=10)
-    gw = grad(aet_sum(values[-1]), w)
+    gw = grad(at_sum(values[-1]), w)
     f = function([x], gw)
     f(np.arange(1, dtype="float32"))
 
@@ -1017,12 +1017,12 @@ def test_undefined_grad():
     p = [as_tensor_variable([prob1, 0.5, 0.25])]
     out = srng.multinomial(size=None, pvals=p, n=4)[0]
     with pytest.raises(NullTypeGradError):
-        grad(aet_sum(out), prob1)
+        grad(at_sum(out), prob1)
 
     p = [as_tensor_variable([prob1, prob2])]
     out = srng.multinomial(size=None, pvals=p, n=4)[0]
     with pytest.raises(NullTypeGradError):
-        grad(aet_sum(out), (prob1, prob2))
+        grad(at_sum(out), (prob1, prob2))
 
     # checking choice
     p = [as_tensor_variable([prob1, prob2, 0.1, 0.2])]
@@ -1117,7 +1117,7 @@ def test_undefined_grad_opt():
     samples = random.multinomial(pvals=pvals, n=1)
     samples = cast(samples, pvals.dtype)
     samples = zero_grad(samples)
-    cost = aet_sum(samples + pvals)
+    cost = at_sum(samples + pvals)
     grad_out = grad(cost, samples)
     f = function([], grad_out)
     assert not any(

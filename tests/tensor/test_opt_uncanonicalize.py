@@ -1,7 +1,7 @@
 import numpy as np
 
 import aesara
-import aesara.tensor as aet
+import aesara.tensor as at
 from aesara import function
 from aesara import scalar as aes
 from aesara.configdefaults import config
@@ -10,9 +10,9 @@ from aesara.graph.opt import out2in
 from aesara.link.basic import PerformLinker
 from aesara.tensor.elemwise import CAReduce, DimShuffle, Elemwise
 from aesara.tensor.math import MaxAndArgmax
-from aesara.tensor.math import max as aet_max
+from aesara.tensor.math import max as at_max
 from aesara.tensor.math import max_and_argmax
-from aesara.tensor.math import min as aet_min
+from aesara.tensor.math import min as at_min
 from aesara.tensor.opt_uncanonicalize import (
     local_alloc_dimshuffle,
     local_dimshuffle_alloc,
@@ -56,13 +56,13 @@ class TestMinMax:
         n = matrix()
 
         for axis in [0, 1, -1]:
-            f = function([n], aet_max(n, axis), mode=self.mode)
+            f = function([n], at_max(n, axis), mode=self.mode)
             topo = f.maker.fgraph.toposort()
             assert len(topo) == 1
             assert isinstance(topo[0].op, CAReduce)
             f(data)
 
-            f = function([n], aet_max(-n, axis), mode=self.mode)
+            f = function([n], at_max(-n, axis), mode=self.mode)
             topo = f.maker.fgraph.toposort()
             assert len(topo) == 2
             assert isinstance(topo[0].op, Elemwise)
@@ -70,7 +70,7 @@ class TestMinMax:
             assert isinstance(topo[1].op, CAReduce)
             f(data)
 
-            f = function([n], -aet_max(n, axis), mode=self.mode)
+            f = function([n], -at_max(n, axis), mode=self.mode)
             topo = f.maker.fgraph.toposort()
             assert len(topo) == 2
             assert isinstance(topo[0].op, CAReduce)
@@ -78,7 +78,7 @@ class TestMinMax:
             assert isinstance(topo[1].op.scalar_op, aes.Neg)
             f(data)
 
-            f = function([n], -aet_max(-n, axis), mode=self.mode)
+            f = function([n], -at_max(-n, axis), mode=self.mode)
             topo = f.maker.fgraph.toposort()
             assert len(topo) == 1
             assert isinstance(topo[0].op, CAReduce)  # min
@@ -89,14 +89,14 @@ class TestMinMax:
         n = matrix()
 
         for axis in [0, 1, -1]:
-            f = function([n], aet_min(n, axis), mode=self.mode)
+            f = function([n], at_min(n, axis), mode=self.mode)
             topo = f.maker.fgraph.toposort()
             assert len(topo) == 1
             assert isinstance(topo[0].op, CAReduce)
             f(data)
 
             # test variant with neg to make sure we optimize correctly
-            f = function([n], aet_min(-n, axis), mode=self.mode)
+            f = function([n], at_min(-n, axis), mode=self.mode)
             topo = f.maker.fgraph.toposort()
             assert len(topo) == 2
             assert isinstance(topo[0].op, CAReduce)  # max
@@ -104,7 +104,7 @@ class TestMinMax:
             assert isinstance(topo[1].op.scalar_op, aes.Neg)
             f(data)
 
-            f = function([n], -aet_min(n, axis), mode=self.mode)
+            f = function([n], -at_min(n, axis), mode=self.mode)
             topo = f.maker.fgraph.toposort()
             assert len(topo) == 2
             assert isinstance(topo[0].op, Elemwise)
@@ -112,7 +112,7 @@ class TestMinMax:
             assert isinstance(topo[1].op, CAReduce)  # max
             f(data)
 
-            f = function([n], -aet_min(-n, axis), mode=self.mode)
+            f = function([n], -at_min(-n, axis), mode=self.mode)
             topo = f.maker.fgraph.toposort()
             assert len(topo) == 1
             assert isinstance(topo[0].op, CAReduce)  # max
@@ -127,7 +127,7 @@ def test_local_alloc_dimshuffle():
     m = iscalar("m")
 
     y = x.dimshuffle("x", 0)
-    out = aet.alloc(y, m, 1, x.shape[0])
+    out = at.alloc(y, m, 1, x.shape[0])
 
     g = FunctionGraph([x, m], [out])
     alloc_dimshuffle(g)
@@ -158,7 +158,7 @@ def test_local_dimshuffle_alloc():
 
     x = vector("x")
 
-    out = aet.alloc(x, 3, 2).dimshuffle("x", "x", 0, 1)
+    out = at.alloc(x, 3, 2).dimshuffle("x", "x", 0, 1)
 
     g = FunctionGraph([x], [out])
     reshape_dimshuffle(g)
@@ -178,7 +178,7 @@ def test_local_dimshuffle_subtensor():
     dimshuffle_subtensor = out2in(local_dimshuffle_subtensor)
 
     x = dtensor4("x")
-    x = aet.patternbroadcast(x, (False, True, False, False))
+    x = at.patternbroadcast(x, (False, True, False, False))
     i = iscalar("i")
 
     out = x[:, :, 10:30, ::i].dimshuffle(0, 2, 3)
@@ -212,7 +212,7 @@ def test_local_dimshuffle_subtensor():
 
     # Test a corner case that had Aesara return a bug.
     x = dtensor4("x")
-    x = aet.patternbroadcast(x, (False, True, False, False))
+    x = at.patternbroadcast(x, (False, True, False, False))
 
     assert x[:, :, 0:3, ::-1].dimshuffle(0, 2, 3).eval(
         {x: np.ones((5, 1, 6, 7))}

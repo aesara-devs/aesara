@@ -27,10 +27,10 @@ messages. Consider the following faulty code.
 
     import numpy as np
     import aesara
-    import aesara.tensor as aet
+    import aesara.tensor as at
 
-    x = aet.vector()
-    y = aet.vector()
+    x = at.vector()
+    y = at.vector()
     z = x + x
     z = z + y
     f = aesara.function([x, y], z)
@@ -103,7 +103,7 @@ following example. Here, we use ``exception_verbosity=high`` and
 
     import numpy
     import aesara
-    import aesara.tensor as aet
+    import aesara.tensor as at
 
     # compute_test_value is 'off' by default, meaning this feature is inactive
     aesara.config.compute_test_value = 'off' # Use 'warn' to activate this feature
@@ -115,7 +115,7 @@ following example. Here, we use ``exception_verbosity=high`` and
     W2 = aesara.shared(W2val, 'W2')
 
     # input which will be of shape (5,10)
-    x  = aet.matrix('x')
+    x  = at.matrix('x')
     # provide Aesara with a default test-value
     #x.tag.test_value = numpy.random.rand(5, 10)
 
@@ -124,10 +124,10 @@ following example. Here, we use ``exception_verbosity=high`` and
     func_of_W1 = W1.dimshuffle(2, 0, 1).flatten(2).T
 
     # source of error: dot product of 5x10 with 20x10
-    h1 = aet.dot(x, func_of_W1)
+    h1 = at.dot(x, func_of_W1)
 
     # do more stuff
-    h2 = aet.dot(h1, W2.T)
+    h2 = at.dot(h1, W2.T)
 
     # compile and call the actual function
     f = aesara.function([x], h2)
@@ -172,7 +172,7 @@ so slightly, we can get Aesara to reveal the exact source of the error.
     ...
 
     # input which will be of shape (5, 10)
-    x  = aet.matrix('x')
+    x  = at.matrix('x')
     # provide Aesara with a default test-value
     x.tag.test_value = numpy.random.rand(5, 10)
 
@@ -187,7 +187,7 @@ following error message, which properly identifies *line 24* as the culprit.
 
     Traceback (most recent call last):
       File "test2.py", line 24, in <module>
-        h1 = aet.dot(x, func_of_W1)
+        h1 = at.dot(x, func_of_W1)
       File "PATH_TO_AESARA/aesara/tensor/basic.py", line 4734, in dot
         return _dot(a, b)
       File "PATH_TO_AESARA/aesara/graph/op.py", line 545, in __call__
@@ -225,12 +225,12 @@ It is also possible to override variables ``__repr__`` method to have them retur
 .. testsetup:: printtestvalue
 
    import aesara
-   import aesara.tensor as aet
+   import aesara.tensor as at
 
 
 .. testcode:: printtestvalue
 
-   x = aet.scalar('x')
+   x = at.scalar('x')
    # Assigning test value
    x.tag.test_value = 42
 
@@ -484,10 +484,10 @@ Consider this example script ("ex.py"):
 
    import aesara
    import numpy
-   import aesara.tensor as aet
+   import aesara.tensor as at
 
-   a = aet.dmatrix('a')
-   b = aet.dmatrix('b')
+   a = at.dmatrix('a')
+   b = at.dmatrix('b')
 
    f = aesara.function([a, b], [a * b])
 

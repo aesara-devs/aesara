@@ -6,7 +6,7 @@ import numpy as np
 import pytest
 
 import aesara.gpuarray
-import aesara.tensor as aet
+import aesara.tensor as at
 from aesara.compile import shared
 from aesara.compile.debugmode import DebugMode, InvalidValueError
 from aesara.compile.function import function
@@ -20,7 +20,7 @@ from aesara.graph.basic import Constant
 from aesara.graph.fg import MissingInputError
 from aesara.graph.opt import OpKeyOptimizer, PatternSub
 from aesara.tensor.math import dot
-from aesara.tensor.math import sum as aet_sum
+from aesara.tensor.math import sum as at_sum
 from aesara.tensor.math import tanh
 from aesara.tensor.type import (
     dmatrix,
@@ -433,7 +433,7 @@ class TestFunction:
         x = vector("x")
         y = vector("y")
         # this formular has no sense but for a test
-        out = (aet_sum(x) - y) ** 2
+        out = (at_sum(x) - y) ** 2
         train = function(
             [i],
             out,
@@ -576,7 +576,7 @@ class TestFunction:
 
     def test_constant_output(self):
         # Test that if the output is a constant, we respect the aesara memory interface
-        f = function([], aet.constant([4]))
+        f = function([], at.constant([4]))
         # print f.maker.fgraph.toposort()
         out = f()
         assert (out == 4).all()
@@ -587,7 +587,7 @@ class TestFunction:
         assert (out2 == 4).all()
 
         # Test that if the output is a constant and borrow, we respect the aesara memory interface
-        f = function([], Out(aet.constant([4]), borrow=True))
+        f = function([], Out(at.constant([4]), borrow=True))
         # print f.maker.fgraph.toposort()
         out = f()
         assert (out == 4).all()

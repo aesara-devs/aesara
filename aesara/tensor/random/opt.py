@@ -5,7 +5,7 @@ from aesara.graph.opt import in2out, local_optimizer
 from aesara.tensor.basic import constant, get_vector_length
 from aesara.tensor.elemwise import DimShuffle
 from aesara.tensor.extra_ops import broadcast_to
-from aesara.tensor.math import sum as aet_sum
+from aesara.tensor.math import sum as at_sum
 from aesara.tensor.random.op import RandomVariable
 from aesara.tensor.random.utils import broadcast_params
 from aesara.tensor.shape import Shape, Shape_i
@@ -383,7 +383,7 @@ def local_subtensor_rv_lift(fgraph, node):
     # *which* dimensions of `size` are used).
     if any(st_is_bool):
         size_lifted = tuple(
-            aet_sum(idx) if is_bool else s
+            at_sum(idx) if is_bool else s
             for s, is_bool, idx in zip(
                 size_lifted, st_is_bool, st_indices[: (reps_ind_split_idx + 1)]
             )

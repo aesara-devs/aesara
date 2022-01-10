@@ -153,9 +153,9 @@ class Assert(CheckAndRaise):
     Examples
     --------
     >>> import aesara
-    >>> import aesara.tensor as aet
+    >>> import aesara.tensor as at
     >>> from aesara.raise_op import Assert
-    >>> x = aet.vector("x")
+    >>> x = at.vector("x")
     >>> assert_op = Assert("This assert failed")
     >>> func = aesara.function([x], assert_op(x, x.size < 2))
 

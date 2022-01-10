@@ -3,7 +3,7 @@ import pytest
 
 import aesara
 from aesara import function
-from aesara import tensor as aet
+from aesara import tensor as at
 from aesara.compile.mode import Mode
 from aesara.configdefaults import config
 from aesara.gradient import grad
@@ -43,7 +43,7 @@ from aesara.tensor.extra_ops import (
     to_one_hot,
     unravel_index,
 )
-from aesara.tensor.math import sum as aet_sum
+from aesara.tensor.math import sum as at_sum
 from aesara.tensor.subtensor import AdvancedIncSubtensor
 from aesara.tensor.type import (
     TensorType,
@@ -326,11 +326,11 @@ class TestDiffOp(utt.InferShapeTester):
         x = vector("x")
         a = np.random.random(50).astype(config.floatX)
 
-        aesara.function([x], grad(aet_sum(diff(x)), x))
+        aesara.function([x], grad(at_sum(diff(x)), x))
         utt.verify_grad(self.op, [a])
 
         for k in range(TestDiffOp.nb):
-            aesara.function([x], grad(aet_sum(diff(x, n=k)), x))
+            aesara.function([x], grad(at_sum(diff(x, n=k)), x))
             utt.verify_grad(DiffOp(n=k), [a], eps=7e-3)
 
 
@@ -804,7 +804,7 @@ class TestUnique(utt.InferShapeTester):
             np.unique(inp, True, True, True, axis=axis),
         ]
         for params, outs_expected in zip(self.op_params, list_outs_expected):
-            out = aet.unique(x, *params, axis=axis)
+            out = at.unique(x, *params, axis=axis)
             f = aesara.function(inputs=[x], outputs=out)
             outs = f(inp)
             for out, out_exp in zip(outs, outs_expected):
@@ -826,9 +826,9 @@ class TestUnique(utt.InferShapeTester):
             if not params[1]:
                 continue
             if params[0]:
-                f = aet.unique(x, *params, axis=axis)[2]
+                f = at.unique(x, *params, axis=axis)[2]
             else:
-                f = aet.unique(x, *params, axis=axis)[1]
+                f = at.unique(x, *params, axis=axis)[1]
             self._compile_and_check(
                 [x],
                 [f],
@@ -984,88 +984,80 @@ def test_broadcast_shape_basic():
     x = np.array([[1], [2], [3]])
     y = np.array([4, 5, 6])
     b = np.broadcast(x, y)
-    x_aet = aet.as_tensor_variable(x)
-    y_aet = aet.as_tensor_variable(y)
-    b_aet = broadcast_shape(x_aet, y_aet)
-    assert np.array_equal([z.eval() for z in b_aet], b.shape)
+    x_at = at.as_tensor_variable(x)
+    y_at = at.as_tensor_variable(y)
+    b_at = broadcast_shape(x_at, y_at)
+    assert np.array_equal([z.eval() for z in b_at], b.shape)
     # Now, we try again using shapes as the inputs
     #
     # This case also confirms that a broadcast dimension will
     # broadcast against a non-broadcast dimension when they're
     # both symbolic (i.e. we couldn't obtain constant values).
-    b_aet = broadcast_shape(
-        shape_tuple(x_aet, use_bcast=False),
-        shape_tuple(y_aet, use_bcast=False),
+    b_at = broadcast_shape(
+        shape_tuple(x_at, use_bcast=False),
+        shape_tuple(y_at, use_bcast=False),
         arrays_are_shapes=True,
     )
     assert any(
-        isinstance(node.op, Assert) for node in applys_between([x_aet, y_aet], b_aet)
+        isinstance(node.op, Assert) for node in applys_between([x_at, y_at], b_at)
     )
-    assert np.array_equal([z.eval() for z in b_aet], b.shape)
-    b_aet = broadcast_shape(
-        shape_tuple(x_aet), shape_tuple(y_aet), arrays_are_shapes=True
-    )
-    assert np.array_equal([z.eval() for z in b_aet], b.shape)
+    assert np.array_equal([z.eval() for z in b_at], b.shape)
+    b_at = broadcast_shape(shape_tuple(x_at), shape_tuple(y_at), arrays_are_shapes=True)
+    assert np.array_equal([z.eval() for z in b_at], b.shape)
 
     x = np.array([1, 2, 3])
     y = np.array([4, 5, 6])
     b = np.broadcast(x, y)
-    x_aet = aet.as_tensor_variable(x)
-    y_aet = aet.as_tensor_variable(y)
-    b_aet = broadcast_shape(x_aet, y_aet)
-    assert np.array_equal([z.eval() for z in b_aet], b.shape)
-    b_aet = broadcast_shape(
-        shape_tuple(x_aet), shape_tuple(y_aet), arrays_are_shapes=True
-    )
-    assert np.array_equal([z.eval() for z in b_aet], b.shape)
+    x_at = at.as_tensor_variable(x)
+    y_at = at.as_tensor_variable(y)
+    b_at = broadcast_shape(x_at, y_at)
+    assert np.array_equal([z.eval() for z in b_at], b.shape)
+    b_at = broadcast_shape(shape_tuple(x_at), shape_tuple(y_at), arrays_are_shapes=True)
+    assert np.array_equal([z.eval() for z in b_at], b.shape)
 
     x = np.empty((1, 2, 3))
     y = np.array(1)
     b = np.broadcast(x, y)
-    x_aet = aet.as_tensor_variable(x)
-    y_aet = aet.as_tensor_variable(y)
-    b_aet = broadcast_shape(x_aet, y_aet)
-    assert b_aet[0].value == 1
-    assert np.array_equal([z.eval() for z in b_aet], b.shape)
-    b_aet = broadcast_shape(
-        shape_tuple(x_aet), shape_tuple(y_aet), arrays_are_shapes=True
-    )
-    assert np.array_equal([z.eval() for z in b_aet], b.shape)
+    x_at = at.as_tensor_variable(x)
+    y_at = at.as_tensor_variable(y)
+    b_at = broadcast_shape(x_at, y_at)
+    assert b_at[0].value == 1
+    assert np.array_equal([z.eval() for z in b_at], b.shape)
+    b_at = broadcast_shape(shape_tuple(x_at), shape_tuple(y_at), arrays_are_shapes=True)
+    assert np.array_equal([z.eval() for z in b_at], b.shape)
 
     x = np.empty((2, 1, 3))
     y = np.empty((2, 1, 1))
     b = np.broadcast(x, y)
-    x_aet = aet.as_tensor_variable(x)
-    y_aet = aet.as_tensor_variable(y)
-    b_aet = broadcast_shape(x_aet, y_aet)
-    assert b_aet[1].value == 1
-    assert np.array_equal([z.eval() for z in b_aet], b.shape)
-    b_aet = broadcast_shape(
-        shape_tuple(x_aet), shape_tuple(y_aet), arrays_are_shapes=True
-    )
-    assert np.array_equal([z.eval() for z in b_aet], b.shape)
+    x_at = at.as_tensor_variable(x)
+    y_at = at.as_tensor_variable(y)
+    b_at = broadcast_shape(x_at, y_at)
+    assert b_at[1].value == 1
+    assert np.array_equal([z.eval() for z in b_at], b.shape)
+    b_at = broadcast_shape(shape_tuple(x_at), shape_tuple(y_at), arrays_are_shapes=True)
+    assert np.array_equal([z.eval() for z in b_at], b.shape)
 
-    x1_shp_aet = iscalar("x1")
-    x2_shp_aet = iscalar("x2")
-    y1_shp_aet = iscalar("y1")
-    x_shapes = (1, x1_shp_aet, x2_shp_aet)
-    x_aet = aet.ones(x_shapes)
-    y_shapes = (y1_shp_aet, 1, x2_shp_aet)
-    y_aet = aet.ones(y_shapes)
-    b_aet = broadcast_shape(x_aet, y_aet)
-    res = aet.as_tensor(b_aet).eval(
+    x1_shp_at = iscalar("x1")
+    x2_shp_at = iscalar("x2")
+    y1_shp_at = iscalar("y1")
+    x_shapes = (1, x1_shp_at, x2_shp_at)
+    x_at = at.ones(x_shapes)
+    y_shapes = (y1_shp_at, 1, x2_shp_at)
+    y_at = at.ones(y_shapes)
+    b_at = broadcast_shape(x_at, y_at)
+    res = at.as_tensor(b_at).eval(
         {
-            x1_shp_aet: 10,
-            x2_shp_aet: 4,
-            y1_shp_aet: 2,
+            x1_shp_at: 10,
+            x2_shp_at: 4,
+            y1_shp_at: 2,
         }
     )
     assert np.array_equal(res, (2, 10, 4))
 
-    y_shapes = (y1_shp_aet, 1, y1_shp_aet)
-    y_aet = aet.ones(y_shapes)
-    b_aet = broadcast_shape(x_aet, y_aet)
-    assert isinstance(b_aet[-1].owner.op, Assert)
+    y_shapes = (y1_shp_at, 1, y1_shp_at)
+    y_at = at.ones(y_shapes)
+    b_at = broadcast_shape(x_at, y_at)
+    assert isinstance(b_at[-1].owner.op, Assert)
 
 
 @pytest.mark.parametrize(
@@ -1077,19 +1069,19 @@ def test_broadcast_shape_basic():
     ],
 )
 def test_broadcast_shape_symbolic(s1_vals, s2_vals, exp_res):
-    s1s = aet.lscalars(len(s1_vals))
+    s1s = at.lscalars(len(s1_vals))
     eval_point = {}
     for s, s_val in zip(s1s, s1_vals):
         eval_point[s] = s_val
         s.tag.test_value = s_val
 
-    s2s = aet.lscalars(len(s2_vals))
+    s2s = at.lscalars(len(s2_vals))
     for s, s_val in zip(s2s, s2_vals):
         eval_point[s] = s_val
         s.tag.test_value = s_val
 
     res = broadcast_shape(s1s, s2s, arrays_are_shapes=True)
-    res = aet.as_tensor(res)
+    res = at.as_tensor(res)
 
     assert tuple(res.eval(eval_point)) == exp_res
 
@@ -1117,10 +1109,10 @@ class TestBroadcastTo(utt.InferShapeTester):
         assert bcast_res.broadcastable == (False, True)
 
         bcast_np = np.broadcast_to(5, (4, 1))
-        bcast_aet = bcast_res.get_test_value()
+        bcast_at = bcast_res.get_test_value()
 
-        assert np.array_equal(bcast_aet, bcast_np)
-        assert np.shares_memory(bcast_aet, a.get_test_value())
+        assert np.array_equal(bcast_at, bcast_np)
+        assert np.shares_memory(bcast_at, a.get_test_value())
 
     @pytest.mark.parametrize(
         "fn,input_dims",
@@ -1162,12 +1154,12 @@ class TestBroadcastTo(utt.InferShapeTester):
 
     def test_inplace(self):
         """Make sure that in-place optimizations are *not* performed on the output of a ``BroadcastTo``."""
-        a = aet.zeros((5,))
-        d = aet.vector("d")
-        c = aet.set_subtensor(a[np.r_[0, 1, 3]], d)
+        a = at.zeros((5,))
+        d = at.vector("d")
+        c = at.set_subtensor(a[np.r_[0, 1, 3]], d)
         b = broadcast_to(c, (5,))
         q = b[np.r_[0, 1, 3]]
-        e = aet.set_subtensor(q, np.r_[0, 0, 0])
+        e = at.set_subtensor(q, np.r_[0, 0, 0])
 
         opts = OptimizationQuery(include=["inplace"])
         py_mode = Mode("py", opts)
@@ -1181,7 +1173,7 @@ class TestBroadcastTo(utt.InferShapeTester):
 
 
 def test_broadcast_arrays():
-    x, y = aet.dvector(), aet.dmatrix()
+    x, y = at.dvector(), at.dmatrix()
     x_bcast, y_bcast = broadcast_arrays(x, y)
 
     py_mode = Mode("py", None)

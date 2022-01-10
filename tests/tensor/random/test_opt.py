@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-import aesara.tensor as aet
+import aesara.tensor as at
 from aesara import config, shared
 from aesara.compile.function import function
 from aesara.compile.mode import Mode
@@ -31,22 +31,22 @@ no_mode = Mode("py", OptimizationQuery(include=[], exclude=[]))
 
 
 def apply_local_opt_to_rv(opt, op_fn, dist_op, dist_params, size, rng, name=None):
-    dist_params_aet = []
+    dist_params_at = []
     for p in dist_params:
-        p_aet = aet.as_tensor(p).type()
-        p_aet.tag.test_value = p
-        dist_params_aet.append(p_aet)
+        p_at = at.as_tensor(p).type()
+        p_at.tag.test_value = p
+        dist_params_at.append(p_at)
 
-    size_aet = []
+    size_at = []
     for s in size:
-        s_aet = iscalar()
-        s_aet.tag.test_value = s
-        size_aet.append(s_aet)
+        s_at = iscalar()
+        s_at.tag.test_value = s
+        size_at.append(s_at)
 
-    dist_st = op_fn(dist_op(*dist_params_aet, size=size_aet, rng=rng, name=name))
+    dist_st = op_fn(dist_op(*dist_params_at, size=size_at, rng=rng, name=name))
 
     f_inputs = [
-        p for p in dist_params_aet + size_aet if not isinstance(p, (slice, Constant))
+        p for p in dist_params_at + size_at if not isinstance(p, (slice, Constant))
     ]
 
     mode = Mode("py", EquilibriumOptimizer([opt], max_use_ratio=100))
@@ -141,7 +141,7 @@ def test_local_rv_size_lift(dist_op, dist_params, size):
         rng,
     )
 
-    assert aet.get_vector_length(new_out.owner.inputs[1]) == 0
+    assert at.get_vector_length(new_out.owner.inputs[1]) == 0
 
 
 @pytest.mark.parametrize(
@@ -414,16 +414,16 @@ def test_Subtensor_lift(indices, lifted, dist_op, dist_params, size):
 
     rng = shared(np.random.default_rng(1233532), borrow=False)
 
-    indices_aet = ()
+    indices_at = ()
     for i in indices:
-        i_aet = as_index_constant(i)
-        if not isinstance(i_aet, slice):
-            i_aet.tag.test_value = i
-        indices_aet += (i_aet,)
+        i_at = as_index_constant(i)
+        if not isinstance(i_at, slice):
+            i_at.tag.test_value = i
+        indices_at += (i_at,)
 
     new_out, f_inputs, dist_st, f_opt = apply_local_opt_to_rv(
         local_subtensor_rv_lift,
-        lambda rv: rv[indices_aet],
+        lambda rv: rv[indices_at],
         dist_op,
         dist_params,
         size,
@@ -461,7 +461,7 @@ def test_Subtensor_lift_restrictions():
 
     std = vector("std")
     std.tag.test_value = np.array([1e-5, 2e-5, 3e-5], dtype=config.floatX)
-    x = normal(aet.arange(2), aet.ones(2), rng=rng)
+    x = normal(at.arange(2), at.ones(2), rng=rng)
     y = x[1]
     # The non-`Subtensor` client depends on the RNG state, so we can't perform
     # the lift
@@ -475,7 +475,7 @@ def test_Subtensor_lift_restrictions():
     assert isinstance(subtensor_node.op, Subtensor)
     assert subtensor_node.inputs[0].owner.op == normal
 
-    z = aet.ones(x.shape) - x[1]
+    z = at.ones(x.shape) - x[1]
 
     # We add `x` as an output to make sure that `is_rv_used_in_graph` handles
     # `"output"` "nodes" correctly.
@@ -499,7 +499,7 @@ def test_Subtensor_lift_restrictions():
 def test_Dimshuffle_lift_restrictions():
     rng = shared(np.random.default_rng(1233532), borrow=False)
 
-    x = normal(aet.arange(2).reshape((2,)), 100, size=(2, 2, 2), rng=rng)
+    x = normal(at.arange(2).reshape((2,)), 100, size=(2, 2, 2), rng=rng)
     y = x.dimshuffle(1, 0, 2)
     # The non-`Dimshuffle` client depends on the RNG state, so we can't
     # perform the lift
@@ -513,7 +513,7 @@ def test_Dimshuffle_lift_restrictions():
     assert isinstance(dimshuffle_node.op, DimShuffle)
     assert dimshuffle_node.inputs[0].owner.op == normal
 
-    z = aet.ones(x.shape) - y
+    z = at.ones(x.shape) - y
 
     # We add `x` as an output to make sure that `is_rv_used_in_graph` handles
     # `"output"` "nodes" correctly.

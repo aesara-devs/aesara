@@ -17,7 +17,7 @@ from aesara.gpuarray.subtensor import (
 )
 from aesara.gpuarray.type import gpuarray_shared_constructor
 from aesara.tensor.basic import AllocDiag, ExtractDiag
-from aesara.tensor.math import sum as aet_sum
+from aesara.tensor.math import sum as at_sum
 from aesara.tensor.subtensor import advanced_inc_subtensor1, inc_subtensor
 from aesara.tensor.type import ivectors, matrix, tensor, tensor4, vector
 from tests import unittest_tools as utt
@@ -395,7 +395,7 @@ class TestGpuAllocDiag(TestAllocDiag):
 
         # offset = 0 case:
         mtx_x = GpuAllocDiag()(x)
-        sum_mtx_x = aet_sum(mtx_x)
+        sum_mtx_x = at_sum(mtx_x)
         grad_x = aesara.grad(sum_mtx_x, x)
         grad_mtx_x = aesara.grad(sum_mtx_x, mtx_x)
 
@@ -409,7 +409,7 @@ class TestGpuAllocDiag(TestAllocDiag):
 
         # offset > 0 case:
         mtx_x = GpuAllocDiag(2)(x)
-        sum_mtx_x = aet_sum(mtx_x)
+        sum_mtx_x = at_sum(mtx_x)
         grad_x = aesara.grad(sum_mtx_x, x)
         grad_mtx_x = aesara.grad(sum_mtx_x, mtx_x)
 
@@ -423,7 +423,7 @@ class TestGpuAllocDiag(TestAllocDiag):
 
         # offset < 0 case:
         mtx_x = GpuAllocDiag(-3)(x)
-        sum_mtx_x = aet_sum(mtx_x)
+        sum_mtx_x = at_sum(mtx_x)
         grad_x = aesara.grad(sum_mtx_x, x)
         grad_mtx_x = aesara.grad(sum_mtx_x, mtx_x)
 

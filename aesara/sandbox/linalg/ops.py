@@ -1,7 +1,7 @@
 import logging
 
 from aesara.graph.opt import local_optimizer
-from aesara.tensor import basic as aet
+from aesara.tensor import basic as at
 from aesara.tensor.basic_opt import (
     register_canonicalize,
     register_specialize,
@@ -10,7 +10,7 @@ from aesara.tensor.basic_opt import (
 from aesara.tensor.blas import Dot22
 from aesara.tensor.elemwise import DimShuffle
 from aesara.tensor.math import Dot, Prod, dot, log
-from aesara.tensor.math import pow as aet_pow
+from aesara.tensor.math import pow as at_pow
 from aesara.tensor.math import prod
 from aesara.tensor.nlinalg import Det, MatrixInverse, trace
 from aesara.tensor.slinalg import Cholesky, Solve, cholesky, solve
@@ -123,7 +123,7 @@ def local_det_chol(fgraph, node):
         for (cl, xpos) in fgraph.clients[x]:
             if isinstance(cl.op, Cholesky):
                 L = cl.outputs[0]
-                return [prod(aet.extract_diag(L) ** 2)]
+                return [prod(at.extract_diag(L) ** 2)]
 
 
 @register_canonicalize
@@ -177,4 +177,4 @@ def spectral_radius_bound(X, log2_exponent):
     XX = X
     for i in range(log2_exponent):
         XX = dot(XX, XX)
-    return aet_pow(trace(XX), 2 ** (-log2_exponent))
+    return at_pow(trace(XX), 2 ** (-log2_exponent))

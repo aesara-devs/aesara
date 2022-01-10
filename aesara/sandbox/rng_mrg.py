@@ -20,7 +20,7 @@ import numpy as np
 from aesara import function, gradient
 from aesara import scalar as aes
 from aesara import shared
-from aesara import tensor as aet
+from aesara import tensor as at
 from aesara.compile import optdb
 from aesara.configdefaults import config
 from aesara.gradient import undefined_grad
@@ -373,7 +373,7 @@ class mrg_uniform(COp, mrg_uniform_base):
         # call through MRG_RandomStream instead.
         broad = []
         for i in range(self.output_type.ndim):
-            broad.append(aet.extract_constant(size[i]) == 1)
+            broad.append(at.extract_constant(size[i]) == 1)
         output_type = self.output_type.clone(broadcastable=broad)()
         rstate = as_tensor_variable(rstate)
         size = as_tensor_variable(size)
@@ -1172,8 +1172,8 @@ class MRG_RandomStream:
         if dtype is None:
             dtype = aes.upcast(config.floatX, avg.dtype, std.dtype)
 
-        avg = aet.cast(avg, dtype=dtype)
-        std = aet.cast(std, dtype=dtype)
+        avg = at.cast(avg, dtype=dtype)
+        std = at.cast(std, dtype=dtype)
 
         # generate even number of uniform samples
         # Do manual constant folding to lower optiimizer work.
@@ -1205,14 +1205,14 @@ class MRG_RandomStream:
             # use valid samples
             to_fix0 = (z0 < -2.0) | (z0 > 2.0)
             to_fix1 = (z1 < -2.0) | (z1 > 2.0)
-            z0_valid = z0[aet.nonzero(~to_fix0)]
-            z1_valid = z1[aet.nonzero(~to_fix1)]
+            z0_valid = z0[at.nonzero(~to_fix0)]
+            z1_valid = z1[at.nonzero(~to_fix1)]
 
             # re-sample invalid samples
-            to_fix0 = aet.nonzero(to_fix0)[0]
-            to_fix1 = aet.nonzero(to_fix1)[0]
+            to_fix0 = at.nonzero(to_fix0)[0]
+            to_fix1 = at.nonzero(to_fix1)[0]
             n_fix_samples = to_fix0.size + to_fix1.size
-            lower = aet.constant(1.0 / np.e ** 2, dtype=dtype)
+            lower = at.constant(1.0 / np.e ** 2, dtype=dtype)
             u_fix = self.uniform(
                 (n_fix_samples,),
                 low=lower,
@@ -1227,9 +1227,9 @@ class MRG_RandomStream:
             z1_fixed = r_fix[to_fix0.size :] * sin_theta[to_fix1]
 
             # pack everything together to a useful result
-            norm_samples = aet.join(0, z0_valid, z0_fixed, z1_valid, z1_fixed)
+            norm_samples = at.join(0, z0_valid, z0_fixed, z1_valid, z1_fixed)
         else:
-            norm_samples = aet.join(0, z0, z1)
+            norm_samples = at.join(0, z0, z1)
         if isinstance(n_odd_samples, Variable):
             samples = norm_samples[:n_odd_samples]
         elif n_odd_samples % 2 == 1:
@@ -1275,7 +1275,7 @@ class MRG_RandomStream:
         normal
         """
         # constant taken from scipy.stats.truncnorm.std(a=-2, b=2, loc=0., scale=1.)
-        std = std / aet.constant(0.87962566103423978)
+        std = std / at.constant(0.87962566103423978)
         return self.normal(
             size=size,
             avg=avg,
@@ -1314,13 +1314,13 @@ def _check_size(size):
         if size.ndim == 1:
             return size
         elif size.ndim == 0:
-            return aet.stack([size], ndim=1)
+            return at.stack([size], ndim=1)
         else:
             raise ValueError(
                 "Aesara variable must have 1 dimension to be a valid size.", size
             )
     elif isinstance(size, (np.integer, int)):
-        return aet.constant([size], ndim=1)
+        return at.constant([size], ndim=1)
     elif not isinstance(size, (tuple, list)):
         raise ValueError("Size must be a int, tuple, list or Aesara variable.", size)
 
@@ -1341,7 +1341,7 @@ def _check_size(size):
                 i,
             )
 
-    return aet.as_tensor_variable(size, ndim=1)
+    return at.as_tensor_variable(size, ndim=1)
 
 
 @local_optimizer((mrg_uniform_base,))

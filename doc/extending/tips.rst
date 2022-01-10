@@ -20,10 +20,10 @@ simple function:
 
 .. code::
 
-   from aesara import tensor as aet
+   from aesara import tensor as at
 
    def sum_square_difference(a, b):
-       return aet.sum((a - b)**2)
+       return at.sum((a - b)**2)
 
 Even without taking Aesara's optimizations into account, it is likely
 to work just as well as a custom implementation. It also supports all

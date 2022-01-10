@@ -5,14 +5,14 @@ import aesara
 from aesara import function
 from aesara.compile.mode import Mode
 from aesara.tensor.elemwise import DimShuffle
-from aesara.tensor.math import all as aet_all
-from aesara.tensor.math import any as aet_any
+from aesara.tensor.math import all as at_all
+from aesara.tensor.math import any as at_any
 from aesara.tensor.math import argmax, argmin
-from aesara.tensor.math import max as aet_max
+from aesara.tensor.math import max as at_max
 from aesara.tensor.math import max_and_argmax, mean
-from aesara.tensor.math import min as aet_min
+from aesara.tensor.math import min as at_min
 from aesara.tensor.math import prod, std
-from aesara.tensor.math import sum as aet_sum
+from aesara.tensor.math import sum as at_sum
 from aesara.tensor.math import var
 from aesara.tensor.type import dtensor3
 
@@ -138,15 +138,15 @@ class TestKeepDims:
         # the following ops can be specified with a freely specified axis
         # parameter
         for op in [
-            aet_sum,
+            at_sum,
             prod,
             mean,
             var,
             std,
-            aet_all,
-            aet_any,
-            aet_max,
-            aet_min,
+            at_all,
+            at_any,
+            at_max,
+            at_min,
         ]:
             for axis in [
                 0,

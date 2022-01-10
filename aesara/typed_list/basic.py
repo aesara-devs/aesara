@@ -1,6 +1,6 @@
 import numpy as np
 
-import aesara.tensor as aet
+import aesara.tensor as at
 from aesara.compile.debugmode import _lessbroken_deepcopy
 from aesara.configdefaults import config
 from aesara.graph.basic import Apply, Constant, Variable
@@ -77,7 +77,7 @@ class GetItem(COp):
                 index = Constant(SliceType(), index)
                 return Apply(self, [x, index], [x.type()])
             else:
-                index = aet.constant(index, ndim=0, dtype="int64")
+                index = at.constant(index, ndim=0, dtype="int64")
                 return Apply(self, [x, index], [x.ttype()])
         if isinstance(index.type, SliceType):
             return Apply(self, [x, index], [x.type()])
@@ -322,7 +322,7 @@ class Insert(COp):
         assert isinstance(x.type, TypedListType)
         assert x.ttype == toInsert.type
         if not isinstance(index, Variable):
-            index = aet.constant(index, ndim=0, dtype="int64")
+            index = at.constant(index, ndim=0, dtype="int64")
         else:
             assert index.dtype == "int64"
             assert isinstance(index, TensorVariable) and index.ndim == 0
@@ -649,7 +649,7 @@ class MakeList(Op):
         a2 = []
         for elem in a:
             if not isinstance(elem, Variable):
-                elem = aet.as_tensor_variable(elem)
+                elem = at.as_tensor_variable(elem)
             a2.append(elem)
         if not all(a2[0].type == elem.type for elem in a2):
             raise TypeError("MakeList need all input variable to be of the same type.")

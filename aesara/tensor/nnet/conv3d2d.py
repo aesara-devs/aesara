@@ -1,5 +1,5 @@
 import aesara
-from aesara import tensor as aet
+from aesara import tensor as at
 from aesara.gradient import DisconnectedType
 from aesara.graph.basic import Apply
 from aesara.graph.op import Op
@@ -103,8 +103,8 @@ class DiagonalSubtensor(Op):
             self.view_map = {0: [0]}
 
     def make_node(self, x, i0, i1):
-        _i0 = aet.as_tensor_variable(i0)
-        _i1 = aet.as_tensor_variable(i1)
+        _i0 = at.as_tensor_variable(i0)
+        _i1 = at.as_tensor_variable(i1)
         return Apply(self, [x, _i0, _i1], [x.type()])
 
     def perform(self, node, inputs, output_storage):
@@ -115,7 +115,7 @@ class DiagonalSubtensor(Op):
             output_storage[0][0] = xview.copy()
 
     def grad(self, inputs, g_outputs):
-        z = aet.zeros_like(inputs[0])
+        z = at.zeros_like(inputs[0])
         gx = inc_diagonal_subtensor(z, inputs[1], inputs[2], g_outputs[0])
         return [gx, DisconnectedType()(), DisconnectedType()()]
 
@@ -146,8 +146,8 @@ class IncDiagonalSubtensor(Op):
             self.destroy_map = {0: [0]}
 
     def make_node(self, x, i0, i1, amt):
-        _i0 = aet.as_tensor_variable(i0)
-        _i1 = aet.as_tensor_variable(i1)
+        _i0 = at.as_tensor_variable(i0)
+        _i1 = at.as_tensor_variable(i1)
         return Apply(self, [x, _i0, _i1, amt], [x.type()])
 
     def perform(self, node, inputs, output_storage):
@@ -290,7 +290,7 @@ def conv3d(
             out_5d = diagonal_subtensor(out_tmp, 1, 3).sum(axis=3)
         else:
             # pad out_tmp with zeros before summing over the diagonal
-            out_tmp_padded = aet.zeros(
+            out_tmp_padded = at.zeros(
                 dtype=out_tmp.dtype, shape=(Ns, Ts + 2 * Tpad, Nf, Tf, Hout, Wout)
             )
             out_tmp_padded = aesara.tensor.subtensor.set_subtensor(

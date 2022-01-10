@@ -38,14 +38,14 @@ The equivalent Aesara code would be:
 .. testcode::
 
   import aesara
-  import aesara.tensor as aet
+  import aesara.tensor as at
 
-  k = aet.iscalar("k")
-  A = aet.vector("A")
+  k = at.iscalar("k")
+  A = at.vector("A")
 
   # Symbolic description of the result
   result, updates = aesara.scan(fn=lambda prior_result, A: prior_result * A,
-                                outputs_info=aet.ones_like(A),
+                                outputs_info=at.ones_like(A),
                                 non_sequences=A,
                                 n_steps=k)
 
@@ -103,7 +103,7 @@ from a list of its coefficients:
     import numpy
 
     coefficients = aesara.tensor.vector("coefficients")
-    x = aet.scalar("x")
+    x = at.scalar("x")
 
     max_coefficients_supported = 10000
 
@@ -164,21 +164,21 @@ downcast** of the latter.
 
     import numpy as np
     import aesara
-    import aesara.tensor as aet
+    import aesara.tensor as at
 
-    up_to = aet.iscalar("up_to")
+    up_to = at.iscalar("up_to")
 
     # define a named function, rather than using lambda
     def accumulate_by_adding(arange_val, sum_to_date):
         return sum_to_date + arange_val
-    seq = aet.arange(up_to)
+    seq = at.arange(up_to)
 
     # An unauthorized implicit downcast from the dtype of 'seq', to that of
-    # 'aet.as_tensor_variable(0)' which is of dtype 'int8' by default would occur
+    # 'at.as_tensor_variable(0)' which is of dtype 'int8' by default would occur
     # if this instruction were to be used instead of the next one:
-    # outputs_info = aet.as_tensor_variable(0)
+    # outputs_info = at.as_tensor_variable(0)
 
-    outputs_info = aet.as_tensor_variable(np.asarray(0, seq.dtype))
+    outputs_info = at.as_tensor_variable(np.asarray(0, seq.dtype))
     scan_result, scan_updates = aesara.scan(fn=accumulate_by_adding,
                                             outputs_info=outputs_info,
                                             sequences=seq)
@@ -206,14 +206,14 @@ with all values set to zero except at the provided array indices.
 
 .. testcode::
 
-    location = aet.imatrix("location")
-    values = aet.vector("values")
-    output_model = aet.matrix("output_model")
+    location = at.imatrix("location")
+    values = at.vector("values")
+    output_model = at.matrix("output_model")
 
     def set_value_at_position(a_location, a_value, output_model):
-        zeros = aet.zeros_like(output_model)
+        zeros = at.zeros_like(output_model)
         zeros_subtensor = zeros[a_location[0], a_location[1]]
-        return aet.set_subtensor(zeros_subtensor, a_value)
+        return at.set_subtensor(zeros_subtensor, a_value)
 
     result, updates = aesara.scan(fn=set_value_at_position,
                                   outputs_info=None,
@@ -265,7 +265,7 @@ the following:
 .. testcode:: scan1
 
    import aesara
-   from aesara import tensor as aet
+   from aesara import tensor as at
 
    W = aesara.shared(W_values) # we assume that ``W_values`` contains the
                                # initial values of your weight matrix
@@ -276,9 +276,9 @@ the following:
    trng = aesara.tensor.random.utils.RandomStream(1234)
 
    def OneStep(vsample) :
-       hmean = aet.sigmoid(aesara.dot(vsample, W) + bhid)
+       hmean = at.sigmoid(aesara.dot(vsample, W) + bhid)
        hsample = trng.binomial(size=hmean.shape, n=1, p=hmean)
-       vmean = aet.sigmoid(aesara.dot(hsample, W.T) + bvis)
+       vmean = at.sigmoid(aesara.dot(hsample, W.T) + bvis)
        return trng.binomial(size=vsample.shape, n=1, p=vmean,
                             dtype=aesara.config.floatX)
 
@@ -358,9 +358,9 @@ updated:
 
     # OneStep, with explicit use of the shared variables (W, bvis, bhid)
     def OneStep(vsample, W, bvis, bhid):
-        hmean = aet.sigmoid(aesara.dot(vsample, W) + bhid)
+        hmean = at.sigmoid(aesara.dot(vsample, W) + bhid)
         hsample = trng.binomial(size=hmean.shape, n=1, p=hmean)
-        vmean = aet.sigmoid(aesara.dot(hsample, W.T) + bvis)
+        vmean = at.sigmoid(aesara.dot(hsample, W.T) + bvis)
         return trng.binomial(size=vsample.shape, n=1, p=vmean,
                          dtype=aesara.config.floatX)
 
@@ -394,9 +394,9 @@ Using the original Gibbs sampling example, with ``strict=True`` added to the
 
     # Same OneStep as in original example.
     def OneStep(vsample) :
-        hmean = aet.sigmoid(aesara.dot(vsample, W) + bhid)
+        hmean = at.sigmoid(aesara.dot(vsample, W) + bhid)
         hsample = trng.binomial(size=hmean.shape, n=1, p=hmean)
-        vmean = aet.sigmoid(aesara.dot(hsample, W.T) + bvis)
+        vmean = at.sigmoid(aesara.dot(hsample, W.T) + bvis)
         return trng.binomial(size=vsample.shape, n=1, p=vmean,
                              dtype=aesara.config.floatX)
 
@@ -423,9 +423,9 @@ variables passed explicitly to ``OneStep`` and to scan:
 
     # OneStep, with explicit use of the shared variables (W, bvis, bhid)
     def OneStep(vsample, W, bvis, bhid) :
-        hmean = aet.sigmoid(aesara.dot(vsample, W) + bhid)
+        hmean = at.sigmoid(aesara.dot(vsample, W) + bhid)
         hsample = trng.binomial(size=hmean.shape, n=1, p=hmean)
-        vmean = aet.sigmoid(aesara.dot(hsample, W.T) + bvis)
+        vmean = at.sigmoid(aesara.dot(hsample, W.T) + bvis)
         return trng.binomial(size=vsample.shape, n=1, p=vmean,
                              dtype=aesara.config.floatX)
 
@@ -465,13 +465,13 @@ construct a function that computes one iteration step :
 .. testsetup:: scan3
 
    import aesara
-   from aesara import tensor as aet
+   from aesara import tensor as at
 
 .. testcode:: scan3
 
   def oneStep(u_tm4, u_t, x_tm3, x_tm1, y_tm1, W, W_in_1, W_in_2,  W_feedback, W_out):
 
-    x_t = aet.tanh(aesara.dot(x_tm1, W) + \
+    x_t = at.tanh(aesara.dot(x_tm1, W) + \
                  aesara.dot(u_t,   W_in_1) + \
                  aesara.dot(u_tm4, W_in_2) + \
                  aesara.dot(y_tm1, W_feedback))
@@ -492,16 +492,16 @@ the Aesara variables needed we construct our RNN as follows :
 
 .. testcode:: scan3
 
-   W = aet.matrix()
-   W_in_1 = aet.matrix()
-   W_in_2 = aet.matrix()
-   W_feedback = aet.matrix()
-   W_out = aet.matrix()
+   W = at.matrix()
+   W_in_1 = at.matrix()
+   W_in_2 = at.matrix()
+   W_feedback = at.matrix()
+   W_out = at.matrix()
 
-   u = aet.matrix() # it is a sequence of vectors
-   x0 = aet.matrix() # initial state of x has to be a matrix, since
+   u = at.matrix() # it is a sequence of vectors
+   x0 = at.matrix() # initial state of x has to be a matrix, since
                    # it has to cover x[-3]
-   y0 = aet.vector() # y0 is just a vector since scan has only to provide
+   y0 = at.vector() # y0 is just a vector since scan has only to provide
                    # y[-1]
 
 
@@ -541,9 +541,9 @@ value ``max_value``.
     def power_of_2(previous_power, max_value):
         return previous_power*2, aesara.scan.utils.until(previous_power*2 > max_value)
 
-    max_value = aet.scalar()
+    max_value = at.scalar()
     values, _ = aesara.scan(power_of_2,
-                            outputs_info = aet.constant(1.),
+                            outputs_info = at.constant(1.),
                             non_sequences = max_value,
                             n_steps = 1024)
 

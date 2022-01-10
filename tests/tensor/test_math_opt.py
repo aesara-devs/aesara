@@ -8,7 +8,7 @@ import pytest
 
 import aesara
 import aesara.scalar as aes
-import aesara.tensor as aet
+import aesara.tensor as at
 from aesara import pprint, shared
 from aesara.compile import optdb
 from aesara.compile.debugmode import DebugMode
@@ -29,10 +29,10 @@ from aesara.tensor.blas import Dot22, Gemv
 from aesara.tensor.blas_c import CGemv
 from aesara.tensor.elemwise import CAReduce, DimShuffle, Elemwise
 from aesara.tensor.math import Dot, MaxAndArgmax, Prod, Sum
-from aesara.tensor.math import abs as aet_abs
+from aesara.tensor.math import abs as at_abs
 from aesara.tensor.math import add
-from aesara.tensor.math import all as aet_all
-from aesara.tensor.math import any as aet_any
+from aesara.tensor.math import all as at_all
+from aesara.tensor.math import any as at_any
 from aesara.tensor.math import (
     arccosh,
     arcsinh,
@@ -64,15 +64,15 @@ from aesara.tensor.math import (
     log10,
     lt,
 )
-from aesara.tensor.math import max as aet_max
+from aesara.tensor.math import max as at_max
 from aesara.tensor.math import maximum
-from aesara.tensor.math import min as aet_min
+from aesara.tensor.math import min as at_min
 from aesara.tensor.math import minimum, mul, neg, neq
-from aesara.tensor.math import pow as aet_pow
+from aesara.tensor.math import pow as at_pow
 from aesara.tensor.math import prod, rad2deg, reciprocal
-from aesara.tensor.math import round as aet_round
+from aesara.tensor.math import round as at_round
 from aesara.tensor.math import sgn, sigmoid, sin, sinh, softplus, sqr, sqrt, sub
-from aesara.tensor.math import sum as aet_sum
+from aesara.tensor.math import sum as at_sum
 from aesara.tensor.math import tan, tanh, true_div, xor
 from aesara.tensor.math_opt import (
     compute_mul,
@@ -169,8 +169,8 @@ def test_add_canonizer_problem0():
     f(3)
 
     # This was crashing in the past.
-    c0 = aet.constant([True])
-    c1 = aet.constant([True])
+    c0 = at.constant([True])
+    c1 = at.constant([True])
     function([], c0 + c1)
 
 
@@ -201,7 +201,7 @@ class TestGreedyDistribute:
         eps = scalar("eps")
         s = scalar("s")
 
-        # r = mul(aet.fill(x, 2.*a), x/a , (y+z) , a)
+        # r = mul(at.fill(x, 2.*a), x/a , (y+z) , a)
         # r = mul((x/a+y) , a, z)
         r = mul(s - 1, eps + x / s, eps + y / s, s)
 
@@ -849,7 +849,7 @@ class TestAlgebraicCanonize:
         # 4 * x / abs(2*x) it get simplifier during canonicalisation.
 
         x = dscalar()
-        # a = aet.aet_abs(x)
+        # a = at.at_abs(x)
 
         if config.mode == "FAST_COMPILE":
             mode = get_mode("FAST_RUN").excluding("local_elemwise_fusion")
@@ -982,7 +982,7 @@ def test_merge_abs_bugfix():
     # normalize on rows
     step2 = step1 / step1.sum(1)
     # get l1 norm
-    l1_norm = aet_abs(step2).sum()
+    l1_norm = at_abs(step2).sum()
     function([input], aesara.gradient.grad(l1_norm, input))
 
 
@@ -1029,7 +1029,7 @@ def test_cast_in_mul_canonizer():
     x, y = vectors("xy")
     m = minimum(x, y)
     o = m.sum()
-    go = aet.fill(o, 1)
+    go = at.fill(o, 1)
     e = eq(go, x)
     o1 = (1 - e) * go
     o2 = e * go
@@ -1561,7 +1561,7 @@ class TestFusion:
                 "float32",
             ),
             (
-                fx - fy + aet_round(fz),
+                fx - fy + at_round(fz),
                 (fx, fy, fz),
                 (fxv, fyv, fzv),
                 1,
@@ -1626,7 +1626,7 @@ class TestFusion:
                 },
             ),
             (
-                fx - aet.cast(fy, dtype="float64"),
+                fx - at.cast(fy, dtype="float64"),
                 (fx, fy),
                 (fxv, fyv),
                 1,
@@ -1634,7 +1634,7 @@ class TestFusion:
                 "float64",
             ),
             (
-                aet_pow(fx * fy + fz, fx * fy),
+                at_pow(fx * fy + fz, fx * fy),
                 (fx, fy, fz),
                 (fxv, fyv, fzv),
                 1,
@@ -1817,20 +1817,20 @@ def test_log1p():
 
     # check trickier cases (and use different dtype)
     y = fmatrix()
-    f = function([x, y], log(aet.fill(y, 1) + (x)), mode=m)
+    f = function([x, y], log(at.fill(y, 1) + (x)), mode=m)
     # the first three ops are Shape_i, Shape_i, and Dimshuffle
     topo = f.maker.fgraph.toposort()
-    assert topo[-1].op == aet.alloc
+    assert topo[-1].op == at.alloc
     assert log1p in [node.op for node in topo]
 
-    f = function([x, y], log(0 + (x) + aet.fill(y, 1.0)), mode=m)
+    f = function([x, y], log(0 + (x) + at.fill(y, 1.0)), mode=m)
     topo = f.maker.fgraph.toposort()
-    assert topo[-1].op == aet.alloc
+    assert topo[-1].op == at.alloc
     assert log1p in [node.op for node in topo]
 
-    f = function([x, y], log(2 + (x) - aet.fill(y, 1.0)), mode=m)
+    f = function([x, y], log(2 + (x) - at.fill(y, 1.0)), mode=m)
     topo = f.maker.fgraph.toposort()
-    assert topo[-1].op == aet.alloc
+    assert topo[-1].op == at.alloc
     assert log1p in [node.op for node in topo]
 
     f([1e-7, 10], [[0, 0], [0, 0]])  # debugmode will verify values
@@ -2064,11 +2064,11 @@ class TestLocalUselessElemwiseComparison:
         if op == deep_copy_op:
             assert len(elem.inputs) == 1, elem.inputs
             assert isinstance(elem.inputs[0], TensorConstant), elem
-            assert aet.extract_constant(elem.inputs[0]) == val, val
+            assert at.extract_constant(elem.inputs[0]) == val, val
         else:
             assert len(elem.inputs) == 2, elem.inputs
             assert isinstance(elem.inputs[0], TensorConstant), elem
-            assert aet.extract_constant(elem.inputs[0]) == val, val
+            assert at.extract_constant(elem.inputs[0]) == val, val
 
     def assert_identity(self, f):
         topo = f.maker.fgraph.toposort()
@@ -2183,7 +2183,7 @@ class TestLocalUselessElemwiseComparison:
         assert (f([]) == 1).all()
 
         f = function([x], eq(g, -1))
-        self.assert_eqs_const(f, 0, op=aet.alloc)
+        self.assert_eqs_const(f, 0, op=at.alloc)
         assert (f([3, 3]) == 0).all()
 
     def test_and(self):
@@ -2282,7 +2282,7 @@ def test_local_mul_specialize():
 
     f = function([v], v * 0, mode=mode)
     nodes = [node.op for node in f.maker.fgraph.toposort()]
-    assert nodes == [Shape_i(0), aet.alloc]
+    assert nodes == [Shape_i(0), at.alloc]
 
     f = function([v], v * (-1), mode=mode)
     nodes = [node.op for node in f.maker.fgraph.toposort()]
@@ -2294,7 +2294,7 @@ def test_local_mul_specialize():
 
     f = function([v, m], v * 0 * (-m), mode=mode)
     nodes = [node.op for node in f.maker.fgraph.toposort()]
-    assert nodes == [Shape_i(0), aet.alloc]
+    assert nodes == [Shape_i(0), at.alloc]
 
     f = function([v, m], v * (-1) * (-m), mode=mode)
     nodes = [node.op for node in f.maker.fgraph.toposort()]
@@ -2349,7 +2349,7 @@ def test_local_pow_specialize():
 
     f = function([v], v ** 0, mode=mode)
     nodes = [node.op for node in f.maker.fgraph.toposort()]
-    assert nodes == [Shape_i(0), aet.alloc]
+    assert nodes == [Shape_i(0), at.alloc]
     utt.assert_allclose(f(val), val ** 0)
 
     f = function([v], v ** 1, mode=mode)
@@ -2692,8 +2692,8 @@ class TestLocalSwitchSink:
                 (dscalar("x"), self.xs),
             ]:
                 y = mul(
-                    aet.switch(condition[0] > 0, 1.0 * x[0], 0.0 * x[0]),
-                    aet.switch(condition[0] > 0, 1.0 * x[0], log(c) * x[0]),
+                    at.switch(condition[0] > 0, 1.0 * x[0], 0.0 * x[0]),
+                    at.switch(condition[0] > 0, 1.0 * x[0], log(c) * x[0]),
                 )
                 f = self.function_remove_nan(
                     [condition[0], x[0], c], [y], mode=self.mode
@@ -2713,7 +2713,7 @@ class TestLocalSwitchSink:
 
         # This case caused a missed optimization in the past.
         x = dscalar("x")
-        y = aet.switch(x < 7, x, sqrt(x - 7))
+        y = at.switch(x < 7, x, sqrt(x - 7))
         f = self.function_remove_nan([x], aesara.gradient.grad(y, x), self.mode)
         assert f(5) == 1, f(5)
 
@@ -2732,8 +2732,8 @@ class TestLocalSwitchSink:
                 (dscalar("x"), self.xs),
             ]:
                 y = true_div(
-                    aet.switch(condition[0] > 0, 1.0 * x[0], 0.0 * x[0]),
-                    aet.switch(condition[0] > 0, 1.0 * x[0], log(c) * x[0]),
+                    at.switch(condition[0] > 0, 1.0 * x[0], 0.0 * x[0]),
+                    at.switch(condition[0] > 0, 1.0 * x[0], log(c) * x[0]),
                 )
                 f = self.function_remove_nan(
                     [condition[0], x[0], c], [y], mode=self.mode
@@ -3061,8 +3061,8 @@ class TestLocalMergeSwitchSameCond:
         # float Ops
         mats = matrices("cabxy")
         c, a, b, x, y = mats
-        s1 = aet.switch(c, a, b)
-        s2 = aet.switch(c, x, y)
+        s1 = at.switch(c, a, b)
+        s2 = at.switch(c, x, y)
         for op in (
             add,
             sub,
@@ -3078,15 +3078,15 @@ class TestLocalMergeSwitchSameCond:
             le,
             eq,
             neq,
-            aet_pow,
+            at_pow,
         ):
             g = optimize(FunctionGraph(mats, [op(s1, s2)]))
             assert str(g).count("Switch") == 1
         # integer Ops
         mats = imatrices("cabxy")
         c, a, b, x, y = mats
-        s1 = aet.switch(c, a, b)
-        s2 = aet.switch(c, x, y)
+        s1 = at.switch(c, a, b)
+        s2 = at.switch(c, x, y)
         for op in (
             bitwise_and,
             bitwise_or,
@@ -3096,7 +3096,7 @@ class TestLocalMergeSwitchSameCond:
             assert str(g).count("Switch") == 1
         # add/mul with more than two inputs
         u, v = matrices("uv")
-        s3 = aet.switch(c, u, v)
+        s3 = at.switch(c, u, v)
         for op in (add, mul):
             g = optimize(FunctionGraph(mats + [u, v], [op(s1, s2, s3)]))
             assert str(g).count("Switch") == 1
@@ -3368,8 +3368,8 @@ class TestLocalSumProd:
         mode = self.mode.including("specialize").excluding("fusion")
 
         for t_like, n_like, nb_nodes in [
-            (aet.zeros_like, np.zeros_like, (1, 3, 3, 2)),
-            (aet.ones_like, np.ones_like, (5, 5, 5, 6)),
+            (at.zeros_like, np.zeros_like, (1, 3, 3, 2)),
+            (at.ones_like, np.ones_like, (5, 5, 5, 6)),
         ]:
             # test sum
             f = function([a], t_like(a).sum(None), mode=mode)
@@ -3385,14 +3385,14 @@ class TestLocalSumProd:
                 utt.assert_allclose(f(input), n_like(input).sum(d))
                 assert len(f.maker.fgraph.apply_nodes) == nb_nodes[1]
                 topo = f.maker.fgraph.toposort()
-                assert topo[-1].op == aet.alloc
+                assert topo[-1].op == at.alloc
                 assert not any(isinstance(node.op, Sum) for node in topo)
             for i in range(3):
                 f = function([a], t_like(a).sum(i), mode=mode)
                 utt.assert_allclose(f(input), n_like(input).sum(i))
                 assert len(f.maker.fgraph.apply_nodes) == nb_nodes[2]
                 topo = f.maker.fgraph.toposort()
-                assert topo[-1].op == aet.alloc
+                assert topo[-1].op == at.alloc
                 assert not any(isinstance(node.op, Sum) for node in topo)
 
             # test prod
@@ -3409,14 +3409,14 @@ class TestLocalSumProd:
                 utt.assert_allclose(f(input), n_like(input).prod(d))
                 # assert len(f.maker.fgraph.apply_nodes) == nb_nodes[1]
                 topo = f.maker.fgraph.toposort()
-                assert topo[-1].op == aet.alloc
+                assert topo[-1].op == at.alloc
                 assert not any(isinstance(node.op, Prod) for node in topo)
             for i in range(3):
                 f = function([a], t_like(a).prod(i), mode=mode)
                 utt.assert_allclose(f(input), n_like(input).prod(i))
                 # assert len(f.maker.fgraph.apply_nodes) == nb_nodes[2]
                 topo = f.maker.fgraph.toposort()
-                assert topo[-1].op == aet.alloc
+                assert topo[-1].op == at.alloc
                 assert not any(isinstance(node.op, Prod) for node in topo)
 
             for d, dd in [(0, 0), (1, 0), (2, 0), (0, 1), (1, 1), (2, 1)]:
@@ -3424,7 +3424,7 @@ class TestLocalSumProd:
                 utt.assert_allclose(f(input), n_like(input).sum(d).sum(dd))
                 assert len(f.maker.fgraph.apply_nodes) == nb_nodes[3]
                 topo = f.maker.fgraph.toposort()
-                assert topo[-1].op == aet.alloc
+                assert topo[-1].op == at.alloc
                 assert not any(isinstance(node.op, Sum) for node in topo)
 
     def test_local_sum_sum_int8(self):
@@ -3460,10 +3460,10 @@ class TestLocalSumProd:
         mat = dmatrix()
         ds = dscalar()
 
-        f = function([vect, ds], aet_sum(vect * ds), mode=m0)
+        f = function([vect, ds], at_sum(vect * ds), mode=m0)
         assert check_stack_trace(f, ops_to_check="all")
 
-        f = function([vect], aet_sum(-vect), mode=m0)
+        f = function([vect], at_sum(-vect), mode=m0)
         assert check_stack_trace(f, ops_to_check=[Sum])
 
         f = function([vect, ds], Prod()(vect * ds), mode=m0)
@@ -3472,10 +3472,10 @@ class TestLocalSumProd:
         f = function([vect], Prod()(-vect), mode=m0)
         assert check_stack_trace(f, ops_to_check=[Prod])
 
-        f = function([mat, ds], aet_sum(mat * ds), mode=m0)
+        f = function([mat, ds], at_sum(mat * ds), mode=m0)
         assert check_stack_trace(f, ops_to_check="all")
 
-        f = function([mat], aet_sum(-mat), mode=m0)
+        f = function([mat], at_sum(-mat), mode=m0)
         assert check_stack_trace(f, ops_to_check=[Sum])
 
 
@@ -3487,12 +3487,12 @@ class TestLocalReduce:
 
     def test_local_reduce_broadcast_all_0(self):
         for fct in [
-            aet_sum,
-            aet_all,
-            aet_any,
+            at_sum,
+            at_all,
+            at_any,
             prod,
-            aet_max,
-            aet_min,
+            at_max,
+            at_min,
         ]:
             x = TensorType("int64", (True, True, True))()
             f = function([x], [fct(x)], mode=self.mode)
@@ -3502,12 +3502,12 @@ class TestLocalReduce:
 
     def test_local_reduce_broadcast_all_1(self):
         for fct in [
-            aet_sum,
-            aet_all,
-            aet_any,
+            at_sum,
+            at_all,
+            at_any,
             prod,
-            aet_max,
-            aet_min,
+            at_max,
+            at_min,
         ]:
             x = TensorType("int64", (True, True))()
             f = function([x], [fct(x, axis=[0, 1])], mode=self.mode)
@@ -3517,12 +3517,12 @@ class TestLocalReduce:
 
     def test_local_reduce_broadcast_some_0(self):
         for fct in [
-            aet_sum,
-            aet_all,
-            aet_any,
+            at_sum,
+            at_all,
+            at_any,
             prod,
-            aet_max,
-            aet_min,
+            at_max,
+            at_min,
         ]:
             x = TensorType("int64", (True, False, True))()
             f = function([x], [fct(x, axis=[0, 1])], mode=self.mode)
@@ -3542,12 +3542,12 @@ class TestLocalReduce:
 
     def test_local_reduce_broadcast_some_1(self):
         for fct in [
-            aet_sum,
-            aet_all,
-            aet_any,
+            at_sum,
+            at_all,
+            at_any,
             prod,
-            aet_max,
-            aet_min,
+            at_max,
+            at_min,
         ]:
             x = TensorType("int64", (True, True, True))()
             f = function([x], [fct(x, axis=[0, 2])], mode=self.mode)
@@ -3564,9 +3564,9 @@ class TestLocalReduce:
         z = np.asarray([[5, 0], [1, 2]], dtype=config.floatX)
         # Test different reduction scalar operation
         for out, res in [
-            (aet_max((vx, vy), 0), np.max((x, y), 0)),
-            (aet_min((vx, vy), 0), np.min((x, y), 0)),
-            (aet_sum((vx, vy, vz), 0), np.sum((x, y, z), 0)),
+            (at_max((vx, vy), 0), np.max((x, y), 0)),
+            (at_min((vx, vy), 0), np.min((x, y), 0)),
+            (at_sum((vx, vy, vz), 0), np.sum((x, y, z), 0)),
             (prod((vx, vy, vz), 0), np.prod((x, y, z), 0)),
             (prod((vx, vy.T, vz), 0), np.prod((x, y.T, z), 0)),
         ]:
@@ -3581,13 +3581,13 @@ class TestLocalReduce:
         # on 32 bit systems
         A = shared(np.array([1, 2, 3, 4, 5], dtype="int64"))
 
-        f = function([], aet_sum(aet.stack([A, A]), axis=0), mode=self.mode)
+        f = function([], at_sum(at.stack([A, A]), axis=0), mode=self.mode)
         utt.assert_allclose(f(), [2, 4, 6, 8, 10])
         topo = f.maker.fgraph.toposort()
         assert isinstance(topo[-1].op, Elemwise)
 
         # Test a case that was bugged in a old Aesara bug
-        f = function([], aet_sum(aet.stack([A, A]), axis=1), mode=self.mode)
+        f = function([], at_sum(at.stack([A, A]), axis=1), mode=self.mode)
 
         utt.assert_allclose(f(), [15, 15])
         topo = f.maker.fgraph.toposort()
@@ -3595,17 +3595,13 @@ class TestLocalReduce:
 
         # This case could be optimized
         A = shared(np.array([1, 2, 3, 4, 5]).reshape(5, 1))
-        f = function(
-            [], aet_sum(aet.concatenate((A, A), axis=1), axis=1), mode=self.mode
-        )
+        f = function([], at_sum(at.concatenate((A, A), axis=1), axis=1), mode=self.mode)
         utt.assert_allclose(f(), [2, 4, 6, 8, 10])
         topo = f.maker.fgraph.toposort()
         assert not isinstance(topo[-1].op, Elemwise)
 
         A = shared(np.array([1, 2, 3, 4, 5]).reshape(5, 1))
-        f = function(
-            [], aet_sum(aet.concatenate((A, A), axis=1), axis=0), mode=self.mode
-        )
+        f = function([], at_sum(at.concatenate((A, A), axis=1), axis=0), mode=self.mode)
         utt.assert_allclose(f(), [15, 15])
         topo = f.maker.fgraph.toposort()
         assert not isinstance(topo[-1].op, Elemwise)
@@ -3613,7 +3609,7 @@ class TestLocalReduce:
         # Test that the optimization does not crash in one case where it
         # is not applied.  Reported at
         # https://groups.google.com/d/topic/theano-users/EDgyCU00fFA/discussion
-        out = aet_sum([vx, vy, vz], axis=None)
+        out = at_sum([vx, vy, vz], axis=None)
         f = function([vx, vy, vz], out)
 
 
@@ -3626,7 +3622,7 @@ class TestLocalSumProdDimshuffle:
         b = vector("b")
         c = tensor3("c")
         d = scalar("d")
-        sum = aet_sum
+        sum = at_sum
         sums = [
             sum(a / d),
             sum(a / d.dimshuffle("x", "x")),
@@ -3785,21 +3781,21 @@ def test_local_useless_adds():
 
     # Test for all zeros
     a = scalar()
-    s = add(aet.zeros_like(a))
+    s = add(at.zeros_like(a))
     mode_with_opt = default_mode.including("canonicalization", "local_useless_fill")
     f = function([a], s, mode=mode_with_opt)
     assert not any(node.op == add for node in f.maker.fgraph.apply_nodes)
 
     # test of non-zero dimension
     a = vector()
-    s = add(aet.zeros_like(a))
+    s = add(at.zeros_like(a))
     mode_with_opt = default_mode.including("canonicalization", "local_useless_elemwise")
     f = function([a], s, mode=mode_with_opt)
     assert not any(node.op == add for node in f.maker.fgraph.apply_nodes)
 
     # test of 0-d
     a = scalar()
-    s = add(aet.zeros_like(a))
+    s = add(at.zeros_like(a))
     mode_with_opt = default_mode.including(
         "canonicalization", "local_useless_fill", "local_useless_elemwise"
     )
@@ -3807,8 +3803,8 @@ def test_local_useless_adds():
     assert not any(node.op == add for node in f.maker.fgraph.apply_nodes)
 
     # Test when the 0 input is forcing upcasting
-    a = aet.constant(0, dtype="int64")
-    b = aet.constant(1, dtype="int32")
+    a = at.constant(0, dtype="int64")
+    b = at.constant(1, dtype="int32")
     s = a + b
     mode_with_opt = default_mode.including("canonicalization", "local_add_canonizer")
     f = function([], s, mode=mode_with_opt)
@@ -3822,7 +3818,7 @@ def test_local_div_to_reciprocal():
     num_len_s = lscalar("num_len")
     denom_s = scalar("denom")
 
-    num_v = aet.alloc(1, num_len_s)
+    num_v = at.alloc(1, num_len_s)
     denom_m = denom_s.dimshuffle("x", "x")
 
     out = num_v / denom_m
@@ -3984,7 +3980,7 @@ def test_local_expm1():
 
 
 def compile_graph_log_sum_exp(x, axis, dimshuffle_op=None):
-    sum_exp = aet_sum(exp(x), axis=axis)
+    sum_exp = at_sum(exp(x), axis=axis)
     if dimshuffle_op:
         sum_exp = dimshuffle_op(sum_exp)
     y = log(sum_exp)
@@ -4073,7 +4069,7 @@ def test_local_log_sum_exp_inf():
 
 def test_local_reciprocal_1_plus_exp():
     x = vector("x")
-    y = aet.reciprocal(1 + exp(x))
+    y = at.reciprocal(1 + exp(x))
     z = optimize_graph(y, include=["canonicalization", "stabilize", "specialize"])
     assert z.owner.op == sigmoid
 
@@ -4122,23 +4118,23 @@ class TestSigmoidOpts:
         f(data)
 
         # tests inv_1_plus_exp
-        f = aesara.function([x], aet.fill(x, 1.0) / (1 + exp(-x)), mode=m)
+        f = aesara.function([x], at.fill(x, 1.0) / (1 + exp(-x)), mode=m)
         # todo: solve issue #4589 first
         # assert check_stack_trace(f, ops_to_check=sigmoid)
         assert [node.op for node in f.maker.fgraph.toposort()] == [sigmoid]
         f(data)
-        f = aesara.function([x], aet.fill(x, 1.0) / (2 + exp(-x)), mode=m)
+        f = aesara.function([x], at.fill(x, 1.0) / (2 + exp(-x)), mode=m)
         assert [node.op for node in f.maker.fgraph.toposort()] != [sigmoid]
         f(data)
-        f = aesara.function([x], aet.fill(x, 1.0) / (1 - exp(-x)), mode=m)
+        f = aesara.function([x], at.fill(x, 1.0) / (1 - exp(-x)), mode=m)
         assert [node.op for node in f.maker.fgraph.toposort()] != [sigmoid]
         f(data)
-        f = aesara.function([x], aet.fill(x, 1.1) / (1 + exp(-x)), mode=m)
+        f = aesara.function([x], at.fill(x, 1.1) / (1 + exp(-x)), mode=m)
         assert [node.op for node in f.maker.fgraph.toposort()] != [sigmoid]
         f(data)
 
         # tests inv_1_plus_exp with neg
-        f = aesara.function([x], aet.fill(x, -1.0) / (1 + exp(-x)), mode=m)
+        f = aesara.function([x], at.fill(x, -1.0) / (1 + exp(-x)), mode=m)
         # todo: solve issue #4589 first
         # assert check_stack_trace(
         #     f, ops_to_check=[sigmoid, neg_inplace])
@@ -4147,19 +4143,19 @@ class TestSigmoidOpts:
             inplace.neg_inplace,
         ]
         f(data)
-        f = aesara.function([x], aet.fill(x, -1.0) / (1 - exp(-x)), mode=m)
+        f = aesara.function([x], at.fill(x, -1.0) / (1 - exp(-x)), mode=m)
         assert [node.op for node in f.maker.fgraph.toposort()] != [
             sigmoid,
             inplace.neg_inplace,
         ]
         f(data)
-        f = aesara.function([x], aet.fill(x, -1.0) / (2 + exp(-x)), mode=m)
+        f = aesara.function([x], at.fill(x, -1.0) / (2 + exp(-x)), mode=m)
         assert [node.op for node in f.maker.fgraph.toposort()] != [
             sigmoid,
             inplace.neg_inplace,
         ]
         f(data)
-        f = aesara.function([x], aet.fill(x, -1.1) / (1 + exp(-x)), mode=m)
+        f = aesara.function([x], at.fill(x, -1.1) / (1 + exp(-x)), mode=m)
         assert [node.op for node in f.maker.fgraph.toposort()] != [
             sigmoid,
             inplace.neg_inplace,
@@ -4172,7 +4168,7 @@ class TestSigmoidOpts:
         # = - (sigm(x) * sigm(x))
         f = aesara.function(
             [x],
-            (aet.fill(x, -1.0) * exp(x)) / ((1 + exp(x)) * (1 + exp(-x))),
+            (at.fill(x, -1.0) * exp(x)) / ((1 + exp(x)) * (1 + exp(-x))),
             mode=m,
         )
         # todo: solve issue #4589 first
@@ -4181,7 +4177,7 @@ class TestSigmoidOpts:
         f(data)
         f = aesara.function(
             [x],
-            (aet.fill(x, -1.1) * exp(x)) / ((1 + exp(x)) * (1 + exp(-x))),
+            (at.fill(x, -1.1) * exp(x)) / ((1 + exp(x)) * (1 + exp(-x))),
             mode=m,
         )
         assert [node.op for node in f.maker.fgraph.toposort()] != [
@@ -4192,7 +4188,7 @@ class TestSigmoidOpts:
         f(data)
         f = aesara.function(
             [x],
-            (aet.fill(x, -1.0) * exp(x)) / ((2 + exp(x)) * (1 + exp(-x))),
+            (at.fill(x, -1.0) * exp(x)) / ((2 + exp(x)) * (1 + exp(-x))),
             mode=m,
         )
         assert [node.op for node in f.maker.fgraph.toposort()] != [
@@ -4203,7 +4199,7 @@ class TestSigmoidOpts:
         f(data)
         f = aesara.function(
             [x],
-            (aet.fill(x, -1.0) * exp(x)) / ((1 + exp(x)) * (2 + exp(-x))),
+            (at.fill(x, -1.0) * exp(x)) / ((1 + exp(x)) * (2 + exp(-x))),
             mode=m,
         )
         assert [node.op for node in f.maker.fgraph.toposort()] != [
@@ -4214,7 +4210,7 @@ class TestSigmoidOpts:
         f(data)
         f = aesara.function(
             [x],
-            (aet.fill(x, -1.0) * exp(x)) / ((1 + exp(x)) * (1 + exp(x))),
+            (at.fill(x, -1.0) * exp(x)) / ((1 + exp(x)) * (1 + exp(x))),
             mode=m,
         )
         assert [node.op for node in f.maker.fgraph.toposort()] != [
@@ -4225,7 +4221,7 @@ class TestSigmoidOpts:
         f(data)
         f = aesara.function(
             [x],
-            (aet.fill(x, -1.0) * exp(x)) / ((1 + exp(x)) * (2 + exp(-x))),
+            (at.fill(x, -1.0) * exp(x)) / ((1 + exp(x)) * (2 + exp(-x))),
             mode=m,
         )
         assert [node.op for node in f.maker.fgraph.toposort()] != [
@@ -4247,7 +4243,7 @@ class TestSigmoidOpts:
         assert [node.op for node in f.maker.fgraph.toposort()] == [neg, sigmoid]
 
         # tests inv_1_plus_exp
-        f = aesara.function([x], 1 - aet.fill(x, 1.0) / (1 + exp(-x)), mode=m)
+        f = aesara.function([x], 1 - at.fill(x, 1.0) / (1 + exp(-x)), mode=m)
         # assert check_stack_trace(f, ops_to_check=[neg, sigmoid])
         assert [node.op for node in f.maker.fgraph.toposort()] == [neg, sigmoid]
 
@@ -4409,13 +4405,13 @@ class TestSoftplusOpts:
         assert isinstance(topo[1].op.scalar_op, aesara.scalar.Neg)
 
         # Same test with a flatten
-        out = log(1 - aet.flatten(sigmoid(x)))
+        out = log(1 - at.flatten(sigmoid(x)))
         f = aesara.function([x], out, mode=self.m)
 
         # assert check_stack_trace(f, ops_to_check='all')
         topo = f.maker.fgraph.toposort()
         assert len(topo) == 3
-        assert aet.is_flat(topo[0].outputs[0])
+        assert at.is_flat(topo[0].outputs[0])
         assert isinstance(topo[1].op.scalar_op, aesara.scalar.Softplus)
         assert isinstance(topo[2].op.scalar_op, aesara.scalar.Neg)
         f(np.random.random((54, 11)).astype(config.floatX))
@@ -4515,7 +4511,7 @@ def test_log1mexp_stabilization():
     f = function([x], log(1 - exp(x)), mode=mode)
 
     nodes = [node.op for node in f.maker.fgraph.toposort()]
-    assert nodes == [aet.log1mexp]
+    assert nodes == [at.log1mexp]
 
     # Check values that would under or overflow without optimization
     assert f([-(2.0 ** -55)]) != -np.inf

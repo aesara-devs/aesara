@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 
 import aesara
-import aesara.tensor as aet
+import aesara.tensor as at
 from aesara import scalar as aes
 from aesara.configdefaults import config
 from aesara.graph import utils
@@ -177,7 +177,7 @@ class TestComputeTestValue:
         assert _allclose(f(), z.tag.test_value)
 
     def test_constant(self):
-        x = aet.constant(np.random.rand(2, 3), dtype=config.floatX)
+        x = at.constant(np.random.rand(2, 3), dtype=config.floatX)
         y = aesara.shared(np.random.rand(3, 6).astype(config.floatX), "y")
 
         # should work
@@ -187,7 +187,7 @@ class TestComputeTestValue:
         assert _allclose(f(), z.tag.test_value)
 
         # this test should fail
-        x = aet.constant(np.random.rand(2, 4), dtype=config.floatX)
+        x = at.constant(np.random.rand(2, 4), dtype=config.floatX)
         with pytest.raises(ValueError):
             dot(x, y)
 
@@ -225,7 +225,7 @@ class TestComputeTestValue:
 
         # Symbolic description of the result
         result, updates = aesara.scan(
-            fn=fx, outputs_info=aet.ones_like(A), non_sequences=A, n_steps=k
+            fn=fx, outputs_info=at.ones_like(A), non_sequences=A, n_steps=k
         )
 
         # We only care about A**k, but scan has provided us with A**1 through A**k.
@@ -245,9 +245,7 @@ class TestComputeTestValue:
             return dot(prior_result, A)
 
         with pytest.raises(ValueError) as e:
-            aesara.scan(
-                fn=fx, outputs_info=aet.ones_like(A), non_sequences=A, n_steps=k
-            )
+            aesara.scan(fn=fx, outputs_info=at.ones_like(A), non_sequences=A, n_steps=k)
 
         assert str(e.traceback[0].path).endswith("test_compute_test_value.py")
         # We should be in the "fx" function defined above
@@ -266,12 +264,12 @@ class TestComputeTestValue:
 
         with pytest.raises(ValueError):
             aesara.scan(
-                fn=fx, outputs_info=aet.ones_like(A.T), non_sequences=A, n_steps=k
+                fn=fx, outputs_info=at.ones_like(A.T), non_sequences=A, n_steps=k
             )
 
         with pytest.raises(ValueError, match="^could not broadcast input"):
             aesara.scan(
-                fn=fx, outputs_info=aet.ones_like(A.T), non_sequences=A, n_steps=k
+                fn=fx, outputs_info=at.ones_like(A.T), non_sequences=A, n_steps=k
             )
 
     def test_no_c_code(self):

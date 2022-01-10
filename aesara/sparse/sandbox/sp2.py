@@ -2,7 +2,7 @@ import numpy as np
 import scipy.sparse
 
 import aesara
-from aesara import tensor as aet
+from aesara import tensor as at
 from aesara.graph.basic import Apply
 from aesara.graph.op import Op
 from aesara.sparse.basic import (
@@ -99,9 +99,9 @@ class Binomial(Op):
         self.dtype = dtype
 
     def make_node(self, n, p, shape):
-        n = aet.as_tensor_variable(n)
-        p = aet.as_tensor_variable(p)
-        shape = aet.as_tensor_variable(shape)
+        n = at.as_tensor_variable(n)
+        p = at.as_tensor_variable(p)
+        shape = at.as_tensor_variable(shape)
 
         assert n.dtype in discrete_dtypes
         assert p.dtype in float_dtypes
@@ -169,7 +169,7 @@ class Multinomial(Op):
     __props__ = ()
 
     def make_node(self, n, p):
-        n = aet.as_tensor_variable(n)
+        n = at.as_tensor_variable(n)
         p = as_sparse_variable(p)
         assert p.format in ("csr", "csc")
 

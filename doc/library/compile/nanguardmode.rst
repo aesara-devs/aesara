@@ -25,12 +25,12 @@ NanGuardMode can be used as follows:
 
     import numpy
     import aesara
-    import aesara.tensor as aet
+    import aesara.tensor as at
     from aesara.compile.nanguardmode import NanGuardMode
 
-    x = aet.matrix()
+    x = at.matrix()
     w = aesara.shared(numpy.random.randn(5, 7).astype(aesara.config.floatX))
-    y = aet.dot(x, w)
+    y = at.dot(x, w)
     fun = aesara.function(
         [x], y,
         mode=NanGuardMode(nan_is_error=True, inf_is_error=True, big_is_error=True)

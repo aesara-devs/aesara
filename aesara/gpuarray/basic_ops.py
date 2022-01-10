@@ -7,7 +7,7 @@ from typing import Union
 import numpy as np
 
 import aesara
-import aesara.tensor as aet
+import aesara.tensor as at
 from aesara.configdefaults import config
 from aesara.gradient import grad_undefined
 from aesara.graph.basic import Apply, Variable
@@ -1229,7 +1229,7 @@ class GpuReshape(HideC, Reshape):
     def make_node(self, x, shp):
         ctx_name = infer_context_name(x)
         x = as_gpuarray_variable(x, context_name=ctx_name)
-        shp = aet.as_tensor_variable(shp)
+        shp = at.as_tensor_variable(shp)
         res = x.transfer("cpu").reshape(shp, ndim=self.ndim)
         otype = GpuArrayType(
             dtype=res.dtype, broadcastable=res.broadcastable, context_name=ctx_name
@@ -1778,9 +1778,9 @@ class GpuEye(GpuKernelBaseCOp, _NoPythonOp):
         return get_context(self.context_name)
 
     def make_node(self, n, m, k):
-        n = aet.as_tensor_variable(n)
-        m = aet.as_tensor_variable(m)
-        k = aet.as_tensor_variable(k)
+        n = at.as_tensor_variable(n)
+        m = at.as_tensor_variable(m)
+        k = at.as_tensor_variable(k)
         assert n.ndim == 0
         assert m.ndim == 0
         assert k.ndim == 0
@@ -1912,9 +1912,9 @@ class GpuTri(GpuKernelBaseCOp, _NoPythonOp):
         return get_context(self.context_name)
 
     def make_node(self, n, m, k):
-        n = aet.as_tensor_variable(n)
-        m = aet.as_tensor_variable(m)
-        k = aet.as_tensor_variable(k)
+        n = at.as_tensor_variable(n)
+        m = at.as_tensor_variable(m)
+        k = at.as_tensor_variable(k)
         assert n.ndim == 0
         assert m.ndim == 0
         assert k.ndim == 0

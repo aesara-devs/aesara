@@ -17,7 +17,7 @@ from aesara.graph.basic import Apply
 from aesara.graph.op import ExternalCOp, Op
 from aesara.graph.params_type import ParamsType
 from aesara.scalar import bool as bool_t
-from aesara.tensor import basic as aet
+from aesara.tensor import basic as at
 from aesara.tensor import math as tm
 
 
@@ -498,9 +498,9 @@ class GpuCublasTriangularSolve(Op):
         A_bar = -tm.outer(b_bar, c) if c.ndim == 1 else -b_bar.dot(c.T)
 
         if self.lower:
-            A_bar = aet.tril(A_bar)
+            A_bar = at.tril(A_bar)
         else:
-            A_bar = aet.triu(A_bar)
+            A_bar = at.triu(A_bar)
         return [A_bar, b_bar]
 
 
@@ -662,8 +662,8 @@ class GpuCholesky(Op):
         # this is for nan mode
         #
         # ok = ~tm.any(tm.isnan(chol_x))
-        # chol_x = aet.switch(ok, chol_x, 1)
-        # dz = aet.switch(ok, dz, 1)
+        # chol_x = at.switch(ok, chol_x, 1)
+        # dz = at.switch(ok, dz, 1)
 
         # deal with upper triangular by converting to lower triangular
         if not self.lower:
@@ -672,7 +672,7 @@ class GpuCholesky(Op):
 
         def tril_and_halve_diagonal(mtx):
             """Extracts lower triangle of square matrix and halves diagonal."""
-            return aet.tril(mtx) - aet.diag(aet.diagonal(mtx) / 2.0)
+            return at.tril(mtx) - at.diag(at.diagonal(mtx) / 2.0)
 
         def conjugate_solve_triangular(outer, inner):
             """Computes L^{-T} P L^{-1} for lower-triangular L."""
@@ -685,9 +685,9 @@ class GpuCholesky(Op):
         )
 
         if self.lower:
-            grad = aet.tril(s + s.T) - aet.diag(aet.diagonal(s))
+            grad = at.tril(s + s.T) - at.diag(at.diagonal(s))
         else:
-            grad = aet.triu(s + s.T) - aet.diag(aet.diagonal(s))
+            grad = at.triu(s + s.T) - at.diag(at.diagonal(s))
 
         return [grad]
 

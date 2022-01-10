@@ -3,7 +3,7 @@ import pytest
 
 import aesara
 import aesara.scalar as aes
-import aesara.tensor as aet
+import aesara.tensor as at
 
 
 pygpu = pytest.importorskip("pygpu")
@@ -206,14 +206,14 @@ class TestFloat16:
         x = vector(dtype="float16")
         y = fvector()
 
-        cz = tanh(x + aet.cast(y, "float16"))
+        cz = tanh(x + at.cast(y, "float16"))
         o = (
             cz
             - cz ** 2
-            + aet.cast(x, "int16")
-            + aet.cast(x, "float32")
-            + aet.cast(w, "float16")
-            - aet.constant(np.float16(1.0))
+            + at.cast(x, "int16")
+            + at.cast(x, "float32")
+            + at.cast(w, "float16")
+            - at.constant(np.float16(1.0))
         )
 
         aesara.function([w, x, y], o, mode=mode_with_gpu)
@@ -224,7 +224,7 @@ class TestFloat16:
         y = vector(dtype="float16")
         z = vector(dtype="float16")
 
-        o = aet.switch(v, mul(w, x, y), z)
+        o = at.switch(v, mul(w, x, y), z)
         aesara.function([v, w, x, y, z], o, mode=mode_with_gpu)
 
     def test_cast_float16(self):

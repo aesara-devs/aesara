@@ -55,11 +55,11 @@ its features, but it illustrates concretely what Aesara is.
 .. code-block:: python
 
     import aesara
-    from aesara import tensor as aet
+    from aesara import tensor as at
 
     # declare two symbolic floating-point scalars
-    a = aet.dscalar()
-    b = aet.dscalar()
+    a = at.dscalar()
+    b = at.dscalar()
 
     # create a simple expression
     c = a + b

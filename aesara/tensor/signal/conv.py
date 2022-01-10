@@ -6,7 +6,7 @@ generic 2D convolution.
 
 import logging
 
-from aesara import tensor as aet
+from aesara import tensor as at
 from aesara.tensor.nnet import conv
 from aesara.tensor.shape import reshape
 
@@ -89,10 +89,10 @@ def conv2d(
     else:
         sym_nkern = 1
 
-    new_input_shape = aet.join(0, aet.stack([sym_bsize, 1]), input.shape[-2:])
+    new_input_shape = at.join(0, at.stack([sym_bsize, 1]), input.shape[-2:])
     input4D = reshape(input, new_input_shape, ndim=4)
 
-    new_filter_shape = aet.join(0, aet.stack([sym_nkern, 1]), filters.shape[-2:])
+    new_filter_shape = at.join(0, at.stack([sym_nkern, 1]), filters.shape[-2:])
     filters4D = reshape(filters, new_filter_shape, ndim=4)
 
     # perform actual convolution ###
@@ -111,8 +111,8 @@ def conv2d(
 
     # flatten to 3D tensor if convolving with single filter or single image
     if input.ndim == 2 and filters.ndim == 2:
-        output = aet.flatten(output.T, ndim=2).T
+        output = at.flatten(output.T, ndim=2).T
     elif input.ndim == 2 or filters.ndim == 2:
-        output = aet.flatten(output.T, ndim=3).T
+        output = at.flatten(output.T, ndim=3).T
 
     return output

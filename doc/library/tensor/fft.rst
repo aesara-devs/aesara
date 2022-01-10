@@ -24,10 +24,10 @@ oscillates due to the box function being shifted to the middle of the array.
 
     import numpy as np
     import aesara
-    import aesara.tensor as aet
+    import aesara.tensor as at
     from aesara.tensor import fft
 
-    x = aet.matrix('x', dtype='float64')
+    x = at.matrix('x', dtype='float64')
 
     rfft = fft.rfft(x, norm='ortho')
     f_rfft = aesara.function([x], rfft)

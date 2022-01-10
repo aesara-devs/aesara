@@ -1,7 +1,7 @@
 import numpy as np
 
 import aesara
-import aesara.tensor as aet
+import aesara.tensor as at
 import aesara.typed_list
 from aesara.compile.io import In
 from aesara.tensor.type import TensorType, matrix, scalar
@@ -137,7 +137,7 @@ class TestInplace:
 
 
 def test_constant_folding():
-    m = aet.ones((1,), dtype="int8")
+    m = at.ones((1,), dtype="int8")
     l = aesara.typed_list.make_list([m, m])
     f = aesara.function([], l)
     topo = f.maker.fgraph.toposort()

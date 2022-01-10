@@ -5,7 +5,7 @@ import numpy as np
 import pytest
 import scipy.stats as stats
 
-import aesara.tensor as aet
+import aesara.tensor as at
 from aesara import function, shared
 from aesara.compile.mode import Mode
 from aesara.compile.sharedvalue import SharedVariable
@@ -188,31 +188,31 @@ def test_beta_samples(a, b, size):
     rv_numpy_tester(beta, a, b, size=size)
 
 
-M_aet = iscalar("M")
-M_aet.tag.test_value = 3
-sd_aet = scalar("sd")
-sd_aet.tag.test_value = np.array(1.0, dtype=config.floatX)
+M_at = iscalar("M")
+M_at.tag.test_value = 3
+sd_at = scalar("sd")
+sd_at.tag.test_value = np.array(1.0, dtype=config.floatX)
 
 
 @pytest.mark.parametrize(
     "M, sd, size",
     [
-        (aet.as_tensor_variable(np.array(1.0, dtype=config.floatX)), sd_aet, ()),
+        (at.as_tensor_variable(np.array(1.0, dtype=config.floatX)), sd_at, ()),
         (
-            aet.as_tensor_variable(np.array(1.0, dtype=config.floatX)),
-            sd_aet,
-            (M_aet,),
+            at.as_tensor_variable(np.array(1.0, dtype=config.floatX)),
+            sd_at,
+            (M_at,),
         ),
         (
-            aet.as_tensor_variable(np.array(1.0, dtype=config.floatX)),
-            sd_aet,
-            (2, M_aet),
+            at.as_tensor_variable(np.array(1.0, dtype=config.floatX)),
+            sd_at,
+            (2, M_at),
         ),
-        (aet.zeros((M_aet,)), sd_aet, ()),
-        (aet.zeros((M_aet,)), sd_aet, (M_aet,)),
-        (aet.zeros((M_aet,)), sd_aet, (2, M_aet)),
-        (aet.zeros((M_aet,)), aet.ones((M_aet,)), ()),
-        (aet.zeros((M_aet,)), aet.ones((M_aet,)), (2, M_aet)),
+        (at.zeros((M_at,)), sd_at, ()),
+        (at.zeros((M_at,)), sd_at, (M_at,)),
+        (at.zeros((M_at,)), sd_at, (2, M_at)),
+        (at.zeros((M_at,)), at.ones((M_at,)), ()),
+        (at.zeros((M_at,)), at.ones((M_at,)), (2, M_at)),
         (
             create_aesara_param(
                 np.array([[-1, 20], [300, -4000]], dtype=config.floatX)
@@ -238,7 +238,7 @@ def test_normal_infer_shape(M, sd, size):
         if not isinstance(i, (Constant, SharedVariable))
     ]
     aesara_fn = function(
-        fn_inputs, [aet.as_tensor(o) for o in rv_shape + [rv]], mode=py_mode
+        fn_inputs, [at.as_tensor(o) for o in rv_shape + [rv]], mode=py_mode
     )
 
     *rv_shape_val, rv_val = aesara_fn(
@@ -254,12 +254,12 @@ def test_normal_infer_shape(M, sd, size):
 
 @config.change_flags(compute_test_value="raise")
 def test_normal_ShapeFeature():
-    M_aet = iscalar("M")
-    M_aet.tag.test_value = 3
-    sd_aet = scalar("sd")
-    sd_aet.tag.test_value = np.array(1.0, dtype=config.floatX)
+    M_at = iscalar("M")
+    M_at.tag.test_value = 3
+    sd_at = scalar("sd")
+    sd_at.tag.test_value = np.array(1.0, dtype=config.floatX)
 
-    d_rv = normal(aet.ones((M_aet,)), sd_aet, size=(2, M_aet))
+    d_rv = normal(at.ones((M_at,)), sd_at, size=(2, M_at))
     d_rv.tag.test_value
 
     fg = FunctionGraph(
@@ -571,10 +571,10 @@ def test_mvnormal_default_args():
 
 @config.change_flags(compute_test_value="raise")
 def test_mvnormal_ShapeFeature():
-    M_aet = iscalar("M")
-    M_aet.tag.test_value = 2
+    M_at = iscalar("M")
+    M_at.tag.test_value = 2
 
-    d_rv = multivariate_normal(aet.ones((M_aet,)), aet.eye(M_aet), size=2)
+    d_rv = multivariate_normal(at.ones((M_at,)), at.eye(M_at), size=2)
 
     fg = FunctionGraph(
         [i for i in graph_inputs([d_rv]) if not isinstance(i, Constant)],
@@ -586,7 +586,7 @@ def test_mvnormal_ShapeFeature():
     s1, s2 = fg.shape_feature.shape_of[d_rv]
 
     assert get_test_value(s1) == 2
-    assert M_aet in graph_inputs([s2])
+    assert M_at in graph_inputs([s2])
 
     # Test broadcasted shapes
     mean = tensor(config.floatX, [True, False])
@@ -594,7 +594,7 @@ def test_mvnormal_ShapeFeature():
 
     test_covar = np.diag(np.array([1, 10, 100], dtype=config.floatX))
     test_covar = np.stack([test_covar, test_covar * 10.0])
-    cov = aet.as_tensor(test_covar).type()
+    cov = at.as_tensor(test_covar).type()
     cov.tag.test_value = test_covar
 
     d_rv = multivariate_normal(mean, cov, size=[2, 3])
@@ -634,19 +634,19 @@ def test_dirichlet_samples(alphas, size):
     rv_numpy_tester(dirichlet, alphas, size=size, test_fn=dirichlet_test_fn)
 
 
-M_aet = iscalar("M")
-M_aet.tag.test_value = 3
+M_at = iscalar("M")
+M_at.tag.test_value = 3
 
 
 @pytest.mark.parametrize(
     "M, size",
     [
-        (aet.ones((M_aet,)), ()),
-        (aet.ones((M_aet,)), (M_aet + 1,)),
-        (aet.ones((M_aet,)), (2, M_aet)),
-        (aet.ones((M_aet, M_aet + 1)), ()),
-        (aet.ones((M_aet, M_aet + 1)), (M_aet + 2,)),
-        (aet.ones((M_aet, M_aet + 1)), (2, M_aet + 2, M_aet + 3)),
+        (at.ones((M_at,)), ()),
+        (at.ones((M_at,)), (M_at + 1,)),
+        (at.ones((M_at,)), (2, M_at)),
+        (at.ones((M_at, M_at + 1)), ()),
+        (at.ones((M_at, M_at + 1)), (M_at + 2,)),
+        (at.ones((M_at, M_at + 1)), (2, M_at + 2, M_at + 3)),
     ],
 )
 def test_dirichlet_infer_shape(M, size):
@@ -660,7 +660,7 @@ def test_dirichlet_infer_shape(M, size):
         if not isinstance(i, (Constant, SharedVariable))
     ]
     aesara_fn = function(
-        fn_inputs, [aet.as_tensor(o) for o in rv_shape + [rv]], mode=py_mode
+        fn_inputs, [at.as_tensor(o) for o in rv_shape + [rv]], mode=py_mode
     )
 
     *rv_shape_val, rv_val = aesara_fn(
@@ -677,12 +677,12 @@ def test_dirichlet_infer_shape(M, size):
 @config.change_flags(compute_test_value="raise")
 def test_dirichlet_ShapeFeature():
     """Make sure `RandomVariable.infer_shape` works with `ShapeFeature`."""
-    M_aet = iscalar("M")
-    M_aet.tag.test_value = 2
-    N_aet = iscalar("N")
-    N_aet.tag.test_value = 3
+    M_at = iscalar("M")
+    M_at.tag.test_value = 2
+    N_at = iscalar("N")
+    N_at.tag.test_value = 3
 
-    d_rv = dirichlet(aet.ones((M_aet, N_aet)), name="Gamma")
+    d_rv = dirichlet(at.ones((M_at, N_at)), name="Gamma")
 
     fg = FunctionGraph(
         [i for i in graph_inputs([d_rv]) if not isinstance(i, Constant)],
@@ -693,8 +693,8 @@ def test_dirichlet_ShapeFeature():
 
     s1, s2 = fg.shape_feature.shape_of[d_rv]
 
-    assert M_aet in graph_inputs([s1])
-    assert N_aet in graph_inputs([s2])
+    assert M_at in graph_inputs([s1])
+    assert N_at in graph_inputs([s2])
 
 
 @pytest.mark.parametrize(
@@ -1202,12 +1202,12 @@ def test_randint_samples():
     rv_numpy_tester(randint, [0, 1, 2], 5, rng=rng)
     rv_numpy_tester(randint, [0, 1, 2], 5, size=[3, 3], rng=rng)
     rv_numpy_tester(randint, [0], [5], size=[1], rng=rng)
-    rv_numpy_tester(randint, aet.as_tensor_variable([-1]), [1], size=[1], rng=rng)
+    rv_numpy_tester(randint, at.as_tensor_variable([-1]), [1], size=[1], rng=rng)
     rv_numpy_tester(
         randint,
-        aet.as_tensor_variable([-1]),
+        at.as_tensor_variable([-1]),
         [1],
-        size=aet.as_tensor_variable([1]),
+        size=at.as_tensor_variable([1]),
         rng=rng,
     )
 
@@ -1224,12 +1224,12 @@ def test_integers_samples():
     rv_numpy_tester(integers, [0, 1, 2], 5, rng=rng)
     rv_numpy_tester(integers, [0, 1, 2], 5, size=[3, 3], rng=rng)
     rv_numpy_tester(integers, [0], [5], size=[1], rng=rng)
-    rv_numpy_tester(integers, aet.as_tensor_variable([-1]), [1], size=[1], rng=rng)
+    rv_numpy_tester(integers, at.as_tensor_variable([-1]), [1], size=[1], rng=rng)
     rv_numpy_tester(
         integers,
-        aet.as_tensor_variable([-1]),
+        at.as_tensor_variable([-1]),
         [1],
-        size=aet.as_tensor_variable([1]),
+        size=at.as_tensor_variable([1]),
         rng=rng,
     )
 
@@ -1246,9 +1246,9 @@ def test_choice_samples():
         rv_numpy_tester(choice, np.array([[1, 2], [3, 4]]))
 
     rv_numpy_tester(choice, [1, 2, 3], 1)
-    rv_numpy_tester(choice, [1, 2, 3], 1, p=aet.as_tensor([1 / 3.0, 1 / 3.0, 1 / 3.0]))
+    rv_numpy_tester(choice, [1, 2, 3], 1, p=at.as_tensor([1 / 3.0, 1 / 3.0, 1 / 3.0]))
     rv_numpy_tester(choice, [1, 2, 3], (10, 2), replace=True)
-    rv_numpy_tester(choice, aet.as_tensor_variable([1, 2, 3]), 2, replace=True)
+    rv_numpy_tester(choice, at.as_tensor_variable([1, 2, 3]), 2, replace=True)
 
 
 def test_permutation_samples():

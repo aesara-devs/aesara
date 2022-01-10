@@ -15,9 +15,9 @@ from aesara.printing import debugprint
 from aesara.tensor.basic import as_tensor
 from aesara.tensor.basic_opt import ShapeOptimizer
 from aesara.tensor.math import dot, exp
-from aesara.tensor.math import round as aet_round
+from aesara.tensor.math import round as at_round
 from aesara.tensor.math import sigmoid
-from aesara.tensor.math import sum as aet_sum
+from aesara.tensor.math import sum as at_sum
 from aesara.tensor.random.utils import RandomStream
 from aesara.tensor.shape import specify_shape
 from aesara.tensor.type import TensorType, matrices, matrix, scalar, vector, vectors
@@ -85,7 +85,7 @@ class TestOpFromGraph(unittest_tools.InferShapeTester):
         e = x + y * z
         op = cls_ofg([x, y, z], [e])
         f = op(x, y, z)
-        f = f - grad(aet_sum(f), y)
+        f = f - grad(at_sum(f), y)
         fn = function([x, y, z], f)
         xv = np.ones((2, 2), dtype=config.floatX)
         yv = np.ones((2, 2), dtype=config.floatX) * 3
@@ -100,8 +100,8 @@ class TestOpFromGraph(unittest_tools.InferShapeTester):
         e = x + y * z
         op = cls_ofg([x, y, z], [e])
         f = op(x, y, z)
-        f = f - grad(aet_sum(f), y)
-        f = f - grad(aet_sum(f), y)
+        f = f - grad(at_sum(f), y)
+        f = f - grad(at_sum(f), y)
         fn = function([x, y, z], f)
         xv = np.ones((2, 2), dtype=config.floatX)
         yv = np.ones((2, 2), dtype=config.floatX) * 3
@@ -137,7 +137,7 @@ class TestOpFromGraph(unittest_tools.InferShapeTester):
         e = x + y * z + s
         op = cls_ofg([x, y, z], [e])
         f = op(x, y, z)
-        f = f - grad(aet_sum(f), y)
+        f = f - grad(at_sum(f), y)
         fn = function([x, y, z], f)
         xv = np.ones((2, 2), dtype=config.floatX)
         yv = np.ones((2, 2), dtype=config.floatX) * 3
@@ -146,7 +146,7 @@ class TestOpFromGraph(unittest_tools.InferShapeTester):
 
         # grad again the shared variable
         f = op(x, y, z)
-        f = f - grad(aet_sum(f), s)
+        f = f - grad(at_sum(f), s)
         fn = function([x, y, z], f)
         np.testing.assert_array_almost_equal(15.0 + s.get_value(), fn(xv, yv, zv), 4)
 
@@ -170,7 +170,7 @@ class TestOpFromGraph(unittest_tools.InferShapeTester):
         # single override case (function or OfG instance)
         xx, yy = vector("xx"), vector("yy")
         for op in [op_mul, op_mul2]:
-            zz = aet_sum(op(xx, yy))
+            zz = at_sum(op(xx, yy))
             dx, dy = grad(zz, [xx, yy])
             fn = function([xx, yy], [dx, dy])
             xv = np.random.rand(16).astype(config.floatX)
@@ -196,7 +196,7 @@ class TestOpFromGraph(unittest_tools.InferShapeTester):
             [x, w, b], [x * w + b], grad_overrides=[go1, go2, "default"]
         )
         xx, ww, bb = vector("xx"), vector("yy"), vector("bb")
-        zz = aet_sum(op_linear(xx, ww, bb))
+        zz = at_sum(op_linear(xx, ww, bb))
         dx, dw, db = grad(zz, [xx, ww, bb])
         fn = function([xx, ww, bb], [dx, dw, db])
         xv = np.random.rand(16).astype(config.floatX)
@@ -213,7 +213,7 @@ class TestOpFromGraph(unittest_tools.InferShapeTester):
             [x * w + b],
             grad_overrides=[go1, NullType()(), DisconnectedType()()],
         )
-        zz2 = aet_sum(op_linear2(xx, ww, bb))
+        zz2 = at_sum(op_linear2(xx, ww, bb))
         dx2, dw2, db2 = grad(
             zz2,
             [xx, ww, bb],
@@ -242,12 +242,12 @@ class TestOpFromGraph(unittest_tools.InferShapeTester):
         op_lop_ov = cls_ofg([x, y_, dedy], [2.0 * y_ * (1.0 - y_) * dedy])
 
         xx = vector()
-        yy1 = aet_sum(sigmoid(xx))
+        yy1 = at_sum(sigmoid(xx))
         gyy1 = 2.0 * grad(yy1, xx)
 
         for ov in [lop_ov, op_lop_ov]:
             op = cls_ofg([x], [y], lop_overrides=ov)
-            yy2 = aet_sum(op(xx))
+            yy2 = at_sum(op(xx))
             gyy2 = grad(yy2, xx)
             fn = function([xx], [gyy1, gyy2])
 
@@ -317,7 +317,7 @@ class TestOpFromGraph(unittest_tools.InferShapeTester):
             del x
             # but we know how to backpropagate for x for some reasons
             # and we don't care about the gradient wrt y.
-            return y + aet_round(y)
+            return y + at_round(y)
 
         def f1_back(inputs, output_gradients):
             return [output_gradients[0], disconnected_type()]

@@ -10,7 +10,7 @@ from aesara import sparse
 from aesara.compile.mode import Mode, get_default_mode
 from aesara.configdefaults import config
 from aesara.tensor.basic import as_tensor_variable
-from aesara.tensor.math import sum as aet_sum
+from aesara.tensor.math import sum as at_sum
 from aesara.tensor.type import ivector, matrix, vector
 from tests import unittest_tools as utt
 from tests.sparse.test_basic import random_lil
@@ -55,7 +55,7 @@ def test_local_csm_grad_c():
         (sparse.CSC, sp.sparse.csc_matrix),
         (sparse.CSR, sp.sparse.csr_matrix),
     ]:
-        cost = aet_sum(sparse.DenseFromSparse()(CS(data, indices, indptr, shape)))
+        cost = at_sum(sparse.DenseFromSparse()(CS(data, indices, indptr, shape)))
         f = aesara.function(
             [data, indices, indptr, shape], aesara.grad(cost, data), mode=mode
         )

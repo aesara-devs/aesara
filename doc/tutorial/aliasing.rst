@@ -233,10 +233,10 @@ that control how ``aesara.function`` handles its argument[s] and return value[s]
 .. testcode::
 
     import aesara
-    import aesara.tensor as aet
+    import aesara.tensor as at
     from aesara.compile.io import In, Out
 
-    x = aet.matrix()
+    x = at.matrix()
     y = 2 * x
     f = aesara.function([In(x, borrow=True)], Out(y, borrow=True))
 

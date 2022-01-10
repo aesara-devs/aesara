@@ -8,7 +8,7 @@ import scipy
 
 import aesara
 from aesara import function, grad
-from aesara import tensor as aet
+from aesara import tensor as at
 from aesara.configdefaults import config
 from aesara.tensor.slinalg import (
     Cholesky,
@@ -157,7 +157,7 @@ def test_eigvalsh():
     # We need to test None separately, as otherwise DebugMode will
     # complain, as this isn't a valid ndarray.
     b = None
-    B = aet.NoneConst
+    B = at.NoneConst
     f = function([A], eigvalsh(A, B))
     w = f(a)
     refw = scipy.linalg.eigvalsh(a, b)
@@ -217,7 +217,7 @@ class TestSolve(utt.InferShapeTester):
         rng = np.random.default_rng(utt.fetch_seed())
         A = matrix()
         b_val = np.asarray(rng.random(b_shape), dtype=config.floatX)
-        b = aet.as_tensor_variable(b_val).type()
+        b = at.as_tensor_variable(b_val).type()
         self._compile_and_check(
             [A, b],
             [solve(A, b)],
@@ -294,7 +294,7 @@ class TestSolveTriangular(utt.InferShapeTester):
         rng = np.random.default_rng(utt.fetch_seed())
         A = matrix()
         b_val = np.asarray(rng.random(b_shape), dtype=config.floatX)
-        b = aet.as_tensor_variable(b_val).type()
+        b = at.as_tensor_variable(b_val).type()
         self._compile_and_check(
             [A, b],
             [solve_triangular(A, b)],

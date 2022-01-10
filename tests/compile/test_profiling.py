@@ -5,7 +5,7 @@ from io import StringIO
 
 import numpy as np
 
-import aesara.tensor as aet
+import aesara.tensor as at
 from aesara.compile import ProfileStats
 from aesara.compile.function import function
 from aesara.configdefaults import config
@@ -29,7 +29,7 @@ class TestProfiling:
             x = [fvector("val%i" % i) for i in range(3)]
 
             z = []
-            z += [aet.outer(x[i], x[i + 1]).sum(axis=1) for i in range(len(x) - 1)]
+            z += [at.outer(x[i], x[i + 1]).sum(axis=1) for i in range(len(x) - 1)]
             z += [x[i] + x[i + 1] for i in range(len(x) - 1)]
 
             p = ProfileStats(False, gpu_checks=False)
@@ -85,7 +85,7 @@ class TestProfiling:
             a, b = scalars("a", "b")
             x, y = scalars("x", "y")
 
-            z = ifelse(aet.lt(a, b), x * 2, y * 2)
+            z = ifelse(at.lt(a, b), x * 2, y * 2)
 
             p = ProfileStats(False, gpu_checks=False)
 

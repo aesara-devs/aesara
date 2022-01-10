@@ -2,7 +2,7 @@ from io import StringIO
 
 import numpy as np
 
-import aesara.tensor as aet
+import aesara.tensor as at
 from aesara.gradient import grad_not_implemented
 from aesara.graph.basic import Apply
 from aesara.graph.op import COp, Op
@@ -472,11 +472,11 @@ class GpuAdvancedSubtensor1(HideC, AdvancedSubtensor1):
         ctx_name = infer_context_name(x, ilist)
         x_ = as_gpuarray_variable(x, ctx_name)
 
-        ilist__ = aet.as_tensor_variable(ilist)
+        ilist__ = at.as_tensor_variable(ilist)
         if ilist__.type.dtype not in integer_dtypes:
             raise TypeError("index must be integers")
         if ilist__.type.dtype != "int64":
-            ilist__ = aet.cast(ilist__, "int64")
+            ilist__ = at.cast(ilist__, "int64")
 
         ilist_ = gpu_contiguous(as_gpuarray_variable(ilist__, ctx_name))
 
@@ -871,7 +871,7 @@ class GpuAdvancedIncSubtensor1(COp):
         ctx_name = infer_context_name(x, y)
         x_ = as_gpuarray_variable(x, ctx_name)
         y_ = as_gpuarray_variable(y, ctx_name)
-        ilist_ = aet.as_tensor_variable(ilist)
+        ilist_ = at.as_tensor_variable(ilist)
 
         assert x_.type.ndim >= y_.type.ndim
 

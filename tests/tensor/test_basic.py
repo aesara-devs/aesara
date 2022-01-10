@@ -10,7 +10,7 @@ from numpy.testing import assert_array_equal
 
 import aesara
 import aesara.scalar as aes
-import aesara.tensor.basic as aet
+import aesara.tensor.basic as at
 import aesara.tensor.math as tm
 from aesara import compile, config, function, shared
 from aesara.compile.io import In, Out
@@ -90,7 +90,7 @@ from aesara.tensor.basic import (
 from aesara.tensor.elemwise import DimShuffle
 from aesara.tensor.exceptions import NotScalarConstantError
 from aesara.tensor.math import dense_dot, eq
-from aesara.tensor.math import sum as aet_sum
+from aesara.tensor.math import sum as at_sum
 from aesara.tensor.shape import Reshape, Shape, Shape_i, shape_padright, specify_shape
 from aesara.tensor.type import (
     TensorType,
@@ -377,7 +377,7 @@ class ApplyDefaultTestOp(Op):
         self.default_output = id
 
     def make_node(self, x):
-        x = aet.as_tensor_variable(x)
+        x = at.as_tensor_variable(x)
         return Apply(self, [x], [x.type()])
 
     def perform(self, *args, **kwargs):
@@ -518,7 +518,7 @@ class TestAsTensorVariable:
         ("x", "y"),
         [
             ([1, 2], [1, 2]),
-            ([aet.as_tensor(1), aet.as_tensor(2)], [1, 2]),
+            ([at.as_tensor(1), at.as_tensor(2)], [1, 2]),
             ([aes.constant(1), aes.constant(2)], [1, 2]),
         ],
     )
@@ -543,14 +543,14 @@ class TestAsTensorVariable:
 
     def test_make_vector(self):
         a = iscalar()
-        x = aet.tile(a, (1, 1, 1))
+        x = at.tile(a, (1, 1, 1))
         y = (constant(1, dtype="int64"), x.shape[2])
-        res = aet.as_tensor(y, ndim=1)
+        res = at.as_tensor(y, ndim=1)
         assert isinstance(res.owner.op, MakeVector)
         assert tuple(res.owner.inputs) == y
 
         y = (1, x.shape[2])
-        res = aet.as_tensor(y)
+        res = at.as_tensor(y)
         assert isinstance(res.owner.op, MakeVector)
 
     def test_multi_out(self):
@@ -559,7 +559,7 @@ class TestAsTensorVariable:
                 return Apply(self, [a, b], [a, b])
 
         with pytest.raises(TypeError):
-            aet.as_tensor(TestOp(matrix(), matrix()))
+            at.as_tensor(TestOp(matrix(), matrix()))
 
 
 class TestAlloc:
@@ -590,7 +590,7 @@ class TestAlloc:
                 (some_matrix[idx, idx], 1),
             ],
         ):
-            derp = aet_sum(dense_dot(subtensor, variables))
+            derp = at_sum(dense_dot(subtensor, variables))
 
             fobj = aesara.function([some_vector], derp, mode=self.mode)
             grad_derp = aesara.grad(derp, some_vector)
@@ -621,40 +621,40 @@ class TestAlloc:
 
     def test_ones(self):
         for shp in [[], 1, [1], [1, 2], [1, 2, 3], np.r_[1, 2, 3]]:
-            ones = aesara.function([], [aet.ones(shp)], mode=self.mode)
+            ones = aesara.function([], [at.ones(shp)], mode=self.mode)
             assert np.allclose(ones(), np.ones(shp))
 
         # scalar doesn't have to be provided as input
         x = scalar()
         shp = []
-        ones_scalar = aesara.function([], [aet.ones(x.shape)], mode=self.mode)
+        ones_scalar = aesara.function([], [at.ones(x.shape)], mode=self.mode)
         assert np.allclose(ones_scalar(), np.ones(shp))
 
         for (typ, shp) in [(vector, [3]), (matrix, [3, 4])]:
             x = typ()
-            ones_tensor = aesara.function([x], [aet.ones(x.shape)], mode=self.mode)
+            ones_tensor = aesara.function([x], [at.ones(x.shape)], mode=self.mode)
             inp = np.zeros(shp, dtype=config.floatX)
             assert np.allclose(ones_tensor(inp), np.ones(shp))
 
     def test_zeros(self):
         for shp in [[], 1, [1], [1, 2], [1, 2, 3], np.r_[1, 2, 3]]:
-            zeros = aesara.function([], [aet.zeros(shp)], mode=self.mode)
+            zeros = aesara.function([], [at.zeros(shp)], mode=self.mode)
             assert np.allclose(zeros(), np.zeros(shp))
 
         # scalar doesn't have to be provided as input
         x = scalar()
         shp = []
-        zeros_scalar = aesara.function([], [aet.zeros(x.shape)], mode=self.mode)
+        zeros_scalar = aesara.function([], [at.zeros(x.shape)], mode=self.mode)
         assert np.allclose(zeros_scalar(), np.zeros(shp))
 
         for (typ, shp) in [(vector, [3]), (matrix, [3, 4])]:
             x = typ()
-            zeros_tensor = aesara.function([x], [aet.zeros(x.shape)], mode=self.mode)
+            zeros_tensor = aesara.function([x], [at.zeros(x.shape)], mode=self.mode)
             inp = np.zeros(shp, dtype=config.floatX)
             assert np.allclose(zeros_tensor(inp), np.zeros(shp))
 
     def test_full(self):
-        full_at = aet.full((2, 3), 3, dtype="int64")
+        full_at = at.full((2, 3), 3, dtype="int64")
         res = aesara.function([], full_at, mode=self.mode)()
         assert np.array_equal(res, np.full((2, 3), 3, dtype="int64"))
 
@@ -790,11 +790,11 @@ class TestNonzero:
             m_symb = tensor(dtype=m.dtype, broadcastable=(False,) * m.ndim)
             m_symb.tag.test_value = m
 
-            res_tuple_aet = nonzero(m_symb, return_matrix=False)
-            res_matrix_aet = nonzero(m_symb, return_matrix=True)
+            res_tuple_at = nonzero(m_symb, return_matrix=False)
+            res_matrix_at = nonzero(m_symb, return_matrix=True)
 
-            res_tuple = tuple(r.tag.test_value for r in res_tuple_aet)
-            res_matrix = res_matrix_aet.tag.test_value
+            res_tuple = tuple(r.tag.test_value for r in res_tuple_at)
+            res_matrix = res_matrix_at.tag.test_value
 
             assert np.allclose(res_matrix, np.vstack(np.nonzero(m)))
 
@@ -819,9 +819,9 @@ class TestNonzero:
             m_symb = tensor(dtype=m.dtype, broadcastable=(False,) * m.ndim)
             m_symb.tag.test_value = m
 
-            res_aet = flatnonzero(m_symb)
+            res_at = flatnonzero(m_symb)
 
-            result = res_aet.tag.test_value
+            result = res_at.tag.test_value
             assert np.allclose(result, np.flatnonzero(m))
 
         rand0d = np.empty(())
@@ -842,9 +842,9 @@ class TestNonzero:
             m_symb = tensor(dtype=m.dtype, broadcastable=(False,) * m.ndim)
             m_symb.tag.test_value = m
 
-            res_aet = nonzero_values(m_symb)
+            res_at = nonzero_values(m_symb)
 
-            result = res_aet.tag.test_value
+            result = res_at.tag.test_value
             assert np.allclose(result, m[np.nonzero(m)], equal_nan=True)
 
         rand0d = np.empty(())
@@ -1226,7 +1226,7 @@ class TestJoinAndSplit:
         # Fast test of concatenate as this is an alias for join.
         # also test that we remove the Join op if there is only 1 input
         m = fmatrix()
-        c = aet.concatenate([m])
+        c = at.concatenate([m])
         f = aesara.function(
             inputs=[m], outputs=[c], mode=self.mode.including("local_join_1")
         )
@@ -1728,7 +1728,7 @@ class TestJoinAndSplit:
         x = TensorType(self.floatX, [False, False, True])()
         u = TensorType(self.floatX, [False, False, True])()
         # This line used to crash.
-        aet.concatenate([x, -u], axis=2)
+        at.concatenate([x, -u], axis=2)
 
     def test_concatenate_same(self):
         # Test that we can concatenate the same tensor multiple time.
@@ -1736,7 +1736,7 @@ class TestJoinAndSplit:
         # In the past it was broken on the GPU.
         rng = np.random.default_rng(seed=utt.fetch_seed())
         T_shared = self.shared(rng.random((3, 4)).astype(self.floatX))
-        Tout = aet.concatenate([T_shared, T_shared])
+        Tout = at.concatenate([T_shared, T_shared])
         f = function([], Tout, mode=self.mode)
         out = f()
         if config.mode != "FAST_COMPILE":
@@ -1796,7 +1796,7 @@ def test_join_inplace():
     # element.
     s = lscalar()
     x = vector("x")
-    z = aet.zeros((s,))
+    z = at.zeros((s,))
 
     join = Join(view=0)
     c = join(0, x, z, z)
@@ -1820,8 +1820,8 @@ def test_join_oneInput():
     x_0 = fmatrix()
     x_1 = fmatrix()
     x_2 = fvector()
-    join_0 = aet.concatenate([x_0], axis=1)
-    join_1 = aet.concatenate([x_0, x_1, shape_padright(x_2)], axis=1)
+    join_0 = at.concatenate([x_0], axis=1)
+    join_1 = at.concatenate([x_0, x_1, shape_padright(x_2)], axis=1)
 
     assert join_0 is x_0
     assert join_1 is not x_0
@@ -2000,26 +2000,26 @@ def test_is_flat():
     # given `ndim`
 
     # Constant variable
-    assert aet.is_flat(aet.as_tensor_variable(np.zeros(10)))
-    assert aet.is_flat(aet.as_tensor_variable(np.zeros((10, 10, 10))), ndim=3)
-    assert not aet.is_flat(aet.as_tensor_variable(np.zeros((10, 10, 10))))
+    assert at.is_flat(at.as_tensor_variable(np.zeros(10)))
+    assert at.is_flat(at.as_tensor_variable(np.zeros((10, 10, 10))), ndim=3)
+    assert not at.is_flat(at.as_tensor_variable(np.zeros((10, 10, 10))))
 
     # Symbolic variable
-    assert aet.is_flat(vector())
-    assert aet.is_flat(tensor3(), ndim=3)
-    assert not aet.is_flat(tensor3())
+    assert at.is_flat(vector())
+    assert at.is_flat(tensor3(), ndim=3)
+    assert not at.is_flat(tensor3())
 
     # Reshape with constant shape
     X = tensor4()
-    assert aet.is_flat(X.reshape((-1,)))
-    assert aet.is_flat(X.reshape((10, 10, -1)), ndim=3)
-    assert not aet.is_flat(X.reshape((10, 10, -1)))
+    assert at.is_flat(X.reshape((-1,)))
+    assert at.is_flat(X.reshape((10, 10, -1)), ndim=3)
+    assert not at.is_flat(X.reshape((10, 10, -1)))
 
     # Reshape with symbolic shape
     X = tensor4()
-    assert aet.is_flat(X.reshape((iscalar(),)))
-    assert aet.is_flat(X.reshape((iscalar(),) * 3), ndim=3)
-    assert not aet.is_flat(X.reshape((iscalar(),) * 3))
+    assert at.is_flat(X.reshape((iscalar(),)))
+    assert at.is_flat(X.reshape((iscalar(),) * 3), ndim=3)
+    assert not at.is_flat(X.reshape((iscalar(),) * 3))
 
 
 def test_tile():
@@ -3138,7 +3138,7 @@ class TestGetScalarConstantValue:
         with pytest.raises(NotScalarConstantError):
             get_scalar_constant_value(aes.int64())
 
-        res = get_scalar_constant_value(aet.as_tensor(10))
+        res = get_scalar_constant_value(at.as_tensor(10))
         assert res == 10
         assert isinstance(res, np.ndarray)
 
@@ -3146,13 +3146,13 @@ class TestGetScalarConstantValue:
         assert res == 10
         assert isinstance(res, np.ndarray)
 
-        a = aet.stack([1, 2, 3])
+        a = at.stack([1, 2, 3])
         assert get_scalar_constant_value(a[0]) == 1
         assert get_scalar_constant_value(a[1]) == 2
         assert get_scalar_constant_value(a[2]) == 3
 
         b = iscalar()
-        a = aet.stack([b, 2, 3])
+        a = at.stack([b, 2, 3])
         with pytest.raises(NotScalarConstantError):
             get_scalar_constant_value(a[0])
         assert get_scalar_constant_value(a[1]) == 2
@@ -3161,7 +3161,7 @@ class TestGetScalarConstantValue:
         # For now get_scalar_constant_value goes through only MakeVector and Join of
         # scalars.
         v = ivector()
-        a = aet.stack([v, [2], [3]])
+        a = at.stack([v, [2], [3]])
         with pytest.raises(NotScalarConstantError):
             get_scalar_constant_value(a[0])
         with pytest.raises(NotScalarConstantError):
@@ -3174,12 +3174,12 @@ class TestGetScalarConstantValue:
         v = row()
         assert get_scalar_constant_value(v.shape[0]) == 1
 
-        res = aet.get_scalar_constant_value(aet.as_tensor([10, 20]).shape[0])
+        res = at.get_scalar_constant_value(at.as_tensor([10, 20]).shape[0])
         assert isinstance(res, np.ndarray)
         assert 2 == res
 
-        res = aet.get_scalar_constant_value(
-            9 + aet.as_tensor([1.0]).shape[0],
+        res = at.get_scalar_constant_value(
+            9 + at.as_tensor([1.0]).shape[0],
             elemwise=True,
             only_process_constants=False,
             max_recur=9,
@@ -3245,7 +3245,7 @@ class TestGetScalarConstantValue:
         assert np.allclose(get_scalar_constant_value(s), c.data * 1.2)
         s = c < 0.5
         assert np.allclose(get_scalar_constant_value(s), int(c.data < 0.5))
-        s = aet.second(c, 0.4)
+        s = at.second(c, 0.4)
         assert np.allclose(get_scalar_constant_value(s), 0.4)
 
     def test_assert(self):
@@ -3273,7 +3273,7 @@ class TestGetScalarConstantValue:
         # Second should apply when the value is constant but not the shape
         c = constant(np.random.random())
         shp = vector()
-        s = aet.second(shp, c)
+        s = at.second(shp, c)
         assert get_scalar_constant_value(s) == c.data
 
     def test_copy(self):
@@ -3463,7 +3463,7 @@ class TestAllocDiag:
                 assert np.all(rediag_shape == test_val.shape)
 
                 diag_x = adiag_op(x)
-                sum_diag_x = aet_sum(diag_x)
+                sum_diag_x = at_sum(diag_x)
                 grad_x = aesara.grad(sum_diag_x, x)
                 grad_diag_x = aesara.grad(sum_diag_x, diag_x)
                 f_grad_x = aesara.function([x], grad_x, mode=self.mode)
@@ -3513,16 +3513,16 @@ def test_transpose():
     f = aesara.function(
         [x1, x2, x3],
         [
-            aet.transpose(x1),
-            aet.transpose(x2),
-            aet.transpose(x3),
+            at.transpose(x1),
+            at.transpose(x2),
+            at.transpose(x3),
             x1.transpose(),
             x2.transpose(),
             x3.transpose(),
             x2.transpose(0, 1),
             x3.transpose((0, 2, 1)),
-            aet.transpose(x2, [0, 1]),
-            aet.transpose(x3, [0, 2, 1]),
+            at.transpose(x2, [0, 1]),
+            at.transpose(x3, [0, 2, 1]),
         ],
     )
 
@@ -3546,10 +3546,10 @@ def test_transpose():
     assert np.all(t3d == np.transpose(x3v, [0, 2, 1]))
 
     # Check that we create a name.
-    assert aet.transpose(x1).name == "x1.T"
-    assert aet.transpose(x2).name == "x2.T"
-    assert aet.transpose(x3).name == "x3.T"
-    assert aet.transpose(dmatrix()).name is None
+    assert at.transpose(x1).name == "x1.T"
+    assert at.transpose(x2).name == "x2.T"
+    assert at.transpose(x3).name == "x3.T"
+    assert at.transpose(dmatrix()).name is None
 
 
 def test_stacklists():
@@ -4152,16 +4152,16 @@ def test_empty():
     assert out.shape == (2, 3)
     assert out.dtype == "float32"
 
-    empty_at = aet.empty((2, 3), dtype=None)
+    empty_at = at.empty((2, 3), dtype=None)
     res = aesara.function([], empty_at)()
     assert res.shape == (2, 3)
 
-    empty_at = aet.empty((2, 3), dtype="int64")
+    empty_at = at.empty((2, 3), dtype="int64")
     res = aesara.function([], empty_at)()
     assert res.shape == (2, 3)
     assert res.dtype == "int64"
 
-    empty_at = aet.empty_like(empty_at)
+    empty_at = at.empty_like(empty_at)
     res = aesara.function([], empty_at)()
     assert res.shape == (2, 3)
     assert res.dtype == "int64"
@@ -4235,10 +4235,10 @@ class TestTakeAlongAxis:
         indices_size[axis or 0] = samples
         indices = rng.integers(low=0, high=shape[axis or 0], size=indices_size)
 
-        arr_in = aet.tensor(config.floatX, [s == 1 for s in arr.shape])
-        indices_in = aet.tensor(np.int64, [s == 1 for s in indices.shape])
+        arr_in = at.tensor(config.floatX, [s == 1 for s in arr.shape])
+        indices_in = at.tensor(np.int64, [s == 1 for s in indices.shape])
 
-        out = aet.take_along_axis(arr_in, indices_in, axis)
+        out = at.take_along_axis(arr_in, indices_in, axis)
 
         func = aesara.function([arr_in, indices_in], out)
 
@@ -4247,14 +4247,14 @@ class TestTakeAlongAxis:
         )
 
     def test_ndim_dtype_failures(self):
-        arr = aet.tensor(config.floatX, [False] * 2)
-        indices = aet.tensor(np.int64, [False] * 3)
+        arr = at.tensor(config.floatX, [False] * 2)
+        indices = at.tensor(np.int64, [False] * 3)
         with pytest.raises(ValueError):
-            aet.take_along_axis(arr, indices)
+            at.take_along_axis(arr, indices)
 
-        indices = aet.tensor(np.float64, [False] * 2)
+        indices = at.tensor(np.float64, [False] * 2)
         with pytest.raises(IndexError):
-            aet.take_along_axis(arr, indices)
+            at.take_along_axis(arr, indices)
 
 
 @pytest.mark.parametrize(

@@ -4,7 +4,7 @@ import pytest
 import aesara
 import aesara.gpuarray
 import aesara.tensor.slinalg as slinalg
-from aesara import tensor as aet
+from aesara import tensor as at
 from aesara.breakpoint import PdbBreakpoint
 from aesara.configdefaults import config
 from aesara.gpuarray import basic_ops, blas, dnn, opt
@@ -232,7 +232,7 @@ def test_local_gpualloc_memset_0():
 
     # Test with 0 from CPU op.
     # Should not be transferred as the only client is the output
-    a = aet.alloc(z, i)
+    a = at.alloc(z, i)
     f = aesara.function([i], a, mode=mode_with_gpu)
     topo = f.maker.fgraph.toposort()
     assert len(topo) == 1
@@ -242,7 +242,7 @@ def test_local_gpualloc_memset_0():
 
     # Test with 0 from CPU op.
     # Should be transferred as it is used by another op.
-    a = aet.alloc(z, i)
+    a = at.alloc(z, i)
     f = aesara.function([i], a.cumsum(), mode=mode_with_gpu)
     topo = f.maker.fgraph.toposort()
     assert len(topo) == 3
@@ -320,7 +320,7 @@ def test_local_gpualloc_empty():
 def test_rebroadcast():
     d = np.random.rand(10, 10).astype("float32")
     v = fmatrix()
-    up = aet.unbroadcast(v.sum().dimshuffle("x", "x"), 0, 1)
+    up = at.unbroadcast(v.sum().dimshuffle("x", "x"), 0, 1)
     f = aesara.function([v], [up], mode=mode_with_gpu)
 
     f(d)
@@ -374,7 +374,7 @@ class TestGpuIfelse(TestIfelse):
         y = gpuarray_shared_constructor(
             np.asarray(1, dtype="float32"), target=test_ctx_name
         )
-        z = aet.constant(2.0)
+        z = at.constant(2.0)
 
         a = aesara.ifelse.ifelse(x, y, z)
         with config.change_flags(on_opt_error="raise"):
@@ -785,7 +785,7 @@ def test_local_gpua_advanced_incsubtensor():
     # test a corner case reported at gh-5589
     target = ftensor4()
     y = target.dimshuffle(1, 0, 2, 3).flatten(ndim=1)
-    w = aet.ones_like(y)
+    w = at.ones_like(y)
     w = aesara.tensor.subtensor.set_subtensor(w[eq(y, 1.0).nonzero()], 100)
     w = aesara.tensor.subtensor.set_subtensor(w[eq(y, -1.0).nonzero()], 0)
     f = aesara.function([target], w)
