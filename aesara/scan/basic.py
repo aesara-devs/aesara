@@ -888,6 +888,7 @@ def scan(
                 n_shared_outs += 1
 
     n_sit_sot = len(sit_sot_inner_inputs)
+
     # Step 5.4 Outputs with no taps used in the input
     n_nit_sot = 0
     nit_sot_inner_outputs = []
