@@ -408,6 +408,98 @@ class TestScan:
         rng = np.random.default_rng(utt.fetch_seed())
         my_f(rng.uniform(size=(3,)), 4, np.int64([2, 2, 3]))
 
+    @pytest.mark.parametrize("mode", [Mode(linker="py"), Mode(linker="cvm")])
+    @pytest.mark.parametrize(
+        "x_init",
+        [
+            scalar("x"),
+            iscalar("x"),
+        ],
+    )
+    def test_no_step(self, mode, x_init):
+        """We expect an empty output array when ``n_steps == 0``."""
+
+        def f_pow(x_tm1):
+            return 2 * x_tm1
+
+        n_steps = iscalar("n_steps")
+        values, _ = scan(f_pow, outputs_info=(x_init,), n_steps=n_steps)
+
+        update_fn = function((x_init, n_steps), values, mode=mode)
+
+        res = update_fn(1.0, 0)
+        exp_res = np.array([], dtype=values.dtype)
+        assert np.array_equal(res, exp_res)
+        assert res.dtype == exp_res.dtype
+
+    @pytest.mark.parametrize(
+        "mode", [Mode(linker="py", optimizer=None), Mode(linker="cvm", optimizer=None)]
+    )
+    @pytest.mark.parametrize(
+        "x",
+        [
+            vector("x"),
+            ivector("x"),
+        ],
+    )
+    @pytest.mark.parametrize(
+        "x_init",
+        [
+            scalar("x"),
+            iscalar("x"),
+        ],
+    )
+    def test_no_steps_sit_sot(self, mode, x, x_init):
+        """We expect an empty output array when scanning over an empty sequence."""
+
+        def inner_fn(x_seq, x_i):
+            return 2 * x_i
+
+        with config.change_flags(mode=mode):
+            values, _ = scan(inner_fn, outputs_info=(x_init,), sequences=x)
+            values_fn = function((x_init, x), values)
+
+        assert isinstance(values.owner.inputs[0].owner.op, Scan)
+
+        x_val = np.array([], dtype=x.dtype)
+        x_init_val = 1.0
+
+        res = values_fn(x_init_val, x_val)
+        exp_res = np.array([], dtype=values.dtype)
+
+        assert np.array_equal(res, exp_res)
+        assert res.dtype == exp_res.dtype
+
+    @pytest.mark.parametrize(
+        "mode", [Mode(linker="py", optimizer=None), Mode(linker="cvm", optimizer=None)]
+    )
+    @pytest.mark.parametrize(
+        "x",
+        [
+            vector("x"),
+            ivector("x"),
+        ],
+    )
+    def test_no_steps_nit_sot(self, mode, x):
+        """We expect an empty output array when scanning over an empty sequence."""
+
+        def inner_fn(x_i):
+            return 2 * x_i
+
+        with config.change_flags(mode=mode):
+            values, _ = scan(inner_fn, sequences=x)
+            values_fn = function((x,), values)
+
+        assert isinstance(values.owner.op, Scan)
+
+        x_val = np.array([], dtype=x.dtype)
+
+        res = values_fn(x_val)
+        exp_res = np.array([], dtype=values.dtype)
+
+        assert np.array_equal(res, exp_res)
+        assert res.dtype == exp_res.dtype
+
     @pytest.mark.slow
     def test_only_nonseq_inputs(self):
         # Compile the Aesara function

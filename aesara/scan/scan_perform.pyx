@@ -58,7 +58,7 @@ from aesara.link.utils import raise_with_op
 
 
 def get_version():
-    return 0.301
+    return 0.302
 
 @cython.boundscheck(False)
 def perform(
@@ -205,8 +205,6 @@ def perform(
         raise IndexError(
             "Scan was asked to run for negative number of step %d" %
             n_steps)
-    elif n_steps == 0:
-        raise NotImplementedError("n_steps == 0")
     else:
         for idx in range(n_seqs):
             if args[<unsigned int>(1+idx)].shape[0] < n_steps:
@@ -230,10 +228,6 @@ def perform(
                 args[<unsigned int>(idx + n_mit_mot + n_mit_sot + n_sit_sot
                                     + n_shared_outs + n_seqs+1)]
 
-    for idx in range(n_outs + n_nit_sot):
-        pos[idx] = (-mintaps[idx])%store_steps[idx]
-
-
     # 2.1 Create storage space for outputs
     for idx in range(n_outs):
         if destroy_map[idx] != 0:
@@ -254,6 +248,21 @@ def perform(
         else:
             outs[idx][0] = args[<unsigned int>(seqs_arg_offset + idx)].copy()
 
+    if n_steps == 0:
+        for idx in range(n_outs, n_outs + n_nit_sot):
+            if outs_is_tensor[idx]:
+                # TODO FIXME: Why have an `outs_is_tensor` when you can access
+                # the node directly?
+                # (The answer is that you shouldn't have a `node` object to
+                # access, because it's not going to produce a very efficient
+                # Cython function!)
+                outs[idx][0] = node.outputs[idx].type.value_zeros(0)
+            else:
+                outs[idx][0] = None
+        return
+
+    for idx in range(n_outs + n_nit_sot):
+        pos[idx] = -mintaps[idx] % store_steps[idx]
 
     offset = nit_sot_arg_offset + n_nit_sot
     other_args = args[offset:]
@@ -273,7 +282,6 @@ def perform(
 
     for idx in range(len(other_args)):
         input_storage[<unsigned int>(idx+offset)].storage[0] = other_args[idx]
-
 
     i = 0
     cond = 1

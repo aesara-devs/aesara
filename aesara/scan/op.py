@@ -1497,8 +1497,6 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
             raise IndexError(
                 f"Scan was asked to run for negative number of step {n_steps}"
             )
-        elif n_steps == 0:
-            raise NotImplementedError("n_steps == 0")
         else:
             for idx, seq in enumerate(inputs[1 : self.seqs_arg_offset]):
                 if seq.shape[0] < n_steps:
@@ -1524,10 +1522,6 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
             ]
         ]
 
-        pos = [
-            (-self.mintaps[idx]) % store_steps[idx]
-            for idx in range(self.n_outs + self.n_nit_sot)
-        ]
         # 2.1 Create storage space for outputs
         for idx in range(self.n_outs):
             if idx in self.destroy_map:
@@ -1549,6 +1543,20 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
                     output_storage[idx][0][:] = inputs[self.seqs_arg_offset + idx]
             else:
                 output_storage[idx][0] = inputs[self.seqs_arg_offset + idx].copy()
+
+        if n_steps == 0:
+            for idx in range(self.n_outs, self.n_outs + self.n_nit_sot):
+                out_var = node.outputs[idx]
+                if isinstance(out_var, TensorVariable):
+                    output_storage[idx][0] = out_var.type.value_zeros(0)
+                else:
+                    output_storage[idx][0] = None
+            return
+
+        pos = [
+            (-self.mintaps[idx]) % store_steps[idx]
+            for idx in range(self.n_outs + self.n_nit_sot)
+        ]
 
         offset = self.nit_sot_arg_offset + self.n_nit_sot
         other_args = inputs[offset:]
