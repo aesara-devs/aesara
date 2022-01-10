@@ -741,16 +741,6 @@ def scan(
     ##
 
     if n_fixed_steps in (1, -1):
-        # We do not need to use the scan op anymore, so we can just return
-        # the outputs and updates we have
-        if condition is not None:
-            _logger.warning(
-                (
-                    "When the number of steps is fixed and equal "
-                    f"to 1, the provided stopping condition, {condition} is ignored"
-                )
-            )
-
         for pos, inner_out in enumerate(outputs):
             # we need to see if we need to pad our sequences with an
             # unbroadcastable dimension; case example : we return an
