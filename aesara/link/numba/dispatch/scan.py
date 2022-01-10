@@ -35,7 +35,7 @@ def array0d_range(x):
 @numba_funcify.register(Scan)
 def numba_funcify_Scan(op, node, **kwargs):
     inner_fg = FunctionGraph(op.inputs, op.outputs)
-    numba_aet_inner_func = numba.njit(numba_funcify(inner_fg, **kwargs))
+    numba_at_inner_func = numba.njit(numba_funcify(inner_fg, **kwargs))
 
     n_seqs = op.info.n_seqs
     n_mit_mot = op.info.n_mit_mot
@@ -142,7 +142,7 @@ def scan(n_steps, {", ".join(input_names)}):
 {allocate_mem_to_nit_sot}
     for i in range(n_steps):
         inner_args = {create_tuple_string(inner_in_indexed)}
-        {create_tuple_string(inner_out_indexed)} = numba_aet_inner_func(*inner_args)
+        {create_tuple_string(inner_out_indexed)} = numba_at_inner_func(*inner_args)
 {while_logic}
     return {create_arg_string(
         outer_in_mit_sot_names +

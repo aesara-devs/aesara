@@ -6,12 +6,12 @@ from aesara.graph.basic import Apply
 from aesara.graph.op import Op
 from aesara.graph.opt import copy_stack_trace, local_optimizer
 from aesara.scalar import Composite, add, as_common_dtype, mul, sub, true_div
-from aesara.tensor import basic as aet
+from aesara.tensor import basic as at
 from aesara.tensor.basic import as_tensor_variable
 from aesara.tensor.basic_opt import register_specialize_device
 from aesara.tensor.elemwise import Elemwise
 from aesara.tensor.math import mean, prod, reciprocal, sqrt
-from aesara.tensor.math import sum as aet_sum
+from aesara.tensor.math import sum as at_sum
 from aesara.tensor.type import TensorType
 
 
@@ -185,10 +185,10 @@ def batch_normalization_train(
         axes = (0,) + tuple(range(2, inputs.ndim))
         mean = inputs.mean(axes, keepdims=True)
         var = inputs.var(axes, keepdims=True)
-        invstd = aet.reciprocal(aet.sqrt(var + epsilon))
+        invstd = at.reciprocal(at.sqrt(var + epsilon))
         out = (inputs - mean) * gamma * invstd + beta
 
-        m = aet.cast(ate.prod(inputs.shape) / aet.prod(mean.shape), 'float32')
+        m = at.cast(ate.prod(inputs.shape) / at.prod(mean.shape), 'float32')
         running_mean = running_mean * (1 - running_average_factor) + \\
                        mean * running_average_factor
         running_var = running_var * (1 - running_average_factor) + \\
@@ -242,8 +242,8 @@ def batch_normalization_train(
         gamma = gamma.dimshuffle(params_dimshuffle_pattern)
         beta = beta.dimshuffle(params_dimshuffle_pattern)
     else:
-        gamma = aet.addbroadcast(gamma, *axes)
-        beta = aet.addbroadcast(beta, *axes)
+        gamma = at.addbroadcast(gamma, *axes)
+        beta = at.addbroadcast(beta, *axes)
 
     batchnorm_op = AbstractBatchNormTrain(axes=axes)
 
@@ -254,8 +254,8 @@ def batch_normalization_train(
             running_mean = running_mean.dimshuffle(params_dimshuffle_pattern)
             running_var = running_var.dimshuffle(params_dimshuffle_pattern)
         else:
-            running_mean = aet.addbroadcast(running_mean, *axes)
-            running_var = aet.addbroadcast(running_var, *axes)
+            running_mean = at.addbroadcast(running_mean, *axes)
+            running_var = at.addbroadcast(running_var, *axes)
         out, mean, invstd, new_running_mean, new_running_var = batchnorm_op(
             inputs,
             gamma,
@@ -266,11 +266,11 @@ def batch_normalization_train(
             running_var=running_var,
         )
         if new_running_mean.broadcastable != running_mean.broadcastable:
-            new_running_mean = aet.patternbroadcast(
+            new_running_mean = at.patternbroadcast(
                 new_running_mean, running_mean.broadcastable
             )
         if new_running_var.broadcastable != running_var.broadcastable:
-            new_running_var = aet.patternbroadcast(
+            new_running_var = at.patternbroadcast(
                 new_running_var, running_var.broadcastable
             )
         results = (out, mean, invstd, new_running_mean, new_running_var)
@@ -332,9 +332,9 @@ def batch_normalization_test(
         axes = (0,)
         # for spatial normalization
         axes = (0,) + tuple(range(2, inputs.ndim))
-        gamma, beta, mean, var = (aet.addbroadcast(t, *axes)
+        gamma, beta, mean, var = (at.addbroadcast(t, *axes)
                                   for t in (gamma, beta, mean, var))
-        out = (inputs - mean) * gamma / aet.sqrt(var + epsilon) + beta
+        out = (inputs - mean) * gamma / at.sqrt(var + epsilon) + beta
     """
     ndim = inputs.ndim
     axes, non_bc_axes = _prepare_batch_normalization_axes(axes, ndim)
@@ -378,10 +378,10 @@ def batch_normalization_test(
         mean = mean.dimshuffle(params_dimshuffle_pattern)
         var = var.dimshuffle(params_dimshuffle_pattern)
     else:
-        gamma = aet.addbroadcast(gamma, *axes)
-        beta = aet.addbroadcast(beta, *axes)
-        mean = aet.addbroadcast(mean, *axes)
-        var = aet.addbroadcast(var, *axes)
+        gamma = at.addbroadcast(gamma, *axes)
+        beta = at.addbroadcast(beta, *axes)
+        mean = at.addbroadcast(mean, *axes)
+        var = at.addbroadcast(var, *axes)
 
     batchnorm_op = AbstractBatchNormInference(axes=axes)
     return batchnorm_op(inputs, gamma, beta, mean, var, epsilon=epsilon)
@@ -610,13 +610,13 @@ class AbstractBatchNormInference(Op):
             )
 
         scale, bias, est_mean, est_var = (
-            aet.addbroadcast(t, *axes) for t in (scale, bias, est_mean, est_var)
+            at.addbroadcast(t, *axes) for t in (scale, bias, est_mean, est_var)
         )
 
         # define helper expressions
         est_var_eps = est_var + epsilon
         est_std = sqrt(est_var_eps)
-        two = aet.constant(2.0)
+        two = at.constant(2.0)
 
         # define and return gradients
         dx = dy * (scale / est_std)
@@ -699,14 +699,14 @@ class AbstractBatchNormTrainGrad(Op):
             )
 
             eee = (dy * x_invstd) - ((x_invstd ** 3) * x_diff * mean_dy_x_diff)
-            g_wrt_scale = g_wrt_scale + aet_sum(
+            g_wrt_scale = g_wrt_scale + at_sum(
                 ddinputs * (eee - mean(eee, axis=self.axes, keepdims=True)),
                 axis=self.axes,
                 keepdims=True,
             )
 
-            g_wrt_x_mean = g_wrt_x_mean + aet_sum(ddd, axis=self.axes, keepdims=True)
-            g_wrt_x_invstd = g_wrt_x_invstd + aet_sum(
+            g_wrt_x_mean = g_wrt_x_mean + at_sum(ddd, axis=self.axes, keepdims=True)
+            g_wrt_x_invstd = g_wrt_x_invstd + at_sum(
                 ccc * (dy - 3 * (x_invstd ** 2) * x_diff * mean_dy_x_diff),
                 axis=self.axes,
                 keepdims=True,
@@ -716,14 +716,14 @@ class AbstractBatchNormTrainGrad(Op):
             g_wrt_x = g_wrt_x + (x_invstd * ddscale * dy)
             g_wrt_dy = g_wrt_dy + (x_invstd * ddscale * x_diff)
             g_wrt_x_mean = g_wrt_x_mean - (
-                x_invstd * ddscale * aet_sum(dy, axis=self.axes, keepdims=True)
+                x_invstd * ddscale * at_sum(dy, axis=self.axes, keepdims=True)
             )
             g_wrt_x_invstd = g_wrt_x_invstd + (
-                ddscale * aet_sum(dy * x_diff, axis=self.axes, keepdims=True)
+                ddscale * at_sum(dy * x_diff, axis=self.axes, keepdims=True)
             )
 
         if not isinstance(ddbias.type, aesara.gradient.DisconnectedType):
-            g_wrt_dy = g_wrt_dy + aet.fill(dy, ddbias)
+            g_wrt_dy = g_wrt_dy + at.fill(dy, ddbias)
 
         # depending on which output gradients are given,
         # some inputs should be disconnected
@@ -814,7 +814,7 @@ def local_abstract_batch_norm_train(fgraph, node):
         )
         results.append(running_mean)
     if len(node.inputs) > 6:
-        m = aet.cast(prod(x.shape) / prod(scale.shape), config.floatX)
+        m = at.cast(prod(x.shape) / prod(scale.shape), config.floatX)
         running_var = node.inputs[6]
         running_var = (
             running_var * (1.0 - running_average_factor)
@@ -823,7 +823,7 @@ def local_abstract_batch_norm_train(fgraph, node):
         results.append(running_var)
 
     results = [
-        aet.patternbroadcast(r, r_orig.broadcastable)
+        at.patternbroadcast(r, r_orig.broadcastable)
         for (r, r_orig) in zip(results, node.outputs)
     ]
 
@@ -857,12 +857,12 @@ def local_abstract_batch_norm_train_grad(fgraph, node):
     c = (dy * x_invstd) - x_diff * (mean_dy_x_diff * (x_invstd ** 3))
 
     g_wrt_inputs = scale * (c - mean(c, axis=axes, keepdims=True))
-    g_wrt_scale = aet_sum(dy * x_invstd * x_diff, axis=axes, keepdims=True)
-    g_wrt_bias = aet_sum(dy, axis=axes, keepdims=True)
+    g_wrt_scale = at_sum(dy * x_invstd * x_diff, axis=axes, keepdims=True)
+    g_wrt_bias = at_sum(dy, axis=axes, keepdims=True)
     results = [g_wrt_inputs, g_wrt_scale, g_wrt_bias]
 
     results = [
-        aet.patternbroadcast(r, r_orig.broadcastable)
+        at.patternbroadcast(r, r_orig.broadcastable)
         for (r, r_orig) in zip(results, node.outputs)
     ]
 
@@ -894,7 +894,7 @@ def local_abstract_batch_norm_inference(fgraph, node):
         epsilon = epsilon.astype("float32")
 
     result = (x - estimated_mean) * (scale / sqrt(estimated_variance + epsilon)) + bias
-    result = aet.patternbroadcast(result, node.outputs[0].broadcastable)
+    result = at.patternbroadcast(result, node.outputs[0].broadcastable)
 
     for var in aesara.graph.basic.vars_between(node.inputs, [result]):
         if var not in node.inputs:

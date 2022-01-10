@@ -28,10 +28,10 @@ The following illustrates these elements:
 
 .. testcode::
 
-   import aesara.tensor as aet
+   import aesara.tensor as at
 
-   x = aet.dmatrix('x')
-   y = aet.dmatrix('y')
+   x = at.dmatrix('x')
+   y = at.dmatrix('y')
    z = x + y
 
 **Diagram**

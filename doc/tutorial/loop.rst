@@ -32,15 +32,15 @@ The full documentation can be found in the library: :ref:`Scan <lib_scan>`.
 .. testcode::
 
   import aesara
-  import aesara.tensor as aet
+  import aesara.tensor as at
   import numpy as np
 
   # defining the tensor variables
-  X = aet.matrix("X")
-  W = aet.matrix("W")
-  b_sym = aet.vector("b_sym")
+  X = at.matrix("X")
+  W = at.matrix("W")
+  b_sym = at.vector("b_sym")
 
-  results, updates = aesara.scan(lambda v: aet.tanh(aet.dot(v, W) + b_sym), sequences=X)
+  results, updates = aesara.scan(lambda v: at.tanh(at.dot(v, W) + b_sym), sequences=X)
   compute_elementwise = aesara.function(inputs=[X, W, b_sym], outputs=results)
 
   # test values
@@ -66,19 +66,19 @@ The full documentation can be found in the library: :ref:`Scan <lib_scan>`.
 .. testcode::
 
   import aesara
-  import aesara.tensor as aet
+  import aesara.tensor as at
   import numpy as np
 
   # define tensor variables
-  X = aet.vector("X")
-  W = aet.matrix("W")
-  b_sym = aet.vector("b_sym")
-  U = aet.matrix("U")
-  Y = aet.matrix("Y")
-  V = aet.matrix("V")
-  P = aet.matrix("P")
+  X = at.vector("X")
+  W = at.matrix("W")
+  b_sym = at.vector("b_sym")
+  U = at.matrix("U")
+  Y = at.matrix("Y")
+  V = at.matrix("V")
+  P = at.matrix("P")
 
-  results, updates = aesara.scan(lambda y, p, x_tm1: aet.tanh(aet.dot(x_tm1, W) + aet.dot(y, U) + aet.dot(p, V)),
+  results, updates = aesara.scan(lambda y, p, x_tm1: at.tanh(at.dot(x_tm1, W) + at.dot(y, U) + at.dot(p, V)),
             sequences=[Y, P[::-1]], outputs_info=[X])
   compute_seq = aesara.function(inputs=[X, W, Y, U, P, V], outputs=results)
 
@@ -120,12 +120,12 @@ The full documentation can be found in the library: :ref:`Scan <lib_scan>`.
 .. testcode::
 
   import aesara
-  import aesara.tensor as aet
+  import aesara.tensor as at
   import numpy as np
 
   # define tensor variable
-  X = aet.matrix("X")
-  results, updates = aesara.scan(lambda x_i: aet.sqrt((x_i ** 2).sum()), sequences=[X])
+  X = at.matrix("X")
+  results, updates = aesara.scan(lambda x_i: at.sqrt((x_i ** 2).sum()), sequences=[X])
   compute_norm_lines = aesara.function(inputs=[X], outputs=results)
 
   # test value
@@ -145,12 +145,12 @@ The full documentation can be found in the library: :ref:`Scan <lib_scan>`.
 .. testcode::
 
   import aesara
-  import aesara.tensor as aet
+  import aesara.tensor as at
   import numpy as np
 
   # define tensor variable
-  X = aet.matrix("X")
-  results, updates = aesara.scan(lambda x_i: aet.sqrt((x_i ** 2).sum()), sequences=[X.T])
+  X = at.matrix("X")
+  results, updates = aesara.scan(lambda x_i: at.sqrt((x_i ** 2).sum()), sequences=[X.T])
   compute_norm_cols = aesara.function(inputs=[X], outputs=results)
 
   # test value
@@ -170,14 +170,14 @@ The full documentation can be found in the library: :ref:`Scan <lib_scan>`.
 .. testcode::
 
   import aesara
-  import aesara.tensor as aet
+  import aesara.tensor as at
   import numpy as np
   floatX = "float32"
 
   # define tensor variable
-  X = aet.matrix("X")
-  results, updates = aesara.scan(lambda i, j, t_f: aet.cast(X[i, j] + t_f, floatX),
-                    sequences=[aet.arange(X.shape[0]), aet.arange(X.shape[1])],
+  X = at.matrix("X")
+  results, updates = aesara.scan(lambda i, j, t_f: at.cast(X[i, j] + t_f, floatX),
+                    sequences=[at.arange(X.shape[0]), at.arange(X.shape[1])],
                     outputs_info=np.asarray(0., dtype=floatX))
   result = results[-1]
   compute_trace = aesara.function(inputs=[X], outputs=result)
@@ -201,18 +201,18 @@ The full documentation can be found in the library: :ref:`Scan <lib_scan>`.
 .. testcode::
 
   import aesara
-  import aesara.tensor as aet
+  import aesara.tensor as at
   import numpy as np
 
   # define tensor variables
-  X = aet.matrix("X")
-  W = aet.matrix("W")
-  b_sym = aet.vector("b_sym")
-  U = aet.matrix("U")
-  V = aet.matrix("V")
-  n_sym = aet.iscalar("n_sym")
+  X = at.matrix("X")
+  W = at.matrix("W")
+  b_sym = at.vector("b_sym")
+  U = at.matrix("U")
+  V = at.matrix("V")
+  n_sym = at.iscalar("n_sym")
 
-  results, updates = aesara.scan(lambda x_tm2, x_tm1: aet.dot(x_tm2, U) + aet.dot(x_tm1, V) + aet.tanh(aet.dot(x_tm1, W) + b_sym),
+  results, updates = aesara.scan(lambda x_tm2, x_tm1: at.dot(x_tm2, U) + at.dot(x_tm1, V) + at.tanh(at.dot(x_tm1, W) + b_sym),
                       n_steps=n_sym, outputs_info=[dict(initial=X, taps=[-2, -1])])
   compute_seq2 = aesara.function(inputs=[X, U, V, W, b_sym, n_sym], outputs=results)
 
@@ -266,14 +266,14 @@ The full documentation can be found in the library: :ref:`Scan <lib_scan>`.
 .. testcode::
 
   import aesara
-  import aesara.tensor as aet
+  import aesara.tensor as at
   import numpy as np
 
   # define tensor variables
-  v = aet.vector()
-  A = aet.matrix()
-  y = aet.tanh(aet.dot(v, A))
-  results, updates = aesara.scan(lambda i: aet.grad(y[i], v), sequences=[aet.arange(y.shape[0])])
+  v = at.vector()
+  A = at.matrix()
+  y = at.tanh(at.dot(v, A))
+  results, updates = aesara.scan(lambda i: at.grad(y[i], v), sequences=[at.arange(y.shape[0])])
   compute_jac_t = aesara.function([A, v], results, allow_input_downcast=True) # shape (d_out, d_in)
 
   # test values
@@ -301,12 +301,12 @@ Note that we need to iterate over the indices of ``y`` and not over the elements
 .. testcode::
 
   import aesara
-  import aesara.tensor as aet
+  import aesara.tensor as at
   import numpy as np
 
   # define shared variables
   k = aesara.shared(0)
-  n_sym = aet.iscalar("n_sym")
+  n_sym = at.iscalar("n_sym")
 
   results, updates = aesara.scan(lambda:{k:(k + 1)}, n_steps=n_sym)
   accumulator = aesara.function([n_sym], [], updates=updates, allow_input_downcast=True)
@@ -320,19 +320,19 @@ Note that we need to iterate over the indices of ``y`` and not over the elements
 .. testcode::
 
   import aesara
-  import aesara.tensor as aet
+  import aesara.tensor as at
   import numpy as np
 
   # define tensor variables
-  X = aet.matrix("X")
-  W = aet.matrix("W")
-  b_sym = aet.vector("b_sym")
+  X = at.matrix("X")
+  W = at.matrix("W")
+  b_sym = at.vector("b_sym")
 
   # define shared random stream
   trng = aesara.tensor.random.utils.RandomStream(1234)
   d=trng.binomial(size=W[1].shape)
 
-  results, updates = aesara.scan(lambda v: aet.tanh(aet.dot(v, W) + b_sym) * d, sequences=X)
+  results, updates = aesara.scan(lambda v: at.tanh(at.dot(v, W) + b_sym) * d, sequences=X)
   compute_with_bnoise = aesara.function(inputs=[X, W, b_sym], outputs=results,
                             updates=updates, allow_input_downcast=True)
   x = np.eye(10, 2, dtype=aesara.config.floatX)
@@ -361,17 +361,17 @@ Note that if you want to use a random variable ``d`` that will not be updated th
 .. testcode::
 
   import aesara
-  import aesara.tensor as aet
+  import aesara.tensor as at
 
-  k = aet.iscalar("k")
-  A = aet.vector("A")
+  k = at.iscalar("k")
+  A = at.vector("A")
 
   def inner_fct(prior_result, B):
       return prior_result * B
 
   # Symbolic description of the result
   result, updates = aesara.scan(fn=inner_fct,
-                              outputs_info=aet.ones_like(A),
+                              outputs_info=at.ones_like(A),
                               non_sequences=A, n_steps=k)
 
   # Scan has provided us with A ** 1 through A ** k.  Keep only the last
@@ -394,10 +394,10 @@ Note that if you want to use a random variable ``d`` that will not be updated th
 
   import numpy
   import aesara
-  import aesara.tensor as aet
+  import aesara.tensor as at
 
   coefficients = aesara.tensor.vector("coefficients")
-  x = aet.scalar("x")
+  x = at.scalar("x")
   max_coefficients_supported = 10000
 
   # Generate the components of the polynomial

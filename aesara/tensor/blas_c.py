@@ -3,7 +3,7 @@ from aesara.graph.op import COp
 from aesara.graph.opt import in2out
 from aesara.graph.params_type import ParamsType
 from aesara.scalar import bool as bool_t
-from aesara.tensor import basic as aet
+from aesara.tensor import basic as at
 from aesara.tensor.blas import (
     Gemv,
     Ger,
@@ -717,10 +717,10 @@ def make_c_gemv_destructive(fgraph, node):
         dest = inputs[0]
         if (
             dest.owner
-            and isinstance(dest.owner.op, aet.AllocEmpty)
+            and isinstance(dest.owner.op, at.AllocEmpty)
             and len(fgraph.clients[dest]) > 1
         ):
-            inputs[0] = aet.AllocEmpty(dest.dtype)(*dest.owner.inputs)
+            inputs[0] = at.AllocEmpty(dest.dtype)(*dest.owner.inputs)
 
         return [cgemv_inplace(*inputs)]
 

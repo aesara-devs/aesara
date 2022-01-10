@@ -5,7 +5,7 @@ import numpy as np
 from numpy.random import randn
 
 import aesara
-import aesara.tensor as aet
+import aesara.tensor as at
 import tests.unittest_tools as utt
 from aesara.tensor.elemwise import DimShuffle
 from aesara.tensor.nnet.blocksparse import (
@@ -186,7 +186,7 @@ class TestBlockSparseGemvAndOuter(utt.InferShapeTester):
         o = self.gemv_op(
             b.take(oIdx, axis=0),
             DimShuffle((False, False, False, False), (0, 1, 3, 2))(
-                aet.as_tensor_variable(W)
+                at.as_tensor_variable(W)
             ),
             h,
             iIdx,
@@ -208,8 +208,8 @@ class TestBlockSparseGemvAndOuter(utt.InferShapeTester):
 
         W_val, h_val, iIdx_val, b_val, oIdx_val = self.gemv_data()
 
-        iIdx = aet.constant(iIdx_val)
-        oIdx = aet.constant(oIdx_val)
+        iIdx = at.constant(iIdx_val)
+        oIdx = at.constant(oIdx_val)
 
         def metaop(b, h, W):
             return sparse_block_dot(W, h, iIdx, b, oIdx)
@@ -229,8 +229,8 @@ class TestBlockSparseGemvAndOuter(utt.InferShapeTester):
         W_val = randn(1, 1, 1, 1).astype("float32")
         b_val = randn(1, 1).astype("float32")
 
-        iIdx = aet.constant(iIdx_val)
-        oIdx = aet.constant(oIdx_val)
+        iIdx = at.constant(iIdx_val)
+        oIdx = at.constant(oIdx_val)
 
         def metaop(b, h, W):
             return sparse_block_dot(W, h, iIdx, b, oIdx)

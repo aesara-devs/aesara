@@ -10,7 +10,7 @@ import numpy as np
 
 import aesara
 from aesara import scalar as aes
-from aesara import tensor as aet
+from aesara import tensor as at
 from aesara.compile import optdb
 from aesara.compile.function.types import deep_copy_op
 from aesara.configdefaults import config
@@ -363,7 +363,7 @@ def push_out_non_seq_scan(fgraph, node):
                 x = node.outputs[local_fgraph_outs_map[out]]
                 y = replace_with_out[idx]
                 y_shape = [shp for shp in y.shape]
-                replace_with[x] = aet.alloc(y, node.inputs[0], *y_shape)
+                replace_with[x] = at.alloc(y, node.inputs[0], *y_shape)
 
         # We need to add one extra dimension to the outputs
         # because the scan op expects for a tensor3, to which an
@@ -656,7 +656,7 @@ def inner_sitsot_only_last_step_used(
         client = fgraph.clients[outer_var][0][0]
         if client != "output" and isinstance(client.op, Subtensor):
             lst = get_idx_list(client.inputs, client.op.idx_list)
-            if len(lst) == 1 and aet.extract_constant(lst[0]) == -1:
+            if len(lst) == 1 and at.extract_constant(lst[0]) == -1:
                 return True
 
     return False
@@ -871,7 +871,7 @@ def push_out_add_scan(fgraph, node):
                     # so that they become matrices. This is because a
                     # dot is usually faster on two large matrices than
                     # a bunch of small ones
-                    outer_dot_inputs[0] = aet.flatten(
+                    outer_dot_inputs[0] = at.flatten(
                         outer_dot_inputs[0].dimshuffle(1, 0, 2), ndim=2
                     )
 
@@ -1096,7 +1096,7 @@ def sanitize(x):
     if x is None:
         return None
     else:
-        return aet.as_tensor_variable(x)
+        return at.as_tensor_variable(x)
 
 
 @local_optimizer([Scan])
@@ -1241,9 +1241,9 @@ def save_mem_new_scan(fgraph, node):
                 if isinstance(this_slice[0], slice) and this_slice[0].stop is None:
                     global_nsteps = None
                 if isinstance(cf_slice[0], slice):
-                    stop = aet.extract_constant(cf_slice[0].stop)
+                    stop = at.extract_constant(cf_slice[0].stop)
                 else:
-                    stop = aet.extract_constant(cf_slice[0]) + 1
+                    stop = at.extract_constant(cf_slice[0]) + 1
                 if stop == maxsize or stop == length:
                     stop = None
                 else:
@@ -1337,9 +1337,9 @@ def save_mem_new_scan(fgraph, node):
                 cf_slice = get_canonical_form_slice(this_slice[0], length)
 
                 if isinstance(cf_slice[0], slice):
-                    start = aet.extract_constant(cf_slice[0].start)
+                    start = at.extract_constant(cf_slice[0].start)
                 else:
-                    start = aet.extract_constant(cf_slice[0])
+                    start = at.extract_constant(cf_slice[0])
                 if start == 0 or store_steps[i] == 0:
                     store_steps[i] = 0
                 else:
@@ -1419,13 +1419,13 @@ def save_mem_new_scan(fgraph, node):
                             nw_inputs[offset + idx].owner.op, IncSubtensor
                         )
                         _nw_input = nw_inputs[offset + idx].owner.inputs[1]
-                        cval = aet.as_tensor_variable(val)
-                        initl = aet.as_tensor_variable(init_l[i])
-                        tmp_idx = aet.switch(cval < initl, cval + initl, cval - initl)
+                        cval = at.as_tensor_variable(val)
+                        initl = at.as_tensor_variable(init_l[i])
+                        tmp_idx = at.switch(cval < initl, cval + initl, cval - initl)
                         nw_input = expand_empty(_nw_input, tmp_idx)
                     else:
-                        tmp = aet.as_tensor_variable(val)
-                        initl = aet.as_tensor_variable(init_l[i])
+                        tmp = at.as_tensor_variable(val)
+                        initl = at.as_tensor_variable(init_l[i])
                         tmp = maximum(tmp, initl)
                         nw_input = nw_inputs[offset + idx][:tmp]
 
@@ -1505,7 +1505,7 @@ def save_mem_new_scan(fgraph, node):
         # 3.6 Compose the new scan
         # TODO: currently we don't support scan with 0 step. So
         # don't create one.
-        if aet.extract_constant(node_ins[0]) == 0:
+        if at.extract_constant(node_ins[0]) == 0:
             return False
 
         # Do not call make_node for test_value

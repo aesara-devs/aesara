@@ -3,7 +3,7 @@ import pytest
 
 import aesara
 import aesara.scalar as aes
-import aesara.tensor as aet
+import aesara.tensor as at
 from aesara import shared
 from aesara.compile.function import function
 from aesara.compile.mode import Mode, get_default_mode, get_mode
@@ -246,7 +246,7 @@ def test_local_useless_subtensor():
                 ),
                 False,
             ),
-            ((slice(0, aet.scalar_from_tensor(x.shape[0])),), True),
+            ((slice(0, at.scalar_from_tensor(x.shape[0])),), True),
         ]
     ):
         f = function([x], exp(x).__getitem__(dims), mode=mode_opt)
@@ -298,11 +298,11 @@ def test_local_useless_subtensor():
         ([1, 0], False),
         ([0, 0], False),
         ([0, 0, 1], False),
-        (aet.arange(2), True),
-        (aet.arange(0, 2), True),
-        (aet.arange(0, 2, 2), False),
-        (aet.arange(0, 2, -1), False),
-        (aet.arange(1, 2), False),
+        (at.arange(2), True),
+        (at.arange(0, 2), True),
+        (at.arange(0, 2, 2), False),
+        (at.arange(0, 2, -1), False),
+        (at.arange(1, 2), False),
     ):
         f = function([x], exp(x_c).__getitem__(dims), mode=mode_opt)
         prog = f.maker.fgraph.toposort()
@@ -576,7 +576,7 @@ class TestLocalSubtensorMakeVector:
     def test_idx_symbolic(self):
         x, y, z = iscalars("xyz")
         v = MakeVector("int32")(x, y, z)
-        idx = aet.as_tensor([0], dtype=np.int64)
+        idx = at.as_tensor([0], dtype=np.int64)
         f = function([x, y, z], v[idx], mode=self.mode)
 
         opt_fgraph = f.maker.fgraph
@@ -1475,8 +1475,8 @@ class TestAllocZero:
     def test_setsubtensor_allocs0(self):
         x = matrix()
         y = matrix()
-        x0 = aet.zeros_like(x)
-        y0 = aet.zeros_like(y)
+        x0 = at.zeros_like(x)
+        y0 = at.zeros_like(y)
         z = set_subtensor(x0[:4], y0)
         f = function([x, y], z, mode=self.mode)
         assert np.all(
@@ -1485,8 +1485,8 @@ class TestAllocZero:
 
     def test_setsubtensor_allocs1(self):
         y = matrix()
-        x0 = aet.constant(np.asarray(np.zeros((4, 4)), dtype=config.floatX))
-        y0 = aet.zeros_like(y)
+        x0 = at.constant(np.asarray(np.zeros((4, 4)), dtype=config.floatX))
+        y0 = at.zeros_like(y)
         z = set_subtensor(x0[:4], y0)
         f = function([y], z, mode=self.mode)
         assert np.all(
@@ -1495,8 +1495,8 @@ class TestAllocZero:
 
     def test_setsubtensor_allocs1t(self):
         y = matrix()
-        x0 = aet.constant(np.asarray(np.zeros((4, 4)), dtype=config.floatX))
-        y0 = aet.zeros_like(y)
+        x0 = at.constant(np.asarray(np.zeros((4, 4)), dtype=config.floatX))
+        y0 = at.zeros_like(y)
         z = set_subtensor(x0[:4], y0.T)
         f = function([y], z, mode=mode_opt)
         assert np.all(
@@ -1505,8 +1505,8 @@ class TestAllocZero:
 
     def test_setsubtensor_allocs2(self):
         x = matrix()
-        y0 = aet.constant(np.asarray(np.zeros_like((4, 4)), dtype=config.floatX))
-        x0 = aet.zeros_like(x)
+        y0 = at.constant(np.asarray(np.zeros_like((4, 4)), dtype=config.floatX))
+        x0 = at.zeros_like(x)
         z = set_subtensor(x0[:4], y0)
         f = function([x], z, mode=self.mode)
         assert np.all(
@@ -1516,7 +1516,7 @@ class TestAllocZero:
     def test_incsubtensor_allocs0(self):
         x = matrix()
         y = matrix()
-        y0 = aet.zeros_like(y)
+        y0 = at.zeros_like(y)
         z = inc_subtensor(x[:4], y0)
         f = function([x, y], z, mode=self.mode)
         assert np.all(
@@ -1526,7 +1526,7 @@ class TestAllocZero:
     def test_incsubtensor_allocs0t(self):
         x = matrix()
         y = matrix()
-        y0 = aet.zeros_like(y)
+        y0 = at.zeros_like(y)
         z = inc_subtensor(x[:4], y0.T)
         f = function([x, y], z, mode=mode_opt)
         assert np.all(
@@ -1535,7 +1535,7 @@ class TestAllocZero:
 
     def test_incsubtensor_allocs1(self):
         x = matrix()
-        y0 = aet.constant(np.asarray(np.zeros_like((4, 4)), dtype=config.floatX))
+        y0 = at.constant(np.asarray(np.zeros_like((4, 4)), dtype=config.floatX))
         z = inc_subtensor(x[:4], y0)
         f = function([x], z, mode=self.mode)
         assert np.all(
@@ -1543,7 +1543,7 @@ class TestAllocZero:
         )
 
     def test_incsubtensor_x_zeros(self):
-        x = aet.constant(np.asarray(np.zeros((4, 4)), dtype=config.floatX))
+        x = at.constant(np.asarray(np.zeros((4, 4)), dtype=config.floatX))
         y = matrix()
         z = inc_subtensor(x[:4], y)
         f = function([y], z)
@@ -1563,7 +1563,7 @@ class TestAllocZero:
         # also check the flag doesn't get set if first input is not zeros:
         not_all_zeros = np.zeros((4, 4))
         not_all_zeros[1, 0] = 0.001
-        x = aet.constant(np.asarray(not_all_zeros, dtype=config.floatX))
+        x = at.constant(np.asarray(not_all_zeros, dtype=config.floatX))
         y = matrix()
         z = inc_subtensor(x[:4], y)
         f = function([y], z)
@@ -1578,7 +1578,7 @@ class TestAllocZero:
     def test_advancedincsubtensor1_allocs0(self):
         x = matrix()
         y = matrix()
-        y0 = aet.zeros_like(y)
+        y0 = at.zeros_like(y)
         z = inc_subtensor(x[[0, 1, 2, 3]], y0)
         f = function([x, y], z, mode=self.mode)
         assert np.all(
@@ -1591,7 +1591,7 @@ class TestAllocZero:
     def test_advancedincsubtensor1_allocs0t(self):
         x = matrix()
         y = matrix()
-        y0 = aet.zeros_like(y)
+        y0 = at.zeros_like(y)
         z = inc_subtensor(x[[0, 1, 2, 3]], y0.T)
         f = function([x, y], z, mode=mode_opt)
         assert np.all(
@@ -1603,7 +1603,7 @@ class TestAllocZero:
 
     def test_advancedincsubtensor1_allocs1(self):
         x = matrix()
-        y0 = aet.constant(np.asarray(np.zeros_like((4, 4)), dtype=config.floatX))
+        y0 = at.constant(np.asarray(np.zeros_like((4, 4)), dtype=config.floatX))
         z = inc_subtensor(x[[0, 1, 2, 3]], y0)
         f = function([x], z, mode=self.mode)
         assert np.all(
@@ -1616,7 +1616,7 @@ class TestAllocZero:
     def test_advancedincsubtensor_allocs0(self):
         x = matrix()
         y = matrix()
-        y0 = aet.zeros_like(y)
+        y0 = at.zeros_like(y)
         z = inc_subtensor(x[[[0, 0], [1, 1]], [[0, 1], [0, 1]]], y0)
         f = function([x, y], z, mode=self.mode)
         assert np.all(
@@ -1629,7 +1629,7 @@ class TestAllocZero:
     def test_advancedincsubtensor_allocs0t(self):
         x = matrix()
         y = matrix()
-        y0 = aet.zeros_like(y)
+        y0 = at.zeros_like(y)
         z = inc_subtensor(x[[[0, 0], [1, 1]], [[0, 1], [0, 1]]], y0.T)
         f = function([x, y], z, mode=mode_opt)
         assert np.all(
@@ -1641,7 +1641,7 @@ class TestAllocZero:
 
     def test_advancedincsubtensor_allocs1(self):
         x = matrix()
-        y0 = aet.constant(np.asarray(np.zeros_like((2, 2)), dtype=config.floatX))
+        y0 = at.constant(np.asarray(np.zeros_like((2, 2)), dtype=config.floatX))
         z = inc_subtensor(x[[[0, 0], [1, 1]], [[0, 1], [0, 1]]], y0)
         f = function([x], z, mode=self.mode)
         assert np.all(
@@ -1664,11 +1664,11 @@ class TestAllocZero:
             for _e2 in [(v2, vv2, vv3), (m2, vm2, vm3)]:
                 for p in [0, 1]:
                     if p == 0:
-                        e1 = aet.zeros_like(_e1[0])
+                        e1 = at.zeros_like(_e1[0])
                         e2 = _e2[0]
                     else:
                         e1 = _e1[0]
-                        e2 = aet.zeros_like(_e2[0])
+                        e2 = at.zeros_like(_e2[0])
                     o = dot(e1, e2)
                     f = function([_e1[0], _e2[0]], o, mode=self.mode)
                     f(_e1[1], _e2[1])
@@ -1785,23 +1785,23 @@ class TestLocalElemwiseAlloc:
         self.mat = matrix("mat", dtype=self.dtype)
         self.tens = tensor3("tens", dtype=self.dtype)
 
-        self.alloc_wo_dep = aet.alloc(self.vec, 2, 2)
-        self.alloc_wo_dep_broad = aet.alloc(self.vec, 1, 2)
-        self.alloc_w_dep = aet.alloc(self.vec, *self.mat.shape)
-        self.alloc_w_dep_broad = aet.alloc(self.vec, 1, *self.mat.shape)
-        self.alloc_w_dep_broad2 = aet.alloc(
+        self.alloc_wo_dep = at.alloc(self.vec, 2, 2)
+        self.alloc_wo_dep_broad = at.alloc(self.vec, 1, 2)
+        self.alloc_w_dep = at.alloc(self.vec, *self.mat.shape)
+        self.alloc_w_dep_broad = at.alloc(self.vec, 1, *self.mat.shape)
+        self.alloc_w_dep_broad2 = at.alloc(
             self.vec, self.mat.shape[0], self.mat.shape[1], 1
         )
-        self.alloc_w_dep_tens = aet.alloc(
+        self.alloc_w_dep_tens = at.alloc(
             self.vec, self.tens.shape[0], self.tens.shape[1]
         )
-        self.tv_wo_dep = aet.alloc(self.vec, 5, 5)
-        self.tm_wo_dep = aet.alloc(self.mat, 5, 5, 5)
+        self.tv_wo_dep = at.alloc(self.vec, 5, 5)
+        self.tm_wo_dep = at.alloc(self.mat, 5, 5, 5)
         self.s = iscalar("s")
-        self.tv_w_dep = aet.alloc(self.vec, self.s, self.s)
-        self.tm_w_dep = aet.alloc(self.mat, 5, 5, 5)
+        self.tv_w_dep = at.alloc(self.vec, self.s, self.s)
+        self.tm_w_dep = at.alloc(self.mat, 5, 5, 5)
         self.row = row(dtype=self.dtype)
-        self.o = aet.alloc(self.row, 5, 5)
+        self.o = at.alloc(self.row, 5, 5)
 
     def _verify_alloc_count(self, f, count):
         assert (
@@ -1989,10 +1989,10 @@ def test_local_subtensor_of_alloc():
         xval = np.zeros(s, dtype=config.floatX)
         yval = np.arange(s[1], dtype=config.floatX)
 
-        for y in [shared(yval), aet.constant([1.0])]:
+        for y in [shared(yval), at.constant([1.0])]:
 
             # The rows of yx are copies of y
-            yx = aet.alloc(y, x.shape[0], x.shape[1])
+            yx = at.alloc(y, x.shape[0], x.shape[1])
 
             # Slice of each row
             z_mat = yx[:, 3:]

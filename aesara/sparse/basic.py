@@ -22,13 +22,13 @@ from aesara.graph.op import COp, Op
 from aesara.misc.safe_asarray import _asarray
 from aesara.sparse.type import SparseType, _is_sparse
 from aesara.sparse.utils import hash_from_sparse
-from aesara.tensor import basic as aet
+from aesara.tensor import basic as at
 from aesara.tensor.basic import Split
-from aesara.tensor.math import add as aet_add
+from aesara.tensor.math import add as at_add
 from aesara.tensor.math import arcsin, arcsinh, arctan, arctanh, ceil, conj, deg2rad
-from aesara.tensor.math import dot as aet_dot
+from aesara.tensor.math import dot as at_dot
 from aesara.tensor.math import exp, expm1, floor, log, log1p, maximum, minimum
-from aesara.tensor.math import pow as aet_pow
+from aesara.tensor.math import pow as at_pow
 from aesara.tensor.math import (
     rad2deg,
     round_half_to_even,
@@ -188,7 +188,7 @@ def as_sparse_or_tensor_variable(x, name=None):
     try:
         return as_sparse_variable(x, name)
     except (ValueError, TypeError):
-        return aet.as_tensor_variable(x, name)
+        return at.as_tensor_variable(x, name)
 
 
 def constant(x, name=None):
@@ -219,7 +219,7 @@ def sp_ones_like(x):
     """
     # TODO: don't restrict to CSM formats
     data, indices, indptr, _shape = csm_properties(x)
-    return CSM(format=x.format)(aet.ones_like(data), indices, indptr, _shape)
+    return CSM(format=x.format)(at.ones_like(data), indices, indptr, _shape)
 
 
 def sp_zeros_like(x):
@@ -243,7 +243,7 @@ def sp_zeros_like(x):
     return CSM(format=x.format)(
         data=np.array([], dtype=x.type.dtype),
         indices=np.array([], dtype="int32"),
-        indptr=aet.zeros_like(indptr),
+        indptr=at.zeros_like(indptr),
         shape=_shape,
     )
 
@@ -317,7 +317,7 @@ class _sparse_py_operators:
         return shape(dense_from_sparse(self))
 
     # don't worry!
-    # the plan is that the ShapeFeature in aet.opt will do shape propagation
+    # the plan is that the ShapeFeature in at.opt will do shape propagation
     # and remove the dense_from_sparse from the graph.  This will *NOT*
     # actually expand your sparse matrix just to get the shape.
     ndim = property(lambda self: self.type.ndim)
@@ -599,7 +599,7 @@ class CSM(Op):
         self.view_map = {0: [0]}
 
     def make_node(self, data, indices, indptr, shape):
-        data = aet.as_tensor_variable(data)
+        data = at.as_tensor_variable(data)
 
         if not isinstance(indices, Variable):
             indices_ = np.asarray(indices)
@@ -617,9 +617,9 @@ class CSM(Op):
             assert (shape_ == shape_32).all()
             shape = shape_32
 
-        indices = aet.as_tensor_variable(indices)
-        indptr = aet.as_tensor_variable(indptr)
-        shape = aet.as_tensor_variable(shape)
+        indices = at.as_tensor_variable(indices)
+        indptr = at.as_tensor_variable(indptr)
+        shape = at.as_tensor_variable(shape)
 
         if data.type.ndim != 1:
             raise TypeError("data argument must be a vector", data.type, data.type.ndim)
@@ -999,7 +999,7 @@ class SparseFromDense(Op):
         return f"{self.__class__.__name__}{{{self.format}}}"
 
     def make_node(self, x):
-        x = aet.as_tensor_variable(x)
+        x = at.as_tensor_variable(x)
         if x.ndim > 2:
             raise TypeError(
                 "Aesara does not have sparse tensor types with more "
@@ -1023,7 +1023,7 @@ class SparseFromDense(Op):
         (x,) = inputs
         (gz,) = gout
         gx = dense_from_sparse(gz)
-        gx = aet.patternbroadcast(gx, x.broadcastable)
+        gx = at.patternbroadcast(gx, x.broadcastable)
         return (gx,)
 
     def infer_shape(self, fgraph, node, shapes):
@@ -1075,7 +1075,7 @@ class GetItemList(Op):
         x = as_sparse_variable(x)
         assert x.format in ("csr", "csc")
 
-        ind = aet.as_tensor_variable(index)
+        ind = at.as_tensor_variable(index)
         assert ind.ndim == 1
         assert ind.dtype in integer_dtypes
 
@@ -1130,7 +1130,7 @@ class GetItemListGrad(Op):
         assert x.format in ("csr", "csc")
         assert gz.format in ("csr", "csc")
 
-        ind = aet.as_tensor_variable(index)
+        ind = at.as_tensor_variable(index)
         assert ind.ndim == 1
         assert ind.dtype in integer_dtypes
 
@@ -1167,8 +1167,8 @@ class GetItem2Lists(Op):
     def make_node(self, x, ind1, ind2):
         x = as_sparse_variable(x)
         assert x.format in ("csr", "csc")
-        ind1 = aet.as_tensor_variable(ind1)
-        ind2 = aet.as_tensor_variable(ind2)
+        ind1 = at.as_tensor_variable(ind1)
+        ind2 = at.as_tensor_variable(ind2)
         assert ind1.dtype in integer_dtypes
         assert ind2.dtype in integer_dtypes
 
@@ -1229,8 +1229,8 @@ class GetItem2ListsGrad(Op):
 
         assert x.format in ("csr", "csc")
 
-        ind1 = aet.as_tensor_variable(ind1)
-        ind2 = aet.as_tensor_variable(ind2)
+        ind1 = at.as_tensor_variable(ind1)
+        ind2 = at.as_tensor_variable(ind2)
         assert ind1.ndim == 1
         assert ind2.ndim == 1
         assert ind1.dtype in integer_dtypes
@@ -1295,7 +1295,7 @@ class GetItem2d(Op):
                     step = generic_None
                 else:
                     if not isinstance(step, Variable):
-                        step = aet.as_tensor_variable(step)
+                        step = at.as_tensor_variable(step)
                     if not (step.ndim == 0 and step.dtype in tensor_discrete_dtypes):
                         raise ValueError(
                             (
@@ -1310,7 +1310,7 @@ class GetItem2d(Op):
                     start = generic_None
                 else:
                     if not isinstance(start, Variable):
-                        start = aet.as_tensor_variable(start)
+                        start = at.as_tensor_variable(start)
                     if not (start.ndim == 0 and start.dtype in tensor_discrete_dtypes):
                         raise ValueError(
                             (
@@ -1325,7 +1325,7 @@ class GetItem2d(Op):
                     stop = generic_None
                 else:
                     if not isinstance(stop, Variable):
-                        stop = aet.as_tensor_variable(stop)
+                        stop = at.as_tensor_variable(stop)
                     if not (stop.ndim == 0 and stop.dtype in tensor_discrete_dtypes):
                         raise ValueError(
                             (
@@ -1419,7 +1419,7 @@ class GetItemScalar(Op):
 
             # in case of indexing using int instead of aesara variable
             elif isinstance(ind, int):
-                ind = aet.constant(ind)
+                ind = at.constant(ind)
                 input_op += [ind]
 
             # in case of indexing using aesara variable
@@ -1779,13 +1779,13 @@ class SpSum(Op):
             if _is_sparse_variable(gz):
                 gz = dense_from_sparse(gz)
             if self.axis is None:
-                r = aet.second(x, gz)
+                r = at.second(x, gz)
             else:
-                ones = aet.ones_like(x)
+                ones = at.ones_like(x)
                 if self.axis == 0:
-                    r = aet.addbroadcast(gz.dimshuffle("x", 0), 0) * ones
+                    r = at.addbroadcast(gz.dimshuffle("x", 0), 0) * ones
                 elif self.axis == 1:
-                    r = aet.addbroadcast(gz.dimshuffle(0, "x"), 1) * ones
+                    r = at.addbroadcast(gz.dimshuffle(0, "x"), 1) * ones
                 else:
                     raise ValueError("Illegal value for self.axis.")
             r = SparseFromDense(o_format)(r)
@@ -1894,7 +1894,7 @@ class SquareDiagonal(Op):
     __props__ = ()
 
     def make_node(self, diag):
-        diag = aet.as_tensor_variable(diag)
+        diag = at.as_tensor_variable(diag)
         if diag.type.ndim != 1:
             raise TypeError("data argument must be a vector", diag.type)
 
@@ -2132,7 +2132,7 @@ class AddSD(Op):
     __props__ = ()
 
     def make_node(self, x, y):
-        x, y = as_sparse_variable(x), aet.as_tensor_variable(y)
+        x, y = as_sparse_variable(x), at.as_tensor_variable(y)
         assert x.format in ("csr", "csc")
         out_dtype = aes.upcast(x.type.dtype, y.type.dtype)
 
@@ -2175,7 +2175,7 @@ class StructuredAddSV(Op):
     def make_node(self, x, y):
         x = as_sparse_variable(x)
         assert x.format in ("csr", "csc")
-        y = aet.as_tensor_variable(y)
+        y = at.as_tensor_variable(y)
 
         assert y.type.ndim == 1
 
@@ -2263,9 +2263,9 @@ def add(x, y):
     if hasattr(y, "getnnz"):
         y = as_sparse_variable(y)
     if not isinstance(x, Variable):
-        x = aet.as_tensor_variable(x)
+        x = at.as_tensor_variable(x)
     if not isinstance(y, Variable):
-        y = aet.as_tensor_variable(y)
+        y = at.as_tensor_variable(y)
 
     x_is_sparse_variable = _is_sparse_variable(x)
     y_is_sparse_variable = _is_sparse_variable(y)
@@ -2353,7 +2353,7 @@ class MulSD(Op):
     __props__ = ()
 
     def make_node(self, x, y):
-        x, y = as_sparse_variable(x), aet.as_tensor_variable(y)
+        x, y = as_sparse_variable(x), at.as_tensor_variable(y)
 
         assert x.format in ("csr", "csc")
 
@@ -2445,7 +2445,7 @@ class MulSV(Op):
     def make_node(self, x, y):
         x = as_sparse_variable(x)
         assert x.format in ("csr", "csc")
-        y = aet.as_tensor_variable(y)
+        y = at.as_tensor_variable(y)
 
         assert y.type.ndim == 1
 
@@ -2628,7 +2628,7 @@ class __ComparisonOpSD(Op):
         raise NotImplementedError()
 
     def make_node(self, x, y):
-        x, y = as_sparse_variable(x), aet.as_tensor_variable(y)
+        x, y = as_sparse_variable(x), at.as_tensor_variable(y)
 
         assert y.type.ndim == 2
         out = TensorType(dtype="uint8", broadcastable=(False, False))()
@@ -2684,9 +2684,9 @@ def __ComparisonSwitch(SS, SD, DS):
         if hasattr(y, "getnnz"):
             y = as_sparse_variable(y)
         if not isinstance(x, Variable):
-            x = aet.as_tensor_variable(x)
+            x = at.as_tensor_variable(x)
         if not isinstance(y, Variable):
-            y = aet.as_tensor_variable(y)
+            y = at.as_tensor_variable(y)
 
         x_is_sparse_variable = _is_sparse_variable(x)
         y_is_sparse_variable = _is_sparse_variable(y)
@@ -2967,7 +2967,7 @@ class HStack(Op):
         if _is_sparse_variable(gz):
             gz = dense_from_sparse(gz)
 
-        split = Split(len(inputs))(gz, 1, aet.stack([x.shape[1] for x in inputs]))
+        split = Split(len(inputs))(gz, 1, at.stack([x.shape[1] for x in inputs]))
         if not isinstance(split, list):
             split = [split]
 
@@ -3047,7 +3047,7 @@ class VStack(HStack):
         if _is_sparse_variable(gz):
             gz = dense_from_sparse(gz)
 
-        split = Split(len(inputs))(gz, 0, aet.stack([x.shape[0] for x in inputs]))
+        split = Split(len(inputs))(gz, 0, at.stack([x.shape[0] for x in inputs]))
         if not isinstance(split, list):
             split = [split]
 
@@ -3217,7 +3217,7 @@ def structured_log(x):
     # see decorator for function body
 
 
-@structured_monoid(aet_pow)
+@structured_monoid(at_pow)
 def structured_pow(x, y):
     """
     Structured elemwise power of sparse matrix x by scalar y.
@@ -3244,7 +3244,7 @@ def structured_maximum(x, y):
     # see decorator for function body
 
 
-@structured_monoid(aet_add)
+@structured_monoid(at_add)
 def structured_add(x):
     """
     Structured addition of sparse matrix x and scalar y.
@@ -4008,8 +4008,8 @@ class SamplingDot(Op):
     __props__ = ()
 
     def make_node(self, x, y, p):
-        x = aet.as_tensor_variable(x)
-        y = aet.as_tensor_variable(y)
+        x = at.as_tensor_variable(x)
+        y = at.as_tensor_variable(y)
         p = as_sparse_variable(p)
         assert p.format in ("csr", "csc")
 
@@ -4128,7 +4128,7 @@ class Dot(Op):
         if x_is_sparse_var:
             broadcast_x = (False,) * x.ndim
         else:
-            x = aet.as_tensor_variable(x)
+            x = at.as_tensor_variable(x)
             broadcast_x = x.type.broadcastable
             assert y.format in ("csr", "csc")
             if x.ndim not in (1, 2):
@@ -4140,7 +4140,7 @@ class Dot(Op):
         if y_is_sparse_var:
             broadcast_y = (False,) * y.ndim
         else:
-            y = aet.as_tensor_variable(y)
+            y = at.as_tensor_variable(y)
             broadcast_y = y.type.broadcastable
             assert x.format in ("csr", "csc")
             if y.ndim not in (1, 2):
@@ -4180,11 +4180,11 @@ class Dot(Op):
         rval = []
 
         if _is_dense_variable(y):
-            rval.append(aet_dot(gz, y.T))
+            rval.append(at_dot(gz, y.T))
         else:
             rval.append(dot(gz, y.T))
         if _is_dense_variable(x):
-            rval.append(aet_dot(x.T, gz))
+            rval.append(at_dot(x.T, gz))
         else:
             rval.append(dot(x.T, gz))
 
@@ -4255,17 +4255,17 @@ class Usmm(Op):
         dtype_out = aes.upcast(
             alpha.type.dtype, x.type.dtype, y.type.dtype, z.type.dtype
         )
-        alpha = aet.as_tensor_variable(alpha)
-        z = aet.as_tensor_variable(z)
+        alpha = at.as_tensor_variable(alpha)
+        z = at.as_tensor_variable(z)
 
         assert z.ndim == 2
         assert alpha.type.broadcastable == (True,) * alpha.ndim
         if not _is_sparse_variable(x):
-            x = aet.as_tensor_variable(x)
+            x = at.as_tensor_variable(x)
             assert y.format in ("csr", "csc")
             assert x.ndim == 2
         if not _is_sparse_variable(y):
-            y = aet.as_tensor_variable(y)
+            y = at.as_tensor_variable(y)
             assert x.format in ("csr", "csc")
             assert y.ndim == 2
 
@@ -4355,9 +4355,9 @@ class ConstructSparseFromList(Op):
             It specifies where in the output to put the corresponding rows.
 
         """
-        x_ = aet.as_tensor_variable(x)
-        values_ = aet.as_tensor_variable(values)
-        ilist_ = aet.as_tensor_variable(ilist)
+        x_ = at.as_tensor_variable(x)
+        values_ = at.as_tensor_variable(values)
+        ilist_ = at.as_tensor_variable(ilist)
 
         if ilist_.type.dtype not in integer_dtypes:
             raise TypeError("index must be integers")

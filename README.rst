@@ -26,11 +26,11 @@ Getting started
 .. code-block:: python
 
   import aesara
-  from aesara import tensor as aet
+  from aesara import tensor as at
 
   # Declare two symbolic floating-point scalars
-  a = aet.dscalar("a")
-  b = aet.dscalar("b")
+  a = at.dscalar("a")
+  b = at.dscalar("b")
 
   # Create a simple example expression
   c = a + b
@@ -52,8 +52,8 @@ Getting started
   # expression graphs by removing unnecessary operations and
   # replacing computations with more efficient ones.
 
-  v = aet.vector("v")
-  M = aet.matrix("M")
+  v = at.vector("v")
+  M = at.matrix("M")
 
   d = a/a + (M + a).dot(v)
 

@@ -1,6 +1,6 @@
 import numpy as np
 
-import aesara.tensor.basic as aet
+import aesara.tensor.basic as at
 from aesara.graph.basic import Apply, Variable
 from aesara.graph.fg import FunctionGraph
 from aesara.graph.op import Op
@@ -69,8 +69,8 @@ def test_merge_with_weird_eq():
     # numpy arrays don't compare equal like other python objects
 
     # SCALAR CASE
-    x = aet.constant(np.asarray(1), name="x")
-    y = aet.constant(np.asarray(1), name="y")
+    x = at.constant(np.asarray(1), name="x")
+    y = at.constant(np.asarray(1), name="y")
     g = FunctionGraph([x, y], [x + y])
     MergeOptimizer().optimize(g)
 
@@ -81,8 +81,8 @@ def test_merge_with_weird_eq():
 
     # NONSCALAR CASE
     # This was created to test TensorConstantSignature
-    x = aet.constant(np.ones(5), name="x")
-    y = aet.constant(np.ones(5), name="y")
+    x = at.constant(np.ones(5), name="x")
+    y = at.constant(np.ones(5), name="y")
     g = FunctionGraph([x, y], [x + y])
     MergeOptimizer().optimize(g)
 

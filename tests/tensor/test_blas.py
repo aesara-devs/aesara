@@ -20,7 +20,7 @@ from numpy.testing import assert_array_almost_equal
 
 import aesara
 import aesara.scalar as aes
-import aesara.tensor as aet
+import aesara.tensor as at
 import aesara.tensor.blas_scipy
 from aesara.compile.function import function
 from aesara.compile.io import In
@@ -222,9 +222,9 @@ class TestGemm:
         b = matrix()
         s = shared(np.zeros((5, 5)).astype(config.floatX))
 
-        lr1 = aet.constant(0.01).astype(config.floatX)
-        lr2 = aet.constant(2).astype(config.floatX)
-        l2_reg = aet.constant(0.0001).astype(config.floatX)
+        lr1 = at.constant(0.01).astype(config.floatX)
+        lr2 = at.constant(2).astype(config.floatX)
+        l2_reg = at.constant(0.0001).astype(config.floatX)
 
         # test constant merge with gemm
         f = function(
@@ -293,7 +293,7 @@ class TestGemm:
         # test that dot args can be aliased
         Z = shared(self.random(2, 2), name="Z")
         A = shared(self.random(2, 2), name="A")
-        one = aet.constant(1.0).astype(Z.dtype)
+        one = at.constant(1.0).astype(Z.dtype)
         f = inplace_func([], gemm_inplace(Z, one, A, A, one))
         f()
         f = inplace_func([], gemm_inplace(Z, one, A, A.T, one))
@@ -393,7 +393,7 @@ class TestGemm:
                 g_i = function(
                     [],
                     tz_i,
-                    updates=[(tz, aet.set_subtensor(tz[:, :, i], tz_i))],
+                    updates=[(tz, at.set_subtensor(tz[:, :, i], tz_i))],
                     mode=Mode(optimizer=None, linker=l),
                 )
                 for j in range(3):
@@ -574,8 +574,8 @@ def test_res_is_a():
 class TestAsScalar:
     def test_basic(self):
         # Test that it works on scalar constants
-        a = aet.constant(2.5)
-        b = aet.constant(np.asarray([[[0.5]]]))
+        a = at.constant(2.5)
+        b = at.constant(np.asarray([[[0.5]]]))
         b2 = b.dimshuffle()
         assert b2.ndim == 0
         d_a = DimShuffle([], [])(a)
@@ -590,7 +590,7 @@ class TestAsScalar:
 
     def test_basic_1(self):
         # Test that it fails on nonscalar constants
-        a = aet.constant(np.ones(5))
+        a = at.constant(np.ones(5))
         assert _as_scalar(a) is None
         assert _as_scalar(DimShuffle([False], [0, "x"])(a)) is None
 
@@ -726,7 +726,7 @@ def test_gemm_opt_double_gemm():
     o = [
         (
             a * dot(X, Y)
-            + gemm_inplace(Z, b, S.T, R.T, aet.constant(1.0).astype(config.floatX))
+            + gemm_inplace(Z, b, S.T, R.T, at.constant(1.0).astype(config.floatX))
         )
     ]
     f = inplace_func(
@@ -907,7 +907,7 @@ def test_gemm_nested():
 def test_gemm_opt_wishlist():
     X, Y, Z, a, b = matrix(), matrix(), matrix(), scalar(), scalar()
 
-    # with >2 additions of the same ``aet.dot(X, Y)`` term
+    # with >2 additions of the same ``at.dot(X, Y)`` term
     just_gemm([X, Y, Z, a, b], [(b * b) * Z * a + (a * a) * dot(X, Y) + b * dot(X, Y)])
 
     just_gemm([X, Y, Z, a, b], [Z + dot(X, Y) + dot(X, Y)])
@@ -1086,8 +1086,8 @@ def test_dot22scalar():
             for dtype3 in ["complex64", "complex128"]:
                 c = matrix("c", dtype=dtype3)
                 for dtype4 in ["complex64", "complex128"]:
-                    cst = aet.constant(0.2, dtype=dtype4)
-                    cst2 = aet.constant(0.1, dtype=dtype4)
+                    cst = at.constant(0.2, dtype=dtype4)
+                    cst2 = at.constant(0.1, dtype=dtype4)
 
                     def check_dot22scalar(func, len_topo_scalar=-1):
                         topo = func.maker.fgraph.toposort()
@@ -1838,7 +1838,7 @@ class TestGer(unittest_tools.OptimizationTestMixin):
         return function(inputs, outputs, self.mode, updates=updates)
 
     def b(self, bval):
-        return aet.as_tensor_variable(np.asarray(bval, dtype=self.dtype))
+        return at.as_tensor_variable(np.asarray(bval, dtype=self.dtype))
 
     def test_b_0_triggers_ger(self):
         # test local_gemm_to_ger opt
@@ -2009,7 +2009,7 @@ class TestGer(unittest_tools.OptimizationTestMixin):
             [self.x, self.y],
             [],
             updates=[
-                (A, A + aet.constant(0.1, dtype=self.dtype) * outer(self.x, self.y))
+                (A, A + at.constant(0.1, dtype=self.dtype) * outer(self.x, self.y))
             ],
         )
         self.assertFunctionContains(f, self.ger_destructive)

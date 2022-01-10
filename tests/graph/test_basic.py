@@ -5,7 +5,7 @@ import numpy as np
 import pytest
 
 from aesara import shared
-from aesara import tensor as aet
+from aesara import tensor as at
 from aesara.graph.basic import (
     Apply,
     Variable,
@@ -187,7 +187,7 @@ class TestClone(X):
         _, new = clone([r1, r2, r5], node.outputs, False)
         new_node = new[0].owner
         new_node.inputs = [MyVariable(7), MyVariable(8)]
-        c1 = aet.constant(1.5)
+        c1 = at.constant(1.5)
 
         i, o = clone([c1], [c1])
         assert i[0] is not c1 and o[0] is not c1
@@ -314,13 +314,13 @@ class TestAutoName:
         # Get counter value
         autoname_id = next(Variable.__count__)
         Variable.__count__ = count(autoname_id)
-        r1 = aet.constant(1.5)
+        r1 = at.constant(1.5)
         assert r1.auto_name == "auto_" + str(autoname_id), (
             r1.auto_name,
             "auto_" + str(autoname_id),
         )
 
-        r3 = aet.constant(1.6)
+        r3 = at.constant(1.6)
         assert r3.auto_name == "auto_" + str(autoname_id + 1)
 
     def test_tensorvariable(self):
@@ -352,14 +352,14 @@ def test_equal_computations():
         equal_computations([a], [a, b])
 
     assert equal_computations([a], [a])
-    assert equal_computations([aet.as_tensor(1)], [aet.as_tensor(1)])
+    assert equal_computations([at.as_tensor(1)], [at.as_tensor(1)])
     assert not equal_computations([b], [a])
-    assert not equal_computations([aet.as_tensor(1)], [aet.as_tensor(2)])
+    assert not equal_computations([at.as_tensor(1)], [at.as_tensor(2)])
 
     assert equal_computations([2], [2])
     assert equal_computations([np.r_[2, 1]], [np.r_[2, 1]])
-    assert equal_computations([np.r_[2, 1]], [aet.as_tensor(np.r_[2, 1])])
-    assert equal_computations([aet.as_tensor(np.r_[2, 1])], [np.r_[2, 1]])
+    assert equal_computations([np.r_[2, 1]], [at.as_tensor(np.r_[2, 1])])
+    assert equal_computations([at.as_tensor(np.r_[2, 1])], [np.r_[2, 1]])
 
     assert not equal_computations([2], [a])
     assert not equal_computations([np.r_[2, 1]], [a])

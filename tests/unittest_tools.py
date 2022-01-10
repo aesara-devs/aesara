@@ -12,7 +12,7 @@ from aesara.configdefaults import config
 from aesara.gradient import verify_grad as orig_verify_grad
 from aesara.tensor.basic import as_tensor_variable
 from aesara.tensor.math import _allclose
-from aesara.tensor.math import add as aet_add
+from aesara.tensor.math import add as at_add
 
 
 _logger = logging.getLogger("tests.unittest_tools")
@@ -133,7 +133,7 @@ class OptimizationTestMixin:
 class OpContractTestMixin:
     # self.ops should be a list of instantiations of an Op class to test.
     # self.other_op should be an op which is different from every op
-    other_op = aet_add
+    other_op = at_add
 
     def copy(self, x):
         return copy(x)
@@ -383,6 +383,6 @@ def assertFailure_fast(f):
 
 def create_aesara_param(param_value):
     """Create a `Variable` from a value and set its test value."""
-    p_aet = as_tensor_variable(param_value).type()
-    p_aet.tag.test_value = param_value
-    return p_aet
+    p_at = as_tensor_variable(param_value).type()
+    p_at.tag.test_value = param_value
+    return p_at

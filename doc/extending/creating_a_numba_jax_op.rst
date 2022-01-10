@@ -135,16 +135,16 @@ Here's a small example of a test for :class:`Eye`:
 
 .. code:: python
 
-   import aesara.tensor as aet
+   import aesara.tensor as at
 
    def test_jax_Eye():
        """Test JAX conversion of the `Eye` `Op`."""
 
        # Create a symbolic input for `Eye`
-       x_at = aet.scalar()
+       x_at = at.scalar()
 
        # Create a variable that is the output of an `Eye` `Op`
-       eye_var = aet.eye(x_at)
+       eye_var = at.eye(x_at)
 
        # Create an Aesara `FunctionGraph`
        out_fg = FunctionGraph(outputs=[eye_var])

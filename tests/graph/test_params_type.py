@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 import aesara
-from aesara import tensor as aet
+from aesara import tensor as at
 from aesara.graph.basic import Apply
 from aesara.graph.op import COp, ExternalCOp
 from aesara.graph.params_type import Params, ParamsType
@@ -28,7 +28,7 @@ class QuadraticOpFunc(COp):
         self.c = c
 
     def make_node(self, x):
-        x = aet.as_tensor_variable(x)
+        x = at.as_tensor_variable(x)
         return Apply(self, [x], [x.type()])
 
     def perform(self, node, inputs, output_storage, coefficients):
@@ -114,7 +114,7 @@ class QuadraticCOpFunc(ExternalCOp):
         self.c = c
 
     def make_node(self, x):
-        x = aet.as_tensor_variable(x)
+        x = at.as_tensor_variable(x)
         return Apply(self, [x], [x.type()])
 
     def perform(self, node, inputs, output_storage, coefficients):

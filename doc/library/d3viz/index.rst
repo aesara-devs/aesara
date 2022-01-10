@@ -51,7 +51,7 @@ hidden layer and a softmax output layer.
 .. code:: python
 
     import aesara as th
-    import aesara.tensor as aet
+    import aesara.tensor as at
     import numpy as np
 
     ninputs = 1000
@@ -60,14 +60,14 @@ hidden layer and a softmax output layer.
     nhiddens = 50
 
     rng = np.random.RandomState(0)
-    x = aet.dmatrix('x')
+    x = at.dmatrix('x')
     wh = th.shared(rng.normal(0, 1, (nfeatures, nhiddens)), borrow=True)
     bh = th.shared(np.zeros(nhiddens), borrow=True)
-    h = aet.sigmoid(aet.dot(x, wh) + bh)
+    h = at.sigmoid(at.dot(x, wh) + bh)
 
     wy = th.shared(rng.normal(0, 1, (nhiddens, noutputs)))
     by = th.shared(np.zeros(noutputs), borrow=True)
-    y = aet.nnet.softmax(aet.dot(h, wy) + by)
+    y = at.nnet.softmax(at.dot(h, wy) + by)
 
     predict = th.function([x], y)
 
@@ -210,8 +210,8 @@ node defines a nested graph, which will be visualized accordingly by ``d3viz``.
 
 .. code:: python
 
-    x, y, z = aet.scalars('xyz')
-    e = aet.sigmoid((x + y + z)**2)
+    x, y, z = at.scalars('xyz')
+    e = at.sigmoid((x + y + z)**2)
     op = th.compile.builders.OpFromGraph([x, y, z], [e])
 
     e2 = op(x, y, z) + op(z, y, x)
@@ -239,7 +239,7 @@ the following example.
 
 .. code:: python
 
-    x, y, z = aet.scalars('xyz')
+    x, y, z = at.scalars('xyz')
     e = x * y
     op = th.compile.builders.OpFromGraph([x, y], [e])
     e2 = op(x, y) + z

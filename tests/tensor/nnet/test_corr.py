@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 import aesara
-import aesara.tensor as aet
+import aesara.tensor as at
 from aesara.tensor.nnet import corr
 from aesara.tensor.type import dmatrix, dtensor3, dtensor4, dvector, tensor4
 from tests import unittest_tools as utt
@@ -52,12 +52,10 @@ class TestCorr2D(utt.InferShapeTester):
         if not aesara.config.cxx:
             pytest.skip("Need cxx to test conv2d")
         N_image_shape = [
-            aet.get_scalar_constant_value(aet.as_tensor_variable(x))
-            for x in image_shape
+            at.get_scalar_constant_value(at.as_tensor_variable(x)) for x in image_shape
         ]
         N_filter_shape = [
-            aet.get_scalar_constant_value(aet.as_tensor_variable(x))
-            for x in filter_shape
+            at.get_scalar_constant_value(at.as_tensor_variable(x)) for x in filter_shape
         ]
 
         if input is None:
@@ -254,7 +252,7 @@ class TestCorr2D(utt.InferShapeTester):
     def test_shape_Constant_tensor(self):
         # Tests correlation where the {image,filter}_shape is a Constant tensor.
 
-        as_t = aet.as_tensor_variable
+        as_t = at.as_tensor_variable
         border_modes = ["valid", "full", "half", (1, 1), (2, 1), (1, 2), (3, 3), 1]
 
         for border_mode in border_modes:
@@ -524,7 +522,7 @@ class TestGroupCorr2d(TestGroupedConvNoOptim):
             )
             for i in range(groups)
         ]
-        concatenated_output = aet.concatenate(split_conv_output, axis=1)
+        concatenated_output = at.concatenate(split_conv_output, axis=1)
         conv_func = aesara.function(
             [bottom_sym, kern_sym], concatenated_output, mode=self.mode
         )

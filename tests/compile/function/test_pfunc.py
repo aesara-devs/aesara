@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-import aesara.tensor as aet
+import aesara.tensor as at
 from aesara.compile import UnusedInputError
 from aesara.compile.function import function, pfunc
 from aesara.compile.io import In
@@ -9,7 +9,7 @@ from aesara.compile.sharedvalue import shared
 from aesara.configdefaults import config
 from aesara.graph.fg import MissingInputError
 from aesara.misc.safe_asarray import _asarray
-from aesara.tensor.math import sum as aet_sum
+from aesara.tensor.math import sum as at_sum
 from aesara.tensor.type import (
     bscalar,
     bvector,
@@ -94,7 +94,7 @@ class TestPfunc:
         with pytest.raises(
             TypeError, match=r"^Cannot use a shared variable \(w\) as explicit input"
         ):
-            pfunc([w], aet_sum(w * w))
+            pfunc([w], at_sum(w * w))
 
     def test_default_container(self):
         # Ensure it is possible to (implicitly) use a shared variable in a
@@ -103,7 +103,7 @@ class TestPfunc:
         rng = np.random.default_rng(1827)
         w_init = rng.random((5))
         w = shared(w_init.copy(), "w")
-        reg = aet_sum(w * w)
+        reg = at_sum(w * w)
         f = pfunc([], reg)
 
         assert f() == np.sum(w_init * w_init)
@@ -806,7 +806,7 @@ class TestAliasingRules:
                 In(m1, mutable=True),
                 In(m2, mutable=True),
             ],
-            aet.dot((x * 2), m1) + aet.dot((y * 3), m2),
+            at.dot((x * 2), m1) + at.dot((y * 3), m2),
         )
         # Test 1. If the same variable is given twice
 
@@ -870,7 +870,7 @@ class TestAliasingRules:
                 In(m2, mutable=True),
                 In(m3, mutable=True),
             ],
-            (aet.dot((x * 2), m1) + aet.dot((y * 3), m2) + aet.dot((z * 4), m3)),
+            (at.dot((x * 2), m1) + at.dot((y * 3), m2) + at.dot((z * 4), m3)),
         )
 
         # Compute bogus values

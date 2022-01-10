@@ -9,8 +9,8 @@ import pytest
 import aesara.scalar as aes
 import aesara.scalar.basic as aesb
 import aesara.scalar.math as aesm
-import aesara.tensor as aet
-import aesara.tensor.basic as aetb
+import aesara.tensor as at
+import aesara.tensor.basic as atb
 import aesara.tensor.inplace as ati
 import aesara.tensor.math as aem
 import aesara.tensor.nnet.basic as nnetb
@@ -33,9 +33,9 @@ from aesara.scalar.basic import Composite
 from aesara.scan.basic import scan
 from aesara.scan.utils import until
 from aesara.tensor import blas
-from aesara.tensor import elemwise as aet_elemwise
+from aesara.tensor import elemwise as at_elemwise
 from aesara.tensor import extra_ops, nlinalg, slinalg
-from aesara.tensor import subtensor as aet_subtensor
+from aesara.tensor import subtensor as at_subtensor
 from aesara.tensor.elemwise import Elemwise
 from aesara.tensor.shape import Reshape, Shape, Shape_i, SpecifyShape
 
@@ -234,11 +234,11 @@ def compare_numba_and_py(fgraph, inputs, assert_fn=None):
     [
         (MyType(), None, False, True),
         (aes.float32, numba.types.float32, False, False),
-        (aet.fscalar, numba.types.Array(numba.types.float32, 0, "A"), False, False),
-        (aet.fscalar, numba.types.float32, True, False),
-        (aet.lvector, numba.types.int64[:], False, False),
-        (aet.dmatrix, numba.types.float64[:, :], False, False),
-        (aet.dmatrix, numba.types.float64, True, False),
+        (at.fscalar, numba.types.Array(numba.types.float32, 0, "A"), False, False),
+        (at.fscalar, numba.types.float32, True, False),
+        (at.lvector, numba.types.int64[:], False, False),
+        (at.dmatrix, numba.types.float64[:, :], False, False),
+        (at.dmatrix, numba.types.float64, True, False),
     ],
 )
 def test_get_numba_type(v, expected, force_scalar, not_implemented):
@@ -258,30 +258,30 @@ def test_get_numba_type(v, expected, force_scalar, not_implemented):
         (Apply(MyOp(), [], []), numba.types.void(), False),
         (Apply(MyOp(), [], []), numba.types.void(), True),
         (
-            Apply(MyOp(), [aet.lvector()], []),
+            Apply(MyOp(), [at.lvector()], []),
             numba.types.void(numba.types.int64[:]),
             False,
         ),
-        (Apply(MyOp(), [aet.lvector()], []), numba.types.void(numba.types.int64), True),
+        (Apply(MyOp(), [at.lvector()], []), numba.types.void(numba.types.int64), True),
         (
-            Apply(MyOp(), [aet.dmatrix(), aes.float32()], [aet.dmatrix()]),
+            Apply(MyOp(), [at.dmatrix(), aes.float32()], [at.dmatrix()]),
             numba.types.float64[:, :](numba.types.float64[:, :], numba.types.float32),
             False,
         ),
         (
-            Apply(MyOp(), [aet.dmatrix(), aes.float32()], [aet.dmatrix()]),
+            Apply(MyOp(), [at.dmatrix(), aes.float32()], [at.dmatrix()]),
             numba.types.float64(numba.types.float64, numba.types.float32),
             True,
         ),
         (
-            Apply(MyOp(), [aet.dmatrix(), aes.float32()], [aet.dmatrix(), aes.int32()]),
+            Apply(MyOp(), [at.dmatrix(), aes.float32()], [at.dmatrix(), aes.int32()]),
             numba.types.Tuple([numba.types.float64[:, :], numba.types.int32])(
                 numba.types.float64[:, :], numba.types.float32
             ),
             False,
         ),
         (
-            Apply(MyOp(), [aet.dmatrix(), aes.float32()], [aet.dmatrix(), aes.int32()]),
+            Apply(MyOp(), [at.dmatrix(), aes.float32()], [at.dmatrix(), aes.int32()]),
             numba.types.Tuple([numba.types.float64, numba.types.int32])(
                 numba.types.float64, numba.types.float32
             ),
@@ -318,26 +318,26 @@ def test_numba_box_unbox(input, wrapper_fn, check_fn):
     "inputs, input_vals, output_fn, exc",
     [
         (
-            [aet.vector()],
+            [at.vector()],
             [rng.standard_normal(100).astype(config.floatX)],
-            lambda x: aet.sigmoid(x),
+            lambda x: at.sigmoid(x),
             None,
         ),
         (
-            [aet.vector() for i in range(4)],
+            [at.vector() for i in range(4)],
             [rng.standard_normal(100).astype(config.floatX) for i in range(4)],
             lambda x, y, x1, y1: (x + y) * (x1 + y1) * y,
             None,
         ),
         (
             # This also tests the use of repeated arguments
-            [aet.matrix(), aet.scalar()],
+            [at.matrix(), at.scalar()],
             [rng.normal(size=(2, 2)).astype(config.floatX), 0.0],
-            lambda a, b: aet.switch(a, b, a),
+            lambda a, b: at.switch(a, b, a),
             None,
         ),
         (
-            [aet.scalar(), aet.scalar()],
+            [at.scalar(), at.scalar()],
             [
                 np.array(1.0, dtype=config.floatX),
                 np.array(1.0, dtype=config.floatX),
@@ -346,7 +346,7 @@ def test_numba_box_unbox(input, wrapper_fn, check_fn):
             None,
         ),
         (
-            [aet.vector(), aet.vector()],
+            [at.vector(), at.vector()],
             [
                 rng.standard_normal(100).astype(config.floatX),
                 rng.standard_normal(100).astype(config.floatX),
@@ -355,7 +355,7 @@ def test_numba_box_unbox(input, wrapper_fn, check_fn):
             None,
         ),
         (
-            [aet.vector(), aet.vector()],
+            [at.vector(), at.vector()],
             [
                 rng.standard_normal(100).astype(config.floatX),
                 rng.standard_normal(100).astype(config.floatX),
@@ -382,7 +382,7 @@ def test_Elemwise(inputs, input_vals, output_fn, exc):
     "inputs, input_values, scalar_fn",
     [
         (
-            [aet.scalar("x"), aet.scalar("y"), aet.scalar("z")],
+            [at.scalar("x"), at.scalar("y"), at.scalar("z")],
             [
                 np.array(10, dtype=config.floatX),
                 np.array(20, dtype=config.floatX),
@@ -391,7 +391,7 @@ def test_Elemwise(inputs, input_vals, output_fn, exc):
             lambda x, y, z: aes.add(x, y, z),
         ),
         (
-            [aet.scalar("x"), aet.scalar("y"), aet.scalar("z")],
+            [at.scalar("x"), at.scalar("y"), at.scalar("z")],
             [
                 np.array(10, dtype=config.floatX),
                 np.array(20, dtype=config.floatX),
@@ -400,7 +400,7 @@ def test_Elemwise(inputs, input_vals, output_fn, exc):
             lambda x, y, z: aes.mul(x, y, z),
         ),
         (
-            [aet.scalar("x"), aet.scalar("y")],
+            [at.scalar("x"), at.scalar("y")],
             [
                 np.array(10, dtype=config.floatX),
                 np.array(20, dtype=config.floatX),
@@ -419,55 +419,55 @@ def test_numba_Composite(inputs, input_values, scalar_fn):
 @pytest.mark.parametrize(
     "x, indices",
     [
-        (aet.as_tensor(np.arange(3 * 4 * 5).reshape((3, 4, 5))), (1,)),
+        (at.as_tensor(np.arange(3 * 4 * 5).reshape((3, 4, 5))), (1,)),
         (
-            aet.as_tensor(np.arange(3 * 4 * 5).reshape((3, 4, 5))),
+            at.as_tensor(np.arange(3 * 4 * 5).reshape((3, 4, 5))),
             (slice(None)),
         ),
-        (aet.as_tensor(np.arange(3 * 4 * 5).reshape((3, 4, 5))), (1, 2, 0)),
+        (at.as_tensor(np.arange(3 * 4 * 5).reshape((3, 4, 5))), (1, 2, 0)),
         (
-            aet.as_tensor(np.arange(3 * 4 * 5).reshape((3, 4, 5))),
+            at.as_tensor(np.arange(3 * 4 * 5).reshape((3, 4, 5))),
             (slice(1, 2), 1, slice(None)),
         ),
     ],
 )
 def test_Subtensor(x, indices):
     """Test NumPy's basic indexing."""
-    out_aet = x[indices]
-    assert isinstance(out_aet.owner.op, aet_subtensor.Subtensor)
-    out_fg = FunctionGraph([], [out_aet])
+    out_at = x[indices]
+    assert isinstance(out_at.owner.op, at_subtensor.Subtensor)
+    out_fg = FunctionGraph([], [out_at])
     compare_numba_and_py(out_fg, [])
 
 
 @pytest.mark.parametrize(
     "x, indices",
     [
-        (aet.as_tensor(np.arange(3 * 4 * 5).reshape((3, 4, 5))), ([1, 2],)),
+        (at.as_tensor(np.arange(3 * 4 * 5).reshape((3, 4, 5))), ([1, 2],)),
     ],
 )
 def test_AdvancedSubtensor1(x, indices):
     """Test NumPy's advanced indexing in one dimension."""
-    out_aet = aet_subtensor.advanced_subtensor1(x, *indices)
-    assert isinstance(out_aet.owner.op, aet_subtensor.AdvancedSubtensor1)
-    out_fg = FunctionGraph([], [out_aet])
+    out_at = at_subtensor.advanced_subtensor1(x, *indices)
+    assert isinstance(out_at.owner.op, at_subtensor.AdvancedSubtensor1)
+    out_fg = FunctionGraph([], [out_at])
     compare_numba_and_py(out_fg, [])
 
 
 @pytest.mark.parametrize(
     "x, indices",
     [
-        (aet.as_tensor(np.arange(3 * 4 * 5).reshape((3, 4, 5))), ([1, 2], [2, 3])),
+        (at.as_tensor(np.arange(3 * 4 * 5).reshape((3, 4, 5))), ([1, 2], [2, 3])),
         (
-            aet.as_tensor(np.arange(3 * 4 * 5).reshape((3, 4, 5))),
+            at.as_tensor(np.arange(3 * 4 * 5).reshape((3, 4, 5))),
             ([1, 2], slice(None), [3, 4]),
         ),
     ],
 )
 def test_AdvancedSubtensor(x, indices):
     """Test NumPy's advanced indexing in more than one dimension."""
-    out_aet = x[indices]
-    assert isinstance(out_aet.owner.op, aet_subtensor.AdvancedSubtensor)
-    out_fg = FunctionGraph([], [out_aet])
+    out_at = x[indices]
+    assert isinstance(out_at.owner.op, at_subtensor.AdvancedSubtensor)
+    out_fg = FunctionGraph([], [out_at])
     compare_numba_and_py(out_fg, [])
 
 
@@ -475,42 +475,42 @@ def test_AdvancedSubtensor(x, indices):
     "x, y, indices",
     [
         (
-            aet.as_tensor(np.arange(3 * 4 * 5).reshape((3, 4, 5))),
-            aet.as_tensor(np.array(10)),
+            at.as_tensor(np.arange(3 * 4 * 5).reshape((3, 4, 5))),
+            at.as_tensor(np.array(10)),
             (1,),
         ),
         (
-            aet.as_tensor(np.arange(3 * 4 * 5).reshape((3, 4, 5))),
-            aet.as_tensor(rng.poisson(size=(4, 5))),
+            at.as_tensor(np.arange(3 * 4 * 5).reshape((3, 4, 5))),
+            at.as_tensor(rng.poisson(size=(4, 5))),
             (slice(None)),
         ),
         (
-            aet.as_tensor(np.arange(3 * 4 * 5).reshape((3, 4, 5))),
-            aet.as_tensor(np.array(10)),
+            at.as_tensor(np.arange(3 * 4 * 5).reshape((3, 4, 5))),
+            at.as_tensor(np.array(10)),
             (1, 2, 0),
         ),
         (
-            aet.as_tensor(np.arange(3 * 4 * 5).reshape((3, 4, 5))),
-            aet.as_tensor(rng.poisson(size=(1, 5))),
+            at.as_tensor(np.arange(3 * 4 * 5).reshape((3, 4, 5))),
+            at.as_tensor(rng.poisson(size=(1, 5))),
             (slice(1, 2), 1, slice(None)),
         ),
     ],
 )
 def test_IncSubtensor(x, y, indices):
-    out_aet = aet.set_subtensor(x[indices], y)
-    assert isinstance(out_aet.owner.op, aet_subtensor.IncSubtensor)
-    out_fg = FunctionGraph([], [out_aet])
+    out_at = at.set_subtensor(x[indices], y)
+    assert isinstance(out_at.owner.op, at_subtensor.IncSubtensor)
+    out_fg = FunctionGraph([], [out_at])
     compare_numba_and_py(out_fg, [])
 
-    out_aet = aet.inc_subtensor(x[indices], y)
-    assert isinstance(out_aet.owner.op, aet_subtensor.IncSubtensor)
-    out_fg = FunctionGraph([], [out_aet])
+    out_at = at.inc_subtensor(x[indices], y)
+    assert isinstance(out_at.owner.op, at_subtensor.IncSubtensor)
+    out_fg = FunctionGraph([], [out_at])
     compare_numba_and_py(out_fg, [])
 
     x_at = x.type()
-    out_aet = aet.set_subtensor(x_at[indices], y, inplace=True)
-    assert isinstance(out_aet.owner.op, aet_subtensor.IncSubtensor)
-    out_fg = FunctionGraph([x_at], [out_aet])
+    out_at = at.set_subtensor(x_at[indices], y, inplace=True)
+    assert isinstance(out_at.owner.op, at_subtensor.IncSubtensor)
+    out_fg = FunctionGraph([x_at], [out_at])
     compare_numba_and_py(out_fg, [x.data])
 
 
@@ -518,27 +518,27 @@ def test_IncSubtensor(x, y, indices):
     "x, y, indices",
     [
         (
-            aet.as_tensor(np.arange(3 * 4 * 5).reshape((3, 4, 5))),
-            aet.as_tensor(rng.poisson(size=(2, 4, 5))),
+            at.as_tensor(np.arange(3 * 4 * 5).reshape((3, 4, 5))),
+            at.as_tensor(rng.poisson(size=(2, 4, 5))),
             ([1, 2],),
         ),
     ],
 )
 def test_AdvancedIncSubtensor1(x, y, indices):
-    out_aet = aet_subtensor.advanced_set_subtensor1(x, y, *indices)
-    assert isinstance(out_aet.owner.op, aet_subtensor.AdvancedIncSubtensor1)
-    out_fg = FunctionGraph([], [out_aet])
+    out_at = at_subtensor.advanced_set_subtensor1(x, y, *indices)
+    assert isinstance(out_at.owner.op, at_subtensor.AdvancedIncSubtensor1)
+    out_fg = FunctionGraph([], [out_at])
     compare_numba_and_py(out_fg, [])
 
-    out_aet = aet_subtensor.advanced_inc_subtensor1(x, y, *indices)
-    assert isinstance(out_aet.owner.op, aet_subtensor.AdvancedIncSubtensor1)
-    out_fg = FunctionGraph([], [out_aet])
+    out_at = at_subtensor.advanced_inc_subtensor1(x, y, *indices)
+    assert isinstance(out_at.owner.op, at_subtensor.AdvancedIncSubtensor1)
+    out_fg = FunctionGraph([], [out_at])
     compare_numba_and_py(out_fg, [])
 
     x_at = x.type()
-    out_aet = aet_subtensor.AdvancedIncSubtensor1(inplace=True)(x_at, y, *indices)
-    assert isinstance(out_aet.owner.op, aet_subtensor.AdvancedIncSubtensor1)
-    out_fg = FunctionGraph([x_at], [out_aet])
+    out_at = at_subtensor.AdvancedIncSubtensor1(inplace=True)(x_at, y, *indices)
+    assert isinstance(out_at.owner.op, at_subtensor.AdvancedIncSubtensor1)
+    out_fg = FunctionGraph([x_at], [out_at])
     compare_numba_and_py(out_fg, [x.data])
 
 
@@ -546,35 +546,35 @@ def test_AdvancedIncSubtensor1(x, y, indices):
     "x, y, indices",
     [
         (
-            aet.as_tensor(np.arange(3 * 4 * 5).reshape((3, 4, 5))),
-            aet.as_tensor(rng.poisson(size=(2, 5))),
+            at.as_tensor(np.arange(3 * 4 * 5).reshape((3, 4, 5))),
+            at.as_tensor(rng.poisson(size=(2, 5))),
             ([1, 2], [2, 3]),
         ),
         (
-            aet.as_tensor(np.arange(3 * 4 * 5).reshape((3, 4, 5))),
-            aet.as_tensor(rng.poisson(size=(2, 4))),
+            at.as_tensor(np.arange(3 * 4 * 5).reshape((3, 4, 5))),
+            at.as_tensor(rng.poisson(size=(2, 4))),
             ([1, 2], slice(None), [3, 4]),
         ),
     ],
 )
 def test_AdvancedIncSubtensor(x, y, indices):
-    out_aet = aet.set_subtensor(x[indices], y)
-    assert isinstance(out_aet.owner.op, aet_subtensor.AdvancedIncSubtensor)
-    out_fg = FunctionGraph([], [out_aet])
+    out_at = at.set_subtensor(x[indices], y)
+    assert isinstance(out_at.owner.op, at_subtensor.AdvancedIncSubtensor)
+    out_fg = FunctionGraph([], [out_at])
     compare_numba_and_py(out_fg, [])
 
-    out_aet = aet.inc_subtensor(x[indices], y)
-    assert isinstance(out_aet.owner.op, aet_subtensor.AdvancedIncSubtensor)
-    out_fg = FunctionGraph([], [out_aet])
+    out_at = at.inc_subtensor(x[indices], y)
+    assert isinstance(out_at.owner.op, at_subtensor.AdvancedIncSubtensor)
+    out_fg = FunctionGraph([], [out_at])
     compare_numba_and_py(out_fg, [])
 
     x_at = x.type()
-    out_aet = aet.set_subtensor(x_at[indices], y)
+    out_at = at.set_subtensor(x_at[indices], y)
     # Inplace isn't really implemented for `AdvancedIncSubtensor`, so we just
     # hack it on here
-    out_aet.owner.op.inplace = True
-    assert isinstance(out_aet.owner.op, aet_subtensor.AdvancedIncSubtensor)
-    out_fg = FunctionGraph([x_at], [out_aet])
+    out_at.owner.op.inplace = True
+    assert isinstance(out_at.owner.op, at_subtensor.AdvancedIncSubtensor)
+    out_fg = FunctionGraph([x_at], [out_at])
     compare_numba_and_py(out_fg, [x.data])
 
 
@@ -585,12 +585,12 @@ def test_AdvancedIncSubtensor(x, y, indices):
     ],
 )
 def test_Shape(x, i):
-    g = Shape()(aet.as_tensor_variable(x))
+    g = Shape()(at.as_tensor_variable(x))
     g_fg = FunctionGraph([], [g])
 
     compare_numba_and_py(g_fg, [])
 
-    g = Shape_i(i)(aet.as_tensor_variable(x))
+    g = Shape_i(i)(at.as_tensor_variable(x))
     g_fg = FunctionGraph([], [g])
 
     compare_numba_and_py(g_fg, [])
@@ -601,12 +601,12 @@ def test_Shape(x, i):
     [
         (0.0, (2, 3)),
         (1.1, (2, 3)),
-        (set_test_value(aet.scalar("a"), np.array(10.0, dtype=config.floatX)), (20,)),
-        (set_test_value(aet.vector("a"), np.ones(10, dtype=config.floatX)), (20, 10)),
+        (set_test_value(at.scalar("a"), np.array(10.0, dtype=config.floatX)), (20,)),
+        (set_test_value(at.vector("a"), np.ones(10, dtype=config.floatX)), (20, 10)),
     ],
 )
 def test_Alloc(v, shape):
-    g = aet.alloc(v, *shape)
+    g = at.alloc(v, *shape)
     g_fg = FunctionGraph(outputs=[g])
 
     (numba_res,) = compare_numba_and_py(
@@ -623,7 +623,7 @@ def test_Alloc(v, shape):
 
 def test_AllocEmpty():
 
-    x = aet.empty((2, 3), dtype="float32")
+    x = at.empty((2, 3), dtype="float32")
     x_fg = FunctionGraph([], [x])
 
     # We cannot compare the values in the arrays, only the shapes and dtypes
@@ -633,13 +633,13 @@ def test_AllocEmpty():
 @pytest.mark.parametrize(
     "v, offset",
     [
-        (set_test_value(aet.vector(), np.arange(10, dtype=config.floatX)), 0),
-        (set_test_value(aet.vector(), np.arange(10, dtype=config.floatX)), 1),
-        (set_test_value(aet.vector(), np.arange(10, dtype=config.floatX)), -1),
+        (set_test_value(at.vector(), np.arange(10, dtype=config.floatX)), 0),
+        (set_test_value(at.vector(), np.arange(10, dtype=config.floatX)), 1),
+        (set_test_value(at.vector(), np.arange(10, dtype=config.floatX)), -1),
     ],
 )
 def test_AllocDiag(v, offset):
-    g = aetb.AllocDiag(offset=offset)(v)
+    g = atb.AllocDiag(offset=offset)(v)
     g_fg = FunctionGraph(outputs=[g])
 
     compare_numba_and_py(
@@ -658,53 +658,53 @@ def test_AllocDiag(v, offset):
         # `{'drop': [], 'shuffle': [], 'augment': [0, 1]}`
         (
             set_test_value(
-                aet.lscalar(name="a"),
+                at.lscalar(name="a"),
                 np.array(1, dtype=np.int64),
             ),
             ("x", "x"),
         ),
-        # I.e. `a_aet.T`
+        # I.e. `a_at.T`
         # `{'drop': [], 'shuffle': [1, 0], 'augment': []}`
         (
             set_test_value(
-                aet.matrix("a"), np.array([[1.0, 2.0], [3.0, 4.0]], dtype=config.floatX)
+                at.matrix("a"), np.array([[1.0, 2.0], [3.0, 4.0]], dtype=config.floatX)
             ),
             (1, 0),
         ),
         # `{'drop': [], 'shuffle': [0, 1], 'augment': [2]}`
         (
             set_test_value(
-                aet.matrix("a"), np.array([[1.0, 2.0], [3.0, 4.0]], dtype=config.floatX)
+                at.matrix("a"), np.array([[1.0, 2.0], [3.0, 4.0]], dtype=config.floatX)
             ),
             (1, 0, "x"),
         ),
         # `{'drop': [1], 'shuffle': [2, 0], 'augment': [0, 2, 4]}`
         (
             set_test_value(
-                aet.tensor(config.floatX, [False, True, False], name="a"),
+                at.tensor(config.floatX, [False, True, False], name="a"),
                 np.array([[[1.0, 2.0]], [[3.0, 4.0]]], dtype=config.floatX),
             ),
             ("x", 2, "x", 0, "x"),
         ),
-        # I.e. `a_aet.dimshuffle((0,))`
+        # I.e. `a_at.dimshuffle((0,))`
         # `{'drop': [1], 'shuffle': [0], 'augment': []}`
         (
             set_test_value(
-                aet.tensor(config.floatX, [False, True], name="a"),
+                at.tensor(config.floatX, [False, True], name="a"),
                 np.array([[1.0], [2.0], [3.0], [4.0]], dtype=config.floatX),
             ),
             (0,),
         ),
         (
             set_test_value(
-                aet.tensor(config.floatX, [False, True], name="a"),
+                at.tensor(config.floatX, [False, True], name="a"),
                 np.array([[1.0], [2.0], [3.0], [4.0]], dtype=config.floatX),
             ),
             (0,),
         ),
         (
             set_test_value(
-                aet.tensor(config.floatX, [True, True, True], name="a"),
+                at.tensor(config.floatX, [True, True, True], name="a"),
                 np.array([[[1.0]]], dtype=config.floatX),
             ),
             (),
@@ -712,7 +712,7 @@ def test_AllocDiag(v, offset):
     ],
 )
 def test_Dimshuffle(v, new_order):
-    g = aet_elemwise.DimShuffle(v.broadcastable, new_order)(v)
+    g = at_elemwise.DimShuffle(v.broadcastable, new_order)(v)
     g_fg = FunctionGraph(outputs=[g])
     compare_numba_and_py(
         g_fg,
@@ -728,7 +728,7 @@ def test_Dimshuffle(v, new_order):
     "v", [set_test_value(aes.float64(), np.array(1.0, dtype="float64"))]
 )
 def test_TensorFromScalar(v):
-    g = aetb.TensorFromScalar()(v)
+    g = atb.TensorFromScalar()(v)
     g_fg = FunctionGraph(outputs=[g])
     compare_numba_and_py(
         g_fg,
@@ -743,11 +743,11 @@ def test_TensorFromScalar(v):
 @pytest.mark.parametrize(
     "v",
     [
-        set_test_value(aet.scalar(), np.array(1.0, dtype=config.floatX)),
+        set_test_value(at.scalar(), np.array(1.0, dtype=config.floatX)),
     ],
 )
 def test_ScalarFromTensor(v):
-    g = aetb.ScalarFromTensor()(v)
+    g = atb.ScalarFromTensor()(v)
     g_fg = FunctionGraph(outputs=[g])
     compare_numba_and_py(
         g_fg,
@@ -763,24 +763,24 @@ def test_ScalarFromTensor(v):
     "v, axis, fails",
     [
         (
-            set_test_value(aet.matrix(), np.array([[1.0]], dtype=config.floatX)),
+            set_test_value(at.matrix(), np.array([[1.0]], dtype=config.floatX)),
             [(0, True), (1, True)],
             False,
         ),
         (
-            set_test_value(aet.matrix(), np.array([[1.0, 2.0]], dtype=config.floatX)),
+            set_test_value(at.matrix(), np.array([[1.0, 2.0]], dtype=config.floatX)),
             [(0, True), (1, False)],
             False,
         ),
         (
-            set_test_value(aet.matrix(), np.array([[1.0, 2.0]], dtype=config.floatX)),
+            set_test_value(at.matrix(), np.array([[1.0, 2.0]], dtype=config.floatX)),
             [(0, True), (1, True)],
             True,
         ),
     ],
 )
 def test_Rebroadcast(v, axis, fails):
-    g = aetb.Rebroadcast(*axis)(v)
+    g = atb.Rebroadcast(*axis)(v)
     g_fg = FunctionGraph(outputs=[g])
     cm = contextlib.suppress() if not fails else pytest.raises(ValueError)
     with cm:
@@ -797,8 +797,8 @@ def test_Rebroadcast(v, axis, fails):
 @pytest.mark.parametrize(
     "v, dtype",
     [
-        (set_test_value(aet.fscalar(), np.array(1.0, dtype="float32")), aesb.float64),
-        (set_test_value(aet.dscalar(), np.array(1.0, dtype="float64")), aesb.float32),
+        (set_test_value(at.fscalar(), np.array(1.0, dtype="float32")), aesb.float64),
+        (set_test_value(at.dscalar(), np.array(1.0, dtype="float64")), aesb.float32),
     ],
 )
 def test_Cast(v, dtype):
@@ -817,7 +817,7 @@ def test_Cast(v, dtype):
 @pytest.mark.parametrize(
     "v, dtype",
     [
-        (set_test_value(aet.iscalar(), np.array(10, dtype="int32")), aesb.float64),
+        (set_test_value(at.iscalar(), np.array(10, dtype="int32")), aesb.float64),
     ],
 )
 def test_Inv(v, dtype):
@@ -836,11 +836,11 @@ def test_Inv(v, dtype):
 @pytest.mark.parametrize(
     "v, shape, ndim",
     [
-        (set_test_value(aet.vector(), np.array([4], dtype=config.floatX)), (), 0),
-        (set_test_value(aet.vector(), np.arange(4, dtype=config.floatX)), (2, 2), 2),
+        (set_test_value(at.vector(), np.array([4], dtype=config.floatX)), (), 0),
+        (set_test_value(at.vector(), np.arange(4, dtype=config.floatX)), (2, 2), 2),
         (
-            set_test_value(aet.vector(), np.arange(4, dtype=config.floatX)),
-            set_test_value(aet.lvector(), np.array([2, 2], dtype="int64")),
+            set_test_value(at.vector(), np.arange(4, dtype=config.floatX)),
+            set_test_value(at.lvector(), np.array([2, 2], dtype="int64")),
             2,
         ),
     ],
@@ -859,7 +859,7 @@ def test_Reshape(v, shape, ndim):
 
 
 def test_Reshape_scalar():
-    v = aet.vector()
+    v = at.vector()
     v.tag.test_value = np.array([1.0], dtype=config.floatX)
     g = Reshape(1)(v[0], (1,))
     g_fg = FunctionGraph(outputs=[g])
@@ -877,12 +877,12 @@ def test_Reshape_scalar():
     "v, shape, fails",
     [
         (
-            set_test_value(aet.matrix(), np.array([[1.0]], dtype=config.floatX)),
+            set_test_value(at.matrix(), np.array([[1.0]], dtype=config.floatX)),
             (1, 1),
             False,
         ),
         (
-            set_test_value(aet.matrix(), np.array([[1.0, 2.0]], dtype=config.floatX)),
+            set_test_value(at.matrix(), np.array([[1.0, 2.0]], dtype=config.floatX)),
             (1, 1),
             True,
         ),
@@ -906,7 +906,7 @@ def test_SpecifyShape(v, shape, fails):
 @pytest.mark.parametrize(
     "v",
     [
-        set_test_value(aet.vector(), np.arange(4, dtype=config.floatX)),
+        set_test_value(at.vector(), np.arange(4, dtype=config.floatX)),
     ],
 )
 def test_ViewOp(v):
@@ -926,20 +926,18 @@ def test_ViewOp(v):
     "x, y",
     [
         (
-            set_test_value(aet.lvector(), np.arange(4, dtype="int64")),
-            set_test_value(aet.dvector(), np.arange(4, dtype="float64")),
+            set_test_value(at.lvector(), np.arange(4, dtype="int64")),
+            set_test_value(at.dvector(), np.arange(4, dtype="float64")),
         ),
         (
-            set_test_value(
-                aet.dmatrix(), np.arange(4, dtype="float64").reshape((2, 2))
-            ),
-            set_test_value(aet.lscalar(), np.array(4, dtype="int64")),
+            set_test_value(at.dmatrix(), np.arange(4, dtype="float64").reshape((2, 2))),
+            set_test_value(at.lscalar(), np.array(4, dtype="int64")),
         ),
     ],
 )
 def test_Second(x, y):
     # We use the `Elemwise`-wrapped version of `Second`
-    g = aet.second(x, y)
+    g = at.second(x, y)
     g_fg = FunctionGraph(outputs=[g])
     compare_numba_and_py(
         g_fg,
@@ -954,9 +952,9 @@ def test_Second(x, y):
 @pytest.mark.parametrize(
     "v, min, max",
     [
-        (set_test_value(aet.scalar(), np.array(10, dtype=config.floatX)), 3.0, 7.0),
-        (set_test_value(aet.scalar(), np.array(1, dtype=config.floatX)), 3.0, 7.0),
-        (set_test_value(aet.scalar(), np.array(10, dtype=config.floatX)), 7.0, 3.0),
+        (set_test_value(at.scalar(), np.array(10, dtype=config.floatX)), 3.0, 7.0),
+        (set_test_value(at.scalar(), np.array(1, dtype=config.floatX)), 3.0, 7.0),
+        (set_test_value(at.scalar(), np.array(10, dtype=config.floatX)), 7.0, 3.0),
     ],
 )
 def test_Clip(v, min, max):
@@ -974,11 +972,11 @@ def test_Clip(v, min, max):
 
 
 def test_scalar_Elemwise_Clip():
-    a = aet.scalar("a")
-    b = aet.scalar("b")
+    a = at.scalar("a")
+    b = at.scalar("b")
 
-    z = aet.switch(1, a, b)
-    c = aet.clip(z, 1, 3)
+    z = at.switch(1, a, b)
+    c = at.clip(z, 1, 3)
     c_fg = FunctionGraph(outputs=[c])
 
     compare_numba_and_py(c_fg, [1, 1])
@@ -989,27 +987,27 @@ def test_scalar_Elemwise_Clip():
     [
         (
             (
-                set_test_value(aet.scalar(), np.array(1, dtype=config.floatX)),
-                set_test_value(aet.scalar(), np.array(2, dtype=config.floatX)),
-                set_test_value(aet.scalar(), np.array(3, dtype=config.floatX)),
+                set_test_value(at.scalar(), np.array(1, dtype=config.floatX)),
+                set_test_value(at.scalar(), np.array(2, dtype=config.floatX)),
+                set_test_value(at.scalar(), np.array(3, dtype=config.floatX)),
             ),
             config.floatX,
         ),
         (
             (
-                set_test_value(aet.dscalar(), np.array(1, dtype=np.float64)),
-                set_test_value(aet.lscalar(), np.array(3, dtype=np.int32)),
+                set_test_value(at.dscalar(), np.array(1, dtype=np.float64)),
+                set_test_value(at.lscalar(), np.array(3, dtype=np.int32)),
             ),
             "float64",
         ),
         (
-            (set_test_value(aet.iscalar(), np.array(1, dtype=np.int32)),),
+            (set_test_value(at.iscalar(), np.array(1, dtype=np.int32)),),
             "float64",
         ),
     ],
 )
 def test_MakeVector(vals, dtype):
-    g = aetb.MakeVector(dtype)(*vals)
+    g = atb.MakeVector(dtype)(*vals)
     g_fg = FunctionGraph(outputs=[g])
 
     compare_numba_and_py(
@@ -1026,15 +1024,15 @@ def test_MakeVector(vals, dtype):
     "start, stop, step, dtype",
     [
         (
-            set_test_value(aet.lscalar(), np.array(1)),
-            set_test_value(aet.lscalar(), np.array(10)),
-            set_test_value(aet.lscalar(), np.array(3)),
+            set_test_value(at.lscalar(), np.array(1)),
+            set_test_value(at.lscalar(), np.array(10)),
+            set_test_value(at.lscalar(), np.array(3)),
             config.floatX,
         ),
     ],
 )
 def test_ARange(start, stop, step, dtype):
-    g = aetb.ARange(dtype)(start, stop, step)
+    g = atb.ARange(dtype)(start, stop, step)
     g_fg = FunctionGraph(outputs=[g])
 
     compare_numba_and_py(
@@ -1051,84 +1049,84 @@ def test_ARange(start, stop, step, dtype):
     "careduce_fn, axis, v, keepdims",
     [
         (
-            aet.sum,
+            at.sum,
             0,
-            set_test_value(aet.vector(), np.arange(3, dtype=config.floatX)),
+            set_test_value(at.vector(), np.arange(3, dtype=config.floatX)),
             False,
         ),
         (
-            aet.all,
+            at.all,
             0,
-            set_test_value(aet.vector(), np.arange(3, dtype=config.floatX)),
+            set_test_value(at.vector(), np.arange(3, dtype=config.floatX)),
             False,
         ),
         (
-            aet.sum,
+            at.sum,
             0,
             set_test_value(
-                aet.matrix(), np.arange(3 * 2, dtype=config.floatX).reshape((3, 2))
+                at.matrix(), np.arange(3 * 2, dtype=config.floatX).reshape((3, 2))
             ),
             False,
         ),
         (
-            aet.sum,
+            at.sum,
             (0, 1),
             set_test_value(
-                aet.matrix(), np.arange(3 * 2, dtype=config.floatX).reshape((3, 2))
+                at.matrix(), np.arange(3 * 2, dtype=config.floatX).reshape((3, 2))
             ),
             False,
         ),
         (
-            aet.sum,
+            at.sum,
             (1, 0),
             set_test_value(
-                aet.matrix(), np.arange(3 * 2, dtype=config.floatX).reshape((3, 2))
+                at.matrix(), np.arange(3 * 2, dtype=config.floatX).reshape((3, 2))
             ),
             False,
         ),
         (
-            aet.sum,
+            at.sum,
             None,
             set_test_value(
-                aet.matrix(), np.arange(3 * 2, dtype=config.floatX).reshape((3, 2))
+                at.matrix(), np.arange(3 * 2, dtype=config.floatX).reshape((3, 2))
             ),
             False,
         ),
         (
-            aet.sum,
+            at.sum,
             1,
             set_test_value(
-                aet.matrix(), np.arange(3 * 2, dtype=config.floatX).reshape((3, 2))
+                at.matrix(), np.arange(3 * 2, dtype=config.floatX).reshape((3, 2))
             ),
             False,
         ),
         (
-            aet.prod,
+            at.prod,
             0,
-            set_test_value(aet.vector(), np.arange(3, dtype=config.floatX)),
+            set_test_value(at.vector(), np.arange(3, dtype=config.floatX)),
             False,
         ),
         (
-            aet.prod,
+            at.prod,
             0,
             set_test_value(
-                aet.matrix(), np.arange(3 * 2, dtype=config.floatX).reshape((3, 2))
+                at.matrix(), np.arange(3 * 2, dtype=config.floatX).reshape((3, 2))
             ),
             False,
         ),
         (
-            aet.prod,
+            at.prod,
             1,
             set_test_value(
-                aet.matrix(), np.arange(3 * 2, dtype=config.floatX).reshape((3, 2))
+                at.matrix(), np.arange(3 * 2, dtype=config.floatX).reshape((3, 2))
             ),
             False,
         ),
         (
-            aet.max,
+            at.max,
             None,
             set_test_value(
-                aet.matrix(), np.arange(3 * 2, dtype=config.floatX).reshape((3, 2))
+                at.matrix(), np.arange(3 * 2, dtype=config.floatX).reshape((3, 2))
             ),
             True,
         ),
@@ -1154,21 +1152,10 @@ def test_CAReduce(careduce_fn, axis, v, keepdims):
         (
             (
                 set_test_value(
-                    aet.matrix(), rng.normal(size=(1, 2)).astype(config.floatX)
+                    at.matrix(), rng.normal(size=(1, 2)).astype(config.floatX)
                 ),
                 set_test_value(
-                    aet.matrix(), rng.normal(size=(1, 2)).astype(config.floatX)
-                ),
-            ),
-            0,
-        ),
-        (
-            (
-                set_test_value(
-                    aet.matrix(), rng.normal(size=(2, 1)).astype(config.floatX)
-                ),
-                set_test_value(
-                    aet.matrix(), rng.normal(size=(3, 1)).astype(config.floatX)
+                    at.matrix(), rng.normal(size=(1, 2)).astype(config.floatX)
                 ),
             ),
             0,
@@ -1176,10 +1163,21 @@ def test_CAReduce(careduce_fn, axis, v, keepdims):
         (
             (
                 set_test_value(
-                    aet.matrix(), rng.normal(size=(1, 2)).astype(config.floatX)
+                    at.matrix(), rng.normal(size=(2, 1)).astype(config.floatX)
                 ),
                 set_test_value(
-                    aet.matrix(), rng.normal(size=(1, 2)).astype(config.floatX)
+                    at.matrix(), rng.normal(size=(3, 1)).astype(config.floatX)
+                ),
+            ),
+            0,
+        ),
+        (
+            (
+                set_test_value(
+                    at.matrix(), rng.normal(size=(1, 2)).astype(config.floatX)
+                ),
+                set_test_value(
+                    at.matrix(), rng.normal(size=(1, 2)).astype(config.floatX)
                 ),
             ),
             1,
@@ -1187,10 +1185,10 @@ def test_CAReduce(careduce_fn, axis, v, keepdims):
         (
             (
                 set_test_value(
-                    aet.matrix(), rng.normal(size=(2, 2)).astype(config.floatX)
+                    at.matrix(), rng.normal(size=(2, 2)).astype(config.floatX)
                 ),
                 set_test_value(
-                    aet.matrix(), rng.normal(size=(2, 1)).astype(config.floatX)
+                    at.matrix(), rng.normal(size=(2, 1)).astype(config.floatX)
                 ),
             ),
             1,
@@ -1198,7 +1196,7 @@ def test_CAReduce(careduce_fn, axis, v, keepdims):
     ],
 )
 def test_Join(vals, axis):
-    g = aet.join(axis, *vals)
+    g = at.join(axis, *vals)
     g_fg = FunctionGraph(outputs=[g])
 
     compare_numba_and_py(
@@ -1213,10 +1211,10 @@ def test_Join(vals, axis):
 
 def test_Join_view():
     vals = (
-        set_test_value(aet.matrix(), rng.normal(size=(2, 2)).astype(config.floatX)),
-        set_test_value(aet.matrix(), rng.normal(size=(2, 2)).astype(config.floatX)),
+        set_test_value(at.matrix(), rng.normal(size=(2, 2)).astype(config.floatX)),
+        set_test_value(at.matrix(), rng.normal(size=(2, 2)).astype(config.floatX)),
     )
-    g = aetb.Join(view=1)(1, *vals)
+    g = atb.Join(view=1)(1, *vals)
     g_fg = FunctionGraph(outputs=[g])
 
     with pytest.raises(NotImplementedError):
@@ -1235,18 +1233,18 @@ def test_Join_view():
     [
         (
             set_test_value(
-                aet.matrix(), np.arange(10 * 10, dtype=config.floatX).reshape((10, 10))
+                at.matrix(), np.arange(10 * 10, dtype=config.floatX).reshape((10, 10))
             ),
             0,
         ),
         (
-            set_test_value(aet.vector(), np.arange(10, dtype=config.floatX)),
+            set_test_value(at.vector(), np.arange(10, dtype=config.floatX)),
             0,
         ),
     ],
 )
 def test_ExtractDiag(val, offset):
-    g = aet.diag(val, offset)
+    g = at.diag(val, offset)
     g_fg = FunctionGraph(outputs=[g])
 
     compare_numba_and_py(
@@ -1262,23 +1260,23 @@ def test_ExtractDiag(val, offset):
 @pytest.mark.parametrize(
     "n, m, k, dtype",
     [
-        (set_test_value(aet.lscalar(), np.array(1, dtype=np.int64)), None, 0, None),
+        (set_test_value(at.lscalar(), np.array(1, dtype=np.int64)), None, 0, None),
         (
-            set_test_value(aet.lscalar(), np.array(1, dtype=np.int64)),
-            set_test_value(aet.lscalar(), np.array(2, dtype=np.int64)),
+            set_test_value(at.lscalar(), np.array(1, dtype=np.int64)),
+            set_test_value(at.lscalar(), np.array(2, dtype=np.int64)),
             0,
             "float32",
         ),
         (
-            set_test_value(aet.lscalar(), np.array(1, dtype=np.int64)),
-            set_test_value(aet.lscalar(), np.array(2, dtype=np.int64)),
+            set_test_value(at.lscalar(), np.array(1, dtype=np.int64)),
+            set_test_value(at.lscalar(), np.array(2, dtype=np.int64)),
             1,
             "int64",
         ),
     ],
 )
 def test_Eye(n, m, k, dtype):
-    g = aet.eye(n, m, k, dtype=dtype)
+    g = at.eye(n, m, k, dtype=dtype)
     g_fg = FunctionGraph(outputs=[g])
 
     compare_numba_and_py(
@@ -1297,9 +1295,9 @@ def test_Eye(n, m, k, dtype):
         (
             [
                 set_test_value(
-                    aet.matrix(), rng.random(size=(2, 3)).astype(config.floatX)
+                    at.matrix(), rng.random(size=(2, 3)).astype(config.floatX)
                 ),
-                set_test_value(aet.lmatrix(), rng.poisson(size=(2, 3))),
+                set_test_value(at.lmatrix(), rng.poisson(size=(2, 3))),
             ],
             MySingleOut,
             UserWarning,
@@ -1307,9 +1305,9 @@ def test_Eye(n, m, k, dtype):
         (
             [
                 set_test_value(
-                    aet.matrix(), rng.random(size=(2, 3)).astype(config.floatX)
+                    at.matrix(), rng.random(size=(2, 3)).astype(config.floatX)
                 ),
-                set_test_value(aet.lmatrix(), rng.poisson(size=(2, 3))),
+                set_test_value(at.lmatrix(), rng.poisson(size=(2, 3))),
             ],
             MyMultiOut,
             UserWarning,
@@ -1340,7 +1338,7 @@ def test_perform(inputs, op, exc):
 @pytest.mark.parametrize(
     "val",
     [
-        set_test_value(aet.lscalar(), np.array(6, dtype="int64")),
+        set_test_value(at.lscalar(), np.array(6, dtype="int64")),
     ],
 )
 def test_Bartlett(val):
@@ -1362,35 +1360,35 @@ def test_Bartlett(val):
     [
         (
             set_test_value(
-                aet.matrix(), np.arange(3, dtype=config.floatX).reshape((3, 1))
+                at.matrix(), np.arange(3, dtype=config.floatX).reshape((3, 1))
             ),
             1,
             "add",
         ),
         (
             set_test_value(
-                aet.matrix(), np.arange(6, dtype=config.floatX).reshape((3, 2))
+                at.matrix(), np.arange(6, dtype=config.floatX).reshape((3, 2))
             ),
             0,
             "add",
         ),
         (
             set_test_value(
-                aet.matrix(), np.arange(6, dtype=config.floatX).reshape((3, 2))
+                at.matrix(), np.arange(6, dtype=config.floatX).reshape((3, 2))
             ),
             1,
             "add",
         ),
         (
             set_test_value(
-                aet.matrix(), np.arange(6, dtype=config.floatX).reshape((3, 2))
+                at.matrix(), np.arange(6, dtype=config.floatX).reshape((3, 2))
             ),
             0,
             "mul",
         ),
         (
             set_test_value(
-                aet.matrix(), np.arange(6, dtype=config.floatX).reshape((3, 2))
+                at.matrix(), np.arange(6, dtype=config.floatX).reshape((3, 2))
             ),
             1,
             "mul",
@@ -1415,27 +1413,27 @@ def test_CumOp(val, axis, mode):
     "val, n, axis",
     [
         (
-            set_test_value(aet.matrix(), rng.normal(size=(3, 2)).astype(config.floatX)),
+            set_test_value(at.matrix(), rng.normal(size=(3, 2)).astype(config.floatX)),
             0,
             0,
         ),
         (
-            set_test_value(aet.matrix(), rng.normal(size=(3, 2)).astype(config.floatX)),
+            set_test_value(at.matrix(), rng.normal(size=(3, 2)).astype(config.floatX)),
             0,
             1,
         ),
         (
-            set_test_value(aet.matrix(), rng.normal(size=(3, 2)).astype(config.floatX)),
+            set_test_value(at.matrix(), rng.normal(size=(3, 2)).astype(config.floatX)),
             1,
             0,
         ),
         (
-            set_test_value(aet.matrix(), rng.normal(size=(3, 2)).astype(config.floatX)),
+            set_test_value(at.matrix(), rng.normal(size=(3, 2)).astype(config.floatX)),
             1,
             1,
         ),
         (
-            set_test_value(aet.lmatrix(), rng.poisson(size=(3, 2))),
+            set_test_value(at.lmatrix(), rng.poisson(size=(3, 2))),
             0,
             0,
         ),
@@ -1459,8 +1457,8 @@ def test_DiffOp(val, axis, n):
     "a, val",
     [
         (
-            set_test_value(aet.lmatrix(), np.zeros((10, 2), dtype="int64")),
-            set_test_value(aet.lscalar(), np.array(1, dtype="int64")),
+            set_test_value(at.lmatrix(), np.zeros((10, 2), dtype="int64")),
+            set_test_value(at.lscalar(), np.array(1, dtype="int64")),
         )
     ],
 )
@@ -1482,19 +1480,19 @@ def test_FillDiagonal(a, val):
     "a, val, offset",
     [
         (
-            set_test_value(aet.lmatrix(), np.zeros((10, 2), dtype="int64")),
-            set_test_value(aet.lscalar(), np.array(1, dtype="int64")),
-            set_test_value(aet.lscalar(), np.array(-1, dtype="int64")),
+            set_test_value(at.lmatrix(), np.zeros((10, 2), dtype="int64")),
+            set_test_value(at.lscalar(), np.array(1, dtype="int64")),
+            set_test_value(at.lscalar(), np.array(-1, dtype="int64")),
         ),
         (
-            set_test_value(aet.lmatrix(), np.zeros((10, 2), dtype="int64")),
-            set_test_value(aet.lscalar(), np.array(1, dtype="int64")),
-            set_test_value(aet.lscalar(), np.array(0, dtype="int64")),
+            set_test_value(at.lmatrix(), np.zeros((10, 2), dtype="int64")),
+            set_test_value(at.lscalar(), np.array(1, dtype="int64")),
+            set_test_value(at.lscalar(), np.array(0, dtype="int64")),
         ),
         (
-            set_test_value(aet.lmatrix(), np.zeros((10, 3), dtype="int64")),
-            set_test_value(aet.lscalar(), np.array(1, dtype="int64")),
-            set_test_value(aet.lscalar(), np.array(1, dtype="int64")),
+            set_test_value(at.lmatrix(), np.zeros((10, 3), dtype="int64")),
+            set_test_value(at.lscalar(), np.array(1, dtype="int64")),
+            set_test_value(at.lscalar(), np.array(1, dtype="int64")),
         ),
     ],
 )
@@ -1516,65 +1514,65 @@ def test_FillDiagonalOffset(a, val, offset):
     "arr, shape, mode, order, exc",
     [
         (
-            tuple(set_test_value(aet.lscalar(), v) for v in np.array([0])),
-            set_test_value(aet.lvector(), np.array([2])),
+            tuple(set_test_value(at.lscalar(), v) for v in np.array([0])),
+            set_test_value(at.lvector(), np.array([2])),
             "raise",
             "C",
             None,
         ),
         (
-            tuple(set_test_value(aet.lscalar(), v) for v in np.array([0, 0, 3])),
-            set_test_value(aet.lvector(), np.array([2, 3, 4])),
-            "raise",
-            "C",
-            None,
-        ),
-        (
-            tuple(
-                set_test_value(aet.lvector(), v)
-                for v in np.array([[0, 1], [2, 0], [1, 3]])
-            ),
-            set_test_value(aet.lvector(), np.array([2, 3, 4])),
+            tuple(set_test_value(at.lscalar(), v) for v in np.array([0, 0, 3])),
+            set_test_value(at.lvector(), np.array([2, 3, 4])),
             "raise",
             "C",
             None,
         ),
         (
             tuple(
-                set_test_value(aet.lvector(), v)
+                set_test_value(at.lvector(), v)
                 for v in np.array([[0, 1], [2, 0], [1, 3]])
             ),
-            set_test_value(aet.lvector(), np.array([2, 3, 4])),
+            set_test_value(at.lvector(), np.array([2, 3, 4])),
+            "raise",
+            "C",
+            None,
+        ),
+        (
+            tuple(
+                set_test_value(at.lvector(), v)
+                for v in np.array([[0, 1], [2, 0], [1, 3]])
+            ),
+            set_test_value(at.lvector(), np.array([2, 3, 4])),
             "raise",
             "F",
             NotImplementedError,
         ),
         (
             tuple(
-                set_test_value(aet.lvector(), v)
+                set_test_value(at.lvector(), v)
                 for v in np.array([[0, 1, 2], [2, 0, 3], [1, 3, 5]])
             ),
-            set_test_value(aet.lvector(), np.array([2, 3, 4])),
+            set_test_value(at.lvector(), np.array([2, 3, 4])),
             "raise",
             "C",
             ValueError,
         ),
         (
             tuple(
-                set_test_value(aet.lvector(), v)
+                set_test_value(at.lvector(), v)
                 for v in np.array([[0, 1, 2], [2, 0, 3], [1, 3, 5]])
             ),
-            set_test_value(aet.lvector(), np.array([2, 3, 4])),
+            set_test_value(at.lvector(), np.array([2, 3, 4])),
             "wrap",
             "C",
             None,
         ),
         (
             tuple(
-                set_test_value(aet.lvector(), v)
+                set_test_value(at.lvector(), v)
                 for v in np.array([[0, 1, 2], [2, 0, 3], [1, 3, 5]])
             ),
-            set_test_value(aet.lvector(), np.array([2, 3, 4])),
+            set_test_value(at.lvector(), np.array([2, 3, 4])),
             "clip",
             "C",
             None,
@@ -1601,26 +1599,26 @@ def test_RavelMultiIndex(arr, shape, mode, order, exc):
     "x, repeats, axis, exc",
     [
         (
-            set_test_value(aet.lscalar(), np.array(1, dtype="int64")),
-            set_test_value(aet.lscalar(), np.array(0, dtype="int64")),
+            set_test_value(at.lscalar(), np.array(1, dtype="int64")),
+            set_test_value(at.lscalar(), np.array(0, dtype="int64")),
             None,
             None,
         ),
         (
-            set_test_value(aet.lmatrix(), np.zeros((2, 2), dtype="int64")),
-            set_test_value(aet.lscalar(), np.array(1, dtype="int64")),
+            set_test_value(at.lmatrix(), np.zeros((2, 2), dtype="int64")),
+            set_test_value(at.lscalar(), np.array(1, dtype="int64")),
             None,
             None,
         ),
         (
-            set_test_value(aet.lvector(), np.arange(2, dtype="int64")),
-            set_test_value(aet.lvector(), np.array([1, 1], dtype="int64")),
+            set_test_value(at.lvector(), np.arange(2, dtype="int64")),
+            set_test_value(at.lvector(), np.array([1, 1], dtype="int64")),
             None,
             None,
         ),
         (
-            set_test_value(aet.lmatrix(), np.zeros((2, 2), dtype="int64")),
-            set_test_value(aet.lscalar(), np.array(1, dtype="int64")),
+            set_test_value(at.lmatrix(), np.zeros((2, 2), dtype="int64")),
+            set_test_value(at.lscalar(), np.array(1, dtype="int64")),
             0,
             UserWarning,
         ),
@@ -1646,7 +1644,7 @@ def test_Repeat(x, repeats, axis, exc):
     "x, axis, return_index, return_inverse, return_counts, exc",
     [
         (
-            set_test_value(aet.lscalar(), np.array(1, dtype="int64")),
+            set_test_value(at.lscalar(), np.array(1, dtype="int64")),
             None,
             False,
             False,
@@ -1654,7 +1652,7 @@ def test_Repeat(x, repeats, axis, exc):
             None,
         ),
         (
-            set_test_value(aet.lvector(), np.array([1, 1, 2], dtype="int64")),
+            set_test_value(at.lvector(), np.array([1, 1, 2], dtype="int64")),
             None,
             False,
             False,
@@ -1662,7 +1660,7 @@ def test_Repeat(x, repeats, axis, exc):
             None,
         ),
         (
-            set_test_value(aet.lmatrix(), np.array([[1, 1], [2, 2]], dtype="int64")),
+            set_test_value(at.lmatrix(), np.array([[1, 1], [2, 2]], dtype="int64")),
             None,
             False,
             False,
@@ -1671,7 +1669,7 @@ def test_Repeat(x, repeats, axis, exc):
         ),
         (
             set_test_value(
-                aet.lmatrix(), np.array([[1, 1], [1, 1], [2, 2]], dtype="int64")
+                at.lmatrix(), np.array([[1, 1], [1, 1], [2, 2]], dtype="int64")
             ),
             0,
             False,
@@ -1681,7 +1679,7 @@ def test_Repeat(x, repeats, axis, exc):
         ),
         (
             set_test_value(
-                aet.lmatrix(), np.array([[1, 1], [1, 1], [2, 2]], dtype="int64")
+                at.lmatrix(), np.array([[1, 1], [1, 1], [2, 2]], dtype="int64")
             ),
             0,
             True,
@@ -1715,20 +1713,20 @@ def test_Unique(x, axis, return_index, return_inverse, return_counts, exc):
     "arr, shape, order, exc",
     [
         (
-            set_test_value(aet.lvector(), np.array([9, 15, 1], dtype="int64")),
-            aet.as_tensor([2, 3, 4]),
+            set_test_value(at.lvector(), np.array([9, 15, 1], dtype="int64")),
+            at.as_tensor([2, 3, 4]),
             "C",
             None,
         ),
         (
-            set_test_value(aet.lvector(), np.array([1, 0], dtype="int64")),
-            aet.as_tensor([2]),
+            set_test_value(at.lvector(), np.array([1, 0], dtype="int64")),
+            at.as_tensor([2]),
             "C",
             None,
         ),
         (
-            set_test_value(aet.lvector(), np.array([9, 15, 1], dtype="int64")),
-            aet.as_tensor([2, 3, 4]),
+            set_test_value(at.lvector(), np.array([9, 15, 1], dtype="int64")),
+            at.as_tensor([2, 3, 4]),
             "F",
             NotImplementedError,
         ),
@@ -1758,21 +1756,19 @@ def test_UnravelIndex(arr, shape, order, exc):
     "a, v, side, sorter, exc",
     [
         (
-            set_test_value(
-                aet.vector(), np.array([1.0, 2.0, 3.0], dtype=config.floatX)
-            ),
-            set_test_value(aet.matrix(), rng.random((3, 2)).astype(config.floatX)),
+            set_test_value(at.vector(), np.array([1.0, 2.0, 3.0], dtype=config.floatX)),
+            set_test_value(at.matrix(), rng.random((3, 2)).astype(config.floatX)),
             "left",
             None,
             None,
         ),
         pytest.param(
             set_test_value(
-                aet.vector(),
+                at.vector(),
                 np.array([0.29769574, 0.71649186, 0.20475563]).astype(config.floatX),
             ),
             set_test_value(
-                aet.matrix(),
+                at.matrix(),
                 np.array(
                     [
                         [0.18847123, 0.39659508],
@@ -1789,12 +1785,10 @@ def test_UnravelIndex(arr, shape, order, exc):
             ),
         ),
         (
-            set_test_value(
-                aet.vector(), np.array([1.0, 2.0, 3.0], dtype=config.floatX)
-            ),
-            set_test_value(aet.matrix(), rng.random((3, 2)).astype(config.floatX)),
+            set_test_value(at.vector(), np.array([1.0, 2.0, 3.0], dtype=config.floatX)),
+            set_test_value(at.matrix(), rng.random((3, 2)).astype(config.floatX)),
             "right",
-            set_test_value(aet.lvector(), np.array([0, 2, 1])),
+            set_test_value(at.lvector(), np.array([0, 2, 1])),
             UserWarning,
         ),
     ],
@@ -1819,8 +1813,8 @@ def test_Searchsorted(a, v, side, sorter, exc):
     "x, shape, exc",
     [
         (
-            set_test_value(aet.vector(), rng.random(size=(2,)).astype(config.floatX)),
-            [set_test_value(aet.lscalar(), np.array(v)) for v in [3, 2]],
+            set_test_value(at.vector(), rng.random(size=(2,)).astype(config.floatX)),
+            [set_test_value(at.lscalar(), np.array(v)) for v in [3, 2]],
             UserWarning,
         ),
     ],
@@ -1845,27 +1839,27 @@ def test_BroadcastTo(x, shape, exc):
     "x, y, exc",
     [
         (
-            set_test_value(aet.matrix(), rng.random(size=(3, 2)).astype(config.floatX)),
-            set_test_value(aet.vector(), rng.random(size=(2,)).astype(config.floatX)),
+            set_test_value(at.matrix(), rng.random(size=(3, 2)).astype(config.floatX)),
+            set_test_value(at.vector(), rng.random(size=(2,)).astype(config.floatX)),
             None,
         ),
         (
             set_test_value(
-                aet.matrix(dtype="float64"), rng.random(size=(3, 2)).astype("float64")
+                at.matrix(dtype="float64"), rng.random(size=(3, 2)).astype("float64")
             ),
             set_test_value(
-                aet.vector(dtype="float32"), rng.random(size=(2,)).astype("float32")
+                at.vector(dtype="float32"), rng.random(size=(2,)).astype("float32")
             ),
             None,
         ),
         (
-            set_test_value(aet.lmatrix(), rng.poisson(size=(3, 2))),
-            set_test_value(aet.fvector(), rng.random(size=(2,)).astype("float32")),
+            set_test_value(at.lmatrix(), rng.poisson(size=(3, 2))),
+            set_test_value(at.fvector(), rng.random(size=(2,)).astype("float32")),
             None,
         ),
         (
-            set_test_value(aet.lvector(), rng.random(size=(2,)).astype(np.int64)),
-            set_test_value(aet.lvector(), rng.random(size=(2,)).astype(np.int64)),
+            set_test_value(at.lvector(), rng.random(size=(2,)).astype(np.int64)),
+            set_test_value(at.lvector(), rng.random(size=(2,)).astype(np.int64)),
             None,
         ),
     ],
@@ -1891,25 +1885,25 @@ def test_Dot(x, y, exc):
     [
         (
             set_test_value(
-                aet.matrix(), np.array([[1, 1, 1], [0, 0, 0]], dtype=config.floatX)
+                at.matrix(), np.array([[1, 1, 1], [0, 0, 0]], dtype=config.floatX)
             ),
-            set_test_value(aet.matrix(), rng.random(size=(2, 3)).astype(config.floatX)),
+            set_test_value(at.matrix(), rng.random(size=(2, 3)).astype(config.floatX)),
             None,
             None,
         ),
         (
             set_test_value(
-                aet.matrix(), np.array([[1, 1, 1], [0, 0, 0]], dtype=config.floatX)
+                at.matrix(), np.array([[1, 1, 1], [0, 0, 0]], dtype=config.floatX)
             ),
-            set_test_value(aet.matrix(), rng.random(size=(2, 3)).astype(config.floatX)),
+            set_test_value(at.matrix(), rng.random(size=(2, 3)).astype(config.floatX)),
             0,
             None,
         ),
         (
             set_test_value(
-                aet.matrix(), np.array([[1, 1, 1], [0, 0, 0]], dtype=config.floatX)
+                at.matrix(), np.array([[1, 1, 1], [0, 0, 0]], dtype=config.floatX)
             ),
-            set_test_value(aet.matrix(), rng.random(size=(2, 3)).astype(config.floatX)),
+            set_test_value(at.matrix(), rng.random(size=(2, 3)).astype(config.floatX)),
             1,
             None,
         ),
@@ -1935,17 +1929,17 @@ def test_SoftmaxGrad(dy, sm, axis, exc):
     "x, axis, exc",
     [
         (
-            set_test_value(aet.vector(), rng.random(size=(2,)).astype(config.floatX)),
+            set_test_value(at.vector(), rng.random(size=(2,)).astype(config.floatX)),
             None,
             None,
         ),
         (
-            set_test_value(aet.matrix(), rng.random(size=(2, 3)).astype(config.floatX)),
+            set_test_value(at.matrix(), rng.random(size=(2, 3)).astype(config.floatX)),
             None,
             None,
         ),
         (
-            set_test_value(aet.matrix(), rng.random(size=(2, 3)).astype(config.floatX)),
+            set_test_value(at.matrix(), rng.random(size=(2, 3)).astype(config.floatX)),
             0,
             None,
         ),
@@ -1971,17 +1965,17 @@ def test_Softmax(x, axis, exc):
     "x, axis, exc",
     [
         (
-            set_test_value(aet.vector(), rng.random(size=(2,)).astype(config.floatX)),
+            set_test_value(at.vector(), rng.random(size=(2,)).astype(config.floatX)),
             None,
             None,
         ),
         (
-            set_test_value(aet.matrix(), rng.random(size=(2, 3)).astype(config.floatX)),
+            set_test_value(at.matrix(), rng.random(size=(2, 3)).astype(config.floatX)),
             0,
             None,
         ),
         (
-            set_test_value(aet.matrix(), rng.random(size=(2, 3)).astype(config.floatX)),
+            set_test_value(at.matrix(), rng.random(size=(2, 3)).astype(config.floatX)),
             1,
             None,
         ),
@@ -2052,22 +2046,22 @@ def test_Softplus(x, exc):
     "x, axes, exc",
     [
         (
-            set_test_value(aet.dscalar(), np.array(0.0, dtype="float64")),
+            set_test_value(at.dscalar(), np.array(0.0, dtype="float64")),
             [],
             None,
         ),
         (
-            set_test_value(aet.dvector(), rng.random(size=(3,)).astype("float64")),
+            set_test_value(at.dvector(), rng.random(size=(3,)).astype("float64")),
             [0],
             None,
         ),
         (
-            set_test_value(aet.dmatrix(), rng.random(size=(3, 2)).astype("float64")),
+            set_test_value(at.dmatrix(), rng.random(size=(3, 2)).astype("float64")),
             [0],
             None,
         ),
         (
-            set_test_value(aet.dmatrix(), rng.random(size=(3, 2)).astype("float64")),
+            set_test_value(at.dmatrix(), rng.random(size=(3, 2)).astype("float64")),
             [0, 1],
             None,
         ),
@@ -2098,7 +2092,7 @@ def test_MaxAndArgmax(x, axes, exc):
     [
         (
             set_test_value(
-                aet.dmatrix(),
+                at.dmatrix(),
                 (lambda x: x.T.dot(x))(rng.random(size=(3, 3)).astype("float64")),
             ),
             True,
@@ -2106,7 +2100,7 @@ def test_MaxAndArgmax(x, axes, exc):
         ),
         (
             set_test_value(
-                aet.lmatrix(),
+                at.lmatrix(),
                 (lambda x: x.T.dot(x))(
                     rng.integers(1, 10, size=(3, 3)).astype("int64")
                 ),
@@ -2116,7 +2110,7 @@ def test_MaxAndArgmax(x, axes, exc):
         ),
         (
             set_test_value(
-                aet.dmatrix(),
+                at.dmatrix(),
                 (lambda x: x.T.dot(x))(rng.random(size=(3, 3)).astype("float64")),
             ),
             False,
@@ -2149,21 +2143,21 @@ def test_Cholesky(x, lower, exc):
     [
         (
             set_test_value(
-                aet.dmatrix(),
+                at.dmatrix(),
                 (lambda x: x.T.dot(x))(rng.random(size=(3, 3)).astype("float64")),
             ),
-            set_test_value(aet.dvector(), rng.random(size=(3,)).astype("float64")),
+            set_test_value(at.dvector(), rng.random(size=(3,)).astype("float64")),
             "gen",
             None,
         ),
         (
             set_test_value(
-                aet.lmatrix(),
+                at.lmatrix(),
                 (lambda x: x.T.dot(x))(
                     rng.integers(1, 10, size=(3, 3)).astype("int64")
                 ),
             ),
-            set_test_value(aet.dvector(), rng.random(size=(3,)).astype("float64")),
+            set_test_value(at.dvector(), rng.random(size=(3,)).astype("float64")),
             "gen",
             None,
         ),
@@ -2194,10 +2188,10 @@ def test_Solve(A, x, lower, exc):
     [
         (
             set_test_value(
-                aet.dmatrix(),
+                at.dmatrix(),
                 (lambda x: x.T.dot(x))(rng.random(size=(3, 3)).astype("float64")),
             ),
-            set_test_value(aet.dvector(), rng.random(size=(3,)).astype("float64")),
+            set_test_value(at.dvector(), rng.random(size=(3,)).astype("float64")),
             "sym",
             UserWarning,
         ),
@@ -2228,14 +2222,14 @@ def test_SolveTriangular(A, x, lower, exc):
     [
         (
             set_test_value(
-                aet.dmatrix(),
+                at.dmatrix(),
                 (lambda x: x.T.dot(x))(rng.random(size=(3, 3)).astype("float64")),
             ),
             None,
         ),
         (
             set_test_value(
-                aet.lmatrix(),
+                at.lmatrix(),
                 (lambda x: x.T.dot(x))(rng.poisson(size=(3, 3)).astype("int64")),
             ),
             None,
@@ -2287,21 +2281,21 @@ y = np.array(
     [
         (
             set_test_value(
-                aet.dmatrix(),
+                at.dmatrix(),
                 (lambda x: x.T.dot(x))(x),
             ),
             None,
         ),
         (
             set_test_value(
-                aet.dmatrix(),
+                at.dmatrix(),
                 (lambda x: x.T.dot(x))(y),
             ),
             None,
         ),
         (
             set_test_value(
-                aet.lmatrix(),
+                at.lmatrix(),
                 (lambda x: x.T.dot(x))(
                     rng.integers(1, 10, size=(3, 3)).astype("int64")
                 ),
@@ -2335,7 +2329,7 @@ def test_Eig(x, exc):
     [
         (
             set_test_value(
-                aet.dmatrix(),
+                at.dmatrix(),
                 (lambda x: x.T.dot(x))(rng.random(size=(3, 3)).astype("float64")),
             ),
             "L",
@@ -2343,7 +2337,7 @@ def test_Eig(x, exc):
         ),
         (
             set_test_value(
-                aet.lmatrix(),
+                at.lmatrix(),
                 (lambda x: x.T.dot(x))(
                     rng.integers(1, 10, size=(3, 3)).astype("int64")
                 ),
@@ -2379,7 +2373,7 @@ def test_Eigh(x, uplo, exc):
         (
             nlinalg.MatrixInverse,
             set_test_value(
-                aet.dmatrix(),
+                at.dmatrix(),
                 (lambda x: x.T.dot(x))(rng.random(size=(3, 3)).astype("float64")),
             ),
             None,
@@ -2388,7 +2382,7 @@ def test_Eigh(x, uplo, exc):
         (
             nlinalg.MatrixInverse,
             set_test_value(
-                aet.lmatrix(),
+                at.lmatrix(),
                 (lambda x: x.T.dot(x))(
                     rng.integers(1, 10, size=(3, 3)).astype("int64")
                 ),
@@ -2399,7 +2393,7 @@ def test_Eigh(x, uplo, exc):
         (
             nlinalg.Inv,
             set_test_value(
-                aet.dmatrix(),
+                at.dmatrix(),
                 (lambda x: x.T.dot(x))(rng.random(size=(3, 3)).astype("float64")),
             ),
             None,
@@ -2408,7 +2402,7 @@ def test_Eigh(x, uplo, exc):
         (
             nlinalg.Inv,
             set_test_value(
-                aet.lmatrix(),
+                at.lmatrix(),
                 (lambda x: x.T.dot(x))(
                     rng.integers(1, 10, size=(3, 3)).astype("int64")
                 ),
@@ -2419,7 +2413,7 @@ def test_Eigh(x, uplo, exc):
         (
             nlinalg.MatrixPinv,
             set_test_value(
-                aet.dmatrix(),
+                at.dmatrix(),
                 (lambda x: x.T.dot(x))(rng.random(size=(3, 3)).astype("float64")),
             ),
             None,
@@ -2428,7 +2422,7 @@ def test_Eigh(x, uplo, exc):
         (
             nlinalg.MatrixPinv,
             set_test_value(
-                aet.lmatrix(),
+                at.lmatrix(),
                 (lambda x: x.T.dot(x))(
                     rng.integers(1, 10, size=(3, 3)).astype("int64")
                 ),
@@ -2459,7 +2453,7 @@ def test_matrix_inverses(op, x, exc, op_args):
     [
         (
             set_test_value(
-                aet.dmatrix(),
+                at.dmatrix(),
                 (lambda x: x.T.dot(x))(rng.random(size=(3, 3)).astype("float64")),
             ),
             "reduced",
@@ -2467,7 +2461,7 @@ def test_matrix_inverses(op, x, exc, op_args):
         ),
         (
             set_test_value(
-                aet.dmatrix(),
+                at.dmatrix(),
                 (lambda x: x.T.dot(x))(rng.random(size=(3, 3)).astype("float64")),
             ),
             "r",
@@ -2475,7 +2469,7 @@ def test_matrix_inverses(op, x, exc, op_args):
         ),
         (
             set_test_value(
-                aet.lmatrix(),
+                at.lmatrix(),
                 (lambda x: x.T.dot(x))(
                     rng.integers(1, 10, size=(3, 3)).astype("int64")
                 ),
@@ -2485,7 +2479,7 @@ def test_matrix_inverses(op, x, exc, op_args):
         ),
         (
             set_test_value(
-                aet.lmatrix(),
+                at.lmatrix(),
                 (lambda x: x.T.dot(x))(
                     rng.integers(1, 10, size=(3, 3)).astype("int64")
                 ),
@@ -2520,7 +2514,7 @@ def test_QRFull(x, mode, exc):
     [
         (
             set_test_value(
-                aet.dmatrix(),
+                at.dmatrix(),
                 (lambda x: x.T.dot(x))(rng.random(size=(3, 3)).astype("float64")),
             ),
             True,
@@ -2529,7 +2523,7 @@ def test_QRFull(x, mode, exc):
         ),
         (
             set_test_value(
-                aet.dmatrix(),
+                at.dmatrix(),
                 (lambda x: x.T.dot(x))(rng.random(size=(3, 3)).astype("float64")),
             ),
             False,
@@ -2538,7 +2532,7 @@ def test_QRFull(x, mode, exc):
         ),
         (
             set_test_value(
-                aet.lmatrix(),
+                at.lmatrix(),
                 (lambda x: x.T.dot(x))(
                     rng.integers(1, 10, size=(3, 3)).astype("int64")
                 ),
@@ -2549,7 +2543,7 @@ def test_QRFull(x, mode, exc):
         ),
         (
             set_test_value(
-                aet.lmatrix(),
+                at.lmatrix(),
                 (lambda x: x.T.dot(x))(
                     rng.integers(1, 10, size=(3, 3)).astype("int64")
                 ),
@@ -2585,22 +2579,22 @@ def test_SVD(x, full_matrices, compute_uv, exc):
     [
         (
             set_test_value(
-                aet.dmatrix(),
+                at.dmatrix(),
                 rng.random(size=(3, 3)).astype("float64"),
             ),
             set_test_value(
-                aet.dmatrix(),
+                at.dmatrix(),
                 rng.random(size=(3, 3)).astype("float64"),
             ),
             None,
         ),
         (
             set_test_value(
-                aet.dmatrix(),
+                at.dmatrix(),
                 rng.random(size=(3, 3)).astype("float64"),
             ),
             set_test_value(
-                aet.lmatrix(),
+                at.lmatrix(),
                 rng.poisson(size=(3, 3)).astype("int64"),
             ),
             None,
@@ -2656,297 +2650,297 @@ def test_shared():
             aer.normal,
             [
                 set_test_value(
-                    aet.dvector(),
+                    at.dvector(),
                     np.array([1.0, 2.0], dtype=np.float64),
                 ),
                 set_test_value(
-                    aet.dscalar(),
+                    at.dscalar(),
                     np.array(1.0, dtype=np.float64),
                 ),
             ],
-            aet.as_tensor([3, 2]),
+            at.as_tensor([3, 2]),
         ),
         (
             aer.uniform,
             [
                 set_test_value(
-                    aet.dvector(),
+                    at.dvector(),
                     np.array([1.0, 2.0], dtype=np.float64),
                 ),
                 set_test_value(
-                    aet.dscalar(),
+                    at.dscalar(),
                     np.array(1.0, dtype=np.float64),
                 ),
             ],
-            aet.as_tensor([3, 2]),
+            at.as_tensor([3, 2]),
         ),
         (
             aer.triangular,
             [
                 set_test_value(
-                    aet.dscalar(),
+                    at.dscalar(),
                     np.array(-5.0, dtype=np.float64),
                 ),
                 set_test_value(
-                    aet.dscalar(),
+                    at.dscalar(),
                     np.array(1.0, dtype=np.float64),
                 ),
                 set_test_value(
-                    aet.dscalar(),
+                    at.dscalar(),
                     np.array(5.0, dtype=np.float64),
                 ),
             ],
-            aet.as_tensor([3, 2]),
+            at.as_tensor([3, 2]),
         ),
         pytest.param(
             aer.beta,
             [
                 set_test_value(
-                    aet.dvector(),
+                    at.dvector(),
                     np.array([1.0, 2.0], dtype=np.float64),
                 ),
                 set_test_value(
-                    aet.dscalar(),
+                    at.dscalar(),
                     np.array(1.0, dtype=np.float64),
                 ),
             ],
-            aet.as_tensor([3, 2]),
+            at.as_tensor([3, 2]),
             marks=pytest.mark.xfail(reason="Numba and NumPy rng states do not match"),
         ),
         (
             aer.lognormal,
             [
                 set_test_value(
-                    aet.dvector(),
+                    at.dvector(),
                     np.array([1.0, 2.0], dtype=np.float64),
                 ),
                 set_test_value(
-                    aet.dscalar(),
+                    at.dscalar(),
                     np.array(1.0, dtype=np.float64),
                 ),
             ],
-            aet.as_tensor([3, 2]),
+            at.as_tensor([3, 2]),
         ),
         pytest.param(
             aer.gamma,
             [
                 set_test_value(
-                    aet.dvector(),
+                    at.dvector(),
                     np.array([1.0, 2.0], dtype=np.float64),
                 ),
                 set_test_value(
-                    aet.dscalar(),
+                    at.dscalar(),
                     np.array(1.0, dtype=np.float64),
                 ),
             ],
-            aet.as_tensor([3, 2]),
+            at.as_tensor([3, 2]),
             marks=pytest.mark.xfail(reason="Numba and NumPy rng states do not match"),
         ),
         pytest.param(
             aer.chisquare,
             [
                 set_test_value(
-                    aet.dvector(),
+                    at.dvector(),
                     np.array([1.0, 2.0], dtype=np.float64),
                 )
             ],
-            aet.as_tensor([3, 2]),
+            at.as_tensor([3, 2]),
             marks=pytest.mark.xfail(reason="Numba and NumPy rng states do not match"),
         ),
         pytest.param(
             aer.pareto,
             [
                 set_test_value(
-                    aet.dvector(),
+                    at.dvector(),
                     np.array([1.0, 2.0], dtype=np.float64),
                 ),
             ],
-            aet.as_tensor([3, 2]),
+            at.as_tensor([3, 2]),
             marks=pytest.mark.xfail(reason="Not implemented"),
         ),
         pytest.param(
             aer.gumbel,
             [
                 set_test_value(
-                    aet.dvector(),
+                    at.dvector(),
                     np.array([1.0, 2.0], dtype=np.float64),
                 ),
                 set_test_value(
-                    aet.dscalar(),
+                    at.dscalar(),
                     np.array(1.0, dtype=np.float64),
                 ),
             ],
-            aet.as_tensor([3, 2]),
+            at.as_tensor([3, 2]),
             marks=pytest.mark.xfail(reason="Numba and NumPy rng states do not match"),
         ),
         (
             aer.exponential,
             [
                 set_test_value(
-                    aet.dvector(),
+                    at.dvector(),
                     np.array([1.0, 2.0], dtype=np.float64),
                 ),
             ],
-            aet.as_tensor([3, 2]),
+            at.as_tensor([3, 2]),
         ),
         (
             aer.weibull,
             [
                 set_test_value(
-                    aet.dvector(),
+                    at.dvector(),
                     np.array([1.0, 2.0], dtype=np.float64),
                 ),
             ],
-            aet.as_tensor([3, 2]),
+            at.as_tensor([3, 2]),
         ),
         (
             aer.logistic,
             [
                 set_test_value(
-                    aet.dvector(),
+                    at.dvector(),
                     np.array([1.0, 2.0], dtype=np.float64),
                 ),
                 set_test_value(
-                    aet.dscalar(),
+                    at.dscalar(),
                     np.array(1.0, dtype=np.float64),
                 ),
             ],
-            aet.as_tensor([3, 2]),
+            at.as_tensor([3, 2]),
         ),
         pytest.param(
             aer.vonmises,
             [
                 set_test_value(
-                    aet.dvector(),
+                    at.dvector(),
                     np.array([1.0, 2.0], dtype=np.float64),
                 ),
                 set_test_value(
-                    aet.dscalar(),
+                    at.dscalar(),
                     np.array(1.0, dtype=np.float64),
                 ),
             ],
-            aet.as_tensor([3, 2]),
+            at.as_tensor([3, 2]),
             marks=pytest.mark.xfail(reason="Numba and NumPy rng states do not match"),
         ),
         (
             aer.geometric,
             [
                 set_test_value(
-                    aet.dvector(),
+                    at.dvector(),
                     np.array([0.3, 0.4], dtype=np.float64),
                 ),
             ],
-            aet.as_tensor([3, 2]),
+            at.as_tensor([3, 2]),
         ),
         (
             aer.hypergeometric,
             [
                 set_test_value(
-                    aet.lscalar(),
+                    at.lscalar(),
                     np.array(7, dtype=np.int64),
                 ),
                 set_test_value(
-                    aet.lscalar(),
+                    at.lscalar(),
                     np.array(8, dtype=np.int64),
                 ),
                 set_test_value(
-                    aet.lscalar(),
+                    at.lscalar(),
                     np.array(15, dtype=np.int64),
                 ),
             ],
-            aet.as_tensor([3, 2]),
+            at.as_tensor([3, 2]),
         ),
         pytest.param(
             aer.cauchy,
             [
                 set_test_value(
-                    aet.dvector(),
+                    at.dvector(),
                     np.array([1.0, 2.0], dtype=np.float64),
                 ),
                 set_test_value(
-                    aet.dscalar(),
+                    at.dscalar(),
                     np.array(1.0, dtype=np.float64),
                 ),
             ],
-            aet.as_tensor([3, 2]),
+            at.as_tensor([3, 2]),
             marks=pytest.mark.xfail(reason="Not implemented"),
         ),
         (
             aer.wald,
             [
                 set_test_value(
-                    aet.dvector(),
+                    at.dvector(),
                     np.array([1.0, 2.0], dtype=np.float64),
                 ),
                 set_test_value(
-                    aet.dscalar(),
+                    at.dscalar(),
                     np.array(1.0, dtype=np.float64),
                 ),
             ],
-            aet.as_tensor([3, 2]),
+            at.as_tensor([3, 2]),
         ),
         (
             aer.laplace,
             [
                 set_test_value(
-                    aet.dvector(),
+                    at.dvector(),
                     np.array([1.0, 2.0], dtype=np.float64),
                 ),
                 set_test_value(
-                    aet.dscalar(),
+                    at.dscalar(),
                     np.array(1.0, dtype=np.float64),
                 ),
             ],
-            aet.as_tensor([3, 2]),
+            at.as_tensor([3, 2]),
         ),
         (
             aer.binomial,
             [
                 set_test_value(
-                    aet.lvector(),
+                    at.lvector(),
                     np.array([1, 2], dtype=np.int64),
                 ),
                 set_test_value(
-                    aet.dscalar(),
+                    at.dscalar(),
                     np.array(0.9, dtype=np.float64),
                 ),
             ],
-            aet.as_tensor([3, 2]),
+            at.as_tensor([3, 2]),
         ),
         # pytest.param(
         #     aer.negative_binomial,
         #     [
         #         set_test_value(
-        #             aet.lvector(),
+        #             at.lvector(),
         #             np.array([1, 2], dtype=np.int64),
         #         ),
         #         set_test_value(
-        #             aet.dscalar(),
+        #             at.dscalar(),
         #             np.array(0.9, dtype=np.float64),
         #         ),
         #     ],
-        #     aet.as_tensor([3, 2]),
+        #     at.as_tensor([3, 2]),
         #     marks=pytest.mark.xfail(reason="Not implemented"),
         # ),
         (
             aer.normal,
             [
                 set_test_value(
-                    aet.lvector(),
+                    at.lvector(),
                     np.array([1, 2], dtype=np.int64),
                 ),
                 set_test_value(
-                    aet.dscalar(),
+                    at.dscalar(),
                     np.array(1.0, dtype=np.float64),
                 ),
             ],
-            aet.as_tensor(tuple(set_test_value(aet.lscalar(), v) for v in [3, 2])),
+            at.as_tensor(tuple(set_test_value(at.lscalar(), v) for v in [3, 2])),
         ),
         (
             aer.poisson,
             [
                 set_test_value(
-                    aet.dvector(),
+                    at.dvector(),
                     np.array([1.0, 2.0], dtype=np.float64),
                 ),
             ],
@@ -2956,11 +2950,11 @@ def test_shared():
             aer.halfnormal,
             [
                 set_test_value(
-                    aet.lvector(),
+                    at.lvector(),
                     np.array([1, 2], dtype=np.int64),
                 ),
                 set_test_value(
-                    aet.dscalar(),
+                    at.dscalar(),
                     np.array(1.0, dtype=np.float64),
                 ),
             ],
@@ -2970,7 +2964,7 @@ def test_shared():
             aer.bernoulli,
             [
                 set_test_value(
-                    aet.dvector(),
+                    at.dvector(),
                     np.array([0.1, 0.9], dtype=np.float64),
                 ),
             ],
@@ -2980,29 +2974,29 @@ def test_shared():
             aer.randint,
             [
                 set_test_value(
-                    aet.lscalar(),
+                    at.lscalar(),
                     np.array(0, dtype=np.int64),
                 ),
                 set_test_value(
-                    aet.lscalar(),
+                    at.lscalar(),
                     np.array(5, dtype=np.int64),
                 ),
             ],
-            aet.as_tensor([3, 2]),
+            at.as_tensor([3, 2]),
         ),
         pytest.param(
             aer.multivariate_normal,
             [
                 set_test_value(
-                    aet.dmatrix(),
+                    at.dmatrix(),
                     np.array([[1, 2], [3, 4]], dtype=np.float64),
                 ),
                 set_test_value(
-                    aet.tensor("float64", [True, False, False]),
+                    at.tensor("float64", [True, False, False]),
                     np.eye(2)[None, ...],
                 ),
             ],
-            aet.as_tensor(tuple(set_test_value(aet.lscalar(), v) for v in [4, 3, 2])),
+            at.as_tensor(tuple(set_test_value(at.lscalar(), v) for v in [4, 3, 2])),
             marks=pytest.mark.xfail(reason="Not implemented"),
         ),
     ],
@@ -3027,7 +3021,7 @@ def test_RandomState_updates():
     rng = shared(np.random.RandomState(1))
     rng_new = shared(np.random.RandomState(2))
 
-    x = aet.random.normal(size=10, rng=rng)
+    x = at.random.normal(size=10, rng=rng)
     res = function([], x, updates={rng: rng_new}, mode=numba_mode)()
 
     ref = np.random.RandomState(2).normal(size=10)
@@ -3064,24 +3058,24 @@ def test_scan_multiple_output():
     """
 
     def binomln(n, k):
-        return aet.exp(n + 1) - aet.exp(k + 1) - aet.exp(n - k + 1)
+        return at.exp(n + 1) - at.exp(k + 1) - at.exp(n - k + 1)
 
     def binom_log_prob(n, p, value):
-        return binomln(n, value) + value * aet.exp(p) + (n - value) * aet.exp(1 - p)
+        return binomln(n, value) + value * at.exp(p) + (n - value) * at.exp(1 - p)
 
     # sequences
-    aet_C = aet.ivector("C_t")
-    aet_D = aet.ivector("D_t")
+    at_C = at.ivector("C_t")
+    at_D = at.ivector("D_t")
     # outputs_info (initial conditions)
-    st0 = aet.lscalar("s_t0")
-    et0 = aet.lscalar("e_t0")
-    it0 = aet.lscalar("i_t0")
-    logp_c = aet.scalar("logp_c")
-    logp_d = aet.scalar("logp_d")
+    st0 = at.lscalar("s_t0")
+    et0 = at.lscalar("e_t0")
+    it0 = at.lscalar("i_t0")
+    logp_c = at.scalar("logp_c")
+    logp_d = at.scalar("logp_d")
     # non_sequences
-    beta = aet.scalar("beta")
-    gamma = aet.scalar("gamma")
-    delta = aet.scalar("delta")
+    beta = at.scalar("beta")
+    gamma = at.scalar("gamma")
+    delta = at.scalar("delta")
 
     def seir_one_step(ct0, dt0, st0, et0, it0, logp_c, logp_d, beta, gamma, delta):
         bt0 = st0 * beta
@@ -3097,7 +3091,7 @@ def test_scan_multiple_output():
 
     (st, et, it, logp_c_all, logp_d_all), _ = scan(
         fn=seir_one_step,
-        sequences=[aet_C, aet_D],
+        sequences=[at_C, at_D],
         outputs_info=[st0, et0, it0, logp_c, logp_d],
         non_sequences=[beta, gamma, delta],
     )
@@ -3108,7 +3102,7 @@ def test_scan_multiple_output():
     logp_d_all.name = "D_t_logp"
 
     out_fg = FunctionGraph(
-        [aet_C, aet_D, st0, et0, it0, logp_c, logp_d, beta, gamma, delta],
+        [at_C, at_D, st0, et0, it0, logp_c, logp_d, beta, gamma, delta],
         [st, et, it, logp_c_all, logp_d_all],
     )
 
@@ -3139,14 +3133,14 @@ def test_scan_multiple_output():
 @config.change_flags(compute_test_value="raise")
 def test_scan_tap_output():
 
-    a_aet = aet.scalar("a")
-    a_aet.tag.test_value = 10.0
+    a_at = at.scalar("a")
+    a_at.tag.test_value = 10.0
 
-    b_aet = aet.arange(11).astype(config.floatX)
-    b_aet.name = "b"
+    b_at = at.arange(11).astype(config.floatX)
+    b_at.name = "b"
 
-    c_aet = aet.arange(20, 31, dtype=config.floatX)
-    c_aet.name = "c"
+    c_at = at.arange(20, 31, dtype=config.floatX)
+    c_at.name = "c"
 
     def input_step_fn(b, b2, c, x_tm1, y_tm1, y_tm3, a):
         x_tm1.name = "x_tm1"
@@ -3157,40 +3151,40 @@ def test_scan_tap_output():
         x_t = x_tm1 + 1
         x_t.name = "x_t"
         y_t.name = "y_t"
-        return x_t, y_t, aet.fill((10,), z_t)
+        return x_t, y_t, at.fill((10,), z_t)
 
     scan_res, _ = scan(
         fn=input_step_fn,
         sequences=[
             {
-                "input": b_aet,
+                "input": b_at,
                 "taps": [-1, -2],
             },
             {
-                "input": c_aet,
+                "input": c_at,
                 "taps": [-2],
             },
         ],
         outputs_info=[
             {
-                "initial": aet.as_tensor_variable(0.0, dtype=config.floatX),
+                "initial": at.as_tensor_variable(0.0, dtype=config.floatX),
                 "taps": [-1],
             },
             {
-                "initial": aet.as_tensor_variable(
+                "initial": at.as_tensor_variable(
                     np.r_[-1.0, 1.3, 0.0].astype(config.floatX)
                 ),
                 "taps": [-1, -3],
             },
             None,
         ],
-        non_sequences=[a_aet],
+        non_sequences=[a_at],
         n_steps=5,
         name="yz_scan",
         strict=True,
     )
 
-    out_fg = FunctionGraph([a_aet, b_aet, c_aet], scan_res)
+    out_fg = FunctionGraph([a_at, b_at, c_at], scan_res)
 
     test_input_vals = [
         np.array(10.0).astype(config.floatX),
@@ -3204,10 +3198,10 @@ def test_scan_while():
     def power_of_2(previous_power, max_value):
         return previous_power * 2, until(previous_power * 2 > max_value)
 
-    max_value = aet.scalar()
+    max_value = at.scalar()
     values, _ = scan(
         power_of_2,
-        outputs_info=aet.constant(1.0),
+        outputs_info=at.constant(1.0),
         non_sequences=max_value,
         n_steps=1024,
     )
@@ -3225,15 +3219,15 @@ def test_scan_while():
     [
         ([], lambda: np.array(True), np.r_[1, 2, 3], np.r_[-1, -2, -3]),
         (
-            [set_test_value(aet.dscalar(), np.array(0.2, dtype=np.float64))],
+            [set_test_value(at.dscalar(), np.array(0.2, dtype=np.float64))],
             lambda x: x < 0.5,
             np.r_[1, 2, 3],
             np.r_[-1, -2, -3],
         ),
         (
             [
-                set_test_value(aet.dscalar(), np.array(0.3, dtype=np.float64)),
-                set_test_value(aet.dscalar(), np.array(0.5, dtype=np.float64)),
+                set_test_value(at.dscalar(), np.array(0.3, dtype=np.float64)),
+                set_test_value(at.dscalar(), np.array(0.5, dtype=np.float64)),
             ],
             lambda x, y: x > y,
             x,
@@ -3241,28 +3235,28 @@ def test_scan_while():
         ),
         (
             [
-                set_test_value(aet.dvector(), np.array([0.3, 0.1], dtype=np.float64)),
-                set_test_value(aet.dvector(), np.array([0.5, 0.9], dtype=np.float64)),
+                set_test_value(at.dvector(), np.array([0.3, 0.1], dtype=np.float64)),
+                set_test_value(at.dvector(), np.array([0.5, 0.9], dtype=np.float64)),
             ],
-            lambda x, y: aet.all(x > y),
+            lambda x, y: at.all(x > y),
             x,
             y,
         ),
         (
             [
-                set_test_value(aet.dvector(), np.array([0.3, 0.1], dtype=np.float64)),
-                set_test_value(aet.dvector(), np.array([0.5, 0.9], dtype=np.float64)),
+                set_test_value(at.dvector(), np.array([0.3, 0.1], dtype=np.float64)),
+                set_test_value(at.dvector(), np.array([0.5, 0.9], dtype=np.float64)),
             ],
-            lambda x, y: aet.all(x > y),
+            lambda x, y: at.all(x > y),
             [x, 2 * x],
             [y, 3 * y],
         ),
         (
             [
-                set_test_value(aet.dvector(), np.array([0.5, 0.9], dtype=np.float64)),
-                set_test_value(aet.dvector(), np.array([0.3, 0.1], dtype=np.float64)),
+                set_test_value(at.dvector(), np.array([0.5, 0.9], dtype=np.float64)),
+                set_test_value(at.dvector(), np.array([0.3, 0.1], dtype=np.float64)),
             ],
-            lambda x, y: aet.all(x > y),
+            lambda x, y: at.all(x > y),
             [x, 2 * x],
             [y, 3 * y],
         ),

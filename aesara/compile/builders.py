@@ -3,7 +3,7 @@ from collections import OrderedDict
 from functools import partial
 from typing import List, Optional
 
-import aesara.tensor as aet
+import aesara.tensor as at
 from aesara.compile.function.pfunc import rebuild_collect_shared
 from aesara.compile.function.types import orig_function
 from aesara.compile.mode import optdb
@@ -126,9 +126,9 @@ class OpFromGraph(Op, HasInnerGraph):
 
     .. code-block:: python
 
-        from aesara import function, tensor as aet
+        from aesara import function, tensor as at
         from aesara.compile.builders import OpFromGraph
-        x, y, z = aet.scalars('xyz')
+        x, y, z = at.scalars('xyz')
         e = x + y * z
         op = OpFromGraph([x, y, z], [e])
         # op behaves like a normal aesara op
@@ -141,10 +141,10 @@ class OpFromGraph(Op, HasInnerGraph):
 
         import numpy as np
         import aesara
-        from aesara import config, function, tensor as aet
+        from aesara import config, function, tensor as at
         from aesara.compile.builders import OpFromGraph
 
-        x, y, z = aet.scalars('xyz')
+        x, y, z = at.scalars('xyz')
         s = aesara.shared(np.random.rand(2, 2).astype(config.floatX))
         e = x + y * z + s
         op = OpFromGraph([x, y, z], [e])
@@ -156,10 +156,10 @@ class OpFromGraph(Op, HasInnerGraph):
 
     .. code-block:: python
 
-        from aesara import function, tensor as aet, grad
+        from aesara import function, tensor as at, grad
         from aesara.compile.builders import OpFromGraph
 
-        x, y, z = aet.scalars('xyz')
+        x, y, z = at.scalars('xyz')
         e = x + y * z
         def rescale_dy(inps, grads):
             x, y, z = inps
@@ -210,7 +210,7 @@ class OpFromGraph(Op, HasInnerGraph):
             if hasattr(inp, "zeros_like"):
                 return inp.zeros_like(), grad
             else:
-                return aet.constant(0.0), grad
+                return at.constant(0.0), grad
         else:
             return grad, None
 

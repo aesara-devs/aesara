@@ -98,9 +98,9 @@ Example:
 .. code-block:: python
 
     def test_dot_validity():
-        a = aet.dmatrix('a')
-        b = aet.dmatrix('b')
-        c = aet.dot(a, b)
+        a = at.dmatrix('a')
+        b = at.dmatrix('b')
+        c = at.dot(a, b)
         f = aesara.function([a, b], [c])
         assert np.array_equal(f(self.avals, self.bvals), numpy.dot(self.avals, self.bvals))
 

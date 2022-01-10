@@ -4,7 +4,7 @@ from typing import Tuple, Union
 
 import numpy as np
 
-import aesara.tensor as aet
+import aesara.tensor as at
 from aesara.configdefaults import config
 from aesara.graph.basic import Apply
 from aesara.graph.op import COp
@@ -35,8 +35,8 @@ class MultinomialFromUniform(COp):
             self.odtype = "auto"
 
     def make_node(self, pvals, unis, n=1):
-        pvals = aet.as_tensor_variable(pvals)
-        unis = aet.as_tensor_variable(unis)
+        pvals = at.as_tensor_variable(pvals)
+        unis = at.as_tensor_variable(unis)
         if pvals.ndim != 2:
             raise NotImplementedError("pvals ndim should be 2", pvals.ndim)
         if unis.ndim != 1:
@@ -45,16 +45,16 @@ class MultinomialFromUniform(COp):
             odtype = pvals.dtype
         else:
             odtype = self.odtype
-        out = aet.tensor(dtype=odtype, broadcastable=pvals.type.broadcastable)
+        out = at.tensor(dtype=odtype, broadcastable=pvals.type.broadcastable)
         return Apply(self, [pvals, unis, as_scalar(n)], [out])
 
     def grad(self, ins, outgrads):
         pvals, unis, n = ins
         (gz,) = outgrads
         return [
-            aet.zeros_like(x, dtype=config.floatX)
+            at.zeros_like(x, dtype=config.floatX)
             if x.dtype in discrete_dtypes
-            else aet.zeros_like(x)
+            else at.zeros_like(x)
             for x in ins
         ]
 
@@ -241,8 +241,8 @@ class ChoiceFromUniform(MultinomialFromUniform):
             self.replace = False
 
     def make_node(self, pvals, unis, n=1):
-        pvals = aet.as_tensor_variable(pvals)
-        unis = aet.as_tensor_variable(unis)
+        pvals = at.as_tensor_variable(pvals)
+        unis = at.as_tensor_variable(unis)
         if pvals.ndim != 2:
             raise NotImplementedError("pvals ndim should be 2", pvals.ndim)
         if unis.ndim != 1:
@@ -251,7 +251,7 @@ class ChoiceFromUniform(MultinomialFromUniform):
             odtype = "int64"
         else:
             odtype = self.odtype
-        out = aet.tensor(dtype=odtype, broadcastable=pvals.type.broadcastable)
+        out = at.tensor(dtype=odtype, broadcastable=pvals.type.broadcastable)
         return Apply(self, [pvals, unis, as_scalar(n)], [out])
 
     def c_code_cache_version(self):

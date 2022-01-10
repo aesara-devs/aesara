@@ -41,9 +41,9 @@ Well, what you do is this:
 .. tests/test_tutorial.py:T_examples.test_examples_1
 
 >>> import aesara
->>> import aesara.tensor as aet
->>> x = aet.dmatrix('x')
->>> s = 1 / (1 + aet.exp(-x))
+>>> import aesara.tensor as at
+>>> x = at.dmatrix('x')
+>>> s = 1 / (1 + at.exp(-x))
 >>> logistic = aesara.function([x], s)
 >>> logistic([[0, 1], [-1, -2]])
 array([[ 0.5       ,  0.73105858],
@@ -64,7 +64,7 @@ We can verify that this alternate form produces the same values:
 .. If you modify this code, also change :
 .. tests/test_tutorial.py:T_examples.test_examples_2
 
->>> s2 = (1 + aet.tanh(x / 2)) / 2
+>>> s2 = (1 + at.tanh(x / 2)) / 2
 >>> logistic2 = aesara.function([x], s2)
 >>> logistic2([[0, 1], [-1, -2]])
 array([[ 0.5       ,  0.73105858],
@@ -81,7 +81,7 @@ squared difference between two matrices *a* and *b* at the same time:
 .. If you modify this code, also change :
 .. tests/test_tutorial.py:T_examples.test_examples_3
 
->>> a, b = aet.dmatrices('a', 'b')
+>>> a, b = at.dmatrices('a', 'b')
 >>> diff = a - b
 >>> abs_diff = abs(diff)
 >>> diff_squared = diff**2
@@ -114,7 +114,7 @@ one. You can do it like this:
 
 >>> from aesara.compile.io import In
 >>> from aesara import function
->>> x, y = aet.dscalars('x', 'y')
+>>> x, y = at.dscalars('x', 'y')
 >>> z = x + y
 >>> f = function([x, In(y, value=1)], z)
 >>> f(33)
@@ -135,7 +135,7 @@ be set positionally or by name, as in standard Python:
 .. If you modify this code, also change :
 .. tests/test_tutorial.py:T_examples.test_examples_7
 
->>> x, y, w = aet.dscalars('x', 'y', 'w')
+>>> x, y, w = at.dscalars('x', 'y', 'w')
 >>> z = (x + y) * w
 >>> f = function([x, In(y, value=1), In(w, value=2, name='w_by_name')], z)
 >>> f(33)
@@ -180,7 +180,7 @@ internal state, and returns the old state value.
 
 >>> from aesara import shared
 >>> state = shared(0)
->>> inc = aet.iscalar('inc')
+>>> inc = at.iscalar('inc')
 >>> accumulator = function([inc], state, updates=[(state, state+inc)])
 
 This code introduces a few new concepts.  The ``shared`` function constructs
@@ -257,7 +257,7 @@ for the purpose of one particular function.
 >>> fn_of_state = state * 2 + inc
 >>> # The type of foo must match the shared variable we are replacing
 >>> # with the ``givens``
->>> foo = aet.scalar(dtype=state.dtype)
+>>> foo = at.scalar(dtype=state.dtype)
 >>> skip_shared = function([inc, foo], fn_of_state, givens=[(state, foo)])
 >>> skip_shared(1, 3)  # we're using 3 for the state, not state.value
 array(7)
@@ -292,9 +292,9 @@ so compilation only needs to be performed once.
 Let's start from the accumulator defined above:
 
 >>> import aesara
->>> import aesara.tensor as aet
+>>> import aesara.tensor as at
 >>> state = aesara.shared(0)
->>> inc = aet.iscalar('inc')
+>>> inc = at.iscalar('inc')
 >>> accumulator = aesara.function([inc], state, updates=[(state, state+inc)])
 
 We can use it to increment the state as usual:
@@ -462,7 +462,7 @@ to another is shown below.
 
 >>> import aesara
 >>> import numpy
->>> import aesara.tensor as aet
+>>> import aesara.tensor as at
 >>> from aesara.sandbox.rng_mrg import MRG_RandomStream
 >>> from aesara.tensor.random.utils import RandomStream
 
@@ -532,7 +532,7 @@ It will be used repeatedly.
 
     import numpy
     import aesara
-    import aesara.tensor as aet
+    import aesara.tensor as at
     rng = numpy.random
 
     N = 400                                   # training sample size
@@ -543,8 +543,8 @@ It will be used repeatedly.
     training_steps = 10000
 
     # Declare Aesara symbolic variables
-    x = aet.dmatrix("x")
-    y = aet.dvector("y")
+    x = at.dmatrix("x")
+    y = at.dvector("y")
 
     # initialize the weight vector w randomly
     #
@@ -561,11 +561,11 @@ It will be used repeatedly.
     print(b.get_value())
 
     # Construct Aesara expression graph
-    p_1 = 1 / (1 + aet.exp(-aet.dot(x, w) - b))        # Probability that target = 1
+    p_1 = 1 / (1 + at.exp(-at.dot(x, w) - b))        # Probability that target = 1
     prediction = p_1 > 0.5                          # The prediction thresholded
-    xent = -y * aet.log(p_1) - (1-y) * aet.log(1-p_1) # Cross-entropy loss function
+    xent = -y * at.log(p_1) - (1-y) * at.log(1-p_1) # Cross-entropy loss function
     cost = xent.mean() + 0.01 * (w ** 2).sum()      # The cost to minimize
-    gw, gb = aet.grad(cost, [w, b])                  # Compute the gradient of the cost
+    gw, gb = at.grad(cost, [w, b])                  # Compute the gradient of the cost
                                                     # w.r.t weight vector w and
                                                     # bias term b (we shall
                                                     # return to this in a

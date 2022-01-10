@@ -5,7 +5,7 @@ import numpy as np
 import pytest
 
 import aesara
-from aesara import tensor as aet
+from aesara import tensor as at
 from aesara.scan.utils import ScanArgs, map_variables
 from aesara.tensor.type import scalar, vector
 
@@ -58,7 +58,7 @@ class TestMapVariables:
         # should do this as well.
         outer = scalar("outer")
         shared = aesara.shared(np.array(1.0, dtype=aesara.config.floatX), name="shared")
-        constant = aet.constant(1, name="constant")
+        constant = at.constant(1, name="constant")
 
         # z will equal 1 so multiplying by it doesn't change any values
         z = outer * (shared + constant)
@@ -126,7 +126,7 @@ class TestMapVariables:
         # inner graph.
         outer = scalar("outer")
         shared = aesara.shared(np.array(1.0, dtype=aesara.config.floatX), name="shared")
-        constant = aet.constant(1.0, name="constant")
+        constant = at.constant(1.0, name="constant")
         z = outer * (shared + constant)
 
         # construct the inner graph
@@ -160,27 +160,27 @@ def create_test_hmm():
     rng_tt.tag.is_rng = True
     rng_tt.default_update = rng_tt
 
-    N_tt = aet.iscalar("N")
+    N_tt = at.iscalar("N")
     N_tt.tag.test_value = 10
-    M_tt = aet.iscalar("M")
+    M_tt = at.iscalar("M")
     M_tt.tag.test_value = 2
 
-    mus_tt = aet.matrix("mus")
+    mus_tt = at.matrix("mus")
     mus_tt.tag.test_value = np.stack(
         [np.arange(0.0, 10), np.arange(0.0, -10, -1)], axis=-1
     ).astype(aesara.config.floatX)
 
-    sigmas_tt = aet.ones((N_tt,))
+    sigmas_tt = at.ones((N_tt,))
     sigmas_tt.name = "sigmas"
 
-    pi_0_rv = aet.random.dirichlet(aet.ones((M_tt,)), rng=rng_tt, name="pi_0")
-    Gamma_rv = aet.random.dirichlet(aet.ones((M_tt, M_tt)), rng=rng_tt, name="Gamma")
+    pi_0_rv = at.random.dirichlet(at.ones((M_tt,)), rng=rng_tt, name="pi_0")
+    Gamma_rv = at.random.dirichlet(at.ones((M_tt, M_tt)), rng=rng_tt, name="Gamma")
 
-    S_0_rv = aet.random.categorical(pi_0_rv, rng=rng_tt, name="S_0")
+    S_0_rv = at.random.categorical(pi_0_rv, rng=rng_tt, name="S_0")
 
     def scan_fn(mus_t, sigma_t, S_tm1, Gamma_t, rng):
-        S_t = aet.random.categorical(Gamma_t[S_tm1], rng=rng, name="S_t")
-        Y_t = aet.random.normal(mus_t[S_t], sigma_t, rng=rng, name="Y_t")
+        S_t = at.random.categorical(Gamma_t[S_tm1], rng=rng, name="S_t")
+        Y_t = at.random.normal(mus_t[S_t], sigma_t, rng=rng, name="Y_t")
         return S_t, Y_t
 
     (S_rv, Y_rv), scan_updates = aesara.scan(
@@ -228,7 +228,7 @@ def test_ScanArgs():
         assert len(getattr(scan_args, name)) == 0
 
     with pytest.raises(TypeError):
-        ScanArgs.from_node(aet.ones(2).owner)
+        ScanArgs.from_node(at.ones(2).owner)
 
     hmm_model_env = create_test_hmm()
     scan_args = hmm_model_env["scan_args"]
@@ -293,34 +293,34 @@ def test_ScanArgs_basics_mit_sot():
     rng_tt.tag.is_rng = True
     rng_tt.default_update = rng_tt
 
-    N_tt = aet.iscalar("N")
+    N_tt = at.iscalar("N")
     N_tt.tag.test_value = 10
-    M_tt = aet.iscalar("M")
+    M_tt = at.iscalar("M")
     M_tt.tag.test_value = 2
 
-    mus_tt = aet.matrix("mus")
+    mus_tt = at.matrix("mus")
     mus_tt.tag.test_value = np.stack(
         [np.arange(0.0, 10), np.arange(0.0, -10, -1)], axis=-1
     ).astype(aesara.config.floatX)
 
-    sigmas_tt = aet.ones((N_tt,))
+    sigmas_tt = at.ones((N_tt,))
     sigmas_tt.name = "sigmas"
 
-    pi_0_rv = aet.random.dirichlet(aet.ones((M_tt,)), rng=rng_tt, name="pi_0")
-    Gamma_rv = aet.random.dirichlet(aet.ones((M_tt, M_tt)), rng=rng_tt, name="Gamma")
+    pi_0_rv = at.random.dirichlet(at.ones((M_tt,)), rng=rng_tt, name="pi_0")
+    Gamma_rv = at.random.dirichlet(at.ones((M_tt, M_tt)), rng=rng_tt, name="Gamma")
 
-    S_0_rv = aet.random.categorical(pi_0_rv, rng=rng_tt, name="S_0")
+    S_0_rv = at.random.categorical(pi_0_rv, rng=rng_tt, name="S_0")
 
     def scan_fn(mus_t, sigma_t, S_tm2, S_tm1, Gamma_t, rng):
-        S_t = aet.random.categorical(Gamma_t[S_tm2], rng=rng, name="S_t")
-        Y_t = aet.random.normal(mus_t[S_tm1], sigma_t, rng=rng, name="Y_t")
+        S_t = at.random.categorical(Gamma_t[S_tm2], rng=rng, name="S_t")
+        Y_t = at.random.normal(mus_t[S_tm1], sigma_t, rng=rng, name="Y_t")
         return S_t, Y_t
 
     (S_rv, Y_rv), scan_updates = aesara.scan(
         fn=scan_fn,
         sequences=[mus_tt, sigmas_tt],
         non_sequences=[Gamma_rv, rng_tt],
-        outputs_info=[{"initial": aet.stack([S_0_rv, S_0_rv]), "taps": [-2, -1]}, {}],
+        outputs_info=[{"initial": at.stack([S_0_rv, S_0_rv]), "taps": [-2, -1]}, {}],
         strict=True,
         name="scan_rv",
     )
@@ -346,7 +346,7 @@ def test_ScanArgs_basics_mit_sot():
     assert field_info.inner_index == 1
     assert field_info.agg_index == 3
 
-    rm_info = scan_args._remove_from_fields(aet.ones(2))
+    rm_info = scan_args._remove_from_fields(at.ones(2))
     assert rm_info is None
 
     rm_info = scan_args._remove_from_fields(test_v)

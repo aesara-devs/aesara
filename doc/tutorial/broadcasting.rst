@@ -2,7 +2,7 @@
 
    import numpy as np
    import aesara
-   import aesara.tensor as aet
+   import aesara.tensor as at
 
 .. _tutbroadcasting:
 
@@ -39,10 +39,10 @@ information is given in the :ref:`type` of a *Variable*.
 
 The following code illustrates how rows and columns are broadcasted in order to perform an addition operation with a matrix:
 
->>> r = aet.row()
+>>> r = at.row()
 >>> r.broadcastable
 (True, False)
->>> mtr = aet.matrix()
+>>> mtr = at.matrix()
 >>> mtr.broadcastable
 (False, False)
 >>> f_row = aesara.function([r, mtr], [r + mtr])
@@ -58,7 +58,7 @@ array([[0, 1, 2],
 [array([[  0.,   2.,   4.],
        [  3.,   5.,   7.],
        [  6.,   8.,  10.]])]
->>> c = aet.col()
+>>> c = at.col()
 >>> c.broadcastable
 (False, True)
 >>> f_col = aesara.function([c, mtr], [c + mtr])

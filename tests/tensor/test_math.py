@@ -106,7 +106,7 @@ from aesara.tensor.math import (
     sqrt,
     sub,
 )
-from aesara.tensor.math import sum as aet_sum
+from aesara.tensor.math import sum as at_sum
 from aesara.tensor.math import tan, tanh, tensordot, true_div, trunc, var
 from aesara.tensor.type import (
     TensorType,
@@ -940,9 +940,9 @@ class TestMaxAndArgmax:
 
     def test_numpy_input(self):
         ar = np.array([1, 2, 3])
-        max_aet, argmax_aet = max_and_argmax(ar, axis=None)
-        assert max_aet.eval(), 3
-        assert argmax_aet.eval(), 2
+        max_at, argmax_at = max_and_argmax(ar, axis=None)
+        assert max_at.eval(), 3
+        assert argmax_at.eval(), 2
 
 
 class TestArgminArgmax:
@@ -2193,12 +2193,12 @@ class TestSum:
     def test_sum_overflow(self):
         # Ensure that overflow errors are a little bit harder to get
         a = TensorType(dtype="int8", broadcastable=[False])()
-        f = function([a], aet_sum(a))
+        f = function([a], at_sum(a))
         assert f([1] * 300) == 300
 
     def test_list(self):
         ll = [shared(0.0), shared(2.0)]
-        aet_sum(ll).eval() == 2
+        at_sum(ll).eval() == 2
 
 
 class TestArithmeticCast:
@@ -2711,7 +2711,7 @@ class TestProd:
     def test_prod_without_zeros_grad(self):
         x = dmatrix()
         pwz_a1 = ProdWithoutZeros(axis=0)(x)
-        pwz_grad = grad(aet_sum(pwz_a1), x)
+        pwz_grad = grad(at_sum(pwz_a1), x)
         # FIXME: This is not a real test.
         function([x], pwz_grad, mode=self.mode)
 
@@ -2781,9 +2781,9 @@ class TestIsInfIsNan:
             self.mode = copy(self.mode)
             self.mode.check_isfinite = False
 
-    def run_isfunc(self, aet_func, np_func):
+    def run_isfunc(self, at_func, np_func):
         for args in (self.scalar, self.vector):
-            Aesara_isfunc = function([args], aet_func(args), mode=self.mode)
+            Aesara_isfunc = function([args], at_func(args), mode=self.mode)
             for x in self.test_vals:
                 if (x.ndim == 0 and args is not self.scalar) or (
                     x.ndim == 1 and args is not self.vector
@@ -3342,7 +3342,7 @@ def test_logsumexp(shape, axis, keepdims):
 
 def test_pprint():
     x = vector("x")
-    y = aet_sum(x, axis=0)
+    y = at_sum(x, axis=0)
     assert pprint(y) == "sum(x, axis=(0,))"
 
 

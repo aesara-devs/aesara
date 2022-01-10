@@ -3342,7 +3342,7 @@ class _nd_grid:
 
     Examples
     --------
-    >>> a = aet.mgrid[0:5, 0:3]
+    >>> a = at.mgrid[0:5, 0:3]
     >>> a[0].eval()
     array([[0, 0, 0],
            [1, 1, 1],
@@ -3355,7 +3355,7 @@ class _nd_grid:
            [0, 1, 2],
            [0, 1, 2],
            [0, 1, 2]], dtype=int8)
-    >>> b = aet.ogrid[0:5, 0:3]
+    >>> b = at.ogrid[0:5, 0:3]
     >>> b[0].eval()
     array([[0],
            [1],

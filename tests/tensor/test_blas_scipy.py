@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 import aesara
-from aesara import tensor as aet
+from aesara import tensor as at
 from aesara.tensor.blas_scipy import ScipyGer
 from aesara.tensor.math import outer
 from aesara.tensor.type import tensor
@@ -33,7 +33,7 @@ class TestScipyGer(OptimizationTestMixin):
         f(self.Aval[::-1, ::-1], self.xval[::-1], self.yval[::-1])
 
     def b(self, bval):
-        return aet.as_tensor_variable(np.asarray(bval, dtype=self.dtype))
+        return at.as_tensor_variable(np.asarray(bval, dtype=self.dtype))
 
     def test_outer(self):
         f = self.function([self.x, self.y], outer(self.x, self.y))

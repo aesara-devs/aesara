@@ -3,7 +3,7 @@ import pytest
 
 import aesara
 import aesara.graph.op as op
-import aesara.tensor as aet
+import aesara.tensor as at
 from aesara import scalar as aes
 from aesara import shared
 from aesara.configdefaults import config
@@ -274,7 +274,7 @@ def test_test_value_ndarray():
 
 
 def test_test_value_constant():
-    x = aet.as_tensor_variable(np.zeros((5, 5)))
+    x = at.as_tensor_variable(np.zeros((5, 5)))
     v = op.get_test_value(x)
 
     assert np.all(v == np.zeros((5, 5)))

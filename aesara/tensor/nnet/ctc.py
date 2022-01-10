@@ -1,7 +1,7 @@
 import os
 import sys
 
-import aesara.tensor as aet
+import aesara.tensor as at
 from aesara.configdefaults import config
 from aesara.gradient import grad_undefined
 from aesara.graph.basic import Apply
@@ -160,12 +160,12 @@ class ConnectionistTemporalClassification(ExternalCOp, OpenMPOp):
         return ["ctc.h"] + super().c_headers(**kwargs)
 
     def make_node(self, activations, labels, input_lengths):
-        t_activations = aet.as_tensor_variable(activations)
+        t_activations = at.as_tensor_variable(activations)
         # Ensure activations array is C-contiguous
         t_activations = cpu_contiguous(t_activations)
 
-        t_labels = aet.as_tensor_variable(labels)
-        t_input_lengths = aet.as_tensor_variable(input_lengths)
+        t_labels = at.as_tensor_variable(labels)
+        t_input_lengths = at.as_tensor_variable(input_lengths)
 
         if t_activations.type.dtype != "float32":
             raise TypeError("activations must use the float32 type!")

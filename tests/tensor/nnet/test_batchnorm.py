@@ -4,9 +4,9 @@ import numpy as np
 import pytest
 
 import aesara
-import aesara.tensor as aet
+import aesara.tensor as at
 from aesara.configdefaults import config
-from aesara.tensor.math import sum as aet_sum
+from aesara.tensor.math import sum as at_sum
 from aesara.tensor.nnet import batchnorm
 from aesara.tensor.type import (
     TensorType,
@@ -218,13 +218,11 @@ def test_batch_normalization_train():
                 axes2 = axes
             x_mean2 = x.mean(axis=axes2, keepdims=True)
             x_var2 = x.var(axis=axes2, keepdims=True)
-            x_invstd2 = aet.reciprocal(aet.sqrt(x_var2 + eps))
-            scale2 = aet.addbroadcast(scale, *axes2)
-            bias2 = aet.addbroadcast(bias, *axes2)
+            x_invstd2 = at.reciprocal(at.sqrt(x_var2 + eps))
+            scale2 = at.addbroadcast(scale, *axes2)
+            bias2 = at.addbroadcast(bias, *axes2)
             out2 = (x - x_mean2) * (scale2 * x_invstd2) + bias2
-            m = aet.cast(
-                aet.prod(x.shape) / aet.prod(scale.shape), aesara.config.floatX
-            )
+            m = at.cast(at.prod(x.shape) / at.prod(scale.shape), aesara.config.floatX)
             out_running_mean2 = (
                 running_mean * (1 - running_average_factor)
                 + x_mean2 * running_average_factor
@@ -235,14 +233,14 @@ def test_batch_normalization_train():
             )
             # backward pass
             dy = vartype("dy")
-            grads = aet.grad(None, wrt=[x, scale, bias], known_grads={out: dy})
+            grads = at.grad(None, wrt=[x, scale, bias], known_grads={out: dy})
             # reference backward pass
-            grads2 = aet.grad(None, wrt=[x, scale, bias], known_grads={out2: dy})
+            grads2 = at.grad(None, wrt=[x, scale, bias], known_grads={out2: dy})
             # second-order backward pass
             dx = vartype("dinputs")
             dscale = vartype("dscale")
             dbias = vartype("dbias")
-            grad_grads = aet.grad(
+            grad_grads = at.grad(
                 None,
                 wrt=[x, dy, scale],
                 known_grads=OrderedDict(
@@ -261,7 +259,7 @@ def test_batch_normalization_train():
                 return_disconnected="zero",
             )
             # reference second-order backward pass
-            grad_grads2 = aet.grad(
+            grad_grads2 = at.grad(
                 None,
                 wrt=[x, dy, scale],
                 known_grads=OrderedDict(
@@ -445,7 +443,7 @@ def test_batch_normalization_train_without_running_averages():
         x, scale, bias, "per-activation"
     )
     # backward pass
-    grads = aet.grad(None, wrt=[x, scale, bias], known_grads={out: dy})
+    grads = at.grad(None, wrt=[x, scale, bias], known_grads={out: dy})
     # compile
     f = aesara.function([x, scale, bias, dy], [out, x_mean, x_invstd] + grads)
     # check if the abstract Ops have been replaced
@@ -553,7 +551,7 @@ def test_batch_normalization_train_broadcast():
 
             # compile to compute all differences
             f = aesara.function(
-                [x, scale, bias, running_mean, running_var], aet_sum(sum(results))
+                [x, scale, bias, running_mean, running_var], at_sum(sum(results))
             )
 
             # the paired ops are exactly the same, so the optimizer should have
@@ -603,16 +601,16 @@ def test_batch_normalization_test():
             else:
                 axes2 = axes
             scale2, bias2, mean2, var2 = (
-                aet.addbroadcast(t, *axes2) for t in (scale, bias, mean, var)
+                at.addbroadcast(t, *axes2) for t in (scale, bias, mean, var)
             )
-            out2 = (x - mean2) * (scale2 / aet.sqrt(var2 + eps)) + bias2
+            out2 = (x - mean2) * (scale2 / at.sqrt(var2 + eps)) + bias2
             # backward pass
             dy = vartype("dy")
-            grads = aet.grad(
+            grads = at.grad(
                 None, wrt=[x, scale, bias, mean, var], known_grads={out: dy}
             )
             # reference backward pass
-            grads2 = aet.grad(
+            grads2 = at.grad(
                 None, wrt=[x, scale, bias, mean, var], known_grads={out2: dy}
             )
             # compile
@@ -672,8 +670,8 @@ def test_batch_normalization_broadcastable():
     )
     out_test = batchnorm.batch_normalization_test(x, scale, bias, mean, var, "spatial")
     # backward pass
-    grads_train = aet.grad(None, wrt=[x, scale, bias], known_grads={out_train: dy})
-    grads_test = aet.grad(None, wrt=[x, scale, bias], known_grads={out_test: dy})
+    grads_train = at.grad(None, wrt=[x, scale, bias], known_grads={out_train: dy})
+    grads_test = at.grad(None, wrt=[x, scale, bias], known_grads={out_test: dy})
     # compile
     f = aesara.function(
         [x, scale, bias, mean, var, dy],

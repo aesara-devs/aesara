@@ -3,7 +3,7 @@ import pytest
 
 import aesara
 from aesara import config
-from aesara import tensor as aet
+from aesara import tensor as at
 from aesara.gpuarray.basic_ops import CGpuKernelBase
 from aesara.gpuarray.type import GpuArrayType, get_context, gpu_context_type
 from aesara.gradient import grad_undefined
@@ -42,8 +42,8 @@ class GpuEye(CGpuKernelBase):
         return ["<gpuarray/types.h>", "<gpuarray/kernel.h>"]
 
     def make_node(self, n, m):
-        n = aet.as_tensor_variable(n)
-        m = aet.as_tensor_variable(m)
+        n = at.as_tensor_variable(n)
+        m = at.as_tensor_variable(m)
         assert n.ndim == 0
         assert m.ndim == 0
         otype = GpuArrayType(

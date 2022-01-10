@@ -8,7 +8,7 @@ import warnings
 
 import numpy as np
 
-import aesara.tensor.basic as aet
+import aesara.tensor.basic as at
 import aesara.tensor.math as tm
 from aesara.gradient import DisconnectedType
 from aesara.graph.basic import Apply, Constant, Variable
@@ -454,7 +454,7 @@ class Pool(OpenMPOp):
         if pad is None:
             pad = (0,) * ndim
         patch_shape = tuple(
-            aet.extract_constant(imgshape[-ndim + i]) + pad[i] * 2 for i in range(ndim)
+            at.extract_constant(imgshape[-ndim + i]) + pad[i] * 2 for i in range(ndim)
         )
 
         def compute_out(v, downsample, stride):
@@ -469,7 +469,7 @@ class Pool(OpenMPOp):
                         return np.maximum(out, 0)
             else:
                 if isinstance(v, Variable):
-                    return aet.switch(
+                    return at.switch(
                         tm.ge(stride, downsample),
                         (v - 1) // stride + 1,
                         tm.maximum(0, (v - 1 - downsample) // stride + 1) + 1,
@@ -503,9 +503,9 @@ class Pool(OpenMPOp):
             # Old interface
             self.ndim = len(node.op.ds)
             self.mode = node.op.mode
-            ws = aet.constant(node.op.ds)
-            st = aet.constant(node.op.st)
-            pad = aet.constant(node.op.padding)
+            ws = at.constant(node.op.ds)
+            st = at.constant(node.op.st)
+            pad = at.constant(node.op.padding)
             node.inputs.append(ws)
             node.inputs.append(st)
             node.inputs.append(pad)
@@ -530,7 +530,7 @@ class Pool(OpenMPOp):
 
     def make_node(self, x, ws, stride=None, pad=None):
         # TODO: consider restricting the dtype?
-        x = aet.as_tensor_variable(x)
+        x = at.as_tensor_variable(x)
         nd = self.ndim
         if stride is None:
             stride = ws
@@ -542,9 +542,9 @@ class Pool(OpenMPOp):
             if isinstance(ws, (tuple, list)):
                 if any(pad[i] >= ws[i] for i in range(nd)):
                     raise NotImplementedError("padding must be smaller than strides")
-        ws = aet.as_tensor_variable(ws)
-        stride = aet.as_tensor_variable(stride)
-        pad = aet.as_tensor_variable(pad)
+        ws = at.as_tensor_variable(ws)
+        stride = at.as_tensor_variable(stride)
+        pad = at.as_tensor_variable(pad)
         assert ws.ndim == 1
         assert stride.ndim == 1
         assert pad.ndim == 1
@@ -1097,7 +1097,7 @@ class PoolGrad(OpenMPOp):
         if pad is None:
             pad = (0,) * ndim
         patch_shape = tuple(
-            aet.extract_constant(imgshape[-ndim + i]) + pad[i] * 2 for i in range(ndim)
+            at.extract_constant(imgshape[-ndim + i]) + pad[i] * 2 for i in range(ndim)
         )
 
         def compute_out(v, downsample, stride):
@@ -1109,7 +1109,7 @@ class PoolGrad(OpenMPOp):
                     return np.maximum(out, 0)
             else:
                 if isinstance(v, Variable):
-                    return aet.switch(
+                    return at.switch(
                         tm.ge(stride, downsample),
                         (v - 1) // stride + 1,
                         tm.maximum(0, (v - 1 - downsample) // stride + 1) + 1,
@@ -1143,9 +1143,9 @@ class PoolGrad(OpenMPOp):
             # Old interface
             self.ndim = len(node.op.ds)
             self.mode = node.op.mode
-            ws = aet.constant(node.op.ds)
-            st = aet.constant(node.op.st)
-            pad = aet.constant(node.op.padding)
+            ws = at.constant(node.op.ds)
+            st = at.constant(node.op.st)
+            pad = at.constant(node.op.padding)
             node.inputs.append(ws)
             node.inputs.append(st)
             node.inputs.append(pad)
@@ -1181,17 +1181,17 @@ class MaxPoolGrad(PoolGrad):
     def make_node(self, x, maxout, gz, ws, stride=None, pad=None):
         # make_node should only be called by the grad function of
         # Pool, so these asserts should not fail.
-        x = aet.as_tensor_variable(x)
-        maxout = aet.as_tensor_variable(maxout)
-        gz = aet.as_tensor_variable(gz)
+        x = at.as_tensor_variable(x)
+        maxout = at.as_tensor_variable(maxout)
+        gz = at.as_tensor_variable(gz)
         nd = self.ndim
         if stride is None:
             stride = ws
         if pad is None:
             pad = (0,) * nd
-        ws = aet.as_tensor_variable(ws)
-        stride = aet.as_tensor_variable(stride)
-        pad = aet.as_tensor_variable(pad)
+        ws = at.as_tensor_variable(ws)
+        stride = at.as_tensor_variable(stride)
+        pad = at.as_tensor_variable(pad)
         assert isinstance(x, Variable) and x.ndim >= nd
         assert isinstance(maxout, Variable) and maxout.ndim >= nd
         assert isinstance(gz, Variable) and gz.ndim >= nd
@@ -1266,8 +1266,8 @@ class MaxPoolGrad(PoolGrad):
         x, maxout, gz, ws, stride, pad = inp
         (ggx,) = grads
         return [
-            aet.zeros_like(x),
-            aet.zeros_like(maxout),
+            at.zeros_like(x),
+            at.zeros_like(maxout),
             DownsampleFactorMaxGradGrad(
                 ndim=self.ndim, ignore_border=self.ignore_border
             )(x, maxout, ggx, ws, stride, pad),
@@ -1514,16 +1514,16 @@ class AveragePoolGrad(PoolGrad):
     def make_node(self, x, gz, ws, stride=None, pad=None, dummy=None):
         # make_node should only be called by the grad function of
         # Pool, so these asserts should not fail.
-        x = aet.as_tensor_variable(x)
-        gz = aet.as_tensor_variable(gz)
+        x = at.as_tensor_variable(x)
+        gz = at.as_tensor_variable(gz)
         nd = self.ndim
         if stride is None:
             stride = ws
         if pad is None:
             pad = (0,) * nd
-        ws = aet.as_tensor_variable(ws)
-        stride = aet.as_tensor_variable(stride)
-        pad = aet.as_tensor_variable(pad)
+        ws = at.as_tensor_variable(ws)
+        stride = at.as_tensor_variable(stride)
+        pad = at.as_tensor_variable(pad)
         assert isinstance(x, Variable) and x.ndim >= nd
         assert isinstance(gz, Variable) and gz.ndim >= nd
         assert isinstance(ws, Variable) and ws.ndim == 1
@@ -1604,7 +1604,7 @@ class AveragePoolGrad(PoolGrad):
         x, gz, ws, stride, pad = inp
         (ggx,) = grads
         return [
-            aet.zeros_like(x),
+            at.zeros_like(x),
             Pool(ignore_border=self.ignore_border, ndim=self.ndim, mode=self.mode)(
                 ggx, ws, stride, pad
             ),
@@ -1857,9 +1857,9 @@ class DownsampleFactorMaxGradGrad(OpenMPOp):
     def make_node(self, x, maxout, gz, ws, stride=None, pad=None):
         # make_node should only be called by the grad function of
         # MaxPoolGrad, so these asserts should not fail.
-        x = aet.as_tensor_variable(x)
-        maxout = aet.as_tensor_variable(maxout)
-        gz = aet.as_tensor_variable(gz)
+        x = at.as_tensor_variable(x)
+        maxout = at.as_tensor_variable(maxout)
+        gz = at.as_tensor_variable(gz)
         nd = self.ndim
         if stride is None:
             stride = ws
@@ -1871,9 +1871,9 @@ class DownsampleFactorMaxGradGrad(OpenMPOp):
             if isinstance(ws, (tuple, list)):
                 if any(pad[i] >= ws[i] for i in range(nd)):
                     raise NotImplementedError("padding must be smaller than strides")
-        ws = aet.as_tensor_variable(ws)
-        stride = aet.as_tensor_variable(stride)
-        pad = aet.as_tensor_variable(pad)
+        ws = at.as_tensor_variable(ws)
+        stride = at.as_tensor_variable(stride)
+        pad = at.as_tensor_variable(pad)
         assert ws.ndim == 1
         assert stride.ndim == 1
         assert pad.ndim == 1
@@ -1951,8 +1951,8 @@ class DownsampleFactorMaxGradGrad(OpenMPOp):
         x, maxout, ggx, ws, stride, pad = inp
         (gz,) = grads
         return [
-            aet.zeros_like(x),
-            aet.zeros_like(maxout),
+            at.zeros_like(x),
+            at.zeros_like(maxout),
             MaxPoolGrad(ignore_border=self.ignore_border, ndim=self.ndim)(
                 x, maxout, gz, ws, stride, pad
             ),
@@ -2195,8 +2195,8 @@ class MaxPoolRop(OpenMPOp):
 
     def make_node(self, x, eval_point, ws, stride=None, pad=None):
         # TODO: consider restricting the dtype?
-        x = aet.as_tensor_variable(x)
-        eval_point = aet.as_tensor_variable(eval_point)
+        x = at.as_tensor_variable(x)
+        eval_point = at.as_tensor_variable(eval_point)
         nd = self.ndim
         if stride is None:
             stride = ws
@@ -2208,9 +2208,9 @@ class MaxPoolRop(OpenMPOp):
             if isinstance(ws, (tuple, list)):
                 if any(pad[i] >= ws[i] for i in range(nd)):
                     raise NotImplementedError("padding must be smaller than strides")
-        ws = aet.as_tensor_variable(ws)
-        stride = aet.as_tensor_variable(stride)
-        pad = aet.as_tensor_variable(pad)
+        ws = at.as_tensor_variable(ws)
+        stride = at.as_tensor_variable(stride)
+        pad = at.as_tensor_variable(pad)
         assert ws.ndim == 1
         assert stride.ndim == 1
         assert pad.ndim == 1

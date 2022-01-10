@@ -1,13 +1,13 @@
 import numpy as np
 
 import aesara
-import aesara.tensor.basic as aet
+import aesara.tensor.basic as at
 from aesara.configdefaults import config
 from aesara.gradient import Rop, grad, jacobian
 from aesara.scan.op import Scan
 from aesara.tensor.elemwise import Elemwise
 from aesara.tensor.math import Dot, dot, sigmoid
-from aesara.tensor.math import sum as aet_sum
+from aesara.tensor.math import sum as at_sum
 from aesara.tensor.math import tanh
 from aesara.tensor.type import matrix, tensor3, vector
 from tests import unittest_tools as utt
@@ -76,9 +76,9 @@ class TestGaussNewton:
 
         # build recurrent graph
         if batch_size == 1:
-            h_0 = aet.alloc(0.0, 10).astype(config.floatX)
+            h_0 = at.alloc(0.0, 10).astype(config.floatX)
         else:
-            h_0 = aet.alloc(0.0, batch_size, 10).astype(config.floatX)
+            h_0 = at.alloc(0.0, batch_size, 10).astype(config.floatX)
         h, updates = aesara.scan(step, sequences=[x], outputs_info=[h_0])
         # network output
         y = dot(h, W_hy) + b_y
@@ -100,7 +100,7 @@ class TestGaussNewton:
         # Compute Gauss-Newton-Matrix times some vector `v` which is `p` in CG,
         # but for simplicity, I just take the parameters vector because it's
         # already there.
-        Gv = gn(v=params, cost=cost, parameters=params, damp=aet.constant(1.0))
+        Gv = gn(v=params, cost=cost, parameters=params, damp=at.constant(1.0))
 
         # compile Aesara function
         f = aesara.function([], [cost_] + Gv, givens={x: inputs, t: targets}, mode=mode)
@@ -127,8 +127,8 @@ class GaussNewtonMatrix:
     def __call__(self, v, cost, parameters, damp):
         # compute Gauss-Newton Matrix right-multiplied by `v`
         Jv = Rop(self._s, parameters, v)
-        HJv = grad(aet_sum(grad(cost, self._s) * Jv), self._s, consider_constant=[Jv])
-        JHJv = grad(aet_sum(HJv * self._s), parameters, consider_constant=[HJv, Jv])
+        HJv = grad(at_sum(grad(cost, self._s) * Jv), self._s, consider_constant=[Jv])
+        JHJv = grad(at_sum(HJv * self._s), parameters, consider_constant=[HJv, Jv])
 
         # apply Tikhonov damping
         JHJv = [JHJvi + damp * vi for JHJvi, vi in zip(JHJv, v)]
@@ -309,7 +309,7 @@ class TestPushOutSumOfDot:
         zi = tensor3("zi")
         zi_value = x_value
 
-        init = aet.alloc(np.cast[config.floatX](0), batch_size, dim)
+        init = at.alloc(np.cast[config.floatX](0), batch_size, dim)
 
         def rnn_step1(
             # sequences
@@ -391,7 +391,7 @@ class TestPushOutSumOfDot:
             dot_output = dot(temp1, temp2)
             return previous_output + dot_output
 
-        init = aet.as_tensor_variable(np.random.normal(size=(3, 7)))
+        init = at.as_tensor_variable(np.random.normal(size=(3, 7)))
 
         # Compile the function twice, once with the optimization and once
         # without

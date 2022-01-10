@@ -5,7 +5,7 @@ import pytest
 
 import aesara
 import aesara.scalar as aes
-import aesara.tensor as aet
+import aesara.tensor as at
 from aesara import shared
 from aesara.compile import optdb
 from aesara.compile.function import function
@@ -86,11 +86,11 @@ from aesara.tensor.math import (
     neg,
     neq,
 )
-from aesara.tensor.math import pow as aet_pow
+from aesara.tensor.math import pow as at_pow
 from aesara.tensor.math import reciprocal
-from aesara.tensor.math import round as aet_round
+from aesara.tensor.math import round as at_round
 from aesara.tensor.math import sin, sinh, softplus, sqr, sqrt, sub
-from aesara.tensor.math import sum as aet_sum
+from aesara.tensor.math import sum as at_sum
 from aesara.tensor.math import tan, tanh, true_div, xor
 from aesara.tensor.math_opt import local_lift_transpose_through_dot
 from aesara.tensor.shape import Reshape, Shape_i, SpecifyShape, reshape, specify_shape
@@ -282,7 +282,7 @@ class TestDimshuffleLift:
 
     def test_dimshuffle_on_broadcastable(self):
         x, y, z = inputs([False, True], [True, False, True], [False, False, True])
-        u = aet.constant(1)
+        u = at.constant(1)
         ds_x = ds(x, (0, "x"))  # useless
         ds_y = ds(y, (2, 1, 0))  # useless
         ds_z = ds(z, (2, 1, 0))  # useful
@@ -851,7 +851,7 @@ class TestFusion:
                 "float32",
             ),
             (
-                fx - fy + aet_round(fz),
+                fx - fy + at_round(fz),
                 (fx, fy, fz),
                 (fxv, fyv, fzv),
                 1,
@@ -916,7 +916,7 @@ class TestFusion:
                 },
             ),
             (
-                fx - aet.cast(fy, dtype="float64"),
+                fx - at.cast(fy, dtype="float64"),
                 (fx, fy),
                 (fxv, fyv),
                 1,
@@ -924,7 +924,7 @@ class TestFusion:
                 "float64",
             ),
             (
-                aet_pow(fx * fy + fz, fx * fy),
+                at_pow(fx * fy + fz, fx * fy),
                 (fx, fy, fz),
                 (fxv, fyv, fzv),
                 1,
@@ -1068,11 +1068,11 @@ class TestFusion:
         sd = dscalar()
         means = dvector()
 
-        cst_05 = aet.constant(0.5)
-        cst_m05 = aet.constant(-0.5)
-        cst_2 = aet.constant(2)
-        cst_m2 = aet.constant(-2)
-        ones = aet.constant(np.ones(10))
+        cst_05 = at.constant(0.5)
+        cst_m05 = at.constant(-0.5)
+        cst_2 = at.constant(2)
+        cst_m2 = at.constant(-2)
+        ones = at.constant(np.ones(10))
         n = 85
         if config.mode in ["DebugMode", "DEBUG_MODE"]:
             n = 10
@@ -1081,7 +1081,7 @@ class TestFusion:
             f = cst_m05 * sd ** cst_m2 * (ones - means[i]) ** cst_2 + cst_05 * log(
                 cst_05 * (sd ** cst_m2) / np.pi
             )
-            factors.append(aet_sum(f))
+            factors.append(at_sum(f))
 
         logp = add(*factors)
 
@@ -1307,38 +1307,38 @@ def test_local_fill_useless():
     m_ = np.random.random((5, 5))
 
     # basic case
-    f = function([x], aet.fill(x, x) * 2, mode=mode_opt)
+    f = function([x], at.fill(x, x) * 2, mode=mode_opt)
     assert [node.op for node in f.maker.fgraph.toposort()] == [mul]
     f(x_)
 
     # basic case
-    f = function([x, y], aet.second(y, x) * 2, mode=mode_opt)
+    f = function([x, y], at.second(y, x) * 2, mode=mode_opt)
     assert [node.op for node in f.maker.fgraph.toposort()] == [mul]
     f(x_, y_)
 
     # basic case
-    f = function([x, y], aet.fill(x, y) * 2, mode=mode_opt)
+    f = function([x, y], at.fill(x, y) * 2, mode=mode_opt)
     assert [node.op for node in f.maker.fgraph.toposort()] == [mul]
     f(x_, y_)
 
     # now with different type(cast)
-    f = function([x, z], aet.fill(z, x) * 2, mode=mode_opt)
+    f = function([x, z], at.fill(z, x) * 2, mode=mode_opt)
     assert [node.op for node in f.maker.fgraph.toposort()] == [mul]
     f(x_, z_)
 
     # now with different type(cast)
-    f = function([x, z], aet.fill(x, z) * 2, mode=mode_opt)
+    f = function([x, z], at.fill(x, z) * 2, mode=mode_opt)
     assert [node.op for node in f.maker.fgraph.toposort()] == [mul]
     f(x_, z_)
 
     # now cutting out the input ??
-    f = function([x, y], aet.fill(x, y) * 2, mode=mode_opt)
+    f = function([x, y], at.fill(x, y) * 2, mode=mode_opt)
     assert [node.op for node in f.maker.fgraph.toposort()] == [mul]
     f(x_, y_)
 
     # Test with different number of dimensions
     # The fill is not useless, so it should stay
-    f = function([m, x], aet.fill(m, x) * 2, mode=mode_opt)
+    f = function([m, x], at.fill(m, x) * 2, mode=mode_opt)
     ops = [node.op.__class__ for node in f.maker.fgraph.toposort()]
     assert Alloc in ops
     f(m_, x_)
@@ -1349,8 +1349,8 @@ class TestLocalCanonicalizeAlloc:
         self.rng = np.random.default_rng(utt.fetch_seed())
 
     def test_inconsistent_constant(self):
-        x = aet.as_tensor(self.rng.standard_normal((3, 7)))
-        a = aet.alloc(x, 6, 7)
+        x = at.as_tensor(self.rng.standard_normal((3, 7)))
+        a = at.alloc(x, 6, 7)
 
         assert a.owner and isinstance(a.owner.op, Alloc)
 
@@ -1358,8 +1358,8 @@ class TestLocalCanonicalizeAlloc:
         with pytest.raises(AssertionError):
             f = function([], a, mode=mode_opt)
 
-        x = aet.as_tensor(self.rng.standard_normal((6, 7)))
-        a = aet.alloc(x, 6, 7)
+        x = at.as_tensor(self.rng.standard_normal((6, 7)))
+        a = at.alloc(x, 6, 7)
 
         f = function([], a, mode=mode_opt)
 
@@ -1371,7 +1371,7 @@ class TestLocalCanonicalizeAlloc:
     def test_inconsistent_shared(self):
         # These shapes don't match!
         x = shared(self.rng.standard_normal((3, 7)))
-        a = aet.alloc(x, 6, 7)
+        a = at.alloc(x, 6, 7)
 
         assert a.owner and isinstance(a.owner.op, Alloc)
 
@@ -1391,9 +1391,9 @@ class TestLocalCanonicalizeAlloc:
 
     def test_basic_fill(self):
         x = matrix("x")
-        y = aet.fill(x, x)
+        y = at.fill(x, x)
 
-        # The optimization 'locall_fill_to_alloc' should call aet.alloc,
+        # The optimization 'locall_fill_to_alloc' should call at.alloc,
         # which should return x and not alloc(x, ...)
         mode = mode_opt.excluding("local_canonicalize_alloc")
         f = function([x], [y], mode=mode)
@@ -1403,7 +1403,7 @@ class TestLocalCanonicalizeAlloc:
 
     def test_basic_tile(self):
         x = matrix("x")
-        y = aet.tile(x, (1,) * 2)
+        y = at.tile(x, (1,) * 2)
 
         mode = mode_opt.including("local_canonicalize_alloc")
         f = function([x], [y], mode=mode)
@@ -1422,10 +1422,10 @@ class TestLocalCanonicalizeAlloc:
         y = shared(self.rng.standard_normal())
         z = shared(self.rng.standard_normal((1, 1)))
         w = shared(self.rng.standard_normal((1, 1)))
-        alloc_x = aet.alloc(x, 1, 3, 2)
-        alloc_y = aet.alloc(y, 1, 1)
-        alloc_z = aet.alloc(z, 1, 1, 2)
-        alloc_w = aet.alloc(w, 1, 2)
+        alloc_x = at.alloc(x, 1, 3, 2)
+        alloc_y = at.alloc(y, 1, 1)
+        alloc_z = at.alloc(z, 1, 1, 2)
+        alloc_w = at.alloc(w, 1, 2)
 
         g = FunctionGraph([x, y, z, w], [alloc_x, alloc_y, alloc_z, alloc_w])
         assert str(g) == (
@@ -1482,7 +1482,7 @@ class TestLocalUselessIncSubtensorAlloc:
         x = vector("x")
         y = scalar("y")
         i = matrix("i", dtype="int64")
-        z = advanced_inc_subtensor(x, aet.alloc(y, *i.shape), i)
+        z = advanced_inc_subtensor(x, at.alloc(y, *i.shape), i)
         mode1 = self.mode.excluding(self.opt_name)
         mode2 = self.mode.including(self.opt_name)
         f1 = function([x, i, y], z, mode=mode1)
@@ -1514,7 +1514,7 @@ class TestLocalUselessIncSubtensorAlloc:
         x = vector("x")
         y = scalar("y")
         i = vector("i", dtype="int64")
-        z = advanced_inc_subtensor1(x, aet.alloc(y, *i.shape), i)
+        z = advanced_inc_subtensor1(x, at.alloc(y, *i.shape), i)
         mode1 = self.mode.excluding(self.opt_name)
         mode2 = self.mode.including(self.opt_name)
         f1 = function([x, i, y], z, mode=mode1)
@@ -1546,7 +1546,7 @@ class TestLocalUselessIncSubtensorAlloc:
         x = vector("x")
         y = scalar("y")
         i = scalar("i", dtype="int64")
-        z = inc_subtensor(x[:i], aet.alloc(y, i))
+        z = inc_subtensor(x[:i], at.alloc(y, i))
         mode1 = self.mode.excluding(self.opt_name)
         mode2 = self.mode.including(self.opt_name)
         f1 = function([x, i, y], z, mode=mode1)
@@ -1624,7 +1624,7 @@ class TestShapeOptimizer:
         last_pool_c = last_pool(img_shp, pool_shp, pool_stride) * pool_stride
         required_c = last_pool_c + pool_shp
 
-        wide_infinity = aet.alloc(
+        wide_infinity = at.alloc(
             -np.inf, c01b.shape[0], required_r, required_c, c01b.shape[3]
         )
 
@@ -1663,9 +1663,9 @@ class TestShapeOptimizer:
         # This test the error in gh-1122 that is a caused by the
         # combination of merge optimizer and ShapeFeature.
 
-        x = aet.constant([0, 0])
+        x = at.constant([0, 0])
         y = x[1:]
-        x1 = x - aet.join(0, y, y)
+        x1 = x - at.join(0, y, y)
         x1.eval()
 
     def test_local_track_shape_i(self):
@@ -1857,7 +1857,7 @@ class TestRebroadcast:
         mode = get_default_mode().including("canonicalize")
         v1 = vector()
         v2 = vector()
-        j = aet.join(0, v1, v2)
+        j = at.join(0, v1, v2)
         f = function([v1, v2], j, mode=mode)
         f([1, 2], [3, 4, 5])
         e = f.maker.fgraph.toposort()
@@ -1868,8 +1868,8 @@ class TestRebroadcast:
     def test_rebroadcast_rebroadcast(self):
         mode = get_default_mode().including("canonicalize")
         m = matrix()
-        s = aet.addbroadcast(m, 0, 1)
-        v = aet.unbroadcast(s, 1)
+        s = at.addbroadcast(m, 0, 1)
+        v = at.unbroadcast(s, 1)
         f = function([m], v, mode=mode)
         f([[76]])
         e = f.maker.fgraph.toposort()
@@ -1957,7 +1957,7 @@ class TestUselessElemwise:
         # aes.identity is used in 2 Elemwise functions:
         # tensor_copy, and view
         x = matrix()
-        f = function([x], aet.tensor_copy(x), mode=self.mode)
+        f = function([x], at.tensor_copy(x), mode=self.mode)
         vx = np.random.random((5, 4)).astype(config.floatX)
         f(vx)
         topo = f.maker.fgraph.toposort()
@@ -2035,7 +2035,7 @@ def test_constant_folding():
     # Test that we do not crash when constant folding elemwise scalar
     # as they should not generate c code.
 
-    x = aet.constant(3)
+    x = at.constant(3)
     assert x.ndim == 0
     mode = get_mode("FAST_COMPILE").excluding("fusion")
     f = function([], [x * 2, x + x], mode=mode)
@@ -2069,7 +2069,7 @@ def test_constant_get_stabilized():
     assert f2.maker.fgraph.toposort()[0].op == softplus
     assert f2(800) == 800
 
-    x = aet.as_tensor_variable(800)
+    x = at.as_tensor_variable(800)
     y = log(1 + exp(x))
     f = function([], y, mode=mode)
     # When this error is fixed, the following line should be ok.
@@ -2142,8 +2142,8 @@ class TestLocalSwitchSink:
                 (dscalar("x"), self.xs),
             ]:
                 y = mul(
-                    aet.switch(condition[0] > 0, 1.0 * x[0], 0.0 * x[0]),
-                    aet.switch(condition[0] > 0, 1.0 * x[0], log(c) * x[0]),
+                    at.switch(condition[0] > 0, 1.0 * x[0], 0.0 * x[0]),
+                    at.switch(condition[0] > 0, 1.0 * x[0], log(c) * x[0]),
                 )
                 f = self.function_remove_nan(
                     [condition[0], x[0], c], [y], mode=self.mode
@@ -2163,7 +2163,7 @@ class TestLocalSwitchSink:
 
         # This case caused a missed optimization in the past.
         x = dscalar("x")
-        y = aet.switch(x < 7, x, sqrt(x - 7))
+        y = at.switch(x < 7, x, sqrt(x - 7))
         f = self.function_remove_nan([x], aesara.gradient.grad(y, x), self.mode)
         assert f(5) == 1, f(5)
 
@@ -2182,8 +2182,8 @@ class TestLocalSwitchSink:
                 (dscalar("x"), self.xs),
             ]:
                 y = true_div(
-                    aet.switch(condition[0] > 0, 1.0 * x[0], 0.0 * x[0]),
-                    aet.switch(condition[0] > 0, 1.0 * x[0], log(c) * x[0]),
+                    at.switch(condition[0] > 0, 1.0 * x[0], 0.0 * x[0]),
+                    at.switch(condition[0] > 0, 1.0 * x[0], log(c) * x[0]),
                 )
                 f = self.function_remove_nan(
                     [condition[0], x[0], c], [y], mode=self.mode
@@ -2221,7 +2221,7 @@ class TestLocalUselessSwitch:
     def test_const(self, dtype1, dtype2, cond):
         x = matrix("x", dtype=dtype1)
         y = matrix("y", dtype=dtype2)
-        z = aet.switch(cond, x, y)
+        z = at.switch(cond, x, y)
         f = function([x, y], z, mode=self.mode)
         assert not any(
             [
@@ -2245,9 +2245,9 @@ class TestLocalUselessSwitch:
     def test_left_is_right(self, dtype1):
         x = matrix("x", dtype=dtype1)
         varc = matrix("varc", dtype=dtype1)
-        z1 = aet.switch(1, x, x)
-        z0 = aet.switch(0, x, x)
-        z2 = aet.switch(varc, x, x)
+        z1 = at.switch(1, x, x)
+        z0 = at.switch(0, x, x)
+        z2 = at.switch(varc, x, x)
         f1 = function([x], z1, mode=self.mode)
         f0 = function([x], z0, mode=self.mode)
         f2 = function([x, varc], z2, mode=self.mode)
@@ -2276,11 +2276,11 @@ class TestLocalUselessSwitch:
     )
     def test_shape_le_0(self, dtype1):
         x = matrix("x", dtype=dtype1)
-        z0 = aet.switch(le(x.shape[0], 0), 0, x.shape[0])
+        z0 = at.switch(le(x.shape[0], 0), 0, x.shape[0])
         f0 = function([x], z0, mode=self.mode)
         assert isinstance(f0.maker.fgraph.toposort()[0].op, Shape_i)
 
-        z1 = aet.switch(le(x.shape[1], 0), 0, x.shape[1])
+        z1 = at.switch(le(x.shape[1], 0), 0, x.shape[1])
         f1 = function([x], z1, mode=self.mode)
         assert isinstance(f1.maker.fgraph.toposort()[0].op, Shape_i)
 
@@ -2293,25 +2293,25 @@ class TestLocalUselessSwitch:
         x = matrix("x", dtype="int32")
         y = vector("y", dtype="int64")
 
-        z = aet.switch(1, x, y)
+        z = at.switch(1, x, y)
         f = function([x, y], z, mode=self.mode)
 
         start_var = f.maker.fgraph.outputs[0].owner.inputs[0]
         assert isinstance(start_var.owner.op, Elemwise)
         assert isinstance(start_var.owner.op.scalar_op, aes.basic.Cast)
-        assert not any(node.op == aet.switch for node in f.maker.fgraph.toposort())
+        assert not any(node.op == at.switch for node in f.maker.fgraph.toposort())
 
         vx = np.array([[1, 2, 3], [4, 5, 6]], dtype="int32")
         vy = np.array([10, 11, 12], dtype="int64")
         np_res = np.where(1, vx, vy)
         assert np.array_equal(f(vx, vy), np_res)
 
-        z = aet.switch(0, x, y)
+        z = at.switch(0, x, y)
         f = function([x, y], z, mode=self.mode)
 
         assert isinstance(f.maker.fgraph.outputs[0].owner.op, Alloc)
         assert f.maker.fgraph.inputs[1] == f.maker.fgraph.outputs[0].owner.inputs[0]
-        assert not any(node.op == aet.switch for node in f.maker.fgraph.toposort())
+        assert not any(node.op == at.switch for node in f.maker.fgraph.toposort())
 
         vx = np.array([[1, 2, 3], [4, 5, 6]], dtype="int32")
         vy = np.array([10, 11, 12], dtype="int64")
@@ -2324,22 +2324,22 @@ class TestLocalUselessSwitch:
         x = vector("x", dtype="int32")
         y = matrix("y", dtype="int64")
 
-        z = aet.switch(1, x, y)
+        z = at.switch(1, x, y)
         f = function([x, y], z, mode=self.mode)
 
         assert isinstance(f.maker.fgraph.outputs[0].owner.op, Alloc)
-        assert not any(node.op == aet.switch for node in f.maker.fgraph.toposort())
+        assert not any(node.op == at.switch for node in f.maker.fgraph.toposort())
 
         vx = np.array([4, 5, 6], dtype="int32")
         vy = np.array([[7, 8, 9], [10, 11, 12]], dtype="int64")
         np_res = np.where(1, vx, vy)
         assert np.array_equal(f(vx, vy), np_res)
 
-        z = aet.switch(0, x, y)
+        z = at.switch(0, x, y)
         f = function([x, y], z, mode=self.mode)
 
         assert isinstance(f.maker.fgraph.outputs[0].owner.op, DeepCopyOp)
-        assert not any(node.op == aet.switch for node in f.maker.fgraph.toposort())
+        assert not any(node.op == at.switch for node in f.maker.fgraph.toposort())
 
         vx = np.array([4, 5, 6], dtype="int32")
         vy = np.array([[7, 8, 9], [10, 11, 12]], dtype="int64")
@@ -2351,14 +2351,14 @@ class TestLocalUselessSwitch:
 
         x = matrix("x", dtype="int32")
         y = vector("y", dtype="int64")
-        z = aet.switch(x, y, y)
+        z = at.switch(x, y, y)
         f = function([x, y], z, mode=self.mode)
         vx = np.array([[0, 1], [1, 0]], dtype="int32")
         vy = np.array([7, 8], dtype="int64")
         utt.assert_allclose(f(vx, vy), np.where(vx, vy, vy))
 
         assert isinstance(f.maker.fgraph.outputs[0].owner.op, Alloc)
-        assert not any(node.op == aet.switch for node in f.maker.fgraph.toposort())
+        assert not any(node.op == at.switch for node in f.maker.fgraph.toposort())
 
 
 class TestLocalMergeSwitchSameCond:
@@ -2379,15 +2379,15 @@ class TestLocalMergeSwitchSameCond:
             le,
             eq,
             neq,
-            aet_pow,
+            at_pow,
         ],
     )
     def test_elemwise_float_ops(self, op):
         # float Ops
         mats = matrices("cabxy")
         c, a, b, x, y = mats
-        s1 = aet.switch(c, a, b)
-        s2 = aet.switch(c, x, y)
+        s1 = at.switch(c, a, b)
+        s2 = at.switch(c, x, y)
 
         g = optimize(FunctionGraph(mats, [op(s1, s2)]))
         assert str(g).count("Switch") == 1
@@ -2404,8 +2404,8 @@ class TestLocalMergeSwitchSameCond:
         # integer Ops
         mats = imatrices("cabxy")
         c, a, b, x, y = mats
-        s1 = aet.switch(c, a, b)
-        s2 = aet.switch(c, x, y)
+        s1 = at.switch(c, a, b)
+        s2 = at.switch(c, x, y)
         g = optimize(FunctionGraph(mats, [op(s1, s2)]))
         assert str(g).count("Switch") == 1
 
@@ -2414,10 +2414,10 @@ class TestLocalMergeSwitchSameCond:
         # add/mul with more than two inputs
         mats = imatrices("cabxy")
         c, a, b, x, y = mats
-        s1 = aet.switch(c, a, b)
-        s2 = aet.switch(c, x, y)
+        s1 = at.switch(c, a, b)
+        s2 = at.switch(c, x, y)
         u, v = matrices("uv")
-        s3 = aet.switch(c, u, v)
+        s3 = at.switch(c, u, v)
         g = optimize(FunctionGraph(mats + [u, v], [op(s1, s2, s3)]))
         assert str(g).count("Switch") == 1
 
@@ -2431,14 +2431,14 @@ class TestLocalOptAlloc:
 
     def test_sum_upcast(self):
         s = lscalar()
-        a = aet.alloc(np.asarray(5, dtype=self.dtype), s, s)
+        a = at.alloc(np.asarray(5, dtype=self.dtype), s, s)
         with config.change_flags(warn_float64="raise"):
             f = function([s], a.sum())
             f(5)
 
     def test_prod_upcast(self):
         s = lscalar()
-        a = aet.alloc(np.asarray(5, dtype=self.dtype), s, s)
+        a = at.alloc(np.asarray(5, dtype=self.dtype), s, s)
 
         with config.change_flags(warn_float64="raise"):
             f = function([s], a.prod())
@@ -2447,7 +2447,7 @@ class TestLocalOptAlloc:
     @config.change_flags(on_opt_error="raise")
     def test_sum_bool_upcast(self):
         s = lscalar()
-        a = aet.alloc(np.asarray(True, dtype="bool"), s, s)
+        a = at.alloc(np.asarray(True, dtype="bool"), s, s)
         f = function([s], a.sum())
         f(5)
         # test with user specified dtype
@@ -2590,7 +2590,7 @@ class TestMakeVector(utt.InferShapeTester):
 def test_local_join_1():
     # test for vector
     a = vector("a")
-    s = aet.stack([a])
+    s = at.stack([a])
     f = function([a], s, mode=mode_opt)
     val = f([1])
     assert np.all(val == [1])
@@ -2631,7 +2631,7 @@ def test_local_join_empty():
     # test for vector, vector, empty to vector
     empty_vec = np.asarray([], dtype=config.floatX)
     a = vector("a")
-    s = aet.join(0, a, a, empty_vec)
+    s = at.join(0, a, a, empty_vec)
     f = function([a], s, mode=mode_opt)
     val = f([1])
     assert np.all(val == [1])
@@ -2665,7 +2665,7 @@ def test_local_join_empty():
     assert f.maker.fgraph.outputs[0].dtype == config.floatX
     # test for vector, vector, empty to matrix
     # We can't optimize this case.
-    s = aet.stack([a, a, empty_vec])
+    s = at.stack([a, a, empty_vec])
     f = function([a], s, mode=mode_opt)
     val = f([])
     assert np.all(val == [1])
@@ -2701,7 +2701,7 @@ def test_local_join_make_vector():
     a, b, c, d, e = scalars("abcde")
     v = vector("v")
     mv = MakeVector(config.floatX)
-    s = aet.join(0, mv(a), v, mv(b, c), mv(d, e))
+    s = at.join(0, mv(a), v, mv(b, c), mv(d, e))
     f = function([a, b, c, d, e, v], s, mode=mode_opt)
     val = f(1, 2, 3, 4, 6, [7, 8])
     assert np.all(val == [1, 7, 8, 2, 3, 4, 6])
@@ -2739,8 +2739,8 @@ def test_local_join_make_vector():
 def test_local_tensor_scalar_tensor(dtype):
     t_type = TensorType(dtype=dtype, broadcastable=())
     t = t_type()
-    s = aet.scalar_from_tensor(t)
-    t2 = aet.tensor_from_scalar(s)
+    s = at.scalar_from_tensor(t)
+    t2 = at.tensor_from_scalar(s)
 
     f = function([t], t2, mode=mode_opt)
     e = f.maker.fgraph.toposort()
@@ -2769,8 +2769,8 @@ def test_local_tensor_scalar_tensor(dtype):
 def test_local_scalar_tensor_scalar(dtype):
     s_type = aes.Scalar(dtype=dtype)
     s = s_type()
-    t = aet.tensor_from_scalar(s)
-    s2 = aet.scalar_from_tensor(t)
+    t = at.tensor_from_scalar(s)
+    s2 = at.scalar_from_tensor(t)
 
     f = function([s], s2, mode=mode_opt)
     e = f.maker.fgraph.toposort()
@@ -2782,8 +2782,8 @@ def test_local_scalar_tensor_scalar(dtype):
 def test_local_useless_split():
     x = matrix("x")
     splits = ivector("splits")
-    opt = aet.split(x, splits, n_splits=1)
-    nonopt = aet.split(x, splits, n_splits=3)
+    opt = at.split(x, splits, n_splits=1)
+    nonopt = at.split(x, splits, n_splits=3)
 
     mode = get_default_mode().including("local_useless_split")
     f_opt = function([x, splits], opt, mode=mode)
@@ -2805,7 +2805,7 @@ def test_local_useless_split():
 @pytest.mark.parametrize("i", list(range(1, 4)))
 def test_local_flatten_lift(i):
     x = tensor4()
-    out = aet.flatten(exp(x), i)
+    out = at.flatten(exp(x), i)
     assert out.ndim == i
     mode = get_default_mode()
     mode = mode.including("local_reshape_lift")
@@ -2817,7 +2817,7 @@ def test_local_flatten_lift(i):
     assert shape_out_np == out_np.shape
 
     reshape_nodes = [n for n in topo if isinstance(n.op, Reshape)]
-    assert len(reshape_nodes) == 1 and aet.is_flat(reshape_nodes[0].outputs[0], ndim=i)
+    assert len(reshape_nodes) == 1 and at.is_flat(reshape_nodes[0].outputs[0], ndim=i)
     assert isinstance(topo[-1].op, Elemwise)
 
 
@@ -2845,7 +2845,7 @@ class TestLocalUselessReshape:
     def test_0(self):
         mode = get_default_mode().including("local_useless_reshape")
         i = iscalar("i")
-        m = aet.mgrid[
+        m = at.mgrid[
             0:i,
         ]
         f = function([i], m, mode=mode)
@@ -2994,7 +2994,7 @@ class TestLiftTransposeThroughDot:
 
 def test_local_upcast_elemwise_constant_inputs():
     s = dvector("s")
-    x = aet_sum(log(10 ** s))
+    x = at_sum(log(10 ** s))
     f = function([s], [aesara.gradient.grad(x, s)])
     f([-42, -2.1, -1, -0.5, 0, 0.2, 1, 2, 12])
 
@@ -3035,7 +3035,7 @@ class TestShapeI(utt.InferShapeTester):
 class TestShapeFeature:
     def test_scalar(self):
         x = scalar()
-        cst = aet.constant(1).clone()
+        cst = at.constant(1).clone()
         o = x + cst
         fgraph = FunctionGraph([x], [o], clone=False)
         shape_feature = ShapeFeature()
@@ -3044,7 +3044,7 @@ class TestShapeFeature:
 
     def test_vector(self):
         x = vector()
-        cst = aet.constant(1).clone()
+        cst = at.constant(1).clone()
         o = x + cst
         fgraph = FunctionGraph([x], [o], clone=False)
         shape_feature = ShapeFeature()
@@ -3133,7 +3133,7 @@ def test_local_Shape_i_of_broadcastable():
 def test_assert_op_gradient():
     x = vector("x")
     assert_op = Assert()
-    cost = aet_sum(assert_op(x, x.size < 2))
+    cost = at_sum(assert_op(x, x.size < 2))
     grad = aesara.gradient.grad(cost, x)
     func = function([x], grad)
 
@@ -3155,7 +3155,7 @@ def test_local_merge_alloc():
     m = fscalar("m")
     # case 1
     # Alloc(Alloc(m, x, 1, 1, 1), x, y, z, w) -> Alloc(m, x, y, z, w)
-    output = aet.alloc(aet.alloc(m, 1, y, 1, 1), x, y, z, w)
+    output = at.alloc(at.alloc(m, 1, y, 1, 1), x, y, z, w)
     f = function([m, x, y, z, w], output, mode=opt_mode)
     topo = f.maker.fgraph.toposort()
     assert len(topo) == 1
@@ -3165,7 +3165,7 @@ def test_local_merge_alloc():
 
     # case 2
     # Alloc(Alloc(m, y, 1, 1), x, y, z, w) -> Alloc(m, x, y, z, w)
-    output = aet.alloc(aet.alloc(m, y, 1, 1), x, y, z, w)
+    output = at.alloc(at.alloc(m, y, 1, 1), x, y, z, w)
     f = function([m, x, y, z, w], output, mode=opt_mode)
     topo = f.maker.fgraph.toposort()
     assert len(topo) == 1
@@ -3176,7 +3176,7 @@ def test_local_merge_alloc():
     # case 3
     # Alloc(Alloc(m, y1, 1, 1), x, y2, z, w) ->
     #   Alloc(m, x, assert(y1, y1==y2), z, w)
-    output = aet.alloc(aet.alloc(m, y, 1, 1), x, y2, z, w)
+    output = at.alloc(at.alloc(m, y, 1, 1), x, y2, z, w)
     f = function([m, x, y, y2, z, w], output, mode=opt_mode)
     topo = f.maker.fgraph.toposort()
     assert len(topo) == 3
@@ -3202,7 +3202,7 @@ def test_local_useless_alloc():
 
     # case 1
     # Alloc(Alloc(m, x, 1, 1, 1), x, y, z, w) -> Alloc(m, x, y, z, w)
-    output = aet.alloc(aet.alloc(m, 1, y, 1, 1), x, y, z, w)
+    output = at.alloc(at.alloc(m, 1, y, 1, 1), x, y, z, w)
     g = FunctionGraph([m, x, y, z, w], [output])
 
     useless_alloc.optimize(g)
@@ -3215,7 +3215,7 @@ def test_local_useless_alloc():
 
     # case 2
     # Alloc(Alloc(m, y, 1, 1), x, y, z, w) -> Alloc(m, x, y, z, w)
-    output = aet.alloc(aet.alloc(m, y, 1, 1), x, y, z, w)
+    output = at.alloc(at.alloc(m, y, 1, 1), x, y, z, w)
     g = FunctionGraph([m, x, y, z, w], [output])
 
     useless_alloc.optimize(g)
@@ -3229,7 +3229,7 @@ def test_local_useless_alloc():
     # case 3
     # Alloc(Alloc(m, y1, 1, 1), x, y2, z, w) ->
     #   Alloc(m, x, assert(y1, y1==y2), z, w)
-    output = aet.alloc(aet.alloc(m, y, 1, 1), x, y2, z, w)
+    output = at.alloc(at.alloc(m, y, 1, 1), x, y2, z, w)
     g = FunctionGraph([m, x, y, y2, z, w], [output])
 
     useless_alloc.optimize(g)
@@ -3558,7 +3558,7 @@ def test_local_Unique_second(
 
 def test_local_useless_SpecifyShape():
     x = matrix()
-    s = aet.as_tensor([iscalar(), iscalar()])
+    s = at.as_tensor([iscalar(), iscalar()])
     y = specify_shape(specify_shape(x, s), s)
 
     y_fg = FunctionGraph(outputs=[y], copy_inputs=False)

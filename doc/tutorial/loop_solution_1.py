@@ -5,13 +5,13 @@
 import numpy as np
 
 import aesara
-import aesara.tensor as aet
+import aesara.tensor as at
 
 
 # 1. First example
 
-k = aet.iscalar("k")
-A = aet.vector("A")
+k = at.iscalar("k")
+A = at.vector("A")
 
 
 def inner_fct(prior_result, A):
@@ -19,7 +19,7 @@ def inner_fct(prior_result, A):
 
 # Symbolic description of the result
 result, updates = aesara.scan(fn=inner_fct,
-                              outputs_info=aet.ones_like(A),
+                              outputs_info=at.ones_like(A),
                               non_sequences=A, n_steps=k)
 
 # Scan has provided us with A ** 1 through A ** k.  Keep only the last
@@ -35,12 +35,12 @@ print(power(list(range(10)), 2))
 
 # 2. Second example
 
-coefficients = aet.vector("coefficients")
-x = aet.scalar("x")
+coefficients = at.vector("coefficients")
+x = at.scalar("x")
 max_coefficients_supported = 10000
 
 # Generate the components of the polynomial
-full_range = aet.arange(max_coefficients_supported)
+full_range = at.arange(max_coefficients_supported)
 components, updates = aesara.scan(fn=lambda coeff, power, free_var:
                                   coeff * (free_var ** power),
                                   sequences=[coefficients, full_range],
@@ -56,15 +56,15 @@ print(calculate_polynomial1(test_coeff, 3))
 
 # 3. Reduction performed inside scan
 
-coefficients = aet.vector("coefficients")
-x = aet.scalar("x")
+coefficients = at.vector("coefficients")
+x = at.scalar("x")
 max_coefficients_supported = 10000
 
 # Generate the components of the polynomial
-full_range = aet.arange(max_coefficients_supported)
+full_range = at.arange(max_coefficients_supported)
 
 
-outputs_info = aet.as_tensor_variable(np.asarray(0, 'float64'))
+outputs_info = at.as_tensor_variable(np.asarray(0, 'float64'))
 
 components, updates = aesara.scan(fn=lambda coeff, power, prior_value, free_var:
                                   prior_value + (coeff * (free_var ** power)),

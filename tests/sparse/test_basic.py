@@ -6,7 +6,7 @@ import pytest
 from packaging import version
 
 import aesara
-import aesara.tensor as aet
+import aesara.tensor as at
 from aesara import sparse
 from aesara.compile.function import function
 from aesara.compile.io import In, Out
@@ -86,7 +86,7 @@ from aesara.sparse.basic import (
 from aesara.sparse.opt import CSMGradC, StructuredDotCSC, UsmmCscDense
 from aesara.tensor.basic import MakeVector
 from aesara.tensor.elemwise import DimShuffle, Elemwise
-from aesara.tensor.math import sum as aet_sum
+from aesara.tensor.math import sum as at_sum
 from aesara.tensor.shape import Shape_i
 from aesara.tensor.subtensor import AdvancedIncSubtensor, AdvancedSubtensor1, Subtensor
 from aesara.tensor.type import (
@@ -552,12 +552,12 @@ class TestSparseInferShape(utt.InferShapeTester):
             (matrix(), SparseType("csr", "float32")()),
         ]:
 
-            sparse_out = aet.dot(x, y)
+            sparse_out = at.dot(x, y)
             if isinstance(x, sparse.SparseVariable):
                 x = matrix()
             if isinstance(y, sparse.SparseVariable):
                 y = matrix()
-            dense_out = aet.dot(x, y)
+            dense_out = at.dot(x, y)
             assert dense_out.broadcastable == sparse_out.broadcastable
 
     def test_structured_dot(self):
@@ -792,7 +792,7 @@ class TestAddMul:
         for mtype in _mtypes:
             for a in [
                 np.array(array1),
-                aet.as_tensor_variable(array1),
+                at.as_tensor_variable(array1),
                 aesara.shared(array1),
             ]:
                 for dtype1, dtype2 in [
@@ -850,7 +850,7 @@ class TestAddMul:
         for mtype in _mtypes:
             for b in [
                 np.asarray(array2),
-                aet.as_tensor_variable(array2),
+                at.as_tensor_variable(array2),
                 aesara.shared(array2),
             ]:
                 for dtype1, dtype2 in [
@@ -1019,7 +1019,7 @@ class TestComparison:
 class TestConversion:
     @pytest.mark.skip
     def test_basic(self):
-        a = aet.as_tensor_variable(np.random.random((5)))
+        a = at.as_tensor_variable(np.random.random((5)))
         s = csc_from_dense(a)
         val = eval_outputs([s])
         assert str(val.dtype) == "float64"
@@ -1027,7 +1027,7 @@ class TestConversion:
 
     @pytest.mark.skip
     def test_basic_1(self):
-        a = aet.as_tensor_variable(np.random.random((5)))
+        a = at.as_tensor_variable(np.random.random((5)))
         s = csr_from_dense(a)
         val = eval_outputs([s])
         assert str(val.dtype) == "float64"
@@ -1183,10 +1183,10 @@ class TestCsm:
                 assert not a.has_sorted_indices
 
                 def my_op(x):
-                    y = aet.constant(a.indices)
-                    z = aet.constant(a.indptr)
-                    s = aet.constant(a.shape)
-                    return aet_sum(dense_from_sparse(CSM(format)(x, y, z, s) * a))
+                    y = at.constant(a.indices)
+                    z = at.constant(a.indptr)
+                    s = at.constant(a.shape)
+                    return at_sum(dense_from_sparse(CSM(format)(x, y, z, s) * a))
 
                 verify_grad_sparse(my_op, [a.data])
 
@@ -1353,7 +1353,7 @@ class TestStructuredDot:
             for sparse_format_b in ["csc", "csr", "bsr"]:
                 a = SparseType(sparse_format_a, dtype=sparse_dtype)()
                 b = SparseType(sparse_format_b, dtype=sparse_dtype)()
-                d = aet.dot(a, b)
+                d = at.dot(a, b)
                 f = aesara.function([a, b], Out(d, borrow=True))
                 for M, N, K, nnz in [
                     (4, 3, 2, 3),
@@ -1375,7 +1375,7 @@ class TestStructuredDot:
 
         a = SparseType("csc", dtype=sparse_dtype)()
         b = matrix(dtype=dense_dtype)
-        d = aet.dot(a, b)
+        d = at.dot(a, b)
         f = aesara.function([a, b], Out(d, borrow=True))
 
         for M, N, K, nnz in [
@@ -1423,7 +1423,7 @@ class TestStructuredDot:
 
         a = SparseType("csr", dtype=sparse_dtype)()
         b = matrix(dtype=dense_dtype)
-        d = aet.dot(a, b)
+        d = at.dot(a, b)
         f = aesara.function([a, b], d)
 
         for M, N, K, nnz in [
@@ -1587,8 +1587,8 @@ class TestDots(utt.InferShapeTester):
         I = matrix("I", dtype=intX)
 
         fI = I.flatten()
-        data = aet.ones_like(fI)
-        indptr = aet.arange(data.shape[0] + 1, dtype="int32")
+        data = at.ones_like(fI)
+        indptr = at.arange(data.shape[0] + 1, dtype="int32")
 
         m1 = sparse.CSR(data, fI, indptr, (8, size))
         m2 = sparse.dot(m1, C)

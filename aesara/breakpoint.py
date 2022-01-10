@@ -36,11 +36,11 @@ class PdbBreakpoint(Op):
     .. code-block:: python
 
         import aesara
-        import aesara.tensor as aet
+        import aesara.tensor as at
         from aesara.breakpoint import PdbBreakpoint
 
-        input = aet.fvector()
-        target = aet.fvector()
+        input = at.fvector()
+        target = at.fvector()
 
         # Mean squared error between input and target
         mse = (input - target) ** 2
@@ -49,7 +49,7 @@ class PdbBreakpoint(Op):
         # than 100. The breakpoint will monitor the inputs, targets as well
         # as the individual error values
         breakpointOp = PdbBreakpoint("MSE too high")
-        condition = aet.gt(mse.sum(), 100)
+        condition = at.gt(mse.sum(), 100)
         mse, monitored_input, monitored_target = breakpointOp(condition, mse,
                                                               input, target)
 

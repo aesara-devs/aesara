@@ -2563,7 +2563,7 @@ class Prod(CAReduceDtype):
         one zero.
 
         I do this by first counting the number of zeros in each group (see the
-        `aet.eq` bits), then taking this or that behavior (see `aet.switch`)
+        `at.eq` bits), then taking this or that behavior (see `at.switch`)
         based on the result of this count.
 
         """
@@ -2598,7 +2598,7 @@ class Prod(CAReduceDtype):
         gz = gz.dimshuffle(new_dims)
 
         # division trick if we don't have zeros. This will contain
-        # NaNs to be eliminated in the `aet.switch` if we do have zeros.
+        # NaNs to be eliminated in the `at.switch` if we do have zeros.
         grad_case_without_zeros = gz * prod_out / prod_in
 
         if self.no_zeros_in_input:

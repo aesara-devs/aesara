@@ -60,7 +60,7 @@ from aesara.tensor.math import (
     ProdWithoutZeros,
     Sum,
 )
-from aesara.tensor.math import abs as aet_abs
+from aesara.tensor.math import abs as at_abs
 from aesara.tensor.math import (
     add,
     dot,
@@ -78,11 +78,11 @@ from aesara.tensor.math import (
     log1p,
     makeKeepDims,
 )
-from aesara.tensor.math import max as aet_max
+from aesara.tensor.math import max as at_max
 from aesara.tensor.math import maximum, mul, neg
-from aesara.tensor.math import pow as aet_pow
+from aesara.tensor.math import pow as at_pow
 from aesara.tensor.math import prod, reciprocal, sgn, sigmoid, softplus, sqr, sqrt, sub
-from aesara.tensor.math import sum as aet_sum
+from aesara.tensor.math import sum as at_sum
 from aesara.tensor.math import true_div
 from aesara.tensor.shape import Shape, Shape_i
 from aesara.tensor.subtensor import Subtensor
@@ -362,8 +362,8 @@ def local_exp_log_nan_switch(fgraph, node):
 def local_sumsqr2dot(fgraph, node):
     """
     This optimization detects
-    ``aet.sqr(W.dimshuffle("x", 0, 1) * G.dimshuffle(0, "x", 1) ).sum(axis=(1, 2))``
-    and converts it to ``aet.dot(aet.sqr(G), aet.sqr(W).sum(axis=0))``.
+    ``at.sqr(W.dimshuffle("x", 0, 1) * G.dimshuffle(0, "x", 1) ).sum(axis=(1, 2))``
+    and converts it to ``at.dot(at.sqr(G), at.sqr(W).sum(axis=0))``.
     """
     if (
         isinstance(node.op, Sum)
@@ -436,27 +436,27 @@ def local_expm1(fgraph, node):
 def local_mul_switch_sink(fgraph, node):
     """
     This optimization makes the following changes in the graph:
-    ``aet.mul(A, aet.switch(cond, 0, iff), B)`` -> ``aet.switch(cond, 0, aet.mul(A, B, iff))``
-    ``aet.mul(A, aet.switch(cond, ift, 0), B)`` -> ``aet.switch(cond, aet.mul(A, B, ift), 0)``
+    ``at.mul(A, at.switch(cond, 0, iff), B)`` -> ``at.switch(cond, 0, at.mul(A, B, iff))``
+    ``at.mul(A, at.switch(cond, ift, 0), B)`` -> ``at.switch(cond, at.mul(A, B, ift), 0)``
     ``A`` and ``B`` being several (or none) symbolic variables.
     This is useful because ``A`` and ``B`` may not be numerically stable and give
     NaN or inf values for cases where the switch returns 0.
-    With this optimization ``aet.grad(aet.switch(...))`` has the right behavior.
+    With this optimization ``at.grad(at.switch(...))`` has the right behavior.
 
     Examples
     --------
 
         x -> f(x)
         x -> g(x)
-        y = aet.switch(cond, f(x), g(x))
+        y = at.switch(cond, f(x), g(x))
 
     without the optimization:
 
-        aet.grad(y, x) -> grad(f(x), x) * grad(y, f(x)) + grad(g(x), x) * grad(y, g(x))
+        at.grad(y, x) -> grad(f(x), x) * grad(y, f(x)) + grad(g(x), x) * grad(y, g(x))
 
     with the optimization
 
-        aet.grad(y, x) -> switch(cond, grad(f(x), x), 0) + switch(cond, 0, grad(g(x), x))
+        at.grad(y, x) -> switch(cond, grad(f(x), x), 0) + switch(cond, 0, grad(g(x), x))
 
     This will be particularly useful for the lazy ``if`` because we skip an entire
     part of the graph.
@@ -531,8 +531,8 @@ def local_div_switch_sink(fgraph, node):
     """
     This optimization makes the following changes in the graph:
 
-    ``aet.div(aet.switch(cond, 0, iff), A)`` -> ``aet.switch(cond, 0, aet.div(iff, A))``
-    ``aet.div(aet.switch(cond, ift, 0), A)`` -> ``aet.switch(cond, aet.div(ift, A), 0)``
+    ``at.div(at.switch(cond, 0, iff), A)`` -> ``at.switch(cond, 0, at.div(iff, A))``
+    ``at.div(at.switch(cond, ift, 0), A)`` -> ``at.switch(cond, at.div(ift, A), 0)``
 
     where ``A`` is a symbolic variable.
 
@@ -633,7 +633,7 @@ class AlgebraicCanonizer(LocalOptimizer):
 
     Examples
     --------
-    >>> import aesara.tensor as aet
+    >>> import aesara.tensor as at
     >>> from aesara.tensor.math_opt import AlgebraicCanonizer
     >>> add_canonizer = AlgebraicCanonizer(add, sub, neg, \\
     ...                                    lambda n, d: sum(n) - sum(d))
@@ -1484,10 +1484,10 @@ def local_sum_prod_div_dimshuffle(fgraph, node):
                         )(dimshuffle_input)
 
                     if isinstance(node.op, Sum):
-                        op_on_compatible_dims = aet_sum(numerator, axis=compatible_dims)
+                        op_on_compatible_dims = at_sum(numerator, axis=compatible_dims)
                         rval = true_div(op_on_compatible_dims, optimized_dimshuffle)
                         if len(reordered_incompatible_dims) > 0:
-                            rval = aet_sum(rval, axis=reordered_incompatible_dims)
+                            rval = at_sum(rval, axis=reordered_incompatible_dims)
                     elif isinstance(node.op, Prod):
                         op_on_compatible_dims = prod(numerator, axis=compatible_dims)
                         dtype = numerator.dtype
@@ -1695,7 +1695,7 @@ def local_reduce_broadcastable(fgraph, node):
                 new_reduced = reduced.dimshuffle(*pattern)
                 if new_axis:
                     if type(node.op) == CAReduce:
-                        # This happen for aet_max(), aet_min()
+                        # This happen for at_max(), at_min()
                         new_op = node.op.__class__(node.op.scalar_op, axis=new_axis)
                     else:
                         new_op = node.op.__class__(axis=new_axis)
@@ -1837,15 +1837,15 @@ def local_div_to_reciprocal(fgraph, node):
 @local_optimizer([reciprocal])
 def local_reciprocal_canon(fgraph, node):
     if node.op == reciprocal:
-        return [aet_pow(node.inputs[0], -1.0)]
+        return [at_pow(node.inputs[0], -1.0)]
     else:
         return False
 
 
 @register_canonicalize
-@local_optimizer([aet_pow])
+@local_optimizer([at_pow])
 def local_pow_canonicalize(fgraph, node):
-    if node.op == aet_pow:
+    if node.op == at_pow:
         cst = get_constant(node.inputs[1])
         if cst == 0:
             return [broadcast_like(1, node.outputs[0], fgraph)]
@@ -1897,11 +1897,11 @@ def local_zero_div(fgraph, node):
 
 
 @register_specialize
-@local_optimizer([aet_pow])
+@local_optimizer([at_pow])
 def local_pow_specialize(fgraph, node):
     # here, we are past the point of canonicalization, so we don't want
     # to put in un-necessary fills.
-    if node.op == aet_pow:
+    if node.op == at_pow:
         # the idea here is that we have pow(x, y)
         odtype = node.outputs[0].dtype
         xsym = node.inputs[0]
@@ -1935,12 +1935,12 @@ def local_pow_specialize(fgraph, node):
 
 
 @register_specialize_device
-@local_optimizer([aet_pow])
+@local_optimizer([at_pow])
 def local_pow_specialize_device(fgraph, node):
     """
     This optimization is not the same on all device. We do it only on cpu here.
     """
-    if node.op == aet_pow:
+    if node.op == at_pow:
         # the idea here is that we have pow(x, y)
         odtype = node.outputs[0].dtype
         xsym = node.inputs[0]
@@ -2137,7 +2137,7 @@ def check_for_x_over_absX(numerators, denominators):
     # TODO: this function should dig/search through dimshuffles
     # This won't catch a dimshuffled absolute value
     for den in list(denominators):
-        if den.owner and den.owner.op == aet_abs and den.owner.inputs[0] in numerators:
+        if den.owner and den.owner.op == at_abs and den.owner.inputs[0] in numerators:
             if den.owner.inputs[0].type.dtype.startswith("complex"):
                 # TODO: Make an Op that projects a complex number to
                 #      have unit length but projects 0 to 0.  That
@@ -2157,7 +2157,7 @@ local_mul_canonizer.add_simplifier(check_for_x_over_absX, "X_over_absX")
 
 
 @register_canonicalize
-@local_optimizer([aet_abs])
+@local_optimizer([at_abs])
 def local_abs_lift(fgraph, node):
     """
     Move the abs toward the input.
@@ -2165,13 +2165,13 @@ def local_abs_lift(fgraph, node):
     This is needed for check_for_x_over_absX to apply in more case.
 
     """
-    if node.op == aet_abs and node.inputs[0].owner:
+    if node.op == at_abs and node.inputs[0].owner:
         assert node.nin == 1
         if node.inputs[0].owner.op == mul:
-            return [mul(*[aet_abs(i) for i in node.inputs[0].owner.inputs])]
+            return [mul(*[at_abs(i) for i in node.inputs[0].owner.inputs])]
         if node.inputs[0].owner.op == true_div:
             i = node.inputs[0].owner.inputs
-            return [true_div(aet_abs(i[0]), aet_abs(i[1]))]
+            return [true_div(at_abs(i[0]), at_abs(i[1]))]
 
 
 @register_specialize
@@ -2184,11 +2184,11 @@ def local_abs_merge(fgraph, node):
     """
     if (
         node.op == mul
-        and sum([i.owner.op == aet_abs for i in node.inputs if i.owner]) > 1
+        and sum([i.owner.op == at_abs for i in node.inputs if i.owner]) > 1
     ):
         inputs = []
         for i in node.inputs:
-            if i.owner and i.owner.op == aet_abs:
+            if i.owner and i.owner.op == at_abs:
                 inputs.append(i.owner.inputs[0])
             elif isinstance(i, Constant):
                 try:
@@ -2200,13 +2200,13 @@ def local_abs_merge(fgraph, node):
                 inputs.append(i)
             else:
                 return False
-        return [aet_abs(mul(*inputs))]
+        return [at_abs(mul(*inputs))]
     if (
         node.op == true_div
-        and sum([i.owner.op == aet_abs for i in node.inputs if i.owner]) == 2
+        and sum([i.owner.op == at_abs for i in node.inputs if i.owner]) == 2
     ):
         return [
-            aet_abs(
+            at_abs(
                 true_div(node.inputs[0].owner.inputs[0], node.inputs[1].owner.inputs[0])
             )
         ]
@@ -2304,14 +2304,14 @@ def local_log_sum_exp(fgraph, node):
         return
 
     pre_exp = exp_node.inputs[0]
-    max_pre_exp = aet_max(pre_exp, axis=axis)
+    max_pre_exp = at_max(pre_exp, axis=axis)
     max_pre_exp_keepdims = makeKeepDims(pre_exp, max_pre_exp, axis)
 
     # Do not offset when max_pre = -np.inf, to avoid nan in the output
     # Switch statement is placed directly inside sum to break the self-symmetry
     # of the returned output (otherwise the optimization would not stabilize)
     ret = max_pre_exp + log(
-        aet_sum(
+        at_sum(
             switch(
                 isinf(max_pre_exp_keepdims),
                 exp(max_pre_exp_keepdims),
@@ -2824,7 +2824,7 @@ def local_grad_log_erfc_neg(fgraph, node):
     # aaron value
     stab_value = (
         x
-        * aet_pow(1 - 1 / (2 * (x ** 2)) + 3 / (4 * (x ** 4)) - 15 / (8 * (x ** 6)), -1)
+        * at_pow(1 - 1 / (2 * (x ** 2)) + 3 / (4 * (x ** 4)) - 15 / (8 * (x ** 6)), -1)
         * cast(sqrt(np.pi), dtype=x.dtype)
     )
 

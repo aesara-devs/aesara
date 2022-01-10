@@ -8,7 +8,7 @@ from aesara import scalar as aes
 from aesara.gradient import DisconnectedType
 from aesara.graph.basic import Apply
 from aesara.graph.op import Op
-from aesara.tensor import basic as aet
+from aesara.tensor import basic as at
 from aesara.tensor import math as tm
 from aesara.tensor.basic import as_tensor_variable, extract_diag
 from aesara.tensor.type import dvector, lscalar, matrix, scalar, vector
@@ -54,8 +54,8 @@ class MatrixPinv(Op):
 
         grad = (
             -matrix_dot(z, gz.T, z)
-            + matrix_dot(z, z.T, gz, (aet.identity_like(x_dot_z) - x_dot_z))
-            + matrix_dot((aet.identity_like(z_dot_x) - z_dot_x), gz, z.T, z)
+            + matrix_dot(z, z.T, gz, (at.identity_like(x_dot_z) - x_dot_z))
+            + matrix_dot((at.identity_like(z_dot_x) - z_dot_x), gz, z.T, z)
         ).T
         return [grad]
 
@@ -641,7 +641,7 @@ def matrix_power(M, n):
 
     # Shortcuts when 0 < n <= 3
     if n == 0:
-        return aet.eye(M.shape[-2])
+        return at.eye(M.shape[-2])
 
     elif n == 1:
         return M

@@ -29,10 +29,10 @@ shifted to the middle of the array. The Aesara flag ``device=cuda{0,1...}`` must
 
     import numpy as np
     import aesara
-    import aesara.tensor as aet
+    import aesara.tensor as at
     from aesara.gpuarray import fft
 
-    x = aet.matrix('x', dtype='float32')
+    x = at.matrix('x', dtype='float32')
 
     rfft = fft.curfft(x, norm='ortho')
     f_rfft = aesara.function([x], rfft)

@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 import aesara
-import aesara.tensor as aet
+import aesara.tensor as at
 from aesara.printing import debugprint, pydot_imported, pydotprint
 from aesara.tensor.type import dvector, iscalar, scalar, vector
 
@@ -14,7 +14,7 @@ def test_scan_debugprint1():
     # Symbolic description of the result
     result, updates = aesara.scan(
         fn=lambda prior_result, A: prior_result * A,
-        outputs_info=aet.ones_like(A),
+        outputs_info=at.ones_like(A),
         non_sequences=A,
         n_steps=k,
     )
@@ -73,7 +73,7 @@ def test_scan_debugprint2():
         fn=lambda coefficient, power, free_variable: coefficient
         * (free_variable ** power),
         outputs_info=None,
-        sequences=[coefficients, aet.arange(max_coefficients_supported)],
+        sequences=[coefficients, at.arange(max_coefficients_supported)],
         non_sequences=x,
     )
     # Sum them up
@@ -136,7 +136,7 @@ def test_scan_debugprint3():
         # Symbolic description of the result
         result, updates = aesara.scan(
             fn=lambda prior_result, A: prior_result * A,
-            outputs_info=aet.ones_like(A),
+            outputs_info=at.ones_like(A),
             non_sequences=A,
             n_steps=k,
         )
@@ -150,7 +150,7 @@ def test_scan_debugprint3():
         fn=lambda coefficient, power, some_A, some_k: coefficient
         * (compute_A_k(some_A, some_k) ** power),
         outputs_info=None,
-        sequences=[coefficients, aet.arange(max_coefficients_supported)],
+        sequences=[coefficients, at.arange(max_coefficients_supported)],
         non_sequences=[A, k],
     )
     # Sum them up
@@ -318,7 +318,7 @@ def test_scan_debugprint5():
     # Symbolic description of the result
     result, updates = aesara.scan(
         fn=lambda prior_result, A: prior_result * A,
-        outputs_info=aet.ones_like(A),
+        outputs_info=at.ones_like(A),
         non_sequences=A,
         n_steps=k,
     )

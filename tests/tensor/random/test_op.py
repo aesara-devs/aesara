@@ -1,7 +1,7 @@
 import numpy as np
 from pytest import fixture, raises
 
-import aesara.tensor as aet
+import aesara.tensor as at
 from aesara import config
 from aesara.gradient import NullTypeGradError, grad
 from aesara.raise_op import Assert
@@ -98,8 +98,8 @@ def test_RandomVariable_basics():
         rv.make_node(rng=1)
 
     # `RandomVariable._infer_shape` should handle no parameters
-    rv_shape = rv._infer_shape(aet.constant([]), (), [])
-    assert rv_shape.equals(aet.constant([], dtype="int64"))
+    rv_shape = rv._infer_shape(at.constant([]), (), [])
+    assert rv_shape.equals(at.constant([], dtype="int64"))
 
     # Integer-specificed `dtype`
     dtype_1 = all_dtypes[1]
@@ -132,25 +132,25 @@ def test_RandomVariable_bcast():
     res = rv(mu, sd, size=(s1, s2, s3))
     assert res.broadcastable == (False,) * 3
 
-    size = aet.as_tensor((1, 2, 3), dtype=np.int32).astype(np.int64)
+    size = at.as_tensor((1, 2, 3), dtype=np.int32).astype(np.int64)
     res = rv(mu, sd, size=size)
     assert res.broadcastable == (True, False, False)
 
-    res = rv(0, 1, size=aet.as_tensor(1, dtype=np.int64))
+    res = rv(0, 1, size=at.as_tensor(1, dtype=np.int64))
     assert res.broadcastable == (True,)
 
 
 def test_RandomVariable_bcast_specify_shape():
     rv = RandomVariable("normal", 0, [0, 0], config.floatX, inplace=True)
 
-    s1 = aet.as_tensor(1, dtype=np.int64)
+    s1 = at.as_tensor(1, dtype=np.int64)
     s2 = iscalar()
     s2.tag.test_value = 2
     s3 = iscalar()
     s3.tag.test_value = 3
     s3 = Assert("testing")(s3, eq(s1, 1))
 
-    size = specify_shape(aet.as_tensor([s1, s3, s2, s2, s1]), (5,))
+    size = specify_shape(at.as_tensor([s1, s3, s2, s2, s1]), (5,))
     mu = tensor(config.floatX, [False, False, True])
     mu.tag.test_value = np.random.normal(size=(2, 2, 1)).astype(config.floatX)
 

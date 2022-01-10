@@ -4,14 +4,14 @@ import pytest
 import aesara
 import aesara.sandbox.rng_mrg
 from aesara import gpuarray
-from aesara import tensor as aet
+from aesara import tensor as at
 from aesara.gpuarray.basic_ops import GpuFromHost, HostFromGpu
 from aesara.gpuarray.elemwise import GpuElemwise
 from aesara.scan.basic import scan
 from aesara.scan.checkpoints import scan_checkpoints
 from aesara.scan.op import Scan
 from aesara.tensor.math import dot
-from aesara.tensor.math import sum as aet_sum
+from aesara.tensor.math import sum as at_sum
 from aesara.tensor.type import fscalar, ftensor3, fvector, iscalar, vector
 from tests import unittest_tools as utt
 from tests.gpuarray.config import mode_with_gpu, test_ctx_name
@@ -164,7 +164,7 @@ class TestScan:
     # outputs when is running on GPU
     def test_gpu3_mixture_dtype_outputs(self):
         def f_rnn(u_t, x_tm1, W_in, W):
-            return (u_t * W_in + x_tm1 * W, aet.cast(u_t + x_tm1, "int64"))
+            return (u_t * W_in + x_tm1 * W, at.cast(u_t + x_tm1, "int64"))
 
         u = fvector("u")
         x0 = fscalar("x0")
@@ -452,7 +452,7 @@ class ScanGpuTests:
     # outputs when is running on GPU
     def test_gpu3_mixture_dtype_outputs(self):
         def f_rnn(u_t, x_tm1, W_in, W):
-            return (u_t * W_in + x_tm1 * W, aet.cast(u_t + x_tm1, "int64"))
+            return (u_t * W_in + x_tm1 * W, at.cast(u_t + x_tm1, "int64"))
 
         u = fvector("u")
         x0 = fscalar("x0")
@@ -578,7 +578,7 @@ class ScanGpuTests:
         def scan_l(baseline, last_step):
             return baseline + dot(last_step, V)
 
-        zero_output = aet.alloc(np.asarray(0.0, dtype="float32"), mb_size, n_hid)
+        zero_output = at.alloc(np.asarray(0.0, dtype="float32"), mb_size, n_hid)
 
         l1_out, _ = scan(
             scan_l,
@@ -590,7 +590,7 @@ class ScanGpuTests:
         l2_out = dot(l1_out, W)
 
         # Compute the cost and take the gradient wrt params
-        cost = aet_sum((l2_out - yout) ** 2)
+        cost = at_sum((l2_out - yout) ** 2)
         grads = aesara.grad(cost, nparams)
         updates = list(zip(nparams, (n - g for n, g in zip(nparams, grads))))
 
@@ -688,13 +688,13 @@ class TestScanCheckpoint:
         self.A = vector("A")
         result, _ = scan(
             fn=lambda prior_result, A: prior_result * A,
-            outputs_info=aet.ones_like(self.A),
+            outputs_info=at.ones_like(self.A),
             non_sequences=self.A,
             n_steps=self.k,
         )
         result_check, _ = scan_checkpoints(
             fn=lambda prior_result, A: prior_result * A,
-            outputs_info=aet.ones_like(self.A),
+            outputs_info=at.ones_like(self.A),
             non_sequences=self.A,
             n_steps=self.k,
             save_every_N=100,

@@ -32,7 +32,7 @@ from aesara.tensor.basic_opt import (
 from aesara.tensor.elemwise import Elemwise
 from aesara.tensor.exceptions import NotScalarConstantError
 from aesara.tensor.math import Dot, add
-from aesara.tensor.math import all as aet_all
+from aesara.tensor.math import all as at_all
 from aesara.tensor.math import (
     and_,
     ceil_intdiv,
@@ -271,7 +271,7 @@ def local_AdvancedIncSubtensor_to_AdvancedIncSubtensor1(fgraph, node):
 @register_specialize
 @local_optimizer([Subtensor])
 def local_subtensor_of_dot(fgraph, node):
-    """Rewrite ``aet.dot(A, B)[idxs]`` into ``aet.dot(A[idxs_a], B[idxs_b])``.
+    """Rewrite ``at.dot(A, B)[idxs]`` into ``at.dot(A[idxs_a], B[idxs_b])``.
     ``idxs_a`` is the first ``A.ndim-1`` entries of ``idxs``, and ``idxs_b`` is
     the remaining entries of ``idxs`` (if any), modified to skip the
     second-to-last dimension of ``B`` (because dot sums over this dimension).
@@ -1438,7 +1438,7 @@ def local_adv_sub1_adv_inc_sub1(fgraph, node):
     if not inp.owner.op.set_instead_of_inc:
         return
 
-    cond = [aet_all(and_(lt(idx, x.shape[0]), ge(idx, -x.shape[0])))]
+    cond = [at_all(and_(lt(idx, x.shape[0]), ge(idx, -x.shape[0])))]
     if not fgraph.shape_feature.same_shape(idx, y, 0, 0):
         cond.append(eq(idx.shape[0], y.shape[0]))
     r = Assert(
@@ -1477,7 +1477,7 @@ def local_useless_inc_subtensor_alloc(fgraph, node):
         i = node.inputs[2:]
 
         if y.owner is not None and isinstance(y.owner.op, Alloc):
-            # `z` is the input of the Alloc op, i.e. aet.alloc(z, <shape>)
+            # `z` is the input of the Alloc op, i.e. at.alloc(z, <shape>)
             z = y.owner.inputs[0]
 
             try:

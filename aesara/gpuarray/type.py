@@ -7,7 +7,7 @@ import numpy as np
 
 import aesara
 import aesara.scalar as aes
-import aesara.tensor as aet
+import aesara.tensor as at
 import aesara.tensor.basic
 from aesara.compile import SharedVariable
 from aesara.configdefaults import config
@@ -435,7 +435,7 @@ class GpuArrayType(CType):
                 sb == ob or ob for sb, ob in zip(self.broadcastable, vt.broadcastable)
             )
         ):
-            return aet.patternbroadcast(var, self.broadcastable)
+            return at.patternbroadcast(var, self.broadcastable)
 
     def __hash__(self):
         return hash((type(self), self.typecode, self.broadcastable, self.context_name))
@@ -652,7 +652,7 @@ class _operators(_tensor_py_operators):
             return GpuToGpu(context_name)(self)
 
 
-@aet._as_tensor_variable.register(_operators)
+@at._as_tensor_variable.register(_operators)
 def _as_tensor_operators(x, **kwargs):
     from aesara.gpuarray.basic_ops import host_from_gpu
 

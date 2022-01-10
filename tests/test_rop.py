@@ -18,13 +18,13 @@ import numpy as np
 import pytest
 
 import aesara
-import aesara.tensor as aet
+import aesara.tensor as at
 from aesara import function
 from aesara.gradient import Lop, Rop, grad, grad_undefined
 from aesara.graph.basic import Apply
 from aesara.graph.op import Op
 from aesara.tensor.math import argmax, dot
-from aesara.tensor.math import max as aet_max
+from aesara.tensor.math import max as at_max
 from aesara.tensor.nnet import conv, conv2d
 from aesara.tensor.signal.pool import Pool
 from aesara.tensor.type import TensorType, matrix, vector
@@ -110,7 +110,7 @@ class RopLopChecker:
         rop_f = function([self.mx, self.mv], yv, on_unused_input="ignore")
         sy, _ = aesara.scan(
             lambda i, y, x, v: (grad(y[i], x) * v).sum(),
-            sequences=aet.arange(y.shape[0]),
+            sequences=at.arange(y.shape[0]),
             non_sequences=[y, self.mx, self.mv],
         )
         scan_f = function([self.mx, self.mv], sy, on_unused_input="ignore")
@@ -148,7 +148,7 @@ class RopLopChecker:
         rop_f = function([self.x, self.v], yv, on_unused_input="ignore")
         J, _ = aesara.scan(
             lambda i, y, x: grad(y[i], x),
-            sequences=aet.arange(y.shape[0]),
+            sequences=at.arange(y.shape[0]),
             non_sequences=[y, self.x],
         )
         sy = dot(J, self.v)
@@ -178,7 +178,7 @@ class RopLopChecker:
         lop_f = function([self.x, self.v], yv, on_unused_input="ignore")
         J, _ = aesara.scan(
             lambda i, y, x: grad(y[i], x),
-            sequences=aet.arange(y.shape[0]),
+            sequences=at.arange(y.shape[0]),
             non_sequences=[y, self.x],
         )
         sy = dot(self.v, J)
@@ -194,9 +194,9 @@ class TestRopLop(RopLopChecker):
     def test_max(self):
         # If we call max directly, we will return an CAReduce object
         # which doesn't have R_op implemented!
-        # self.check_mat_rop_lop(aet_max(self.mx, axis=[0,1])[0], ())
-        self.check_mat_rop_lop(aet_max(self.mx, axis=0), (self.mat_in_shape[1],))
-        self.check_mat_rop_lop(aet_max(self.mx, axis=1), (self.mat_in_shape[0],))
+        # self.check_mat_rop_lop(at_max(self.mx, axis=[0,1])[0], ())
+        self.check_mat_rop_lop(at_max(self.mx, axis=0), (self.mat_in_shape[1],))
+        self.check_mat_rop_lop(at_max(self.mx, axis=1), (self.mat_in_shape[0],))
 
     def test_argmax(self):
         self.check_nondiff_rop(argmax(self.mx, axis=1))
@@ -241,7 +241,7 @@ class TestRopLop(RopLopChecker):
         # I need the sum, because the setup expects the output to be a
         # vector
         self.check_rop_lop(
-            aet.unbroadcast(self.x[:4].dimshuffle("x", 0), 0).sum(axis=1), (1,)
+            at.unbroadcast(self.x[:4].dimshuffle("x", 0), 0).sum(axis=1), (1,)
         )
 
     @pytest.mark.slow
@@ -292,7 +292,7 @@ class TestRopLop(RopLopChecker):
             rop_f = function([], yv, on_unused_input="ignore", mode=mode)
             sy, _ = aesara.scan(
                 lambda i, y, x, v: (grad(y[i], x) * v).sum(),
-                sequences=aet.arange(a_pooled.shape[0]),
+                sequences=at.arange(a_pooled.shape[0]),
                 non_sequences=[a_pooled, x, ex],
                 mode=mode,
             )
@@ -338,7 +338,7 @@ class TestRopLop(RopLopChecker):
                 sy, _ = aesara.scan(
                     lambda i, y, x1, x2, v1, v2: (grad(y[i], x1) * v1).sum()
                     + (grad(y[i], x2) * v2).sum(),
-                    sequences=aet.arange(output.shape[0]),
+                    sequences=at.arange(output.shape[0]),
                     non_sequences=[output, input, filters, ev_input, ev_filters],
                     mode=mode,
                 )
@@ -360,7 +360,7 @@ class TestRopLop(RopLopChecker):
     def test_join(self):
         tv = np.asarray(self.rng.uniform(size=(10,)), aesara.config.floatX)
         t = aesara.shared(tv)
-        out = aet.join(0, self.x, t)
+        out = at.join(0, self.x, t)
         self.check_rop_lop(out, (self.in_shape[0] + 10,))
 
     def test_dot(self):
@@ -373,7 +373,7 @@ class TestRopLop(RopLopChecker):
         self.check_rop_lop((self.x + 1) ** 2, self.in_shape)
 
     def test_elemwise1(self):
-        self.check_rop_lop(self.x + aet.cast(self.x, "int32"), self.in_shape)
+        self.check_rop_lop(self.x + at.cast(self.x, "int32"), self.in_shape)
 
     def test_flatten(self):
         self.check_mat_rop_lop(
@@ -388,11 +388,11 @@ class TestRopLop(RopLopChecker):
 
     def test_alloc(self):
         # Alloc of the sum of x into a vector
-        out1d = aet.alloc(self.x.sum(), self.in_shape[0])
+        out1d = at.alloc(self.x.sum(), self.in_shape[0])
         self.check_rop_lop(out1d, self.in_shape[0])
 
         # Alloc of x into a 3-D tensor, flattened
-        out3d = aet.alloc(
+        out3d = at.alloc(
             self.x, self.mat_in_shape[0], self.mat_in_shape[1], self.in_shape[0]
         )
         self.check_rop_lop(
@@ -440,7 +440,7 @@ class TestRopLop(RopLopChecker):
         # 2013. The bug consists when through a dot operation there is only
         # one differentiable path (i.e. there is no gradient wrt to one of
         # the inputs).
-        x = aet.arange(20.0).reshape([1, 20])
+        x = at.arange(20.0).reshape([1, 20])
         v = aesara.shared(np.ones([20]))
         d = dot(x, v).sum()
         Rop(grad(d, v), v, v)
