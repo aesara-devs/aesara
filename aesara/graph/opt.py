@@ -37,7 +37,6 @@ from aesara.graph.fg import FunctionGraph, InconsistencyError
 from aesara.graph.op import Op
 from aesara.graph.utils import AssocList
 from aesara.misc.ordered_set import OrderedSet
-from aesara.raise_op import CheckAndRaise
 from aesara.utils import flatten
 
 
@@ -789,6 +788,8 @@ class MergeOptimizer(GlobalOptimizer):
             fgraph.attach_feature(MergeFeature())
 
     def apply(self, fgraph):
+        from aesara.raise_op import CheckAndRaise
+
         # Constant and non-constant are now applied in the same phase.
         # I am not sure why, but it seems to be faster this way.
         sched = fgraph.merge_feature.scheduled

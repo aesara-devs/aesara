@@ -26,6 +26,8 @@ __docformat__ = "restructuredtext en"
 import logging
 import os
 import sys
+from functools import singledispatch
+from typing import Any, NoReturn, Optional
 
 
 aesara_logger = logging.getLogger("aesara")
@@ -76,6 +78,51 @@ change_flags = deprecated("Use aesara.config.change_flags instead!")(
 # very rarely.
 __api_version__ = 1
 
+# isort: off
+from aesara.graph.basic import Variable, clone_replace
+
+# isort: on
+
+
+def as_symbolic(x: Any, name: Optional[str] = None, **kwargs) -> Variable:
+    """Convert `x` into an equivalent Aesara `Variable`.
+
+    Parameters
+    ----------
+    x
+        The object to be converted into a ``Variable`` type. A
+        ``numpy.ndarray`` argument will not be copied, but a list of numbers
+        will be copied to make an ``numpy.ndarray``.
+    name
+        If a new ``Variable`` instance is created, it will be named with this
+        string.
+    kwargs
+        Options passed to the appropriate sub-dispatch functions.  For example,
+        `ndim` and `dtype` can be passed when `x` is an `numpy.ndarray` or
+        `Number` type.
+
+    Raises
+    ------
+    TypeError
+        If `x` cannot be converted to a `Variable`.
+
+    """
+    if isinstance(x, Variable):
+        return x
+
+    res = _as_symbolic(x, **kwargs)
+    res.name = name
+    return res
+
+
+@singledispatch
+def _as_symbolic(x, **kwargs) -> Variable:
+    from aesara.tensor import as_tensor_variable
+
+    return as_tensor_variable(x, **kwargs)
+
+
+# isort: off
 from aesara import scalar, tensor
 from aesara.compile import (
     In,
@@ -94,6 +141,8 @@ from aesara.gradient import Lop, Rop, grad, subgraph_grad
 from aesara.printing import debugprint as dprint
 from aesara.printing import pp, pprint
 from aesara.updates import OrderedUpdates
+
+# isort: on
 
 
 if (
@@ -126,13 +175,16 @@ def get_scalar_constant_value(v):
     return tensor.get_scalar_constant_value(v)
 
 
+# isort: off
 import aesara.tensor.random.var
-from aesara.graph.basic import clone_replace
 from aesara.scan import checkpoints
 from aesara.scan.basic import scan
 from aesara.scan.views import foldl, foldr, map, reduce
 
+# isort: on
 
-# Some config variables are registered by submodules. Only after all those imports
-# were executed, we can warn about remaining flags provided by the user through AESARA_FLAGS.
+
+# Some config variables are registered by submodules. Only after all those
+# imports were executed, we can warn about remaining flags provided by the user
+# through AESARA_FLAGS.
 config.warn_unused_flags()

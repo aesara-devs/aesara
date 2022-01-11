@@ -1,10 +1,17 @@
 """ This file don't test everything. It only test one past crash error."""
 
 import aesara
+from aesara import as_symbolic
 from aesara.graph.basic import Constant
 from aesara.tensor.math import argmax
 from aesara.tensor.type import iscalar, vector
-from aesara.tensor.type_other import MakeSlice, NoneConst, NoneTypeT, make_slice
+from aesara.tensor.type_other import (
+    MakeSlice,
+    NoneConst,
+    NoneTypeT,
+    SliceConstant,
+    make_slice,
+)
 
 
 def test_make_slice_merge():
@@ -44,3 +51,15 @@ def test_none_Constant():
         kwargs = {"mode": "FAST_RUN"}
     f = aesara.function([x], [y], **kwargs)
     pickle.loads(pickle.dumps(f))
+
+
+def test_as_symbolic():
+
+    res = as_symbolic(None)
+    assert res is NoneConst
+
+    res = as_symbolic(slice(iscalar()))
+    assert res.owner.op == make_slice
+
+    res = as_symbolic(slice(1, 2))
+    assert isinstance(res, SliceConstant)
