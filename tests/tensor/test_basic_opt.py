@@ -51,14 +51,7 @@ from aesara.tensor.basic_opt import (
     register_specialize,
 )
 from aesara.tensor.elemwise import DimShuffle, Elemwise
-from aesara.tensor.extra_ops import (
-    BroadcastTo,
-    Repeat,
-    Unique,
-    broadcast_to,
-    repeat,
-    unique,
-)
+from aesara.tensor.extra_ops import BroadcastTo, Repeat, Unique, repeat, unique
 from aesara.tensor.math import (
     add,
     bitwise_and,
@@ -3359,7 +3352,6 @@ def test_local_Unique_Alloc_lift(
 @pytest.mark.parametrize(
     "x_val, axis, new_shape",
     [
-        (np.array(-10, dtype=np.int64), None, ()),
         (np.array(-10, dtype=np.int64), None, (2, 3)),
         (np.array([[-10, -3], [-10, 2], [-10, 2]], dtype=np.int64), None, (2, 3, 2)),
     ],
@@ -3372,7 +3364,7 @@ def test_local_Unique_BroadcastTo(
 ):
     x = as_tensor_variable(x_val).type()
     y = unique(
-        broadcast_to(x, tuple(new_shape)),
+        BroadcastTo()(x, tuple(new_shape)),
         return_index=return_index,
         return_counts=return_counts,
         return_inverse=return_inverse,

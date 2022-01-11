@@ -1095,6 +1095,11 @@ class TestBroadcastTo(utt.InferShapeTester):
         self.op_class = BroadcastTo
         self.op = broadcast_to
 
+    def test_avoid_useless_scalars(self):
+        x = scalar()
+        y = broadcast_to(x, ())
+        assert y is x
+
     @config.change_flags(compute_test_value="raise")
     def test_perform(self):
         a = scalar()
