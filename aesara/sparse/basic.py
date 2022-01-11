@@ -299,6 +299,9 @@ class _sparse_py_operators:
     def __rdot__(right, left):
         return structured_dot(left, right)
 
+    def sum(self, axis=None, sparse_grad=False):
+        return sp_sum(self, axis=axis, sparse_grad=sparse_grad)
+
     dot = __dot__
 
     # N.B. THIS IS COMMENTED OUT ON PURPOSE!!!

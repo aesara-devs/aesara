@@ -2039,12 +2039,17 @@ class TestSpSum(utt.InferShapeTester):
         self.op_class = sparse.SpSum
         self.op = sparse.sp_sum
 
-    def test_op(self):
+    @pytest.mark.parametrize("op_type", ["func", "method"])
+    def test_op(self, op_type):
         for format in sparse.sparse_formats:
             for axis in self.possible_axis:
                 variable, data = sparse_random_inputs(format, shape=(10, 10))
 
-                z = sparse.sp_sum(variable[0], axis=axis)
+                if op_type == "func":
+                    z = sparse.sp_sum(variable[0], axis=axis)
+                if op_type == "method":
+                    z = variable[0].sum(axis=axis)
+
                 if axis is None:
                     assert z.type.broadcastable == ()
                 else:
