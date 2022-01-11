@@ -9,32 +9,34 @@ from aesara.graph.op import Op
 
 def as_tensor_variable(
     x: Any, name: Optional[str] = None, ndim: Optional[int] = None, **kwargs
-) -> Callable:
-    """Convert `x` into the appropriate ``TensorType``.
+) -> Variable:
+    """Convert `x` into an equivalent `TensorVariable`.
 
-    This function is often used by ``make_node`` methods of ``Op`` subclasses
-    to turn ndarrays, numbers, ``Scalar`` instances, ``Apply`` instances and
-    ``TensorType`` instances into valid input list elements.
+    This function can be used to turn ndarrays, numbers, `Scalar` instances,
+    `Apply` instances and `TensorVariable` instances into valid input list
+    elements.
+
+    See `aesara.as_symbolic` for a more general conversion function.
 
     Parameters
     ----------
     x
-        The object to be converted into a ``Variable`` type. A
-        ``numpy.ndarray`` argument will not be copied, but a list of numbers
-        will be copied to make an ``numpy.ndarray``.
+        The object to be converted into a `Variable` type. A
+        `numpy.ndarray` argument will not be copied, but a list of numbers
+        will be copied to make an `numpy.ndarray`.
     name
-        If a new ``Variable`` instance is created, it will be named with this
+        If a new `Variable` instance is created, it will be named with this
         string.
     ndim
-        Return a ``Variable`` with this many dimensions.
+        Return a `Variable` with this many dimensions.
     dtype
-        The dtype to use for the resulting ``Variable``.  If `x` is already
-        a ``Variable`` type, then the dtype will not be changed.
+        The dtype to use for the resulting `Variable`.  If `x` is already
+        a `Variable` type, then the dtype will not be changed.
 
     Raises
     ------
     TypeError
-        If `x` cannot be converted to a ``TensorType`` Variable.
+        If `x` cannot be converted to a `TensorVariable`.
 
     """
     return _as_tensor_variable(x, name, ndim, **kwargs)

@@ -5,8 +5,9 @@
 import numpy as np
 
 import aesara
+from aesara import _as_symbolic
 from aesara.gradient import DisconnectedType
-from aesara.graph.basic import Apply, Constant
+from aesara.graph.basic import Apply, Constant, Variable
 from aesara.graph.op import Op
 from aesara.graph.type import Generic, Type
 from aesara.tensor.type import integer_dtypes
@@ -108,6 +109,15 @@ class SliceConstant(Constant):
 SliceType.Constant = SliceConstant
 
 
+@_as_symbolic.register(slice)
+def as_symbolic_slice(x, **kwargs):
+
+    if any(isinstance(i, Variable) for i in (x.start, x.stop, x.step)):
+        return make_slice(x)
+
+    return SliceConstant(slicetype, x)
+
+
 class NoneTypeT(Generic):
     """
     Inherit from Generic to have c code working.
@@ -129,9 +139,12 @@ class NoneTypeT(Generic):
 
 none_type_t = NoneTypeT()
 
-# This is a variable instance. It can be used only once per fgraph.
-# So use NoneConst.clone() before using it in an Aesara graph.
-# Use NoneConst.equals(x) to check if two variable are NoneConst.
 NoneConst = Constant(none_type_t, None, name="NoneConst")
+
+
+@_as_symbolic.register(type(None))
+def as_symbolic_None(x, **kwargs):
+    return NoneConst
+
 
 __all__ = ["make_slice", "slicetype", "none_type_t", "NoneConst"]
