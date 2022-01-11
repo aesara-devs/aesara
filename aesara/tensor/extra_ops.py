@@ -10,7 +10,7 @@ from aesara.gradient import (
     disconnected_type,
     grad_undefined,
 )
-from aesara.graph.basic import Apply, equal_computations
+from aesara.graph.basic import Apply, Variable, equal_computations
 from aesara.graph.op import COp, Op
 from aesara.graph.params_type import ParamsType
 from aesara.graph.type import EnumList, Generic
@@ -19,6 +19,7 @@ from aesara.raise_op import Assert
 from aesara.scalar import int32 as int_t
 from aesara.scalar import upcast
 from aesara.tensor import basic as at
+from aesara.tensor import get_vector_length
 from aesara.tensor.exceptions import NotScalarConstantError
 from aesara.tensor.math import abs as at_abs
 from aesara.tensor.math import all as at_all
@@ -1627,7 +1628,37 @@ class BroadcastTo(Op):
         return [node.inputs[1:]]
 
 
-broadcast_to = BroadcastTo()
+broadcast_to_ = BroadcastTo()
+
+
+def broadcast_to(
+    x: TensorVariable, shape: Union[TensorVariable, Tuple[Variable]]
+) -> TensorVariable:
+    """Broadcast an array to a new shape.
+
+    Parameters
+    ----------
+    array
+        The array to broadcast.
+    shape
+        The shape of the desired array.
+
+    Returns
+    -------
+    broadcast
+        A readonly view on the original array with the given shape. It is
+        typically not contiguous. Furthermore, more than one element of a
+        broadcasted array may refer to a single memory location.
+
+    """
+    x = at.as_tensor(x)
+    shape = at.as_tensor(shape, ndim=1, dtype="int64")
+    shape_len = get_vector_length(shape)
+
+    if x.ndim == 0 and shape_len == 0:
+        return x
+
+    return broadcast_to_(x, shape)
 
 
 def broadcast_arrays(*args: TensorVariable) -> Tuple[TensorVariable, ...]:
