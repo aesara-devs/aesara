@@ -695,7 +695,7 @@ def _lessbroken_deepcopy(a):
     return rval
 
 
-def _find_bad_optimizations0(order, reasons, r_vals):
+def _find_bad_optimizations(order, reasons, r_vals):
     """
     Use a simple algorithm to find broken optimizations.
 
@@ -734,119 +734,6 @@ def _find_bad_optimizations0(order, reasons, r_vals):
                         old_graph=old_graph_str,
                         new_graph=new_graph_str,
                     )
-
-
-def _find_bad_optimizations1(order, reasons, r_vals):
-    # iterate over variables looking for values that don't match the
-    # values of the variables they replaced.  This is the sign of a
-    # broken optimization.
-
-    # identify sets of variables that are supposed to be equivalent
-    equivalence_sets = {}
-    program_position = {}  # node -> order idx
-
-    for i, node in enumerate(order):
-        program_position[node] = i
-        for new_r in node.outputs:
-            equivalence_sets.setdefault(new_r, {new_r})
-            for reason, r, old_graph_str, new_graph_str in reasons[new_r]:
-                equivalence_sets[new_r].update(equivalence_sets.setdefault(r, {r}))
-                for er in equivalence_sets[r]:
-                    equivalence_sets[er] = equivalence_sets[new_r]
-
-    # identify equivalence sets that are broken
-    equivalence_sets_broken = {}  # id(set) -> Bool
-    there_is_a_problem = False
-    for r, r_equiv in equivalence_sets.items():
-        if id(r_equiv) not in equivalence_sets_broken:
-            equivalence_sets_broken[id(r_equiv)] = False
-            # loop over the variables in the set comparing them to be
-            # equal enough
-            re0 = None
-            for re in r_equiv:
-                if re0:
-                    new_r_val = r_vals[re]
-                    r_val = r_vals[re0]
-                    assert re.type == re0.type
-                    if not re.type.values_eq_approx(r_val, new_r_val):
-                        equivalence_sets_broken[id(r_equiv)] = True
-                        there_is_a_problem = True
-                re0 = re
-
-    if there_is_a_problem:
-        # which broken equivalence set has the earliest-occurring element?
-        first_broken_set = None
-        for i, node in enumerate(order):
-            for r in node.outputs:
-                r_equiv = equivalence_sets[r]
-                if equivalence_sets_broken[id(r_equiv)]:
-                    first_broken_set = r_equiv
-        # TODO finish this to produce good diagnostic information
-        print(first_broken_set)
-        raise Exception("broken")
-
-
-def _find_bad_optimizations2(order, reasons, r_vals):
-    """
-    Use a simple algorithm to find broken optimizations.
-
-    This algorithm is simple to understand, but sometimes when there's
-    a problem it identifies the wrong optimization as the culprit.
-    The problem stems from the fact that results are not evaluated in
-    chronological order (looking at when they were introduced to the
-    graph).
-
-    """
-
-    checked_variables = set()
-
-    def check_variable_norec(new_r):
-        """
-        Verify that `r` has the same value as the results it replaces.
-
-        """
-        for reason, r, old_graph_str, new_graph_str in reasons[new_r]:
-            new_r_val = r_vals[new_r]
-            r_val = r_vals[r]
-
-            if (r.type != new_r.type) or (
-                not r.type.values_eq_approx(r_val, new_r_val)
-            ):
-                raise BadOptimization(
-                    old_r=r,
-                    new_r=new_r,
-                    old_r_val=r_val,
-                    new_r_val=new_r_val,
-                    reason=reason,
-                    old_graph=old_graph_str,
-                    new_graph=new_graph_str,
-                )
-
-    def check_variable(r):
-        if r in checked_variables:
-            return
-        checked_variables.add(r)
-
-        # (recursively) first check all the variables that could make
-        # r look bad:
-        list_of_vars = [old_r for (reason, old_r, olds, news) in reasons[r]]
-        if None is not r.owner:
-            list_of_vars += r.owner.inputs
-
-        for var_that_could_make_r_look_bad in list_of_vars:
-            check_variable(var_that_could_make_r_look_bad)
-
-        check_variable_norec(r)
-
-    # iterate over variables looking for values that don't match the
-    # values of the variables they replaced.  This is the sign of a
-    # broken optimization.
-    for i, node in enumerate(order):
-        for new_r in node.outputs:
-            check_variable(new_r)
-
-
-_find_bad_optimizations = _find_bad_optimizations0
 
 
 def _get_preallocated_maps(
