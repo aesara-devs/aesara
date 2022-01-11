@@ -60,3 +60,9 @@ def test_filter_float_subclass():
     with config.change_flags(floatX="float64"):
         filtered_nan = test_type.filter(nan)
         assert isinstance(filtered_nan, np.floating)
+
+
+def test_clone():
+    st = Scalar("int64")
+    assert st == st.clone()
+    assert st.clone("float64").dtype == "float64"

@@ -212,6 +212,10 @@ class Type(MetaObject):
         """
         return self.Constant(type=self, data=value, name=name)
 
+    def clone(self, *args, **kwargs):
+        """Clone a copy of this type with the given arguments/keyword values, if any."""
+        return type(self)(*args, **kwargs)
+
     def __call__(self, name: Optional[Text] = None) -> Variable:
         """Return a new `Variable` instance of Type `self`.
 

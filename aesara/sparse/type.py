@@ -89,6 +89,13 @@ class SparseType(Type):
                 list(self.format_cls.keys()),
             )
 
+    def clone(self, format=None, dtype=None, **kwargs):
+        if format is None:
+            format = self.format
+        if dtype is None:
+            dtype = self.dtype
+        return type(self)(format, dtype)
+
     def filter(self, value, strict=False, allow_downcast=None):
         if (
             isinstance(value, self.format_cls[self.format])

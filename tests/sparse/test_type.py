@@ -1,5 +1,6 @@
-def test_sparse_type():
-    import aesara.sparse
+from aesara.sparse.type import SparseType
 
-    # They need to be available even if scipy is not available.
-    assert hasattr(aesara.sparse, "SparseType")
+
+def test_clone():
+    st = SparseType("csr", "float64")
+    assert st == st.clone()

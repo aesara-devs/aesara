@@ -345,6 +345,11 @@ class Scalar(CType):
         self.dtype = dtype
         self.dtype_specs()  # error checking
 
+    def clone(self, dtype=None, **kwargs):
+        if dtype is None:
+            dtype = self.dtype
+        return type(self)(dtype)
+
     @staticmethod
     def may_share_memory(a, b):
         # This class represent basic c type, represented in python

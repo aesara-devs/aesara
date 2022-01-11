@@ -67,6 +67,11 @@ def test_convert_variable():
         t1.convert_variable(v3)
 
 
+def test_default_clone():
+    mt = MyType(1)
+    assert isinstance(mt.clone(1), MyType)
+
+
 @pytest.mark.skipif(
     not aesara.config.cxx, reason="G++ not available, so we need to skip this test."
 )
