@@ -3668,3 +3668,17 @@ def local_Unique_second(fgraph, node):
     old_out = node.outputs[0]
     new_x = as_tensor_variable(new_unique, ndim=old_out.ndim, dtype=old_out.dtype)
     return [new_x]
+
+
+@register_useless
+@register_canonicalize
+@local_optimizer([BroadcastTo])
+def local_remove_scalar_BroadcastTo(fgraph, node):
+
+    bcast_shape = node.inputs[1:]
+
+    if not bcast_shape:
+        bcasted_var = node.inputs[0]
+        # If this isn't true, the graph is invalid
+        assert bcasted_var.ndim == 0
+        return [bcasted_var]

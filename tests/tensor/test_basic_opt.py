@@ -3576,3 +3576,16 @@ def test_printing():
     mv = MakeVector(config.floatX)
     v = mv(a, b)
     assert pprint(v) == "[a, b]"
+
+
+def test_local_remove_scalar_BroadcastTo():
+    x = dscalar()
+    y = BroadcastTo()(x, ())
+
+    assert isinstance(y.owner.op, BroadcastTo)
+
+    res = optimize_graph(
+        y, clone=False, include=["canonicalize", "local_remove_scalar_BroadcastTo"]
+    )
+
+    assert res is x
