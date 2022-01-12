@@ -427,16 +427,10 @@ def makeSharedTester(
                 topo_cst[0].op == aesara.compile.function.types.deep_copy_op
 
             # Test that we can take the grad.
-            if aesara.sparse.enable_sparse and isinstance(
-                x1_specify_shape.type, aesara.sparse.SparseType
-            ):
-                # SparseVariable don't support sum for now.
-                assert not hasattr(x1_specify_shape, "sum")
-            else:
-                shape_grad = aesara.gradient.grad(x1_specify_shape.sum(), x1_shared)
-                shape_constant_fct_grad = aesara.function([], shape_grad)
-                # aesara.printing.debugprint(shape_constant_fct_grad)
-                shape_constant_fct_grad()
+            shape_grad = aesara.gradient.grad(x1_specify_shape.sum(), x1_shared)
+            shape_constant_fct_grad = aesara.function([], shape_grad)
+            # aesara.printing.debugprint(shape_constant_fct_grad)
+            shape_constant_fct_grad()
 
             # Test that we can replace with values of the different shape
             # but that will raise an error in some case, but not all
