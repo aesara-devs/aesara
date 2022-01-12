@@ -203,36 +203,39 @@ structures, code going like ``def f(x): ...`` would produce an :class:`Op` for
 :class:`Type`
 -------------
 
-A :class:`Type` in Aesara represents a set of constraints on potential
-data objects. These constraints allow Aesara to tailor C code to handle
-them and to statically optimize the computation graph. For instance,
-the :ref:`irow <libdoc_tensor_creation>` type in the :mod:`aesara.tensor` package
-gives the following constraints on the data the :class:`Variable`\s of type ``irow``
-may contain:
+A :class:`Type` in Aesara provides static information (or constraints) about
+data objects in a graph. The information provided by :class:`Type`\s allows
+Aesara to perform optimizations and produce more efficient compiled code.
 
-#. Must be an instance of :class:`numpy.ndarray`: ``isinstance(x, numpy.ndarray)``
-#. Must be an array of 32-bit integers: ``str(x.dtype) == 'int32'``
-#. Must have a shape of 1xN: ``len(x.shape) == 2 and x.shape[0] == 1``
+Every symbolic :class:`Variable` in an Aesara graph has an associated
+:class:`Type` instance, and :class:`Type`\s also serve as a means of
+constructing :class:`Variable` instances.  In other words, :class:`Type`\s and
+:class:`Variable`\s go hand-in-hand.
 
-Knowing these restrictions, Aesara may generate C code for addition, etc.
-that declares the right data types and that contains the right number
-of loops over the dimensions.
+For example, :ref:`aesara.tensor.irow <libdoc_tensor_creation>` is an instance of a
+:class:`Type` and it can be used to construct variables as follows:
 
-Note that an Aesara :class:`Type` is not equivalent to a Python type or
-class. Indeed, in Aesara, :ref:`irow <libdoc_tensor_creation>` and :ref:`dmatrix
-<libdoc_tensor_creation>` both use :class:`numpy.ndarray` as the underlying type
-for doing computations and storing data, yet they are different Aesara
-:class:`Type`\s. Indeed, the constraints set by `dmatrix` are:
+>>> from aesara.tensor import irow
+>>> irow()
+<TensorType(int32, (1, None))>
 
-#. Must be an instance of :class:`numpy.ndarray`: ``isinstance(x, numpy.ndarray)``
-#. Must be an array of 64-bit floating point numbers: ``str(x.dtype) == 'float64'``
-#. Must have a shape of ``MxN``, no restriction on ``M`` or ``N``: ``len(x.shape) == 2``
+As the string print-out shows, `irow` specifies the following information about
+the :class:`Variable`\s it constructs:
 
-These restrictions are different from those of ``irow`` which are listed above.
+#. They represent tensors that are backed by :class:`numpy.ndarray`\s.
+   This comes from the fact that `irow` is an instance of :class:`TensorType`,
+   which is the base :class:`Type` for symbolic :class:`numpy.ndarray`\s.
+#. They represent arrays of 32-bit integers (i.e. from the ``int32``).
+#. They represent arrays with shapes of :math:`1 \times N`, or, in code, ``(1,
+   None)``, where ``None`` represents any shape value.
 
-There are cases in which a :class:`Type` can fully correspond to a Python type,
-such as the `double`\ :class:`Type`, which corresponds to
-Python's ``float``.
+Note that Aesara :class:`Type`\s are not necessarily equivalent to Python types or
+classes. Aesara's :class:`TensorType`'s, like `irow`, use :class:`numpy.ndarray`
+as the underlying Python type for performing computations and storing data, but
+:class:`numpy.ndarray`\s model a much wider class of arrays than most :class:`TensorType`\s.
+In other words, Aesara :class:`Type`'s try to be more specific.
+
+For more information see :ref:`aesara_type`.
 
 .. index::
    single: Variable
