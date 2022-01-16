@@ -1,3 +1,6 @@
+*.pkl
+_build
+__pycache__
 .coverage
 *.linkinfo
 *.o
