@@ -119,7 +119,7 @@ def test_scan_debugprint2():
     > |coefficients[t] [id Z] -> [id S]
     > |Elemwise{pow,no_inplace} [id BA] ''
     >   |x_copy [id BB] -> [id W]
-    >   |<TensorType(int64, scalar)> [id BC] -> [id U]"""
+    >   |<TensorType(int64, ())> [id BC] -> [id U]"""
 
     for truth, out in zip(expected_output.split("\n"), lines):
         assert truth.strip() == out.strip()
@@ -229,11 +229,11 @@ def test_scan_debugprint3():
     >   | | |ScalarConstant{1} [id BY]
     >   | |ScalarConstant{-1} [id BZ]
     >   |InplaceDimShuffle{x} [id CA] ''
-    >     |<TensorType(int64, scalar)> [id CB] -> [id U]
+    >     |<TensorType(int64, ())> [id CB] -> [id U]
 
     for{cpu,scan_fn} [id BG] ''
     >Elemwise{mul,no_inplace} [id CC] ''
-    > |<TensorType(float64, vector)> [id CD] -> [id BI]
+    > |<TensorType(float64, (None,))> [id CD] -> [id BI]
     > |A_copy [id CE] -> [id BQ]"""
 
     for truth, out in zip(expected_output.split("\n"), lines):
@@ -420,18 +420,18 @@ def test_scan_debugprint5():
     for{cpu,grad_of_scan_fn}.1 [id B] ''
     >Elemwise{add,no_inplace} [id CN] ''
     > |Elemwise{mul} [id CO] ''
-    > | |<TensorType(float64, vector)> [id CP] -> [id BL]
+    > | |<TensorType(float64, (None,))> [id CP] -> [id BL]
     > | |A_copy [id CQ] -> [id P]
-    > |<TensorType(float64, vector)> [id CR] -> [id BL]
+    > |<TensorType(float64, (None,))> [id CR] -> [id BL]
     >Elemwise{add,no_inplace} [id CS] ''
     > |Elemwise{mul} [id CT] ''
-    > | |<TensorType(float64, vector)> [id CP] -> [id BL]
-    > | |<TensorType(float64, vector)> [id CU] -> [id Z]
-    > |<TensorType(float64, vector)> [id CV] -> [id CF]
+    > | |<TensorType(float64, (None,))> [id CP] -> [id BL]
+    > | |<TensorType(float64, (None,))> [id CU] -> [id Z]
+    > |<TensorType(float64, (None,))> [id CV] -> [id CF]
 
     for{cpu,scan_fn} [id F] ''
     >Elemwise{mul,no_inplace} [id CW] ''
-    > |<TensorType(float64, vector)> [id CU] -> [id H]
+    > |<TensorType(float64, (None,))> [id CU] -> [id H]
     > |A_copy [id CQ] -> [id P]
 
     for{cpu,scan_fn} [id F] ''
