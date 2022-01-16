@@ -2433,9 +2433,11 @@ class TestInferShape(utt.InferShapeTester):
         adtens3 = dtensor3()
         adtens3_val = random(3, 4, 5)
         aiscal_val = 2
-        self._compile_and_check([adtens3], [Mean(None)(adtens3)], [adtens3_val], Mean)
         self._compile_and_check(
-            [adtens3], [Mean(aiscal_val)(adtens3)], [adtens3_val], Mean
+            [adtens3], [Mean()(adtens3, 0, 1, 2)], [adtens3_val], Mean
+        )
+        self._compile_and_check(
+            [adtens3], [Mean()(adtens3, aiscal_val)], [adtens3_val], Mean
         )
 
     def test_MaxAndArgmax(self):
@@ -2681,12 +2683,12 @@ class TestProd:
             [[0.1, 0.2, 0.3], [0.4, 0.5, 0.6], [0.7, 0.8, 0.9]], dtype="float32"
         )
         # now with verify_grad
-        utt.verify_grad(Prod(axis=1), [x_val], mode=self.mode)
+        utt.verify_grad(Prod(), [x_val], mode=self.mode)
 
         # second time, with some added complexity
         # verify_grad takes the sum of the matrices anyway
         def fn(x2):
-            return sqr(Prod(axis=1)(x2))
+            return sqr(Prod()(x2, 1))
 
         utt.verify_grad(fn, [x_val], mode=self.mode)
 
@@ -2699,23 +2701,23 @@ class TestProd:
         x = dmatrix()
 
         # sanity check
-        p = Prod(axis=1)(x)
+        p = Prod()(x, 1)
 
         fn3 = function([x], [p], mode=self.mode)
         assert np.allclose(fn3(x_val), [6.0, 0.0, 0.0])
 
         # now with verify_grad
-        utt.verify_grad(Prod(axis=1), [x_val], mode=self.mode)
+        utt.verify_grad(Prod(), [x_val], mode=self.mode)
 
     def test_prod_no_zeros_in_input(self):
         x = dmatrix()
         x_val = np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]], dtype="float32")
-        pwz = Prod(axis=1, no_zeros_in_input=True)(x)
+        pwz = Prod(no_zeros_in_input=True)(x, 1)
         fn = function([x], pwz, mode=self.mode)
 
         assert np.allclose(fn(x_val), [6, 120, 504])
 
-        pwz = Prod(no_zeros_in_input=True)(x)
+        pwz = Prod(no_zeros_in_input=True)(x, 0, 1)
         g = grad(pwz, x)
         gg = grad(g.sum(), x)
         fn = function([x], g, mode=self.mode)
@@ -2736,24 +2738,24 @@ class TestProd:
                 [139248.0, 122652.0, 109584.0],
             ],
         )
-        utt.verify_grad(Prod(axis=1, no_zeros_in_input=True), [x_val], mode=self.mode)
+        utt.verify_grad(Prod(no_zeros_in_input=True), [x_val], mode=self.mode)
         utt.verify_grad(Prod(no_zeros_in_input=True), [x_val], mode=self.mode)
 
     def test_prod_without_zeros(self):
         x = dmatrix()
         x_val = np.array([[1, 2, 3], [0, 5, 6], [0, 0, 9]], dtype="float32")
-        pwz = ProdWithoutZeros(axis=1)(x)
+        pwz = ProdWithoutZeros()(x, 1)
         fn = function([x], pwz, mode=self.mode)
         assert np.allclose(fn(x_val), [6, 30, 9])
 
-        pwz_a0 = ProdWithoutZeros(axis=0)(x)
+        pwz_a0 = ProdWithoutZeros()(x, 0)
         fn_a0 = function([x], pwz_a0, mode=self.mode)
         assert np.allclose(fn_a0(x_val), [1, 10, 162])
 
     @pytest.mark.xfail(raises=NullTypeGradError)
     def test_prod_without_zeros_grad(self):
         x = dmatrix()
-        pwz_a1 = ProdWithoutZeros(axis=0)(x)
+        pwz_a1 = ProdWithoutZeros()(x, 0)
         pwz_grad = grad(at_sum(pwz_a1), x)
         # FIXME: This is not a real test.
         function([x], pwz_grad, mode=self.mode)
@@ -2766,8 +2768,8 @@ class TestProd:
         )
         rng = rng = np.random.default_rng(43)
 
-        p = Prod(axis=1)
-        grad_p = grad(p(x).sum(), x)
+        p = Prod()
+        grad_p = grad(p(x, 1).sum(), x)
         grad_fn = function([x], grad_p, mode=self.mode)
         assert np.allclose(
             grad_fn(x_val1), [[6.0, 3.0, 2.0], [30.0, 0.0, 0.0], [0.0, 0.0, 0.0]]
@@ -2777,8 +2779,8 @@ class TestProd:
             [[0.0, 0.0, 2.0], [30.0, 0.0, 0.0], [72.0, 63.0, 56.0], [0.0, 0.0, 90.0]],
         )
 
-        p_axis0 = Prod(axis=0)
-        grad_p_axis0 = grad(p_axis0(x).sum(), x)
+        p_axis0 = Prod()
+        grad_p_axis0 = grad(p_axis0(x, 0).sum(), x)
         grad_fn_axis0 = function([x], grad_p_axis0, mode=self.mode)
         assert np.allclose(
             grad_fn_axis0(x_val2),
@@ -3093,10 +3095,10 @@ class TestProdWithoutZerosDtype:
         # Test the default dtype of a ProdWithoutZeros().
 
         # We try multiple axis combinations even though axis should not matter.
-        axes = [None, 0, 1, [], [0], [1], [0, 1]]
+        axes = [[], [0], [1], [0, 1]]
         for idx, dtype in enumerate(map(str, aes.all_types)):
             axis = axes[idx % len(axes)]
-            x = ProdWithoutZeros(axis=axis)(matrix(dtype=dtype))
+            x = ProdWithoutZeros()(matrix(dtype=dtype), *axis)
             assert (
                 x.dtype
                 == dict(
@@ -3114,11 +3116,11 @@ class TestProdWithoutZerosDtype:
         # Test the default dtype of a ProdWithoutZeros().
 
         # We try multiple axis combinations even though axis should not matter.
-        axes = [None, 0, 1, [], [0], [1], [0, 1]]
+        axes = [[], [0], [1], [0, 1]]
         for idx, dtype in enumerate(map(str, aes.all_types)):
             axis = axes[idx % len(axes)]
             x = matrix(dtype=dtype)
-            p = ProdWithoutZeros(axis=axis)(x)
+            p = ProdWithoutZeros()(x, *axis)
             assert (
                 p.owner.op.acc_dtype
                 == dict(
@@ -3148,13 +3150,13 @@ class TestProdWithoutZerosDtype:
         # Test ability to provide your own output dtype for a ProdWithoutZeros().
 
         # We try multiple axis combinations even though axis should not matter.
-        axes = [None, 0, 1, [], [0], [1], [0, 1]]
+        axes = [[], [0], [1], [0, 1]]
         idx = 0
         for input_dtype in map(str, aes.all_types):
             x = matrix(dtype=input_dtype)
             for output_dtype in map(str, aes.all_types):
                 axis = axes[idx % len(axes)]
-                prod_woz_var = ProdWithoutZeros(axis=axis, dtype=output_dtype)(x)
+                prod_woz_var = ProdWithoutZeros(dtype=output_dtype)(x, *axis)
                 assert prod_woz_var.dtype == output_dtype
                 idx += 1
                 if "complex" in output_dtype or "complex" in input_dtype:
@@ -3170,7 +3172,7 @@ class TestProdWithoutZerosDtype:
         # Test ability to provide your own acc_dtype for a ProdWithoutZeros().
 
         # We try multiple axis combinations even though axis should not matter.
-        axes = [None, 0, 1, [], [0], [1], [0, 1]]
+        axes = [[], [0], [1], [0, 1]]
         idx = 0
         for input_dtype in map(str, aes.all_types):
             x = matrix(dtype=input_dtype)
@@ -3182,7 +3184,7 @@ class TestProdWithoutZerosDtype:
                 if acc_dtype == upcasted_dtype or (
                     input_dtype in discrete_dtypes and acc_dtype in continuous_dtypes
                 ):
-                    prod_woz_var = ProdWithoutZeros(axis=axis, acc_dtype=acc_dtype)(x)
+                    prod_woz_var = ProdWithoutZeros(acc_dtype=acc_dtype)(x, *axis)
                     assert prod_woz_var.owner.op.acc_dtype == acc_dtype
 
                     if acc_dtype.startswith("complex") and input_dtype != acc_dtype:
@@ -3194,7 +3196,7 @@ class TestProdWithoutZerosDtype:
                     f(data)
                 else:
                     with pytest.raises(TypeError):
-                        ProdWithoutZeros(axis=axis, acc_dtype=acc_dtype)(x)
+                        ProdWithoutZeros(acc_dtype=acc_dtype)(x, *axis)
 
                 idx += 1
 
@@ -3405,7 +3407,7 @@ def test_logsumexp(shape, axis, keepdims):
 def test_pprint():
     x = vector("x")
     y = at_sum(x, axis=0)
-    assert pprint(y) == "sum(x, axis=(0,))"
+    assert pprint(y) == "sum(x, 0)"
 
 
 def test_log1mexp_grad_lim():

@@ -23,6 +23,7 @@ from aesara.tensor.elemwise import CAReduce, DimShuffle, Elemwise
 from aesara.tensor.math import MaxAndArgmax
 from aesara.tensor.nnet.basic import LogSoftmax, Softmax, SoftmaxGrad
 from aesara.tensor.type import tensor
+from aesara.tensor.var import TensorConstant
 
 
 def create_vectorize_func(op, node, use_signature=False, identity=None, **kwargs):
@@ -158,10 +159,10 @@ def create_axis_reducer(
             lambda i, shape: shape[i] if i < axis else shape[i + 1], ndim - 1
         )
 
-        reaxis_first = (axis,) + tuple(i for i in range(ndim) if i != axis)
+        reaxis_first = (int(axis),) + tuple(i for i in range(ndim) if i != axis)
 
         @numba.njit(boundscheck=False)
-        def careduce_axis(x):
+        def careduce_axis(x, axis_var=None):
             res_shape = res_shape_tuple_ctor(x.shape)
             x_axis_first = x.transpose(reaxis_first)
 
@@ -186,7 +187,7 @@ def create_axis_reducer(
                 return numba_basic.direct_cast(x, dtype)
 
         @numba.njit(boundscheck=False)
-        def careduce_axis(x):
+        def careduce_axis(x, axis_var=None):
             res = numba_basic.to_scalar(identity)
             for val in x:
                 res = reduce_fn(res, val)
@@ -196,7 +197,7 @@ def create_axis_reducer(
 
 
 def create_multiaxis_reducer(
-    reduce_fn, identity, axes, ndim, dtype, input_name="input"
+    reduce_fn, identity, axes, ndim, dtype, input_names=["input"]
 ):
     r"""Construct a function that reduces multiple axes.
 
@@ -237,7 +238,7 @@ def create_multiaxis_reducer(
     global_env = {}
     to_reduce = reversed(sorted(axes))
     careduce_lines_src = []
-    var_name = input_name
+    var_name = input_names[0]
 
     for i, axis in enumerate(to_reduce):
         careducer_axes_fn_name = f"careduce_axes_fn_{i}"
@@ -253,7 +254,7 @@ def create_multiaxis_reducer(
 
     careduce_assign_lines = indent("\n".join(careduce_lines_src), " " * 4)
     careduce_def_src = f"""
-def {careduce_fn_name}({input_name}):
+def {careduce_fn_name}({','.join(input_names)}):
 {careduce_assign_lines}
     return {var_name}
     """
@@ -280,9 +281,13 @@ def create_axis_apply_fn(fn, axis, ndim, dtype):
 
 @numba_funcify.register(CAReduce)
 def numba_funcify_CAReduce(op, node, **kwargs):
-    axes = op.axis
-    if axes is None:
-        axes = list(range(node.inputs[0].ndim))
+    axes = []
+    for _axis in node.inputs[1:]:
+        if not isinstance(_axis, TensorConstant):
+            raise TypeError("Axis values cannot be a Variable")
+        if not _axis.ndim == 0:
+            raise ValueError("Axis values cannot be multi dimensional variables")
+        axes.append(int(_axis.data))
 
     if hasattr(op, "acc_dtype") and op.acc_dtype is not None:
         acc_dtype = op.acc_dtype
@@ -307,10 +312,15 @@ def numba_funcify_CAReduce(op, node, **kwargs):
     # TODO: Use `scalar_op_identity`?
     elemwise_fn = create_vectorize_func(op, dummy_node, use_signature=True, **kwargs)
 
-    input_name = get_name_for_object(node.inputs[0])
+    input_names = [get_name_for_object(_input) for _input in node.inputs]
     ndim = node.inputs[0].ndim
     careduce_fn = create_multiaxis_reducer(
-        elemwise_fn, scalar_op_identity, axes, ndim, np_acc_dtype, input_name=input_name
+        elemwise_fn,
+        scalar_op_identity,
+        axes,
+        ndim,
+        np_acc_dtype,
+        input_names=input_names,
     )
 
     return careduce_fn

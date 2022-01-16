@@ -365,11 +365,10 @@ def local_sumsqr2dot(fgraph, node):
     ``at.sqr(W.dimshuffle("x", 0, 1) * G.dimshuffle(0, "x", 1) ).sum(axis=(1, 2))``
     and converts it to ``at.dot(at.sqr(G), at.sqr(W).sum(axis=0))``.
     """
-    if (
-        isinstance(node.op, Sum)
-        and isinstance(node.op.scalar_op, aes.Add)
-        and node.op.axis == (1, 2)
-    ):
+    if isinstance(node.op, Sum) and isinstance(node.op.scalar_op, aes.Add):
+        axis = [int(_axis.data) for _axis in node.inputs[1:]]
+        if not axis == [1, 2]:
+            return
         in1 = node.inputs[0]
         out = node.outputs[0]
 
@@ -1109,7 +1108,8 @@ def local_sum_prod_mul_by_scalar(fgraph, node):
     # TODO: if the the thing inside the Sum is a division,
     # we should get at the numerator....
     if isinstance(node.op, (Sum, Prod)):
-        (node_inps,) = node.inputs
+        node_inps = node.inputs[0]
+        axis = node.inputs[1:]
         if node_inps.owner and node_inps.owner.op == mul:
             terms = node_inps.owner.inputs
             scalars = [t.dimshuffle() for t in terms if np.all(t.type.broadcastable)]
@@ -1126,7 +1126,7 @@ def local_sum_prod_mul_by_scalar(fgraph, node):
                 new_op_output = 1
             elif len(non_scalars) == 1:
                 new_op_input_nb_elements = non_scalars[0].size
-                new_op_output = node.op(non_scalars[0])
+                new_op_output = node.op(non_scalars[0], *axis)
             else:
                 new_op_input = mul(*non_scalars)
                 # We assume that errors always come from the prod/mul op in the
@@ -1135,7 +1135,7 @@ def local_sum_prod_mul_by_scalar(fgraph, node):
                 copy_stack_trace(node.outputs, new_op_input)
 
                 new_op_input_nb_elements = new_op_input.size
-                new_op_output = node.op(new_op_input)
+                new_op_output = node.op(new_op_input, *axis)
 
             if len(non_scalars) != 0:
                 # Copy over stacktrace from previous output to new mul op,
@@ -1169,7 +1169,7 @@ def local_sum_prod_mul_by_scalar(fgraph, node):
                 return [ret]
 
         if isinstance(node.op, Sum) and node_inps.owner and node_inps.owner.op == neg:
-            s = node.op(node_inps.owner.inputs[0])
+            s = node.op(node_inps.owner.inputs[0], *axis)
             ret = neg(s)
             # There are never errors in the negative op, thus
             # we need only to copy over stacktrace from previous output node to
@@ -1434,9 +1434,8 @@ def local_sum_prod_div_dimshuffle(fgraph, node):
     # denominator would still be needed before the summation or production.
 
     if isinstance(node.op, (Sum, Prod)):
-        axis = node.op.axis
-        if axis is None:
-            axis = list(range(node.inputs[0].ndim))
+        axis = node.inputs[1:]
+        axis = [int(_axis.data) for _axis in axis]
         node_input = node.inputs[0]
         if node_input.owner and node_input.owner.op == true_div:
             numerator, denominator = node_input.owner.inputs
@@ -1509,24 +1508,6 @@ def local_sum_prod_div_dimshuffle(fgraph, node):
 
 @register_canonicalize
 @local_optimizer([Sum, Prod])
-def local_sum_prod_all_to_none(fgraph, node):
-    """
-    Sum{0,1,...N} -> Sum{} or
-    Prod{0,1,...N} -> Prod{}
-
-    """
-    if isinstance(node.op, Sum) or isinstance(node.op, Prod):
-        opt_type = Sum if isinstance(node.op, Sum) else Prod
-        # if all the axes are named, then use None as a shorthand
-        # this permits more merging
-        if node.op.axis is None:
-            return
-        if set(node.op.axis) == set(range(node.inputs[0].type.ndim)):
-            return [opt_type(axis=None, dtype=node.op.dtype)(node.inputs[0])]
-
-
-@register_canonicalize
-@local_optimizer([Sum, Prod])
 def local_op_of_op(fgraph, node):
     """
     Prod(Prod()) -> single Prod()
@@ -1536,34 +1517,34 @@ def local_op_of_op(fgraph, node):
     """
     if isinstance(node.op, Prod) or isinstance(node.op, Sum):
         opt_type = Sum if isinstance(node.op, Sum) else Prod
-        (node_inps,) = node.inputs
+        node_inps = node.inputs[0]
+        axis = node.inputs[1:]
+        axis = [int(_axis.data) for _axis in axis]
         out_dtype = node.op.dtype
         # We manipulate the graph so this is done to make sure the opt
         # doesn't affect other computations.
+
         if len(fgraph.clients[node_inps]) == 1:
             if node_inps.owner and (isinstance(node_inps.owner.op, node.op.__class__)):
-
-                # check to see either the inner or outer prod is doing a
-                # product over all axis, in which case we can remove it
-                if node_inps.owner.op.axis is None or node.op.axis is None:
-                    return [opt_type(None, dtype=out_dtype)(node_inps.owner.inputs[0])]
+                owner_axis = node_inps.owner.inputs[1:]
+                owner_axis = [_axis.eval() for _axis in owner_axis]
+                owner_input = node_inps.owner.inputs[0]
 
                 # figure out which axes were in the original sum
-                newaxis = list(tuple(node_inps.owner.op.axis))
-                for i in node.op.axis:
+                new_axis = list(owner_axis)
+                for i in axis:
                     new_i = i
-                    for ii in node_inps.owner.op.axis:
+                    for ii in owner_axis:
                         if new_i >= ii:
                             new_i += 1
-                    assert new_i not in newaxis
-                    newaxis.append(new_i)
+                    assert new_i not in new_axis
+                    new_axis.append(new_i)
 
-                assert len(newaxis) == len(
-                    list(node_inps.owner.op.axis) + list(node.op.axis)
-                )
+                assert len(new_axis) == len(list(axis) + list(owner_axis))
 
-                combined = opt_type(newaxis, dtype=out_dtype)
-                return [combined(node_inps.owner.inputs[0])]
+                combined = opt_type(dtype=out_dtype)
+                new_axis = [as_tensor_variable(_axis) for _axis in new_axis]
+                return [combined(owner_input, *new_axis)]
 
 
 ALL_REDUCE = (
@@ -1631,9 +1612,8 @@ def local_reduce_join(fgraph, node):
             # The reduction do something about the dtype.
             return
 
-        reduce_axis = node.op.axis
-        if reduce_axis is None:
-            reduce_axis = tuple(range(node.inputs[0].ndim))
+        reduce_axis = node.inputs[1:]
+        reduce_axis = [int(_axis.data) for _axis in reduce_axis]
 
         if len(reduce_axis) != 1 or 0 not in reduce_axis:
             return
@@ -1658,7 +1638,7 @@ def local_reduce_join(fgraph, node):
 def local_useless_reduce(fgraph, node):
     """Sum(a, axis=[]) -> a  """
     if isinstance(node.op, CAReduce):
-        (summed,) = node.inputs
+        summed = node.inputs[0]
         # if reduce were doing anything, the output ndim would be reduced
         if summed.type == node.outputs[0].type:
             return [summed]
@@ -1671,13 +1651,14 @@ def local_useless_reduce(fgraph, node):
 def local_reduce_broadcastable(fgraph, node):
     """Remove reduction over broadcastable dimensions."""
     if isinstance(node.op, CAReduce):
-        (reduced,) = node.inputs
+        reduced = node.inputs[0]
+        axis = node.inputs[1:]
+        axis = [int(_axis.data) for _axis in axis]
         odtype = node.outputs[0].dtype
-        if node.op.axis is None:
+        if len(axis) == reduced.ndim:
             if all(reduced.broadcastable):
                 return [reduced.dimshuffle().astype(odtype)]
         else:
-            axis = list(node.op.axis)
             cuttable = [a for a in axis if reduced.broadcastable[a]]
             if cuttable:
                 # -- we can remove some axes of summation,
@@ -1694,16 +1675,11 @@ def local_reduce_broadcastable(fgraph, node):
                 new_reduced = reduced.dimshuffle(*pattern)
                 if new_axis:
                     if type(node.op) == CAReduce:
-                        # This case handles `CAReduce` instances
-                        # (e.g. generated by `scalar_elemwise`), and not the
-                        # scalar `Op`-specific subclasses
-                        # TODO FIXME: This highlights a major design flaw in
-                        # `CAReduce` (or at least our use of it), and it needs
-                        # to be fixed
-                        new_op = node.op.__class__(node.op.scalar_op, axis=new_axis)
+                        # This happen for at_max(), at_min()
+                        new_op = node.op.__class__(node.op.scalar_op)
                     else:
-                        new_op = node.op.__class__(axis=new_axis)
-                    return [new_op(new_reduced)]
+                        new_op = node.op.__class__()
+                    return [new_op(new_reduced, *new_axis)]
                 else:
                     # -- in this case we can remove the reduction completely
                     return [new_reduced.astype(odtype)]
@@ -1719,7 +1695,9 @@ def local_opt_alloc(fgraph, node):
 
     """
     if isinstance(node.op, Sum) or isinstance(node.op, Prod):
-        (node_inps,) = node.inputs
+        node_inps = node.inputs[0]
+        axis = [int(_axis.data) for _axis in node.inputs[1:]]
+
         if node_inps.owner and isinstance(node_inps.owner.op, Alloc):
             inp = node_inps.owner.inputs[0]
             shapes = node_inps.owner.inputs[1:]
@@ -1736,7 +1714,7 @@ def local_opt_alloc(fgraph, node):
                     # as we fear it could loose too much precision
                     # that will be amplified by the mul/pow below.
                     size = size.astype("float32")
-                if node.op.axis is None or node.op.axis == tuple(range(inp.ndim)):
+                if axis is None or axis == tuple(range(inp.ndim)):
                     if isinstance(node.op, Sum):
                         val = val * size
                     else:
@@ -1750,9 +1728,9 @@ def local_opt_alloc(fgraph, node):
                     # dtype.
                     val = val.astype(node.outputs[0].dtype)
                     return [val]
-                to_prod = [shapes[i] for i in range(len(shapes)) if i in node.op.axis]
+                to_prod = [shapes[i] for i in range(len(shapes)) if i in axis]
                 if to_prod:
-                    size = mul(*to_prod)
+                    size = mul(*to_prod).astype(node.out.dtype)
                     if isinstance(node.op, Sum):
                         val *= size
                     else:
@@ -1762,11 +1740,7 @@ def local_opt_alloc(fgraph, node):
                 return [
                     alloc(
                         val,
-                        *[
-                            shapes[i]
-                            for i in range(len(shapes))
-                            if i not in node.op.axis
-                        ],
+                        *[shapes[i] for i in range(len(shapes)) if i not in axis],
                     )
                 ]
             except NotScalarConstantError:
@@ -2301,7 +2275,10 @@ def local_log_sum_exp(fgraph, node):
     if not sum_node or not isinstance(sum_node.op, Sum):
         return
 
-    exp_node, axis = sum_node.inputs[0].owner, sum_node.op.axis
+    axis = sum_node.inputs[1:]
+    axis = [int(_axis.data) for _axis in axis]
+    exp_node = sum_node.inputs[0].owner
+
     if not exp_node or not (
         isinstance(exp_node.op, Elemwise) and isinstance(exp_node.op.scalar_op, aes.Exp)
     ):

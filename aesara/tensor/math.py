@@ -598,9 +598,8 @@ class NonZeroCAReduce(CAReduce):
         # something that could enabled in `elemwise_cgen.make_checks`.)
         iname = inames[0]
 
-        axis = self.axis
-        if axis is None:
-            axis = list(range(len(node.inputs[0].type.broadcastable)))
+        axis = node.inputs[1:]
+        axis = [int(_axis.data) for _axis in axis]
 
         pattern = [0] * len(node.inputs[0].broadcastable)
         for i in axis:
@@ -624,15 +623,15 @@ class NonZeroCAReduce(CAReduce):
 class Max(NonZeroCAReduce):
     nfunc_spec = ("max", 1, 1)
 
-    def __init__(self, axis):
-        super().__init__(aes.scalar_maximum, axis)
+    def __init__(self):
+        super().__init__(aes.scalar_maximum)
 
 
 class Min(NonZeroCAReduce):
     nfunc_spec = ("min", 1, 1)
 
-    def __init__(self, axis):
-        super().__init__(aes.scalar_minimum, axis)
+    def __init__(self):
+        super().__init__(aes.scalar_minimum)
 
 
 def max(x, axis=None, keepdims=False):
@@ -670,7 +669,8 @@ def max(x, axis=None, keepdims=False):
     try:
         out = max_and_argmax(x, axis)[0]
     except Exception:
-        out = Max(axis)(x)
+        axis = np.atleast_1d(axis).tolist()
+        out = Max()(x, *axis)
 
     if keepdims:
         out = makeKeepDims(x, out, axis)
@@ -1474,45 +1474,23 @@ def complex_from_polar(abs, angle):
 
 
 class Mean(CAReduce):
-    def __init__(self, axis=None):
-        super().__init__(aes.add, axis)
-        assert self.axis is None or len(self.axis) == 1
+    def __init__(self):
+        super().__init__(aes.add)
 
     def __str__(self):
-        if self.axis is not None:
-            return "Mean{%s}" % (", ".join(str(x) for x in self.axis))
-        else:
-            return "Mean"
+        return "Mean"
 
     def _output_dtype(self, idtype):
         # we want to protect against overflow
         return "float64"
 
     def perform(self, node, inp, out):
-        (input,) = inp
+        input = inp[0]
+        axis = [int(_axis) for _axis in inp[1:]]
         (output,) = out
-        if self.axis is None:
-            axis = None
-        else:
-            axis = self.axis[0]
         # numpy.asarray is needed as otherwise we can end up with a
         # numpy scalar.
-        output[0] = np.asarray(np.mean(input, dtype="float64", axis=axis))
-
-    def c_code(self, node, name, inames, onames, sub):
-
-        ret = super().c_code(node, name, inames, onames, sub)
-
-        if self.axis is not None:
-            return ret
-
-        # TODO: c_code perform support only axis is None
-        return (
-            ret
-            + f"""
-  *((double *)PyArray_DATA({onames[0]})) /= PyArray_SIZE({inames[0]});
-  """
-        )
+        output[0] = np.asarray(np.mean(input, dtype="float64", axis=tuple(axis)))
 
 
 # TODO: implement the grad. When done and tested, you can make this the default
@@ -1552,6 +1530,9 @@ def mean(input, axis=None, dtype=None, op=False, keepdims=False, acc_dtype=None)
 
     """
     input = as_tensor_variable(input)
+    if axis is None:
+        axis = np.arange(input.ndim)
+    axis = np.atleast_1d(axis).tolist()
     if op:
         if dtype not in (None, "float64"):
             raise NotImplementedError(
@@ -1567,7 +1548,7 @@ def mean(input, axis=None, dtype=None, op=False, keepdims=False, acc_dtype=None)
                 "acc_dtype, call tensor.mean(..., op=False).",
                 dtype,
             )
-        out = Mean(axis)(input)
+        out = Mean()(input, *axis)
         if keepdims:
             out = makeKeepDims(input, out, axis)
         return out
@@ -2325,31 +2306,29 @@ class All(CAReduce):
 
     """
 
-    __props__ = ("axis",)
+    __props__ = ()
     nfunc_spec = ("all", 1, 1)
 
-    def __init__(self, axis=None):
-        super().__init__(aes.and_, axis)
+    def __init__(self):
+        super().__init__(aes.and_)
 
     def _output_dtype(self, idtype):
         return "bool"
 
     def __str__(self):
-        if self.axis is None:
-            return "All"
-        else:
-            return "All{%s}" % ", ".join(map(str, self.axis))
+        return "All"
 
-    def make_node(self, input):
+    def make_node(self, input, *axis):
         input = as_tensor_variable(input)
         if input.dtype != "bool":
             input = neq(input, 0)
-        ret = super().make_node(input)
+        ret = super().make_node(input, *axis)
         return ret
 
     def grad(self, inp, grads):
-        (x,) = inp
-        return [x.zeros_like(config.floatX)]
+        x = inp[0]
+        axis = [as_tensor_variable(0, dtype=config.floatX) for i in inp[1:]]
+        return [x.zeros_like(config.floatX), *axis]
 
 
 class Any(CAReduce):
@@ -2358,31 +2337,29 @@ class Any(CAReduce):
 
     """
 
-    __props__ = ("axis",)
     nfunc_spec = ("any", 1, 1)
 
-    def __init__(self, axis=None):
-        super().__init__(aes.or_, axis)
+    def __init__(self):
+        super().__init__(aes.or_)
 
     def _output_dtype(self, idtype):
         return "bool"
 
     def __str__(self):
-        if self.axis is None:
-            return "Any"
-        else:
-            return "Any{%s}" % ", ".join(map(str, self.axis))
+        return "Any"
 
-    def make_node(self, input):
+    def make_node(self, input, *axis):
         input = as_tensor_variable(input)
         if input.dtype != "bool":
             input = neq(input, 0)
-        ret = super().make_node(input)
+        ret = super().make_node(input, *axis)
         return ret
 
     def grad(self, inp, grads):
-        (x,) = inp
-        return [x.zeros_like(config.floatX)]
+        x = inp[0]
+        axis = inp[1:]
+        axis_var = [as_tensor_variable(0.0) for _axis in axis]
+        return [x.zeros_like(config.floatX), *axis_var]
 
 
 class Sum(CAReduceDtype):
@@ -2421,33 +2398,31 @@ class Sum(CAReduceDtype):
 
     """
 
-    __props__ = ("axis", "dtype", "acc_dtype")
+    __props__ = ("dtype", "acc_dtype")
     nfunc_spec = ("sum", 1, 1)
 
-    def __init__(self, axis=None, dtype=None, acc_dtype=None):
-        super().__init__(aes.add, axis=axis, dtype=dtype, acc_dtype=acc_dtype)
+    def __init__(self, dtype=None, acc_dtype=None):
+        super().__init__(aes.add, dtype=dtype, acc_dtype=acc_dtype)
 
     def __str__(self):
         name = self.__class__.__name__
-        axis = ""
-        if self.axis is not None:
-            axis = ", ".join(str(x) for x in self.axis)
-            axis = f"axis=[{axis}], "
-        return f"{name}{{{axis}acc_dtype={self.acc_dtype}}}"
+        return f"{name}{{acc_dtype={self.acc_dtype}}}"
 
     def L_op(self, inp, out, grads):
-        (x,) = inp
+        x = inp[0]
+        axis = inp[1:]
+        axis = [_axis.data for _axis in axis]
+        axis_var = [as_tensor_variable(0.0) for _axis in axis]
 
         if out[0].dtype not in continuous_dtypes:
-            return [x.zeros_like(dtype=config.floatX)]
+            return [x.zeros_like(dtype=config.floatX), *axis_var]
 
         (gz,) = grads
         gz = as_tensor_variable(gz)
-        axis = self.axis
-        if axis is None:
-            axis = list(range(x.type.ndim))
-        if axis == ():
-            return (gz,)
+
+        if len(axis) == 0:
+            return (gz, *axis_var)
+
         new_dims = []
         i = 0
         for j, _ in enumerate(x.type.broadcastable):
@@ -2458,14 +2433,14 @@ class Sum(CAReduceDtype):
                 i += 1
         ds_op = DimShuffle(gz.type.broadcastable, new_dims)
         gx = Elemwise(aes.second)(x, ds_op(gz))
-        return [gx]
+        return [gx, *axis_var]
 
     def R_op(self, inputs, eval_points):
         # There is just one element in inputs and eval_points, the axis are
         # part of self
         if None in eval_points:
             return [None]
-        return self(*eval_points, return_list=True)
+        return [self(eval_points[0], *inputs[1:])]
 
 
 def sum(input, axis=None, dtype=None, keepdims=False, acc_dtype=None):
@@ -2487,15 +2462,19 @@ def sum(input, axis=None, dtype=None, keepdims=False, acc_dtype=None):
         will broadcast correctly against the original tensor.
 
     """
+    input = as_tensor_variable(input)
+    if axis is None:
+        axis = np.arange(input.ndim)
+    axis = np.atleast_1d(axis).tolist()
 
-    out = Sum(axis=axis, dtype=dtype, acc_dtype=acc_dtype)(input)
+    out = Sum(dtype=dtype, acc_dtype=acc_dtype)(input, *axis)
 
     if keepdims:
         out = makeKeepDims(input, out, axis)
     return out
 
 
-pprint.assign(Sum, printing.FunctionPrinter(["sum"], ["axis"]))
+pprint.assign(Sum, printing.FunctionPrinter(["sum"]))
 
 
 class Prod(CAReduceDtype):
@@ -2508,11 +2487,11 @@ class Prod(CAReduceDtype):
 
     """
 
-    __props__ = ("axis", "dtype", "acc_dtype")
+    __props__ = ("dtype", "acc_dtype")
     nfunc_spec = ("prod", 1, 1)
 
-    def __init__(self, axis=None, dtype=None, acc_dtype=None, no_zeros_in_input=False):
-        super().__init__(aes.mul, axis=axis, dtype=dtype, acc_dtype=acc_dtype)
+    def __init__(self, dtype=None, acc_dtype=None, no_zeros_in_input=False):
+        super().__init__(aes.mul, dtype=dtype, acc_dtype=acc_dtype)
         self.no_zeros_in_input = no_zeros_in_input
 
     def __setstate__(self, dct):
@@ -2567,22 +2546,23 @@ class Prod(CAReduceDtype):
         based on the result of this count.
 
         """
-        (prod_in,) = inp
+        prod_in = inp[0]
+        axis = inp[1:]
+        axis = [_axis.data for _axis in axis]
+        axis_var = [as_tensor_variable(0.0) for _axis in axis]
         (gz,) = grads
 
         if out[0].dtype in discrete_dtypes or self.acc_dtype in discrete_dtypes:
             # There is an int conversion in the way
-            return [prod_in.zeros_like(dtype=config.floatX)]
+            return [prod_in.zeros_like(dtype=config.floatX), *axis_var]
 
         # Prepare the broadcasting that is used everywhere to broadcast
         # over the original groups (ie. broadcast over the elements of a given
         # product)
         gz = as_tensor_variable(gz)
-        axis = self.axis
-        if axis is None:
-            axis = list(range(prod_in.type.ndim))
-        if axis == ():
-            return (gz,)
+
+        if len(axis) == 0:
+            return (gz, *axis_var)
         new_dims = []
         i = 0
         for j, _ in enumerate(prod_in.type.broadcastable):
@@ -2593,7 +2573,7 @@ class Prod(CAReduceDtype):
                 i += 1
 
         # result of the product, broadcastable over groups
-        prod_out = self(prod_in).dimshuffle(new_dims)
+        prod_out = self(prod_in, *axis).dimshuffle(new_dims)
         # incoming gradient, broadcastable over groups
         gz = gz.dimshuffle(new_dims)
 
@@ -2603,11 +2583,11 @@ class Prod(CAReduceDtype):
 
         if self.no_zeros_in_input:
             # this handles inputs with zeros, but only certain input shapes
-            return [grad_case_without_zeros]
+            return [grad_case_without_zeros, *axis_var]
         else:
 
             where_zeros = eq(prod_in, 0.0)
-            sum_where_zeros = sum(where_zeros, axis=self.axis)
+            sum_where_zeros = sum(where_zeros, axis=axis)
             groups_with_single_zero = eq(sum_where_zeros, 1).dimshuffle(new_dims)
             # tensor with 0 everywhere except for those places where
             # a 0 part of a group with a single zero was to be found
@@ -2627,7 +2607,7 @@ class Prod(CAReduceDtype):
             # TODO: put lazy switch here, if it'd work
             # this is pretty efficient already (no multiplication if 0), but
             # it'd be even better if we had a lazy if per element
-            prod_without_zeros = ProdWithoutZeros(axis=self.axis)(prod_without_zeros_in)
+            prod_without_zeros = ProdWithoutZeros()(prod_without_zeros_in, *axis)
             prod_without_zeros = prod_without_zeros.dimshuffle(new_dims)
 
             groups_without_zeros = eq(sum_where_zeros, 0).dimshuffle(new_dims)
@@ -2638,7 +2618,7 @@ class Prod(CAReduceDtype):
                 switch(where_single_zero, prod_without_zeros, 0.0) * gz,
             )
 
-            return [final_grad]
+            return [final_grad, *axis_var]
 
     def c_code_cache_version(self):
         return (1,)
@@ -2668,10 +2648,14 @@ def prod(
         will broadcast correctly against the original tensor.
 
     """
+    input = as_tensor_variable(input)
+    if axis is None:
+        axis = np.arange(input.ndim)
+    axis = np.atleast_1d(axis).tolist()
 
-    out = Prod(
-        axis, dtype=dtype, acc_dtype=acc_dtype, no_zeros_in_input=no_zeros_in_input
-    )(input)
+    out = Prod(dtype=dtype, acc_dtype=acc_dtype, no_zeros_in_input=no_zeros_in_input)(
+        input, *axis
+    )
 
     if keepdims:
         out = makeKeepDims(input, out, axis)
@@ -2713,15 +2697,17 @@ mul_without_zeros = MulWithoutZeros(aes.upcast_out, name="mul_without_zeros")
 
 class ProdWithoutZeros(CAReduceDtype):
 
-    __props__ = ("axis", "dtype", "acc_dtype")
+    __props__ = ("dtype", "acc_dtype")
 
-    def __init__(self, axis=None, dtype=None, acc_dtype=None):
-        super().__init__(mul_without_zeros, axis=axis, dtype=dtype, acc_dtype=acc_dtype)
+    def __init__(self, dtype=None, acc_dtype=None):
+        super().__init__(mul_without_zeros, dtype=dtype, acc_dtype=acc_dtype)
 
     def grad(self, inp, grads):
         from aesara.gradient import grad_not_implemented
 
-        (a,) = inp
+        a = inp[0]
+        axis = inp[1:]
+        axis_var = [as_tensor_variable(0.0) for _axis in axis]
         a_grad = grad_not_implemented(
             self,
             0,
@@ -2730,11 +2716,16 @@ class ProdWithoutZeros(CAReduceDtype):
             "If `a` is guaranteed to contains no zeros, use "
             "`product(a, no_zeros_in_input=True)`.",
         )
-        return [a_grad]
+        return [a_grad, *axis_var]
 
 
 def any(x, axis=None, keepdims=False):
-    out = Any(axis)(x)
+    x = as_tensor_variable(x)
+    if axis is None:
+        axis = np.arange(x.ndim)
+    axis = np.atleast_1d(axis).tolist()
+
+    out = Any()(x, *axis)
 
     if keepdims:
         out = makeKeepDims(x, out, axis)
@@ -2742,7 +2733,12 @@ def any(x, axis=None, keepdims=False):
 
 
 def all(x, axis=None, keepdims=False):
-    out = All(axis)(x)
+    x = as_tensor_variable(x)
+    if axis is None:
+        axis = np.arange(x.ndim)
+    axis = np.atleast_1d(axis).tolist()
+
+    out = All()(x, *axis)
 
     if keepdims:
         out = makeKeepDims(x, out, axis)
