@@ -1406,7 +1406,7 @@ class CAReduce(COp):
         nnested = len(order1)
 
         sub = dict(sub)
-        for i, (input, iname) in enumerate(zip(node.inputs, inames)):
+        for i, (input, iname) in enumerate(zip(node.inputs, [inames[0]])):
             sub[f"lv{i}"] = iname
 
         decl = ""
