@@ -453,7 +453,7 @@ class SpecifyShape(COp):
         new_shape = []
         for dim in range(node.inputs[0].ndim):
             try:
-                s = at.get_scalar_constant_value(node.inputs[1][dim])
+                s = at.get_constant_value(node.inputs[1][dim])
                 s = at.as_tensor_variable(s)
                 new_shape.append(s)
             except NotScalarConstantError:
@@ -555,7 +555,7 @@ def specify_shape(
 @_get_vector_length.register(SpecifyShape)
 def _get_vector_length_SpecifyShape(op, var):
     try:
-        return at.get_scalar_constant_value(var.owner.inputs[1])
+        return at.get_constant_value(var.owner.inputs[1])
     except NotScalarConstantError:
         raise ValueError(f"Length of {var} cannot be determined")
 
@@ -611,8 +611,7 @@ class Reshape(COp):
                 # If so, that dimension should be broadcastable.
                 try:
                     bcasts[index] = (
-                        hasattr(y, "get_scalar_constant_value")
-                        and y.get_scalar_constant_value() == 1
+                        hasattr(y, "get_constant_value") and y.get_constant_value() == 1
                     )
                 except NotScalarConstantError:
                     pass

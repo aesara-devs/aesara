@@ -52,10 +52,10 @@ class TestCorr2D(utt.InferShapeTester):
         if not aesara.config.cxx:
             pytest.skip("Need cxx to test conv2d")
         N_image_shape = [
-            at.get_scalar_constant_value(at.as_tensor_variable(x)) for x in image_shape
+            at.get_constant_value(at.as_tensor_variable(x)) for x in image_shape
         ]
         N_filter_shape = [
-            at.get_scalar_constant_value(at.as_tensor_variable(x)) for x in filter_shape
+            at.get_constant_value(at.as_tensor_variable(x)) for x in filter_shape
         ]
 
         if input is None:

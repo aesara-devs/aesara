@@ -19,7 +19,7 @@ from aesara.misc.safe_asarray import _asarray
 from aesara.printing import Printer, pprint, set_precedence
 from aesara.scalar.basic import ScalarConstant
 from aesara.tensor import _get_vector_length, as_tensor_variable, get_vector_length
-from aesara.tensor.basic import addbroadcast, alloc, get_scalar_constant_value
+from aesara.tensor.basic import addbroadcast, alloc, get_constant_value
 from aesara.tensor.elemwise import DimShuffle
 from aesara.tensor.exceptions import (
     AdvancedIndexingError,
@@ -640,7 +640,7 @@ def get_constant_idx(
             return slice(conv(val.start), conv(val.stop), conv(val.step))
         else:
             try:
-                return get_scalar_constant_value(
+                return get_constant_value(
                     val,
                     only_process_constants=only_process_constants,
                     elemwise=elemwise,
@@ -716,7 +716,7 @@ class Subtensor(COp):
                 if bc:
                     start = p.start
                     try:
-                        start = get_scalar_constant_value(start)
+                        start = get_constant_value(start)
                     except NotScalarConstantError:
                         pass
                     if start is None or start == 0:
@@ -2796,20 +2796,10 @@ def _get_vector_length_Subtensor(op, var):
             var.owner.inputs, var.owner.op.idx_list
         )
         start = (
-            None
-            if indices[0].start is None
-            else get_scalar_constant_value(indices[0].start)
+            None if indices[0].start is None else get_constant_value(indices[0].start)
         )
-        stop = (
-            None
-            if indices[0].stop is None
-            else get_scalar_constant_value(indices[0].stop)
-        )
-        step = (
-            None
-            if indices[0].step is None
-            else get_scalar_constant_value(indices[0].step)
-        )
+        stop = None if indices[0].stop is None else get_constant_value(indices[0].stop)
+        step = None if indices[0].step is None else get_constant_value(indices[0].step)
 
         if start == stop:
             return 0

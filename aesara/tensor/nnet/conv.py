@@ -20,11 +20,7 @@ import aesara
 from aesara.graph.basic import Apply
 from aesara.graph.op import OpenMPOp
 from aesara.tensor import blas
-from aesara.tensor.basic import (
-    as_tensor_variable,
-    get_scalar_constant_value,
-    patternbroadcast,
-)
+from aesara.tensor.basic import as_tensor_variable, get_constant_value, patternbroadcast
 from aesara.tensor.exceptions import NotScalarConstantError
 from aesara.tensor.nnet.abstract_conv import get_conv_output_shape, get_conv_shape_1axis
 from aesara.tensor.type import discrete_dtypes, tensor
@@ -110,7 +106,7 @@ def conv2d(
         for i in range(len(image_shape)):
             if image_shape[i] is not None:
                 try:
-                    image_shape[i] = get_scalar_constant_value(
+                    image_shape[i] = get_constant_value(
                         as_tensor_variable(image_shape[i])
                     )
                 except NotScalarConstantError:
@@ -126,7 +122,7 @@ def conv2d(
         for i in range(len(filter_shape)):
             if filter_shape[i] is not None:
                 try:
-                    filter_shape[i] = get_scalar_constant_value(
+                    filter_shape[i] = get_constant_value(
                         as_tensor_variable(filter_shape[i])
                     )
                 except NotScalarConstantError:

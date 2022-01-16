@@ -1343,7 +1343,7 @@ def _populate_grad_dict(var_to_app_to_idx, grad_dict, wrt, cost_name=None):
                                 f" {i}. Since this input is only connected "
                                 "to integer-valued outputs, it should "
                                 "evaluate to zeros, but it evaluates to"
-                                f"{aesara.get_scalar_constant_value(term)}."
+                                f"{aesara.get_constant_value(term)}."
                             )
                             raise ValueError(msg)
 
@@ -2113,7 +2113,7 @@ def _is_zero(x):
 
     no_constant_value = True
     try:
-        constant_value = aesara.get_scalar_constant_value(x)
+        constant_value = aesara.get_constant_value(x)
         no_constant_value = False
     except aesara.tensor.exceptions.NotScalarConstantError:
         pass

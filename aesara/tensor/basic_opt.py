@@ -58,7 +58,7 @@ from aesara.tensor.basic import (
     constant,
     extract_constant,
     fill,
-    get_scalar_constant_value,
+    get_constant_value,
     get_vector_length,
     join,
     ones_like,
@@ -944,7 +944,7 @@ class ShapeFeature(features.Feature):
             # Do not call make_node for test_value
             s = Shape_i(i)(r)
             try:
-                s = get_scalar_constant_value(s)
+                s = get_constant_value(s)
             except NotScalarConstantError:
                 pass
             return s
@@ -1030,7 +1030,7 @@ class ShapeFeature(features.Feature):
             assert len(idx) == 1
             idx = idx[0]
             try:
-                i = get_scalar_constant_value(idx)
+                i = get_constant_value(idx)
             except NotScalarConstantError:
                 pass
             else:
@@ -2116,7 +2116,7 @@ def local_remove_useless_assert(fgraph, node):
     n_conds = len(node.inputs[1:])
     for c in node.inputs[1:]:
         try:
-            const = get_scalar_constant_value(c)
+            const = get_constant_value(c)
 
             if 0 != const.ndim or const == 0:
                 # Should we raise an error here? How to be sure it
@@ -2208,9 +2208,7 @@ def local_upcast_elemwise_constant_inputs(fgraph, node):
                 else:
                     try:
                         # works only for scalars
-                        cval_i = get_scalar_constant_value(
-                            i, only_process_constants=True
-                        )
+                        cval_i = get_constant_value(i, only_process_constants=True)
                         if all(i.broadcastable):
                             new_inputs.append(
                                 shape_padleft(cast(cval_i, output_dtype), i.ndim)
@@ -2401,9 +2399,7 @@ def local_join_empty(fgraph, node):
         return
     new_inputs = []
     try:
-        join_idx = get_scalar_constant_value(
-            node.inputs[0], only_process_constants=True
-        )
+        join_idx = get_constant_value(node.inputs[0], only_process_constants=True)
     except NotScalarConstantError:
         return
     for idx in range(1, len(node.inputs)):
@@ -2617,7 +2613,7 @@ def local_useless_tile(fgraph, node):
     """
     if isinstance(node.op, Tile):
         try:
-            a = get_scalar_constant_value(node.inputs[1], only_process_constants=True)
+            a = get_constant_value(node.inputs[1], only_process_constants=True)
             if a == 1:
                 try:
                     l = get_vector_length(node.inputs[1])

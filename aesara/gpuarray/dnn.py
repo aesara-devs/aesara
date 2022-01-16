@@ -3971,13 +3971,13 @@ def local_abstract_batch_norm_train_cudnn(fgraph, op, ctx_name, inputs, outputs)
         return None
 
     try:
-        eps = at.get_scalar_constant_value(epsilon)
+        eps = at.get_constant_value(epsilon)
     except NotScalarConstantError:
         return None
     if eps < 1e-5:
         return None
     try:
-        running_average_factor = at.get_scalar_constant_value(running_average_factor)
+        running_average_factor = at.get_constant_value(running_average_factor)
     except NotScalarConstantError:
         return None
 
@@ -4037,7 +4037,7 @@ def local_abstract_batch_norm_train_grad_cudnn(fgraph, op, ctx_name, inputs, out
         x_invstd = at.flatten(x_invstd, 5)
 
     try:
-        eps = at.get_scalar_constant_value(epsilon)
+        eps = at.get_constant_value(epsilon)
     except NotScalarConstantError:
         return None
     if eps < 1e-5:
@@ -4080,7 +4080,7 @@ def local_abstract_batch_norm_inference_cudnn(fgraph, op, ctx_name, inputs, outp
         return None
 
     try:
-        eps = at.get_scalar_constant_value(epsilon)
+        eps = at.get_constant_value(epsilon)
     except NotScalarConstantError:
         return None
     if eps < 1e-5:

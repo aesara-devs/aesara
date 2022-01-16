@@ -4,7 +4,7 @@ class ShapeError(Exception):
 
 class NotScalarConstantError(Exception):
     """
-    Raised by get_scalar_constant_value if called on something that is
+    Raised by get_constant_value if called on something that is
     not a scalar constant.
     """
 

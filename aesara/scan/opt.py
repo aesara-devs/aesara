@@ -40,7 +40,7 @@ from aesara.scan.utils import (
     scan_can_remove_outs,
 )
 from aesara.tensor import basic_opt, math_opt
-from aesara.tensor.basic import Alloc, AllocEmpty, get_scalar_constant_value
+from aesara.tensor.basic import Alloc, AllocEmpty, get_constant_value
 from aesara.tensor.elemwise import DimShuffle, Elemwise
 from aesara.tensor.exceptions import NotScalarConstantError
 from aesara.tensor.math import Dot, dot, maximum, minimum
@@ -1841,13 +1841,13 @@ class ScanMerge(GlobalOptimizer):
 
         nsteps = node.inputs[0]
         try:
-            nsteps = int(get_scalar_constant_value(nsteps))
+            nsteps = int(get_constant_value(nsteps))
         except NotScalarConstantError:
             pass
 
         rep_nsteps = rep.inputs[0]
         try:
-            rep_nsteps = int(get_scalar_constant_value(rep_nsteps))
+            rep_nsteps = int(get_constant_value(rep_nsteps))
         except NotScalarConstantError:
             pass
 

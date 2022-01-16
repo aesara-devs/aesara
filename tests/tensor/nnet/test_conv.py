@@ -64,13 +64,11 @@ class TestConv2D(utt.InferShapeTester):
         """
         if N_image_shape is None:
             N_image_shape = [
-                at.get_scalar_constant_value(at.as_tensor_variable(x))
-                for x in image_shape
+                at.get_constant_value(at.as_tensor_variable(x)) for x in image_shape
             ]
         if N_filter_shape is None:
             N_filter_shape = [
-                at.get_scalar_constant_value(at.as_tensor_variable(x))
-                for x in filter_shape
+                at.get_constant_value(at.as_tensor_variable(x)) for x in filter_shape
             ]
 
         if input is None:

@@ -2055,7 +2055,7 @@ def _check_rows_is_arange_len_labels(fgraph, rows, labels):
 
 def _is_const(z, val, approx=False):
     try:
-        maybe = at.get_scalar_constant_value(z)
+        maybe = at.get_constant_value(z)
     except NotScalarConstantError:
         return False
     if approx:

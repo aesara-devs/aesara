@@ -345,7 +345,7 @@ def scan(
         n_fixed_steps = int(n_steps)
     else:
         try:
-            n_fixed_steps = at.get_scalar_constant_value(n_steps)
+            n_fixed_steps = at.get_constant_value(n_steps)
         except NotScalarConstantError:
             n_fixed_steps = None
 

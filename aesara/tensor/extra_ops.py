@@ -688,7 +688,7 @@ class Repeat(Op):
             broadcastable = [False]
         else:
             try:
-                const_reps = at.get_scalar_constant_value(repeats)
+                const_reps = at.get_constant_value(repeats)
             except NotScalarConstantError:
                 const_reps = None
             if const_reps == 1:

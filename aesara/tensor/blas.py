@@ -1731,7 +1731,7 @@ def local_gemm_to_ger(fgraph, node):
                 xv = x.dimshuffle(0)
                 yv = y.dimshuffle(1)
                 try:
-                    bval = at.get_scalar_constant_value(b)
+                    bval = at.get_constant_value(b)
                 except NotScalarConstantError:
                     # b isn't a constant, GEMM is doing useful pre-scaling
                     return

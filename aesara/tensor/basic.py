@@ -21,15 +21,14 @@ import aesara.scalar.sharedvar
 from aesara import compile, config, printing
 from aesara import scalar as aes
 from aesara.gradient import DisconnectedType, grad_not_implemented, grad_undefined
-from aesara.graph.basic import Apply, Constant, Variable
+from aesara.graph.basic import Apply, Constant, Variable, graph_inputs
 from aesara.graph.fg import FunctionGraph
 from aesara.graph.op import COp, Op
 from aesara.graph.opt_utils import optimize_graph
 from aesara.graph.params_type import ParamsType
-from aesara.graph.type import Type
 from aesara.misc.safe_asarray import _asarray
 from aesara.printing import min_informative_str, pprint
-from aesara.raise_op import CheckAndRaise, assert_op
+from aesara.raise_op import assert_op
 from aesara.scalar import int32
 from aesara.scalar.basic import ScalarConstant, ScalarVariable
 from aesara.tensor import (
@@ -41,8 +40,6 @@ from aesara.tensor import (
 from aesara.tensor.elemwise import DimShuffle, Elemwise, scalar_elemwise
 from aesara.tensor.exceptions import NotScalarConstantError
 from aesara.tensor.shape import (
-    Shape,
-    Shape_i,
     reshape,
     shape,
     shape_padaxis,
@@ -275,277 +272,41 @@ _scalar_constant_value_elemwise_ops = (
 )
 
 
-def get_scalar_constant_value(
-    orig_v, elemwise=True, only_process_constants=False, max_recur=10
-):
-    """Return the constant scalar(0-D) value underlying variable `v`.
+def get_constant_value(v, eval_graph=False, as_numpy_objects=True):
+    """Helper function to return the constant value underlying variable `v`.
+    Returns `None` if there is no underlying value of `v`.
 
-    If `v` is the output of dimshuffles, fills, allocs, rebroadcasts,
-    cast, OutputGuard, DeepCopyOp, ScalarFromTensor, ScalarOp, Elemwise
-    and some pattern with Subtensor, this function digs through them.
+    If `eval_graph` is set to `True` then tries to evaluate
+    `v` using a complete `FunctionGraph` evaluation
 
-    If `v` is not some view of constant scalar data, then raise a
-    NotScalarConstantError.
+    If `as_numpy_objects` is set to `False` it'll return the underlying
+    value in form of standard python objects and datatypes.
 
     Parameters
     ----------
-    elemwise : bool
-        If False, we won't try to go into elemwise. So this call is faster.
-        But we still investigate in Second Elemwise (as this is a substitute
-        for Alloc)
-    only_process_constants : bool
-        If True, we only attempt to obtain the value of `orig_v` if it's
-        directly constant and don't try to dig through dimshuffles, fills,
-        allocs, and other to figure out its value.
-    max_recur : int
-        The maximum number of recursion.
-
-    Notes
-    -----
-        There may be another function similar to this one in the code,
-        but I'm not sure where it is.
+    v: Variable
+        Variable to be evaluated
+    eval_graph: bool
+        Specify if the graph of `v` should be evaluated completely
+    as_numpy_objects: bool
+        Specify if the returned value should be an Numpy array or not
 
     """
-    v = orig_v
-    while True:
-        if v is None:
-            # None is not a scalar (and many uses of this function seem
-            # to depend on passing it None)
-            raise NotScalarConstantError()
+    v = as_tensor_variable(v)
+    if eval_graph and not isinstance(v, Constant) and v.owner is not None:
+        from aesara.graph.opt_utils import optimize_graph
 
-        if isinstance(v, (np.integer, int, float)):
-            return np.asarray(v)
+        v_fgraph_clone = FunctionGraph([*graph_inputs([v])], [v], clone=True)
+        optimize_graph(v_fgraph_clone)
+        v = v_fgraph_clone.outputs[0]
 
-        if isinstance(v, np.ndarray):
-            try:
-                return np.array(v.item(), dtype=v.dtype)
-            except ValueError:
-                raise NotScalarConstantError()
-
-        if isinstance(v, Constant):
-            unique_value = get_unique_value(v)
-            if unique_value is not None:
-                data = unique_value
-            else:
-                data = v.data
-
-            if isinstance(data, np.ndarray):
-                try:
-                    return np.array(data.item(), dtype=v.dtype)
-                except ValueError:
-                    raise NotScalarConstantError()
-            else:
-                return data
-
-        if not only_process_constants and getattr(v, "owner", None) and max_recur > 0:
-            max_recur -= 1
-            if isinstance(
-                v.owner.op,
-                (
-                    Alloc,
-                    DimShuffle,
-                    Rebroadcast,
-                    # outputguard is only used in debugmode but we
-                    # keep it here to avoid problems with old pickels.
-                    compile.ops.OutputGuard,
-                    compile.DeepCopyOp,
-                ),
-            ):
-                v = v.owner.inputs[0]
-                continue
-            elif isinstance(v.owner.op, Shape_i):
-                i = v.owner.op.i
-                inp = v.owner.inputs[0]
-                if isinstance(inp, Constant):
-                    return np.asarray(np.shape(inp.data)[i])
-                # The shape of a broadcastable dimension is 1
-                if hasattr(inp.type, "broadcastable") and inp.type.broadcastable[i]:
-                    return np.asarray(1)
-
-            # Don't act as the constant_folding optimization here as this
-            # fct is used too early in the optimization phase.  This would
-            # mess with the stabilization optimization and be too slow.
-            # We put all the scalar Ops used by get_canonical_form_slice()
-            # to allow it to determine the broadcast pattern correctly.
-            elif isinstance(v.owner.op, (ScalarFromTensor, TensorFromScalar)):
-                v = v.owner.inputs[0]
-                continue
-            elif isinstance(v.owner.op, CheckAndRaise):
-                # check if all conditions are constant and true
-                conds = [
-                    get_scalar_constant_value(c, max_recur=max_recur)
-                    for c in v.owner.inputs[1:]
-                ]
-                if builtins.all(0 == c.ndim and c != 0 for c in conds):
-                    v = v.owner.inputs[0]
-                    continue
-            elif isinstance(v.owner.op, aes.ScalarOp):
-                if isinstance(v.owner.op, aes.Second):
-                    # We don't need both input to be constant for second
-                    shp, val = v.owner.inputs
-                    v = val
-                    continue
-                if isinstance(v.owner.op, _scalar_constant_value_elemwise_ops):
-                    const = [
-                        get_scalar_constant_value(i, max_recur=max_recur)
-                        for i in v.owner.inputs
-                    ]
-                    ret = [[None]]
-                    v.owner.op.perform(v.owner, const, ret)
-                    return np.asarray(ret[0][0].copy())
-            # In fast_compile, we don't enable local_fill_to_alloc, so
-            # we need to investigate Second as Alloc. So elemwise
-            # don't disable the check for Second.
-            elif isinstance(v.owner.op, Elemwise):
-                if isinstance(v.owner.op.scalar_op, aes.Second):
-                    # We don't need both input to be constant for second
-                    shp, val = v.owner.inputs
-                    v = val
-                    continue
-                elif elemwise and isinstance(
-                    v.owner.op.scalar_op, _scalar_constant_value_elemwise_ops
-                ):
-                    const = [
-                        get_scalar_constant_value(i, max_recur=max_recur)
-                        for i in v.owner.inputs
-                    ]
-                    ret = [[None]]
-                    v.owner.op.perform(v.owner, const, ret)
-                    return np.asarray(ret[0][0].copy())
-            elif (
-                isinstance(v.owner.op, aesara.tensor.subtensor.Subtensor)
-                and v.ndim == 0
-            ):
-                if isinstance(v.owner.inputs[0], TensorConstant):
-                    from aesara.tensor.subtensor import get_constant_idx
-
-                    cdata = tuple(get_constant_idx(v.owner.op.idx_list, v.owner.inputs))
-                    try:
-                        return np.asarray(
-                            v.owner.inputs[0].data.__getitem__(cdata).copy()
-                        )
-                    except IndexError:
-                        raise IndexError(
-                            str(tuple(v.owner.op.idx_list))
-                            + " is not a valid index into "
-                            + str(v.owner.inputs[0].data)
-                        )
-
-                # The index list 'idx_list' should have length the same
-                # shape as the input.
-                # TODO: implement the case where we take a scalar in a matrix
-                assert len(v.owner.op.idx_list) == v.owner.inputs[0].ndim
-
-                # Needed to make better graph in this test in
-                # aesara/tensor/tests/test_sharedvar.py:
-                # test_shared_options.test_specify_shape_partial
-                if (
-                    v.owner.inputs[0].owner
-                    and isinstance(v.owner.inputs[0].owner.op, Join)
-                    and len(v.owner.op.idx_list) == 1
-                ):
-                    # Ensure the Join is joining only (effectively) scalar
-                    # variables (so that the constant value can be found at the
-                    # same index as the one used in the sub-tensor).
-                    if builtins.all(
-                        var.ndim == 1 for var in v.owner.inputs[0].owner.inputs[1:]
-                    ):
-                        idx = v.owner.op.idx_list[0]
-                        if isinstance(idx, Type):
-                            idx = get_scalar_constant_value(
-                                v.owner.inputs[1], max_recur=max_recur
-                            )
-                        try:
-                            # TODO: assert joined axis is 0.
-                            length = 0
-                            loop = False
-                            for joined in v.owner.inputs[0].owner.inputs[1:]:
-                                ll = get_vector_length(joined)
-                                if idx < length + ll:
-                                    v = joined[idx - length]
-                                    loop = True
-                                    break
-                                length += ll
-                            if loop:
-                                continue
-                        except TypeError:
-                            pass
-                        except ValueError:
-                            pass
-
-                elif (
-                    v.owner.inputs[0].owner
-                    and isinstance(v.owner.inputs[0].owner.op, MakeVector)
-                    and
-                    # MakeVector normally accept only scalar as input.
-                    # We put this check in case there is change in the future
-                    builtins.all(
-                        var.ndim == 0 for var in v.owner.inputs[0].owner.inputs
-                    )
-                    and len(v.owner.op.idx_list) == 1
-                ):
-
-                    idx = v.owner.op.idx_list[0]
-                    if isinstance(idx, Type):
-                        idx = get_scalar_constant_value(
-                            v.owner.inputs[1], max_recur=max_recur
-                        )
-                    # Python 2.4 does not support indexing with numpy.integer
-                    # So we cast it.
-                    idx = int(idx)
-                    ret = v.owner.inputs[0].owner.inputs[idx]
-                    ret = get_scalar_constant_value(ret, max_recur=max_recur)
-                    # MakeVector can cast implicitly its input in some case.
-                    return _asarray(ret, dtype=v.type.dtype)
-
-                # This is needed when we take the grad as the Shape op
-                # are not already changed into MakeVector
-                owner = v.owner
-                leftmost_parent = owner.inputs[0]
-                if leftmost_parent.owner and isinstance(
-                    leftmost_parent.owner.op, Shape
-                ):
-                    op = owner.op
-                    idx_list = op.idx_list
-                    idx = idx_list[0]
-                    if isinstance(idx, Type):
-                        idx = get_scalar_constant_value(
-                            owner.inputs[1], max_recur=max_recur
-                        )
-                    grandparent = leftmost_parent.owner.inputs[0]
-                    gp_broadcastable = grandparent.type.broadcastable
-                    ndim = grandparent.type.ndim
-                    if grandparent.owner and isinstance(
-                        grandparent.owner.op, Rebroadcast
-                    ):
-                        ggp_broadcastable = grandparent.owner.inputs[0].broadcastable
-                        l = [
-                            b1 or b2
-                            for b1, b2 in zip(ggp_broadcastable, gp_broadcastable)
-                        ]
-                        gp_broadcastable = tuple(l)
-
-                    assert ndim == len(gp_broadcastable)
-
-                    if not (idx < len(gp_broadcastable)):
-                        msg = (
-                            "get_scalar_constant_value detected "
-                            f"deterministic IndexError: x.shape[{int(idx)}] "
-                            f"when x.ndim={int(ndim)}."
-                        )
-                        if config.exception_verbosity == "high":
-                            msg += f" x={min_informative_str(v)}"
-                        else:
-                            msg += f" x={v}"
-                        raise ValueError(msg)
-
-                    if gp_broadcastable[idx]:
-                        return np.asarray(1)
-
-                    if isinstance(grandparent, Constant):
-                        return np.asarray(np.shape(grandparent.data)[idx])
-
-        raise NotScalarConstantError()
+    if not isinstance(v, Constant):
+        return None
+    else:
+        unique_value = get_unique_value(v)
+        if not as_numpy_objects:
+            unique_value = unique_value.tolist()
+        return unique_value
 
 
 class TensorFromScalar(Op):
@@ -1787,21 +1548,21 @@ default = Default()
 ##########################
 
 
-def extract_constant(x, elemwise=True, only_process_constants=False):
+def extract_constant(x, eval_graph=False, as_numpy_objects=True):
     """
-    This function is basically a call to tensor.get_scalar_constant_value.
+    This function is basically a call to tensor.get_constant_value.
 
     The main difference is the behaviour in case of failure. While
-    get_scalar_constant_value raises an TypeError, this function returns x,
+    get_constant_value returns `None`, this function returns x,
     as a tensor if possible. If x is a ScalarVariable from a
     scalar_from_tensor, we remove the conversion. If x is just a
     ScalarVariable, we convert it to a tensor with tensor_from_scalar.
 
     """
-    try:
-        x = get_scalar_constant_value(x, elemwise, only_process_constants)
-    except NotScalarConstantError:
-        pass
+
+    x_val = get_constant_value(x, eval_graph, as_numpy_objects)
+    if x_val is not None:
+        x = x_val
     if isinstance(x, aes.ScalarVariable) or isinstance(
         x, aes.sharedvar.ScalarSharedVariable
     ):
@@ -2276,7 +2037,7 @@ class Join(COp):
 
             if not isinstance(axis, int):
                 try:
-                    axis = int(get_scalar_constant_value(axis))
+                    axis = int(get_constant_value(axis))
                 except NotScalarConstantError:
                     pass
 
@@ -2494,7 +2255,7 @@ pprint.assign(Join, printing.FunctionPrinter(["join"]))
 def _get_vector_length_Join(op, var):
     axis, *arrays = var.owner.inputs
     try:
-        axis = get_scalar_constant_value(axis)
+        axis = get_constant_value(axis)
         assert axis == 0 and builtins.all(a.ndim == 1 for a in arrays)
         return builtins.sum(get_vector_length(a) for a in arrays)
     except NotScalarConstantError:
@@ -3162,7 +2923,7 @@ class ARange(Op):
 
         def is_constant_value(var, value):
             try:
-                v = get_scalar_constant_value(var)
+                v = get_constant_value(var)
                 return np.all(v == value)
             except NotScalarConstantError:
                 pass
@@ -4030,7 +3791,7 @@ class Choose(Op):
         bcast = []
         for s in out_shape:
             try:
-                s_val = aesara.get_scalar_constant_value(s)
+                s_val = aesara.get_constant_value(s)
             except (NotScalarConstantError, AttributeError):
                 s_val = None
 
@@ -4346,7 +4107,7 @@ __all__ = [
     "cast",
     "scalar_from_tensor",
     "tensor_from_scalar",
-    "get_scalar_constant_value",
+    "get_constant_value",
     "constant",
     "as_tensor_variable",
     "as_tensor",

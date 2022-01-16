@@ -567,7 +567,7 @@ TensorVariable
     .. method:: round(mode="half_away_from_zero")
        :noindex:
     .. method:: trace()
-    .. method:: get_scalar_constant_value()
+    .. method:: get_constant_value()
     .. method:: zeros_like(model, dtype=None)
 
        All the above methods are equivalent to NumPy for Aesara on the current tensor.

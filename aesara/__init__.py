@@ -155,7 +155,7 @@ if (
     import aesara.gpuarray
 
 
-def get_scalar_constant_value(v):
+def get_constant_value(v):
     """Return the constant scalar (i.e. 0-D) value underlying variable `v`.
 
     If `v` is the output of dim-shuffles, fills, allocs, rebroadcasts, cast
@@ -171,8 +171,8 @@ def get_scalar_constant_value(v):
     if sparse and isinstance(v.type, sparse.SparseType):
         if v.owner is not None and isinstance(v.owner.op, sparse.CSM):
             data = v.owner.inputs[0]
-            return tensor.get_scalar_constant_value(data)
-    return tensor.get_scalar_constant_value(v)
+            return tensor.get_constant_value(data)
+    return tensor.get_constant_value(v)
 
 
 # isort: off
