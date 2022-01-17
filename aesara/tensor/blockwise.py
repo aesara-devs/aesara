@@ -7,6 +7,7 @@ from aesara.gradient import DisconnectedType
 from aesara.graph.basic import Apply, Variable
 from aesara.graph.null_type import NullType
 from aesara.graph.op import Op
+from aesara.scalar.basic import constant as scalar_constant
 from aesara.tensor import get_scalar_constant_value
 from aesara.tensor.basic import atleast_Nd
 from aesara.tensor.elemwise import DimShuffle, Elemwise
@@ -103,8 +104,17 @@ def _calculate_shapes(
     From `numpy.lib.function_base`.
 
     """
+
+    def get_dim_size(x):
+        res = dim_sizes.get(x)
+
+        if res is None:
+            return scalar_constant(int(x))
+
+        return res
+
     return [
-        broadcast_shape + tuple(dim_sizes[dim] for dim in core_dims)
+        broadcast_shape + tuple(get_dim_size(dim) for dim in core_dims)
         for core_dims in list_of_core_dims
     ]
 
@@ -195,7 +205,7 @@ class Blockwise(Op):
         return Apply(self, list(inputs), outputs)
 
     def __str__(self):
-        return f"{type(self).__name__}{{op={type(self.op).__name__}}}"
+        return f"{type(self).__name__}{{op={self.op}}}"
 
     def infer_shape(self, fgraph, node, shapes):
         bcast_shape, dim_sizes = _parse_input_dimensions(node.inputs, self.signature[0])
@@ -244,7 +254,8 @@ class Blockwise(Op):
             core_out_grads = []
             for _out_grad, _out_sig in zip(ograds, self.signature[1]):
                 curr_dtype = _out_grad.type.dtype
-                curr_static_shape = _out_grad.type.shape[-len(_out_sig) :]
+                start_idx = _out_grad.type.ndim - len(_out_sig)
+                curr_static_shape = _out_grad.type.shape[start_idx:]
                 core_out_grads.append(TensorType(curr_dtype, curr_static_shape)())
 
             core_outputs: Sequence[Variable] = self.op.make_node(*core_inputs).outputs
@@ -295,7 +306,7 @@ class Blockwise(Op):
                         f"a{i}" for i in range(len(new_order))
                     )
                     output_signature: Tuple[str, ...] = tuple(
-                        f"a{i}" for i in new_order
+                        f"a{i}" if i != "x" else "1" for i in op.new_order
                     )
                     grad_signature = ((input_signature,), (output_signature,))
                 elif isinstance(op, Elemwise):
