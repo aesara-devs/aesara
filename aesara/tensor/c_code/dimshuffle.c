@@ -37,11 +37,10 @@ int APPLY_SPECIFIC(cpu_dimshuffle)(PyArrayObject *input, PyArrayObject **res,
   npy_intp N_shuffle = PyArray_SIZE(params->shuffle);
   npy_intp N_augment = PyArray_SIZE(params->augment);
   npy_intp N = N_augment + N_shuffle;
-  npy_intp *_reshape_shape = (npy_intp *)malloc(N * sizeof(npy_intp));
+  npy_intp *_reshape_shape = PyDimMem_NEW(N);
 
   if (_reshape_shape == NULL) {
     PyErr_NoMemory();
-    free(_reshape_shape);
     return 1;
   }
 
