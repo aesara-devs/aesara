@@ -2199,3 +2199,112 @@ def test_local_subtensor_SpecifyShape_lift_fail(x, s, idx):
     y_opt = optimize_graph(y, clone=False)
 
     assert not isinstance(y_opt.owner.op, SpecifyShape)
+
+
+@pytest.mark.parametrize(
+    "axis, slices_fn, expected_nodes",
+    [
+        # Below should be merged
+        (0, lambda _: ((slice(None, 5, None),), (slice(5, None, None),)), 1),
+        (0, lambda _: ((slice(0, 5, 1),), (slice(5, None, 1),)), 1),
+        (
+            0,
+            lambda _: (
+                (slice(0, 2, 1),),
+                (slice(2, 4, None),),
+                (slice(4, None, 1)),
+            ),
+            1,
+        ),
+        (
+            0,
+            lambda _: (
+                (slice(None, 5, None), slice(None, -1, None)),
+                (slice(5, None, None), slice(None, -1, None)),
+            ),
+            2,
+        ),
+        (
+            1,
+            lambda step: (
+                (slice(2, None, step), slice(None, 2, None)),
+                (slice(2, None, step), slice(2, 4, None)),
+                (slice(2, None, step), slice(4, 6, None)),
+            ),
+            3,
+        ),
+        (
+            0,
+            lambda stop: (
+                (slice(1, stop, None),),
+                (slice(stop, 5, None),),
+                (slice(5, 7, None)),
+            ),
+            2,
+        ),
+        (
+            0,
+            lambda stop: (
+                (slice(1, stop + 1, None),),
+                (slice(stop + 1, 5, None),),
+                (slice(5, 7, None)),
+            ),
+            2,
+        ),
+        # Below NotImplemented: These could be merged, but we would need to evaluate the
+        # start and stop values
+        (0, lambda _: ((slice(None, 6, 3),), (slice(6, None, 3),)), 3),
+        (0, lambda step: ((slice(None, 6, step),), (slice(6, None, step),)), 4),
+        # Below should not be merged
+        (0, lambda _: ((slice(5, None, None),), (slice(None, 5, None),)), 3),
+        (0, lambda _: ((slice(None, 5, None),), (slice(4, None, None),)), 3),
+        (1, lambda _: ((slice(None, 5, None),), (slice(5, None, None),)), 3),
+        (
+            0,
+            lambda _: (
+                (slice(2, None, None), slice(None, 2, None)),
+                (slice(2, None, None), slice(2, 4, None)),
+                (slice(2, None, None), slice(4, 6, None)),
+            ),
+            4,
+        ),
+        (
+            0,
+            lambda _: (
+                (slice(None, 5, 2), slice(None, -1, None)),
+                (slice(5, None, 3), slice(None, -1, None)),
+            ),
+            3,
+        ),
+        (
+            0,
+            lambda _: (
+                (slice(None, 5, None), slice(None, -1, None)),
+                (slice(5, None, None), slice(1, None, None)),
+            ),
+            3,
+        ),
+        (0, lambda stop: ((slice(None, stop, None),), (slice(3, None, None),)), 4),
+        (0, lambda _: ((slice(None, 5, 2),), (slice(5, None, 2),)), 3),
+    ],
+)
+def test_local_join_subtensors(axis, slices_fn, expected_nodes):
+    x = at.dmatrix("x")
+    slice_scalar = at.iscalar("slice_scalar")
+    slices = slices_fn(slice_scalar)
+    y = at.concatenate([x[slice] for slice in slices], axis=axis)
+    f = aesara.function(
+        [x, slice_scalar],
+        y,
+        mode=Mode("py").excluding("fusion"),
+        on_unused_input="ignore",
+    )
+    nodes = f.maker.fgraph.toposort()
+    assert len(nodes) == expected_nodes, nodes
+
+    x_val = np.arange(100).reshape(10, 10)
+    stop_val = 3
+    slices_val = slices_fn(stop_val)
+    f_val = np.concatenate([x_val[slice_val] for slice_val in slices_val], axis=axis)
+
+    np.testing.assert_array_equal(f(x_val, stop_val), f_val)

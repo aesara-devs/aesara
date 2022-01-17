@@ -12,6 +12,7 @@ from aesara.raise_op import Assert
 from aesara.tensor.basic import (
     Alloc,
     ARange,
+    Join,
     MakeVector,
     Rebroadcast,
     ScalarFromTensor,
@@ -19,6 +20,7 @@ from aesara.tensor.basic import (
     alloc,
     as_tensor,
     cast,
+    concatenate,
     extract_constant,
     get_scalar_constant_value,
     patternbroadcast,
@@ -1661,3 +1663,106 @@ def local_subtensor_SpecifyShape_lift(fgraph, node):
     if new_obj_arg.ndim == 0:
         return [new_obj_arg]
     return [specify_shape(new_obj_arg, shape_arg[len(indices) :])]
+
+
+@register_specialize
+@local_optimizer([Join])
+def local_join_subtensors(fgraph, node):
+    r"""Simplify contiguous :class:`Subtensor`\s inside a :class:`Join`.
+
+    `join((x[:3], x[3:5]), axis=0) -> x[:5]`
+    """
+    # TODO: Generalize to AdvancedSubtensors
+
+    axis, tensors = node.inputs[0], node.inputs[1:]
+
+    try:
+        axis = get_scalar_constant_value(axis)
+    except NotScalarConstantError:
+        return
+
+    for subtensor1_idx, (subtensor1, subtensor2) in enumerate(
+        zip(tensors[:-1], tensors[1:])
+    ):
+        # Check that two consecutive Subtensors are operating on the same base tensor
+        if not (
+            (
+                subtensor1.owner is not None
+                and isinstance(subtensor1.owner.op, Subtensor)
+            )
+            and (
+                subtensor2.owner is not None
+                and isinstance(subtensor2.owner.op, Subtensor)
+            )
+            and (subtensor1.owner.inputs[0] is subtensor2.owner.inputs[0])
+        ):
+            continue
+
+        # Check that subtensors have consecutive indexes across the join axis
+        idxs_subtensor1 = indices_from_subtensor(
+            subtensor1.owner.inputs[1:], subtensor1.owner.op.idx_list
+        )
+        idxs_subtensor2 = indices_from_subtensor(
+            subtensor2.owner.inputs[1:], subtensor2.owner.op.idx_list
+        )
+        try:
+            idxs_axis_subtensor1 = idxs_subtensor1[axis]
+            idxs_axis_subtensor2 = idxs_subtensor2[axis]
+        except IndexError:
+            continue
+        if not (
+            isinstance(idxs_axis_subtensor1, slice)
+            and isinstance(idxs_axis_subtensor2, slice)
+        ):
+            continue
+        start_subtensor1, stop_subtensor1, step_subtensor1 = (
+            idxs_axis_subtensor1.start,
+            idxs_axis_subtensor1.stop,
+            idxs_axis_subtensor1.step,
+        )
+        start_subtensor2, stop_subtensor2, step_subtensor2 = (
+            idxs_axis_subtensor2.start,
+            idxs_axis_subtensor2.stop,
+            idxs_axis_subtensor2.step,
+        )
+        if not (
+            (stop_subtensor1 is not None and start_subtensor2 is not None)
+            and (stop_subtensor1 == start_subtensor2)
+        ):
+            continue
+
+        # Check that step is None or 1
+        # For non-unit steps (perhaps except for -1) we would need to know the
+        # exact values of start and stop to know if they can be merged
+        for step in (step_subtensor1, step_subtensor2):
+            if step is None:
+                continue
+            try:
+                if get_scalar_constant_value(step, only_process_constants=True) != 1:
+                    return None
+            except NotScalarConstantError:
+                return None
+
+        # Check that all other idxs of subtensor are the same
+        if all(
+            idxs_nonaxis_subtensor1 == idxs_nonaxis_subtensor2
+            for i, (idxs_nonaxis_subtensor1, idxs_nonaxis_subtensor2) in enumerate(
+                zip(idxs_subtensor1, idxs_subtensor2)
+            )
+            if i != axis
+        ):
+
+            base_tensor = subtensor1.owner.inputs[0]
+            new_idxs = list(idxs_subtensor1)
+            new_idxs[axis] = slice(start_subtensor1, stop_subtensor2, step_subtensor1)
+            merged_subtensors = base_tensor[new_idxs]
+
+            new_joined_tensors = [
+                *tensors[:subtensor1_idx],
+                merged_subtensors,
+                *tensors[subtensor1_idx + 2 :],
+            ]
+            if len(new_joined_tensors) > 1:
+                return [concatenate(new_joined_tensors, axis=axis)]
+            else:
+                return [merged_subtensors]
