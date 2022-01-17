@@ -45,7 +45,6 @@ from aesara.tensor.random.basic import (
     pareto,
     permutation,
     poisson,
-    polyagamma,
     randint,
     standard_normal,
     triangular,
@@ -1155,39 +1154,6 @@ def test_categorical_basic():
 
     with pytest.raises(ValueError):
         categorical.rng_fn(rng, p, size=10)
-
-
-@config.change_flags(compute_test_value="raise")
-def test_polyagamma_samples():
-
-    _ = pytest.importorskip("pypolyagamma")
-
-    # Sampled values should be scalars
-    a = np.array(1.1, dtype=config.floatX)
-    b = np.array(-10.5, dtype=config.floatX)
-    pg_rv = polyagamma(a, b)
-    assert get_test_value(pg_rv).shape == ()
-
-    pg_rv = polyagamma(a, b, size=[1])
-    assert get_test_value(pg_rv).shape == (1,)
-
-    pg_rv = polyagamma(a, b, size=[2, 3])
-    bcast_smpl = get_test_value(pg_rv)
-    assert bcast_smpl.shape == (2, 3)
-    # Make sure they're not all equal
-    assert np.all(np.abs(np.diff(bcast_smpl.flat)) > 0.0)
-
-    a = np.array([1.1, 3], dtype=config.floatX)
-    b = np.array(-10.5, dtype=config.floatX)
-    pg_rv = polyagamma(a, b)
-    bcast_smpl = get_test_value(pg_rv)
-    assert bcast_smpl.shape == (2,)
-    assert np.all(np.abs(np.diff(bcast_smpl.flat)) > 0.0)
-
-    pg_rv = polyagamma(a, b, size=(3, 2))
-    bcast_smpl = get_test_value(pg_rv)
-    assert bcast_smpl.shape == (3, 2)
-    assert np.all(np.abs(np.diff(bcast_smpl.flat)) > 0.0)
 
 
 def test_randint_samples():
