@@ -9,11 +9,13 @@ channels:
 dependencies:
   - python
   - compilers
+  - numpy>=1.17.0
+  - scipy>=0.14
   - filelock
-  - cython
-  - numpy
-  - scipy
-  - sympy
+  - etuples
+  - logical-unification
+  - miniKanren
+  - cons
   # Intel BLAS
   - mkl
   - mkl-service
@@ -46,3 +48,6 @@ dependencies:
   # developer tools
   - pre-commit
   - packaging
+  # optional
+  - sympy
+  - cython
