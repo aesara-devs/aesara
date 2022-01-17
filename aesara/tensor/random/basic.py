@@ -16,14 +16,6 @@ from aesara.tensor.random.var import (
 
 
 try:
-    from pypolyagamma import PyPolyaGamma
-except ImportError:  # pragma: no cover
-
-    def PyPolyaGamma(*args, **kwargs):
-        raise RuntimeError("pypolygamma not installed!")
-
-
-try:
     broadcast_shapes = np.broadcast_shapes
 except AttributeError:
     from numpy.lib.stride_tricks import _broadcast_shape
@@ -633,47 +625,6 @@ class CategoricalRV(RandomVariable):
 
 
 categorical = CategoricalRV()
-
-
-class PolyaGammaRV(RandomVariable):
-    """Polya-Gamma random variable.
-
-    XXX: This doesn't really use the given RNG, due to the narrowness of the
-    sampler package's implementation.
-    """
-
-    name = "polya-gamma"
-    ndim_supp = 0
-    ndims_params = [0, 0]
-    dtype = "floatX"
-    _print_name = ("PG", "\\operatorname{PG}")
-
-    @classmethod
-    def rng_fn(cls, rng, b, c, size):
-        rand_method = rng.integers if hasattr(rng, "integers") else rng.randint
-        pg = PyPolyaGamma(rand_method(2 ** 16))
-
-        if not size and b.shape == c.shape == ():
-            return pg.pgdraw(b, c)
-        else:
-            b, c = np.broadcast_arrays(b, c)
-            size = tuple(size or ())
-
-            if len(size) > 0:
-                b = np.broadcast_to(b, size)
-                c = np.broadcast_to(c, size)
-
-            smpl_val = np.empty(b.shape, dtype="double")
-
-            pg.pgdrawv(
-                np.asarray(b.flat).astype("double", copy=True),
-                np.asarray(c.flat).astype("double", copy=True),
-                np.asarray(smpl_val.flat),
-            )
-            return smpl_val
-
-
-polyagamma = PolyaGammaRV()
 
 
 class RandIntRV(RandomVariable):

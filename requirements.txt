@@ -18,5 +18,4 @@ numba-scipy>=0.3.0
 diff-cover
 pre-commit
 isort
-pypolyagamma
 packaging
