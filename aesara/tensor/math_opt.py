@@ -281,7 +281,7 @@ def local_exp_log(fgraph, node):
     prev_op = x.owner.op.scalar_op
     node_op = node.op.scalar_op
 
-    # Case for log(exp(x))
+    # Case for log(exp(x)) -> x
     if isinstance(prev_op, aes.Exp) and isinstance(node_op, aes.Log):
         new_out = x.owner.inputs[0]
         old_out = node.outputs[0]
@@ -290,10 +290,24 @@ def local_exp_log(fgraph, node):
             new_out = cast(new_out, old_out.dtype)
         return [new_out]
 
-    # Case for exp(softplus(x)) aka exp(log1pexp)
+    # Case for log1p(expm1(x)) -> x
+    if isinstance(prev_op, aes.Expm1) and isinstance(node_op, aes.Log1p):
+        new_out = x.owner.inputs[0]
+        old_out = node.outputs[0]
+        # Expm1 may have cast integer input to float
+        if new_out.dtype != old_out.dtype:
+            new_out = cast(new_out, old_out.dtype)
+        return [new_out]
+
+    # Case for exp(softplus(x)) aka exp(log1pexp) -> 1 + exp(x)
     if isinstance(prev_op, aes_math.Softplus) and isinstance(node_op, aes.Exp):
         x = x.owner.inputs[0]
         return [add(1, exp(x))]
+
+    # Case for expm1(softplus(x)) aka expm1(log1pexp) -> exp(x)
+    if isinstance(prev_op, aes_math.Softplus) and isinstance(node_op, aes.Expm1):
+        x = x.owner.inputs[0]
+        return [exp(x)]
 
 
 @register_specialize
@@ -310,25 +324,46 @@ def local_exp_log_nan_switch(fgraph, node):
     prev_op = x.owner.op.scalar_op
     node_op = node.op.scalar_op
 
-    # Case for exp(log(x))
+    # Case for exp(log(x)) -> x
     if isinstance(prev_op, aes.Log) and isinstance(node_op, aes.Exp):
         x = x.owner.inputs[0]
         old_out = node.outputs[0]
         new_out = switch(ge(x, 0), x, np.asarray(np.nan, old_out.dtype))
         return [new_out]
 
-    # Case for exp(log1p(x))
+    # Case for exp(log1p(x)) -> x + 1
     if isinstance(prev_op, aes.Log1p) and isinstance(node_op, aes.Exp):
         x = x.owner.inputs[0]
         old_out = node.outputs[0]
         new_out = switch(ge(x, -1), add(1, x), np.asarray(np.nan, old_out.dtype))
         return [new_out]
 
-    # Case for exp(log1mexp(x))
+    # Case for expm1(log(x)) -> x - 1
+    if isinstance(prev_op, aes.Log) and isinstance(node_op, aes.Expm1):
+        x = x.owner.inputs[0]
+        old_out = node.outputs[0]
+        new_out = switch(ge(x, 0), sub(x, 1), np.asarray(np.nan, old_out.dtype))
+        return [new_out]
+
+    # Case for expm1(log1p(x)) -> x
+    if isinstance(prev_op, aes.Log1p) and isinstance(node_op, aes.Expm1):
+        x = x.owner.inputs[0]
+        old_out = node.outputs[0]
+        new_out = switch(ge(x, -1), x, np.asarray(np.nan, old_out.dtype))
+        return [new_out]
+
+    # Case for exp(log1mexp(x)) -> 1 - exp(x)
     if isinstance(prev_op, aes_math.Log1mexp) and isinstance(node_op, aes.Exp):
         x = x.owner.inputs[0]
         old_out = node.outputs[0]
         new_out = switch(le(x, 0), sub(1, exp(x)), np.asarray(np.nan, old_out.dtype))
+        return [new_out]
+
+    # Case for expm1(log1mexp(x)) -> -exp(x)
+    if isinstance(prev_op, aes_math.Log1mexp) and isinstance(node_op, aes.Expm1):
+        x = x.owner.inputs[0]
+        old_out = node.outputs[0]
+        new_out = switch(le(x, 0), neg(exp(x)), np.asarray(np.nan, old_out.dtype))
         return [new_out]
 
 
