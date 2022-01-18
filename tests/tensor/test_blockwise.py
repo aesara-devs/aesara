@@ -8,6 +8,7 @@ from aesara.tensor.blockwise import (
     _calculate_shapes,
     _parse_input_dimensions,
     _update_dim_sizes,
+    gufunc_sign_to_str,
 )
 from aesara.tensor.math import Dot
 from aesara.tensor.type import TensorType
@@ -68,7 +69,7 @@ def test_parse_input_dimensions(args, arg_vals, input_core_dims, output_core_dim
         exp_bcast_shape, exp_dim_sizes, output_core_dims
     )
     shape_res = shape_fn(*arg_vals)
-    assert tuple(shape_res) == exp_shape_res
+    assert np.allclose(shape_res, exp_shape_res)
 
     # TODO: Second, compute the input broadcast shapes
     # input_bcast_shapes, = _calculate_shapes(bcast_shape, dim_sizes, input_core_dims)
@@ -92,10 +93,10 @@ def test_Blockwise_perform(op, args, arg_vals, np_fn):
     x = Blockwise(op)(*args)
     x_fn = aesara.function(args, x)
 
-    res = x_fn(arg_vals)
+    res = x_fn(*arg_vals)
 
     sig = op.gufunc_sig
-    sig = f"({','.join(sig[0])})->({','.join(sig[1])})"
+    sig = gufunc_sign_to_str(sig)
 
     np_fn = np.vectorize(np_fn, signature=sig)
     exp_res = np_fn(*arg_vals)

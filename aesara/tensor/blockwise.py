@@ -1,5 +1,7 @@
 from typing import Dict, List, Tuple
 
+import numpy as np
+
 from aesara.graph.basic import Apply, Variable
 from aesara.graph.op import Op
 from aesara.tensor import get_scalar_constant_value
@@ -95,6 +97,12 @@ def _calculate_shapes(
     ]
 
 
+def gufunc_sign_to_str(sign):
+    in_sign = [f"({','.join(_sign)})" for _sign in sign[0]]
+    out_sign = [f"({','.join(_sign)})" for _sign in sign[1]]
+    return f"{','.join(in_sign)}->{','.join(out_sign)}"
+
+
 class Blockwise(Op):
     __props__ = ("op", "signature")
 
@@ -129,7 +137,29 @@ class Blockwise(Op):
         return Apply(self, list(inputs), outputs)
 
     def infer_shape(self, fgraph, node, shapes):
-        raise NotImplementedError()
+        shape_idx = {}
+        core_dims = []
+        # TODO: Add broadcasting logic.
+        for idx, inp_sign in enumerate(self.signature[0]):
+            inp_shp = shapes[idx][-len(inp_sign) :]
+            # Check length of all core dimensions are equal if any
+            if core_dims:
+                assert len(core_dims) == len(shapes[idx][: -len(inp_sign)])
+            else:
+                core_dims = shapes[idx][: -len(inp_sign)]
+
+            for _inp_shp, _inp_sign in zip(inp_shp, inp_sign):
+                shape_idx[_inp_sign] = _inp_shp
+
+        out_shapes = []
+        for idx, out_sign in enumerate(self.signature[1]):
+            out_shapes.append(
+                tuple(
+                    list(core_dims) + [shape_idx[_out_sign] for _out_sign in out_sign]
+                )
+            )
+
+        return out_shapes
 
     def grad(self, *args):
         raise NotImplementedError()
@@ -138,5 +168,27 @@ class Blockwise(Op):
         raise NotImplementedError()
 
     def perform(self, node, inputs, outputs):
-        # TODO: Use `np.vectorize`, or the same steps within it.
-        raise NotImplementedError()
+        def py_func(*inner_inputs):
+            res = [[None]] * len(outputs)
+            # This can be avoided by making a single dummy node
+            # But will that cover all cases?
+            node = self.op.make_node(*inner_inputs)
+            self.op.perform(node, inner_inputs, res)
+
+            # Numpy always expects outputs to be Numpy arrays
+            # And since we have a variable number of outputs
+            if len(res) == 1:
+                return res[0][0]
+            else:
+                return tuple(_res[0] for _res in res)
+
+        numpy_vec_func = np.vectorize(
+            py_func, signature=gufunc_sign_to_str(self.signature)
+        )
+        res_variables = numpy_vec_func(*inputs)
+
+        if isinstance(res_variables, tuple):
+            for i, out in enumerate(outputs):
+                outputs[i][0] = res_variables[i]
+        else:
+            outputs[0][0] = res_variables
