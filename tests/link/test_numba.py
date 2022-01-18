@@ -151,23 +151,27 @@ def eval_python_only(fn_inputs, fgraph, inputs):
         else:
             return wrap
 
-    with mock.patch("numba.njit", njit_noop), mock.patch(
-        "numba.vectorize",
-        vectorize_noop,
-    ), mock.patch(
-        "aesara.link.numba.dispatch.elemwise.tuple_setitem",
-        py_tuple_setitem,
-    ), mock.patch(
-        "aesara.link.numba.dispatch.basic.direct_cast", lambda x, dtype: x
-    ), mock.patch(
-        "aesara.link.numba.dispatch.basic.numba.np.numpy_support.from_dtype",
-        lambda dtype: dtype,
-    ), mock.patch(
-        "aesara.link.numba.dispatch.basic.to_scalar", py_to_scalar
-    ), mock.patch(
-        "numba.np.unsafe.ndarray.to_fixed_tuple",
-        lambda x, n: tuple(x),
-    ):
+    mocks = [
+        mock.patch("numba.njit", njit_noop),
+        mock.patch("numba.vectorize", vectorize_noop),
+        mock.patch(
+            "aesara.link.numba.dispatch.elemwise.tuple_setitem", py_tuple_setitem
+        ),
+        mock.patch("aesara.link.numba.dispatch.basic.numba_njit", njit_noop),
+        mock.patch("aesara.link.numba.dispatch.basic.numba_vectorize", vectorize_noop),
+        mock.patch("aesara.link.numba.dispatch.basic.direct_cast", lambda x, dtype: x),
+        mock.patch(
+            "aesara.link.numba.dispatch.basic.numba.np.numpy_support.from_dtype",
+            lambda dtype: dtype,
+        ),
+        mock.patch("aesara.link.numba.dispatch.basic.to_scalar", py_to_scalar),
+        mock.patch("numba.np.unsafe.ndarray.to_fixed_tuple", lambda x, n: tuple(x)),
+    ]
+
+    with contextlib.ExitStack() as stack:
+        for ctx in mocks:
+            stack.enter_context(ctx)
+
         aesara_numba_fn = function(
             fn_inputs,
             fgraph.outputs,
@@ -330,7 +334,6 @@ def test_numba_box_unbox(input, wrapper_fn, check_fn):
             None,
         ),
         (
-            # This also tests the use of repeated arguments
             [at.matrix(), at.scalar()],
             [rng.normal(size=(2, 2)).astype(config.floatX), 0.0],
             lambda a, b: at.switch(a, b, a),
@@ -3272,3 +3275,38 @@ def test_numba_ifelse(inputs, cond_fn, true_vals, false_vals):
     out_fg = FunctionGraph(inputs, out)
 
     compare_numba_and_py(out_fg, [get_test_value(i) for i in out_fg.inputs])
+
+
+@pytest.mark.xfail(reason="https://github.com/numba/numba/issues/7409")
+def test_config_options_parallel():
+    x = at.dvector()
+
+    with config.change_flags(numba__vectorize_target="parallel"):
+        aesara_numba_fn = function([x], x * 2, mode=numba_mode)
+        numba_mul_fn = aesara_numba_fn.fn.jit_fn.py_func.__globals__["mul"]
+        assert numba_mul_fn.targetoptions["parallel"] is True
+
+
+def test_config_options_fastmath():
+    x = at.dvector()
+
+    with config.change_flags(numba__fastmath=True):
+        aesara_numba_fn = function([x], x * 2, mode=numba_mode)
+        numba_mul_fn = aesara_numba_fn.fn.jit_fn.py_func.__globals__["mul"]
+        assert numba_mul_fn.targetoptions["fastmath"] is True
+
+
+def test_config_options_cached():
+    x = at.dvector()
+
+    with config.change_flags(numba__cache=True):
+        aesara_numba_fn = function([x], x * 2, mode=numba_mode)
+        numba_mul_fn = aesara_numba_fn.fn.jit_fn.py_func.__globals__["mul"]
+        assert not isinstance(
+            numba_mul_fn._dispatcher.cache, numba.core.caching.NullCache
+        )
+
+    with config.change_flags(numba__cache=False):
+        aesara_numba_fn = function([x], x * 2, mode=numba_mode)
+        numba_mul_fn = aesara_numba_fn.fn.jit_fn.py_func.__globals__["mul"]
+        assert isinstance(numba_mul_fn._dispatcher.cache, numba.core.caching.NullCache)

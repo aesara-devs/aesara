@@ -52,9 +52,11 @@ def allocempty({", ".join(shape_var_names)}):
     return np.empty(scalar_shape, dtype)
     """
 
-    alloc_fn = compile_function_src(alloc_def_src, "allocempty", global_env)
+    alloc_fn = compile_function_src(
+        alloc_def_src, "allocempty", {**globals(), **global_env}
+    )
 
-    return numba.njit(alloc_fn)
+    return numba_basic.numba_njit(alloc_fn)
 
 
 @numba_funcify.register(Alloc)
@@ -88,16 +90,16 @@ def alloc(val, {", ".join(shape_var_names)}):
     return res
     """
 
-    alloc_fn = compile_function_src(alloc_def_src, "alloc", global_env)
+    alloc_fn = compile_function_src(alloc_def_src, "alloc", {**globals(), **global_env})
 
-    return numba.njit(alloc_fn)
+    return numba_basic.numba_njit(alloc_fn)
 
 
 @numba_funcify.register(AllocDiag)
 def numba_funcify_AllocDiag(op, **kwargs):
     offset = op.offset
 
-    @numba.njit(inline="always")
+    @numba_basic.numba_njit(inline="always")
     def allocdiag(v):
         return np.diag(v, k=offset)
 
@@ -108,7 +110,7 @@ def numba_funcify_AllocDiag(op, **kwargs):
 def numba_funcify_ARange(op, **kwargs):
     dtype = np.dtype(op.dtype)
 
-    @numba.njit(inline="always")
+    @numba_basic.numba_njit(inline="always")
     def arange(start, stop, step):
         return np.arange(
             numba_basic.to_scalar(start),
@@ -130,7 +132,7 @@ def numba_funcify_Join(op, **kwargs):
         # probably just remove it.
         raise NotImplementedError("The `view` parameter to `Join` is not supported")
 
-    @numba.njit
+    @numba_basic.numba_njit
     def join(axis, *tensors):
         return np.concatenate(tensors, numba_basic.to_scalar(axis))
 
@@ -143,7 +145,7 @@ def numba_funcify_ExtractDiag(op, **kwargs):
     # axis1 = op.axis1
     # axis2 = op.axis2
 
-    @numba.njit(inline="always")
+    @numba_basic.numba_njit(inline="always")
     def extract_diag(x):
         return np.diag(x, k=offset)
 
@@ -154,7 +156,7 @@ def numba_funcify_ExtractDiag(op, **kwargs):
 def numba_funcify_Eye(op, **kwargs):
     dtype = np.dtype(op.dtype)
 
-    @numba.njit(inline="always")
+    @numba_basic.numba_njit(inline="always")
     def eye(N, M, k):
         return np.eye(
             numba_basic.to_scalar(N),
@@ -187,16 +189,18 @@ def makevector({", ".join(input_names)}):
     return np.array({create_list_string(input_names)}, dtype=np.{dtype})
     """
 
-    makevector_fn = compile_function_src(makevector_def_src, "makevector", global_env)
+    makevector_fn = compile_function_src(
+        makevector_def_src, "makevector", {**globals(), **global_env}
+    )
 
-    return numba.njit(makevector_fn)
+    return numba_basic.numba_njit(makevector_fn)
 
 
 @numba_funcify.register(Rebroadcast)
 def numba_funcify_Rebroadcast(op, **kwargs):
     op_axis = tuple(op.axis.items())
 
-    @numba.njit
+    @numba_basic.numba_njit
     def rebroadcast(x):
         for axis, value in numba.literal_unroll(op_axis):
             if value and x.shape[axis] != 1:
@@ -210,7 +214,7 @@ def numba_funcify_Rebroadcast(op, **kwargs):
 
 @numba_funcify.register(TensorFromScalar)
 def numba_funcify_TensorFromScalar(op, **kwargs):
-    @numba.njit(inline="always")
+    @numba_basic.numba_njit(inline="always")
     def tensor_from_scalar(x):
         return np.array(x)
 
@@ -219,7 +223,7 @@ def numba_funcify_TensorFromScalar(op, **kwargs):
 
 @numba_funcify.register(ScalarFromTensor)
 def numba_funcify_ScalarFromTensor(op, **kwargs):
-    @numba.njit(inline="always")
+    @numba_basic.numba_njit(inline="always")
     def scalar_from_tensor(x):
         return x.item()
 
