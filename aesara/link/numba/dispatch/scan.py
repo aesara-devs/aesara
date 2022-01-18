@@ -1,9 +1,9 @@
-import numba
 import numpy as np
 from numba import types
 from numba.extending import overload
 
 from aesara.graph.fg import FunctionGraph
+from aesara.link.numba.dispatch import basic as numba_basic
 from aesara.link.numba.dispatch.basic import (
     create_arg_string,
     create_tuple_string,
@@ -35,7 +35,7 @@ def array0d_range(x):
 @numba_funcify.register(Scan)
 def numba_funcify_Scan(op, node, **kwargs):
     inner_fg = FunctionGraph(op.inputs, op.outputs)
-    numba_at_inner_func = numba.njit(numba_funcify(inner_fg, **kwargs))
+    numba_at_inner_func = numba_basic.numba_njit(numba_funcify(inner_fg, **kwargs))
 
     n_seqs = op.info.n_seqs
     n_mit_mot = op.info.n_mit_mot
@@ -150,6 +150,8 @@ def scan(n_steps, {", ".join(input_names)}):
         outer_in_nit_sot_names
     )}
     """
-    scalar_op_fn = compile_function_src(scan_op_src, "scan", global_env)
+    scalar_op_fn = compile_function_src(
+        scan_op_src, "scan", {**globals(), **global_env}
+    )
 
-    return numba.njit(scalar_op_fn)
+    return numba_basic.numba_njit(scalar_op_fn)

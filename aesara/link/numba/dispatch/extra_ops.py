@@ -4,6 +4,7 @@ import numba
 import numpy as np
 from numpy.core.multiarray import normalize_axis_index
 
+from aesara import config
 from aesara.link.numba.dispatch import basic as numba_basic
 from aesara.link.numba.dispatch.basic import get_numba_type, numba_funcify
 from aesara.tensor.extra_ops import (
@@ -22,7 +23,7 @@ from aesara.tensor.extra_ops import (
 
 @numba_funcify.register(Bartlett)
 def numba_funcify_Bartlett(op, **kwargs):
-    @numba.njit(inline="always")
+    @numba_basic.numba_njit(inline="always")
     def bartlett(x):
         return np.bartlett(numba_basic.to_scalar(x))
 
@@ -44,7 +45,7 @@ def numba_funcify_CumOp(op, node, **kwargs):
         np_func = np.multiply
         identity = 1
 
-    @numba.njit(boundscheck=False)
+    @numba_basic.numba_njit(boundscheck=False, fastmath=config.numba__fastmath)
     def cumop(x):
         out_dtype = x.dtype
         if x.shape[axis] < 2:
@@ -53,7 +54,7 @@ def numba_funcify_CumOp(op, node, **kwargs):
         x_axis_first = x.transpose(reaxis_first)
         res = np.empty(x_axis_first.shape, dtype=out_dtype)
 
-        for m in range(x.shape[axis]):
+        for m in numba.prange(x.shape[axis]):
             if m == 0:
                 np_func(identity, x_axis_first[m], res[m])
             else:
@@ -82,7 +83,7 @@ def numba_funcify_DiffOp(op, node, **kwargs):
 
     op = np.not_equal if dtype == "bool" else np.subtract
 
-    @numba.njit(boundscheck=False)
+    @numba_basic.numba_njit(boundscheck=False, fastmath=config.numba__fastmath)
     def diffop(x):
         res = x.copy()
 
@@ -96,7 +97,7 @@ def numba_funcify_DiffOp(op, node, **kwargs):
 
 @numba_funcify.register(FillDiagonal)
 def numba_funcify_FillDiagonal(op, **kwargs):
-    @numba.njit
+    @numba_basic.numba_njit
     def filldiagonal(a, val):
         np.fill_diagonal(a, val)
         return a
@@ -106,7 +107,7 @@ def numba_funcify_FillDiagonal(op, **kwargs):
 
 @numba_funcify.register(FillDiagonalOffset)
 def numba_funcify_FillDiagonalOffset(op, node, **kwargs):
-    @numba.njit
+    @numba_basic.numba_njit
     def filldiagonaloffset(a, val, offset):
         height, width = a.shape
 
@@ -142,25 +143,25 @@ def numba_funcify_RavelMultiIndex(op, node, **kwargs):
 
     if mode == "raise":
 
-        @numba.njit
+        @numba_basic.numba_njit
         def mode_fn(*args):
             raise ValueError("invalid entry in coordinates array")
 
     elif mode == "wrap":
 
-        @numba.njit(inline="always")
+        @numba_basic.numba_njit(inline="always")
         def mode_fn(new_arr, i, j, v, d):
             new_arr[i, j] = v % d
 
     elif mode == "clip":
 
-        @numba.njit(inline="always")
+        @numba_basic.numba_njit(inline="always")
         def mode_fn(new_arr, i, j, v, d):
             new_arr[i, j] = min(max(v, 0), d - 1)
 
     if node.inputs[0].ndim == 0:
 
-        @numba.njit
+        @numba_basic.numba_njit
         def ravelmultiindex(*inp):
             shape = inp[-1]
             arr = np.stack(inp[:-1])
@@ -176,7 +177,7 @@ def numba_funcify_RavelMultiIndex(op, node, **kwargs):
 
     else:
 
-        @numba.njit
+        @numba_basic.numba_njit
         def ravelmultiindex(*inp):
             shape = inp[-1]
             arr = np.stack(inp[:-1])
@@ -215,7 +216,7 @@ def numba_funcify_Repeat(op, node, **kwargs):
 
         ret_sig = get_numba_type(node.outputs[0].type)
 
-        @numba.njit
+        @numba_basic.numba_njit
         def repeatop(x, repeats):
             with numba.objmode(ret=ret_sig):
                 ret = np.repeat(x, repeats, axis)
@@ -226,13 +227,13 @@ def numba_funcify_Repeat(op, node, **kwargs):
 
         if repeats_ndim == 0:
 
-            @numba.njit(inline="always")
+            @numba_basic.numba_njit(inline="always")
             def repeatop(x, repeats):
                 return np.repeat(x, repeats.item())
 
         else:
 
-            @numba.njit(inline="always")
+            @numba_basic.numba_njit(inline="always")
             def repeatop(x, repeats):
                 return np.repeat(x, repeats)
 
@@ -257,7 +258,7 @@ def numba_funcify_Unique(op, node, **kwargs):
 
     if not use_python:
 
-        @numba.njit(inline="always")
+        @numba_basic.numba_njit(inline="always")
         def unique(x):
             return np.unique(x)
 
@@ -276,7 +277,7 @@ def numba_funcify_Unique(op, node, **kwargs):
         else:
             ret_sig = get_numba_type(node.outputs[0].type)
 
-        @numba.njit
+        @numba_basic.numba_njit
         def unique(x):
             with numba.objmode(ret=ret_sig):
                 ret = np.unique(x, return_index, return_inverse, return_counts, axis)
@@ -296,17 +297,17 @@ def numba_funcify_UnravelIndex(op, node, **kwargs):
 
     if len(node.outputs) == 1:
 
-        @numba.njit(inline="always")
+        @numba_basic.numba_njit(inline="always")
         def maybe_expand_dim(arr):
             return arr
 
     else:
 
-        @numba.njit(inline="always")
+        @numba_basic.numba_njit(inline="always")
         def maybe_expand_dim(arr):
             return np.expand_dims(arr, 1)
 
-    @numba.njit
+    @numba_basic.numba_njit
     def unravelindex(arr, shape):
         a = np.ones(len(shape), dtype=np.int64)
         a[1:] = shape[:0:-1]
@@ -339,7 +340,7 @@ def numba_funcify_Searchsorted(op, node, **kwargs):
 
         ret_sig = get_numba_type(node.outputs[0].type)
 
-        @numba.njit
+        @numba_basic.numba_njit
         def searchsorted(a, v, sorter):
             with numba.objmode(ret=ret_sig):
                 ret = np.searchsorted(a, v, side, sorter)
@@ -347,7 +348,7 @@ def numba_funcify_Searchsorted(op, node, **kwargs):
 
     else:
 
-        @numba.njit(inline="always")
+        @numba_basic.numba_njit(inline="always")
         def searchsorted(a, v):
             return np.searchsorted(a, v, side)
 

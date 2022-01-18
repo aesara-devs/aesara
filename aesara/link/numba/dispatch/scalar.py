@@ -1,11 +1,11 @@
 from functools import reduce
 from typing import List
 
-import numba
 import numpy as np
 import scipy
 import scipy.special
 
+from aesara import config
 from aesara.compile.ops import ViewOp
 from aesara.graph.basic import Variable
 from aesara.link.numba.dispatch import basic as numba_basic
@@ -60,16 +60,20 @@ def numba_funcify_ScalarOp(op, node, **kwargs):
 def {scalar_op_fn_name}({input_names}):
     return scalar_func({input_names})
     """
-    scalar_op_fn = compile_function_src(scalar_op_src, scalar_op_fn_name, global_env)
+    scalar_op_fn = compile_function_src(
+        scalar_op_src, scalar_op_fn_name, {**globals(), **global_env}
+    )
 
     signature = create_numba_signature(node, force_scalar=True)
 
-    return numba.njit(signature, inline="always")(scalar_op_fn)
+    return numba_basic.numba_njit(
+        signature, inline="always", fastmath=config.numba__fastmath
+    )(scalar_op_fn)
 
 
 @numba_funcify.register(Switch)
 def numba_funcify_Switch(op, node, **kwargs):
-    @numba.njit(inline="always")
+    @numba_basic.numba_njit(inline="always")
     def switch(condition, x, y):
         if condition:
             return x
@@ -90,7 +94,7 @@ def binary_to_nary_func(inputs: List[Variable], binary_op_name: str, binary_op: 
 def {binary_op_name}({input_signature}):
     return {output_expr}
     """
-    nary_fn = compile_function_src(nary_src, binary_op_name)
+    nary_fn = compile_function_src(nary_src, binary_op_name, globals())
 
     return nary_fn
 
@@ -102,7 +106,9 @@ def numba_funcify_Add(op, node, **kwargs):
 
     nary_add_fn = binary_to_nary_func(node.inputs, "add", "+")
 
-    return numba.njit(signature, inline="always")(nary_add_fn)
+    return numba_basic.numba_njit(
+        signature, inline="always", fastmath=config.numba__fastmath
+    )(nary_add_fn)
 
 
 @numba_funcify.register(Mul)
@@ -112,7 +118,9 @@ def numba_funcify_Mul(op, node, **kwargs):
 
     nary_mul_fn = binary_to_nary_func(node.inputs, "mul", "*")
 
-    return numba.njit(signature, inline="always")(nary_mul_fn)
+    return numba_basic.numba_njit(
+        signature, inline="always", fastmath=config.numba__fastmath
+    )(nary_mul_fn)
 
 
 @numba_funcify.register(Cast)
@@ -120,7 +128,7 @@ def numba_funcify_Cast(op, node, **kwargs):
 
     dtype = np.dtype(op.o_type.dtype)
 
-    @numba.njit(inline="always")
+    @numba_basic.numba_njit(inline="always")
     def cast(x):
         return numba_basic.direct_cast(x, dtype)
 
@@ -130,7 +138,7 @@ def numba_funcify_Cast(op, node, **kwargs):
 @numba_funcify.register(Identity)
 @numba_funcify.register(ViewOp)
 def numba_funcify_ViewOp(op, **kwargs):
-    @numba.njit(inline="always")
+    @numba_basic.numba_njit(inline="always")
     def viewop(x):
         return x
 
@@ -139,7 +147,7 @@ def numba_funcify_ViewOp(op, **kwargs):
 
 @numba_funcify.register(Clip)
 def numba_funcify_Clip(op, **kwargs):
-    @numba.njit
+    @numba_basic.numba_njit
     def clip(_x, _min, _max):
         x = numba_basic.to_scalar(_x)
         _min_scalar = numba_basic.to_scalar(_min)
@@ -158,7 +166,7 @@ def numba_funcify_Clip(op, **kwargs):
 @numba_funcify.register(Composite)
 def numba_funcify_Composite(op, node, **kwargs):
     signature = create_numba_signature(node, force_scalar=True)
-    composite_fn = numba.njit(signature)(
+    composite_fn = numba_basic.numba_njit(signature, fastmath=config.numba__fastmath)(
         numba_funcify(op.fgraph, squeeze_output=True, **kwargs)
     )
     return composite_fn
@@ -166,7 +174,7 @@ def numba_funcify_Composite(op, node, **kwargs):
 
 @numba_funcify.register(Second)
 def numba_funcify_Second(op, node, **kwargs):
-    @numba.njit(inline="always")
+    @numba_basic.numba_njit(inline="always")
     def second(x, y):
         return y
 
@@ -175,7 +183,7 @@ def numba_funcify_Second(op, node, **kwargs):
 
 @numba_funcify.register(Inv)
 def numba_funcify_Inv(op, node, **kwargs):
-    @numba.njit(inline="always")
+    @numba_basic.numba_njit(inline="always")
     def inv(x):
         return 1 / x
 

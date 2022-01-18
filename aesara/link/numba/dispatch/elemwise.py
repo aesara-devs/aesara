@@ -7,6 +7,7 @@ import numba
 import numpy as np
 from numba.cpython.unsafe.tuple import tuple_setitem
 
+from aesara import config
 from aesara.graph.basic import Apply
 from aesara.link.numba.dispatch import basic as numba_basic
 from aesara.link.numba.dispatch.basic import (
@@ -38,9 +39,19 @@ def create_vectorize_func(op, node, use_signature=False, identity=None, **kwargs
     else:
         signature = []
 
-    numba_vectorize = numba.vectorize(signature, identity=identity)
-    elemwise_fn = numba_vectorize(scalar_op_fn)
-    elemwise_fn.py_scalar_func = scalar_op_fn
+    target = (
+        getattr(node.tag, "numba__vectorize_target", None)
+        or config.numba__vectorize_target
+    )
+
+    numba_vectorized_fn = numba_basic.numba_vectorize(
+        signature, identity=identity, target=target, fastmath=config.numba__fastmath
+    )
+
+    py_scalar_func = getattr(scalar_op_fn, "py_func", scalar_op_fn)
+
+    elemwise_fn = numba_vectorized_fn(scalar_op_fn)
+    elemwise_fn.py_scalar_func = py_scalar_func
 
     return elemwise_fn
 
@@ -85,9 +96,13 @@ def {inplace_elemwise_fn_name}({input_signature_str}):
             """
 
         inplace_elemwise_fn = compile_function_src(
-            inplace_elemwise_src, inplace_elemwise_fn_name, inplace_global_env
+            inplace_elemwise_src,
+            inplace_elemwise_fn_name,
+            {**globals(), **inplace_global_env},
         )
-        return numba.njit(inline="always")(inplace_elemwise_fn)
+        return numba_basic.numba_njit(inline="always", fastmath=config.numba__fastmath)(
+            inplace_elemwise_fn
+        )
 
     return elemwise_fn
 
@@ -144,13 +159,13 @@ def create_axis_reducer(
 
         if keepdims:
 
-            @numba.njit(inline="always")
+            @numba_basic.numba_njit(inline="always")
             def set_out_dims(x):
                 return np.expand_dims(x, axis)
 
         else:
 
-            @numba.njit(inline="always")
+            @numba_basic.numba_njit(inline="always")
             def set_out_dims(x):
                 return x
 
@@ -160,13 +175,13 @@ def create_axis_reducer(
 
         reaxis_first = (axis,) + tuple(i for i in range(ndim) if i != axis)
 
-        @numba.njit(boundscheck=False)
+        @numba_basic.numba_njit(boundscheck=False)
         def careduce_axis(x):
             res_shape = res_shape_tuple_ctor(x.shape)
             x_axis_first = x.transpose(reaxis_first)
 
             res = np.full(res_shape, numba_basic.to_scalar(identity), dtype=dtype)
-            for m in range(x.shape[axis]):
+            for m in numba.prange(x.shape[axis]):
                 reduce_fn(res, x_axis_first[m], res)
 
             return set_out_dims(res)
@@ -175,21 +190,22 @@ def create_axis_reducer(
 
         if keepdims:
 
-            @numba.njit(inline="always")
+            @numba_basic.numba_njit(inline="always")
             def set_out_dims(x):
                 return np.array([x], dtype)
 
         else:
 
-            @numba.njit(inline="always")
+            @numba_basic.numba_njit(inline="always")
             def set_out_dims(x):
                 return numba_basic.direct_cast(x, dtype)
 
-        @numba.njit(boundscheck=False)
+        @numba_basic.numba_njit(boundscheck=False)
         def careduce_axis(x):
             res = numba_basic.to_scalar(identity)
-            for val in x:
-                res = reduce_fn(res, val)
+            x_ravel = x.ravel()
+            for i in numba.prange(x_ravel.size):
+                res = reduce_fn(res, x_ravel[i])
             return set_out_dims(res)
 
     return careduce_axis
@@ -258,14 +274,16 @@ def {careduce_fn_name}({input_name}):
     return {var_name}
     """
 
-    careduce_fn = compile_function_src(careduce_def_src, careduce_fn_name, global_env)
-    return numba.njit(careduce_fn)
+    careduce_fn = compile_function_src(
+        careduce_def_src, careduce_fn_name, {**globals(), **global_env}
+    )
+    return numba_basic.numba_njit(fastmath=config.numba__fastmath)(careduce_fn)
 
 
 def create_axis_apply_fn(fn, axis, ndim, dtype):
     reaxis_first = tuple(i for i in range(ndim) if i != axis) + (axis,)
 
-    @numba.njit(boundscheck=False)
+    @numba_basic.numba_njit(boundscheck=False)
     def axis_apply_fn(x):
         x_reaxis = x.transpose(reaxis_first)
 
@@ -327,7 +345,7 @@ def numba_funcify_DimShuffle(op, **kwargs):
 
     if len(shuffle) > 0:
 
-        @numba.njit
+        @numba_basic.numba_njit
         def populate_new_shape(i, j, new_shape, shuffle_shape):
             if i in augment:
                 new_shape = tuple_setitem(new_shape, i, 1)
@@ -341,7 +359,7 @@ def numba_funcify_DimShuffle(op, **kwargs):
         # is typed as `getitem(Tuple(), int)`, which has no implementation
         # (since getting an item from an empty sequence doesn't make sense).
         # To avoid this compile-time error, we omit the expression altogether.
-        @numba.njit(inline="always")
+        @numba_basic.numba_njit(inline="always")
         def populate_new_shape(i, j, new_shape, shuffle_shape):
             return j, tuple_setitem(new_shape, i, 1)
 
@@ -350,7 +368,7 @@ def numba_funcify_DimShuffle(op, **kwargs):
             lambda _: 0, ndim_new_shape
         )
 
-        @numba.njit
+        @numba_basic.numba_njit
         def dimshuffle_inner(x, shuffle):
             res = np.transpose(x, transposition)
             shuffle_shape = res.shape[: len(shuffle)]
@@ -371,7 +389,7 @@ def numba_funcify_DimShuffle(op, **kwargs):
 
     else:
 
-        @numba.njit
+        @numba_basic.numba_njit
         def dimshuffle_inner(x, shuffle):
             return x.item()
 
@@ -387,7 +405,7 @@ def numba_funcify_DimShuffle(op, **kwargs):
     # E       No match.
     # ...(on this line)...
     # E           shuffle_shape = res.shape[: len(shuffle)]
-    @numba.njit(inline="always")
+    @numba_basic.numba_njit(inline="always")
     def dimshuffle(x):
         return dimshuffle_inner(np.asarray(x), shuffle)
 
@@ -413,7 +431,7 @@ def numba_funcify_Softmax(op, node, **kwargs):
         reduce_max = np.max
         reduce_sum = np.sum
 
-    @numba.njit
+    @numba_basic.numba_njit
     def softmax(x):
         z = reduce_max(x)
         e_x = np.exp(x - z)
@@ -439,7 +457,7 @@ def numba_funcify_SoftmaxGrad(op, node, **kwargs):
     else:
         reduce_sum = np.sum
 
-    @numba.njit
+    @numba_basic.numba_njit
     def softmax_grad(dy, sm):
         dy_times_sm = dy * sm
         sum_dy_times_sm = reduce_sum(dy_times_sm)
@@ -468,7 +486,7 @@ def numba_funcify_LogSoftmax(op, node, **kwargs):
         reduce_max = np.max
         reduce_sum = np.sum
 
-    @numba.njit
+    @numba_basic.numba_njit
     def log_softmax(x):
         xdev = x - reduce_max(x)
         lsm = xdev - np.log(reduce_sum(np.exp(xdev)))
@@ -487,7 +505,7 @@ def numba_funcify_MaxAndArgmax(op, node, **kwargs):
 
     if x_ndim == 0:
 
-        @numba.njit(inline="always")
+        @numba_basic.numba_njit(inline="always")
         def maxandargmax(x):
             return x, 0
 
@@ -511,7 +529,7 @@ def numba_funcify_MaxAndArgmax(op, node, **kwargs):
         sl1 = slice(None, len(keep_axes))
         sl2 = slice(len(keep_axes), None)
 
-        @numba.njit
+        @numba_basic.numba_njit
         def maxandargmax(x):
             max_res = reduce_max(x)
 

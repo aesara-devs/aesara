@@ -14,8 +14,7 @@ from typing import Any, Callable, Dict, Iterable, List, NoReturn, Optional, Tupl
 
 import numpy as np
 
-from aesara import utils
-from aesara.configdefaults import config
+from aesara import config, utils
 from aesara.graph.basic import Apply, Constant, Variable
 from aesara.graph.fg import FunctionGraph
 
@@ -768,7 +767,7 @@ def {fgraph_name}({", ".join(fgraph_input_names)}):
         local_env = locals()
 
     fgraph_def = compile_function_src(
-        fgraph_def_src, fgraph_name, global_env, local_env
+        fgraph_def_src, fgraph_name, {**globals(), **global_env}, local_env
     )
 
     return fgraph_def

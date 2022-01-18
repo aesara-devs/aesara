@@ -1,7 +1,6 @@
 from textwrap import dedent, indent
 from typing import Any, Callable, Dict, Optional
 
-import numba
 import numba.np.unsafe.ndarray as numba_ndarray
 import numpy as np
 from numba import _helperlib, types
@@ -129,7 +128,7 @@ def make_numba_random_fn(node, np_random_func):
     )
     bcast_fn_global_env = {
         "np_random_func": np_random_func,
-        "numba_vectorize": numba.vectorize,
+        "numba_vectorize": numba_basic.numba_vectorize,
     }
 
     bcast_fn_src = f"""
@@ -137,7 +136,9 @@ def make_numba_random_fn(node, np_random_func):
 def {bcast_fn_name}({bcast_fn_input_names}):
     return np_random_func({bcast_fn_input_names})
     """
-    bcast_fn = compile_function_src(bcast_fn_src, bcast_fn_name, bcast_fn_global_env)
+    bcast_fn = compile_function_src(
+        bcast_fn_src, bcast_fn_name, {**globals(), **bcast_fn_global_env}
+    )
 
     random_fn_input_names = ", ".join(
         ["rng", "size", "dtype"] + [unique_names(i) for i in node.inputs[3:]]
@@ -179,8 +180,10 @@ def {sized_fn_name}({random_fn_input_names}):
     return (rng, data)
     """
     )
-    random_fn = compile_function_src(sized_fn_src, sized_fn_name, random_fn_global_env)
-    random_fn = numba.njit(random_fn)
+    random_fn = compile_function_src(
+        sized_fn_src, sized_fn_name, {**globals(), **random_fn_global_env}
+    )
+    random_fn = numba_basic.numba_njit(random_fn)
 
     return random_fn
 
@@ -239,7 +242,7 @@ def create_numba_random_fn(
         np_global_env = {}
 
     np_global_env["np"] = np
-    np_global_env["numba_vectorize"] = numba.vectorize
+    np_global_env["numba_vectorize"] = numba_basic.numba_vectorize
 
     unique_names = unique_name_generator(
         [
@@ -262,7 +265,7 @@ def {np_random_fn_name}({np_input_names}):
 {scalar_fn(*np_names)}
     """
     np_random_fn = compile_function_src(
-        np_random_fn_src, np_random_fn_name, np_global_env
+        np_random_fn_src, np_random_fn_name, {**globals(), **np_global_env}
     )
 
     return make_numba_random_fn(node, np_random_fn)
