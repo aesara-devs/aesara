@@ -649,18 +649,15 @@ def jax_funcify_FunctionGraph(
 
 @jax_funcify.register(CAReduce)
 def jax_funcify_CAReduce(op, **kwargs):
-    axis = op.axis
+
     op_nfunc_spec = getattr(op, "nfunc_spec", None)
     scalar_nfunc_spec = getattr(op.scalar_op, "nfunc_spec", None)
     scalar_op_name = getattr(op.scalar_op, "name", None)
     scalar_op_identity = getattr(op.scalar_op, "identity", None)
     acc_dtype = getattr(op, "acc_dtype", None)
 
-    def careduce(x):
-        nonlocal axis, op_nfunc_spec, scalar_nfunc_spec, scalar_op_name, scalar_op_identity, acc_dtype
-
-        if axis is None:
-            axis = list(range(x.ndim))
+    def careduce(x, *axis):
+        nonlocal op_nfunc_spec, scalar_nfunc_spec, scalar_op_name, scalar_op_identity, acc_dtype
 
         if acc_dtype is None:
             acc_dtype = x.dtype.type

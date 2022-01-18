@@ -3537,7 +3537,8 @@ class PermuteRowElements(Op):
             for dim in range(gz.type.ndim)
             if x.type.broadcastable[dim] and not gz.type.broadcastable[dim]
         ]
-        gx = Sum(axis=broadcasted_dims)(gx)
+        if broadcasted_dims:
+            gx = Sum()(gx, *broadcasted_dims)
 
         # Sum(...) removed the dimensions in broadcasted_dims,
         # so we need to put them back.

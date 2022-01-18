@@ -3133,7 +3133,8 @@ class TestLocalSumProd:
             inputs, inputs_val, reduction_op, expected_output, nb_expected_sum_nodes
         ):
             mul_out = mul(*inputs)
-            f = function(inputs, reduction_op()(mul_out), mode=self.mode)
+            axes = np.arange(mul_out.ndim).tolist()
+            f = function(inputs, reduction_op()(mul_out, *axes), mode=self.mode)
             out = f(*inputs_val)
             utt.assert_allclose(out, expected_output)
 
@@ -3465,10 +3466,10 @@ class TestLocalSumProd:
         f = function([vect], at_sum(-vect), mode=m0)
         assert check_stack_trace(f, ops_to_check=[Sum])
 
-        f = function([vect, ds], Prod()(vect * ds), mode=m0)
+        f = function([vect, ds], Prod()(vect * ds, 0), mode=m0)
         assert check_stack_trace(f, ops_to_check=[Prod])
 
-        f = function([vect], Prod()(-vect), mode=m0)
+        f = function([vect], Prod()(-vect, 0), mode=m0)
         assert check_stack_trace(f, ops_to_check=[Prod])
 
         f = function([mat, ds], at_sum(mat * ds), mode=m0)
@@ -3537,7 +3538,7 @@ class TestLocalReduce:
             #   by the local_reduce_broadcastable optimization
             #   now summation is over the original x's dimension 1.
             assert node.inputs[0].ndim == 2, node
-            assert op.axis == (0,), op.axis
+            assert node.inputs[1].eval() == np.array((0,)), node.inputs[1]
 
     def test_local_reduce_broadcast_some_1(self):
         for fct in [

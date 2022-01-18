@@ -30,6 +30,7 @@ from aesara.tensor.type import (
     float_dtypes,
     lvector,
 )
+from aesara.tensor.var import TensorConstant
 from aesara.utils import uniq
 
 
@@ -1249,39 +1250,17 @@ class CAReduce(COp):
 
     __props__: Union[
         Tuple[str], Tuple[str, str], Tuple[str, str, str], Tuple[str, str, str, str]
-    ] = ("scalar_op", "axis")
+    ] = ("scalar_op",)
 
-    def __init__(self, scalar_op, axis=None):
-        """
-
-        Parameters
-        ----------
-        scalar_op
-            A binary scalar `Op` with only one output. It must be commutative
-            and associative.
-        axis
-            - The dimension along which we want to reduce
-            - List of dimensions that we want to reduce
-            - If ``None``, all dimensions are reduced
-
-        """
+    def __init__(self, scalar_op):
         if scalar_op.nin not in (-1, 2) or scalar_op.nout != 1:
             raise NotImplementedError(
                 "CAReduce only supports binary functions with a single " "output."
             )
 
-        self.axis = None
         self.ufunc_is_vectorized = False
         self.scalar_op = scalar_op
         self.set_ufunc(scalar_op)
-
-        if axis is not None:
-            if isinstance(axis, (int, np.integer)) or (
-                isinstance(axis, np.ndarray) and not axis.shape
-            ):
-                self.axis = (int(axis),)
-            else:
-                self.axis = tuple(axis)
 
     def set_ufunc(self, scalar_op):
         if hasattr(scalar_op, "nfunc_spec") and hasattr(np, scalar_op.nfunc_spec[0]):
@@ -1293,42 +1272,50 @@ class CAReduce(COp):
     def _output_dtype(self, input_dtype):
         return input_dtype
 
-    def make_node(self, input):
+    def make_node(self, input, *axis):
+        from aesara.graph.basic import Variable
+        from aesara.tensor.basic import as_tensor_variable
+
         input = as_tensor_variable(input)
-        inp_dims = input.type.ndim
         inp_bdcast = input.type.broadcastable
         inp_dtype = input.type.dtype
-        copy_op = False
+        inp_dims = input.type.ndim
 
-        axis = self.axis
-        if axis is None:
-            axis = list(range(len(inp_bdcast)))
+        curr_axis = []
+        for _axis in axis:
+            if isinstance(_axis, Variable):
+                if not isinstance(_axis, TensorConstant):
+                    raise TypeError("Axis values cannot be a Variable")
+                if not _axis.ndim == 0:
+                    raise ValueError(
+                        "Axis values cannot be multi dimensional variables"
+                    )
+                _axis = int(_axis.data)
+            else:
+                _axis = np.array(_axis, dtype=int)
+                if not _axis.shape == ():
+                    raise ValueError("Axis values must be integers")
 
-        axis = list(axis)
-        for i, a in enumerate(axis):
-            if a >= inp_dims or a < -inp_dims:
+            if _axis < 0:
+                _axis = _axis + inp_dims
+
+            if _axis >= inp_dims or _axis < 0:
                 raise ValueError(
-                    f"Not enough dimensions on {input} to reduce on axis {a}"
+                    f"Not enough dimensions on {input} to reduce on axis {_axis}"
                 )
-            if a < 0:
-                copy_op = True
-                axis[i] = a + inp_dims
 
-        # We can't call self.__class__() as there is a class that
-        # inherits from CAReduce that doesn't have the same signature
-        if copy_op:
-            op = copy(self)
-            op.set_ufunc(op.scalar_op)
-            assert len(axis) == len(self.axis)
-            op.axis = tuple(axis)
-        else:
-            op = self
+            if _axis in curr_axis:
+                raise ValueError("Input axes are not unique.")
 
-        broadcastable = [x for i, x in enumerate(inp_bdcast) if i not in axis]
+            curr_axis.append(_axis)
+
+        curr_axis.sort()
+        broadcastable = [x for i, x in enumerate(inp_bdcast) if i not in curr_axis]
 
         output = TensorType(dtype=self._output_dtype(inp_dtype), shape=broadcastable)()
 
-        return Apply(op, [input], [output])
+        curr_axis = [as_tensor_variable(_axis) for _axis in curr_axis]
+        return Apply(self, [input, *curr_axis], [output])
 
     def __getstate__(self):
         d = copy(self.__dict__)
@@ -1340,20 +1327,12 @@ class CAReduce(COp):
         self.set_ufunc(self.scalar_op)
 
     def __str__(self):
-        if self.axis is not None:
-            return "Reduce{{{}}}{{{}}}".format(
-                self.scalar_op,
-                ", ".join(str(x) for x in self.axis),
-            )
-        else:
-            return "Reduce{%s}" % self.scalar_op
+        return "Reduce{%s}" % self.scalar_op
 
     def perform(self, node, inp, out):
-        (input,) = inp
+        input = inp[0]
+        axis = inp[1:]
         (output,) = out
-        axis = self.axis
-        if axis is None:
-            axis = list(range(input.ndim))
 
         if hasattr(self, "acc_dtype") and self.acc_dtype is not None:
             acc_dtype = self.acc_dtype
@@ -1362,27 +1341,24 @@ class CAReduce(COp):
 
         variable = np.array(input, dtype=acc_dtype)
 
-        if axis:
-            # Reducing functions built using np.frompyfunc() do not
-            # support reduction along multiple axes. Hence loop through
-            # each, otherwise numpy's inbuilt reduction functions
-            # support reduction along multiple axes directly.
-            if self.ufunc_is_vectorized:
-                to_reduce = reversed(sorted(axis))
-                for dimension in to_reduce:
-                    variable = self.ufunc.reduce(variable, dimension, dtype=acc_dtype)
-            else:
-                variable = self.ufunc.reduce(variable, axis=tuple(axis))
-            output[0] = _asarray(variable, dtype=node.outputs[0].type.dtype)
+        # Reducing functions built using np.frompyfunc() do not
+        # support reduction along multiple axes. Hence loop through
+        # each, otherwise numpy's inbuilt reduction functions
+        # support reduction along multiple axes directly.
+        if self.ufunc_is_vectorized:
+            to_reduce = reversed(sorted(axis))
+            for dimension in to_reduce:
+                variable = self.ufunc.reduce(variable, dimension, dtype=acc_dtype)
         else:
-            # Force a copy
-            output[0] = np.array(variable, copy=True, dtype=node.outputs[0].type.dtype)
+            variable = self.ufunc.reduce(variable, axis=tuple(axis))
+        output[0] = _asarray(variable, dtype=node.outputs[0].type.dtype)
 
     def infer_shape(self, fgraph, node, shapes):
-        (ishape,) = shapes
-        axis = self.axis
-        if axis is None:
-            return ((),)
+        ishape = shapes[0]
+
+        axis = node.inputs[1:]
+        axis = [int(_axis.data) for _axis in axis]
+
         return (
             [
                 ishape[i]
@@ -1394,6 +1370,9 @@ class CAReduce(COp):
     def _c_all(self, node, name, inames, onames, sub):
 
         input = node.inputs[0]
+        axis = node.inputs[1:]
+        axis = [int(_axis.data) for _axis in axis]
+
         output = node.outputs[0]
 
         iname = inames[0]
@@ -1412,10 +1391,6 @@ class CAReduce(COp):
         else:
             adtype = odtype
 
-        axis = self.axis
-        if axis is None:
-            axis = list(range(len(input.type.broadcastable)))
-
         if len(axis) == 0:
             # The acc_dtype is never a downcast compared to the input dtype
             # So we just need a cast to the output dtype.
@@ -1423,7 +1398,7 @@ class CAReduce(COp):
             if var is input:
                 var = Elemwise(scalar_identity)(input)
             assert var.dtype == node.outputs[0].dtype
-            return var.owner.op._c_all(var.owner, name, inames, onames, sub)
+            return var.owner.op._c_all(var.owner, name, [inames[0]], onames, sub)
 
         order1 = [i for i in range(input.type.ndim) if i not in axis]
         order = order1 + list(axis)
@@ -1431,7 +1406,7 @@ class CAReduce(COp):
         nnested = len(order1)
 
         sub = dict(sub)
-        for i, (input, iname) in enumerate(zip(node.inputs, inames)):
+        for i, (input, iname) in enumerate(zip(node.inputs, [inames[0]])):
             sub[f"lv{i}"] = iname
 
         decl = ""
@@ -1602,48 +1577,14 @@ class CAReduceDtype(CAReduce):
 
     __props__: Union[Tuple[str, str, str], Tuple[str, str, str, str]] = (
         "scalar_op",
-        "axis",
         "dtype",
         "acc_dtype",
     )
 
-    def __init__(self, scalar_op, axis=None, dtype=None, acc_dtype=None):
-        """
-
-        Parameters
-        ----------
-        scalar_op
-            A binary scalar `Op` with only one output.
-            It must be commutative and associative.
-        axis
-            * the dimension along which we want to reduce
-            * list of dimensions that we want to reduce
-            * if ``None``, all dimensions are reduced
-        dtype
-            The dtype of the returned tensor. If ``None``, then we use the default
-            dtype which is the same as the input array's dtype except when:
-
-            * the input dtype is a signed integer of precision < 64 bit, in which
-            case we use int64
-            * the input dtype is an unsigned integer of precision < 64 bit, in
-            which case we use uint64
-
-            This default dtype does _not_ depend on the value of `acc_dtype`.
-            This behavior is similar in spirit to that of NumPy, except that
-            NumPy uses the default machine integer while we always use 64 bit
-            integers to avoid platform-dependent behavior.
-        acc_dtype
-            The dtype of the internal accumulator.
-            If ``None`` (default), we use the dtype in the list below,
-            or the input dtype if its precision is higher:
-
-            * for int dtypes, we use at least int64;
-            * for uint dtypes, we use at least uint64;
-            * for float dtypes, we use at least float64;
-            * for complex dtypes, we use at least complex128.
-
-        """
-        super().__init__(scalar_op, axis=axis)
+    def __init__(self, scalar_op, dtype=None, acc_dtype=None):
+        super().__init__(
+            scalar_op,
+        )
         self.dtype = dtype
         self.acc_dtype = acc_dtype
 
@@ -1723,7 +1664,7 @@ class CAReduceDtype(CAReduce):
                 )
             return acc_dtype
 
-    def make_node(self, input):
+    def make_node(self, input, *axis):
         # We need to redefine make_node so that, if self.dtype is None,
         # we can infer what dtype should be, and create a node from an Op
         # of the appropriate dtype.
@@ -1747,17 +1688,13 @@ class CAReduceDtype(CAReduce):
 
         # TODO: Why doesn't `make_node` just take these
         # automatically-determined values as arguments?
-        return super(CAReduceDtype, op).make_node(input)
+        return super(CAReduceDtype, op).make_node(input, *axis)
 
     def __str__(self):
         name = self.__class__.__name__
         if self.__class__.__name__ == "CAReduceDtype":
             name = ("ReduceDtype{%s}" % self.scalar_op,)
-        axis = ""
-        if self.axis is not None:
-            axis = ", ".join(str(x) for x in self.axis)
-            axis = f"axis=[{axis}], "
-        return f"{name}{{{axis}acc_dtype={self.acc_dtype}}}"
+        return f"{name}{{acc_dtype={self.acc_dtype}}}"
 
 
 def scalar_elemwise(*symbol, nfunc=None, nin=None, nout=None, symbolname=None):

@@ -1251,8 +1251,11 @@ def softmax_simplifier(numerators, denominators):
                 new_dim = ds_order.index("x")
                 z = denominator.owner.inputs[0]
                 if z.owner and isinstance(z.owner.op, Sum):
-                    sum_axis = z.owner.op.axis
+                    sum_axis = z.owner.inputs[1:]
+                    sum_axis = [int(_axis.data) for _axis in sum_axis]
                     # Check that reintroduced dim was the one reduced
+                    if len(sum_axis) == z.owner.inputs[0].ndim:
+                        sum_axis = None
                     if (
                         (sum_axis is not None)
                         and (len(sum_axis) == 1)
@@ -1267,11 +1270,14 @@ def softmax_simplifier(numerators, denominators):
             else:
                 z = denominator
                 if z.owner and isinstance(z.owner.op, Sum):
-                    sum_axis = z.owner.op.axis
+                    sum_axis = z.owner.inputs[1:]
+                    sum_axis = [int(_axis.data) for _axis in sum_axis]
                     # Filter out partial summations over more than one axis
                     # The cases where all axis of summation are explicitly given
                     # as in `sum(matrix, axis=(0, 1))` are eventually rewritten
                     # to `sum(matrix)` and this branch is not a blocker
+                    if len(sum_axis) == z.owner.inputs[0].ndim:
+                        sum_axis = None
                     if sum_axis is not None and len(sum_axis) != 1:
                         continue
                     if z.owner.inputs[0] is numerator:

@@ -55,7 +55,7 @@ def local_max_and_argmax(fgraph, node):
     if isinstance(node.op, MaxAndArgmax):
         axis = node.op.get_params(node)
         if len(fgraph.clients[node.outputs[1]]) == 0:
-            new = Max(axis)(node.inputs[0])
+            new = Max()(node.inputs[0], *axis)
             copy_stack_trace(node.outputs[0], new)
             return [new, None]
 
@@ -88,7 +88,7 @@ def local_max_to_min(fgraph, node):
         ):
             neg_node = max.owner.inputs[0]
             if neg_node.owner and neg_node.owner.op == neg:
-                new = Min(max.owner.op.axis)(neg_node.owner.inputs[0])
+                new = Min()(neg_node.owner.inputs[0], *max.owner.inputs[1:])
                 return [copy_stack_trace(node.outputs[0], new)]
 
     return False
