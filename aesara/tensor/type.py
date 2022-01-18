@@ -1,4 +1,5 @@
 import logging
+import warnings
 from typing import Iterable, Optional, Union
 
 import numpy as np
@@ -60,8 +61,9 @@ class TensorType(CType):
     def __init__(
         self,
         dtype: Union[str, np.dtype],
-        shape: Iterable[Optional[Union[bool, int]]],
+        shape: Optional[Iterable[Optional[Union[bool, int]]]] = None,
         name: Optional[str] = None,
+        broadcastable: Optional[Iterable[bool]] = None,
     ):
         r"""
 
@@ -79,6 +81,14 @@ class TensorType(CType):
             Optional name for this type.
 
         """
+
+        if broadcastable is not None:
+            warnings.warn(
+                "The `broadcastable` keyword is deprecated; use `shape`.",
+                DeprecationWarning,
+            )
+            shape = broadcastable
+
         if isinstance(dtype, str) and dtype == "floatX":
             self.dtype = config.floatX
         else:
@@ -95,7 +105,13 @@ class TensorType(CType):
         self.name = name
         self.numpy_dtype = np.dtype(self.dtype)
 
-    def clone(self, dtype=None, shape=None, **kwargs):
+    def clone(self, dtype=None, shape=None, broadcastable=None, **kwargs):
+        if broadcastable is not None:
+            warnings.warn(
+                "The `broadcastable` keyword is deprecated; use `shape`.",
+                DeprecationWarning,
+            )
+            shape = broadcastable
         if dtype is None:
             dtype = self.dtype
         if shape is None:

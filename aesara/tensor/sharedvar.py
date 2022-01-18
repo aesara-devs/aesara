@@ -1,4 +1,5 @@
 import traceback
+import warnings
 
 import numpy as np
 
@@ -38,6 +39,7 @@ def tensor_constructor(
     borrow=False,
     shape=None,
     target="cpu",
+    broadcastable=None,
 ):
     """
     SharedVariable Constructor for TensorType.
@@ -49,6 +51,13 @@ def tensor_constructor(
     optional `shape` argument will override this default.
 
     """
+    if broadcastable is not None:
+        warnings.warn(
+            "The `broadcastable` keyword is deprecated; use `shape`.",
+            DeprecationWarning,
+        )
+        shape = broadcastable
+
     if target != "cpu":
         raise TypeError("not for cpu")
 

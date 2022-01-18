@@ -685,3 +685,10 @@ def test_scalar_shared_options():
 def test_get_vector_length():
     x = aesara.shared(np.array((2, 3, 4, 5)))
     assert get_vector_length(x) == 4
+
+
+def test_deprecated_kwargs():
+    with pytest.warns(DeprecationWarning, match=".*broadcastable.*"):
+        res = aesara.shared(np.array([[1.0]]), broadcastable=(True, False))
+
+    assert res.type.shape == (1, None)

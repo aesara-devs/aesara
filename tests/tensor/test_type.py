@@ -286,3 +286,15 @@ def test_fixed_shape_convert_variable():
     res = t3.convert_variable(t4_var)
     assert res.type == t4
     assert res.type.shape == (3, 2)
+
+
+def test_deprecated_kwargs():
+    with pytest.warns(DeprecationWarning, match=".*broadcastable.*"):
+        res = TensorType("float64", broadcastable=(True, False))
+
+    assert res.shape == (1, None)
+
+    with pytest.warns(DeprecationWarning, match=".*broadcastable.*"):
+        new_res = res.clone(broadcastable=(False, True))
+
+    assert new_res.shape == (None, 1)
