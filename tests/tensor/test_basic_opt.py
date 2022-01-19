@@ -3507,3 +3507,65 @@ def test_Shape_i_canonicalize():
     assert isinstance(y_opt.owner.op, Shape_i)
     assert y_opt.owner.op.i == 0
     assert y_opt.owner.inputs[0] == x
+
+
+@pytest.mark.parametrize(
+    "expr, x_shape, y_shape",
+    [
+        pytest.param(
+            lambda x, y: at.mul(y, at.alloc(1, x)),
+            (),
+            (),
+            marks=pytest.mark.xfail(reason="Not implemented"),
+        ),
+        (lambda x, y: at.mul(at.alloc(x, 15, 1), y), (15, 1), (15, 1)),
+        (lambda x, y: at.mul(at.alloc(x, 15, 2), y), (15, 2), (15, 2)),
+        (lambda x, y: at.mul(at.alloc(x, 15, 1), at.alloc(y, 15, 1)), (15, 1), (15, 1)),
+        (lambda x, y: at.mul(at.alloc(x, 15, 2), at.alloc(y, 15, 2)), (15, 2), (15, 2)),
+        (lambda x, y: at.mul(at.alloc(x, 15, 2).dimshuffle(1, 0), y), (15, 2), (2, 15)),
+        (lambda x, y: at.mul(at.alloc(x, 1, 15, 2), y), (15, 2), (15, 2)),
+        (
+            lambda x, y: at.mul(at.alloc(x, 1, 15, 2).dimshuffle(0, 2, 1), y),
+            (15, 2),
+            (2, 15),
+        ),
+    ],
+)
+def test_local_elemwise_alloc(expr, x_shape, y_shape):
+    x = at.tensor("int64", (False,) * len(x_shape))
+    y = at.tensor("int64", (False,) * len(y_shape))
+    z = expr(x, y)
+
+    z_opt = aesara.function(
+        [x, y],
+        z,
+        mode=get_default_mode().including("local_elemwise_alloc"),
+        on_unused_input="ignore",
+    )
+
+    assert not any(isinstance(node.op, Alloc) for node in z_opt.maker.fgraph.toposort())
+
+    z_no_opt = aesara.function(
+        [x, y],
+        z,
+        mode=get_default_mode().excluding("local_elemwise_alloc"),
+        on_unused_input="ignore",
+    )
+
+    x_val = np.arange(np.prod(x_shape), dtype=np.int64).reshape(x_shape)
+    y_val = np.arange(np.prod(y_shape), dtype=np.int64).reshape(y_shape)
+
+    res = z_opt(x_val, y_val)
+    exp_res = z_no_opt(x_val, y_val)
+    assert np.array_equal(res, exp_res)
+
+
+def test_local_elemwise_alloc_single_input():
+    # Test that rewrite is not triggered when there is only one Alloc in an Elemwise
+    x = at.matrix("x")
+    z = at.exp(at.alloc(x, 15, 1))
+
+    z_fg = FunctionGraph(outputs=[z], copy_inputs=False, features=[ShapeFeature()])
+
+    z_opt_fg = optimize_graph(z_fg, clone=False, include=["local_elemwise_alloc"])
+    assert any(isinstance(node.op, Alloc) for node in z_opt_fg.apply_nodes)
