@@ -9,6 +9,7 @@ from aesara.link.numba.dispatch import basic as numba_basic
 from aesara.link.numba.dispatch.basic import get_numba_type, numba_funcify
 from aesara.tensor.extra_ops import (
     Bartlett,
+    BroadcastTo,
     CumOp,
     DiffOp,
     FillDiagonal,
@@ -353,3 +354,12 @@ def numba_funcify_Searchsorted(op, node, **kwargs):
             return np.searchsorted(a, v, side)
 
     return searchsorted
+
+
+@numba_funcify.register(BroadcastTo)
+def numba_funcify_BroadcastTo(op, node, **kwargs):
+    @numba_basic.numba_njit()
+    def broadcast_to(x, *shape):
+        return np.broadcast_to(x, shape)
+
+    return broadcast_to
