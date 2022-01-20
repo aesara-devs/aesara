@@ -1813,29 +1813,26 @@ def test_Searchsorted(a, v, side, sorter, exc):
 
 
 @pytest.mark.parametrize(
-    "x, shape, exc",
+    "x, shape",
     [
         (
             set_test_value(at.vector(), rng.random(size=(2,)).astype(config.floatX)),
             [set_test_value(at.lscalar(), np.array(v)) for v in [3, 2]],
-            UserWarning,
         ),
     ],
 )
-def test_BroadcastTo(x, shape, exc):
+def test_BroadcastTo(x, shape):
     g = extra_ops.BroadcastTo()(x, shape)
     g_fg = FunctionGraph(outputs=[g])
 
-    cm = contextlib.suppress() if exc is None else pytest.warns(exc)
-    with cm:
-        compare_numba_and_py(
-            g_fg,
-            [
-                i.tag.test_value
-                for i in g_fg.inputs
-                if not isinstance(i, (SharedVariable, Constant))
-            ],
-        )
+    compare_numba_and_py(
+        g_fg,
+        [
+            i.tag.test_value
+            for i in g_fg.inputs
+            if not isinstance(i, (SharedVariable, Constant))
+        ],
+    )
 
 
 @pytest.mark.parametrize(
