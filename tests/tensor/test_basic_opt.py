@@ -40,7 +40,7 @@ from aesara.tensor.basic_opt import (
     ShapeFeature,
     apply_rebroadcast_opt,
     assert_op,
-    local_canonicalize_alloc,
+    local_alloc_sink_dimshuffle,
     local_dimshuffle_lift,
     local_merge_alloc,
     local_reshape_to_dimshuffle,
@@ -1423,8 +1423,7 @@ class TestLocalCanonicalizeAlloc:
 
         # The optimization 'locall_fill_to_alloc' should call at.alloc,
         # which should return x and not alloc(x, ...)
-        mode = mode_opt.excluding("local_canonicalize_alloc")
-        f = function([x], [y], mode=mode)
+        f = function([x], [y], mode=mode_opt.including("local_fill_to_alloc"))
         assert not any(
             [isinstance(node.op, Alloc) for node in f.maker.fgraph.toposort()]
         )
@@ -1433,9 +1432,12 @@ class TestLocalCanonicalizeAlloc:
         x = matrix("x")
         y = at.tile(x, (1,) * 2)
 
-        mode = mode_opt.including("local_canonicalize_alloc")
+        mode = mode_opt.including(
+            "local_dimshuffle_lift",
+            "local_useless_dimshuffle_in_reshape",
+            "local_alloc_sink_dimshuffle",
+        )
         f = function([x], [y], mode=mode)
-        [node.op.__class__ for node in f.maker.fgraph.toposort()]
 
         assert not any(
             [isinstance(node.op, Alloc) for node in f.maker.fgraph.toposort()]
@@ -1454,7 +1456,7 @@ class TestLocalCanonicalizeAlloc:
         g = FunctionGraph(outputs=[x])
         assert any(isinstance(node.op, Alloc) for node in g.toposort())
 
-        alloc_lift = out2in(local_canonicalize_alloc)
+        alloc_lift = out2in(local_alloc_sink_dimshuffle)
         alloc_lift.optimize(g)
 
         if has_alloc:
@@ -3217,7 +3219,7 @@ def test_local_Unique_Alloc_lift(
     # The remaining exclusions simply allow us to perform the check below that
     # makes sure the original `Alloc` is present in our reference (sub)graph.
     opt_mode = default_mode.excluding(
-        "local_useless_alloc", "local_canonicalize_alloc", "local_Unique_Alloc_lift"
+        "local_useless_alloc", "local_alloc_sink_dimshuffle", "local_Unique_Alloc_lift"
     )
     y_fn = function([x], [y, y_opt], mode=opt_mode)
     # Make sure that the original `Alloc` is used to compute the reference `y`
@@ -3505,3 +3507,65 @@ def test_Shape_i_canonicalize():
     assert isinstance(y_opt.owner.op, Shape_i)
     assert y_opt.owner.op.i == 0
     assert y_opt.owner.inputs[0] == x
+
+
+@pytest.mark.parametrize(
+    "expr, x_shape, y_shape",
+    [
+        pytest.param(
+            lambda x, y: at.mul(y, at.alloc(1, x)),
+            (),
+            (),
+            marks=pytest.mark.xfail(reason="Not implemented"),
+        ),
+        (lambda x, y: at.mul(at.alloc(x, 15, 1), y), (15, 1), (15, 1)),
+        (lambda x, y: at.mul(at.alloc(x, 15, 2), y), (15, 2), (15, 2)),
+        (lambda x, y: at.mul(at.alloc(x, 15, 1), at.alloc(y, 15, 1)), (15, 1), (15, 1)),
+        (lambda x, y: at.mul(at.alloc(x, 15, 2), at.alloc(y, 15, 2)), (15, 2), (15, 2)),
+        (lambda x, y: at.mul(at.alloc(x, 15, 2).dimshuffle(1, 0), y), (15, 2), (2, 15)),
+        (lambda x, y: at.mul(at.alloc(x, 1, 15, 2), y), (15, 2), (15, 2)),
+        (
+            lambda x, y: at.mul(at.alloc(x, 1, 15, 2).dimshuffle(0, 2, 1), y),
+            (15, 2),
+            (2, 15),
+        ),
+    ],
+)
+def test_local_elemwise_alloc(expr, x_shape, y_shape):
+    x = at.tensor("int64", (False,) * len(x_shape))
+    y = at.tensor("int64", (False,) * len(y_shape))
+    z = expr(x, y)
+
+    z_opt = aesara.function(
+        [x, y],
+        z,
+        mode=get_default_mode().including("local_elemwise_alloc"),
+        on_unused_input="ignore",
+    )
+
+    assert not any(isinstance(node.op, Alloc) for node in z_opt.maker.fgraph.toposort())
+
+    z_no_opt = aesara.function(
+        [x, y],
+        z,
+        mode=get_default_mode().excluding("local_elemwise_alloc"),
+        on_unused_input="ignore",
+    )
+
+    x_val = np.arange(np.prod(x_shape), dtype=np.int64).reshape(x_shape)
+    y_val = np.arange(np.prod(y_shape), dtype=np.int64).reshape(y_shape)
+
+    res = z_opt(x_val, y_val)
+    exp_res = z_no_opt(x_val, y_val)
+    assert np.array_equal(res, exp_res)
+
+
+def test_local_elemwise_alloc_single_input():
+    # Test that rewrite is not triggered when there is only one Alloc in an Elemwise
+    x = at.matrix("x")
+    z = at.exp(at.alloc(x, 15, 1))
+
+    z_fg = FunctionGraph(outputs=[z], copy_inputs=False, features=[ShapeFeature()])
+
+    z_opt_fg = optimize_graph(z_fg, clone=False, include=["local_elemwise_alloc"])
+    assert any(isinstance(node.op, Alloc) for node in z_opt_fg.apply_nodes)
