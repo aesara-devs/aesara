@@ -51,6 +51,7 @@ from aesara.scalar.basic import (
     log1p,
     log2,
     log10,
+    mean,
     mul,
     neq,
     rad2deg,
@@ -64,7 +65,7 @@ from aesara.scalar.basic import (
     true_div,
     uint8,
 )
-from aesara.tensor.type import fscalar, imatrix, matrix
+from aesara.tensor.type import fscalar, imatrix, iscalar, matrix
 
 
 def test_mul_add_true():
@@ -468,3 +469,31 @@ def test_constant():
     c = constant(2, dtype="float32")
     assert c.name is None
     assert c.dtype == "float32"
+
+
+@pytest.mark.parametrize("mode", [Mode("py"), Mode("cvm")])
+def test_mean(mode):
+    a = iscalar("a")
+    b = iscalar("b")
+    z = mean(a, b)
+    z_fn = aesara.function([a, b], z, mode=mode)
+    res = z_fn(1, 1)
+    assert np.allclose(res, 1.0)
+
+    a = fscalar("a")
+    b = fscalar("b")
+    c = fscalar("c")
+
+    z = mean(a, b, c)
+
+    z_fn = aesara.function([a, b, c], aesara.grad(z, [a]), mode=mode)
+    res = z_fn(3, 4, 5)
+    assert np.allclose(res, 1 / 3)
+
+    z_fn = aesara.function([a, b, c], aesara.grad(z, [b]), mode=mode)
+    res = z_fn(3, 4, 5)
+    assert np.allclose(res, 1 / 3)
+
+    z = mean()
+    z_fn = aesara.function([], z, mode=mode)
+    assert z_fn() == 0

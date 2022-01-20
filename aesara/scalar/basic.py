@@ -1857,6 +1857,32 @@ class Add(ScalarOp):
 add = Add(upcast_out, name="add")
 
 
+class Mean(ScalarOp):
+    identity = 0
+    commutative = True
+    associative = False
+    nfunc_spec = ("mean", 2, 1)
+    nfunc_variadic = "mean"
+
+    def impl(self, *inputs):
+        return sum(inputs) / len(inputs)
+
+    def c_code(self, node, name, inputs, outputs, sub):
+        (z,) = outputs
+        if not inputs:
+            return f"{z} = 0;"
+        else:
+            return f"{z} = ({' + '.join(inputs)}) / ((double) {len(inputs)});"
+
+    def L_op(self, inputs, outputs, gout):
+        (gz,) = gout
+        retval = [gz / len(inputs)] * len(inputs)
+        return retval
+
+
+mean = Mean(float_out, name="mean")
+
+
 class Mul(ScalarOp):
     identity = 1
     commutative = True
