@@ -1474,8 +1474,11 @@ def complex_from_polar(abs, angle):
 
 
 class Mean(CAReduce):
+    __props__ = ("axis",)
+    nfunc_spec = ("mean", 1, 1)
+
     def __init__(self, axis=None):
-        super().__init__(aes.add, axis)
+        super().__init__(aes.mean, axis)
         assert self.axis is None or len(self.axis) == 1
 
     def __str__(self):
