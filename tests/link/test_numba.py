@@ -3056,6 +3056,67 @@ def test_RandomVariable(rv_op, dist_args, size):
     )
 
 
+@pytest.mark.parametrize(
+    "rv_op, dist_args, size, cm",
+    [
+        pytest.param(
+            aer.categorical,
+            [
+                set_test_value(
+                    at.dvector(),
+                    np.array([100000, 1, 1], dtype=np.float64),
+                ),
+            ],
+            None,
+            contextlib.suppress(),
+        ),
+        pytest.param(
+            aer.categorical,
+            [
+                set_test_value(
+                    at.dmatrix(),
+                    np.array(
+                        [[100000, 1, 1], [1, 100000, 1], [1, 1, 100000]],
+                        dtype=np.float64,
+                    ),
+                ),
+            ],
+            (10, 3),
+            contextlib.suppress(),
+        ),
+        pytest.param(
+            aer.categorical,
+            [
+                set_test_value(
+                    at.dmatrix(),
+                    np.array(
+                        [[100000, 1, 1], [1, 100000, 1], [1, 1, 100000]],
+                        dtype=np.float64,
+                    ),
+                ),
+            ],
+            (10, 4),
+            pytest.raises(ValueError, match="Parameters shape.*"),
+        ),
+    ],
+    ids=str,
+)
+def test_CategoricalRV(rv_op, dist_args, size, cm):
+    rng = shared(np.random.RandomState(29402))
+    g = rv_op(*dist_args, size=size, rng=rng)
+    g_fg = FunctionGraph(outputs=[g])
+
+    with cm:
+        compare_numba_and_py(
+            g_fg,
+            [
+                i.tag.test_value
+                for i in g_fg.inputs
+                if not isinstance(i, (SharedVariable, Constant))
+            ],
+        )
+
+
 def test_RandomState_updates():
     rng = shared(np.random.RandomState(1))
     rng_new = shared(np.random.RandomState(2))
