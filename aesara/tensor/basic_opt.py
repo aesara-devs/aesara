@@ -1809,19 +1809,9 @@ def local_useless_alloc(fgraph, node):
 @register_specialize
 @register_stabilize
 @register_canonicalize
-@local_optimizer([alloc])
-def local_canonicalize_alloc(fgraph, node):
-    """If the input type is the same as the output type (dtype and broadcast)
-    there is no change in the shape of the input. So this is just a simple copy
-    of the input. This is not needed. (as local_useless_alloc)
-
-    Also, it will canonicalize alloc by creating Dimshuffle after the
-    alloc to introduce the dimensions of constant size 1.
-
-    See https://github.com/Theano/Theano/issues/4072 to know why this
-    is needed.
-
-    """
+@local_optimizer([Alloc])
+def local_alloc_sink_dimshuffle(fgraph, node):
+    r"""Convert broadcastable leading dimensions in an `Alloc` to `DimShuffle`\s."""
     op = node.op
     if not isinstance(op, Alloc):
         return False
@@ -1829,22 +1819,7 @@ def local_canonicalize_alloc(fgraph, node):
     inp = node.inputs[0]
     output = node.outputs[0]
 
-    # Check if dtype and broadcast remain the same.
-    if (
-        inp.type.dtype == output.type.dtype
-        and inp.type.broadcastable == output.type.broadcastable
-    ):
-        # We don't need to copy over any stack traces here
-        return [inp]
-
-    # Allow local_merge_alloc to do its work first
-    clients = fgraph.clients[output]
-    for client, i in clients:
-        if client != "output" and isinstance(client.op, Alloc):
-            return
-
     # Check if alloc adds a broadcastable dimension with shape 1.
-
     output_shape = node.inputs[1:]
     num_dims_with_size_1_added_to_left = 0
     for i in range(len(output_shape) - inp.ndim):
@@ -1852,6 +1827,7 @@ def local_canonicalize_alloc(fgraph, node):
             num_dims_with_size_1_added_to_left += 1
         else:
             break
+
     new_output_shape = output_shape[num_dims_with_size_1_added_to_left:]
     if num_dims_with_size_1_added_to_left > 0 and len(new_output_shape) >= inp.ndim:
         if (

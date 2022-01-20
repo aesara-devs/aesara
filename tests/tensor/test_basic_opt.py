@@ -40,7 +40,7 @@ from aesara.tensor.basic_opt import (
     ShapeFeature,
     apply_rebroadcast_opt,
     assert_op,
-    local_canonicalize_alloc,
+    local_alloc_sink_dimshuffle,
     local_dimshuffle_lift,
     local_merge_alloc,
     local_reshape_to_dimshuffle,
@@ -1423,8 +1423,7 @@ class TestLocalCanonicalizeAlloc:
 
         # The optimization 'locall_fill_to_alloc' should call at.alloc,
         # which should return x and not alloc(x, ...)
-        mode = mode_opt.excluding("local_canonicalize_alloc")
-        f = function([x], [y], mode=mode)
+        f = function([x], [y], mode=mode_opt.including("local_fill_to_alloc"))
         assert not any(
             [isinstance(node.op, Alloc) for node in f.maker.fgraph.toposort()]
         )
@@ -1433,9 +1432,12 @@ class TestLocalCanonicalizeAlloc:
         x = matrix("x")
         y = at.tile(x, (1,) * 2)
 
-        mode = mode_opt.including("local_canonicalize_alloc")
+        mode = mode_opt.including(
+            "local_dimshuffle_lift",
+            "local_useless_dimshuffle_in_reshape",
+            "local_alloc_sink_dimshuffle",
+        )
         f = function([x], [y], mode=mode)
-        [node.op.__class__ for node in f.maker.fgraph.toposort()]
 
         assert not any(
             [isinstance(node.op, Alloc) for node in f.maker.fgraph.toposort()]
@@ -1454,7 +1456,7 @@ class TestLocalCanonicalizeAlloc:
         g = FunctionGraph(outputs=[x])
         assert any(isinstance(node.op, Alloc) for node in g.toposort())
 
-        alloc_lift = out2in(local_canonicalize_alloc)
+        alloc_lift = out2in(local_alloc_sink_dimshuffle)
         alloc_lift.optimize(g)
 
         if has_alloc:
@@ -3217,7 +3219,7 @@ def test_local_Unique_Alloc_lift(
     # The remaining exclusions simply allow us to perform the check below that
     # makes sure the original `Alloc` is present in our reference (sub)graph.
     opt_mode = default_mode.excluding(
-        "local_useless_alloc", "local_canonicalize_alloc", "local_Unique_Alloc_lift"
+        "local_useless_alloc", "local_alloc_sink_dimshuffle", "local_Unique_Alloc_lift"
     )
     y_fn = function([x], [y, y_opt], mode=opt_mode)
     # Make sure that the original `Alloc` is used to compute the reference `y`

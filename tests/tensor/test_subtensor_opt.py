@@ -1860,7 +1860,7 @@ class TestLocalElemwiseAlloc:
         # Exclude local_useless_alloc, since it does not introduce
         # assert in all the same cases.
         self.fast_run_mode = self.fast_run_mode.excluding(
-            "local_useless_alloc", "local_canonicalize_alloc"
+            "local_useless_alloc", "local_alloc_sink_dimshuffle"
         )
         # No optimization on alloc
         func = function(
