@@ -45,10 +45,10 @@ relies on the following elements to work properly :
 
 
 import dataclasses
-import itertools
 import logging
 import time
 from collections import OrderedDict
+from itertools import product
 from typing import Callable, List, Optional, Union
 
 import numpy as np
@@ -530,7 +530,7 @@ class ScanMethodsMixin:
             inner_iidxs = var_mappings["inner_inp_from_outer_out"][outer_oidx]
             inner_oidxs = var_mappings["inner_out_from_outer_out"][outer_oidx]
 
-            for (inner_iidx, inner_oidx) in itertools.product(inner_iidxs, inner_oidxs):
+            for (inner_iidx, inner_oidx) in product(inner_iidxs, inner_oidxs):
 
                 type_input = self.inputs[inner_iidx].type
                 type_output = self.outputs[inner_oidx].type
@@ -1363,24 +1363,11 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
             if impl == "py":
                 raise MissingGXX
 
+            from . import scan_perform_ext
+
             cython_mintaps = np.asarray(self.mintaps, dtype="int32")
 
             tap_array_len = tuple(len(x) for x in self.tap_array)
-
-            cython_mit_mot_out_nslices = np.asarray(
-                [len(x) for x in self.mit_mot_out_slices], dtype="int32"
-            )
-            if len(self.mit_mot_out_slices) == 0:
-                d1 = 0
-            else:
-                d1 = np.max(cython_mit_mot_out_nslices)
-            d0 = len(self.mit_mot_out_slices)
-            cython_mit_mot_out_slices = np.zeros((d0, d1), dtype="int32")
-            for _d0 in range(d0):
-                for _d1 in range(cython_mit_mot_out_nslices[_d0]):
-                    cython_mit_mot_out_slices[_d0, _d1] = self.mit_mot_out_slices[_d0][
-                        _d1
-                    ]
 
             cython_vector_seqs = np.asarray(self.vector_seqs, dtype="int32")
             cython_vector_outs = np.asarray(self.vector_outs, dtype="int32")
@@ -1403,13 +1390,16 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
             inner_input_storage = [s.storage for s in self.fn.input_storage]
             inner_output_storage = [s.storage for s in self.fn.output_storage]
 
-            inner_input_needs_update = [
+            inner_input_needs_update = tuple(
                 inp.update is not None for inp in self.fn.maker.expanded_inputs
-            ]
+            )
 
-            output_dtypes = [getattr(out, "dtype", None) for out in node.outputs]
-
-            from . import scan_perform_ext
+            outer_output_dtypes = tuple(
+                getattr(out, "dtype", None) for out in node.outputs
+            )
+            outer_output_ndims = tuple(
+                getattr(out, "ndim", None) for out in node.outputs
+            )
 
             def p(node, inputs, outputs):
 
@@ -1429,7 +1419,7 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
                     tap_array_len,
                     cython_vector_seqs,
                     cython_vector_outs,
-                    cython_mit_mot_out_slices,
+                    self.mit_mot_out_slices,
                     cython_mitmots_preallocated,
                     cython_inps_is_tensor,
                     cython_outs_is_tensor,
@@ -1441,7 +1431,8 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
                     cython_destroy_map,
                     inputs,
                     outputs,
-                    output_dtypes,
+                    outer_output_dtypes,
+                    outer_output_ndims,
                 )
 
                 t_call = time.perf_counter() - t0_call
@@ -1566,7 +1557,9 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
             for idx in range(self.n_outs, self.n_outs + self.n_nit_sot):
                 out_var = node.outputs[idx]
                 if isinstance(out_var, TensorVariable):
-                    output_storage[idx][0] = out_var.type.value_zeros(0)
+                    output_storage[idx][0] = np.empty(
+                        (0,) * out_var.type.ndim, dtype=out_var.type.dtype
+                    )
                 else:
                     output_storage[idx][0] = None
             return
@@ -1875,7 +1868,9 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
                         or output_storage[j][0].shape[1:] != shape[1:]
                         or output_storage[j][0].dtype != dtype
                     ):
-                        output_storage[j][0] = node.outputs[j].type.value_zeros(shape)
+                        output_storage[j][0] = np.empty(
+                            shape, dtype=node.outputs[j].type
+                        )
                     elif output_storage[j][0].shape[0] != store_steps[j]:
                         output_storage[j][0] = output_storage[j][0][: store_steps[j]]
                     output_storage[j][0][pos[j]] = inner_output_storage[jout].storage[0]
@@ -1932,7 +1927,7 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
                     # This way, there will be no information overwritten
                     # before it is read (as it used to happen).
                     shape = (pdx,) + output_storage[idx][0].shape[1:]
-                    tmp = node.outputs[idx].type.value_zeros(shape)
+                    tmp = np.empty(shape, dtype=node.outputs[idx].type)
                     tmp[:] = output_storage[idx][0][:pdx]
                     output_storage[idx][0][: store_steps[idx] - pdx] = output_storage[
                         idx
@@ -1941,7 +1936,7 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
                     del tmp
                 else:
                     shape = (store_steps[idx] - pdx,) + output_storage[idx][0].shape[1:]
-                    tmp = node.outputs[idx].type.value_zeros(shape)
+                    tmp = np.empty(shape, dtype=node.outputs[idx].type)
                     tmp[:] = output_storage[idx][0][pdx:]
                     output_storage[idx][0][store_steps[idx] - pdx :] = output_storage[
                         idx
