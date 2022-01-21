@@ -5,8 +5,7 @@ import numpy as np
 
 import aesara.tensor as at
 from aesara.compile import SharedVariable
-from aesara.compile.function import function
-from aesara.compile.mode import Mode
+from aesara.compile.function.pfunc import construct_pfunc_ins_and_outs
 from aesara.configdefaults import config
 from aesara.graph.basic import Constant, Variable, clone_replace, graph_inputs
 from aesara.graph.fg import MissingInputError
@@ -764,9 +763,6 @@ def scan(
     # we have and what are their update rules (note that the user has
     # the option not to pass the shared variable to scan, so we need to
     # pick them manually and add them to scan)
-    # make the compilation as fast as possible by not applying any
-    # optimization or conversion to C [ note this region is not important
-    # for performance so we can do stuff as unoptimal as we wish ]
 
     # extract still missing inputs (there still might be so) and add them
     # as non sequences at the end of our args
@@ -794,13 +790,8 @@ def scan(
     # Perform a try-except to provide a meaningful error message to the
     # user if inputs of the inner function are missing.
     try:
-        dummy_f = function(
-            dummy_args,
-            dummy_outs,
-            updates=updates,
-            mode=Mode(linker="py", optimizer=None),
-            on_unused_input="ignore",
-            profile=False,
+        dummy_inputs, dummy_outputs = construct_pfunc_ins_and_outs(
+            dummy_args, dummy_outs, updates=updates
         )
     except MissingInputError as err:
         msg = (
@@ -820,7 +811,7 @@ def scan(
     # assumed outputs until now (provided by the user) there can be
     # only one explanation: No information is provided for any of the
     # outputs (i.e. we are dealing with a map)
-    tmp_dummy_f_outs = len(dummy_f.maker.outputs)
+    tmp_dummy_f_outs = len(dummy_outputs)
     if as_while:
         tmp_dummy_f_outs -= 1
     if not (tmp_dummy_f_outs == n_outs or outs_info == []):
@@ -831,7 +822,7 @@ def scan(
         )
 
     if outs_info == []:
-        n_outs = len(dummy_f.maker.outputs)
+        n_outs = len(dummy_outputs)
         if as_while:
             n_outs = n_outs - 1
         outs_info = [OrderedDict() for x in range(n_outs)]
@@ -854,7 +845,7 @@ def scan(
     shared_inner_inputs = []
     shared_inner_outputs = []
     sit_sot_shared = []
-    for input in dummy_f.maker.expanded_inputs:
+    for input in dummy_inputs:
         if isinstance(input.variable, SharedVariable) and input.update:
             new_var = safe_new(input.variable)
             if getattr(input.variable, "name", None) is not None:
@@ -926,7 +917,7 @@ def scan(
 
         other_shared_scan_args = [
             arg.variable
-            for arg in dummy_f.maker.expanded_inputs
+            for arg in dummy_inputs
             if (
                 isinstance(arg.variable, SharedVariable)
                 and not arg.update
@@ -935,7 +926,7 @@ def scan(
         ]
         other_shared_inner_args = [
             safe_new(arg.variable, "_copy")
-            for arg in dummy_f.maker.expanded_inputs
+            for arg in dummy_inputs
             if (
                 isinstance(arg.variable, SharedVariable)
                 and not arg.update
@@ -945,12 +936,12 @@ def scan(
     else:
         other_shared_scan_args = [
             arg.variable
-            for arg in dummy_f.maker.expanded_inputs
+            for arg in dummy_inputs
             if (isinstance(arg.variable, SharedVariable) and not arg.update)
         ]
         other_shared_inner_args = [
             safe_new(arg.variable, "_copy")
-            for arg in dummy_f.maker.expanded_inputs
+            for arg in dummy_inputs
             if (isinstance(arg.variable, SharedVariable) and not arg.update)
         ]
     givens.update(OrderedDict(zip(other_shared_scan_args, other_shared_inner_args)))
