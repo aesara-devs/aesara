@@ -1362,19 +1362,11 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
         try:
             if impl == "py":
                 raise MissingGXX
+
             cython_mintaps = np.asarray(self.mintaps, dtype="int32")
-            cython_tap_array_len = np.asarray(
-                [len(x) for x in self.tap_array], dtype="int32"
-            )
-            if len(self.tap_array) == 0:
-                d1 = 0
-            else:
-                d1 = np.max(cython_tap_array_len)
-            d0 = len(self.tap_array)
-            cython_tap_array = np.zeros((d0, d1), dtype="int32")
-            for _d0 in range(d0):
-                for _d1 in range(cython_tap_array_len[_d0]):
-                    cython_tap_array[_d0, _d1] = self.tap_array[_d0][_d1]
+
+            tap_array_len = tuple(len(x) for x in self.tap_array)
+
             cython_mit_mot_out_nslices = np.asarray(
                 [len(x) for x in self.mit_mot_out_slices], dtype="int32"
             )
@@ -1411,10 +1403,19 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
             inner_input_storage = [s.storage for s in self.fn.input_storage]
             inner_output_storage = [s.storage for s in self.fn.output_storage]
 
+            inner_input_needs_update = [
+                inp.update is not None for inp in self.fn.maker.expanded_inputs
+            ]
+
+            output_dtypes = [getattr(out, "dtype", None) for out in node.outputs]
+
             from . import scan_perform_ext
 
             def p(node, inputs, outputs):
-                return scan_perform_ext.perform(
+
+                t0_call = time.perf_counter()
+
+                t_fn = scan_perform_ext.perform(
                     self.n_shared_outs,
                     self.n_mit_mot_outs,
                     self.n_seqs,
@@ -1424,8 +1425,8 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
                     self.n_nit_sot,
                     self.as_while,
                     cython_mintaps,
-                    cython_tap_array,
-                    cython_tap_array_len,
+                    self.tap_array,
+                    tap_array_len,
                     cython_vector_seqs,
                     cython_vector_outs,
                     cython_mit_mot_out_slices,
@@ -1434,13 +1435,26 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
                     cython_outs_is_tensor,
                     inner_input_storage,
                     inner_output_storage,
+                    getattr(self.fn.fn, "need_update_inputs", True),
+                    inner_input_needs_update,
                     self.fn,
                     cython_destroy_map,
                     inputs,
                     outputs,
-                    self,
-                    node,
+                    output_dtypes,
                 )
+
+                t_call = time.perf_counter() - t0_call
+
+                if hasattr(self.fn.maker, "profile"):
+                    profile = self.fn.maker.profile
+                    if type(profile) is not bool and profile:
+                        profile.vm_call_time += t_fn
+                        profile.callcount += 1
+                        profile.nbsteps += outputs[0]
+                        profile.call_time += t_call
+                        if hasattr(self.fn.fn, "update_profile"):
+                            self.fn.fn.update_profile(profile)
 
         except (ImportError, MissingGXX):
             p = self.perform
