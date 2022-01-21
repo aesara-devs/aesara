@@ -53,12 +53,13 @@ cimport numpy
 
 import copy
 import time
+import sys
 
-from aesara.link.utils import raise_with_op
+from aesara.scan.utils import InnerFunctionError
 
 
 def get_version():
-    return 0.302
+    return 0.312
 
 @cython.boundscheck(False)
 def perform(
@@ -83,13 +84,13 @@ def perform(
         list inner_output_storage,
         bint need_update_inputs,
         tuple inner_input_needs_update,
-        fnct,
         numpy.ndarray[numpy.int32_t,ndim=1] destroy_map,
         list outer_inputs,
         list outer_outputs,
         tuple outer_output_dtypes,
         tuple outer_output_ndims,
-):
+        fn,
+) -> (float, int):
     """
     Parameters
     ----------
@@ -160,6 +161,8 @@ def perform(
         The dtypes for each outer output.
     outer_output_ndims
         The number of dimensions for each outer output.
+    fn
+        The inner function thunk.
 
     """
     # 1. Unzip the number of steps and sequences. If number of steps is
@@ -258,7 +261,7 @@ def perform(
                 outer_outputs[idx][0] = numpy.empty((0,) * outer_output_ndims[idx], dtype=outer_output_dtypes[idx])
             else:
                 outer_outputs[idx][0] = None
-        return
+        return 0.0, 0
 
     for idx in range(n_outs + n_nit_sot):
         pos[idx] = -mintaps[idx] % store_steps[idx]
@@ -281,8 +284,6 @@ def perform(
 
     for idx in range(len(other_args)):
         inner_input_storage[<unsigned int>(idx+offset)][0] = other_args[idx]
-
-    fn = fnct.fn
 
     i = 0
     cond = 1
@@ -398,25 +399,8 @@ def perform(
 
         try:
             fn()
-        except Exception:
-            if hasattr(fn, 'position_of_error'):
-                # this is a new vm-provided function
-                # the C VM needs this because the exception manipulation
-                # done by raise_with_op is not implemented in C.
-                if hasattr(fn, 'thunks'):
-                    # For the CVM
-                    raise_with_op(fnct.maker.fgraph,
-                                  fn.nodes[fn.position_of_error],
-                                  fn.thunks[fn.position_of_error])
-                else:
-                    # For the c linker
-                    # We don't have access from python to all the
-                    # temps values So for now, we just don't print
-                    # the extra shapes/strides info
-                    raise_with_op(fnct.maker.fgraph, fn.nodes[fn.position_of_error])
-            else:
-                # old-style linkers raise their own exceptions
-                raise
+        except Exception as exc:
+            raise InnerFunctionError(exc, sys.exc_info()[-1])
 
         dt_fn = time.time() - t0_fn
         t_fn += dt_fn
@@ -625,4 +609,4 @@ def perform(
     for s in inner_output_storage:
         s[0] = None
 
-    return t_fn
+    return t_fn, i
