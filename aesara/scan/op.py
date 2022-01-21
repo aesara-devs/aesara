@@ -1405,10 +1405,15 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
                 ]
             else:
                 cython_destroy_map = [0 for x in range(len(node.outputs))]
+
             cython_destroy_map = np.asarray(cython_destroy_map, dtype="int32")
+
+            inner_input_storage = [s.storage for s in self.fn.input_storage]
+            inner_output_storage = [s.storage for s in self.fn.output_storage]
+
             from . import scan_perform_ext
 
-            def p(node, args, outs):
+            def p(node, inputs, outputs):
                 return scan_perform_ext.perform(
                     self.n_shared_outs,
                     self.n_mit_mot_outs,
@@ -1417,7 +1422,6 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
                     self.n_mit_sot,
                     self.n_sit_sot,
                     self.n_nit_sot,
-                    args[0],
                     self.as_while,
                     cython_mintaps,
                     cython_tap_array,
@@ -1425,15 +1429,15 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
                     cython_vector_seqs,
                     cython_vector_outs,
                     cython_mit_mot_out_slices,
-                    cython_mit_mot_out_nslices,
                     cython_mitmots_preallocated,
                     cython_inps_is_tensor,
                     cython_outs_is_tensor,
-                    self.fn.fn,
+                    inner_input_storage,
+                    inner_output_storage,
                     self.fn,
                     cython_destroy_map,
-                    args,
-                    outs,
+                    inputs,
+                    outputs,
                     self,
                     node,
                 )
