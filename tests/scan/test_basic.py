@@ -500,7 +500,6 @@ class TestScan:
         assert np.array_equal(res, exp_res)
         assert res.dtype == exp_res.dtype
 
-    @pytest.mark.slow
     def test_only_nonseq_inputs(self):
         # Compile the Aesara function
         n_steps = 2
