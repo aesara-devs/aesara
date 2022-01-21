@@ -1564,7 +1564,6 @@ class TestScan:
         max_err, max_err_pos = num_grad.max_err(analytic_grad)
         assert max_err <= 1e-2
 
-    @pytest.mark.slow
     def test_grad_multiple_outs_taps(self):
         n = 5
         rng = np.random.default_rng(utt.fetch_seed())
@@ -1605,9 +1604,7 @@ class TestScan:
         # assert in Scan.grad() of the new scan input sequence related
         # to outer_mitsot_outs, outer_sitsot_outs and
         # outer_nitsot_outs. This allow to test an old Scan bug.
-        with config.change_flags(
-            compute_test_value="raise", compute_test_value_opt="raise"
-        ):
+        with config.change_flags(mode=Mode("cvm", optimizer=None)):
             cost, updates = scan_project_sum(
                 f_rnn_cmpl,
                 [u1, dict(input=u2, taps=[-1, 0, 1])],
