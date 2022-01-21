@@ -4635,7 +4635,10 @@ class TestScan:
 @pytest.mark.skipif(
     not config.cxx, reason="G++ not available, so we need to skip this test."
 )
-def test_cvm_exception_handling():
+@pytest.mark.parametrize(
+    "mode", [Mode(linker="c|py", optimizer=None), Mode(linker="cvm", optimizer=None)]
+)
+def test_cvm_exception_handling(mode):
     class MyOp(Op):
         def make_node(self, input):
             return Apply(self, [input], [vector()])
@@ -4643,12 +4646,17 @@ def test_cvm_exception_handling():
         def perform(self, node, inputs, outputs):
             raise Exception("blah")
 
+        # def c_code(self, node, name, inputs, outputs, sub):
+        #     fail = sub["fail"]
+        #     return f"""
+        #     PyErr_SetString(PyExc_Exception, "blah");
+        #     {fail};
+        #     """
+
     myop = MyOp()
 
     def scan_fn():
         return myop(at.as_tensor(1))
-
-    mode = Mode(optimizer=None, linker="cvm")
 
     res, _ = scan(scan_fn, n_steps=4, mode=mode)
 
@@ -5198,3 +5206,58 @@ def test_inner_get_vector_length():
         res_fn = function([], res.shape)
 
     assert np.array_equal(res_fn(), (10, 3))
+
+
+@config.change_flags(mode=Mode("cvm", None))
+def test_profile_info():
+
+    from aesara.scan.utils import ScanProfileStats
+
+    z, updates = scan(fn=lambda u: u + 1, sequences=[at.arange(10)], profile=True)
+
+    assert isinstance(z.owner.op, Scan)
+    fn = z.owner.op.fn
+
+    assert isinstance(fn.profile, ScanProfileStats)
+    assert fn.profile.name == "scan_fn"
+
+    # Set the `ScanProfileStats` name
+    z, updates = scan(
+        fn=lambda u: u + 1, sequences=[at.arange(10)], profile="profile_name"
+    )
+
+    assert isinstance(z.owner.op, Scan)
+    fn = z.owner.op.fn
+
+    assert isinstance(fn.profile, ScanProfileStats)
+    assert fn.profile.name == "profile_name"
+
+    # Use an existing profile object
+    profile = fn.profile
+    z, updates = scan(fn=lambda u: u + 1, sequences=[at.arange(10)], profile=profile)
+
+    assert isinstance(z.owner.op, Scan)
+    fn = z.owner.op.fn
+
+    assert fn.profile is profile
+
+    assert not profile.apply_time
+    assert profile.callcount == 0
+    assert profile.nbsteps == 0
+    assert profile.call_time == 0.0
+    assert fn.fn.call_times == [0.0]
+    assert fn.fn.call_counts == [0]
+
+    z_fn = function([], z)
+
+    _ = z_fn()
+
+    # assert profile.vm_call_time > 0
+    assert profile.callcount == 1
+    assert profile.nbsteps == 10
+    assert profile.call_time > 0
+
+    # Confirm that `VM.update_profile` was called
+    assert profile.apply_time
+    assert fn.fn.call_times == [0.0]
+    assert fn.fn.call_counts == [0]

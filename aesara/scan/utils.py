@@ -35,6 +35,10 @@ if TYPE_CHECKING:
 _logger = logging.getLogger("aesara.scan.utils")
 
 
+class InnerFunctionError(Exception):
+    """An exception indicating that an error occurred in `Scan`'s inner function."""
+
+
 def safe_new(
     x: Variable, tag: str = "", dtype: Optional[Union[str, np.dtype]] = None
 ) -> Variable:
@@ -126,8 +130,8 @@ class until:
 
 class ScanProfileStats(ProfileStats):
     show_sum = False
-    callcount = 0.0
-    nbsteps = 0.0
+    callcount = 0
+    nbsteps = 0
     call_time = 0.0
 
     def __init__(self, atexit_print=True, name=None, **kwargs):

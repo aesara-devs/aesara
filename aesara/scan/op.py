@@ -43,7 +43,6 @@ relies on the following elements to work properly :
 
 """
 
-
 import dataclasses
 import logging
 import time
@@ -1401,39 +1400,67 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
                 getattr(out, "ndim", None) for out in node.outputs
             )
 
+            from aesara.scan.utils import InnerFunctionError
+
+            # TODO: Extract `Capsule` object and use that
+            # c_thunk = getattr(self.fn.fn.thunks[0], "cthunk", None)
+            # if len(self.fn.fn.thunks) == 1 and c_thunk:
+            #     thunk_capsule = c_thunk.cthunk
+            #     # We need to perform the following after calling
+            #     # the thunk function:
+            #     # for o in node.outputs:
+            #     #     compute_map[o][0] = True
+
             def p(node, inputs, outputs):
 
                 t0_call = time.perf_counter()
 
-                t_fn = scan_perform_ext.perform(
-                    self.n_shared_outs,
-                    self.n_mit_mot_outs,
-                    self.n_seqs,
-                    self.n_mit_mot,
-                    self.n_mit_sot,
-                    self.n_sit_sot,
-                    self.n_nit_sot,
-                    self.as_while,
-                    cython_mintaps,
-                    self.tap_array,
-                    tap_array_len,
-                    cython_vector_seqs,
-                    cython_vector_outs,
-                    self.mit_mot_out_slices,
-                    cython_mitmots_preallocated,
-                    cython_inps_is_tensor,
-                    cython_outs_is_tensor,
-                    inner_input_storage,
-                    inner_output_storage,
-                    getattr(self.fn.fn, "need_update_inputs", True),
-                    inner_input_needs_update,
-                    self.fn,
-                    cython_destroy_map,
-                    inputs,
-                    outputs,
-                    outer_output_dtypes,
-                    outer_output_ndims,
-                )
+                try:
+                    t_fn, n_steps = scan_perform_ext.perform(
+                        self.n_shared_outs,
+                        self.n_mit_mot_outs,
+                        self.n_seqs,
+                        self.n_mit_mot,
+                        self.n_mit_sot,
+                        self.n_sit_sot,
+                        self.n_nit_sot,
+                        self.as_while,
+                        cython_mintaps,
+                        self.tap_array,
+                        tap_array_len,
+                        cython_vector_seqs,
+                        cython_vector_outs,
+                        self.mit_mot_out_slices,
+                        cython_mitmots_preallocated,
+                        cython_inps_is_tensor,
+                        cython_outs_is_tensor,
+                        inner_input_storage,
+                        inner_output_storage,
+                        getattr(self.fn.fn, "need_update_inputs", True),
+                        inner_input_needs_update,
+                        cython_destroy_map,
+                        inputs,
+                        outputs,
+                        outer_output_dtypes,
+                        outer_output_ndims,
+                        self.fn.fn,
+                    )
+                except InnerFunctionError as exc:
+                    exc_type = type(exc.args[0])
+                    exc_value = exc.args[0]
+                    exc_trace = exc.args[1]
+
+                    if hasattr(self.fn.fn, "position_of_error") and hasattr(
+                        self.fn.fn, "thunks"
+                    ):
+                        raise_with_op(
+                            self.fn.maker.fgraph,
+                            self.fn.fn.nodes[self.fn.fn.position_of_error],
+                            self.fn.fn.thunks[self.fn.fn.position_of_error],
+                            exc_info=(exc_type, exc_value, exc_trace),
+                        )
+                    else:
+                        raise exc_value.with_traceback(exc_trace)
 
                 t_call = time.perf_counter() - t0_call
 
@@ -1442,7 +1469,7 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
                     if type(profile) is not bool and profile:
                         profile.vm_call_time += t_fn
                         profile.callcount += 1
-                        profile.nbsteps += outputs[0]
+                        profile.nbsteps += n_steps
                         profile.call_time += t_call
                         if hasattr(self.fn.fn, "update_profile"):
                             self.fn.fn.update_profile(profile)
