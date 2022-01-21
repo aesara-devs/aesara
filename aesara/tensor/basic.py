@@ -38,7 +38,6 @@ from aesara.tensor import (
     get_vector_length,
 )
 from aesara.tensor.elemwise import DimShuffle, Elemwise, scalar_elemwise
-from aesara.tensor.exceptions import NotScalarConstantError
 from aesara.tensor.shape import (
     reshape,
     shape,
@@ -272,7 +271,7 @@ _scalar_constant_value_elemwise_ops = (
 )
 
 
-def get_constant_value(v, eval_graph=False, as_numpy_objects=True):
+def get_constant_value(v, eval_graph=False, as_numpy_objects=True, return_val=False):
     """Helper function to return the constant value underlying variable `v`.
     Returns `None` if there is no underlying value of `v`.
 
@@ -290,6 +289,9 @@ def get_constant_value(v, eval_graph=False, as_numpy_objects=True):
         Specify if the graph of `v` should be evaluated completely
     as_numpy_objects: bool
         Specify if the returned value should be an Numpy array or not
+    return_val: bool
+        Specify if the returned value in case the graph isn't constant
+        should be the initial value or not.
 
     """
     v = as_tensor_variable(v)
@@ -301,6 +303,8 @@ def get_constant_value(v, eval_graph=False, as_numpy_objects=True):
         v = v_fgraph_clone.outputs[0]
 
     if not isinstance(v, Constant):
+        if return_val:
+            return v
         return None
     else:
         unique_value = get_unique_value(v)
@@ -1548,31 +1552,6 @@ default = Default()
 ##########################
 
 
-def extract_constant(x, eval_graph=False, as_numpy_objects=True):
-    """
-    This function is basically a call to tensor.get_constant_value.
-
-    The main difference is the behaviour in case of failure. While
-    get_constant_value returns `None`, this function returns x,
-    as a tensor if possible. If x is a ScalarVariable from a
-    scalar_from_tensor, we remove the conversion. If x is just a
-    ScalarVariable, we convert it to a tensor with tensor_from_scalar.
-
-    """
-
-    x_val = get_constant_value(x, eval_graph, as_numpy_objects)
-    if x_val is not None:
-        x = x_val
-    if isinstance(x, aes.ScalarVariable) or isinstance(
-        x, aes.sharedvar.ScalarSharedVariable
-    ):
-        if x.owner and isinstance(x.owner.op, ScalarFromTensor):
-            x = x.owner.inputs[0]
-        else:
-            x = tensor_from_scalar(x)
-    return x
-
-
 def transpose(x, axes=None):
     """
     Reorder the dimensions of x. (Default: reverse them)
@@ -2036,10 +2015,7 @@ class Join(COp):
             ndim = len(bcastable)
 
             if not isinstance(axis, int):
-                try:
-                    axis = int(get_constant_value(axis))
-                except NotScalarConstantError:
-                    pass
+                axis = get_constant_value(axis, as_numpy_objects=False)
 
             if isinstance(axis, int):
                 # Basically, broadcastable -> length 1, but the
@@ -2254,11 +2230,11 @@ pprint.assign(Join, printing.FunctionPrinter(["join"]))
 @_get_vector_length.register(Join)
 def _get_vector_length_Join(op, var):
     axis, *arrays = var.owner.inputs
-    try:
-        axis = get_constant_value(axis)
+    axis = get_constant_value(axis)
+    if axis is not None:
         assert axis == 0 and builtins.all(a.ndim == 1 for a in arrays)
         return builtins.sum(get_vector_length(a) for a in arrays)
-    except NotScalarConstantError:
+    else:
         raise ValueError(f"Length of {var} cannot be determined")
 
 
@@ -2922,12 +2898,11 @@ class ARange(Op):
         start, stop, step = node.inputs
 
         def is_constant_value(var, value):
-            try:
-                v = get_constant_value(var)
+            v = get_constant_value(var)
+            if v is not None:
                 return np.all(v == value)
-            except NotScalarConstantError:
-                pass
-            return False
+            else:
+                return False
 
         def upcast(var):
             if (
@@ -3790,10 +3765,7 @@ class Choose(Op):
 
         bcast = []
         for s in out_shape:
-            try:
-                s_val = aesara.get_constant_value(s)
-            except (NotScalarConstantError, AttributeError):
-                s_val = None
+            s_val = aesara.get_constant_value(s)
 
             if s_val == 1:
                 bcast.append(True)
@@ -4083,7 +4055,7 @@ __all__ = [
     "addbroadcast",
     "split",
     "transpose",
-    "extract_constant",
+    "get_constant_value",
     "default",
     "tensor_copy",
     "transfer",

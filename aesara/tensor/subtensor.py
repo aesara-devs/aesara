@@ -21,11 +21,7 @@ from aesara.scalar.basic import ScalarConstant
 from aesara.tensor import _get_vector_length, as_tensor_variable, get_vector_length
 from aesara.tensor.basic import addbroadcast, alloc, get_constant_value
 from aesara.tensor.elemwise import DimShuffle
-from aesara.tensor.exceptions import (
-    AdvancedIndexingError,
-    NotScalarConstantError,
-    ShapeError,
-)
+from aesara.tensor.exceptions import AdvancedIndexingError, ShapeError
 from aesara.tensor.math import clip
 from aesara.tensor.shape import Reshape
 from aesara.tensor.type import (
@@ -135,15 +131,11 @@ def as_index_constant(
 
 
 def as_index_literal(
-    idx: Union[Variable, slice, type(np.newaxis)]
+    idx: Union[Variable, slice, type(np.newaxis)],
 ) -> Union[int, slice, type(np.newaxis)]:
     """Convert a symbolic index element to its Python equivalent.
 
     This is like the inverse of `as_index_constant`
-
-    Raises
-    ------
-    NotScalarConstantError
     """
     if idx == np.newaxis or isinstance(getattr(idx, "type", None), NoneTypeT):
         return np.newaxis
@@ -161,7 +153,7 @@ def as_index_literal(
             as_index_literal(idx.step),
         )
 
-    raise NotScalarConstantError()
+    return None
 
 
 def get_idx_list(inputs, idx_list):
@@ -184,9 +176,8 @@ def get_canonical_form_slice(
     from aesara.tensor import ge, lt, sgn, switch
 
     if not isinstance(theslice, slice):
-        try:
-            value = as_index_literal(theslice)
-        except NotScalarConstantError:
+        value = as_index_literal(theslice)
+        if value is None:
             value = theslice
 
         value = switch(lt(value, 0), (value + length), value)
@@ -194,12 +185,13 @@ def get_canonical_form_slice(
         return value, 1
 
     def analyze(x):
-        try:
-            x_constant = as_index_literal(x)
-            is_constant = True
-        except NotScalarConstantError:
+        x_constant = as_index_literal(x)
+
+        if x_constant is None:
             x_constant = x
             is_constant = False
+        else:
+            is_constant = True
         return x_constant, is_constant
 
     start, is_start_constant = analyze(theslice.start)
@@ -604,8 +596,6 @@ def get_constant_idx(
 ):
     r"""Return an `idx_list` with its constant inputs replaced by their Python scalar equivalents.
 
-    May raise `NotScalarConstantError` if the indices contain non-constant entries.
-
     If `allow_partial` is ``True``, then entries that are not constant will
     stay as their input variable rather than raising an exception.
 
@@ -627,7 +617,7 @@ def get_constant_idx(
     >>> get_constant_idx(b.owner.op.idx_list, b.owner.inputs, allow_partial=True)
     [v, slice(1, 3, None)]
     >>> get_constant_idx(b.owner.op.idx_list, b.owner.inputs)
-    NotScalarConstantError: v
+    None
 
     """
     real_idx = get_idx_list(inputs, idx_list)
@@ -639,17 +629,13 @@ def get_constant_idx(
         elif isinstance(val, slice):
             return slice(conv(val.start), conv(val.stop), conv(val.step))
         else:
-            try:
-                return get_constant_value(
-                    val,
-                    only_process_constants=only_process_constants,
-                    elemwise=elemwise,
-                )
-            except NotScalarConstantError:
-                if allow_partial:
-                    return val
-                else:
-                    raise
+            val_data = get_constant_value(val)
+            if val_data is not None:
+                return val_data
+            if allow_partial:
+                return val
+            else:
+                raise
 
     return list(map(conv, real_idx))
 
@@ -715,10 +701,7 @@ class Subtensor(COp):
             if isinstance(p, slice):
                 if bc:
                     start = p.start
-                    try:
-                        start = get_constant_value(start)
-                    except NotScalarConstantError:
-                        pass
+                    start = get_constant_value(start)
                     if start is None or start == 0:
                         start = p.start
                         if start is None:
@@ -2791,23 +2774,18 @@ def take(a, indices, axis=None, mode="raise"):
 def _get_vector_length_Subtensor(op, var):
     # If we take a slice, we know how many elements it will result in
     # TODO: We can cover more `*Subtensor` cases.
-    try:
-        indices = aesara.tensor.subtensor.get_idx_list(
-            var.owner.inputs, var.owner.op.idx_list
-        )
-        start = (
-            None if indices[0].start is None else get_constant_value(indices[0].start)
-        )
-        stop = None if indices[0].stop is None else get_constant_value(indices[0].stop)
-        step = None if indices[0].step is None else get_constant_value(indices[0].step)
+    indices = aesara.tensor.subtensor.get_idx_list(
+        var.owner.inputs, var.owner.op.idx_list
+    )
+    start = None if indices[0].start is None else get_constant_value(indices[0].start)
+    stop = None if indices[0].stop is None else get_constant_value(indices[0].stop)
+    step = None if indices[0].step is None else get_constant_value(indices[0].step)
 
-        if start == stop:
-            return 0
+    if start == stop:
+        return 0
 
-        arg_len = get_vector_length(var.owner.inputs[0])
-        return len(range(*slice(start, stop, step).indices(arg_len)))
-    except (ValueError, NotScalarConstantError):
-        raise ValueError(f"Length of {var} cannot be determined")
+    arg_len = get_vector_length(var.owner.inputs[0])
+    return len(range(*slice(start, stop, step).indices(arg_len)))
 
 
 __all__ = [

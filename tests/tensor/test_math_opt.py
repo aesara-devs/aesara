@@ -2061,11 +2061,11 @@ class TestLocalUselessElemwiseComparison:
         if op == deep_copy_op:
             assert len(elem.inputs) == 1, elem.inputs
             assert isinstance(elem.inputs[0], TensorConstant), elem
-            assert at.extract_constant(elem.inputs[0]) == val, val
+            assert at.get_constant_value(elem.inputs[0]) == val, val
         else:
             assert len(elem.inputs) == 2, elem.inputs
             assert isinstance(elem.inputs[0], TensorConstant), elem
-            assert at.extract_constant(elem.inputs[0]) == val, val
+            assert at.get_constant_value(elem.inputs[0]) == val, val
 
     def assert_identity(self, f):
         topo = f.maker.fgraph.toposort()

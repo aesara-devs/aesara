@@ -56,7 +56,6 @@ from aesara.tensor.basic import (
     as_tensor_variable,
     cast,
     constant,
-    extract_constant,
     fill,
     get_constant_value,
     get_vector_length,
@@ -70,7 +69,7 @@ from aesara.tensor.basic import (
     zeros_like,
 )
 from aesara.tensor.elemwise import DimShuffle, Elemwise
-from aesara.tensor.exceptions import NotScalarConstantError, ShapeError
+from aesara.tensor.exceptions import ShapeError
 from aesara.tensor.extra_ops import BroadcastTo, Repeat, Unique, broadcast_shape
 from aesara.tensor.math import all as at_all
 from aesara.tensor.math import eq
@@ -943,10 +942,7 @@ class ShapeFeature(features.Feature):
         else:
             # Do not call make_node for test_value
             s = Shape_i(i)(r)
-            try:
-                s = get_constant_value(s)
-            except NotScalarConstantError:
-                pass
+            s = get_constant_value(s)
             return s
 
     def shape_tuple(self, r):
@@ -1029,12 +1025,8 @@ class ShapeFeature(features.Feature):
             idx = get_idx_list(s_i.owner.inputs, s_i.owner.op.idx_list)
             assert len(idx) == 1
             idx = idx[0]
-            try:
-                i = get_constant_value(idx)
-            except NotScalarConstantError:
-                pass
-            else:
-                # Executed only if no exception was raised
+            i = get_constant_value(idx)
+            if i is not None:
                 x = s_i.owner.inputs[0].owner.inputs[0]
                 # x should already have been imported, and should be in shape_of.
                 s_i = self.shape_of[x][i]
@@ -1091,7 +1083,7 @@ class ShapeFeature(features.Feature):
                     # The two following comparison are a speed optimization
                     # But we never timed this speed optimization!
                     self.lscalar_one.equals(shape_vars[i])
-                    or self.lscalar_one.equals(extract_constant(shape_vars[i]))
+                    or self.lscalar_one.equals(get_constant_value(shape_vars[i]))
                     for i in range(r.ndim)
                 ]
             )
@@ -1181,9 +1173,7 @@ class ShapeFeature(features.Feature):
                 # The two following comparison are a speed optimization
                 # But we never timed this speed optimization!
                 self.lscalar_one.equals(merged_shape[i])
-                or self.lscalar_one.equals(
-                    extract_constant(merged_shape[i], only_process_constants=True)
-                )
+                or self.lscalar_one.equals(get_constant_value(merged_shape[i]))
                 for i in range(r.ndim)
             ]
         )
@@ -1209,7 +1199,7 @@ class ShapeFeature(features.Feature):
                 # The two following comparison are a speed optimization
                 # But we never timed this speed optimization!
                 self.lscalar_one.equals(new_shape[idx])
-                or self.lscalar_one.equals(extract_constant(new_shape[idx]))
+                or self.lscalar_one.equals(get_constant_value(new_shape[idx]))
                 for idx in range(r.ndim)
             ]
         )
@@ -1818,7 +1808,7 @@ def local_alloc_sink_dimshuffle(fgraph, node):
     output_shape = node.inputs[1:]
     num_dims_with_size_1_added_to_left = 0
     for i in range(len(output_shape) - inp.ndim):
-        if extract_constant(output_shape[i], only_process_constants=True) == 1:
+        if get_constant_value(output_shape[i]) == 1:
             num_dims_with_size_1_added_to_left += 1
         else:
             break
@@ -1952,9 +1942,7 @@ def local_useless_elemwise(fgraph, node):
         elif isinstance(node.op.scalar_op, aes.AND) and len(node.inputs) == 2:
 
             if isinstance(node.inputs[0], TensorConstant):
-                const_val = extract_constant(
-                    node.inputs[0], only_process_constants=True
-                )
+                const_val = get_constant_value(node.inputs[0])
                 if not isinstance(const_val, Variable):
                     if const_val == 0:
                         return [zeros_like(node.inputs[1], dtype=dtype, opt=True)]
@@ -1964,9 +1952,7 @@ def local_useless_elemwise(fgraph, node):
                         return [node.inputs[1].astype(node.outputs[0].dtype)]
 
             if isinstance(node.inputs[1], TensorConstant):
-                const_val = extract_constant(
-                    node.inputs[1], only_process_constants=True
-                )
+                const_val = get_constant_value(node.inputs[1])
                 if not isinstance(const_val, Variable):
                     if const_val == 0:
                         return [zeros_like(node.inputs[0], dtype=dtype, opt=True)]
@@ -1978,9 +1964,7 @@ def local_useless_elemwise(fgraph, node):
         elif isinstance(node.op.scalar_op, aes.OR) and len(node.inputs) == 2:
 
             if isinstance(node.inputs[0], TensorConstant):
-                const_val = extract_constant(
-                    node.inputs[0], only_process_constants=True
-                )
+                const_val = get_constant_value(node.inputs[0])
                 if not isinstance(const_val, Variable):
                     if const_val == 0:
                         return [node.inputs[1].astype(node.outputs[0].dtype)]
@@ -1990,9 +1974,7 @@ def local_useless_elemwise(fgraph, node):
                         return [ones_like(node.inputs[1], dtype=dtype, opt=True)]
 
             if isinstance(node.inputs[1], TensorConstant):
-                const_val = extract_constant(
-                    node.inputs[1], only_process_constants=True
-                )
+                const_val = get_constant_value(node.inputs[1])
                 if not isinstance(const_val, Variable):
                     if const_val == 0:
                         return [node.inputs[0].astype(node.outputs[0].dtype)]
@@ -2115,15 +2097,8 @@ def local_remove_useless_assert(fgraph, node):
     new_conds = []
     n_conds = len(node.inputs[1:])
     for c in node.inputs[1:]:
-        try:
-            const = get_constant_value(c)
-
-            if 0 != const.ndim or const == 0:
-                # Should we raise an error here? How to be sure it
-                # is not caught?
-                new_conds.append(c)
-        except NotScalarConstantError:
-            new_conds.append(c)
+        get_constant_value(c)
+        new_conds.append(c)
 
     if len(new_conds) == 0:
         return [node.inputs[0]]
@@ -2206,9 +2181,8 @@ def local_upcast_elemwise_constant_inputs(fgraph, node):
                 if i.type.dtype == output_dtype:
                     new_inputs.append(i)
                 else:
-                    try:
-                        # works only for scalars
-                        cval_i = get_constant_value(i, only_process_constants=True)
+                    cval_i = get_constant_value(i)
+                    if cval_i is not None:
                         if all(i.broadcastable):
                             new_inputs.append(
                                 shape_padleft(cast(cval_i, output_dtype), i.ndim)
@@ -2224,7 +2198,7 @@ def local_upcast_elemwise_constant_inputs(fgraph, node):
                             )
                             # print >> sys.stderr, "AAA",
                             # *[Shape_i(d)(i) for d in range(i.ndim)]
-                    except NotScalarConstantError:
+                    else:
                         # for the case of a non-scalar
                         if isinstance(i, TensorConstant):
                             new_inputs.append(cast(i, output_dtype))
@@ -2398,9 +2372,8 @@ def local_join_empty(fgraph, node):
     if not isinstance(node.op, Join):
         return
     new_inputs = []
-    try:
-        join_idx = get_constant_value(node.inputs[0], only_process_constants=True)
-    except NotScalarConstantError:
+    join_idx = get_constant_value(node.inputs[0])
+    if join_idx is None:
         return
     for idx in range(1, len(node.inputs)):
         inp = node.inputs[idx]
@@ -2506,7 +2479,7 @@ def local_useless_switch(fgraph, node):
     """
     if isinstance(node.op, Elemwise) and isinstance(node.op.scalar_op, aes.Switch):
 
-        cond = extract_constant(node.inputs[0], only_process_constants=True)
+        cond = get_constant_value(node.inputs[0])
 
         if (isinstance(cond, np.ndarray) and cond.ndim == 0) or isinstance(
             cond, (np.number, np.bool_)
@@ -2552,9 +2525,8 @@ def local_useless_switch(fgraph, node):
             and isinstance(cond_var.owner.op.scalar_op, aes.LE)
             and cond_var.owner.inputs[0].owner
             and isinstance(cond_var.owner.inputs[0].owner.op, Shape_i)
-            and extract_constant(cond_var.owner.inputs[1], only_process_constants=True)
-            == 0
-            and extract_constant(left, only_process_constants=True) == 0
+            and get_constant_value(cond_var.owner.inputs[1]) == 0
+            and get_constant_value(left) == 0
             and right is cond_var.owner.inputs[0]
         ):
             assert node.outputs[0].type.is_super(right.type)
@@ -2611,35 +2583,31 @@ def local_useless_tile(fgraph, node):
     being 1.
 
     """
-    if isinstance(node.op, Tile):
+    a = get_constant_value(node.inputs[1])
+    if a == 1:
         try:
-            a = get_constant_value(node.inputs[1], only_process_constants=True)
-            if a == 1:
-                try:
-                    l = get_vector_length(node.inputs[1])
-                    if l == node.inputs[0].ndim:
-                        # No need to copy over any stacktrace as previous
-                        # input variable already has a stacktrace
-                        return [node.inputs[0]]
-                    elif l < node.inputs[0].ndim:
-                        # The Op don't support that case, so we can't
-                        # implement the opt and test it.
-                        return
-                        return [node.inputs[0]]
-                    else:
-                        # The Op don't support that case, so we can't
-                        # implement the opt and test it.
-                        return
-                        x_nd = node.inputs[0].ndim
-                        broad = ["x"] * (l - x_nd) + range(x_nd)
-                        ret = node.inputs[0].dimshuffle(broad)
-                        # Copy over stacktrace from previous output node,
-                        # and from node before tiling operation.
-                        copy_stack_trace(node.outputs + node.inputs[0], ret)
-                        return [ret]
-                except ValueError:
-                    return
-        except NotScalarConstantError:
+            l = get_vector_length(node.inputs[1])
+            if l == node.inputs[0].ndim:
+                # No need to copy over any stacktrace as previous
+                # input variable already has a stacktrace
+                return [node.inputs[0]]
+            elif l < node.inputs[0].ndim:
+                # The Op don't support that case, so we can't
+                # implement the opt and test it.
+                return
+                return [node.inputs[0]]
+            else:
+                # The Op don't support that case, so we can't
+                # implement the opt and test it.
+                return
+                x_nd = node.inputs[0].ndim
+                broad = ["x"] * (l - x_nd) + range(x_nd)
+                ret = node.inputs[0].dimshuffle(broad)
+                # Copy over stacktrace from previous output node,
+                # and from node before tiling operation.
+                copy_stack_trace(node.outputs + node.inputs[0], ret)
+                return [ret]
+        except ValueError:
             return
 
 
@@ -2798,7 +2766,7 @@ def local_useless_reshape(fgraph, node):
                 outshp_i.owner
                 and isinstance(outshp_i.owner.op, Subtensor)
                 and len(outshp_i.owner.inputs) == 2
-                and extract_constant(outshp_i.owner.inputs[1]) == dim
+                and get_constant_value(outshp_i.owner.inputs[1]) == dim
             ):
                 subtensor_inp = outshp_i.owner.inputs[0]
                 if subtensor_inp.owner and isinstance(subtensor_inp.owner.op, Shape):
@@ -2808,7 +2776,7 @@ def local_useless_reshape(fgraph, node):
                         continue
 
             # Match 1 if input.broadcastable[dim] is True
-            cst_outshp_i = extract_constant(outshp_i, only_process_constants=1)
+            cst_outshp_i = get_constant_value(outshp_i)
             if inp.broadcastable[dim] and cst_outshp_i == 1:
                 shape_match[dim] = True
                 continue
@@ -2823,8 +2791,7 @@ def local_useless_reshape(fgraph, node):
             if shape_feature:
                 inpshp_i = shape_feature.get_shape(inp, dim)
                 if inpshp_i == outshp_i or (
-                    extract_constant(inpshp_i, only_process_constants=1)
-                    == extract_constant(outshp_i, only_process_constants=1)
+                    get_constant_value(inpshp_i) == get_constant_value(outshp_i)
                 ):
                     shape_match[dim] = True
                     continue
@@ -2864,12 +2831,9 @@ def local_reshape_to_dimshuffle(fgraph, node):
     new_output_shape = []
     index = 0  # index over the output of the new reshape
     for i in range(output.ndim):
-        # Since output_shape is a symbolic vector, we trust extract_constant
+        # Since output_shape is a symbolic vector, we trust get_constant_value
         # to go through however it is formed to see if its i-th element is 1.
-        # We need only_process_constants=False for that.
-        dim = extract_constant(
-            output_shape[i], only_process_constants=False, elemwise=False
-        )
+        dim = get_constant_value(output_shape[i])
         if dim == 1:
             dimshuffle_new_order.append("x")
         else:

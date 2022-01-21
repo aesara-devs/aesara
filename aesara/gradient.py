@@ -2111,14 +2111,9 @@ def _is_zero(x):
     if isinstance(x.type, DisconnectedType):
         return "yes"
 
-    no_constant_value = True
-    try:
-        constant_value = aesara.get_constant_value(x)
-        no_constant_value = False
-    except aesara.tensor.exceptions.NotScalarConstantError:
-        pass
+    constant_value = aesara.get_constant_value(x)
 
-    if no_constant_value:
+    if constant_value is None:
         return "maybe"
 
     if constant_value != 0.0:

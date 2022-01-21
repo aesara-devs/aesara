@@ -155,26 +155,6 @@ if (
     import aesara.gpuarray
 
 
-def get_constant_value(v):
-    """Return the constant scalar (i.e. 0-D) value underlying variable `v`.
-
-    If `v` is the output of dim-shuffles, fills, allocs, rebroadcasts, cast
-    this function digs through them.
-
-    If ``aesara.sparse`` is also there, we will look over CSM `Op`.
-
-    If `v` is not some view of constant data, then raise a
-    `NotScalarConstantError`.
-    """
-    # Is it necessary to test for presence of aesara.sparse at runtime?
-    sparse = globals().get("sparse")
-    if sparse and isinstance(v.type, sparse.SparseType):
-        if v.owner is not None and isinstance(v.owner.op, sparse.CSM):
-            data = v.owner.inputs[0]
-            return tensor.get_constant_value(data)
-    return tensor.get_constant_value(v)
-
-
 # isort: off
 import aesara.tensor.random.var
 from aesara.scan import checkpoints

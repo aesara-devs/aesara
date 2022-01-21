@@ -39,7 +39,6 @@ from aesara.scalar import constant, get_scalar_type
 from aesara.scalar import int32 as int_t
 from aesara.scalar import uint32 as uint32_t
 from aesara.tensor.basic import as_tensor_variable
-from aesara.tensor.exceptions import NotScalarConstantError
 from aesara.tensor.extra_ops import cpu_contiguous
 from aesara.tensor.nnet.abstract_conv import (
     AbstractConv2d,
@@ -997,7 +996,7 @@ class GpuDnnConvGradW(DnnBase):
             and img.type.dtype == "float32"
             and self.algo not in ("none", "deterministic", "fft", "small")
             and beta is not None
-            and at.extract_constant(beta) != 1
+            and at.get_constant_value(beta) != 1
         )
 
     def make_node(self, img, topgrad, output, desc, alpha=None, beta=None):
@@ -3970,15 +3969,14 @@ def local_abstract_batch_norm_train_cudnn(fgraph, op, ctx_name, inputs, outputs)
     else:
         return None
 
-    try:
-        eps = at.get_constant_value(epsilon)
-    except NotScalarConstantError:
+    eps = at.get_constant_value(epsilon)
+    if eps is None:
         return None
     if eps < 1e-5:
         return None
-    try:
-        running_average_factor = at.get_constant_value(running_average_factor)
-    except NotScalarConstantError:
+
+    running_average_factor = at.get_constant_value(running_average_factor)
+    if running_average_factor is None:
         return None
 
     ctx = infer_context_name(*inputs)
@@ -4036,9 +4034,8 @@ def local_abstract_batch_norm_train_grad_cudnn(fgraph, op, ctx_name, inputs, out
         x_mean = at.flatten(x_mean, 5)
         x_invstd = at.flatten(x_invstd, 5)
 
-    try:
-        eps = at.get_constant_value(epsilon)
-    except NotScalarConstantError:
+    eps = at.get_constant_value(epsilon)
+    if eps is None:
         return None
     if eps < 1e-5:
         return None
@@ -4079,9 +4076,8 @@ def local_abstract_batch_norm_inference_cudnn(fgraph, op, ctx_name, inputs, outp
     else:
         return None
 
-    try:
-        eps = at.get_constant_value(epsilon)
-    except NotScalarConstantError:
+    eps = at.get_constant_value(epsilon)
+    if eps is None:
         return None
     if eps < 1e-5:
         return None

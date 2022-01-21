@@ -50,7 +50,6 @@ from aesara.tensor.basic import (
     default,
     diag,
     expand_dims,
-    extract_constant,
     eye,
     fill,
     flatnonzero,
@@ -88,7 +87,6 @@ from aesara.tensor.basic import (
     zeros_like,
 )
 from aesara.tensor.elemwise import DimShuffle
-from aesara.tensor.exceptions import NotScalarConstantError
 from aesara.tensor.math import dense_dot, eq
 from aesara.tensor.math import sum as at_sum
 from aesara.tensor.shape import Reshape, Shape, Shape_i, shape_padright, specify_shape
@@ -3334,9 +3332,7 @@ def test_dimshuffle_duplicate():
 
 class TestGetScalarConstantValue:
     def test_basic(self):
-
-        with pytest.raises(NotScalarConstantError):
-            get_constant_value(aes.int64())
+        assert get_constant_value(aes.int64()) is None
 
         res = get_constant_value(at.as_tensor(10))
         assert res == 10
@@ -3353,8 +3349,8 @@ class TestGetScalarConstantValue:
 
         b = iscalar()
         a = at.stack([b, 2, 3])
-        with pytest.raises(NotScalarConstantError):
-            get_constant_value(a[0])
+
+        assert get_constant_value(a[0]) is None
         assert get_constant_value(a[1]) == 2
         assert get_constant_value(a[2]) == 3
 
@@ -3362,12 +3358,9 @@ class TestGetScalarConstantValue:
         # scalars.
         v = ivector()
         a = at.stack([v, [2], [3]])
-        with pytest.raises(NotScalarConstantError):
-            get_constant_value(a[0])
-        with pytest.raises(NotScalarConstantError):
-            get_constant_value(a[1])
-        with pytest.raises(NotScalarConstantError):
-            get_constant_value(a[2])
+        assert get_constant_value(a[0]) is None
+        assert get_constant_value(a[1]) is None
+        assert get_constant_value(a[2]) is None
 
         # Test the case SubTensor(Shape(v)) when the dimensions
         # is broadcastable.
@@ -3404,15 +3397,12 @@ class TestGetScalarConstantValue:
     def test_numpy_array(self):
         # Regression test for crash when called on a numpy array.
         assert get_constant_value(np.array(3)) == 3
-        with pytest.raises(NotScalarConstantError):
-            get_constant_value(np.array([0, 1]))
-        with pytest.raises(NotScalarConstantError):
-            get_constant_value(np.array([]))
+        assert get_constant_value(np.array([0, 1])) is None
+        assert get_constant_value(np.array([])) is None
 
     def test_make_vector(self):
         mv = make_vector(1, 2, 3)
-        with pytest.raises(NotScalarConstantError):
-            get_constant_value(mv)
+        assert get_constant_value(mv) is None
         assert get_constant_value(mv[0]) == 1
         assert get_constant_value(mv[1]) == 2
         assert get_constant_value(mv[2]) == 3
@@ -3420,8 +3410,7 @@ class TestGetScalarConstantValue:
         assert get_constant_value(mv[np.int64(1)]) == 2
         assert get_constant_value(mv[np.uint(2)]) == 3
         t = aes.Scalar("int64")
-        with pytest.raises(NotScalarConstantError):
-            get_constant_value(mv[t()])
+        assert get_constant_value(mv[t()]) is None
 
     def test_shape_i(self):
         c = constant(np.random.random((3, 4)))
@@ -3461,13 +3450,11 @@ class TestGetScalarConstantValue:
         with config.change_flags(compute_test_value="off"):
             # condition is always False
             a = Assert()(c, c > 2)
-            with pytest.raises(NotScalarConstantError):
-                get_constant_value(a)
+            assert get_constant_value(a) is None
 
         # condition is not constant
         a = Assert()(c, c > x)
-        with pytest.raises(NotScalarConstantError):
-            get_constant_value(a)
+        assert get_constant_value(a) is None
 
     def test_second(self):
         # Second should apply when the value is constant but not the shape
@@ -3480,9 +3467,9 @@ class TestGetScalarConstantValue:
         # Make sure we do not return the internal storage of a constant,
         # so we cannot change the value of a constant by mistake.
         c = constant(3)
-        d = extract_constant(c)
+        d = get_constant_value(c)
         d += 1
-        e = extract_constant(c)
+        e = get_constant_value(c)
         assert e == 3, (c, d, e)
 
 

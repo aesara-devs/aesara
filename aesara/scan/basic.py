@@ -15,7 +15,6 @@ from aesara.graph.utils import TestValueError
 from aesara.scan import utils
 from aesara.scan.op import Scan, ScanInfo
 from aesara.scan.utils import safe_new, traverse
-from aesara.tensor.exceptions import NotScalarConstantError
 from aesara.tensor.math import minimum
 from aesara.tensor.shape import shape_padleft
 from aesara.tensor.type import TensorType, integer_dtypes
@@ -344,10 +343,7 @@ def scan(
     if isinstance(n_steps, (float, int)):
         n_fixed_steps = int(n_steps)
     else:
-        try:
-            n_fixed_steps = at.get_constant_value(n_steps)
-        except NotScalarConstantError:
-            n_fixed_steps = None
+        n_fixed_steps = at.get_constant_value(n_steps)
 
     # Check n_steps is an int
     if hasattr(n_steps, "dtype") and str(n_steps.dtype) not in integer_dtypes:

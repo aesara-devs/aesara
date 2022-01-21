@@ -21,7 +21,6 @@ from aesara.graph.basic import Apply
 from aesara.graph.op import OpenMPOp
 from aesara.tensor import blas
 from aesara.tensor.basic import as_tensor_variable, get_constant_value, patternbroadcast
-from aesara.tensor.exceptions import NotScalarConstantError
 from aesara.tensor.nnet.abstract_conv import get_conv_output_shape, get_conv_shape_1axis
 from aesara.tensor.type import discrete_dtypes, tensor
 
@@ -105,33 +104,16 @@ def conv2d(
         image_shape = list(image_shape)
         for i in range(len(image_shape)):
             if image_shape[i] is not None:
-                try:
-                    image_shape[i] = get_constant_value(
-                        as_tensor_variable(image_shape[i])
-                    )
-                except NotScalarConstantError:
-                    raise NotScalarConstantError(
-                        "The convolution need that the shape"
-                        " information are constant values. We got"
-                        " {image_shape[i]} for the image_shape parameter"
-                    )
+                image_shape[i] = get_constant_value(as_tensor_variable(image_shape[i]))
                 assert image_shape[i].dtype in discrete_dtypes
                 image_shape[i] = int(image_shape[i])
     if filter_shape is not None:
         filter_shape = list(filter_shape)
         for i in range(len(filter_shape)):
             if filter_shape[i] is not None:
-                try:
-                    filter_shape[i] = get_constant_value(
-                        as_tensor_variable(filter_shape[i])
-                    )
-                except NotScalarConstantError:
-                    raise NotScalarConstantError(
-                        "The convolution need that the shape"
-                        " information are constant values. We got"
-                        " {filter_shape[i]} for the filter_shape "
-                        "parameter"
-                    )
+                filter_shape[i] = get_constant_value(
+                    as_tensor_variable(filter_shape[i])
+                )
                 assert filter_shape[i].dtype in discrete_dtypes
                 filter_shape[i] = int(filter_shape[i])
 
