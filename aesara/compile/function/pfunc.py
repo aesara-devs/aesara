@@ -372,25 +372,7 @@ def pfunc(
     equivalent to Var1.
 
     """
-    #
-    # This function works by cloning the graph (except for the
-    # inputs), and then shipping it off to aesara.compile.function.function
-    # (There it will be cloned again, unnecessarily, because it doesn't know
-    # that we already cloned it.)
-    #
-    # First, it clones the replacements named in the givens argument,
-    # and points each Var1 to the clone of Var2.  Then it sets the
-    # inputs in the clone dictionary.  After these steps, we are
-    # assuming that the clone dictionary contains all the inputs to
-    # the computation graph.
-    #
-    # Then it clones the outputs and the update expressions.  This
-    # rebuilds a computation graph from the inputs and the givens.
-    #
-    if updates is None:
-        updates = []
-    if givens is None:
-        givens = []
+
     if profile is None:
         profile = config.profile or config.print_global_stats
         # profile -> True or False
@@ -404,6 +386,62 @@ def pfunc(
     # profile is typically either False or an object at this point.
     # No need to block other objects being passed through though. It might be
     # useful.
+
+    inputs, cloned_outputs = construct_pfunc_ins_and_outs(
+        params,
+        outputs,
+        mode,
+        updates,
+        givens,
+        no_default_updates,
+        rebuild_strict,
+        allow_input_downcast,
+    )
+
+    return orig_function(
+        inputs,
+        cloned_outputs,
+        mode,
+        accept_inplace=accept_inplace,
+        name=name,
+        profile=profile,
+        on_unused_input=on_unused_input,
+        output_keys=output_keys,
+    )
+
+
+def construct_pfunc_ins_and_outs(
+    params,
+    outputs=None,
+    mode=None,
+    updates=None,
+    givens=None,
+    no_default_updates=False,
+    rebuild_strict=True,
+    allow_input_downcast=None,
+):
+    """Construct inputs and outputs for `pfunc`.
+
+    This function works by cloning the graph (except for the
+    inputs), and then shipping it off to aesara.compile.function.function
+    (There it will be cloned again, unnecessarily, because it doesn't know
+    that we already cloned it.)
+
+    First, it clones the replacements named in the `givens` argument,
+    and points each ``Var1`` to the clone of ``Var2``.  Then it sets the
+    inputs in the clone dictionary.  After these steps, we are
+    assuming that the clone dictionary contains all the inputs to
+    the computation graph.
+
+    Then it clones the outputs and the update expressions.  This
+    rebuilds a computation graph from the inputs and the `givens`.
+
+    """
+    if updates is None:
+        updates = []
+
+    if givens is None:
+        givens = []
 
     if not isinstance(params, (list, tuple)):
         raise Exception("in pfunc() the first argument must be a list or " "a tuple")
@@ -520,16 +558,7 @@ def pfunc(
             )
         inputs.append(si)
 
-    return orig_function(
-        inputs,
-        cloned_outputs,
-        mode,
-        accept_inplace=accept_inplace,
-        name=name,
-        profile=profile,
-        on_unused_input=on_unused_input,
-        output_keys=output_keys,
-    )
+    return inputs, cloned_outputs
 
 
 def _pfunc_param_to_in(param, strict=False, allow_downcast=None):
