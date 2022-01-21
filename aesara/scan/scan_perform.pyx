@@ -75,19 +75,20 @@ def perform(
         tuple tap_array_len,
         numpy.ndarray[numpy.int32_t,ndim=1] vector_seqs,
         numpy.ndarray[numpy.int32_t,ndim=1] vector_outs,
-        numpy.ndarray[numpy.int32_t,ndim=2] mit_mot_out_slices,
+        tuple mit_mot_out_slices,
         numpy.ndarray[numpy.int32_t,ndim=1] mitmots_preallocated,
         numpy.ndarray[numpy.int32_t,ndim=1] inps_is_tensor,
         numpy.ndarray[numpy.int32_t,ndim=1] outs_is_tensor,
         list inner_input_storage,
         list inner_output_storage,
         bint need_update_inputs,
-        list inner_input_needs_update,
+        tuple inner_input_needs_update,
         fnct,
         numpy.ndarray[numpy.int32_t,ndim=1] destroy_map,
         list outer_inputs,
         list outer_outputs,
-        list output_dtypes,
+        tuple outer_output_dtypes,
+        tuple outer_output_ndims,
 ):
     """
     Parameters
@@ -128,7 +129,7 @@ def perform(
         For each output ( mit_mot, mit_sot, sit_sot, nit_sot in this order)
         the entry is 1 if the corresponding argument is a 1 dimensional
         tensor, 0 otherwise.
-    mit_mot_out_slices : int32 ndarray( can be replaced by list of lists)
+    mit_mot_out_slices
         Same as tap_array, but for the output taps of mit_mot sequences
     inps_is_tensor : int32 ndarray (Can be replaced by a list)
         Array of boolean indicating, for every input, whether it is a tensor
@@ -143,7 +144,7 @@ def perform(
     need_update_inputs
         A boolean indicating whether or not inner inputs need to be updated.
     inner_input_needs_update
-        A list of booleans indicating which inner inputs need to be updated.
+        A tuple of booleans indicating which inner inputs need to be updated.
     fnct: Function
         The compiled Aesara inner-function object.
     destroy_map
@@ -155,8 +156,10 @@ def perform(
         This is where we need to copy our outputs ( we don't return the
         results, though we can change the code such that we return, and
         figure things out on the outside - python)
-    output_dtypes
-        The dtypes for each output.
+    outer_output_dtypes
+        The dtypes for each outer output.
+    outer_output_ndims
+        The number of dimensions for each outer output.
 
     """
     # 1. Unzip the number of steps and sequences. If number of steps is
@@ -252,7 +255,7 @@ def perform(
                 # (The answer is that you shouldn't have a `node` object to
                 # access, because it's not going to produce a very efficient
                 # Cython function!)
-                outer_outputs[idx][0] = numpy.zeros(0, dtype=output_dtypes[idx])
+                outer_outputs[idx][0] = numpy.empty((0,) * outer_output_ndims[idx], dtype=outer_output_dtypes[idx])
             else:
                 outer_outputs[idx][0] = None
         return
@@ -299,15 +302,13 @@ def perform(
         offset = n_seqs
         for idx in range(n_outs):
             if vector_outs[idx] == 1:
-                for tdx in range(tap_array_len[idx]):
-                    tap = tap_array[idx][tdx]
+                for tap in tap_array[idx]:
                     _idx = (pos[idx]+tap)%store_steps[idx]
                     inner_input_storage[offset][0] =\
                             outer_outputs[idx][0][_idx:<unsigned int>(_idx+1)].reshape(())
                     offset += 1
             else:
-                for tdx in range(tap_array_len[idx]):
-                    tap = tap_array[idx][tdx]
+                for tap in tap_array[idx]:
                     _idx = (pos[idx]+tap)%store_steps[idx]
                     inner_input_storage[offset][0] = outer_outputs[idx][0][_idx]
                     offset += 1
@@ -474,7 +475,7 @@ def perform(
 
                 mitmot_out_idx += 1
 
-            mitmot_inp_offset += len(tap_array[j])
+            mitmot_inp_offset += tap_array_len[j]
 
         # 5.4 Copy over the values for mit_sot/sit_sot outputs
         begin = n_mit_mot
@@ -520,7 +521,7 @@ def perform(
                         outer_outputs[j][0].shape[0] < store_steps[j] or
                         outer_outputs[j][0].shape[1:] != shape[1:] or
                         outer_outputs[j][0].dtype != dtype ):
-                    outer_outputs[j][0] = numpy.zeros(shape, dtype=output_dtypes[j])
+                    outer_outputs[j][0] = numpy.empty(shape, dtype=outer_output_dtypes[j])
                 elif outer_outputs[j][0].shape[0] != store_steps[j]:
                     outer_outputs[j][0] = outer_outputs[j][0][:store_steps[j]]
                 outer_outputs[j][0][pos[j]] = inner_output_storage[jout][0]
@@ -582,13 +583,13 @@ def perform(
                 # This way, there will be no information overwritten
                 # before it is read (as it used to happen).
                 shape = (pdx,)+ outer_outputs[idx][0].shape[1:]
-                tmp = numpy.zeros(shape, dtype=output_dtypes[idx])
+                tmp = numpy.empty(shape, dtype=outer_output_dtypes[idx])
                 tmp[:] = outer_outputs[idx][0][:pdx]
                 outer_outputs[idx][0][:store_steps[idx]-pdx] = outer_outputs[idx][0][pdx:]
                 outer_outputs[idx][0][store_steps[idx]-pdx:] = tmp
             else:
                 shape = (store_steps[idx]-pdx,) + outer_outputs[idx][0].shape[1:]
-                tmp = numpy.zeros(shape, dtype=output_dtypes[idx])
+                tmp = numpy.empty(shape, dtype=outer_output_dtypes[idx])
                 tmp[:] = outer_outputs[idx][0][pdx:]
                 outer_outputs[idx][0][store_steps[idx]-pdx:] = outer_outputs[idx][0][:pdx]
                 outer_outputs[idx][0][:store_steps[idx]-pdx] = tmp
