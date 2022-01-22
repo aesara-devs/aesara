@@ -59,5 +59,5 @@ from aesara.compile.ops import (
     register_view_op_c_code,
     view_op,
 )
-from aesara.compile.profiling import ProfileStats, ScanProfileStats
+from aesara.compile.profiling import ProfileStats
 from aesara.compile.sharedvalue import SharedVariable, shared, shared_constructor
