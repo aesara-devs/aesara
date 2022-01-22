@@ -59,7 +59,7 @@ from aesara.compile.builders import infer_shape
 from aesara.compile.function import function
 from aesara.compile.io import In, Out
 from aesara.compile.mode import AddFeatureOptimizer, Mode, get_default_mode, get_mode
-from aesara.compile.profiling import ScanProfileStats, register_profiler_printer
+from aesara.compile.profiling import register_profiler_printer
 from aesara.configdefaults import config
 from aesara.gradient import DisconnectedType, NullType, Rop, grad, grad_undefined
 from aesara.graph.basic import (
@@ -77,7 +77,7 @@ from aesara.graph.op import HasInnerGraph, Op
 from aesara.link.c.basic import CLinker
 from aesara.link.c.exceptions import MissingGXX
 from aesara.link.utils import raise_with_op
-from aesara.scan.utils import Validator, forced_replace, safe_new
+from aesara.scan.utils import ScanProfileStats, Validator, forced_replace, safe_new
 from aesara.tensor.basic import as_tensor_variable
 from aesara.tensor.math import minimum
 from aesara.tensor.shape import Shape_i
