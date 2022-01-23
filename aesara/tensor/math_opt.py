@@ -1024,28 +1024,10 @@ class AlgebraicCanonizer(LocalOptimizer):
             new = fill_chain(new, node.inputs)[0]
 
         if new.type == out.type:
-            # This happen with test
-            # aesara/tensor/tests/test_opt.py:T_local_switch_sink
             new.tag.values_eq_approx = values_eq_approx_remove_inf_nan
-
-            # We need to implement the copy over of the stacktrace.
-            # See issue #5104.
+            copy_stack_trace(out, new)
             return [new]
         else:
-            _logger.warning(
-                " ".join(
-                    (
-                        "CANONIZE FAILED: new, out = ",
-                        new,
-                        ",",
-                        out,
-                        "types",
-                        new.type,
-                        ",",
-                        out.type,
-                    )
-                )
-            )
             return False
 
     def __str__(self):
