@@ -1,7 +1,6 @@
 """ Tensor optimizations addressing the ops in math.py."""
 
 import itertools
-import logging
 import operator
 from functools import partial, reduce
 
@@ -93,11 +92,6 @@ from aesara.tensor.type import (
     values_eq_approx_remove_nan,
 )
 from aesara.tensor.var import TensorConstant, get_unique_value
-from aesara.utils import NoDuplicateOptWarningFilter
-
-
-_logger = logging.getLogger("aesara.tensor.math_opt")
-_logger.addFilter(NoDuplicateOptWarningFilter())
 
 
 def scalarconsts_rest(inputs, elemwise=True, only_process_constants=False):
@@ -186,14 +180,6 @@ def local_0_dot_x(fgraph, node):
         elif x.ndim == 1 and y.ndim == 1:
             constant_zero = assert_op(constant_zero, eq(x.shape[0], y.shape[0]))
             return [constant_zero]
-        else:
-            _logger.warning(
-                "Optimization Warning: "
-                "Optimization aesara/opt.py:local_0_dot_x Found "
-                "that it could apply, but was not implemented "
-                "for dot product with these input types:\n"
-                f"({x.type}, {y.type})"
-            )
 
 
 @register_canonicalize
