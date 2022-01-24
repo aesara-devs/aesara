@@ -1518,6 +1518,8 @@ def equal_computations(xs, ys, in_xs=None, in_ys=None):
         results to be more efficient.
 
         """
+        if nd_x is nd_y:
+            return True
 
         if nd_x.op != nd_y.op:
             return False
