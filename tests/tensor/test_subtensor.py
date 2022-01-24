@@ -1403,33 +1403,24 @@ def test_take_basic():
 
 
 @pytest.mark.parametrize(
-    "a, index, axis, mode",
+    "a_shape, index, axis, mode",
     [
-        (matrix(), lvector(), -1, None),
-        (matrix(), lvector(), 0, None),
-        (matrix(), lvector(), 1, None),
-        (matrix(), lvector(), 1, "clip"),
-        (matrix(), lvector(), 1, "wrap"),
+        ((4, 5, 6), np.array([[1, 2, 3], [1, 2, 3]]), -1, None),
+        ((4, 5, 6), np.array([[1, 2, 3], [5, 6, 7]]), None, None),
+        ((4, 5, 6), np.array([[1, 2, 3], [1, 2, 3]]), 1, None),
+        ((4, 5, 6), np.array([[1, 2, 3], [5, 6, 7]]), 1, "clip"),
+        ((4, 5, 6), np.array([[1, 2, 3], [5, 6, 7]]), 1, "wrap"),
     ],
 )
-def test_take_cases(a, index, axis, mode):
-    fn_mode = aesara.compile.mode.get_default_mode()
-    fn_mode = fn_mode.including(
-        "local_useless_subtensor",
-        "local_replace_AdvancedSubtensor",
-    )
+def test_take_cases(a_shape, index, axis, mode):
+    a_val = np.random.random(size=a_shape).astype(config.floatX)
+    py_res = a_val.take(index, axis=axis, mode=mode)
 
-    f = aesara.function([a, index], a.take(index, axis=axis, mode=mode), mode=fn_mode)
+    a = at.as_tensor_variable(a_val)
+    index = at.as_tensor_variable(index)
 
-    a_val = np.arange(3 * 3).reshape((3, 3)).astype(config.floatX)
-
-    if mode is None:
-        index_val = np.array([0, 1], dtype=np.int64)
-    else:
-        index_val = np.array([-1, 2], dtype=np.int64)
-
-    py_res = a_val.take(index_val, axis=axis, mode=mode)
-    f_res = f(a_val, index_val)
+    f = aesara.function([], a.take(index, axis=axis, mode=mode))
+    f_res = f()
     assert np.array_equal(py_res, f_res)
 
 

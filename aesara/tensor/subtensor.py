@@ -2770,10 +2770,8 @@ def take(a, indices, axis=None, mode="raise"):
     if not isinstance(axis, (int, type(None))):
         raise TypeError("`axis` must be an integer or None")
 
-    if axis is None and indices.ndim == 1:
-        return advanced_subtensor1(a.flatten(), indices)
-    elif axis == 0 and indices.ndim == 1:
-        return advanced_subtensor1(a, indices)
+    if axis is None:
+        return advanced_subtensor(a.flatten(), indices)
     elif axis < 0:
         axis += a.ndim
 
