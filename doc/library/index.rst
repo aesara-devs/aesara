@@ -41,9 +41,7 @@ There are also some top-level imports that you might find more convenient:
     Alias for :func:`aesara.compile.function.function`
 
 
-.. function:: function_dump(...)
 
-    Alias for :func:`aesara.compile.function.function_dump`
 
 .. function:: shared(...)
 
@@ -53,7 +51,6 @@ There are also some top-level imports that you might find more convenient:
 .. class:: In
    Alias for :func:`aesara.scan.basic.scan`
 
-    Alias for :class:`function.In`
 
 .. autofunction:: aesara.dprint(...)
 
