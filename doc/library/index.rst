@@ -9,6 +9,9 @@ API Documentation
 This documentation covers Aesara module-wise.  This is suited to finding the
 Types and Ops that you can use to build and compile expression graphs.
 
+Modules
+=======
+
 .. toctree::
    :maxdepth: 1
 
@@ -28,32 +31,39 @@ Types and Ops that you can use to build and compile expression graphs.
    tensor/index
    typed_list
 
-There are also some top-level imports that you might find more convenient:
-
-
 .. module:: aesara
    :platform: Unix, Windows
    :synopsis: Aesara top-level import
 .. moduleauthor:: LISA
 
-.. function:: function(...)
+There are also some top-level imports that you might find more convenient:
 
-    Alias for :func:`aesara.compile.function.function`
-
-
-
+Graph
+=====
 
 .. function:: shared(...)
 
-    Alias for :func:`aesara.compile.sharedvalue.shared`
+   Alias for :func:`aesara.compile.sharedvalue.shared`
+
+.. function:: function(...)
+
+   Alias for :func:`aesara.compile.function.function`
+
+.. autofunction:: aesara.clone_replace(...)
+
+   Alias for :func:`aesara.graph.basic.clone_replace`
+
+Control flow
+============
+
 .. autofunction:: aesara.scan(...)
 
-.. class:: In
    Alias for :func:`aesara.scan.basic.scan`
 
+Debug
+=====
 
 .. autofunction:: aesara.dprint(...)
 
    Alias for :func:`aesara.printing.debugprint`
 
-.. autofunction:: aesara.clone_replace
