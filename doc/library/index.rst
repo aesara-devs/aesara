@@ -48,9 +48,15 @@ There are also some top-level imports that you might find more convenient:
 .. function:: shared(...)
 
     Alias for :func:`aesara.compile.sharedvalue.shared`
+.. autofunction:: aesara.scan(...)
 
 .. class:: In
+   Alias for :func:`aesara.scan.basic.scan`
 
     Alias for :class:`function.In`
+
+.. autofunction:: aesara.dprint(...)
+
+   Alias for :func:`aesara.printing.debugprint`
 
 .. autofunction:: aesara.clone_replace
