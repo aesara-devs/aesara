@@ -53,8 +53,4 @@ There are also some top-level imports that you might find more convenient:
 
     Alias for :class:`function.In`
 
-.. function:: dot(x, y)
-
-    Works like :func:`tensor.dot` for both sparse and dense matrix products
-
 .. autofunction:: aesara.clone_replace
