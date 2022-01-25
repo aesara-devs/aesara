@@ -103,11 +103,11 @@ class FunctionGraph(MetaObject):
             Mapping between the `inputs` with updates and the `outputs`
             corresponding to their updates.
         memo
-            See ``clone_get_equiv``.
+            See :func:`aesara.graph.basic.clone_get_equiv`.
         copy_inputs
-            See ``clone_get_equiv``.
+            See :func:`aesara.graph.basic.clone_get_equiv`.
         copy_orphans
-            See ``clone_get_equiv``.
+            See :func:`aesara.graph.basic.clone_get_equiv`.
         """
         if outputs is None:
             raise ValueError("No outputs specified")
