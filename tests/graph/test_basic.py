@@ -68,7 +68,7 @@ class MyOp(Op):
         raise NotImplementedError("No Python implementation available.")
 
 
-MyOp = MyOp()
+myop = MyOp()
 
 
 class MyInnerGraphOp(Op, HasInnerGraph):
@@ -120,27 +120,27 @@ class X:
 class TestStr(X):
     def test_as_string(self):
         r1, r2 = MyVariable(1), MyVariable(2)
-        node = MyOp.make_node(r1, r2)
+        node = myop.make_node(r1, r2)
         s = self.str([r1, r2], node.outputs)
         assert s == ["MyOp(R1, R2)"]
 
     def test_as_string_deep(self):
         r1, r2, r5 = MyVariable(1), MyVariable(2), MyVariable(5)
-        node = MyOp.make_node(r1, r2)
-        node2 = MyOp.make_node(node.outputs[0], r5)
+        node = myop.make_node(r1, r2)
+        node2 = myop.make_node(node.outputs[0], r5)
         s = self.str([r1, r2, r5], node2.outputs)
         assert s == ["MyOp(MyOp(R1, R2), R5)"]
 
     def test_multiple_references(self):
         r1, r2, r5 = MyVariable(1), MyVariable(2), MyVariable(5)
-        node = MyOp.make_node(r1, r2)
-        node2 = MyOp.make_node(node.outputs[0], node.outputs[0])
+        node = myop.make_node(r1, r2)
+        node2 = myop.make_node(node.outputs[0], node.outputs[0])
         assert self.str([r1, r2, r5], node2.outputs) == ["MyOp(*1 -> MyOp(R1, R2), *1)"]
 
     def test_cutoff(self):
         r1, r2 = MyVariable(1), MyVariable(2)
-        node = MyOp.make_node(r1, r2)
-        node2 = MyOp.make_node(node.outputs[0], node.outputs[0])
+        node = myop.make_node(r1, r2)
+        node2 = myop.make_node(node.outputs[0], node.outputs[0])
         assert self.str(node.outputs, node2.outputs) == ["MyOp(R3, R3)"]
         assert self.str(node2.inputs, node2.outputs) == ["MyOp(R3, R3)"]
 
@@ -148,14 +148,14 @@ class TestStr(X):
 class TestClone(X):
     def test_accurate(self):
         r1, r2 = MyVariable(1), MyVariable(2)
-        node = MyOp.make_node(r1, r2)
+        node = myop.make_node(r1, r2)
         _, new = clone([r1, r2], node.outputs, False)
         assert self.str([r1, r2], new) == ["MyOp(R1, R2)"]
 
     def test_copy(self):
         r1, r2, r5 = MyVariable(1), MyVariable(2), MyVariable(5)
-        node = MyOp.make_node(r1, r2)
-        node2 = MyOp.make_node(node.outputs[0], r5)
+        node = myop.make_node(r1, r2)
+        node2 = myop.make_node(node.outputs[0], r5)
         _, new = clone([r1, r2, r5], node2.outputs, False)
         assert (
             node2.outputs[0].type == new[0].type and node2.outputs[0] is not new[0]
@@ -170,7 +170,7 @@ class TestClone(X):
     def test_not_destructive(self):
         # Checks that manipulating a cloned graph leaves the original unchanged.
         r1, r2, r5 = MyVariable(1), MyVariable(2), MyVariable(5)
-        node = MyOp.make_node(MyOp.make_node(r1, r2).outputs[0], r5)
+        node = myop.make_node(myop.make_node(r1, r2).outputs[0], r5)
         _, new = clone([r1, r2, r5], node.outputs, False)
         new_node = new[0].owner
         new_node.inputs = [MyVariable(7), MyVariable(8)]
@@ -183,7 +183,7 @@ class TestClone(X):
 
     def test_constant(self):
         r1, r2, r5 = MyVariable(1), MyVariable(2), MyVariable(5)
-        node = MyOp.make_node(MyOp.make_node(r1, r2).outputs[0], r5)
+        node = myop.make_node(myop.make_node(r1, r2).outputs[0], r5)
         _, new = clone([r1, r2, r5], node.outputs, False)
         new_node = new[0].owner
         new_node.inputs = [MyVariable(7), MyVariable(8)]
@@ -214,9 +214,9 @@ class TestToposort:
     def test_simple(self):
         # Test a simple graph
         r1, r2, r5 = MyVariable(1), MyVariable(2), MyVariable(5)
-        o = MyOp(r1, r2)
+        o = myop(r1, r2)
         o.name = "o1"
-        o2 = MyOp(o, r5)
+        o2 = myop(o, r5)
         o2.name = "o2"
 
         clients = {}
@@ -243,47 +243,84 @@ class TestToposort:
     def test_double_dependencies(self):
         # Test a graph with double dependencies
         r1, r5 = MyVariable(1), MyVariable(5)
-        o = MyOp.make_node(r1, r1)
-        o2 = MyOp.make_node(o.outputs[0], r5)
+        o = myop.make_node(r1, r1)
+        o2 = myop.make_node(o.outputs[0], r5)
         all = general_toposort(o2.outputs, prenode)
         assert all == [r5, r1, o, o.outputs[0], o2, o2.outputs[0]]
 
     def test_inputs_owners(self):
         # Test a graph where the inputs have owners
         r1, r5 = MyVariable(1), MyVariable(5)
-        o = MyOp.make_node(r1, r1)
+        o = myop.make_node(r1, r1)
         r2b = o.outputs[0]
-        o2 = MyOp.make_node(r2b, r2b)
+        o2 = myop.make_node(r2b, r2b)
         all = io_toposort([r2b], o2.outputs)
         assert all == [o2]
 
-        o2 = MyOp.make_node(r2b, r5)
+        o2 = myop.make_node(r2b, r5)
         all = io_toposort([r2b], o2.outputs)
         assert all == [o2]
 
     def test_not_connected(self):
         # Test a graph which is not connected
         r1, r2, r3, r4 = MyVariable(1), MyVariable(2), MyVariable(3), MyVariable(4)
-        o0 = MyOp.make_node(r1, r2)
-        o1 = MyOp.make_node(r3, r4)
+        o0 = myop.make_node(r1, r2)
+        o1 = myop.make_node(r3, r4)
         all = io_toposort([r1, r2, r3, r4], o0.outputs + o1.outputs)
         assert all == [o1, o0] or all == [o0, o1]
 
     def test_io_chain(self):
         # Test inputs and outputs mixed together in a chain graph
         r1, r2 = MyVariable(1), MyVariable(2)
-        o0 = MyOp.make_node(r1, r2)
-        o1 = MyOp.make_node(o0.outputs[0], r1)
+        o0 = myop.make_node(r1, r2)
+        o1 = myop.make_node(o0.outputs[0], r1)
         all = io_toposort([r1, o0.outputs[0]], [o0.outputs[0], o1.outputs[0]])
         assert all == [o1]
 
     def test_outputs_clients(self):
         # Test when outputs have clients
         r1, r2, r4 = MyVariable(1), MyVariable(2), MyVariable(4)
-        o0 = MyOp.make_node(r1, r2)
-        MyOp.make_node(o0.outputs[0], r4)
+        o0 = myop.make_node(r1, r2)
+        myop.make_node(o0.outputs[0], r4)
         all = io_toposort([], o0.outputs)
         assert all == [o0]
+
+    @pytest.mark.parametrize(
+        "clients, orderings",
+        [
+            (None, None),
+            ({}, None),
+            (None, {}),
+        ],
+    )
+    def test_node_filter(self, clients, orderings):
+        r1, r2, r3 = MyVariable(1), MyVariable(2), MyVariable(3)
+
+        myop2 = MyOp()
+
+        o = myop(r1)
+        o1 = myop(r1, o)
+        o2 = myop(r3, o1)
+        o3 = myop2(o1, o2)
+
+        def node_filter(x):
+            return x.inputs if x == myop2 else []
+
+        if orderings is not None:
+            orderings[o3] = [r1]
+
+        res = io_toposort(
+            [r1, r2, r3],
+            [o2, o3],
+            clients=clients,
+            orderings=orderings,
+            node_filter=node_filter,
+        )
+
+        assert o.owner not in res
+        assert o1.owner not in res
+        assert o2.owner in res
+        assert o3.owner in res
 
 
 class TestEval:
@@ -377,9 +414,9 @@ def test_equal_computations():
 def test_walk():
 
     r1, r2, r3 = MyVariable(1), MyVariable(2), MyVariable(3)
-    o1 = MyOp(r1, r2)
+    o1 = myop(r1, r2)
     o1.name = "o1"
-    o2 = MyOp(r3, o1)
+    o2 = myop(r3, o1)
     o2.name = "o2"
 
     def expand(r):
@@ -408,9 +445,9 @@ def test_walk():
 def test_ancestors():
 
     r1, r2, r3 = MyVariable(1), MyVariable(2), MyVariable(3)
-    o1 = MyOp(r1, r2)
+    o1 = myop(r1, r2)
     o1.name = "o1"
-    o2 = MyOp(r3, o1)
+    o2 = myop(r3, o1)
     o2.name = "o2"
 
     res = ancestors([o2], blockers=None)
@@ -430,9 +467,9 @@ def test_ancestors():
 def test_graph_inputs():
 
     r1, r2, r3 = MyVariable(1), MyVariable(2), MyVariable(3)
-    o1 = MyOp(r1, r2)
+    o1 = myop(r1, r2)
     o1.name = "o1"
-    o2 = MyOp(r3, o1)
+    o2 = myop(r3, o1)
     o2.name = "o2"
 
     res = graph_inputs([o2], blockers=None)
@@ -443,9 +480,9 @@ def test_graph_inputs():
 def test_variables_and_orphans():
 
     r1, r2, r3 = MyVariable(1), MyVariable(2), MyVariable(3)
-    o1 = MyOp(r1, r2)
+    o1 = myop(r1, r2)
     o1.name = "o1"
-    o2 = MyOp(r3, o1)
+    o2 = myop(r3, o1)
     o2.name = "o2"
 
     vars_res = vars_between([r1, r2], [o2])
@@ -460,11 +497,11 @@ def test_variables_and_orphans():
 def test_ops():
 
     r1, r2, r3, r4 = MyVariable(1), MyVariable(2), MyVariable(3), MyVariable(4)
-    o1 = MyOp(r1, r2)
+    o1 = myop(r1, r2)
     o1.name = "o1"
-    o2 = MyOp(r3, r4)
+    o2 = myop(r3, r4)
     o2.name = "o2"
-    o3 = MyOp(r3, o1, o2)
+    o3 = myop(r3, o1, o2)
     o3.name = "o3"
 
     res = applys_between([r1, r2], [o3])
@@ -475,9 +512,9 @@ def test_ops():
 def test_list_of_nodes():
 
     r1, r2, r3 = MyVariable(1), MyVariable(2), MyVariable(3)
-    o1 = MyOp(r1, r2)
+    o1 = myop(r1, r2)
     o1.name = "o1"
-    o2 = MyOp(r3, o1)
+    o2 = myop(r3, o1)
     o2.name = "o2"
 
     res = list_of_nodes([r1, r2], [o2])
@@ -487,9 +524,9 @@ def test_list_of_nodes():
 def test_is_in_ancestors():
 
     r1, r2, r3 = MyVariable(1), MyVariable(2), MyVariable(3)
-    o1 = MyOp(r1, r2)
+    o1 = myop(r1, r2)
     o1.name = "o1"
-    o2 = MyOp(r3, o1)
+    o2 = myop(r3, o1)
     o2.name = "o2"
 
     assert is_in_ancestors(o2.owner, o1.owner)
@@ -508,13 +545,13 @@ def test_view_roots():
 def test_get_var_by_name():
 
     r1, r2, r3 = MyVariable(1), MyVariable(2), MyVariable(3)
-    o1 = MyOp(r1, r2)
+    o1 = myop(r1, r2)
     o1.name = "o1"
 
     # Inner graph
     igo_in_1 = MyVariable(4)
     igo_in_2 = MyVariable(5)
-    igo_out_1 = MyOp(igo_in_1, igo_in_2)
+    igo_out_1 = myop(igo_in_1, igo_in_2)
     igo_out_1.name = "igo1"
 
     igo = MyInnerGraphOp([igo_in_1, igo_in_2], [igo_out_1])

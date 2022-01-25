@@ -1099,6 +1099,7 @@ def io_toposort(
     outputs: List[Variable],
     orderings: Optional[Dict[Apply, List[Apply]]] = None,
     clients: Optional[Dict[Variable, List[Variable]]] = None,
+    node_filter: Optional[Callable[[Apply], List[Variable]]] = lambda x: x.inputs,
 ) -> List[Apply]:
     """Perform topological sort from input and output nodes.
 
@@ -1129,12 +1130,15 @@ def io_toposort(
             # We suppose that all outputs are always computed
             if cur.outputs[0] in computed:
                 continue
-            if all(i in computed or i.owner is None for i in cur.inputs):
+
+            inputs = node_filter(cur)
+
+            if all(i in computed or i.owner is None for i in inputs):
                 computed.update(cur.outputs)
                 order.append(cur)
             else:
                 todo.append(cur)
-                todo.extend(i.owner for i in cur.inputs if i.owner)
+                todo.extend(i.owner for i in inputs if i.owner)
         return order
 
     compute_deps = None
@@ -1155,7 +1159,7 @@ def io_toposort(
                     if obj.owner:
                         rval = [obj.owner]
                 elif isinstance(obj, Apply):
-                    rval = list(obj.inputs)
+                    rval = list(node_filter(obj))
                 if rval:
                     deps_cache[obj] = list(rval)
                 else:
@@ -1165,7 +1169,6 @@ def io_toposort(
             return rval
 
     else:
-
         # the inputs are used only here in the function that decides what
         # 'predecessors' to explore
         def compute_deps(obj):
@@ -1175,7 +1178,7 @@ def io_toposort(
                     if obj.owner:
                         rval = [obj.owner]
                 elif isinstance(obj, Apply):
-                    rval = list(obj.inputs)
+                    rval = list(node_filter(obj))
                 rval.extend(orderings.get(obj, []))
             else:
                 assert not orderings.get(obj, None)
