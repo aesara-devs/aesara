@@ -1,4 +1,5 @@
 """Core graph classes."""
+import abc
 import warnings
 from collections import deque
 from copy import copy
@@ -10,6 +11,7 @@ from typing import (
     Deque,
     Dict,
     Generator,
+    Hashable,
     Iterable,
     Iterator,
     List,
@@ -396,6 +398,14 @@ class Variable(Node):
     def owner(self, value) -> None:
         self._owner = value
 
+    @property
+    def index(self):
+        return self._index
+
+    @index.setter
+    def index(self, value):
+        self._index = value
+
     def __init__(
         self,
         type,
@@ -411,7 +421,7 @@ class Variable(Node):
 
         if owner is not None and not isinstance(owner, Apply):
             raise TypeError("owner must be an Apply instance", owner)
-        self._owner = owner
+        self.owner = owner
 
         if index is not None and not isinstance(index, int):
             raise TypeError("index must be an int", index)
@@ -586,7 +596,98 @@ class Variable(Node):
         return d
 
 
-class Constant(Variable):
+class AtomicVariable(Variable):
+    """A node type that has no ancestors and should never be considered an input to a graph."""
+
+    def __init__(self, type, **kwargs):
+        super().__init__(type, **kwargs)
+
+    @abc.abstractmethod
+    def signature(self):
+        ...
+
+    def merge_signature(self):
+        return self.signature()
+
+    def equals(self, other):
+        """
+        This does what `__eq__` would normally do, but `Variable` and `Apply`
+        should always be hashable by `id`.
+        """
+        return isinstance(other, type(self)) and self.signature() == other.signature()
+
+    @property
+    def owner(self):
+        return None
+
+    @owner.setter
+    def owner(self, value):
+        if value is not None:
+            raise ValueError("AtomicVariable instances cannot have an owner.")
+
+    @property
+    def index(self):
+        return None
+
+    @index.setter
+    def index(self, value):
+        if value is not None:
+            raise ValueError("AtomicVariable instances cannot have an index.")
+
+
+class NominalVariable(AtomicVariable):
+    """A variable that enables alpha-equivalent comparisons."""
+
+    __instances__: Dict[Hashable, type] = {}
+
+    def __new__(cls, id, typ, **kwargs):
+        if (id, typ) not in cls.__instances__:
+            var_type = typ.variable_type
+            type_name = f"Nominal{var_type.__name__}"
+
+            def _reduce(self):
+                return cls, (self.id, self.type)
+
+            def _str(self):
+                return f"*{self.id}-{var_type.__str__(self)}"
+
+            new_type = type(
+                type_name, (cls, var_type), {"__reduce__": _reduce, "__str__": _str}
+            )
+            res = super().__new__(new_type)
+
+            cls.__instances__[(id, typ)] = res
+
+        return cls.__instances__[(id, typ)]
+
+    def __init__(self, id, typ, **kwargs):
+        self.id = id
+        super().__init__(typ, **kwargs)
+
+    def clone(self):
+        return self
+
+    def __eq__(self, other):
+        if self is other:
+            return True
+
+        return (
+            type(self) == type(other)
+            and self.id == other.id
+            and self.type == other.type
+        )
+
+    def __hash__(self):
+        return hash((type(self), self.id, self.type))
+
+    def __repr__(self):
+        return f"{type(self).__name__}({repr(self.id)}, {repr(self.type)})"
+
+    def signature(self):
+        return (self.type, self.id)
+
+
+class Constant(AtomicVariable):
     """A `Variable` with a fixed `data` field.
 
     `Constant` nodes make numerous optimizations possible (e.g. constant
@@ -602,22 +703,15 @@ class Constant(Variable):
     # __slots__ = ['data']
 
     def __init__(self, type, data, name=None):
-        super().__init__(type, None, None, name)
+        super().__init__(type, name=name)
         self.data = type.filter(data)
         add_tag_trace(self)
 
     def get_test_value(self):
         return self.data
 
-    def equals(self, other):
-        # this does what __eq__ should do, but Variable and Apply should always be hashable by id
-        return isinstance(other, Constant) and self.signature() == other.signature()
-
     def signature(self):
         return (self.type, self.data)
-
-    def merge_signature(self):
-        return self.signature()
 
     def __str__(self):
         if self.name is not None:
@@ -641,9 +735,9 @@ class Constant(Variable):
         if value is not None:
             raise ValueError("Constant instances cannot have an owner.")
 
-    value = property(lambda self: self.data, doc="read-only data access method")
-
-    # index is not defined, because the `owner` attribute must necessarily be None
+    @property
+    def value(self):
+        return self.data
 
 
 def walk(

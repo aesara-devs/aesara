@@ -14,7 +14,13 @@ import numpy as np
 
 from aesara.compile.compilelock import lock_ctx
 from aesara.configdefaults import config
-from aesara.graph.basic import Constant, NoParams, io_toposort, vars_between
+from aesara.graph.basic import (
+    AtomicVariable,
+    Constant,
+    NoParams,
+    io_toposort,
+    vars_between,
+)
 from aesara.graph.callcache import CallCache
 from aesara.link.basic import Container, Linker, LocalLinker, PerformLinker
 from aesara.link.c.cmodule import (
@@ -641,7 +647,7 @@ class CLinker(Linker):
         self.orphans = list(
             r
             for r in self.variables
-            if isinstance(r, Constant) and r not in self.inputs
+            if isinstance(r, AtomicVariable) and r not in self.inputs
         )
         # C type constants (aesara.scalar.ScalarType). They don't request an object
         self.consts = []
@@ -730,7 +736,7 @@ class CLinker(Linker):
                     [get_c_declare, get_c_extract, get_c_cleanup],
                 ]
             elif variable in self.orphans:
-                if not isinstance(variable, Constant):
+                if not isinstance(variable, AtomicVariable):
                     raise TypeError(
                         "All orphans to CLinker must be Constant instances.  "
                         f"Got {variable}"
@@ -1404,7 +1410,7 @@ class CLinker(Linker):
 
             # It is important that a variable (i)
             # yield a 'position' that reflects its role in code_gen()
-            if isinstance(i, Constant):  # orphans
+            if isinstance(i, AtomicVariable):  # orphans
                 if id(i) not in constant_ids:
                     isig = (i.signature(), topological_pos, i_idx)
                     # If the Aesara constant provides a strong hash
@@ -1634,7 +1640,10 @@ class CLinker(Linker):
         ]
         in_storage = [x for i, x in enumerate(in_storage) if i not in dupidx]
         if storage_map is None:
-            orphd = [[orphan.data] for orphan in self.orphans]
+            orphd = [
+                [orphan.data] if isinstance(orphan, Constant) else []
+                for orphan in self.orphans
+            ]
         else:
             orphd = [storage_map[orphan] for orphan in self.orphans]
 

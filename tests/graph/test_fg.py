@@ -4,9 +4,19 @@ import numpy as np
 import pytest
 
 from aesara.configdefaults import config
+from aesara.graph.basic import NominalVariable
 from aesara.graph.fg import FunctionGraph
 from aesara.graph.utils import MissingInputError
-from tests.graph.utils import MyConstant, MyOp, MyVariable, MyVariable2, op1, op2, op3
+from tests.graph.utils import (
+    MyConstant,
+    MyOp,
+    MyType,
+    MyVariable,
+    MyVariable2,
+    op1,
+    op2,
+    op3,
+)
 
 
 class TestFunctionGraph:
@@ -683,3 +693,18 @@ class TestFunctionGraph:
         assert not fg.variables
         assert not fg.apply_nodes
         assert fg.clients == {var1: [], var2: []}
+
+    def test_nominals(self):
+        t1 = MyType()
+
+        nm = NominalVariable(1, t1)
+        nm2 = NominalVariable(2, t1)
+
+        v1 = op1(nm, nm2)
+
+        fg = FunctionGraph(outputs=[v1], clone=False)
+
+        assert nm not in fg.inputs
+        assert nm2 not in fg.inputs
+        assert nm in fg.variables
+        assert nm2 in fg.variables
