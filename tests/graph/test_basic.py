@@ -8,6 +8,7 @@ from aesara import config, function, shared
 from aesara import tensor as at
 from aesara.graph.basic import (
     Apply,
+    NominalVariable,
     Variable,
     ancestors,
     applys_between,
@@ -51,6 +52,9 @@ class MyType(Type):
 
     def __eq__(self, other):
         return isinstance(other, MyType) and other.thingy == self.thingy
+
+    def __hash__(self):
+        return hash((type(self), self.thingy))
 
     def __str__(self):
         return f"R{self.thingy}"
@@ -699,3 +703,76 @@ class TestCloneReplace:
         utt.assert_allclose(
             test(x, at.sum((x + 1) ** 2), mention_y=True), 1.21000003815
         )
+
+
+def test_NominalVariable():
+
+    type1 = MyType(1)
+
+    nv1 = NominalVariable(1, type1)
+    nv2 = NominalVariable(1, type1)
+
+    assert nv1 is nv2
+    assert nv1.equals(nv2)
+    assert hash(nv1) == hash(nv2)
+
+    type2 = MyType(2)
+    nv3 = NominalVariable(1, type2)
+
+    assert not nv1.equals(nv3)
+    assert hash(nv1) != hash(nv3)
+
+    type3 = MyType(1)
+
+    assert type3 == type1
+
+    nv4 = NominalVariable(1, type3)
+
+    assert nv1 is nv4
+    assert nv1.equals(nv4)
+    assert hash(nv1) == hash(nv4)
+
+    nv5 = NominalVariable(2, type3)
+    assert not nv4.equals(nv5)
+    assert hash(nv4) != hash(nv5)
+
+    assert repr(nv5) == f"NominalVariable(2, {repr(type3)})"
+
+    assert nv5.signature() == (type3, 2)
+
+    nv5_pkld = pickle.dumps(nv5)
+    nv5_unpkld = pickle.loads(nv5_pkld)
+
+    assert type(nv5_unpkld) is type(nv5)
+    assert nv5_unpkld.equals(nv5)
+    assert nv5_unpkld is nv5
+
+    nv5_clone = nv5.clone()
+    assert type(nv5_clone) is type(nv5)
+    assert nv5_clone.equals(nv5)
+    assert nv5_clone is nv5
+
+
+def test_NominalVariable_create_variable_type():
+
+    ttype = TensorType("float64", (None, None))
+    ntv = NominalVariable(0, ttype)
+
+    assert isinstance(ntv, TensorVariable)
+    assert isinstance(ntv, NominalVariable)
+    assert ntv.ndim == 2
+    assert ntv.broadcastable == (False, False)
+    assert ntv.dtype == "float64"
+
+    ntv2 = NominalVariable(0, ttype)
+
+    assert type(ntv2) is type(ntv)
+    assert ntv2.equals(ntv)
+    assert ntv2 is ntv
+
+    ntv_pkld = pickle.dumps(ntv)
+    ntv_unpkld = pickle.loads(ntv_pkld)
+
+    assert type(ntv_unpkld) is type(ntv)
+    assert ntv_unpkld.equals(ntv)
+    assert ntv_unpkld is ntv

@@ -1,4 +1,5 @@
 """Core graph classes."""
+import abc
 import warnings
 from collections import deque
 from copy import copy
@@ -560,7 +561,98 @@ class Variable(Node):
         return d
 
 
-class Constant(Variable):
+class AtomicVariable(Variable):
+    """A node type that has no ancestors and should never be considered an input to a graph."""
+
+    def __init__(self, type, **kwargs):
+        super().__init__(type, **kwargs)
+
+    @abc.abstractmethod
+    def signature(self):
+        ...
+
+    def merge_signature(self):
+        return self.signature()
+
+    def equals(self, other):
+        """
+        This does what `__eq__` would normally do, but `Variable` and `Apply`
+        should always be hashable by `id`.
+        """
+        return isinstance(other, type(self)) and self.signature() == other.signature()
+
+    @property
+    def owner(self):
+        return None
+
+    @property
+    def index(self):
+        return None
+
+    @owner.setter
+    def owner(self, value):
+        if value is not None:
+            raise ValueError("AtomicVariable instances cannot have an owner.")
+
+    @index.setter
+    def index(self, value):
+        if value is not None:
+            raise ValueError("AtomicVariable instances cannot have an index.")
+
+
+class NominalVariable(AtomicVariable):
+    """A variable that enables alpha-equivalent comparisons."""
+
+    __instances__ = {}
+
+    def __new__(cls, id, typ, **kwargs):
+        if (id, typ) not in cls.__instances__:
+            var_type = typ.Variable
+            type_name = f"Nominal{var_type.__name__}"
+
+            def _reduce(self):
+                return cls, (self.id, self.type)
+
+            def _str(self):
+                return f"*{self.id}-{var_type.__str__(self)}"
+
+            new_type = type(
+                type_name, (cls, var_type), {"__reduce__": _reduce, "__str__": _str}
+            )
+            res = super().__new__(new_type)
+
+            cls.__instances__[(id, typ)] = res
+
+        return cls.__instances__[(id, typ)]
+
+    def __init__(self, id, typ, **kwargs):
+        self.id = id
+        super().__init__(typ, **kwargs)
+
+    def clone(self):
+        return self
+
+    def __eq__(self, other):
+        if self is other:
+            return True
+
+        return (
+            type(self) == type(other)
+            and self.id == other.id
+            and self.type == other.type
+        )
+
+    def __hash__(self):
+        return hash((type(self), self.id, self.type))
+
+    def __repr__(self):
+        return f"{type(self).__name__}({repr(self.id)}, {repr(self.type)})"
+
+    def signature(self):
+        return (self.type, self.id)
+
+
+class Constant(AtomicVariable):
     """A `Variable` with a fixed `data` field.
 
     `Constant` nodes make numerous optimizations possible (e.g. constant
@@ -576,22 +668,15 @@ class Constant(Variable):
     # __slots__ = ['data']
 
     def __init__(self, type, data, name=None):
-        super().__init__(type, None, None, name)
+        super().__init__(type, name=name)
         self.data = type.filter(data)
         add_tag_trace(self)
 
     def get_test_value(self):
         return self.data
 
-    def equals(self, other):
-        # this does what __eq__ should do, but Variable and Apply should always be hashable by id
-        return isinstance(other, Constant) and self.signature() == other.signature()
-
     def signature(self):
         return (self.type, self.data)
-
-    def merge_signature(self):
-        return self.signature()
 
     def __str__(self):
         if self.name is not None:
@@ -606,22 +691,9 @@ class Constant(Variable):
         """Return `self`, because there's no reason to clone a constant."""
         return self
 
-    def __set_owner(self, value):
-        """Prevent the :prop:`owner` property from being set.
-
-        Raises
-        ------
-        ValueError
-            If `value` is not ``None``.
-
-        """
-        if value is not None:
-            raise ValueError("Constant instances cannot have an owner.")
-
-    owner = property(lambda self: None, __set_owner)
-    value = property(lambda self: self.data, doc="read-only data access method")
-
-    # index is not defined, because the `owner` attribute must necessarily be None
+    @property
+    def value(self):
+        return self.data
 
 
 def walk(
