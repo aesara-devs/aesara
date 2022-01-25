@@ -2987,6 +2987,8 @@ def test_local_Shape_i_of_broadcastable():
 
     # A test for a non-`TensorType`
     class MyType(Type):
+        ndim = 1
+
         def filter(self, *args, **kwargs):
             raise NotImplementedError()
 
@@ -2994,7 +2996,7 @@ def test_local_Shape_i_of_broadcastable():
             return isinstance(other, MyType) and other.thingy == self.thingy
 
     class MyVariable(Variable):
-        ndim = 1
+        pass
 
     x = MyVariable(MyType(), None, None)
     s = Shape_i(0)(x)
