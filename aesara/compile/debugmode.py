@@ -28,7 +28,7 @@ from aesara.compile.function.types import (
 from aesara.compile.mode import Mode, register_mode
 from aesara.compile.ops import OutputGuard, _output_guard
 from aesara.configdefaults import config
-from aesara.graph.basic import Variable, graph_inputs, io_toposort
+from aesara.graph.basic import Variable, io_toposort
 from aesara.graph.destroyhandler import DestroyHandler
 from aesara.graph.features import BadOptimization
 from aesara.graph.fg import InconsistencyError
@@ -2041,20 +2041,10 @@ class _Maker(FunctionMaker):  # inheritance buys a few helper functions
         inputs = [self.wrap_in(i) for i in inputs]
         outputs = [self.wrap_out(o) for o in outputs]
 
-        _inputs = list(
-            graph_inputs(
-                [o.variable for o in outputs]
-                + [i.update for i in inputs if getattr(i, "update", False)]
-            )
-        )
-
         # Check if some input variables are unused
-        self._check_unused_inputs(inputs, outputs, on_unused_input)
+        self.check_unused_inputs(inputs, outputs, on_unused_input)
 
-        # Make a list of (SymbolicInput|SymblicInputKits, indices,
-        # [SymbolicInput,...]), one tuple for each input. (See
-        # Function.indices for more details)
-        indices = [[input] + self.expand_in(input, _inputs) for input in inputs]
+        indices = [[input, None, [input]] for input in inputs]
 
         # make the fgraph
         for i in range(mode.stability_patience):
