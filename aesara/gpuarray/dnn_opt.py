@@ -48,7 +48,7 @@ from aesara.gpuarray.optdb import (
 )
 from aesara.gpuarray.reduction import GpuMaxAndArgmax
 from aesara.gpuarray.type import list_contexts
-from aesara.graph.opt import GlobalOptimizer, inherit_stack_trace, local_optimizer
+from aesara.graph.opt import GlobalOptimizer, copy_stack_trace, local_optimizer
 from aesara.scalar import Log
 from aesara.tensor.math import Argmax
 from aesara.tensor.nnet.abstract_conv import (
@@ -79,15 +79,17 @@ def local_abstractconv_cudnn(fgraph, node):
         # Asymmetric padding not yet supported
         return None
     if isinstance(node.op, AbstractConv2d):
-        with inherit_stack_trace(node.outputs):
-            return local_abstractconv_cudnn_graph(
-                node.op, ctx, node.inputs, node.outputs
-            )
+        new_out = local_abstractconv_cudnn_graph(
+            node.op, ctx, node.inputs, node.outputs
+        )
+        copy_stack_trace(node.outputs, new_out)
+        return new_out
     elif isinstance(node.op, AbstractConv3d):
-        with inherit_stack_trace(node.outputs):
-            return local_abstractconv3d_cudnn_graph(
-                node.op, ctx, node.inputs, node.outputs
-            )
+        new_out = local_abstractconv3d_cudnn_graph(
+            node.op, ctx, node.inputs, node.outputs
+        )
+        copy_stack_trace(node.outputs, new_out)
+        return new_out
 
 
 @local_optimizer(
@@ -362,15 +364,17 @@ def local_abstractconv_gw_cudnn(fgraph, node):
         # Asymmetric padding not yet supported
         return None
     if isinstance(node.op, AbstractConv2d_gradWeights):
-        with inherit_stack_trace(node.outputs):
-            return local_abstractconv_cudnn_graph(
-                node.op, ctx, node.inputs, node.outputs
-            )
+        new_out = local_abstractconv_cudnn_graph(
+            node.op, ctx, node.inputs, node.outputs
+        )
+        copy_stack_trace(node.outputs, new_out)
+        return new_out
     elif isinstance(node.op, AbstractConv3d_gradWeights):
-        with inherit_stack_trace(node.outputs):
-            return local_abstractconv3d_cudnn_graph(
-                node.op, ctx, node.inputs, node.outputs
-            )
+        new_out = local_abstractconv3d_cudnn_graph(
+            node.op, ctx, node.inputs, node.outputs
+        )
+        copy_stack_trace(node.outputs, new_out)
+        return new_out
 
 
 @local_optimizer([AbstractConv2d_gradInputs, AbstractConv3d_gradInputs])
@@ -386,15 +390,17 @@ def local_abstractconv_gi_cudnn(fgraph, node):
         # Asymmetric padding not yet supported
         return None
     if isinstance(node.op, AbstractConv2d_gradInputs):
-        with inherit_stack_trace(node.outputs):
-            return local_abstractconv_cudnn_graph(
-                node.op, ctx, node.inputs, node.outputs
-            )
+        new_out = local_abstractconv_cudnn_graph(
+            node.op, ctx, node.inputs, node.outputs
+        )
+        copy_stack_trace(node.outputs, new_out)
+        return new_out
     elif isinstance(node.op, AbstractConv3d_gradInputs):
-        with inherit_stack_trace(node.outputs):
-            return local_abstractconv3d_cudnn_graph(
-                node.op, ctx, node.inputs, node.outputs
-            )
+        new_out = local_abstractconv3d_cudnn_graph(
+            node.op, ctx, node.inputs, node.outputs
+        )
+        copy_stack_trace(node.outputs, new_out)
+        return new_out
 
 
 @inplace_allocempty(GpuDnnConv, 2)
@@ -748,11 +754,12 @@ def local_dnn_reduction(fgraph, node):
     if not cudnn.cudnnReduceTensorOp_t.has_alias(scal):
         return
 
-    with inherit_stack_trace(node.outputs):
-        ret = GpuDnnReduction(scal, node.op.axis, acc_dtype, node.op.dtype, False)(
-            node.inputs[0]
-        )
-        return [post(ret)]
+    ret = GpuDnnReduction(scal, node.op.axis, acc_dtype, node.op.dtype, False)(
+        node.inputs[0]
+    )
+    new_out = [post(ret)]
+    copy_stack_trace(node.outputs, new_out)
+    return new_out
 
 
 @register_opt("cudnn")

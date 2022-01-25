@@ -4,7 +4,6 @@ amount of useful generic optimization tools.
 
 """
 import abc
-import contextlib
 import copy
 import functools
 import inspect
@@ -29,7 +28,6 @@ from aesara.graph.basic import (
     Variable,
     applys_between,
     io_toposort,
-    nodes_constructed,
     vars_between,
 )
 from aesara.graph.features import Feature, NodeFinder
@@ -2998,24 +2996,6 @@ def copy_stack_trace(from_var, to_var):
         # to_var, including the stack_trace of the to_var before
         to_var.tag.trace = getattr(to_var.tag, "trace", []) + tr
     return to_var
-
-
-@contextlib.contextmanager
-def inherit_stack_trace(from_var):
-    """
-    A context manager that copies the stack trace from one or more variable nodes to all
-    variable nodes constructed in the body. ``new_nodes`` is the list of all the newly created
-    variable nodes inside an optimization that is managed by ``graph.nodes_constructed``.
-
-    Parameters
-    ----------
-    from_var :
-        `Variable` node or a list of `Variable` nodes to copy stack traces from.
-
-    """
-    with nodes_constructed() as new_nodes:
-        yield
-    copy_stack_trace(from_var, new_nodes)
 
 
 def check_stack_trace(f_or_fgraph, ops_to_check="last", bug_print="raise"):
