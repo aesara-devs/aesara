@@ -909,7 +909,7 @@ class ShapeFeature(features.Feature):
             node = var.owner
             # recur on inputs
             for i in node.inputs:
-                if getattr(i, "ndim", None) > 0:
+                if getattr(i.type, "ndim", None) > 0:
                     self.get_shape(i, 0)
             o_shapes = self.get_node_infer_shape(node)
             assert len(o_shapes) == len(node.outputs)
@@ -917,12 +917,12 @@ class ShapeFeature(features.Feature):
             # Only change the variables and dimensions that would introduce
             # extra computation
             for new_shps, out in zip(o_shapes, node.outputs):
-                if not hasattr(out, "ndim"):
+                if not hasattr(out.type, "ndim"):
                     continue
 
                 merged_shps = list(self.shape_of[out])
                 changed = False
-                for i in range(out.ndim):
+                for i in range(out.type.ndim):
                     n_r = merged_shps[i]
                     if (
                         n_r.owner
@@ -951,10 +951,10 @@ class ShapeFeature(features.Feature):
 
     def shape_tuple(self, r):
         """Return a tuple of symbolic shape vars for tensor variable r."""
-        if not hasattr(r, "ndim"):
+        if not hasattr(r.type, "ndim"):
             # This happen for NoneConst.
             return None
-        return tuple([self.shape_ir(i, r) for i in range(r.ndim)])
+        return tuple(self.shape_ir(i, r) for i in range(r.type.ndim))
 
     def default_infer_shape(self, fgraph, node, i_shapes):
         """Return a list of shape tuple or None for the outputs of node.
@@ -1020,7 +1020,7 @@ class ShapeFeature(features.Feature):
             and s_i.owner.inputs[0].owner
             and isinstance(s_i.owner.inputs[0].owner.op, Shape)
         ):
-            assert s_i.ndim == 0
+            assert s_i.type.ndim == 0
             assert len(s_i.owner.op.idx_list) == 1
 
             # The current Subtensor always put constant index in the graph.
@@ -1068,32 +1068,28 @@ class ShapeFeature(features.Feature):
             if not isinstance(s, (tuple, list)):
                 raise TypeError("shapes must be tuple/list", (r, s))
 
-            if r.ndim != len(s):
+            if r.type.ndim != len(s):
                 sio = StringIO()
                 aesara.printing.debugprint(r, file=sio, print_type=True)
                 raise AssertionError(
                     f"Something inferred a shape with {len(s)} dimensions "
-                    f"for a variable with {int(r.ndim)} dimensions"
+                    f"for a variable with {int(r.type.ndim)} dimensions"
                     f" for the variable:\n{sio.getvalue()}"
                 )
 
             shape_vars = []
-            for i in range(r.ndim):
+            for i in range(r.type.ndim):
                 if hasattr(r.type, "broadcastable") and r.type.broadcastable[i]:
                     shape_vars.append(self.lscalar_one)
                 else:
                     shape_vars.append(self.unpack(s[i], r))
             assert all(
-                [
-                    not hasattr(r.type, "broadcastable")
-                    or not r.type.broadcastable[i]
-                    or
-                    # The two following comparison are a speed optimization
-                    # But we never timed this speed optimization!
-                    self.lscalar_one.equals(shape_vars[i])
-                    or self.lscalar_one.equals(extract_constant(shape_vars[i]))
-                    for i in range(r.ndim)
-                ]
+                not hasattr(r.type, "broadcastable") or not r.type.broadcastable[i] or
+                # The two following comparison are a speed optimization
+                # But we never timed this speed optimization!
+                self.lscalar_one.equals(shape_vars[i])
+                or self.lscalar_one.equals(extract_constant(shape_vars[i]))
+                for i in range(r.type.ndim)
             )
             self.shape_of[r] = tuple(shape_vars)
             for sv in shape_vars:
@@ -1171,21 +1167,19 @@ class ShapeFeature(features.Feature):
             else:
                 merged_shape.append(other_shape[i])
         assert all(
-            [
-                (
-                    not hasattr(r.type, "broadcastable")
-                    or not r.type.broadcastable[i]
-                    and not other_r.type.broadcastable[i]
-                )
-                or
-                # The two following comparison are a speed optimization
-                # But we never timed this speed optimization!
-                self.lscalar_one.equals(merged_shape[i])
-                or self.lscalar_one.equals(
-                    extract_constant(merged_shape[i], only_process_constants=True)
-                )
-                for i in range(r.ndim)
-            ]
+            (
+                not hasattr(r.type, "broadcastable")
+                or not r.type.broadcastable[i]
+                and not other_r.type.broadcastable[i]
+            )
+            or
+            # The two following comparison are a speed optimization
+            # But we never timed this speed optimization!
+            self.lscalar_one.equals(merged_shape[i])
+            or self.lscalar_one.equals(
+                extract_constant(merged_shape[i], only_process_constants=True)
+            )
+            for i in range(r.type.ndim)
         )
         self.shape_of[r] = tuple(merged_shape)
         for sv in self.shape_of[r]:
@@ -1204,14 +1198,12 @@ class ShapeFeature(features.Feature):
             else:
                 new_shape.append(s_j)
         assert all(
-            [
-                not hasattr(r.type, "broadcastable") or not r.type.broadcastable[idx] or
-                # The two following comparison are a speed optimization
-                # But we never timed this speed optimization!
-                self.lscalar_one.equals(new_shape[idx])
-                or self.lscalar_one.equals(extract_constant(new_shape[idx]))
-                for idx in range(r.ndim)
-            ]
+            not hasattr(r.type, "broadcastable") or not r.type.broadcastable[idx] or
+            # The two following comparison are a speed optimization
+            # But we never timed this speed optimization!
+            self.lscalar_one.equals(new_shape[idx])
+            or self.lscalar_one.equals(extract_constant(new_shape[idx]))
+            for idx in range(r.type.ndim)
         )
         self.shape_of[r] = tuple(new_shape)
         for sv in self.shape_of[r]:

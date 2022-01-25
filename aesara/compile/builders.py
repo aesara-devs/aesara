@@ -39,8 +39,8 @@ def infer_shape(outs, inputs, input_shapes):
     # let it initialize itself with an empty fgraph, otherwise we will
     # need to do it manually
     for inp, inp_shp in zip(inputs, input_shapes):
-        if inp_shp is not None and len(inp_shp) != inp.ndim:
-            assert len(inp_shp) == inp.ndim
+        if inp_shp is not None and len(inp_shp) != inp.type.ndim:
+            assert len(inp_shp) == inp.type.ndim
 
     shape_feature = ShapeFeature()
     shape_feature.on_attach(FunctionGraph([], []))
