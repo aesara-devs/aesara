@@ -63,20 +63,8 @@ class Node(MetaObject):
 class Apply(Node):
     """A `Node` representing the application of an operation to inputs.
 
-    An `Apply` instance serves as a simple structure with three important
-    attributes:
-
-    - :literal:`inputs` :  a list of `Variable` nodes that represent the
-      arguments of the expression,
-
-    - :literal:`outputs` : a list of `Variable` nodes that represent the
-      computed outputs of the expression, and
-
-    - :literal:`op` : an `Op` instance that determines the nature of the
-      expression being applied.
-
     Basically, an `Apply` instance is an object that represents the
-    Python statement `outputs = op(*inputs)`.
+    Python statement ``outputs = op(*inputs)``.
 
     This class is typically instantiated by a `Op.make_node` method, which
     is called by `Op.__call__`.
@@ -88,12 +76,6 @@ class Apply(Node):
     A `Linker` uses the `Apply` instance's `op` field to compute numeric values
     for the output variables.
 
-    Parameters
-    ----------
-    op : A Op instance
-    inputs : list of Variable instances
-    outputs : list of Variable instances
-
     Notes
     -----
     The `Variable.owner` field of each `Apply.outputs` element is set to `self`
@@ -102,9 +84,26 @@ class Apply(Node):
     If an output element has an owner that is neither `None` nor `self`, then a
     `ValueError` exception will be raised.
 
+    Attributes
+    ----------
+    op : Op
+        The operation that produces `outputs` given `inputs`.
+    inputs : List[Variable]
+        The arguments of the expression modeled by the `Apply` node.
+    outputs : List[Variable]
+        The outputs of the expression modeled by the `Apply` node.
+
     """
 
     def __init__(self, op, inputs, outputs):
+        """
+        Parameters
+        ----------
+        op : Op
+        inputs : List[Variable]
+        outputs : List[Variable]
+
+        """
         self.op = op
         self.inputs = []
         self.tag = Scratchpad()
@@ -187,20 +186,11 @@ class Apply(Node):
             raise ValueError(f"{self.op}.default_output is out of range.")
         return self.outputs[do]
 
-    out = property(default_output, doc="alias for self.default_output()")
-    """
-    Alias for self.default_output().
-
-    """
-
     def __str__(self):
         return op_as_string(self.inputs, self)
 
     def __repr__(self):
         return str(self)
-
-    def __asapply__(self):
-        return self
 
     def clone(self):
         """
@@ -266,20 +256,24 @@ class Apply(Node):
     def get_parents(self):
         return list(self.inputs)
 
-    # convenience properties
-    nin = property(lambda self: len(self.inputs), doc="same as len(self.inputs)")
-    """
-    Property: Number of inputs.
+    @property
+    def out(self):
+        """An alias for `self.default_output`"""
+        return self.default_output()
 
-    """
-    nout = property(lambda self: len(self.outputs), doc="same as len(self.outputs)")
-    """
-    Property: Number of outputs.
+    @property
+    def nin(self):
+        """The number of inputs."""
+        return len(self.inputs)
 
-    """
-    params_type = property(
-        lambda self: self.op.params_type, doc="type to use for the params"
-    )
+    @property
+    def nout(self):
+        """The number of outputs."""
+        return len(self.outputs)
+
+    @property
+    def params_type(self):
+        return self.op.params_type
 
 
 class Variable(Node):
