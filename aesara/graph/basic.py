@@ -1,5 +1,4 @@
 """Core graph classes."""
-import contextlib
 import warnings
 from collections import deque
 from copy import copy
@@ -398,8 +397,6 @@ class Variable(Node):
 
         self.auto_name = "auto_" + str(next(self.__count__))
 
-        Variable.notify_construction_observers(self)
-
     def get_test_value(self):
         """Get the test value.
 
@@ -561,22 +558,6 @@ class Variable(Node):
             del t.test_value
             d["tag"] = t
         return d
-
-    #  refer to doc in nodes_constructed.
-    construction_observers: List = []
-
-    @classmethod
-    def append_construction_observer(cls, observer):
-        cls.construction_observers.append(observer)
-
-    @classmethod
-    def remove_construction_observer(cls, observer):
-        cls.construction_observers.remove(observer)
-
-    @classmethod
-    def notify_construction_observers(cls, instance):
-        for observer in cls.construction_observers:
-            observer(instance)
 
 
 class Constant(Variable):
@@ -1446,42 +1427,6 @@ def is_in_ancestors(l_apply: Apply, f_node: Apply) -> bool:
             todo.append(cur)
             todo.extend(i.owner for i in cur.inputs if i.owner)
     return False
-
-
-@contextlib.contextmanager
-def nodes_constructed():
-    r"""
-    A context manager that is used in ``inherit_stack_trace`` and keeps track
-    of all the newly created variable nodes inside an optimization. A list
-    of ``new_nodes`` is instantiated but will be filled in a lazy manner (when
-    ``Variable.notify_construction_observers`` is called).
-
-
-    ``observer`` is the entity that updates the ``new_nodes`` list.
-    ``construction_observers`` is a list inside `Variable` class and contains
-    a list of observer functions. The observer functions inside
-    ``construction_observers`` are only called when a `Variable` is
-    instantiated (where ``Variable.notify_construction_observers`` is called).
-    When the observer function is called, a new `Variable` is added to
-    the `new_nodes` list.
-
-
-    Parameters
-    ----------
-    new_nodes
-        A list of all the `Variable`\s that are created inside the optimization.
-
-    yields
-        ``new_nodes`` list.
-    """
-    new_nodes = []
-
-    def observer(node):
-        new_nodes.append(node)
-
-    Variable.append_construction_observer(observer)
-    yield new_nodes
-    Variable.remove_construction_observer(observer)
 
 
 def equal_computations(xs, ys, in_xs=None, in_ys=None):

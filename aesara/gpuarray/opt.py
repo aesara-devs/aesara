@@ -155,7 +155,6 @@ from aesara.graph.opt import (
     GlobalOptimizer,
     LocalMetaOptimizer,
     copy_stack_trace,
-    inherit_stack_trace,
     local_optimizer,
 )
 from aesara.ifelse import IfElse
@@ -403,10 +402,9 @@ class GraphToGPU(GlobalOptimizer):
             outputs = []
 
             if isinstance(new_ops, aesara.graph.op.Op):
-                with inherit_stack_trace(node.outputs):
-                    outputs = new_ops(
-                        *[mapping[i] for i in node.inputs], return_list=True
-                    )
+                outputs = new_ops(*[mapping[i] for i in node.inputs], return_list=True)
+                copy_stack_trace(node.outputs, outputs)
+
             elif not new_ops:
                 newnode = node.clone_with_new_inputs(
                     [mapping.get(i) for i in node.inputs]
@@ -680,8 +678,9 @@ def local_gpualloc_memset_0(fgraph, node):
             and (np.asarray(inp.data) == 0).all()
         ):
             new_op = GpuAlloc(node.op.context_name, memset_0=True)
-            with inherit_stack_trace(node.outputs):
-                return new_op(*node.inputs, return_list=True)
+            new_out = new_op(*node.inputs, return_list=True)
+            copy_stack_trace(node.outputs, new_out)
+            return new_out
 
 
 # Don't register by default.
@@ -690,12 +689,11 @@ def local_gpua_alloc_empty_to_zeros(fgraph, node):
     if isinstance(node.op, GpuAllocEmpty):
         context_name = infer_context_name(*node.inputs)
         z = np.asarray(0, dtype=node.outputs[0].dtype)
-        with inherit_stack_trace(node.outputs):
-            return [
-                GpuAlloc(context_name)(
-                    as_gpuarray_variable(z, context_name), *node.inputs
-                )
-            ]
+        new_out = [
+            GpuAlloc(context_name)(as_gpuarray_variable(z, context_name), *node.inputs)
+        ]
+        copy_stack_trace(node.outputs, new_out)
+        return new_out
 
 
 optdb.register(
@@ -939,11 +937,12 @@ def gpu_print_wrapper(op, cnda):
 @register_opt2([aesara.printing.Print], "fast_compile")
 def local_gpua_print_op(fgraph, op, context_name, inputs, outputs):
     (x,) = inputs
-    with inherit_stack_trace(outputs):
-        gpu_x = as_gpuarray_variable(x, context_name=context_name)
-        new_op = op.__class__(global_fn=gpu_print_wrapper)
-        new_op.old_op = op
-        return new_op(gpu_x)
+    gpu_x = as_gpuarray_variable(x, context_name=context_name)
+    new_op = op.__class__(global_fn=gpu_print_wrapper)
+    new_op.old_op = op
+    new_out = new_op(gpu_x)
+    copy_stack_trace(outputs, new_out)
+    return new_out
 
 
 @register_opt("fast_compile")
@@ -997,19 +996,19 @@ def local_gpu_pdbbreakpoint_op(fgraph, node):
             return False
 
         # Apply the op on the new inputs
-        with inherit_stack_trace(node.outputs):
-            new_op_outputs = node.op(*new_inputs, return_list=True)
+        new_op_outputs = node.op(*new_inputs, return_list=True)
 
-            # Propagate the transfer to the gpu through the outputs that require
-            # it
-            new_outputs = []
-            for i in range(len(new_op_outputs)):
-                if input_transfered[i]:
-                    new_outputs.append(new_op_outputs[i].transfer("cpu"))
-                else:
-                    new_outputs.append(new_op_outputs[i])
+        # Propagate the transfer to the gpu through the outputs that require
+        # it
+        new_outputs = []
+        for i in range(len(new_op_outputs)):
+            if input_transfered[i]:
+                new_outputs.append(new_op_outputs[i].transfer("cpu"))
+            else:
+                new_outputs.append(new_op_outputs[i])
 
-            return new_outputs
+        copy_stack_trace(node.outputs, new_outputs)
+        return new_outputs
 
     return False
 
@@ -1268,8 +1267,8 @@ def local_gpua_careduce(fgraph, op, context_name, inputs, outputs):
             adtype = "float32"
 
         greduce = op2(op.scalar_op, axis=op.axis, dtype=odtype, acc_dtype=adtype)
-        with inherit_stack_trace(outputs):
-            gvar = greduce(x)
+        gvar = greduce(x)
+        copy_stack_trace(outputs, gvar)
         # We need to have the make node called, otherwise the mask can
         # be None
         if op2 is GpuCAReduceCPY or gvar.owner.op.supports_c_code(
@@ -1310,27 +1309,27 @@ def local_gpua_careduce(fgraph, op, context_name, inputs, outputs):
                 dtype=odtype,
                 acc_dtype=adtype,
             )
-            with inherit_stack_trace(outputs):
-                reshaped_x = x.reshape(at.stack(new_in_shp))
-                gpu_reshaped_x = as_gpuarray_variable(reshaped_x, context_name)
-                # We need to have the make node called, otherwise the mask can
-                # be None
-                gvar = greduce(gpu_reshaped_x)
-                reshaped_gpu_inputs = [gpu_reshaped_x]
-                if greduce.supports_c_code(reshaped_gpu_inputs):
-                    reduce_reshaped_x = greduce(gpu_reshaped_x)
+            reshaped_x = x.reshape(at.stack(new_in_shp))
+            gpu_reshaped_x = as_gpuarray_variable(reshaped_x, context_name)
+            # We need to have the make node called, otherwise the mask can
+            # be None
+            gvar = greduce(gpu_reshaped_x)
+            reshaped_gpu_inputs = [gpu_reshaped_x]
+            if greduce.supports_c_code(reshaped_gpu_inputs):
+                reduce_reshaped_x = greduce(gpu_reshaped_x)
 
-                    if reduce_reshaped_x.ndim != outputs[0].ndim:
-                        out_shp = []
-                        for i in range(x.ndim):
-                            if i not in op.axis:
-                                out_shp.append(shape_i(x, i))
-                        unreshaped_reduce = GpuReshape(len(out_shp))(
-                            reduce_reshaped_x, at.stack(out_shp)
-                        )
-                    else:
-                        unreshaped_reduce = reduce_reshaped_x
-                    return [unreshaped_reduce]
+                if reduce_reshaped_x.ndim != outputs[0].ndim:
+                    out_shp = []
+                    for i in range(x.ndim):
+                        if i not in op.axis:
+                            out_shp.append(shape_i(x, i))
+                    unreshaped_reduce = GpuReshape(len(out_shp))(
+                        reduce_reshaped_x, at.stack(out_shp)
+                    )
+                else:
+                    unreshaped_reduce = reduce_reshaped_x
+            copy_stack_trace(outputs, unreshaped_reduce)
+            return [unreshaped_reduce]
 
 
 @register_opt("fast_compile")
@@ -1369,34 +1368,34 @@ def local_gpua_gemm(fgraph, op, context_name, inputs, outputs):
 def local_gpua_gemmbatch(fgraph, op, context_name, inputs, outputs):
     if inputs[0].dtype not in ("float16", "float32", "float64"):
         return
-    with inherit_stack_trace(outputs):
-        a, b = inputs
-        # Since GpuGemmBatch only supports 3D inputs and output,
-        # we need to add broadcastable dims to the inputs, and drop
-        # them from outputs
-        output_dims = [0, 1, 2]
-        if a.ndim == 2:
-            a = GpuDimShuffle(a.broadcastable, (0, "x", 1))(a)
-            del output_dims[1]
-        if b.ndim == 2:
-            b = GpuDimShuffle(b.broadcastable, (0, 1, "x"))(b)
-            del output_dims[-1]
-        # In case of mismatched dtypes, we also have to upcast
-        out_dtype = outputs[0].dtype
-        if a.dtype != out_dtype or b.dtype != out_dtype:
-            gpu_cast_op = GpuElemwise(Cast(Scalar(out_dtype)))
-            if a.dtype != out_dtype:
-                a = gpu_cast_op(a)
-            if b.dtype != out_dtype:
-                b = gpu_cast_op(b)
+    a, b = inputs
+    # Since GpuGemmBatch only supports 3D inputs and output,
+    # we need to add broadcastable dims to the inputs, and drop
+    # them from outputs
+    output_dims = [0, 1, 2]
+    if a.ndim == 2:
+        a = GpuDimShuffle(a.broadcastable, (0, "x", 1))(a)
+        del output_dims[1]
+    if b.ndim == 2:
+        b = GpuDimShuffle(b.broadcastable, (0, 1, "x"))(b)
+        del output_dims[-1]
+    # In case of mismatched dtypes, we also have to upcast
+    out_dtype = outputs[0].dtype
+    if a.dtype != out_dtype or b.dtype != out_dtype:
+        gpu_cast_op = GpuElemwise(Cast(Scalar(out_dtype)))
+        if a.dtype != out_dtype:
+            a = gpu_cast_op(a)
+        if b.dtype != out_dtype:
+            b = gpu_cast_op(b)
 
-        c = GpuAllocEmpty(out_dtype, context_name)(a.shape[0], a.shape[1], b.shape[2])
-        out = gpugemmbatch_no_inplace(
-            c, np.asarray(1.0, dtype=out_dtype), a, b, np.asarray(0.0, dtype=out_dtype)
-        )
-        if len(output_dims) != 3:
-            out = GpuDimShuffle(out.broadcastable, output_dims)(out)
-        return out
+    c = GpuAllocEmpty(out_dtype, context_name)(a.shape[0], a.shape[1], b.shape[2])
+    out = gpugemmbatch_no_inplace(
+        c, np.asarray(1.0, dtype=out_dtype), a, b, np.asarray(0.0, dtype=out_dtype)
+    )
+    if len(output_dims) != 3:
+        out = GpuDimShuffle(out.broadcastable, output_dims)(out)
+    copy_stack_trace(outputs, out)
+    return out
 
 
 @register_opt()
@@ -1456,12 +1455,13 @@ def local_gpua_dot22(fgraph, op, context_name, inputs, outputs):
 @op_lifter([aesara.tensor.blas.Dot22Scalar])
 @register_opt2([aesara.tensor.blas.Dot22Scalar], "fast_compile")
 def local_gpua_dot22scalar(fgraph, op, context_name, inputs, outputs):
-    with inherit_stack_trace(outputs):
-        x, y, a = inputs
-        x = as_gpuarray_variable(x, context_name)
-        y = as_gpuarray_variable(y, context_name)
-        z = GpuAllocEmpty(x.dtype, context_name)(x.shape[0], y.shape[1])
-        return [gpugemm_no_inplace(z, a, x, y, 0)]
+    x, y, a = inputs
+    x = as_gpuarray_variable(x, context_name)
+    y = as_gpuarray_variable(y, context_name)
+    z = GpuAllocEmpty(x.dtype, context_name)(x.shape[0], y.shape[1])
+    new_out = [gpugemm_no_inplace(z, a, x, y, 0)]
+    copy_stack_trace(outputs, new_out)
+    return new_out
 
 
 @register_opt("fast_compile")
@@ -2579,9 +2579,10 @@ def local_gpu_elemwise_careduce(fgraph, node):
         inp = node.inputs[0].owner.inputs[0]
         props = node.op._props_dict()
         props["pre_scalar_op"] = node.inputs[0].owner.op.scalar_op
-        with inherit_stack_trace(node.outputs):
-            out = GpuCAReduceCuda(**props)(inp)
-            return [out]
+        out = GpuCAReduceCuda(**props)(inp)
+        new_out = [out]
+        copy_stack_trace(node.outputs, new_out)
+        return new_out
 
 
 @local_optimizer(None)
@@ -2776,12 +2777,13 @@ def local_gpu_solve(fgraph, op, context_name, inputs, outputs):
 @local_optimizer([GpuCusolverSolve], inplace=True)
 def local_inplace_gpu_solve(fgraph, node):
     if isinstance(node.op, GpuCusolverSolve) and not node.op.inplace:
-        with inherit_stack_trace(node.outputs):
-            return [
-                GpuCusolverSolve(
-                    A_structure=node.op.A_structure, trans=node.op.trans, inplace=True
-                )(*node.inputs)
-            ]
+        new_out = [
+            GpuCusolverSolve(
+                A_structure=node.op.A_structure, trans=node.op.trans, inplace=True
+            )(*node.inputs)
+        ]
+        copy_stack_trace(node.outputs, new_out)
+        return new_out
 
 
 # Cholesky decomposition
@@ -2828,8 +2830,9 @@ register_opt2([slinalg.Solve], "fast_compile", name="matrix_ops_db2")(matrix_ops
 @local_optimizer([GpuCholesky], inplace=True)
 def local_inplace_gpu_cholesky(fgraph, node):
     if isinstance(node.op, GpuCholesky) and not node.op.inplace:
-        with inherit_stack_trace(node.outputs):
-            return [node.op.clone_inplace()(*node.inputs)]
+        new_out = [node.op.clone_inplace()(*node.inputs)]
+        copy_stack_trace(node.outputs, new_out)
+        return new_out
 
 
 def local_gpu_magma_cholesky(fgraph, op, context_name, inputs, outputs):
@@ -2908,8 +2911,9 @@ def local_gpu_magma_matrix_inverse(fgraph, op, context_name, inputs, outputs):
 @local_optimizer([GpuMagmaMatrixInverse])
 def local_inplace_gpu_magma_matrix_inverse(fgraph, node):
     if isinstance(node.op, GpuMagmaMatrixInverse) and not node.op.inplace:
-        with inherit_stack_trace(node.outputs):
-            return [node.op.clone_inplace()(*node.inputs)]
+        new_out = [node.op.clone_inplace()(*node.inputs)]
+        copy_stack_trace(node.outputs, new_out)
+        return new_out
 
 
 # Eigen decomposition of a symmetric matrix
