@@ -19,13 +19,12 @@ from functools import _compose_mro, partial, reduce  # type: ignore
 from itertools import chain
 from typing import Dict, List, Optional, Sequence, Tuple, Union
 
-from typing_extensions import TypeAlias
-
 import aesara
 from aesara.configdefaults import config
 from aesara.graph import destroyhandler as dh
 from aesara.graph.basic import (
     Apply,
+    AtomicVariable,
     Constant,
     Variable,
     applys_between,
@@ -500,12 +499,9 @@ class MergeFeature(Feature):
         assert not hasattr(fgraph, "merge_feature")
         fgraph.merge_feature = self
 
-        # For constants
-        self.seen_constants = set()
-        # variable -> signature (for constants)
-        self.const_sig = AssocList()
-        # signature -> variable (for constants)
-        self.const_sig_inv = AssocList()
+        self.seen_atomics = set()
+        self.atomic_sig = AssocList()
+        self.atomic_sig_inv = AssocList()
 
         # For all Apply nodes
         # Set of distinct (not mergeable) nodes
@@ -539,17 +535,13 @@ class MergeFeature(Feature):
             self.nodes_seen.discard(node)
             self.process_node(fgraph, node)
 
-        # Since we are in on_change_input, node should have inputs.
-        if not isinstance(node, str):
-            assert node.inputs
-
-        if isinstance(new_r, Constant):
-            self.process_constant(fgraph, new_r)
+        if isinstance(new_r, AtomicVariable):
+            self.process_atomic(fgraph, new_r)
 
     def on_import(self, fgraph, node, reason):
         for c in node.inputs:
-            if isinstance(c, Constant):
-                self.process_constant(fgraph, c)
+            if isinstance(c, AtomicVariable):
+                self.process_atomic(fgraph, c)
 
         self.process_node(fgraph, node)
 
@@ -558,19 +550,19 @@ class MergeFeature(Feature):
         if not node.inputs:
             self.noinput_nodes.discard(node)
         for c in node.inputs:
-            if isinstance(c, Constant) and (len(fgraph.clients[c]) <= 1):
+            if isinstance(c, AtomicVariable) and len(fgraph.clients[c]) <= 1:
                 # This was the last node using this constant
-                sig = self.const_sig[c]
-                self.const_sig.discard(c)
-                self.const_sig_inv.discard(sig)
-                self.seen_constants.discard(id(c))
+                sig = self.atomic_sig[c]
+                self.atomic_sig.discard(c)
+                self.atomic_sig_inv.discard(sig)
+                self.seen_atomics.discard(id(c))
 
-    def process_constant(self, fgraph, c):
-        """Check if a constant `c` can be merged, and queue that replacement."""
-        if id(c) in self.seen_constants:
+    def process_atomic(self, fgraph, c):
+        """Check if an atomic `c` can be merged, and queue that replacement."""
+        if id(c) in self.seen_atomics:
             return
         sig = c.merge_signature()
-        other_c = self.const_sig_inv.get(sig, None)
+        other_c = self.atomic_sig_inv.get(sig, None)
         if other_c is not None:
             # multiple names will clobber each other..
             # we adopt convention to keep the last name
@@ -579,9 +571,9 @@ class MergeFeature(Feature):
             self.scheduled.append([[(c, other_c, "merge")]])
         else:
             # this is a new constant
-            self.const_sig[c] = sig
-            self.const_sig_inv[sig] = c
-            self.seen_constants.add(id(c))
+            self.atomic_sig[c] = sig
+            self.atomic_sig_inv[sig] = c
+            self.seen_atomics.add(id(c))
 
     def process_node(self, fgraph, node):
         r"""Check if a `node` can be merged, and queue that replacement.
@@ -602,6 +594,7 @@ class MergeFeature(Feature):
             # using `node.inputs[0]` will make us look at more nodes on
             # average, so by picking the smallest clients list, we might speed
             # things up?
+
             clients = sorted(
                 (fgraph.clients[inp] for inp in node.inputs), key=lambda x: len(x)
             )[0]
@@ -616,6 +609,7 @@ class MergeFeature(Feature):
 
         replacement_candidates = []
         for candidate in merge_candidates:
+
             if candidate is node:
                 continue
             if len(node.inputs) != len(candidate.inputs):
@@ -658,9 +652,10 @@ class MergeOptimizer(GlobalOptimizer):
     one are transferred to the other and one of them is removed from the graph.
     This procedure is carried out in input-to-output order throughout the graph.
 
-    The first step of merging is constant-merging, so that all clients of an
-    ``int(1)`` for example, are transferred to just one particular instance of
-    ``int(1)``.
+    The first step of merging is atomic variable-merging, so that all clients of a
+    :class:`Constant` like ``int(1)``, are transferred to just one particular
+    instance of ``int(1)``.  :class:`NominalVariable`\s are not merged individually
+    like this; only the nodes that use them are.
 
     """
 
@@ -678,7 +673,7 @@ class MergeOptimizer(GlobalOptimizer):
             callbacks_before = fgraph.execute_callbacks_times.copy()
 
         nb_merged = 0
-        nb_constant = 0
+        nb_atomic = 0
         while sched:
             pairs_list = sched.pop()
             success = True
@@ -739,8 +734,8 @@ class MergeOptimizer(GlobalOptimizer):
                         pairs = [(pairs[0][1], pairs[0][0])]
 
                 try:
-                    # If they're all `Constant`s, there's no need to call validate.
-                    if all(isinstance(old, Constant) for old, _ in pairs):
+                    # If they're all `AtomicVariable`s, there's no need to call validate.
+                    if all(isinstance(old, AtomicVariable) for old, _ in pairs):
                         fgraph.replace_all(pairs, reason="MergeOptimizer")
                     else:
                         fgraph.replace_all_validate(pairs, reason="MergeOptimizer")
@@ -753,8 +748,8 @@ class MergeOptimizer(GlobalOptimizer):
 
                 if success:
                     nb_merged += len(pairs)
-                    if isinstance(pairs[0][0], Constant):
-                        nb_constant += 1
+                    if isinstance(pairs[0][0], AtomicVariable):
+                        nb_atomic += 1
                     break
 
         if fgraph.profile:
@@ -782,7 +777,7 @@ class MergeOptimizer(GlobalOptimizer):
             callback_time,
             callbacks_time,
             nb_merged,
-            nb_constant,
+            nb_atomic,
         )
 
     def __str__(self):
@@ -798,14 +793,14 @@ class MergeOptimizer(GlobalOptimizer):
             callback_time,
             callbacks_time,
             nb_merged,
-            nb_constant,
+            nb_atomic,
         ) = prof
 
         blanc = "    " * level
         print(blanc, "MergeOptimizer", file=stream)
         print(
             blanc,
-            f"  nb fail={nb_fail:5d} merged={nb_merged:5d} constant={nb_constant:5d}",
+            f"  nb fail={nb_fail:5d} merged={nb_merged:5d} atomic={nb_atomic:5d}",
             file=stream,
         )
         print(
@@ -836,7 +831,7 @@ class MergeOptimizer(GlobalOptimizer):
         callback_time = merge_none_number(prof1[3], prof2[3])
         callbacks_time = merge_dict(prof1[4], prof2[4])
         nb_merged = prof1[5] + prof2[5]
-        nb_constant = prof1[6] + prof2[6]
+        nb_atomic = prof1[6] + prof2[6]
         return (
             nb_fail,
             replace_time,
@@ -844,7 +839,7 @@ class MergeOptimizer(GlobalOptimizer):
             callback_time,
             callbacks_time,
             nb_merged,
-            nb_constant,
+            nb_atomic,
         )
 
 
@@ -1127,7 +1122,7 @@ class LocalOptTracker:
 
     def __init__(self):
         self.tracked_instances: Dict[Op, List[LocalOptimizer]] = {}
-        self.tracked_types: Dict[TypeAlias, List[LocalOptimizer]] = {}
+        self.tracked_types: Dict[type, List[LocalOptimizer]] = {}
         self.untracked_opts: List[LocalOptimizer] = []
 
     def add_tracker(self, rw: LocalOptimizer):

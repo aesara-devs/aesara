@@ -18,7 +18,7 @@ from typing_extensions import Literal
 
 import aesara
 from aesara.configdefaults import config
-from aesara.graph.basic import Apply, Constant, Node, Variable, applys_between
+from aesara.graph.basic import Apply, AtomicVariable, Node, Variable, applys_between
 from aesara.graph.basic import as_string as graph_as_string
 from aesara.graph.basic import clone_get_equiv, graph_inputs, io_toposort, vars_between
 from aesara.graph.features import AlreadyThere, Feature, ReplaceValidate
@@ -101,7 +101,9 @@ class FunctionGraph(MetaObject):
             raise ValueError("No outputs specified")
 
         if inputs is None:
-            inputs = [i for i in graph_inputs(outputs) if not isinstance(i, Constant)]
+            inputs = [
+                i for i in graph_inputs(outputs) if not isinstance(i, AtomicVariable)
+            ]
 
         if clone:
             _memo = clone_get_equiv(
@@ -306,7 +308,7 @@ class FunctionGraph(MetaObject):
             self.import_node(var.owner, reason=reason, import_missing=import_missing)
         elif (
             var.owner is None
-            and not isinstance(var, Constant)
+            and not isinstance(var, AtomicVariable)
             and var not in self.inputs
         ):
             from aesara.graph.null_type import NullType
@@ -354,7 +356,7 @@ class FunctionGraph(MetaObject):
                 for var in node.inputs:
                     if (
                         var.owner is None
-                        and not isinstance(var, Constant)
+                        and not isinstance(var, AtomicVariable)
                         and var not in self.inputs
                     ):
                         if import_missing:
@@ -515,9 +517,6 @@ class FunctionGraph(MetaObject):
                     )
 
         for node, i in list(self.clients[var]):
-            assert (node == "output" and self.outputs[i] is var) or (
-                isinstance(node, Apply) and node.inputs[i] is var
-            )
             self.change_node_input(
                 node, i, new_var, reason=reason, import_missing=import_missing
             )
@@ -839,7 +838,7 @@ class FunctionGraph(MetaObject):
             if (
                 variable.owner is None
                 and variable not in self.inputs
-                and not isinstance(variable, Constant)
+                and not isinstance(variable, AtomicVariable)
             ):
                 raise Exception(f"Undeclared input: {variable}")
             for cl_node, i in self.clients[variable]:
