@@ -63,7 +63,7 @@ class Shape(COp):
             x = at.as_tensor_variable(x)
 
         if isinstance(x.type, TensorType):
-            out_var = TensorType("int64", (x.ndim,))()
+            out_var = TensorType("int64", (x.type.ndim,))()
         else:
             out_var = aesara.tensor.type.lvector()
 
@@ -164,7 +164,9 @@ def shape_tuple(x: Variable) -> Tuple[Variable]:
     one_at = aesara.scalar.ScalarConstant(aesara.scalar.int64, 1)
     return tuple(
         one_at if getattr(sh, "value", sh) == 1 or bcast else sh
-        for sh, bcast in zip(shape(x), getattr(x, "broadcastable", (False,) * x.ndim))
+        for sh, bcast in zip(
+            shape(x), getattr(x, "broadcastable", (False,) * x.type.ndim)
+        )
     )
 
 
@@ -214,9 +216,11 @@ class Shape_i(COp):
         return "%s{%i}" % (self.__class__.__name__, self.i)
 
     def make_node(self, x):
-        if not isinstance(x, Variable):
-            raise TypeError(f"{x} must be Variable with ndim attribute")
-        if x.ndim <= self.i:
+        if not isinstance(x, Variable) or not hasattr(x.type, "ndim"):
+            raise TypeError(
+                f"{x} must be `Variable` with a `Type` having an ndim attribute"
+            )
+        if x.type.ndim <= self.i:
             raise TypeError(f"{x} has too few dimensions for Shape_i")
         return Apply(self, [x], [aesara.tensor.type.lscalar()])
 
@@ -421,9 +425,9 @@ class SpecifyShape(COp):
         if any(s.dtype not in aesara.tensor.type.integer_dtypes for s in shape):
             raise TypeError("Shape values must be integer types")
 
-        if len(shape) != x.ndim:
+        if len(shape) != x.type.ndim:
             raise ValueError(
-                f"Input `x` is {x.ndim}-dimensional and will never match a shape of length {len(shape)}."
+                f"Input `x` is {x.type.ndim}-dimensional and will never match a shape of length {len(shape)}."
             )
 
         if isinstance(x.type, TensorType) and all(isinstance(s, Number) for s in shape):
@@ -451,7 +455,7 @@ class SpecifyShape(COp):
     def infer_shape(self, fgraph, node, shapes):
         xshape, sshape = shapes
         new_shape = []
-        for dim in range(node.inputs[0].ndim):
+        for dim in range(node.inputs[0].type.ndim):
             try:
                 s = at.get_scalar_constant_value(node.inputs[1][dim])
                 s = at.as_tensor_variable(s)
