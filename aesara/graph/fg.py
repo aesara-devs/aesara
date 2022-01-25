@@ -635,43 +635,35 @@ class FunctionGraph(MetaObject):
         return d
 
     def toposort(self) -> List[Apply]:
-        """Return a toposorted list of the nodes.
+        r"""Return a toposorted list of the nodes.
 
-        Return an ordering of the graph's ``Apply`` nodes such that:
+        Return an ordering of the graph's :class:`Apply` nodes such that:
 
-        * all the nodes of the inputs of a node are before that node and
-        * they satisfy the orderings provided by each feature that has
-          an ``orderings`` method.
+        * all the nodes of the inputs of a node are before that node, and
+        * they satisfy the additional orderings provided by
+          :meth:`FunctionGraph.orderings`.
 
-        If a feature has an ``orderings`` method, it will be called with
-        this `FunctionGraph` as sole argument. It should return a dictionary of
-        ``{node: predecessors}`` where predecessors is a list of nodes that
-        should be computed before the key node.
         """
         if len(self.apply_nodes) < 2:
-            # optimization
-            # when there are 0 or 1 nodes, no sorting is necessary
-            # This special case happens a lot because the OpWiseCLinker
-            # produces 1-element graphs.
+            # No sorting is necessary
             return list(self.apply_nodes)
-        fg = self
 
-        ords = self.orderings()
-
-        order = io_toposort(fg.inputs, fg.outputs, ords)
-
-        return order
+        return io_toposort(self.inputs, self.outputs, self.orderings())
 
     def orderings(self) -> Dict[Apply, List[Apply]]:
-        """Return ``dict`` ``d`` s.t. ``d[node]`` is a list of nodes that must be evaluated before ``node`` itself can be evaluated.
+        """Return a map of node to node evaluation dependencies.
 
-        This is used primarily by the ``destroy_handler`` feature to ensure that
-        the clients of any destroyed inputs have already computed their
-        outputs.
+        Each key node is mapped to a list of nodes that must be evaluated
+        before the key nodes can be evaluated.
+
+        This is used primarily by the :class:`DestroyHandler` :class:`Feature`
+        to ensure that the clients of any destroyed inputs have already
+        computed their outputs.
 
         Notes
         -----
-        This only calls the ``orderings()`` function on all features. It does not
+        This only calls the :meth:`Feature.orderings` method of each
+        :class:`Feature` attached to the :class:`FunctionGraph`. It does not
         take care of computing the dependencies by itself.
 
         """
