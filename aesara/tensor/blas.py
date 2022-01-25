@@ -152,8 +152,8 @@ from aesara.graph.op import COp, Op
 from aesara.graph.opt import (
     EquilibriumOptimizer,
     GlobalOptimizer,
+    copy_stack_trace,
     in2out,
-    inherit_stack_trace,
     local_optimizer,
 )
 from aesara.graph.optdb import SequenceDB
@@ -1672,15 +1672,18 @@ def local_dot_to_dot22(fgraph, node):
         return
 
     if y.type.dtype in ("float16", "float32", "float64", "complex64", "complex128"):
-        with inherit_stack_trace(node.outputs):
-            if x.ndim == 2 and y.ndim == 2:
-                return [_dot22(*node.inputs)]
-            if x.ndim == 2 and y.ndim == 1:
-                return [_dot22(x, y.dimshuffle(0, "x")).dimshuffle(0)]
-            if x.ndim == 1 and y.ndim == 2:
-                return [_dot22(x.dimshuffle("x", 0), y).dimshuffle(1)]
-            if x.ndim == 1 and y.ndim == 1:
-                return [_dot22(x.dimshuffle("x", 0), y.dimshuffle(0, "x")).dimshuffle()]
+        if x.ndim == 2 and y.ndim == 2:
+            new_out = [_dot22(*node.inputs)]
+        elif x.ndim == 2 and y.ndim == 1:
+            new_out = [_dot22(x, y.dimshuffle(0, "x")).dimshuffle(0)]
+        elif x.ndim == 1 and y.ndim == 2:
+            new_out = [_dot22(x.dimshuffle("x", 0), y).dimshuffle(1)]
+        elif x.ndim == 1 and y.ndim == 1:
+            new_out = [_dot22(x.dimshuffle("x", 0), y.dimshuffle(0, "x")).dimshuffle()]
+        else:
+            return
+        copy_stack_trace(node.outputs, new_out)
+        return new_out
 
     _logger.info(f"Not optimizing dot with inputs {x} {y} {x.type} {y.type}")
 
@@ -1688,22 +1691,25 @@ def local_dot_to_dot22(fgraph, node):
 @local_optimizer([gemm_no_inplace], inplace=True)
 def local_inplace_gemm(fgraph, node):
     if node.op == gemm_no_inplace:
-        with inherit_stack_trace(node.outputs):
-            return [gemm_inplace(*node.inputs)]
+        new_out = [gemm_inplace(*node.inputs)]
+        copy_stack_trace(node.outputs, new_out)
+        return new_out
 
 
 @local_optimizer([gemv_no_inplace], inplace=True)
 def local_inplace_gemv(fgraph, node):
     if node.op == gemv_no_inplace:
-        with inherit_stack_trace(node.outputs):
-            return [gemv_inplace(*node.inputs)]
+        new_out = [gemv_inplace(*node.inputs)]
+        copy_stack_trace(node.outputs, new_out)
+        return new_out
 
 
 @local_optimizer([ger], inplace=True)
 def local_inplace_ger(fgraph, node):
     if node.op == ger:
-        with inherit_stack_trace(node.outputs):
-            return [ger_destructive(*node.inputs)]
+        new_out = [ger_destructive(*node.inputs)]
+        copy_stack_trace(node.outputs, new_out)
+        return new_out
 
 
 @local_optimizer([gemm_no_inplace])
@@ -1711,13 +1717,16 @@ def local_gemm_to_gemv(fgraph, node):
     """GEMM acting on row or column matrices -> GEMV."""
     if node.op == gemm_no_inplace:
         z, a, x, y, b = node.inputs
-        with inherit_stack_trace(node.outputs):
-            if z.broadcastable == x.broadcastable == (True, False):
-                r = gemv_no_inplace(z.dimshuffle(1), a, y.T, x.dimshuffle(1), b)
-                return [r.dimshuffle("x", 0)]
-            if z.broadcastable == y.broadcastable == (False, True):
-                r = gemv_no_inplace(z.dimshuffle(0), a, x, y.dimshuffle(0), b)
-                return [r.dimshuffle(0, "x")]
+        if z.broadcastable == x.broadcastable == (True, False):
+            r = gemv_no_inplace(z.dimshuffle(1), a, y.T, x.dimshuffle(1), b)
+            new_out = [r.dimshuffle("x", 0)]
+        elif z.broadcastable == y.broadcastable == (False, True):
+            r = gemv_no_inplace(z.dimshuffle(0), a, x, y.dimshuffle(0), b)
+            new_out = [r.dimshuffle(0, "x")]
+        else:
+            return
+        copy_stack_trace(node.outputs, new_out)
+        return new_out
 
 
 @local_optimizer([gemm_no_inplace])
@@ -1726,27 +1735,28 @@ def local_gemm_to_ger(fgraph, node):
     if node.op == gemm_no_inplace:
         z, a, x, y, b = node.inputs
         if x.broadcastable[1] and y.broadcastable[0]:
-            with inherit_stack_trace(node.outputs):
-                # x and y are both vectors so this might qualifies for a GER
-                xv = x.dimshuffle(0)
-                yv = y.dimshuffle(1)
-                try:
-                    bval = at.get_scalar_constant_value(b)
-                except NotScalarConstantError:
-                    # b isn't a constant, GEMM is doing useful pre-scaling
-                    return
+            # x and y are both vectors so this might qualifies for a GER
+            xv = x.dimshuffle(0)
+            yv = y.dimshuffle(1)
+            try:
+                bval = at.get_scalar_constant_value(b)
+            except NotScalarConstantError:
+                # b isn't a constant, GEMM is doing useful pre-scaling
+                return
 
-                if bval == 1:  # best case a natural GER
-                    rval = ger(z, a, xv, yv)
-                    return [rval]
-                elif bval == 0:  # GER on zeros_like should be faster than GEMM
-                    zeros = at.zeros([x.shape[0], y.shape[1]], x.dtype)
-                    rval = ger(zeros, a, xv, yv)
-                    return [rval]
-                else:
-                    # if bval is another constant, then z is being usefully
-                    # pre-scaled and GER isn't really the right tool for the job.
-                    return
+            if bval == 1:  # best case a natural GER
+                rval = ger(z, a, xv, yv)
+                new_out = [rval]
+            elif bval == 0:  # GER on zeros_like should be faster than GEMM
+                zeros = at.zeros([x.shape[0], y.shape[1]], x.dtype)
+                rval = ger(zeros, a, xv, yv)
+                new_out = [rval]
+            else:
+                # if bval is another constant, then z is being usefully
+                # pre-scaled and GER isn't really the right tool for the job.
+                return
+            copy_stack_trace(node.outputs, new_out)
+            return new_out
 
 
 # TODO: delete this optimization when we have the proper dot->gemm->ger pipeline
@@ -1755,38 +1765,41 @@ def local_gemm_to_ger(fgraph, node):
 def local_dot22_to_ger_or_gemv(fgraph, node):
     """dot22 computing an outer-product -> GER."""
     if node.op == _dot22:
-        with inherit_stack_trace(node.outputs):
-            x, y = node.inputs
-            xb = x.broadcastable
-            yb = y.broadcastable
-            one = at.as_tensor_variable(np.asarray(1, dtype=x.dtype))
-            zero = at.as_tensor_variable(np.asarray(0, dtype=x.dtype))
-            if xb[1] and yb[0]:
-                # x and y are both vectors so this might qualifies for a GER
-                xv = x.dimshuffle(0)
-                yv = y.dimshuffle(1)
-                zeros = at.zeros([x.shape[0], y.shape[1]], dtype=x.dtype)
-                rval = ger(zeros, one, xv, yv)
-                return [rval]
-            if xb[0] and yb[1]:
-                # x and y are both vectors so this qualifies for a sdot / ddot
-                # TODO: Aesara doesn't have a sdot, but gemv is better than _dot22
-                xv = x.dimshuffle(1)
-                zeros = at.AllocEmpty(x.dtype)(1)
-                rval = gemv_no_inplace(zeros, one, y.T, xv, zero)
-                return [rval.dimshuffle("x", 0)]
-            if xb[0] and not yb[0] and not yb[1]:
-                # x is vector, y is matrix so try gemv
-                xv = x.dimshuffle(1)
-                zeros = at.AllocEmpty(x.dtype)(y.shape[1])
-                rval = gemv_no_inplace(zeros, one, y.T, xv, zero)
-                return [rval.dimshuffle("x", 0)]
-            if not xb[0] and not xb[1] and yb[1]:
-                # x is matrix, y is vector, try gemv
-                yv = y.dimshuffle(0)
-                zeros = at.AllocEmpty(x.dtype)(x.shape[0])
-                rval = gemv_no_inplace(zeros, one, x, yv, zero)
-                return [rval.dimshuffle(0, "x")]
+        x, y = node.inputs
+        xb = x.broadcastable
+        yb = y.broadcastable
+        one = at.as_tensor_variable(np.asarray(1, dtype=x.dtype))
+        zero = at.as_tensor_variable(np.asarray(0, dtype=x.dtype))
+        if xb[1] and yb[0]:
+            # x and y are both vectors so this might qualifies for a GER
+            xv = x.dimshuffle(0)
+            yv = y.dimshuffle(1)
+            zeros = at.zeros([x.shape[0], y.shape[1]], dtype=x.dtype)
+            rval = ger(zeros, one, xv, yv)
+            new_out = [rval]
+        elif xb[0] and yb[1]:
+            # x and y are both vectors so this qualifies for a sdot / ddot
+            # TODO: Aesara doesn't have a sdot, but gemv is better than _dot22
+            xv = x.dimshuffle(1)
+            zeros = at.AllocEmpty(x.dtype)(1)
+            rval = gemv_no_inplace(zeros, one, y.T, xv, zero)
+            new_out = [rval.dimshuffle("x", 0)]
+        elif xb[0] and not yb[0] and not yb[1]:
+            # x is vector, y is matrix so try gemv
+            xv = x.dimshuffle(1)
+            zeros = at.AllocEmpty(x.dtype)(y.shape[1])
+            rval = gemv_no_inplace(zeros, one, y.T, xv, zero)
+            new_out = [rval.dimshuffle("x", 0)]
+        elif not xb[0] and not xb[1] and yb[1]:
+            # x is matrix, y is vector, try gemv
+            yv = y.dimshuffle(0)
+            zeros = at.AllocEmpty(x.dtype)(x.shape[0])
+            rval = gemv_no_inplace(zeros, one, x, yv, zero)
+            new_out = [rval.dimshuffle(0, "x")]
+        else:
+            return
+        copy_stack_trace(node.outputs, new_out)
+        return new_out
 
 
 #################################

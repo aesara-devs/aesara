@@ -14,7 +14,7 @@ from aesara.gpuarray.elemwise import GpuDimShuffle, GpuElemwise
 from aesara.gpuarray.type import GpuArrayType, get_context, move_to_gpu
 from aesara.graph.basic import Constant
 from aesara.graph.op import Op
-from aesara.graph.opt import copy_stack_trace, inherit_stack_trace, local_optimizer
+from aesara.graph.opt import copy_stack_trace, local_optimizer
 from aesara.tensor.basic import as_tensor, cast, get_scalar_constant_value, join
 from aesara.tensor.elemwise import DimShuffle
 from aesara.tensor.exceptions import NotScalarConstantError
@@ -213,8 +213,9 @@ def alpha_merge(cls, alpha_in, beta_in):
                 except NotScalarConstantError:
                     inputs[alpha_in] = lr * targ.inputs[alpha_in]
                     inputs[beta_in] = lr * targ.inputs[beta_in]
-                with inherit_stack_trace(node.outputs):
-                    return maker(targ, *inputs)
+                new_out = maker(targ, *inputs)
+                copy_stack_trace(node.outputs, new_out)
+                return new_out
 
         return opt
 
@@ -309,8 +310,9 @@ def output_merge(cls, alpha_in, beta_in, out_in):
                 dtype = inputs[beta_in].dtype
                 one = aes.constant(np.asarray(1.0, dtype=dtype))
                 inputs[beta_in] = one
-                with inherit_stack_trace(node.outputs):
-                    return maker(targ, *inputs)
+                new_out = maker(targ, *inputs)
+                copy_stack_trace(node.outputs, new_out)
+                return new_out
 
         return opt
 
@@ -371,8 +373,9 @@ def inplace_allocempty(op, idx):
                     alloc.owner.op.dtype, alloc.owner.op.context_name
                 )
                 inputs[idx] = alloc_op(*alloc.owner.inputs)
-            with inherit_stack_trace(node.outputs):
-                return maker(node, inputs)
+            new_out = maker(node, inputs)
+            copy_stack_trace(node.outputs, new_out)
+            return new_out
 
         return opt
 
