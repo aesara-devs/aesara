@@ -1,4 +1,5 @@
 from copy import deepcopy
+from typing import Callable
 
 import numpy as np
 
@@ -8,10 +9,52 @@ from aesara.graph import fg
 from aesara.graph.basic import Apply, Constant, Variable, clone
 from aesara.graph.op import Op
 from aesara.graph.type import Type
-from aesara.link.basic import Container, PerformLinker, WrapLinker
+from aesara.link.basic import Container, Linker, PerformLinker, WrapLinker
 from aesara.link.c.basic import OpWiseCLinker
 from aesara.tensor.type import matrix, scalar
-from aesara.utils import cmp
+from aesara.utils import cmp, to_return_values
+
+
+def make_function(linker: Linker, unpack_single: bool = True, **kwargs) -> Callable:
+    """
+    Returns a function that takes values corresponding to the inputs of the
+    fgraph used by this L{Linker} and returns values corresponding the the
+    outputs of that fgraph. If inplace is True, the calculations will
+    operate in the same storage the fgraph uses, else independent storage
+    will be allocated for the function.
+
+    Parameters
+    ----------
+    unpack_single : bool
+        If `unpack_single` is True (default) and that the function has only one
+        output, then that output will be returned. Else, a list or tuple of
+        length 1 will be returned.
+
+    Examples
+    --------
+    e = x + y
+    fgraph = FunctionGraph([x, y], [e])
+    fn = make_function(MyLinker(fgraph), inplace)
+    print fn(1.0, 2.0) # 3.0
+    print e.data # 3.0 iff inplace == True (else unknown)
+
+    """
+    thunk, inputs, outputs = linker.make_thunk(**kwargs)
+
+    def execute(*args):
+        takes = len(inputs)
+        got = len(args)
+        if got != takes:
+            raise TypeError(f"Function call takes exactly {takes} args ({got} given)")
+        for arg, variable in zip(args, inputs):
+            variable.data = arg
+        thunk()
+        if unpack_single:
+            return to_return_values([variable.data for variable in outputs])
+        else:
+            return [variable.data for variable in outputs]
+
+    return execute
 
 
 def as_variable(x):
@@ -103,26 +146,26 @@ class TestPerformLinker:
     def test_function(self):
         x, y, z = inputs()
         e = mul(add(x, y), div(x, y))
-        fn = perform_linker(FunctionGraph([x, y, z], [e])).make_function()
+        fn = make_function(perform_linker(FunctionGraph([x, y, z], [e])))
         assert fn(1.0, 2.0, 3.0) == 1.5
 
     def test_constant(self):
         x, y, z = inputs()
         y = Constant(tdouble, 2.0)
         e = mul(add(x, y), div(x, y))
-        fn = perform_linker(FunctionGraph([x], [e])).make_function()
+        fn = make_function(perform_linker(FunctionGraph([x], [e])))
         assert fn(1.0) == 1.5
 
     def test_input_output_same(self):
         x, y, z = inputs()
-        fn = perform_linker(FunctionGraph([x], [x])).make_function()
+        fn = make_function(perform_linker(FunctionGraph([x], [x])))
         assert 1.0 == fn(1.0)
 
     def test_input_dependency0(self):
         x, y, z = inputs()
         a, d = add(x, y), div(x, y)
         e = mul(a, d)
-        fn = perform_linker(FunctionGraph(*clone([x, y, a], [e]))).make_function()
+        fn = make_function(perform_linker(FunctionGraph(*clone([x, y, a], [e]))))
         assert fn(1.0, 2.0, 9.0) == 4.5
 
     def test_skiphole(self):
@@ -130,7 +173,7 @@ class TestPerformLinker:
         a = add(x, y)
         r = raise_err(a)
         e = add(r, a)
-        fn = perform_linker(FunctionGraph(*clone([x, y, r], [e]))).make_function()
+        fn = make_function(perform_linker(FunctionGraph(*clone([x, y, r], [e]))))
         assert fn(1.0, 2.0, 4.5) == 7.5
 
 

@@ -12,6 +12,7 @@ from aesara.graph.type import CType
 from aesara.link.basic import PerformLinker
 from aesara.link.c.basic import CLinker, DualLinker, OpWiseCLinker
 from aesara.tensor.type import iscalar, matrix, vector
+from tests.link.test_link import make_function
 
 
 def as_variable(x):
@@ -189,7 +190,7 @@ def test_clinker_straightforward():
     x, y, z = inputs()
     e = add(mul(add(x, y), div(x, y)), bad_sub(bad_sub(x, y), z))
     lnk = CLinker().accept(FunctionGraph([x, y, z], [e]))
-    fn = lnk.make_function()
+    fn = make_function(lnk)
     assert fn(2.0, 2.0, 2.0) == 2.0
 
 
@@ -214,7 +215,7 @@ def test_clinker_literal_inlining():
     z = Constant(tdouble, 4.12345678)
     e = add(mul(add(x, y), div(x, y)), bad_sub(bad_sub(x, y), z))
     lnk = CLinker().accept(FunctionGraph([x, y], [e]))
-    fn = lnk.make_function()
+    fn = make_function(lnk)
     assert abs(fn(2.0, 2.0) + 0.12345678) < 1e-9
     code = lnk.code_gen()
     # print "=== Code generated ==="
@@ -257,7 +258,7 @@ def test_clinker_single_node():
     x, y, z = inputs()
     node = add.make_node(x, y)
     lnk = CLinker().accept(FunctionGraph(node.inputs, node.outputs))
-    fn = lnk.make_function()
+    fn = make_function(lnk)
     assert fn(2.0, 7.0) == 9
 
 
@@ -269,7 +270,7 @@ def test_clinker_dups():
     x, y, z = inputs()
     e = add(x, x)
     lnk = CLinker().accept(FunctionGraph([x, x], [e]))
-    fn = lnk.make_function()
+    fn = make_function(lnk)
     assert fn(2.0, 2.0) == 4
     # note: for now the behavior of fn(2.0, 7.0) is undefined
 
@@ -282,7 +283,7 @@ def test_clinker_not_used_inputs():
     x, y, z = inputs()
     e = add(x, y)
     lnk = CLinker().accept(FunctionGraph([x, y, z], [e]))
-    fn = lnk.make_function()
+    fn = make_function(lnk)
     assert fn(2.0, 1.5, 1.0) == 3.5
 
 
@@ -294,7 +295,7 @@ def test_clinker_dups_inner():
     x, y, z = inputs()
     e = add(mul(y, y), add(x, z))
     lnk = CLinker().accept(FunctionGraph([x, y, z], [e]))
-    fn = lnk.make_function()
+    fn = make_function(lnk)
     assert fn(1.0, 2.0, 3.0) == 8.0
 
 
@@ -303,7 +304,7 @@ def test_opwiseclinker_straightforward():
     x, y, z = inputs()
     e = add(mul(add(x, y), div(x, y)), bad_sub(bad_sub(x, y), z))
     lnk = OpWiseCLinker().accept(FunctionGraph([x, y, z], [e]))
-    fn = lnk.make_function()
+    fn = make_function(lnk)
     if config.cxx:
         assert fn(2.0, 2.0, 2.0) == 2.0
     else:
@@ -316,7 +317,7 @@ def test_opwiseclinker_constant():
     x = Constant(tdouble, 7.2, name="x")
     e = add(mul(x, y), mul(y, z))
     lnk = OpWiseCLinker().accept(FunctionGraph([y, z], [e]))
-    fn = lnk.make_function()
+    fn = make_function(lnk)
     res = fn(1.5, 3.0)
     assert res == 15.3
 
@@ -334,7 +335,7 @@ def test_duallinker_straightforward():
     x, y, z = inputs()
     e = add(mul(x, y), mul(y, z))  # add and mul are correct in C and in Python
     lnk = DualLinker(checker=_my_checker).accept(FunctionGraph([x, y, z], [e]))
-    fn = lnk.make_function()
+    fn = make_function(lnk)
     res = fn(7.2, 1.5, 3.0)
     assert res == 15.3
 
@@ -348,15 +349,15 @@ def test_duallinker_mismatch():
     e = bad_sub(mul(x, y), mul(y, z))
     g = FunctionGraph([x, y, z], [e])
     lnk = DualLinker(checker=_my_checker).accept(g)
-    fn = lnk.make_function()
+    fn = make_function(lnk)
 
     # good
-    assert CLinker().accept(g).make_function()(1.0, 2.0, 3.0) == -4.0
+    assert make_function(CLinker().accept(g))(1.0, 2.0, 3.0) == -4.0
     # good
-    assert OpWiseCLinker().accept(g).make_function()(1.0, 2.0, 3.0) == -4.0
+    assert make_function(OpWiseCLinker().accept(g))(1.0, 2.0, 3.0) == -4.0
 
     # (purposely) wrong
-    assert PerformLinker().accept(g).make_function()(1.0, 2.0, 3.0) == -10.0
+    assert make_function(PerformLinker().accept(g))(1.0, 2.0, 3.0) == -10.0
 
     with pytest.raises(MyExc):
         # this runs OpWiseCLinker and PerformLinker in parallel and feeds
@@ -389,7 +390,7 @@ def test_c_fail_error():
     x = Constant(tdouble, 7.2, name="x")
     e = add_fail(mul(x, y), mul(y, z))
     lnk = OpWiseCLinker().accept(FunctionGraph([y, z], [e]))
-    fn = lnk.make_function()
+    fn = make_function(lnk)
     with pytest.raises(RuntimeError):
         fn(1.5, 3.0)
 
