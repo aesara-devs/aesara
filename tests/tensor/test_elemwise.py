@@ -29,6 +29,7 @@ from aesara.tensor.type import (
     vectors,
 )
 from tests import unittest_tools
+from tests.link.test_link import make_function
 from tests.tensor.test_math import reduce_bitwise_and
 
 
@@ -181,7 +182,7 @@ class TestBroadcast:
             x = type(aesara.config.floatX, [(entry == 1) for entry in xsh])("x")
             y = type(aesara.config.floatX, [(entry == 1) for entry in ysh])("y")
             e = op(aes.add)(x, y)
-            f = copy(linker).accept(FunctionGraph([x, y], [e])).make_function()
+            f = make_function(copy(linker).accept(FunctionGraph([x, y], [e])))
             xv = rand_val(xsh)
             yv = rand_val(ysh)
             zv = xv + yv
@@ -194,11 +195,7 @@ class TestBroadcast:
                 x = type(aesara.config.floatX, [(entry == 1) for entry in xsh])("x")
                 y = type(aesara.config.floatX, [(entry == 1) for entry in ysh])("y")
                 e = op(aes.add)(x, y)
-                f = (
-                    copy(linker)
-                    .accept(FunctionGraph([x, y], [e.shape]))
-                    .make_function()
-                )
+                f = make_function(copy(linker).accept(FunctionGraph([x, y], [e.shape])))
                 assert tuple(f(xv, yv)) == tuple(zv.shape)
 
     def with_linker_inplace(self, linker, op, type, rand_val):
@@ -215,7 +212,7 @@ class TestBroadcast:
             x = type(aesara.config.floatX, [(entry == 1) for entry in xsh])("x")
             y = type(aesara.config.floatX, [(entry == 1) for entry in ysh])("y")
             e = op(aes.Add(aes.transfer_type(0)), {0: 0})(x, y)
-            f = copy(linker).accept(FunctionGraph([x, y], [e])).make_function()
+            f = make_function(copy(linker).accept(FunctionGraph([x, y], [e])))
             xv = rand_val(xsh)
             yv = rand_val(ysh)
             zv = xv + yv
@@ -229,11 +226,7 @@ class TestBroadcast:
                 x = type(aesara.config.floatX, [(entry == 1) for entry in xsh])("x")
                 y = type(aesara.config.floatX, [(entry == 1) for entry in ysh])("y")
                 e = op(aes.Add(aes.transfer_type(0)), {0: 0})(x, y)
-                f = (
-                    copy(linker)
-                    .accept(FunctionGraph([x, y], [e.shape]))
-                    .make_function()
-                )
+                f = make_function(copy(linker).accept(FunctionGraph([x, y], [e.shape])))
                 xv = rand_val(xsh)
                 yv = rand_val(ysh)
                 zv = xv + yv
@@ -273,7 +266,7 @@ class TestBroadcast:
             x = t(aesara.config.floatX, (False, False))("x")
             y = t(aesara.config.floatX, (True, True))("y")
             e = op(aes.Second(aes.transfer_type(0)), {0: 0})(x, y)
-            f = linker().accept(FunctionGraph([x, y], [e])).make_function()
+            f = make_function(linker().accept(FunctionGraph([x, y], [e])))
             xv = rval((5, 5))
             yv = rval((1, 1))
             f(xv, yv)
@@ -304,7 +297,7 @@ class TestBroadcast:
             x = t(aesara.config.floatX, (False,) * 5)("x")
             y = t(aesara.config.floatX, (False,) * 5)("y")
             e = op(aes.add)(x, y)
-            f = linker().accept(FunctionGraph([x, y], [e])).make_function()
+            f = make_function(linker().accept(FunctionGraph([x, y], [e])))
             xv = rval((2, 2, 2, 2, 2))
             yv = rval((2, 2, 2, 2, 2)).transpose(4, 0, 3, 1, 2)
             zv = xv + yv
@@ -322,7 +315,7 @@ class TestBroadcast:
         ):
             x = t(aesara.config.floatX, (False,) * 2)("x")
             e = op(aes.add)(x, x)
-            f = linker().accept(FunctionGraph([x], [e])).make_function()
+            f = make_function(linker().accept(FunctionGraph([x], [e])))
             xv = rval((2, 2))
             zv = xv + xv
             assert (f(xv) == zv).all()

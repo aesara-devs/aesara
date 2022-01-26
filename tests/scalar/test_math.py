@@ -7,6 +7,7 @@ from aesara.compile.mode import Mode
 from aesara.graph.fg import FunctionGraph
 from aesara.link.c.basic import CLinker
 from aesara.scalar.math import betainc, betainc_der, gammainc, gammaincc, gammal, gammau
+from tests.link.test_link import make_function
 
 
 def test_gammainc_python():
@@ -21,7 +22,7 @@ def test_gammainc_nan_c():
     x1 = at.dscalar()
     x2 = at.dscalar()
     y = gammainc(x1, x2)
-    test_func = CLinker().accept(FunctionGraph([x1, x2], [y])).make_function()
+    test_func = make_function(CLinker().accept(FunctionGraph([x1, x2], [y])))
     assert np.isnan(test_func(-1, 1))
     assert np.isnan(test_func(1, -1))
     assert np.isnan(test_func(-1, -1))
@@ -39,7 +40,7 @@ def test_gammaincc_nan_c():
     x1 = at.dscalar()
     x2 = at.dscalar()
     y = gammaincc(x1, x2)
-    test_func = CLinker().accept(FunctionGraph([x1, x2], [y])).make_function()
+    test_func = make_function(CLinker().accept(FunctionGraph([x1, x2], [y])))
     assert np.isnan(test_func(-1, 1))
     assert np.isnan(test_func(1, -1))
     assert np.isnan(test_func(-1, -1))
@@ -49,7 +50,7 @@ def test_gammal_nan_c():
     x1 = at.dscalar()
     x2 = at.dscalar()
     y = gammal(x1, x2)
-    test_func = CLinker().accept(FunctionGraph([x1, x2], [y])).make_function()
+    test_func = make_function(CLinker().accept(FunctionGraph([x1, x2], [y])))
     assert np.isnan(test_func(-1, 1))
     assert np.isnan(test_func(1, -1))
     assert np.isnan(test_func(-1, -1))
@@ -59,7 +60,7 @@ def test_gammau_nan_c():
     x1 = at.dscalar()
     x2 = at.dscalar()
     y = gammau(x1, x2)
-    test_func = CLinker().accept(FunctionGraph([x1, x2], [y])).make_function()
+    test_func = make_function(CLinker().accept(FunctionGraph([x1, x2], [y])))
     assert np.isnan(test_func(-1, 1))
     assert np.isnan(test_func(1, -1))
     assert np.isnan(test_func(-1, -1))

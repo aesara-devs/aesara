@@ -21,6 +21,7 @@ from aesara.tensor.opt_uncanonicalize import (
 )
 from aesara.tensor.shape import reshape
 from aesara.tensor.type import dtensor4, iscalar, matrix, tensor, vector
+from tests.link.test_link import make_function
 
 
 class TestMaxAndArgmax:
@@ -165,7 +166,7 @@ def test_local_dimshuffle_alloc():
 
     l = PerformLinker()
     l.accept(g)
-    f = l.make_function()
+    f = make_function(l)
 
     assert f([3, 4]).ndim == 4
 

@@ -1,8 +1,11 @@
 import pytest
 
 import aesara
+from aesara.graph.fg import FunctionGraph
+from aesara.link.c.basic import CLinker
 from aesara.scalar.basic import floats
 from aesara.scalar.basic_sympy import SymPyCCode
+from tests.link.test_link import make_function
 
 
 sympy = pytest.importorskip("sympy")
@@ -18,8 +21,8 @@ xt, yt = floats("xy")
 def test_SymPyCCode():
     op = SymPyCCode([xs, ys], xs + ys)
     e = op(xt, yt)
-    g = aesara.graph.fg.FunctionGraph([xt, yt], [e])
-    fn = aesara.link.c.basic.CLinker().accept(g).make_function()
+    g = FunctionGraph([xt, yt], [e])
+    fn = make_function(CLinker().accept(g))
     assert fn(1.0, 2.0) == 3.0
 
 

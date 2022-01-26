@@ -139,6 +139,7 @@ from aesara.tensor.type import (
 )
 from aesara.tensor.type_other import NoneConst
 from tests import unittest_tools as utt
+from tests.link.test_link import make_function
 from tests.tensor.utils import (
     _bad_build_broadcast_binary_normal,
     _bad_runtime_broadcast_binary_normal,
@@ -2387,7 +2388,7 @@ def test_divmod():
     # Confirm that divmod is equivalent to the python version.
     x, y = fscalars("xy")
     d, r = divmod(x, y)
-    fn = DualLinker().accept(FunctionGraph([x, y], [d, r])).make_function()
+    fn = make_function(DualLinker().accept(FunctionGraph([x, y], [d, r])))
     for a, b in (
         (0, 1),
         (1, 1),
