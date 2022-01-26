@@ -262,7 +262,9 @@ class PerformLinker(LocalLinker):
 
     """
 
-    def __init__(self, allow_gc: Optional[bool] = None, schedule: None = None) -> None:
+    def __init__(
+        self, allow_gc: Optional[bool] = None, schedule: Callable = None
+    ) -> None:
         if allow_gc is None:
             allow_gc = config.allow_gc
         self.fgraph: Optional[FunctionGraph] = None
