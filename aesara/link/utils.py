@@ -28,14 +28,6 @@ def map_storage(
 ) -> Tuple[List, List, Dict]:
     """Ensure there is storage (a length-1 list) for inputs, outputs, and interior nodes.
 
-    :param fgraph: The current fgraph.  This function uses the inputs and outputs attributes.
-    :param order: an iterable over Apply instances (in program running order)
-    :param input_storage: None or existing input storage (see below)
-    :param output_storage: None or existing output storage (see below)
-
-    :rtype: 3-tuple
-    :returns: (list of storage for inputs, list of storage for outputs, and the `storage_map`)
-
     Parameters
     ----------
     fgraph
