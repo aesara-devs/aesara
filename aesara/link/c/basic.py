@@ -583,12 +583,8 @@ def struct_variable_codeblocks(fgraph, variable, policies, id, symbol_table, sub
 
 
 class CLinker(Linker):
-    """
-    Creates C code for an fgraph, compiles it and returns callables
-    through make_thunk and make_function that make use of the compiled
-    code.
+    r"""Generates and compiles C code for a :class:`FunctionGraph`.
 
-    no_recycling can contain a list of Variables that belong to the fgraph.
     If a Variable is in no_recycling, CLinker will clear the output storage
     associated to it during the computation (to avoid reusing it).
 
@@ -599,9 +595,10 @@ class CLinker(Linker):
         super().__init__(scheduler=schedule)
 
     def accept(self, fgraph, no_recycling=None, profile=None):
-        """
-        Associate linker with fgraph
+        r"""Associate this `Linker` with `fgraph`.
 
+        The `no_recycling` argument can contain a list of `Variable`\s that
+        belong to `fgraph`.
         """
         if no_recycling is None:
             no_recycling = []
@@ -614,11 +611,7 @@ class CLinker(Linker):
         return self
 
     def fetch_variables(self):
-        """
-        Fills the inputs, outputs, variables, orphans, temps and node_order
-        fields.
-
-        """
+        """Fills the inputs, outputs, variables, orphans, temps and node_order fields."""
         fgraph = self.fgraph
         self.inputs = fgraph.inputs
         self.outputs = fgraph.outputs
@@ -678,15 +671,16 @@ class CLinker(Linker):
         )
 
     def code_gen(self):
-        """
-        Generates code for a struct that does the computation of the fgraph and
-        stores it in the struct_code field of the instance.
+        """Construct and populate a C ``struct`` for the generated code.
 
-        If reuse_storage is True, outputs and temporaries will be stored in
-        the struct so they can be reused each time a function returned by
-        make_function is called, which means that the output of a call will
-        be invalidated by the next. If reuse_storage is False, that problem
-        is avoided.
+        Generates code for a ``struct`` instance that does the computation of the `FunctionGraph` and
+        stores it in the ``struct_code`` field of the instance.
+
+        If :attr:`CLinker.reuse_storage` is ``True``, outputs and temporaries
+        will be stored in the ``struct`` so they can be reused each time the
+        generated code is called, which means that the output of a call will be
+        invalidated by the next. If the value is ``False``, that problem is
+        avoided.
 
         This method caches its computations.
 

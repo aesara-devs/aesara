@@ -10,7 +10,7 @@ from aesara.graph.fg import FunctionGraph
 from aesara.graph.type import CType
 from aesara.graph.utils import MetaObject
 from aesara.link.utils import gc_helper, map_storage, raise_with_op, streamline
-from aesara.utils import deprecated, difference, to_return_values
+from aesara.utils import difference
 
 
 if TYPE_CHECKING:
@@ -202,50 +202,6 @@ class Linker(ABC):
         print e.data # 3.0 iff inplace == True (else unknown)
 
         """
-
-    @deprecated("Marked for deletion. Only tests use it.")
-    def make_function(self, unpack_single: bool = True, **kwargs) -> Callable:
-        """
-        Returns a function that takes values corresponding to the inputs of the
-        fgraph used by this L{Linker} and returns values corresponding the the
-        outputs of that fgraph. If inplace is True, the calculations will
-        operate in the same storage the fgraph uses, else independent storage
-        will be allocated for the function.
-
-        Parameters
-        ----------
-        unpack_single : bool
-            If `unpack_single` is True (default) and that the function has only one
-            output, then that output will be returned. Else, a list or tuple of
-            length 1 will be returned.
-
-        Examples
-        --------
-        e = x + y
-        fgraph = FunctionGraph([x, y], [e])
-        fn = MyLinker(fgraph).make_function(inplace)
-        print fn(1.0, 2.0) # 3.0
-        print e.data # 3.0 iff inplace == True (else unknown)
-
-        """
-        thunk, inputs, outputs = self.make_thunk(**kwargs)
-
-        def execute(*args):
-            takes = len(inputs)
-            got = len(args)
-            if got != takes:
-                raise TypeError(
-                    f"Function call takes exactly {takes} args ({got} given)"
-                )
-            for arg, variable in zip(args, inputs):
-                variable.data = arg
-            thunk()
-            if unpack_single:
-                return to_return_values([variable.data for variable in outputs])
-            else:
-                return [variable.data for variable in outputs]
-
-        return execute
 
     def schedule(self, fgraph: FunctionGraph) -> List[Apply]:
         """Runs the scheduler (if set) or the toposort on the FunctionGraph.
