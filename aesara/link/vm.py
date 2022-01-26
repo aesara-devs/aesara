@@ -68,7 +68,8 @@ def calculate_reallocate_info(order, fgraph, storage_map, compute_map_re, depend
         for ins in node.inputs:
             assert not (ins in view_of and viewed_by[ins])
             if (
-                getattr(ins, "ndim", None) == 0
+                getattr(ins.type, "ndim", None) == 0
+                and len(storage_map[ins]) > 0
                 and not storage_map[ins][0]
                 and ins not in fgraph.outputs
                 and ins.owner
@@ -85,7 +86,7 @@ def calculate_reallocate_info(order, fgraph, storage_map, compute_map_re, depend
                             break
                         for out in order[i].outputs:
                             if (
-                                getattr(out, "ndim", None) == 0
+                                getattr(out.type, "ndim", None) == 0
                                 and out not in pre_allocated
                                 and out.type.in_same_class(ins.type)
                             ):
@@ -801,12 +802,16 @@ class VMLinker(LocalLinker):
         return self
 
     def accept_var_updates(self, updated_vars):
+        """Record which variables have update expressions.
+
+        It does not imply that the `Linker` will actually implement these updates
+        (see `need_update_inputs`).
+
+        TODO: This mechanism is admittedly confusing, and it could use some
+        cleaning up. The base `Linker` object should probably go away
+        completely.
+        """
         self.updated_vars = updated_vars
-        # This method simply records in the linker which variables have update
-        # expressions.  It does not imply that the linker will actually
-        # implement these updates (see need_update_inputs).  This mechanism is
-        # admittedly confusing, and it could use some cleaning up. The base
-        # Linker object should probably go away completely.
 
     def compute_gc_dependencies(self, variables):
         """
@@ -911,7 +916,9 @@ class VMLinker(LocalLinker):
             for i, node in enumerate(nodes):
                 nodes_idx[node] = i
                 for v in node.inputs + node.outputs:
-                    vars_idx.setdefault(v, len(vars_idx))
+                    # Ignore uncomputed inputs
+                    if len(storage_map[v]) > 0:
+                        vars_idx.setdefault(v, len(vars_idx))
             for v in self.fgraph.inputs + self.fgraph.outputs:
                 vars_idx.setdefault(v, len(vars_idx))
 
@@ -936,7 +943,7 @@ class VMLinker(LocalLinker):
             # Needed for allow_gc=True, profiling and storage_map reuse
             dependency_map = self.compute_gc_dependencies(storage_map)
             dependency_map_list = [
-                [vars_idx[d] for d in dependency_map[vars_idx_inv[i]]]
+                [vars_idx[d] for d in dependency_map[vars_idx_inv[i]] if d in vars_idx]
                 for i in range(len(vars_idx_inv))
             ]
 
@@ -947,7 +954,9 @@ class VMLinker(LocalLinker):
             node_input_offset = []
             node_output_offset = []
             for node in nodes:
-                inputs_idx = [vars_idx[v] for v in node.inputs]
+                inputs_idx = [
+                    vars_idx[v] for v in node.inputs if len(storage_map[v]) > 0
+                ]
                 outputs_idx = [vars_idx[v] for v in node.outputs]
                 node_n_inputs.append(len(inputs_idx))
                 node_n_outputs.append(len(outputs_idx))
@@ -1079,8 +1088,13 @@ class VMLinker(LocalLinker):
             fgraph, order, input_storage, output_storage, storage_map
         )
         compute_map = {}
-        for k in storage_map:
-            compute_map[k] = [k.owner is None]
+        for k, v in storage_map.items():
+            if len(v) > 0:
+                compute_map[k] = [k.owner is None]
+            else:
+                # Just like the `storage_map`, uncomputed variables have empty
+                # `compute_map` values
+                compute_map[k] = []
 
         thunks = []
 
@@ -1127,7 +1141,9 @@ class VMLinker(LocalLinker):
             self.profile.linker_make_thunk_time = linker_make_thunk_time
 
         for node, thunk in zip(order, thunks):
-            thunk.inputs = [storage_map[v] for v in node.inputs]
+            thunk.inputs = [
+                storage_map[v] for v in node.inputs if len(storage_map[v]) > 0
+            ]
             thunk.outputs = [storage_map[v] for v in node.outputs]
 
         lazy = self.lazy

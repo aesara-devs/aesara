@@ -4,14 +4,15 @@ from typing import Callable
 import numpy as np
 
 import aesara
+import aesara.tensor as at
 from aesara.compile.mode import Mode
-from aesara.graph import fg
-from aesara.graph.basic import Apply, Constant, Variable, clone
+from aesara.graph.basic import Apply, Constant, NominalVariable, Variable, clone
+from aesara.graph.fg import FunctionGraph
 from aesara.graph.op import Op
 from aesara.graph.type import Type
 from aesara.link.basic import Container, Linker, PerformLinker, WrapLinker
 from aesara.link.c.basic import OpWiseCLinker
-from aesara.tensor.type import matrix, scalar
+from aesara.tensor.type import TensorType, matrix, scalar
 from aesara.utils import cmp, to_return_values
 
 
@@ -55,6 +56,37 @@ def make_function(linker: Linker, unpack_single: bool = True, **kwargs) -> Calla
             return [variable.data for variable in outputs]
 
     return execute
+
+
+class OpWithIgnoredInput(Op):
+
+    uncomputed_inputs = (0,)
+
+    def make_node(self, a, x):
+        return Apply(self, [a, x], [TensorType(x.type.dtype, ())()])
+
+    def prepare_node(self, node, storage_map, compute_map, impl):
+        pass
+
+    def infer_shape(self, fgraph, node, shapes):
+        return [()]
+
+    def make_thunk(
+        self,
+        node,
+        storage_map,
+        compute_map,
+        no_recycling,
+        impl=None,
+    ):
+        assert len(node.inputs) == 2
+        assert all(storage_map[node.inputs[i]] == [] for i in self.uncomputed_inputs)
+        return super().make_thunk(node, storage_map, compute_map, no_recycling, impl)
+
+    def perform(self, node, inputs, outputs, **kwargs):
+        (i2,) = inputs
+        (out,) = outputs
+        out[0] = i2.max()
 
 
 def as_variable(x):
@@ -124,11 +156,6 @@ def inputs():
 def perform_linker(fgraph):
     lnk = PerformLinker().accept(fgraph)
     return lnk
-
-
-def FunctionGraph(inputs, outputs):
-    e = fg.FunctionGraph(inputs, outputs)
-    return e
 
 
 class TestPerformLinker:
@@ -258,3 +285,31 @@ def test_container_deepcopy():
         assert isinstance(d.storage[0], np.ndarray), (d.storage[0], type(d.storage[0]))
         assert d.storage[0].dtype == v.dtype, (d.storage[0].dtype, v.dtype)
         assert d.storage[0].dtype == c.type.dtype, (d.storage[0].dtype, c.type.dtype)
+
+
+def test_schedule_filter_subgraphs():
+    r"""Make sure `Linker.schedule` honors an `Op`\s uncomputed inputs by filtering their sub-graphs."""
+
+    op = OpWithIgnoredInput()
+
+    a = NominalVariable(0, TensorType("floatX", (None,)))
+    a.name = "a"
+    b = at.mul(a, at.as_tensor(2.0))
+    x = at.vector("x")
+    z = op(b, x)
+
+    class MyLinker(Linker):
+        def make_thunk(self, *args, **kwargs):
+            pass
+
+    linker = MyLinker()
+    fgraph = FunctionGraph(outputs=[z], clone=False)
+    schedule = linker.schedule(fgraph)
+
+    assert schedule == [z.owner]
+
+    z = op(x, x)
+    fgraph = FunctionGraph(outputs=[z], clone=False)
+    schedule = linker.schedule(fgraph)
+
+    assert schedule == [z.owner]

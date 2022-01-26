@@ -75,6 +75,10 @@ def compute_test_value(node: Apply):
     storage_map = {}
     compute_map = {}
     for i, ins in enumerate(node.inputs):
+        if i in node.op.uncomputed_inputs:
+            storage_map[ins] = []
+            continue
+
         try:
             storage_map[ins] = [ins.get_test_value()]
             compute_map[ins] = [True]
@@ -194,6 +198,13 @@ class Op(MetaObject):
         destroy_map = {0: [1]} # first output operates in-place on second input
         destroy_map = {1: [0]} # second output operates in-place on first input
 
+    """
+
+    uncomputed_inputs: Tuple[int] = ()
+    r"""
+    The indices of inputs to this `Op` that are not computed.
+
+    This will prevent `Linker`\s from compiling these nodes.
     """
 
     def make_node(self, *inputs: Variable) -> Apply:
@@ -492,7 +503,9 @@ class Op(MetaObject):
         Like :meth:`Op.make_thunk` but only makes Python thunks.
 
         """
-        node_input_storage = [storage_map[r] for r in node.inputs]
+        node_input_storage = [
+            storage_map[r] for r in node.inputs if len(storage_map[r]) > 0
+        ]
         node_output_storage = [storage_map[r] for r in node.outputs]
 
         if debug:

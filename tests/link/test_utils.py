@@ -2,19 +2,23 @@ from functools import singledispatch
 
 import numpy as np
 
+import aesara.tensor as at
 from aesara import config
-from aesara.graph.basic import Apply
+from aesara.graph.basic import Apply, NominalVariable
 from aesara.graph.fg import FunctionGraph
 from aesara.graph.op import Op
+from aesara.link.basic import Linker
 from aesara.link.utils import (
     fgraph_to_python,
     get_name_for_object,
+    map_storage,
     unique_name_generator,
 )
 from aesara.scalar.basic import Add
 from aesara.tensor.elemwise import Elemwise
-from aesara.tensor.type import scalar, vector
+from aesara.tensor.type import TensorType, scalar, vector
 from aesara.tensor.type_other import NoneConst
+from tests.link.test_link import OpWithIgnoredInput
 
 
 @singledispatch
@@ -152,3 +156,27 @@ def test_unique_name_generator():
 
     r_name_3 = unique_names(r)
     assert r_name_2 == r_name_3
+
+
+def test_map_storage_uncomputed_inputs():
+
+    # This will not be considered an input by `FunctionGraph`
+    a = NominalVariable(0, TensorType("floatX", (None,)))
+    a.name = "a"
+    b = at.mul(a, at.as_tensor(2.0))
+    x = at.vector("x")
+    c = at.as_tensor(3.0)
+    y = c * x
+    op = OpWithIgnoredInput()
+    z = op(b, y)
+
+    fgraph = FunctionGraph(outputs=[z], clone=False)
+    order = Linker.toposort(fgraph)
+
+    input_storage, output_storage, storage_map = map_storage(fgraph, order, None, None)
+
+    assert len(storage_map[b]) == 0
+    assert storage_map[x] == [None]
+    assert storage_map[y] == [None]
+    assert storage_map[c] == [np.array(3.0, dtype=config.floatX)]
+    assert storage_map[z] == [None]

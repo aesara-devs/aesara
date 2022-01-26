@@ -793,26 +793,41 @@ def ancestors(
 
 
 def graph_inputs(
-    graphs: Iterable[Variable], blockers: Collection[Variable] = None
+    graphs: Iterable[Variable],
+    blockers: Collection[Variable] = None,
+    include_uncomputed: bool = True,
 ) -> Generator[Variable, None, None]:
-    r"""Return the inputs required to compute the given Variables.
+    r"""Return the input `Variable`\s required to compute the given graphs.
 
     Parameters
     ----------
-    graphs : list of `Variable` instances
+    graphs
         Output `Variable` instances from which to search backward through
         owners.
-    blockers : list of `Variable` instances
+    blockers
         A collection of `Variable`\s that, when found, prevent the graph search
         from preceding from that point.
+    include_uncomputed
+        Include inputs specified by `Op.uncomputed_inputs`.
 
     Yields
     ------
-        Input nodes with no owner, in the order found by a left-recursive
-        depth-first search started at the nodes in `graphs`.
+    Input nodes with no owner, in the order found by a left-recursive
+    depth-first search started at the nodes in `graphs`.
 
     """
-    yield from (r for r in ancestors(graphs, blockers) if r.owner is None)
+
+    def expand(r):
+        if r.owner and (not blockers or r not in blockers):
+            return reversed(
+                tuple(
+                    x
+                    for n, x in enumerate(r.owner.inputs)
+                    if include_uncomputed or n not in r.owner.op.uncomputed_inputs
+                )
+            )
+
+    yield from (r for r in walk(graphs, expand, False) if r.owner is None)
 
 
 def vars_between(

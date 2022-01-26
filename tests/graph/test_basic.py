@@ -476,16 +476,40 @@ def test_ancestors():
 
 
 def test_graph_inputs():
+    class OpWithIgnoredInput(Op):
 
-    r1, r2, r3 = MyVariable(1), MyVariable(2), MyVariable(3)
-    o1 = myop(r1, r2)
+        uncomputed_inputs = (0, 1, 2)
+
+        def make_node(self, *inputs):
+            outputs = [MyVariable(sum(input.type.thingy for input in inputs))]
+            return Apply(self, list(inputs), outputs)
+
+        def perform(self, node, inputs, outputs, **kwargs):
+            raise NotImplementedError()
+
+    owii = OpWithIgnoredInput()
+
+    r0, r1, r2, r3, r4, r5, r6, r7 = (MyVariable(i) for i in range(8))
+
+    o0 = myop(r3, r4)
+    o0.name = o0
+
+    o1 = myop(r1, r2, o0)
     o1.name = "o1"
-    o2 = myop(r3, o1)
+
+    o2 = myop(r5, r6)
     o2.name = "o2"
 
-    res = graph_inputs([o2], blockers=None)
+    o3 = owii(r0, r1, o1, o2, r7)
+    o3.name = "o3"
+
+    res = graph_inputs([o3], blockers=None, include_uncomputed=True)
     res_list = list(res)
-    assert res_list == [r3, r1, r2]
+    assert res_list == [r0, r1, r2, r3, r4, r5, r6, r7]
+
+    res = graph_inputs([o3], blockers=None, include_uncomputed=False)
+    res_list = list(res)
+    assert res_list == [r5, r6, r7]
 
 
 def test_variables_and_orphans():

@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Set, Tupl
 from numpy import ndarray
 
 from aesara.configdefaults import config
-from aesara.graph.basic import Apply, Variable
+from aesara.graph.basic import Apply, Variable, io_toposort
 from aesara.graph.fg import FunctionGraph
 from aesara.graph.type import CType
 from aesara.graph.utils import MetaObject
@@ -159,7 +159,7 @@ class Linker(ABC):
         scheduler: Callable[[FunctionGraph], List[Apply]] = None,
     ) -> None:
         self._allow_gc = allow_gc
-        self._scheduler = scheduler
+        self._scheduler = scheduler or self.toposort
         super().__init__()
 
     @property
@@ -204,21 +204,34 @@ class Linker(ABC):
         """
 
     def schedule(self, fgraph: FunctionGraph) -> List[Apply]:
-        """Runs the scheduler (if set) or the toposort on the FunctionGraph.
+        """Determine the nodes to be compiled/computed and their order.
 
         Parameters
         ----------
-        fgraph : :py:class:`aerasa.graph.fg.FunctionGraph`
-            A graph to compute the schedule for.
+        fgraph
+            The `FunctionGraph` from which the nodes are taken.
 
-        Returns
-        -------
-        nodes : list of :py:class:`aesara.graph.basic.Apply` nodes
-            The result of the scheduling or toposort operation.
         """
-        if callable(self._scheduler):
-            return self._scheduler(fgraph)
-        return fgraph.toposort()
+        return self._scheduler(fgraph)
+
+    @classmethod
+    def toposort(cls, fgraph):
+        """A toposort that ignores uncomputed sub-graphs."""
+
+        if len(fgraph.apply_nodes) < 2:
+            # No sorting is necessary
+            return list(fgraph.apply_nodes)
+
+        def filter_uncomputed_inputs(node):
+            uncomputed_inputs = getattr(node.op, "uncomputed_inputs", ())
+            return [i for n, i in enumerate(node.inputs) if n not in uncomputed_inputs]
+
+        return io_toposort(
+            fgraph.inputs,
+            fgraph.outputs,
+            fgraph.orderings(),
+            node_filter=filter_uncomputed_inputs,
+        )
 
 
 class LocalLinker(Linker):

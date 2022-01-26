@@ -408,3 +408,21 @@ def test_PatternPrinter():
     res = pprint(o1)
 
     assert res == "|1 - 2|"
+
+
+def test_uncomputed_inputs():
+    from tests.link.test_link import OpWithIgnoredInput
+
+    r1, r2 = matrix("r1"), matrix("r2")
+    o1 = OpWithIgnoredInput()(r1, r2)
+
+    output_str = debugprint(o1, file="str")
+    lines = output_str.split("\n")
+
+    exp_res = """OpWithIgnoredInput [id A] ''
+    \\r1 [id B]
+    |r2 [id C]
+    """
+
+    for exp_line, res_line in zip(exp_res.split("\n"), lines):
+        assert exp_line.strip() == res_line.strip()

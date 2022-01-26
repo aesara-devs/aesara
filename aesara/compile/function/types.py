@@ -1087,9 +1087,9 @@ class Function:
         # 1.no allow_gc return False
         # 2.has allow_gc, if allow_gc is False, return True
         if not getattr(self.fn, "allow_gc", True):
-            for key in self.fn.storage_map:
-                if not isinstance(key, Constant):
-                    self.fn.storage_map[key][0] = None
+            for key, storage in self.fn.storage_map.items():
+                if len(storage) > 0 and not isinstance(key, Constant):
+                    storage[0] = None
 
             for node in self.nodes_with_inner_function:
                 if hasattr(node.fn, "free"):

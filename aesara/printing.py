@@ -520,12 +520,19 @@ def _debugprint(
 
         if not already_printed:
             if not stop_on_name or not (hasattr(r, "name") and r.name is not None):
-                new_prefix = prefix_child + " |"
-                new_prefix_child = prefix_child + " |"
 
                 for idx, i in enumerate(a.inputs):
+                    if idx in a.op.uncomputed_inputs:
+                        pipe = " \\"
+                    else:
+                        pipe = " |"
+
+                    new_prefix = prefix_child + pipe
+
                     if idx == len(a.inputs) - 1:
                         new_prefix_child = prefix_child + "  "
+                    else:
+                        new_prefix_child = prefix_child + pipe
 
                     if hasattr(i, "owner") and hasattr(i.owner, "op"):
                         if isinstance(i.owner.op, HasInnerGraph):

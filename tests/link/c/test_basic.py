@@ -5,7 +5,7 @@ from aesara.compile import shared
 from aesara.compile.function import function
 from aesara.compile.mode import Mode
 from aesara.configdefaults import config
-from aesara.graph.basic import Apply, Constant, Variable
+from aesara.graph.basic import Apply, Constant, NominalVariable, Variable
 from aesara.graph.fg import FunctionGraph
 from aesara.graph.op import COp
 from aesara.graph.type import CType
@@ -297,6 +297,42 @@ def test_clinker_dups_inner():
     lnk = CLinker().accept(FunctionGraph([x, y, z], [e]))
     fn = make_function(lnk)
     assert fn(1.0, 2.0, 3.0) == 8.0
+
+
+@pytest.mark.skipif(
+    not config.cxx, reason="G++ not available, so we need to skip this test."
+)
+def test_clinker_uncomputed_inputs():
+    """Make sure uncomputed inputs are handled correctly"""
+    a = NominalVariable(0, tdouble)
+    two = Constant(tdouble, 2.0)
+    c = Constant(tdouble, 3.0)
+
+    a.name = "a"
+    b = mul(a, two)
+    x = double("x")
+    y = add(c, x)
+
+    class OpWithIgnoredInput(Div):
+
+        uncomputed_inputs = (0,)
+
+        def __init__(self, name):
+            self.nin = 2
+            self.name = name
+
+        def make_node(self, *inputs):
+            inputs = list(map(as_variable, inputs))
+            outputs = [double(self.name + "_R")]
+            return Apply(self, inputs, outputs)
+
+    op = OpWithIgnoredInput("div")
+
+    z = op(b, x, y)
+
+    lnk = CLinker().accept(FunctionGraph([x], [z]))
+    fn = make_function(lnk)
+    assert pytest.approx(fn(2.0)) == (2.0 / (3.0 + 2.0))
 
 
 # slow on linux, but near sole test and very central

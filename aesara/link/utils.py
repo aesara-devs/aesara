@@ -106,10 +106,13 @@ def map_storage(
 
     # allocate storage for intermediate computation
     for node in order:
-        for r in node.inputs:
+        for n, r in enumerate(node.inputs):
             if r not in storage_map:
-                assert isinstance(r, Constant)
-                storage_map[r] = [r.data]
+                if n in node.op.uncomputed_inputs:
+                    storage_map[r] = []
+                else:
+                    assert isinstance(r, Constant)
+                    storage_map[r] = [r.data]
         for r in node.outputs:
             storage_map.setdefault(r, [None])
     for r in fgraph.outputs:
@@ -323,10 +326,20 @@ def raise_with_op(
 
     if thunk is not None:
         if hasattr(thunk, "inputs"):
-            shapes = [getattr(ipt[0], "shape", "No shapes") for ipt in thunk.inputs]
-            strides = [getattr(ipt[0], "strides", "No strides") for ipt in thunk.inputs]
+            shapes = [
+                getattr(ipt[0], "shape", "No shapes")
+                for ipt in thunk.inputs
+                if len(ipt) > 0
+            ]
+            strides = [
+                getattr(ipt[0], "strides", "No strides")
+                for ipt in thunk.inputs
+                if len(ipt) > 0
+            ]
             scalar_values = []
             for ipt in thunk.inputs:
+                if len(ipt) == 0:
+                    continue
                 if getattr(ipt[0], "size", -1) <= 5:
                     scalar_values.append(ipt[0])
                 else:
@@ -343,7 +356,11 @@ def raise_with_op(
         )
         if verbosity == "high":
             detailed_err_msg += "\nInputs type_num: %s" % str(
-                [getattr(getattr(i[0], "dtype", ""), "num", "") for i in thunk.inputs]
+                [
+                    getattr(getattr(i[0], "dtype", ""), "num", "")
+                    for i in thunk.inputs
+                    if len(ipt) > 0
+                ]
             )
         if hasattr(node.op, "__input_name__"):
             detailed_err_msg += f"\nInputs name: {node.op.__input_name__}\n"
@@ -401,6 +418,10 @@ def raise_with_op(
         total_size = 0
         total_size_inputs = 0
         for k in storage_map:
+
+            if len(storage_map[k]) == 0:
+                continue
+
             storage_map_item: List = []
 
             # storage_map_item[0]: the variable

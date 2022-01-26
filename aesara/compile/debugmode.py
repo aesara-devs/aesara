@@ -1392,7 +1392,14 @@ class _Linker(LocalLinker):
         order_outputs = copy.copy(fgraph_equiv.all_variables_ever)
         del fgraph_equiv
         order_outputs.reverse()
-        order = io_toposort(fgraph.inputs, order_outputs)
+
+        def filter_uncomputed_inputs(node):
+            uncomputed_inputs = getattr(node.op, "uncomputed_inputs", ())
+            return [i for n, i in enumerate(node.inputs) if n not in uncomputed_inputs]
+
+        order = io_toposort(
+            fgraph.inputs, order_outputs, node_filter=filter_uncomputed_inputs
+        )
 
         # an ordering of just the active nodes
         active_order = self.schedule(fgraph)
@@ -1546,7 +1553,7 @@ class _Linker(LocalLinker):
                 # actually been transferred from storage_map to r_vals
                 r_vals_initialized = []
                 for r in storage_map:
-                    if r.owner is None:
+                    if r.owner is None and len(storage_map[r]) > 0:
                         if not r.type.is_valid_value(storage_map[r][0]):
                             # None may be a valid input value (for instance,
                             # for a Generic object). We only want to raise
@@ -1583,6 +1590,9 @@ class _Linker(LocalLinker):
                 #  completely to r_vals
                 #####
                 for r, s in storage_map.items():
+                    if len(s) == 0:
+                        continue
+
                     if s[0] is not None:
                         print(r, s)
                     assert s[0] is None
@@ -1875,6 +1885,8 @@ class _Linker(LocalLinker):
                 # Nothing should be in storage map after evaluating
                 # each the thunk (specifically the last one)
                 for r, s in storage_map.items():
+                    if len(s) == 0:
+                        continue
                     assert type(s) is list
                     assert s[0] is None
 
@@ -1913,6 +1925,9 @@ class _Linker(LocalLinker):
             except Exception:
                 # Restore the initial state of storage_map
                 for r in storage_map:
+                    if len(storage_map[r]) == 0:
+                        continue
+
                     if r in original_storage_map_keys:
                         # If r was transferred to r_vals, put it back
                         if r in r_vals_initialized:
@@ -1923,6 +1938,9 @@ class _Linker(LocalLinker):
                 raise
 
             for r in storage_map:
+                if len(storage_map[r]) == 0:
+                    continue
+
                 if r.owner is None:
                     if not r.type.is_valid_value(None):
                         assert storage_map[r][0] is not None

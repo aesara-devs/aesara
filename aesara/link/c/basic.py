@@ -14,13 +14,7 @@ import numpy as np
 
 from aesara.compile.compilelock import lock_ctx
 from aesara.configdefaults import config
-from aesara.graph.basic import (
-    AtomicVariable,
-    Constant,
-    NoParams,
-    io_toposort,
-    vars_between,
-)
+from aesara.graph.basic import AtomicVariable, Constant, NoParams, io_toposort, walk
 from aesara.graph.callcache import CallCache
 from aesara.link.basic import Container, Linker, LocalLinker, PerformLinker
 from aesara.link.c.cmodule import (
@@ -624,11 +618,26 @@ class CLinker(Linker):
 
         self.node_order = self.schedule(fgraph)
 
-        # list(fgraph.variables)
         # We need to include the unused inputs in our variables,
         # otherwise we can't pass them to the module.
         self.variables = [var for var in self.inputs if not len(fgraph.clients[var])]
-        self.variables += list(vars_between(self.inputs, self.outputs))
+
+        # We also need to ignore the ignored inputs
+        def vars_between_noignored(ins, outs):
+            def expand(r):
+                if r.owner and r not in ins:
+                    return reversed(
+                        [
+                            n
+                            for i, n in enumerate(r.owner.inputs)
+                            if i not in r.owner.op.uncomputed_inputs
+                        ]
+                        + r.owner.outputs
+                    )
+
+            yield from walk(outs, expand)
+
+        self.variables += list(vars_between_noignored(self.inputs, self.outputs))
 
         # This adds a hidden input which is the params for each node
         # that needs it
@@ -832,7 +841,11 @@ class CLinker(Linker):
             # we cannot have two different functions, in different modules,
             # that have the same name.
             name = f"node_<<<<HASH_PLACEHOLDER>>>>_{node_num}"
-            isyms = [symbol[r] for r in node.inputs]
+            isyms = [
+                symbol[r]
+                for i, r in enumerate(node.inputs)
+                if i not in node.op.uncomputed_inputs
+            ]
             osyms = [symbol[r] for r in node.outputs]
 
             # Make the CodeBlock for c_code
@@ -1312,6 +1325,7 @@ class CLinker(Linker):
                 self.inputs = inputs
                 self.outputs = outputs
                 self.clients = defaultdict(list)
+                self.apply_nodes = []
 
             def toposort(self):
                 # Calling io_toposort() here is fine because the results will

@@ -5,12 +5,13 @@ import time
 import numpy as np
 import pytest
 
+import aesara.tensor as at
 from aesara.compile.function import function
 from aesara.compile.io import In
 from aesara.compile.mode import Mode, get_mode
 from aesara.compile.sharedvalue import shared
 from aesara.configdefaults import config
-from aesara.graph.basic import Apply
+from aesara.graph.basic import Apply, NominalVariable
 from aesara.graph.fg import FunctionGraph
 from aesara.graph.op import Op
 from aesara.ifelse import ifelse
@@ -21,6 +22,7 @@ from aesara.link.vm import VM, Loop, LoopGC, VMLinker
 from aesara.tensor.math import cosh, sin, tanh
 from aesara.tensor.type import dvector, lscalar, scalar, scalars, vector, vectors
 from aesara.tensor.var import TensorConstant
+from tests.link.test_link import OpWithIgnoredInput
 
 
 class SomeOp(Op):
@@ -559,3 +561,29 @@ def test_LoopGC_exception():
 
     with pytest.raises(ValueError, match="`nodes`, `thunks` and `post_thunk_clear`.*"):
         LoopGC(fg, fg.apply_nodes, thunks, [], [])
+
+
+@pytest.mark.parametrize("use_cloop", [True, False])
+def test_uncomputed_inputs(use_cloop):
+
+    # This will not be considered an input by `FunctionGraph`
+    a = NominalVariable(0, scalar().type)
+    a.name = "a"
+    b = at.mul(a, at.as_tensor(2.0))
+    x = at.vector("x")
+    c = at.as_tensor(3.0)
+    y = c / x
+    op = OpWithIgnoredInput()
+    z = op(b, y)
+
+    fgraph = FunctionGraph(outputs=[z], clone=False)
+    linker = VMLinker(use_cloop=use_cloop).accept(fgraph)
+
+    vm, input_cnts, output_cnts, thunks, order = linker.make_all()
+
+    assert len(vm.compute_map[b]) == 0
+    assert len(vm.storage_map[b]) == 0
+    assert vm.storage_map[x] == [None]
+    assert vm.storage_map[y] == [None]
+    assert vm.storage_map[c] == [np.array(3.0, dtype=config.floatX)]
+    assert vm.storage_map[z] == [None]
