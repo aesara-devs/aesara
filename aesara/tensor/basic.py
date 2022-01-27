@@ -1278,6 +1278,32 @@ def tril_indices(n, k=0, m=None):
     return tri(n, m, k, dtype=bool).nonzero()
 
 
+def tril_indices_from(a, k=0):
+    """
+    Return the indices for the lower-triangle of arr.
+
+    Parameters
+    ----------
+    arr : ndarray, shape(N, N)
+        The indices will be valid for square arrays.
+    k : int, optional
+        Diagonal offset (see triu for details).
+
+    Returns
+    -------
+    tril_indices_from : tuple, shape(2) of ndarray, shape(N)
+        Indices for the lower-triangle of arr.
+
+    Raises
+    ------
+    ValueError
+        If the input is not a 2d array.
+    """
+    if a.ndim != 2:
+        raise ValueError("The input array must be two dimensional.")
+    return tril_indices(a.shape[0], k=k, m=a.shape[1])
+
+
 def triu_indices(n, k=0, m=None):
     """
     Return the indices for the upper-triangle of an (n, m) array.
@@ -1300,6 +1326,32 @@ def triu_indices(n, k=0, m=None):
         each with the indices along one dimension of the array.
     """
     return (constant(1, dtype=int) - tri(n, m, k - 1, dtype=int)).nonzero()
+
+
+def triu_indices_from(a, k=0):
+    """
+    Return the indices for the upper-triangle of arr.
+
+    Parameters
+    ----------
+    arr : ndarray, shape(N, N)
+        The indices will be valid for square arrays.
+    k : int, optional
+        Diagonal offset (see triu for details).
+
+    Returns
+    -------
+    triu_indices_from : tuple, shape(2) of ndarray, shape(N)
+        Indices for the upper-triangle of arr.
+
+    Raises
+    ------
+    ValueError
+        If the input is not a 2d array.
+    """
+    if a.ndim != 2:
+        raise ValueError("The input array must be two dimensional.")
+    return triu_indices(a.shape[0], k=k, m=a.shape[1])
 
 
 class Eye(Op):
@@ -4404,5 +4456,7 @@ __all__ = [
     "empty",
     "empty_like",
     "tril_indices",
+    "tril_indices_from",
     "triu_indices",
+    "triu_indices_from",
 ]
