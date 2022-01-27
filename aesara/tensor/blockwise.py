@@ -137,29 +137,9 @@ class Blockwise(Op):
         return Apply(self, list(inputs), outputs)
 
     def infer_shape(self, fgraph, node, shapes):
-        shape_idx = {}
-        core_dims = []
-        # TODO: Add broadcasting logic.
-        for idx, inp_sign in enumerate(self.signature[0]):
-            inp_shp = shapes[idx][-len(inp_sign) :]
-            # Check length of all core dimensions are equal if any
-            if core_dims:
-                assert len(core_dims) == len(shapes[idx][: -len(inp_sign)])
-            else:
-                core_dims = shapes[idx][: -len(inp_sign)]
-
-            for _inp_shp, _inp_sign in zip(inp_shp, inp_sign):
-                shape_idx[_inp_sign] = _inp_shp
-
-        out_shapes = []
-        for idx, out_sign in enumerate(self.signature[1]):
-            out_shapes.append(
-                tuple(
-                    list(core_dims) + [shape_idx[_out_sign] for _out_sign in out_sign]
-                )
-            )
-
-        return out_shapes
+        bcast_shape, dim_sizes = _parse_input_dimensions(node.inputs, self.signature[0])
+        output_shapes = _calculate_shapes(bcast_shape, dim_sizes, self.signature[1])
+        return output_shapes
 
     def grad(self, *args):
         raise NotImplementedError()
@@ -170,10 +150,10 @@ class Blockwise(Op):
     def perform(self, node, inputs, outputs):
         def py_func(*inner_inputs):
             res = [[None]] * len(outputs)
-            # This can be avoided by making a single dummy node
+            # TODO:This can be avoided by making a single dummy node
             # But will that cover all cases?
-            node = self.op.make_node(*inner_inputs)
-            self.op.perform(node, inner_inputs, res)
+            inner_node = self.op.make_node(*inner_inputs)
+            self.op.perform(inner_node, inner_inputs, res)
 
             # Numpy always expects outputs to be Numpy arrays
             # And since we have a variable number of outputs

@@ -87,6 +87,15 @@ def test_parse_input_dimensions(args, arg_vals, input_core_dims, output_core_dim
             (np.zeros((5, 3, 2)), np.zeros((5, 2, 4))),
             lambda x, y: np.dot(x, y),
         ),
+        (
+            dot_bw,
+            (
+                at.tensor("float64", (None, None, None)),
+                at.tensor("float64", (None, None)),
+            ),
+            (np.zeros((5, 3, 2)), np.zeros((2, 4))),
+            lambda x, y: np.dot(x, y),
+        ),
     ],
 )
 def test_Blockwise_perform(op, args, arg_vals, np_fn):
@@ -111,10 +120,10 @@ def test_Blockwise_perform(op, args, arg_vals, np_fn):
         (dot_bw, (3, 1, 2), (3, 2, 1)),
         (
             dot_bw,
-            (3, 1, 1),
+            (5, 4, 3),
             (
                 3,
-                1,
+                4,
             ),
         ),
     ],
