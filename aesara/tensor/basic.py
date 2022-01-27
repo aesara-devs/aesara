@@ -1254,6 +1254,54 @@ def triu(m, k=0):
     )
 
 
+def tril_indices(n, k=0, m=None):
+    """
+    Return the indices for the lower-triangle of an (n, m) array.
+
+    Parameters
+    ----------
+    n : int
+        The row dimension of the arrays for which the returned indices will be valid.
+    k : int, optional
+        Diagonal above which to zero elements.  `k = 0` (the default) is the
+        main diagonal, `k < 0` is below it and `k > 0` is above.
+    m : int, optional
+        The column dimension of the arrays for which the returned arrays will
+        be valid. By default m is taken equal to n.
+
+    Returns
+    -------
+    inds : tuple of arrays
+        The indices for the triangle. The returned tuple contains two arrays,
+        each with the indices along one dimension of the array.
+    """
+    return tri(n, m, k, dtype=bool).nonzero()
+
+
+def triu_indices(n, k=0, m=None):
+    """
+    Return the indices for the upper-triangle of an (n, m) array.
+
+    Parameters
+    ----------
+    n : int
+        The row dimension of the arrays for which the returned indices will be valid.
+    k : int, optional
+        Diagonal above which to zero elements.  `k = 0` (the default) is the
+        main diagonal, `k < 0` is below it and `k > 0` is above.
+    m : int, optional
+        The column dimension of the arrays for which the returned arrays will
+        be valid. By default m is taken equal to n.
+
+    Returns
+    -------
+    inds : tuple of arrays
+        The indices for the triangle. The returned tuple contains two arrays,
+        each with the indices along one dimension of the array.
+    """
+    return (constant(1, dtype=int) - tri(n, m, k - 1, dtype=int)).nonzero()
+
+
 class Eye(Op):
 
     __props__ = ("dtype",)
@@ -4355,4 +4403,6 @@ __all__ = [
     "full_like",
     "empty",
     "empty_like",
+    "tril_indices",
+    "triu_indices",
 ]

@@ -82,7 +82,9 @@ from aesara.tensor.basic import (
     tile,
     tri,
     tril,
+    tril_indices,
     triu,
+    triu_indices,
     unbroadcast,
     vertical_stack,
     zeros_like,
@@ -879,16 +881,26 @@ class TestTriangle:
             m_symb = matrix(dtype=m.dtype)
             k_symb = iscalar()
             f = function([m_symb, k_symb], tril(m_symb, k_symb))
+            f_indx = function(
+                [m_symb, k_symb], tril_indices(m_symb.shape[0], k_symb, m_symb.shape[1])
+            )
             result = f(m, k)
+            result_indx = f_indx(m, k)
             assert np.allclose(result, np.tril(m, k))
+            assert np.allclose(result_indx, np.tril_indices(m.shape[0], k, m.shape[1]))
             assert result.dtype == np.dtype(dtype)
 
         def check_u(m, k=0):
             m_symb = matrix(dtype=m.dtype)
             k_symb = iscalar()
             f = function([m_symb, k_symb], triu(m_symb, k_symb))
+            f_indx = function(
+                [m_symb, k_symb], triu_indices(m_symb.shape[0], k_symb, m_symb.shape[1])
+            )
             result = f(m, k)
+            result_indx = f_indx(m, k)
             assert np.allclose(result, np.triu(m, k))
+            assert np.allclose(result_indx, np.triu_indices(m.shape[0], k, m.shape[1]))
             assert result.dtype == np.dtype(dtype)
 
         for dtype in ALL_DTYPES:
