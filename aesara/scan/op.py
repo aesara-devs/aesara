@@ -216,6 +216,7 @@ class ScanInfo:
     n_sit_sot: int
     n_shared_outs: int
     n_nit_sot: int
+    n_non_seqs: int
 
 
 TensorConstructorType = Callable[[List[bool], Union[str, np.generic]], TensorType]
@@ -810,6 +811,28 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
             self.mitmots_preallocated,
         ) = self._mitmot_preallocations()
 
+        # The total number of inputs across all multi-input taps
+        # `tap_array = mit_sot_tap_inputs + (-1,) * n_sit_sot`
+        # n_mit_mot_sot_inputs = sum(len(x) for x in self.tap_array[: (self.n_mit_mot + self.n_mit_sot)])
+        n_mit_mot_sot_inputs = self.n_mit_mot + self.n_mit_sot
+        # [n_steps] + sequences + mit-mots + mit-sots + sit-sots + shared-variables + nit-sots + non-sequences
+        self.n_outer_inputs = (
+            1
+            + self.n_seqs
+            + n_mit_mot_sot_inputs
+            + self.n_sit_sot
+            + self.n_nit_sot
+            + self.n_shared_outs
+            + self.n_non_seqs
+        )
+        self.n_outer_outputs = (
+            self.n_mit_mot
+            + self.n_mit_sot
+            + self.n_sit_sot
+            + self.n_nit_sot
+            + self.n_shared_outs
+        )
+
     def _mitmot_preallocations(self):
         if config.scan__allow_output_prealloc:
             preallocated_mitmot_outs = []
@@ -1179,7 +1202,18 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
             for t in self.outer_nitsot_outs(self.outputs)
         ]
 
-        apply_node = Apply(self, new_inputs, [t() for t in self.output_types])
+        outputs = [t() for t in self.output_types]
+
+        assert self.n_outer_inputs == len(new_inputs), (
+            self.n_outer_inputs,
+            len(new_inputs),
+        )
+        assert self.n_outer_outputs == len(outputs), (
+            self.n_outer_outputs,
+            len(outputs),
+        )
+
+        apply_node = Apply(self, new_inputs, outputs)
         return apply_node
 
     def __eq__(self, other):
@@ -2855,18 +2889,6 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
         n_sitsot_outs = len(outer_inp_sitsot)
         new_tap_array = mitmot_inp_taps + [[-1] for k in range(n_sitsot_outs)]
 
-        info = ScanInfo(
-            n_seqs=len(outer_inp_seqs),
-            n_mit_sot=0,
-            tap_array=tuple(tuple(v) for v in new_tap_array),
-            n_mit_mot=len(outer_inp_mitmot),
-            n_mit_mot_outs=n_mitmot_outs,
-            mit_mot_out_slices=tuple(tuple(v) for v in mitmot_out_taps),
-            n_sit_sot=n_sitsot_outs,
-            n_shared_outs=0,
-            n_nit_sot=n_nit_sot,
-        )
-
         outer_inputs = (
             [grad_steps]
             + outer_inp_seqs
@@ -2885,6 +2907,20 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
             + self.inner_non_seqs(self_inputs)
         )
         inner_gfn_outs = inner_out_mitmot + inner_out_sitsot + inner_out_nitsot
+
+        info = ScanInfo(
+            n_seqs=len(outer_inp_seqs),
+            n_mit_sot=0,
+            tap_array=tuple(tuple(v) for v in new_tap_array),
+            n_mit_mot=len(outer_inp_mitmot),
+            n_mit_mot_outs=n_mitmot_outs,
+            mit_mot_out_slices=tuple(tuple(v) for v in mitmot_out_taps),
+            n_sit_sot=n_sitsot_outs,
+            n_shared_outs=0,
+            n_nit_sot=n_nit_sot,
+            n_non_seqs=len(self.outer_shared(inputs))
+            + len(self.outer_non_seqs(inputs)),
+        )
 
         local_op = Scan(
             inner_gfn_ins,
@@ -3218,6 +3254,7 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
             n_mit_mot_outs=n_mit_mot_outs * 2,
             tap_array=tuple(tuple(v) for v in new_tap_array),
             mit_mot_out_slices=tuple(tuple(v) for v in self.mit_mot_out_slices) * 2,
+            n_non_seqs=len(inner_other),
         )
 
         local_op = Scan(

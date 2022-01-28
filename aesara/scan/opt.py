@@ -169,7 +169,9 @@ def remove_constants_and_unused_inputs_scan(fgraph, node):
 
     if len(nw_inner) != len(op_ins):
         op_outs = clone_replace(op_outs, replace=givens)
-        nw_info = dataclasses.replace(op.info, n_seqs=nw_n_seqs)
+        nw_info = dataclasses.replace(
+            op.info, n_seqs=nw_n_seqs, n_non_seqs=len(nw_inner_nonseq)
+        )
         nwScan = Scan(
             nw_inner,
             op_outs,
@@ -334,11 +336,15 @@ def push_out_non_seq_scan(fgraph, node):
         op_outs = clone_replace(clean_outputs, replace=givens)
         op_ins = clean_inputs + nw_inner
 
+        new_info = dataclasses.replace(
+            op.info, n_non_seqs=op.info.n_non_seqs + len(nw_outer)
+        )
+
         # Reconstruct node
         nwScan = Scan(
             op_ins,
             op_outs,
-            op.info,
+            new_info,
             mode=op.mode,
             gpua=op.gpua,
             as_while=op.as_while,
@@ -1721,9 +1727,12 @@ class ScanMerge(GlobalOptimizer):
             outer_outs += nd.op.outer_shared_outs(nd.outputs)
             inner_outs[idx].append(nd.op.inner_shared_outs(nd.op.outputs))
 
+        n_non_seqs = 0
         for idx, nd in enumerate(nodes):
             # Non Seqs
-            inner_ins[idx].append(rename(nd.op.inner_non_seqs(nd.op.inputs), idx))
+            node_inner_non_seqs = nd.op.inner_non_seqs(nd.op.inputs)
+            n_non_seqs += len(node_inner_non_seqs)
+            inner_ins[idx].append(rename(node_inner_non_seqs, idx))
             outer_ins += rename(nd.op.outer_non_seqs(nd.inputs), idx)
 
         # Add back the number of steps
@@ -1799,6 +1808,7 @@ class ScanMerge(GlobalOptimizer):
             n_sit_sot=sum([nd.op.n_sit_sot for nd in nodes]),
             n_shared_outs=sum([nd.op.n_shared_outs for nd in nodes]),
             n_nit_sot=sum([nd.op.n_nit_sot for nd in nodes]),
+            n_non_seqs=n_non_seqs,
         )
 
         old_op = nodes[0].op
