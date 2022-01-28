@@ -250,6 +250,95 @@ def sp_zeros_like(x):
     )
 
 
+def override_dense(*methods):
+    def decorate(cls):
+        def native(method):
+            original = getattr(cls.__base__, method)
+
+            def to_dense(self, *args, **kwargs):
+                self = self.toarray()
+                new_args = [
+                    arg.toarray()
+                    if hasattr(arg, "type") and isinstance(arg.type, SparseType)
+                    else arg
+                    for arg in args
+                ]
+                warn(
+                    f"Method {method} is not implemented for sparse variables. The variable will be converted to dense."
+                )
+                return original(self, *new_args, **kwargs)
+
+            return to_dense
+
+        for method in methods:
+            setattr(cls, method, native(method))
+        return cls
+
+    return decorate
+
+
+@override_dense(
+    "__abs__",
+    "__ceil__",
+    "__floor__",
+    "__trunc__",
+    "transpose",
+    "any",
+    "all",
+    "flatten",
+    "ravel",
+    "arccos",
+    "arcsin",
+    "arctan",
+    "arccosh",
+    "arcsinh",
+    "arctanh",
+    "ceil",
+    "cos",
+    "cosh",
+    "deg2rad",
+    "exp",
+    "exp2",
+    "expm1",
+    "floor",
+    "log",
+    "log10",
+    "log1p",
+    "log2",
+    "rad2deg",
+    "sin",
+    "sinh",
+    "sqrt",
+    "tan",
+    "tanh",
+    "copy",
+    "prod",
+    "mean",
+    "var",
+    "std",
+    "min",
+    "max",
+    "argmin",
+    "argmax",
+    "conj",
+    "round",
+    "trace",
+    "cumsum",
+    "cumprod",
+    "ptp",
+    "squeeze",
+    "diagonal",
+    "__and__",
+    "__or__",
+    "__xor__",
+    "__pow__",
+    "__mod__",
+    "__divmod__",
+    "__truediv__",
+    "__floordiv__",
+    "reshape",
+    "dimshuffle",
+)
 class _sparse_py_operators(_tensor_py_operators):
     T = property(
         lambda self: transpose(self), doc="Return aliased transpose of self (read-only)"
