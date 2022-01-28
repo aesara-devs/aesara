@@ -148,8 +148,16 @@ class SparseType(TensorType, HasDataType):
                 return True
         return False
 
-    def make_variable(self, name=None):
-        return self.variable_type(self, name=name)
+    def convert_variable(self, var):
+        res = super().convert_variable(var)
+
+        if res and not isinstance(res.type, SparseType):
+            # TODO: Convert to this sparse format
+            raise NotImplementedError()
+
+        # TODO: Convert sparse `var`s with different formats to this format?
+
+        return res
 
     def __hash__(self):
         return super().__hash__() ^ hash(self.format)
