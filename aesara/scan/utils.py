@@ -407,6 +407,7 @@ def compress_outs(op, not_required, inputs):
         n_sit_sot=0,
         n_shared_outs=0,
         n_nit_sot=0,
+        n_non_seqs=0,
     )
 
     op_inputs = op.inputs[: op.n_seqs]
@@ -525,6 +526,7 @@ def compress_outs(op, not_required, inputs):
     node_inputs += nit_sot_ins
     # other stuff
     op_inputs += op.inputs[i_offset:]
+    info = dataclasses.replace(info, n_non_seqs=len(op.inputs[i_offset:]))
     node_inputs += inputs[ni_offset + op.n_shared_outs + op.n_nit_sot :]
     if op.as_while:
         op_outputs += [op.outputs[o_offset]]
@@ -812,6 +814,7 @@ class ScanArgs:
             n_shared_outs=len(self.outer_in_shared),
             n_mit_mot_outs=sum(len(s) for s in self.mit_mot_out_slices),
             mit_mot_out_slices=tuple(self.mit_mot_out_slices),
+            n_non_seqs=len(self.inner_in_non_seqs),
         )
 
     def get_alt_field(
