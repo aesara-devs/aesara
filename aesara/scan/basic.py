@@ -1139,6 +1139,7 @@ def scan(
         n_sit_sot=n_sit_sot,
         n_shared_outs=n_shared_outs,
         n_nit_sot=n_nit_sot,
+        n_non_seqs=len(other_shared_inner_args) + len(other_inner_args),
     )
 
     local_op = Scan(

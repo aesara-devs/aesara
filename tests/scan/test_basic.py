@@ -3976,3 +3976,116 @@ class TestExamples:
         # with config.change_flags(mode="DebugMode"):
         # Also, the purpose of this test is not clear.
         self._grad_mout_helper(1, None)
+
+
+c = scalar("c", dtype="floatX")
+
+
+@pytest.mark.parametrize(
+    "fn, sequences, outputs_info, non_sequences, n_steps, op_check",
+    [
+        # sequences
+        (
+            lambda a_t: 2 * a_t,
+            [at.arange(10)],
+            [{}],
+            [],
+            None,
+            lambda op: op.info.n_seqs > 0,
+        ),
+        # nit-sot
+        (
+            lambda: at.as_tensor(2.0),
+            [],
+            [{}],
+            [],
+            3,
+            lambda op: op.info.n_nit_sot > 0,
+        ),
+        # nit-sot, non_seq
+        (
+            lambda c: at.as_tensor(2.0) * c,
+            [],
+            [{}],
+            [c],
+            3,
+            lambda op: op.info.n_nit_sot > 0 and op.info.n_non_seqs > 0,
+        ),
+        # sit-sot
+        (
+            lambda a_tm1: 2 * a_tm1,
+            [],
+            [{"initial": at.as_tensor(0.0, dtype="floatX"), "taps": [-1]}],
+            [],
+            3,
+            lambda op: op.info.n_sit_sot > 0,
+        ),
+        # sit-sot, while
+        (
+            lambda a_tm1: (a_tm1 + 1, until(a_tm1 > 2)),
+            [],
+            [{"initial": at.as_tensor(1, dtype=np.int64), "taps": [-1]}],
+            [],
+            3,
+            lambda op: op.info.n_sit_sot > 0,
+        ),
+        # nit-sot, shared input/output
+        (
+            lambda: RandomStream().normal(0, 1, name="a"),
+            [],
+            [{}],
+            [],
+            3,
+            lambda op: op.info.n_shared_outs > 0,
+        ),
+        # mit-sot (that's also a type of sit-sot)
+        (
+            lambda a_tm1: 2 * a_tm1,
+            [],
+            [{"initial": at.as_tensor([0.0, 1.0], dtype="floatX"), "taps": [-2]}],
+            [],
+            6,
+            lambda op: op.info.n_mit_sot > 0,
+        ),
+        # mit-sot
+        (
+            lambda a_tm1, b_tm1: (2 * a_tm1, 2 * b_tm1),
+            [],
+            [
+                {"initial": at.as_tensor(0.0, dtype="floatX"), "taps": [-1]},
+                {"initial": at.as_tensor(0.0, dtype="floatX"), "taps": [-1]},
+            ],
+            [],
+            10,
+            lambda op: op.info.n_mit_sot > 0,
+        ),
+        # TODO: mit-mot (can't be created through the `scan` interface)
+    ],
+)
+def test_n_non_seqs(fn, sequences, outputs_info, non_sequences, n_steps, op_check):
+    res, _ = scan(
+        fn,
+        sequences=sequences,
+        outputs_info=outputs_info,
+        non_sequences=non_sequences,
+        n_steps=n_steps,
+        strict=True,
+    )
+
+    if isinstance(res, list):
+        res = res[0]
+
+    if not isinstance(res.owner.op, Scan):
+        res = res.owner.inputs[0]
+
+    scan_op = res.owner.op
+    assert isinstance(scan_op, Scan)
+
+    # from aesara.scan.utils import ScanArgs
+    # print(ScanArgs.from_node(res.owner))
+    # print(res.owner.op.info)
+
+    _ = op_check(scan_op)
+
+    assert scan_op.n_outer_inputs == len(res.owner.inputs)
+    assert scan_op.n_outer_outputs == len(res.owner.outputs)
