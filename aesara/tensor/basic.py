@@ -1254,44 +1254,52 @@ def triu(m, k=0):
     )
 
 
-def tril_indices(n, k=0, m=None):
+def tril_indices(
+    n: Union[int, ScalarVariable],
+    k: Union[int, ScalarVariable] = 0,
+    m: Optional[Union[int, ScalarVariable]] = None,
+) -> Tuple[TensorVariable, TensorVariable]:
     """
     Return the indices for the lower-triangle of an (n, m) array.
 
     Parameters
     ----------
-    n : int
+    n : integer scalar
         The row dimension of the arrays for which the returned indices will be valid.
-    k : int, optional
-        Diagonal above which to zero elements.  `k = 0` (the default) is the
-        main diagonal, `k < 0` is below it and `k > 0` is above.
-    m : int, optional
+    k : integer scalar, optional
+        Diagonal offset to use when forming the indices. `k = 0` (the default)
+        is the main diagonal, `k < 0` is below it and `k > 0` is above.
+    m : integer scalar, optional
         The column dimension of the arrays for which the returned arrays will
         be valid. By default m is taken equal to n.
 
     Returns
     -------
-    inds : tuple of arrays
+    inds : tuple of TensorVariable's
         The indices for the triangle. The returned tuple contains two arrays,
         each with the indices along one dimension of the array.
     """
     return tri(n, m, k, dtype=bool).nonzero()
 
 
-def tril_indices_from(a, k=0):
+def tril_indices_from(
+    a: Union[np.ndarray, TensorVariable],
+    k: Union[int, ScalarVariable] = 0,
+) -> Tuple[TensorVariable, TensorVariable]:
     """
     Return the indices for the lower-triangle of arr.
 
     Parameters
     ----------
-    arr : ndarray, shape(N, N)
+    arr : {array_like, TensorVariable}, shape(N, N)
         The indices will be valid for square arrays.
-    k : int, optional
-        Diagonal offset (see triu for details).
+    k : integer scalar, optional
+        Diagonal offset to use when forming the indices. `k = 0` (the default)
+        is the main diagonal, `k < 0` is below it and `k > 0` is above.
 
     Returns
     -------
-    tril_indices_from : tuple, shape(2) of ndarray, shape(N)
+    tril_indices_from : tuple, shape(2) of TensorVariable, shape(N)
         Indices for the lower-triangle of arr.
 
     Raises
@@ -1304,44 +1312,52 @@ def tril_indices_from(a, k=0):
     return tril_indices(a.shape[0], k=k, m=a.shape[1])
 
 
-def triu_indices(n, k=0, m=None):
+def triu_indices(
+    n: Union[int, ScalarVariable],
+    k: Union[int, ScalarVariable] = 0,
+    m: Optional[Union[int, ScalarVariable]] = None,
+) -> Tuple[TensorVariable, TensorVariable]:
     """
     Return the indices for the upper-triangle of an (n, m) array.
 
     Parameters
     ----------
-    n : int
+    n : integer scalar
         The row dimension of the arrays for which the returned indices will be valid.
-    k : int, optional
-        Diagonal above which to zero elements.  `k = 0` (the default) is the
-        main diagonal, `k < 0` is below it and `k > 0` is above.
-    m : int, optional
+    k : integer scalar, optional
+        Diagonal offset to use when forming the indices. `k = 0` (the default)
+        is the main diagonal, `k < 0` is below it and `k > 0` is above.
+    m : int scalar, optional
         The column dimension of the arrays for which the returned arrays will
         be valid. By default m is taken equal to n.
 
     Returns
     -------
-    inds : tuple of arrays
+    inds : tuple of TensorVariable's
         The indices for the triangle. The returned tuple contains two arrays,
         each with the indices along one dimension of the array.
     """
     return (constant(1, dtype=int) - tri(n, m, k - 1, dtype=int)).nonzero()
 
 
-def triu_indices_from(a, k=0):
+def triu_indices_from(
+    a: Union[np.ndarray, TensorVariable],
+    k: Union[int, ScalarVariable] = 0,
+) -> Tuple[TensorVariable, TensorVariable]:
     """
     Return the indices for the upper-triangle of arr.
 
     Parameters
     ----------
-    arr : ndarray, shape(N, N)
+    arr : {array_like, TensorVariable}, shape(N, N)
         The indices will be valid for square arrays.
-    k : int, optional
-        Diagonal offset (see triu for details).
+    k : integer scalar, optional
+        Diagonal offset to use when forming the indices. `k = 0` (the default)
+        is the main diagonal, `k < 0` is below it and `k > 0` is above.
 
     Returns
     -------
-    triu_indices_from : tuple, shape(2) of ndarray, shape(N)
+    triu_indices_from : tuple, shape(2) of TensorVariable, shape(N)
         Indices for the upper-triangle of arr.
 
     Raises
