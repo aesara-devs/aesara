@@ -768,6 +768,37 @@ class TestScan:
         assert scan_a_out is scan_b_out
         assert scan_c_out is not scan_a_out
 
+    def test_inner_shape_optimization(self):
+        """Confirm that shape optimizations are applied to inner-graphs."""
+
+        M = matrix("M")
+        A = matrix("A")
+
+        def inner_fn(a_t, M):
+            # This dot product should never need to be performed
+            res = M.dot(a_t)
+            return res.shape
+
+        out, _ = scan(
+            inner_fn,
+            sequences=[A],
+            non_sequences=[M],
+            strict=True,
+            mode=get_default_mode(),
+        )
+
+        out_fn = function([A, M], out)
+
+        out_fg = out_fn.maker.fgraph
+
+        from aesara.tensor.math import Dot
+
+        assert not any(isinstance(n.op, Dot) for n in out_fg.toposort())
+
+        out_val = out_fn(np.zeros((3, 2)), np.zeros((2, 4)))
+
+        assert np.array_equal(out_val, np.full((3, 1), 2))
+
     def test_using_negative_taps_sequence(self):
         # This test refers to a bug reported on github on May 22 2015 by
         # user june-qijun
@@ -988,6 +1019,7 @@ class TestScan:
         assert o2 == 20
         assert not any(x for x in f.maker.fgraph.toposort() if isinstance(x.op, Scan))
 
+    @pytest.mark.xfail(reason="The `strict` option is no longer used.")
     def test_strict_mode(self):
         w = np.array([[-1, 2], [3, -4]]).astype(config.floatX)
         w_ = shared(w)
@@ -1760,11 +1792,13 @@ class TestScan:
 
         grad(scan_outputs[0].sum(), out_init[1])
 
-        # Validate the connection pattern is as it should be
         node = scan_outputs[0].owner
+        assert isinstance(node.op, Scan)
+
+        # Validate the connection pattern is as it should be
         connection_pattern = node.op.connection_pattern(node)
         expected_connection_pattern = [
-            [(j in [1, 2, 3, 4]) for i in range(6)] for j in range(7)
+            [(j in [1, 2, 3, 4]) for i in range(6)] for j in range(len(node.inputs))
         ]
 
         assert connection_pattern == expected_connection_pattern
@@ -2542,7 +2576,7 @@ def test_inner_get_vector_length():
 
     # Make sure the `size` in `scan_body` is a plain `Variable` instance
     # carrying no information with which we can derive its length
-    size_clone = res.owner.op.inputs[1]
+    size_clone = res.owner.op.inner_inputs(res.owner.inputs)[1]
     assert size_clone.owner is None
 
     # Make sure the cloned `size` maps to the original `size_at`
@@ -2747,16 +2781,54 @@ def test_ScanInfo_totals(fn, sequences, outputs_info, non_sequences, n_steps, op
     scan_op = res.owner.op
     assert isinstance(scan_op, Scan)
 
-    # from aesara.scan.utils import ScanArgs
-    # print(ScanArgs.from_node(res.owner))
-    # print(res.owner.op.info)
-
     _ = op_check(scan_op)
 
-    assert scan_op.info.n_outer_inputs == len(res.owner.inputs)
+    inner_inputs = scan_op.inner_inputs(res.owner.inputs)
+    inner_outputs = scan_op.inner_outputs(res.owner.inputs)
+    assert scan_op.info.n_outer_inputs + len(inner_inputs) + len(inner_outputs) == len(
+        res.owner.inputs
+    )
     assert scan_op.info.n_outer_outputs == len(res.owner.outputs)
-    assert scan_op.info.n_inner_inputs == len(res.owner.op.inputs)
-    assert scan_op.info.n_inner_outputs == len(res.owner.op.outputs)
+    assert scan_op.info.n_inner_inputs == len(inner_inputs)
+    assert scan_op.info.n_inner_outputs == len(inner_outputs)
+
+
+@pytest.mark.parametrize(
+    "fn, sequences, outputs_info, non_sequences, n_steps, op_check",
+    [
+        # sequences
+        (
+            lambda a_t: 2 * a_t,
+            [at.arange(10)],
+            [{}],
+            [],
+            None,
+            lambda op: op.info.n_seqs > 0,
+        ),
+    ],
+)
+def test_uncomputed_inputs(
+    fn, sequences, outputs_info, non_sequences, n_steps, op_check
+):
+    res, _ = scan(
+        fn,
+        sequences=sequences,
+        outputs_info=outputs_info,
+        non_sequences=non_sequences,
+        n_steps=n_steps,
+        strict=True,
+    )
+
+    if isinstance(res, list):
+        res = res[0]
+
+    if not isinstance(res.owner.op, Scan):
+        res = res.owner.inputs[0]
+
+    scan_op = res.owner.op
+    assert isinstance(scan_op, Scan)
+
+    assert scan_op.uncomputed_inputs == (3, 4)
 
 
 class TestExamples:

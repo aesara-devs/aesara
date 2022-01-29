@@ -89,7 +89,9 @@ class TestRemoveConstantsAndUnusedInputsScan:
 
             # The first input is the number of iteration.
             assert len(scan_node.inputs[1:]) == len(set(scan_node.inputs[1:]))
-            inp = scan_node.op.inner_non_seqs(scan_node.op.inputs)
+            inp = scan_node.op.inner_non_seqs(
+                scan_node.op.inner_inputs(scan_node.inputs)
+            )
             assert len(inp) == 1
             assert len(inp) == len(set(inp))
             inp = scan_node.op.outer_non_seqs(scan_node.inputs)
@@ -163,11 +165,13 @@ class TestRemoveConstantsAndUnusedInputsScan:
 
             # The first input is the number of iteration.
             assert len(scan_node.inputs[1:]) == len(set(scan_node.inputs[1:]))
-            inp = scan_node.op.inner_seqs(scan_node.op.inputs)
+            inp = scan_node.op.inner_seqs(scan_node.op.inner_inputs(scan_node.inputs))
             assert len(inp) == 1
             inp = scan_node.op.outer_seqs(scan_node.inputs)
             assert len(inp) == 1
-            inp = scan_node.op.inner_non_seqs(scan_node.op.inputs)
+            inp = scan_node.op.inner_non_seqs(
+                scan_node.op.inner_inputs(scan_node.inputs)
+            )
             assert len(inp) == 1
             inp = scan_node.op.outer_non_seqs(scan_node.inputs)
             assert len(inp) == 1
@@ -433,8 +437,8 @@ class TestPushOutNonSeqScan:
         scan_node = [
             node for node in f_opt.maker.fgraph.toposort() if isinstance(node.op, Scan)
         ][0]
-        assert len(scan_node.op.outputs) == 1
-        assert not isinstance(scan_node.op.outputs[0], Dot)
+        assert len(scan_node.op.inner_outputs(scan_node.inputs)) == 1
+        assert not isinstance(scan_node.op.inner_outputs(scan_node.inputs)[0], Dot)
 
         # Ensure that the function compiled with the optimization produces
         # the same results as the function compiled without
@@ -477,8 +481,8 @@ class TestPushOutNonSeqScan:
         ][0]
         # NOTE: WHEN INFER_SHAPE IS RE-ENABLED, BELOW THE SCAN MUST
         # HAVE ONLY 1 OUTPUT.
-        assert len(scan_node.op.outputs) == 2
-        assert not isinstance(scan_node.op.outputs[0], Dot)
+        assert len(scan_node.op.inner_outputs(scan_node.inputs)) == 2
+        assert not isinstance(scan_node.op.inner_outputs(scan_node.inputs)[0], Dot)
 
         # Ensure that the function compiled with the optimization produces
         # the same results as the function compiled without
@@ -521,8 +525,8 @@ class TestPushOutNonSeqScan:
         scan_node = [
             node for node in f_opt.maker.fgraph.toposort() if isinstance(node.op, Scan)
         ][0]
-        assert len(scan_node.op.outputs) == 2
-        assert not isinstance(scan_node.op.outputs[0], Dot)
+        assert len(scan_node.op.inner_outputs(scan_node.inputs)) == 2
+        assert not isinstance(scan_node.op.inner_outputs(scan_node.inputs)[0], Dot)
 
         # Ensure that the function compiled with the optimization produces
         # the same results as the function compiled without
@@ -658,11 +662,11 @@ class TestPushOutAddScan:
         f_no_opt = aesara.function(inputs=[x, ri, zi], outputs=grad1, mode=no_opt_mode)
 
         # Validate that the optimization has been applied
-        scan_node_grad = [
+        scan_grad_node = [
             node for node in f_opt.maker.fgraph.toposort() if isinstance(node.op, Scan)
         ][1]
 
-        for output in scan_node_grad.op.outputs:
+        for output in scan_grad_node.op.inner_outputs(scan_grad_node.inputs):
             assert not (
                 isinstance(output.owner.op, Elemwise)
                 and any(isinstance(i, Dot) for i in output.owner.inputs)
@@ -1394,7 +1398,7 @@ def test_alloc_inputs3():
     f = function([_h0, _W1, _W2], o, mode=get_default_mode().including("scan"))
     scan_node = [x for x in f.maker.fgraph.toposort() if isinstance(x.op, Scan)][0]
 
-    assert len(scan_node.op.inputs) == 1
+    assert len(scan_node.op.inner_inputs(scan_node.inputs)) == 1
 
 
 def test_opt_order():

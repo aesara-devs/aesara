@@ -7,7 +7,13 @@ import aesara.tensor as at
 from aesara.compile import SharedVariable
 from aesara.compile.function.pfunc import construct_pfunc_ins_and_outs
 from aesara.configdefaults import config
-from aesara.graph.basic import Constant, Variable, clone_replace, graph_inputs
+from aesara.graph.basic import (
+    Constant,
+    NominalVariable,
+    Variable,
+    clone_replace,
+    graph_inputs,
+)
 from aesara.graph.fg import MissingInputError
 from aesara.graph.op import get_test_value
 from aesara.graph.utils import TestValueError
@@ -771,14 +777,12 @@ def scan(
     fake_outputs = clone_replace(
         outputs, replace=OrderedDict(zip(non_seqs, fake_nonseqs))
     )
-    all_inputs = filter(
-        lambda x: (
-            isinstance(x, Variable)
-            and not isinstance(x, SharedVariable)
-            and not isinstance(x, Constant)
-        ),
-        graph_inputs(fake_outputs),
-    )
+    all_inputs = [
+        i
+        for i in graph_inputs(fake_outputs)
+        if isinstance(i, Variable)
+        and not isinstance(i, (Constant, NominalVariable, SharedVariable))
+    ]
     extra_inputs = [x for x in all_inputs if x not in args + fake_nonseqs]
     non_seqs += extra_inputs
     # Note we do not use all_inputs directly since the order of variables

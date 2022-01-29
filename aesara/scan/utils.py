@@ -500,7 +500,7 @@ class Validator:
         return get_value(out)
 
 
-def scan_can_remove_outs(op, out_idxs):
+def scan_can_remove_outs(op, inputs, out_idxs):
     """Look at all outputs defined by indices ``out_idxs`` and determines which can be removed.
 
     Returns
@@ -509,7 +509,10 @@ def scan_can_remove_outs(op, out_idxs):
     second with the outputs that can not be removed.
 
     """
-    non_removable = [o for i, o in enumerate(op.outputs) if i not in out_idxs]
+    inner_inputs = op.inner_inputs(inputs)
+    inner_outputs = op.inner_outputs(inputs)
+
+    non_removable = [o for i, o in enumerate(inner_outputs) if i not in out_idxs]
     required_inputs = list(graph_inputs(non_removable))
 
     out_ins = []
@@ -518,10 +521,10 @@ def scan_can_remove_outs(op, out_idxs):
         chain(op.mit_mot_in_slices, op.mit_sot_in_slices, op.sit_sot_in_slices)
     ):
         n_ins = len(tap)
-        out_ins += [op.inputs[offset : offset + n_ins]]
+        out_ins += [inner_inputs[offset : offset + n_ins]]
         offset += n_ins
     out_ins += [[] for k in range(op.n_nit_sot)]
-    out_ins += [[op.inputs[offset + k]] for k in range(op.n_shared_outs)]
+    out_ins += [[inner_inputs[offset + k]] for k in range(op.n_shared_outs)]
 
     added = True
     out_idxs_mask = [1 for idx in out_idxs]
@@ -531,7 +534,7 @@ def scan_can_remove_outs(op, out_idxs):
             if out_idxs_mask[pos] and any(x in required_inputs for x in out_ins[idx]):
                 # This output is required ..
                 out_idxs_mask[pos] = 0
-                required_inputs += list(graph_inputs([op.outputs[idx]]))
+                required_inputs += list(graph_inputs([inner_outputs[idx]]))
                 added = True
 
     required_outs = [x for i, x in enumerate(out_idxs) if out_idxs_mask[i] == 0]
@@ -564,7 +567,10 @@ def compress_outs(op, not_required, inputs):
         as_while=op.info.as_while,
     )
 
-    op_inputs = op.inputs[: op.n_seqs]
+    inner_inputs = op.inner_inputs(inputs)
+    inner_outputs = op.inner_outputs(inputs)
+
+    op_inputs = inner_inputs[: op.n_seqs]
     op_outputs = []
     node_inputs = inputs[: op.n_seqs + 1]
     map_old_new = OrderedDict()
@@ -586,11 +592,11 @@ def compress_outs(op, not_required, inputs):
             )
             # input taps
             for jdx in op.mit_mot_in_slices[idx]:
-                op_inputs += [op.inputs[i_offset]]
+                op_inputs += [inner_inputs[i_offset]]
                 i_offset += 1
             # output taps
             for jdx in op.mit_mot_out_slices[idx]:
-                op_outputs += [op.outputs[o_offset]]
+                op_outputs += [inner_outputs[o_offset]]
                 o_offset += 1
             # node inputs
             node_inputs += [inputs[ni_offset + idx]]
@@ -611,10 +617,10 @@ def compress_outs(op, not_required, inputs):
             )
             # input taps
             for jdx in op.mit_sot_in_slices[idx]:
-                op_inputs += [op.inputs[i_offset]]
+                op_inputs += [inner_inputs[i_offset]]
                 i_offset += 1
             # output taps
-            op_outputs += [op.outputs[o_offset]]
+            op_outputs += [inner_outputs[o_offset]]
             o_offset += 1
             # node inputs
             node_inputs += [inputs[ni_offset + idx]]
@@ -633,10 +639,10 @@ def compress_outs(op, not_required, inputs):
                 sit_sot_in_slices=info.sit_sot_in_slices + (op.sit_sot_in_slices[idx],),
             )
             # input taps
-            op_inputs += [op.inputs[i_offset]]
+            op_inputs += [inner_inputs[i_offset]]
             i_offset += 1
             # output taps
-            op_outputs += [op.outputs[o_offset]]
+            op_outputs += [inner_outputs[o_offset]]
             o_offset += 1
             # node inputs
             node_inputs += [inputs[ni_offset + idx]]
@@ -652,7 +658,7 @@ def compress_outs(op, not_required, inputs):
             map_old_new[offset + idx] = curr_pos
             curr_pos += 1
             info = dataclasses.replace(info, n_nit_sot=info.n_nit_sot + 1)
-            op_outputs += [op.outputs[o_offset]]
+            op_outputs += [inner_outputs[o_offset]]
             o_offset += 1
             nit_sot_ins += [inputs[ni_offset + idx + op.n_shared_outs]]
         else:
@@ -665,9 +671,9 @@ def compress_outs(op, not_required, inputs):
             map_old_new[offset + idx] = curr_pos
             curr_pos += 1
             info = dataclasses.replace(info, n_shared_outs=info.n_shared_outs + 1)
-            op_outputs += [op.outputs[o_offset]]
+            op_outputs += [inner_outputs[o_offset]]
             o_offset += 1
-            op_inputs += [op.inputs[i_offset]]
+            op_inputs += [inner_inputs[i_offset]]
             i_offset += 1
             shared_ins += [inputs[ni_offset + idx]]
         else:
@@ -676,11 +682,13 @@ def compress_outs(op, not_required, inputs):
     node_inputs += shared_ins
     node_inputs += nit_sot_ins
     # other stuff
-    op_inputs += op.inputs[i_offset:]
-    info = dataclasses.replace(info, n_non_seqs=len(op.inputs[i_offset:]))
-    node_inputs += inputs[ni_offset + op.n_shared_outs + op.n_nit_sot :]
+    op_inputs += inner_inputs[i_offset:]
+    info = dataclasses.replace(info, n_non_seqs=len(inner_inputs[i_offset:]))
+    node_inputs += inputs[
+        ni_offset + op.n_shared_outs + op.n_nit_sot : op.n_outer_inputs
+    ]
     if op.as_while:
-        op_outputs += [op.outputs[o_offset]]
+        op_outputs += [inner_outputs[o_offset]]
         map_old_new[o_offset] = len(op_outputs) - 1
         # map_old_new[len(op_outputs)-1] = o_offset
 
@@ -730,13 +738,16 @@ class ScanArgs:
         self,
         outer_inputs,
         outer_outputs,
-        _inner_inputs,
-        _inner_outputs,
         info,
         clone=True,
     ):
         self.n_steps = outer_inputs[0]
         self.as_while = info.as_while
+
+        _inner_inputs = outer_inputs[
+            info.n_outer_inputs : info.n_outer_inputs + info.n_inner_inputs
+        ]
+        _inner_outputs = outer_inputs[info.n_outer_inputs + info.n_inner_inputs :]
 
         if clone:
             rval = reconstruct_graph(_inner_inputs, _inner_outputs, "")
@@ -807,7 +818,7 @@ class ScanArgs:
         self.outer_in_nit_sot = outer_inputs[p : p + n_nit_sot]
         p += n_nit_sot
 
-        self.outer_in_non_seqs = outer_inputs[p:]
+        self.outer_in_non_seqs = outer_inputs[p : info.n_outer_inputs]
         self.inner_in_non_seqs = inner_inputs[q:]
 
         # now for the outputs
@@ -856,10 +867,8 @@ class ScanArgs:
         if not isinstance(node.op, Scan):
             raise TypeError("{} is not a Scan node".format(node))
         return ScanArgs(
-            node.inputs,
+            node.inputs[: node.op.n_outer_inputs],
             node.outputs,
-            node.op.inputs,
-            node.op.outputs,
             node.op.info,
             clone=clone,
         )

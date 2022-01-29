@@ -56,7 +56,7 @@ def numba_funcify_Scan(op, node, **kwargs):
     p_outer_in_nit_sot = p_outer_in_shared + n_shared_outs
     p_outer_in_non_seqs = p_outer_in_nit_sot + n_nit_sot
 
-    input_names = [n.auto_name for n in node.inputs[1:]]
+    input_names = [n.auto_name for n in node.inputs[1 : op.n_outer_inputs]]
     outer_in_seqs_names = input_names[:n_seqs]
     outer_in_mit_mot_names = input_names[p_in_mit_mot : p_in_mit_mot + n_mit_mot]
     outer_in_mit_sot_names = input_names[p_in_mit_sot : p_in_mit_sot + n_mit_sot]
@@ -68,7 +68,7 @@ def numba_funcify_Scan(op, node, **kwargs):
         p_outer_in_nit_sot : p_outer_in_nit_sot + n_nit_sot
     ]
     outer_in_feedback_names = input_names[n_seqs:p_outer_in_non_seqs]
-    outer_in_non_seqs_names = input_names[p_outer_in_non_seqs:]
+    outer_in_non_seqs_names = input_names[p_outer_in_non_seqs : op.n_outer_inputs]
 
     inner_in_indexed = []
     allocate_mem_to_nit_sot = ""
@@ -80,7 +80,7 @@ def numba_funcify_Scan(op, node, **kwargs):
         index = "[i]"
         inner_in_indexed.append(_name + index)
 
-    name_to_input_map = dict(zip(input_names, node.inputs[1:]))
+    name_to_input_map = dict(zip(input_names, node.inputs[1 : op.n_outer_inputs]))
     mit_sot_name_to_taps = dict(zip(outer_in_mit_sot_names, mit_sot_in_taps))
     inner_out_name_to_index = {}
     for _name in outer_in_feedback_names:
@@ -140,7 +140,7 @@ def numba_funcify_Scan(op, node, **kwargs):
     global_env["np"] = np
 
     scan_op_src = f"""
-def scan(n_steps, {", ".join(input_names)}):
+def scan(n_steps, {", ".join(input_names)}, *args):
 {allocate_mem_to_nit_sot}
     for i in range(n_steps):
         inner_args = {create_tuple_string(inner_in_indexed)}

@@ -82,14 +82,15 @@ def remove_constants_and_unused_inputs_scan(fgraph, node):
     if not isinstance(node.op, Scan):
         return False
     op = node.op
+    outer_inputs = node.inputs[: op.n_outer_inputs]
     # We only need to take care of sequences and other arguments
     st = op.n_seqs
     st += int(sum(len(x) for x in chain(op.mit_mot_in_slices, op.mit_sot_in_slices)))
     st += op.n_sit_sot
     st += op.n_shared_outs
 
-    op_ins = op.inputs
-    op_outs = op.outputs
+    op_ins = op.inner_inputs(node.inputs)
+    op_outs = op.inner_outputs(node.inputs)
 
     # Corresponds to the initial states, which should stay untouched.
     # We put those variables aside, and put them back at the end.
@@ -105,19 +106,19 @@ def remove_constants_and_unused_inputs_scan(fgraph, node):
         + op.n_shared_outs
         + 1
     )
-    outer_non_seqs = node.inputs[st:]
-    out_stuff_outer = node.inputs[1 + op.n_seqs : st]
+    outer_non_seqs = outer_inputs[st:]
+    out_stuff_outer = outer_inputs[1 + op.n_seqs : st]
 
     # To replace constants in the outer graph by clones in the inner graph
     givens = {}
     # All the inputs of the inner graph of the new scan
     nw_inner = []
     # Same for the outer graph, initialized w/ number of steps
-    nw_outer = [node.inputs[0]]
+    nw_outer = [outer_inputs[0]]
 
     all_ins = list(graph_inputs(op_outs))
     for idx in range(op.n_seqs):
-        node_inp = node.inputs[idx + 1]
+        node_inp = outer_inputs[idx + 1]
         if (
             isinstance(node_inp, TensorConstant)
             and get_unique_value(node_inp) is not None
@@ -134,7 +135,7 @@ def remove_constants_and_unused_inputs_scan(fgraph, node):
                 x for x in nw_outer if equal_computations([x], [node_inp])
             ]
             if identical_seqs:
-                index = node.inputs.index(identical_seqs[0]) - 1
+                index = outer_inputs.index(identical_seqs[0]) - 1
                 givens[op_ins[idx]] = op_ins[index]
             else:
                 nw_inner.append(op_ins[idx])
@@ -204,8 +205,12 @@ def push_out_non_seq_scan(fgraph, node):
     if not isinstance(node.op, Scan):
         return False
 
+    outer_inputs = node.inputs[: node.op.n_outer_inputs]
+
     # this flag tells if there was any change during the last iterations
-    clean_inputs, clean_outputs = reconstruct_graph(node.op.inputs, node.op.outputs)
+    clean_inputs, clean_outputs = reconstruct_graph(
+        node.op.inner_inputs(node.inputs), node.op.inner_outputs(node.inputs)
+    )
 
     local_fgraph_topo = io_toposort(clean_inputs, clean_outputs)
     local_fgraph_outs_set = set(clean_outputs)
@@ -231,12 +236,15 @@ def push_out_non_seq_scan(fgraph, node):
     inner_non_seqs_set = set(inner_non_seqs)
     inner_non_seqs_map = {v: k for k, v in enumerate(inner_non_seqs)}
 
-    outer_non_seqs = op.outer_non_seqs(node.inputs)
+    outer_non_seqs = op.outer_non_seqs(outer_inputs)
 
     inner_seqs = op.inner_seqs(clean_inputs)
-    outer_seqs = op.outer_seqs(node.inputs)
+    outer_seqs = op.outer_seqs(outer_inputs)
 
-    assert len(inner_non_seqs) == len(outer_non_seqs)
+    assert len(inner_non_seqs) == len(outer_non_seqs), (
+        len(inner_non_seqs),
+        len(outer_non_seqs),
+    )
     assert len(inner_seqs) == len(outer_seqs)
 
     for nd in local_fgraph_topo:
@@ -279,6 +287,9 @@ def push_out_non_seq_scan(fgraph, node):
             outside_ins = [
                 x.type.filter_variable(y) for x, y in zip(nd.inputs, outside_ins)
             ]
+
+            if isinstance(nd.op, Scan):
+                outside_ins = outside_ins[: nd.op.n_outer_inputs]
 
             nw_outer_node = nd.op.make_node(*outside_ins)
 
@@ -355,7 +366,7 @@ def push_out_non_seq_scan(fgraph, node):
         )
 
         # Do not call make_node for test_value
-        nw_node = nwScan(*(node.inputs + nw_outer), return_list=True)[0].owner
+        nw_node = nwScan(*(outer_inputs + nw_outer), return_list=True)[0].owner
 
         replacements = dict(zip(node.outputs, nw_node.outputs))
         replacements["remove"] = [node]
@@ -368,7 +379,7 @@ def push_out_non_seq_scan(fgraph, node):
                 x = node.outputs[local_fgraph_outs_map[out]]
                 y = replace_with_out[idx]
                 y_shape = [shp for shp in y.shape]
-                replace_with[x] = at.alloc(y, node.inputs[0], *y_shape)
+                replace_with[x] = at.alloc(y, outer_inputs[0], *y_shape)
 
         # We need to add one extra dimension to the outputs
         # because the scan op expects for a tensor3, to which an
@@ -408,8 +419,12 @@ def push_out_seq_scan(fgraph, node):
     if not isinstance(node.op, Scan):
         return False
 
+    outer_inputs = node.inputs[: node.op.n_outer_inputs]
+
     # this flag tells if there was any change during the last iterations
-    clean_inputs, clean_outputs = reconstruct_graph(node.op.inputs, node.op.outputs)
+    clean_inputs, clean_outputs = reconstruct_graph(
+        node.op.inner_inputs(node.inputs), node.op.inner_outputs(node.inputs)
+    )
 
     local_fgraph_topo = io_toposort(clean_inputs, clean_outputs)
     local_fgraph_outs_set = set(clean_outputs)
@@ -435,12 +450,12 @@ def push_out_seq_scan(fgraph, node):
     inner_non_seqs_set = set(inner_non_seqs)
     inner_non_seqs_map = {v: k for k, v in enumerate(inner_non_seqs)}
 
-    outer_non_seqs = op.outer_non_seqs(node.inputs)
+    outer_non_seqs = op.outer_non_seqs(outer_inputs)
     inner_seqs = op.inner_seqs(clean_inputs)
     inner_seqs_set = set(inner_seqs)
     inner_seqs_map = {v: k for k, v in enumerate(inner_seqs)}
 
-    outer_seqs = op.outer_seqs(node.inputs)
+    outer_seqs = op.outer_seqs(outer_inputs)
     assert len(inner_non_seqs) == len(outer_non_seqs)
     assert len(inner_seqs) == len(outer_seqs)
 
@@ -604,7 +619,7 @@ def push_out_seq_scan(fgraph, node):
         )
         # Do not call make_node for test_value
         nw_node = nwScan(
-            *(node.inputs[:1] + nw_outer + node.inputs[1:]),
+            *(outer_inputs[:1] + nw_outer + outer_inputs[1:]),
             return_list=True,
         )[0].owner
 
@@ -612,7 +627,7 @@ def push_out_seq_scan(fgraph, node):
         replacements["remove"] = [node]
         return replacements
 
-    elif not to_keep_set and not op.as_while and not op.outer_mitmot(node.inputs):
+    elif not to_keep_set and not op.as_while and not op.outer_mitmot(outer_inputs):
         # Nothing in the inner graph should be kept
         replace_with = {}
         for out, idx in to_replace_map.items():
@@ -622,12 +637,12 @@ def push_out_seq_scan(fgraph, node):
                 ls = clean_outputs
                 if out in op.inner_mitsot_outs(ls):
                     odx = op.inner_mitsot_outs(ls).index(out)
-                    inp = op.outer_mitsot(node.inputs)[odx]
+                    inp = op.outer_mitsot(outer_inputs)[odx]
                     st = abs(np.min(op.mitsot_taps()))
                     y = set_subtensor(inp[st:], _y)
                 elif out in op.inner_sitsot_outs(ls):
                     odx = op.inner_sitsot_outs(ls).index(out)
-                    inp = op.outer_sitsot(node.inputs)[odx]
+                    inp = op.outer_sitsot(outer_inputs)[odx]
                     y = set_subtensor(inp[1:], _y)
                 elif out in op.inner_nitsot_outs(ls):
                     y = _y
@@ -723,8 +738,6 @@ def push_out_inner_vars(
         new_scan_args = ScanArgs(
             new_scan_node.inputs,
             new_scan_node.outputs,
-            new_scan_node.op.inputs,
-            new_scan_node.op.outputs,
             new_scan_node.op.info,
         )
 
@@ -810,9 +823,7 @@ def push_out_add_scan(fgraph, node):
 
     op = node.op
 
-    # Use `ScanArgs` to parse the inputs and outputs of scan for ease of
-    # use
-    args = ScanArgs(node.inputs, node.outputs, op.inputs, op.outputs, op.info)
+    args = ScanArgs(node.inputs, node.outputs, op.info)
 
     clients = {}
     local_fgraph_topo = io_toposort(
@@ -936,14 +947,16 @@ class ScanInplaceOptimizer(GlobalOptimizer):
 
         op = node.op
 
+        outer_inputs = node.inputs[: op.n_outer_inputs]
+
         # inputs corresponding to sequences and n_steps
-        ls_begin = node.inputs[: 1 + op.n_seqs]
-        ls = op.outer_mitmot(node.inputs)
-        ls += op.outer_mitsot(node.inputs)
-        ls += op.outer_sitsot(node.inputs)
-        ls_end = op.outer_shared(node.inputs)
-        ls_end += op.outer_nitsot(node.inputs)
-        ls_end += op.outer_non_seqs(node.inputs)
+        ls_begin = outer_inputs[: 1 + op.n_seqs]
+        ls = op.outer_mitmot(outer_inputs)
+        ls += op.outer_mitsot(outer_inputs)
+        ls += op.outer_sitsot(outer_inputs)
+        ls_end = op.outer_shared(outer_inputs)
+        ls_end += op.outer_nitsot(outer_inputs)
+        ls_end += op.outer_non_seqs(outer_inputs)
 
         # In `ls`, duplicate any input which has more then one client and is
         # the output of an eligible allocation op
@@ -978,8 +991,8 @@ class ScanInplaceOptimizer(GlobalOptimizer):
             typeConstructor = self.typeInfer(node)
 
         new_op = Scan(
-            op.inputs,
-            op.outputs,
+            op.inner_inputs(node.inputs),
+            op.inner_outputs(node.inputs),
             op.info,
             mode=op.mode,
             typeConstructor=typeConstructor,
@@ -1383,7 +1396,9 @@ def save_mem_new_scan(fgraph, node):
         nw_inputs[0] = nw_steps
 
         # 3.2 check orphane outputs to see if we can eliminate any
-        required, not_required = scan_can_remove_outs(node.op, orphane_outs)
+        required, not_required = scan_can_remove_outs(
+            node.op, node.inputs, orphane_outs
+        )
         # 3.3. compose replace pairs for those nodes that need not
         # to store everything in memory ( or ar orphane and required
         # by the inner function .. )
@@ -1520,7 +1535,7 @@ def save_mem_new_scan(fgraph, node):
             name=op.name,
             allow_gc=op.allow_gc,
         )
-        new_outs = new_op(*node_ins, return_list=True)
+        new_outs = new_op(*node_ins[: new_op.n_outer_inputs], return_list=True)
 
         old_new = []
         # 3.7 Get replace pairs for those outputs that do not change
@@ -1652,7 +1667,7 @@ class ScanMerge(GlobalOptimizer):
 
         if nodes[0].op.as_while:
             as_while = True
-            condition = nodes[0].op.outputs[-1]
+            condition = nodes[0].op.inner_outputs(nodes[0].inputs)[-1]
         else:
             as_while = False
 
@@ -1672,15 +1687,21 @@ class ScanMerge(GlobalOptimizer):
             return ls
 
         for idx, nd in enumerate(nodes):
-            inner_ins[idx].append(rename(nd.op.inner_seqs(nd.op.inputs), idx))
+            inner_ins[idx].append(
+                rename(nd.op.inner_seqs(nd.op.inner_inputs(nd.inputs)), idx)
+            )
             outer_ins += rename(nd.op.outer_seqs(nd.inputs), idx)
 
         mit_mot_out_slices = ()
 
         mit_mot_in_slices = ()
         for idx, nd in enumerate(nodes):
-            inner_ins[idx].append(rename(nd.op.inner_mitmot(nd.op.inputs), idx))
-            inner_outs[idx].append(nd.op.inner_mitmot_outs(nd.op.outputs))
+            inner_ins[idx].append(
+                rename(nd.op.inner_mitmot(nd.op.inner_inputs(nd.inputs)), idx)
+            )
+            inner_outs[idx].append(
+                nd.op.inner_mitmot_outs(nd.op.inner_outputs(nd.inputs))
+            )
             mit_mot_in_slices += nd.op.mitmot_taps()
             mit_mot_out_slices += nd.op.mitmot_out_taps()
             outer_ins += rename(nd.op.outer_mitmot(nd.inputs), idx)
@@ -1688,40 +1709,54 @@ class ScanMerge(GlobalOptimizer):
 
         mit_sot_in_slices = ()
         for idx, nd in enumerate(nodes):
-            inner_ins[idx].append(rename(nd.op.inner_mitsot(nd.op.inputs), idx))
-            inner_outs[idx].append(nd.op.inner_mitsot_outs(nd.op.outputs))
+            inner_ins[idx].append(
+                rename(nd.op.inner_mitsot(nd.op.inner_inputs(nd.inputs)), idx)
+            )
+            inner_outs[idx].append(
+                nd.op.inner_mitsot_outs(nd.op.inner_outputs(nd.inputs))
+            )
             mit_sot_in_slices += nd.op.mitsot_taps()
             outer_ins += rename(nd.op.outer_mitsot(nd.inputs), idx)
             outer_outs += nd.op.outer_mitsot_outs(nd.outputs)
 
         sit_sot_in_slices = ()
         for idx, nd in enumerate(nodes):
-            inner_ins[idx].append(rename(nd.op.inner_sitsot(nd.op.inputs), idx))
+            inner_ins[idx].append(
+                rename(nd.op.inner_sitsot(nd.op.inner_inputs(nd.inputs)), idx)
+            )
             sit_sot_in_slices += tuple((-1,) for x in range(nd.op.n_sit_sot))
-            inner_outs[idx].append(nd.op.inner_sitsot_outs(nd.op.outputs))
+            inner_outs[idx].append(
+                nd.op.inner_sitsot_outs(nd.op.inner_outputs(nd.inputs))
+            )
             outer_ins += rename(nd.op.outer_sitsot(nd.inputs), idx)
             outer_outs += nd.op.outer_sitsot_outs(nd.outputs)
 
         for idx, nd in enumerate(nodes):
             # Shared
-            inner_ins[idx].append(rename(nd.op.inner_shared(nd.op.inputs), idx))
+            inner_ins[idx].append(
+                rename(nd.op.inner_shared(nd.op.inner_inputs(nd.inputs)), idx)
+            )
             outer_ins += rename(nd.op.outer_shared(nd.inputs), idx)
 
         for idx, nd in enumerate(nodes):
             # NitSot
-            inner_outs[idx].append(nd.op.inner_nitsot_outs(nd.op.outputs))
+            inner_outs[idx].append(
+                nd.op.inner_nitsot_outs(nd.op.inner_outputs(nd.inputs))
+            )
             outer_ins += rename(nd.op.outer_nitsot(nd.inputs), idx)
             outer_outs += nd.op.outer_nitsot_outs(nd.outputs)
 
         for idx, nd in enumerate(nodes):
             # Shared
             outer_outs += nd.op.outer_shared_outs(nd.outputs)
-            inner_outs[idx].append(nd.op.inner_shared_outs(nd.op.outputs))
+            inner_outs[idx].append(
+                nd.op.inner_shared_outs(nd.op.inner_outputs(nd.inputs))
+            )
 
         n_non_seqs = 0
         for idx, nd in enumerate(nodes):
             # Non Seqs
-            node_inner_non_seqs = nd.op.inner_non_seqs(nd.op.inputs)
+            node_inner_non_seqs = nd.op.inner_non_seqs(nd.op.inner_inputs(nd.inputs))
             n_non_seqs += len(node_inner_non_seqs)
             inner_ins[idx].append(rename(node_inner_non_seqs, idx))
             outer_ins += rename(nd.op.outer_non_seqs(nd.inputs), idx)
@@ -1860,9 +1895,14 @@ class ScanMerge(GlobalOptimizer):
 
         if not node.op.as_while:
             return True
-        cond = node.op.outputs[-1]
-        rep_cond = rep.op.outputs[-1]
-        return equal_computations([cond], [rep_cond], node.op.inputs, rep.op.inputs)
+        cond = node.op.inner_outputs(node.inputs)[-1]
+        rep_cond = rep.op.inner_outputs(rep.inputs)[-1]
+        return equal_computations(
+            [cond],
+            [rep_cond],
+            node.op.inner_inputs(node.inputs),
+            rep.op.inner_inputs(rep.inputs),
+        )
 
     def apply(self, fgraph):
         # Collect all scan nodes ordered according to toposort
@@ -1940,8 +1980,6 @@ def scan_merge_inouts(fgraph, node):
     a = ScanArgs(
         node.inputs,
         node.outputs,
-        node.op.inputs,
-        node.op.outputs,
         node.op.info,
     )
 
@@ -1998,13 +2036,7 @@ def scan_merge_inouts(fgraph, node):
         if not isinstance(outputs, (list, tuple)):
             outputs = [outputs]
 
-        na = ScanArgs(
-            outer_inputs,
-            outputs,
-            new_op.inputs,
-            new_op.outputs,
-            new_op.info,
-        )
+        na = ScanArgs(outputs[0].owner.inputs, outputs, new_op.info)
         remove = [node]
     else:
         na = a
@@ -2144,10 +2176,13 @@ def push_out_dot1_scan(fgraph, node):
     # Note that this works when only you need X[-1] in the end
     # and assumes dimshuffle are applied to vectors before calling dot
     op = node.op
-    sitsot_ins = op.inner_sitsot(op.inputs)
-    sitsot_outs = op.inner_sitsot_outs(op.outputs)
+    inner_inputs = op.inner_inputs(node.inputs)
+    inner_outputs = op.inner_outputs(node.inputs)
+    outer_inputs = node.inputs[: op.n_outer_inputs]
+    sitsot_ins = op.inner_sitsot(inner_inputs)
+    sitsot_outs = op.inner_sitsot_outs(inner_outputs)
     outer_sitsot = op.outer_sitsot_outs(node.outputs)
-    seqs = op.inner_seqs(op.inputs)
+    seqs = op.inner_seqs(inner_inputs)
     for inp, out, outer_out in zip(sitsot_ins, sitsot_outs, outer_sitsot):
 
         if (
@@ -2189,24 +2224,24 @@ def push_out_dot1_scan(fgraph, node):
                     # First let us split all arguments according to their
                     # corresponding categories
 
-                    inner_seqs = op.inner_seqs(op.inputs)
-                    outer_seqs = op.outer_seqs(node.inputs)
-                    inner_mitmot = op.inner_mitmot(op.inputs)
-                    outer_mitmot = op.outer_mitmot(node.inputs)
-                    inner_mitmot_outs = op.inner_mitmot_outs(op.outputs)
-                    inner_mitsot = op.inner_mitsot(op.inputs)
-                    outer_mitsot = op.outer_mitsot(node.inputs)
-                    inner_mitsot_outs = op.inner_mitsot_outs(op.outputs)
-                    inner_sitsot = op.inner_sitsot(op.inputs)
-                    outer_sitsot = op.outer_sitsot(node.inputs)
-                    inner_sitsot_outs = op.inner_sitsot_outs(op.outputs)
-                    outer_nitsot = op.outer_nitsot(node.inputs)
-                    inner_nitsot_outs = op.inner_nitsot_outs(op.outputs)
-                    inner_shared = op.inner_shared(op.inputs)
-                    outer_shared = op.outer_shared(node.inputs)
-                    inner_shared_outs = op.inner_shared_outs(op.outputs)
-                    inner_non_seqs = op.inner_non_seqs(op.inputs)
-                    outer_non_seqs = op.outer_non_seqs(node.inputs)
+                    inner_seqs = op.inner_seqs(inner_inputs)
+                    outer_seqs = op.outer_seqs(outer_inputs)
+                    inner_mitmot = op.inner_mitmot(inner_inputs)
+                    outer_mitmot = op.outer_mitmot(outer_inputs)
+                    inner_mitmot_outs = op.inner_mitmot_outs(inner_outputs)
+                    inner_mitsot = op.inner_mitsot(inner_inputs)
+                    outer_mitsot = op.outer_mitsot(outer_inputs)
+                    inner_mitsot_outs = op.inner_mitsot_outs(inner_outputs)
+                    inner_sitsot = op.inner_sitsot(inner_inputs)
+                    outer_sitsot = op.outer_sitsot(outer_inputs)
+                    inner_sitsot_outs = op.inner_sitsot_outs(inner_outputs)
+                    outer_nitsot = op.outer_nitsot(outer_inputs)
+                    inner_nitsot_outs = op.inner_nitsot_outs(inner_outputs)
+                    inner_shared = op.inner_shared(inner_inputs)
+                    outer_shared = op.outer_shared(outer_inputs)
+                    inner_shared_outs = op.inner_shared_outs(inner_outputs)
+                    inner_non_seqs = op.inner_non_seqs(inner_inputs)
+                    outer_non_seqs = op.outer_non_seqs(outer_inputs)
 
                     new_info = dataclasses.replace(
                         op.info,
@@ -2253,14 +2288,14 @@ def push_out_dot1_scan(fgraph, node):
                         allow_gc=op.allow_gc,
                     )
                     _scan_inputs = (
-                        [node.inputs[0]]
+                        [outer_inputs[0]]
                         + outer_seqs
                         + outer_mitmot
                         + outer_mitsot
                         + outer_sitsot
                         + outer_shared
                         + outer_nitsot
-                        + [node.inputs[0]]
+                        + [outer_inputs[0]]
                         + outer_non_seqs
                     )
 
@@ -2276,9 +2311,9 @@ def push_out_dot1_scan(fgraph, node):
                     _val = outer_nitsot_outs[-1]
                     outer_nitsot_outs = outer_nitsot_outs[:-1]
                     if inp1 in seqs:
-                        _out_seq = op.outer_seqs(node.inputs)[seqs.index(inp1)]
+                        _out_seq = op.outer_seqs(outer_inputs)[seqs.index(inp1)]
                         # We need to clip the seq to the number of steps
-                        _out_seq = _out_seq[: node.inputs[0]]
+                        _out_seq = _out_seq[: outer_inputs[0]]
                         sh0 = _out_seq.shape[0]
                         sh1 = _out_seq.shape[1]
                         sh2 = _out_seq.shape[2]
@@ -2291,7 +2326,7 @@ def push_out_dot1_scan(fgraph, node):
                         val = _val.reshape((sh0 * sh1, sh2))
                         new_out = dot(out_seq, val)
                     else:
-                        _out_seq = op.outer_seqs(node.inputs)[seqs.index(inp2)]
+                        _out_seq = op.outer_seqs(outer_inputs)[seqs.index(inp2)]
                         out_seq = _out_seq.reshape(
                             (
                                 _out_seq.shape[0] * _out_seq.shape[1],
