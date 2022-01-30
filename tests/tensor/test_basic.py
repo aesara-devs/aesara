@@ -82,7 +82,11 @@ from aesara.tensor.basic import (
     tile,
     tri,
     tril,
+    tril_indices,
+    tril_indices_from,
     triu,
+    triu_indices,
+    triu_indices_from,
     unbroadcast,
     vertical_stack,
     zeros_like,
@@ -879,16 +883,34 @@ class TestTriangle:
             m_symb = matrix(dtype=m.dtype)
             k_symb = iscalar()
             f = function([m_symb, k_symb], tril(m_symb, k_symb))
+            f_indx = function(
+                [m_symb, k_symb], tril_indices(m_symb.shape[0], k_symb, m_symb.shape[1])
+            )
+            f_indx_from = function([m_symb, k_symb], tril_indices_from(m_symb, k_symb))
             result = f(m, k)
+            result_indx = f_indx(m, k)
+            result_from = f_indx_from(m, k)
             assert np.allclose(result, np.tril(m, k))
+            assert np.allclose(result_indx, np.tril_indices(m.shape[0], k, m.shape[1]))
+            assert np.allclose(result_from, np.tril_indices_from(m, k))
+            assert np.allclose(result_indx, result_from)
             assert result.dtype == np.dtype(dtype)
 
         def check_u(m, k=0):
             m_symb = matrix(dtype=m.dtype)
             k_symb = iscalar()
             f = function([m_symb, k_symb], triu(m_symb, k_symb))
+            f_indx = function(
+                [m_symb, k_symb], triu_indices(m_symb.shape[0], k_symb, m_symb.shape[1])
+            )
+            f_indx_from = function([m_symb, k_symb], triu_indices_from(m_symb, k_symb))
             result = f(m, k)
+            result_indx = f_indx(m, k)
+            result_from = f_indx_from(m, k)
             assert np.allclose(result, np.triu(m, k))
+            assert np.allclose(result_indx, np.triu_indices(m.shape[0], k, m.shape[1]))
+            assert np.allclose(result_from, np.triu_indices_from(m, k))
+            assert np.allclose(result_indx, result_from)
             assert result.dtype == np.dtype(dtype)
 
         for dtype in ALL_DTYPES:
@@ -909,6 +931,11 @@ class TestTriangle:
             check_u(m, 0)
             check_u(m, 1)
             check_u(m, -1)
+
+        m = random_of_dtype((10,), dtype)
+        for fn in (triu_indices_from, tril_indices_from):
+            with pytest.raises(ValueError, match="must be two dimensional"):
+                fn(m)
 
 
 class TestNonzero:

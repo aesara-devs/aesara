@@ -1254,6 +1254,122 @@ def triu(m, k=0):
     )
 
 
+def tril_indices(
+    n: Union[int, ScalarVariable],
+    k: Union[int, ScalarVariable] = 0,
+    m: Optional[Union[int, ScalarVariable]] = None,
+) -> Tuple[TensorVariable, TensorVariable]:
+    """
+    Return the indices for the lower-triangle of an (n, m) array.
+
+    Parameters
+    ----------
+    n : integer scalar
+        The row dimension of the arrays for which the returned indices will be valid.
+    k : integer scalar, optional
+        Diagonal offset to use when forming the indices. `k = 0` (the default)
+        is the main diagonal, `k < 0` is below it and `k > 0` is above.
+    m : integer scalar, optional
+        The column dimension of the arrays for which the returned arrays will
+        be valid. By default m is taken equal to n.
+
+    Returns
+    -------
+    inds : tuple of TensorVariable's
+        The indices for the triangle. The returned tuple contains two arrays,
+        each with the indices along one dimension of the array.
+    """
+    return tri(n, m, k, dtype=bool).nonzero()
+
+
+def tril_indices_from(
+    a: Union[np.ndarray, TensorVariable],
+    k: Union[int, ScalarVariable] = 0,
+) -> Tuple[TensorVariable, TensorVariable]:
+    """
+    Return the indices for the lower-triangle of arr.
+
+    Parameters
+    ----------
+    arr : {array_like, TensorVariable}, shape(N, N)
+        The indices will be valid for square arrays.
+    k : integer scalar, optional
+        Diagonal offset to use when forming the indices. `k = 0` (the default)
+        is the main diagonal, `k < 0` is below it and `k > 0` is above.
+
+    Returns
+    -------
+    tril_indices_from : tuple, shape(2) of TensorVariable, shape(N)
+        Indices for the lower-triangle of arr.
+
+    Raises
+    ------
+    ValueError
+        If the input is not a 2d array.
+    """
+    if a.ndim != 2:
+        raise ValueError("The input array must be two dimensional.")
+    return tril_indices(a.shape[0], k=k, m=a.shape[1])
+
+
+def triu_indices(
+    n: Union[int, ScalarVariable],
+    k: Union[int, ScalarVariable] = 0,
+    m: Optional[Union[int, ScalarVariable]] = None,
+) -> Tuple[TensorVariable, TensorVariable]:
+    """
+    Return the indices for the upper-triangle of an (n, m) array.
+
+    Parameters
+    ----------
+    n : integer scalar
+        The row dimension of the arrays for which the returned indices will be valid.
+    k : integer scalar, optional
+        Diagonal offset to use when forming the indices. `k = 0` (the default)
+        is the main diagonal, `k < 0` is below it and `k > 0` is above.
+    m : int scalar, optional
+        The column dimension of the arrays for which the returned arrays will
+        be valid. By default m is taken equal to n.
+
+    Returns
+    -------
+    inds : tuple of TensorVariable's
+        The indices for the triangle. The returned tuple contains two arrays,
+        each with the indices along one dimension of the array.
+    """
+    return (constant(1, dtype=int) - tri(n, m, k - 1, dtype=int)).nonzero()
+
+
+def triu_indices_from(
+    a: Union[np.ndarray, TensorVariable],
+    k: Union[int, ScalarVariable] = 0,
+) -> Tuple[TensorVariable, TensorVariable]:
+    """
+    Return the indices for the upper-triangle of arr.
+
+    Parameters
+    ----------
+    arr : {array_like, TensorVariable}, shape(N, N)
+        The indices will be valid for square arrays.
+    k : integer scalar, optional
+        Diagonal offset to use when forming the indices. `k = 0` (the default)
+        is the main diagonal, `k < 0` is below it and `k > 0` is above.
+
+    Returns
+    -------
+    triu_indices_from : tuple, shape(2) of TensorVariable, shape(N)
+        Indices for the upper-triangle of arr.
+
+    Raises
+    ------
+    ValueError
+        If the input is not a 2d array.
+    """
+    if a.ndim != 2:
+        raise ValueError("The input array must be two dimensional.")
+    return triu_indices(a.shape[0], k=k, m=a.shape[1])
+
+
 class Eye(Op):
 
     __props__ = ("dtype",)
@@ -4355,4 +4471,8 @@ __all__ = [
     "full_like",
     "empty",
     "empty_like",
+    "tril_indices",
+    "tril_indices_from",
+    "triu_indices",
+    "triu_indices_from",
 ]
