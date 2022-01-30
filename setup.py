@@ -104,6 +104,7 @@ if __name__ == "__main__":
                 "ChangeLog",
                 "c_code/*",
             ],
+            "aesara": ["py.typed"],
             "aesara.misc": ["*.sh"],
             "aesara.d3viz": ["html/*", "css/*", "js/*"],
         },
