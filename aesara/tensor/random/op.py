@@ -17,10 +17,11 @@ from aesara.tensor.basic import (
     get_vector_length,
     infer_broadcastable,
 )
-from aesara.tensor.random.type import RandomType
+from aesara.tensor.random.type import RandomGeneratorType, RandomStateType, RandomType
 from aesara.tensor.random.utils import normalize_size_param, params_broadcast_shapes
 from aesara.tensor.shape import shape_tuple
 from aesara.tensor.type import TensorType, all_dtypes
+from aesara.tensor.type_other import NoneConst
 from aesara.tensor.var import TensorVariable
 
 
@@ -399,3 +400,36 @@ class RandomVariable(Op):
 
     def R_op(self, inputs, eval_points):
         return [None for i in eval_points]
+
+
+class AbstractRNGConstructor(Op):
+    def make_node(self, seed=None):
+        if seed is None:
+            seed = NoneConst
+        else:
+            seed = as_tensor_variable(seed)
+        inputs = [seed]
+        outputs = [self.random_type()]
+        return Apply(self, inputs, outputs)
+
+    def perform(self, node, inputs, output_storage):
+        (seed,) = inputs
+        if seed is not None and seed.size == 1:
+            seed = int(seed)
+        output_storage[0][0] = getattr(np.random, self.random_constructor)(seed=seed)
+
+
+class RandomStateConstructor(AbstractRNGConstructor):
+    random_type = RandomStateType()
+    random_constructor = "RandomState"
+
+
+RandomState = RandomStateConstructor()
+
+
+class DefaultGeneratorMakerOp(AbstractRNGConstructor):
+    random_type = RandomGeneratorType()
+    random_constructor = "default_rng"
+
+
+default_rng = DefaultGeneratorMakerOp()
