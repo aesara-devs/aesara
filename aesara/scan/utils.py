@@ -408,6 +408,7 @@ def compress_outs(op, not_required, inputs):
         n_shared_outs=0,
         n_nit_sot=0,
         n_non_seqs=0,
+        as_while=op.info.as_while,
     )
 
     op_inputs = op.inputs[: op.n_seqs]
@@ -528,7 +529,7 @@ def compress_outs(op, not_required, inputs):
     op_inputs += op.inputs[i_offset:]
     info = dataclasses.replace(info, n_non_seqs=len(op.inputs[i_offset:]))
     node_inputs += inputs[ni_offset + op.n_shared_outs + op.n_nit_sot :]
-    if op.as_while:
+    if op.info.as_while:
         op_outputs += [op.outputs[o_offset]]
         map_old_new[o_offset] = len(op_outputs) - 1
         # map_old_new[len(op_outputs)-1] = o_offset
@@ -582,11 +583,10 @@ class ScanArgs:
         _inner_inputs: Sequence[Variable],
         _inner_outputs: Sequence[Variable],
         info: "ScanInfo",
-        as_while: bool,
         clone: Optional[bool] = True,
     ):
         self.n_steps = outer_inputs[0]
-        self.as_while = as_while
+        self.as_while = info.as_while
 
         if clone:
             rval = reconstruct_graph(_inner_inputs, _inner_outputs, "")
@@ -710,7 +710,6 @@ class ScanArgs:
             node.op.inputs,
             node.op.outputs,
             node.op.info,
-            node.op.as_while,
             clone=clone,
         )
 
@@ -815,6 +814,7 @@ class ScanArgs:
             n_mit_mot_outs=sum(len(s) for s in self.mit_mot_out_slices),
             mit_mot_out_slices=tuple(self.mit_mot_out_slices),
             n_non_seqs=len(self.inner_in_non_seqs),
+            as_while=self.as_while,
         )
 
     def get_alt_field(
