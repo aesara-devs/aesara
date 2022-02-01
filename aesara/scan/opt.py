@@ -176,7 +176,6 @@ def remove_constants_and_unused_inputs_scan(fgraph, node):
             op_outs,
             nw_info,
             mode=op.mode,
-            as_while=op.as_while,
             profile=op.profile,
             truncate_gradient=op.truncate_gradient,
             # TODO: This seems questionable
@@ -351,7 +350,6 @@ def push_out_non_seq_scan(fgraph, node):
             op_outs,
             new_info,
             mode=op.mode,
-            as_while=op.as_while,
             profile=op.profile,
             truncate_gradient=op.truncate_gradient,
             # TODO: This seems questionable
@@ -589,7 +587,6 @@ def push_out_seq_scan(fgraph, node):
             op_outs,
             nw_info,
             mode=op.mode,
-            as_while=op.as_while,
             profile=op.profile,
             truncate_gradient=op.truncate_gradient,
             # TODO: This seems questionable
@@ -606,7 +603,7 @@ def push_out_seq_scan(fgraph, node):
         replacements["remove"] = [node]
         return replacements
 
-    elif not to_keep_set and not op.as_while and not op.outer_mitmot(node.inputs):
+    elif not to_keep_set and not op.info.as_while and not op.outer_mitmot(node.inputs):
         # Nothing in the inner graph should be kept
         replace_with = {}
         for out, idx in to_replace_map.items():
@@ -728,7 +725,6 @@ def push_out_inner_vars(
             new_scan_node.op.inputs,
             new_scan_node.op.outputs,
             new_scan_node.op.info,
-            new_scan_node.op.as_while,
         )
 
         new_outs = new_scan_args.outer_out_nit_sot[-len(add_as_nitsots) :]
@@ -770,7 +766,6 @@ def add_nitsot_outputs(
         new_scan_args.inner_outputs,
         new_scan_args.info,
         mode=old_scan_node.op.mode,
-        as_while=old_scan_node.op.as_while,
         profile=old_scan_node.op.profile,
         truncate_gradient=old_scan_node.op.truncate_gradient,
         # TODO: This seems questionable
@@ -818,16 +813,14 @@ def push_out_add_scan(fgraph, node):
     # Don't perform the optimization on `as_while` `Scan`s. Because these
     # `Scan`s don't run for a predetermined number of steps, handling them is
     # more complicated and this optimization doesn't support it at the moment.
-    if not (isinstance(node.op, Scan) and not node.op.as_while):
+    if not (isinstance(node.op, Scan) and not node.op.info.as_while):
         return False
 
     op = node.op
 
     # Use `ScanArgs` to parse the inputs and outputs of scan for ease of
     # use
-    args = ScanArgs(
-        node.inputs, node.outputs, op.inputs, op.outputs, op.info, op.as_while
-    )
+    args = ScanArgs(node.inputs, node.outputs, op.inputs, op.outputs, op.info)
 
     clients = {}
     local_fgraph_topo = io_toposort(
@@ -997,7 +990,6 @@ class ScanInplaceOptimizer(GlobalOptimizer):
             op.info,
             mode=op.mode,
             typeConstructor=typeConstructor,
-            as_while=op.as_while,
             profile=op.profile,
             truncate_gradient=op.truncate_gradient,
             # TODO: This seems questionable
@@ -1525,7 +1517,6 @@ def save_mem_new_scan(fgraph, node):
             outs,
             info,
             mode=op.mode,
-            as_while=op.as_while,
             profile=op.profile,
             truncate_gradient=op.truncate_gradient,
             # TODO: This seems questionable
@@ -1662,7 +1653,7 @@ class ScanMerge(GlobalOptimizer):
 
     def merge(self, nodes):
 
-        if nodes[0].op.as_while:
+        if nodes[0].op.info.as_while:
             as_while = True
             condition = nodes[0].op.outputs[-1]
         else:
@@ -1813,6 +1804,7 @@ class ScanMerge(GlobalOptimizer):
             n_shared_outs=sum(nd.op.n_shared_outs for nd in nodes),
             n_nit_sot=sum(nd.op.n_nit_sot for nd in nodes),
             n_non_seqs=n_non_seqs,
+            as_while=as_while,
         )
 
         old_op = nodes[0].op
@@ -1825,7 +1817,6 @@ class ScanMerge(GlobalOptimizer):
             truncate_gradient=old_op.truncate_gradient,
             allow_gc=old_op.allow_gc,
             name="&".join([nd.op.name for nd in nodes]),
-            as_while=as_while,
         )
         new_outs = new_op(*outer_ins)
 
@@ -1846,7 +1837,7 @@ class ScanMerge(GlobalOptimizer):
         """
         rep = set_nodes[0]
         if (
-            rep.op.as_while != node.op.as_while
+            rep.op.info.as_while != node.op.info.as_while
             or node.op.truncate_gradient != rep.op.truncate_gradient
             or node.op.mode != rep.op.mode
         ):
@@ -1872,7 +1863,7 @@ class ScanMerge(GlobalOptimizer):
             if is_in_ancestors(node, nd) or is_in_ancestors(nd, node):
                 return False
 
-        if not node.op.as_while:
+        if not node.op.info.as_while:
             return True
         cond = node.op.outputs[-1]
         rep_cond = rep.op.outputs[-1]
@@ -1957,7 +1948,6 @@ def scan_merge_inouts(fgraph, node):
         node.op.inputs,
         node.op.outputs,
         node.op.info,
-        node.op.as_while,
     )
 
     inp_equiv = {}
@@ -2001,7 +1991,6 @@ def scan_merge_inouts(fgraph, node):
             inner_outputs,
             info,
             mode=node.op.mode,
-            as_while=node.op.as_while,
             profile=node.op.profile,
             truncate_gradient=node.op.truncate_gradient,
             # TODO: This seems questionable
@@ -2019,7 +2008,6 @@ def scan_merge_inouts(fgraph, node):
             new_op.inputs,
             new_op.outputs,
             new_op.info,
-            new_op.as_while,
         )
         remove = [node]
     else:
@@ -2266,7 +2254,6 @@ def push_out_dot1_scan(fgraph, node):
                         new_inner_outs,
                         new_info,
                         mode=op.mode,
-                        as_while=op.as_while,
                         profile=op.profile,
                         truncate_gradient=op.truncate_gradient,
                         # TODO: This seems questionable

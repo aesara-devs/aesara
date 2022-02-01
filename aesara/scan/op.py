@@ -217,6 +217,7 @@ class ScanInfo:
     n_shared_outs: int
     n_nit_sot: int
     n_non_seqs: int
+    as_while: bool
 
 
 TensorConstructorType = Callable[[List[bool], Union[str, np.generic]], TensorType]
@@ -670,8 +671,6 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
             as well as profiles for the computation of one step of each instance of
             `Scan`. The `name` of the instance appears in those profiles and can
             greatly help to disambiguate information.
-        as_while
-            Whether or not the `Scan` is a ``while``-loop.
         profile
             If ``True`` or a non-empty string, a profile object will be created and
             attached to the inner graph of `Scan`. When `profile` is ``True``, the
@@ -701,7 +700,6 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
         self.info = info
         self.truncate_gradient = truncate_gradient
         self.name = name
-        self.as_while = as_while
         self.profile = profile
         self.allow_gc = allow_gc
         self.strict = strict
@@ -753,7 +751,7 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
         for o in outputs[end:]:
             self.output_types.append(o.type)
 
-        if self.as_while:
+        if info.as_while:
             self.output_types = self.output_types[:-1]
 
         if not hasattr(self, "name") or self.name is None:
@@ -1201,9 +1199,6 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
         if self.info != other.info:
             return False
 
-        if self.as_while != other.as_while:
-            return False
-
         if self.profile != other.profile:
             return False
 
@@ -1234,7 +1229,7 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
 
     def __str__(self):
         device_str = "cpu"
-        if self.as_while:
+        if self.info.as_while:
             name = "do_while"
         else:
             name = "for"
@@ -1261,7 +1256,6 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
                 type(self),
                 self._hash_inner_graph,
                 self.info,
-                self.as_while,
                 self.profile,
                 self.truncate_gradient,
                 self.name,
@@ -1510,7 +1504,7 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
                         self.info.n_mit_sot,
                         self.info.n_sit_sot,
                         self.info.n_nit_sot,
-                        self.as_while,
+                        self.info.as_while,
                         cython_mintaps,
                         self.info.tap_array,
                         tap_array_len,
@@ -1777,7 +1771,7 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
                 inner_output_storage[idx + offset].storage[0] = None
 
             # 4.4. If there is a condition add it to the mix
-            if self.as_while:
+            if info.as_while:
                 pdx = offset + info.n_shared_outs
                 inner_output_storage[pdx].storage[0] = None
 
@@ -1847,7 +1841,7 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
                     raise
 
             dt_fn = time.time() - t0_fn
-            if self.as_while:
+            if info.as_while:
                 pdx = offset + info.n_shared_outs
                 cond = inner_output_storage[pdx].storage[0] == 0
 
@@ -2173,7 +2167,7 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
         for in_ns, out_ns in zip(inner_non_sequences, node.inputs[offset:]):
             out_equivalent[in_ns] = out_ns
 
-        if self.as_while:
+        if info.as_while:
             self_outs = self.outputs[:-1]
         else:
             self_outs = self.outputs
@@ -2222,7 +2216,7 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
         scan_outs += [x for x in input_shapes[offset : offset + info.n_shared_outs]]
         # if we are dealing with a repeat-until, then we do not know the
         # leading dimension so we replace it for every entry with Shape_i
-        if self.as_while:
+        if info.as_while:
             scan_outs_init = scan_outs
             scan_outs = []
             for o, x in zip(node.outputs, scan_outs_init):
@@ -2312,7 +2306,7 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
             )
         else:
             grad_steps = inputs[0]
-        if self.as_while:
+        if info.as_while:
             n_steps = outs[0].shape[0]
 
         # Restrict the number of grad steps according to
@@ -2537,9 +2531,8 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
                 dC_dinps_t[dx + info.n_seqs] = dC_dXtm1
             else:
                 dC_dinps_t[dx + info.n_seqs] += dC_dXtm1
-        # Construct scan op
-        # Seqs
-        if self.as_while:
+
+        if info.as_while:
             # equivalent to x[:n_steps][::-1]
             outer_inp_seqs = [x[n_steps - 1 :: -1] for x in inputs[1 : 1 + info.n_seqs]]
         else:
@@ -2560,7 +2553,7 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
         outer_inp_seqs += [x[:-1][::-1] for x in self.outer_sitsot_outs(outs)]
         for x in self.outer_nitsot_outs(dC_douts):
             if not isinstance(x.type, DisconnectedType):
-                if self.as_while:
+                if info.as_while:
                     # equivalent to x[:n_steps][::-1]
                     outer_inp_seqs.append(x[n_steps - 1 :: -1])
                 else:
@@ -2572,7 +2565,7 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
             # fct add and we want to keep it for all Scan op.  This is
             # used in T_Scan.test_grad_multiple_outs_taps to test
             # that.
-            if self.as_while:
+            if info.as_while:
                 n = n_steps.tag.test_value
             else:
                 n = inputs[0].tag.test_value
@@ -2585,7 +2578,7 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
                     assert x[::-1][:-1].tag.test_value.shape[0] == n
             for x in self.outer_nitsot_outs(outs):
                 if hasattr(x[::-1].tag, "test_value"):
-                    if self.as_while:
+                    if info.as_while:
                         assert x[n_steps - 1 :: -1].tag.test_value.shape[0] == n
                     else:
                         assert x[::-1].tag.test_value.shape[0] == n
@@ -2874,7 +2867,7 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
             + outer_inp_seqs
             + outer_inp_mitmot
             + outer_inp_sitsot
-            + [n_steps if self.as_while else inputs[0] for _ in range(n_nit_sot)]
+            + [n_steps if info.as_while else inputs[0] for _ in range(n_nit_sot)]
             + self.outer_shared(inputs)
             + self.outer_non_seqs(inputs)
         )
@@ -2900,6 +2893,7 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
             n_nit_sot=n_nit_sot,
             n_non_seqs=len(self.outer_shared(inputs))
             + len(self.outer_non_seqs(inputs)),
+            as_while=False,
         )
 
         local_op = Scan(
@@ -2908,7 +2902,6 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
             out_info,
             mode=self.mode,
             truncate_gradient=self.truncate_gradient,
-            as_while=False,
             profile=self.profile,
             name=f"grad_of_{self.name}" if self.name else None,
             allow_gc=self.allow_gc,
@@ -2930,7 +2923,7 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
                 # If the forward scan is in as_while mode, we need to pad
                 # the gradients, so that they match the size of the input
                 # sequences.
-                if self.as_while:
+                if info.as_while:
                     n_zeros = inputs[0] - n_steps
                     shp = (n_zeros,)
                     if x.ndim > 1:
@@ -2958,7 +2951,7 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
                 # If the forward scan is in as_while mode, we need to pad
                 # the gradients, so that they match the size of the input
                 # sequences.
-                if self.as_while:
+                if info.as_while:
                     n_zeros = inputs[0] - grad_steps
                     shp = (n_zeros,)
                     if x.ndim > 1:
@@ -3052,7 +3045,7 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
 
         # Step 1. Compute the R_op of the inner function
         inner_eval_points = [safe_new(x, "_evalpoint") for x in rop_of_inputs]
-        if self.as_while:
+        if info.as_while:
             rop_self_outputs = self_outputs[:-1]
         else:
             rop_self_outputs = self_outputs
@@ -3209,7 +3202,7 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
             + inner_out_shared
         )
 
-        if self.as_while:
+        if info.as_while:
             inner_outs += [self_outputs[-1]]
         scan_inputs = (
             [inputs[0]]
@@ -3233,6 +3226,7 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
             tap_array=tuple(tuple(v) for v in new_tap_array),
             mit_mot_out_slices=tuple(tuple(v) for v in info.mit_mot_out_slices) * 2,
             n_non_seqs=len(inner_other),
+            as_while=info.as_while,
         )
 
         local_op = Scan(
@@ -3240,7 +3234,6 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
             inner_outs,
             out_info,
             mode=self.mode,
-            as_while=self.as_while,
             profile=self.profile,
             truncate_gradient=self.truncate_gradient,
             name=f"rop_of_{self.name}" if self.name else None,
@@ -3363,7 +3356,6 @@ def _op_debug_information_Scan(op, node):
         inner_inputs,
         inner_outputs,
         node.op.info,
-        node.op.as_while,
         clone=False,
     )
 

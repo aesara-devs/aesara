@@ -120,7 +120,7 @@ def numba_funcify_Scan(op, node, **kwargs):
     ]
 
     while_logic = ""
-    if op.as_while:
+    if op.info.as_while:
         # The inner function will be returning a boolean as last argument
         inner_out_indexed.append("while_flag")
         while_logic += """
