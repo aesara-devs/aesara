@@ -217,6 +217,7 @@ class ScanInfo:
     n_shared_outs: int
     n_nit_sot: int
     n_non_seqs: int
+    as_while: bool
 
 
 TensorConstructorType = Callable[[List[bool], Union[str, np.generic]], TensorType]
@@ -618,7 +619,6 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
         truncate_gradient: bool = False,
         name: Optional[str] = None,
         gpua: bool = False,
-        as_while: bool = False,
         profile: Optional[Union[str, bool]] = None,
         allow_gc: bool = True,
         strict: bool = True,
@@ -669,8 +669,6 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
             greatly help to disambiguate information.
         gpua
             If ``True``, this `Op` should run on a GPU.
-        as_while
-            Whether or not the `Scan` is a ``while``-loop.
         profile
             If ``True`` or a non-empty string, a profile object will be created and
             attached to the inner graph of `Scan`. When `profile` is ``True``, the
@@ -719,7 +717,6 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
         self.truncate_gradient = truncate_gradient
         self.name = name
         self.gpua = gpua
-        self.as_while = as_while
         self.profile = profile
         self.allow_gc = allow_gc
         self.strict = strict
@@ -2920,6 +2917,7 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
             n_nit_sot=n_nit_sot,
             n_non_seqs=len(self.outer_shared(inputs))
             + len(self.outer_non_seqs(inputs)),
+            as_while=False,
         )
 
         local_op = Scan(
@@ -2929,7 +2927,6 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
             mode=self.mode,
             truncate_gradient=self.truncate_gradient,
             gpua=False,
-            as_while=False,
             profile=self.profile,
             name=f"grad_of_{self.name}" if self.name else None,
             allow_gc=self.allow_gc,
@@ -3255,6 +3252,7 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
             tap_array=tuple(tuple(v) for v in new_tap_array),
             mit_mot_out_slices=tuple(tuple(v) for v in self.mit_mot_out_slices) * 2,
             n_non_seqs=len(inner_other),
+            as_while=self.as_while,
         )
 
         local_op = Scan(
@@ -3263,7 +3261,6 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
             info,
             mode=self.mode,
             gpua=False,
-            as_while=self.as_while,
             profile=self.profile,
             truncate_gradient=self.truncate_gradient,
             name=f"rop_of_{self.name}" if self.name else None,

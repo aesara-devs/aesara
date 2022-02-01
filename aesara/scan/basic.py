@@ -1016,6 +1016,7 @@ def scan(
         n_shared_outs=n_shared_outs,
         n_nit_sot=n_nit_sot,
         n_non_seqs=len(other_shared_inner_args) + len(other_inner_args),
+        as_while=as_while,
     )
 
     local_op = Scan(
@@ -1026,7 +1027,6 @@ def scan(
         truncate_gradient=truncate_gradient,
         name=name,
         gpua=False,
-        as_while=as_while,
         profile=profile,
         allow_gc=allow_gc,
         strict=strict,
