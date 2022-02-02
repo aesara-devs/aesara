@@ -14,6 +14,7 @@ from aesara.graph.opt import (
     OpSub,
     PatternSub,
     TopoOptimizer,
+    in2out,
     local_optimizer,
     logging,
     pre_constant_merge,
@@ -36,6 +37,7 @@ from tests.graph.utils import (
     op5,
     op6,
     op_cast_type2,
+    op_multiple_outputs,
     op_y,
     op_z,
 )
@@ -650,6 +652,24 @@ def test_patternsub_invalid_dtype(out_pattern):
     )
     opt.optimize(fg)
     assert e.type.is_super(fg.outputs[0].type)
+
+
+def test_patternsub_different_output_lengths():
+    # Test that PatternSub won't replace nodes with different numbers of outputs
+    ps = PatternSub(
+        (op1, "x"),
+        ("x"),
+        name="ps",
+    )
+    opt = in2out(ps)
+
+    x = MyVariable("x")
+    e1, e2 = op_multiple_outputs(x)
+    o = op1(e1)
+
+    fgraph = FunctionGraph(inputs=[x], outputs=[o])
+    opt.optimize(fgraph)
+    assert fgraph.outputs[0].owner.op == op1
 
 
 class TestLocalOptGroup:
