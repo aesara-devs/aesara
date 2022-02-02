@@ -96,6 +96,12 @@ class MyOpCastType2(MyOp):
         return Apply(self, inputs, outputs)
 
 
+class MyOpMultipleOutputs(MyOp):
+    def make_node(self, input):
+        outputs = [input.type(), input.type()]
+        return Apply(self, [input], outputs)
+
+
 op1 = MyOp("Op1")
 op2 = MyOp("Op2")
 op3 = MyOp("Op3")
@@ -108,6 +114,7 @@ op_y = MyOp("OpY", x=1)
 op_z = MyOp("OpZ", x=1)
 
 op_cast_type2 = MyOpCastType2("OpCastType2")
+op_multiple_outputs = MyOpMultipleOutputs("OpMultipleOutputs")
 
 
 class MyInnerGraphOp(Op, HasInnerGraph):
