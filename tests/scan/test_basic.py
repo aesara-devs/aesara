@@ -5269,5 +5269,7 @@ def test_n_non_seqs(fn, sequences, outputs_info, non_sequences, n_steps, op_chec
 
     _ = op_check(scan_op)
 
-    assert scan_op.n_outer_inputs == len(res.owner.inputs)
-    assert scan_op.n_outer_outputs == len(res.owner.outputs)
+    assert scan_op.info.n_outer_inputs == len(res.owner.inputs)
+    assert scan_op.info.n_outer_outputs == len(res.owner.outputs)
+    assert scan_op.info.n_inner_inputs == len(res.owner.op.inputs)
+    assert scan_op.info.n_inner_outputs == len(res.owner.op.outputs)

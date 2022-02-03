@@ -221,6 +221,54 @@ class ScanInfo:
     def tap_array(self):
         return self.mit_mot_in_slices + self.mit_sot_in_slices + self.sit_sot_in_slices
 
+    @property
+    def n_inner_inputs(self):
+        n_mit_mot_taps = sum(len(x) for x in self.mit_mot_in_slices)
+        n_mit_sot_taps = sum(len(x) for x in self.mit_sot_in_slices)
+        return (
+            self.n_seqs
+            + n_mit_mot_taps
+            + n_mit_sot_taps
+            + self.n_sit_sot
+            + self.n_shared_outs
+            + self.n_non_seqs
+        )
+
+    @property
+    def n_inner_outputs(self):
+        n_mit_mot_out_taps = sum(len(x) for x in self.mit_mot_out_slices)
+        return (
+            n_mit_mot_out_taps
+            + self.n_mit_sot
+            + self.n_sit_sot
+            + self.n_nit_sot
+            + self.n_shared_outs
+            + int(self.as_while)
+        )
+
+    @property
+    def n_outer_inputs(self):
+        return (
+            1
+            + self.n_seqs
+            + self.n_mit_mot
+            + self.n_mit_sot
+            + self.n_sit_sot
+            + self.n_nit_sot
+            + self.n_shared_outs
+            + self.n_non_seqs
+        )
+
+    @property
+    def n_outer_outputs(self):
+        return (
+            self.n_mit_mot
+            + self.n_mit_sot
+            + self.n_sit_sot
+            + self.n_nit_sot
+            + self.n_shared_outs
+        )
+
 
 TensorConstructorType = Callable[[List[bool], Union[str, np.generic]], TensorType]
 
@@ -819,27 +867,8 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
             self.mitmots_preallocated,
         ) = self._mitmot_preallocations()
 
-        # The total number of inputs across all multi-input taps
-        # `tap_array = mit_sot_tap_inputs + (-1,) * n_sit_sot`
-        # n_mit_mot_sot_inputs = sum(len(x) for x in self.tap_array[: (self.n_mit_mot + self.n_mit_sot)])
-        n_mit_mot_sot_inputs = self.n_mit_mot + self.n_mit_sot
-        # [n_steps] + sequences + mit-mots + mit-sots + sit-sots + shared-variables + nit-sots + non-sequences
-        self.n_outer_inputs = (
-            1
-            + self.n_seqs
-            + n_mit_mot_sot_inputs
-            + self.n_sit_sot
-            + self.n_nit_sot
-            + self.n_shared_outs
-            + self.n_non_seqs
-        )
-        self.n_outer_outputs = (
-            self.n_mit_mot
-            + self.n_mit_sot
-            + self.n_sit_sot
-            + self.n_nit_sot
-            + self.n_shared_outs
-        )
+        self.n_outer_inputs = self.info.n_outer_inputs
+        self.n_outer_outputs = self.info.n_outer_outputs
 
     def _mitmot_preallocations(self):
         if config.scan__allow_output_prealloc:
