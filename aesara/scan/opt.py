@@ -2,6 +2,7 @@
 
 import copy
 import dataclasses
+from itertools import chain
 from sys import maxsize
 from typing import Dict, List, Optional, Tuple
 
@@ -82,7 +83,7 @@ def remove_constants_and_unused_inputs_scan(fgraph, node):
     op = node.op
     # We only need to take care of sequences and other arguments
     st = op.n_seqs
-    st += int(sum(len(x) for x in op.tap_array[: (op.n_mit_mot + op.n_mit_sot)]))
+    st += int(sum(len(x) for x in chain(op.mit_mot_in_slices, op.mit_sot_in_slices)))
     st += op.n_sit_sot
     st += op.n_shared_outs
 
@@ -1147,7 +1148,7 @@ def save_mem_new_scan(fgraph, node):
     c_outs = op.n_mit_mot + op.n_mit_sot + op.n_sit_sot + op.n_nit_sot
 
     init_l = [0 for x in range(op.n_mit_mot)]
-    init_l += [abs(min(v)) for v in op.tap_array[op.n_mit_mot :]]
+    init_l += [abs(min(v)) for v in chain(op.mit_sot_in_slices, op.sit_sot_in_slices)]
     init_l += [0 for x in range(op.n_nit_sot)]
     # 2. Check the clients of each output and see for how many steps
     # does scan need to run
@@ -1678,30 +1679,29 @@ class ScanMerge(GlobalOptimizer):
             inner_ins[idx].append(rename(nd.op.inner_seqs(nd.op.inputs), idx))
             outer_ins += rename(nd.op.outer_seqs(nd.inputs), idx)
 
-        tap_array = ()
         mit_mot_out_slices = ()
 
+        mit_mot_in_slices = ()
         for idx, nd in enumerate(nodes):
-            # MitMot
             inner_ins[idx].append(rename(nd.op.inner_mitmot(nd.op.inputs), idx))
             inner_outs[idx].append(nd.op.inner_mitmot_outs(nd.op.outputs))
-            tap_array += nd.op.mitmot_taps()
+            mit_mot_in_slices += nd.op.mitmot_taps()
             mit_mot_out_slices += nd.op.mitmot_out_taps()
             outer_ins += rename(nd.op.outer_mitmot(nd.inputs), idx)
             outer_outs += nd.op.outer_mitmot_outs(nd.outputs)
 
+        mit_sot_in_slices = ()
         for idx, nd in enumerate(nodes):
-            # MitSot
             inner_ins[idx].append(rename(nd.op.inner_mitsot(nd.op.inputs), idx))
             inner_outs[idx].append(nd.op.inner_mitsot_outs(nd.op.outputs))
-            tap_array += nd.op.mitsot_taps()
+            mit_sot_in_slices += nd.op.mitsot_taps()
             outer_ins += rename(nd.op.outer_mitsot(nd.inputs), idx)
             outer_outs += nd.op.outer_mitsot_outs(nd.outputs)
 
+        sit_sot_in_slices = ()
         for idx, nd in enumerate(nodes):
-            # SitSot
             inner_ins[idx].append(rename(nd.op.inner_sitsot(nd.op.inputs), idx))
-            tap_array += tuple((-1,) for x in range(nd.op.n_sit_sot))
+            sit_sot_in_slices += tuple((-1,) for x in range(nd.op.n_sit_sot))
             inner_outs[idx].append(nd.op.inner_sitsot_outs(nd.op.outputs))
             outer_ins += rename(nd.op.outer_sitsot(nd.inputs), idx)
             outer_outs += nd.op.outer_sitsot_outs(nd.outputs)
@@ -1794,7 +1794,9 @@ class ScanMerge(GlobalOptimizer):
                     new_inner_outs += inner_outs[idx][gr_idx]
 
         info = ScanInfo(
-            tap_array=tap_array,
+            mit_mot_in_slices=mit_mot_in_slices,
+            mit_sot_in_slices=mit_sot_in_slices,
+            sit_sot_in_slices=sit_sot_in_slices,
             n_seqs=sum(nd.op.n_seqs for nd in nodes),
             n_mit_mot=sum(nd.op.n_mit_mot for nd in nodes),
             n_mit_mot_outs=sum(nd.op.n_mit_mot_outs for nd in nodes),
@@ -2212,14 +2214,10 @@ def push_out_dot1_scan(fgraph, node):
                     inner_non_seqs = op.inner_non_seqs(op.inputs)
                     outer_non_seqs = op.outer_non_seqs(node.inputs)
 
-                    st = len(op.mitmot_taps()) + len(op.mitsot_taps())
-
                     new_info = dataclasses.replace(
                         op.info,
-                        tap_array=(
-                            op.info.tap_array[: st + idx]
-                            + op.info.tap_array[st + idx + 1 :]
-                        ),
+                        sit_sot_in_slices=op.info.sit_sot_in_slices[:idx]
+                        + op.info.sit_sot_in_slices[idx + 1 :],
                         n_sit_sot=op.info.n_sit_sot - 1,
                         n_nit_sot=op.info.n_nit_sot + 1,
                     )
