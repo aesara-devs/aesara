@@ -1858,6 +1858,9 @@ class TestScan:
     def test_grad_multiple_outs_some_disconnected_2(self):
         # This is to try the network in DEBUG_MODE, but not fully
         # train it since that would take 3 hours
+
+        # TODO FIXME: This won't work in debug mode due to an `Elemwise` bug.
+        # with config.change_flags(mode="DebugMode"):
         self._grad_mout_helper(1, None)
 
     def _grad_mout_helper(self, n_iters, mode):
@@ -1933,7 +1936,7 @@ class TestScan:
         # pred = eval_rnn_fn(s_v)
         return cost
 
-    def test_draw_as_input_to_scan(self):
+    def test_random_as_input_to_scan(self):
         trng = RandomStream(123)
 
         x = matrix("x")
@@ -1951,7 +1954,7 @@ class TestScan:
         utt.assert_allclose([ny2, ny2], nz2)
         assert not np.allclose(ny1, ny2)
 
-    def test_grad_of_shared(self):
+    def test_grad_wrt_shared(self):
         x1 = shared(3.0)
         x1.name = "x1"
         x2 = vector("x2")
@@ -1961,7 +1964,7 @@ class TestScan:
         f = function([x2], m, allow_input_downcast=True)
         utt.assert_allclose(f([2, 3]), 5)
 
-    def test_computing_gradient(self):
+    def test_inner_grad_wrt_shared(self):
         x1 = scalar("x1")
         x2 = shared(np.array([1, 2, 3, 4, 5]), name="x2")
         K = x2 * x1
@@ -1990,7 +1993,7 @@ class TestScan:
         f()
         assert X.get_value() == 11
 
-    def test_memory_aliasing_updates(self):
+    def test_shared_memory_aliasing_updates(self):
         x = shared(np.array(1))
         y = shared(np.array(1))
 
