@@ -203,19 +203,31 @@ def copy_var_format(var, as_var):
 
 @dataclasses.dataclass(frozen=True)
 class ScanInfo:
+    n_seqs: int
     mit_mot_in_slices: tuple
+    mit_mot_out_slices: tuple
     mit_sot_in_slices: tuple
     sit_sot_in_slices: tuple
-    n_seqs: int
-    n_mit_mot: int
-    n_mit_mot_outs: int
-    mit_mot_out_slices: tuple
-    n_mit_sot: int
-    n_sit_sot: int
-    n_shared_outs: int
     n_nit_sot: int
+    n_shared_outs: int
     n_non_seqs: int
     as_while: bool
+
+    @property
+    def n_mit_mot(self):
+        return len(self.mit_mot_in_slices)
+
+    @property
+    def n_mit_mot_outs(self):
+        return sum(len(x) for x in self.mit_mot_out_slices)
+
+    @property
+    def n_mit_sot(self):
+        return len(self.mit_sot_in_slices)
+
+    @property
+    def n_sit_sot(self):
+        return len(self.sit_sot_in_slices)
 
     @property
     def tap_array(self):
@@ -223,12 +235,10 @@ class ScanInfo:
 
     @property
     def n_inner_inputs(self):
-        n_mit_mot_taps = sum(len(x) for x in self.mit_mot_in_slices)
-        n_mit_sot_taps = sum(len(x) for x in self.mit_sot_in_slices)
         return (
             self.n_seqs
-            + n_mit_mot_taps
-            + n_mit_sot_taps
+            + sum(len(x) for x in self.mit_mot_in_slices)
+            + sum(len(x) for x in self.mit_sot_in_slices)
             + self.n_sit_sot
             + self.n_shared_outs
             + self.n_non_seqs
@@ -236,9 +246,8 @@ class ScanInfo:
 
     @property
     def n_inner_outputs(self):
-        n_mit_mot_out_taps = sum(len(x) for x in self.mit_mot_out_slices)
         return (
-            n_mit_mot_out_taps
+            self.n_mit_mot_outs
             + self.n_mit_sot
             + self.n_sit_sot
             + self.n_nit_sot
@@ -262,7 +271,7 @@ class ScanInfo:
     @property
     def n_outer_outputs(self):
         return (
-            self.n_mit_mot
+            len(self.mit_mot_out_slices)
             + self.n_mit_sot
             + self.n_sit_sot
             + self.n_nit_sot
@@ -757,6 +766,11 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
         self.allow_gc = allow_gc
         self.strict = strict
         self.__dict__.update(dataclasses.asdict(info))
+
+        self.n_mit_mot = self.info.n_mit_mot
+        self.n_mit_mot_outs = self.info.n_mit_mot_outs
+        self.n_mit_sot = self.info.n_mit_sot
+        self.n_sit_sot = self.info.n_sit_sot
 
         # Clone mode_instance, altering "allow_gc" for the linker,
         # and adding a message if we profile
@@ -2956,16 +2970,12 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
 
         out_info = ScanInfo(
             n_seqs=len(outer_inp_seqs),
-            n_mit_sot=0,
             mit_mot_in_slices=tuple(tuple(v) for v in mitmot_inp_taps),
+            mit_mot_out_slices=tuple(tuple(v) for v in mitmot_out_taps),
             mit_sot_in_slices=(),
             sit_sot_in_slices=tuple((-1,) for k in range(n_sitsot_outs)),
-            n_mit_mot=len(outer_inp_mitmot),
-            n_mit_mot_outs=n_mitmot_outs,
-            mit_mot_out_slices=tuple(tuple(v) for v in mitmot_out_taps),
-            n_sit_sot=n_sitsot_outs,
-            n_shared_outs=0,
             n_nit_sot=n_nit_sot,
+            n_shared_outs=0,
             n_non_seqs=len(self.outer_shared(inputs))
             + len(self.outer_non_seqs(inputs)),
             as_while=False,
@@ -3279,15 +3289,11 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
         out_info = ScanInfo(
             n_seqs=info.n_seqs * 2,
             mit_mot_in_slices=new_mit_mot_in_slices,
+            mit_mot_out_slices=tuple(tuple(v) for v in info.mit_mot_out_slices) * 2,
             mit_sot_in_slices=new_mit_sot_in_slices,
             sit_sot_in_slices=new_sit_sot_in_slices,
-            n_mit_sot=info.n_mit_sot * 2,
-            n_sit_sot=info.n_sit_sot * 2,
-            n_mit_mot=info.n_mit_mot * 2,
             n_nit_sot=info.n_nit_sot * 2,
             n_shared_outs=info.n_shared_outs,
-            n_mit_mot_outs=n_mit_mot_outs * 2,
-            mit_mot_out_slices=tuple(tuple(v) for v in info.mit_mot_out_slices) * 2,
             n_non_seqs=len(inner_other),
             as_while=info.as_while,
         )

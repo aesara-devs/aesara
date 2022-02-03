@@ -688,7 +688,6 @@ def scan(
 
     # MIT_MOT -- not provided by the user only by the grad function
     n_mit_mot = 0
-    n_mit_mot_outs = 0
     mit_mot_scan_inputs = []
     mit_mot_inner_inputs = []
     mit_mot_inner_outputs = []
@@ -1129,13 +1128,9 @@ def scan(
     info = ScanInfo(
         n_seqs=n_seqs,
         mit_mot_in_slices=(),
+        mit_mot_out_slices=tuple(tuple(v) for v in mit_mot_out_slices),
         mit_sot_in_slices=tuple(tuple(v) for v in mit_sot_tap_array),
         sit_sot_in_slices=tuple((-1,) for x in range(n_sit_sot)),
-        n_mit_mot=n_mit_mot,
-        n_mit_mot_outs=n_mit_mot_outs,
-        mit_mot_out_slices=tuple(tuple(v) for v in mit_mot_out_slices),
-        n_mit_sot=n_mit_sot,
-        n_sit_sot=n_sit_sot,
         n_shared_outs=n_shared_outs,
         n_nit_sot=n_nit_sot,
         n_non_seqs=len(other_shared_inner_args) + len(other_inner_args),
