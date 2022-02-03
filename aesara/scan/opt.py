@@ -1790,17 +1790,13 @@ class ScanMerge(GlobalOptimizer):
                     new_inner_outs += inner_outs[idx][gr_idx]
 
         info = ScanInfo(
+            n_seqs=sum([nd.op.n_seqs for nd in nodes]),
             mit_mot_in_slices=mit_mot_in_slices,
+            mit_mot_out_slices=mit_mot_out_slices,
             mit_sot_in_slices=mit_sot_in_slices,
             sit_sot_in_slices=sit_sot_in_slices,
-            n_seqs=sum([nd.op.n_seqs for nd in nodes]),
-            n_mit_mot=sum([nd.op.n_mit_mot for nd in nodes]),
-            n_mit_mot_outs=sum([nd.op.n_mit_mot_outs for nd in nodes]),
-            mit_mot_out_slices=mit_mot_out_slices,
-            n_mit_sot=sum([nd.op.n_mit_sot for nd in nodes]),
-            n_sit_sot=sum([nd.op.n_sit_sot for nd in nodes]),
-            n_shared_outs=sum([nd.op.n_shared_outs for nd in nodes]),
             n_nit_sot=sum([nd.op.n_nit_sot for nd in nodes]),
+            n_shared_outs=sum([nd.op.n_shared_outs for nd in nodes]),
             n_non_seqs=n_non_seqs,
             as_while=as_while,
         )
@@ -2216,7 +2212,6 @@ def push_out_dot1_scan(fgraph, node):
                         op.info,
                         sit_sot_in_slices=op.info.sit_sot_in_slices[:idx]
                         + op.info.sit_sot_in_slices[idx + 1 :],
-                        n_sit_sot=op.info.n_sit_sot - 1,
                         n_nit_sot=op.info.n_nit_sot + 1,
                     )
                     inner_sitsot = inner_sitsot[:idx] + inner_sitsot[idx + 1 :]

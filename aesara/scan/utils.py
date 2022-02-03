@@ -553,17 +553,13 @@ def compress_outs(op, not_required, inputs):
     from aesara.scan.op import ScanInfo
 
     info = ScanInfo(
+        n_seqs=op.info.n_seqs,
         mit_mot_in_slices=(),
+        mit_mot_out_slices=(),
         mit_sot_in_slices=(),
         sit_sot_in_slices=(),
-        n_seqs=op.info.n_seqs,
-        n_mit_mot=0,
-        n_mit_mot_outs=0,
-        mit_mot_out_slices=(),
-        n_mit_sot=0,
-        n_sit_sot=0,
-        n_shared_outs=0,
         n_nit_sot=0,
+        n_shared_outs=0,
         n_non_seqs=0,
         as_while=op.info.as_while,
     )
@@ -584,7 +580,6 @@ def compress_outs(op, not_required, inputs):
             curr_pos += 1
             info = dataclasses.replace(
                 info,
-                n_mit_mot=info.n_mit_mot + 1,
                 mit_mot_in_slices=info.mit_mot_in_slices + (op.mit_mot_in_slices[idx],),
                 mit_mot_out_slices=info.mit_mot_out_slices
                 + (op.mit_mot_out_slices[idx],),
@@ -603,7 +598,6 @@ def compress_outs(op, not_required, inputs):
             o_offset += len(op.mit_mot_out_slices[idx])
             i_offset += len(op.mit_mot_in_slices[idx])
 
-    info = dataclasses.replace(info, n_mit_mot_outs=len(op_outputs))
     offset += op.n_mit_mot
     ni_offset += op.n_mit_mot
 
@@ -613,7 +607,6 @@ def compress_outs(op, not_required, inputs):
             curr_pos += 1
             info = dataclasses.replace(
                 info,
-                n_mit_sot=info.n_mit_sot + 1,
                 mit_sot_in_slices=info.mit_sot_in_slices + (op.mit_sot_in_slices[idx],),
             )
             # input taps
@@ -637,7 +630,6 @@ def compress_outs(op, not_required, inputs):
             curr_pos += 1
             info = dataclasses.replace(
                 info,
-                n_sit_sot=info.n_sit_sot + 1,
                 sit_sot_in_slices=info.sit_sot_in_slices + (op.sit_sot_in_slices[idx],),
             )
             # input taps
@@ -885,15 +877,11 @@ class ScanArgs:
         info = ScanInfo(
             n_seqs=0,
             mit_mot_in_slices=(),
+            mit_mot_out_slices=(),
             mit_sot_in_slices=(),
             sit_sot_in_slices=(),
-            n_mit_mot=0,
-            n_mit_sot=0,
-            n_sit_sot=0,
             n_nit_sot=0,
             n_shared_outs=0,
-            n_mit_mot_outs=0,
-            mit_mot_out_slices=(),
             n_non_seqs=0,
             as_while=False,
         )
@@ -988,17 +976,13 @@ class ScanArgs:
         from aesara.scan.op import ScanInfo
 
         return ScanInfo(
+            n_seqs=len(self.outer_in_seqs),
             mit_mot_in_slices=tuple(tuple(v) for v in self.mit_mot_in_slices),
+            mit_mot_out_slices=tuple(self.mit_mot_out_slices),
             mit_sot_in_slices=tuple(tuple(v) for v in self.mit_sot_in_slices),
             sit_sot_in_slices=((-1,),) * len(self.inner_in_sit_sot),
-            n_seqs=len(self.outer_in_seqs),
-            n_mit_mot=len(self.outer_in_mit_mot),
-            n_mit_sot=len(self.outer_in_mit_sot),
-            n_sit_sot=len(self.outer_in_sit_sot),
             n_nit_sot=len(self.outer_in_nit_sot),
             n_shared_outs=len(self.outer_in_shared),
-            n_mit_mot_outs=sum(len(s) for s in self.mit_mot_out_slices),
-            mit_mot_out_slices=tuple(self.mit_mot_out_slices),
             n_non_seqs=len(self.inner_in_non_seqs),
             as_while=self.as_while,
         )
