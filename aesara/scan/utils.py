@@ -5,6 +5,7 @@ import dataclasses
 import logging
 import warnings
 from collections import OrderedDict, namedtuple
+from itertools import chain
 from typing import TYPE_CHECKING, Callable, List, Optional, Set, Tuple, Union
 
 import numpy as np
@@ -500,11 +501,12 @@ class Validator:
 
 
 def scan_can_remove_outs(op, out_idxs):
-    """
-    Looks at all outputs defined by indices ``out_idxs`` and see whom can be
-    removed from the scan op without affecting the rest. Return two lists,
-    the first one with the indices of outs that can be removed, the second
-    with the outputs that can not be removed.
+    """Look at all outputs defined by indices ``out_idxs`` and determines which can be removed.
+
+    Returns
+    -------
+    two lists, the first one with the indices of outs that can be removed, the
+    second with the outputs that can not be removed.
 
     """
     non_removable = [o for i, o in enumerate(op.outputs) if i not in out_idxs]
@@ -512,9 +514,10 @@ def scan_can_remove_outs(op, out_idxs):
 
     out_ins = []
     offset = op.n_seqs
-    lim = op.n_mit_mot + op.n_mit_sot + op.n_sit_sot
-    for idx in range(lim):
-        n_ins = len(op.info.tap_array[idx])
+    for idx, tap in enumerate(
+        chain(op.mit_mot_in_slices, op.mit_sot_in_slices, op.sit_sot_in_slices)
+    ):
+        n_ins = len(tap)
         out_ins += [op.inputs[offset : offset + n_ins]]
         offset += n_ins
     out_ins += [[] for k in range(op.n_nit_sot)]
@@ -550,7 +553,9 @@ def compress_outs(op, not_required, inputs):
     from aesara.scan.op import ScanInfo
 
     info = ScanInfo(
-        tap_array=(),
+        mit_mot_in_slices=(),
+        mit_sot_in_slices=(),
+        sit_sot_in_slices=(),
         n_seqs=op.info.n_seqs,
         n_mit_mot=0,
         n_mit_mot_outs=0,
@@ -580,23 +585,24 @@ def compress_outs(op, not_required, inputs):
             info = dataclasses.replace(
                 info,
                 n_mit_mot=info.n_mit_mot + 1,
-                tap_array=info.tap_array + (tuple(op.tap_array[offset + idx]),),
+                mit_mot_in_slices=info.mit_mot_in_slices + (op.mit_mot_in_slices[idx],),
                 mit_mot_out_slices=info.mit_mot_out_slices
-                + (tuple(op.mit_mot_out_slices[offset + idx]),),
+                + (op.mit_mot_out_slices[idx],),
             )
             # input taps
-            for jdx in op.tap_array[offset + idx]:
+            for jdx in op.mit_mot_in_slices[idx]:
                 op_inputs += [op.inputs[i_offset]]
                 i_offset += 1
             # output taps
-            for jdx in op.mit_mot_out_slices[offset + idx]:
+            for jdx in op.mit_mot_out_slices[idx]:
                 op_outputs += [op.outputs[o_offset]]
                 o_offset += 1
             # node inputs
             node_inputs += [inputs[ni_offset + idx]]
         else:
-            o_offset += len(op.mit_mot_out_slices[offset + idx])
-            i_offset += len(op.tap_array[offset + idx])
+            o_offset += len(op.mit_mot_out_slices[idx])
+            i_offset += len(op.mit_mot_in_slices[idx])
+
     info = dataclasses.replace(info, n_mit_mot_outs=len(op_outputs))
     offset += op.n_mit_mot
     ni_offset += op.n_mit_mot
@@ -608,10 +614,10 @@ def compress_outs(op, not_required, inputs):
             info = dataclasses.replace(
                 info,
                 n_mit_sot=info.n_mit_sot + 1,
-                tap_array=info.tap_array + (tuple(op.tap_array[offset + idx]),),
+                mit_sot_in_slices=info.mit_sot_in_slices + (op.mit_sot_in_slices[idx],),
             )
             # input taps
-            for jdx in op.tap_array[offset + idx]:
+            for jdx in op.mit_sot_in_slices[idx]:
                 op_inputs += [op.inputs[i_offset]]
                 i_offset += 1
             # output taps
@@ -621,7 +627,7 @@ def compress_outs(op, not_required, inputs):
             node_inputs += [inputs[ni_offset + idx]]
         else:
             o_offset += 1
-            i_offset += len(op.tap_array[offset + idx])
+            i_offset += len(op.mit_sot_in_slices[idx])
 
     offset += op.n_mit_sot
     ni_offset += op.n_mit_sot
@@ -632,7 +638,7 @@ def compress_outs(op, not_required, inputs):
             info = dataclasses.replace(
                 info,
                 n_sit_sot=info.n_sit_sot + 1,
-                tap_array=info.tap_array + (tuple(op.tap_array[offset + idx]),),
+                sit_sot_in_slices=info.sit_sot_in_slices + (op.sit_sot_in_slices[idx],),
             )
             # input taps
             op_inputs += [op.inputs[i_offset]]
@@ -771,8 +777,9 @@ class ScanArgs:
         n_mit_mot = info.n_mit_mot
         n_mit_sot = info.n_mit_sot
 
-        self.mit_mot_in_slices = info.tap_array[:n_mit_mot]
-        self.mit_sot_in_slices = info.tap_array[n_mit_mot : n_mit_mot + n_mit_sot]
+        self.mit_mot_in_slices = info.mit_mot_in_slices
+        self.mit_sot_in_slices = info.mit_sot_in_slices
+        self.sit_sot_in_slices = info.sit_sot_in_slices
 
         n_mit_mot_ins = sum(len(s) for s in self.mit_mot_in_slices)
         n_mit_sot_ins = sum(len(s) for s in self.mit_sot_in_slices)
@@ -877,9 +884,11 @@ class ScanArgs:
 
         info = ScanInfo(
             n_seqs=0,
+            mit_mot_in_slices=(),
+            mit_sot_in_slices=(),
+            sit_sot_in_slices=(),
             n_mit_mot=0,
             n_mit_sot=0,
-            tap_array=(),
             n_sit_sot=0,
             n_nit_sot=0,
             n_shared_outs=0,
@@ -979,14 +988,12 @@ class ScanArgs:
         from aesara.scan.op import ScanInfo
 
         return ScanInfo(
+            mit_mot_in_slices=tuple(tuple(v) for v in self.mit_mot_in_slices),
+            mit_sot_in_slices=tuple(tuple(v) for v in self.mit_sot_in_slices),
+            sit_sot_in_slices=((-1,),) * len(self.inner_in_sit_sot),
             n_seqs=len(self.outer_in_seqs),
             n_mit_mot=len(self.outer_in_mit_mot),
             n_mit_sot=len(self.outer_in_mit_sot),
-            tap_array=(
-                tuple(tuple(v) for v in self.mit_mot_in_slices)
-                + tuple(tuple(v) for v in self.mit_sot_in_slices)
-                + ((-1,),) * len(self.inner_in_sit_sot)
-            ),
             n_sit_sot=len(self.outer_in_sit_sot),
             n_nit_sot=len(self.outer_in_nit_sot),
             n_shared_outs=len(self.outer_in_shared),

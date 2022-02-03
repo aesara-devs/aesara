@@ -999,15 +999,14 @@ def scan(
     # Step 7. Create the Scan Op
     ##
 
-    tap_array = tuple(tuple(v) for v in mit_sot_tap_array) + tuple(
-        (-1,) for x in range(n_sit_sot)
-    )
     if allow_gc is None:
         allow_gc = config.scan__allow_gc
 
     info = ScanInfo(
-        tap_array=tap_array,
         n_seqs=n_seqs,
+        mit_mot_in_slices=(),
+        mit_sot_in_slices=tuple(tuple(v) for v in mit_sot_tap_array),
+        sit_sot_in_slices=tuple((-1,) for x in range(n_sit_sot)),
         n_mit_mot=n_mit_mot,
         n_mit_mot_outs=n_mit_mot_outs,
         mit_mot_out_slices=tuple(tuple(v) for v in mit_mot_out_slices),
