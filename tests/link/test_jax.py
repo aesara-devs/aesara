@@ -17,6 +17,7 @@ from aesara.graph.op import Op, get_test_value
 from aesara.graph.optdb import OptimizationQuery
 from aesara.ifelse import ifelse
 from aesara.link.jax import JAXLinker
+from aesara.raise_op import assert_op
 from aesara.scalar.basic import Composite
 from aesara.scan.basic import scan
 from aesara.tensor import basic as at
@@ -768,6 +769,17 @@ def test_jax_ifelse():
     x_fg = FunctionGraph([a], [x])  # I.e. False
 
     compare_jax_and_py(x_fg, [get_test_value(i) for i in x_fg.inputs])
+
+
+def test_jax_checkandraise():
+    p = scalar()
+    p.tag.test_value = 0
+
+    res = assert_op(p, p < 1.0)
+    res_fg = FunctionGraph([p], [res])
+
+    with pytest.raises(NotImplementedError):
+        compare_jax_and_py(res_fg, [1.0])
 
 
 def test_jax_CAReduce():
