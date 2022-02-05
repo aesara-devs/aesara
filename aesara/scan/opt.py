@@ -392,8 +392,8 @@ def push_out_non_seq_scan(fgraph, node):
 def push_out_seq_scan(fgraph, node):
     r"""Push out the variables inside the `Scan` that depend only on constants and sequences.
 
-    This optimization resembles `PushOutNonSeqScan` but it tries to push, out of
-    the inner function, the computation that only relies on sequence and
+    This optimization resembles `push_out_non_seq_scan` but it tries to push--out of
+    the inner function--the computation that only relies on sequence and
     non-sequence inputs. The idea behind this optimization is that, when it is
     possible to do so, it is generally more computationally efficient to perform
     a single operation on a large tensor rather then perform that same operation
