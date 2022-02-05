@@ -17,6 +17,7 @@ from typing import (
     Any,
     Callable,
     ClassVar,
+    Collection,
     Dict,
     List,
     Optional,
@@ -47,8 +48,8 @@ if TYPE_CHECKING:
     from aesara.compile.function.types import Function
     from aesara.graph.fg import FunctionGraph
 
-StorageMapType = List[Optional[List[Any]]]
-ComputeMapType = List[bool]
+StorageMapType = Dict[Variable, List[Optional[List[Any]]]]
+ComputeMapType = Dict[Variable, List[bool]]
 OutputStorageType = List[Optional[List[Any]]]
 ParamsInputType = Optional[Tuple[Any]]
 PerformMethodType = Callable[
@@ -613,7 +614,7 @@ class COp(Op, CLinkerOp):
         node: Apply,
         storage_map: StorageMapType,
         compute_map: ComputeMapType,
-        no_recycling: bool,
+        no_recycling: Collection[Apply],
     ) -> ThunkType:
         """Create a thunk for a C implementation.
 
@@ -1073,7 +1074,7 @@ class ExternalCOp(COp):
                     f"No valid section marker was found in file {func_files[i]}"
                 )
 
-    def __get_op_params(self) -> Union[List[Text], List[Tuple[str, Any]]]:
+    def __get_op_params(self) -> List[Tuple[str, Any]]:
         """Construct name, value pairs that will be turned into macros for use within the `Op`'s code.
 
         The names must be strings that are not a C keyword and the
@@ -1089,9 +1090,10 @@ class ExternalCOp(COp):
            associated to ``key``.
 
         """
+        params: List[Tuple[str, Any]] = []
         if hasattr(self, "params_type") and isinstance(self.params_type, ParamsType):
             wrapper = self.params_type
-            params = [("PARAMS_TYPE", wrapper.name)]
+            params.append(("PARAMS_TYPE", wrapper.name))
             for i in range(wrapper.length):
                 c_type = wrapper.types[i].c_element_type()
                 if c_type:
@@ -1105,8 +1107,7 @@ class ExternalCOp(COp):
                             c_type,
                         )
                     )
-            return params
-        return []
+        return params
 
     def c_code_cache_version(self):
         version = (hash(tuple(self.func_codes)),)

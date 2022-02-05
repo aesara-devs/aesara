@@ -48,6 +48,7 @@ dependencies:
   # developer tools
   - pre-commit
   - packaging
+  - typing_extensions
   # optional
   - sympy
   - cython

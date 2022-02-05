@@ -52,6 +52,7 @@ install_requires = [
     "logical-unification",
     "miniKanren",
     "cons",
+    "typing_extensions",
 ]
 
 

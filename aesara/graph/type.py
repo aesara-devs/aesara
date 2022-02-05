@@ -6,6 +6,8 @@ import re
 from abc import abstractmethod
 from typing import Any, Optional, Text, TypeVar, Union
 
+from typing_extensions import TypeAlias
+
 from aesara.graph import utils
 from aesara.graph.basic import Constant, Variable
 from aesara.graph.utils import MetaObject
@@ -33,12 +35,12 @@ class Type(MetaObject):
 
     """
 
-    Variable = Variable
+    Variable: TypeAlias = Variable
     """
     The `Type` that will be created by a call to `Type.make_variable`.
     """
 
-    Constant = Constant
+    Constant: TypeAlias = Constant
     """
     The `Type` that will be created by a call to `Type.make_constant`.
     """
@@ -109,7 +111,7 @@ class Type(MetaObject):
         storage: Any,
         strict: bool = False,
         allow_downcast: Optional[bool] = None,
-    ) -> None:
+    ):
         """Return data or an appropriately wrapped/converted data by converting it in-place.
 
         This method allows one to reuse old allocated memory.  If this method

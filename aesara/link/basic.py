@@ -51,7 +51,7 @@ class Container:
     def __init__(
         self,
         r: MetaObject,
-        storage: Any,
+        storage: List[Any],
         *,
         readonly: bool = False,
         strict: bool = False,

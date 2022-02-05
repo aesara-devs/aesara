@@ -13,7 +13,7 @@ from contextlib import contextmanager
 from copy import copy
 from functools import reduce
 from io import IOBase, StringIO
-from typing import Callable, Dict, Iterable, List, Optional, Union
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
 import numpy as np
 
@@ -168,9 +168,9 @@ def debugprint(
         used_ids = dict()
 
     results_to_print = []
-    profile_list = []
-    order = []  # Toposort
-    smap = []  # storage_map
+    profile_list: List[Optional[Any]] = []
+    order: List[Optional[List[Apply]]] = []  # Toposort
+    smap: List[Optional[StorageMapType]] = []  # storage_map
 
     if isinstance(obj, (list, tuple, set)):
         lobj = obj
@@ -881,8 +881,8 @@ default_printer = DefaultPrinter()
 
 class PPrinter(Printer):
     def __init__(self):
-        self.printers = []
-        self.printers_dict = {}
+        self.printers: List[Tuple[Union[Op, type, Callable], Printer]] = []
+        self.printers_dict: Dict[Union[Op, type, Callable], Printer] = {}
 
     def assign(self, condition: Union[Op, type, Callable], printer: Printer):
         if isinstance(condition, (Op, type)):
@@ -999,7 +999,7 @@ else:
     )
 
 
-pprint = PPrinter()
+pprint: PPrinter = PPrinter()
 pprint.assign(lambda pstate, r: True, default_printer)
 pprint.assign(lambda pstate, r: isinstance(r, Constant), constant_printer)
 
@@ -1705,7 +1705,7 @@ def get_node_by_id(
     if isinstance(graphs, Variable):
         graphs = (graphs,)
 
-    used_ids = dict()
+    used_ids: Dict[Variable, str] = {}
 
     _ = debugprint(graphs, file="str", used_ids=used_ids, ids=ids)
 

@@ -1,5 +1,5 @@
 from copy import copy
-from typing import List, Optional, Sequence, Tuple
+from typing import Optional, Sequence, Tuple, Union
 
 import numpy as np
 
@@ -27,9 +27,9 @@ from aesara.tensor.var import TensorVariable
 def default_supp_shape_from_params(
     ndim_supp: int,
     dist_params: Sequence[Variable],
-    rep_param_idx: Optional[int] = 0,
+    rep_param_idx: int = 0,
     param_shapes: Optional[Sequence[Tuple[ScalarVariable]]] = None,
-) -> Tuple[int, ...]:
+) -> Union[TensorVariable, Tuple[ScalarVariable, ...]]:
     """Infer the dimensions for the output of a `RandomVariable`.
 
     This is a function that derives a random variable's support
@@ -171,10 +171,10 @@ class RandomVariable(Op):
 
     def _infer_shape(
         self,
-        size: Tuple[TensorVariable],
-        dist_params: List[TensorVariable],
-        param_shapes: Optional[List[Tuple[TensorVariable]]] = None,
-    ) -> Tuple[ScalarVariable]:
+        size: TensorVariable,
+        dist_params: Sequence[TensorVariable],
+        param_shapes: Optional[Sequence[Tuple[Variable, ...]]] = None,
+    ) -> Union[TensorVariable, Tuple[ScalarVariable, ...]]:
         """Compute the output shape given the size and distribution parameters.
 
         Parameters

@@ -16,7 +16,7 @@ from aesara.tensor import basic as at
 from aesara.tensor import get_vector_length
 from aesara.tensor.exceptions import NotScalarConstantError
 from aesara.tensor.type import TensorType, int_dtypes, tensor
-from aesara.tensor.var import TensorConstant
+from aesara.tensor.var import TensorConstant, TensorVariable
 
 
 def register_shape_c_code(type, code, version=()):
@@ -155,7 +155,7 @@ def _get_vector_length_Shape(op, var):
     return var.owner.inputs[0].type.ndim
 
 
-def shape_tuple(x: Variable) -> Tuple[Variable]:
+def shape_tuple(x: TensorVariable) -> Tuple[Variable, ...]:
     """Get a tuple of symbolic shape values.
 
     This will return a `ScalarConstant` with the value ``1`` wherever

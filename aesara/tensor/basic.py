@@ -184,7 +184,7 @@ def _as_tensor_bool(x, name, ndim, **kwargs):
 as_tensor = as_tensor_variable
 
 
-def constant(x, name=None, ndim=None, dtype=None):
+def constant(x, name=None, ndim=None, dtype=None) -> TensorConstant:
     """Return a `TensorConstant` with value `x`.
 
     Raises
@@ -795,7 +795,7 @@ register_rebroadcast_c_code(
 
 # to be removed as we get the epydoc routine-documenting thing going
 # -JB 20080924
-def _conversion(real_value, name):
+def _conversion(real_value: Op, name: str) -> Op:
     __oplist_tag(real_value, "casting")
     real_value.__module__ = "tensor.basic"
     pprint.assign(real_value, printing.FunctionPrinter([name]))
@@ -807,46 +807,50 @@ def _conversion(real_value, name):
 # what types you are casting to what.  That logic is implemented by the
 # `cast()` function below.
 
-_convert_to_bool = _conversion(Elemwise(aes.convert_to_bool), "bool")
+_convert_to_bool: Elemwise = _conversion(Elemwise(aes.convert_to_bool), "bool")
 """Cast to boolean"""
 
-_convert_to_int8 = _conversion(Elemwise(aes.convert_to_int8), "int8")
+_convert_to_int8: Elemwise = _conversion(Elemwise(aes.convert_to_int8), "int8")
 """Cast to 8-bit integer"""
 
-_convert_to_int16 = _conversion(Elemwise(aes.convert_to_int16), "int16")
+_convert_to_int16: Elemwise = _conversion(Elemwise(aes.convert_to_int16), "int16")
 """Cast to 16-bit integer"""
 
-_convert_to_int32 = _conversion(Elemwise(aes.convert_to_int32), "int32")
+_convert_to_int32: Elemwise = _conversion(Elemwise(aes.convert_to_int32), "int32")
 """Cast to 32-bit integer"""
 
-_convert_to_int64 = _conversion(Elemwise(aes.convert_to_int64), "int64")
+_convert_to_int64: Elemwise = _conversion(Elemwise(aes.convert_to_int64), "int64")
 """Cast to 64-bit integer"""
 
-_convert_to_uint8 = _conversion(Elemwise(aes.convert_to_uint8), "uint8")
+_convert_to_uint8: Elemwise = _conversion(Elemwise(aes.convert_to_uint8), "uint8")
 """Cast to unsigned 8-bit integer"""
 
-_convert_to_uint16 = _conversion(Elemwise(aes.convert_to_uint16), "uint16")
+_convert_to_uint16: Elemwise = _conversion(Elemwise(aes.convert_to_uint16), "uint16")
 """Cast to unsigned 16-bit integer"""
 
-_convert_to_uint32 = _conversion(Elemwise(aes.convert_to_uint32), "uint32")
+_convert_to_uint32: Elemwise = _conversion(Elemwise(aes.convert_to_uint32), "uint32")
 """Cast to unsigned 32-bit integer"""
 
-_convert_to_uint64 = _conversion(Elemwise(aes.convert_to_uint64), "uint64")
+_convert_to_uint64: Elemwise = _conversion(Elemwise(aes.convert_to_uint64), "uint64")
 """Cast to unsigned 64-bit integer"""
 
-_convert_to_float16 = _conversion(Elemwise(aes.convert_to_float16), "float16")
+_convert_to_float16: Elemwise = _conversion(Elemwise(aes.convert_to_float16), "float16")
 """Cast to half-precision floating point"""
 
-_convert_to_float32 = _conversion(Elemwise(aes.convert_to_float32), "float32")
+_convert_to_float32: Elemwise = _conversion(Elemwise(aes.convert_to_float32), "float32")
 """Cast to single-precision floating point"""
 
-_convert_to_float64 = _conversion(Elemwise(aes.convert_to_float64), "float64")
+_convert_to_float64: Elemwise = _conversion(Elemwise(aes.convert_to_float64), "float64")
 """Cast to double-precision floating point"""
 
-_convert_to_complex64 = _conversion(Elemwise(aes.convert_to_complex64), "complex64")
+_convert_to_complex64: Elemwise = _conversion(
+    Elemwise(aes.convert_to_complex64), "complex64"
+)
 """Cast to single-precision complex"""
 
-_convert_to_complex128 = _conversion(Elemwise(aes.convert_to_complex128), "complex128")
+_convert_to_complex128: Elemwise = _conversion(
+    Elemwise(aes.convert_to_complex128), "complex128"
+)
 """Cast to double-precision complex"""
 
 _cast_mapping = {
@@ -867,7 +871,7 @@ _cast_mapping = {
 }
 
 
-def cast(x, dtype):
+def cast(x, dtype: Union[str, np.dtype]) -> TensorVariable:
     """Symbolically cast `x` to a Tensor of type `dtype`."""
 
     if isinstance(dtype, str) and dtype == "floatX":
