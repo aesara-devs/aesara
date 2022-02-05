@@ -13,7 +13,7 @@ is a global operation with a scalar condition.
 
 import logging
 from copy import deepcopy
-from typing import List, Union
+from typing import List, Sequence, Union
 
 import numpy as np
 
@@ -311,7 +311,7 @@ def ifelse(
     then_branch: Union[Variable, List[Variable]],
     else_branch: Union[Variable, List[Variable]],
     name: str = None,
-) -> Union[Variable, List[Variable]]:
+) -> Union[Variable, Sequence[Variable]]:
     """
     This function corresponds to an if statement, returning (and evaluating)
     inputs in the ``then_branch`` if ``condition`` evaluates to True or
@@ -340,13 +340,13 @@ def ifelse(
 
     Returns
     =======
-        A list of aesara variables or a single variable (depending on the
+        A sequence of aesara variables or a single variable (depending on the
         nature of the ``then_branch`` and ``else_branch``). More exactly if
         ``then_branch`` and ``else_branch`` is a tensor, then
         the return variable will be just a single variable, otherwise a
-        list. The value returns correspond either to the values in the
+        sequence. The value returns correspond either to the values in the
         ``then_branch`` or in the ``else_branch`` depending on the value of
-        ``cond``.
+        ``condition``.
     """
 
     rval_type = None

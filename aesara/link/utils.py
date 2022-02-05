@@ -24,7 +24,7 @@ def map_storage(
     order: Iterable[Apply],
     input_storage: Optional[List],
     output_storage: Optional[List],
-    storage_map: Dict = None,
+    storage_map: Optional[Dict] = None,
 ) -> Tuple[List, List, Dict]:
     """Ensure there is storage (a length-1 list) for inputs, outputs, and interior nodes.
 

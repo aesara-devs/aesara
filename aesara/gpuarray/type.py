@@ -983,7 +983,7 @@ Py_INCREF(%(name)s);
 Instance of :class:`GpuContextType` to use for the context_type
 declaration of an operation.
 """
-gpu_context_type = GpuContextType()
+gpu_context_type: GpuContextType = GpuContextType()
 
 
 # THIS WORKS But GpuArray instances don't compare equal to one

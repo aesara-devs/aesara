@@ -36,6 +36,7 @@ from aesara.gpuarray.type import (
     ContextNotDefined,
     GpuArrayConstant,
     GpuArrayType,
+    GpuContextType,
     get_context,
     gpu_context_type,
 )
@@ -307,7 +308,7 @@ class GpuKernelBase:
 
     """
 
-    params_type: Union[ParamsType, gpu_context_type] = gpu_context_type
+    params_type: Union[ParamsType, GpuContextType] = gpu_context_type
 
     def get_params(self, node):
         # Default implementation, suitable for most sub-classes.

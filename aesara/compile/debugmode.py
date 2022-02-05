@@ -14,6 +14,7 @@ from io import StringIO
 from itertools import chain
 from itertools import product as itertools_product
 from logging import Logger
+from typing import Optional
 from warnings import warn
 
 import numpy as np
@@ -1362,14 +1363,14 @@ class _Linker(LocalLinker):
         self.maker = maker
         super().__init__(scheduler=schedule)
 
-    def accept(self, fgraph, no_recycling=None, profile=None):
+    def accept(self, fgraph, no_recycling: Optional[list] = None, profile=None):
         if no_recycling is None:
             no_recycling = []
         if self.fgraph is not None and self.fgraph is not fgraph:
             assert type(self) is _Linker
             return type(self)(maker=self.maker).accept(fgraph, no_recycling, profile)
         self.fgraph = fgraph
-        self.no_recycling = no_recycling
+        self.no_recycling: list = no_recycling
         return self
 
     def make_all(
@@ -1401,7 +1402,7 @@ class _Linker(LocalLinker):
         # check_preallocated_output even on the output of the function.
         # no_recycling in individual thunks does not really matter, since
         # the function's outputs will always be freshly allocated.
-        no_recycling = []
+        no_recycling: list = []
 
         input_storage, output_storage, storage_map = map_storage(
             fgraph, order, input_storage_, output_storage_, storage_map
@@ -1492,6 +1493,7 @@ class _Linker(LocalLinker):
         # Use self.no_recycling (that was passed in accept()) to always
         # use new memory storage when it is needed, in particular for the
         # function's outputs. no_recycling_map will be used in f() below.
+        no_recycling_map: list = []
         if self.no_recycling is True:
             no_recycling_map = list(storage_map.values())
             no_recycling_map = difference(no_recycling_map, input_storage)

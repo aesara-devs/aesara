@@ -19,6 +19,7 @@ from textwrap import dedent
 from typing import Dict, Mapping, Optional, Tuple, Type, Union
 
 import numpy as np
+from typing_extensions import TypeAlias
 
 import aesara
 from aesara import printing
@@ -104,47 +105,6 @@ def as_common_dtype(*vars):
     """
     dtype = upcast(*[v.dtype for v in vars])
     return (v.astype(dtype) for v in vars)
-
-
-def get_scalar_type(dtype):
-    """
-    Return a Scalar(dtype) object.
-
-    This caches objects to save allocation and run time.
-
-    """
-    if dtype not in get_scalar_type.cache:
-        get_scalar_type.cache[dtype] = Scalar(dtype=dtype)
-    return get_scalar_type.cache[dtype]
-
-
-get_scalar_type.cache = {}
-
-
-def as_scalar(x, name=None):
-    from aesara.tensor.basic import scalar_from_tensor
-    from aesara.tensor.type import TensorType
-
-    if isinstance(x, Apply):
-        if len(x.outputs) != 1:
-            raise ValueError(
-                "It is ambiguous which output of a multi-output"
-                " Op has to be fetched.",
-                x,
-            )
-        else:
-            x = x.outputs[0]
-    if isinstance(x, Variable):
-        if isinstance(x.type, Scalar):
-            return x
-        elif isinstance(x.type, TensorType) and x.ndim == 0:
-            return scalar_from_tensor(x)
-        else:
-            raise TypeError("Variable type field must be a Scalar.", x, x.type)
-    try:
-        return constant(x)
-    except TypeError:
-        raise TypeError(f"Cannot convert {x} to Scalar", type(x))
 
 
 class NumpyAutocaster:
@@ -312,12 +272,6 @@ def convert(x, dtype=None):
                 x_ = np.asarray(x, dtype=config.floatX)
     assert issubclass(type(x_), (np.ndarray, np.memmap))
     return x_
-
-
-def constant(x, name=None, dtype=None):
-    x = convert(x, dtype=dtype)
-    assert x.ndim == 0
-    return ScalarConstant(get_scalar_type(str(x.dtype)), x, name=name)
 
 
 class Scalar(CType):
@@ -722,6 +676,21 @@ class Scalar(CType):
         return shape_info
 
 
+def get_scalar_type(dtype) -> Scalar:
+    """
+    Return a Scalar(dtype) object.
+
+    This caches objects to save allocation and run time.
+
+    """
+    if dtype not in get_scalar_type.cache:
+        get_scalar_type.cache[dtype] = Scalar(dtype=dtype)
+    return get_scalar_type.cache[dtype]
+
+
+get_scalar_type.cache = {}
+
+
 # Register C code for ViewOp on Scalars.
 aesara.compile.register_view_op_c_code(
     Scalar,
@@ -732,30 +701,31 @@ aesara.compile.register_view_op_c_code(
 )
 
 
-bool = get_scalar_type("bool")
-int8 = get_scalar_type("int8")
-int16 = get_scalar_type("int16")
-int32 = get_scalar_type("int32")
-int64 = get_scalar_type("int64")
-uint8 = get_scalar_type("uint8")
-uint16 = get_scalar_type("uint16")
-uint32 = get_scalar_type("uint32")
-uint64 = get_scalar_type("uint64")
-float16 = get_scalar_type("float16")
-float32 = get_scalar_type("float32")
-float64 = get_scalar_type("float64")
-complex64 = get_scalar_type("complex64")
-complex128 = get_scalar_type("complex128")
+bool: Scalar = get_scalar_type("bool")
+int8: Scalar = get_scalar_type("int8")
+int16: Scalar = get_scalar_type("int16")
+int32: Scalar = get_scalar_type("int32")
+int64: Scalar = get_scalar_type("int64")
+uint8: Scalar = get_scalar_type("uint8")
+uint16: Scalar = get_scalar_type("uint16")
+uint32: Scalar = get_scalar_type("uint32")
+uint64: Scalar = get_scalar_type("uint64")
+float16: Scalar = get_scalar_type("float16")
+float32: Scalar = get_scalar_type("float32")
+float64: Scalar = get_scalar_type("float64")
+complex64: Scalar = get_scalar_type("complex64")
+complex128: Scalar = get_scalar_type("complex128")
 
-int_types = int8, int16, int32, int64
-uint_types = uint8, uint16, uint32, uint64
-float_types = float16, float32, float64
-complex_types = complex64, complex128
+_ScalarTypes: TypeAlias = Tuple[Scalar, ...]
+int_types: _ScalarTypes = (int8, int16, int32, int64)
+uint_types: _ScalarTypes = (uint8, uint16, uint32, uint64)
+float_types: _ScalarTypes = (float16, float32, float64)
+complex_types: _ScalarTypes = (complex64, complex128)
 
-integer_types = int_types + uint_types
-discrete_types = (bool,) + integer_types
-continuous_types = float_types + complex_types
-all_types = discrete_types + continuous_types
+integer_types: _ScalarTypes = int_types + uint_types
+discrete_types: _ScalarTypes = (bool,) + integer_types
+continuous_types: _ScalarTypes = float_types + complex_types
+all_types: _ScalarTypes = discrete_types + continuous_types
 
 discrete_dtypes = tuple(t.dtype for t in discrete_types)
 
@@ -883,6 +853,38 @@ class ScalarConstant(ScalarVariable, Constant):
 
 # Register ScalarConstant as the type of Constant corresponding to Scalar
 Scalar.Constant = ScalarConstant
+
+
+def constant(x, name=None, dtype=None) -> ScalarConstant:
+    x = convert(x, dtype=dtype)
+    assert x.ndim == 0
+    return ScalarConstant(get_scalar_type(str(x.dtype)), x, name=name)
+
+
+def as_scalar(x, name=None) -> ScalarConstant:
+    from aesara.tensor.basic import scalar_from_tensor
+    from aesara.tensor.type import TensorType
+
+    if isinstance(x, Apply):
+        if len(x.outputs) != 1:
+            raise ValueError(
+                "It is ambiguous which output of a multi-output"
+                " Op has to be fetched.",
+                x,
+            )
+        else:
+            x = x.outputs[0]
+    if isinstance(x, Variable):
+        if isinstance(x.type, Scalar):
+            return x
+        elif isinstance(x.type, TensorType) and x.ndim == 0:
+            return scalar_from_tensor(x)
+        else:
+            raise TypeError("Variable type field must be a Scalar.", x, x.type)
+    try:
+        return constant(x)
+    except TypeError:
+        raise TypeError(f"Cannot convert {x} to Scalar", type(x))
 
 
 # Easy constructors
@@ -1276,9 +1278,9 @@ class BinaryScalarOp(ScalarOp):
     # One may define in subclasses the following fields:
     #   - `commutative`: whether op(a, b) == op(b, a)
     #   - `associative`: whether op(op(a, b), c) == op(a, op(b, c))
-    commutative: Optional[bool] = None
-    associative: Optional[bool] = None
-    identity: Optional[bool] = None
+    commutative: Optional[builtins.bool] = None
+    associative: Optional[builtins.bool] = None
+    identity: Optional[builtins.bool] = None
     """
     For an associative operation, the identity object corresponds to the neutral
     element. For instance, it will be ``0`` for addition, ``1`` for multiplication,
@@ -2501,20 +2503,20 @@ class Cast(UnaryScalarOp):
             return s
 
 
-convert_to_bool = Cast(bool, name="convert_to_bool")
-convert_to_int8 = Cast(int8, name="convert_to_int8")
-convert_to_int16 = Cast(int16, name="convert_to_int16")
-convert_to_int32 = Cast(int32, name="convert_to_int32")
-convert_to_int64 = Cast(int64, name="convert_to_int64")
-convert_to_uint8 = Cast(uint8, name="convert_to_uint8")
-convert_to_uint16 = Cast(uint16, name="convert_to_uint16")
-convert_to_uint32 = Cast(uint32, name="convert_to_uint32")
-convert_to_uint64 = Cast(uint64, name="convert_to_uint64")
-convert_to_float16 = Cast(float16, name="convert_to_float16")
-convert_to_float32 = Cast(float32, name="convert_to_float32")
-convert_to_float64 = Cast(float64, name="convert_to_float64")
-convert_to_complex64 = Cast(complex64, name="convert_to_complex64")
-convert_to_complex128 = Cast(complex128, name="convert_to_complex128")
+convert_to_bool: Cast = Cast(bool, name="convert_to_bool")
+convert_to_int8: Cast = Cast(int8, name="convert_to_int8")
+convert_to_int16: Cast = Cast(int16, name="convert_to_int16")
+convert_to_int32: Cast = Cast(int32, name="convert_to_int32")
+convert_to_int64: Cast = Cast(int64, name="convert_to_int64")
+convert_to_uint8: Cast = Cast(uint8, name="convert_to_uint8")
+convert_to_uint16: Cast = Cast(uint16, name="convert_to_uint16")
+convert_to_uint32: Cast = Cast(uint32, name="convert_to_uint32")
+convert_to_uint64: Cast = Cast(uint64, name="convert_to_uint64")
+convert_to_float16: Cast = Cast(float16, name="convert_to_float16")
+convert_to_float32: Cast = Cast(float32, name="convert_to_float32")
+convert_to_float64: Cast = Cast(float64, name="convert_to_float64")
+convert_to_complex64: Cast = Cast(complex64, name="convert_to_complex64")
+convert_to_complex128: Cast = Cast(complex128, name="convert_to_complex128")
 
 _cast_mapping = {
     "bool": convert_to_bool,

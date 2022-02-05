@@ -1,7 +1,7 @@
 """A container for specifying and manipulating a graph with distinct inputs and outputs."""
 import time
 from collections import OrderedDict
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, Iterable, List, Optional, Sequence, Set, Tuple, Union
 
 import aesara
 from aesara.configdefaults import config
@@ -47,9 +47,9 @@ class FunctionGraph(MetaObject):
 
     def __init__(
         self,
-        inputs: Optional[List[Variable]] = None,
-        outputs: Optional[List[Variable]] = None,
-        features: Optional[List[Feature]] = None,
+        inputs: Optional[Sequence[Variable]] = None,
+        outputs: Optional[Sequence[Variable]] = None,
+        features: Optional[Sequence[Feature]] = None,
         clone: bool = True,
         update_mapping: Optional[Dict[Variable, Variable]] = None,
         memo: Optional[Dict[Variable, Variable]] = None,
@@ -98,25 +98,25 @@ class FunctionGraph(MetaObject):
             inputs = [memo[i] for i in inputs]
 
         self.execute_callbacks_time = 0
-        self.execute_callbacks_times = {}
+        self.execute_callbacks_times: Dict[Feature, float] = {}
 
         if features is None:
             features = []
 
-        self._features = []
+        self._features: List[Feature] = []
 
         # All apply nodes in the subgraph defined by inputs and
         # outputs are cached in this field
-        self.apply_nodes = set()
+        self.apply_nodes: Set[Apply] = set()
 
         # Ditto for variable nodes.
         # It must contain all fgraph.inputs and all apply_nodes
         # outputs even if they aren't used in the graph.
-        self.variables = set()
+        self.variables: Set[Variable] = set()
 
-        self.inputs = []
-        self.outputs = list(outputs)
-        self.clients = {}
+        self.inputs: List[Variable] = []
+        self.outputs: List[Variable] = list(outputs)
+        self.clients: Dict[Variable, List[Tuple[Union[Apply, str], int]]] = {}
 
         for f in features:
             self.attach_feature(f)
@@ -487,7 +487,7 @@ class FunctionGraph(MetaObject):
                 node, i, new_var, reason=reason, import_missing=import_missing
             )
 
-    def replace_all(self, pairs: List[Tuple[Variable, Variable]], **kwargs) -> None:
+    def replace_all(self, pairs: Iterable[Tuple[Variable, Variable]], **kwargs) -> None:
         """Replace variables in the `FunctionGraph` according to ``(var, new_var)`` pairs in a list."""
         for var, new_var in pairs:
             self.replace(var, new_var, **kwargs)
@@ -604,7 +604,7 @@ class FunctionGraph(MetaObject):
 
         """
         assert isinstance(self._features, list)
-        all_orderings = []
+        all_orderings: List[OrderedDict] = []
 
         for feature in self._features:
             if hasattr(feature, "orderings"):
@@ -630,7 +630,7 @@ class FunctionGraph(MetaObject):
             return all_orderings[0].copy()
         else:
             # If there is more than 1 ordering, combine them.
-            ords = OrderedDict()
+            ords: Dict[Apply, List[Apply]] = OrderedDict()
             for orderings in all_orderings:
                 for node, prereqs in orderings.items():
                     ords.setdefault(node, []).extend(prereqs)
@@ -695,7 +695,7 @@ class FunctionGraph(MetaObject):
 
     def clone_get_equiv(
         self, check_integrity: bool = True, attach_feature: bool = True
-    ) -> Union["FunctionGraph", Dict[Variable, Variable]]:
+    ) -> Tuple["FunctionGraph", Dict[Variable, Variable]]:
         """Clone the graph and return a ``dict`` that maps old nodes to new nodes.
 
         Parameters

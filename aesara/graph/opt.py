@@ -17,7 +17,7 @@ from collections import UserList, defaultdict, deque
 from collections.abc import Iterable
 from functools import partial, reduce
 from itertools import chain
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict, List, Optional, Sequence, Tuple, Union
 
 import aesara
 from aesara.configdefaults import config
@@ -1068,7 +1068,7 @@ class FromFunctionLocalOptimizer(LocalOptimizer):
 
 
 def local_optimizer(
-    tracks: Optional[List[Union[Op, type]]],
+    tracks: Optional[Sequence[Union[Op, type]]],
     inplace: bool = False,
     requirements: Optional[Tuple[type, ...]] = (),
 ):
@@ -1184,7 +1184,10 @@ class LocalOptGroup(LocalOptimizer):
     """
 
     def __init__(
-        self, *optimizers, apply_all_opts: bool = False, profile: bool = False
+        self,
+        *optimizers: Sequence[Rewriter],
+        apply_all_opts: bool = False,
+        profile: bool = False,
     ):
         """
 
@@ -1205,7 +1208,7 @@ class LocalOptGroup(LocalOptimizer):
         if len(optimizers) == 1 and isinstance(optimizers[0], list):
             # This happen when created by LocalGroupDB.
             optimizers = tuple(optimizers[0])
-        self.opts = optimizers
+        self.opts: Sequence[Rewriter] = optimizers
         assert isinstance(self.opts, tuple)
 
         self.reentrant = any(getattr(opt, "reentrant", True) for opt in optimizers)
@@ -1217,10 +1220,10 @@ class LocalOptGroup(LocalOptimizer):
 
         self.profile = profile
         if self.profile:
-            self.time_opts = {}
-            self.process_count = {}
-            self.applied_true = {}
-            self.node_created = {}
+            self.time_opts: Dict[Rewriter, float] = {}
+            self.process_count: Dict[Rewriter, int] = {}
+            self.applied_true: Dict[Rewriter, int] = {}
+            self.node_created: Dict[Rewriter, int] = {}
 
         self.tracker = LocalOptTracker()
 

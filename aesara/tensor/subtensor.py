@@ -135,8 +135,8 @@ def as_index_constant(
 
 
 def as_index_literal(
-    idx: Union[Variable, slice, type(np.newaxis)]
-) -> Union[int, slice, type(np.newaxis)]:
+    idx: Optional[Union[Variable, slice]]
+) -> Optional[Union[int, slice]]:
     """Convert a symbolic index element to its Python equivalent.
 
     This is like the inverse of `as_index_constant`

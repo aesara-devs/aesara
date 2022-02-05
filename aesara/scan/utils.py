@@ -1016,7 +1016,7 @@ class ScanArgs:
 
     def find_among_fields(
         self, i: Variable, field_filter: Callable[[str], bool] = default_filter
-    ) -> Optional[Tuple[str, int, int, int]]:
+    ) -> Optional[FieldInfo]:
         """Find the type and indices of the field containing a given element.
 
         NOTE: This only returns the *first* field containing the given element.
@@ -1158,14 +1158,14 @@ class ScanArgs:
 
     def remove_from_fields(
         self, i: Variable, rm_dependents: bool = True
-    ) -> List[FieldInfo]:
+    ) -> List[Tuple[Variable, Optional[FieldInfo]]]:
 
         if rm_dependents:
             vars_to_remove = self.get_dependent_nodes(i) | {i}
         else:
             vars_to_remove = {i}
 
-        rm_info = []
+        rm_info: List[Tuple[Variable, Optional[FieldInfo]]] = []
         for v in vars_to_remove:
             dependent_rm_info = self._remove_from_fields(v)
             rm_info.append((v, dependent_rm_info))

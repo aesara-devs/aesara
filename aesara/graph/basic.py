@@ -104,7 +104,7 @@ class Apply(Node):
 
         """
         self.op = op
-        self.inputs = []
+        self.inputs: List[Variable] = []
         self.tag = Scratchpad()
 
         if not isinstance(inputs, (list, tuple)):
@@ -121,7 +121,7 @@ class Apply(Node):
                 raise TypeError(
                     f"The 'inputs' argument to Apply must contain Variable instances, not {input}"
                 )
-        self.outputs = []
+        self.outputs: List[Variable] = []
         # filter outputs to make sure each element is a Variable
         for i, output in enumerate(outputs):
             if isinstance(output, Variable):
@@ -630,7 +630,7 @@ def walk(
     bfs: bool = True,
     return_children: bool = False,
     hash_fn: Callable[[T], Hashable] = id,
-) -> Generator[T, None, Dict[T, List[T]]]:
+) -> Generator[Union[T, Tuple[T, Optional[Sequence[T]]]], None, None]:
     """Walk through a graph, either breadth- or depth-first.
 
     Parameters
@@ -870,7 +870,7 @@ def clone_get_equiv(
     copy_inputs: bool = True,
     copy_orphans: bool = True,
     memo: Optional[Dict[Variable, Variable]] = None,
-):
+) -> Dict[Variable, Variable]:
     """
     Return a dictionary that maps from `Variable` and `Apply` nodes in the
     original graph to a new node (a clone) in a new graph.
@@ -1050,7 +1050,7 @@ def general_toposort(
     if deps_cache is None:
         raise ValueError("deps_cache cannot be None")
 
-    search_res: List[T, Optional[List[T]]] = list(
+    search_res: List[Tuple[T, Optional[List[T]]]] = list(
         walk(outputs, compute_deps_cache, bfs=False, return_children=True)
     )
 
@@ -1088,8 +1088,8 @@ def general_toposort(
 
 
 def io_toposort(
-    inputs: List[Variable],
-    outputs: List[Variable],
+    inputs: Iterable[Variable],
+    outputs: Iterable[Variable],
     orderings: Optional[Dict[Apply, List[Apply]]] = None,
     clients: Optional[Dict[Variable, List[Variable]]] = None,
 ) -> List[Apply]:
@@ -1586,7 +1586,7 @@ def equal_computations(xs, ys, in_xs=None, in_ys=None):
 
 def get_var_by_name(
     graphs: Iterable[Variable], target_var_id: str, ids: str = "CHAR"
-) -> Tuple[Variable]:
+) -> Tuple[Variable, ...]:
     r"""Get variables in a graph using their names.
 
     Parameters
@@ -1613,7 +1613,7 @@ def get_var_by_name(
 
             return res
 
-    results = ()
+    results: Tuple[Variable, ...] = ()
     for var in walk(graphs, expand, False):
         if target_var_id == var.name or target_var_id == var.auto_name:
             results += (var,)

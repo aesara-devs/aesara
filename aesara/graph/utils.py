@@ -3,10 +3,12 @@ import sys
 import traceback
 from abc import ABCMeta
 from io import StringIO
-from typing import List
+from typing import List, Optional, Sequence, Tuple
 
 
-def simple_extract_stack(f=None, limit=None, skips=None):
+def simple_extract_stack(
+    f=None, limit: Optional[int] = None, skips: Optional[Sequence[str]] = None
+) -> List[Tuple[Optional[str], int, str, str]]:
     """This is traceback.extract_stack from python 2.7 with this change:
 
     - Comment the update of the cache.
@@ -33,7 +35,7 @@ def simple_extract_stack(f=None, limit=None, skips=None):
     if limit is None:
         if hasattr(sys, "tracebacklimit"):
             limit = sys.tracebacklimit
-    trace = []
+    trace: List[Tuple[Optional[str], int, str, str]] = []
     n = 0
     while f is not None and (limit is None or n < limit):
         lineno = f.f_lineno
@@ -67,7 +69,7 @@ def simple_extract_stack(f=None, limit=None, skips=None):
     return trace
 
 
-def add_tag_trace(thing, user_line=None):
+def add_tag_trace(thing, user_line: Optional[int] = None):
     """Add tag.trace to a node or variable.
 
     The argument is returned after being affected (inplace).

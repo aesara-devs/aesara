@@ -9,7 +9,7 @@ from aesara.graph.op import Op
 
 def as_tensor_variable(
     x: Any, name: Optional[str] = None, ndim: Optional[int] = None, **kwargs
-) -> Variable:
+) -> "TensorVariable":
     """Convert `x` into an equivalent `TensorVariable`.
 
     This function can be used to turn ndarrays, numbers, `Scalar` instances,
@@ -45,7 +45,7 @@ def as_tensor_variable(
 @singledispatch
 def _as_tensor_variable(
     x, name: Optional[str], ndim: Optional[int], **kwargs
-) -> NoReturn:
+) -> "TensorVariable":
     raise NotImplementedError(f"Cannot convert {x} to a tensor variable.")
 
 
@@ -80,7 +80,7 @@ def get_vector_length(v: Any):
 
 
 @singledispatch
-def _get_vector_length(op: Union[Op, Variable], var: Variable) -> NoReturn:
+def _get_vector_length(op: Union[Op, Variable], var: Variable):
     """`Op`-based dispatch for `get_vector_length`."""
     raise ValueError(f"Length of {var} cannot be determined")
 

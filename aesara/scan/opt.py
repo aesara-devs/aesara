@@ -683,7 +683,7 @@ def push_out_inner_vars(
     outer_vars = [None] * len(inner_vars)
     new_scan_node = old_scan_node
     new_scan_args = old_scan_args
-    replacements = {}
+    replacements: Dict[Variable, Variable] = {}
 
     # For the inner_vars that already exist in the outer graph,
     # simply obtain a reference to them

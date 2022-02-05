@@ -1,6 +1,7 @@
 from collections.abc import Sequence
 from functools import wraps
 from itertools import zip_longest
+from typing import Optional, Union
 
 import numpy as np
 
@@ -111,7 +112,9 @@ def broadcast_params(params, ndims_params):
     return bcast_params
 
 
-def normalize_size_param(size):
+def normalize_size_param(
+    size: Optional[Union[int, np.ndarray, Variable, Sequence]]
+) -> Variable:
     """Create an Aesara value for a ``RandomVariable`` ``size`` parameter."""
     if size is None:
         size = constant([], dtype="int64")
