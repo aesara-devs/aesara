@@ -124,6 +124,7 @@ def _as_symbolic(x, **kwargs) -> Variable:
 
 # isort: off
 from aesara import scalar, tensor
+from aesara.tensor import get_constant_value
 from aesara.compile import (
     In,
     Mode,

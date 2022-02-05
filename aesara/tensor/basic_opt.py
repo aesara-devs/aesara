@@ -942,7 +942,7 @@ class ShapeFeature(features.Feature):
         else:
             # Do not call make_node for test_value
             s = Shape_i(i)(r)
-            s = get_constant_value(s)
+            s = get_constant_value(s, return_val=True)
             return s
 
     def shape_tuple(self, r):

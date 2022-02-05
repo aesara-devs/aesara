@@ -56,7 +56,7 @@ from aesara.tensor.type import (
     uint_dtypes,
     values_eq_approx_always_true,
 )
-from aesara.tensor.var import TensorConstant, TensorVariable, get_unique_value
+from aesara.tensor.var import TensorConstant, TensorVariable
 
 
 _logger = logging.getLogger("aesara.tensor.basic")
@@ -294,7 +294,11 @@ def get_constant_value(v, eval_graph=False, as_numpy_objects=True, return_val=Fa
         should be the initial value or not.
 
     """
-    v = as_tensor_variable(v)
+    if v is None:
+        return None
+    else:
+        v = as_tensor_variable(v)
+
     if eval_graph and not isinstance(v, Constant) and v.owner is not None:
         from aesara.graph.opt_utils import optimize_graph
 
@@ -302,12 +306,15 @@ def get_constant_value(v, eval_graph=False, as_numpy_objects=True, return_val=Fa
         optimize_graph(v_fgraph_clone)
         v = v_fgraph_clone.outputs[0]
 
+    if v.owner and isinstance(v.owner.op, TensorFromScalar):
+        v = v.owner.inputs[0]
+
     if not isinstance(v, Constant):
         if return_val:
             return v
         return None
     else:
-        unique_value = get_unique_value(v)
+        unique_value = v.data
         if not as_numpy_objects:
             unique_value = unique_value.tolist()
         return unique_value

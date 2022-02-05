@@ -158,7 +158,10 @@ def local_0_dot_x(fgraph, node):
     y = node.inputs[1]
     replace = False
 
-    if get_constant_value(x) == 0 and get_constant_value(y) == 0:
+    if (
+        get_constant_value(x, as_numpy_objects=False) == 0
+        and get_constant_value(y, as_numpy_objects=False) == 0
+    ):
         replace = True
 
     if replace:
