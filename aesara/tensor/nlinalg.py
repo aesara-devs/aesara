@@ -118,6 +118,7 @@ class MatrixInverse(Op):
 
     def make_node(self, x):
         x = as_tensor_variable(x)
+        assert x.ndim >= 2
         return Apply(self, [x], [x.type()])
 
     def perform(self, node, inputs, outputs):
