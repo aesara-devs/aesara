@@ -103,8 +103,13 @@ def exec_multilayer_conv_nnet_old(
         outval = np.zeros(np.r_[bsize, outshp])
         if validate:
             # causes an atexit problem
-            from scipy.signal.signaltools import _bvalfromboundary, _valfrommode
-            from scipy.signal.sigtools import _convolve2d
+
+            try:
+                from scipy.signal.signaltools import _bvalfromboundary, _valfrommode
+                from scipy.signal.sigtools import _convolve2d
+            except ImportError:
+                from scipy.signal._signaltools import _bvalfromboundary, _valfrommode
+                from scipy.signal._sigtools import _convolve2d
 
             val = _valfrommode(conv_mode)
             bval = _bvalfromboundary("fill")

@@ -46,7 +46,7 @@ CLASSIFIERS = [_f for _f in CLASSIFIERS.split("\n") if _f]
 
 install_requires = [
     "numpy>=1.17.0",
-    "scipy>=0.14,<1.8.0",
+    "scipy>=0.14",
     "filelock",
     "etuples",
     "logical-unification",
