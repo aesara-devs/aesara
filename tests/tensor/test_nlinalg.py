@@ -75,9 +75,10 @@ class TestMatrixInverse(utt.InferShapeTester):
         self.op = matrix_inverse
         self.rng = np.random.default_rng(utt.fetch_seed())
 
-    def test_inverse_correctness(self):
+    @pytest.mark.parametrize("shape", [(4, 4), (3, 4, 4), (1, 1, 1)])
+    def test_inverse_correctness(self, shape):
 
-        r = self.rng.standard_normal((4, 4)).astype(config.floatX)
+        r = self.rng.standard_normal(shape).astype(config.floatX)
 
         x = matrix()
         xi = self.op(x)
@@ -86,11 +87,13 @@ class TestMatrixInverse(utt.InferShapeTester):
         assert ri.shape == r.shape
         assert ri.dtype == r.dtype
 
-        rir = np.dot(ri, r)
-        rri = np.dot(r, ri)
+        rir = ri * r
+        rri = r * ri
 
-        assert _allclose(np.identity(4), rir), rir
-        assert _allclose(np.identity(4), rri), rri
+        event_shape = shape[-1]
+        identity = np.broadcast_to(np.identity(event_shape), shape)
+        assert _allclose(identity, rir), rir
+        assert _allclose(identity, rri), rri
 
     def test_infer_shape(self):
 
