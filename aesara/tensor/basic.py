@@ -2022,7 +2022,7 @@ class Join(COp):
             ndim = len(bcastable)
 
             if not isinstance(axis, int):
-                axis = get_constant_value(axis, as_numpy_objects=False)
+                axis = get_constant_value(axis, as_numpy_objects=False, return_val=True)
 
             if isinstance(axis, int):
                 # Basically, broadcastable -> length 1, but the

@@ -3365,16 +3365,11 @@ class TestGetScalarConstantValue:
         v = row()
         assert get_constant_value(v.shape[0], eval_graph=True) == 1
 
-        res = at.get_constant_value(at.as_tensor([10, 20]).shape[0])
+        res = at.get_constant_value(at.as_tensor([10, 20]).shape[0], eval_graph=True)
         assert isinstance(res, np.ndarray)
         assert 2 == res
 
-        res = at.get_constant_value(
-            9 + at.as_tensor([1.0]).shape[0],
-            elemwise=True,
-            only_process_constants=False,
-            max_recur=9,
-        )
+        res = at.get_constant_value(9 + at.as_tensor([1.0]).shape[0], eval_graph=True)
         assert isinstance(res, np.ndarray)
         assert 10 == res
 

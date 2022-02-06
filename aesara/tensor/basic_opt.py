@@ -2479,7 +2479,7 @@ def local_useless_switch(fgraph, node):
     """
     if isinstance(node.op, Elemwise) and isinstance(node.op.scalar_op, aes.Switch):
 
-        cond = get_constant_value(node.inputs[0])
+        cond = get_constant_value(node.inputs[0], return_val=True)
 
         if (isinstance(cond, np.ndarray) and cond.ndim == 0) or isinstance(
             cond, (np.number, np.bool_)
@@ -2583,7 +2583,7 @@ def local_useless_tile(fgraph, node):
     being 1.
 
     """
-    a = get_constant_value(node.inputs[1])
+    a = get_constant_value(node.inputs[1], as_numpy_objects=False)
     if a == 1:
         try:
             l = get_vector_length(node.inputs[1])

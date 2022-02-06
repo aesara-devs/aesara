@@ -1357,21 +1357,6 @@ def local_useless_elemwise_comparison(fgraph, node):
         elif isinstance(node.op, MakeVector):
             return all(v.owner and investigate(v.owner) for v in node.inputs)
 
-    if (
-        isinstance(node.op.scalar_op, aes.EQ)
-        and node.inputs[0].owner
-        and investigate(node.inputs[0].owner)
-    ):
-        cst = get_constant_value(node.inputs[1])
-
-        res = zeros_like(node.inputs[0], dtype=dtype, opt=True)
-
-        if cst < 0:
-            # Copy over stacktrace from previous output.
-            copy_stack_trace(node.outputs, res)
-
-            return [res]
-
     return
 
 
@@ -1758,7 +1743,7 @@ def local_mul_zero(fgraph, node):
         otype = node.outputs[0].type
 
         for i in node.inputs:
-            value = get_constant_value(i)
+            value = get_constant_value(i, as_numpy_objects=False)
 
             # print 'MUL by value', value, node.inputs
             if value == 0:
