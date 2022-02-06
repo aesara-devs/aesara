@@ -13,8 +13,14 @@ import logging
 import warnings
 
 import numpy as np
-from scipy.signal.signaltools import _bvalfromboundary, _valfrommode
-from scipy.signal.sigtools import _convolve2d
+
+
+try:
+    from scipy.signal.signaltools import _bvalfromboundary, _valfrommode
+    from scipy.signal.sigtools import _convolve2d
+except ImportError:
+    from scipy.signal._signaltools import _bvalfromboundary, _valfrommode
+    from scipy.signal._sigtools import _convolve2d
 
 import aesara
 from aesara.graph.basic import Apply
