@@ -9,8 +9,7 @@ from aesara.graph.basic import Apply
 from aesara.graph.op import Op
 from aesara.tensor import basic as at
 from aesara.tensor import math as tm
-from aesara.tensor import swapaxes
-from aesara.tensor.basic import as_tensor_variable, extract_diag
+from aesara.tensor.basic import as_tensor_variable, extract_diag, swapaxes
 from aesara.tensor.type import dvector, lscalar, matrix, scalar, vector
 
 
