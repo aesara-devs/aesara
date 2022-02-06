@@ -21,7 +21,7 @@ dependencies:
   - mkl-service
   - libblas=*=*mkl
   # numba backend
-  - numba
+  - numba>=0.55
   - numba-scipy
   # GPU
   - libgpuarray

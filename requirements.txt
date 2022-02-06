@@ -13,7 +13,7 @@ sympy
 versioneer
 jax
 jaxlib
-numba
+numba>=0.55
 numba-scipy>=0.3.0
 diff-cover
 pre-commit
