@@ -7,7 +7,6 @@ black>=20.8b1
 pytest-cov>=2.6.1
 coverage>=5.1
 pytest
-coveralls
 cython
 sympy
 versioneer
