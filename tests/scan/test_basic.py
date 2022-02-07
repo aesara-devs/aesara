@@ -29,8 +29,9 @@ from aesara.compile.sharedvalue import shared
 from aesara.configdefaults import config
 from aesara.gradient import NullTypeGradError, Rop, disconnected_grad, grad, hessian
 from aesara.graph.basic import Apply, ancestors
-from aesara.graph.fg import MissingInputError
+from aesara.graph.fg import FunctionGraph, MissingInputError
 from aesara.graph.op import Op
+from aesara.graph.opt import MergeOptimizer
 from aesara.misc.safe_asarray import _asarray
 from aesara.raise_op import assert_op
 from aesara.scan.basic import scan
@@ -743,6 +744,27 @@ class TestScan:
         scan2, updates = scan(lambda _x: _x + 1, y)
         assert scan1.owner.op == scan2.owner.op
         assert hash(scan1.owner.op) == hash(scan2.owner.op)
+
+    def test_can_merge(self):
+        """Make sure that equivalent `Scan` nodes can be merged."""
+
+        x = vector("x")
+        y = vector("y")
+        c = scalar("c")
+
+        scan_a, _ = scan(lambda x, y, c: x + y + c, sequences=[x, y], non_sequences=[c])
+        scan_b, _ = scan(lambda x, y, c: x + y + c, sequences=[x, y], non_sequences=[c])
+        scan_c, _ = scan(lambda x, y, c: x + y + c, sequences=[y, x], non_sequences=[c])
+
+        assert scan_b is not scan_a
+        assert scan_c is not scan_a
+
+        g = FunctionGraph([x, y, c], [2 * scan_a, 2 * scan_b, 2 * scan_c], clone=False)
+        MergeOptimizer().optimize(g)
+        scan_a_out, scan_b_out, scan_c_out = g.outputs
+
+        assert scan_a_out is scan_b_out
+        assert scan_c_out is not scan_a_out
 
     def test_using_negative_taps_sequence(self):
         # This test refers to a bug reported on github on May 22 2015 by
