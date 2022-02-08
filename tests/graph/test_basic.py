@@ -102,16 +102,13 @@ class MyInnerGraphOp(Op, HasInnerGraph):
     def perform(self, *args, **kwargs):
         raise NotImplementedError("No Python implementation available.")
 
-    @property
-    def fn(self):
+    def fn(self, node_inputs):
         raise NotImplementedError("No Python implementation available.")
 
-    @property
-    def inner_inputs(self):
+    def inner_inputs(self, node_inputs):
         return self._inner_inputs
 
-    @property
-    def inner_outputs(self):
+    def inner_outputs(self, node_inputs):
         return self._inner_outputs
 
 

@@ -273,8 +273,8 @@ N.B.:
                 inner_inputs = inner_fn.maker.fgraph.inputs
                 inner_outputs = inner_fn.maker.fgraph.outputs
             else:
-                inner_inputs = s.owner.op.inner_inputs
-                inner_outputs = s.owner.op.inner_outputs
+                inner_inputs = s.owner.op.inner_inputs(s.owner.inputs)
+                inner_outputs = s.owner.op.inner_outputs(s.owner.inputs)
 
             outer_inputs = s.owner.inputs
 
@@ -1434,23 +1434,25 @@ def pydotprint(
         outfile += "." + format
 
     if scan_graphs:
-        scan_ops = [(idx, x) for idx, x in enumerate(topo) if isinstance(x.op, Scan)]
+        scan_nodes = [(idx, x) for idx, x in enumerate(topo) if isinstance(x.op, Scan)]
         path, fn = os.path.split(outfile)
         basename = ".".join(fn.split(".")[:-1])
         # Safe way of doing things .. a file name may contain multiple .
         ext = fn[len(basename) :]
 
-        for idx, scan_op in scan_ops:
+        for idx, scan_node in scan_nodes:
             # is there a chance that name is not defined?
-            if hasattr(scan_op.op, "name"):
-                new_name = basename + "_" + scan_op.op.name + "_" + str(idx)
+            if hasattr(scan_node.op, "name"):
+                new_name = basename + "_" + scan_node.op.name + "_" + str(idx)
             else:
                 new_name = basename + "_" + str(idx)
             new_name = os.path.join(path, new_name + ext)
-            if hasattr(scan_op.op, "_fn"):
-                to_print = scan_op.op.fn
+
+            if hasattr(scan_node.op, "_fn"):
+                to_print = scan_node.op.fn(scan_node.inputs)
             else:
-                to_print = scan_op.op.outputs
+                to_print = scan_node.op.inner_outputs(scan_node.inputs)
+
             pydotprint(
                 to_print,
                 new_name,

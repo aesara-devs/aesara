@@ -594,14 +594,12 @@ class HasInnerGraph:
     def fn(self) -> "Function":
         """The inner function."""
 
-    @property
     @abstractmethod
-    def inner_inputs(self) -> List[Variable]:
+    def inner_inputs(self, node_inputs: List[Variable]) -> List[Variable]:
         """The inner function's inputs."""
 
-    @property
     @abstractmethod
-    def inner_outputs(self) -> List[Variable]:
+    def inner_outputs(self, node_inputs: List[Variable]) -> List[Variable]:
         """The inner function's outputs."""
 
 

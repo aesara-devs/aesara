@@ -318,8 +318,9 @@ class TestScan:
         scan_node = scan_node[0]
 
         # Make sure they start out as None
-        assert all(i.value is None for i in scan_node.op.fn.input_storage)
-        assert all(o.value is None for o in scan_node.op.fn.output_storage)
+        fn = scan_node.op.fn(scan_node.inputs)
+        assert all(i.value is None for i in fn.input_storage)
+        assert all(o.value is None for o in fn.output_storage)
 
         rng = np.random.default_rng(utt.fetch_seed())
         state = rng.uniform()
@@ -328,8 +329,9 @@ class TestScan:
         f(state, steps)
 
         # And that they stay that way
-        assert all(i.value is None for i in scan_node.op.fn.input_storage)
-        assert all(o.value is None for o in scan_node.op.fn.output_storage)
+        fn = scan_node.op.fn(scan_node.inputs)
+        assert all(i.value is None for i in fn.input_storage)
+        assert all(o.value is None for o in fn.output_storage)
 
     @pytest.mark.parametrize("mode", [Mode(linker="py"), Mode(linker="cvm")])
     @pytest.mark.parametrize(
@@ -2595,7 +2597,7 @@ def test_profile_info():
     z, updates = scan(fn=lambda u: u + 1, sequences=[at.arange(10)], profile=True)
 
     assert isinstance(z.owner.op, Scan)
-    fn = z.owner.op.fn
+    fn = z.owner.op.fn(z.owner.inputs)
 
     assert isinstance(fn.profile, ScanProfileStats)
     assert fn.profile.name == "scan_fn"
@@ -2606,7 +2608,7 @@ def test_profile_info():
     )
 
     assert isinstance(z.owner.op, Scan)
-    fn = z.owner.op.fn
+    fn = z.owner.op.fn(z.owner.inputs)
 
     assert isinstance(fn.profile, ScanProfileStats)
     assert fn.profile.name == "profile_name"
@@ -2616,7 +2618,7 @@ def test_profile_info():
     z, updates = scan(fn=lambda u: u + 1, sequences=[at.arange(10)], profile=profile)
 
     assert isinstance(z.owner.op, Scan)
-    fn = z.owner.op.fn
+    fn = z.owner.op.fn(z.owner.inputs)
 
     assert fn.profile is profile
 

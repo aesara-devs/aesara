@@ -368,18 +368,22 @@ class TestOpFromGraph(unittest_tools.InferShapeTester):
         out2 = y * z
 
         op1 = cls_ofg([x, y, z], [out1, out2])
-        results = op1.connection_pattern(None)
-        expect_result = [[True, False], [True, True], [False, True]]
-        assert results == expect_result
 
         # Graph with ops that don't have a 'full' connection pattern
         # and with ops that have multiple outputs
         m, n, p, q = matrices("mnpq")
         o1, o2 = op1(m, n, p)
+
+        results = op1.connection_pattern(o1.owner)
+        expect_result = [[True, False], [True, True], [False, True]]
+        assert results == expect_result
+
         out1, out2 = op1(o1, q, o2)
         op2 = cls_ofg([m, n, p, q], [out1, out2])
 
-        results = op2.connection_pattern(None)
+        out21, out22 = op2(m, n, p, q)
+
+        results = op2.connection_pattern(out21.owner)
         expect_result = [[True, False], [True, True], [False, True], [True, True]]
         assert results == expect_result
 
@@ -392,7 +396,9 @@ class TestOpFromGraph(unittest_tools.InferShapeTester):
         out3 = 3 + rv_u
         op3 = cls_ofg([x, y], [out1, out2, out3])
 
-        results = op3.connection_pattern(None)
+        out31, out32, out33 = op3(x, y)
+
+        results = op3.connection_pattern(out31.owner)
         expect_result = [
             [True, False, False],
             [False, True, False],

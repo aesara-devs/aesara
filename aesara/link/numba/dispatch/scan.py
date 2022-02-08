@@ -34,7 +34,9 @@ def array0d_range(x):
 
 @numba_funcify.register(Scan)
 def numba_funcify_Scan(op, node, **kwargs):
-    inner_fg = FunctionGraph(op.inputs, op.outputs)
+    inner_fg = FunctionGraph(
+        op.inner_inputs(node.inputs), op.inner_outputs(node.inputs)
+    )
     numba_at_inner_func = numba_basic.numba_njit(numba_funcify(inner_fg, **kwargs))
 
     n_seqs = op.info.n_seqs

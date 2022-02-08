@@ -8,9 +8,10 @@ from functools import reduce
 import numpy as np
 
 import aesara
-from aesara.compile import Function, builders
+from aesara.compile import Function
 from aesara.graph.basic import Apply, Constant, Variable, graph_inputs
 from aesara.graph.fg import FunctionGraph
+from aesara.graph.op import HasInnerGraph
 from aesara.printing import pydot_imported, pydot_imported_msg
 
 
@@ -226,13 +227,12 @@ class PyDotFormatter:
                 elif var.name or not self.compact:
                     graph.add_edge(pd.Edge(__node_id, var_id, label=vparams["dtype"]))
 
-            # Create sub-graph for OpFromGraph nodes
-            if isinstance(node.op, builders.OpFromGraph):
+            if isinstance(node.op, HasInnerGraph):
                 subgraph = pd.Cluster(__node_id)
                 gf = PyDotFormatter()
                 # Use different node prefix for sub-graphs
                 gf.__node_prefix = __node_id
-                gf(node.op.fn, subgraph)
+                gf(node.op.fn(node.inputs), subgraph)
                 graph.add_subgraph(subgraph)
                 pd_node.get_attributes()["subg"] = subgraph.get_name()
 
@@ -241,14 +241,18 @@ class PyDotFormatter:
 
                 # Inputs mapping
                 ext_inputs = [self.__node_id(x) for x in node.inputs]
-                int_inputs = [gf.__node_id(x) for x in node.op.inner_inputs]
+                int_inputs = [
+                    gf.__node_id(x) for x in node.op.inner_inputs(node.inputs)
+                ]
                 assert len(ext_inputs) == len(int_inputs)
                 h = format_map(zip(ext_inputs, int_inputs))
                 pd_node.get_attributes()["subg_map_inputs"] = h
 
                 # Outputs mapping
                 ext_outputs = [self.__node_id(x) for x in node.outputs]
-                int_outputs = [gf.__node_id(x) for x in node.op.inner_outputs]
+                int_outputs = [
+                    gf.__node_id(x) for x in node.op.inner_outputs(node.inputs)
+                ]
                 assert len(ext_outputs) == len(int_outputs)
                 h = format_map(zip(int_outputs, ext_outputs))
                 pd_node.get_attributes()["subg_map_outputs"] = h

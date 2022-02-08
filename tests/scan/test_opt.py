@@ -262,14 +262,9 @@ class TestPushOutDot:
         f = function([h0, W1, W2], o, mode=self.mode)
 
         scan_node = [x for x in f.maker.fgraph.toposort() if isinstance(x.op, Scan)][0]
+        fn = scan_node.op.fn(scan_node.inputs)
         assert (
-            len(
-                [
-                    x
-                    for x in scan_node.op.fn.maker.fgraph.toposort()
-                    if isinstance(x.op, Elemwise)
-                ]
-            )
+            len([x for x in fn.maker.fgraph.toposort() if isinstance(x.op, Elemwise)])
             == 0
         )
 
@@ -1321,7 +1316,8 @@ def test_inner_replace_dot():
     scan_nodes = [x for x in f.maker.fgraph.toposort() if isinstance(x.op, Scan)]
     assert len(scan_nodes) == 1
     scan_op = scan_nodes[0].op
-    assert not any(isinstance(n.op, Dot) for n in scan_op.fn.maker.fgraph.apply_nodes)
+    fn = scan_op.fn(scan_nodes[0].inputs)
+    assert not any(isinstance(n.op, Dot) for n in fn.maker.fgraph.apply_nodes)
 
 
 def test_alloc_inputs1():
@@ -1341,15 +1337,9 @@ def test_alloc_inputs1():
 
     f = function([h0, W1, W2], o, mode=get_default_mode().including("scan"))
     scan_node = [x for x in f.maker.fgraph.toposort() if isinstance(x.op, Scan)][0]
+    fn = scan_node.op.fn(scan_node.inputs)
     assert (
-        len(
-            [
-                x
-                for x in scan_node.op.fn.maker.fgraph.toposort()
-                if isinstance(x.op, Elemwise)
-            ]
-        )
-        == 0
+        len([x for x in fn.maker.fgraph.toposort() if isinstance(x.op, Elemwise)]) == 0
     )
 
 
@@ -1375,16 +1365,9 @@ def test_alloc_inputs2():
 
     f = function([h0, W1, W2], o, mode=get_default_mode().including("scan"))
     scan_node = [x for x in f.maker.fgraph.toposort() if isinstance(x.op, Scan)][0]
-
+    fn = scan_node.op.fn(scan_node.inputs)
     assert (
-        len(
-            [
-                x
-                for x in scan_node.op.fn.maker.fgraph.toposort()
-                if isinstance(x.op, Elemwise)
-            ]
-        )
-        == 0
+        len([x for x in fn.maker.fgraph.toposort() if isinstance(x.op, Elemwise)]) == 0
     )
 
 

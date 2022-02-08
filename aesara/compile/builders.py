@@ -1,6 +1,7 @@
 """Define new Ops from existing Ops"""
 from collections import OrderedDict
-from functools import partial
+from copy import copy
+from functools import lru_cache, partial
 from typing import List, Optional
 
 import aesara.tensor as at
@@ -189,23 +190,32 @@ class OpFromGraph(Op, HasInnerGraph):
 
     @staticmethod
     def _filter_grad_var(grad, inp):
-        # Returns (filtered_var, overrider_var)
-        # Args:
-        #     grad: gradient Variable
-        #     inp: the corresponding input of gradient Variable
-        #
-        # a grad() call could return instance of NullType() or DisconnectedType()
-        # which cannot be directly used in OfG
-        #
-        # Since we always use an OfG instance as self._lop_op, the current
-        # workaround is to "remember" the special cases of the gradient and
-        # replace them after self._lop_op is called.
-        #
-        # This helper function changes invalid types into a filtered_var,
-        # and provides a overrider_var to be replaced at grad() call
-        #
-        # For now, this converts NullType or DisconnectedType into zeros_like.
-        # other types are unmodified: overrider_var -> None
+        """
+        A `grad` call could return instance of `NullType` or `DisconnectedType`
+        which cannot be directly used in `OpFromGraph`.
+
+        Since we always use an `OpFromGraph` instance as `self._lop_op`, the current
+        workaround is to "remember" the special cases of the gradient and
+        replace them after `self._lop_op` is called.
+
+        This helper function changes invalid types into a ``filtered_var``,
+        and provides an ``overrider_var`` to be replaced at `grad` call
+
+        For now, this converts `NullType` or `DisconnectedType` into `zeros_like`.
+        other types are unmodified: ``overrider_var -> None``
+
+        Parameters
+        ----------
+        grad:
+            The gradient `Variable`.
+        inp:
+            The corresponding input of the gradient `Variable`.
+
+        Returns
+        -------
+        (filtered_var, overrider_var)
+
+        """
         if isinstance(grad.type, (NullType, DisconnectedType)):
             if hasattr(inp, "zeros_like"):
                 return inp.zeros_like(), grad
@@ -216,7 +226,9 @@ class OpFromGraph(Op, HasInnerGraph):
 
     @staticmethod
     def _filter_rop_var(inpJ, out):
-        # mostly similar to _filter_grad_var
+        """
+        See `OpFromGraph._filter_grad_var`.
+        """
         if isinstance(inpJ.type, NullType):
             return out.zeros_like(), inpJ
         if isinstance(inpJ.type, DisconnectedType):
@@ -378,15 +390,20 @@ class OpFromGraph(Op, HasInnerGraph):
                     "lop_overrides and grad_overrides are mutually exclusive"
                 )
             else:
-                self.set_lop_overrides(lop_overrides)
+                self._lop_op = lop_overrides
+                self._lop_is_default = lop_overrides == "default"
                 self._lop_type = "lop"
         elif grad_overrides != "default":
-            self.set_lop_overrides(grad_overrides)
+            self._lop_op = grad_overrides
+            self._lop_is_default = grad_overrides == "default"
             self._lop_type = "grad"
         else:
-            self.set_lop_overrides("default")
+            self._lop_op = "default"
+            self._lop_is_default = True
             self._lop_type = "lop"
-        self.set_rop_overrides(rop_overrides)
+
+        self._rop_op = rop_overrides
+        self._rop_is_default = rop_overrides == "default"
 
         self._connection_pattern = connection_pattern
 
@@ -408,25 +425,19 @@ class OpFromGraph(Op, HasInnerGraph):
         return "%(name)s{inline=%(is_inline)s}" % locals()
 
     @config.change_flags(compute_test_value="off")
-    def _recompute_lop_op(self):
-        """
-        converts self._lop_op from user supplied form to type(self) instance
-
-        """
-        local_inputs = self.inner_inputs
-        local_outputs = self.inner_outputs
+    def _recompute_lop_op(self, node_inputs):
+        local_inputs = self.inner_inputs(node_inputs)
+        local_outputs = self.inner_outputs(node_inputs)
         inp_len = len(local_inputs)
         lop_op = self._lop_op
 
         if isinstance(lop_op, OpFromGraph):
-            if self._lop_op_is_cached:
-                return
             assert self._lop_type in ("lop", "grad"), (
                 self.LOP_TYPE_ERR_MSG % self._lop_type
             )
             if self._lop_type == "grad":
                 needed_ninps = inp_len + len(local_outputs)
-                ninps = len(lop_op.inner_inputs)
+                ninps = len(lop_op.inner_inputs(node_inputs))
                 if needed_ninps != ninps:
                     raise ValueError(self.OV_INP_LEN_ERR_MSG % (needed_ninps, ninps))
                 # make a wrapper callable
@@ -437,13 +448,12 @@ class OpFromGraph(Op, HasInnerGraph):
             elif self._lop_type == "lop":
                 # OfG can be directly used in L_op format
                 needed_ninps = inp_len + 2 * len(local_outputs)
-                ninps = len(lop_op.inner_inputs)
+                ninps = len(lop_op.inner_inputs(node_inputs))
                 if needed_ninps != ninps:
                     raise ValueError(self.OV_INP_LEN_ERR_MSG % (needed_ninps, ninps))
-                self._lop_op_is_cached = True
-                self._lop_op_stypes_l = [None] * inp_len
-                self._lop_op.kwargs["on_unused_input"] = "ignore"
-                return
+                lop_op = copy(lop_op)
+                lop_op.kwargs["on_unused_input"] = "ignore"
+                return lop_op, [None] * inp_len
 
         output_grads = [out_t() for out_t in self.output_types]
         fn_grad = partial(
@@ -536,33 +546,24 @@ class OpFromGraph(Op, HasInnerGraph):
                 )
         all_grads_l = list(all_grads_l)
         all_grads_ov_l = list(all_grads_ov_l)
-        self._lop_op = type(self)(
+        _lop_op = type(self)(
             inputs=local_inputs + local_outputs + output_grads,
             outputs=all_grads_l,
             inline=self.is_inline,
             name=(None if self.name is None else self.name + "_" + self._lop_type),
             on_unused_input="ignore",
         )
-        self._lop_op_stypes_l = all_grads_ov_l
-        self._lop_op_is_cached = True
-        self._lop_type = "lop"
+
+        return _lop_op, all_grads_ov_l
 
     @config.change_flags(compute_test_value="off")
-    def _recompute_rop_op(self):
-        """
-        converts self._rop_op from user supplied form to type(self) instance
-
-        """
-        local_inputs = self.inner_inputs
-        local_outputs = self.inner_outputs
+    def _recompute_rop_op(self, node_inputs):
+        local_inputs = self.inner_inputs(node_inputs)
+        local_outputs = self.inner_outputs(node_inputs)
         out_len = len(local_outputs)
         rop_op = self._rop_op
 
-        if isinstance(rop_op, OpFromGraph):
-            if not self._rop_op_is_cached:
-                self._rop_op_is_cached = True
-                self._rop_op_stypes_l = [None] * out_len
-            return
+        assert not isinstance(rop_op, OpFromGraph)
 
         eval_points = [inp_t() for inp_t in self.input_types]
         fn_rop = partial(Rop, wrt=local_inputs, eval_points=eval_points)
@@ -597,8 +598,7 @@ class OpFromGraph(Op, HasInnerGraph):
             roverrides_l = rop_op
             if len(roverrides_l) != out_len:
                 raise ValueError(
-                    f"Need to override {int(out_len)} Rop, got {len(roverrides_l)}",
-                    roverrides_l,
+                    f"Need to override {int(out_len)} Rop, got {len(roverrides_l)}"
                 )
             # get outputs that does not have Rop override
             odefaults_l = [
@@ -637,8 +637,7 @@ class OpFromGraph(Op, HasInnerGraph):
             roverrides_l = rop_op(local_inputs, eval_points)
             if not isinstance(roverrides_l, list):
                 raise TypeError(
-                    "Rop overriding function should return a list, "
-                    'got "%s"' % type(roverrides_l)
+                    f"Rop overriding function should return a list, got {type(roverrides_l)}"
                 )
             all_rops_l, all_rops_ov_l = zip(
                 *[
@@ -650,87 +649,50 @@ class OpFromGraph(Op, HasInnerGraph):
                 raise ValueError(
                     (
                         f"Rop overriding function {self._rop_op} should return list of "
-                        f"{int(out_len)} outputs, got {len(all_rops_l)}",
-                    ),
-                    rop_op,
+                        f"{int(out_len)} outputs, got {len(all_rops_l)}"
+                    )
                 )
             all_rops_l = list(all_rops_l)
             all_rops_ov_l = list(all_rops_ov_l)
-        self._rop_op = type(self)(
+        _rop_op = type(self)(
             inputs=local_inputs + eval_points,
             outputs=all_rops_l,
             inline=self.is_inline,
             name=(None if self.name is None else self.name + "_rop"),
             on_unused_input="ignore",
         )
-        self._rop_op_stypes_l = all_rops_ov_l
-        self._rop_op_is_cached = True
+        return _rop_op, all_rops_ov_l
 
-    def get_lop_op(self):
-        if not self._lop_op_is_cached:
-            self._recompute_lop_op()
-        return self._lop_op
+    @lru_cache
+    def get_lop_op(self, *node_inputs):
+        return self._recompute_lop_op(node_inputs)
 
-    def get_rop_op(self):
-        if not self._rop_op_is_cached:
-            self._recompute_rop_op()
-        return self._rop_op
-
-    def set_grad_overrides(self, grad_overrides):
-        """
-        Set gradient overrides.
-        This will completely remove any previously set L_op/gradient overrides
-
-        """
-        self._lop_op = grad_overrides
-        self._lop_op_is_cached = False
-        self._lop_type = "grad"
-        self._lop_is_default = grad_overrides == "default"
-
-    def set_lop_overrides(self, lop_overrides):
-        """
-        Set L_op overrides
-        This will completely remove any previously set L_op/gradient overrides
-
-        """
-        self._lop_op = lop_overrides
-        self._lop_op_is_cached = False
-        self._lop_type = "lop"
-        self._lop_is_default = lop_overrides == "default"
-
-    def set_rop_overrides(self, rop_overrides):
-        """
-        Set R_op overrides
-        This will completely remove any previously set R_op overrides
-
-        """
-        self._rop_op = rop_overrides
-        self._rop_op_is_cached = False
-        self._rop_is_default = rop_overrides == "default"
+    @lru_cache
+    def get_rop_op(self, *node_inputs):
+        return self._recompute_rop_op(node_inputs)
 
     def L_op(self, inputs, outputs, output_grads):
-        if not self._lop_op_is_cached:
-            self._recompute_lop_op()
+        _lop_op, _lop_op_stypes_l = self.get_lop_op(*inputs)
+
         inps = list(inputs) + list(outputs) + list(output_grads)
-        ret_ofg_l = self._lop_op(*inps, return_list=True)
+        ret_ofg_l = _lop_op(*inps, return_list=True)
         ret_l = [
             ret_ofg if ov is None else ov
-            for ret_ofg, ov in zip(ret_ofg_l, self._lop_op_stypes_l)
+            for ret_ofg, ov in zip(ret_ofg_l, _lop_op_stypes_l)
         ]
         return ret_l
 
     def R_op(self, inputs, eval_points):
-        if not self._rop_op_is_cached:
-            self._recompute_rop_op()
-        ret_ofg_l = self._rop_op(*(list(inputs) + list(eval_points)), return_list=True)
+        _rop_op, _rop_op_stypes_l = self.get_rop_op(*inputs)
+        ret_ofg_l = _rop_op(*(list(inputs) + list(eval_points)), return_list=True)
         ret_l = [
             ret_ofg if ov is None else ov
-            for ret_ofg, ov in zip(ret_ofg_l, self._rop_op_stypes_l)
+            for ret_ofg, ov in zip(ret_ofg_l, _rop_op_stypes_l)
         ]
         return ret_l
 
     def make_node(self, *inputs):
-        num_expected_inps = len(self.inner_inputs) - len(self.shared_inputs)
+        num_expected_inps = len(self.inner_inputs(inputs)) - len(self.shared_inputs)
         if len(inputs) != num_expected_inps:
             raise ValueError(
                 f"Expected {int(num_expected_inps)} inputs, got {len(inputs)}"
@@ -753,18 +715,21 @@ class OpFromGraph(Op, HasInnerGraph):
         if self._connection_pattern is not None:
             return self._connection_pattern
 
-        inp_len = len(self.inner_inputs)
-        out_len = len(self.inner_outputs)
-        cpmat_self = io_connection_pattern(self.inner_inputs, self.inner_outputs)
+        inp_len = len(self.inner_inputs(node.inputs))
+        out_len = len(self.inner_outputs(node.inputs))
+        cpmat_self = io_connection_pattern(
+            self.inner_inputs(node.inputs), self.inner_outputs(node.inputs)
+        )
 
-        lop_op = self.get_lop_op()
+        lop_op, _lop_op_stypes_l = self.get_lop_op(*node.inputs)
         cpmat_grad = io_connection_pattern(
-            lop_op.inner_inputs[inp_len:], lop_op.inner_outputs
+            lop_op.inner_inputs(node.inputs)[inp_len:],
+            lop_op.inner_outputs(node.inputs),
         )
 
         # cpmat_self |= cpmat_grad.T
         # cpmat_self &= out_is_disconnected
-        for i, t in enumerate(self._lop_op_stypes_l):
+        for i, t in enumerate(_lop_op_stypes_l):
             if t is not None:
                 if isinstance(t.type, DisconnectedType):
                     for o in range(out_len):
@@ -781,7 +746,9 @@ class OpFromGraph(Op, HasInnerGraph):
     def infer_shape(self, fgraph, node, shapes):
 
         # TODO: Use `fgraph.shape_feature` to do this instead.
-        out_shapes = infer_shape(self.inner_outputs, self.inner_inputs, shapes)
+        out_shapes = infer_shape(
+            self.inner_outputs(node.inputs), self.inner_inputs(node.inputs), shapes
+        )
 
         # Clone the output shape so that shape are computed from outer inputs.
         # Note:
@@ -791,7 +758,7 @@ class OpFromGraph(Op, HasInnerGraph):
         # each shape call. Aesara optimizer will clean this up later, but this
         # will make extra work for the optimizer.
 
-        repl = dict(zip(self.inner_inputs, node.inputs))
+        repl = dict(zip(self.inner_inputs(node.inputs), node.inputs))
         clone_out_shapes = [s for s in out_shapes if isinstance(s, tuple)]
         cloned = clone_replace(sum(clone_out_shapes, ()), replace=repl)
         ret = []
@@ -806,27 +773,28 @@ class OpFromGraph(Op, HasInnerGraph):
 
         return ret
 
-    @property
-    def fn(self):
+    def fn(self, node_inputs=None):
         """Lazily compile the inner function graph."""
         if getattr(self, "_fn", None) is not None:
             return self._fn
 
-        self._fn = orig_function(self.inner_inputs, self.inner_outputs, **self.kwargs)
+        self._fn = orig_function(
+            self.inner_inputs(node_inputs),
+            self.inner_outputs(node_inputs),
+            **self.kwargs,
+        )
         self._fn.trust_input = True
 
         return self._fn
 
-    @property
-    def inner_inputs(self):
+    def inner_inputs(self, node_inputs=None):
         return self._inner_inputs
 
-    @property
-    def inner_outputs(self):
+    def inner_outputs(self, node_inputs=None):
         return self._inner_outputs
 
     def perform(self, node, inputs, outputs):
-        variables = self.fn(*inputs)
+        variables = self.fn(node.inputs)(*inputs)
         assert len(variables) == len(outputs)
         for output, variable in zip(outputs, variables):
             output[0] = variable
@@ -845,7 +813,8 @@ def inline_ofg_expansion(fgraph, node):
     if not op.is_inline:
         return False
     return clone_replace(
-        op.inner_outputs, {u: v for u, v in zip(op.inner_inputs, node.inputs)}
+        op.inner_outputs(node.inputs),
+        {u: v for u, v in zip(op.inner_inputs(node.inputs), node.inputs)},
     )
 
 

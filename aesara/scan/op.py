@@ -1349,8 +1349,7 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
             )
         )
 
-    @property
-    def fn(self):
+    def fn(self, node_inputs=None):
         """Lazily compile the inner function graph."""
         if getattr(self, "_fn", None) is not None:
             return self._fn
@@ -1457,12 +1456,10 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
 
         return self._fn
 
-    @property
-    def inner_inputs(self):
+    def inner_inputs(self, node_inputs=None):
         return self.inputs
 
-    @property
-    def inner_outputs(self):
+    def inner_outputs(self, node_inputs=None):
         return self.outputs
 
     def make_thunk(self, node, storage_map, compute_map, no_recycling, impl=None):
@@ -1505,20 +1502,22 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
         node_input_storage = [storage_map[r] for r in node.inputs]
         node_output_storage = [storage_map[r] for r in node.outputs]
 
-        # Analyse the compile inner function to determine which inputs and
-        # outputs are on the gpu and speed up some checks during the execution
-        inps_is_tensor = [
-            isinstance(out, TensorVariable) for out in self.fn.maker.fgraph.inputs
-        ]
-        outs_is_tensor = [
-            isinstance(out, TensorVariable) for out in self.fn.maker.fgraph.outputs
-        ]
-
         try:
             if impl == "py":
                 raise MissingGXX
 
             from . import scan_perform_ext
+
+            fn = self.fn(node.inputs)
+
+            # Analyse the compile inner function to determine which inputs and
+            # outputs are on the gpu and speed up some checks during the execution
+            inps_is_tensor = [
+                isinstance(out, TensorVariable) for out in fn.maker.fgraph.inputs
+            ]
+            outs_is_tensor = [
+                isinstance(out, TensorVariable) for out in fn.maker.fgraph.outputs
+            ]
 
             cython_mintaps = np.asarray(self.mintaps, dtype="int32")
 
@@ -1549,11 +1548,11 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
 
             cython_destroy_map = np.asarray(cython_destroy_map, dtype="int32")
 
-            inner_input_storage = [s.storage for s in self.fn.input_storage]
-            inner_output_storage = [s.storage for s in self.fn.output_storage]
+            inner_input_storage = [s.storage for s in fn.input_storage]
+            inner_output_storage = [s.storage for s in fn.output_storage]
 
             inner_input_needs_update = tuple(
-                inp.update is not None for inp in self.fn.maker.expanded_inputs
+                inp.update is not None for inp in fn.maker.expanded_inputs
             )
 
             outer_output_dtypes = tuple(
@@ -1566,8 +1565,8 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
             from aesara.scan.utils import InnerFunctionError
 
             # TODO: Extract `Capsule` object and use that
-            # c_thunk = getattr(self.fn.fn.thunks[0], "cthunk", None)
-            # if len(self.fn.fn.thunks) == 1 and c_thunk:
+            # c_thunk = getattr(fn.fn.thunks[0], "cthunk", None)
+            # if len(fn.fn.thunks) == 1 and c_thunk:
             #     thunk_capsule = c_thunk.cthunk
             #     # We need to perform the following after calling
             #     # the thunk function:
@@ -1601,27 +1600,25 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
                         cython_outs_is_tensor,
                         inner_input_storage,
                         inner_output_storage,
-                        getattr(self.fn.fn, "need_update_inputs", True),
+                        getattr(fn.fn, "need_update_inputs", True),
                         inner_input_needs_update,
                         cython_destroy_map,
                         inputs,
                         outputs,
                         outer_output_dtypes,
                         outer_output_ndims,
-                        self.fn.fn,
+                        fn.fn,
                     )
                 except InnerFunctionError as exc:
                     exc_type = type(exc.args[0])
                     exc_value = exc.args[0]
                     exc_trace = exc.args[1]
 
-                    if hasattr(self.fn.fn, "position_of_error") and hasattr(
-                        self.fn.fn, "thunks"
-                    ):
+                    if hasattr(fn.fn, "position_of_error") and hasattr(fn.fn, "thunks"):
                         raise_with_op(
-                            self.fn.maker.fgraph,
-                            self.fn.fn.nodes[self.fn.fn.position_of_error],
-                            self.fn.fn.thunks[self.fn.fn.position_of_error],
+                            fn.maker.fgraph,
+                            fn.fn.nodes[fn.fn.position_of_error],
+                            fn.fn.thunks[fn.fn.position_of_error],
                             exc_info=(exc_type, exc_value, exc_trace),
                         )
                     else:
@@ -1629,15 +1626,15 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
 
                 t_call = time.perf_counter() - t0_call
 
-                if hasattr(self.fn.maker, "profile"):
-                    profile = self.fn.maker.profile
+                if hasattr(fn.maker, "profile"):
+                    profile = fn.maker.profile
                     if type(profile) is not bool and profile:
                         profile.vm_call_time += t_fn
                         profile.callcount += 1
                         profile.nbsteps += n_steps
                         profile.call_time += t_call
-                        if hasattr(self.fn.fn, "update_profile"):
-                            self.fn.fn.update_profile(profile)
+                        if hasattr(fn.fn, "update_profile"):
+                            fn.fn.update_profile(profile)
 
         except (ImportError, MissingGXX):
             p = self.perform
@@ -1655,7 +1652,7 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
             for o in node.outputs:
                 compute_map[o][0] = True
             if allow_gc:
-                self.fn.free()
+                self.fn(node.inputs).free()
             return r
 
         rval.inputs = node_input_storage
@@ -1763,14 +1760,14 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
 
         offset = self.nit_sot_arg_offset + self.n_nit_sot
         other_args = inputs[offset:]
-        inner_input_storage = self.fn.input_storage
+        fn = self.fn(node.inputs)
+        inner_input_storage = fn.input_storage
         nb_mitmot_in = sum(map(len, self.mit_mot_in_slices))
         old_mitmot_input_storage = [None] * nb_mitmot_in
         old_mitmot_input_data = [None] * nb_mitmot_in
-        inner_output_storage = self.fn.output_storage
+        inner_output_storage = fn.output_storage
         old_inner_output_storage = [None] * len(inner_output_storage)
         old_inner_output_data = [None] * len(inner_output_storage)
-        fn = self.fn.fn
         offset = (
             self.n_seqs
             + sum(
@@ -1886,7 +1883,7 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
 
                 if var is None:
                     old_inner_output_data[idx] = None
-                elif isinstance(self.fn.maker.fgraph.outputs[idx], TensorVariable):
+                elif isinstance(fn.maker.fgraph.outputs[idx], TensorVariable):
                     old_inner_output_data[idx] = var.data
                 else:
                     old_inner_output_data[idx] = var.gpudata
@@ -1905,7 +1902,7 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
                 if var is None:
                     old_mitmot_input_data[idx] = None
                 elif isinstance(
-                    self.fn.maker.fgraph.inputs[idx + self.n_seqs], TensorVariable
+                    fn.maker.fgraph.inputs[idx + self.n_seqs], TensorVariable
                 ):
                     old_mitmot_input_data[idx] = var.data
                 else:
@@ -1915,7 +1912,7 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
             t0_fn = time.time()
 
             try:
-                fn()
+                fn.fn()
             except Exception:
                 if hasattr(fn, "position_of_error"):
                     # this is a new vm-provided function or c linker
@@ -1924,7 +1921,7 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
                     if hasattr(fn, "thunks"):
                         # For the CVM
                         raise_with_op(
-                            self.fn.maker.fgraph,
+                            fn.maker.fgraph,
                             fn.nodes[fn.position_of_error],
                             fn.thunks[fn.position_of_error],
                         )
@@ -1933,9 +1930,7 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
                         # We don't have access from python to all the
                         # temps values So for now, we just don't print
                         # the extra shapes/strides info
-                        raise_with_op(
-                            self.fn.maker.fgraph, fn.nodes[fn.position_of_error]
-                        )
+                        raise_with_op(fn.maker.fgraph, fn.nodes[fn.position_of_error])
                 else:
                     # old-style linkers raise their own exceptions
                     raise
@@ -1952,7 +1947,7 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
             if getattr(fn, "need_update_inputs", True):
                 # Update the inputs that have an update function
                 for inp, storage in zip(
-                    self.fn.maker.expanded_inputs[::-1], self.fn.input_storage[::-1]
+                    fn.maker.expanded_inputs[::-1], fn.input_storage[::-1]
                 ):
                     if inp.update is not None:
                         storage.data = inner_output_storage[offset_out].data
@@ -1977,7 +1972,7 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
                         if old_var is new_var:
                             old_data = old_mitmot_input_data[inp_idx]
                             if isinstance(
-                                self.fn.maker.fgraph.inputs[self.n_seqs + inp_idx],
+                                fn.maker.fgraph.inputs[self.n_seqs + inp_idx],
                                 TensorVariable,
                             ):
                                 same_data = new_var.data == old_data
@@ -2029,7 +2024,7 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
                         if old_data is None:
                             output_reused = False
                         elif isinstance(
-                            self.fn.maker.fgraph.outputs[offset_out + j], TensorVariable
+                            fn.maker.fgraph.outputs[offset_out + j], TensorVariable
                         ):
                             output_reused = new_var.data == old_data
                         else:
@@ -2093,7 +2088,7 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
                         if old_data is None:
                             output_reused = False
                         elif isinstance(
-                            self.fn.maker.fgraph.outputs[offset_out + j], TensorVariable
+                            fn.maker.fgraph.outputs[offset_out + j], TensorVariable
                         ):
                             output_reused = new_var.data == old_data
                         else:
@@ -2186,14 +2181,14 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
         # and this little string helps us to find this spot:
         # "PROFILE_CODE"
 
-        if hasattr(self.fn.maker, "profile") and self.fn.maker.profile:
-            profile = self.fn.maker.profile
+        if hasattr(fn.maker, "profile") and fn.maker.profile:
+            profile = fn.maker.profile
             profile.callcount += 1
             profile.nbsteps += n_steps
             profile.call_time += t_call
             profile.vm_call_time += t_fn
-            if hasattr(self.fn.fn, "update_profile"):
-                self.fn.fn.update_profile(profile)
+            if hasattr(fn.fn, "update_profile"):
+                fn.fn.update_profile(profile)
 
         self.t_call = t_call
         self.t_fn = t_fn
