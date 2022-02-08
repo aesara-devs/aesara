@@ -2097,8 +2097,14 @@ def local_remove_useless_assert(fgraph, node):
     new_conds = []
     n_conds = len(node.inputs[1:])
     for c in node.inputs[1:]:
-        get_constant_value(c)
-        new_conds.append(c)
+        const = get_constant_value(c)
+        if const is not None:
+            if 0 != const.ndim or const == 0:
+                # Should we raise an error here? How to be sure it
+                # is not caught?
+                new_conds.append(c)
+        else:
+            new_conds.append(c)
 
     if len(new_conds) == 0:
         return [node.inputs[0]]
@@ -2481,7 +2487,7 @@ def local_useless_switch(fgraph, node):
 
         cond = get_constant_value(node.inputs[0], return_val=True)
 
-        if (isinstance(cond, np.ndarray) and cond.ndim == 0) or isinstance(
+        if (isinstance(cond, np.ndarray) and cond.size == 1) or isinstance(
             cond, (np.number, np.bool_)
         ):
             if cond == 0:
@@ -2826,14 +2832,18 @@ def local_reshape_to_dimshuffle(fgraph, node):
     inp = node.inputs[0]
     output = node.outputs[0]
     output_shape = node.inputs[1]
-
+    all_dim = get_constant_value(output_shape)
     dimshuffle_new_order = []
     new_output_shape = []
     index = 0  # index over the output of the new reshape
-    for i in range(output.ndim):
+
+    if all_dim is None:
+        return
+
+    for dim in all_dim:
         # Since output_shape is a symbolic vector, we trust get_constant_value
         # to go through however it is formed to see if its i-th element is 1.
-        dim = get_constant_value(output_shape[i])
+
         if dim == 1:
             dimshuffle_new_order.append("x")
         else:

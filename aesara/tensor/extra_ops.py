@@ -688,7 +688,7 @@ class Repeat(Op):
         else:
             const_reps = at.get_constant_value(repeats)
 
-            if const_reps == 1:
+            if const_reps.ndim == 0 and const_reps == 1:
                 broadcastable = x.broadcastable
             else:
                 broadcastable = list(x.broadcastable)
