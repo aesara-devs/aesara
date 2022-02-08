@@ -1,6 +1,5 @@
-from collections.abc import Sequence
 from copy import copy
-from typing import List, Optional, Tuple
+from typing import List, Optional, Sequence, Tuple
 
 import numpy as np
 
