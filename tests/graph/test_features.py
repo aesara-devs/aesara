@@ -102,7 +102,10 @@ class TestReplaceValidate:
 
         capres = capsys.readouterr()
         assert capres.err == ""
-        assert "optimizer: rewrite test-reason replaces Op1.0 with var1" in capres.out
+        assert (
+            "optimizer: rewrite test-reason replaces Op1.0 of Op1(var2, var1) with var1 of None"
+            in capres.out
+        )
 
         class TestFeature(Feature):
             def validate(self, *args):

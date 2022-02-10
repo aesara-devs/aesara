@@ -599,7 +599,9 @@ class ReplaceValidate(History, Validator):
             raise
 
         if verbose:
-            print(f"optimizer: rewrite {reason} replaces {r} with {new_r}")
+            print(
+                f"optimizer: rewrite {reason} replaces {r} of {r.owner} with {new_r} of {new_r.owner}"
+            )
 
         # The return is needed by replace_all_validate_remove
         return chk

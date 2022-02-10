@@ -701,11 +701,11 @@ class TestLocalOptGroup:
         capres = capsys.readouterr()
         assert capres.err == ""
         assert (
-            "optimizer: rewrite local_opt_1 replaces Op1(x, y) with [Op2.0]"
+            "optimizer: rewrite local_opt_1 replaces node Op1(x, y) with [Op2.0]"
             in capres.out
         )
         assert (
-            "optimizer: rewrite local_opt_2 replaces Op2(y, y) with [Op2.0]"
+            "optimizer: rewrite local_opt_2 replaces node Op2(y, y) with [Op2.0]"
             in capres.out
         )
 
