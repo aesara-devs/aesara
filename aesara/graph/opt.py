@@ -1274,7 +1274,9 @@ class LocalOptGroup(LocalOptimizer):
                     new_vars = list(new_repl.values())
 
                 if config.optimizer_verbose:
-                    print(f"optimizer: rewrite {opt} replaces {node} with {new_repl}")
+                    print(
+                        f"optimizer: rewrite {opt} replaces node {node} with {new_repl}"
+                    )
 
                 if self.profile:
                     self.node_created[opt] += len(
