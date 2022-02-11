@@ -62,7 +62,7 @@ def safe_new(
             nwx.tag = copy.copy(x.tag)
             return nwx
         else:
-            return x.clone()
+            return x
     # Note, `as_tensor_variable` will convert the `Scalar` into a
     # `TensorScalar` that will require a `ScalarFromTensor` `Op`, making the
     # push-out optimization fail
@@ -698,14 +698,8 @@ def reconstruct_graph(inputs, outputs, tag=None):
     if tag is None:
         tag = ""
     nw_inputs = [safe_new(x, tag) for x in inputs]
-    givens = OrderedDict()
-    for nw_x, x in zip(nw_inputs, inputs):
-        givens[x] = nw_x
-    allinputs = list(graph_inputs(outputs))
-    for inp in allinputs:
-        if isinstance(inp, Constant):
-            givens[inp] = inp.clone()
 
+    givens = {x: nw_x for nw_x, x in zip(nw_inputs, inputs)}
     nw_outputs = clone_replace(outputs, replace=givens)
     return (nw_inputs, nw_outputs)
 

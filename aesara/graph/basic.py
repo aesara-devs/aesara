@@ -603,15 +603,8 @@ class Constant(Variable):
             return f"{type(self).__name__}{{{name}}}"
 
     def clone(self):
-        """Create a shallow clone.
-
-        We clone this object, but we don't clone the data to lower memory
-        requirement. We suppose that the data will never change.
-
-        """
-        cp = self.__class__(self.type, self.data, self.name)
-        cp.tag = copy(self.tag)
-        return cp
+        """Return `self`, because there's no reason to clone a constant."""
+        return self
 
     def __set_owner(self, value):
         """Prevent the :prop:`owner` property from being set.
