@@ -696,8 +696,9 @@ def _lessbroken_deepcopy(a):
 
 
 def _find_bad_optimizations(order, reasons, r_vals):
-    """
-    Use a simple algorithm to find broken optimizations.
+    """Iterate over variables looking for values that don't match the values of the variables they replaced.
+
+    This is a sign of a broken optimization.
 
     This algorithm is simple to understand, but sometimes when there's
     a problem it identifies the wrong optimization as the culprit.
@@ -706,9 +707,6 @@ def _find_bad_optimizations(order, reasons, r_vals):
     graph).
 
     """
-    # iterate over variables looking for values that don't match the
-    # values of the variables they replaced.  This is the sign of a
-    # broken optimization.
     for i, node in enumerate(order):
         for new_r in node.outputs:
             for reason, r, old_graph_str, new_graph_str in reasons[new_r]:
