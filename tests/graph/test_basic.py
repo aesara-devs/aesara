@@ -200,13 +200,13 @@ class TestClone(X):
         c1 = at.constant(1.5)
 
         i, o = clone([c1], [c1])
-        assert i[0] is not c1 and o[0] is not c1
+        assert i[0] is c1 and o[0] is c1
 
         i, o = clone([c1], [c1], False)
         assert i[0] is c1 and o[0] is c1
 
         i, o = clone([c1], [c1], True, False)
-        assert i[0] is not c1 and o[0] is not c1
+        assert i[0] is c1 and o[0] is c1
 
         i, o = clone([c1], [c1], False, True)
         assert i[0] is c1 and o[0] is c1
