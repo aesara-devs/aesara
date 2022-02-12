@@ -324,7 +324,7 @@ class TestMergeOptimizer:
 
     @pytest.mark.skip(reason="This was disabled for some unknown reason")
     def test_one_assert_merge(self):
-        # Merge two nodes, one has assert, the other not.
+        """Merge two nodes, one has assert, the other not."""
         x1 = matrix("x1")
         x2 = matrix("x2")
         e = dot(x1, x2) + dot(assert_op(x1, (x1 > x2).all()), x2)
@@ -342,8 +342,7 @@ class TestMergeOptimizer:
         assert add_inputs[0] is add_inputs[1]
 
     def test_both_assert_merge_identical(self):
-        # Merge two nodes, both have assert on the same node
-        # with the same conditions.
+        """Merge two nodes, both have `Assert`s on the same node with the same conditions."""
         x1 = matrix("x1")
         x2 = matrix("x2")
         e = dot(assert_op(x1, (x1 > x2).all()), x2) + dot(
@@ -434,7 +433,7 @@ class TestMergeOptimizer:
         assert add_inputs[0] is add_inputs[1]
 
     def test_merge_noinput(self):
-        # Check that identical Apply nodes without inputs will be merged
+        """Check that identical Apply nodes without inputs will be merged."""
         x = NoInputOp(param=0)()
         y = NoInputOp(param=0)()
         z = NoInputOp(param=1)()
