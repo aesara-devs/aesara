@@ -26,10 +26,11 @@ from aesara.graph.basic import (
 )
 from aesara.graph.destroyhandler import DestroyHandler
 from aesara.graph.features import ReplaceValidate
-from aesara.graph.fg import FunctionGraph, InconsistencyError
+from aesara.graph.fg import FunctionGraph
 from aesara.graph.op import compute_test_value
 from aesara.graph.opt import GlobalOptimizer, in2out, local_optimizer
 from aesara.graph.optdb import EquilibriumDB, SequenceDB
+from aesara.graph.utils import InconsistencyError
 from aesara.scan.op import Scan, ScanInfo
 from aesara.scan.utils import (
     ScanArgs,

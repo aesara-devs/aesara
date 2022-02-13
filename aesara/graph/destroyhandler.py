@@ -10,7 +10,7 @@ import aesara
 from aesara.configdefaults import config
 from aesara.graph.basic import Constant
 from aesara.graph.features import AlreadyThere, Bookkeeper
-from aesara.graph.fg import InconsistencyError
+from aesara.graph.utils import InconsistencyError
 from aesara.misc.ordered_set import OrderedSet
 
 

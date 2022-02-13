@@ -30,6 +30,7 @@ from aesara.configdefaults import config
 from aesara.gradient import grad
 from aesara.graph.fg import FunctionGraph
 from aesara.graph.opt import in2out
+from aesara.graph.utils import InconsistencyError
 from aesara.misc.safe_asarray import _asarray
 from aesara.tensor import inplace
 from aesara.tensor.basic import as_tensor_variable
@@ -39,7 +40,6 @@ from aesara.tensor.blas import (
     Gemm,
     Gemv,
     Ger,
-    InconsistencyError,
     _as_scalar,
     _dot22,
     _dot22scalar,

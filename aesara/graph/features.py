@@ -10,6 +10,7 @@ import numpy as np
 import aesara
 from aesara.configdefaults import config
 from aesara.graph.basic import Variable, io_toposort
+from aesara.graph.utils import InconsistencyError
 
 
 class AlreadyThere(Exception):
@@ -641,9 +642,7 @@ class ReplaceValidate(History, Validator):
     def validate(self, fgraph):
         if self.fail_validate:
             self.fail_validate = False
-            raise aesara.graph.fg.InconsistencyError(
-                "Trying to reintroduce a removed node"
-            )
+            raise InconsistencyError("Trying to reintroduce a removed node")
 
 
 class NodeFinder(Bookkeeper):
@@ -789,7 +788,7 @@ class NoOutputFromInplace(Feature):
             op = node.op
             out_idx = node.outputs.index(out)
             if out_idx in op.destroy_map:
-                raise aesara.graph.fg.InconsistencyError(
+                raise InconsistencyError(
                     "A function graph Feature has requested that outputs of the graph "
                     "be prevented from being the result of in-place "
                     f"operations. This has prevented the output {out} from "

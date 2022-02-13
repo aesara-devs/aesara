@@ -9,33 +9,8 @@ from aesara.graph.basic import Apply, Constant, Variable, applys_between
 from aesara.graph.basic import as_string as graph_as_string
 from aesara.graph.basic import clone_get_equiv, graph_inputs, io_toposort, vars_between
 from aesara.graph.features import AlreadyThere, Feature, ReplaceValidate
-from aesara.graph.utils import MetaObject, TestValueError, get_variable_trace_string
+from aesara.graph.utils import MetaObject, MissingInputError, TestValueError
 from aesara.misc.ordered_set import OrderedSet
-
-
-class InconsistencyError(Exception):
-    """
-    This exception should be thrown by listeners to FunctionGraph when the
-    graph's state is invalid.
-
-    """
-
-
-class MissingInputError(Exception):
-    """
-    A symbolic input needed to compute the outputs is missing.
-
-    """
-
-    def __init__(self, *args, **kwargs):
-        if kwargs:
-            # The call to list is needed for Python 3
-            assert list(kwargs.keys()) == ["variable"]
-            error_msg = get_variable_trace_string(kwargs["variable"])
-            if error_msg:
-                args = args + (error_msg,)
-        s = "\n".join(args)  # Needed to have the new line print correctly
-        super().__init__(s)
 
 
 class FunctionGraph(MetaObject):
