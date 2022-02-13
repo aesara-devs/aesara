@@ -328,20 +328,10 @@ class Feature:
 
 class Bookkeeper(Feature):
     def on_attach(self, fgraph):
-        """
-        Called by FunctionGraph.attach_feature, the method that attaches
-        the feature to the FunctionGraph. Since this is called after the
-        FunctionGraph is initially populated, this is where you should
-        run checks on the initial contents of the FunctionGraph.
-        """
         for node in io_toposort(fgraph.inputs, fgraph.outputs):
             self.on_import(fgraph, node, "on_attach")
 
     def on_detach(self, fgraph):
-        """
-        Should remove any dynamically added functionality
-        that it installed into the function_graph
-        """
         for node in io_toposort(fgraph.inputs, fgraph.outputs):
             self.on_prune(fgraph, node, "Bookkeeper.detach")
 
@@ -736,18 +726,6 @@ class PrintListener(Feature):
     def on_change_input(self, fgraph, node, i, r, new_r, reason=None):
         if self.active:
             print(f"-- changing ({node}.inputs[{i}]) from {r} to {new_r}")
-
-
-class PreserveNames(Feature):
-    """
-    This preserve some variables names during optimization.
-
-    Deprecated. We need to keep it to allow unpickling.
-    """
-
-    def on_change_input(self, fgraph, node, i, r, new_r, reason=None):
-        if r.name is not None and new_r.name is None:
-            new_r.name = r.name
 
 
 class PreserveVariableAttributes(Feature):
