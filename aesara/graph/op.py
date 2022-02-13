@@ -32,7 +32,6 @@ import numpy as np
 import aesara
 from aesara.configdefaults import config
 from aesara.graph.basic import Apply, NoParams, Variable
-from aesara.graph.fg import FunctionGraph
 from aesara.graph.params_type import Params, ParamsType
 from aesara.graph.utils import (
     MetaObject,
@@ -46,6 +45,7 @@ from aesara.link.c.interface import CLinkerOp
 
 if TYPE_CHECKING:
     from aesara.compile.function.types import Function
+    from aesara.graph.fg import FunctionGraph
 
 StorageMapType = List[Optional[List[Any]]]
 ComputeMapType = List[bool]
@@ -422,7 +422,7 @@ class Op(MetaObject):
 
         """
 
-    def do_constant_folding(self, fgraph: FunctionGraph, node: Apply) -> bool:
+    def do_constant_folding(self, fgraph: "FunctionGraph", node: Apply) -> bool:
         """Determine whether or not constant folding should be performed for the given node.
 
         This allows each `Op` to determine if it wants to be constant
@@ -624,6 +624,7 @@ class COp(Op, CLinkerOp):
         #        The conclusion should be that the antire "make_c_thunk" method should be defined
         #        in aesara.link.c and dispatched onto the Op!
         import aesara.link.c.basic
+        from aesara.graph.fg import FunctionGraph
 
         node_input_storage = [storage_map[r] for r in node.inputs]
         node_output_storage = [storage_map[r] for r in node.outputs]
