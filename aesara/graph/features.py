@@ -665,68 +665,43 @@ class ReplaceValidate(History, Validator):
 
 
 class NodeFinder(Bookkeeper):
-    def __init__(self):
-        self.fgraph = None
-        self.d = {}
-
     def on_attach(self, fgraph):
         if hasattr(fgraph, "get_nodes"):
             raise AlreadyThere("NodeFinder is already present")
 
-        if self.fgraph is not None and self.fgraph != fgraph:
-            raise Exception("A NodeFinder instance can only serve one FunctionGraph.")
+        fgraph._finder_ops_to_nodes = {}
 
-        self.fgraph = fgraph
-        fgraph.get_nodes = partial(self.query, fgraph)
-        Bookkeeper.on_attach(self, fgraph)
+        def query(self, op):
+            return self._finder_ops_to_nodes.get(op, [])
+
+        fgraph.get_nodes = types.MethodType(query, fgraph)
+        super().on_attach(fgraph)
 
     def clone(self):
         return type(self)()
 
     def on_detach(self, fgraph):
-        """
-        Should remove any dynamically added functionality
-        that it installed into the function_graph
-        """
-        if self.fgraph is not fgraph:
-            raise Exception(
-                "This NodeFinder instance was not attached to the" " provided fgraph."
-            )
-        self.fgraph = None
         del fgraph.get_nodes
-        Bookkeeper.on_detach(self, fgraph)
+        del fgraph._finder_ops_to_nodes
 
     def on_import(self, fgraph, node, reason):
         try:
-            self.d.setdefault(node.op, []).append(node)
-        except TypeError:  # node.op is unhashable
+            fgraph._finder_ops_to_nodes.setdefault(node.op, []).append(node)
+        except TypeError:
+            # In case the `Op` is unhashable
             return
-        except Exception as e:
-            print("OFFENDING node", type(node), type(node.op), file=sys.stderr)
-            try:
-                print("OFFENDING node hash", hash(node.op), file=sys.stderr)
-            except Exception:
-                print("OFFENDING node not hashable", file=sys.stderr)
-            raise e
 
     def on_prune(self, fgraph, node, reason):
         try:
-            nodes = self.d[node.op]
-        except TypeError:  # node.op is unhashable
-            return
-        nodes.remove(node)
-        if not nodes:
-            del self.d[node.op]
-
-    def query(self, fgraph, op):
-        try:
-            all = self.d.get(op, [])
+            nodes = fgraph._finder_ops_to_nodes[node.op]
         except TypeError:
-            raise TypeError(
-                f"{op} in unhashable and cannot be queried by the optimizer"
-            )
-        all = list(all)
-        return all
+            # In case the `Op` is unhashable
+            return
+
+        nodes.remove(node)
+
+        if not nodes:
+            del fgraph._finder_ops_to_nodes[node.op]
 
 
 class PrintListener(Feature):
