@@ -533,8 +533,8 @@ class ReplaceValidate(History, Validator):
                     "ReplaceValidate feature is already present"
                     " or in conflict with another plugin."
                 )
-        self._nodes_removed = set()
-        self.fail_validate = False
+        fgraph._replace_nodes_removed = set()
+        fgraph._replace_validate_failed = False
         History.on_attach(self, fgraph)
         Validator.on_attach(self, fgraph)
         self.unpickle(fgraph)
@@ -545,9 +545,11 @@ class ReplaceValidate(History, Validator):
     def unpickle(self, fgraph):
         History.unpickle(self, fgraph)
         Validator.unpickle(self, fgraph)
-        fgraph.replace_validate = partial(self.replace_validate, fgraph)
-        fgraph.replace_all_validate = partial(self.replace_all_validate, fgraph)
-        fgraph.replace_all_validate_remove = partial(
+        fgraph.replace_validate = types.MethodType(self.replace_validate, fgraph)
+        fgraph.replace_all_validate = types.MethodType(
+            self.replace_all_validate, fgraph
+        )
+        fgraph.replace_all_validate_remove = types.MethodType(
             self.replace_all_validate_remove, fgraph
         )
 
@@ -558,7 +560,8 @@ class ReplaceValidate(History, Validator):
         """
         History.on_detach(self, fgraph)
         Validator.on_detach(self, fgraph)
-        del self._nodes_removed
+        del fgraph._replace_nodes_removed
+        del fgraph._replace_validate_failed
         del fgraph.replace_validate
         del fgraph.replace_all_validate
         del fgraph.replace_all_validate_remove
@@ -632,7 +635,7 @@ class ReplaceValidate(History, Validator):
 
         """
         chk = fgraph.replace_all_validate(replacements, reason=reason, **kwargs)
-        self._nodes_removed.update(remove)
+        fgraph._replace_nodes_removed.update(remove)
         for rm in remove:
             if rm in fgraph.apply_nodes or rm in fgraph.variables:
                 fgraph.revert(chk)
@@ -652,12 +655,12 @@ class ReplaceValidate(History, Validator):
         return d
 
     def on_import(self, fgraph, node, reason):
-        if node in self._nodes_removed:
-            self.fail_validate = True
+        if node in fgraph._replace_nodes_removed:
+            fgraph._replace_validate_failed = True
 
     def validate(self, fgraph):
-        if self.fail_validate:
-            self.fail_validate = False
+        if fgraph._replace_validate_failed:
+            fgraph._replace_validate_failed = False
             raise InconsistencyError("Trying to reintroduce a removed node")
 
 
