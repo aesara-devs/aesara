@@ -17,8 +17,8 @@ from aesara.configdefaults import config
 from aesara.gpuarray import gpuarray_shared_constructor
 from aesara.gpuarray.blas import GpuGemm
 from aesara.graph.basic import Constant
-from aesara.graph.fg import MissingInputError
 from aesara.graph.opt import OpKeyOptimizer, PatternSub
+from aesara.graph.utils import MissingInputError
 from aesara.tensor.math import dot
 from aesara.tensor.math import sum as at_sum
 from aesara.tensor.math import tanh

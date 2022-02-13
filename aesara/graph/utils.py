@@ -145,6 +145,31 @@ def get_variable_trace_string(v):
     return sio.getvalue()
 
 
+class InconsistencyError(Exception):
+    """
+    This exception should be thrown by listeners to FunctionGraph when the
+    graph's state is invalid.
+
+    """
+
+
+class MissingInputError(Exception):
+    """
+    A symbolic input needed to compute the outputs is missing.
+
+    """
+
+    def __init__(self, *args, **kwargs):
+        if kwargs:
+            # The call to list is needed for Python 3
+            assert list(kwargs.keys()) == ["variable"]
+            error_msg = get_variable_trace_string(kwargs["variable"])
+            if error_msg:
+                args = args + (error_msg,)
+        s = "\n".join(args)  # Needed to have the new line print correctly
+        super().__init__(s)
+
+
 class TestValueError(Exception):
     """Base exception class for all test value errors."""
 

@@ -31,9 +31,9 @@ from aesara.graph.basic import (
     vars_between,
 )
 from aesara.graph.features import Feature, NodeFinder
-from aesara.graph.fg import FunctionGraph, InconsistencyError
+from aesara.graph.fg import FunctionGraph
 from aesara.graph.op import Op
-from aesara.graph.utils import AssocList
+from aesara.graph.utils import AssocList, InconsistencyError
 from aesara.misc.ordered_set import OrderedSet
 from aesara.utils import flatten
 

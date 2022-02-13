@@ -23,7 +23,7 @@ from aesara.graph.basic import (
     equal_computations,
     io_toposort,
 )
-from aesara.graph.fg import FunctionGraph, InconsistencyError
+from aesara.graph.fg import FunctionGraph
 from aesara.graph.op import get_test_value
 from aesara.graph.opt import (
     GlobalOptimizer,
@@ -35,6 +35,7 @@ from aesara.graph.opt import (
 )
 from aesara.graph.optdb import SequenceDB
 from aesara.graph.utils import (
+    InconsistencyError,
     MethodNotDefined,
     TestValueError,
     get_variable_trace_string,

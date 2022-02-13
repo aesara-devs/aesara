@@ -4,7 +4,8 @@ import numpy as np
 import pytest
 
 from aesara.configdefaults import config
-from aesara.graph.fg import FunctionGraph, MissingInputError
+from aesara.graph.fg import FunctionGraph
+from aesara.graph.utils import MissingInputError
 from tests.graph.utils import MyConstant, MyVariable, MyVariable2, op1, op2, op3
 
 

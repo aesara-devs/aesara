@@ -31,9 +31,8 @@ from aesara.configdefaults import config
 from aesara.graph.basic import Variable, io_toposort
 from aesara.graph.destroyhandler import DestroyHandler
 from aesara.graph.features import BadOptimization
-from aesara.graph.fg import InconsistencyError
 from aesara.graph.op import COp, HasInnerGraph, Op
-from aesara.graph.utils import MethodNotDefined
+from aesara.graph.utils import InconsistencyError, MethodNotDefined
 from aesara.link.basic import Container, LocalLinker
 from aesara.link.utils import map_storage, raise_with_op
 from aesara.printing import _debugprint

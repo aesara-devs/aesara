@@ -71,8 +71,8 @@ from aesara.graph.basic import (
     io_connection_pattern,
 )
 from aesara.graph.features import NoOutputFromInplace
-from aesara.graph.fg import MissingInputError
 from aesara.graph.op import HasInnerGraph, Op
+from aesara.graph.utils import MissingInputError
 from aesara.link.c.basic import CLinker
 from aesara.link.c.exceptions import MissingGXX
 from aesara.link.utils import raise_with_op

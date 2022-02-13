@@ -29,8 +29,8 @@ from aesara.compile.sharedvalue import shared
 from aesara.configdefaults import config
 from aesara.gradient import NullTypeGradError, Rop, disconnected_grad, grad, hessian
 from aesara.graph.basic import Apply, ancestors
-from aesara.graph.fg import MissingInputError
 from aesara.graph.op import Op
+from aesara.graph.utils import MissingInputError
 from aesara.misc.safe_asarray import _asarray
 from aesara.raise_op import assert_op
 from aesara.scan.basic import scan

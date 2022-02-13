@@ -27,9 +27,9 @@ from aesara.graph.basic import (
 )
 from aesara.graph.destroyhandler import DestroyHandler
 from aesara.graph.features import PreserveVariableAttributes
-from aesara.graph.fg import FunctionGraph, InconsistencyError
+from aesara.graph.fg import FunctionGraph
 from aesara.graph.op import HasInnerGraph
-from aesara.graph.utils import get_variable_trace_string
+from aesara.graph.utils import InconsistencyError, get_variable_trace_string
 from aesara.link.basic import Container
 from aesara.link.utils import raise_with_op
 

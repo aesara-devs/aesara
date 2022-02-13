@@ -8,7 +8,7 @@ from aesara.compile.function.pfunc import rebuild_collect_shared
 from aesara.compile.io import In
 from aesara.compile.sharedvalue import shared
 from aesara.configdefaults import config
-from aesara.graph.fg import MissingInputError
+from aesara.graph.utils import MissingInputError
 from aesara.misc.safe_asarray import _asarray
 from aesara.tensor.math import sum as at_sum
 from aesara.tensor.type import (

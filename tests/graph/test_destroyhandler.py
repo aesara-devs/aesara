@@ -6,7 +6,7 @@ from aesara.configdefaults import config
 from aesara.graph.basic import Apply, Constant, Variable, clone
 from aesara.graph.destroyhandler import DestroyHandler
 from aesara.graph.features import ReplaceValidate
-from aesara.graph.fg import FunctionGraph, InconsistencyError
+from aesara.graph.fg import FunctionGraph
 from aesara.graph.op import Op
 from aesara.graph.opt import (
     NavigatorOptimizer,
@@ -16,6 +16,7 @@ from aesara.graph.opt import (
     TopoOptimizer,
 )
 from aesara.graph.type import Type
+from aesara.graph.utils import InconsistencyError
 from tests.unittest_tools import assertFailure_fast
 
 
