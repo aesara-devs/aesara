@@ -60,17 +60,12 @@ class TestNodeFinder:
         def MyVariable(name):
             return Variable(MyType(name), None, None)
 
-        def inputs():
-            x = MyVariable("x")
-            y = MyVariable("y")
-            z = MyVariable("z")
-            return x, y, z
-
-        x, y, z = inputs()
+        x, y, z = MyVariable("x"), MyVariable("y"), MyVariable("z")
         e0 = dot(y, z)
         e = add(add(sigmoid(x), sigmoid(sigmoid(z))), dot(add(x, y), e0))
         g = FunctionGraph([x, y, z], [e], clone=False)
-        g.attach_feature(NodeFinder())
+        nf = NodeFinder()
+        g.attach_feature(nf)
 
         assert hasattr(g, "get_nodes")
         for type, num in ((add, 3), (sigmoid, 3), (dot, 2)):
@@ -85,6 +80,10 @@ class TestNodeFinder:
         for type, num in ((add, 4), (sigmoid, 3), (dot, 1)):
             if len([t for t in g.get_nodes(type)]) != num:
                 raise Exception("Expected: %i times %s" % (num, type))
+
+        g.remove_feature(nf)
+        assert not hasattr(g, "get_nodes")
+        assert not hasattr(g, "_finder_ops_to_nodes")
 
 
 class TestReplaceValidate:
