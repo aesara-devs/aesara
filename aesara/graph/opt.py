@@ -1669,7 +1669,7 @@ class Updater(Feature):
         self.name = name
 
     def __str__(self):
-        return "Updater{%s}" % str(self.name)
+        return f"Updater{{{self.name}}}"
 
     def on_import(self, fgraph, node, reason):
         if self.importer:
