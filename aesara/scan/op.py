@@ -54,6 +54,7 @@ import numpy as np
 
 import aesara
 from aesara import tensor as at
+from aesara.compile import SharedVariable
 from aesara.compile.builders import infer_shape
 from aesara.compile.function import function
 from aesara.compile.io import In, Out
@@ -64,13 +65,16 @@ from aesara.gradient import DisconnectedType, NullType, Rop, grad, grad_undefine
 from aesara.graph.basic import (
     Apply,
     Constant,
+    NominalVariable,
     Variable,
     clone_replace,
     equal_computations,
     graph_inputs,
     io_connection_pattern,
+    replace_nominals_with_dummies,
 )
 from aesara.graph.features import NoOutputFromInplace
+from aesara.graph.fg import FunctionGraph
 from aesara.graph.op import HasInnerGraph, Op
 from aesara.graph.utils import MissingInputError
 from aesara.link.c.basic import CLinker
@@ -757,8 +761,27 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
             If ``True``, all the shared variables used in the inner-graph must be provided.
 
         """
-        self.inputs = inputs
-        self.outputs = outputs
+        inputs, outputs = replace_nominals_with_dummies(inputs, outputs)
+
+        input_replacements = []
+        for n, v in enumerate(inputs):
+            if not isinstance(v, (SharedVariable, Constant)):
+                input_replacements.append((v, NominalVariable(n, v.type)))
+
+            assert not isinstance(v, NominalVariable)
+
+        outputs = clone_replace(outputs, replace=input_replacements)
+
+        if input_replacements:
+            _, inputs_ = zip(*input_replacements)
+            inputs = list(inputs_)
+        else:
+            inputs = []
+
+        self.fgraph = FunctionGraph(inputs, outputs, clone=False)
+
+        self.inputs = self.fgraph.inputs
+        self.outputs = self.fgraph.outputs
         self.info = info
         self.truncate_gradient = truncate_gradient
         self.name = name
@@ -3416,8 +3439,8 @@ def _op_debug_information_Scan(op, node):
         inner_inputs = inner_fn.maker.fgraph.inputs
         inner_outputs = inner_fn.maker.fgraph.outputs
     else:
-        inner_inputs = op.inputs
-        inner_outputs = op.outputs
+        inner_inputs = op.inner_inputs
+        inner_outputs = op.inner_outputs
 
     scan_args = ScanArgs(
         node.inputs,

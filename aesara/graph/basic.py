@@ -1755,3 +1755,38 @@ def get_var_by_name(
             results += (var,)
 
     return results
+
+
+def replace_nominals_with_dummies(inputs, outputs):
+    """Replace nominal inputs with dummy variables.
+
+    When constructing a new graph with nominal inputs from an existing graph,
+    pre-existing nominal inputs need to be replaced with dummy variables
+    beforehand; otherwise, sequential ID ordering (i.e. when nominals are IDed
+    based on the ordered inputs to which they correspond) of the nominals could
+    be broken, and/or circular replacements could manifest.
+
+    FYI: This function assumes that all the nominal variables in the subgraphs
+    between `inputs` and `outputs` are present in `inputs`.
+
+    """
+    existing_nominal_replacements = {
+        i: i.type() for i in inputs if isinstance(i, NominalVariable)
+    }
+
+    if existing_nominal_replacements:
+        # Replace existing nominal variables, because we need to produce an
+        # inner-graph for which the nominal variable IDs correspond exactly
+        # to their input order
+        _ = clone_get_equiv(
+            inputs,
+            outputs,
+            copy_inputs=False,
+            copy_orphans=False,
+            memo=existing_nominal_replacements,
+        )
+
+        outputs = [existing_nominal_replacements[o] for o in outputs]
+        inputs = [existing_nominal_replacements[i] for i in inputs]
+
+    return inputs, outputs

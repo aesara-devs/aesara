@@ -375,6 +375,7 @@ N.B.:
                     print_op_info=print_op_info,
                     print_destroy_map=print_destroy_map,
                     print_view_map=print_view_map,
+                    inner_graph_node=s.owner,
                 )
 
     if file is _file:
@@ -407,6 +408,7 @@ def _debugprint(
     op_information: Optional[Dict[Apply, Dict[Variable, str]]] = None,
     parent_node: Optional[Apply] = None,
     print_op_info: bool = False,
+    inner_graph_node: Optional[Apply] = None,
 ) -> IOBase:
     r"""Print the graph leading to `r`.
 
@@ -459,6 +461,8 @@ def _debugprint(
     print_op_info
         Print extra information provided by the relevant `Op`\s.  For example,
         print the tap information for `Scan` inputs and outputs.
+    inner_graph_node
+        The inner-graph node in which `r` is contained.
     """
     if depth == 0:
         return file
@@ -615,6 +619,7 @@ def _debugprint(
                     print_op_info=print_op_info,
                     print_destroy_map=print_destroy_map,
                     print_view_map=print_view_map,
+                    inner_graph_node=inner_graph_node,
                 )
     else:
 
@@ -644,14 +649,9 @@ def _debugprint(
 
             var_output = f"{var_output} -> {outer_id_str}"
 
-            # This is an inner-graph input, so we need to find the outer node
-            # it belongs to and get the extra information from that
-            for inner_graph in inner_graph_ops:
-                if outer_r in inner_graph.owner.inputs:
-                    node_info = op_information.get(inner_graph.owner)
-                    if node_info and r in node_info:
-                        var_output = f"{var_output} ({node_info[r]})"
-                        break
+            node_info = op_information.get(inner_graph_node)
+            if node_info and r in node_info:
+                var_output = f"{var_output} ({node_info[r]})"
 
         node_info = op_information.get(parent_node) or op_information.get(r.owner)
         if node_info and r in node_info:
