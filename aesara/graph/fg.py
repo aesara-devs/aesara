@@ -699,26 +699,19 @@ class FunctionGraph(MetaObject):
         """Add a ``graph.features.Feature`` to this function graph and trigger its ``on_attach`` callback."""
         # Filter out literally identical `Feature`s
         if feature in self._features:
-            return  # the feature is already present
+            return
 
         # Filter out functionally identical `Feature`s.
-        # `Feature`s may use their `on_attach` method to raise
-        # `AlreadyThere` if they detect that some
-        # installed `Feature` does the same thing already
-        attach = getattr(feature, "on_attach", None)
-        if attach is not None:
-            try:
-                attach(self)
-            except AlreadyThere:
-                return
-        self.execute_callbacks_times.setdefault(feature, 0.0)
-        # It would be nice if we could require a specific class instead of
-        # a "workalike" so we could do actual error checking
-        # if not isinstance(feature, Feature):
-        #    raise TypeError("Expected Feature instance, got "+\
-        #            str(type(feature)))
+        # `Feature`s may use their `on_attach` method to raise `AlreadyThere`
+        # if they detect that some installed `Feature` does the same thing
+        # already
+        try:
+            feature.on_attach(self)
+        except AlreadyThere:
+            return
 
-        # Add the feature
+        self.execute_callbacks_times.setdefault(feature, 0.0)
+
         self._features.append(feature)
 
     def remove_feature(self, feature: Feature) -> None:
@@ -733,9 +726,8 @@ class FunctionGraph(MetaObject):
             self._features.remove(feature)
         except ValueError:
             return
-        detach = getattr(feature, "on_detach", None)
-        if detach is not None:
-            detach(self)
+
+        feature.on_detach(self)
 
     def execute_callbacks(self, name: str, *args, **kwargs) -> None:
         """Execute callbacks.
