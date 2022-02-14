@@ -326,7 +326,7 @@ def local_elemwise_alloc(fgraph, node):
         return False
 
     input_shapes = [
-        tuple(fgraph.shape_feature.get_shape(i, j) for j in range(i.type.ndim))
+        tuple(fgraph.shape_feature.get_shape(fgraph, i, j) for j in range(i.type.ndim))
         for i in node.inputs
     ]
     bcasted_shape = broadcast_shape(
@@ -1022,7 +1022,7 @@ def local_useless_switch(fgraph, node):
             out = correct_out
 
         input_shapes = [
-            tuple(shape_feature.get_shape(inp, i) for i in range(inp.type.ndim))
+            tuple(shape_feature.get_shape(fgraph, inp, i) for i in range(inp.type.ndim))
             for inp in node.inputs
         ]
 
