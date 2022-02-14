@@ -47,7 +47,8 @@ def infer_shape(outs, inputs, input_shapes):
             assert len(inp_shp) == inp.type.ndim
 
     shape_feature = ShapeFeature()
-    shape_feature.on_attach(FunctionGraph([], []))
+    dummy_fgraph = FunctionGraph([], [])
+    shape_feature.on_attach(dummy_fgraph)
 
     # Initialize shape_of with the input shapes
     for inp, inp_shp in zip(inputs, input_shapes):
@@ -72,7 +73,6 @@ def infer_shape(outs, inputs, input_shapes):
 
             # shape_feature.on_import does not actually use an fgraph
             # It will call infer_shape and set_shape appropriately
-            dummy_fgraph = None
             shape_feature.on_import(dummy_fgraph, out.owner, reason="dummy")
 
     ret = []

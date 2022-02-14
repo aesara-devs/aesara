@@ -69,6 +69,8 @@ from aesara.tensor.var import TensorConstant, TensorVariable, get_unique_value
 
 
 if TYPE_CHECKING:
+    from numpy.typing import NDArray
+
     from aesara.tensor import TensorLike
 
 
@@ -260,8 +262,11 @@ _scalar_constant_value_elemwise_ops = (
 
 
 def get_scalar_constant_value(
-    orig_v, elemwise=True, only_process_constants=False, max_recur=10
-):
+    orig_v,
+    elemwise: bool = True,
+    only_process_constants: bool = False,
+    max_recur: int = 10,
+) -> "NDArray":
     """Return the constant scalar(0-D) value underlying variable `v`.
 
     If `v` is the output of dimshuffles, fills, allocs, etc,

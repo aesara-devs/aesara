@@ -7,6 +7,7 @@ from aesara.compile.ops import DeepCopyOp
 from aesara.configdefaults import config
 from aesara.graph.basic import Variable
 from aesara.graph.fg import FunctionGraph
+from aesara.graph.op import Op
 from aesara.graph.type import Type
 from aesara.misc.safe_asarray import _asarray
 from aesara.scalar.basic import ScalarConstant
@@ -46,7 +47,6 @@ from aesara.tensor.type import (
 )
 from aesara.tensor.type_other import NoneConst
 from aesara.tensor.var import TensorVariable
-from aesara.typed_list import make_list
 from tests import unittest_tools as utt
 from tests.graph.utils import MyType2
 from tests.tensor.utils import eval_outputs, random
@@ -560,12 +560,37 @@ class TestRopLop(RopLopChecker):
 
 @config.change_flags(compute_test_value="raise")
 def test_nonstandard_shapes():
-    a = tensor3(config.floatX)
+    """Make sure shape inference works when `Op.infer_shape` isn't implemented.
+
+    This also checks that the `HasShape` abstract mixin works when it isn't
+    explicitly used in a `Type` class definition.
+
+    """
+    a = tensor3(name="a", dtype=config.floatX)
     a.tag.test_value = np.random.random((2, 3, 4)).astype(config.floatX)
-    b = tensor3(config.floatX)
+    b = tensor3(name="b", dtype=config.floatX)
     b.tag.test_value = np.random.random((2, 3, 4)).astype(config.floatX)
 
-    tl = make_list([a, b])
+    class ListType(Type):
+        def filter(self, data, **kwargs):
+            return data
+
+        ndim = 1
+        shape = (None,) * 4
+
+    class MakeList(Op):
+        itypes = [a.type, b.type]
+        otypes = [ListType()]
+
+        def perform(self, node, inputs, outputs):
+            outputs[0][0] = list(inputs)
+
+    make_list = MakeList()
+    tl = make_list(a, b)
+
+    # from aesara.typed_list import make_list
+    #
+    # tl = make_list([a, b])
     tl_shape = shape(tl)
     assert np.array_equal(tl_shape.get_test_value(), (2, 2, 3, 4))
 
