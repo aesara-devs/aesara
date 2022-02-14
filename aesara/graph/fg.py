@@ -14,11 +14,11 @@ from aesara.misc.ordered_set import OrderedSet
 
 
 class FunctionGraph(MetaObject):
-    """
+    r"""
     A `FunctionGraph` represents a subgraph bound by a set of input variables and
     a set of output variables, ie a subgraph that specifies an Aesara function.
     The inputs list should contain all the inputs on which the outputs depend.
-    ``Variable``s of type ``Constant`` are not counted as inputs.
+    `Variable`\s of type `Constant` are not counted as inputs.
 
     The `FunctionGraph` supports the replace operation which allows to replace
     a variable in the subgraph by another, e.g. replace ``(x + x).out`` by
@@ -26,26 +26,22 @@ class FunctionGraph(MetaObject):
 
     This class is also responsible for verifying that a graph is valid
     (ie, all the dtypes and broadcast patterns are compatible with the
-    way the ``Variable``s are used) and for tracking the ``Variable``s with
-    a ``clients`` field that specifies which ``Apply`` nodes use the ``Variable``.
-    The ``clients`` field combined with the ``Variable.owner`` field and the
-    ``Apply`` nodes' ``Apply.inputs`` field allows the graph to be traversed in
-    both directions.
+    way the `Variable`\s are used) and for tracking the `Variable`\s with
+    a :attr:`FunctionGraph.clients` ``dict`` that specifies which `Apply` nodes
+    use the `Variable`.  The :attr:`FunctionGraph.clients` field, combined with
+    the :attr:`Variable.owner` and each :attr:`Apply.inputs`, allows the graph
+    to be traversed in both directions.
 
     It can also be extended with new features using
-    ``FunctionGraph.attach_feature(<Feature instance>)``.
-    See ``Feature`` for event types and documentation.
-    Extra features allow the `FunctionGraph` to verify new properties of
-    a graph as it is optimized.
-
-    Historically, the `FunctionGraph` was called an ``Env``. Keep this in mind
-    while reading out-of-date documentation, e-mail support threads, etc.
+    :meth:`FunctionGraph.attach_feature`.  See `Feature` for event types and
+    documentation.  Extra features allow the `FunctionGraph` to verify new
+    properties of a graph as it is optimized.
 
     The constructor creates a `FunctionGraph` which operates on the subgraph
     bound by the inputs and outputs sets.
 
-    This class keeps a pointer to the inputs and outputs, and also modifies
-    them.
+    This class keeps lists for the inputs and outputs and modifies them
+    in-place.
 
     """
 
