@@ -4,7 +4,6 @@ import time
 import types
 import warnings
 from collections import OrderedDict
-from functools import partial
 from io import StringIO
 from typing import TYPE_CHECKING, Dict, Optional, Set
 
@@ -460,12 +459,12 @@ class Validator(Feature):
         # Don't call unpickle here, as ReplaceValidate.on_attach()
         # call to History.on_attach() will call the
         # ReplaceValidate.unpickle and not History.unpickle
-        fgraph.validate = partial(self.validate_, fgraph)
-        fgraph.consistent = partial(self.consistent_, fgraph)
+        fgraph.validate = types.MethodType(self.validate_, fgraph)
+        fgraph.consistent = types.MethodType(self.consistent_, fgraph)
 
     def unpickle(self, fgraph):
-        fgraph.validate = partial(self.validate_, fgraph)
-        fgraph.consistent = partial(self.consistent_, fgraph)
+        fgraph.validate = types.MethodType(self.validate_, fgraph)
+        fgraph.consistent = types.MethodType(self.consistent_, fgraph)
 
     def on_detach(self, fgraph):
         """
@@ -475,7 +474,8 @@ class Validator(Feature):
         del fgraph.validate
         del fgraph.consistent
 
-    def validate_(self, fgraph):
+    @staticmethod
+    def validate_(fgraph):
         """
         If the caller is replace_all_validate, just raise the
         exception. replace_all_validate will print out the
@@ -507,7 +507,8 @@ class Validator(Feature):
             fgraph.profile.validate_time += t1 - t0
         return ret
 
-    def consistent_(self, fgraph):
+    @staticmethod
+    def consistent_(fgraph):
         try:
             fgraph.validate()
             return True
@@ -566,12 +567,14 @@ class ReplaceValidate(History, Validator):
         del fgraph.replace_all_validate
         del fgraph.replace_all_validate_remove
 
-    def replace_validate(self, fgraph, r, new_r, reason=None, **kwargs):
-        self.replace_all_validate(fgraph, [(r, new_r)], reason=reason, **kwargs)
+    @staticmethod
+    def replace_validate(fgraph, r, new_r, reason=None, **kwargs):
+        ReplaceValidate.replace_all_validate(
+            fgraph, [(r, new_r)], reason=reason, **kwargs
+        )
 
-    def replace_all_validate(
-        self, fgraph, replacements, reason=None, verbose=None, **kwargs
-    ):
+    @staticmethod
+    def replace_all_validate(fgraph, replacements, reason=None, verbose=None, **kwargs):
         chk = fgraph.checkpoint()
 
         if verbose is None:
@@ -626,8 +629,9 @@ class ReplaceValidate(History, Validator):
         # The return is needed by replace_all_validate_remove
         return chk
 
+    @staticmethod
     def replace_all_validate_remove(
-        self, fgraph, replacements, remove, reason=None, warn=True, **kwargs
+        fgraph, replacements, remove, reason=None, warn=True, **kwargs
     ):
         """
         As replace_all_validate, revert the replacement if the ops
