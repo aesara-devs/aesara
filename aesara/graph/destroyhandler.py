@@ -10,8 +10,6 @@ from typing import TYPE_CHECKING, Deque, Dict, Iterable, List, Optional, Set, Tu
 from typing import Type as TypingType
 from typing import Union, cast
 
-from typing_extensions import Literal
-
 from aesara.configdefaults import config
 from aesara.graph.basic import Constant
 from aesara.graph.features import AlreadyThere, Bookkeeper
@@ -328,13 +326,7 @@ class DestroyHandler(Bookkeeper):
 
     """
 
-    pickle_rm_attr = ["destroyers", "has_destroyers"]
-
-    def __init__(
-        self,
-        do_imports_on_attach=True,
-        algo: Optional[Literal["fast", "regular"]] = None,
-    ):
+    def __init__(self, do_imports_on_attach=True, algo=None):
         self.do_imports_on_attach = do_imports_on_attach
 
         if algo is None:
@@ -365,8 +357,6 @@ class DestroyHandler(Bookkeeper):
             raise AlreadyThere("DestroyHandler feature is already present")
 
         fgraph.destroy_handler = self
-
-        self.unpickle(fgraph)
 
         fgraph.fail_validate: Dict["Variable", "Variable"] = OrderedDict()
         """
@@ -413,7 +403,6 @@ class DestroyHandler(Bookkeeper):
         if self.do_imports_on_attach:
             super().on_attach(fgraph)
 
-    def unpickle(self, fgraph) -> None:
         def get_destroyers_of(
             fgraph: "FunctionGraph", r: "Variable"
         ) -> List["Variable"]:

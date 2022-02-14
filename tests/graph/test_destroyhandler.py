@@ -1,3 +1,4 @@
+import pickle
 from copy import copy
 
 import pytest
@@ -460,3 +461,17 @@ def test_multiple_inplace():
     ).rewrite(g)
     assert g.consistent()
     assert fail.failures == 1
+
+
+def test_pickle():
+    x, y, z = inputs()
+    tv = transpose_view(x)
+    e = add_in_place(x, tv)
+    fg = create_fgraph([x, y], [e], False)
+    assert not fg.consistent()
+
+    fg_pkld = pickle.dumps(fg)
+    fg_unpkld = pickle.loads(fg_pkld)
+
+    assert any(isinstance(ft, DestroyHandler) for ft in fg_unpkld._features)
+    assert all(hasattr(fg, attr) for attr in ("_destroyhandler_destroyers",))

@@ -1,6 +1,7 @@
 """A container for specifying and manipulating a graph with distinct inputs and outputs."""
 import time
 from collections import OrderedDict
+from types import MethodType
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -927,22 +928,18 @@ class FunctionGraph(MetaObject):
         return e, equiv
 
     def __getstate__(self):
-        # This is needed as some features introduce instance methods
-        # This is not picklable
-        d = self.__dict__.copy()
-        for feature in self._features:
-            for attr in getattr(feature, "pickle_rm_attr", []):
-                del d[attr]
 
-        # XXX: The `Feature` `DispatchingFeature` takes functions as parameter
-        # and they can be lambda functions, making them unpicklable.
+        # Remove methods that were attached by features
+        self_dict = {
+            k: v for k, v in self.__dict__.items() if not isinstance(v, MethodType)
+        }
 
-        # execute_callbacks_times have reference to optimizer, and they can't
-        # be pickled as the decorators with parameters aren't pickable.
-        if "execute_callbacks_times" in d:
-            del d["execute_callbacks_times"]
+        # `execute_callbacks_times` holds references to optimizers, so they
+        # can't be pickled
+        if "execute_callbacks_times" in self_dict:
+            del self_dict["execute_callbacks_times"]
 
-        return d
+        return self_dict
 
     def __setstate__(self, dct):
         self.__dict__.update(dct)

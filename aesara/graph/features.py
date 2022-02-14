@@ -354,7 +354,7 @@ class Feature:
 class Bookkeeper(Feature):
     def on_attach(self, fgraph):
         for node in io_toposort(fgraph.inputs, fgraph.outputs):
-            self.on_import(fgraph, node, "on_attach")
+            self.on_import(fgraph, node, "Bookkeeper.on_attach")
 
     def on_detach(self, fgraph):
         for node in io_toposort(fgraph.inputs, fgraph.outputs):
@@ -384,8 +384,6 @@ class History(Feature):
 
     """
 
-    pickle_rm_attr = ["checkpoint", "revert"]
-
     def on_attach(self, fgraph):
         if hasattr(fgraph, "checkpoint") or hasattr(fgraph, "revert"):
             raise AlreadyThere(
@@ -395,24 +393,13 @@ class History(Feature):
         fgraph._history_is_reverting = False
         fgraph._history_nb = 0
         fgraph._history_history = []
-        # Don't call unpickle here, as ReplaceValidate.on_attach()
-        # call to History.on_attach() will call the
-        # ReplaceValidate.unpickle and not History.unpickle
         fgraph.checkpoint = types.MethodType(self.checkpoint, fgraph)
         fgraph.revert = types.MethodType(self.revert, fgraph)
 
     def clone(self):
         return type(self)()
 
-    def unpickle(self, fgraph):
-        fgraph.checkpoint = types.MethodType(self.checkpoint, fgraph)
-        fgraph.revert = types.MethodType(self.revert, fgraph)
-
     def on_detach(self, fgraph):
-        """
-        Should remove any dynamically added functionality
-        that it installed into the function_graph
-        """
         del fgraph.checkpoint
         del fgraph.revert
         del fgraph._history_history
@@ -447,8 +434,6 @@ class History(Feature):
 
 
 class Validator(Feature):
-    pickle_rm_attr = ["validate", "consistent"]
-
     def on_attach(self, fgraph):
         for attr in ("validate", "validate_time"):
             if hasattr(fgraph, attr):
@@ -456,13 +441,6 @@ class Validator(Feature):
                     "Validator feature is already present or in"
                     " conflict with another plugin."
                 )
-        # Don't call unpickle here, as ReplaceValidate.on_attach()
-        # call to History.on_attach() will call the
-        # ReplaceValidate.unpickle and not History.unpickle
-        fgraph.validate = types.MethodType(self.validate_, fgraph)
-        fgraph.consistent = types.MethodType(self.consistent_, fgraph)
-
-    def unpickle(self, fgraph):
         fgraph.validate = types.MethodType(self.validate_, fgraph)
         fgraph.consistent = types.MethodType(self.consistent_, fgraph)
 
@@ -517,12 +495,6 @@ class Validator(Feature):
 
 
 class ReplaceValidate(History, Validator):
-    pickle_rm_attr = (
-        ["replace_validate", "replace_all_validate", "replace_all_validate_remove"]
-        + History.pickle_rm_attr
-        + Validator.pickle_rm_attr
-    )
-
     def on_attach(self, fgraph):
         for attr in (
             "replace_validate",
@@ -536,16 +508,10 @@ class ReplaceValidate(History, Validator):
                 )
         fgraph._replace_nodes_removed = set()
         fgraph._replace_validate_failed = False
+
         History.on_attach(self, fgraph)
         Validator.on_attach(self, fgraph)
-        self.unpickle(fgraph)
 
-    def clone(self):
-        return type(self)()
-
-    def unpickle(self, fgraph):
-        History.unpickle(self, fgraph)
-        Validator.unpickle(self, fgraph)
         fgraph.replace_validate = types.MethodType(self.replace_validate, fgraph)
         fgraph.replace_all_validate = types.MethodType(
             self.replace_all_validate, fgraph
@@ -554,11 +520,10 @@ class ReplaceValidate(History, Validator):
             self.replace_all_validate_remove, fgraph
         )
 
+    def clone(self):
+        return type(self)()
+
     def on_detach(self, fgraph):
-        """
-        Should remove any dynamically added functionality
-        that it installed into the function_graph
-        """
         History.on_detach(self, fgraph)
         Validator.on_detach(self, fgraph)
         del fgraph._replace_nodes_removed

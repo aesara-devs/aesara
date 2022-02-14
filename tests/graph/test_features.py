@@ -1,3 +1,5 @@
+import pickle
+
 import pytest
 
 from aesara.graph.basic import Apply, Variable
@@ -147,6 +149,32 @@ class TestReplaceValidate:
         capres = capsys.readouterr()
         assert "rewriting: validate failed on node Op1.0" in capres.out
 
+    def test_pickle(self):
+        var1 = MyVariable("var1")
+        var2 = MyVariable("var2")
+        var3 = op1(var2, var1)
+        fg = FunctionGraph([var1, var2], [var3], clone=False)
+
+        rv_feature = ReplaceValidate()
+        fg.attach_feature(rv_feature)
+
+        fg_pkld = pickle.dumps(fg)
+        fg_unpkld = pickle.loads(fg_pkld)
+
+        assert ReplaceValidate in set(type(ft) for ft in fg_unpkld._features)
+        assert all(
+            hasattr(fg, attr)
+            for attr in (
+                "replace_validate",
+                "replace_all_validate",
+                "replace_all_validate_remove",
+                "checkpoint",
+                "revert",
+                "validate",
+                "consistent",
+            )
+        )
+
 
 class TestHistory:
     def test_basic(self):
@@ -172,3 +200,26 @@ class TestHistory:
 
         assert not fg._history_history
         assert var3 in fg.variables
+
+    def test_pickle(self):
+        var1 = MyVariable("var1")
+        var2 = MyVariable("var2")
+        var3 = op1(var2, var1)
+        fg = FunctionGraph([var1, var2], [var3], clone=False)
+
+        hf = History()
+        fg.attach_feature(hf)
+
+        fg_pkld = pickle.dumps(fg)
+        fg_unpkld = pickle.loads(fg_pkld)
+
+        assert any(isinstance(ft, History) for ft in fg_unpkld._features)
+        assert all(
+            hasattr(fg, attr)
+            for attr in (
+                "checkpoint",
+                "revert",
+                "validate",
+                "consistent",
+            )
+        )
