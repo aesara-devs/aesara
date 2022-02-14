@@ -188,27 +188,27 @@ import ``aesara`` and print the config variable, as in:
 
 .. attribute:: cycle_detection
 
-    String value, either ``regular`` or ``fast```
+    String value, either ``"regular"`` or ``"fast"```
 
-    Default: ``regular``
+    Default: ``"regular"``
 
-    If :attr:`cycle_detection` is set to ``regular``, most in-place operations are allowed,
-    but graph compilation is slower. If :attr:`cycle_detection` is set to ``faster``,
+    If :attr:`cycle_detection` is set to ``"regular"``, most in-place operations are allowed,
+    but graph compilation is slower. If :attr:`cycle_detection` is set to ``"fast"``,
     less in-place operations are allowed, but graph compilation is faster.
 
 .. attribute:: check_stack_trace
 
-    String value, either ``off``, ``log``, ``warn``, ``raise``
+    String value, either ``"off"``, ``"log"``, ``"warn"``, ``"raise"``
 
-    Default: ``off``
+    Default: ``"off"``
 
     This is a flag for checking stack traces during graph rewriting.
-    If :attr:`check_stack_trace` is set to ``off``, no check is performed on the
-    stack trace. If :attr:`check_stack_trace` is set to ``log`` or ``warn``, a
+    If :attr:`check_stack_trace` is set to ``"off"``, no check is performed on the
+    stack trace. If :attr:`check_stack_trace` is set to ``"log"`` or ``"warn"``, a
     dummy stack trace is inserted that indicates which rewrite inserted the
-    variable that had an empty stack trace, but, when ``warn`` is set, a warning
+    variable that had an empty stack trace, but, when ``"warn"`` is set, a warning
     is also printed.
-    If :attr:`check_stack_trace` is set to ``raise``, an exception is raised if a
+    If :attr:`check_stack_trace` is set to ``"raise"``, an exception is raised if a
     stack trace is missing.
 
 .. attribute:: openmp

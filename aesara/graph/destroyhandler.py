@@ -5,13 +5,23 @@ and inplace operations.
 """
 import itertools
 from collections import OrderedDict, deque
+from types import MethodType
+from typing import TYPE_CHECKING, Deque, Dict, Iterable, List, Optional, Set, Tuple
+from typing import Type as TypingType
+from typing import Union, cast
 
-import aesara
+from typing_extensions import Literal
+
 from aesara.configdefaults import config
 from aesara.graph.basic import Constant
 from aesara.graph.features import AlreadyThere, Bookkeeper
 from aesara.graph.utils import InconsistencyError
 from aesara.misc.ordered_set import OrderedSet
+
+
+if TYPE_CHECKING:
+    from aesara.graph.basic import Apply, Variable
+    from aesara.graph.fg import FunctionGraph
 
 
 class ProtocolError(Exception):
@@ -23,7 +33,9 @@ class ProtocolError(Exception):
     """
 
 
-def _contains_cycle(fgraph, orderings):
+def _contains_cycle(
+    fgraph: "FunctionGraph", orderings: Dict["Apply", Set["Apply"]]
+) -> bool:
     """
     Function to check if the given graph contains a cycle
 
@@ -76,12 +88,18 @@ def _contains_cycle(fgraph, orderings):
     # dictionary also runs slower when storing ids than when
     # storing objects.
 
+    # TODO FIXME: This use of mixed `Apply` and `Variable` types is confusing
+    # and unnecessary.  We might need to start using nullary `Apply` nodes for
+    # atomic variables in order to fix this, though.
+
     # dict mapping an Apply or Variable instance to the number
     # of its parents (including parents imposed by orderings)
     # that haven't been visited yet
-    parent_counts = {}
+    parent_counts: Dict[Union["Apply", "Variable"], int] = {}
     # dict mapping an Apply or Variable instance to its children
-    node_to_children = {}
+    node_to_children: Dict[
+        Union["Apply", "Variable"], List[Union["Apply", "Variable"]]
+    ] = {}
 
     # visitable: A container holding all Variable and Apply instances
     # that can currently be visited according to the graph topology
@@ -94,7 +112,7 @@ def _contains_cycle(fgraph, orderings):
     # we don't care about the traversal order here as much as we do
     # in io_toposort because we aren't trying to generate an ordering
     # on the nodes
-    visitable = deque()
+    visitable: Deque[Union["Apply", "Variable"]] = deque()
 
     # IG: visitable could in principle be initialized to fgraph.inputs
     #     + fgraph.orphans... if there were an fgraph.orphans structure.
@@ -109,7 +127,6 @@ def _contains_cycle(fgraph, orderings):
     # Pass through all the nodes to build visitable, parent_count, and
     # node_to_children
     for var in fgraph.variables:
-
         # this is faster than calling get_parents
         owner = var.owner
         # variables don't appear in orderings, so we don't need to worry
@@ -125,7 +142,7 @@ def _contains_cycle(fgraph, orderings):
             parent_counts[var] = 0
 
     for a_n in fgraph.apply_nodes:
-        parents = list(a_n.inputs)
+        parents: List[Union["Apply", "Variable"]] = list(a_n.inputs)
         # This is faster than conditionally extending
         # IG: I tried using a shared empty_list = [] constructed
         # outside of the for loop to avoid constructing multiple
@@ -175,21 +192,37 @@ def _contains_cycle(fgraph, orderings):
     return visited != len(parent_counts)
 
 
-def _build_droot_impact(destroy_handler):
-    droot = {}  # destroyed view + nonview variables -> foundation
-    impact = {}  # destroyed nonview variable -> it + all views of it
-    root_destroyer = {}  # root -> destroyer apply
+def _build_droot_impact(
+    fgraph: "FunctionGraph",
+) -> Tuple[
+    Dict["Variable", "Variable"],
+    Dict["Variable", Set["Variable"]],
+    Dict["Variable", "Apply"],
+]:
+    # destroyed view + nonview variables -> foundation
+    droot: Dict["Variable", "Variable"] = OrderedDict()
+    # destroyed nonview variable -> it + all views of it
+    impact: Dict["Variable", Set["Variable"]] = OrderedDict()
+    # root -> destroyer apply
+    root_destroyer: Dict["Variable", "Apply"] = OrderedDict()
 
-    for app in destroy_handler.destroyers:
+    # TODO FIXME: How do we get a type interface working for these
+    # `FunctionGraph` additions?
+    assert hasattr(fgraph, "_destroyhandler_destroyers")
+    assert hasattr(fgraph, "view_i")
+    assert hasattr(fgraph, "view_o")
+
+    for app in fgraph._destroyhandler_destroyers:
         for output_idx, input_idx_list in app.op.destroy_map.items():
             if len(input_idx_list) != 1:
                 raise NotImplementedError()
-            input_idx = input_idx_list[0]
-            input = app.inputs[input_idx]
+
+            input_idx: int = input_idx_list[0]
+            input: "Variable" = app.inputs[input_idx]
 
             # Find non-view variable which is ultimately viewed by input.
-            view_i = destroy_handler.view_i
-            _r = input
+            view_i: Dict["Variable", "Variable"] = fgraph.view_i
+            _r: Optional["Variable"] = input
             while _r is not None:
                 r = _r
                 _r = view_i.get(r)
@@ -197,6 +230,7 @@ def _build_droot_impact(destroy_handler):
 
             if input_root in droot:
                 raise InconsistencyError(f"Multiple destroyers of {input_root}")
+
             droot[input_root] = input_root
             root_destroyer[input_root] = app
 
@@ -204,11 +238,11 @@ def _build_droot_impact(destroy_handler):
             # an OrderedSet input_impact
             input_impact = OrderedSet()
 
-            q = deque()
+            q: Deque["Variable"] = deque()
             q.append(input_root)
             while len(q) > 0:
                 v = q.popleft()
-                for n in destroy_handler.view_o.get(v, []):
+                for n in fgraph.view_o.get(v, []):
                     input_impact.add(n)
                     q.append(n)
 
@@ -216,13 +250,15 @@ def _build_droot_impact(destroy_handler):
                 assert v not in droot
                 droot[v] = input_root
 
-            impact[input_root] = input_impact
+            impact[input_root] = cast(Set["Variable"], input_impact)
             impact[input_root].add(input_root)
 
     return droot, impact, root_destroyer
 
 
-def fast_inplace_check(fgraph, inputs):
+def fast_inplace_check(
+    fgraph: "FunctionGraph", inputs: List["Variable"]
+) -> List["Variable"]:
     """
     Return the variables in inputs that are possible candidate for as inputs of
     inplace operation.
@@ -233,12 +269,11 @@ def fast_inplace_check(fgraph, inputs):
         Inputs Variable that you want to use as inplace destination.
 
     """
-    Supervisor = aesara.compile.function.types.Supervisor
-    protected_inputs = [
-        f.protected for f in fgraph._features if isinstance(f, Supervisor)
-    ]
-    protected_inputs = sum(protected_inputs, [])  # flatten the list
-    protected_inputs.extend(fgraph.outputs)
+    assert hasattr(fgraph, "has_destroyers")
+
+    protected_inputs: Iterable["Variable"] = getattr(
+        fgraph, "_supervisor_protected", ()
+    )
 
     inputs = [
         i
@@ -250,7 +285,7 @@ def fast_inplace_check(fgraph, inputs):
     return inputs
 
 
-class DestroyHandler(Bookkeeper):  # noqa
+class DestroyHandler(Bookkeeper):
     """
     The DestroyHandler class detects when a graph is impossible to evaluate
     because of aliasing and destructive operations.
@@ -295,40 +330,16 @@ class DestroyHandler(Bookkeeper):  # noqa
 
     pickle_rm_attr = ["destroyers", "has_destroyers"]
 
-    def __init__(self, do_imports_on_attach=True, algo=None):
-        self.fgraph = None
+    def __init__(
+        self,
+        do_imports_on_attach=True,
+        algo: Optional[Literal["fast", "regular"]] = None,
+    ):
         self.do_imports_on_attach = do_imports_on_attach
 
-        """
-        Maps every variable in the graph to its "foundation" (deepest
-        ancestor in view chain).
-        TODO: change name to var_to_vroot.
-
-        """
-        self.droot = OrderedDict()
-
-        """
-        Maps a variable to all variables that are indirect or direct views of it
-        (including itself) essentially the inverse of droot.
-        TODO: do all variables appear in this dict, or only those that are
-              foundations?
-        TODO: do only destroyed variables go in here? one old docstring said so.
-        TODO: rename to x_to_views after reverse engineering what x is
-
-        """
-        self.impact = OrderedDict()
-
-        """
-        If a var is destroyed, then this dict will map
-        droot[var] to the apply node that destroyed var
-        TODO: rename to vroot_to_destroyer
-
-        """
-        self.root_destroyer = OrderedDict()
         if algo is None:
             algo = config.cycle_detection
         self.algo = algo
-        self.fail_validate = OrderedDict()
 
     def clone(self):
         return type(self)(self.do_imports_on_attach, self.algo)
@@ -350,48 +361,76 @@ class DestroyHandler(Bookkeeper):  # noqa
 
         """
 
-        if any(hasattr(fgraph, attr) for attr in ("destroyers", "destroy_handler")):
+        if hasattr(fgraph, "destroy_handler"):
             raise AlreadyThere("DestroyHandler feature is already present")
 
-        if self.fgraph is not None and self.fgraph != fgraph:
-            raise Exception(
-                "A DestroyHandler instance can only serve one FunctionGraph"
-            )
-
-        # Annotate the FunctionGraph #
-        self.unpickle(fgraph)
         fgraph.destroy_handler = self
 
-        self.fgraph = fgraph
-        self.destroyers = (
-            OrderedSet()
-        )  # set of Apply instances with non-null destroy_map
-        self.view_i = {}  # variable -> variable used in calculation
-        self.view_o = (
-            {}
-        )  # variable -> set of variables that use this one as a direct input
+        self.unpickle(fgraph)
+
+        fgraph.fail_validate: Dict["Variable", "Variable"] = OrderedDict()
+        """
+        Maps every variable in the graph to its "foundation" (deepest
+        ancestor in view chain).
+        TODO: change name to var_to_vroot.
+
+        """
+        fgraph.droot: Dict["Variable", "Variable"] = OrderedDict()
+
+        """
+        Maps a variable to all variables that are indirect or direct views of it
+        (including itself) essentially the inverse of droot.
+        TODO: do all variables appear in this dict, or only those that are
+              foundations?
+        TODO: do only destroyed variables go in here? one old docstring said so.
+        TODO: rename to x_to_views after reverse engineering what x is
+
+        """
+        fgraph.impact: Dict["Variable", "Apply"] = OrderedDict()
+
+        """
+        If a var is destroyed, then this dict will map
+        droot[var] to the apply node that destroyed var
+        TODO: rename to vroot_to_destroyer
+
+        """
+        fgraph.root_destroyer: Dict["Variable", "Apply"] = OrderedDict()
+
+        # set of Apply instances with non-null destroy_map
+        fgraph._destroyhandler_destroyers: Set["Apply"] = OrderedSet()
+        # variable -> variable used in calculation
+        fgraph.view_i: Dict["Variable", "Variable"] = OrderedDict()
+        # variable -> set of variables that use this one as a direct input
+        fgraph.view_o: Dict["Variable", Set["Variable"]] = OrderedDict()
         # clients: how many times does an apply use a given variable
-        self.clients = OrderedDict()  # variable -> apply -> ninputs
-        self.stale_droot = True
+        fgraph._destroy_handler_clients: Dict[
+            "Variable", Dict["Apply", int]
+        ] = OrderedDict()
+        fgraph.stale_droot: bool = True
 
-        self.debug_all_apps = set()
+        fgraph.debug_all_apps: Set["Apply"] = set()
+
         if self.do_imports_on_attach:
-            Bookkeeper.on_attach(self, fgraph)
+            super().on_attach(fgraph)
 
-    def unpickle(self, fgraph):
-        def get_destroyers_of(r):
-            droot, _, root_destroyer = self.refresh_droot_impact()
+    def unpickle(self, fgraph) -> None:
+        def get_destroyers_of(
+            fgraph: "FunctionGraph", r: "Variable"
+        ) -> List["Variable"]:
+            droot, _, root_destroyer = self.refresh_droot_impact(fgraph)
             try:
                 return [root_destroyer[droot[r]]]
             except Exception:
                 return []
 
-        fgraph.destroyers = get_destroyers_of
+        fgraph.destroyers = MethodType(get_destroyers_of, fgraph)
 
-        def has_destroyers(protected_list):
+        def has_destroyers(
+            fgraph: "FunctionGraph", protected_vars: Iterable["Variable"]
+        ) -> bool:
             if self.algo != "fast":
-                droot, _, root_destroyer = self.refresh_droot_impact()
-                for protected_var in protected_list:
+                droot, _, root_destroyer = self.refresh_droot_impact(fgraph)
+                for protected_var in protected_vars:
                     try:
                         root_destroyer[droot[protected_var]]
                         return True
@@ -399,54 +438,56 @@ class DestroyHandler(Bookkeeper):  # noqa
                         pass
                 return False
 
-            def recursive_destroys_finder(protected_var):
+            def recursive_destroys_finder(protected_var: "Variable") -> bool:
                 # protected_var is the idx'th input of app.
-                for (app, idx) in fgraph.clients[protected_var]:
+                for app, idx in fgraph.clients[protected_var]:
                     if app == "output":
                         continue
-                    destroy_maps = app.op.destroy_map.values()
-                    # If True means that the apply node, destroys the protected_var.
-                    if idx in [dmap for sublist in destroy_maps for dmap in sublist]:
-                        return True
-                    for var_idx in app.op.view_map.keys():
-                        if idx in app.op.view_map[var_idx]:
-                            # We need to recursively check the destroy_map of all the
-                            # outputs that we have a view_map on.
-                            if recursive_destroys_finder(app.outputs[var_idx]):
-                                return True
+                    else:
+                        assert isinstance(app, Apply)
+                        destroy_maps = app.op.destroy_map.values()
+                        # If True means that the apply node, destroys the protected_var.
+                        if idx in [
+                            dmap for sublist in destroy_maps for dmap in sublist
+                        ]:
+                            return True
+                        for var_idx in app.op.view_map.keys():
+                            if idx in app.op.view_map[var_idx]:
+                                # We need to recursively check the destroy_map of all the
+                                # outputs that we have a view_map on.
+                                if recursive_destroys_finder(app.outputs[var_idx]):
+                                    return True
                 return False
 
-            for protected_var in protected_list:
+            for protected_var in protected_vars:
                 if recursive_destroys_finder(protected_var):
                     return True
             return False
 
-        fgraph.has_destroyers = has_destroyers
+        fgraph.has_destroyers = MethodType(has_destroyers, fgraph)
 
-    def refresh_droot_impact(self):
+    def refresh_droot_impact(self, fgraph):
         """
-        Makes sure self.droot, self.impact, and self.root_destroyer are up to
+        Makes sure ``droot``, ``impact``, and ``root_destroyer`` are up to
         date, and returns them (see docstrings for these properties above).
 
         """
-        if self.stale_droot:
-            self.droot, self.impact, self.root_destroyer = _build_droot_impact(self)
-            self.stale_droot = False
-        return self.droot, self.impact, self.root_destroyer
+        if fgraph.stale_droot:
+            fgraph.droot, fgraph.impact, fgraph.root_destroyer = _build_droot_impact(
+                fgraph
+            )
+            fgraph.stale_droot = False
+        return fgraph.droot, fgraph.impact, fgraph.root_destroyer
 
     def on_detach(self, fgraph):
-        if fgraph is not self.fgraph:
-            raise Exception("detaching wrong fgraph", fgraph)
-        del self.destroyers
-        del self.view_i
-        del self.view_o
-        del self.clients
-        del self.stale_droot
-        assert self.fgraph.destroyer_handler is self
-        delattr(self.fgraph, "destroyers")
-        delattr(self.fgraph, "has_destroyers")
-        delattr(self.fgraph, "destroy_handler")
-        self.fgraph = None
+        del fgraph._destroyhandler_destroyers
+        del fgraph.view_i
+        del fgraph.view_o
+        del fgraph._destroy_handler_clients
+        del fgraph.stale_droot
+        delattr(fgraph, "destroyers")
+        delattr(fgraph, "has_destroyers")
+        delattr(fgraph, "destroy_handler")
 
     def fast_destroy(self, fgraph, app, reason):
         """
@@ -467,11 +508,11 @@ class DestroyHandler(Bookkeeper):  # noqa
         for inp_idx in inputs:
             inp = app.inputs[inp_idx]
             if getattr(inp.tag, "indestructible", False) or isinstance(inp, Constant):
-                self.fail_validate[app] = InconsistencyError(
+                fgraph.fail_validate[app] = InconsistencyError(
                     f"Attempting to destroy indestructible variables: {inp}"
                 )
             elif len(fgraph.clients[inp]) > 1:
-                self.fail_validate[app] = InconsistencyError(
+                fgraph.fail_validate[app] = InconsistencyError(
                     "Destroyed variable has more than one client. " + str(reason)
                 )
             elif inp.owner:
@@ -482,13 +523,13 @@ class DestroyHandler(Bookkeeper):  # noqa
                 if v:
                     v = v.get(inp_idx2, [])
                     if len(v) > 0:
-                        self.fail_validate[app] = InconsistencyError(
+                        fgraph.fail_validate[app] = InconsistencyError(
                             "Destroyed variable has view_map. " + str(reason)
                         )
                 elif d:
                     d = d.get(inp_idx2, [])
                     if len(d) > 0:
-                        self.fail_validate[app] = InconsistencyError(
+                        fgraph.fail_validate[app] = InconsistencyError(
                             "Destroyed variable has destroy_map. " + str(reason)
                         )
 
@@ -498,20 +539,17 @@ class DestroyHandler(Bookkeeper):  # noqa
                 # assert len(d) <= 1
 
     def on_import(self, fgraph, app, reason):
-        """
-        Add Apply instance to set which must be computed.
-
-        """
-        if app in self.debug_all_apps:
+        """Add an `Apply` instance to the set which must be computed."""
+        if app in fgraph.debug_all_apps:
             raise ProtocolError("double import")
-        self.debug_all_apps.add(app)
-        # print 'DH IMPORT', app, id(app), id(self), len(self.debug_all_apps)
+        fgraph.debug_all_apps.add(app)
+        # print 'DH IMPORT', app, id(app), id(self), len(fgraph.debug_all_apps)
 
         # If it's a destructive op, add it to our watch list
         dmap = app.op.destroy_map
         vmap = app.op.view_map
         if dmap:
-            self.destroyers.add(app)
+            fgraph._destroyhandler_destroyers.add(app)
             if self.algo == "fast":
                 self.fast_destroy(fgraph, app, reason)
 
@@ -523,40 +561,42 @@ class DestroyHandler(Bookkeeper):  # noqa
                 )
             o = app.outputs[o_idx]
             i = app.inputs[i_idx_list[0]]
-            self.view_i[o] = i
-            self.view_o.setdefault(i, OrderedSet()).add(o)
+            fgraph.view_i[o] = i
+            fgraph.view_o.setdefault(i, OrderedSet()).add(o)
 
-        # update self.clients
+        # update fgraph._destroy_handler_clients
         for i, input in enumerate(app.inputs):
-            self.clients.setdefault(input, OrderedDict()).setdefault(app, 0)
-            self.clients[input][app] += 1
+            fgraph._destroy_handler_clients.setdefault(input, OrderedDict()).setdefault(
+                app, 0
+            )
+            fgraph._destroy_handler_clients[input][app] += 1
 
         for i, output in enumerate(app.outputs):
-            self.clients.setdefault(output, OrderedDict())
+            fgraph._destroy_handler_clients.setdefault(output, OrderedDict())
 
-        self.stale_droot = True
+        fgraph.stale_droot = True
 
     def on_prune(self, fgraph, app, reason):
         """
         Remove Apply instance from set which must be computed.
 
         """
-        if app not in self.debug_all_apps:
+        if app not in fgraph.debug_all_apps:
             raise ProtocolError("prune without import")
-        self.debug_all_apps.remove(app)
+        fgraph.debug_all_apps.remove(app)
 
-        # UPDATE self.clients
+        # UPDATE fgraph._destroy_handler_clients
         for input in set(app.inputs):
-            del self.clients[input][app]
+            del fgraph._destroy_handler_clients[input][app]
 
         if app.op.destroy_map:
-            self.destroyers.remove(app)
+            fgraph._destroyhandler_destroyers.remove(app)
 
         # Note: leaving empty client dictionaries in the struct.
         # Why? It's a pain to remove them. I think they aren't doing any harm, they will be
         # deleted on_detach().
 
-        # UPDATE self.view_i, self.view_o
+        # UPDATE fgraph.view_i, fgraph.view_o
         for o_idx, i_idx_list in app.op.view_map.items():
             if len(i_idx_list) > 1:
                 # destroying this output invalidates multiple inputs
@@ -564,17 +604,25 @@ class DestroyHandler(Bookkeeper):  # noqa
             o = app.outputs[o_idx]
             i = app.inputs[i_idx_list[0]]
 
-            del self.view_i[o]
+            del fgraph.view_i[o]
 
-            self.view_o[i].remove(o)
-            if not self.view_o[i]:
-                del self.view_o[i]
+            fgraph.view_o[i].remove(o)
+            if not fgraph.view_o[i]:
+                del fgraph.view_o[i]
 
-        self.stale_droot = True
-        if app in self.fail_validate:
-            del self.fail_validate[app]
+        fgraph.stale_droot = True
+        if app in fgraph.fail_validate:
+            del fgraph.fail_validate[app]
 
-    def on_change_input(self, fgraph, app, i, old_r, new_r, reason):
+    def on_change_input(
+        self,
+        fgraph,
+        app,
+        i,
+        old_r,
+        new_r,
+        reason,
+    ):
         """
         app.inputs[i] changed from old_r to new_r.
 
@@ -584,18 +632,20 @@ class DestroyHandler(Bookkeeper):  # noqa
             # considered 'outputs' of the graph.
             pass
         else:
-            if app not in self.debug_all_apps:
+            if app not in fgraph.debug_all_apps:
                 raise ProtocolError("change without import")
 
-            # UPDATE self.clients
-            self.clients[old_r][app] -= 1
-            if self.clients[old_r][app] == 0:
-                del self.clients[old_r][app]
+            # UPDATE fgraph._destroy_handler_clients
+            fgraph._destroy_handler_clients[old_r][app] -= 1
+            if fgraph._destroy_handler_clients[old_r][app] == 0:
+                del fgraph._destroy_handler_clients[old_r][app]
 
-            self.clients.setdefault(new_r, OrderedDict()).setdefault(app, 0)
-            self.clients[new_r][app] += 1
+            fgraph._destroy_handler_clients.setdefault(new_r, OrderedDict()).setdefault(
+                app, 0
+            )
+            fgraph._destroy_handler_clients[new_r][app] += 1
 
-            # UPDATE self.view_i, self.view_o
+            # UPDATE fgraph.view_i, fgraph.view_o
             for o_idx, i_idx_list in app.op.view_map.items():
                 if len(i_idx_list) > 1:
                     # destroying this output invalidates multiple inputs
@@ -606,46 +656,44 @@ class DestroyHandler(Bookkeeper):  # noqa
                     if app.inputs[i_idx] is not new_r:
                         raise ProtocolError("wrong new_r on change")
 
-                    self.view_i[output] = new_r
+                    fgraph.view_i[output] = new_r
 
-                    self.view_o[old_r].remove(output)
-                    if not self.view_o[old_r]:
-                        del self.view_o[old_r]
+                    fgraph.view_o[old_r].remove(output)
+                    if not fgraph.view_o[old_r]:
+                        del fgraph.view_o[old_r]
 
-                    self.view_o.setdefault(new_r, OrderedSet()).add(output)
+                    fgraph.view_o.setdefault(new_r, OrderedSet()).add(output)
 
             if self.algo == "fast":
-                if app in self.fail_validate:
-                    del self.fail_validate[app]
+                if app in fgraph.fail_validate:
+                    del fgraph.fail_validate[app]
                 self.fast_destroy(fgraph, app, reason)
-        self.stale_droot = True
+        fgraph.stale_droot = True
 
-    def validate(self, fgraph):
+    def validate(self, fgraph) -> bool:
         """
-        Return None.
-
         Raise InconsistencyError when
-        a) orderings() raises an error
-        b) orderings cannot be topologically sorted.
+        a) `FunctionGraph.orderings` raises an error
+        b) `FunctionGraph.orderings` cannot be topologically sorted.
 
         """
-        if self.destroyers:
+        if fgraph._destroyhandler_destroyers:
             if self.algo == "fast":
-                if self.fail_validate:
-                    app_err_pairs = self.fail_validate
-                    self.fail_validate = OrderedDict()
-                    # self.fail_validate can only be a hint that maybe/probably
+                if fgraph.fail_validate:
+                    app_err_pairs = fgraph.fail_validate
+                    fgraph.fail_validate = OrderedDict()
+                    # fgraph.fail_validate can only be a hint that maybe/probably
                     # there is a cycle.This is because inside replace() we could
                     # record many reasons to not accept a change, but we don't
                     # know which one will fail first inside validate(). Thus,the
                     # graph might have already changed when we raise the
-                    # self.fail_validate error. So before raising the error, we
+                    # fgraph.fail_validate error. So before raising the error, we
                     # double check here.
                     for app in app_err_pairs:
                         if app in fgraph.apply_nodes:
                             self.fast_destroy(fgraph, app, "validate")
-                    if self.fail_validate:
-                        self.fail_validate = app_err_pairs
+                    if fgraph.fail_validate:
+                        fgraph.fail_validate = app_err_pairs
                         raise app_err_pairs[app]
             else:
                 ords = self.orderings(fgraph, ordered=False)
@@ -665,120 +713,124 @@ class DestroyHandler(Bookkeeper):  # noqa
             pass
         return True
 
-    def orderings(self, fgraph, ordered=True):
-        """
-        Return orderings induced by destructive operations.
+    def orderings(self, fgraph, ordered: bool = True) -> Dict["Apply", Set["Apply"]]:
+        """Return orderings induced by destructive operations.
 
-        Raise InconsistencyError when
-        a) attempting to destroy indestructable variable, or
-        b) attempting to destroy a value multiple times, or
-        c) an Apply destroys (illegally) one of its own inputs by aliasing
+        Raise an `InconsistencyError` when
+            a) attempting to destroy indestructible variable, or
+            b) attempting to destroy a value multiple times, or
+            c) an `Apply` destroys (illegally) one of its own inputs by aliasing
 
         """
         if ordered:
-            set_type = OrderedSet
-            rval = OrderedDict()
+            set_type = cast(TypingType[Set["Apply"]], OrderedSet)
         else:
             set_type = set
-            rval = dict()
 
-        if self.destroyers:
-            # BUILD DATA STRUCTURES
-            # CHECK for multiple destructions during construction of variables
+        rval: Dict["Apply", Set["Apply"]] = OrderedDict()
 
-            droot, impact, __ignore = self.refresh_droot_impact()
+        if not fgraph._destroyhandler_destroyers:
+            return rval
 
-            # check for destruction of constants
-            illegal_destroy = [
-                r
-                for r in droot
-                if getattr(r.tag, "indestructible", False) or isinstance(r, Constant)
-            ]
-            if illegal_destroy:
-                raise InconsistencyError(
-                    f"Attempting to destroy indestructible variables: {illegal_destroy}"
+        # BUILD DATA STRUCTURES
+        # CHECK for multiple destructions during construction of variables
+        droot, impact, __ignore = self.refresh_droot_impact(fgraph)
+
+        # check for destruction of constants
+        illegal_destructions = [
+            r
+            for r in droot
+            if getattr(r.tag, "indestructible", False) or isinstance(r, Constant)
+        ]
+        if illegal_destructions:
+            raise InconsistencyError(
+                f"Attempting to destroy indestructible variables: {illegal_destructions}"
+            )
+
+        # add destroyed variable clients as computational dependencies
+        for app in fgraph._destroyhandler_destroyers:
+            # keep track of clients that should run before the current Apply
+            root_clients: Set["Apply"] = set_type()
+            # for each destroyed input...
+            for output_idx, input_idx_list in app.op.destroy_map.items():
+                destroyed_idx = input_idx_list[0]
+                destroyed_variable = app.inputs[destroyed_idx]
+                root = droot[destroyed_variable]
+                root_impact = impact[root]
+                # we generally want to put all clients of things which depend on root
+                # as pre-requisites of app.
+                # But, app is itself one such client!
+                # App will always be a client of the node we're destroying
+                # (destroyed_variable, but the tricky thing is when it is also a client of
+                # *another variable* viewing on the root.  Generally this is illegal, (e.g.,
+                # add_inplace(x, x.T).  In some special cases though, the in-place op will
+                # actually be able to work properly with multiple destroyed inputs (e.g,
+                # add_inplace(x, x).  An Op that can still work in this case should declare
+                # so via the 'destroyhandler_tolerate_same' attribute or
+                # 'destroyhandler_tolerate_aliased' attribute.
+                #
+                # destroyhandler_tolerate_same should be a list of pairs of the form
+                # [(idx0, idx1), (idx0, idx2), ...]
+                # The first element of each pair is the input index of a destroyed
+                # variable.
+                # The second element of each pair is the index of a different input where
+                # we will permit exactly the same variable to appear.
+                # For example, add_inplace.tolerate_same might be [(0,1)] if the destroyed
+                # input is also allowed to appear as the second argument.
+                #
+                # destroyhandler_tolerate_aliased is the same sort of list of
+                # pairs.
+                # op.destroyhandler_tolerate_aliased = [(idx0, idx1)] tells the
+                # destroyhandler to IGNORE an aliasing between a destroyed
+                # input idx0 and another input idx1.
+                # This is generally a bad idea, but it is safe in some
+                # cases, such as
+                # - the op reads from the aliased idx1 before modifying idx0
+                # - the idx0 and idx1 are guaranteed not to overlap (e.g.
+                #   they are pointed at different rows of a matrix).
+                #
+
+                # CHECK FOR INPUT ALIASING
+                # OPT: pre-compute this on import
+                tolerate_same = getattr(app.op, "destroyhandler_tolerate_same", [])
+                assert isinstance(tolerate_same, list)
+                tolerated = {
+                    idx1 for idx0, idx1 in tolerate_same if idx0 == destroyed_idx
+                }
+                tolerated.add(destroyed_idx)
+                tolerate_aliased = getattr(
+                    app.op, "destroyhandler_tolerate_aliased", []
                 )
-
-            # add destroyed variable clients as computational dependencies
-            for app in self.destroyers:
-                # keep track of clients that should run before the current Apply
-                root_clients = set_type()
-                # for each destroyed input...
-                for output_idx, input_idx_list in app.op.destroy_map.items():
-                    destroyed_idx = input_idx_list[0]
-                    destroyed_variable = app.inputs[destroyed_idx]
-                    root = droot[destroyed_variable]
-                    root_impact = impact[root]
-                    # we generally want to put all clients of things which depend on root
-                    # as pre-requisites of app.
-                    # But, app is itself one such client!
-                    # App will always be a client of the node we're destroying
-                    # (destroyed_variable, but the tricky thing is when it is also a client of
-                    # *another variable* viewing on the root.  Generally this is illegal, (e.g.,
-                    # add_inplace(x, x.T).  In some special cases though, the in-place op will
-                    # actually be able to work properly with multiple destroyed inputs (e.g,
-                    # add_inplace(x, x).  An Op that can still work in this case should declare
-                    # so via the 'destroyhandler_tolerate_same' attribute or
-                    # 'destroyhandler_tolerate_aliased' attribute.
-                    #
-                    # destroyhandler_tolerate_same should be a list of pairs of the form
-                    # [(idx0, idx1), (idx0, idx2), ...]
-                    # The first element of each pair is the input index of a destroyed
-                    # variable.
-                    # The second element of each pair is the index of a different input where
-                    # we will permit exactly the same variable to appear.
-                    # For example, add_inplace.tolerate_same might be [(0,1)] if the destroyed
-                    # input is also allowed to appear as the second argument.
-                    #
-                    # destroyhandler_tolerate_aliased is the same sort of list of
-                    # pairs.
-                    # op.destroyhandler_tolerate_aliased = [(idx0, idx1)] tells the
-                    # destroyhandler to IGNORE an aliasing between a destroyed
-                    # input idx0 and another input idx1.
-                    # This is generally a bad idea, but it is safe in some
-                    # cases, such as
-                    # - the op reads from the aliased idx1 before modifying idx0
-                    # - the idx0 and idx1 are guaranteed not to overlap (e.g.
-                    #   they are pointed at different rows of a matrix).
-                    #
-
-                    # CHECK FOR INPUT ALIASING
-                    # OPT: pre-compute this on import
-                    tolerate_same = getattr(app.op, "destroyhandler_tolerate_same", [])
-                    assert isinstance(tolerate_same, list)
-                    tolerated = {
-                        idx1 for idx0, idx1 in tolerate_same if idx0 == destroyed_idx
-                    }
-                    tolerated.add(destroyed_idx)
-                    tolerate_aliased = getattr(
-                        app.op, "destroyhandler_tolerate_aliased", []
-                    )
-                    assert isinstance(tolerate_aliased, list)
-                    ignored = {
-                        idx1 for idx0, idx1 in tolerate_aliased if idx0 == destroyed_idx
-                    }
-                    for i, input in enumerate(app.inputs):
-                        if i in ignored:
-                            continue
-                        if input in root_impact and (
-                            i not in tolerated or input is not destroyed_variable
-                        ):
-                            raise InconsistencyError(
-                                f"Input aliasing: {app} ({destroyed_idx}, {i})"
-                            )
-
-                    # add the rule: app must be preceded by all other Apply instances that
-                    # depend on destroyed_input
-                    for r in root_impact:
-                        assert not [a for a, c in self.clients[r].items() if not c]
-                        root_clients.update(
-                            [a for a, c in self.clients[r].items() if c]
+                assert isinstance(tolerate_aliased, list)
+                ignored = {
+                    idx1 for idx0, idx1 in tolerate_aliased if idx0 == destroyed_idx
+                }
+                for i, input in enumerate(app.inputs):
+                    if i in ignored:
+                        continue
+                    if input in root_impact and (
+                        i not in tolerated or input is not destroyed_variable
+                    ):
+                        raise InconsistencyError(
+                            f"Input aliasing: {app} ({destroyed_idx}, {i})"
                         )
 
-                # app itself is a client of the destroyed inputs,
-                # but should not run before itself
-                root_clients.remove(app)
-                if root_clients:
-                    rval[app] = root_clients
+                # add the rule: app must be preceded by all other Apply instances that
+                # depend on destroyed_input
+                for r in root_impact:
+                    assert not [
+                        a
+                        for a, c in fgraph._destroy_handler_clients[r].items()
+                        if not c
+                    ]
+                    root_clients.update(
+                        [a for a, c in fgraph._destroy_handler_clients[r].items() if c]
+                    )
+
+            # app itself is a client of the destroyed inputs,
+            # but should not run before itself
+            root_clients.remove(app)
+            if root_clients:
+                rval[app] = root_clients
 
         return rval

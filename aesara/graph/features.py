@@ -6,6 +6,7 @@ import warnings
 from collections import OrderedDict
 from functools import partial
 from io import StringIO
+from typing import TYPE_CHECKING, Dict, Optional, Set
 
 import numpy as np
 
@@ -13,6 +14,10 @@ import aesara
 from aesara.configdefaults import config
 from aesara.graph.basic import Variable, io_toposort
 from aesara.graph.utils import InconsistencyError
+
+
+if TYPE_CHECKING:
+    from aesara.graph.basic import Apply
 
 
 class AlreadyThere(Exception):
@@ -287,7 +292,7 @@ class Feature:
 
         """
 
-    def on_import(self, fgraph, node, reason):
+    def on_import(self, fgraph, node: "Apply", reason: Optional[str]):
         """
         Called whenever a node is imported into `fgraph`, which is just before
         the node is actually connected to the graph.
@@ -298,7 +303,15 @@ class Feature:
 
         """
 
-    def on_change_input(self, fgraph, node, i, var, new_var, reason=None):
+    def on_change_input(
+        self,
+        fgraph,
+        node: "Apply",
+        i: int,
+        var: "Variable",
+        new_var: "Variable",
+        reason: Optional[str] = None,
+    ):
         """
         Called whenever ``node.inputs[i]`` is changed from `var` to `new_var`.
         At the moment the callback is done, the change has already taken place.
@@ -308,14 +321,14 @@ class Feature:
 
         """
 
-    def on_prune(self, fgraph, node, reason):
+    def on_prune(self, fgraph, node: "Apply", reason: Optional[str]) -> None:
         """
         Called whenever a node is pruned (removed) from the `fgraph`, after it
         is disconnected from the graph.
 
         """
 
-    def orderings(self, fgraph):
+    def orderings(self, fgraph, ordered: bool = True) -> Dict["Apply", Set["Apply"]]:
         """
         Called by `FunctionGraph.toposort`. It should return a dictionary of
         ``{node: predecessors}`` where ``predecessors`` is a list of
@@ -777,7 +790,6 @@ class NoOutputFromInplace(Feature):
             return True
 
         for out in tuple(fgraph.outputs[i] for i in self.protected_out_ids):
-
             node = out.owner
 
             if node is None:
