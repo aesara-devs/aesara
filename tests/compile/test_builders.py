@@ -466,7 +466,6 @@ class TestOpFromGraph(unittest_tools.InferShapeTester):
         y = shared(1.0, name="y")
 
         test_ofg = OpFromGraph([x], [x + y], on_unused_input="ignore")
-        assert test_ofg.inputs == [x]
         assert test_ofg.shared_inputs == [y]
 
         out = test_ofg(x)
@@ -478,7 +477,6 @@ class TestOpFromGraph(unittest_tools.InferShapeTester):
         out_new = test_ofg.make_node(*(out.owner.inputs[:1] + [y_clone])).outputs[0]
 
         assert "on_unused_input" in out_new.owner.op.kwargs
-        assert out_new.owner.op.inputs == [x]
         assert out_new.owner.op.shared_inputs == [y_clone]
 
         out_fn = function([x], out_new)
@@ -497,7 +495,6 @@ class TestOpFromGraph(unittest_tools.InferShapeTester):
         y = shared(1.0, name="y")
 
         test_ofg = OpFromGraph([x], [x + y])
-        assert test_ofg.inputs == [x]
         assert test_ofg.shared_inputs == [y]
 
         out = test_ofg(at.as_tensor(1.0, dtype=config.floatX))
@@ -517,7 +514,6 @@ class TestOpFromGraph(unittest_tools.InferShapeTester):
         y = shared(1.0, name="y")
 
         test_ofg = OpFromGraph([], [y])
-        assert test_ofg.inputs == []
         assert test_ofg.shared_inputs == [y]
 
         out_1_fn = function([], test_ofg())
@@ -526,7 +522,6 @@ class TestOpFromGraph(unittest_tools.InferShapeTester):
         assert np.array_equal(res_1, 1.0)
 
         test_ofg_new = test_ofg.make_node(x)
-        assert test_ofg_new.op.inputs == [x]
         assert test_ofg_new.op.shared_inputs == []
 
         out_2_fn = function([x], test_ofg_new.outputs[0])
@@ -535,6 +530,7 @@ class TestOpFromGraph(unittest_tools.InferShapeTester):
         assert np.array_equal(res_2, 1.0)
 
 
+@config.change_flags(floatX="float64")
 def test_debugprint():
     x, y, z = matrices("xyz")
     e = x + y * z
@@ -553,10 +549,10 @@ Inner graphs:
 
 OpFromGraph{inline=False} [id A]
  >Elemwise{add,no_inplace} [id E]
- > |x [id F]
+ > |*0-<TensorType(float64, (None, None))> [id F]
  > |Elemwise{mul,no_inplace} [id G]
- >   |y [id H]
- >   |z [id I]
+ >   |*1-<TensorType(float64, (None, None))> [id H]
+ >   |*2-<TensorType(float64, (None, None))> [id I]
 """
 
     for truth, out in zip(exp_res.split("\n"), lines):

@@ -3,10 +3,12 @@ import pytest
 
 import aesara
 import aesara.tensor as at
+from aesara.configdefaults import config
 from aesara.printing import debugprint, pydot_imported, pydotprint
 from aesara.tensor.type import dvector, iscalar, scalar, vector
 
 
+@config.change_flags(floatX="float64")
 def test_debugprint_sitsot():
     k = iscalar("k")
     A = dvector("A")
@@ -55,8 +57,8 @@ def test_debugprint_sitsot():
 
     for{cpu,scan_fn} [id C] (outer_out_sit_sot-0)
      >Elemwise{mul,no_inplace} [id W] (inner_out_sit_sot-0)
-     > |<TensorType(float64, (None,))> [id X] -> [id E] (inner_in_sit_sot-0)
-     > |A_copy [id Y] -> [id M] (inner_in_non_seqs-0)"""
+     > |*0-<TensorType(float64, (None,))> [id X] -> [id E] (inner_in_sit_sot-0)
+     > |*1-<TensorType(float64, (None,))> [id Y] -> [id M] (inner_in_non_seqs-0)"""
 
     for truth, out in zip(expected_output.split("\n"), lines):
         assert truth.strip() == out.strip()
@@ -110,13 +112,14 @@ def test_debugprint_sitsot_no_extra_info():
 
     for{cpu,scan_fn} [id C]
      >Elemwise{mul,no_inplace} [id W]
-     > |<TensorType(float64, (None,))> [id X] -> [id E]
-     > |A_copy [id Y] -> [id M]"""
+     > |*0-<TensorType(float64, (None,))> [id X] -> [id E]
+     > |*1-<TensorType(float64, (None,))> [id Y] -> [id M]"""
 
     for truth, out in zip(expected_output.split("\n"), lines):
         assert truth.strip() == out.strip()
 
 
+@config.change_flags(floatX="float64")
 def test_debugprint_nitsot():
     coefficients = vector("coefficients")
     x = scalar("x")
@@ -170,15 +173,16 @@ def test_debugprint_nitsot():
 
     for{cpu,scan_fn} [id B] (outer_out_nit_sot-0)
      >Elemwise{mul,no_inplace} [id X] (inner_out_nit_sot-0)
-     > |coefficients[t] [id Y] -> [id S] (inner_in_seqs-0)
+     > |*0-<TensorType(float64, ())> [id Y] -> [id S] (inner_in_seqs-0)
      > |Elemwise{pow,no_inplace} [id Z]
-     >   |x_copy [id BA] -> [id W] (inner_in_non_seqs-0)
-     >   |<TensorType(int64, ())> [id BB] -> [id U] (inner_in_seqs-1)"""
+     >   |*2-<TensorType(float64, ())> [id BA] -> [id W] (inner_in_non_seqs-0)
+     >   |*1-<TensorType(int64, ())> [id BB] -> [id U] (inner_in_seqs-1)"""
 
     for truth, out in zip(expected_output.split("\n"), lines):
         assert truth.strip() == out.strip()
 
 
+@config.change_flags(floatX="float64")
 def test_debugprint_nested_scans():
     coefficients = dvector("coefficients")
     max_coefficients_supported = 10
@@ -251,22 +255,22 @@ def test_debugprint_nested_scans():
     for{cpu,scan_fn} [id B] (outer_out_nit_sot-0)
     >Elemwise{mul,no_inplace} [id Y] (inner_out_nit_sot-0)
     > |InplaceDimShuffle{x} [id Z]
-    > | |coefficients[t] [id BA] -> [id S] (inner_in_seqs-0)
+    > | |*0-<TensorType(float64, ())> [id BA] -> [id S] (inner_in_seqs-0)
     > |Elemwise{pow,no_inplace} [id BB]
     >   |Subtensor{int64} [id BC]
     >   | |Subtensor{int64::} [id BD]
     >   | | |for{cpu,scan_fn} [id BE] (outer_out_sit_sot-0)
-    >   | | | |k_copy [id BF] -> [id X] (inner_in_non_seqs-1) (n_steps)
+    >   | | | |*3-<TensorType(int32, ())> [id BF] -> [id X] (inner_in_non_seqs-1) (n_steps)
     >   | | | |IncSubtensor{Set;:int64:} [id BG] (outer_in_sit_sot-0)
     >   | | | | |AllocEmpty{dtype='float64'} [id BH]
     >   | | | | | |Elemwise{add,no_inplace} [id BI]
-    >   | | | | | | |k_copy [id BF] -> [id X] (inner_in_non_seqs-1)
+    >   | | | | | | |*3-<TensorType(int32, ())> [id BF] -> [id X] (inner_in_non_seqs-1)
     >   | | | | | | |Subtensor{int64} [id BJ]
     >   | | | | | |   |Shape [id BK]
     >   | | | | | |   | |Rebroadcast{(0, False)} [id BL]
     >   | | | | | |   |   |InplaceDimShuffle{x,0} [id BM]
     >   | | | | | |   |     |Elemwise{second,no_inplace} [id BN]
-    >   | | | | | |   |       |A_copy [id BO] -> [id W] (inner_in_non_seqs-0)
+    >   | | | | | |   |       |*2-<TensorType(float64, (None,))> [id BO] -> [id W] (inner_in_non_seqs-0)
     >   | | | | | |   |       |InplaceDimShuffle{x} [id BP]
     >   | | | | | |   |         |TensorConstant{1.0} [id BQ]
     >   | | | | | |   |ScalarConstant{0} [id BR]
@@ -277,21 +281,22 @@ def test_debugprint_nested_scans():
     >   | | | | |Rebroadcast{(0, False)} [id BL]
     >   | | | | |ScalarFromTensor [id BV]
     >   | | | |   |Subtensor{int64} [id BJ]
-    >   | | | |A_copy [id BO] -> [id W] (inner_in_non_seqs-0) (outer_in_non_seqs-0)
+    >   | | | |*2-<TensorType(float64, (None,))> [id BO] -> [id W] (inner_in_non_seqs-0) (outer_in_non_seqs-0)
     >   | | |ScalarConstant{1} [id BW]
     >   | |ScalarConstant{-1} [id BX]
     >   |InplaceDimShuffle{x} [id BY]
-    >     |<TensorType(int64, ())> [id BZ] -> [id U] (inner_in_seqs-1)
+    >     |*1-<TensorType(int64, ())> [id BZ] -> [id U] (inner_in_seqs-1)
 
     for{cpu,scan_fn} [id BE] (outer_out_sit_sot-0)
     >Elemwise{mul,no_inplace} [id CA] (inner_out_sit_sot-0)
-    > |<TensorType(float64, (None,))> [id CB] -> [id BG] (inner_in_sit_sot-0)
-    > |A_copy [id CC] -> [id BO] (inner_in_non_seqs-0)"""
+    > |*0-<TensorType(float64, (None,))> [id CB] -> [id BG] (inner_in_sit_sot-0)
+    > |*1-<TensorType(float64, (None,))> [id CC] -> [id BO] (inner_in_non_seqs-0)"""
 
     for truth, out in zip(expected_output.split("\n"), lines):
         assert truth.strip() == out.strip()
 
 
+@config.change_flags(floatX="float64")
 def test_debugprint_mitsot():
     def fn(a_m2, a_m1, b_m2, b_m1):
         return a_m1 + a_m2, b_m1 + b_m2
@@ -351,11 +356,11 @@ def test_debugprint_mitsot():
 
     for{cpu,scan_fn}.0 [id C] (outer_out_mit_sot-0)
     >Elemwise{add,no_inplace} [id BB] (inner_out_mit_sot-0)
-    > |<TensorType(int64, ())> [id BC] -> [id E] (inner_in_mit_sot-0-1)
-    > |<TensorType(int64, ())> [id BD] -> [id E] (inner_in_mit_sot-0-0)
+    > |*1-<TensorType(int64, ())> [id BC] -> [id E] (inner_in_mit_sot-0-1)
+    > |*0-<TensorType(int64, ())> [id BD] -> [id E] (inner_in_mit_sot-0-0)
     >Elemwise{add,no_inplace} [id BE] (inner_out_mit_sot-1)
-    > |<TensorType(int64, ())> [id BF] -> [id O] (inner_in_mit_sot-1-1)
-    > |<TensorType(int64, ())> [id BG] -> [id O] (inner_in_mit_sot-1-0)
+    > |*3-<TensorType(int64, ())> [id BF] -> [id O] (inner_in_mit_sot-1-1)
+    > |*2-<TensorType(int64, ())> [id BG] -> [id O] (inner_in_mit_sot-1-0)
 
     for{cpu,scan_fn}.1 [id C] (outer_out_mit_sot-1)
     >Elemwise{add,no_inplace} [id BB] (inner_out_mit_sot-0)
@@ -365,6 +370,7 @@ def test_debugprint_mitsot():
         assert truth.strip() == out.strip()
 
 
+@config.change_flags(floatX="float64")
 def test_debugprint_mitmot():
 
     k = iscalar("k")
@@ -471,19 +477,19 @@ def test_debugprint_mitmot():
     for{cpu,grad_of_scan_fn}.1 [id B] (outer_out_sit_sot-0)
     >Elemwise{add,no_inplace} [id CM] (inner_out_mit_mot-0-0)
     > |Elemwise{mul} [id CN]
-    > | |<TensorType(float64, (None,))> [id CO] -> [id BL] (inner_in_mit_mot-0-0)
-    > | |A_copy [id CP] -> [id P] (inner_in_non_seqs-0)
-    > |<TensorType(float64, (None,))> [id CQ] -> [id BL] (inner_in_mit_mot-0-1)
+    > | |*2-<TensorType(float64, (None,))> [id CO] -> [id BL] (inner_in_mit_mot-0-0)
+    > | |*5-<TensorType(float64, (None,))> [id CP] -> [id P] (inner_in_non_seqs-0)
+    > |*3-<TensorType(float64, (None,))> [id CQ] -> [id BL] (inner_in_mit_mot-0-1)
     >Elemwise{add,no_inplace} [id CR] (inner_out_sit_sot-0)
     > |Elemwise{mul} [id CS]
-    > | |<TensorType(float64, (None,))> [id CO] -> [id BL] (inner_in_mit_mot-0-0)
-    > | |<TensorType(float64, (None,))> [id CT] -> [id Z] (inner_in_seqs-0)
-    > |<TensorType(float64, (None,))> [id CU] -> [id CE] (inner_in_sit_sot-0)
+    > | |*2-<TensorType(float64, (None,))> [id CO] -> [id BL] (inner_in_mit_mot-0-0)
+    > | |*0-<TensorType(float64, (None,))> [id CT] -> [id Z] (inner_in_seqs-0)
+    > |*4-<TensorType(float64, (None,))> [id CU] -> [id CE] (inner_in_sit_sot-0)
 
     for{cpu,scan_fn} [id F] (outer_out_sit_sot-0)
     >Elemwise{mul,no_inplace} [id CV] (inner_out_sit_sot-0)
-    > |<TensorType(float64, (None,))> [id CT] -> [id H] (inner_in_sit_sot-0)
-    > |A_copy [id CP] -> [id P] (inner_in_non_seqs-0)
+    > |*0-<TensorType(float64, (None,))> [id CT] -> [id H] (inner_in_sit_sot-0)
+    > |*1-<TensorType(float64, (None,))> [id CW] -> [id P] (inner_in_non_seqs-0)
 
     for{cpu,scan_fn} [id F] (outer_out_sit_sot-0)
     >Elemwise{mul,no_inplace} [id CV] (inner_out_sit_sot-0)
@@ -540,11 +546,11 @@ def test_debugprint_compiled_fn():
     >Elemwise{Composite{Switch(LT(i0, i1), i2, i0)}} [id I] (inner_out_sit_sot-0)
     > |TensorConstant{0} [id J]
     > |Subtensor{int64, int64, int64} [id K]
-    > | |<TensorType(float64, (20000, 2, 2))> [id L] -> [id H] (inner_in_non_seqs-0)
+    > | |*2-<TensorType(float64, (20000, 2, 2))> [id L] -> [id H] (inner_in_non_seqs-0)
     > | |ScalarFromTensor [id M]
-    > | | |<TensorType(int64, ())> [id N] -> [id C] (inner_in_seqs-0)
+    > | | |*0-<TensorType(int64, ())> [id N] -> [id C] (inner_in_seqs-0)
     > | |ScalarFromTensor [id O]
-    > | | |<TensorType(int64, ())> [id P] -> [id D] (inner_in_sit_sot-0)
+    > | | |*1-<TensorType(int64, ())> [id P] -> [id D] (inner_in_sit_sot-0)
     > | |ScalarConstant{0} [id Q]
     > |TensorConstant{1} [id R]
     """

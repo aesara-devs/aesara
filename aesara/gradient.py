@@ -13,7 +13,7 @@ import aesara
 from aesara.compile.ops import ViewOp
 from aesara.configdefaults import config
 from aesara.graph import utils
-from aesara.graph.basic import Variable
+from aesara.graph.basic import NominalVariable, Variable
 from aesara.graph.null_type import NullType, null_type
 from aesara.graph.op import get_test_values
 from aesara.graph.type import Type
@@ -1295,15 +1295,16 @@ def _populate_grad_dict(var_to_app_to_idx, grad_dict, wrt, cost_name=None):
                 # has the right shape
                 if hasattr(term, "shape"):
                     orig_ipt = inputs[i]
-                    for orig_ipt_v, term_v in get_test_values(orig_ipt, term):
-                        i_shape = orig_ipt_v.shape
-                        t_shape = term_v.shape
-                        if i_shape != t_shape:
-                            raise ValueError(
-                                f"{node.op}.grad returned object of "
-                                f"shape {t_shape} as gradient term on input {int(i)} "
-                                f"of shape {i_shape}"
-                            )
+                    if not isinstance(orig_ipt, NominalVariable):
+                        for orig_ipt_v, term_v in get_test_values(orig_ipt, term):
+                            i_shape = orig_ipt_v.shape
+                            t_shape = term_v.shape
+                            if i_shape != t_shape:
+                                raise ValueError(
+                                    f"{node.op}.grad returned object of "
+                                    f"shape {t_shape} as gradient term on input {int(i)} "
+                                    f"of shape {i_shape}"
+                                )
 
                 if not isinstance(term.type, (NullType, DisconnectedType)):
                     if term.type.dtype not in aesara.tensor.type.float_dtypes:

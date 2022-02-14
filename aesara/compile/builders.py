@@ -13,10 +13,12 @@ from aesara.gradient import DisconnectedType, Rop, grad
 from aesara.graph.basic import (
     Apply,
     Constant,
+    NominalVariable,
     Variable,
     clone_replace,
     graph_inputs,
     io_connection_pattern,
+    replace_nominals_with_dummies,
 )
 from aesara.graph.fg import FunctionGraph
 from aesara.graph.null_type import NullType
@@ -349,17 +351,32 @@ class OpFromGraph(Op, HasInnerGraph):
             raise NotImplementedError("Updates and givens are not allowed here")
 
         self.is_inline = inline
+
         # To correctly support shared variables the inner fct should
         # not see them. Otherwise there is a problem with the gradient.
-        self.shared_inputs = [
-            var for var in graph_inputs(outputs) if isinstance(var, SharedVariable)
+        self.shared_inputs = []
+        for var in graph_inputs(outputs):
+            if isinstance(var, SharedVariable):
+                self.shared_inputs.append(var)
+
+        inputs, outputs = replace_nominals_with_dummies(inputs, outputs)
+
+        # The inputs should be `NominalVariable`s, so that graphs can be merged
+        replacements = {}
+        for n, v in enumerate(inputs):
+            replacements[v] = NominalVariable(n, v.type)
+
+        shared_vars = [
+            NominalVariable(n, var.type)
+            for n, var in enumerate(self.shared_inputs, start=len(inputs) + 1)
         ]
-        shared_vars = [var.type() for var in self.shared_inputs]
+
+        replacements.update(dict(zip(self.shared_inputs, shared_vars)))
 
         new = rebuild_collect_shared(
             cast(Sequence[Variable], outputs),
             inputs=inputs + shared_vars,
-            replace=dict(zip(self.shared_inputs, shared_vars)),
+            replace=replacements,
             copy_inputs_over=False,
         )
         (
@@ -374,10 +391,7 @@ class OpFromGraph(Op, HasInnerGraph):
         assert not update_expr
         assert not shared_inputs
 
-        self._inner_inputs = local_inputs
-        self._inner_outputs = local_outputs
-        self.inputs = inputs
-        self.outputs = outputs
+        self.fgraph = FunctionGraph(local_inputs, local_outputs, clone=False)
         self.kwargs = kwargs
         self.input_types = [inp.type for inp in inputs]
         self.output_types = [out.type for out in outputs]
@@ -778,29 +792,23 @@ class OpFromGraph(Op, HasInnerGraph):
             # The shared variables are not equal to the original shared
             # variables, so we construct a new `Op` that uses the new shared
             # variables instead.
-            # All this is really doing is making the unused (internally, at
-            # least) `self.outputs` and `self.shared_inputs` consistent.
-            # We could just as easily `copy` this `Op`, update
-            # `self.shared_inputs`, and avoid cloning anything, but this is a
-            # more "change-proof" approach, because it still work when/if those
-            # attributes end up being used.
-            replace = dict(inner_and_input_shareds)
+            replace = dict(
+                zip(self.inner_inputs[num_expected_inps:], new_shared_inputs)
+            )
 
             # If the new shared variables are inconsistent with the inner-graph,
             # such errors should arise in this step
             new_inner_outputs = clone_replace(
-                self.outputs, replace=replace, share_inputs=True
+                self.inner_outputs, replace=replace, share_inputs=True
             )
 
-            # `self.inputs` should not contain any shared variables, so we know
-            # that those are inputs to `new_outputs`, because we chose not to
-            # clone inputs; however, it's possible that the new shared variable
-            # inputs aren't actually shared variables.  When they aren't we
-            # need to add them as new inputs.
+            # It's possible that the new shared variable inputs aren't actually
+            # shared variables.  When they aren't we need to add them as new
+            # inputs.
             unshared_inputs = [
                 inp for inp in new_shared_inputs if not isinstance(inp, SharedVariable)
             ]
-            new_inner_inputs = self.inputs + unshared_inputs
+            new_inner_inputs = self.inner_inputs[:num_expected_inps] + unshared_inputs
 
             new_op = type(self)(
                 inputs=new_inner_inputs,
@@ -901,11 +909,11 @@ class OpFromGraph(Op, HasInnerGraph):
 
     @property
     def inner_inputs(self):
-        return self._inner_inputs
+        return self.fgraph.inputs
 
     @property
     def inner_outputs(self):
-        return self._inner_outputs
+        return self.fgraph.outputs
 
     def perform(self, node, inputs, outputs):
         variables = self.fn(*inputs)

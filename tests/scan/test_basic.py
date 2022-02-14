@@ -2355,9 +2355,11 @@ def test_compute_test_values():
     assert np.array_equal(z_grad.tag.test_value, np.r_[9.0, 9.0, 9.0])
 
 
+@pytest.mark.xfail(reason="NominalVariables don't support test values")
 def test_compute_test_value_grad():
-    # Test case originally reported by Bitton Tenessi
-    # https://groups.google.com/d/msg/theano-users/fAP3i2CbskQ/3OgBf4yjqiQJ
+    """
+    See https://groups.google.com/d/msg/theano-users/fAP3i2CbskQ/3OgBf4yjqiQJ
+    """
     WEIGHT = np.array([1, 2, 1, 3, 4, 1, 5, 6, 1, 7, 8, 1], dtype="float32")
 
     with config.change_flags(compute_test_value="raise", exception_verbosity="high"):
@@ -2395,10 +2397,12 @@ def test_compute_test_value_grad():
         grad(loss, W_flat)
 
 
+@pytest.mark.xfail(reason="NominalVariables don't support test values")
 def test_compute_test_value_grad_cast():
-    # Test for test values when variables have to be casted
-    # Reported by Daniel Renshaw at
-    # https://groups.google.com/d/topic/theano-users/o4jK9xDe5WI/discussion
+    """Test for test values when variables have to be casted.
+
+    See https://groups.google.com/d/topic/theano-users/o4jK9xDe5WI/discussion
+    """
     with config.change_flags(compute_test_value="raise"):
         h = matrix("h")
         h.tag.test_value = np.array([[1, 2, 3, 4], [5, 6, 7, 8]], dtype=config.floatX)
@@ -2434,7 +2438,7 @@ def test_constant_folding_n_steps():
 
 
 def test_outputs_taps_check():
-    # Checks that errors are raised with bad output_info taps.
+    """Checks that errors are raised with bad output_info taps."""
     x = fvector("x")
     y = fvector("y")
 
@@ -2462,7 +2466,6 @@ def test_inconsistent_broadcast_error():
         grad(y.sum(), x)
 
 
-@pytest.mark.xfail(raises=MissingInputError)
 def test_missing_input_error():
     c = shared(0.0)
     inc = scalar("inc")
@@ -2470,8 +2473,8 @@ def test_missing_input_error():
     def count_up():
         return at.zeros(()), {c: c + inc}
 
-    _, updates = scan(count_up, n_steps=20)
-    function(inputs=[inc], outputs=[], updates=updates)
+    with pytest.raises(MissingInputError):
+        _, updates = scan(count_up, n_steps=20)
 
 
 class TestGradUntil:

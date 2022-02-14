@@ -615,6 +615,9 @@ class _NoPythonOp(Op):
 class HasInnerGraph:
     r"""A mixin for an `Op` that contain an inner graph."""
 
+    fgraph: "FunctionGraph"
+    """A `FunctionGraph` of the inner function."""
+
     @property
     @abstractmethod
     def fn(self) -> "Function":
