@@ -8,12 +8,13 @@ import aesara.tensor as at
 from aesara.compile import shared
 from aesara.compile.debugmode import DebugMode, InvalidValueError
 from aesara.compile.function import function
-from aesara.compile.function.types import UnusedInputError
+from aesara.compile.function.types import Supervisor, UnusedInputError
 from aesara.compile.io import In, Out
 from aesara.compile.mode import Mode, get_default_mode
 from aesara.compile.ops import update_placeholder
 from aesara.configdefaults import config
 from aesara.graph.basic import Constant
+from aesara.graph.fg import FunctionGraph
 from aesara.graph.rewriting.basic import OpKeyGraphRewriter, PatternNodeRewriter
 from aesara.graph.utils import MissingInputError
 from aesara.link.vm import VMLinker
@@ -33,6 +34,7 @@ from aesara.tensor.type import (
     vector,
 )
 from aesara.utils import exc_message
+from tests.graph.utils import MyVariable, op1
 
 
 def PatternOptimizer(p1, p2, ign=True):
@@ -1285,3 +1287,38 @@ def test_update_placeholder():
     # The second update shouldn't be present
     assert len(f1.maker.fgraph.outputs) == 2
     assert f1.maker.fgraph.update_mapping == {1: 3}
+
+
+class TestSupervisor:
+    def test_basic(self):
+        var1 = MyVariable("var1")
+        var2 = MyVariable("var2")
+        var3 = op1(var2, var1)
+        fg = FunctionGraph([var1, var2], [var3], clone=False)
+
+        hf = Supervisor([var1])
+        fg.attach_feature(hf)
+
+        assert fg._supervisor_protected == {var1}
+
+        # Make sure we can update the protected variables by
+        # adding another `Supervisor`
+        hf = Supervisor([var2])
+        fg.attach_feature(hf)
+
+        assert fg._supervisor_protected == {var1, var2}
+
+    def test_pickle(self):
+        var1 = MyVariable("var1")
+        var2 = MyVariable("var2")
+        var3 = op1(var2, var1)
+        fg = FunctionGraph([var1, var2], [var3], clone=False)
+
+        hf = Supervisor([var1])
+        fg.attach_feature(hf)
+
+        fg_pkld = pickle.dumps(fg)
+        fg_unpkld = pickle.loads(fg_pkld)
+
+        assert any(isinstance(ft, Supervisor) for ft in fg_unpkld._features)
+        assert all(hasattr(fg, attr) for attr in ("_supervisor_protected",))

@@ -4,7 +4,6 @@ from collections import defaultdict
 from typing import Optional
 from warnings import warn
 
-import aesara
 import aesara.scalar.basic as aes
 from aesara import compile
 from aesara.compile.mode import get_target_language
@@ -118,13 +117,9 @@ class InplaceElemwiseOptimizer(GraphRewriter):
         else:
             update_outs = []
 
-        protected_inputs = [
-            f.protected
-            for f in fgraph._features
-            if isinstance(f, aesara.compile.function.types.Supervisor)
-        ]
-        protected_inputs = sum(protected_inputs, [])  # flatten the list
-        protected_inputs.extend(fgraph.outputs)
+        protected_inputs = getattr(fgraph, "_supervisor_protected", set())
+        protected_inputs.update(fgraph.outputs)
+
         for node in list(io_toposort(fgraph.inputs, fgraph.outputs)):
             op = node.op
             if not isinstance(op, self.op):
@@ -184,7 +179,6 @@ class InplaceElemwiseOptimizer(GraphRewriter):
             raised_warning = not verbose
 
             for candidate_output in candidate_outputs:
-
                 # If the output of the node can be established as an update
                 # output of the fgraph, visit the candidate_inputs in an order
                 # that will improve the chances of making the node operate
@@ -193,7 +187,6 @@ class InplaceElemwiseOptimizer(GraphRewriter):
                 sorted_candidate_inputs = candidate_inputs
 
                 if candidate_out_var in update_outs:
-
                     # The candidate output is an update. Sort the
                     # variables in candidate_inputs in the following order:
                     # - Vars corresponding to the actual updated input
@@ -225,12 +218,10 @@ class InplaceElemwiseOptimizer(GraphRewriter):
                             hasattr(fgraph, "destroy_handler")
                             and inp.owner
                             and any(
-                                fgraph.destroy_handler.root_destroyer.get(up_inp, None)
-                                is inp.owner
+                                fgraph.root_destroyer.get(up_inp, None) is inp.owner
                                 for up_inp in updated_inputs
                             )
                         ):
-
                             # the candidate input is a variable computed
                             # inplace on the updated input via a sequence of
                             # one or more inplace operations

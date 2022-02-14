@@ -6,7 +6,7 @@ import logging
 import time
 import warnings
 from itertools import chain
-from typing import TYPE_CHECKING, List, Optional, Tuple, Type, Union
+from typing import TYPE_CHECKING, Iterable, List, Optional, Tuple, Type, Union
 
 import numpy as np
 from typing_extensions import Literal
@@ -142,31 +142,30 @@ class Supervisor(Feature):
 
     """
 
-    def __init__(self, protected):
-        self.fgraph = None
-        self.protected = list(protected)
-
-    def clone(self):
-        return type(self)(self.protected)
+    def __init__(self, protected: Iterable[Variable]):
+        self.initial_protected = set(protected)
 
     def on_attach(self, fgraph):
-        if hasattr(fgraph, "_supervisor"):
-            raise AlreadyThere(f"A Supervisor is already attached to {fgraph}.")
+        if hasattr(fgraph, "_supervisor_protected"):
+            # Add the protected variables from this `Supervisor` instance, in
+            # case something is trying to update them by adding another
+            # `Supervisor`
+            fgraph._supervisor_protected.update(self.initial_protected)
+            raise AlreadyThere("Supervisor feature is already present")
 
-        if self.fgraph is not None and self.fgraph != fgraph:
-            raise Exception("This Feature is already associated with a FunctionGraph")
+        fgraph._supervisor_protected = set(self.initial_protected)
 
-        fgraph._supervisor = self
-        self.fgraph = fgraph
+    def clone(self):
+        return type(self)(self.initial_protected)
 
     def validate(self, fgraph):
         if config.cycle_detection == "fast" and hasattr(fgraph, "has_destroyers"):
-            if fgraph.has_destroyers(self.protected):
+            if fgraph.has_destroyers(fgraph._supervisor_protected):
                 raise InconsistencyError("Trying to destroy protected variables.")
             return True
         if not hasattr(fgraph, "destroyers"):
             return True
-        for r in self.protected + list(fgraph.outputs):
+        for r in chain(fgraph._supervisor_protected, fgraph.outputs):
             if fgraph.destroyers(r):
                 raise InconsistencyError(f"Trying to destroy a protected variable: {r}")
 
