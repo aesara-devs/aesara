@@ -1,6 +1,7 @@
 import inspect
 import sys
 import time
+import types
 import warnings
 from collections import OrderedDict
 from functools import partial
@@ -348,18 +349,6 @@ class Bookkeeper(Feature):
             self.on_prune(fgraph, node, "Bookkeeper.detach")
 
 
-class GetCheckpoint:
-    def __init__(self, history, fgraph):
-        self.h = history
-        self.fgraph = fgraph
-        self.nb = 0
-
-    def __call__(self):
-        self.h.history[self.fgraph] = []
-        self.nb += 1
-        return self.nb
-
-
 class LambdaExtract:
     def __init__(self, fgraph, node, i, r, reason=None):
         self.fgraph = fgraph
@@ -375,18 +364,15 @@ class LambdaExtract:
 
 
 class History(Feature):
-    """Keep an history of changes to an FunctionGraph.
+    """Keep a history of changes to a `FunctionGraph`.
 
-    This history can be reverted up to the last checkpoint.. We can
-    revert to only 1 point in the past. This limit was added to lower
-    the memory usage.
+    A `FunctionGraph` can be reverted up to the last checkpoint using this
+    `Feature`.  It can revert to only one point in the past.  This limit was
+    added to lower memory usage.
 
     """
 
     pickle_rm_attr = ["checkpoint", "revert"]
-
-    def __init__(self):
-        self.history = {}
 
     def on_attach(self, fgraph):
         if hasattr(fgraph, "checkpoint") or hasattr(fgraph, "revert"):
@@ -394,19 +380,21 @@ class History(Feature):
                 "History feature is already present or in"
                 " conflict with another plugin."
             )
-        self.history[fgraph] = []
+        fgraph._history_is_reverting = False
+        fgraph._history_nb = 0
+        fgraph._history_history = []
         # Don't call unpickle here, as ReplaceValidate.on_attach()
         # call to History.on_attach() will call the
         # ReplaceValidate.unpickle and not History.unpickle
-        fgraph.checkpoint = GetCheckpoint(self, fgraph)
-        fgraph.revert = partial(self.revert, fgraph)
+        fgraph.checkpoint = types.MethodType(self.checkpoint, fgraph)
+        fgraph.revert = types.MethodType(self.revert, fgraph)
 
     def clone(self):
         return type(self)()
 
     def unpickle(self, fgraph):
-        fgraph.checkpoint = GetCheckpoint(self, fgraph)
-        fgraph.revert = partial(self.revert, fgraph)
+        fgraph.checkpoint = types.MethodType(self.checkpoint, fgraph)
+        fgraph.revert = types.MethodType(self.revert, fgraph)
 
     def on_detach(self, fgraph):
         """
@@ -415,28 +403,35 @@ class History(Feature):
         """
         del fgraph.checkpoint
         del fgraph.revert
-        del self.history[fgraph]
+        del fgraph._history_history
+        del fgraph._history_is_reverting
 
     def on_change_input(self, fgraph, node, i, r, new_r, reason=None):
-        if self.history[fgraph] is None:
+        if fgraph._history_is_reverting:
             return
-        h = self.history[fgraph]
-        h.append(LambdaExtract(fgraph, node, i, r, reason))
+        fgraph._history_history.append(LambdaExtract(fgraph, node, i, r, str(reason)))
 
-    def revert(self, fgraph, checkpoint):
+    @staticmethod
+    def checkpoint(fgraph):
+        fgraph._history_history = []
+        fgraph._history_nb += 1
+        return fgraph._history_nb
+
+    @staticmethod
+    def revert(fgraph, checkpoint):
         """
         Reverts the graph to whatever it was at the provided
         checkpoint (undoes all replacements). A checkpoint at any
-        given time can be obtained using self.checkpoint().
+        given time can be obtained using :meth:`self.checkpoint`.
 
         """
-        h = self.history[fgraph]
-        self.history[fgraph] = None
-        assert fgraph.checkpoint.nb == checkpoint
+        h = fgraph._history_history
+        fgraph._history_is_reverting = True
+        assert fgraph._history_nb == checkpoint
         while h:
             f = h.pop()
             f()
-        self.history[fgraph] = h
+        fgraph._history_is_reverting = False
 
 
 class Validator(Feature):
