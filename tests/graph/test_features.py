@@ -1,11 +1,16 @@
 import pytest
 
 from aesara.graph.basic import Apply, Variable
-from aesara.graph.features import Feature, NodeFinder, ReplaceValidate
+from aesara.graph.features import (
+    Feature,
+    InnerGraphWatcher,
+    NodeFinder,
+    ReplaceValidate,
+)
 from aesara.graph.fg import FunctionGraph
 from aesara.graph.op import Op
 from aesara.graph.type import Type
-from tests.graph.utils import MyVariable, op1
+from tests.graph.utils import MyInnerGraphOp, MyVariable, op1, op2
 
 
 class TestNodeFinder:
@@ -120,3 +125,87 @@ class TestReplaceValidate:
 
         capres = capsys.readouterr()
         assert "rewriting: validate failed on node Op1.0" in capres.out
+
+
+class TestInnerGraphWatcher:
+    def test_basic(self):
+        var1 = MyVariable("var1")
+        var2 = MyVariable("var2")
+        var3 = MyVariable("var3")
+
+        igo = MyInnerGraphOp([var1, var2], [op2(var1, var2)])
+
+        igo_outer = igo(var2, var3)
+        igo_outer.name = "igo_outer"
+        outer_out = op1(var1, igo_outer)
+        fg = FunctionGraph([var1, var2, var3], [outer_out], clone=False)
+
+        igw = InnerGraphWatcher()
+        fg.attach_feature(igw)
+
+        assert hasattr(fg, "_nodes_to_inner_graphs")
+        assert igo_outer.owner in fg._nodes_to_inner_graphs
+        assert fg._parent_graph is None
+        assert igo.fgraph._parent_graph is fg
+
+        var4 = MyVariable("var4")
+        new_igo_outer = igo(var1, var4)
+        new_igo_outer.name = "new_igo_outer"
+        # This adds a new inner-graph
+        fg.replace(var3, new_igo_outer, import_missing=True)
+
+        assert set(fg._nodes_to_inner_graphs.keys()) == {
+            new_igo_outer.owner,
+            igo_outer.owner,
+        }
+
+        # This undoes the last inner-graph addition
+        fg.replace(new_igo_outer, var3, import_missing=True)
+        assert set(fg._nodes_to_inner_graphs.keys()) == {igo_outer.owner}
+
+        # This should remove all inner-graphs
+        fg.replace(outer_out, op1(var1, var2), import_missing=True)
+        assert not fg._nodes_to_inner_graphs
+        assert len(fg._nodes_to_inner_graphs.maps) == 1
+
+    def test_nested(self):
+        """Make sure that inner-graphs created within inner-graphs are tracked."""
+        var1 = MyVariable("var1")
+        var2 = MyVariable("var2")
+
+        igo1 = MyInnerGraphOp([var1], [op1(var1)])
+        igo1.name = "igo1"
+        igo2 = MyInnerGraphOp([var1], [igo1(var1)])
+        igo2.name = "igo2"
+
+        igo2_out = igo2(var1)
+        out = op2(var2, igo2_out)
+
+        fg = FunctionGraph([var1, var2], [out], clone=False)
+
+        igw = InnerGraphWatcher()
+        fg.attach_feature(igw)
+
+        assert hasattr(fg, "_nodes_to_inner_graphs")
+        assert igo2_out.owner in fg._nodes_to_inner_graphs
+
+        assert fg._parent_graph is None
+        assert igo1.fgraph._parent_graph is fg
+        assert igo2.fgraph._parent_graph is fg
+        assert len(fg._nodes_to_inner_graphs.maps) == 2
+
+        # This is the "outer" graph within `fg`
+        outer_fg = fg._nodes_to_inner_graphs[igo2_out.owner]
+        igo1_out = outer_fg.outputs[0]
+        assert igo1_out.owner.op == igo1
+
+        assert igo1_out.owner in fg._nodes_to_inner_graphs
+        inner_fg = fg._nodes_to_inner_graphs[igo1_out.owner]
+        op1_out = inner_fg.outputs[0]
+        assert op1_out.owner.op == op1
+
+        assert igo1_out.owner in fg._nodes_to_inner_graphs
+
+        # Remove the inner-inner-graph by replacing it in the inner-graph of `fg`
+        outer_fg.replace(igo1_out, outer_fg.inputs[0], import_missing=True)
+        assert igo1_out.owner not in fg._nodes_to_inner_graphs
