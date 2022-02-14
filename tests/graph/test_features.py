@@ -5,7 +5,7 @@ from aesara.graph.features import Feature, History, NodeFinder, ReplaceValidate
 from aesara.graph.fg import FunctionGraph
 from aesara.graph.op import Op
 from aesara.graph.type import Type
-from tests.graph.utils import MyVariable, op1, op2
+from tests.graph.utils import MyVariable, MyVariable2, op1, op2
 
 
 class TestNodeFinder:
@@ -87,6 +87,33 @@ class TestNodeFinder:
 
 
 class TestReplaceValidate:
+    def test_basic(self):
+        var1 = MyVariable("var1")
+        var2 = MyVariable("var2")
+        var3 = op1(var2, var1)
+        fg = FunctionGraph([var1, var2], [var3], clone=False)
+
+        # One should already be attached
+        (rv_feature,) = fg._features
+        assert isinstance(rv_feature, ReplaceValidate)
+
+        fg.attach_feature(ReplaceValidate())
+
+        assert hasattr(fg, "_replace_nodes_removed")
+        assert hasattr(fg, "_replace_validate_failed")
+
+        rv_feature.replace_all_validate(fg, [(var3, var1)])
+        assert var3 not in fg.variables
+
+        # This `Variable` has a different `Type`
+        var4 = MyVariable2("var4")
+        with pytest.raises(TypeError):
+            rv_feature.replace_all_validate(fg, [(var1, var4)])
+
+        fg.remove_feature(rv_feature)
+        assert not hasattr(fg, "_replace_nodes_removed")
+        assert not hasattr(fg, "_replace_validate_failed")
+
     def test_verbose(self, capsys):
         var1 = MyVariable("var1")
         var2 = MyVariable("var2")
