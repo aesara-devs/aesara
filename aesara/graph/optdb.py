@@ -194,19 +194,19 @@ class OptimizationQuery:
         ==========
         include:
             A set of tags such that every optimization obtained through this
-            ``OptimizationQuery`` must have **one** of the tags listed. This
+            `OptimizationQuery` must have **one** of the tags listed. This
             field is required and basically acts as a starting point for the
             search.
         require:
             A set of tags such that every optimization obtained through this
-            ``OptimizationQuery`` must have **all** of these tags.
+            `OptimizationQuery` must have **all** of these tags.
         exclude:
             A set of tags such that every optimization obtained through this
-            ``OptimizationQuery`` must have **none** of these tags.
+            ``OptimizationQuery` must have **none** of these tags.
         subquery:
             A dictionary mapping the name of a sub-database to a special
-            ``OptimizationQuery``.  If no subquery is given for a sub-database,
-            the original ``OptimizationQuery`` will be used again.
+            `OptimizationQuery`.  If no subquery is given for a sub-database,
+            the original `OptimizationQuery` will be used again.
         position_cutoff:
             Only optimizations with position less than the cutoff are returned.
         extra_optimizations:
@@ -241,8 +241,8 @@ class OptimizationQuery:
         if not hasattr(self, "extra_optimizations"):
             self.extra_optimizations = []
 
-    # add all opt with this tag
-    def including(self, *tags):
+    def including(self, *tags: str) -> "OptimizationQuery":
+        """Add rewrites with the given tags."""
         return OptimizationQuery(
             self.include.union(tags),
             self.require,
@@ -252,8 +252,8 @@ class OptimizationQuery:
             self.extra_optimizations,
         )
 
-    # remove all opt with this tag
-    def excluding(self, *tags):
+    def excluding(self, *tags: str) -> "OptimizationQuery":
+        """Remove rewrites with the given tags."""
         return OptimizationQuery(
             self.include,
             self.require,
@@ -263,8 +263,8 @@ class OptimizationQuery:
             self.extra_optimizations,
         )
 
-    # keep only opt with this tag.
-    def requiring(self, *tags):
+    def requiring(self, *tags: str) -> "OptimizationQuery":
+        """Filter for rewrites with the given tags."""
         return OptimizationQuery(
             self.include,
             self.require.union(tags),
@@ -274,7 +274,8 @@ class OptimizationQuery:
             self.extra_optimizations,
         )
 
-    def register(self, *optimizations):
+    def register(self, *optimizations: Sequence[OptimizersType]) -> "OptimizationQuery":
+        """Include the given optimizations."""
         return OptimizationQuery(
             self.include,
             self.require,
