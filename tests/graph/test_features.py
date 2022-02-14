@@ -1,11 +1,11 @@
 import pytest
 
 from aesara.graph.basic import Apply, Variable
-from aesara.graph.features import Feature, NodeFinder, ReplaceValidate
+from aesara.graph.features import Feature, History, NodeFinder, ReplaceValidate
 from aesara.graph.fg import FunctionGraph
 from aesara.graph.op import Op
 from aesara.graph.type import Type
-from tests.graph.utils import MyVariable, op1
+from tests.graph.utils import MyVariable, op1, op2
 
 
 class TestNodeFinder:
@@ -120,3 +120,29 @@ class TestReplaceValidate:
 
         capres = capsys.readouterr()
         assert "rewriting: validate failed on node Op1.0" in capres.out
+
+
+class TestHistory:
+    def test_basic(self):
+        var1 = MyVariable("var1")
+        var2 = MyVariable("var2")
+        var3 = op1(var2, var1)
+        fg = FunctionGraph([var1, var2], [var3], clone=False)
+
+        hf = History()
+        fg.attach_feature(hf)
+
+        assert hasattr(fg, "_history_is_reverting")
+        assert hasattr(fg, "_history_history")
+
+        chkpnt = fg.checkpoint()
+
+        fg.replace_all([(var3, op2(var2, var1))])
+        assert var3 not in fg.variables
+
+        assert fg._history_history
+        fg.revert(chkpnt)
+        assert not fg._history_is_reverting
+
+        assert not fg._history_history
+        assert var3 in fg.variables
