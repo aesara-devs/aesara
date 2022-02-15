@@ -4,7 +4,6 @@ Provide a simple user friendly API.
 """
 
 import logging
-import warnings
 
 from aesara.compile.function.types import UnusedInputError, orig_function
 from aesara.compile.io import In, Out
@@ -265,36 +264,6 @@ def rebuild_collect_shared(
         cloned_outputs,
         [clone_d, update_d, update_expr, shared_inputs],
     )
-
-
-class Param(In):
-    """Deprecated. Use In instead."""
-
-    def __init__(
-        self,
-        variable,
-        default=None,
-        name=None,
-        mutable=False,
-        strict=False,
-        allow_downcast=None,
-        implicit=None,
-        borrow=None,
-    ):
-        warnings.warn(
-            "The Param class is deprecated. Replace Param(default=N)" " by In(value=N)",
-            stacklevel=2,
-        )
-        super().__init__(
-            variable,
-            name=name,
-            value=default,
-            mutable=mutable,
-            strict=strict,
-            allow_downcast=allow_downcast,
-            implicit=implicit,
-            borrow=borrow,
-        )
 
 
 def pfunc(
