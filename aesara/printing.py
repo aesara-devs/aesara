@@ -1537,7 +1537,7 @@ def pydotprint(
             if hasattr(scan_op.op, "_fn"):
                 to_print = scan_op.op.fn
             else:
-                to_print = scan_op.op.outputs
+                to_print = scan_op.op.inner_outputs
             pydotprint(
                 to_print,
                 new_name,
