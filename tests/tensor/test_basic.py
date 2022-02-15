@@ -1172,6 +1172,9 @@ def test_get_vector_length():
 
     assert np.allclose(f(4, 5), [5, 9, 4])
 
+    # Test `Alloc`s
+    assert 3 == get_vector_length(alloc(0, 3))
+
 
 class TestJoinAndSplit:
     # Split is tested by each verify_grad method.

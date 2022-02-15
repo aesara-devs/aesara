@@ -1669,6 +1669,14 @@ alloc = Alloc()
 pprint.assign(alloc, printing.FunctionPrinter(["alloc"]))
 
 
+@_get_vector_length.register(Alloc)
+def _get_vector_length_Alloc(var_inst, var):
+    try:
+        return get_scalar_constant_value(var.owner.inputs[1])
+    except NotScalarConstantError:
+        raise ValueError(f"Length of {var} cannot be determined")
+
+
 def full(shape, fill_value, dtype=None):
     """Return a new array of given shape and type, filled with `fill_value`.
 
