@@ -87,8 +87,8 @@ def remove_constants_and_unused_inputs_scan(fgraph, node):
     st += op.n_sit_sot
     st += op.n_shared_outs
 
-    op_ins = op.inputs
-    op_outs = op.outputs
+    op_ins = op.inner_inputs
+    op_outs = op.inner_outputs
 
     # Corresponds to the initial states, which should stay untouched.
     # We put those variables aside, and put them back at the end.
@@ -202,7 +202,7 @@ def push_out_non_seq_scan(fgraph, node):
     if not isinstance(node.op, Scan):
         return False
 
-    node_inputs, node_outputs = node.op.inputs, node.op.outputs
+    node_inputs, node_outputs = node.op.inner_inputs, node.op.inner_outputs
 
     local_fgraph_topo = io_toposort(node_inputs, node_outputs)
     local_fgraph_outs_set = set(node_outputs)
@@ -412,7 +412,7 @@ def push_out_seq_scan(fgraph, node):
     if not isinstance(node.op, Scan):
         return False
 
-    node_inputs, node_outputs = node.op.inputs, node.op.outputs
+    node_inputs, node_outputs = node.op.inner_inputs, node.op.inner_outputs
 
     local_fgraph_topo = io_toposort(node_inputs, node_outputs)
     local_fgraph_outs_set = set(node_outputs)
@@ -723,8 +723,8 @@ def push_out_inner_vars(
         new_scan_args = ScanArgs(
             new_scan_node.inputs,
             new_scan_node.outputs,
-            new_scan_node.op.inputs,
-            new_scan_node.op.outputs,
+            new_scan_node.op.inner_inputs,
+            new_scan_node.op.inner_outputs,
             new_scan_node.op.info,
         )
 
@@ -821,7 +821,9 @@ def push_out_add_scan(fgraph, node):
 
     # Use `ScanArgs` to parse the inputs and outputs of scan for ease of
     # use
-    args = ScanArgs(node.inputs, node.outputs, op.inputs, op.outputs, op.info)
+    args = ScanArgs(
+        node.inputs, node.outputs, op.inner_inputs, op.inner_outputs, op.info
+    )
 
     clients = {}
     local_fgraph_topo = io_toposort(
@@ -986,8 +988,8 @@ class ScanInplaceOptimizer(GlobalOptimizer):
             typeConstructor = self.typeInfer(node)
 
         new_op = Scan(
-            op.inputs,
-            op.outputs,
+            op.inner_inputs,
+            op.inner_outputs,
             op.info,
             mode=op.mode,
             typeConstructor=typeConstructor,
@@ -1656,7 +1658,7 @@ class ScanMerge(GlobalOptimizer):
 
         if nodes[0].op.info.as_while:
             as_while = True
-            condition = nodes[0].op.outputs[-1]
+            condition = nodes[0].op.inner_outputs[-1]
         else:
             as_while = False
 
@@ -1676,15 +1678,15 @@ class ScanMerge(GlobalOptimizer):
             return ls
 
         for idx, nd in enumerate(nodes):
-            inner_ins[idx].append(rename(nd.op.inner_seqs(nd.op.inputs), idx))
+            inner_ins[idx].append(rename(nd.op.inner_seqs(nd.op.inner_inputs), idx))
             outer_ins += rename(nd.op.outer_seqs(nd.inputs), idx)
 
         mit_mot_out_slices = ()
 
         mit_mot_in_slices = ()
         for idx, nd in enumerate(nodes):
-            inner_ins[idx].append(rename(nd.op.inner_mitmot(nd.op.inputs), idx))
-            inner_outs[idx].append(nd.op.inner_mitmot_outs(nd.op.outputs))
+            inner_ins[idx].append(rename(nd.op.inner_mitmot(nd.op.inner_inputs), idx))
+            inner_outs[idx].append(nd.op.inner_mitmot_outs(nd.op.inner_outputs))
             mit_mot_in_slices += nd.op.mitmot_taps()
             mit_mot_out_slices += nd.op.mitmot_out_taps()
             outer_ins += rename(nd.op.outer_mitmot(nd.inputs), idx)
@@ -1692,40 +1694,40 @@ class ScanMerge(GlobalOptimizer):
 
         mit_sot_in_slices = ()
         for idx, nd in enumerate(nodes):
-            inner_ins[idx].append(rename(nd.op.inner_mitsot(nd.op.inputs), idx))
-            inner_outs[idx].append(nd.op.inner_mitsot_outs(nd.op.outputs))
+            inner_ins[idx].append(rename(nd.op.inner_mitsot(nd.op.inner_inputs), idx))
+            inner_outs[idx].append(nd.op.inner_mitsot_outs(nd.op.inner_outputs))
             mit_sot_in_slices += nd.op.mitsot_taps()
             outer_ins += rename(nd.op.outer_mitsot(nd.inputs), idx)
             outer_outs += nd.op.outer_mitsot_outs(nd.outputs)
 
         sit_sot_in_slices = ()
         for idx, nd in enumerate(nodes):
-            inner_ins[idx].append(rename(nd.op.inner_sitsot(nd.op.inputs), idx))
+            inner_ins[idx].append(rename(nd.op.inner_sitsot(nd.op.inner_inputs), idx))
             sit_sot_in_slices += tuple((-1,) for x in range(nd.op.n_sit_sot))
-            inner_outs[idx].append(nd.op.inner_sitsot_outs(nd.op.outputs))
+            inner_outs[idx].append(nd.op.inner_sitsot_outs(nd.op.inner_outputs))
             outer_ins += rename(nd.op.outer_sitsot(nd.inputs), idx)
             outer_outs += nd.op.outer_sitsot_outs(nd.outputs)
 
         for idx, nd in enumerate(nodes):
             # Shared
-            inner_ins[idx].append(rename(nd.op.inner_shared(nd.op.inputs), idx))
+            inner_ins[idx].append(rename(nd.op.inner_shared(nd.op.inner_inputs), idx))
             outer_ins += rename(nd.op.outer_shared(nd.inputs), idx)
 
         for idx, nd in enumerate(nodes):
             # NitSot
-            inner_outs[idx].append(nd.op.inner_nitsot_outs(nd.op.outputs))
+            inner_outs[idx].append(nd.op.inner_nitsot_outs(nd.op.inner_outputs))
             outer_ins += rename(nd.op.outer_nitsot(nd.inputs), idx)
             outer_outs += nd.op.outer_nitsot_outs(nd.outputs)
 
         for idx, nd in enumerate(nodes):
             # Shared
             outer_outs += nd.op.outer_shared_outs(nd.outputs)
-            inner_outs[idx].append(nd.op.inner_shared_outs(nd.op.outputs))
+            inner_outs[idx].append(nd.op.inner_shared_outs(nd.op.inner_outputs))
 
         n_non_seqs = 0
         for idx, nd in enumerate(nodes):
             # Non Seqs
-            node_inner_non_seqs = nd.op.inner_non_seqs(nd.op.inputs)
+            node_inner_non_seqs = nd.op.inner_non_seqs(nd.op.inner_inputs)
             n_non_seqs += len(node_inner_non_seqs)
             inner_ins[idx].append(rename(node_inner_non_seqs, idx))
             outer_ins += rename(nd.op.outer_non_seqs(nd.inputs), idx)
@@ -1863,9 +1865,11 @@ class ScanMerge(GlobalOptimizer):
 
         if not node.op.info.as_while:
             return True
-        cond = node.op.outputs[-1]
-        rep_cond = rep.op.outputs[-1]
-        return equal_computations([cond], [rep_cond], node.op.inputs, rep.op.inputs)
+        cond = node.op.inner_outputs[-1]
+        rep_cond = rep.op.inner_outputs[-1]
+        return equal_computations(
+            [cond], [rep_cond], node.op.inner_inputs, rep.op.inner_inputs
+        )
 
     def apply(self, fgraph):
         # Collect all scan nodes ordered according to toposort
@@ -1943,8 +1947,8 @@ def scan_merge_inouts(fgraph, node):
     a = ScanArgs(
         node.inputs,
         node.outputs,
-        node.op.inputs,
-        node.op.outputs,
+        node.op.inner_inputs,
+        node.op.inner_outputs,
         node.op.info,
     )
 
@@ -2003,8 +2007,8 @@ def scan_merge_inouts(fgraph, node):
         na = ScanArgs(
             outer_inputs,
             outputs,
-            new_op.inputs,
-            new_op.outputs,
+            new_op.inner_inputs,
+            new_op.inner_outputs,
             new_op.info,
         )
         remove = [node]
@@ -2146,10 +2150,10 @@ def push_out_dot1_scan(fgraph, node):
     # Note that this works when only you need X[-1] in the end
     # and assumes dimshuffle are applied to vectors before calling dot
     op = node.op
-    sitsot_ins = op.inner_sitsot(op.inputs)
-    sitsot_outs = op.inner_sitsot_outs(op.outputs)
+    sitsot_ins = op.inner_sitsot(op.inner_inputs)
+    sitsot_outs = op.inner_sitsot_outs(op.inner_outputs)
     outer_sitsot = op.outer_sitsot_outs(node.outputs)
-    seqs = op.inner_seqs(op.inputs)
+    seqs = op.inner_seqs(op.inner_inputs)
     for inp, out, outer_out in zip(sitsot_ins, sitsot_outs, outer_sitsot):
 
         if (
@@ -2191,23 +2195,23 @@ def push_out_dot1_scan(fgraph, node):
                     # First let us split all arguments according to their
                     # corresponding categories
 
-                    inner_seqs = op.inner_seqs(op.inputs)
+                    inner_seqs = op.inner_seqs(op.inner_inputs)
                     outer_seqs = op.outer_seqs(node.inputs)
-                    inner_mitmot = op.inner_mitmot(op.inputs)
+                    inner_mitmot = op.inner_mitmot(op.inner_inputs)
                     outer_mitmot = op.outer_mitmot(node.inputs)
-                    inner_mitmot_outs = op.inner_mitmot_outs(op.outputs)
-                    inner_mitsot = op.inner_mitsot(op.inputs)
+                    inner_mitmot_outs = op.inner_mitmot_outs(op.inner_outputs)
+                    inner_mitsot = op.inner_mitsot(op.inner_inputs)
                     outer_mitsot = op.outer_mitsot(node.inputs)
-                    inner_mitsot_outs = op.inner_mitsot_outs(op.outputs)
-                    inner_sitsot = op.inner_sitsot(op.inputs)
+                    inner_mitsot_outs = op.inner_mitsot_outs(op.inner_outputs)
+                    inner_sitsot = op.inner_sitsot(op.inner_inputs)
                     outer_sitsot = op.outer_sitsot(node.inputs)
-                    inner_sitsot_outs = op.inner_sitsot_outs(op.outputs)
+                    inner_sitsot_outs = op.inner_sitsot_outs(op.inner_outputs)
                     outer_nitsot = op.outer_nitsot(node.inputs)
-                    inner_nitsot_outs = op.inner_nitsot_outs(op.outputs)
-                    inner_shared = op.inner_shared(op.inputs)
+                    inner_nitsot_outs = op.inner_nitsot_outs(op.inner_outputs)
+                    inner_shared = op.inner_shared(op.inner_inputs)
                     outer_shared = op.outer_shared(node.inputs)
-                    inner_shared_outs = op.inner_shared_outs(op.outputs)
-                    inner_non_seqs = op.inner_non_seqs(op.inputs)
+                    inner_shared_outs = op.inner_shared_outs(op.inner_outputs)
+                    inner_non_seqs = op.inner_non_seqs(op.inner_inputs)
                     outer_non_seqs = op.outer_non_seqs(node.inputs)
 
                     new_info = dataclasses.replace(

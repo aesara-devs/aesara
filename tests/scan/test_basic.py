@@ -2594,7 +2594,7 @@ def test_inner_get_vector_length():
 
     # Make sure the `size` in `scan_body` is a plain `Variable` instance
     # carrying no information with which we can derive its length
-    size_clone = res.owner.op.inputs[1]
+    size_clone = res.owner.op.inner_inputs[1]
     assert size_clone.owner is None
 
     # Make sure the cloned `size` maps to the original `size_at`
@@ -2694,9 +2694,6 @@ def test_profile_info():
     assert profile.apply_time
     assert fn.fn.call_times == [0.0]
     assert fn.fn.call_counts == [0]
-
-
-c = scalar("c", dtype="floatX")
 
 
 class TestExamples:
@@ -4021,9 +4018,6 @@ class TestExamples:
         self._grad_mout_helper(1, None)
 
 
-c = scalar("c", dtype="floatX")
-
-
 @pytest.mark.parametrize(
     "fn, sequences, outputs_info, non_sequences, n_steps, op_check",
     [
@@ -4050,7 +4044,7 @@ c = scalar("c", dtype="floatX")
             lambda c: at.as_tensor(2.0) * c,
             [],
             [{}],
-            [c],
+            [scalar("c", dtype="floatX")],
             3,
             lambda op: op.info.n_nit_sot > 0 and op.info.n_non_seqs > 0,
         ),
@@ -4105,7 +4099,7 @@ c = scalar("c", dtype="floatX")
         # TODO: mit-mot (can't be created through the `scan` interface)
     ],
 )
-def test_n_non_seqs(fn, sequences, outputs_info, non_sequences, n_steps, op_check):
+def test_ScanInfo_totals(fn, sequences, outputs_info, non_sequences, n_steps, op_check):
     res, _ = scan(
         fn,
         sequences=sequences,
@@ -4124,13 +4118,9 @@ def test_n_non_seqs(fn, sequences, outputs_info, non_sequences, n_steps, op_chec
     scan_op = res.owner.op
     assert isinstance(scan_op, Scan)
 
-    # from aesara.scan.utils import ScanArgs
-    # print(ScanArgs.from_node(res.owner))
-    # print(res.owner.op.info)
-
     _ = op_check(scan_op)
 
     assert scan_op.info.n_outer_inputs == len(res.owner.inputs)
     assert scan_op.info.n_outer_outputs == len(res.owner.outputs)
-    assert scan_op.info.n_inner_inputs == len(res.owner.op.inputs)
-    assert scan_op.info.n_inner_outputs == len(res.owner.op.outputs)
+    assert scan_op.info.n_inner_inputs == len(res.owner.op.inner_inputs)
+    assert scan_op.info.n_inner_outputs == len(res.owner.op.inner_outputs)

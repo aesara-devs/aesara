@@ -101,18 +101,18 @@ def test_ScanArgs():
     assert scan_args.n_mit_mot == scan_op.n_mit_mot
     # The `scan_args` base class always clones the inner-graph;
     # here we make sure it doesn't (and that all the inputs are the same)
-    assert scan_args.inputs == scan_op.inputs
+    assert scan_args.inputs == scan_op.inner_inputs
     assert scan_args.info == scan_op.info
 
     # Check that `ScanArgs.find_among_fields` works
-    test_v = scan_op.inner_seqs(scan_op.inputs)[1]
+    test_v = scan_op.inner_seqs(scan_op.inner_inputs)[1]
     field_info = scan_args.find_among_fields(test_v)
     assert field_info.name == "inner_in_seqs"
     assert field_info.index == 1
     assert field_info.inner_index is None
     assert scan_args.inner_inputs[field_info.agg_index] == test_v
 
-    test_l = scan_op.inner_non_seqs(scan_op.inputs)
+    test_l = scan_op.inner_non_seqs(scan_op.inner_inputs)
     # We didn't index this argument, so it's a `list` (i.e. bad input)
     field_info = scan_args.find_among_fields(test_l)
     assert field_info is None
