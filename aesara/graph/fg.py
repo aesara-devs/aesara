@@ -191,18 +191,6 @@ class FunctionGraph(MetaObject):
                 " the values must be tuples or lists."
             )
 
-    def disown(self) -> None:
-        """Clear internal variables."""
-        for f in self._features:
-            self.remove_feature(f)
-        self.clients = {}
-        self.apply_nodes = set()
-        self.variables = set()
-        self.inputs = None
-        self.outputs = None
-        self.profile = None
-        self.update_mapping = None
-
     def get_clients(self, var: Variable) -> List[Tuple[Apply, int]]:
         """Return a list of all the `(node, i)` pairs such that `node.inputs[i]` is `var`."""
         return self.clients[var]
