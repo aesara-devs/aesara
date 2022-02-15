@@ -167,30 +167,6 @@ class FunctionGraph(MetaObject):
         """
         self.clients.setdefault(var, [])
 
-    def setup_node(self, node: Apply) -> None:
-        """Set up node so it belongs to this `FunctionGraph`.
-
-        Parameters
-        ----------
-        node : aesara.graph.basic.Apply
-
-        """
-        if node.op.view_map and not all(
-            isinstance(view, (list, tuple)) for view in node.op.view_map.values()
-        ):
-            raise Exception(
-                f"Op '{node.op}' have a bad view map '{node.op.view_map}',"
-                " the values must be tuples or lists."
-            )
-        if node.op.destroy_map and not all(
-            isinstance(destroy, (list, tuple))
-            for destroy in node.op.destroy_map.values()
-        ):
-            raise Exception(
-                f"Op '{node.op}' have a bad destroy map '{node.op.destroy_map}',"
-                " the values must be tuples or lists."
-            )
-
     def get_clients(self, var: Variable) -> List[Tuple[Apply, int]]:
         """Return a list of all the `(node, i)` pairs such that `node.inputs[i]` is `var`."""
         return self.clients[var]
@@ -362,7 +338,6 @@ class FunctionGraph(MetaObject):
 
         for node in new_nodes:
             assert node not in self.apply_nodes
-            self.setup_node(node)
             self.apply_nodes.add(node)
             if not hasattr(node.tag, "imported_by"):
                 node.tag.imported_by = []
