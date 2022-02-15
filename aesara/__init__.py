@@ -128,7 +128,6 @@ from aesara.compile import (
     In,
     Mode,
     Out,
-    Param,
     ProfileStats,
     predefined_linkers,
     predefined_modes,

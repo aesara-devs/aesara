@@ -1,4 +1,4 @@
-from aesara.compile.function.pfunc import Param, pfunc, rebuild_collect_shared
+from aesara.compile.function.pfunc import pfunc, rebuild_collect_shared
 from aesara.compile.function.types import (
     AliasedMemoryError,
     Function,
