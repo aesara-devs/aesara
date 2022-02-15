@@ -795,13 +795,11 @@ def test_gemm_canonicalize():
     fg = FunctionGraph([X, Y, Z], [X + Y + Z], clone=False)
     _gemm_canonicalize(fg, fg.outputs[0], 1.0, can, 0)
     assert can == [(1.0, X), (1.0, Y), (1.0, Z)]
-    fg.disown()
 
     can = []
     fg = FunctionGraph([X, Y, u], [X + Y + u], clone=False)
     _gemm_canonicalize(fg, fg.outputs[0], 1.0, can, 0)
     assert can == [(1.0, X), (1.0, Y), (1.0, u)], can
-    fg.disown()
 
     can = []
     fg = FunctionGraph([X, Y, v], [X + Y + v], clone=False)
@@ -814,13 +812,11 @@ def test_gemm_canonicalize():
     assert can[2][1].owner
     assert isinstance(can[2][1].owner.op, DimShuffle)
     assert can[2][1].owner.inputs == [v]
-    fg.disown()
 
     can = []
     fg = FunctionGraph([X, Y, w], [X + Y + w], clone=False)
     _gemm_canonicalize(fg, fg.outputs[0], 1.0, can, 0)
     assert can == [(1.0, X), (1.0, Y), (1.0, w)], can
-    fg.disown()
 
     can = []
     fg = FunctionGraph([a, X, Y, b, Z, c], [a * X + Y - b * Z * c], clone=False)
@@ -831,7 +827,6 @@ def test_gemm_canonicalize():
     assert can[2][0].owner.inputs[0].owner.op == neg
     assert can[2][0].owner.inputs[0].owner.inputs[0] == c
     assert can[2][0].owner.inputs[1] == b
-    fg.disown()
 
     can = []
     fg = FunctionGraph(
@@ -846,7 +841,6 @@ def test_gemm_canonicalize():
     assert can[2] == (-1.0, Y)
     assert can[3][0].owner.op == mul
     assert can[3][0].owner.inputs == [c, b]
-    fg.disown()
 
 
 def test_gemm_factor():
