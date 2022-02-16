@@ -433,7 +433,9 @@ def _optcheck_fgraph(input_specs, output_specs, accept_inplace=False):
 
     """
     equivalence_tracker = _VariableEquivalenceTracker()
-    fgraph, updates = std_fgraph(input_specs, output_specs, accept_inplace)
+    fgraph, updates = std_fgraph(
+        input_specs, output_specs, accept_inplace, force_clone=True
+    )
     fgraph.attach_feature(equivalence_tracker)
     return fgraph, updates, equivalence_tracker
 
@@ -2006,6 +2008,7 @@ class _Maker(FunctionMaker):  # inheritance buys a few helper functions
         fgraph=None,  # If present the optimized graph. we ignore it.
         output_keys=None,
         name=None,
+        no_fgraph_prep=False,
     ):
         self.mode = mode
         self.profile = profile
