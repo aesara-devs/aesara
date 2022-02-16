@@ -44,8 +44,9 @@ def random_make_inplace(fgraph, node):
     op = node.op
 
     if isinstance(op, RandomVariable) and not op.inplace:
-        name, ndim_supp, ndims_params, dtype, _ = op._props()
-        new_op = type(op)(name, ndim_supp, ndims_params, dtype, True)
+        props = op._props_dict()
+        props["inplace"] = True
+        new_op = type(op)(**props)
         return new_op.make_node(*node.inputs).outputs
 
     return False
