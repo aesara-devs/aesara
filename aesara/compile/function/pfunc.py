@@ -5,7 +5,7 @@ Provide a simple user friendly API.
 
 import logging
 
-from aesara.compile.function.types import UnusedInputError, orig_function
+from aesara.compile.function.types import Function, UnusedInputError, orig_function
 from aesara.compile.io import In, Out
 from aesara.compile.profiling import ProfileStats
 from aesara.compile.sharedvalue import SharedVariable, shared
@@ -27,8 +27,7 @@ def rebuild_collect_shared(
     copy_inputs_over=True,
     no_default_updates=False,
 ):
-    """
-    Function that allows replacing subgraphs of a computational graph.
+    """Replace subgraphs of a computational graph.
 
     It returns a set of dictionaries and lists which collect (partial?)
     different information about shared variables. This info is required by
@@ -280,7 +279,7 @@ def pfunc(
     profile=None,
     on_unused_input=None,
     output_keys=None,
-):
+) -> Function:
     """
     Function-constructor for graphs with shared variables.
 
@@ -328,33 +327,27 @@ def pfunc(
 
     Returns
     -------
-    aesara.compile.Function
-        A callable object that will compute the outputs (given the inputs) and
-        update the implicit function arguments according to the `updates`.
+    A callable object that will compute the outputs (given the inputs) and
+    update the implicit function arguments according to the `updates`.
 
     Notes
     -----
     Regarding givens: Be careful to make sure that these substitutions are
-    independent--behaviour when Var1 of one pair appears in the graph leading
-    to Var2 in another expression is undefined. Replacements specified with
-    givens are different from optimizations in that Var2 is not expected to be
-    equivalent to Var1.
+    independent--behaviour when ``Var1`` of one pair appears in the graph leading
+    to ``Var2`` in another expression is undefined. Replacements specified with
+    givens are different from optimizations in that ``Var2`` is not expected to
+    be equivalent to ``Var1``.
 
     """
 
     if profile is None:
         profile = config.profile or config.print_global_stats
-        # profile -> True or False
         if profile is False:
             profile = None
     if profile is True:
         profile = ProfileStats(message=name)
-        # profile -> object
     elif isinstance(profile, str):
         profile = ProfileStats(message=profile)
-    # profile is typically either False or an object at this point.
-    # No need to block other objects being passed through though. It might be
-    # useful.
 
     inputs, cloned_outputs = construct_pfunc_ins_and_outs(
         params,
