@@ -9,7 +9,6 @@ import logging
 import time
 import warnings
 from itertools import chain
-from typing import List
 
 import numpy as np
 
@@ -35,8 +34,6 @@ from aesara.link.utils import raise_with_op
 
 
 _logger = logging.getLogger("aesara.compile.function.types")
-
-__docformat__ = "restructuredtext en"
 
 
 class UnusedInputError(Exception):
@@ -219,10 +216,6 @@ class AliasedMemoryError(Exception):
 
     """
 
-
-###
-# Function
-###
 
 # unique id object used as a placeholder for duplicate entries
 DUPLICATE = ["DUPLICATE"]
@@ -1173,9 +1166,6 @@ def _constructor_Function(maker, input_storage, inputs_data, trust_input=False):
 copyreg.pickle(Function, _pickle_Function)
 
 
-###
-# FunctionMaker
-###
 def insert_deepcopy(fgraph, wrapped_inputs, wrapped_outputs):
     """
     Insert deepcopy in the fgraph to break aliasing of outputs
@@ -1274,9 +1264,6 @@ def insert_deepcopy(fgraph, wrapped_inputs, wrapped_outputs):
                             reason="insert_deepcopy",
                         )
                         break
-
-
-NODEFAULT = ["NODEFAULT"]
 
 
 class FunctionMaker:
@@ -1680,33 +1667,6 @@ class FunctionMaker:
 
         fn.profile = self.profile
         return fn
-
-
-def _constructor_FunctionMaker(kwargs):
-    # Needed for old pickle
-    # Old pickle have at least the problem that output_keys where not saved.
-    if config.unpickle_function:
-        if config.reoptimize_unpickled_function:
-            del kwargs["fgraph"]
-        return FunctionMaker(**kwargs)
-    else:
-        return None
-
-
-__checkers: List = []
-
-
-def check_equal(x, y):
-    for checker in __checkers:
-        try:
-            return checker(x, y)
-        except Exception:
-            continue
-    return x == y
-
-
-def register_checker(checker):
-    __checkers.insert(0, checker)
 
 
 def orig_function(
