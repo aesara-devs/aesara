@@ -21,6 +21,7 @@ from aesara.tensor.elemwise import CAReduce, CAReduceDtype, DimShuffle, Elemwise
 from aesara.tensor.exceptions import ShapeError
 from aesara.tensor.math import all as at_all
 from aesara.tensor.math import any as at_any
+from aesara.tensor.math import exp
 from aesara.tensor.type import (
     TensorType,
     bmatrix,
@@ -853,6 +854,27 @@ class TestElemwise(unittest_tools.InferShapeTester):
         (out_shape,) = z.owner.op.infer_shape(None, z.owner, [(lscalar(), 1), (50, 10)])
 
         assert all(isinstance(v.type, TensorType) for v in out_shape)
+
+    def test_static_shape_unary(self):
+        x = tensor("float64", shape=(None, 1, 5))
+        exp(x).type.shape == (None, 1, 5)
+
+    def test_static_shape_binary(self):
+        x = tensor("float64", shape=(None, 5))
+        y = tensor("float64", shape=(None, 5))
+        assert (x + y).type.shape == (None, 5)
+
+        x = tensor("float64", shape=(None, 5))
+        y = tensor("float64", shape=(10, 5))
+        assert (x + y).type.shape == (10, 5)
+
+        x = tensor("float64", shape=(1, 5))
+        y = tensor("float64", shape=(10, 5))
+        assert (x + y).type.shape == (10, 5)
+
+        x = tensor("float64", shape=(None, 1))
+        y = tensor("float64", shape=(1, 1))
+        assert (x + y).type.shape == (None, 1)
 
 
 def test_not_implemented_elemwise_grad():
