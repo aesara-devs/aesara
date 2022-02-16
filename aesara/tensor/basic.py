@@ -68,28 +68,6 @@ _logger = logging.getLogger("aesara.tensor.basic")
 __docformat__ = "restructuredtext en"
 
 
-def check_equal_numpy(x, y):
-    """
-    Return True iff x and y are equal.
-
-    Checks the dtype and shape if x and y are numpy.ndarray instances.
-
-    """
-    if isinstance(x, np.ndarray) and isinstance(y, np.ndarray):
-        return x.dtype == y.dtype and x.shape == y.shape and np.all(abs(x - y) < 1e-10)
-    elif isinstance(x, (np.random.Generator, np.random.RandomState)) and isinstance(
-        y, (np.random.Generator, np.random.RandomState)
-    ):
-        return builtins.all(
-            np.all(a == b) for a, b in zip(x.__getstate__(), y.__getstate__())
-        )
-    else:
-        return x == y
-
-
-compile.register_checker(check_equal_numpy)
-
-
 def __oplist_tag(thing, tag):
     tags = getattr(thing, "__oplist_tags", [])
     tags.append(tag)
