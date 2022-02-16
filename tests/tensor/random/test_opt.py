@@ -87,6 +87,48 @@ def test_inplace_optimization():
     assert np.array_equal(new_out.owner.inputs[1].data, [])
 
 
+def test_inplace_optimization_extra_props():
+    class Test(RandomVariable):
+        name = "test"
+        ndim_supp = 0
+        ndims_params = [0]
+        __props__ = ("name", "ndim_supp", "ndims_params", "dtype", "inplace", "extra")
+        dtype = "floatX"
+        _print_name = ("Test", "\\operatorname{Test}")
+
+        def __init__(self, extra, *args, **kwargs):
+            self.extra = extra
+            super().__init__(*args, **kwargs)
+
+        def make_node(self, rng, size, dtype, sigma):
+            return super().make_node(rng, size, dtype, sigma)
+
+        def rng_fn(self, rng, sigma, size):
+            return rng.normal(scale=sigma, size=size)
+
+    out = Test(extra="some value")(1)
+    out.owner.inputs[0].default_update = out.owner.outputs[0]
+
+    assert out.owner.op.inplace is False
+
+    f = function(
+        [],
+        out,
+        mode="FAST_RUN",
+    )
+
+    (new_out, new_rng) = f.maker.fgraph.outputs
+    assert new_out.type == out.type
+    assert isinstance(new_out.owner.op, type(out.owner.op))
+    assert new_out.owner.op.inplace is True
+    assert new_out.owner.op.extra == out.owner.op.extra
+    assert all(
+        np.array_equal(a.data, b.data)
+        for a, b in zip(new_out.owner.inputs[2:], out.owner.inputs[2:])
+    )
+    assert np.array_equal(new_out.owner.inputs[1].data, [])
+
+
 @config.change_flags(compute_test_value="raise")
 @pytest.mark.parametrize(
     "dist_op, dist_params, size",
