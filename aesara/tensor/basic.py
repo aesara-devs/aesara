@@ -1331,11 +1331,11 @@ def identity_like(x, dtype: Optional[Union[str, np.generic, np.dtype]] = None):
     return eye(_x.shape[0], _x.shape[1], k=0, dtype=dtype)
 
 
-def infer_broadcastable(shape):
-    """Infer the broadcastable dimensions for `shape`.
+def infer_shape(shape):
+    """Infer the shape dimensions for `shape`.
 
     `shape` will be validated and constant folded in order to determine
-    which dimensions are broadcastable (i.e. equal to ``1``).
+    which dimensions are known.
     """
     from aesara.tensor.rewriting.basic import topo_constant_folding
     from aesara.tensor.rewriting.shape import ShapeFeature
@@ -1360,7 +1360,19 @@ def infer_broadcastable(shape):
     )
     folded_shape = rewrite_graph(shape_fg, custom_rewrite=topo_constant_folding).outputs
 
-    bcast = tuple(getattr(s, "data", s) == 1 for s in folded_shape)
+    shape = tuple(int(s.data) if hasattr(s, "data") else None for s in folded_shape)
+    return sh, shape
+
+
+def infer_broadcastable(shape):
+    """Infer the broadcastable dimensions for `shape`.
+
+    `shape` will be validated and constant folded in order to determine
+    which dimensions are broadcastable (i.e. equal to ``1``).
+    """
+
+    sh, shape = infer_shape(shape)
+    bcast = tuple(s == 1 for s in shape)
     return sh, bcast
 
 
@@ -1391,7 +1403,7 @@ class Alloc(COp):
 
     def make_node(self, value, *shape):
         v = as_tensor_variable(value)
-        sh, bcast = infer_broadcastable(shape)
+        sh, folded_shape = infer_shape(shape)
         if v.ndim > len(sh):
             raise TypeError(
                 "The Alloc value to use has more dimensions"
@@ -1399,7 +1411,7 @@ class Alloc(COp):
                 v.ndim,
                 len(sh),
             )
-        otype = TensorType(dtype=v.dtype, shape=bcast)
+        otype = TensorType(dtype=v.dtype, shape=folded_shape)
         return Apply(self, [v] + sh, [otype()])
 
     def perform(self, node, inputs, out_):

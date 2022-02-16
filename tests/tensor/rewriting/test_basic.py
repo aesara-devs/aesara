@@ -1,4 +1,5 @@
 import copy
+import re
 
 import numpy as np
 import pytest
@@ -277,7 +278,10 @@ class TestLocalCanonicalizeAlloc:
         assert a.owner and isinstance(a.owner.op, Alloc)
 
         # `local_useless_alloc` should replace the `Alloc` with an `Assert`
-        with pytest.raises(AssertionError):
+        with pytest.raises(
+            TypeError,
+            match=re.escape("Cannot convert Type TensorType(float64, (3, 7))"),
+        ):
             f = function([], a, mode=rewrite_mode)
 
         x = at.as_tensor(self.rng.standard_normal((6, 7)))

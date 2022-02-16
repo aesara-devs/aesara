@@ -792,6 +792,10 @@ class TestAlloc:
         res = aesara.function([], full_at, mode=self.mode)()
         assert np.array_equal(res, np.full((2, 3), 3, dtype="int64"))
 
+    def test_static_shape(self):
+        out = at.alloc(0, at.constant(50), iscalar())
+        assert out.type.shape == (50, None)
+
 
 def test_infer_broadcastable():
     with pytest.raises(TypeError, match="^Shapes must be scalar integers.*"):
