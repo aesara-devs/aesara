@@ -9,7 +9,7 @@ import logging
 import time
 import warnings
 from itertools import chain
-from typing import List, Tuple, Type
+from typing import List, Optional, Tuple, Type
 
 import numpy as np
 
@@ -152,7 +152,9 @@ def std_fgraph(
     input_specs: List[SymbolicInput],
     output_specs: List[SymbolicOutput],
     accept_inplace: bool = False,
+    fgraph: Optional[FunctionGraph] = None,
     features: List[Type[Feature]] = [PreserveVariableAttributes],
+    force_clone=False,
 ) -> Tuple[FunctionGraph, List[SymbolicOutput]]:
     """Make or set up `FunctionGraph` corresponding to the input specs and the output specs.
 
@@ -166,26 +168,48 @@ def std_fgraph(
     `accept_inplace` is ``True``, a `DestroyHandler` will be added to the
     `FunctionGraph` if there are any in-place operations.
 
-    The returned FunctionGraph is a clone of the graph between the provided
-    inputs and outputs.
+    If `fgraph` is ``None``, the returned `FunctionGraph` is a clone of the
+    graph between the provided inputs and outputs.
 
     """
-    orig_inputs = [spec.variable for spec in input_specs]
-
     # Extract the updates and the mapping between update outputs and the
     # updated inputs
     updates = []
     update_mapping = {}
     out_idx = len(output_specs)
-    for inp_idx in range(len(input_specs)):
-        if input_specs[inp_idx].update:
-            updates.append(input_specs[inp_idx].update)
-            update_mapping[out_idx] = inp_idx
+    for idx, input_spec in enumerate(input_specs):
+        if input_spec.update:
+            updates.append(input_spec.update)
+            update_mapping[out_idx] = idx
             out_idx += 1
 
-    orig_outputs = [spec.variable for spec in output_specs] + updates
+    if fgraph:
+        if fgraph.update_mapping is None:
+            fgraph.update_mapping = update_mapping
+            for update in updates:
+                fgraph.add_output(update, reason="std_fgraph")
+    else:
+        input_vars = []
 
-    fgraph = FunctionGraph(orig_inputs, orig_outputs, update_mapping=update_mapping)
+        # If one of the inputs is non-atomic (i.e. has a non-`None` `Variable.owner`),
+        # then we need to create/clone the graph starting at these inputs.
+        # The result will be atomic versions of the given inputs connected to
+        # the same outputs.
+        # Otherwise, when all the inputs are already atomic, there's no need to
+        # clone the graph.
+        clone = force_clone
+        for spec in input_specs:
+            input_vars.append(spec.variable)
+            clone |= spec.variable.owner is not None
+
+        fgraph = FunctionGraph(
+            input_vars,
+            [spec.variable for spec in output_specs] + updates,
+            update_mapping=update_mapping,
+            clone=clone,
+        )
+
+    additional_outputs = list(map(SymbolicOutput, updates))
 
     for node in fgraph.apply_nodes:
         if node.op.destroy_map:
@@ -210,7 +234,8 @@ def std_fgraph(
     # If named nodes are replaced, keep the name
     for feature in features:
         fgraph.attach_feature(feature())
-    return fgraph, list(map(SymbolicOutput, updates))
+
+    return fgraph, additional_outputs
 
 
 class AliasedMemoryError(Exception):
@@ -646,6 +671,7 @@ class Function:
             [memo[o] for o in out_vars],
             clone=False,
         )
+        fg_cpy.update_mapping = maker.fgraph.update_mapping
 
         # Re initialize Outs and swap update and variable in Ins
         # By doing this, we can pass FunctionMaker.check_unused_inputs()
@@ -747,6 +773,7 @@ class Function:
             # can contain inplace. DebugMode check
             # that.
             accept_inplace=True,
+            no_fgraph_prep=True,
         ).create(input_storage, storage_map=new_storage_map)
 
         for in_ori, in_cpy, ori, cpy in zip(
@@ -1378,6 +1405,63 @@ class FunctionMaker:
                         "Valid values are 'raise', 'warn', and 'ignore'."
                     )
 
+    @staticmethod
+    def prepare_fgraph(
+        inputs, outputs, additional_outputs, fgraph, optimizer, linker, profile
+    ):
+
+        try:
+            start_optimizer = time.time()
+
+            optimizer_profile = None
+            opt_time = None
+
+            with config.change_flags(
+                compute_test_value=config.compute_test_value_opt,
+                traceback__limit=config.traceback__compile_limit,
+            ):
+                optimizer_profile = optimizer(fgraph)
+
+                end_optimizer = time.time()
+                opt_time = end_optimizer - start_optimizer
+                _logger.debug(f"Optimizing took {opt_time:f} seconds")
+
+                # Add deep copy to respect the memory interface
+                insert_deepcopy(fgraph, inputs, outputs + additional_outputs)
+        finally:
+
+            # If the optimizer got interrupted
+            if opt_time is None:
+                end_optimizer = time.time()
+                opt_time = end_optimizer - start_optimizer
+
+            aesara.compile.profiling.total_graph_opt_time += opt_time
+
+            if profile:
+                if optimizer_profile is None and hasattr(optimizer, "pre_profile"):
+                    optimizer_profile = optimizer.pre_profile
+
+                profile.optimizer_time += opt_time
+
+                if config.profile_optimizer:
+                    profile.optimizer_profile = (optimizer, optimizer_profile)
+            elif config.profile_optimizer and profile is not False:
+                # If False, it means the profiling for that function was
+                # explicitly disabled
+                warnings.warn(
+                    (
+                        "config.profile_optimizer requires config.profile to "
+                        " be set to True as well"
+                    ),
+                    stacklevel=3,
+                )
+
+        if not hasattr(linker, "accept"):
+            raise ValueError(
+                "'linker' parameter of FunctionMaker should be "
+                f"a Linker with an accept method or one of {list(aesara.compile.mode.predefined_linkers.keys())}"
+            )
+
     def __init__(
         self,
         inputs,
@@ -1390,6 +1474,7 @@ class FunctionMaker:
         fgraph=None,
         output_keys=None,
         name=None,
+        no_fgraph_prep=False,
     ):
         # Save the provided mode, not the instantiated mode.
         # The instantiated mode don't pickle and if we unpickle an Aesara
@@ -1433,84 +1518,32 @@ class FunctionMaker:
 
         indices = [[input, None, [input]] for input in inputs]
 
-        if fgraph is None:
-            need_opt = True
-            # make the fgraph (copies the graph, creates NEW INPUT AND
-            # OUTPUT VARIABLES)
-            fgraph, additional_outputs = std_fgraph(inputs, outputs, accept_inplace)
+        fgraph, additional_outputs = std_fgraph(
+            inputs, outputs, accept_inplace, fgraph=fgraph
+        )
+
+        if fgraph.profile is None:
             fgraph.profile = profile
-        else:
-            # fgraph is already an optimized one
-            need_opt = False
-            updates = [spec.update for spec in inputs if spec.update]
-            additional_outputs = list(map(SymbolicOutput, updates))
 
         self.fgraph = fgraph
 
         optimizer, linker = mode.optimizer, copy.copy(mode.linker)
-        if need_opt:
-            # Why we add stack on node when it get done in output var?
-            try:
-                start_optimizer = time.time()
 
-                # In case there is an error during optimization.
-                optimizer_profile = None
-                opt_time = None
-
-                with config.change_flags(
-                    compute_test_value=config.compute_test_value_opt,
-                    traceback__limit=config.traceback__compile_limit,
-                ):
-                    optimizer_profile = optimizer(fgraph)
-
-                    end_optimizer = time.time()
-                    opt_time = end_optimizer - start_optimizer
-                    _logger.debug(f"Optimizing took {opt_time:f} seconds")
-
-                    # Add deep copy to respect the memory interface
-                    insert_deepcopy(fgraph, inputs, outputs + additional_outputs)
-            finally:
-
-                # If the optimizer got interrupted
-                if opt_time is None:
-                    end_optimizer = time.time()
-                    opt_time = end_optimizer - start_optimizer
-
-                aesara.compile.profiling.total_graph_opt_time += opt_time
-
-                if profile:
-                    if optimizer_profile is None and hasattr(optimizer, "pre_profile"):
-                        optimizer_profile = optimizer.pre_profile
-
-                    profile.optimizer_time += opt_time
-
-                    if config.profile_optimizer:
-                        profile.optimizer_profile = (optimizer, optimizer_profile)
-                # IF False, if mean the profile for that function was
-                # explicitly disabled
-                elif config.profile_optimizer and profile is not False:
-                    warnings.warn(
-                        (
-                            "config.profile_optimizer requires config.profile to "
-                            " be set to True as well"
-                        ),
-                        stacklevel=3,
-                    )
-
-        if not hasattr(linker, "accept"):
-            raise ValueError(
-                "'linker' parameter of FunctionMaker should be "
-                f"a Linker with an accept method or one of {list(aesara.compile.mode.predefined_linkers.keys())}"
+        if not no_fgraph_prep:
+            self.prepare_fgraph(
+                inputs, outputs, additional_outputs, fgraph, optimizer, linker, profile
             )
 
         # the 'no_borrow' outputs are the ones for which that we can't
         # return the internal storage pointer.
         assert len(fgraph.outputs) == len(outputs + additional_outputs)
+
         no_borrow = [
             output
             for output, spec in zip(fgraph.outputs, outputs + additional_outputs)
             if not spec.borrow
         ]
+
         if no_borrow:
             self.linker = linker.accept(
                 fgraph,
@@ -1670,6 +1703,7 @@ def orig_function(
     profile=None,
     on_unused_input=None,
     output_keys=None,
+    fgraph: Optional[FunctionGraph] = None,
 ) -> Function:
     """
     Return a Function that will calculate the outputs from the inputs.
@@ -1731,6 +1765,7 @@ def orig_function(
             on_unused_input=on_unused_input,
             output_keys=output_keys,
             name=name,
+            fgraph=fgraph,
         )
         with config.change_flags(compute_test_value="off"):
             fn = m.create(defaults)
