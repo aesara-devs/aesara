@@ -419,10 +419,10 @@ second dimension
 
         # it is multiplied by nout because Elemwise supports multiple outputs
         # (nout of them)
-        out_broadcastables = [
+        out_shapes = [
             [
-                all(bcast)
-                for bcast in zip(*[input.type.broadcastable for input in inputs])
+                max(shape) if None not in shape else None
+                for shape in zip(*[input.type.shape for input in inputs])
             ]
         ] * shadow.nout
 
@@ -431,10 +431,10 @@ second dimension
         if inplace_pattern:
             for overwriter, overwritten in inplace_pattern.items():
                 for ob, ib in zip(
-                    out_broadcastables[overwriter],
+                    out_shapes[overwriter],
                     inputs[overwritten].type.broadcastable,
                 ):
-                    if ib and not ob:
+                    if ib and not ob == 1:
                         raise ValueError(
                             "Operation cannot be done inplace on an input "
                             "with broadcasted dimensions."
@@ -450,8 +450,8 @@ second dimension
                     ([i.type.dtype for i in inputs], out_dtypes, inplace_pattern),
                 )
             )
-        assert len(out_dtypes) == len(out_broadcastables)
-        return out_dtypes, out_broadcastables, inputs
+        assert len(out_dtypes) == len(out_shapes)
+        return out_dtypes, out_shapes, inputs
 
     def make_node(self, *inputs):
         """
@@ -460,12 +460,10 @@ second dimension
         using DimShuffle.
         """
         inputs = [as_tensor_variable(i) for i in inputs]
-        out_dtypes, out_broadcastables, inputs = self.get_output_info(
-            DimShuffle, *inputs
-        )
+        out_dtypes, out_shapes, inputs = self.get_output_info(DimShuffle, *inputs)
         outputs = [
-            TensorType(dtype=dtype, shape=broadcastable)()
-            for dtype, broadcastable in zip(out_dtypes, out_broadcastables)
+            TensorType(dtype=dtype, shape=shape)()
+            for dtype, shape in zip(out_dtypes, out_shapes)
         ]
         return Apply(self, inputs, outputs)
 
