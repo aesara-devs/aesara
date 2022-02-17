@@ -189,11 +189,8 @@ def rebuild_collect_shared(
                 (store_into, update_d[store_into]),
             )
 
-        # filter_variable ensure smooth conversion of cpu Types
         try:
-            update_val = store_into.type.filter_variable(
-                update_val, allow_convert=False
-            )
+            update_val = store_into.type.filter_variable(update_val, allow_convert=True)
         except TypeError:
             err_msg = (
                 "An update must have the same type as the"
