@@ -1967,7 +1967,7 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
                         or output_storage[j][0].dtype != dtype
                     ):
                         output_storage[j][0] = np.empty(
-                            shape, dtype=node.outputs[j].type
+                            shape, dtype=node.outputs[j].type.dtype
                         )
                     elif output_storage[j][0].shape[0] != store_steps[j]:
                         output_storage[j][0] = output_storage[j][0][: store_steps[j]]
@@ -2025,7 +2025,7 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
                     # This way, there will be no information overwritten
                     # before it is read (as it used to happen).
                     shape = (pdx,) + output_storage[idx][0].shape[1:]
-                    tmp = np.empty(shape, dtype=node.outputs[idx].type)
+                    tmp = np.empty(shape, dtype=node.outputs[idx].type.dtype)
                     tmp[:] = output_storage[idx][0][:pdx]
                     output_storage[idx][0][: store_steps[idx] - pdx] = output_storage[
                         idx
@@ -2034,7 +2034,7 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
                     del tmp
                 else:
                     shape = (store_steps[idx] - pdx,) + output_storage[idx][0].shape[1:]
-                    tmp = np.empty(shape, dtype=node.outputs[idx].type)
+                    tmp = np.empty(shape, dtype=node.outputs[idx].type.dtype)
                     tmp[:] = output_storage[idx][0][pdx:]
                     output_storage[idx][0][store_steps[idx] - pdx :] = output_storage[
                         idx
