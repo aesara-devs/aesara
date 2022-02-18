@@ -2934,7 +2934,7 @@ class Log(UnaryScalarOp):
         # half-precision (float16), where we want float32.
         x_dtype = str(getattr(x, "dtype", ""))
         if x_dtype in ("int8", "uint8"):
-            return np.log(x, sig="f")
+            return np.log(x, dtype=np.float32)
         return np.log(x)
 
     def L_op(self, inputs, outputs, gout):
@@ -2980,7 +2980,7 @@ class Log2(UnaryScalarOp):
         # half-precision (float16), where we want float32.
         x_dtype = str(getattr(x, "dtype", ""))
         if x_dtype in ("int8", "uint8"):
-            return np.log2(x, sig="f")
+            return np.log2(x, dtype=np.float32)
         return np.log2(x)
 
     def L_op(self, inputs, outputs, gout):
@@ -3023,7 +3023,7 @@ class Log10(UnaryScalarOp):
         # half-precision (float16), where we want float32.
         x_dtype = str(getattr(x, "dtype", ""))
         if x_dtype in ("int8", "uint8"):
-            return np.log10(x, sig="f")
+            return np.log10(x, dtype=np.float32)
         return np.log10(x)
 
     def L_op(self, inputs, outputs, gout):
@@ -3064,7 +3064,7 @@ class Log1p(UnaryScalarOp):
         # half-precision (float16), where we want float32.
         x_dtype = str(getattr(x, "dtype", ""))
         if x_dtype in ("int8", "uint8"):
-            return np.log1p(x, sig="f")
+            return np.log1p(x, dtype=np.float32)
         return np.log1p(x)
 
     def L_op(self, inputs, outputs, gout):
@@ -3102,7 +3102,7 @@ class Exp(UnaryScalarOp):
         # half-precision (float16), where we want float32.
         x_dtype = str(getattr(x, "dtype", ""))
         if x_dtype in ("int8", "uint8"):
-            return np.exp(x, sig="f")
+            return np.exp(x, dtype=np.float32)
         return np.exp(x)
 
     def L_op(self, inputs, outputs, gout):
@@ -3138,7 +3138,7 @@ class Exp2(UnaryScalarOp):
         # half-precision (float16), where we want float32.
         x_dtype = str(getattr(x, "dtype", ""))
         if x_dtype in ("int8", "uint8"):
-            return np.exp2(x, sig="f")
+            return np.exp2(x, dtype=np.float32)
         return np.exp2(x)
 
     def L_op(self, inputs, outputs, gout):
@@ -3174,7 +3174,7 @@ class Expm1(UnaryScalarOp):
         # half-precision (float16), where we want float32.
         x_dtype = str(getattr(x, "dtype", ""))
         if x_dtype in ("int8", "uint8"):
-            return np.expm1(x, sig="f")
+            return np.expm1(x, dtype=np.float32)
         return np.expm1(x)
 
     def L_op(self, inputs, outputs, gout):
@@ -3241,7 +3241,7 @@ class Sqrt(UnaryScalarOp):
         # half-precision (float16), where we want float32.
         x_dtype = str(getattr(x, "dtype", ""))
         if x_dtype in ("int8", "uint8"):
-            return np.sqrt(x, sig="f")
+            return np.sqrt(x, dtype=np.float32)
         return np.sqrt(x)
 
     def L_op(self, inputs, outputs, gout):
@@ -3277,7 +3277,7 @@ class Deg2Rad(UnaryScalarOp):
         # half-precision (float16), where we want float32.
         x_dtype = str(getattr(x, "dtype", ""))
         if x_dtype in ("int8", "uint8"):
-            return np.deg2rad(x, sig="f")
+            return np.deg2rad(x, dtype=np.float32)
         return np.deg2rad(x)
 
     def L_op(self, inputs, outputs, gout):
@@ -3312,7 +3312,7 @@ class Rad2Deg(UnaryScalarOp):
         # half-precision (float16), where we want float32.
         x_dtype = str(getattr(x, "dtype", ""))
         if x_dtype in ("int8", "uint8"):
-            return np.rad2deg(x, sig="f")
+            return np.rad2deg(x, dtype=np.float32)
         return np.rad2deg(x)
 
     def L_op(self, inputs, outputs, gout):
@@ -3349,7 +3349,7 @@ class Cos(UnaryScalarOp):
         # half-precision (float16), where we want float32.
         x_dtype = str(getattr(x, "dtype", ""))
         if x_dtype in ("int8", "uint8"):
-            return np.cos(x, sig="f")
+            return np.cos(x, dtype=np.float32)
         return np.cos(x)
 
     def L_op(self, inputs, outputs, gout):
@@ -3385,7 +3385,7 @@ class ArcCos(UnaryScalarOp):
         # half-precision (float16), where we want float32.
         x_dtype = str(getattr(x, "dtype", ""))
         if x_dtype in ("int8", "uint8"):
-            return np.arccos(x, sig="f")
+            return np.arccos(x, dtype=np.float32)
         return np.arccos(x)
 
     def L_op(self, inputs, outputs, gout):
@@ -3423,7 +3423,7 @@ class Sin(UnaryScalarOp):
         # half-precision (float16), where we want float32.
         x_dtype = str(getattr(x, "dtype", ""))
         if x_dtype in ("int8", "uint8"):
-            return np.sin(x, sig="f")
+            return np.sin(x, dtype=np.float32)
         return np.sin(x)
 
     def L_op(self, inputs, outputs, gout):
@@ -3459,7 +3459,7 @@ class ArcSin(UnaryScalarOp):
         # half-precision (float16), where we want float32.
         x_dtype = str(getattr(x, "dtype", ""))
         if x_dtype in ("int8", "uint8"):
-            return np.arcsin(x, sig="f")
+            return np.arcsin(x, dtype=np.float32)
         return np.arcsin(x)
 
     def L_op(self, inputs, outputs, gout):
@@ -3495,7 +3495,7 @@ class Tan(UnaryScalarOp):
         # half-precision (float16), where we want float32.
         x_dtype = str(getattr(x, "dtype", ""))
         if x_dtype in ("int8", "uint8"):
-            return np.tan(x, sig="f")
+            return np.tan(x, dtype=np.float32)
         return np.tan(x)
 
     def L_op(self, inputs, outputs, gout):
@@ -3531,7 +3531,7 @@ class ArcTan(UnaryScalarOp):
         # half-precision (float16), where we want float32.
         x_dtype = str(getattr(x, "dtype", ""))
         if x_dtype in ("int8", "uint8"):
-            return np.arctan(x, sig="f")
+            return np.arctan(x, dtype=np.float32)
         return np.arctan(x)
 
     def L_op(self, inputs, outputs, gout):
@@ -3569,7 +3569,7 @@ class ArcTan2(BinaryScalarOp):
         if x_dtype in ("int8", "uint8"):
             y_dtype = str(getattr(x, "dtype", ""))
             if y_dtype in ("int8", "uint8"):
-                return np.arctan2(y, x, sig="f")
+                return np.arctan2(y, x, dtype=np.float32)
         return np.arctan2(y, x)
 
     def L_op(self, inputs, outputs, gout):
@@ -3618,7 +3618,7 @@ class Cosh(UnaryScalarOp):
         # half-precision (float16), where we want float32.
         x_dtype = str(getattr(x, "dtype", ""))
         if x_dtype in ("int8", "uint8"):
-            return np.cosh(x, sig="f")
+            return np.cosh(x, dtype=np.float32)
         return np.cosh(x)
 
     def L_op(self, inputs, outputs, gout):
@@ -3654,7 +3654,7 @@ class ArcCosh(UnaryScalarOp):
         # half-precision (float16), where we want float32.
         x_dtype = str(getattr(x, "dtype", ""))
         if x_dtype in ("int8", "uint8"):
-            return np.arccosh(x, sig="f")
+            return np.arccosh(x, dtype=np.float32)
         return np.arccosh(x)
 
     def L_op(self, inputs, outputs, gout):
@@ -3695,7 +3695,7 @@ class Sinh(UnaryScalarOp):
         # half-precision (float16), where we want float32.
         x_dtype = str(getattr(x, "dtype", ""))
         if x_dtype in ("int8", "uint8"):
-            return np.sinh(x, sig="f")
+            return np.sinh(x, dtype=np.float32)
         return np.sinh(x)
 
     def L_op(self, inputs, outputs, gout):
@@ -3731,7 +3731,7 @@ class ArcSinh(UnaryScalarOp):
         # half-precision (float16), where we want float32.
         x_dtype = str(getattr(x, "dtype", ""))
         if x_dtype in ("int8", "uint8"):
-            return np.arcsinh(x, sig="f")
+            return np.arcsinh(x, dtype=np.float32)
         return np.arcsinh(x)
 
     def L_op(self, inputs, outputs, gout):
@@ -3773,7 +3773,7 @@ class Tanh(UnaryScalarOp):
         # half-precision (float16), where we want float32.
         x_dtype = str(getattr(x, "dtype", ""))
         if x_dtype in ("int8", "uint8"):
-            return np.tanh(x, sig="f")
+            return np.tanh(x, dtype=np.float32)
         return np.tanh(x)
 
     def L_op(self, inputs, outputs, gout):
@@ -3809,7 +3809,7 @@ class ArcTanh(UnaryScalarOp):
         # half-precision (float16), where we want float32.
         x_dtype = str(getattr(x, "dtype", ""))
         if x_dtype in ("int8", "uint8"):
-            return np.arctanh(x, sig="f")
+            return np.arctanh(x, dtype=np.float32)
         return np.arctanh(x)
 
     def L_op(self, inputs, outputs, gout):
