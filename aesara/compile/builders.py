@@ -460,6 +460,27 @@ class OpFromGraph(Op, HasInnerGraph):
         # (i.e. not clones).
         self.fgraph, shared_inputs = construct_nominal_fgraph(inputs, outputs)
 
+        # from aesara.compile.function.types import Supervisor
+        # from aesara.graph.destroyhandler import DestroyHandler
+
+        # TODO: Is this really necessary?
+        # for node in self.fgraph.apply_nodes:
+        #     if node.op.destroy_map:
+        #         self.fgraph.attach_feature(DestroyHandler())
+        #         break
+
+        # TODO: Is this really necessary?
+        # self.fgraph.attach_feature(
+        #     Supervisor(
+        #         inp
+        #         for inp in self.fgraph.inputs
+        #         if not (
+        #                 hasattr(self.fgraph, "destroyers")
+        #                 and self.fgraph.has_destroyers([inp])
+        #         )
+        #     )
+        # )
+
         # We need to hold on to the original variables so that gradients can be
         # taken wrt. them.  Ideally, we wouldn't hold on to specific `Variable`
         # references like this outside of graph, but we're maintaining support
@@ -1013,6 +1034,7 @@ class OpFromGraph(Op, HasInnerGraph):
             wrapped_inputs,
             wrapped_outputs,
             fgraph=fgraph,
+            # TODO: Revisit this.
             no_default_updates=True,
             **self.kwargs,
         )

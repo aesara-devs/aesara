@@ -378,11 +378,14 @@ class SequenceDB(RewriteDatabase):
 
     """
 
-    seq_rewriter_type = aesara_rewriting.SequentialGraphRewriter
-
-    def __init__(self, failure_callback=aesara_rewriting.SequentialGraphRewriter.warn):
+    def __init__(
+        self,
+        failure_callback=aesara_rewriting.SequentialGraphRewriter.warn,
+        seq_rewriter_type=aesara_rewriting.SequentialGraphRewriter,
+    ):
         super().__init__()
         self.__position__ = {}
+        self.seq_rewriter_type = seq_rewriter_type
         self.failure_callback = failure_callback
 
     def register(self, name, obj, *tags, **kwargs):

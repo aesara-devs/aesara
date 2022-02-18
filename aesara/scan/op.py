@@ -44,7 +44,6 @@ relies on the following elements to work properly :
 """
 
 import dataclasses
-import logging
 import time
 from collections import OrderedDict
 from copy import copy
@@ -58,6 +57,7 @@ import aesara.link.utils as link_utils
 from aesara import tensor as at
 from aesara.compile.builders import construct_nominal_fgraph, infer_shape
 from aesara.compile.function.pfunc import pfunc
+from aesara.compile.function.types import Supervisor
 from aesara.compile.io import In, Out
 from aesara.compile.mode import Mode, get_default_mode, get_mode
 from aesara.compile.profiling import register_profiler_printer
@@ -71,6 +71,7 @@ from aesara.graph.basic import (
     graph_inputs,
     io_connection_pattern,
 )
+from aesara.graph.destroyhandler import DestroyHandler
 from aesara.graph.features import NoOutputFromInplace
 from aesara.graph.op import HasInnerGraph, Op
 from aesara.graph.utils import InconsistencyError, MissingInputError
@@ -83,10 +84,6 @@ from aesara.tensor.math import minimum
 from aesara.tensor.shape import Shape_i
 from aesara.tensor.type import TensorType, integer_dtypes
 from aesara.tensor.var import TensorVariable
-
-
-# Logging function for sending warning or info
-_logger = logging.getLogger("aesara.scan.op")
 
 
 err_msg1 = (
@@ -1412,9 +1409,6 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
 
         fgraph.update_mapping = update_mapping
 
-        from aesara.compile.function.types import Supervisor
-        from aesara.graph.destroyhandler import DestroyHandler
-
         for node in fgraph.apply_nodes:
             if node.op.destroy_map:
                 fgraph.attach_feature(DestroyHandler())
@@ -1455,12 +1449,14 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
         self._fn = pfunc(
             wrapped_inputs,
             wrapped_outputs,
-            mode=self.mode_instance,
-            accept_inplace=False,
+            mode=self.mode_instance.clone(optimizer=None),
+            accept_inplace=True,
             profile=profile,
             on_unused_input="ignore",
-            fgraph=self.fgraph,
+            # With this disabled, the graph will be cloned
+            # fgraph=self.fgraph,
         )
+        self._fn.trust_input = True
 
         return self._fn
 

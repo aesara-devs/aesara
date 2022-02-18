@@ -33,7 +33,7 @@ from aesara.graph.basic import (
 )
 from aesara.graph.features import AlreadyThere, Feature, InnerGraphWatcher, NodeFinder
 from aesara.graph.fg import FunctionGraph
-from aesara.graph.op import Op
+from aesara.graph.op import HasInnerGraph, Op
 from aesara.graph.utils import AssocList, InconsistencyError
 from aesara.misc.ordered_set import OrderedSet
 from aesara.utils import flatten
@@ -250,7 +250,7 @@ class SequentialGraphRewriter(GraphRewriter, UserList):
         elif config.on_opt_error == "pdb":
             pdb.post_mortem(sys.exc_info()[2])
 
-    def __init__(self, *rewrites, failure_callback=None):
+    def __init__(self, *rewrites, failure_callback=None, **kwargs):
         """
         Parameters
         ----------
@@ -506,7 +506,7 @@ class SequentialGraphRewriter(GraphRewriter, UserList):
         return (
             new_rewrite,
             new_t,
-            prof1[2] + prof2[2],
+            (prof1[2] if prof1[2] else 0) + (prof2[2] if prof2[2] else 0),
             prof1[3] + prof2[3],
             -1,
             -1,
@@ -3161,6 +3161,102 @@ class CheckStackTraceRewriter(GraphRewriter):
 
     def apply(self, fgraph):
         pass
+
+
+class InnerGraphRewriter(SequentialGraphRewriter):
+    """A `SequentialGraphRewriter` that applies its rewrites to inner-graphs as well."""
+
+    def apply(self, fgraph):
+        # - Inner-graphs can be added by rewrites, so we need to handle the
+        #   addition of new inner-graphs.
+        # - We need to alert `FunctionGraph`s to inner-graph `Op` changes.
+        #   Merging and other rewrites/`Feature`s use the node update callbacks
+        #   to operate, so we need inner-graph rewrites to work in that
+        #   context.
+
+        # Canonicalize and merge all the inner-graphs first, then perform the
+        # remaining rewrites on all the graphs.
+        from aesara.compile import optdb
+
+        canonicalizer = optdb.query("+merge", "+canonicalize")
+
+        # TODO: We need to use the same `MergeFeature` so that inner-graphs can
+        # be merged.
+
+        pre_profile_res = self.apply_to_inner_graphs(fgraph, canonicalizer)
+
+        # Rewrite the outer-most graph
+        profile_res = super().apply(fgraph)
+
+        if pre_profile_res is not None:
+            profile_res = self.merge_profile(profile_res, pre_profile_res)
+
+        # Apply all rewrites to the inner-graphs
+        post_profile_res = self.apply_to_inner_graphs(fgraph, super().apply)
+
+        if post_profile_res is not None:
+            profile_res = self.merge_profile(profile_res, post_profile_res)
+
+        return profile_res
+
+    def apply_to_inner_graphs(self, fgraph, rewriter):
+        final_profile_res = None
+        inner_graphs_seen = set()
+        inner_graphs_to_rewrite = set(fgraph._nodes_to_inner_graphs.values())
+        while inner_graphs_to_rewrite:
+            fg = inner_graphs_to_rewrite.pop()
+
+            if fg in inner_graphs_seen:
+                continue
+
+            self.add_requirements(fg)
+
+            inner_graph_watcher: InnerGraphWatcher = fg.inner_graph_watcher
+            inner_graph_watcher.reset()
+
+            profile_res = rewriter(fg)
+
+            if final_profile_res is not None:
+                final_profile_res = self.merge_profile(profile_res, final_profile_res)
+            else:
+                final_profile_res = profile_res
+
+            inner_graphs_seen.add(fg)
+
+            if inner_graph_watcher.new_inner_graph_nodes:
+                # Add the newly added inner-graphs that we haven't already seen
+                inner_graphs_to_rewrite.update(
+                    inner_graph_watcher.new_inner_graph_nodes.difference(
+                        inner_graphs_seen
+                    )
+                )
+
+            if inner_graph_watcher.changed:
+                # Check for new merge opportunities in the graphs containing
+                # this updated `fg` graph
+                parent_fg = fg._local_parent_graph
+                merge_feature = parent_fg.merge_feature
+
+                # Get the nodes in `parent_fg` that are associated with `fg` and
+                # - reset any cached values pertaining to it in the associated
+                #   `Op`s (e.g. cached compiled functions),
+                # - perform upstream merge passes.
+                for ig_node in parent_fg._local_inner_graphs_to_nodes[fg]:
+                    assert isinstance(ig_node.op, HasInnerGraph)
+
+                    ig_node.op.reset_fn()
+
+                    merge_feature.nodes_seen.discard(ig_node)
+                    merge_feature.process_node(parent_fg, ig_node)
+
+                inner_graphs_seen.discard(parent_fg)
+                inner_graphs_to_rewrite.add(parent_fg)
+
+        return final_profile_res
+
+    def add_requirements(self, fgraph):
+        super().add_requirements(fgraph)
+        fgraph.attach_feature(InnerGraphWatcher())
 
 
 DEPRECATED_NAMES = [

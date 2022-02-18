@@ -24,6 +24,7 @@ def rewrite_graph(
     custom_rewrite: Optional["GraphRewriter"] = None,
     clone: bool = False,
     custom_opt: Optional["GraphRewriter"] = None,
+    apply_to_inner_graphs: bool = False,
     **kwargs,
 ) -> Union[Variable, Sequence[Variable], FunctionGraph]:
     """Easily apply rewrites to a graph.
@@ -40,10 +41,13 @@ def rewrite_graph(
         A custom `Rewriter` to also be applied.
     clone
         Whether or not to clone the input graph before rewriting.
+    apply_to_inner_graphs
+        Whether or not to apply rewrites to inner-graphs.
     **kwargs
         Keyword arguments passed to a `RewriteDatabaseQuery` object.
     """
     from aesara.compile import optdb
+    from aesara.graph.rewriting.basic import InnerGraphRewriter
 
     return_fgraph = False
     if isinstance(graph, FunctionGraph):
@@ -60,6 +64,12 @@ def rewrite_graph(
         fgraph = FunctionGraph(outputs=outputs, clone=clone)
 
     query_rewrites = optdb.query(RewriteDatabaseQuery(include=include, **kwargs))
+
+    if not apply_to_inner_graphs and isinstance(query_rewrites, InnerGraphRewriter):
+        from aesara.graph.rewriting.basic import SequentialGraphRewriter
+
+        query_rewrites = SequentialGraphRewriter(*query_rewrites.data)
+
     _ = query_rewrites.rewrite(fgraph)
 
     if custom_opt is not None:
