@@ -862,7 +862,7 @@ def test_upcasting_scalar_nogemm():
 
     f = function([w, v, t, alpha], rval)
     t = f.maker.fgraph.toposort()
-    assert np.sum([isinstance(n.op, Gemm) for n in t]) == 0
+    assert sum(isinstance(n.op, Gemm) for n in t) == 0
     # aesara.printing.debugprint(f, print_type=True)
 
     v = fmatrix("v")
@@ -875,7 +875,7 @@ def test_upcasting_scalar_nogemm():
         f = function([w, v, t, alpha], rval)
 
     t = f.maker.fgraph.toposort()
-    assert np.sum([isinstance(n.op, Gemm) for n in t]) == 0
+    assert sum(isinstance(n.op, Gemm) for n in t) == 0
     # aesara.printing.debugprint(f, print_type=True)
 
 

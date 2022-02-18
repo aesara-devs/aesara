@@ -788,8 +788,8 @@ class TestSubtensor(utt.OptimizationTestMixin):
         topo_ = [node for node in topo if not isinstance(node.op, DeepCopyOp)]
         if not self.fast_compile:
             assert len(topo_) == 6
-        assert np.sum([isinstance(node.op, IncSubtensor) for node in topo_]) == 1
-        assert np.sum([isinstance(node.op, Subtensor) for node in topo_]) == 1
+        assert sum(isinstance(node.op, IncSubtensor) for node in topo_) == 1
+        assert sum(isinstance(node.op, Subtensor) for node in topo_) == 1
 
         gval = f()
         good = np.zeros_like(data)

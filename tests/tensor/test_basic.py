@@ -729,12 +729,11 @@ class TestAlloc:
             fgrad = aesara.function([some_vector], grad_derp, mode=self.mode)
 
             topo_obj = fobj.maker.fgraph.toposort()
-            assert np.sum([isinstance(node.op, type(alloc_)) for node in topo_obj]) == 0
+            assert sum(isinstance(node.op, type(alloc_)) for node in topo_obj) == 0
 
             topo_grad = fgrad.maker.fgraph.toposort()
             assert (
-                np.sum([isinstance(node.op, type(alloc_)) for node in topo_grad])
-                == n_alloc
+                sum(isinstance(node.op, type(alloc_)) for node in topo_grad) == n_alloc
             ), (alloc_, subtensor, n_alloc, topo_grad)
             fobj(test_params)
             fgrad(test_params)
@@ -748,7 +747,7 @@ class TestAlloc:
 
             f = aesara.function([], out, mode=self.mode)
             topo = f.maker.fgraph.toposort()
-            assert np.sum([isinstance(node.op, type(alloc_)) for node in topo]) == 1
+            assert sum(isinstance(node.op, type(alloc_)) for node in topo) == 1
             assert not isinstance(topo[0].op, DeepCopyOp)
 
     def test_ones(self):
@@ -3610,7 +3609,7 @@ class TestDiag:
         f = aesara.function([x], g.shape)
         topo = f.maker.fgraph.toposort()
         if config.mode != "FAST_COMPILE":
-            assert np.sum([isinstance(node.op, AllocDiag) for node in topo]) == 0
+            assert sum(isinstance(node.op, AllocDiag) for node in topo) == 0
         for shp in [5, 0, 1]:
             m = rng.random(shp).astype(self.floatX)
             assert (f(m) == np.diag(m).shape).all()
@@ -3620,7 +3619,7 @@ class TestDiag:
         f = aesara.function([x], g.shape)
         topo = f.maker.fgraph.toposort()
         if config.mode != "FAST_COMPILE":
-            assert np.sum([isinstance(node.op, ExtractDiag) for node in topo]) == 0
+            assert sum(isinstance(node.op, ExtractDiag) for node in topo) == 0
         for shp in [(5, 3), (3, 5), (5, 1), (1, 5), (5, 0), (0, 5), (1, 0), (0, 1)]:
             m = rng.random(shp).astype(self.floatX)
             assert (f(m) == np.diag(m).shape).all()

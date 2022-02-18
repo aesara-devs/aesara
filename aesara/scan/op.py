@@ -3086,7 +3086,7 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
         b = e
         e = e + self.n_mit_mot
         ib = ie
-        ie = ie + int(np.sum([len(x) for x in self.tap_array[: self.n_mit_mot]]))
+        ie = ie + int(sum(len(x) for x in self.tap_array[: self.n_mit_mot]))
         clean_eval_points = []
         for inp, evp in zip(inputs[b:e], eval_points[b:e]):
             if evp is not None:
@@ -3102,12 +3102,10 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
         e = e + self.n_mit_sot
         ib = ie
         ie = ie + int(
-            np.sum(
-                [
-                    len(x)
-                    for x in self.tap_array[
-                        self.n_mit_mot : self.n_mit_mot + self.n_mit_sot
-                    ]
+            sum(
+                len(x)
+                for x in self.tap_array[
+                    self.n_mit_mot : self.n_mit_mot + self.n_mit_sot
                 ]
             )
         )
@@ -3161,7 +3159,7 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
         inner_other = self_inputs[ie:] + inner_eval_points[ib:]
 
         # Outputs
-        n_mit_mot_outs = int(np.sum([len(x) for x in self.mit_mot_out_slices]))
+        n_mit_mot_outs = int(sum(len(x) for x in self.mit_mot_out_slices))
 
         b = 0
         e = n_mit_mot_outs

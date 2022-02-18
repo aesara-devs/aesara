@@ -1598,8 +1598,8 @@ class IncSubtensor(COp):
         else:
             op_is_set = 0
         fail = sub["fail"]
-        view_ndim = node.inputs[0].ndim - np.sum(
-            [not isinstance(idx, slice) for idx in self.idx_list]
+        view_ndim = node.inputs[0].ndim - sum(
+            not isinstance(idx, slice) for idx in self.idx_list
         )
 
         copy_of_x = self.copy_of_x(x)

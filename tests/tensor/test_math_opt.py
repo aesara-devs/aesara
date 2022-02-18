@@ -1771,8 +1771,8 @@ class TestFusion:
                     # check that the number of input to the Composite
                     # Elemwise is ok
                     if len(set(g.owner.inputs)) == len(g.owner.inputs):
-                        expected_len_sym_inputs = np.sum(
-                            [not isinstance(x, Constant) for x in topo_[0].inputs]
+                        expected_len_sym_inputs = sum(
+                            not isinstance(x, Constant) for x in topo_[0].inputs
                         )
                         assert expected_len_sym_inputs == len(sym_inputs)
 
