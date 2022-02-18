@@ -24,7 +24,7 @@ from aesara.tensor.type_other import NoneConst
 from aesara.tensor.var import TensorVariable
 
 
-def default_shape_from_params(
+def default_supp_shape_from_params(
     ndim_supp: int,
     dist_params: Sequence[Variable],
     rep_param_idx: Optional[int] = 0,
@@ -151,14 +151,15 @@ class RandomVariable(Op):
         if self.inplace:
             self.destroy_map = {0: [0]}
 
-    def _shape_from_params(self, dist_params, **kwargs):
-        """Determine the shape of a `RandomVariable`'s output given its parameters.
+    def _supp_shape_from_params(self, dist_params, **kwargs):
+        """Determine the support shape of a `RandomVariable`'s output given its parameters.
 
-        This does *not* consider the extra dimensions added by the `size` parameter.
+        This does *not* consider the extra dimensions added by the `size` parameter
+        or independent (batched) parameters.
 
         Defaults to `param_supp_shape_fn`.
         """
-        return default_shape_from_params(self.ndim_supp, dist_params, **kwargs)
+        return default_supp_shape_from_params(self.ndim_supp, dist_params, **kwargs)
 
     def rng_fn(self, rng, *args, **kwargs):
         """Sample a numeric random variate."""
@@ -196,7 +197,7 @@ class RandomVariable(Op):
             if self.ndim_supp == 0:
                 return size
             else:
-                supp_shape = self._shape_from_params(
+                supp_shape = self._supp_shape_from_params(
                     dist_params, param_shapes=param_shapes
                 )
                 return tuple(size) + tuple(supp_shape)
@@ -256,7 +257,7 @@ class RandomVariable(Op):
 
             ndim_reps = len(shape_reps)
         else:
-            shape_supp = self._shape_from_params(
+            shape_supp = self._supp_shape_from_params(
                 dist_params,
                 param_shapes=param_shapes,
             )

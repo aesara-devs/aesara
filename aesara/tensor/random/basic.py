@@ -6,7 +6,7 @@ import scipy.stats as stats
 
 import aesara
 from aesara.tensor.basic import as_tensor_variable
-from aesara.tensor.random.op import RandomVariable, default_shape_from_params
+from aesara.tensor.random.op import RandomVariable, default_supp_shape_from_params
 from aesara.tensor.random.type import RandomGeneratorType, RandomStateType
 from aesara.tensor.random.utils import broadcast_params
 from aesara.tensor.random.var import (
@@ -591,8 +591,8 @@ class MultinomialRV(RandomVariable):
     dtype = "int64"
     _print_name = ("MN", "\\operatorname{MN}")
 
-    def _shape_from_params(self, dist_params, rep_param_idx=1, param_shapes=None):
-        return default_shape_from_params(
+    def _supp_shape_from_params(self, dist_params, rep_param_idx=1, param_shapes=None):
+        return default_supp_shape_from_params(
             self.ndim_supp, dist_params, rep_param_idx, param_shapes
         )
 
@@ -713,7 +713,7 @@ class ChoiceRV(RandomVariable):
     def rng_fn(cls, rng, a, p, replace, size):
         return rng.choice(a, size, replace, p)
 
-    def _shape_from_params(self, *args, **kwargs):
+    def _supp_shape_from_params(self, *args, **kwargs):
         raise NotImplementedError()
 
     def _infer_shape(self, size, dist_params, param_shapes=None):
