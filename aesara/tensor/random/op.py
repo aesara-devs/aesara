@@ -161,7 +161,7 @@ class RandomVariable(Op):
         """
         return default_supp_shape_from_params(self.ndim_supp, dist_params, **kwargs)
 
-    def rng_fn(self, rng, *args, **kwargs):
+    def rng_fn(self, rng, *args, **kwargs) -> Union[int, float, np.ndarray]:
         """Sample a numeric random variate."""
         return getattr(rng, self.name)(*args, **kwargs)
 
