@@ -1227,7 +1227,7 @@ def test_integers_samples():
 
 def test_choice_samples():
     with pytest.raises(NotImplementedError):
-        choice._shape_from_params(np.asarray(5))
+        choice._supp_shape_from_params(np.asarray(5))
 
     rv_numpy_tester(choice, np.asarray([5]))
     rv_numpy_tester(choice, np.array([1.0, 5.0], dtype=config.floatX))
