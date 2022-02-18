@@ -527,7 +527,7 @@ class ProfileStats:
         hs += ["<#apply>"]
         es += [" %4d  "]
 
-        upto_length = np.sum([len(x) for x in hs]) + len(hs)
+        upto_length = sum(len(x) for x in hs) + len(hs)
         maxlen = max(self.line_width - upto_length, 0)
         hs += ["<Class name>"]
         es += ["%s"]
@@ -624,7 +624,7 @@ class ProfileStats:
         hs += ["<#apply>"]
         es += ["  %4d  "]
 
-        upto_length = np.sum([len(x) for x in hs]) + len(hs)
+        upto_length = sum(len(x) for x in hs) + len(hs)
         maxlen = max(self.line_width - upto_length, 0)
         hs += ["<Op name>"]
         es += ["%s"]
@@ -703,7 +703,7 @@ class ProfileStats:
         if self.variable_shape:
             hs += ["<Mflops>", "<Gflops/s>"]
 
-        upto_length = np.sum([len(x) for x in hs]) + len(hs)
+        upto_length = sum(len(x) for x in hs) + len(hs)
         maxlen = max(self.line_width - upto_length, 0)
         hs += ["<Apply name>"]
         es += ["%s"]
