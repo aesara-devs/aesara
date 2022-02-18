@@ -1181,18 +1181,11 @@ def _populate_grad_dict(var_to_app_to_idx, grad_dict, wrt, cost_name=None):
                     ):
                         assert ng_dt == o_dt
 
-                # Someone who had obviously not read the Op contract tried
-                # to modify this part of the function.
-                # If you ever think it is a good idea to make an integer
-                # valued gradient, please
-                # 1) Read the Op contract again
-                # 2) Talk to Ian Goodfellow
-                # (Both of these sources will tell you not to do it)
-                for ng in new_output_grads:
-                    assert (
-                        getattr(ng.type, "dtype", None)
-                        not in aesara.tensor.type.discrete_dtypes
-                    )
+                assert all(
+                    getattr(ng.type, "dtype", None)
+                    not in aesara.tensor.type.discrete_dtypes
+                    for ng in new_output_grads
+                )
 
                 # If config.compute_test_value is turned on, check that the
                 # gradients on the outputs of this node have the right shape.
