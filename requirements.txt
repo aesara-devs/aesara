@@ -11,7 +11,7 @@ cython
 sympy
 versioneer
 jax
-jaxlib
+jaxlib<=0.1.75
 numba>=0.55
 numba-scipy>=0.3.0
 diff-cover
