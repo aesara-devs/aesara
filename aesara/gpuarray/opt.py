@@ -204,23 +204,28 @@ _logger = logging.getLogger("aesara.gpuarray.opt")
 gpu_seqopt.register(
     "gpuarray_graph_optimization",
     GraphToGPUDB(),
-    -0.5,
     "fast_compile",
     "fast_run",
     "gpuarray",
+    position=-0.5,
 )
 
 gpu_seqopt.register(
     "gpuarray_local_optimizations",
     gpu_optimizer,
-    1,
     "fast_compile",
     "fast_run",
     "gpuarray",
     "gpuarray_local_optimiziations",
+    position=1,
 )
 gpu_seqopt.register(
-    "gpuarray_cut_transfers", gpu_cut_copies, 2, "fast_compile", "fast_run", "gpuarray"
+    "gpuarray_cut_transfers",
+    gpu_cut_copies,
+    "fast_compile",
+    "fast_run",
+    "gpuarray",
+    position=2,
 )
 
 register_opt("fast_compile")(aesara.tensor.basic_opt.local_track_shape_i)
@@ -280,10 +285,10 @@ class InputToGpuOptimizer(GlobalOptimizer):
 gpu_seqopt.register(
     "InputToGpuArrayOptimizer",
     InputToGpuOptimizer(),
-    0,
     "fast_run",
     "fast_compile",
     "merge",
+    position=0,
 )
 
 
@@ -702,8 +707,8 @@ optdb.register(
     "local_gpua_alloc_empty_to_zeros",
     aesara.graph.opt.in2out(local_gpua_alloc_empty_to_zeros),
     # After move to gpu and merge2, before inplace.
-    49.3,
     "alloc_empty_to_zeros",
+    position=49.3,
 )
 
 
@@ -866,27 +871,27 @@ gpu_local_elemwise_fusion = aesara.tensor.basic_opt.local_elemwise_fusion_op(
 )
 optdb.register(
     "gpua_elemwise_fusion",
-    # 48.5 move to gpu
-    # 48.6 specialize
-    # 49 cpu fusion
-    # 49.5 add destroy handler
     aesara.tensor.basic_opt.FusionOptimizer(gpu_local_elemwise_fusion),
-    49,
     "fast_run",
     "fusion",
     "local_elemwise_fusion",
     "gpuarray",
+    # 48.5 move to gpu
+    # 48.6 specialize
+    # 49 cpu fusion
+    # 49.5 add destroy handler
+    position=49,
 )
 
 inplace_gpu_elemwise_opt = aesara.tensor.basic_opt.InplaceElemwiseOptimizer(GpuElemwise)
 optdb.register(
     "gpua_inplace_opt",
     inplace_gpu_elemwise_opt,
-    75,
     "inplace_elemwise_optimizer",
     "fast_run",
     "inplace",
     "gpuarray",
+    position=75,
 )
 
 register_opt(aesara.tensor.basic_opt.local_useless_elemwise)
@@ -2608,7 +2613,9 @@ assert_no_cpu_op = aesara.graph.opt.in2out(
     local_assert_no_cpu_op, name="assert_no_cpu_op"
 )
 # 49.2 is after device specialization & fusion optimizations for last transfers
-optdb.register("gpua_assert_no_cpu_op", assert_no_cpu_op, 49.2, "assert_no_cpu_op")
+optdb.register(
+    "gpua_assert_no_cpu_op", assert_no_cpu_op, "assert_no_cpu_op", position=49.2
+)
 
 
 def tensor_to_gpu(x, context_name):
@@ -2961,97 +2968,97 @@ def local_gpu_ctc(fgraph, op, context_name, inputs, outputs):
 optdb.register(
     "gpua_scanOp_make_inplace",
     ScanInplaceOptimizer(typeInfer=_scan_type_infer, gpua_flag=True),
-    75,
     "gpuarray",
     "inplace",
     "scan",
+    position=75,
 )
 
 abstractconv_groupopt.register(
     "local_abstractconv_dnn",
     local_abstractconv_cudnn,
-    20,
     "conv_dnn",
     "gpuarray",
     "fast_compile",
     "fast_run",
     "cudnn",
+    position=20,
 )
 abstractconv_groupopt.register(
     "local_abstractconv_gw_dnn",
     local_abstractconv_gw_cudnn,
-    20,
     "conv_dnn",
     "gpuarray",
     "fast_compile",
     "fast_run",
     "cudnn",
+    position=20,
 )
 abstractconv_groupopt.register(
     "local_abstractconv_gi_dnn",
     local_abstractconv_gi_cudnn,
-    20,
     "conv_dnn",
     "gpuarray",
     "fast_compile",
     "fast_run",
     "cudnn",
+    position=20,
 )
 # The GEMM-based convolution comes last to catch all remaining cases.
 # It can be disabled by excluding 'conv_gemm'.
 abstractconv_groupopt.register(
     "local_abstractconv_gemm",
     local_abstractconv_gemm,
-    30,
     "conv_gemm",
     "gpuarray",
     "fast_compile",
     "fast_run",
+    position=30,
 )
 abstractconv_groupopt.register(
     "local_abstractconv3d_gemm",
     local_abstractconv3d_gemm,
-    30,
     "conv_gemm",
     "gpuarray",
     "fast_compile",
     "fast_run",
+    position=30,
 )
 abstractconv_groupopt.register(
     "local_abstractconv_gradweights_gemm",
     local_abstractconv_gradweights_gemm,
-    30,
     "conv_gemm",
     "gpuarray",
     "fast_compile",
     "fast_run",
+    position=30,
 )
 abstractconv_groupopt.register(
     "local_abstractconv3d_gradweights_gemm",
     local_abstractconv3d_gradweights_gemm,
-    30,
     "conv_gemm",
     "gpuarray",
     "fast_compile",
     "fast_run",
+    position=30,
 )
 abstractconv_groupopt.register(
     "local_abstractconv_gradinputs",
     local_abstractconv_gradinputs_gemm,
-    30,
     "conv_gemm",
     "gpuarray",
     "fast_compile",
     "fast_run",
+    position=30,
 )
 abstractconv_groupopt.register(
     "local_abstractconv3d_gradinputs",
     local_abstractconv3d_gradinputs_gemm,
-    30,
     "conv_gemm",
     "gpuarray",
     "fast_compile",
     "fast_run",
+    position=30,
 )
 
 conv_metaopt = ConvMetaOptimizer()

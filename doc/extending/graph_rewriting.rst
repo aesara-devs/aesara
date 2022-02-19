@@ -687,7 +687,7 @@ it to :obj:`optdb` as follows:
 .. testcode::
 
    # optdb.register(name, optimizer, order, *tags)
-   optdb.register('simplify', simplify, 0.5, 'fast_run')
+   optdb.register('simplify', simplify, 'fast_run', position=0.5)
 
 Once this is done, the ``FAST_RUN`` mode will automatically include your
 optimization (since you gave it the ``'fast_run'`` tag). Of course,

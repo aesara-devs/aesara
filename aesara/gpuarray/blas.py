@@ -2090,5 +2090,10 @@ gpuablas_opt_inplace = in2out(
 )
 
 optdb.register(
-    "InplaceGpuaBlasOpt", gpuablas_opt_inplace, 70.0, "fast_run", "inplace", "gpuarray"
+    "InplaceGpuaBlasOpt",
+    gpuablas_opt_inplace,
+    "fast_run",
+    "inplace",
+    "gpuarray",
+    position=70.0,
 )

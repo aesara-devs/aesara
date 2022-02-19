@@ -190,7 +190,9 @@ class PrintCurrentFunctionGraph(GlobalOptimizer):
 
 
 optdb = SequenceDB()
-optdb.register("merge1", MergeOptimizer(), 0, "fast_run", "fast_compile", "merge")
+optdb.register(
+    "merge1", MergeOptimizer(), "fast_run", "fast_compile", "merge", position=0
+)
 
 # After scan1 opt at 0.5 and before ShapeOpt at 1
 # This should only remove nodes.
@@ -201,21 +203,23 @@ local_useless = LocalGroupDB(apply_all_opts=True, profile=True)
 optdb.register(
     "useless",
     TopoDB(local_useless, failure_callback=NavigatorOptimizer.warn_inplace),
-    0.6,
     "fast_run",
     "fast_compile",
+    position=0.6,
 )
 
-optdb.register("merge1.1", MergeOptimizer(), 0.65, "fast_run", "fast_compile", "merge")
+optdb.register(
+    "merge1.1", MergeOptimizer(), "fast_run", "fast_compile", "merge", position=0.65
+)
 
 # rearranges elemwise expressions
 optdb.register(
     "canonicalize",
     EquilibriumDB(ignore_newtrees=False),
-    1,
     "fast_run",
     "fast_compile",
     "canonicalize_db",
+    position=1,
 )
 # Register in the canonizer Equilibrium as a clean up opt the merge opt.
 # Without this, as the equilibrium have ignore_newtrees=False, we
@@ -228,41 +232,47 @@ optdb["canonicalize"].register(
     "merge", MergeOptimizer(), "fast_run", "fast_compile", cleanup=True
 )
 
-optdb.register("merge1.2", MergeOptimizer(), 1.2, "fast_run", "fast_compile", "merge")
+optdb.register(
+    "merge1.2", MergeOptimizer(), "fast_run", "fast_compile", "merge", position=1.2
+)
 
 optdb.register(
     "Print1.21",
     PrintCurrentFunctionGraph("Post-canonicalize"),
-    1.21,
+    position=1.21,
 )  # 'fast_run', 'fast_compile')
 
 # replace unstable subgraphs
-optdb.register("stabilize", EquilibriumDB(), 1.5, "fast_run")
+optdb.register("stabilize", EquilibriumDB(), "fast_run", position=1.5)
 
 optdb.register(
     "Print1.51",
     PrintCurrentFunctionGraph("Post-stabilize"),
-    1.51,
+    position=1.51,
 )  # 'fast_run', 'fast_compile')
 
 # misc special cases for speed
-optdb.register("specialize", EquilibriumDB(), 2, "fast_run", "fast_compile_gpu")
+optdb.register(
+    "specialize", EquilibriumDB(), "fast_run", "fast_compile_gpu", position=2
+)
 
 # misc special cases for speed that break canonicalization
-optdb.register("uncanonicalize", EquilibriumDB(), 3, "fast_run")
+optdb.register("uncanonicalize", EquilibriumDB(), "fast_run", position=3)
 
 # misc special cases for speed that are dependent on the device.
 optdb.register(
-    "specialize_device", EquilibriumDB(), 48.6, "fast_compile", "fast_run"
+    "specialize_device", EquilibriumDB(), "fast_compile", "fast_run", position=48.6
 )  # must be after gpu stuff at 48.5
 
 # especially constant merge
-optdb.register("merge2", MergeOptimizer(), 49, "fast_run", "merge")
+optdb.register("merge2", MergeOptimizer(), "fast_run", "merge", position=49)
 
-optdb.register("add_destroy_handler", AddDestroyHandler(), 49.5, "fast_run", "inplace")
+optdb.register(
+    "add_destroy_handler", AddDestroyHandler(), "fast_run", "inplace", position=49.5
+)
 
 # final pass just to make sure
-optdb.register("merge3", MergeOptimizer(), 100, "fast_run", "merge")
+optdb.register("merge3", MergeOptimizer(), "fast_run", "merge", position=100)
 
 _tags: Union[Tuple[str, str], Tuple]
 
@@ -272,7 +282,7 @@ if config.check_stack_trace in ("raise", "warn", "log"):
 if config.check_stack_trace == "off":
     _tags = ()
 
-optdb.register("CheckStackTrace", CheckStackTraceOptimization(), -1, *_tags)
+optdb.register("CheckStackTrace", CheckStackTraceOptimization(), *_tags, position=-1)
 del _tags
 
 

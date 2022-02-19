@@ -75,9 +75,9 @@ def local_inplace_remove0(fgraph, node):
 aesara.compile.optdb.register(
     "local_inplace_remove0",
     TopoOptimizer(local_inplace_remove0, failure_callback=TopoOptimizer.warn_inplace),
-    60,
     "fast_run",
     "inplace",
+    position=60,
 )
 
 
@@ -216,9 +216,9 @@ aesara.compile.optdb.register(
     TopoOptimizer(
         local_inplace_addsd_ccode, failure_callback=TopoOptimizer.warn_inplace
     ),
-    60,
     "fast_run",
     "inplace",
+    position=60,
 )
 
 
@@ -248,8 +248,8 @@ aesara.compile.optdb.register(
     "local_addsd_ccode",
     TopoOptimizer(local_addsd_ccode),
     # Must be after local_inplace_addsd_ccode at 60
-    61,
     "fast_run",
+    position=61,
 )
 
 

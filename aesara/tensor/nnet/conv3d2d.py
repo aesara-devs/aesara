@@ -320,7 +320,7 @@ aesara.compile.optdb.register(
     TopoOptimizer(
         local_inplace_DiagonalSubtensor, failure_callback=TopoOptimizer.warn_inplace
     ),
-    60,
     "fast_run",
     "inplace",
+    position=60,
 )

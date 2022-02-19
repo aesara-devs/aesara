@@ -432,11 +432,11 @@ optdb.register(
         local_dnn_convgi_inplace,
         name="local_dnna_conv_inplace",
     ),
-    70.0,
     "fast_run",
     "inplace",
     "gpuarray",
     "cudnn",
+    position=70.0,
 )
 
 
@@ -837,7 +837,7 @@ class NoCuDNNRaise(GlobalOptimizer):
                 )
 
 
-gpu_seqopt.register("NoCuDNNRaise", NoCuDNNRaise(), 0, "cudnn")
+gpu_seqopt.register("NoCuDNNRaise", NoCuDNNRaise(), "cudnn", position=0)
 
 
 @register_inplace()

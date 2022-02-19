@@ -54,9 +54,9 @@ compile.optdb.register(
     TopoOptimizer(
         local_inplace_sparse_block_gemv, failure_callback=TopoOptimizer.warn_inplace
     ),
-    60,
     "fast_run",
     "inplace",
+    position=60,
 )  # DEBUG
 
 
@@ -78,9 +78,9 @@ compile.optdb.register(
         local_inplace_sparse_block_outer,
         failure_callback=TopoOptimizer.warn_inplace,
     ),
-    60,
     "fast_run",
     "inplace",
+    position=60,
 )  # DEBUG
 
 
@@ -500,69 +500,69 @@ register_specialize_device(conv_groupopt, "fast_compile", "fast_run")
 conv_groupopt.register(
     "local_abstractconv_gemm",
     local_abstractconv_gemm,
-    30,
     "conv_gemm",
     "fast_compile",
     "fast_run",
+    position=30,
 )
 conv_groupopt.register(
     "local_abstractconv_gradweight_gemm",
     local_abstractconv_gradweight_gemm,
-    30,
     "conv_gemm",
     "fast_compile",
     "fast_run",
+    position=30,
 )
 conv_groupopt.register(
     "local_abstractconv_gradinputs_gemm",
     local_abstractconv_gradinputs_gemm,
-    30,
     "conv_gemm",
     "fast_compile",
     "fast_run",
+    position=30,
 )
 conv_groupopt.register(
     "local_abstractconv3d_gemm",
     local_abstractconv3d_gemm,
-    30,
     "conv_gemm",
     "fast_compile",
     "fast_run",
+    position=30,
 )
 conv_groupopt.register(
     "local_abstractconv3d_gradweight_gemm",
     local_abstractconv3d_gradweight_gemm,
-    30,
     "conv_gemm",
     "fast_compile",
     "fast_run",
+    position=30,
 )
 conv_groupopt.register(
     "local_abstractconv3d_gradinputs_gemm",
     local_abstractconv3d_gradinputs_gemm,
-    30,
     "conv_gemm",
     "fast_compile",
     "fast_run",
+    position=30,
 )
 
 # Legacy convolution
 conv_groupopt.register(
-    "local_conv2d_cpu", local_conv2d_cpu, 40, "fast_compile", "fast_run"
+    "local_conv2d_cpu", local_conv2d_cpu, "fast_compile", "fast_run", position=40
 )
 conv_groupopt.register(
     "local_conv2d_gradweight_cpu",
     local_conv2d_gradweight_cpu,
-    40,
     "fast_compile",
     "fast_run",
+    position=40,
 )
 conv_groupopt.register(
     "local_conv2d_gradinputs_cpu",
     local_conv2d_gradinputs_cpu,
-    40,
     "fast_compile",
     "fast_run",
+    position=40,
 )
 
 
@@ -602,7 +602,7 @@ def local_abstractconv_check(fgraph, node):
 optdb.register(
     "AbstractConvCheck",
     in2out(local_abstractconv_check, name="AbstractConvCheck"),
-    48.7,
     "fast_compile",
     "fast_run",
+    position=48.7,
 )

@@ -56,7 +56,7 @@ class TestDB:
         assert isinstance(res, opt.SeqOptimizer)
         assert res.data == []
 
-        seq_db.register("b", TestOpt(), 1)
+        seq_db.register("b", TestOpt(), position=1)
 
         from io import StringIO
 
@@ -69,7 +69,7 @@ class TestDB:
         assert "names {'b'}" in res
 
         with pytest.raises(TypeError, match=r"`position` must be.*"):
-            seq_db.register("c", TestOpt(), object())
+            seq_db.register("c", TestOpt(), position=object())
 
     def test_LocalGroupDB(self):
         lg_db = LocalGroupDB()

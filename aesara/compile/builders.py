@@ -854,7 +854,7 @@ def inline_ofg_expansion(fgraph, node):
 optdb.register(
     "inline_ofg_expansion",
     in2out(inline_ofg_expansion),
-    -0.01,
     "fast_compile",
     "fast_run",
+    position=-0.01,
 )

@@ -730,15 +730,15 @@ def make_c_gemv_destructive(fgraph, node):
 # ##### ####### #######
 
 blas_optdb.register(
-    "use_c_blas", in2out(use_c_ger, use_c_gemv), 20, "fast_run", "c_blas"
+    "use_c_blas", in2out(use_c_ger, use_c_gemv), "fast_run", "c_blas", position=20
 )
 
 # this matches the InplaceBlasOpt defined in blas.py
 optdb.register(
     "c_blas_destructive",
     in2out(make_c_ger_destructive, make_c_gemv_destructive, name="c_blas_destructive"),
-    70.0,
     "fast_run",
     "inplace",
     "c_blas",
+    position=70.0,
 )

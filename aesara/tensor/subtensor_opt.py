@@ -89,7 +89,7 @@ def register_useless(lopt, *tags, **kwargs):
         name = kwargs.pop("name", None) or lopt.__name__
 
         compile.mode.local_useless.register(
-            name, lopt, "last", "fast_run", *tags, **kwargs
+            name, lopt, "fast_run", *tags, position="last", **kwargs
         )
         return lopt
 
@@ -1230,9 +1230,9 @@ def local_IncSubtensor_serialize(fgraph, node):
 compile.optdb.register(
     "pre_local_IncSubtensor_serialize",
     in2out(local_IncSubtensor_serialize),
-    # Just before canonizer
-    0.99,
     "fast_run",
+    # Just before canonizer
+    position=0.99,
 )
 
 
@@ -1267,9 +1267,9 @@ compile.optdb.register(
     TopoOptimizer(
         local_inplace_setsubtensor, failure_callback=TopoOptimizer.warn_inplace
     ),
-    60,
     "fast_run",
     "inplace",
+    position=60,
 )
 
 
@@ -1288,9 +1288,9 @@ compile.optdb.register(
     TopoOptimizer(
         local_inplace_AdvancedIncSubtensor1, failure_callback=TopoOptimizer.warn_inplace
     ),
-    60,
     "fast_run",
     "inplace",
+    position=60,
 )
 
 
@@ -1313,9 +1313,9 @@ compile.optdb.register(
     TopoOptimizer(
         local_inplace_AdvancedIncSubtensor, failure_callback=TopoOptimizer.warn_inplace
     ),
-    60,
     "fast_run",
     "inplace",
+    position=60,
 )
 
 

@@ -1798,15 +1798,19 @@ def local_dot22_to_ger_or_gemv(fgraph, node):
 blas_optdb = SequenceDB()
 
 # run after numerical stability optimizations (1.5)
-optdb.register("BlasOpt", blas_optdb, 1.7, "fast_run", "fast_compile")
+optdb.register("BlasOpt", blas_optdb, "fast_run", "fast_compile", position=1.7)
 # run before specialize (2.0) because specialize is basically a
 # free-for-all that makes the graph crazy.
 
 # fast_compile is needed to have GpuDot22 created.
 blas_optdb.register(
-    "local_dot_to_dot22", in2out(local_dot_to_dot22), 0, "fast_run", "fast_compile"
+    "local_dot_to_dot22",
+    in2out(local_dot_to_dot22),
+    "fast_run",
+    "fast_compile",
+    position=0,
 )
-blas_optdb.register("gemm_optimizer", GemmOptimizer(), 10, "fast_run")
+blas_optdb.register("gemm_optimizer", GemmOptimizer(), "fast_run", position=10)
 blas_optdb.register(
     "local_gemm_to_gemv",
     EquilibriumOptimizer(
@@ -1819,8 +1823,8 @@ blas_optdb.register(
         max_use_ratio=5,
         ignore_newtrees=False,
     ),
-    15,
     "fast_run",
+    position=15,
 )
 
 
@@ -1830,7 +1834,12 @@ blas_opt_inplace = in2out(
     local_inplace_gemm, local_inplace_gemv, local_inplace_ger, name="blas_opt_inplace"
 )
 optdb.register(
-    "InplaceBlasOpt", blas_opt_inplace, 70.0, "fast_run", "inplace", "blas_opt_inplace"
+    "InplaceBlasOpt",
+    blas_opt_inplace,
+    "fast_run",
+    "inplace",
+    "blas_opt_inplace",
+    position=70.0,
 )
 
 
@@ -2048,7 +2057,10 @@ def local_dot22_to_dot22scalar(fgraph, node):
 # must happen after gemm as the gemm optimizer don't understant
 # dot22scalar and gemm give more speed up then dot22scalar
 blas_optdb.register(
-    "local_dot22_to_dot22scalar", in2out(local_dot22_to_dot22scalar), 11, "fast_run"
+    "local_dot22_to_dot22scalar",
+    in2out(local_dot22_to_dot22scalar),
+    "fast_run",
+    position=11,
 )
 
 

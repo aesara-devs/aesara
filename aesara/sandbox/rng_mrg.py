@@ -1358,7 +1358,7 @@ def mrg_random_make_inplace(fgraph, node):
 optdb.register(
     "random_make_inplace_mrg",
     in2out(mrg_random_make_inplace, ignore_newtrees=True),
-    99,
     "fast_run",
     "inplace",
+    position=99,
 )

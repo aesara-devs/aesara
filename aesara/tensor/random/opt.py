@@ -55,9 +55,9 @@ def random_make_inplace(fgraph, node):
 optdb.register(
     "random_make_inplace",
     in2out(random_make_inplace, ignore_newtrees=True),
-    99,
     "fast_run",
     "inplace",
+    position=99,
 )
 
 
