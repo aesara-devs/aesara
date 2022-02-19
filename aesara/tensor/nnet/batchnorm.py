@@ -912,21 +912,21 @@ register_specialize_device(bn_groupopt, "fast_compile", "fast_run")
 bn_groupopt.register(
     "local_abstract_batch_norm_train",
     local_abstract_batch_norm_train,
-    30,
     "fast_compile",
     "fast_run",
+    position=30,
 )
 bn_groupopt.register(
     "local_abstract_batch_norm_train_grad",
     local_abstract_batch_norm_train_grad,
-    30,
     "fast_compile",
     "fast_run",
+    position=30,
 )
 bn_groupopt.register(
     "local_abstract_batch_norm_inference",
     local_abstract_batch_norm_inference,
-    30,
     "fast_compile",
     "fast_run",
+    position=30,
 )

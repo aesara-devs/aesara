@@ -60,8 +60,8 @@ gpu_seqopt = SequenceDB()
 optdb.register(
     "gpuarray_opt",
     gpu_seqopt,
-    optdb.__position__.get("add_destroy_handler", 49.5) - 1,
     "gpuarray",
+    position=optdb.__position__.get("add_destroy_handler", 49.5) - 1,
 )
 
 
@@ -123,11 +123,11 @@ def register_inplace(*tags, **kwargs):
         optdb.register(
             name,
             TopoOptimizer(local_opt, failure_callback=TopoOptimizer.warn_inplace),
-            60,
             "fast_run",
             "inplace",
             "gpuarray",
             *tags,
+            position=60,
         )
         return local_opt
 

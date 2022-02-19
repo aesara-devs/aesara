@@ -420,9 +420,9 @@ def cond_make_inplace(fgraph, node):
 optdb.register(
     "cond_make_inplace",
     in2out(cond_make_inplace, ignore_newtrees=True),
-    95,
     "fast_run",
     "inplace",
+    position=95,
 )
 
 # XXX: Optimizations commented pending further debugging (certain optimizations
@@ -456,8 +456,8 @@ where, each of the optimization do the following things:
     `ifelse_lift` (def cond_lift_single_if):
 
 """
-# optdb.register('ifelse_equilibriumOpt', ifelse_equilibrium, .5, 'fast_run',
-#                'ifelse')
+# optdb.register('ifelse_equilibriumOpt', ifelse_equilibrium, 'fast_run',
+#                'ifelse', position=.5)
 
 
 acceptable_ops = (
@@ -768,26 +768,26 @@ def cond_merge_random_op(fgraph, main_node):
 #
 # ifelse_seqopt.register('ifelse_condPushOut_equilibrium',
 #                        pushout_equilibrium,
-#                        1, 'fast_run', 'ifelse')
+#                        'fast_run', 'ifelse', position=1)
 #
 # ifelse_seqopt.register('merge_nodes_1',
 #                        graph.opt.MergeOptimizer(skip_const_merge=False),
-#                        2, 'fast_run', 'ifelse')
+#                        'fast_run', 'ifelse', position=2)
 #
 #
 # ifelse_seqopt.register('ifelse_sameCondTrue',
 #                        in2out(cond_merge_ifs_true,
 #                                   ignore_newtrees=True),
-#                        3, 'fast_run', 'ifelse')
+#                        'fast_run', 'ifelse', position=3)
 #
 #
 # ifelse_seqopt.register('ifelse_sameCondFalse',
 #                        in2out(cond_merge_ifs_false,
 #                                   ignore_newtrees=True),
-#                        4, 'fast_run', 'ifelse')
+#                        'fast_run', 'ifelse', position=4)
 #
 #
 # ifelse_seqopt.register('ifelse_removeIdenetical',
 #                        in2out(cond_remove_identical,
 #                                   ignore_newtrees=True),
-#                        7, 'fast_run', 'ifelse')
+#                        'fast_run', 'ifelse', position=7)

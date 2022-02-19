@@ -2870,9 +2870,9 @@ def local_add_mul_fusion(fgraph, node):
 fuse_seqopt.register(
     "local_add_mul_fusion",
     FusionOptimizer(local_add_mul_fusion),
-    0,
     "fast_run",
     "fusion",
+    position=0,
 )
 
 

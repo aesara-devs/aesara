@@ -2336,68 +2336,68 @@ scan_eqopt2 = EquilibriumDB()
 # scan_eqopt1 before ShapeOpt at 0.1
 # This is needed to don't have ShapeFeature trac old Scan that we
 # don't want to reintroduce.
-optdb.register("scan_eqopt1", scan_eqopt1, 0.05, "fast_run", "scan")
+optdb.register("scan_eqopt1", scan_eqopt1, "fast_run", "scan", position=0.05)
 # We run before blas opt at 1.7 and specialize 2.0
 # but after stabilize at 1.5. Should we put it before stabilize?
-optdb.register("scan_eqopt2", scan_eqopt2, 1.6, "fast_run", "scan")
+optdb.register("scan_eqopt2", scan_eqopt2, "fast_run", "scan", position=1.6)
 # ScanSaveMem should execute only once per node.
 optdb.register(
     "scan_save_mem",
     in2out(save_mem_new_scan, ignore_newtrees=True),
-    1.61,
     "fast_run",
     "scan",
+    position=1.61,
 )
 optdb.register(
     "scan_make_inplace",
     ScanInplaceOptimizer(typeInfer=None),
-    75,
     "fast_run",
     "inplace",
     "scan",
+    position=75,
 )
 
-scan_eqopt1.register("all_pushout_opt", scan_seqopt1, 1, "fast_run", "scan")
+scan_eqopt1.register("all_pushout_opt", scan_seqopt1, "fast_run", "scan", position=1)
 
 
 scan_seqopt1.register(
     "scan_remove_constants_and_unused_inputs0",
     in2out(remove_constants_and_unused_inputs_scan, ignore_newtrees=True),
-    1,
     "remove_constants_and_unused_inputs_scan",
     "fast_run",
     "scan",
+    position=1,
 )
 
 
 scan_seqopt1.register(
     "scan_pushout_nonseqs_ops",
     in2out(push_out_non_seq_scan, ignore_newtrees=True),
-    2,
     "fast_run",
     "scan",
     "scan_pushout",
+    position=2,
 )
 
 
 scan_seqopt1.register(
     "scan_pushout_seqs_ops",
     in2out(push_out_seq_scan, ignore_newtrees=True),
-    3,
     "fast_run",
     "scan",
     "scan_pushout",
+    position=3,
 )
 
 
 scan_seqopt1.register(
     "scan_pushout_dot1",
     in2out(push_out_dot1_scan, ignore_newtrees=True),
-    4,
     "fast_run",
     "more_mem",
     "scan",
     "scan_pushout",
+    position=4,
 )
 
 
@@ -2405,62 +2405,62 @@ scan_seqopt1.register(
     "scan_pushout_add",
     # TODO: Perhaps this should be an `EquilibriumOptimizer`?
     in2out(push_out_add_scan, ignore_newtrees=False),
-    5,
     "fast_run",
     "more_mem",
     "scan",
     "scan_pushout",
+    position=5,
 )
 
 
 scan_eqopt2.register(
     "constant_folding_for_scan2",
     in2out(basic_opt.constant_folding, ignore_newtrees=True),
-    1,
     "fast_run",
     "scan",
+    position=1,
 )
 
 
 scan_eqopt2.register(
     "scan_remove_constants_and_unused_inputs1",
     in2out(remove_constants_and_unused_inputs_scan, ignore_newtrees=True),
-    2,
     "remove_constants_and_unused_inputs_scan",
     "fast_run",
     "scan",
+    position=2,
 )
 
 
 # after const merge but before stabilize so that we can have identity
 # for equivalent nodes but we still have the chance to hoist stuff out
 # of the scan later.
-scan_eqopt2.register("scan_merge", ScanMerge(), 4, "fast_run", "scan")
+scan_eqopt2.register("scan_merge", ScanMerge(), "fast_run", "scan", position=4)
 
 # After Merge optimization
 scan_eqopt2.register(
     "scan_remove_constants_and_unused_inputs2",
     in2out(remove_constants_and_unused_inputs_scan, ignore_newtrees=True),
-    5,
     "remove_constants_and_unused_inputs_scan",
     "fast_run",
     "scan",
+    position=5,
 )
 
 scan_eqopt2.register(
     "scan_merge_inouts",
     in2out(scan_merge_inouts, ignore_newtrees=True),
-    6,
     "fast_run",
     "scan",
+    position=6,
 )
 
 # After everything else
 scan_eqopt2.register(
     "scan_remove_constants_and_unused_inputs3",
     in2out(remove_constants_and_unused_inputs_scan, ignore_newtrees=True),
-    8,
     "remove_constants_and_unused_inputs_scan",
     "fast_run",
     "scan",
+    position=8,
 )

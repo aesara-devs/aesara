@@ -34,6 +34,7 @@ class OptimizationDatabase:
         optimizer: Union["OptimizationDatabase", OptimizersType],
         *tags: str,
         use_db_name_as_tag=True,
+        **kwargs,
     ):
         """Register a new optimizer to the database.
 
@@ -339,10 +340,10 @@ class EquilibriumDB(OptimizationDatabase):
         self.__final__ = {}
         self.__cleanup__ = {}
 
-    def register(self, name, obj, *tags, final_opt=False, cleanup=False, **kwtags):
+    def register(self, name, obj, *tags, final_opt=False, cleanup=False, **kwargs):
         if final_opt and cleanup:
             raise ValueError("`final_opt` and `cleanup` cannot both be true.")
-        super().register(name, obj, *tags, **kwtags)
+        super().register(name, obj, *tags, **kwargs)
         self.__final__[name] = final_opt
         self.__cleanup__[name] = cleanup
 
@@ -387,7 +388,9 @@ class SequenceDB(OptimizationDatabase):
         self.__position__ = {}
         self.failure_callback = failure_callback
 
-    def register(self, name, obj, position: Union[str, int, float], *tags, **kwargs):
+    def register(
+        self, name, obj, *tags, position: Union[str, int, float] = "last", **kwargs
+    ):
         super().register(name, obj, *tags, **kwargs)
         if position == "last":
             if len(self.__position__) == 0:
@@ -493,7 +496,7 @@ class LocalGroupDB(SequenceDB):
         self.__name__: str = ""
 
     def register(self, name, obj, *tags, position="last", **kwargs):
-        super().register(name, obj, position, *tags, **kwargs)
+        super().register(name, obj, *tags, position=position, **kwargs)
 
     def query(self, *tags, **kwtags):
         opts = list(super().query(*tags, **kwtags))

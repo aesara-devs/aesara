@@ -19,7 +19,7 @@ def typed_list_inplace_opt(fgraph, node):
 optdb.register(
     "typed_list_inplace_opt",
     TopoOptimizer(typed_list_inplace_opt, failure_callback=TopoOptimizer.warn_inplace),
-    60,
     "fast_run",
     "inplace",
+    position=60,
 )

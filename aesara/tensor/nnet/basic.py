@@ -1949,10 +1949,10 @@ def crossentropy_to_crossentropy_with_softmax(fgraph):
 optdb.register(
     "crossentropy_to_crossentropy_with_softmax",
     crossentropy_to_crossentropy_with_softmax,
-    2.01,
     "fast_run",
     "xent",
     "fast_compile_gpu",
+    position=2.01,
 )
 
 

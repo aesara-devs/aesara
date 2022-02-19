@@ -474,11 +474,11 @@ inplace_elemwise_optimizer = InplaceElemwiseOptimizer(Elemwise)
 compile.optdb.register(
     "inplace_elemwise_opt",
     inplace_elemwise_optimizer,
-    75,
     "inplace_opt",  # for historic reason
     "inplace_elemwise_optimizer",
     "fast_run",
     "inplace",
+    position=75,
 )
 
 
@@ -493,7 +493,7 @@ def register_useless(lopt, *tags, **kwargs):
         name = kwargs.pop("name", None) or lopt.__name__
 
         compile.mode.local_useless.register(
-            name, lopt, "last", "fast_run", *tags, **kwargs
+            name, lopt, "fast_run", *tags, position="last", **kwargs
         )
         return lopt
 
@@ -1475,12 +1475,12 @@ class UnShapeOptimizer(GlobalOptimizer):
 # Register it after merge1 optimization at 0. We don't want to track
 # the shape of merged node.
 aesara.compile.mode.optdb.register(
-    "ShapeOpt", ShapeOptimizer(), 0.1, "fast_run", "fast_compile"
+    "ShapeOpt", ShapeOptimizer(), "fast_run", "fast_compile", position=0.1
 )
 # Not enabled by default for now. Some crossentropy opt use the
 # shape_feature.  They are at step 2.01. uncanonicalize is at step
 # 3. After it goes to 48.5 that move to the gpu. So 10 seems reasonable.
-aesara.compile.mode.optdb.register("UnShapeOpt", UnShapeOptimizer(), 10)
+aesara.compile.mode.optdb.register("UnShapeOpt", UnShapeOptimizer(), position=10)
 
 
 @register_specialize("local_alloc_elemwise")
@@ -1741,11 +1741,11 @@ def local_fill_to_alloc(fgraph, node):
 # Register this after stabilize at 1.5 to make sure stabilize don't
 # get affected by less canonicalized graph due to alloc.
 compile.optdb.register(
-    "local_fill_to_alloc", in2out(local_fill_to_alloc), 1.51, "fast_run"
+    "local_fill_to_alloc", in2out(local_fill_to_alloc), "fast_run", position=1.51
 )
 # Needed to clean some extra alloc added by local_fill_to_alloc
 compile.optdb.register(
-    "local_elemwise_alloc", in2out(local_elemwise_alloc), 1.52, "fast_run"
+    "local_elemwise_alloc", in2out(local_elemwise_alloc), "fast_run", position=1.52
 )
 
 
@@ -1856,8 +1856,8 @@ compile.optdb.register(
     "local_alloc_empty_to_zeros",
     in2out(local_alloc_empty_to_zeros),
     # After move to gpu and merge2, before inplace.
-    49.3,
     "alloc_empty_to_zeros",
+    position=49.3,
 )
 
 
@@ -3369,28 +3369,28 @@ if config.tensor__local_elemwise_fusion:
     fuse_seqopt.register(
         "composite_elemwise_fusion",
         FusionOptimizer(local_elemwise_fusion),
-        1,
         "fast_run",
         "fusion",
+        position=1,
     )
     compile.optdb.register(
         "elemwise_fusion",
         fuse_seqopt,
-        49,
         "fast_run",
         "fusion",
         "local_elemwise_fusion",
         "FusionOptimizer",
+        position=49,
     )
 else:
     _logger.debug("not enabling optimization fusion elemwise in fast_run")
     compile.optdb.register(
         "elemwise_fusion",
         FusionOptimizer(local_elemwise_fusion),
-        49,
         "fusion",
         "local_elemwise_fusion",
         "FusionOptimizer",
+        position=49,
     )
 
 

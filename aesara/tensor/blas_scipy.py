@@ -79,13 +79,13 @@ if have_fblas:
     # C implementations should be scheduled earlier than this, so that they take
     # precedence. Once the original Ger is replaced, then these optimizations
     # have no effect.
-    blas_optdb.register("scipy_blas", use_scipy_blas, 100, "fast_run")
+    blas_optdb.register("scipy_blas", use_scipy_blas, "fast_run", position=100)
 
     # this matches the InplaceBlasOpt defined in blas.py
     optdb.register(
         "make_scipy_blas_destructive",
         make_scipy_blas_destructive,
-        70.0,
         "fast_run",
         "inplace",
+        position=70.0,
     )
