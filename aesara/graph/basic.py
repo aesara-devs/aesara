@@ -1672,7 +1672,7 @@ def get_var_by_name(
 
     def expand(r):
         if r.owner:
-            res = r.owner.inputs
+            res = list(r.owner.inputs)
 
             if isinstance(r.owner.op, HasInnerGraph):
                 res.extend(r.owner.op.inner_outputs)
