@@ -22,10 +22,9 @@ _logger = logging.getLogger("aesara.configparser")
 
 
 class AesaraConfigWarning(Warning):
+    @classmethod
     def warn(cls, message, stacklevel=0):
         warnings.warn(message, cls, stacklevel=stacklevel + 3)
-
-    warn = classmethod(warn)
 
 
 class ConfigAccessViolation(AttributeError):
