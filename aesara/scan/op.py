@@ -752,9 +752,7 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
             # output sequence
             o = outputs[idx]
             self.output_types.append(
-                typeConstructor(
-                    shape=(False,) + o.type.broadcastable, dtype=o.type.dtype
-                )
+                typeConstructor((False,) + o.type.broadcastable, o.type.dtype)
             )
 
             idx += len(self.mit_mot_out_slices[jdx])
@@ -765,9 +763,7 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
 
         for o in outputs[idx:end]:
             self.output_types.append(
-                typeConstructor(
-                    shape=(False,) + o.type.broadcastable, dtype=o.type.dtype
-                )
+                typeConstructor((False,) + o.type.broadcastable, o.type.dtype)
             )
 
         # shared outputs + possibly the ending condition
