@@ -26,7 +26,7 @@ from aesara.graph.basic import (
     vars_between,
     walk,
 )
-from aesara.graph.op import HasInnerGraph, Op
+from aesara.graph.op import Op
 from aesara.graph.type import Type
 from aesara.tensor.math import max_and_argmax
 from aesara.tensor.type import (
@@ -41,6 +41,7 @@ from aesara.tensor.type import (
 from aesara.tensor.type_other import NoneConst
 from aesara.tensor.var import TensorVariable
 from tests import unittest_tools as utt
+from tests.graph.utils import MyInnerGraphOp
 
 
 class MyType(Type):
@@ -83,36 +84,6 @@ class MyOp(Op):
 
 
 MyOp = MyOp()
-
-
-class MyInnerGraphOp(Op, HasInnerGraph):
-    __props__ = ()
-
-    def __init__(self, inner_inputs, inner_outputs):
-        self._inner_inputs = inner_inputs
-        self._inner_outputs = inner_outputs
-
-    def make_node(self, *inputs):
-        for input in inputs:
-            assert isinstance(input, Variable)
-            assert isinstance(input.type, MyType)
-        outputs = [MyVariable(sum(input.type.thingy for input in inputs))]
-        return Apply(self, list(inputs), outputs)
-
-    def perform(self, *args, **kwargs):
-        raise NotImplementedError("No Python implementation available.")
-
-    @property
-    def fn(self):
-        raise NotImplementedError("No Python implementation available.")
-
-    @property
-    def inner_inputs(self):
-        return self._inner_inputs
-
-    @property
-    def inner_outputs(self):
-        return self._inner_outputs
 
 
 class X:
@@ -550,7 +521,8 @@ def test_get_var_by_name():
 
     (res,) = get_var_by_name([o1, o2], "igo1")
 
-    assert res == igo_out_1
+    exp_res = igo.fgraph.outputs[0]
+    assert res == exp_res
 
 
 class TestCloneReplace:
