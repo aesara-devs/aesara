@@ -1888,7 +1888,9 @@ class Dot(Op):
 
     """
 
-    __props__ = ()
+    gufunc_sig = ((("m", "n"), ("n", "p")), (("m", "p"),))
+
+    __props__ = ("gufunc_sig",)
 
     # the rationale for Dot22 is related to getting GEMM Ops into the
     # graph.  See Dot22 in tensor.blas for details.

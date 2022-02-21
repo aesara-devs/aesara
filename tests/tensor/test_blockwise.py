@@ -12,7 +12,7 @@ from aesara.tensor.blockwise import (
 )
 from aesara.tensor.math import Dot
 from aesara.tensor.type import TensorType
-from tests.unittest_tools import check_infer_shape
+from tests.unittest_tools import check_infer_shape, verify_grad
 
 
 class DotBW(Dot):
@@ -142,5 +142,33 @@ def test_Blockwise_infer_shape(op, s_left, s_right):
     )
 
 
-def test_Blockwise_grad():
-    raise AssertionError()
+@pytest.mark.parametrize(
+    "op, args, arg_vals, np_fn",
+    [
+        (
+            dot_bw,
+            (
+                at.tensor("float64", (None, None, None)),
+                at.tensor("float64", (None, None, None)),
+            ),
+            (np.zeros((5, 3, 2)), np.zeros((5, 2, 4))),
+            lambda x, y: np.dot(x, y),
+        ),
+        (
+            dot_bw,
+            (
+                at.tensor("float64", (None, None, None)),
+                at.tensor("float64", (None, None)),
+            ),
+            (np.zeros((5, 3, 2)), np.zeros((2, 4))),
+            lambda x, y: np.dot(x, y),
+        ),
+    ],
+)
+def test_Blockwise_grad(op, args, arg_vals, np_fn):
+    x = Blockwise(op)(*args)
+    x_fn = aesara.function(args, x)
+
+    x_fn(*arg_vals)
+
+    verify_grad(lambda a, b: Blockwise(op)(a, b), arg_vals)

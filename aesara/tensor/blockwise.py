@@ -1,18 +1,28 @@
-from typing import Dict, List, Tuple
+from typing import TYPE_CHECKING, Dict, List, Optional, Sequence, Tuple, cast
 
 import numpy as np
 
+import aesara
+from aesara.gradient import DisconnectedType
 from aesara.graph.basic import Apply, Variable
+from aesara.graph.null_type import NullType
 from aesara.graph.op import Op
 from aesara.tensor import get_scalar_constant_value
+from aesara.tensor.basic import atleast_Nd
 from aesara.tensor.exceptions import NotScalarConstantError
 from aesara.tensor.extra_ops import broadcast_shape
 from aesara.tensor.shape import shape_tuple
 from aesara.tensor.type import TensorType
 
 
+if TYPE_CHECKING:
+    from aesara.tensor.var import TensorVariable
+
+
 def _update_dim_sizes(
-    dim_sizes: Dict[str, int], arg: Variable, core_dims: Tuple[str, ...]
+    dim_sizes: Dict[str, "TensorVariable"],
+    arg: "TensorVariable",
+    core_dims: Tuple[str, ...],
 ):
     """Incrementally check and update core dimension sizes for a single argument.
 
@@ -31,16 +41,16 @@ def _update_dim_sizes(
         return
 
     num_core_dims = len(core_dims)
-    if arg.ndim < num_core_dims:
+    if arg.type.ndim < num_core_dims:
         raise ValueError(
-            f"{arg.ndim}-dimensional argument does not have enough "
+            f"{arg.type.ndim}-dimensional argument does not have enough "
             f"dimensions for all core dimensions: {core_dims}"
         )
 
     core_shape = shape_tuple(arg)[-num_core_dims:]
     for dim, size in zip(core_dims, core_shape):
         if dim not in dim_sizes:
-            dim_sizes[dim] = size
+            dim_sizes[dim] = cast("TensorVariable", size)
         # else:
         #     # This check can't be done (sufficiently) at compile-time
         #     if size != dim_sizes[dim]:
@@ -50,8 +60,8 @@ def _update_dim_sizes(
 
 
 def _parse_input_dimensions(
-    args: Tuple[Variable, ...], input_core_dims: List[Tuple[str, ...]]
-) -> Tuple[Tuple[Variable, ...], Dict[str, Variable]]:
+    args: Tuple["TensorVariable", ...], input_core_dims: List[Tuple[str, ...]]
+) -> Tuple[Tuple[Variable, ...], Dict[str, "TensorVariable"]]:
     """Parse broadcast and core dimensions for vectorize with a signature.
 
     From `numpy.lib.function_base`.
@@ -71,7 +81,7 @@ def _parse_input_dimensions(
         Common sizes for named core dimensions.
     """
     broadcast_args = []
-    dim_sizes = {}
+    dim_sizes: Dict[str, "TensorVariable"] = {}
     for arg, core_dims in zip(args, input_core_dims):
         _update_dim_sizes(dim_sizes, arg, core_dims)
         ndim = arg.ndim - len(core_dims)
@@ -141,11 +151,77 @@ class Blockwise(Op):
         output_shapes = _calculate_shapes(bcast_shape, dim_sizes, self.signature[1])
         return output_shapes
 
-    def grad(self, *args):
-        raise NotImplementedError()
+    def L_op(
+        self,
+        inputs: Sequence[Variable],
+        outputs: Sequence[Variable],
+        ograds: Sequence[Variable],
+    ):
 
-    def L_op(self, *args):
-        raise NotImplementedError()
+        with aesara.config.change_flags(compute_test_value="off"):
+            core_inputs = []
+            for _inp, _inp_sig in zip(inputs, self.signature[0]):
+                curr_dtype = _inp.type.dtype
+                curr_static_shape = _inp.type.shape[: len(_inp_sig)]
+                core_inputs.append(TensorType(curr_dtype, curr_static_shape)())
+
+            core_out_grads = []
+            for _out_grad, _out_sig in zip(ograds, self.signature[1]):
+                curr_dtype = _out_grad.type.dtype
+                curr_static_shape = _out_grad.type.shape[: len(_out_sig)]
+                core_out_grads.append(TensorType(curr_dtype, curr_static_shape)())
+
+            core_outputs: Sequence[Variable] = self.op.make_node(*core_inputs).outputs
+            core_inp_grads = self.op.L_op(core_inputs, core_outputs, core_out_grads)
+
+            for igrad in core_inp_grads:
+                assert igrad is not None, self.op
+
+        def transform(var: "TensorVariable", client_node: Optional[Apply]) -> Variable:
+            """Walk a graph and expand single gradient \"block\"s into their block-wise equivalents."""
+
+            if isinstance(var.type, (NullType, DisconnectedType)):
+                return var
+
+            if var in core_inputs:
+                return inputs[core_inputs.index(var)]
+            if var in core_outputs:
+                return outputs[core_outputs.index(var)]
+            if var in core_out_grads:
+                return ograds[core_out_grads.index(var)]
+
+            node = var.owner
+            if node is None:
+                # The gradient contains a constant
+                # res = aesara.tensor.basic.constant(
+                #     np.asarray(var.data), dtype=var.type.dtype
+                # )
+                res = var
+
+                # TODO FIXME: Use dimensions of relevant/appropriate inputs.
+                # What exactly are those in this case?
+                nd = inputs[0].type.ndim
+
+                return atleast_Nd(res, nd)
+
+            blocked_inputs = [transform(ipt, node) for ipt in node.inputs]
+
+            grad_signature = getattr(node.op, "gufunc_sig", None)
+
+            if grad_signature is None:
+                # TODO: Can we manually derive gufunc signatures for any `Op`
+                # in this situation?
+                grad_signature = None
+
+            new_r = Blockwise(node.op, signature=grad_signature)(*blocked_inputs)
+            assert isinstance(new_r, Variable)
+            return new_r
+
+        ret = []
+        for core_inp_grad, ipt in zip(core_inp_grads, inputs):
+            ret.append(transform(core_inp_grad, None))
+
+        return ret
 
     def perform(self, node, inputs, outputs):
         def py_func(*inner_inputs):
