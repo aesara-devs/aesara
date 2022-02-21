@@ -1232,7 +1232,7 @@ class LocalOptGroup(LocalOptimizer):
             self.tracker.add_tracker(o)
 
             if self.profile:
-                self.time_opts.setdefault(o, 0)
+                self.time_opts.setdefault(o, 0.0)
                 self.process_count.setdefault(o, 0)
                 self.applied_true.setdefault(o, 0)
                 self.node_created.setdefault(o, 0)

@@ -508,7 +508,7 @@ class FunctionGraph(MetaObject):
                 attach(self)
             except AlreadyThere:
                 return
-        self.execute_callbacks_times.setdefault(feature, 0)
+        self.execute_callbacks_times.setdefault(feature, 0.0)
         # It would be nice if we could require a specific class instead of
         # a "workalike" so we could do actual error checking
         # if not isinstance(feature, Feature):
