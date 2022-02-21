@@ -329,6 +329,7 @@ N.B.:
         return _file.getvalue()
     else:
         _file.flush()
+    return _file
 
 
 def _debugprint(
@@ -396,7 +397,7 @@ def _debugprint(
         Internal. Used to pass information when recursing.
     """
     if depth == 0:
-        return
+        return file
 
     if order is None:
         order = []
@@ -903,6 +904,7 @@ class PPrinter(Printer):
         for condition, printer in self.printers:
             if condition(pstate, r):
                 return printer.process(r, pstate)
+        return ""
 
     def clone(self):
         cp = copy(self)
