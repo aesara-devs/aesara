@@ -326,8 +326,8 @@ Inner graphs:
 
 MyInnerGraphOp [id A]
  >op2 [id D] 'igo1'
- > |4 [id E]
- > |5 [id F]
+ > |*0-<MyType()> [id E]
+ > |*1-<MyType()> [id F]
     """
 
     for exp_line, res_line in zip(exp_res.split("\n"), lines):
@@ -349,13 +349,13 @@ Inner graphs:
 
 MyInnerGraphOp [id A]
  >MyInnerGraphOp [id C]
- > |3 [id D]
- > |4 [id E]
+ > |*0-<MyType()> [id D]
+ > |*1-<MyType()> [id E]
 
 MyInnerGraphOp [id C]
  >op2 [id F] 'igo1'
- > |4 [id G]
- > |5 [id H]
+ > |*0-<MyType()> [id D]
+ > |*1-<MyType()> [id E]
     """
 
     for exp_line, res_line in zip(exp_res.split("\n"), lines):
@@ -368,7 +368,6 @@ def test_get_var_by_id():
     o1 = MyOp("op1")(r1, r2)
     o1.name = "o1"
 
-    # Inner graph
     igo_in_1 = MyVariable("v4")
     igo_in_2 = MyVariable("v5")
     igo_out_1 = MyOp("op2")(igo_in_1, igo_in_2)
@@ -378,21 +377,6 @@ def test_get_var_by_id():
 
     r3 = MyVariable("v3")
     o2 = igo(r3, o1)
-
-    # import aesara; aesara.dprint([o1, o2])
-    # op1 [id A] 'o1'
-    #  |1 [id B]
-    #  |2 [id C]
-    # MyInnerGraphOp [id D]
-    #  |3 [id E]
-    #  |op1 [id A] 'o1'
-    #
-    # Inner graphs:
-    #
-    # MyInnerGraphOp [id D]
-    #  >op2 [id F] 'igo1'
-    #  > |4 [id G]
-    #  > |5 [id H]
 
     res = get_node_by_id(o1, "blah")
 
@@ -404,7 +388,8 @@ def test_get_var_by_id():
 
     res = get_node_by_id([o1, o2], "F")
 
-    assert res == igo_out_1.owner
+    exp_res = igo.fgraph.outputs[0].owner
+    assert res == exp_res
 
 
 def test_PatternPrinter():

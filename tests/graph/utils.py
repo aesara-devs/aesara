@@ -1,6 +1,7 @@
 import numpy as np
 
-from aesara.graph.basic import Apply, Constant, Variable
+from aesara.graph.basic import Apply, Constant, NominalVariable, Variable, clone_replace
+from aesara.graph.fg import FunctionGraph
 from aesara.graph.op import HasInnerGraph, Op
 from aesara.graph.type import Type
 
@@ -21,6 +22,9 @@ class MyType(Type):
     def __hash__(self):
         return hash(MyType)
 
+    def __repr__(self):
+        return "MyType()"
+
 
 class MyType2(Type):
     def filter(self, data):
@@ -31,6 +35,9 @@ class MyType2(Type):
 
     def __hash__(self):
         return hash(MyType)
+
+    def __repr__(self):
+        return "MyType2()"
 
 
 def MyVariable(name):
@@ -123,13 +130,16 @@ class MyInnerGraphOp(Op, HasInnerGraph):
     __props__ = ()
 
     def __init__(self, inner_inputs, inner_outputs):
-        self._inner_inputs = inner_inputs
-        self._inner_outputs = inner_outputs
+        input_replacements = [
+            (v, NominalVariable(n, v.type))
+            for n, v in enumerate(inner_inputs)
+            if not isinstance(v, Constant)
+        ]
+        outputs = clone_replace(inner_outputs, replace=input_replacements)
+        _, inputs = zip(*input_replacements) if input_replacements else (None, [])
+        self.fgraph = FunctionGraph(inputs, outputs, clone=False)
 
     def make_node(self, *inputs):
-        for input in inputs:
-            assert isinstance(input, Variable)
-            assert isinstance(input.type, MyType)
         outputs = [inputs[0].type()]
         return Apply(self, list(inputs), outputs)
 
@@ -142,8 +152,8 @@ class MyInnerGraphOp(Op, HasInnerGraph):
 
     @property
     def inner_inputs(self):
-        return self._inner_inputs
+        return self.fgraph.inputs
 
     @property
     def inner_outputs(self):
-        return self._inner_outputs
+        return self.fgraph.outputs
