@@ -18,6 +18,7 @@ from typing import (
     Tuple,
     TypeVar,
     Union,
+    cast,
 )
 
 import numpy as np
@@ -1615,6 +1616,7 @@ def get_var_by_name(
 
     results: Tuple[Variable, ...] = ()
     for var in walk(graphs, expand, False):
+        var = cast(Variable, var)
         if target_var_id == var.name or target_var_id == var.auto_name:
             results += (var,)
 
