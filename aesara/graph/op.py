@@ -197,6 +197,10 @@ class Op(MetaObject):
 
     """
 
+    itypes = None
+    otypes = None
+    params_type: Optional[ParamsType] = None
+
     def make_node(self, *inputs: Variable) -> Apply:
         """Construct an `Apply` node that represent the application of this operation to the given inputs.
 
@@ -208,13 +212,13 @@ class Op(MetaObject):
             The constructed `Apply` node.
 
         """
-        if not hasattr(self, "itypes"):
+        if self.itypes is None:
             raise NotImplementedError(
                 "You can either define itypes and otypes,\
              or implement make_node"
             )
 
-        if not hasattr(self, "otypes"):
+        if self.otypes is None:
             raise NotImplementedError(
                 "You can either define itypes and otypes,\
              or implement make_node"
@@ -446,7 +450,7 @@ class Op(MetaObject):
 
     def get_params(self, node: Apply) -> Params:
         """Try to get parameters for the `Op` when :attr:`Op.params_type` is set to a `ParamsType`."""
-        if hasattr(self, "params_type") and isinstance(self.params_type, ParamsType):
+        if isinstance(self.params_type, ParamsType):
             wrapper = self.params_type
             if not all(hasattr(self, field) for field in wrapper.fields):
                 # Let's print missing attributes for debugging.
@@ -1091,7 +1095,7 @@ class ExternalCOp(COp):
 
         """
         params: List[Tuple[str, Any]] = []
-        if hasattr(self, "params_type") and isinstance(self.params_type, ParamsType):
+        if isinstance(self.params_type, ParamsType):
             wrapper = self.params_type
             params.append(("PARAMS_TYPE", wrapper.name))
             for i in range(wrapper.length):
@@ -1111,7 +1115,7 @@ class ExternalCOp(COp):
 
     def c_code_cache_version(self):
         version = (hash(tuple(self.func_codes)),)
-        if hasattr(self, "params_type"):
+        if self.params_type is not None:
             version += (self.params_type.c_code_cache_version(),)
         return version
 
