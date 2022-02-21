@@ -14,7 +14,6 @@ from aesara.scalar import int32
 from aesara.tensor import _get_vector_length
 from aesara.tensor import basic as at
 from aesara.tensor import get_vector_length
-from aesara.tensor.exceptions import NotScalarConstantError
 from aesara.tensor.type import TensorType, int_dtypes, tensor
 from aesara.tensor.var import TensorConstant
 
@@ -452,11 +451,12 @@ class SpecifyShape(COp):
         xshape, sshape = shapes
         new_shape = []
         for dim in range(node.inputs[0].ndim):
-            try:
-                s = at.get_scalar_constant_value(node.inputs[1][dim])
+
+            s = at.get_constant_value(node.inputs[1][dim])
+            if s is not None:
                 s = at.as_tensor_variable(s)
                 new_shape.append(s)
-            except NotScalarConstantError:
+            else:
                 new_shape.append(node.inputs[1][dim])
 
         assert len(new_shape) == len(xshape)
@@ -554,9 +554,10 @@ def specify_shape(
 
 @_get_vector_length.register(SpecifyShape)
 def _get_vector_length_SpecifyShape(op, var):
-    try:
-        return at.get_scalar_constant_value(var.owner.inputs[1])
-    except NotScalarConstantError:
+    val = at.get_constant_value(var.owner.inputs[1])
+    if val is not None:
+        return val
+    else:
         raise ValueError(f"Length of {var} cannot be determined")
 
 
@@ -609,13 +610,11 @@ class Reshape(COp):
                 y = at.as_tensor_variable(y)
                 # Try to see if we can infer that y has a constant value of 1.
                 # If so, that dimension should be broadcastable.
-                try:
-                    bcasts[index] = (
-                        hasattr(y, "get_scalar_constant_value")
-                        and y.get_scalar_constant_value() == 1
-                    )
-                except NotScalarConstantError:
-                    pass
+
+                bcasts[index] = (
+                    hasattr(y, "get_constant_value") and y.get_constant_value() == 1
+                )
+
             return Apply(self, [x, shp], [tensor(x.type.dtype, bcasts)])
 
     def perform(self, node, inp, out_, params):

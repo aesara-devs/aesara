@@ -42,7 +42,7 @@ class GPUA_mrg_uniform(GpuKernelBase, mrg_uniform_base):
         # call through MRG_RandomStream instead.
         broad = []
         for i in range(self.output_type.ndim):
-            broad.append(at.extract_constant(size[i]) == 1)
+            broad.append(at.get_constant_value(size[i]) == 1)
         output_type = self.output_type.clone(broadcastable=broad)()
         rstate = as_gpuarray_variable(rstate, infer_context_name(rstate))
         return Apply(self, [rstate, size], [rstate.type(), output_type])

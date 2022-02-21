@@ -28,7 +28,7 @@ from aesara.tensor.basic import (
     as_tensor_variable,
     constant,
     eye,
-    get_scalar_constant_value,
+    get_constant_value,
     switch,
 )
 from aesara.tensor.elemwise import CAReduce, Elemwise
@@ -861,7 +861,7 @@ class TestMaxAndArgmax:
         x = matrix()
         cost = argmax(x, axis=0).sum()
         gx = grad(cost, x)
-        val = get_scalar_constant_value(gx)
+        val = get_constant_value(gx)
         assert val == 0.0
 
     def test_grad(self):

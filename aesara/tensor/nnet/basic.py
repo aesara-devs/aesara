@@ -37,7 +37,6 @@ from aesara.tensor.basic_opt import (
     register_stabilize,
 )
 from aesara.tensor.elemwise import DimShuffle, Elemwise
-from aesara.tensor.exceptions import NotScalarConstantError
 from aesara.tensor.math import (
     MaxAndArgmax,
     Sum,
@@ -2054,9 +2053,8 @@ def _check_rows_is_arange_len_labels(fgraph, rows, labels):
 
 
 def _is_const(z, val, approx=False):
-    try:
-        maybe = at.get_scalar_constant_value(z)
-    except NotScalarConstantError:
+    maybe = at.get_constant_value(z)
+    if maybe is None:
         return False
     if approx:
         return np.allclose(maybe, val)

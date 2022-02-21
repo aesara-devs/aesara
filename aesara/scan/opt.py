@@ -40,9 +40,8 @@ from aesara.scan.utils import (
     scan_can_remove_outs,
 )
 from aesara.tensor import basic_opt, math_opt
-from aesara.tensor.basic import Alloc, AllocEmpty, get_scalar_constant_value
+from aesara.tensor.basic import Alloc, AllocEmpty, get_constant_value
 from aesara.tensor.elemwise import DimShuffle, Elemwise
-from aesara.tensor.exceptions import NotScalarConstantError
 from aesara.tensor.math import Dot, dot, maximum, minimum
 from aesara.tensor.shape import shape
 from aesara.tensor.subtensor import (
@@ -656,7 +655,7 @@ def inner_sitsot_only_last_step_used(
         client = fgraph.clients[outer_var][0][0]
         if client != "output" and isinstance(client.op, Subtensor):
             lst = get_idx_list(client.inputs, client.op.idx_list)
-            if len(lst) == 1 and at.extract_constant(lst[0]) == -1:
+            if len(lst) == 1 and at.get_constant_value(lst[0]) == -1:
                 return True
 
     return False
@@ -1241,9 +1240,9 @@ def save_mem_new_scan(fgraph, node):
                 if isinstance(this_slice[0], slice) and this_slice[0].stop is None:
                     global_nsteps = None
                 if isinstance(cf_slice[0], slice):
-                    stop = at.extract_constant(cf_slice[0].stop)
+                    stop = at.get_constant_value(cf_slice[0].stop)
                 else:
-                    stop = at.extract_constant(cf_slice[0]) + 1
+                    stop = at.get_constant_value(cf_slice[0]) + 1
                 if stop == maxsize or stop == length:
                     stop = None
                 else:
@@ -1337,9 +1336,9 @@ def save_mem_new_scan(fgraph, node):
                 cf_slice = get_canonical_form_slice(this_slice[0], length)
 
                 if isinstance(cf_slice[0], slice):
-                    start = at.extract_constant(cf_slice[0].start)
+                    start = at.get_constant_value(cf_slice[0].start)
                 else:
-                    start = at.extract_constant(cf_slice[0])
+                    start = at.get_constant_value(cf_slice[0])
                 if start == 0 or store_steps[i] == 0:
                     store_steps[i] = 0
                 else:
@@ -1505,7 +1504,7 @@ def save_mem_new_scan(fgraph, node):
         # 3.6 Compose the new scan
         # TODO: currently we don't support scan with 0 step. So
         # don't create one.
-        if at.extract_constant(node_ins[0]) == 0:
+        if at.get_constant_value(node_ins[0]) == 0:
             return False
 
         # Do not call make_node for test_value
@@ -1840,16 +1839,10 @@ class ScanMerge(GlobalOptimizer):
             return False
 
         nsteps = node.inputs[0]
-        try:
-            nsteps = int(get_scalar_constant_value(nsteps))
-        except NotScalarConstantError:
-            pass
+        nsteps = get_constant_value(nsteps)
 
         rep_nsteps = rep.inputs[0]
-        try:
-            rep_nsteps = int(get_scalar_constant_value(rep_nsteps))
-        except NotScalarConstantError:
-            pass
+        rep_nsteps = get_constant_value(rep_nsteps)
 
         if nsteps != rep_nsteps:
             return False

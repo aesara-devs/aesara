@@ -373,7 +373,7 @@ class mrg_uniform(COp, mrg_uniform_base):
         # call through MRG_RandomStream instead.
         broad = []
         for i in range(self.output_type.ndim):
-            broad.append(at.extract_constant(size[i]) == 1)
+            broad.append(at.get_constant_value(size[i]) == 1)
         output_type = self.output_type.clone(shape=broad)()
         rstate = as_tensor_variable(rstate)
         size = as_tensor_variable(size)

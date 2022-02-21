@@ -24,8 +24,7 @@ from aesara.gpuarray.type import GpuArrayType
 from aesara.graph.basic import Apply
 from aesara.graph.op import _NoPythonOp
 from aesara.scalar import as_scalar
-from aesara.tensor.basic import get_scalar_constant_value
-from aesara.tensor.exceptions import NotScalarConstantError
+from aesara.tensor.basic import get_constant_value
 
 
 class GPUAMultinomialFromUniform(GpuKernelBaseCOp, _NoPythonOp):
@@ -505,11 +504,10 @@ def local_gpua_multinomial(op, context_name, inputs, outputs):
         n_samples = 1
     else:
         p, u, n_samples = inputs
-    try:
-        if get_scalar_constant_value(n_samples) != 1:
-            return None
-    except NotScalarConstantError:
+    n_samples = get_constant_value(n_samples)
+    if n_samples != 1:
         return None
+
     (m,) = outputs
     gpu_op = GPUAMultinomialFromUniform(op.odtype)
     return GpuDimShuffle([False, False], [1, 0])(gpu_op(p, u))

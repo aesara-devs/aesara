@@ -24,7 +24,7 @@ from aesara.graph.fg import FunctionGraph
 from aesara.graph.op import get_test_value
 from aesara.graph.opt import TopoOptimizer, local_optimizer
 from aesara.graph.utils import TestValueError
-from aesara.tensor.basic import AllocEmpty, get_scalar_constant_value
+from aesara.tensor.basic import AllocEmpty, get_constant_value
 from aesara.tensor.subtensor import set_subtensor
 from aesara.tensor.var import TensorConstant
 
@@ -577,7 +577,7 @@ def isNaN_or_Inf_or_None(x):
         isStr = False
     if not isNaN and not isInf:
         try:
-            val = get_scalar_constant_value(x)
+            val = get_constant_value(x)
             isInf = np.isinf(val)
             isNaN = np.isnan(val)
         except Exception:

@@ -12,7 +12,7 @@ from aesara.scalar import ScalarVariable
 from aesara.tensor.basic import (
     as_tensor_variable,
     constant,
-    get_scalar_constant_value,
+    get_constant_value,
     get_vector_length,
     infer_broadcastable,
 )
@@ -284,7 +284,7 @@ class RandomVariable(Op):
         try:
             size_len = get_vector_length(size)
         except ValueError:
-            size_len = get_scalar_constant_value(size_shape[0])
+            size_len = get_constant_value(size_shape[0])
 
         size = tuple(size[n] for n in range(size_len))
 

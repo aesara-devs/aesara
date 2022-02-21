@@ -15,9 +15,8 @@ from aesara.gpuarray.type import GpuArrayType, get_context, move_to_gpu
 from aesara.graph.basic import Constant
 from aesara.graph.op import Op
 from aesara.graph.opt import copy_stack_trace, inherit_stack_trace, local_optimizer
-from aesara.tensor.basic import as_tensor, cast, get_scalar_constant_value, join
+from aesara.tensor.basic import as_tensor, cast, get_constant_value, join
 from aesara.tensor.elemwise import DimShuffle
-from aesara.tensor.exceptions import NotScalarConstantError
 from aesara.tensor.math import prod
 from aesara.tensor.shape import shape_padright
 from aesara.tensor.type import TensorType
@@ -119,11 +118,9 @@ def is_equal(var, val):
         Python value
 
     """
-    try:
-        v = get_scalar_constant_value(var)
-        return v == val
-    except NotScalarConstantError:
-        return False
+
+    v = get_constant_value(var)
+    return v == val
 
 
 def alpha_merge(cls, alpha_in, beta_in):
@@ -199,20 +196,18 @@ def alpha_merge(cls, alpha_in, beta_in):
                 if lr is None or lr.dtype != targ.outputs[0].dtype:
                     return None
                 inputs = list(targ.inputs)
-                try:
-                    c = get_scalar_constant_value(lr)
-                    if c == 0:
-                        inputs[alpha_in] = lr
-                        inputs[beta_in] = lr
-                    elif c == 1:
-                        inputs[alpha_in] = targ.inputs[alpha_in]
-                        inputs[beta_in] = targ.inputs[beta_in]
-                    else:
-                        inputs[alpha_in] = lr * targ.inputs[alpha_in]
-                        inputs[beta_in] = lr * targ.inputs[beta_in]
-                except NotScalarConstantError:
+
+                c = get_constant_value(lr)
+                if c == 0:
+                    inputs[alpha_in] = lr
+                    inputs[beta_in] = lr
+                elif c == 1:
+                    inputs[alpha_in] = targ.inputs[alpha_in]
+                    inputs[beta_in] = targ.inputs[beta_in]
+                else:
                     inputs[alpha_in] = lr * targ.inputs[alpha_in]
                     inputs[beta_in] = lr * targ.inputs[beta_in]
+
                 with inherit_stack_trace(node.outputs):
                     return maker(targ, *inputs)
 

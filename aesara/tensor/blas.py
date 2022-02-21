@@ -165,7 +165,6 @@ from aesara.tensor import basic as at
 from aesara.tensor.basic_opt import local_dimshuffle_lift
 from aesara.tensor.blas_headers import blas_header_text, blas_header_version
 from aesara.tensor.elemwise import DimShuffle, Elemwise
-from aesara.tensor.exceptions import NotScalarConstantError
 from aesara.tensor.math import Dot, add, mul, neg, sub
 from aesara.tensor.type import integer_dtypes, tensor, values_eq_approx_remove_inf_nan
 from aesara.utils import memoize
@@ -1730,9 +1729,8 @@ def local_gemm_to_ger(fgraph, node):
                 # x and y are both vectors so this might qualifies for a GER
                 xv = x.dimshuffle(0)
                 yv = y.dimshuffle(1)
-                try:
-                    bval = at.get_scalar_constant_value(b)
-                except NotScalarConstantError:
+                bval = at.get_constant_value(b)
+                if bval is None:
                     # b isn't a constant, GEMM is doing useful pre-scaling
                     return
 

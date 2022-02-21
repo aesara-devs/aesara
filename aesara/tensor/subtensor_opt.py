@@ -19,8 +19,7 @@ from aesara.tensor.basic import (
     alloc,
     as_tensor,
     cast,
-    extract_constant,
-    get_scalar_constant_value,
+    get_constant_value,
     patternbroadcast,
     switch,
 )
@@ -30,7 +29,6 @@ from aesara.tensor.basic_opt import (
     register_stabilize,
 )
 from aesara.tensor.elemwise import Elemwise
-from aesara.tensor.exceptions import NotScalarConstantError
 from aesara.tensor.math import Dot, add
 from aesara.tensor.math import all as at_all
 from aesara.tensor.math import (
@@ -339,10 +337,7 @@ def local_useless_slice(fgraph, node):
                 isinstance(s, slice)
                 and s.start is None
                 and s.stop is None
-                and (
-                    s.step is None
-                    or extract_constant(s.step, only_process_constants=True) == 1
-                )
+                and (s.step is None or get_constant_value(s.step) == 1)
             ):
                 last_slice -= 1
             else:
@@ -751,15 +746,10 @@ def local_subtensor_make_vector(fgraph, node):
         return [x.owner.inputs[idx]]
     elif isinstance(idx, Variable):
         if idx.ndim == 0:
-            try:
-                v = get_scalar_constant_value(idx, only_process_constants=True)
-                try:
-                    ret = [x.owner.inputs[v]]
-                except IndexError:
-                    raise NotScalarConstantError("Bad user graph!")
+            v = get_constant_value(idx)
+            if v is not None:
+                ret = [x.owner.inputs[v]]
                 return ret
-            except NotScalarConstantError:
-                pass
         elif idx.ndim == 1 and isinstance(idx, Constant):
             values = list(map(int, list(idx.value)))
             ret = make_vector_op(*[x.owner.inputs[v] for v in values])
@@ -769,16 +759,13 @@ def local_subtensor_make_vector(fgraph, node):
     elif isinstance(idx, slice):
         # The index is a slice.  If it's a constant slice, we can perform the
         # index operation here.
-        try:
-            const_slice = get_constant_idx(
-                node.op.idx_list, node.inputs, allow_partial=False
-            )[0]
-            ret = make_vector_op(*x.owner.inputs[const_slice])
-            copy_stack_trace(node.outputs, ret)
-            ret = patternbroadcast(ret, node.outputs[0].broadcastable)
-            return [ret]
-        except NotScalarConstantError:
-            pass
+        const_slice = get_constant_idx(
+            node.op.idx_list, node.inputs, allow_partial=False
+        )[0]
+        ret = make_vector_op(*x.owner.inputs[const_slice])
+        copy_stack_trace(node.outputs, ret)
+        ret = patternbroadcast(ret, node.outputs[0].broadcastable)
+        return [ret]
 
 
 @register_useless
@@ -805,11 +792,8 @@ def local_useless_inc_subtensor(fgraph, node):
     if node.op.set_instead_of_inc is False:
         # This is an increment operation, so the array being incremented must
         # consist of all zeros in order for the entire operation to be useless
-        try:
-            c = get_scalar_constant_value(x)
-            if c != 0:
-                return
-        except NotScalarConstantError:
+        c = get_constant_value(x)
+        if c != 0:
             return
 
     idx_cst = indices_from_subtensor(list(index_inputs), node.op.idx_list)
@@ -822,10 +806,7 @@ def local_useless_inc_subtensor(fgraph, node):
         isinstance(e, slice)
         and e.start is None
         and e.stop is None
-        and (
-            e.step is None
-            or extract_constant(e.step, only_process_constants=True) == -1
-        )
+        and (e.step is None or get_constant_value(e.step) == -1)
         for e in idx_cst
     ):
 
@@ -934,12 +915,7 @@ def local_useless_subtensor(fgraph, node):
 
             if isinstance(idx.stop, (int, np.integer)):
                 length_pos_data = sys.maxsize
-                try:
-                    length_pos_data = get_scalar_constant_value(
-                        length_pos, only_process_constants=True
-                    )
-                except NotScalarConstantError:
-                    pass
+                length_pos_data = get_constant_value(length_pos)
 
                 if idx.stop < length_pos_data:
                     return False
@@ -981,11 +957,9 @@ def local_useless_subtensor(fgraph, node):
                 return False
     elif isinstance(node.op, AdvancedSubtensor1):
         # get length of the indexed tensor along the first axis
-        try:
-            length = get_scalar_constant_value(
-                shape_of[node.inputs[0]][0], only_process_constants=True
-            )
-        except NotScalarConstantError:
+
+        length = get_constant_value(shape_of[node.inputs[0]][0])
+        if length is None:
             return False
 
         # get index (which must be a vector by definition)
@@ -1000,12 +974,11 @@ def local_useless_subtensor(fgraph, node):
             if np.any(idx != np.arange(length)):
                 return False
         elif idx.owner is not None and isinstance(idx.owner.op, ARange):
-            try:
-                start, stop, step = map(
-                    lambda x: get_scalar_constant_value(x, only_process_constants=True),
-                    idx.owner.inputs,
-                )
-            except NotScalarConstantError:
+            start, stop, step = map(
+                lambda x: get_constant_value(x),
+                idx.owner.inputs,
+            )
+            if None in [start, stop, step]:
                 return False
 
             if start != 0:
@@ -1334,15 +1307,12 @@ def local_incsubtensor_of_zeros(fgraph, node):
     ):
         x = node.inputs[0]
         y = node.inputs[1]
-        try:
-            # Don't use only_process_constants=True. We need to
-            # investigate Alloc of 0s but with non constant shape.
-            if get_scalar_constant_value(y, elemwise=False) == 0:
-                # No need to copy over the stacktrace,
-                # because x should already have a stacktrace
-                return [x]
-        except NotScalarConstantError:
-            return
+        # Don't use only_process_constants=True. We need to
+        # investigate Alloc of 0s but with non constant shape.
+        if get_constant_value(y) == 0:
+            # No need to copy over the stacktrace,
+            # because x should already have a stacktrace
+            return [x]
 
 
 @register_canonicalize
@@ -1382,18 +1352,10 @@ def local_setsubtensor_of_constants(fgraph, node):
 
         # Don't use only_process_constants=True. We need to
         # investigate Alloc of 0s but with non constant shape.
-        try:
-            replace_x = get_scalar_constant_value(x, elemwise=False)
-        except NotScalarConstantError:
-            return
-
-        try:
-            replace_y = get_scalar_constant_value(y, elemwise=False)
-        except NotScalarConstantError:
-            return
+        replace_x = get_constant_value(x)
+        replace_y = get_constant_value(y)
 
         if replace_x == replace_y:
-
             # No need to copy over the stacktrace,
             # because x should already have a stacktrace
             return [x]
@@ -1438,7 +1400,7 @@ def local_adv_sub1_adv_inc_sub1(fgraph, node):
         and
         # Don't use only_process_constants=True. We need to
         # investigate Alloc of 0s but with non constant shape.
-        extract_constant(x, elemwise=False) != 0
+        get_constant_value(x, elemwise=False) != 0
     ):
         return
 
@@ -1610,9 +1572,8 @@ def local_subtensor_shape_constant(fgraph, node):
 
     (idx,) = get_idx_list(node.inputs, node.op.idx_list)
 
-    try:
-        idx_val = as_index_literal(idx)
-    except NotScalarConstantError:
+    idx_val = as_index_literal(idx)
+    if idx_val is None:
         return False
 
     assert idx_val != np.newaxis

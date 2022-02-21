@@ -454,7 +454,7 @@ class Pool(OpenMPOp):
         if pad is None:
             pad = (0,) * ndim
         patch_shape = tuple(
-            at.extract_constant(imgshape[-ndim + i]) + pad[i] * 2 for i in range(ndim)
+            at.get_constant_value(imgshape[-ndim + i]) + pad[i] * 2 for i in range(ndim)
         )
 
         def compute_out(v, downsample, stride):
@@ -1097,7 +1097,7 @@ class PoolGrad(OpenMPOp):
         if pad is None:
             pad = (0,) * ndim
         patch_shape = tuple(
-            at.extract_constant(imgshape[-ndim + i]) + pad[i] * 2 for i in range(ndim)
+            at.get_constant_value(imgshape[-ndim + i]) + pad[i] * 2 for i in range(ndim)
         )
 
         def compute_out(v, downsample, stride):

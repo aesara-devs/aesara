@@ -4,7 +4,6 @@ Abstract conv interface
 
 
 import logging
-import sys
 
 
 try:
@@ -30,12 +29,7 @@ from aesara.configdefaults import config
 from aesara.graph.basic import Apply, Variable
 from aesara.graph.op import Op
 from aesara.raise_op import Assert
-from aesara.tensor.basic import (
-    as_tensor_variable,
-    get_scalar_constant_value,
-    patternbroadcast,
-)
-from aesara.tensor.exceptions import NotScalarConstantError
+from aesara.tensor.basic import as_tensor_variable, get_constant_value, patternbroadcast
 from aesara.tensor.var import TensorConstant, TensorVariable
 
 
@@ -505,11 +499,12 @@ def check_conv_gradinputs_shape(
     def check_dim(given, computed):
         if given is None or computed is None:
             return True
-        try:
-            given = get_scalar_constant_value(given)
-            computed = get_scalar_constant_value(computed)
+
+        given = get_constant_value(given)
+        computed = get_constant_value(computed)
+        if given is not None and computed is not None:
             return int(given) == int(computed)
-        except NotScalarConstantError:
+        else:
             # no answer possible, accept for now
             return True
 
@@ -542,8 +537,8 @@ def assert_conv_shape(shape):
     """
     out_shape = []
     for i, n in enumerate(shape):
-        try:
-            const_n = get_scalar_constant_value(n)
+        const_n = get_constant_value(n)
+        if const_n is not None:
             if i < 2:
                 if const_n < 0:
                     raise ValueError(
@@ -555,7 +550,7 @@ def assert_conv_shape(shape):
                         f"The convolution would produce an invalid shape (dim[{int(i)}]: {int(const_n)}< 0)."
                     )
             out_shape.append(n)
-        except NotScalarConstantError:
+        else:
             if i < 2:
                 assert_shp = Assert(
                     f"The convolution would produce an invalid shape (dim[{int(i)}] < 0)."
@@ -2265,25 +2260,12 @@ class BaseAbstractConv(Op):
         for imshp_i in self.imshp:
             if imshp_i is not None:
                 # Components of imshp should be constant or ints
-                try:
-                    get_scalar_constant_value(imshp_i, only_process_constants=True)
-                except NotScalarConstantError:
-                    raise ValueError(
-                        "imshp should be None or a tuple of " "constant int values"
-                    ).with_traceback(sys.exc_info()[2])
+                get_constant_value(imshp_i)
         if kshp:
             self.kshp = tuple(kshp)
         else:
             self.kshp = (None,) * ((2 + 2 * convdim) if unshared else (2 + convdim))
-        for kshp_i in self.kshp:
-            if kshp_i is not None:
-                # Components of kshp should be constant or ints
-                try:
-                    get_scalar_constant_value(kshp_i, only_process_constants=True)
-                except NotScalarConstantError:
-                    raise ValueError(
-                        "kshp should be None or a tuple of " "constant int values"
-                    ).with_traceback(sys.exc_info()[2])
+
         self.border_mode = border_mode
         self.filter_flip = filter_flip
 

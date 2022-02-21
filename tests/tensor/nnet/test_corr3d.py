@@ -48,10 +48,10 @@ class TestCorr3D(utt.InferShapeTester):
             pytest.skip("Need cxx for this test")
 
         N_image_shape = [
-            at.get_scalar_constant_value(at.as_tensor_variable(x)) for x in image_shape
+            at.get_constant_value(at.as_tensor_variable(x)) for x in image_shape
         ]
         N_filter_shape = [
-            at.get_scalar_constant_value(at.as_tensor_variable(x)) for x in filter_shape
+            at.get_constant_value(at.as_tensor_variable(x)) for x in filter_shape
         ]
 
         if input is None:

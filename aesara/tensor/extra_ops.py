@@ -20,7 +20,6 @@ from aesara.scalar import int32 as int_t
 from aesara.scalar import upcast
 from aesara.tensor import basic as at
 from aesara.tensor import get_vector_length
-from aesara.tensor.exceptions import NotScalarConstantError
 from aesara.tensor.math import abs as at_abs
 from aesara.tensor.math import all as at_all
 from aesara.tensor.math import eq, ge, lt
@@ -687,11 +686,9 @@ class Repeat(Op):
         if self.axis is None:
             broadcastable = [False]
         else:
-            try:
-                const_reps = at.get_scalar_constant_value(repeats)
-            except NotScalarConstantError:
-                const_reps = None
-            if const_reps == 1:
+            const_reps = at.get_constant_value(repeats)
+
+            if const_reps.ndim == 0 and const_reps == 1:
                 broadcastable = x.broadcastable
             else:
                 broadcastable = list(x.broadcastable)
