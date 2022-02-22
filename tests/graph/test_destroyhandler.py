@@ -5,7 +5,7 @@ import pytest
 
 from aesara.configdefaults import config
 from aesara.graph.basic import Apply, Constant, Variable, clone
-from aesara.graph.destroyhandler import DestroyHandler
+from aesara.graph.destroyhandler import DestroyHandler, fast_inplace_check
 from aesara.graph.features import ReplaceValidate
 from aesara.graph.fg import FunctionGraph
 from aesara.graph.op import Op
@@ -122,9 +122,9 @@ def inputs():
     return x, y, z
 
 
-def create_fgraph(inputs, outputs, validate=True):
+def create_fgraph(inputs, outputs, validate=True, algo=None):
     e = FunctionGraph(inputs, outputs, clone=False)
-    e.attach_feature(DestroyHandler())
+    e.attach_feature(DestroyHandler(algo=algo))
     e.attach_feature(ReplaceValidate())
     if validate:
         e.validate()
@@ -145,14 +145,22 @@ def test_misc():
     e = transpose_view(transpose_view(transpose_view(transpose_view(x))))
     g = create_fgraph([x, y, z], [e])
     assert g.consistent()
+
     OpKeyPatternNodeRewriter((transpose_view, (transpose_view, "x")), "x").rewrite(g)
+
     assert str(g) == "FunctionGraph(x)"
+
     new_e = add(x, y)
     g.replace_validate(x, new_e)
     assert str(g) == "FunctionGraph(Add(x, y))"
+
     g.replace(new_e, dot(add_in_place(x, y), transpose_view(x)))
     assert str(g) == "FunctionGraph(Dot(AddInPlace(x, y), TransposeView(x)))"
     assert not g.consistent()
+
+    (dh,) = [f for f in g._features if isinstance(f, DestroyHandler)]
+    g.remove_feature(dh)
+    assert not hasattr(g, "destroyers")
 
 
 @assertFailure_fast
@@ -174,14 +182,15 @@ def test_aliased_inputs_replacement():
     assert g.consistent()
 
 
-def test_indestructible():
+@pytest.mark.parametrize("algo", [None, "fast"])
+def test_indestructible(algo):
     x, y, z = inputs()
     x.tag.indestructible = True
     x = copy(x)
     # checking if indestructible survives the copy!
     assert x.tag.indestructible
     e = add_in_place(x, y)
-    g = create_fgraph([x, y, z], [e], False)
+    g = create_fgraph([x, y, z], [e], False, algo=algo)
     assert not g.consistent()
     g.replace_validate(e, add(x, y))
     assert g.consistent()
@@ -475,3 +484,33 @@ def test_pickle():
 
     assert any(isinstance(ft, DestroyHandler) for ft in fg_unpkld._features)
     assert all(hasattr(fg, attr) for attr in ("_destroyhandler_destroyers",))
+
+
+def test_fast_inplace_check():
+
+    x, y = MyVariable("x"), MyVariable("y")
+    e = add_in_place(x, y)
+    fg = FunctionGraph(outputs=[e], clone=False)
+    fg.attach_feature(DestroyHandler())
+
+    res = fast_inplace_check(fg, fg.inputs)
+    assert res == [y]
+
+
+def test_fast_destroy():
+    """Make sure `DestroyHandler.fast_destroy` catches basic inconsistencies."""
+    x, y, z = MyVariable("x"), MyVariable("y"), MyVariable("z")
+
+    w = add_in_place(x, dot(y, x))
+    with pytest.raises(InconsistencyError):
+        create_fgraph([x, y], [w], algo="fast")
+
+    w = add_in_place(x, y)
+    w = add_in_place(w, z)
+    with pytest.raises(InconsistencyError):
+        create_fgraph([x, y, z], [w], algo="fast")
+
+    w = transpose_view(x)
+    w = add_in_place(w, y)
+    with pytest.raises(InconsistencyError):
+        create_fgraph([x, y], [w], algo="fast")
