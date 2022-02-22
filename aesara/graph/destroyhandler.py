@@ -502,7 +502,7 @@ class DestroyHandler(Bookkeeper):
                 )
             elif len(fgraph.clients[inp]) > 1:
                 fgraph.fail_validate[app] = InconsistencyError(
-                    "Destroyed variable has more than one client. " + str(reason)
+                    f"Destroyed variable has more than one client. {reason}"
                 )
             elif inp.owner:
                 app2 = inp.owner
@@ -513,13 +513,13 @@ class DestroyHandler(Bookkeeper):
                     v = v.get(inp_idx2, [])
                     if len(v) > 0:
                         fgraph.fail_validate[app] = InconsistencyError(
-                            "Destroyed variable has view_map. " + str(reason)
+                            f"Destroyed variable has view_map. {reason}"
                         )
                 elif d:
                     d = d.get(inp_idx2, [])
                     if len(d) > 0:
                         fgraph.fail_validate[app] = InconsistencyError(
-                            "Destroyed variable has destroy_map. " + str(reason)
+                            f"Destroyed variable has destroy_map. {reason}"
                         )
 
                 # These 2 assertions are commented since this function is called so many times
