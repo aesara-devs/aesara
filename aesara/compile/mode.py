@@ -137,9 +137,7 @@ class AddDestroyHandler(GlobalOptimizer):
                 break
         if not supervisor_added:
             warnings.warn(
-                "Supervisor is not added. Please build a FunctionGraph"
-                "via aesara.compile.function.types.std_graph()"
-                "or add the Supervisor class manually.",
+                f"A Supervisor feature is missing from {fgraph}.",
                 stacklevel=3,
             )
 
