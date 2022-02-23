@@ -347,24 +347,12 @@ class DestroyHandler(Bookkeeper):  # noqa
 
         """
 
-        # Do the checking #
-        already_there = False
-        if self.fgraph is fgraph:
-            already_there = True
-        if self.fgraph is not None:
-            raise Exception(
-                "A DestroyHandler instance can only serve one"
-                " FunctionGraph. (Matthew 6:24)"
-            )
-        for attr in ("destroyers", "destroy_handler"):
-            if hasattr(fgraph, attr):
-                already_there = True
+        if any(hasattr(fgraph, attr) for attr in ("destroyers", "destroy_handler")):
+            raise AlreadyThere("DestroyHandler feature is already present")
 
-        if already_there:
-            # FunctionGraph.attach_feature catches AlreadyThere and cancels the attachment
-            raise AlreadyThere(
-                "DestroyHandler feature is already present"
-                " or in conflict with another plugin."
+        if self.fgraph is not None and self.fgraph != fgraph:
+            raise Exception(
+                "A DestroyHandler instance can only serve one FunctionGraph"
             )
 
         # Annotate the FunctionGraph #

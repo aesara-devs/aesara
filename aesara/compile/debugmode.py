@@ -31,7 +31,7 @@ from aesara.compile.ops import OutputGuard, _output_guard
 from aesara.configdefaults import config
 from aesara.graph.basic import Variable, io_toposort
 from aesara.graph.destroyhandler import DestroyHandler
-from aesara.graph.features import BadOptimization
+from aesara.graph.features import AlreadyThere, BadOptimization
 from aesara.graph.op import HasInnerGraph, Op
 from aesara.graph.utils import InconsistencyError, MethodNotDefined
 from aesara.link.basic import Container, LocalLinker
@@ -1206,7 +1206,9 @@ class _VariableEquivalenceTracker:
         self.fgraph = None
 
     def on_attach(self, fgraph):
-        assert self.fgraph is None
+        if self.fgraph is not None:
+            raise AlreadyThere()
+
         self.equiv = {}
         self.active_nodes = set()
         self.inactive_nodes = set()
