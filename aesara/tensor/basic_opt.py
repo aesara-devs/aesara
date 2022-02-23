@@ -1229,13 +1229,13 @@ class ShapeFeature(features.Feature):
 
     def on_attach(self, fgraph):
 
-        if getattr(self, "fgraph", None):
-            raise ValueError("This ShapeFeature is already attached to a graph")
+        if hasattr(fgraph, "shape_feature"):
+            raise features.AlreadyThere("This FunctionGraph already has a ShapeFeature")
+
+        if hasattr(self, "fgraph") and self.fgraph != fgraph:
+            raise Exception("This ShapeFeature is already attached to a graph")
 
         self.fgraph = fgraph
-
-        if hasattr(fgraph, "shape_feature"):
-            raise ValueError("This FunctionGraph already has a ShapeFeature")
 
         fgraph.shape_feature = self
         # Must be local to the object as otherwise we reuse the same

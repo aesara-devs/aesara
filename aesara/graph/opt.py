@@ -31,7 +31,7 @@ from aesara.graph.basic import (
     io_toposort,
     vars_between,
 )
-from aesara.graph.features import Feature, NodeFinder
+from aesara.graph.features import AlreadyThere, Feature, NodeFinder
 from aesara.graph.fg import FunctionGraph
 from aesara.graph.op import Op
 from aesara.graph.utils import AssocList, InconsistencyError
@@ -496,7 +496,9 @@ class MergeFeature(Feature):
     """
 
     def on_attach(self, fgraph):
-        assert not hasattr(fgraph, "merge_feature")
+        if hasattr(fgraph, "merge_feature"):
+            raise AlreadyThere()
+
         fgraph.merge_feature = self
 
         self.seen_atomics = set()
@@ -2111,6 +2113,8 @@ class ChangeTracker(Feature):
         self.changed = False
 
     def on_attach(self, fgraph):
+        if hasattr(fgraph, "change_tracker"):
+            raise AlreadyThere()
         fgraph.change_tracker = self
 
     def on_detach(self, fgraph):

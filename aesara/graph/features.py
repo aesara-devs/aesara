@@ -641,14 +641,10 @@ class NodeFinder(Bookkeeper):
         self.d = {}
 
     def on_attach(self, fgraph):
-        if self.fgraph is not None:
-            raise Exception(
-                "A NodeFinder instance can only serve one " "FunctionGraph."
-            )
         if hasattr(fgraph, "get_nodes"):
-            raise AlreadyThere(
-                "NodeFinder is already present or in conflict" " with another plugin."
-            )
+            raise AlreadyThere("NodeFinder is already present")
+        if self.fgraph is not None and self.fgraph != fgraph:
+            raise Exception("A NodeFinder instance can only serve one FunctionGraph.")
         self.fgraph = fgraph
         fgraph.get_nodes = partial(self.query, fgraph)
         Bookkeeper.on_attach(self, fgraph)
