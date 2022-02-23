@@ -276,7 +276,7 @@ class SeqOptimizer(GlobalOptimizer, UserList):
                 try:
                     nb_nodes_before = len(fgraph.apply_nodes)
                     t0 = time.time()
-                    sub_prof = optimizer.optimize(fgraph)
+                    sub_prof = optimizer.apply(fgraph)
                     l.append(float(time.time() - t0))
                     sub_profs.append(sub_prof)
                     nb_nodes.append((nb_nodes_before, len(fgraph.apply_nodes)))
@@ -323,6 +323,10 @@ class SeqOptimizer(GlobalOptimizer, UserList):
 
     def __repr__(self):
         return f"SeqOpt({self.data})"
+
+    def add_requirements(self, fgraph):
+        for opt in self.data:
+            opt.add_requirements(fgraph)
 
     def print_summary(self, stream=sys.stdout, level=0, depth=-1):
         name = getattr(self, "name", None)
