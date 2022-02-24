@@ -633,6 +633,11 @@ class TestCAReduce(unittest_tools.InferShapeTester):
         op = CAReduceDtype(aes.add, axis=(1,), acc_dtype="float64")
         assert str(op) == "CAReduceDtype{add}{axis=[1], acc_dtype=float64}"
 
+    def test_repeated_axis(self):
+        x = vector("x")
+        with pytest.raises(ValueError, match="repeated axis"):
+            self.op(aes.add, axis=(0, 0))(x)
+
 
 class TestBitOpReduceGrad:
     def setup_method(self):
