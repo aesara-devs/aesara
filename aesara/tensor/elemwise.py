@@ -1298,21 +1298,13 @@ class CAReduce(COp):
         inp_dims = input.type.ndim
         inp_bdcast = input.type.broadcastable
         inp_dtype = input.type.dtype
-        copy_op = False
 
         axis = self.axis
         if axis is None:
-            axis = list(range(len(inp_bdcast)))
+            axis = list(range(inp_dims))
 
-        axis = list(axis)
-        for i, a in enumerate(axis):
-            if a >= inp_dims or a < -inp_dims:
-                raise ValueError(
-                    f"Not enough dimensions on {input} to reduce on axis {a}"
-                )
-            if a < 0:
-                copy_op = True
-                axis[i] = a + inp_dims
+        copy_op = any(a < 0 for a in axis)
+        axis = np.core.numeric.normalize_axis_tuple(axis, ndim=inp_dims)
 
         # We can't call self.__class__() as there is a class that
         # inherits from CAReduce that doesn't have the same signature
