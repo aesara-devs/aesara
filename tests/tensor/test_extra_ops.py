@@ -435,6 +435,19 @@ class TestSqueeze(utt.InferShapeTester):
 
         assert res.broadcastable == (False, False)
 
+        variable = TensorType(config.floatX, [True, False, True, False, True])()
+        res = squeeze(variable, axis=(0, -1))
+
+        assert res.broadcastable == (False, True, False)
+
+    def test_invalid_axis(self):
+        # Test that trying to squeeze a non broadcastable dimension raises error
+        variable = TensorType(config.floatX, [True, False])()
+        with pytest.raises(
+            ValueError, match="Cannot drop a non-broadcastable dimension"
+        ):
+            squeeze(variable, axis=1)
+
 
 class TestCompress(utt.InferShapeTester):
     axis_list = [None, -1, 0, 0, 0, 1]

@@ -603,7 +603,7 @@ def bincount(x, weights=None, minlength=None, assert_nonneg=False):
 
 def squeeze(x, axis=None):
     """
-    Remove broadcastable dimensions from the shape of an array.
+    Remove broadcastable (length 1) dimensions from the shape of an array.
 
     It returns the input array, but with the broadcastable dimensions
     removed. This is always `x` itself or a view into `x`.
@@ -615,24 +615,34 @@ def squeeze(x, axis=None):
     x :
         Input data, tensor variable.
     axis : None or int or tuple of ints, optional
-        Selects a subset of the single-dimensional entries in the
-        shape. If an axis is selected with shape entry greater than
-        one, an error is raised.
+        Selects a subset of broadcastable dimensions to be removed.
+        If a non broadcastable dimension is selected, an error is raised.
+        If `axis` is ``None``, all broadcastable dimensions will be removed.
+
+    Notes
+    -----
+    The behavior can differ from that of NumPy in two ways:
+        1. If an axis is chosen for a dimension that is not known to be broadcastable
+        an error is raised, even if this dimension would be broadcastable when the
+        variable is evaluated.
+        2. Similarly, if `axis` is ``None``, only dimensions known to be broadcastable will be
+        removed, even if there are more dimensions that happen to be broadcastable when
+        the variable is evaluated.
 
     Returns
     -------
-    `x` without its broadcastable dimensions.
+    `x` without `axis` dimensions.
 
     """
     if axis is None:
-        axis = range(x.ndim)
+        # By default exclude all broadcastable (length=1) axes
+        axis = (i for i in range(x.ndim) if x.broadcastable[i])
     elif not isinstance(axis, Collection):
         axis = (axis,)
 
-    view = x.dimshuffle(
-        [i for i in range(x.ndim) if not x.broadcastable[i] or i not in axis]
-    )
-    return view
+    axis = np.core.numeric.normalize_axis_tuple(axis, ndim=x.ndim)
+
+    return x.dimshuffle([i for i in range(x.ndim) if i not in axis])
 
 
 def compress(condition, x, axis=None):
