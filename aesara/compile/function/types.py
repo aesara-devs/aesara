@@ -116,12 +116,14 @@ def fgraph_updated_vars(fgraph, expanded_inputs):
 
     """
     updated_vars = {}
-    potential_values = list(fgraph.outputs)  # copy the list
+
     if len(expanded_inputs) != len(fgraph.inputs):
         raise ValueError("expanded_inputs must match len(fgraph.inputs)")
-    for e_input, ivar in reversed(list(zip(expanded_inputs, fgraph.inputs))):
-        if e_input.update is not None:
-            updated_vars[ivar] = potential_values.pop()
+
+    for out_idx, in_idx in fgraph.update_mapping.items():
+        assert expanded_inputs[in_idx].update is not None
+        updated_vars[fgraph.inputs[in_idx]] = fgraph.outputs[out_idx]
+
     return updated_vars
 
 

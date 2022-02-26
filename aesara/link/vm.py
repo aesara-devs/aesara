@@ -801,12 +801,14 @@ class VMLinker(LocalLinker):
         return self
 
     def accept_var_updates(self, updated_vars):
+        """Records in the `Linker` which variables have update expressions.
+
+        It does not imply that the `Linker` will actually implement these updates
+        (see `need_update_inputs`).  This mechanism is admittedly confusing, and
+        it could use some cleaning up. The base `Linker` object should probably
+        go away completely.
+        """
         self.updated_vars = updated_vars
-        # This method simply records in the linker which variables have update
-        # expressions.  It does not imply that the linker will actually
-        # implement these updates (see need_update_inputs).  This mechanism is
-        # admittedly confusing, and it could use some cleaning up. The base
-        # Linker object should probably go away completely.
 
     def compute_gc_dependencies(self, variables):
         """
@@ -978,18 +980,14 @@ class VMLinker(LocalLinker):
                 prereq_var_idxs.sort()  # TODO: why sort?
                 node_prereqs.append(prereq_var_idxs)
 
-            # Builds the list of input storage to update (according to update
-            # rules) when the outputs are computed.
-            # They are in the same order as the second part of output_vars
-            # (output_vars contains first the returned outputs, then the
-            # values of the update expressions).
-            update_storage = []
-            update_in_from_out = {}
-            for (ivar, ovar) in updated_vars.items():
-                update_in_from_out[vars_idx[ovar]] = vars_idx[ivar]
-            for oidx in output_vars:
-                if oidx in update_in_from_out:
-                    update_storage.append(update_in_from_out[oidx])
+            # This is essentially a version of `self.fgraph.update_mapping`.
+            # It specifies the outputs-to-inputs updates via the pairs
+            # `(input_idx, output_idx)` (i.e. the input at index `input_idx`
+            # takes the value of the output at index `output_idx`).
+            update_storage = tuple(
+                (vars_idx[in_var], self.fgraph.outputs.index(out_var))
+                for in_var, out_var in updated_vars.items()
+            )
 
             # PyPy has no sys.getrefcount, so ignore this check if not running
             # under CPython.

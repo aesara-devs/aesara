@@ -16,7 +16,7 @@ from aesara.link.c.cmodule import GCC_compiler
 _logger = logging.getLogger(__file__)
 
 force_compile = False
-version = 0.211  # must match constant returned in function get_version()
+version = 0.212  # must match constant returned in function get_version()
 lazylinker_ext: Optional[ModuleType] = None
 
 
