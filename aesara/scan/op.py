@@ -877,7 +877,7 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
             mitsot_start = info.n_mit_mot_outs - len(self.preallocated_mitmot_outs)
             nitsot_end = mitsot_start + info.n_mit_sot + info.n_sit_sot + info.n_nit_sot
 
-            features.append(NoOutputFromInplace(mitsot_start, nitsot_end))
+            features.append(NoOutputFromInplace(range(mitsot_start, nitsot_end)))
 
         self.fgraph = FunctionGraph(
             inputs,

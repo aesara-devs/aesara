@@ -742,15 +742,20 @@ class PreserveVariableAttributes(Feature):
 class NoOutputFromInplace(Feature):
     """Prevent `FunctionGraph` outputs within a range from being altered in-place."""
 
-    def __init__(self, first_output_idx=0, last_output_idx=None):
-        self.first_idx = first_output_idx
-        self.last_idx = last_output_idx
+    def __init__(self, protected_out_ids):
+        self.protected_out_ids = tuple(protected_out_ids)
+
+    def on_attach(self, fgraph):
+        if hasattr(fgraph, "_no_output_from_inplace"):
+            raise AlreadyThere(f"InnerGraphWatcher is already attached to {fgraph}.")
+
+        fgraph._no_output_from_inplace = self
 
     def validate(self, fgraph):
         if not hasattr(fgraph, "destroyers"):
             return True
 
-        for out in fgraph.outputs[self.first_idx : self.last_idx]:
+        for out in tuple(fgraph.outputs[i] for i in self.protected_out_ids):
 
             node = out.owner
 
@@ -768,3 +773,5 @@ class NoOutputFromInplace(Feature):
                     f"operations. This has prevented the output {out} from "
                     "being computed by modifying another variable in-place."
                 )
+
+        return True
