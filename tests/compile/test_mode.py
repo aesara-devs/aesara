@@ -15,25 +15,30 @@ def test_Mode_basic():
     assert str(mode).startswith("Mode(linker=py, optimizer=OptimizationQuery")
 
 
-def test_no_output_from_implace():
+def test_NoOutputFromInplace():
     x = matrix()
     y = matrix()
     a = dot(x, y)
     b = tanh(a)
+    c = tanh(dot(2 * x, y))
 
     # Ensure that the elemwise op that produces the output is inplace when
     # using a mode that does not include the optimization
-    fct_no_opt = function([x, y], b, mode="FAST_RUN")
+    fct_no_opt = function([x, y], [b, c], mode="FAST_RUN")
     op = fct_no_opt.maker.fgraph.outputs[0].owner.op
+    assert op.destroy_map and 0 in op.destroy_map
+    op = fct_no_opt.maker.fgraph.outputs[1].owner.op
     assert op.destroy_map and 0 in op.destroy_map
 
     # Ensure that the elemwise op that produces the output is not inplace when
     # using a mode that includes the optimization
-    opt = AddFeatureOptimizer(NoOutputFromInplace())
+    opt = AddFeatureOptimizer(NoOutputFromInplace([1]))
     mode_opt = Mode(linker="py", optimizer="fast_run").register((opt, 49.9))
 
-    fct_opt = function([x, y], b, mode=mode_opt)
+    fct_opt = function([x, y], [b, c], mode=mode_opt)
     op = fct_opt.maker.fgraph.outputs[0].owner.op
+    assert op.destroy_map and 0 in op.destroy_map
+    op = fct_opt.maker.fgraph.outputs[1].owner.op
     assert not op.destroy_map or 0 not in op.destroy_map
 
 
