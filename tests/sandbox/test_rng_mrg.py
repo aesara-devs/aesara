@@ -843,9 +843,14 @@ def test_random_state_transfer():
     np.testing.assert_array_almost_equal(f1(), f2(), decimal=6)
 
 
-def test_gradient_scan():
-    # Test for a crash when using MRG inside scan and taking the gradient
-    # See https://groups.google.com/d/msg/theano-dev/UbcYyU5m-M8/UO9UgXqnQP0J
+@pytest.mark.parametrize(
+    "mode",
+    [
+        "FAST_RUN",
+        "FAST_COMPILE",
+    ],
+)
+def test_gradient_scan(mode):
     aesara_rng = MRG_RandomStream(10)
     w = shared(np.ones(1, dtype="float32"))
 
@@ -855,8 +860,12 @@ def test_gradient_scan():
     x = vector(dtype="float32")
     values, updates = scan(one_step, outputs_info=x, n_steps=10)
     gw = grad(at_sum(values[-1]), w)
-    f = function([x], gw)
-    f(np.arange(1, dtype="float32"))
+    f = function([x], gw, mode=mode)
+    assert np.allclose(
+        f(np.arange(1, dtype=np.float32)),
+        np.array([0.13928187], dtype=np.float32),
+        rtol=1e6,
+    )
 
 
 def test_simple_shared_mrg_random():

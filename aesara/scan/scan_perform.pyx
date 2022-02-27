@@ -59,7 +59,7 @@ from aesara.scan.utils import InnerFunctionError
 
 
 def get_version():
-    return 0.313
+    return 0.314
 
 @cython.boundscheck(False)
 def perform(
@@ -81,8 +81,6 @@ def perform(
         numpy.ndarray[numpy.int32_t,ndim=1] outs_is_tensor,
         list inner_input_storage,
         list inner_output_storage,
-        bint need_update_inputs,
-        tuple inner_input_needs_update,
         numpy.ndarray[numpy.int32_t,ndim=1] destroy_map,
         list outer_inputs,
         list outer_outputs,
@@ -138,10 +136,6 @@ def perform(
         The storage locations for the inner-function's inputs.
     inner_output_storage
         The storage locations for the inner-function's outputs.
-    need_update_inputs
-        A boolean indicating whether or not inner inputs need to be updated.
-    inner_input_needs_update
-        A tuple of booleans indicating which inner inputs need to be updated.
     fnct: Function
         The compiled Aesara inner-function object.
     destroy_map
@@ -173,8 +167,13 @@ def perform(
                                             n_shared_outs)
     cdef unsigned int offset_out
     cdef unsigned int lenpos = n_outs + n_nit_sot
+    # TODO: See how this is being converted and whether or not we can remove
+    # fixed allocations caused by this.
     cdef int pos[500] # put a maximum of 500 outputs
     cdef unsigned int len_store_steps = n_mit_mot + n_mit_sot + n_sit_sot + n_nit_sot
+    # The length of each output
+    # TODO: See how this is being converted and whether or not we can remove
+    # fixed allocations caused by this.
     cdef int store_steps[500]
     cdef unsigned int l
     cdef unsigned int offset
@@ -214,9 +213,8 @@ def perform(
                     outer_inputs[1+idx].shape,
                     n_steps,
                 ))
+
     # 2. Allocate memory for the outputs. Construct the list:
-    #       store_steps  -- map containing the length of each output
-    #       pos          -- map containing the current position of each output
 
     for idx in range(n_mit_mot + n_mit_sot + n_sit_sot):
         store_steps[<unsigned int>idx] = outer_inputs[<unsigned int>(idx+n_seqs+1)].shape[0]
@@ -329,7 +327,7 @@ def perform(
         for idx in range(n_mit_mot_outs):
             if not mitmots_preallocated[<unsigned int>idx]:
                 inner_output_storage[<unsigned int>offset][0] = None
-                offset += 1
+            offset += 1
 
         # 4.2. Collect slices for mitsots, sitsots and nitsots
         if i != 0:
@@ -400,17 +398,6 @@ def perform(
             pdx = offset + n_shared_outs
             cond = inner_output_storage[pdx][0] == 0
 
-        # 5.2. By calling fn() directly instead of calling the aesara
-        # function, it is possible that the updates have not been
-        # performed. Perform the updates if needed.
-        if need_update_inputs:
-            offset_out = len(inner_output_storage) - 1
-            for needs_update, storage in zip(inner_input_needs_update[::-1],
-                                             inner_input_storage[::-1]):
-                if needs_update:
-                    storage[0] = inner_output_storage[offset_out][0]
-                    offset_out -= 1
-
         offset_out = 0
 
         # 5.3 Copy over the values for mit_mot outputs
@@ -421,11 +408,12 @@ def perform(
                 if mitmots_preallocated[<unsigned int>mitmot_out_idx]:
                     # This output tap has been preallocated.
                     inp_idx = (mitmot_inp_offset + tap_array[j].index(k))
+                    inner_inp_idx = n_seqs + inp_idx
 
                     # Verify whether the input points to the same data as
                     # it did before the execution of the inner function.
                     old_var = old_mitmot_input_storage[inp_idx]
-                    new_var = inner_input_storage[n_seqs + inp_idx][0]
+                    new_var = inner_input_storage[inner_inp_idx][0]
                     if old_var is new_var:
                         old_data = old_mitmot_input_data[inp_idx]
                         same_data = (new_var.data == old_data)
@@ -437,15 +425,15 @@ def perform(
                     # modified inplace and nothing needs to be done.
                     if not same_data:
                         outer_outputs[j][0][<unsigned int>(k + pos[j])] = \
-                            inner_input_storage[<unsigned int>(n_seqs + inp_idx)][0]
+                            inner_input_storage[<unsigned int>(inner_inp_idx)][0]
 
                 else:
                     # This output tap has not been preallocated, recover
                     # its value as usual
                     outer_outputs[j][0][<unsigned int>(k + pos[j])] = \
                             inner_output_storage[<unsigned int>offset_out][0]
-                    offset_out += 1
 
+                offset_out += 1
                 mitmot_out_idx += 1
 
             mitmot_inp_offset += tap_array_len[j]
