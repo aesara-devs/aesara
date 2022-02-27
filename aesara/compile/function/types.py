@@ -26,7 +26,7 @@ from aesara.graph.basic import (
     graph_inputs,
 )
 from aesara.graph.destroyhandler import DestroyHandler
-from aesara.graph.features import Feature, PreserveVariableAttributes
+from aesara.graph.features import AlreadyThere, Feature, PreserveVariableAttributes
 from aesara.graph.fg import FunctionGraph
 from aesara.graph.op import HasInnerGraph
 from aesara.graph.utils import InconsistencyError, get_variable_trace_string
@@ -130,7 +130,7 @@ def fgraph_updated_vars(fgraph, expanded_inputs):
     return updated_vars
 
 
-class Supervisor:
+class Supervisor(Feature):
     """
     Listener for FunctionGraph events which makes sure that no
     operation overwrites the contents of protected Variables. The
@@ -139,7 +139,18 @@ class Supervisor:
     """
 
     def __init__(self, protected):
+        self.fgraph = None
         self.protected = list(protected)
+
+    def on_attach(self, fgraph):
+        if hasattr(fgraph, "_supervisor"):
+            raise AlreadyThere(f"A Supervisor is already attached to {fgraph}.")
+
+        if self.fgraph is not None and self.fgraph != fgraph:
+            raise Exception("This Feature is already associated with a FunctionGraph")
+
+        fgraph._supervisor = self
+        self.fgraph = fgraph
 
     def validate(self, fgraph):
         if config.cycle_detection == "fast" and hasattr(fgraph, "has_destroyers"):
