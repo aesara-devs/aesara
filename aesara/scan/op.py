@@ -861,30 +861,18 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
         self.n_outs = info.n_mit_mot + info.n_mit_sot + info.n_sit_sot
         self.n_tap_outs = info.n_mit_mot + info.n_mit_sot
 
+        # TODO: These can be moved to thunk/function compilation
         (
-            self.preallocated_mitmot_outs,
+            _,
             self.mitmots_preallocated,
         ) = self._mitmot_preallocations()
 
         self.n_outer_inputs = info.n_outer_inputs
         self.n_outer_outputs = info.n_outer_outputs
 
-        features = []
+        self.fgraph = FunctionGraph(inputs, outputs, clone=False)
 
-        if config.scan__allow_output_prealloc:
-            # This feature will prevent mitsot, sitsot and nitsot outputs from
-            # being computed inplace (to allow their preallocation).
-            mitsot_start = info.n_mit_mot_outs - len(self.preallocated_mitmot_outs)
-            nitsot_end = mitsot_start + info.n_mit_sot + info.n_sit_sot + info.n_nit_sot
-
-            features.append(NoOutputFromInplace(range(mitsot_start, nitsot_end)))
-
-        self.fgraph = FunctionGraph(
-            inputs,
-            outputs,
-            clone=False,
-            features=features,
-        )
+        _ = self.prepare_fgraph(self.fgraph)
 
         if any(node.op.destroy_map for node in self.fgraph.apply_nodes):
             raise InconsistencyError(
@@ -1360,23 +1348,21 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
             )
         )
 
-    @property
-    def fn(self):
-        """Lazily compile the inner function graph."""
-        if getattr(self, "_fn", None) is not None:
-            return self._fn
+    def prepare_fgraph(self, fgraph):
+        """Update and wrap `fgraph`'s inputs and outputs in preparation for compilation."""
 
-        # If a shared variable is the result of a ViewOp it is a clear
-        # indication that we need to copy that value after the perform of
-        # scan is done
-        slices = (
-            self.info.n_mit_mot_outs
-            + self.info.n_mit_sot
-            + self.info.n_sit_sot
-            + self.info.n_nit_sot
-        )
+        info = self.info
+        slices = info.n_mit_mot_outs + info.n_mit_sot + info.n_sit_sot + info.n_nit_sot
 
-        fgraph = self.fgraph.clone()
+        # Setting `fgraph.update_mapping` will indicate to the `Function`
+        # construction pipeline that it needn't append the updates to the
+        # `FunctionGraph` outputs itself, because they're already in the given
+        # `FunctionGraph`'s outputs.  This also prevents us from needing to
+        # remove those outputs here just to compensate for an overly rigid
+        # `Function` pipeline.
+        update_mapping = {}
+
+        preallocated_mitmot_outs = []
 
         if config.scan__allow_output_prealloc:
 
@@ -1384,32 +1370,31 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
             # input and an output, wrap the input such that the corresponding
             # output variable becomes an update to be performed on it, possibly
             # inplace at the end of the functions's execution.
-            wrapped_inputs = [
-                In(x, borrow=False) for x in fgraph.inputs[: self.info.n_seqs]
-            ]
-            new_outputs = [x for x in fgraph.outputs]
+            wrapped_inputs = [In(x, borrow=False) for x in fgraph.inputs[: info.n_seqs]]
 
-            input_idx = self.info.n_seqs
-            for mitmot_idx in range(self.info.n_mit_mot):
-                for inp_tap in self.info.mit_mot_in_slices[mitmot_idx]:
-                    if inp_tap in self.info.mit_mot_out_slices[mitmot_idx]:
+            input_idx = info.n_seqs
+            for mitmot_idx in range(info.n_mit_mot):
+                for inp_tap in info.mit_mot_in_slices[mitmot_idx]:
+                    if inp_tap in info.mit_mot_out_slices[mitmot_idx]:
                         inp = fgraph.inputs[input_idx]
 
                         # Figure out the index of the corresponding output
                         output_idx = sum(
-                            len(m) for m in self.info.mit_mot_out_slices[:mitmot_idx]
+                            len(m) for m in info.mit_mot_out_slices[:mitmot_idx]
                         )
                         output_idx += self.info.mit_mot_out_slices[mitmot_idx].index(
                             inp_tap
                         )
 
-                        # Make it so the input is automatically updated to the
-                        # output value, possibly inplace, at the end of the
-                        # function execution. Also, since an update is
-                        # defined, a default value must also be (this is
-                        # verified by DebugMode). Use an array of size 0 but
-                        # the right ndim and dtype (use a shape of 1 on
-                        # broadcastable dimensions, 0 on the others).
+                        preallocated_mitmot_outs.append(output_idx)
+
+                        # Make it so that the input is automatically updated to
+                        # the output value, possibly inplace, at the end of the
+                        # function execution. Also, since an update is defined,
+                        # a default value must also be (this is verified by
+                        # DebugMode). Use an array of size 0 with the correct
+                        # ndim and dtype (use a shape of 1 on broadcastable
+                        # dimensions, and 0 on the others).
                         default_shape = [1 if _b else 0 for _b in inp.broadcastable]
                         default_val = inp.type.value_zeros(default_shape)
                         wrapped_inp = In(
@@ -1417,10 +1402,9 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
                             value=default_val,
                             update=fgraph.outputs[output_idx],
                         )
+                        update_mapping[output_idx] = input_idx
                         wrapped_inputs.append(wrapped_inp)
                     else:
-                        # Wrap the corresponding input as usual. Leave the
-                        # output as-is.
                         wrapped_inputs.append(
                             In(fgraph.inputs[input_idx], borrow=False)
                         )
@@ -1429,21 +1413,56 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
             # Wrap the inputs not associated to mitmots and wrap the remaining
             # outputs
             wrapped_inputs += [In(x, borrow=False) for x in fgraph.inputs[input_idx:]]
-            wrapped_outputs = [Out(x, borrow=True) for x in new_outputs[:slices]]
-            wrapped_outputs += new_outputs[slices:]
+            wrapped_outputs = [Out(x, borrow=True) for x in fgraph.outputs[:slices]]
+            wrapped_outputs += fgraph.outputs[slices:]
 
-            # Remove now useless outputs from the output list and start from
-            # the end to avoid altering the indices of the other outputs to be
-            # deleted.
-            for p in self.preallocated_mitmot_outs[::-1]:
-                fgraph.remove_output(p, reason="scan_prealloc")
-                del wrapped_outputs[p]
+            protected_outs = tuple(
+                i
+                for i in range(
+                    info.n_mit_mot_outs
+                    + info.n_mit_sot
+                    + info.n_sit_sot
+                    + info.n_nit_sot
+                )
+                if i not in preallocated_mitmot_outs
+            )
+            fgraph.attach_feature(NoOutputFromInplace(protected_outs))
 
         else:
-
             wrapped_inputs = [In(x, borrow=True) for x in fgraph.inputs]
             wrapped_outputs = [Out(x, borrow=False) for x in fgraph.outputs[:slices]]
             wrapped_outputs += fgraph.outputs[slices:]
+
+        fgraph.update_mapping = update_mapping
+
+        from aesara.compile.function.types import Supervisor
+        from aesara.graph.destroyhandler import DestroyHandler
+
+        for node in fgraph.apply_nodes:
+            if node.op.destroy_map:
+                fgraph.attach_feature(DestroyHandler())
+                break
+
+        fgraph.attach_feature(
+            Supervisor(
+                inp
+                for spec, inp in zip(wrapped_inputs, fgraph.inputs)
+                if not (
+                    getattr(spec, "mutable", None)
+                    or (hasattr(fgraph, "destroyers") and fgraph.has_destroyers([inp]))
+                )
+            )
+        )
+
+        return wrapped_inputs, wrapped_outputs
+
+    @property
+    def fn(self):
+        """Lazily compile the inner function graph."""
+        if getattr(self, "_fn", None) is not None:
+            return self._fn
+
+        wrapped_inputs, wrapped_outputs = self.prepare_fgraph(self.fgraph)
 
         profile = None
         if config.profile or (
@@ -1463,7 +1482,7 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
             accept_inplace=False,
             profile=profile,
             on_unused_input="ignore",
-            fgraph=fgraph,
+            fgraph=self.fgraph,
         )
 
         return self._fn
@@ -1559,10 +1578,6 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
             inner_input_storage = [s.storage for s in self.fn.input_storage]
             inner_output_storage = [s.storage for s in self.fn.output_storage]
 
-            inner_input_needs_update = tuple(
-                inp.update is not None for inp in self.fn.maker.expanded_inputs
-            )
-
             outer_output_dtypes = tuple(
                 getattr(out, "dtype", None) for out in node.outputs
             )
@@ -1607,8 +1622,6 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
                         cython_outs_is_tensor,
                         inner_input_storage,
                         inner_output_storage,
-                        getattr(self.fn.fn, "need_update_inputs", True),
-                        inner_input_needs_update,
                         cython_destroy_map,
                         inputs,
                         outputs,
@@ -1715,10 +1728,8 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
                 seqs.append(seq)
 
         # 2. Allocate memory for the outputs. Construct the list:
-        #       store_steps  -- map containing the length of each output
-        #       pos          -- map containing the current position of each
-        #                       output
 
+        # The length of each output
         store_steps = [
             arg.shape[0]
             for arg in inputs[self.seqs_arg_offset : self.shared_arg_offset]
@@ -1763,6 +1774,7 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
                     output_storage[idx][0] = None
             return
 
+        # The current position of each output
         pos = [
             (-self.mintaps[idx]) % store_steps[idx]
             for idx in range(self.n_outs + info.n_nit_sot)
@@ -1851,7 +1863,7 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
             for idx in range(info.n_mit_mot_outs):
                 if not self.mitmots_preallocated[idx]:
                     inner_output_storage[offset].storage[0] = None
-                    offset += 1
+                offset += 1
 
             # 4.2. Collect slices for mitsots, sitsots and nitsots
             if i != 0:
@@ -1950,37 +1962,25 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
                 pdx = offset + info.n_shared_outs
                 cond = inner_output_storage[pdx].storage[0] == 0
 
-            # 5.2. By calling fn() directly instead of calling the aesara
-            # function, it is possible that the updates have not been
-            # performed. Perform the updates if needed.
-            offset_out = len(inner_output_storage) - 1
-            if getattr(fn, "need_update_inputs", True):
-                # Update the inputs that have an update function
-                for inp, storage in zip(
-                    self.fn.maker.expanded_inputs[::-1], self.fn.input_storage[::-1]
-                ):
-                    if inp.update is not None:
-                        storage.data = inner_output_storage[offset_out].data
-                        offset_out -= 1
-
             t_fn += dt_fn
             offset_out = 0
 
             # 5.3 Copy over the values for mit_mot outputs
-            mitmot_inp_offset = 0
+            mitmot_inp_grp_offset = 0
             mitmot_out_idx = 0
-            for j, taps in enumerate(info.mit_mot_in_slices):
-                for k in info.mit_mot_out_slices[j]:
+            for mitmot_grp_idx, taps in enumerate(info.mit_mot_in_slices):
+                for out_slice in info.mit_mot_out_slices[mitmot_grp_idx]:
                     if self.mitmots_preallocated[mitmot_out_idx]:
-                        # This output tap has been preallocated.
-                        inp_idx = mitmot_inp_offset + taps.index(k)
+
+                        mitmot_inp_idx = mitmot_inp_grp_offset + taps.index(out_slice)
+                        inner_inp_idx = self.n_seqs + mitmot_inp_idx
 
                         # Verify whether the input points to the same data as
                         # it did before the execution of the inner function.
-                        old_var = old_mitmot_input_storage[inp_idx]
-                        new_var = inner_input_storage[info.n_seqs + inp_idx].storage[0]
+                        old_var = old_mitmot_input_storage[mitmot_inp_idx]
+                        new_var = inner_input_storage[inner_inp_idx].storage[0]
                         if old_var is new_var:
-                            old_data = old_mitmot_input_data[inp_idx]
+                            old_data = old_mitmot_input_data[mitmot_inp_idx]
                             same_data = new_var.data == old_data
                         else:
                             same_data = False
@@ -1990,21 +1990,20 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
                         # nothing needs to be done. Otherwise, recover the
                         # and store it in `outs` as usual
                         if not same_data:
-                            output_storage[j][0][k + pos[j]] = inner_input_storage[
-                                info.n_seqs + inp_idx
-                            ].storage[0]
-
+                            output_storage[mitmot_grp_idx][0][
+                                out_slice + pos[mitmot_grp_idx]
+                            ] = inner_input_storage[inner_inp_idx].storage[0]
                     else:
                         # This output tap has not been preallocated, recover
                         # its value as usual
-                        output_storage[j][0][k + pos[j]] = inner_output_storage[
-                            offset_out
-                        ].storage[0]
-                        offset_out += 1
+                        output_storage[mitmot_grp_idx][0][
+                            out_slice + pos[mitmot_grp_idx]
+                        ] = inner_output_storage[offset_out].storage[0]
 
+                    offset_out += 1
                     mitmot_out_idx += 1
 
-                mitmot_inp_offset += len(taps)
+                mitmot_inp_grp_offset += len(taps)
 
             # 5.4 Copy over the values for mit_sot/sit_sot outputs
             begin = info.n_mit_mot
