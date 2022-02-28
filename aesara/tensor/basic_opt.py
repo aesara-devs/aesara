@@ -15,7 +15,6 @@ import aesara.scalar.basic as aes
 from aesara import compile
 from aesara.compile.ops import ViewOp
 from aesara.configdefaults import config
-from aesara.graph import features
 from aesara.graph.basic import (
     Constant,
     Variable,
@@ -23,6 +22,7 @@ from aesara.graph.basic import (
     equal_computations,
     io_toposort,
 )
+from aesara.graph.features import AlreadyThere, Feature, ReplaceValidate
 from aesara.graph.fg import FunctionGraph
 from aesara.graph.op import get_test_value
 from aesara.graph.opt import (
@@ -775,7 +775,7 @@ class MakeVectorPrinter(Printer):
 pprint.assign(MakeVector, MakeVectorPrinter())
 
 
-class ShapeFeature(features.Feature):
+class ShapeFeature(Feature):
     """Graph optimizer for removing all calls to shape().
 
     This optimizer replaces all Shapes and Subtensors of Shapes with
@@ -1230,7 +1230,7 @@ class ShapeFeature(features.Feature):
     def on_attach(self, fgraph):
 
         if hasattr(fgraph, "shape_feature"):
-            raise features.AlreadyThere("This FunctionGraph already has a ShapeFeature")
+            raise AlreadyThere("This FunctionGraph already has a ShapeFeature")
 
         if hasattr(self, "fgraph") and self.fgraph != fgraph:
             raise Exception("This ShapeFeature is already attached to a graph")
@@ -1452,6 +1452,9 @@ class ShapeFeature(features.Feature):
                 return False
 
         return True
+
+    def clone(self):
+        return type(self)()
 
 
 class ShapeOptimizer(GlobalOptimizer):
@@ -3275,7 +3278,7 @@ class FusionOptimizer(GlobalOptimizer):
         self.optimizer = local_optimizer
 
     def add_requirements(self, fgraph):
-        fgraph.attach_feature(features.ReplaceValidate())
+        fgraph.attach_feature(ReplaceValidate())
 
     def apply(self, fgraph):
         did_something = True

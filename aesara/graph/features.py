@@ -325,6 +325,17 @@ class Feature:
         """
         return OrderedDict()
 
+    def clone(self):
+        """Create a clone that can be attached to a new `FunctionGraph`.
+
+        This default implementation returns `self`, which carries the
+        assumption that the `Feature` is essentially stateless.  If a subclass
+        has state of its own that is in any way relative to a given
+        `FunctionGraph`, this method should be overridden with an
+        implementation that actually creates a fresh copy.
+        """
+        return self
+
 
 class Bookkeeper(Feature):
     def on_attach(self, fgraph):
@@ -388,6 +399,9 @@ class History(Feature):
         # ReplaceValidate.unpickle and not History.unpickle
         fgraph.checkpoint = GetCheckpoint(self, fgraph)
         fgraph.revert = partial(self.revert, fgraph)
+
+    def clone(self):
+        return type(self)()
 
     def unpickle(self, fgraph):
         fgraph.checkpoint = GetCheckpoint(self, fgraph)
@@ -516,6 +530,9 @@ class ReplaceValidate(History, Validator):
         Validator.on_attach(self, fgraph)
         self.unpickle(fgraph)
 
+    def clone(self):
+        return type(self)()
+
     def unpickle(self, fgraph):
         History.unpickle(self, fgraph)
         Validator.unpickle(self, fgraph)
@@ -643,11 +660,16 @@ class NodeFinder(Bookkeeper):
     def on_attach(self, fgraph):
         if hasattr(fgraph, "get_nodes"):
             raise AlreadyThere("NodeFinder is already present")
+
         if self.fgraph is not None and self.fgraph != fgraph:
             raise Exception("A NodeFinder instance can only serve one FunctionGraph.")
+
         self.fgraph = fgraph
         fgraph.get_nodes = partial(self.query, fgraph)
         Bookkeeper.on_attach(self, fgraph)
+
+    def clone(self):
+        return type(self)()
 
     def on_detach(self, fgraph):
         """
@@ -750,6 +772,9 @@ class NoOutputFromInplace(Feature):
             raise AlreadyThere(f"InnerGraphWatcher is already attached to {fgraph}.")
 
         fgraph._no_output_from_inplace = self
+
+    def clone(self):
+        return type(self)(self.protected_out_ids)
 
     def validate(self, fgraph):
         if not hasattr(fgraph, "destroyers"):

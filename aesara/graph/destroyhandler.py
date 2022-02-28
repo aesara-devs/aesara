@@ -330,6 +330,9 @@ class DestroyHandler(Bookkeeper):  # noqa
         self.algo = algo
         self.fail_validate = OrderedDict()
 
+    def clone(self):
+        return type(self)(self.do_imports_on_attach, self.algo)
+
     def on_attach(self, fgraph):
         """
         When attaching to a new fgraph, check that

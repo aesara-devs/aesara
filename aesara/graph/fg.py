@@ -900,7 +900,7 @@ class FunctionGraph(MetaObject):
 
         if attach_feature:
             for feature in self._features:
-                e.attach_feature(feature)
+                e.attach_feature(feature.clone())
         return e, equiv
 
     def __getstate__(self):
