@@ -9,6 +9,7 @@ from aesara.compile.builders import OpFromGraph
 from aesara.compile.function import function
 from aesara.configdefaults import config
 from aesara.gradient import DisconnectedType, Rop, disconnected_type, grad
+from aesara.graph.basic import equal_computations
 from aesara.graph.fg import FunctionGraph
 from aesara.graph.null_type import NullType
 from aesara.graph.opt_utils import optimize_graph
@@ -51,6 +52,17 @@ class TestOpFromGraph(unittest_tools.InferShapeTester):
 
         with pytest.raises(NotImplementedError):
             OpFromGraph([x], [x], updates={})
+
+    def test_clone(self):
+        x, y, z = matrices("xyz")
+
+        ofg = OpFromGraph([x], [2 * x])
+
+        ofg_clone = ofg.clone()
+
+        assert ofg_clone.fgraph is not ofg.fgraph
+        assert ofg_clone.fgraph.outputs != ofg.fgraph.outputs
+        assert equal_computations(ofg_clone.fgraph.outputs, ofg.fgraph.outputs)
 
     @pytest.mark.parametrize(
         "cls_ofg", [OpFromGraph, partial(OpFromGraph, inline=True)]

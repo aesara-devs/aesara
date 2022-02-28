@@ -1,5 +1,6 @@
 """Define new Ops from existing Ops"""
 from collections import OrderedDict
+from copy import copy
 from functools import partial
 from typing import List, Optional, Sequence, cast
 
@@ -914,6 +915,11 @@ class OpFromGraph(Op, HasInnerGraph):
     @property
     def inner_outputs(self):
         return self.fgraph.outputs
+
+    def clone(self):
+        res = copy(self)
+        res.fgraph = res.fgraph.clone()
+        return res
 
     def perform(self, node, inputs, outputs):
         variables = self.fn(*inputs)

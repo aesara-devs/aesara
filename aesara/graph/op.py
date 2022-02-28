@@ -1,7 +1,7 @@
 import copy
 import sys
 import warnings
-from abc import abstractmethod
+from abc import ABC, abstractmethod
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -612,7 +612,7 @@ class _NoPythonOp(Op):
         raise NotImplementedError("No Python implementation is provided by this Op.")
 
 
-class HasInnerGraph:
+class HasInnerGraph(ABC):
     r"""A mixin for an `Op` that contain an inner graph."""
 
     fgraph: "FunctionGraph"
@@ -621,7 +621,7 @@ class HasInnerGraph:
     @property
     @abstractmethod
     def fn(self) -> "Function":
-        """The inner function."""
+        """The compiled inner-graph function."""
 
     @property
     @abstractmethod
@@ -632,6 +632,10 @@ class HasInnerGraph:
     @abstractmethod
     def inner_outputs(self) -> List[Variable]:
         """The inner function's outputs."""
+
+    @abstractmethod
+    def clone(self) -> Op:
+        """Clone the `Op` and its inner-graph."""
 
 
 def get_test_value(v: Any) -> Any:
