@@ -142,6 +142,9 @@ class Supervisor(Feature):
         self.fgraph = None
         self.protected = list(protected)
 
+    def clone(self):
+        return type(self)(self.protected)
+
     def on_attach(self, fgraph):
         if hasattr(fgraph, "_supervisor"):
             raise AlreadyThere(f"A Supervisor is already attached to {fgraph}.")

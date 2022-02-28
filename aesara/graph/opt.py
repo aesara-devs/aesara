@@ -534,6 +534,9 @@ class MergeFeature(Feature):
         for node in fgraph.toposort():
             self.on_import(fgraph, node, "on_attach")
 
+    def clone(self):
+        return type(self)()
+
     def on_change_input(self, fgraph, node, i, r, new_r, reason):
         if node in self.nodes_seen:
             # If inputs to a node change, it's not guaranteed that the node is
@@ -2105,6 +2108,9 @@ class ChangeTracker(Feature):
     def __init__(self):
         self.changed = False
         self.nb_imported = 0
+
+    def clone(self):
+        return type(self)()
 
     def on_import(self, fgraph, node, reason):
         self.nb_imported += 1
