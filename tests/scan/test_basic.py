@@ -28,7 +28,7 @@ from aesara.compile.monitormode import MonitorMode
 from aesara.compile.sharedvalue import shared
 from aesara.configdefaults import config
 from aesara.gradient import NullTypeGradError, Rop, disconnected_grad, grad, hessian
-from aesara.graph.basic import Apply, ancestors
+from aesara.graph.basic import Apply, ancestors, equal_computations
 from aesara.graph.fg import FunctionGraph
 from aesara.graph.op import Op
 from aesara.graph.opt import MergeOptimizer
@@ -290,6 +290,20 @@ class TestScan:
         res, z_res = out_fn()
         assert len(set(res)) == 4
         assert len(set(z_res)) == 1
+
+    def test_clone(self):
+
+        a = vector()
+        output, _ = scan(fn=lambda x: x**2, sequences=[a])
+
+        scan_op = output.owner.op
+        assert isinstance(scan_op, Scan)
+
+        scan_op_clone = scan_op.clone()
+        assert scan_op_clone is not scan_op
+        assert scan_op_clone.fgraph is not scan_op.fgraph
+        assert scan_op_clone.fgraph.outputs != scan_op.fgraph.outputs
+        assert equal_computations(scan_op_clone.fgraph.outputs, scan_op.fgraph.outputs)
 
     @pytest.mark.skipif(
         isinstance(get_default_mode(), DebugMode),

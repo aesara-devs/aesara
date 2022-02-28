@@ -47,6 +47,7 @@ import dataclasses
 import logging
 import time
 from collections import OrderedDict
+from copy import copy
 from itertools import chain, product
 from typing import Callable, List, Optional, Union
 
@@ -1494,6 +1495,11 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
     @property
     def inner_outputs(self):
         return self.fgraph.outputs
+
+    def clone(self):
+        res = copy(self)
+        res.fgraph = res.fgraph.clone()
+        return res
 
     def make_thunk(self, node, storage_map, compute_map, no_recycling, impl=None):
         """
