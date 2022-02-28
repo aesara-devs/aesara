@@ -14,6 +14,7 @@ from aesara.graph.basic import (
     applys_between,
     as_string,
     clone,
+    clone_get_equiv,
     clone_replace,
     equal_computations,
     general_toposort,
@@ -185,6 +186,31 @@ class TestClone(X):
 
         i, o = clone([c1], [c1], False, True)
         assert i[0] is c1 and o[0] is c1
+
+    def test_clone_inner_graph(self):
+        r1, r2, r3 = MyVariable(1), MyVariable(2), MyVariable(3)
+        o1 = MyOp(r1, r2)
+        o1.name = "o1"
+
+        # Inner graph
+        igo_in_1 = MyVariable(4)
+        igo_in_2 = MyVariable(5)
+        igo_out_1 = MyOp(igo_in_1, igo_in_2)
+        igo_out_1.name = "igo1"
+
+        igo = MyInnerGraphOp([igo_in_1, igo_in_2], [igo_out_1])
+
+        o2 = igo(r3, o1)
+        o2.name = "o1"
+
+        o2_node = o2.owner
+        o2_node_clone = o2_node.clone(clone_inner_graph=True)
+
+        assert o2_node_clone is not o2_node
+        assert o2_node_clone.op.fgraph is not o2_node.op.fgraph
+        assert equal_computations(
+            o2_node_clone.op.fgraph.outputs, o2_node.op.fgraph.outputs
+        )
 
 
 def prenode(obj):
@@ -535,7 +561,7 @@ class TestCloneReplace:
         z = shared(0.25)
 
         f1 = z * (x + y) ** 2 + 5
-        f2 = clone_replace(f1, replace=None, strict=True, share_inputs=True)
+        f2 = clone_replace(f1, replace=None, rebuild_strict=True, copy_inputs_over=True)
         f2_inp = graph_inputs([f2])
 
         assert z in f2_inp
@@ -551,7 +577,9 @@ class TestCloneReplace:
         z = shared(0.25)
 
         f1 = z * (x + y) ** 2 + 5
-        f2 = clone_replace(f1, replace=None, strict=True, share_inputs=False)
+        f2 = clone_replace(
+            f1, replace=None, rebuild_strict=True, copy_inputs_over=False
+        )
         f2_inp = graph_inputs([f2])
 
         assert z not in f2_inp
@@ -568,7 +596,9 @@ class TestCloneReplace:
         z = shared(0.25)
 
         f1 = z * (x + y) ** 2 + 5
-        f2 = clone_replace(f1, replace={y: y2}, strict=True, share_inputs=True)
+        f2 = clone_replace(
+            f1, replace={y: y2}, rebuild_strict=True, copy_inputs_over=True
+        )
         f2_inp = graph_inputs([f2])
         assert z in f2_inp
         assert x in f2_inp
@@ -584,7 +614,9 @@ class TestCloneReplace:
         z = shared(0.25)
 
         f1 = z * (x + y) ** 2 + 5
-        f2 = clone_replace(f1, replace={y: y2}, strict=False, share_inputs=True)
+        f2 = clone_replace(
+            f1, replace={y: y2}, rebuild_strict=False, copy_inputs_over=True
+        )
         f2_inp = graph_inputs([f2])
         assert z in f2_inp
         assert x in f2_inp
@@ -600,7 +632,9 @@ class TestCloneReplace:
         z = shared(0.25)
 
         f1 = z * (x + y) ** 2 + 5
-        f2 = clone_replace(f1, replace=[(y, y2)], strict=True, share_inputs=False)
+        f2 = clone_replace(
+            f1, replace=[(y, y2)], rebuild_strict=True, copy_inputs_over=False
+        )
         f2_inp = graph_inputs([f2])
         assert z not in f2_inp
         assert x not in f2_inp
@@ -616,7 +650,9 @@ class TestCloneReplace:
         z = shared(0.25)
 
         f1 = z * (x + y) ** 2 + 5
-        f2 = clone_replace(f1, replace=[(y, y2)], strict=False, share_inputs=False)
+        f2 = clone_replace(
+            f1, replace=[(y, y2)], rebuild_strict=False, copy_inputs_over=False
+        )
         f2_inp = graph_inputs([f2])
         assert z not in f2_inp
         assert x not in f2_inp
@@ -670,6 +706,27 @@ def test_clone_new_inputs():
     assert z_node_new.outputs[0].type.shape == (1,)
     assert z_node_new.inputs[0].type.shape == (1,)
     assert z_node_new.inputs[1].type.shape == (1,)
+
+
+def test_clone_get_equiv():
+    x = vector("x")
+    y = vector("y")
+    z = vector("z")
+    a = x * y
+    a_node = a.owner
+    b = a + 1.0
+
+    memo = {a: z}
+    _ = clone_get_equiv([x, y], [b], copy_inputs=False, copy_orphans=False, memo=memo)
+
+    assert x in memo
+    assert y in memo
+    assert memo[a] is z
+    # All the outputs of `a` already had replacements/clones in the map, so
+    # there is no need to re-clone it (unless another replacement/clone
+    # re-introduces `a.owner` somehow).
+    assert a_node not in memo
+    assert equal_computations([memo[b]], [z + 1.0])
 
 
 def test_NominalVariable():

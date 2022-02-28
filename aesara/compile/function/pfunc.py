@@ -12,7 +12,7 @@ from aesara.compile.io import In, Out
 from aesara.compile.profiling import ProfileStats
 from aesara.compile.sharedvalue import SharedVariable, shared
 from aesara.configdefaults import config
-from aesara.graph.basic import Constant, Variable
+from aesara.graph.basic import Constant, Variable, clone_node_and_cache
 from aesara.graph.fg import FunctionGraph
 
 
@@ -29,8 +29,9 @@ def rebuild_collect_shared(
     rebuild_strict=True,
     copy_inputs_over=True,
     no_default_updates=False,
+    clone_inner_graphs=False,
 ):
-    """Replace subgraphs of a computational graph.
+    r"""Replace subgraphs of a computational graph.
 
     It returns a set of dictionaries and lists which collect (partial?)
     different information about shared variables. This info is required by
@@ -59,6 +60,9 @@ def rebuild_collect_shared(
         If False (default), perform them all.
         Else, perform automatic updates on all Variables that are neither in
         "updates" nor in "no_default_updates".
+    clone_inner_graphs : bool
+        If ``True``, clone `Op`\s that are subclasses of `HasInnerGraph` and their
+        inner-graphs.
 
     """
 
@@ -89,13 +93,12 @@ def rebuild_collect_shared(
             if owner not in clone_d:
                 for i in owner.inputs:
                     clone_v_get_shared_updates(i, copy_inputs_over)
-
-                clone_d[owner] = owner.clone_with_new_inputs(
-                    [clone_d[i] for i in owner.inputs], strict=rebuild_strict
+                clone_node_and_cache(
+                    owner,
+                    clone_d,
+                    strict=rebuild_strict,
+                    clone_inner_graphs=clone_inner_graphs,
                 )
-                for old_o, new_o in zip(owner.outputs, clone_d[owner].outputs):
-                    clone_d.setdefault(old_o, new_o)
-
             return clone_d.setdefault(v, v)
         elif isinstance(v, SharedVariable):
             if v not in shared_inputs:
@@ -494,6 +497,7 @@ def construct_pfunc_ins_and_outs(
             rebuild_strict=rebuild_strict,
             copy_inputs_over=True,
             no_default_updates=no_default_updates,
+            clone_inner_graphs=True,
         )
         input_variables, cloned_extended_outputs, other_stuff = output_vars
         clone_d, update_d, update_expr, shared_inputs = other_stuff

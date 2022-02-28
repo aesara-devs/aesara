@@ -157,3 +157,6 @@ class MyInnerGraphOp(Op, HasInnerGraph):
     @property
     def inner_outputs(self):
         return self.fgraph.outputs
+
+    def clone(self):
+        return type(self)(self.fgraph.inputs, self.fgraph.outputs)

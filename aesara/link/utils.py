@@ -318,8 +318,6 @@ def raise_with_op(
         raise exc_value.with_traceback(exc_trace)
 
     trace = getattr(node.outputs[0].tag, "trace", ())
-    if not trace and hasattr(node.op, "tag"):
-        trace = getattr(node.op.tag, "trace", ())
 
     exc_value.__thunk_trace__ = trace
     exc_value.__op_instance__ = node
@@ -366,8 +364,6 @@ def raise_with_op(
             detailed_err_msg += "\nInputs type_num: %s" % str(
                 [getattr(getattr(i[0], "dtype", ""), "num", "") for i in thunk.inputs]
             )
-        if hasattr(node.op, "__input_name__"):
-            detailed_err_msg += f"\nInputs name: {node.op.__input_name__}\n"
 
         detailed_err_msg += f"\nOutputs clients: {clients}\n"
     else:
