@@ -720,6 +720,8 @@ def push_out_inner_vars(
             fgraph, old_scan_node, old_scan_args, add_as_nitsots
         )
 
+        assert isinstance(new_scan_node.op, Scan)
+
         new_scan_args = ScanArgs(
             new_scan_node.inputs,
             new_scan_node.outputs,
@@ -760,6 +762,8 @@ def add_nitsot_outputs(
     new_scan_args = copy.copy(old_scan_args)
     new_scan_args.inner_out_nit_sot.extend(new_outputs_inner)
     new_scan_args.outer_in_nit_sot.extend(new_nitsots_initial_value)
+
+    assert isinstance(old_scan_node.op, Scan)
 
     # Create the `Scan` `Op` from the `ScanArgs`
     new_scan_op = Scan(

@@ -41,6 +41,7 @@ from aesara.misc.ordered_set import OrderedSet
 
 
 if TYPE_CHECKING:
+    from aesara.graph.op import Op
     from aesara.graph.type import Type
 
 
@@ -96,33 +97,27 @@ class Apply(Node):
 
     Attributes
     ----------
-    op : Op
+    op
         The operation that produces `outputs` given `inputs`.
-    inputs : List[Variable]
+    inputs
         The arguments of the expression modeled by the `Apply` node.
-    outputs : List[Variable]
+    outputs
         The outputs of the expression modeled by the `Apply` node.
 
     """
 
-    def __init__(self, op, inputs, outputs):
-        """
-        Parameters
-        ----------
-        op : Op
-        inputs : List[Variable]
-        outputs : List[Variable]
-
-        """
-        self.op = op
-        self.inputs: List[Variable] = []
-        self.tag = Scratchpad()
-
+    def __init__(
+        self, op: "Op", inputs: Sequence["Variable"], outputs: Sequence["Variable"]
+    ):
         if not isinstance(inputs, (list, tuple)):
             raise TypeError("The inputs of an Apply must be a list or tuple")
 
         if not isinstance(outputs, (list, tuple)):
             raise TypeError("The output of an Apply must be a list or tuple")
+
+        self.op = op
+        self.inputs: List[Variable] = []
+        self.tag = Scratchpad()
 
         # filter inputs to make sure each element is a Variable
         for input in inputs:
@@ -202,28 +197,40 @@ class Apply(Node):
     def __repr__(self):
         return str(self)
 
-    def clone(self):
-        """
-        Duplicate this Apply instance with inputs = self.inputs.
+    def clone(self, clone_inner_graph: bool = False) -> "Apply":
+        r"""Clone this `Apply` instance.
+
+        Parameters
+        ----------
+        clone_inner_graph
+            If ``True``, clone `HasInnerGraph` `Op`\s and their inner-graphs.
 
         Returns
         -------
-        object
-            A new Apply instance (or subclass instance) with new outputs.
+        A new `Apply` instance  with new outputs.
 
         Notes
         -----
-        Tags are copied from self to the returned instance.
+        Tags are copied from `self` to the returned instance.
 
         """
+        from aesara.graph.op import HasInnerGraph
+
+        new_op = self.op
+
+        if isinstance(new_op, HasInnerGraph) and clone_inner_graph:
+            new_op = new_op.clone()
+
         cp = self.__class__(
-            self.op, self.inputs, [output.clone() for output in self.outputs]
+            new_op, self.inputs, [output.clone() for output in self.outputs]
         )
         cp.tag = copy(self.tag)
         return cp
 
-    def clone_with_new_inputs(self, inputs, strict=True):
-        """Duplicate this `Apply` instance in a new graph.
+    def clone_with_new_inputs(
+        self, inputs: Sequence["Variable"], strict=True, clone_inner_graph=False
+    ) -> "Apply":
+        r"""Duplicate this `Apply` instance in a new graph.
 
         Parameters
         ----------
@@ -238,6 +245,8 @@ class Apply(Node):
             ``self.outputs``.  If ``False``, then there's no guarantee that the
             clone's outputs will have the same types as ``self.outputs``,
             and cloning may not even be possible (it depends on the `Op`).
+        clone_inner_graph : bool
+            If ``True``, clone `HasInnerGraph` `Op`\s and their inner-graphs.
 
         Returns
         -------
@@ -245,9 +254,11 @@ class Apply(Node):
             An `Apply` instance with the same `Op` but different outputs.
 
         """
+        from aesara.graph.op import HasInnerGraph
+
         assert isinstance(inputs, (list, tuple))
         remake_node = False
-        new_inputs = inputs[:]
+        new_inputs: List["Variable"] = list(inputs)
         for i, (curr, new) in enumerate(zip(self.inputs, new_inputs)):
             if curr.type != new.type:
                 if strict:
@@ -260,10 +271,15 @@ class Apply(Node):
                     remake_node = True
 
         if remake_node:
-            new_node = self.op.make_node(*new_inputs)
+            new_op = self.op
+
+            if isinstance(new_op, HasInnerGraph) and clone_inner_graph:
+                new_op = new_op.clone()
+
+            new_node = new_op.make_node(*new_inputs)
             new_node.tag = copy(self.tag).__update__(new_node.tag)
         else:
-            new_node = self.clone()
+            new_node = self.clone(clone_inner_graph=clone_inner_graph)
             new_node.inputs = new_inputs
         return new_node
 
@@ -485,19 +501,16 @@ class Variable(Node):
         return "\n".join(to_print)
 
     def clone(self):
-        """Return a new `Variable` like `self`.
+        """Return a new, un-owned `Variable` like `self`.
 
         Returns
         -------
         Variable instance
-            A new `Variable` instance (or subclass instance) with no owner or
-            index.
+            A new `Variable` instance  with no owner or index.
 
         Notes
         -----
-        Tags are copied to the returned instance.
-
-        Name is copied to the returned instance.
+        Tags and names are copied to the returned instance.
 
         """
         # return copy(self)
@@ -941,6 +954,7 @@ def clone(
     outputs: List[Variable],
     copy_inputs: bool = True,
     copy_orphans: Optional[bool] = None,
+    clone_inner_graphs: bool = False,
 ) -> Tuple[Collection[Variable], Collection[Variable]]:
     r"""Copies the sub-graph contained between inputs and outputs.
 
@@ -956,6 +970,8 @@ def clone(
         When ``None``, use the `copy_inputs` value.
         When ``True``, new orphans nodes are created.
         When ``False``, original orphans nodes are reused in the new graph.
+    clone_inner_graphs : bool
+        If ``True``, clone `HasInnerGraph` `Op`\s and their inner-graphs.
 
     Returns
     -------
@@ -971,10 +987,68 @@ def clone(
     """
     if copy_orphans is None:
         copy_orphans = copy_inputs
-    equiv = clone_get_equiv(inputs, outputs, copy_inputs, copy_orphans)
+    equiv = clone_get_equiv(
+        inputs,
+        outputs,
+        copy_inputs=copy_inputs,
+        copy_orphans=copy_orphans,
+        clone_inner_graphs=clone_inner_graphs,
+    )
     return [cast(Variable, equiv[input]) for input in inputs], [
         cast(Variable, equiv[output]) for output in outputs
     ]
+
+
+def clone_node_and_cache(
+    node: Apply,
+    clone_d: Dict[Union[Apply, Variable, "Op"], Union[Apply, Variable, "Op"]],
+    clone_inner_graphs=False,
+    **kwargs,
+) -> Optional[Apply]:
+    """Clone an `Apply` node and cache the results in `clone_d`.
+
+    This function handles `Op` clones that are generated by inner-graph
+    cloning.
+
+    Returns
+    -------
+    ``None`` if all of `node`'s outputs are already in `clone_d`; otherwise,
+    return the clone of `node`.
+
+    """
+    if all(out in clone_d for out in node.outputs):
+        # If all of `node`'s outputs already have replacements or clones in
+        # `clone_d`, then there's likely no need to clone it
+        return None
+
+    # Use a cached `Op` clone when available
+    new_op: Optional["Op"] = cast(Optional["Op"], clone_d.get(node.op))
+
+    cloned_inputs: List[Variable] = [cast(Variable, clone_d[i]) for i in node.inputs]
+
+    new_node = node.clone_with_new_inputs(
+        cloned_inputs,
+        # Only clone inner-graph `Op`s when there isn't a cached clone (and
+        # when `clone_inner_graphs` is enabled)
+        clone_inner_graph=clone_inner_graphs if new_op is None else False,
+        **kwargs,
+    )
+
+    if new_op:
+        # If we didn't clone the inner-graph `Op` above, because
+        # there was a cached version, set the cloned `Apply` to use
+        # the cached clone `Op`
+        new_node.op = new_op
+
+    clone_d[node] = new_node
+
+    if new_node.op is not node.op:
+        clone_d.setdefault(node.op, new_node.op)
+
+    for old_o, new_o in zip(node.outputs, new_node.outputs):
+        clone_d.setdefault(old_o, new_o)
+
+    return new_node
 
 
 def clone_get_equiv(
@@ -982,9 +1056,12 @@ def clone_get_equiv(
     outputs: Sequence[Variable],
     copy_inputs: bool = True,
     copy_orphans: bool = True,
-    memo: Optional[Dict[Node, Node]] = None,
-) -> Dict[Node, Node]:
-    """
+    memo: Optional[
+        Dict[Union[Apply, Variable, "Op"], Union[Apply, Variable, "Op"]]
+    ] = None,
+    clone_inner_graphs: bool = False,
+) -> Dict[Union[Apply, Variable, "Op"], Union[Apply, Variable, "Op"]]:
+    r"""
     Return a dictionary that maps from `Variable` and `Apply` nodes in the
     original graph to a new node (a clone) in a new graph.
 
@@ -993,20 +1070,22 @@ def clone_get_equiv(
 
     Parameters
     ----------
-    inputs : a list of Variables
-    outputs : a list of Variables
-    copy_inputs : bool
+    inputs
+    outputs
+    copy_inputs
         True means to create the cloned graph from new input
         nodes (the bottom of a feed-upward graph).
         False means to clone a graph that is rooted at the original input
         nodes.
-    copy_orphans :
+    copy_orphans
         When ``True``, new constant nodes are created. When ``False``, original
         constant nodes are reused in the new graph.
-    memo : None or dict
+    memo
         Optionally start with a partly-filled dictionary for the return value.
         If a dictionary is passed, this function will work in-place on that
         dictionary and return it.
+    clone_inner_graphs
+        If ``True``, clone `HasInnerGraph` `Op`\s and their inner-graphs.
 
     """
     if memo is None:
@@ -1032,10 +1111,7 @@ def clone_get_equiv(
                 else:
                     memo[input] = input
 
-        new_apply = apply.clone_with_new_inputs([memo[i] for i in apply.inputs])
-        memo.setdefault(apply, new_apply)
-        for output, new_output in zip(apply.outputs, new_apply.outputs):
-            memo.setdefault(output, new_output)
+        clone_node_and_cache(apply, memo, clone_inner_graphs=clone_inner_graphs)
 
     # finish up by cloning any remaining outputs (it can happen)
     for output in outputs:
@@ -1046,12 +1122,11 @@ def clone_get_equiv(
 
 
 def clone_replace(
-    output: List[Variable],
+    output: Collection[Variable],
     replace: Optional[
         Union[Iterable[Tuple[Variable, Variable]], Dict[Variable, Variable]]
     ] = None,
-    strict: bool = True,
-    share_inputs: bool = True,
+    **rebuild_kwds,
 ) -> List[Variable]:
     """Clone a graph and replace subgraphs within it.
 
@@ -1064,11 +1139,8 @@ def clone_replace(
         Aesara expression that represents the computational graph.
     replace : dict
         Dictionary describing which subgraphs should be replaced by what.
-    share_inputs : bool
-        If ``True``, use the same inputs (and shared variables) as the original
-        graph. If ``False``, clone them. Note that cloned shared variables still
-        use the same underlying storage, so they will always have the same
-        value.
+    rebuild_kwds
+        Keywords to `rebuild_collect_shared`.
 
     """
     from aesara.compile.function.pfunc import rebuild_collect_shared
@@ -1090,14 +1162,10 @@ def clone_replace(
         )
     tmp_replace = [(x, x.type()) for x, y in items]
     new_replace = [(x, y) for ((_, x), (_, y)) in zip(tmp_replace, items)]
-    _, _outs, _ = rebuild_collect_shared(
-        output, [], tmp_replace, [], strict, share_inputs
-    )
+    _, _outs, _ = rebuild_collect_shared(output, [], tmp_replace, [], **rebuild_kwds)
 
     # TODO Explain why we call it twice ?!
-    _, outs, _ = rebuild_collect_shared(
-        _outs, [], new_replace, [], strict, share_inputs
-    )
+    _, outs, _ = rebuild_collect_shared(_outs, [], new_replace, [], **rebuild_kwds)
 
     return cast(List[Variable], outs)
 
@@ -1473,13 +1541,12 @@ def view_roots(node: Variable) -> List[Variable]:
     owner = node.owner
     if owner is not None:
         try:
-            view_map = owner.op.view_map
-            view_map = {owner.outputs[o]: i for o, i in view_map.items()}
+            vars_to_views = {owner.outputs[o]: i for o, i in owner.op.view_map.items()}
         except AttributeError:
             return [node]
-        if node in view_map:
+        if node in vars_to_views:
             answer = []
-            for i in view_map[node]:
+            for i in vars_to_views[node]:
                 answer += view_roots(owner.inputs[i])
             return answer
         else:

@@ -18,7 +18,7 @@ from typing_extensions import Literal
 
 import aesara
 from aesara.configdefaults import config
-from aesara.graph.basic import Apply, AtomicVariable, Node, Variable, applys_between
+from aesara.graph.basic import Apply, AtomicVariable, Variable, applys_between
 from aesara.graph.basic import as_string as graph_as_string
 from aesara.graph.basic import clone_get_equiv, graph_inputs, io_toposort, vars_between
 from aesara.graph.features import AlreadyThere, Feature, ReplaceValidate
@@ -69,7 +69,7 @@ class FunctionGraph(MetaObject):
         features: Optional[Sequence[Feature]] = None,
         clone: bool = True,
         update_mapping: Optional[Dict[Variable, Variable]] = None,
-        memo: Optional[Dict[Variable, Variable]] = None,
+        memo: Optional[Dict] = None,
         copy_inputs: bool = True,
         copy_orphans: bool = True,
     ):
@@ -111,7 +111,7 @@ class FunctionGraph(MetaObject):
                 outputs,
                 copy_inputs=copy_inputs,
                 copy_orphans=copy_orphans,
-                memo=cast(Dict[Node, Node], memo),
+                memo=memo,
             )
             outputs = [cast(Variable, _memo[o]) for o in outputs]
             inputs = [cast(Variable, _memo[i]) for i in inputs]
@@ -869,7 +869,7 @@ class FunctionGraph(MetaObject):
 
     def clone_get_equiv(
         self, check_integrity: bool = True, attach_feature: bool = True
-    ) -> Tuple["FunctionGraph", Dict[Node, Node]]:
+    ) -> Tuple["FunctionGraph", Dict]:
         """Clone the graph and return a ``dict`` that maps old nodes to new nodes.
 
         Parameters

@@ -3,7 +3,7 @@ import sys
 import traceback
 from abc import ABCMeta
 from io import StringIO
-from typing import TYPE_CHECKING, List, Optional, Sequence, Tuple, TypeVar, Union
+from typing import TYPE_CHECKING, Any, List, Optional, Sequence, Tuple, TypeVar, Union
 
 
 if TYPE_CHECKING:
@@ -281,6 +281,13 @@ class Scratchpad:
         print(f"<aesara.graph.utils.scratchpad instance at {id(self)}>")
         for k, v in self.__dict__.items():
             print(f"  {k}: {v}")
+
+    # These two methods have been added to help Mypy
+    def __getattribute__(self, name):
+        return super().__getattribute__(name)
+
+    def __setattr__(self, name: str, value: Any) -> None:
+        self.__dict__[name] = value
 
 
 class ValidatingScratchpad(Scratchpad):

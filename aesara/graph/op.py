@@ -12,6 +12,7 @@ from typing import (
     Sequence,
     Text,
     Tuple,
+    TypeVar,
     Union,
     cast,
 )
@@ -50,12 +51,14 @@ ThunkCallableType = Callable[
     [PerformMethodType, StorageMapType, ComputeMapType, Apply], None
 ]
 
+C = TypeVar("C", bound=Callable)
 
-class ThunkType(Protocol):
+
+class ThunkType(Protocol[C]):
     inputs: List[List[Optional[List[Any]]]]
     outputs: List[List[Optional[List[Any]]]]
     lazy: bool
-    __call__: ThunkCallableType
+    __call__: C
     perform: PerformMethodType
 
 
@@ -132,8 +135,7 @@ def compute_test_value(node: Apply):
     thunk.inputs = [storage_map[v] for v in node.inputs]
     thunk.outputs = [storage_map[v] for v in node.outputs]
 
-    required = thunk()
-    assert not required  # We provided all inputs
+    thunk()
 
     for output in node.outputs:
         # Check that the output has been computed
@@ -495,7 +497,7 @@ class Op(MetaObject):
         node: Apply,
         storage_map: StorageMapType,
         compute_map: ComputeMapType,
-        no_recycling: bool,
+        no_recycling: List[Variable],
         debug: bool = False,
     ) -> ThunkType:
         """Make a Python thunk.
@@ -506,8 +508,8 @@ class Op(MetaObject):
         node_input_storage = [storage_map[r] for r in node.inputs]
         node_output_storage = [storage_map[r] for r in node.outputs]
 
-        if debug:
-            p = node.op.debug_perform
+        if debug and hasattr(self, "debug_perform"):
+            p = node.op.debug_perform  # type: ignore
         else:
             p = node.op.perform
 
@@ -551,7 +553,7 @@ class Op(MetaObject):
         node: Apply,
         storage_map: StorageMapType,
         compute_map: ComputeMapType,
-        no_recycling: bool,
+        no_recycling: List[Variable],
         impl: Optional[Text] = None,
     ) -> ThunkType:
         r"""Create a thunk.

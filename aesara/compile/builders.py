@@ -800,7 +800,7 @@ class OpFromGraph(Op, HasInnerGraph):
             # If the new shared variables are inconsistent with the inner-graph,
             # such errors should arise in this step
             new_inner_outputs = clone_replace(
-                self.inner_outputs, replace=replace, share_inputs=True
+                self.inner_outputs, replace=replace, copy_inputs_over=True
             )
 
             # It's possible that the new shared variable inputs aren't actually
