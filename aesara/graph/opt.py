@@ -353,6 +353,10 @@ class SeqOptimizer(GlobalOptimizer, UserList):
             nb_nodes,
             callbacks_time,
         ) = prof
+
+        validate_time = validate_time or float("nan")
+        callback_time = callback_time or float("nan")
+
         blanc = "    " * level
 
         print(blanc, "SeqOptimizer", end=" ", file=stream)
@@ -804,6 +808,9 @@ class MergeOptimizer(GlobalOptimizer):
             nb_merged,
             nb_atomic,
         ) = prof
+
+        validate_time = validate_time or float("nan")
+        callback_time = callback_time or float("nan")
 
         blanc = "    " * level
         print(blanc, "MergeOptimizer", file=stream)

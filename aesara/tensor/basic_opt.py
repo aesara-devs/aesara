@@ -3346,7 +3346,7 @@ class FusionOptimizer(GlobalOptimizer):
         print(blanc, " nb_inconsistency_replace", prof[3], file=stream)
         print(blanc, " validate_time", prof[4], file=stream)
         print(blanc, " callback_time", prof[5], file=stream)
-        if prof[5] > 1:
+        if prof[5] is not None and prof[5] > 1:
             print(blanc, " callbacks_time", file=stream)
             for i in sorted(prof[6].items(), key=lambda a: a[1])[::-1]:
                 if i[1] > 0:
