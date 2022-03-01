@@ -8,7 +8,7 @@ from typing import List, Optional, Sequence, Tuple
 
 def simple_extract_stack(
     f=None, limit: Optional[int] = None, skips: Optional[Sequence[str]] = None
-) -> List[Tuple[Optional[str], int, str, str]]:
+) -> List[Tuple[Optional[str], int, str, Optional[str]]]:
     """This is traceback.extract_stack from python 2.7 with this change:
 
     - Comment the update of the cache.
@@ -28,14 +28,12 @@ def simple_extract_stack(
         skips = []
 
     if f is None:
-        try:
-            raise ZeroDivisionError
-        except ZeroDivisionError:
-            f = sys.exc_info()[2].tb_frame.f_back
+        f = sys._getframe().f_back
+
     if limit is None:
         if hasattr(sys, "tracebacklimit"):
             limit = sys.tracebacklimit
-    trace: List[Tuple[Optional[str], int, str, str]] = []
+    trace: List[Tuple[Optional[str], int, str, Optional[str]]] = []
     n = 0
     while f is not None and (limit is None or n < limit):
         lineno = f.f_lineno
@@ -43,7 +41,7 @@ def simple_extract_stack(
         filename = co.co_filename
         name = co.co_name
         #        linecache.checkcache(filename)
-        line = linecache.getline(filename, lineno, f.f_globals)
+        line: Optional[str] = linecache.getline(filename, lineno, f.f_globals)
         if line:
             line = line.strip()
         else:
