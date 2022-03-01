@@ -1,7 +1,7 @@
 """Define new Ops from existing Ops"""
 from collections import OrderedDict
 from functools import partial
-from typing import List, Optional
+from typing import List, Optional, Sequence, cast
 
 import aesara.tensor as at
 from aesara.compile.function.pfunc import rebuild_collect_shared
@@ -349,7 +349,7 @@ class OpFromGraph(Op, HasInnerGraph):
         shared_vars = [var.type() for var in self.shared_inputs]
 
         new = rebuild_collect_shared(
-            outputs,
+            cast(Sequence[Variable], outputs),
             inputs=inputs + shared_vars,
             replace=dict(zip(self.shared_inputs, shared_vars)),
             copy_inputs_over=False,
@@ -357,7 +357,7 @@ class OpFromGraph(Op, HasInnerGraph):
         (
             local_inputs,
             local_outputs,
-            [clone_d, update_d, update_expr, shared_inputs],
+            (clone_d, update_d, update_expr, shared_inputs),
         ) = new
         assert len(local_inputs) == len(inputs) + len(self.shared_inputs)
         assert len(local_outputs) == len(outputs)
