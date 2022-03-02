@@ -2,7 +2,7 @@ import numpy as np
 import scipy.sparse
 
 import aesara
-from aesara.graph.type import Type
+from aesara.graph.type import HasDataType, Type
 
 
 def _is_sparse(x):
@@ -24,7 +24,7 @@ def _is_sparse(x):
     return isinstance(x, scipy.sparse.spmatrix)
 
 
-class SparseType(Type):
+class SparseType(Type, HasDataType):
     """
     Fundamental way to create a sparse node.
 

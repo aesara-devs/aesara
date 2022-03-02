@@ -267,6 +267,12 @@ class Type(MetaObject):
         return cls.values_eq(a, b)
 
 
+class HasDataType:
+    """A mixing for an `Op` type that has a :attr:`dtype` attribute."""
+
+    dtype: str
+
+
 class CType(Type, CLinkerType):
     """Convenience wrapper combining `Type` and `CLinkerType`.
 
