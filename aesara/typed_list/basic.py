@@ -53,7 +53,7 @@ class TypedListVariable(_typed_list_py_operators, Variable):
     """
 
 
-TypedListType.Variable = TypedListVariable
+TypedListType.variable_type = TypedListVariable
 
 
 class TypedListConstant(_typed_list_py_operators, Constant):
@@ -63,7 +63,7 @@ class TypedListConstant(_typed_list_py_operators, Constant):
     """
 
 
-TypedListType.Constant = TypedListConstant
+TypedListType.constant_type = TypedListConstant
 
 
 class GetItem(COp):

@@ -861,7 +861,7 @@ def _get_vector_length_TensorVariable(op_or_var, var):
     return var.type.shape[0]
 
 
-TensorType.Variable = TensorVariable
+TensorType.variable_type = TensorVariable
 
 
 class TensorConstantSignature(tuple):
@@ -1039,4 +1039,4 @@ class TensorConstant(TensorVariable, Constant):
         )
 
 
-TensorType.Constant = TensorConstant
+TensorType.constant_type = TensorConstant

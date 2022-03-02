@@ -69,7 +69,7 @@ class SparseType(Type, HasDataType):
     ndim = 2
 
     # Will be set to SparseVariable SparseConstant later.
-    Variable = None
+    variable_type = None
     Constant = None
 
     def __init__(self, format, dtype, shape=None):
@@ -151,7 +151,7 @@ class SparseType(Type, HasDataType):
         return False
 
     def make_variable(self, name=None):
-        return self.Variable(self, name=name)
+        return self.variable_type(self, name=name)
 
     def __eq__(self, other):
         return (

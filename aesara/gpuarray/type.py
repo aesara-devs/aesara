@@ -351,7 +351,7 @@ class GpuArrayType(CType):
             other = other._as_GpuArrayVariable(self.context_name)
 
         if not isinstance(other, Variable):
-            other = self.Constant(type=self, data=other)
+            other = self.constant_type(type=self, data=other)
 
         if other.type == self:
             return other
@@ -677,7 +677,7 @@ class GpuArrayVariable(_operators, Variable):
         return repr(np.array(aesara.graph.op.get_test_value(self)))
 
 
-GpuArrayType.Variable = GpuArrayVariable
+GpuArrayType.variable_type = GpuArrayVariable
 
 
 class GpuArraySignature(TensorConstantSignature):
@@ -715,7 +715,7 @@ class GpuArrayConstant(_operators, Constant):
         return "GpuArrayConstant{%s}" % np_data
 
 
-GpuArrayType.Constant = GpuArrayConstant
+GpuArrayType.constant_type = GpuArrayConstant
 
 
 class GpuArraySharedVariable(_operators, SharedVariable):

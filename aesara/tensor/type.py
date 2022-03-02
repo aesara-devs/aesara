@@ -245,7 +245,7 @@ class TensorType(CType, HasDataType):
         if not isinstance(other, Variable):
             # The value is not a Variable: we cast it into
             # a Constant of the appropriate Type.
-            other = self.Constant(type=self, data=other)
+            other = self.constant_type(type=self, data=other)
 
         if other.type == self:
             return other
