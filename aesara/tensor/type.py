@@ -8,7 +8,7 @@ import aesara
 from aesara import scalar as aes
 from aesara.configdefaults import config
 from aesara.graph.basic import Variable
-from aesara.graph.type import CType
+from aesara.graph.type import CType, HasDataType
 from aesara.misc.safe_asarray import _asarray
 from aesara.utils import apply_across_args
 
@@ -46,7 +46,7 @@ dtype_specs_map = {
 }
 
 
-class TensorType(CType):
+class TensorType(CType, HasDataType):
     r"""Symbolic `Type` representing `numpy.ndarray`\s."""
 
     __props__ = ("dtype", "shape")
