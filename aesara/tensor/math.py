@@ -7,9 +7,10 @@ from aesara import config, printing
 from aesara import scalar as aes
 from aesara.gradient import DisconnectedType
 from aesara.graph.basic import Apply, Variable
-from aesara.graph.op import COp, Op
+from aesara.graph.op import Op
 from aesara.graph.params_type import ParamsType
 from aesara.graph.type import Generic
+from aesara.link.c.op import COp
 from aesara.misc.safe_asarray import _asarray
 from aesara.printing import pprint
 from aesara.scalar.basic import BinaryScalarOp

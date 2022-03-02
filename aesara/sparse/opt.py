@@ -5,8 +5,8 @@ import aesara
 import aesara.scalar as aes
 from aesara.configdefaults import config
 from aesara.graph.basic import Apply
-from aesara.graph.op import COp, _NoPythonCOp
 from aesara.graph.opt import PatternSub, TopoOptimizer, local_optimizer
+from aesara.link.c.op import COp, _NoPythonCOp
 from aesara.misc.safe_asarray import _asarray
 from aesara.sparse import basic as sparse
 from aesara.sparse.basic import (

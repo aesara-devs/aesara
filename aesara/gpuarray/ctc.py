@@ -13,8 +13,8 @@ from aesara.gpuarray.elemwise import GpuDimShuffle
 from aesara.gpuarray.type import GpuArrayType, gpu_context_type
 from aesara.gradient import grad_undefined
 from aesara.graph.basic import Apply
-from aesara.graph.op import _NoPythonExternalCOp
 from aesara.graph.opt import local_optimizer
+from aesara.link.c.op import _NoPythonExternalCOp
 from aesara.tensor.basic import as_tensor_variable
 from aesara.tensor.basic_opt import register_canonicalize
 from aesara.tensor.blas import batched_dot

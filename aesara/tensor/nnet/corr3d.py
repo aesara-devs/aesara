@@ -5,9 +5,10 @@ from typing import Optional
 import aesara
 from aesara.configdefaults import config
 from aesara.graph.basic import Apply
-from aesara.graph.op import OpenMPOp, _NoPythonOp
+from aesara.graph.op import _NoPythonOp
 from aesara.graph.params_type import ParamsType
 from aesara.graph.type import EnumList
+from aesara.link.c.op import OpenMPOp
 from aesara.scalar import int64
 from aesara.tensor import blas_headers
 from aesara.tensor.basic import as_tensor_variable

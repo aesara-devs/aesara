@@ -1,6 +1,6 @@
 from aesara.graph.basic import Apply
-from aesara.graph.op import COp
 from aesara.graph.type import Generic
+from aesara.link.c.op import COp
 
 from .basic_ops import as_gpuarray_variable, gpuarray_helper_inc_dir, infer_context_name
 from .type import GpuArrayType

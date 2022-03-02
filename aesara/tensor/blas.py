@@ -147,7 +147,7 @@ from aesara.compile.mode import optdb
 from aesara.configdefaults import config
 from aesara.graph.basic import Apply, view_roots
 from aesara.graph.features import ReplacementDidNotRemoveError, ReplaceValidate
-from aesara.graph.op import COp, Op
+from aesara.graph.op import Op
 from aesara.graph.opt import (
     EquilibriumOptimizer,
     GlobalOptimizer,
@@ -158,6 +158,7 @@ from aesara.graph.opt import (
 from aesara.graph.optdb import SequenceDB
 from aesara.graph.params_type import ParamsType
 from aesara.graph.utils import InconsistencyError, MethodNotDefined, TestValueError
+from aesara.link.c.op import COp
 from aesara.printing import FunctionPrinter, debugprint, pprint
 from aesara.scalar import bool as bool_t
 from aesara.tensor import basic as at

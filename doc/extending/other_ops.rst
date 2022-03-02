@@ -168,7 +168,7 @@ To allow consistent interface of Ops that support OpenMP, we have some
 helper code. Doing this also allows to enable/disable OpenMP globally
 or per op for fine-grained control.
 
-Your Op needs to inherit from ``aesara.graph.op.OpenMPOp``. If it overrides
+Your Op needs to inherit from ``aesara.link.c.op.OpenMPOp``. If it overrides
 the ``__init__()`` method, it must have an ``openmp=None`` parameter
 and must call ``super(MyOpClass, self).__init__(openmp=openmp)``.
 

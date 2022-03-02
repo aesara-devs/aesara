@@ -7,9 +7,9 @@ import numpy as np
 
 from aesara.gradient import DisconnectedType
 from aesara.graph.basic import Apply, Variable
-from aesara.graph.op import COp
 from aesara.graph.params_type import ParamsType
 from aesara.graph.type import Generic
+from aesara.link.c.op import COp
 
 
 class ExceptionType(Generic):

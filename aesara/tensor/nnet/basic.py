@@ -24,8 +24,9 @@ from aesara import scalar as aes
 from aesara.compile import optdb
 from aesara.gradient import DisconnectedType, grad_not_implemented
 from aesara.graph.basic import Apply
-from aesara.graph.op import COp, Op
+from aesara.graph.op import Op
 from aesara.graph.opt import copy_stack_trace, local_optimizer, optimizer
+from aesara.link.c.op import COp
 from aesara.raise_op import Assert
 from aesara.scalar import UnaryScalarOp
 from aesara.tensor import basic as at

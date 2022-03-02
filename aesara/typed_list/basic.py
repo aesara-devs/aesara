@@ -4,7 +4,8 @@ import aesara.tensor as at
 from aesara.compile.debugmode import _lessbroken_deepcopy
 from aesara.configdefaults import config
 from aesara.graph.basic import Apply, Constant, Variable
-from aesara.graph.op import COp, Op
+from aesara.graph.op import Op
+from aesara.link.c.op import COp
 from aesara.tensor.type import scalar
 from aesara.tensor.type_other import SliceType
 from aesara.tensor.var import TensorVariable

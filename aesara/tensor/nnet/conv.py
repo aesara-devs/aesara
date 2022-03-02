@@ -24,7 +24,7 @@ except ImportError:
 
 import aesara
 from aesara.graph.basic import Apply
-from aesara.graph.op import OpenMPOp
+from aesara.link.c.op import OpenMPOp
 from aesara.tensor import blas
 from aesara.tensor.basic import (
     as_tensor_variable,

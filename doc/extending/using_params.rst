@@ -139,8 +139,8 @@ the params type.
 
 .. testcode::
 
-   from aesara.graph.op import COp
    from aesara.graph.type import Generic
+   from aesara.link.c.op import COp
    from aesara.scalar import as_scalar
 
    class MulOp(COp):

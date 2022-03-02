@@ -18,7 +18,8 @@ from aesara import scalar as aes
 from aesara.configdefaults import config
 from aesara.gradient import DisconnectedType, grad_not_implemented, grad_undefined
 from aesara.graph.basic import Apply, Constant, Variable
-from aesara.graph.op import COp, Op
+from aesara.graph.op import Op
+from aesara.link.c.op import COp
 from aesara.misc.safe_asarray import _asarray
 from aesara.sparse.type import SparseType, _is_sparse
 from aesara.sparse.utils import hash_from_sparse

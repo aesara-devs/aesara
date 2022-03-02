@@ -6,8 +6,8 @@ import pytest
 import aesara
 from aesara import scalar as aes
 from aesara.graph.basic import Apply, Variable
-from aesara.graph.op import COp
 from aesara.graph.type import CDataType, CEnumType, EnumList, EnumType, Type
+from aesara.link.c.op import COp
 from aesara.tensor.type import TensorType, continuous_dtypes
 
 

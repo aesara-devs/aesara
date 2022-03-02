@@ -11,9 +11,10 @@ from aesara.gradient import (
     grad_undefined,
 )
 from aesara.graph.basic import Apply, Variable, equal_computations
-from aesara.graph.op import COp, Op
+from aesara.graph.op import Op
 from aesara.graph.params_type import ParamsType
 from aesara.graph.type import EnumList, Generic
+from aesara.link.c.op import COp
 from aesara.misc.safe_asarray import _asarray
 from aesara.raise_op import Assert
 from aesara.scalar import int32 as int_t

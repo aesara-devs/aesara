@@ -11,12 +11,13 @@ import aesara.tensor as at
 from aesara.configdefaults import config
 from aesara.gradient import grad_undefined
 from aesara.graph.basic import Apply, Variable
-from aesara.graph.op import COp, ExternalCOp, Op, _NoPythonOp
+from aesara.graph.op import Op, _NoPythonOp
 from aesara.graph.opt import copy_stack_trace
 from aesara.graph.params_type import ParamsType
 from aesara.graph.type import CType
 from aesara.graph.utils import MethodNotDefined
 from aesara.link.c.interface import HideC
+from aesara.link.c.op import COp, ExternalCOp
 from aesara.scalar import bool as bool_t
 from aesara.scalar import int32 as int32_t
 from aesara.tensor.basic import Alloc, AllocEmpty, Join, Split, infer_broadcastable
