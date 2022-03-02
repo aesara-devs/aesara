@@ -7,8 +7,8 @@ import numpy as np
 import aesara
 from aesara.gradient import grad_not_implemented, grad_undefined
 from aesara.graph.basic import Apply
-from aesara.graph.op import COp
 from aesara.graph.type import EnumList
+from aesara.link.c.op import COp
 from aesara.tensor.basic import arange, as_tensor_variable, concatenate, stack, zeros
 from aesara.tensor.math import ceil_intdiv
 from aesara.tensor.subtensor import inc_subtensor, set_subtensor

@@ -7,7 +7,7 @@ import numpy as np
 import aesara.tensor as at
 from aesara.configdefaults import config
 from aesara.graph.basic import Apply
-from aesara.graph.op import COp
+from aesara.link.c.op import COp
 from aesara.scalar import Scalar, as_scalar
 from aesara.tensor.type import discrete_dtypes
 

@@ -475,7 +475,7 @@ storage with the right shape and number of dimensions.
     import numpy
     import aesara
 
-    from aesara.graph.op import COp
+    from aesara.link.c.op import COp
     from aesara.graph.basic import Apply
 
 
@@ -745,7 +745,7 @@ The new :class:`Op` is defined inside a Python file with the following code :
 .. testcode::
 
     import aesara
-    from aesara.graph.op import ExternalCOp
+    from aesara.link.c.op import ExternalCOp
 
     class VectorTimesVector(ExternalCOp):
         __props__ = ()

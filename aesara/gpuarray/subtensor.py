@@ -5,10 +5,11 @@ import numpy as np
 import aesara.tensor as at
 from aesara.gradient import grad_not_implemented
 from aesara.graph.basic import Apply
-from aesara.graph.op import COp, Op
+from aesara.graph.op import Op
 from aesara.graph.params_type import ParamsType
 from aesara.graph.type import CType
 from aesara.link.c.interface import HideC
+from aesara.link.c.op import COp
 from aesara.scalar import bool as bool_t
 from aesara.scalar import int32 as int_t
 from aesara.scalar import uint32 as size_t

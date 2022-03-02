@@ -14,8 +14,9 @@ from aesara.gpuarray.basic_ops import (
 )
 from aesara.gpuarray.type import GpuArrayType, gpu_context_type
 from aesara.graph.basic import Apply
-from aesara.graph.op import ExternalCOp, Op
+from aesara.graph.op import Op
 from aesara.graph.params_type import ParamsType
+from aesara.link.c.op import ExternalCOp
 from aesara.scalar import bool as bool_t
 from aesara.tensor import basic as at
 from aesara.tensor import math as tm

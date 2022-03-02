@@ -4,9 +4,9 @@ import pytest
 import aesara
 from aesara import tensor as at
 from aesara.graph.basic import Apply
-from aesara.graph.op import COp, ExternalCOp
 from aesara.graph.params_type import Params, ParamsType
 from aesara.graph.type import EnumList, Generic
+from aesara.link.c.op import COp, ExternalCOp
 from aesara.scalar import Scalar
 from aesara.tensor.type import TensorType, matrix
 from tests import unittest_tools as utt
