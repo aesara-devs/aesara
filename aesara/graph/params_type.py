@@ -554,7 +554,7 @@ class ParamsType(CType):
             else self.__const_to_enum[alias][alias]
         )
 
-    def get_params(self, *objects, **kwargs):
+    def get_params(self, *objects, **kwargs) -> Params:
         """
         Convenient method to extract fields values from a list of Python objects and key-value args,
         and wrap them into a :class:`Params` object compatible with current ParamsType.
