@@ -12,10 +12,10 @@ import aesara.tensor.basic as at
 import aesara.tensor.math as tm
 from aesara.gradient import DisconnectedType
 from aesara.graph.basic import Apply, Constant, Variable
-from aesara.graph.params_type import ParamsType
-from aesara.graph.type import EnumList
 from aesara.graph.utils import MethodNotDefined
 from aesara.link.c.op import OpenMPOp
+from aesara.link.c.params_type import ParamsType
+from aesara.link.c.type import EnumList
 from aesara.scalar import bool as bool_t
 from aesara.tensor.type import TensorType, int_dtypes
 

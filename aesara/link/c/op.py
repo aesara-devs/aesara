@@ -24,10 +24,10 @@ import numpy as np
 from aesara.configdefaults import config
 from aesara.graph.basic import Apply, Variable
 from aesara.graph.op import ComputeMapType, Op, StorageMapType, ThunkType
-from aesara.graph.params_type import ParamsType
 from aesara.graph.type import HasDataType
 from aesara.graph.utils import MethodNotDefined
 from aesara.link.c.interface import CLinkerOp
+from aesara.link.c.params_type import ParamsType
 
 
 if TYPE_CHECKING:

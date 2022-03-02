@@ -26,8 +26,8 @@ from aesara.configdefaults import config
 from aesara.gradient import undefined_grad
 from aesara.graph.basic import Apply, Constant, Variable
 from aesara.graph.opt import in2out, local_optimizer
-from aesara.graph.params_type import ParamsType
 from aesara.link.c.op import COp, Op
+from aesara.link.c.params_type import ParamsType
 from aesara.sandbox import multinomial
 from aesara.scalar import bool as bool_t
 from aesara.scalar import int32 as int_t

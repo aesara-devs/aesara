@@ -28,9 +28,9 @@ from aesara.gradient import DisconnectedType, grad_undefined
 from aesara.graph.basic import Apply, Constant, Variable, clone, list_of_nodes
 from aesara.graph.fg import FunctionGraph
 from aesara.graph.opt import MergeOptimizer
-from aesara.graph.type import CType
 from aesara.graph.utils import MetaObject, MethodNotDefined
 from aesara.link.c.op import COp
+from aesara.link.c.type import CType
 from aesara.misc.safe_asarray import _asarray
 from aesara.printing import pprint
 from aesara.utils import (

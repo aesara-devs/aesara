@@ -8,7 +8,8 @@ import aesara
 from aesara import scalar as aes
 from aesara.configdefaults import config
 from aesara.graph.basic import Variable
-from aesara.graph.type import CType, HasDataType
+from aesara.graph.type import HasDataType
+from aesara.link.c.type import CType
 from aesara.misc.safe_asarray import _asarray
 from aesara.utils import apply_across_args
 

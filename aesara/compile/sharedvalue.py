@@ -9,9 +9,9 @@ import logging
 import numpy as np
 
 from aesara.graph.basic import Variable
-from aesara.graph.type import generic
 from aesara.graph.utils import add_tag_trace
 from aesara.link.basic import Container
+from aesara.link.c.type import generic
 
 
 _logger = logging.getLogger("aesara.compile.sharedvalue")

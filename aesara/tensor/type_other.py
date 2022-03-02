@@ -9,7 +9,7 @@ from aesara import _as_symbolic
 from aesara.gradient import DisconnectedType
 from aesara.graph.basic import Apply, Constant, Variable
 from aesara.graph.op import Op
-from aesara.graph.type import Generic, Type
+from aesara.link.c.type import Generic, Type
 from aesara.tensor.type import integer_dtypes
 
 

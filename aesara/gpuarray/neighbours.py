@@ -1,7 +1,7 @@
 import aesara.tensor as at
 from aesara.graph.basic import Apply
 from aesara.graph.op import _NoPythonOp
-from aesara.graph.params_type import ParamsType
+from aesara.link.c.params_type import ParamsType
 from aesara.tensor.nnet.neighbours import Images2Neibs
 from aesara.tensor.type import integer_dtypes
 

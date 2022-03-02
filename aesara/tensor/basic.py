@@ -25,9 +25,9 @@ from aesara.graph.basic import Apply, Constant, Variable
 from aesara.graph.fg import FunctionGraph
 from aesara.graph.op import Op
 from aesara.graph.opt_utils import optimize_graph
-from aesara.graph.params_type import ParamsType
 from aesara.graph.type import Type
 from aesara.link.c.op import COp
+from aesara.link.c.params_type import ParamsType
 from aesara.misc.safe_asarray import _asarray
 from aesara.printing import min_informative_str, pprint
 from aesara.raise_op import CheckAndRaise, assert_op

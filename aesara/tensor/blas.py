@@ -156,9 +156,9 @@ from aesara.graph.opt import (
     local_optimizer,
 )
 from aesara.graph.optdb import SequenceDB
-from aesara.graph.params_type import ParamsType
 from aesara.graph.utils import InconsistencyError, MethodNotDefined, TestValueError
 from aesara.link.c.op import COp
+from aesara.link.c.params_type import ParamsType
 from aesara.printing import FunctionPrinter, debugprint, pprint
 from aesara.scalar import bool as bool_t
 from aesara.tensor import basic as at

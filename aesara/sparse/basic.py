@@ -20,6 +20,7 @@ from aesara.gradient import DisconnectedType, grad_not_implemented, grad_undefin
 from aesara.graph.basic import Apply, Constant, Variable
 from aesara.graph.op import Op
 from aesara.link.c.op import COp
+from aesara.link.c.type import generic
 from aesara.misc.safe_asarray import _asarray
 from aesara.sparse.type import SparseType, _is_sparse
 from aesara.sparse.utils import hash_from_sparse
@@ -1279,7 +1280,7 @@ class GetItem2d(Op):
         assert len(index) in (1, 2)
 
         input_op = [x]
-        generic_None = Constant(aesara.graph.type.generic, None)
+        generic_None = Constant(generic, None)
 
         for ind in index:
             if isinstance(ind, slice):

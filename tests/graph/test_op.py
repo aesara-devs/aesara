@@ -8,8 +8,9 @@ from aesara import shared
 from aesara.configdefaults import config
 from aesara.graph.basic import Apply, Variable
 from aesara.graph.op import Op
-from aesara.graph.type import Generic, Type
+from aesara.graph.type import Type
 from aesara.graph.utils import TestValueError
+from aesara.link.c.type import Generic
 from aesara.tensor.math import log
 from aesara.tensor.type import dmatrix, dscalar, dvector, vector
 

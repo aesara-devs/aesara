@@ -12,8 +12,8 @@ from typing import Dict, Tuple
 
 from aesara.graph.basic import Apply
 from aesara.graph.op import Op
-from aesara.graph.type import CType
 from aesara.link.c.op import COp
+from aesara.link.c.type import CType
 
 
 def register_view_op_c_code(type, code, version=()):

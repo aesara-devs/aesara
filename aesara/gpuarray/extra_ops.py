@@ -19,7 +19,7 @@ from aesara.gpuarray.basic_ops import (
 )
 from aesara.gpuarray.opt import op_lifter, register_opt, register_opt2
 from aesara.gpuarray.type import gpu_context_type
-from aesara.graph.params_type import ParamsType
+from aesara.link.c.params_type import ParamsType
 
 
 class GpuCumOp(GpuKernelBaseCOp, _NoPythonOp):

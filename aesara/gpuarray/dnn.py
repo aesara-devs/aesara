@@ -28,10 +28,10 @@ from aesara.gpuarray.basic_ops import (
 from aesara.gpuarray.type import GpuArraySharedVariable, get_context, gpu_context_type
 from aesara.gradient import DisconnectedType, grad_not_implemented
 from aesara.graph.basic import Apply, Variable
-from aesara.graph.params_type import ParamsType
-from aesara.graph.type import CDataType, EnumList, Generic
 from aesara.link.c.cmodule import GCC_compiler
 from aesara.link.c.op import ExternalCOp, _NoPythonCOp, _NoPythonExternalCOp
+from aesara.link.c.params_type import ParamsType
+from aesara.link.c.type import CDataType, EnumList, Generic
 from aesara.raise_op import Assert
 from aesara.scalar import as_scalar
 from aesara.scalar import bool as bool_t

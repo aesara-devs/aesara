@@ -74,7 +74,7 @@ attribute :attr:`params_type` to an instance of your params Type.
 .. note::
 
    If you want to have multiple parameters, Aesara provides the convenient class
-   :class:`aesara.graph.params_type.ParamsType` that allows to bundle many parameters into
+   :class:`aesara.link.c.params_type.ParamsType` that allows to bundle many parameters into
    one object that will be available in both Python (as a Python object) and C code (as a struct).
    See :ref:`ParamsType tutorial and API documentation <libdoc_graph_params_type>` for more infos.
 
@@ -139,8 +139,8 @@ the params type.
 
 .. testcode::
 
-   from aesara.graph.type import Generic
    from aesara.link.c.op import COp
+   from aesara.link.c.type import Generic
    from aesara.scalar import as_scalar
 
    class MulOp(COp):
@@ -176,7 +176,7 @@ weights.
 .. testcode::
 
    from aesara.graph.op import Op
-   from aesara.graph.type import Generic
+   from aesara.link.c.type import Generic
    from aesara.scalar import as_scalar
 
    class ab(object):

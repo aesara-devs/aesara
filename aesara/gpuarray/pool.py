@@ -8,7 +8,7 @@ from aesara.gpuarray.basic_ops import (
 )
 from aesara.gpuarray.type import gpu_context_type
 from aesara.graph.basic import Apply
-from aesara.graph.params_type import ParamsType
+from aesara.link.c.params_type import ParamsType
 from aesara.scalar import bool as bool_t
 from aesara.tensor.basic import as_tensor_variable
 from aesara.tensor.signal.pool import Pool, PoolingMode_t

@@ -2,8 +2,9 @@ import numpy as np
 import pytest
 
 import aesara.tensor
-from aesara.compile.sharedvalue import SharedVariable, generic, shared
+from aesara.compile.sharedvalue import SharedVariable, shared
 from aesara.configdefaults import config
+from aesara.link.c.type import generic
 from aesara.misc.safe_asarray import _asarray
 from aesara.tensor.type import (
     TensorType,
