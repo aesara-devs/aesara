@@ -10,7 +10,7 @@ from operator import itemgetter
 from tempfile import NamedTemporaryFile
 from textwrap import indent
 from types import FunctionType
-from typing import Any, Callable, Dict, Iterable, List, NoReturn, Optional, Tuple, Union
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
 import numpy as np
 
@@ -130,7 +130,7 @@ def streamline(
     post_thunk_old_storage=None,
     no_recycling=None,
     nice_errors=True,
-) -> Callable[[], NoReturn]:
+) -> Callable[[], None]:
     """
     WRITEME
 
