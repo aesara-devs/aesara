@@ -42,7 +42,9 @@ def _is_numeric_value(arr, var):
         `True` the value is non-numeric.
 
     """
-    if isinstance(arr, aesara.graph.type._cdata_type):
+    from aesara.link.c.type import _cdata_type
+
+    if isinstance(arr, _cdata_type):
         return False
     elif isinstance(arr, (np.random.mtrand.RandomState, np.random.Generator)):
         return False

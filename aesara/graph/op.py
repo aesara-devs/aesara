@@ -21,7 +21,6 @@ from typing_extensions import Protocol
 import aesara
 from aesara.configdefaults import config
 from aesara.graph.basic import Apply, NoParams, Variable
-from aesara.graph.params_type import Params, ParamsType
 from aesara.graph.utils import (
     MetaObject,
     MethodNotDefined,
@@ -29,6 +28,7 @@ from aesara.graph.utils import (
     add_tag_trace,
     get_variable_trace_string,
 )
+from aesara.link.c.params_type import Params, ParamsType
 
 
 if TYPE_CHECKING:

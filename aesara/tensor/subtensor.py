@@ -12,10 +12,10 @@ from aesara.configdefaults import config
 from aesara.gradient import DisconnectedType
 from aesara.graph.basic import Apply, Constant, Variable
 from aesara.graph.op import Op
-from aesara.graph.params_type import ParamsType
 from aesara.graph.type import Type
 from aesara.graph.utils import MethodNotDefined
 from aesara.link.c.op import COp
+from aesara.link.c.params_type import ParamsType
 from aesara.misc.safe_asarray import _asarray
 from aesara.printing import Printer, pprint, set_precedence
 from aesara.scalar.basic import ScalarConstant

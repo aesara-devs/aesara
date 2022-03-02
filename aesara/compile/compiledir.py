@@ -11,7 +11,7 @@ import numpy as np
 
 from aesara.configdefaults import config
 from aesara.graph.op import Op
-from aesara.graph.type import CType
+from aesara.link.c.type import CType
 from aesara.utils import flatten
 
 

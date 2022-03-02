@@ -679,7 +679,7 @@ def _lessbroken_deepcopy(a):
     """
     # this exists because copy.deepcopy on numpy arrays is broken
     # This logic is also in link.py
-    from aesara.graph.type import _cdata_type
+    from aesara.link.c.type import _cdata_type
 
     if isinstance(a, (np.ndarray, np.memmap)):
         rval = a.copy(order="K")

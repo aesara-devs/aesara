@@ -7,10 +7,10 @@ from aesara.compile.mode import Mode
 from aesara.configdefaults import config
 from aesara.graph.basic import Apply, Constant, Variable
 from aesara.graph.fg import FunctionGraph
-from aesara.graph.type import CType
 from aesara.link.basic import PerformLinker
 from aesara.link.c.basic import CLinker, DualLinker, OpWiseCLinker
 from aesara.link.c.op import COp
+from aesara.link.c.type import CType
 from aesara.tensor.type import iscalar, matrix, vector
 from tests.link.test_link import make_function
 

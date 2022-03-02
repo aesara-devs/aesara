@@ -8,7 +8,7 @@ from aesara.gpuarray.basic_ops import CGpuKernelBase
 from aesara.gpuarray.type import GpuArrayType, get_context, gpu_context_type
 from aesara.gradient import grad_undefined
 from aesara.graph.basic import Apply
-from aesara.graph.params_type import ParamsType
+from aesara.link.c.params_type import ParamsType
 from aesara.scalar import int32 as int_t
 
 

@@ -16,7 +16,7 @@ Currently supported cuDNN APIs:
 """
 
 
-from aesara.graph.type import CEnumType
+from aesara.link.c.type import CEnumType
 
 
 HALF, FLOAT, DOUBLE = ("float16", "float32", "float64")

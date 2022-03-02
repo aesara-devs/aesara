@@ -3,7 +3,7 @@ import numpy as np
 from aesara.graph.basic import Apply, Constant, Variable
 from aesara.graph.op import Op
 from aesara.graph.sched import key_to_cmp
-from aesara.graph.type import Generic
+from aesara.link.c.type import Generic
 from aesara.tensor.type import tensor
 
 

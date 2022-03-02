@@ -1,22 +1,29 @@
 from abc import ABC, abstractmethod
 from copy import copy, deepcopy
-from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Set, Tuple, Union
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    Dict,
+    List,
+    Optional,
+    Sequence,
+    Set,
+    Tuple,
+    Union,
+)
 
 from numpy import ndarray
 
 from aesara.configdefaults import config
 from aesara.graph.basic import Apply, Variable
 from aesara.graph.fg import FunctionGraph
-from aesara.graph.type import CType
-from aesara.graph.utils import MetaObject
+from aesara.graph.type import Type
 from aesara.link.utils import gc_helper, map_storage, raise_with_op, streamline
 from aesara.utils import difference
 
 
 if TYPE_CHECKING:
-
-    from aesara.link.c.basic import OpWiseCLinker
-    from aesara.link.vm import VMLinker
     from aesara.tensor.var import TensorVariable
 
 StorageMapType = Dict[Variable, List[Optional[Union[ndarray, slice]]]]
@@ -32,7 +39,8 @@ class Container:
 
     Parameters
     ----------
-    r : :py:class:`aerasa.graph.utils.MetaObject`
+    r
+        The `Variable` or `Type` to associate with the `Container`.
     storage
         A list of length 1, whose element is the value for `r`.
     readonly : bool
@@ -50,7 +58,7 @@ class Container:
 
     def __init__(
         self,
-        r: MetaObject,
+        r: Union[Variable, Type],
         storage: List[Any],
         *,
         readonly: bool = False,
@@ -60,10 +68,11 @@ class Container:
     ) -> None:
         if not isinstance(storage, list) or not len(storage) >= 1:
             raise TypeError("storage must be a list of length at least one")
-        if isinstance(r, CType):
-            self.type = r
-        else:
+        if isinstance(r, Variable):
             self.type = r.type
+        else:
+            self.type = r
+
         if name is None:
             # Some Type do not have a name field.
             self.name = getattr(r, "name", None)
@@ -273,25 +282,18 @@ class PerformLinker(LocalLinker):
     def accept(
         self,
         fgraph: FunctionGraph,
-        no_recycling: Optional[
-            Union[List, Set["TensorVariable"], Set[Union[Variable, "TensorVariable"]]]
-        ] = None,
+        no_recycling: Optional[Sequence[Variable]] = None,
         profile: Optional[bool] = None,
     ) -> "PerformLinker":
         """
 
         Parameters
         ----------
-        fgraph : :py:class:`aesara.graph.fg.FunctionGraph` instance
+        fgraph
             A :py:class:`aesara.link.basic.PerformLinker` instance can have accepted
             one :py:class:`aesara.graph.fg.FunctionGraph` instance at a time.
         no_recycling
             WRITEME
-
-        Returns
-        -------
-        object
-            self (TODO: WHY? Who calls this function?)
 
         """
         if no_recycling is None:
@@ -442,7 +444,7 @@ class WrapLinker(Linker):
 
     def __init__(
         self,
-        linkers: Union[List["OpWiseCLinker"], List[PerformLinker], List["VMLinker"]],
+        linkers: Sequence[PerformLinker],
         wrapper: Callable,
     ) -> None:
         self.fgraph = None
@@ -563,7 +565,7 @@ class WrapLinker(Linker):
 
 
 def WrapLinkerMany(
-    linkers: Union[List["OpWiseCLinker"], List["VMLinker"]], wrappers: List[Callable]
+    linkers: List[PerformLinker], wrappers: List[Callable]
 ) -> WrapLinker:
     """
     Variant on WrapLinker that runs a series of wrapper functions instead of

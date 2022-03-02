@@ -6,7 +6,7 @@ import pytest
 import aesara
 from aesara import function
 from aesara.graph.basic import Variable
-from aesara.graph.type import Generic
+from aesara.link.c.type import Generic
 from aesara.tensor.io import load
 
 

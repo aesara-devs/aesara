@@ -12,7 +12,7 @@ import aesara.tensor.basic
 from aesara.compile import SharedVariable
 from aesara.configdefaults import config
 from aesara.graph.basic import Constant, Variable
-from aesara.graph.type import CType
+from aesara.link.c.type import CType
 from aesara.misc.safe_asarray import _asarray
 from aesara.tensor.shape import (
     register_shape_c_code,

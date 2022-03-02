@@ -8,10 +8,10 @@ from aesara.configdefaults import config
 from aesara.gradient import DisconnectedType
 from aesara.graph.basic import Apply
 from aesara.graph.null_type import NullType
-from aesara.graph.params_type import ParamsType
 from aesara.graph.utils import MethodNotDefined
 from aesara.link.c.basic import failure_code
 from aesara.link.c.op import COp, ExternalCOp, OpenMPOp
+from aesara.link.c.params_type import ParamsType
 from aesara.misc.frozendict import frozendict
 from aesara.misc.safe_asarray import _asarray
 from aesara.printing import FunctionPrinter, Printer, pprint

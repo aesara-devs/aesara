@@ -11,8 +11,8 @@ from aesara import function
 from aesara.compile.mode import Mode, get_mode
 from aesara.graph.basic import Apply
 from aesara.graph.op import Op
-from aesara.graph.type import generic
 from aesara.ifelse import IfElse, ifelse
+from aesara.link.c.type import generic
 from aesara.tensor.math import eq
 from aesara.tensor.type import col, iscalar, matrix, row, scalar, tensor3, vector
 from tests import unittest_tools as utt

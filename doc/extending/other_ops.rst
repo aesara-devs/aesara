@@ -231,11 +231,11 @@ along with pointers to the relevant documentation.
         can split a sparse variable into its parts as TensorVariables. Those
         can then be used as inputs to an op with C code.
 
-*       :class:`Generic <aesara.graph.type.Generic>` : Aesara type that
+*       :class:`Generic <aesara.link.c.type.Generic>` : Aesara type that
         represents a simple Python Object. Variables of this Aesara type are
         represented in C as objects of class `PyObject
         <https://docs.python.org/2/c-api/structures.html#c.PyObject>`_.
 
-*       :class:`CDataType <aesara.graph.type.CDataType>` :  Aesara type that
+*       :class:`CDataType <aesara.link.c.type.CDataType>` :  Aesara type that
         represents a C data type. The C type associated with this Aesara type
         depends on the data being represented.

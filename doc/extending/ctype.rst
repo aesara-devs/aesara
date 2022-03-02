@@ -178,7 +178,7 @@ Defining the methods
 
 .. testcode::
 
-    from aesara.graph.type import Generic
+    from aesara.link.c.type import Generic
 
 
     class double(Generic):

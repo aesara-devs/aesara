@@ -1,4 +1,4 @@
-from aesara.graph.type import CType, Type
+from aesara.link.c.type import CType, Type
 
 
 class TypedListType(CType):

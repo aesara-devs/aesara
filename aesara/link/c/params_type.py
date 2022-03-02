@@ -18,7 +18,7 @@ Importation:
 .. code-block:: python
 
     # Import ParamsType class.
-    from aesara.graph.params_type import ParamsType
+    from aesara.link.c.params_type import ParamsType
 
     # If you want to use a tensor and a scalar as parameters,
     # you should import required Aesara types.
@@ -67,15 +67,15 @@ Combining ParamsType with Aesara enumeration types
 --------------------------------------------------
 
 Aesara provide some enumeration types that allow to create constant primitive values (integer and floating values)
-available in both Python and C code. See :class:`aesara.graph.type.EnumType` and its subclasses for more details.
+available in both Python and C code. See :class:`aesara.link.c.type.EnumType` and its subclasses for more details.
 
 If your ParamsType contains Aesara enumeration types, then constants defined inside these
 enumerations will be directly available as ParamsType attributes.
 
 **Example**::
 
-    from aesara.graph.params_type import ParamsType
-    from aesara.graph.type import EnumType, EnumList
+    from aesara.link.c.params_type import ParamsType
+    from aesara.link.c.type import EnumType, EnumList
 
     wrapper = ParamsType(enum1=EnumList('CONSTANT_1', 'CONSTANT_2', 'CONSTANT_3'),
                          enum2=EnumType(PI=3.14, EPSILON=0.001))
@@ -99,7 +99,7 @@ This implies that a ParamsType cannot contain different enum types with common e
                          enum2=EnumType(CONSTANT_1=0, CONSTANT_3=5))
 
 If your enum types contain constant aliases, you can retrieve them from ParamsType
-with ``ParamsType.enum_from_alias(alias)`` method (see :class:`aesara.graph.type.EnumType`
+with ``ParamsType.enum_from_alias(alias)`` method (see :class:`aesara.link.c.type.EnumType`
 for more info about enumeration aliases).
 
 .. code-block:: python
@@ -117,8 +117,8 @@ for more info about enumeration aliases).
 import hashlib
 import re
 
-from aesara.graph.type import CType, EnumType
 from aesara.graph.utils import MethodNotDefined
+from aesara.link.c.type import CType, EnumType
 
 
 # Set of C and C++ keywords as defined (at March 2nd, 2017) in the pages below:
@@ -235,7 +235,7 @@ class Params(dict):
 
     .. code-block:: python
 
-        from aesara.graph.params_type import ParamsType, Params
+        from aesara.link.c.params_type import ParamsType, Params
         from aesara.scalar import Scalar
         # You must create a ParamsType first:
         params_type = ParamsType(attr1=Scalar('int32'),
@@ -497,7 +497,7 @@ class ParamsType(CType):
         **Example**::
 
             from aesara.graph.params_type import ParamsType
-            from aesara.graph.type import EnumType, EnumList
+            from aesara.link.c.type import EnumType, EnumList
             from aesara.scalar import Scalar
 
             wrapper = ParamsType(scalar=Scalar('int32'),
@@ -526,7 +526,7 @@ class ParamsType(CType):
         **Example**::
 
             from aesara.graph.params_type import ParamsType
-            from aesara.graph.type import EnumType, EnumList
+            from aesara.link.c.type import EnumType, EnumList
             from aesara.scalar import Scalar
 
             wrapper = ParamsType(scalar=Scalar('int32'),

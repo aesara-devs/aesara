@@ -7,8 +7,8 @@ import numpy as np
 import aesara
 from aesara.gradient import DisconnectedType
 from aesara.graph.basic import Apply, Constant, Variable
-from aesara.graph.params_type import ParamsType
 from aesara.link.c.op import COp
+from aesara.link.c.params_type import ParamsType
 from aesara.misc.safe_asarray import _asarray
 from aesara.scalar import int32
 from aesara.tensor import _get_vector_length
