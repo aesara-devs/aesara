@@ -843,7 +843,7 @@ class ScalarVariable(_scalar_py_operators, Variable):
     pass
 
 
-Scalar.Variable = ScalarVariable
+Scalar.variable_type = ScalarVariable
 
 
 class ScalarConstant(ScalarVariable, Constant):
@@ -852,7 +852,7 @@ class ScalarConstant(ScalarVariable, Constant):
 
 
 # Register ScalarConstant as the type of Constant corresponding to Scalar
-Scalar.Constant = ScalarConstant
+Scalar.constant_type = ScalarConstant
 
 
 def constant(x, name=None, dtype=None) -> ScalarConstant:

@@ -415,8 +415,8 @@ class SparseConstant(Constant, _sparse_py_operators):
         return str(self)
 
 
-SparseType.Variable = SparseVariable
-SparseType.Constant = SparseConstant
+SparseType.variable_type = SparseVariable
+SparseType.constant_type = SparseConstant
 
 
 # for more dtypes, call SparseType(format, dtype)

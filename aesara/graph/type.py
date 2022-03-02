@@ -35,12 +35,12 @@ class Type(MetaObject):
 
     """
 
-    Variable: TypeAlias = Variable
+    variable_type: TypeAlias = Variable
     """
     The `Type` that will be created by a call to `Type.make_variable`.
     """
 
-    Constant: TypeAlias = Constant
+    constant_type: TypeAlias = Constant
     """
     The `Type` that will be created by a call to `Type.make_constant`.
     """
@@ -136,7 +136,7 @@ class Type(MetaObject):
 
     def filter_variable(
         self, other: Union[Variable, D], allow_convert: bool = True
-    ) -> Variable:
+    ) -> variable_type:
         r"""Convert a `other` into a `Variable` with a `Type` that's compatible with `self`.
 
         If the involved `Type`\s are not compatible, a `TypeError` will be raised.
@@ -144,7 +144,7 @@ class Type(MetaObject):
         if not isinstance(other, Variable):
             # The value is not a Variable: we cast it into
             # a Constant of the appropriate Type.
-            other = self.Constant(type=self, data=other)
+            other = self.constant_type(type=self, data=other)
 
         if other.type != self and allow_convert:
             other2 = self.convert_variable(other)
@@ -193,7 +193,7 @@ class Type(MetaObject):
         except (TypeError, ValueError):
             return False
 
-    def make_variable(self, name: Optional[Text] = None) -> Variable:
+    def make_variable(self, name: Optional[Text] = None) -> variable_type:
         """Return a new `Variable` instance of this `Type`.
 
         Parameters
@@ -202,9 +202,9 @@ class Type(MetaObject):
             A pretty string for printing and debugging.
 
         """
-        return self.Variable(self, name=name)
+        return self.variable_type(self, name=name)
 
-    def make_constant(self, value: D, name: Optional[Text] = None) -> Constant:
+    def make_constant(self, value: D, name: Optional[Text] = None) -> constant_type:
         """Return a new `Constant` instance of this `Type`.
 
         Parameters
@@ -215,13 +215,13 @@ class Type(MetaObject):
             A pretty string for printing and debugging.
 
         """
-        return self.Constant(type=self, data=value, name=name)
+        return self.constant_type(type=self, data=value, name=name)
 
     def clone(self, *args, **kwargs):
         """Clone a copy of this type with the given arguments/keyword values, if any."""
         return type(self)(*args, **kwargs)
 
-    def __call__(self, name: Optional[Text] = None) -> Variable:
+    def __call__(self, name: Optional[Text] = None) -> variable_type:
         """Return a new `Variable` instance of Type `self`.
 
         Parameters

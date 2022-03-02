@@ -109,7 +109,7 @@ class SliceConstant(Constant):
         )
 
 
-SliceType.Constant = SliceConstant
+SliceType.constant_type = SliceConstant
 
 
 @_as_symbolic.register(slice)
