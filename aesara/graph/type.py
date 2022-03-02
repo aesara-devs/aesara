@@ -223,7 +223,7 @@ class Type(MetaObject):
         return utils.add_tag_trace(self.make_variable(name))
 
     @classmethod
-    def values_eq(cls, a: Any, b: Any) -> bool:
+    def values_eq(cls, a: "Type", b: "Type") -> bool:
         """Return ``True`` if `a` and `b` can be considered exactly equal.
 
         `a` and `b` are assumed to be valid values of this `Type`.
