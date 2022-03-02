@@ -19,9 +19,10 @@ import textwrap
 import time
 import warnings
 from io import BytesIO, StringIO
-from typing import Dict, List, Set
+from typing import Callable, Dict, List, Optional, Set, Tuple, cast
 
 import numpy.distutils
+from typing_extensions import Protocol
 
 # we will abuse the lockfile mechanism when reading and writing the registry
 from aesara.compile.compilelock import lock_ctx
@@ -37,6 +38,26 @@ from aesara.utils import (
     output_subprocess_Popen,
     subprocess_Popen,
 )
+
+
+class StdLibDirsAndLibsType(Protocol):
+    data: Optional[Tuple[List[str], ...]]
+    __call__: Callable[[], Optional[Tuple[List[str], ...]]]
+
+
+def is_StdLibDirsAndLibsType(
+    fn: Callable[[], Optional[Tuple[List[str], ...]]]
+) -> StdLibDirsAndLibsType:
+    return cast(StdLibDirsAndLibsType, fn)
+
+
+class GCCLLVMType(Protocol):
+    is_llvm: Optional[bool]
+    __call__: Callable[[], Optional[bool]]
+
+
+def is_GCCLLVMType(fn: Callable[[], Optional[bool]]) -> GCCLLVMType:
+    return cast(GCCLLVMType, fn)
 
 
 _logger = logging.getLogger("aesara.link.c.cmodule")
@@ -1649,7 +1670,8 @@ def std_include_dirs():
     return numpy_inc_dirs + python_inc_dirs + [gof_inc_dir]
 
 
-def std_lib_dirs_and_libs():
+@is_StdLibDirsAndLibsType
+def std_lib_dirs_and_libs() -> Optional[Tuple[List[str], ...]]:
     # We cache the results as on Windows, this trigger file access and
     # this method is called many times.
     if std_lib_dirs_and_libs.data is not None:
@@ -1730,7 +1752,7 @@ def std_lib_dirs_and_libs():
 
             # get the name of the python library (shared object)
 
-            libname = distutils.sysconfig.get_config_var("LDLIBRARY")
+            libname = str(distutils.sysconfig.get_config_var("LDLIBRARY"))
 
             if libname.startswith("lib"):
                 libname = libname[3:]
@@ -1741,7 +1763,7 @@ def std_lib_dirs_and_libs():
             elif libname.endswith(".a"):
                 libname = libname[:-2]
 
-            libdir = distutils.sysconfig.get_config_var("LIBDIR")
+            libdir = str(distutils.sysconfig.get_config_var("LIBDIR"))
 
         std_lib_dirs_and_libs.data = [libname], [libdir]
 
@@ -1749,7 +1771,9 @@ def std_lib_dirs_and_libs():
     # explicitly where it is located this returns
     # somepath/lib/python2.x
 
-    python_lib = distutils.sysconfig.get_python_lib(plat_specific=1, standard_lib=1)
+    python_lib = str(
+        distutils.sysconfig.get_python_lib(plat_specific=True, standard_lib=True)
+    )
     python_lib = os.path.dirname(python_lib)
     if python_lib not in std_lib_dirs_and_libs.data[1]:
         std_lib_dirs_and_libs.data[1].append(python_lib)
@@ -1771,7 +1795,8 @@ def gcc_version():
     return gcc_version_str
 
 
-def gcc_llvm():
+@is_GCCLLVMType
+def gcc_llvm() -> Optional[bool]:
     """
     Detect if the g++ version used is the llvm one or not.
 
