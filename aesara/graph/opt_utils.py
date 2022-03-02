@@ -1,5 +1,5 @@
 import copy
-from typing import Generator, Sequence, Union
+from typing import Generator, Sequence, Union, cast
 
 import aesara
 from aesara.graph.basic import (
@@ -210,11 +210,14 @@ def get_clients_at_depth(
     fgraph: FunctionGraph, node: Apply, depth: int
 ) -> Generator[Apply, None, None]:
     """Yields node clients at given depth."""
-    for node in node.outputs:
+    for var in node.outputs:
         if depth > 0:
-            for out_node, _ in fgraph.clients[node]:
+            for out_node, _ in fgraph.clients[var]:
                 if out_node == "output":
                     continue
-                yield from get_clients_at_depth(fgraph, out_node, depth - 1)
+                yield from get_clients_at_depth(
+                    fgraph, cast(Apply, out_node), depth - 1
+                )
         else:
-            yield node.owner
+            assert var.owner is not None
+            yield var.owner
