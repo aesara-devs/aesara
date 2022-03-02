@@ -36,13 +36,16 @@ if TYPE_CHECKING:
     from aesara.graph.fg import FunctionGraph
     from aesara.graph.type import Type
 
-StorageMapType = Dict[Variable, List[Optional[List[Any]]]]
+StorageCellType = List[Optional[Any]]
+StorageMapType = Dict[Variable, StorageCellType]
 ComputeMapType = Dict[Variable, List[bool]]
-OutputStorageType = List[Optional[List[Any]]]
+InputStorageType = List[StorageCellType]
+OutputStorageType = List[StorageCellType]
 ParamsInputType = Optional[Tuple[Any]]
 PerformMethodType = Callable[
     [Apply, List[Any], OutputStorageType, ParamsInputType], None
 ]
+BasicThunkType = Callable[[], None]
 ThunkCallableType = Callable[
     [PerformMethodType, StorageMapType, ComputeMapType, Apply], None
 ]
@@ -470,8 +473,8 @@ class Op(MetaObject):
     def prepare_node(
         self,
         node: Apply,
-        storage_map: StorageMapType,
-        compute_map: ComputeMapType,
+        storage_map: Optional[StorageMapType],
+        compute_map: Optional[ComputeMapType],
         impl: Optional[Text],
     ) -> None:
         """Make any special modifications that the `Op` needs before doing :meth:`Op.make_thunk`.
