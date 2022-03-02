@@ -3,7 +3,13 @@ import sys
 import traceback
 from abc import ABCMeta
 from io import StringIO
-from typing import List, Optional, Sequence, Tuple
+from typing import TYPE_CHECKING, List, Optional, Sequence, Tuple, TypeVar, Union
+
+
+if TYPE_CHECKING:
+    from aesara.graph.basic import Apply, Variable
+
+T = TypeVar("T", bound=Union["Apply", "Variable"])
 
 
 def simple_extract_stack(
@@ -67,7 +73,7 @@ def simple_extract_stack(
     return trace
 
 
-def add_tag_trace(thing, user_line: Optional[int] = None):
+def add_tag_trace(thing: T, user_line: Optional[int] = None) -> T:
     """Add tag.trace to a node or variable.
 
     The argument is returned after being affected (inplace).
