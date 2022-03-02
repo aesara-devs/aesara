@@ -355,12 +355,17 @@ class TestFunctionGraph:
 
         fg.remove_client(var4, ("output", 1))
 
+        with pytest.raises(TypeError, match="The first entry of.*"):
+            fg.add_client(var4, (None, 0))
+
+        var7 = op1(var4)
+
         with pytest.raises(Exception, match="Client not in FunctionGraph.*"):
-            fg.add_client(var4, (var6.owner, 0))
+            fg.add_client(var4, (var7.owner, 0))
 
             fg.check_integrity()
 
-        fg.remove_client(var4, (var6.owner, 0))
+        fg.remove_client(var4, (var7.owner, 0))
 
         with pytest.raises(Exception, match="Inconsistent clients list.*"):
             fg.add_client(var4, (var3.owner, 0))
