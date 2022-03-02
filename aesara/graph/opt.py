@@ -54,6 +54,8 @@ class LocalMetaOptimizerSkipAssertionError(AssertionError):
 class Rewriter(abc.ABC):
     """Abstract base class for graph/term rewriters."""
 
+    name: Optional[str] = None
+
     @abc.abstractmethod
     def add_requirements(self, fgraph: FunctionGraph):
         r"""Add `Feature`\s and other requirements to a `FunctionGraph`."""
