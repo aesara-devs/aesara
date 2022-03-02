@@ -9,10 +9,14 @@ from typing import (
     Dict,
     List,
     Optional,
+    Sequence,
     Text,
     Tuple,
     Union,
+    cast,
 )
+
+from typing_extensions import Protocol
 
 import aesara
 from aesara.configdefaults import config
@@ -30,6 +34,7 @@ from aesara.graph.utils import (
 if TYPE_CHECKING:
     from aesara.compile.function.types import Function
     from aesara.graph.fg import FunctionGraph
+    from aesara.graph.type import Type
 
 StorageMapType = Dict[Variable, List[Optional[List[Any]]]]
 ComputeMapType = Dict[Variable, List[bool]]
@@ -38,7 +43,22 @@ ParamsInputType = Optional[Tuple[Any]]
 PerformMethodType = Callable[
     [Apply, List[Any], OutputStorageType, ParamsInputType], None
 ]
-ThunkType = Callable[[PerformMethodType, StorageMapType, ComputeMapType, Apply], Any]
+ThunkCallableType = Callable[
+    [PerformMethodType, StorageMapType, ComputeMapType, Apply], None
+]
+
+
+class ThunkType(Protocol):
+    inputs: List[List[Optional[List[Any]]]]
+    outputs: List[List[Optional[List[Any]]]]
+    lazy: bool
+    __call__: ThunkCallableType
+    perform: PerformMethodType
+
+
+def is_thunk_type(thunk: ThunkCallableType) -> ThunkType:
+    res = cast(ThunkType, thunk)
+    return res
 
 
 def compute_test_value(node: Apply):
@@ -180,8 +200,8 @@ class Op(MetaObject):
 
     """
 
-    itypes = None
-    otypes = None
+    itypes: Optional[Sequence["Type"]] = None
+    otypes: Optional[Sequence["Type"]] = None
     params_type: Optional[ParamsType] = None
 
     def make_node(self, *inputs: Variable) -> Apply:
@@ -276,7 +296,7 @@ class Op(MetaObject):
         if self.default_output is not None:
             rval = node.outputs[self.default_output]
             if return_list:
-                rval = [rval]
+                return [rval]
             return rval
         else:
             if return_list:
@@ -382,17 +402,17 @@ class Op(MetaObject):
 
         Parameters
         ----------
-        node : Apply
+        node
             The symbolic `Apply` node that represents this computation.
-        inputs : Sequence
+        inputs
             Immutable sequence of non-symbolic/numeric inputs.  These
             are the values of each `Variable` in :attr:`node.inputs`.
-        output_storage : list of list
+        output_storage
             List of mutable single-element lists (do not change the length of
             these lists).  Each sub-list corresponds to value of each
             `Variable` in :attr:`node.outputs`.  The primary purpose of this method
             is to set the values of these sub-lists.
-        params : tuple
+        params
             A tuple containing the values of each entry in :attr:`Op.__props__`.
 
         Notes
@@ -492,7 +512,10 @@ class Op(MetaObject):
 
         if params is NoParams:
             # default arguments are stored in the closure of `rval`
-            def rval(p=p, i=node_input_storage, o=node_output_storage, n=node):
+            @is_thunk_type
+            def rval(
+                p=p, i=node_input_storage, o=node_output_storage, n=node, params=None
+            ):
                 r = p(n, [x[0] for x in i], o)
                 for o in node.outputs:
                     compute_map[o][0] = True
@@ -501,6 +524,7 @@ class Op(MetaObject):
         else:
             params_val = node.params_type.filter(params)
 
+            @is_thunk_type
             def rval(
                 p=p,
                 i=node_input_storage,
@@ -515,7 +539,7 @@ class Op(MetaObject):
 
         rval.inputs = node_input_storage
         rval.outputs = node_output_storage
-        rval.perform = p
+        setattr(rval, "perform", p)
         rval.lazy = False
         return rval
 
@@ -604,7 +628,7 @@ class HasInnerGraph:
         """The inner function's outputs."""
 
 
-def get_test_value(v: Variable) -> Any:
+def get_test_value(v: Any) -> Any:
     """Get the test value for `v`.
 
     If input `v` is not already a variable, it is turned into one by calling

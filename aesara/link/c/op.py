@@ -3,7 +3,9 @@ import os
 import re
 import warnings
 from typing import (
+    TYPE_CHECKING,
     Any,
+    Callable,
     ClassVar,
     Collection,
     Dict,
@@ -14,16 +16,32 @@ from typing import (
     Text,
     Tuple,
     Union,
+    cast,
 )
 
 import numpy as np
 
 from aesara.configdefaults import config
-from aesara.graph.basic import Apply
+from aesara.graph.basic import Apply, Variable
 from aesara.graph.op import ComputeMapType, Op, StorageMapType, ThunkType
 from aesara.graph.params_type import ParamsType
+from aesara.graph.type import HasDataType
 from aesara.graph.utils import MethodNotDefined
 from aesara.link.c.interface import CLinkerOp
+
+
+if TYPE_CHECKING:
+    from aesara.link.c.basic import _CThunk
+
+
+class CThunkWrapperType(ThunkType):
+    thunk: "_CThunk"
+    cthunk: ThunkType
+
+
+def is_cthunk_wrapper_type(thunk: Callable[[], None]) -> CThunkWrapperType:
+    res = cast(CThunkWrapperType, thunk)
+    return res
 
 
 class COp(Op, CLinkerOp):
@@ -34,8 +52,8 @@ class COp(Op, CLinkerOp):
         node: Apply,
         storage_map: StorageMapType,
         compute_map: ComputeMapType,
-        no_recycling: Collection[Apply],
-    ) -> ThunkType:
+        no_recycling: Collection[Variable],
+    ) -> CThunkWrapperType:
         """Create a thunk for a C implementation.
 
         Like :meth:`Op.make_thunk`, but will only try to make a C thunk.
@@ -80,6 +98,7 @@ class COp(Op, CLinkerOp):
         )
         thunk, node_input_filters, node_output_filters = outputs
 
+        @is_cthunk_wrapper_type
         def rval():
             thunk()
             for o in node.outputs:
@@ -520,17 +539,18 @@ class ExternalCOp(COp):
 
             # Generate dtype macros
             for i, v in enumerate(variables):
-                if not hasattr(v, "dtype"):
+                if not isinstance(v.type, HasDataType):
                     continue
+
                 vname = variable_names[i]
 
                 macro_name = "DTYPE_" + vname
-                macro_value = "npy_" + v.dtype
+                macro_value = "npy_" + v.type.dtype
 
                 define_macros.append(define_template % (macro_name, macro_value))
                 undef_macros.append(undef_template % macro_name)
 
-                d = np.dtype(v.dtype)
+                d = np.dtype(v.type.dtype)
 
                 macro_name = "TYPENUM_" + vname
                 macro_value = d.num
