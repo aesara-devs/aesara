@@ -152,6 +152,7 @@ except ImportError:
             assert lazylinker_ext._version == lazy_c.get_version()
             _logger.info(f"New version {lazylinker_ext._version}")
 
+from lazylinker_ext.lazylinker_ext import CLazyLinker  # noqa
 from lazylinker_ext.lazylinker_ext import *  # noqa
 
 assert force_compile or (version == get_version())  # noqa
