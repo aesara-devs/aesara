@@ -120,11 +120,6 @@ The current development branch of |Project Name| can be installed from GitHub, a
 Support
 =======
 
-Many Aesara developers are also PyMC developers, and, since the PyMC developers
-operate under the NumFOCUS umbrella, if you want to support them financially,
-consider donating `here <https://numfocus.salsalabs.org/donate-to-pymc3/index.html>`__.
-
-
 Special thanks to `Bram Timmer <http://beside.ca>`__ for the logo.
 
 
