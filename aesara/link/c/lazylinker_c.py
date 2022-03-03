@@ -4,6 +4,8 @@ import os
 import sys
 import warnings
 from importlib import reload
+from types import ModuleType
+from typing import Optional
 
 import aesara
 from aesara.compile.compilelock import lock_ctx
@@ -15,7 +17,7 @@ _logger = logging.getLogger(__file__)
 
 force_compile = False
 version = 0.211  # must match constant returned in function get_version()
-lazylinker_ext = None
+lazylinker_ext: Optional[ModuleType] = None
 
 
 def try_import():
@@ -127,6 +129,7 @@ except ImportError:
             code = open(cfile).read()
             loc = os.path.join(config.compiledir, dirname)
             if not os.path.exists(loc):
+
                 try:
                     os.mkdir(loc)
                 except OSError as e:
@@ -149,10 +152,13 @@ except ImportError:
             try_reload()
             from lazylinker_ext import lazylinker_ext as lazy_c
 
-            assert lazylinker_ext._version == lazy_c.get_version()
+            assert (
+                lazylinker_ext is not None
+                and lazylinker_ext._version == lazy_c.get_version()
+            )
             _logger.info(f"New version {lazylinker_ext._version}")
 
-from lazylinker_ext.lazylinker_ext import CLazyLinker  # noqa
+from lazylinker_ext.lazylinker_ext import CLazyLinker, get_version  # noqa
 from lazylinker_ext.lazylinker_ext import *  # noqa
 
 assert force_compile or (version == get_version())  # noqa
