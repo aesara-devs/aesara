@@ -2902,7 +2902,7 @@ def test_shared():
                 ),
             ],
             at.as_tensor([3, 2]),
-            marks=pytest.mark.xfail(reason="Not implemented"),
+            marks=pytest.mark.xfail(reason="Numba and NumPy rng states do not match"),
         ),
         (
             aer.wald,

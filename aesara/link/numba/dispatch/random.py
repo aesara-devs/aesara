@@ -204,7 +204,6 @@ def {sized_fn_name}({random_fn_input_names}):
 @numba_funcify.register(aer.PoissonRV)
 @numba_funcify.register(aer.GeometricRV)
 @numba_funcify.register(aer.HyperGeometricRV)
-@numba_funcify.register(aer.CauchyRV)
 @numba_funcify.register(aer.WaldRV)
 @numba_funcify.register(aer.LaplaceRV)
 @numba_funcify.register(aer.BinomialRV)
@@ -269,6 +268,14 @@ def {np_random_fn_name}({np_input_names}):
     )
 
     return make_numba_random_fn(node, np_random_fn)
+
+
+@numba_funcify.register(aer.CauchyRV)
+def numba_funcify_CauchyRV(op, node, **kwargs):
+    def body_fn(loc, scale):
+        return f"    return ({loc} + np.random.standard_cauchy()) / {scale}"
+
+    return create_numba_random_fn(op, node, body_fn)
 
 
 @numba_funcify.register(aer.HalfNormalRV)
