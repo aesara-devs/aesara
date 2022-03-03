@@ -10,13 +10,13 @@ try:
         raise MissingGXX(
             "lazylinker will not be imported if aesara.config.cxx is not set."
         )
-    from aesara.link.c import lazylinker_c
+    from aesara.link.c.lazylinker_c import CLazyLinker
 
-    class CVM(lazylinker_c.CLazyLinker, VM):
+    class CVM(CLazyLinker, VM):
         def __init__(self, fgraph, *args, **kwargs):
             self.fgraph = fgraph
-            lazylinker_c.CLazyLinker.__init__(self, *args, **kwargs)
             # skip VM.__init__
+            CLazyLinker.__init__(self, *args, **kwargs)
 
 
 except ImportError:
