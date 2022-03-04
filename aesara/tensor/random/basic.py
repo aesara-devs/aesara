@@ -559,6 +559,7 @@ class NegBinomialRV(ScipyRandomVariable):
 
 
 nbinom = NegBinomialRV()
+negative_binomial = NegBinomialRV()
 
 
 class BetaBinomialRV(ScipyRandomVariable):
@@ -803,4 +804,5 @@ __all__ = [
     "triangular",
     "uniform",
     "standard_normal",
+    "negative_binomial",
 ]

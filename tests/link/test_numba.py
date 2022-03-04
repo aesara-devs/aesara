@@ -2946,21 +2946,20 @@ def test_shared():
             ],
             at.as_tensor([3, 2]),
         ),
-        # pytest.param(
-        #     aer.negative_binomial,
-        #     [
-        #         set_test_value(
-        #             at.lvector(),
-        #             np.array([1, 2], dtype=np.int64),
-        #         ),
-        #         set_test_value(
-        #             at.dscalar(),
-        #             np.array(0.9, dtype=np.float64),
-        #         ),
-        #     ],
-        #     at.as_tensor([3, 2]),
-        #     marks=pytest.mark.xfail(reason="Not implemented"),
-        # ),
+        (
+            aer.negative_binomial,
+            [
+                set_test_value(
+                    at.lvector(),
+                    np.array([1, 2], dtype=np.int64),
+                ),
+                set_test_value(
+                    at.dscalar(),
+                    np.array(0.9, dtype=np.float64),
+                ),
+            ],
+            at.as_tensor([3, 2]),
+        ),
         (
             aer.normal,
             [

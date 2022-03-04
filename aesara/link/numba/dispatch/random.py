@@ -207,7 +207,6 @@ def {sized_fn_name}({random_fn_input_names}):
 @numba_funcify.register(aer.WaldRV)
 @numba_funcify.register(aer.LaplaceRV)
 @numba_funcify.register(aer.BinomialRV)
-@numba_funcify.register(aer.NegBinomialRV)
 @numba_funcify.register(aer.MultinomialRV)
 @numba_funcify.register(aer.RandIntRV)  # only the first two arguments are supported
 @numba_funcify.register(aer.ChoiceRV)  # the `p` argument is not supported
@@ -268,6 +267,14 @@ def {np_random_fn_name}({np_input_names}):
     )
 
     return make_numba_random_fn(node, np_random_fn)
+
+
+@numba_funcify.register(aer.NegBinomialRV)
+def numba_funcify_NegBinomialRV(op, node, **kwargs):
+    if not isinstance(node.inputs[0], (RandomStateType, RandomStateSharedVariable)):
+        raise TypeError("Numba does not support NumPy `Generator`s")
+
+    return make_numba_random_fn(node, np.random.negative_binomial)
 
 
 @numba_funcify.register(aer.CauchyRV)
