@@ -34,7 +34,7 @@ from aesara.tensor.basic_opt import local_dimshuffle_lift
 from aesara.tensor.blas import Dot22, Gemv
 from aesara.tensor.blas_c import CGemv
 from aesara.tensor.elemwise import CAReduce, DimShuffle, Elemwise
-from aesara.tensor.math import Dot, MaxAndArgmax, Prod, Sum, _conj
+from aesara.tensor.math import Argmax, Dot, Max, Prod, Sum, _conj
 from aesara.tensor.math import abs as at_abs
 from aesara.tensor.math import add
 from aesara.tensor.math import all as at_all
@@ -4076,7 +4076,7 @@ def check_max_log_sum_exp(x, axis, dimshuffle_op=None):
 
         # in mode FAST_COMPILE, the optimisations don't replace the
         # MaxAndArgmax op.
-        if isinstance(node.op, MaxAndArgmax):
+        if isinstance(node.op, (Max, Argmax)):
             return
 
     raise Exception("No maximum detected after log_sum_exp optimisation")

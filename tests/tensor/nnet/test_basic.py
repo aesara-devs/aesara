@@ -11,18 +11,8 @@ from aesara.configdefaults import config
 from aesara.gradient import grad
 from aesara.graph.fg import FunctionGraph
 from aesara.graph.opt import check_stack_trace
-from aesara.tensor.elemwise import CAReduce, DimShuffle, Elemwise
-from aesara.tensor.math import (
-    Argmax,
-    add,
-    argmax,
-    dot,
-    exp,
-    log,
-    max_and_argmax,
-    mean,
-    sigmoid,
-)
+from aesara.tensor.elemwise import DimShuffle, Elemwise
+from aesara.tensor.math import Argmax, add, argmax, dot, exp, log, mean, sigmoid
 from aesara.tensor.math import sum as at_sum
 from aesara.tensor.math import tanh, true_div
 from aesara.tensor.nnet.basic import (
@@ -924,36 +914,16 @@ class TestCrossEntropyCategorical1Hot(utt.InferShapeTester):
 def test_argmax_pushdown():
     x = matrix()
     for sm in [softmax_graph, softmax_legacy]:
-        # test that the max_and_argmax is pushed down if the max is not used
-        out = max_and_argmax(sm(exp(tanh(sigmoid(x)))), axis=-1)[1]
+        out = argmax(sm(exp(tanh(sigmoid(x)))), axis=-1)
         fgraph = FunctionGraph([x], [out])
         optdb.query(OPT_FAST_RUN).optimize(fgraph)
 
-        # print 'AFTER'
+        # print('AFTER')
         # for node in fgraph.toposort():
-        # print node.op
+        # print (node.op)
         assert len(fgraph.toposort()) == 1
         assert isinstance(fgraph.toposort()[0].op, Argmax)
         assert check_stack_trace(fgraph, ops_to_check=Argmax)
-        x = matrix()
-        # test that the max_and_argmax is not pushed down if the max is used
-        out = max_and_argmax(sm(exp(tanh(sigmoid(x)))), axis=-1)[0]
-        fgraph = FunctionGraph([x], [out])
-
-        assert hasattr(fgraph.outputs[0].tag, "trace")
-
-        optdb.query(OPT_FAST_RUN).optimize(fgraph)
-
-        # print 'AFTER'
-        # for node in fgraph.toposort():
-        # print node.op
-        assert len(fgraph.toposort()) == 3
-        assert isinstance(fgraph.toposort()[0].op, Elemwise)
-        assert isinstance(fgraph.toposort()[1].op, Softmax)
-        assert isinstance(fgraph.toposort()[2].op, CAReduce)
-        assert isinstance(
-            fgraph.toposort()[2].op.scalar_op, aesara.scalar.ScalarMaximum
-        )
 
 
 def test_argmax_pushdown_bias():
@@ -971,19 +941,6 @@ def test_argmax_pushdown_bias():
     for i, type in enumerate(types_to_check):
         assert isinstance(fgraph.toposort()[i].op, type)
     assert check_stack_trace(fgraph, ops_to_check=types_to_check)
-
-    x = matrix()
-    b = vector()
-    out = max_and_argmax(softmax_with_bias(x, b), axis=-1)[0]
-    fgraph = FunctionGraph([x, b], [out])
-
-    optdb.query(OPT_FAST_RUN).optimize(fgraph)
-
-    assert len(fgraph.toposort()) == 2
-    assert isinstance(fgraph.toposort()[0].op, SoftmaxWithBias)
-    assert isinstance(fgraph.toposort()[1].op, CAReduce)
-    assert isinstance(fgraph.toposort()[1].op.scalar_op, aesara.scalar.ScalarMaximum)
-    assert check_stack_trace(fgraph, ops_to_check=(SoftmaxWithBias, CAReduce))
 
 
 def test_asymptotic_32():

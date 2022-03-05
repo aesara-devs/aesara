@@ -46,25 +46,6 @@ _logger = logging.getLogger("aesara.tensor.opt_uncanonicalize")
 
 
 @register_uncanonicalize
-@local_optimizer([MaxAndArgmax])
-def local_max_and_argmax(fgraph, node):
-    """
-    If we don't use the argmax, change it to a max only.
-    """
-    if isinstance(node.op, MaxAndArgmax):
-        axis = node.op.get_params(node)
-        if len(fgraph.clients[node.outputs[1]]) == 0:
-            new = Max(axis)(node.inputs[0])
-            copy_stack_trace(node.outputs[0], new)
-            return [new, None]
-
-        if len(fgraph.clients[node.outputs[0]]) == 0:
-            new = Argmax(axis)(node.inputs[0])
-            copy_stack_trace(node.outputs[0], new)
-            return [None, new]
-
-
-@register_uncanonicalize
 @local_optimizer([neg])
 def local_max_to_min(fgraph, node):
     """

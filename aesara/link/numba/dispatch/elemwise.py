@@ -719,7 +719,7 @@ def numba_funcify_Max(op, node, **kwargs):
             Apply(node.op, node.inputs, [node.outputs[0].clone()]), reduce_max_py_fn
         )
 
-       @numba_basic.numba_njit
+        @numba_basic.numba_njit
         def max(x):
             max_res = reduce_max(x)
             return max_res

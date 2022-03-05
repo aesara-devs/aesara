@@ -35,7 +35,7 @@ from aesara.tensor.elemwise import CAReduce, Elemwise
 from aesara.tensor.math import (
     Argmax,
     Dot,
-    MaxAndArgmax,
+    Max,
     Mean,
     Prod,
     ProdWithoutZeros,
@@ -747,11 +747,12 @@ def test_isnan():
 
 class TestMaxAndArgmax:
     def setup_method(self):
-        MaxAndArgmax.debug = 0
+        Argmax.debug = 0
+        Max.debug = 0
 
     def test_basic(self):
         n = as_tensor_variable(5.0)
-        v, i = eval_outputs(max_and_argmax(n))
+        v, i = eval_outputs(max_and_argmax(n, axis=[]))
         assert v == 5.0
         assert i == 0
         assert i.dtype == "int64"
@@ -803,7 +804,7 @@ class TestMaxAndArgmax:
             (NoneConst.clone(), None),
             (constant(0), 0),
         ]:
-            v, i = eval_outputs(max_and_argmax(n, axis), (MaxAndArgmax,))
+            v, i = eval_outputs(max_and_argmax(n, axis))
             assert i.dtype == "int64"
             assert np.all(v == np.max(data, np_axis))
             assert np.all(i == np.argmax(data, np_axis))
@@ -976,7 +977,7 @@ class TestMaxAndArgmax:
 
 class TestArgminArgmax:
     def setup_method(self):
-        MaxAndArgmax.debug = 0
+        Argmax.debug = 0
 
     def test_scalar(self):
         for fct in [argmin, argmax]:
@@ -1137,8 +1138,8 @@ class TestArgminArgmax:
 
 
 class TestMinMax:
-    def setup_method(self):
-        MaxAndArgmax.debug = 0
+    # def setup_method(self):
+    #     MaxAndArgmax.debug = 0
 
     def test_scalar(self):
         for fct in [max, min]:
@@ -2410,30 +2411,6 @@ class TestInferShape(utt.InferShapeTester):
         self._compile_and_check([adtens3], [Mean(None)(adtens3)], [adtens3_val], Mean)
         self._compile_and_check(
             [adtens3], [Mean(aiscal_val)(adtens3)], [adtens3_val], Mean
-        )
-
-    def test_MaxAndArgmax(self):
-
-        adtens3 = dtensor3()
-        adtens3_val = random(4, 5, 3)
-        self._compile_and_check(
-            [adtens3], max_and_argmax(adtens3, None), [adtens3_val], MaxAndArgmax
-        )
-
-        self._compile_and_check(
-            [adtens3], max_and_argmax(adtens3, 0), [adtens3_val], MaxAndArgmax
-        )
-
-        self._compile_and_check(
-            [adtens3], max_and_argmax(adtens3, 1), [adtens3_val], MaxAndArgmax
-        )
-
-        self._compile_and_check(
-            [adtens3], max_and_argmax(adtens3, 2), [adtens3_val], MaxAndArgmax
-        )
-
-        self._compile_and_check(
-            [adtens3], max_and_argmax(adtens3, [0, 1, 2]), [adtens3_val], MaxAndArgmax
         )
 
     def test_Dot(self):

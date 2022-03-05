@@ -5,12 +5,11 @@ import numpy as np
 
 from aesara import config, printing
 from aesara import scalar as aes
-from aesara.gradient import grad_undefined, grad_not_implemented
+from aesara.gradient import grad_undefined
 from aesara.graph.basic import Apply, Variable
 from aesara.graph.op import Op
 from aesara.link.c.op import COp
 from aesara.link.c.params_type import ParamsType
-from aesara.link.c.type import Generic
 from aesara.misc.safe_asarray import _asarray
 from aesara.printing import pprint
 from aesara.scalar.basic import BinaryScalarOp
@@ -120,220 +119,6 @@ def _allclose(a, b, rtol=None, atol=None):
     return np.allclose(a, b, atol=atol_, rtol=rtol_)
 
 
-class MaxAndArgmax(COp):
-    """
-    Calculate the max and argmax over a given axis or over all axes.
-
-    """
-
-    nin = 2  # tensor, axis
-    nout = 2  # max val, max idx
-    E_axis = "invalid axis"
-    params_type = Generic()
-    __props__ = ("axis",)
-    _f16_ok = True
-
-    def __init__(self, axis):
-        assert isinstance(axis, list)
-        self.axis = tuple(axis)
-
-    def get_params(self, node):
-        return self.axis
-
-    def make_node(self, x):
-        x = as_tensor_variable(x)
-
-        # We keep the original broadcastable flags for dimensions on which
-        # we do not perform the max / argmax.
-        all_axes = set(self.axis)
-        broadcastable = [
-            b for i, b in enumerate(x.type.broadcastable) if i not in all_axes
-        ]
-        inputs = [x]
-        outputs = [
-            tensor(x.type.dtype, broadcastable, name="max"),
-            tensor("int64", broadcastable, name="argmax"),
-        ]
-        return Apply(self, inputs, outputs)
-
-    def perform(self, node, inp, outs, params):
-        x = inp[0]
-        axes = params
-        max, max_idx = outs
-        if axes is None:
-            axes = tuple(range(x.ndim))
-        else:
-            axes = tuple(int(ax) for ax in axes)
-        max[0] = _asarray(np.max(x, axes), dtype=node.outputs[0].dtype)
-        # Numpy does not support multiple axes for argmax
-        # Work around
-        keep_axes = np.array([i for i in range(x.ndim) if i not in axes], dtype="int64")
-        # Not-reduced axes in front
-        transposed_x = np.transpose(x, np.concatenate((keep_axes, axes)))
-        kept_shape = transposed_x.shape[: len(keep_axes)]
-        reduced_shape = transposed_x.shape[len(keep_axes) :]
-
-        # Numpy.prod returns 1.0 when arg is empty, so we cast it to int64
-        # Otherwise reshape would complain citing float arg
-        new_shape = kept_shape + (np.prod(reduced_shape, dtype="int64"),)
-        reshaped_x = transposed_x.reshape(new_shape)
-
-        max_idx[0] = _asarray(np.argmax(reshaped_x, axis=-1), dtype="int64")
-
-    def c_code(self, node, name, inp, out, sub):
-        if len(self.axis) != 1 and len(self.axis) != node.inputs[0].ndim:
-            raise NotImplementedError(
-                "NumPy C-API can compute max and argmax only for 1 axis or for all axes."
-            )
-        x = inp[0]
-        axis = sub["params"]
-        max, argmax = out
-        fail = sub["fail"]
-        ret = """
-        #if PY_MAJOR_VERSION >= 3
-            #ifndef PyInt_AS_LONG
-                #define PyInt_AS_LONG PyLong_AS_LONG
-            #endif
-        #endif
-
-        int axis;
-
-        if (PyTuple_GET_SIZE(%(axis)s) == PyArray_NDIM(%(x)s)) {
-            axis = NPY_MAXDIMS;
-        } else if(PyTuple_GET_SIZE(%(axis)s) == 1) {
-            PyObject* axis_object = PyTuple_GET_ITEM(%(axis)s, 0);
-            axis = (int)PyInt_AS_LONG(axis_object);
-            if (axis > PyArray_NDIM(%(x)s)-1 || axis < -PyArray_NDIM(%(x)s)) {
-                PyErr_SetString(PyExc_ValueError,
-                "MaxAndArgmax: bad axis argument");
-                %(fail)s
-            }
-        } else {
-            PyErr_SetString(PyExc_NotImplementedError,
-            "MaxAndArgmax: NumPy C-API can compute max and argmax only for 1 axis or for all axes.");
-            %(fail)s
-        }
-
-        Py_CLEAR(%(max)s);
-        Py_CLEAR(%(argmax)s);//todo pass them as out parameter.
-
-        %(max)s = (PyArrayObject*)PyArray_Max(%(x)s, axis, NULL);
-        if (%(max)s == NULL) {
-            %(fail)s;
-        }
-        if (!PyArray_CheckExact(%(max)s)) {
-            %(max)s = (PyArrayObject*)PyArray_FromAny((PyObject*)%(max)s, NULL, 0, 0, NPY_ARRAY_ENSUREARRAY, NULL);
-            if(%(max)s == NULL){
-                %(fail)s;
-            }
-        }
-
-        %(argmax)s = (PyArrayObject*)PyArray_ArgMax(%(x)s, axis, NULL);
-        if (%(argmax)s == NULL) {
-            Py_CLEAR(%(max)s);
-            %(fail)s;
-        }
-        if (!PyArray_CheckExact(%(argmax)s)) {
-            %(argmax)s = (PyArrayObject*)PyArray_FromAny((PyObject*)%(argmax)s, NULL, 0, 0, NPY_ARRAY_ENSUREARRAY, NULL);
-            if(%(argmax)s == NULL){
-                %(fail)s;
-            }
-        }
-        if (PyArray_TYPE(%(argmax)s) != NPY_INT64) {
-            PyObject * tmp = PyArray_Cast(%(argmax)s, NPY_INT64);
-            if (NULL == tmp){
-                %(fail)s;
-            }
-            Py_DECREF(%(argmax)s);
-            %(argmax)s = (PyArrayObject*)tmp;
-        }
-        """
-        return ret % locals()
-
-    def c_code_cache_version(self):
-        return (5,)
-
-    def infer_shape(self, fgraph, node, shapes):
-        ishape = shapes[0]
-        rval = tuple(
-            ishape[i]
-            for (i, b) in enumerate(node.inputs[0].type.broadcastable)
-            if i not in self.axis
-        )
-        return [rval, rval]
-
-    def R_op(self, inputs, eval_points):
-        if eval_points[0] is None:
-            return [None, None]
-        if len(self.axis) != 1:
-            raise ValueError("R_op supported for arg_max only for " "one axis!")
-        if self.axis[0] > 1:
-            raise ValueError("R_op supported for arg_max only when " " axis is 0 or 1")
-        if inputs[0].ndim != 2:
-            raise ValueError(
-                "R_op supported for arg_max only when " " input is a matrix"
-            )
-        max_vals, max_pos = self.make_node(*inputs).outputs
-        if self.axis[0] == 0:
-            return [eval_points[0][max_pos, arange(eval_points[0].shape[1])], None]
-        else:
-            return [eval_points[0][arange(eval_points[0].shape[0]), max_pos], None]
-
-    def grad(self, inp, grads):
-        # The strict sense mathematical gradient of the maximum function is
-        # not calculated here for it is not defined at every point where some
-        # coordinates are identical. However, since the latter set has null
-        # Lebesgue measure, the result may be interpreted as weak gradient.
-
-        # @note: This function should work correctly for L{vector}s.
-        # (x, y), (gz, gw)
-        # gz*dz/dx + gw*dw/dx, gz*dz/dy + gw*dw/dy
-        # gMax * dMax/dx + gArgMax * dArgMax/dx,
-        # gMax * dMax/daxis + gArgMax * dArgMax/daxis
-        # g_max has one less dimension than x, so you need to complete
-        # g_max to x's shape when axis=0 the broadcasting mechanism
-        # does it automatically
-        x = inp[0]
-        axis = as_tensor_variable(self.axis)
-        g_max, g_max_idx = grads
-
-        g_max_disconnected = isinstance(g_max.type, DisconnectedType)
-        g_max_idx_disconnected = isinstance(g_max_idx.type, DisconnectedType)
-
-        # if the op is totally disconnected, so are its inputs
-        if g_max_disconnected and g_max_idx_disconnected:
-            return [DisconnectedType()(), DisconnectedType()()]
-
-        # if the max is disconnected but the argmax is not,
-        # the gradient on its inputs is zero
-        if g_max_disconnected:
-            return [x.zeros_like()]
-        if NoneConst.equals(axis):
-            axis_ = list(range(x.ndim))
-        else:
-            axis_ = axis
-        xmax = max(x, axis_)
-
-        # Raise the g_max and xmax to the same number of dim as the input.
-        pattern = []
-        out_dim = 0
-        if NoneConst.equals(axis):
-            # We are taking the max/argmax over all dimensions.
-            axis = None
-        for i in range(x.ndim):
-            if axis is None or i in axis.data:
-                pattern.append("x")
-            else:
-                pattern.append(out_dim)
-                out_dim += 1
-        g_max_pad = DimShuffle(g_max.broadcastable, pattern)(g_max)
-        xmax_pad = DimShuffle(xmax.broadcastable, pattern)(xmax)
-
-        # Set the grad to the correct position.
-        g_x = eq(xmax_pad, x) * g_max_pad
-        return (g_x,)
-
-
 class Argmax(COp):
     """
     Calculate the argmax over a given axis or over all axes.
@@ -348,9 +133,6 @@ class Argmax(COp):
     params_type = ParamsType(c_axis=aes.int64)
 
     def __init__(self, axis):
-        if axis is not None:
-            axis = tuple(axis)
-        self.axis = axis
         self.axis = tuple(axis)
 
     def get_params(self, node):
@@ -387,8 +169,8 @@ class Argmax(COp):
         (x,) = inp
         axes = self.axis
         (max_idx,) = outs
-        if axes is None:
-            axes = tuple(range(x.ndim))
+        # if axes is None:
+        # axes = tuple(range(x.ndim))
 
         # Numpy does not support multiple axes for argmax
         # Work around
@@ -411,7 +193,7 @@ class Argmax(COp):
             axis_code = "axis = NPY_MAXDIMS;"
         else:
             if len(self.axis) > 1:
-                return grad_not_implemented(self, 0, x)
+                raise NotImplementedError()
             # params is only used here for now
             axis_code = (
                 """
@@ -584,11 +366,7 @@ def max_and_argmax(a, axis=None, keepdims=False):
     axis = check_and_normalize_axes(a, axis)
     if len(axis) == 0:
         axis = list(range(a.type.ndim))
-    out, argout = MaxAndArgmax(axis)(a)
-
-    if keepdims:
-        out = makeKeepDims(a, out, axis)
-        argout = makeKeepDims(a, argout, axis)
+    out, argout = max(a, axis, keepdims), argmax(a, axis, keepdims)
     return [out, argout]
 
 
@@ -676,7 +454,7 @@ class Max(COp):
             axis_code = "axis = NPY_MAXDIMS;"
         else:
             if len(self.axis) > 1:
-                return grad_not_implemented(self, 0, x)
+                raise NotImplementedError()
             # params is only used here for now
             axis_code = (
                 """
@@ -827,6 +605,7 @@ def max(x, axis=None, keepdims=False):
     axis = check_and_normalize_axes(x, axis)
     if len(axis) == 0:
         axis = list(range(x.type.ndim))
+
     out = Max(axis)(x)
 
     if keepdims:
