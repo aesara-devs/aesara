@@ -3075,7 +3075,6 @@ def test_aligned_RandomVariable(rv_op, dist_args, size):
             ),
         ),
     ],
-    ids=str,
 )
 def test_unaligned_RandomVariable(rv_op, dist_args, base_size, cdf_name, params_conv):
     """Tests for Numba samplers that are not one-to-one with Aesara's/NumPy's samplers."""
@@ -3143,7 +3142,6 @@ def test_unaligned_RandomVariable(rv_op, dist_args, base_size, cdf_name, params_
             pytest.raises(ValueError, match="Parameters shape.*"),
         ),
     ],
-    ids=str,
 )
 def test_CategoricalRV(rv_op, dist_args, size, cm):
     rng = shared(np.random.RandomState(29402))
