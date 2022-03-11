@@ -2,6 +2,7 @@ from collections.abc import Collection
 from typing import Iterable, Tuple, Union
 
 import numpy as np
+import numpy.core.numeric
 
 import aesara
 from aesara.gradient import (
@@ -482,7 +483,17 @@ class DiffOp(Op):
 
     def make_node(self, x):
         x = at.as_tensor_variable(x)
-        return Apply(self, [x], [x.type()])
+        axis = numpy.core.numeric.normalize_axis_index(self.axis, x.ndim)
+        shape = [None] * x.type.ndim
+        for i, shape_i in enumerate(x.type.shape):
+            if shape_i is None:
+                continue
+            if i == axis:
+                shape[i] = max(0, shape_i - self.n)
+            else:
+                shape[i] = shape_i
+        out_type = TensorType(dtype=x.type.dtype, shape=shape)
+        return Apply(self, [x], [out_type()])
 
     def perform(self, node, inputs, output_storage):
         x = inputs[0]

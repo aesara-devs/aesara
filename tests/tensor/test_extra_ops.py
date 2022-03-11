@@ -302,6 +302,28 @@ class TestDiffOp(utt.InferShapeTester):
                 g = aesara.function([x], diff(x, n=n, axis=axis))
                 assert np.allclose(np.diff(a, n=n, axis=axis), g(a))
 
+    @pytest.mark.parametrize(
+        "x_type",
+        (
+            at.TensorType("float64", (None, None)),
+            at.TensorType("float64", (None, 30)),
+            at.TensorType("float64", (10, None)),
+            at.TensorType("float64", (10, 30)),
+        ),
+    )
+    def test_output_type(self, x_type):
+        x = x_type("x")
+        x_test = np.empty((10, 30))
+        for axis in (-2, -1, 0, 1):
+            for n in (0, 1, 2, 10, 11):
+                out = diff(x, n=n, axis=axis)
+                out_test = np.diff(x_test, n=n, axis=axis)
+                for i in range(2):
+                    if x.type.shape[i] is None:
+                        assert out.type.shape[i] is None
+                    else:
+                        assert out.type.shape[i] == out_test.shape[i]
+
     def test_infer_shape(self):
         x = matrix("x")
         a = np.random.random((30, 50)).astype(config.floatX)
