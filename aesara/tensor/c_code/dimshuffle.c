@@ -31,6 +31,8 @@ int APPLY_SPECIFIC(cpu_dimshuffle)(PyArrayObject *input, PyArrayObject **res,
   PyArrayObject *transposed_input =
       (PyArrayObject *)PyArray_Transpose(_input, &permute);
 
+  Py_DECREF(_input);
+
   PyDimMem_FREE(permute.ptr);
 
   npy_intp *res_shape = PyArray_DIMS(transposed_input);
@@ -68,7 +70,7 @@ int APPLY_SPECIFIC(cpu_dimshuffle)(PyArrayObject *input, PyArrayObject **res,
   *res = (PyArrayObject *)PyArray_Newshape(transposed_input, &reshape_shape,
                                            NPY_CORDER);
 
-  /* Py_XDECREF(transposed_input); */
+  Py_DECREF(transposed_input);
 
   PyDimMem_FREE(reshape_shape.ptr);
 
