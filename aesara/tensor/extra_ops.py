@@ -505,6 +505,7 @@ class DiffOp(Op):
             app = at.concatenate([z, [0.0]])
             return pre - app
 
+        # FIXME: This fails when n is larger than the input size
         for k in range(self.n):
             z = _grad_helper(z)
         return [z]
@@ -512,7 +513,7 @@ class DiffOp(Op):
     def infer_shape(self, fgraph, node, ins_shapes):
         i0_shapes = ins_shapes[0]
         out_shape = list(i0_shapes)
-        out_shape[self.axis] = out_shape[self.axis] - self.n
+        out_shape[self.axis] = at_max((0, out_shape[self.axis] - self.n))
         return [out_shape]
 
 

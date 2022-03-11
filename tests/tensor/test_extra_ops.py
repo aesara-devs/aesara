@@ -43,7 +43,6 @@ from aesara.tensor.extra_ops import (
     to_one_hot,
     unravel_index,
 )
-from aesara.tensor.math import sum as at_sum
 from aesara.tensor.subtensor import AdvancedIncSubtensor
 from aesara.tensor.type import (
     TensorType,
@@ -291,13 +290,6 @@ class TestBinCount(utt.InferShapeTester):
 
 
 class TestDiffOp(utt.InferShapeTester):
-    nb = 10  # Number of time iterating for n
-
-    def setup_method(self):
-        super().setup_method()
-        self.op_class = DiffOp
-        self.op = DiffOp()
-
     def test_diffOp(self):
         x = matrix("x")
         a = np.random.random((30, 50)).astype(config.floatX)
@@ -305,33 +297,42 @@ class TestDiffOp(utt.InferShapeTester):
         f = aesara.function([x], diff(x))
         assert np.allclose(np.diff(a), f(a))
 
-        for axis in range(len(a.shape)):
-            for k in range(TestDiffOp.nb):
-                g = aesara.function([x], diff(x, n=k, axis=axis))
-                assert np.allclose(np.diff(a, n=k, axis=axis), g(a))
+        for axis in (-2, -1, 0, 1):
+            for n in (0, 1, 2, a.shape[0], a.shape[0] + 1):
+                g = aesara.function([x], diff(x, n=n, axis=axis))
+                assert np.allclose(np.diff(a, n=n, axis=axis), g(a))
 
     def test_infer_shape(self):
         x = matrix("x")
         a = np.random.random((30, 50)).astype(config.floatX)
 
-        self._compile_and_check([x], [self.op(x)], [a], self.op_class)
+        # Test default n and axis
+        self._compile_and_check([x], [DiffOp()(x)], [a], DiffOp)
 
-        for axis in range(len(a.shape)):
-            for k in range(TestDiffOp.nb):
-                self._compile_and_check(
-                    [x], [diff(x, n=k, axis=axis)], [a], self.op_class
-                )
+        for axis in (-2, -1, 0, 1):
+            for n in (0, 1, 2, a.shape[0], a.shape[0] + 1):
+                self._compile_and_check([x], [diff(x, n=n, axis=axis)], [a], DiffOp)
 
     def test_grad(self):
-        x = vector("x")
         a = np.random.random(50).astype(config.floatX)
 
-        aesara.function([x], grad(at_sum(diff(x)), x))
-        utt.verify_grad(self.op, [a])
+        # Test default n and axis
+        utt.verify_grad(DiffOp(), [a])
 
-        for k in range(TestDiffOp.nb):
-            aesara.function([x], grad(at_sum(diff(x, n=k)), x))
-            utt.verify_grad(DiffOp(n=k), [a], eps=7e-3)
+        for n in (0, 1, 2, a.shape[0]):
+            utt.verify_grad(DiffOp(n=n), [a], eps=7e-3)
+
+    @pytest.mark.xfail(reason="gradient is wrong when n is larger than input size")
+    def test_grad_n_larger_than_input(self):
+        # Gradient is wrong when n is larger than the input size. Until it is fixed,
+        # this test ensures the behavior is documented
+        a = np.random.random(10).astype(config.floatX)
+        utt.verify_grad(DiffOp(n=11), [a], eps=7e-3)
+
+    def test_grad_not_implemented(self):
+        x = at.matrix("x")
+        with pytest.raises(NotImplementedError):
+            grad(diff(x).sum(), x)
 
 
 class TestSqueeze(utt.InferShapeTester):
