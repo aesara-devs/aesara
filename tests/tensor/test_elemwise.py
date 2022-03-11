@@ -1,4 +1,5 @@
 import math
+import tracemalloc
 from copy import copy
 
 import numpy as np
@@ -140,6 +141,41 @@ class TestDimShuffle(unittest_tools.InferShapeTester):
             assert np.shares_memory(x_val, outputs[0].storage[0])
             # Confirm the broadcasted value in the output
             assert np.array_equiv(outputs[0].storage[0], 2039)
+
+    @pytest.mark.parametrize("inplace", [True, False])
+    def test_memory_leak(self, inplace):
+        import gc
+
+        n = 100_000
+
+        x = aesara.shared(np.ones(n, dtype=np.float64))
+
+        y = x.dimshuffle([0, "x"])
+        y.owner.op.inplace = inplace
+
+        f = aesara.function([], y, mode=Mode(optimizer=None))
+
+        assert len(f.maker.fgraph.apply_nodes) == 2
+        assert isinstance(f.maker.fgraph.toposort()[0].op, DimShuffle)
+
+        assert f.maker.fgraph.toposort()[0].op.inplace is inplace
+
+        tracemalloc.start()
+
+        blocks_last = None
+        block_diffs = []
+        for i in range(50):
+            x.set_value(np.ones(n))
+            _ = f()
+            _ = gc.collect()
+            blocks_i, _ = tracemalloc.get_traced_memory()
+            if blocks_last is not None:
+                blocks_diff = (blocks_i - blocks_last) // 10 ** 3
+                block_diffs.append(blocks_diff)
+            blocks_last = blocks_i
+
+        tracemalloc.stop()
+        assert np.allclose(np.mean(block_diffs), 0)
 
 
 class TestBroadcast:
