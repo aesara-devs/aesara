@@ -467,11 +467,11 @@ class DeviceParam(ConfigParam):
             raise ValueError(
                 'Invalid value ("{val}") for configuration '
                 'variable "{self.name}". Valid options start with '
-                'one of "cpu", "opencl" or "cuda".'
+                'one of "cpu".'
             )
 
     def __str__(self):
-        return f"{self.name} ({self.default}, opencl*, cuda*) "
+        return f"{self.name} ({self.default})"
 
 
 class ContextsParam(ConfigParam):
