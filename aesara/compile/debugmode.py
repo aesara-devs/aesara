@@ -38,6 +38,7 @@ from aesara.link.basic import Container, LocalLinker
 from aesara.link.c.op import COp
 from aesara.link.utils import map_storage, raise_with_op
 from aesara.printing import _debugprint
+from aesara.tensor import TensorType
 from aesara.utils import NoDuplicateOptWarningFilter, difference, get_unbound_function
 
 
@@ -785,7 +786,6 @@ def _get_preallocated_maps(
             # I'm not sure why it is legitimate, but there are tests about it.
             # So, we cannot fill r_vals[r] with def_val yet, we have to wait
             # until all output values are deepcopied.
-        from aesara.tensor import TensorType
 
         for r in considered_outputs:
             # There is no risk to overwrite inputs, since r does not work
@@ -1369,7 +1369,6 @@ class _Linker(LocalLinker):
         # can't import at toplevel because of circular import TODO:
         # don't do this ugly hacky way of setting the
         # filter_checks_isfinite
-        from aesara.tensor.type import TensorType  # to set filter_check_isfinite
 
         fgraph = self.fgraph
         input_storage_ = input_storage
