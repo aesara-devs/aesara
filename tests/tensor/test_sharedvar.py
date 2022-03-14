@@ -243,7 +243,6 @@ def makeSharedTester(
                 assert x is not get_x
             assert np.allclose(self.ref_fct(np.asarray(x_orig) / 0.5), self.ref_fct(x))
 
-            # test optimized get set value on the gpu(don't pass data to the cpu)
             get_x = x_shared.get_value(borrow=True, return_internal_type=True)
             assert get_x is not x_orig  # borrow=False to shared_constructor
             assert self.check_internal_type(get_x)
@@ -325,8 +324,6 @@ def makeSharedTester(
             if x.__class__.__name__ != "csr_matrix":
                 # sparse matrix don't support inplace affectation
                 nd += 1
-                # THIS DOESN'T DO WHAT WE EXPECT the content of a is
-                # not updated for GpuArray, but it is for ndarray
                 x_shared.get_value(borrow=True)[:] = nd
                 assert may_share_memory(old_data, x_shared.container.storage[0])
                 x_shared.get_value(borrow=True)
@@ -345,7 +342,6 @@ def makeSharedTester(
             )
 
             # Test by set_value with borrow=False when new data cast.
-            # specifically useful for gpu data
             nd += 1
             old_data = x_shared.container.storage[0]
             x_shared.set_value(self.cast_value(nd), borrow=False)
@@ -522,8 +518,7 @@ def makeSharedTester(
                 assert (
                     sum(
                         [
-                            node.op.__class__.__name__
-                            in ["Gemm", "GpuGemm", "StructuredDot"]
+                            node.op.__class__.__name__ in ["Gemm", "StructuredDot"]
                             for node in topo
                         ]
                     )
@@ -533,11 +528,6 @@ def makeSharedTester(
                     node.op == aesara.tensor.blas.gemm_inplace
                     for node in topo
                     if isinstance(node.op, aesara.tensor.blas.Gemm)
-                )
-                assert all(
-                    node.op.inplace
-                    for node in topo
-                    if node.op.__class__.__name__ == "GpuGemm"
                 )
             # Their is no inplace gemm for sparse
             # assert all(node.op.inplace for node in topo if node.op.__class__.__name__ == "StructuredDot")
@@ -560,8 +550,7 @@ def makeSharedTester(
                 assert (
                     sum(
                         [
-                            node.op.__class__.__name__
-                            in ["Gemm", "GpuGemm", "StructuredDot"]
+                            node.op.__class__.__name__ in ["Gemm", "StructuredDot"]
                             for node in topo
                         ]
                     )
@@ -572,11 +561,7 @@ def makeSharedTester(
                     for node in topo
                     if isinstance(node.op, aesara.tensor.blas.Gemm)
                 )
-                assert all(
-                    node.op.inplace
-                    for node in topo
-                    if node.op.__class__.__name__ == "GpuGemm"
-                )
+
             # now test with the specify shape op in the inputs and outputs
             a_shared = specify_shape(a_shared, a_shared.get_value(borrow=True).shape)
             b_shared = specify_shape(b_shared, b_shared.get_value(borrow=True).shape)
@@ -595,8 +580,7 @@ def makeSharedTester(
                 assert (
                     sum(
                         [
-                            node.op.__class__.__name__
-                            in ["Gemm", "GpuGemm", "StructuredDot"]
+                            node.op.__class__.__name__ in ["Gemm", "StructuredDot"]
                             for node in topo
                         ]
                     )
@@ -606,11 +590,6 @@ def makeSharedTester(
                     node.op == aesara.tensor.blas.gemm_inplace
                     for node in topo
                     if isinstance(node.op, aesara.tensor.blas.Gemm)
-                )
-                assert all(
-                    node.op.inplace
-                    for node in topo
-                    if node.op.__class__.__name__ == "GpuGemm"
                 )
 
         if (

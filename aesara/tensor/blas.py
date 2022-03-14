@@ -15,7 +15,6 @@ There are four kinds of BLAS Ops in Aesara:
     - Python implementations (this file)
     - SciPy-based (blas_scipy)
     - C-based (blas_c)
-    - GPU-based (aesara.gpuarray)
 
 Notes
 -----

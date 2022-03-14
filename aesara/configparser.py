@@ -456,15 +456,13 @@ class DeviceParam(ConfigParam):
         )
 
     def _apply(self, val):
-        if val == self.default or val.startswith("opencl") or val.startswith("cuda"):
-            return val
-        elif val.startswith("gpu"):
+        if val.startswith("opencl") or val.startswith("cuda") or val.startswith("gpu"):
             raise ValueError(
                 "You are trying to use the old GPU back-end. "
-                "It was removed from Aesara. Use device=cuda* now. "
-                "See https://github.com/aesara-devs/aesara/wiki/Converting-to-the-new-gpu-back-end%28gpuarray%29 "
-                "for more information."
+                "It was removed from Aesara."
             )
+        elif val == self.default:
+            return val
         else:
             raise ValueError(
                 'Invalid value ("{val}") for configuration '

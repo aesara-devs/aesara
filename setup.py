@@ -120,7 +120,6 @@ if __name__ == "__main__":
                 "symbolic",
                 "blas",
                 "numpy",
-                "gpu",
                 "autodiff",
                 "differentiation",
             ]

@@ -9,7 +9,6 @@ import os
 import pickle
 import sys
 import tempfile
-import warnings
 import zipfile
 from collections import defaultdict
 from contextlib import closing
@@ -27,7 +26,6 @@ except ImportError:
     DEFAULT_PROTOCOL = HIGHEST_PROTOCOL
 
 from aesara.compile.sharedvalue import SharedVariable
-from aesara.configdefaults import config
 
 
 __docformat__ = "restructuredtext en"
@@ -121,30 +119,7 @@ class PersistentNdarrayID:
             return self.seen[id(obj)]
 
 
-class PersistentGpuArrayID(PersistentNdarrayID):
-    def __call__(self, obj):
-        from aesara.gpuarray.type import _name_for_ctx
-
-        try:
-            import pygpu
-        except ImportError:
-            pygpu = None
-
-        if pygpu and isinstance(obj, pygpu.gpuarray.GpuArray):
-            if id(obj) not in self.seen:
-
-                def write_array(f):
-                    pickle.dump(_name_for_ctx(obj.context), f, 2)
-                    np.lib.format.write_array(f, np.asarray(obj))
-
-                name = self._resolve_name(obj)
-                zipadd(write_array, self.zip_file, name)
-                self.seen[id(obj)] = f"gpuarray.{name}"
-            return self.seen[id(obj)]
-        return super().__call__(obj)
-
-
-class PersistentSharedVariableID(PersistentGpuArrayID):
+class PersistentSharedVariableID(PersistentNdarrayID):
     """Uses shared variable names when persisting to zip file.
 
     If a shared variable has a name, this name is used as the name of the
@@ -213,32 +188,16 @@ class PersistentNdarrayLoad:
         self.cache = {}
 
     def __call__(self, persid):
-        from aesara.gpuarray import pygpu
-        from aesara.gpuarray.type import get_context
-
         array_type, name = persid.split(".")
-
+        del array_type
+        # array_type was used for switching gpu/cpu arrays
+        # it is better to put these into sublclasses properly
+        # this is more work but better logic
         if name in self.cache:
             return self.cache[name]
         ret = None
-        if array_type == "gpuarray":
-            with self.zip_file.open(name) as f:
-                ctx_name = pickle.load(f)
-                array = np.lib.format.read_array(f)
-            if config.experimental__unpickle_gpu_on_cpu:
-                # directly return numpy array
-                warnings.warn(
-                    "config.experimental__unpickle_gpu_on_cpu is set "
-                    "to True. Unpickling GpuArray as numpy.ndarray"
-                )
-                ret = array
-            elif pygpu:
-                ret = pygpu.array(array, context=get_context(ctx_name))
-            else:
-                raise ImportError("pygpu not found. Cannot unpickle GpuArray")
-        else:
-            with self.zip_file.open(name) as f:
-                ret = np.lib.format.read_array(f)
+        with self.zip_file.open(name) as f:
+            ret = np.lib.format.read_array(f)
         self.cache[name] = ret
         return ret
 

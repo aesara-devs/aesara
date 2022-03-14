@@ -70,9 +70,9 @@ class IfElse(_NoPythonOp):
 
     """
 
-    __props__ = ("as_view", "gpu", "n_outs")
+    __props__ = ("as_view", "n_outs")
 
-    def __init__(self, n_outs, as_view=False, gpu=False, name=None):
+    def __init__(self, n_outs, as_view=False, name=None):
         if as_view:
             # check destroyhandler and others to ensure that a view_map with
             # multiple inputs can work
@@ -81,7 +81,6 @@ class IfElse(_NoPythonOp):
                 view_map[idx] = [idx + 1]
             self.view_map = view_map
         self.as_view = as_view
-        self.gpu = gpu
         self.n_outs = n_outs
         self.name = name
 
@@ -90,14 +89,12 @@ class IfElse(_NoPythonOp):
             return False
         if self.as_view != other.as_view:
             return False
-        if self.gpu != other.gpu:
-            return False
         if self.n_outs != other.n_outs:
             return False
         return True
 
     def __hash__(self):
-        return hash((type(self), self.as_view, self.gpu, self.n_outs))
+        return hash((type(self), self.as_view, self.n_outs))
 
     def __str__(self):
         args = []
@@ -105,8 +102,6 @@ class IfElse(_NoPythonOp):
             args.append(self.name)
         if self.as_view:
             args.append("inplace")
-        if self.gpu:
-            args.append("gpu")
         return f"if{{{','.join(args)}}}"
 
     def infer_shape(self, fgraph, node, inputs_shapes):
@@ -143,7 +138,6 @@ class IfElse(_NoPythonOp):
             new_ifelse = IfElse(
                 n_outs=len(new_ts_inputs),
                 as_view=False,
-                gpu=False,
                 name="_".join(name_tokens),
             )
             new_outs = new_ifelse(
@@ -172,16 +166,13 @@ class IfElse(_NoPythonOp):
                 f"{int(2 * self.n_outs)}, got {len(args)}"
             )
         c = at.basic.as_tensor_variable(c)
-        if not self.gpu:
-            # When gpu is true, we are given only gpuarrays, and we want
-            # to keep them as gpuarrays
-            nw_args = []
-            for x in args:
-                if isinstance(x, Variable):
-                    nw_args.append(x)
-                else:
-                    nw_args.append(at.as_tensor_variable(x))
-            args = nw_args
+        nw_args = []
+        for x in args:
+            if isinstance(x, Variable):
+                nw_args.append(x)
+            else:
+                nw_args.append(at.as_tensor_variable(x))
+        args = nw_args
         aes = args[: self.n_outs]
         fs = args[self.n_outs :]
 
@@ -214,13 +205,9 @@ class IfElse(_NoPythonOp):
         else:
             nw_name_t = None
             nw_name_f = None
-        if_true_op = IfElse(
-            n_outs=self.n_outs, as_view=self.as_view, gpu=self.gpu, name=nw_name_t
-        )
+        if_true_op = IfElse(n_outs=self.n_outs, as_view=self.as_view, name=nw_name_t)
 
-        if_false_op = IfElse(
-            n_outs=self.n_outs, as_view=self.as_view, gpu=self.gpu, name=nw_name_f
-        )
+        if_false_op = IfElse(n_outs=self.n_outs, as_view=self.as_view, name=nw_name_f)
 
         # The grads can have a different dtype then the inputs.
         # As inputs true/false pair must have the same dtype,
@@ -384,7 +371,7 @@ def ifelse(
             f"{len(else_branch)})"
         )
 
-    new_ifelse = IfElse(n_outs=len(then_branch), as_view=False, gpu=False, name=name)
+    new_ifelse = IfElse(n_outs=len(then_branch), as_view=False, name=name)
 
     ins = [condition] + list(new_then_branch) + list(new_else_branch)
     rval = new_ifelse(*ins, return_list=True)
@@ -411,7 +398,7 @@ def cond_make_inplace(fgraph, node):
             or not all(getattr(o.type, "ndim", -1) == 0 for o in node.outputs)
         )
     ):
-        return IfElse(n_outs=op.n_outs, as_view=True, gpu=op.gpu, name=op.name)(
+        return IfElse(n_outs=op.n_outs, as_view=True, name=op.name)(
             *node.inputs, return_list=True
         )
     return False
@@ -611,7 +598,6 @@ class CondMerge(GlobalOptimizer):
                 new_ifelse = IfElse(
                     n_outs=len(mn_ts + pl_ts),
                     as_view=False,
-                    gpu=False,
                     name=mn_name + "&" + pl_name,
                 )
                 new_outs = new_ifelse(*new_ins, return_list=True)
@@ -660,7 +646,7 @@ def cond_remove_identical(fgraph, node):
             nw_ts.append(aes[idx])
             nw_fs.append(fs[idx])
 
-    new_ifelse = IfElse(n_outs=len(nw_ts), as_view=op.as_view, gpu=op.gpu, name=op.name)
+    new_ifelse = IfElse(n_outs=len(nw_ts), as_view=op.as_view, name=op.name)
 
     new_ins = [node.inputs[0]] + nw_ts + nw_fs
     new_outs = new_ifelse(*new_ins, return_list=True)
@@ -712,7 +698,6 @@ def cond_merge_random_op(fgraph, main_node):
             new_ifelse = IfElse(
                 n_outs=len(mn_ts + pl_ts),
                 as_view=False,
-                gpu=False,
                 name=mn_name + "&" + pl_name,
             )
             new_outs = new_ifelse(*new_ins, return_list=True)

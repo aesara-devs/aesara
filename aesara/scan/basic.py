@@ -12,7 +12,7 @@ from aesara.graph.op import get_test_value
 from aesara.graph.utils import MissingInputError, TestValueError
 from aesara.scan import utils
 from aesara.scan.op import Scan, ScanInfo
-from aesara.scan.utils import safe_new, traverse
+from aesara.scan.utils import safe_new
 from aesara.tensor.exceptions import NotScalarConstantError
 from aesara.tensor.math import minimum
 from aesara.tensor.shape import shape_padleft
@@ -968,29 +968,8 @@ def scan(
     )
     if condition is not None:
         inner_outs.append(condition)
-    # gpuarray is imported here, instead of being imported on top of
-    # the file because that would force on the user some dependencies that we
-    # might do not want to. Currently we are working on removing the
-    # dependencies on sandbox code completely.
-    from aesara import gpuarray
-
-    if gpuarray.pygpu_activated:
-        # very often we end up in this situation when we want to
-        # replace w with w_copy, where w is a GPU variable
-        # and w_copy is TensorType. This is caused because shared
-        # variables are put on GPU right away >:| ,
-        new_givens = OrderedDict()
-
-        for w, w_copy in givens.items():
-            if isinstance(w.type, gpuarray.GpuArrayType) and isinstance(
-                w_copy.type, TensorType
-            ):
-                for o in inner_outs:
-                    new_givens = traverse(o, w, w_copy, new_givens)
-            else:
-                new_givens[w] = w_copy
-    else:
-        new_givens = givens
+    # NOTE: legacy code traversed GPU types
+    new_givens = givens
 
     new_outs = clone_replace(inner_outs, replace=new_givens)
 
@@ -1023,7 +1002,6 @@ def scan(
         mode=mode,
         truncate_gradient=truncate_gradient,
         name=name,
-        gpua=False,
         as_while=as_while,
         profile=profile,
         allow_gc=allow_gc,

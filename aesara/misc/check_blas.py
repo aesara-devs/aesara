@@ -78,12 +78,8 @@ def execute(execute=True, verbose=True, M=2000, N=2000, K=2000, iters=10, order=
 
     f()  # Ignore first function call to get representative time.
     if execute:
-        try:
-            from aesara.gpuarray import GpuArraySharedVariable
-
-            sync = isinstance(c, GpuArraySharedVariable)
-        except ImportError:
-            sync = False
+        # sync was needed for gpu
+        sync = False
 
         if sync:
             # Make sure we don't include the time from the first call

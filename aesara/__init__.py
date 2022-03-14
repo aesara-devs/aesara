@@ -144,16 +144,6 @@ from aesara.updates import OrderedUpdates
 # isort: on
 
 
-if (
-    config.device.startswith("cuda")
-    or config.device.startswith("opencl")
-    or config.init_gpu_device.startswith("cuda")
-    or config.init_gpu_device.startswith("opencl")
-    or config.contexts != ""
-):
-    import aesara.gpuarray
-
-
 def get_scalar_constant_value(v):
     """Return the constant scalar (i.e. 0-D) value underlying variable `v`.
 

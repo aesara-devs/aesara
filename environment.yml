@@ -23,9 +23,6 @@ dependencies:
   # numba backend
   - numba>=0.55
   - numba-scipy
-  # GPU
-  - libgpuarray
-  - pygpu
   # For testing
   - coveralls
   - diff-cover

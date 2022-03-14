@@ -865,7 +865,7 @@ class Subtensor(COp):
     ):
         """
         The parameters c_prefix are there to allow reusing this
-        function on PyArray and GpuArray object.
+        function on PyArray object.
 
         This fct take as input the x.
 
@@ -1581,9 +1581,7 @@ class IncSubtensor(COp):
         # This method delegates much of the work to helper
         # methods. This method implements the main logic
         # but subclasses may override the helper methods
-        # to change the particulars, e.g. GpuIncSubtensor
-        # turns the view/copy operations on numpy arrays
-        # into the same operations on gpu arrays.
+        # to change the particulars.
 
         self.do_type_checking(node)
 
