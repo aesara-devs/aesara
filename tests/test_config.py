@@ -177,12 +177,13 @@ class TestConfigTypes:
     def test_deviceparam(self):
         cp = configparser.DeviceParam("cpu", mutable=False)
         assert cp.default == "cpu"
-        assert cp._apply("cuda123") == "cuda123"
-        with pytest.raises(ValueError, match="old GPU back-end"):
+        with pytest.raises(ValueError, match="It was removed from Aesara"):
+            cp._apply("cuda123")
+        with pytest.raises(ValueError, match="It was removed from Aesara"):
             cp._apply("gpu123")
-        with pytest.raises(ValueError, match="Invalid value"):
+        with pytest.raises(ValueError, match='Valid options start with one of "cpu".'):
             cp._apply("notadevice")
-        assert str(cp) == "None (cpu, opencl*, cuda*) "
+        assert str(cp) == "None (cpu)"
 
 
 def test_config_context():
