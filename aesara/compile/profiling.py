@@ -12,10 +12,8 @@ import atexit
 import copy
 import logging
 import operator
-import os
 import sys
 import time
-import warnings
 from collections import defaultdict
 from typing import Dict, List
 
@@ -279,40 +277,7 @@ class ProfileStats:
 
     # param is called flag_time_thunks because most other attributes with time
     # in the name are times *of* something, rather than configuration flags.
-    def __init__(
-        self, atexit_print=True, flag_time_thunks=None, gpu_checks=True, **kwargs
-    ):
-        if (
-            gpu_checks
-            and (hasattr(aesara, "gpuarray") and aesara.gpuarray.pygpu_activated)
-            and os.environ.get("CUDA_LAUNCH_BLOCKING", "0") != "1"
-        ):
-            msg = (
-                "You are running the Aesara profiler with CUDA enabled."
-                " Aesara GPU ops execution is asynchronous by default."
-                " So by default, the profile is useless."
-                " You must set the environment variable"
-                " CUDA_LAUNCH_BLOCKING to 1 to tell the CUDA driver to"
-                " synchronize the execution to get a meaningful profile."
-            )
-            if config.profile:
-                raise Exception(msg)
-            else:
-                warnings.warn(msg)
-
-        if (
-            config.profile
-            and gpu_checks
-            and hasattr(aesara, "gpuarray")
-            and aesara.gpuarray.pygpu_activated
-            and not config.profiling__ignore_first_call
-        ):
-            warnings.warn(
-                "Aesara flag profiling__ignore_first_call is False. "
-                "This cause bad profiling result in the gpu "
-                "back-end, as sometimes we compile at the first call."
-            )
-
+    def __init__(self, atexit_print=True, flag_time_thunks=None, **kwargs):
         self.apply_callcount = {}
         self.output_size = {}
         # Keys are `(FunctionGraph, Variable)`
@@ -543,8 +508,8 @@ class ProfileStats:
             tot += t
             ftot = tot * 100 / local_time
             # Remove the useless start and end of the class name:
-            # "<class 'aesara.gpuarray.blas.GpuDot22'>" ->
-            #  "aesara.gpuarray.blas.GpuDot22"
+            # "<class 'aesara.backend.blas.GpuDot22'>" ->
+            #  "aesara.backend.blas.GpuDot22"
             class_name = str(a)[8:-2][:maxlen]
             print(
                 format_str
@@ -922,8 +887,6 @@ class ProfileStats:
                 new allocation.
 
             """
-            from aesara.gpuarray import GpuArrayType
-
             # Initial Mem info values [CPU, GPU]
             node_memory_size = [0, 0]
             running_memory_size = [0, 0]
@@ -973,10 +936,8 @@ class ProfileStats:
                 # allocated by the node
                 idx2 = 0
                 for out in node.outputs:
-                    if isinstance(out.type, GpuArrayType):
-                        cg = 1
-                    else:
-                        cg = 0
+                    # NOTE: cg=1 was used for GPU
+                    cg = 0
                     ins = None
                     if dmap and idx2 in dmap:
                         vidx = dmap[idx2]
@@ -1021,10 +982,8 @@ class ProfileStats:
                 for ins in set(node.inputs):
                     assert not (ins in view_of and viewed_by[ins])
                     # we trac the original var, so this shouldn't happen
-                    if isinstance(ins.type, GpuArrayType):
-                        cg = 1
-                    else:
-                        cg = 0
+                    # NOTE: cg=1 was used for GPU
+                    cg = 0
                     if (
                         dependencies[ins]
                         and ins not in fgraph.outputs
@@ -1687,27 +1646,7 @@ class ProfileStats:
                 )
                 printed_tip = True
 
-        # tip 7
-        import aesara.gpuarray
-        import aesara.tensor.signal.pool as pool
-        from aesara.tensor.nnet.basic import LogSoftmax
-
-        for (fgraph, a) in self.apply_time:
-            node = a
-            if isinstance(node.op, pool.Pool):
-                if not aesara.gpuarray.dnn.dnn_present():
-                    print(
-                        "Install CuDNN to do pooling faster"
-                        "this allows the operation to run on GPU"
-                    )
-                    printed_tip = True
-            if isinstance(node.op, LogSoftmax):
-                if not aesara.gpuarray.dnn.dnn_present():
-                    print(
-                        "Install CuDNN to do LogSoftmax faster"
-                        "this allows the operation to run on GPU"
-                    )
-                    printed_tip = True
+        # tip 7 was about pool and log softmax on gpu using cudnn
 
         if not printed_tip:
             print("  Sorry, no tip for today.", file=file)

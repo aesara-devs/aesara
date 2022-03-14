@@ -176,7 +176,6 @@ def remove_constants_and_unused_inputs_scan(fgraph, node):
             op_outs,
             nw_info,
             mode=op.mode,
-            gpua=op.gpua,
             as_while=op.as_while,
             profile=op.profile,
             truncate_gradient=op.truncate_gradient,
@@ -341,7 +340,6 @@ def push_out_non_seq_scan(fgraph, node):
             op_outs,
             op.info,
             mode=op.mode,
-            gpua=op.gpua,
             as_while=op.as_while,
             profile=op.profile,
             truncate_gradient=op.truncate_gradient,
@@ -591,7 +589,6 @@ def push_out_seq_scan(fgraph, node):
             op_outs,
             nw_info,
             mode=op.mode,
-            gpua=op.gpua,
             as_while=op.as_while,
             profile=op.profile,
             truncate_gradient=op.truncate_gradient,
@@ -758,7 +755,6 @@ def add_nitsot_outputs(
         new_scan_args.inner_outputs,
         new_scan_args.info,
         mode=old_scan_node.op.mode,
-        gpua=old_scan_node.op.gpua,
         as_while=old_scan_node.op.as_while,
         profile=old_scan_node.op.profile,
         truncate_gradient=old_scan_node.op.truncate_gradient,
@@ -909,10 +905,9 @@ class ScanInplaceOptimizer(GlobalOptimizer):
 
     """
 
-    def __init__(self, typeInfer=None, gpua_flag=False):
+    def __init__(self, typeInfer=None):
         super().__init__()
         self.typeInfer = typeInfer
-        self.gpua_flag = gpua_flag
 
     def add_requirements(self, fgraph):
         fgraph.attach_feature(ReplaceValidate())
@@ -984,7 +979,6 @@ class ScanInplaceOptimizer(GlobalOptimizer):
             op.info,
             mode=op.mode,
             typeConstructor=typeConstructor,
-            gpua=op.gpua,
             as_while=op.as_while,
             profile=op.profile,
             truncate_gradient=op.truncate_gradient,
@@ -1016,9 +1010,7 @@ class ScanInplaceOptimizer(GlobalOptimizer):
 
         alloc_ops = (Alloc, AllocEmpty)
         nodes = fgraph.toposort()[::-1]
-        scan_nodes = [
-            x for x in nodes if (isinstance(x.op, Scan) and x.op.gpua == self.gpua_flag)
-        ]
+        scan_nodes = [x for x in nodes if (isinstance(x.op, Scan))]
         for scan_idx in range(len(scan_nodes)):
 
             # First attempt to make the Scan compute inplace every recurrent
@@ -1515,7 +1507,6 @@ def save_mem_new_scan(fgraph, node):
             outs,
             info,
             mode=op.mode,
-            gpua=op.gpua,
             as_while=op.as_while,
             profile=op.profile,
             truncate_gradient=op.truncate_gradient,
@@ -1812,7 +1803,6 @@ class ScanMerge(GlobalOptimizer):
             truncate_gradient=old_op.truncate_gradient,
             allow_gc=old_op.allow_gc,
             name="&".join([nd.op.name for nd in nodes]),
-            gpua=False,
             as_while=as_while,
         )
         new_outs = new_op(*outer_ins)
@@ -1989,7 +1979,6 @@ def scan_merge_inouts(fgraph, node):
             inner_outputs,
             info,
             mode=node.op.mode,
-            gpua=node.op.gpua,
             as_while=node.op.as_while,
             profile=node.op.profile,
             truncate_gradient=node.op.truncate_gradient,
@@ -2255,7 +2244,6 @@ def push_out_dot1_scan(fgraph, node):
                         new_inner_outs,
                         new_info,
                         mode=op.mode,
-                        gpua=op.gpua,
                         as_while=op.as_while,
                         profile=op.profile,
                         truncate_gradient=op.truncate_gradient,

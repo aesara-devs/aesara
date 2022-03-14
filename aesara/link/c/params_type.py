@@ -7,7 +7,7 @@ used to create a Params object that is compatible with the ParamsType defined.
 
 The Params object will be available in both Python code (as a standard Python object) and C code
 (as a specific struct with parameters as struct fields). To be fully-available in C code, Aesara
-types wrapped into a ParamsType must provide a C interface (e.g. TensorType, ScalarType, GpuArrayType,
+types wrapped into a ParamsType must provide a C interface (e.g. TensorType, ScalarType,
 or your own type. See :ref:`extending_op_params` for more details).
 
 Example of usage
@@ -318,9 +318,8 @@ class Params(dict):
 
 class ParamsType(CType):
     """
-    This class can create a struct of Aesara types (like `TensorType`,
-    `GpuArrayType`, etc.)  to be used as a convenience op parameter wrapping
-    many data.
+    This class can create a struct of Aesara types (like `TensorType`, etc.)
+    to be used as a convenience `Op` parameter wrapping many data.
 
     `ParamsType` constructor takes key-value args.  Key will be the name of the
     attribute in the struct.  Value is the Aesara type of this attribute,

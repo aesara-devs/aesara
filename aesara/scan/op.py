@@ -180,8 +180,7 @@ def check_broadcast(v1, v2):
 def copy_var_format(var, as_var):
     """
     This functions ensures that ``var`` has the same dtype as ``as_var`` as
-    well as calling `filter_variable` to make sure they are both `TensorType`
-    or `GpuArrayType`.
+    well as calling `filter_variable` to make sure they are both `TensorType`.
 
     It internally deals with the corner case where ``inp.ndim + 1 = out.ndim``.
 
@@ -549,32 +548,6 @@ class ScanMethodsMixin:
                         f"type '{type_input}' and '{type_output}' respectively."
                     )
 
-        # If scan has the flag 'gpua' set to false (meaning that is shouldn't
-        # use the gpuarray gpu backend ), ensure that is has no input and no
-        # output with type GpuArrayType
-        from aesara.gpuarray import GpuArrayType
-
-        if not self.gpua:
-            for inp in self.inputs:
-                if isinstance(inp.type, GpuArrayType):
-                    raise TypeError(
-                        "Inconsistency in the inner graph of "
-                        f"scan '{self.name}' : one of the inputs to the "
-                        "inner graph is of type GpuArrayType but "
-                        "the attributes of the scan op indicate "
-                        "that it shouldn't be the case"
-                    )
-
-            for out in self.outputs:
-                if isinstance(out.type, GpuArrayType):
-                    raise TypeError(
-                        "Inconsistency in the inner graph of "
-                        f"scan '{self.name}' : one of the outputs to the "
-                        "inner graph is of type GpuArrayType but "
-                        "the attributes of the scan op indicate "
-                        "that it shouldn't be the case"
-                    )
-
 
 class Scan(Op, ScanMethodsMixin, HasInnerGraph):
     r"""An `Op` implementing `for` and `while` loops.
@@ -616,7 +589,6 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
         typeConstructor: Optional[TensorConstructorType] = None,
         truncate_gradient: bool = False,
         name: Optional[str] = None,
-        gpua: bool = False,
         as_while: bool = False,
         profile: Optional[Union[str, bool]] = None,
         allow_gc: bool = True,
@@ -666,8 +638,6 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
             as well as profiles for the computation of one step of each instance of
             `Scan`. The `name` of the instance appears in those profiles and can
             greatly help to disambiguate information.
-        gpua
-            If ``True``, this `Op` should run on a GPU.
         as_while
             Whether or not the `Scan` is a ``while``-loop.
         profile
@@ -690,26 +660,8 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
             speed up allocation of the subsequent iterations. All those temporary
             allocations are freed at the end of all iterations; this is what the
             flag `aesara.config.allow_gc` means.
-
-            If you use pre-allocation and this `Scan` is on GPU, the speed up from
-            `allow_gc` is small. If you are missing memory, disabling `allow_gc`
-            could help you run graph that request much memory.
         strict
             If ``True``, all the shared variables used in the inner-graph must be provided.
-
-        Notes
-        -----
-        `typeConstructor` had been added to refactor how Aesara deals with the
-        GPU. If it runs on the GPU, `Scan` needs to construct certain outputs
-        (those that reside in GPU memory) as the GPU-specific `Type`.  Since we
-        cannot import GPU code here, the GPU optimizations pass the constructor
-        of this class a function that is able to construct a GPU `Type`. This
-        way the class `Scan` does not need to be aware of the GPU details--it
-        simply constructs tensors using this function (which by default
-        constructs normal tensors).
-
-        TODO: Clean up this approach and everything else related to GPUs; it's
-        all currently a very leaky set of abstractions.
 
         """
         self.inputs = inputs
@@ -717,7 +669,6 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
         self.info = info
         self.truncate_gradient = truncate_gradient
         self.name = name
-        self.gpua = gpua
         self.as_while = as_while
         self.profile = profile
         self.allow_gc = allow_gc
@@ -789,17 +740,14 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
         self.n_outs = self.n_mit_mot + self.n_mit_sot + self.n_sit_sot
         self.n_tap_outs = self.n_mit_mot + self.n_mit_sot
 
-        if self.gpua:
-            self._hash_inner_graph = self.gpu_hash
-        else:
-            # Do the missing inputs check here to have the error early.
-            for var in graph_inputs(self.outputs, self.inputs):
-                if var not in self.inputs and not isinstance(var, Constant):
-                    raise MissingInputError(f"ScanOp is missing an input: {repr(var)}")
-            self._cmodule_key = CLinker().cmodule_key_variables(
-                self.inputs, self.outputs, []
-            )
-            self._hash_inner_graph = hash(self._cmodule_key)
+        # Do the missing inputs check here to have the error early.
+        for var in graph_inputs(self.outputs, self.inputs):
+            if var not in self.inputs and not isinstance(var, Constant):
+                raise MissingInputError(f"ScanOp is missing an input: {repr(var)}")
+        self._cmodule_key = CLinker().cmodule_key_variables(
+            self.inputs, self.outputs, []
+        )
+        self._hash_inner_graph = hash(self._cmodule_key)
 
         (
             self.preallocated_mitmot_outs,
@@ -1185,9 +1133,6 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
         if self.info != other.info:
             return False
 
-        if self.gpua != other.gpua:
-            return False
-
         if self.as_while != other.as_while:
             return False
 
@@ -1220,10 +1165,7 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
         )
 
     def __str__(self):
-        if self.gpua:
-            gpu_str = "gpu"
-        else:
-            gpu_str = "cpu"
+        device_str = "cpu"
         if self.as_while:
             name = "do_while"
         else:
@@ -1242,7 +1184,7 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
                 aux_txt += "},%s,%s}"
         else:
             aux_txt += "{%s,%s}"
-        aux_txt = aux_txt % (name, gpu_str, str(self.name))
+        aux_txt = aux_txt % (name, device_str, str(self.name))
         return aux_txt
 
     def __hash__(self):
@@ -1251,7 +1193,6 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
                 type(self),
                 self._hash_inner_graph,
                 self.info,
-                self.gpua,
                 self.as_while,
                 self.profile,
                 self.truncate_gradient,
@@ -1418,9 +1359,6 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
 
         # Analyse the compile inner function to determine which inputs and
         # outputs are on the gpu and speed up some checks during the execution
-        inps_is_tensor = [
-            isinstance(out, TensorVariable) for out in self.fn.maker.fgraph.inputs
-        ]
         outs_is_tensor = [
             isinstance(out, TensorVariable) for out in self.fn.maker.fgraph.outputs
         ]
@@ -1441,7 +1379,6 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
                 self.mitmots_preallocated, dtype="int32"
             )
 
-            cython_inps_is_tensor = np.asarray(inps_is_tensor, dtype="int32")
             cython_outs_is_tensor = np.asarray(outs_is_tensor, dtype="int32")
 
             if self.destroy_map:
@@ -1499,7 +1436,6 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
                         cython_vector_outs,
                         self.mit_mot_out_slices,
                         cython_mitmots_preallocated,
-                        cython_inps_is_tensor,
                         cython_outs_is_tensor,
                         inner_input_storage,
                         inner_output_storage,
@@ -1762,7 +1698,7 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
                 pdx = offset + self.n_shared_outs
                 inner_output_storage[pdx].storage[0] = None
 
-            # 4.5. Keep a reference to the variables (ndarrays, GpuArrays,
+            # 4.5. Keep a reference to the variables (ndarrays,
             # etc) currently in the output_storage to be able to compare them
             # with the actual outputs of the inner function after its
             # execution. Also keep pointers to their data to be able to detect
@@ -1778,9 +1714,9 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
                 elif isinstance(self.fn.maker.fgraph.outputs[idx], TensorVariable):
                     old_inner_output_data[idx] = var.data
                 else:
-                    old_inner_output_data[idx] = var.gpudata
+                    raise RuntimeError("old_inner_output_data[idx] = var.gpudata")
 
-            # 4.6. Keep a reference to the variables (ndarrays, GpuArrays,
+            # 4.6. Keep a reference to the variables (ndarrays,
             # etc) associated with mitmot inputs currently in the
             # input_storage to be able to compare them with the content of the
             # input_storage after the execution of the function. Also keep
@@ -1793,12 +1729,8 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
 
                 if var is None:
                     old_mitmot_input_data[idx] = None
-                elif isinstance(
-                    self.fn.maker.fgraph.inputs[idx + self.n_seqs], TensorVariable
-                ):
-                    old_mitmot_input_data[idx] = var.data
                 else:
-                    old_mitmot_input_data[idx] = var.gpudata
+                    old_mitmot_input_data[idx] = var.data
 
             # 5.1 compute outputs
             t0_fn = time.time()
@@ -1865,13 +1797,7 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
                         new_var = inner_input_storage[self.n_seqs + inp_idx].storage[0]
                         if old_var is new_var:
                             old_data = old_mitmot_input_data[inp_idx]
-                            if isinstance(
-                                self.fn.maker.fgraph.inputs[self.n_seqs + inp_idx],
-                                TensorVariable,
-                            ):
-                                same_data = new_var.data == old_data
-                            else:
-                                same_data = new_var.gpudata == old_data
+                            same_data = new_var.data == old_data
                         else:
                             same_data = False
 
@@ -1922,7 +1848,9 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
                         ):
                             output_reused = new_var.data == old_data
                         else:
-                            output_reused = new_var.gpudata == old_data
+                            raise RuntimeError(
+                                "output_reused = new_var.gpudata == old_data"
+                            )
                     else:
                         output_reused = False
 
@@ -1986,7 +1914,9 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
                         ):
                             output_reused = new_var.data == old_data
                         else:
-                            output_reused = new_var.gpudata == old_data
+                            raise RuntimeError(
+                                "output_reused = new_var.gpudata == old_data"
+                            )
                     else:
                         output_reused = False
 
@@ -2888,7 +2818,6 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
             info,
             mode=self.mode,
             truncate_gradient=self.truncate_gradient,
-            gpua=False,
             as_while=False,
             profile=self.profile,
             name=f"grad_of_{self.name}" if self.name else None,
@@ -3219,7 +3148,6 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
             inner_outs,
             info,
             mode=self.mode,
-            gpua=False,
             as_while=self.as_while,
             profile=self.profile,
             truncate_gradient=self.truncate_gradient,

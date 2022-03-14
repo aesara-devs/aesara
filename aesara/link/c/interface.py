@@ -496,8 +496,6 @@ class CLinkerType(CLinkerObject):
         e.g:
 
          - For ``TensorType(dtype='int64', ...)``: should return ``"npy_int64"``.
-         - For ``GpuArrayType(dtype='int32', ...)``: should return ``"ga_int"``.
-
         """
         return ""
 

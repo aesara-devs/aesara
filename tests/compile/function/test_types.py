@@ -1,11 +1,9 @@
 import copy
 import pickle
-import time
 
 import numpy as np
 import pytest
 
-import aesara.gpuarray
 import aesara.tensor as at
 from aesara.compile import shared
 from aesara.compile.debugmode import DebugMode, InvalidValueError
@@ -14,8 +12,6 @@ from aesara.compile.function.types import UnusedInputError
 from aesara.compile.io import In, Out
 from aesara.compile.mode import Mode, get_default_mode
 from aesara.configdefaults import config
-from aesara.gpuarray import gpuarray_shared_constructor
-from aesara.gpuarray.blas import GpuGemm
 from aesara.graph.basic import Constant
 from aesara.graph.opt import OpKeyOptimizer, PatternSub
 from aesara.graph.utils import MissingInputError
@@ -1146,76 +1142,3 @@ def test_empty_givens_updates():
     y = x * 2
     function([In(x)], y, givens={})
     function([In(x)], y, updates={})
-
-
-@pytest.mark.skipif(
-    not aesara.gpuarray.pygpu_activated or config.mode == "DEBUG_MODE",
-    reason="DEBUG_MODE forces synchronous behaviour which breaks this test",
-)
-def test_sync_update():
-    # This test if sync_update work. This can only be tested when
-    # there is a GPU.  To test if we really sync, we compare a case we
-    # can run in parallel GPU and CPU computation. Then we sync to
-    # disable that parallel computation. Then we assert the time is
-    # higher.
-
-    # this import needs to go first because it generates the
-    # local 'aesara' variable.  You get an UnboundLocalError otherwise.
-    import tests.gpuarray.config
-
-    sizes = [100, 500, 1000, 2000, 5000, 10000, 20000, 40000]
-    size = sizes[0]
-    w = gpuarray_shared_constructor(
-        np.random.rand(size, size).astype("float32"),
-        "w",
-        target=tests.gpuarray.config.test_ctx_name,
-    )
-    x = gpuarray_shared_constructor(
-        np.random.rand(size, size).astype("float32"),
-        "x",
-        target=tests.gpuarray.config.test_ctx_name,
-    )
-
-    updates = [(w, w + np.asarray(0.001, "float32") * dot(x, x))]
-
-    f = function([], updates=updates, mode=tests.gpuarray.config.mode_with_gpu)
-    assert len(f.maker.fgraph.apply_nodes) == 1
-    assert any(isinstance(n.op, GpuGemm) for n in f.maker.fgraph.apply_nodes)
-    # Make sure libgpuarray have compile all kernels
-    f()
-    f.sync_shared()
-
-    # Find a good size that will take about .5s.
-    # This is to make the test more stable across different GPUs.
-    size = sizes[-1]
-    for i in sizes:
-        data = np.random.rand(i, i).astype("float32")
-        w.set_value(data)
-        x.set_value(data)
-        t0 = time.time()
-        f()
-        f.sync_shared()
-        t1 = time.time()
-        if (t1 - t0) < 0.5:
-            continue
-        size = i
-        break
-    # sync to make sure all computation are done
-    f.sync_shared()
-
-    t_0 = time.time()
-    for i in range(3):
-        f()
-        # Sync after each call to see the slowdown from sync.
-        f.sync_shared()
-        time.sleep(0.5)
-    t_1 = time.time()
-    for i in range(3):
-        f()
-        time.sleep(0.5)
-    f.sync_shared()
-    # Sync to make sure all computation are finished.
-    t_2 = time.time()
-    d1 = t_1 - t_0
-    d2 = t_2 - t_1
-    assert d1 > d2, (d1, d2)

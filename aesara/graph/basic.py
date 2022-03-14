@@ -229,8 +229,8 @@ class Apply(Node):
             List of `Variable` instances to use as inputs.
         strict : bool
             If ``True``, the type fields of all the inputs must be equal
-            to the current ones (or compatible, for instance `Tensor` /
-            `GpuArray` of the same dtype and broadcastable patterns,
+            to the current ones (or compatible, for instance `TensorType`
+            of the same dtype and broadcastable patterns,
             in which case they will be converted into current `Type`), and
             returned outputs are guaranteed to have the same types as
             ``self.outputs``.  If ``False``, then there's no guarantee that the
@@ -327,9 +327,6 @@ class Variable(Node):
 
     - `SparseVariable`: a subclass of `Variable` that represents
       a ``scipy.sparse.{csc,csr}_matrix`` object.
-
-    - `GpuArrayVariable`: a subclass of `Variable` that represents our object on
-      the GPU that is a subset of ``numpy.ndarray``.
 
     - `RandomVariable`.
 

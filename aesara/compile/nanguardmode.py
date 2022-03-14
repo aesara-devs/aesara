@@ -5,22 +5,9 @@ from io import StringIO
 import numpy as np
 
 import aesara
-from aesara.compile.mode import Mode, get_mode
+from aesara.compile.mode import Mode
 from aesara.configdefaults import config
-from aesara.tensor.math import abs as at_abs
-from aesara.tensor.math import max as at_max
-from aesara.tensor.math import min as at_min
 from aesara.tensor.type import discrete_dtypes
-
-
-try:
-    from pygpu.gpuarray import GpuArray
-
-    from aesara.gpuarray.type import GpuArrayType, _name_for_ctx
-
-    pygpu_available = True
-except ImportError:
-    pygpu_available = False
 
 
 logger = logging.getLogger("aesara.compile.nanguardmode")
@@ -114,9 +101,6 @@ def contains_nan(arr, node=None, var=None):
         return False
     elif getattr(arr, "dtype", "") in discrete_dtypes:
         return False
-    elif pygpu_available and isinstance(arr, GpuArray):
-        return np.isnan(f_gpua_min(arr.reshape(arr.size)))
-
     return np.isnan(np.min(arr))
 
 
@@ -149,34 +133,7 @@ def contains_inf(arr, node=None, var=None):
         return False
     elif getattr(arr, "dtype", "") in discrete_dtypes:
         return False
-    elif pygpu_available and isinstance(arr, GpuArray):
-        return np.isinf(f_gpua_min(arr.reshape(arr.size))) or np.isinf(
-            f_gpua_max(arr.reshape(arr.size))
-        )
-
     return np.isinf(np.nanmax(arr)) or np.isinf(np.nanmin(arr))
-
-
-def f_compute(op):
-    def result(inp):
-        dtype = inp.dtype
-        ctx_name = _name_for_ctx(inp.context)
-        key = (dtype, ctx_name)
-        f = result.cache.get(key, None)
-        if f is None:
-            guard_in = GpuArrayType(str(dtype), (False,), context_name=ctx_name)()
-            mode = get_mode("FAST_RUN").including("gpuarray")
-            f = aesara.function([guard_in], op(guard_in), mode=mode, profile=False)
-            result.cache[key] = f
-        return f(inp)
-
-    result.cache = dict()
-    return result
-
-
-f_gpua_min = f_compute(at_min)
-f_gpua_max = f_compute(at_max)
-f_gpua_absmax = f_compute(lambda x: at_max(at_abs(x)))
 
 
 class NanGuardMode(Mode):
@@ -252,8 +209,6 @@ class NanGuardMode(Mode):
                 err = False
                 if not _is_numeric_value(value, var):
                     err = False
-                elif pygpu_available and isinstance(value, GpuArray):
-                    err = f_gpua_absmax(value.reshape(value.size)) > 1e10
                 else:
                     err = np.abs(value).max() > 1e10
                 if err:

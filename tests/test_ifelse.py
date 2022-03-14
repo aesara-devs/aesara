@@ -150,8 +150,6 @@ class TestIfelse(utt.OptimizationTestMixin):
         f = function(
             [c, x, y], [self.cast_output(gx), self.cast_output(gy)], mode=self.mode
         )
-        # There is only 2 of the 3 ifelse that are moved on the GPU.
-        # The one that stay on the CPU is for the shape.
         self.assertFunctionContains(f, self.get_ifelse(1), min=2, max=3)
         rng = np.random.default_rng(utt.fetch_seed())
 
@@ -173,7 +171,6 @@ class TestIfelse(utt.OptimizationTestMixin):
         assert np.all(np.asarray(gy0) == 1.0)
 
     def test_grad_cast_input(self):
-        # Tests the gradient when both inputs are on the GPU.
         x = vector("x", dtype=self.dtype)
         y = vector("y", dtype=self.dtype)
         c = iscalar("c")
@@ -528,8 +525,7 @@ class TestIfelse(utt.OptimizationTestMixin):
         assert str(res.owner).startswith("if{}")
         res.owner.op.name = "name"
         res.owner.op.as_view = True
-        res.owner.op.gpu = True
-        assert str(res.owner).startswith("if{name,inplace,gpu}")
+        assert str(res.owner).startswith("if{name,inplace}")
 
 
 class IfElseIfElseIf(Op):

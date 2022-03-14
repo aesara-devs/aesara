@@ -78,7 +78,6 @@ def perform(
         numpy.ndarray[numpy.int32_t,ndim=1] vector_outs,
         tuple mit_mot_out_slices,
         numpy.ndarray[numpy.int32_t,ndim=1] mitmots_preallocated,
-        numpy.ndarray[numpy.int32_t,ndim=1] inps_is_tensor,
         numpy.ndarray[numpy.int32_t,ndim=1] outs_is_tensor,
         list inner_input_storage,
         list inner_output_storage,
@@ -132,9 +131,6 @@ def perform(
         tensor, 0 otherwise.
     mit_mot_out_slices
         Same as tap_array, but for the output taps of mit_mot sequences
-    inps_is_tensor : int32 ndarray (Can be replaced by a list)
-        Array of boolean indicating, for every input, whether it is a tensor
-        or not
     outs_is_tensor : int32 ndarray (Can be replaced by a list)
         Array of boolean indicating, for every output, whether it is a tensor
         or not
@@ -359,7 +355,7 @@ def perform(
             pdx = offset + n_shared_outs
             inner_output_storage[<unsigned int>pdx][0] = None
 
-        # 4.5. Keep a reference to the variables (ndarrays, GpuArrays,
+        # 4.5. Keep a reference to the variables (ndarrays,
         # etc) currently in the inner_output_storage to be able to compare them
         # with the actual outputs of the inner function after its
         # execution. Also keep pointers to their data to be able to detect
@@ -372,12 +368,10 @@ def perform(
 
             if var is None:
                 old_output_data[idx] = None
-            elif outs_is_tensor[idx]:
-                old_output_data[idx] = var.data
             else:
-                old_output_data[idx] = var.gpudata
+                old_output_data[idx] = var.data
 
-        # 4.6. Keep a reference to the variables (ndarrays, GpuArrays,
+        # 4.6. Keep a reference to the variables (ndarrays,
         # etc) associated with mitmot inputs currently in the inner_input_storage to
         # be able to compare them with the content of the inner_input_storage after
         # the execution of the function. Also keep pointers to their data to
@@ -389,10 +383,8 @@ def perform(
 
             if var is None:
                 old_mitmot_input_data[idx] = None
-            elif inps_is_tensor[idx + n_seqs]:
-                old_mitmot_input_data[idx] = var.data
             else:
-                old_mitmot_input_data[idx] = var.gpudata
+                old_mitmot_input_data[idx] = var.data
 
         # 5.1 compute outputs
         t0_fn = time.time()
@@ -436,10 +428,7 @@ def perform(
                     new_var = inner_input_storage[n_seqs + inp_idx][0]
                     if old_var is new_var:
                         old_data = old_mitmot_input_data[inp_idx]
-                        if inps_is_tensor[n_seqs + inp_idx]:
-                            same_data = (new_var.data == old_data)
-                        else:
-                            same_data = (new_var.gpudata == old_data)
+                        same_data = (new_var.data == old_data)
                     else:
                         same_data = False
 
@@ -480,10 +469,8 @@ def perform(
                 if old_var is new_var:
                     if old_data is None:
                         output_reused = False
-                    elif outs_is_tensor[offset_out + j]:
-                        output_reused = (new_var.data == old_data)
                     else:
-                        output_reused = (new_var.gpudata == old_data)
+                        output_reused = (new_var.data == old_data)
                 else:
                     output_reused = False
 
@@ -520,10 +507,8 @@ def perform(
                 if old_var is new_var:
                     if old_data is None:
                         output_reused = False
-                    elif outs_is_tensor[offset_out + j]:
-                        output_reused = (new_var.data == old_data)
                     else:
-                        output_reused = (new_var.gpudata == old_data)
+                        output_reused = (new_var.data == old_data)
                 else:
                     output_reused = False
 

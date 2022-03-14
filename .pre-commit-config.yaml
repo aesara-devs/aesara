@@ -17,7 +17,6 @@ repos:
               aesara/compile/nanguardmode\.py|
               aesara/graph/opt\.py|
               aesara/tensor/var\.py|
-              aesara/gpuarray/opt\.py
           )$
       - id: check-merge-conflict
   - repo: https://github.com/psf/black

@@ -1097,13 +1097,8 @@ class Function:
         return [i.variable for i in self.maker.inputs if i.implicit]
 
     def sync_shared(self):
-        if hasattr(aesara, "gpuarray") and aesara.gpuarray.pygpu_activated:
-            import pygpu
-
-            for i in self.maker.fgraph.update_mapping.values():
-                inp = self.input_storage[i]
-                if isinstance(inp.data, pygpu.gpuarray.GpuArray):
-                    inp.data.sync()
+        # sync was needed on old gpu backend
+        pass
 
 
 # pickling/deepcopy support for Function

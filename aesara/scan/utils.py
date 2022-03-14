@@ -192,11 +192,6 @@ def traverse(out, x, x_copy, d, visited=None):
 
     There are two options :
         1) x and x_copy or on host, then you would replace x with x_copy
-        2) x is on gpu, x_copy on host, then you need to replace
-        host_from_gpu(x) with x_copy
-    This happens because initially shared variables are on GPU... which is
-    fine for the main computational graph but confuses things a bit for the
-    inner graph of scan.
 
     """
     # ``visited`` is a set of nodes that are already known and don't need to be
@@ -208,18 +203,13 @@ def traverse(out, x, x_copy, d, visited=None):
     if out in visited:
         return d
     visited.add(out)
-    from aesara.gpuarray import pygpu_activated
-    from aesara.gpuarray.basic_ops import GpuFromHost, host_from_gpu
-    from aesara.gpuarray.type import GpuArrayType
 
     if out == x:
-        assert isinstance(x.type, GpuArrayType)
-        d[out] = GpuFromHost(x.type.context_name)(x_copy)
-        return d
+        # assert isinstance(x.type, GpuArrayType)
+        # d[out] = GpuFromHost(x.type.context_name)(x_copy)
+        # return d
+        raise RuntimeError("Not supported")
     elif out.owner is None:
-        return d
-    elif pygpu_activated and out.owner.op == host_from_gpu and out.owner.inputs == [x]:
-        d[out] = at.as_tensor_variable(x_copy)
         return d
     else:
         for inp in out.owner.inputs:
