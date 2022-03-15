@@ -751,8 +751,8 @@ class TestAliasingRules:
         #        operations are used) and to break the elemwise composition
         #        with some non-elemwise op (here dot)
 
-        x = sparse.SparseType("csc", dtype="float64")()
-        y = sparse.SparseType("csc", dtype="float64")()
+        x = sparse.SparseTensorType("csc", dtype="float64")()
+        y = sparse.SparseTensorType("csc", dtype="float64")()
         f = function([In(x, mutable=True), In(y, mutable=True)], (x + y) + (x + y))
         # Test 1. If the same variable is given twice
 

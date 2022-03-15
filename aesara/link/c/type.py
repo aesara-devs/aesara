@@ -17,7 +17,7 @@ class CType(Type, CLinkerType):
 
     - `TensorType`: for numpy.ndarray
 
-    - `SparseType`: for scipy.sparse
+    - `SparseTensorType`: for scipy.sparse
 
     But you are encouraged to write your own, as described in WRITEME.
 

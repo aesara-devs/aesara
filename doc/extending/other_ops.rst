@@ -44,7 +44,7 @@ usual dense tensors. In particular, in the
 instead of ``as_tensor_variable(x)``.
 
 Another difference is that you need to use ``SparseVariable`` and
-``SparseType`` instead of ``TensorVariable`` and ``TensorType``.
+``SparseTensorType`` instead of ``TensorVariable`` and ``TensorType``.
 
 Do not forget that we support only sparse matrices (so only 2 dimensions)
 and (like in SciPy) they do not support broadcasting operations by default
@@ -55,7 +55,7 @@ you can create output variables like this:
 .. code-block:: python
 
     out_format = inputs[0].format  # or 'csr' or 'csc' if the output format is fixed
-    SparseType(dtype=inputs[0].dtype, format=out_format).make_variable()
+    SparseTensorType(dtype=inputs[0].dtype, format=out_format).make_variable()
 
 See the sparse :class:`Aesara.sparse.basic.Cast` `Op` code for a good example of
 a sparse `Op` with Python code.
@@ -226,7 +226,7 @@ along with pointers to the relevant documentation.
         primitive type. The C type associated with this Aesara type is the
         represented C primitive itself.
 
-*       :ref:`SparseType <sparse_ops>` : Aesara `Type` used to represent sparse
+*       :ref:`SparseTensorType <sparse_ops>` : Aesara `Type` used to represent sparse
         tensors. There is no equivalent C type for this Aesara `Type` but you
         can split a sparse variable into its parts as TensorVariables. Those
         can then be used as inputs to an op with C code.

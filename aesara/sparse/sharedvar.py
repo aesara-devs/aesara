@@ -3,7 +3,7 @@ import copy
 import scipy.sparse
 
 from aesara.compile import SharedVariable, shared_constructor
-from aesara.sparse.basic import SparseType, _sparse_py_operators
+from aesara.sparse.basic import SparseTensorType, _sparse_py_operators
 
 
 class SparseTensorSharedVariable(_sparse_py_operators, SharedVariable):
@@ -16,7 +16,7 @@ def sparse_constructor(
     value, name=None, strict=False, allow_downcast=None, borrow=False, format=None
 ):
     """
-    SharedVariable Constructor for SparseType.
+    SharedVariable Constructor for SparseTensorType.
 
     writeme
 
@@ -29,7 +29,7 @@ def sparse_constructor(
 
     if format is None:
         format = value.format
-    type = SparseType(format=format, dtype=value.dtype)
+    type = SparseTensorType(format=format, dtype=value.dtype)
     if not borrow:
         value = copy.deepcopy(value)
     return SparseTensorSharedVariable(

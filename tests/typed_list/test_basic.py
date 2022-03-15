@@ -451,7 +451,7 @@ class TestIndex:
     def test_sparse(self):
         sp = pytest.importorskip("scipy")
         mySymbolicSparseList = TypedListType(
-            sparse.SparseType("csr", aesara.config.floatX)
+            sparse.SparseTensorType("csr", aesara.config.floatX)
         )()
         mySymbolicSparse = sparse.csr_matrix()
 
@@ -519,7 +519,7 @@ class TestCount:
     def test_sparse(self):
         sp = pytest.importorskip("scipy")
         mySymbolicSparseList = TypedListType(
-            sparse.SparseType("csr", aesara.config.floatX)
+            sparse.SparseTensorType("csr", aesara.config.floatX)
         )()
         mySymbolicSparse = sparse.csr_matrix()
 

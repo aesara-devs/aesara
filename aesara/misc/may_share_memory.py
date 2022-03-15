@@ -12,7 +12,7 @@ from aesara.tensor.type import TensorType
 try:
     import scipy.sparse
 
-    from aesara.sparse.basic import SparseType
+    from aesara.sparse.basic import SparseTensorType
 
     def _is_sparse(a):
         return scipy.sparse.issparse(a)
@@ -64,4 +64,4 @@ def may_share_memory(a, b, raise_other_type=True):
 
     if a_gpua or b_gpua:
         return False
-    return SparseType.may_share_memory(a, b)
+    return SparseTensorType.may_share_memory(a, b)

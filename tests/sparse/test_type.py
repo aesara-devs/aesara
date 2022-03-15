@@ -1,12 +1,12 @@
 import pytest
 
 from aesara.sparse import matrix as sp_matrix
-from aesara.sparse.type import SparseType
+from aesara.sparse.type import SparseTensorType
 from aesara.tensor import dmatrix
 
 
 def test_clone():
-    st = SparseType("csr", "float64")
+    st = SparseTensorType("csr", "float64")
     assert st == st.clone()
 
 

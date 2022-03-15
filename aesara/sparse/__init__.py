@@ -9,7 +9,7 @@ except ImportError:
     enable_sparse = False
     warn("SciPy can't be imported.  Sparse matrix support is disabled.")
 
-from aesara.sparse.type import SparseType, _is_sparse
+from aesara.sparse.type import SparseTensorType, _is_sparse
 
 
 if enable_sparse:
