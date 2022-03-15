@@ -1192,7 +1192,7 @@ def to_one_hot(y, nb_class, dtype=None):
 
 class Unique(Op):
     """
-    Wraps `numpy.unique`. This `Op` is not implemented on the GPU.
+    Wraps `numpy.unique`.
 
     Examples
     --------

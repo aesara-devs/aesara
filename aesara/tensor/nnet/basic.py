@@ -4,13 +4,6 @@ Provides neural-network specific Ops.
 Notes
 -----
 TODO: factor this out into a neural-network toolbox.
-
-We register all optimization with the gpu tag as we don't
-implement all the intermediate case on the GPU (in particular
-AdvancedSubtensor). So to make sure it run well on the gpu with
-fast_compile, we register them as needed for the GPU. This can be
-revisited later when all the intermediate part are on the GPU.
-
 """
 
 import warnings

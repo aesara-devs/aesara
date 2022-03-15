@@ -429,8 +429,6 @@ def solve_triangular(
 class Solve(SolveBase):
     """
     Solve a system of linear equations.
-
-    For on CPU and GPU.
     """
 
     __props__ = (

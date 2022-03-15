@@ -1649,11 +1649,6 @@ class Alloc(COp):
                 )
             ):
                 return False
-            # If the clients is a transfer to the GPU, we don't want to
-            # fold. We let the Alloc being moved to the GPU, then we
-            # let the GPU algo decide if it need to fold it or not.
-            elif client[0].op.__class__.__name__.lower().startswith("gpu"):
-                return False
         return True
 
 
@@ -2215,8 +2210,7 @@ def addbroadcast(x, *axes):
     x broadcastable. When performing the function, if the length of
     x along that dimension is not 1, a ValueError will be raised.
 
-    We apply the opt here not to pollute the graph especially during
-    the gpu optimization
+    We apply the opt here not to pollute the graph
 
     Parameters
     ----------
@@ -2252,8 +2246,7 @@ def unbroadcast(x, *axes):
     of x broadcastable. When performing the function, if the length
     of x along that dimension is not 1, a ValueError will be raised.
 
-    We apply the opt here not to pollute the graph especially during
-    the gpu optimization
+    We apply the opt here not to pollute the graph
 
     Parameters
     ----------

@@ -1673,8 +1673,7 @@ def local_reduce_broadcastable(fgraph, node):
             axis = list(node.op.axis)
             cuttable = [a for a in axis if reduced.broadcastable[a]]
             if cuttable:
-                # -- we can remove some axes of summation,
-                #    which simplifies the codegen for sum, especially on GPU
+                # -- we can remove some axes of summation.
                 new_axis = []
                 pattern = []
                 ii = 0
@@ -1857,10 +1856,6 @@ def local_pow_canonicalize(fgraph, node):
 def local_mul_to_sqr(fgraph, node):
     """
     x*x -> sqr(x)
-
-    This is faster on the GPU when memory fetching is a big part of
-    the computation time.
-
     """
     if node.op == mul:
         if len(node.inputs) == 2:

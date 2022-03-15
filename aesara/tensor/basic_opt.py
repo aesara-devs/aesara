@@ -169,7 +169,7 @@ def broadcast_like(value, template, fgraph, dtype=None):
 
 class InplaceElemwiseOptimizer(GlobalOptimizer):
     r"""
-    This is parameterized so that it works for `Elemwise` and `GpuElemwise` `Op`\s.
+    This is parameterized so that it works for `Elemwise` `Op`\s.
     """
 
     def __init__(self, OP):
@@ -1343,8 +1343,7 @@ class ShapeFeature(features.Feature):
                 if repl.owner is shpnode:
                     # This mean the replacement shape object is
                     # exactly the same as the current shape object. So
-                    # no need for replacement. This happen for example
-                    # with the InputToGpuOptimizer optimizer.
+                    # no need for replacement.
                     continue
                 if (
                     repl.owner
@@ -1841,9 +1840,7 @@ def local_alloc_empty_to_zeros(fgraph, node):
 
     This help investigate NaN with NanGuardMode.  Not registered by
     default. To activate it, use the Aesara flag
-    optimizer_including=alloc_empty_to_zeros. This also enable
-    the GPU version of this optimizations.
-
+    optimizer_including=alloc_empty_to_zeros.
     """
     if isinstance(node.op, AllocEmpty):
         return [zeros(node.inputs, dtype=node.outputs[0].dtype)]
@@ -3000,19 +2997,15 @@ def local_elemwise_fusion_op(op_class, max_input_fct=lambda node: 32, maker=None
     and each `Elemwise`'s scalar `Op`, and use the composite scalar `Op` in a
     new "fused" `Elemwise`.
 
-    It's parameterized in order to work for `Elemwise` and `GpuElemwise` `Op`\s.
+    It's parameterized in order to work for `Elemwise` `Op`\s.
 
     Parameters
     ----------
     op_class : type
-        `GpuElemwise` or `Elemwise` class (the one that we want to fuse)
+        `Elemwise` class (the one that we want to fuse)
     max_input_fct : callable
         A function that returns the maximum number of inputs that this `Elemwise`
-        can take (useful for `GpuElemwise`).  The GPU kernel currently has a
-        limit of 256 bytes for the size of all parameters passed to it. As
-        currently we pass a lot of information only by parameter, we must limit how
-        many `Op`\s we fuse together to avoid busting that 256 limit.
-
+        can take.
         On the CPU we limit to 32 input variables since that is the maximum
         NumPy support.
 

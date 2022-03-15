@@ -1014,8 +1014,6 @@ Print to the terminal a math-like expression.
 # colors not used: orange, amber#FFBF00, purple, pink,
 # used by default: green, blue, grey, red
 default_colorCodes = {
-    "GpuFromHost": "red",
-    "HostFromGpu": "red",
     "Scan": "yellow",
     "Shape": "brown",
     "IfElse": "magenta",

@@ -47,7 +47,6 @@ def batch_normalization(inputs, gamma, beta, mean, std, mode="low_mem"):
     """
     This function will build the symbolic graph for applying batch normalization
     to a set of activations.
-    Also works on GPUs, but is not optimized using cuDNN.
 
     .. versionadded:: 0.7.1
 

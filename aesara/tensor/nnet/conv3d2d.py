@@ -44,9 +44,6 @@ class DiagonalSubtensor(Op):
     i1
         Axis index in x
 
-    Notes
-    -----
-    Work on the GPU.
 
     Extended summary
     ----------------
@@ -203,8 +200,6 @@ def conv3d(
     -----
     Another way to define signals: (batch,  time, in channel, row, column)
     Another way to define filters: (out channel,time,in channel, row, column)
-
-    For the GPU, use nnet.conv3d.
 
     See Also
     --------

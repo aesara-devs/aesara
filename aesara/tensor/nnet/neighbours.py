@@ -194,7 +194,7 @@ class Images2Neibs(COp):
     def perform(self, node, inp, out_, params):
         ten4, neib_shape, neib_step = inp
         (z,) = out_
-        # GpuImages2Neibs should not run this perform in DebugMode
+        # XXX: GpuImages2Neibs should not run this perform in DebugMode
         if not isinstance(self, Images2Neibs):
             raise aesara.graph.utils.MethodNotDefined()
 

@@ -52,8 +52,6 @@ class PyDotFormatter:
             "unused": "lightgrey",
         }
         self.apply_colors = {
-            "GpuFromHost": "red",
-            "HostFromGpu": "red",
             "Scan": "yellow",
             "Shape": "cyan",
             "IfElse": "magenta",
