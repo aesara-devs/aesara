@@ -13,8 +13,7 @@ import ``aesara.sparse`` to enable it.
 
 The sparse module provides the same functionality as the tensor
 module. The difference lies under the covers because sparse matrices
-do not store data in a contiguous array. Note that there are no GPU
-implementations for sparse matrices in Aesara. The sparse module has
+do not store data in a contiguous array. The sparse module has
 been used in:
 
 - NLP: Dense linear transformations of sparse vectors.

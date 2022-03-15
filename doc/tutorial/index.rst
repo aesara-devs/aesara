@@ -48,8 +48,6 @@ Advanced
 .. toctree::
 
     sparse
-    using_gpu
-    using_multi_gpu
     conv_arithmetic
 
 Advanced configuration and debugging

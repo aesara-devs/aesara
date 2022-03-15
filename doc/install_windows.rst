@@ -30,26 +30,10 @@ Install requirements and optional packages
 
     * Arguments between <...> are optional.
     * ``m2w64-toolchain`` package provides a fully-compatible version of GCC and is then highly recommended.
-    * ``git`` package installs git source control through conda, which is required for the development versions of Aesara and libgpuarray
+    * ``git`` package installs git source control through conda, which is required for the development version of Aesara
 
-.. _gpu_windows:
 
-Install and configure the GPU drivers (recommended)
----------------------------------------------------
-
-.. warning::
-
-    OpenCL support is still minimal for now.
-
-Install CUDA drivers
-^^^^^^^^^^^^^^^^^^^^
-
-Follow `this link <https://developer.nvidia.com/cuda-downloads>`__
-to install the CUDA driver and the CUDA Toolkit.
-
-You must reboot the computer after the driver installation.
-
-.. Installation of Aesara and libgpuarray.
+.. Installation of Aesara.
 .. include:: install_generic.inc
     :start-after: .. _install_generic:
 
@@ -73,7 +57,3 @@ generic guidelines to get a working environment:
              path`` option.
           3. Enable OpenMP support by checking the option ``openmp support
              option``.
-
-    * Install CUDA with the same instructions as above.
-    * Install the latest, development version of libgpuarray following the
-      `Step-by-step instructions <http://deeplearning.net/software/libgpuarray/installation.html#step-by-step-install>`__.

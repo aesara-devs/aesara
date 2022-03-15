@@ -30,12 +30,12 @@
 
        By default, return a copy of the data. If ``borrow=True`` (and
        ``return_internal_type=False``), maybe it will return a copy.
-       For tensor, it will always return a ndarray by default, so if
-       the data is on the GPU, it will return a copy, but if the data
+       For tensor, it will always return an `ndarray` by default, so if
+       the data is on another device, it will return a copy, but if the data
        is on the CPU, it will return the original data.  If you do
        ``borrow=True`` and ``return_internal_type=True``, it will
-       always return the original data, not a copy, but this can be a
-       GPU object.
+       always return the original data, not a copy, but this can be a non-`ndarray`
+       type of object.
 
     .. method:: set_value(self, new_value, borrow=False)
 

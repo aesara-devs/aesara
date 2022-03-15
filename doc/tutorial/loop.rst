@@ -17,7 +17,6 @@ Scan
 - Advantages of using ``scan`` over *for* loops:
 
   - Number of iterations to be part of the symbolic graph.
-  - Minimizes GPU transfers (if GPU is involved).
   - Computes gradients through sequential steps.
   - Slightly faster than using a *for* loop in Python with a compiled Aesara function.
   - Can lower the overall memory usage by detecting the actual amount of memory needed.

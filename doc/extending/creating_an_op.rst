@@ -824,10 +824,10 @@ will not be accepted.
 
 :class:`NanGuardMode` help users find where in the graph NaN appear. But
 sometimes, we want some variables to not be checked. For example, in
-the old GPU back-end, we use a float32 :class:`CudaNdarray` to store the MRG
+the old GPU back-end, we used a float32 :class:`CudaNdarray` to store the MRG
 random number generator state (they are integers). So if :class:`NanGuardMode`
-check it, it will generate false positive. Another case is related to
-:class:`[Gpu]AllocEmpty` or some computation on it (like done by :class:`Scan`).
+checked it, it would generate a false positive. Another case is related to
+:class:`AllocEmpty` or some computations on it (like done by :class:`Scan`).
 
 You can tell :class:`NanGuardMode` to do not check a variable with:
 :attr:`variable.tag.nan_guard_mode_check`. Also, this tag automatically

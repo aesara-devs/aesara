@@ -83,11 +83,8 @@ Consider the logistic regression:
     if any([x.op.__class__.__name__ in ['Gemv', 'CGemv', 'Gemm', 'CGemm'] for x in
             train.maker.fgraph.toposort()]):
         print('Used the cpu')
-    elif any([x.op.__class__.__name__ in ['GpuGemm', 'GpuGemv'] for x in
-              train.maker.fgraph.toposort()]):
-        print('Used the gpu')
     else:
-        print('ERROR, not able to tell if aesara used the cpu or the gpu')
+        print('ERROR, not able to tell if aesara used the cpu or another device')
         print(train.maker.fgraph.toposort())
 
     for i in range(training_steps):
@@ -137,7 +134,7 @@ is controlled by the value of the ``mode`` parameter.
 
 Aesara defines the following modes by name:
 
-- ``'FAST_COMPILE'``: Apply just a few graph optimizations and only use Python implementations. So GPU is disabled.
+- ``'FAST_COMPILE'``: Apply just a few graph optimizations and only use Python implementations.
 - ``'FAST_RUN'``: Apply all optimizations and use C implementations where possible.
 - ``'DebugMode'``: Verify the correctness of all optimizations, and compare C and Python
     implementations. This mode can take much longer than the other modes, but can identify

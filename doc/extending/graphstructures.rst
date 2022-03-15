@@ -337,8 +337,7 @@ computation is carried out. The way optimizations work in Aesara is by
 identifying and replacing certain patterns in the graph with other specialized
 patterns that produce the same results but are either faster or more
 stable. Optimizations can also detect identical subgraphs and ensure that the
-same values are not computed twice or reformulate parts of the graph to a GPU
-specific version.
+same values are not computed twice.
 
 For example, one (simple) optimization that Aesara uses is to replace
 the pattern :math:`\frac{xy}{y}` by :math:`x`.

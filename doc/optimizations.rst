@@ -42,7 +42,6 @@ Optimization                                              o4             o3  o2 
 ========================================================= ============== === === ================= ============= ======
 :term:`merge`                                             x              x   x    x                              x
 :term:`constant folding<constant folding>`                x              x   x    x                              x
-:term:`GPU transfer`                                      x              x   x    x                              x
 :term:`shape promotion<shape promotion>`                  x              x                                       x
 :term:`fill cut<fill cut>`                                x              x                                       x
 :term:`inc_subtensor srlz.<inc_subtensor serialization>`  x              x                                       x
@@ -247,31 +246,9 @@ Optimization                                              o4             o3  o2 
         This optimization compresses subgraphs of computationally cheap
         elementwise operations into a single Op that does the whole job in a
         single pass over the inputs (like loop fusion).  This is a win when
-        transfer from main memory to the CPU (or from graphics memory to the
-        GPU) is a bottleneck.
+        transfer from main memory to the CPU is a bottleneck.
 
         See :class:`FusionOptimizer`
-
-    GPU transfer
-        The current strategy for choosing which expressions to evaluate on the
-        CPU and which to evaluate on the GPU is a greedy one.  There are a
-        number of Ops ***TODO*** with GPU implementations and whenever we find
-        a graph copying data from GPU to CPU in order to evaluate an
-        expression that could have been evaluated on the GPU, we substitute
-        the GPU version of that Op for the CPU version.  Likewise if we are
-        copying the output of a Op with a GPU implementation to the GPU,
-        then we substitute the GPU version for the CPU version.  In this way, if all goes well,
-        this procedure will result in a graph with the following form:
-
-        1. copy non-shared inputs to GPU
-        2. carry out most/all computations on the GPU
-        3. copy output back to CPU
-
-        When using a GPU, :func:`shared()` will default to GPU storage for
-        'float32' ndarray arguments, and these shared variables act as seeds
-        for the greedy algorithm.
-
-        See :func:`aesara.sandbox.cuda.opt.*`.
 
     local_log_softmax
         This is a stabilization optimization.
