@@ -51,11 +51,11 @@ Environment Variables
 
     .. code-block:: bash
 
-        AESARA_FLAGS='floatX=float32,device=cuda0,gpuarray__preallocate=1'  python <myscript>.py
+        AESARA_FLAGS='floatX=float32'  python <myscript>.py
 
     If a value is defined several times in ``AESARA_FLAGS``,
     the right-most definition is used, so, for instance, if
-    ``AESARA_FLAGS='device=cpu,device=cuda0'`` is set, then ``cuda0`` will be
+    ``AESARA_FLAGS='floatX=float32,floatX=float64'`` is set, then ``float64`` will be
     used.
 
 .. envvar:: AESARARC
@@ -72,15 +72,11 @@ Environment Variables
         floatX = float32
         device = cuda0
 
-        [gpuarray]
-        preallocate = 1
-
     Configuration attributes that are available directly in ``config``
-    (e.g. ``config.device``, ``config.mode``) should be defined in the
-    ``[global]`` section.
-    Attributes from a subsection of ``config`` (e.g. ``config.gpuarray__preallocate``,
-    ``config.dnn__conv__algo_fwd``) should be defined in their corresponding
-    section (e.g. ``[gpuarray]``, ``[dnn.conv]``).
+    (e.g. ``config.mode``) should be defined in the ``[global]`` section.
+    Attributes from a subsection of ``config``
+    (e.g. ``config.dnn__conv__algo_fwd``) should be defined in their
+    corresponding section (e.g. ``[dnn.conv]``).
 
     Multiple configuration files can be specified by separating them with ``':'``
     characters (as in ``$PATH``).  Multiple configuration files will be merged,
@@ -105,49 +101,13 @@ import ``aesara`` and print the config variable, as in:
 
 .. attribute:: device
 
-    String value: either ``'cpu'``, ``'cuda'``, ``'cuda0'``, ``'cuda1'``,
-    ``'opencl0:0'``, ``'opencl0:1'``, ...
-
-    Default device for computations. If ``'cuda*``, change the default to try
-    to move computation to the GPU using CUDA libraries. If ``'opencl*'``,
-    the OpenCL libraries will be used. To let the driver select the device,
-    use ``'cuda'`` or ``'opencl'``. If we are not able to use the GPU,
-    either we fall back on the CPU, or an error is raised, depending
-    on the :attr:`force_device` flag.
-
-    This flag's value cannot be modified during the program execution.
-
-    Do not use upper case letters; only lower case, even if NVIDIA uses
-    capital letters.
+    String value: either ``'cpu'``
 
 .. attribute:: force_device
 
     Bool value: either ``True`` or ``False``
 
     Default: ``False``
-
-    If ``True`` and ``device=gpu*``, Aesara raises an error when it cannot
-    use the specified :attr:`device`. If ``True`` and ``device=cpu``,
-    Aesara disables the GPU.  If ``False`` and ``device=gpu*``, and when the
-    specified device cannot be used, Aesara emits a warning and falls back to
-    the CPU.
-
-    This flag's value cannot be modified during the program execution.
-
-.. attribute:: init_gpu_device
-
-    String value: either ``''``, ``'cuda'``, ``'cuda0'``, ``'cuda1'``,
-    ``'opencl0:0'``, ``'opencl0:1'``, ...
-
-    Initialize the gpu device to use.
-    When its value is ``'cuda*'`` or ``'opencl*'``, the Aesara
-    flag :attr:`device` must be ``'cpu'``.
-    Unlike :attr:`device`, setting this flag to a specific GPU will not
-    make Aesara attempt to use the device by default.  More specifically, it
-    will **not** move computations, nor shared variables, to the specified GPU.
-
-    This flag can be used to run GPU-specific tests on a particular GPU, instead
-    of the default one.
 
     This flag's value cannot be modified during the program execution.
 
@@ -157,7 +117,7 @@ import ``aesara`` and print the config variable, as in:
 
     Default: ``True``
 
-    Print the active device when the GPU device is initialized.
+    Print the active device when the device is initialized.
 
 .. attribute:: floatX
 
@@ -186,10 +146,7 @@ import ``aesara`` and print the config variable, as in:
     Default: ``'default'``
 
     If ``more``, sometimes Aesara will select :class:`Op` implementations that
-    are more "deterministic", but slower. In particular, on the GPU,
-    Aesara will avoid using ``AtomicAdd``. Sometimes Aesara will still use
-    non-deterministic implementations, e.g. when there isn't a GPU :class:`Op`
-    implementation that is deterministic. See the ``dnn.conv.algo*``
+    are more "deterministic", but slower.  See the ``dnn.conv.algo*``
     flags for more cases.
 
 .. attribute:: allow_gc
@@ -206,9 +163,6 @@ import ``aesara`` and print the config variable, as in:
     space during function evaluation and can provide significant speed-ups for
     functions with many fast :class:`Op`\s, but it also increases Aesara's memory
     usage.
-
-.. note:: If :attr:`config.gpuarray__preallocate` is the default value
-    or not disabled ``(-1)``, this is not useful anymore on the GPU.
 
 .. attribute:: config.scan__allow_output_prealloc
 
@@ -428,74 +382,6 @@ import ``aesara`` and print the config variable, as in:
     When ``True``, use the `amdlibm
     <https://developer.amd.com/amd-cpu-libraries/amd-math-library-libm/>`__
     library, which is faster than the standard ``libm``.
-
-.. attribute:: config.gpuarray__preallocate
-
-    Float value
-
-    Default: 0 (Preallocation of size 0, only cache the allocation)
-
-    Controls the preallocation of memory with the gpuarray backend.
-
-    This value represents the start size (either in MB or the fraction
-    of total GPU memory) of the memory pool. If more memory is needed,
-    Aesara will try to obtain more, but this can cause memory
-    fragmentation.
-
-    A negative value will completely disable the allocation cache.
-    This can have a severe impact on performance and should not be
-    used outside of debugging.
-
-        * < 0: disabled
-        * 0 <= N <= 1: use this fraction of the total GPU memory (clipped to .95 for driver memory).
-        * > 1: use this number in megabytes (MB) of memory.
-
-    .. note::
-
-        This could cause memory fragmentation, so, if you have a memory
-        error while using the cache, try to allocate more memory at
-        the start, or disable it.
-
-    .. note::
-
-        The clipping at 95% can be bypassed by specifying the exact
-        number of megabytes. If more then 95% are needed, it will try
-        automatically to get more memory. But this can cause
-        fragmentation, see note above.
-
-
-.. attribute:: config.gpuarray__sched
-
-    String value: ``'default'``, ``'multi'``, ``'single'``
-
-    Default: ``'default'``
-
-    Control the stream mode of contexts.
-
-    The sched parameter passed for context creation to ``pygpu``.  With
-    CUDA, using ``"multi"`` means using the parameter
-    ``cudaDeviceScheduleBlockingSync``. This is useful to lower the CPU overhead
-    when waiting for a GPU.
-
-
-.. attribute:: config.gpuarray__single_stream
-
-    Boolean value
-
-    Default: ``True``
-
-    Control the stream mode of contexts.
-
-    If your computations consist of mostly small arrays, using
-    single-stream will avoid the synchronization overhead and usually
-    be faster.  For larger arrays it does not make a difference yet.
-
-.. attribute:: config.gpuarray__cache_path
-
-   Default: ``config.compiledir``/gpuarray_kernels
-
-   Directory to cache pre-compiled kernels for the gpuarray backend.
-
 
 .. attribute:: linker
 

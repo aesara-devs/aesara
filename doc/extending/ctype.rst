@@ -114,7 +114,7 @@ prefix. The complete list can be found in the documentation for
 
         Allows to specify a special compiler. This will force this compiler for
         the current compilation block (a particular :class:`Op` or the full
-        graph).  This is used for the GPU code.
+        graph).
 
     .. method:: c_code_cache_version()
 
@@ -527,10 +527,9 @@ You can implement :meth:`COp.c_code` for this :class:`Op`. It is registered as f
 
 In your C code, you should use ``%(iname)s`` and ``%(oname)s`` to represent
 the C variable names of the :class:`DeepCopyOp` input and output
-respectively. See an example for the type ``GpuArrayType`` (GPU
-array) in the file ``aesara/gpuarray/type.py``. The version
-parameter is what is returned by :meth:`DeepCopyOp.c_code_cache_version`. By
-default, it will recompile the C code for each process.
+respectively. The version parameter is what is returned by
+:meth:`DeepCopyOp.c_code_cache_version`. By default, it will recompile the C
+code for each process.
 
 :class:`ViewOp`
 ===============

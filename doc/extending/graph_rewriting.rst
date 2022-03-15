@@ -829,9 +829,9 @@ Explanations:
 
 * ``Total compile time: 1.131874e+01s`` gives the total time spent inside `aesara.function`.
 * ``Number of Apply nodes: 50`` means that after optimization, there are 50 apply node in the graph.
-* ``Aesara Optimizer time: 1.152431e+00s`` means that we spend 1.15s in the ``aesara.function`` phase where we optimize (modify) the graph to make it faster / more stable numerically / work on GPU /...
+* ``Aesara Optimizer time: 1.152431e+00s`` means that we spend 1.15s in the ``aesara.function`` phase where we optimize (modify) the graph to make it faster / more stable numerically /...
 * ``Aesara validate time: 2.790451e-02s`` means that we spent 2.8e-2s in the *validate* subset of the optimization phase.
-* ``Aesara Linker time (includes C, CUDA code generation/compiling): 7.893991e-02s`` means that we spent 7.9e-2s in *linker* phase of ``aesara.function``.
+* ``Aesara Linker time (includes C code generation/compiling): 7.893991e-02s`` means that we spent 7.9e-2s in *linker* phase of ``aesara.function``.
 * ``Import time 1.153541e-02s`` is a subset of the linker time where we import the compiled module.
 * ``Time in all call to aesara.grad() 4.732513e-02s`` tells that we spent a total of 4.7e-2s in all calls to ``aesara.grad``. This is outside of the calls to ``aesara.function``.
 

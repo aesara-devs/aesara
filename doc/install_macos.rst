@@ -17,21 +17,6 @@ details so that we can add alternative instructions.
 
 .. include:: requirements.inc
 
-.. _gpu_macos:
-
-.. attention::
-
-    For MacOS you should be able to follow the above instructions to
-    setup CUDA, but be aware of the following caveats:
-
-       * If you want to compile the CUDA SDK code, you may need to temporarily
-         revert back to Apple's gcc (``sudo port select gcc``) as their Makefiles
-         are not compatible with MacPort's gcc.
-
-       * If CUDA seems unable to find a CUDA-capable GPU, you may need to manually
-         toggle your GPU on, which can be done with
-         `gfxCardStatus <http://codykrieger.com/gfxCardStatus>`__.
-
 .. attention::
 
     Aesara officially supports only clang on OS X.  This can be installed

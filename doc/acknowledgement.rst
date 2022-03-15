@@ -14,11 +14,8 @@ Acknowledgements
 * The developers of `Theano <https://github.com/Theano/Theano>`_
 * All `Aesara contributors <https://github.com/aesara-devs/aesara/graphs/contributors>`_.
 * All Theano users that have given us feedback.
-* The GPU implementation of tensordot is based on code from Tijmen
-  Tieleman's `gnumpy <http://www.cs.toronto.edu/~tijmen/gnumpy.html>`_
 * Our random number generator implementation on CPU and GPU uses the MRG31k3p algorithm that is described in:
 
     P. L'Ecuyer and R. Touzin, `Fast Combined Multiple Recursive Generators with Multipliers of the form a = +/- 2^d +/- 2^e <http://www.informs-sim.org/wsc00papers/090.PDF>`_, Proceedings of the 2000 Winter Simulation Conference, Dec. 2000, 683--689.
 
   We were authorized by Pierre L'Ecuyer to copy/modify his Java implementation in the `SSJ <http://www.iro.umontreal.ca/~simardr/ssj/>`_ software and to relicense it under BSD 3-Clauses in Theano.
-* A better GPU memory allocator :attr:`CNMeM <config.lib.cnmem>` was included in Theano in the previous GPU back-end. It is still in the history, but not in the current version. It has the same license.

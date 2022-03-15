@@ -194,12 +194,11 @@ default values.
       :noindex:
 
       If filter_inplace is defined, it will be called instead of
-      filter() This is to allow reusing the old allocated memory. As
-      of this writing this is used only when we transfer new data to a
-      shared variable on the gpu.
+      filter() This is to allow reusing the old allocated memory. This was used
+      only when new data was transferred to a shared variable on a GPU.
 
-      ``storage`` will be the old value. i.e. The old numpy array,
-      CudaNdarray, ...
+      ``storage`` will be the old value (e.g. the old `ndarray`).
+
 
     .. method:: is_valid_value(value)
       :noindex:

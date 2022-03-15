@@ -11,8 +11,6 @@ Ubuntu Installation Instructions
     from GitHub, please make sure you are reading `the latest version of this
     page <http://deeplearning.net/software/aesara_versions/dev/install_ubuntu.html>`_.
 
-.. _gpu_linux:
-
 .. |PythonDistRecommended| replace:: The development package (python-dev or python-devel on most Linux distributions) is recommended (see just below)
 .. |PlatformCompiler| replace:: ``python-dev``, ``g++`` >= 4.2
 .. |CompilerName| replace:: ``g++``
@@ -28,14 +26,13 @@ Prerequisites through System Packages (not recommended)
 If you want to acquire the requirements through your system packages
 and install them system wide follow these instructions:
 
-For Ubuntu 16.04 with cuda 7.5
+For Ubuntu 16.04
 
 .. code-block:: bash
 
     sudo apt-get install python-numpy python-scipy python-dev python-pip python-pytest g++ libopenblas-dev git graphviz
     sudo pip install Aesara
 
-    # cuda 7.5 don't support the default g++ version. Install an supported version and make it the default.
     sudo apt-get install g++-4.9
 
     sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-4.9 20

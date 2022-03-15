@@ -54,7 +54,7 @@ if __name__ == '__main__':
     pythonpath = os.pathsep.join([throot, pythonpath])
     sys.path[0:0] = [throot]  # We must not use os.environ.
 
-    # Make sure we don't use gpu to compile documentation
+    # Make sure we don't use other devices to compile documentation
     env_th_flags = os.environ.get('AESARA_FLAGS', '')
     os.environ['AESARA_FLAGS'] = 'device=cpu,force_device=True'
 

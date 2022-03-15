@@ -59,12 +59,6 @@ where X is far less than Y and Z (i.e. X << Y < Z).
 This scenario arises when an operation requires allocation of a large contiguous
 block of memory but no blocks of sufficient size are available.
 
-GPUs do not have virtual memory and as such all allocations must be assigned to
-a continuous memory region. CPUs do not have this limitation because or their
-support for virtual memory. Multiple allocations on a GPU can result in memory
-fragmentation which can makes it more difficult to find contiguous regions
-of memory of sufficient size during subsequent memory allocations.
-
 A known example is related to writing data to shared variables. When updating a
 shared variable Aesara will allocate new space if the size of the data does not
 match the size of the space already assigned to the variable. This can lead to
@@ -79,9 +73,6 @@ aesara.function returns a float64 when the inputs are float32 and int{32, 64}
 
 It should be noted that using float32 and int{32, 64} together
 inside a function would provide float64 as output.
-
-Since the GPU can't compute this kind of output, it would be
-preferable not to use those dtypes together.
 
 To help you find where float64 are created, see the
 :attr:`warn_float64` Aesara flag.
@@ -120,40 +111,21 @@ All Aesara tests should pass (skipped tests and known failures are normal). If
 some test fails on your machine, you are encouraged to tell us what went
 wrong in the GitHub issues.
 
-.. warning::
-    Aesara's test should **NOT** be run with ``device=cuda``
-    or they will fail. The tests automatically use the gpu, if any, when
-    needed. If you don't want Aesara to ever use the gpu when running tests,
-    you can set :attr:`config.device` to ``cpu`` and
-    :attr:`config.force_device` to ``True``.
-
 .. _slow_or_memory:
 
 Why is my code so slow/uses so much memory
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 There is a few things you can easily do to change the trade-off
-between speed and memory usage. It nothing is said, this affect the
-CPU and GPU memory usage.
-
-Could speed up and lower memory usage:
-
-- :ref:`cuDNN <libdoc_gpuarray_dnn>` default cuDNN convolution use less
-   memory then Aesara version. But some flags allow it to use more
-   memory. GPU only.
+between speed and memory usage.
 
 Could raise memory usage but speed up computation:
 
-- :attr:`config.gpuarray__preallocate` = 1  # Preallocates the GPU memory
-  and then manages it in a smart way. Does not raise much the memory
-  usage, but if you are at the limit of GPU memory available you might
-  need to specify a lower value. GPU only.
 - :attr:`config.allow_gc` =False
-- :attr:`config.optimizer_excluding` =low_memory , GPU only for now.
 
 Could lower the memory usage, but raise computation time:
 
-- :attr:`config.scan__allow_gc` = True # Probably not significant slowdown on the GPU if memory cache is not disabled
+- :attr:`config.scan__allow_gc` = True
 - :attr:`config.scan__allow_output_prealloc` =False
 - Use :func:`batch_normalization()
   <aesara.tensor.nnet.batchnorm.batch_normalization>`. It use less memory
@@ -293,7 +265,7 @@ Aesara/BLAS speed test:
     python `python -c "import os, aesara; print(os.path.dirname(aesara.__file__))"`/misc/check_blas.py
 
 This will print a table with different versions of BLAS/numbers of
-threads on multiple CPUs and GPUs. It will also print some Aesara/NumPy
+threads on multiple CPUs. It will also print some Aesara/NumPy
 configuration information. Then, it will print the running time of the same
 benchmarks for your installation. Try to find a CPU similar to yours in
 the table, and check that the single-threaded timings are roughly the same.

@@ -6,12 +6,10 @@ Extending Aesara with a C :Class:`Op`
 =====================================
 
 This tutorial covers how to extend Aesara with an :class:`Op` that offers a C
-implementation. It does not cover :class:`Op`\s that run on a GPU but it does introduce
-many elements and concepts which are relevant for GPU :class:`Op`\s. This tutorial is
-aimed at individuals who already know how to extend Aesara (see tutorial
-:ref:`creating_an_op`) by adding a new :class:`Op` with a Python implementation
-and will only cover the additional knowledge required to also produce :class:`Op`\s
-with C implementations.
+implementation.  This tutorial is aimed at individuals who already know how to
+extend Aesara (see tutorial :ref:`creating_an_op`) by adding a new :class:`Op`
+with a Python implementation and will only cover the additional knowledge
+required to also produce :class:`Op`\s with C implementations.
 
 Providing an Aesara :class:`Op` with a C implementation requires to interact with
 Python's C-API and Numpy's C-API. Thus, the first step of this tutorial is to
@@ -927,7 +925,7 @@ discussed below.
        further below.
 
 For every input which has a :attr:`dtype` attribute (this means
-Tensors, and equivalent types on GPU), the following macros will be
+Tensors), the following macros will be
 defined unless your `Op` class has an :attr:`Op.check_input` attribute
 defined to False. In these descrptions 'i' refers to the position
 (indexed from 0) in the input array.
@@ -1035,8 +1033,6 @@ When debugging C code, it can be useful to use GDB for code compiled
 by Aesara.
 
 For this, you must enable this Aesara: `cmodule__remove_gxx_opt=True`.
-For the GPU, you must add in this second flag `nvcc.flags=-g` (it slow
-down computation on the GPU, but it is enabled by default on the CPU).
 
 Then you must start Python inside GDB and in it start your Python
 process:

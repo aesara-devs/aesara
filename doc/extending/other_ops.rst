@@ -20,8 +20,7 @@ Implementing an Aesara scalar Op allows that scalar operation to be reused
 by our elemwise operations on tensors. If the scalar operation has C code, the
 elemwise implementation will automatically have C code too. This
 will enable the fusion of elemwise operations using your new scalar
-operation. It can also reuse the GPU elemwise code. It is similar for
-reduction operations.
+operation. It is similar for reduction operations.
 
 Be careful about some possible problems in the definition of the
 ``grad`` method, and about dependencies that may not be available. In
@@ -125,11 +124,7 @@ Random distribution
 We have 3 base random number generators. One that wraps NumPy's random
 generator, one that implements MRG31k3p and one that wraps CURAND.
 
-The fastest, but less developed, is CURAND. It works only on CUDA-enabled
-GPUs. It does not work on the CPU and it has fewer random distributions
-implemented.
-
-The recommended and 2nd faster is MRG. It works on the GPU and CPU and
+The recommended and 2nd faster is MRG. It works on the CPU and
 has more implemented distributions.
 
 The slowest is our wrapper on NumPy's random generator.

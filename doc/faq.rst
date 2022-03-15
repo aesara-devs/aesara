@@ -6,17 +6,13 @@
 Frequently Asked Questions
 ==========================
 
-Does Aesara support Python 3?
-------------------------------
-
-We support both Python 2 >= 2.7 and Python 3 >= 3.4.
 
 Output slight numerical difference
 ----------------------------------
 
-Sometimes when you compare the output of Aesara using different
-Aesara flags, Aesara versions, CPU and GPU or with other software like
-NumPy, you will see small numerical differences.
+Sometimes when you compare the output of Aesara using different Aesara flags,
+Aesara versions, CPU and GPU devices, or with other software like NumPy, you
+will see small numerical differences.
 
 This is normal. Floating point numbers are approximations of real
 numbers. This is why doing a+(b+c) vs (a+b)+c can give small
@@ -53,9 +49,9 @@ the flag ``mode=FAST_COMPILE`` which instructs Aesara to skip most
 optimizations and disables the generation of any c/cuda code. This is useful
 for quickly testing a simple idea.
 
-If c/cuda code is necessary, as when using a GPU, the flag
+If C code is necessary, the flag
 ``optimizer=fast_compile`` can be used instead. It instructs Aesara to
-skip time consuming optimizations but still generate c/cuda code.
+skip time consuming optimizations but still generate C code.
 
 Similarly using the flag ``optimizer_excluding=inplace`` will speed up
 compilation by preventing optimizations that replace operations with a
@@ -94,11 +90,6 @@ them anymore. Doing so prevents us from reusing this memory. So disabling the
 garbage collection will keep all intermediate results' memory space to allow to
 reuse them during the next call to the same Aesara function, if they are of the
 correct shape. The shape could change if the shapes of the inputs change.
-
-.. note::
-
-   With :attr:`preallocate <config.gpuarray__preallocate>`, this isn't
-   very useful with GPU anymore.
 
 .. _unsafe_optimization:
 
@@ -172,11 +163,6 @@ but requires that all nodes in the graph have a C implementation:
     x = aesara.tensor.type.scalar('x')
     f = function([x], (x + 1.) * 2, mode=aesara.compile.mode.Mode(linker='c'))
     f(10.)
-
-New GPU backend using libgpuarray
----------------------------------
-
-The new aesara GPU backend (:ref:`gpuarray`) uses ``config.gpuarray__preallocate`` for GPU memory allocation.
 
 Related Projects
 ----------------

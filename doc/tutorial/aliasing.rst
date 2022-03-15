@@ -194,33 +194,32 @@ makes it possible to expose Aesara's internal variables without a copy, then it
 proceeds as fast as an in-place update.
 
 
-When ``shared`` variables are allocated on the GPU, the transfers to and from the GPU device memory can
-be costly.  Here are a few tips to ensure fast and efficient use of GPU memory and bandwidth:
+..
+   When ``shared`` variables are allocated on the GPU, the transfers to and from the GPU device memory can
+   be costly.  Here are a few tips to ensure fast and efficient use of GPU memory and bandwidth:
 
-* Prior to Aesara 0.3.1, ``set_value`` did not work in-place on the GPU. This meant that, sometimes,
-  GPU memory for the new value would be allocated before the old memory was released. If you're
-  running near the limits of GPU memory, this could cause you to run out of GPU memory
-  unnecessarily.
+   * Prior to Aesara 0.3.1, ``set_value`` did not work in-place on the GPU. This meant that, sometimes,
+     GPU memory for the new value would be allocated before the old memory was released. If you're
+     running near the limits of GPU memory, this could cause you to run out of GPU memory
+     unnecessarily.
 
-  *Solution*: update to a newer version of Aesara.
+     *Solution*: update to a newer version of Aesara.
 
-* If you are going to swap several chunks of data in and out of a ``shared`` variable repeatedly,
-  you will want to reuse the memory that you allocated the first time if possible - it is both
-  faster and more memory efficient.
+   * If you are going to swap several chunks of data in and out of a ``shared`` variable repeatedly,
+     you will want to reuse the memory that you allocated the first time if possible - it is both
+     faster and more memory efficient.
 
-  *Solution*: upgrade to a recent version of Aesara (>0.3.0) and consider padding your source
-  data to make sure that every chunk is the same size.
+     *Solution*: upgrade to a recent version of Aesara (>0.3.0) and consider padding your source
+     data to make sure that every chunk is the same size.
 
-* It is also worth mentioning that, current GPU copying routines
-  support only contiguous memory.  So Aesara must make the value you
-  provide *C-contiguous* prior to copying it.  This can require an
-  extra copy of the data on the host.
+   * It is also worth mentioning that, current GPU copying routines
+     support only contiguous memory.  So Aesara must make the value you
+     provide *C-contiguous* prior to copying it.  This can require an
+     extra copy of the data on the host.
 
-  *Solution*: make sure that the value
-  you assign to a GpuArraySharedVariable is *already*  *C-contiguous*.
+     *Solution*: make sure that the value
+     you assign to a GpuArraySharedVariable is *already*  *C-contiguous*.
 
-(Further information on the current implementation of the GPU version
-of ``set_value()`` can be found here: :ref:`libdoc_gpuarray_type`)
 
 .. _borrowfunction:
 

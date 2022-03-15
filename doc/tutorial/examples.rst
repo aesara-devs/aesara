@@ -242,9 +242,7 @@ achieve a similar result by returning the new expressions, and working with
 them in NumPy as usual.  The updates mechanism can be a syntactic convenience,
 but it is mainly there for efficiency.  Updates to shared variables can
 sometimes be done more quickly using in-place algorithms (e.g. low-rank matrix
-updates).  Also, Aesara has more control over where and how shared variables are
-allocated, which is one of the important elements of getting good performance
-on the :ref:`GPU<using_gpu>`.
+updates).
 
 It may happen that you expressed some formula using a shared variable, but
 you do *not* want to use its value. In this case, you can use the
@@ -375,7 +373,6 @@ distribution.  Likewise,  ``rv_n`` represents a random stream of 2x2 matrices of
 draws from a normal distribution.  The distributions that are implemented are
 defined as :class:`RandomVariable`\s
 in :ref:`basic<libdoc_tensor_random_basic>`. They only work on CPU.
-See `Other Implementations`_ for GPU version.
 
 
 Now let's use these objects.  If we call ``f()``, we get random uniform numbers.
@@ -502,22 +499,6 @@ Other Random Distributions
 
 There are :ref:`other distributions implemented <libdoc_tensor_random_basic>`.
 
-.. _example_other_random:
-
-Other Implementations
----------------------
-
-There is another implementations based on :ref:`MRG31k3p
-<libdoc_rng_mrg>`.
-The `RandomStream` only work on the CPU, MRG31k3p work on the CPU and GPU.
-
-.. note::
-
-    To use you the MRG version easily, you can just change the import to:
-
-        .. code-block:: python
-
-            from aesara.sandbox.rng_mrg import MRG_RandomStream as RandomStream
 
 .. _logistic_regression:
 
