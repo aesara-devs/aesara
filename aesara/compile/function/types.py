@@ -1097,7 +1097,7 @@ class Function:
         return [i.variable for i in self.maker.inputs if i.implicit]
 
     def sync_shared(self):
-        # sync was needed on old gpu backend
+        # NOTE: sync was needed on old gpu backend
         pass
 
 

@@ -22,8 +22,7 @@ from aesara.tensor.var import TensorConstant
 class Fourier(Op):
     """
     WARNING: for officially supported FFTs, use aesara.tensor.fft, which
-    provides real-input FFTs. Gradients are supported, as well as optimization
-    transfers to GPU ops.
+    provides real-input FFTs. Gradients are supported.
 
     An instance of this class returns a finite fourier transform calculated
     along one dimension of an input array.

@@ -394,13 +394,13 @@ class mrg_uniform(COp, mrg_uniform_base):
         for s in size:
             n_elements *= s
         if n_elements > M1:
-            # The limit is on the C and GPU code. This perform don't
+            # The limit is on the C code. This perform don't
             # have this limit.  But to have all of them behave the
             # same (and have DebugMode don't use too much memory for
             # some rng_mrg tests) I also add this limit here.
             raise ValueError("rng_mrg does not support more then (2**31 -1) samples")
 
-        rstate = np.asarray(rstate)  # bring state from GPU if necessary
+        rstate = np.asarray(rstate)  # bring state from XXX if necessary
         if not self.inplace:
             rstate = rstate.copy()
 
@@ -527,8 +527,7 @@ class mrg_uniform(COp, mrg_uniform_base):
 
     def c_code(self, node, name, inp, out, sub):
         # If we try to use the C code here with something else than a
-        # TensorType, something is wrong (likely one of the GPU ops
-        # not defining C code correctly).
+        # TensorType, something is wrong.
         assert isinstance(node.inputs[0].type, TensorType)
         if self.output_type.dtype == "float16":
             # C code is not tested, fall back to Python

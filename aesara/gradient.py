@@ -237,7 +237,7 @@ def Rop(f, wrt, eval_points, disconnected_outputs="raise", return_disconnected="
                 )
         except AttributeError:
             # wrt_elem and eval_point don't always have ndim like random type
-            # Tensor, Sparse and GpuArray have the ndim attribute
+            # Tensor, Sparse have the ndim attribute
             pass
 
     seen_nodes = OrderedDict()

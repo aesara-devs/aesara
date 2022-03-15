@@ -107,14 +107,13 @@ class Type(MetaObject):
         This method allows one to reuse old allocated memory.  If this method
         is implemented, it will be called instead of `Type.filter`.
 
-        As of now, this method is only used when we transfer new data to a
-        shared variable on a GPU.
+        As of now, this method is not implemented and was previously used for transferring memory to and from GPU.
 
         Parameters
         ----------
         value: array-like
         storage: array-like
-            The old value (e.g. the old NumPy array, CudaNdarray, etc.)
+            The old value (e.g. the old NumPy array)
         strict: bool
         allow_downcast: bool (optional)
 

@@ -183,7 +183,7 @@ def rebuild_collect_shared(
                 (store_into, update_d[store_into]),
             )
 
-        # filter_variable ensure smooth conversion of cpu/gpu Types
+        # filter_variable ensure smooth conversion of cpu Types
         try:
             update_val = store_into.type.filter_variable(
                 update_val, allow_convert=False

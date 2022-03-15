@@ -146,12 +146,7 @@ def pool_2d(
             "pool_2d() will have the parameter ignore_border"
             " default value changed to True (currently"
             " False). To have consistent behavior with all Aesara"
-            " version, explicitly add the parameter ignore_border=True."
-            " On the GPU, using ignore_border=True is needed to use cuDNN."
-            " When using ignore_border=False and not using cuDNN, the only"
-            " GPU combination supported is when"
-            " `ws == stride and pad == (0, 0) and mode == 'max'`."
-            " Otherwise, the convolution will be executed on CPU.",
+            " version, explicitly add the parameter ignore_border=True.",
             category=DeprecationWarning,
             stacklevel=2,
         )
@@ -267,12 +262,7 @@ def pool_3d(
             "pool_3d() will have the parameter ignore_border"
             " default value changed to True (currently"
             " False). To have consistent behavior with all Aesara"
-            " version, explicitly add the parameter ignore_border=True."
-            " On the GPU, using ignore_border=True is needed to use cuDNN."
-            " When using ignore_border=False and not using cuDNN, the only"
-            " GPU combination supported is when"
-            " `ws == stride and pad == (0, 0, 0) and mode == 'max'`."
-            " Otherwise, the convolution will be executed on CPU.",
+            " version, explicitly add the parameter ignore_border=True.",
             category=DeprecationWarning,
             stacklevel=2,
         )

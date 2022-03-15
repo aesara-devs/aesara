@@ -1189,7 +1189,7 @@ class ModuleCache:
             # 2) If other repo that import Aesara have Aesara ops defined,
             #    we need to refresh the cache here. Otherwise, there are import
             #    order problems.
-            #    When device=gpu, we compile during Aesara
+            #    (Outdated) When device=gpu, we compile during Aesara
             #    import. This triggers the loading of the cache. But
             #    unpickling the cache asks that the external Ops are
             #    completely loaded, which isn't always the case!

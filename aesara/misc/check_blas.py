@@ -67,10 +67,8 @@ def execute(execute=True, verbose=True, M=2000, N=2000, K=2000, iters=10, order=
             impl = "CPU (with direct Aesara binding to blas)"
         else:
             impl = "CPU (without direct Aesara binding to blas but with numpy/scipy binding to blas)"
-    elif any(x.op.__class__.__name__ == "GpuGemm" for x in f.maker.fgraph.toposort()):
-        impl = "GPU"
     else:
-        impl = "ERROR, unable to tell if Aesara used the cpu or the gpu:\n"
+        impl = "ERROR, unable to tell if Aesara used the cpu:\n"
         impl += str(f.maker.fgraph.toposort())
 
     t0 = 0
@@ -78,7 +76,7 @@ def execute(execute=True, verbose=True, M=2000, N=2000, K=2000, iters=10, order=
 
     f()  # Ignore first function call to get representative time.
     if execute:
-        # sync was needed for gpu
+        # NOTE: sync was needed for gpu
         sync = False
 
         if sync:

@@ -328,12 +328,10 @@ class TopKOp(Op):
 
     Notes
     -----
-    - CPU and GPU ops don't produce same output order. This is expected.
     - The output order is not guaranteed. On the CPU, we use
       ``np.partition`` and ``np.argpartition`` that only make sure the
       k-th element is the correct one and that the other
-      elements are on the correct side. On the GPU, they
-      look sorted, but we do not test the correctness of this behavior.
+      elements are on the correct side.
     - By default, this Op gives two outputs: values and indices. However
       optimizers may remove a certain output if not needed.
     - Computing the gradient requests the computation of the indices in

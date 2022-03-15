@@ -277,10 +277,6 @@ def scan(
         allocations are freed at the end of all iterations; this is what the
         flag `aesara.config.allow_gc` means.
 
-        If you use pre-allocation and this `Scan` is on GPU, the speed up from
-        `allow_gc` is small. If you are missing memory, disabling `allow_gc`
-        could help you run graph that request much memory.
-
     strict
         If ``True``, all the shared variables used in `fn` must be provided as a
         part of `non_sequences` or `sequences`.

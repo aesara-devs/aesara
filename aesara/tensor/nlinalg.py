@@ -193,11 +193,6 @@ def matrix_dot(*args):
 def trace(X):
     """
     Returns the sum of diagonal elements of matrix X.
-
-    Notes
-    -----
-    Works on GPU since 0.6rc4.
-
     """
     return extract_diag(X).sum()
 
@@ -729,7 +724,6 @@ class TensorInv(Op):
 
 def tensorinv(a, ind=2):
     """
-    Does not run on GPU;
     Aesara utilization of numpy.linalg.tensorinv;
 
     Compute the 'inverse' of an N-dimensional array.
@@ -791,7 +785,7 @@ class TensorSolve(Op):
 
 def tensorsolve(a, b, axes=None):
     """
-    Aesara utilization of numpy.linalg.tensorsolve. Does not run on GPU!
+    Aesara utilization of numpy.linalg.tensorsolve.
 
     Solve the tensor equation ``a x = b`` for x.
     It is assumed that all indices of `x` are summed over in the product,

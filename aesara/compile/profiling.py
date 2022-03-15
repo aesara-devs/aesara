@@ -508,8 +508,8 @@ class ProfileStats:
             tot += t
             ftot = tot * 100 / local_time
             # Remove the useless start and end of the class name:
-            # "<class 'aesara.backend.blas.GpuDot22'>" ->
-            #  "aesara.backend.blas.GpuDot22"
+            # "<class 'aesara.backend.blas.Dot22'>" ->
+            #  "aesara.backend.blas.Dot22"
             class_name = str(a)[8:-2][:maxlen]
             print(
                 format_str
@@ -887,6 +887,7 @@ class ProfileStats:
                 new allocation.
 
             """
+            # TODO: GPU is not supported for now, needs to be refactored later
             # Initial Mem info values [CPU, GPU]
             node_memory_size = [0, 0]
             running_memory_size = [0, 0]
@@ -1241,6 +1242,7 @@ class ProfileStats:
                     max_running_max_memory_size[0], sum(running_memory[2])
                 )
 
+                # NOTE: we do not have GPU right now, this has to be reconsidered later
                 # Separate CPU and GPU
                 max_node_memory_size[1] = max(
                     max_node_memory_size[1], running_memory[0][0]
@@ -1624,12 +1626,6 @@ class ProfileStats:
                     "experimental, but seems to work correctly.",
                     file=file,
                 )
-                if config.device.startswith("gpu"):
-                    print(
-                        "     - MRG_RandomStream is the only random number"
-                        " generator supported on the GPU.",
-                        file=file,
-                    )
                 break
 
         # tip 6

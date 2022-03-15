@@ -50,9 +50,7 @@ def d3viz(fct, outfile, copy_deps=True, *args, **kwargs):
     edited by selecting Edit from the context menu.
 
     Input nodes are colored in green, output nodes in blue. Apply nodes are
-    ellipses, and colored depending on the type of operation they perform. Red
-    ellipses are transfers from/to the GPU (ops with names GpuFromHost,
-    HostFromGpu).
+    ellipses, and colored depending on the type of operation they perform.
 
     Edges are black by default. If a node returns a view of an
     input, the input edge will be blue. If it returns a destroyed input, the

@@ -1550,11 +1550,6 @@ def mean(input, axis=None, dtype=None, op=False, keepdims=False, acc_dtype=None)
         necessarily be the dtype of the output (in particular
         if it is a discrete (int/uint) dtype, the output will
         be in a float type). If None, then we use the same rules as `sum()`.
-
-    Notes
-    -----
-    For gpu, if you specify dtype=float32, everything will be done on the gpu.
-
     """
     input = as_tensor_variable(input)
     if op:

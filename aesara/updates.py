@@ -50,15 +50,10 @@ class OrderedUpdates(OrderedDict):
             # TODO: consider doing error-checking on value.
             # insist that it is an Aesara variable? Have the right type?
             # This could have weird consequences - for example a
-            # GPU SharedVariable is customarily associated with a TensorType
-            # value. Should it be cast to a GPU value right away?  Should
-            # literals be transformed into constants immediately?
 
             return super().__setitem__(key, value)
         else:
-            raise TypeError(
-                "OrderedUpdates keys must inherit from " "SharedVariable", key
-            )
+            raise TypeError("OrderedUpdates keys must inherit from SharedVariable", key)
 
     def update(self, other=None):
         if other is None:

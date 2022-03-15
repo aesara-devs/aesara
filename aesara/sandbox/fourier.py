@@ -19,8 +19,7 @@ from aesara.tensor.type import zmatrix
 
 message = (
     "The module aesara.sandbox.fourier will soon be deprecated."
-    " Please use aesara.tensor.fft, which supports gradients and "
-    "automatic optimization transfers to the GPU ops."
+    " Please use aesara.tensor.fft, which supports gradients."
 )
 warnings.warn(message)
 
