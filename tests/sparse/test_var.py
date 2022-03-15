@@ -7,7 +7,7 @@ from scipy.sparse.csr import csr_matrix
 import aesara
 import aesara.sparse as sparse
 import aesara.tensor as at
-from aesara.sparse.type import SparseType
+from aesara.sparse.type import SparseTensorType
 from aesara.tensor.type import DenseTensorType
 
 
@@ -16,7 +16,7 @@ class TestSparseVariable:
         "method, exp_type, cm",
         [
             ("__abs__", DenseTensorType, None),
-            ("__neg__", SparseType, ExitStack()),
+            ("__neg__", SparseTensorType, ExitStack()),
             ("__ceil__", DenseTensorType, None),
             ("__floor__", DenseTensorType, None),
             ("__trunc__", DenseTensorType, None),
@@ -65,7 +65,7 @@ class TestSparseVariable:
             ("conj", DenseTensorType, None),
             ("round", DenseTensorType, None),
             ("trace", DenseTensorType, None),
-            ("zeros_like", SparseType, ExitStack()),
+            ("zeros_like", SparseTensorType, ExitStack()),
             ("ones_like", DenseTensorType, ExitStack()),
             ("cumsum", DenseTensorType, None),
             ("cumprod", DenseTensorType, None),
@@ -83,7 +83,7 @@ class TestSparseVariable:
         if cm is None:
             cm = pytest.warns(UserWarning, match=".*converted to dense.*")
 
-        if exp_type == SparseType:
+        if exp_type == SparseTensorType:
             exp_res_type = csr_matrix
         else:
             exp_res_type = np.ndarray
@@ -112,16 +112,16 @@ class TestSparseVariable:
     @pytest.mark.parametrize(
         "method, exp_type",
         [
-            ("__lt__", SparseType),
-            ("__le__", SparseType),
-            ("__gt__", SparseType),
-            ("__ge__", SparseType),
+            ("__lt__", SparseTensorType),
+            ("__le__", SparseTensorType),
+            ("__gt__", SparseTensorType),
+            ("__ge__", SparseTensorType),
             ("__and__", DenseTensorType),
             ("__or__", DenseTensorType),
             ("__xor__", DenseTensorType),
-            ("__add__", SparseType),
-            ("__sub__", SparseType),
-            ("__mul__", SparseType),
+            ("__add__", SparseTensorType),
+            ("__sub__", SparseTensorType),
+            ("__mul__", SparseTensorType),
             ("__pow__", DenseTensorType),
             ("__mod__", DenseTensorType),
             ("__divmod__", DenseTensorType),
@@ -137,7 +137,7 @@ class TestSparseVariable:
 
         method_to_call = getattr(x, method)
 
-        if exp_type == SparseType:
+        if exp_type == SparseTensorType:
             exp_res_type = csr_matrix
             cm = ExitStack()
         else:
@@ -198,7 +198,7 @@ class TestSparseVariable:
         x = sparse.csr_from_dense(x)
 
         z = x[:, :2]
-        assert isinstance(z.type, SparseType)
+        assert isinstance(z.type, SparseTensorType)
 
         f = aesara.function([x], z)
         exp_res = f([[1.1, 0.0, 2.0], [-1.0, 0.0, 0.0]])
@@ -211,7 +211,7 @@ class TestSparseVariable:
         y = sparse.csr_from_dense(y)
 
         z = x.__dot__(y)
-        assert isinstance(z.type, SparseType)
+        assert isinstance(z.type, SparseTensorType)
 
         f = aesara.function([x, y], z)
         exp_res = f(

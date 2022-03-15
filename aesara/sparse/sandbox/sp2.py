@@ -7,7 +7,7 @@ from aesara.graph.basic import Apply
 from aesara.graph.op import Op
 from aesara.sparse.basic import (
     Remove0,
-    SparseType,
+    SparseTensorType,
     _is_sparse,
     as_sparse_variable,
     remove0,
@@ -108,7 +108,9 @@ class Binomial(Op):
         assert shape.dtype in discrete_dtypes
 
         return Apply(
-            self, [n, p, shape], [SparseType(dtype=self.dtype, format=self.format)()]
+            self,
+            [n, p, shape],
+            [SparseTensorType(dtype=self.dtype, format=self.format)()],
         )
 
     def perform(self, node, inputs, outputs):

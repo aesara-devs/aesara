@@ -314,9 +314,9 @@ def get_scalar_constant_value(
                 except ValueError:
                     raise NotScalarConstantError()
 
-            from aesara.sparse.type import SparseType
+            from aesara.sparse.type import SparseTensorType
 
-            if isinstance(v.type, SparseType):
+            if isinstance(v.type, SparseTensorType):
                 raise NotScalarConstantError()
 
             return data

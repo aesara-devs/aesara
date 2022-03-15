@@ -38,7 +38,7 @@ from aesara.sparse import (
     Remove0,
     SamplingDot,
     SparseFromDense,
-    SparseType,
+    SparseTensorType,
     SquareDiagonal,
     StructuredDot,
     StructuredDotGradCSC,
@@ -413,7 +413,7 @@ class TestSparseInferShape(utt.InferShapeTester):
         pass
 
     def test_getitem_scalar(self):
-        x = SparseType("csr", dtype=config.floatX)()
+        x = SparseTensorType("csr", dtype=config.floatX)()
         self._compile_and_check(
             [x],
             [x[2, 2]],
@@ -451,7 +451,7 @@ class TestSparseInferShape(utt.InferShapeTester):
             )
 
     def test_transpose(self):
-        x = SparseType("csr", dtype=config.floatX)()
+        x = SparseTensorType("csr", dtype=config.floatX)()
         self._compile_and_check(
             [x],
             [x.T],
@@ -460,7 +460,7 @@ class TestSparseInferShape(utt.InferShapeTester):
         )
 
     def test_neg(self):
-        x = SparseType("csr", dtype=config.floatX)()
+        x = SparseTensorType("csr", dtype=config.floatX)()
         self._compile_and_check(
             [x],
             [-x],
@@ -469,8 +469,8 @@ class TestSparseInferShape(utt.InferShapeTester):
         )
 
     def test_add_ss(self):
-        x = SparseType("csr", dtype=config.floatX)()
-        y = SparseType("csr", dtype=config.floatX)()
+        x = SparseTensorType("csr", dtype=config.floatX)()
+        y = SparseTensorType("csr", dtype=config.floatX)()
         self._compile_and_check(
             [x, y],
             [x + y],
@@ -482,7 +482,7 @@ class TestSparseInferShape(utt.InferShapeTester):
         )
 
     def test_add_sd(self):
-        x = SparseType("csr", dtype=config.floatX)()
+        x = SparseTensorType("csr", dtype=config.floatX)()
         y = matrix()
         self._compile_and_check(
             [x, y],
@@ -495,8 +495,8 @@ class TestSparseInferShape(utt.InferShapeTester):
         )
 
     def test_mul_ss(self):
-        x = SparseType("csr", dtype=config.floatX)()
-        y = SparseType("csr", dtype=config.floatX)()
+        x = SparseTensorType("csr", dtype=config.floatX)()
+        y = SparseTensorType("csr", dtype=config.floatX)()
         self._compile_and_check(
             [x, y],
             [x * y],
@@ -508,7 +508,7 @@ class TestSparseInferShape(utt.InferShapeTester):
         )
 
     def test_mul_sd(self):
-        x = SparseType("csr", dtype=config.floatX)()
+        x = SparseTensorType("csr", dtype=config.floatX)()
         y = matrix()
         self._compile_and_check(
             [x, y],
@@ -522,7 +522,7 @@ class TestSparseInferShape(utt.InferShapeTester):
         )
 
     def test_remove0(self):
-        x = SparseType("csr", dtype=config.floatX)()
+        x = SparseTensorType("csr", dtype=config.floatX)()
         self._compile_and_check(
             [x],
             [Remove0()(x)],
@@ -531,8 +531,8 @@ class TestSparseInferShape(utt.InferShapeTester):
         )
 
     def test_dot(self):
-        x = SparseType("csc", dtype=config.floatX)()
-        y = SparseType("csc", dtype=config.floatX)()
+        x = SparseTensorType("csc", dtype=config.floatX)()
+        y = SparseTensorType("csc", dtype=config.floatX)()
         self._compile_and_check(
             [x, y],
             [Dot()(x, y)],
@@ -545,12 +545,12 @@ class TestSparseInferShape(utt.InferShapeTester):
 
     def test_dot_broadcast(self):
         for x, y in [
-            (SparseType("csr", "float32")(), vector()[:, None]),
-            (SparseType("csr", "float32")(), vector()[None, :]),
-            (SparseType("csr", "float32")(), matrix()),
-            (vector()[:, None], SparseType("csr", "float32")()),
-            (vector()[None, :], SparseType("csr", "float32")()),
-            (matrix(), SparseType("csr", "float32")()),
+            (SparseTensorType("csr", "float32")(), vector()[:, None]),
+            (SparseTensorType("csr", "float32")(), vector()[None, :]),
+            (SparseTensorType("csr", "float32")(), matrix()),
+            (vector()[:, None], SparseTensorType("csr", "float32")()),
+            (vector()[None, :], SparseTensorType("csr", "float32")()),
+            (matrix(), SparseTensorType("csr", "float32")()),
         ]:
 
             sparse_out = at.dot(x, y)
@@ -562,8 +562,8 @@ class TestSparseInferShape(utt.InferShapeTester):
             assert dense_out.broadcastable == sparse_out.broadcastable
 
     def test_structured_dot(self):
-        x = SparseType("csc", dtype=config.floatX)()
-        y = SparseType("csc", dtype=config.floatX)()
+        x = SparseTensorType("csc", dtype=config.floatX)()
+        y = SparseTensorType("csc", dtype=config.floatX)()
         self._compile_and_check(
             [x, y],
             [structured_dot(x, y)],
@@ -583,8 +583,8 @@ class TestSparseInferShape(utt.InferShapeTester):
             ("csc", StructuredDotGradCSC),
             ("csr", StructuredDotGradCSR),
         ]:
-            x = SparseType(format, dtype=config.floatX)()
-            y = SparseType(format, dtype=config.floatX)()
+            x = SparseTensorType(format, dtype=config.floatX)()
+            y = SparseTensorType(format, dtype=config.floatX)()
             grads = aesara.grad(dense_from_sparse(structured_dot(x, y)).sum(), [x, y])
             self._compile_and_check(
                 [x, y],
@@ -606,7 +606,7 @@ class TestSparseInferShape(utt.InferShapeTester):
             )
 
     def test_dense_from_sparse(self):
-        x = SparseType("csr", dtype=config.floatX)()
+        x = SparseTensorType("csr", dtype=config.floatX)()
         self._compile_and_check(
             [x],
             [dense_from_sparse(x)],
@@ -1130,7 +1130,7 @@ class TestCsmProperties:
 
         for format in ("csc", "csr"):
             for dtype in ("float32", "float64"):
-                x = SparseType(format, dtype=dtype)()
+                x = SparseTensorType(format, dtype=dtype)()
                 f = aesara.function([x], csm_properties(x))
 
                 spmat = sp_types[format](random_lil((4, 3), dtype, 3))
@@ -1288,7 +1288,7 @@ class TestStructuredDot:
         for dense_dtype in typenames:
             for sparse_dtype in typenames:
                 correct_dtype = aesara.scalar.upcast(sparse_dtype, dense_dtype)
-                a = SparseType("csc", dtype=sparse_dtype)()
+                a = SparseTensorType("csc", dtype=sparse_dtype)()
                 b = matrix(dtype=dense_dtype)
                 d = structured_dot(a, b)
                 assert d.type.dtype == correct_dtype
@@ -1375,8 +1375,8 @@ class TestStructuredDot:
 
         for sparse_format_a in ["csc", "csr", "bsr"]:
             for sparse_format_b in ["csc", "csr", "bsr"]:
-                a = SparseType(sparse_format_a, dtype=sparse_dtype)()
-                b = SparseType(sparse_format_b, dtype=sparse_dtype)()
+                a = SparseTensorType(sparse_format_a, dtype=sparse_dtype)()
+                b = SparseTensorType(sparse_format_b, dtype=sparse_dtype)()
                 d = at.dot(a, b)
                 f = aesara.function([a, b], Out(d, borrow=True))
                 for M, N, K, nnz in [
@@ -1397,7 +1397,7 @@ class TestStructuredDot:
         sparse_dtype = "float64"
         dense_dtype = "float64"
 
-        a = SparseType("csc", dtype=sparse_dtype)()
+        a = SparseTensorType("csc", dtype=sparse_dtype)()
         b = matrix(dtype=dense_dtype)
         d = at.dot(a, b)
         f = aesara.function([a, b], Out(d, borrow=True))
@@ -1445,7 +1445,7 @@ class TestStructuredDot:
         sparse_dtype = "float32"
         dense_dtype = "float32"
 
-        a = SparseType("csr", dtype=sparse_dtype)()
+        a = SparseTensorType("csr", dtype=sparse_dtype)()
         b = matrix(dtype=dense_dtype)
         d = at.dot(a, b)
         f = aesara.function([a, b], d)
@@ -1567,8 +1567,8 @@ class TestDots(utt.InferShapeTester):
                 ("csr", "csc"),
                 ("csr", "csr"),
             ]:
-                x = sparse.SparseType(format=x_f, dtype=d1)("x")
-                y = sparse.SparseType(format=x_f, dtype=d2)("x")
+                x = sparse.SparseTensorType(format=x_f, dtype=d1)("x")
+                y = sparse.SparseTensorType(format=x_f, dtype=d2)("x")
 
                 def f_a(x, y):
                     return x * y
@@ -1886,7 +1886,7 @@ class TestZerosLike:
 def test_shape_i():
     sparse_dtype = "float32"
 
-    a = SparseType("csr", dtype=sparse_dtype)()
+    a = SparseTensorType("csr", dtype=sparse_dtype)()
     f = aesara.function([a], a.shape[1])
     assert f(sp.sparse.csr_matrix(random_lil((100, 10), sparse_dtype, 3))) == 10
 
@@ -1896,7 +1896,7 @@ def test_shape():
     # does not actually create a dense tensor in the process.
     sparse_dtype = "float32"
 
-    a = SparseType("csr", dtype=sparse_dtype)()
+    a = SparseTensorType("csr", dtype=sparse_dtype)()
     f = aesara.function([a], a.shape)
     assert np.all(
         f(sp.sparse.csr_matrix(random_lil((100, 10), sparse_dtype, 3))) == (100, 10)
@@ -1946,7 +1946,7 @@ def test_may_share_memory():
         (b.transpose(), a, False),
     ]:
 
-        assert SparseType.may_share_memory(a_, b_) == rep
+        assert SparseTensorType.may_share_memory(a_, b_) == rep
 
 
 def test_sparse_shared_memory():
@@ -1955,8 +1955,8 @@ def test_sparse_shared_memory():
     a = random_lil((3, 4), "float32", 3).tocsr()
     m1 = random_lil((4, 4), "float32", 3).tocsr()
     m2 = random_lil((4, 4), "float32", 3).tocsr()
-    x = SparseType("csr", dtype="float32")()
-    y = SparseType("csr", dtype="float32")()
+    x = SparseTensorType("csr", dtype="float32")()
+    y = SparseTensorType("csr", dtype="float32")()
 
     sdot = sparse.structured_dot
     z = sdot(x * 3, m1) + sdot(y * 2, m2)
@@ -1966,7 +1966,7 @@ def test_sparse_shared_memory():
     def f_(x, y, m1=m1, m2=m2):
         return ((x * 3) * m1) + ((y * 2) * m2)
 
-    assert SparseType.may_share_memory(a, a)  # This is trivial
+    assert SparseTensorType.may_share_memory(a, a)  # This is trivial
     result = f(a, a)
     result_ = f_(a, a)
     assert (result_.todense() == result.todense()).all()
@@ -3192,7 +3192,7 @@ class TestMulSV:
 
         for format in ("csr", "csc"):
             for dtype in ("float32", "float64"):
-                x = sparse.SparseType(format, dtype=dtype)()
+                x = sparse.SparseTensorType(format, dtype=dtype)()
                 y = vector(dtype=dtype)
                 f = aesara.function([x, y], mul_s_v(x, y))
 
@@ -3220,7 +3220,7 @@ class TestStructuredAddSV:
 
         for format in ("csr", "csc"):
             for dtype in ("float32", "float64"):
-                x = sparse.SparseType(format, dtype=dtype)()
+                x = sparse.SparseTensorType(format, dtype=dtype)()
                 y = vector(dtype=dtype)
                 f = aesara.function([x, y], structured_add_s_v(x, y))
 

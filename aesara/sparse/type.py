@@ -25,9 +25,8 @@ def _is_sparse(x):
     return isinstance(x, scipy.sparse.spmatrix)
 
 
-class SparseType(TensorType, HasDataType):
-    """
-    Fundamental way to create a sparse node.
+class SparseTensorType(TensorType, HasDataType):
+    """A `Type` for sparse tensors.
 
     Parameters
     ----------
@@ -42,8 +41,7 @@ class SparseType(TensorType, HasDataType):
 
     Notes
     -----
-    As far as I can tell, L{scipy.sparse} objects must be matrices, i.e.
-    have dimension 2.
+    Currently, sparse tensors can only be matrices (i.e. have two dimensions).
 
     """
 
@@ -126,15 +124,13 @@ class SparseType(TensorType, HasDataType):
             raise NotImplementedError()
         return sp
 
-    @staticmethod
-    def may_share_memory(a, b):
-        # This is Fred suggestion for a quick and dirty way of checking
-        # aliasing .. this can potentially be further refined (ticket #374)
+    @classmethod
+    def may_share_memory(cls, a, b):
         if _is_sparse(a) and _is_sparse(b):
             return (
-                SparseType.may_share_memory(a, b.data)
-                or SparseType.may_share_memory(a, b.indices)
-                or SparseType.may_share_memory(a, b.indptr)
+                cls.may_share_memory(a, b.data)
+                or cls.may_share_memory(a, b.indices)
+                or cls.may_share_memory(a, b.indptr)
             )
         if _is_sparse(b) and isinstance(a, np.ndarray):
             a, b = b, a
@@ -151,7 +147,7 @@ class SparseType(TensorType, HasDataType):
     def convert_variable(self, var):
         res = super().convert_variable(var)
 
-        if res and not isinstance(res.type, SparseType):
+        if res and not isinstance(res.type, type(self)):
             # TODO: Convert to this sparse format
             raise NotImplementedError()
 
@@ -232,9 +228,8 @@ class SparseType(TensorType, HasDataType):
         return False
 
 
-# Register SparseType's C code for ViewOp.
 aesara.compile.register_view_op_c_code(
-    SparseType,
+    SparseTensorType,
     """
     Py_XDECREF(%(oname)s);
     %(oname)s = %(iname)s;
@@ -242,3 +237,6 @@ aesara.compile.register_view_op_c_code(
     """,
     1,
 )
+
+# This is a deprecated alias used for (temporary) backward-compatibility
+SparseType = SparseTensorType
