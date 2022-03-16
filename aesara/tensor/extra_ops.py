@@ -1590,7 +1590,6 @@ class BroadcastTo(Op):
 
     def make_node(self, a, *shape):
         a = at.as_tensor_variable(a)
-        shape = at.as_tensor_variable(shape, ndim=1)
 
         shape, bcast = at.infer_broadcastable(shape)
 
@@ -1658,7 +1657,6 @@ def broadcast_to(
 
     """
     x = at.as_tensor(x)
-    shape = at.as_tensor(shape, ndim=1, dtype="int64")
     shape_len = get_vector_length(shape)
 
     if x.ndim == 0 and shape_len == 0:

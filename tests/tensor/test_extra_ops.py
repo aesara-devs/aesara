@@ -1123,6 +1123,14 @@ class TestBroadcastTo(utt.InferShapeTester):
         y = broadcast_to(x, ())
         assert y is x
 
+    def test_avoid_useless_subtensors(self):
+        x = scalar()
+        y = broadcast_to(x, (1, 2))
+        # There shouldn't be any unnecessary `Subtensor` operations
+        # (e.g. from `at.as_tensor((1, 2))[0]`)
+        assert y.owner.inputs[1].owner is None
+        assert y.owner.inputs[2].owner is None
+
     @config.change_flags(compute_test_value="raise")
     def test_perform(self):
         a = scalar()
