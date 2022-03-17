@@ -616,9 +616,20 @@ def jax_funcify_IncSubtensor(op, **kwargs):
     idx_list = getattr(op, "idx_list", None)
 
     if getattr(op, "set_instead_of_inc", False):
-        jax_fn = jax.ops.index_update
+        jax_fn = getattr(jax.ops, "index_update", None)
+
+        if jax_fn is None:
+
+            def jax_fn(x, indices, y):
+                return x.at[indices].set(y)
+
     else:
-        jax_fn = jax.ops.index_add
+        jax_fn = getattr(jax.ops, "index_add", None)
+
+        if jax_fn is None:
+
+            def jax_fn(x, indices, y):
+                return x.at[indices].add(y)
 
     def incsubtensor(x, y, *ilist, jax_fn=jax_fn, idx_list=idx_list):
         indices = indices_from_subtensor(ilist, idx_list)
