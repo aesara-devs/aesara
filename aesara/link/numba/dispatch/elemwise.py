@@ -487,7 +487,15 @@ def numba_funcify_CAReduce(op, node, **kwargs):
 
     np_acc_dtype = np.dtype(acc_dtype)
 
-    scalar_op_identity = np.asarray(op.scalar_op.identity, dtype=np_acc_dtype)
+    scalar_op_identity = op.scalar_op.identity
+    if np_acc_dtype.kind == "i" and not np.isfinite(scalar_op_identity):
+        if np.isposinf(scalar_op_identity):
+            scalar_op_identity = np.iinfo(np_acc_dtype).max
+        else:
+            scalar_op_identity = np.iinfo(np_acc_dtype).min
+
+    # Make sure it has the correct dtype
+    scalar_op_identity = np.array(scalar_op_identity, dtype=np_acc_dtype)
 
     input_name = get_name_for_object(node.inputs[0])
     ndim = node.inputs[0].ndim

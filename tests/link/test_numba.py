@@ -1165,10 +1165,24 @@ def test_ARange(start, stop, step, dtype):
             ),
         ),
         (
+            lambda x, axis=None, dtype=None, acc_dtype=None: Max(axis)(x),
+            None,
+            set_test_value(
+                at.lmatrix(), np.arange(3 * 2, dtype=np.int64).reshape((3, 2))
+            ),
+        ),
+        (
             lambda x, axis=None, dtype=None, acc_dtype=None: Min(axis)(x),
             None,
             set_test_value(
                 at.matrix(), np.arange(3 * 2, dtype=config.floatX).reshape((3, 2))
+            ),
+        ),
+        (
+            lambda x, axis=None, dtype=None, acc_dtype=None: Min(axis)(x),
+            None,
+            set_test_value(
+                at.lmatrix(), np.arange(3 * 2, dtype=np.int64).reshape((3, 2))
             ),
         ),
     ],
