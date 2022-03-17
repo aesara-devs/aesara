@@ -11,6 +11,7 @@ import scipy.special
 from llvmlite.llvmpy.core import Type as llvm_Type
 from numba import types
 from numba.core.errors import TypingError
+from numba.cpython.unsafe.tuple import tuple_setitem  # noqa: F401
 from numba.extending import box
 
 from aesara import config

@@ -6,7 +6,6 @@ from typing import Any, Callable, Optional, Union
 
 import numba
 import numpy as np
-from numba.cpython.unsafe.tuple import tuple_setitem
 
 from aesara import config
 from aesara.graph.basic import Apply
@@ -519,10 +518,10 @@ def numba_funcify_DimShuffle(op, **kwargs):
         @numba_basic.numba_njit
         def populate_new_shape(i, j, new_shape, shuffle_shape):
             if i in augment:
-                new_shape = tuple_setitem(new_shape, i, 1)
+                new_shape = numba_basic.tuple_setitem(new_shape, i, 1)
                 return j, new_shape
             else:
-                new_shape = tuple_setitem(new_shape, i, shuffle_shape[j])
+                new_shape = numba_basic.tuple_setitem(new_shape, i, shuffle_shape[j])
                 return j + 1, new_shape
 
     else:
@@ -532,7 +531,7 @@ def numba_funcify_DimShuffle(op, **kwargs):
         # To avoid this compile-time error, we omit the expression altogether.
         @numba_basic.numba_njit(inline="always")
         def populate_new_shape(i, j, new_shape, shuffle_shape):
-            return j, tuple_setitem(new_shape, i, 1)
+            return j, numba_basic.tuple_setitem(new_shape, i, 1)
 
     if ndim_new_shape > 0:
         create_zeros_tuple = numba_basic.create_tuple_creator(
