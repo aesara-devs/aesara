@@ -358,8 +358,20 @@ def numba_funcify_Searchsorted(op, node, **kwargs):
 
 @numba_funcify.register(BroadcastTo)
 def numba_funcify_BroadcastTo(op, node, **kwargs):
-    @numba_basic.numba_njit()
+
+    create_zeros_tuple = numba_basic.create_tuple_creator(
+        lambda _: 0, len(node.inputs) - 1
+    )
+
+    @numba_basic.numba_njit
     def broadcast_to(x, *shape):
-        return np.broadcast_to(x, shape)
+        scalars_shape = create_zeros_tuple()
+
+        for i in range(len(shape)):
+            scalars_shape = numba_basic.tuple_setitem(
+                scalars_shape, i, numba_basic.to_scalar(shape[i])
+            )
+
+        return np.broadcast_to(x, scalars_shape)
 
     return broadcast_to
