@@ -322,6 +322,12 @@ def test_numba_box_unbox(input, wrapper_fn, check_fn):
     "inputs, input_vals, output_fn, exc",
     [
         (
+            [at.lvector()],
+            [rng.poisson(10, size=100).astype(np.int64)],
+            lambda x: at.gammaln(x),
+            None,
+        ),
+        (
             [at.vector()],
             [rng.standard_normal(100).astype(config.floatX)],
             lambda x: at.sigmoid(x),
