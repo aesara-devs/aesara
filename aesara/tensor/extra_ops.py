@@ -1636,6 +1636,29 @@ class BroadcastTo(Op):
 broadcast_to_ = BroadcastTo()
 
 
+def geomspace(start, end, steps, base=10.0):
+    from aesara.tensor.math import log
+
+    start = at.as_tensor_variable(start)
+    end = at.as_tensor_variable(end)
+    return base ** linspace(log(start) / log(base), log(end) / log(base), steps)
+
+
+def logspace(start, end, steps, base=10.0):
+    start = at.as_tensor_variable(start)
+    end = at.as_tensor_variable(end)
+    return base ** linspace(start, end, steps)
+
+
+def linspace(start, end, steps):
+    start = at.as_tensor_variable(start)
+    end = at.as_tensor_variable(end)
+    arr = at.arange(steps)
+    arr = at.shape_padright(arr, max(start.ndim, end.ndim))
+    multiplier = (end - start) / (steps - 1)
+    return start + arr * multiplier
+
+
 def broadcast_to(
     x: TensorVariable, shape: Union[TensorVariable, Tuple[Variable]]
 ) -> TensorVariable:

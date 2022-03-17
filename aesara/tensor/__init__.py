@@ -134,6 +134,9 @@ from aesara.tensor.extra_ops import (  # noqa
     squeeze,
     unique,
     unravel_index,
+    linspace,
+    logspace,
+    geomspace,
 )
 from aesara.tensor.shape import (  # noqa
     reshape,

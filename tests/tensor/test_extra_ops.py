@@ -36,6 +36,9 @@ from aesara.tensor.extra_ops import (
     diff,
     fill_diagonal,
     fill_diagonal_offset,
+    geomspace,
+    linspace,
+    logspace,
     ravel_multi_index,
     repeat,
     searchsorted,
@@ -63,6 +66,11 @@ from aesara.tensor.type import (
 )
 from aesara.utils import LOCAL_BITWIDTH, PYTHON_INT_BITWIDTH
 from tests import unittest_tools as utt
+
+
+def set_test_value(x, v):
+    x.tag.test_value = v
+    return x
 
 
 def test_cpu_contiguous():
@@ -1222,3 +1230,28 @@ def test_broadcast_arrays():
 
     assert np.array_equal(x_bcast_val, x_bcast_exp)
     assert np.array_equal(y_bcast_val, y_bcast_exp)
+
+
+@pytest.mark.parametrize(
+    "start, stop, num_samples",
+    [
+        (1, 10, 50),
+        (np.array([5, 6]), np.array([[10, 10], [10, 10]]), 25),
+        (1, np.array([5, 6]), 30),
+    ],
+)
+def test_space_ops(start, stop, num_samples):
+    z = linspace(start, stop, num_samples)
+    aesara_res = function(inputs=[], outputs=z)()
+    numpy_res = np.linspace(start, stop, num=num_samples)
+    assert np.allclose(aesara_res, numpy_res)
+
+    z = logspace(start, stop, num_samples)
+    aesara_res = function(inputs=[], outputs=z)()
+    numpy_res = np.logspace(start, stop, num=num_samples)
+    assert np.allclose(aesara_res, numpy_res)
+
+    z = geomspace(start, stop, num_samples)
+    aesara_res = function(inputs=[], outputs=z)()
+    numpy_res = np.geomspace(start, stop, num=num_samples)
+    assert np.allclose(aesara_res, numpy_res)
