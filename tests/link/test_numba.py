@@ -156,17 +156,15 @@ def eval_python_only(fn_inputs, fgraph, inputs):
     mocks = [
         mock.patch("numba.njit", njit_noop),
         mock.patch("numba.vectorize", vectorize_noop),
-        mock.patch(
-            "aesara.link.numba.dispatch.elemwise.tuple_setitem", py_tuple_setitem
-        ),
+        mock.patch("aesara.link.numba.dispatch.basic.tuple_setitem", py_tuple_setitem),
         mock.patch("aesara.link.numba.dispatch.basic.numba_njit", njit_noop),
         mock.patch("aesara.link.numba.dispatch.basic.numba_vectorize", vectorize_noop),
         mock.patch("aesara.link.numba.dispatch.basic.direct_cast", lambda x, dtype: x),
+        mock.patch("aesara.link.numba.dispatch.basic.to_scalar", py_to_scalar),
         mock.patch(
             "aesara.link.numba.dispatch.basic.numba.np.numpy_support.from_dtype",
             lambda dtype: dtype,
         ),
-        mock.patch("aesara.link.numba.dispatch.basic.to_scalar", py_to_scalar),
         mock.patch("numba.np.unsafe.ndarray.to_fixed_tuple", lambda x, n: tuple(x)),
     ]
 
