@@ -30,6 +30,7 @@ from aesara.ifelse import ifelse
 from aesara.link.numba.dispatch import basic as numba_basic
 from aesara.link.numba.dispatch import numba_typify
 from aesara.link.numba.linker import NumbaLinker
+from aesara.raise_op import assert_op
 from aesara.scalar.basic import Composite
 from aesara.scan.basic import scan
 from aesara.scan.utils import until
@@ -1394,6 +1395,44 @@ def test_perform(inputs, op, exc):
                 if not isinstance(i, (SharedVariable, Constant))
             ],
         )
+
+
+def test_perform_params():
+    """This tests for `Op.perform` implementations that require the `params` arguments."""
+
+    x = at.vector()
+    x.tag.test_value = np.array([1.0, 2.0], dtype=config.floatX)
+
+    out = assert_op(x, np.array(True))
+
+    if not isinstance(out, (list, tuple)):
+        out = [out]
+
+    out_fg = FunctionGraph([x], out)
+
+    with pytest.warns(UserWarning, match=".*object mode.*"):
+        compare_numba_and_py(out_fg, [get_test_value(i) for i in out_fg.inputs])
+
+
+def test_perform_type_convert():
+    """This tests the use of `Type.filter` in `objmode`.
+
+    The `Op.perform` takes a single input that it returns as-is, but it gets a
+    native scalar and it's supposed to return an `np.ndarray`.
+    """
+
+    x = at.vector()
+    x.tag.test_value = np.array([1.0, 2.0], dtype=config.floatX)
+
+    out = assert_op(x.sum(), np.array(True))
+
+    if not isinstance(out, (list, tuple)):
+        out = [out]
+
+    out_fg = FunctionGraph([x], out)
+
+    with pytest.warns(UserWarning, match=".*object mode.*"):
+        compare_numba_and_py(out_fg, [get_test_value(i) for i in out_fg.inputs])
 
 
 @pytest.mark.parametrize(
