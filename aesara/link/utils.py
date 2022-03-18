@@ -765,7 +765,7 @@ def fgraph_to_python(
         node_output_names = [unique_name(v) for v in node.outputs]
 
         body_assigns.append(
-            f"{', '.join(node_output_names)} = {local_compiled_func_name}({', '.join(node_input_names)})"
+            f"# {node}\n{', '.join(node_output_names)} = {local_compiled_func_name}({', '.join(node_input_names)})"
         )
 
     fgraph_input_names = [unique_name(v) for v in fgraph.inputs]
