@@ -16,7 +16,7 @@ from numba.extending import box
 
 from aesara import config
 from aesara.compile.ops import DeepCopyOp
-from aesara.graph.basic import Apply
+from aesara.graph.basic import Apply, NoParams
 from aesara.graph.fg import FunctionGraph
 from aesara.graph.type import Type
 from aesara.ifelse import IfElse
@@ -330,16 +330,41 @@ def numba_funcify(op, node=None, storage_map=None, **kwargs):
     else:
         ret_sig = get_numba_type(node.outputs[0].type)
 
+    output_types = tuple(out.type for out in node.outputs)
+    params = node.run_params()
+
+    if params is not NoParams:
+        params_val = dict(node.params_type.filter(params))
+
+        def py_perform(inputs):
+            outputs = [[None] for i in range(n_outputs)]
+            op.perform(node, inputs, outputs, params_val)
+            return outputs
+
+    else:
+
+        def py_perform(inputs):
+            outputs = [[None] for i in range(n_outputs)]
+            op.perform(node, inputs, outputs)
+            return outputs
+
+    if n_outputs == 1:
+
+        def py_perform_return(inputs):
+            return output_types[0].filter(py_perform(inputs)[0][0])
+
+    else:
+
+        def py_perform_return(inputs):
+            return tuple(
+                out_type.filter(out[0])
+                for out_type, out in zip(output_types, py_perform(inputs))
+            )
+
     @numba_njit
     def perform(*inputs):
         with numba.objmode(ret=ret_sig):
-            outputs = [[None] for i in range(n_outputs)]
-            op.perform(node, inputs, outputs)
-            outputs = tuple([o[0] for o in outputs])
-            if n_outputs == 1:
-                ret = outputs[0]
-            else:
-                ret = outputs
+            ret = py_perform_return(inputs)
         return ret
 
     return perform
