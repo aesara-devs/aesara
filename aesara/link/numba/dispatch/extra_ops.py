@@ -2,6 +2,7 @@ import warnings
 
 import numba
 import numpy as np
+from numba.misc.special import literal_unroll
 from numpy.core.multiarray import normalize_axis_index
 
 from aesara import config
@@ -367,10 +368,12 @@ def numba_funcify_BroadcastTo(op, node, **kwargs):
     def broadcast_to(x, *shape):
         scalars_shape = create_zeros_tuple()
 
-        for i in range(len(shape)):
+        i = 0
+        for s_i in literal_unroll(shape):
             scalars_shape = numba_basic.tuple_setitem(
-                scalars_shape, i, numba_basic.to_scalar(shape[i])
+                scalars_shape, i, numba_basic.to_scalar(s_i)
             )
+            i += 1
 
         return np.broadcast_to(x, scalars_shape)
 
