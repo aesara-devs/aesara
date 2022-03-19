@@ -3221,6 +3221,62 @@ def test_CategoricalRV(dist_args, size, cm):
         )
 
 
+@pytest.mark.parametrize(
+    "a, size, cm",
+    [
+        pytest.param(
+            set_test_value(
+                at.dvector(),
+                np.array([100000, 1, 1], dtype=np.float64),
+            ),
+            None,
+            contextlib.suppress(),
+        ),
+        pytest.param(
+            set_test_value(
+                at.dmatrix(),
+                np.array(
+                    [[100000, 1, 1], [1, 100000, 1], [1, 1, 100000]],
+                    dtype=np.float64,
+                ),
+            ),
+            (10, 3),
+            contextlib.suppress(),
+        ),
+        pytest.param(
+            set_test_value(
+                at.dmatrix(),
+                np.array(
+                    [[100000, 1, 1], [1, 100000, 1], [1, 1, 100000]],
+                    dtype=np.float64,
+                ),
+            ),
+            (10, 4),
+            pytest.raises(ValueError, match="Parameters shape.*"),
+        ),
+    ],
+)
+def test_DirichletRV(a, size, cm):
+    rng = shared(np.random.RandomState(29402))
+    g = aer.dirichlet(a, size=size, rng=rng)
+    g_fn = function([a], g, mode=numba_mode)
+
+    with cm:
+        a_val = a.tag.test_value
+
+        # For coverage purposes only...
+        eval_python_only([a], FunctionGraph(outputs=[g], clone=False), [a_val])
+
+        all_samples = []
+        for i in range(1000):
+            samples = g_fn(a_val)
+            all_samples.append(samples)
+
+        exp_res = a_val / a_val.sum(-1)
+        res = np.mean(all_samples, axis=tuple(range(0, a_val.ndim - 1)))
+        assert np.allclose(res, exp_res, atol=1e-4)
+
+
 def test_RandomState_updates():
     rng = shared(np.random.RandomState(1))
     rng_new = shared(np.random.RandomState(2))
