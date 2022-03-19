@@ -12,6 +12,7 @@ from collections.abc import Sequence
 from functools import partial
 from numbers import Number
 from typing import Dict, Iterable, Optional, Tuple, Union
+from typing import cast as type_cast
 
 import numpy as np
 from numpy.core.multiarray import normalize_axis_index
@@ -573,6 +574,9 @@ tensor_from_scalar = TensorFromScalar()
 class ScalarFromTensor(COp):
 
     __props__ = ()
+
+    def __call__(self, *args, **kwargs) -> ScalarVariable:
+        return type_cast(ScalarVariable, super().__call__(*args, **kwargs))
 
     def make_node(self, t):
         if not isinstance(t.type, TensorType) or t.type.ndim > 0:
