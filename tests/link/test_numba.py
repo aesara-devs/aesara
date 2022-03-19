@@ -1924,6 +1924,10 @@ def test_Searchsorted(a, v, side, sorter, exc):
             set_test_value(at.vector(), rng.random(size=(2,)).astype(config.floatX)),
             at.as_tensor([set_test_value(at.lscalar(), np.array(v)) for v in [3, 2]]),
         ),
+        (
+            set_test_value(at.vector(), rng.random(size=(2,)).astype(config.floatX)),
+            [at.as_tensor(3, dtype=np.int8), at.as_tensor(2, dtype=np.int64)],
+        ),
     ],
 )
 def test_BroadcastTo(x, shape):
