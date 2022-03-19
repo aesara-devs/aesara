@@ -319,7 +319,7 @@ def numba_funcify_CategoricalRV(op, node, **kwargs):
     size_len = int(get_vector_length(node.inputs[1]))
 
     @numba_basic.numba_njit
-    def sampler(rng, size, dtype, p):
+    def categorical_rv(rng, size, dtype, p):
 
         size_tpl = numba_ndarray.to_fixed_tuple(size, size_len)
         ind_shape = p.shape[:-1]
@@ -342,4 +342,4 @@ def numba_funcify_CategoricalRV(op, node, **kwargs):
 
         return (rng, res)
 
-    return sampler
+    return categorical_rv
