@@ -3165,10 +3165,9 @@ def test_unaligned_RandomVariable(rv_op, dist_args, base_size, cdf_name, params_
 
 
 @pytest.mark.parametrize(
-    "rv_op, dist_args, size, cm",
+    "dist_args, size, cm",
     [
         pytest.param(
-            aer.categorical,
             [
                 set_test_value(
                     at.dvector(),
@@ -3179,7 +3178,6 @@ def test_unaligned_RandomVariable(rv_op, dist_args, base_size, cdf_name, params_
             contextlib.suppress(),
         ),
         pytest.param(
-            aer.categorical,
             [
                 set_test_value(
                     at.dmatrix(),
@@ -3193,7 +3191,6 @@ def test_unaligned_RandomVariable(rv_op, dist_args, base_size, cdf_name, params_
             contextlib.suppress(),
         ),
         pytest.param(
-            aer.categorical,
             [
                 set_test_value(
                     at.dmatrix(),
@@ -3208,9 +3205,9 @@ def test_unaligned_RandomVariable(rv_op, dist_args, base_size, cdf_name, params_
         ),
     ],
 )
-def test_CategoricalRV(rv_op, dist_args, size, cm):
+def test_CategoricalRV(dist_args, size, cm):
     rng = shared(np.random.RandomState(29402))
-    g = rv_op(*dist_args, size=size, rng=rng)
+    g = aer.categorical(*dist_args, size=size, rng=rng)
     g_fg = FunctionGraph(outputs=[g])
 
     with cm:
