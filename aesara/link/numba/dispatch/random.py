@@ -343,3 +343,45 @@ def numba_funcify_CategoricalRV(op, node, **kwargs):
         return (rng, res)
 
     return categorical_rv
+
+
+@numba_funcify.register(aer.DirichletRV)
+def numba_funcify_DirichletRV(op, node, **kwargs):
+
+    out_dtype = node.outputs[1].type.numpy_dtype
+    alphas_ndim = node.inputs[3].type.ndim
+    neg_ind_shape_len = -alphas_ndim + 1
+    size_len = int(get_vector_length(node.inputs[1]))
+
+    if alphas_ndim > 1:
+
+        @numba_basic.numba_njit
+        def dirichlet_rv(rng, size, dtype, alphas):
+
+            if size_len > 0:
+                size_tpl = numba_ndarray.to_fixed_tuple(size, size_len)
+                if (
+                    0 < alphas.ndim - 1 <= len(size_tpl)
+                    and size_tpl[neg_ind_shape_len:] != alphas.shape[:-1]
+                ):
+                    raise ValueError("Parameters shape and size do not match.")
+                samples_shape = size_tpl + alphas.shape[-1:]
+            else:
+                samples_shape = alphas.shape
+
+            res = np.empty(samples_shape, dtype=out_dtype)
+            alphas_bcast = np.broadcast_to(alphas, samples_shape)
+
+            for index in np.ndindex(*samples_shape[:-1]):
+                res[index] = np.random.dirichlet(alphas_bcast[index])
+
+            return (rng, res)
+
+    else:
+
+        @numba_basic.numba_njit
+        def dirichlet_rv(rng, size, dtype, alphas):
+            size = numba_ndarray.to_fixed_tuple(size, size_len)
+            return (rng, np.random.dirichlet(alphas, size))
+
+    return dirichlet_rv
