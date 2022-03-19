@@ -624,7 +624,7 @@ def get_constant_idx(
     Example usage where `v` and `a` are appropriately typed Aesara variables :
     >>> b = a[v, 1:3]
     >>> b.owner.op.idx_list
-    (Scalar(int64), slice(Scalar(int64), Scalar(int64), None))
+    (ScalarType(int64), slice(ScalarType(int64), ScalarType(int64), None))
     >>> get_constant_idx(b.owner.op.idx_list, b.owner.inputs, allow_partial=True)
     [v, slice(1, 3, None)]
     >>> get_constant_idx(b.owner.op.idx_list, b.owner.inputs)
@@ -656,7 +656,7 @@ def get_constant_idx(
 
 
 def as_nontensor_scalar(a: Variable) -> aes.ScalarVariable:
-    """Convert a value to a `Scalar` variable."""
+    """Convert a value to a `ScalarType` variable."""
     # Since aes.as_scalar does not know about tensor types (it would
     # create a circular import) , this method converts either a
     # TensorVariable or a ScalarVariable to a scalar.
@@ -1196,7 +1196,7 @@ class SubtensorPrinter(Printer):
         sidxs = []
         getattr(pstate, "precedence", None)
         for entry in idxs:
-            if isinstance(entry, aes.Scalar):
+            if isinstance(entry, aes.ScalarType):
                 with set_precedence(pstate):
                     sidxs.append(pstate.pprinter.process(inputs.pop()))
             elif isinstance(entry, slice):

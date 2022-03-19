@@ -537,8 +537,8 @@ class TensorFromScalar(Op):
     __props__ = ()
 
     def make_node(self, s):
-        if not isinstance(s.type, aes.Scalar):
-            raise TypeError("Input must be a `Scalar` `Type`")
+        if not isinstance(s.type, aes.ScalarType):
+            raise TypeError("Input must be a `ScalarType` `Type`")
 
         return Apply(self, [s], [tensor(dtype=s.type.dtype, shape=())])
 

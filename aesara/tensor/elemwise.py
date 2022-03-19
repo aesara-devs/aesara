@@ -16,7 +16,7 @@ from aesara.misc.frozendict import frozendict
 from aesara.misc.safe_asarray import _asarray
 from aesara.printing import FunctionPrinter, Printer, pprint
 from aesara.scalar import get_scalar_type
-from aesara.scalar.basic import Scalar
+from aesara.scalar.basic import ScalarType
 from aesara.scalar.basic import bool as scalar_bool
 from aesara.scalar.basic import identity as scalar_identity
 from aesara.scalar.basic import transfer_type, upcast
@@ -815,7 +815,7 @@ second dimension
                     # there must be some input that is not broadcastable in
                     # dimension 'dim'
                     for ishp, i in zip(i_shapes, node.inputs):
-                        if isinstance(i.type, Scalar):
+                        if isinstance(i.type, ScalarType):
                             continue  # we skip scalar
                         if not i.type.broadcastable[dim]:
                             # input i is not broadcastable in position dim

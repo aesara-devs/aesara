@@ -161,7 +161,7 @@ from aesara.ifelse import IfElse
 from aesara.link.c.basic import CLinker
 from aesara.misc.ordered_set import OrderedSet
 from aesara.raise_op import Assert
-from aesara.scalar.basic import Cast, Pow, Scalar, log, neg, true_div
+from aesara.scalar.basic import Cast, Pow, ScalarType, log, neg, true_div
 from aesara.scalar.math import Erfcinv, Erfinv
 from aesara.scan.op import Scan
 from aesara.scan.opt import ScanInplaceOptimizer
@@ -811,7 +811,7 @@ def local_gpua_elemwise(fgraph, op, context_name, inputs, outputs):
         new_inputs = []
         for inp in inputs:
             if inp.dtype != out_dtype:
-                gpu_cast_op = GpuElemwise(Cast(Scalar(out_dtype)))
+                gpu_cast_op = GpuElemwise(Cast(ScalarType(out_dtype)))
                 new_inputs.append(gpu_cast_op(as_gpuarray_variable(inp, context_name)))
             else:
                 new_inputs.append(as_gpuarray_variable(inp, context_name))
@@ -1387,7 +1387,7 @@ def local_gpua_gemmbatch(fgraph, op, context_name, inputs, outputs):
     # In case of mismatched dtypes, we also have to upcast
     out_dtype = outputs[0].dtype
     if a.dtype != out_dtype or b.dtype != out_dtype:
-        gpu_cast_op = GpuElemwise(Cast(Scalar(out_dtype)))
+        gpu_cast_op = GpuElemwise(Cast(ScalarType(out_dtype)))
         if a.dtype != out_dtype:
             a = gpu_cast_op(a)
         if b.dtype != out_dtype:

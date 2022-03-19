@@ -222,7 +222,7 @@ along with pointers to the relevant documentation.
         type). Variables of this Aesara type are represented in C as objects
         of class `PyListObject <https://docs.python.org/2/c-api/list.html>`_.
 
-*       :ref:`Scalar <libdoc_scalar>` : Aesara type that represents a C
+*       :ref:`ScalarType <libdoc_scalar>` : Aesara type that represents a C
         primitive type. The C type associated with this Aesara type is the
         represented C primitive itself.
 

@@ -562,8 +562,8 @@ def local_subtensor_remove_broadcastable_index(fgraph, node):
     remove_dim = []
     node_inputs_idx = 1
     for dim, elem in enumerate(idx):
-        if isinstance(elem, (aes.Scalar)):
-            # The idx is a Scalar, ie a Type. This means the actual index
+        if isinstance(elem, (aes.ScalarType)):
+            # The idx is a ScalarType, ie a Type. This means the actual index
             # is contained in node.inputs[1]
             dim_index = node.inputs[node_inputs_idx]
             if isinstance(dim_index, aes.ScalarConstant):
@@ -741,7 +741,7 @@ def local_subtensor_make_vector(fgraph, node):
     if isinstance(node.op, Subtensor):
         (idx,) = node.op.idx_list
 
-        if isinstance(idx, (aes.Scalar, TensorType)):
+        if isinstance(idx, (aes.ScalarType, TensorType)):
             old_idx, idx = idx, node.inputs[1]
             assert idx.type.is_super(old_idx)
     elif isinstance(node.op, AdvancedSubtensor1):

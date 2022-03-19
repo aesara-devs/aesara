@@ -649,9 +649,9 @@ class CLinker(Linker):
             for r in self.variables
             if isinstance(r, Constant) and r not in self.inputs
         )
-        # C type constants (aesara.scalar.Scalar). They don't request an object
+        # C type constants (aesara.scalar.ScalarType). They don't request an object
         self.consts = []
-        # Move c type from orphans (aesara.scalar.Scalar) to self.consts
+        # Move c type from orphans (aesara.scalar.ScalarType) to self.consts
         for variable in self.orphans:
             if (
                 isinstance(variable, Constant)

@@ -1,13 +1,3 @@
-"""
-These routines are not well-tested. They are also old.
-OB says that it is not important to test them well because Scalar Ops
-are rarely used by themselves, instead they are the basis for Tensor Ops
-(which should be checked thoroughly). Moreover, Scalar will be changed
-to use numpy's scalar routines.
-If you do want to rewrite these tests, bear in mind:
-  * You don't need to use Composite.
-  * FunctionGraph and DualLinker are old, use aesara.compile.function.function instead.
-"""
 import numpy as np
 import pytest
 
@@ -20,7 +10,7 @@ from aesara.scalar.basic import (
     ComplexError,
     Composite,
     InRange,
-    Scalar,
+    ScalarType,
     add,
     and_,
     arccos,
@@ -357,8 +347,8 @@ class TestUpgradeToFloat:
 
         xi = int8("xi")
         yi = int8("yi")
-        xf = Scalar(aesara.config.floatX)("xf")
-        yf = Scalar(aesara.config.floatX)("yf")
+        xf = ScalarType(aesara.config.floatX)("xf")
+        yf = ScalarType(aesara.config.floatX)("yf")
 
         ei = true_div(xi, yi)
         fi = aesara.function([xi, yi], ei)

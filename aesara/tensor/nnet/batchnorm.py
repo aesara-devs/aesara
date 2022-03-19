@@ -21,11 +21,11 @@ class BNComposite(Composite):
     @config.change_flags(compute_test_value="off")
     def __init__(self, dtype):
         self.dtype = dtype
-        x = aesara.scalar.Scalar(dtype=dtype).make_variable()
-        mean = aesara.scalar.Scalar(dtype=dtype).make_variable()
-        std = aesara.scalar.Scalar(dtype=dtype).make_variable()
-        gamma = aesara.scalar.Scalar(dtype=dtype).make_variable()
-        beta = aesara.scalar.Scalar(dtype=dtype).make_variable()
+        x = aesara.scalar.ScalarType(dtype=dtype).make_variable()
+        mean = aesara.scalar.ScalarType(dtype=dtype).make_variable()
+        std = aesara.scalar.ScalarType(dtype=dtype).make_variable()
+        gamma = aesara.scalar.ScalarType(dtype=dtype).make_variable()
+        beta = aesara.scalar.ScalarType(dtype=dtype).make_variable()
         o = add(mul(true_div(sub(x, mean), std), gamma), beta)
         inputs = [x, mean, std, gamma, beta]
         outputs = [o]

@@ -2269,7 +2269,7 @@ class TestArithmeticCast:
             return np.array([1], dtype=dtype)
 
         def Aesara_i_scalar(dtype):
-            return aes.Scalar(str(dtype))()
+            return aes.ScalarType(str(dtype))()
 
         def numpy_i_scalar(dtype):
             return numpy_scalar(dtype)

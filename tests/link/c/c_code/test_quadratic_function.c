@@ -28,7 +28,7 @@ int APPLY_SPECIFIC(quadratic_function)(PyArrayObject* tensor, DTYPE_INPUT_0 a, D
 
 int APPLY_SPECIFIC(compute_quadratic)(PyArrayObject* X, PyArrayObject** Y, PARAMS_TYPE* coeff) {
     DTYPE_INPUT_0 a = (DTYPE_INPUT_0) (*(DTYPE_PARAM_a*) PyArray_GETPTR1(coeff->a, 0)); // 0-D TensorType.
-    DTYPE_INPUT_0 b =                                                    coeff->b;      // Scalar.
+    DTYPE_INPUT_0 b =                                                    coeff->b;      // ScalarType.
     DTYPE_INPUT_0 c =                   (DTYPE_INPUT_0) PyFloat_AsDouble(coeff->c);     // Generic.
     Py_XDECREF(*Y);
     *Y = (PyArrayObject*)PyArray_EMPTY(PyArray_NDIM(X), PyArray_DIMS(X), TYPENUM_INPUT_0, PyArray_IS_F_CONTIGUOUS(X));

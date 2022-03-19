@@ -62,7 +62,7 @@ def safe_new(
             return nwx
         else:
             return x
-    # Note, `as_tensor_variable` will convert the `Scalar` into a
+    # Note, `as_tensor_variable` will convert the `ScalarType` into a
     # `TensorScalar` that will require a `ScalarFromTensor` `Op`, making the
     # push-out optimization fail
     elif isinstance(x, aes.ScalarVariable):

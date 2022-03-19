@@ -3,7 +3,7 @@ import numpy as np
 from aesara.configdefaults import config
 from aesara.scalar.basic import (
     IntDiv,
-    Scalar,
+    ScalarType,
     TrueDiv,
     complex64,
     float32,
@@ -14,7 +14,7 @@ from aesara.scalar.basic import (
 
 
 def test_numpy_dtype():
-    test_type = Scalar(np.int32)
+    test_type = ScalarType(np.int32)
     assert test_type.dtype == "int32"
 
 
@@ -37,9 +37,9 @@ def test_div_types():
 
 
 def test_filter_float_subclass():
-    """Make sure `Scalar.filter` can handle `float` subclasses."""
+    """Make sure `ScalarType.filter` can handle `float` subclasses."""
     with config.change_flags(floatX="float64"):
-        test_type = Scalar("float64")
+        test_type = ScalarType("float64")
 
         nan = np.array([np.nan], dtype="float64")[0]
         assert isinstance(nan, float)
@@ -49,7 +49,7 @@ def test_filter_float_subclass():
 
     with config.change_flags(floatX="float32"):
         # Try again, except this time `nan` isn't a `float`
-        test_type = Scalar("float32")
+        test_type = ScalarType("float32")
 
         nan = np.array([np.nan], dtype="float32")[0]
         assert isinstance(nan, np.floating)
@@ -63,6 +63,6 @@ def test_filter_float_subclass():
 
 
 def test_clone():
-    st = Scalar("int64")
+    st = ScalarType("int64")
     assert st == st.clone()
     assert st.clone("float64").dtype == "float64"

@@ -12,7 +12,7 @@ def as_tensor_variable(
 ) -> "TensorVariable":
     """Convert `x` into an equivalent `TensorVariable`.
 
-    This function can be used to turn ndarrays, numbers, `Scalar` instances,
+    This function can be used to turn ndarrays, numbers, `ScalarType` instances,
     `Apply` instances and `TensorVariable` instances into valid input list
     elements.
 

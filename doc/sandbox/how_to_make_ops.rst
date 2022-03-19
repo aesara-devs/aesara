@@ -64,17 +64,17 @@ Example:
 	class Add(Op):
 	    #...
 	    def make_node(self, x, y):
-	        # note 1: constant, int64 and Scalar are defined in aesara.scalar
+	        # note 1: constant, int64 and ScalarType are defined in aesara.scalar
 	        # note 2: constant(x) is equivalent to Constant(type = int64, data = x)
-	        # note 3: the call int64() is equivalent to Variable(type = int64) or Variable(type = Scalar(dtype = 'int64'))
+	        # note 3: the call int64() is equivalent to Variable(type = int64) or Variable(type = ScalarType(dtype = 'int64'))
 	        if isinstance(x, int):
 	            x = constant(x)
 	        elif not isinstance(x, Variable) or not x.type == int64:
-	            raise TypeError("expected an int64 Scalar")
+	            raise TypeError("expected an int64 ScalarType")
 	        if isinstance(y, int):
 	            y = constant(y)
 	        elif not isinstance(y, Variable) or not x.type == int64:
-	            raise TypeError("expected an int64 Scalar")
+	            raise TypeError("expected an int64 ScalarType")
 	        inputs = [x, y]
 	        outputs = [int64()]
 	        node = Apply(op = self, inputs = inputs, outputs = outputs)
