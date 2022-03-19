@@ -202,13 +202,14 @@ class Erfinv(UnaryScalarOp):
         )
         return (gz * cst * exp(erfinv(x) ** 2),)
 
-    # TODO: erfinv() is not provided by the C standard library
-    # def c_code(self, node, name, inp, out, sub):
-    #    x, = inp
-    #    z, = out
-    #    if node.inputs[0].type in complex_types:
-    #        raise NotImplementedError('type not supported', type)
-    #    return "%(z)s = erfinv(%(x)s);" % locals()
+    def c_code(self, node, name, inp, out, sub):
+        # TODO: erfinv() is not provided by the C standard library
+        # x, = inp
+        # z, = out
+        # if node.inputs[0].type in complex_types:
+        #     raise NotImplementedError('type not supported', type)
+        # return "%(z)s = erfinv(%(x)s);" % locals()
+        raise NotImplementedError()
 
 
 erfinv = Erfinv(upgrade_to_float_no_complex, name="erfinv")
@@ -236,13 +237,14 @@ class Erfcinv(UnaryScalarOp):
         )
         return (-gz * cst * exp(erfcinv(x) ** 2),)
 
-    # TODO: erfcinv() is not provided by the C standard library
-    # def c_code(self, node, name, inp, out, sub):
-    #    x, = inp
-    #    z, = out
-    #    if node.inputs[0].type in complex_types:
-    #        raise NotImplementedError('type not supported', type)
-    #    return "%(z)s = erfcinv(%(x)s);" % locals()
+    def c_code(self, node, name, inp, out, sub):
+        # TODO: erfcinv() is not provided by the C standard library
+        # x, = inp
+        # z, = out
+        # if node.inputs[0].type in complex_types:
+        #     raise NotImplementedError('type not supported', type)
+        # return "%(z)s = erfcinv(%(x)s);" % locals()
+        raise NotImplementedError()
 
 
 erfcinv = Erfcinv(upgrade_to_float_no_complex, name="erfcinv")
@@ -712,6 +714,9 @@ class GammaIncDer(BinaryScalarOp):
         )
         return np.nan
 
+    def c_code(self, *args, **kwargs):
+        raise NotImplementedError()
+
 
 gammainc_der = GammaIncDer(upgrade_to_float, name="gammainc_der")
 
@@ -791,6 +796,9 @@ class GammaIncCDer(BinaryScalarOp):
 
     def impl(self, k, x):
         return self.st_impl(k, x)
+
+    def c_code(self, *args, **kwargs):
+        raise NotImplementedError()
 
 
 gammaincc_der = GammaIncCDer(upgrade_to_float, name="gammaincc_der")
@@ -900,6 +908,9 @@ class Jv(BinaryScalarOp):
             gz * (jv(v - 1, x) - jv(v + 1, x)) / 2.0,
         ]
 
+    def c_code(self, *args, **kwargs):
+        raise NotImplementedError()
+
 
 jv = Jv(upgrade_to_float, name="jv")
 
@@ -988,6 +999,9 @@ class Iv(BinaryScalarOp):
             gz * (iv(v - 1, x) + iv(v + 1, x)) / 2.0,
         ]
 
+    def c_code(self, *args, **kwargs):
+        raise NotImplementedError()
+
 
 iv = Iv(upgrade_to_float, name="iv")
 
@@ -1011,6 +1025,9 @@ class I1(UnaryScalarOp):
         (gz,) = grads
         return [gz * (i0(x) + iv(2, x)) / 2.0]
 
+    def c_code(self, *args, **kwargs):
+        raise NotImplementedError()
+
 
 i1 = I1(upgrade_to_float, name="i1")
 
@@ -1033,6 +1050,9 @@ class I0(UnaryScalarOp):
         (x,) = inp
         (gz,) = grads
         return [gz * i1(x)]
+
+    def c_code(self, *args, **kwargs):
+        raise NotImplementedError()
 
 
 i0 = I0(upgrade_to_float, name="i0")
@@ -1251,6 +1271,9 @@ class BetaInc(ScalarOp):
             ),
         ]
 
+    def c_code(self, *args, **kwargs):
+        raise NotImplementedError()
+
 
 betainc = BetaInc(upgrade_to_float_no_complex, name="betainc")
 
@@ -1435,6 +1458,9 @@ class BetaIncDer(ScalarOp):
             RuntimeWarning,
         )
         return np.nan
+
+    def c_code(self, *args, **kwargs):
+        raise NotImplementedError()
 
 
 betainc_der = BetaIncDer(upgrade_to_float_no_complex, name="betainc_der")
