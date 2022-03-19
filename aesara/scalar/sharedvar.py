@@ -19,11 +19,7 @@ way (as scan does) to create a shared variable of this kind.
 import numpy as np
 
 from aesara.compile import SharedVariable
-
-from .basic import Scalar, _scalar_py_operators
-
-
-__docformat__ = "restructuredtext en"
+from aesara.scalar.basic import ScalarType, _scalar_py_operators
 
 
 class ScalarSharedVariable(_scalar_py_operators, SharedVariable):
@@ -54,7 +50,7 @@ def shared(value, name=None, strict=False, allow_downcast=None):
 
     dtype = str(dtype)
     value = getattr(np, dtype)(value)
-    scalar_type = Scalar(dtype=dtype)
+    scalar_type = ScalarType(dtype=dtype)
     rval = ScalarSharedVariable(
         type=scalar_type,
         value=value,

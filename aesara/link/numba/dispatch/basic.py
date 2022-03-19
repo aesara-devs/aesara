@@ -25,7 +25,7 @@ from aesara.link.utils import (
     fgraph_to_python,
     unique_name_generator,
 )
-from aesara.scalar.basic import Scalar
+from aesara.scalar.basic import ScalarType
 from aesara.scalar.math import Softplus
 from aesara.tensor.blas import BatchedDot
 from aesara.tensor.math import Dot
@@ -86,7 +86,7 @@ def get_numba_type(
         ):
             return numba_dtype
         return numba.types.Array(numba_dtype, aesara_type.ndim, layout)
-    elif isinstance(aesara_type, Scalar):
+    elif isinstance(aesara_type, ScalarType):
         dtype = np.dtype(aesara_type.dtype)
         numba_dtype = numba.from_dtype(dtype)
         return numba_dtype

@@ -7,7 +7,7 @@ used to create a Params object that is compatible with the ParamsType defined.
 
 The Params object will be available in both Python code (as a standard Python object) and C code
 (as a specific struct with parameters as struct fields). To be fully-available in C code, Aesara
-types wrapped into a ParamsType must provide a C interface (e.g. TensorType, Scalar, GpuArrayType,
+types wrapped into a ParamsType must provide a C interface (e.g. TensorType, ScalarType, GpuArrayType,
 or your own type. See :ref:`extending_op_params` for more details).
 
 Example of usage
@@ -23,13 +23,13 @@ Importation:
     # If you want to use a tensor and a scalar as parameters,
     # you should import required Aesara types.
     from aesara.tensor.type import TensorType
-    from aesara.scalar import Scalar
+    from aesara.scalar import ScalarType
 
 In your Op sub-class:
 
 .. code-block:: python
 
-    params_type = ParamsType(attr1=TensorType('int32', (False, False)), attr2=Scalar('float64'))
+    params_type = ParamsType(attr1=TensorType('int32', (False, False)), attr2=ScalarType('float64'))
 
 If your op contains attributes ``attr1`` **and** ``attr2``, the default ``op.get_params()``
 implementation will automatically try to look for it and generate an appropriate Params object.
@@ -236,11 +236,11 @@ class Params(dict):
     .. code-block:: python
 
         from aesara.link.c.params_type import ParamsType, Params
-        from aesara.scalar import Scalar
+        from aesara.scalar import ScalarType
         # You must create a ParamsType first:
-        params_type = ParamsType(attr1=Scalar('int32'),
-                                 key2=Scalar('float32'),
-                                 field3=Scalar('int64'))
+        params_type = ParamsType(attr1=ScalarType('int32'),
+                                 key2=ScalarType('float32'),
+                                 field3=ScalarType('int64'))
         # Then you can create a Params object with
         # the params type defined above and values for attributes.
         params = Params(params_type, attr1=1, key2=2.0, field3=3)
@@ -498,9 +498,9 @@ class ParamsType(CType):
 
             from aesara.graph.params_type import ParamsType
             from aesara.link.c.type import EnumType, EnumList
-            from aesara.scalar import Scalar
+            from aesara.scalar import ScalarType
 
-            wrapper = ParamsType(scalar=Scalar('int32'),
+            wrapper = ParamsType(scalar=ScalarType('int32'),
                                  letters=EnumType(A=1, B=2, C=3),
                                  digits=EnumList('ZERO', 'ONE', 'TWO'))
             print(wrapper.get_enum('C'))  # 3
@@ -527,9 +527,9 @@ class ParamsType(CType):
 
             from aesara.graph.params_type import ParamsType
             from aesara.link.c.type import EnumType, EnumList
-            from aesara.scalar import Scalar
+            from aesara.scalar import ScalarType
 
-            wrapper = ParamsType(scalar=Scalar('int32'),
+            wrapper = ParamsType(scalar=ScalarType('int32'),
                                  letters=EnumType(A=(1, 'alpha'), B=(2, 'beta'), C=3),
                                  digits=EnumList(('ZERO', 'nothing'), ('ONE', 'unit'), ('TWO', 'couple')))
             print(wrapper.get_enum('C'))  # 3
@@ -574,14 +574,14 @@ class ParamsType(CType):
             import numpy
             from aesara.graph.params_type import ParamsType
             from aesara.tensor.type import dmatrix
-            from aesara.scalar import Scalar
+            from aesara.scalar import ScalarType
 
             class MyObject:
                 def __init__(self):
                     self.a = 10
                     self.b = numpy.asarray([[1, 2, 3], [4, 5, 6]])
 
-            params_type = ParamsType(a=Scalar('int32'), b=dmatrix, c=Scalar('bool'))
+            params_type = ParamsType(a=ScalarType('int32'), b=dmatrix, c=ScalarType('bool'))
 
             o = MyObject()
             value_for_c = False

@@ -8,7 +8,7 @@ from aesara.graph.basic import Apply
 from aesara.graph.op import _NoPythonOp
 from aesara.graph.utils import MethodNotDefined
 from aesara.link.c.interface import HideC
-from aesara.scalar import Composite, Scalar
+from aesara.scalar import Composite, ScalarType
 from aesara.scalar.basic import complex_types, upgrade_to_float_no_complex
 from aesara.scalar.math import Erfcinv, Erfinv
 from aesara.tensor.elemwise import CAReduceDtype, DimShuffle, Elemwise
@@ -1083,7 +1083,7 @@ class GpuCAReduceCuda(GpuKernelBase, HideC, CAReduceDtype, _NoPythonOp):
             if self.pre_scalar_op:  # TODO: multiple dtypes
                 # dtype = node.inputs[0].dtype
 
-                dummy_var = aes.Scalar(dtype=dtype)()
+                dummy_var = aes.ScalarType(dtype=dtype)()
 
                 dummy_node = self.pre_scalar_op.make_node(dummy_var)
 
@@ -1128,8 +1128,8 @@ class GpuCAReduceCuda(GpuKernelBase, HideC, CAReduceDtype, _NoPythonOp):
         in_dtype = x.dtype
         out_dtype = node.outputs[0].dtype
 
-        dummy_left = Scalar(dtype=out_dtype)()
-        dummy_right = Scalar(dtype=in_dtype)()
+        dummy_left = ScalarType(dtype=out_dtype)()
+        dummy_right = ScalarType(dtype=in_dtype)()
 
         dummy_node = self.scalar_op.make_node(dummy_left, dummy_right)
 
@@ -1955,12 +1955,12 @@ class GpuCAReduceCuda(GpuKernelBase, HideC, CAReduceDtype, _NoPythonOp):
         # now we insert versions for the ops on which we depend...
         scalar_node = Apply(
             self.scalar_op,
-            [Scalar(dtype=input.type.dtype)() for input in node.inputs],
-            [Scalar(dtype=output.type.dtype)() for output in node.outputs],
+            [ScalarType(dtype=input.type.dtype)() for input in node.inputs],
+            [ScalarType(dtype=output.type.dtype)() for output in node.outputs],
         )
         version.extend(self.scalar_op.c_code_cache_version_apply(scalar_node))
         for i in node.inputs + node.outputs:
-            version.extend(Scalar(dtype=i.type.dtype).c_code_cache_version())
+            version.extend(ScalarType(dtype=i.type.dtype).c_code_cache_version())
         version.extend(self.kernel_version(node))
         if all(version):
             return tuple(version)

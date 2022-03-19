@@ -102,7 +102,7 @@ def upcast(dtype, *dtypes):
 
 def as_common_dtype(*vars):
     """
-    For for aesara.scalar.Scalar and TensorVariable.
+    For for aesara.scalar.ScalarType and TensorVariable.
     """
     dtype = upcast(*[v.dtype for v in vars])
     return (v.astype(dtype) for v in vars)
@@ -275,7 +275,7 @@ def convert(x, dtype=None):
     return x_
 
 
-class Scalar(CType, HasDataType):
+class ScalarType(CType, HasDataType):
 
     """
     Internal class, should not be used by clients.
@@ -356,7 +356,7 @@ class Scalar(CType, HasDataType):
 
     def c_headers(self, c_compiler=None, **kwargs):
         l = ["<math.h>"]
-        # These includes are needed by Scalar and TensorType,
+        # These includes are needed by ScalarType and TensorType,
         # we declare them here and they will be re-used by TensorType
         l.append("<numpy/arrayobject.h>")
         l.append("<numpy/arrayscalars.h>")
@@ -428,7 +428,7 @@ class Scalar(CType, HasDataType):
         return str(self.dtype)
 
     def __repr__(self):
-        return f"Scalar({self.dtype})"
+        return f"ScalarType({self.dtype})"
 
     def c_literal(self, data):
         if "complex" in self.dtype:
@@ -677,15 +677,19 @@ class Scalar(CType, HasDataType):
         return shape_info
 
 
-def get_scalar_type(dtype) -> Scalar:
+# Deprecated alias for backward compatibility
+Scalar = ScalarType
+
+
+def get_scalar_type(dtype) -> ScalarType:
     """
-    Return a Scalar(dtype) object.
+    Return a ScalarType(dtype) object.
 
     This caches objects to save allocation and run time.
 
     """
     if dtype not in get_scalar_type.cache:
-        get_scalar_type.cache[dtype] = Scalar(dtype=dtype)
+        get_scalar_type.cache[dtype] = ScalarType(dtype=dtype)
     return get_scalar_type.cache[dtype]
 
 
@@ -694,7 +698,7 @@ get_scalar_type.cache = {}
 
 # Register C code for ViewOp on Scalars.
 aesara.compile.register_view_op_c_code(
-    Scalar,
+    ScalarType,
     """
     %(oname)s = %(iname)s;
     """,
@@ -702,22 +706,22 @@ aesara.compile.register_view_op_c_code(
 )
 
 
-bool: Scalar = get_scalar_type("bool")
-int8: Scalar = get_scalar_type("int8")
-int16: Scalar = get_scalar_type("int16")
-int32: Scalar = get_scalar_type("int32")
-int64: Scalar = get_scalar_type("int64")
-uint8: Scalar = get_scalar_type("uint8")
-uint16: Scalar = get_scalar_type("uint16")
-uint32: Scalar = get_scalar_type("uint32")
-uint64: Scalar = get_scalar_type("uint64")
-float16: Scalar = get_scalar_type("float16")
-float32: Scalar = get_scalar_type("float32")
-float64: Scalar = get_scalar_type("float64")
-complex64: Scalar = get_scalar_type("complex64")
-complex128: Scalar = get_scalar_type("complex128")
+bool: ScalarType = get_scalar_type("bool")
+int8: ScalarType = get_scalar_type("int8")
+int16: ScalarType = get_scalar_type("int16")
+int32: ScalarType = get_scalar_type("int32")
+int64: ScalarType = get_scalar_type("int64")
+uint8: ScalarType = get_scalar_type("uint8")
+uint16: ScalarType = get_scalar_type("uint16")
+uint32: ScalarType = get_scalar_type("uint32")
+uint64: ScalarType = get_scalar_type("uint64")
+float16: ScalarType = get_scalar_type("float16")
+float32: ScalarType = get_scalar_type("float32")
+float64: ScalarType = get_scalar_type("float64")
+complex64: ScalarType = get_scalar_type("complex64")
+complex128: ScalarType = get_scalar_type("complex128")
 
-_ScalarTypes: TypeAlias = Tuple[Scalar, ...]
+_ScalarTypes: TypeAlias = Tuple[ScalarType, ...]
 int_types: _ScalarTypes = (int8, int16, int32, int64)
 uint_types: _ScalarTypes = (uint8, uint16, uint32, uint64)
 float_types: _ScalarTypes = (float16, float32, float64)
@@ -732,7 +736,7 @@ discrete_dtypes = tuple(t.dtype for t in discrete_types)
 
 
 class _scalar_py_operators:
-    # So that we can simplify checking code when we have a mixture of Scalar
+    # So that we can simplify checking code when we have a mixture of ScalarType
     # variables and Tensor variables
     ndim = 0
 
@@ -844,7 +848,7 @@ class ScalarVariable(_scalar_py_operators, Variable):
     pass
 
 
-Scalar.variable_type = ScalarVariable
+ScalarType.variable_type = ScalarVariable
 
 
 class ScalarConstant(ScalarVariable, Constant):
@@ -852,8 +856,8 @@ class ScalarConstant(ScalarVariable, Constant):
         Constant.__init__(self, *args, **kwargs)
 
 
-# Register ScalarConstant as the type of Constant corresponding to Scalar
-Scalar.constant_type = ScalarConstant
+# Register ScalarConstant as the type of Constant corresponding to ScalarType
+ScalarType.constant_type = ScalarConstant
 
 
 def constant(x, name=None, dtype=None) -> ScalarConstant:
@@ -876,16 +880,16 @@ def as_scalar(x, name=None) -> ScalarConstant:
         else:
             x = x.outputs[0]
     if isinstance(x, Variable):
-        if isinstance(x.type, Scalar):
+        if isinstance(x.type, ScalarType):
             return x
         elif isinstance(x.type, TensorType) and x.ndim == 0:
             return scalar_from_tensor(x)
         else:
-            raise TypeError("Variable type field must be a Scalar.", x, x.type)
+            raise TypeError("Variable type field must be a ScalarType.", x, x.type)
     try:
         return constant(x)
     except TypeError:
-        raise TypeError(f"Cannot convert {x} to Scalar", type(x))
+        raise TypeError(f"Cannot convert {x} to ScalarType", type(x))
 
 
 # Easy constructors
@@ -898,7 +902,7 @@ complexs128 = apply_across_args(complex128)
 
 
 def upcast_out(*types):
-    dtype = Scalar.upcast(*types)
+    dtype = ScalarType.upcast(*types)
     return (get_scalar_type(dtype),)
 
 
@@ -932,7 +936,9 @@ def upgrade_to_float(*types):
         uint32: float64,
         uint64: float64,
     }
-    return (get_scalar_type(Scalar.upcast(*[conv.get(type, type) for type in types])),)
+    return (
+        get_scalar_type(ScalarType.upcast(*[conv.get(type, type) for type in types])),
+    )
 
 
 def upgrade_to_float64(*types):
@@ -962,7 +968,7 @@ def same_out_min8(type):
 def upcast_out_no_complex(*types):
     if any(type in complex_types for type in types):
         raise TypeError("complex type are not supported")
-    return (get_scalar_type(dtype=Scalar.upcast(*types)),)
+    return (get_scalar_type(dtype=ScalarType.upcast(*types)),)
 
 
 def same_out_float_only(type):
@@ -2452,7 +2458,7 @@ identity = Identity(same_out, name="identity")
 # CASTING OPERATIONS
 class Cast(UnaryScalarOp):
     def __init__(self, o_type, name=None):
-        if not isinstance(o_type, Scalar):
+        if not isinstance(o_type, ScalarType):
             raise TypeError(o_type)
         super().__init__(specific_out(o_type), name=name)
         self.o_type = o_type
@@ -2539,7 +2545,7 @@ _cast_mapping = {
 
 def cast(x, dtype):
     """
-    Symbolically cast `x` to a Scalar of given `dtype`.
+    Symbolically cast `x` to a ScalarType of given `dtype`.
 
     """
     if dtype == "floatX":
@@ -3926,7 +3932,7 @@ class Complex(BinaryScalarOp):
         if y in complex_types:
             raise TypeError(y)
 
-        up = Scalar.upcast(x, y)
+        up = ScalarType.upcast(x, y)
         if up in ("float64", "int64", "uint64", "int32", "uint32"):
             return [complex128]
         else:

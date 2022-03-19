@@ -258,10 +258,10 @@ def test_unify_Type():
     s = unify(t1, etuple(TensorType, "float64", (1, None)))
     assert s == {}
 
-    from aesara.scalar.basic import Scalar
+    from aesara.scalar.basic import ScalarType
 
-    st1 = Scalar(np.float64)
-    st2 = Scalar(np.float64)
+    st1 = ScalarType(np.float64)
+    st2 = ScalarType(np.float64)
 
     s = unify(st1, st2)
     assert s == {}

@@ -717,7 +717,7 @@ def ensure_dt(val, default, name, dtype):
         val = constant(val)
     if hasattr(val, "ndim") and val.ndim == 0:
         val = as_scalar(val)
-    if not isinstance(val.type, aesara.scalar.Scalar):
+    if not isinstance(val.type, aesara.scalar.ScalarType):
         raise TypeError(f"{name}: expected a scalar value")
     if val.type.dtype != dtype:
         val = val.astype(dtype)

@@ -8,7 +8,7 @@ import aesara.tensor as at
 from aesara.configdefaults import config
 from aesara.graph.basic import Apply
 from aesara.link.c.op import COp
-from aesara.scalar import Scalar, as_scalar
+from aesara.scalar import ScalarType, as_scalar
 from aesara.tensor.type import discrete_dtypes
 
 
@@ -72,7 +72,7 @@ class MultinomialFromUniform(COp):
         if self.odtype == "auto":
             t = f"PyArray_TYPE({pvals})"
         else:
-            t = Scalar(self.odtype).dtype_specs()[1]
+            t = ScalarType(self.odtype).dtype_specs()[1]
             if t.startswith("aesara_complex"):
                 t = t.replace("aesara_complex", "NPY_COMPLEX")
             else:
@@ -264,7 +264,7 @@ class ChoiceFromUniform(MultinomialFromUniform):
         if self.odtype == "auto":
             t = "NPY_INT64"
         else:
-            t = Scalar(self.odtype).dtype_specs()[1]
+            t = ScalarType(self.odtype).dtype_specs()[1]
             if t.startswith("aesara_complex"):
                 t = t.replace("aesara_complex", "NPY_COMPLEX")
             else:

@@ -30,7 +30,6 @@ from aesara.link.c.op import COp
 from aesara.raise_op import Assert
 from aesara.scalar import UnaryScalarOp
 from aesara.tensor import basic as at
-from aesara.tensor import extra_ops, math_opt
 from aesara.tensor.basic import ARange, as_tensor_variable
 from aesara.tensor.basic_opt import (
     register_canonicalize,
@@ -39,6 +38,7 @@ from aesara.tensor.basic_opt import (
 )
 from aesara.tensor.elemwise import DimShuffle, Elemwise
 from aesara.tensor.exceptions import NotScalarConstantError
+from aesara.tensor.extra_ops import Unique
 from aesara.tensor.math import (
     MaxAndArgmax,
     Sum,
@@ -57,6 +57,7 @@ from aesara.tensor.math import (
 )
 from aesara.tensor.math import sum as at_sum
 from aesara.tensor.math import tanh, tensordot, true_div
+from aesara.tensor.math_opt import local_mul_canonizer
 from aesara.tensor.nnet.blocksparse import sparse_block_dot
 from aesara.tensor.shape import Shape, shape_padleft
 from aesara.tensor.subtensor import AdvancedIncSubtensor, AdvancedSubtensor
@@ -1291,7 +1292,7 @@ def softmax_simplifier(numerators, denominators):
     return numerators, denominators
 
 
-math_opt.local_mul_canonizer.add_simplifier(softmax_simplifier, "softmax_simplifier")
+local_mul_canonizer.add_simplifier(softmax_simplifier, "softmax_simplifier")
 
 
 class CrossentropySoftmaxArgmax1HotWithBias(COp):
@@ -2974,7 +2975,7 @@ def confusion_matrix(actual, pred):
     if pred.ndim != 1:
         raise ValueError("pred must be 1-d tensor variable")
 
-    order = extra_ops.Unique(False, False, False)(at.concatenate([actual, pred]))
+    order = Unique(False, False, False)(at.concatenate([actual, pred]))
 
     colA = actual.dimshuffle(0, "x")
     colP = pred.dimshuffle(0, "x")

@@ -3448,7 +3448,7 @@ class TestGetScalarConstantValue:
         assert get_scalar_constant_value(mv[np.int32(0)]) == 1
         assert get_scalar_constant_value(mv[np.int64(1)]) == 2
         assert get_scalar_constant_value(mv[np.uint(2)]) == 3
-        t = aes.Scalar("int64")
+        t = aes.ScalarType("int64")
         with pytest.raises(NotScalarConstantError):
             get_scalar_constant_value(mv[t()])
 

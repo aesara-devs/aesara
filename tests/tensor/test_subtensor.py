@@ -2621,4 +2621,4 @@ def test_index_vars_to_types():
         index_vars_to_types(1)
 
     res = index_vars_to_types(iscalar)
-    assert isinstance(res, scal.Scalar)
+    assert isinstance(res, scal.ScalarType)

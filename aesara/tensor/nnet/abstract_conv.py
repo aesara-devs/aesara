@@ -1811,7 +1811,7 @@ def bilinear_kernel_2D(ratio, normalize=True):
 
     Parameters
     ----------
-    ratio: int or Constant/Scalar Aesara tensor of int* dtype
+    ratio: int or Constant/ScalarType Aesara tensor of int* dtype
         the ratio by which an image will be upsampled by the returned filter
         in the 2D space.
 
@@ -1847,7 +1847,7 @@ def bilinear_kernel_1D(ratio, normalize=True):
 
     Parameters
     ----------
-    ratio: int or Constant/Scalar Aesara tensor of int* dtype
+    ratio: int or Constant/ScalarType Aesara tensor of int* dtype
         the ratio by which an image will be upsampled by the returned filter
         in the 2D space.
 
@@ -1998,7 +1998,7 @@ def bilinear_upsampling(
     input: symbolic 4D tensor
         mini-batch of feature map stacks, of shape (batch size,
         input channels, input rows, input columns) that will be upsampled.
-    ratio: `int or Constant or Scalar Tensor of int* dtype`
+    ratio: `int or Constant or ScalarType Tensor of int* dtype`
         the ratio by which the input is upsampled in the 2D space (row and
         col size).
     frac_ratio: None, tuple of int or tuple of tuples of int

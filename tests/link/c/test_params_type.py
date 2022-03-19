@@ -7,13 +7,13 @@ from aesara.graph.basic import Apply
 from aesara.link.c.op import COp, ExternalCOp
 from aesara.link.c.params_type import Params, ParamsType
 from aesara.link.c.type import EnumList, Generic
-from aesara.scalar import Scalar
+from aesara.scalar import ScalarType
 from aesara.tensor.type import TensorType, matrix
 from tests import unittest_tools as utt
 
 
 tensor_type_0d = TensorType("float64", tuple())
-scalar_type = Scalar("float64")
+scalar_type = ScalarType("float64")
 generic_type = Generic()
 
 
@@ -77,7 +77,7 @@ class QuadraticOpFunc(COp):
     def c_code(self, node, name, inputs, outputs, sub):
         return """
         %(float_type)s a = (%(float_type)s) (*(npy_float64*) PyArray_GETPTR1(%(coeff)s->a, 0)); // 0-D TensorType.
-        %(float_type)s b =                                                   %(coeff)s->b;      // Scalar.
+        %(float_type)s b =                                                   %(coeff)s->b;      // ScalarType.
         %(float_type)s c =                 (%(float_type)s) PyFloat_AsDouble(%(coeff)s->c);     // Generic.
         Py_XDECREF(%(Y)s);
         %(Y)s = (PyArrayObject*)PyArray_EMPTY(PyArray_NDIM(%(X)s), PyArray_DIMS(%(X)s), PyArray_TYPE(%(X)s), PyArray_IS_F_CONTIGUOUS(%(X)s));
@@ -128,13 +128,13 @@ class TestParamsType:
         wp1 = ParamsType(
             a=Generic(),
             array=TensorType("int64", (False,)),
-            floatting=Scalar("float64"),
+            floatting=ScalarType("float64"),
             npy_scalar=TensorType("float64", tuple()),
         )
         wp2 = ParamsType(
             a=Generic(),
             array=TensorType("int64", (False,)),
-            floatting=Scalar("float64"),
+            floatting=ScalarType("float64"),
             npy_scalar=TensorType("float64", tuple()),
         )
         w1 = Params(
@@ -158,7 +158,7 @@ class TestParamsType:
         wp2_other = ParamsType(
             other_name=Generic(),
             array=TensorType("int64", (False,)),
-            floatting=Scalar("float64"),
+            floatting=ScalarType("float64"),
             npy_scalar=TensorType("float64", tuple()),
         )
         w2 = Params(
