@@ -16,7 +16,7 @@ from aesara.link.basic import PerformLinker
 from aesara.link.c.basic import CLinker, OpWiseCLinker
 from aesara.tensor import as_tensor_variable
 from aesara.tensor.basic import second
-from aesara.tensor.elemwise import CAReduce, DimShuffle, Elemwise
+from aesara.tensor.elemwise import CAReduce, CAReduceDtype, DimShuffle, Elemwise
 from aesara.tensor.math import all as at_all
 from aesara.tensor.math import any as at_any
 from aesara.tensor.type import (
@@ -622,6 +622,17 @@ class TestCAReduce(unittest_tools.InferShapeTester):
                 warn=0 not in xsh,
             )
 
+    def test_str(self):
+        op = CAReduce(aes.add, axis=None)
+        assert str(op) == "CAReduce{add}"
+        op = CAReduce(aes.add, axis=(1,))
+        assert str(op) == "CAReduce{add}{1}"
+
+        op = CAReduceDtype(aes.add, axis=None, acc_dtype="float64")
+        assert str(op) == "CAReduceDtype{add}{acc_dtype=float64}"
+        op = CAReduceDtype(aes.add, axis=(1,), acc_dtype="float64")
+        assert str(op) == "CAReduceDtype{add}{axis=[1], acc_dtype=float64}"
+
 
 class TestBitOpReduceGrad:
     def setup_method(self):
@@ -721,6 +732,14 @@ class TestElemwise(unittest_tools.InferShapeTester):
     )
     def test_input_dimensions_match_c(self):
         self.check_input_dimensions_match(Mode(linker="c"))
+
+    def test_str(self):
+        op = Elemwise(aes.add, inplace_pattern=None, name=None)
+        assert str(op) == "Elemwise{add}"
+        op = Elemwise(aes.add, inplace_pattern={0: 0}, name=None)
+        assert str(op) == "Elemwise{add}[(0, 0)]"
+        op = Elemwise(aes.add, inplace_pattern=None, name="my_op")
+        assert str(op) == "my_op"
 
 
 def test_not_implemented_elemwise_grad():

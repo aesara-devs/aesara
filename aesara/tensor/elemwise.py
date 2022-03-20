@@ -474,9 +474,9 @@ second dimension
             if self.inplace_pattern:
                 items = list(self.inplace_pattern.items())
                 items.sort()
-                return f"Elemwise{{{self.scalar_op}}}{items}"
+                return f"{type(self).__name__}{{{self.scalar_op}}}{items}"
             else:
-                return "Elemwise{%s}" % (self.scalar_op)
+                return f"{type(self).__name__}{{{self.scalar_op}}}"
         else:
             return self.name
 
@@ -1340,13 +1340,12 @@ class CAReduce(COp):
         self.set_ufunc(self.scalar_op)
 
     def __str__(self):
+        prefix = f"{type(self).__name__}{{{self.scalar_op}}}"
         if self.axis is not None:
-            return "Reduce{{{}}}{{{}}}".format(
-                self.scalar_op,
-                ", ".join(str(x) for x in self.axis),
-            )
+            axes_str = ", ".join(str(x) for x in self.axis)
+            return f"{prefix}{{{axes_str}}}"
         else:
-            return "Reduce{%s}" % self.scalar_op
+            return f"{prefix}"
 
     def perform(self, node, inp, out):
         (input,) = inp
@@ -1750,14 +1749,12 @@ class CAReduceDtype(CAReduce):
         return super(CAReduceDtype, op).make_node(input)
 
     def __str__(self):
-        name = self.__class__.__name__
-        if self.__class__.__name__ == "CAReduceDtype":
-            name = ("ReduceDtype{%s}" % self.scalar_op,)
-        axis = ""
+        prefix = f"{type(self).__name__}{{{self.scalar_op}}}"
         if self.axis is not None:
             axis = ", ".join(str(x) for x in self.axis)
-            axis = f"axis=[{axis}], "
-        return f"{name}{{{axis}acc_dtype={self.acc_dtype}}}"
+            return f"{prefix}{{axis=[{axis}], acc_dtype={self.acc_dtype}}}"
+        else:
+            return f"{prefix}{{acc_dtype={self.acc_dtype}}}"
 
 
 def scalar_elemwise(*symbol, nfunc=None, nin=None, nout=None, symbolname=None):
