@@ -1578,7 +1578,7 @@ ALL_REDUCE = (
 @local_optimizer(ALL_REDUCE)
 def local_reduce_join(fgraph, node):
     """
-    Reduce{scalar.op}(Join(axis=0, a, b), axis=0) -> Elemwise{scalar.op}(a, b)
+    CAReduce{scalar.op}(Join(axis=0, a, b), axis=0) -> Elemwise{scalar.op}(a, b)
 
     Notes
     -----
