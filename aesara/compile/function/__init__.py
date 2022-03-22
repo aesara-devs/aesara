@@ -1,8 +1,6 @@
 import logging
 import re
 import traceback as tb
-import warnings
-from collections import OrderedDict
 
 from aesara.compile.function.pfunc import pfunc
 from aesara.compile.function.types import orig_function
@@ -112,7 +110,7 @@ def function(
     mode : string or `Mode` instance.
         Compilation mode.
     updates : iterable over pairs (shared_variable, new_expression). List, tuple
-              or OrderedDict.
+              or dict.
         Updates the values for SharedVariable inputs according to these
         expressions.
     givens : iterable over pairs (Var1, Var2) of Variables. List, tuple or dict.
@@ -284,24 +282,6 @@ def function(
 
     if updates is None:
         updates = []
-
-    if (
-        isinstance(updates, dict)
-        and not isinstance(updates, OrderedDict)
-        and len(updates) > 1
-    ):
-        warnings.warn(
-            "The parameter 'updates' of aesara.function()"
-            " expects an OrderedDict,"
-            " got " + str(type(updates)) + ". Using "
-            "a standard dictionary here results in "
-            "non-deterministic behavior. You should use an OrderedDict"
-            " if you are using Python 2.7 (collections.OrderedDict"
-            " for older python), or use a list of (shared, update)"
-            " pairs. Do not just convert your dictionary to this type before"
-            " the call as the conversion will still be non-deterministic.",
-            stacklevel=2,
-        )
 
     if givens is None:
         givens = []
