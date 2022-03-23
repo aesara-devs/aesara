@@ -4619,6 +4619,61 @@ def test_local_useless_conj():
     assert any(node.op == _conj for node in f.maker.fgraph.apply_nodes)
 
 
+class TestDistributiveOpts:
+    x_at = vector("x")
+    y_at = vector("y")
+    a_at = matrix("a")
+
+    # x_lv, if any, is the logic variable version of some term x,
+    # while x_at is the Aesara tensor version for the same.
+    @pytest.mark.parametrize(
+        "orig_operation, optimized_operation",
+        [
+            (x_at * a_at + a_at * y_at, a_at * (x_at + y_at)),
+            (a_at * x_at + y_at * a_at, a_at * (x_at + y_at)),
+            (a_at * x_at + a_at * y_at, a_at * (x_at + y_at)),
+            (x_at * a_at + y_at * a_at, (x_at + y_at) * a_at),
+            (x_at * a_at + a_at, (x_at + 1) * a_at),
+            (x_at / a_at + y_at / a_at, (x_at + y_at) / a_at),
+            (a_at * x_at - a_at * y_at, a_at * (x_at - y_at)),
+            (x_at * a_at - y_at * a_at, (x_at - y_at) * a_at),
+            (a_at * x_at - y_at * a_at, a_at * (x_at - y_at)),
+            (a_at * x_at - a_at * y_at, (x_at - y_at) * a_at),
+            (x_at / a_at - y_at / a_at, (x_at - y_at) / a_at),
+        ],
+    )
+    def test_distributive_opts(self, orig_operation, optimized_operation):
+        fgraph = FunctionGraph([self.x_at, self.y_at, self.a_at], [orig_operation])
+        out_orig = fgraph.outputs[0]
+
+        fgraph_res = FunctionGraph(
+            [self.x_at, self.y_at, self.a_at], [optimized_operation]
+        )
+        out_res = fgraph_res.outputs[0]
+
+        fgraph_opt = rewrite(fgraph)
+        out_opt = fgraph_opt.outputs[0]
+
+        assert all(
+            [
+                isinstance(out_orig.owner.op, Elemwise),
+                isinstance(out_res.owner.op, Elemwise),
+                isinstance(out_opt.owner.op, Elemwise),
+            ]
+        )
+
+        # The scalar op originally in the output node (The Op to be 'collected').
+        # Should not be equal to the outer scalar Op in optimized version of graph
+        original_scalar_op = type(out_orig.owner.op.scalar_op)
+        # The outer scalar Op in in the resulting graph should
+        # be equal to the outer scalar Op in optimized version of the graph
+        resulting_scalar_op = type(out_res.owner.op.scalar_op)
+        optimized_scalar_op = type(out_opt.owner.op.scalar_op)
+
+        assert not original_scalar_op == resulting_scalar_op
+        assert resulting_scalar_op == optimized_scalar_op
+
+
 def test_deprecations():
     """Make sure we can import from deprecated modules."""
     with pytest.deprecated_call():

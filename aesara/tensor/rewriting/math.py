@@ -5,9 +5,18 @@ import operator
 from functools import partial, reduce
 
 import numpy as np
+from cons import cons
+from etuples import etuple
+from kanren import fact, heado, tailo
+from kanren.assoccomm import associative, commutative
+from kanren.core import lall, lany
+from kanren.graph import mapo
+from unification import vars as lvars
 
 import aesara.scalar.basic as aes
 import aesara.scalar.math as aes_math
+import aesara.tensor as at
+from aesara.compile import optdb
 from aesara.graph.basic import Constant, Variable
 from aesara.graph.rewriting.basic import (
     NodeRewriter,
@@ -20,6 +29,8 @@ from aesara.graph.rewriting.basic import (
 from aesara.graph.rewriting.utils import get_clients_at_depth
 from aesara.misc.safe_asarray import _asarray
 from aesara.raise_op import assert_op
+from aesara.graph.rewriting.db import EquilibriumDB
+from aesara.graph.rewriting.kanren import KanrenRelationSub
 from aesara.tensor.basic import (
     Alloc,
     Join,
@@ -3540,6 +3551,77 @@ def local_reciprocal_1_plus_exp(fgraph, node):
                         return out
 
 
+fact(commutative, aes.mul)
+fact(associative, aes.mul)
+fact(commutative, aes.add)
+fact(associative, aes.add)
+
+
+def distributive_collect(in_lv, out_lv):
+    from kanren import eq
+
+    """
+        x_lv, if any, is the logic variable version of some term x,
+        while x_at, if any, is the Aesara tensor version for the same.
+
+        This logic is for:
+        1. (x + y + z) * A  = x * A + y * A + z * A
+        2. (x + y + z) / A  = x / A + y / A + z / A
+        3. (x - y) * A  = x * A - y * A
+        4. (x - y) * A  = x * A - y * A
+
+        The actual optimizations are done in reverse order, (RHS to LHS)
+        hence reducing the overall calculations.
+    """
+    A_lv, op_lv, all_term_lv, all_cdr_lv, cdr_lv, all_flat_lv = lvars(6)
+    return lall(
+        lany(
+            heado(at.add, all_term_lv),
+            heado(at.sub, all_term_lv),
+        ),
+        # Get the flattened `add` arguments
+        tailo(all_cdr_lv, all_term_lv),
+        # Add all the arguments and set the output
+        lany(eq(cons(at.add, cdr_lv), out_lv), eq(cons(at.sub, cdr_lv), out_lv)),
+        lany(
+            lall(
+                lany(
+                    eq(etuple(op_lv, A_lv, all_term_lv), in_lv),
+                    eq(etuple(op_lv, all_term_lv, A_lv), in_lv),
+                ),
+                eq(op_lv, at.mul),
+                mapo(
+                    lambda x, y: lany(
+                        lall(eq(x, at.as_tensor_variable(1.0)), eq(y, A_lv)),
+                        lany(
+                            eq(etuple(op_lv, x, A_lv), y),
+                            eq(etuple(op_lv, A_lv, x), y),
+                        ),
+                    ),
+                    all_cdr_lv,
+                    cdr_lv,
+                ),
+            ),
+            lall(
+                eq(etuple(op_lv, all_term_lv, A_lv), in_lv),
+                eq(op_lv, at.true_div),
+                mapo(
+                    lambda x, y: eq(etuple(op_lv, x, A_lv), y),
+                    all_cdr_lv,
+                    cdr_lv,
+                ),
+            ),
+        ),
+    )
+
+
+distributive_collect_opt = KanrenRelationSub(
+    lambda x, y: distributive_collect(y, x),
+    node_filter=lambda x: isinstance(x.op, Elemwise),
+)
+distributive_collect_opt.__name__ = distributive_collect.__name__
+
+
 # 1 - sigmoid(x) -> sigmoid(-x)
 local_1msigmoid = PatternNodeRewriter(
     (sub, dict(pattern="y", constraint=_is_1), (sigmoid, "x")),
@@ -3594,3 +3676,15 @@ def local_useless_conj(fgraph, node):
     x = node.inputs[0]
     if x.type.dtype not in complex_dtypes:
         return [x]
+
+
+fastmath = EquilibriumDB()
+
+optdb.register("fastmath", fastmath, "fast_run", position=1)
+
+fastmath.register(
+    "dist_collect_opt",
+    in2out(distributive_collect_opt, ignore_newtrees=True),
+    "distribute_opts",
+    "fast_run",
+)
