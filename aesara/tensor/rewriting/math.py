@@ -11,6 +11,7 @@ from kanren import fact, heado, tailo
 from kanren.assoccomm import associative, commutative
 from kanren.core import lall, lany
 from kanren.graph import mapo
+from kanten.constraints import neq
 from unification import vars as lvars
 
 import aesara.scalar.basic as aes
@@ -26,11 +27,11 @@ from aesara.graph.rewriting.basic import (
     in2out,
     node_rewriter,
 )
+from aesara.graph.rewriting.db import EquilibriumDB
+from aesara.graph.rewriting.kanren import KanrenRelationSub
 from aesara.graph.rewriting.utils import get_clients_at_depth
 from aesara.misc.safe_asarray import _asarray
 from aesara.raise_op import assert_op
-from aesara.graph.rewriting.db import EquilibriumDB
-from aesara.graph.rewriting.kanren import KanrenRelationSub
 from aesara.tensor.basic import (
     Alloc,
     Join,
@@ -3601,6 +3602,7 @@ def distributive_collect(in_lv, out_lv):
                     all_cdr_lv,
                     cdr_lv,
                 ),
+                neq(A_lv, at.as_tensor_variable(1.0)),
             ),
             lall(
                 eq(etuple(op_lv, all_term_lv, A_lv), in_lv),
