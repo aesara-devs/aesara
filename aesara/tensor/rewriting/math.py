@@ -9,9 +9,9 @@ from cons import cons
 from etuples import etuple
 from kanren import fact, heado, tailo
 from kanren.assoccomm import associative, commutative
+from kanren.constraints import neq
 from kanren.core import lall, lany
 from kanren.graph import mapo
-from kanten.constraints import neq
 from unification import vars as lvars
 
 import aesara.scalar.basic as aes
@@ -3577,13 +3577,11 @@ def distributive_collect(in_lv, out_lv):
     A_lv, op_lv, all_term_lv, all_cdr_lv, cdr_lv, all_flat_lv = lvars(6)
     return lall(
         lany(
-            heado(at.add, all_term_lv),
-            heado(at.sub, all_term_lv),
+            lall(heado(at.add, all_term_lv), eq(cons(at.add, cdr_lv), out_lv)),
+            lall(heado(at.sub, all_term_lv), eq(cons(at.sub, cdr_lv), out_lv)),
         ),
         # Get the flattened `add` arguments
         tailo(all_cdr_lv, all_term_lv),
-        # Add all the arguments and set the output
-        lany(eq(cons(at.add, cdr_lv), out_lv), eq(cons(at.sub, cdr_lv), out_lv)),
         lany(
             lall(
                 lany(

@@ -1958,6 +1958,7 @@ def test_local_elemwise_sub_zeros():
             "ShapeOpt",
             "local_fill_to_alloc",
             "local_elemwise_alloc",
+            "dist_collect_opt",
         )
         .including("local_elemwise_sub_zeros")
     )
