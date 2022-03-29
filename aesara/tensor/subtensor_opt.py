@@ -704,7 +704,7 @@ def local_subtensor_inc_subtensor(fgraph, node):
 
 
 @register_specialize
-@register_canonicalize("fast_compile_gpu")
+@register_canonicalize("fast_compile")
 @register_useless
 @local_optimizer([Subtensor, AdvancedSubtensor1])
 def local_subtensor_make_vector(fgraph, node):
