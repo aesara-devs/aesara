@@ -15,7 +15,6 @@ from aesara.graph.basic import Apply, Constant, Variable
 from aesara.graph.utils import MethodNotDefined
 from aesara.link.c.op import OpenMPOp
 from aesara.link.c.params_type import ParamsType
-from aesara.link.c.type import EnumList
 from aesara.scalar import bool as bool_t
 from aesara.tensor.type import TensorType, int_dtypes
 
@@ -281,18 +280,6 @@ def pool_3d(
     op = Pool(ignore_border, ndim=3, mode=mode)
     output = op(input, ws, stride, pad)
     return output
-
-
-# NB: This enum type is currently used in gpuarray/pool.py.
-# It may be used later as op param in this current file.
-# Enum name and constants names are inspired from cuDNN type `cudnnPoolingMode_t`
-# (cf. `aesara/gpuarray/cudnn_defs.py`).
-PoolingMode_t = EnumList(
-    ("POOLING_MAX", "max"),
-    ("POOLING_SUM", "sum"),
-    ("POOLING_AVERAGE_COUNT_INCLUDE_PADDING", "average_inc_pad"),
-    ("POOLING_AVERAGE_COUNT_EXCLUDE_PADDING", "average_exc_pad"),
-)
 
 
 class Pool(OpenMPOp):
