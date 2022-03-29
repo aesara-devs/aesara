@@ -15,7 +15,6 @@ import aesara.configparser
 from aesara.configparser import (
     BoolParam,
     ConfigParam,
-    ContextsParam,
     DeviceParam,
     EnumStr,
     FloatParam,
@@ -332,26 +331,8 @@ def add_basic_configvars():
 
     config.add(
         "device",
-        (
-            "Default device for computations. If cuda* or opencl*, change the"
-            "default to try to move computation to the GPU. Do not use upper case"
-            "letters, only lower case even if NVIDIA uses capital letters. "
-            "'gpu' means let the driver select the gpu (needed for gpu in exclusive mode). "
-            "'gpuX' mean use the gpu number X."
-        ),
+        ("Default device for computations. only cpu is supported for now"),
         DeviceParam("cpu", mutable=False),
-        in_c_key=False,
-    )
-
-    config.add(
-        "init_gpu_device",
-        (
-            "Initialize the gpu device to use, works only if device=cpu. "
-            "Unlike 'device', setting this option will NOT move computations, "
-            "nor shared variables, to the specified GPU. "
-            "It can be used to run GPU-specific tests on a particular GPU."
-        ),
-        DeviceParam("", mutable=False),
         in_c_key=False,
     )
 
@@ -378,79 +359,6 @@ def add_basic_configvars():
         in_c_key=False,
     )
 
-    config.add(
-        "contexts",
-        """
-        Context map for multi-gpu operation. Format is a
-        semicolon-separated list of names and device names in the
-        'name->dev_name' format. An example that would map name 'test' to
-        device 'cuda0' and name 'test2' to device 'opencl0:0' follows:
-        "test->cuda0;test2->opencl0:0".
-
-        Invalid context names are 'cpu', 'cuda*' and 'opencl*'
-        """,
-        ContextsParam(),
-        in_c_key=False,
-    )
-
-    config.add(
-        "print_active_device",
-        "Print active device at when the GPU device is initialized.",
-        BoolParam(True, mutable=False),
-        in_c_key=False,
-    )
-
-    # config.add(
-    #     "gpuarray__preallocate",
-    #     """If negative it disables the allocation cache. If
-    #              between 0 and 1 it enables the allocation cache and
-    #              preallocates that fraction of the total GPU memory.  If 1
-    #              or greater it will preallocate that amount of memory (in
-    #              megabytes).""",
-    #     FloatParam(0, mutable=False),
-    #     in_c_key=False,
-    # )
-
-    # config.add(
-    #     "gpuarray__sched",
-    #     """The sched parameter passed for context creation to pygpu.
-    #                 With CUDA, using "multi" is equivalent to using the parameter
-    #                 cudaDeviceScheduleBlockingSync. This is useful to lower the
-    #                 CPU overhead when waiting for GPU. One user found that it
-    #                 speeds up his other processes that was doing data augmentation.
-    #              """,
-    #     EnumStr("default", ["multi", "single"]),
-    # )
-
-    # config.add(
-    #     "gpuarray__single_stream",
-    #     """
-    #              If your computations are mostly lots of small elements,
-    #              using single-stream will avoid the synchronization
-    #              overhead and usually be faster.  For larger elements it
-    #              does not make a difference yet.  In the future when true
-    #              multi-stream is enabled in libgpuarray, this may change.
-    #              If you want to make sure to have optimal performance,
-    #              check both options.
-    #              """,
-    #     BoolParam(True),
-    #     in_c_key=False,
-    # )
-
-    # config.add(
-    #     "cuda__root",
-    #     "Location of the cuda installation",
-    #     StrParam(get_cuda_root),
-    #     in_c_key=False,
-    # )
-
-    # config.add(
-    #     "cuda__include_path",
-    #     "Location of the cuda includes",
-    #     StrParam(default_cuda_include),
-    #     in_c_key=False,
-    # )
-
     # This flag determines whether or not to raise error/warning message if
     # there is a CPU Op in the computational graph.
     config.add(
@@ -476,105 +384,6 @@ def add_basic_configvars():
         BoolParam(False, mutable=True),
         in_c_key=False,
     )
-
-
-# def add_dnn_configvars():
-#     config.add(
-#         "dnn__conv__algo_fwd",
-#         "Default implementation to use for cuDNN forward convolution.",
-#         EnumStr("small", SUPPORTED_DNN_CONV_ALGO_FWD),
-#         in_c_key=False,
-#     )
-
-#     config.add(
-#         "dnn__conv__algo_bwd_data",
-#         "Default implementation to use for cuDNN backward convolution to "
-#         "get the gradients of the convolution with regard to the inputs.",
-#         EnumStr("none", SUPPORTED_DNN_CONV_ALGO_BWD_DATA),
-#         in_c_key=False,
-#     )
-
-#     config.add(
-#         "dnn__conv__algo_bwd_filter",
-#         "Default implementation to use for cuDNN backward convolution to "
-#         "get the gradients of the convolution with regard to the "
-#         "filters.",
-#         EnumStr("none", SUPPORTED_DNN_CONV_ALGO_BWD_FILTER),
-#         in_c_key=False,
-#     )
-
-#     config.add(
-#         "dnn__conv__precision",
-#         "Default data precision to use for the computation in cuDNN "
-#         "convolutions (defaults to the same dtype as the inputs of the "
-#         "convolutions, or float32 if inputs are float16).",
-#         EnumStr("as_input_f32", SUPPORTED_DNN_CONV_PRECISION),
-#         in_c_key=False,
-#     )
-
-#     config.add(
-#         "dnn__base_path",
-#         "Install location of cuDNN.",
-#         StrParam(default_dnn_base_path),
-#         in_c_key=False,
-#     )
-
-#     config.add(
-#         "dnn__include_path",
-#         "Location of the cudnn header",
-#         StrParam(default_dnn_inc_path),
-#         in_c_key=False,
-#     )
-
-#     config.add(
-#         "dnn__library_path",
-#         "Location of the cudnn link library.",
-#         StrParam(default_dnn_lib_path),
-#         in_c_key=False,
-#     )
-
-#     config.add(
-#         "dnn__bin_path",
-#         "Location of the cuDNN load library "
-#         "(on non-windows platforms, "
-#         "this is the same as dnn__library_path)",
-#         StrParam(default_dnn_bin_path),
-#         in_c_key=False,
-#     )
-
-#     config.add(
-#         "dnn__enabled",
-#         "'auto', use cuDNN if available, but silently fall back"
-#         " to not using it if not present."
-#         " If True and cuDNN can not be used, raise an error."
-#         " If False, disable cudnn even if present."
-#         " If no_check, assume present and the version between header and library match (so less compilation at context init)",
-#         EnumStr("auto", ["True", "False", "no_check"]),
-#         in_c_key=False,
-#     )
-
-
-# def add_magma_configvars():
-#     config.add(
-#         "magma__include_path",
-#         "Location of the magma header",
-#         StrParam(""),
-#         in_c_key=False,
-#     )
-
-#     config.add(
-#         "magma__library_path",
-#         "Location of the magma library",
-#         StrParam(""),
-#         in_c_key=False,
-#     )
-
-#     config.add(
-#         "magma__enabled",
-#         " If True, use magma for matrix computation." " If False, disable magma",
-#         BoolParam(False),
-#         in_c_key=False,
-#     )
 
 
 def _is_gt_0(x):
@@ -893,21 +702,6 @@ def add_traceback_configvars():
 
 
 def add_experimental_configvars():
-    # config.add(
-    #     "experimental__unpickle_gpu_on_cpu",
-    #     "Allow unpickling of pickled GpuArrays as numpy.ndarrays."
-    #     "This is useful, if you want to open a GpuArray without "
-    #     "having cuda installed."
-    #     "If you have cuda installed, this will force unpickling to"
-    #     "be done on the cpu to numpy.ndarray."
-    #     "Please be aware that this may get you access to the data,"
-    #     "however, trying to unpicke gpu functions will not succeed."
-    #     "This flag is experimental and may be removed any time, when"
-    #     "gpu<>cpu transparency is solved.",
-    #     BoolParam(default=False),
-    #     in_c_key=False,
-    # )
-
     config.add(
         "experimental__local_alloc_elemwise",
         "DEPRECATED: If True, enable the experimental"
@@ -1608,17 +1402,6 @@ def add_caching_dir_configvars():
         in_c_key=False,
     )
 
-    # config.add(
-    #     "gpuarray__cache_path",
-    #     "Directory to cache pre-compiled kernels for the gpuarray backend.",
-    #     ConfigParam(
-    #         _get_default_gpuarray__cache_path,
-    #         apply=_filter_base_compiledir,
-    #         mutable=False,
-    #     ),
-    #     in_c_key=False,
-    # )
-
 
 # Those are the options provided by Aesara to choose algorithms at runtime.
 SUPPORTED_DNN_CONV_ALGO_RUNTIME = (
@@ -1676,8 +1459,6 @@ config = aesara.configparser._config
 
 # The functions below register config variables into the config instance above.
 add_basic_configvars()
-# add_dnn_configvars()
-# add_magma_configvars()
 add_compile_configvars()
 add_tensor_configvars()
 add_traceback_configvars()
