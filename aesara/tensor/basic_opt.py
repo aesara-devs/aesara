@@ -268,7 +268,6 @@ class InplaceElemwiseOptimizer(GlobalOptimizer):
         protected_inputs.extend(fgraph.outputs)
         for node in list(io_toposort(fgraph.inputs, fgraph.outputs)):
             op = node.op
-            # gpuarray GpuElemwise inherit from Elemwise
             if not isinstance(op, self.op):
                 continue
             # If big graph and the outputs are scalar, do not make it
