@@ -1156,7 +1156,7 @@ def logsoftmax(c, axis=UNSET_AXIS):
     return LogSoftmax(axis=axis)(c)
 
 
-@register_specialize("fast_compile_gpu")
+@register_specialize("fast_compile")
 @local_optimizer([softmax_legacy])
 def local_softmax_with_bias(fgraph, node):
     """
@@ -1852,8 +1852,8 @@ class CrossentropyCategorical1Hot(Op):
 crossentropy_categorical_1hot = CrossentropyCategorical1Hot()
 
 
-@register_stabilize("fast_compile_gpu")
-@register_specialize("fast_compile_gpu")
+@register_stabilize("fast_compile")
+@register_specialize("fast_compile")
 @optimizer
 def crossentropy_to_crossentropy_with_softmax_with_bias(fgraph):
     """
@@ -1953,13 +1953,13 @@ optdb.register(
     crossentropy_to_crossentropy_with_softmax,
     "fast_run",
     "xent",
-    "fast_compile_gpu",
+    "fast_compile",
     position=2.01,
 )
 
 
 @register_specialize(
-    "fast_compile_gpu", "local_crossentropy_to_crossentropy_with_softmax_grad"
+    "fast_compile", "local_crossentropy_to_crossentropy_with_softmax_grad"
 )  # old name
 @local_optimizer([softmax_grad_legacy])
 def local_softmax_grad_to_crossentropy_with_softmax_grad(fgraph, node):
@@ -1977,7 +1977,7 @@ def local_softmax_grad_to_crossentropy_with_softmax_grad(fgraph, node):
             return [dx]
 
 
-@register_specialize("fast_compile_gpu")
+@register_specialize("fast_compile")
 @local_optimizer([MaxAndArgmax])
 def local_argmax_pushdown(fgraph, node):
     if (
@@ -2066,7 +2066,7 @@ def _is_const(z, val, approx=False):
         return np.all(maybe == val)
 
 
-@register_specialize("fast_compile_gpu")
+@register_specialize("fast_compile")
 @local_optimizer([AdvancedSubtensor, log])
 def local_advanced_indexing_crossentropy_onehot(fgraph, node):
     log_op = None
@@ -2114,7 +2114,7 @@ def local_advanced_indexing_crossentropy_onehot(fgraph, node):
                 return [ret]
 
 
-@register_specialize("fast_compile_gpu")
+@register_specialize("fast_compile")
 @local_optimizer([softmax_grad_legacy])
 def local_advanced_indexing_crossentropy_onehot_grad(fgraph, node):
     if not (node.op == softmax_grad_legacy and node.inputs[1].ndim == 2):
@@ -2329,7 +2329,7 @@ def local_advanced_indexing_crossentropy_onehot_grad(fgraph, node):
         return
 
 
-@register_specialize("fast_compile_gpu")
+@register_specialize("fast_compile")
 @local_optimizer([softmax_with_bias])
 def graph_merge_softmax_with_crossentropy_softmax(fgraph, node):
     if node.op == softmax_with_bias:

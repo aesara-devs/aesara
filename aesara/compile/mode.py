@@ -71,14 +71,8 @@ OPT_NONE = OptimizationQuery(include=[], exclude=exclude)
 OPT_MERGE = OptimizationQuery(include=["merge"], exclude=exclude)
 OPT_FAST_RUN = OptimizationQuery(include=["fast_run"], exclude=exclude)
 OPT_FAST_RUN_STABLE = OPT_FAST_RUN.requiring("stable")
-# We need fast_compile_gpu here.  As on the GPU, we don't have all
-# operation that exist in fast_compile, but have some that get
-# introduced in fast_run, we want those optimization to also run in
-# fast_compile+gpu. We can't tag them just as 'gpu', as this would
-# exclude them if we exclude 'gpu'.
-OPT_FAST_COMPILE = OptimizationQuery(
-    include=["fast_compile", "fast_compile_gpu"], exclude=exclude
-)
+
+OPT_FAST_COMPILE = OptimizationQuery(include=["fast_compile"], exclude=exclude)
 OPT_STABILIZE = OptimizationQuery(include=["fast_run"], exclude=exclude)
 OPT_STABILIZE.position_cutoff = 1.5000001
 OPT_NONE.name = "OPT_NONE"
@@ -252,9 +246,7 @@ optdb.register(
 )  # 'fast_run', 'fast_compile')
 
 # misc special cases for speed
-optdb.register(
-    "specialize", EquilibriumDB(), "fast_run", "fast_compile_gpu", position=2
-)
+optdb.register("specialize", EquilibriumDB(), "fast_run", "fast_compile", position=2)
 
 # misc special cases for speed that break canonicalization
 optdb.register("uncanonicalize", EquilibriumDB(), "fast_run", position=3)
