@@ -51,7 +51,7 @@ from aesara.tensor.nlinalg import SVD, Det, Eig, Eigh, MatrixInverse, QRFull
 from aesara.tensor.nnet.basic import LogSoftmax, Softmax, SoftmaxGrad
 from aesara.tensor.random.op import RandomVariable
 from aesara.tensor.shape import Reshape, Shape, Shape_i, SpecifyShape
-from aesara.tensor.slinalg import Cholesky, Solve
+from aesara.tensor.slinalg import Cholesky, Solve, SolveTriangular
 from aesara.tensor.subtensor import (
     AdvancedIncSubtensor,
     AdvancedIncSubtensor1,
@@ -846,6 +846,26 @@ def jax_funcify_Solve(op, **kwargs):
         return jsp.linalg.solve(a, b, lower=lower)
 
     return solve
+
+
+@jax_funcify.register(SolveTriangular)
+def jax_funcify_SolveTriangular(op, **kwargs):
+    lower = op.lower
+    trans = op.trans
+    unit_diagonal = op.unit_diagonal
+    check_finite = op.check_finite
+
+    def solve_triangular(A, b):
+        return jsp.linalg.solve_triangular(
+            A,
+            b,
+            lower=lower,
+            trans=trans,
+            unit_diagonal=unit_diagonal,
+            check_finite=check_finite,
+        )
+
+    return solve_triangular
 
 
 @jax_funcify.register(Det)
