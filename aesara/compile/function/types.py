@@ -110,6 +110,9 @@ def fgraph_updated_vars(fgraph, expanded_inputs):
     Reconstruct the full "updates" dictionary, mapping from FunctionGraph input
     variables to the fgraph outputs that will replace their values.
 
+    TODO: Get rid of all this `expanded_inputs` nonsense and use
+    only `fgraph.update_mapping`.
+
     Returns
     -------
     dict variable -> variable
@@ -555,6 +558,7 @@ class Function:
         self._value = ValueAttribute()
         self._container = ContainerAttribute()
 
+        # TODO: Get rid of all this `expanded_inputs` nonsense
         assert len(self.maker.expanded_inputs) == len(self.input_storage)
 
         # This is used only when `fn.need_update_inputs` is `False`, because
@@ -1048,6 +1052,8 @@ class Function:
                     # WARNING: This circumvents the 'readonly' attribute in x
                     o_container.storage[0] = None
 
+        # TODO: Get rid of this and `expanded_inputs`, since all the VMs now
+        # perform the updates themselves
         if getattr(self.fn, "need_update_inputs", True):
             # Update the inputs that have an update function
             for input, storage in reversed(
@@ -1565,11 +1571,15 @@ class FunctionMaker:
             self.linker = linker.accept(fgraph, profile=profile)
 
         if hasattr(linker, "accept_var_updates"):
-            # hacky thing so VMLinker knows about updates
+            # TODO: This is a hack that makes `VMLinker` aware of updates;
+            # clean this up.
             self.linker.accept_var_updates(fgraph_updated_vars(fgraph, inputs))
+
         fgraph.name = name
         self.indices = indices
         self.inputs = inputs
+
+        # TODO: Get rid of all this `expanded_inputs` nonsense
         self.expanded_inputs = inputs
         self.outputs = outputs
         self.unpack_single = unpack_single

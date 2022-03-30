@@ -2152,6 +2152,7 @@ class _Maker(FunctionMaker):  # inheritance buys a few helper functions
         fgraph.name = name
         self.indices = indices
         self.inputs = inputs
+        # TODO: Get rid of all this `expanded_inputs` nonsense
         self.expanded_inputs = inputs
         self.outputs = outputs
         self.unpack_single = unpack_single

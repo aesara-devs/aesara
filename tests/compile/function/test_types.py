@@ -15,6 +15,7 @@ from aesara.configdefaults import config
 from aesara.graph.basic import Constant
 from aesara.graph.opt import OpKeyOptimizer, PatternSub
 from aesara.graph.utils import MissingInputError
+from aesara.link.vm import VMLinker
 from aesara.tensor.math import dot
 from aesara.tensor.math import sum as at_sum
 from aesara.tensor.math import tanh
@@ -227,19 +228,36 @@ class TestFunction:
             # got multiple values for keyword argument 'x'
             f(5.0, x=9)
 
-    def test_state_access(self):
-        a = scalar()  # the a is for 'anonymous' (un-named).
+    @pytest.mark.parametrize(
+        "mode",
+        [
+            Mode(
+                linker=VMLinker(allow_gc=True, use_cloop=False, c_thunks=False),
+                optimizer="fast_compile",
+            ),
+            Mode(
+                linker=VMLinker(allow_gc=True, use_cloop=False, c_thunks=False),
+                optimizer="fast_run",
+            ),
+            Mode(linker="cvm", optimizer="fast_compile"),
+            Mode(linker="cvm", optimizer="fast_run"),
+        ],
+    )
+    def test_state_access(self, mode):
+        a = scalar()
         x, s = scalars("xs")
 
         f = function(
             [x, In(a, value=1.0, name="a"), In(s, value=0.0, update=s + a * x)],
             s + a * x,
+            mode=mode,
         )
 
         assert f[a] == 1.0
         assert f[s] == 0.0
 
         assert f(3.0) == 3.0
+        assert f[s] == 3.0
         assert f(3.0, a=2.0) == 9.0  # 3.0 + 2*3.0
 
         assert (

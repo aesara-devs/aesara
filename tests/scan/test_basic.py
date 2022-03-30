@@ -1482,6 +1482,14 @@ class TestScan:
 
     @pytest.mark.slow
     def test_grad_multiple_outs_taps_backwards(self):
+        """
+        This test is special because when the inner-graph compilation is set to
+        "fast_compile", and the `Loop` `VM` is used, its inner-graph will
+        reallocate storage cells, which is a good test for correct, direct
+        storage use in `Scan.perform`.
+
+        TODO: Create a much more direct test.
+        """
         n = 5
         rng = np.random.default_rng(utt.fetch_seed())
         vW_in2 = asarrayX(rng.uniform(-0.2, 0.2, size=(2,)))
@@ -1591,6 +1599,7 @@ class TestScan:
         )
 
         def reset_rng_fn(fn, *args):
+            # TODO: Get rid of all this `expanded_inputs` nonsense
             for idx, arg in enumerate(fn.maker.expanded_inputs):
                 if arg.value and isinstance(arg.value.data, np.random.Generator):
                     obj = fn.maker.expanded_inputs[idx].value
@@ -1673,6 +1682,7 @@ class TestScan:
         )
 
         def reset_rng_fn(fn, *args):
+            # TODO: Get rid of all this `expanded_inputs` nonsense
             for idx, arg in enumerate(fn.maker.expanded_inputs):
                 if arg.value and isinstance(arg.value.data, np.random.Generator):
                     obj = fn.maker.expanded_inputs[idx].value

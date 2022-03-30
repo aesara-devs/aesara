@@ -5,33 +5,77 @@ A VM is not actually different from a Linker, we just decided
 VM was a better name at some point.
 
 """
-import logging
 import platform
 import sys
 import time
 import warnings
 from abc import ABC, abstractmethod
 from collections import defaultdict
+from itertools import zip_longest
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    DefaultDict,
+    Dict,
+    List,
+    Optional,
+    Sequence,
+    Tuple,
+)
 
 from aesara.configdefaults import config
-from aesara.graph.basic import Constant, Variable
+from aesara.graph.basic import Apply, Constant, Variable
 from aesara.link.basic import Container, LocalLinker
 from aesara.link.c.exceptions import MissingGXX
-from aesara.link.utils import gc_helper, map_storage, raise_with_op
+from aesara.link.utils import (
+    gc_helper,
+    get_destroy_dependencies,
+    map_storage,
+    raise_with_op,
+)
 
 
-logger = logging.getLogger(__name__)
+if TYPE_CHECKING:
+    from aesara.graph.fg import FunctionGraph
+    from aesara.graph.op import (
+        BasicThunkType,
+        ComputeMapType,
+        StorageCellType,
+        StorageMapType,
+    )
 
 
-def calculate_reallocate_info(order, fgraph, storage_map, compute_map_re, dependencies):
-    """
-    WRITEME : explain the parameters
+def calculate_reallocate_info(
+    order: Sequence[Apply],
+    fgraph: "FunctionGraph",
+    storage_map: "StorageMapType",
+    compute_map_re: "ComputeMapType",
+    dependencies: Dict[Variable, List[Variable]],
+) -> Dict[Variable, List[Variable]]:
+    """Finds pairs of computed variables that can share a storage cell.
+
+    This apparently reduces memory allocations, but its scope is very limited
+    (e.g. only scalars, only used by the Python VMs without lazy computations).
+
+    Parameters
+    ----------
+    order
+        List of nodes in compute order.
+    fgraph
+        The `FunctionGraph`.
+    storage_map
+        Map from variables to their storage cells.
+    compute_map_re
+        Reallocation map.  TODO
+    dependencies
+        Map from variables to the variables that depend on them.
+
     """
     reallocated_info = {}
-    viewed_by = {}
+    viewed_by: Dict[Variable, List[Variable]] = {}
     for var in fgraph.variables:
         viewed_by[var] = []
-    view_of = {}
+    view_of: Dict[Variable, Variable] = {}
     pre_allocated = set()
     allocated = set()
 
@@ -43,20 +87,20 @@ def calculate_reallocate_info(order, fgraph, storage_map, compute_map_re, depend
         idx_o = 0
         for out in node.outputs:
             for var in node.outputs:
-                compute_map_re[var][0] = 1
+                compute_map_re[var][0] = True
             ins = None
             if dmap and idx_o in dmap:
                 idx_v = dmap[idx_o]
-                assert len(idx_v) == 1, (
-                    "Here we only support the possibility" " to destroy one input"
-                )
+                assert (
+                    len(idx_v) == 1
+                ), "Here we only support the possibility to destroy one input"
                 ins = node.inputs[idx_v[0]]
             if vmap and idx_o in vmap:
                 assert ins is None
                 idx_v = vmap[idx_o]
-                assert len(idx_v) == 1, (
-                    "Here we only support the possibility" " to view one input"
-                )
+                assert (
+                    len(idx_v) == 1
+                ), "Here we only support the possibility to view one input"
                 ins = node.inputs[idx_v[0]]
             if ins is not None:
                 assert isinstance(ins, Variable)
@@ -68,24 +112,24 @@ def calculate_reallocate_info(order, fgraph, storage_map, compute_map_re, depend
         for ins in node.inputs:
             assert not (ins in view_of and viewed_by[ins])
             if (
-                getattr(ins, "ndim", None) == 0
+                getattr(ins.type, "ndim", None) == 0
                 and not storage_map[ins][0]
                 and ins not in fgraph.outputs
                 and ins.owner
                 and all(compute_map_re[v][0] for v in dependencies.get(ins, []))
                 and ins not in allocated
             ):
-                # Constant Memory cannot be changed
+                # Constant memory cannot be changed
                 # Constant and shared variables' storage_map value is not empty
                 reuse_out = None
                 if ins not in view_of and not viewed_by.get(ins, []):
                     # where gc
                     for i in range(idx + 1, len(order)):
                         if reuse_out is not None:
-                            break
+                            break  # type: ignore
                         for out in order[i].outputs:
                             if (
-                                getattr(out, "ndim", None) == 0
+                                getattr(out.type, "ndim", None) == 0
                                 and out not in pre_allocated
                                 and out.type.in_same_class(ins.type)
                             ):
@@ -108,7 +152,7 @@ def calculate_reallocate_info(order, fgraph, storage_map, compute_map_re, depend
                                 break
                             for out in order[i].outputs:
                                 if (
-                                    getattr(out, "ndim", None) == 0
+                                    getattr(out.type, "ndim", None) == 0
                                     and out not in pre_allocated
                                     and (out.type.in_same_class(ins.type))
                                 ):
@@ -136,17 +180,6 @@ class VM(ABC):
     advantage of lazy computation, although they still produce the correct
     output for lazy nodes.
 
-    Parameters
-    ----------
-    fgraph : FunctionGraph
-        The `FunctionGraph` associated with `nodes` and `thunks`.
-    nodes
-        A list of nodes in toposort order.
-    thunks
-        A list of thunks to execute those nodes, in toposort order.
-    pre_call_clear
-        A list of containers to empty at the beginning of each call.
-
     Attributes
     ----------
     call_counts
@@ -165,7 +198,27 @@ class VM(ABC):
 
     """
 
-    def __init__(self, fgraph, nodes, thunks, pre_call_clear):
+    need_update_inputs = True
+
+    def __init__(
+        self,
+        fgraph: "FunctionGraph",
+        nodes: List[Apply],
+        thunks: List["BasicThunkType"],
+        pre_call_clear: List["StorageCellType"],
+    ):
+        r"""
+        Parameters
+        ----------
+        fgraph
+            The `FunctionGraph` associated with `nodes` and `thunks`.
+        nodes
+            A list of nodes in toposort order.
+        thunks
+            A list of thunks to execute those nodes, in toposort order.
+        pre_call_clear
+            A list of containers to empty at the beginning of each call.
+        """
 
         if len(nodes) != len(thunks):
             raise ValueError("`nodes` and `thunks` must be the same length")
@@ -177,11 +230,6 @@ class VM(ABC):
         self.call_counts = [0] * len(nodes)
         self.call_times = [0] * len(nodes)
         self.time_thunks = False
-
-        # This variable (self.need_update_inputs) is overshadowed by
-        # CLazyLinker in CVM which has an attribute of the same name that
-        # defaults to 0 (aka False).
-        self.need_update_inputs = True
 
     @abstractmethod
     def __call__(self):
@@ -232,53 +280,109 @@ class VM(ABC):
             self.call_counts[i] = 0
 
 
-class Loop(VM):
-    """
-    Unconditional start-to-finish program execution in Python.
-    No garbage collection is allowed on intermediate results.
+class UpdatingVM(VM):
+    """A `VM` that performs updates on its graph's inputs."""
 
-    """
+    need_update_inputs = False
 
-    allow_gc = False
+    def __init__(
+        self,
+        fgraph,
+        nodes,
+        thunks,
+        pre_call_clear,
+        storage_map: "StorageMapType",
+        input_storage: List["StorageCellType"],
+        output_storage: List["StorageCellType"],
+        update_vars: Dict[Variable, Variable],
+    ):
+        r"""
+        Parameters
+        ----------
+        storage_map
+            A ``dict`` mapping `Variable`\s to single-element lists where a
+            computed value for each `Variable` may be found.
+        input_storage
+            Storage cells for each input.
+        output_storage
+            Storage cells for each output.
+        update_vars
+            A ``dict`` from input to output variables that specify
+            output-to-input in-place storage updates that occur after
+            evaluation of the entire graph (i.e. all the thunks).
+        """
+        super().__init__(fgraph, nodes, thunks, pre_call_clear)
 
-    def __call__(self):
-        if self.time_thunks:
-            for cont in self.pre_call_clear:
-                cont[0] = None
-            try:
-                for i, (thunk, node) in enumerate(zip(self.thunks, self.nodes)):
-                    t0 = time.time()
-                    thunk()
-                    t1 = time.time()
-                    self.call_counts[i] += 1
-                    self.call_times[i] += t1 - t0
-            except Exception:
-                raise_with_op(self.fgraph, node, thunk)
-        else:
-            for cont in self.pre_call_clear:
-                cont[0] = None
-            try:
-                for thunk, node in zip(self.thunks, self.nodes):
-                    thunk()
-            except Exception:
-                raise_with_op(self.fgraph, node, thunk)
+        self.storage_map = storage_map
+        self.input_storage = input_storage
+        self.output_storage = output_storage
+        self.inp_storage_and_out_idx = tuple(
+            (inp_storage, self.fgraph.outputs.index(update_vars[inp]))
+            for inp, inp_storage in zip(self.fgraph.inputs, self.input_storage)
+            if inp in update_vars
+        )
+
+    def perform_updates(self) -> List[Any]:
+        """Perform the output-to-input updates and return the output values."""
+
+        # The outputs need to be collected *before* the updates that follow
+        outputs = [cell[0] for cell in self.output_storage]
+
+        for inp_storage, out_idx in self.inp_storage_and_out_idx:
+            inp_storage[0] = outputs[out_idx]
+
+        return outputs
 
 
-class LoopGC(VM):
+class Loop(UpdatingVM):
     """Unconditional start-to-finish program execution in Python.
 
-    Garbage collection is possible on intermediate results.
+    Garbage collection is possible on intermediate results when the
+    `post_thunk_clear` constructor argument is non-``None``.
     """
 
-    def __init__(self, fgraph, nodes, thunks, pre_call_clear, post_thunk_clear):
-        super().__init__(fgraph, nodes, thunks, pre_call_clear)
-        self.post_thunk_clear = post_thunk_clear
-        # Some other part of Aesara query that information
-        self.allow_gc = True
-        if not (len(nodes) == len(thunks) == len(post_thunk_clear)):
-            raise ValueError(
-                "`nodes`, `thunks` and `post_thunk_clear` are not the same lengths"
-            )
+    def __init__(
+        self,
+        fgraph,
+        nodes,
+        thunks,
+        pre_call_clear,
+        storage_map,
+        input_storage,
+        output_storage,
+        update_vars,
+        post_thunk_clear: Optional[List["StorageCellType"]] = None,
+    ):
+        r"""
+        Parameters
+        ----------
+        post_thunk_clear
+            A list of storage cells for each thunk that should be cleared after
+            each thunk is evaluated.  This is the "garbage collection"
+            functionality.
+        """
+        super().__init__(
+            fgraph,
+            nodes,
+            thunks,
+            pre_call_clear,
+            storage_map,
+            input_storage,
+            output_storage,
+            update_vars,
+        )
+
+        if post_thunk_clear is not None:
+            if not (len(nodes) == len(thunks) == len(post_thunk_clear)):
+                raise ValueError(
+                    "`nodes`, `thunks` and `post_thunk_clear` are not the same lengths"
+                )
+            # Some other part of Aesara use this information
+            self.allow_gc = True
+            self.post_thunk_clear = post_thunk_clear
+        else:
+            self.allow_gc = False
+            self.post_thunk_clear = []
 
     def __call__(self):
         if self.time_thunks:
@@ -286,8 +390,8 @@ class LoopGC(VM):
                 cont[0] = None
             try:
                 i = 0
-                for thunk, node, old_storage in zip(
-                    self.thunks, self.nodes, self.post_thunk_clear
+                for thunk, node, old_storage in zip_longest(
+                    self.thunks, self.nodes, self.post_thunk_clear, fillvalue=()
                 ):
                     t0 = time.time()
                     thunk()
@@ -303,8 +407,8 @@ class LoopGC(VM):
             for cont in self.pre_call_clear:
                 cont[0] = None
             try:
-                for thunk, node, old_storage in zip(
-                    self.thunks, self.nodes, self.post_thunk_clear
+                for thunk, node, old_storage in zip_longest(
+                    self.thunks, self.nodes, self.post_thunk_clear, fillvalue=()
                 ):
                     thunk()
                     for old_s in old_storage:
@@ -312,8 +416,10 @@ class LoopGC(VM):
             except Exception:
                 raise_with_op(self.fgraph, node, thunk)
 
+        return self.perform_updates()
 
-class Stack(VM):
+
+class Stack(UpdatingVM):
     """Finish-to-start evaluation order of thunks.
 
     This supports lazy evaluation of subtrees and partial computations of
@@ -348,53 +454,53 @@ class Stack(VM):
         thunks,
         pre_call_clear,
         storage_map,
-        compute_map,
-        allow_gc,
-        n_updates,
-        dependencies=None,
+        input_storage,
+        output_storage,
+        update_vars,
+        compute_map: "ComputeMapType",
+        allow_gc: bool,
+        dependencies: Optional[Dict[Variable, List[Variable]]] = None,
         callback=None,
         callback_input=None,
     ):
-        super().__init__(fgraph, nodes, thunks, pre_call_clear)
+        r"""
+        Parameters
+        ----------
+        allow_gc
+            Determines whether or not garbage collection is performed.
+        dependencies
+            TODO
+        callback
+            TODO
+        callback_input
+            TODO
+        """
 
+        super().__init__(
+            fgraph,
+            nodes,
+            thunks,
+            pre_call_clear,
+            storage_map,
+            input_storage,
+            output_storage,
+            update_vars,
+        )
+
+        self.update_vars = update_vars
+        self.compute_map = compute_map
         self.allow_gc = allow_gc
         self.message = ""
         self.base_apply_stack = [o.owner for o in fgraph.outputs if o.owner]
         self.outputs = fgraph.outputs
-        self.storage_map = storage_map
-        self.variable_shape = {}  # Variable -> shape
-        self.variable_strides = {}  # Variable -> strides
-        self.variable_offset = {}  # Variable -> offset
-        self.compute_map = compute_map
-        self.node_idx = node_idx = {}
+        self.variable_shape: Dict[Variable, Any] = {}  # Variable -> shape
+        self.variable_strides: Dict[Variable, Any] = {}  # Variable -> strides
+        self.variable_offset: Dict[Variable, Any] = {}  # Variable -> offset
+        node_idx = {node: i for i, node in enumerate(self.nodes)}
+        self.node_idx = node_idx
         self.callback = callback
         self.callback_input = callback_input
-        self.n_updates = n_updates
-
-        ords = fgraph.orderings()
-
-        for i, node in enumerate(self.nodes):
-            node_idx[node] = i
-
-            # XXX: inconsistent style - why modify node here rather
-            #      than track destroy_dependencies with dictionary like
-            #      storage_map?
-            #
-            # destroy_dependencies
-            # --------------------
-            # The destroy_dependencies is a list of variables that are implicit
-            # dependencies induced by destroy_map and view_map (compared to
-            # node.inputs which are *explicit* dependencies). The variables in
-            # destroy_dependencies would be impossible to compute after the
-            # current `node` runs, because node.thunk() is going to destroy a
-            # common input variable needed by whatever node owns each variable
-            # in destroy_depenencies.
-
-            node.destroy_dependencies = []
-            if node in ords:
-                for prereq in ords[node]:
-                    node.destroy_dependencies += prereq.outputs
-
+        self.destroy_dependencies = get_destroy_dependencies(fgraph)
         self.dependencies = dependencies
 
         if self.allow_gc and self.dependencies is None:
@@ -444,10 +550,14 @@ class Stack(VM):
 
         # apply_stack contains nodes
         if output_subset is not None:
-            first_updated = len(self.outputs) - self.n_updates
-            output_subset = output_subset + list(
-                range(first_updated, len(self.outputs))
-            )
+            # Add the outputs that are needed for the in-place updates of the
+            # inputs in `self.update_vars`
+            output_subset = list(output_subset)
+            for inp, out in self.update_vars.items():
+                out_idx = self.fgraph.outputs.index(out)
+                if out_idx not in output_subset:
+                    output_subset.append(out_idx)
+
             apply_stack = [
                 self.outputs[i].owner for i in output_subset if self.outputs[i].owner
             ]
@@ -489,7 +599,7 @@ class Stack(VM):
             current_apply = apply_stack.pop()
             current_inputs = current_apply.inputs
             current_outputs = current_apply.outputs
-            current_deps = current_inputs + current_apply.destroy_dependencies
+            current_deps = current_inputs + self.destroy_dependencies[current_apply]
 
             computed_ins = all(compute_map[v][0] for v in current_deps)
             computed_outs = all(compute_map[v][0] for v in current_outputs)
@@ -671,6 +781,8 @@ class Stack(VM):
 
         self.node_cleared_order.append(final_index)
 
+        return self.perform_updates()
+
 
 class VMLinker(LocalLinker):
     """Class that satisfies the `Linker` interface by acting as a `VM` factory.
@@ -697,7 +809,7 @@ class VMLinker(LocalLinker):
         Aesara flag ``vm__lazy`` value. Then if we have a ``None`` (default) we
         auto detect if lazy evaluation is needed and use the appropriate
         version. If `lazy` is ``True`` or ``False``, we force the version used
-        between `Loop`/`LoopGC` and `Stack`.
+        between `Loop` and `Stack`.
     c_thunks
         If ``None`` or ``True``, don't change the default. If ``False``, don't
         compile C code for the thunks.
@@ -768,7 +880,7 @@ class VMLinker(LocalLinker):
 
             TODO: change the logic to remove the reference at the end
             of the call instead of the start. This will request all VM
-            implementation (Loop, LoopGC, Stack, CVM).__call__ to
+            implementation (Loop, Stack, CVM).__call__ to
             return the user outputs as Function.__call__ won't be able
             to find them anymore.
 
@@ -804,9 +916,11 @@ class VMLinker(LocalLinker):
         """Records in the `Linker` which variables have update expressions.
 
         It does not imply that the `Linker` will actually implement these updates
-        (see `need_update_inputs`).  This mechanism is admittedly confusing, and
+        (see `VM.need_update_inputs`).  This mechanism is admittedly confusing, and
         it could use some cleaning up. The base `Linker` object should probably
         go away completely.
+
+        TODO: Remove this after refactoring the `VM`/`Linker` interfaces.
         """
         self.updated_vars = updated_vars
 
@@ -853,6 +967,40 @@ class VMLinker(LocalLinker):
                 dependencies[k] += ls
         return dependencies
 
+    def reduce_storage_allocations(
+        self, storage_map: "StorageMapType", order: Sequence[Apply]
+    ) -> Tuple[Variable, ...]:
+        """Reuse storage cells in a storage map.
+
+        `storage_map` is updated in-place.
+
+        When this feature is used, `storage_map` will no longer have a
+        one-to-one mapping with the original variables, because--for
+        example--some outputs may share storage with intermediate values.
+
+        Returns
+        -------
+        A tuple of the variables that were reallocated.
+
+        """
+        # Collect Reallocation Info
+        compute_map_re: DefaultDict[Variable, List[bool]] = defaultdict(lambda: [False])
+        for var in self.fgraph.inputs:
+            compute_map_re[var][0] = True
+
+        if getattr(self.fgraph.profile, "dependencies", None):
+            dependencies = self.fgraph.profile.dependencies
+        else:
+            dependencies = self.compute_gc_dependencies(storage_map)
+
+        reallocated_info: Dict[Variable, List[Variable]] = calculate_reallocate_info(
+            order, self.fgraph, storage_map, compute_map_re, dependencies
+        )
+        for pair in reallocated_info.values():
+            storage_map[pair[1]] = storage_map[pair[0]]
+
+        return tuple(reallocated_info.keys())
+
     def make_vm(
         self,
         nodes,
@@ -883,12 +1031,12 @@ class VMLinker(LocalLinker):
             if self.use_cloop and (
                 self.callback is not None or self.callback_input is not None
             ):
-                logger.warning("CVM does not support callback, using Stack VM.")
+                warnings.warn("CVM does not support callback, using Stack VM.")
             if self.use_cloop and config.profile_memory:
-                warnings.warn("CVM does not support memory profile, using Stack VM.")
+                warnings.warn("CVM does not support memory profiling, using Stack VM.")
             if not self.use_cloop and self.allow_partial_eval:
                 warnings.warn(
-                    "LoopGC does not support partial evaluation, " "using Stack VM."
+                    "Loop VM does not support partial evaluation, using Stack VM."
                 )
             # Needed for allow_gc=True, profiling and storage_map reuse
             deps = self.compute_gc_dependencies(storage_map)
@@ -898,9 +1046,11 @@ class VMLinker(LocalLinker):
                 thunks,
                 pre_call_clear,
                 storage_map,
+                input_storage,
+                output_storage,
+                updated_vars,
                 compute_map,
                 self.allow_gc,
-                len(updated_vars),
                 dependencies=deps,
                 callback=self.callback,
                 callback_input=self.callback_input,
@@ -1021,7 +1171,7 @@ class VMLinker(LocalLinker):
             if platform.python_implementation() == "CPython" and c0 != sys.getrefcount(
                 node_n_inputs
             ):
-                logger.warning(
+                warnings.warn(
                     "Detected reference count inconsistency after CVM construction"
                 )
         else:
@@ -1032,21 +1182,17 @@ class VMLinker(LocalLinker):
                 lazy = any(th.lazy for th in thunks)
             if not lazy:
                 # there is no conditional in the graph
-                if self.allow_gc:
-                    vm = LoopGC(
-                        self.fgraph,
-                        nodes,
-                        thunks,
-                        pre_call_clear,
-                        post_thunk_clear,
-                    )
-                else:
-                    vm = Loop(
-                        self.fgraph,
-                        nodes,
-                        thunks,
-                        pre_call_clear,
-                    )
+                vm = Loop(
+                    self.fgraph,
+                    nodes,
+                    thunks,
+                    pre_call_clear,
+                    storage_map,
+                    input_storage,
+                    output_storage,
+                    updated_vars,
+                    post_thunk_clear if self.allow_gc else None,
+                )
             else:
                 # Needed when allow_gc=True and profiling
                 deps = self.compute_gc_dependencies(storage_map)
@@ -1056,9 +1202,11 @@ class VMLinker(LocalLinker):
                     thunks,
                     pre_call_clear,
                     storage_map,
+                    input_storage,
+                    output_storage,
+                    updated_vars,
                     compute_map,
                     self.allow_gc,
-                    len(updated_vars),
                     dependencies=deps,
                 )
         return vm
@@ -1082,19 +1230,6 @@ class VMLinker(LocalLinker):
 
         thunks = []
 
-        # Collect Reallocation Info
-        compute_map_re = defaultdict(lambda: [0])
-        for var in fgraph.inputs:
-            compute_map_re[var][0] = 1
-
-        if getattr(fgraph.profile, "dependencies", None):
-            dependencies = fgraph.profile.dependencies
-        else:
-            dependencies = self.compute_gc_dependencies(storage_map)
-
-        reallocated_info = calculate_reallocate_info(
-            order, fgraph, storage_map, compute_map_re, dependencies
-        )
         t0 = time.time()
         linker_make_thunk_time = {}
         impl = None
@@ -1140,8 +1275,9 @@ class VMLinker(LocalLinker):
             or self.callback
             or self.callback_input
         ):
-            for pair in reallocated_info.values():
-                storage_map[pair[1]] = storage_map[pair[0]]
+            reallocated_vars = self.reduce_storage_allocations(storage_map, order)
+        else:
+            reallocated_vars = ()
 
         computed, last_user = gc_helper(order)
         if self.allow_gc:
@@ -1153,7 +1289,7 @@ class VMLinker(LocalLinker):
                         input in computed
                         and input not in fgraph.outputs
                         and node == last_user[input]
-                        and input not in reallocated_info
+                        and input not in reallocated_vars
                     ):
                         clear_after_this_thunk.append(storage_map[input])
                 post_thunk_clear.append(clear_after_this_thunk)
