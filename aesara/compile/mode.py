@@ -7,7 +7,6 @@ import logging
 import warnings
 from typing import Optional, Tuple, Union
 
-import aesara
 from aesara.compile.function.types import Supervisor
 from aesara.configdefaults import config
 from aesara.graph.destroyhandler import DestroyHandler
@@ -441,9 +440,7 @@ class Mode:
 # FunctionMaker, the Mode will be taken from this dictionary using the
 # string as the key
 # Use VM_linker to allow lazy evaluation by default.
-FAST_COMPILE = Mode(
-    aesara.link.vm.VMLinker(use_cloop=False, c_thunks=False), "fast_compile"
-)
+FAST_COMPILE = Mode(VMLinker(use_cloop=False, c_thunks=False), "fast_compile")
 if config.cxx:
     FAST_RUN = Mode("cvm", "fast_run")
 else:
