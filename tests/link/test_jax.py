@@ -315,6 +315,30 @@ def test_jax_basic():
     )
 
 
+@pytest.mark.parametrize("check_finite", [False, True])
+@pytest.mark.parametrize("lower", [False, True])
+@pytest.mark.parametrize("trans", [0, 1, 2])
+def test_jax_SolveTriangular(trans, lower, check_finite):
+    x = matrix("x")
+    b = vector("b")
+
+    out = at_slinalg.solve_triangular(
+        x,
+        b,
+        trans=trans,
+        lower=lower,
+        check_finite=check_finite,
+    )
+    out_fg = FunctionGraph([x, b], [out])
+    compare_jax_and_py(
+        out_fg,
+        [
+            np.eye(10).astype(config.floatX),
+            np.arange(10).astype(config.floatX),
+        ],
+    )
+
+
 @pytest.mark.parametrize(
     "x, y, x_val, y_val",
     [
