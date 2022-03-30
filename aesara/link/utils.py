@@ -4,7 +4,7 @@ import re
 import sys
 import traceback
 import warnings
-from collections import Counter
+from collections import Counter, defaultdict
 from keyword import iskeyword
 from operator import itemgetter
 from tempfile import NamedTemporaryFile
@@ -793,3 +793,22 @@ def {fgraph_name}({", ".join(fgraph_input_names)}):
     )
 
     return fgraph_def
+
+
+def get_destroy_dependencies(fgraph: FunctionGraph) -> Dict[Apply, List[Variable]]:
+    """Construct a ``dict`` of nodes to variables that are implicit dependencies induced by `Op.destroy_map` and `Op.view_map`
+
+    These variable dependencies are in contrast to each node's inputs, which
+    are _explicit_ dependencies.
+
+    The variables in the values of this ``dict`` would be impossible to compute
+    after the current key nodes are evaluated, because node.thunk() is going to
+    destroy a common input variable needed by whatever node owns each variable
+    in destroy_dependencies.
+    """
+    order = fgraph.orderings()
+    destroy_dependencies = defaultdict(lambda: [])
+    for node in fgraph.apply_nodes:
+        for prereq in order.get(node, []):
+            destroy_dependencies[node].extend(prereq.outputs)
+    return destroy_dependencies

@@ -22,6 +22,7 @@ import numpy as np
 import aesara
 from aesara.configdefaults import config
 from aesara.graph.basic import Constant, Variable
+from aesara.link.utils import get_destroy_dependencies
 
 
 logger = logging.getLogger("aesara.compile.profiling")
@@ -1035,12 +1036,14 @@ class ProfileStats:
                     if isinstance(val, Constant):
                         compute_map[val][0] = 1
 
+            destroy_dependencies = get_destroy_dependencies(fgraph)
+
             # Initial executable_nodes
             executable_nodes = set()
             for var in fgraph.inputs:
                 for c, _ in fgraph.clients[var]:
                     if c != "output":
-                        deps = c.inputs + c.destroy_dependencies
+                        deps = c.inputs + destroy_dependencies[c]
                         if all(compute_map[v][0] for v in deps):
                             executable_nodes.add(c)
 
@@ -1163,10 +1166,12 @@ class ProfileStats:
                         # smaller, stop this iteration, move to next node
                         done_dict[frozen_set] = max_mem_count
 
+                        destroy_dependencies = get_destroy_dependencies(fgraph)
+
                         for var in node.outputs:
                             for c, _ in fgraph.clients[var]:
                                 if c != "output":
-                                    deps = c.inputs + c.destroy_dependencies
+                                    deps = c.inputs + destroy_dependencies[c]
                                     if all(compute_map[v][0] for v in deps):
                                         new_exec_nodes.add(c)
 

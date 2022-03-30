@@ -1186,10 +1186,10 @@ def add_vm_configvars():
 
     config.add(
         "vm__lazy",
-        "Useful only for the vm linkers. When lazy is None,"
+        "Useful only for the VM Linkers. When lazy is None,"
         " auto detect if lazy evaluation is needed and use the appropriate"
-        " version. If lazy is True/False, force the version used between"
-        " Loop/LoopGC and Stack.",
+        " version. If the C loop isn't being used and lazy is True, use "
+        "the Stack VM; otherwise, use the Loop VM.",
         ConfigParam("None", apply=_filter_vm_lazy),
         in_c_key=False,
     )

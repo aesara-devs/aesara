@@ -1360,6 +1360,9 @@ def pydotprint(
     # it, we must copy it.
     outputs = list(outputs)
     if isinstance(fct, Function):
+
+        # TODO: Get rid of all this `expanded_inputs` nonsense and use
+        # `fgraph.update_mapping`
         function_inputs = zip(fct.maker.expanded_inputs, fgraph.inputs)
         for i, fg_ii in reversed(list(function_inputs)):
             if i.update is not None:

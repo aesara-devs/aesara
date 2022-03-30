@@ -15,7 +15,7 @@ from aesara.ifelse import ifelse
 from aesara.link.c.basic import OpWiseCLinker
 from aesara.link.c.exceptions import MissingGXX
 from aesara.link.utils import map_storage
-from aesara.link.vm import VM, Loop, LoopGC, Stack, VMLinker
+from aesara.link.vm import VM, Loop, Stack, VMLinker
 from aesara.tensor.math import cosh, tanh
 from aesara.tensor.type import lscalar, scalar, scalars, vector, vectors
 from aesara.tensor.var import TensorConstant
@@ -307,11 +307,6 @@ class RunOnce(Op):
 
 
 def test_vm_gc():
-    # This already caused a bug in the trunk of Aesara.
-    #
-    # The bug was introduced in the trunk on July 5th, 2012 and fixed on
-    # July 30th.
-
     x = vector()
     p = RunOnce()(x)
     mode = Mode(linker=VMLinker(lazy=True))
@@ -445,7 +440,7 @@ def test_VM_exception():
         SomeVM(fg, fg.apply_nodes, [], [])
 
 
-def test_LoopGC_exception():
+def test_Loop_exception():
 
     a = scalar()
     fg = FunctionGraph(outputs=[SomeOp()(a)])
@@ -460,9 +455,99 @@ def test_LoopGC_exception():
     for k in storage_map:
         compute_map[k] = [k.owner is None]
 
-    thunks = [
-        node.op.make_thunk(node, storage_map, compute_map, True) for node in nodes
-    ]
+    thunks = [node.op.make_thunk(node, storage_map, compute_map, []) for node in nodes]
 
     with pytest.raises(ValueError, match="`nodes`, `thunks` and `post_thunk_clear`.*"):
-        LoopGC(fg, fg.apply_nodes, thunks, [], [])
+        Loop(
+            fg,
+            fg.apply_nodes,
+            thunks,
+            [],
+            storage_map,
+            input_storage,
+            output_storage,
+            {},
+            [],
+        )
+
+
+def test_Loop_updates():
+
+    a = scalar("a")
+    a_plus_1 = a + 1
+    fg = FunctionGraph(outputs=[a, a_plus_1], clone=False)
+
+    nodes = fg.toposort()
+    input_storage, output_storage, storage_map = map_storage(
+        fg, nodes, None, None, None
+    )
+
+    compute_map = {}
+    for k in storage_map:
+        compute_map[k] = [k.owner is None]
+
+    thunks = [node.op.make_thunk(node, storage_map, compute_map, []) for node in nodes]
+
+    assert a in storage_map
+
+    update_vars = {a: a_plus_1}
+
+    loop_vm = Loop(
+        fg,
+        fg.apply_nodes,
+        thunks,
+        [],
+        storage_map,
+        input_storage,
+        output_storage,
+        update_vars,
+    )
+
+    storage_map[a][0] = np.array(1.0, dtype=config.floatX)
+
+    res = loop_vm()
+
+    assert res == [np.array(1.0), np.array(2.0)]
+    assert storage_map[a][0] == np.array(2.0)
+
+
+def test_Stack_updates():
+
+    a = scalar("a")
+    a_plus_1 = a + 1
+    fg = FunctionGraph(outputs=[a, a_plus_1], clone=False)
+
+    nodes = fg.toposort()
+    input_storage, output_storage, storage_map = map_storage(
+        fg, nodes, None, None, None
+    )
+
+    compute_map = {}
+    for k in storage_map:
+        compute_map[k] = [k.owner is None]
+
+    thunks = [node.op.make_thunk(node, storage_map, compute_map, []) for node in nodes]
+
+    assert a in storage_map
+
+    update_vars = {a: a_plus_1}
+
+    stack_vm = Stack(
+        fg,
+        fg.apply_nodes,
+        thunks,
+        [],
+        storage_map,
+        input_storage,
+        output_storage,
+        update_vars,
+        compute_map,
+        False,
+    )
+
+    storage_map[a][0] = np.array(1.0, dtype=config.floatX)
+
+    res = stack_vm()
+
+    assert res == [np.array(1.0), np.array(2.0)]
+    assert storage_map[a][0] == np.array(2.0)
