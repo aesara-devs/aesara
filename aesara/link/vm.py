@@ -1197,3 +1197,12 @@ class VMLinker(LocalLinker):
             self.allow_partial_eval = None
         if not hasattr(self, "callback_input"):
             self.callback_input = None
+
+    def __repr__(self):
+        args_str = ", ".join(
+            [
+                f"{name}={getattr(self, name)}"
+                for name in ("use_cloop", "lazy", "allow_partial_eval", "allow_gc")
+            ]
+        )
+        return f"{type(self).__name__}({args_str})"
