@@ -75,7 +75,7 @@ def multMatVect(v, A, m1, B, m2):
     f.input_storage[3].storage[0] = B
     f.input_storage[4].storage[0] = v[3:]
     f.input_storage[5].storage[0] = m2
-    f.fn()
+    f.vm()
     r = f.output_storage[0].storage[0]
 
     return r
@@ -829,7 +829,7 @@ class MRG_RandomStream:
             v = rval[i - 1]
             f.input_storage[1].storage[0] = v[:3]
             f.input_storage[4].storage[0] = v[3:]
-            f.fn()
+            f.vm()
             rval[i] = f.output_storage[0].storage[0]
 
         if inc_rstate:

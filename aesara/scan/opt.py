@@ -751,6 +751,8 @@ def add_nitsot_outputs(
     new_outputs_inner,
 ) -> Tuple[Apply, Dict[Variable, Variable]]:
 
+    assert isinstance(old_scan_node.op, Scan)
+
     nb_new_outs = len(new_outputs_inner)
 
     # Create the initial values for the new nitsot outputs

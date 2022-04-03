@@ -9,7 +9,7 @@ import logging
 import time
 import warnings
 from itertools import chain
-from typing import List, Optional, Tuple, Type
+from typing import TYPE_CHECKING, List, Optional, Tuple, Type
 
 import numpy as np
 
@@ -32,6 +32,10 @@ from aesara.graph.op import HasInnerGraph
 from aesara.graph.utils import InconsistencyError, get_variable_trace_string
 from aesara.link.basic import Container
 from aesara.link.utils import raise_with_op
+
+
+if TYPE_CHECKING:
+    from aesara.link.vm import VM
 
 
 _logger = logging.getLogger("aesara.compile.function.types")
@@ -271,42 +275,45 @@ DUPLICATE = object()
 
 
 class Function:
-    """
-    Type of the functions returned by aesara.function or
-    aesara.FunctionMaker.create.
+    r"""A class that wraps the execution of a `VM` making it easier for use as a "function".
 
     `Function` is the callable object that does computation.  It has the storage
     of inputs and outputs, performs the packing and unpacking of inputs and
     return values. It implements the square-bracket indexing so that you can
     look up the value of a symbolic node.
 
-    Functions are copyable via {{{fn.copy()}}} and {{{copy.copy(fn)}}}.
+    Functions are copyable via `Function.copy` and the `copy.copy` interface.
     When a function is copied, this instance is duplicated. Contrast with
     self.maker (instance of `FunctionMaker`) that is shared between copies.
     The meaning of copying a function is that the containers and their current
     values will all be duplicated. This requires that mutable inputs be
     copied, whereas immutable inputs may be shared between copies.
 
-    A Function instance is hashable, on the basis of its memory
-    address (its id).
-
+    A Function instance is hashable, on the basis of its memory address (its
+    id).
     A Function instance is only equal to itself.
-
     A Function instance may be serialized using the `pickle` or
     `cPickle` modules.  This will save all default inputs, the graph,
     and WRITEME to the pickle file.
 
-    A Function instance have a ``trust_input`` field that default to
-    False. When True, we don't do extra check of the input to give
-    better error message. In some case, python code will still return
-    the good results if you pass a python or numpy scalar instead of a
-    numpy tensor.  C code should raise an error if you pass an object
-    of the wrong type.
+    A `Function` instance has a `Function.trust_input` field that defaults to
+    ``False``. When ``True``, the `Function` will skip all checks on the
+    inputs.
 
     Attributes
     ----------
     finder
+        Dictionary mapping several kinds of things to containers.
+
+        We set an entry in finder for:
+        - the index of the input
+        - the variable instance the input is based on
+        - the name of the input
+
+        All entries map to the container or to DUPLICATE if an ambiguity
+        is detected.
     inv_finder
+        Reverse lookup of `finder`.  It maps containers to `SymbolicInput`\s.
 
     """
 
@@ -321,111 +328,59 @@ class Function:
 
     If the value is 'raise', then an AliasedMemoryError will be raised
     if aliased storage is detected during pickle.dump.
-
-    """
-
-    input_storage = None
-    """
-    List of Container instances.
-
-    """
-
-    output_storage = None
-    """
-    List of Container instances.
-
-    """
-
-    indices = None
-    """
-    List of (SymbolicInput, indices, [SymbolicInput,...]),
-    one tuple for each input.
-
-    The first tuple element is the SymbolicInput object for the corresponding
-    function input.
-
-    The second and third tuple elements are used only by Kits, which
-    are deprecated.
-
-    """
-
-    defaults = None
-    """
-    List of 3-tuples, one 3-tuple for each input.
-
-    Tuple element 0: Bool:  Is this input required at each function call?
-    Tuple element 1: Bool: Should this inputs value be reverted after
-        each call?
-    Tuple element 2: Any:  The value associated with this input.
-
-    """
-
-    unpack_single = None
-    """
-    Bool: for outputs lists of length 1, should the 0'th element be
-    returned directly?
-
-    """
-
-    return_none = None
-    """
-    Bool: whether the function should return None or not.
-
-    """
-
-    maker = None
-    """
-    FunctionMaker instance.
-
-    """
-
-    fn = None
-    """
-    A function that evaluates the graph. Typically a linker's make_thunk method
-    created this function.
-
-    """
-
-    finder = None
-    """
-    Dictionary mapping several kinds of things to containers.
-
-    We set an entry in finder for:
-
-    - the index of the input
-
-    - the variable instance the input is based on
-
-    - the name of the input
-
-    All entries map to the container or to DUPLICATE if an ambiguity
-    is detected.
-
-    """
-
-    inv_finder = None
-    """
-    Dict. Reverse lookup of `finder`.
-
-    It maps container -> SymbolicInput
-
     """
 
     def __init__(
         self,
-        fn,
+        vm: "VM",
         input_storage,
         output_storage,
         indices,
         outputs,
         defaults,
-        unpack_single,
-        return_none,
+        unpack_single: bool,
+        return_none: bool,
         output_keys,
-        maker,
-        name=None,
+        maker: "FunctionMaker",
+        name: Optional[str] = None,
     ):
-        self.fn = fn
+        """
+        Parameters
+        ----------
+        vm
+            A `VM` instance that evaluates the graph when called.
+        input_storage
+            List of storage cells for each input.
+        output_storage
+            List of storage cells for each output.
+        indices
+            List of ``(SymbolicInput, indices, [SymbolicInput,...])``, one
+            tuple for each input.  The first tuple element is the `SymbolicInput`
+            object for the corresponding function input.  The second and third
+            tuple elements are used only by Kits, which are deprecated.
+        outputs
+            TODO
+        defaults
+            List of 3-tuples, one 3-tuple for each input.
+            Tuple element 0: ``bool``.  Is this input required at each function
+            call?
+            Tuple element 1: ``bool``.  Should this inputs value be reverted
+            after each call?
+            Tuple element 2: ``Any``.  The value associated with this input.
+        unpack_single
+            For outputs lists of length 1, should the 0'th element be
+            returned directly?
+        return_none
+            Whether the function should return ``None`` or not.
+        output_keys
+            TODO
+        maker
+            The `FunctionMaker` that created this instance.
+        name
+            A string name.
+        """
+        # TODO: Rename to `vm`
+        self.vm = vm
         self.input_storage = input_storage
         self.output_storage = output_storage
         self.indices = indices
@@ -441,7 +396,7 @@ class Function:
         self.output_keys = output_keys
 
         # See if we have any mutable / borrow inputs
-        # TODO: this only need to be set if there is more then 1 input
+        # TODO: this only need to be set if there is more than one input
         self._check_for_aliased_inputs = False
         for i in maker.inputs:
             # If the input is a shared variable, the memory region is
@@ -575,7 +530,7 @@ class Function:
         # TODO: Get rid of all this `expanded_inputs` nonsense
         assert len(self.maker.expanded_inputs) == len(self.input_storage)
 
-        # This is used only when `fn.need_update_inputs` is `False`, because
+        # This is used only when `vm.need_update_inputs` is `False`, because
         # we're using one of the VM objects and it is putting updates back into
         # the input containers all by itself.
         self.n_returned_outputs = len(self.output_storage) - sum(
@@ -752,7 +707,7 @@ class Function:
 
         # Construct new storage_map that map new variable to old storage,
         # so that the ensuing function shares storage with the original one
-        storage_map = self.fn.storage_map
+        storage_map = self.vm.storage_map
         new_storage_map = {}
         # TODO: We could share the output storage, but we must make sure
         # 2 different function call won't override each other values. This
@@ -1015,24 +970,24 @@ class Function:
         t0_fn = time.time()
         try:
             outputs = (
-                self.fn()
+                self.vm()
                 if output_subset is None
-                else self.fn(output_subset=output_subset)
+                else self.vm(output_subset=output_subset)
             )
         except Exception:
             restore_defaults()
-            if hasattr(self.fn, "position_of_error"):
+            if hasattr(self.vm, "position_of_error"):
                 # this is a new vm-provided function or c linker
                 # they need this because the exception manipulation
                 # done by raise_with_op is not implemented in C.
                 thunk = None
-                if hasattr(self.fn, "thunks"):
-                    thunk = self.fn.thunks[self.fn.position_of_error]
+                if hasattr(self.vm, "thunks"):
+                    thunk = self.vm.thunks[self.vm.position_of_error]
                 raise_with_op(
                     self.maker.fgraph,
-                    node=self.fn.nodes[self.fn.position_of_error],
+                    node=self.vm.nodes[self.vm.position_of_error],
                     thunk=thunk,
-                    storage_map=getattr(self.fn, "storage_map", None),
+                    storage_map=getattr(self.vm, "storage_map", None),
                 )
             else:
                 # old-style linkers raise their own exceptions
@@ -1056,7 +1011,7 @@ class Function:
 
         # if we are allowing garbage collection, remove the
         # output reference from the internal storage cells
-        if getattr(self.fn, "allow_gc", False):
+        if getattr(self.vm, "allow_gc", False):
             assert len(self.output_storage) == len(self.maker.fgraph.outputs)
             for o_container, o_variable in zip(
                 self.output_storage, self.maker.fgraph.outputs
@@ -1068,7 +1023,7 @@ class Function:
 
         # TODO: Get rid of this and `expanded_inputs`, since all the VMs now
         # perform the updates themselves
-        if getattr(self.fn, "need_update_inputs", True):
+        if getattr(self.vm, "need_update_inputs", True):
             # Update the inputs that have an update function
             for input, storage in reversed(
                 list(zip(self.maker.expanded_inputs, self.input_storage))
@@ -1092,8 +1047,8 @@ class Function:
         if profile:
             profile.fct_callcount += 1
             profile.fct_call_time += dt_call
-            if hasattr(self.fn, "update_profile"):
-                self.fn.update_profile(profile)
+            if hasattr(self.vm, "update_profile"):
+                self.vm.update_profile(profile)
             if profile.ignore_first_call:
                 profile.reset()
                 profile.ignore_first_call = False
@@ -1137,10 +1092,10 @@ class Function:
         """
         # 1.no allow_gc return False
         # 2.has allow_gc, if allow_gc is False, return True
-        if not getattr(self.fn, "allow_gc", True):
-            for key in self.fn.storage_map:
+        if not getattr(self.vm, "allow_gc", True):
+            for key in self.vm.storage_map:
                 if not isinstance(key, Constant):
-                    self.fn.storage_map[key][0] = None
+                    self.vm.storage_map[key][0] = None
 
             for node in self.nodes_with_inner_function:
                 if hasattr(node.fn, "free"):

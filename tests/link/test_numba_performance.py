@@ -52,11 +52,11 @@ def test_careduce_performance(careduce_fn, numpy_fn, axis, inputs, input_vals):
 
     assert np.array_equal(numba_res, numpy_res)
 
-    # FYI: To test the Numba JITed function directly, use `aesara_numba_fn.fn.jit_fn`
+    # FYI: To test the Numba JITed function directly, use `aesara_numba_fn.vm.jit_fn`
 
     numpy_timer = timeit.Timer("numpy_fn(*input_vals)", "pass", globals=locals())
     numba_timer = timeit.Timer(
-        "aesara_numba_fn.fn.jit_fn(*input_vals)", "pass", globals=locals()
+        "aesara_numba_fn.vm.jit_fn(*input_vals)", "pass", globals=locals()
     )
     # c_timer = timeit.Timer("aesara_c_fn(*input_vals)", "pass", globals=locals())
 

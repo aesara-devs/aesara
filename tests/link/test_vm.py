@@ -86,7 +86,7 @@ def test_use_c_thunks():
             ),
         )
         assert np.array_equal(a * b, f(a, b))
-        assert any(hasattr(t, "cthunk") for t in f.fn.thunks) == use_c_thunks
+        assert any(hasattr(t, "cthunk") for t in f.vm.thunks) == use_c_thunks
 
 
 @pytest.mark.skipif(
@@ -215,9 +215,9 @@ def test_partial_function(linker):
     if linker == "cvm":
         from aesara.link.c.cvm import CVM
 
-        assert isinstance(f.fn, CVM)
+        assert isinstance(f.vm, CVM)
     else:
-        assert isinstance(f.fn, Stack)
+        assert isinstance(f.vm, Stack)
 
     assert f(3, output_subset=[0, 1, 2]) == f(3)
     assert f(4, output_subset=[0, 2]) == [f(4)[0], f(4)[2]]
@@ -277,17 +277,17 @@ def test_allow_gc_cvm():
 
     f([1])
     n = list(f.maker.fgraph.apply_nodes)[0].outputs[0]
-    assert f.fn.storage_map[n][0] is None
-    assert f.fn.allow_gc is True
+    assert f.vm.storage_map[n][0] is None
+    assert f.vm.allow_gc is True
 
-    f.fn.allow_gc = False
-    assert f.fn.allow_gc is False
+    f.vm.allow_gc = False
+    assert f.vm.allow_gc is False
     f([1])
-    assert f.fn.storage_map[n][0] is not None
-    f.fn.allow_gc = True
-    assert f.fn.allow_gc is True
+    assert f.vm.storage_map[n][0] is not None
+    f.vm.allow_gc = True
+    assert f.vm.allow_gc is True
     f([1])
-    assert f.fn.storage_map[n][0] is None
+    assert f.vm.storage_map[n][0] is None
 
 
 class RunOnce(Op):
@@ -334,7 +334,7 @@ def test_reallocation():
         f = function([x, y], z, name="test_reduce_memory", mode=m)
         output = f(1, 2)
         assert output
-        storage_map = f.fn.storage_map
+        storage_map = f.vm.storage_map
 
         def check_storage(storage_map):
             for i in storage_map:
@@ -365,8 +365,8 @@ def test_no_recycling():
         mode = Mode(optimizer="fast_compile", linker=lnk)
         f = function([x], x + 1, mode=mode)
         f2 = function([x], (x + 1) * 2, mode=mode)
-        m1 = f.fn.thunks[0].thunk.module
-        m2 = f2.fn.thunks[0].thunk.module
+        m1 = f.vm.thunks[0].thunk.module
+        m2 = f2.vm.thunks[0].thunk.module
         assert m1 is m2
 
 
@@ -381,7 +381,7 @@ def test_VMLinker_make_vm_cvm():
     linker = VMLinker(allow_gc=False, use_cloop=True)
 
     f = function([a], a, mode=Mode(optimizer=None, linker=linker))
-    assert isinstance(f.fn, CVM)
+    assert isinstance(f.vm, CVM)
 
 
 def test_VMLinker_make_vm_no_cvm():
@@ -405,7 +405,7 @@ def test_VMLinker_make_vm_no_cvm():
                 import aesara.link.c.cvm
 
             f = function([a], a, mode=Mode(optimizer=None, linker=linker))
-            assert isinstance(f.fn, Loop)
+            assert isinstance(f.vm, Loop)
 
 
 def test_VMLinker_exception():

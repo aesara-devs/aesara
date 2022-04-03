@@ -1594,8 +1594,8 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
             from aesara.scan.utils import InnerFunctionError
 
             # TODO: Extract `Capsule` object and use that
-            # c_thunk = getattr(self.fn.fn.thunks[0], "cthunk", None)
-            # if len(self.fn.fn.thunks) == 1 and c_thunk:
+            # c_thunk = getattr(self.fn.vm.thunks[0], "cthunk", None)
+            # if len(self.fn.vm.thunks) == 1 and c_thunk:
             #     thunk_capsule = c_thunk.cthunk
             #     # We need to perform the following after calling
             #     # the thunk function:
@@ -1633,20 +1633,20 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
                         outputs,
                         outer_output_dtypes,
                         outer_output_ndims,
-                        self.fn.fn,
+                        self.fn.vm,
                     )
                 except InnerFunctionError as exc:
                     exc_type = type(exc.args[0])
                     exc_value = exc.args[0]
                     exc_trace = exc.args[1]
 
-                    if hasattr(self.fn.fn, "position_of_error") and hasattr(
-                        self.fn.fn, "thunks"
+                    if hasattr(self.fn.vm, "position_of_error") and hasattr(
+                        self.fn.vm, "thunks"
                     ):
                         raise_with_op(
                             self.fn.maker.fgraph,
-                            self.fn.fn.nodes[self.fn.fn.position_of_error],
-                            self.fn.fn.thunks[self.fn.fn.position_of_error],
+                            self.fn.vm.nodes[self.fn.vm.position_of_error],
+                            self.fn.vm.thunks[self.fn.vm.position_of_error],
                             exc_info=(exc_type, exc_value, exc_trace),
                         )
                     else:
@@ -1661,8 +1661,8 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
                         profile.callcount += 1
                         profile.nbsteps += n_steps
                         profile.call_time += t_call
-                        if hasattr(self.fn.fn, "update_profile"):
-                            self.fn.fn.update_profile(profile)
+                        if hasattr(self.fn.vm, "update_profile"):
+                            self.fn.vm.update_profile(profile)
 
         except (ImportError, MissingGXX):
             p = self.perform
@@ -1795,7 +1795,7 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
         inner_output_storage = self.fn.output_storage
         old_inner_output_storage = [None] * len(inner_output_storage)
         old_inner_output_data = [None] * len(inner_output_storage)
-        fn = self.fn.fn
+        vm = self.fn.vm
         offset = (
             info.n_seqs
             + sum(
@@ -1938,18 +1938,18 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
             t0_fn = time.time()
 
             try:
-                fn()
+                vm()
             except Exception:
-                if hasattr(fn, "position_of_error"):
+                if hasattr(vm, "position_of_error"):
                     # this is a new vm-provided function or c linker
                     # they need this because the exception manipulation
                     # done by raise_with_op is not implemented in C.
-                    if hasattr(fn, "thunks"):
+                    if hasattr(vm, "thunks"):
                         # For the CVM
                         raise_with_op(
                             self.fn.maker.fgraph,
-                            fn.nodes[fn.position_of_error],
-                            fn.thunks[fn.position_of_error],
+                            vm.nodes[vm.position_of_error],
+                            vm.thunks[vm.position_of_error],
                         )
                     else:
                         # For the c linker
@@ -1957,7 +1957,7 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
                         # temps values So for now, we just don't print
                         # the extra shapes/strides info
                         raise_with_op(
-                            self.fn.maker.fgraph, fn.nodes[fn.position_of_error]
+                            self.fn.maker.fgraph, vm.nodes[vm.position_of_error]
                         )
                 else:
                     # old-style linkers raise their own exceptions
@@ -2200,8 +2200,8 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
             profile.nbsteps += n_steps
             profile.call_time += t_call
             profile.vm_call_time += t_fn
-            if hasattr(self.fn.fn, "update_profile"):
-                self.fn.fn.update_profile(profile)
+            if hasattr(self.fn.vm, "update_profile"):
+                self.fn.vm.update_profile(profile)
 
         self.t_call = t_call
         self.t_fn = t_fn

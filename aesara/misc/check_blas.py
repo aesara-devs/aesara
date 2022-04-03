@@ -59,7 +59,7 @@ def execute(execute=True, verbose=True, M=2000, N=2000, K=2000, iters=10, order=
     if any(x.op.__class__.__name__ == "Gemm" for x in f.maker.fgraph.toposort()):
         c_impl = [
             hasattr(thunk, "cthunk")
-            for node, thunk in zip(f.fn.nodes, f.fn.thunks)
+            for node, thunk in zip(f.vm.nodes, f.vm.thunks)
             if node.op.__class__.__name__ == "Gemm"
         ]
         assert len(c_impl) == 1

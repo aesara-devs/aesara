@@ -140,9 +140,9 @@ Running the above code generates the following error message:
       File "test1.py", line 31, in <module>
         f(np.random.random((5, 10)))
       File "PATH_TO_AESARA/aesara/compile/function/types.py", line 605, in __call__
-        self.fn.thunks[self.fn.position_of_error])
+        self.vm.thunks[self.vm.position_of_error])
       File "PATH_TO_AESARA/aesara/compile/function/types.py", line 595, in __call__
-        outputs = self.fn()
+        outputs = self.vm()
     ValueError: Shape mismatch: x has 10 cols (and 5 rows) but y has 20 rows (and 10 cols)
     Apply node that caused the error: Dot22(x, DimShuffle{1,0}.0)
     Inputs types: [TensorType(float64, (None, None)), TensorType(float64, (None, None))]

@@ -217,7 +217,7 @@ class ProfileStats:
     #
 
     vm_call_time = 0.0
-    # Total time spent in Function.fn.__call__
+    # Total time spent in Function.vm.__call__
     #
 
     apply_time = None
@@ -781,7 +781,7 @@ class ProfileStats:
         )
         if self.fct_call_time > 0:
             print(
-                f"  Time in Function.fn.__call__: {self.vm_call_time}s ({100 * self.vm_call_time / self.fct_call_time:.3f}%)",
+                f"  Time in Function.vm.__call__: {self.vm_call_time}s ({100 * self.vm_call_time / self.fct_call_time:.3f}%)",
                 file=file,
             )
             local_time = sum(self.apply_time.values())

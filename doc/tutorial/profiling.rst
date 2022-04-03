@@ -52,8 +52,8 @@ function. aesara.function() has an optional parameter ``name`` that
 defaults to None. Change it to something else to help you profile many
 Aesara functions. In that section, we also see the number of times the
 function was called (1) and the total time spent in all those
-calls. The time spent in Function.fn.__call__ and in thunks is useful
-to understand Aesara overhead.
+calls. The time spent in :meth:`Function.vm.__call__` and in thunks is useful
+to understand Aesara's overhead.
 
 Also, we see the time spent in the two parts of the compilation
 process: optimization (modify the graph to make it more stable/faster)
