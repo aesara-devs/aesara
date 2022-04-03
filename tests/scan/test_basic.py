@@ -2702,8 +2702,8 @@ def test_profile_info():
     assert profile.callcount == 0
     assert profile.nbsteps == 0
     assert profile.call_time == 0.0
-    assert fn.fn.call_times == [0.0]
-    assert fn.fn.call_counts == [0]
+    assert fn.vm.call_times == [0.0]
+    assert fn.vm.call_counts == [0]
 
     z_fn = function([], z)
 
@@ -2716,8 +2716,8 @@ def test_profile_info():
 
     # Confirm that `VM.update_profile` was called
     assert profile.apply_time
-    assert fn.fn.call_times == [0.0]
-    assert fn.fn.call_counts == [0]
+    assert fn.vm.call_times == [0.0]
+    assert fn.vm.call_counts == [0]
 
 
 class TestExamples:

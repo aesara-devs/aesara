@@ -222,7 +222,7 @@ def debugprint(
             results_to_print.extend(obj.maker.fgraph.outputs)
             profile_list.extend([obj.profile for item in obj.maker.fgraph.outputs])
             if print_storage:
-                smap.extend([obj.fn.storage_map for item in obj.maker.fgraph.outputs])
+                smap.extend([obj.vm.storage_map for item in obj.maker.fgraph.outputs])
             else:
                 smap.extend([None for item in obj.maker.fgraph.outputs])
             topo = obj.maker.fgraph.toposort()

@@ -1139,9 +1139,9 @@ def clone_replace(
 
     Parameters
     ----------
-    output : Aesara Variables (or Aesara expressions)
+    output
         Aesara expression that represents the computational graph.
-    replace : dict
+    replace
         Dictionary describing which subgraphs should be replaced by what.
     rebuild_kwds
         Keywords to `rebuild_collect_shared`.

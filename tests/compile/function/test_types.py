@@ -346,8 +346,8 @@ class TestFunction:
             cpy = ori.copy(share_memory=True)
 
             # Test if memories shared
-            storage_map_ori = ori.fn.storage_map
-            storage_map_cpy = cpy.fn.storage_map
+            storage_map_ori = ori.vm.storage_map
+            storage_map_cpy = cpy.vm.storage_map
             fgraph_cpy = cpy.maker.fgraph
 
             # Assert intermediate and Constants storages are shared.
@@ -424,11 +424,11 @@ class TestFunction:
             # 2. SharedVariable is updatable -> values did update(z == 5)
             # 1. sharedvariable is swap ->  Rpl sharedvariables share storage
             names = map_SV.keys()
-            for key in cpy.fn.storage_map:
+            for key in cpy.vm.storage_map:
                 if key.name in names:
                     assert (
                         map_SV[key.name].container.storage[0]
-                        == cpy.fn.storage_map[key][0]
+                        == cpy.vm.storage_map[key][0]
                     )
 
             second_time = True
@@ -688,18 +688,18 @@ class TestFunction:
 
         x = vector("x")
         func = function([x], x + 1)
-        func.fn.allow_gc = False
+        func.vm.allow_gc = False
         func([1])
 
         check_list = []
-        for key, val in func.fn.storage_map.items():
+        for key, val in func.vm.storage_map.items():
             if not isinstance(key, Constant):
                 check_list.append(val)
         assert any(val[0] for val in check_list)
 
         func.free()
 
-        for key, val in func.fn.storage_map.items():
+        for key, val in func.vm.storage_map.items():
             if not isinstance(key, Constant):
                 assert val[0] is None
 

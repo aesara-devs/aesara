@@ -141,8 +141,8 @@ with
 
 Also, for small Aesara functions, you can remove more Python overhead by
 making an Aesara function that does not take any input. You can use shared
-variables to achieve this. Then you can call it like this: ``f.fn()`` or
-``f.fn(n_calls=N)`` to speed it up. In the last case, only the last
+variables to achieve this. Then you can call it like this: ``f.vm()`` or
+``f.vm(n_calls=N)`` to speed it up. In the last case, only the last
 function output (out of N calls) is returned.
 
 You can also use the ``C`` linker that will put all nodes in the same C

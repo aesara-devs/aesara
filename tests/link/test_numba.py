@@ -3505,7 +3505,7 @@ def test_config_options_parallel():
 
     with config.change_flags(numba__vectorize_target="parallel"):
         aesara_numba_fn = function([x], x * 2, mode=numba_mode)
-        numba_mul_fn = aesara_numba_fn.fn.jit_fn.py_func.__globals__["mul"]
+        numba_mul_fn = aesara_numba_fn.vm.jit_fn.py_func.__globals__["mul"]
         assert numba_mul_fn.targetoptions["parallel"] is True
 
 
@@ -3514,7 +3514,7 @@ def test_config_options_fastmath():
 
     with config.change_flags(numba__fastmath=True):
         aesara_numba_fn = function([x], x * 2, mode=numba_mode)
-        numba_mul_fn = aesara_numba_fn.fn.jit_fn.py_func.__globals__["mul"]
+        numba_mul_fn = aesara_numba_fn.vm.jit_fn.py_func.__globals__["mul"]
         assert numba_mul_fn.targetoptions["fastmath"] is True
 
 
@@ -3523,12 +3523,12 @@ def test_config_options_cached():
 
     with config.change_flags(numba__cache=True):
         aesara_numba_fn = function([x], x * 2, mode=numba_mode)
-        numba_mul_fn = aesara_numba_fn.fn.jit_fn.py_func.__globals__["mul"]
+        numba_mul_fn = aesara_numba_fn.vm.jit_fn.py_func.__globals__["mul"]
         assert not isinstance(
             numba_mul_fn._dispatcher.cache, numba.core.caching.NullCache
         )
 
     with config.change_flags(numba__cache=False):
         aesara_numba_fn = function([x], x * 2, mode=numba_mode)
-        numba_mul_fn = aesara_numba_fn.fn.jit_fn.py_func.__globals__["mul"]
+        numba_mul_fn = aesara_numba_fn.vm.jit_fn.py_func.__globals__["mul"]
         assert isinstance(numba_mul_fn._dispatcher.cache, numba.core.caching.NullCache)

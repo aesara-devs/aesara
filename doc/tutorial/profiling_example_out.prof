@@ -2,7 +2,7 @@ Function profiling
 ==================
   Message: None
   Time in 1 calls to Function.__call__: 5.698204e-05s
-  Time in Function.fn.__call__: 1.192093e-05s (20.921%)
+  Time in Function.vm.__call__: 1.192093e-05s (20.921%)
   Time in thunks: 6.198883e-06s (10.879%)
   Total compile time: 3.642474e+00s
     Aesara Optimizer time: 7.326508e-02s
