@@ -7,30 +7,29 @@ Profiling Aesara function
 
 .. note::
 
-    This method replace the old ProfileMode. Do not use ProfileMode
+    This method replaces the old `ProfileMode`. Do not use `ProfileMode`
     anymore.
 
-Besides checking for errors, another important task is to profile your
-code in terms of speed and/or memory usage.
+Besides checking for errors, another important task is to profile your code in
+terms of speed and/or memory usage.  You can profile your functions using either
+of the following two options:
 
-You can profile your
-functions using either of the following two options:
-
-
-1. Use Aesara flag :attr:`config.profile` to enable profiling.
+1. Use the Aesara flag :attr:`config.profile` to enable profiling.
     - To enable the memory profiler use the Aesara flag:
       :attr:`config.profile_memory` in addition to :attr:`config.profile`.
-    - Moreover, to enable the profiling of Aesara optimization phase,
+    - Moreover, to enable the profiling of Aesara optimization phases,
       use the Aesara flag: :attr:`config.profile_optimizer` in addition
       to :attr:`config.profile`.
     - You can also use the Aesara flags :attr:`profiling__n_apply`,
       :attr:`profiling__n_ops` and :attr:`profiling__min_memory_size`
       to modify the quantity of information printed.
 
-2. Pass the argument :attr:`profile=True` to the function :func:`aesara.function <function.function>`. And then call :attr:`f.profile.summary()` for a single function.
+2. Pass the argument :attr:`profile=True` to the function :func:`aesara.function
+   <function.function>` and then call :attr:`f.profile.summary()` for a single
+   function.
     - Use this option when you want to profile not all the
-      functions but one or more specific function(s).
-    - You can also combine the profile of many functions:
+      functions but only one or more specific function(s).
+    - You can also combine the profile results of many functions:
 
       .. doctest::
           :hide:
@@ -43,48 +42,45 @@ functions using either of the following two options:
 
 
 
-The profiler will output one profile per Aesara function and profile
-that is the sum of the printed profiles. Each profile contains 4
-sections: global info, class info, Ops info and Apply node info.
+The profiler will output one profile per Aesara function and produce a profile
+that is the sum of the printed profiles. Each profile contains four sections:
+global info, class info, `Op`\s info and `Apply` node info.
 
 In the global section, the "Message" is the name of the Aesara
-function. aesara.function() has an optional parameter ``name`` that
-defaults to None. Change it to something else to help you profile many
+function. :func:`aesara.function` has an optional parameter ``name`` that
+defaults to ``None``. Change it to something else to help profile many
 Aesara functions. In that section, we also see the number of times the
 function was called (1) and the total time spent in all those
 calls. The time spent in :meth:`Function.vm.__call__` and in thunks is useful
 to understand Aesara's overhead.
 
-Also, we see the time spent in the two parts of the compilation
-process: optimization (modify the graph to make it more stable/faster)
-and the linking (compile c code and make the Python callable returned
-by function).
+Also, we see the time spent in the two parts of the compilation process:
+optimization (i.e. modifying the graph to make it more stable/faster) and the
+linking (i.e. compile C code and make the Python callable returned by
+:func:`aesara.function`).
 
-The class, Ops and Apply nodes sections are the same information:
-information about the Apply node that ran. The Ops section takes the
-information from the Apply section and merge the Apply nodes that have
-exactly the same op. If two Apply nodes in the graph have two Ops that
-compare equal, they will be merged. Some Ops like Elemwise, will not
-compare equal, if their parameters differ (the scalar being
-executed). So the class section will merge more Apply nodes then the
-Ops section.
+The class, `Op`\s and `Apply` nodes sections have the same information: i.e.
+information about the `Apply` nodes that ran. The `Op`\s section takes the
+information from the `Apply` section and merges it with the `Apply` nodes that have
+exactly the same `Op`. If two `Apply` nodes in the graph have two `Op`\s that
+compare equal, they will be merged. Some `Op`\s, like `Elemwise`, will not
+compare equal if their parameters differ, so the class section will merge more
+`Apply` nodes than the `Op`\s section.
 
-Note that the profile also shows which Ops were running a c implementation.
+Note that the profile also shows which `Op`\s were run with C
+implementation.
 
 Developers wishing to optimize the performance of their graph should
-focus on the worst offending Ops and Apply nodes – either by optimizing
+focus on the worst offending `Op`\s and `Apply` nodes--either by optimizing
 an implementation, providing a missing C implementation, or by writing
-a graph optimization that eliminates the offending Op altogether.
-You should strongly consider emailing one of our lists about your
-issue before spending too much time on this.
+a graph optimization that eliminates the offending `Op` altogether.
 
-Here is an example output when we disable some Aesara optimizations to
-give you a better idea of the difference between sections. With all
-optimizations enabled, there would be only one op left in the graph.
+Here is some example output when some Aesara optimizations are disabled. With
+all optimizations enabled, there would be only one `Op` left in the graph.
 
-to run the example:
+To run the example:
 
-  AESARA_FLAGS=optimizer_excluding=fusion:inplace,profile=True python doc/tutorial/profiling_example.py
+    AESARA_FLAGS=optimizer_excluding=fusion:inplace,profile=True python doc/tutorial/profiling_example.py
 
 The output:
 
