@@ -176,6 +176,7 @@ def get_scalar_constant_value(v):
 
 # isort: off
 import aesara.tensor.random.var
+import aesara.sparse
 from aesara.scan import checkpoints
 from aesara.scan.basic import scan
 from aesara.scan.views import foldl, foldr, map, reduce
