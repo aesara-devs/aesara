@@ -37,6 +37,7 @@ from aesara.tensor.blas import BatchedDot
 from aesara.tensor.elemwise import CAReduce, DimShuffle, Elemwise
 from aesara.tensor.extra_ops import (
     Bartlett,
+    BroadcastTo,
     CumOp,
     DiffOp,
     FillDiagonal,
@@ -1157,3 +1158,11 @@ def jax_funcify_Psi(op, node, **kwargs):
         return jax.scipy.special.digamma(x)
 
     return psi
+
+
+@jax_funcify.register(BroadcastTo)
+def jax_funcify_BroadcastTo(op, **kwargs):
+    def broadcast_to(x, *shape):
+        return jnp.broadcast_to(x, shape)
+
+    return broadcast_to
