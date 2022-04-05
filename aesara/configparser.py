@@ -27,7 +27,7 @@ class AesaraConfigWarning(Warning):
 
 
 class ConfigAccessViolation(AttributeError):
-    """ Raised when a config setting is accessed through the wrong config instance. """
+    """Raised when a config setting is accessed through the wrong config instance."""
 
 
 class _ChangeFlagsDecorator:
@@ -87,7 +87,7 @@ class _SectionRedirect:
 
 
 class AesaraConfigParser:
-    """ Object that holds configuration settings. """
+    """Object that holds configuration settings."""
 
     def __init__(self, flags_dict: dict, aesara_cfg, aesara_raw_cfg):
         self._flags_dict = flags_dict

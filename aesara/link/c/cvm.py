@@ -18,7 +18,6 @@ try:
             # skip VM.__init__
             CLazyLinker.__init__(self, *args, **kwargs)
 
-
 except ImportError:
     pass
 except (OSError, MissingGXX):

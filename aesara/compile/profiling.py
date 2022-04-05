@@ -186,7 +186,7 @@ class ProfileStats:
     """
 
     def reset(self):
-        """ Ignore previous function call"""
+        """Ignore previous function call"""
         # self.compile_time = 0.
         self.fct_call_time = 0.0
         self.fct_callcount = 0

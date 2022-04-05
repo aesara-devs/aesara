@@ -18,13 +18,13 @@ from tests import unittest_tools as utt
 class TestScipy:
     def test_scipy_paper_example1(self):
         a = vector("a")  # declare variable
-        b = a + a ** 10  # build expression
+        b = a + a**10  # build expression
         f = function([a], b)  # compile function
         assert np.all(f([0, 1, 2]) == np.array([0, 2, 1026]))
 
     @config.change_flags(floatX="float64")
     def test_scipy_paper_example2(self):
-        """ This just sees if things compile well and if they run """
+        """This just sees if things compile well and if they run"""
         rng = numpy.random.default_rng(utt.fetch_seed())
 
         x = matrix()
@@ -36,7 +36,7 @@ class TestScipy:
         p_1 = 1 / (1 + exp(-dot(x, w) - b))
         xent = -y * log(p_1) - (1 - y) * log(1 - p_1)
         prediction = p_1 > 0.5
-        cost = xent.mean() + 0.01 * (w ** 2).sum()
+        cost = xent.mean() + 0.01 * (w**2).sum()
         gw, gb = grad(cost, [w, b])
 
         # Compile expressions to functions

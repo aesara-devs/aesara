@@ -123,7 +123,7 @@ class TestDictionaryOutput:
             function([x], outputs={1.0: x})
 
         with pytest.raises(AssertionError):
-            function([x], outputs={1.0: x, "a": x ** 2})
+            function([x], outputs={1.0: x, "a": x**2})
 
         with pytest.raises(AssertionError):
-            function([x], outputs={(1, "b"): x, 1.0: x ** 2})
+            function([x], outputs={(1, "b"): x, 1.0: x**2})

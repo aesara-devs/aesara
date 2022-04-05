@@ -1139,7 +1139,7 @@ def local_sum_prod_mul_by_scalar(fgraph, node):
             # the power of the number of elements in the input to the `Prod`
             if isinstance(node.op, Prod) and new_op_input_nb_elements != 1:
 
-                scalars = [s ** new_op_input_nb_elements for s in scalars]
+                scalars = [s**new_op_input_nb_elements for s in scalars]
 
             # Scale the output of the op by the scalars and return as
             # replacement for the original output
@@ -1376,7 +1376,7 @@ def local_useless_elemwise_comparison(fgraph, node):
         """
 
     def investigate(node):
-        " Return True if values will be shapes, so >= 0"
+        "Return True if values will be shapes, so >= 0"
         if isinstance(node.op, (Shape, Shape_i)):
             return True
         elif isinstance(node.op, Subtensor) and node.inputs[0].owner:
@@ -1649,7 +1649,7 @@ def local_reduce_join(fgraph, node):
 @register_useless("local_cut_useless_reduce")
 @local_optimizer(ALL_REDUCE)
 def local_useless_reduce(fgraph, node):
-    """Sum(a, axis=[]) -> a  """
+    """Sum(a, axis=[]) -> a"""
     if isinstance(node.op, CAReduce):
         (summed,) = node.inputs
         # if reduce were doing anything, the output ndim would be reduced
@@ -1733,7 +1733,7 @@ def local_opt_alloc(fgraph, node):
                     if isinstance(node.op, Sum):
                         val = val * size
                     else:
-                        val = val ** size
+                        val = val**size
                     # Sum can change the input dtype (upcast or bool
                     # -> float32) by default or by user request.
                     # We can ignore the acc_dtype, as there is only 1
@@ -1749,7 +1749,7 @@ def local_opt_alloc(fgraph, node):
                     if isinstance(node.op, Sum):
                         val *= size
                     else:
-                        val = val ** size
+                        val = val**size
                 # See comments above.
                 val = val.astype(node.outputs[0].dtype)
                 return [
@@ -1980,7 +1980,7 @@ def local_pow_specialize_device(fgraph, node):
                     else:
                         rval1 = pow2[log_to_do]
                         rval1_scal = pow2_scal[log_to_do]
-                    y_to_do -= 2 ** log_to_do
+                    y_to_do -= 2**log_to_do
 
                 if abs(y) > 2:
                     # We fuse all the pow together here to make
@@ -2130,7 +2130,7 @@ mul_canonizer = in2out(
 
 
 def check_for_x_over_absX(numerators, denominators):
-    """Convert x/abs(x) into sign(x). """
+    """Convert x/abs(x) into sign(x)."""
     # TODO: this function should dig/search through dimshuffles
     # This won't catch a dimshuffled absolute value
     for den in list(denominators):
@@ -2644,10 +2644,10 @@ def local_log_erfc(fgraph, node):
 
     x = node.inputs[0].owner.inputs[0]
     stab_value = (
-        -(x ** 2)
+        -(x**2)
         - log(x)
         - 0.5 * log(np.pi)
-        + log(1 - 1 / (2 * x ** 2) + 3 / (4 * x ** 4) - 15 / (8 * x ** 6))
+        + log(1 - 1 / (2 * x**2) + 3 / (4 * x**4) - 15 / (8 * x**6))
     )
 
     if node.outputs[0].dtype == "float32" or node.outputs[0].dtype == "float16":
@@ -2821,7 +2821,7 @@ def local_grad_log_erfc_neg(fgraph, node):
     # aaron value
     stab_value = (
         x
-        * at_pow(1 - 1 / (2 * (x ** 2)) + 3 / (4 * (x ** 4)) - 15 / (8 * (x ** 6)), -1)
+        * at_pow(1 - 1 / (2 * (x**2)) + 3 / (4 * (x**4)) - 15 / (8 * (x**6)), -1)
         * cast(sqrt(np.pi), dtype=x.dtype)
     )
 

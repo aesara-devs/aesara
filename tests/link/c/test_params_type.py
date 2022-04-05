@@ -34,7 +34,7 @@ class QuadraticOpFunc(COp):
     def perform(self, node, inputs, output_storage, coefficients):
         x = inputs[0]
         y = output_storage[0]
-        y[0] = coefficients.a * (x ** 2) + coefficients.b * x + coefficients.c
+        y[0] = coefficients.a * (x**2) + coefficients.b * x + coefficients.c
 
     def c_code_cache_version(self):
         return (1, 5)
@@ -120,7 +120,7 @@ class QuadraticCOpFunc(ExternalCOp):
     def perform(self, node, inputs, output_storage, coefficients):
         x = inputs[0]
         y = output_storage[0]
-        y[0] = coefficients.a * (x ** 2) + coefficients.b * x + coefficients.c
+        y[0] = coefficients.a * (x**2) + coefficients.b * x + coefficients.c
 
 
 class TestParamsType:
@@ -352,6 +352,6 @@ class TestParamsType:
         )
         vy1 = f1(vx)
         vy2 = f2(vx)
-        ref = a * (vx ** 2) + b * vx + c
+        ref = a * (vx**2) + b * vx + c
         utt.assert_allclose(vy1, vy2)
         utt.assert_allclose(ref, vy1)

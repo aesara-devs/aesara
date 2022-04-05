@@ -71,7 +71,7 @@ def test_elemwise_pow():
             base = vector(dtype=dtype_base)
             exp = gpuarray_shared_constructor(exp_val)
             assert exp.dtype == dtype_exp
-            output = base ** exp
+            output = base**exp
             f = aesara.function([base], output, mode=mode_with_gpu)
             # We don't transfer to the GPU when the output dtype is int*
             n = len(
@@ -81,7 +81,7 @@ def test_elemwise_pow():
 
             # Call the function to make sure the output is valid
             out = f(base_val)
-            expected_out = base_val ** exp_val
+            expected_out = base_val**exp_val
             assert_allclose(out, expected_out)
 
 
@@ -209,7 +209,7 @@ class TestFloat16:
         cz = tanh(x + at.cast(y, "float16"))
         o = (
             cz
-            - cz ** 2
+            - cz**2
             + at.cast(x, "int16")
             + at.cast(x, "float32")
             + at.cast(w, "float16")

@@ -467,7 +467,7 @@ class TestPushOutNonSeqScan:
         b = matrix()
 
         def inner_fct(vect, mat):
-            vect_squared = vect ** 2
+            vect_squared = vect**2
             return dot(vect_squared, mat), vect_squared
 
         outputs, updates = aesara.scan(

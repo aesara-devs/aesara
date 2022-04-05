@@ -683,7 +683,7 @@ class AbstractBatchNormTrainGrad(Op):
 
         if not isinstance(ddinputs.type, aesara.gradient.DisconnectedType):
             ccc = scale * (ddinputs - mean(ddinputs, axis=self.axes, keepdims=True))
-            ddd = (x_invstd ** 3) * (
+            ddd = (x_invstd**3) * (
                 ccc * mean(dy * x_diff, axis=self.axes, keepdims=True)
                 + dy * mean(ccc * x_diff, axis=self.axes, keepdims=True)
             )
@@ -692,13 +692,13 @@ class AbstractBatchNormTrainGrad(Op):
             g_wrt_dy = g_wrt_dy + (
                 (ccc * x_invstd)
                 - (
-                    (x_invstd ** 3)
+                    (x_invstd**3)
                     * x_diff
                     * mean(ccc * x_diff, axis=self.axes, keepdims=True)
                 )
             )
 
-            eee = (dy * x_invstd) - ((x_invstd ** 3) * x_diff * mean_dy_x_diff)
+            eee = (dy * x_invstd) - ((x_invstd**3) * x_diff * mean_dy_x_diff)
             g_wrt_scale = g_wrt_scale + at_sum(
                 ddinputs * (eee - mean(eee, axis=self.axes, keepdims=True)),
                 axis=self.axes,
@@ -707,7 +707,7 @@ class AbstractBatchNormTrainGrad(Op):
 
             g_wrt_x_mean = g_wrt_x_mean + at_sum(ddd, axis=self.axes, keepdims=True)
             g_wrt_x_invstd = g_wrt_x_invstd + at_sum(
-                ccc * (dy - 3 * (x_invstd ** 2) * x_diff * mean_dy_x_diff),
+                ccc * (dy - 3 * (x_invstd**2) * x_diff * mean_dy_x_diff),
                 axis=self.axes,
                 keepdims=True,
             )
@@ -765,7 +765,7 @@ class AbstractBatchNormTrainGrad(Op):
 
         x_diff = x - x_mean
         mean_dy_x_diff = np.mean(dy * x_diff, axis=axes, keepdims=True)
-        c = (dy * x_invstd) - (x_diff * mean_dy_x_diff * (x_invstd ** 3))
+        c = (dy * x_invstd) - (x_diff * mean_dy_x_diff * (x_invstd**3))
 
         g_wrt_inputs = scale * (c - np.mean(c, axis=axes, keepdims=True))
         g_wrt_scale = np.sum(dy * x_invstd * x_diff, axis=axes, keepdims=True)
@@ -856,7 +856,7 @@ def local_abstract_batch_norm_train_grad(fgraph, node):
 
     x_diff = x - x_mean
     mean_dy_x_diff = mean(dy * x_diff, axis=axes, keepdims=True)
-    c = (dy * x_invstd) - x_diff * (mean_dy_x_diff * (x_invstd ** 3))
+    c = (dy * x_invstd) - x_diff * (mean_dy_x_diff * (x_invstd**3))
 
     g_wrt_inputs = scale * (c - mean(c, axis=axes, keepdims=True))
     g_wrt_scale = at_sum(dy * x_invstd * x_diff, axis=axes, keepdims=True)

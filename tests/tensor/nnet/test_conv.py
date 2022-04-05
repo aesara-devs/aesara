@@ -745,7 +745,7 @@ def test_broadcast_grad():
 
     filter_1d = at.arange(-window_radius, window_radius + 1)
     filter_1d = filter_1d.astype(aesara.config.floatX)
-    filter_1d = exp(-0.5 * filter_1d ** 2 / sigma ** 2)
+    filter_1d = exp(-0.5 * filter_1d**2 / sigma**2)
     filter_1d = filter_1d / filter_1d.sum()
 
     filter_W = filter_1d.dimshuffle(["x", "x", 0, "x"])

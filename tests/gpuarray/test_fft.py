@@ -156,7 +156,7 @@ class TestFFT:
         f_irfft = aesara.function([], irfft, mode=mode_with_gpu)
         res_irfft = f_irfft()
 
-        utt.assert_allclose(irfft_ref * N ** 2, res_irfft, atol=1e-4, rtol=1e-4)
+        utt.assert_allclose(irfft_ref * N**2, res_irfft, atol=1e-4, rtol=1e-4)
 
     def test_grad(self):
         # The numerical gradient of the FFT is sensitive, must set large

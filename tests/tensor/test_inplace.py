@@ -163,7 +163,7 @@ TestModInplaceBroadcast = makeBroadcastTester(
 
 TestPowInplaceBroadcast = makeBroadcastTester(
     op=pow_inplace,
-    expected=lambda x, y: x ** y,
+    expected=lambda x, y: x**y,
     good=_good_broadcast_pow_normal_float_pow,
     inplace=True,
     mode=ignore_isfinite_mode,

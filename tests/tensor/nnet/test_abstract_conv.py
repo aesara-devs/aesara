@@ -1615,7 +1615,7 @@ class TestBilinearUpsampling:
             # getting the normalized kernel
             kernel = bilinear_kernel_2D(ratio=ratio, normalize=True)
             f = aesara.function([], kernel)
-            kernel_2D = kernel_2D / float(ratio ** 2)
+            kernel_2D = kernel_2D / float(ratio**2)
             utt.assert_allclose(kernel_2D, f())
 
     def test_bilinear_kernel_1D(self):

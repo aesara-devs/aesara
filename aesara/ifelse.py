@@ -577,7 +577,7 @@ def cond_merge_ifs_false(fgraph, node):
 
 
 class CondMerge(GlobalOptimizer):
-    """ Graph Optimizer that merges different cond ops """
+    """Graph Optimizer that merges different cond ops"""
 
     def add_requirements(self, fgraph):
         from aesara.graph.features import ReplaceValidate

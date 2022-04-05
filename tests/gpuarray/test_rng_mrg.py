@@ -141,20 +141,20 @@ def test_overflow_gpu_new_backend():
     fct = functools.partial(GPUA_mrg_uniform.new, rstate, ndim=None, dtype="float32")
     # should raise error as the size overflows
     sizes = [
-        (2 ** 31,),
-        (2 ** 32,),
+        (2**31,),
+        (2**32,),
         (
-            2 ** 15,
-            2 ** 16,
+            2**15,
+            2**16,
         ),
-        (2, 2 ** 15, 2 ** 15),
+        (2, 2**15, 2**15),
     ]
     rng_mrg_overflow(sizes, fct, mode, should_raise_error=True)
     # should not raise error
-    sizes = [(2 ** 5,), (2 ** 5, 2 ** 5), (2 ** 5, 2 ** 5, 2 ** 5)]
+    sizes = [(2**5,), (2**5, 2**5), (2**5, 2**5, 2**5)]
     rng_mrg_overflow(sizes, fct, mode, should_raise_error=False)
     # should support int32 sizes
-    sizes = [(np.int32(2 ** 10),), (np.int32(2), np.int32(2 ** 10), np.int32(2 ** 10))]
+    sizes = [(np.int32(2**10),), (np.int32(2), np.int32(2**10), np.int32(2**10))]
     rng_mrg_overflow(sizes, fct, mode, should_raise_error=False)
 
 

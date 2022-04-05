@@ -659,7 +659,7 @@ class GammaIncDer(BinaryScalarOp):
         if x == 0:
             return 0
 
-        sqrt_exp = -756 - x ** 2 + 60 * x
+        sqrt_exp = -756 - x**2 + 60 * x
         if (
             (k < 0.8 and x > 15)
             or (k < 12 and x > 30)
@@ -1301,7 +1301,7 @@ class BetaIncDer(ScalarOp):
                 return p * f * (q - 1) / (q * (p + 1))
 
             p2n = p + 2 * n
-            F1 = p ** 2 * f ** 2 * (n - 1) / (q ** 2)
+            F1 = p**2 * f**2 * (n - 1) / (q**2)
             F2 = (
                 (p + q + n - 2)
                 * (p + n - 1)
@@ -1332,18 +1332,18 @@ class BetaIncDer(ScalarOp):
             if n == 1:
                 return -p * f * (q - 1) / (q * (p + 1) ** 2)
 
-            pp = p ** 2
+            pp = p**2
             ppp = pp * p
             p2n = p + 2 * n
 
-            N1 = -(n - 1) * f ** 2 * pp * (q - n)
-            N2a = (-8 + 8 * p + 8 * q) * n ** 3
-            N2b = (16 * pp + (-44 + 20 * q) * p + 26 - 24 * q) * n ** 2
+            N1 = -(n - 1) * f**2 * pp * (q - n)
+            N2a = (-8 + 8 * p + 8 * q) * n**3
+            N2b = (16 * pp + (-44 + 20 * q) * p + 26 - 24 * q) * n**2
             N2c = (10 * ppp + (14 * q - 46) * pp + (-40 * q + 66) * p - 28 + 24 * q) * n
-            N2d = 2 * pp ** 2 + (-13 + 3 * q) * ppp + (-14 * q + 30) * pp
+            N2d = 2 * pp**2 + (-13 + 3 * q) * ppp + (-14 * q + 30) * pp
             N2e = (-29 + 19 * q) * p + 10 - 8 * q
 
-            D1 = q ** 2 * (p2n - 3) ** 2
+            D1 = q**2 * (p2n - 3) ** 2
             D2 = (p2n - 2) ** 3 * (p2n - 1) ** 2
 
             return (N1 / D1) * (N2a + N2b + N2c + N2d + N2e) / D2
@@ -1356,7 +1356,7 @@ class BetaIncDer(ScalarOp):
                 return p * f / (q * (p + 1))
 
             p2n = p + 2 * n
-            F1 = (p ** 2 * f ** 2 / (q ** 2)) * (n - 1) * (p + n - 1) * (2 * q + p - 2)
+            F1 = (p**2 * f**2 / (q**2)) * (n - 1) * (p + n - 1) * (2 * q + p - 2)
             D1 = (p2n - 3) * (p2n - 2) ** 2 * (p2n - 1)
 
             return F1 / D1
@@ -1366,14 +1366,14 @@ class BetaIncDer(ScalarOp):
             Derivative of b_n wrt p
             """
             p2n = p + 2 * n
-            pp = p ** 2
+            pp = p**2
             q4 = 4 * q
             p4 = 4 * p
 
             F1 = (p * f / q) * (
-                (-p4 - q4 + 4) * n ** 2 + (p4 - 4 + q4 - 2 * pp) * n + pp * q
+                (-p4 - q4 + 4) * n**2 + (p4 - 4 + q4 - 2 * pp) * n + pp * q
             )
-            D1 = (p2n - 2) ** 2 * p2n ** 2
+            D1 = (p2n - 2) ** 2 * p2n**2
 
             return F1 / D1
 
@@ -1382,7 +1382,7 @@ class BetaIncDer(ScalarOp):
             Derivative of b_n wrt to q
             """
             p2n = p + 2 * n
-            return -(p ** 2 * f) / (q * (p2n - 2) * p2n)
+            return -(p**2 * f) / (q * (p2n - 2) * p2n)
 
         # Input validation
         if not (0 <= x <= 1) or p < 0 or q < 0:

@@ -832,7 +832,7 @@ class TestPicklefunction:
 
     def test_output_keys(self):
         x = vector()
-        f = function([x], {"vec": x ** 2})
+        f = function([x], {"vec": x**2})
         o = f([2, 3, 4])
         assert isinstance(o, dict)
         assert np.allclose(o["vec"], [4, 9, 16])

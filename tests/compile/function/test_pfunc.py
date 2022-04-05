@@ -217,7 +217,7 @@ class TestPfunc:
             f([3], np.array([6], dtype="int16"), 1)
 
         # Value too big for a, silently ignored
-        assert np.all(f([2 ** 20], np.ones(1, dtype="int8"), 1) == 2)
+        assert np.all(f([2**20], np.ones(1, dtype="int8"), 1) == 2)
 
         # Value too big for b, raises TypeError
         with pytest.raises(TypeError):
@@ -294,7 +294,7 @@ class TestPfunc:
 
         f = pfunc([a, b, c], (a + b + c), allow_input_downcast=True)
         # Value too big for a, b, or c, silently ignored
-        assert f([2 ** 20], [1], 0) == 1
+        assert f([2**20], [1], 0) == 1
         assert f([3], [312], 0) == 59
         assert f([3], [1], 806) == 42
 
@@ -422,7 +422,7 @@ class TestPfunc:
         up()
         assert np.all(x.get_value() == 20)
         assert np.all(y.get_value() == 24)
-        assert np.all(z.get_value() == (24 ** 2))
+        assert np.all(z.get_value() == (24**2))
 
     def test_default_updates(self):
         x = shared(0)

@@ -362,7 +362,7 @@ TestModBroadcast = makeBroadcastTester(
 # Disable NAN checking for pow operator per issue #1780
 TestPowBroadcast = makeBroadcastTester(
     op=pow,
-    expected=lambda x, y: check_floatX((x, y), x ** y),
+    expected=lambda x, y: check_floatX((x, y), x**y),
     good=_good_broadcast_pow_normal_float,
     grad=_grad_broadcast_pow_normal,
     name="Pow",
@@ -1736,7 +1736,7 @@ class TestBitwise:
                 [0, 1, 0, 1],
                 [0, 0, 1, 1],
                 [0, 1, 0, 1],
-                [-1, 2 ** 16, 2 ** 16 - 1],
+                [-1, 2**16, 2**16 - 1],
             ]:
                 l = _asarray([0, 0, 1, 1], dtype=dtype)
                 v = fn(l)
@@ -2208,7 +2208,7 @@ def test_var():
     f = function([a], var(a, ddof=0, corrected=True))
     mean_a = np.mean(a_val)
     centered_a = a_val - mean_a
-    v = np.mean(centered_a ** 2)
+    v = np.mean(centered_a**2)
     error = (np.mean(centered_a)) ** 2
     v = v - error
     assert np.allclose(v, f(a_val))
@@ -2860,18 +2860,15 @@ class TestSumProdReduceDtype:
                 axis = self.axes[idx % len(self.axes)]
                 x = matrix(dtype=dtype)
                 s = getattr(x, method)(axis=axis)
-                assert (
-                    s.dtype
-                    == dict(
-                        bool="int64",
-                        int8="int64",
-                        int16="int64",
-                        int32="int64",
-                        uint8="uint64",
-                        uint16="uint64",
-                        uint32="uint64",
-                    ).get(dtype, dtype)
-                )
+                assert s.dtype == dict(
+                    bool="int64",
+                    int8="int64",
+                    int16="int64",
+                    int32="int64",
+                    uint8="uint64",
+                    uint16="uint64",
+                    uint32="uint64",
+                ).get(dtype, dtype)
                 f = function([x], s, mode=self.mode)
                 topo = f.maker.fgraph.toposort()
                 assert [n for n in topo if isinstance(n.op, self.op)], (topo, dtype)
@@ -2889,21 +2886,18 @@ class TestSumProdReduceDtype:
                 axis = self.axes[idx % len(self.axes)]
                 x = matrix(dtype=dtype)
                 s = getattr(x, method)(axis=axis)
-                assert (
-                    s.owner.op.acc_dtype
-                    == dict(
-                        bool="int64",
-                        int8="int64",
-                        int16="int64",
-                        int32="int64",
-                        uint8="uint64",
-                        uint16="uint64",
-                        uint32="uint64",
-                        float16="float32",
-                        float32="float64",
-                        complex64="complex128",
-                    ).get(dtype, dtype)
-                )
+                assert s.owner.op.acc_dtype == dict(
+                    bool="int64",
+                    int8="int64",
+                    int16="int64",
+                    int32="int64",
+                    uint8="uint64",
+                    uint16="uint64",
+                    uint32="uint64",
+                    float16="float32",
+                    float32="float64",
+                    complex64="complex128",
+                ).get(dtype, dtype)
                 f = function([x], s, mode=self.mode)
                 topo = f.maker.fgraph.toposort()
                 assert [n for n in topo if isinstance(n.op, self.op)], (topo, dtype)
@@ -3098,18 +3092,15 @@ class TestProdWithoutZerosDtype:
         for idx, dtype in enumerate(map(str, aes.all_types)):
             axis = axes[idx % len(axes)]
             x = ProdWithoutZeros(axis=axis)(matrix(dtype=dtype))
-            assert (
-                x.dtype
-                == dict(
-                    bool="int64",
-                    int8="int64",
-                    int16="int64",
-                    int32="int64",
-                    uint8="uint64",
-                    uint16="uint64",
-                    uint32="uint64",
-                ).get(dtype, dtype)
-            )
+            assert x.dtype == dict(
+                bool="int64",
+                int8="int64",
+                int16="int64",
+                int32="int64",
+                uint8="uint64",
+                uint16="uint64",
+                uint32="uint64",
+            ).get(dtype, dtype)
 
     def test_prod_without_zeros_default_acc_dtype(self):
         # Test the default dtype of a ProdWithoutZeros().
@@ -3120,21 +3111,18 @@ class TestProdWithoutZerosDtype:
             axis = axes[idx % len(axes)]
             x = matrix(dtype=dtype)
             p = ProdWithoutZeros(axis=axis)(x)
-            assert (
-                p.owner.op.acc_dtype
-                == dict(
-                    bool="int64",
-                    int8="int64",
-                    int16="int64",
-                    int32="int64",
-                    uint8="uint64",
-                    uint16="uint64",
-                    uint32="uint64",
-                    float16="float32",
-                    float32="float64",
-                    complex64="complex128",
-                ).get(dtype, dtype)
-            )
+            assert p.owner.op.acc_dtype == dict(
+                bool="int64",
+                int8="int64",
+                int16="int64",
+                int32="int64",
+                uint8="uint64",
+                uint16="uint64",
+                uint32="uint64",
+                float16="float32",
+                float32="float64",
+                complex64="complex128",
+            ).get(dtype, dtype)
 
             if "complex" in dtype:
                 continue

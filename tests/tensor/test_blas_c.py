@@ -201,7 +201,7 @@ class TestCGemv(OptimizationTestMixin):
             )
 
     def t_gemv1(self, m_shp):
-        """ test vector2 + dot(matrix, vector1) """
+        """test vector2 + dot(matrix, vector1)"""
         rng = np.random.default_rng(unittest_tools.fetch_seed())
         v1 = aesara.shared(np.array(rng.uniform(size=(m_shp[1],)), dtype="float32"))
         v2_orig = np.array(rng.uniform(size=(m_shp[0],)), dtype="float32")

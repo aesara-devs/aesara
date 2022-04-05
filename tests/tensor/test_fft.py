@@ -155,7 +155,7 @@ class TestFFT:
         f_irfft = aesara.function([], irfft)
         res_irfft = f_irfft()
 
-        utt.assert_allclose(irfft_ref * N ** 2, res_irfft, atol=1e-4, rtol=1e-4)
+        utt.assert_allclose(irfft_ref * N**2, res_irfft, atol=1e-4, rtol=1e-4)
 
     def test_params(self):
         inputs_val = np.random.random((1, N)).astype(aesara.config.floatX)

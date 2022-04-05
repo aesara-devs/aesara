@@ -138,7 +138,7 @@ def as_ndarray(val):
 
 def random_lil(shape, dtype, nnz):
     rval = sp.sparse.lil_matrix(shape, dtype=dtype)
-    huge = 2 ** 30
+    huge = 2**30
     for k in range(nnz):
         # set non-zeros in random locations (row x, col y)
         idx = np.random.default_rng().integers(1, huge + 1, size=2) % shape

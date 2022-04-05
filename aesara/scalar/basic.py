@@ -2268,7 +2268,7 @@ class Pow(BinaryScalarOp):
     nfunc_spec = ("power", 2, 1)
 
     def impl(self, x, y):
-        return x ** y
+        return x**y
 
     def c_code(self, node, name, inputs, outputs, sub):
         (x, y) = inputs
@@ -2291,7 +2291,7 @@ class Pow(BinaryScalarOp):
 
         first_part = gz * y * x ** (y - 1)
 
-        second_part = gz * log(x) * x ** y
+        second_part = gz * log(x) * x**y
         second_part = switch(eq(x, 0), 0, second_part)
 
         return (first_part, second_part)
@@ -3902,7 +3902,7 @@ class Angle(UnaryScalarOp):
         y = imag(c)
         r = _abs(c)
 
-        gr = -gtheta * y / (r ** 2 * sqrt(1 - (y / r) ** 2))
+        gr = -gtheta * y / (r**2 * sqrt(1 - (y / r) ** 2))
         gx = gr * x / r
         gy = gr * y / r
         if c in complex_types:

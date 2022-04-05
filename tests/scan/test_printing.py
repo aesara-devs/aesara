@@ -71,7 +71,7 @@ def test_scan_debugprint2():
     # Generate the components of the polynomial
     components, updates = aesara.scan(
         fn=lambda coefficient, power, free_variable: coefficient
-        * (free_variable ** power),
+        * (free_variable**power),
         outputs_info=None,
         sequences=[coefficients, at.arange(max_coefficients_supported)],
         non_sequences=x,

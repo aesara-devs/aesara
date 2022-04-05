@@ -402,7 +402,7 @@ def test_pdbbreakpoint_op():
     # some computation
     condition = gt(b.sum(), 0)
     b_monitored = PdbBreakpoint(name="TestBreakpoint")(condition, b)
-    output = b_monitored ** 2
+    output = b_monitored**2
 
     f = aesara.function([b], output, mode=mode_with_gpu)
 
@@ -761,7 +761,7 @@ def test_local_lift_cholesky():
 @pytest.mark.skipif(not cusolver_available, reason="No cuSolver or SciPy")
 def test_gpu_cholesky_not_inplace():
     A = fmatrix()
-    A_squared = A ** 2
+    A_squared = A**2
     B = slinalg.cholesky(A_squared)
     D = B + A_squared
     f_cpu = aesara.function([A], D, mode=mode_without_gpu)

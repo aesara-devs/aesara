@@ -158,7 +158,7 @@ class TestComposite:
         e3 = x // 5
         e4 = -x
         e5 = x - y
-        e6 = x ** y + (-z)
+        e6 = x**y + (-z)
         e7 = x % 3
         C = Composite([x, y, z], [e0, e1, e2, e3, e4, e5, e6, e7])
         c = C.make_node(x, y, z)

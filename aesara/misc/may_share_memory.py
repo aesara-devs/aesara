@@ -17,7 +17,6 @@ try:
     def _is_sparse(a):
         return scipy.sparse.issparse(a)
 
-
 except ImportError:
     # scipy not imported, their can be only ndarray and gpuarray
     def _is_sparse(a):
@@ -31,7 +30,6 @@ if gpuarray.pygpu:
 
     def _is_gpua(a):
         return isinstance(a, gpuarray.pygpu.gpuarray.GpuArray)
-
 
 else:
 

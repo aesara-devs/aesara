@@ -243,7 +243,7 @@ def Rop(f, wrt, eval_points, disconnected_outputs="raise", return_disconnected="
     seen_nodes = OrderedDict()
 
     def _traverse(node):
-        """ TODO: writeme """
+        """TODO: writeme"""
 
         if node is None:
             return
@@ -1050,7 +1050,7 @@ def _populate_grad_dict(var_to_app_to_idx, grad_dict, wrt, cost_name=None):
     term_dict = OrderedDict()
 
     def access_term_cache(node):
-        """ Populates term_dict[node] and returns it """
+        """Populates term_dict[node] and returns it"""
 
         if node not in term_dict:
 

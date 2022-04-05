@@ -1676,10 +1676,10 @@ def var(input, axis=None, ddof=0, keepdims=False, corrected=False):
     # return the mean sqr
     two = constant(2, dtype=centered_input.dtype)
     if ddof == 0:
-        v = mean((centered_input ** two), axis, keepdims=keepdims)
+        v = mean((centered_input**two), axis, keepdims=keepdims)
     else:
         shp = shape(input) - ddof
-        v = sum((centered_input ** two), axis=axis, keepdims=keepdims)
+        v = sum((centered_input**two), axis=axis, keepdims=keepdims)
         for i in axis:
             v = true_div(v, shp[i])
 
@@ -2787,7 +2787,7 @@ def ptp(a, axis=None):
 
 
 def power(x, y):
-    return x ** y
+    return x**y
 
 
 def logaddexp(*xs):

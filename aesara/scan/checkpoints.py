@@ -153,13 +153,9 @@ def scan_checkpoints(
         i_sequences = list(args[: len(o_sequences)])
         i_prev_outputs = list(args[len(o_sequences) : -len(o_nonsequences)])
         i_non_sequences = list(args[-len(o_nonsequences) :])
-        i_outputs_infos = (
-            i_prev_outputs
-            + [
-                None,
-            ]
-            * len(new_nitsots)
-        )
+        i_outputs_infos = i_prev_outputs + [
+            None,
+        ] * len(new_nitsots)
 
         # Call the user-provided function with the proper arguments
         results, updates = scan(
