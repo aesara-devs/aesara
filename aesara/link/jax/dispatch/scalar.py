@@ -125,10 +125,18 @@ def jax_funcify_Psi(op, node, **kwargs):
 @jax_funcify.register(Softplus)
 def jax_funcify_Softplus(op, **kwargs):
     def softplus(x):
-        # This expression is numerically equivalent to the Aesara one
-        # It just contains one "speed" optimization less than the Aesara counterpart
         return jnp.where(
-            x < -37.0, jnp.exp(x), jnp.where(x > 33.3, x, jnp.log1p(jnp.exp(x)))
+            x < -37.0,
+            jnp.exp(x),
+            jnp.where(
+                x < 18.0,
+                jnp.log1p(jnp.exp(x)),
+                jnp.where(
+                    x < 33.3,
+                    x + jnp.exp(-x),
+                    x,
+                ),
+            ),
         )
 
     return softplus
