@@ -41,11 +41,11 @@ class TestLoadTensor:
         # file.
         x = load(path, "int32", (False,), "c")
         # x ** 2 has been chosen because it will work inplace.
-        y = (x ** 2).sum()
+        y = (x**2).sum()
         fn = function([path], y)
         # Call fn() twice, to check that inplace ops do not cause trouble
-        assert (fn(self.filename) == (self.data ** 2).sum()).all()
-        assert (fn(self.filename) == (self.data ** 2).sum()).all()
+        assert (fn(self.filename) == (self.data**2).sum()).all()
+        assert (fn(self.filename) == (self.data**2).sum()).all()
 
     def test_memmap(self):
         path = Variable(Generic())

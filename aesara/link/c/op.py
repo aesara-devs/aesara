@@ -575,7 +575,7 @@ class ExternalCOp(COp):
         return "\n".join(define_macros), "\n".join(undef_macros)
 
     def c_init_code_struct(self, node, name, sub):
-        r""" Stitches all the macros and ``init_code_*``\s together."""
+        r"""Stitches all the macros and ``init_code_*``\s together."""
         if "init_code_struct" in self.code_sections:
             op_code = self.code_sections["init_code_struct"]
 

@@ -670,7 +670,7 @@ def norm(x, ord):
         raise ValueError("'axis' entry is out of bounds.")
     elif ndim == 1:
         if ord is None:
-            return tm.sum(x ** 2) ** 0.5
+            return tm.sum(x**2) ** 0.5
         elif ord == "inf":
             return tm.max(abs(x))
         elif ord == "-inf":
@@ -679,13 +679,13 @@ def norm(x, ord):
             return x[x.nonzero()].shape[0]
         else:
             try:
-                z = tm.sum(abs(x ** ord)) ** (1.0 / ord)
+                z = tm.sum(abs(x**ord)) ** (1.0 / ord)
             except TypeError:
                 raise ValueError("Invalid norm order for vectors.")
             return z
     elif ndim == 2:
         if ord is None or ord == "fro":
-            return tm.sum(abs(x ** 2)) ** (0.5)
+            return tm.sum(abs(x**2)) ** (0.5)
         elif ord == "inf":
             return tm.max(tm.sum(abs(x), 1))
         elif ord == "-inf":

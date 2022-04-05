@@ -525,7 +525,7 @@ class TestSubtensor(utt.OptimizationTestMixin):
         # This test checks that using a long that does not fit raises an error.
         n = self.shared(np.arange(12, dtype=self.dtype).reshape((4, 3)))
         with pytest.raises(Exception):
-            n[: (2 ** 63)]
+            n[: (2**63)]
 
     def test_list_slice(self):
         x = at.arange(100).reshape((5, 5, 4))

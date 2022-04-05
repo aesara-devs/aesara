@@ -3105,7 +3105,7 @@ def _test_autocast_numpy():
         assert constant(z).dtype == np.asarray(z).dtype
 
     for x in (
-        [2 ** i for i in range(63)] + [0, 0, 1, 2 ** 63 - 1] + [0.0, 1.0, 1.1, 1.5]
+        [2**i for i in range(63)] + [0, 0, 1, 2**63 - 1] + [0.0, 1.0, 1.1, 1.5]
     ):
         n_x = np.asarray(x)
         # Make sure the data type is the same as the one found by numpy.
@@ -3134,8 +3134,8 @@ def _test_autocast_numpy_floatX():
         # into int64, as that is the maximal integer type that Aesara
         # supports, and that is the maximal type in Python indexing.
         for x in (
-            [2 ** i - 1 for i in range(64)]
-            + [0, 0, 1, 2 ** 63 - 1]
+            [2**i - 1 for i in range(64)]
+            + [0, 0, 1, 2**63 - 1]
             + [0.0, 1.0, 1.1, 1.5]
         ):
             with config.change_flags(floatX=floatX):
@@ -3151,7 +3151,7 @@ class TestLongTensor:
     def test_fit_int64(self):
         bitwidth = PYTHON_INT_BITWIDTH
         for exponent in range(bitwidth):
-            val = 2 ** exponent - 1
+            val = 2**exponent - 1
             scalar_ct = constant(val)
 
             assert scalar_ct.dtype in int_dtypes, (
@@ -3182,7 +3182,7 @@ class TestLongTensor:
             assert np.all(matrix_ct.value == val)
 
     def test_too_big(self):
-        val = 2 ** 64
+        val = 2**64
         # This fail for all NumPy version.
         with pytest.raises(Exception):
             constant(val)

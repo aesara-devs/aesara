@@ -228,7 +228,7 @@ def test_jax_basic():
     b = vector("b")
 
     # `ScalarOp`
-    z = cosh(x ** 2 + y / 3.0)
+    z = cosh(x**2 + y / 3.0)
 
     # `[Inc]Subtensor`
     out = at_subtensor.set_subtensor(z[0], -10.0)
@@ -982,8 +982,8 @@ def test_jax_multioutput():
     y = vector("y")
     y.tag.test_value = np.r_[3.0, 4.0].astype(config.floatX)
 
-    w = cosh(x ** 2 + y / 3.0)
-    v = cosh(x / 3.0 + y ** 2)
+    w = cosh(x**2 + y / 3.0)
+    v = cosh(x / 3.0 + y**2)
 
     fgraph = FunctionGraph([x, y], [w, v])
 

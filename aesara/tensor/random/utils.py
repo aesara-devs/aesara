@@ -221,7 +221,7 @@ class RandomStream:
         self.gen_seedgen = np.random.default_rng(seed)
 
         for old_r, new_r in self.state_updates:
-            old_r_seed = self.gen_seedgen.integers(2 ** 30)
+            old_r_seed = self.gen_seedgen.integers(2**30)
             old_r.set_value(self.rng_ctor(int(old_r_seed)), borrow=True)
 
     def gen(self, op, *args, **kwargs):
@@ -250,7 +250,7 @@ class RandomStream:
             )
 
         # Generate a new random state
-        seed = int(self.gen_seedgen.integers(2 ** 30))
+        seed = int(self.gen_seedgen.integers(2**30))
         random_state_variable = shared(self.rng_ctor(seed))
 
         # Distinguish it from other shared variables (why?)

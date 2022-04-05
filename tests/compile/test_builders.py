@@ -441,7 +441,7 @@ class TestOpFromGraph(unittest_tools.InferShapeTester):
     def test_compute_test_value(self):
         x = scalar("x")
         x.tag.test_value = np.array(1.0, dtype=config.floatX)
-        op = OpFromGraph([x], [x ** 3])
+        op = OpFromGraph([x], [x**3])
         y = scalar("y")
         y.tag.test_value = np.array(1.0, dtype=config.floatX)
         f = op(y)

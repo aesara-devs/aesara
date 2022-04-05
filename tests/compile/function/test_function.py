@@ -167,7 +167,7 @@ class TestFunctionIn:
             f([3], np.array([6], dtype="int16"), 1)
 
         # Value too big for a, silently ignored
-        assert np.all(f([2 ** 20], np.ones(1, dtype="int8"), 1) == 2)
+        assert np.all(f([2**20], np.ones(1, dtype="int8"), 1) == 2)
 
         # Value too big for b, raises TypeError
         with pytest.raises(TypeError):
@@ -246,7 +246,7 @@ def test_pickle_unpickle_with_reoptimization():
     x2 = fmatrix("x2")
     x3 = shared(np.ones((10, 10), dtype=floatX))
     x4 = shared(np.ones((10, 10), dtype=floatX))
-    y = at_sum(at_sum(at_sum(x1 ** 2 + x2) + x3) + x4)
+    y = at_sum(at_sum(at_sum(x1**2 + x2) + x3) + x4)
 
     updates = OrderedDict()
     updates[x3] = x3 + 1
@@ -278,7 +278,7 @@ def test_pickle_unpickle_without_reoptimization():
     x2 = fmatrix("x2")
     x3 = shared(np.ones((10, 10), dtype=floatX))
     x4 = shared(np.ones((10, 10), dtype=floatX))
-    y = at_sum(at_sum(at_sum(x1 ** 2 + x2) + x3) + x4)
+    y = at_sum(at_sum(at_sum(x1**2 + x2) + x3) + x4)
 
     updates = OrderedDict()
     updates[x3] = x3 + 1

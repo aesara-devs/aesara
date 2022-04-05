@@ -839,7 +839,7 @@ class TestScan:
         )
         my_f = function([], values, updates=updates, allow_input_downcast=True)
 
-        rng_seed = np.random.default_rng(utt.fetch_seed()).integers(2 ** 30)
+        rng_seed = np.random.default_rng(utt.fetch_seed()).integers(2**30)
         rng = np.random.default_rng(int(rng_seed))  # int() is for 32bit
 
         numpy_v = np.zeros((10, 2))
@@ -1058,7 +1058,7 @@ class TestScan:
     def test_grad_mitsot(self):
         def inner_fct(mitsot_m2, sitsot):
             total = mitsot_m2 + sitsot
-            output = total ** 1.02
+            output = total**1.02
             return output, output
 
         def get_sum_of_grad(input0, input1):
@@ -1164,7 +1164,7 @@ class TestScan:
 
         def inner_fct(mitsot_m2, mitsot_m1, sitsot):
             total = mitsot_m2 + mitsot_m1 + sitsot
-            output = total ** 1.05
+            output = total**1.05
             return output, output
 
         inputs = [matrix(), vector()]
@@ -1739,7 +1739,7 @@ class TestScan:
         _max_coefficients_supported = 1000
         full_range = at.arange(_max_coefficients_supported)
         components, updates = scan(
-            fn=lambda coeff, power, free_var: coeff * (free_var ** power),
+            fn=lambda coeff, power, free_var: coeff * (free_var**power),
             outputs_info=None,
             sequences=[c, full_range],
             non_sequences=x,
@@ -1759,7 +1759,7 @@ class TestScan:
         _max_coefficients_supported = 1000
         full_range = at.arange(_max_coefficients_supported)
         components, updates = scan(
-            fn=lambda coeff, power, free_var: coeff * (free_var ** power),
+            fn=lambda coeff, power, free_var: coeff * (free_var**power),
             outputs_info=None,
             sequences=[c, full_range],
             non_sequences=x,
@@ -2650,10 +2650,10 @@ class TestExamples:
         )
 
         _rng = np.random.default_rng(utt.fetch_seed())
-        rng_seed = _rng.integers(2 ** 30)
+        rng_seed = _rng.integers(2**30)
         nrng1 = np.random.default_rng(int(rng_seed))  # int() is for 32bit
 
-        rng_seed = _rng.integers(2 ** 30)
+        rng_seed = _rng.integers(2**30)
         nrng2 = np.random.default_rng(int(rng_seed))  # int() is for 32bit
 
         def numpy_implementation(vsample):
@@ -3082,7 +3082,7 @@ class TestExamples:
         def loss_outer(sum_outer, W):
             def loss_inner(sum_inner, W):
 
-                return sum_inner + (W ** 2).sum()
+                return sum_inner + (W**2).sum()
 
             result_inner, _ = scan(
                 fn=loss_inner,
@@ -3112,7 +3112,7 @@ class TestExamples:
             x_tm1.name = "x"
             y_tm1.name = "y"
             z_tm1.name = "z"
-            return x_tm1 ** 2, y_tm1, x_tm1 + 1
+            return x_tm1**2, y_tm1, x_tm1 + 1
 
         x0 = vector("X")
         y0 = vector("y0")
@@ -3375,13 +3375,13 @@ class TestExamples:
         # Generate the components of the polynomial
         full_range = at.arange(max_coefficients_supported)
         components, updates = scan(
-            fn=lambda coeff, power, free_var: coeff * (free_var ** power),
+            fn=lambda coeff, power, free_var: coeff * (free_var**power),
             sequences=[coefficients, full_range],
             non_sequences=x,
         )
         polynomial1 = components.sum()
         polynomial2, updates = scan(
-            fn=lambda coeff, power, prev, free_var: prev + coeff * (free_var ** power),
+            fn=lambda coeff, power, prev, free_var: prev + coeff * (free_var**power),
             outputs_info=at.constant(0, dtype="floatX"),
             sequences=[coefficients, full_range],
             non_sequences=x,
@@ -3389,7 +3389,7 @@ class TestExamples:
 
         # python int
         polynomial3, updates = scan(
-            fn=lambda coeff, power, prev, free_var: prev + coeff * (free_var ** power),
+            fn=lambda coeff, power, prev, free_var: prev + coeff * (free_var**power),
             outputs_info=0,
             sequences=[coefficients, full_range],
             non_sequences=x,
@@ -3397,7 +3397,7 @@ class TestExamples:
 
         # python float
         polynomial4, updates = scan(
-            fn=lambda coeff, power, prev, free_var: prev + coeff * (free_var ** power),
+            fn=lambda coeff, power, prev, free_var: prev + coeff * (free_var**power),
             outputs_info=0.0,
             sequences=[coefficients, full_range],
             non_sequences=x,

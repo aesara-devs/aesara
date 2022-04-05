@@ -170,7 +170,7 @@ class TestDimShuffle(unittest_tools.InferShapeTester):
             _ = gc.collect()
             blocks_i, _ = tracemalloc.get_traced_memory()
             if blocks_last is not None:
-                blocks_diff = (blocks_i - blocks_last) // 10 ** 3
+                blocks_diff = (blocks_i - blocks_last) // 10**3
                 block_diffs.append(blocks_diff)
             blocks_last = blocks_i
 
@@ -706,7 +706,7 @@ class TestElemwise(unittest_tools.InferShapeTester):
         a, b, c, d, e, f = vectors("abcdef")
         s = a + b + c + d + e + f
         g = aesara.function([a, b, c, d, e, f], s, mode=Mode(linker="py"))
-        g(*[np.zeros(2 ** 11, config.floatX) for i in range(6)])
+        g(*[np.zeros(2**11, config.floatX) for i in range(6)])
 
     def check_input_dimensions_match(self, mode):
         """Make sure that our input validation works correctly and doesn't

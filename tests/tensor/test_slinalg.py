@@ -500,7 +500,7 @@ def test_expm_grad_2():
     # Always test in float64 for better numerical stability.
     A = rng.standard_normal((5, 5))
     w = rng.standard_normal((5)) ** 2
-    A = (np.diag(w ** 0.5)).dot(A + A.T).dot(np.diag(w ** (-0.5)))
+    A = (np.diag(w**0.5)).dot(A + A.T).dot(np.diag(w ** (-0.5)))
     assert not np.allclose(A, A.T)
 
     utt.verify_grad(expm, [A], rng=rng)

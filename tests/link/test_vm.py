@@ -205,7 +205,7 @@ def test_partial_function():
 
     def check_partial_function(linker_name):
         x = scalar("input")
-        y = x ** 2
+        y = x**2
         f = function(
             [x], [y + 7, y - 9, y / 14.0], mode=Mode(optimizer=None, linker=linker_name)
         )

@@ -212,7 +212,7 @@ class TestGreedyDistribute:
         # r = mul((x/a+y) , a, z)
         r = mul(s - 1, eps + x / s, eps + y / s, s)
 
-        f = function([s, eps, x, y], r ** 2)
+        f = function([s, eps, x, y], r**2)
 
         s_val = np.asarray(4, dtype=config.floatX)
         eps_val = np.asarray(1.0e-6, dtype=config.floatX)
@@ -1403,11 +1403,11 @@ class TestFusion:
                 "float32",
             ),
             (
-                fx + fy ** fz,
+                fx + fy**fz,
                 (fx, fy, fz),
                 (fxv, fyv, fzv),
                 1,
-                fxv + fyv ** fzv,
+                fxv + fyv**fzv,
                 "float32",
             ),  # pow
             (
@@ -1665,11 +1665,11 @@ class TestFusion:
                 "float32",
             ),
             (
-                fv + fy ** fz,
+                fv + fy**fz,
                 (fv, fy, fz),
                 (fvv, fyv, fzv),
                 2,
-                fvv + fyv ** fzv,
+                fvv + fyv**fzv,
                 "float32",
             ),  # fused with a dimshuffle #65
             (
@@ -2336,8 +2336,8 @@ def speed_local_pow_specialize_range():
     mode = get_default_mode()
     mode_without_pow_opt = mode.excluding("local_pow_specialize")
     for i in range(500, 513):
-        f1 = function([v], v ** i, mode=mode)
-        f2 = function([v], v ** i, mode=mode_without_pow_opt)
+        f1 = function([v], v**i, mode=mode)
+        f2 = function([v], v**i, mode=mode_without_pow_opt)
         assert len(f1.maker.fgraph.toposort()) == 1
         t1 = time.time()
         f1(val)
@@ -2348,8 +2348,8 @@ def speed_local_pow_specialize_range():
         if not t2 - t1 < t3 - t2:
             print("WARNING WE ARE SLOWER")
     for i in range(-3, -1500, -1):
-        f1 = function([v], v ** i, mode=mode)
-        f2 = function([v], v ** i, mode=mode_without_pow_opt)
+        f1 = function([v], v**i, mode=mode)
+        f2 = function([v], v**i, mode=mode_without_pow_opt)
         assert len(f1.maker.fgraph.toposort()) == 1
         t1 = time.time()
         f1(val)
@@ -2372,25 +2372,25 @@ def test_local_pow_specialize():
     val = np.arange(10, dtype=config.floatX)
     val_no0 = np.arange(1, 10, dtype=config.floatX)
 
-    f = function([v], v ** 0, mode=mode)
+    f = function([v], v**0, mode=mode)
     nodes = [node.op for node in f.maker.fgraph.toposort()]
     assert nodes == [Shape_i(0), at.alloc]
-    utt.assert_allclose(f(val), val ** 0)
+    utt.assert_allclose(f(val), val**0)
 
-    f = function([v], v ** 1, mode=mode)
+    f = function([v], v**1, mode=mode)
     nodes = [node.op for node in f.maker.fgraph.toposort()]
     nodes == [deep_copy_op]
-    utt.assert_allclose(f(val), val ** 1)
+    utt.assert_allclose(f(val), val**1)
 
     f = function([v], v ** (-1), mode=mode)
     nodes = [node.op for node in f.maker.fgraph.toposort()]
     assert nodes == [reciprocal]
     utt.assert_allclose(f(val_no0), val_no0 ** (-1))
 
-    f = function([v], v ** 2, mode=mode)
+    f = function([v], v**2, mode=mode)
     nodes = [node.op for node in f.maker.fgraph.toposort()]
     assert nodes == [sqr]
-    utt.assert_allclose(f(val), val ** 2)
+    utt.assert_allclose(f(val), val**2)
 
     f = function([v], v ** (-2), mode=mode)
     nodes = [node.op for node in f.maker.fgraph.toposort()]
@@ -2427,7 +2427,7 @@ def test_local_pow_specialize_device_more_aggressive_on_cpu():
     assert len(nodes) == 1
     assert len(f.maker.fgraph.toposort()[0].op.scalar_op.fgraph.apply_nodes) == 6
     assert isinstance(nodes[0].scalar_op, aes.Composite)
-    utt.assert_allclose(f(val), val ** 15)
+    utt.assert_allclose(f(val), val**15)
 
     f = function([v], v ** (-15), mode=mode)
     nodes = [node.op for node in f.maker.fgraph.toposort()]
@@ -2442,7 +2442,7 @@ def test_local_pow_specialize_device_more_aggressive_on_cpu():
     assert len(nodes) == 1
     assert len(f.maker.fgraph.toposort()[0].op.scalar_op.fgraph.apply_nodes) == 4
     assert isinstance(nodes[0].scalar_op, aes.Composite)
-    utt.assert_allclose(f(val), val ** 16)
+    utt.assert_allclose(f(val), val**16)
 
     f = function([v], v ** (-16), mode=mode)
     nodes = [node.op for node in f.maker.fgraph.toposort()]
@@ -4592,7 +4592,7 @@ def test_log1mexp_stabilization():
     assert nodes == [at.log1mexp]
 
     # Check values that would under or overflow without optimization
-    assert f([-(2.0 ** -55)]) != -np.inf
+    assert f([-(2.0**-55)]) != -np.inf
     overflow_value = -500.0 if config.floatX == "float64" else -100.0
     assert f([overflow_value]) < 0
 

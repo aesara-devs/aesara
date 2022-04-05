@@ -666,11 +666,11 @@ class TestFusion:
                 "float32",
             ),
             (
-                fx + fy ** fz,
+                fx + fy**fz,
                 (fx, fy, fz),
                 (fxv, fyv, fzv),
                 1,
-                fxv + fyv ** fzv,
+                fxv + fyv**fzv,
                 "float32",
             ),  # pow
             (
@@ -928,11 +928,11 @@ class TestFusion:
                 "float32",
             ),
             (
-                fv + fy ** fz,
+                fv + fy**fz,
                 (fv, fy, fz),
                 (fvv, fyv, fzv),
                 2,
-                fvv + fyv ** fzv,
+                fvv + fyv**fzv,
                 "float32",
             ),  # fused with a dimshuffle #65
             (
@@ -1074,8 +1074,8 @@ class TestFusion:
             n = 10
 
         for i in range(n):
-            f = cst_m05 * sd ** cst_m2 * (ones - means[i]) ** cst_2 + cst_05 * log(
-                cst_05 * (sd ** cst_m2) / np.pi
+            f = cst_m05 * sd**cst_m2 * (ones - means[i]) ** cst_2 + cst_05 * log(
+                cst_05 * (sd**cst_m2) / np.pi
             )
             factors.append(at_sum(f))
 
@@ -2868,7 +2868,7 @@ class TestLiftTransposeThroughDot:
 
 def test_local_upcast_elemwise_constant_inputs():
     s = dvector("s")
-    x = at_sum(log(10 ** s))
+    x = at_sum(log(10**s))
     f = function([s], [aesara.gradient.grad(x, s)])
     f([-42, -2.1, -1, -0.5, 0, 0.2, 1, 2, 12])
 

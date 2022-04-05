@@ -1276,7 +1276,7 @@ def run_conv_small_batched_vs_multicall(inputs_shape, filters_shape, batch_sub):
         # Then check last outputs.
         p = batch_size - batch_sub + i
         # It seems there is a limit batch size of 65536  with algorithm `small`.
-        checked_limit = 2 ** 16
+        checked_limit = 2**16
         if p >= checked_limit:
             # It seems results are repeated in the entire conv.
             # It should not happen.
@@ -1631,14 +1631,14 @@ def test_dnn_reduction_opt():
 def test_dnn_reduction_sum_squares():
     M = matrix()
     for axis in (None, 0, 1):
-        out = (M ** 2).sum(axis=axis)
+        out = (M**2).sum(axis=axis)
         f = aesara.function([M], out, mode=mode_with_gpu)
         assert any(
             isinstance(node.op, dnn.GpuDnnReduction) and node.op.red_op == "norm2"
             for node in f.maker.fgraph.apply_nodes
         )
         M_val = np.random.random((4, 5)).astype(aesara.config.floatX)
-        utt.assert_allclose((M_val ** 2).sum(axis=axis), f(M_val))
+        utt.assert_allclose((M_val**2).sum(axis=axis), f(M_val))
 
 
 @pytest.mark.skipif(dnn.version(raises=False) < 6000, reason=dnn.dnn_available.msg)
@@ -1682,7 +1682,7 @@ def test_dnn_reduction_axis_size_one():
 
             x = TensorType(dtype=dtype, broadcastable=[False] * len(shape))()
             sum = x.sum(axis=axis)
-            sum_squares = (x ** 2).sum(axis=axis)
+            sum_squares = (x**2).sum(axis=axis)
             sum_abs = abs(x).sum(axis=axis)
             absmax = abs(x).max(axis=axis)
 
@@ -1730,7 +1730,7 @@ def test_dnn_reduction_axis_size_one():
             utt.assert_allclose(cpu_val_sum_abs, val_sum_abs)
             utt.assert_allclose(cpu_val_absmax, val_absmax)
             utt.assert_allclose(xval_reshaped, val_sum)
-            utt.assert_allclose(test_val ** 2, val_sum_squares)
+            utt.assert_allclose(test_val**2, val_sum_squares)
             utt.assert_allclose(test_val, val_sum_abs)
             utt.assert_allclose(test_val, val_absmax)
 
@@ -2474,7 +2474,7 @@ def test_dnn_rnn_gru():
         if out:
             cost += mean((Y - out) ** 2)
         if hy:
-            cost += mean(hy ** 2)
+            cost += mean(hy**2)
         grad = aesara.grad(cost, [X, h0] + params)
         grad_fn = aesara.function(
             [X, Y, h0], grad, mode=mode_with_gpu, on_unused_input="ignore"
@@ -2571,7 +2571,7 @@ def test_dnn_rnn_gru_bidi():
         if out:
             cost += mean((Y - out) ** 2)
         if hy:
-            cost += mean(hy ** 2)
+            cost += mean(hy**2)
         grad = aesara.grad(cost, [X, h0] + params)
         grad_fn = aesara.function(
             [X, Y, h0], grad, mode=mode_with_gpu, on_unused_input="ignore"

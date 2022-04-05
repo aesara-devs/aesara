@@ -808,7 +808,7 @@ class MRG_RandomStream:
 
         """
         assert isinstance(dtype, str)
-        assert n_streams < 2 ** 72
+        assert n_streams < 2**72
         assert n_streams > 0
         rval = np.zeros((n_streams, 6), dtype="int32")
         rval[0] = self.rstate
@@ -1212,7 +1212,7 @@ class MRG_RandomStream:
             to_fix0 = at.nonzero(to_fix0)[0]
             to_fix1 = at.nonzero(to_fix1)[0]
             n_fix_samples = to_fix0.size + to_fix1.size
-            lower = at.constant(1.0 / np.e ** 2, dtype=dtype)
+            lower = at.constant(1.0 / np.e**2, dtype=dtype)
             u_fix = self.uniform(
                 (n_fix_samples,),
                 low=lower,

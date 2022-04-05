@@ -597,7 +597,7 @@ class BaseTestDnnConv:
             m_a = self._next_ten_exponent(max_a)
             m_b = self._next_ten_exponent(max_b)
             max_m = max(m_a, m_b)
-            scale_factor *= 10 ** max_m
+            scale_factor *= 10**max_m
         if scale_factor != 1:
             A /= scale_factor
             B /= scale_factor

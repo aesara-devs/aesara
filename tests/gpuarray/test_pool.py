@@ -182,7 +182,7 @@ def test_pool2d():
                 )
                 assert np.allclose(gr(), gr2()), (shp, ws, st, pad, mode, ignore_border)
 
-                ggf = Lop(grad((a_pooled ** 2).sum(), a), a, a)
+                ggf = Lop(grad((a_pooled**2).sum(), a), a, a)
 
                 gg = aesara.function([], ggf, mode=gpu_mode)
                 gg2 = aesara.function([], ggf, mode=ref_mode)
@@ -308,7 +308,7 @@ def test_pool3d():
                 )
                 assert np.allclose(gr(), gr2()), (shp, ws, st, pad, mode, ignore_border)
 
-                ggf = Lop(grad((a_pooled ** 2).sum(), a), a, a)
+                ggf = Lop(grad((a_pooled**2).sum(), a), a, a)
 
                 gg = aesara.function([], ggf, mode=gpu_mode)
                 gg2 = aesara.function([], ggf, mode=ref_mode)

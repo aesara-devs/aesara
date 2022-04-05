@@ -121,7 +121,7 @@ class TestSharedRandomStream:
         fn_val0 = fn()
         fn_val1 = fn()
 
-        rng_seed = np.random.default_rng(utt.fetch_seed()).integers(2 ** 30)
+        rng_seed = np.random.default_rng(utt.fetch_seed()).integers(2**30)
         rng = rng_ctor(int(rng_seed))  # int() is for 32bit
 
         numpy_val0 = rng.uniform(0, 1, size=(2, 2))
@@ -165,7 +165,7 @@ class TestSharedRandomStream:
         # Now, change the seed when there are state updates
         random.seed(new_seed)
 
-        update_seed = np.random.default_rng(new_seed).integers(2 ** 30)
+        update_seed = np.random.default_rng(new_seed).integers(2**30)
         ref_rng = rng_ctor(update_seed)
         state_rng = random.state_updates[0][0].get_value(borrow=True)
 
@@ -190,7 +190,7 @@ class TestSharedRandomStream:
         fn_val0 = fn()
         fn_val1 = fn()
 
-        rng_seed = np.random.default_rng(utt.fetch_seed()).integers(2 ** 30)
+        rng_seed = np.random.default_rng(utt.fetch_seed()).integers(2**30)
         rng = rng_ctor(int(rng_seed))  # int() is for 32bit
         numpy_val0 = rng.uniform(-1, 1, size=(2, 2))
         numpy_val1 = rng.uniform(-1, 1, size=(2, 2))

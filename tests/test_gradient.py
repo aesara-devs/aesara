@@ -621,7 +621,7 @@ def test_known_grads():
     coeffs = vector("c")
     ct = coeffs[t]
     ct.name = "ct"
-    p = x ** ft
+    p = x**ft
     p.name = "p"
     y = ct * p
     y.name = "y"
@@ -791,7 +791,7 @@ class TestConsiderConstant:
             (x * consider_constant(x), x),
             (x * consider_constant(exp(x)), exp(x)),
             (consider_constant(x), at.constant(0.0)),
-            (x ** 2 * consider_constant(x), 2 * x ** 2),
+            (x**2 * consider_constant(x), 2 * x**2),
         ]
 
         for expr, expr_grad in expressions_gradients:
@@ -825,7 +825,7 @@ class TestZeroGrad:
             (x * zero_grad(x), x),
             (x * zero_grad(exp(x)), exp(x)),
             (zero_grad(x), at.constant(0.0)),
-            (x ** 2 * zero_grad(x), 2 * x ** 2),
+            (x**2 * zero_grad(x), 2 * x**2),
         ]
 
         for expr, expr_grad in expressions_gradients:
@@ -871,7 +871,7 @@ class TestDisconnectedGrad:
         expressions_gradients = [
             (x * disconnected_grad(x), x),
             (x * disconnected_grad(exp(x)), exp(x)),
-            (x ** 2 * disconnected_grad(x), 2 * x ** 2),
+            (x**2 * disconnected_grad(x), 2 * x**2),
         ]
 
         for expr, expr_grad in expressions_gradients:
@@ -921,7 +921,7 @@ def test_grad_clip():
     x = scalar()
 
     z = grad(grad_clip(x, -1, 1) ** 2, x)
-    z2 = grad(x ** 2, x)
+    z2 = grad(x**2, x)
 
     f = aesara.function([x], outputs=[z, z2])
 
@@ -937,7 +937,7 @@ def test_grad_scale():
     x = scalar()
 
     z = grad(grad_scale(x, 2) ** 2, x)
-    z2 = grad(x ** 2, x)
+    z2 = grad(x**2, x)
 
     f = aesara.function([x], outputs=[z, z2])
 
@@ -1097,7 +1097,7 @@ def test_jacobian_scalar():
 
 def test_hessian():
     x = vector()
-    y = at_sum(x ** 2)
+    y = at_sum(x**2)
     Hx = hessian(y, x)
     f = aesara.function([x], Hx)
     vx = np.arange(10).astype(aesara.config.floatX)
