@@ -1,0 +1,22 @@
+name: 'Check commit message style'
+on:
+  pull_request:
+    types:
+      - opened
+      - edited
+      - reopened
+      - synchronize
+  push:
+    branches:
+      - "**"
+
+jobs:
+  check-commit-message-style:
+    name: Check commit message style
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check
+        uses: mristin/opinionated-commit-message@v3.0.0
+        with:
+          allow-one-liners: 'true'
+          skip-body-check: 'true'
