@@ -1214,6 +1214,34 @@ def test_extra_ops():
     )
 
 
+def set_test_value(x, v):
+    x.tag.test_value = v
+    return x
+
+
+@pytest.mark.parametrize(
+    "x, shape",
+    [
+        (
+            set_test_value(
+                vector("x"), np.random.random(size=(2,)).astype(config.floatX)
+            ),
+            [at.as_tensor(3, dtype=np.int64), at.as_tensor(2, dtype=np.int64)],
+        ),
+        (
+            set_test_value(
+                vector("x"), np.random.random(size=(2,)).astype(config.floatX)
+            ),
+            [at.as_tensor(3, dtype=np.int8), at.as_tensor(2, dtype=np.int64)],
+        ),
+    ],
+)
+def test_BroadcastTo(x, shape):
+    out = at_extra_ops.broadcast_to(x, shape)
+    fgraph = FunctionGraph(outputs=[out])
+    compare_jax_and_py(fgraph, [get_test_value(i) for i in fgraph.inputs])
+
+
 @pytest.mark.xfail(
     version_parse(jax.__version__) >= version_parse("0.2.12"),
     reason="Omnistaging cannot be disabled",
