@@ -9,6 +9,8 @@ import logging
 import os
 import sys
 from importlib import reload
+from types import ModuleType
+from typing import Optional
 
 import aesara
 from aesara.compile.compilelock import lock_ctx
@@ -24,6 +26,7 @@ _logger = logging.getLogger("aesara.scan.scan_perform")
 version = 0.312  # must match constant returned in function get_version()
 
 need_reload = False
+scan_perform: Optional[ModuleType] = None
 
 
 def try_import():
@@ -107,7 +110,10 @@ except ImportError:
 
             from scan_perform import scan_perform as scan_c
 
-            assert scan_perform._version == scan_c.get_version()
+            assert (
+                scan_perform is not None
+                and scan_perform._version == scan_c.get_version()
+            )
 
             _logger.info(f"New version {scan_perform._version}")
 

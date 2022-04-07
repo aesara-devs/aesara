@@ -5,7 +5,8 @@ import dataclasses
 import logging
 import warnings
 from collections import OrderedDict, namedtuple
-from typing import TYPE_CHECKING, Callable, List, Optional, Set, Tuple, Union
+from typing import TYPE_CHECKING, Callable, List, Optional, Sequence, Set, Tuple, Union
+from typing import cast as type_cast
 
 import numpy as np
 
@@ -21,8 +22,9 @@ from aesara.graph.basic import (
     graph_inputs,
 )
 from aesara.graph.op import get_test_value
+from aesara.graph.type import HasDataType
 from aesara.graph.utils import TestValueError
-from aesara.tensor.basic import AllocEmpty, get_scalar_constant_value
+from aesara.tensor.basic import AllocEmpty, cast, get_scalar_constant_value
 from aesara.tensor.subtensor import set_subtensor
 from aesara.tensor.var import TensorConstant
 
@@ -55,8 +57,11 @@ def safe_new(
         nw_name = None
 
     if isinstance(x, Constant):
-        if dtype and x.dtype != dtype:
-            casted_x = x.astype(dtype)
+        # TODO: Do something better about this
+        assert isinstance(x.type, HasDataType)
+
+        if dtype and x.type.dtype != dtype:
+            casted_x = cast(x, dtype)
             nwx = type(x)(casted_x.type, x.data, x.name)
             nwx.tag = copy.copy(x.tag)
             return nwx
@@ -89,8 +94,12 @@ def safe_new(
             pass
 
     # Cast `x` if needed. If `x` has a test value, this will also cast it.
-    if dtype and x.dtype != dtype:
-        x = x.astype(dtype)
+    if dtype:
+        # TODO: Do something better about this
+        assert isinstance(x.type, HasDataType)
+
+        if x.type.dtype != dtype:
+            x = cast(x, dtype)
 
     nw_x = x.type()
     nw_x.name = nw_name
@@ -717,13 +726,13 @@ class ScanArgs:
 
     def __init__(
         self,
-        outer_inputs,
-        outer_outputs,
-        _inner_inputs,
-        _inner_outputs,
-        info,
-        as_while,
-        clone=True,
+        outer_inputs: Sequence[Variable],
+        outer_outputs: Sequence[Variable],
+        _inner_inputs: Sequence[Variable],
+        _inner_outputs: Sequence[Variable],
+        info: "ScanInfo",
+        as_while: bool,
+        clone: Optional[bool] = True,
     ):
         self.n_steps = outer_inputs[0]
         self.as_while = as_while
@@ -745,16 +754,16 @@ class ScanArgs:
         q = 0
 
         n_seqs = info.n_seqs
-        self.outer_in_seqs = outer_inputs[p : p + n_seqs]
-        self.inner_in_seqs = inner_inputs[q : q + n_seqs]
+        self.outer_in_seqs = list(outer_inputs[p : p + n_seqs])
+        self.inner_in_seqs = list(inner_inputs[q : q + n_seqs])
         p += n_seqs
         q += n_seqs
 
         n_mit_mot = info.n_mit_mot
         n_mit_sot = info.n_mit_sot
 
-        self.mit_mot_in_slices = info.tap_array[:n_mit_mot]
-        self.mit_sot_in_slices = info.tap_array[n_mit_mot : n_mit_mot + n_mit_sot]
+        self.mit_mot_in_slices = list(info.tap_array[:n_mit_mot])
+        self.mit_sot_in_slices = list(info.tap_array[n_mit_mot : n_mit_mot + n_mit_sot])
 
         n_mit_mot_ins = sum(len(s) for s in self.mit_mot_in_slices)
         n_mit_sot_ins = sum(len(s) for s in self.mit_sot_in_slices)
@@ -775,29 +784,29 @@ class ScanArgs:
             qq += len(sl)
         q += n_mit_sot_ins
 
-        self.outer_in_mit_mot = outer_inputs[p : p + n_mit_mot]
+        self.outer_in_mit_mot = list(outer_inputs[p : p + n_mit_mot])
         p += n_mit_mot
-        self.outer_in_mit_sot = outer_inputs[p : p + n_mit_sot]
+        self.outer_in_mit_sot = list(outer_inputs[p : p + n_mit_sot])
         p += n_mit_sot
 
         n_sit_sot = info.n_sit_sot
-        self.outer_in_sit_sot = outer_inputs[p : p + n_sit_sot]
-        self.inner_in_sit_sot = inner_inputs[q : q + n_sit_sot]
+        self.outer_in_sit_sot = list(outer_inputs[p : p + n_sit_sot])
+        self.inner_in_sit_sot = list(inner_inputs[q : q + n_sit_sot])
         p += n_sit_sot
         q += n_sit_sot
 
         n_shared_outs = info.n_shared_outs
-        self.outer_in_shared = outer_inputs[p : p + n_shared_outs]
-        self.inner_in_shared = inner_inputs[q : q + n_shared_outs]
+        self.outer_in_shared = list(outer_inputs[p : p + n_shared_outs])
+        self.inner_in_shared = list(inner_inputs[q : q + n_shared_outs])
         p += n_shared_outs
         q += n_shared_outs
 
         n_nit_sot = info.n_nit_sot
-        self.outer_in_nit_sot = outer_inputs[p : p + n_nit_sot]
+        self.outer_in_nit_sot = list(outer_inputs[p : p + n_nit_sot])
         p += n_nit_sot
 
-        self.outer_in_non_seqs = outer_inputs[p:]
-        self.inner_in_non_seqs = inner_inputs[q:]
+        self.outer_in_non_seqs = list(outer_inputs[p:])
+        self.inner_in_non_seqs = list(inner_inputs[q:])
 
         # now for the outputs
         p = 0
@@ -805,9 +814,9 @@ class ScanArgs:
 
         self.mit_mot_out_slices = info.mit_mot_out_slices
         n_mit_mot_outs = info.n_mit_mot_outs
-        self.outer_out_mit_mot = outer_outputs[p : p + n_mit_mot]
-        iomm = inner_outputs[q : q + n_mit_mot_outs]
-        self.inner_out_mit_mot = ()
+        self.outer_out_mit_mot = list(outer_outputs[p : p + n_mit_mot])
+        iomm = list(inner_outputs[q : q + n_mit_mot_outs])
+        self.inner_out_mit_mot: Tuple[List[Variable], ...] = ()
         qq = 0
         for sl in self.mit_mot_out_slices:
             self.inner_out_mit_mot += (iomm[qq : qq + len(sl)],)
@@ -815,23 +824,23 @@ class ScanArgs:
         p += n_mit_mot
         q += n_mit_mot_outs
 
-        self.outer_out_mit_sot = outer_outputs[p : p + n_mit_sot]
-        self.inner_out_mit_sot = inner_outputs[q : q + n_mit_sot]
+        self.outer_out_mit_sot = list(outer_outputs[p : p + n_mit_sot])
+        self.inner_out_mit_sot = list(inner_outputs[q : q + n_mit_sot])
         p += n_mit_sot
         q += n_mit_sot
 
-        self.outer_out_sit_sot = outer_outputs[p : p + n_sit_sot]
-        self.inner_out_sit_sot = inner_outputs[q : q + n_sit_sot]
+        self.outer_out_sit_sot = list(outer_outputs[p : p + n_sit_sot])
+        self.inner_out_sit_sot = list(inner_outputs[q : q + n_sit_sot])
         p += n_sit_sot
         q += n_sit_sot
 
-        self.outer_out_nit_sot = outer_outputs[p : p + n_nit_sot]
-        self.inner_out_nit_sot = inner_outputs[q : q + n_nit_sot]
+        self.outer_out_nit_sot = list(outer_outputs[p : p + n_nit_sot])
+        self.inner_out_nit_sot = list(inner_outputs[q : q + n_nit_sot])
         p += n_nit_sot
         q += n_nit_sot
 
-        self.outer_out_shared = outer_outputs[p : p + n_shared_outs]
-        self.inner_out_shared = inner_outputs[q : q + n_shared_outs]
+        self.outer_out_shared = list(outer_outputs[p : p + n_shared_outs])
+        self.inner_out_shared = list(inner_outputs[q : q + n_shared_outs])
         p += n_shared_outs
         q += n_shared_outs
 
@@ -978,12 +987,18 @@ class ScanArgs:
         -------
         The alternate variable.
         """
+        _var_info: FieldInfo
         if not isinstance(var_info, FieldInfo):
-            var_info = self.find_among_fields(var_info)
+            find_var_info = self.find_among_fields(var_info)
+            if find_var_info is None:
+                raise ValueError(f"Couldn't find {var_info} among fields")
+            _var_info = find_var_info
+        else:
+            _var_info = var_info
 
-        alt_type = var_info.name[(var_info.name.index("_", 6) + 1) :]
-        alt_var = getattr(self, f"{alt_prefix}_{alt_type}")[var_info.index]
-        return alt_var
+        alt_type = _var_info.name[(_var_info.name.index("_", 6) + 1) :]
+        alt_var = getattr(self, f"{alt_prefix}_{alt_type}")[_var_info.index]
+        return type_cast(Variable, alt_var)
 
     def find_among_fields(
         self, i: Variable, field_filter: Callable[[str], bool] = default_filter
@@ -1054,7 +1069,7 @@ class ScanArgs:
         return field_info
 
     def get_dependent_nodes(
-        self, i: Variable, seen: Optional[Set[int]] = None
+        self, i: Variable, seen: Optional[Set[Variable]] = None
     ) -> Set[Variable]:
         if seen is None:
             seen = {i}
