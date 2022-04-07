@@ -854,25 +854,6 @@ class ScanArgs:
             clone=clone,
         )
 
-    @classmethod
-    def create_empty(cls) -> "ScanArgs":
-        from aesara.scan.op import ScanInfo
-
-        info = ScanInfo(
-            n_seqs=0,
-            n_mit_mot=0,
-            n_mit_sot=0,
-            tap_array=(),
-            n_sit_sot=0,
-            n_nit_sot=0,
-            n_shared_outs=0,
-            n_mit_mot_outs=0,
-            mit_mot_out_slices=(),
-        )
-        res = cls([1], [], [], [], info, False)
-        res.n_steps = None
-        return res
-
     @property
     def n_nit_sot(self):
         # This is just a hack that allows us to use `Scan.get_oinp_iinp_iout_oout_mappings`
