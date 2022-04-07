@@ -4,7 +4,7 @@ import copy
 import dataclasses
 import logging
 from sys import maxsize
-from typing import Dict, List, Tuple
+from typing import Dict, List, Optional, Tuple
 
 import numpy as np
 
@@ -15,8 +15,8 @@ from aesara.compile import optdb
 from aesara.compile.function.types import deep_copy_op
 from aesara.configdefaults import config
 from aesara.graph.basic import (
+    Apply,
     Constant,
-    Node,
     Variable,
     clone_replace,
     equal_computations,
@@ -30,6 +30,7 @@ from aesara.graph.fg import FunctionGraph
 from aesara.graph.op import compute_test_value
 from aesara.graph.opt import GlobalOptimizer, in2out, local_optimizer
 from aesara.graph.optdb import EquilibriumDB, SequenceDB
+from aesara.graph.type import HasShape
 from aesara.graph.utils import InconsistencyError
 from aesara.scan.op import Scan, ScanInfo
 from aesara.scan.utils import (
@@ -652,7 +653,7 @@ def inner_sitsot_only_last_step_used(
 
     if len(fgraph.clients[outer_var]) == 1:
         client = fgraph.clients[outer_var][0][0]
-        if client != "output" and isinstance(client.op, Subtensor):
+        if isinstance(client, Apply) and isinstance(client.op, Subtensor):
             lst = get_idx_list(client.inputs, client.op.idx_list)
             if len(lst) == 1 and at.extract_constant(lst[0]) == -1:
                 return True
@@ -662,10 +663,12 @@ def inner_sitsot_only_last_step_used(
 
 def get_outer_ndim(var: Variable, scan_args: ScanArgs) -> int:
     """Determine the number of dimension a variable would have if it was pushed out of a `Scan`."""
+    assert isinstance(var.type, HasShape)
+
     if var in scan_args.inner_in_non_seqs or isinstance(var, Constant):
-        outer_ndim = var.ndim
+        outer_ndim = var.type.ndim
     else:
-        outer_ndim = var.ndim + 1
+        outer_ndim = var.type.ndim + 1
 
     return outer_ndim
 
@@ -673,11 +676,11 @@ def get_outer_ndim(var: Variable, scan_args: ScanArgs) -> int:
 def push_out_inner_vars(
     fgraph: FunctionGraph,
     inner_vars: List[Variable],
-    old_scan_node: Node,
+    old_scan_node: Apply,
     old_scan_args: ScanArgs,
 ) -> Tuple[List[Variable], ScanArgs, Dict[Variable, Variable]]:
 
-    outer_vars = [None] * len(inner_vars)
+    tmp_outer_vars: List[Optional[Variable]] = []
     new_scan_node = old_scan_node
     new_scan_args = old_scan_args
     replacements: Dict[Variable, Variable] = {}
@@ -688,25 +691,31 @@ def push_out_inner_vars(
 
         var = inner_vars[idx]
 
+        new_outer_var: Optional[Variable] = None
+
         if var in old_scan_args.inner_in_seqs:
             idx_seq = old_scan_args.inner_in_seqs.index(var)
-            outer_vars[idx] = old_scan_args.outer_in_seqs[idx_seq]
+            new_outer_var = old_scan_args.outer_in_seqs[idx_seq]
 
         elif var in old_scan_args.inner_in_non_seqs:
             idx_non_seq = old_scan_args.inner_in_non_seqs.index(var)
-            outer_vars[idx] = old_scan_args.outer_in_non_seqs[idx_non_seq]
+            new_outer_var = old_scan_args.outer_in_non_seqs[idx_non_seq]
 
         elif isinstance(var, Constant):
-            outer_vars[idx] = var.clone()
+            new_outer_var = var.clone()
 
         elif var in old_scan_args.inner_out_nit_sot:
             idx_nitsot = old_scan_args.inner_out_nit_sot.index(var)
-            outer_vars[idx] = old_scan_args.outer_out_nit_sot[idx_nitsot]
+            new_outer_var = old_scan_args.outer_out_nit_sot[idx_nitsot]
+
+        tmp_outer_vars.append(new_outer_var)
 
     # For the inner_vars that don't already exist in the outer graph, add
     # them as new nitsot outputs to the scan node.
-    idx_add_as_nitsots = [i for i in range(len(outer_vars)) if outer_vars[i] is None]
+    idx_add_as_nitsots = [i for i, v in enumerate(tmp_outer_vars) if v is None]
     add_as_nitsots = [inner_vars[idx] for idx in idx_add_as_nitsots]
+
+    new_outs: List[Variable] = []
 
     if len(add_as_nitsots) > 0:
 
@@ -724,18 +733,25 @@ def push_out_inner_vars(
         )
 
         new_outs = new_scan_args.outer_out_nit_sot[-len(add_as_nitsots) :]
-        for i in range(len(new_outs)):
-            outer_vars[idx_add_as_nitsots[i]] = new_outs[i]
+
+    outer_vars: List[Variable] = []
+
+    for i, v in enumerate(tmp_outer_vars):
+        if i in idx_add_as_nitsots:
+            outer_vars.append(new_outs.pop(0))
+        else:
+            assert v is not None
+            outer_vars.append(v)
 
     return outer_vars, new_scan_args, replacements
 
 
 def add_nitsot_outputs(
     fgraph: FunctionGraph,
-    old_scan_node: Node,
+    old_scan_node: Apply,
     old_scan_args: ScanArgs,
     new_outputs_inner,
-) -> Tuple[Node, Dict[Variable, Variable]]:
+) -> Tuple[Apply, Dict[Variable, Variable]]:
 
     nb_new_outs = len(new_outputs_inner)
 
@@ -764,7 +780,10 @@ def add_nitsot_outputs(
     )
 
     # Create the Apply node for the scan op
-    new_scan_node = new_scan_op(*new_scan_args.outer_inputs, return_list=True)[0].owner
+    new_scan_outs = new_scan_op(*new_scan_args.outer_inputs, return_list=True)
+    assert isinstance(new_scan_outs, list)
+    new_scan_node = new_scan_outs[0].owner
+    assert new_scan_node is not None
 
     # Modify the outer graph to make sure the outputs of the new scan are
     # used instead of the outputs of the old scan
@@ -781,7 +800,7 @@ def add_nitsot_outputs(
     # replacements = dict(zip(old_scan_node.outputs, new_node_old_outputs))
     # replacements["remove"] = [old_scan_node]
     # return new_scan_node, replacements
-    fgraph.replace_all_validate_remove(
+    fgraph.replace_all_validate_remove(  # type: ignore
         list(zip(old_scan_node.outputs, new_node_old_outputs)),
         remove=[old_scan_node],
         reason="scan_pushout_add",
