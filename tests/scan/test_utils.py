@@ -79,14 +79,6 @@ def create_test_hmm():
 
 
 def test_ScanArgs():
-    # Make sure we can create an empty `ScanArgs`
-    scan_args = ScanArgs.create_empty()
-    assert scan_args.n_steps is None
-    for name in scan_args.field_names:
-        if name == "n_steps":
-            continue
-        assert len(getattr(scan_args, name)) == 0
-
     with pytest.raises(TypeError):
         ScanArgs.from_node(at.ones(2).owner)
 
