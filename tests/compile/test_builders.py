@@ -38,6 +38,9 @@ class TestOpFromGraph(unittest_tools.InferShapeTester):
         with pytest.raises(TypeError):
             OpFromGraph([x, as_tensor(1)], [x])
 
+        with pytest.raises(TypeError):
+            OpFromGraph([shared(1)], [1])
+
         with pytest.raises(NotImplementedError):
             OpFromGraph([x], [x], updates={})
 

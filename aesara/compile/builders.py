@@ -334,8 +334,11 @@ class OpFromGraph(Op, HasInnerGraph):
                 raise TypeError(
                     f"Inputs and outputs must be Variable instances; got {i}"
                 )
-            if i in inputs and isinstance(i, Constant):
-                raise TypeError(f"Constants not allowed as inputs; {i}")
+            if i in inputs:
+                if isinstance(i, Constant):
+                    raise TypeError(f"Constants not allowed as inputs; {i}")
+                if isinstance(i, SharedVariable):
+                    raise TypeError(f"SharedVariables not allowed as inputs; {i}")
 
         if "updates" in kwargs or "givens" in kwargs:
             raise NotImplementedError("Updates and givens are not allowed here")
