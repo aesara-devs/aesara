@@ -587,7 +587,7 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
         info: ScanInfo,
         mode: Optional[Mode] = None,
         typeConstructor: Optional[TensorConstructorType] = None,
-        truncate_gradient: bool = False,
+        truncate_gradient: int = -1,
         name: Optional[str] = None,
         as_while: bool = False,
         profile: Optional[Union[str, bool]] = None,
