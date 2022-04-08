@@ -1,5 +1,5 @@
 from abc import abstractmethod
-from typing import Any, Optional, Text, TypeVar, Union
+from typing import Any, Optional, Text, Tuple, TypeVar, Union
 
 from typing_extensions import TypeAlias
 
@@ -257,6 +257,13 @@ class Type(MetaObject):
 
 
 class HasDataType:
-    """A mixing for an `Op` type that has a :attr:`dtype` attribute."""
+    """A mixin for a type that has a :attr:`dtype` attribute."""
 
     dtype: str
+
+
+class HasShape:
+    """A mixin for a type that has :attr:`shape` and :attr:`ndim` attributes."""
+
+    ndim: int
+    shape: Tuple[Optional[int], ...]
