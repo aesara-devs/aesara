@@ -5,7 +5,7 @@ in the same compilation directory (which can cause crashes).
 import os
 import threading
 from contextlib import contextmanager
-from typing import Optional
+from typing import Optional, Union
 
 import filelock
 
@@ -45,17 +45,19 @@ def force_unlock(lock_dir: os.PathLike):
 
 
 @contextmanager
-def lock_ctx(lock_dir: os.PathLike = None, *, timeout: Optional[float] = None):
+def lock_ctx(
+    lock_dir: Union[str, os.PathLike] = None, *, timeout: Optional[float] = None
+):
     """Context manager that wraps around FileLock and SoftFileLock from filelock package.
 
     Parameters
     ----------
-    lock_dir : str
+    lock_dir
         A directory for which to acquire the lock.
-        Defaults to the config.compiledir.
-    timeout : float
+        Defaults to `aesara.config.compiledir`.
+    timeout
         Timeout in seconds for waiting in lock acquisition.
-        Defaults to config.compile__timeout.
+        Defaults to `aesara.config.compile__timeout`.
     """
     if lock_dir is None:
         lock_dir = config.compiledir
