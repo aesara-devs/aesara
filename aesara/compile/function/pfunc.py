@@ -112,7 +112,7 @@ def rebuild_collect_shared(
                         if not v.type.is_super(v_update.type):
                             raise TypeError(
                                 "An update must have a type compatible with "
-                                "the original shared variable"
+                                "its original shared variable"
                             )
                         update_d[v] = v_update
                         update_expr.append((v, v_update))
@@ -131,18 +131,15 @@ def rebuild_collect_shared(
 
     for v_orig, v_repl in replace_pairs:
         if not isinstance(v_orig, Variable):
-            raise TypeError("`givens` keys must be Variables")
+            raise TypeError("The keys in `givens` must be Variable instances")
         if not isinstance(v_repl, Variable):
             v_repl = shared(v_repl)
 
         if v_orig in clone_d:
-            raise AssertionError(
-                "When using 'givens' or 'replace' with several "
-                "(old_v, new_v) replacement pairs, you can not have a "
-                "new_v variable depend on an old_v one. For instance, "
-                "givens = {a:b, b:(a+1)} is not allowed. Here, the old_v "
-                f"{v_orig} is used to compute other new_v's, but it is scheduled "
-                f"to be replaced by {v_repl}."
+            raise ValueError(
+                "When using `givens` or `replace` with several "
+                "`(old_v, new_v)` replacement pairs, "
+                "`new_v`s cannot depend on an `old_v`s"
             )
 
         clone_d[v_orig] = clone_v_get_shared_updates(v_repl, copy_inputs_over)
@@ -176,11 +173,10 @@ def rebuild_collect_shared(
         updates = []
     for (store_into, update_val) in iter_over_pairs(updates):
         if not isinstance(store_into, SharedVariable):
-            raise TypeError("update target must be a SharedVariable", store_into)
+            raise TypeError("Update target must be a SharedVariable")
         if store_into in update_d:
             raise ValueError(
-                "this shared variable already has an update " "expression",
-                (store_into, update_d[store_into]),
+                f"{store_into} shared variable already has an update expression: {update_d[store_into]}"
             )
 
         # filter_variable ensure smooth conversion of cpu Types
@@ -191,18 +187,11 @@ def rebuild_collect_shared(
         except TypeError:
             err_msg = (
                 "An update must have the same type as the"
-                f" original shared variable (shared_var={store_into},"
-                f" shared_var.type={store_into.type},"
-                f" update_val={update_val}, update_val.type={getattr(update_val, 'type', None)})."
+                f"original shared variable (shared_var={store_into}, "
+                f"shared_var.type={store_into.type}, "
+                f"update_val={update_val}, update_val.type={getattr(update_val, 'type', None)})."
             )
-            err_sug = (
-                "If the difference is related to the broadcast pattern,"
-                " you can call the"
-                " tensor.unbroadcast(var, axis_to_unbroadcast[, ...])"
-                " function to remove broadcastable dimensions."
-            )
-
-            raise TypeError(err_msg, err_sug)
+            raise TypeError(err_msg)
         assert store_into.type.is_super(update_val.type)
 
         update_d[store_into] = update_val
@@ -220,8 +209,8 @@ def rebuild_collect_shared(
                 cloned_outputs.append(Out(cloned_v, borrow=v.borrow))
             else:
                 raise TypeError(
-                    "Outputs must be aesara Variable or "
-                    "Out instances. Received " + str(v) + " of type " + str(type(v))
+                    "Outputs must be Variable or Out instances. "
+                    f"Received {v} of type {type(v)}"
                 )
             # computed_list.append(cloned_v)
     else:
@@ -237,9 +226,7 @@ def rebuild_collect_shared(
             cloned_outputs = []  # TODO: get Function.__call__ to return None
         else:
             raise TypeError(
-                "output must be an Aesara Variable or Out "
-                "instance (or list of them)",
-                outputs,
+                "Outputs must be Variable or Out instances (or a list of them)"
             )
 
     # Iterate over update_expr, cloning its elements, and updating
