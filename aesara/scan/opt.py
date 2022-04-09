@@ -81,31 +81,34 @@ def remove_constants_and_unused_inputs_scan(fgraph, node):
     if not isinstance(node.op, Scan):
         return False
     op = node.op
+    op_info = op.info
     # We only need to take care of sequences and other arguments
-    st = op.n_seqs
-    st += int(sum(len(x) for x in chain(op.mit_mot_in_slices, op.mit_sot_in_slices)))
-    st += op.n_sit_sot
-    st += op.n_shared_outs
+    st = op_info.n_seqs
+    st += int(
+        sum(len(x) for x in chain(op_info.mit_mot_in_slices, op_info.mit_sot_in_slices))
+    )
+    st += op_info.n_sit_sot
+    st += op_info.n_shared_outs
 
     op_ins = op.inner_inputs
     op_outs = op.inner_outputs
 
     # Corresponds to the initial states, which should stay untouched.
     # We put those variables aside, and put them back at the end.
-    out_stuff_inner = op_ins[op.n_seqs : st]
+    out_stuff_inner = op_ins[op_info.n_seqs : st]
 
     non_seqs = op_ins[st:]
     st = (
-        op.n_seqs
-        + op.n_mit_mot
-        + op.n_mit_sot
-        + op.n_sit_sot
-        + op.n_nit_sot
-        + op.n_shared_outs
+        op_info.n_seqs
+        + op_info.n_mit_mot
+        + op_info.n_mit_sot
+        + op_info.n_sit_sot
+        + op_info.n_nit_sot
+        + op_info.n_shared_outs
         + 1
     )
     outer_non_seqs = node.inputs[st:]
-    out_stuff_outer = node.inputs[1 + op.n_seqs : st]
+    out_stuff_outer = node.inputs[1 + op_info.n_seqs : st]
 
     # To replace constants in the outer graph by clones in the inner graph
     givens = {}
@@ -115,7 +118,7 @@ def remove_constants_and_unused_inputs_scan(fgraph, node):
     nw_outer = [node.inputs[0]]
 
     all_ins = list(graph_inputs(op_outs))
-    for idx in range(op.n_seqs):
+    for idx in range(op_info.n_seqs):
         node_inp = node.inputs[idx + 1]
         if (
             isinstance(node_inp, TensorConstant)
@@ -170,7 +173,7 @@ def remove_constants_and_unused_inputs_scan(fgraph, node):
     if len(nw_inner) != len(op_ins):
         op_outs = clone_replace(op_outs, replace=givens)
         nw_info = dataclasses.replace(
-            op.info, n_seqs=nw_n_seqs, n_non_seqs=len(nw_inner_nonseq)
+            op_info, n_seqs=nw_n_seqs, n_non_seqs=len(nw_inner_nonseq)
         )
         nwScan = Scan(
             nw_inner,
@@ -615,7 +618,7 @@ def push_out_seq_scan(fgraph, node):
                 if out in op.inner_mitsot_outs(ls):
                     odx = op.inner_mitsot_outs(ls).index(out)
                     inp = op.outer_mitsot(node.inputs)[odx]
-                    st = abs(np.min(op.mitsot_taps()))
+                    st = abs(np.min(op.info.mit_sot_in_slices))
                     y = set_subtensor(inp[st:], _y)
                 elif out in op.inner_sitsot_outs(ls):
                     odx = op.inner_sitsot_outs(ls).index(out)
@@ -953,7 +956,7 @@ class ScanInplaceOptimizer(GlobalOptimizer):
         op = node.op
 
         # inputs corresponding to sequences and n_steps
-        ls_begin = node.inputs[: 1 + op.n_seqs]
+        ls_begin = node.inputs[: 1 + op.info.n_seqs]
         ls = op.outer_mitmot(node.inputs)
         ls += op.outer_mitsot(node.inputs)
         ls += op.outer_sitsot(node.inputs)
@@ -1044,7 +1047,7 @@ class ScanInplaceOptimizer(GlobalOptimizer):
             # operate inplace.
             out_indices = []
             for out_idx in range(n_outs):
-                inp_idx = 1 + op.n_seqs + out_idx
+                inp_idx = 1 + op.info.n_seqs + out_idx
                 inp = original_node.inputs[inp_idx]
 
                 # If the input is from an eligible allocation node, attempt to
@@ -1153,11 +1156,16 @@ def save_mem_new_scan(fgraph, node):
     # defining ``init_l`` for mit_mot sequences is a bit trickier but
     # it is safe to set it to 0
     op = node.op
-    c_outs = op.n_mit_mot + op.n_mit_sot + op.n_sit_sot + op.n_nit_sot
+    op_info = op.info
+    c_outs = (
+        op_info.n_mit_mot + op_info.n_mit_sot + op_info.n_sit_sot + op_info.n_nit_sot
+    )
 
-    init_l = [0 for x in range(op.n_mit_mot)]
-    init_l += [abs(min(v)) for v in chain(op.mit_sot_in_slices, op.sit_sot_in_slices)]
-    init_l += [0 for x in range(op.n_nit_sot)]
+    init_l = [0 for x in range(op_info.n_mit_mot)]
+    init_l += [
+        abs(min(v)) for v in chain(op_info.mit_sot_in_slices, op_info.sit_sot_in_slices)
+    ]
+    init_l += [0 for x in range(op_info.n_nit_sot)]
     # 2. Check the clients of each output and see for how many steps
     # does scan need to run
 
@@ -1198,8 +1206,8 @@ def save_mem_new_scan(fgraph, node):
     # Note that for mit_mot outputs and shared outputs we can not change
     # the number of intermediate steps stored without affecting the
     # result of the op
-    store_steps = [0 for o in range(op.n_mit_mot)]
-    store_steps += [-1 for o in node.outputs[op.n_mit_mot : c_outs]]
+    store_steps = [0 for o in range(op_info.n_mit_mot)]
+    store_steps += [-1 for o in node.outputs[op_info.n_mit_mot : c_outs]]
     # Flag that says if an input has changed and we need to do something
     # or not
     flag_store = False
@@ -1237,7 +1245,7 @@ def save_mem_new_scan(fgraph, node):
                     break
 
                 # 2.3.2 extract the begin/end of the first dimension
-                if i >= op.n_mit_mot:
+                if i >= op_info.n_mit_mot:
                     try:
                         length = shape_of[out][0]
                     except KeyError:
@@ -1339,7 +1347,7 @@ def save_mem_new_scan(fgraph, node):
                     store_steps[i] = 0
                     break
 
-                if i > op.n_mit_mot:
+                if i > op_info.n_mit_mot:
                     length = node.inputs[0] + init_l[i]
                 else:
                     try:
@@ -1367,9 +1375,9 @@ def save_mem_new_scan(fgraph, node):
                     # the pre-allocation mechanism is activated.
                     prealloc_outs = config.scan__allow_output_prealloc
 
-                    first_mitsot_idx = node.op.n_mit_mot
+                    first_mitsot_idx = op_info.n_mit_mot
                     last_sitsot_idx = (
-                        node.op.n_mit_mot + node.op.n_mit_sot + node.op.n_sit_sot - 1
+                        op_info.n_mit_mot + op_info.n_mit_sot + op_info.n_sit_sot - 1
                     )
                     preallocable_output = first_mitsot_idx <= i <= last_sitsot_idx
 
@@ -1401,18 +1409,18 @@ def save_mem_new_scan(fgraph, node):
         # to store everything in memory ( or ar orphane and required
         # by the inner function .. )
         replaced_outs = []
-        offset = 1 + op.n_seqs + op.n_mit_mot
-        for idx, _val in enumerate(store_steps[op.n_mit_mot :]):
-            i = idx + op.n_mit_mot
+        offset = 1 + op_info.n_seqs + op_info.n_mit_mot
+        for idx, _val in enumerate(store_steps[op_info.n_mit_mot :]):
+            i = idx + op_info.n_mit_mot
             if not (isinstance(_val, int) and _val <= 0 and i not in required):
 
-                if idx + op.n_mit_mot in required:
+                if idx + op_info.n_mit_mot in required:
                     val = 1
                 else:
                     val = _val
                 # If the memory for this output has been pre-allocated
                 # before going into the scan op (by an alloc node)
-                if idx < op.n_mit_sot + op.n_sit_sot:
+                if idx < op_info.n_mit_sot + op_info.n_sit_sot:
                     # In case the input is still an alloc node, we
                     # actually have two options:
                     #   a) the input is a set_subtensor, in that case we
@@ -1442,8 +1450,8 @@ def save_mem_new_scan(fgraph, node):
                         nw_input = nw_inputs[offset + idx][:tmp]
 
                     nw_inputs[offset + idx] = nw_input
-                    replaced_outs.append(op.n_mit_mot + idx)
-                    odx = op.n_mit_mot + idx
+                    replaced_outs.append(op_info.n_mit_mot + idx)
+                    odx = op_info.n_mit_mot + idx
                     old_outputs += [
                         (
                             odx,
@@ -1454,12 +1462,18 @@ def save_mem_new_scan(fgraph, node):
                         )
                     ]
                 # If there is no memory pre-allocated for this output
-                elif idx < op.n_mit_sot + op.n_sit_sot + op.n_nit_sot:
+                elif idx < op_info.n_mit_sot + op_info.n_sit_sot + op_info.n_nit_sot:
 
-                    pos = op.n_mit_mot + idx + op.n_seqs + 1 + op.n_shared_outs
+                    pos = (
+                        op_info.n_mit_mot
+                        + idx
+                        + op_info.n_seqs
+                        + 1
+                        + op_info.n_shared_outs
+                    )
                     if nw_inputs[pos] == node.inputs[0]:
                         nw_inputs[pos] = val
-                    odx = op.n_mit_mot + idx
+                    odx = op_info.n_mit_mot + idx
                     replaced_outs.append(odx)
                     old_outputs += [
                         (
@@ -1473,14 +1487,14 @@ def save_mem_new_scan(fgraph, node):
         # 3.4. Recompute inputs for everything else based on the new
         # number of steps
         if global_nsteps is not None:
-            for idx, val in enumerate(store_steps[op.n_mit_mot :]):
+            for idx, val in enumerate(store_steps[op_info.n_mit_mot :]):
                 if val == 0:
                     # val == 0 means that we want to keep all intermediate
                     # results for that state, including the initial values.
-                    if idx < op.n_mit_sot + op.n_sit_sot:
+                    if idx < op_info.n_mit_sot + op_info.n_sit_sot:
                         in_idx = offset + idx
                         # Number of steps in the initial state
-                        initl = init_l[op.n_mit_mot + idx]
+                        initl = init_l[op_info.n_mit_mot + idx]
 
                         # If the initial buffer has the form
                         # inc_subtensor(zeros(...)[...], _nw_input)
@@ -1501,8 +1515,10 @@ def save_mem_new_scan(fgraph, node):
                         else:
                             nw_input = nw_inputs[in_idx][: (initl + nw_steps)]
 
-                    elif idx < op.n_mit_sot + op.n_sit_sot + op.n_nit_sot:
-                        in_idx = offset + idx + op.n_shared_outs
+                    elif (
+                        idx < op_info.n_mit_sot + op_info.n_sit_sot + op_info.n_nit_sot
+                    ):
+                        in_idx = offset + idx + op_info.n_shared_outs
                         if nw_inputs[in_idx] == node.inputs[0]:
                             nw_inputs[in_idx] = nw_steps
 
@@ -1693,8 +1709,8 @@ class ScanMerge(GlobalOptimizer):
         for idx, nd in enumerate(nodes):
             inner_ins[idx].append(rename(nd.op.inner_mitmot(nd.op.inner_inputs), idx))
             inner_outs[idx].append(nd.op.inner_mitmot_outs(nd.op.inner_outputs))
-            mit_mot_in_slices += nd.op.mitmot_taps()
-            mit_mot_out_slices += nd.op.mitmot_out_taps()
+            mit_mot_in_slices += nd.op.info.mit_mot_in_slices
+            mit_mot_out_slices += nd.op.info.mit_mot_out_slices[: nd.op.info.n_mit_mot]
             outer_ins += rename(nd.op.outer_mitmot(nd.inputs), idx)
             outer_outs += nd.op.outer_mitmot_outs(nd.outputs)
 
@@ -1702,14 +1718,14 @@ class ScanMerge(GlobalOptimizer):
         for idx, nd in enumerate(nodes):
             inner_ins[idx].append(rename(nd.op.inner_mitsot(nd.op.inner_inputs), idx))
             inner_outs[idx].append(nd.op.inner_mitsot_outs(nd.op.inner_outputs))
-            mit_sot_in_slices += nd.op.mitsot_taps()
+            mit_sot_in_slices += nd.op.info.mit_sot_in_slices
             outer_ins += rename(nd.op.outer_mitsot(nd.inputs), idx)
             outer_outs += nd.op.outer_mitsot_outs(nd.outputs)
 
         sit_sot_in_slices = ()
         for idx, nd in enumerate(nodes):
             inner_ins[idx].append(rename(nd.op.inner_sitsot(nd.op.inner_inputs), idx))
-            sit_sot_in_slices += tuple((-1,) for x in range(nd.op.n_sit_sot))
+            sit_sot_in_slices += tuple((-1,) for x in range(nd.op.info.n_sit_sot))
             inner_outs[idx].append(nd.op.inner_sitsot_outs(nd.op.inner_outputs))
             outer_ins += rename(nd.op.outer_sitsot(nd.inputs), idx)
             outer_outs += nd.op.outer_sitsot_outs(nd.outputs)
@@ -1802,13 +1818,13 @@ class ScanMerge(GlobalOptimizer):
                     new_inner_outs += inner_outs[idx][gr_idx]
 
         info = ScanInfo(
-            n_seqs=sum(nd.op.n_seqs for nd in nodes),
+            n_seqs=sum(nd.op.info.n_seqs for nd in nodes),
             mit_mot_in_slices=mit_mot_in_slices,
             mit_mot_out_slices=mit_mot_out_slices,
             mit_sot_in_slices=mit_sot_in_slices,
             sit_sot_in_slices=sit_sot_in_slices,
-            n_nit_sot=sum(nd.op.n_nit_sot for nd in nodes),
-            n_shared_outs=sum(nd.op.n_shared_outs for nd in nodes),
+            n_nit_sot=sum(nd.op.info.n_nit_sot for nd in nodes),
+            n_shared_outs=sum(nd.op.info.n_shared_outs for nd in nodes),
             n_non_seqs=n_non_seqs,
             as_while=as_while,
         )

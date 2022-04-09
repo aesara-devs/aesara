@@ -97,8 +97,8 @@ def test_ScanArgs():
     # Check the properties that allow us to use
     # `Scan.get_oinp_iinp_iout_oout_mappings` as-is to implement
     # `ScanArgs.var_mappings`
-    assert scan_args.n_nit_sot == scan_op.n_nit_sot
-    assert scan_args.n_mit_mot == scan_op.n_mit_mot
+    assert scan_args.n_nit_sot == scan_op.info.n_nit_sot
+    assert scan_args.n_mit_mot == scan_op.info.n_mit_mot
     # The `scan_args` base class always clones the inner-graph;
     # here we make sure it doesn't (and that all the inputs are the same)
     assert scan_args.inputs == scan_op.inner_inputs
