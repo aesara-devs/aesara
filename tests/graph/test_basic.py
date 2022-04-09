@@ -6,8 +6,10 @@ import pytest
 
 from aesara import config, function, shared
 from aesara import tensor as at
+from aesara.compile.sharedvalue import SharedVariable
 from aesara.graph.basic import (
     Apply,
+    Constant,
     Variable,
     ancestors,
     applys_between,
@@ -28,7 +30,7 @@ from aesara.graph.basic import (
 from aesara.graph.op import HasInnerGraph, Op
 from aesara.graph.type import Type
 from aesara.tensor.math import max_and_argmax
-from aesara.tensor.type import TensorType, iscalars, matrix, scalars, vector
+from aesara.tensor.type import TensorType, iscalars, matrix, scalar, scalars, vector
 from aesara.tensor.type_other import NoneConst
 from aesara.tensor.var import TensorVariable
 from tests import unittest_tools as utt
@@ -546,29 +548,52 @@ class TestCloneReplace:
     def test_share_inputs_no_replace(self, share_inputs):
         x = vector("x")
         y = vector("y")
-        z = shared(0.25)
+        z = shared(0.25, name="z")
 
         f1 = z * (x + y) ** 2 + 5
         f2 = clone_replace(f1, replace=None, strict=True, share_inputs=share_inputs)
-        f2_inp = graph_inputs([f2])
+
+        f1_inp = [i for i in graph_inputs([f1]) if not isinstance(i, Constant)]
+        f2_inp = [i for i in graph_inputs([f2]) if not isinstance(i, Constant)]
+
+        assert f1 != f2
 
         if share_inputs:
+            assert equal_computations([f1], [f2])
             assert z in f2_inp
             assert x in f2_inp
             assert y in f2_inp
         else:
+            assert not equal_computations([f1], [f2])
+            assert equal_computations([f1], [f2], f1_inp, f2_inp)
             assert z not in f2_inp
             assert x not in f2_inp
             assert y not in f2_inp
 
+        f1_fn = function(
+            [i for i in f1_inp if not isinstance(i, SharedVariable)],
+            f1,
+            on_unused_input="ignore",
+        )
+        f2_fn = function(
+            [i for i in f2_inp if not isinstance(i, SharedVariable)],
+            f2,
+            on_unused_input="ignore",
+        )
+        v1 = np.array([1.0], dtype=config.floatX)
+        v2 = np.array([2.0], dtype=config.floatX)
+        f1_val = f1_fn(v1, v2)
+        f2_val = f2_fn(v1, v2)
+        assert np.array_equal(f1_val, f2_val)
+
     @pytest.mark.parametrize("strict", [True, False])
     @pytest.mark.parametrize("as_dict", [True, False])
     @pytest.mark.parametrize("share_inputs", [True, False])
-    def test_strict_and_share_inputs(self, strict, as_dict, share_inputs):
+    def test_replace(self, strict, as_dict, share_inputs):
         x = vector("x")
         y = vector("y")
         y2 = vector("y2")
-        z = shared(0.25)
+        z = shared(0.25, name="z")
 
         f1 = z * (x + y) ** 2 + 5
         f2 = clone_replace(
@@ -577,15 +602,22 @@ class TestCloneReplace:
             strict=strict,
             share_inputs=share_inputs,
         )
-        f2_inp = graph_inputs([f2])
+
+        f1_inp = [i for i in graph_inputs([f1]) if not isinstance(i, Constant)]
+        f2_inp = [i for i in graph_inputs([f2]) if not isinstance(i, Constant)]
+
+        assert f1 != f2
 
         # TODO: How is this testing the strict option exactly?  Both cases have
         # the same assertions.
         if share_inputs:
+            assert equal_computations([f1], [f2], [y], [y2])
             assert z in f2_inp
             assert x in f2_inp
             assert y2 in f2_inp
         else:
+            assert not equal_computations([f1], [f2])
+            assert equal_computations([f1], [f2], f1_inp, f2_inp)
             assert z not in f2_inp
             assert x not in f2_inp
             assert y2 not in f2_inp
@@ -603,3 +635,29 @@ class TestCloneReplace:
         res = function([], out)()
 
         utt.assert_allclose(res, 1.21000003815)
+
+    @pytest.mark.xfail(reason="Default update cloning is not supported.")
+    def test_default_updates(self):
+        x = shared(1.0, name="x")
+        x2 = shared(1.0, name="x2")
+        y = scalar("y")
+        y2 = scalar("y2")
+
+        x_update = x + 2
+        x.tag.default_update = x_update
+        # This is only used by `Scan`?
+        x.tag.update = (x, x_update)
+
+        out = x + y
+        out_clone = clone_replace(out, replace={x: x2, y: y2})
+
+        assert equal_computations([out_clone], [x2 + y2])
+        assert equal_computations([x2.tag.default_update], [x2 + 2])
+        assert equal_computations(x2.tag.update, (x2, x2 + 2))
+
+        exp_res = function([y], out, no_default_updates=False)(1.0)
+        res = function([y2], out_clone, no_default_updates=False)(1.0)
+
+        assert np.array_equal(exp_res, res)
+        assert np.array_equal(x.get_value(), 3.0)
+        assert np.array_equal(x.get_value(), x2.get_value())
