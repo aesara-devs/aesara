@@ -314,12 +314,6 @@ class ScanMethodsMixin:
     def outer_mitmot_outs(self, list_outputs):
         return list_outputs[: self.info.n_mit_mot]
 
-    def mitmot_taps(self):
-        return self.info.mit_mot_in_slices
-
-    def mitmot_out_taps(self):
-        return self.info.mit_mot_out_slices[: self.info.n_mit_mot]
-
     def inner_mitsot(self, list_inputs):
         n_mitmot_taps = sum(len(x) for x in self.info.mit_mot_in_slices)
         ntaps_upto_sit_sot = n_mitmot_taps + sum(
@@ -341,9 +335,6 @@ class ScanMethodsMixin:
         return list_outputs[
             self.info.n_mit_mot : self.info.n_mit_mot + self.info.n_mit_sot
         ]
-
-    def mitsot_taps(self):
-        return self.info.mit_sot_in_slices
 
     def inner_sitsot(self, list_inputs):
         n_taps_upto_sit_sot = sum(
@@ -785,12 +776,6 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
         self.profile = profile
         self.allow_gc = allow_gc
         self.strict = strict
-        self.__dict__.update(dataclasses.asdict(info))
-
-        self.n_mit_mot = self.info.n_mit_mot
-        self.n_mit_mot_outs = self.info.n_mit_mot_outs
-        self.n_mit_sot = self.info.n_mit_sot
-        self.n_sit_sot = self.info.n_sit_sot
 
         # Clone mode_instance, altering "allow_gc" for the linker,
         # and adding a message if we profile
@@ -971,8 +956,8 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
         n_outer_ins = len(inputs) - len(self.outer_nitsot(inputs)) - 1
         n_inner_ins = (
             len(self.inner_seqs(self.inner_inputs))
-            + len(self.mitmot_taps())
-            + len(self.mitsot_taps())
+            + len(self.info.mit_mot_in_slices)
+            + len(self.info.mit_sot_in_slices)
             + len(self.inner_sitsot(self.inner_inputs))
             + len(self.inner_shared(self.inner_inputs))
             + len(self.inner_non_seqs(self.inner_inputs))
@@ -1006,7 +991,11 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
         inner_mitmot = self.inner_mitmot(self.inner_inputs)
         inner_mitmot_outs = self.inner_mitmot_outs(self.inner_outputs)
         for idx, (itaps, otaps, _outer_mitmot) in enumerate(
-            zip(self.mitmot_taps(), self.mitmot_out_taps(), self.outer_mitmot(inputs))
+            zip(
+                self.info.mit_mot_in_slices,
+                self.info.mit_mot_out_slices[: self.info.n_mit_mot],
+                self.outer_mitmot(inputs),
+            )
         ):
             outer_mitmot = copy_var_format(_outer_mitmot, as_var=inner_mitmot[ipos])
             new_inputs.append(outer_mitmot)
@@ -1057,7 +1046,7 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
         inner_mitsots = self.inner_mitsot(self.inner_inputs)
         for idx, (itaps, _outer_mitsot, inner_mitsot_out) in enumerate(
             zip(
-                self.mitsot_taps(),
+                self.info.mit_sot_in_slices,
                 self.outer_mitsot(inputs),
                 self.inner_mitsot_outs(self.inner_outputs),
             )
@@ -1383,9 +1372,7 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
                         output_idx = sum(
                             len(m) for m in info.mit_mot_out_slices[:mitmot_idx]
                         )
-                        output_idx += self.info.mit_mot_out_slices[mitmot_idx].index(
-                            inp_tap
-                        )
+                        output_idx += info.mit_mot_out_slices[mitmot_idx].index(inp_tap)
 
                         preallocated_mitmot_outs.append(output_idx)
 
@@ -1979,7 +1966,7 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
                     if self.mitmots_preallocated[mitmot_out_idx]:
 
                         mitmot_inp_idx = mitmot_inp_grp_offset + taps.index(out_slice)
-                        inner_inp_idx = self.n_seqs + mitmot_inp_idx
+                        inner_inp_idx = info.n_seqs + mitmot_inp_idx
 
                         # Verify whether the input points to the same data as
                         # it did before the execution of the inner function.
@@ -2455,13 +2442,13 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
                 return 1 + iidx
             oidx = 1 + info.n_seqs
             iidx = iidx - info.n_seqs
-            for taps in self.mitmot_taps():
+            for taps in info.mit_mot_in_slices:
                 if len(taps) > iidx:
                     return oidx
                 else:
                     oidx += 1
                     iidx -= len(taps)
-            for taps in self.mitsot_taps():
+            for taps in info.mit_sot_in_slices:
                 if len(taps) > iidx:
                     return oidx
                 else:
@@ -2475,7 +2462,7 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
 
         def get_out_idx(iidx):
             oidx = 0
-            for taps in self.mitmot_out_taps():
+            for taps in info.mit_mot_out_slices[: info.n_mit_mot]:
                 if len(taps) > iidx:
                     return oidx
                 else:
@@ -2666,7 +2653,7 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
         ):
             mintap = min(taps)
             if idx < info.n_mit_mot:
-                outmaxtap = np.max(self.mitmot_out_taps()[idx])
+                outmaxtap = np.max(info.mit_mot_out_slices[: info.n_mit_mot][idx])
             else:
                 outmaxtap = 0
             seq = outs[idx]
@@ -2695,7 +2682,7 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
                 n = n_steps.tag.test_value
             else:
                 n = inputs[0].tag.test_value
-            for taps, x in zip(self.mitsot_taps(), self.outer_mitsot_outs(outs)):
+            for taps, x in zip(info.mit_sot_in_slices, self.outer_mitsot_outs(outs)):
                 mintap = np.min(taps)
                 if hasattr(x[::-1][:mintap], "test_value"):
                     assert x[::-1][:mintap].tag.test_value.shape[0] == n
@@ -2710,7 +2697,7 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
                         assert x[::-1].tag.test_value.shape[0] == n
         outer_inp_seqs += [
             x[::-1][: np.min(taps)]
-            for taps, x in zip(self.mitsot_taps(), self.outer_mitsot_outs(outs))
+            for taps, x in zip(info.mit_sot_in_slices, self.outer_mitsot_outs(outs))
         ]
         outer_inp_seqs += [x[::-1][:-1] for x in self.outer_sitsot_outs(outs)]
         outer_inp_seqs += [x[::-1] for x in self.outer_nitsot_outs(outs)]

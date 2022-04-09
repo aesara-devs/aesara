@@ -418,7 +418,7 @@ def jax_funcify_Scan(op, **kwargs):
 
     def scan(*outer_inputs):
         scan_args = ScanArgs(
-            list(outer_inputs), [None] * op.n_outs, op.inputs, op.outputs, op.info
+            list(outer_inputs), [None] * op.info.n_outs, op.inputs, op.outputs, op.info
         )
 
         # `outer_inputs` is a list with the following composite form:

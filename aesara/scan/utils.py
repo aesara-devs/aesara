@@ -361,15 +361,19 @@ def scan_can_remove_outs(op, out_idxs):
     required_inputs = list(graph_inputs(non_removable))
 
     out_ins = []
-    offset = op.n_seqs
+    offset = op.info.n_seqs
     for idx, tap in enumerate(
-        chain(op.mit_mot_in_slices, op.mit_sot_in_slices, op.sit_sot_in_slices)
+        chain(
+            op.info.mit_mot_in_slices,
+            op.info.mit_sot_in_slices,
+            op.info.sit_sot_in_slices,
+        )
     ):
         n_ins = len(tap)
         out_ins += [op.inner_inputs[offset : offset + n_ins]]
         offset += n_ins
-    out_ins += [[] for k in range(op.n_nit_sot)]
-    out_ins += [[op.inner_inputs[offset + k]] for k in range(op.n_shared_outs)]
+    out_ins += [[] for k in range(op.info.n_nit_sot)]
+    out_ins += [[op.inner_inputs[offset + k]] for k in range(op.info.n_shared_outs)]
 
     added = True
     out_idxs_mask = [1 for idx in out_idxs]
@@ -400,8 +404,9 @@ def compress_outs(op, not_required, inputs):
     """
     from aesara.scan.op import ScanInfo
 
+    op_info = op.info
     info = ScanInfo(
-        n_seqs=op.info.n_seqs,
+        n_seqs=op_info.n_seqs,
         mit_mot_in_slices=(),
         mit_mot_out_slices=(),
         mit_sot_in_slices=(),
@@ -409,56 +414,58 @@ def compress_outs(op, not_required, inputs):
         n_nit_sot=0,
         n_shared_outs=0,
         n_non_seqs=0,
-        as_while=op.info.as_while,
+        as_while=op_info.as_while,
     )
 
-    op_inputs = op.inner_inputs[: op.n_seqs]
+    op_inputs = op.inner_inputs[: op_info.n_seqs]
     op_outputs = []
-    node_inputs = inputs[: op.n_seqs + 1]
+    node_inputs = inputs[: op_info.n_seqs + 1]
     map_old_new = OrderedDict()
 
     offset = 0
-    ni_offset = op.n_seqs + 1
-    i_offset = op.n_seqs
+    ni_offset = op_info.n_seqs + 1
+    i_offset = op_info.n_seqs
     o_offset = 0
     curr_pos = 0
-    for idx in range(op.info.n_mit_mot):
+    for idx in range(op_info.n_mit_mot):
         if offset + idx not in not_required:
             map_old_new[offset + idx] = curr_pos
             curr_pos += 1
             info = dataclasses.replace(
                 info,
-                mit_mot_in_slices=info.mit_mot_in_slices + (op.mit_mot_in_slices[idx],),
+                mit_mot_in_slices=info.mit_mot_in_slices
+                + (op_info.mit_mot_in_slices[idx],),
                 mit_mot_out_slices=info.mit_mot_out_slices
-                + (op.mit_mot_out_slices[idx],),
+                + (op_info.mit_mot_out_slices[idx],),
             )
             # input taps
-            for jdx in op.mit_mot_in_slices[idx]:
+            for jdx in op_info.mit_mot_in_slices[idx]:
                 op_inputs += [op.inner_inputs[i_offset]]
                 i_offset += 1
             # output taps
-            for jdx in op.mit_mot_out_slices[idx]:
+            for jdx in op_info.mit_mot_out_slices[idx]:
                 op_outputs += [op.inner_outputs[o_offset]]
                 o_offset += 1
             # node inputs
             node_inputs += [inputs[ni_offset + idx]]
         else:
-            o_offset += len(op.mit_mot_out_slices[idx])
-            i_offset += len(op.mit_mot_in_slices[idx])
+            o_offset += len(op_info.mit_mot_out_slices[idx])
+            i_offset += len(op_info.mit_mot_in_slices[idx])
 
-    offset += op.n_mit_mot
-    ni_offset += op.n_mit_mot
+    offset += op_info.n_mit_mot
+    ni_offset += op_info.n_mit_mot
 
-    for idx in range(op.info.n_mit_sot):
+    for idx in range(op_info.n_mit_sot):
         if offset + idx not in not_required:
             map_old_new[offset + idx] = curr_pos
             curr_pos += 1
             info = dataclasses.replace(
                 info,
-                mit_sot_in_slices=info.mit_sot_in_slices + (op.mit_sot_in_slices[idx],),
+                mit_sot_in_slices=info.mit_sot_in_slices
+                + (op_info.mit_sot_in_slices[idx],),
             )
             # input taps
-            for jdx in op.mit_sot_in_slices[idx]:
+            for jdx in op_info.mit_sot_in_slices[idx]:
                 op_inputs += [op.inner_inputs[i_offset]]
                 i_offset += 1
             # output taps
@@ -468,17 +475,18 @@ def compress_outs(op, not_required, inputs):
             node_inputs += [inputs[ni_offset + idx]]
         else:
             o_offset += 1
-            i_offset += len(op.mit_sot_in_slices[idx])
+            i_offset += len(op_info.mit_sot_in_slices[idx])
 
-    offset += op.n_mit_sot
-    ni_offset += op.n_mit_sot
-    for idx in range(op.info.n_sit_sot):
+    offset += op_info.n_mit_sot
+    ni_offset += op_info.n_mit_sot
+    for idx in range(op_info.n_sit_sot):
         if offset + idx not in not_required:
             map_old_new[offset + idx] = curr_pos
             curr_pos += 1
             info = dataclasses.replace(
                 info,
-                sit_sot_in_slices=info.sit_sot_in_slices + (op.sit_sot_in_slices[idx],),
+                sit_sot_in_slices=info.sit_sot_in_slices
+                + (op_info.sit_sot_in_slices[idx],),
             )
             # input taps
             op_inputs += [op.inner_inputs[i_offset]]
@@ -492,23 +500,23 @@ def compress_outs(op, not_required, inputs):
             o_offset += 1
             i_offset += 1
 
-    offset += op.n_sit_sot
-    ni_offset += op.n_sit_sot
+    offset += op_info.n_sit_sot
+    ni_offset += op_info.n_sit_sot
     nit_sot_ins = []
-    for idx in range(op.info.n_nit_sot):
+    for idx in range(op_info.n_nit_sot):
         if offset + idx not in not_required:
             map_old_new[offset + idx] = curr_pos
             curr_pos += 1
             info = dataclasses.replace(info, n_nit_sot=info.n_nit_sot + 1)
             op_outputs += [op.inner_outputs[o_offset]]
             o_offset += 1
-            nit_sot_ins += [inputs[ni_offset + idx + op.n_shared_outs]]
+            nit_sot_ins += [inputs[ni_offset + idx + op_info.n_shared_outs]]
         else:
             o_offset += 1
 
-    offset += op.n_nit_sot
+    offset += op_info.n_nit_sot
     shared_ins = []
-    for idx in range(op.info.n_shared_outs):
+    for idx in range(op_info.n_shared_outs):
         if offset + idx not in not_required:
             map_old_new[offset + idx] = curr_pos
             curr_pos += 1
@@ -526,8 +534,8 @@ def compress_outs(op, not_required, inputs):
     # other stuff
     op_inputs += op.inner_inputs[i_offset:]
     info = dataclasses.replace(info, n_non_seqs=len(op.inner_inputs[i_offset:]))
-    node_inputs += inputs[ni_offset + op.n_shared_outs + op.n_nit_sot :]
-    if op.info.as_while:
+    node_inputs += inputs[ni_offset + op_info.n_shared_outs + op_info.n_nit_sot :]
+    if op_info.as_while:
         op_outputs += [op.inner_outputs[o_offset]]
         map_old_new[o_offset] = len(op_outputs) - 1
         # map_old_new[len(op_outputs)-1] = o_offset
