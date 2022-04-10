@@ -838,172 +838,6 @@ def applys_between(
     )
 
 
-def clone(
-    inputs: List[Variable],
-    outputs: List[Variable],
-    copy_inputs: bool = True,
-    copy_orphans: Optional[bool] = None,
-) -> Tuple[Collection[Variable], Collection[Variable]]:
-    r"""Copies the sub-graph contained between inputs and outputs.
-
-    Parameters
-    ----------
-    inputs
-        Input `Variable`\s.
-    outputs
-        Output `Variable`\s.
-    copy_inputs
-        If ``True``, the inputs will be copied (defaults to ``True``).
-    copy_orphans
-        When ``None``, use the `copy_inputs` value.
-        When ``True``, new orphans nodes are created.
-        When ``False``, original orphans nodes are reused in the new graph.
-
-    Returns
-    -------
-    The inputs and outputs of that copy.
-
-    Notes
-    -----
-
-    A constant, if in the `inputs` list is not an orphan. So it will be copied
-    conditional on the `copy_inputs` parameter; otherwise, it will be copied
-    conditional on the `copy_orphans` parameter.
-
-    """
-    if copy_orphans is None:
-        copy_orphans = copy_inputs
-    equiv = clone_get_equiv(inputs, outputs, copy_inputs, copy_orphans)
-    return [cast(Variable, equiv[input]) for input in inputs], [
-        cast(Variable, equiv[output]) for output in outputs
-    ]
-
-
-def clone_get_equiv(
-    inputs: Sequence[Variable],
-    outputs: Sequence[Variable],
-    copy_inputs: bool = True,
-    copy_orphans: bool = True,
-    memo: Optional[Dict[Node, Node]] = None,
-) -> Dict[Node, Node]:
-    """
-    Return a dictionary that maps from `Variable` and `Apply` nodes in the
-    original graph to a new node (a clone) in a new graph.
-
-    This function works by recursively cloning inputs... rebuilding a directed
-    graph from the inputs up to eventually building new outputs.
-
-    Parameters
-    ----------
-    inputs : a list of Variables
-    outputs : a list of Variables
-    copy_inputs : bool
-        True means to create the cloned graph from new input
-        nodes (the bottom of a feed-upward graph).
-        False means to clone a graph that is rooted at the original input
-        nodes.
-    copy_orphans :
-        When ``True``, new constant nodes are created. When ``False``, original
-        constant nodes are reused in the new graph.
-    memo : None or dict
-        Optionally start with a partly-filled dictionary for the return value.
-        If a dictionary is passed, this function will work in-place on that
-        dictionary and return it.
-
-    """
-    if memo is None:
-        memo = {}
-
-    # clone the inputs if necessary
-    for input in inputs:
-        if copy_inputs:
-            cpy = input.clone()
-            cpy.owner = None
-            cpy.index = None
-            memo.setdefault(input, cpy)
-        else:
-            memo.setdefault(input, input)
-
-    # go through the inputs -> outputs graph cloning as we go
-    for apply in io_toposort(inputs, outputs):
-        for input in apply.inputs:
-            if input not in memo:
-                if copy_orphans:
-                    cpy = input.clone()
-                    memo[input] = cpy
-                else:
-                    memo[input] = input
-
-        new_apply = apply.clone_with_new_inputs([memo[i] for i in apply.inputs])
-        memo.setdefault(apply, new_apply)
-        for output, new_output in zip(apply.outputs, new_apply.outputs):
-            memo.setdefault(output, new_output)
-
-    # finish up by cloning any remaining outputs (it can happen)
-    for output in outputs:
-        if output not in memo:
-            memo[output] = output.clone()
-
-    return memo
-
-
-def clone_replace(
-    output: List[Variable],
-    replace: Optional[
-        Union[Iterable[Tuple[Variable, Variable]], Dict[Variable, Variable]]
-    ] = None,
-    strict: bool = True,
-    share_inputs: bool = True,
-) -> List[Variable]:
-    """Clone a graph and replace subgraphs within it.
-
-    It returns a copy of the initial subgraph with the corresponding
-    substitutions.
-
-    Parameters
-    ----------
-    output : Aesara Variables (or Aesara expressions)
-        Aesara expression that represents the computational graph.
-    replace : dict
-        Dictionary describing which subgraphs should be replaced by what.
-    share_inputs : bool
-        If ``True``, use the same inputs (and shared variables) as the original
-        graph. If ``False``, clone them. Note that cloned shared variables still
-        use the same underlying storage, so they will always have the same
-        value.
-
-    """
-    from aesara.compile.function.pfunc import rebuild_collect_shared
-
-    items: Union[List[Tuple[Variable, Variable]], Tuple[Tuple[Variable, Variable], ...]]
-    if isinstance(replace, dict):
-        items = list(replace.items())
-    elif isinstance(replace, (list, tuple)):
-        items = replace
-    elif replace is None:
-        items = []
-    else:
-        raise ValueError(
-            (
-                "replace is neither a dictionary, list, "
-                f"tuple or None ! The value provided is {replace},"
-                f"of type {type(replace)}"
-            )
-        )
-    tmp_replace = [(x, x.type()) for x, y in items]
-    new_replace = [(x, y) for ((_, x), (_, y)) in zip(tmp_replace, items)]
-    _, _outs, _ = rebuild_collect_shared(
-        output, [], tmp_replace, [], strict, share_inputs
-    )
-
-    # TODO Explain why we call it twice ?!
-    _, outs, _ = rebuild_collect_shared(
-        _outs, [], new_replace, [], strict, share_inputs
-    )
-
-    return cast(List[Variable], outs)
-
-
 def general_toposort(
     outputs: Iterable[T],
     deps: Callable[[T], Union[OrderedSet, List[T]]],
@@ -1206,6 +1040,172 @@ def io_toposort(
         clients=clients,
     )
     return [o for o in topo if isinstance(o, Apply)]
+
+
+def clone_get_equiv(
+    inputs: Sequence[Variable],
+    outputs: Sequence[Variable],
+    copy_inputs: bool = True,
+    copy_orphans: bool = True,
+    memo: Optional[Dict[Node, Node]] = None,
+) -> Dict[Node, Node]:
+    """
+    Return a dictionary that maps from `Variable` and `Apply` nodes in the
+    original graph to a new node (a clone) in a new graph.
+
+    This function works by recursively cloning inputs... rebuilding a directed
+    graph from the inputs up to eventually building new outputs.
+
+    Parameters
+    ----------
+    inputs : a list of Variables
+    outputs : a list of Variables
+    copy_inputs : bool
+        True means to create the cloned graph from new input
+        nodes (the bottom of a feed-upward graph).
+        False means to clone a graph that is rooted at the original input
+        nodes.
+    copy_orphans :
+        When ``True``, new constant nodes are created. When ``False``, original
+        constant nodes are reused in the new graph.
+    memo : None or dict
+        Optionally start with a partly-filled dictionary for the return value.
+        If a dictionary is passed, this function will work in-place on that
+        dictionary and return it.
+
+    """
+    if memo is None:
+        memo = {}
+
+    # clone the inputs if necessary
+    for input in inputs:
+        if copy_inputs:
+            cpy = input.clone()
+            cpy.owner = None
+            cpy.index = None
+            memo.setdefault(input, cpy)
+        else:
+            memo.setdefault(input, input)
+
+    # go through the inputs -> outputs graph cloning as we go
+    for apply in io_toposort(inputs, outputs):
+        for input in apply.inputs:
+            if input not in memo:
+                if copy_orphans:
+                    cpy = input.clone()
+                    memo[input] = cpy
+                else:
+                    memo[input] = input
+
+        new_apply = apply.clone_with_new_inputs([memo[i] for i in apply.inputs])
+        memo.setdefault(apply, new_apply)
+        for output, new_output in zip(apply.outputs, new_apply.outputs):
+            memo.setdefault(output, new_output)
+
+    # finish up by cloning any remaining outputs (it can happen)
+    for output in outputs:
+        if output not in memo:
+            memo[output] = output.clone()
+
+    return memo
+
+
+def clone(
+    inputs: List[Variable],
+    outputs: List[Variable],
+    copy_inputs: bool = True,
+    copy_orphans: Optional[bool] = None,
+) -> Tuple[Collection[Variable], Collection[Variable]]:
+    r"""Copies the sub-graph contained between inputs and outputs.
+
+    Parameters
+    ----------
+    inputs
+        Input `Variable`\s.
+    outputs
+        Output `Variable`\s.
+    copy_inputs
+        If ``True``, the inputs will be copied (defaults to ``True``).
+    copy_orphans
+        When ``None``, use the `copy_inputs` value.
+        When ``True``, new orphans nodes are created.
+        When ``False``, original orphans nodes are reused in the new graph.
+
+    Returns
+    -------
+    The inputs and outputs of that copy.
+
+    Notes
+    -----
+
+    A constant, if in the `inputs` list is not an orphan. So it will be copied
+    conditional on the `copy_inputs` parameter; otherwise, it will be copied
+    conditional on the `copy_orphans` parameter.
+
+    """
+    if copy_orphans is None:
+        copy_orphans = copy_inputs
+    equiv = clone_get_equiv(inputs, outputs, copy_inputs, copy_orphans)
+    return [cast(Variable, equiv[input]) for input in inputs], [
+        cast(Variable, equiv[output]) for output in outputs
+    ]
+
+
+def clone_replace(
+    output: List[Variable],
+    replace: Optional[
+        Union[Iterable[Tuple[Variable, Variable]], Dict[Variable, Variable]]
+    ] = None,
+    strict: bool = True,
+    share_inputs: bool = True,
+) -> List[Variable]:
+    """Clone a graph and replace subgraphs within it.
+
+    It returns a copy of the initial subgraph with the corresponding
+    substitutions.
+
+    Parameters
+    ----------
+    output : Aesara Variables (or Aesara expressions)
+        Aesara expression that represents the computational graph.
+    replace : dict
+        Dictionary describing which subgraphs should be replaced by what.
+    share_inputs : bool
+        If ``True``, use the same inputs (and shared variables) as the original
+        graph. If ``False``, clone them. Note that cloned shared variables still
+        use the same underlying storage, so they will always have the same
+        value.
+
+    """
+    from aesara.compile.function.pfunc import rebuild_collect_shared
+
+    items: Union[List[Tuple[Variable, Variable]], Tuple[Tuple[Variable, Variable], ...]]
+    if isinstance(replace, dict):
+        items = list(replace.items())
+    elif isinstance(replace, (list, tuple)):
+        items = replace
+    elif replace is None:
+        items = []
+    else:
+        raise ValueError(
+            (
+                "replace is neither a dictionary, list, "
+                f"tuple or None ! The value provided is {replace},"
+                f"of type {type(replace)}"
+            )
+        )
+    tmp_replace = [(x, x.type()) for x, y in items]
+    new_replace = [(x, y) for ((_, x), (_, y)) in zip(tmp_replace, items)]
+    _, _outs, _ = rebuild_collect_shared(
+        output, [], tmp_replace, [], strict, share_inputs
+    )
+
+    # TODO Explain why we call it twice ?!
+    _, outs, _ = rebuild_collect_shared(
+        _outs, [], new_replace, [], strict, share_inputs
+    )
+
+    return cast(List[Variable], outs)
 
 
 default_leaf_formatter = str
