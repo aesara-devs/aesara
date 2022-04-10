@@ -117,10 +117,10 @@ def test_consistency_cpu_serial():
             )
             # Not really necessary, just mimicking
             # rng_mrg.MRG_RandomStream' behavior
-            sample.rstate = rstate
-            sample.update = (rstate, new_rstate)
+            sample.tag.rstate = rstate
+            sample.tag.update = (rstate, new_rstate)
 
-            rstate.default_update = new_rstate
+            rstate.tag.default_update = new_rstate
             f = function([], sample)
             for k in range(n_samples):
                 s = f()
@@ -161,10 +161,10 @@ def test_consistency_cpu_parallel():
         )
         # Not really necessary, just mimicking
         # rng_mrg.MRG_RandomStream' behavior
-        sample.rstate = rstate
-        sample.update = (rstate, new_rstate)
+        sample.tag.rstate = rstate
+        sample.tag.update = (rstate, new_rstate)
 
-        rstate.default_update = new_rstate
+        rstate.tag.default_update = new_rstate
         f = function([], sample)
 
         for k in range(n_samples):

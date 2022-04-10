@@ -258,13 +258,13 @@ class RandomStream:
 
         # Generate the sample
         out = op(*args, **kwargs, rng=random_state_variable)
-        out.rng = random_state_variable
+        out.tag.rng = random_state_variable
 
         # Update the tracked states
         new_r = out.owner.outputs[0]
-        out.update = (random_state_variable, new_r)
-        self.state_updates.append(out.update)
+        out.tag.update = (random_state_variable, new_r)
+        self.state_updates.append(out.tag.update)
 
-        random_state_variable.default_update = new_r
+        random_state_variable.tag.default_update = new_r
 
         return out

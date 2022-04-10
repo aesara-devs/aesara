@@ -97,7 +97,7 @@ def rebuild_collect_shared(
         elif isinstance(v, SharedVariable):
             if v not in shared_inputs:
                 shared_inputs.append(v)
-            if hasattr(v, "default_update"):
+            if hasattr(v.tag, "default_update"):
                 # Check that v should not be excluded from the default
                 # updates list
                 if no_default_updates is False or (
@@ -107,7 +107,7 @@ def rebuild_collect_shared(
                     # provided
                     if v not in update_d:
                         v_update = v.type.filter_variable(
-                            v.default_update, allow_convert=False
+                            v.tag.default_update, allow_convert=False
                         )
                         if not v.type.is_super(v_update.type):
                             raise TypeError(

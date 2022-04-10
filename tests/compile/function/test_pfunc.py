@@ -426,13 +426,13 @@ class TestPfunc:
 
     def test_default_updates(self):
         x = shared(0)
-        x.default_update = x + 1
+        x.tag.default_update = x + 1
 
         f = pfunc([], [x])
         f()
         assert x.get_value() == 1
 
-        del x.default_update
+        del x.tag.default_update
         f()
         assert x.get_value() == 2
 
@@ -443,7 +443,7 @@ class TestPfunc:
     def test_no_default_updates(self):
         x = shared(0)
         y = shared(1)
-        x.default_update = x + 2
+        x.tag.default_update = x + 2
 
         # Test that the default update is taken into account in the right cases
         f1 = pfunc([], [x], no_default_updates=True)
@@ -508,7 +508,7 @@ class TestPfunc:
         a = lscalar("a")
 
         z = a * x
-        x.default_update = x + y
+        x.tag.default_update = x + y
 
         f1 = pfunc([a], z)
         f1(12)
@@ -526,8 +526,8 @@ class TestPfunc:
         x = shared(0)
         y = shared(1)
 
-        x.default_update = x - 1
-        y.default_update = y + 1
+        x.tag.default_update = x - 1
+        y.tag.default_update = y + 1
 
         f1 = pfunc([], [x, y])
         f1()
@@ -554,9 +554,9 @@ class TestPfunc:
         y = shared(1)
         z = shared(-1)
 
-        x.default_update = x - y
-        y.default_update = z
-        z.default_update = z - 1
+        x.tag.default_update = x - y
+        y.tag.default_update = z
+        z.tag.default_update = z - 1
 
         f1 = pfunc([], [x])
         f1()
@@ -596,8 +596,8 @@ class TestPfunc:
         else:
             a = lscalar("a")
 
-        x.default_update = y
-        y.default_update = y + a
+        x.tag.default_update = y
+        y.tag.default_update = y + a
 
         f1 = pfunc([], x, no_default_updates=True)
         f1()
@@ -624,13 +624,13 @@ class TestPfunc:
         assert x.get_value() == 3
         assert y.get_value() == 2
 
-        # a is needed as input if y.default_update is used
+        # a is needed as input if y.tag.default_update is used
         with pytest.raises(MissingInputError):
             pfunc([], x)
 
     def test_default_updates_partial_graph(self):
         a = shared(0)
-        a.default_update = a + 1  # Increment a each time it is used
+        a.tag.default_update = a + 1  # Increment a each time it is used
         b = 2 * a
         # Use only the tip of the graph, a is not used
         f = pfunc([b], b)
@@ -640,7 +640,7 @@ class TestPfunc:
 
     def test_givens_replaces_shared_variable(self):
         a = shared(1.0, "a")
-        a.default_update = a + 3.0
+        a.tag.default_update = a + 3.0
         b = dscalar("b")
         c = a + 10
         f = pfunc([b], c, givens={a: b})
@@ -650,7 +650,7 @@ class TestPfunc:
 
     def test_givens_replaces_shared_variable2(self):
         a = shared(1.0, "a")
-        a.default_update = a + 3
+        a.tag.default_update = a + 3
         c = a + 10
         f = pfunc([], c, givens={a: (a + 10)})
 

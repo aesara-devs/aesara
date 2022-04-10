@@ -198,19 +198,18 @@ Reference
     if you give two update expressions for the same SharedVariable input (that
     doesn't make sense).
 
-    If a SharedVariable is not given an update expression, but has a
-    ``default_update`` member containing an expression, this expression
+    If a `SharedVariable` is not given an update expression, but has a
+    :attr:`SharedVariable.tag.default_update` member containing an expression, this expression
     will be used as the update expression for this variable.  Passing
     ``no_default_updates=True`` to ``function`` disables this behavior
     entirely, passing ``no_default_updates=[sharedvar1, sharedvar2]``
     disables it for the mentioned variables.
 
     Regarding givens: Be careful to make sure that these substitutions are
-    independent, because behaviour when Var1 of one pair appears in the graph leading
-    to Var2 in another expression is undefined (e.g. with ``{a: x, b: a + 1}``).
-    Replacements specified with
-    givens are different from optimizations in that Var2 is not expected to be
-    equivalent to Var1.
+    independent, because behavior when ``Var1`` of one pair appears in the graph leading
+    to ``Var2`` in another expression is undefined (e.g. with ``{a: x, b: a + 1}``).
+    Replacements specified with givens are different from optimizations in that
+    ``Var2`` is not expected to be equivalent to ``Var1``.
 
 .. autofunction:: aesara.compile.function.function_dump
 

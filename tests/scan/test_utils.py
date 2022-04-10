@@ -18,7 +18,7 @@ def create_test_hmm():
     rng_state = np.random.default_rng(23422)
     rng_tt = aesara.shared(rng_state, name="rng", borrow=True)
     rng_tt.tag.is_rng = True
-    rng_tt.default_update = rng_tt
+    rng_tt.tag.default_update = rng_tt
 
     N_tt = at.iscalar("N")
     N_tt.tag.test_value = 10
@@ -143,7 +143,7 @@ def test_ScanArgs_basics_mit_sot():
     rng_state = np.random.RandomState(np.random.MT19937(np.random.SeedSequence(1234)))
     rng_tt = aesara.shared(rng_state, name="rng", borrow=True)
     rng_tt.tag.is_rng = True
-    rng_tt.default_update = rng_tt
+    rng_tt.tag.default_update = rng_tt
 
     N_tt = at.iscalar("N")
     N_tt.tag.test_value = 10

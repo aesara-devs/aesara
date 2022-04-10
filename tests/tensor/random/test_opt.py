@@ -66,7 +66,7 @@ def apply_local_opt_to_rv(opt, op_fn, dist_op, dist_params, size, rng, name=None
 def test_inplace_optimization():
 
     out = normal(0, 1)
-    out.owner.inputs[0].default_update = out.owner.outputs[0]
+    out.owner.inputs[0].tag.default_update = out.owner.outputs[0]
 
     assert out.owner.op.inplace is False
 
@@ -107,7 +107,7 @@ def test_inplace_optimization_extra_props():
             return rng.normal(scale=sigma, size=size)
 
     out = Test(extra="some value")(1)
-    out.owner.inputs[0].default_update = out.owner.outputs[0]
+    out.owner.inputs[0].tag.default_update = out.owner.outputs[0]
 
     assert out.owner.op.inplace is False
 

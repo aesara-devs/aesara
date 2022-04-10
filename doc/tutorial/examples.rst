@@ -365,7 +365,7 @@ Here's a brief example.  The setup code is:
     rv_u = srng.uniform(0, 1, size=(2,2))
     rv_n = srng.normal(0, 1, size=(2,2))
     f = function([], rv_u)
-    g = function([], rv_n, no_default_updates=True)    #Not updating rv_n.rng
+    g = function([], rv_n, no_default_updates=True)    #Not updating rv_n.tag.rng
     nearly_zeros = function([], rv_u + rv_u - 2 * rv_u)
 
 Here, ``rv_u`` represents a random stream of 2x2 matrices of draws from a uniform
@@ -403,11 +403,11 @@ Seeding Streams
 Random variables can be seeded individually or collectively.
 
 You can seed just one random variable by seeding or assigning to the
-``.rng`` attribute, using ``.rng.set_value()``.
+``.tag.rng`` attribute, using ``.tag.rng.set_value()``.
 
->>> rng_val = rv_u.rng.get_value(borrow=True)   # Get the rng for rv_u
+>>> rng_val = rv_u.tag.rng.get_value(borrow=True)   # Get the rng for rv_u
 >>> rng_val.seed(89234)                         # seeds the generator
->>> rv_u.rng.set_value(rng_val, borrow=True)    # Assign back seeded rng
+>>> rv_u.tag.rng.set_value(rng_val, borrow=True)    # Assign back seeded rng
 
 You can also seed *all* of the random variables allocated by a :class:`RandomStream`
 object by that object's ``seed`` method.  This seed will be used to seed a
@@ -425,14 +425,14 @@ update the state of the generators used in function *f* above.
 
 For example:
 
->>> state_after_v0 = rv_u.rng.get_value().get_state()
+>>> state_after_v0 = rv_u.tag.rng.get_value().get_state()
 >>> nearly_zeros()       # this affects rv_u's generator
 array([[ 0.,  0.],
        [ 0.,  0.]])
 >>> v1 = f()
->>> rng = rv_u.rng.get_value(borrow=True)
+>>> rng = rv_u.tag.rng.get_value(borrow=True)
 >>> rng.set_state(state_after_v0)
->>> rv_u.rng.set_value(rng, borrow=True)
+>>> rv_u.tag.rng.set_value(rng, borrow=True)
 >>> v2 = f()             # v2 != v1
 >>> v3 = f()             # v3 == v1
 

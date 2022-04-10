@@ -842,10 +842,10 @@ class MRG_RandomStream:
 
     def pretty_return(self, node_rstate, new_rstate, sample, size, nstreams):
         # TODO : need description for method, parameter and return
-        sample.rstate = node_rstate
-        sample.update = (node_rstate, new_rstate)
+        sample.tag.rstate = node_rstate
+        sample.tag.update = (node_rstate, new_rstate)
         self.state_updates.append((node_rstate, new_rstate, size, nstreams))
-        node_rstate.default_update = new_rstate
+        node_rstate.tag.default_update = new_rstate
         return sample
 
     def uniform(

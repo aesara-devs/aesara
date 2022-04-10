@@ -50,8 +50,8 @@ Reference
     .. method:: gen(op, *args, **kwargs)
 
         Return the random variable from `op(*args, **kwargs)`, but
-        also install special attributes (``.rng`` and ``update``, see
-        :class:`RandomVariable` ) into it.
+        also add special attributes (``.tag.rng`` and ``tag.update``, see
+        :class:`RandomVariable` ) to it.
 
         This function also adds the returned variable to an internal list so
         that it can be seeded later by a call to `seed`.

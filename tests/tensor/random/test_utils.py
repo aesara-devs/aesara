@@ -13,7 +13,7 @@ from tests import unittest_tools as utt
 def set_aesara_flags():
     opts = OptimizationQuery(include=[None], exclude=[])
     py_mode = Mode("py", opts)
-    with config.change_flags(mode=py_mode, compute_test_value="warn"):
+    with config.change_flags(mode=py_mode, compute_test_value="ignore"):
         yield
 
 
@@ -97,7 +97,7 @@ class TestSharedRandomStream:
         assert np.all(f() != f())
         assert np.all(g() == g())
         assert np.all(abs(nearly_zeros()) < 1e-5)
-        assert isinstance(rv_u.rng.get_value(borrow=True), np.random.Generator)
+        assert isinstance(rv_u.tag.rng.get_value(borrow=True), np.random.Generator)
 
     @pytest.mark.parametrize("rng_ctor", [np.random.RandomState, np.random.default_rng])
     def test_basics(self, rng_ctor):
@@ -223,7 +223,7 @@ class TestSharedRandomStream:
         # Explicit updates #2
         random_c = RandomStream(utt.fetch_seed(), rng_ctor=rng_ctor)
         out_c = random_c.uniform(0, 1, size=(2, 2))
-        fn_c = function([], out_c, updates=[out_c.update])
+        fn_c = function([], out_c, updates=[out_c.tag.update])
         fn_c_val0 = fn_c()
         fn_c_val1 = fn_c()
         assert np.all(fn_c_val0 == fn_a_val0)
@@ -241,7 +241,7 @@ class TestSharedRandomStream:
         # No updates for out
         random_e = RandomStream(utt.fetch_seed(), rng_ctor=rng_ctor)
         out_e = random_e.uniform(0, 1, size=(2, 2))
-        fn_e = function([], out_e, no_default_updates=[out_e.rng])
+        fn_e = function([], out_e, no_default_updates=[out_e.tag.rng])
         fn_e_val0 = fn_e()
         fn_e_val1 = fn_e()
         assert np.all(fn_e_val0 == fn_a_val0)
