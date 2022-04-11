@@ -754,6 +754,11 @@ class TestAlloc:
         for shp in [[], 1, [1], [1, 2], [1, 2, 3], np.r_[1, 2, 3]]:
             ones = aesara.function([], [at.ones(shp)], mode=self.mode)
             assert np.allclose(ones(), np.ones(shp))
+            # When shape is a TensorConstant
+            ones_const = aesara.function(
+                [], [at.ones(at.constant(shp))], mode=self.mode
+            )
+            assert np.allclose(ones_const(), np.ones(shp))
 
         # scalar doesn't have to be provided as input
         x = scalar()
@@ -771,6 +776,11 @@ class TestAlloc:
         for shp in [[], 1, [1], [1, 2], [1, 2, 3], np.r_[1, 2, 3]]:
             zeros = aesara.function([], [at.zeros(shp)], mode=self.mode)
             assert np.allclose(zeros(), np.zeros(shp))
+            # When shape is a TensorConstant
+            zeros_const = aesara.function(
+                [], [at.zeros(at.constant(shp))], mode=self.mode
+            )
+            assert np.allclose(zeros_const(), np.zeros(shp))
 
         # scalar doesn't have to be provided as input
         x = scalar()
@@ -4380,6 +4390,10 @@ def test_empty():
 
     assert out.shape == (2, 3)
     assert out.dtype == "float32"
+
+    empty_at = at.empty(3)
+    res = aesara.function([], empty_at)()
+    assert res.shape == (3,)
 
     empty_at = at.empty((2, 3), dtype=None)
     res = aesara.function([], empty_at)()
