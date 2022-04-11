@@ -978,7 +978,10 @@ def zeros_like(model, dtype=None, opt=False):
 
 def zeros(shape, dtype=None):
     """Create a `TensorVariable` filled with zeros, closer to NumPy's syntax than ``alloc``."""
-    if not isinstance(shape, (np.ndarray, Sequence, TensorVariable)):
+    if not (
+        isinstance(shape, (np.ndarray, Sequence))
+        or (isinstance(shape, TensorVariable) and shape.ndim > 0)
+    ):
         shape = [shape]
     if dtype is None:
         dtype = config.floatX
@@ -987,7 +990,10 @@ def zeros(shape, dtype=None):
 
 def ones(shape, dtype=None):
     """Create a `TensorVariable` filled with ones, closer to NumPy's syntax than ``alloc``."""
-    if not isinstance(shape, (np.ndarray, Sequence, TensorVariable)):
+    if not (
+        isinstance(shape, (np.ndarray, Sequence))
+        or (isinstance(shape, TensorVariable) and shape.ndim > 0)
+    ):
         shape = [shape]
     if dtype is None:
         dtype = config.floatX
@@ -4274,6 +4280,11 @@ def empty(shape, dtype=None):
         Desired output data-type for the array, e.g, `numpy.int8`. Default is
         `numpy.float64`.
     """
+    if not (
+        isinstance(shape, (np.ndarray, Sequence))
+        or (isinstance(shape, TensorVariable) and shape.ndim > 0)
+    ):
+        shape = [shape]
     if dtype is None:
         dtype = config.floatX
     return AllocEmpty(dtype)(*shape)
