@@ -105,8 +105,8 @@ class FunctionGraph(MetaObject):
 
         if clone:
             _memo = clone_get_equiv(
-                inputs,
                 outputs,
+                inputs=inputs,
                 copy_inputs=copy_inputs,
                 copy_orphans=copy_orphans,
                 memo=cast(Dict[Node, Node], memo),
@@ -740,7 +740,7 @@ class FunctionGraph(MetaObject):
         equiv
             A ``dict`` that maps old nodes to the new nodes.
         """
-        equiv = clone_get_equiv(self.inputs, self.outputs)
+        equiv = clone_get_equiv(self.outputs, inputs=self.inputs)
 
         if check_integrity:
             self.check_integrity()

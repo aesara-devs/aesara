@@ -840,7 +840,7 @@ def applys_between(
 
 def general_toposort(
     outputs: Iterable[T],
-    deps: Callable[[T], Union[OrderedSet, List[T]]],
+    deps: Optional[Callable[[T], Union[OrderedSet, List[T]]]] = None,
     compute_deps_cache: Optional[
         Callable[[T], Optional[Union[OrderedSet, List[T]]]]
     ] = None,
@@ -851,15 +851,15 @@ def general_toposort(
 
     Parameters
     ----------
-    deps : callable
+    deps
         A Python function that takes a node as input and returns its dependence.
-    compute_deps_cache : optional
+    compute_deps_cache
         If provided, `deps_cache` should also be provided. This is a function like
         `deps`, but that also caches its results in a ``dict`` passed as `deps_cache`.
-    deps_cache : dict
+    deps_cache
         A ``dict`` mapping nodes to their children.  This is populated by
         `compute_deps_cache`.
-    clients : dict
+    clients
         If a ``dict`` is passed, it will be filled with a mapping of
         nodes-to-clients for each node in the subgraph.
 
@@ -878,7 +878,7 @@ def general_toposort(
     specialized code, so it can be faster.
 
     """
-    if compute_deps_cache is None:
+    if compute_deps_cache is None and deps is not None:
 
         if deps_cache is None:
             deps_cache = {}
@@ -902,6 +902,7 @@ def general_toposort(
                 return deps_cache[io]
 
     else:
+        assert compute_deps_cache is not None
         _compute_deps_cache = compute_deps_cache
 
     if deps_cache is None:
@@ -1043,8 +1044,8 @@ def io_toposort(
 
 
 def clone_get_equiv(
-    inputs: Sequence[Variable],
     outputs: Sequence[Variable],
+    inputs: Optional[Sequence[Variable]] = None,
     strict: bool = True,
     copy_inputs: bool = True,
     copy_orphans: bool = True,
@@ -1054,13 +1055,13 @@ def clone_get_equiv(
     Return dictionary that maps from `Variable` and `Apply` nodes in the
     original graph to a new node (a clone) in a new graph.
 
-    This function works by recursively cloning inputs... rebuilding a directed
-    graph from the inputs up to eventually building new outputs.
+    This function works by recursively cloning inputs and rebuilding a directed
+    graph from the inputs up.
 
     Parameters
     ----------
-    inputs
     outputs
+    inputs
     strict
     copy_inputs
         True means to create the cloned graph from new input
@@ -1079,16 +1080,53 @@ def clone_get_equiv(
     if memo is None:
         memo = {}
 
-    for input in inputs:
-        if copy_inputs:
-            cpy = input.clone()
-            cpy.owner = None
-            cpy.index = None
-            memo.setdefault(input, cpy)
-        else:
-            memo.setdefault(input, input)
+    if inputs:
+        for input in inputs:
+            if copy_inputs:
+                cpy = input.clone()
+                cpy.owner = None
+                cpy.index = None
+                memo.setdefault(input, cpy)
+            else:
+                memo.setdefault(input, input)
 
-    for apply in io_toposort(inputs, outputs):
+        toposort = io_toposort(inputs, outputs)
+    else:
+
+        deps_cache: Dict[Node, List[Node]] = {}
+
+        def compute_deps_cache(obj):
+            if obj in deps_cache:
+                return deps_cache[obj]
+
+            rval = []
+
+            if isinstance(obj, Variable):
+                if obj.owner:
+                    rval = [obj.owner]
+                elif not isinstance(obj, Constant):
+                    if not copy_inputs:
+                        memo.setdefault(obj, obj)
+            elif isinstance(obj, Apply):
+                rval = list(obj.inputs)
+
+            if rval:
+                deps_cache[obj] = list(rval)
+            else:
+                deps_cache[obj] = rval
+
+            return rval
+
+        topo = general_toposort(
+            outputs,
+            deps=None,
+            compute_deps_cache=compute_deps_cache,
+            deps_cache=deps_cache,
+            clients=None,
+        )
+        toposort = [o for o in topo if isinstance(o, Apply)]
+
+    for apply in toposort:
         for input in apply.inputs:
             if input not in memo:
                 if copy_orphans:
@@ -1104,8 +1142,8 @@ def clone_get_equiv(
         for output, new_output in zip(apply.outputs, new_apply.outputs):
             memo.setdefault(output, new_output)
 
-    # Finish up by cloning any remaining outputs (it can happen)
-    # TODO: How/why can it happen?  That's important to state in a comment.
+    # Finish up by cloning any remaining outputs: e.g. owner-less outputs that
+    # won't show up in `toposort` (because there are no associated `Apply`s).
     for output in outputs:
         if output not in memo:
             memo[output] = output.clone()
@@ -1148,7 +1186,9 @@ def clone(
     """
     if copy_orphans is None:
         copy_orphans = copy_inputs
-    equiv = clone_get_equiv(inputs, outputs, copy_inputs, copy_orphans)
+    equiv = clone_get_equiv(
+        outputs, inputs=inputs, copy_inputs=copy_inputs, copy_orphans=copy_orphans
+    )
     return [cast(Variable, equiv[input]) for input in inputs], [
         cast(Variable, equiv[output]) for output in outputs
     ]
@@ -1189,8 +1229,6 @@ def clone_replace(
         assert isinstance(outputs, Iterable)
         _outputs = list(outputs)
 
-    inputs = [i for i in graph_inputs(_outputs) if not isinstance(i, Constant)]
-
     if replace is not None:
         memo = cast(Dict[Node, Node], dict(replace))
 
@@ -1198,11 +1236,7 @@ def clone_replace(
             # Emulate the behavior of `rebuild_collect_shared` and clone the
             # replacement values
             memo_keys, memo_values = zip(*memo.items())
-            memo_values_inputs = [
-                i for i in graph_inputs(memo_values) if not isinstance(i, Constant)
-            ]
             memo = clone_get_equiv(
-                memo_values_inputs,
                 memo_values,
                 strict=strict,
                 copy_inputs=not share_inputs,
@@ -1213,7 +1247,7 @@ def clone_replace(
         memo = {}
 
     memo = clone_get_equiv(
-        inputs, _outputs, strict=strict, copy_inputs=not share_inputs, memo=memo
+        _outputs, strict=strict, copy_inputs=not share_inputs, memo=memo
     )
 
     res = [memo[out] for out in _outputs]
