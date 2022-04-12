@@ -1,11 +1,13 @@
 import numpy as np
 import pytest
+import scipy.sparse
 
 import aesara
 import aesara.tensor as at
 from aesara.compile.mode import OPT_FAST_RUN, Mode
 from aesara.graph.basic import Constant, equal_computations
 from aesara.raise_op import Assert, CheckAndRaise, assert_op
+from aesara.sparse import as_sparse_variable
 from tests import unittest_tools as utt
 
 
@@ -114,3 +116,18 @@ class TestCheckAndRaiseInferShape(utt.InferShapeTester):
         self._compile_and_check(
             [admat, adscal, bdscal], [out], [admat_val, adscal_val, bdscal_val], Assert
         )
+
+
+def test_CheckAndRaise_sparse_variable():
+    check_and_raise = CheckAndRaise(ValueError, "sparse_check")
+
+    spe1 = scipy.sparse.csc_matrix(scipy.sparse.eye(5, 3))
+    aspe1 = as_sparse_variable(spe1)
+    a1 = check_and_raise(aspe1, aspe1.sum() > 2)
+    assert a1.sum().eval() == 3
+
+    spe2 = scipy.sparse.csc_matrix(scipy.sparse.eye(5, 1))
+    aspe2 = as_sparse_variable(spe2)
+    a2 = check_and_raise(aspe1, aspe2.sum() > 2)
+    with pytest.raises(ValueError, match="sparse_check"):
+        a2.sum().eval()

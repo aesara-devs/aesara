@@ -10,6 +10,7 @@ from aesara.graph.basic import Apply, Variable
 from aesara.link.c.op import COp
 from aesara.link.c.params_type import ParamsType
 from aesara.link.c.type import Generic
+from aesara.tensor.type import DenseTensorType
 
 
 class ExceptionType(Generic):
@@ -101,6 +102,10 @@ class CheckAndRaise(COp):
         return [[1]] + [[0]] * (len(node.inputs) - 1)
 
     def c_code(self, node, name, inames, onames, props):
+        if not isinstance(node.inputs[0].type, DenseTensorType):
+            raise NotImplementedError(
+                f"CheckAndRaise c_code not implemented for input type {node.inputs[0].type}"
+            )
         value_name, *cond_names = inames
         out_name = onames[0]
         check = []
@@ -129,7 +134,7 @@ class CheckAndRaise(COp):
         return res
 
     def c_code_cache_version(self):
-        return (1, 0)
+        return (1, 1)
 
     def infer_shape(self, fgraph, node, input_shapes):
         return [input_shapes[0]]
