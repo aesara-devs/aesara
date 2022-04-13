@@ -123,7 +123,7 @@ def remove_constants_and_unused_inputs_scan(fgraph, node):
             try:
                 # This works if input is a constant that has all entries
                 # equal
-                givens[op_ins[idx]] = node_inp.clone()[0]
+                givens[op_ins[idx]] = node_inp[0]
             except TypeError:
                 pass
         elif op_ins[idx] in all_ins:
@@ -148,7 +148,7 @@ def remove_constants_and_unused_inputs_scan(fgraph, node):
     nw_outer_nonseq = []
     for idx, (nw_in, nw_out) in enumerate(zip(non_seqs, outer_non_seqs)):
         if isinstance(nw_out, Constant):
-            givens[nw_in] = nw_out.clone()
+            givens[nw_in] = nw_out
         elif nw_in in all_ins:
             # Indices of elements of nw_outer_nonseq that are equivalent
             # to nw_out.
@@ -697,7 +697,7 @@ def push_out_inner_vars(
             new_outer_var = old_scan_args.outer_in_non_seqs[idx_non_seq]
 
         elif isinstance(var, Constant):
-            new_outer_var = var.clone()
+            new_outer_var = var
 
         elif var in old_scan_args.inner_out_nit_sot:
             idx_nitsot = old_scan_args.inner_out_nit_sot.index(var)
