@@ -3,6 +3,7 @@ from functools import partial
 import numpy as np
 import pytest
 
+import aesara.tensor as at
 from aesara.compile import shared
 from aesara.compile.builders import OpFromGraph
 from aesara.compile.function import function
@@ -28,6 +29,12 @@ from tests.graph.utils import MyVariable
 class TestOpFromGraph(unittest_tools.InferShapeTester):
     def test_valid_input(self):
         x, y, z = matrices("xyz")
+
+        with pytest.raises(ValueError, match="Expected at least.*"):
+            OpFromGraph([x], [x])()
+
+        with pytest.raises(ValueError, match=r"Expected 1 input\(s\)"):
+            OpFromGraph([x], [x]).make_node()
 
         with pytest.raises(TypeError):
             OpFromGraph((x,), (x,))
@@ -450,6 +457,39 @@ class TestOpFromGraph(unittest_tools.InferShapeTester):
         f = op(y)
         grad_f = grad(f, y)
         assert grad_f.tag.test_value is not None
+
+    def test_make_node_shared(self):
+        """Make sure we can provide `OpFromGraph.make_node` new shared inputs and get a valid `OpFromGraph`."""
+
+        x = at.scalar("x")
+        y = shared(1.0, name="y")
+
+        test_ofg = OpFromGraph([x], [x + y])
+        assert test_ofg.inputs == [x]
+        assert test_ofg.shared_inputs == [y]
+
+        out = test_ofg(x)
+
+        y_clone = y.clone()
+        assert y_clone != y
+        y_clone.name = "y_clone"
+
+        out_new = test_ofg.make_node(*(out.owner.inputs[:1] + [y_clone])).outputs[0]
+
+        assert out_new.owner.op.inputs == [x]
+        assert out_new.owner.op.shared_inputs == [y_clone]
+
+        out_fn = function([x], out_new)
+
+        assert np.array_equal(out_fn(1.0), 2.0)
+
+        y_clone.set_value(2.0)
+
+        assert np.array_equal(out_fn(1.0), 3.0)
+
+        # This should also work, because the containers are the same:
+        # y.set_value(1.0)
+        # assert np.array_equal(out_fn(1.0), 2.0)
 
 
 def test_debugprint():
