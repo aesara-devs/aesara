@@ -4,6 +4,7 @@ import pytest
 import aesara
 import aesara.tensor.basic as at
 from aesara import function, scan, shared
+from aesara.compile.builders import OpFromGraph
 from aesara.compile.io import In
 from aesara.compile.mode import get_default_mode
 from aesara.configdefaults import config
@@ -549,6 +550,28 @@ class TestPushOutNonSeqScan:
 
         utt.assert_allclose(output_opt[0], output_no_opt[0])
         utt.assert_allclose(output_opt[1], output_no_opt[1])
+
+    def test_OpFromGraph_shared(self):
+        """Make sure that a simple `OpFromGraph` with a shared variable can be pushed out."""
+
+        y = shared(1.0, name="y")
+
+        test_ofg = OpFromGraph([], [1 + y])
+
+        def inner_func():
+            return test_ofg()
+
+        out, out_updates = aesara.scan(inner_func, n_steps=10)
+
+        out_fn = function([], out, updates=out_updates)
+
+        res = out_fn()
+        assert np.array_equal(res, np.repeat(2.0, 10))
+
+        y.set_value(2.0)
+
+        res = out_fn()
+        assert np.array_equal(res, np.repeat(3.0, 10))
 
 
 class TestPushOutAddScan:
