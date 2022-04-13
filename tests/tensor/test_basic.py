@@ -22,6 +22,7 @@ from aesara.graph.op import Op
 from aesara.misc.safe_asarray import _asarray
 from aesara.raise_op import Assert
 from aesara.scalar import autocast_float, autocast_float_as
+from aesara.tensor import NoneConst
 from aesara.tensor.basic import (
     Alloc,
     AllocDiag,
@@ -3523,6 +3524,19 @@ class TestGetScalarConstantValue:
         d += 1
         e = extract_constant(c)
         assert e == 3, (c, d, e)
+
+    @pytest.mark.parametrize("only_process_constants", (True, False))
+    def test_None_and_NoneConst(self, only_process_constants):
+        with pytest.raises(NotScalarConstantError):
+            get_scalar_constant_value(
+                None, only_process_constants=only_process_constants
+            )
+        assert (
+            get_scalar_constant_value(
+                NoneConst, only_process_constants=only_process_constants
+            )
+            is None
+        )
 
 
 def test_complex_mod_failure():
