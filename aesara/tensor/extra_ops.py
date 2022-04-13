@@ -551,17 +551,17 @@ def diff(x, n=1, axis=-1):
     """
     ndim = x.ndim
     axis = normalize_axis_index(axis, ndim)
-        
+
     slice1 = [slice(None)] * ndim
     slice2 = [slice(None)] * ndim
     slice1[axis] = slice(1, None)
     slice2[axis] = slice(None, -1)
     slice1 = tuple(slice1)
     slice2 = tuple(slice2)
-    
+
     for _ in range(n):
         x = x[slice1] - x[slice2]
-    
+
     return x
 
 
