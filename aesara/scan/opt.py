@@ -2,7 +2,6 @@
 
 import copy
 import dataclasses
-import logging
 from sys import maxsize
 from typing import Dict, List, Optional, Tuple
 
@@ -57,8 +56,6 @@ from aesara.tensor.subtensor import (
 )
 from aesara.tensor.var import TensorConstant, get_unique_value
 
-
-_logger = logging.getLogger("aesara.scan.opt")
 
 list_opt_slice = [
     math_opt.local_abs_merge,
