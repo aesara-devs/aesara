@@ -765,28 +765,30 @@ class OpFromGraph(Op, HasInnerGraph):
             for inp, inp_t in zip(non_shared_inputs, self.input_types)
         ]
 
-        shared_inputs = inputs[num_expected_inps:]
-        local_shared_inputs = self.inner_inputs[num_expected_inps:]
-
-        inner_and_input_shareds = list(zip(local_shared_inputs, shared_inputs))
+        inner_and_input_shareds = list(
+            zip(self.shared_inputs, inputs[num_expected_inps:])
+        )
 
         if not all(inp_s == inn_s for inn_s, inp_s in inner_and_input_shareds):
             # The shared variables are not equal to the original shared
             # variables, so we construct a new `Op` that uses the new shared
-            # variables instead
-            replace = {
-                old_inp: new_inp for old_inp, new_inp in zip(self.inner_inputs, inputs)
-            }
-            replace.update(inner_and_input_shareds)
+            # variables instead.
+            # All this is really doing is making the unused (internally, at
+            # least) `self.outputs` and `self.shared_inputs` consistent.
+            # We could just as easily `copy` this `Op`, update
+            # `self.shared_inputs`, and avoid cloning anything, but this is a
+            # more "change-proof" approach, because it still work when/if those
+            # attributes end up being used.
+            replace = dict(inner_and_input_shareds)
 
             # If the new shared variables are inconsistent with the inner-graph,
             # such errors should arise in this step
             new_outputs = clone_replace(
-                self.inner_outputs, replace=replace, share_inputs=True
+                self.outputs, replace=replace, share_inputs=True
             )
 
             new_op = type(self)(
-                inputs=non_shared_inputs,
+                inputs=self.inputs,
                 outputs=new_outputs,
                 inline=self.is_inline,
                 lop_overrides=self.lop_overrides,

@@ -480,16 +480,28 @@ class TestOpFromGraph(unittest_tools.InferShapeTester):
         assert out_new.owner.op.shared_inputs == [y_clone]
 
         out_fn = function([x], out_new)
-
         assert np.array_equal(out_fn(1.0), 2.0)
 
         y_clone.set_value(2.0)
-
         assert np.array_equal(out_fn(1.0), 3.0)
 
         # This should also work, because the containers are the same:
         # y.set_value(1.0)
         # assert np.array_equal(out_fn(1.0), 2.0)
+
+    def test_shared_with_constant_input(self):
+        """Make sure that a constant input can be given to an `OpFromGraph` instance."""
+        x = at.scalar("x")
+        y = shared(1.0, name="y")
+
+        test_ofg = OpFromGraph([x], [x + y])
+        assert test_ofg.inputs == [x]
+        assert test_ofg.shared_inputs == [y]
+
+        out = test_ofg(at.as_tensor(1.0, dtype=config.floatX))
+
+        out_fn = function([], out)
+        assert np.array_equal(out_fn(), 2.0)
 
 
 def test_debugprint():
