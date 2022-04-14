@@ -2975,6 +2975,24 @@ def test_local_Shape_of_SpecifyShape(shape):
     assert shape in fgraph.variables
 
 
+@pytest.mark.parametrize(
+    "s1",
+    [lscalar(), iscalar()],
+)
+def test_local_Shape_of_SpecifyShape_partial(s1):
+    x = matrix()
+    s = specify_shape(x, (s1, None)).shape
+
+    fgraph = FunctionGraph(outputs=[s], clone=False)
+    assert any(isinstance(apply.op, SpecifyShape) for apply in fgraph.apply_nodes)
+
+    _ = optimize_graph(fgraph, clone=False)
+
+    assert x in fgraph.variables
+    assert s1 in fgraph.variables
+    assert not any(isinstance(apply.op, SpecifyShape) for apply in fgraph.apply_nodes)
+
+
 def test_local_Shape_i_of_broadcastable():
     x = tensor(np.float64, [False, True])
     s = Shape_i(1)(x)

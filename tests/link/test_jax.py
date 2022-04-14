@@ -185,7 +185,7 @@ def test_jax_specify_shape():
 
     with config.change_flags(compute_test_value="off"):
 
-        x = SpecifyShape()(at.as_tensor_variable(x_np), (2, 3))
+        x = SpecifyShape()(at.as_tensor_variable(x_np), *(2, 3))
         x_fg = FunctionGraph([], [x])
 
         with pytest.raises(AssertionError):

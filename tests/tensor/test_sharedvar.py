@@ -474,7 +474,7 @@ def makeSharedTester(
             assert np.all(self.ref_fct(specify_shape_fct()) == self.ref_fct(x1_2))
             topo_specify = specify_shape_fct.maker.fgraph.toposort()
             if aesara.config.mode != "FAST_COMPILE":
-                assert len(topo_specify) == 4
+                assert len(topo_specify) == 3
 
             # Test that we put the shape info into the graph
             shape_constant_fct = aesara.function([], x1_specify_shape.shape)

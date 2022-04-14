@@ -896,10 +896,15 @@ def test_Reshape_scalar():
             (1, 1),
             True,
         ),
+        (
+            set_test_value(at.matrix(), np.array([[1.0, 2.0]], dtype=config.floatX)),
+            (1, None),
+            False,
+        ),
     ],
 )
 def test_SpecifyShape(v, shape, fails):
-    g = SpecifyShape()(v, shape)
+    g = SpecifyShape()(v, *shape)
     g_fg = FunctionGraph(outputs=[g])
     cm = contextlib.suppress() if not fails else pytest.raises(AssertionError)
     with cm:
