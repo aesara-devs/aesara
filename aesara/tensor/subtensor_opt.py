@@ -1632,7 +1632,7 @@ def local_subtensor_shape_constant(fgraph, node):
 @register_canonicalize
 @local_optimizer([Subtensor])
 def local_subtensor_SpecifyShape_lift(fgraph, node):
-    """Lift ``specify_shape(x, s)[i]`` to ``specify_shape(x[i], s[i])``."""
+    """Lift ``specify_shape(x, s)[i_1, ..., i_n]`` to ``specify_shape(x[i1, ... , i_n], s[n:])``."""
 
     if not isinstance(node.op, Subtensor):
         return False
@@ -1650,19 +1650,14 @@ def local_subtensor_SpecifyShape_lift(fgraph, node):
 
     indices = get_idx_list(node.inputs, node.op.idx_list)
 
-    if len(indices) > 1 or len(indices) == 0:
-        return False
-
-    if isinstance(indices[0], slice) or isinstance(
-        getattr(indices[0], "type", None), SliceType
+    if any(
+        isinstance(index, slice) or isinstance(getattr(index, "type", None), SliceType)
+        for index in indices
     ):
         return False
 
     new_obj_arg = obj_arg[indices]
-
+    # No need to specify shape for scalar outputs
     if new_obj_arg.ndim == 0:
-        new_shape_arg = as_tensor([], dtype=np.int64)
-    else:
-        new_shape_arg = as_tensor(shape_arg[indices], dtype=np.int64, ndim=1)
-
-    return [specify_shape(new_obj_arg, new_shape_arg)]
+        return [new_obj_arg]
+    return [specify_shape(new_obj_arg, shape_arg[len(indices) :])]
