@@ -64,6 +64,7 @@ from aesara.tensor.basic import (
     join,
     ones_like,
     patternbroadcast,
+    stack,
     switch,
     tensor_copy,
     unbroadcast,
@@ -75,7 +76,14 @@ from aesara.tensor.exceptions import NotScalarConstantError, ShapeError
 from aesara.tensor.extra_ops import BroadcastTo, Repeat, Unique, broadcast_shape
 from aesara.tensor.math import all as at_all
 from aesara.tensor.math import eq
-from aesara.tensor.shape import Reshape, Shape, Shape_i, SpecifyShape, shape_padleft
+from aesara.tensor.shape import (
+    Reshape,
+    Shape,
+    Shape_i,
+    SpecifyShape,
+    shape_i,
+    shape_padleft,
+)
 from aesara.tensor.sort import TopKOp
 from aesara.tensor.subtensor import Subtensor, get_idx_list
 from aesara.tensor.type import (
@@ -84,6 +92,7 @@ from aesara.tensor.type import (
     discrete_dtypes,
     integer_dtypes,
 )
+from aesara.tensor.type_other import NoneConst
 from aesara.tensor.var import TensorConstant
 from aesara.utils import NoDuplicateOptWarningFilter
 
@@ -3521,7 +3530,14 @@ def local_Shape_of_SpecifyShape(fgraph, node):
     if not isinstance(getattr(specified_shape.owner, "op", None), SpecifyShape):
         return False
 
-    return [specified_shape.owner.inputs[1].astype(np.int64)]
+    x, *shape = specified_shape.owner.inputs
+
+    # Replace `NoneConst` by `shape_i`
+    for i, sh in enumerate(shape):
+        if NoneConst.equals(sh):
+            shape[i] = shape_i(x, i, fgraph)
+
+    return [stack(shape).astype(np.int64)]
 
 
 @register_useless

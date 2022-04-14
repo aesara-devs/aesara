@@ -1646,7 +1646,7 @@ def local_subtensor_SpecifyShape_lift(fgraph, node):
         return False
 
     obj_arg = specify_shape_node.owner.inputs[0]
-    shape_arg = specify_shape_node.owner.inputs[1]
+    shape_arg = specify_shape_node.owner.inputs[1:]
 
     indices = get_idx_list(node.inputs, node.op.idx_list)
 

@@ -344,13 +344,13 @@ class TestSpecifyShape(utt.InferShapeTester):
             specify_shape([[1, 2, 3], [4, 5, 6]], (2.2, 3))
 
         with pytest.raises(TypeError, match="must be integer types"):
-            _specify_shape([[1, 2, 3], [4, 5, 6]], (2.2, 3))
+            _specify_shape([[1, 2, 3], [4, 5, 6]], *(2.2, 3))
 
         with pytest.raises(ValueError, match="will never match"):
             specify_shape(matrix(), [4])
 
         with pytest.raises(ValueError, match="will never match"):
-            _specify_shape(matrix(), [4])
+            _specify_shape(matrix(), *[4])
 
         with pytest.raises(ValueError, match="must have fixed dimensions"):
             specify_shape(matrix(), vector(dtype="int32"))
@@ -378,12 +378,29 @@ class TestSpecifyShape(utt.InferShapeTester):
         f = aesara.function([x], y, mode=self.mode)
         assert f([15]) == [15]
 
+    def test_partial_shapes(self):
+        x = matrix()
+        s1 = lscalar()
+        y = specify_shape(x, (s1, None))
+        f = aesara.function([x, s1], y, mode=self.mode)
+        assert f(np.zeros((2, 5), dtype=config.floatX), 2).shape == (2, 5)
+        assert f(np.zeros((3, 5), dtype=config.floatX), 3).shape == (3, 5)
+
     def test_fixed_shapes(self):
         x = vector()
         shape = as_tensor_variable([2])
         y = specify_shape(x, shape)
         assert y.type.shape == (2,)
         assert y.shape.equals(shape)
+
+    def test_fixed_partial_shapes(self):
+        x = TensorType("floatX", (None, None))("x")
+        y = specify_shape(x, (None, 5))
+        assert y.type.shape == (None, 5)
+
+        x = TensorType("floatX", (3, None))("x")
+        y = specify_shape(x, (None, 5))
+        assert y.type.shape == (3, 5)
 
     def test_python_perform(self):
         """Test the Python `Op.perform` implementation."""
@@ -403,13 +420,20 @@ class TestSpecifyShape(utt.InferShapeTester):
         with pytest.raises(AssertionError, match="SpecifyShape:.*"):
             assert f([1], (2,)) == [1]
 
+        x = matrix()
+        y = specify_shape(x, (None, 2))
+        f = aesara.function([x], y, mode=Mode("py"))
+        assert f(np.zeros((3, 2), dtype=config.floatX)).shape == (3, 2)
+        with pytest.raises(AssertionError, match="SpecifyShape:.*"):
+            assert f(np.zeros((3, 3), dtype=config.floatX))
+
     def test_bad_shape(self):
         """Test that at run-time we raise an exception when the shape is not the one specified."""
         specify_shape = SpecifyShape()
 
         x = vector()
         xval = np.random.random((2)).astype(config.floatX)
-        f = aesara.function([x], specify_shape(x, [2]), mode=self.mode)
+        f = aesara.function([x], specify_shape(x, 2), mode=self.mode)
 
         assert np.array_equal(f(xval), xval)
 
@@ -426,7 +450,7 @@ class TestSpecifyShape(utt.InferShapeTester):
 
         x = matrix()
         xval = np.random.random((2, 3)).astype(config.floatX)
-        f = aesara.function([x], specify_shape(x, [2, 3]), mode=self.mode)
+        f = aesara.function([x], specify_shape(x, 2, 3), mode=self.mode)
         assert isinstance(
             [n for n in f.maker.fgraph.toposort() if isinstance(n.op, SpecifyShape)][0]
             .inputs[0]
@@ -441,6 +465,13 @@ class TestSpecifyShape(utt.InferShapeTester):
             with pytest.raises(AssertionError, match="SpecifyShape:.*"):
                 f(xval)
 
+        s = iscalar("s")
+        f = aesara.function([x, s], specify_shape(x, None, s), mode=self.mode)
+        x_val = np.zeros((3, 2), dtype=config.floatX)
+        assert f(x_val, 2).shape == (3, 2)
+        with pytest.raises(AssertionError, match="SpecifyShape:.*"):
+            f(xval, 3)
+
     def test_infer_shape(self):
         rng = np.random.default_rng(3453)
         adtens4 = dtensor4()
@@ -451,6 +482,19 @@ class TestSpecifyShape(utt.InferShapeTester):
             [adtens4, aivec],
             [specify_shape(adtens4, aivec)],
             [adtens4_val, aivec_val],
+            SpecifyShape,
+        )
+
+    def test_infer_shape_partial(self):
+        rng = np.random.default_rng(3453)
+        adtens4 = dtensor4()
+        aivec = [iscalar(), iscalar(), None, iscalar()]
+        aivec_val = [3, 4, 5]
+        adtens4_val = rng.random((3, 4, 2, 5))
+        self._compile_and_check(
+            [adtens4, *(ivec for ivec in aivec if ivec is not None)],
+            [specify_shape(adtens4, aivec)],
+            [adtens4_val, *aivec_val],
             SpecifyShape,
         )
 

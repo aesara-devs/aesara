@@ -1,12 +1,13 @@
 import warnings
 from numbers import Number
+from textwrap import dedent
 from typing import Dict, List, Tuple, Union
 
 import numpy as np
 
 import aesara
 from aesara.gradient import DisconnectedType
-from aesara.graph.basic import Apply, Constant, Variable
+from aesara.graph.basic import Apply, Variable
 from aesara.link.c.op import COp
 from aesara.link.c.params_type import ParamsType
 from aesara.misc.safe_asarray import _asarray
@@ -15,7 +16,8 @@ from aesara.tensor import _get_vector_length
 from aesara.tensor import basic as at
 from aesara.tensor import get_vector_length
 from aesara.tensor.exceptions import NotScalarConstantError
-from aesara.tensor.type import TensorType, int_dtypes, tensor
+from aesara.tensor.type import DenseTensorType, TensorType, int_dtypes, tensor
+from aesara.tensor.type_other import NoneConst
 from aesara.tensor.var import TensorConstant, TensorVariable
 
 
@@ -362,28 +364,6 @@ def register_shape_i_c_code(typ, code, check_input, version=()):
     Shape_i.c_code_and_version[typ] = (code, check_input, version)
 
 
-def register_specify_shape_c_code(typ, code, version=(), c_support_code_apply=None):
-    """
-    Tell SpecifyShape how to generate C code for an Aesara Type.
-
-    Parameters
-    ----------
-    typ : Aesara type
-        It must be the Aesara class itself and not an instance of the class.
-    code : C code
-        Checks the shape and returns a view for the Aesara type 'typ'.
-        Use %(iname)s and %(oname)s for the input and output C variable names
-        respectively. %(shape)s is the vector of shape of %(iname)s.
-        Check that its length is good.
-    version
-        A number indicating the version of the code, for cache.
-    c_support_code_apply
-        Extra code.
-
-    """
-    SpecifyShape.c_code_and_version[typ] = (code, version, c_support_code_apply)
-
-
 class SpecifyShape(COp):
     """
     L{Op} that puts into the graph the user-provided shape.
@@ -396,33 +376,29 @@ class SpecifyShape(COp):
     Notes
     -----
     Maybe in the future we will never do the assert!
-
-    We currently don't support specifying partial shape information.
-
-    TODO : test this op with sparse. Do C code for them too.
-
     """
 
     view_map = {0: [0]}
-    # Mapping from Type to C code (and version) to use.
-    # In the C code, the name of the input variable is %(iname)s,
-    # the output variable is %(oname)s.
-    c_code_and_version: Dict = {}
     __props__ = ()
     _f16_ok = True
 
-    def make_node(self, x, shape):
-        if not isinstance(x, Variable):
-            x = at.as_tensor_variable(x)
+    def make_node(self, x, *shape):
+        from aesara.tensor.basic import get_scalar_constant_value
 
-        shape = at.as_tensor_variable(shape, ndim=1)
+        x = at.as_tensor_variable(x)
 
-        if isinstance(shape, Constant):
-            shape = tuple(shape.data)
-        else:
-            shape = tuple(at.as_tensor_variable(s, ndim=0) for s in shape)
+        shape = tuple(
+            NoneConst
+            if (s is None or NoneConst.equals(s))
+            else at.as_tensor_variable(s, ndim=0)
+            for s in shape
+        )
 
-        if any(s.dtype not in aesara.tensor.type.integer_dtypes for s in shape):
+        if any(
+            s.dtype not in aesara.tensor.type.integer_dtypes
+            for s in shape
+            if hasattr(s, "dtype")
+        ):
             raise TypeError("Shape values must be integer types")
 
         if len(shape) != x.type.ndim:
@@ -430,102 +406,127 @@ class SpecifyShape(COp):
                 f"Input `x` is {x.type.ndim}-dimensional and will never match a shape of length {len(shape)}."
             )
 
-        if isinstance(x.type, TensorType) and all(isinstance(s, Number) for s in shape):
-            out_var = x.type.clone(shape=shape)()
-        else:
-            out_var = x.type()
+        type_shape = [None] * x.ndim
+        for i, (xts, s) in enumerate(zip(x.type.shape, shape)):
+            if xts is not None:
+                type_shape[i] = xts
+            else:
+                try:
+                    type_s = get_scalar_constant_value(s)
+                    if type_s is not None:
+                        type_shape[i] = int(type_s)
+                except NotScalarConstantError:
+                    pass
 
-        in_shape = at.as_tensor_variable(shape, ndim=1)
-        return Apply(self, [x, in_shape], [out_var])
+        out_var = x.type.clone(shape=type_shape)()
+
+        return Apply(self, [x, *shape], [out_var])
 
     def perform(self, node, inp, out_):
-        x, shape = inp
+        x, *shape = inp
         (out,) = out_
         ndim = len(shape)
         if x.ndim != ndim:
             raise AssertionError(
                 f"SpecifyShape: Got {x.ndim} dimensions (shape {x.shape}), expected {ndim} dimensions with shape {tuple(shape)}."
             )
-        if x.shape != tuple(shape):
+        if not all(xs == s for xs, s in zip(x.shape, shape) if s is not None):
             raise AssertionError(
-                f"SpecifyShape: Got shape {x.shape}, expected {tuple(shape)}."
+                f"SpecifyShape: Got shape {x.shape}, expected {tuple(int(s) if s is not None else None for s in shape)}."
             )
         out[0] = x
 
     def infer_shape(self, fgraph, node, shapes):
-        xshape, sshape = shapes
+        xshape, *_ = shapes
+        shape = node.inputs[1:]
         new_shape = []
         for dim in range(node.inputs[0].type.ndim):
+            s = shape[dim]
             try:
-                s = at.get_scalar_constant_value(node.inputs[1][dim])
-                s = at.as_tensor_variable(s)
-                new_shape.append(s)
+                s = at.get_scalar_constant_value(s)
+                # We assume that `None` shapes are always retrieved by
+                # `get_scalar_constant_value`, and only in that case do we default to
+                # the shape of the input variable
+                if s is None:
+                    s = xshape[dim]
             except NotScalarConstantError:
-                new_shape.append(node.inputs[1][dim])
+                pass
+            new_shape.append(at.as_tensor_variable(s))
 
         assert len(new_shape) == len(xshape)
         return [new_shape]
 
     def connection_pattern(self, node):
-        return [[True], [False]]
+        return [[True], *[[False]] * len(node.inputs[1:])]
 
     def grad(self, inp, grads):
-        x, s = inp
+        x, *shape = inp
         (gz,) = grads
         # Should I set an SpecifyShape on gz? I think so
         # But I don't do it now as we need to make an optimization
         # to remove that op from the graph to don't block other optimization
         # Should I do an optimizer that will remove the SpecifyShape?
         # I think Yes
-        return [gz, aesara.gradient.DisconnectedType()()]
-        return [specify_shape(gz, s), aesara.gradient.DisconnectedType()()]
+        # return [specify_shape(gz, s)] + [aesara.gradient.DisconnectedType()() for _ in range(len(shape))]
+        return [gz] + [aesara.gradient.DisconnectedType()() for _ in range(len(shape))]
 
     def R_op(self, inputs, eval_points):
         if eval_points[0] is None:
-            # It means that the this op sits on top of a non-differentiable
-            # path
+            # It means that this op sits on top of a non-differentiable path
             return [None]
         return self.make_node(eval_points[0], *inputs[1:]).outputs
 
-    def c_support_code_apply(self, node, name):
-        itype = node.inputs[0].type.__class__
-        if itype in self.c_code_and_version:
-            _, _, support_code = self.c_code_and_version[itype]
-            if support_code:
-                return support_code
-        return super().c_support_code_apply(node, name)
+    def c_code(self, node, name, i_names, o_names, sub):
+        if not isinstance(node.inputs[0].type, DenseTensorType):
+            raise NotImplementedError(
+                f"Specify_shape c_code not implemented for input type {node.inputs[0].type}"
+            )
 
-    def c_code(self, node, name, inames, onames, sub):
-        iname, shape = inames
-        (oname,) = onames
+        x_name, *shape_names = i_names
+        (o_name,) = o_names
         fail = sub["fail"]
 
-        itype = node.inputs[0].type.__class__
-        if itype in self.c_code_and_version:
-            code, version, _ = self.c_code_and_version[itype]
-            return code % locals()
+        code = dedent(
+            f"""
+            if (PyArray_NDIM({x_name}) != {len(shape_names)}) {{
+                PyErr_Format(PyExc_AssertionError,
+                    "SpecifyShape: Got %d dimensions, expected %d dimensions.",
+                    PyArray_NDIM({x_name}), {len(shape_names)}
+                );
+                {fail};
+            }}
+            """
+        )
 
-        raise NotImplementedError()
+        for i, (shp_name, shp) in enumerate(zip(shape_names, node.inputs[1:])):
+            if NoneConst.equals(shp):
+                continue
+            code += dedent(
+                f"""
+                if (py_{shp_name} != Py_None){{
+                    dtype_{shp_name} shp = ((dtype_{shp_name}*)PyArray_GETPTR1({shp_name}, 0))[0];
+                    if (PyArray_DIMS({x_name})[{i}] != shp) {{
+                        PyErr_Format(PyExc_AssertionError,
+                            "SpecifyShape: dim %d of input has shape %d, expected %d.",
+                            {i}, PyArray_DIMS({x_name})[{i}], shp
+                        );
+                        {fail};
+                    }}
+                }}
+                """
+            )
+
+        code += dedent(
+            f"""
+            Py_XDECREF({o_name});
+            {o_name} = {x_name};
+            Py_XINCREF({o_name});
+            """
+        )
+        return code
 
     def c_code_cache_version(self):
-        version = []
-        # If any of the c code is unversioned, we have to return ()
-        # Else, we will return a list of (type name, version) pairs.
-        for t, (c, v, _) in sorted(
-            self.c_code_and_version.items(), key=lambda pair: str(pair[0])
-        ):
-            if not v:
-                warnings.warn(
-                    "Type %s has C code for SpecifyShape, but it "
-                    "has no version. You should add a 'version' "
-                    "keyword arg when calling "
-                    "register_specify_shape_c_code." % t,
-                    stacklevel=2,
-                )
-                return ()
-            version.append((str(t), v))
-
-        return tuple(version)
+        return (2,)
 
 
 _specify_shape = SpecifyShape()
@@ -537,29 +538,31 @@ def specify_shape(
         int, List[Union[int, Variable]], Tuple[Union[int, Variable]], Variable
     ],
 ):
-    """Specify a fixed shape for a `Variable`."""
+    """Specify a fixed shape for a `Variable`.
 
-    if not isinstance(x, Variable):
-        x = at.as_tensor_variable(x)
+    If a dimension's shape value is ``None``, the size of that dimension is not considered fixed/static at runtime.
+    """
 
-    if np.ndim(shape) == 0:
-        shape = at.as_tensor_variable([shape])
+    if not isinstance(shape, (tuple, list)):
+        shape = (shape,)
 
-    try:
-        _ = get_vector_length(shape)
-    except ValueError:
-        raise ValueError("Shape must have fixed dimensions")
+    # If shape is a symbolic 1d vector of fixed length, we separate the items into a
+    # tuple with one entry per shape dimension
+    if len(shape) == 1 and shape[0] is not None:
+        shape_vector = at.as_tensor_variable(shape[0])
+        if shape_vector.ndim == 1:
+            try:
+                shape = tuple(shape_vector)
+            except ValueError:
+                raise ValueError("Shape vector must have fixed dimensions")
 
-    if isinstance(shape, Constant):
-        shape = tuple(shape.data)
-
-    return _specify_shape(x, shape)
+    return _specify_shape(x, *shape)
 
 
 @_get_vector_length.register(SpecifyShape)
 def _get_vector_length_SpecifyShape(op, var):
     try:
-        return at.get_scalar_constant_value(var.owner.inputs[1])
+        return at.get_scalar_constant_value(var.owner.inputs[1]).item()
     except NotScalarConstantError:
         raise ValueError(f"Length of {var} cannot be determined")
 
@@ -881,35 +884,4 @@ register_shape_i_c_code(
     }
     """,
     version=3,
-)
-
-
-register_specify_shape_c_code(
-    TensorType,
-    """
-        if (PyArray_NDIM(%(iname)s) != PyArray_DIMS(%(shape)s)[0]) {
-            PyErr_Format(PyExc_AssertionError,
-                "SpecifyShape: Got %%d dimensions, expected %%d dimensions.",
-                PyArray_NDIM(%(iname)s),
-                PyArray_DIMS(%(shape)s)[0]
-            );
-            %(fail)s;
-        }
-        for(int i = 0; i < PyArray_NDIM(%(iname)s); i++){
-            dtype_%(shape)s shp = ((dtype_%(shape)s*)PyArray_GETPTR1(%(shape)s,
-                                                                     i))[0];
-            if (PyArray_DIMS(%(iname)s)[i] != shp) {
-                PyErr_Format(PyExc_AssertionError,
-                             "SpecifyShape: dim %%d of input has shape %%d,"
-                             " expected %%d.",
-                             i, PyArray_DIMS(%(iname)s)[i],
-                             shp);
-                %(fail)s;
-            }
-        }
-        Py_XDECREF(%(oname)s);
-        %(oname)s = %(iname)s;
-        Py_XINCREF(%(oname)s);
-    """,
-    version=1,
 )

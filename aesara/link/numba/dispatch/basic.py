@@ -2,6 +2,7 @@ import operator
 import warnings
 from contextlib import contextmanager
 from functools import singledispatch
+from textwrap import dedent
 
 import numba
 import numba.np.unsafe.ndarray as numba_ndarray
@@ -40,7 +41,7 @@ from aesara.tensor.subtensor import (
     Subtensor,
 )
 from aesara.tensor.type import TensorType
-from aesara.tensor.type_other import MakeSlice
+from aesara.tensor.type_other import MakeSlice, NoneConst
 
 
 def numba_njit(*args, **kwargs):
@@ -609,13 +610,28 @@ def numba_funcify_Reshape(op, **kwargs):
 
 
 @numba_funcify.register(SpecifyShape)
-def numba_funcify_SpecifyShape(op, **kwargs):
-    @numba_njit
-    def specifyshape(x, shape):
-        assert np.array_equal(x.shape, shape)
-        return x
+def numba_funcify_SpecifyShape(op, node, **kwargs):
+    shape_inputs = node.inputs[1:]
+    shape_input_names = ["shape_" + str(i) for i in range(len(shape_inputs))]
 
-    return specifyshape
+    func_conditions = [
+        f"assert x.shape[{i}] == {shape_input_names}"
+        for i, (shape_input, shape_input_names) in enumerate(
+            zip(shape_inputs, shape_input_names)
+        )
+        if shape_input is not NoneConst
+    ]
+
+    func = dedent(
+        f"""
+        def specify_shape(x, {create_arg_string(shape_input_names)}):
+            {"; ".join(func_conditions)}
+            return x
+        """
+    )
+
+    specify_shape = compile_function_src(func, "specify_shape", globals())
+    return numba_njit(specify_shape)
 
 
 def int_to_float_fn(inputs, out_dtype):
