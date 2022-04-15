@@ -12,6 +12,7 @@ from aesara.gradient import DisconnectedType, Rop, disconnected_type, grad
 from aesara.graph.fg import FunctionGraph
 from aesara.graph.null_type import NullType
 from aesara.graph.opt_utils import optimize_graph
+from aesara.graph.utils import MissingInputError
 from aesara.printing import debugprint
 from aesara.tensor.basic import as_tensor
 from aesara.tensor.basic_opt import ShapeOptimizer
@@ -502,6 +503,12 @@ class TestOpFromGraph(unittest_tools.InferShapeTester):
 
         out_fn = function([], out)
         assert np.array_equal(out_fn(), 2.0)
+
+    def test_missing_input(self):
+        x = at.lscalar("x")
+
+        with pytest.raises(MissingInputError):
+            OpFromGraph([], [x])
 
 
 def test_debugprint():

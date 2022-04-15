@@ -22,6 +22,7 @@ from aesara.graph.fg import FunctionGraph
 from aesara.graph.null_type import NullType
 from aesara.graph.op import HasInnerGraph, Op
 from aesara.graph.opt import in2out, local_optimizer
+from aesara.graph.utils import MissingInputError
 from aesara.tensor.basic_opt import ShapeFeature
 
 
@@ -340,6 +341,10 @@ class OpFromGraph(Op, HasInnerGraph):
                 if isinstance(i, SharedVariable):
                     raise TypeError(f"SharedVariables not allowed as inputs; {i}")
 
+        for var in graph_inputs(outputs, inputs):
+            if var not in inputs and not isinstance(var, (Constant, SharedVariable)):
+                raise MissingInputError(f"OpFromGraph is missing an input: {var}")
+
         if "updates" in kwargs or "givens" in kwargs:
             raise NotImplementedError("Updates and givens are not allowed here")
 
@@ -362,6 +367,7 @@ class OpFromGraph(Op, HasInnerGraph):
             local_outputs,
             (clone_d, update_d, update_expr, shared_inputs),
         ) = new
+
         assert len(local_inputs) == len(inputs) + len(self.shared_inputs)
         assert len(local_outputs) == len(outputs)
         assert not update_d
