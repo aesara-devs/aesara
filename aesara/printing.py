@@ -440,16 +440,14 @@ def _debugprint(
         used_ids[obj] = id_str
         return id_str
 
+    r_name = getattr(r, "name")
+    if not r_name:
+        r_name = ""
+
     if hasattr(r.owner, "op"):
         # this variable is the output of computation,
         # so just print out the apply
         a = r.owner
-
-        r_name = getattr(r, "name", "")
-        # normally if the name isn't set, it'll be None, so
-        # r_name is None here
-        if r_name is None:
-            r_name = ""
 
         if print_destroy_map:
             destroy_map_str = str(r.owner.op.destroy_map)
@@ -550,6 +548,7 @@ def _debugprint(
                         used_ids=used_ids,
                     )
     else:
+        debug_str = getattr(r, "_debug_str", str(r))
         if inner_to_outer_inputs is not None and r in inner_to_outer_inputs:
 
             id_str = get_id_str(r)
@@ -561,7 +560,7 @@ def _debugprint(
                 outer_id_str = get_id_str(outer_r)
 
             print(
-                f"{prefix}{r} {id_str}{type_str} -> {outer_id_str}",
+                f"{prefix}{debug_str} {id_str}{type_str} -> {outer_id_str}",
                 file=file,
             )
         else:
@@ -570,7 +569,7 @@ def _debugprint(
             if smap:
                 data = " " + str(smap.get(r, ""))
             id_str = get_id_str(r)
-            print(f"{prefix}{r} {id_str}{type_str}{data}", file=file)
+            print(f"{prefix}{debug_str} {id_str}{type_str}{data} '{r_name}'", file=file)
 
     return file
 
