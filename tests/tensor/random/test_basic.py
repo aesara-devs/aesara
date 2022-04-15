@@ -124,6 +124,8 @@ def compare_sample_values(rv, *params, rng=None, test_fn=None, **kwargs):
 
     aesara_res_val = aesara_fn()
 
+    assert aesara_res_val.flags.writeable
+
     np.testing.assert_array_equal(aesara_res_val.shape, numpy_res.shape)
 
     np.testing.assert_allclose(aesara_res_val, numpy_res)
