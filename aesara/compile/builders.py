@@ -771,9 +771,8 @@ class OpFromGraph(Op, HasInnerGraph):
             for inp, inp_t in zip(non_shared_inputs, self.input_types)
         ]
 
-        inner_and_input_shareds = list(
-            zip(self.shared_inputs, inputs[num_expected_inps:])
-        )
+        new_shared_inputs = inputs[num_expected_inps:]
+        inner_and_input_shareds = list(zip(self.shared_inputs, new_shared_inputs))
 
         if not all(inp_s == inn_s for inn_s, inp_s in inner_and_input_shareds):
             # The shared variables are not equal to the original shared
@@ -789,13 +788,23 @@ class OpFromGraph(Op, HasInnerGraph):
 
             # If the new shared variables are inconsistent with the inner-graph,
             # such errors should arise in this step
-            new_outputs = clone_replace(
+            new_inner_outputs = clone_replace(
                 self.outputs, replace=replace, share_inputs=True
             )
 
+            # `self.inputs` should not contain any shared variables, so we know
+            # that those are inputs to `new_outputs`, because we chose not to
+            # clone inputs; however, it's possible that the new shared variable
+            # inputs aren't actually shared variables.  When they aren't we
+            # need to add them as new inputs.
+            unshared_inputs = [
+                inp for inp in new_shared_inputs if not isinstance(inp, SharedVariable)
+            ]
+            new_inner_inputs = self.inputs + unshared_inputs
+
             new_op = type(self)(
-                inputs=self.inputs,
-                outputs=new_outputs,
+                inputs=new_inner_inputs,
+                outputs=new_inner_outputs,
                 inline=self.is_inline,
                 lop_overrides=self.lop_overrides,
                 grad_overrides=self.grad_overrides,
@@ -803,12 +812,16 @@ class OpFromGraph(Op, HasInnerGraph):
                 connection_pattern=self._connection_pattern,
                 name=self.name,
             )
+            new_inputs = (
+                list(non_shared_inputs) + unshared_inputs + new_op.shared_inputs
+            )
         else:
             new_op = self
+            new_inputs = list(non_shared_inputs) + new_op.shared_inputs
 
         apply_node = Apply(
             new_op,
-            list(non_shared_inputs) + new_op.shared_inputs,
+            new_inputs,
             [type() for type in new_op.output_types],
         )
         return apply_node

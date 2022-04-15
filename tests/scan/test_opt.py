@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 import aesara
-import aesara.tensor.basic as at
+import aesara.tensor as at
 from aesara import function, scan, shared
 from aesara.compile.builders import OpFromGraph
 from aesara.compile.io import In
@@ -572,6 +572,24 @@ class TestPushOutNonSeqScan:
 
         res = out_fn()
         assert np.array_equal(res, np.repeat(3.0, 10))
+
+    def test_nested_OpFromGraph_shared(self):
+
+        y = aesara.shared(1.0, name="y")
+
+        test_ofg = OpFromGraph([], [y])
+
+        def inner_func(x):
+            out, _ = aesara.scan(lambda: test_ofg(), n_steps=x)
+            return out
+
+        out, _ = aesara.scan(inner_func, sequences=[at.arange(1, 2)])
+
+        _ = aesara.function([], test_ofg())
+
+        out_fn = aesara.function([], out)
+
+        assert np.array_equal(out_fn(), [[1.0]])
 
 
 class TestPushOutAddScan:
