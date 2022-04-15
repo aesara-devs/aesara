@@ -510,6 +510,29 @@ class TestOpFromGraph(unittest_tools.InferShapeTester):
         with pytest.raises(MissingInputError):
             OpFromGraph([], [x])
 
+    def test_shared_to_nonshared_input(self):
+        """Make sure that shared variables can be replaced with non-shared variables."""
+        x = at.scalar("x")
+        y = shared(1.0, name="y")
+
+        test_ofg = OpFromGraph([], [y])
+        assert test_ofg.inputs == []
+        assert test_ofg.shared_inputs == [y]
+
+        out_1_fn = function([], test_ofg())
+        res_1 = out_1_fn()
+
+        assert np.array_equal(res_1, 1.0)
+
+        test_ofg_new = test_ofg.make_node(x)
+        assert test_ofg_new.op.inputs == [x]
+        assert test_ofg_new.op.shared_inputs == []
+
+        out_2_fn = function([x], test_ofg_new.outputs[0])
+        res_2 = out_2_fn(np.array(1.0, dtype=config.floatX))
+
+        assert np.array_equal(res_2, 1.0)
+
 
 def test_debugprint():
     x, y, z = matrices("xyz")
