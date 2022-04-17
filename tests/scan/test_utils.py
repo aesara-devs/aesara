@@ -15,10 +15,7 @@ def set_aesara_flags():
 
 
 def create_test_hmm():
-    rng_state = np.random.default_rng(23422)
-    rng_tt = aesara.shared(rng_state, name="rng", borrow=True)
-    rng_tt.tag.is_rng = True
-    rng_tt.default_update = rng_tt
+    srng = at.random.RandomStream()
 
     N_tt = at.iscalar("N")
     N_tt.tag.test_value = 10
@@ -33,20 +30,20 @@ def create_test_hmm():
     sigmas_tt = at.ones((N_tt,))
     sigmas_tt.name = "sigmas"
 
-    pi_0_rv = at.random.dirichlet(at.ones((M_tt,)), rng=rng_tt, name="pi_0")
-    Gamma_rv = at.random.dirichlet(at.ones((M_tt, M_tt)), rng=rng_tt, name="Gamma")
+    pi_0_rv = srng.dirichlet(at.ones((M_tt,)), name="pi_0")
+    Gamma_rv = srng.dirichlet(at.ones((M_tt, M_tt)), name="Gamma")
 
-    S_0_rv = at.random.categorical(pi_0_rv, rng=rng_tt, name="S_0")
+    S_0_rv = srng.categorical(pi_0_rv, name="S_0")
 
-    def scan_fn(mus_t, sigma_t, S_tm1, Gamma_t, rng):
-        S_t = at.random.categorical(Gamma_t[S_tm1], rng=rng, name="S_t")
-        Y_t = at.random.normal(mus_t[S_t], sigma_t, rng=rng, name="Y_t")
+    def scan_fn(mus_t, sigma_t, S_tm1, Gamma_t):
+        S_t = srng.categorical(Gamma_t[S_tm1], name="S_t")
+        Y_t = srng.normal(mus_t[S_t], sigma_t, name="Y_t")
         return S_t, Y_t
 
     (S_rv, Y_rv), scan_updates = aesara.scan(
         fn=scan_fn,
         sequences=[mus_tt, sigmas_tt],
-        non_sequences=[Gamma_rv, rng_tt],
+        non_sequences=[Gamma_rv],
         outputs_info=[{"initial": S_0_rv, "taps": [-1]}, {}],
         strict=True,
         name="scan_rv",
@@ -63,8 +60,6 @@ def create_test_hmm():
     S_t = scan_args.inner_out_sit_sot[0]
     rng_in = scan_args.inner_out_shared[0]
 
-    rng_updates = scan_updates[rng_tt]
-    rng_updates.name = "rng_updates"
     mus_in = Y_rv.owner.inputs[1]
     mus_in.name = "mus_in"
     sigmas_in = Y_rv.owner.inputs[2]
@@ -140,10 +135,7 @@ def test_ScanArgs():
 
 def test_ScanArgs_basics_mit_sot():
 
-    rng_state = np.random.RandomState(np.random.MT19937(np.random.SeedSequence(1234)))
-    rng_tt = aesara.shared(rng_state, name="rng", borrow=True)
-    rng_tt.tag.is_rng = True
-    rng_tt.default_update = rng_tt
+    srng = at.random.RandomStream()
 
     N_tt = at.iscalar("N")
     N_tt.tag.test_value = 10
@@ -158,20 +150,20 @@ def test_ScanArgs_basics_mit_sot():
     sigmas_tt = at.ones((N_tt,))
     sigmas_tt.name = "sigmas"
 
-    pi_0_rv = at.random.dirichlet(at.ones((M_tt,)), rng=rng_tt, name="pi_0")
-    Gamma_rv = at.random.dirichlet(at.ones((M_tt, M_tt)), rng=rng_tt, name="Gamma")
+    pi_0_rv = srng.dirichlet(at.ones((M_tt,)), name="pi_0")
+    Gamma_rv = srng.dirichlet(at.ones((M_tt, M_tt)), name="Gamma")
 
-    S_0_rv = at.random.categorical(pi_0_rv, rng=rng_tt, name="S_0")
+    S_0_rv = srng.categorical(pi_0_rv, name="S_0")
 
-    def scan_fn(mus_t, sigma_t, S_tm2, S_tm1, Gamma_t, rng):
-        S_t = at.random.categorical(Gamma_t[S_tm2], rng=rng, name="S_t")
-        Y_t = at.random.normal(mus_t[S_tm1], sigma_t, rng=rng, name="Y_t")
+    def scan_fn(mus_t, sigma_t, S_tm2, S_tm1, Gamma_t):
+        S_t = srng.categorical(Gamma_t[S_tm2], name="S_t")
+        Y_t = srng.normal(mus_t[S_tm1], sigma_t, name="Y_t")
         return S_t, Y_t
 
     (S_rv, Y_rv), scan_updates = aesara.scan(
         fn=scan_fn,
         sequences=[mus_tt, sigmas_tt],
-        non_sequences=[Gamma_rv, rng_tt],
+        non_sequences=[Gamma_rv],
         outputs_info=[{"initial": at.stack([S_0_rv, S_0_rv]), "taps": [-2, -1]}, {}],
         strict=True,
         name="scan_rv",
@@ -181,8 +173,6 @@ def test_ScanArgs_basics_mit_sot():
     # This `S_rv` outer-output is actually a `Subtensor` of the "real" output
     S_rv = S_rv.owner.inputs[0]
     S_rv.name = "S_rv"
-    rng_updates = scan_updates[rng_tt]
-    rng_updates.name = "rng_updates"
     mus_in = Y_rv.owner.inputs[1]
     mus_in.name = "mus_in"
     sigmas_in = Y_rv.owner.inputs[2]
@@ -223,9 +213,8 @@ def test_ScanArgs_remove_inner_input():
     hmm_model_env["S_rv"]
     S_in = hmm_model_env["S_in"]
     S_t = hmm_model_env["S_t"]
-    rng_tt = hmm_model_env["rng_tt"]
     rng_in = hmm_model_env["rng_in"]
-    rng_updates = hmm_model_env["rng_updates"]
+    scan_updates = hmm_model_env["scan_updates"]
 
     # Check `ScanArgs.remove_from_fields` by removing `sigmas[t]` (i.e. the
     # inner-graph input)
@@ -266,9 +255,8 @@ def test_ScanArgs_remove_inner_input():
     assert S_in in scan_args_copy.outer_out_sit_sot
     assert Gamma_in in scan_args_copy.inner_in_non_seqs
     assert Gamma_rv in scan_args_copy.outer_in_non_seqs
-    assert rng_tt in scan_args_copy.outer_in_shared
     assert rng_in in scan_args_copy.inner_out_shared
-    assert rng_updates in scan_args.outer_out_shared
+    assert list(scan_updates.values()) == scan_args.outer_out_shared
 
     # The other `Y_rv`-related inputs currently aren't removed, even though
     # they're no longer needed.
@@ -296,9 +284,8 @@ def test_ScanArgs_remove_outer_input():
     hmm_model_env["S_rv"]
     S_in = hmm_model_env["S_in"]
     S_t = hmm_model_env["S_t"]
-    rng_tt = hmm_model_env["rng_tt"]
     rng_in = hmm_model_env["rng_in"]
-    rng_updates = hmm_model_env["rng_updates"]
+    scan_updates = hmm_model_env["scan_updates"]
 
     # Remove `sigmas` (i.e. the outer-input)
     scan_args_copy = copy(scan_args)
@@ -326,9 +313,8 @@ def test_ScanArgs_remove_outer_input():
     assert S_in in scan_args_copy.outer_out_sit_sot
     assert Gamma_in in scan_args_copy.inner_in_non_seqs
     assert Gamma_rv in scan_args_copy.outer_in_non_seqs
-    assert rng_tt in scan_args_copy.outer_in_shared
     assert rng_in in scan_args_copy.inner_out_shared
-    assert rng_updates in scan_args.outer_out_shared
+    assert list(scan_updates.values()) == scan_args.outer_out_shared
 
 
 def test_ScanArgs_remove_inner_output():
@@ -345,9 +331,8 @@ def test_ScanArgs_remove_inner_output():
     hmm_model_env["S_rv"]
     S_in = hmm_model_env["S_in"]
     S_t = hmm_model_env["S_t"]
-    rng_tt = hmm_model_env["rng_tt"]
     rng_in = hmm_model_env["rng_in"]
-    rng_updates = hmm_model_env["rng_updates"]
+    scan_updates = hmm_model_env["scan_updates"]
 
     # Remove `Y_t` (i.e. the inner-output)
     scan_args_copy = copy(scan_args)
@@ -367,9 +352,8 @@ def test_ScanArgs_remove_inner_output():
     assert S_in in scan_args_copy.outer_out_sit_sot
     assert Gamma_in in scan_args_copy.inner_in_non_seqs
     assert Gamma_rv in scan_args_copy.outer_in_non_seqs
-    assert rng_tt in scan_args_copy.outer_in_shared
     assert rng_in in scan_args_copy.inner_out_shared
-    assert rng_updates in scan_args.outer_out_shared
+    assert list(scan_updates.values()) == scan_args.outer_out_shared
 
 
 def test_ScanArgs_remove_outer_output():
@@ -385,9 +369,8 @@ def test_ScanArgs_remove_outer_output():
     Gamma_in = hmm_model_env["Gamma_in"]
     S_in = hmm_model_env["S_in"]
     S_t = hmm_model_env["S_t"]
-    rng_tt = hmm_model_env["rng_tt"]
     rng_in = hmm_model_env["rng_in"]
-    rng_updates = hmm_model_env["rng_updates"]
+    scan_updates = hmm_model_env["scan_updates"]
 
     # Remove `Y_rv` (i.e. a nit-sot outer-output)
     scan_args_copy = copy(scan_args)
@@ -407,9 +390,8 @@ def test_ScanArgs_remove_outer_output():
     assert S_in in scan_args_copy.outer_out_sit_sot
     assert Gamma_in in scan_args_copy.inner_in_non_seqs
     assert Gamma_rv in scan_args_copy.outer_in_non_seqs
-    assert rng_tt in scan_args_copy.outer_in_shared
     assert rng_in in scan_args_copy.inner_out_shared
-    assert rng_updates in scan_args.outer_out_shared
+    assert list(scan_updates.values()) == scan_args.outer_out_shared
 
 
 def test_ScanArgs_remove_nonseq_outer_input():
@@ -427,9 +409,7 @@ def test_ScanArgs_remove_nonseq_outer_input():
     Gamma_in = hmm_model_env["Gamma_in"]
     S_in = hmm_model_env["S_in"]
     S_t = hmm_model_env["S_t"]
-    rng_tt = hmm_model_env["rng_tt"]
     rng_in = hmm_model_env["rng_in"]
-    rng_updates = hmm_model_env["rng_updates"]
 
     # Remove `Gamma` (i.e. a non-sequence outer-input)
     scan_args_copy = copy(scan_args)
@@ -448,9 +428,8 @@ def test_ScanArgs_remove_nonseq_outer_input():
     assert sigmas_in in scan_args_copy.outer_in_seqs
     assert mus_t in scan_args_copy.inner_in_seqs
     assert sigmas_t in scan_args_copy.inner_in_seqs
-    assert rng_tt in scan_args_copy.outer_in_shared
-    assert rng_in in scan_args_copy.inner_out_shared
-    assert rng_updates in scan_args.outer_out_shared
+    assert rng_in not in scan_args_copy.inner_out_shared
+    assert not scan_args_copy.outer_out_shared
 
 
 def test_ScanArgs_remove_nonseq_inner_input():
@@ -468,9 +447,8 @@ def test_ScanArgs_remove_nonseq_inner_input():
     Gamma_in = hmm_model_env["Gamma_in"]
     S_in = hmm_model_env["S_in"]
     S_t = hmm_model_env["S_t"]
-    rng_tt = hmm_model_env["rng_tt"]
     rng_in = hmm_model_env["rng_in"]
-    rng_updates = hmm_model_env["rng_updates"]
+    scan_updates = hmm_model_env["scan_updates"]
 
     # Remove `Gamma` (i.e. a non-sequence inner-input)
     scan_args_copy = copy(scan_args)
@@ -487,9 +465,8 @@ def test_ScanArgs_remove_nonseq_inner_input():
     assert sigmas_in in scan_args_copy.outer_in_seqs
     assert mus_t in scan_args_copy.inner_in_seqs
     assert sigmas_t in scan_args_copy.inner_in_seqs
-    assert rng_tt in scan_args_copy.outer_in_shared
-    assert rng_in in scan_args_copy.inner_out_shared
-    assert rng_updates in scan_args.outer_out_shared
+    assert rng_in not in scan_args_copy.inner_out_shared
+    assert list(scan_updates.values()) == scan_args.outer_out_shared
 
 
 def test_ScanArgs_remove_shared_inner_output():
@@ -507,19 +484,16 @@ def test_ScanArgs_remove_shared_inner_output():
     hmm_model_env["Gamma_in"]
     S_in = hmm_model_env["S_in"]
     hmm_model_env["S_t"]
-    rng_tt = hmm_model_env["rng_tt"]
     rng_in = hmm_model_env["rng_in"]
-    rng_updates = hmm_model_env["rng_updates"]
 
-    # Remove `rng` (i.e. a shared inner-output)
+    # Remove a shared inner-output
+    scan_update = scan_args.inner_out_shared[0]
     scan_args_copy = copy(scan_args)
-    test_v = rng_updates
-    rm_info = scan_args_copy.remove_from_fields(test_v, rm_dependents=True)
+    rm_info = scan_args_copy.remove_from_fields(scan_update, rm_dependents=True)
     removed_nodes, _ = zip(*rm_info)
 
-    assert rng_tt in removed_nodes
     assert rng_in in removed_nodes
-    assert rng_updates in removed_nodes
+    assert all(v in removed_nodes for v in scan_args.inner_out_shared)
     assert Y_rv in removed_nodes
     assert S_in in removed_nodes
 

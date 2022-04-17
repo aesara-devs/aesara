@@ -4,7 +4,8 @@ Provide a simple user friendly API to Aesara-managed memory.
 """
 
 import copy
-import logging
+from contextlib import contextmanager
+from typing import List, Optional
 
 import numpy as np
 
@@ -14,8 +15,20 @@ from aesara.link.basic import Container
 from aesara.link.c.type import generic
 
 
-_logger = logging.getLogger("aesara.compile.sharedvalue")
-__docformat__ = "restructuredtext en"
+__SHARED_CONTEXT__: Optional[List[Variable]] = None
+
+
+@contextmanager
+def collect_new_shareds():
+    r"""Return all the `SharedVariable`\s created within this context manager."""
+    global __SHARED_CONTEXT__
+    old_context = __SHARED_CONTEXT__
+    context = []
+    try:
+        __SHARED_CONTEXT__ = context
+        yield context
+    finally:
+        __SHARED_CONTEXT__ = old_context
 
 
 class SharedVariable(Variable):
@@ -84,6 +97,11 @@ class SharedVariable(Variable):
                 strict=strict,
                 allow_downcast=allow_downcast,
             )
+
+        global __SHARED_CONTEXT__
+
+        if isinstance(__SHARED_CONTEXT__, list):
+            __SHARED_CONTEXT__.append(self)
 
     def get_value(self, borrow=False, return_internal_type=False):
         """
