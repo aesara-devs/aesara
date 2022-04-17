@@ -59,7 +59,7 @@ from aesara.scan.utils import InnerFunctionError
 
 
 def get_version():
-    return 0.312
+    return 0.313
 
 @cython.boundscheck(False)
 def perform(

@@ -2115,7 +2115,7 @@ static PyObject *__pyx_n_s_zip;
 static PyObject *__pyx_pf_6aesara_4scan_12scan_perform_get_version(CYTHON_UNUSED PyObject *__pyx_self); /* proto */
 static PyObject *__pyx_pf_6aesara_4scan_12scan_perform_2perform(CYTHON_UNUSED PyObject *__pyx_self, unsigned int __pyx_v_n_shared_outs, unsigned int __pyx_v_n_mit_mot_outs, unsigned int __pyx_v_n_seqs, unsigned int __pyx_v_n_mit_mot, unsigned int __pyx_v_n_mit_sot, unsigned int __pyx_v_n_sit_sot, unsigned int __pyx_v_n_nit_sot, int __pyx_v_as_while, PyArrayObject *__pyx_v_mintaps, PyObject *__pyx_v_tap_array, PyObject *__pyx_v_tap_array_len, PyArrayObject *__pyx_v_vector_seqs, PyArrayObject *__pyx_v_vector_outs, PyObject *__pyx_v_mit_mot_out_slices, PyArrayObject *__pyx_v_mitmots_preallocated, PyArrayObject *__pyx_v_outs_is_tensor, PyObject *__pyx_v_inner_input_storage, PyObject *__pyx_v_inner_output_storage, int __pyx_v_need_update_inputs, PyObject *__pyx_v_inner_input_needs_update, PyArrayObject *__pyx_v_destroy_map, PyObject *__pyx_v_outer_inputs, PyObject *__pyx_v_outer_outputs, PyObject *__pyx_v_outer_output_dtypes, PyObject *__pyx_v_outer_output_ndims, PyObject *__pyx_v_fn); /* proto */
 static PyObject *__pyx_float_0_0;
-static PyObject *__pyx_float_0_312;
+static PyObject *__pyx_float_0_313;
 static PyObject *__pyx_int_0;
 static PyObject *__pyx_int_1;
 static PyObject *__pyx_int_neg_1;
@@ -2136,7 +2136,7 @@ static PyObject *__pyx_codeobj__11;
  * 
  * 
  * def get_version():             # <<<<<<<<<<<<<<
- *     return 0.312
+ *     return 0.313
  * 
  */
 
@@ -2162,20 +2162,20 @@ static PyObject *__pyx_pf_6aesara_4scan_12scan_perform_get_version(CYTHON_UNUSED
   /* "aesara/scan/scan_perform.pyx":62
  * 
  * def get_version():
- *     return 0.312             # <<<<<<<<<<<<<<
+ *     return 0.313             # <<<<<<<<<<<<<<
  * 
  * @cython.boundscheck(False)
  */
   __Pyx_XDECREF(__pyx_r);
-  __Pyx_INCREF(__pyx_float_0_312);
-  __pyx_r = __pyx_float_0_312;
+  __Pyx_INCREF(__pyx_float_0_313);
+  __pyx_r = __pyx_float_0_313;
   goto __pyx_L0;
 
   /* "aesara/scan/scan_perform.pyx":61
  * 
  * 
  * def get_version():             # <<<<<<<<<<<<<<
- *     return 0.312
+ *     return 0.313
  * 
  */
 
@@ -8909,7 +8909,7 @@ static CYTHON_SMALL_CODE int __Pyx_InitCachedConstants(void) {
  * 
  * 
  * def get_version():             # <<<<<<<<<<<<<<
- *     return 0.312
+ *     return 0.313
  * 
  */
   __pyx_codeobj__9 = (PyObject*)__Pyx_PyCode_New(0, 0, 0, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_scan_perform_pyx, __pyx_n_s_get_version, 61, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__9)) __PYX_ERR(0, 61, __pyx_L1_error)
@@ -8935,7 +8935,7 @@ static CYTHON_SMALL_CODE int __Pyx_InitCachedConstants(void) {
 static CYTHON_SMALL_CODE int __Pyx_InitGlobals(void) {
   if (__Pyx_InitStrings(__pyx_string_tab) < 0) __PYX_ERR(0, 1, __pyx_L1_error);
   __pyx_float_0_0 = PyFloat_FromDouble(0.0); if (unlikely(!__pyx_float_0_0)) __PYX_ERR(0, 1, __pyx_L1_error)
-  __pyx_float_0_312 = PyFloat_FromDouble(0.312); if (unlikely(!__pyx_float_0_312)) __PYX_ERR(0, 1, __pyx_L1_error)
+  __pyx_float_0_313 = PyFloat_FromDouble(0.313); if (unlikely(!__pyx_float_0_313)) __PYX_ERR(0, 1, __pyx_L1_error)
   __pyx_int_0 = PyInt_FromLong(0); if (unlikely(!__pyx_int_0)) __PYX_ERR(0, 1, __pyx_L1_error)
   __pyx_int_1 = PyInt_FromLong(1); if (unlikely(!__pyx_int_1)) __PYX_ERR(0, 1, __pyx_L1_error)
   __pyx_int_neg_1 = PyInt_FromLong(-1); if (unlikely(!__pyx_int_neg_1)) __PYX_ERR(0, 1, __pyx_L1_error)
@@ -9334,7 +9334,7 @@ if (!__Pyx_RefNanny) {
  * 
  * 
  * def get_version():             # <<<<<<<<<<<<<<
- *     return 0.312
+ *     return 0.313
  * 
  */
   __pyx_t_2 = PyCFunction_NewEx(&__pyx_mdef_6aesara_4scan_12scan_perform_1get_version, NULL, __pyx_n_s_aesara_scan_scan_perform); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 61, __pyx_L1_error)
