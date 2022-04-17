@@ -1,4 +1,4 @@
-import logging
+import warnings
 
 import numpy as np
 
@@ -17,9 +17,6 @@ from aesara.tensor.math import minimum
 from aesara.tensor.shape import shape_padleft
 from aesara.tensor.type import TensorType, integer_dtypes
 from aesara.updates import OrderedUpdates
-
-
-_logger = logging.getLogger("aesara.scan.basic")
 
 
 def scan(
@@ -394,7 +391,7 @@ def scan(
                 # ^ initial state but taps not provided
                 if "taps" in outs_info[i]:
                     # ^ explicitly provided a None for taps
-                    _logger.warning(
+                    warnings.warn(
                         f"Output {getattr(outs_info[i]['initial'], 'name', 'None')} (index {i}) has a initial "
                         "state but taps is explicitly set to None ",
                     )
@@ -471,12 +468,12 @@ def scan(
                         if config.compute_test_value != "ignore":
                             # No need to print a warning or raise an error now,
                             # it will be done when fn will be called.
-                            _logger.warning(
+                            warnings.warn(
                                 (
                                     "Cannot compute test value for "
                                     "the inner function of scan, input value "
-                                    "missing {}"
-                                ).format(_seq_val_slice)
+                                    f"missing {_seq_val_slice}"
+                                )
                             )
 
                 # Add names to slices for debugging and pretty printing ..
@@ -600,11 +597,11 @@ def scan(
                     arg.tag.test_value = get_test_value(actual_arg)
                 except TestValueError:
                     if config.compute_test_value != "ignore":
-                        _logger.warning(
+                        warnings.warn(
                             (
                                 "Cannot compute test value for the "
-                                "inner function of scan, test value missing: {}"
-                            ).format(actual_arg)
+                                f"inner function of scan, test value missing: {actual_arg}"
+                            )
                         )
 
             if getattr(init_out["initial"], "name", None) is not None:
@@ -658,12 +655,12 @@ def scan(
                         nw_slice.tag.test_value = get_test_value(_init_out_var_slice)
                     except TestValueError:
                         if config.compute_test_value != "ignore":
-                            _logger.warning(
+                            warnings.warn(
                                 (
                                     "Cannot compute test value for "
                                     "the inner function of scan, test value "
-                                    "missing: {}"
-                                ).format(_init_out_var_slice)
+                                    f"missing: {_init_out_var_slice}"
+                                )
                             )
 
                 # give it a name or debugging and pretty printing
