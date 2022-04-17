@@ -3,8 +3,8 @@ import warnings
 import numpy as np
 
 import aesara.tensor as at
-from aesara.compile import SharedVariable
 from aesara.compile.function.pfunc import construct_pfunc_ins_and_outs
+from aesara.compile.sharedvalue import SharedVariable, collect_new_shareds
 from aesara.configdefaults import config
 from aesara.graph.basic import Constant, Variable, clone_replace, graph_inputs
 from aesara.graph.op import get_test_value
@@ -861,7 +861,10 @@ def scan(
     # when we apply the lambda expression we get a mixture of update rules
     # and outputs that needs to be separated
 
-    condition, outputs, updates = get_updates_and_outputs(fn(*args))
+    with collect_new_shareds() as new_shareds:
+        raw_inner_outputs = fn(*args)
+
+    condition, outputs, updates = get_updates_and_outputs(raw_inner_outputs)
     if condition is not None:
         as_while = True
     else:
@@ -974,12 +977,35 @@ def scan(
     shared_inner_inputs = []
     shared_inner_outputs = []
     sit_sot_shared = []
+    no_update_shared_inputs = []
     for input in dummy_inputs:
-        if isinstance(input.variable, SharedVariable) and input.update:
+        if not isinstance(input.variable, SharedVariable):
+            continue
+
+        is_local = input.variable in new_shareds
+
+        # We only want to add shared variable updates that were either
+        # user-specified within the inner-function (e.g. by returning an update
+        # `dict`) or the `SharedVariable.default_update`s of a shared variable
+        # created in the inner-function.
+        if input.update and (is_local or input.variable in updates):
+            # We need to remove the `default_update`s on the shared
+            # variables created within the context of the loop function
+            # (e.g. via use of `RandomStream`); otherwise, they'll get
+            # picked up during compilation and produce errors when the
+            # updates include inner-graph variables.
+            # We also don't want to remove a default update that applies to
+            # the scope/context containing this `Scan`, so we only remove
+            # default updates on "local" variables.
+            if is_local and hasattr(input.variable, "default_update"):
+                del input.variable.default_update
+
             new_var = safe_new(input.variable)
 
             if getattr(input.variable, "name", None) is not None:
                 new_var.name = input.variable.name + "_copy"
+
+            inner_replacements[input.variable] = new_var
 
             if isinstance(new_var.type, TensorType):
                 sit_sot_inner_inputs.append(new_var)
@@ -989,6 +1015,7 @@ def scan(
                         actual_n_steps,
                     )
                 )
+
                 tensor_update = at.as_tensor_variable(input.update)
                 sit_sot_inner_outputs.append(tensor_update)
                 # Note that `pos` is not a negative index. The sign of `pos` is used
@@ -1000,14 +1027,14 @@ def scan(
                 # refers to the update rule with index `-1 - pos`.
                 sit_sot_rightOrder.append(-1 - len(sit_sot_shared))
                 sit_sot_shared.append(input.variable)
-                inner_replacements[input.variable] = new_var
 
             else:
                 shared_inner_inputs.append(new_var)
                 shared_scan_inputs.append(input.variable)
                 shared_inner_outputs.append(input.update)
-                inner_replacements[input.variable] = new_var
                 n_shared_outs += 1
+        else:
+            no_update_shared_inputs.append(input)
 
     n_sit_sot = len(sit_sot_inner_inputs)
 
@@ -1048,33 +1075,20 @@ def scan(
 
         other_shared_scan_args = [
             arg.variable
-            for arg in dummy_inputs
-            if (
-                isinstance(arg.variable, SharedVariable)
-                and not arg.update
-                and arg.variable in non_seqs_set
-            )
+            for arg in no_update_shared_inputs
+            if arg.variable in non_seqs_set
         ]
         other_shared_inner_args = [
             safe_new(arg.variable, "_copy")
-            for arg in dummy_inputs
-            if (
-                isinstance(arg.variable, SharedVariable)
-                and not arg.update
-                and arg.variable in non_seqs_set
-            )
+            for arg in no_update_shared_inputs
+            if arg.variable in non_seqs_set
         ]
     else:
-        other_shared_scan_args = [
-            arg.variable
-            for arg in dummy_inputs
-            if (isinstance(arg.variable, SharedVariable) and not arg.update)
-        ]
+        other_shared_scan_args = [arg.variable for arg in no_update_shared_inputs]
         other_shared_inner_args = [
-            safe_new(arg.variable, "_copy")
-            for arg in dummy_inputs
-            if (isinstance(arg.variable, SharedVariable) and not arg.update)
+            safe_new(arg.variable, "_copy") for arg in no_update_shared_inputs
         ]
+
     inner_replacements.update(
         dict(zip(other_shared_scan_args, other_shared_inner_args))
     )

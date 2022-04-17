@@ -42,6 +42,7 @@ from aesara.tensor.math import dot, mean, sigmoid
 from aesara.tensor.math import sum as at_sum
 from aesara.tensor.math import tanh
 from aesara.tensor.nnet import categorical_crossentropy
+from aesara.tensor.random import normal
 from aesara.tensor.random.utils import RandomStream
 from aesara.tensor.shape import Shape_i, reshape, specify_shape
 from aesara.tensor.sharedvar import SharedVariable
@@ -240,6 +241,54 @@ def scan_nodes_from_fct(fct):
 
 
 class TestScan:
+    @pytest.mark.parametrize(
+        "rng_type",
+        [
+            np.random.default_rng,
+            np.random.RandomState,
+        ],
+    )
+    def test_inner_graph_cloning(self, rng_type):
+        r"""Scan should remove the updates-providing special properties on `RandomType`\s."""
+
+        inner_inner_rng = shared(rng_type(), name="inner_inner_rng")
+
+        y = shared(np.array(1.0, dtype=config.floatX), name="y")
+        y.default_update = y + 1
+
+        z_rng = shared(rng_type(), name="z_rng")
+        z = normal(0, 1, rng=z_rng, name="z")
+
+        z_rng_update = z.owner.outputs[0]
+        z_rng_update.name = "z_rng_update"
+        z_rng.default_update = z_rng_update
+
+        inner_rng = None
+
+        def inner_fn(x):
+            inner_rng = shared(rng_type(), name="inner_rng")
+            inner_rng.default_update = inner_inner_rng
+            inner_inner_rng.default_update = inner_rng
+
+            r = normal(x, rng=inner_rng)
+            return r + y + z, z
+
+        out, out_updates = scan(
+            inner_fn,
+            outputs_info=[at.as_tensor(0.0, dtype=config.floatX), None],
+            n_steps=4,
+        )
+
+        assert not hasattr(inner_rng, "default_update")
+        assert hasattr(inner_inner_rng, "default_update")
+        assert hasattr(y, "default_update")
+        assert hasattr(z_rng, "default_update")
+
+        out_fn = function([], out, mode=Mode(optimizer=None))
+        res, z_res = out_fn()
+        assert len(set(res)) == 4
+        assert len(set(z_res)) == 1
+
     @pytest.mark.skipif(
         isinstance(get_default_mode(), DebugMode),
         reason="This test fails in DebugMode, because it is not yet picklable.",
