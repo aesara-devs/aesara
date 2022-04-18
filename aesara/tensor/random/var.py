@@ -8,12 +8,14 @@ from aesara.tensor.random.type import random_generator_type, random_state_type
 
 class RandomStateSharedVariable(SharedVariable):
     def __str__(self):
-        return "RandomStateSharedVariable({})".format(repr(self.container))
+        return self.name or "RandomStateSharedVariable({})".format(repr(self.container))
 
 
 class RandomGeneratorSharedVariable(SharedVariable):
     def __str__(self):
-        return "RandomGeneratorSharedVariable({})".format(repr(self.container))
+        return self.name or "RandomGeneratorSharedVariable({})".format(
+            repr(self.container)
+        )
 
 
 @shared_constructor
