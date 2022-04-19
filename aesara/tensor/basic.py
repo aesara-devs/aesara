@@ -2246,13 +2246,10 @@ def addbroadcast(x, *axes):
 
 def unbroadcast(x, *axes):
     """
-    Make the input impossible to broadcast in the specified axes.
+    Make the input unknown to be broadcastable in the specified axes.
 
-    For example, addbroadcast(x, 0) will make the first dimension
-    of x broadcastable. When performing the function, if the length
-    of x along that dimension is not 1, a ValueError will be raised.
-
-    We apply the opt here not to pollute the graph
+    For example, unbroadcast(x, 0) will make the first dimension
+    of x unbroadcastable.
 
     Parameters
     ----------
@@ -2260,8 +2257,6 @@ def unbroadcast(x, *axes):
         Input aesara tensor.
     axis : an int or an iterable object such as list or tuple of int values
         The dimension along which the tensor x should be unbroadcastable.
-        If the length of x along these dimensions is not 1, a ValueError will
-        be raised.
 
     Returns
     -------
