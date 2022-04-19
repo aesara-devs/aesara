@@ -1,3 +1,5 @@
+import re
+
 import numpy as np
 import pytest
 
@@ -447,6 +449,17 @@ class TestSqueeze(utt.InferShapeTester):
             ValueError, match="Cannot drop a non-broadcastable dimension"
         ):
             squeeze(variable, axis=1)
+
+    def test_scalar_input(self):
+        x = at.scalar("x")
+
+        assert squeeze(x, axis=(0,)).eval({x: 5}) == 5
+
+        with pytest.raises(
+            np.AxisError,
+            match=re.escape("axis (1,) is out of bounds for array of dimension 0"),
+        ):
+            squeeze(x, axis=1)
 
 
 class TestCompress(utt.InferShapeTester):

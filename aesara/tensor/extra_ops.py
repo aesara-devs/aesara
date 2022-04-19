@@ -640,7 +640,11 @@ def squeeze(x, axis=None):
     elif not isinstance(axis, Collection):
         axis = (axis,)
 
-    axis = np.core.numeric.normalize_axis_tuple(axis, ndim=x.ndim)
+    # scalar inputs are treated as 1D regarding axis in this `Op`
+    try:
+        axis = np.core.numeric.normalize_axis_tuple(axis, ndim=max(1, x.ndim))
+    except np.AxisError:
+        raise np.AxisError(axis, ndim=x.ndim)
 
     return x.dimshuffle([i for i in range(x.ndim) if i not in axis])
 
