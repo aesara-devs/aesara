@@ -1304,7 +1304,11 @@ class CAReduce(COp):
             axis = list(range(inp_dims))
 
         copy_op = any(a < 0 for a in axis)
-        axis = np.core.numeric.normalize_axis_tuple(axis, ndim=inp_dims)
+        # scalar inputs are treated as 1D regarding axis in this `Op`
+        try:
+            axis = np.core.numeric.normalize_axis_tuple(axis, ndim=max(1, inp_dims))
+        except np.AxisError:
+            raise np.AxisError(axis, ndim=inp_dims)
 
         # We can't call self.__class__() as there is a class that
         # inherits from CAReduce that doesn't have the same signature

@@ -1,4 +1,5 @@
 import math
+import re
 import tracemalloc
 from copy import copy
 
@@ -637,6 +638,17 @@ class TestCAReduce(unittest_tools.InferShapeTester):
         x = vector("x")
         with pytest.raises(ValueError, match="repeated axis"):
             self.op(aes.add, axis=(0, 0))(x)
+
+    def test_scalar_input(self):
+        x = scalar("x")
+
+        assert self.op(aes.add, axis=(-1,))(x).eval({x: 5}) == 5
+
+        with pytest.raises(
+            np.AxisError,
+            match=re.escape("axis (-2,) is out of bounds for array of dimension 0"),
+        ):
+            self.op(aes.add, axis=(-2,))(x)
 
 
 class TestBitOpReduceGrad:
