@@ -61,7 +61,6 @@ from aesara.tensor.basic import (
     get_scalar_constant_value,
     join,
     ones_like,
-    patternbroadcast,
     stack,
     switch,
     tensor_copy,
@@ -2425,15 +2424,6 @@ def local_join_empty(fgraph, node):
         # by an error in the old join op.
         copy_stack_trace(node.outputs, ret)
 
-        if not o.type.is_super(ret.type):
-            assert ret.dtype == o.dtype
-            assert ret.ndim == o.ndim
-            ret = patternbroadcast(ret, node.outputs[0].broadcastable)
-
-        # Copy over stacktrace from previous output
-        # (after patternbroadcast op) for same reasons as before.
-        copy_stack_trace(node.outputs, ret)
-
         return [ret]
 
 
@@ -2832,20 +2822,7 @@ def local_reshape_lift(fgraph, node):
         # Copy stacktrace from both previous Reshape and UnaryElemwise op
         # because an error in new cg could have been caused by either ops.
         copy_stack_trace(node.outputs + node.inputs, e)
-
-        # In rare case the original broadcast was (False, True), but
-        # the new one is (False, False). So don't crash in that case.
-        if not node.outputs[0].type.is_super(e.type):
-            re = patternbroadcast(e, node.outputs[0].broadcastable)
-
-            # Copy over stack trace.
-            # If the graph fails it is usually due to the fact that a dimension
-            # that should be broadcastable does not actually have length 1,
-            copy_stack_trace(e, re)
-        else:
-            re = e
-
-        return [re]
+        return [e]
 
 
 register_canonicalize(OpRemove(tensor_copy), name="remove_tensor_copy")

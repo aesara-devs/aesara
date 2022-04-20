@@ -164,8 +164,7 @@ def local_abstractconv_gradweight_gemm(fgraph, node):
     if node.op.filter_flip:
         flip = (slice(None),) * (rval.ndim - 2) + (slice(None, None, -1),) * 2
         rval = rval[flip]
-    rval = aesara.tensor.patternbroadcast(rval, node.outputs[0].broadcastable)
-    copy_stack_trace(node.outputs[0], rval)
+        copy_stack_trace(node.outputs[0], rval)
 
     return [rval]
 
@@ -193,8 +192,7 @@ def local_abstractconv3d_gradweight_gemm(fgraph, node):
     # need to flip the kernel if necessary
     if node.op.filter_flip:
         rval = rval[:, :, ::-1, ::-1, ::-1]
-    rval = aesara.tensor.patternbroadcast(rval, node.outputs[0].broadcastable)
-    copy_stack_trace(node.outputs[0], rval)
+        copy_stack_trace(node.outputs[0], rval)
 
     return [rval]
 
@@ -393,10 +391,8 @@ def local_conv2d_gradweight_cpu(fgraph, node):
     if node.op.border_mode == "valid":
         res = res.dimshuffle((1, 0, 2, 3))
         res = res[:, :, ::-1, ::-1]
+        copy_stack_trace(node.outputs[0], res)
 
-    res = aesara.tensor.patternbroadcast(res, node.outputs[0].broadcastable)
-
-    copy_stack_trace(node.outputs[0], res)
     return [res]
 
 
@@ -484,8 +480,6 @@ def local_conv2d_gradinputs_cpu(fgraph, node):
         direction_hint="bprop inputs",
     )
     din = din(topgrad, filters)
-    copy_stack_trace(node.outputs[0], din)
-    din = aesara.tensor.patternbroadcast(din, node.outputs[0].broadcastable)
     copy_stack_trace(node.outputs[0], din)
     return [din]
 

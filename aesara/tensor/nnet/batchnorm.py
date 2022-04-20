@@ -823,11 +823,6 @@ def local_abstract_batch_norm_train(fgraph, node):
         )
         results.append(running_var)
 
-    results = [
-        at.patternbroadcast(r, r_orig.broadcastable)
-        for (r, r_orig) in zip(results, node.outputs)
-    ]
-
     for var in aesara.graph.basic.vars_between(node.inputs, results):
         if var not in node.inputs:
             copy_stack_trace(node.outputs[0], var)
@@ -862,11 +857,6 @@ def local_abstract_batch_norm_train_grad(fgraph, node):
     g_wrt_bias = at_sum(dy, axis=axes, keepdims=True)
     results = [g_wrt_inputs, g_wrt_scale, g_wrt_bias]
 
-    results = [
-        at.patternbroadcast(r, r_orig.broadcastable)
-        for (r, r_orig) in zip(results, node.outputs)
-    ]
-
     for var in aesara.graph.basic.vars_between(node.inputs, results):
         if var not in node.inputs:
             copy_stack_trace(node.outputs[0], var)
@@ -895,7 +885,6 @@ def local_abstract_batch_norm_inference(fgraph, node):
         epsilon = epsilon.astype("float32")
 
     result = (x - estimated_mean) * (scale / sqrt(estimated_variance + epsilon)) + bias
-    result = at.patternbroadcast(result, node.outputs[0].broadcastable)
 
     for var in aesara.graph.basic.vars_between(node.inputs, [result]):
         if var not in node.inputs:

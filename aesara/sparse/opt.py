@@ -19,7 +19,7 @@ from aesara.sparse.basic import (
     usmm,
 )
 from aesara.tensor import blas
-from aesara.tensor.basic import as_tensor_variable, cast, patternbroadcast
+from aesara.tensor.basic import as_tensor_variable, cast
 from aesara.tensor.basic_opt import register_canonicalize, register_specialize
 from aesara.tensor.math import mul, neg, sub
 from aesara.tensor.shape import shape, specify_shape
@@ -42,13 +42,7 @@ def local_csm_properties_csm(fgraph, node):
     if node.op == csm_properties:
         (csm,) = node.inputs
         if csm.owner and (csm.owner.op == CSC or csm.owner.op == CSR):
-            # csm.owner.inputs could be broadcastable. In that case, we have
-            # to adjust the broadcasting flag here.
-            ret_var = [
-                patternbroadcast(i, o.broadcastable)
-                for i, o in zip(csm.owner.inputs, node.outputs)
-            ]
-            return ret_var
+            return csm.owner.inputs
 
     return False
 
