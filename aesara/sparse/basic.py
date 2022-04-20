@@ -44,7 +44,7 @@ from aesara.tensor.math import (
     tanh,
     trunc,
 )
-from aesara.tensor.shape import shape
+from aesara.tensor.shape import shape, specify_shape
 from aesara.tensor.type import TensorType
 from aesara.tensor.type import continuous_dtypes as tensor_continuous_dtypes
 from aesara.tensor.type import discrete_dtypes as tensor_discrete_dtypes
@@ -1133,7 +1133,8 @@ class SparseFromDense(Op):
         (x,) = inputs
         (gz,) = gout
         gx = dense_from_sparse(gz)
-        gx = at.patternbroadcast(gx, x.broadcastable)
+        if gx.type.broadcastable != x.type.broadcastable:
+            gx = specify_shape(gx, [1 if b else None for b in x.type.broadcastable])
         return (gx,)
 
     def infer_shape(self, fgraph, node, shapes):

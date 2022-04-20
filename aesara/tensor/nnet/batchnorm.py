@@ -265,12 +265,14 @@ def batch_normalization_train(
             running_var=running_var,
         )
         if new_running_mean.broadcastable != running_mean.broadcastable:
-            new_running_mean = at.patternbroadcast(
-                new_running_mean, running_mean.broadcastable
+            new_running_mean = at.specify_shape(
+                new_running_mean,
+                [1 if b else None for b in running_mean.type.broadcastable],
             )
         if new_running_var.broadcastable != running_var.broadcastable:
-            new_running_var = at.patternbroadcast(
-                new_running_var, running_var.broadcastable
+            new_running_var = at.specify_shape(
+                new_running_var,
+                [1 if b else None or None for b in running_var.type.broadcastable],
             )
         results = (out, mean, invstd, new_running_mean, new_running_var)
     else:

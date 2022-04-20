@@ -51,6 +51,7 @@ from aesara.tensor.shape import (
     shape_padleft,
     shape_padright,
     shape_tuple,
+    specify_shape,
 )
 from aesara.tensor.type import (
     TensorType,
@@ -2547,7 +2548,10 @@ class Join(COp):
             # broadcast. As the grad need to keep the information,
             # read it if needed.
             split_gz = [
-                patternbroadcast(g, t.broadcastable) for t, g in zip(tens, split_gz)
+                g
+                if g.type.broadcastable == t.type.broadcastable
+                else specify_shape(g, [1 if b else None for b in t.type.broadcastable])
+                for t, g in zip(tens, split_gz)
             ]
             rval = rval + split_gz
         else:

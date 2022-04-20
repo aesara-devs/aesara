@@ -26,13 +26,10 @@ import aesara
 from aesara.graph.basic import Apply
 from aesara.link.c.op import OpenMPOp
 from aesara.tensor import blas
-from aesara.tensor.basic import (
-    as_tensor_variable,
-    get_scalar_constant_value,
-    patternbroadcast,
-)
+from aesara.tensor.basic import as_tensor_variable, get_scalar_constant_value
 from aesara.tensor.exceptions import NotScalarConstantError
 from aesara.tensor.nnet.abstract_conv import get_conv_output_shape, get_conv_shape_1axis
+from aesara.tensor.shape import specify_shape
 from aesara.tensor.type import discrete_dtypes, tensor
 
 
@@ -1101,8 +1098,12 @@ class ConvOp(OpenMPOp):
 
         # din and dw should have the same broadcasting pattern as the
         # parameters they are the gradient of (resp. inputs and kerns).
-        din = patternbroadcast(din, inputs.broadcastable)
-        dw = patternbroadcast(dw, kerns.broadcastable)
+        if din.type.broadcastable != inputs.type.broadcastable:
+            din = specify_shape(
+                din, [1 if b else None for b in inputs.type.broadcastable]
+            )
+        if dw.type.broadcastable != kerns.type.broadcastable:
+            dw = specify_shape(dw, [1 if b else None for b in kerns.type.broadcastable])
         return [din, dw]
 
     def c_headers(self, **kwargs):

@@ -1922,6 +1922,9 @@ class TestDot:
         # These examples should all work.  All dimensions of all results have
         # size 1.
         #
+        def is_super_shape(var1, var2):
+            # Check that var1.type is a superset of var2.type, ignoring dtype
+            return var1.type.is_super(var2.type.clone(dtype=var1.type.dtype))
 
         for dtype0 in ("float32", "float64", "complex64"):
             for dtype1 in ("float32", "complex64", "complex128"):
@@ -1948,9 +1951,9 @@ class TestDot:
 
                         if dtype0.startswith("float") and dtype1.startswith("float"):
                             g = grad(z.sum(), x)
-                            assert g.broadcastable == x.broadcastable
+                            assert is_super_shape(x, g)
                             g = grad(z.sum(), y)
-                            assert g.broadcastable == y.broadcastable
+                            assert is_super_shape(y, g)
 
 
 class TestTensordot:

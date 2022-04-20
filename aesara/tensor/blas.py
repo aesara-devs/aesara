@@ -166,6 +166,7 @@ from aesara.tensor.blas_headers import blas_header_text, blas_header_version
 from aesara.tensor.elemwise import DimShuffle, Elemwise
 from aesara.tensor.exceptions import NotScalarConstantError
 from aesara.tensor.math import Dot, add, mul, neg, sub
+from aesara.tensor.shape import specify_shape
 from aesara.tensor.type import (
     DenseTensorType,
     integer_dtypes,
@@ -2499,9 +2500,13 @@ class BatchedDot(COp):
         # above code don't always return the right broadcast pattern.
         # This cause problem down the road. See gh-1461.
         if xgrad.broadcastable != x.broadcastable:
-            xgrad = at.patternbroadcast(xgrad, x.broadcastable)
+            xgrad = specify_shape(
+                xgrad, [1 if b else None for b in x.type.broadcastable]
+            )
         if ygrad.broadcastable != y.broadcastable:
-            ygrad = at.patternbroadcast(ygrad, y.broadcastable)
+            ygrad = specify_shape(
+                ygrad, [1 if b else None for b in y.type.broadcastable]
+            )
 
         return xgrad, ygrad
 
