@@ -811,6 +811,7 @@ class OpFromGraph(Op, HasInnerGraph):
                 rop_overrides=self.rop_overrides,
                 connection_pattern=self._connection_pattern,
                 name=self.name,
+                **self.kwargs,
             )
             new_inputs = (
                 list(non_shared_inputs) + unshared_inputs + new_op.shared_inputs
