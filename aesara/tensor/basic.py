@@ -2289,6 +2289,11 @@ def patternbroadcast(
         not ``1``, a `ValueError` will be raised.
 
     """
+    warnings.warn(
+        "patternbroadcast is deprecated and will be removed in a future version. Use "
+        "specify_shape instead.",
+        FutureWarning,
+    )
     x = as_tensor_variable(x)
 
     if x.broadcastable == broadcastable:
