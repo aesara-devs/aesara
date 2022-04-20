@@ -465,7 +465,7 @@ class TestOpFromGraph(unittest_tools.InferShapeTester):
         x = at.scalar("x")
         y = shared(1.0, name="y")
 
-        test_ofg = OpFromGraph([x], [x + y])
+        test_ofg = OpFromGraph([x], [x + y], on_unused_input="ignore")
         assert test_ofg.inputs == [x]
         assert test_ofg.shared_inputs == [y]
 
@@ -477,6 +477,7 @@ class TestOpFromGraph(unittest_tools.InferShapeTester):
 
         out_new = test_ofg.make_node(*(out.owner.inputs[:1] + [y_clone])).outputs[0]
 
+        assert "on_unused_input" in out_new.owner.op.kwargs
         assert out_new.owner.op.inputs == [x]
         assert out_new.owner.op.shared_inputs == [y_clone]
 
