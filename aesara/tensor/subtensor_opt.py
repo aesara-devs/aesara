@@ -21,7 +21,6 @@ from aesara.tensor.basic import (
     cast,
     extract_constant,
     get_scalar_constant_value,
-    patternbroadcast,
     switch,
 )
 from aesara.tensor.basic_opt import (
@@ -531,14 +530,6 @@ def local_subtensor_merge(fgraph, node):
             # because of either of the two original slicing operations
             orig_out = node.outputs[0]
             copy_stack_trace([orig_out, node.inputs[0]], out)
-
-            # Restore original broadcastable dimensions that `subtens()` may
-            # have been unable to infer again
-            if not orig_out.type.is_super(out.type):
-                assert out.dtype == orig_out.dtype
-                assert out.ndim == orig_out.ndim
-                out = patternbroadcast(out, orig_out.broadcastable)
-                copy_stack_trace([orig_out, node.inputs[0]], out)
             return [out]
 
 
@@ -656,11 +647,6 @@ def local_subtensor_of_alloc(fgraph, node):
     rval = alloc(nw_val, *nw_dims)
     if not isinstance(rval, (list, tuple)):
         rval = [rval]
-    if not node.outputs[0].type.is_super(rval[0].type):
-        # It happen that the make_node() isn't able to infer the same pattern.
-        # We know it is safe, so fix that.
-        rval[0] = patternbroadcast(rval[0], node.outputs[0].broadcastable)
-
     return rval
 
 
@@ -764,7 +750,6 @@ def local_subtensor_make_vector(fgraph, node):
             values = list(map(int, list(idx.value)))
             ret = make_vector_op(*[x.owner.inputs[v] for v in values])
             copy_stack_trace(node.outputs[0], ret)
-            ret = patternbroadcast(ret, node.outputs[0].broadcastable)
             return [ret]
     elif isinstance(idx, slice):
         # The index is a slice.  If it's a constant slice, we can perform the
@@ -775,7 +760,6 @@ def local_subtensor_make_vector(fgraph, node):
             )[0]
             ret = make_vector_op(*x.owner.inputs[const_slice])
             copy_stack_trace(node.outputs, ret)
-            ret = patternbroadcast(ret, node.outputs[0].broadcastable)
             return [ret]
         except NotScalarConstantError:
             pass
