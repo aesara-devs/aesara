@@ -1918,32 +1918,6 @@ class TestDot:
         # These examples should all work.  All dimensions of all results have
         # size 1.
         #
-        def val_for(r):
-            if r.dtype.startswith("complex"):
-                # We want to test complex at the same time, so we give a value
-                # to the imaginary component.
-                # This strange way of doing things is the only way that worked
-                # on NumPy 1.4.1.
-                if r.ndim == 0:
-                    return np.asarray(complex(1.1, 2.1), dtype=r.dtype)
-                if r.ndim == 1:
-                    if r.dtype == "complex64":
-                        return np.complex64([complex(1.2, 2.2)])
-                    elif r.dtype == "complex128":
-                        return np.complex128([complex(1.2, 2.2)])
-                elif r.ndim == 2:
-                    if r.dtype == "complex64":
-                        return np.complex64([[complex(1.3, 2.3)]])
-                    elif r.dtype == "complex128":
-                        return np.complex128([[complex(1.3, 2.3)]])
-
-            if r.ndim == 0:
-                return np.asarray(1.1, dtype=r.dtype)
-            if r.ndim == 1:
-                return np.asarray([1.2], dtype=r.dtype)
-            elif r.ndim == 2:
-                return np.asarray([[1.3]], dtype=r.dtype)
-            raise AssertionError()
 
         for dtype0 in ("float32", "float64", "complex64"):
             for dtype1 in ("float32", "complex64", "complex128"):
