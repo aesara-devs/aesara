@@ -310,7 +310,6 @@ class TestDiff(utt.InferShapeTester):
                 g = aesara.function([x], diff(x, n=n, axis=axis))
                 assert np.allclose(np.diff(a, n=n, axis=axis), g(a))
 
-
     @pytest.mark.xfail(reason="Subtensor shape cannot be inferred correctly")
     @pytest.mark.parametrize(
         "x_type",
