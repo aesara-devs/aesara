@@ -469,66 +469,6 @@ class CumprodOp(Op):
         return obj
 
 
-class DiffOp(Op):
-    # See function diff for docstring
-
-    __props__ = ("n", "axis")
-
-    def __init__(self, n=1, axis=-1):
-        self.n = n
-        self.axis = axis
-        # numpy return a view in that case.
-        # TODO, make an optimization that remove this op in this case.
-        if n == 0:
-            self.view_map = {0: [0]}
-
-    def make_node(self, x):
-        x = at.as_tensor_variable(x)
-        axis = normalize_axis_index(self.axis, x.ndim)
-        shape = [None] * x.type.ndim
-        for i, shape_i in enumerate(x.type.shape):
-            if shape_i is None:
-                continue
-            if i == axis:
-                shape[i] = max(0, shape_i - self.n)
-            else:
-                shape[i] = shape_i
-        out_type = TensorType(dtype=x.type.dtype, shape=shape)
-        return Apply(self, [x], [out_type()])
-
-    def perform(self, node, inputs, output_storage):
-        x = inputs[0]
-        z = output_storage[0]
-        z[0] = np.diff(x, n=self.n, axis=self.axis)
-
-    def grad(self, inputs, outputs_gradients):
-        inputs = inputs[0]
-
-        if inputs.ndim != 1:
-            raise NotImplementedError(
-                "Grad is not implemented for inputs with"
-                "number of dimension other than 1."
-            )
-
-        z = outputs_gradients[0]
-
-        def _grad_helper(z):
-            pre = at.concatenate([[0.0], z])
-            app = at.concatenate([z, [0.0]])
-            return pre - app
-
-        # FIXME: This fails when n is larger than the input size
-        for k in range(self.n):
-            z = _grad_helper(z)
-        return [z]
-
-    def infer_shape(self, fgraph, node, ins_shapes):
-        i0_shapes = ins_shapes[0]
-        out_shape = list(i0_shapes)
-        out_shape[self.axis] = at_max((0, out_shape[self.axis] - self.n))
-        return [out_shape]
-
-
 def diff(x, n=1, axis=-1):
     """Calculate the `n`-th order discrete difference along the given `axis`.
 

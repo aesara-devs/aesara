@@ -39,7 +39,6 @@ from aesara.tensor.extra_ops import (
     Bartlett,
     BroadcastTo,
     CumOp,
-    DiffOp,
     FillDiagonal,
     FillDiagonalOffset,
     RavelMultiIndex,
@@ -936,17 +935,6 @@ def jax_funcify_CumOp(op, **kwargs):
             return jnp.cumprod(x, axis=axis)
 
     return cumop
-
-
-@jax_funcify.register(DiffOp)
-def jax_funcify_DiffOp(op, **kwargs):
-    n = op.n
-    axis = op.axis
-
-    def diffop(x, n=n, axis=axis):
-        return jnp.diff(x, n=n, axis=axis)
-
-    return diffop
 
 
 @jax_funcify.register(Repeat)
