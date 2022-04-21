@@ -8,7 +8,6 @@ from aesara import function
 from aesara import tensor as at
 from aesara.compile.mode import Mode
 from aesara.configdefaults import config
-from aesara.gradient import grad
 from aesara.graph.basic import applys_between
 from aesara.graph.optdb import OptimizationQuery
 from aesara.raise_op import Assert
@@ -298,8 +297,8 @@ class TestBinCount(utt.InferShapeTester):
                     f5(a)
 
 
-class TestDiffOp(utt.InferShapeTester):
-    def test_diffOp(self):
+class TestDiff(utt.InferShapeTester):
+    def test_diff(self):
         x = matrix("x")
         a = np.random.random((30, 50)).astype(config.floatX)
 
@@ -332,11 +331,6 @@ class TestDiffOp(utt.InferShapeTester):
                         assert out.type.shape[i] is None
                     else:
                         assert out.type.shape[i] == out_test.shape[i]
-
-    def test_grad_not_implemented(self):
-        x = at.matrix("x")
-        with pytest.raises(NotImplementedError):
-            grad(diff(x).sum(), x)
 
 
 class TestSqueeze(utt.InferShapeTester):

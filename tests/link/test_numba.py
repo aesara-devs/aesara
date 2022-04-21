@@ -1515,50 +1515,6 @@ def test_CumOp(val, axis, mode):
 
 
 @pytest.mark.parametrize(
-    "val, n, axis",
-    [
-        (
-            set_test_value(at.matrix(), rng.normal(size=(3, 2)).astype(config.floatX)),
-            0,
-            0,
-        ),
-        (
-            set_test_value(at.matrix(), rng.normal(size=(3, 2)).astype(config.floatX)),
-            0,
-            1,
-        ),
-        (
-            set_test_value(at.matrix(), rng.normal(size=(3, 2)).astype(config.floatX)),
-            1,
-            0,
-        ),
-        (
-            set_test_value(at.matrix(), rng.normal(size=(3, 2)).astype(config.floatX)),
-            1,
-            1,
-        ),
-        (
-            set_test_value(at.lmatrix(), rng.poisson(size=(3, 2))),
-            0,
-            0,
-        ),
-    ],
-)
-def test_DiffOp(val, axis, n):
-    g = extra_ops.DiffOp(n=n, axis=axis)(val)
-    g_fg = FunctionGraph(outputs=[g])
-
-    (res,) = compare_numba_and_py(
-        g_fg,
-        [
-            i.tag.test_value
-            for i in g_fg.inputs
-            if not isinstance(i, (SharedVariable, Constant))
-        ],
-    )
-
-
-@pytest.mark.parametrize(
     "a, val",
     [
         (
