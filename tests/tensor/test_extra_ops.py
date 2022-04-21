@@ -18,7 +18,6 @@ from aesara.tensor.extra_ops import (
     BroadcastTo,
     CpuContiguous,
     CumOp,
-    DiffOp,
     FillDiagonal,
     FillDiagonalOffset,
     RavelMultiIndex,
@@ -333,33 +332,6 @@ class TestDiffOp(utt.InferShapeTester):
                         assert out.type.shape[i] is None
                     else:
                         assert out.type.shape[i] == out_test.shape[i]
-
-    def test_infer_shape(self):
-        x = matrix("x")
-        a = np.random.random((30, 50)).astype(config.floatX)
-
-        # Test default n and axis
-        self._compile_and_check([x], [DiffOp()(x)], [a], DiffOp)
-
-        for axis in (-2, -1, 0, 1):
-            for n in (0, 1, 2, a.shape[0], a.shape[0] + 1):
-                self._compile_and_check([x], [diff(x, n=n, axis=axis)], [a], DiffOp)
-
-    def test_grad(self):
-        a = np.random.random(50).astype(config.floatX)
-
-        # Test default n and axis
-        utt.verify_grad(DiffOp(), [a])
-
-        for n in (0, 1, 2, a.shape[0]):
-            utt.verify_grad(DiffOp(n=n), [a], eps=7e-3)
-
-    @pytest.mark.xfail(reason="gradient is wrong when n is larger than input size")
-    def test_grad_n_larger_than_input(self):
-        # Gradient is wrong when n is larger than the input size. Until it is fixed,
-        # this test ensures the behavior is documented
-        a = np.random.random(10).astype(config.floatX)
-        utt.verify_grad(DiffOp(n=11), [a], eps=7e-3)
 
     def test_grad_not_implemented(self):
         x = at.matrix("x")

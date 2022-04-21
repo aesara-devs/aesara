@@ -3,7 +3,6 @@ import warnings
 import numba
 import numpy as np
 from numba.misc.special import literal_unroll
-from numpy.core.multiarray import normalize_axis_index
 
 from aesara import config
 from aesara.link.numba.dispatch import basic as numba_basic
@@ -12,7 +11,6 @@ from aesara.tensor.extra_ops import (
     Bartlett,
     BroadcastTo,
     CumOp,
-    DiffOp,
     FillDiagonal,
     FillDiagonalOffset,
     RavelMultiIndex,
@@ -65,36 +63,6 @@ def numba_funcify_CumOp(op, node, **kwargs):
         return res.transpose(reaxis_first)
 
     return cumop
-
-
-@numba_funcify.register(DiffOp)
-def numba_funcify_DiffOp(op, node, **kwargs):
-    n = op.n
-    axis = op.axis
-    ndim = node.inputs[0].ndim
-    dtype = node.outputs[0].dtype
-
-    axis = normalize_axis_index(axis, ndim)
-
-    slice1 = [slice(None)] * ndim
-    slice2 = [slice(None)] * ndim
-    slice1[axis] = slice(1, None)
-    slice2[axis] = slice(None, -1)
-    slice1 = tuple(slice1)
-    slice2 = tuple(slice2)
-
-    op = np.not_equal if dtype == "bool" else np.subtract
-
-    @numba_basic.numba_njit(boundscheck=False, fastmath=config.numba__fastmath)
-    def diffop(x):
-        res = x.copy()
-
-        for _ in range(n):
-            res = op(res[slice1], res[slice2])
-
-        return res
-
-    return diffop
 
 
 @numba_funcify.register(FillDiagonal)
