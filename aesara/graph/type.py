@@ -56,12 +56,18 @@ class Type(MetaObject):
         return False
 
     def is_super(self, otype: "Type") -> Optional[bool]:
-        """Determine if `self` represents a superset of the types represented by `otype`.
+        """Determine if `self` is a supertype of `otype`.
 
-        See `Type.in_same_class`.
+        This method effectively implements the type relation ``>``.
 
         In general, ``t1.is_super(t2) == True`` implies that ``t1`` can be
         replaced with ``t2``.
+
+        See `Type.in_same_class`.
+
+        Returns
+        -------
+        ``None`` if the type relation cannot be applied/determined.
 
         """
         if self.in_same_class(otype):
