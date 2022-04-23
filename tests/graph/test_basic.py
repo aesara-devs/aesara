@@ -662,3 +662,35 @@ class TestCloneReplace:
         utt.assert_allclose(
             test(x, at.sum((x + 1) ** 2), mention_y=True), 1.21000003815
         )
+
+
+def test_clone_new_inputs():
+    """Make sure that `Apply.clone_with_new_inputs` properly handles `Type` changes."""
+
+    x = at.tensor(np.float64, shape=(None,))
+    y = at.tensor(np.float64, shape=(1,))
+
+    z = at.add(x, y)
+    assert z.type.shape == (None,)
+
+    x_new = at.tensor(np.float64, shape=(1,))
+
+    # The output nodes should be reconstructed, because the input types' static
+    # shape information increased in specificity
+    z_node_new = z.owner.clone_with_new_inputs([x_new, y])
+
+    assert z_node_new.outputs[0].type.shape == (1,)
+    assert z_node_new.inputs[0].type.shape == (1,)
+    assert z_node_new.inputs[1].type.shape == (1,)
+
+    # Now, attempt to decrease the specificity of the first input's static
+    # shape information, but, because we're using strict conversion, we
+    # shouldn't lose any information
+    z = at.add(x_new, y)
+    assert z.type.shape == (1,)
+
+    z_node_new = z.owner.clone_with_new_inputs([x, y], strict=True)
+
+    assert z_node_new.outputs[0].type.shape == (1,)
+    assert z_node_new.inputs[0].type.shape == (1,)
+    assert z_node_new.inputs[1].type.shape == (1,)
