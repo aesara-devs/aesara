@@ -249,10 +249,14 @@ class Apply(Node):
         for i, (curr, new) in enumerate(zip(self.inputs, new_inputs)):
             if curr.type != new.type:
                 if strict:
-                    # If compatible, casts new into curr.type
-                    new_inputs[i] = curr.type.filter_variable(new)
+                    new_i = curr.type.filter_variable(new)
+                    new_inputs[i] = new_i
+
+                    if curr.type != new_i.type:
+                        remake_node = True
                 else:
                     remake_node = True
+
         if remake_node:
             new_node = self.op.make_node(*new_inputs)
             new_node.tag = copy(self.tag).__update__(new_node.tag)
