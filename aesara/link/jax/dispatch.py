@@ -648,9 +648,20 @@ _ = [jax_funcify.register(op, jax_funcify_IncSubtensor) for op in incsubtensor_o
 def jax_funcify_AdvancedIncSubtensor(op, **kwargs):
 
     if getattr(op, "set_instead_of_inc", False):
-        jax_fn = jax.ops.index_update
+        jax_fn = getattr(jax.ops, "index_update", None)
+
+        if jax_fn is None:
+
+            def jax_fn(x, indices, y):
+                return x.at[indices].set(y)
+
     else:
-        jax_fn = jax.ops.index_add
+        jax_fn = getattr(jax.ops, "index_add", None)
+
+        if jax_fn is None:
+
+            def jax_fn(x, indices, y):
+                return x.at[indices].add(y)
 
     def advancedincsubtensor(x, y, *ilist, jax_fn=jax_fn):
         return jax_fn(x, ilist, y)
