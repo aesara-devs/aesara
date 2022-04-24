@@ -787,6 +787,11 @@ def test_hypergeometric_samples(ngood, nbad, nsample, size):
     "loc, scale, size",
     [
         (np.array(10, dtype=config.floatX), np.array(0.1, dtype=config.floatX), None),
+        (
+            np.array([[0]], dtype=config.floatX),
+            np.array([[1]], dtype=config.floatX),
+            None,
+        ),
         (np.array(10, dtype=config.floatX), np.array(0.1, dtype=config.floatX), []),
         (np.array(10, dtype=config.floatX), np.array(0.1, dtype=config.floatX), [2, 3]),
         (
