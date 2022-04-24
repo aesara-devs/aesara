@@ -57,7 +57,7 @@ class ScipyRandomVariable(RandomVariable):
         if np.ndim(res) == 0:
             # The sample is an `np.number`, and is not writeable, or non-NumPy
             # type, so we need to clone/create a usable NumPy result
-            return np.asarray(res)
+            res = np.asarray(res)
 
         if size is None:
             # SciPy will sometimes drop broadcastable dimensions; we need to
