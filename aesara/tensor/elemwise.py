@@ -913,7 +913,7 @@ second dimension
         checks = cgen.make_checks(orders, idtypes, sub)
 
         # Check if all inputs (except broadcasted scalar) are fortran.
-        # In that case, create an fortran output ndarray.
+        # In that case, create a fortran output ndarray.
         z = list(zip(inames, inputs))
         alloc_fortran = " && ".join(
             [
@@ -1071,7 +1071,7 @@ second dimension
 
         # If all inputs and outputs are contiguous
         # and the scalar op define optimized code for that case
-        # use it! The scalar_op need to check the broadcast flag himself.
+        # use it! The scalar_op needs to check the type-level shapes itself.
         if (
             all(o.ndim >= 1 for o in node.outputs)
             and
@@ -1088,11 +1088,19 @@ second dimension
                 # compiler to vectorize the code as their won't be as
                 # many ptr and the stride will be hard coded.
                 if all(
-                    [
-                        io.broadcastable == node.outputs[0].broadcastable
-                        or all(io.broadcastable)
-                        for io in node.inputs + node.outputs
-                    ]
+                    # io.type.shape == node.outputs[1].type.shape
+                    # Elemwise does not specify non-broadcastable static/type-levelshape
+                    # information for its outputs yet
+                    node.outputs[0].type.is_super(io.type)
+                    for io in node.inputs + node.outputs
+                ) and (
+                    len(node.inputs) <= 1
+                    # If either one of the inputs has a `None` shape, we cannot
+                    # assume they will have the same size
+                    or all(
+                        len(set(inp_shape)) == 1 and None not in inp_shape
+                        for inp_shape in zip(*(inp.type.shape for inp in node.inputs))
+                    )
                 ):
                     z = onames[0]
                     contig = f"""
@@ -1188,7 +1196,7 @@ second dimension
         return support_code
 
     def c_code_cache_version_apply(self, node):
-        version = [13]  # the version corresponding to the c code in this Op
+        version = [14]  # the version corresponding to the c code in this Op
 
         # now we insert versions for the ops on which we depend...
         scalar_node = Apply(

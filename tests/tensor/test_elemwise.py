@@ -206,77 +206,117 @@ class TestBroadcast:
         return np.asarray(np.random.random(shp), dtype=aesara.config.floatX)
 
     def with_linker(self, linker, op, type, rand_val):
-        for xsh, ysh in [
-            ((3, 5), (3, 5)),
-            ((3, 5), (1, 5)),
-            ((3, 5), (3, 1)),
-            ((1, 5), (5, 1)),
-            ((1, 1), (1, 1)),
-            ((self.openmp_minsize,), (self.openmp_minsize,)),
-            (
-                (self.openmp_minsize_sqrt, self.openmp_minsize_sqrt),
-                (self.openmp_minsize_sqrt, self.openmp_minsize_sqrt),
-            ),
-            ((2, 3, 4, 5), (2, 3, 4, 5)),
-            ((2, 3, 4, 5), (1, 3, 1, 5)),
-            ((2, 3, 4, 5), (1, 1, 1, 1)),
-            ((), ()),
-        ]:
-            x = type(aesara.config.floatX, [(entry == 1) for entry in xsh])("x")
-            y = type(aesara.config.floatX, [(entry == 1) for entry in ysh])("y")
-            e = op(aes.add)(x, y)
-            f = make_function(copy(linker).accept(FunctionGraph([x, y], [e])))
-            xv = rand_val(xsh)
-            yv = rand_val(ysh)
-            zv = xv + yv
+        for shape_info in ("complete", "only_broadcastable", "none"):
+            for xsh, ysh in [
+                ((3, 5), (3, 5)),
+                ((3, 5), (1, 5)),
+                ((3, 5), (3, 1)),
+                ((1, 5), (5, 1)),
+                ((1, 1), (1, 1)),
+                ((self.openmp_minsize,), (self.openmp_minsize,)),
+                (
+                    (self.openmp_minsize_sqrt, self.openmp_minsize_sqrt),
+                    (self.openmp_minsize_sqrt, self.openmp_minsize_sqrt),
+                ),
+                ((2, 3, 4, 5), (2, 3, 4, 5)),
+                ((2, 3, 4, 5), (1, 3, 1, 5)),
+                ((2, 3, 4, 5), (1, 1, 1, 1)),
+                ((), ()),
+            ]:
+                if shape_info == "complete":
+                    x_type = type(aesara.config.floatX, shape=xsh)
+                    y_type = type(aesara.config.floatX, shape=ysh)
+                elif shape_info == "only_broadcastable":
+                    # This condition is here for backwards compatibility, when the only
+                    # type shape provided by Aesara was broadcastable/non-broadcastable
+                    x_type = type(
+                        aesara.config.floatX,
+                        broadcastable=[(entry == 1) for entry in xsh],
+                    )
+                    y_type = type(
+                        aesara.config.floatX,
+                        broadcastable=[(entry == 1) for entry in ysh],
+                    )
+                else:
+                    x_type = type(aesara.config.floatX, shape=[None for _ in xsh])
+                    y_type = type(aesara.config.floatX, shape=[None for _ in ysh])
 
-            unittest_tools.assert_allclose(f(xv, yv), zv)
-
-            # test Elemwise.infer_shape
-            # the Shape op don't implement c_code!
-            if isinstance(linker, PerformLinker):
-                x = type(aesara.config.floatX, [(entry == 1) for entry in xsh])("x")
-                y = type(aesara.config.floatX, [(entry == 1) for entry in ysh])("y")
+                x = x_type("x")
+                y = y_type("y")
                 e = op(aes.add)(x, y)
-                f = make_function(copy(linker).accept(FunctionGraph([x, y], [e.shape])))
-                assert tuple(f(xv, yv)) == tuple(zv.shape)
+                f = make_function(copy(linker).accept(FunctionGraph([x, y], [e])))
+                xv = rand_val(xsh)
+                yv = rand_val(ysh)
+                zv = xv + yv
+
+                unittest_tools.assert_allclose(f(xv, yv), zv)
+
+                # test Elemwise.infer_shape
+                # the Shape op don't implement c_code!
+                if isinstance(linker, PerformLinker):
+                    x = x_type("x")
+                    y = y_type("y")
+                    e = op(aes.add)(x, y)
+                    f = make_function(
+                        copy(linker).accept(FunctionGraph([x, y], [e.shape]))
+                    )
+                    assert tuple(f(xv, yv)) == tuple(zv.shape)
 
     def with_linker_inplace(self, linker, op, type, rand_val):
-        for xsh, ysh in [
-            ((5, 5), (5, 5)),
-            ((5, 5), (1, 5)),
-            ((5, 5), (5, 1)),
-            ((1, 1), (1, 1)),
-            ((2, 3, 4, 5), (2, 3, 4, 5)),
-            ((2, 3, 4, 5), (1, 3, 1, 5)),
-            ((2, 3, 4, 5), (1, 1, 1, 1)),
-            ((), ()),
-        ]:
-            x = type(aesara.config.floatX, [(entry == 1) for entry in xsh])("x")
-            y = type(aesara.config.floatX, [(entry == 1) for entry in ysh])("y")
-            e = op(aes.Add(aes.transfer_type(0)), {0: 0})(x, y)
-            f = make_function(copy(linker).accept(FunctionGraph([x, y], [e])))
-            xv = rand_val(xsh)
-            yv = rand_val(ysh)
-            zv = xv + yv
+        for shape_info in ("complete", "only_broadcastable", "none"):
+            for xsh, ysh in [
+                ((5, 5), (5, 5)),
+                ((5, 5), (1, 5)),
+                ((5, 5), (5, 1)),
+                ((1, 1), (1, 1)),
+                ((2, 3, 4, 5), (2, 3, 4, 5)),
+                ((2, 3, 4, 5), (1, 3, 1, 5)),
+                ((2, 3, 4, 5), (1, 1, 1, 1)),
+                ((), ()),
+            ]:
+                if shape_info == "complete":
+                    x_type = type(aesara.config.floatX, shape=xsh)
+                    y_type = type(aesara.config.floatX, shape=ysh)
+                elif shape_info == "only_broadcastable":
+                    # This condition is here for backwards compatibility, when the only
+                    # type shape provided by Aesara was broadcastable/non-broadcastable
+                    x_type = type(
+                        aesara.config.floatX,
+                        broadcastable=[(entry == 1) for entry in xsh],
+                    )
+                    y_type = type(
+                        aesara.config.floatX,
+                        broadcastable=[(entry == 1) for entry in ysh],
+                    )
+                else:
+                    x_type = type(aesara.config.floatX, shape=[None for _ in xsh])
+                    y_type = type(aesara.config.floatX, shape=[None for _ in ysh])
 
-            f(xv, yv)
-
-            assert (xv == zv).all()
-            # test Elemwise.infer_shape
-            # the Shape op don't implement c_code!
-            if isinstance(linker, PerformLinker):
-                x = type(aesara.config.floatX, [(entry == 1) for entry in xsh])("x")
-                y = type(aesara.config.floatX, [(entry == 1) for entry in ysh])("y")
+                x = x_type("x")
+                y = y_type("y")
                 e = op(aes.Add(aes.transfer_type(0)), {0: 0})(x, y)
-                f = make_function(copy(linker).accept(FunctionGraph([x, y], [e.shape])))
+                f = make_function(copy(linker).accept(FunctionGraph([x, y], [e])))
                 xv = rand_val(xsh)
                 yv = rand_val(ysh)
                 zv = xv + yv
 
                 f(xv, yv)
 
-                assert xv.shape == zv.shape
+                assert (xv == zv).all()
+                # test Elemwise.infer_shape
+                # the Shape op don't implement c_code!
+                if isinstance(linker, PerformLinker):
+                    x = x_type("x")
+                    y = y_type("y")
+                    e = op(aes.Add(aes.transfer_type(0)), {0: 0})(x, y)
+                    f = make_function(
+                        copy(linker).accept(FunctionGraph([x, y], [e.shape]))
+                    )
+                    xv = rand_val(xsh)
+                    yv = rand_val(ysh)
+                    zv = xv + yv
+                    assert xv.shape == zv.shape
+                    assert tuple(f(xv, yv)) == zv.shape
 
     def test_perform(self):
         self.with_linker(PerformLinker(), self.op, self.type, self.rand_val)
@@ -746,10 +786,6 @@ class TestElemwise(unittest_tools.InferShapeTester):
     def test_input_dimensions_match_python(self):
         self.check_input_dimensions_match(Mode(linker="py"))
 
-    @pytest.mark.xfail(
-        reason="Elemwise C implementation does not broadcast parameters",
-        exception=ValueError,
-    )
     @pytest.mark.skipif(
         not aesara.config.cxx, reason="G++ not available, so we need to skip this test."
     )
