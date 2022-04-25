@@ -66,10 +66,12 @@ def make_checks(loop_orders, dtypes, sub):
             if index != "x":
                 # Initialize the variables associated to the jth loop
                 # jump = stride - adjust
+                # If the variable has size 1 in that dim, we set the stride to zero to
+                # emulate broadcasting
                 jump = f"({var}_stride{index}) - ({adjust})"
                 init += f"""
                 {var}_n{index} = PyArray_DIMS({var})[{index}];
-                {var}_stride{index} = PyArray_STRIDES({var})[{index}] / sizeof({dtype});
+                {var}_stride{index} = ({var}_n{index} == 1)? 0 : PyArray_STRIDES({var})[{index}] / sizeof({dtype});
                 {var}_jump{index}_{j} = {jump};
                 """
                 adjust = f"{var}_n{index}*{var}_stride{index}"
@@ -90,24 +92,83 @@ def make_checks(loop_orders, dtypes, sub):
         # elements of to_compare are pairs ( input_variable_idx, input_variable_dim_idx )
         if len(to_compare) < 2:
             continue
-        j0, x0 = to_compare[0]
-        for (j, x) in to_compare[1:]:
-            check += f"""
-            if (%(lv{j0})s_n{x0} != %(lv{j})s_n{x})
+
+        # Find first dimension size that is != 1
+        jl, xl = to_compare[-1]
+        non1size_dim_check = f"""
+            npy_intp non1size_dim{xl};
+            non1size_dim{xl} = """
+        for (j, x) in to_compare[:-1]:
+            non1size_dim_check += f"(%(lv{j})s_n{x} != 1) ? %(lv{j})s_n{x} : "
+        non1size_dim_check += f"%(lv{jl})s_n{xl};"
+        check += non1size_dim_check
+
+        # Check the nonsize1 dims match
+        # TODO: This is a bit inefficient because we are comparing one dimension against itself
+        check += f"""
+            if (non1size_dim{xl} != 1)
             {{
-                PyErr_Format(PyExc_ValueError, "Input dimension mismatch. (input[%%i].shape[%%i] = %%lld, input[%%i].shape[%%i] = %%lld)",
-                   {j0},
-                   {x0},
-                   (long long int) %(lv{j0})s_n{x0},
-                   {j},
-                   {x},
-                   (long long int) %(lv{j})s_n{x}
-                );
-                %(fail)s
-            }}
+        """
+        for (j, x) in to_compare:
+            check += f"""
+                if ((%(lv{j})s_n{x} != non1size_dim{x}) && (%(lv{j})s_n{x} != 1))
+                {{
+                    PyErr_Format(PyExc_ValueError, "Input dimension mismatch. One other input has shape[%%i] = %%lld, but input[%%i].shape[%%i] = %%lld.",
+                       {x},
+                       (long long int) non1size_dim{x},
+                       {j},
+                       {x},
+                       (long long int) %(lv{j})s_n{x}
+                    );
+                    %(fail)s
+                }}
             """
+        check += """
+            }
+        """
 
     return init % sub + check % sub
+
+
+def compute_broadcast_dimensions(array_name: str, loop_orders, sub) -> str:
+    """Create c_code to compute broadcasted dimensions of multiple arrays, arising from
+    Elemwise operations.
+
+    The code returned by this function populates the array `array_name`, but does not
+    initialize it.
+
+    TODO: We can decide to either specialize C code even further given the input types
+    or make it general, regardless of whether static broadcastable information is given
+    """
+    dims_c_code = ""
+    for i, candidates in enumerate(zip(*loop_orders)):
+        # TODO: Are candidates always either "x" or "i"? If that's the case we can
+        # simplify some logic here (e.g., we don't need to track the `idx`).
+        nonx_candidates = tuple(
+            (idx, c) for idx, c in enumerate(candidates) if c != "x"
+        )
+
+        # All inputs are known to be broadcastable
+        if not nonx_candidates:
+            dims_c_code += f"{array_name}[{i}] = 1;\n"
+            continue
+
+        # There is only one informative source of size
+        if len(nonx_candidates) == 1:
+            idx, candidate = nonx_candidates[0]
+            var = sub[f"lv{int(idx)}"]
+            dims_c_code += f"{array_name}[{i}] = {var}_n{candidate};\n"
+            continue
+
+        # In this case any non-size 1 variable will define the right size
+        dims_c_code += f"{array_name}[{i}] = "
+        for (idx, candidate) in nonx_candidates[:-1]:
+            var = sub[f"lv{int(idx)}"]
+            dims_c_code += f"({var}_n{candidate} != 1)? {var}_n{candidate}: "
+        idx, candidate = nonx_candidates[-1]
+        var = sub[f"lv{idx}"]
+        dims_c_code += f"{var}_n{candidate};\n"
+    return dims_c_code
 
 
 def make_alloc(loop_orders, dtype, sub, fortran="0"):
@@ -125,20 +186,7 @@ def make_alloc(loop_orders, dtype, sub, fortran="0"):
     if type.startswith("AESARA_COMPLEX"):
         type = type.replace("AESARA_COMPLEX", "NPY_COMPLEX")
     nd = len(loop_orders[0])
-    init_dims = ""
-    # For each dimension, the tensors are either all broadcasted, in
-    # which case the output will also be broadcastable (dimension =
-    # 1), or one or more are not broadcasted, in which case the number
-    # of elements of the output in that dimension will be equal to the
-    # number of elements of any of them.
-    for i, candidates in enumerate(zip(*loop_orders)):
-        for j, candidate in enumerate(candidates):
-            if candidate != "x":
-                var = sub[f"lv{int(j)}"]
-                init_dims += f"dims[{i}] = {var}_n{candidate};\n"
-                break
-        else:
-            init_dims += f"dims[{i}] = 1;\n"
+    init_dims = compute_broadcast_dimensions("dims", loop_orders, sub)
 
     # TODO: it would be interesting to allocate the output in such a
     # way that its contiguous dimensions match one of the input's
@@ -310,26 +358,8 @@ def make_reordered_loop(
     """
 
     # Get the (sorted) total number of iterations of each loop
-    # Get totals in the initial order
-    # For each dimension, the tensors are either all broadcasted, in
-    # which case there is only one iteration of the loop, or one or
-    # more are not broadcasted, in which case the number of elements
-    # of any of them will be equal to the number of iterations we have
-    # to do.
-    totals = []
-    for i, candidates in enumerate(zip(*init_loop_orders)):
-        for j, candidate in enumerate(candidates):
-            if candidate != "x":
-                var = sub[f"lv{int(j)}"]
-                total = f"{var}_n{candidate}"
-                break
-        else:
-            total = "1"
-        totals.append(total)
-
-    declare_totals = f"""
-    int init_totals[{nnested}] = {{{", ".join(totals)}}};
-    """
+    declare_totals = f"int init_totals[{nnested}];\n"
+    declare_totals += compute_broadcast_dimensions("init_totals", init_loop_orders, sub)
 
     # Sort totals to match the new order that was computed by sorting
     # the loop vector. One integer variable per loop is declared.

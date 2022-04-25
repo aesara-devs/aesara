@@ -2307,6 +2307,8 @@ class Pow(BinaryScalarOp):
         if (
             node.inputs[0].type == node.outputs[0].type
             and node.inputs[1].type == node.outputs[0].type
+            and None not in node.inputs[0].type.shape
+            and None not in node.inputs[1].type.shape
             and
             # amdlibm 3.0 do not have a float64 version of this SIMD function
             node.inputs[0].dtype == "float32"
