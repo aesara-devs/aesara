@@ -5,8 +5,7 @@ import numpy as np
 
 from aesara import config, printing
 from aesara import scalar as aes
-from aesara.gradient import DisconnectedType
-from aesara.gradient import grad_undefined
+from aesara.gradient import grad_undefined, grad_not_implemented
 from aesara.graph.basic import Apply, Variable
 from aesara.graph.op import Op
 from aesara.link.c.op import COp
@@ -398,7 +397,7 @@ class Argmax(COp):
         transposed_x = np.transpose(x, np.concatenate((keep_axes, axes)))
         kept_shape = transposed_x.shape[: len(keep_axes)]
         reduced_shape = transposed_x.shape[len(keep_axes) :]
-        new_shape = kept_shape + (np.prod(reduced_shape),)
+        new_shape = kept_shape + (np.prod(reduced_shape, dtype="int64"),)
         reshaped_x = transposed_x.reshape(new_shape)
 
         max_idx[0] = _asarray(np.argmax(reshaped_x, axis=-1), dtype="int64")
@@ -408,11 +407,11 @@ class Argmax(COp):
         (argmax,) = out
         fail = sub["fail"]
         params = sub["params"]
-        if self.axis is None:
+        if self.axis is None or len(self.axis) == 0:
             axis_code = "axis = NPY_MAXDIMS;"
         else:
             if len(self.axis) > 1:
-                raise NotImplementedError()
+                return grad_not_implemented(self, 0, x)
             # params is only used here for now
             axis_code = (
                 """
@@ -453,7 +452,7 @@ class Argmax(COp):
         return ret % locals()
 
     def c_code_cache_version(self):
-        return (1,)
+        return (-1,)
 
     def infer_shape(self, fgraph, node, shapes):
         (ishape,) = shapes
@@ -677,7 +676,7 @@ class Max(COp):
             axis_code = "axis = NPY_MAXDIMS;"
         else:
             if len(self.axis) > 1:
-                raise NotImplementedError()
+                return grad_not_implemented(self, 0, x)
             # params is only used here for now
             axis_code = (
                 """
@@ -850,7 +849,11 @@ def argmax(x, axis=None, keepdims=False):
         will broadcast correctly against the original tensor.
 
     """
-    argout = max_and_argmax(x, axis)[1]
+    x = as_tensor_variable(x)
+    axis = check_and_normalize_axes(x, axis)
+    if len(axis) == 0:
+        axis = list(range(x.type.ndim))
+    argout = Argmax(axis)(x)
 
     if keepdims:
         argout = makeKeepDims(x, argout, axis)
