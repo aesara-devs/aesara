@@ -27,6 +27,7 @@ from aesara.tensor.type import (
     discrete_dtypes,
     matrix,
     scalar,
+    tensor,
     vector,
     vectors,
 )
@@ -177,6 +178,11 @@ class TestDimShuffle(unittest_tools.InferShapeTester):
 
         tracemalloc.stop()
         assert np.allclose(np.mean(block_diffs), 0)
+
+    def test_static_shape(self):
+        x = tensor(np.float64, shape=(1, 2), name="x")
+        y = x.dimshuffle([0, 1, "x"])
+        assert y.type.shape == (1, 2, 1)
 
 
 class TestBroadcast:

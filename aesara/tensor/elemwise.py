@@ -202,14 +202,14 @@ class DimShuffle(ExternalCOp):
                 # else, expected == b or expected is False and b is True
                 # Both case are good.
 
-        ob = []
-        for value in self.new_order:
-            if value == "x":
-                ob.append(True)
+        out_static_shape = []
+        for dim_idx in self.new_order:
+            if dim_idx == "x":
+                out_static_shape.append(1)
             else:
-                ob.append(ib[value])
+                out_static_shape.append(input.type.shape[dim_idx])
 
-        output = TensorType(dtype=input.type.dtype, shape=ob)()
+        output = TensorType(dtype=input.type.dtype, shape=out_static_shape)()
 
         return Apply(self, [input], [output])
 
