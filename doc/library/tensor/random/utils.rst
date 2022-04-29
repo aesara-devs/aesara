@@ -12,16 +12,20 @@
 Guide
 =====
 
-Since Aesara uses a functional design, producing pseudo-random numbers in a
-graph is not quite as straightforward as it is in numpy.
+Aesara assignes NumPy RNG states (e.g. `Generator` or `RandomState` objects) to
+each `RandomVariable`.  The combination of an RNG state, a specific
+`RandomVariable` type (e.g. `NormalRV`), and a set of distribution parameters
+uniquely defines the `RandomVariable` instances in a graph.
 
-The way to think about putting randomness into Aesara's computations is to
-put random variables in your graph.  Aesara will allocate a numpy RandomState
-object for each such variable, and draw from it as necessary.  We will call this sort of sequence of
-random numbers a *random stream*.
+This means that a "stream" of distinct RNG states is required in order to
+produce distinct random variables of the same kind.  `RandomStream` provides a
+means of generating distinct random variables in a fully reproducible way.
 
-For an example of how to use random numbers, see
-:ref:`Using Random Numbers <using_random_numbers>`.
+`RandomStream` is also designed to produce simpler graphs and work with more
+sophisticated `Op`\s like `Scan`, which makes it the de facto random variable
+interface in Aesara.
+
+For an example of how to use random numbers, see :ref:`Using Random Numbers <using_random_numbers>`.
 
 
 Reference
@@ -29,7 +33,7 @@ Reference
 
 .. class:: RandomStream()
 
-    This is a symbolic stand-in for ``numpy.random.RandomState``.
+    This is a symbolic stand-in for `numpy.random.Generator`.
 
     .. method:: updates()
 
@@ -37,7 +41,8 @@ Reference
           random variables created by this object
 
         This can be a convenient shortcut to enumerating all the random
-        variables in a large graph in the ``update`` parameter of function.
+        variables in a large graph in the ``update`` argument to
+        `aesara.function`.
 
     .. method:: seed(meta_seed)
 
@@ -49,9 +54,7 @@ Reference
 
     .. method:: gen(op, *args, **kwargs)
 
-        Return the random variable from `op(*args, **kwargs)`, but
-        also install special attributes (``.rng`` and ``update``, see
-        :class:`RandomVariable` ) into it.
+        Return the random variable from ``op(*args, **kwargs)``.
 
         This function also adds the returned variable to an internal list so
         that it can be seeded later by a call to `seed`.
