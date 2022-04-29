@@ -251,20 +251,19 @@ class RandomStream:
 
         # Generate a new random state
         seed = int(self.gen_seedgen.integers(2**30))
-        random_state_variable = shared(self.rng_ctor(seed))
-
-        # Distinguish it from other shared variables (why?)
-        random_state_variable.tag.is_rng = True
+        rng = shared(self.rng_ctor(seed), borrow=True)
 
         # Generate the sample
-        out = op(*args, **kwargs, rng=random_state_variable)
-        out.rng = random_state_variable
+        out = op(*args, **kwargs, rng=rng)
 
-        # Update the tracked states
-        new_r = out.owner.outputs[0]
-        out.update = (random_state_variable, new_r)
-        self.state_updates.append(out.update)
+        # This is the value that should be used to replace the old state
+        # (i.e. `rng`) after `out` is sampled/evaluated.
+        # The updates mechanism in `aesara.function` is supposed to perform
+        # this replace action.
+        new_rng = out.owner.outputs[0]
 
-        random_state_variable.default_update = new_r
+        self.state_updates.append((rng, new_rng))
+
+        rng.default_update = new_rng
 
         return out

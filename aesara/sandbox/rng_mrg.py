@@ -926,8 +926,6 @@ class MRG_RandomStream:
             size=size,
             nstreams=orig_nstreams,
         )
-        # Add a reference to distinguish from other shared variables
-        node_rstate.tag.is_rng = True
         r = u * (high - low) + low
 
         if u.type.broadcastable != r.type.broadcastable:
