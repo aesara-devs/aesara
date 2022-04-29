@@ -888,8 +888,9 @@ class TestScan:
         )
         my_f = function([], values, updates=updates, allow_input_downcast=True)
 
-        rng_seed = np.random.default_rng(utt.fetch_seed()).integers(2**30)
-        rng = np.random.default_rng(int(rng_seed))  # int() is for 32bit
+        rng_seed = np.random.SeedSequence(utt.fetch_seed())
+        (rng_seed,) = rng_seed.spawn(1)
+        rng = aesara_rng.rng_ctor(rng_seed)
 
         numpy_v = np.zeros((10, 2))
         for i in range(10):
@@ -2698,12 +2699,10 @@ class TestExamples:
             [vsample], aesara_vsamples[-1], updates=updates, allow_input_downcast=True
         )
 
-        _rng = np.random.default_rng(utt.fetch_seed())
-        rng_seed = _rng.integers(2**30)
-        nrng1 = np.random.default_rng(int(rng_seed))  # int() is for 32bit
-
-        rng_seed = _rng.integers(2**30)
-        nrng2 = np.random.default_rng(int(rng_seed))  # int() is for 32bit
+        rng_seed = np.random.SeedSequence(utt.fetch_seed())
+        (rng_seed_1, rng_seed_2) = rng_seed.spawn(2)
+        nrng1 = trng.rng_ctor(rng_seed_1)
+        nrng2 = trng.rng_ctor(rng_seed_2)
 
         def numpy_implementation(vsample):
             for idx in range(10):

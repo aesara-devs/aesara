@@ -507,7 +507,7 @@ def test_normal0():
 
         sys.stdout.flush()
 
-        RR = RandomStream(234)
+        RR = RandomStream(235)
 
         nn = RR.normal(avg, std, size=size)
         ff = function(var_input, nn)
