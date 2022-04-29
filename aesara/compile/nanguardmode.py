@@ -30,12 +30,13 @@ def _is_numeric_value(arr, var):
 
     """
     from aesara.link.c.type import _cdata_type
+    from aesara.tensor.random.type import RandomType
 
     if isinstance(arr, _cdata_type):
         return False
     elif isinstance(arr, (np.random.mtrand.RandomState, np.random.Generator)):
         return False
-    elif var and getattr(var.tag, "is_rng", False):
+    elif var and isinstance(var.type, RandomType):
         return False
     elif isinstance(arr, slice):
         return False
