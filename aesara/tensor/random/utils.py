@@ -1,9 +1,11 @@
 from collections.abc import Sequence
 from functools import wraps
 from itertools import zip_longest
-from typing import Optional, Union
+from types import ModuleType
+from typing import TYPE_CHECKING, Optional, Union
 
 import numpy as np
+from typing_extensions import Literal
 
 from aesara.compile.sharedvalue import shared
 from aesara.graph.basic import Constant, Variable
@@ -13,6 +15,11 @@ from aesara.tensor.extra_ops import broadcast_to
 from aesara.tensor.math import maximum
 from aesara.tensor.shape import specify_shape
 from aesara.tensor.type import int_dtypes
+from aesara.tensor.var import TensorVariable
+
+
+if TYPE_CHECKING:
+    from aesara.tensor.random.op import RandomVariable
 
 
 def params_broadcast_shapes(param_shapes, ndims_params, use_aesara=True):
@@ -161,7 +168,14 @@ class RandomStream:
 
     """
 
-    def __init__(self, seed=None, namespace=None, rng_ctor=np.random.default_rng):
+    def __init__(
+        self,
+        seed: Optional[int] = None,
+        namespace: Optional[ModuleType] = None,
+        rng_ctor: Literal[
+            np.random.RandomState, np.random.Generator
+        ] = np.random.default_rng,
+    ):
         if namespace is None:
             from aesara.tensor.random import basic  # pylint: disable=import-self
 
@@ -171,7 +185,14 @@ class RandomStream:
 
         self.default_instance_seed = seed
         self.state_updates = []
-        self.gen_seedgen = np.random.default_rng(seed)
+        self.gen_seedgen = np.random.SeedSequence(seed)
+
+        if isinstance(rng_ctor, type) and issubclass(rng_ctor, np.random.RandomState):
+
+            # The legacy state does not accept `SeedSequence`s directly
+            def rng_ctor(seed):
+                return np.random.RandomState(np.random.MT19937(seed))
+
         self.rng_ctor = rng_ctor
 
     def __getattr__(self, obj):
@@ -206,7 +227,7 @@ class RandomStream:
 
         Parameters
         ----------
-        seed : None or integer in range 0 to 2**30
+        seed : None or integer
             Each random stream will be assigned a unique state that depends
             deterministically on this value.
 
@@ -218,18 +239,18 @@ class RandomStream:
         if seed is None:
             seed = self.default_instance_seed
 
-        self.gen_seedgen = np.random.default_rng(seed)
+        self.gen_seedgen = np.random.SeedSequence(seed)
+        old_r_seeds = self.gen_seedgen.spawn(len(self.state_updates))
 
-        for old_r, new_r in self.state_updates:
-            old_r_seed = self.gen_seedgen.integers(2**30)
-            old_r.set_value(self.rng_ctor(int(old_r_seed)), borrow=True)
+        for (old_r, new_r), old_r_seed in zip(self.state_updates, old_r_seeds):
+            old_r.set_value(self.rng_ctor(old_r_seed), borrow=True)
 
-    def gen(self, op, *args, **kwargs):
-        """Create a new random stream in this container.
+    def gen(self, op: "RandomVariable", *args, **kwargs) -> TensorVariable:
+        r"""Generate a draw from `op` seeded from this `RandomStream`.
 
         Parameters
         ----------
-        op : RandomVariable
+        op
             A `RandomVariable` instance
         args
             Positional arguments passed to `op`.
@@ -238,10 +259,8 @@ class RandomStream:
 
         Returns
         -------
-        TensorVariable
-            The symbolic random draw part of op()'s return value.
-            This function stores the updated `RandomGeneratorType` variable
-            for use at `build` time.
+        The symbolic random draw performed by `op`.  This function stores
+        the updated `RandomType`\s for use at compile time.
 
         """
         if "rng" in kwargs:
@@ -250,7 +269,7 @@ class RandomStream:
             )
 
         # Generate a new random state
-        seed = int(self.gen_seedgen.integers(2**30))
+        (seed,) = self.gen_seedgen.spawn(1)
         rng = shared(self.rng_ctor(seed), borrow=True)
 
         # Generate the sample

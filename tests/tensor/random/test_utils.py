@@ -119,8 +119,9 @@ class TestSharedRandomStream:
         fn_val0 = fn()
         fn_val1 = fn()
 
-        rng_seed = np.random.default_rng(utt.fetch_seed()).integers(2**30)
-        rng = rng_ctor(int(rng_seed))  # int() is for 32bit
+        rng_seed = np.random.SeedSequence(utt.fetch_seed())
+        (rng_seed,) = rng_seed.spawn(1)
+        rng = random.rng_ctor(rng_seed)
 
         numpy_val0 = rng.uniform(0, 1, size=(2, 2))
         numpy_val1 = rng.uniform(0, 1, size=(2, 2))
@@ -133,26 +134,18 @@ class TestSharedRandomStream:
         init_seed = 234
         random = RandomStream(init_seed, rng_ctor=rng_ctor)
 
-        ref_state = np.random.default_rng(init_seed).__getstate__()
-        random_state = random.gen_seedgen.__getstate__()
         assert random.default_instance_seed == init_seed
-        assert random_state["bit_generator"] == ref_state["bit_generator"]
-        assert random_state["state"] == ref_state["state"]
 
         new_seed = 43298
         random.seed(new_seed)
 
-        ref_state = np.random.default_rng(new_seed).__getstate__()
-        random_state = random.gen_seedgen.__getstate__()
-        assert random_state["bit_generator"] == ref_state["bit_generator"]
-        assert random_state["state"] == ref_state["state"]
+        rng_seed = np.random.SeedSequence(new_seed)
+        assert random.gen_seedgen.entropy == rng_seed.entropy
 
         random.seed()
-        ref_state = np.random.default_rng(init_seed).__getstate__()
-        random_state = random.gen_seedgen.__getstate__()
-        assert random.default_instance_seed == init_seed
-        assert random_state["bit_generator"] == ref_state["bit_generator"]
-        assert random_state["state"] == ref_state["state"]
+
+        rng_seed = np.random.SeedSequence(init_seed)
+        assert random.gen_seedgen.entropy == rng_seed.entropy
 
         # Reset the seed
         random.seed(new_seed)
@@ -163,8 +156,9 @@ class TestSharedRandomStream:
         # Now, change the seed when there are state updates
         random.seed(new_seed)
 
-        update_seed = np.random.default_rng(new_seed).integers(2**30)
-        ref_rng = rng_ctor(update_seed)
+        update_seed = np.random.SeedSequence(new_seed)
+        (update_seed,) = update_seed.spawn(1)
+        ref_rng = random.rng_ctor(update_seed)
         state_rng = random.state_updates[0][0].get_value(borrow=True)
 
         if hasattr(state_rng, "get_state"):
@@ -188,8 +182,10 @@ class TestSharedRandomStream:
         fn_val0 = fn()
         fn_val1 = fn()
 
-        rng_seed = np.random.default_rng(utt.fetch_seed()).integers(2**30)
-        rng = rng_ctor(int(rng_seed))  # int() is for 32bit
+        rng_seed = np.random.SeedSequence(utt.fetch_seed())
+        (rng_seed,) = rng_seed.spawn(1)
+
+        rng = random.rng_ctor(rng_seed)
         numpy_val0 = rng.uniform(-1, 1, size=(2, 2))
         numpy_val1 = rng.uniform(-1, 1, size=(2, 2))
 
