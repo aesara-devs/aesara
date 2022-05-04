@@ -11,7 +11,7 @@ import sys
 from abc import ABC, abstractmethod
 from contextlib import contextmanager
 from copy import copy
-from functools import reduce
+from functools import reduce, singledispatch
 from io import IOBase, StringIO
 from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
@@ -83,6 +83,26 @@ def char_from_number(number):
     return rval
 
 
+@singledispatch
+def op_debug_information(op: Op, node: Apply) -> Dict[Apply, Dict[Variable, str]]:
+    """Provide extra debug print information based on the type of `Op` and `Apply` node.
+
+    Implementations of this dispatch function should return a ``dict`` keyed by
+    the `Apply` node, `node`, associated with the given `op`.  The value
+    associated with the `node` is another ``dict`` mapping `Variable` inputs
+    and/or outputs of `node` to their debug information.
+
+    The `node` key allows the information in the ``dict``'s values to be
+    specific to the given `node`, so that--for instance--the provided debug
+    information is only ever printed/associated with a given `Variable`
+    input/output when that `Variable` is displayed as an input/output of `node`
+    and not in every/any other place where said `Variable` is present in a
+    graph.
+
+    """
+    return {}
+
+
 def debugprint(
     obj: Union[
         Union[Variable, Apply, Function], List[Union[Variable, Apply, Function]]
@@ -95,8 +115,9 @@ def debugprint(
     done: Optional[Dict[Apply, str]] = None,
     print_storage: bool = False,
     used_ids: Optional[Dict[Variable, str]] = None,
+    print_op_info: bool = False,
 ) -> Union[str, IOBase]:
-    """Print a computation graph as text to stdout or a file.
+    r"""Print a computation graph as text to stdout or a file.
 
     Each line printed represents a Variable in the graph.
     The indentation of lines corresponds to its depth in the symbolic graph.
@@ -145,6 +166,9 @@ def debugprint(
         function, the output will show the intermediate results.
     used_ids
         A map between nodes and their printed ids.
+    print_op_info
+        Print extra information provided by the relevant `Op`\s.  For example,
+        print the tap information for `Scan` inputs and outputs.
 
     Returns
     -------
@@ -236,9 +260,15 @@ N.B.:
             file=_file,
         )
 
+    op_information = {}
+
     for r, p, s, o in zip(results_to_print, profile_list, smap, order):
-        if hasattr(r.owner, "op") and isinstance(r.owner.op, HasInnerGraph):
-            inner_graph_ops.append(r)
+
+        if hasattr(r.owner, "op"):
+            if isinstance(r.owner.op, HasInnerGraph):
+                inner_graph_ops.append(r)
+            if print_op_info:
+                op_information.update(op_debug_information(r.owner.op, r.owner))
 
         _debugprint(
             r,
@@ -253,6 +283,9 @@ N.B.:
             profile=p,
             smap=s,
             used_ids=used_ids,
+            op_information=op_information,
+            parent_node=r.owner,
+            print_op_info=print_op_info,
         )
 
     if len(inner_graph_ops) > 0:
@@ -288,6 +321,9 @@ N.B.:
             else:
                 inner_to_outer_inputs = None
 
+            if print_op_info:
+                op_information.update(op_debug_information(s.owner.op, s.owner))
+
             print("", file=_file)
 
             _debugprint(
@@ -301,6 +337,9 @@ N.B.:
                 stop_on_name=stop_on_name,
                 inner_to_outer_inputs=inner_to_outer_inputs,
                 used_ids=used_ids,
+                op_information=op_information,
+                parent_node=s.owner,
+                print_op_info=print_op_info,
             )
 
             for idx, i in enumerate(inner_outputs):
@@ -321,6 +360,9 @@ N.B.:
                     inner_graph_ops=inner_graph_ops,
                     inner_to_outer_inputs=inner_to_outer_inputs,
                     used_ids=used_ids,
+                    op_information=op_information,
+                    parent_node=s.owner,
+                    print_op_info=print_op_info,
                 )
 
     if file is _file:
@@ -350,6 +392,9 @@ def _debugprint(
     inner_to_outer_inputs: Optional[Dict[Variable, Variable]] = None,
     smap: Optional[StorageMapType] = None,
     used_ids: Optional[Dict[Variable, str]] = None,
+    op_information: Optional[Dict[Apply, Dict[Variable, str]]] = None,
+    parent_node: Optional[Apply] = None,
+    print_op_info: bool = False,
 ) -> IOBase:
     r"""Print the graph leading to `r`.
 
@@ -395,6 +440,13 @@ def _debugprint(
         A map between nodes and their printed ids.
         It wasn't always printed, but at least a reference to it was printed.
         Internal. Used to pass information when recursing.
+    op_information
+        Extra `Op`-level information to be added to variable print-outs.
+    parent_node
+        The parent node of `r`.
+    print_op_info
+        Print extra information provided by the relevant `Op`\s.  For example,
+        print the tap information for `Scan` inputs and outputs.
     """
     if depth == 0:
         return file
@@ -419,6 +471,9 @@ def _debugprint(
     if used_ids is None:
         used_ids = dict()
 
+    if op_information is None:
+        op_information = {}
+
     def get_id_str(obj, get_printed=True) -> str:
         id_str: str = ""
         if obj in used_ids:
@@ -441,15 +496,16 @@ def _debugprint(
         return id_str
 
     if hasattr(r.owner, "op"):
-        # this variable is the output of computation,
-        # so just print out the apply
+        # This variable is the output of a computation, so just print out the
+        # `Apply` node
         a = r.owner
 
         r_name = getattr(r, "name", "")
-        # normally if the name isn't set, it'll be None, so
-        # r_name is None here
+
         if r_name is None:
             r_name = ""
+        if r_name:
+            r_name = f" '{r_name}'"
 
         if print_destroy_map:
             destroy_map_str = str(r.owner.op.destroy_map)
@@ -460,31 +516,45 @@ def _debugprint(
             view_map_str = str(r.owner.op.view_map)
         else:
             view_map_str = ""
+
         if destroy_map_str and destroy_map_str != "{}":
-            destroy_map_str = "d=" + destroy_map_str
+            destroy_map_str = f" d={destroy_map_str} "
+
         if view_map_str and view_map_str != "{}":
-            view_map_str = "v=" + view_map_str
+            view_map_str = f" v={view_map_str} "
 
-        o = ""
         if order:
-            o = str(order.index(r.owner))
+            o = f" {order.index(r.owner)}"
+        else:
+            o = ""
 
-        already_printed = a in done  # get_id_str put it in the dict
+        already_done = a in done
         id_str = get_id_str(a)
 
         if len(a.outputs) == 1:
             idx = ""
         else:
             idx = f".{a.outputs.index(r)}"
-        data = ""
-        if smap:
-            data = " " + str(smap.get(a.outputs[0], ""))
-        clients = ""
+
+        if id_str:
+            id_str = f" {id_str}"
+
+        if smap and a.outputs[0] in smap:
+            data = f" {smap[a.outputs[0]]}"
+        else:
+            data = ""
+
+        var_output = f"{prefix}{a.op}{idx}{id_str}{type_str}{r_name}{destroy_map_str}{view_map_str}{o}{data}"
+
+        if print_op_info and r.owner not in op_information:
+            op_information.update(op_debug_information(r.owner.op, r.owner))
+
+        node_info = op_information.get(parent_node) or op_information.get(r.owner)
+        if node_info and r in node_info:
+            var_output = f"{var_output} ({node_info[r]})"
+
         if profile is None or a not in profile.apply_time:
-            print(
-                f"{prefix}{a.op}{idx} {id_str}{type_str} '{r_name}' {destroy_map_str} {view_map_str} {o}{data}{clients}",
-                file=file,
-            )
+            print(var_output, file=file)
         else:
             op_time = profile.apply_time[a]
             op_time_percent = (op_time / profile.fct_call_time) * 100
@@ -492,25 +562,10 @@ def _debugprint(
             tot_time = tot_time_dict[a]
             tot_time_percent = (tot_time_dict[a] / profile.fct_call_time) * 100
 
-            if len(a.outputs) == 1:
-                idx = ""
-            else:
-                idx = f".{a.outputs.index(r)}"
             print(
-                "%s%s%s %s%s '%s' %s %s %s%s%s --> "
-                "%8.2es %4.1f%% %8.2es %4.1f%%"
+                "%s --> %8.2es %4.1f%% %8.2es %4.1f%%"
                 % (
-                    prefix,
-                    a.op,
-                    idx,
-                    id_str,
-                    type_str,
-                    r_name,
-                    destroy_map_str,
-                    view_map_str,
-                    o,
-                    data,
-                    clients,
+                    var_output,
                     op_time,
                     op_time_percent,
                     tot_time,
@@ -519,40 +574,59 @@ def _debugprint(
                 file=file,
             )
 
-        if not already_printed:
-            if not stop_on_name or not (hasattr(r, "name") and r.name is not None):
-                new_prefix = prefix_child + " |"
-                new_prefix_child = prefix_child + " |"
+        if not already_done and (
+            not stop_on_name or not (hasattr(r, "name") and r.name is not None)
+        ):
+            new_prefix = prefix_child + " |"
+            new_prefix_child = prefix_child + " |"
 
-                for idx, i in enumerate(a.inputs):
-                    if idx == len(a.inputs) - 1:
-                        new_prefix_child = prefix_child + "  "
+            for idx, i in enumerate(a.inputs):
+                if idx == len(a.inputs) - 1:
+                    new_prefix_child = prefix_child + "  "
 
-                    if hasattr(i, "owner") and hasattr(i.owner, "op"):
-                        if isinstance(i.owner.op, HasInnerGraph):
-                            inner_graph_ops.append(i)
+                if hasattr(i, "owner") and hasattr(i.owner, "op"):
+                    if isinstance(i.owner.op, HasInnerGraph):
+                        inner_graph_ops.append(i)
 
-                    _debugprint(
-                        i,
-                        new_prefix,
-                        depth=depth - 1,
-                        done=done,
-                        print_type=print_type,
-                        file=file,
-                        order=order,
-                        ids=ids,
-                        stop_on_name=stop_on_name,
-                        prefix_child=new_prefix_child,
-                        inner_graph_ops=inner_graph_ops,
-                        profile=profile,
-                        inner_to_outer_inputs=inner_to_outer_inputs,
-                        smap=smap,
-                        used_ids=used_ids,
-                    )
+                _debugprint(
+                    i,
+                    new_prefix,
+                    depth=depth - 1,
+                    done=done,
+                    print_type=print_type,
+                    file=file,
+                    order=order,
+                    ids=ids,
+                    stop_on_name=stop_on_name,
+                    prefix_child=new_prefix_child,
+                    inner_graph_ops=inner_graph_ops,
+                    profile=profile,
+                    inner_to_outer_inputs=inner_to_outer_inputs,
+                    smap=smap,
+                    used_ids=used_ids,
+                    op_information=op_information,
+                    parent_node=a,
+                    print_op_info=print_op_info,
+                )
     else:
+
+        id_str = get_id_str(r)
+
+        if id_str:
+            id_str = f" {id_str}"
+
+        if smap and r in smap:
+            data = f" {smap[r]}"
+        else:
+            data = ""
+
+        var_output = f"{prefix}{r}{id_str}{type_str}{data}"
+
+        if print_op_info and r.owner and r.owner not in op_information:
+            op_information.update(op_debug_information(r.owner.op, r.owner))
+
         if inner_to_outer_inputs is not None and r in inner_to_outer_inputs:
 
-            id_str = get_id_str(r)
             outer_r = inner_to_outer_inputs[r]
 
             if outer_r.owner:
@@ -560,17 +634,22 @@ def _debugprint(
             else:
                 outer_id_str = get_id_str(outer_r)
 
-            print(
-                f"{prefix}{r} {id_str}{type_str} -> {outer_id_str}",
-                file=file,
-            )
-        else:
-            # this is an input variable
-            data = ""
-            if smap:
-                data = " " + str(smap.get(r, ""))
-            id_str = get_id_str(r)
-            print(f"{prefix}{r} {id_str}{type_str}{data}", file=file)
+            var_output = f"{var_output} -> {outer_id_str}"
+
+            # This is an inner-graph input, so we need to find the outer node
+            # it belongs to and get the extra information from that
+            for inner_graph in inner_graph_ops:
+                if outer_r in inner_graph.owner.inputs:
+                    node_info = op_information.get(inner_graph.owner)
+                    if node_info and r in node_info:
+                        var_output = f"{var_output} ({node_info[r]})"
+                        break
+
+        node_info = op_information.get(parent_node) or op_information.get(r.owner)
+        if node_info and r in node_info:
+            var_output = f"{var_output} ({node_info[r]})"
+
+        print(var_output, file=file)
 
     return file
 

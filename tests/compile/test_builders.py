@@ -544,17 +544,17 @@ def test_debugprint():
     output_str = debugprint(out, file="str")
     lines = output_str.split("\n")
 
-    exp_res = """OpFromGraph{inline=False} [id A] ''
+    exp_res = """OpFromGraph{inline=False} [id A]
  |x [id B]
  |y [id C]
  |z [id D]
 
 Inner graphs:
 
-OpFromGraph{inline=False} [id A] ''
- >Elemwise{add,no_inplace} [id E] ''
+OpFromGraph{inline=False} [id A]
+ >Elemwise{add,no_inplace} [id E]
  > |x [id F]
- > |Elemwise{mul,no_inplace} [id G] ''
+ > |Elemwise{mul,no_inplace} [id G]
  >   |y [id H]
  >   |z [id I]
 """
