@@ -76,6 +76,7 @@ from aesara.graph.utils import MissingInputError
 from aesara.link.c.basic import CLinker
 from aesara.link.c.exceptions import MissingGXX
 from aesara.link.utils import raise_with_op
+from aesara.printing import op_debug_information
 from aesara.scan.utils import ScanProfileStats, Validator, forced_replace, safe_new
 from aesara.tensor.basic import as_tensor_variable
 from aesara.tensor.math import minimum
@@ -3303,3 +3304,44 @@ def profile_printer(
                 ),
                 file=file,
             )
+
+
+@op_debug_information.register(Scan)  # type: ignore
+def _op_debug_information_Scan(op, node):
+    from typing import Sequence
+
+    from aesara.scan.utils import ScanArgs
+
+    extra_information = {}
+
+    inner_fn = getattr(op, "_fn", None)
+
+    if inner_fn:
+        inner_inputs = inner_fn.maker.fgraph.inputs
+        inner_outputs = inner_fn.maker.fgraph.outputs
+    else:
+        inner_inputs = op.inputs
+        inner_outputs = op.outputs
+
+    scan_args = ScanArgs(
+        node.inputs,
+        node.outputs,
+        inner_inputs,
+        inner_outputs,
+        node.op.info,
+        node.op.as_while,
+        clone=False,
+    )
+
+    for field_name in scan_args.field_names:
+        field_vars = getattr(scan_args, field_name)
+        if isinstance(field_vars, Sequence):
+            for i, var in enumerate(field_vars):
+                if isinstance(var, Sequence):
+                    for j, sub_var in enumerate(var):
+                        extra_information[sub_var] = f"{field_name}-{i}-{j}"
+                else:
+                    extra_information[var] = f"{field_name}-{i}"
+        else:
+            extra_information[field_vars] = field_name
+    return {node: extra_information}

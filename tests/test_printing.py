@@ -141,11 +141,11 @@ def test_debugprint():
     reference = (
         "\n".join(
             [
-                "Elemwise{add,no_inplace} [id 0] ''   ",
-                " |Elemwise{add,no_inplace} [id 1] 'C'   ",
+                "Elemwise{add,no_inplace} [id 0]",
+                " |Elemwise{add,no_inplace} [id 1] 'C'",
                 " | |A [id 2]",
                 " | |B [id 3]",
-                " |Elemwise{add,no_inplace} [id 4] ''   ",
+                " |Elemwise{add,no_inplace} [id 4]",
                 "   |D [id 5]",
                 "   |E [id 6]",
             ]
@@ -167,11 +167,11 @@ def test_debugprint():
     reference = (
         "\n".join(
             [
-                "Elemwise{add,no_inplace} [id A] ''   ",
-                " |Elemwise{add,no_inplace} [id B] 'C'   ",
+                "Elemwise{add,no_inplace} [id A]",
+                " |Elemwise{add,no_inplace} [id B] 'C'",
                 " | |A [id C]",
                 " | |B [id D]",
-                " |Elemwise{add,no_inplace} [id E] ''   ",
+                " |Elemwise{add,no_inplace} [id E]",
                 "   |D [id F]",
                 "   |E [id G]",
             ]
@@ -193,9 +193,9 @@ def test_debugprint():
     reference = (
         "\n".join(
             [
-                "Elemwise{add,no_inplace} [id A] ''   ",
-                " |Elemwise{add,no_inplace} [id B] 'C'   ",
-                " |Elemwise{add,no_inplace} [id C] ''   ",
+                "Elemwise{add,no_inplace} [id A]",
+                " |Elemwise{add,no_inplace} [id B] 'C'",
+                " |Elemwise{add,no_inplace} [id C]",
                 "   |D [id D]",
                 "   |E [id E]",
             ]
@@ -217,13 +217,13 @@ def test_debugprint():
     reference = (
         "\n".join(
             [
-                "Elemwise{add,no_inplace}  ''   ",
-                " |Elemwise{add,no_inplace}  'C'   ",
-                " | |A ",
-                " | |B ",
-                " |Elemwise{add,no_inplace}  ''   ",
-                "   |D ",
-                "   |E ",
+                "Elemwise{add,no_inplace}",
+                " |Elemwise{add,no_inplace} 'C'",
+                " | |A",
+                " | |B",
+                " |Elemwise{add,no_inplace}",
+                "   |D",
+                "   |E",
             ]
         )
         + "\n"
@@ -238,15 +238,14 @@ def test_debugprint():
     s = StringIO()
     debugprint(g, file=s, ids="", print_storage=True)
     s = s.getvalue()
-    # The additional white space are needed!
     reference = (
         "\n".join(
             [
-                "Elemwise{add,no_inplace}  ''   0 [None]",
-                " |A  [None]",
-                " |B  [None]",
-                " |D  [None]",
-                " |E  [None]",
+                "Elemwise{add,no_inplace} 0 [None]",
+                " |A [None]",
+                " |B [None]",
+                " |D [None]",
+                " |E [None]",
             ]
         )
         + "\n"
@@ -269,8 +268,8 @@ def test_debugprint_ids():
     debugprint(e_at, ids="auto", file=s)
     s = s.getvalue()
 
-    exp_res = f"""Elemwise{{add,no_inplace}} [id {e_at.auto_name}] ''
- |dot [id {d_at.auto_name}] ''
+    exp_res = f"""Elemwise{{add,no_inplace}} [id {e_at.auto_name}]
+ |dot [id {d_at.auto_name}]
  | |<TensorType(float64, (None, None))> [id {b_at.auto_name}]
  | |<TensorType(float64, (None,))> [id {a_at.auto_name}]
  |<TensorType(float64, (None,))> [id {a_at.auto_name}]
@@ -306,13 +305,13 @@ def test_debugprint_inner_graph():
     output_str = debugprint(out, file="str")
     lines = output_str.split("\n")
 
-    exp_res = """MyInnerGraphOp [id A] ''
+    exp_res = """MyInnerGraphOp [id A]
  |3 [id B]
  |4 [id C]
 
 Inner graphs:
 
-MyInnerGraphOp [id A] ''
+MyInnerGraphOp [id A]
  >op2 [id D] 'igo1'
  > |4 [id E]
  > |5 [id F]
@@ -330,17 +329,17 @@ MyInnerGraphOp [id A] ''
     output_str = debugprint(out_2, file="str")
     lines = output_str.split("\n")
 
-    exp_res = """MyInnerGraphOp [id A] ''
+    exp_res = """MyInnerGraphOp [id A]
  |5 [id B]
 
 Inner graphs:
 
-MyInnerGraphOp [id A] ''
- >MyInnerGraphOp [id C] ''
+MyInnerGraphOp [id A]
+ >MyInnerGraphOp [id C]
  > |3 [id D]
  > |4 [id E]
 
-MyInnerGraphOp [id C] ''
+MyInnerGraphOp [id C]
  >op2 [id F] 'igo1'
  > |4 [id G]
  > |5 [id H]
@@ -371,13 +370,13 @@ def test_get_var_by_id():
     # op1 [id A] 'o1'
     #  |1 [id B]
     #  |2 [id C]
-    # MyInnerGraphOp [id D] ''
+    # MyInnerGraphOp [id D]
     #  |3 [id E]
     #  |op1 [id A] 'o1'
     #
     # Inner graphs:
     #
-    # MyInnerGraphOp [id D] ''
+    # MyInnerGraphOp [id D]
     #  >op2 [id F] 'igo1'
     #  > |4 [id G]
     #  > |5 [id H]
