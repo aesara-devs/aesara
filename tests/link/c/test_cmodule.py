@@ -5,6 +5,7 @@ But this one tests a current behavior that isn't good: the c_code isn't
 deterministic based on the input type and the op.
 """
 import logging
+import os
 import tempfile
 from unittest.mock import patch
 
@@ -91,3 +92,50 @@ def test_default_blas_ldflags(sys_mock, try_blas_flag_mock, caplog):
             default_blas_ldflags()
 
     assert caplog.text == ""
+
+
+@patch(
+    "os.listdir", return_value=["mkl_core.1.dll", "mkl_rt.1.0.dll", "mkl_rt.1.1.lib"]
+)
+@patch("sys.platform", "win32")
+def test_patch_ldflags(listdir_mock):
+    mkl_path = "some_path"
+    flag_list = ["-lm", "-lopenblas", f"-L {mkl_path}", "-l mkl_core", "-lmkl_rt"]
+    assert GCC_compiler.patch_ldflags(flag_list) == [
+        "-lm",
+        "-lopenblas",
+        f"-L {mkl_path}",
+        '"' + os.path.join(mkl_path, "mkl_core.1.dll") + '"',
+        '"' + os.path.join(mkl_path, "mkl_rt.1.0.dll") + '"',
+    ]
+
+
+@patch(
+    "os.listdir",
+    return_value=[
+        "libopenblas.so",
+        "libm.a",
+        "mkl_core.1.dll",
+        "mkl_rt.1.0.dll",
+        "mkl_rt.1.1.dll",
+    ],
+)
+@pytest.mark.parametrize("platform", ["win32", "linux", "darwin"])
+def test_linking_patch(listdir_mock, platform):
+    libs = ["openblas", "m", "mkl_core", "mkl_rt"]
+    lib_dirs = ['"mock_dir"']
+    with patch("sys.platform", platform):
+        if platform == "win32":
+            assert GCC_compiler.linking_patch(lib_dirs, libs) == [
+                "-lopenblas",
+                "-lm",
+                '"' + os.path.join(lib_dirs[0].strip('"'), "mkl_core.1.dll") + '"',
+                '"' + os.path.join(lib_dirs[0].strip('"'), "mkl_rt.1.1.dll") + '"',
+            ]
+        else:
+            GCC_compiler.linking_patch(lib_dirs, libs) == [
+                "-lopenblas",
+                "-lm",
+                "-lmkl_core",
+                "-lmkl_rt",
+            ]

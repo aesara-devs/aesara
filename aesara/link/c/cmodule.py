@@ -14,6 +14,7 @@ import shutil
 import stat
 import subprocess
 import sys
+import sysconfig
 import tempfile
 import textwrap
 import time
@@ -1678,7 +1679,7 @@ def std_lib_dirs_and_libs() -> Optional[Tuple[List[str], ...]]:
         # Obtain the library name from the Python version instead of the
         # installation directory, in case the user defined a custom
         # installation directory.
-        python_version = distutils.sysconfig.get_python_version()
+        python_version = sysconfig.get_python_version()
         libname = "python" + python_version.replace(".", "")
         # Also add directory containing the Python library to the library
         # directories.
@@ -2381,7 +2382,13 @@ class GCC_compiler(Compiler):
         comp_args=True,
     ):
         return cls._try_compile_tmp(
-            src_code, tmp_prefix, flags, try_run, output, config.cxx, comp_args
+            src_code,
+            tmp_prefix,
+            cls.patch_ldflags(flags),
+            try_run,
+            output,
+            config.cxx,
+            comp_args,
         )
 
     @classmethod
@@ -2395,8 +2402,57 @@ class GCC_compiler(Compiler):
         comp_args=True,
     ):
         return cls._try_flags(
-            flag_list, preamble, body, try_run, output, config.cxx, comp_args
+            cls.patch_ldflags(flag_list),
+            preamble,
+            body,
+            try_run,
+            output,
+            config.cxx,
+            comp_args,
         )
+
+    @staticmethod
+    def patch_ldflags(flag_list: List[str]) -> List[str]:
+        lib_dirs = [flag[2:].lstrip() for flag in flag_list if flag.startswith("-L")]
+        flag_idxs: List[int] = []
+        libs: List[str] = []
+        for i, flag in enumerate(flag_list):
+            if flag.startswith("-l"):
+                flag_idxs.append(i)
+                libs.append(flag[2:].lstrip())
+        if not libs:
+            return flag_list
+        libs = GCC_compiler.linking_patch(lib_dirs, libs)
+        for flag_idx, lib in zip(flag_idxs, libs):
+            flag_list[flag_idx] = lib
+        return flag_list
+
+    @staticmethod
+    def linking_patch(lib_dirs: List[str], libs: List[str]) -> List[str]:
+        if sys.platform != "win32":
+            return [f"-l{l}" for l in libs]
+
+        def sort_key(lib):  # type: ignore
+            name, *numbers, extension = lib.split(".")
+            return (extension == "dll", tuple(map(int, numbers)))
+
+        patched_lib_ldflags = []
+        for lib in libs:
+            ldflag = f"-l{lib}"
+            for lib_dir in lib_dirs:
+                lib_dir = lib_dir.strip('"')
+                windows_styled_libs = [
+                    fname
+                    for fname in os.listdir(lib_dir)
+                    if not (os.path.isdir(os.path.join(lib_dir, fname)))
+                    and fname.split(".")[0] == lib
+                    and fname.split(".")[-1] in ["dll", "lib"]
+                ]
+                if windows_styled_libs:
+                    selected_lib = sorted(windows_styled_libs, key=sort_key)[-1]
+                    ldflag = f'"{os.path.join(lib_dir, selected_lib)}"'
+            patched_lib_ldflags.append(ldflag)
+        return patched_lib_ldflags
 
     @staticmethod
     def compile_str(
@@ -2509,7 +2565,7 @@ class GCC_compiler(Compiler):
             cmd.append("-fvisibility=hidden")
         cmd.extend(["-o", f"{path_wrapper}{lib_filename}{path_wrapper}"])
         cmd.append(f"{path_wrapper}{cppfilename}{path_wrapper}")
-        cmd.extend([f"-l{l}" for l in libs])
+        cmd.extend(GCC_compiler.linking_patch(lib_dirs, libs))
         # print >> sys.stderr, 'COMPILING W CMD', cmd
         _logger.debug(f"Running cmd: {' '.join(cmd)}")
 
