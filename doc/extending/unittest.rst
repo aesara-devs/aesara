@@ -240,22 +240,28 @@ product :class:`Op`:
 
 .. testcode::
 
-    from numpy import dot
-    from numpy.random import rand
+    import numpy as np
 
     from tests.tensor.utils import makeTester
 
-    TestDot = makeTester(name = 'DotTester',
-                         op = dot,
-                         expected = lambda x, y: numpy.dot(x, y),
-                         checks = {},
-                         good = dict(correct1 = (rand(5, 7), rand(7, 5)),
-                                     correct2 = (rand(5, 7), rand(7, 9)),
-                                     correct3 = (rand(5, 7), rand(7))),
-                         bad_build = dict(),
-                         bad_runtime = dict(bad1 = (rand(5, 7), rand(5, 7)),
-                                           bad2 = (rand(5, 7), rand(8,3))),
-                         grad = dict())
+    rng = np.random.default_rng(23098)
+
+    TestDot = makeTester(
+        name="DotTester",
+        op=np.dot,
+        expected=lambda x, y: numpy.dot(x, y),
+        checks={},
+        good=dict(
+            correct1=(rng.rand(5, 7), rng.rand(7, 5)),
+            correct2=(rng.rand(5, 7), rng.rand(7, 9)),
+            correct3=(rng.rand(5, 7), rng.rand(7)),
+        ),
+        bad_build=dict(),
+        bad_runtime=dict(
+            bad1=(rng.rand(5, 7), rng.rand(5, 7)), bad2=(rng.rand(5, 7), rng.rand(8, 3))
+        ),
+        grad=dict(),
+    )
 
 In the above example, we provide a name and a reference to the :class:`Op` we
 want to test. We then provide in the ``expected`` field, a function
