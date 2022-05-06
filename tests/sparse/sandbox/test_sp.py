@@ -184,7 +184,8 @@ class TestSP:
     def test_maxpool(self):
         # generate flatted images
         maxpoolshps = ((2, 2), (3, 3), (4, 4), (5, 5), (6, 6))
-        imval = np.random.random((4, 5, 10, 10))
+        rng = np.random.default_rng(2938)
+        imval = rng.random((4, 5, 10, 10))
 
         images = dmatrix()
         for maxpoolshp in maxpoolshps:
