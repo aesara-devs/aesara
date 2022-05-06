@@ -3,19 +3,6 @@ from itertools import product
 
 import numpy as np
 import pytest
-from numpy import (
-    arange,
-    array,
-    common_type,
-    complex64,
-    complex128,
-    float32,
-    float64,
-    newaxis,
-    shape,
-    transpose,
-    zeros,
-)
 from numpy.testing import assert_array_almost_equal
 
 import aesara
@@ -1505,11 +1492,11 @@ class TestGemv(unittest_tools.OptimizationTestMixin):
 def matrixmultiply(a, b):
     if len(b.shape) == 1:
         b_is_vector = True
-        b = b[:, newaxis]
+        b = b[:, np.newaxis]
     else:
         b_is_vector = False
     assert a.shape[1] == b.shape[0]
-    c = zeros((a.shape[0], b.shape[1]), common_type(a, b))
+    c = np.zeros((a.shape[0], b.shape[1]), np.common_type(a, b))
     for i in range(a.shape[0]):
         for j in range(b.shape[1]):
             s = 0
@@ -1527,14 +1514,14 @@ class BaseGemv:
 
     def get_data(self, x_stride=1, y_stride=1):
         rng = np.random.default_rng(unittest_tools.fetch_seed())
-        mult = array(1, dtype=self.dtype)
-        if self.dtype in [complex64, complex128]:
-            mult = array(1 + 1j, dtype=self.dtype)
-        alpha = array(1.0, dtype=self.dtype) * mult
-        beta = array(1.0, dtype=self.dtype) * mult
+        mult = np.array(1, dtype=self.dtype)
+        if self.dtype in [np.complex64, np.complex128]:
+            mult = np.array(1 + 1j, dtype=self.dtype)
+        alpha = np.array(1.0, dtype=self.dtype) * mult
+        beta = np.array(1.0, dtype=self.dtype) * mult
         a = rng.standard_normal((3, 3)).astype(self.dtype) * mult
-        x = arange(shape(a)[0] * x_stride, dtype=self.dtype) * mult
-        y = arange(shape(a)[1] * y_stride, dtype=self.dtype) * mult
+        x = np.arange(np.shape(a)[0] * x_stride, dtype=self.dtype) * mult
+        y = np.arange(np.shape(a)[1] * y_stride, dtype=self.dtype) * mult
         return alpha, beta, a, x, y
 
     def test_simple(self):
@@ -1578,7 +1565,7 @@ class BaseGemv:
         alpha_v, beta_v, a_v, x_v, y_v = vs
         alpha, beta, a, x, y = [shared(v) for v in vs]
 
-        desired_oy = alpha_v * matrixmultiply(transpose(a_v), x_v) + beta_v * y_v
+        desired_oy = alpha_v * matrixmultiply(np.transpose(a_v), x_v) + beta_v * y_v
 
         oy = alpha * dot(a.T, x) + beta * y
 
@@ -1610,7 +1597,9 @@ class BaseGemv:
         alpha_v, beta_v, a_v, x_v, y_v = vs
         alpha, beta, a, x, y = [shared(v) for v in vs]
 
-        desired_oy = alpha_v * matrixmultiply(transpose(a_v), x_v[::2]) + beta_v * y_v
+        desired_oy = (
+            alpha_v * matrixmultiply(np.transpose(a_v), x_v[::2]) + beta_v * y_v
+        )
 
         oy = alpha * dot(a.T, x[::2]) + beta * y
 
@@ -1642,7 +1631,9 @@ class BaseGemv:
         alpha_v, beta_v, a_v, x_v, y_v = vs
         alpha, beta, a, x, y = [shared(v) for v in vs]
 
-        desired_oy = alpha_v * matrixmultiply(transpose(a_v), x_v) + beta_v * y_v[::2]
+        desired_oy = (
+            alpha_v * matrixmultiply(np.transpose(a_v), x_v) + beta_v * y_v[::2]
+        )
 
         oy = alpha * dot(a.T, x) + beta * y[::2]
 
@@ -1682,7 +1673,7 @@ class BaseGemv:
             a.get_value(borrow=True, return_internal_type=True)[::-1, ::-1], borrow=True
         )
 
-        desired_oy = alpha_v * matrixmultiply(transpose(a_v), x_v) + beta_v * y_v
+        desired_oy = alpha_v * matrixmultiply(np.transpose(a_v), x_v) + beta_v * y_v
 
         oy = alpha * dot(a.T, x) + beta * y
 
@@ -1728,13 +1719,13 @@ class BaseGemv:
 
 
 class TestSgemv(BaseGemv, unittest_tools.OptimizationTestMixin):
-    dtype = float32
+    dtype = np.float32
     gemv = gemv_no_inplace
     gemv_inplace = gemv_inplace
 
 
 class TestDgemv(BaseGemv, unittest_tools.OptimizationTestMixin):
-    dtype = float64
+    dtype = np.float64
     gemv = gemv_no_inplace
     gemv_inplace = gemv_inplace
 
@@ -2269,25 +2260,25 @@ class TestBlasStrides:
                 assert np.allclose(a.get_value(), a_n)
 
                 a_t.set_value(
-                    transpose(a_dev.copy())[::a_step2, ::a_step1], borrow=True
+                    np.transpose(a_dev.copy())[::a_step2, ::a_step1], borrow=True
                 )
                 f_tnn()
                 assert np.allclose(a_t.get_value(), at_n)
 
                 a_t.set_value(
-                    transpose(a_dev.copy())[::a_step2, ::a_step1], borrow=True
+                    np.transpose(a_dev.copy())[::a_step2, ::a_step1], borrow=True
                 )
                 f_tnt()
                 assert np.allclose(a_t.get_value(), at_n)
 
                 a_t.set_value(
-                    transpose(a_dev.copy())[::a_step2, ::a_step1], borrow=True
+                    np.transpose(a_dev.copy())[::a_step2, ::a_step1], borrow=True
                 )
                 f_ttn()
                 assert np.allclose(a_t.get_value(), at_n)
 
                 a_t.set_value(
-                    transpose(a_dev.copy())[::a_step2, ::a_step1], borrow=True
+                    np.transpose(a_dev.copy())[::a_step2, ::a_step1], borrow=True
                 )
                 f_ttt()
                 assert np.allclose(a_t.get_value(), at_n)
@@ -2335,7 +2326,7 @@ class TestBlasStrides:
                 a.set_value(a_dev.copy()[::a_step], borrow=True)
                 b.set_value(b_dev.copy()[::b_step1, ::b_step2], borrow=True)
                 b_t.set_value(
-                    transpose(b_dev.copy())[::b_step2, ::b_step1], borrow=True
+                    np.transpose(b_dev.copy())[::b_step2, ::b_step1], borrow=True
                 )
                 c.set_value(c_dev.copy()[::c_step], borrow=True)
 
@@ -2386,7 +2377,7 @@ class TestBlasStrides:
 
                 a.set_value(a_dev.copy()[::a_step1, ::a_step2], borrow=True)
                 a_t.set_value(
-                    transpose(a_dev.copy())[::a_step1, ::a_step2], borrow=True
+                    np.transpose(a_dev.copy())[::a_step1, ::a_step2], borrow=True
                 )
                 b.set_value(b_dev.copy()[::b_step], borrow=True)
                 c.set_value(c_dev.copy()[::c_step], borrow=True)
