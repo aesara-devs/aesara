@@ -116,6 +116,8 @@ def debugprint(
     print_storage: bool = False,
     used_ids: Optional[Dict[Variable, str]] = None,
     print_op_info: bool = False,
+    print_destroy_map: bool = False,
+    print_view_map: bool = False,
 ) -> Union[str, IOBase]:
     r"""Print a computation graph as text to stdout or a file.
 
@@ -169,6 +171,10 @@ def debugprint(
     print_op_info
         Print extra information provided by the relevant `Op`\s.  For example,
         print the tap information for `Scan` inputs and outputs.
+    print_destroy_map
+        Whether to print the `destroy_map`\s of printed objects
+    print_view_map
+        Whether to print the `view_map`\s of printed objects
 
     Returns
     -------
@@ -286,6 +292,8 @@ N.B.:
             op_information=op_information,
             parent_node=r.owner,
             print_op_info=print_op_info,
+            print_destroy_map=print_destroy_map,
+            print_view_map=print_view_map,
         )
 
     if len(inner_graph_ops) > 0:
@@ -340,6 +348,8 @@ N.B.:
                 op_information=op_information,
                 parent_node=s.owner,
                 print_op_info=print_op_info,
+                print_destroy_map=print_destroy_map,
+                print_view_map=print_view_map,
             )
 
             for idx, i in enumerate(inner_outputs):
@@ -363,6 +373,8 @@ N.B.:
                     op_information=op_information,
                     parent_node=s.owner,
                     print_op_info=print_op_info,
+                    print_destroy_map=print_destroy_map,
+                    print_view_map=print_view_map,
                 )
 
     if file is _file:
@@ -507,21 +519,15 @@ def _debugprint(
         if r_name:
             r_name = f" '{r_name}'"
 
-        if print_destroy_map:
-            destroy_map_str = str(r.owner.op.destroy_map)
+        if print_destroy_map and r.owner.op.destroy_map:
+            destroy_map_str = f" d={r.owner.op.destroy_map}"
         else:
             destroy_map_str = ""
 
-        if print_view_map:
-            view_map_str = str(r.owner.op.view_map)
+        if print_view_map and r.owner.op.view_map:
+            view_map_str = f" v={r.owner.op.view_map}"
         else:
             view_map_str = ""
-
-        if destroy_map_str and destroy_map_str != "{}":
-            destroy_map_str = f" d={destroy_map_str} "
-
-        if view_map_str and view_map_str != "{}":
-            view_map_str = f" v={view_map_str} "
 
         if order:
             o = f" {order.index(r.owner)}"
@@ -607,6 +613,8 @@ def _debugprint(
                     op_information=op_information,
                     parent_node=a,
                     print_op_info=print_op_info,
+                    print_destroy_map=print_destroy_map,
+                    print_view_map=print_view_map,
                 )
     else:
 
