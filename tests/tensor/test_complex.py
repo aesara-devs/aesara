@@ -4,7 +4,8 @@ import pytest
 import aesara
 from aesara.gradient import GradientError
 from aesara.tensor.basic import cast
-from aesara.tensor.math import complex, complex_from_polar, imag, real
+from aesara.tensor.math import complex as at_complex
+from aesara.tensor.math import complex_from_polar, imag, real
 from aesara.tensor.type import cvector, dvector, fmatrix, fvector, imatrix, zvector
 from tests import unittest_tools as utt
 
@@ -15,8 +16,7 @@ class TestRealImag:
         rng = np.random.default_rng(23)
         xval = np.asarray(
             list(
-                np.complex(rng.standard_normal(), rng.standard_normal())
-                for i in range(10)
+                complex(rng.standard_normal(), rng.standard_normal()) for i in range(10)
             )
         )
         assert np.all(xval.real == aesara.function([x], real(x))(xval))
@@ -42,7 +42,7 @@ class TestRealImag:
     def test_complex(self):
         rng = np.random.default_rng(2333)
         m = fmatrix()
-        c = complex(m[0], m[1])
+        c = at_complex(m[0], m[1])
         assert c.type == cvector
         r, i = [real(c), imag(c)]
         assert r.type == fvector
@@ -57,7 +57,7 @@ class TestRealImag:
     @pytest.mark.skip(reason="Complex grads not enabled, see #178")
     def test_complex_grads(self):
         def f(m):
-            c = complex(m[0], m[1])
+            c = at_complex(m[0], m[1])
             return 0.5 * real(c) + 0.9 * imag(c)
 
         rng = np.random.default_rng(9333)
@@ -67,7 +67,7 @@ class TestRealImag:
     @pytest.mark.skip(reason="Complex grads not enabled, see #178")
     def test_mul_mixed0(self):
         def f(a):
-            ac = complex(a[0], a[1])
+            ac = at_complex(a[0], a[1])
             return abs((ac) ** 2).sum()
 
         rng = np.random.default_rng(9333)
@@ -82,7 +82,7 @@ class TestRealImag:
     @pytest.mark.skip(reason="Complex grads not enabled, see #178")
     def test_mul_mixed1(self):
         def f(a):
-            ac = complex(a[0], a[1])
+            ac = at_complex(a[0], a[1])
             return abs(ac).sum()
 
         rng = np.random.default_rng(9333)
@@ -97,7 +97,7 @@ class TestRealImag:
     @pytest.mark.skip(reason="Complex grads not enabled, see #178")
     def test_mul_mixed(self):
         def f(a, b):
-            ac = complex(a[0], a[1])
+            ac = at_complex(a[0], a[1])
             return abs((ac * b) ** 2).sum()
 
         rng = np.random.default_rng(9333)
@@ -123,7 +123,7 @@ class TestRealImag:
     @pytest.mark.skip(reason="Complex grads not enabled, see #178")
     def test_abs_grad(self):
         def f(m):
-            c = complex(m[0], m[1])
+            c = at_complex(m[0], m[1])
             return 0.5 * abs(c)
 
         rng = np.random.default_rng(9333)
