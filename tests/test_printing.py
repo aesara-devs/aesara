@@ -153,10 +153,6 @@ def test_debugprint():
         + "\n"
     )
 
-    if s != reference:
-        print("--" + s + "--")
-        print("--" + reference + "--")
-
     assert s == reference
 
     # test ids=CHAR
@@ -179,10 +175,6 @@ def test_debugprint():
         + "\n"
     )
 
-    if s != reference:
-        print("--" + s + "--")
-        print("--" + reference + "--")
-
     assert s == reference
 
     # test ids=CHAR, stop_on_name=True
@@ -202,10 +194,6 @@ def test_debugprint():
         )
         + "\n"
     )
-
-    if s != reference:
-        print("--" + s + "--")
-        print("--" + reference + "--")
 
     assert s == reference
 
@@ -228,9 +216,6 @@ def test_debugprint():
         )
         + "\n"
     )
-    if s != reference:
-        print("--" + s + "--")
-        print("--" + reference + "--")
 
     assert s == reference
 
@@ -250,11 +235,39 @@ def test_debugprint():
         )
         + "\n"
     )
-    if s != reference:
-        print("--" + s + "--")
-        print("--" + reference + "--")
 
     assert s == reference
+
+    A = dmatrix(name="A")
+    B = dmatrix(name="B")
+    D = dmatrix(name="D")
+    J = dvector()
+    s = StringIO()
+    debugprint(
+        aesara.function([A, B, D, J], A + (B.dot(J) - D), mode="FAST_RUN"),
+        file=s,
+        ids="",
+        print_destroy_map=True,
+        print_view_map=True,
+    )
+    s = s.getvalue()
+    exp_res = r"""Elemwise{Composite{(i0 + (i1 - i2))}} 4
+ |A
+ |InplaceDimShuffle{x,0} v={0: [0]} 3
+ | |CGemv{inplace} d={0: [0]} 2
+ |   |AllocEmpty{dtype='float64'} 1
+ |   | |Shape_i{0} 0
+ |   |   |B
+ |   |TensorConstant{1.0}
+ |   |B
+ |   |<TensorType(float64, (None,))>
+ |   |TensorConstant{0.0}
+ |D
+    """
+
+    assert [l.strip() for l in s.split("\n")] == [
+        l.strip() for l in exp_res.split("\n")
+    ]
 
 
 def test_debugprint_ids():
