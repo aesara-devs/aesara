@@ -1832,12 +1832,8 @@ class TestDivimpl:
         assert np.allclose(function([i, ii], ii // i)(5, 3), (3 // 5))
         assert np.allclose(function([i, ii], true_div(i, ii))(5, 3), (5.0 / 3.0))
         assert np.allclose(function([i, ii], true_div(ii, i))(5, 3), (3.0 / 5.0))
-        assert np.allclose(
-            function([i, c], i / c)(5, np.complex(5, 3)), (5.0 / (5 + 3j))
-        )
-        assert np.allclose(
-            function([i, c], c / i)(5, np.complex(5, 3)), ((5 + 3j) / 5.0)
-        )
+        assert np.allclose(function([i, c], i / c)(5, complex(5, 3)), (5.0 / (5 + 3j)))
+        assert np.allclose(function([i, c], c / i)(5, complex(5, 3)), ((5 + 3j) / 5.0))
 
 
 class TestMean:
@@ -1929,17 +1925,17 @@ class TestDot:
                 # This strange way of doing things is the only way that worked
                 # on NumPy 1.4.1.
                 if r.ndim == 0:
-                    return np.asarray(np.complex(1.1, 2.1), dtype=r.dtype)
+                    return np.asarray(complex(1.1, 2.1), dtype=r.dtype)
                 if r.ndim == 1:
                     if r.dtype == "complex64":
-                        return np.complex64([np.complex(1.2, 2.2)])
+                        return np.complex64([complex(1.2, 2.2)])
                     elif r.dtype == "complex128":
-                        return np.complex128([np.complex(1.2, 2.2)])
+                        return np.complex128([complex(1.2, 2.2)])
                 elif r.ndim == 2:
                     if r.dtype == "complex64":
-                        return np.complex64([[np.complex(1.3, 2.3)]])
+                        return np.complex64([[complex(1.3, 2.3)]])
                     elif r.dtype == "complex128":
-                        return np.complex128([[np.complex(1.3, 2.3)]])
+                        return np.complex128([[complex(1.3, 2.3)]])
 
             if r.ndim == 0:
                 return np.asarray(1.1, dtype=r.dtype)

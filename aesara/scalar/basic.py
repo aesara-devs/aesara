@@ -2159,7 +2159,7 @@ class Mod(BinaryScalarOp):
     )
 
     def impl(self, x, y):
-        if isinstance(x, np.complex) or isinstance(y, np.complex):
+        if isinstance(x, builtins.complex) or isinstance(y, builtins.complex):
             raise self.complex_error
         return x % y
 
@@ -3936,7 +3936,7 @@ class Complex(BinaryScalarOp):
             return [complex64]
 
     def impl(self, x, y):
-        return np.complex(x, y)
+        return builtins.complex(x, y)
 
     def grad(self, inputs, gout):
         (x, y) = inputs
@@ -3979,9 +3979,9 @@ class ComplexFromPolar(BinaryScalarOp):
         x = r * np.cos(theta)
         y = r * np.sin(theta)
         if x.dtype == "float32":
-            return np.complex64(np.complex(x, y))
+            return np.complex64(builtins.complex(x, y))
         else:
-            return np.complex128(np.complex(x, y))
+            return np.complex128(builtins.complex(x, y))
 
     def grad(self, inputs, gout):
         (r, theta) = inputs
