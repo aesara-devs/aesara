@@ -797,8 +797,7 @@ import ``aesara`` and print the config variable, as in:
     Aesara will execute the graph using constants and/or shared variables
     provided by the user. Purely symbolic variables (e.g. ``x =
     aesara.tensor.dmatrix()``) can be augmented with test values, by writing to
-    their ``tag.test_value`` attribute (e.g. ``x.tag.test_value =
-    numpy.random.rand(5, 4)``).
+    their ``.tag.test_value`` attributes (e.g. ``x.tag.test_value = np.ones((5, 4))``).
 
     When not ``'off'``, the value of this option dictates what happens when
     an :class:`Op`'s inputs do not provide appropriate test values:

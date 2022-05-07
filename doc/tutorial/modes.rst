@@ -9,11 +9,11 @@ Configuration Settings and Compiling Modes
 Configuration
 =============
 
-The ``config`` module contains several *attributes* that modify Aesara's behavior.  Many of these
-attributes are examined during the import of the ``aesara`` module and several are assumed to be
+The :mod:`aesara.config` module contains several *attributes* that modify Aesara's behavior.  Many of these
+attributes are examined during the import of the :mod:`aesara` module and several are assumed to be
 read-only.
 
-*As a rule, the attributes in the* ``config`` *module should not be modified inside the user code.*
+*As a rule, the attributes in the* :mod:`aesara.config` *module should not be modified inside the user code.*
 
 Aesara's code comes with default values for these attributes, but you can
 override them from your ``.aesararc`` file, and override those values in turn by
@@ -21,12 +21,12 @@ the :envvar:`AESARA_FLAGS` environment variable.
 
 The order of precedence is:
 
-1. an assignment to aesara.config.<property>
+1. an assignment to ``aesara.config.<property>``
 2. an assignment in :envvar:`AESARA_FLAGS`
-3. an assignment in the .aesararc file (or the file indicated in :envvar:`AESARARC`)
+3. an assignment in the ``.aesararc`` file (or the file indicated in :envvar:`AESARARC`)
 
 You can display the current/effective configuration at any time by printing
-aesara.config.  For example, to see a list  of all active configuration
+`aesara.config`.  For example, to see a list  of all active configuration
 variables, type this from the command-line:
 
 .. code-block:: bash
@@ -45,22 +45,24 @@ Consider the logistic regression:
 
 .. testcode::
 
-    import numpy
+    import numpy as np
     import aesara
     import aesara.tensor as at
-    rng = numpy.random
+
+
+    rng = np.random.default_rng(2498)
 
     N = 400
     feats = 784
-    D = (rng.randn(N, feats).astype(aesara.config.floatX),
-    rng.randint(size=N,low=0, high=2).astype(aesara.config.floatX))
+    D = (rng.standard_normal((N, feats)).astype(aesara.config.floatX),
+    rng.integers(size=N,low=0, high=2).astype(aesara.config.floatX))
     training_steps = 10000
 
     # Declare Aesara symbolic variables
     x = at.matrix("x")
     y = at.vector("y")
-    w = aesara.shared(rng.randn(feats).astype(aesara.config.floatX), name="w")
-    b = aesara.shared(numpy.asarray(0., dtype=aesara.config.floatX), name="b")
+    w = aesara.shared(rng.standard_normal(feats).astype(aesara.config.floatX), name="w")
+    b = aesara.shared(np.asarray(0., dtype=aesara.config.floatX), name="b")
     x.tag.test_value = D[0]
     y.tag.test_value = D[1]
 
@@ -73,15 +75,18 @@ Consider the logistic regression:
 
     # Compile expressions to functions
     train = aesara.function(
-                inputs=[x,y],
-                outputs=[prediction, xent],
-                updates=[(w, w-0.01*gw), (b, b-0.01*gb)],
-                name = "train")
-    predict = aesara.function(inputs=[x], outputs=prediction,
-                name = "predict")
+        inputs=[x,y],
+        outputs=[prediction, xent],
+        updates=[(w, w-0.01*gw), (b, b-0.01*gb)],
+        name = "train"
+    )
+    predict = aesara.function(
+        inputs=[x], outputs=prediction,
+        name = "predict"
+    )
 
-    if any([x.op.__class__.__name__ in ['Gemv', 'CGemv', 'Gemm', 'CGemm'] for x in
-            train.maker.fgraph.toposort()]):
+    if any([x.op.__class__.__name__ in ['Gemv', 'CGemv', 'Gemm', 'CGemm']
+           for x in train.maker.fgraph.toposort()]):
         print('Used the cpu')
     else:
         print('ERROR, not able to tell if aesara used the cpu or another device')
@@ -106,7 +111,7 @@ Consider the logistic regression:
    prediction on D
    ...
 
-Modify and execute this example to run on CPU (the default) with floatX=float32 and
+Modify and execute this example to run on CPU (the default) with ``floatX=float32`` and
 time the execution using the command line ``time python file.py``.  Save your code
 as it will be useful later on.
 
@@ -114,10 +119,10 @@ as it will be useful later on.
 
    * Apply the Aesara flag ``floatX=float32`` (through ``aesara.config.floatX``) in your code.
    * Cast inputs before storing them into a shared variable.
-   * Circumvent the automatic cast of *int32* with *float32* to *float64*:
+   * Circumvent the automatic cast of int32 with float32 to float64:
 
-     * Insert manual cast in your code or use *[u]int{8,16}*.
-     * Insert manual cast around the mean operator (this involves division by length, which is an *int64*).
+     * Insert manual cast in your code or use [u]int{8,16}.
+     * Insert manual cast around the mean operator (this involves division by length, which is an int64).
      * Note that a new casting mechanism is being developed.
 
 :download:`Solution<modes_solution_1.py>`
@@ -156,7 +161,7 @@ short name        Full constructor                                              
 
 .. Note::
 
-    For debugging purpose, there also exists a ``MonitorMode`` (which has no
+    For debugging purpose, there also exists a :class:`MonitorMode` (which has no
     short name). It can be used to step through the execution of a function:
     see :ref:`the debugging FAQ<faq_monitormode>` for details.
 
@@ -165,8 +170,8 @@ Linkers
 =======
 
 A mode is composed of 2 things: an optimizer and a linker. Some modes,
-like ``NanGuardMode`` and ``DebugMode``, add logic around the
-optimizer and linker. ``DebugMode`` uses its own linker.
+like `NanGuardMode` and `DebugMode`, add logic around the
+optimizer and linker. `DebugMode` uses its own linker.
 
 You can select which linker to use with the Aesara flag :attr:`config.linker`.
 Here is a table to compare the different linkers.
@@ -233,8 +238,8 @@ Using DebugMode
 
 While normally you should use the ``FAST_RUN`` or ``FAST_COMPILE`` mode,
 it is useful at first (especially when you are defining new kinds of
-expressions or new optimizations) to run your code using the DebugMode
-(available via ``mode='DebugMode``). The DebugMode is designed to
+expressions or new optimizations) to run your code using the `DebugMode`
+(available via ``mode='DebugMode``). The `DebugMode` is designed to
 run several self-checks and assertions that can help diagnose
 possible programming errors leading to incorrect output. Note that
 ``DebugMode`` is much slower than ``FAST_RUN`` or ``FAST_COMPILE`` so
@@ -245,7 +250,7 @@ cluster!).
 .. If you modify this code, also change :
 .. tests/test_tutorial.py:T_modes.test_modes_1
 
-DebugMode is used as follows:
+`DebugMode` is used as follows:
 
 .. testcode::
 
@@ -258,21 +263,21 @@ DebugMode is used as follows:
     f([7])
 
 
-If any problem is detected, DebugMode will raise an exception according to
-what went wrong, either at call time (*f(5)*) or compile time (
+If any problem is detected, `DebugMode` will raise an exception according to
+what went wrong, either at call time (e.g. ``f(5)``) or compile time (
 ``f = aesara.function(x, 10 * x, mode='DebugMode')``). These exceptions
 should *not* be ignored; talk to your local Aesara guru or email the
 users list if you cannot make the exception go away.
 
 Some kinds of errors can only be detected for certain input value combinations.
 In the example above, there is no way to guarantee that a future call to, say
-*f(-1)*, won't cause a problem.  DebugMode is not a silver bullet.
+``f(-1)``, won't cause a problem.  `DebugMode` is not a silver bullet.
 
 .. TODO: repair the following link
 
-If you instantiate DebugMode using the constructor (see :class:`DebugMode`)
-rather than the keyword ``DebugMode`` you can configure its behaviour via
-constructor arguments. The keyword version of DebugMode (which you get by using ``mode='DebugMode'``)
+If you instantiate `DebugMode` using the constructor (see :class:`DebugMode`)
+rather than the keyword `DebugMode` you can configure its behaviour via
+constructor arguments. The keyword version of `DebugMode` (which you get by using ``mode='DebugMode'``)
 is quite strict.
 
 For more detail, see :ref:`DebugMode<debugmode>` in the library.

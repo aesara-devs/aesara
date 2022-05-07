@@ -146,7 +146,7 @@ class OpFromGraph(Op, HasInnerGraph):
         from aesara.compile.builders import OpFromGraph
 
         x, y, z = at.scalars('xyz')
-        s = aesara.shared(np.random.rand(2, 2).astype(config.floatX))
+        s = aesara.shared(np.random.random((2, 2)).astype(config.floatX))
         e = x + y * z + s
         op = OpFromGraph([x, y, z], [e])
         # op behaves like a normal aesara op

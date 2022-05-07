@@ -49,7 +49,7 @@ upgrade.  Here is the current state of what can be done:
 
     aesara.tensor.nnet.conv2d(..., image_shape=(7, 3, 5, 5), filter_shape=(2, 3, 4, 4))
 
-- You can use the ``SpecifyShape`` op to add shape information anywhere in the
+- You can use the :class:`SpecifyShape`\ :class:`Op` to add shape information anywhere in the
   graph. This allows to perform some optimizations. In the following example,
   this makes it possible to precompute the Aesara function to a constant.
 
@@ -67,13 +67,13 @@ Problems with Shape inference
 
 Sometimes this can lead to errors.  Consider this example:
 
->>> import numpy
+>>> import numpy as np
 >>> import aesara
 >>> x = aesara.tensor.matrix('x')
 >>> y = aesara.tensor.matrix('y')
 >>> z = aesara.tensor.join(0, x, y)
->>> xv = numpy.random.rand(5, 4)
->>> yv = numpy.random.rand(3, 3)
+>>> xv = np.random.random((5, 4))
+>>> yv = np.random.random((3, 3))
 
 >>> f = aesara.function([x, y], z.shape)
 >>> aesara.printing.debugprint(f) # doctest: +NORMALIZE_WHITESPACE
@@ -109,7 +109,7 @@ This makes the computation of the shape faster, but it can also hide errors. In
 this example, the computation of the shape of the output of ``join`` is done only
 based on the first input Aesara variable, which leads to an error.
 
-This might happen with other ops such as ``elemwise`` and ``dot``, for example.
+This might happen with other `Op`\s such as :class:`Elemwise` and :class:`Dot`, for example.
 Indeed, to perform some optimizations (for speed or stability, for instance),
 Aesara assumes that the computation is correct and consistent
 in the first place, as it does here.
@@ -118,5 +118,5 @@ You can detect those problems by running the code without this
 optimization, using the Aesara flag
 ``optimizer_excluding=local_shape_to_shape_i``. You can also obtain the
 same effect by running in the modes ``FAST_COMPILE`` (it will not apply this
-optimization, nor most other optimizations) or ``DebugMode`` (it will test
-before and after all optimizations (much slower)).
+optimization, nor most other optimizations) or :class:`DebugMode` (it will test
+before and after all optimizations).

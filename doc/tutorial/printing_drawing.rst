@@ -25,20 +25,20 @@ that creates an image of the function. You can read about them in
 
 Consider again the logistic regression example:
 
->>> import numpy
+>>> import numpy as np
 >>> import aesara
 >>> import aesara.tensor as at
->>> rng = numpy.random
+>>> rng = np.random.default_rng(2382)
 >>> # Training data
 >>> N = 400
 >>> feats = 784
->>> D = (rng.randn(N, feats).astype(aesara.config.floatX), rng.randint(size=N,low=0, high=2).astype(aesara.config.floatX))
+>>> D = (rng.standard_normal(N, feats).astype(aesara.config.floatX), rng.integers(size=N,low=0, high=2).astype(aesara.config.floatX))
 >>> training_steps = 10000
 >>> # Declare Aesara symbolic variables
 >>> x = at.matrix("x")
 >>> y = at.vector("y")
->>> w = aesara.shared(rng.randn(feats).astype(aesara.config.floatX), name="w")
->>> b = aesara.shared(numpy.asarray(0., dtype=aesara.config.floatX), name="b")
+>>> w = aesara.shared(rng.standard_normal(feats).astype(aesara.config.floatX), name="w")
+>>> b = aesara.shared(np.asarray(0., dtype=aesara.config.floatX), name="b")
 >>> x.tag.test_value = D[0]
 >>> y.tag.test_value = D[1]
 >>> # Construct Aesara expression graph

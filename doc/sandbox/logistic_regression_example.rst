@@ -65,8 +65,8 @@ BUT, YOU GOTTA RUN THIS CODE AND MAKE SURE IT STILL WORKS NICELY, HEY?
 
     up_fn, app_fn = build_logistic_regression_model(n_in=10, n_out=3, l2_coef=30.0)
 
-    x_data = numpy.random.randn(100, 10)
-    y_data = numpy.random.randn(100, 3)
+    x_data = numpy.random.standard_normal((100, 10))
+    y_data = numpy.random.standard_normal((100, 3))
     y_data = _asarray(y_data == numpy.max(y_data, axis=1), dtype='int64')
 
     print "Model Training ..."

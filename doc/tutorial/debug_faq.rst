@@ -55,16 +55,15 @@ Running the code above we see:
 
 Arguably the most useful information is approximately half-way through
 the error message, where the kind of error is displayed along with its
-cause (`ValueError: Input dimension mismatch. (input[0].shape[0] = 3,
-input[1].shape[0] = 2`).
-Below it, some other information is given, such as the apply node that
+cause (e.g. ``ValueError: Input dimension mismatch. (input[0].shape[0] = 3, input[1].shape[0] = 2``).
+Below it, some other information is given, such as the `Apply` node that
 caused the error, as well as the input types, shapes, strides and
 scalar values.
 
-The two hints can also be helpful when debugging. Using the aesara flag
+The two hints can also be helpful when debugging. Using the Aesara flag
 ``optimizer=fast_compile`` or ``optimizer=None`` can often tell you
 the faulty line, while ``exception_verbosity=high`` will display a
-debugprint of the apply node. Using these hints, the end of the error
+debug print of the apply node. Using these hints, the end of the error
 message becomes :
 
 .. code-block:: none
@@ -90,10 +89,10 @@ Using Test Values
 -----------------
 
 As of v.0.4.0, Aesara has a new mechanism by which graphs are executed
-on-the-fly, before a ``aesara.function`` is ever compiled. Since optimizations
+on-the-fly, before a :func:`aesara.function` is ever compiled. Since optimizations
 haven't been applied at this stage, it is easier for the user to locate the
 source of some bug. This functionality is enabled through the config flag
-``aesara.config.compute_test_value``. Its use is best shown through the
+`aesara.config.compute_test_value`. Its use is best shown through the
 following example. Here, we use ``exception_verbosity=high`` and
 ``optimizer=fast_compile``, which would not tell you the line at fault.
 ``optimizer=None`` would and it could therefore be used instead of test values.
@@ -101,7 +100,7 @@ following example. Here, we use ``exception_verbosity=high`` and
 
 .. testcode:: testvalue
 
-    import numpy
+    import numpy as np
     import aesara
     import aesara.tensor as at
 
@@ -109,15 +108,15 @@ following example. Here, we use ``exception_verbosity=high`` and
     aesara.config.compute_test_value = 'off' # Use 'warn' to activate this feature
 
     # configure shared variables
-    W1val = numpy.random.rand(2, 10, 10).astype(aesara.config.floatX)
+    W1val = np.random.random((2, 10, 10)).astype(aesara.config.floatX)
     W1 = aesara.shared(W1val, 'W1')
-    W2val = numpy.random.rand(15, 20).astype(aesara.config.floatX)
+    W2val = np.random.random((15, 20)).astype(aesara.config.floatX)
     W2 = aesara.shared(W2val, 'W2')
 
     # input which will be of shape (5,10)
     x  = at.matrix('x')
     # provide Aesara with a default test-value
-    #x.tag.test_value = numpy.random.rand(5, 10)
+    #x.tag.test_value = np.random.random((5, 10))
 
     # transform the shared variable in some way. Aesara does not
     # know off hand that the matrix func_of_W1 has shape (20, 10)
@@ -131,7 +130,7 @@ following example. Here, we use ``exception_verbosity=high`` and
 
     # compile and call the actual function
     f = aesara.function([x], h2)
-    f(numpy.random.rand(5, 10))
+    f(np.random.random((5, 10)))
 
 Running the above code generates the following error message:
 
@@ -139,7 +138,7 @@ Running the above code generates the following error message:
 
     Traceback (most recent call last):
       File "test1.py", line 31, in <module>
-        f(numpy.random.rand(5, 10))
+        f(np.random.random((5, 10)))
       File "PATH_TO_AESARA/aesara/compile/function/types.py", line 605, in __call__
         self.fn.thunks[self.fn.position_of_error])
       File "PATH_TO_AESARA/aesara/compile/function/types.py", line 595, in __call__
@@ -171,10 +170,10 @@ so slightly, we can get Aesara to reveal the exact source of the error.
 
     ...
 
-    # input which will be of shape (5, 10)
+    # Input which will have the shape (5, 10)
     x  = at.matrix('x')
-    # provide Aesara with a default test-value
-    x.tag.test_value = numpy.random.rand(5, 10)
+    # Provide Aesara with a default test-value
+    x.tag.test_value = np.random.random((5, 10))
 
 In the above, we are tagging the symbolic matrix *x* with a special test
 value. This allows Aesara to evaluate symbolic expressions on-the-fly (by
@@ -195,7 +194,7 @@ following error message, which properly identifies *line 24* as the culprit.
       File "PATH_TO_AESARA/aesara/graph/op.py", line 752, in rval
         r = p(n, [x[0] for x in i], o)
       File "PATH_TO_AESARA/aesara/tensor/basic.py", line 4554, in perform
-        z[0] = numpy.asarray(numpy.dot(x, y))
+        z[0] = np.asarray(np.dot(x, y))
     ValueError: matrices are not aligned
 
 The ``compute_test_value`` mechanism works as follows:
@@ -254,11 +253,11 @@ Running the code above returns the following output:
 "How do I Print an Intermediate Value in a Function?"
 -----------------------------------------------------
 
-Aesara provides a 'Print' op to do this.
+Aesara provides a :class:`Print`\ :class:`Op` to do this.
 
 .. testcode::
 
-    import numpy
+    import numpy as np
     import aesara
 
     x = aesara.tensor.dvector('x')
@@ -268,11 +267,11 @@ Aesara provides a 'Print' op to do this.
     f = aesara.function([x], x * 5)
     f_with_print = aesara.function([x], x_printed * 5)
 
-    #this runs the graph without any printing
-    assert numpy.all( f([1, 2, 3]) == [5, 10, 15])
+    # This runs the graph without any printing
+    assert np.array_equal(f([1, 2, 3]), [5, 10, 15])
 
-    #this runs the graph with the message, and value printed
-    assert numpy.all( f_with_print([1, 2, 3]) == [5, 10, 15])
+    # This runs the graph with the message, and value printed
+    assert np.array_equal(f_with_print([1, 2, 3]), [5, 10, 15])
 
 .. testoutput::
 
@@ -361,17 +360,16 @@ shows how to print all inputs and outputs:
     0 Elemwise{mul,no_inplace}(TensorConstant{5.0}, x) input(s) value(s): [array(5.0), array(3.0)] output(s) value(s): [array(15.0)]
 
 When using these ``inspect_inputs`` and ``inspect_outputs`` functions
-with ``MonitorMode``, you should see [potentially a lot of] printed output.
-Every ``Apply`` node will be printed out,
-along with its position in the graph, the arguments to the functions ``perform`` or
-``c_code`` and the output it computed.
-Admittedly, this may be a huge amount of
-output to read through if you are using big tensors... but you can choose to
-add logic that would, for instance, print
+with ``MonitorMode``, you should see (potentially a lot of) printed output.
+Every ``Apply`` node will be printed out, along with its position in the graph,
+the arguments to the functions ``perform`` or ``c_code`` and the output it
+computed.
+Admittedly, this may be a huge amount of output to read through if you are using
+large tensors, but you can choose to add logic that would, for instance, print
 something out only if a certain kind of op were used, at a certain program
-position, or only if a particular value showed up in one of the inputs or outputs.
-A typical example is to detect when NaN values are added into computations, which
-can be achieved as follows:
+position, or only if a particular value showed up in one of the inputs or
+outputs.  A typical example is to detect when NaN values are added into
+computations, which can be achieved as follows:
 
 .. testcode:: compiled
 
@@ -382,13 +380,13 @@ can be achieved as follows:
     # This is the current suggested detect_nan implementation to
     # show you how it work.  That way, you can modify it for your
     # need.  If you want exactly this method, you can use
-    # ``aesara.compile.monitormode.detect_nan`` that will always
+    # `aesara.compile.monitormode.detect_nan` that will always
     # contain the current suggested version.
 
     def detect_nan(fgraph, i, node, fn):
         for output in fn.outputs:
-            if (not isinstance(output[0], numpy.random.RandomState) and
-                numpy.isnan(output[0]).any()):
+            if (not isinstance(output[0], np.ndarray) and
+                np.isnan(output[0]).any()):
                 print('*** NaN detected ***')
                 aesara.printing.debugprint(node)
                 print('Inputs : %s' % [input[0] for input in fn.inputs])
@@ -396,9 +394,11 @@ can be achieved as follows:
                 break
 
     x = aesara.tensor.dscalar('x')
-    f = aesara.function([x], [aesara.tensor.log(x) * x],
-                        mode=aesara.compile.MonitorMode(
-                            post_func=detect_nan))
+    f = aesara.function(
+        [x], [aesara.tensor.log(x) * x],
+        mode=aesara.compile.MonitorMode(
+        post_func=detect_nan)
+    )
     f(0)  # log(0) * 0 = -inf * 0 = NaN
 
 .. testoutput:: compiled
@@ -458,12 +458,12 @@ Intermediate results don't necessarily have a clear name and you can get
 exceptions which are hard to decipher, due to the "compiled" nature of the
 functions.
 
-Consider this example script ("ex.py"):
+Consider this example script (``ex.py``):
 
 .. testcode::
 
+   import numpy as np
    import aesara
-   import numpy
    import aesara.tensor as at
 
    a = at.dmatrix('a')
@@ -471,9 +471,9 @@ Consider this example script ("ex.py"):
 
    f = aesara.function([a, b], [a * b])
 
-   # matrices chosen so dimensions are unsuitable for multiplication
-   mat1 = numpy.arange(12).reshape((3, 4))
-   mat2 = numpy.arange(25).reshape((5, 5))
+   # Matrices chosen so dimensions are unsuitable for multiplication
+   mat1 = np.arange(12).reshape((3, 4))
+   mat2 = np.arange(25).reshape((5, 5))
 
    f(mat1, mat2)
 
@@ -514,18 +514,18 @@ illustrative purposes. As the matrices can't be multiplied element-wise
 The call stack contains some useful information to trace back the source
 of the error. There's the script where the compiled function was called --
 but if you're using (improperly parameterized) prebuilt modules, the error
-might originate from ops in these modules, not this script. The last line
-tells us about the op that caused the exception. In this case it's a "mul"
+might originate from `Op`\s in these modules, not this script. The last line
+tells us about the `Op` that caused the exception. In this case it's a "mul"
 involving variables with names "a" and "b". But suppose we instead had an
 intermediate result to which we hadn't given a name.
 
 After learning a few things about the graph structure in Aesara, we can use
 the Python debugger to explore the graph, and then we can get runtime
 information about the error. Matrix dimensions, especially, are useful to
-pinpoint the source of the error. In the printout, there are also 2 of the 4
-dimensions of the matrices involved, but for the sake of example say we'd
-need the other dimensions to pinpoint the error. First, we re-launch with
-the debugger module and run the program with "c":
+pinpoint the source of the error. In the printout, there are also two of the
+four dimensions of the matrices involved, but for the sake of example say we'd
+need the other dimensions to pinpoint the error. First, we re-launch with the
+debugger module and run the program with "c":
 
 .. code-block:: text
 
@@ -537,22 +537,22 @@ the debugger module and run the program with "c":
 Then we get back the above error printout, but the interpreter breaks in
 that state. Useful commands here are
 
-* "up" and "down" (to move up and down the call stack),
-* "l" (to print code around the line in the current stack position),
-* "p variable_name" (to print the string representation of 'variable_name'),
-* "p dir(object_name)", using the Python dir() function to print the list of an object's members
+* ``up`` and ``down`` (to move up and down the call stack),
+* ``l`` (to print code around the line in the current stack position),
+* ``p variable_name`` (to print the string representation of ``variable_name``),
+* ``p dir(object_name)``, using the Python :func:`dir` function to print the list of an object's members
 
-Here, for example, I do "up", and a simple "l" shows me there's a local
-variable "node". This is the "node" from the computation graph, so by
-following the "node.inputs", "node.owner" and "node.outputs" links I can
+Here, for example, I do ``up``, and a simple ``l`` shows me there's a local
+variable ``node``. This is the ``node`` from the computation graph, so by
+following the ``node.inputs``, ``node.owner`` and ``node.outputs`` links I can
 explore around the graph.
 
 That graph is purely symbolic (no data, just symbols to manipulate it
 abstractly). To get information about the actual parameters, you explore the
-"thunk" objects, which bind the storage for the inputs (and outputs) with
-the function itself (a "thunk" is a concept related to closures). Here, to
-get the current node's first input's shape, you'd therefore do "p
-thunk.inputs[0][0].shape", which prints out "(3, 4)".
+"thunk" objects, which bind the storage for the inputs (and outputs) with the
+function itself (a "thunk" is a concept related to closures). Here, to get the
+current node's first input's shape, you'd therefore do
+``p thunk.inputs[0][0].shape``, which prints out ``(3, 4)``.
 
 .. _faq_dump_fct:
 
@@ -562,14 +562,13 @@ Dumping a Function to help debug
 If you are reading this, there is high chance that you emailed our
 mailing list and we asked you to read this section. This section
 explain how to dump all the parameter passed to
-``aesara.function()``. This is useful to help us reproduce a problem
+:func:`aesara.function`. This is useful to help us reproduce a problem
 during compilation and it doesn't request you to make a self contained
 example.
 
-For this to work, we need to be able to import the code for all Op in
-the graph. So if you create your own Op, we will need this
-code. Otherwise, we won't be able to unpickle it. We already have all
-the Ops from Aesara and Pylearn2.
+For this to work, we need to be able to import the code for all `Op` in
+the graph. So if you create your own `Op`, we will need this
+code; otherwise, we won't be able to unpickle it.
 
 .. code-block:: python
 
@@ -577,9 +576,9 @@ the Ops from Aesara and Pylearn2.
     aesara.function(...)
     # with
     aesara.function_dump(filename, ...)
-    # Where filename is a string to a file that we will write to.
+    # Where `filename` is a string to a file that we will write to.
 
-Then send us filename.
+Then send us ``filename``.
 
 
 Breakpoint during Aesara function execution

@@ -404,13 +404,14 @@ You can try the new :class:`Op` as follows:
 
 .. testcode:: example
 
+    import numpy as np
     import aesara
+
     x = aesara.tensor.matrix()
     f = aesara.function([x], DoubleOp1()(x))
-    import numpy
-    inp = numpy.random.rand(5, 4)
+    inp = np.random.random_sample((5, 4))
     out = f(inp)
-    assert numpy.allclose(inp * 2, out)
+    assert np.allclose(inp * 2, out)
     print(inp)
     print(out)
 
@@ -435,13 +436,14 @@ You can try the new :class:`Op` as follows:
 
 .. testcode:: example
 
+    import numpy as np
     import aesara
+
     x = aesara.tensor.matrix()
     f = aesara.function([x], DoubleOp2()(x))
-    import numpy
-    inp = numpy.random.rand(5, 4)
+    inp = np.random.random_sample((5, 4))
     out = f(inp)
-    assert numpy.allclose(inp * 2, out)
+    assert np.allclose(inp * 2, out)
     print(inp)
     print(out)
 
@@ -530,10 +532,9 @@ We can test this by running the following segment:
     f = aesara.function([x], mult4plus5op(x))
     g = aesara.function([x], mult2plus3op(x))
 
-    import numpy
-    inp = numpy.random.rand(5, 4).astype(numpy.float32)
-    assert numpy.allclose(4 * inp + 5, f(inp))
-    assert numpy.allclose(2 * inp + 3, g(inp))
+    inp = np.random.random_sample((5, 4)).astype(np.float32)
+    assert np.allclose(4 * inp + 5, f(inp))
+    assert np.allclose(2 * inp + 3, g(inp))
 
 
 How To Test it
@@ -553,11 +554,11 @@ returns the right answer. If you detect an error, you must raise an
 
 .. testcode:: tests
 
-    import numpy
+    import numpy as np
     import aesara
-
     from tests import unittest_tools as utt
-    from aesara.configdefaults import config
+
+
     class TestDouble(utt.InferShapeTester):
         def setup_method(self):
             super().setup_method()
@@ -565,9 +566,12 @@ returns the right answer. If you detect an error, you must raise an
             self.op = DoubleOp()
 
         def test_basic(self):
+            rng = np.random.default_rng(utt.fetch_seed())
+
             x = aesara.tensor.matrix()
             f = aesara.function([x], self.op(x))
-            inp = numpy.asarray(numpy.random.rand(5, 4), dtype=config.floatX)
+
+            inp = np.asarray(rng.random((5, 4)), dtype=aesara.config.floatX)
             out = f(inp)
             # Compare the result computed to the expected value.
             utt.assert_allclose(inp * 2, out)
@@ -612,20 +616,26 @@ your :class:`Op` works only with such matrices, you can disable the warning with
 
 .. testcode:: tests
 
-    from tests import unittest_tools as utt
     from aesara.configdefaults import config
+    from tests import unittest_tools as utt
+
+
     class TestDouble(utt.InferShapeTester):
+
         # [...] as previous tests.
+
         def test_infer_shape(self):
+            rng = np.random.default_rng(utt.fetch_seed())
             x = aesara.tensor.matrix()
-            self._compile_and_check([x],  # aesara.function inputs
-                                    [self.op(x)],  # aesara.function outputs
-                                    # Always use not square matrix!
-                                    # inputs data
-                                    [numpy.asarray(numpy.random.rand(5, 4),
-                                                   dtype=config.floatX)],
-                                    # Op that should be removed from the graph.
-                                    self.op_class)
+            self._compile_and_check(
+                [x],  # aesara.function inputs
+                [self.op(x)],  # aesara.function outputs
+                # Always use not square matrix!
+                # inputs data
+                [np.asarray(rng.random((5, 4)), dtype=config.floatX)],
+                # Op that should be removed from the graph.
+                self.op_class,
+            )
 
 Testing the gradient
 ^^^^^^^^^^^^^^^^^^^^
@@ -642,8 +652,11 @@ the multiplication by 2).
 .. testcode:: tests
 
         def test_grad(self):
-            tests.unittest_tools.verify_grad(self.op,
-                                             [numpy.random.rand(5, 7, 2)])
+            rng = np.random.default_rng(utt.fetch_seed())
+            tests.unittest_tools.verify_grad(
+                self.op,
+                [rng.random((5, 7, 2))]
+            )
 
 Testing the Rop
 ^^^^^^^^^^^^^^^
@@ -778,39 +791,33 @@ signature:
 .. testcode:: asop
 
     import aesara
-    import numpy
+    import aesara.tensor as at
+    import numpy as np
     from aesara import function
     from aesara.compile.ops import as_op
+
 
     def infer_shape_numpy_dot(fgraph, node, input_shapes):
         ashp, bshp = input_shapes
         return [ashp[:-1] + bshp[-1:]]
 
-    @as_op(itypes=[aesara.tensor.fmatrix, aesara.tensor.fmatrix],
-           otypes=[aesara.tensor.fmatrix], infer_shape=infer_shape_numpy_dot)
+
+    @as_op(itypes=[at.matrix, at.matrix],
+           otypes=[at.matrix], infer_shape=infer_shape_numpy_dot)
     def numpy_dot(a, b):
-       return numpy.dot(a, b)
+       return np.dot(a, b)
 
 You can try it as follows:
 
 .. testcode:: asop
 
-    x = aesara.tensor.fmatrix()
-    y = aesara.tensor.fmatrix()
+    x = at.matrix()
+    y = at.matrix()
     f = function([x, y], numpy_dot(x, y))
-    inp1 = numpy.random.rand(5, 4).astype('float32')
-    inp2 = numpy.random.rand(4, 7).astype('float32')
+    inp1 = np.random.random_sample((5, 4))
+    inp2 = np.random.random_sample((4, 7))
     out = f(inp1, inp2)
 
-
-Exercise
-^^^^^^^^
-
-Run the code of the ``numpy_dot`` example above.
-
-Modify and execute to compute: ``numpy.add`` and ``numpy.subtract``.
-
-Modify and execute the example to return two outputs: ``x + y`` and ``x - y``.
 
 .. _Documentation:
 
@@ -822,7 +829,7 @@ will not be accepted.
 :class:`NanGuardMode` and :class:`AllocEmpty`
 ---------------------------------------------
 
-:class:`NanGuardMode` help users find where in the graph NaN appear. But
+:class:`NanGuardMode` help users find where in the graph ``NaN`` appear. But
 sometimes, we want some variables to not be checked. For example, in
 the old GPU back-end, we used a float32 :class:`CudaNdarray` to store the MRG
 random number generator state (they are integers). So if :class:`NanGuardMode`
