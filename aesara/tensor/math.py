@@ -1789,23 +1789,25 @@ floor_div = int_div
 
 
 def ceil_intdiv(a, b):
-    """
-    Safely compute ceil(float_division(a, b)).
+    """Safely compute ``ceil(float_division(a, b))``.
 
-    Works for all dtypes, but mostly useful when a and b are int.
+    Works for all dtypes, but mostly useful when `a` and `b` are ints.
 
     """
     # If a and b are int with not many significant bits, we could
     # cast them to float to avoid doing the modulo. We do not know if this
-    # is faster or not. But this is not safe for int64 as the cast will
-    # lose precision.
-    # e.g.: cast(cast(a, scalar.upcast(a, 'float32')) / b, aes.upcast(a, b))
+    # is faster or not. But this is not safe for int64, because the cast will
+    # lose precision. For example:
+    #     cast(cast(a, scalar.upcast(a.type.dtype, 'float32')) / b,
+    #          aes.upcast(a.type.dtype, b.type.dtype))
 
-    # We cast for the case when a and b are uint*. Otherwise neq will
+    # We cast for the case when a and b are uint*; otherwise, neq will
     # force their upcast to int.
     div = int_div(a, b)
     ret = cast(neq(a % b, 0), div.dtype) + div
-    assert ret.dtype == aes.upcast(div.owner.inputs[0], div.owner.inputs[1])
+    assert ret.dtype == aes.upcast(
+        div.owner.inputs[0].type.dtype, div.owner.inputs[1].type.dtype
+    )
     return ret
 
 
