@@ -107,7 +107,8 @@ def conv2d(
 
     warnings.warn(
         "aesara.tensor.nnet.conv.conv2d is deprecated."
-        " Use aesara.tensor.nnet.conv2d instead."
+        " Use aesara.tensor.nnet.conv2d instead.",
+        DeprecationWarning,
     )
 
     # accept Constant value for image_shape and filter_shape.
@@ -406,6 +407,7 @@ class ConvOp(OpenMPOp):
         warnings.warn(
             "The method `getOutputShape` is deprecated use"
             "`get_conv_output_shape` instead.",
+            DeprecationWarning,
             stacklevel=2,
         )
         return tuple(
