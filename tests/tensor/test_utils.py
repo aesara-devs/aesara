@@ -9,7 +9,7 @@ from aesara.tensor.utils import hash_from_ndarray, shape_of_variables
 
 def test_hash_from_ndarray():
     hashes = []
-    rng = np.random.rand(5, 5)
+    x = np.random.random((5, 5))
 
     for data in [
         -2,
@@ -29,12 +29,12 @@ def test_hash_from_ndarray():
         np.zeros((5, 5), dtype="uint32"),
         np.zeros((5, 5), dtype="int32"),
         # Test slice
-        rng,
-        rng[1:],
-        rng[:4],
-        rng[1:3],
-        rng[::2],
-        rng[::-1],
+        x,
+        x[1:],
+        x[:4],
+        x[1:3],
+        x[::2],
+        x[::-1],
     ]:
         data = np.asarray(data)
         hashes.append(hash_from_ndarray(data))
@@ -42,11 +42,11 @@ def test_hash_from_ndarray():
     assert len(set(hashes)) == len(hashes)
 
     # test that different type of views and their copy give the same hash
-    assert hash_from_ndarray(rng[1:]) == hash_from_ndarray(rng[1:].copy())
-    assert hash_from_ndarray(rng[1:3]) == hash_from_ndarray(rng[1:3].copy())
-    assert hash_from_ndarray(rng[:4]) == hash_from_ndarray(rng[:4].copy())
-    assert hash_from_ndarray(rng[::2]) == hash_from_ndarray(rng[::2].copy())
-    assert hash_from_ndarray(rng[::-1]) == hash_from_ndarray(rng[::-1].copy())
+    assert hash_from_ndarray(x[1:]) == hash_from_ndarray(x[1:].copy())
+    assert hash_from_ndarray(x[1:3]) == hash_from_ndarray(x[1:3].copy())
+    assert hash_from_ndarray(x[:4]) == hash_from_ndarray(x[:4].copy())
+    assert hash_from_ndarray(x[::2]) == hash_from_ndarray(x[::2].copy())
+    assert hash_from_ndarray(x[::-1]) == hash_from_ndarray(x[::-1].copy())
 
 
 class TestShapeOfVariables:

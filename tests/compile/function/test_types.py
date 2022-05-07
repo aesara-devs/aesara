@@ -352,7 +352,7 @@ class TestFunction:
 
     def test_swap_SharedVariable(self):
         i = iscalar()
-        x_list = shared(value=np.random.rand(10).astype(config.floatX))
+        x_list = shared(value=np.random.random((10,)).astype(config.floatX))
 
         x = scalar("x")
         # SharedVariable for tests, one of them has update
@@ -419,11 +419,11 @@ class TestFunction:
         # A special testcase for logistic_sgd.py in Deep Learning Tutorial
         # This test assert that SharedVariable in different function have same storage
 
-        train_x = shared(value=np.random.rand(10, 10).astype(config.floatX))
-        test_x = shared(value=np.random.rand(10, 10).astype(config.floatX))
+        train_x = shared(value=np.random.random((10, 10)).astype(config.floatX))
+        test_x = shared(value=np.random.random((10, 10)).astype(config.floatX))
 
-        train_y = shared(value=np.random.rand(10, 1).astype(config.floatX))
-        test_y = shared(value=np.random.rand(10, 1).astype(config.floatX))
+        train_y = shared(value=np.random.random((10, 1)).astype(config.floatX))
+        test_y = shared(value=np.random.random((10, 1)).astype(config.floatX))
 
         i = iscalar("index")
         x = vector("x")
@@ -604,7 +604,7 @@ class TestFunction:
         # when borrow=True is implemented.
 
         a = dmatrix()
-        aval = np.random.rand(3, 3)
+        aval = np.random.random((3, 3))
 
         # when borrow=False, test that a destroy map cannot alias output to input
         f = function([In(a, borrow=False)], Out(a + 1, borrow=True))
@@ -699,7 +699,7 @@ class TestFunction:
             assert funct(first=1) == x
 
     def test_check_for_aliased_inputs(self):
-        b = np.random.rand(5, 4)
+        b = np.random.random((5, 4))
         s1 = shared(b)
         s2 = shared(b)
         x1 = vector()
@@ -1053,7 +1053,7 @@ class TestPicklefunction:
         def pers_load(id):
             return saves[id]
 
-        b = np.random.rand(5, 4)
+        b = np.random.random((5, 4))
 
         x = matrix()
         y = shared(b)

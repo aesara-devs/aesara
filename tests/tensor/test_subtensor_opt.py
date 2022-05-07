@@ -69,8 +69,8 @@ if mode_opt == "FAST_COMPILE":
 mode_opt = get_mode(mode_opt)
 
 
-y = create_aesara_param(np.random.randint(0, 4, size=(2,)))
-z = create_aesara_param(np.random.randint(0, 4, size=(2, 2)))
+y = create_aesara_param(np.random.default_rng().integers(0, 4, size=(2,)))
+z = create_aesara_param(np.random.default_rng().integers(0, 4, size=(2, 2)))
 
 
 @pytest.mark.parametrize(

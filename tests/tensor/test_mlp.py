@@ -20,18 +20,19 @@ from aesara.tensor.type import ivector, lscalar, matrix
 
 def gen_data():
 
+    rng = np.random.default_rng(249820)
     # generate the dataset
     train_set = (
-        np.asarray(np.random.rand(10000, 784), dtype="float32"),
-        np.asarray(np.random.rand(10000) * 10, dtype="int64"),
+        np.asarray(rng.random((10000, 784)), dtype="float32"),
+        np.asarray(rng.random((10000,)) * 10, dtype="int64"),
     )
     valid_set = (
-        np.asarray(np.random.rand(10000, 784), dtype="float32"),
-        np.asarray(np.random.rand(10000) * 10, dtype="int64"),
+        np.asarray(rng.random((10000, 784)), dtype="float32"),
+        np.asarray(rng.random((10000,)) * 10, dtype="int64"),
     )
     test_set = (
-        np.asarray(np.random.rand(10000, 784), dtype="float32"),
-        np.asarray(np.random.rand(10000) * 10, dtype="int64"),
+        np.asarray(rng.random((10000, 784)), dtype="float32"),
+        np.asarray(rng.random((10000,)) * 10, dtype="int64"),
     )
 
     def shared_dataset(data_xy):

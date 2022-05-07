@@ -1,5 +1,3 @@
-import gc
-import sys
 import time
 
 import numpy as np
@@ -18,8 +16,8 @@ from aesara.link.c.basic import OpWiseCLinker
 from aesara.link.c.exceptions import MissingGXX
 from aesara.link.utils import map_storage
 from aesara.link.vm import VM, Loop, LoopGC, VMLinker
-from aesara.tensor.math import cosh, sin, tanh
-from aesara.tensor.type import dvector, lscalar, scalar, scalars, vector, vectors
+from aesara.tensor.math import cosh, tanh
+from aesara.tensor.type import lscalar, scalar, scalars, vector, vectors
 from aesara.tensor.var import TensorConstant
 
 
@@ -290,97 +288,6 @@ def test_allow_gc_cvm():
     assert f.fn.allow_gc is True
     f([1])
     assert f.fn.storage_map[n][0] is None
-
-
-run_memory_usage_tests = False
-if run_memory_usage_tests:
-    # these are not normal unit tests, do not run them as part of standard
-    # suite.  I ran them while looking at top, and stopped when memory usage
-    # was stable.
-    def test_no_leak_many_graphs():
-        # Verify no memory leaks when creating and deleting a lot of functions
-
-        # This isn't really a unit test, you have to run it and look at top to
-        # see if there's a leak
-        for i in range(10000):
-            x = vector()
-            z = x
-            for d in range(10):
-                z = sin(-z + 1)
-
-            f = function([x], z, mode=Mode(optimizer=None, linker="cvm"))
-            if not i % 100:
-                print(gc.collect())
-            sys.stdout.flush()
-
-            gc.collect()
-            if 1:
-                f([2.0])
-                f([3.0])
-                f([4.0])
-                f([5.0])
-
-    def test_no_leak_many_call_lazy():
-        # Verify no memory leaks when calling a function a lot of times
-
-        # This isn't really a unit test, you have to run it and look at top to
-        # see if there's a leak
-
-        def build_graph(x, depth=5):
-            z = x
-            for d in range(depth):
-                z = ifelse(z.mean() > 0.5, -z, z)
-            return z
-
-        def time_linker(name, linker):
-            steps_a = 10
-            x = dvector()
-            a = build_graph(x, steps_a)
-
-            f_a = function([x], a, mode=Mode(optimizer=None, linker=linker()))
-            inp = np.random.rand(1000000)
-            for i in range(100):
-                f_a(inp)
-                # this doesn't seem to work, prints 0 for everything
-                # import resource
-                #
-                # pre = resource.getrusage(resource.RUSAGE_SELF)
-                # post = resource.getrusage(resource.RUSAGE_SELF)
-                # print(pre.ru_ixrss, post.ru_ixrss)
-                # print(pre.ru_idrss, post.ru_idrss)
-                # print(pre.ru_maxrss, post.ru_maxrss)
-
-        print(1)
-        time_linker("vmLinker_C", lambda: VMLinker(allow_gc=False, use_cloop=True))
-        print(2)
-        time_linker("vmLinker", lambda: VMLinker(allow_gc=False, use_cloop=False))
-
-    def test_no_leak_many_call_nonlazy():
-        # Verify no memory leaks when calling a function a lot of times
-
-        # This isn't really a unit test, you have to run it and look at top to
-        # see if there's a leak.
-
-        def build_graph(x, depth=5):
-            z = x
-            for d in range(depth):
-                z = sin(-z + 1)
-            return z
-
-        def time_linker(name, linker):
-            steps_a = 10
-            x = dvector()
-            a = build_graph(x, steps_a)
-
-            f_a = function([x], a, mode=Mode(optimizer=None, linker=linker()))
-            inp = np.random.rand(1000000)
-            for i in range(500):
-                f_a(inp)
-
-        print(1)
-        time_linker("vmLinker_C", lambda: VMLinker(allow_gc=False, use_cloop=True))
-        print(2)
-        time_linker("vmLinker", lambda: VMLinker(allow_gc=False, use_cloop=False))
 
 
 class RunOnce(Op):

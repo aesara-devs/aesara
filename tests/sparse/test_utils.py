@@ -10,10 +10,10 @@ from tests.sparse.test_basic import as_sparse_format
 
 def test_hash_from_sparse():
     hashes = []
-    rng = np.random.rand(5, 5)
+    x = np.random.random((5, 5))
 
     for format in ["csc", "csr"]:
-        rng = as_sparse_format(rng, format)
+        x = as_sparse_format(x, format)
         for data in [
             [[-2]],
             [[-1]],
@@ -32,10 +32,10 @@ def test_hash_from_sparse():
             np.zeros((5, 5), dtype="uint32"),
             np.zeros((5, 5), dtype="int32"),
             # Test slice
-            rng,
-            rng[1:],
-            rng[:4],
-            rng[1:3],
+            x,
+            x[1:],
+            x[:4],
+            x[1:3],
             # Don't test step as they are not supported by sparse
             # rng[::2], rng[::-1]
         ]:
@@ -44,8 +44,8 @@ def test_hash_from_sparse():
             hashes.append(hash_from_sparse(data))
 
         # test that different type of views and their copy give the same hash
-        assert hash_from_sparse(rng[1:]) == hash_from_sparse(rng[1:].copy())
-        assert hash_from_sparse(rng[1:3]) == hash_from_sparse(rng[1:3].copy())
-        assert hash_from_sparse(rng[:4]) == hash_from_sparse(rng[:4].copy())
+        assert hash_from_sparse(x[1:]) == hash_from_sparse(x[1:].copy())
+        assert hash_from_sparse(x[1:3]) == hash_from_sparse(x[1:3].copy())
+        assert hash_from_sparse(x[:4]) == hash_from_sparse(x[:4].copy())
 
     assert len(set(hashes)) == len(hashes)

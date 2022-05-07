@@ -44,7 +44,7 @@ with config.change_flags(compute_test_value="off"):
 
         f = aesara.function([x], [send_request, z], mode=mode)
 
-        xx = np.random.rand(*shape).astype(dtype)
+        xx = np.random.random(shape).astype(dtype)
         expected = (xx + 1) * 2
 
         _, zz = f(xx)

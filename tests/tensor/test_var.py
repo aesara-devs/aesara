@@ -93,7 +93,7 @@ def test_empty_list_indexing():
 
 def test_copy():
     x = dmatrix("x")
-    data = np.random.rand(5, 5)
+    data = np.random.random((5, 5))
     y = x.copy(name="y")
     f = aesara.function([x], y)
     assert_equal(f(data), data)

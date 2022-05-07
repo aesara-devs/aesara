@@ -127,7 +127,7 @@ class TestMakeThunk:
 
         x_input = dmatrix("x_input")
         f = aesara.function([x_input], DoubleOp()(x_input))
-        inp = np.random.rand(5, 4)
+        inp = np.random.random((5, 4))
         out = f(inp)
         assert np.allclose(inp * 2, out)
 

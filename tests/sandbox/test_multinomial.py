@@ -15,9 +15,9 @@ def test_n_samples_1():
 
     f = function([p, u, n], m, allow_input_downcast=True)
 
-    np.random.seed(12345)
+    rng = np.random.default_rng(12345)
     for i in [1, 5, 10, 100, 1000, 10000]:
-        uni = np.random.rand(2 * i).astype(config.floatX)
+        uni = rng.random(2 * i).astype(config.floatX)
         res = f([[1.0, 0.0], [0.0, 1.0]], uni, i)
         utt.assert_allclose(res, [[i * 1.0, 0.0], [0.0, i * 1.0]])
 
@@ -30,17 +30,18 @@ def test_n_samples_2():
 
     f = function([p, u, n], m, allow_input_downcast=True)
 
-    np.random.seed(12345)
+    rng = np.random.default_rng(12345)
+
     for i in [1, 5, 10, 100, 1000]:
-        uni = np.random.rand(i).astype(config.floatX)
-        pvals = np.random.randint(1, 1000, (1, 1000)).astype(config.floatX)
+        uni = rng.random(i).astype(config.floatX)
+        pvals = rng.integers(1, 1000, (1, 1000)).astype(config.floatX)
         pvals /= pvals.sum(1)
         res = f(pvals, uni, i)
         assert res.sum() == i
 
     for i in [1, 5, 10, 100, 1000]:
-        uni = np.random.rand(i).astype(config.floatX)
-        pvals = np.random.randint(1, 1000000, (1, 1000000)).astype(config.floatX)
+        uni = rng.random(i).astype(config.floatX)
+        pvals = rng.integers(1, 1000000, (1, 1000000)).astype(config.floatX)
         pvals /= pvals.sum(1)
         res = f(pvals, uni, i)
         assert res.sum() == i
