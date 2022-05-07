@@ -85,17 +85,18 @@ class TestConv2D(utt.InferShapeTester):
             # define aesara graph and function
             input.name = "input"
             filters.name = "filters"
-            rval = conv.conv2d(
-                input,
-                filters,
-                image_shape,
-                filter_shape,
-                border_mode,
-                subsample,
-                unroll_batch=unroll_batch,
-                unroll_kern=unroll_kern,
-                unroll_patch=unroll_patch,
-            )
+            with pytest.warns(DeprecationWarning):
+                rval = conv.conv2d(
+                    input,
+                    filters,
+                    image_shape,
+                    filter_shape,
+                    border_mode,
+                    subsample,
+                    unroll_batch=unroll_batch,
+                    unroll_kern=unroll_kern,
+                    unroll_patch=unroll_patch,
+                )
             rval.name = "conv_output"
             return rval
 
@@ -600,15 +601,16 @@ class TestConv2D(utt.InferShapeTester):
                         input = aesara.shared(np.random.random(image_shape))
                         filters = aesara.shared(np.random.random(filter_shape))
 
-                        output = self.conv2d(
-                            input,
-                            filters,
-                            image_shape,
-                            filter_shape,
-                            border_mode,
-                            unroll_patch=True,
-                            openmp=openmp,
-                        )
+                        with pytest.warns(DeprecationWarning):
+                            output = conv.conv2d(
+                                input,
+                                filters,
+                                image_shape,
+                                filter_shape,
+                                border_mode,
+                                unroll_patch=True,
+                                openmp=openmp,
+                            )
                         mode = Mode(
                             linker=aesara.link.vm.VMLinker(
                                 allow_gc=False, use_cloop=True
@@ -635,101 +637,131 @@ class TestConv2D(utt.InferShapeTester):
         bivec_val = [7, 5, 3, 2]
         adtens_val = rand(*aivec_val)
         bdtens_val = rand(*bivec_val)
-        self._compile_and_check(
-            [adtens, bdtens],
-            [self.conv2d(adtens, bdtens, aivec_val, bivec_val, border_mode="valid")],
-            [adtens_val, bdtens_val],
-            conv.ConvOp,
-            excluding=["conv_gemm"],
-        )
+        with pytest.warns(DeprecationWarning):
+            self._compile_and_check(
+                [adtens, bdtens],
+                [
+                    conv.conv2d(
+                        adtens, bdtens, aivec_val, bivec_val, border_mode="valid"
+                    )
+                ],
+                [adtens_val, bdtens_val],
+                conv.ConvOp,
+                excluding=["conv_gemm"],
+            )
 
-        self._compile_and_check(
-            [adtens, bdtens],
-            [self.conv2d(adtens, bdtens, aivec_val, bivec_val, border_mode="full")],
-            [adtens_val, bdtens_val],
-            conv.ConvOp,
-            excluding=["conv_gemm"],
-        )
+        with pytest.warns(DeprecationWarning):
+            self._compile_and_check(
+                [adtens, bdtens],
+                [conv.conv2d(adtens, bdtens, aivec_val, bivec_val, border_mode="full")],
+                [adtens_val, bdtens_val],
+                conv.ConvOp,
+                excluding=["conv_gemm"],
+            )
 
         aivec_val = [6, 2, 8, 3]
         bivec_val = [4, 2, 5, 3]
         adtens_val = rand(*aivec_val)
         bdtens_val = rand(*bivec_val)
-        self._compile_and_check(
-            [adtens, bdtens],
-            [self.conv2d(adtens, bdtens, aivec_val, bivec_val, border_mode="valid")],
-            [adtens_val, bdtens_val],
-            conv.ConvOp,
-            excluding=["conv_gemm"],
-        )
+        with pytest.warns(DeprecationWarning):
+            self._compile_and_check(
+                [adtens, bdtens],
+                [
+                    conv.conv2d(
+                        adtens, bdtens, aivec_val, bivec_val, border_mode="valid"
+                    )
+                ],
+                [adtens_val, bdtens_val],
+                conv.ConvOp,
+                excluding=["conv_gemm"],
+            )
 
-        self._compile_and_check(
-            [adtens, bdtens],
-            [self.conv2d(adtens, bdtens, aivec_val, bivec_val, border_mode="full")],
-            [adtens_val, bdtens_val],
-            conv.ConvOp,
-            excluding=["conv_gemm"],
-        )
+        with pytest.warns(DeprecationWarning):
+            self._compile_and_check(
+                [adtens, bdtens],
+                [conv.conv2d(adtens, bdtens, aivec_val, bivec_val, border_mode="full")],
+                [adtens_val, bdtens_val],
+                conv.ConvOp,
+                excluding=["conv_gemm"],
+            )
 
         aivec_val = [3, 6, 7, 5]
         bivec_val = [5, 6, 3, 2]
         adtens_val = rand(*aivec_val)
         bdtens_val = rand(*bivec_val)
-        self._compile_and_check(
-            [adtens, bdtens],
-            [self.conv2d(adtens, bdtens, aivec_val, bivec_val, border_mode="valid")],
-            [adtens_val, bdtens_val],
-            conv.ConvOp,
-            excluding=["conv_gemm"],
-        )
+        with pytest.warns(DeprecationWarning):
+            self._compile_and_check(
+                [adtens, bdtens],
+                [
+                    conv.conv2d(
+                        adtens, bdtens, aivec_val, bivec_val, border_mode="valid"
+                    )
+                ],
+                [adtens_val, bdtens_val],
+                conv.ConvOp,
+                excluding=["conv_gemm"],
+            )
 
-        self._compile_and_check(
-            [adtens, bdtens],
-            [self.conv2d(adtens, bdtens, aivec_val, bivec_val, border_mode="full")],
-            [adtens_val, bdtens_val],
-            conv.ConvOp,
-            excluding=["conv_gemm"],
-        )
+        with pytest.warns(DeprecationWarning):
+            self._compile_and_check(
+                [adtens, bdtens],
+                [conv.conv2d(adtens, bdtens, aivec_val, bivec_val, border_mode="full")],
+                [adtens_val, bdtens_val],
+                conv.ConvOp,
+                excluding=["conv_gemm"],
+            )
 
         aivec_val = [3, 6, 7, 5]
         bivec_val = [5, 6, 2, 3]
         adtens_val = rand(*aivec_val)
         bdtens_val = rand(*bivec_val)
-        self._compile_and_check(
-            [adtens, bdtens],
-            [self.conv2d(adtens, bdtens, aivec_val, bivec_val, border_mode="valid")],
-            [adtens_val, bdtens_val],
-            conv.ConvOp,
-            excluding=["conv_gemm"],
-        )
+        with pytest.warns(DeprecationWarning):
+            self._compile_and_check(
+                [adtens, bdtens],
+                [
+                    conv.conv2d(
+                        adtens, bdtens, aivec_val, bivec_val, border_mode="valid"
+                    )
+                ],
+                [adtens_val, bdtens_val],
+                conv.ConvOp,
+                excluding=["conv_gemm"],
+            )
 
-        self._compile_and_check(
-            [adtens, bdtens],
-            [self.conv2d(adtens, bdtens, aivec_val, bivec_val, border_mode="full")],
-            [adtens_val, bdtens_val],
-            conv.ConvOp,
-            excluding=["conv_gemm"],
-        )
+        with pytest.warns(DeprecationWarning):
+            self._compile_and_check(
+                [adtens, bdtens],
+                [conv.conv2d(adtens, bdtens, aivec_val, bivec_val, border_mode="full")],
+                [adtens_val, bdtens_val],
+                conv.ConvOp,
+                excluding=["conv_gemm"],
+            )
 
         aivec_val = [5, 2, 4, 3]
         bivec_val = [6, 2, 4, 3]
         adtens_val = rand(*aivec_val)
         bdtens_val = rand(*bivec_val)
-        self._compile_and_check(
-            [adtens, bdtens],
-            [self.conv2d(adtens, bdtens, aivec_val, bivec_val, border_mode="valid")],
-            [adtens_val, bdtens_val],
-            conv.ConvOp,
-            excluding=["conv_gemm"],
-        )
+        with pytest.warns(DeprecationWarning):
+            self._compile_and_check(
+                [adtens, bdtens],
+                [
+                    conv.conv2d(
+                        adtens, bdtens, aivec_val, bivec_val, border_mode="valid"
+                    )
+                ],
+                [adtens_val, bdtens_val],
+                conv.ConvOp,
+                excluding=["conv_gemm"],
+            )
 
-        self._compile_and_check(
-            [adtens, bdtens],
-            [self.conv2d(adtens, bdtens, aivec_val, bivec_val, border_mode="full")],
-            [adtens_val, bdtens_val],
-            conv.ConvOp,
-            excluding=["conv_gemm"],
-        )
+        with pytest.warns(DeprecationWarning):
+            self._compile_and_check(
+                [adtens, bdtens],
+                [conv.conv2d(adtens, bdtens, aivec_val, bivec_val, border_mode="full")],
+                [adtens_val, bdtens_val],
+                conv.ConvOp,
+                excluding=["conv_gemm"],
+            )
 
 
 # Test that broadcasting of gradients works correctly when using the

@@ -692,9 +692,10 @@ def guess_n_streams(size, warn=False):
         if warn:
             warnings.warn(
                 (
-                    "MRG_RandomStream Can't determine #streams "
+                    "MRG_RandomStream can't determine the number ofstreams "
                     f"from size ({size}), guessing 60*256"
                 ),
+                DeprecationWarning,
                 stacklevel=3,
             )
         return 60 * 256
@@ -1106,9 +1107,10 @@ class MRG_RandomStream:
         **kwargs,
     ):
         warnings.warn(
-            "MRG_RandomStream.multinomial_wo_replacement() is "
+            "MRG_RandomStream.multinomial_wo_replacement is "
             "deprecated and will be removed in the next release of "
-            "Aesara. Please use MRG_RandomStream.choice() instead."
+            "Aesara. Please use MRG_RandomStream.choice instead.",
+            DeprecationWarning,
         )
         assert size is None
         return self.choice(

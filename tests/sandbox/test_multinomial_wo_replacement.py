@@ -152,7 +152,8 @@ class TestFunction:
 
         p = fmatrix()
         n = iscalar()
-        m = th_rng.multinomial_wo_replacement(pvals=p, n=n)
+        with pytest.warns(DeprecationWarning):
+            m = th_rng.multinomial_wo_replacement(pvals=p, n=n)
 
         f = function([p, n], m, allow_input_downcast=True)
 
@@ -175,7 +176,8 @@ class TestFunction:
 
         p = fmatrix()
         n = iscalar()
-        m = th_rng.multinomial_wo_replacement(pvals=p, n=n)
+        with pytest.warns(DeprecationWarning):
+            m = th_rng.multinomial_wo_replacement(pvals=p, n=n)
 
         f = function([p, n], m, allow_input_downcast=True)
 
