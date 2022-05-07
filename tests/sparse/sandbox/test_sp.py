@@ -133,7 +133,6 @@ class TestSP:
         # symbolic stuff
         kerns = [dmatrix(), dmatrix()]
         input = dmatrix()
-        # rng = np.random.default_rng(3423489)
 
         # build actual input images
         img2d = np.arange(bsize * np.prod(imshp)).reshape((bsize,) + imshp)
@@ -154,7 +153,6 @@ class TestSP:
                     )
                     l1propup = function([kerns[0], input], l1hid, mode=mode)
 
-                    # l1kernvals = np.random.rand(nkerns[0],np.prod(kshp[0]))
                     l1kernvals = np.arange(nkerns[0] * np.prod(kshp[0])).reshape(
                         nkerns[0], np.prod(kshp[0])
                     )
@@ -172,7 +170,6 @@ class TestSP:
                     )
                     l2propup = function([kerns[1], l1hid], l2hid, mode=mode)
 
-                    # l2kernvals = np.random.rand(nkerns[1],np.prod(kshp[1])*nkerns[0])
                     l2kernvals = np.arange(
                         nkerns[1] * np.prod(kshp[1]) * nkerns[0]
                     ).reshape(nkerns[1], np.prod(kshp[1]) * nkerns[0])

@@ -72,8 +72,8 @@ def may_share_memory_core(a, b):
 
 
 def test_may_share_memory():
-    a = np.random.rand(5, 4)
-    b = np.random.rand(5, 4)
+    a = np.random.random((5, 4))
+    b = np.random.random((5, 4))
 
     may_share_memory_core(a, b)
 

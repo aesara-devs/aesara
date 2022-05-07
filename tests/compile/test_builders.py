@@ -124,7 +124,7 @@ class TestOpFromGraph(unittest_tools.InferShapeTester):
     )
     def test_shared(self, cls_ofg):
         x, y, z = matrices("xyz")
-        s = shared(np.random.rand(2, 2).astype(config.floatX))
+        s = shared(np.random.random((2, 2)).astype(config.floatX))
         e = x + y * z + s
         op = cls_ofg([x, y, z], [e])
         # (1+3*5=array of 16) - (3+1*5=array of 8)
@@ -144,7 +144,7 @@ class TestOpFromGraph(unittest_tools.InferShapeTester):
     )
     def test_shared_grad(self, cls_ofg):
         x, y, z = matrices("xyz")
-        s = shared(np.random.rand(2, 2).astype(config.floatX))
+        s = shared(np.random.random((2, 2)).astype(config.floatX))
         e = x + y * z + s
         op = cls_ofg([x, y, z], [e])
         f = op(x, y, z)
@@ -184,8 +184,8 @@ class TestOpFromGraph(unittest_tools.InferShapeTester):
             zz = at_sum(op(xx, yy))
             dx, dy = grad(zz, [xx, yy])
             fn = function([xx, yy], [dx, dy])
-            xv = np.random.rand(16).astype(config.floatX)
-            yv = np.random.rand(16).astype(config.floatX)
+            xv = np.random.random((16,)).astype(config.floatX)
+            yv = np.random.random((16,)).astype(config.floatX)
             dxv, dyv = fn(xv, yv)
             np.testing.assert_array_almost_equal(yv * 2, dxv, 4)
             np.testing.assert_array_almost_equal(xv * 1.5, dyv, 4)
@@ -210,9 +210,9 @@ class TestOpFromGraph(unittest_tools.InferShapeTester):
         zz = at_sum(op_linear(xx, ww, bb))
         dx, dw, db = grad(zz, [xx, ww, bb])
         fn = function([xx, ww, bb], [dx, dw, db])
-        xv = np.random.rand(16).astype(config.floatX)
-        wv = np.random.rand(16).astype(config.floatX)
-        bv = np.random.rand(16).astype(config.floatX)
+        xv = np.random.random((16,)).astype(config.floatX)
+        wv = np.random.random((16,)).astype(config.floatX)
+        bv = np.random.random((16,)).astype(config.floatX)
         dxv, dwv, dbv = fn(xv, wv, bv)
         np.testing.assert_array_almost_equal(wv * 2, dxv, 4)
         np.testing.assert_array_almost_equal(xv * 1.5, dwv, 4)
@@ -262,7 +262,7 @@ class TestOpFromGraph(unittest_tools.InferShapeTester):
             gyy2 = grad(yy2, xx)
             fn = function([xx], [gyy1, gyy2])
 
-            xval = np.random.rand(32).astype(config.floatX)
+            xval = np.random.random((32,)).astype(config.floatX)
             y1val, y2val = fn(xval)
             np.testing.assert_array_almost_equal(y1val, y2val, 4)
 
@@ -280,9 +280,9 @@ class TestOpFromGraph(unittest_tools.InferShapeTester):
         du = vector()
         dv = Rop(y, x, du)
         fn = function([x, W, du], dv)
-        xval = np.random.rand(16).astype(config.floatX)
-        Wval = np.random.rand(16, 16).astype(config.floatX)
-        duval = np.random.rand(16).astype(config.floatX)
+        xval = np.random.random((16,)).astype(config.floatX)
+        Wval = np.random.random((16, 16)).astype(config.floatX)
+        duval = np.random.random((16,)).astype(config.floatX)
         dvval = np.dot(duval, Wval)
         dvval2 = fn(xval, Wval, duval)
         np.testing.assert_array_almost_equal(dvval2, dvval, 4)
@@ -310,7 +310,7 @@ class TestOpFromGraph(unittest_tools.InferShapeTester):
             zz = op_mul(xx, yy)
             dw = Rop(zz, [xx, yy], [du, dv])
             fn = function([xx, yy, du, dv], dw)
-            vals = np.random.rand(4, 32).astype(config.floatX)
+            vals = np.random.random((4, 32)).astype(config.floatX)
             dwval = fn(*vals)
             np.testing.assert_array_almost_equal(
                 dwval, vals[0] * vals[3] * 1.5 + vals[1] * vals[2] * 2.0, 4
@@ -363,8 +363,8 @@ class TestOpFromGraph(unittest_tools.InferShapeTester):
         xx2, yy2 = op_ift(*op_ft(xx, yy))
         fn = function([xx, yy], [xx2, yy2])
 
-        xv = np.random.rand(16).astype(config.floatX)
-        yv = np.random.rand(16).astype(config.floatX)
+        xv = np.random.random((16,)).astype(config.floatX)
+        yv = np.random.random((16,)).astype(config.floatX)
         xv2, yv2 = fn(xv, yv)
         np.testing.assert_array_almost_equal(xv, xv2, 4)
         np.testing.assert_array_almost_equal(yv, yv2, 4)

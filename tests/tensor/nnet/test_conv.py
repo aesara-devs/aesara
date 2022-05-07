@@ -25,7 +25,7 @@ class TestConv2D(utt.InferShapeTester):
     # This will be set to the appropriate function in the inherited classes.
     # The call to `staticmethod` is necessary to prevent Python from passing
     # `self` as the first argument.
-    conv2d = staticmethod(conv.conv2d)
+    conv2d = staticmethod(conv2d)
 
     def setup_method(self):
         self.input = tensor4("input", dtype=self.dtype)
@@ -372,7 +372,6 @@ class TestConv2D(utt.InferShapeTester):
             should_raise=True,
         )
 
-    @pytest.mark.slow
     def test_subsample(self):
         # Tests convolution where subsampling != (1,1)
         self.validate((3, 2, 7, 5), (5, 2, 2, 3), "full", subsample=(2, 2))
@@ -407,7 +406,6 @@ class TestConv2D(utt.InferShapeTester):
         with pytest.raises(AssertionError):
             self.validate((3, 2, 8, 8), (4, 3, 5, 5), "valid")
 
-    @pytest.mark.slow
     def test_invalid_input_shape(self):
         # Tests that when the shape given at build time is not the same as
         # run time we raise an error
@@ -627,8 +625,10 @@ class TestConv2D(utt.InferShapeTester):
         # Note: infer_shape is incomplete and thus input and filter shapes
         # must be provided explicitly
 
+        rng = np.random.default_rng(280284)
+
         def rand(*shape):
-            r = np.asarray(np.random.rand(*shape), dtype="float64")
+            r = np.asarray(rng.random(shape), dtype="float64")
             return r * 2 - 1
 
         adtens = dtensor4()
@@ -768,11 +768,8 @@ class TestConv2D(utt.InferShapeTester):
 # nnet.conv2d() interface. This was reported in #3763, and uses the example
 # code from that ticket.
 def test_broadcast_grad():
-    # rng = numpy.random.RandomState(utt.fetch_seed())
     x1 = tensor4("x")
-    # x1_data = rng.randn(1, 1, 300, 300)
     sigma = scalar("sigma")
-    # sigma_data = 20
     window_radius = 3
 
     filter_1d = at.arange(-window_radius, window_radius + 1)
@@ -783,4 +780,5 @@ def test_broadcast_grad():
     filter_W = filter_1d.dimshuffle(["x", "x", 0, "x"])
 
     y = conv2d(x1, filter_W, border_mode="full", filter_shape=[1, 1, None, None])
+    # TODO FIXME: Make this a real test and `assert` something
     aesara.grad(y.sum(), sigma)

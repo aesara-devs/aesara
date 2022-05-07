@@ -53,7 +53,7 @@ class TestMinMax:
         )
 
     def test_optimization_max(self):
-        data = np.asarray(np.random.rand(2, 3), dtype=config.floatX)
+        data = np.asarray(np.random.random((2, 3)), dtype=config.floatX)
         n = matrix()
 
         for axis in [0, 1, -1]:
@@ -86,7 +86,7 @@ class TestMinMax:
             f(data)
 
     def test_optimization_min(self):
-        data = np.asarray(np.random.rand(2, 3), dtype=config.floatX)
+        data = np.asarray(np.random.random((2, 3)), dtype=config.floatX)
         n = matrix()
 
         for axis in [0, 1, -1]:
@@ -209,7 +209,7 @@ def test_local_dimshuffle_subtensor():
 
     topo = f.maker.fgraph.toposort()
     assert not all(isinstance(x, DimShuffle) for x in topo)
-    assert f(np.random.rand(5, 1, 4, 1), 2).shape == (4,)
+    assert f(np.random.random((5, 1, 4, 1)), 2).shape == (4,)
 
     # Test a corner case that had Aesara return a bug.
     x = dtensor4("x")

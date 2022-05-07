@@ -77,8 +77,10 @@ class TestCorr3D(utt.InferShapeTester):
         aesara_corr = aesara.function([input, filters], output, mode=self.mode)
 
         # initialize input and compute result
-        image_data = np.random.random(N_image_shape).astype(self.dtype)
-        filter_data = np.random.random(N_filter_shape).astype(self.dtype)
+        rng = np.random.default_rng(28483)
+
+        image_data = rng.random(N_image_shape).astype(self.dtype)
+        filter_data = rng.random(N_filter_shape).astype(self.dtype)
         image_data /= 10
         filter_data /= 10
         if non_contiguous:
@@ -337,8 +339,10 @@ class TestCorr3D(utt.InferShapeTester):
     def test_dtype_upcast(self):
         # Checks dtype upcast for Corr3dMM methods.
 
+        rng = np.random.default_rng(28483)
+
         def rand(shape, dtype="float64"):
-            r = np.asarray(np.random.rand(*shape), dtype=dtype)
+            r = np.asarray(rng.random(shape), dtype=dtype)
             return r * 2 - 1
 
         ops = [corr3d.Corr3dMM, corr3d.Corr3dMMGradWeights, corr3d.Corr3dMMGradInputs]
@@ -365,8 +369,11 @@ class TestCorr3D(utt.InferShapeTester):
         reason="Need cxx for this test",
     )
     def test_infer_shape_forward(self):
+
+        rng = np.random.default_rng(28483)
+
         def rand(*shape):
-            r = np.asarray(np.random.rand(*shape), dtype="float64")
+            r = np.asarray(rng.random(shape), dtype="float64")
             return r * 2 - 1
 
         corr3dMM = corr3d.Corr3dMM
@@ -413,8 +420,11 @@ class TestCorr3D(utt.InferShapeTester):
         reason="Need cxx for this test",
     )
     def test_infer_shape_gradW(self):
+
+        rng = np.random.default_rng(28483)
+
         def rand(*shape):
-            r = np.asarray(np.random.rand(*shape), dtype="float64")
+            r = np.asarray(rng.random(shape), dtype="float64")
             return r * 2 - 1
 
         corr3dMM = corr3d.Corr3dMM
@@ -473,8 +483,11 @@ class TestCorr3D(utt.InferShapeTester):
         reason="Need cxx for this test",
     )
     def test_infer_shape_gradI(self):
+
+        rng = np.random.default_rng(28483)
+
         def rand(*shape):
-            r = np.asarray(np.random.rand(*shape), dtype="float64")
+            r = np.asarray(rng.random(shape), dtype="float64")
             return r * 2 - 1
 
         corr3dMM = corr3d.Corr3dMM

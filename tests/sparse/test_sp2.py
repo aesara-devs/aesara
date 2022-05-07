@@ -27,12 +27,13 @@ class TestPoisson(utt.InferShapeTester):
     for format in sparse.sparse_formats:
         variable = getattr(aesara.sparse, format + "_matrix")
 
-        rand = np.array(
-            np.random.randint(1, 4, size=(3, 4)) - 1, dtype=aesara.config.floatX
+        a_val = np.array(
+            np.random.default_rng(utt.fetch_seed()).integers(1, 4, size=(3, 4)) - 1,
+            dtype=aesara.config.floatX,
         )
 
         x[format] = variable()
-        a[format] = as_sparse_format(rand, format)
+        a[format] = as_sparse_format(a_val, format)
 
     def setup_method(self):
         super().setup_method()

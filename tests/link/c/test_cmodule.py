@@ -34,8 +34,8 @@ class MyOp(DeepCopyOp):
         itype = node.inputs[0].type.__class__
         if itype in self.c_code_and_version:
             code, version = self.c_code_and_version[itype]
-            rand = np.random.rand()
-            return ('printf("%(rand)s\\n");' + code) % locals()
+            rand = np.random.random()
+            return f'printf("{rand}\\n");{code % locals()}'
         # Else, no C code
         return super(DeepCopyOp, self).c_code(node, name, inames, onames, sub)
 

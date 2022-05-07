@@ -297,7 +297,7 @@ class TestImages2Neibs(unittest_tools.InferShapeTester):
         ):
             for neib_shape in neib_shapes:
                 for dtype in self.dtypes:
-                    x = aesara.shared(np.random.randn(*shape).astype(dtype))
+                    x = aesara.shared(np.random.standard_normal(shape).astype(dtype))
                     extra = (neib_shape[0] // 2, neib_shape[1] // 2)
                     padded_shape = (
                         x.shape[0],
@@ -334,7 +334,7 @@ class TestImages2Neibs(unittest_tools.InferShapeTester):
         ):
             for neib_shape in neib_shapes:
                 for dtype in self.dtypes:
-                    x = aesara.shared(np.random.randn(*shape).astype(dtype))
+                    x = aesara.shared(np.random.standard_normal(shape).astype(dtype))
                     extra = (neib_shape[0] - 1, neib_shape[1] - 1)
                     padded_shape = (
                         x.shape[0],
@@ -398,7 +398,7 @@ class TestImages2Neibs(unittest_tools.InferShapeTester):
     def test_grad_wrap_centered(self):
         # It is not implemented for now. So test that we raise an error.
         shape = (2, 3, 6, 6)
-        images_val = np.random.rand(*shape).astype("float32")
+        images_val = np.random.random(shape).astype("float32")
 
         def fn(images):
             return images2neibs(images, (3, 3), mode="wrap_centered")
@@ -409,7 +409,8 @@ class TestImages2Neibs(unittest_tools.InferShapeTester):
     def test_grad_half(self):
         # It is not implemented for now. So test that we raise an error.
         shape = (2, 3, 6, 6)
-        images_val = np.random.rand(*shape).astype("float32")
+        rng = np.random.default_rng(28483)
+        images_val = rng.random(shape).astype("float32")
 
         def fn(images):
             return images2neibs(images, (3, 3), mode="half")
@@ -420,7 +421,8 @@ class TestImages2Neibs(unittest_tools.InferShapeTester):
     def test_grad_full(self):
         # It is not implemented for now. So test that we raise an error.
         shape = (2, 3, 6, 6)
-        images_val = np.random.rand(*shape).astype("float32")
+        rng = np.random.default_rng(28483)
+        images_val = rng.random(shape).astype("float32")
 
         def fn(images):
             return images2neibs(images, (3, 3), mode="full")
@@ -430,7 +432,8 @@ class TestImages2Neibs(unittest_tools.InferShapeTester):
 
     def test_grad_valid(self):
         shape = (2, 3, 6, 6)
-        images_val = np.random.rand(*shape).astype("float32")
+        rng = np.random.default_rng(28483)
+        images_val = rng.random(shape).astype("float32")
 
         def fn(images):
             return images2neibs(images, (2, 2))
@@ -449,7 +452,8 @@ class TestImages2Neibs(unittest_tools.InferShapeTester):
 
     def test_grad_ignore_border(self):
         shape = (2, 3, 5, 5)
-        images_val = np.random.rand(*shape).astype("float32")
+        rng = np.random.default_rng(28483)
+        images_val = rng.random(shape).astype("float32")
 
         def fn(images):
             return images2neibs(images, (2, 2), mode="ignore_borders")
@@ -459,7 +463,8 @@ class TestImages2Neibs(unittest_tools.InferShapeTester):
     def test_neibs2images_grad(self):
         # say we had images of size (2, 3, 10, 10)
         # then we extracted 2x2 neighbors on this, we get (2 * 3 * 5 * 5, 4)
-        neibs_val = np.random.rand(150, 4)
+        rng = np.random.default_rng(28483)
+        neibs_val = rng.random((150, 4))
 
         def fn(neibs):
             return neibs2images(neibs, (2, 2), (2, 3, 10, 10))
@@ -519,7 +524,10 @@ class TestImages2Neibs(unittest_tools.InferShapeTester):
 
             im_val = np.ones((1, 3, 320, 320), dtype=np.float32)
             neibs = extractPatches(im_val)
+
+            # TODO FIXME: Make this a real test and `assert` something
             f(neibs, im_val.shape)
+
             # Wrong number of dimensions
             with pytest.raises(ValueError):
                 f(neibs, (1, 1, 3, 320, 320))

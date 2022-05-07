@@ -20,14 +20,19 @@ def test_NanGuardMode():
     # Tests if NanGuardMode is working by feeding in numpy.inf and numpy.nans
     # intentionally. A working implementation should be able to capture all
     # the abnormalties.
+    rng = np.random.default_rng(2482)
     x = matrix()
-    w = shared(np.random.randn(5, 7).astype(config.floatX))
+    w = shared(rng.standard_normal((5, 7)).astype(config.floatX))
     y = dot(x, w)
 
     fun = function([x], y, mode=NanGuardMode(nan_is_error=True, inf_is_error=True))
-    a = np.random.randn(3, 5).astype(config.floatX)
-    infa = np.tile((np.asarray(100.0) ** 1000000).astype(config.floatX), (3, 5))
+    a = rng.standard_normal((3, 5)).astype(config.floatX)
+
+    with pytest.warns(RuntimeWarning):
+        infa = np.tile((np.asarray(100.0) ** 1000000).astype(config.floatX), (3, 5))
+
     nana = np.tile(np.asarray(np.nan).astype(config.floatX), (3, 5))
+
     biga = np.tile(np.asarray(1e20).astype(config.floatX), (3, 5))
 
     fun(a)  # normal values
@@ -38,7 +43,7 @@ def test_NanGuardMode():
         _logger.propagate = False
         with pytest.raises(AssertionError):
             fun(infa)  # INFs
-        with pytest.raises(AssertionError):
+        with pytest.raises(AssertionError), pytest.warns(RuntimeWarning):
             fun(nana)  # NANs
         with pytest.raises(AssertionError):
             fun(biga)  # big values
@@ -46,9 +51,13 @@ def test_NanGuardMode():
         _logger.propagate = True
 
     # slices
-    a = np.random.randn(3, 4, 5).astype(config.floatX)
-    infa = np.tile((np.asarray(100.0) ** 1000000).astype(config.floatX), (3, 4, 5))
+    a = rng.standard_normal((3, 4, 5)).astype(config.floatX)
+
+    with pytest.warns(RuntimeWarning):
+        infa = np.tile((np.asarray(100.0) ** 1000000).astype(config.floatX), (3, 4, 5))
+
     nana = np.tile(np.asarray(np.nan).astype(config.floatX), (3, 4, 5))
+
     biga = np.tile(np.asarray(1e20).astype(config.floatX), (3, 4, 5))
 
     x = tensor3()
@@ -59,7 +68,7 @@ def test_NanGuardMode():
         _logger.propagate = False
         with pytest.raises(AssertionError):
             fun(infa)  # INFs
-        with pytest.raises(AssertionError):
+        with pytest.raises(AssertionError), pytest.warns(RuntimeWarning):
             fun(nana)  # NANs
         with pytest.raises(AssertionError):
             fun(biga)  # big values

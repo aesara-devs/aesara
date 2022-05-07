@@ -1,5 +1,3 @@
-import warnings
-
 import numpy as np
 import pytest
 
@@ -22,7 +20,6 @@ def set_aesara_flags():
         yield
 
 
-# Used in TestComputeTestValue.test_no_perform
 class IncOneC(COp):
     """
     An Op with only a C (c_code) implementation
@@ -80,9 +77,9 @@ class TestComputeTestValue:
 
     def test_variable_only(self):
         x = matrix("x")
-        x.tag.test_value = np.random.rand(3, 4).astype(config.floatX)
+        x.tag.test_value = np.random.random((3, 4)).astype(config.floatX)
         y = matrix("y")
-        y.tag.test_value = np.random.rand(4, 5).astype(config.floatX)
+        y.tag.test_value = np.random.random((4, 5)).astype(config.floatX)
 
         # should work
         z = dot(x, y)
@@ -91,14 +88,14 @@ class TestComputeTestValue:
         assert _allclose(f(x.tag.test_value, y.tag.test_value), z.tag.test_value)
 
         # this test should fail
-        y.tag.test_value = np.random.rand(6, 5).astype(config.floatX)
+        y.tag.test_value = np.random.random((6, 5)).astype(config.floatX)
         with pytest.raises(ValueError):
             dot(x, y)
 
     def test_compute_flag(self):
         x = matrix("x")
         y = matrix("y")
-        y.tag.test_value = np.random.rand(4, 5).astype(config.floatX)
+        y.tag.test_value = np.random.random((4, 5)).astype(config.floatX)
 
         # should skip computation of test value
         with config.change_flags(compute_test_value="off"):
@@ -110,18 +107,16 @@ class TestComputeTestValue:
             dot(x, y)
 
         # test that a warning is raised if required
-        with warnings.catch_warnings(), config.change_flags(compute_test_value="warn"):
-            warnings.simplefilter("error", UserWarning)
-            with pytest.raises(UserWarning):
-                dot(x, y)
+        with pytest.warns(UserWarning), config.change_flags(compute_test_value="warn"):
+            dot(x, y)
 
     def test_string_var(self):
         x = matrix("x")
-        x.tag.test_value = np.random.rand(3, 4).astype(config.floatX)
+        x.tag.test_value = np.random.random((3, 4)).astype(config.floatX)
         y = matrix("y")
-        y.tag.test_value = np.random.rand(4, 5).astype(config.floatX)
+        y.tag.test_value = np.random.random((4, 5)).astype(config.floatX)
 
-        z = aesara.shared(np.random.rand(5, 6).astype(config.floatX))
+        z = aesara.shared(np.random.random((5, 6)).astype(config.floatX))
 
         # should work
         out = dot(dot(x, y), z)
@@ -133,14 +128,14 @@ class TestComputeTestValue:
             return dot(dot(x, y), z)
 
         # this test should fail
-        z.set_value(np.random.rand(7, 6).astype(config.floatX))
+        z.set_value(np.random.random((7, 6)).astype(config.floatX))
         with pytest.raises(ValueError):
             f(x, y, z)
 
     def test_shared(self):
         x = matrix("x")
-        x.tag.test_value = np.random.rand(3, 4).astype(config.floatX)
-        y = aesara.shared(np.random.rand(4, 6).astype(config.floatX), "y")
+        x.tag.test_value = np.random.random((3, 4)).astype(config.floatX)
+        y = aesara.shared(np.random.random((4, 6)).astype(config.floatX), "y")
 
         # should work
         z = dot(x, y)
@@ -149,13 +144,13 @@ class TestComputeTestValue:
         assert _allclose(f(x.tag.test_value), z.tag.test_value)
 
         # this test should fail
-        y.set_value(np.random.rand(5, 6).astype(config.floatX))
+        y.set_value(np.random.random((5, 6)).astype(config.floatX))
         with pytest.raises(ValueError):
             dot(x, y)
 
     def test_ndarray(self):
-        x = np.random.rand(2, 3).astype(config.floatX)
-        y = aesara.shared(np.random.rand(3, 6).astype(config.floatX), "y")
+        x = np.random.random((2, 3)).astype(config.floatX)
+        y = aesara.shared(np.random.random((3, 6)).astype(config.floatX), "y")
 
         # should work
         z = dot(x, y)
@@ -164,12 +159,12 @@ class TestComputeTestValue:
         assert _allclose(f(), z.tag.test_value)
 
         # this test should fail
-        x = np.random.rand(2, 4).astype(config.floatX)
+        x = np.random.random((2, 4)).astype(config.floatX)
         with pytest.raises(ValueError):
             dot(x, y)
 
     def test_empty_elemwise(self):
-        x = aesara.shared(np.random.rand(0, 6).astype(config.floatX), "x")
+        x = aesara.shared(np.random.random((0, 6)).astype(config.floatX), "x")
 
         # should work
         z = (x + 2) * 3
@@ -178,8 +173,8 @@ class TestComputeTestValue:
         assert _allclose(f(), z.tag.test_value)
 
     def test_constant(self):
-        x = at.constant(np.random.rand(2, 3), dtype=config.floatX)
-        y = aesara.shared(np.random.rand(3, 6).astype(config.floatX), "y")
+        x = at.constant(np.random.random((2, 3)), dtype=config.floatX)
+        y = aesara.shared(np.random.random((3, 6)).astype(config.floatX), "y")
 
         # should work
         z = dot(x, y)
@@ -188,7 +183,7 @@ class TestComputeTestValue:
         assert _allclose(f(), z.tag.test_value)
 
         # this test should fail
-        x = at.constant(np.random.rand(2, 4), dtype=config.floatX)
+        x = at.constant(np.random.random((2, 4)), dtype=config.floatX)
         with pytest.raises(ValueError):
             dot(x, y)
 
@@ -202,7 +197,7 @@ class TestComputeTestValue:
         x = fmatrix("x")
         with pytest.raises(TypeError):
             # Incorrect dtype (float64) for test value
-            x.tag.test_value = np.random.rand(3, 4)
+            x.tag.test_value = np.random.random((3, 4))
 
     def test_overided_function(self):
         # We need to test those as they mess with Exception
@@ -219,7 +214,7 @@ class TestComputeTestValue:
         k = iscalar("k")
         A = vector("A")
         k.tag.test_value = 3
-        A.tag.test_value = np.random.rand(5).astype(config.floatX)
+        A.tag.test_value = np.random.random((5,)).astype(config.floatX)
 
         def fx(prior_result, A):
             return prior_result * A
@@ -240,7 +235,7 @@ class TestComputeTestValue:
         k = iscalar("k")
         A = matrix("A")
         k.tag.test_value = 3
-        A.tag.test_value = np.random.rand(5, 3).astype(config.floatX)
+        A.tag.test_value = np.random.random((5, 3)).astype(config.floatX)
 
         def fx(prior_result, A):
             return dot(prior_result, A)
@@ -258,7 +253,7 @@ class TestComputeTestValue:
         k = iscalar("k")
         A = matrix("A")
         k.tag.test_value = 3
-        A.tag.test_value = np.random.rand(5, 3).astype(config.floatX)
+        A.tag.test_value = np.random.random((5, 3)).astype(config.floatX)
 
         def fx(prior_result, A):
             return dot(prior_result, A)

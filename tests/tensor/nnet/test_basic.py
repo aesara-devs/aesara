@@ -108,7 +108,7 @@ class TestSoftmax(utt.InferShapeTester):
     @pytest.mark.parametrize("axis", [None, 0, 1, 2, 3, -1, -2])
     def test_perform(self, axis):
         x = tensor4("x")
-        xv = np.random.randn(2, 3, 4, 5).astype(config.floatX)
+        xv = np.random.standard_normal((2, 3, 4, 5)).astype(config.floatX)
 
         f = aesara.function([x], softmax(x, axis=axis))
         assert np.allclose(f(xv), sp.softmax(xv, axis=axis))
@@ -132,7 +132,7 @@ class TestSoftmax(utt.InferShapeTester):
         x = vector()
         f = aesara.function([x], softmax(x, axis=None))
 
-        xv = np.random.randn(6).astype(config.floatX)
+        xv = np.random.standard_normal((6,)).astype(config.floatX)
         assert np.allclose(f(xv), sp.softmax(xv))
 
     def test_vector_grad(self):
@@ -187,8 +187,8 @@ class TestSoftmaxWithBias(utt.InferShapeTester):
         # print f.maker.fgraph.toposort()
 
     def test_softmax_with_bias_trace(self):
-        a = aesara.shared(np.random.randn(3).astype(config.floatX))
-        b = aesara.shared(np.float32(np.random.randn()))
+        a = aesara.shared(np.random.standard_normal((3,)).astype(config.floatX))
+        b = aesara.shared(np.float32(np.random.standard_normal()))
         sm = softmax(a + b)
         f = aesara.function([], sm)
         assert check_stack_trace(f, ops_to_check="last")
@@ -219,7 +219,7 @@ class TestLogSoftmax(utt.InferShapeTester):
         x = vector()
         f = aesara.function([x], logsoftmax(x, axis=None))
 
-        xv = np.random.randn(6).astype(config.floatX)
+        xv = np.random.standard_normal((6,)).astype(config.floatX)
         assert np.allclose(f(xv), sp.log_softmax(xv))
 
     def test_vector_grad(self):
@@ -1372,7 +1372,7 @@ TestSoftsign = makeBroadcastTester(
 
 class TestSigmoidBinaryCrossentropy:
     def _get_test_inputs(self, n=50):
-        pred, target = np.random.randn(2, n).astype(config.floatX)
+        pred, target = np.random.standard_normal((2, n)).astype(config.floatX)
         # apply sigmoid to target, but not pred
         return [pred, 1 / (1 + np.exp(-target))]
 

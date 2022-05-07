@@ -2,7 +2,6 @@
     Tests for block sparse dot
 """
 import numpy as np
-from numpy.random import randn
 
 import aesara
 import aesara.tensor as at
@@ -42,18 +41,21 @@ class TestBlockSparseGemvAndOuter(utt.InferShapeTester):
         outputWindowSize = 3
         batchSize = 2
 
-        input = randn(batchSize, inputWindowSize, inputSize).astype("float32")
-        permutation = np.random.permutation
-        inputIndice = np.vstack(
-            permutation(nInputBlock)[:inputWindowSize] for _ in range(batchSize)
-        ).astype("int32")
-        outputIndice = np.vstack(
-            permutation(nOutputBlock)[:outputWindowSize] for _ in range(batchSize)
-        ).astype("int32")
-        weight = randn(nInputBlock, nOutputBlock, inputSize, outputSize).astype(
+        rng = np.random.default_rng(230920)
+
+        input = rng.standard_normal((batchSize, inputWindowSize, inputSize)).astype(
             "float32"
         )
-        bias = randn(nOutputBlock, outputSize).astype("float32")
+        inputIndice = np.vstack(
+            rng.permutation(nInputBlock)[:inputWindowSize] for _ in range(batchSize)
+        ).astype("int32")
+        outputIndice = np.vstack(
+            rng.permutation(nOutputBlock)[:outputWindowSize] for _ in range(batchSize)
+        ).astype("int32")
+        weight = rng.standard_normal(
+            (nInputBlock, nOutputBlock, inputSize, outputSize)
+        ).astype("float32")
+        bias = rng.standard_normal((nOutputBlock, outputSize)).astype("float32")
 
         return weight, input, inputIndice, bias, outputIndice
 
@@ -67,15 +69,18 @@ class TestBlockSparseGemvAndOuter(utt.InferShapeTester):
         yWindowSize = 3
         batchSize = 2
 
-        o = randn(nInputBlock, nOutputBlock, xSize, ySize).astype("float32")
-        x = randn(batchSize, xWindowSize, xSize).astype("float32")
-        y = randn(batchSize, yWindowSize, ySize).astype("float32")
-        randint = np.random.randint
+        rng = np.random.default_rng(230920)
+
+        o = rng.standard_normal((nInputBlock, nOutputBlock, xSize, ySize)).astype(
+            "float32"
+        )
+        x = rng.standard_normal((batchSize, xWindowSize, xSize)).astype("float32")
+        y = rng.standard_normal((batchSize, yWindowSize, ySize)).astype("float32")
         xIdx = np.vstack(
-            randint(0, nInputBlock, size=xWindowSize) for _ in range(batchSize)
+            rng.integers(0, nInputBlock, size=xWindowSize) for _ in range(batchSize)
         ).astype("int32")
         yIdx = np.vstack(
-            randint(0, nOutputBlock, size=yWindowSize) for _ in range(batchSize)
+            rng.integers(0, nOutputBlock, size=yWindowSize) for _ in range(batchSize)
         ).astype("int32")
 
         return o, x, y, xIdx, yIdx
@@ -223,11 +228,13 @@ class TestBlockSparseGemvAndOuter(utt.InferShapeTester):
 
     def test_sparseblockgemv_grad_1(self):
         # Test that we correctly handle cases where dimensions are 1.
-        h_val = randn(1, 1, 1).astype("float32")
-        iIdx_val = np.random.permutation(1)[:1][None, :]
-        oIdx_val = np.random.permutation(1)[:1][None, :]
-        W_val = randn(1, 1, 1, 1).astype("float32")
-        b_val = randn(1, 1).astype("float32")
+        rng = np.random.default_rng(230920)
+
+        h_val = rng.standard_normal((1, 1, 1)).astype("float32")
+        iIdx_val = rng.permutation(1)[:1][None, :]
+        oIdx_val = rng.permutation(1)[:1][None, :]
+        W_val = rng.standard_normal((1, 1, 1, 1)).astype("float32")
+        b_val = rng.standard_normal((1, 1)).astype("float32")
 
         iIdx = at.constant(iIdx_val)
         oIdx = at.constant(oIdx_val)

@@ -88,6 +88,11 @@ def test_cpu_contiguous():
     utt.verify_grad(cpu_contiguous, [np.random.random((5, 7, 2))])
 
 
+compatible_types = ("int8", "int16", "int32")
+if PYTHON_INT_BITWIDTH == 64:
+    compatible_types += ("int64",)
+
+
 class TestSearchsortedOp(utt.InferShapeTester):
     def setup_method(self):
         super().setup_method()
@@ -96,9 +101,9 @@ class TestSearchsortedOp(utt.InferShapeTester):
 
         self.x = vector("x")
         self.v = tensor3("v")
-        self.rng = np.random.default_rng(utt.fetch_seed())
-        self.a = 30 * self.rng.random(50).astype(config.floatX)
-        self.b = 30 * self.rng.random((8, 10, 5)).astype(config.floatX)
+        rng = np.random.default_rng(utt.fetch_seed())
+        self.a = 30 * rng.random(50).astype(config.floatX)
+        self.b = 30 * rng.random((8, 10, 5)).astype(config.floatX)
         self.idx_sorted = np.argsort(self.a).astype("int32")
 
     def test_searchsortedOp_on_sorted_input(self):
@@ -138,22 +143,18 @@ class TestSearchsortedOp(utt.InferShapeTester):
         with pytest.raises(TypeError):
             searchsorted(self.x, self.v, sorter=sorter)
 
-    def test_searchsortedOp_on_int_sorter(self):
-        compatible_types = ("int8", "int16", "int32")
-        if PYTHON_INT_BITWIDTH == 64:
-            compatible_types += ("int64",)
-        # 'uint8', 'uint16', 'uint32', 'uint64')
-        for dtype in compatible_types:
-            sorter = vector("sorter", dtype=dtype)
-            f = aesara.function(
-                [self.x, self.v, sorter],
-                searchsorted(self.x, self.v, sorter=sorter),
-                allow_input_downcast=True,
-            )
-            assert np.allclose(
-                np.searchsorted(self.a, self.b, sorter=self.idx_sorted),
-                f(self.a, self.b, self.idx_sorted),
-            )
+    @pytest.mark.parametrize("dtype", compatible_types)
+    def test_searchsortedOp_on_int_sorter(self, dtype):
+        sorter = vector("sorter", dtype=dtype)
+        f = aesara.function(
+            [self.x, self.v, sorter],
+            searchsorted(self.x, self.v, sorter=sorter),
+            allow_input_downcast=True,
+        )
+        assert np.allclose(
+            np.searchsorted(self.a, self.b, sorter=self.idx_sorted),
+            f(self.a, self.b, self.idx_sorted),
+        )
 
     def test_searchsortedOp_on_right_side(self):
         f = aesara.function(
@@ -192,7 +193,8 @@ class TestSearchsortedOp(utt.InferShapeTester):
         )
 
     def test_grad(self):
-        utt.verify_grad(self.op, [self.a[self.idx_sorted], self.b], rng=self.rng)
+        rng = np.random.default_rng(utt.fetch_seed())
+        utt.verify_grad(self.op, [self.a[self.idx_sorted], self.b], rng=rng)
 
 
 class TestCumOp(utt.InferShapeTester):
@@ -248,8 +250,23 @@ class TestCumOp(utt.InferShapeTester):
 
 
 class TestBinCount(utt.InferShapeTester):
-    def test_bincountFn(self):
+    @pytest.mark.parametrize(
+        "dtype",
+        (
+            "int8",
+            "int16",
+            "int32",
+            "int64",
+            "uint8",
+            "uint16",
+            "uint32",
+            "uint64",
+        ),
+    )
+    def test_bincountFn(self, dtype):
         w = vector("w")
+
+        rng = np.random.default_rng(4282)
 
         def ref(data, w=None, minlength=None):
             size = int(data.max() + 1)
@@ -265,50 +282,56 @@ class TestBinCount(utt.InferShapeTester):
                     out[data[i]] += 1
             return out
 
-        for dtype in (
-            "int8",
-            "int16",
-            "int32",
-            "int64",
-            "uint8",
-            "uint16",
-            "uint32",
-            "uint64",
-        ):
-            x = vector("x", dtype=dtype)
+        x = vector("x", dtype=dtype)
 
-            a = np.random.randint(1, 51, size=(25)).astype(dtype)
-            weights = np.random.random((25,)).astype(config.floatX)
+        a = rng.integers(1, 51, size=(25)).astype(dtype)
+        weights = rng.random((25,)).astype(config.floatX)
 
-            f1 = aesara.function([x], bincount(x))
-            f2 = aesara.function([x, w], bincount(x, weights=w))
+        f1 = aesara.function([x], bincount(x))
+        f2 = aesara.function([x, w], bincount(x, weights=w))
 
-            assert (ref(a) == f1(a)).all()
-            assert np.allclose(ref(a, weights), f2(a, weights))
-            f3 = aesara.function([x], bincount(x, minlength=55))
-            f4 = aesara.function([x], bincount(x, minlength=5))
-            assert (ref(a, minlength=55) == f3(a)).all()
-            assert (ref(a, minlength=5) == f4(a)).all()
-            # skip the following test when using unsigned ints
-            if not dtype.startswith("u"):
-                a[0] = -1
-                f5 = aesara.function([x], bincount(x, assert_nonneg=True))
-                with pytest.raises(AssertionError):
-                    f5(a)
+        assert np.array_equal(ref(a), f1(a))
+        assert np.allclose(ref(a, weights), f2(a, weights))
+
+        f3 = aesara.function([x], bincount(x, minlength=55))
+        f4 = aesara.function([x], bincount(x, minlength=5))
+
+        assert np.array_equal(ref(a, minlength=55), f3(a))
+        assert np.array_equal(ref(a, minlength=5), f4(a))
+
+        # skip the following test when using unsigned ints
+        if not dtype.startswith("u"):
+            a[0] = -1
+            f5 = aesara.function([x], bincount(x, assert_nonneg=True))
+            with pytest.raises(AssertionError):
+                f5(a)
 
 
 class TestDiff(utt.InferShapeTester):
-    def test_diff(self):
+    def test_basic(self):
+        rng = np.random.default_rng(4282)
+
         x = matrix("x")
-        a = np.random.random((30, 50)).astype(config.floatX)
+
+        a = rng.random((30, 50)).astype(config.floatX)
 
         f = aesara.function([x], diff(x))
         assert np.allclose(np.diff(a), f(a))
 
-        for axis in (-2, -1, 0, 1):
-            for n in (0, 1, 2, a.shape[0], a.shape[0] + 1):
-                g = aesara.function([x], diff(x, n=n, axis=axis))
-                assert np.allclose(np.diff(a, n=n, axis=axis), g(a))
+    @pytest.mark.parametrize("axis", (-2, -1, 0, 1))
+    @pytest.mark.parametrize("n", (0, 1, 2, 30, 31))
+    def test_perform(self, axis, n):
+        rng = np.random.default_rng(4282)
+
+        x = matrix("x")
+
+        a = rng.random((30, 50)).astype(config.floatX)
+
+        f = aesara.function([x], diff(x))
+        assert np.allclose(np.diff(a), f(a))
+
+        g = aesara.function([x], diff(x, n=n, axis=axis))
+        assert np.allclose(np.diff(a, n=n, axis=axis), g(a))
 
     @pytest.mark.xfail(reason="Subtensor shape cannot be inferred correctly")
     @pytest.mark.parametrize(
@@ -320,73 +343,105 @@ class TestDiff(utt.InferShapeTester):
             at.TensorType("float64", (10, 30)),
         ),
     )
-    def test_output_type(self, x_type):
+    @pytest.mark.parametrize("axis", (-2, -1, 0, 1))
+    @pytest.mark.parametrize("n", (0, 1, 2, 10, 11))
+    def test_output_type(self, x_type, axis, n):
         x = x_type("x")
         x_test = np.empty((10, 30))
-        for axis in (-2, -1, 0, 1):
-            for n in (0, 1, 2, 10, 11):
-                out = diff(x, n=n, axis=axis)
-                out_test = np.diff(x_test, n=n, axis=axis)
-                for i in range(2):
-                    if x.type.shape[i] is None:
-                        assert out.type.shape[i] is None
-                    else:
-                        assert out.type.shape[i] == out_test.shape[i]
+        out = diff(x, n=n, axis=axis)
+        out_test = np.diff(x_test, n=n, axis=axis)
+        for i in range(2):
+            if x.type.shape[i] is None:
+                assert out.type.shape[i] is None
+            else:
+                assert out.type.shape[i] == out_test.shape[i]
 
 
 class TestSqueeze(utt.InferShapeTester):
-    shape_list = [(1, 3), (1, 2, 3), (1, 5, 1, 1, 6)]
-    broadcast_list = [
-        [True, False],
-        [True, False, False],
-        [True, False, True, True, False],
-    ]
-
     def setup_method(self):
         super().setup_method()
         self.op = squeeze
 
-    def test_op(self):
-        for shape, broadcast in zip(self.shape_list, self.broadcast_list):
-            data = np.random.random(size=shape).astype(config.floatX)
-            variable = TensorType(config.floatX, broadcast)()
+    @pytest.mark.parametrize(
+        "shape, broadcast",
+        zip(
+            [(1, 3), (1, 2, 3), (1, 5, 1, 1, 6)],
+            [
+                [True, False],
+                [True, False, False],
+                [True, False, True, True, False],
+            ],
+        ),
+    )
+    def test_op(self, shape, broadcast):
+        data = np.random.random(size=shape).astype(config.floatX)
+        variable = TensorType(config.floatX, broadcast)()
 
-            f = aesara.function([variable], self.op(variable))
+        f = aesara.function([variable], self.op(variable))
 
-            expected = np.squeeze(data)
-            tested = f(data)
+        expected = np.squeeze(data)
+        tested = f(data)
 
-            assert tested.shape == expected.shape
-            assert np.allclose(tested, expected)
+        assert tested.shape == expected.shape
+        assert np.allclose(tested, expected)
 
-    def test_infer_shape(self):
-        for shape, broadcast in zip(self.shape_list, self.broadcast_list):
-            data = np.random.random(size=shape).astype(config.floatX)
-            variable = TensorType(config.floatX, broadcast)()
+    @pytest.mark.parametrize(
+        "shape, broadcast",
+        zip(
+            [(1, 3), (1, 2, 3), (1, 5, 1, 1, 6)],
+            [
+                [True, False],
+                [True, False, False],
+                [True, False, True, True, False],
+            ],
+        ),
+    )
+    def test_infer_shape(self, shape, broadcast):
+        data = np.random.random(size=shape).astype(config.floatX)
+        variable = TensorType(config.floatX, broadcast)()
 
-            self._compile_and_check(
-                [variable], [self.op(variable)], [data], DimShuffle, warn=False
-            )
+        self._compile_and_check(
+            [variable], [self.op(variable)], [data], DimShuffle, warn=False
+        )
 
-    def test_grad(self):
-        for shape, broadcast in zip(self.shape_list, self.broadcast_list):
-            data = np.random.random(size=shape).astype(config.floatX)
+    @pytest.mark.parametrize(
+        "shape, broadcast",
+        zip(
+            [(1, 3), (1, 2, 3), (1, 5, 1, 1, 6)],
+            [
+                [True, False],
+                [True, False, False],
+                [True, False, True, True, False],
+            ],
+        ),
+    )
+    def test_grad(self, shape, broadcast):
+        data = np.random.random(size=shape).astype(config.floatX)
+        utt.verify_grad(self.op, [data])
 
-            utt.verify_grad(self.op, [data])
-
-    def test_var_interface(self):
+    @pytest.mark.parametrize(
+        "shape, broadcast",
+        zip(
+            [(1, 3), (1, 2, 3), (1, 5, 1, 1, 6)],
+            [
+                [True, False],
+                [True, False, False],
+                [True, False, True, True, False],
+            ],
+        ),
+    )
+    def test_var_interface(self, shape, broadcast):
         # same as test_op, but use a_aesara_var.squeeze.
-        for shape, broadcast in zip(self.shape_list, self.broadcast_list):
-            data = np.random.random(size=shape).astype(config.floatX)
-            variable = TensorType(config.floatX, broadcast)()
+        data = np.random.random(size=shape).astype(config.floatX)
+        variable = TensorType(config.floatX, broadcast)()
 
-            f = aesara.function([variable], variable.squeeze())
+        f = aesara.function([variable], variable.squeeze())
 
-            expected = np.squeeze(data)
-            tested = f(data)
+        expected = np.squeeze(data)
+        tested = f(data)
 
-            assert tested.shape == expected.shape
-            assert np.allclose(tested, expected)
+        assert tested.shape == expected.shape
+        assert np.allclose(tested, expected)
 
     def test_axis(self):
         variable = TensorType(config.floatX, [False, True, False])()
@@ -430,36 +485,39 @@ class TestSqueeze(utt.InferShapeTester):
 
 
 class TestCompress(utt.InferShapeTester):
-    axis_list = [None, -1, 0, 0, 0, 1]
-    cond_list = [
-        [1, 0, 1, 0, 0, 1],
-        [0, 1, 1, 0],
-        [0, 1, 1, 0],
-        [],
-        [0, 0, 0, 0],
-        [1, 1, 0, 1, 0],
-    ]
-    shape_list = [(2, 3), (4, 3), (4, 3), (4, 3), (4, 3), (3, 5)]
-
     def setup_method(self):
         super().setup_method()
         self.op = compress
 
-    def test_op(self):
-        for axis, cond, shape in zip(self.axis_list, self.cond_list, self.shape_list):
-            cond_var = ivector()
-            data = np.random.random(size=shape).astype(config.floatX)
-            data_var = matrix()
+    @pytest.mark.parametrize(
+        "axis, cond, shape",
+        zip(
+            [None, -1, 0, 0, 0, 1],
+            [
+                [1, 0, 1, 0, 0, 1],
+                [0, 1, 1, 0],
+                [0, 1, 1, 0],
+                [],
+                [0, 0, 0, 0],
+                [1, 1, 0, 1, 0],
+            ],
+            [(2, 3), (4, 3), (4, 3), (4, 3), (4, 3), (3, 5)],
+        ),
+    )
+    def test_op(self, axis, cond, shape):
+        cond_var = ivector()
+        data = np.random.random(size=shape).astype(config.floatX)
+        data_var = matrix()
 
-            f = aesara.function(
-                [cond_var, data_var], self.op(cond_var, data_var, axis=axis)
-            )
+        f = aesara.function(
+            [cond_var, data_var], self.op(cond_var, data_var, axis=axis)
+        )
 
-            expected = np.compress(cond, data, axis=axis)
-            tested = f(cond, data)
+        expected = np.compress(cond, data, axis=axis)
+        tested = f(cond, data)
 
-            assert tested.shape == expected.shape
-            assert np.allclose(tested, expected)
+        assert tested.shape == expected.shape
+        assert np.allclose(tested, expected)
 
 
 class TestRepeat(utt.InferShapeTester):
@@ -477,106 +535,104 @@ class TestRepeat(utt.InferShapeTester):
         if LOCAL_BITWIDTH == 32:
             self.numpy_unsupported_dtypes = ("uint32", "int64", "uint64")
 
-    def test_basic(self):
-        for ndim in [1, 3]:
-            x = TensorType(config.floatX, [False] * ndim)()
-            a = np.random.random((10,) * ndim).astype(config.floatX)
+    @pytest.mark.parametrize("ndim", [1, 3])
+    @pytest.mark.parametrize("dtype", integer_dtypes)
+    def test_basic(self, ndim, dtype):
+        rng = np.random.default_rng(4282)
 
-            for axis in self._possible_axis(ndim):
-                for dtype in integer_dtypes:
-                    r_var = scalar(dtype=dtype)
-                    r = np.asarray(3, dtype=dtype)
-                    if dtype == "uint64" or (
-                        dtype in self.numpy_unsupported_dtypes and r_var.ndim == 1
-                    ):
-                        with pytest.raises(TypeError):
-                            repeat(x, r_var, axis=axis)
-                    else:
-                        f = aesara.function([x, r_var], repeat(x, r_var, axis=axis))
-                        assert np.allclose(np.repeat(a, r, axis=axis), f(a, r))
+        x = TensorType(config.floatX, [False] * ndim)()
+        a = rng.random((10,) * ndim).astype(config.floatX)
 
-                        r_var = vector(dtype=dtype)
-                        if axis is None:
-                            r = np.random.randint(1, 6, size=a.size).astype(dtype)
-                        else:
-                            r = np.random.randint(1, 6, size=(10,)).astype(dtype)
+        for axis in self._possible_axis(ndim):
+            r_var = scalar(dtype=dtype)
+            r = np.asarray(3, dtype=dtype)
+            if dtype == "uint64" or (
+                dtype in self.numpy_unsupported_dtypes and r_var.ndim == 1
+            ):
+                with pytest.raises(TypeError):
+                    repeat(x, r_var, axis=axis)
+            else:
+                f = aesara.function([x, r_var], repeat(x, r_var, axis=axis))
+                assert np.allclose(np.repeat(a, r, axis=axis), f(a, r))
 
-                        if dtype in self.numpy_unsupported_dtypes and r_var.ndim == 1:
-                            with pytest.raises(TypeError):
-                                repeat(x, r_var, axis=axis)
-                        else:
-                            f = aesara.function([x, r_var], repeat(x, r_var, axis=axis))
-                            assert np.allclose(np.repeat(a, r, axis=axis), f(a, r))
+                r_var = vector(dtype=dtype)
 
-                        # check when r is a list of single integer, e.g. [3].
-                        r = np.random.randint(1, 11, size=()).astype(dtype) + 2
-                        f = aesara.function([x], repeat(x, [r], axis=axis))
-                        assert np.allclose(np.repeat(a, r, axis=axis), f(a))
-                        assert not np.any(
-                            [
-                                isinstance(n.op, Repeat)
-                                for n in f.maker.fgraph.toposort()
-                            ]
-                        )
+                if axis is None:
+                    r = rng.integers(1, 6, size=a.size).astype(dtype)
+                else:
+                    r = rng.integers(1, 6, size=(10,)).astype(dtype)
 
-                        # check when r is  aesara tensortype that broadcastable is (True,)
-                        r_var = TensorType(shape=(True,), dtype=dtype)()
-                        r = np.random.randint(1, 6, size=(1,)).astype(dtype)
-                        f = aesara.function([x, r_var], repeat(x, r_var, axis=axis))
-                        assert np.allclose(np.repeat(a, r[0], axis=axis), f(a, r))
-                        assert not np.any(
-                            [
-                                isinstance(n.op, Repeat)
-                                for n in f.maker.fgraph.toposort()
-                            ]
-                        )
+                if dtype in self.numpy_unsupported_dtypes and r_var.ndim == 1:
+                    with pytest.raises(TypeError):
+                        repeat(x, r_var, axis=axis)
+                else:
+                    f = aesara.function([x, r_var], repeat(x, r_var, axis=axis))
+                    assert np.allclose(np.repeat(a, r, axis=axis), f(a, r))
+
+                # check when r is a list of single integer, e.g. [3].
+                r = rng.integers(1, 11, size=()).astype(dtype) + 2
+
+                f = aesara.function([x], repeat(x, [r], axis=axis))
+                assert np.allclose(np.repeat(a, r, axis=axis), f(a))
+                assert not any(
+                    isinstance(n.op, Repeat) for n in f.maker.fgraph.toposort()
+                )
+
+                # check when r is  aesara tensortype that broadcastable is (True,)
+                r_var = TensorType(shape=(True,), dtype=dtype)()
+                r = rng.integers(1, 6, size=(1,)).astype(dtype)
+                f = aesara.function([x, r_var], repeat(x, r_var, axis=axis))
+                assert np.allclose(np.repeat(a, r[0], axis=axis), f(a, r))
+                assert not any(
+                    isinstance(n.op, Repeat) for n in f.maker.fgraph.toposort()
+                )
 
     @pytest.mark.slow
-    def test_infer_shape(self):
-        for ndim in [1, 3]:
-            x = TensorType(config.floatX, [False] * ndim)()
-            shp = (np.arange(ndim) + 1) * 3
-            a = np.random.random(shp).astype(config.floatX)
+    @pytest.mark.parametrize("ndim", [1, 3])
+    @pytest.mark.parametrize("dtype", ["int8", "uint8", "uint64"])
+    def test_infer_shape(self, ndim, dtype):
+        rng = np.random.default_rng(4282)
 
-            for axis in self._possible_axis(ndim):
-                for dtype in ["int8", "uint8", "uint64"]:
-                    r_var = scalar(dtype=dtype)
-                    r = np.asarray(3, dtype=dtype)
-                    if dtype in self.numpy_unsupported_dtypes:
-                        r_var = vector(dtype=dtype)
-                        with pytest.raises(TypeError):
-                            repeat(x, r_var)
-                    else:
-                        self._compile_and_check(
-                            [x, r_var],
-                            [Repeat(axis=axis)(x, r_var)],
-                            [a, r],
-                            self.op_class,
-                        )
+        x = TensorType(config.floatX, [False] * ndim)()
+        shp = (np.arange(ndim) + 1) * 3
+        a = rng.random(shp).astype(config.floatX)
 
-                        r_var = vector(dtype=dtype)
-                        if axis is None:
-                            r = np.random.randint(1, 6, size=a.size).astype(dtype)
-                        elif a.size > 0:
-                            r = np.random.randint(1, 6, size=a.shape[axis]).astype(
-                                dtype
-                            )
-                        else:
-                            r = np.random.randint(1, 6, size=(10,)).astype(dtype)
+        for axis in self._possible_axis(ndim):
+            r_var = scalar(dtype=dtype)
+            r = np.asarray(3, dtype=dtype)
+            if dtype in self.numpy_unsupported_dtypes:
+                r_var = vector(dtype=dtype)
+                with pytest.raises(TypeError):
+                    repeat(x, r_var)
+            else:
+                self._compile_and_check(
+                    [x, r_var],
+                    [Repeat(axis=axis)(x, r_var)],
+                    [a, r],
+                    self.op_class,
+                )
 
-                        self._compile_and_check(
-                            [x, r_var],
-                            [Repeat(axis=axis)(x, r_var)],
-                            [a, r],
-                            self.op_class,
-                        )
+                r_var = vector(dtype=dtype)
+                if axis is None:
+                    r = rng.integers(1, 6, size=a.size).astype(dtype)
+                elif a.size > 0:
+                    r = rng.integers(1, 6, size=a.shape[axis]).astype(dtype)
+                else:
+                    r = rng.integers(1, 6, size=(10,)).astype(dtype)
 
-    def test_grad(self):
-        for ndim in range(3):
-            a = np.random.random((10,) * ndim).astype(config.floatX)
+                self._compile_and_check(
+                    [x, r_var],
+                    [Repeat(axis=axis)(x, r_var)],
+                    [a, r],
+                    self.op_class,
+                )
 
-            for axis in self._possible_axis(ndim):
-                utt.verify_grad(lambda x: Repeat(axis=axis)(x, 3), [a])
+    @pytest.mark.parametrize("ndim", range(3))
+    def test_grad(self, ndim):
+        a = np.random.random((10,) * ndim).astype(config.floatX)
+
+        for axis in self._possible_axis(ndim):
+            utt.verify_grad(lambda x: Repeat(axis=axis)(x, 3), [a])
 
     def test_broadcastable(self):
         x = TensorType(config.floatX, [False, True, False])()
@@ -597,7 +653,7 @@ class TestBartlett(utt.InferShapeTester):
     def test_perform(self):
         x = lscalar()
         f = function([x], self.op(x))
-        M = np.random.randint(3, 51, size=())
+        M = np.random.default_rng().integers(3, 51, size=())
         assert np.allclose(f(M), np.bartlett(M))
         assert np.allclose(f(0), np.bartlett(0))
         assert np.allclose(f(-1), np.bartlett(-1))
@@ -607,39 +663,42 @@ class TestBartlett(utt.InferShapeTester):
     def test_infer_shape(self):
         x = lscalar()
         self._compile_and_check(
-            [x], [self.op(x)], [np.random.randint(3, 51, size=())], self.op_class
+            [x],
+            [self.op(x)],
+            [np.random.default_rng().integers(3, 51, size=())],
+            self.op_class,
         )
         self._compile_and_check([x], [self.op(x)], [0], self.op_class)
         self._compile_and_check([x], [self.op(x)], [1], self.op_class)
 
 
 class TestFillDiagonal(utt.InferShapeTester):
-
-    rng = np.random.default_rng(43)
-
     def setup_method(self):
         super().setup_method()
         self.op_class = FillDiagonal
         self.op = fill_diagonal
 
-    def test_perform(self):
+    @pytest.mark.parametrize("shp", [(8, 8), (5, 8), (8, 5)])
+    def test_perform(self, shp):
+        rng = np.random.default_rng(43)
+
         x = matrix()
         y = scalar()
         f = function([x, y], fill_diagonal(x, y))
-        for shp in [(8, 8), (5, 8), (8, 5)]:
-            a = np.random.random(shp).astype(config.floatX)
-            val = np.cast[config.floatX](np.random.random())
-            out = f(a, val)
-            # We can't use np.fill_diagonal as it is bugged.
-            assert np.allclose(np.diag(out), val)
-            assert (out == val).sum() == min(a.shape)
+        a = rng.random(shp).astype(config.floatX)
+        val = np.cast[config.floatX](rng.random())
+        out = f(a, val)
+        # We can't use np.fill_diagonal as it is bugged.
+        assert np.allclose(np.diag(out), val)
+        assert (out == val).sum() == min(a.shape)
 
-        # test for 3dtt
-        a = np.random.random((3, 3, 3)).astype(config.floatX)
+    def test_perform_3d(self):
+        rng = np.random.default_rng(43)
+        a = rng.random((3, 3, 3)).astype(config.floatX)
         x = tensor3()
         y = scalar()
         f = function([x, y], fill_diagonal(x, y))
-        val = np.cast[config.floatX](np.random.random() + 10)
+        val = np.cast[config.floatX](rng.random() + 10)
         out = f(a, val)
         # We can't use np.fill_diagonal as it is bugged.
         assert out[0, 0, 0] == val
@@ -649,112 +708,112 @@ class TestFillDiagonal(utt.InferShapeTester):
 
     @pytest.mark.slow
     def test_gradient(self):
+        rng = np.random.default_rng(43)
         utt.verify_grad(
             fill_diagonal,
-            [np.random.random((5, 8)), np.random.random()],
+            [rng.random((5, 8)), rng.random()],
             n_tests=1,
-            rng=TestFillDiagonal.rng,
+            rng=rng,
         )
         utt.verify_grad(
             fill_diagonal,
-            [np.random.random((8, 5)), np.random.random()],
+            [rng.random((8, 5)), rng.random()],
             n_tests=1,
-            rng=TestFillDiagonal.rng,
+            rng=rng,
         )
 
     def test_infer_shape(self):
+        rng = np.random.default_rng(43)
         z = dtensor3()
         x = dmatrix()
         y = dscalar()
         self._compile_and_check(
             [x, y],
             [self.op(x, y)],
-            [np.random.random((8, 5)), np.random.random()],
+            [rng.random((8, 5)), rng.random()],
             self.op_class,
         )
         self._compile_and_check(
             [z, y],
             [self.op(z, y)],
             # must be square when nd>2
-            [np.random.random((8, 8, 8)), np.random.random()],
+            [rng.random((8, 8, 8)), rng.random()],
             self.op_class,
             warn=False,
         )
 
 
 class TestFillDiagonalOffset(utt.InferShapeTester):
-
-    rng = np.random.default_rng(43)
-
     def setup_method(self):
         super().setup_method()
         self.op_class = FillDiagonalOffset
         self.op = fill_diagonal_offset
 
-    def test_perform(self):
+    @pytest.mark.parametrize("test_offset", (-5, -4, -1, 0, 1, 4, 5))
+    @pytest.mark.parametrize("shp", [(8, 8), (5, 8), (8, 5), (5, 5)])
+    def test_perform(self, test_offset, shp):
+        rng = np.random.default_rng(43)
+
         x = matrix()
         y = scalar()
         z = iscalar()
 
         f = function([x, y, z], fill_diagonal_offset(x, y, z))
-        for test_offset in (-5, -4, -1, 0, 1, 4, 5):
-            for shp in [(8, 8), (5, 8), (8, 5), (5, 5)]:
-                a = np.random.random(shp).astype(config.floatX)
-                val = np.cast[config.floatX](np.random.random())
-                out = f(a, val, test_offset)
-                # We can't use np.fill_diagonal as it is bugged.
-                assert np.allclose(np.diag(out, test_offset), val)
-                if test_offset >= 0:
-                    assert (out == val).sum() == min(
-                        min(a.shape), a.shape[1] - test_offset
-                    )
-                else:
-                    assert (out == val).sum() == min(
-                        min(a.shape), a.shape[0] + test_offset
-                    )
+        a = rng.random(shp).astype(config.floatX)
+        val = np.cast[config.floatX](rng.random())
+        out = f(a, val, test_offset)
+        # We can't use np.fill_diagonal as it is bugged.
+        assert np.allclose(np.diag(out, test_offset), val)
+        if test_offset >= 0:
+            assert (out == val).sum() == min(min(a.shape), a.shape[1] - test_offset)
+        else:
+            assert (out == val).sum() == min(min(a.shape), a.shape[0] + test_offset)
 
-    def test_gradient(self):
-        for test_offset in (-5, -4, -1, 0, 1, 4, 5):
-            # input 'offset' will not be tested
-            def fill_diagonal_with_fix_offset(a, val):
-                return fill_diagonal_offset(a, val, test_offset)
+    @pytest.mark.parametrize("test_offset", (-5, -4, -1, 0, 1, 4, 5))
+    def test_gradient(self, test_offset):
+        rng = np.random.default_rng(43)
 
-            utt.verify_grad(
-                fill_diagonal_with_fix_offset,
-                [np.random.random((5, 8)), np.random.random()],
-                n_tests=1,
-                rng=TestFillDiagonalOffset.rng,
-            )
-            utt.verify_grad(
-                fill_diagonal_with_fix_offset,
-                [np.random.random((8, 5)), np.random.random()],
-                n_tests=1,
-                rng=TestFillDiagonalOffset.rng,
-            )
-            utt.verify_grad(
-                fill_diagonal_with_fix_offset,
-                [np.random.random((5, 5)), np.random.random()],
-                n_tests=1,
-                rng=TestFillDiagonalOffset.rng,
-            )
+        # input 'offset' will not be tested
+        def fill_diagonal_with_fix_offset(a, val):
+            return fill_diagonal_offset(a, val, test_offset)
 
-    def test_infer_shape(self):
+        utt.verify_grad(
+            fill_diagonal_with_fix_offset,
+            [rng.random((5, 8)), rng.random()],
+            n_tests=1,
+            rng=rng,
+        )
+        utt.verify_grad(
+            fill_diagonal_with_fix_offset,
+            [rng.random((8, 5)), rng.random()],
+            n_tests=1,
+            rng=rng,
+        )
+        utt.verify_grad(
+            fill_diagonal_with_fix_offset,
+            [rng.random((5, 5)), rng.random()],
+            n_tests=1,
+            rng=rng,
+        )
+
+    @pytest.mark.parametrize("test_offset", (-5, -4, -1, 0, 1, 4, 5))
+    def test_infer_shape(self, test_offset):
+        rng = np.random.default_rng(43)
         x = dmatrix()
         y = dscalar()
         z = iscalar()
-        for test_offset in (-5, -4, -1, 0, 1, 4, 5):
-            self._compile_and_check(
-                [x, y, z],
-                [self.op(x, y, z)],
-                [np.random.random((8, 5)), np.random.random(), test_offset],
-                self.op_class,
-            )
-            self._compile_and_check(
-                [x, y, z],
-                [self.op(x, y, z)],
-                [np.random.random((5, 8)), np.random.random(), test_offset],
-                self.op_class,
-            )
+        self._compile_and_check(
+            [x, y, z],
+            [self.op(x, y, z)],
+            [rng.random((8, 5)), rng.random(), test_offset],
+            self.op_class,
+        )
+        self._compile_and_check(
+            [x, y, z],
+            [self.op(x, y, z)],
+            [rng.random((5, 8)), rng.random(), test_offset],
+            self.op_class,
+        )
 
 
 def test_to_one_hot():
@@ -1111,9 +1170,6 @@ def test_broadcast_shape_symbolic(s1_vals, s2_vals, exp_res):
 
 
 class TestBroadcastTo(utt.InferShapeTester):
-
-    rng = np.random.default_rng(43)
-
     def setup_method(self):
         super().setup_method()
         self.op_class = BroadcastTo
@@ -1161,14 +1217,16 @@ class TestBroadcastTo(utt.InferShapeTester):
         ],
     )
     def test_gradient(self, fn, input_dims):
+        rng = np.random.default_rng(43)
         utt.verify_grad(
             fn,
-            [np.random.random(input_dims).astype(config.floatX)],
+            [rng.random(input_dims).astype(config.floatX)],
             n_tests=1,
-            rng=self.rng,
+            rng=rng,
         )
 
     def test_infer_shape(self):
+        rng = np.random.default_rng(43)
         a = tensor(config.floatX, [False, True, False])
         shape = list(a.shape)
         out = self.op(a, shape)
@@ -1176,7 +1234,7 @@ class TestBroadcastTo(utt.InferShapeTester):
         self._compile_and_check(
             [a] + shape,
             [out],
-            [np.random.random((2, 1, 3)).astype(config.floatX), 2, 1, 3],
+            [rng.random((2, 1, 3)).astype(config.floatX), 2, 1, 3],
             self.op_class,
         )
 
@@ -1185,7 +1243,7 @@ class TestBroadcastTo(utt.InferShapeTester):
         self._compile_and_check(
             [a] + shape,
             [self.op(a, shape)],
-            [np.random.random((2, 1, 3)).astype(config.floatX), 6, 2, 5, 3],
+            [rng.random((2, 1, 3)).astype(config.floatX), 6, 2, 5, 3],
             self.op_class,
         )
 

@@ -1019,7 +1019,7 @@ class TestComparison:
 
 class TestConversion:
     def test_basic(self):
-        test_val = np.random.rand(5).astype(config.floatX)
+        test_val = np.random.random((5,)).astype(config.floatX)
         a = at.as_tensor_variable(test_val)
         s = csc_from_dense(a)
         val = eval_outputs([s])
@@ -2792,11 +2792,11 @@ class TestAddSSData(utt.InferShapeTester):
         for format in sparse.sparse_formats:
             variable = getattr(aesara.sparse, format + "_matrix")
 
-            rand = np.array(
+            a_val = np.array(
                 np.random.default_rng(utt.fetch_seed()).integers(1, 4, size=(3, 4)) - 1,
                 dtype=aesara.config.floatX,
             )
-            constant = as_sparse_format(rand, format)
+            constant = as_sparse_format(a_val, format)
 
             self.x[format] = [variable() for t in range(2)]
             self.a[format] = [constant for t in range(2)]

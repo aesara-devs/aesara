@@ -37,9 +37,9 @@ class TestSharedVariable:
         # test tensor constructor
         b = shared(np.zeros((5, 5), dtype="int32"))
         assert b.type == TensorType("int32", shape=[False, False])
-        b = shared(np.random.rand(4, 5))
+        b = shared(np.random.random((4, 5)))
         assert b.type == TensorType("float64", shape=[False, False])
-        b = shared(np.random.rand(5, 1, 2))
+        b = shared(np.random.random((5, 1, 2)))
         assert b.type == TensorType("float64", shape=[False, False, False])
 
         assert shared([]).type == generic
@@ -178,7 +178,7 @@ class TestSharedVariable:
 
         b = shared(np.zeros((5, 5), dtype="float32"))
         with pytest.raises(TypeError):
-            f(b, np.random.rand(5, 5))
+            f(b, np.random.random((5, 5)))
 
     def test_tensor_strict(self):
         def f(var, val):
@@ -228,7 +228,7 @@ class TestSharedVariable:
 
         b = shared(np.zeros((5, 5), dtype="float32"))
         with pytest.raises(TypeError):
-            f(b, np.random.rand(5, 5))
+            f(b, np.random.random((5, 5)))
 
     def test_scalar_floatX(self):
 
@@ -285,7 +285,7 @@ class TestSharedVariable:
 
         b = shared(np.zeros((5, 5), dtype="float32"))
         with pytest.raises(TypeError):
-            f(b, np.random.rand(5, 5))
+            f(b, np.random.random((5, 5)))
 
     def test_tensor_floatX(self):
         def f(var, val):
@@ -338,9 +338,8 @@ class TestSharedVariable:
 
         b = shared(np.zeros((5, 5), dtype="float32"))
         with pytest.raises(TypeError):
-            f(b, np.random.rand(5, 5))
+            f(b, np.random.random((5, 5)))
 
     def test_err_symbolic_variable(self):
         with pytest.raises(TypeError):
             shared(aesara.tensor.ones((2, 3)))
-        shared(np.ones((2, 4)))

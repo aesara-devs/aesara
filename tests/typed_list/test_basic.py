@@ -31,7 +31,7 @@ from aesara.typed_list.type import TypedListType
 
 def rand_ranged_matrix(minimum, maximum, shape):
     return np.asarray(
-        np.random.rand(*shape) * (maximum - minimum) + minimum,
+        np.random.random(shape) * (maximum - minimum) + minimum,
         dtype=aesara.config.floatX,
     )
 
@@ -42,8 +42,8 @@ def random_lil(shape, dtype, nnz):
     huge = 2**30
     for k in range(nnz):
         # set non-zeros in random locations (row x, col y)
-        idx = np.random.randint(1, huge + 1, size=2) % shape
-        value = np.random.rand()
+        idx = np.random.default_rng().integers(1, huge + 1, size=2) % shape
+        value = np.random.random()
         # if dtype *int*, value will always be zeros!
         if dtype in integer_dtypes:
             value = int(value * 100)
@@ -575,10 +575,10 @@ class TestMakeList:
         x = tensor3()
         y = tensor3()
 
-        A = np.cast[aesara.config.floatX](np.random.rand(5, 3))
-        B = np.cast[aesara.config.floatX](np.random.rand(7, 2))
-        X = np.cast[aesara.config.floatX](np.random.rand(5, 6, 1))
-        Y = np.cast[aesara.config.floatX](np.random.rand(1, 9, 3))
+        A = np.cast[aesara.config.floatX](np.random.random((5, 3)))
+        B = np.cast[aesara.config.floatX](np.random.random((7, 2)))
+        X = np.cast[aesara.config.floatX](np.random.random((5, 6, 1)))
+        Y = np.cast[aesara.config.floatX](np.random.random((1, 9, 3)))
 
         make_list((3.0, 4.0))
         c = make_list((a, b))

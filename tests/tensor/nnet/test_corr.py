@@ -297,8 +297,10 @@ class TestCorr2D(utt.InferShapeTester):
     def test_dtype_upcast(self):
         # Checks dtype upcast for CorrMM methods.
 
+        rng = np.random.default_rng(280284)
+
         def rand(shape, dtype="float64"):
-            r = np.asarray(np.random.rand(*shape), dtype=dtype)
+            r = np.asarray(rng.random(shape), dtype=dtype)
             return r * 2 - 1
 
         ops = [corr.CorrMM, corr.CorrMM_gradWeights, corr.CorrMM_gradInputs]
@@ -325,8 +327,11 @@ class TestCorr2D(utt.InferShapeTester):
         reason="SciPy and cxx needed",
     )
     def test_infer_shape_forward(self):
+
+        rng = np.random.default_rng(280284)
+
         def rand(*shape):
-            r = np.asarray(np.random.rand(*shape), dtype="float64")
+            r = np.asarray(rng.random(shape), dtype="float64")
             return r * 2 - 1
 
         corrMM = corr.CorrMM
@@ -373,8 +378,11 @@ class TestCorr2D(utt.InferShapeTester):
         reason="SciPy and cxx needed",
     )
     def test_infer_shape_gradW(self):
+
+        rng = np.random.default_rng(280284)
+
         def rand(*shape):
-            r = np.asarray(np.random.rand(*shape), dtype="float64")
+            r = np.asarray(rng.random(shape), dtype="float64")
             return r * 2 - 1
 
         corrMM = corr.CorrMM
@@ -429,8 +437,11 @@ class TestCorr2D(utt.InferShapeTester):
         reason="Need cxx for this test",
     )
     def test_infer_shape_gradI(self):
+
+        rng = np.random.default_rng(280284)
+
         def rand(*shape):
-            r = np.asarray(np.random.rand(*shape), dtype="float64")
+            r = np.asarray(rng.random(shape), dtype="float64")
             return r * 2 - 1
 
         corrMM = corr.CorrMM
@@ -503,8 +514,9 @@ class TestGroupCorr2d(TestGroupedConvNoOptim):
     def test_graph(self):
         # define common values  first
         groups = 3
-        bottom = np.random.rand(3, 6, 5, 5).astype(aesara.config.floatX)
-        kern = np.random.rand(9, 2, 3, 3).astype(aesara.config.floatX)
+        rng = np.random.default_rng(280284)
+        bottom = rng.random((3, 6, 5, 5)).astype(aesara.config.floatX)
+        kern = rng.random((9, 2, 3, 3)).astype(aesara.config.floatX)
         bottom_sym = tensor4("bottom")
         kern_sym = tensor4("kern")
 

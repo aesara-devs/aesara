@@ -1,5 +1,3 @@
-import time
-
 import numpy as np
 import pytest
 
@@ -28,7 +26,7 @@ def test_get_diagonal_subtensor_view(wrap=lambda a: a):
     xv01 = get_diagonal_subtensor_view(x, 0, 1)
 
     # test that it works in 2d
-    assert np.all(np.asarray(xv01) == [[12, 9, 6, 3], [16, 13, 10, 7]])
+    assert np.array_equal(np.asarray(xv01), [[12, 9, 6, 3], [16, 13, 10, 7]])
 
     x = np.arange(24).reshape(4, 3, 2)
     xv01 = get_diagonal_subtensor_view(x, 0, 1)
@@ -38,23 +36,23 @@ def test_get_diagonal_subtensor_view(wrap=lambda a: a):
     # print 'x', x
     # print 'xv01', xv01
     # print 'xv02', xv02
-    assert np.all(
-        np.asarray(xv01) == [[[12, 13], [8, 9], [4, 5]], [[18, 19], [14, 15], [10, 11]]]
+    assert np.array_equal(
+        np.asarray(xv01), [[[12, 13], [8, 9], [4, 5]], [[18, 19], [14, 15], [10, 11]]]
     )
 
-    assert np.all(
-        np.asarray(xv02)
-        == [
+    assert np.array_equal(
+        np.asarray(xv02),
+        [
             [[6, 1], [8, 3], [10, 5]],
             [[12, 7], [14, 9], [16, 11]],
             [[18, 13], [20, 15], [22, 17]],
-        ]
+        ],
     )
 
     # diagonal views of each leading matrix is the same
     # as the slices out of the diagonal view of the entire 3d tensor
     for xi, xvi in zip(x, xv12):
-        assert np.all(xvi == get_diagonal_subtensor_view(xi, 0, 1))
+        assert np.array_equal(xvi, get_diagonal_subtensor_view(xi, 0, 1))
 
 
 def pyconv3d(signals, filters, border_mode="valid"):
@@ -129,9 +127,9 @@ def test_conv3d(border_mode):
         np.arange(Nf * Tf * C * Hf * Wf).reshape(Nf, Tf, C, Hf, Wf).astype("float32")
     )
 
-    t0 = time.time()
+    # t0 = time.time()
     pyres = pyconv3d(signals, filters, border_mode)
-    print(time.time() - t0)
+    # print(time.time() - t0)
 
     s_signals = shared(signals)
     s_filters = shared(filters)
@@ -148,9 +146,9 @@ def test_conv3d(border_mode):
     newconv3d = aesara.function([], [], updates={s_output: out}, mode=mode)
 
     check_diagonal_subtensor_view_traces(newconv3d)
-    t0 = time.time()
+    # t0 = time.time()
     newconv3d()
-    print(time.time() - t0)
+    # print(time.time() - t0)
     utt.assert_allclose(pyres, s_output.get_value(borrow=True))
     gsignals, gfilters = aesara.grad(out.sum(), [s_signals, s_filters])
     gnewconv3d = aesara.function(
@@ -162,15 +160,17 @@ def test_conv3d(border_mode):
     )
     check_diagonal_subtensor_view_traces(gnewconv3d)
 
-    t0 = time.time()
+    # t0 = time.time()
     gnewconv3d()
-    print("grad", time.time() - t0)
+    # print("grad", time.time() - t0)
 
     Ns, Ts, C, Hs, Ws = 3, 3, 3, 5, 5
     Nf, Tf, C, Hf, Wf = 4, 2, 3, 2, 2
 
-    signals = np.random.rand(Ns, Ts, C, Hs, Ws).astype("float32")
-    filters = np.random.rand(Nf, Tf, C, Hf, Wf).astype("float32")
+    rng = np.random.default_rng(280284)
+
+    signals = rng.random((Ns, Ts, C, Hs, Ws)).astype("float32")
+    filters = rng.random((Nf, Tf, C, Hf, Wf)).astype("float32")
     utt.verify_grad(
         lambda s, f: conv3d(s, f, border_mode=border_mode),
         [signals, filters],
@@ -189,9 +189,9 @@ def test_conv3d(border_mode):
         np.arange(Nf * Tf * C * Hf * Wf).reshape(Nf, Tf, C, Hf, Wf).astype("float32")
     )
 
-    t0 = time.time()
+    # t0 = time.time()
     pyres = pyconv3d(signals, filters, border_mode)
-    print(time.time() - t0)
+    # print(time.time() - t0)
 
     s_signals = shared(signals)
     s_filters = shared(filters)
@@ -207,9 +207,9 @@ def test_conv3d(border_mode):
 
     newconv3d = aesara.function([], [], updates={s_output: out}, mode=mode)
 
-    t0 = time.time()
+    # t0 = time.time()
     newconv3d()
-    print(time.time() - t0)
+    # print(time.time() - t0)
     utt.assert_allclose(pyres, s_output.get_value(borrow=True))
     gsignals, gfilters = aesara.grad(out.sum(), [s_signals, s_filters])
     gnewconv3d = aesara.function(
@@ -220,15 +220,15 @@ def test_conv3d(border_mode):
         name="grad",
     )
 
-    t0 = time.time()
+    # t0 = time.time()
     gnewconv3d()
-    print("grad", time.time() - t0)
+    # print("grad", time.time() - t0)
 
     Ns, Ts, C, Hs, Ws = 3, 3, 3, 5, 5
     Nf, Tf, C, Hf, Wf = 4, 1, 3, 2, 2
 
-    signals = np.random.rand(Ns, Ts, C, Hs, Ws).astype("float32")
-    filters = np.random.rand(Nf, Tf, C, Hf, Wf).astype("float32")
+    signals = rng.random((Ns, Ts, C, Hs, Ws)).astype("float32")
+    filters = rng.random((Nf, Tf, C, Hf, Wf)).astype("float32")
     utt.verify_grad(
         lambda s, f: conv3d(s, f, border_mode=border_mode),
         [signals, filters],

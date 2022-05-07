@@ -1761,7 +1761,9 @@ class TestBilinearUpsampling:
         # 1D and 2D kernels will generate the same result.
 
         # checking upsampling with ratio 5
-        input_x = np.random.rand(5, 4, 6, 7).astype(config.floatX)
+        rng = np.random.default_rng(280284)
+
+        input_x = rng.random((5, 4, 6, 7)).astype(config.floatX)
         mat_1D = bilinear_upsampling(
             input=input_x,
             ratio=5,
@@ -1781,7 +1783,7 @@ class TestBilinearUpsampling:
         utt.assert_allclose(f_1D(), f_2D(), rtol=1e-06)
 
         # checking upsampling with ratio 8
-        input_x = np.random.rand(12, 11, 10, 7).astype(config.floatX)
+        input_x = rng.random((12, 11, 10, 7)).astype(config.floatX)
         mat_1D = bilinear_upsampling(
             input=input_x,
             ratio=8,
@@ -1838,7 +1840,7 @@ class TestBilinearUpsampling:
         utt.assert_allclose(f_up_x(), num_up_x, rtol=1e-6)
 
     def test_fractional_bilinear_upsampling_shape(self):
-        x = np.random.rand(1, 1, 200, 200).astype(config.floatX)
+        x = np.random.random((1, 1, 200, 200)).astype(config.floatX)
         resize = (24, 20)
         z = bilinear_upsampling(
             at.as_tensor_variable(x), frac_ratio=resize, use_1D_kernel=False

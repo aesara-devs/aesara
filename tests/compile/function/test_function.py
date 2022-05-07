@@ -61,17 +61,18 @@ class TestFunctionIn:
         out = a + b
 
         f = function([In(a, strict=False)], out)
+
         # works, rand generates float64 by default
-        f(np.random.rand(8))
+        assert f(np.random.random((8,)).astype(np.float64)).dtype == np.float64
+
         # works, casting is allowed
-        f(np.array([1, 2, 3, 4], dtype="int32"))
+        assert f(np.array([1, 2, 3, 4], dtype="int32")).dtype == np.float64
 
         f = function([In(a, strict=True)], out)
-        try:
+
+        with pytest.raises(TypeError):
             # fails, f expects float64
             f(np.array([1, 2, 3, 4], dtype="int32"))
-        except TypeError:
-            pass
 
     def test_explicit_shared_input(self):
         # This is not a test of the In class per se, but the In class relies
@@ -94,17 +95,17 @@ class TestFunctionIn:
 
         # using mutable=True will let f change the value in aval
         f = function([In(a, mutable=True)], a_out, mode="FAST_RUN")
-        aval = np.random.rand(10)
+        aval = np.random.random((10,))
         aval2 = aval.copy()
-        assert np.all(f(aval) == (aval2 * 2))
-        assert not np.all(aval == aval2)
+        assert np.array_equal(f(aval), (aval2 * 2))
+        assert not np.array_equal(aval, aval2)
 
         # using mutable=False should leave the input untouched
         f = function([In(a, mutable=False)], a_out, mode="FAST_RUN")
-        aval = np.random.rand(10)
+        aval = np.random.random((10,))
         aval2 = aval.copy()
-        assert np.all(f(aval) == (aval2 * 2))
-        assert np.all(aval == aval2)
+        assert np.array_equal(f(aval), (aval2 * 2))
+        assert np.array_equal(aval, aval2)
 
     def test_in_update(self):
         a = dscalar("a")
@@ -155,7 +156,7 @@ class TestFunctionIn:
 
         # Both values are in range. Since they're not ndarrays (but lists),
         # they will be converted, and their value checked.
-        assert np.all(f([3], [6], 1) == 10)
+        assert np.array_equal(f([3], [6], 1), [10])
 
         # Values are in range, but a dtype too large has explicitly been given
         # For performance reasons, no check of the data is explicitly performed
@@ -164,7 +165,7 @@ class TestFunctionIn:
             f([3], np.array([6], dtype="int16"), 1)
 
         # Value too big for a, silently ignored
-        assert np.all(f([2**20], np.ones(1, dtype="int8"), 1) == 2)
+        assert np.array_equal(f([2**20], np.ones(1, dtype="int8"), 1), [2])
 
         # Value too big for b, raises TypeError
         with pytest.raises(TypeError):
@@ -189,7 +190,7 @@ class TestFunctionIn:
         )
 
         # If the values can be accurately represented, everything is OK
-        assert np.all(f(0, 0, 0) == 0)
+        assert np.array_equal(f(0, 0, 0), 0)
 
         # If allow_downcast is True, idem
         assert np.allclose(f(0.1, 0, 0), 0.1)
@@ -221,7 +222,7 @@ class TestFunctionIn:
 
         # If the values can be accurately represented, everything is OK
         z = [0]
-        assert np.all(f(z, z, z) == 0)
+        assert np.array_equal(f(z, z, z), [0])
 
         # If allow_downcast is True, idem
         assert np.allclose(f([0.1], z, z), 0.1)
