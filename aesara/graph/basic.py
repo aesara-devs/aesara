@@ -6,6 +6,7 @@ from copy import copy
 from itertools import count
 from typing import (
     TYPE_CHECKING,
+    Any,
     Callable,
     Collection,
     Deque,
@@ -47,6 +48,9 @@ if TYPE_CHECKING:
 
 
 OpType = TypeVar("OpType", bound="Op")
+OptionalApplyType = TypeVar("OptionalApplyType", None, "Apply", covariant=True)
+_TypeType = TypeVar("_TypeType", bound="Type")
+_IdType = TypeVar("_IdType", bound=Hashable)
 
 T = TypeVar("T", bound="Node")
 NoParams = object()
@@ -61,7 +65,6 @@ class Node(MetaObject):
     keeps track of its parents via `Variable.owner` / `Apply.inputs`.
 
     """
-    type: "Type"
     name: Optional[str]
 
     def get_parents(self):
@@ -110,7 +113,10 @@ class Apply(Node, Generic[OpType]):
     """
 
     def __init__(
-        self, op: OpType, inputs: Sequence["Variable"], outputs: Sequence["Variable"]
+        self,
+        op: OpType,
+        inputs: Sequence["Variable"],
+        outputs: Sequence["Variable"],
     ):
         if not isinstance(inputs, Sequence):
             raise TypeError("The inputs of an Apply must be a sequence type")
@@ -309,7 +315,7 @@ class Apply(Node, Generic[OpType]):
         return self.op.params_type
 
 
-class Variable(Node):
+class Variable(Node, Generic[_TypeType, OptionalApplyType]):
     r"""
     A :term:`Variable` is a node in an expression graph that represents a
     variable.
@@ -407,10 +413,10 @@ class Variable(Node):
     # __slots__ = ['type', 'owner', 'index', 'name']
     __count__ = count(0)
 
-    _owner: Optional[Apply]
+    _owner: OptionalApplyType
 
     @property
-    def owner(self) -> Optional[Apply]:
+    def owner(self) -> OptionalApplyType:
         return self._owner
 
     @owner.setter
@@ -427,30 +433,31 @@ class Variable(Node):
 
     def __init__(
         self,
-        type,
-        owner: Optional[Apply] = None,
+        type: _TypeType,
+        owner: OptionalApplyType,
         index: Optional[int] = None,
         name: Optional[str] = None,
-    ):
+    ) -> None:
         super().__init__()
 
         self.tag = ValidatingScratchpad("test_value", type.filter)
 
         self.type = type
 
+        self._owner = owner
+
         if owner is not None and not isinstance(owner, Apply):
-            raise TypeError("owner must be an Apply instance", owner)
-        self.owner = owner
+            raise TypeError("owner must be an Apply instance")
 
         if index is not None and not isinstance(index, int):
-            raise TypeError("index must be an int", index)
+            raise TypeError("index must be an int")
         self.index = index
 
         if name is not None and not isinstance(name, str):
-            raise TypeError("name must be a string", name)
+            raise TypeError("name must be a string")
         self.name = name
 
-        self.auto_name = "auto_" + str(next(self.__count__))
+        self.auto_name = f"auto_{next(self.__count__)}"
 
     def get_test_value(self):
         """Get the test value.
@@ -516,7 +523,6 @@ class Variable(Node):
         Tags and names are copied to the returned instance.
 
         """
-        # return copy(self)
         cp = self.__class__(self.type, None, None, self.name)
         cp.tag = copy(self.tag)
         return cp
@@ -612,11 +618,11 @@ class Variable(Node):
         return d
 
 
-class AtomicVariable(Variable):
+class AtomicVariable(Variable[_TypeType, None]):
     """A node type that has no ancestors and should never be considered an input to a graph."""
 
-    def __init__(self, type, **kwargs):
-        super().__init__(type, **kwargs)
+    def __init__(self, type: _TypeType, **kwargs):
+        super().__init__(type, None, None, **kwargs)
 
     @abc.abstractmethod
     def signature(self):
@@ -651,13 +657,13 @@ class AtomicVariable(Variable):
             raise ValueError("AtomicVariable instances cannot have an index.")
 
 
-class NominalVariable(AtomicVariable):
+class NominalVariable(AtomicVariable[_TypeType]):
     """A variable that enables alpha-equivalent comparisons."""
 
-    __instances__: Dict[Hashable, type] = {}
+    __instances__: Dict[Tuple["Type", Hashable], "NominalVariable"] = {}
 
-    def __new__(cls, id, typ, **kwargs):
-        if (id, typ) not in cls.__instances__:
+    def __new__(cls, id: _IdType, typ: _TypeType, **kwargs):
+        if (typ, id) not in cls.__instances__:
             var_type = typ.variable_type
             type_name = f"Nominal{var_type.__name__}"
 
@@ -670,13 +676,13 @@ class NominalVariable(AtomicVariable):
             new_type = type(
                 type_name, (cls, var_type), {"__reduce__": _reduce, "__str__": _str}
             )
-            res = super().__new__(new_type)
+            res: NominalVariable = super().__new__(new_type)
 
-            cls.__instances__[(id, typ)] = res
+            cls.__instances__[(typ, id)] = res
 
-        return cls.__instances__[(id, typ)]
+        return cls.__instances__[(typ, id)]
 
-    def __init__(self, id, typ, **kwargs):
+    def __init__(self, id: _IdType, typ: _TypeType, **kwargs):
         self.id = id
         super().__init__(typ, **kwargs)
 
@@ -699,11 +705,11 @@ class NominalVariable(AtomicVariable):
     def __repr__(self):
         return f"{type(self).__name__}({repr(self.id)}, {repr(self.type)})"
 
-    def signature(self):
+    def signature(self) -> Tuple[_TypeType, _IdType]:
         return (self.type, self.id)
 
 
-class Constant(AtomicVariable):
+class Constant(AtomicVariable[_TypeType]):
     """A `Variable` with a fixed `data` field.
 
     `Constant` nodes make numerous optimizations possible (e.g. constant
@@ -718,7 +724,7 @@ class Constant(AtomicVariable):
 
     # __slots__ = ['data']
 
-    def __init__(self, type, data, name=None):
+    def __init__(self, type: _TypeType, data: Any, name: Optional[str] = None):
         super().__init__(type, name=name)
         self.data = type.filter(data)
         add_tag_trace(self)

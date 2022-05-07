@@ -415,7 +415,7 @@ class ScalarType(CType, HasDataType, HasShape):
         return upcast(*[x.dtype for x in [self] + list(others)])
 
     def make_variable(self, name=None):
-        return ScalarVariable(self, name=name)
+        return ScalarVariable(self, None, name=name)
 
     def __str__(self):
         return str(self.dtype)

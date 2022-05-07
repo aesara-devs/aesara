@@ -234,7 +234,7 @@ def test__getitem__newaxis(x, indices, new_order):
 
 
 def test_fixed_shape_variable_basic():
-    x = TensorVariable(TensorType("int64", (4,)))
+    x = TensorVariable(TensorType("int64", (4,)), None)
     assert isinstance(x.shape, Constant)
     assert np.array_equal(x.shape.data, (4,))
 
@@ -246,11 +246,11 @@ def test_fixed_shape_variable_basic():
 
 
 def test_get_vector_length():
-    x = TensorVariable(TensorType("int64", (4,)))
+    x = TensorVariable(TensorType("int64", (4,)), None)
     res = get_vector_length(x)
     assert res == 4
 
-    x = TensorVariable(TensorType("int64", (None,)))
+    x = TensorVariable(TensorType("int64", (None,)), None)
     with pytest.raises(ValueError):
         get_vector_length(x)
 
