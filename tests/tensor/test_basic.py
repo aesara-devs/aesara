@@ -37,6 +37,7 @@ from aesara.tensor.basic import (
     Rebroadcast,
     ScalarFromTensor,
     Split,
+    SqueezeOp,
     TensorFromScalar,
     Tile,
     Tri,
@@ -50,7 +51,6 @@ from aesara.tensor.basic import (
     constant,
     default,
     diag,
-    expand_dims,
     extract_constant,
     eye,
     fill,
@@ -3804,6 +3804,15 @@ def test_transpose():
     assert at.transpose(x3).name == "x3.T"
     assert at.transpose(dmatrix()).name is None
 
+    x_at = dmatrix()
+    # Raise if number of axes specified doesn't match number of axes of actual array
+    with pytest.raises(ValueError):
+        at.transpose(x_at, (1,))
+
+    # Raise if axis out of bounds
+    with pytest.raises(ValueError):
+        at.transpose(x_at, (1, 5))
+
 
 def test_stacklists():
     a, b, c, d = map(scalar, "abcd")
@@ -4452,25 +4461,196 @@ def test_atleast_Nd():
 
 def test_expand_dims():
     x_at = dscalar()
-    res_at = expand_dims(x_at, 0)
     x_val = np.array(1.0, dtype=np.float64)
+
+    res_at = at.expand_dims(x_at, ())
+    assert res_at.type.shape == ()
+    exp_res = np.expand_dims(x_val, ())
+    res_val, res_shape_val = aesara.function([x_at], (res_at, res_at.shape))(x_val)
+    assert np.array_equal(exp_res, res_val)
+    assert np.array_equal(exp_res.shape, res_shape_val)
+
+    utt.verify_grad(lambda x: at.expand_dims(x, ()), [x_val])
+
+    # Expand a scalar into tensor
+    res_at = at.expand_dims(x_at, 0)
     exp_res = np.expand_dims(x_val, 0)
-    res_val = aesara.function([x_at], res_at)(x_val)
+    res_val, res_shape_val = aesara.function([x_at], (res_at, res_at.shape))(x_val)
     assert np.array_equal(exp_res, res_val)
+    assert np.array_equal(exp_res.shape, res_shape_val)
 
-    x_at = dscalar()
-    res_at = expand_dims(x_at, (0, 1))
-    x_val = np.array(1.0, dtype=np.float64)
+    utt.verify_grad(lambda x: at.expand_dims(x, 0), [x_val])
+
+    # Expand scalar into matrix
+    res_at = at.expand_dims(x_at, (0, 1))
     exp_res = np.expand_dims(x_val, (0, 1))
-    res_val = aesara.function([x_at], res_at)(x_val)
+    res_val, res_shape_val = aesara.function([x_at], (res_at, res_at.shape))(x_val)
     assert np.array_equal(exp_res, res_val)
+    assert np.array_equal(exp_res.shape, res_shape_val)
 
-    x_at = dmatrix()
-    res_at = expand_dims(x_at, (2, 1))
-    x_val = np.array([[1.0, 2.0], [3.0, 4.0]], dtype=np.float64)
+    utt.verify_grad(lambda x: at.expand_dims(x, (0, 1)), [x_val])
+
+    # Expand matrix into higher dimensions
+    x_at = tensor(np.float64, shape=(2, 3))
+    x_val = np.empty(x_at.type.shape)
+
+    res_at = at.expand_dims(x_at, (2, 1))
+    assert res_at.type.shape == (2, 1, 1, 3)
     exp_res = np.expand_dims(x_val, (2, 1))
-    res_val = aesara.function([x_at], res_at)(x_val)
+    res_val, res_shape_val = aesara.function([x_at], (res_at, res_at.shape))(x_val)
     assert np.array_equal(exp_res, res_val)
+    assert np.array_equal(exp_res.shape, res_shape_val)
+
+    utt.verify_grad(lambda x: at.expand_dims(x, (2, 1)), [x_val])
+
+    # Raise if axis out of bounds
+    with pytest.raises(ValueError):
+        res_at = at.expand_dims(x_at, (1, 5))
+
+
+class TestSqueeze(utt.InferShapeTester):
+    shape_list = [(1, 3), (1, 2, 3), (1, 5, 1, 1, 6)]
+    broadcast_list = [
+        [True, False],
+        [True, False, False],
+        [True, False, True, True, False],
+    ]
+
+    def setup_method(self):
+        super().setup_method()
+        self.op = at.squeeze
+
+    def test_op(self):
+        for shape, broadcast in zip(self.shape_list, self.broadcast_list):
+            data = np.random.random(size=shape).astype(config.floatX)
+            variable = TensorType(config.floatX, broadcast)()
+
+            f = aesara.function([variable], self.op(variable))
+
+            expected = np.squeeze(data)
+            tested = f(data)
+
+            assert tested.shape == expected.shape
+            assert np.allclose(tested, expected)
+
+    def test_infer_shape(self):
+        for shape, broadcast in zip(self.shape_list, self.broadcast_list):
+            data = np.random.random(size=shape).astype(config.floatX)
+            variable = TensorType(config.floatX, broadcast)()
+
+            self._compile_and_check(
+                [variable], [self.op(variable)], [data], SqueezeOp, warn=False
+            )
+
+    def test_grad(self):
+        for shape, broadcast in zip(self.shape_list, self.broadcast_list):
+            data = np.random.random(size=shape).astype(config.floatX)
+            utt.verify_grad(self.op, [data])
+
+    def test_var_interface(self):
+        # same as test_op, but use a_aesara_var.squeeze.
+        for shape, broadcast in zip(self.shape_list, self.broadcast_list):
+            data = np.random.random(size=shape).astype(config.floatX)
+            variable = TensorType(config.floatX, broadcast)()
+
+            f = aesara.function([variable], variable.squeeze())
+
+            expected = np.squeeze(data)
+            tested = f(data)
+
+            assert tested.shape == expected.shape
+            assert np.allclose(tested, expected)
+
+    def test_axis(self):
+        variable = TensorType(config.floatX, shape=(None, 1, None))()
+        res = at.squeeze(variable, axis=1)
+
+        assert res.broadcastable == (False, False)
+
+        variable = TensorType(config.floatX, (None, 1, None))()
+        res = at.squeeze(variable, axis=(1,))
+
+        assert res.broadcastable == (False, False)
+
+        variable = TensorType(config.floatX, (None, 1, None, 1))()
+        res = at.squeeze(variable, axis=(1, 3))
+
+        assert res.broadcastable == (False, False)
+
+        variable = TensorType(config.floatX, (1, None, 1, None, 1))()
+        res = at.squeeze(variable, axis=(0, -1))
+
+        assert res.broadcastable == (False, True, False)
+
+    def test_scalar_input(self):
+        x = scalar("x")
+
+        with pytest.raises(
+            np.AxisError,
+            match=r"axis 1 is out of bounds for array of dimension 0",
+        ):
+            at.squeeze(x, axis=1)
+
+
+def test_squeeze():
+    x_at = at.tensor(aesara.config.floatX, shape=(None, 1, None, 1, 5), name="x_at")
+    x_val = np.ones((5, 1, 5, 1, 5), dtype=np.float64)
+
+    # Drop all broadcastable dimensions
+    res_at = at.squeeze(x_at)
+    exp_res = np.squeeze(x_val)
+    res_val, res_shape_val = aesara.function([x_at], (res_at, res_at.shape))(x_val)
+    assert np.array_equal(exp_res, res_val)
+    assert np.array_equal(exp_res.shape, res_shape_val)
+
+    utt.verify_grad(lambda x: at.squeeze(x), [x_val])
+
+    # Do nothing
+    res_at = at.squeeze(x_at, ())
+    assert res_at.type.shape == (None, 1, None, 1, 5)
+    exp_res = np.squeeze(x_val, ())
+    res_val, res_shape_val = aesara.function([x_at], (res_at, res_at.shape))(x_val)
+    assert np.array_equal(exp_res, res_val)
+    assert np.array_equal(exp_res.shape, res_shape_val)
+
+    utt.verify_grad(lambda x: at.squeeze(x, ()), [x_val])
+
+    # Otherwise drop only specified broadcastable dimensions
+    res_at = at.squeeze(x_at, (1,))
+    assert res_at.type.shape == (None, None, 1, 5)
+    exp_res = np.squeeze(x_val, (1,))
+    res_val, res_shape_val = aesara.function([x_at], (res_at, res_at.shape))(x_val)
+    assert np.array_equal(exp_res, res_val)
+    assert np.array_equal(exp_res.shape, res_shape_val)
+
+    utt.verify_grad(lambda x: at.squeeze(x, (1,)), [x_val])
+
+    res_at = at.squeeze(x_at, (1, 3))
+    assert res_at.type.shape == (None, None, 5)
+    exp_res = np.squeeze(x_val, (1, 3))
+    res_val, res_shape_val = aesara.function([x_at], (res_at, res_at.shape))(x_val)
+    assert np.array_equal(exp_res, res_val)
+    assert np.array_equal(exp_res.shape, res_shape_val)
+
+    utt.verify_grad(lambda x: at.squeeze(x, (1, 3)), [x_val])
+
+    # Create a graph if told to drop a non-broadcastable dimension
+    res_at = at.squeeze(x_at, (1, 2))
+    x_val = np.empty((1, 1, 1, 1, 5))
+    exp_res = np.squeeze(x_val, (1, 2))
+    res_val, res_shape_val = aesara.function([x_at], (res_at, res_at.shape))(x_val)
+    assert np.array_equal(exp_res, res_val)
+    assert np.array_equal(exp_res.shape, res_shape_val)
+
+    utt.verify_grad(lambda x: at.squeeze(x, (1, 2)), [x_val])
+
+    # Raise if told to drop an explicitly non-broadcastable dimension
+    with pytest.raises(ValueError):
+        at.squeeze(at.tensor(np.float64, shape=(2, 1, 2)), (1, 2))
+
+    # Raise if axis out of bounds
+    with pytest.raises(ValueError):
+        at.squeeze(x_at, (1, 5))
 
 
 class TestTakeAlongAxis:

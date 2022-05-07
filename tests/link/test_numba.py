@@ -3532,3 +3532,58 @@ def test_config_options_cached():
         aesara_numba_fn = function([x], x * 2, mode=numba_mode)
         numba_mul_fn = aesara_numba_fn.fn.jit_fn.py_func.__globals__["mul"]
         assert isinstance(numba_mul_fn._dispatcher.cache, numba.core.caching.NullCache)
+
+
+@pytest.mark.parametrize(
+    "orig_shape, new_order",
+    [
+        ((3, 4), None),
+        ((3, 4, 5), (1, 2, 0)),
+    ],
+)
+def test_numba_transpose(orig_shape, new_order):
+    x = at.TensorType(config.floatX, shape=orig_shape)("x")
+
+    out = at.transpose(x, new_order)
+
+    out_fg = FunctionGraph([x], [out])
+    compare_numba_and_py(out_fg, [np.empty(orig_shape)])
+
+
+@pytest.mark.parametrize(
+    "orig_shape, add_axes",
+    [
+        ((), ()),
+        ((), (0,)),
+        ((3, 4, 5), ()),
+        ((3, 4, 5), (1, 2)),
+    ],
+)
+def test_numba_expand_dims(orig_shape, add_axes):
+    x = at.TensorType(config.floatX, shape=orig_shape)("x")
+
+    out = at.expand_dims(x, add_axes)
+
+    out_fg = FunctionGraph([x], [out])
+    compare_numba_and_py(out_fg, [np.empty(orig_shape)])
+
+
+@pytest.mark.parametrize(
+    "orig_shape, drop_axes",
+    [
+        # ((), ()),
+        # ((3, 1, 4, 1), None),
+        # ((3, 1, 4, 1), ()),
+        ((3, 1, 4, 1), (1,)),
+        ((3, 1, 4, 1), (3,)),
+        ((3, 1, 4, 1), (1, 3)),
+    ],
+)
+def test_numba_squeeze(orig_shape, drop_axes):
+    bdcast = [True if i == 1 else False for i in orig_shape]
+    x = at.TensorType(config.floatX, bdcast)("x")
+
+    out = at.squeeze(x, drop_axes)
+
+    out_fg = FunctionGraph([x], [out])
+    compare_numba_and_py(out_fg, [np.empty(orig_shape)])
