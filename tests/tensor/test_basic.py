@@ -38,7 +38,6 @@ from aesara.tensor.basic import (
     ScalarFromTensor,
     Split,
     TensorFromScalar,
-    Tile,
     Tri,
     addbroadcast,
     alloc,
@@ -4102,33 +4101,6 @@ class TestInferShape(utt.InferShapeTester):
             [ARange("int64")(aiscal, biscal, ciscal)],
             [0, 0, 1],
             ARange,
-        )
-
-    def test_Tile(self):
-        # Tile op is deprecated so the tile function doesn't use it
-        # anymore, we'll test here the op directly
-        advec = dvector()
-        advec_val = random(5)
-        aivec_val = [3]
-        ndim = 1
-        self._compile_and_check(
-            [advec], [Tile(ndim)(advec, aivec_val)], [advec_val], Tile
-        )
-
-        admat = dmatrix()
-        admat_val = random(2, 4)
-        aivec_val = [2, 3]
-        ndim = 2
-        self._compile_and_check(
-            [admat], [Tile(ndim)(admat, aivec_val)], [admat_val], Tile
-        )
-
-        adtens4 = dtensor4()
-        adtens4_val = random(2, 4, 3, 5)
-        aivec_val = [2, 3, 1, 4]
-        ndim = 4
-        self._compile_and_check(
-            [adtens4], [Tile(ndim)(adtens4, aivec_val)], [adtens4_val], Tile
         )
 
 

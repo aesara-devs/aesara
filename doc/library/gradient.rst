@@ -66,7 +66,6 @@ Partial list of ops without support for R-op:
  * All sparse ops
  * All linear algebra ops.
  * PermuteRowElements
- * Tile
  * AdvancedSubtensor
  * TensorDot
  * Outer
