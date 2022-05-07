@@ -72,15 +72,6 @@ detection algorithm. If the graph is big enough,we suggest that you use
 this flag instead of ``optimizer_excluding=inplace``. It will result in a
 computation time that is in between fast compile and fast run.
 
-Aesara flag `reoptimize_unpickled_function` controls if an unpickled
-aesara function should reoptimize its graph or not. Aesara users can
-use the standard python pickle tools to save a compiled aesara
-function. When pickling, both graph before and after the optimization
-are saved, including shared variables. When set to True, the graph is
-reoptimized when being unpickled. Otherwise, skip the graph
-optimization and use directly the optimized graph from the pickled
-file. The default is False.
-
 Faster Aesara function
 ----------------------
 
