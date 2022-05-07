@@ -50,7 +50,6 @@ list of ops that support R-op:
     * Join
     * Rebroadcast
     * Reshape
-    * Flatten
     * DimShuffle
     * Scan [In tests/scan/test_basic.test_rop]
 
