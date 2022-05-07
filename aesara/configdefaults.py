@@ -378,13 +378,6 @@ def add_basic_configvars():
         in_c_key=False,
     )
 
-    config.add(
-        "reoptimize_unpickled_function",
-        "Re-optimize the graph when an Aesara function is unpickled from the disk.",
-        BoolParam(False, mutable=True),
-        in_c_key=False,
-    )
-
 
 def _is_gt_0(x):
     return x > 0

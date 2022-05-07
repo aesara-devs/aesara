@@ -820,12 +820,6 @@ import ``aesara`` and print the config variable, as in:
     If ``'True'``, Aesara will include the test values in a variable's
     ``__str__`` output.
 
-.. attribute:: reoptimize_unpickled_function
-
-    Bool value, default: False
-
-    When this option is set to ``True``, a graph is re-optimized when unpickled.
-
 .. attribute:: exception_verbosity
 
     String Value: ``'low'``, ``'high'``.
