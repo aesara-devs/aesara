@@ -51,7 +51,6 @@ from aesara.tensor.basic import (
     ScalarFromTensor,
     Split,
     TensorFromScalar,
-    Tile,
     alloc,
     as_tensor_variable,
     cast,
@@ -59,7 +58,6 @@ from aesara.tensor.basic import (
     extract_constant,
     fill,
     get_scalar_constant_value,
-    get_vector_length,
     join,
     ones_like,
     patternbroadcast,
@@ -2596,49 +2594,6 @@ def local_merge_switch_same_cond(fgraph, node):
             node.op(*[s.owner.inputs[2] for s in node.inputs]),
         )
     ]
-
-
-@register_useless
-@register_canonicalize
-@register_stabilize
-@local_optimizer([Tile])
-def local_useless_tile(fgraph, node):
-    """Tile(x, (1,)*N) -> x
-
-    This is useless tile. (1,)*N, just mean a vector with all element
-    being 1.
-
-    """
-    if isinstance(node.op, Tile):
-        try:
-            a = get_scalar_constant_value(node.inputs[1], only_process_constants=True)
-            if a == 1:
-                try:
-                    l = get_vector_length(node.inputs[1])
-                    if l == node.inputs[0].ndim:
-                        # No need to copy over any stacktrace as previous
-                        # input variable already has a stacktrace
-                        return [node.inputs[0]]
-                    elif l < node.inputs[0].ndim:
-                        # The Op don't support that case, so we can't
-                        # implement the opt and test it.
-                        return
-                        return [node.inputs[0]]
-                    else:
-                        # The Op don't support that case, so we can't
-                        # implement the opt and test it.
-                        return
-                        x_nd = node.inputs[0].ndim
-                        broad = ["x"] * (l - x_nd) + range(x_nd)
-                        ret = node.inputs[0].dimshuffle(broad)
-                        # Copy over stacktrace from previous output node,
-                        # and from node before tiling operation.
-                        copy_stack_trace(node.outputs + node.inputs[0], ret)
-                        return [ret]
-                except ValueError:
-                    return
-        except NotScalarConstantError:
-            return
 
 
 @register_useless
