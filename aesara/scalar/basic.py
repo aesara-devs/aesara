@@ -28,7 +28,7 @@ from aesara.gradient import DisconnectedType, grad_undefined
 from aesara.graph.basic import Apply, Constant, Variable, clone, list_of_nodes
 from aesara.graph.fg import FunctionGraph
 from aesara.graph.opt import MergeOptimizer
-from aesara.graph.type import HasDataType
+from aesara.graph.type import HasDataType, HasShape
 from aesara.graph.utils import MetaObject, MethodNotDefined
 from aesara.link.c.op import COp
 from aesara.link.c.type import CType
@@ -268,7 +268,7 @@ def convert(x, dtype=None):
     return x_
 
 
-class ScalarType(CType, HasDataType):
+class ScalarType(CType, HasDataType, HasShape):
 
     """
     Internal class, should not be used by clients.
