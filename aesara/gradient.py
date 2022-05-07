@@ -5,6 +5,7 @@ import time
 import warnings
 from collections import OrderedDict
 from functools import partial, reduce
+from typing import TYPE_CHECKING, Callable, List, Optional, Union
 
 import numpy as np
 
@@ -16,6 +17,10 @@ from aesara.graph.basic import Variable
 from aesara.graph.null_type import NullType, null_type
 from aesara.graph.op import get_test_values
 from aesara.graph.type import Type
+
+
+if TYPE_CHECKING:
+    from aesara.compile.mode import Mode
 
 
 __docformat__ = "restructuredtext en"
@@ -684,8 +689,8 @@ def subgraph_grad(wrt, end, start=None, cost=None, details=False):
     .. code-block:: python
 
         x, t = aesara.tensor.fvector('x'), aesara.tensor.fvector('t')
-        w1 = aesara.shared(np.random.randn(3,4))
-        w2 = aesara.shared(np.random.randn(4,2))
+        w1 = aesara.shared(np.random.standard_normal((3,4)))
+        w2 = aesara.shared(np.random.standard_normal((4,2)))
         a1 = aesara.tensor.tanh(aesara.tensor.dot(x,w1))
         a2 = aesara.tensor.tanh(aesara.tensor.dot(a1,w2))
         cost2 = aesara.tensor.sqr(a2 - t).sum()
@@ -1690,17 +1695,17 @@ def mode_not_slow(mode):
 
 
 def verify_grad(
-    fun,
-    pt,
-    n_tests=2,
-    rng=None,
-    eps=None,
-    out_type=None,
-    abs_tol=None,
-    rel_tol=None,
-    mode=None,
-    cast_to_output_type=False,
-    no_debug_ref=True,
+    fun: Callable,
+    pt: List[np.ndarray],
+    n_tests: int = 2,
+    rng: Optional[Union[np.random.Generator, np.random.RandomState]] = None,
+    eps: Optional[float] = None,
+    out_type: Optional[str] = None,
+    abs_tol: Optional[float] = None,
+    rel_tol: Optional[float] = None,
+    mode: Optional[Union["Mode", str]] = None,
+    cast_to_output_type: bool = False,
+    no_debug_ref: bool = True,
 ):
     """Test a gradient by Finite Difference Method. Raise error on failure.
 
@@ -1713,47 +1718,47 @@ def verify_grad(
     --------
     >>> verify_grad(aesara.tensor.tanh,
     ...             (np.asarray([[2, 3, 4], [-1, 3.3, 9.9]]),),
-    ...             rng=np.random)
+    ...             rng=np.random.default_rng(23098))
 
     Parameters
     ----------
-    fun : a Python function
+    fun
         `fun` takes Aesara variables as inputs, and returns an Aesara variable.
-        For instance, an Op instance with  a single output.
-    pt : list of numpy.ndarrays
+        For instance, an `Op` instance with  a single output.
+    pt
         Input values, points where the gradient is estimated.
         These arrays must be either float16, float32, or float64 arrays.
-    n_tests : int
-        Number of times to run the test
-    rng : numpy.random.RandomState
+    n_tests
+        Number o to run the test.
+    rng
         Random number generator used to sample the output random projection `u`,
-        we test gradient of sum(u * fun) at `pt`
-    eps : float, optional
+        we test gradient of ``sum(u * fun)`` at `pt`.
+    eps
         Step size used in the Finite Difference Method (Default
-        None is type-dependent).
-        Raising the value of eps can raise or lower the absolute
+        ``None`` is type-dependent).
+        Raising the value of `eps` can raise or lower the absolute
         and relative errors of the verification depending on the
-        Op. Raising eps does not lower the verification quality for
+        `Op`. Raising `eps` does not lower the verification quality for
         linear operations. It is better to raise `eps` than raising
         `abs_tol` or `rel_tol`.
-    out_type : string
-        Dtype of output, if complex (i.e., 'complex32' or 'complex64')
-    abs_tol : float
+    out_type
+        Dtype of output, if complex (i.e., ``'complex32'`` or ``'complex64'``)
+    abs_tol
         Absolute tolerance used as threshold for gradient comparison
-    rel_tol : float
+    rel_tol
         Relative tolerance used as threshold for gradient comparison
-    cast_to_output_type : bool
-        If the output is float32 and cast_to_output_type is True, cast
-        the random projection to float32. Otherwise it is float64.
+    cast_to_output_type
+        If the output is float32 and `cast_to_output_type` is ``True``, cast
+        the random projection to float32; otherwise, it is float64.
         float16 is not handled here.
-    no_debug_ref : bool
-        Don't use DebugMode for the numerical gradient function.
+    no_debug_ref
+        Don't use `DebugMode` for the numerical gradient function.
 
     Notes
     -----
-    This function does not support multiple outputs. In
-    tests/scan/test_basic.py there is an experimental `verify_grad` that covers
-    that case as well by using random projections.
+    This function does not support multiple outputs. In `tests.scan.test_basic`
+    there is an experimental `verify_grad` that covers that case as well by
+    using random projections.
 
     """
     from aesara.compile.function import function

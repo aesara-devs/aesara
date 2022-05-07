@@ -8,28 +8,31 @@ Basic Tensor Functionality
 
 .. testsetup::
 
+   import numpy as np
    import aesara
    import aesara.tensor as at
    from aesara.tensor.type import scalar, iscalar, TensorType, dmatrix, ivector, fmatrix
    from aesara.tensor import set_subtensor, inc_subtensor, batched_dot
    from aesara import shared
-   import numpy
-   import numpy as np
 
-Aesara supports any kind of Python object, but its focus is support for
-symbolic matrix expressions.  When you type,
+Aesara supports symbolic tensor expressions.  When you type,
 
+>>> import aesara.tensor as at
 >>> x = at.fmatrix()
 
 the ``x`` is a :class:`TensorVariable` instance.
+
 The ``at.fmatrix`` object itself is an instance of :class:`TensorType`.
 Aesara knows what type of variable ``x`` is because ``x.type``
 points back to ``at.fmatrix``.
 
-This chapter explains the various ways of creating tensor variables,
+This section explains the various ways in which a tensor variable can be created,
 the attributes and methods of :class:`TensorVariable` and :class:`TensorType`,
 and various basic symbolic math and arithmetic that Aesara supports for
 tensor variables.
+
+In general, Aesara's API tries to mirror NumPy's, so, in most cases, it's safe
+to assume that the basic NumPy array functions and methods will be available.
 
 .. _libdoc_tensor_creation:
 
@@ -39,63 +42,65 @@ Creation
 Aesara provides a list of predefined tensor types that can be used
 to create a tensor variables.  Variables can be named to facilitate debugging,
 and all of these constructors accept an optional ``name`` argument.
-For example, the following each produce a TensorVariable instance that stands
-for a 0-dimensional ndarray of integers with the name ``'myvar'``:
+For example, the following each produce a `TensorVariable` instance that stands
+for a 0-dimensional `ndarray` of integers with the name ``'myvar'``:
 
->>> x = scalar('myvar', dtype='int32')
->>> x = iscalar('myvar')
+>>> x = at.scalar('myvar', dtype='int32')
+>>> x = at.iscalar('myvar')
+>>> x = at.tensor(dtype='int32', shape=(), name='myvar')
+>>> from aesara.tensor.type import TensorType
 >>> x = TensorType(dtype='int32', shape=())('myvar')
 
 Constructors with optional dtype
-----------------------------------------
+--------------------------------
 
 These are the simplest and often-preferred methods for creating symbolic
 variables in your code.  By default, they produce floating-point variables
-(with dtype determined by config.floatX, see :attr:`floatX`) so if you use
+(with dtype determined by `aesara.config.floatX`) so if you use
 these constructors it is easy to switch your code between different levels of
 floating-point precision.
 
 .. function:: scalar(name=None, dtype=config.floatX)
 
-    Return a Variable for a 0-dimensional ndarray
+    Return a `Variable` for a 0-dimensional `ndarray`
 
 .. function:: vector(name=None, dtype=config.floatX)
 
-    Return a Variable for a 1-dimensional ndarray
+    Return a `Variable` for a 1-dimensional `ndarray`
 
 .. function:: row(name=None, dtype=config.floatX)
 
-    Return a Variable for a 2-dimensional ndarray
+    Return a `Variable` for a 2-dimensional `ndarray`
     in which the number of rows is guaranteed to be 1.
 
 .. function:: col(name=None, dtype=config.floatX)
 
-    Return a Variable for a 2-dimensional ndarray
+    Return a `Variable` for a 2-dimensional `ndarray`
     in which the number of columns is guaranteed to be 1.
 
 .. function:: matrix(name=None, dtype=config.floatX)
 
-    Return a Variable for a 2-dimensional ndarray
+    Return a `Variable` for a 2-dimensional `ndarray`
 
 .. function:: tensor3(name=None, dtype=config.floatX)
 
-    Return a Variable for a 3-dimensional ndarray
+    Return a `Variable` for a 3-dimensional `ndarray`
 
 .. function:: tensor4(name=None, dtype=config.floatX)
 
-    Return a Variable for a 4-dimensional ndarray
+    Return a `Variable` for a 4-dimensional `ndarray`
 
 .. function:: tensor5(name=None, dtype=config.floatX)
 
-    Return a Variable for a 5-dimensional ndarray
+    Return a `Variable` for a 5-dimensional `ndarray`
 
 .. function:: tensor6(name=None, dtype=config.floatX)
 
-    Return a Variable for a 6-dimensional ndarray
+    Return a `Variable` for a 6-dimensional `ndarray`
 
 .. function:: tensor7(name=None, dtype=config.floatX)
 
-    Return a Variable for a 7-dimensional ndarray
+    Return a `Variable` for a 7-dimensional `ndarray`
 
 .. #COMMENT
     Each of the types described above can be constructed by two methods:
@@ -109,16 +114,14 @@ floating-point precision.
 All Fully-Typed Constructors
 ----------------------------
 
-The following TensorType instances are provided in the aesara.tensor module.
+The following `TensorType` instances are provided in the `aesara.tensor` module.
 They are all callable, and accept an optional ``name`` argument.  So for example:
 
 .. testcode:: constructors
 
-   from aesara.tensor import *
-
-   x = dmatrix()        # creates one Variable with no name
-   x = dmatrix('x')     # creates one Variable with name 'x'
-   xyz = dmatrix('xyz') # creates one Variable with name 'xyz'
+   x = at.dmatrix()        # creates one Variable with no name
+   x = at.dmatrix('x')     # creates one Variable with name 'x'
+   xyz = at.dmatrix('xyz') # creates one Variable with name 'xyz'
 
 .. #COMMENT
     table generated by
@@ -210,7 +213,7 @@ ztensor7     complex128  7    (?,?,?,?,?,?,?)  (False,) * 7
 ============ =========== ==== ================ ===================================
 
 Plural Constructors
---------------------------
+-------------------
 
 There are several constructors that can produce multiple variables at once.
 These are not frequently used in practice, but often used in tutorial examples to save space!
@@ -237,16 +240,16 @@ These are not frequently used in practice, but often used in tutorial examples t
 
 Each of these plural constructors accepts
 an integer or several strings. If an integer is provided, the method
-will return that many Variables and if strings are provided, it will
-create one Variable for each string, using the string as the Variable's
+will return that many `Variables` and if strings are provided, it will
+create one `Variable` for each string, using the string as the `Variable`'s
 name. For example:
 
 .. testcode:: constructors
 
-   from aesara.tensor import *
-
-   x, y, z = dmatrices(3) # creates three matrix Variables with no names
-   x, y, z = dmatrices('x', 'y', 'z') # creates three matrix Variables named 'x', 'y' and 'z'
+   # Creates three matrix `Variable`s with no names
+   x, y, z = at.dmatrices(3)
+   # Creates three matrix `Variables` named 'x', 'y' and 'z'
+   x, y, z = at.dmatrices('x', 'y', 'z')
 
 
 Custom tensor types
@@ -258,110 +261,121 @@ your own :class:`TensorType` instance.  You create such an instance by passing
 the dtype and broadcasting pattern to the constructor.  For example, you
 can create your own 8-dimensional tensor type
 
->>> dtensor8 = TensorType('float64', (False,)*8)
+>>> dtensor8 = TensorType(dtype='float64', shape=(None,)*8)
 >>> x = dtensor8()
 >>> z = dtensor8('z')
 
 You can also redefine some of the provided types and they will interact
 correctly:
 
->>> my_dmatrix = TensorType('float64', (False,)*2)
->>> x = my_dmatrix()       # allocate a matrix variable
+>>> my_dmatrix = TensorType('float64', shape=(None,)*2)
+>>> x = my_dmatrix()  # allocate a matrix variable
 >>> my_dmatrix == dmatrix
 True
 
 See :class:`TensorType` for more information about creating new types of
-Tensor.
+tensors.
 
 
 Converting from Python Objects
 -------------------------------
 
-Another way of creating a TensorVariable (a TensorSharedVariable to be
-precise) is by calling :func:`shared()`
+Another way of creating a `TensorVariable` (a `TensorSharedVariable` to be
+precise) is by calling :func:`aesara.shared`
 
 .. testcode::
 
-    x = shared(numpy.random.randn(3,4))
+    x = aesara.shared(np.random.standard_normal((3, 4)))
 
 This will return a :term:`shared variable <shared variable>` whose ``.value`` is
-a numpy ndarray.  The number of dimensions and dtype of the Variable are
-inferred from the ndarray argument.  The argument to `shared` *will not be
+a NumPy `ndarray`.  The number of dimensions and dtype of the `Variable` are
+inferred from the `ndarray` argument.  The argument to `shared` *will not be
 copied*, and subsequent changes will be reflected in ``x.value``.
 
 For additional information, see the :func:`shared() <shared.shared>` documentation.
 
 .. _libdoc_tensor_autocasting:
 
-Finally, when you use a numpy ndarray or a Python number together with
+Finally, when you use a NumPy `ndarray` or a Python number together with
 :class:`TensorVariable` instances in arithmetic expressions, the result is a
-:class:`TensorVariable`. What happens to the ndarray or the number?
-Aesara requires that the inputs to all expressions be Variable instances, so
+:class:`TensorVariable`. What happens to the `ndarray` or the number?
+Aesara requires that the inputs to all expressions be `Variable` instances, so
 Aesara automatically wraps them in a :class:`TensorConstant`.
 
 .. note::
 
-    Aesara makes a copy of any ndarray that you use in an expression, so
-    subsequent
-    changes to that ndarray will not have any effect on the Aesara expression.
+    Aesara makes a copy of any `ndarray` that is used in an expression, so
+    subsequent changes to that `ndarray` will not have any effect on the Aesara
+    expression in which they're contained.
 
-For numpy ndarrays the dtype is given, but the broadcastable pattern must be
-inferred.  The TensorConstant is given a type with a matching dtype,
-and a broadcastable pattern with a ``True`` for every shape dimension that is 1.
+For NumPy `ndarrays` the dtype is given, but the static shape/broadcastable pattern must be
+inferred.  The `TensorConstant` is given a type with a matching dtype,
+and a static shape/broadcastable pattern with a ``1``\/``True`` for every shape
+dimension that is one and ``None``\/``False`` for every dimension with an unknown
+shape.
 
-For python numbers, the broadcastable pattern is ``()`` but the dtype must be
+For Python numbers, the static shape/broadcastable pattern is ``()`` but the dtype must be
 inferred.  Python integers are stored in the smallest dtype that can hold
-them, so small constants like ``1`` are stored in a ``bscalar``.
-Likewise, Python floats are stored in an fscalar if fscalar suffices to hold
-them perfectly, but a dscalar otherwise.
+them, so small constants like ``1`` are stored in a `bscalar`.
+Likewise, Python floats are stored in an `fscalar` if `fscalar` suffices to hold
+them perfectly, but a `dscalar` otherwise.
 
 .. note::
 
-    When config.floatX==float32 (see :mod:`config`), then Python floats
+    When ``config.floatX == float32`` (see :mod:`config`), then Python floats
     are stored instead as single-precision floats.
 
     For fine control of this rounding policy, see
-    aesara.tensor.basic.autocast_float.
+    `aesara.tensor.basic.autocast_float`.
 
 .. function:: as_tensor_variable(x, name=None, ndim=None)
 
-    Turn an argument `x` into a TensorVariable or TensorConstant.
+    Turn an argument `x` into a `TensorVariable` or `TensorConstant`.
 
-    Many tensor Ops run their arguments through this function as
-    pre-processing.  It passes through TensorVariable instances, and tries to
-    wrap other objects into TensorConstant.
+    Many tensor `Op`\s run their arguments through this function as
+    pre-processing.  It passes through `TensorVariable` instances, and tries to
+    wrap other objects into `TensorConstant`.
 
     When `x` is a Python number, the dtype is inferred as described above.
 
-    When `x` is a `list` or `tuple` it is passed through numpy.asarray
+    When `x` is a `list` or `tuple` it is passed through `np.asarray`
 
-    If the `ndim` argument is not None, it must be an integer and the output
+    If the `ndim` argument is not ``None``, it must be an integer and the output
     will be broadcasted if necessary in order to have this many dimensions.
 
     :rtype: :class:`TensorVariable` or :class:`TensorConstant`
 
 
-TensorType and TensorVariable
-=============================
+`TensorType` and `TensorVariable`
+=================================
 
 .. class:: TensorType(Type)
 
-    The Type class used to mark Variables that stand for `numpy.ndarray`
-    values (`numpy.memmap`, which is a subclass of `numpy.ndarray`, is also allowed).
-    Recalling to the tutorial, the purple box in
+    The `Type` class used to mark Variables that stand for `numpy.ndarray`
+    values.  `numpy.memmap`, which is a subclass of `numpy.ndarray`, is also
+    allowed.  Recalling to the tutorial, the purple box in
     :ref:`the tutorial's graph-structure figure <tutorial-graphfigure>` is an instance of this class.
+
+    .. attribute:: shape
+        A tuple of ``None`` and integer values representing the static shape associated with this
+        `Type`.  ``None`` values represent unknown/non-fixed shape values.
+
+        .. note::
+
+            Broadcastable tuples/values are an old Theano construct that are
+            being phased-out in Aesara.
 
     .. attribute:: broadcastable
 
-        A tuple of True/False values, one for each dimension.  True in
-        position 'i' indicates that at evaluation-time, the ndarray will have
-        size 1 in that 'i'-th dimension.  Such a dimension is called a
+        A tuple of ``True``\/``False`` values, one for each dimension.  ``True`` in
+        position ``i`` indicates that at evaluation-time, the `ndarray` will have
+        size one in that ``i``-th dimension.  Such a dimension is called a
         *broadcastable dimension* (see :ref:`tutbroadcasting`).
 
         The broadcastable pattern indicates both the number of dimensions and
-        whether a particular dimension must have length 1.
+        whether a particular dimension must have length one.
 
-        Here is a table mapping some `broadcastable` patterns to what they
+        Here is a table mapping some broadcastable patterns to what they
         mean:
 
         ===================== =================================
@@ -380,19 +394,18 @@ TensorType and TensorVariable
         [False, False, False] A MxNxP tensor (pattern of a + b)
         ===================== =================================
 
-        For dimensions in which broadcasting is False, the length of this
-        dimension can be 1 or more.  For dimensions in which broadcasting is True,
-        the length of this dimension must be 1.
+        For dimensions in which broadcasting is ``False``, the length of this
+        dimension can be one or more.  For dimensions in which broadcasting is ``True``,
+        the length of this dimension must be one.
 
         When two arguments to an element-wise operation (like addition or
-        subtraction) have a different
-        number of dimensions, the broadcastable
+        subtraction) have a different number of dimensions, the broadcastable
         pattern is *expanded to the left*, by padding with ``True``. For example,
         a vector's pattern, ``[False]``, could be expanded to ``[True, False]``, and
         would behave like a row (1xN matrix). In the same way, a matrix (``[False,
         False]``) would behave like a 1xNxP tensor (``[True, False, False]``).
 
-        If we wanted to create a type representing a matrix that would
+        If we wanted to create a `TensorType` representing a matrix that would
         broadcast over the middle dimension of a 3-dimensional tensor when
         adding them together, we would define it like this:
 
@@ -400,19 +413,18 @@ TensorType and TensorVariable
 
     .. attribute:: ndim
 
-        The number of dimensions that a Variable's value will have at
+        The number of dimensions that a `Variable`'s value will have at
         evaluation-time.  This must be known when we are building the
         expression graph.
 
     .. attribute:: dtype
 
-        A string indicating
-        the numerical type of the ndarray for which a Variable of this Type
-        is standing.
+        A string indicating the numerical type of the `ndarray` for which a
+        `Variable` of this `Type` represents.
 
         .. _dtype_list:
 
-        The dtype attribute of a TensorType instance can be any of the
+        The :attr:`dtype` attribute of a `TensorType` instance can be any of the
         following strings.
 
         ================= =================== =================
@@ -434,31 +446,31 @@ TensorType and TensorVariable
 
     .. method:: __init__(self, dtype, broadcastable)
 
-        If you wish to use a type of tensor which is not already available
-        (for example, a 5D tensor) you can build an appropriate type by instantiating
+        If you wish to use a `Type` that is not already available (for example,
+        a 5D tensor), you can build an appropriate `Type` by instantiating
         :class:`TensorType`.
 
 
-TensorVariable
+`TensorVariable`
 ----------------
 
 .. class:: TensorVariable(Variable, _tensor_py_operators)
 
-    The result of symbolic operations typically have this type.
+    A `Variable` type that represents symbolic tensors.
 
     See :class:`_tensor_py_operators` for most of the attributes and methods
     you'll want to call.
 
 .. class:: TensorConstant(Variable, _tensor_py_operators)
 
-    Python and numpy numbers are wrapped in this type.
+    Python and NumPy numbers are wrapped in this type.
 
     See :class:`_tensor_py_operators` for most of the attributes and methods
     you'll want to call.
 
 .. class:: TensorSharedVariable(Variable, _tensor_py_operators)
 
-    This type is returned by :func:`shared` when the value to share is a numpy
+    This type is returned by :func:`shared` when the value to share is a NumPy
     ndarray.
 
     See :class:`_tensor_py_operators` for most of the attributes and methods
@@ -469,7 +481,7 @@ TensorVariable
    :members:
 
     This mix-in class adds convenient attributes, methods, and support
-    to TensorVariable, TensorConstant and TensorSharedVariable for
+    to `TensorVariable`, `TensorConstant` and `TensorSharedVariable` for
     Python operators (see :ref:`tensor_operator_support`).
 
     .. attribute:: type
@@ -493,7 +505,7 @@ TensorVariable
        :noindex:
 
         Returns a view of this tensor that has been reshaped as in
-        numpy.reshape.  If the shape is a Variable argument, then you might
+        `numpy.reshape`.  If the shape is a `Variable` argument, then you might
         need to use the optional `ndim` parameter to declare how many elements
         the shape has, and therefore how many dimensions the reshaped Variable
         will have.
@@ -504,32 +516,32 @@ TensorVariable
        :noindex:
 
         Returns a view of this tensor with permuted dimensions.  Typically the
-        pattern will include the integers 0, 1, ... ndim-1, and any number of
-        'x' characters in dimensions where this tensor should be broadcasted.
+        pattern will include the integers ``0, 1, ... ndim-1``, and any number of
+        ``'x'`` characters in dimensions where this tensor should be broadcasted.
 
         A few examples of patterns and their effect:
 
-            * ('x') -> make a 0d (scalar) into a 1d vector
-            * (0, 1) -> identity for 2d vectors
-            * (1, 0) -> inverts the first and second dimensions
-            * ('x', 0) -> make a row out of a 1d vector (N to 1xN)
-            * (0, 'x') -> make a column out of a 1d vector (N to Nx1)
-            * (2, 0, 1) -> AxBxC to CxAxB
-            * (0, 'x', 1) -> AxB to Ax1xB
-            * (1, 'x', 0) -> AxB to Bx1xA
-            * (1,) -> This remove dimensions 0. It must be a broadcastable dimension (1xA to A)
+            * ``('x',)``: make a 0d (scalar) into a 1d vector
+            * ``(0, 1)``: identity for 2d vectors
+            * ``(1, 0)``: inverts the first and second dimensions
+            * ``('x', 0)``: make a row out of a 1d vector (N to 1xN)
+            * ``(0, 'x')``: make a column out of a 1d vector (N to Nx1)
+            * ``(2, 0, 1)``: AxBxC to CxAxB
+            * ``(0, 'x', 1)``: AxB to Ax1xB
+            * ``(1, 'x', 0)``: AxB to Bx1xA
+            * ``(1,)``: This removes the dimension at index 0. It must be a broadcastable dimension.
 
     .. method:: flatten(ndim=1)
 
         Returns a view of this tensor with `ndim` dimensions, whose shape for the first
-        `ndim-1` dimensions will be the same as `self`, and shape in the
-        remaining dimension will be expanded to fit in all the data from self.
+        ``ndim-1`` dimensions will be the same as ``self``, and shape in the
+        remaining dimension will be expanded to fit in all the data from ``self``.
 
         See :func:`flatten`.
 
     .. method:: ravel()
 
-        return self.flatten(). For NumPy compatibility.
+        return `flatten`. For NumPy compatibility.
 
     .. attribute:: T
 
@@ -538,19 +550,16 @@ TensorVariable
         >>> x = at.zmatrix()
         >>> y = 3+.2j * x.T
 
-        .. note::
-
-            In numpy and in Aesara, the transpose of a vector is exactly the
-            same vector!  Use `reshape` or `dimshuffle` to turn your vector
-            into a row or column matrix.
-
     .. method:: {any,all}(axis=None, keepdims=False)
     .. method:: {sum,prod,mean}(axis=None, dtype=None, keepdims=False, acc_dtype=None)
     .. method:: {var,std,min,max,argmin,argmax}(axis=None, keepdims=False),
     .. method:: diagonal(offset=0, axis1=0, axis2=1)
     .. method:: astype(dtype)
     .. method:: take(indices, axis=None, mode='raise')
-    .. method:: copy() Return a new symbolic variable that is a copy of the variable. Does not copy the tag.
+    .. method:: copy()
+
+        Return a new symbolic variable that is a copy of the variable. Does not copy the tag.
+
     .. method:: norm(L, axis=None)
     .. method:: nonzero(self, return_matrix=False)
        :noindex:
@@ -584,27 +593,27 @@ dimensions, see :meth:`_tensor_py_operators.dimshuffle`.
 
 .. function:: shape(x)
 
-    Returns an lvector representing the shape of `x`.
+    Returns an `lvector` representing the shape of `x`.
 
 .. function:: reshape(x, newshape, ndim=None)
    :noindex:
 
-    :type x: any TensorVariable (or compatible)
+    :type x: any `TensorVariable` (or compatible)
     :param x: variable to be reshaped
 
-    :type newshape: lvector (or compatible)
+    :type newshape: `lvector` (or compatible)
     :param newshape: the new shape for `x`
 
     :param ndim: optional - the length that `newshape`'s value will have.
-        If this is ``None``, then `reshape()` will infer it from `newshape`.
+        If this is ``None``, then `reshape` will infer it from `newshape`.
 
-    :rtype: variable with x's dtype, but ndim dimensions
+    :rtype: variable with `x`'s dtype, but `ndim` dimensions
 
     .. note::
 
-        This function can infer the length of a symbolic newshape in some
-        cases, but if it cannot and you do not provide the `ndim`, then this
-        function will raise an Exception.
+        This function can infer the length of a symbolic `newshape` value in
+        some cases, but if it cannot and you do not provide the `ndim`, then
+        this function will raise an Exception.
 
 
 .. function:: shape_padleft(x, n_ones=1)
@@ -614,7 +623,7 @@ dimensions, see :meth:`_tensor_py_operators.dimshuffle`.
     see the :func:`unbroadcast`.
 
     :param x: variable to be reshaped
-    :type x: any TensorVariable (or compatible)
+    :type x: any `TensorVariable` (or compatible)
 
     :type n_ones: int
     :type n_ones: number of dimension to be added to `x`
@@ -623,7 +632,7 @@ dimensions, see :meth:`_tensor_py_operators.dimshuffle`.
 
 .. function:: shape_padright(x, n_ones=1)
 
-    Reshape `x` by right padding the shape with `n_ones` 1s. Note that all
+    Reshape `x` by right padding the shape with `n_ones` ones. Note that all
     this new dimension will be broadcastable. To make them non-broadcastable
     see the :func:`unbroadcast`.
 
@@ -636,11 +645,11 @@ dimensions, see :meth:`_tensor_py_operators.dimshuffle`.
 
 .. function:: shape_padaxis(t, axis)
 
-    Reshape `t` by inserting 1 at the dimension `axis`. Note that this new
+    Reshape `t` by inserting ``1`` at the dimension `axis`. Note that this new
     dimension will be broadcastable. To make it non-broadcastable
     see the :func:`unbroadcast`.
 
-    :type x: any TensorVariable (or compatible)
+    :type x: any `TensorVariable` (or compatible)
     :param x: variable to be reshaped
 
     :type axis: int
@@ -669,7 +678,7 @@ dimensions, see :meth:`_tensor_py_operators.dimshuffle`.
     Similar to :func:`reshape`, but the shape is inferred from the shape of `x`.
 
     :param x: variable to be flattened
-    :type x: any TensorVariable (or compatible)
+    :type x: any `TensorVariable` (or compatible)
 
     :type ndim: int
     :param ndim: the number of dimensions in the returned variable
@@ -679,10 +688,10 @@ dimensions, see :meth:`_tensor_py_operators.dimshuffle`.
         dimensions, but with all remaining dimensions of `x` collapsed into
         the last dimension.
 
-    For example, if we flatten a tensor of shape (2, 3, 4, 5) with flatten(x,
-    ndim=2), then we'll have the same (2-1=1) leading dimensions (2,), and the
-    remaining dimensions are collapsed.  So the output in this example would
-    have shape (2, 60).
+    For example, if we flatten a tensor of shape ``(2, 3, 4, 5)`` with ``flatten(x,
+    ndim=2)``, then we'll have the same (i.e. ``2-1=1``) leading dimensions
+    ``(2,)``, and the remaining dimensions are collapsed, so the output in this
+    example would have shape ``(2, 60)``.
 
 
 .. function:: tile(x, reps, ndim=None)
@@ -702,13 +711,13 @@ dimensions, see :meth:`_tensor_py_operators.dimshuffle`.
         <aesara.tensor.extra_ops.repeat>`
 
     :note: Currently, `reps` must be a constant, `x.ndim` and
-        `len(reps)` must be equal and, if specified, `ndim` must be
+        ``len(reps)`` must be equal and, if specified, `ndim` must be
         equal to both.
 
 .. autofunction:: roll
 
-Creating Tensor
-===============
+Creating Tensors
+================
 
 
 .. function:: zeros_like(x, dtype=None)
@@ -717,7 +726,7 @@ Creating Tensor
     :param dtype: data-type, optional
                   By default, it will be x.dtype.
 
-    Returns a tensor the shape of x filled with zeros of the type of dtype.
+    Returns a tensor the shape of `x` filled with zeros of the type of `dtype`.
 
 
 .. function:: ones_like(x)
@@ -725,31 +734,31 @@ Creating Tensor
 
     :param x: tensor that has the same shape as output
     :param dtype: data-type, optional
-                  By default, it will be x.dtype.
+                  By default, it will be `x.dtype`.
 
-    Returns a tensor the shape of x filled with ones of the type of dtype.
+    Returns a tensor the shape of `x` filled with ones of the type of `dtype`.
 
 
 .. function:: zeros(shape, dtype=None)
 
     :param shape: a tuple/list of scalar with the shape information.
-    :param dtype: the dtype of the new tensor. If None, will use floatX.
+    :param dtype: the dtype of the new tensor. If ``None``, will use ``"floatX"``.
 
-    Returns a tensor filled with 0s of the provided shape.
+    Returns a tensor filled with zeros of the provided shape.
 
 .. function:: ones(shape, dtype=None)
 
     :param shape: a tuple/list of scalar with the shape information.
-    :param dtype: the dtype of the new tensor. If None, will use floatX.
+    :param dtype: the dtype of the new tensor. If ``None``, will use ``"floatX"``.
 
-    Returns a tensor filled with 1s of the provided shape.
+    Returns a tensor filled with ones of the provided shape.
 
 .. function:: fill(a,b)
 
     :param a: tensor that has same shape as output
-    :param b: aesara scalar or value with which you want to fill the output
+    :param b: Aesara scalar or value with which you want to fill the output
 
-    Create a matrix by filling the shape of `a` with `b`
+    Create a matrix by filling the shape of `a` with `b`.
 
 .. function:: alloc(value, *shape)
 
@@ -759,9 +768,9 @@ Creating Tensor
 
 .. function:: eye(n, m=None, k=0, dtype=aesara.config.floatX)
 
-    :param n: number of rows in output (value or aesara scalar)
-    :param m: number of columns in output (value or aesara scalar)
-    :param k: Index of the diagonal: 0 refers to the main diagonal,
+    :param n: number of rows in output (value or Aesara scalar)
+    :param m: number of columns in output (value or Aesara scalar)
+    :param k: Index of the diagonal: ``0`` refers to the main diagonal,
               a positive value refers to an upper diagonal, and a
               negative value to a lower diagonal. It can be an Aesara
               scalar.
@@ -771,21 +780,21 @@ Creating Tensor
 .. function:: identity_like(x)
 
     :param x: tensor
-    :returns: A tensor of same shape as `x` that is filled with 0s everywhere
+    :returns: A tensor of same shape as `x` that is filled with zeros everywhere
               except for the main diagonal, whose values are equal to one. The output
               will have same dtype as `x`.
 
 .. function:: stack(tensors, axis=0)
 
-    Stack tensors in sequence on given axis (default is 0).
+    Stack tensors in sequence on given axis (default is ``0``).
 
     Take a sequence of tensors and stack them on given axis to make a single
     tensor. The size in dimension `axis` of the result will be equal to the number
     of tensors passed.
 
     :param tensors: a list or a tuple of one or more tensors of the same rank.
-    :param axis: the axis along which the tensors will be stacked. Default value is 0.
-    :returns: A tensor such that rval[0] == tensors[0], rval[1] == tensors[1], etc.
+    :param axis: the axis along which the tensors will be stacked. Default value is ``0``.
+    :returns: A tensor such that ``rval[0] == tensors[0]``, ``rval[1] == tensors[1]``, etc.
 
     Examples:
 
@@ -805,7 +814,7 @@ Creating Tensor
     >>> rval.shape # 3 tensors are stacked on axis 0
     (3, 2, 2, 2, 2)
 
-    We can also specify different axis than default value 0
+    We can also specify different axis than default value ``0``:
 
     >>> x = aesara.tensor.stack([a, b, c], axis=3)
     >>> x.ndim
@@ -834,7 +843,7 @@ Creating Tensor
     tensor.
 
     :param tensors: one or more tensors of the same rank
-    :returns: A tensor such that rval[0] == tensors[0], rval[1] == tensors[1], etc.
+    :returns: A tensor such that ``rval[0] == tensors[0]``, ``rval[1] == tensors[1]``, etc.
 
     >>> x0 = at.scalar()
     >>> x1 = at.scalar()
@@ -906,7 +915,7 @@ Reductions
     :Returns: maximum of *x* along *axis*
 
     axis can be:
-     * *None* - in which case the maximum is computed along all axes (like numpy)
+     * *None* - in which case the maximum is computed along all axes (like NumPy)
      * an *int* - computed along this axis
      * a *list of ints* - computed along these axes
 
@@ -919,7 +928,7 @@ Reductions
 		will broadcast correctly against the original tensor.
     :Returns: the index of the maximum value along a given axis
 
-    if axis=None, argmax over the flattened tensor (like numpy)
+    if ``axis == None``, `argmax` over the flattened tensor (like NumPy)
 
 .. function:: max_and_argmax(x, axis=None, keepdims=False)
 
@@ -930,7 +939,7 @@ Reductions
 		will broadcast correctly against the original tensor.
     :Returns: the maximum value along a given axis and its index.
 
-    if axis=None, max_and_argmax over the flattened tensor (like numpy)
+    if ``axis == None``, `max_and_argmax` over the flattened tensor (like NumPy)
 
 .. function:: min(x, axis=None, keepdims=False)
 
@@ -941,8 +950,8 @@ Reductions
 		will broadcast correctly against the original tensor.
     :Returns: minimum of *x* along *axis*
 
-    axis can be:
-     * *None* - in which case the minimum is computed along all axes (like numpy)
+    `axis` can be:
+     * ``None`` - in which case the minimum is computed along all axes (like NumPy)
      * an *int* - computed along this axis
      * a *list of ints* - computed along these axes
 
@@ -955,7 +964,7 @@ Reductions
 		will broadcast correctly against the original tensor.
     :Returns: the index of the minimum value along a given axis
 
-    if axis=None, argmin over the flattened tensor (like numpy)
+    if ``axis == None``, `argmin` over the flattened tensor (like NumPy)
 
 .. function:: sum(x, axis=None, dtype=None, keepdims=False, acc_dtype=None)
 
@@ -987,10 +996,10 @@ Reductions
 
     :Returns: sum of *x* along *axis*
 
-    axis can be:
-     * *None* - in which case the sum is computed along all axes (like numpy)
-     * an *int* - computed along this axis
-     * a *list of ints* - computed along these axes
+    `axis` can be:
+     * ``None`` - in which case the sum is computed along all axes (like NumPy)
+     * an int - computed along this axis
+     * a list of ints - computed along these axes
 
 .. function:: prod(x, axis=None, dtype=None, keepdims=False, acc_dtype=None, no_zeros_in_input=False)
 
@@ -1037,10 +1046,10 @@ Reductions
 
     :Returns: product of every term in *x* along *axis*
 
-    axis can be:
-     * *None* - in which case the sum is computed along all axes (like numpy)
-     * an *int* - computed along this axis
-     * a *list of ints* - computed along these axes
+    `axis` can be:
+     * ``None`` - in which case the sum is computed along all axes (like NumPy)
+     * an int - computed along this axis
+     * a list of ints - computed along these axes
 
 .. function:: mean(x, axis=None, dtype=None, keepdims=False, acc_dtype=None)
 
@@ -1060,10 +1069,10 @@ Reductions
         rules as :func:`sum()`.
     :Returns: mean value of *x* along *axis*
 
-    axis can be:
-     * *None* - in which case the mean is computed along all axes (like numpy)
-     * an *int* - computed along this axis
-     * a *list of ints* - computed along these axes
+    `axis` can be:
+     * ``None`` - in which case the mean is computed along all axes (like NumPy)
+     * an int - computed along this axis
+     * a list of ints - computed along these axes
 
 .. function:: var(x, axis=None, keepdims=False)
 
@@ -1074,10 +1083,10 @@ Reductions
 		will broadcast correctly against the original tensor.
     :Returns: variance of *x* along *axis*
 
-    axis can be:
-     * *None* - in which case the variance is computed along all axes (like numpy)
-     * an *int* - computed along this axis
-     * a *list of ints* - computed along these axes
+    `axis` can be:
+     * ``None`` - in which case the variance is computed along all axes (like NumPy)
+     * an int - computed along this axis
+     * a list of ints - computed along these axes
 
 .. function:: std(x, axis=None, keepdims=False)
 
@@ -1088,10 +1097,10 @@ Reductions
 		will broadcast correctly against the original tensor.
     :Returns: variance of *x* along *axis*
 
-    axis can be:
-     * *None* - in which case the standard deviation is computed along all axes (like numpy)
-     * an *int* - computed along this axis
-     * a *list of ints* - computed along these axes
+    `axis` can be:
+     * ``None`` - in which case the standard deviation is computed along all axes (like NumPy)
+     * an int - computed along this axis
+     * a list of ints - computed along these axes
 
 .. function:: all(x, axis=None, keepdims=False)
 
@@ -1102,10 +1111,10 @@ Reductions
 		will broadcast correctly against the original tensor.
     :Returns: bitwise and of *x* along *axis*
 
-    axis can be:
-     * *None* - in which case the 'bitwise and' is computed along all axes (like numpy)
-     * an *int* - computed along this axis
-     * a *list of ints* - computed along these axes
+    `axis` can be:
+     * ``None`` - in which case the 'bitwise and' is computed along all axes (like NumPy)
+     * an int - computed along this axis
+     * a list of ints - computed along these axes
 
 .. function:: any(x, axis=None, keepdims=False)
 
@@ -1116,10 +1125,10 @@ Reductions
 		will broadcast correctly against the original tensor.
     :Returns: bitwise or of *x* along *axis*
 
-    axis can be:
-     * *None* - in which case the 'bitwise or' is computed along all axes (like numpy)
-     * an *int* - computed along this axis
-     * a *list of ints* - computed along these axes
+    `axis` can be:
+     * ``None`` - in which case the 'bitwise or' is computed along all axes (like NumPy)
+     * an int - computed along this axis
+     * a list of ints - computed along these axes
 
 .. function:: ptp(x, axis = None)
 
@@ -1205,30 +1214,30 @@ Casting
 
 .. function:: cast(x, dtype)
 
-    Cast any tensor `x` to a Tensor of the same shape, but with a different
+    Cast any tensor `x` to a tensor of the same shape, but with a different
     numerical type `dtype`.
 
-    This is not a reinterpret cast, but a coercion cast, similar to
+    This is not a reinterpret cast, but a coercion `cast`, similar to
     ``numpy.asarray(x, dtype=dtype)``.
 
     .. testcode:: cast
 
-        import Aesara.tensor as at
+        import aesara.tensor as at
         x = at.matrix()
         x_as_int = at.cast(x, 'int32')
 
     Attempting to casting a complex value to a real value is ambiguous and
-    will raise an exception.  Use `real()`, `imag()`, `abs()`, or `angle()`.
+    will raise an exception.  Use `real`, `imag`, `abs`, or `angle`.
 
 .. function:: real(x)
 
-    Return the real (not imaginary) components of Tensor x.
-    For non-complex `x` this function returns x.
+    Return the real (not imaginary) components of tensor `x`.
+    For non-complex `x` this function returns `x`.
 
 .. function:: imag(x)
 
-    Return the imaginary components of Tensor x.
-    For non-complex `x` this function returns zeros_like(x).
+    Return the imaginary components of tensor `x`.
+    For non-complex `x` this function returns ``zeros_like(x)``.
 
 
 Comparisons
@@ -1249,7 +1258,7 @@ The six usual equality and inequality operators share the same interface.
 
   .. testcode:: oper
 
-    import Aesara.tensor as at
+    import aesara.tensor as at
     x,y = at.dmatrices('x','y')
     z = at.le(x,y)
 
@@ -1332,8 +1341,8 @@ Condition
 
 .. function:: switch(cond, ift, iff)
 
-    Returns a variable representing a switch between ift (iftrue) and iff (iffalse)
-     based on the condition cond. This is the Aesara equivalent of numpy.where.
+    Returns a variable representing a switch between ift (i.e. "if true") and iff (i.e. "if false")
+    based on the condition cond. This is the Aesara equivalent of `numpy.where`.
 
       :Parameter:  *cond* - symbolic Tensor (or compatible)
       :Parameter:  *ift* - symbolic Tensor (or compatible)
@@ -1342,32 +1351,32 @@ Condition
 
     .. testcode:: switch
 
-      import Aesara.tensor as at
+      import aesara.tensor as at
       a,b = at.dmatrices('a','b')
       x,y = at.dmatrices('x','y')
       z = at.switch(at.lt(a,b), x, y)
 
 .. function:: where(cond, ift, iff)
 
-   Alias for `switch`. where is the numpy name.
+   Alias for `switch`. where is the NumPy name.
 
 .. function:: clip(x, min, max)
 
-    Return a variable representing x, but with all elements greater than
+    Return a variable representing `x`, but with all elements greater than
     `max` clipped to `max` and all elements less than `min` clipped to `min`.
 
     Normal broadcasting rules apply to each of `x`, `min`, and `max`.
 
     Note that there is no warning for inputs that are the wrong way round
-    (`min > max`), and that results in this case may differ from ``numpy.clip``.
+    (`min > max`), and that results in this case may differ from `numpy.clip`.
 
 Bit-wise
 --------
 
 
 The bitwise operators possess this interface:
-    :Parameter:  *a* - symbolic Tensor of integer type.
-    :Parameter:  *b* - symbolic Tensor of integer type.
+    :Parameter:  *a* - symbolic tensor of integer type.
+    :Parameter:  *b* - symbolic tensor of integer type.
 
     .. note::
 
@@ -1375,7 +1384,7 @@ The bitwise operators possess this interface:
 
         The bit-wise not (invert) takes only one parameter.
 
-    :Return type: symbolic Tensor with corresponding dtype.
+    :Return type: symbolic tensor with corresponding dtype.
 
 .. function:: and_(a, b)
 
@@ -1395,25 +1404,25 @@ The bitwise operators possess this interface:
 
 .. function:: bitwise_and(a, b)
 
-   Alias for `and_`. bitwise_and is the numpy name.
+   Alias for `and_`. bitwise_and is the NumPy name.
 
 .. function:: bitwise_or(a, b)
 
-   Alias for `or_`. bitwise_or is the numpy name.
+   Alias for `or_`. bitwise_or is the NumPy name.
 
 .. function:: bitwise_xor(a, b)
 
-   Alias for `xor_`. bitwise_xor is the numpy name.
+   Alias for `xor_`. bitwise_xor is the NumPy name.
 
 .. function:: bitwise_not(a, b)
 
-   Alias for invert. invert is the numpy name.
+   Alias for invert. invert is the NumPy name.
 
 Here is an example using the bit-wise ``and_`` via the ``&`` operator:
 
 .. testcode:: bitwise
 
-    import Aesara.tensor as at
+    import aesara.tensor as at
     x,y = at.imatrices('x','y')
     z = x & y
 
@@ -1518,7 +1527,7 @@ Mathematical
    Returns a variable representing the survival function (1-cdf —
    sometimes more accurate).
 
-   C code is provided in the Aesara_lgpl repository.
+   C code is provided in the Theano_lgpl repository.
    This makes it faster.
 
    https://github.com/Theano/Theano_lgpl.git
@@ -1542,7 +1551,7 @@ Linear Algebra
     :param Y: right term
     :type X: symbolic tensor
     :type Y: symbolic tensor
-    :rtype: `symbolic matrix or vector`
+    :rtype: symbolic matrix or vector
     :return: the inner product of `X` and `Y`.
 
 .. function:: outer(X, Y)
@@ -1560,7 +1569,7 @@ Linear Algebra
     Given two tensors a and b,tensordot computes a generalized dot product over
     the provided axes. Aesara's implementation reduces all expressions to
     matrix or vector dot products and is based on code from Tijmen Tieleman's
-    gnumpy (http://www.cs.toronto.edu/~tijmen/gnumpy.html).
+    `gnumpy` (http://www.cs.toronto.edu/~tijmen/gnumpy.html).
 
     :param a: the first tensor variable
     :type a: symbolic tensor
@@ -1575,7 +1584,7 @@ Linear Algebra
                  Note that the default value of 2 is not guaranteed to work
                  for all values of a and b, and an error will be raised if
                  that is the case. The reason for keeping the default is to
-                 maintain the same signature as numpy's tensordot function
+                 maintain the same signature as NumPy's tensordot function
                  (and np.tensordot raises analogous errors for non-compatible
                  inputs).
 
@@ -1612,21 +1621,17 @@ Linear Algebra
         a = np.random.random((2,3,4))
         b = np.random.random((5,6,4,3))
 
-        #tensordot
         c = np.tensordot(a, b, [[1,2],[3,2]])
 
-        #loop replicating tensordot
         a0, a1, a2 = a.shape
         b0, b1, _, _ = b.shape
         cloop = np.zeros((a0,b0,b1))
 
-        #loop over non-summed indices -- these exist
-        #in the tensor product.
+        # Loop over non-summed indices--these exist in the tensor product
         for i in range(a0):
             for j in range(b0):
                 for k in range(b1):
-                    #loop over summed indices -- these don't exist
-                    #in the tensor product.
+                    # Loop over summed indices--these don't exist in the tensor product
                     for l in range(a1):
                         for m in range(a2):
                             cloop[i,j,k] += a[i,l,m] * b[j,k,m,l]
@@ -1668,9 +1673,7 @@ Linear Algebra
     >>> second = at.tensor3('second')
     >>> result = batched_dot(first, second)
 
-    :note:  This is a subset of numpy.einsum, but we do not provide it for now.
-        But numpy einsum is slower than dot or tensordot:
-        http://mail.scipy.org/pipermail/numpy-discussion/2012-October/064259.html
+    :note:  This is a subset of `numpy.einsum`, but we do not provide it for now.
 
     :param X: left term
     :param Y: right term

@@ -97,12 +97,23 @@ Example:
 
 .. code-block:: python
 
+    import numpy as np
+    import aesara.tensor as at
+
+
     def test_dot_validity():
         a = at.dmatrix('a')
         b = at.dmatrix('b')
         c = at.dot(a, b)
-        f = aesara.function([a, b], [c])
-        assert np.array_equal(f(self.avals, self.bvals), numpy.dot(self.avals, self.bvals))
+
+        c_fn = aesara.function([a, b], [c])
+
+        avals = ...
+        bvals = ...
+
+        res = c_fn(avals, bvals)
+        exp_res = np.dot(self.avals, self.bvals)
+        assert np.array_equal(res, exp_res)
 
 
 Creating an :class:`Op` Unit Test
@@ -117,16 +128,16 @@ unit tests for Aesara :class:`Op`\s.
 Validating the Gradient
 -----------------------
 
-The :func:`verify_grad` function can be used to validate that the :meth:`Op.grad`
+The :func:`aesara.gradient.verify_grad` function can be used to validate that the :meth:`Op.grad`
 method of your :class:`Op` is properly implemented. :func:`verify_grad` is based
-on the Finite Difference Method where the derivative of function ``f``
-at point ``x`` is approximated as:
+on the Finite Difference Method where the derivative of function :math:`f`
+at point :math:`x` is approximated as:
 
 .. math::
 
    \frac{\partial{f}}{\partial{x}} = lim_{\Delta \rightarrow 0} \frac {f(x+\Delta) - f(x-\Delta)} {2\Delta}
 
-``verify_grad`` performs the following steps:
+:func:`verify_grad` performs the following steps:
 
 * approximates the gradient numerically using the Finite Difference Method
 
@@ -142,7 +153,7 @@ Here is the prototype for the :func:`verify_grad` function.
 
     def verify_grad(fun, pt, n_tests=2, rng=None, eps=1.0e-7, abs_tol=0.0001, rel_tol=0.0001):
 
-:func:`verify_grad` raises an ``Exception`` if the difference between the analytic gradient and
+:func:`verify_grad` raises an :class:`Exception` if the difference between the analytic gradient and
 numerical gradient (computed through the Finite Difference Method) of a random
 projection of the fun's output to a scalar exceeds both the given absolute and
 relative tolerances.
@@ -152,15 +163,15 @@ The parameters are as follows:
 * ``fun``: a Python function that takes Aesara variables as inputs,
   and returns an Aesara variable.
   For instance, an :class:`Op` instance with a single output is such a function.
-  It can also be a Python function that calls an op with some of its
+  It can also be a Python function that calls an :class:`Op` with some of its
   inputs being fixed to specific values, or that combine multiple :class:`Op`\s.
 
-* ``pt``: the list of numpy.ndarrays to use as input values
+* ``pt``: the list of `np.ndarrays` to use as input values
 
 * ``n_tests``: number of times to run the test
 
-* ``rng``: random number generator used to generate a random vector u,
-  we check the gradient of sum(u*fn) at pt
+* ``rng``: random number generator used to generate a random vector `u`,
+  we check the gradient of ``sum(u*fn)`` at ``pt``
 
 * ``eps``: stepsize used in the Finite Difference Method
 
@@ -176,12 +187,12 @@ symbolic variable:
 
     def test_verify_exprgrad():
         def fun(x,y,z):
-            return (x + tensor.cos(y)) / (4 * z)**2
+            return (x + at.cos(y)) / (4 * z)**2
 
-        x_val = numpy.asarray([[1], [1.1], [1.2]])
-        y_val = numpy.asarray([0.1, 0.2])
-        z_val = numpy.asarray(2)
-        rng = numpy.random.RandomState(42)
+        x_val = np.asarray([[1], [1.1], [1.2]])
+        y_val = np.asarray([0.1, 0.2])
+        z_val = np.asarray(2)
+        rng = np.random.default_rng(42)
 
         aesara.gradient.verify_grad(fun, [x_val, y_val, z_val], rng=rng)
 
@@ -190,11 +201,13 @@ Here is an example showing how to use :func:`verify_grad` on an :class:`Op` inst
 .. testcode::
 
     def test_flatten_outdimNone():
-        # Testing gradient w.r.t. all inputs of an op (in this example the op
-        # being used is Flatten(), which takes a single input).
-        a_val = numpy.asarray([[0,1,2],[3,4,5]], dtype='float64')
-        rng = numpy.random.RandomState(42)
-        aesara.gradient.verify_grad(tensor.Flatten(), [a_val], rng=rng)
+        """
+        Testing gradient w.r.t. all inputs of an `Op` (in this example the `Op`
+        being used is `Flatten`, which takes a single input).
+        """
+        a_val = np.asarray([[0,1,2],[3,4,5]], dtype='float64')
+        rng = np.random.default_rng(42)
+        aesara.gradient.verify_grad(at.Flatten(), [a_val], rng=rng)
 
 Here is another example, showing how to verify the gradient w.r.t. a subset of
 an :class:`Op`'s inputs. This is useful in particular when the gradient w.r.t. some of
@@ -204,29 +217,30 @@ which would cause :func:`verify_grad` to crash.
 .. testcode::
 
     def test_crossentropy_softmax_grad():
-        op = tensor.nnet.crossentropy_softmax_argmax_1hot_with_bias
-        def op_with_fixed_y_idx(x, b):
-            # Input `y_idx` of this Op takes integer values, so we fix them
-            # to some constant array.
-            # Although this op has multiple outputs, we can return only one.
-            # Here, we return the first output only.
-            return op(x, b, y_idx=numpy.asarray([0, 2]))[0]
+        op = at.nnet.crossentropy_softmax_argmax_1hot_with_bias
 
-        x_val = numpy.asarray([[-1, 0, 1], [3, 2, 1]], dtype='float64')
-        b_val = numpy.asarray([1, 2, 3], dtype='float64')
-        rng = numpy.random.RandomState(42)
+        def op_with_fixed_y_idx(x, b):
+            # Input `y_idx` of this `Op` takes integer values, so we fix them
+            # to some constant array.
+            # Although this `Op` has multiple outputs, we can return only one.
+            # Here, we return the first output only.
+            return op(x, b, y_idx=np.asarray([0, 2]))[0]
+
+        x_val = np.asarray([[-1, 0, 1], [3, 2, 1]], dtype='float64')
+        b_val = np.asarray([1, 2, 3], dtype='float64')
+        rng = np.random.default_rng(42)
 
         aesara.gradient.verify_grad(op_with_fixed_y_idx, [x_val, b_val], rng=rng)
 
 .. note::
 
-    Although ``verify_grad`` is defined in ``aesara.tensor.basic``, unittests
-    should use the version of ``verify_grad`` defined in ``tests.unittest_tools``.
+    Although :func:`verify_grad` is defined in :mod:`aesara.gradient`, unittests
+    should use the version of :func:`verify_grad` defined in :mod:`tests.unittest_tools`.
     This is simply a wrapper function which takes care of seeding the random
-    number generator appropriately before calling ``aesara.gradient.verify_grad``
+    number generator appropriately before calling :func:`aesara.gradient.verify_grad`
 
-makeTester and makeBroadcastTester
-==================================
+:func:`makeTester` and :func:`makeBroadcastTester`
+==================================================
 
 Most :class:`Op` unittests perform the same function. All such tests must
 verify that the :class:`Op` generates the proper output, that the gradient is
@@ -244,21 +258,23 @@ product :class:`Op`:
 
     from tests.tensor.utils import makeTester
 
+
     rng = np.random.default_rng(23098)
 
     TestDot = makeTester(
         name="DotTester",
         op=np.dot,
-        expected=lambda x, y: numpy.dot(x, y),
+        expected=lambda x, y: np.dot(x, y),
         checks={},
         good=dict(
-            correct1=(rng.rand(5, 7), rng.rand(7, 5)),
-            correct2=(rng.rand(5, 7), rng.rand(7, 9)),
-            correct3=(rng.rand(5, 7), rng.rand(7)),
+            correct1=(rng.random((5, 7)), rng.random((7, 5))),
+            correct2=(rng.random((5, 7)), rng.random((7, 9))),
+            correct3=(rng.random((5, 7)), rng.random((7,))),
         ),
         bad_build=dict(),
         bad_runtime=dict(
-            bad1=(rng.rand(5, 7), rng.rand(5, 7)), bad2=(rng.rand(5, 7), rng.rand(8, 3))
+            bad1=(rng.random((5, 7)), rng.random((5, 7))),
+            bad2=(rng.random((5, 7)), rng.random((8, 3)))
         ),
         grad=dict(),
     )

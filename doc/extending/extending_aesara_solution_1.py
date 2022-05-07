@@ -81,60 +81,60 @@ from aesara.tensor.type import dmatrix, matrix
 
 
 class TestProdOp(utt.InferShapeTester):
-
-    rng = np.random.RandomState(43)
-
     def setup_method(self):
         super().setup_method()
         self.op_class = ProdOp  # case 1
 
     def test_perform(self):
+        rng = np.random.default_rng(43)
         x = matrix()
         y = matrix()
         f = aesara.function([x, y], self.op_class()(x, y))
-        x_val = np.random.rand(5, 4)
-        y_val = np.random.rand(5, 4)
+        x_val = rng.random((5, 4))
+        y_val = rng.random((5, 4))
         out = f(x_val, y_val)
         assert np.allclose(x_val * y_val, out)
 
     def test_gradient(self):
+        rng = np.random.default_rng(43)
         utt.verify_grad(
             self.op_class(),
-            [np.random.rand(5, 4), np.random.rand(5, 4)],
+            [rng.random((5, 4)), rng.random((5, 4))],
             n_tests=1,
             rng=TestProdOp.rng,
         )
 
     def test_infer_shape(self):
+        rng = np.random.default_rng(43)
         x = dmatrix()
         y = dmatrix()
 
         self._compile_and_check(
             [x, y],
             [self.op_class()(x, y)],
-            [np.random.rand(5, 6), np.random.rand(5, 6)],
+            [rng.random(5, 6), rng.random((5, 6))],
             self.op_class,
         )
 
 
 class TestSumDiffOp(utt.InferShapeTester):
-
-    rng = np.random.RandomState(43)
-
     def setup_method(self):
         super().setup_method()
         self.op_class = SumDiffOp
 
     def test_perform(self):
+        rng = np.random.RandomState(43)
         x = matrix()
         y = matrix()
         f = aesara.function([x, y], self.op_class()(x, y))
-        x_val = np.random.rand(5, 4)
-        y_val = np.random.rand(5, 4)
+        x_val = rng.random((5, 4))
+        y_val = rng.random((5, 4))
         out = f(x_val, y_val)
         assert np.allclose([x_val + y_val, x_val - y_val], out)
 
     def test_gradient(self):
+        rng = np.random.RandomState(43)
+
         def output_0(x, y):
             return self.op_class()(x, y)[0]
 
@@ -143,18 +143,20 @@ class TestSumDiffOp(utt.InferShapeTester):
 
         utt.verify_grad(
             output_0,
-            [np.random.rand(5, 4), np.random.rand(5, 4)],
+            [rng.random((5, 4)), rng.random((5, 4))],
             n_tests=1,
             rng=TestSumDiffOp.rng,
         )
         utt.verify_grad(
             output_1,
-            [np.random.rand(5, 4), np.random.rand(5, 4)],
+            [rng.random((5, 4)), rng.random((5, 4))],
             n_tests=1,
             rng=TestSumDiffOp.rng,
         )
 
     def test_infer_shape(self):
+        rng = np.random.RandomState(43)
+
         x = dmatrix()
         y = dmatrix()
 
@@ -163,7 +165,7 @@ class TestSumDiffOp(utt.InferShapeTester):
         self._compile_and_check(
             [x, y],
             self.op_class()(x, y),
-            [np.random.rand(5, 6), np.random.rand(5, 6)],
+            [rng.random((5, 6)), rng.random((5, 6))],
             self.op_class,
         )
 
