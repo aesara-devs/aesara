@@ -509,7 +509,7 @@ class Op(MetaObject):
         node_output_storage = [storage_map[r] for r in node.outputs]
 
         if debug and hasattr(self, "debug_perform"):
-            p = node.op.debug_perform  # type: ignore
+            p = node.op.debug_perform
         else:
             p = node.op.perform
 
