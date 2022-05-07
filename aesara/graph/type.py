@@ -197,7 +197,7 @@ class Type(MetaObject):
             A pretty string for printing and debugging.
 
         """
-        return self.variable_type(self, name=name)
+        return self.variable_type(self, None, name=name)
 
     def make_constant(self, value: D, name: Optional[Text] = None) -> constant_type:
         """Return a new `Constant` instance of this `Type`.

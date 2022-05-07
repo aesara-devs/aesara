@@ -339,7 +339,7 @@ class TestAutoName:
         autoname_id = next(Variable.__count__)
         Variable.__count__ = count(autoname_id)
         r1 = TensorType(dtype="int32", shape=())("myvar")
-        r2 = TensorVariable(TensorType(dtype="int32", shape=()))
+        r2 = TensorVariable(TensorType(dtype="int32", shape=()), None)
         r3 = shared(np.random.standard_normal((3, 4)))
         assert r1.auto_name == "auto_" + str(autoname_id)
         assert r2.auto_name == "auto_" + str(autoname_id + 1)

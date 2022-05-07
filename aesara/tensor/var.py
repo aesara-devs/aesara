@@ -3,19 +3,22 @@ import traceback as tb
 import warnings
 from collections.abc import Iterable
 from numbers import Number
-from typing import Optional
+from typing import Optional, TypeVar
 
 import numpy as np
 
 from aesara import tensor as at
 from aesara.configdefaults import config
-from aesara.graph.basic import Constant, Variable
+from aesara.graph.basic import Constant, OptionalApplyType, Variable
 from aesara.graph.utils import MetaType
 from aesara.scalar import ComplexError, IntegerDivisionError
 from aesara.tensor import _get_vector_length, as_tensor_variable
 from aesara.tensor.exceptions import AdvancedIndexingError
 from aesara.tensor.type import TensorType
 from aesara.tensor.utils import hash_from_ndarray
+
+
+_TensorTypeType = TypeVar("_TensorTypeType", bound=TensorType)
 
 
 class _tensor_py_operators:
@@ -811,14 +814,22 @@ class _tensor_py_operators:
         return at.extra_ops.compress(self, a, axis=axis)
 
 
-class TensorVariable(_tensor_py_operators, Variable):
+class TensorVariable(
+    _tensor_py_operators, Variable[_TensorTypeType, OptionalApplyType]
+):
     """
     Subclass to add the tensor operators to the basic `Variable` class.
 
     """
 
-    def __init__(self, type, owner=None, index=None, name=None):
-        super().__init__(type, owner=owner, index=index, name=name)
+    def __init__(
+        self,
+        type: _TensorTypeType,
+        owner: OptionalApplyType,
+        index=None,
+        name=None,
+    ):
+        super().__init__(type, owner, index=index, name=name)
         if config.warn_float64 != "ignore" and type.dtype == "float64":
             msg = (
                 "You are creating a TensorVariable "
@@ -979,10 +990,10 @@ def get_unique_value(x: TensorVariable) -> Optional[Number]:
     return None
 
 
-class TensorConstant(TensorVariable, Constant):
+class TensorConstant(TensorVariable, Constant[_TensorTypeType]):
     """Subclass to add the tensor operators to the basic `Constant` class."""
 
-    def __init__(self, type, data, name=None):
+    def __init__(self, type: _TensorTypeType, data, name=None):
         data_shape = np.shape(data)
 
         if len(data_shape) != type.ndim or any(

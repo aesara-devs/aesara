@@ -1483,7 +1483,7 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
     def inner_outputs(self):
         return self.fgraph.outputs
 
-    def clone(self):
+    def clone(self) -> "Scan":
         res = copy(self)
         res.fgraph = res.fgraph.clone()
         return res

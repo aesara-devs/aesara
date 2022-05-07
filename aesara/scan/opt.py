@@ -939,7 +939,7 @@ class ScanInplaceOptimizer(GlobalOptimizer):
         fgraph.attach_feature(DestroyHandler())
 
     def attempt_scan_inplace(
-        self, fgraph: FunctionGraph, node: Apply, output_indices: List[int]
+        self, fgraph: FunctionGraph, node: Apply[Scan], output_indices: List[int]
     ) -> Optional[Apply]:
         """Attempt to replace a `Scan` node by one which computes the specified outputs inplace.
 
@@ -953,7 +953,7 @@ class ScanInplaceOptimizer(GlobalOptimizer):
             Indices of the outputs to attempt to compute inplace
         """
 
-        op: Scan = cast(Scan, node.op)
+        op = node.op
 
         # inputs corresponding to sequences and n_steps
         ls_begin = node.inputs[: 1 + op.info.n_seqs]
@@ -1001,7 +1001,10 @@ class ScanInplaceOptimizer(GlobalOptimizer):
         new_op.destroy_map = destroy_map
 
         # Do not call make_node for test_value
-        new_outs: List[Variable] = new_op(*inputs, return_list=True)
+        new_outs = new_op(*inputs, return_list=True)
+
+        assert isinstance(new_outs, list)
+
         try:
             # TODO FIXME: We need to stop using this approach (i.e. attempt
             # in-place replacements and wait for downstream failures to revert
@@ -1015,7 +1018,7 @@ class ScanInplaceOptimizer(GlobalOptimizer):
                 remove=[node],
                 reason="scan_make_inplace",
             )
-            return new_outs[0].owner
+            return cast(Apply[Scan], new_outs[0].owner)
         except InconsistencyError:
             # Failed moving output to be computed inplace
             return None
