@@ -45,7 +45,6 @@ from aesara.raise_op import Assert, CheckAndRaise, assert_op
 from aesara.tensor.basic import (
     Alloc,
     AllocEmpty,
-    Flatten,
     Join,
     MakeVector,
     Rebroadcast,
@@ -2663,39 +2662,6 @@ def local_useless_split(fgraph, node):
             copy_stack_trace(out, out2)
 
             return [out2]
-
-
-@register_canonicalize
-@register_stabilize
-@local_optimizer([Flatten])
-def local_flatten_lift(fgraph, node):
-    """
-    Flatten(UnaryElemwise(x)) -> UnaryElemwise(Flatten(x))
-
-    This optimization is needed by optimization
-    log1msigm_to_softplus to get applied when there is a flatten.
-
-    """
-    if (
-        isinstance(node.op, Flatten)
-        and node.inputs[0].owner
-        and isinstance(node.inputs[0].owner.op, Elemwise)
-        and len(node.inputs[0].owner.inputs) == 1
-    ):
-        f = node.op(node.inputs[0].owner.inputs[0])
-
-        # Copy over stacktrace from previous output node (flatten op),
-        # since this is the op which may cause an error for f.
-        copy_stack_trace(node.outputs, f)
-
-        e = node.inputs[0].owner.op(f)
-
-        # Copy over stacktrace from previous output node and from unary
-        # elementwise output node since if there was an error, it would
-        # probably have come from that operation.
-        copy_stack_trace(node.outputs + [node.inputs[0]], e)
-
-        return [e]
 
 
 def local_reshape_chain(op):
