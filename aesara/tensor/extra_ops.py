@@ -1667,3 +1667,27 @@ def broadcast_arrays(*args: TensorVariable) -> Tuple[TensorVariable, ...]:
 
     """
     return tuple(broadcast_to(a, broadcast_shape(*args)) for a in args)
+
+
+__all__ = [
+    "searchsorted",
+    "cumsum",
+    "cumprod",
+    "diff",
+    "bincount",
+    "squeeze",
+    "compress",
+    "repeat",
+    "bartlett",
+    "fill_diagonal",
+    "fill_diagonal_offset",
+    "unique",
+    "unravel_index",
+    "ravel_multi_index",
+    "broadcast_shape",
+    "broadcast_to",
+    "geomspace",
+    "logspace",
+    "linspace",
+    "broadcast_arrays",
+]

@@ -117,27 +117,9 @@ from aesara.tensor import slinalg  # noqa
 # isort: on
 from aesara.tensor.basic import *  # noqa
 from aesara.tensor.blas import batched_dot, batched_tensordot  # noqa
-from aesara.tensor.extra_ops import (  # noqa
-    bartlett,
-    bincount,
-    broadcast_arrays,
-    broadcast_shape,
-    broadcast_shape_iter,
-    broadcast_to,
-    cumprod,
-    cumsum,
-    diff,
-    fill_diagonal,
-    fill_diagonal_offset,
-    ravel_multi_index,
-    repeat,
-    squeeze,
-    unique,
-    unravel_index,
-    linspace,
-    logspace,
-    geomspace,
-)
+from aesara.tensor.extra_ops import *
+
+
 from aesara.tensor.shape import (  # noqa
     reshape,
     shape,
