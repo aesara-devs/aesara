@@ -328,10 +328,8 @@ class TensorType(CType[np.ndarray], HasDataType, HasShape):
             # Note that, in this case, `var.type != self`, because that's
             # covered by the branch above.
 
-            # Use the more specific broadcast/shape information of the two
-            return aesara.tensor.basic.Rebroadcast(
-                *[(i, b) for i, b in enumerate(self.broadcastable)]
-            )(var)
+            # Use the more specific static shape information of the two
+            return aesara.tensor.specify_shape(var, self.shape)
 
     def value_zeros(self, shape):
         """Create an numpy ndarray full of 0 values.
