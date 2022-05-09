@@ -1105,13 +1105,13 @@ def local_sum_prod_mul_by_scalar(fgraph, node):
         (node_inps,) = node.inputs
         if node_inps.owner and node_inps.owner.op == mul:
             terms = node_inps.owner.inputs
-            scalars = [t.dimshuffle() for t in terms if np.all(t.type.broadcastable)]
+            scalars = [t.dimshuffle() for t in terms if all(t.type.broadcastable)]
 
             if len(scalars) == 0:
                 # Nothing to optimize here
                 return
 
-            non_scalars = [t for t in terms if not np.all(t.broadcastable)]
+            non_scalars = [t for t in terms if not all(t.broadcastable)]
 
             # Perform the op only on the non-scalar inputs, if applicable
             if len(non_scalars) == 0:
@@ -1332,10 +1332,8 @@ def local_useless_elemwise_comparison(fgraph, node):
         and isinstance(node.inputs[0].owner.op, Elemwise)
         and isinstance(node.inputs[0].owner.op.scalar_op, aes.Add)
         and all(
-            [
-                isinstance(var.owner and var.owner.op, Shape_i)
-                for var in node.inputs[0].owner.inputs
-            ]
+            isinstance(var.owner and var.owner.op, Shape_i)
+            for var in node.inputs[0].owner.inputs
         )
         and extract_constant(node.inputs[1], only_process_constants=True) == 0
     ):
@@ -1350,10 +1348,8 @@ def local_useless_elemwise_comparison(fgraph, node):
         and isinstance(node.inputs[0].owner.op, Elemwise)
         and isinstance(node.inputs[0].owner.op.scalar_op, aes.Add)
         and all(
-            [
-                isinstance(var.owner and var.owner.op, Shape_i)
-                for var in node.inputs[0].owner.inputs
-            ]
+            isinstance(var.owner and var.owner.op, Shape_i)
+            for var in node.inputs[0].owner.inputs
         )
         and extract_constant(node.inputs[1], only_process_constants=True) == 0
     ):
@@ -1448,7 +1444,7 @@ def local_sum_prod_div_dimshuffle(fgraph, node):
                 reordered_incompatible_dims = []
                 for ic_ax in incompatible_dims:
                     reordered_incompatible_dims.append(
-                        ic_ax - sum([1 for c_ax in compatible_dims if c_ax < ic_ax])
+                        ic_ax - sum(1 for c_ax in compatible_dims if c_ax < ic_ax)
                     )
 
                 if len(compatible_dims) > 0:
@@ -1783,7 +1779,7 @@ def local_neg_div_neg(fgraph, node):
                     # No other clients of the original division
                     new_num = num.owner.inputs[0]
                     return [true_div(new_num, denom)]
-            elif np.all(num.broadcastable) and isinstance(num, Constant):
+            elif all(num.broadcastable) and isinstance(num, Constant):
                 if len(fgraph.clients[frac]) == 1:
                     new_num = -num.data
                     return [true_div(new_num, denom)]
@@ -2174,10 +2170,7 @@ def local_abs_merge(fgraph, node):
     need it anymore
 
     """
-    if (
-        node.op == mul
-        and sum([i.owner.op == at_abs for i in node.inputs if i.owner]) > 1
-    ):
+    if node.op == mul and sum(i.owner.op == at_abs for i in node.inputs if i.owner) > 1:
         inputs = []
         for i in node.inputs:
             if i.owner and i.owner.op == at_abs:
@@ -2195,7 +2188,7 @@ def local_abs_merge(fgraph, node):
         return [at_abs(mul(*inputs))]
     if (
         node.op == true_div
-        and sum([i.owner.op == at_abs for i in node.inputs if i.owner]) == 2
+        and sum(i.owner.op == at_abs for i in node.inputs if i.owner) == 2
     ):
         return [
             at_abs(

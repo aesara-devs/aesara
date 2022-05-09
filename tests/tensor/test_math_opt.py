@@ -3575,7 +3575,7 @@ class TestLocalReduce:
             x = TensorType("int64", (True, True, True))()
             f = function([x], [fct(x)], mode=self.mode)
             assert not any(
-                [isinstance(node.op, CAReduce) for node in f.maker.fgraph.toposort()]
+                isinstance(node.op, CAReduce) for node in f.maker.fgraph.toposort()
             )
 
     def test_local_reduce_broadcast_all_1(self):
@@ -3590,7 +3590,7 @@ class TestLocalReduce:
             x = TensorType("int64", (True, True))()
             f = function([x], [fct(x, axis=[0, 1])], mode=self.mode)
             assert not any(
-                [isinstance(node.op, CAReduce) for node in f.maker.fgraph.toposort()]
+                isinstance(node.op, CAReduce) for node in f.maker.fgraph.toposort()
             )
 
     def test_local_reduce_broadcast_some_0(self):
@@ -3606,7 +3606,7 @@ class TestLocalReduce:
             f = function([x], [fct(x, axis=[0, 1])], mode=self.mode)
 
             order = f.maker.fgraph.toposort()
-            assert 1 == sum([isinstance(node.op, CAReduce) for node in order])
+            assert 1 == sum(isinstance(node.op, CAReduce) for node in order)
 
             node = [node for node in order if isinstance(node.op, CAReduce)][0]
 
@@ -3630,7 +3630,7 @@ class TestLocalReduce:
             x = TensorType("int64", (True, True, True))()
             f = function([x], [fct(x, axis=[0, 2])], mode=self.mode)
             assert not any(
-                [isinstance(node.op, CAReduce) for node in f.maker.fgraph.toposort()]
+                isinstance(node.op, CAReduce) for node in f.maker.fgraph.toposort()
             )
 
     def test_local_reduce_join(self):
@@ -3900,7 +3900,7 @@ def test_local_div_to_reciprocal():
     denom_m = denom_s.dimshuffle("x", "x")
 
     out = num_v / denom_m
-    assert np.all(out.broadcastable == (True, False))
+    assert out.broadcastable == (True, False)
 
     f = function([num_len_s, denom_s], out)
     out_val = f(3, 2.0)
@@ -4362,7 +4362,7 @@ class TestSigmoidOpts:
         )
         topo = f.maker.fgraph.toposort()
         for op, nb in [(sigmoid, 2), (mul, 2), (neg, 1), (exp, 1)]:
-            assert sum([n.op == op for n in topo]) == nb
+            assert sum(n.op == op for n in topo) == nb
         # assert check_stack_trace(f, ops_to_check=[sigmoid, mul,
         #                                           exp])
 

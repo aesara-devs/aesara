@@ -394,7 +394,7 @@ class Elemwise(OpenMPOp):
             *[get_scalar_type(dtype=i.type.dtype).make_variable() for i in inputs]
         )
 
-        target_length = max([input.type.ndim for input in inputs])
+        target_length = max(input.type.ndim for input in inputs)
 
         args = []
         for input in inputs:

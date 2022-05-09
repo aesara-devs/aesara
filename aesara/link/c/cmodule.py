@@ -1719,10 +1719,8 @@ def std_lib_dirs_and_libs() -> Optional[Tuple[List[str], ...]]:
                 ("libmsvcr90.a", "mingw 4.5.2 or 4.8.1-2 (newer could work)")
             ]:
                 if not any(
-                    [
-                        os.path.exists(os.path.join(tmp_libdir, f))
-                        for tmp_libdir in libdirs
-                    ]
+                    os.path.exists(os.path.join(tmp_libdir, f))
+                    for tmp_libdir in libdirs
                 ):
                     print(
                         "Your Python version is from Canopy. "

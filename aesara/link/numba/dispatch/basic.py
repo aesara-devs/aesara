@@ -646,7 +646,7 @@ def int_to_float_fn(inputs, out_dtype):
             return x.astype(args_dtype)
 
     else:
-        args_dtype_sz = max([_arg.type.numpy_dtype.itemsize for _arg in inputs])
+        args_dtype_sz = max(_arg.type.numpy_dtype.itemsize for _arg in inputs)
         args_dtype = np.dtype(f"f{args_dtype_sz}")
 
         @numba_njit(inline="always")

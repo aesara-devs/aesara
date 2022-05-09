@@ -2195,7 +2195,7 @@ def local_advanced_indexing_crossentropy_onehot_grad(fgraph, node):
 
             # set out_grad according to the numerator, it may be divided later
             # num should be a vector or a scalar
-            if num.ndim == 1 or np.all(num.broadcastable):
+            if num.ndim == 1 or all(num.broadcastable):
                 out_grad *= -num
             else:
                 return
@@ -2221,7 +2221,7 @@ def local_advanced_indexing_crossentropy_onehot_grad(fgraph, node):
                             rest = mul(*[other_inputs])
 
                         # Check that rest is a vector or a scalar
-                        if rest.ndim == 1 or np.all(rest.broadcastable):
+                        if rest.ndim == 1 or all(rest.broadcastable):
                             adv_subtensor = input
                             out_grad /= rest
                             break

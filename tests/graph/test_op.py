@@ -60,7 +60,7 @@ class MyOp(Op):
         for input in inputs:
             if not isinstance(input.type, MyType):
                 raise Exception("Error 1")
-            outputs = [MyType(sum([input.type.thingy for input in inputs]))()]
+            outputs = [MyType(sum(input.type.thingy for input in inputs))()]
             return Apply(self, inputs, outputs)
 
     def perform(self, *args, **kwargs):

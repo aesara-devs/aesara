@@ -48,10 +48,8 @@ class TestImages2Neibs(unittest_tools.InferShapeTester):
                         mode=self.mode,
                     )
                     assert any(
-                        [
-                            isinstance(node.op, self.op)
-                            for node in f.maker.fgraph.toposort()
-                        ]
+                        isinstance(node.op, self.op)
+                        for node in f.maker.fgraph.toposort()
                     )
 
                     # print g()
@@ -68,7 +66,7 @@ class TestImages2Neibs(unittest_tools.InferShapeTester):
                     [], images2neibs(images, neib_shape, mode=border), mode=self.mode
                 )
                 assert any(
-                    [isinstance(node.op, self.op) for node in f.maker.fgraph.toposort()]
+                    isinstance(node.op, self.op) for node in f.maker.fgraph.toposort()
                 )
 
                 # print images.get_value(borrow=True)

@@ -2415,7 +2415,7 @@ class Join(COp):
                 # broadcastable.
                 bcastable = [False] * len(tensors[0].type.broadcastable)
 
-        if not builtins.all([x.ndim == len(bcastable) for x in tensors]):
+        if not builtins.all(x.ndim == len(bcastable) for x in tensors):
             raise TypeError(
                 "Only tensors with the same number of dimensions can be joined"
             )
@@ -2432,8 +2432,8 @@ class Join(COp):
         view = self.view
         axis, tens = axis_and_tensors[0], axis_and_tensors[1:]
         # we check these tensors for being empty.
-        if (view != -1) and np.all(
-            [tensor.shape[axis] == 0 for tensor in tens[0:view] + tens[view + 1 :]]
+        if (view != -1) and all(
+            tensor.shape[axis] == 0 for tensor in tens[0:view] + tens[view + 1 :]
         ):
             out[0] = tens[view]
 
@@ -3208,12 +3208,10 @@ def tile(x, reps, ndim=None):
     else:
         if ndim is not None and len(reps) > ndim:
             raise ValueError("len(reps) should be equal or less than ndim")
-        if not np.all(
-            [
-                isinstance(r, int)
-                or (isinstance(r, TensorVariable) and r.dtype in discrete_dtypes)
-                for r in reps
-            ]
+        if not all(
+            isinstance(r, int)
+            or (isinstance(r, TensorVariable) and r.dtype in discrete_dtypes)
+            for r in reps
         ):
             raise ValueError("elements of reps must be scalars of integer dtype")
 

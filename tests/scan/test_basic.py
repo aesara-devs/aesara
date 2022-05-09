@@ -202,7 +202,7 @@ def scan_project_sum(*args, **kwargs):
     rng.add_default_updates = False
     factors = [rng.uniform(0.1, 0.9, size=s.shape) for s in scan_outputs]
     # Random values (?)
-    return (sum([(s * f).sum() for s, f in zip(scan_outputs, factors)]), updates)
+    return (sum((s * f).sum() for s, f in zip(scan_outputs, factors)), updates)
 
 
 def asarrayX(value):
@@ -1229,7 +1229,7 @@ class TestScan:
         ]
 
         # Take the gradient of the sum of gradients wrt the inputs
-        sum_of_grads = sum([g.sum() for g in gradients])
+        sum_of_grads = sum(g.sum() for g in gradients)
         grad(sum_of_grads, inputs[0])
 
     def test_grad_dtype_change(self):

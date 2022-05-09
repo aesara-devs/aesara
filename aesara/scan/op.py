@@ -796,7 +796,7 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
                     if inp_tap in info.mit_mot_out_slices[mitmot_idx]:
                         # Figure out the index of the corresponding output
                         output_idx = sum(
-                            [len(m) for m in info.mit_mot_out_slices[:mitmot_idx]]
+                            len(m) for m in info.mit_mot_out_slices[:mitmot_idx]
                         )
                         output_idx += info.mit_mot_out_slices[mitmot_idx].index(inp_tap)
                         preallocated_mitmot_outs.append(output_idx)
@@ -1270,7 +1270,7 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
 
                         # Figure out the index of the corresponding output
                         output_idx = sum(
-                            [len(m) for m in self.info.mit_mot_out_slices[:mitmot_idx]]
+                            len(m) for m in self.info.mit_mot_out_slices[:mitmot_idx]
                         )
                         output_idx += self.info.mit_mot_out_slices[mitmot_idx].index(
                             inp_tap
@@ -2483,7 +2483,7 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
 
             # Check if the pos-th input is associated with one of the
             # recurrent states
-            x_is_state = pos < sum([len(t) for t in info.tap_array])
+            x_is_state = pos < sum(len(t) for t in info.tap_array)
 
             if x_is_state and len(idxs) > 0:
                 opos = idxs[0]
@@ -3237,10 +3237,7 @@ def profile_printer(
 ):
     # Scan overhead profile
     if any(
-        [
-            isinstance(node.op, Scan) and v > 0
-            for (fgraph, node), v in apply_time.items()
-        ]
+        isinstance(node.op, Scan) and v > 0 for (fgraph, node), v in apply_time.items()
     ):
         print("", file=file)
         print("Scan overhead:", file=file)

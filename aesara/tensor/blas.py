@@ -1134,7 +1134,7 @@ def _as_scalar(res, dtype=None):
     """Return ``None`` or a `TensorVariable` of float type"""
     if dtype is None:
         dtype = config.floatX
-    if np.all(res.type.broadcastable):
+    if all(res.type.broadcastable):
         while res.owner and isinstance(res.owner.op, DimShuffle):
             res = res.owner.inputs[0]
         # may still have some number of True's
@@ -1264,7 +1264,7 @@ def _gemm_canonicalize(fgraph, r, scale, rval, maxclients):
         vectors = []
         matrices = []
         for i in r.owner.inputs:
-            if np.all(i.type.broadcastable):
+            if all(i.type.broadcastable):
                 while i.owner and isinstance(i.owner.op, DimShuffle):
                     i = i.owner.inputs[0]
                 if i.type.broadcastable:

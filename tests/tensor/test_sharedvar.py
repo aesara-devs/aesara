@@ -517,10 +517,8 @@ def makeSharedTester(
             if aesara.config.mode != "FAST_COMPILE":
                 assert (
                     sum(
-                        [
-                            node.op.__class__.__name__ in ["Gemm", "StructuredDot"]
-                            for node in topo
-                        ]
+                        node.op.__class__.__name__ in ["Gemm", "StructuredDot"]
+                        for node in topo
                     )
                     == 1
                 )
@@ -549,10 +547,8 @@ def makeSharedTester(
             if aesara.config.mode != "FAST_COMPILE":
                 assert (
                     sum(
-                        [
-                            node.op.__class__.__name__ in ["Gemm", "StructuredDot"]
-                            for node in topo
-                        ]
+                        node.op.__class__.__name__ in ["Gemm", "StructuredDot"]
+                        for node in topo
                     )
                     == 1
                 )
@@ -579,10 +575,8 @@ def makeSharedTester(
             if aesara.config.mode != "FAST_COMPILE":
                 assert (
                     sum(
-                        [
-                            node.op.__class__.__name__ in ["Gemm", "StructuredDot"]
-                            for node in topo
-                        ]
+                        node.op.__class__.__name__ in ["Gemm", "StructuredDot"]
+                        for node in topo
                     )
                     == 1
                 )

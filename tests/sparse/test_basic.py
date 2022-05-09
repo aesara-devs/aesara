@@ -771,11 +771,11 @@ class TestAddMul:
                 val = eval_outputs([apb])
                 assert val.shape == (3, 2)
                 if op is add:
-                    assert np.all(val.todense() == (array1 + array2))
+                    assert np.all(val.todense() == array1 + array2)
                     if dtype1.startswith("float") and dtype2.startswith("float"):
                         verify_grad_sparse(op, [a, b], structured=False)
                 elif op is mul:
-                    assert np.all(val.todense() == (array1 * array2))
+                    assert np.all(val.todense() == array1 * array2)
                     if dtype1.startswith("float") and dtype2.startswith("float"):
                         verify_grad_sparse(op, [a, b], structured=False)
 
@@ -815,7 +815,7 @@ class TestAddMul:
                     assert val.shape == (3, 2)
                     if op is add:
                         assert _is_dense_variable(apb)
-                        assert np.all(val == (array1 + b))
+                        assert np.all(val == array1 + b)
                         ans = np.array([[1.0, 2], [3, 4], [5, 6]])
                         assert np.all(val == ans)
                         if isinstance(a, Constant):
@@ -826,7 +826,7 @@ class TestAddMul:
                             verify_grad_sparse(op, [a, b], structured=True)
                     elif op is mul:
                         assert _is_sparse_variable(apb)
-                        assert np.all(val.todense() == (b.multiply(array1)))
+                        assert np.all(val.todense() == b.multiply(array1))
                         assert np.all(
                             val.todense() == np.array([[1, 0], [9, 0], [0, 36]])
                         )
@@ -871,7 +871,7 @@ class TestAddMul:
                     assert val.shape == (3, 2)
                     if op is add:
                         assert _is_dense_variable(apb)
-                        assert np.all(val == (a + array2))
+                        assert np.all(val == a + array2)
                         ans = np.array([[1.0, 2], [3, 4], [5, 6]])
                         assert np.all(val == ans)
                         if isinstance(b, Constant):
@@ -1778,11 +1778,9 @@ class TestUsmm:
                 # The op UsmmCscDense should be inserted
                 assert (
                     sum(
-                        [
-                            isinstance(node.op, Elemwise)
-                            and isinstance(node.op.scalar_op, aesara.scalar.basic.Cast)
-                            for node in topo
-                        ]
+                        isinstance(node.op, Elemwise)
+                        and isinstance(node.op.scalar_op, aesara.scalar.basic.Cast)
+                        for node in topo
                     )
                     == len(topo) - 5
                 )
@@ -1800,7 +1798,7 @@ class TestUsmm:
                 # applied
 
                 def check_once(x):
-                    assert sum([isinstance(n.op, x) for n in topo]) == 1
+                    assert sum(isinstance(n.op, x) for n in topo) == 1
 
                 check_once(sparse.basic.CSMProperties)
                 check_once(DimShuffle)
@@ -2288,17 +2286,13 @@ class TestRemove0(utt.InferShapeTester):
                     nodes = f.maker.fgraph.toposort()
                     # Check there isn't any Remove0 instance not inplace.
                     assert not any(
-                        [
-                            isinstance(node.op, Remove0) and not node.op.inplace
-                            for node in nodes
-                        ]
+                        isinstance(node.op, Remove0) and not node.op.inplace
+                        for node in nodes
                     ), "Inplace optimization should have been applied"
                     # Check there is at least one Remove0 inplace.
                     assert any(
-                        [
-                            isinstance(node.op, Remove0) and node.op.inplace
-                            for node in nodes
-                        ]
+                        isinstance(node.op, Remove0) and node.op.inplace
+                        for node in nodes
                     )
                 # checking
                 # makes sense to change its name

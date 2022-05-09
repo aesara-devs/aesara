@@ -1424,9 +1424,7 @@ class TestLocalCanonicalizeAlloc:
         # The optimization 'locall_fill_to_alloc' should call at.alloc,
         # which should return x and not alloc(x, ...)
         f = function([x], [y], mode=mode_opt.including("local_fill_to_alloc"))
-        assert not any(
-            [isinstance(node.op, Alloc) for node in f.maker.fgraph.toposort()]
-        )
+        assert not any(isinstance(node.op, Alloc) for node in f.maker.fgraph.toposort())
 
     def test_basic_tile(self):
         x = matrix("x")
@@ -1439,9 +1437,7 @@ class TestLocalCanonicalizeAlloc:
         )
         f = function([x], [y], mode=mode)
 
-        assert not any(
-            [isinstance(node.op, Alloc) for node in f.maker.fgraph.toposort()]
-        )
+        assert not any(isinstance(node.op, Alloc) for node in f.maker.fgraph.toposort())
 
     @pytest.mark.parametrize(
         "x, has_alloc",
@@ -2223,14 +2219,12 @@ class TestLocalUselessSwitch:
         z = at.switch(cond, x, y)
         f = function([x, y], z, mode=self.mode)
         assert not any(
-            [
-                node.op
-                for node in f.maker.fgraph.toposort()
-                if (
-                    isinstance(node.op, Elemwise)
-                    and isinstance(node.op.scalar_op, aes.basic.Switch)
-                )
-            ]
+            node.op
+            for node in f.maker.fgraph.toposort()
+            if (
+                isinstance(node.op, Elemwise)
+                and isinstance(node.op.scalar_op, aes.basic.Switch)
+            )
         )
         vx = np.array([[1, 2, 3], [4, 5, 6]], dtype=dtype1)
         vy = np.array([[7, 8, 9], [10, 11, 12]], dtype=dtype2)
@@ -2512,11 +2506,9 @@ def test_local_join_empty():
     e = f.maker.fgraph.toposort()
     assert len([n for n in e if isinstance(n.op, Join)]) == 1
     assert all(
-        [
-            not isinstance(n.op, Join) or len(n.inputs) == 3
-            for n in e
-            if isinstance(n.op, Join)
-        ]
+        not isinstance(n.op, Join) or len(n.inputs) == 3
+        for n in e
+        if isinstance(n.op, Join)
     )
     assert f.maker.fgraph.outputs[0].dtype == config.floatX
 
@@ -2530,11 +2522,9 @@ def test_local_join_empty():
     e = f.maker.fgraph.toposort()
     assert len([n for n in e if isinstance(n.op, Join)]) == 1
     assert all(
-        [
-            not isinstance(n.op, Join) or len(n.inputs) == 4
-            for n in e
-            if isinstance(n.op, Join)
-        ]
+        not isinstance(n.op, Join) or len(n.inputs) == 4
+        for n in e
+        if isinstance(n.op, Join)
     )
     assert f.maker.fgraph.outputs[0].dtype == config.floatX
     # test for vector, vector, empty to matrix
@@ -2546,11 +2536,9 @@ def test_local_join_empty():
     e = f.maker.fgraph.toposort()
     assert len([n for n in e if isinstance(n.op, Join)]) == 1
     assert all(
-        [
-            not isinstance(n.op, Join) or len(n.inputs) == 4
-            for n in e
-            if isinstance(n.op, Join)
-        ]
+        not isinstance(n.op, Join) or len(n.inputs) == 4
+        for n in e
+        if isinstance(n.op, Join)
     )
     assert f.maker.fgraph.outputs[0].dtype == config.floatX
     # test for matrix join(0,a)
@@ -2562,11 +2550,9 @@ def test_local_join_empty():
     e = f.maker.fgraph.toposort()
     assert len([n for n in e if isinstance(n.op, Join)]) == 1
     assert all(
-        [
-            not isinstance(n.op, Join) or len(n.inputs) == 4
-            for n in e
-            if isinstance(n.op, Join)
-        ]
+        not isinstance(n.op, Join) or len(n.inputs) == 4
+        for n in e
+        if isinstance(n.op, Join)
     )
     assert f.maker.fgraph.outputs[0].dtype == config.floatX
 
@@ -2582,11 +2568,9 @@ def test_local_join_make_vector():
     e = f.maker.fgraph.toposort()
     assert len([n for n in e if isinstance(n.op, Join)]) == 1
     assert all(
-        [
-            not isinstance(n.op, Join) or len(n.inputs) == 4
-            for n in e
-            if isinstance(n.op, Join)
-        ]
+        not isinstance(n.op, Join) or len(n.inputs) == 4
+        for n in e
+        if isinstance(n.op, Join)
     )
     assert f.maker.fgraph.outputs[0].dtype == config.floatX
 
@@ -2619,7 +2603,7 @@ def test_local_tensor_scalar_tensor(dtype):
     f = function([t], t2, mode=mode_opt)
     e = f.maker.fgraph.toposort()
     assert not any(
-        [n for n in e if isinstance(n.op, (TensorFromScalar, ScalarFromTensor))]
+        n for n in e if isinstance(n.op, (TensorFromScalar, ScalarFromTensor))
     )
 
 
@@ -2649,7 +2633,7 @@ def test_local_scalar_tensor_scalar(dtype):
     f = function([s], s2, mode=mode_opt)
     e = f.maker.fgraph.toposort()
     assert not any(
-        [n for n in e if isinstance(n.op, (TensorFromScalar, ScalarFromTensor))]
+        n for n in e if isinstance(n.op, (TensorFromScalar, ScalarFromTensor))
     )
 
 

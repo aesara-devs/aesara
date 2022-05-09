@@ -2461,13 +2461,13 @@ class EquilibriumOptimizer(NavigatorOptimizer):
             file=stream,
         )
         print(blanc, f"  time io_toposort {sum(io_toposort_timing):.3f}s", file=stream)
-        s = sum([time_opts[o] for o in opt.get_local_optimizers()])
+        s = sum(time_opts[o] for o in opt.get_local_optimizers())
         print(blanc, f"  time in local optimizers {s:.3f}s", file=stream)
-        s = sum([time_opts[o] for o in opt.global_optimizers])
+        s = sum(time_opts[o] for o in opt.global_optimizers)
         print(blanc, f"  time in global optimizers {s:.3f}s", file=stream)
-        s = sum([time_opts[o] for o in opt.final_optimizers])
+        s = sum(time_opts[o] for o in opt.final_optimizers)
         print(blanc, f"  time in final optimizers {s:.3f}s", file=stream)
-        s = sum([time_opts[o] for o in opt.cleanup_optimizers])
+        s = sum(time_opts[o] for o in opt.cleanup_optimizers)
         print(blanc, f"  time in cleanup optimizers {s:.3f}s", file=stream)
         for i in range(len(loop_timing)):
             lopt = ""

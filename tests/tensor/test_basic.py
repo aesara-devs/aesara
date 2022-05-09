@@ -1931,10 +1931,8 @@ class TestJoinAndSplit:
         o = self.split_op_class(2)(m, 0, [4, 0])
         f = function([], o, mode=self.mode)
         assert any(
-            [
-                isinstance(node.op, self.split_op_class)
-                for node in f.maker.fgraph.toposort()
-            ]
+            isinstance(node.op, self.split_op_class)
+            for node in f.maker.fgraph.toposort()
         )
         o1, o2 = f()
         assert np.allclose(o1, m.get_value(borrow=True))
@@ -1947,10 +1945,8 @@ class TestJoinAndSplit:
         o = self.split_op_class(2)(m, 0, [5, -1])
         f = function([], o, mode=self.mode)
         assert any(
-            [
-                isinstance(node.op, self.split_op_class)
-                for node in f.maker.fgraph.toposort()
-            ]
+            isinstance(node.op, self.split_op_class)
+            for node in f.maker.fgraph.toposort()
         )
         with pytest.raises(ValueError):
             f()
