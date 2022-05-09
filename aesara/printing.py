@@ -271,7 +271,7 @@ N.B.:
     for r, p, s, o in zip(results_to_print, profile_list, smap, order):
 
         if hasattr(r.owner, "op"):
-            if isinstance(r.owner.op, HasInnerGraph):
+            if isinstance(r.owner.op, HasInnerGraph) and r not in inner_graph_ops:
                 inner_graph_ops.append(r)
             if print_op_info:
                 op_information.update(op_debug_information(r.owner.op, r.owner))
@@ -354,7 +354,10 @@ N.B.:
 
             for idx, i in enumerate(inner_outputs):
 
-                if isinstance(getattr(i.owner, "op", None), HasInnerGraph):
+                if (
+                    isinstance(getattr(i.owner, "op", None), HasInnerGraph)
+                    and i not in inner_graph_ops
+                ):
                     inner_graph_ops.append(i)
 
                 _debugprint(
@@ -595,7 +598,10 @@ def _debugprint(
                     new_prefix_child = prefix_child + "  "
 
                 if hasattr(i, "owner") and hasattr(i.owner, "op"):
-                    if isinstance(i.owner.op, HasInnerGraph):
+                    if (
+                        isinstance(i.owner.op, HasInnerGraph)
+                        and i not in inner_graph_ops
+                    ):
                         inner_graph_ops.append(i)
 
                 _debugprint(
