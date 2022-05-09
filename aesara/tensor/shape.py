@@ -462,13 +462,9 @@ class SpecifyShape(COp):
     def grad(self, inp, grads):
         x, *shape = inp
         (gz,) = grads
-        # Should I set an SpecifyShape on gz? I think so
-        # But I don't do it now as we need to make an optimization
-        # to remove that op from the graph to don't block other optimization
-        # Should I do an optimizer that will remove the SpecifyShape?
-        # I think Yes
-        # return [specify_shape(gz, s)] + [aesara.gradient.DisconnectedType()() for _ in range(len(shape))]
-        return [gz] + [aesara.gradient.DisconnectedType()() for _ in range(len(shape))]
+        return [specify_shape(gz, shape)] + [
+            aesara.gradient.DisconnectedType()() for _ in range(len(shape))
+        ]
 
     def R_op(self, inputs, eval_points):
         if eval_points[0] is None:
