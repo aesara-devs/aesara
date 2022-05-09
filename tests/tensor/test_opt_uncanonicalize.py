@@ -19,7 +19,7 @@ from aesara.tensor.opt_uncanonicalize import (
     local_dimshuffle_subtensor,
     local_reshape_dimshuffle,
 )
-from aesara.tensor.shape import reshape
+from aesara.tensor.shape import reshape, specify_shape
 from aesara.tensor.type import dtensor4, iscalar, matrix, tensor, vector
 from tests.link.test_link import make_function
 
@@ -179,7 +179,7 @@ def test_local_dimshuffle_subtensor():
     dimshuffle_subtensor = out2in(local_dimshuffle_subtensor)
 
     x = dtensor4("x")
-    x = at.patternbroadcast(x, (False, True, False, False))
+    x = specify_shape(x, (None, 1, None, None))
     i = iscalar("i")
 
     out = x[:, :, 10:30, ::i].dimshuffle(0, 2, 3)
@@ -213,7 +213,7 @@ def test_local_dimshuffle_subtensor():
 
     # Test a corner case that had Aesara return a bug.
     x = dtensor4("x")
-    x = at.patternbroadcast(x, (False, True, False, False))
+    x = specify_shape(x, (None, 1, None, None))
 
     assert x[:, :, 0:3, ::-1].dimshuffle(0, 2, 3).eval(
         {x: np.ones((5, 1, 6, 7))}

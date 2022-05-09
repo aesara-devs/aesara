@@ -1911,18 +1911,6 @@ class TestRebroadcast:
 
         assert check_stack_trace(f, ops_to_check="all")
 
-    def test_rebroadcast_rebroadcast(self):
-        mode = get_default_mode().including("canonicalize")
-        m = matrix()
-        s = at.addbroadcast(m, 0, 1)
-        v = at.unbroadcast(s, 1)
-        f = function([m], v, mode=mode)
-        f([[76]])
-        e = f.maker.fgraph.toposort()
-        rebroadcast_nodes = [n for n in e if isinstance(n.op, Rebroadcast)]
-        assert len(rebroadcast_nodes) == 1
-        assert rebroadcast_nodes[0].op.axis == {0: True}
-
 
 class TestUselessElemwise:
     def setup_method(self):

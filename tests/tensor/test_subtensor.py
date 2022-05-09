@@ -1501,11 +1501,11 @@ class TestIncSubtensor:
                 # This one should work
                 f(rng_randX(3, 1), rng_randX(1))
                 # These ones should not
-                with pytest.raises(ValueError):
+                with pytest.raises(AssertionError):
                     f(rng_randX(3, 1), rng_randX(2))
-                with pytest.raises(ValueError):
+                with pytest.raises(AssertionError):
                     f(rng_randX(3, 1), rng_randX(3))
-                with pytest.raises(ValueError):
+                with pytest.raises(AssertionError):
                     f(rng_randX(3, 1), rng_randX(0))
 
     def test_simple_3d(self):

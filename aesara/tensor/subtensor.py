@@ -20,7 +20,7 @@ from aesara.misc.safe_asarray import _asarray
 from aesara.printing import Printer, pprint, set_precedence
 from aesara.scalar.basic import ScalarConstant
 from aesara.tensor import _get_vector_length, as_tensor_variable, get_vector_length
-from aesara.tensor.basic import addbroadcast, alloc, get_scalar_constant_value
+from aesara.tensor.basic import alloc, get_scalar_constant_value
 from aesara.tensor.elemwise import DimShuffle
 from aesara.tensor.exceptions import (
     AdvancedIndexingError,
@@ -28,7 +28,7 @@ from aesara.tensor.exceptions import (
     ShapeError,
 )
 from aesara.tensor.math import clip
-from aesara.tensor.shape import Reshape
+from aesara.tensor.shape import Reshape, specify_broadcastable
 from aesara.tensor.type import (
     TensorType,
     bscalar,
@@ -1322,8 +1322,8 @@ def inc_subtensor(
             # It is acceptable to try to increment a subtensor with a
             # broadcastable dim with a tensor that is not broadcastable
             # on that dimension. However, its length must then be 1.
-            # We insert a Rebroadcast Op to make sure it is the case.
-            y = addbroadcast(y, dim)
+            # We insert a SpecifyShape Op to make sure it is the case.
+            y = specify_broadcastable(y, dim)
 
     if not x.owner:
         raise TypeError("x must be the result of a subtensor operation")

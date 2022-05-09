@@ -10,7 +10,7 @@ import warnings
 from collections.abc import Sequence
 from functools import partial
 from numbers import Number
-from typing import Dict, Iterable, Optional, Tuple, Union
+from typing import Dict, Optional, Tuple, Union
 from typing import cast as type_cast
 
 import numpy as np
@@ -49,6 +49,7 @@ from aesara.tensor.shape import (
     shape_padleft,
     shape_padright,
     shape_tuple,
+    specify_broadcastable,
 )
 from aesara.tensor.type import (
     TensorType,
@@ -622,8 +623,6 @@ class Rebroadcast(COp):
     See Also
     --------
     unbroadcast <aesara.tensor.unbroadcast>
-    addbroadcast <aesara.tensor.addbroadcast>
-    patternbroadcast <aesara.tensor.patternbroadcast>
 
     Notes
     -----
@@ -2255,48 +2254,12 @@ class Split(COp):
         )
 
 
-def addbroadcast(x, *axes):
-    """
-    Make the input broadcastable in the specified axes.
-
-    For example, addbroadcast(x, 0) will make the first dimension of
-    x broadcastable. When performing the function, if the length of
-    x along that dimension is not 1, a ValueError will be raised.
-
-    We apply the opt here not to pollute the graph
-
-    Parameters
-    ----------
-    x : tensor_like
-        Input aesara tensor.
-    axis : an int or an iterable object such as list or tuple of int values
-        The dimension along which the tensor x should be broadcastable.
-        If the length of x along these dimensions is not 1, a ValueError will
-        be raised.
-
-    Returns
-    -------
-    tensor
-        A aesara tensor, which is broadcastable along the specified dimensions.
-
-    """
-    x = as_tensor_variable(x)
-
-    if isinstance(x.type, TensorType) and not any(s is None for s in x.type.shape):
-        if not set(i for i, b in enumerate(x.broadcastable) if b).issuperset(axes):
-            raise ValueError(f"{x}'s fixed broadcast pattern does not match {axes}")
-        return x
-
-    rval = Rebroadcast(*[(axis, True) for axis in axes])(x)
-    return aesara.tensor.basic_opt.apply_rebroadcast_opt(rval)
-
-
 def unbroadcast(x, *axes):
     """
     Make the input impossible to broadcast in the specified axes.
 
-    For example, addbroadcast(x, 0) will make the first dimension
-    of x broadcastable. When performing the function, if the length
+    For example, unbroadcast(x, 0) will make the first dimension
+    of x not broadcastable. When performing the function, if the length
     of x along that dimension is not 1, a ValueError will be raised.
 
     We apply the opt here not to pollute the graph
@@ -2318,34 +2281,6 @@ def unbroadcast(x, *axes):
     """
     x = as_tensor_variable(x)
     rval = Rebroadcast(*[(axis, False) for axis in axes])(x)
-    return aesara.tensor.basic_opt.apply_rebroadcast_opt(rval)
-
-
-def patternbroadcast(
-    x: TensorVariable, broadcastable: Iterable[Union[bool, int]]
-) -> TensorVariable:
-    """Make the input adopt a specific broadcasting pattern.
-
-    For example, ``patternbroadcast(x, (True, False))`` will make the first
-    dimension of `x` broadcastable and the second dimension not broadcastable,
-    so `x` will now be a row.
-
-    Parameters
-    ----------
-    x
-        Input to re-broadcast.
-    broadcastable
-        Truthy values indicating whether or not a dimension should be
-        broadcastable or not. If the length of `x` along these dimensions is
-        not ``1``, a `ValueError` will be raised.
-
-    """
-    x = as_tensor_variable(x)
-
-    if x.broadcastable == broadcastable:
-        return x
-
-    rval = Rebroadcast(*[(i, broadcastable[i]) for i in range(len(broadcastable))])(x)
     return aesara.tensor.basic_opt.apply_rebroadcast_opt(rval)
 
 
@@ -2599,7 +2534,12 @@ class Join(COp):
             # broadcast. As the grad need to keep the information,
             # read it if needed.
             split_gz = [
-                patternbroadcast(g, t.broadcastable) for t, g in zip(tens, split_gz)
+                g
+                if g.type.broadcastable == t.type.broadcastable
+                else specify_broadcastable(
+                    g, *(ax for (ax, b) in enumerate(t.type.broadcastable) if b)
+                )
+                for t, g in zip(tens, split_gz)
             ]
             rval = rval + split_gz
         else:
@@ -2822,7 +2762,7 @@ def stack(*tensors, **kwargs):
         raise ValueError("No tensor arguments provided")
 
     # If all tensors are scalars of the same type, call make_vector.
-    # It makes the graph simpler, by not adding DimShuffles and Rebroadcasts
+    # It makes the graph simpler, by not adding DimShuffles and SpecifyShapes
 
     # This should be an optimization!
     # Doing it here make the graph less canonicalized
@@ -2979,7 +2919,9 @@ def flatten(x, ndim=1):
     bcast_kept_dims = _x.broadcastable[: ndim - 1]
     bcast_new_dim = builtins.all(_x.broadcastable[ndim - 1 :])
     broadcastable = bcast_kept_dims + (bcast_new_dim,)
-    x_reshaped = addbroadcast(x_reshaped, *[i for i in range(ndim) if broadcastable[i]])
+    x_reshaped = specify_broadcastable(
+        x_reshaped, *[i for i in range(ndim) if broadcastable[i]]
+    )
     return x_reshaped
 
 
@@ -4253,9 +4195,7 @@ __all__ = [
     "stack",
     "roll",
     "join",
-    "patternbroadcast",
     "unbroadcast",
-    "addbroadcast",
     "split",
     "transpose",
     "extract_constant",

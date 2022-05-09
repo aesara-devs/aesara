@@ -9,7 +9,7 @@ from aesara.graph.basic import Variable
 from aesara.graph.fg import FunctionGraph
 from aesara.graph.type import Type
 from aesara.misc.safe_asarray import _asarray
-from aesara.tensor import as_tensor_variable, get_vector_length
+from aesara.tensor import as_tensor_variable, get_vector_length, row
 from aesara.tensor.basic import MakeVector, constant
 from aesara.tensor.basic_opt import ShapeFeature
 from aesara.tensor.elemwise import DimShuffle, Elemwise
@@ -21,6 +21,7 @@ from aesara.tensor.shape import (
     reshape,
     shape,
     shape_i,
+    specify_broadcastable,
     specify_shape,
 )
 from aesara.tensor.subtensor import Subtensor
@@ -516,6 +517,23 @@ class TestSpecifyShape(utt.InferShapeTester):
         z = y + 1
         z_grad = grad(z.sum(), wrt=x)
         assert isinstance(z_grad.owner.op, SpecifyShape)
+
+
+class TestSpecifyBroadcastable:
+    def test_basic(self):
+        x = matrix()
+        assert specify_broadcastable(x, 0).type.shape == (1, None)
+        assert specify_broadcastable(x, 1).type.shape == (None, 1)
+        assert specify_broadcastable(x, 0, 1).type.shape == (1, 1)
+
+        x = row()
+        assert specify_broadcastable(x, 0) is x
+        assert specify_broadcastable(x, 1) is not x
+
+    def test_validation(self):
+        x = matrix()
+        with pytest.raises(ValueError, match="^Trying to specify broadcastable of*"):
+            specify_broadcastable(x, 2)
 
 
 class TestRopLop(RopLopChecker):
