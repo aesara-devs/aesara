@@ -39,7 +39,6 @@ from aesara.tensor.basic import (
     Split,
     TensorFromScalar,
     Tri,
-    addbroadcast,
     alloc,
     arange,
     as_tensor_variable,
@@ -69,7 +68,6 @@ from aesara.tensor.basic import (
     nonzero_values,
     ogrid,
     ones_like,
-    patternbroadcast,
     permute_row_elements,
     roll,
     scalar_from_tensor,
@@ -3226,20 +3224,7 @@ class TestLongTensor:
 
 
 class TestBroadcast:
-    def test_addbroadcast_validation(self):
-        x = as_tensor_variable(np.zeros((2, 3)))
-        with pytest.raises(ValueError, match=".*pattern does not.*"):
-            addbroadcast(x, 4)
-
-    def test_broadcast_bigdim(self):
-        def f():
-            x = matrix()
-            addbroadcast(x, 2)
-
-        with pytest.raises(ValueError):
-            f()
-
-    def test_unbroadcast_addbroadcast(self):
+    def test_unbroadcast(self):
         # test that the unbroadcast fct don't insert not needed broadcast
         # and fuse consecutive Rebroadcast op
 
@@ -3249,25 +3234,11 @@ class TestBroadcast:
         assert unbroadcast(x, 1, 0) is x
         assert unbroadcast(x, 0, 1) is x
 
-        assert addbroadcast(x, 0) is not x
-        assert addbroadcast(x, 1) is not x
-        assert addbroadcast(x, 1, 0).owner.inputs[0] is x
-
-        assert unbroadcast(addbroadcast(x, 0), 0) is x
-        assert addbroadcast(unbroadcast(x, 0), 0) is not x
         x = row()
         assert unbroadcast(x, 0) is not x
         assert unbroadcast(x, 1) is x
         assert unbroadcast(x, 1, 0) is not x
         assert unbroadcast(x, 0, 1) is not x
-
-        assert addbroadcast(x, 0) is x
-        assert addbroadcast(x, 1).owner.inputs[0] is x
-        assert addbroadcast(x, 1, 0).owner.inputs[0] is x
-        assert addbroadcast(x, 0, 1).owner.inputs[0] is x
-
-        assert unbroadcast(addbroadcast(x, 1), 1) is x
-        assert addbroadcast(unbroadcast(x, 1), 1) is not x
 
         # The first broadcast is remove the broadcast, so the second
         # should not make one
@@ -3276,29 +3247,8 @@ class TestBroadcast:
         # Test that consecutive Rebroadcast op are fused
         x = TensorType(dtype="float64", shape=(True, True))()
         assert unbroadcast(unbroadcast(x, 1), 0).owner.inputs[0] is x
-        assert addbroadcast(unbroadcast(x, 1), 0).owner.inputs[0] is x
-        assert addbroadcast(unbroadcast(x, 0), 0) is x
-
-    def test_patternbroadcast(self):
-        # Test that patternbroadcast with an empty broadcasting pattern works
-        x = scalar("x")
-        m = matrix("m")
-        s = patternbroadcast(m, x.broadcastable)
-        assert s is m
-        x2 = patternbroadcast(x, x.broadcastable)
-        assert x2 is x
 
     def test_infer_shape(self):
-        x = matrix()
-        y = addbroadcast(x, 0)
-        f = aesara.function([x], y.shape)
-        assert (f(np.zeros((1, 5), dtype=config.floatX)) == [1, 5]).all()
-        topo = f.maker.fgraph.toposort()
-        if config.mode != "FAST_COMPILE":
-            assert len(topo) == 2
-            assert isinstance(topo[0].op, Shape_i)
-            assert isinstance(topo[1].op, MakeVector)
-
         x = matrix()
         y = unbroadcast(x, 0)
         f = aesara.function([x], y.shape)

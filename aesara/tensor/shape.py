@@ -12,7 +12,7 @@ from aesara.link.c.op import COp
 from aesara.link.c.params_type import ParamsType
 from aesara.misc.safe_asarray import _asarray
 from aesara.scalar import int32
-from aesara.tensor import _get_vector_length
+from aesara.tensor import _get_vector_length, as_tensor_variable
 from aesara.tensor import basic as at
 from aesara.tensor import get_vector_length
 from aesara.tensor.exceptions import NotScalarConstantError
@@ -891,3 +891,38 @@ register_shape_i_c_code(
     """,
     version=3,
 )
+
+
+def specify_broadcastable(x, *axes):
+    """
+    Specify the input as being broadcastable in the specified axes.
+
+    For example, specify_broadcastable(x, 0) will make the first dimension of
+    x broadcastable. When performing the function, if the length of
+    x along that dimension is not 1, a ValueError will be raised.
+
+    Parameters
+    ----------
+    x : tensor_like
+        Input aesara tensor.
+    axis : an int or an iterable object such as list or tuple of int values
+        The dimension along which the tensor x should be broadcastable.
+        If the length of x along these dimensions is not 1, a ValueError will
+        be raised.
+
+    Returns
+    -------
+    tensor
+        A aesara tensor, which is broadcastable along the specified dimensions.
+
+    """
+    x = as_tensor_variable(x)
+
+    if not axes:
+        return x
+
+    if max(axes) >= x.type.ndim:
+        raise ValueError("Trying to specify broadcastable of non-existent dimension")
+
+    shape_info = [1 if i in axes else None for i in range(len(x.type.shape))]
+    return specify_shape(x, shape_info)

@@ -21,7 +21,6 @@ from aesara.tensor.basic import (
     cast,
     concatenate,
     constant,
-    patternbroadcast,
     stack,
     switch,
 )
@@ -32,7 +31,7 @@ from aesara.tensor.elemwise import (
     Elemwise,
     scalar_elemwise,
 )
-from aesara.tensor.shape import shape
+from aesara.tensor.shape import shape, specify_broadcastable
 from aesara.tensor.type import (
     DenseTensorType,
     complex_dtypes,
@@ -1961,9 +1960,13 @@ class Dot(Op):
         # above code don't always return the right broadcast pattern.
         # This cause problem down the road. See gh-1461.
         if xgrad.broadcastable != x.broadcastable:
-            xgrad = patternbroadcast(xgrad, x.broadcastable)
+            xgrad = specify_broadcastable(
+                xgrad, *(ax for (ax, b) in enumerate(x.type.broadcastable) if b)
+            )
         if ygrad.broadcastable != y.broadcastable:
-            ygrad = patternbroadcast(ygrad, y.broadcastable)
+            ygrad = specify_broadcastable(
+                ygrad, *(ax for (ax, b) in enumerate(y.type.broadcastable) if b)
+            )
 
         rval = xgrad, ygrad
 
@@ -2178,7 +2181,11 @@ def _tensordot_as_dot(a, b, axes, dot, batched):
         out = out_reshaped.reshape(outshape, outndim)
         # Make sure the broadcastable pattern of the result is correct,
         # since some shape information can be lost in the reshapes.
-        return patternbroadcast(out, outbcast)
+        if out.type.broadcastable != outbcast:
+            out = specify_broadcastable(
+                out, *(ax for (ax, b) in enumerate(outbcast) if b)
+            )
+        return out
 
     # if 'axes' is a list, transpose a and b such that the summed axes of a
     # are last and the summed axes of b are first.
