@@ -449,8 +449,6 @@ def cumprod(x, axis=None):
     return CumOp(axis=axis, mode="mul")(x)
 
 
-# CumsumOp and CumprodOp are for compatibility with old version,
-# just in case unpickling an Aesara function with old Ops.
 class CumsumOp(Op):
     __props__ = ("axis",)
 
@@ -846,7 +844,6 @@ class Bartlett(Op):
 bartlett_ = Bartlett()
 
 
-# I create a function only to have the doc show well.
 def bartlett(M):
     """
     An instance of this class returns the Bartlett spectral window in the
@@ -942,7 +939,6 @@ class FillDiagonal(Op):
 fill_diagonal_ = FillDiagonal()
 
 
-# I create a function only to have the doc show well.
 def fill_diagonal(a, val):
     """
     Returns a copy of an array with all elements of the main diagonal set to a
