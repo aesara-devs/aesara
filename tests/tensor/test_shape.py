@@ -498,6 +498,18 @@ class TestSpecifyShape(utt.InferShapeTester):
             SpecifyShape,
         )
 
+    def test_direct_return(self):
+        """Test that when specified shape does not provide new information, input is
+        returned directly."""
+        x = TensorType("float64", shape=(1, 2, None))("x")
+
+        assert specify_shape(x, (1, 2, None)) is x
+        assert specify_shape(x, (None, None, None)) is x
+
+        assert specify_shape(x, (1, 2, 3)) is not x
+        assert specify_shape(x, (None, None, 3)) is not x
+        assert specify_shape(x, (1, 3, None)) is not x
+
 
 class TestRopLop(RopLopChecker):
     def test_shape(self):
