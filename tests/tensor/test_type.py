@@ -6,7 +6,7 @@ import pytest
 
 import aesara.tensor as at
 from aesara.configdefaults import config
-from aesara.tensor.basic import Rebroadcast
+from aesara.tensor.shape import SpecifyShape
 from aesara.tensor.type import TensorType
 
 
@@ -92,6 +92,10 @@ def test_filter_variable():
     # Make sure it returns the more specific type
     res = test_type.filter_variable(test_var2, allow_convert=True)
     assert res.type == test_type
+
+    test_type3 = TensorType(config.floatX, shape=(1, 20))
+    res = test_type3.filter_variable(test_var, allow_convert=True)
+    assert res.type == test_type3
 
 
 def test_filter_strict():
@@ -277,7 +281,7 @@ def test_fixed_shape_convert_variable():
     t3 = TensorType("float64", (False, True))
     t3_var = t3()
     res = t2.convert_variable(t3_var)
-    assert isinstance(res.owner.op, Rebroadcast)
+    assert isinstance(res.owner.op, SpecifyShape)
 
     t3 = TensorType("float64", (False, False))
     t4 = TensorType("float64", (3, 2))

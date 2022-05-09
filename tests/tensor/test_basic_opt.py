@@ -3214,9 +3214,6 @@ def test_local_Unique_scalar(return_index, return_counts, return_inverse):
     y_opt = y_opt_fg.outputs[0]
     y_opt_start = y_opt
 
-    if isinstance(y_opt.owner.op, Rebroadcast):
-        y_opt_start = y_opt.owner.inputs[0]
-
     assert isinstance(y_opt_start.owner.op, DimShuffle)
     assert y_opt_start.owner.inputs[0] == x
 
@@ -3265,11 +3262,6 @@ def test_local_Unique_Alloc_lift(
     )
     y_opt = y_opt_fg.outputs[0]
     y_opt_start = y_opt
-
-    # Ignore any initial `Rebroadcast`s (they serve to
-    # make the replacement match the original type)
-    if isinstance(y_opt.owner.op, Rebroadcast):
-        y_opt_start = y_opt.owner.inputs[0]
 
     assert isinstance(y_opt_start.owner.op, Unique)
     assert y_opt_start.owner.inputs[0] == x
@@ -3328,11 +3320,6 @@ def test_local_Unique_BroadcastTo(
     )
     y_opt = y_opt_fg.outputs[0]
     y_opt_start = y_opt
-
-    # Ignore any initial `Rebroadcast`s (they serve to
-    # make the replacement match the original type)
-    if isinstance(y_opt.owner.op, Rebroadcast):
-        y_opt_start = y_opt.owner.inputs[0]
 
     assert isinstance(y_opt_start.owner.op, Unique)
     assert y_opt_start.owner.inputs[0] == x
@@ -3395,11 +3382,6 @@ def test_local_Unique_Repeat(
     y_opt = y_opt_fg.outputs[0]
     y_opt_start = y_opt
 
-    # Ignore any initial `Rebroadcast`s (they serve to
-    # make the replacement match the original type)
-    if isinstance(y_opt.owner.op, Rebroadcast):
-        y_opt_start = y_opt.owner.inputs[0]
-
     assert isinstance(y_opt_start.owner.op, Unique)
     assert y_opt_start.owner.inputs[0] == x
     assert not any(isinstance(node.op, Repeat) for node in y_opt_fg.apply_nodes)
@@ -3455,11 +3437,6 @@ def test_local_Unique_second(
     )
     y_opt = y_opt_fg.outputs[0]
     y_opt_start = y_opt
-
-    # Ignore any initial `Rebroadcast`s (they serve to
-    # make the replacement match the original type)
-    if y_opt.owner and isinstance(y_opt.owner.op, Rebroadcast):
-        y_opt_start = y_opt.owner.inputs[0]
 
     assert isinstance(y_opt_start.owner.op, Unique)
 
