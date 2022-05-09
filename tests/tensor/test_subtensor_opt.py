@@ -16,16 +16,10 @@ from aesara.graph.optdb import OptimizationQuery
 from aesara.graph.type import Type
 from aesara.raise_op import Assert
 from aesara.tensor import inplace
-from aesara.tensor.basic import (
-    Alloc,
-    MakeVector,
-    Rebroadcast,
-    _convert_to_int8,
-    make_vector,
-)
+from aesara.tensor.basic import Alloc, MakeVector, _convert_to_int8, make_vector
 from aesara.tensor.elemwise import DimShuffle, Elemwise
 from aesara.tensor.math import Dot, add, dot, exp, sqr
-from aesara.tensor.shape import SpecifyShape, _shape, shape, specify_shape
+from aesara.tensor.shape import SpecifyShape, Unbroadcast, _shape, shape, specify_shape
 from aesara.tensor.subtensor import (
     AdvancedIncSubtensor,
     AdvancedIncSubtensor1,
@@ -843,61 +837,61 @@ class TestLocalSubtensorLift:
         f([1, 2, 3], 4)  # let debugmode test something
 
     def test_basic_8(self):
-        # Test that Subtensor(Rebroadcast(x)) gets optimized into
-        # Rebroadcast(Subtensor(x)).
+        # Test that Subtensor(Unbroadcast(x)) gets optimized into
+        # Unbroadcast(Subtensor(x)).
 
         # test basic case
-        x = matrix("x")
+        x = row("x")
         xval = np.random.random((1, 10)).astype(config.floatX)
-        assert x.broadcastable == (False, False)
-        newx = Rebroadcast((0, True), (1, False))(x)
-        assert newx.broadcastable == (True, False)
+        assert x.broadcastable == (True, False)
+        newx = Unbroadcast(0)(x)
+        assert newx.broadcastable == (False, False)
 
         f1 = function([x], newx[:2, :5], mode=mode_opt)
         # Check stacktrace was copied over correctly after opt was applied
-        assert check_stack_trace(f1, ops_to_check=[Subtensor, Rebroadcast])
+        assert check_stack_trace(f1, ops_to_check=[Subtensor, Unbroadcast])
         prog = f1.maker.fgraph.toposort()
         assert isinstance(prog[0].op, Subtensor)
-        assert isinstance(prog[1].op, Rebroadcast)
+        assert isinstance(prog[1].op, Unbroadcast)
         assert (f1(xval) == xval[:2, :5]).all()
 
-        # corner case 1: rebroadcast changes dims which are dropped through subtensor
-        y = tensor4("x")
+        # corner case 1: Unbroadcast changes dims which are dropped through subtensor
+        y = tensor("float64", shape=(1, 10, 1, 3), name="x")
         yval = np.random.random((1, 10, 1, 3)).astype(config.floatX)
-        assert y.broadcastable == (False, False, False, False)
-        newy = Rebroadcast((0, True), (2, True))(y)
-        assert newy.broadcastable == (True, False, True, False)
+        assert y.broadcastable == (True, False, True, False)
+        newy = Unbroadcast(0, 2)(y)
+        assert newy.broadcastable == (False, False, False, False)
 
         f2 = function([y], newy[:, 3, 0, :], mode=mode_opt)
         # Check stacktrace was copied over correctly after opt was applied
-        assert check_stack_trace(f2, ops_to_check=[Subtensor, Rebroadcast])
+        assert check_stack_trace(f2, ops_to_check=[Subtensor, Unbroadcast])
         prog = f2.maker.fgraph.toposort()
         assert isinstance(prog[0].op, Subtensor)
-        assert isinstance(prog[1].op, Rebroadcast)
+        assert isinstance(prog[1].op, Unbroadcast)
         assert (f2(yval) == yval[:, 3, 0, :]).all()
 
         # corner case 2: subtensor idx_list is shorter than resulting broadcast pattern
         f3 = function([y], newy[:, 3, 0], mode=mode_opt)
         # Check stacktrace was copied over correctly after opt was applied
-        assert check_stack_trace(f3, ops_to_check=[Subtensor, Rebroadcast])
+        assert check_stack_trace(f3, ops_to_check=[Subtensor, Unbroadcast])
         prog = f3.maker.fgraph.toposort()
         assert isinstance(prog[0].op, Subtensor)
-        assert isinstance(prog[1].op, Rebroadcast)
+        assert isinstance(prog[1].op, Unbroadcast)
         assert (f3(yval) == yval[:, 3, 0]).all()
 
-        # corner case 3: subtensor idx_list is shorter than rebroadcast.axis
-        z = tensor4("x")
+        # corner case 3: subtensor idx_list is shorter than Unbroadcast.axis
+        z = tensor("float64", shape=(4, 10, 3, 1), name="x")
         zval = np.random.random((4, 10, 3, 1)).astype(config.floatX)
-        assert z.broadcastable == (False, False, False, False)
-        newz = Rebroadcast((3, True))(z)
-        assert newz.broadcastable == (False, False, False, True)
+        assert z.broadcastable == (False, False, False, True)
+        newz = Unbroadcast(3)(z)
+        assert newz.broadcastable == (False, False, False, False)
 
         f4 = function([z], newz[:, 3, 0], mode=mode_opt)
         # Check stacktrace was copied over correctly after opt was applied
-        assert check_stack_trace(f4, ops_to_check=[Subtensor, Rebroadcast])
+        assert check_stack_trace(f4, ops_to_check=[Subtensor, Unbroadcast])
         prog = f4.maker.fgraph.toposort()
         assert isinstance(prog[0].op, Subtensor)
-        assert isinstance(prog[1].op, Rebroadcast)
+        assert isinstance(prog[1].op, Unbroadcast)
         assert (f4(zval) == zval[:, 3, 0]).all()
 
 

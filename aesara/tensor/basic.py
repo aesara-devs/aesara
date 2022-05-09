@@ -10,7 +10,7 @@ import warnings
 from collections.abc import Sequence
 from functools import partial
 from numbers import Number
-from typing import Dict, Optional, Tuple, Union
+from typing import Optional, Tuple, Union
 from typing import cast as type_cast
 
 import numpy as np
@@ -44,6 +44,7 @@ from aesara.tensor.exceptions import NotScalarConstantError
 from aesara.tensor.shape import (
     Shape,
     Shape_i,
+    Unbroadcast,
     shape,
     shape_padaxis,
     shape_padleft,
@@ -254,7 +255,7 @@ def get_scalar_constant_value(
 ):
     """Return the constant scalar(0-D) value underlying variable `v`.
 
-    If `v` is the output of dimshuffles, fills, allocs, rebroadcasts,
+    If `v` is the output of dimshuffles, fills, allocs, etc,
     cast, OutputGuard, DeepCopyOp, ScalarFromTensor, ScalarOp, Elemwise
     and some pattern with Subtensor, this function digs through them.
 
@@ -323,7 +324,7 @@ def get_scalar_constant_value(
                 (
                     Alloc,
                     DimShuffle,
-                    Rebroadcast,
+                    Unbroadcast,
                     # outputguard is only used in debugmode but we
                     # keep it here to avoid problems with old pickels.
                     compile.ops.OutputGuard,
@@ -495,7 +496,7 @@ def get_scalar_constant_value(
                     gp_broadcastable = grandparent.type.broadcastable
                     ndim = grandparent.type.ndim
                     if grandparent.owner and isinstance(
-                        grandparent.owner.op, Rebroadcast
+                        grandparent.owner.op, Unbroadcast
                     ):
                         ggp_broadcastable = grandparent.owner.inputs[0].broadcastable
                         l = [
@@ -614,185 +615,6 @@ class ScalarFromTensor(COp):
 
 
 scalar_from_tensor = ScalarFromTensor()
-
-
-class Rebroadcast(COp):
-    """
-    Change the input's broadcastable fields in some predetermined way.
-
-    See Also
-    --------
-    unbroadcast <aesara.tensor.unbroadcast>
-
-    Notes
-    -----
-    Works inplace and works for CudaNdarrayType.
-
-    Examples
-    --------
-    ``Rebroadcast((0, True), (1, False))(x)`` would make `x` broadcastable in
-    axis 0 and not broadcastable in axis 1.
-
-    """
-
-    view_map = {0: [0]}
-    _f16_ok = True
-    # Mapping from Type to C code (and version) to use.
-    # In the C code, the name of the input variable is %(iname)s,
-    # the output variable is %(oname)s.
-    c_code_and_version: Dict = {}
-
-    check_input = False
-    __props__ = ("axis",)
-    _f16_ok = True
-
-    def __init__(self, *axis):
-        # Sort them to make sure we merge all possible case.
-        items = sorted(axis)
-        self.axis = dict(items)
-        for axis, broad in self.axis.items():
-            if not isinstance(axis, (np.integer, int)):
-                raise TypeError(f"Rebroadcast needs integer axes. Got {axis}")
-
-            if not isinstance(broad, (np.bool_, bool)):
-                raise TypeError(
-                    f"Rebroadcast needs bool for new broadcast pattern. Got {broad}"
-                )
-
-    def __hash__(self):
-        # Need special __hash__ as dict aren't hashable.
-        # no ambiguity because each item key is unique
-        items = sorted(self.axis.items())
-        return hash((type(self), tuple(items)))
-
-    def __str__(self):
-        return f"{self.__class__.__name__}{{{','.join(str(i) for i in self.axis.items())}}}"
-
-    def make_node(self, x):
-        if self.axis.keys() and (x.ndim <= max(self.axis.keys())):
-            raise ValueError("Trying to rebroadcast non-existent dimension")
-        t = x.type.clone(
-            shape=[self.axis.get(i, b) for i, b in enumerate(x.type.broadcastable)]
-        )
-        return Apply(self, [x], [t()])
-
-    def perform(self, node, inp, out_):
-        (x,) = inp
-        (out,) = out_
-        for axis, value in self.axis.items():
-            if value and x.shape[axis] != 1:
-                raise ValueError(
-                    f"Dimension {axis} in Rebroadcast's input was"
-                    f" supposed to be 1 (got {x.shape[axis]} instead)"
-                )
-        out[0] = x
-
-    def grad(self, inp, grads):
-        (x,) = inp
-        (gz,) = grads
-        # restore the broadcasting pattern of the input
-        return (
-            Rebroadcast(
-                *[
-                    (axis, x.type.broadcastable[axis])
-                    for axis, value in self.axis.items()
-                ]
-            )(gz),
-        )
-
-    def infer_shape(self, fgraph, node, ishapes):
-        assert len(ishapes) == 1
-        l = []
-        one = aesara.tensor.basic.constant(1)
-        for ax in range(len(ishapes[0])):
-            if self.axis.get(ax, False):
-                l.append(one)
-            else:
-                l.append(ishapes[0][ax])
-
-        return [tuple(l)]
-
-    def R_op(self, inputs, eval_points):
-        if eval_points[0] is None:
-            return [None]
-        return self(*eval_points, return_list=True)
-
-    def c_code(self, node, nodename, inp, out, sub):
-        (iname,) = inp
-        (oname,) = out
-        fail = sub["fail"]
-
-        itype = node.inputs[0].type.__class__
-        if itype in self.c_code_and_version:
-            code, version = self.c_code_and_version[itype]
-            final_code = ""
-            for axis, value in self.axis.items():
-                if value:
-                    final_code += code % locals()
-            return (
-                final_code
-                + f"""
-            Py_XDECREF({oname});
-            {oname} = {iname};
-            Py_XINCREF({oname});
-            """
-            )
-        raise NotImplementedError()
-
-    def c_code_cache_version(self):
-        version = []
-        # If any of the c code is unversioned, we have to return ()
-        # Else, we will return a list of (type name, version) pairs.
-        for t, (c, v) in sorted(
-            self.c_code_and_version.items(), key=lambda pair: str(pair[0])
-        ):
-            if not v:
-                warnings.warn(
-                    f"Type {t} has C code for Rebroadcast, but it "
-                    "has no version. You should add a 'version' "
-                    "keyword arg when calling "
-                    "register_rebroadcast_c_code.",
-                    stacklevel=2,
-                )
-                return ()
-            version.append((str(t), v))
-
-        if version:
-            version.append(1)
-        return tuple(version)
-
-
-def register_rebroadcast_c_code(typ, code, version=()):
-    """
-    Tell Rebroadcast how to generate C code for an Aesara Type.
-
-    typ : Aesara type
-        It must be the Aesara class itself and not an instance of the class.
-    code : C code
-        That checks if the dimension %(axis)s is of shape 1 for the Aesara type
-        'typ'. Use %(iname)s and %(oname)s for the input and output C variable
-        names respectively, and %(axis)s for the axis that we need to check.
-        This code is put in a loop for all axes.
-    version
-        A number indicating the version of the code, for cache.
-
-    """
-    Rebroadcast.c_code_and_version[typ] = (code, version)
-
-
-register_rebroadcast_c_code(
-    TensorType,
-    """
-    if(PyArray_DIMS(%(iname)s)[%(axis)s] != 1){
-        PyErr_Format(PyExc_ValueError,
-            "Dimension %(axis)s in Rebroadcast's input was"
-            " supposed to be 1 (got %%d instead)",
-            PyArray_DIMS(%(iname)s)[%(axis)s]);
-        %(fail)s
-    }
-    """,
-    version=1,
-)
 
 
 # to be removed as we get the epydoc routine-documenting thing going
@@ -2252,36 +2074,6 @@ class Split(COp):
         """
             % locals()
         )
-
-
-def unbroadcast(x, *axes):
-    """
-    Make the input impossible to broadcast in the specified axes.
-
-    For example, unbroadcast(x, 0) will make the first dimension
-    of x not broadcastable. When performing the function, if the length
-    of x along that dimension is not 1, a ValueError will be raised.
-
-    We apply the opt here not to pollute the graph
-
-    Parameters
-    ----------
-    x : tensor_like
-        Input aesara tensor.
-    axis : an int or an iterable object such as list or tuple of int values
-        The dimension along which the tensor x should be unbroadcastable.
-        If the length of x along these dimensions is not 1, a ValueError will
-        be raised.
-
-    Returns
-    -------
-    tensor
-        A aesara tensor, which is unbroadcastable along the specified dimensions.
-
-    """
-    x = as_tensor_variable(x)
-    rval = Rebroadcast(*[(axis, False) for axis in axes])(x)
-    return aesara.tensor.basic_opt.apply_rebroadcast_opt(rval)
 
 
 class Join(COp):
@@ -4195,7 +3987,6 @@ __all__ = [
     "stack",
     "roll",
     "join",
-    "unbroadcast",
     "split",
     "transpose",
     "extract_constant",

@@ -28,7 +28,6 @@ from aesara.tensor.basic import (
     Alloc,
     Join,
     MakeVector,
-    Rebroadcast,
     ScalarFromTensor,
     Split,
     TensorFromScalar,
@@ -40,7 +39,6 @@ from aesara.tensor.basic import (
 )
 from aesara.tensor.basic_opt import (
     ShapeFeature,
-    apply_rebroadcast_opt,
     assert_op,
     local_alloc_sink_dimshuffle,
     local_dimshuffle_lift,
@@ -92,9 +90,11 @@ from aesara.tensor.shape import (
     Reshape,
     Shape_i,
     SpecifyShape,
+    Unbroadcast,
     reshape,
     shape,
     specify_shape,
+    unbroadcast,
 )
 from aesara.tensor.subtensor import (
     AdvancedIncSubtensor1,
@@ -1898,18 +1898,46 @@ class TestTile:
                 f(data)
 
 
-class TestRebroadcast:
-    def test_local_useless_rebroadcast(self):
-        mode = get_default_mode().including("canonicalize")
-        v1 = vector()
-        v2 = vector()
-        j = at.join(0, v1, v2)
-        f = function([v1, v2], j, mode=mode)
-        f([1, 2], [3, 4, 5])
-        e = f.maker.fgraph.toposort()
-        assert len([n for n in e if isinstance(n.op, Rebroadcast)]) == 0
+class TestUnbroadcast:
+    def setup_method(self):
+        self.mode = get_default_mode().including("canonicalize")
 
-        assert check_stack_trace(f, ops_to_check="all")
+    def test_local_useless_unbroadcast(self):
+        x1 = tensor("float64", shape=(1, 2))
+        x2 = tensor("float64", shape=(2, 1))
+        unbroadcast_op = Unbroadcast(0)
+
+        f = function([x1], unbroadcast_op(x1), mode=self.mode)
+        assert (
+            sum(isinstance(node.op, Unbroadcast) for node in f.maker.fgraph.toposort())
+            == 1
+        )
+
+        f = function([x2], unbroadcast_op(x2), mode=self.mode)
+        assert (
+            sum(isinstance(node.op, Unbroadcast) for node in f.maker.fgraph.toposort())
+            == 0
+        )
+
+    def test_local_unbroadcast_lift(self):
+        x = tensor("float64", shape=(1, 1))
+        y = unbroadcast(at.exp(unbroadcast(x, 0)), 1)
+
+        assert (
+            sum(
+                isinstance(node.op, Unbroadcast)
+                for node in FunctionGraph([x], [y], copy_inputs=False).toposort()
+            )
+            == 2
+        )
+
+        f = function([x], y, mode=self.mode)
+        assert (
+            sum(isinstance(node.op, Unbroadcast) for node in f.maker.fgraph.toposort())
+            == 1
+        )
+
+        np.testing.assert_almost_equal(f([[1]]), np.exp([[1]]))
 
 
 class TestUselessElemwise:
@@ -3165,21 +3193,6 @@ def test_local_useless_alloc():
     assert len(topo) == 3
     assert isinstance(topo[-2].op, Assert)
     assert isinstance(topo[-1].op, Alloc)
-
-
-def test_apply_rebroadcast_opt():
-    # Test the `Elemwise` case in `local_rebroadcast_lift` with `fgraph=None`.
-    # This is called by in `apply_rebroadcast_opt`.
-    a = vector(dtype="float32")
-    b = tensor("float64", [True])
-    x = b.astype(a.dtype)
-
-    broadcastable = (False,)
-    axis = [(i, broadcastable[i]) for i in range(len(broadcastable))]
-    rval = Rebroadcast(*axis)(x)
-
-    res = apply_rebroadcast_opt(rval)
-    assert res is rval
 
 
 @pytest.mark.parametrize("return_index", [False])

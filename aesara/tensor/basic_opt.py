@@ -48,7 +48,6 @@ from aesara.tensor.basic import (
     AllocEmpty,
     Join,
     MakeVector,
-    Rebroadcast,
     ScalarFromTensor,
     Split,
     TensorFromScalar,
@@ -77,9 +76,11 @@ from aesara.tensor.shape import (
     Shape,
     Shape_i,
     SpecifyShape,
+    Unbroadcast,
     shape_i,
     shape_padleft,
     specify_shape,
+    unbroadcast,
 )
 from aesara.tensor.sort import TopKOp
 from aesara.tensor.subtensor import Subtensor, get_idx_list
@@ -2226,10 +2227,13 @@ def local_upcast_elemwise_constant_inputs(fgraph, node):
 @register_useless
 @register_canonicalize
 @register_specialize
-@local_optimizer([Rebroadcast])
-def local_useless_rebroadcast(fgraph, node):
-    """Remove `Rebroadcast` if it does not actually change the broadcasting pattern."""
-    if isinstance(node.op, Rebroadcast):
+@local_optimizer([Unbroadcast])
+def local_useless_unbroadcast(fgraph, node):
+    """Remove `Unbroadcast` if it does not actually change the broadcasting pattern.
+
+    TODO: Implement equivalent rewrite for SpecifyShape
+    """
+    if isinstance(node.op, Unbroadcast):
         x = node.inputs[0]
         if x.broadcastable == node.outputs[0].broadcastable:
             # No broadcastable flag was modified
@@ -2238,15 +2242,12 @@ def local_useless_rebroadcast(fgraph, node):
             return [x]
         else:
             # Keep the flags that modify something
-            new_axis = {}
-            for dim, bc in node.op.axis.items():
-                if x.broadcastable[dim] != bc:
-                    new_axis[dim] = bc
-            if new_axis == node.op.axis:
+            new_axes = tuple(ax for ax in node.op.axes if x.type.shape[ax] == 1)
+            if new_axes == node.op.axes:
                 # All flags are useful
-                return
+                return None
             else:
-                r = Rebroadcast(*new_axis.items())(x)
+                r = unbroadcast(x, *new_axes)
                 # Copy over stacktrace from previous output
                 copy_stack_trace(node.outputs, r)
                 return [r]
@@ -2254,91 +2255,47 @@ def local_useless_rebroadcast(fgraph, node):
 
 @register_canonicalize
 @register_specialize
-@local_optimizer([Rebroadcast])
-def local_rebroadcast_lift(fgraph, node):
+@local_optimizer([Unbroadcast])
+def local_unbroadcast_lift(fgraph, node):
     """
-    Lifts Rebroadcast through unary Elemwise operations,
-    and merges consecutive Rebroadcasts.
+    Lifts `Unbroadcast` through unary Elemwise operations,
+    and merges consecutive `Unbroadcast`s.
 
-    Rebroadcast(Elemwise(x)) => Elemwise(Rebroadcast(x))
-    Rebroadcast(Rebroadcast(x)) => Rebroadcast(x)
+    Unbroadcast(Elemwise(x)) => Elemwise(Unbroadcast(x))
+    Unbroadcast(Unbroadcast(x)) => Unbroadcast(x)
 
+    TODO: Implement equivalent Elemwise lift for SpecifyShape
     """
     op = node.op
-    if not isinstance(op, Rebroadcast):
+    if not isinstance(op, Unbroadcast):
         return False
 
     inp = node.inputs[0]
     inode = inp.owner
     if inode and isinstance(inode.op, Elemwise) and len(inode.inputs) == 1:
-        # It may happen that `input` has no client because this optimization
-        # is called from `apply_rebroadcast_opt`, which in particular is used
-        # by the `unbroadcast` function before we are in the actual function
-        # compilation phase.
         if len(fgraph.clients.get(inp, ())) == 1:
-            rebroadcasted = Rebroadcast(*list(op.axis.items()))(inode.inputs[0])
-            # Copy over stacktrace from previous output (after rebroadcasting)
-            # to new output, because an error in the new graph right after
-            # rebroadcasting must have been caused by the previous rebroadcasting.
-            copy_stack_trace(node.outputs, rebroadcasted)
+            unbroadcasted = unbroadcast(inode.inputs[0], *op.axes)
+            copy_stack_trace(node.outputs, unbroadcasted)
 
-            rval = inode.op.make_node(rebroadcasted).outputs
+            rval = inode.op.make_node(unbroadcasted).outputs
 
-            # Copy over stacktrace from previous output (after rebroadcasting)
+            # Copy over stacktrace from previous output (after unbroadcasting)
             # and input (after elemwise operation) to new output, because an
             # error in the new graph could have been caused by either of the
             # two ops.
             copy_stack_trace(node.outputs + node.inputs, rval)
-
             return rval
-    if inode and isinstance(inode.op, Rebroadcast):
-        # the "axis" specification in the outer Rebroadcast overrides
-        # the axis of the inner one
-        axis = inode.op.axis.copy()
-        axis.update(op.axis)
+
+    if inode and isinstance(inode.op, Unbroadcast):
+        # Merge axis of each unbroadcast
+        axis = tuple(set(inode.op.axes).union(set(op.axes)))
         iinput = inode.inputs[0]
-
-        rval = [Rebroadcast(*list(axis.items()))(iinput)]
-
-        # Copy over stacktrace from previous output (after second rebroadcast)
-        # and from previous input (after first rebroadcast op) because an error in
-        # the new graph could have been caused by either of the two
-        # rebroadcast ops.
+        rval = [unbroadcast(iinput, *axis)]
+        # Copy over stacktrace from previous output (after second unbroadcasting)
+        # and from previous input (after first unbroadcasting) because an error in
+        # the new graph could have been caused by either of the two Unbroadcast ops.
         copy_stack_trace(node.outputs + node.inputs, rval)
         return rval
-
-
-def apply_rebroadcast_opt(rval):
-    """
-    Apply as many times as required the optimization local_useless_rebroadcast
-    and local_rebroadcast_lift.
-
-    Parameters
-    ----------
-    rval: a Variable
-
-    Returns
-    -------
-    A Variable (the same if no optimization can be applied)
-
-    """
-
-    fg = FunctionGraph([], [])
-    changed = True
-    while changed and rval.owner:
-        changed = False
-        rval2 = local_useless_rebroadcast.transform(fg, rval.owner)
-        if rval2:
-            assert len(rval2) == 1
-            rval = rval2[0]
-            changed = True
-        if rval.owner:
-            rval2 = local_rebroadcast_lift.transform(fg, rval.owner)
-            if rval2:
-                assert len(rval2) == 1
-                rval = rval2[0]
-                changed = True
-    return rval
 
 
 @register_specialize
