@@ -788,13 +788,13 @@ class _tensor_py_operators:
         """Fill inputted tensor with the assigned value."""
         return at.basic.fill(self, value)
 
-    def choose(self, choices, out=None, mode="raise"):
+    def choose(self, choices, mode="raise"):
         """
         Construct an array from an index array and a set of arrays to choose
         from.
 
         """
-        return at.basic.choose(self, choices, out=None, mode="raise")
+        return at.basic.choose(self, choices, mode="raise")
 
     def squeeze(self):
         """
