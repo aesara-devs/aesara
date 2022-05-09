@@ -108,7 +108,8 @@ class TestSoftmax(utt.InferShapeTester):
     @pytest.mark.parametrize("axis", [None, 0, 1, 2, 3, -1, -2])
     def test_perform(self, axis):
         x = tensor4("x")
-        xv = np.random.standard_normal((2, 3, 4, 5)).astype(config.floatX)
+        rng = np.random.default_rng(utt.fetch_seed())
+        xv = rng.standard_normal((2, 3, 4, 5)).astype(config.floatX)
 
         f = aesara.function([x], softmax(x, axis=axis))
         assert np.allclose(f(xv), sp.softmax(xv, axis=axis))
@@ -119,11 +120,13 @@ class TestSoftmax(utt.InferShapeTester):
         def f(a):
             return softmax(a, axis=axis)[:, column]
 
-        utt.verify_grad(f, [np.random.random((3, 4, 2))])
+        rng = np.random.default_rng(utt.fetch_seed())
+        utt.verify_grad(f, [rng.random((3, 4, 2))])
 
     def test_infer_shape(self):
         admat = matrix()
-        admat_val = np.random.random((3, 4)).astype(config.floatX)
+        rng = np.random.default_rng(utt.fetch_seed())
+        admat_val = rng.random((3, 4)).astype(config.floatX)
         self._compile_and_check(
             [admat], [Softmax(axis=-1)(admat)], [admat_val], Softmax
         )
@@ -132,14 +135,16 @@ class TestSoftmax(utt.InferShapeTester):
         x = vector()
         f = aesara.function([x], softmax(x, axis=None))
 
-        xv = np.random.standard_normal((6,)).astype(config.floatX)
+        rng = np.random.default_rng(utt.fetch_seed())
+        xv = rng.standard_normal((6,)).astype(config.floatX)
         assert np.allclose(f(xv), sp.softmax(xv))
 
     def test_vector_grad(self):
         def f(a):
             return softmax(a, axis=None)
 
-        utt.verify_grad(f, [np.random.random((4))])
+        rng = np.random.default_rng(utt.fetch_seed())
+        utt.verify_grad(f, [rng.random((4))])
 
     def test_valid_axis(self):
         valid_axis_tester(Softmax)
@@ -150,22 +155,24 @@ class TestSoftmaxWithBias(utt.InferShapeTester):
         def f(a, b):
             return softmax_with_bias(a, b)[:, 0]
 
-        utt.verify_grad(f, [np.random.random((3, 4)), np.random.random((4))])
+        rng = np.random.default_rng(utt.fetch_seed())
+
+        utt.verify_grad(f, [rng.random((3, 4)), rng.random((4))])
 
         def f(a, b):
             return softmax_with_bias(a, b)[:, 1]
 
-        utt.verify_grad(f, [np.random.random((3, 4)), np.random.random((4))])
+        utt.verify_grad(f, [rng.random((3, 4)), rng.random((4))])
 
         def f(a, b):
             return softmax_with_bias(a, b)[:, 2]
 
-        utt.verify_grad(f, [np.random.random((3, 4)), np.random.random((4))])
+        utt.verify_grad(f, [rng.random((3, 4)), rng.random((4))])
 
         def f(a, b):
             return softmax_with_bias(a, b)[:, 3]
 
-        utt.verify_grad(f, [np.random.random((3, 4)), np.random.random((4))])
+        utt.verify_grad(f, [rng.random((3, 4)), rng.random((4))])
 
     def test_broadcast(self):
         # test that we don't raise an error during optimization for no good
@@ -187,8 +194,9 @@ class TestSoftmaxWithBias(utt.InferShapeTester):
         # print f.maker.fgraph.toposort()
 
     def test_softmax_with_bias_trace(self):
-        a = aesara.shared(np.random.standard_normal((3,)).astype(config.floatX))
-        b = aesara.shared(np.float32(np.random.standard_normal()))
+        rng = np.random.default_rng(utt.fetch_seed())
+        a = aesara.shared(rng.standard_normal((3,)).astype(config.floatX))
+        b = aesara.shared(np.float32(rng.standard_normal()))
         sm = softmax(a + b)
         f = aesara.function([], sm)
         assert check_stack_trace(f, ops_to_check="last")
@@ -196,8 +204,9 @@ class TestSoftmaxWithBias(utt.InferShapeTester):
     def test_infer_shape(self):
         admat = matrix()
         advec = vector()
-        admat_val = np.random.random((3, 4)).astype(config.floatX)
-        advec_val = np.random.random((4)).astype(config.floatX)
+        rng = np.random.default_rng(utt.fetch_seed())
+        admat_val = rng.random((3, 4)).astype(config.floatX)
+        advec_val = rng.random((4)).astype(config.floatX)
         self._compile_and_check(
             [admat, advec],
             [SoftmaxWithBias()(admat, advec)],
@@ -213,20 +222,23 @@ class TestLogSoftmax(utt.InferShapeTester):
         def f(a):
             return logsoftmax(a, axis=axis)[:, column]
 
-        utt.verify_grad(f, [np.random.random((3, 4))])
+        rng = np.random.default_rng(utt.fetch_seed())
+        utt.verify_grad(f, [rng.random((3, 4))])
 
     def test_vector_perform(self):
         x = vector()
         f = aesara.function([x], logsoftmax(x, axis=None))
 
-        xv = np.random.standard_normal((6,)).astype(config.floatX)
+        rng = np.random.default_rng(utt.fetch_seed())
+        xv = rng.standard_normal((6,)).astype(config.floatX)
         assert np.allclose(f(xv), sp.log_softmax(xv))
 
     def test_vector_grad(self):
         def f(a):
             return logsoftmax(a, axis=None)
 
-        utt.verify_grad(f, [np.random.random((4))])
+        rng = np.random.default_rng(utt.fetch_seed())
+        utt.verify_grad(f, [rng.random((4,))])
 
     def test_matrix_perform_and_opt(self):
         m = config.mode
@@ -243,9 +255,9 @@ class TestLogSoftmax(utt.InferShapeTester):
         cm2 = -at_sum(y * logsm, axis=1)
         grad_node = grad(cm2.mean(), x)
 
-        # create some inputs into a softmax that are large and labels
-        a = np.exp(10 * np.random.random((5, 10)).astype(config.floatX))
-        # create some one-hot coded labels
+        rng = np.random.default_rng(utt.fetch_seed())
+
+        a = np.exp(10 * rng.random((5, 10)).astype(config.floatX))
         b = np.eye(5, 10).astype(config.floatX)
 
         # show equivalence of softmax and exponentiated numerically stable
@@ -294,7 +306,7 @@ class TestLogSoftmax(utt.InferShapeTester):
         m.check_isfinite = False
         # some inputs that are large to make the gradient explode in the non
         # optimized case
-        rng = np.random.default_rng(98324)
+        rng = np.random.default_rng(utt.fetch_seed())
         a = np.exp(10 * rng.random((5, 10)).astype(config.floatX))
 
         def myfunc(x):
@@ -340,8 +352,9 @@ class TestSoftmaxGrad(utt.InferShapeTester):
     def test_infer_shape(self):
         admat = matrix()
         bdmat = matrix()
-        admat_val = np.random.random((3, 4)).astype(config.floatX)
-        bdmat_val = np.random.random((3, 4)).astype(config.floatX)
+        rng = np.random.default_rng(utt.fetch_seed())
+        admat_val = rng.random((3, 4)).astype(config.floatX)
+        bdmat_val = rng.random((3, 4)).astype(config.floatX)
         self._compile_and_check(
             [admat, bdmat],
             [SoftmaxGrad(axis=-1)(admat, bdmat)],
@@ -360,14 +373,16 @@ class TestCrossEntropySoftmax1Hot:
         def f(a, b):
             return crossentropy_softmax_1hot_with_bias(a, b, y_idx)[0]
 
-        utt.verify_grad(f, [np.random.random((3, 4)), np.random.random((4))])
+        rng = np.random.default_rng(utt.fetch_seed())
+
+        utt.verify_grad(f, [rng.random((3, 4)), rng.random((4))])
 
         y_idx = [0, 1, 3]
 
         def f(a):
             return crossentropy_softmax_1hot(a, y_idx)[0]
 
-        utt.verify_grad(f, [np.random.random((3, 4))])
+        utt.verify_grad(f, [rng.random((3, 4))])
 
     def test_vector(self):
         y_idx = [3]
@@ -375,7 +390,8 @@ class TestCrossEntropySoftmax1Hot:
         def f(a):
             return crossentropy_softmax_1hot(shape_padleft(a), y_idx)[0]
 
-        utt.verify_grad(f, [np.random.random((4))])
+        rng = np.random.default_rng(utt.fetch_seed())
+        utt.verify_grad(f, [rng.random((4,))])
 
     def test_vectors(self):
         y_idx = [3]
@@ -383,21 +399,20 @@ class TestCrossEntropySoftmax1Hot:
         def f(a, b):
             return crossentropy_softmax_1hot(shape_padleft(a) + b, y_idx)[0]
 
-        utt.verify_grad(f, [np.random.random((4)), np.random.random((4))])
+        rng = np.random.default_rng(utt.fetch_seed())
+        utt.verify_grad(f, [rng.random((4,)), rng.random((4))])
 
 
 class TestCrossEntropySoftmax1HotWithBiasDx(utt.InferShapeTester):
     def test_basic(self):
+        rng = np.random.default_rng(utt.fetch_seed())
+
         def ff(class_dtype):
             def f(sm):
                 # Class indices
-                y = (
-                    np.random.default_rng()
-                    .integers(low=0, high=5, size=10)
-                    .astype(class_dtype)
-                )
+                y = rng.integers(low=0, high=5, size=10).astype(class_dtype)
                 return crossentropy_softmax_1hot_with_bias_dx(
-                    np.random.random((10)),
+                    rng.random((10)),
                     sm,
                     y,  # Gradient w.r.t. NLL.  # Softmax output.
                 )
@@ -405,7 +420,7 @@ class TestCrossEntropySoftmax1HotWithBiasDx(utt.InferShapeTester):
             return f
 
         # Build a random softmax output whose rows sum to 1.
-        softmax_output = np.random.random((10, 5))
+        softmax_output = rng.random((10, 5))
         softmax_output /= softmax_output.sum(axis=1).reshape(10, 1)
         for dtype in ["uint8", "int8", "uint64", "int64"]:
             utt.verify_grad(ff(dtype), [softmax_output])
@@ -463,13 +478,13 @@ class TestCrossEntropySoftmaxArgmax1HotWithBias(utt.InferShapeTester):
         n_classes = 5
         n_samples = 3
 
+        rng = np.random.default_rng(utt.fetch_seed())
+
         # First test gradient when getting a gradient on the NLL output.
         def grad_on_nll_dtype(dtype):
             def grad_on_nll(x, b):
-                y_idx = (
-                    np.random.default_rng()
-                    .integers(low=0, high=n_classes, size=n_samples)
-                    .astype(dtype)
+                y_idx = rng.integers(low=0, high=n_classes, size=n_samples).astype(
+                    dtype
                 )
                 return self.op(x, b, y_idx=y_idx)[0]
 
@@ -479,8 +494,8 @@ class TestCrossEntropySoftmaxArgmax1HotWithBias(utt.InferShapeTester):
             utt.verify_grad(
                 grad_on_nll_dtype(dtype),
                 [
-                    np.random.random((n_samples, n_classes)),
-                    np.random.random((n_classes)),
+                    rng.random((n_samples, n_classes)),
+                    rng.random((n_classes)),
                 ],
             )
 
@@ -489,14 +504,12 @@ class TestCrossEntropySoftmaxArgmax1HotWithBias(utt.InferShapeTester):
             return self.op(
                 x,
                 b,
-                y_idx=np.random.default_rng().integers(
-                    low=0, high=n_classes, size=n_samples
-                ),
+                y_idx=rng.integers(low=0, high=n_classes, size=n_samples),
             )[1]
 
         utt.verify_grad(
             grad_on_softmax,
-            [np.random.random((n_samples, n_classes)), np.random.random((n_classes))],
+            [rng.random((n_samples, n_classes)), rng.random((n_classes))],
         )
 
     def test_infer_shape(self):
@@ -534,7 +547,8 @@ class TestPrepend(utt.InferShapeTester):
         x = matrix("x")
         y = Prepend_scalar_constant_to_each_row(4.0)(x)
         f = aesara.function([x], y)
-        m = np.random.random((3, 5)).astype(config.floatX)
+        rng = np.random.default_rng(utt.fetch_seed())
+        m = rng.random((3, 5)).astype(config.floatX)
         my = f(m)
         assert my.shape == (3, 6)
         assert np.all(my[:, 0] == 4.0)
@@ -608,7 +622,8 @@ class TestCrossEntropyCategorical1Hot(utt.InferShapeTester):
         def oplike(x):
             return op(x, [0, 1])
 
-        utt.verify_grad(oplike, [x_val], rng=np.random)
+        rng = np.random.default_rng(utt.fetch_seed())
+        utt.verify_grad(oplike, [x_val], rng=rng)
 
     def test_infer_shape(self):
         admat = matrix()
@@ -1023,7 +1038,6 @@ class TestSoftmaxOpt:
     #
 
     def setup_method(self):
-        self.rng = np.random.default_rng(utt.fetch_seed())
         self.mode = aesara.compile.mode.get_default_mode()
         self.mode = self.mode.including("canonicalize")
 
@@ -1049,7 +1063,8 @@ class TestSoftmaxOpt:
         assert len(f_ops) == 1
         assert isinstance(f_ops[0], Softmax)
 
-        c_val = self.rng.random((3, 4)).astype(config.floatX)
+        rng = np.random.default_rng(utt.fetch_seed())
+        c_val = rng.random((3, 4)).astype(config.floatX)
         assert np.allclose(f(c_val), sp.softmax(c_val, axis=axis))
 
     @pytest.mark.parametrize("axis", [None, 0, 1, 2, -1, -2, -3, (0, 1, 2)])
@@ -1067,7 +1082,8 @@ class TestSoftmaxOpt:
         assert len(f_ops) == 1
         assert isinstance(f_ops[0], Softmax)
 
-        c_val = self.rng.random((3, 4, 5)).astype(config.floatX)
+        rng = np.random.default_rng(utt.fetch_seed())
+        c_val = rng.random((3, 4, 5)).astype(config.floatX)
         assert np.allclose(f(c_val), sp.softmax(c_val, axis=axis))
 
     @pytest.mark.skip(reason="Optimization not enabled for the moment")
@@ -1086,7 +1102,8 @@ class TestSoftmaxOpt:
         assert isinstance(g_ops[0], Softmax)
         assert isinstance(g_ops[1], SoftmaxGrad)
 
-        g(self.rng.random((3, 4)), self.rng.uniform(0.5, 1, (3, 4)))
+        rng = np.random.default_rng(utt.fetch_seed())
+        g(rng.random((3, 4)), rng.uniform(0.5, 1, (3, 4)))
 
     def test_transpose_basic(self):
         # this should be a transposed softmax
@@ -1196,14 +1213,13 @@ def test_stabilize_log_softmax():
 
     # call the function so debug mode can verify the optimized
     # version matches the unoptimized version
-    rng = np.random.default_rng([2012, 8, 22])
+    rng = np.random.default_rng(utt.fetch_seed())
     f(np.cast[config.floatX](rng.random((2, 3))))
 
 
 def test_relu():
     x = matrix("x")
-    seed = utt.fetch_seed()
-    rng = np.random.default_rng(seed)
+    rng = np.random.default_rng(utt.fetch_seed())
     X = rng.standard_normal((20, 30)).astype(config.floatX)
 
     # test the base case, without custom alpha value
@@ -1223,11 +1239,12 @@ def test_relu():
         )
         y = relu(x, alpha).eval({x: X, alpha: A})
         assert np.allclose(y, np.where(X > 0, X, A * X), rtol=3e-5)
+
         # test that for alpha of ndarray don't cause upcast.
         x = matrix("x", dtype="float32")
-        rng = np.random.default_rng(seed)
         X = rng.standard_normal((20, 30)).astype("float32")
         alpha = np.asarray(0.123, dtype="float32")
+
         y = relu(x, alpha).eval({x: X})
         assert np.allclose(y, np.where(X > 0, X, alpha * X))
         assert y.dtype == "float32"
@@ -1243,9 +1260,11 @@ def test_h_softmax():
     h_softmax_level2_size = 3
     output_size = h_softmax_level1_size * h_softmax_level2_size
 
+    rng = np.random.default_rng(utt.fetch_seed())
+
     # First level of h_softmax
     W1 = np.asarray(
-        np.random.normal(size=(input_size, h_softmax_level1_size)), dtype=config.floatX
+        rng.normal(size=(input_size, h_softmax_level1_size)), dtype=config.floatX
     )
     W1 = aesara.shared(W1)
     b1 = aesara.shared(
@@ -1254,9 +1273,7 @@ def test_h_softmax():
 
     # Second level of h_softmax
     W2 = np.asarray(
-        np.random.normal(
-            size=(h_softmax_level1_size, input_size, h_softmax_level2_size)
-        ),
+        rng.normal(size=(h_softmax_level1_size, input_size, h_softmax_level2_size)),
         dtype=config.floatX,
     )
     W2 = aesara.shared(W2)
@@ -1300,8 +1317,8 @@ def test_h_softmax():
     fun_output_tg = aesara.function([x, y], y_hat_tg)
     fun_output = aesara.function([x], y_hat_all)
 
-    x_mat = np.random.normal(size=(batch_size, input_size)).astype(config.floatX)
-    y_mat = np.random.default_rng().integers(0, output_size, batch_size).astype("int32")
+    x_mat = rng.normal(size=(batch_size, input_size)).astype(config.floatX)
+    y_mat = rng.integers(0, output_size, batch_size).astype("int32")
     tg_output = fun_output_tg(x_mat, y_mat)
     all_outputs = fun_output(x_mat)
 
@@ -1315,8 +1332,7 @@ def test_h_softmax():
 
 def test_elu():
     x = matrix("x")
-    seed = utt.fetch_seed()
-    rng = np.random.default_rng(seed)
+    rng = np.random.default_rng(utt.fetch_seed())
     X = rng.standard_normal((20, 30)).astype(config.floatX)
 
     # test the base case, without custom alpha value
@@ -1334,8 +1350,7 @@ def test_selu():
     scale = 1.0507009873554804934193349852946
 
     x = matrix("x")
-    seed = utt.fetch_seed()
-    rng = np.random.default_rng(seed)
+    rng = np.random.default_rng(utt.fetch_seed())
     X = rng.standard_normal((20, 30)).astype(config.floatX)
 
     y = selu(x).eval({x: X})
@@ -1371,11 +1386,6 @@ TestSoftsign = makeBroadcastTester(
 
 
 class TestSigmoidBinaryCrossentropy:
-    def _get_test_inputs(self, n=50):
-        pred, target = np.random.standard_normal((2, n)).astype(config.floatX)
-        # apply sigmoid to target, but not pred
-        return [pred, 1 / (1 + np.exp(-target))]
-
     def test_matches_binary_crossentropy(self):
         # Test sigmoid_binary_crossentropy(p, t) ==
         #      binary_crossentropy(sigmoid(p), t).
@@ -1388,11 +1398,18 @@ class TestSigmoidBinaryCrossentropy:
         test_val = sigmoid_binary_crossentropy(pred, target)
         f_test = aesara.function(inputs, test_val)
 
-        test_inputs = self._get_test_inputs()
+        rng = np.random.default_rng(utt.fetch_seed())
+        pred, target = rng.standard_normal((2, 50)).astype(config.floatX)
+        test_inputs = [pred, 1 / (1 + np.exp(-target))]
+
         utt.assert_allclose(f_reference(*test_inputs), f_test(*test_inputs))
 
     def test_grad(self):
-        utt.verify_grad(sigmoid_binary_crossentropy, self._get_test_inputs())
+        rng = np.random.default_rng(utt.fetch_seed())
+        pred, target = rng.standard_normal((2, 50)).astype(config.floatX)
+        test_inputs = [pred, 1 / (1 + np.exp(-target))]
+
+        utt.verify_grad(sigmoid_binary_crossentropy, test_inputs)
 
 
 def test_confusion_matrix():
