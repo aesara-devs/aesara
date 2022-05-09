@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 import aesara
-from aesara import Mode, function
+from aesara import Mode, function, grad
 from aesara.compile.ops import DeepCopyOp
 from aesara.configdefaults import config
 from aesara.graph.basic import Variable
@@ -509,6 +509,13 @@ class TestSpecifyShape(utt.InferShapeTester):
         assert specify_shape(x, (1, 2, 3)) is not x
         assert specify_shape(x, (None, None, 3)) is not x
         assert specify_shape(x, (1, 3, None)) is not x
+
+    def test_specify_shape_in_grad(self):
+        x = matrix()
+        y = specify_shape(x, (2, 3))
+        z = y + 1
+        z_grad = grad(z.sum(), wrt=x)
+        assert isinstance(z_grad.owner.op, SpecifyShape)
 
 
 class TestRopLop(RopLopChecker):
