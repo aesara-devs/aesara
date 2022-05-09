@@ -586,19 +586,21 @@ def squeeze(x, axis=None):
     `x` without `axis` dimensions.
 
     """
+    _x = at.as_tensor_variable(x)
+
     if axis is None:
         # By default exclude all broadcastable (length=1) axes
-        axis = (i for i in range(x.ndim) if x.broadcastable[i])
+        axis = (i for i in range(_x.ndim) if _x.broadcastable[i])
     elif not isinstance(axis, Collection):
         axis = (axis,)
 
     # scalar inputs are treated as 1D regarding axis in this `Op`
     try:
-        axis = np.core.numeric.normalize_axis_tuple(axis, ndim=max(1, x.ndim))
+        axis = np.core.numeric.normalize_axis_tuple(axis, ndim=max(1, _x.ndim))
     except np.AxisError:
-        raise np.AxisError(axis, ndim=x.ndim)
+        raise np.AxisError(axis, ndim=_x.ndim)
 
-    return x.dimshuffle([i for i in range(x.ndim) if i not in axis])
+    return _x.dimshuffle([i for i in range(_x.ndim) if i not in axis])
 
 
 def compress(condition, x, axis=None):
@@ -626,8 +628,9 @@ def compress(condition, x, axis=None):
     `x` with selected slices.
 
     """
+    _x = at.as_tensor_variable(x)
     indices = at.flatnonzero(condition)
-    return x.take(indices, axis=axis)
+    return _x.take(indices, axis=axis)
 
 
 class Repeat(Op):
@@ -1494,12 +1497,14 @@ def broadcast_shape_iter(
     else:
         max_dims = max(a.ndim for a in arrays)
 
+        _arrays = tuple(at.as_tensor_variable(a) for a in arrays)
+
         array_shapes = [
             (one_at,) * (max_dims - a.ndim)
             + tuple(
-                one_at if bcast else sh for sh, bcast in zip(a.shape, a.broadcastable)
+                one_at if t_sh == 1 else sh for sh, t_sh in zip(a.shape, a.type.shape)
             )
-            for a in arrays
+            for a in _arrays
         ]
 
     result_dims = []
