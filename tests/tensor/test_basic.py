@@ -4529,3 +4529,14 @@ def test_full_like(inp, shape):
         y.eval({x: np.zeros(shape, dtype=dtype)}),
         np.full(shape, fill_value, dtype=dtype),
     )
+
+
+@pytest.mark.parametrize("func", [horizontal_stack, vertical_stack])
+def test_oriented_stack_functions(func):
+    with pytest.raises(ValueError):
+        func()
+
+    a = at.tensor(np.float64, shape=(None, None, None))
+
+    with pytest.raises(ValueError):
+        func(a, a)
