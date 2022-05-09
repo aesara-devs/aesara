@@ -489,19 +489,7 @@ def test_debugprint_mitmot():
     for{cpu,scan_fn} [id F] (outer_out_sit_sot-0)
     >Elemwise{mul,no_inplace} [id CV] (inner_out_sit_sot-0)
     > |*0-<TensorType(float64, (None,))> [id CT] -> [id H] (inner_in_sit_sot-0)
-    > |*1-<TensorType(float64, (None,))> [id CW] -> [id P] (inner_in_non_seqs-0)
-
-    for{cpu,scan_fn} [id F] (outer_out_sit_sot-0)
-    >Elemwise{mul,no_inplace} [id CV] (inner_out_sit_sot-0)
-
-    for{cpu,scan_fn} [id F] (outer_out_sit_sot-0)
-    >Elemwise{mul,no_inplace} [id CV] (inner_out_sit_sot-0)
-
-    for{cpu,scan_fn} [id F] (outer_out_sit_sot-0)
-    >Elemwise{mul,no_inplace} [id CV] (inner_out_sit_sot-0)
-
-    for{cpu,scan_fn} [id F] (outer_out_sit_sot-0)
-    >Elemwise{mul,no_inplace} [id CV] (inner_out_sit_sot-0)"""
+    > |*1-<TensorType(float64, (None,))> [id CW] -> [id P] (inner_in_non_seqs-0)"""
 
     for truth, out in zip(expected_output.split("\n"), lines):
         assert truth.strip() == out.strip()
