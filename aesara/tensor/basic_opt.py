@@ -375,13 +375,9 @@ class InplaceElemwiseOptimizer(GlobalOptimizer):
                             hasattr(fgraph, "destroy_handler")
                             and inp.owner
                             and any(
-                                [
-                                    fgraph.destroy_handler.root_destroyer.get(
-                                        up_inp, None
-                                    )
-                                    is inp.owner
-                                    for up_inp in updated_inputs
-                                ]
+                                fgraph.destroy_handler.root_destroyer.get(up_inp, None)
+                                is inp.owner
+                                for up_inp in updated_inputs
                             )
                         ):
 
@@ -1523,19 +1519,14 @@ def local_elemwise_alloc(fgraph, node):
         # Ensure all outputs have the same broadcast pattern
         # This is a supposition that I'm not sure is always true.
         assert all(
-            [
-                o.type.broadcastable == node.outputs[0].type.broadcastable
-                for o in node.outputs[1:]
-            ]
+            o.type.broadcastable == node.outputs[0].type.broadcastable
+            for o in node.outputs[1:]
         )
 
     # The broadcast pattern of the output must match the broadcast
     # pattern of at least one of the inputs.
     if not any(
-        [
-            i.type.broadcastable == node.outputs[0].type.broadcastable
-            for i in node.inputs
-        ]
+        i.type.broadcastable == node.outputs[0].type.broadcastable for i in node.inputs
     ):
         return False
 
@@ -1550,10 +1541,8 @@ def local_elemwise_alloc(fgraph, node):
     # `DimShuffle` with an owner that is a `Alloc` -- otherwise there is
     # nothing to optimize.
     if not any(
-        [
-            i.owner and (isinstance(i.owner.op, Alloc) or dimshuffled_alloc(i))
-            for i in node.inputs
-        ]
+        i.owner and (isinstance(i.owner.op, Alloc) or dimshuffled_alloc(i))
+        for i in node.inputs
     ):
         return False
 
@@ -2260,7 +2249,7 @@ def local_useless_rebroadcast(fgraph, node):
     """Remove `Rebroadcast` if it does not actually change the broadcasting pattern."""
     if isinstance(node.op, Rebroadcast):
         x = node.inputs[0]
-        if np.all(x.broadcastable == node.outputs[0].broadcastable):
+        if x.broadcastable == node.outputs[0].broadcastable:
             # No broadcastable flag was modified
             # No need to copy over stack trace,
             # because x should already have a stack trace.
@@ -2268,14 +2257,14 @@ def local_useless_rebroadcast(fgraph, node):
         else:
             # Keep the flags that modify something
             new_axis = {}
-            for dim, bc in list(node.op.axis.items()):
+            for dim, bc in node.op.axis.items():
                 if x.broadcastable[dim] != bc:
                     new_axis[dim] = bc
             if new_axis == node.op.axis:
                 # All flags are useful
                 return
             else:
-                r = Rebroadcast(*list(new_axis.items()))(x)
+                r = Rebroadcast(*new_axis.items())(x)
                 # Copy over stacktrace from previous output
                 copy_stack_trace(node.outputs, r)
                 return [r]

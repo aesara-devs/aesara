@@ -273,9 +273,7 @@ class TestTopK:
             argtopk(x, 1, axis=axis, sorted=sorted, idx_dtype=idx_dtype),
             mode=self.mode,
         )
-        assert any(
-            [isinstance(n.op, self.op_class) for n in fn.maker.fgraph.apply_nodes]
-        )
+        assert any(isinstance(n.op, self.op_class) for n in fn.maker.fgraph.apply_nodes)
         xval = np.asarray([1]).astype(dtype)
         yval = fn(xval)
         assert yval == np.asarray([0], dtype=idx_dtype)
@@ -287,9 +285,7 @@ class TestTopK:
     def test_topk_sanity(self, dtype, axis, sorted):
         x = vector(name="x", dtype=dtype)
         fn = aesara.function([x], topk(x, 1, axis=axis, sorted=sorted), mode=self.mode)
-        assert any(
-            [isinstance(n.op, self.op_class) for n in fn.maker.fgraph.apply_nodes]
-        )
+        assert any(isinstance(n.op, self.op_class) for n in fn.maker.fgraph.apply_nodes)
         xval = np.asarray([1]).astype(dtype)
         yval = fn(xval)
         assert yval == xval
@@ -303,9 +299,7 @@ class TestTopK:
         x = vector(name="x", dtype=dtype)
         yv, yi = topk_and_argtopk(x, 1, axis=axis, sorted=sorted, idx_dtype=idx_dtype)
         fn = aesara.function([x], [yv, yi], mode=self.mode)
-        assert any(
-            [isinstance(n.op, self.op_class) for n in fn.maker.fgraph.apply_nodes]
-        )
+        assert any(isinstance(n.op, self.op_class) for n in fn.maker.fgraph.apply_nodes)
         xval = np.asarray([1]).astype(dtype)
         yvval, yival = fn(xval)
         assert yival == np.asarray([0], dtype=idx_dtype)
@@ -332,9 +326,7 @@ class TestTopK:
         x = vector(name="x", dtype=dtype)
         y = topk(x, k, sorted=sorted)
         fn = aesara.function([x], y, mode=self.mode)
-        assert any(
-            [isinstance(n.op, self.op_class) for n in fn.maker.fgraph.apply_nodes]
-        )
+        assert any(isinstance(n.op, self.op_class) for n in fn.maker.fgraph.apply_nodes)
         # assert local_useless_topk opt is done properly
         assert 1 == len(fn.maker.fgraph.outputs[0].owner.outputs)
 
@@ -367,9 +359,7 @@ class TestTopK:
         x = vector(name="x", dtype=dtype)
         y = argtopk(x, k, sorted=sorted, idx_dtype=idx_dtype)
         fn = aesara.function([x], y, mode=self.mode)
-        assert any(
-            [isinstance(n.op, self.op_class) for n in fn.maker.fgraph.apply_nodes]
-        )
+        assert any(isinstance(n.op, self.op_class) for n in fn.maker.fgraph.apply_nodes)
 
         # assert local_useless_topk opt is done properly
         assert 1 == len(fn.maker.fgraph.outputs[0].owner.outputs)
@@ -403,9 +393,7 @@ class TestTopK:
         x = vector(name="x", dtype=dtype)
         yv, yi = topk_and_argtopk(x, k, sorted=sorted, idx_dtype=idx_dtype)
         fn = aesara.function([x], [yv, yi], mode=self.mode)
-        assert any(
-            [isinstance(n.op, self.op_class) for n in fn.maker.fgraph.apply_nodes]
-        )
+        assert any(isinstance(n.op, self.op_class) for n in fn.maker.fgraph.apply_nodes)
         # generate a all-unique array
         xval = gen_unique_vector(size, dtype)
         yvval, yival = fn(xval)
@@ -437,9 +425,7 @@ class TestTopK:
         if isinstance(self.mode, aesara.compile.debugmode.DebugMode):
             mode = Mode(optimizer=mode.optimizer)
         fn = aesara.function([x], y, mode=mode)
-        assert any(
-            [isinstance(n.op, self.op_class) for n in fn.maker.fgraph.apply_nodes]
-        )
+        assert any(isinstance(n.op, self.op_class) for n in fn.maker.fgraph.apply_nodes)
         rng = np.random.default_rng(utt.fetch_seed())
         xval = np.repeat(rng.uniform(-100.0, 100.0, size=size // 2).astype(dtype), 2)
         xval = xval[rng.permutation(size)]
@@ -477,7 +463,7 @@ class TestTopK:
             y = argtopk(x, k, axis=axis, sorted=sorted, idx_dtype=idx_dtype)
             fn = aesara.function([x], y, mode=self.mode)
             assert any(
-                [isinstance(n.op, self.op_class) for n in fn.maker.fgraph.apply_nodes]
+                isinstance(n.op, self.op_class) for n in fn.maker.fgraph.apply_nodes
             )
             size = reduce(int.__mul__, shp)
             xval = gen_unique_vector(size, dtype).reshape(shp)

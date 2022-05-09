@@ -2107,10 +2107,8 @@ class TestGroupedConvNoOptim:
                 [img_sym, kern_sym], grouped_conv_output, mode=self.mode
             )
             assert any(
-                [
-                    isinstance(node.op, self.conv_op)
-                    for node in grouped_func.maker.fgraph.toposort()
-                ]
+                isinstance(node.op, self.conv_op)
+                for node in grouped_func.maker.fgraph.toposort()
             )
             grouped_output = grouped_func(img, kern)
 
@@ -2162,10 +2160,8 @@ class TestGroupedConvNoOptim:
                 [img_sym, top_sym], grouped_conv_output, mode=self.mode
             )
             assert any(
-                [
-                    isinstance(node.op, self.conv_gradw_op)
-                    for node in grouped_func.maker.fgraph.toposort()
-                ]
+                isinstance(node.op, self.conv_gradw_op)
+                for node in grouped_func.maker.fgraph.toposort()
             )
             grouped_output = grouped_func(img, top)
 
@@ -2225,10 +2221,8 @@ class TestGroupedConvNoOptim:
                 [kern_sym, top_sym], grouped_conv_output, mode=self.mode
             )
             assert any(
-                [
-                    isinstance(node.op, self.conv_gradi_op)
-                    for node in grouped_func.maker.fgraph.toposort()
-                ]
+                isinstance(node.op, self.conv_gradi_op)
+                for node in grouped_func.maker.fgraph.toposort()
             )
             grouped_output = grouped_func(kern, top)
 
@@ -2563,10 +2557,8 @@ class TestUnsharedConv:
                 [img_sym, kern_sym], unshared_out_sym, mode=self.mode
             )
             assert any(
-                [
-                    isinstance(node.op, self.conv2d_op)
-                    for node in unshared_func.maker.fgraph.toposort()
-                ]
+                isinstance(node.op, self.conv2d_op)
+                for node in unshared_func.maker.fgraph.toposort()
             )
             unshared_output = unshared_func(img, kern)
 
@@ -2625,10 +2617,8 @@ class TestUnsharedConv:
                 [img_sym, top_sym], unshared_out_sym, mode=self.mode
             )
             assert any(
-                [
-                    isinstance(node.op, self.conv2d_gradw_op)
-                    for node in unshared_func.maker.fgraph.toposort()
-                ]
+                isinstance(node.op, self.conv2d_gradw_op)
+                for node in unshared_func.maker.fgraph.toposort()
             )
             unshared_output = unshared_func(img, top)
 
@@ -2695,10 +2685,8 @@ class TestUnsharedConv:
                 [kern_sym, top_sym], unshared_out_sym, mode=self.mode
             )
             assert any(
-                [
-                    isinstance(node.op, self.conv2d_gradi_op)
-                    for node in unshared_func.maker.fgraph.toposort()
-                ]
+                isinstance(node.op, self.conv2d_gradi_op)
+                for node in unshared_func.maker.fgraph.toposort()
             )
             unshared_output = unshared_func(kern, top)
 
@@ -2771,10 +2759,8 @@ class TestAsymmetricPadding:
                 [img_sym, kern_sym], asymmetric_out_sym, mode=self.mode
             )
             assert any(
-                [
-                    isinstance(node.op, self.conv2d_op)
-                    for node in asymmetric_func.maker.fgraph.toposort()
-                ]
+                isinstance(node.op, self.conv2d_op)
+                for node in asymmetric_func.maker.fgraph.toposort()
             )
             asymmetric_output = asymmetric_func(img, kern)
 
@@ -2823,10 +2809,8 @@ class TestAsymmetricPadding:
                 [img_sym, top_sym], asymmetric_out_sym, mode=self.mode
             )
             assert any(
-                [
-                    isinstance(node.op, self.conv2d_gradw_op)
-                    for node in asymmetric_func.maker.fgraph.toposort()
-                ]
+                isinstance(node.op, self.conv2d_gradw_op)
+                for node in asymmetric_func.maker.fgraph.toposort()
             )
             asymmetric_output = asymmetric_func(img, top)
 
@@ -2880,10 +2864,8 @@ class TestAsymmetricPadding:
                 [kern_sym, top_sym], asymmetric_out_sym, mode=self.mode
             )
             assert any(
-                [
-                    isinstance(node.op, self.conv2d_gradi_op)
-                    for node in asymmetric_func.maker.fgraph.toposort()
-                ]
+                isinstance(node.op, self.conv2d_gradi_op)
+                for node in asymmetric_func.maker.fgraph.toposort()
             )
             asymmetric_output = asymmetric_func(kern, top)
 

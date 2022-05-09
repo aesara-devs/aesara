@@ -1707,7 +1707,7 @@ class TestBitwise:
             l = _asarray([0, 0, 1, 1], dtype=dtype)
             r = _asarray([0, 1, 0, 1], dtype=dtype)
             v = fn(l, r)
-            assert np.all(v == (operator.or_(l, r))), (l, r, v)
+            assert np.all(v == operator.or_(l, r)), (l, r, v)
 
     def test_XOR(self):
         for dtype in self.dtype:
@@ -1716,7 +1716,7 @@ class TestBitwise:
             l = _asarray([0, 0, 1, 1], dtype=dtype)
             r = _asarray([0, 1, 0, 1], dtype=dtype)
             v = fn(l, r)
-            assert np.all(v == (operator.xor(l, r))), (l, r, v)
+            assert np.all(v == operator.xor(l, r)), (l, r, v)
 
     def test_and(self):
         for dtype in self.dtype:
@@ -1725,7 +1725,7 @@ class TestBitwise:
             l = _asarray([0, 0, 1, 1], dtype=dtype)
             r = _asarray([0, 1, 0, 1], dtype=dtype)
             v = fn(l, r)
-            assert np.all(v == (operator.and_(l, r))), (l, r, v)
+            assert np.all(v == operator.and_(l, r)), (l, r, v)
 
     def test_inv(self):
         for dtype in self.dtype:
@@ -1740,7 +1740,7 @@ class TestBitwise:
             ]:
                 l = _asarray([0, 0, 1, 1], dtype=dtype)
                 v = fn(l)
-                assert np.all(v == (~l)), (l, v)
+                assert np.all(v == ~l), (l, v)
 
     def test_eye(self):
         n = iscalar()

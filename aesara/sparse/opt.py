@@ -1,4 +1,3 @@
-import numpy as np
 import scipy
 
 import aesara
@@ -944,7 +943,7 @@ local_usmm = PatternSub(
             {
                 "pattern": "alpha",
                 "constraint": lambda expr: (
-                    np.all(expr.type.broadcastable) and config.blas__ldflags
+                    all(expr.type.broadcastable) and config.blas__ldflags
                 ),
             },
             (sparse._dot, "x", "y"),

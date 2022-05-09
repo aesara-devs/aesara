@@ -565,10 +565,10 @@ def makeTester(
                     eps = 1e-10
 
                 if any(
-                    [i.dtype in ("float32", "int8", "uint8", "uint16") for i in inputs]
+                    i.dtype in ("float32", "int8", "uint8", "uint16") for i in inputs
                 ):
                     eps = 1e-6
-                eps = np.max([eps, _eps])
+                eps = max(eps, _eps)
 
                 try:
                     variables = f(*inputs)

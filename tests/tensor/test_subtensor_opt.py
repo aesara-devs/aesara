@@ -1511,8 +1511,8 @@ class TestAllocZero:
         y0 = at.zeros_like(y)
         z = set_subtensor(x0[:4], y0)
         f = function([x, y], z, mode=self.mode)
-        assert np.all(
-            [not isinstance(n.op, IncSubtensor) for n in f.maker.fgraph.toposort()]
+        assert all(
+            not isinstance(n.op, IncSubtensor) for n in f.maker.fgraph.toposort()
         )
 
     def test_setsubtensor_allocs1(self):
@@ -1521,8 +1521,8 @@ class TestAllocZero:
         y0 = at.zeros_like(y)
         z = set_subtensor(x0[:4], y0)
         f = function([y], z, mode=self.mode)
-        assert np.all(
-            [not isinstance(n.op, IncSubtensor) for n in f.maker.fgraph.toposort()]
+        assert all(
+            not isinstance(n.op, IncSubtensor) for n in f.maker.fgraph.toposort()
         )
 
     def test_setsubtensor_allocs1t(self):
@@ -1531,8 +1531,8 @@ class TestAllocZero:
         y0 = at.zeros_like(y)
         z = set_subtensor(x0[:4], y0.T)
         f = function([y], z, mode=mode_opt)
-        assert np.all(
-            [not isinstance(n.op, IncSubtensor) for n in f.maker.fgraph.toposort()]
+        assert all(
+            not isinstance(n.op, IncSubtensor) for n in f.maker.fgraph.toposort()
         )
 
     def test_setsubtensor_allocs2(self):
@@ -1541,8 +1541,8 @@ class TestAllocZero:
         x0 = at.zeros_like(x)
         z = set_subtensor(x0[:4], y0)
         f = function([x], z, mode=self.mode)
-        assert np.all(
-            [not isinstance(n.op, IncSubtensor) for n in f.maker.fgraph.toposort()]
+        assert all(
+            not isinstance(n.op, IncSubtensor) for n in f.maker.fgraph.toposort()
         )
 
     def test_incsubtensor_allocs0(self):
@@ -1551,8 +1551,8 @@ class TestAllocZero:
         y0 = at.zeros_like(y)
         z = inc_subtensor(x[:4], y0)
         f = function([x, y], z, mode=self.mode)
-        assert np.all(
-            [not isinstance(n.op, IncSubtensor) for n in f.maker.fgraph.toposort()]
+        assert all(
+            not isinstance(n.op, IncSubtensor) for n in f.maker.fgraph.toposort()
         )
 
     def test_incsubtensor_allocs0t(self):
@@ -1561,8 +1561,8 @@ class TestAllocZero:
         y0 = at.zeros_like(y)
         z = inc_subtensor(x[:4], y0.T)
         f = function([x, y], z, mode=mode_opt)
-        assert np.all(
-            [not isinstance(n.op, IncSubtensor) for n in f.maker.fgraph.toposort()]
+        assert all(
+            not isinstance(n.op, IncSubtensor) for n in f.maker.fgraph.toposort()
         )
 
     def test_incsubtensor_allocs1(self):
@@ -1570,8 +1570,8 @@ class TestAllocZero:
         y0 = at.constant(np.asarray(np.zeros_like((4, 4)), dtype=config.floatX))
         z = inc_subtensor(x[:4], y0)
         f = function([x], z, mode=self.mode)
-        assert np.all(
-            [not isinstance(n.op, IncSubtensor) for n in f.maker.fgraph.toposort()]
+        assert all(
+            not isinstance(n.op, IncSubtensor) for n in f.maker.fgraph.toposort()
         )
 
     def test_incsubtensor_x_zeros(self):
@@ -1610,11 +1610,9 @@ class TestAllocZero:
         y0 = at.zeros_like(y)
         z = inc_subtensor(x[[0, 1, 2, 3]], y0)
         f = function([x, y], z, mode=self.mode)
-        assert np.all(
-            [
-                not isinstance(n.op, AdvancedIncSubtensor1)
-                for n in f.maker.fgraph.toposort()
-            ]
+        assert all(
+            not isinstance(n.op, AdvancedIncSubtensor1)
+            for n in f.maker.fgraph.toposort()
         )
 
     def test_advancedincsubtensor1_allocs0t(self):
@@ -1623,11 +1621,9 @@ class TestAllocZero:
         y0 = at.zeros_like(y)
         z = inc_subtensor(x[[0, 1, 2, 3]], y0.T)
         f = function([x, y], z, mode=mode_opt)
-        assert np.all(
-            [
-                not isinstance(n.op, AdvancedIncSubtensor1)
-                for n in f.maker.fgraph.toposort()
-            ]
+        assert all(
+            not isinstance(n.op, AdvancedIncSubtensor1)
+            for n in f.maker.fgraph.toposort()
         )
 
     def test_advancedincsubtensor1_allocs1(self):
@@ -1635,11 +1631,9 @@ class TestAllocZero:
         y0 = at.constant(np.asarray(np.zeros_like((4, 4)), dtype=config.floatX))
         z = inc_subtensor(x[[0, 1, 2, 3]], y0)
         f = function([x], z, mode=self.mode)
-        assert np.all(
-            [
-                not isinstance(n.op, AdvancedIncSubtensor1)
-                for n in f.maker.fgraph.toposort()
-            ]
+        assert all(
+            not isinstance(n.op, AdvancedIncSubtensor1)
+            for n in f.maker.fgraph.toposort()
         )
 
     def test_advancedincsubtensor_allocs0(self):
@@ -1648,11 +1642,9 @@ class TestAllocZero:
         y0 = at.zeros_like(y)
         z = inc_subtensor(x[[[0, 0], [1, 1]], [[0, 1], [0, 1]]], y0)
         f = function([x, y], z, mode=self.mode)
-        assert np.all(
-            [
-                not isinstance(n.op, AdvancedIncSubtensor)
-                for n in f.maker.fgraph.toposort()
-            ]
+        assert all(
+            not isinstance(n.op, AdvancedIncSubtensor)
+            for n in f.maker.fgraph.toposort()
         )
 
     def test_advancedincsubtensor_allocs0t(self):
@@ -1661,11 +1653,9 @@ class TestAllocZero:
         y0 = at.zeros_like(y)
         z = inc_subtensor(x[[[0, 0], [1, 1]], [[0, 1], [0, 1]]], y0.T)
         f = function([x, y], z, mode=mode_opt)
-        assert np.all(
-            [
-                not isinstance(n.op, AdvancedIncSubtensor)
-                for n in f.maker.fgraph.toposort()
-            ]
+        assert all(
+            not isinstance(n.op, AdvancedIncSubtensor)
+            for n in f.maker.fgraph.toposort()
         )
 
     def test_advancedincsubtensor_allocs1(self):
@@ -1673,11 +1663,9 @@ class TestAllocZero:
         y0 = at.constant(np.asarray(np.zeros_like((2, 2)), dtype=config.floatX))
         z = inc_subtensor(x[[[0, 0], [1, 1]], [[0, 1], [0, 1]]], y0)
         f = function([x], z, mode=self.mode)
-        assert np.all(
-            [
-                not isinstance(n.op, AdvancedIncSubtensor)
-                for n in f.maker.fgraph.toposort()
-            ]
+        assert all(
+            not isinstance(n.op, AdvancedIncSubtensor)
+            for n in f.maker.fgraph.toposort()
         )
 
     def test_dot_allocs_0(self):
@@ -1702,8 +1690,8 @@ class TestAllocZero:
                     f = function([_e1[0], _e2[0]], o, mode=self.mode)
                     f(_e1[1], _e2[1])
                     f(_e1[2], _e2[2])
-                    assert np.all(
-                        [not isinstance(n.op, Dot) for n in f.maker.fgraph.toposort()]
+                    assert all(
+                        not isinstance(n.op, Dot) for n in f.maker.fgraph.toposort()
                     )
 
                     # test that we don't remove shape errors
@@ -1735,18 +1723,16 @@ def test_local_IncSubtensor_serialize():
     ]
     for a in adds:
         assert not any(
-            [
-                inp.owner
-                and isinstance(
-                    inp.owner.op,
-                    (
-                        IncSubtensor,
-                        AdvancedIncSubtensor,
-                        AdvancedIncSubtensor1,
-                    ),
-                )
-                for inp in a.inputs
-            ]
+            inp.owner
+            and isinstance(
+                inp.owner.op,
+                (
+                    IncSubtensor,
+                    AdvancedIncSubtensor,
+                    AdvancedIncSubtensor1,
+                ),
+            )
+            for inp in a.inputs
         )
 
     # Now test that the stack trace is copied over properly,
@@ -1835,11 +1821,9 @@ class TestLocalElemwiseAlloc:
     def _verify_alloc_count(self, f, count):
         assert (
             sum(
-                [
-                    isinstance(elem.op, Alloc)
-                    for elem in f.maker.fgraph.toposort()
-                    if elem.op is not None
-                ]
+                isinstance(elem.op, Alloc)
+                for elem in f.maker.fgraph.toposort()
+                if elem.op is not None
             )
             == count
         )
@@ -1847,11 +1831,9 @@ class TestLocalElemwiseAlloc:
     def _verify_assert_count(self, f, count):
         assert (
             sum(
-                [
-                    isinstance(elem.op, Assert)
-                    for elem in f.maker.fgraph.toposort()
-                    if elem.op is not None
-                ]
+                isinstance(elem.op, Assert)
+                for elem in f.maker.fgraph.toposort()
+                if elem.op is not None
             )
             == count
         )

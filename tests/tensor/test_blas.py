@@ -989,18 +989,16 @@ def test_gemm_unrolled():
             [], updates=[(V, cur_V), (H, cur_H)], name="unrolled_aesara"
         )
         nb_dot = sum(
-            [
-                1
-                for node in unrolled_aesara.maker.fgraph.toposort()
-                if isinstance(
-                    node.op,
-                    (
-                        Dot,
-                        Dot22,
-                        Gemm,
-                    ),
-                )
-            ]
+            1
+            for node in unrolled_aesara.maker.fgraph.toposort()
+            if isinstance(
+                node.op,
+                (
+                    Dot,
+                    Dot22,
+                    Gemm,
+                ),
+            )
         )
         # Each num_rounds add 3 dot, but one of them is always the same.
         # So the final graph should have 1 + 2* num_rounds dot variant op.

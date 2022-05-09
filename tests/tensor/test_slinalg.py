@@ -131,10 +131,8 @@ def test_cholesky_and_cholesky_grad_shape():
         topo_chol = f_chol.maker.fgraph.toposort()
         topo_cholgrad = f_cholgrad.maker.fgraph.toposort()
         if config.mode != "FAST_COMPILE":
-            assert sum([node.op.__class__ == Cholesky for node in topo_chol]) == 0
-            assert (
-                sum([node.op.__class__ == CholeskyGrad for node in topo_cholgrad]) == 0
-            )
+            assert sum(node.op.__class__ == Cholesky for node in topo_chol) == 0
+            assert sum(node.op.__class__ == CholeskyGrad for node in topo_cholgrad) == 0
         for shp in [2, 3, 5]:
             m = np.cov(rng.standard_normal((shp, shp + 10))).astype(config.floatX)
             np.testing.assert_equal(f_chol(m), (shp, shp))

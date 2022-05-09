@@ -912,13 +912,11 @@ class Function:
                             ],
                         )
                         if any(
-                            [
-                                (
-                                    var.type is i_var.type
-                                    and var.type.may_share_memory(val, i_val)
-                                )
-                                for (var, val) in group_j
-                            ]
+                            (
+                                var.type is i_var.type
+                                and var.type.may_share_memory(val, i_val)
+                            )
+                            for (var, val) in group_j
                         ):
 
                             is_aliased = True

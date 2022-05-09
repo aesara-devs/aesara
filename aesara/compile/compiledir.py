@@ -206,7 +206,7 @@ def print_compiledir_content():
 
     if big_key_files:
         big_key_files = sorted(big_key_files, key=lambda t: str(t[1]))
-        big_total_size = sum([sz for _, sz, _ in big_key_files])
+        big_total_size = sum(sz for _, sz, _ in big_key_files)
         print(
             f"There are directories with key files bigger than {int(max_key_file_size)} bytes "
             "(they probably contain big tensor constants)"

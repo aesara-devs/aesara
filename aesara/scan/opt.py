@@ -82,7 +82,7 @@ def remove_constants_and_unused_inputs_scan(fgraph, node):
     op = node.op
     # We only need to take care of sequences and other arguments
     st = op.n_seqs
-    st += int(sum([len(x) for x in op.tap_array[: (op.n_mit_mot + op.n_mit_sot)]]))
+    st += int(sum(len(x) for x in op.tap_array[: (op.n_mit_mot + op.n_mit_sot)]))
     st += op.n_sit_sot
     st += op.n_shared_outs
 
@@ -446,13 +446,11 @@ def push_out_seq_scan(fgraph, node):
         if (
             nd not in to_remove_set
             and all(
-                [
-                    (x in inner_non_seqs_set)
-                    or (x.owner in to_remove_set)
-                    or isinstance(x, Constant)
-                    or (x in inner_seqs_set)
-                    for x in nd.inputs
-                ]
+                (x in inner_non_seqs_set)
+                or (x.owner in to_remove_set)
+                or isinstance(x, Constant)
+                or (x in inner_seqs_set)
+                for x in nd.inputs
             )
             and isinstance(nd.op, Elemwise)
         ):
@@ -1797,14 +1795,14 @@ class ScanMerge(GlobalOptimizer):
 
         info = ScanInfo(
             tap_array=tap_array,
-            n_seqs=sum([nd.op.n_seqs for nd in nodes]),
-            n_mit_mot=sum([nd.op.n_mit_mot for nd in nodes]),
-            n_mit_mot_outs=sum([nd.op.n_mit_mot_outs for nd in nodes]),
+            n_seqs=sum(nd.op.n_seqs for nd in nodes),
+            n_mit_mot=sum(nd.op.n_mit_mot for nd in nodes),
+            n_mit_mot_outs=sum(nd.op.n_mit_mot_outs for nd in nodes),
             mit_mot_out_slices=mit_mot_out_slices,
-            n_mit_sot=sum([nd.op.n_mit_sot for nd in nodes]),
-            n_sit_sot=sum([nd.op.n_sit_sot for nd in nodes]),
-            n_shared_outs=sum([nd.op.n_shared_outs for nd in nodes]),
-            n_nit_sot=sum([nd.op.n_nit_sot for nd in nodes]),
+            n_mit_sot=sum(nd.op.n_mit_sot for nd in nodes),
+            n_sit_sot=sum(nd.op.n_sit_sot for nd in nodes),
+            n_shared_outs=sum(nd.op.n_shared_outs for nd in nodes),
+            n_nit_sot=sum(nd.op.n_nit_sot for nd in nodes),
         )
 
         old_op = nodes[0].op

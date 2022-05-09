@@ -967,7 +967,7 @@ def test_undefined_grad_opt():
 
     f = aesara.function([], grad_res)
     assert not any(
-        [isinstance(node.op, UndefinedGrad) for node in f.maker.fgraph.apply_nodes]
+        isinstance(node.op, UndefinedGrad) for node in f.maker.fgraph.apply_nodes
     )
 
 

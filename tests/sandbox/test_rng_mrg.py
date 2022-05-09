@@ -289,7 +289,7 @@ def test_uniform():
         u = R.uniform(size=size, nstreams=rng_mrg.guess_n_streams(size, warn=False))
         f = function(var_input, u)
         assert any(
-            [isinstance(node.op, mrg_uniform) for node in f.maker.fgraph.toposort()]
+            isinstance(node.op, mrg_uniform) for node in f.maker.fgraph.toposort()
         )
         f(*input)
 
@@ -1121,5 +1121,5 @@ def test_undefined_grad_opt():
     grad_out = grad(cost, samples)
     f = function([], grad_out)
     assert not any(
-        [isinstance(node.op, UndefinedGrad) for node in f.maker.fgraph.apply_nodes]
+        isinstance(node.op, UndefinedGrad) for node in f.maker.fgraph.apply_nodes
     )

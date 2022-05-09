@@ -761,10 +761,7 @@ def jax_funcify_Join(op, **kwargs):
         tensors = [jnp.asarray(tensor) for tensor in tensors]
         view = op.view
         if (view != -1) and all(
-            [
-                tensor.shape[axis] == 0
-                for tensor in tensors[0:view] + tensors[view + 1 :]
-            ]
+            tensor.shape[axis] == 0 for tensor in tensors[0:view] + tensors[view + 1 :]
         ):
             return tensors[view]
 

@@ -561,14 +561,10 @@ def index_vars_to_types(entry, slice_ok=True):
     if (
         isinstance(entry, Variable)
         and entry.type in tensor_types
-        and np.all(entry.type.broadcastable)
+        and all(entry.type.broadcastable)
     ):
         return aes.get_scalar_type(entry.type.dtype)
-    elif (
-        isinstance(entry, Type)
-        and entry in tensor_types
-        and np.all(entry.broadcastable)
-    ):
+    elif isinstance(entry, Type) and entry in tensor_types and all(entry.broadcastable):
         return aes.get_scalar_type(entry.dtype)
     elif slice_ok and isinstance(entry, slice):
         a = entry.start

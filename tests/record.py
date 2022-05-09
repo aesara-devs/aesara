@@ -222,9 +222,7 @@ class RecordMode(Mode):
                 )
 
             if fgraph not in self.known_fgraphs:
-                assert not any(
-                    [elem.name == fgraph.name for elem in self.known_fgraphs]
-                )
+                assert not any(elem.name == fgraph.name for elem in self.known_fgraphs)
                 self.known_fgraphs.add(fgraph)
                 num_app = len(fgraph.apply_nodes)
                 line = f"Function {fgraph.name} has {num_app} apply nodes.\n"

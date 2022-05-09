@@ -332,10 +332,8 @@ def test_mlp():
     # print 'MODEL 1'
     # aesara.printing.debugprint(train_model, print_type=True)
     assert any(
-        [
-            isinstance(i.op, CrossentropySoftmax1HotWithBiasDx)
-            for i in train_model.maker.fgraph.toposort()
-        ]
+        isinstance(i.op, CrossentropySoftmax1HotWithBiasDx)
+        for i in train_model.maker.fgraph.toposort()
     )
 
     # Even without FeatureShape
@@ -352,8 +350,6 @@ def test_mlp():
     # print 'MODEL 2'
     # aesara.printing.debugprint(train_model, print_type=True)
     assert any(
-        [
-            isinstance(i.op, CrossentropySoftmax1HotWithBiasDx)
-            for i in train_model.maker.fgraph.toposort()
-        ]
+        isinstance(i.op, CrossentropySoftmax1HotWithBiasDx)
+        for i in train_model.maker.fgraph.toposort()
     )

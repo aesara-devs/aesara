@@ -1997,15 +1997,7 @@ class TrueDiv(BinaryScalarOp):
         # we generate good c code only when both are complex!
         (x, y) = inputs
         (z,) = outputs
-        if (
-            sum(
-                [
-                    node.inputs[0].type in complex_types,
-                    node.inputs[1].type in complex_types,
-                ]
-            )
-            == 1
-        ):
+        if node.inputs[0].type in complex_types or node.inputs[1].type in complex_types:
             raise NotImplementedError("type not supported", type)
         if (
             node.inputs[0].type in discrete_types
@@ -4190,7 +4182,7 @@ class Composite(ScalarOp):
         for i in inputs:
             assert i not in outputs  # This isn't supported, use identity
         if len(outputs) > 1 or not any(
-            [isinstance(var.owner.op, Composite) for var in outputs]
+            isinstance(var.owner.op, Composite) for var in outputs
         ):
             # No inner Composite
             inputs, outputs = clone(inputs, outputs)

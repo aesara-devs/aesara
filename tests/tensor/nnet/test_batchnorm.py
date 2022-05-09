@@ -299,17 +299,15 @@ def test_batch_normalization_train():
             )
             # check if the abstract Ops have been replaced
             assert not any(
-                [
-                    isinstance(
-                        n.op,
-                        (
-                            batchnorm.AbstractBatchNormTrain,
-                            batchnorm.AbstractBatchNormInference,
-                            batchnorm.AbstractBatchNormTrainGrad,
-                        ),
-                    )
-                    for n in f.maker.fgraph.toposort()
-                ]
+                isinstance(
+                    n.op,
+                    (
+                        batchnorm.AbstractBatchNormTrain,
+                        batchnorm.AbstractBatchNormInference,
+                        batchnorm.AbstractBatchNormTrainGrad,
+                    ),
+                )
+                for n in f.maker.fgraph.toposort()
             )
             # run
             for data_shape in ((5, 10, 30, 40, 10), (4, 3, 1, 1, 1), (2, 3, 5, 5, 5)):
@@ -448,17 +446,15 @@ def test_batch_normalization_train_without_running_averages():
     f = aesara.function([x, scale, bias, dy], [out, x_mean, x_invstd] + grads)
     # check if the abstract Ops have been replaced
     assert not any(
-        [
-            isinstance(
-                n.op,
-                (
-                    batchnorm.AbstractBatchNormTrain,
-                    batchnorm.AbstractBatchNormInference,
-                    batchnorm.AbstractBatchNormTrainGrad,
-                ),
-            )
-            for n in f.maker.fgraph.toposort()
-        ]
+        isinstance(
+            n.op,
+            (
+                batchnorm.AbstractBatchNormTrain,
+                batchnorm.AbstractBatchNormInference,
+                batchnorm.AbstractBatchNormTrainGrad,
+            ),
+        )
+        for n in f.maker.fgraph.toposort()
     )
     # run
     rng = np.random.default_rng(1234)
@@ -619,17 +615,15 @@ def test_batch_normalization_test():
             )
             # check if the abstract Ops have been replaced
             assert not any(
-                [
-                    isinstance(
-                        n.op,
-                        (
-                            batchnorm.AbstractBatchNormTrain,
-                            batchnorm.AbstractBatchNormInference,
-                            batchnorm.AbstractBatchNormTrainGrad,
-                        ),
-                    )
-                    for n in f.maker.fgraph.toposort()
-                ]
+                isinstance(
+                    n.op,
+                    (
+                        batchnorm.AbstractBatchNormTrain,
+                        batchnorm.AbstractBatchNormInference,
+                        batchnorm.AbstractBatchNormTrainGrad,
+                    ),
+                )
+                for n in f.maker.fgraph.toposort()
             )
             # run
             for data_shape in ((10, 20, 30, 40, 10), (4, 3, 1, 1, 1), (1, 1, 5, 5, 5)):
@@ -678,15 +672,13 @@ def test_batch_normalization_broadcastable():
         [out_train, x_mean, x_invstd, out_test] + grads_train + grads_test,
     )
     assert not any(
-        [
-            isinstance(
-                n.op,
-                (
-                    batchnorm.AbstractBatchNormTrain,
-                    batchnorm.AbstractBatchNormInference,
-                    batchnorm.AbstractBatchNormTrainGrad,
-                ),
-            )
-            for n in f.maker.fgraph.toposort()
-        ]
+        isinstance(
+            n.op,
+            (
+                batchnorm.AbstractBatchNormTrain,
+                batchnorm.AbstractBatchNormInference,
+                batchnorm.AbstractBatchNormTrainGrad,
+            ),
+        )
+        for n in f.maker.fgraph.toposort()
     )

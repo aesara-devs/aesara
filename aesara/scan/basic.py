@@ -30,7 +30,7 @@ def get_updates_and_outputs(ls):
 
     def is_outputs(elem):
         if isinstance(elem, (list, tuple)) and all(
-            [isinstance(x, Variable) for x in elem]
+            isinstance(x, Variable) for x in elem
         ):
             return True
         if isinstance(elem, Variable):
@@ -43,7 +43,7 @@ def get_updates_and_outputs(ls):
             return True
         # Dictionaries can be given as lists of tuples
         if isinstance(elem, (list, tuple)) and all(
-            [isinstance(x, (list, tuple)) and len(x) == 2 for x in elem]
+            isinstance(x, (list, tuple)) and len(x) == 2 for x in elem
         ):
             return True
         return False
