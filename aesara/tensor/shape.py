@@ -556,6 +556,16 @@ def specify_shape(
             except ValueError:
                 raise ValueError("Shape vector must have fixed dimensions")
 
+    # If the specified shape is already encoded in the input static shape, do nothing
+    # This ignores Aesara constants in shape
+    x = at.as_tensor_variable(x)
+    new_shape_info = any(
+        s != xts for (s, xts) in zip(shape, x.type.shape) if s is not None
+    )
+    # If shape does not match x.ndim, we rely on the `Op` to raise a ValueError
+    if not new_shape_info and len(shape) == x.type.ndim:
+        return x
+
     return _specify_shape(x, *shape)
 
 
