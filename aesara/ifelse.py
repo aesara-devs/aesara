@@ -23,8 +23,7 @@ from aesara.configdefaults import config
 from aesara.graph.basic import Apply, Variable, clone_replace, is_in_ancestors
 from aesara.graph.op import _NoPythonOp
 from aesara.graph.opt import GlobalOptimizer, in2out, local_optimizer
-from aesara.tensor import basic
-from aesara.tensor.shape import Reshape, Shape, SpecifyShape
+from aesara.tensor.shape import Reshape, Shape, SpecifyShape, Unbroadcast
 
 
 __docformat__ = "restructedtext en"
@@ -451,7 +450,7 @@ acceptable_ops = (
     Shape,
     SpecifyShape,
     Reshape,
-    basic.Rebroadcast,
+    Unbroadcast,
     at.math.Dot,
     at.math.MaxAndArgmax,
     at.subtensor.Subtensor,

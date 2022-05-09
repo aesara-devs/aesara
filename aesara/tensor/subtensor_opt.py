@@ -14,7 +14,6 @@ from aesara.tensor.basic import (
     ARange,
     Join,
     MakeVector,
-    Rebroadcast,
     ScalarFromTensor,
     TensorFromScalar,
     alloc,
@@ -50,9 +49,11 @@ from aesara.tensor.math import (
 from aesara.tensor.shape import (
     Shape,
     SpecifyShape,
+    Unbroadcast,
     shape_padleft,
     shape_tuple,
     specify_shape,
+    unbroadcast,
 )
 from aesara.tensor.sharedvar import TensorSharedVariable
 from aesara.tensor.subtensor import (
@@ -370,7 +371,7 @@ def local_subtensor_lift(fgraph, node):
     Handles the following unary ops:
     elemwise(x,...)[idx] -> elemwise(x[idx],...)
       when x,... are broadcasted scalar or not broadcasted at all
-    rebroadcast(x)[idx] => rebroadcast(x[idx])
+    Unbroadcast(x)[idx] => Unbroadcast(x[idx])
 
     """
     if isinstance(node.op, Subtensor):
@@ -429,34 +430,34 @@ def local_subtensor_lift(fgraph, node):
                 copy_stack_trace([node.outputs[0], node.inputs[0]], ret)
                 return [ret]
 
-        if isinstance(u.owner.op, Rebroadcast):
-            # make sure that Rebroadcast has only 1 input
-            assert len(u.owner.inputs) == 1
-
+        if isinstance(u.owner.op, Unbroadcast):
             # Subtensor might reduce dim., adapt broadcast pattern accordingly
-            new_axis = []
+            old_axes = u.owner.op.axes
+            new_axes = []
 
             # loop through indices being subtensor-ed
             # i indexes broadcastable pattern before subtensor
             # j indexes broadcastable pattern after subtensor
             j = 0
             for (i, x) in enumerate(node.op.idx_list):
-                # if its not a slice, it will reduce the dimension, should
+                # if it is not a slice, it will reduce the dimension, should
                 # not appear in the broascastable dimensions
                 if isinstance(x, slice):
-                    new_axis += [(j, u.broadcastable[i])]
+                    if i in old_axes:
+                        new_axes.append(j)
                     j += 1
             # now keep the broadcastable pattern of all
             # items not appearing in subtensor list
             for i in range(len(node.op.idx_list), len(u.broadcastable)):
-                new_axis += [(j, u.broadcastable[i])]
+                if i in old_axes:
+                    new_axes.append(j)
                 j += 1
 
             subt_x = node.op(u.owner.inputs[0], *node.inputs[1:])
             # Copy over previous output stacktrace
             copy_stack_trace(node.outputs[0], subt_x)
 
-            rbcast_subt_x = Rebroadcast(*new_axis)(subt_x)
+            rbcast_subt_x = unbroadcast(subt_x, *new_axes)
             # Copy over previous output stacktrace
             # and stacktrace from previous unary operation
             copy_stack_trace([node.outputs[0], node.inputs[0]], rbcast_subt_x)

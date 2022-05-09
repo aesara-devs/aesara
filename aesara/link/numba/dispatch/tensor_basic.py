@@ -14,10 +14,10 @@ from aesara.tensor.basic import (
     Eye,
     Join,
     MakeVector,
-    Rebroadcast,
     ScalarFromTensor,
     TensorFromScalar,
 )
+from aesara.tensor.shape import Unbroadcast
 
 
 @numba_funcify.register(AllocEmpty)
@@ -195,22 +195,13 @@ def makevector({", ".join(input_names)}):
     return numba_basic.numba_njit(makevector_fn)
 
 
-@numba_funcify.register(Rebroadcast)
-def numba_funcify_Rebroadcast(op, **kwargs):
-    # Make sure op_axis only has ints. This way we can avoid literal_unroll
-    # which causes a segfault, see GH issue https://github.com/numba/numba/issues/8215
-    op_axis = tuple((axis, int(value)) for axis, value in op.axis.items())
-
+@numba_funcify.register(Unbroadcast)
+def numba_funcify_Unbroadcast(op, **kwargs):
     @numba_basic.numba_njit
-    def rebroadcast(x):
-        for axis, value in op_axis:
-            if value and x.shape[axis] != 1:
-                raise ValueError(
-                    ("Dimension in Rebroadcast's input was supposed to be 1")
-                )
+    def unbroadcast(x):
         return x
 
-    return rebroadcast
+    return unbroadcast
 
 
 @numba_funcify.register(TensorFromScalar)
