@@ -735,10 +735,16 @@ class Subtensor(COp):
                 else:
                     if shp is not None:
                         cnf = get_canonical_form_slice(p, shp)[0]
+                        try:
+                            start = cnf.start.eval()
+                        except Exception:
+                            start = cnf.start
+                        stop = cnf.stop
+                        step = cnf.step
                         if cnf.step == 1:
-                            length = cnf.stop - cnf.start
+                            length = stop - start
                         else:
-                            length = (cnf.stop - cnf.start - 1) // cnf.step + 1
+                            length = (stop - start - 1) // step + 1
                         static_shape.append(length)
                     else:
                         static_shape.append(None)
