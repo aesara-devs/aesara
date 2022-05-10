@@ -118,6 +118,7 @@ def debugprint(
     print_op_info: bool = False,
     print_destroy_map: bool = False,
     print_view_map: bool = False,
+    print_fgraph_inputs: bool = False,
 ) -> Union[str, IOBase]:
     r"""Print a computation graph as text to stdout or a file.
 
@@ -175,6 +176,8 @@ def debugprint(
         Whether to print the `destroy_map`\s of printed objects
     print_view_map
         Whether to print the `view_map`\s of printed objects
+    print_fgraph_inputs
+        Print the inputs of `FunctionGraph`\s.
 
     Returns
     -------
@@ -197,7 +200,8 @@ def debugprint(
     if used_ids is None:
         used_ids = dict()
 
-    results_to_print = []
+    inputs_to_print = []
+    outputs_to_print = []
     profile_list: List[Optional[Any]] = []
     order: List[Optional[List[Apply]]] = []  # Toposort
     smap: List[Optional[StorageMapType]] = []  # storage_map
@@ -209,17 +213,19 @@ def debugprint(
 
     for obj in lobj:
         if isinstance(obj, Variable):
-            results_to_print.append(obj)
+            outputs_to_print.append(obj)
             profile_list.append(None)
             smap.append(None)
             order.append(None)
         elif isinstance(obj, Apply):
-            results_to_print.extend(obj.outputs)
+            outputs_to_print.extend(obj.outputs)
             profile_list.extend([None for item in obj.outputs])
             smap.extend([None for item in obj.outputs])
             order.extend([None for item in obj.outputs])
         elif isinstance(obj, Function):
-            results_to_print.extend(obj.maker.fgraph.outputs)
+            if print_fgraph_inputs:
+                inputs_to_print.extend(obj.maker.fgraph.inputs)
+            outputs_to_print.extend(obj.maker.fgraph.outputs)
             profile_list.extend([obj.profile for item in obj.maker.fgraph.outputs])
             if print_storage:
                 smap.extend([obj.vm.storage_map for item in obj.maker.fgraph.outputs])
@@ -228,7 +234,9 @@ def debugprint(
             topo = obj.maker.fgraph.toposort()
             order.extend([topo for item in obj.maker.fgraph.outputs])
         elif isinstance(obj, FunctionGraph):
-            results_to_print.extend(obj.outputs)
+            if print_fgraph_inputs:
+                inputs_to_print.extend(obj.inputs)
+            outputs_to_print.extend(obj.outputs)
             profile_list.extend([getattr(obj, "profile", None) for item in obj.outputs])
             smap.extend([getattr(obj, "storage_map", None) for item in obj.outputs])
             topo = obj.toposort()
@@ -236,7 +244,7 @@ def debugprint(
         elif isinstance(obj, (int, float, np.ndarray)):
             print(obj, file=_file)
         elif isinstance(obj, (In, Out)):
-            results_to_print.append(obj.variable)
+            outputs_to_print.append(obj.variable)
             profile_list.append(None)
             smap.append(None)
             order.append(None)
@@ -268,7 +276,26 @@ N.B.:
 
     op_information = {}
 
-    for r, p, s, o in zip(results_to_print, profile_list, smap, order):
+    for r in inputs_to_print:
+        _debugprint(
+            r,
+            prefix="-",
+            depth=depth,
+            done=done,
+            print_type=print_type,
+            file=_file,
+            ids=ids,
+            inner_graph_ops=inner_graph_ops,
+            stop_on_name=stop_on_name,
+            used_ids=used_ids,
+            op_information=op_information,
+            parent_node=r.owner,
+            print_op_info=print_op_info,
+            print_destroy_map=print_destroy_map,
+            print_view_map=print_view_map,
+        )
+
+    for r, p, s, o in zip(outputs_to_print, profile_list, smap, order):
 
         if hasattr(r.owner, "op"):
             if isinstance(r.owner.op, HasInnerGraph) and r not in inner_graph_ops:
@@ -352,16 +379,39 @@ N.B.:
                 print_view_map=print_view_map,
             )
 
-            for idx, i in enumerate(inner_outputs):
+            if print_fgraph_inputs:
+                for inp in inner_inputs:
+                    _debugprint(
+                        r=inp,
+                        prefix="-",
+                        depth=depth,
+                        done=done,
+                        print_type=print_type,
+                        file=_file,
+                        ids=ids,
+                        stop_on_name=stop_on_name,
+                        inner_graph_ops=inner_graph_ops,
+                        inner_to_outer_inputs=inner_to_outer_inputs,
+                        used_ids=used_ids,
+                        op_information=op_information,
+                        parent_node=s.owner,
+                        print_op_info=print_op_info,
+                        print_destroy_map=print_destroy_map,
+                        print_view_map=print_view_map,
+                        inner_graph_node=s.owner,
+                    )
+                inner_to_outer_inputs = None
+
+            for out in inner_outputs:
 
                 if (
-                    isinstance(getattr(i.owner, "op", None), HasInnerGraph)
-                    and i not in inner_graph_ops
+                    isinstance(getattr(out.owner, "op", None), HasInnerGraph)
+                    and out not in inner_graph_ops
                 ):
-                    inner_graph_ops.append(i)
+                    inner_graph_ops.append(out)
 
                 _debugprint(
-                    r=i,
+                    r=out,
                     prefix=new_prefix,
                     depth=depth,
                     done=done,
@@ -655,13 +705,12 @@ def _debugprint(
 
             var_output = f"{var_output} -> {outer_id_str}"
 
-            node_info = op_information.get(inner_graph_node)
+        # TODO: This entire approach will only print `Op` info for two levels
+        # of nesting.
+        for node in dict.fromkeys([inner_graph_node, parent_node, r.owner]):
+            node_info = op_information.get(node)
             if node_info and r in node_info:
                 var_output = f"{var_output} ({node_info[r]})"
-
-        node_info = op_information.get(parent_node) or op_information.get(r.owner)
-        if node_info and r in node_info:
-            var_output = f"{var_output} ({node_info[r]})"
 
         print(var_output, file=file)
 
