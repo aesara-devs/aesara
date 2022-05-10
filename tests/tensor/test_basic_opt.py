@@ -115,6 +115,7 @@ from aesara.tensor.type import (
     fvector,
     imatrices,
     iscalar,
+    iscalars,
     ivector,
     lscalar,
     lvector,
@@ -3491,19 +3492,38 @@ def test_local_Unique_second(
     assert np.array_equal(y_exp_val, y_val)
 
 
-def test_local_useless_SpecifyShape():
+def test_local_merge_consecutive_specify_shape():
     x = matrix()
     s = at.as_tensor([iscalar(), iscalar()])
     y = specify_shape(specify_shape(x, s), s)
 
     y_fg = FunctionGraph(outputs=[y], copy_inputs=False)
     y_opt_fg = optimize_graph(
-        y_fg, clone=False, include=["canonicalize", "local_useless_SpecifyShape"]
+        y_fg,
+        clone=False,
+        include=["canonicalize", "local_merge_consecutive_specify_shape"],
     )
     y_opt = y_opt_fg.outputs[0]
 
     assert isinstance(y_opt.owner.op, SpecifyShape)
     assert y_opt.owner.inputs[0] == x
+
+
+def test_local_merge_consecutive_specify_shape2():
+    x = tensor3()
+    s1, s2, s3, s4 = iscalars("s1", "s2", "s3", "s4")
+    y = specify_shape(specify_shape(x, [s1, s2, None]), [None, s3, s4])
+
+    y_fg = FunctionGraph(outputs=[y], copy_inputs=False)
+    y_opt_fg = optimize_graph(
+        y_fg,
+        clone=False,
+        include=["canonicalize", "local_merge_consecutive_specify_shape"],
+    )
+    y_opt = y_opt_fg.outputs[0]
+
+    assert isinstance(y_opt.owner.op, SpecifyShape)
+    assert tuple(y_opt.owner.inputs) == (x, s1, s3, s4)
 
 
 def test_printing():

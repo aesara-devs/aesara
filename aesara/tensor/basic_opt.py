@@ -81,6 +81,7 @@ from aesara.tensor.shape import (
     SpecifyShape,
     shape_i,
     shape_padleft,
+    specify_shape,
 )
 from aesara.tensor.sort import TopKOp
 from aesara.tensor.subtensor import Subtensor, get_idx_list
@@ -3425,8 +3426,10 @@ def local_useless_topk(fgraph, node):
 @register_useless
 @register_canonicalize
 @local_optimizer([SpecifyShape])
-def local_useless_SpecifyShape(fgraph, node):
-    """Replace ``specify_shape(specify_shape(x, s1), s2)`` with ``specify_shape(x, s1)``."""
+def local_merge_consecutive_specify_shape(fgraph, node):
+    """Replace ``specify_shape(specify_shape(x, s1), s2)`` with ``specify_shape(x, s3)``,
+    where s3 is the union of specified dimensions in s1 and s2, with preference given to s2.
+    """
 
     if not isinstance(node.op, SpecifyShape):
         return False
@@ -3435,10 +3438,15 @@ def local_useless_SpecifyShape(fgraph, node):
     if not (obj.owner and isinstance(obj.owner.op, SpecifyShape)):
         return False
 
-    # TODO: We could make sure that the shapes of the two `SpecifyShape`s are
+    inner_obj, *shape = obj.owner.inputs
+    for dim, sh in enumerate(node.inputs[1:]):
+        if not NoneConst.equals(sh):
+            shape[dim] = sh
+
+    # TODO: We could make sure that the overlapping shapes of the two `SpecifyShape`s are
     # the same.
 
-    return [obj]
+    return [specify_shape(inner_obj, shape)]
 
 
 @register_useless
