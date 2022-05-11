@@ -2363,6 +2363,12 @@ class GCC_compiler(Compiler):
             # Use the already-loaded python symbols.
             cxxflags.extend(["-undefined", "dynamic_lookup"])
 
+            # Resolves C++11 narrowing error on Mac OS
+            # https://github.com/aesara-devs/aesara/issues/127
+            no_cpp_narrowing_flag = "-Wno-c++11-narrowing"
+            if no_cpp_narrowing_flag not in cxxflags:
+                cxxflags.append(no_cpp_narrowing_flag)
+
         if sys.platform == "win32":
             # Workaround for https://github.com/Theano/Theano/issues/4926.
             # https://github.com/python/cpython/pull/11283/ removed the "hypot"

@@ -263,3 +263,19 @@ def test_cache_race_condition():
                 assert not any(
                     exit_code != 0 for exit_code in [proc.exitcode for proc in procs]
                 )
+
+
+@patch("sys.platform", "darwin")
+def test_osx_narrowing_compile_args():
+    no_narrowing_flag = "-Wno-c++11-narrowing"
+    assert no_narrowing_flag in GCC_compiler.compile_args()
+
+    cxxflags = f"{aesara.config.gcc__cxxflags} {no_narrowing_flag}"
+    with aesara.config.change_flags(gcc__cxxflags=cxxflags):
+        print(cxxflags)
+        res = GCC_compiler.compile_args()
+        print(res)
+        flag_idx = res.index(no_narrowing_flag)
+        # Make sure it's not in there twice
+        with pytest.raises(ValueError):
+            res.index(no_narrowing_flag, flag_idx + 1)
