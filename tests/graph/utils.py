@@ -1,3 +1,5 @@
+from typing import Optional
+
 import numpy as np
 
 from aesara.graph.basic import Apply, Constant, NominalVariable, Variable, clone_replace
@@ -160,3 +162,26 @@ class MyInnerGraphOp(Op, HasInnerGraph):
 
     def clone(self):
         return type(self)(self.fgraph.inputs, self.fgraph.outputs)
+
+
+class MyOrderedType(MyType):
+    def __init__(self, *args, order, **kwargs):
+        self.order = order
+        super().__init__(*args, **kwargs)
+
+    def is_super(self, otype: "Type") -> Optional[bool]:
+        return self.order <= otype.order
+
+    def __repr__(self):
+        return f"MyOrderedType({self.order})"
+
+
+class MyOrderedOp(MyOp):
+    def make_node(self, *inputs, output_orders):
+        outputs = [
+            MyOrderedType(order=output_order)() for output_order in output_orders
+        ]
+        return Apply(self, inputs, outputs)
+
+
+ordered_op = MyOrderedOp("OrderedOp")

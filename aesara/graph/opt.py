@@ -638,6 +638,38 @@ class MergeFeature(Feature):
                     # They were already tried, and there was an error
                     continue
 
+                # Check if outputs of node are all super types of the candidate outputs
+                if not all(
+                    node_out.type.is_super(candidate_out.type)
+                    for node_out, candidate_out in zip(node.outputs, candidate.outputs)
+                ):
+                    # If not, check if reverse is true
+                    if not all(
+                        candidate_out.type.is_super(node_out.type)
+                        for candidate_out, node_out in zip(
+                            candidate.outputs, node.outputs
+                        )
+                    ):
+                        continue
+
+                    # In this case we want to recal perform in reverse order, so that
+                    # the candidate gets replaced by the current node instead
+                    self.nodes_seen.remove(candidate)
+                    self.process_node(fgraph, node)
+                    self.process_node(fgraph, candidate)
+
+                    # We also reprocess any other nodes that were scheduled to be
+                    # replaced by the candidate, so that they are replaced by the
+                    # current node instead
+                    for item in self.scheduled.copy():
+                        other_node_out, other_candidate_out, _ = item[0][0]
+                        if other_candidate_out.owner is candidate:
+                            self.scheduled.remove(item)
+                            self.process_node(fgraph, other_node_out.owner)
+
+                    # Abort the original perform call
+                    return
+
                 # Schedule transfer of clients from node to candidate
                 pairs = list(
                     zip(

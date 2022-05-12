@@ -1,3 +1,5 @@
+import itertools
+
 import pytest
 
 from aesara.configdefaults import config
@@ -40,6 +42,7 @@ from tests.graph.utils import (
     op_multiple_outputs,
     op_y,
     op_z,
+    ordered_op,
 )
 
 
@@ -436,6 +439,50 @@ class TestMergeOptimizer:
 
         assert fg.outputs[0] is fg.outputs[1]
         assert fg.outputs[0] is not fg.outputs[2]
+
+    def test_type_ordering(self):
+        """Test that the node with the most specific type is used when multiple options
+        are available"""
+
+        x, y = MyVariable("x"), MyVariable("y")
+        ordered_ops = (
+            ordered_op(x, y, output_orders=(1,)),
+            ordered_op(x, y, output_orders=(2,)),
+            ordered_op(x, y, output_orders=(3,)),
+        )
+        for permuted_ordered_ops in itertools.permutations(ordered_ops):
+            e = op1(*permuted_ordered_ops)
+            g = FunctionGraph([x, y], [e], clone=False)
+            MergeOptimizer().optimize(g)
+            assert set(g.outputs[0].owner.inputs) == set((ordered_ops[-1],))
+
+    @pytest.mark.parametrize("output_idx", (0, 1))
+    def test_multi_out_type_ordering(self, output_idx):
+        """Same as `test_type_ordering`, but with multiple output nodes"""
+        x, y = MyVariable("x"), MyVariable("y")
+        ordered_ops = (
+            ordered_op(x, y, output_orders=(1, 1))[output_idx],
+            ordered_op(x, y, output_orders=(2, 1))[output_idx],
+            ordered_op(x, y, output_orders=(3, 1))[output_idx],
+        )
+        for permuted_ordered_ops in itertools.permutations(ordered_ops):
+            e = op1(*permuted_ordered_ops)
+            g = FunctionGraph([x, y], [e], clone=False)
+            MergeOptimizer().optimize(g)
+            assert set(g.outputs[0].owner.inputs) == set((ordered_ops[-1],))
+
+    def test_multi_out_mixed_type_ordering(self):
+        """Test that multiple output nodes with mixed output specifity don't get merged"""
+        x, y = MyVariable("x"), MyVariable("y")
+        ordered_ops = (
+            ordered_op(x, y, output_orders=(1, 2))[0],
+            ordered_op(x, y, output_orders=(2, 1))[0],
+        )
+        for permuted_ordered_ops in itertools.permutations(ordered_ops):
+            e = op1(*permuted_ordered_ops)
+            g = FunctionGraph([x, y], [e], clone=False)
+            MergeOptimizer().optimize(g)
+            assert set(g.outputs[0].owner.inputs) == set(ordered_ops)
 
 
 class TestEquilibrium:
