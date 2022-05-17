@@ -2326,7 +2326,6 @@ int __pyx_module_is_main_aesara__scan__scan_perform = 0;
 static PyObject *__pyx_builtin_IndexError;
 static PyObject *__pyx_builtin_range;
 static PyObject *__pyx_builtin_ValueError;
-static PyObject *__pyx_builtin_xrange;
 static PyObject *__pyx_builtin_ImportError;
 static PyObject *__pyx_builtin_MemoryError;
 static PyObject *__pyx_builtin_enumerate;
@@ -2403,7 +2402,6 @@ static const char __pyx_k_reduce[] = "__reduce__";
 static const char __pyx_k_struct[] = "struct";
 static const char __pyx_k_unpack[] = "unpack";
 static const char __pyx_k_update[] = "update";
-static const char __pyx_k_xrange[] = "xrange";
 static const char __pyx_k_fortran[] = "fortran";
 static const char __pyx_k_inp_idx[] = "inp_idx";
 static const char __pyx_k_memview[] = "memview";
@@ -2705,7 +2703,6 @@ static PyObject *__pyx_n_s_update;
 static PyObject *__pyx_n_s_var;
 static PyObject *__pyx_n_s_vector_outs;
 static PyObject *__pyx_n_s_vector_seqs;
-static PyObject *__pyx_n_s_xrange;
 static PyObject *__pyx_pf_6aesara_4scan_12scan_perform_get_version(CYTHON_UNUSED PyObject *__pyx_self); /* proto */
 static PyObject *__pyx_pf_6aesara_4scan_12scan_perform_2perform(CYTHON_UNUSED PyObject *__pyx_self, unsigned int __pyx_v_n_shared_outs, unsigned int __pyx_v_n_mit_mot_outs, unsigned int __pyx_v_n_seqs, unsigned int __pyx_v_n_mit_mot, unsigned int __pyx_v_n_mit_sot, unsigned int __pyx_v_n_sit_sot, unsigned int __pyx_v_n_nit_sot, int __pyx_v_as_while, __Pyx_memviewslice __pyx_v_mintaps, __Pyx_memviewslice __pyx_v_pos, __Pyx_memviewslice __pyx_v_store_steps, PyObject *__pyx_v_tap_array, PyObject *__pyx_v_tap_array_len, __Pyx_memviewslice __pyx_v_vector_seqs, __Pyx_memviewslice __pyx_v_vector_outs, PyObject *__pyx_v_mit_mot_out_slices, __Pyx_memviewslice __pyx_v_mitmots_preallocated, __Pyx_memviewslice __pyx_v_outs_is_tensor, PyObject *__pyx_v_inner_input_storage, PyObject *__pyx_v_inner_output_storage, __Pyx_memviewslice __pyx_v_destroy_map, PyObject *__pyx_v_outer_inputs, PyObject *__pyx_v_outer_outputs, PyObject *__pyx_v_outer_output_dtypes, PyObject *__pyx_v_outer_output_ndims, PyObject *__pyx_v_fn); /* proto */
 static int __pyx_array___pyx_pf_15View_dot_MemoryView_5array___cinit__(struct __pyx_array_obj *__pyx_v_self, PyObject *__pyx_v_shape, Py_ssize_t __pyx_v_itemsize, PyObject *__pyx_v_format, PyObject *__pyx_v_mode, int __pyx_v_allocate_buffer); /* proto */
@@ -2755,7 +2752,7 @@ static PyObject *__pyx_tp_new_Enum(PyTypeObject *t, PyObject *a, PyObject *k); /
 static PyObject *__pyx_tp_new_memoryview(PyTypeObject *t, PyObject *a, PyObject *k); /*proto*/
 static PyObject *__pyx_tp_new__memoryviewslice(PyTypeObject *t, PyObject *a, PyObject *k); /*proto*/
 static PyObject *__pyx_float_0_0;
-static PyObject *__pyx_float_0_316;
+static PyObject *__pyx_float_0_317;
 static PyObject *__pyx_int_0;
 static PyObject *__pyx_int_1;
 static PyObject *__pyx_int_184977713;
@@ -2800,7 +2797,7 @@ static PyObject *__pyx_codeobj__34;
  * 
  * 
  * def get_version():             # <<<<<<<<<<<<<<
- *     return 0.316
+ *     return 0.317
  * 
  */
 
@@ -2826,20 +2823,20 @@ static PyObject *__pyx_pf_6aesara_4scan_12scan_perform_get_version(CYTHON_UNUSED
   /* "aesara/scan/scan_perform.pyx":62
  * 
  * def get_version():
- *     return 0.316             # <<<<<<<<<<<<<<
+ *     return 0.317             # <<<<<<<<<<<<<<
  * 
  * @cython.boundscheck(False)
  */
   __Pyx_XDECREF(__pyx_r);
-  __Pyx_INCREF(__pyx_float_0_316);
-  __pyx_r = __pyx_float_0_316;
+  __Pyx_INCREF(__pyx_float_0_317);
+  __pyx_r = __pyx_float_0_317;
   goto __pyx_L0;
 
   /* "aesara/scan/scan_perform.pyx":61
  * 
  * 
  * def get_version():             # <<<<<<<<<<<<<<
- *     return 0.316
+ *     return 0.317
  * 
  */
 
@@ -5391,7 +5388,7 @@ static PyObject *__pyx_pf_6aesara_4scan_12scan_perform_2perform(CYTHON_UNUSED Py
     /* "aesara/scan/scan_perform.pyx":372
  *         # be able to detect cases where outputs reused the allocated object
  *         # but alter the memory region they refer to.
- *         for idx in xrange(nb_mitmot_in):             # <<<<<<<<<<<<<<
+ *         for idx in range(nb_mitmot_in):             # <<<<<<<<<<<<<<
  *             var = inner_input_storage[idx + n_seqs][0]
  *             old_mitmot_input_storage[idx] = var
  */
@@ -5402,7 +5399,7 @@ static PyObject *__pyx_pf_6aesara_4scan_12scan_perform_2perform(CYTHON_UNUSED Py
 
       /* "aesara/scan/scan_perform.pyx":373
  *         # but alter the memory region they refer to.
- *         for idx in xrange(nb_mitmot_in):
+ *         for idx in range(nb_mitmot_in):
  *             var = inner_input_storage[idx + n_seqs][0]             # <<<<<<<<<<<<<<
  *             old_mitmot_input_storage[idx] = var
  * 
@@ -5418,7 +5415,7 @@ static PyObject *__pyx_pf_6aesara_4scan_12scan_perform_2perform(CYTHON_UNUSED Py
       __pyx_t_16 = 0;
 
       /* "aesara/scan/scan_perform.pyx":374
- *         for idx in xrange(nb_mitmot_in):
+ *         for idx in range(nb_mitmot_in):
  *             var = inner_input_storage[idx + n_seqs][0]
  *             old_mitmot_input_storage[idx] = var             # <<<<<<<<<<<<<<
  * 
@@ -5839,7 +5836,7 @@ static PyObject *__pyx_pf_6aesara_4scan_12scan_perform_2perform(CYTHON_UNUSED Py
  *         # 5.3 Copy over the values for mit_mot outputs
  *         mitmot_inp_offset = 0             # <<<<<<<<<<<<<<
  *         mitmot_out_idx = 0
- *         for j in xrange(n_mit_mot):
+ *         for j in range(n_mit_mot):
  */
     __Pyx_INCREF(__pyx_int_0);
     __Pyx_XDECREF_SET(__pyx_v_mitmot_inp_offset, __pyx_int_0);
@@ -5848,7 +5845,7 @@ static PyObject *__pyx_pf_6aesara_4scan_12scan_perform_2perform(CYTHON_UNUSED Py
  *         # 5.3 Copy over the values for mit_mot outputs
  *         mitmot_inp_offset = 0
  *         mitmot_out_idx = 0             # <<<<<<<<<<<<<<
- *         for j in xrange(n_mit_mot):
+ *         for j in range(n_mit_mot):
  *             for k in mit_mot_out_slices[j]:
  */
     __Pyx_INCREF(__pyx_int_0);
@@ -5857,7 +5854,7 @@ static PyObject *__pyx_pf_6aesara_4scan_12scan_perform_2perform(CYTHON_UNUSED Py
     /* "aesara/scan/scan_perform.pyx":400
  *         mitmot_inp_offset = 0
  *         mitmot_out_idx = 0
- *         for j in xrange(n_mit_mot):             # <<<<<<<<<<<<<<
+ *         for j in range(n_mit_mot):             # <<<<<<<<<<<<<<
  *             for k in mit_mot_out_slices[j]:
  *                 if mitmots_preallocated[<unsigned int>mitmot_out_idx]:
  */
@@ -5868,7 +5865,7 @@ static PyObject *__pyx_pf_6aesara_4scan_12scan_perform_2perform(CYTHON_UNUSED Py
 
       /* "aesara/scan/scan_perform.pyx":401
  *         mitmot_out_idx = 0
- *         for j in xrange(n_mit_mot):
+ *         for j in range(n_mit_mot):
  *             for k in mit_mot_out_slices[j]:             # <<<<<<<<<<<<<<
  *                 if mitmots_preallocated[<unsigned int>mitmot_out_idx]:
  *                     # This output tap has been preallocated.
@@ -5921,7 +5918,7 @@ static PyObject *__pyx_pf_6aesara_4scan_12scan_perform_2perform(CYTHON_UNUSED Py
         __pyx_v_k = __pyx_t_12;
 
         /* "aesara/scan/scan_perform.pyx":402
- *         for j in xrange(n_mit_mot):
+ *         for j in range(n_mit_mot):
  *             for k in mit_mot_out_slices[j]:
  *                 if mitmots_preallocated[<unsigned int>mitmot_out_idx]:             # <<<<<<<<<<<<<<
  *                     # This output tap has been preallocated.
@@ -6130,7 +6127,7 @@ static PyObject *__pyx_pf_6aesara_4scan_12scan_perform_2perform(CYTHON_UNUSED Py
           }
 
           /* "aesara/scan/scan_perform.pyx":402
- *         for j in xrange(n_mit_mot):
+ *         for j in range(n_mit_mot):
  *             for k in mit_mot_out_slices[j]:
  *                 if mitmots_preallocated[<unsigned int>mitmot_out_idx]:             # <<<<<<<<<<<<<<
  *                     # This output tap has been preallocated.
@@ -6198,7 +6195,7 @@ static PyObject *__pyx_pf_6aesara_4scan_12scan_perform_2perform(CYTHON_UNUSED Py
 
         /* "aesara/scan/scan_perform.pyx":401
  *         mitmot_out_idx = 0
- *         for j in xrange(n_mit_mot):
+ *         for j in range(n_mit_mot):
  *             for k in mit_mot_out_slices[j]:             # <<<<<<<<<<<<<<
  *                 if mitmots_preallocated[<unsigned int>mitmot_out_idx]:
  *                     # This output tap has been preallocated.
@@ -23001,18 +22998,12 @@ static __Pyx_StringTabEntry __pyx_string_tab[] = {
   {&__pyx_n_s_var, __pyx_k_var, sizeof(__pyx_k_var), 0, 0, 1, 1},
   {&__pyx_n_s_vector_outs, __pyx_k_vector_outs, sizeof(__pyx_k_vector_outs), 0, 0, 1, 1},
   {&__pyx_n_s_vector_seqs, __pyx_k_vector_seqs, sizeof(__pyx_k_vector_seqs), 0, 0, 1, 1},
-  {&__pyx_n_s_xrange, __pyx_k_xrange, sizeof(__pyx_k_xrange), 0, 0, 1, 1},
   {0, 0, 0, 0, 0, 0, 0}
 };
 static CYTHON_SMALL_CODE int __Pyx_InitCachedBuiltins(void) {
   __pyx_builtin_IndexError = __Pyx_GetBuiltinName(__pyx_n_s_IndexError); if (!__pyx_builtin_IndexError) __PYX_ERR(0, 196, __pyx_L1_error)
   __pyx_builtin_range = __Pyx_GetBuiltinName(__pyx_n_s_range); if (!__pyx_builtin_range) __PYX_ERR(0, 200, __pyx_L1_error)
   __pyx_builtin_ValueError = __Pyx_GetBuiltinName(__pyx_n_s_ValueError); if (!__pyx_builtin_ValueError) __PYX_ERR(0, 202, __pyx_L1_error)
-  #if PY_MAJOR_VERSION >= 3
-  __pyx_builtin_xrange = __Pyx_GetBuiltinName(__pyx_n_s_range); if (!__pyx_builtin_xrange) __PYX_ERR(0, 372, __pyx_L1_error)
-  #else
-  __pyx_builtin_xrange = __Pyx_GetBuiltinName(__pyx_n_s_xrange); if (!__pyx_builtin_xrange) __PYX_ERR(0, 372, __pyx_L1_error)
-  #endif
   __pyx_builtin_ImportError = __Pyx_GetBuiltinName(__pyx_n_s_ImportError); if (!__pyx_builtin_ImportError) __PYX_ERR(1, 945, __pyx_L1_error)
   __pyx_builtin_MemoryError = __Pyx_GetBuiltinName(__pyx_n_s_MemoryError); if (!__pyx_builtin_MemoryError) __PYX_ERR(2, 148, __pyx_L1_error)
   __pyx_builtin_enumerate = __Pyx_GetBuiltinName(__pyx_n_s_enumerate); if (!__pyx_builtin_enumerate) __PYX_ERR(2, 151, __pyx_L1_error)
@@ -23293,7 +23284,7 @@ static CYTHON_SMALL_CODE int __Pyx_InitCachedConstants(void) {
  * 
  * 
  * def get_version():             # <<<<<<<<<<<<<<
- *     return 0.316
+ *     return 0.317
  * 
  */
   __pyx_codeobj__25 = (PyObject*)__Pyx_PyCode_New(0, 0, 0, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_scan_perform_pyx, __pyx_n_s_get_version, 61, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__25)) __PYX_ERR(0, 61, __pyx_L1_error)
@@ -23384,7 +23375,7 @@ static CYTHON_SMALL_CODE int __Pyx_InitCachedConstants(void) {
 static CYTHON_SMALL_CODE int __Pyx_InitGlobals(void) {
   if (__Pyx_InitStrings(__pyx_string_tab) < 0) __PYX_ERR(0, 1, __pyx_L1_error);
   __pyx_float_0_0 = PyFloat_FromDouble(0.0); if (unlikely(!__pyx_float_0_0)) __PYX_ERR(0, 1, __pyx_L1_error)
-  __pyx_float_0_316 = PyFloat_FromDouble(0.316); if (unlikely(!__pyx_float_0_316)) __PYX_ERR(0, 1, __pyx_L1_error)
+  __pyx_float_0_317 = PyFloat_FromDouble(0.317); if (unlikely(!__pyx_float_0_317)) __PYX_ERR(0, 1, __pyx_L1_error)
   __pyx_int_0 = PyInt_FromLong(0); if (unlikely(!__pyx_int_0)) __PYX_ERR(0, 1, __pyx_L1_error)
   __pyx_int_1 = PyInt_FromLong(1); if (unlikely(!__pyx_int_1)) __PYX_ERR(0, 1, __pyx_L1_error)
   __pyx_int_184977713 = PyInt_FromLong(184977713L); if (unlikely(!__pyx_int_184977713)) __PYX_ERR(0, 1, __pyx_L1_error)
@@ -23847,7 +23838,7 @@ if (!__Pyx_RefNanny) {
  * 
  * 
  * def get_version():             # <<<<<<<<<<<<<<
- *     return 0.316
+ *     return 0.317
  * 
  */
   __pyx_t_2 = PyCFunction_NewEx(&__pyx_mdef_6aesara_4scan_12scan_perform_1get_version, NULL, __pyx_n_s_aesara_scan_scan_perform); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 61, __pyx_L1_error)
