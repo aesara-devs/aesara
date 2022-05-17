@@ -59,7 +59,7 @@ from aesara.scan.utils import InnerFunctionError
 
 
 def get_version():
-    return 0.314
+    return 0.315
 
 @cython.boundscheck(False)
 def perform(
@@ -157,7 +157,7 @@ def perform(
     """
     # 1. Unzip the number of steps and sequences. If number of steps is
     # negative flip sequences around, and make n_steps positive
-    cdef unsigned int t_fn = 0
+    cdef float t_fn = 0
     cdef unsigned int n_steps = outer_inputs[0].item()
     cdef unsigned int n_outs = n_mit_mot + n_mit_sot + n_sit_sot
     cdef unsigned int seqs_arg_offset = n_seqs + 1
