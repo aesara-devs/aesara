@@ -1542,6 +1542,10 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
 
             cython_mintaps = np.asarray(self.mintaps, dtype="int32")
 
+            n_outs = self.info.n_mit_mot + self.info.n_mit_sot + self.info.n_sit_sot
+            cython_pos = np.zeros(n_outs + self.info.n_nit_sot, dtype=np.int32)
+            cython_store_steps = np.zeros(n_outs + self.info.n_nit_sot, dtype=np.int32)
+
             tap_array_len = tuple(
                 len(x)
                 for x in chain(
@@ -1551,22 +1555,21 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
                 )
             )
 
-            cython_vector_seqs = np.asarray(self.vector_seqs, dtype="int32")
-            cython_vector_outs = np.asarray(self.vector_outs, dtype="int32")
+            cython_vector_seqs = np.asarray(self.vector_seqs, dtype=bool)
+            cython_vector_outs = np.asarray(self.vector_outs, dtype=bool)
             cython_mitmots_preallocated = np.asarray(
-                self.mitmots_preallocated, dtype="int32"
+                self.mitmots_preallocated, dtype=bool
             )
-
-            cython_outs_is_tensor = np.asarray(outs_is_tensor, dtype="int32")
+            cython_outs_is_tensor = np.asarray(outs_is_tensor, dtype=bool)
 
             if self.destroy_map:
                 cython_destroy_map = [
                     x in self.destroy_map for x in range(len(node.outputs))
                 ]
             else:
-                cython_destroy_map = [0 for x in range(len(node.outputs))]
+                cython_destroy_map = [False for x in range(len(node.outputs))]
 
-            cython_destroy_map = np.asarray(cython_destroy_map, dtype="int32")
+            cython_destroy_map = np.asarray(cython_destroy_map, dtype=bool)
 
             inner_input_storage = [s.storage for s in self.fn.input_storage]
             inner_output_storage = [s.storage for s in self.fn.output_storage]
@@ -1604,6 +1607,8 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
                         self.info.n_nit_sot,
                         self.info.as_while,
                         cython_mintaps,
+                        cython_pos,
+                        cython_store_steps,
                         self.info.mit_mot_in_slices
                         + self.info.mit_sot_in_slices
                         + self.info.sit_sot_in_slices,
