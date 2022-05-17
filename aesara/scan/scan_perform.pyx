@@ -59,7 +59,7 @@ from aesara.scan.utils import InnerFunctionError
 
 
 def get_version():
-    return 0.316
+    return 0.317
 
 @cython.boundscheck(False)
 def perform(
@@ -369,7 +369,7 @@ def perform(
         # the execution of the function. Also keep pointers to their data to
         # be able to detect cases where outputs reused the allocated object
         # but alter the memory region they refer to.
-        for idx in xrange(nb_mitmot_in):
+        for idx in range(nb_mitmot_in):
             var = inner_input_storage[idx + n_seqs][0]
             old_mitmot_input_storage[idx] = var
 
@@ -397,7 +397,7 @@ def perform(
         # 5.3 Copy over the values for mit_mot outputs
         mitmot_inp_offset = 0
         mitmot_out_idx = 0
-        for j in xrange(n_mit_mot):
+        for j in range(n_mit_mot):
             for k in mit_mot_out_slices[j]:
                 if mitmots_preallocated[<unsigned int>mitmot_out_idx]:
                     # This output tap has been preallocated.
