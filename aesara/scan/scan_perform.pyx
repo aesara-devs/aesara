@@ -62,7 +62,7 @@ numpy.import_array()
 
 
 def get_version():
-    return 0.320
+    return 0.321
 
 # TODO: We need to get rid of the negative indexing performed with `pos` and `l`.
 # @cython.wraparound(False)
@@ -80,7 +80,7 @@ def perform(
     int[:] pos not None,
     int[:] store_steps not None,
     tuple tap_array not None,
-    tuple tap_array_len not None,
+    const unsigned int[:] tap_array_len not None,
     const numpy.npy_bool[:] vector_seqs not None,
     const numpy.npy_bool[:] vector_outs not None,
     tuple mit_mot_out_slices not None,
@@ -92,7 +92,7 @@ def perform(
     list outer_inputs not None,
     list outer_outputs not None,
     tuple outer_output_dtypes not None,
-    tuple outer_output_ndims not None,
+    const unsigned int[:] outer_output_ndims not None,
     fn,
 ) -> (time_t, int):
     """
