@@ -62,7 +62,7 @@ numpy.import_array()
 
 
 def get_version():
-    return 0.318
+    return 0.319
 
 # TODO: We need to get rid of the negative indexing performed with `pos` and `l`.
 # @cython.wraparound(False)
@@ -76,23 +76,23 @@ def perform(
     const unsigned int n_sit_sot,
     const unsigned int n_nit_sot,
     const bint as_while,
-    const int[:] mintaps,
-    int[:] pos,
-    int[:] store_steps,
-    tuple tap_array,
-    tuple tap_array_len,
-    const numpy.npy_bool[:] vector_seqs,
-    const numpy.npy_bool[:] vector_outs,
-    tuple mit_mot_out_slices,
-    const numpy.npy_bool[:] mitmots_preallocated,
-    const numpy.npy_bool[:] outs_is_tensor,
-    list inner_input_storage,
-    list inner_output_storage,
-    const numpy.npy_bool[:] destroy_map,
-    list outer_inputs,
-    list outer_outputs,
-    tuple outer_output_dtypes,
-    tuple outer_output_ndims,
+    const int[:] mintaps not None,
+    int[:] pos not None,
+    int[:] store_steps not None,
+    tuple tap_array not None,
+    tuple tap_array_len not None,
+    const numpy.npy_bool[:] vector_seqs not None,
+    const numpy.npy_bool[:] vector_outs not None,
+    tuple mit_mot_out_slices not None,
+    const numpy.npy_bool[:] mitmots_preallocated not None,
+    const numpy.npy_bool[:] outs_is_tensor not None,
+    list inner_input_storage not None,
+    list inner_output_storage not None,
+    const numpy.npy_bool[:] destroy_map not None,
+    list outer_inputs not None,
+    list outer_outputs not None,
+    tuple outer_output_dtypes not None,
+    tuple outer_output_ndims not None,
     fn,
 ) -> (float, int):
     """

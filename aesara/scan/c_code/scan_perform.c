@@ -2769,7 +2769,7 @@ static PyObject *__pyx_tp_new_Enum(PyTypeObject *t, PyObject *a, PyObject *k); /
 static PyObject *__pyx_tp_new_memoryview(PyTypeObject *t, PyObject *a, PyObject *k); /*proto*/
 static PyObject *__pyx_tp_new__memoryviewslice(PyTypeObject *t, PyObject *a, PyObject *k); /*proto*/
 static PyObject *__pyx_float_0_0;
-static PyObject *__pyx_float_0_318;
+static PyObject *__pyx_float_0_319;
 static PyObject *__pyx_int_0;
 static PyObject *__pyx_int_1;
 static PyObject *__pyx_int_184977713;
@@ -2813,7 +2813,7 @@ static PyObject *__pyx_codeobj__33;
  * 
  * 
  * def get_version():             # <<<<<<<<<<<<<<
- *     return 0.318
+ *     return 0.319
  * 
  */
 
@@ -2839,20 +2839,20 @@ static PyObject *__pyx_pf_6aesara_4scan_12scan_perform_get_version(CYTHON_UNUSED
   /* "aesara/scan/scan_perform.pyx":65
  * 
  * def get_version():
- *     return 0.318             # <<<<<<<<<<<<<<
+ *     return 0.319             # <<<<<<<<<<<<<<
  * 
  * # TODO: We need to get rid of the negative indexing performed with `pos` and `l`.
  */
   __Pyx_XDECREF(__pyx_r);
-  __Pyx_INCREF(__pyx_float_0_318);
-  __pyx_r = __pyx_float_0_318;
+  __Pyx_INCREF(__pyx_float_0_319);
+  __pyx_r = __pyx_float_0_319;
   goto __pyx_L0;
 
   /* "aesara/scan/scan_perform.pyx":64
  * 
  * 
  * def get_version():             # <<<<<<<<<<<<<<
- *     return 0.318
+ *     return 0.319
  * 
  */
 
@@ -3194,15 +3194,39 @@ static PyObject *__pyx_pw_6aesara_4scan_12scan_perform_3perform(PyObject *__pyx_
   __Pyx_RefNannyFinishContext();
   return NULL;
   __pyx_L4_argument_unpacking_done:;
-  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_tap_array), (&PyTuple_Type), 1, "tap_array", 1))) __PYX_ERR(0, 82, __pyx_L1_error)
-  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_tap_array_len), (&PyTuple_Type), 1, "tap_array_len", 1))) __PYX_ERR(0, 83, __pyx_L1_error)
-  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_mit_mot_out_slices), (&PyTuple_Type), 1, "mit_mot_out_slices", 1))) __PYX_ERR(0, 86, __pyx_L1_error)
-  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_inner_input_storage), (&PyList_Type), 1, "inner_input_storage", 1))) __PYX_ERR(0, 89, __pyx_L1_error)
-  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_inner_output_storage), (&PyList_Type), 1, "inner_output_storage", 1))) __PYX_ERR(0, 90, __pyx_L1_error)
-  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_outer_inputs), (&PyList_Type), 1, "outer_inputs", 1))) __PYX_ERR(0, 92, __pyx_L1_error)
-  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_outer_outputs), (&PyList_Type), 1, "outer_outputs", 1))) __PYX_ERR(0, 93, __pyx_L1_error)
-  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_outer_output_dtypes), (&PyTuple_Type), 1, "outer_output_dtypes", 1))) __PYX_ERR(0, 94, __pyx_L1_error)
-  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_outer_output_ndims), (&PyTuple_Type), 1, "outer_output_ndims", 1))) __PYX_ERR(0, 95, __pyx_L1_error)
+  if (unlikely(((PyObject *)__pyx_v_mintaps.memview) == Py_None)) {
+    PyErr_Format(PyExc_TypeError, "Argument '%.200s' must not be None", "mintaps"); __PYX_ERR(0, 79, __pyx_L1_error)
+  }
+  if (unlikely(((PyObject *)__pyx_v_pos.memview) == Py_None)) {
+    PyErr_Format(PyExc_TypeError, "Argument '%.200s' must not be None", "pos"); __PYX_ERR(0, 80, __pyx_L1_error)
+  }
+  if (unlikely(((PyObject *)__pyx_v_store_steps.memview) == Py_None)) {
+    PyErr_Format(PyExc_TypeError, "Argument '%.200s' must not be None", "store_steps"); __PYX_ERR(0, 81, __pyx_L1_error)
+  }
+  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_tap_array), (&PyTuple_Type), 0, "tap_array", 1))) __PYX_ERR(0, 82, __pyx_L1_error)
+  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_tap_array_len), (&PyTuple_Type), 0, "tap_array_len", 1))) __PYX_ERR(0, 83, __pyx_L1_error)
+  if (unlikely(((PyObject *)__pyx_v_vector_seqs.memview) == Py_None)) {
+    PyErr_Format(PyExc_TypeError, "Argument '%.200s' must not be None", "vector_seqs"); __PYX_ERR(0, 84, __pyx_L1_error)
+  }
+  if (unlikely(((PyObject *)__pyx_v_vector_outs.memview) == Py_None)) {
+    PyErr_Format(PyExc_TypeError, "Argument '%.200s' must not be None", "vector_outs"); __PYX_ERR(0, 85, __pyx_L1_error)
+  }
+  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_mit_mot_out_slices), (&PyTuple_Type), 0, "mit_mot_out_slices", 1))) __PYX_ERR(0, 86, __pyx_L1_error)
+  if (unlikely(((PyObject *)__pyx_v_mitmots_preallocated.memview) == Py_None)) {
+    PyErr_Format(PyExc_TypeError, "Argument '%.200s' must not be None", "mitmots_preallocated"); __PYX_ERR(0, 87, __pyx_L1_error)
+  }
+  if (unlikely(((PyObject *)__pyx_v_outs_is_tensor.memview) == Py_None)) {
+    PyErr_Format(PyExc_TypeError, "Argument '%.200s' must not be None", "outs_is_tensor"); __PYX_ERR(0, 88, __pyx_L1_error)
+  }
+  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_inner_input_storage), (&PyList_Type), 0, "inner_input_storage", 1))) __PYX_ERR(0, 89, __pyx_L1_error)
+  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_inner_output_storage), (&PyList_Type), 0, "inner_output_storage", 1))) __PYX_ERR(0, 90, __pyx_L1_error)
+  if (unlikely(((PyObject *)__pyx_v_destroy_map.memview) == Py_None)) {
+    PyErr_Format(PyExc_TypeError, "Argument '%.200s' must not be None", "destroy_map"); __PYX_ERR(0, 91, __pyx_L1_error)
+  }
+  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_outer_inputs), (&PyList_Type), 0, "outer_inputs", 1))) __PYX_ERR(0, 92, __pyx_L1_error)
+  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_outer_outputs), (&PyList_Type), 0, "outer_outputs", 1))) __PYX_ERR(0, 93, __pyx_L1_error)
+  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_outer_output_dtypes), (&PyTuple_Type), 0, "outer_output_dtypes", 1))) __PYX_ERR(0, 94, __pyx_L1_error)
+  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_outer_output_ndims), (&PyTuple_Type), 0, "outer_output_ndims", 1))) __PYX_ERR(0, 95, __pyx_L1_error)
   __pyx_r = __pyx_pf_6aesara_4scan_12scan_perform_2perform(__pyx_self, __pyx_v_n_shared_outs, __pyx_v_n_mit_mot_outs, __pyx_v_n_seqs, __pyx_v_n_mit_mot, __pyx_v_n_mit_sot, __pyx_v_n_sit_sot, __pyx_v_n_nit_sot, __pyx_v_as_while, __pyx_v_mintaps, __pyx_v_pos, __pyx_v_store_steps, __pyx_v_tap_array, __pyx_v_tap_array_len, __pyx_v_vector_seqs, __pyx_v_vector_outs, __pyx_v_mit_mot_out_slices, __pyx_v_mitmots_preallocated, __pyx_v_outs_is_tensor, __pyx_v_inner_input_storage, __pyx_v_inner_output_storage, __pyx_v_destroy_map, __pyx_v_outer_inputs, __pyx_v_outer_outputs, __pyx_v_outer_output_dtypes, __pyx_v_outer_output_ndims, __pyx_v_fn);
 
   /* function exit code */
@@ -3330,10 +3354,6 @@ static PyObject *__pyx_pf_6aesara_4scan_12scan_perform_2perform(CYTHON_UNUSED Py
  *     cdef unsigned int n_outs = n_mit_mot + n_mit_sot + n_sit_sot
  *     cdef unsigned int seqs_arg_offset = n_seqs + 1
  */
-  if (unlikely(__pyx_v_outer_inputs == Py_None)) {
-    PyErr_SetString(PyExc_TypeError, "'NoneType' object is not subscriptable");
-    __PYX_ERR(0, 170, __pyx_L1_error)
-  }
   __pyx_t_2 = __Pyx_PyObject_GetAttrStr(PyList_GET_ITEM(__pyx_v_outer_inputs, 0), __pyx_n_s_item); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 170, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
   __pyx_t_3 = NULL;
@@ -3483,10 +3503,6 @@ static PyObject *__pyx_pf_6aesara_4scan_12scan_perform_2perform(CYTHON_UNUSED Py
  *                 raise ValueError((
  *                     "Sequence %s has shape %s "
  */
-      if (unlikely(__pyx_v_outer_inputs == Py_None)) {
-        PyErr_SetString(PyExc_TypeError, "'NoneType' object is not subscriptable");
-        __PYX_ERR(0, 218, __pyx_L1_error)
-      }
       __pyx_t_8 = ((unsigned int)(1 + __pyx_v_idx));
       __pyx_t_1 = __Pyx_PyObject_GetAttrStr(PyList_GET_ITEM(__pyx_v_outer_inputs, __pyx_t_8), __pyx_n_s_shape); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 218, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_1);
@@ -3543,10 +3559,6 @@ static PyObject *__pyx_pf_6aesara_4scan_12scan_perform_2perform(CYTHON_UNUSED Py
  *                     n_steps,
  *                 ))
  */
-        if (unlikely(__pyx_v_outer_inputs == Py_None)) {
-          PyErr_SetString(PyExc_TypeError, "'NoneType' object is not subscriptable");
-          __PYX_ERR(0, 224, __pyx_L1_error)
-        }
         __pyx_t_11 = (1 + __pyx_v_idx);
         __pyx_t_1 = __Pyx_GetItemInt_List(__pyx_v_outer_inputs, __pyx_t_11, long, 1, __Pyx_PyInt_From_long, 1, 1, 0); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 224, __pyx_L1_error)
         __Pyx_GOTREF(__pyx_t_1);
@@ -3635,10 +3647,6 @@ static PyObject *__pyx_pf_6aesara_4scan_12scan_perform_2perform(CYTHON_UNUSED Py
  * 
  *     for idx in range(n_nit_sot):
  */
-    if (unlikely(__pyx_v_outer_inputs == Py_None)) {
-      PyErr_SetString(PyExc_TypeError, "'NoneType' object is not subscriptable");
-      __PYX_ERR(0, 231, __pyx_L1_error)
-    }
     __pyx_t_8 = ((unsigned int)((__pyx_v_idx + __pyx_v_n_seqs) + 1));
     __pyx_t_3 = __Pyx_PyObject_GetAttrStr(PyList_GET_ITEM(__pyx_v_outer_inputs, __pyx_t_8), __pyx_n_s_shape); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 231, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_3);
@@ -3670,27 +3678,7 @@ static PyObject *__pyx_pf_6aesara_4scan_12scan_perform_2perform(CYTHON_UNUSED Py
  *                                     + n_shared_outs + n_seqs+1)]
  * 
  */
-    if (unlikely(__pyx_v_outer_inputs == Py_None)) {
-      PyErr_SetString(PyExc_TypeError, "'NoneType' object is not subscriptable");
-      __PYX_ERR(0, 235, __pyx_L1_error)
-    }
-
-    /* "aesara/scan/scan_perform.pyx":236
- *         store_steps[<unsigned int>(idx + n_mit_mot + n_mit_sot + n_sit_sot)]=\
- *                 outer_inputs[<unsigned int>(idx + n_mit_mot + n_mit_sot + n_sit_sot
- *                                     + n_shared_outs + n_seqs+1)]             # <<<<<<<<<<<<<<
- * 
- *     # 2.1 Create storage space for outputs
- */
     __pyx_t_8 = ((unsigned int)((((((__pyx_v_idx + __pyx_v_n_mit_mot) + __pyx_v_n_mit_sot) + __pyx_v_n_sit_sot) + __pyx_v_n_shared_outs) + __pyx_v_n_seqs) + 1));
-
-    /* "aesara/scan/scan_perform.pyx":235
- *     for idx in range(n_nit_sot):
- *         store_steps[<unsigned int>(idx + n_mit_mot + n_mit_sot + n_sit_sot)]=\
- *                 outer_inputs[<unsigned int>(idx + n_mit_mot + n_mit_sot + n_sit_sot             # <<<<<<<<<<<<<<
- *                                     + n_shared_outs + n_seqs+1)]
- * 
- */
     __pyx_t_12 = __Pyx_PyInt_As_int(PyList_GET_ITEM(__pyx_v_outer_inputs, __pyx_t_8)); if (unlikely((__pyx_t_12 == (int)-1) && PyErr_Occurred())) __PYX_ERR(0, 235, __pyx_L1_error)
 
     /* "aesara/scan/scan_perform.pyx":234
@@ -3723,10 +3711,6 @@ static PyObject *__pyx_pf_6aesara_4scan_12scan_perform_2perform(CYTHON_UNUSED Py
  * 
  *         if destroy_map[idx] != 0:
  */
-    if (unlikely(__pyx_v_outer_outputs == Py_None)) {
-      PyErr_SetString(PyExc_TypeError, "'NoneType' object is not subscriptable");
-      __PYX_ERR(0, 240, __pyx_L1_error)
-    }
     __pyx_t_1 = PyList_GET_ITEM(__pyx_v_outer_outputs, __pyx_v_idx);
     __Pyx_INCREF(__pyx_t_1);
     __Pyx_XDECREF_SET(__pyx_v_outer_outputs_idx, __pyx_t_1);
@@ -3750,10 +3734,6 @@ static PyObject *__pyx_pf_6aesara_4scan_12scan_perform_2perform(CYTHON_UNUSED Py
  *             continue
  * 
  */
-      if (unlikely(__pyx_v_outer_inputs == Py_None)) {
-        PyErr_SetString(PyExc_TypeError, "'NoneType' object is not subscriptable");
-        __PYX_ERR(0, 245, __pyx_L1_error)
-      }
       __pyx_t_8 = ((unsigned int)((1 + __pyx_v_n_seqs) + __pyx_v_idx));
       __pyx_t_1 = PyList_GET_ITEM(__pyx_v_outer_inputs, __pyx_t_8);
       __Pyx_INCREF(__pyx_t_1);
@@ -3817,10 +3797,6 @@ static PyObject *__pyx_pf_6aesara_4scan_12scan_perform_2perform(CYTHON_UNUSED Py
     __pyx_t_3 = __Pyx_PyObject_GetSlice(__pyx_t_1, 1, 0, NULL, NULL, &__pyx_slice_, 1, 0, 1); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 251, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_3);
     __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
-    if (unlikely(__pyx_v_outer_inputs == Py_None)) {
-      PyErr_SetString(PyExc_TypeError, "'NoneType' object is not subscriptable");
-      __PYX_ERR(0, 251, __pyx_L1_error)
-    }
     __pyx_t_8 = ((unsigned int)((1 + __pyx_v_n_seqs) + __pyx_v_idx));
     __pyx_t_1 = __Pyx_PyObject_GetAttrStr(PyList_GET_ITEM(__pyx_v_outer_inputs, __pyx_t_8), __pyx_n_s_shape); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 251, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_1);
@@ -3910,10 +3886,6 @@ static PyObject *__pyx_pf_6aesara_4scan_12scan_perform_2perform(CYTHON_UNUSED Py
  *             else:
  *                 outer_outputs_idx_0[:] = outer_inputs[<unsigned int>(seqs_arg_offset + idx)]
  */
-        if (unlikely(__pyx_v_outer_inputs == Py_None)) {
-          PyErr_SetString(PyExc_TypeError, "'NoneType' object is not subscriptable");
-          __PYX_ERR(0, 258, __pyx_L1_error)
-        }
         __pyx_t_8 = ((unsigned int)(__pyx_v_seqs_arg_offset + __pyx_v_idx));
         __pyx_t_3 = __Pyx_PyObject_GetSlice(PyList_GET_ITEM(__pyx_v_outer_inputs, __pyx_t_8), 0, __pyx_v_l, NULL, NULL, NULL, 0, 1, 1); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 258, __pyx_L1_error)
         __Pyx_GOTREF(__pyx_t_3);
@@ -3938,10 +3910,6 @@ static PyObject *__pyx_pf_6aesara_4scan_12scan_perform_2perform(CYTHON_UNUSED Py
  *             outer_outputs_idx[0] = outer_inputs[<unsigned int>(seqs_arg_offset + idx)].copy()
  */
       /*else*/ {
-        if (unlikely(__pyx_v_outer_inputs == Py_None)) {
-          PyErr_SetString(PyExc_TypeError, "'NoneType' object is not subscriptable");
-          __PYX_ERR(0, 260, __pyx_L1_error)
-        }
         __pyx_t_8 = ((unsigned int)(__pyx_v_seqs_arg_offset + __pyx_v_idx));
         __pyx_t_3 = PyList_GET_ITEM(__pyx_v_outer_inputs, __pyx_t_8);
         __Pyx_INCREF(__pyx_t_3);
@@ -3968,10 +3936,6 @@ static PyObject *__pyx_pf_6aesara_4scan_12scan_perform_2perform(CYTHON_UNUSED Py
  *     if n_steps == 0:
  */
     /*else*/ {
-      if (unlikely(__pyx_v_outer_inputs == Py_None)) {
-        PyErr_SetString(PyExc_TypeError, "'NoneType' object is not subscriptable");
-        __PYX_ERR(0, 262, __pyx_L1_error)
-      }
       __pyx_t_8 = ((unsigned int)(__pyx_v_seqs_arg_offset + __pyx_v_idx));
       __pyx_t_1 = __Pyx_PyObject_GetAttrStr(PyList_GET_ITEM(__pyx_v_outer_inputs, __pyx_t_8), __pyx_n_s_copy); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 262, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_1);
@@ -4042,10 +4006,6 @@ static PyObject *__pyx_pf_6aesara_4scan_12scan_perform_2perform(CYTHON_UNUSED Py
         __pyx_t_1 = __Pyx_PyObject_GetAttrStr(__pyx_t_3, __pyx_n_s_empty); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 272, __pyx_L1_error)
         __Pyx_GOTREF(__pyx_t_1);
         __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-        if (unlikely(__pyx_v_outer_output_ndims == Py_None)) {
-          PyErr_SetString(PyExc_TypeError, "'NoneType' object is not subscriptable");
-          __PYX_ERR(0, 272, __pyx_L1_error)
-        }
         __pyx_t_3 = PyNumber_Multiply(__pyx_tuple__3, PyTuple_GET_ITEM(__pyx_v_outer_output_ndims, __pyx_v_idx)); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 272, __pyx_L1_error)
         __Pyx_GOTREF(__pyx_t_3);
         __pyx_t_2 = PyTuple_New(1); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 272, __pyx_L1_error)
@@ -4055,20 +4015,12 @@ static PyObject *__pyx_pf_6aesara_4scan_12scan_perform_2perform(CYTHON_UNUSED Py
         __pyx_t_3 = 0;
         __pyx_t_3 = __Pyx_PyDict_NewPresized(1); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 272, __pyx_L1_error)
         __Pyx_GOTREF(__pyx_t_3);
-        if (unlikely(__pyx_v_outer_output_dtypes == Py_None)) {
-          PyErr_SetString(PyExc_TypeError, "'NoneType' object is not subscriptable");
-          __PYX_ERR(0, 272, __pyx_L1_error)
-        }
         if (PyDict_SetItem(__pyx_t_3, __pyx_n_s_dtype, PyTuple_GET_ITEM(__pyx_v_outer_output_dtypes, __pyx_v_idx)) < 0) __PYX_ERR(0, 272, __pyx_L1_error)
         __pyx_t_16 = __Pyx_PyObject_Call(__pyx_t_1, __pyx_t_2, __pyx_t_3); if (unlikely(!__pyx_t_16)) __PYX_ERR(0, 272, __pyx_L1_error)
         __Pyx_GOTREF(__pyx_t_16);
         __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
         __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
         __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-        if (unlikely(__pyx_v_outer_outputs == Py_None)) {
-          PyErr_SetString(PyExc_TypeError, "'NoneType' object is not subscriptable");
-          __PYX_ERR(0, 272, __pyx_L1_error)
-        }
         if (unlikely(__Pyx_SetItemInt(PyList_GET_ITEM(__pyx_v_outer_outputs, __pyx_v_idx), 0, __pyx_t_16, long, 1, __Pyx_PyInt_From_long, 0, 0, 0) < 0)) __PYX_ERR(0, 272, __pyx_L1_error)
         __Pyx_DECREF(__pyx_t_16); __pyx_t_16 = 0;
 
@@ -4090,10 +4042,6 @@ static PyObject *__pyx_pf_6aesara_4scan_12scan_perform_2perform(CYTHON_UNUSED Py
  * 
  */
       /*else*/ {
-        if (unlikely(__pyx_v_outer_outputs == Py_None)) {
-          PyErr_SetString(PyExc_TypeError, "'NoneType' object is not subscriptable");
-          __PYX_ERR(0, 274, __pyx_L1_error)
-        }
         if (unlikely(__Pyx_SetItemInt(PyList_GET_ITEM(__pyx_v_outer_outputs, __pyx_v_idx), 0, Py_None, long, 1, __Pyx_PyInt_From_long, 0, 0, 0) < 0)) __PYX_ERR(0, 274, __pyx_L1_error)
       }
       __pyx_L22:;
@@ -4167,10 +4115,6 @@ static PyObject *__pyx_pf_6aesara_4scan_12scan_perform_2perform(CYTHON_UNUSED Py
  * 
  *     cdef unsigned int nb_mitmot_in = 0
  */
-  if (unlikely(__pyx_v_outer_inputs == Py_None)) {
-    PyErr_SetString(PyExc_TypeError, "'NoneType' object is not subscriptable");
-    __PYX_ERR(0, 282, __pyx_L1_error)
-  }
   __pyx_t_16 = __Pyx_PyList_GetSlice(__pyx_v_outer_inputs, __pyx_v_offset, PY_SSIZE_T_MAX); if (unlikely(!__pyx_t_16)) __PYX_ERR(0, 282, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_16);
   __pyx_v_other_args = ((PyObject*)__pyx_t_16);
@@ -4206,10 +4150,6 @@ static PyObject *__pyx_pf_6aesara_4scan_12scan_perform_2perform(CYTHON_UNUSED Py
  */
     __pyx_t_16 = __Pyx_PyInt_From_unsigned_int(__pyx_v_nb_mitmot_in); if (unlikely(!__pyx_t_16)) __PYX_ERR(0, 286, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_16);
-    if (unlikely(__pyx_v_tap_array_len == Py_None)) {
-      PyErr_SetString(PyExc_TypeError, "'NoneType' object is not subscriptable");
-      __PYX_ERR(0, 286, __pyx_L1_error)
-    }
     __pyx_t_3 = PyNumber_InPlaceAdd(__pyx_t_16, PyTuple_GET_ITEM(__pyx_v_tap_array_len, __pyx_v_idx)); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 286, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_3);
     __Pyx_DECREF(__pyx_t_16); __pyx_t_16 = 0;
@@ -4324,10 +4264,6 @@ static PyObject *__pyx_pf_6aesara_4scan_12scan_perform_2perform(CYTHON_UNUSED Py
  */
     __pyx_t_3 = __Pyx_PyInt_From_unsigned_int(__pyx_v_offset); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 294, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_3);
-    if (unlikely(__pyx_v_tap_array_len == Py_None)) {
-      PyErr_SetString(PyExc_TypeError, "'NoneType' object is not subscriptable");
-      __PYX_ERR(0, 294, __pyx_L1_error)
-    }
     __pyx_t_16 = PyNumber_InPlaceAdd(__pyx_t_3, PyTuple_GET_ITEM(__pyx_v_tap_array_len, __pyx_v_idx)); if (unlikely(!__pyx_t_16)) __PYX_ERR(0, 294, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_16);
     __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
@@ -4366,10 +4302,6 @@ static PyObject *__pyx_pf_6aesara_4scan_12scan_perform_2perform(CYTHON_UNUSED Py
  */
     __pyx_t_16 = PyList_GET_ITEM(__pyx_v_other_args, __pyx_v_idx);
     __Pyx_INCREF(__pyx_t_16);
-    if (unlikely(__pyx_v_inner_input_storage == Py_None)) {
-      PyErr_SetString(PyExc_TypeError, "'NoneType' object is not subscriptable");
-      __PYX_ERR(0, 298, __pyx_L1_error)
-    }
     __pyx_t_6 = ((unsigned int)(__pyx_v_idx + __pyx_v_offset));
     if (unlikely(__Pyx_SetItemInt(PyList_GET_ITEM(__pyx_v_inner_input_storage, __pyx_t_6), 0, __pyx_t_16, long, 1, __Pyx_PyInt_From_long, 0, 0, 0) < 0)) __PYX_ERR(0, 298, __pyx_L1_error)
     __Pyx_DECREF(__pyx_t_16); __pyx_t_16 = 0;
@@ -4435,18 +4367,6 @@ static PyObject *__pyx_pf_6aesara_4scan_12scan_perform_2perform(CYTHON_UNUSED Py
       __pyx_t_5 = (((*((npy_bool const  *) ( /* dim=0 */ (__pyx_v_vector_seqs.data + __pyx_t_13 * __pyx_v_vector_seqs.strides[0]) ))) == 1) != 0);
       if (__pyx_t_5) {
 
-        /* "aesara/scan/scan_perform.pyx":309
- *         for idx in range(n_seqs):
- *             if vector_seqs[idx] == 1:
- *                 inner_input_storage[idx][0] = outer_inputs[\             # <<<<<<<<<<<<<<
- *                             <unsigned int>(1+idx)][i:<unsigned int>(i+1)].reshape(())
- *             else:
- */
-        if (unlikely(__pyx_v_outer_inputs == Py_None)) {
-          PyErr_SetString(PyExc_TypeError, "'NoneType' object is not subscriptable");
-          __PYX_ERR(0, 309, __pyx_L1_error)
-        }
-
         /* "aesara/scan/scan_perform.pyx":310
  *             if vector_seqs[idx] == 1:
  *                 inner_input_storage[idx][0] = outer_inputs[\
@@ -4499,10 +4419,6 @@ static PyObject *__pyx_pf_6aesara_4scan_12scan_perform_2perform(CYTHON_UNUSED Py
  *                             <unsigned int>(1+idx)][i:<unsigned int>(i+1)].reshape(())
  *             else:
  */
-        if (unlikely(__pyx_v_inner_input_storage == Py_None)) {
-          PyErr_SetString(PyExc_TypeError, "'NoneType' object is not subscriptable");
-          __PYX_ERR(0, 309, __pyx_L1_error)
-        }
         if (unlikely(__Pyx_SetItemInt(PyList_GET_ITEM(__pyx_v_inner_input_storage, __pyx_v_idx), 0, __pyx_t_16, long, 1, __Pyx_PyInt_From_long, 0, 0, 0) < 0)) __PYX_ERR(0, 309, __pyx_L1_error)
         __Pyx_DECREF(__pyx_t_16); __pyx_t_16 = 0;
 
@@ -4524,10 +4440,6 @@ static PyObject *__pyx_pf_6aesara_4scan_12scan_perform_2perform(CYTHON_UNUSED Py
  *         offset = n_seqs
  */
       /*else*/ {
-        if (unlikely(__pyx_v_outer_inputs == Py_None)) {
-          PyErr_SetString(PyExc_TypeError, "'NoneType' object is not subscriptable");
-          __PYX_ERR(0, 313, __pyx_L1_error)
-        }
         __pyx_t_8 = ((unsigned int)(__pyx_v_idx + 1));
         __pyx_t_16 = __Pyx_GetItemInt(PyList_GET_ITEM(__pyx_v_outer_inputs, __pyx_t_8), __pyx_v_i, unsigned int, 0, __Pyx_PyInt_From_unsigned_int, 0, 0, 0); if (unlikely(!__pyx_t_16)) __PYX_ERR(0, 313, __pyx_L1_error)
         __Pyx_GOTREF(__pyx_t_16);
@@ -4539,10 +4451,6 @@ static PyObject *__pyx_pf_6aesara_4scan_12scan_perform_2perform(CYTHON_UNUSED Py
  *                         outer_inputs[<unsigned int>(idx+1)][i]
  * 
  */
-        if (unlikely(__pyx_v_inner_input_storage == Py_None)) {
-          PyErr_SetString(PyExc_TypeError, "'NoneType' object is not subscriptable");
-          __PYX_ERR(0, 312, __pyx_L1_error)
-        }
         if (unlikely(__Pyx_SetItemInt(PyList_GET_ITEM(__pyx_v_inner_input_storage, __pyx_v_idx), 0, __pyx_t_16, long, 1, __Pyx_PyInt_From_long, 0, 0, 0) < 0)) __PYX_ERR(0, 312, __pyx_L1_error)
         __Pyx_DECREF(__pyx_t_16); __pyx_t_16 = 0;
       }
@@ -4597,10 +4505,6 @@ static PyObject *__pyx_pf_6aesara_4scan_12scan_perform_2perform(CYTHON_UNUSED Py
  * 
  *             if vector_outs[idx] == 1:
  */
-      if (unlikely(__pyx_v_outer_outputs == Py_None)) {
-        PyErr_SetString(PyExc_TypeError, "'NoneType' object is not subscriptable");
-        __PYX_ERR(0, 319, __pyx_L1_error)
-      }
       __pyx_t_16 = PyList_GET_ITEM(__pyx_v_outer_outputs, __pyx_v_idx);
       __Pyx_INCREF(__pyx_t_16);
       __Pyx_XDECREF_SET(__pyx_v_outer_outputs_idx, __pyx_t_16);
@@ -4624,10 +4528,6 @@ static PyObject *__pyx_pf_6aesara_4scan_12scan_perform_2perform(CYTHON_UNUSED Py
  *                     _idx = (pos_idx + tap) % store_steps_idx
  *                     inner_input_storage[offset][0] =\
  */
-        if (unlikely(__pyx_v_tap_array == Py_None)) {
-          PyErr_SetString(PyExc_TypeError, "'NoneType' object is not subscriptable");
-          __PYX_ERR(0, 322, __pyx_L1_error)
-        }
         if (likely(PyList_CheckExact(PyTuple_GET_ITEM(__pyx_v_tap_array, __pyx_v_idx))) || PyTuple_CheckExact(PyTuple_GET_ITEM(__pyx_v_tap_array, __pyx_v_idx))) {
           __pyx_t_16 = PyTuple_GET_ITEM(__pyx_v_tap_array, __pyx_v_idx); __Pyx_INCREF(__pyx_t_16); __pyx_t_9 = 0;
           __pyx_t_19 = NULL;
@@ -4723,10 +4623,6 @@ static PyObject *__pyx_pf_6aesara_4scan_12scan_perform_2perform(CYTHON_UNUSED Py
  *                             outer_outputs_idx[0][_idx:<unsigned int>(_idx + 1)].reshape(())
  *                     offset += 1
  */
-          if (unlikely(__pyx_v_inner_input_storage == Py_None)) {
-            PyErr_SetString(PyExc_TypeError, "'NoneType' object is not subscriptable");
-            __PYX_ERR(0, 324, __pyx_L1_error)
-          }
           if (unlikely(__Pyx_SetItemInt(PyList_GET_ITEM(__pyx_v_inner_input_storage, __pyx_v_offset), 0, __pyx_t_2, long, 1, __Pyx_PyInt_From_long, 0, 0, 0) < 0)) __PYX_ERR(0, 324, __pyx_L1_error)
           __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
 
@@ -4767,10 +4663,6 @@ static PyObject *__pyx_pf_6aesara_4scan_12scan_perform_2perform(CYTHON_UNUSED Py
  *                     inner_input_storage[offset][0] = outer_outputs_idx[0][_idx]
  */
       /*else*/ {
-        if (unlikely(__pyx_v_tap_array == Py_None)) {
-          PyErr_SetString(PyExc_TypeError, "'NoneType' object is not subscriptable");
-          __PYX_ERR(0, 328, __pyx_L1_error)
-        }
         if (likely(PyList_CheckExact(PyTuple_GET_ITEM(__pyx_v_tap_array, __pyx_v_idx))) || PyTuple_CheckExact(PyTuple_GET_ITEM(__pyx_v_tap_array, __pyx_v_idx))) {
           __pyx_t_16 = PyTuple_GET_ITEM(__pyx_v_tap_array, __pyx_v_idx); __Pyx_INCREF(__pyx_t_16); __pyx_t_9 = 0;
           __pyx_t_19 = NULL;
@@ -4840,10 +4732,6 @@ static PyObject *__pyx_pf_6aesara_4scan_12scan_perform_2perform(CYTHON_UNUSED Py
           __pyx_t_3 = __Pyx_GetItemInt(__pyx_t_2, __pyx_v__idx, int, 1, __Pyx_PyInt_From_int, 0, 1, 0); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 330, __pyx_L1_error)
           __Pyx_GOTREF(__pyx_t_3);
           __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-          if (unlikely(__pyx_v_inner_input_storage == Py_None)) {
-            PyErr_SetString(PyExc_TypeError, "'NoneType' object is not subscriptable");
-            __PYX_ERR(0, 330, __pyx_L1_error)
-          }
           if (unlikely(__Pyx_SetItemInt(PyList_GET_ITEM(__pyx_v_inner_input_storage, __pyx_v_offset), 0, __pyx_t_3, long, 1, __Pyx_PyInt_From_long, 0, 0, 0) < 0)) __PYX_ERR(0, 330, __pyx_L1_error)
           __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
 
@@ -4916,17 +4804,9 @@ static PyObject *__pyx_pf_6aesara_4scan_12scan_perform_2perform(CYTHON_UNUSED Py
  *                 offset += 1
  *         else:
  */
-        if (unlikely(__pyx_v_outer_inputs == Py_None)) {
-          PyErr_SetString(PyExc_TypeError, "'NoneType' object is not subscriptable");
-          __PYX_ERR(0, 338, __pyx_L1_error)
-        }
         __pyx_t_8 = ((unsigned int)(__pyx_v_a_offset + __pyx_v_j));
         __pyx_t_16 = PyList_GET_ITEM(__pyx_v_outer_inputs, __pyx_t_8);
         __Pyx_INCREF(__pyx_t_16);
-        if (unlikely(__pyx_v_inner_input_storage == Py_None)) {
-          PyErr_SetString(PyExc_TypeError, "'NoneType' object is not subscriptable");
-          __PYX_ERR(0, 338, __pyx_L1_error)
-        }
         if (unlikely(__Pyx_SetItemInt(PyList_GET_ITEM(__pyx_v_inner_input_storage, __pyx_v_offset), 0, __pyx_t_16, long, 1, __Pyx_PyInt_From_long, 0, 0, 0) < 0)) __PYX_ERR(0, 338, __pyx_L1_error)
         __Pyx_DECREF(__pyx_t_16); __pyx_t_16 = 0;
 
@@ -4970,17 +4850,9 @@ static PyObject *__pyx_pf_6aesara_4scan_12scan_perform_2perform(CYTHON_UNUSED Py
  *                 offset += 1
  * 
  */
-        if (unlikely(__pyx_v_outer_outputs == Py_None)) {
-          PyErr_SetString(PyExc_TypeError, "'NoneType' object is not subscriptable");
-          __PYX_ERR(0, 342, __pyx_L1_error)
-        }
         __pyx_t_8 = ((unsigned int)(__pyx_v_o_offset + __pyx_v_j));
         __pyx_t_16 = __Pyx_GetItemInt(PyList_GET_ITEM(__pyx_v_outer_outputs, __pyx_t_8), 0, long, 1, __Pyx_PyInt_From_long, 0, 0, 0); if (unlikely(!__pyx_t_16)) __PYX_ERR(0, 342, __pyx_L1_error)
         __Pyx_GOTREF(__pyx_t_16);
-        if (unlikely(__pyx_v_inner_input_storage == Py_None)) {
-          PyErr_SetString(PyExc_TypeError, "'NoneType' object is not subscriptable");
-          __PYX_ERR(0, 342, __pyx_L1_error)
-        }
         if (unlikely(__Pyx_SetItemInt(PyList_GET_ITEM(__pyx_v_inner_input_storage, __pyx_v_offset), 0, __pyx_t_16, long, 1, __Pyx_PyInt_From_long, 0, 0, 0) < 0)) __PYX_ERR(0, 342, __pyx_L1_error)
         __Pyx_DECREF(__pyx_t_16); __pyx_t_16 = 0;
 
@@ -5035,10 +4907,6 @@ static PyObject *__pyx_pf_6aesara_4scan_12scan_perform_2perform(CYTHON_UNUSED Py
  *             offset += 1
  * 
  */
-        if (unlikely(__pyx_v_inner_output_storage == Py_None)) {
-          PyErr_SetString(PyExc_TypeError, "'NoneType' object is not subscriptable");
-          __PYX_ERR(0, 351, __pyx_L1_error)
-        }
         if (unlikely(__Pyx_SetItemInt(PyList_GET_ITEM(__pyx_v_inner_output_storage, ((unsigned int)__pyx_v_offset)), 0, Py_None, long, 1, __Pyx_PyInt_From_long, 0, 0, 0) < 0)) __PYX_ERR(0, 351, __pyx_L1_error)
 
         /* "aesara/scan/scan_perform.pyx":350
@@ -5125,10 +4993,6 @@ static PyObject *__pyx_pf_6aesara_4scan_12scan_perform_2perform(CYTHON_UNUSED Py
  *                 else:
  *                     inner_output_storage[<unsigned int>(idx+offset)][0] =\
  */
-          if (unlikely(__pyx_v_inner_output_storage == Py_None)) {
-            PyErr_SetString(PyExc_TypeError, "'NoneType' object is not subscriptable");
-            __PYX_ERR(0, 359, __pyx_L1_error)
-          }
           __pyx_t_8 = ((unsigned int)(__pyx_v_idx + __pyx_v_offset));
           if (unlikely(__Pyx_SetItemInt(PyList_GET_ITEM(__pyx_v_inner_output_storage, __pyx_t_8), 0, Py_None, long, 1, __Pyx_PyInt_From_long, 0, 0, 0) < 0)) __PYX_ERR(0, 359, __pyx_L1_error)
 
@@ -5150,10 +5014,6 @@ static PyObject *__pyx_pf_6aesara_4scan_12scan_perform_2perform(CYTHON_UNUSED Py
  *         else:
  */
         /*else*/ {
-          if (unlikely(__pyx_v_outer_outputs == Py_None)) {
-            PyErr_SetString(PyExc_TypeError, "'NoneType' object is not subscriptable");
-            __PYX_ERR(0, 362, __pyx_L1_error)
-          }
           __pyx_t_8 = ((unsigned int)(__pyx_v_idx + __pyx_v_n_mit_mot));
           __pyx_t_16 = __Pyx_GetItemInt(PyList_GET_ITEM(__pyx_v_outer_outputs, __pyx_t_8), 0, long, 1, __Pyx_PyInt_From_long, 0, 0, 0); if (unlikely(!__pyx_t_16)) __PYX_ERR(0, 362, __pyx_L1_error)
           __Pyx_GOTREF(__pyx_t_16);
@@ -5186,10 +5046,6 @@ static PyObject *__pyx_pf_6aesara_4scan_12scan_perform_2perform(CYTHON_UNUSED Py
  *                         outer_outputs[<unsigned int>(idx+n_mit_mot)][0][pos[\
  *                                             <unsigned int>(idx+n_mit_mot)]]
  */
-          if (unlikely(__pyx_v_inner_output_storage == Py_None)) {
-            PyErr_SetString(PyExc_TypeError, "'NoneType' object is not subscriptable");
-            __PYX_ERR(0, 361, __pyx_L1_error)
-          }
           __pyx_t_8 = ((unsigned int)(__pyx_v_idx + __pyx_v_offset));
           if (unlikely(__Pyx_SetItemInt(PyList_GET_ITEM(__pyx_v_inner_output_storage, __pyx_t_8), 0, __pyx_t_3, long, 1, __Pyx_PyInt_From_long, 0, 0, 0) < 0)) __PYX_ERR(0, 361, __pyx_L1_error)
           __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
@@ -5227,10 +5083,6 @@ static PyObject *__pyx_pf_6aesara_4scan_12scan_perform_2perform(CYTHON_UNUSED Py
  * 
  *         # 4.3. Collect slices for shared outputs
  */
-        if (unlikely(__pyx_v_inner_output_storage == Py_None)) {
-          PyErr_SetString(PyExc_TypeError, "'NoneType' object is not subscriptable");
-          __PYX_ERR(0, 366, __pyx_L1_error)
-        }
         __pyx_t_8 = ((unsigned int)(__pyx_v_idx + __pyx_v_offset));
         if (unlikely(__Pyx_SetItemInt(PyList_GET_ITEM(__pyx_v_inner_output_storage, __pyx_t_8), 0, Py_None, long, 1, __Pyx_PyInt_From_long, 0, 0, 0) < 0)) __PYX_ERR(0, 366, __pyx_L1_error)
       }
@@ -5265,10 +5117,6 @@ static PyObject *__pyx_pf_6aesara_4scan_12scan_perform_2perform(CYTHON_UNUSED Py
  * 
  *         # 4.4. If there is a condition add it to the mix
  */
-      if (unlikely(__pyx_v_inner_output_storage == Py_None)) {
-        PyErr_SetString(PyExc_TypeError, "'NoneType' object is not subscriptable");
-        __PYX_ERR(0, 371, __pyx_L1_error)
-      }
       __pyx_t_8 = ((unsigned int)(__pyx_v_idx + __pyx_v_offset));
       if (unlikely(__Pyx_SetItemInt(PyList_GET_ITEM(__pyx_v_inner_output_storage, __pyx_t_8), 0, Py_None, long, 1, __Pyx_PyInt_From_long, 0, 0, 0) < 0)) __PYX_ERR(0, 371, __pyx_L1_error)
     }
@@ -5299,10 +5147,6 @@ static PyObject *__pyx_pf_6aesara_4scan_12scan_perform_2perform(CYTHON_UNUSED Py
  * 
  *         # 4.5. Keep a reference to the variables (ndarrays,
  */
-      if (unlikely(__pyx_v_inner_output_storage == Py_None)) {
-        PyErr_SetString(PyExc_TypeError, "'NoneType' object is not subscriptable");
-        __PYX_ERR(0, 376, __pyx_L1_error)
-      }
       if (unlikely(__Pyx_SetItemInt(PyList_GET_ITEM(__pyx_v_inner_output_storage, ((unsigned int)__pyx_v_pdx)), 0, Py_None, long, 1, __Pyx_PyInt_From_long, 0, 0, 0) < 0)) __PYX_ERR(0, 376, __pyx_L1_error)
 
       /* "aesara/scan/scan_perform.pyx":374
@@ -5333,10 +5177,6 @@ static PyObject *__pyx_pf_6aesara_4scan_12scan_perform_2perform(CYTHON_UNUSED Py
  *             old_output_storage[idx] = var
  * 
  */
-      if (unlikely(__pyx_v_inner_output_storage == Py_None)) {
-        PyErr_SetString(PyExc_TypeError, "'NoneType' object is not subscriptable");
-        __PYX_ERR(0, 386, __pyx_L1_error)
-      }
       __pyx_t_3 = __Pyx_GetItemInt(PyList_GET_ITEM(__pyx_v_inner_output_storage, __pyx_v_idx), 0, long, 1, __Pyx_PyInt_From_long, 0, 0, 0); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 386, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_3);
       __Pyx_XDECREF_SET(__pyx_v_var, __pyx_t_3);
@@ -5416,10 +5256,6 @@ static PyObject *__pyx_pf_6aesara_4scan_12scan_perform_2perform(CYTHON_UNUSED Py
  *             old_mitmot_input_storage[idx] = var
  * 
  */
-      if (unlikely(__pyx_v_inner_input_storage == Py_None)) {
-        PyErr_SetString(PyExc_TypeError, "'NoneType' object is not subscriptable");
-        __PYX_ERR(0, 401, __pyx_L1_error)
-      }
       __pyx_t_8 = (__pyx_v_idx + __pyx_v_n_seqs);
       __pyx_t_3 = __Pyx_GetItemInt(PyList_GET_ITEM(__pyx_v_inner_input_storage, __pyx_t_8), 0, long, 1, __Pyx_PyInt_From_long, 0, 0, 0); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 401, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_3);
@@ -5810,10 +5646,6 @@ static PyObject *__pyx_pf_6aesara_4scan_12scan_perform_2perform(CYTHON_UNUSED Py
  * 
  *         offset_out = 0
  */
-      if (unlikely(__pyx_v_inner_output_storage == Py_None)) {
-        PyErr_SetString(PyExc_TypeError, "'NoneType' object is not subscriptable");
-        __PYX_ERR(0, 421, __pyx_L1_error)
-      }
       __pyx_t_2 = __Pyx_GetItemInt(PyList_GET_ITEM(__pyx_v_inner_output_storage, __pyx_v_pdx), 0, long, 1, __Pyx_PyInt_From_long, 0, 0, 0); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 421, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_2);
       __pyx_t_3 = __Pyx_PyInt_EqObjC(__pyx_t_2, __pyx_int_0, 0, 0); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 421, __pyx_L1_error)
@@ -5878,10 +5710,6 @@ static PyObject *__pyx_pf_6aesara_4scan_12scan_perform_2perform(CYTHON_UNUSED Py
  *             pos_j = pos[j]
  *             outer_outputs_j_0 = outer_outputs[j][0]
  */
-      if (unlikely(__pyx_v_tap_array == Py_None)) {
-        PyErr_SetString(PyExc_TypeError, "'NoneType' object is not subscriptable");
-        __PYX_ERR(0, 430, __pyx_L1_error)
-      }
       __pyx_t_3 = PyTuple_GET_ITEM(__pyx_v_tap_array, __pyx_v_j);
       __Pyx_INCREF(__pyx_t_3);
       __Pyx_XDECREF_SET(__pyx_v_tap_array_j, __pyx_t_3);
@@ -5904,10 +5732,6 @@ static PyObject *__pyx_pf_6aesara_4scan_12scan_perform_2perform(CYTHON_UNUSED Py
  * 
  *             for k in mit_mot_out_slices[j]:
  */
-      if (unlikely(__pyx_v_outer_outputs == Py_None)) {
-        PyErr_SetString(PyExc_TypeError, "'NoneType' object is not subscriptable");
-        __PYX_ERR(0, 432, __pyx_L1_error)
-      }
       __pyx_t_3 = __Pyx_GetItemInt(PyList_GET_ITEM(__pyx_v_outer_outputs, __pyx_v_j), 0, long, 1, __Pyx_PyInt_From_long, 0, 0, 0); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 432, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_3);
       __Pyx_XDECREF_SET(__pyx_v_outer_outputs_j_0, __pyx_t_3);
@@ -5920,10 +5744,6 @@ static PyObject *__pyx_pf_6aesara_4scan_12scan_perform_2perform(CYTHON_UNUSED Py
  *                 if mitmots_preallocated[mitmot_out_idx]:
  *                     # This output tap has been preallocated.
  */
-      if (unlikely(__pyx_v_mit_mot_out_slices == Py_None)) {
-        PyErr_SetString(PyExc_TypeError, "'NoneType' object is not subscriptable");
-        __PYX_ERR(0, 434, __pyx_L1_error)
-      }
       if (likely(PyList_CheckExact(PyTuple_GET_ITEM(__pyx_v_mit_mot_out_slices, __pyx_v_j))) || PyTuple_CheckExact(PyTuple_GET_ITEM(__pyx_v_mit_mot_out_slices, __pyx_v_j))) {
         __pyx_t_3 = PyTuple_GET_ITEM(__pyx_v_mit_mot_out_slices, __pyx_v_j); __Pyx_INCREF(__pyx_t_3); __pyx_t_9 = 0;
         __pyx_t_19 = NULL;
@@ -6043,10 +5863,6 @@ static PyObject *__pyx_pf_6aesara_4scan_12scan_perform_2perform(CYTHON_UNUSED Py
  * 
  *                     # If the corresponding input storage has been replaced,
  */
-          if (unlikely(__pyx_v_inner_input_storage == Py_None)) {
-            PyErr_SetString(PyExc_TypeError, "'NoneType' object is not subscriptable");
-            __PYX_ERR(0, 443, __pyx_L1_error)
-          }
           __pyx_t_1 = __Pyx_GetItemInt(PyList_GET_ITEM(__pyx_v_inner_input_storage, __pyx_v_inner_inp_idx), 0, long, 1, __Pyx_PyInt_From_long, 0, 0, 0); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 443, __pyx_L1_error)
           __Pyx_GOTREF(__pyx_t_1);
           __Pyx_XDECREF_SET(__pyx_v_new_var, __pyx_t_1);
@@ -6083,10 +5899,6 @@ static PyObject *__pyx_pf_6aesara_4scan_12scan_perform_2perform(CYTHON_UNUSED Py
  *                 else:
  *                     # This output tap has not been preallocated, recover
  */
-            if (unlikely(__pyx_v_inner_input_storage == Py_None)) {
-              PyErr_SetString(PyExc_TypeError, "'NoneType' object is not subscriptable");
-              __PYX_ERR(0, 450, __pyx_L1_error)
-            }
             __pyx_t_16 = __Pyx_GetItemInt(PyList_GET_ITEM(__pyx_v_inner_input_storage, __pyx_v_inner_inp_idx), 0, long, 1, __Pyx_PyInt_From_long, 0, 0, 0); if (unlikely(!__pyx_t_16)) __PYX_ERR(0, 450, __pyx_L1_error)
             __Pyx_GOTREF(__pyx_t_16);
 
@@ -6128,10 +5940,6 @@ static PyObject *__pyx_pf_6aesara_4scan_12scan_perform_2perform(CYTHON_UNUSED Py
  *                 offset_out += 1
  */
         /*else*/ {
-          if (unlikely(__pyx_v_inner_output_storage == Py_None)) {
-            PyErr_SetString(PyExc_TypeError, "'NoneType' object is not subscriptable");
-            __PYX_ERR(0, 455, __pyx_L1_error)
-          }
           __pyx_t_16 = __Pyx_GetItemInt(PyList_GET_ITEM(__pyx_v_inner_output_storage, __pyx_v_offset_out), 0, long, 1, __Pyx_PyInt_From_long, 0, 0, 0); if (unlikely(!__pyx_t_16)) __PYX_ERR(0, 455, __pyx_L1_error)
           __Pyx_GOTREF(__pyx_t_16);
 
@@ -6185,10 +5993,6 @@ static PyObject *__pyx_pf_6aesara_4scan_12scan_perform_2perform(CYTHON_UNUSED Py
  */
       __pyx_t_3 = __Pyx_PyInt_From_unsigned_int(__pyx_v_mitmot_inp_offset); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 460, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_3);
-      if (unlikely(__pyx_v_tap_array_len == Py_None)) {
-        PyErr_SetString(PyExc_TypeError, "'NoneType' object is not subscriptable");
-        __PYX_ERR(0, 460, __pyx_L1_error)
-      }
       __pyx_t_16 = PyNumber_InPlaceAdd(__pyx_t_3, PyTuple_GET_ITEM(__pyx_v_tap_array_len, __pyx_v_j)); if (unlikely(!__pyx_t_16)) __PYX_ERR(0, 460, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_16);
       __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
@@ -6252,10 +6056,6 @@ static PyObject *__pyx_pf_6aesara_4scan_12scan_perform_2perform(CYTHON_UNUSED Py
  * 
  *             # Copy the output value to `outer_outputs`, if necessary
  */
-      if (unlikely(__pyx_v_outer_outputs == Py_None)) {
-        PyErr_SetString(PyExc_TypeError, "'NoneType' object is not subscriptable");
-        __PYX_ERR(0, 470, __pyx_L1_error)
-      }
       __pyx_t_16 = PyList_GET_ITEM(__pyx_v_outer_outputs, __pyx_v_j);
       __Pyx_INCREF(__pyx_t_16);
       __Pyx_XDECREF_SET(__pyx_v_outer_outputs_j, __pyx_t_16);
@@ -6288,10 +6088,6 @@ static PyObject *__pyx_pf_6aesara_4scan_12scan_perform_2perform(CYTHON_UNUSED Py
  *             else:
  *                 # Check whether the initialization of the output storage map
  */
-        if (unlikely(__pyx_v_inner_output_storage == Py_None)) {
-          PyErr_SetString(PyExc_TypeError, "'NoneType' object is not subscriptable");
-          __PYX_ERR(0, 474, __pyx_L1_error)
-        }
         __pyx_t_16 = __Pyx_GetItemInt(PyList_GET_ITEM(__pyx_v_inner_output_storage, __pyx_v_jout), 0, long, 1, __Pyx_PyInt_From_long, 0, 0, 0); if (unlikely(!__pyx_t_16)) __PYX_ERR(0, 474, __pyx_L1_error)
         __Pyx_GOTREF(__pyx_t_16);
         __pyx_t_3 = __Pyx_GetItemInt(__pyx_v_outer_outputs_j, 0, long, 1, __Pyx_PyInt_From_long, 0, 0, 0); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 474, __pyx_L1_error)
@@ -6344,10 +6140,6 @@ static PyObject *__pyx_pf_6aesara_4scan_12scan_perform_2perform(CYTHON_UNUSED Py
  * 
  *                 if old_var is not new_var or old_data is None:
  */
-        if (unlikely(__pyx_v_inner_output_storage == Py_None)) {
-          PyErr_SetString(PyExc_TypeError, "'NoneType' object is not subscriptable");
-          __PYX_ERR(0, 480, __pyx_L1_error)
-        }
         __pyx_t_16 = __Pyx_GetItemInt(PyList_GET_ITEM(__pyx_v_inner_output_storage, __pyx_v_jout), 0, long, 1, __Pyx_PyInt_From_long, 0, 0, 0); if (unlikely(!__pyx_t_16)) __PYX_ERR(0, 480, __pyx_L1_error)
         __Pyx_GOTREF(__pyx_t_16);
         __Pyx_XDECREF_SET(__pyx_v_new_var, __pyx_t_16);
@@ -6465,10 +6257,6 @@ static PyObject *__pyx_pf_6aesara_4scan_12scan_perform_2perform(CYTHON_UNUSED Py
  *                 shape = (store_steps_j,) + inner_output_storage_jout_0.shape
  *                 dtype = inner_output_storage_jout_0.dtype
  */
-        if (unlikely(__pyx_v_inner_output_storage == Py_None)) {
-          PyErr_SetString(PyExc_TypeError, "'NoneType' object is not subscriptable");
-          __PYX_ERR(0, 494, __pyx_L1_error)
-        }
         __pyx_t_16 = __Pyx_GetItemInt(PyList_GET_ITEM(__pyx_v_inner_output_storage, __pyx_v_jout), 0, long, 1, __Pyx_PyInt_From_long, 0, 0, 0); if (unlikely(!__pyx_t_16)) __PYX_ERR(0, 494, __pyx_L1_error)
         __Pyx_GOTREF(__pyx_t_16);
         __Pyx_XDECREF_SET(__pyx_v_inner_output_storage_jout_0, __pyx_t_16);
@@ -6516,10 +6304,6 @@ static PyObject *__pyx_pf_6aesara_4scan_12scan_perform_2perform(CYTHON_UNUSED Py
  *                 outer_outputs_j_0 = outer_outputs_j[0]
  * 
  */
-        if (unlikely(__pyx_v_outer_outputs == Py_None)) {
-          PyErr_SetString(PyExc_TypeError, "'NoneType' object is not subscriptable");
-          __PYX_ERR(0, 497, __pyx_L1_error)
-        }
         __pyx_t_1 = PyList_GET_ITEM(__pyx_v_outer_outputs, __pyx_v_j);
         __Pyx_INCREF(__pyx_t_1);
         __Pyx_XDECREF_SET(__pyx_v_outer_outputs_j, __pyx_t_1);
@@ -6646,10 +6430,6 @@ static PyObject *__pyx_pf_6aesara_4scan_12scan_perform_2perform(CYTHON_UNUSED Py
           PyTuple_SET_ITEM(__pyx_t_3, 0, __pyx_v_shape);
           __pyx_t_1 = __Pyx_PyDict_NewPresized(1); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 506, __pyx_L1_error)
           __Pyx_GOTREF(__pyx_t_1);
-          if (unlikely(__pyx_v_outer_output_dtypes == Py_None)) {
-            PyErr_SetString(PyExc_TypeError, "'NoneType' object is not subscriptable");
-            __PYX_ERR(0, 506, __pyx_L1_error)
-          }
           if (PyDict_SetItem(__pyx_t_1, __pyx_n_s_dtype, PyTuple_GET_ITEM(__pyx_v_outer_output_dtypes, __pyx_v_j)) < 0) __PYX_ERR(0, 506, __pyx_L1_error)
           __pyx_t_2 = __Pyx_PyObject_Call(__pyx_t_16, __pyx_t_3, __pyx_t_1); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 506, __pyx_L1_error)
           __Pyx_GOTREF(__pyx_t_2);
@@ -6782,16 +6562,8 @@ static PyObject *__pyx_pf_6aesara_4scan_12scan_perform_2perform(CYTHON_UNUSED Py
  *             else:
  *                 # Check whether the initialization of the output storage map
  */
-        if (unlikely(__pyx_v_inner_output_storage == Py_None)) {
-          PyErr_SetString(PyExc_TypeError, "'NoneType' object is not subscriptable");
-          __PYX_ERR(0, 516, __pyx_L1_error)
-        }
         __pyx_t_3 = __Pyx_GetItemInt(PyList_GET_ITEM(__pyx_v_inner_output_storage, __pyx_v_jout), 0, long, 1, __Pyx_PyInt_From_long, 0, 0, 0); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 516, __pyx_L1_error)
         __Pyx_GOTREF(__pyx_t_3);
-        if (unlikely(__pyx_v_outer_outputs == Py_None)) {
-          PyErr_SetString(PyExc_TypeError, "'NoneType' object is not subscriptable");
-          __PYX_ERR(0, 516, __pyx_L1_error)
-        }
         __pyx_t_2 = __Pyx_GetItemInt(PyList_GET_ITEM(__pyx_v_outer_outputs, __pyx_v_j), 0, long, 1, __Pyx_PyInt_From_long, 0, 0, 0); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 516, __pyx_L1_error)
         __Pyx_GOTREF(__pyx_t_2);
         __pyx_t_13 = __pyx_v_j;
@@ -6842,10 +6614,6 @@ static PyObject *__pyx_pf_6aesara_4scan_12scan_perform_2perform(CYTHON_UNUSED Py
  * 
  *                 if old_var is not new_var or old_data is None:
  */
-        if (unlikely(__pyx_v_inner_output_storage == Py_None)) {
-          PyErr_SetString(PyExc_TypeError, "'NoneType' object is not subscriptable");
-          __PYX_ERR(0, 522, __pyx_L1_error)
-        }
         __pyx_t_3 = __Pyx_GetItemInt(PyList_GET_ITEM(__pyx_v_inner_output_storage, __pyx_v_jout), 0, long, 1, __Pyx_PyInt_From_long, 0, 0, 0); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 522, __pyx_L1_error)
         __Pyx_GOTREF(__pyx_t_3);
         __Pyx_XDECREF_SET(__pyx_v_new_var, __pyx_t_3);
@@ -6878,10 +6646,6 @@ static PyObject *__pyx_pf_6aesara_4scan_12scan_perform_2perform(CYTHON_UNUSED Py
  * 
  *         # 5.6 Copy over the values for outputs corresponding to shared
  */
-          if (unlikely(__pyx_v_outer_outputs == Py_None)) {
-            PyErr_SetString(PyExc_TypeError, "'NoneType' object is not subscriptable");
-            __PYX_ERR(0, 525, __pyx_L1_error)
-          }
           __pyx_t_3 = __Pyx_GetItemInt(PyList_GET_ITEM(__pyx_v_outer_outputs, __pyx_v_j), 0, long, 1, __Pyx_PyInt_From_long, 0, 0, 0); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 525, __pyx_L1_error)
           __Pyx_GOTREF(__pyx_t_3);
           __pyx_t_13 = __pyx_v_j;
@@ -6947,16 +6711,8 @@ static PyObject *__pyx_pf_6aesara_4scan_12scan_perform_2perform(CYTHON_UNUSED Py
  * 
  *         for idx in range(lenpos):
  */
-      if (unlikely(__pyx_v_inner_output_storage == Py_None)) {
-        PyErr_SetString(PyExc_TypeError, "'NoneType' object is not subscriptable");
-        __PYX_ERR(0, 533, __pyx_L1_error)
-      }
       __pyx_t_3 = __Pyx_GetItemInt(PyList_GET_ITEM(__pyx_v_inner_output_storage, __pyx_v_jout), 0, long, 1, __Pyx_PyInt_From_long, 0, 0, 0); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 533, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_3);
-      if (unlikely(__pyx_v_outer_outputs == Py_None)) {
-        PyErr_SetString(PyExc_TypeError, "'NoneType' object is not subscriptable");
-        __PYX_ERR(0, 533, __pyx_L1_error)
-      }
       if (unlikely(__Pyx_SetItemInt(PyList_GET_ITEM(__pyx_v_outer_outputs, __pyx_v_j), 0, __pyx_t_3, long, 1, __Pyx_PyInt_From_long, 0, 0, 0) < 0)) __PYX_ERR(0, 533, __pyx_L1_error)
       __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
     }
@@ -7039,10 +6795,6 @@ static PyObject *__pyx_pf_6aesara_4scan_12scan_perform_2perform(CYTHON_UNUSED Py
  *         outer_outputs_idx_0 = outer_outputs_idx[0]
  * 
  */
-    if (unlikely(__pyx_v_outer_outputs == Py_None)) {
-      PyErr_SetString(PyExc_TypeError, "'NoneType' object is not subscriptable");
-      __PYX_ERR(0, 543, __pyx_L1_error)
-    }
     __pyx_t_3 = PyList_GET_ITEM(__pyx_v_outer_outputs, __pyx_v_idx);
     __Pyx_INCREF(__pyx_t_3);
     __Pyx_XDECREF_SET(__pyx_v_outer_outputs_idx, __pyx_t_3);
@@ -7163,10 +6915,6 @@ static PyObject *__pyx_pf_6aesara_4scan_12scan_perform_2perform(CYTHON_UNUSED Py
         PyTuple_SET_ITEM(__pyx_t_3, 0, __pyx_v_shape);
         __pyx_t_2 = __Pyx_PyDict_NewPresized(1); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 560, __pyx_L1_error)
         __Pyx_GOTREF(__pyx_t_2);
-        if (unlikely(__pyx_v_outer_output_dtypes == Py_None)) {
-          PyErr_SetString(PyExc_TypeError, "'NoneType' object is not subscriptable");
-          __PYX_ERR(0, 560, __pyx_L1_error)
-        }
         if (PyDict_SetItem(__pyx_t_2, __pyx_n_s_dtype, PyTuple_GET_ITEM(__pyx_v_outer_output_dtypes, __pyx_v_idx)) < 0) __PYX_ERR(0, 560, __pyx_L1_error)
         __pyx_t_16 = __Pyx_PyObject_Call(__pyx_t_1, __pyx_t_3, __pyx_t_2); if (unlikely(!__pyx_t_16)) __PYX_ERR(0, 560, __pyx_L1_error)
         __Pyx_GOTREF(__pyx_t_16);
@@ -7265,10 +7013,6 @@ static PyObject *__pyx_pf_6aesara_4scan_12scan_perform_2perform(CYTHON_UNUSED Py
         PyTuple_SET_ITEM(__pyx_t_16, 0, __pyx_v_shape);
         __pyx_t_2 = __Pyx_PyDict_NewPresized(1); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 566, __pyx_L1_error)
         __Pyx_GOTREF(__pyx_t_2);
-        if (unlikely(__pyx_v_outer_output_dtypes == Py_None)) {
-          PyErr_SetString(PyExc_TypeError, "'NoneType' object is not subscriptable");
-          __PYX_ERR(0, 566, __pyx_L1_error)
-        }
         if (PyDict_SetItem(__pyx_t_2, __pyx_n_s_dtype, PyTuple_GET_ITEM(__pyx_v_outer_output_dtypes, __pyx_v_idx)) < 0) __PYX_ERR(0, 566, __pyx_L1_error)
         __pyx_t_1 = __Pyx_PyObject_Call(__pyx_t_3, __pyx_t_16, __pyx_t_2); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 566, __pyx_L1_error)
         __Pyx_GOTREF(__pyx_t_1);
@@ -7407,10 +7151,6 @@ static PyObject *__pyx_pf_6aesara_4scan_12scan_perform_2perform(CYTHON_UNUSED Py
  *         s[0] = None
  *     for s in inner_output_storage:
  */
-  if (unlikely(__pyx_v_inner_input_storage == Py_None)) {
-    PyErr_SetString(PyExc_TypeError, "'NoneType' object is not iterable");
-    __PYX_ERR(0, 597, __pyx_L1_error)
-  }
   __pyx_t_2 = __pyx_v_inner_input_storage; __Pyx_INCREF(__pyx_t_2); __pyx_t_9 = 0;
   for (;;) {
     if (__pyx_t_9 >= PyList_GET_SIZE(__pyx_t_2)) break;
@@ -7449,10 +7189,6 @@ static PyObject *__pyx_pf_6aesara_4scan_12scan_perform_2perform(CYTHON_UNUSED Py
  *         s[0] = None
  * 
  */
-  if (unlikely(__pyx_v_inner_output_storage == Py_None)) {
-    PyErr_SetString(PyExc_TypeError, "'NoneType' object is not iterable");
-    __PYX_ERR(0, 599, __pyx_L1_error)
-  }
   __pyx_t_2 = __pyx_v_inner_output_storage; __Pyx_INCREF(__pyx_t_2); __pyx_t_9 = 0;
   for (;;) {
     if (__pyx_t_9 >= PyList_GET_SIZE(__pyx_t_2)) break;
@@ -22838,7 +22574,7 @@ static CYTHON_SMALL_CODE int __Pyx_InitCachedConstants(void) {
  * 
  * 
  * def get_version():             # <<<<<<<<<<<<<<
- *     return 0.318
+ *     return 0.319
  * 
  */
   __pyx_codeobj__24 = (PyObject*)__Pyx_PyCode_New(0, 0, 0, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_scan_perform_pyx, __pyx_n_s_get_version, 64, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__24)) __PYX_ERR(0, 64, __pyx_L1_error)
@@ -22929,7 +22665,7 @@ static CYTHON_SMALL_CODE int __Pyx_InitCachedConstants(void) {
 static CYTHON_SMALL_CODE int __Pyx_InitGlobals(void) {
   if (__Pyx_InitStrings(__pyx_string_tab) < 0) __PYX_ERR(0, 1, __pyx_L1_error);
   __pyx_float_0_0 = PyFloat_FromDouble(0.0); if (unlikely(!__pyx_float_0_0)) __PYX_ERR(0, 1, __pyx_L1_error)
-  __pyx_float_0_318 = PyFloat_FromDouble(0.318); if (unlikely(!__pyx_float_0_318)) __PYX_ERR(0, 1, __pyx_L1_error)
+  __pyx_float_0_319 = PyFloat_FromDouble(0.319); if (unlikely(!__pyx_float_0_319)) __PYX_ERR(0, 1, __pyx_L1_error)
   __pyx_int_0 = PyInt_FromLong(0); if (unlikely(!__pyx_int_0)) __PYX_ERR(0, 1, __pyx_L1_error)
   __pyx_int_1 = PyInt_FromLong(1); if (unlikely(!__pyx_int_1)) __PYX_ERR(0, 1, __pyx_L1_error)
   __pyx_int_184977713 = PyInt_FromLong(184977713L); if (unlikely(!__pyx_int_184977713)) __PYX_ERR(0, 1, __pyx_L1_error)
@@ -23402,7 +23138,7 @@ if (!__Pyx_RefNanny) {
  * 
  * 
  * def get_version():             # <<<<<<<<<<<<<<
- *     return 0.318
+ *     return 0.319
  * 
  */
   __pyx_t_2 = PyCFunction_NewEx(&__pyx_mdef_6aesara_4scan_12scan_perform_1get_version, NULL, __pyx_n_s_aesara_scan_scan_perform); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 64, __pyx_L1_error)
