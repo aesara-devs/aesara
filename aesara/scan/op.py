@@ -1546,13 +1546,16 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
             cython_pos = np.zeros(n_outs + self.info.n_nit_sot, dtype=np.int32)
             cython_store_steps = np.zeros(n_outs + self.info.n_nit_sot, dtype=np.int32)
 
-            tap_array_len = tuple(
-                len(x)
-                for x in chain(
-                    self.info.mit_mot_in_slices,
-                    self.info.mit_sot_in_slices,
-                    self.info.sit_sot_in_slices,
-                )
+            tap_array_len = np.array(
+                [
+                    len(x)
+                    for x in chain(
+                        self.info.mit_mot_in_slices,
+                        self.info.mit_sot_in_slices,
+                        self.info.sit_sot_in_slices,
+                    )
+                ],
+                dtype=np.uint32,
             )
 
             cython_vector_seqs = np.asarray(self.vector_seqs, dtype=bool)
@@ -1575,10 +1578,11 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
             inner_output_storage = [s.storage for s in self.fn.output_storage]
 
             outer_output_dtypes = tuple(
-                getattr(out, "dtype", None) for out in node.outputs
+                getattr(out, "dtype", object) for out in node.outputs
             )
-            outer_output_ndims = tuple(
-                getattr(out, "ndim", None) for out in node.outputs
+
+            outer_output_ndims = np.array(
+                [getattr(out, "ndim", 0) for out in node.outputs], dtype=np.uint32
             )
 
             from aesara.scan.utils import InnerFunctionError
