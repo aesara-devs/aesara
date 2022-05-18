@@ -23,7 +23,7 @@ if not config.cxx:
 
 _logger = logging.getLogger("aesara.scan.scan_perform")
 
-version = 0.317  # must match constant returned in function get_version()
+version = 0.318  # must match constant returned in function get_version()
 
 need_reload = False
 scan_perform: Optional[ModuleType] = None
