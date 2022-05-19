@@ -1543,8 +1543,8 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
             cython_mintaps = np.asarray(self.mintaps, dtype="int32")
 
             n_outs = self.info.n_mit_mot + self.info.n_mit_sot + self.info.n_sit_sot
-            cython_pos = np.zeros(n_outs + self.info.n_nit_sot, dtype=np.int32)
-            cython_store_steps = np.zeros(n_outs + self.info.n_nit_sot, dtype=np.int32)
+            cython_pos = np.zeros(n_outs + self.info.n_nit_sot, dtype=np.uint32)
+            cython_store_steps = np.zeros(n_outs + self.info.n_nit_sot, dtype=np.uint32)
 
             tap_array_len = np.array(
                 [
