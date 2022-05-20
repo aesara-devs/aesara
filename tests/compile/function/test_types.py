@@ -299,7 +299,7 @@ class TestFunction:
             t()
 
     def test_copy(self):
-        a = scalar()  # the a is for 'anonymous' (un-named).
+        a = scalar()
         x, s = scalars("xs")
 
         f = function(
@@ -312,26 +312,34 @@ class TestFunction:
         )
 
         g = copy.copy(f)
-        # if they both return, assume  that they return equivalent things.
+
+        assert f.unpack_single == g.unpack_single
+        assert f.trust_input == g.trust_input
 
         assert g.container[x].storage is not f.container[x].storage
         assert g.container[a].storage is not f.container[a].storage
         assert g.container[s].storage is not f.container[s].storage
 
-        assert g.value[a] is f.value[a]  # should not have been copied
-        assert (
-            g.value[s] is not f.value[s]
-        )  # should have been copied because it is mutable.
-        assert not (g.value[s] != f.value[s]).any()  # its contents should be identical
+        # Should not have been copied
+        assert g.value[a] is f.value[a]
 
-        assert f(2, 1) == g(
-            2
-        )  # they should be in sync, default value should be copied.
-        assert f(2, 1) == g(
-            2
-        )  # they should be in sync, default value should be copied.
-        f(1, 2)  # put them out of sync
-        assert f(1, 2) != g(1, 2)  # they should not be equal anymore.
+        # Should have been copied because it is mutable
+        assert g.value[s] is not f.value[s]
+
+        # Their contents should be equal, though
+        assert np.array_equal(g.value[s], f.value[s])
+
+        # They should be in sync, default value should be copied
+        assert np.array_equal(f(2, 1), g(2))
+
+        # They should be in sync, default value should be copied
+        assert np.array_equal(f(2, 1), g(2))
+
+        # Put them out of sync
+        f(1, 2)
+
+        # They should not be equal anymore
+        assert not np.array_equal(f(1, 2), g(1, 2))
 
     def test_copy_share_memory(self):
         x = fscalar("x")
@@ -478,9 +486,9 @@ class TestFunction:
             ori = function([x], out, mode=mode, updates={z: z * 2})
             cpy = ori.copy(delete_updates=True)
 
-            assert cpy(1)[0] == 4
-            assert cpy(1)[0] == 4
-            assert cpy(1)[0] == 4
+            assert cpy(1) == 4
+            assert cpy(1) == 4
+            assert cpy(1) == 4
 
         # Test if unused implicit and explicit inputs from delete_updates
         # are ignored as intended.

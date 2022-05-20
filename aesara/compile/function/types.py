@@ -785,6 +785,8 @@ class Function:
                 f_cpy.finder[swap[in_ori.variable]] = container
                 in_cpy.variable = swap[in_ori.variable]
 
+        f_cpy.trust_input = self.trust_input
+        f_cpy.unpack_single = self.unpack_single
         f_cpy.name = name
         f_cpy.maker.fgraph.name = name
         return f_cpy
