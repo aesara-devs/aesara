@@ -48,7 +48,7 @@ from aesara.tensor.random import normal
 from aesara.tensor.random.utils import RandomStream
 from aesara.tensor.shape import Shape_i, reshape, specify_shape
 from aesara.tensor.sharedvar import SharedVariable
-from aesara.tensor.subtensor import Subtensor, inc_subtensor
+from aesara.tensor.subtensor import Subtensor
 from aesara.tensor.type import (
     dcol,
     dmatrix,
@@ -2182,173 +2182,53 @@ def test_cvm_exception_handling(mode):
 @pytest.mark.skipif(
     not config.cxx, reason="G++ not available, so we need to skip this test."
 )
-def test_speed():
+def test_cython_performance():
+
+    # This implicitly confirms that the Cython version is being used
+    from aesara.scan import scan_perform_ext  # noqa: F401
+
+    # Python usually out-performs Aesara below 100 iterations
+    N = 200
     n_timeit = 50
 
-    # We need the CVM for this speed test
-    r = np.arange(10000).astype(config.floatX).reshape(1000, 10)
+    M = -1 / np.arange(1, 11).astype(config.floatX)
+    r = np.arange(N * 10).astype(config.floatX).reshape(N, 10)
 
     def f_py():
-        for i in range(1, 1000):
-            r[i] += r[i - 1]
+        py_out = np.empty((N, 10), dtype=config.floatX)
+        py_out[0] = r[0]
+        for i in range(1, py_out.shape[0]):
+            py_out[i] = r[i] + M * py_out[i - 1]
+        return py_out[1:]
+
+    py_res = f_py()
+
+    s_r = at.as_tensor_variable(r, dtype=config.floatX)
+    s_y, updates = scan(
+        fn=lambda ri, rii, M: ri + M * rii,
+        sequences=[s_r[1:]],
+        non_sequences=[at.as_tensor_variable(M, dtype=config.floatX)],
+        outputs_info=s_r[0],
+        mode=Mode(linker="cvm", optimizer="fast_run"),
+    )
+    assert not updates
+
+    f_cvm = function([], s_y, mode="FAST_RUN")
+    f_cvm.trust_input = True
+
+    # Make sure we're actually computing a `Scan`
+    assert any(isinstance(node.op, Scan) for node in f_cvm.maker.fgraph.apply_nodes)
+
+    cvm_res = f_cvm()
+
+    # Make sure the results are the same between the two implementations
+    assert np.allclose(cvm_res, py_res)
 
     python_duration = timeit.timeit(lambda: f_py(), number=n_timeit)
+    cvm_duration = timeit.timeit(lambda: f_cvm(), number=n_timeit)
+    print(f"python={python_duration}, cvm={cvm_duration}")
 
-    r = np.arange(10000).astype(config.floatX).reshape(1000, 10)
-
-    def f_py_iter():
-        r_i = iter(r[1:])
-        r_ii = iter(r[:-1])
-        while True:
-            try:
-                tmp = next(r_i)
-                tmp += next(r_ii)
-            except StopIteration:
-                break
-
-    python_iter_duration = timeit.timeit(lambda: f_py_iter(), number=n_timeit)
-
-    # r = np.arange(10000).astype(config.floatX).reshape(1000, 10)
-    # s_r = matrix()
-    # s_y, updates = scan(
-    #     fn=lambda ri, rii: ri + rii,
-    #     sequences=[s_r[1:]],
-    #     outputs_info=at.constant(r[0]),
-    #     mode=Mode(linker="cvm"),
-    # )
-    # assert not updates
-    #
-    # f_cvm = function([s_r], s_y)
-    #
-    # cvm_duration = timeit.timeit(lambda: f_cvm(r), number=n_timeit)
-
-    # XXX: Why does this take so much longer than Python?!
-    # assert cvm_duration - python_duration < python_duration * 0.15
-
-    r = np.arange(10000).astype(config.floatX).reshape(-1, 10)
-    shared_r = shared(r)
-    s_i = shared(np.array(1))
-    s_rinc = inc_subtensor(
-        shared_r[s_i], shared_r[s_i - 1], tolerate_inplace_aliasing=True
-    )
-
-    f_cvm_shared = function(
-        [],
-        [],
-        updates=OrderedDict([(s_i, s_i + 1), (shared_r, s_rinc)]),
-        mode=Mode(linker="cvm"),
-    )
-    f_cvm_shared._check_for_aliased_inputs = False
-
-    cvm_shared_duration = timeit.timeit(lambda: f_cvm_shared(), number=n_timeit)
-
-    assert cvm_shared_duration < python_duration
-    assert cvm_shared_duration < python_iter_duration
-
-
-@pytest.mark.skipif(
-    not config.cxx, reason="G++ not available, so we need to skip this test."
-)
-def test_speed_rnn():
-    n_timeit = 50
-    L = 10000
-    N = 50
-
-    np.random.seed(2523452)
-    r = np.arange(L * N).astype(config.floatX).reshape(L, N)
-    w = np.random.default_rng(utt.fetch_seed()).random((N, N)).astype(config.floatX)
-
-    def f_py():
-        for i in range(1, L):
-            r[i] = np.tanh(np.dot(r[i - 1], w))
-
-    python_duration = timeit.timeit(lambda: f_py(), number=n_timeit)
-
-    # r = np.arange(L * N).astype(config.floatX).reshape(L, N)
-    # s_r = matrix()
-    # s_y, updates = scan(
-    #     fn=lambda ri, rii: tanh(dot(rii, w)),
-    #     sequences=[s_r[1:]],
-    #     outputs_info=at.constant(r[0]),
-    #     mode=Mode(linker="cvm"),
-    # )
-    # assert not updates
-    #
-    # f_cvm = function([s_r], s_y, mode=Mode(linker="cvm"))
-    #
-    # cvm_duration = timeit.timeit(lambda: f_cvm(r), number=n_timeit)
-
-    # XXX: Why does this take so much longer than Python?!
-    # assert cvm_duration - python_duration < python_duration * 0.15
-
-    r = np.arange(L * N).astype(config.floatX).reshape(L, N)
-    shared_r = shared(r)
-    s_i = shared(1)
-    s_rinc = inc_subtensor(
-        shared_r[s_i],
-        tanh(dot(shared_r[s_i - 1], w)),
-        tolerate_inplace_aliasing=True,
-    )
-    f_cvm_shared = function(
-        [],
-        [],
-        updates=OrderedDict([(s_i, s_i + 1), (shared_r, s_rinc)]),
-        mode=Mode(linker="cvm"),
-    )
-
-    cvm_shared_duration = timeit.timeit(lambda: f_cvm_shared(), number=n_timeit)
-
-    assert cvm_shared_duration < python_duration
-
-
-@pytest.mark.skipif(
-    not config.cxx, reason="G++ not available, so we need to skip this test."
-)
-def test_speed_batchrnn():
-    """
-    This function prints out the speed of recurrent neural network
-    calculations implemented in various ways.
-
-    We force the mode to Mode(linker='cvm'). If you manually
-    change this code to use DebugMode this will test the correctness
-    of the optimizations applied, but generally correctness-testing
-    is not the goal of this test.
-
-    The computation being tested here is a repeated tanh of a matrix-vector
-    multiplication - the heart of an ESN or RNN.
-    """
-    L = 100
-    B = 50
-    N = 400
-
-    np.random.seed(2523452)
-    r = np.arange(B * L * N).astype(config.floatX).reshape(L, B, N)
-    w = np.random.default_rng(utt.fetch_seed()).random((N, N)).astype(config.floatX)
-
-    def ref_fn():
-        for i in range(1, L):
-            r[i] = np.tanh(np.dot(r[i - 1], w))
-
-    python_duration = timeit.timeit(ref_fn, number=20)
-
-    r = np.arange(B * L * N).astype(config.floatX).reshape(L, B, N)
-    shared_r = shared(r)
-    s_i = shared(1)
-    s_rinc = inc_subtensor(
-        shared_r[s_i],
-        tanh(dot(shared_r[s_i - 1], w)),
-        tolerate_inplace_aliasing=True,
-    )
-    f = function(
-        [],
-        [],
-        updates=[(s_i, s_i + 1), (shared_r, s_rinc)],
-        mode=Mode(linker="cvm"),
-    )
-
-    cvm_duration = timeit.timeit(f, number=20)
-
-    assert cvm_duration < python_duration
+    assert cvm_duration <= python_duration
 
 
 @config.change_flags(mode="FAST_COMPILE", compute_test_value="raise")
