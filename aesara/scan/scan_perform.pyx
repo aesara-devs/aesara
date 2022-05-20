@@ -62,7 +62,7 @@ numpy.import_array()
 
 
 def get_version():
-    return 0.322
+    return 0.323
 
 
 @cython.cdivision(True)
@@ -70,8 +70,7 @@ cdef inline unsigned int pymod(int a, unsigned int b):
     return (a % (<int>b) + <int>b) % b
 
 
-# TODO: We need to get rid of the negative indexing performed with `pos` and `l`.
-# @cython.wraparound(False)
+@cython.wraparound(False)
 @cython.cdivision(True)
 @cython.boundscheck(False)
 def perform(
@@ -260,7 +259,6 @@ def perform(
             # Put in the values of the initial state
             outer_outputs_idx[0] = outer_outputs_idx_0[:store_steps[idx]]
             if idx > n_mit_mot:
-                # TODO FIXME: Do not use wrapped indexing!
                 l = - mintaps[idx]
                 outer_outputs_idx_0[:l] = outer_inputs[<unsigned int>(seqs_arg_offset + idx)][:l]
             else:
@@ -271,18 +269,12 @@ def perform(
     if n_steps == 0:
         for idx in range(n_outs, n_outs + n_nit_sot):
             if outs_is_tensor[idx]:
-                # TODO FIXME: Why have an `outs_is_tensor` when you can access
-                # the node directly?
-                # (The answer is that you shouldn't have a `node` object to
-                # access, because it's not going to produce a very efficient
-                # Cython function!)
                 outer_outputs[idx][0] = numpy.empty((0,) * outer_output_ndims[idx], dtype=outer_output_dtypes[idx])
             else:
                 outer_outputs[idx][0] = None
         return 0.0, 0
 
     for idx in range(lenpos):
-        # TODO FIXME: Do not use wrapped indexing!
         pos[idx] = pymod(-mintaps[idx], store_steps[idx])
 
     offset = nit_sot_arg_offset + n_nit_sot
