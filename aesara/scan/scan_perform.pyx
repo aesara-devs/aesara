@@ -62,7 +62,7 @@ numpy.import_array()
 
 
 def get_version():
-    return 0.323
+    return 0.324
 
 
 @cython.cdivision(True)
@@ -556,15 +556,11 @@ def perform(
                 # are read and written.
                 # This way, there will be no information overwritten
                 # before it is read (as it used to happen).
-                shape = (pdx,)+ outer_outputs_idx_0.shape[1:]
-                tmp = numpy.empty(shape, dtype=outer_output_dtypes[idx])
-                tmp[:] = outer_outputs_idx_0[:pdx]
+                tmp = outer_outputs_idx_0[:pdx].copy()
                 outer_outputs_idx_0[:store_steps_idx - pdx] = outer_outputs_idx_0[pdx:]
                 outer_outputs_idx_0[store_steps_idx - pdx:] = tmp
             else:
-                shape = (store_steps_idx - pdx,) + outer_outputs_idx_0.shape[1:]
-                tmp = numpy.empty(shape, dtype=outer_output_dtypes[idx])
-                tmp[:] = outer_outputs_idx_0[pdx:]
+                tmp = outer_outputs_idx_0[pdx:].copy()
                 outer_outputs_idx_0[store_steps_idx - pdx:] = outer_outputs_idx_0[:pdx]
                 outer_outputs_idx_0[:store_steps_idx - pdx] = tmp
 
