@@ -62,7 +62,7 @@ numpy.import_array()
 
 
 def get_version():
-    return 0.324
+    return 0.325
 
 
 @cython.cdivision(True)
@@ -91,6 +91,7 @@ def perform(
     const numpy.npy_bool[:] vector_outs not None,
     tuple mit_mot_out_slices not None,
     const numpy.npy_bool[:] mitmots_preallocated not None,
+    const unsigned int [:] mit_mot_out_to_tap_idx not None,
     const numpy.npy_bool[:] outs_is_tensor not None,
     list inner_input_storage not None,
     list inner_output_storage not None,
@@ -426,14 +427,12 @@ def perform(
         mitmot_out_idx = 0
         for j in range(n_mit_mot):
 
-            tap_array_j = tap_array[j]
             pos_j = pos[j]
             outer_outputs_j_0 = outer_outputs[j][0]
 
             for k in mit_mot_out_slices[j]:
                 if mitmots_preallocated[mitmot_out_idx]:
-                    # This output tap has been preallocated.
-                    inp_idx = mitmot_inp_offset + tap_array_j.index(k)
+                    inp_idx = mitmot_inp_offset + mit_mot_out_to_tap_idx[mitmot_out_idx]
                     inner_inp_idx = n_seqs + inp_idx
 
                     # Verify whether the input points to the same data as

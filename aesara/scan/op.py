@@ -1546,17 +1546,12 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
             cython_pos = np.zeros(n_outs + self.info.n_nit_sot, dtype=np.uint32)
             cython_store_steps = np.zeros(n_outs + self.info.n_nit_sot, dtype=np.uint32)
 
-            tap_array_len = np.array(
-                [
-                    len(x)
-                    for x in chain(
-                        self.info.mit_mot_in_slices,
-                        self.info.mit_sot_in_slices,
-                        self.info.sit_sot_in_slices,
-                    )
-                ],
-                dtype=np.uint32,
+            tap_array = (
+                self.info.mit_mot_in_slices
+                + self.info.mit_sot_in_slices
+                + self.info.sit_sot_in_slices
             )
+            tap_array_len = np.array([len(x) for x in tap_array], dtype=np.uint32)
 
             cython_vector_seqs = np.asarray(self.vector_seqs, dtype=bool)
             cython_vector_outs = np.asarray(self.vector_outs, dtype=bool)
@@ -1584,6 +1579,13 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
             outer_output_ndims = np.array(
                 [getattr(out, "ndim", 0) for out in node.outputs], dtype=np.uint32
             )
+
+            # The input index for each mit-mot output
+            mit_mot_out_to_tap_idx = ()
+            for j in range(self.info.n_mit_mot):
+                for k in self.info.mit_mot_out_slices[j]:
+                    mit_mot_out_to_tap_idx += (tap_array[j].index(k),)
+            mit_mot_out_to_tap_idx = np.asarray(mit_mot_out_to_tap_idx, dtype=np.uint32)
 
             from aesara.scan.utils import InnerFunctionError
 
@@ -1621,6 +1623,7 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
                         cython_vector_outs,
                         self.info.mit_mot_out_slices,
                         cython_mitmots_preallocated,
+                        mit_mot_out_to_tap_idx,
                         cython_outs_is_tensor,
                         inner_input_storage,
                         inner_output_storage,
