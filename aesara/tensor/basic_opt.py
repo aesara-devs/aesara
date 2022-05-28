@@ -64,7 +64,6 @@ from aesara.tensor.basic import (
     stack,
     switch,
     tensor_copy,
-    unbroadcast,
     zeros,
     zeros_like,
 )
@@ -151,25 +150,7 @@ def broadcast_like(value, template, fgraph, dtype=None):
     else:
         new_shape = template.shape
     rval = alloc(value, *new_shape)
-    # the template may have 1s in its shape without being broadcastable
-    if rval.broadcastable != template.broadcastable:
-        rval = unbroadcast(
-            rval,
-            *[
-                i
-                for i in range(rval.ndim)
-                if rval.broadcastable[i] and not template.broadcastable[i]
-            ],
-        )
     assert rval.type.dtype == dtype
-
-    if rval.type.broadcastable != template.broadcastable:
-        raise AssertionError(
-            "rval.type.broadcastable is "
-            + str(rval.type.broadcastable)
-            + " but template.broadcastable is"
-            + str(template.broadcastable)
-        )
 
     return rval
 
