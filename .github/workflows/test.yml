@@ -57,15 +57,16 @@ jobs:
     - uses: pre-commit/action@v2.0.0
 
   test:
-    name: "Test py${{ matrix.python-version }}: ${{ matrix.part }}"
+    name: "Test py${{ matrix.python-version }}: ${{ matrix.part }} (${{ matrix.os }})"
     needs:
       - changes
       - style
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     if: ${{ needs.changes.outputs.changes == 'true' && needs.style.result == 'success' }}
     strategy:
       fail-fast: true
       matrix:
+        os: [ubuntu-latest, macOS-latest]
         python-version: ["3.7", "3.9"]
         fast-compile: [0]
         float32: [0]
@@ -79,36 +80,43 @@ jobs:
           - "tests/tensor/nnet/test_abstract_conv.py"
         include:
           - python-version: "3.7"
+            os: ubuntu-latest
             fast-compile: 1
             float32: 1
             install-numba: 1
             part: "tests --ignore=tests/tensor/nnet --ignore=tests/tensor/signal"
           - python-version: "3.7"
+            os: ubuntu-latest
             fast-compile: 1
             float32: 0
             install-numba: 1
             part: "tests --ignore=tests/tensor/nnet --ignore=tests/tensor/signal"
           - python-version: "3.7"
+            os: ubuntu-latest
             fast-compile: 1
             float32: 1
             install-numba: 1
             part: "tests/tensor/nnet"
           - python-version: "3.7"
+            os: ubuntu-latest
             fast-compile: 1
             float32: 0
             install-numba: 1
             part: "tests/tensor/nnet"
           - python-version: "3.7"
+            os: ubuntu-latest
             fast-compile: 1
             float32: 1
             install-numba: 1
             part: "tests/tensor/signal"
           - python-version: "3.7"
+            os: ubuntu-latest
             fast-compile: 1
             float32: 0
             install-numba: 1
             part: "tests/tensor/signal"
           - python-version: "3.9"
+            os: ubuntu-latest
             fast-compile: 0
             float32: 0
             install-numba: 0
