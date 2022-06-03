@@ -541,6 +541,25 @@ class TestOpFromGraph(unittest_tools.InferShapeTester):
 
         assert np.array_equal(res_2, 1.0)
 
+    def test_outputs_consistency(self):
+        """Make sure that `OpFromGraph.fn` doesn't change the value of `OpFromGraph.inner_outputs`."""
+
+        x = scalar("x")
+        op = OpFromGraph([x], [x**2 / x], mode="FAST_RUN")
+
+        # Confirm that the inner-graph is as expected
+        assert equal_computations(op.inner_outputs, [x**2 / x], op.inner_inputs, [x])
+
+        # These outputs of the compiled `op.fgraph` should differ from the
+        # original, uncompiled `op.fgraph` outputs
+        fn = op.fn
+        new_inputs = fn.maker.fgraph.inputs
+        new_outputs = fn.maker.fgraph.outputs
+        assert not equal_computations(new_outputs, [x**2 / x], new_inputs, [x])
+
+        # The original `op.fgraph` outputs should stay the same, though
+        assert equal_computations(op.inner_outputs, [x**2 / x], op.inner_inputs, [x])
+
 
 @config.change_flags(floatX="float64")
 def test_debugprint():
