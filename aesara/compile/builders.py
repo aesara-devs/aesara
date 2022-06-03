@@ -5,8 +5,8 @@ from functools import partial
 from typing import List, Optional, Sequence, cast
 
 import aesara.tensor as at
+from aesara import function
 from aesara.compile.function.pfunc import rebuild_collect_shared
-from aesara.compile.function.types import orig_function
 from aesara.compile.mode import optdb
 from aesara.compile.sharedvalue import SharedVariable
 from aesara.configdefaults import config
@@ -326,7 +326,7 @@ class OpFromGraph(Op, HasInnerGraph):
         name
             A name for debugging purposes.
         kwargs
-            Check :func:`orig_function` for more arguments, only works when not
+            Check :func:`aesara.function` for more arguments, only works when not
             inline.
         """
 
@@ -903,7 +903,7 @@ class OpFromGraph(Op, HasInnerGraph):
         if getattr(self, "_fn", None) is not None:
             return self._fn
 
-        self._fn = orig_function(self.inner_inputs, self.inner_outputs, **self.kwargs)
+        self._fn = function(self.inner_inputs, self.inner_outputs, **self.kwargs)
         self._fn.trust_input = True
 
         return self._fn
