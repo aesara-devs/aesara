@@ -760,9 +760,9 @@ def fgraph_to_python(
 
         node_output_names = [unique_name(v) for v in node.outputs]
 
-        body_assigns.append(
-            f"# {node}\n{', '.join(node_output_names)} = {local_compiled_func_name}({', '.join(node_input_names)})"
-        )
+        assign_comment_str = f"{indent(str(node), '# ')}"
+        assign_str = f"{', '.join(node_output_names)} = {local_compiled_func_name}({', '.join(node_input_names)})"
+        body_assigns.append(f"{assign_comment_str}\n{assign_str}")
 
     fgraph_input_names = [unique_name(v) for v in fgraph.inputs]
     fgraph_output_names = [unique_name(v) for v in fgraph.outputs]

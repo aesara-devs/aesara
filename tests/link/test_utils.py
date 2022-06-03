@@ -1,3 +1,4 @@
+import inspect
 from functools import singledispatch
 
 import numpy as np
@@ -106,6 +107,56 @@ def test_fgraph_to_python_once():
     assert len(res) == 2
     assert op1.called == 2
     assert op2.called == 2
+
+
+def test_fgraph_to_python_multiline_str():
+    """Make sure that multiline `__str__` values are supported by `fgraph_to_python`."""
+
+    x = vector("x")
+    y = vector("y")
+
+    class TestOp(Op):
+        def __init__(self):
+            super().__init__()
+
+        def make_node(self, *args):
+            return Apply(self, list(args), [x.type() for x in args])
+
+        def perform(self, inputs, outputs):
+            for i, inp in enumerate(inputs):
+                outputs[i][0] = inp[0]
+
+        def __str__(self):
+            return "Test\nOp()"
+
+    @to_python.register(TestOp)
+    def to_python_TestOp(op, **kwargs):
+        def func(*args, op=op):
+            return list(args)
+
+        return func
+
+    op1 = TestOp()
+    op2 = TestOp()
+
+    q, r = op1(x, y)
+    outs = op2(q + r, q + r)
+
+    out_fg = FunctionGraph([x, y], outs, clone=False)
+    assert len(out_fg.outputs) == 2
+
+    out_py = fgraph_to_python(out_fg, to_python)
+
+    out_py_src = inspect.getsource(out_py)
+
+    assert (
+        """
+    # Elemwise{add,no_inplace}(Test
+    # Op().0, Test
+    # Op().1)
+    """
+        in out_py_src
+    )
 
 
 def test_unique_name_generator():
