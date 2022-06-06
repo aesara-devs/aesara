@@ -1,4 +1,5 @@
 from collections.abc import Collection
+from functools import reduce
 from typing import Iterable, Tuple, Union
 
 import numpy as np
@@ -6,6 +7,7 @@ import numpy.core.numeric
 from numpy.core.multiarray import normalize_axis_index
 
 import aesara
+import aesara.scalar.basic as aes
 from aesara.gradient import (
     DisconnectedType,
     _float_zeros_like,
@@ -26,9 +28,7 @@ from aesara.tensor import get_vector_length
 from aesara.tensor.exceptions import NotScalarConstantError
 from aesara.tensor.math import abs as at_abs
 from aesara.tensor.math import all as at_all
-from aesara.tensor.math import eq, ge, lt
-from aesara.tensor.math import max as at_max
-from aesara.tensor.math import maximum, minimum, or_, prod
+from aesara.tensor.math import ge, lt, maximum, minimum, prod
 from aesara.tensor.math import sum as at_sum
 from aesara.tensor.subtensor import advanced_inc_subtensor1, set_subtensor
 from aesara.tensor.type import TensorType, dvector, int_dtypes, integer_dtypes, vector
@@ -1534,13 +1534,19 @@ def broadcast_shape_iter(
                 result_dims.append(maybe_non_bcast_shapes[0])
                 continue
 
-            non_bcast_vec = at.as_tensor(maybe_non_bcast_shapes)
-            non_bcast_vec = at.switch(eq(non_bcast_vec, 1), -one_at, non_bcast_vec)
-            dim_max = at_abs(at_max(non_bcast_vec))
+            non_bcast_vec = [
+                aes.switch(aes.eq(nbv, 1), -one_at, nbv)
+                for nbv in maybe_non_bcast_shapes
+            ]
+            dim_max = aes.abs(reduce(aes.scalar_maximum, non_bcast_vec))
 
             assert_dim = Assert("Could not broadcast dimensions")
-            assert_cond = at_all(
-                or_(eq(non_bcast_vec, -one_at), eq(non_bcast_vec, dim_max))
+            assert_cond = reduce(
+                aes.and_,
+                (
+                    aes.or_(aes.eq(nbv, -one_at), aes.eq(nbv, dim_max))
+                    for nbv in non_bcast_vec
+                ),
             )
             bcast_dim = assert_dim(dim_max, assert_cond)
 
