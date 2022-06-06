@@ -5,6 +5,7 @@ Generate and compile C modules for Python.
 import atexit
 import distutils.sysconfig
 import importlib
+import io
 import logging
 import os
 import pickle
@@ -19,6 +20,7 @@ import tempfile
 import textwrap
 import time
 import warnings
+from contextlib import contextmanager, redirect_stderr
 from io import BytesIO, StringIO
 from typing import Callable, Dict, List, Optional, Set, Tuple, cast
 
@@ -2717,9 +2719,20 @@ def default_blas_ldflags():
 
         # We need to catch warnings as in some cases NumPy print
         # stuff that we don't want the user to see.
-        # I'm not able to remove all printed stuff
-        with warnings.catch_warnings(record=True):
-            numpy.distutils.system_info.system_info.verbosity = 0
+        @contextmanager
+        def catch_numpy_warnings():
+            with warnings.catch_warnings(record=True):
+                numpy.distutils.system_info.system_info.verbosity = 0  # side-effect
+                sio = io.StringIO()
+                with redirect_stderr(sio):
+                    # Body of "with" block executes here:
+                    yield
+                stderr_lines = sio.getvalue().splitlines()
+                for line in stderr_lines:
+                    if "Could not locate executable" not in line:
+                        print(line, file=sys.stderr)
+
+        with catch_numpy_warnings():
             blas_info = numpy.distutils.system_info.get_info("blas_opt")
 
         # If we are in a EPD installation, mkl is available
