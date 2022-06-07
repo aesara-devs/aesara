@@ -513,7 +513,6 @@ class TestAlgebraicCanonizer:
             assert len(f.maker.fgraph.toposort()) == nb_elemwise
             assert out_dtype == out.dtype
 
-    @pytest.mark.slow
     def test_multiple_case(self):
         # test those case take from the comment in AlgebraicCanonizer
         # x / x -> 1
@@ -594,10 +593,7 @@ class TestAlgebraicCanonizer:
             assert out_dtype == out.dtype
             utt.assert_allclose(out, val_inputs[1])
             topo = f.maker.fgraph.toposort()
-            if topo and not (len(topo) == 1 and topo[0].op == deep_copy_op):
-                for node in topo[:-1]:
-                    assert isinstance(node.op, Shape_i)
-                assert isinstance(topo[-1].op, Alloc)
+            assert not any(node.op == at.true_div for node in topo)
 
         # test x / y / x -> 1 / y
         for id, (g, sym_inputs, val_inputs, nb_elemwise, out_dtype) in enumerate(
