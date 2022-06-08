@@ -1070,7 +1070,6 @@ def test_dot22():
             cmp((0, 0), (0, 0))
 
 
-@pytest.mark.slow
 def test_dot22scalar():
     # including does not seem to work for 'local_dot_to_dot22' and
     # 'local_dot22_to_dot22scalar'
