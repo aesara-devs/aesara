@@ -2720,7 +2720,7 @@ def default_blas_ldflags():
         # We need to catch warnings as in some cases NumPy print
         # stuff that we don't want the user to see.
         @contextmanager
-        def catch_numpy_warnings():
+        def filter_numpy_missing_executable_warnings():
             with warnings.catch_warnings(record=True):
                 sio = io.StringIO()
                 with redirect_stderr(sio):
@@ -2736,7 +2736,7 @@ def default_blas_ldflags():
                         print(line, file=sys.stderr)
 
         numpy.distutils.system_info.system_info.verbosity = 0  # side-effect
-        with catch_numpy_warnings():
+        with filter_numpy_missing_executable_warnings():
             blas_info = numpy.distutils.system_info.get_info("blas_opt")
 
         # If we are in a EPD installation, mkl is available
