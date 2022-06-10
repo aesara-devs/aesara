@@ -2719,6 +2719,8 @@ def default_blas_ldflags():
 
         # We need to catch warnings as in some cases NumPy prints
         # stuff that we don't want the user to see.
+        numpy.distutils.system_info.system_info.verbosity = 0  # side-effect
+
         @contextmanager
         def filter_numpy_missing_executable_warnings():
             executables = ["g77", "f77", "ifort", "ifl", "f90", "DF", "efl"]
@@ -2740,7 +2742,6 @@ def default_blas_ldflags():
                         ):
                             print(line, file=file)
 
-        numpy.distutils.system_info.system_info.verbosity = 0  # side-effect
         with filter_numpy_missing_executable_warnings():
             blas_info = numpy.distutils.system_info.get_info("blas_opt")
 
