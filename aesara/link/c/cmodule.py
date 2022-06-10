@@ -2722,7 +2722,6 @@ def default_blas_ldflags():
         @contextmanager
         def catch_numpy_warnings():
             with warnings.catch_warnings(record=True):
-                numpy.distutils.system_info.system_info.verbosity = 0  # side-effect
                 sio = io.StringIO()
                 with redirect_stderr(sio):
                     # Body of "with" block executes here:
@@ -2736,6 +2735,7 @@ def default_blas_ldflags():
                     ):
                         print(line, file=sys.stderr)
 
+        numpy.distutils.system_info.system_info.verbosity = 0  # side-effect
         with catch_numpy_warnings():
             blas_info = numpy.distutils.system_info.get_info("blas_opt")
 
