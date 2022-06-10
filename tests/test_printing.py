@@ -415,7 +415,11 @@ def mocked_blas_opt(*args, **kwargs):
     print("This line won't be caught", file=sys.stdout)
     print("This line will be caught and re-printed", file=sys.stderr)
     print(
-        "Could not locate executable: this line will be caught and filtered",
+        "Could not locate executable g77: this line will be caught and filtered",
+        file=sys.stderr,
+    )
+    print(
+        "Could not locate executable foo: this line won't be caught",
         file=sys.stderr,
     )
     return {
@@ -436,4 +440,7 @@ def test_blas_opt_warnings():
     stdout_lines = sio_out.getvalue().splitlines()
     stderr_lines = sio_err.getvalue().splitlines()
     assert stdout_lines == ["This line won't be caught"]
-    assert stderr_lines == ["This line will be caught and re-printed"]
+    assert stderr_lines == [
+        "This line will be caught and re-printed",
+        "Could not locate executable foo: this line won't be caught",
+    ]

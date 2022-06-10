@@ -2728,8 +2728,12 @@ def default_blas_ldflags():
                     # Body of "with" block executes here:
                     yield
                 stderr_lines = sio.getvalue().splitlines()
+                executables = ["g77", "f77", "ifort", "ifl", "f90", "DF", "efl"]
                 for line in stderr_lines:
-                    if "Could not locate executable" not in line:
+                    if all(
+                        f"Could not locate executable {exe}" not in line
+                        for exe in executables
+                    ):
                         print(line, file=sys.stderr)
 
         with catch_numpy_warnings():
