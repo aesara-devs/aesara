@@ -2,11 +2,15 @@
 Tests of printing functionality
 """
 import logging
+import sys
+from contextlib import redirect_stderr, redirect_stdout
 from io import StringIO
+from unittest.mock import patch
 
 import pytest
 
 import aesara
+from aesara.link.c.cmodule import default_blas_ldflags
 from aesara.printing import (
     PatternPrinter,
     PPrinter,
@@ -405,3 +409,31 @@ def test_PatternPrinter():
     res = pprint(o1)
 
     assert res == "|1 - 2|"
+
+
+def mocked_blas_opt(*args, **kwargs):
+    print("This line won't be caught", file=sys.stdout)
+    print("This line will be caught and re-printed", file=sys.stderr)
+    print(
+        "Could not locate executable: this line will be caught and filtered",
+        file=sys.stderr,
+    )
+    return {
+        "libraries": [],
+        "library_dirs": [],
+        "define_macros": [],
+        "include_dirs": [],
+    }
+
+
+@patch("numpy.distutils.system_info.get_info", new=mocked_blas_opt)
+def test_blas_opt_warnings():
+    sio_out = StringIO()
+    sio_err = StringIO()
+    with redirect_stdout(sio_out):
+        with redirect_stderr(sio_err):
+            default_blas_ldflags()
+    stdout_lines = sio_out.getvalue().splitlines()
+    stderr_lines = sio_err.getvalue().splitlines()
+    assert stdout_lines == ["This line won't be caught"]
+    assert stderr_lines == ["This line will be caught and re-printed"]
