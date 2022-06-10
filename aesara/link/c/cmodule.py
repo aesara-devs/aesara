@@ -20,7 +20,7 @@ import tempfile
 import textwrap
 import time
 import warnings
-from contextlib import contextmanager, redirect_stderr
+from contextlib import contextmanager, redirect_stderr, redirect_stdout
 from io import BytesIO, StringIO
 from typing import Callable, Dict, List, Optional, Set, Tuple, cast
 
@@ -2717,23 +2717,28 @@ def default_blas_ldflags():
         # isort: off
         import numpy.distutils.system_info  # noqa
 
-        # We need to catch warnings as in some cases NumPy print
+        # We need to catch warnings as in some cases NumPy prints
         # stuff that we don't want the user to see.
         @contextmanager
         def filter_numpy_missing_executable_warnings():
+            executables = ["g77", "f77", "ifort", "ifl", "f90", "DF", "efl"]
             with warnings.catch_warnings(record=True):
-                sio = io.StringIO()
-                with redirect_stderr(sio):
+                stdout_sio, stderr_sio = io.StringIO(), io.StringIO()
+                with redirect_stdout(stdout_sio), redirect_stderr(stderr_sio):
                     # Body of "with" block executes here:
                     yield
-                stderr_lines = sio.getvalue().splitlines()
-                executables = ["g77", "f77", "ifort", "ifl", "f90", "DF", "efl"]
-                for line in stderr_lines:
-                    if all(
-                        f"Could not locate executable {exe}" not in line
-                        for exe in executables
-                    ):
-                        print(line, file=sys.stderr)
+                # In case there are messages printed to both stdout and stderr,
+                # they may be incorrectly interspersed. But in the normal case
+                # there should be no output to either, so this should not pose
+                # a problem.
+                for sio, file in ((stdout_sio, sys.stdout), (stderr_sio, sys.stderr)):
+                    lines = sio.getvalue().splitlines()
+                    for line in lines:
+                        if all(
+                            f"Could not locate executable {exe}" not in line
+                            for exe in executables
+                        ):
+                            print(line, file=file)
 
         numpy.distutils.system_info.system_info.verbosity = 0  # side-effect
         with filter_numpy_missing_executable_warnings():
