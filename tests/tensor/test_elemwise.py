@@ -11,12 +11,13 @@ import aesara.scalar as aes
 import tests.unittest_tools as utt
 from aesara.compile.mode import Mode
 from aesara.configdefaults import config
-from aesara.graph.basic import Variable
+from aesara.graph.basic import Apply, Variable
 from aesara.graph.fg import FunctionGraph
 from aesara.link.basic import PerformLinker
 from aesara.link.c.basic import CLinker, OpWiseCLinker
 from aesara.tensor import as_tensor_variable
 from aesara.tensor.basic import second
+from aesara.tensor.basic_opt import ShapeError
 from aesara.tensor.elemwise import CAReduce, CAReduceDtype, DimShuffle, Elemwise
 from aesara.tensor.math import all as at_all
 from aesara.tensor.math import any as at_any
@@ -799,6 +800,46 @@ class TestElemwise(unittest_tools.InferShapeTester):
         assert str(op) == "Elemwise{add}[(0, 0)]"
         op = Elemwise(aes.add, inplace_pattern=None, name="my_op")
         assert str(op) == "my_op"
+
+    def test_partial_static_shape_info(self):
+        """Make sure that `Elemwise.infer_shape` can handle changes in the static shape information during rewriting."""
+
+        x = TensorType("floatX", shape=(None, None))()
+        z = Elemwise(aes.add)(x, x)
+
+        x_inferred_shape = (aes.constant(1), aes.constant(1))
+
+        res_shape = z.owner.op.infer_shape(
+            None, z.owner, [x_inferred_shape, x_inferred_shape]
+        )
+
+        assert len(res_shape) == 1
+        assert len(res_shape[0]) == 2
+        assert res_shape[0][0].data == 1
+        assert res_shape[0][1].data == 1
+
+    def test_multi_output(self):
+        class CustomElemwise(Elemwise):
+            def make_node(self, *args):
+                res = super().make_node(*args)
+                return Apply(
+                    self,
+                    res.inputs,
+                    # Return two outputs
+                    [
+                        TensorType(dtype="float64", shape=(None, None))()
+                        for i in range(2)
+                    ],
+                )
+
+        z_1, z_2 = CustomElemwise(aes.add)(
+            as_tensor_variable(np.eye(1)), as_tensor_variable(np.eye(1))
+        )
+
+        in_1_shape = (aes.constant(1), aes.constant(1))
+
+        with pytest.raises(ShapeError):
+            z_1.owner.op.infer_shape(None, z_1.owner, [in_1_shape, in_1_shape])
 
 
 def test_not_implemented_elemwise_grad():

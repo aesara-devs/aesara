@@ -16,7 +16,6 @@ from aesara.misc.frozendict import frozendict
 from aesara.misc.safe_asarray import _asarray
 from aesara.printing import FunctionPrinter, Printer, pprint
 from aesara.scalar import get_scalar_type
-from aesara.scalar.basic import ScalarType
 from aesara.scalar.basic import bool as scalar_bool
 from aesara.scalar.basic import identity as scalar_identity
 from aesara.scalar.basic import transfer_type, upcast
@@ -804,37 +803,17 @@ class Elemwise(OpenMPOp):
                 storage[0] = variable
 
     def infer_shape(self, fgraph, node, i_shapes):
-        rval = []
-        for o in node.outputs:
-            oshp = []
-            for dim, b in enumerate(o.type.broadcastable):
-                b_dim = None
-                if b:
-                    # this is broadcastable
-                    b_dim = 1
-                else:
-                    # there must be some input that is not broadcastable in
-                    # dimension 'dim'
-                    for ishp, i in zip(i_shapes, node.inputs):
-                        if isinstance(i.type, ScalarType):
-                            continue  # we skip scalar
-                        if not i.type.broadcastable[dim]:
-                            # input i is not broadcastable in position dim
-                            # therefore if its shape is known, we can use it
-                            # as the output shape
-                            if ishp[dim]:
-                                b_dim = ishp[dim]
-                                break
 
-                # b_dim might still be None, if every input's shape was unknown
-                # in dimension 'dim'
-                oshp.append(b_dim)
-                # TODO: it would be interesting to return the constraining
-                # information that if one of the inputs shape[dim] is known
-                # and another input's shape[dim] is not, that we can now assume
-                # that the other input's shape[dim] is the same as the first.
-            rval.append(tuple(oshp))
-        return rval
+        if len(node.outputs) > 1:
+            from aesara.tensor.basic_opt import ShapeError
+
+            raise ShapeError(
+                "Multiple outputs are not supported by the default `Elemwise.infer_shape`"
+            )
+
+        out_shape = aesara.tensor.broadcast_shape(*i_shapes, arrays_are_shapes=True)
+
+        return [out_shape]
 
     def _c_all(self, node, nodename, inames, onames, sub):
         # Some `Op`s directly call `Elemwise._c_all` or `Elemwise.c_code`

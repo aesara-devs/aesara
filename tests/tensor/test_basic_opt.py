@@ -2890,10 +2890,10 @@ class TestShapeI(utt.InferShapeTester):
         self._compile_and_check([admat], [Shape_i(1)(admat)], [admat_val], Shape_i)
 
 
-class TestShapeFeature:
+class TestSameShape:
     def test_scalar(self):
         x = scalar()
-        cst = at.constant(1).clone()
+        cst = at.constant(1)
         o = x + cst
         fgraph = FunctionGraph([x], [o], clone=False)
         shape_feature = ShapeFeature()
@@ -2902,34 +2902,42 @@ class TestShapeFeature:
 
     def test_vector(self):
         x = vector()
-        cst = at.constant(1).clone()
+        cst = at.constant(1)
         o = x + cst
         fgraph = FunctionGraph([x], [o], clone=False)
         shape_feature = ShapeFeature()
         fgraph.attach_feature(shape_feature)
         assert shape_feature.same_shape(x, o)
 
-    def test_vector2(self):
+    def test_no_static_shapes(self):
         x = vector()
         y = vector()
         o = x + y
         fgraph = FunctionGraph([x, y], [o], clone=False)
         shape_feature = ShapeFeature()
         fgraph.attach_feature(shape_feature)
-        assert shape_feature.same_shape(x, o)
+        # We no longer assume that `x` has the same shape as `y` simply because
+        # neither has static shape information.  Instead, when there is no
+        # static shape information is available, we assume that `x` and/or `y`
+        # could have shapes `(1,)` and/or `(n,)`, where `n != 1`, or any
+        # combination of the two.
+        assert not shape_feature.same_shape(x, o)
         # The following case isn't implemented
         assert not shape_feature.same_shape(y, o)
 
-    def test_vector_dim(self):
-        x = vector()
-        y = vector()
+    @pytest.mark.parametrize(
+        "y_dim_0",
+        [2, pytest.param(None, marks=pytest.mark.xfail(reason="Not implemented"))],
+    )
+    def test_vector_dim(self, y_dim_0):
+        x = at.tensor(dtype="floatX", shape=(2, None))
+        y = at.tensor(dtype="floatX", shape=(y_dim_0, None))
         o = x + y
         fgraph = FunctionGraph([x, y], [o], clone=False)
         shape_feature = ShapeFeature()
         fgraph.attach_feature(shape_feature)
         assert shape_feature.same_shape(x, o, 0, 0)
-        # The following case isn't implemented
-        assert not shape_feature.same_shape(y, o, 0, 0)
+        assert not shape_feature.same_shape(x, o, 1, 1)
 
     def test_vector_dim_err(self):
         x = vector()
