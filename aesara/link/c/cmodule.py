@@ -2721,11 +2721,22 @@ def default_blas_ldflags():
         # stuff that we don't want the user to see.
         numpy.distutils.system_info.system_info.verbosity = 0  # side-effect
 
+        class NumpyCompatibleStdoutStringIO(io.StringIO):
+            """Temporarily replaces sys.stdout to capture Numpy output.
+
+            Numpy expects the .encoding attribute to be a string, but for io.StringIO
+            it is set to None and not writable, hence the need for this subclass.
+
+            (See forward_bytes_to_stdout in numpy.distutils.exec_command.)
+            """
+
+            encoding = sys.stdout.encoding
+
         @contextmanager
         def filter_numpy_missing_executable_warnings():
             executables = ["g77", "f77", "ifort", "ifl", "f90", "DF", "efl"]
             with warnings.catch_warnings(record=True):
-                stdout_sio, stderr_sio = io.StringIO(), io.StringIO()
+                stdout_sio, stderr_sio = NumpyCompatibleStdoutStringIO(), io.StringIO()
                 with redirect_stdout(stdout_sio), redirect_stderr(stderr_sio):
                     # Body of "with" block executes here:
                     yield
