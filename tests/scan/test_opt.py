@@ -9,9 +9,10 @@ from aesara.compile.io import In
 from aesara.compile.mode import get_default_mode
 from aesara.configdefaults import config
 from aesara.gradient import grad, jacobian
-from aesara.graph.basic import clone_replace
+from aesara.graph.basic import clone_replace, equal_computations
+from aesara.graph.fg import FunctionGraph
 from aesara.scan.op import Scan
-from aesara.scan.opt import ScanMerge
+from aesara.scan.opt import ScanInplaceOptimizer, ScanMerge
 from aesara.scan.utils import until
 from aesara.tensor.blas import Dot22
 from aesara.tensor.elemwise import Elemwise
@@ -911,6 +912,49 @@ class TestScanMerge:
 
 class TestScanInplaceOptimizer:
     mode = get_default_mode().including("scan_make_inplace", "inplace")
+
+    def test_no_inplace(self):
+        """Make sure the rewrite doesn't make unnecessary replacements."""
+
+        x = at.vector("x")
+
+        scan_out, _ = aesara.scan(
+            lambda x: (x + 1) / 2 + 1,
+            sequences=[x],
+        )
+
+        fgraph = FunctionGraph(
+            outputs=[scan_out], clone=True, copy_inputs=False, copy_orphans=False
+        )
+
+        _ = ScanInplaceOptimizer().apply(fgraph)
+
+        fgraph_op = fgraph.outputs[0].owner.inputs[0].owner.op
+        assert not fgraph_op.destroy_map
+        assert equal_computations([scan_out], fgraph.outputs)
+
+    def test_inplace_basic(self):
+
+        scan_out, _ = aesara.scan(
+            lambda x: x + 1,
+            outputs_info=[at.zeros(1)],
+            n_steps=3,
+        )
+
+        fgraph = FunctionGraph(
+            outputs=[scan_out], clone=True, copy_inputs=False, copy_orphans=False
+        )
+
+        assert equal_computations([scan_out], fgraph.outputs)
+
+        _ = ScanInplaceOptimizer().apply(fgraph)
+
+        # The graphs shouldn't change; only the `Op.destroy_map`s
+        assert equal_computations([scan_out], fgraph.outputs)
+
+        fgraph_op = fgraph.outputs[0].owner.inputs[0].owner.op
+        assert fgraph_op.destroy_map == {0: [1]}
+        assert not scan_out.owner.inputs[0].owner.op.destroy_map
 
     @utt.assertFailure_fast
     def test_simple_rnn(self):
