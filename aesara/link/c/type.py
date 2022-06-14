@@ -1,6 +1,7 @@
 import ctypes
 import platform
 import re
+from typing import TypeVar
 
 from aesara.graph.basic import Constant
 from aesara.graph.type import Type
@@ -8,7 +9,11 @@ from aesara.link.c.interface import CLinkerType
 from aesara.utils import Singleton
 
 
-class CType(Type, CLinkerType):
+D = TypeVar("D")
+T = TypeVar("T", bound=Type)
+
+
+class CType(Type[D], CLinkerType):
     """Convenience wrapper combining `Type` and `CLinkerType`.
 
     Aesara comes with several subclasses of such as:
@@ -120,7 +125,7 @@ if platform.python_implementation() != "PyPy":
     ).value
 
 
-class CDataType(CType):
+class CDataType(CType[D]):
     """
     Represents opaque C data to be passed around. The intent is to
     ease passing arbitrary data between ops C code.
@@ -286,7 +291,7 @@ void _capsule_destructor(PyObject *o) {
             self.version = None
 
 
-class CDataTypeConstant(Constant):
+class CDataTypeConstant(Constant[T]):
     def merge_signature(self):
         # We don't want to merge constants that don't point to the
         # same object.
