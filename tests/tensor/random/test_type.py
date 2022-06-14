@@ -56,15 +56,17 @@ class TestRandomStateType:
         with pytest.raises(TypeError):
             rng_type.filter(1)
 
-        rng = rng.get_state(legacy=False)
-        assert rng_type.is_valid_value(rng, strict=False)
+        rng_dict = rng.get_state(legacy=False)
 
-        rng["state"] = {}
+        assert rng_type.is_valid_value(rng_dict) is False
+        assert rng_type.is_valid_value(rng_dict, strict=False)
 
-        assert rng_type.is_valid_value(rng, strict=False) is False
+        rng_dict["state"] = {}
 
-        rng = {}
-        assert rng_type.is_valid_value(rng, strict=False) is False
+        assert rng_type.is_valid_value(rng_dict, strict=False) is False
+
+        rng_dict = {}
+        assert rng_type.is_valid_value(rng_dict, strict=False) is False
 
     def test_values_eq(self):
 
@@ -147,15 +149,17 @@ class TestRandomGeneratorType:
         with pytest.raises(TypeError):
             rng_type.filter(1)
 
-        rng = rng.__getstate__()
-        assert rng_type.is_valid_value(rng, strict=False)
+        rng_dict = rng.__getstate__()
 
-        rng["state"] = {}
+        assert rng_type.is_valid_value(rng_dict) is False
+        assert rng_type.is_valid_value(rng_dict, strict=False)
 
-        assert rng_type.is_valid_value(rng, strict=False) is False
+        rng_dict["state"] = {}
 
-        rng = {}
-        assert rng_type.is_valid_value(rng, strict=False) is False
+        assert rng_type.is_valid_value(rng_dict, strict=False) is False
+
+        rng_dict = {}
+        assert rng_type.is_valid_value(rng_dict, strict=False) is False
 
     def test_values_eq(self):
 
