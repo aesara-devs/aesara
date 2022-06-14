@@ -32,7 +32,7 @@ from aesara.tensor import subtensor as at_subtensor
 from aesara.tensor.elemwise import Elemwise
 from aesara.tensor.math import MaxAndArgmax
 from aesara.tensor.math import all as at_all
-from aesara.tensor.math import clip, cosh, erf, erfc, erfinv, gammaln, log
+from aesara.tensor.math import clip, cosh, erf, erfc, erfinv, gammaln, log, log1mexp
 from aesara.tensor.math import max as at_max
 from aesara.tensor.math import maximum, prod, psi, sigmoid, softplus
 from aesara.tensor.math import sum as at_sum
@@ -1394,3 +1394,11 @@ def test_psi():
     out = psi(x)
     fg = FunctionGraph([x], [out])
     compare_jax_and_py(fg, [3.0])
+
+
+def test_log1mexp():
+    x = vector("x")
+    out = log1mexp(x)
+    fg = FunctionGraph([x], [out])
+
+    compare_jax_and_py(fg, [[-1.0, -0.75, -0.5, -0.25]])

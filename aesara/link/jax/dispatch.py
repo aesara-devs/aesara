@@ -17,7 +17,7 @@ from aesara.link.utils import fgraph_to_python
 from aesara.raise_op import CheckAndRaise
 from aesara.scalar import Softplus
 from aesara.scalar.basic import Cast, Clip, Composite, Identity, ScalarOp, Second
-from aesara.scalar.math import Erf, Erfc, Erfinv, Psi
+from aesara.scalar.math import Erf, Erfc, Erfinv, Log1mexp, Psi
 from aesara.scan.op import Scan
 from aesara.scan.utils import ScanArgs
 from aesara.tensor.basic import (
@@ -1117,6 +1117,16 @@ def jax_funcify_Erfc(op, **kwargs):
         return jax.scipy.special.erfc(x)
 
     return erfc
+
+
+@jax_funcify.register(Log1mexp)
+def jax_funcify_Log1mexp(op, node, **kwargs):
+    def log1mexp(x):
+        return jnp.where(
+            x < jnp.log(0.5), jnp.log1p(-jnp.exp(x)), jnp.log(-jnp.expm1(x))
+        )
+
+    return log1mexp
 
 
 # Commented out because jax.scipy does not have erfcx,
