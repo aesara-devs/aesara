@@ -1,4 +1,4 @@
-from typing import Generic, TypeVar
+from typing import TypeVar
 
 import numpy as np
 
@@ -23,7 +23,7 @@ gen_states_keys = {
 numpy_bit_gens = {0: "MT19937", 1: "PCG64", 2: "Philox", 3: "SFC64"}
 
 
-class RandomType(Type, Generic[T]):
+class RandomType(Type[T]):
     r"""A Type wrapper for `numpy.random.Generator` and `numpy.random.RandomState`."""
 
     @staticmethod
