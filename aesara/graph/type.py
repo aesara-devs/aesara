@@ -180,10 +180,10 @@ class Type(MetaObject):
 
         return None
 
-    def is_valid_value(self, data: D) -> bool:
+    def is_valid_value(self, data: D, strict: bool = True) -> bool:
         """Return ``True`` for any python object that would be a legal value for a `Variable` of this `Type`."""
         try:
-            self.filter(data, strict=True)
+            self.filter(data, strict=strict)
             return True
         except (TypeError, ValueError):
             return False
