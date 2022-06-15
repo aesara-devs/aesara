@@ -5,12 +5,13 @@ from aesara.tensor.type import vector
 from aesara.updates import OrderedUpdates
 
 
-class TestIfelse:
+class TestUpdates:
     def test_updates_init(self):
         with pytest.raises(TypeError):
             OrderedUpdates(dict(d=3))
 
         sv = aesara.shared("asdf")
+        # TODO FIXME: Not a real test.
         OrderedUpdates({sv: 3})
 
     def test_updates_setitem(self):
@@ -23,6 +24,7 @@ class TestIfelse:
         with pytest.raises(TypeError):
             up.__setitem__(vector(), 7)
 
+        # TODO FIXME: Not a real test.
         up[aesara.shared(88)] = 7
 
     def test_updates_add(self):
@@ -62,11 +64,9 @@ class TestIfelse:
         assert len(up1 + up1 + up1) == 1
 
         up2[a] = 8  # a gets different value in up1 and up2
-        try:
+        with pytest.raises(KeyError):
             up1 + up2
-            assert 0
-        except KeyError:
-            pass
 
+        # TODO FIXME: Not a real test.
         # reassigning to a key works fine right?
         up2[a] = 10
