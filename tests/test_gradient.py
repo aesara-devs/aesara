@@ -286,7 +286,7 @@ class TestGrad:
         o = TestGrad.Obj1()
         a1 = o.make_node()
         g0, g1, g2 = grad(
-            a1.outputs[0], a1.inputs + [scalar("z")], disconnected_inputs="ignore"
+            a1.outputs[0], a1.inputs + (scalar("z"),), disconnected_inputs="ignore"
         )
         assert o.gval0 is g0
         assert o.gval1 is g1

@@ -56,6 +56,7 @@ from aesara.tensor.subtensor import (
     set_subtensor,
 )
 from aesara.tensor.var import TensorConstant, get_unique_value
+from aesara.utils import set_index
 
 
 list_opt_slice = [
@@ -107,8 +108,8 @@ def remove_constants_and_unused_inputs_scan(fgraph, node):
         + op_info.n_shared_outs
         + 1
     )
-    outer_non_seqs = node.inputs[st:]
-    out_stuff_outer = node.inputs[1 + op_info.n_seqs : st]
+    outer_non_seqs = list(node.inputs[st:])
+    out_stuff_outer = list(node.inputs[1 + op_info.n_seqs : st])
 
     # To replace constants in the outer graph by clones in the inner graph
     givens = {}
@@ -362,7 +363,7 @@ def push_out_non_seq_scan(fgraph, node):
         )
 
         # Do not call make_node for test_value
-        nw_node = nwScan(*(node.inputs + nw_outer), return_list=True)[0].owner
+        nw_node = nwScan(*(list(node.inputs) + nw_outer), return_list=True)[0].owner
 
         replacements = dict(zip(node.outputs, nw_node.outputs))
         replacements["remove"] = [node]
@@ -599,7 +600,7 @@ def push_out_seq_scan(fgraph, node):
         )
         # Do not call make_node for test_value
         nw_node = nwScan(
-            *(node.inputs[:1] + nw_outer + node.inputs[1:]),
+            *(list(node.inputs[:1]) + nw_outer + list(node.inputs[1:])),
             return_list=True,
         )[0].owner
 
@@ -785,7 +786,7 @@ def add_nitsot_outputs(
 
     # Create the Apply node for the scan op
     new_scan_outs = new_scan_op(*new_scan_args.outer_inputs, return_list=True)
-    assert isinstance(new_scan_outs, list)
+    assert isinstance(new_scan_outs, tuple)
     new_scan_node = new_scan_outs[0].owner
     assert new_scan_node is not None
 
@@ -983,12 +984,12 @@ class ScanInplaceOptimizer(GlobalOptimizer):
                 if len(new_lsi_out) == 1:
                     new_lsi_out = new_lsi_out[0]
 
-                ls[i] = new_lsi_out
+                ls = set_index(ls, i, new_lsi_out)
 
         n_outs = len(ls)
         for idx in range(n_outs):
             if ls[idx] in ls[:idx]:
-                ls[idx] = deep_copy_op(ls[idx])
+                ls = set_index(ls, idx, deep_copy_op(ls[idx]))
 
         inputs = ls_begin + ls + ls_end
 
@@ -1003,7 +1004,7 @@ class ScanInplaceOptimizer(GlobalOptimizer):
         # Do not call make_node for test_value
         new_outs = new_op(*inputs, return_list=True)
 
-        assert isinstance(new_outs, list)
+        assert isinstance(new_outs, tuple)
 
         try:
             # TODO FIXME: We need to stop using this approach (i.e. attempt

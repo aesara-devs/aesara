@@ -107,13 +107,13 @@ def test_etuples():
     res = apply(at.add, z_at)
 
     assert res.owner.op == at.add
-    assert res.owner.inputs == [x_at, y_at]
+    assert res.owner.inputs == (x_at, y_at)
 
     w_at = etuple(at.add, x_at, y_at)
 
     res = w_at.evaled_obj
     assert res.owner.op == at.add
-    assert res.owner.inputs == [x_at, y_at]
+    assert res.owner.inputs == (x_at, y_at)
 
     # This `Op` doesn't expand into an `etuple` (i.e. it's "atomic")
     op1_np = CustomOpNoProps(1)

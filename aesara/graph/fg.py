@@ -25,6 +25,7 @@ from aesara.graph.basic import clone_get_equiv, graph_inputs, io_toposort, vars_
 from aesara.graph.features import AlreadyThere, Feature, ReplaceValidate
 from aesara.graph.utils import MetaObject, MissingInputError, TestValueError
 from aesara.misc.ordered_set import OrderedSet
+from aesara.utils import set_index
 
 
 if TYPE_CHECKING:
@@ -437,7 +438,7 @@ class FunctionGraph(MetaObject):
                     f"The type of the replacement ({new_var.type}) must be "
                     f"compatible with the type of the original Variable ({r.type})."
                 )
-            node.inputs[i] = new_var
+            node.inputs = set_index(node.inputs, i, new_var)
 
         if r is new_var:
             return

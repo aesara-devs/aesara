@@ -67,14 +67,14 @@ def get_updates_and_outputs(ls):
         """
         # Is `x` a container we can iterate on?
         iter_on = None
-        if isinstance(x, list) or isinstance(x, tuple):
+        if isinstance(x, (list, tuple)):
             iter_on = x
         elif isinstance(x, dict):
             iter_on = x.items()
         if iter_on is not None:
             return all(_filter(y) for y in iter_on)
         else:
-            return isinstance(x, Variable) or isinstance(x, until)
+            return isinstance(x, (Variable, until))
 
     if not _filter(ls):
         raise ValueError(

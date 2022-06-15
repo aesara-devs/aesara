@@ -1,4 +1,4 @@
-from typing import Callable, Iterator, List, Optional, Union
+from typing import Callable, Iterator, Optional, Sequence, Union
 
 from etuples.core import ExpressionTuple
 from kanren import run
@@ -44,7 +44,7 @@ class KanrenRelationSub(LocalOptimizer):
         self,
         kanren_relation: Callable[[Variable, Var], Callable],
         results_filter: Optional[
-            Callable[[Iterator], Optional[List[Union[ExpressionTuple, Variable]]]]
+            Callable[[Iterator], Optional[Sequence[Union[ExpressionTuple, Variable]]]]
         ] = None,
         node_filter: Callable[[Apply], bool] = lambda x: True,
     ):
@@ -67,7 +67,7 @@ class KanrenRelationSub(LocalOptimizer):
 
             def results_filter(
                 x: Iterator,
-            ) -> Optional[List[Union[ExpressionTuple, Variable]]]:
+            ) -> Optional[Sequence[Union[ExpressionTuple, Variable]]]:
                 return next(x, None)
 
         self.kanren_relation = kanren_relation
@@ -82,7 +82,7 @@ class KanrenRelationSub(LocalOptimizer):
         try:
             input_expr = node.default_output()
         except ValueError:
-            input_expr = node.outputs
+            input_expr = list(node.outputs)
 
         q = var()
         kanren_results = run(None, q, self.kanren_relation(input_expr, q))

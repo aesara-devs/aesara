@@ -1066,7 +1066,7 @@ def nonzero(a, return_matrix=False):
 
     """
     res = _nonzero(a)
-    if isinstance(res, list):
+    if isinstance(res, Sequence):
         res = tuple(res)
     else:
         res = (res,)
@@ -2530,7 +2530,7 @@ class Join(COp):
             split = Split(len(tens))
             split_gz = split(gz, axis, stack([shape(x)[axis] for x in tens]))
             # If there is only one split, it might not be in a list.
-            if not isinstance(split_gz, list):
+            if not isinstance(split_gz, Sequence):
                 split_gz = [split_gz]
             # Split.make_node isn't always able to infer the right
             # broadcast. As the grad need to keep the information,

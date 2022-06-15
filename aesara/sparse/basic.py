@@ -7,6 +7,7 @@ http://www-users.cs.umn.edu/~saad/software/SPARSKIT/paper.ps
 TODO: Automatic methods for determining best sparse format?
 
 """
+from typing import Sequence
 from warnings import warn
 
 import numpy as np
@@ -3086,8 +3087,9 @@ class HStack(Op):
             gz = dense_from_sparse(gz)
 
         split = Split(len(inputs))(gz, 1, at.stack([x.shape[1] for x in inputs]))
-        if not isinstance(split, list):
-            split = [split]
+
+        if not isinstance(split, Sequence):
+            split = (split,)
 
         derivative = [SparseFromDense(self.format)(s) for s in split]
 
@@ -3166,8 +3168,9 @@ class VStack(HStack):
             gz = dense_from_sparse(gz)
 
         split = Split(len(inputs))(gz, 0, at.stack([x.shape[0] for x in inputs]))
-        if not isinstance(split, list):
-            split = [split]
+
+        if not isinstance(split, Sequence):
+            split = (split,)
 
         derivative = [SparseFromDense(self.format)(s) for s in split]
 

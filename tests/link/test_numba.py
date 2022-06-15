@@ -1,5 +1,6 @@
 import contextlib
 import inspect
+from typing import Sequence
 from unittest import mock
 
 import numba
@@ -76,7 +77,7 @@ class MyMultiOut(Op):
     def impl(a, b):
         res1 = 2 * a
         res2 = 2 * b
-        return [res1, res2]
+        return res1, res2
 
     def make_node(self, a, b):
         return Apply(self, [a, b], [a.type(), b.type()])
@@ -380,7 +381,7 @@ def test_Elemwise(inputs, input_vals, output_fn, exc):
     outputs = output_fn(*inputs)
 
     out_fg = FunctionGraph(
-        outputs=[outputs] if not isinstance(outputs, list) else outputs
+        outputs=[outputs] if not isinstance(outputs, Sequence) else outputs
     )
 
     cm = contextlib.suppress() if exc is None else pytest.raises(exc)
@@ -1385,7 +1386,7 @@ def test_perform(inputs, op, exc):
 
     g = op()(*inputs)
 
-    if isinstance(g, list):
+    if isinstance(g, Sequence):
         g_fg = FunctionGraph(outputs=g)
     else:
         g_fg = FunctionGraph(outputs=[g])
@@ -1410,7 +1411,7 @@ def test_perform_params():
 
     out = assert_op(x, np.array(True))
 
-    if not isinstance(out, (list, tuple)):
+    if not isinstance(out, Sequence):
         out = [out]
 
     out_fg = FunctionGraph([x], out)
@@ -1431,7 +1432,7 @@ def test_perform_type_convert():
 
     out = assert_op(x.sum(), np.array(True))
 
-    if not isinstance(out, (list, tuple)):
+    if not isinstance(out, Sequence):
         out = [out]
 
     out_fg = FunctionGraph([x], out)
@@ -1753,7 +1754,7 @@ def test_Repeat(x, repeats, axis, exc):
 def test_Unique(x, axis, return_index, return_inverse, return_counts, exc):
     g = extra_ops.Unique(return_index, return_inverse, return_counts, axis)(x)
 
-    if isinstance(g, list):
+    if isinstance(g, Sequence):
         g_fg = FunctionGraph(outputs=g)
     else:
         g_fg = FunctionGraph(outputs=[g])
@@ -1796,7 +1797,7 @@ def test_Unique(x, axis, return_index, return_inverse, return_counts, exc):
 def test_UnravelIndex(arr, shape, order, exc):
     g = extra_ops.UnravelIndex(order)(arr, shape)
 
-    if isinstance(g, list):
+    if isinstance(g, Sequence):
         g_fg = FunctionGraph(outputs=g)
     else:
         g_fg = FunctionGraph(outputs=[g])
@@ -2140,7 +2141,7 @@ def test_Softplus(x, exc):
 def test_MaxAndArgmax(x, axes, exc):
     g = aem.MaxAndArgmax(axes)(x)
 
-    if isinstance(g, list):
+    if isinstance(g, Sequence):
         g_fg = FunctionGraph(outputs=g)
     else:
         g_fg = FunctionGraph(outputs=[g])
@@ -2191,7 +2192,7 @@ def test_MaxAndArgmax(x, axes, exc):
 def test_Cholesky(x, lower, exc):
     g = slinalg.Cholesky(lower)(x)
 
-    if isinstance(g, list):
+    if isinstance(g, Sequence):
         g_fg = FunctionGraph(outputs=g)
     else:
         g_fg = FunctionGraph(outputs=[g])
@@ -2236,7 +2237,7 @@ def test_Cholesky(x, lower, exc):
 def test_Solve(A, x, lower, exc):
     g = slinalg.Solve(lower)(A, x)
 
-    if isinstance(g, list):
+    if isinstance(g, Sequence):
         g_fg = FunctionGraph(outputs=g)
     else:
         g_fg = FunctionGraph(outputs=[g])
@@ -2270,7 +2271,7 @@ def test_Solve(A, x, lower, exc):
 def test_SolveTriangular(A, x, lower, exc):
     g = slinalg.SolveTriangular(lower)(A, x)
 
-    if isinstance(g, list):
+    if isinstance(g, Sequence):
         g_fg = FunctionGraph(outputs=g)
     else:
         g_fg = FunctionGraph(outputs=[g])
@@ -2377,7 +2378,7 @@ y = np.array(
 def test_Eig(x, exc):
     g = nlinalg.Eig()(x)
 
-    if isinstance(g, list):
+    if isinstance(g, Sequence):
         g_fg = FunctionGraph(outputs=g)
     else:
         g_fg = FunctionGraph(outputs=[g])
@@ -2420,7 +2421,7 @@ def test_Eig(x, exc):
 def test_Eigh(x, uplo, exc):
     g = nlinalg.Eigh(uplo)(x)
 
-    if isinstance(g, list):
+    if isinstance(g, Sequence):
         g_fg = FunctionGraph(outputs=g)
     else:
         g_fg = FunctionGraph(outputs=[g])
@@ -2562,7 +2563,7 @@ def test_matrix_inverses(op, x, exc, op_args):
 def test_QRFull(x, mode, exc):
     g = nlinalg.QRFull(mode)(x)
 
-    if isinstance(g, list):
+    if isinstance(g, Sequence):
         g_fg = FunctionGraph(outputs=g)
     else:
         g_fg = FunctionGraph(outputs=[g])
@@ -2627,7 +2628,7 @@ def test_QRFull(x, mode, exc):
 def test_SVD(x, full_matrices, compute_uv, exc):
     g = nlinalg.SVD(full_matrices, compute_uv)(x)
 
-    if isinstance(g, list):
+    if isinstance(g, Sequence):
         g_fg = FunctionGraph(outputs=g)
     else:
         g_fg = FunctionGraph(outputs=[g])
@@ -2674,7 +2675,7 @@ def test_SVD(x, full_matrices, compute_uv, exc):
 def test_BatchedDot(x, y, exc):
     g = blas.BatchedDot()(x, y)
 
-    if isinstance(g, list):
+    if isinstance(g, Sequence):
         g_fg = FunctionGraph(outputs=g)
     else:
         g_fg = FunctionGraph(outputs=[g])
@@ -3491,7 +3492,7 @@ def test_numba_ifelse(inputs, cond_fn, true_vals, false_vals):
 
     out = ifelse(cond_fn(*inputs), true_vals, false_vals)
 
-    if not isinstance(out, list):
+    if not isinstance(out, Sequence):
         out = [out]
 
     out_fg = FunctionGraph(inputs, out)

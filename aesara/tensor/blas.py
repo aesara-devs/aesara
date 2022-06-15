@@ -124,7 +124,6 @@ instead. This optimization is `local_gemm_to_gemv`.
 
 """
 
-import copy
 import logging
 import os
 import time
@@ -2138,9 +2137,7 @@ def local_dot22_to_dot22scalar(fgraph, node):
         return False
     assert scalar_idx < len(node.inputs)
     s = node.inputs[scalar_idx]
-    o = copy.copy(node.inputs)
-    o.remove(d)
-    o.remove(s)
+    o = tuple(i for i in node.inputs if i != d and i != s)
 
     a = at.cast(i_scalar[scalar_idx], d.type.dtype)
     assert not a.type.ndim

@@ -125,19 +125,18 @@ class Apply(Node, Generic[OpType]):
             raise TypeError("The output of an Apply must be a sequence type")
 
         self.op = op
-        self.inputs: List[Variable] = []
         self.tag = Scratchpad()
 
-        # filter inputs to make sure each element is a Variable
+        self.inputs: Tuple[Variable, ...] = ()
         for input in inputs:
             if isinstance(input, Variable):
-                self.inputs.append(input)
+                self.inputs += (input,)
             else:
                 raise TypeError(
                     f"The 'inputs' argument to Apply must contain Variable instances, not {input}"
                 )
-        self.outputs: List[Variable] = []
-        # filter outputs to make sure each element is a Variable
+
+        self.outputs: Tuple[Variable, ...] = ()
         for i, output in enumerate(outputs):
             if isinstance(output, Variable):
                 if output.owner is None:
@@ -147,7 +146,7 @@ class Apply(Node, Generic[OpType]):
                     raise ValueError(
                         "All output variables passed to Apply must belong to it."
                     )
-                self.outputs.append(output)
+                self.outputs += (output,)
             else:
                 raise TypeError(
                     f"The 'outputs' argument to Apply must contain Variable instances with no owner, not {output}"
@@ -267,7 +266,7 @@ class Apply(Node, Generic[OpType]):
 
         assert isinstance(inputs, (list, tuple))
         remake_node = False
-        new_inputs: List["Variable"] = list(inputs)
+        new_inputs = list(inputs)
         for i, (curr, new) in enumerate(zip(self.inputs, new_inputs)):
             if curr.type != new.type:
                 if strict:
@@ -289,11 +288,11 @@ class Apply(Node, Generic[OpType]):
             new_node.tag = copy(self.tag).__update__(new_node.tag)
         else:
             new_node = self.clone(clone_inner_graph=clone_inner_graph)
-            new_node.inputs = new_inputs
+            new_node.inputs = tuple(new_inputs)
         return new_node
 
     def get_parents(self):
-        return list(self.inputs)
+        return self.inputs
 
     @property
     def out(self):
@@ -1233,7 +1232,7 @@ def general_toposort(
                 d = deps(io)
 
                 if d:
-                    if not isinstance(d, (list, OrderedSet)):
+                    if not isinstance(d, (Sequence, OrderedSet)):
                         raise TypeError(
                             "Non-deterministic collections found; make"
                             " toposort non-deterministic."
@@ -1615,7 +1614,7 @@ def is_in_ancestors(l_apply: Apply, f_node: Apply) -> bool:
     bool
 
     """
-    computed = set()
+    computed: Set[Variable] = set()
     todo = [l_apply]
     while todo:
         cur = todo.pop()

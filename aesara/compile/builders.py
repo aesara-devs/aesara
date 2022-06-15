@@ -507,7 +507,7 @@ class OpFromGraph(Op, HasInnerGraph):
                 all_grads_ov_l = [lop_op.type() for _ in range(inp_len)]
             else:
                 raise ValueError(self.STYPE_ERR_MSG % lop_op.type)
-        elif isinstance(lop_op, list):
+        elif isinstance(lop_op, Sequence):
             goverrides_l = lop_op
             if len(goverrides_l) != inp_len:
                 raise ValueError(
@@ -547,7 +547,7 @@ class OpFromGraph(Op, HasInnerGraph):
             if not callable(lop_op):
                 raise TypeError(self.TYPE_ERR_MSG % lop_op)
             goverrides_l = lop_op(*callable_args)
-            if not isinstance(goverrides_l, list):
+            if not isinstance(goverrides_l, Sequence):
                 raise TypeError(
                     "Gradient/L_op overriding function should return a list, "
                     f'got "{type(goverrides_l)}"'
@@ -622,7 +622,7 @@ class OpFromGraph(Op, HasInnerGraph):
                 all_rops_ov_l = [None] * out_len
             else:
                 raise ValueError(STYPE_ERR_MSG % rop_op.type)
-        elif isinstance(rop_op, list):
+        elif isinstance(rop_op, Sequence):
             roverrides_l = rop_op
             if len(roverrides_l) != out_len:
                 raise ValueError(
@@ -664,10 +664,10 @@ class OpFromGraph(Op, HasInnerGraph):
             if not callable(rop_op):
                 raise TypeError(TYPE_ERR_MSG % rop_op)
             roverrides_l = rop_op(local_inputs, eval_points)
-            if not isinstance(roverrides_l, list):
+            if not isinstance(roverrides_l, Sequence):
                 raise TypeError(
-                    "Rop overriding function should return a list, "
-                    'got "%s"' % type(roverrides_l)
+                    "Rop overriding function should return a sequence, "
+                    f"got {type(roverrides_l)}"
                 )
             all_rops_l, all_rops_ov_l = zip(
                 *[

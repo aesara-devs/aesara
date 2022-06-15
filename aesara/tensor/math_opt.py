@@ -3,6 +3,7 @@
 import itertools
 import operator
 from functools import partial, reduce
+from typing import Tuple
 
 import numpy as np
 
@@ -487,7 +488,7 @@ def local_mul_switch_sink(fgraph, node):
                     == 0.0
                 ):
                     listmul = node.inputs[:idx] + node.inputs[idx + 1 :]
-                    fmul = mul(*(listmul + [switch_node.inputs[2]]))
+                    fmul = mul(*(listmul + (switch_node.inputs[2],)))
 
                     # Copy over stacktrace for elementwise multiplication op
                     # from previous elementwise multiplication op.
@@ -515,7 +516,7 @@ def local_mul_switch_sink(fgraph, node):
                     == 0.0
                 ):
                     listmul = node.inputs[:idx] + node.inputs[idx + 1 :]
-                    fmul = mul(*(listmul + [switch_node.inputs[1]]))
+                    fmul = mul(*(listmul + (switch_node.inputs[1],)))
                     # Copy over stacktrace for elementwise multiplication op
                     # from previous elementwise multiplication op.
                     # An error in the multiplication (e.g. errors due to
@@ -2008,61 +2009,60 @@ def local_mul_specialize(fgraph, node):
     # want to put in un-necessary fills.
     #
     # at this point [post canonicalize], mul() may have many inputs.
-    if node.op == mul:
-        # the idea here is that we have pow(x, y)
-        has_neg = False
-        new_inputs = []
-        nb_neg_node = 0
-        nb_cst = 0
-        for inp in node.inputs:
-            # remove any neg arguments
-            while inp.owner and inp.owner.op == neg:
-                has_neg ^= True
-                inp = inp.owner.inputs[0]
-                nb_neg_node += 1
+    # the idea here is that we have pow(x, y)
+    has_neg = False
+    new_inputs: Tuple[Variable, ...] = ()
+    nb_neg_node = 0
+    nb_cst = 0
+    for inp in node.inputs:
+        # remove any neg arguments
+        while inp.owner and inp.owner.op == neg:
+            has_neg ^= True
+            inp = inp.owner.inputs[0]
+            nb_neg_node += 1
 
-            # remove special case arguments of 1, -1 or 0
-            y = get_constant(inp)
-            if y == 1.0:
-                nb_cst += 1
-            elif y == -1.0:
-                nb_cst += 1
-                has_neg ^= True  # toggles
-            elif y == 0.0:
-                # if we find any zero, we just return right away
-                return [broadcast_like(0, node.outputs[0], fgraph)]
-            else:
-                new_inputs.append(inp)
+        # remove special case arguments of 1, -1 or 0
+        y = get_constant(inp)
+        if y == 1.0:
+            nb_cst += 1
+        elif y == -1.0:
+            nb_cst += 1
+            has_neg ^= True  # toggles
+        elif y == 0.0:
+            # if we find any zero, we just return right away
+            return [broadcast_like(0, node.outputs[0], fgraph)]
+        else:
+            new_inputs += (inp,)
 
-        if new_inputs != node.inputs:
-            if new_inputs:
-                if len(new_inputs) == 1:
-                    if has_neg:
-                        if new_inputs[0].dtype in (uint_dtypes + ["bool"]):
-                            return
-                        else:
-                            rval = -new_inputs[0]
-                    else:
-                        rval = new_inputs[0]
-                else:
-                    # The next case would cause a replace by an equivalent case.
-                    if has_neg and nb_neg_node == 0 and nb_cst == 1:
-                        return
-                    elif has_neg:
-                        # Don't add an extra neg node as we can't
-                        # fully replace this mul by a neg.
-                        m1 = np.asarray(-1, dtype=node.outputs[0].dtype)
-                        new_inputs = [m1] + new_inputs
-                    rval = mul(*new_inputs)
-
-                return [broadcast_like(rval, node.outputs[0], fgraph)]
-            else:
-                # there are no variable inputs to mul
-                # N.B. this could have been constant-folded...
+    if new_inputs != node.inputs:
+        if new_inputs:
+            if len(new_inputs) == 1:
                 if has_neg:
-                    return [broadcast_like(-1, node.outputs[0], fgraph)]
+                    if new_inputs[0].dtype in (uint_dtypes + ["bool"]):
+                        return
+                    else:
+                        rval = -new_inputs[0]
                 else:
-                    return [broadcast_like(1, node.outputs[0], fgraph)]
+                    rval = new_inputs[0]
+            else:
+                # The next case would cause a replace by an equivalent case.
+                if has_neg and nb_neg_node == 0 and nb_cst == 1:
+                    return
+                elif has_neg:
+                    # Don't add an extra neg node as we can't
+                    # fully replace this mul by a neg.
+                    m1 = np.asarray(-1, dtype=node.outputs[0].dtype)
+                    new_inputs = (m1,) + new_inputs
+                rval = mul(*new_inputs)
+
+            return [broadcast_like(rval, node.outputs[0], fgraph)]
+        else:
+            # there are no variable inputs to mul
+            # N.B. this could have been constant-folded...
+            if has_neg:
+                return [broadcast_like(-1, node.outputs[0], fgraph)]
+            else:
+                return [broadcast_like(1, node.outputs[0], fgraph)]
 
 
 @register_specialize

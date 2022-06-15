@@ -486,7 +486,7 @@ class TestOpFromGraph(unittest_tools.InferShapeTester):
         assert y_clone != y
         y_clone.name = "y_clone"
 
-        out_new = test_ofg.make_node(*(out.owner.inputs[:1] + [y_clone])).outputs[0]
+        out_new = test_ofg.make_node(*(out.owner.inputs[:1] + (y_clone,))).outputs[0]
 
         assert "on_unused_input" in out_new.owner.op.kwargs
         assert out_new.owner.op.shared_inputs == [y_clone]

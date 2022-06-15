@@ -49,7 +49,7 @@ import time
 from collections import OrderedDict
 from copy import copy
 from itertools import chain, product
-from typing import Callable, List, Optional, Union
+from typing import Callable, List, Optional, Sequence, Union
 
 import numpy as np
 
@@ -3159,24 +3159,29 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
     def R_op(self, inputs, eval_points):
         # Step 0. Prepare some shortcut variable
         info = self.info
-        self_inputs = self.inner_inputs
+        self_inputs = tuple(self.inner_inputs)
         rop_of_inputs = (
             self_inputs[: info.n_seqs + self.n_outs]
             + self_inputs[info.n_seqs + self.n_outs + info.n_shared_outs :]
         )
-        self_outputs = self.inner_outputs
+        self_outputs = tuple(self.inner_outputs)
 
         # Step 1. Compute the R_op of the inner function
-        inner_eval_points = [safe_new(x, "_evalpoint") for x in rop_of_inputs]
+        inner_eval_points = tuple(safe_new(x, "_evalpoint") for x in rop_of_inputs)
         if info.as_while:
             rop_self_outputs = self_outputs[:-1]
         else:
             rop_self_outputs = self_outputs
+
         if info.n_shared_outs > 0:
             rop_self_outputs = rop_self_outputs[: -info.n_shared_outs]
+
         rop_outs = Rop(rop_self_outputs, rop_of_inputs, inner_eval_points)
-        if not isinstance(rop_outs, (list, tuple)):
-            rop_outs = [rop_outs]
+        if not isinstance(rop_outs, Sequence):
+            rop_outs = (rop_outs,)
+        else:
+            rop_outs = tuple(rop_outs)
+
         # Step 2. Figure out what corresponds to what in the scan
 
         # When doing the R-op of scan, you end up having double of each type of
@@ -3197,12 +3202,12 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
         ib = 0
         e = 1 + info.n_seqs
         ie = info.n_seqs
-        clean_eval_points = []
+        clean_eval_points = ()
         for inp, evp in zip(inputs[b:e], eval_points[b:e]):
             if evp is not None:
-                clean_eval_points.append(evp)
+                clean_eval_points += (evp,)
             else:
-                clean_eval_points.append(inp.zeros_like())
+                clean_eval_points += (inp.zeros_like(),)
 
         scan_seqs = inputs[b:e] + clean_eval_points
         inner_seqs = self_inputs[ib:ie] + inner_eval_points[ib:ie]
@@ -3212,12 +3217,12 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
         e = e + info.n_mit_mot
         ib = ie
         ie = ie + int(sum(len(x) for x in info.mit_mot_in_slices))
-        clean_eval_points = []
+        clean_eval_points = ()
         for inp, evp in zip(inputs[b:e], eval_points[b:e]):
             if evp is not None:
-                clean_eval_points.append(evp)
+                clean_eval_points += (evp,)
             else:
-                clean_eval_points.append(inp.zeros_like())
+                clean_eval_points += (inp.zeros_like(),)
 
         scan_mit_mot = inputs[b:e] + clean_eval_points
         inner_mit_mot = self_inputs[ib:ie] + inner_eval_points[ib:ie]
@@ -3227,14 +3232,14 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
         e = e + info.n_mit_sot
         ib = ie
         ie = ie + int(sum(len(x) for x in info.mit_sot_in_slices))
-        clean_eval_points = []
+        clean_eval_points = ()
         for inp, evp in zip(inputs[b:e], eval_points[b:e]):
             if evp is not None:
-                clean_eval_points.append(evp)
+                clean_eval_points += (evp,)
             else:
-                clean_eval_points.append(inp.zeros_like())
+                clean_eval_points += (inp.zeros_like(),)
 
-        scan_mit_sot = inputs[b:e] + eval_points[b:e]
+        scan_mit_sot = inputs[b:e] + tuple(eval_points[b:e])
         inner_mit_sot = self_inputs[ib:ie] + inner_eval_points[ib:ie]
 
         # SIT_SOT sequences ...
@@ -3242,12 +3247,12 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
         e = e + info.n_sit_sot
         ib = ie
         ie = ie + info.n_sit_sot
-        clean_eval_points = []
+        clean_eval_points = ()
         for inp, evp in zip(inputs[b:e], eval_points[b:e]):
             if evp is not None:
-                clean_eval_points.append(evp)
+                clean_eval_points += (evp,)
             else:
-                clean_eval_points.append(inp.zeros_like())
+                clean_eval_points += (inp.zeros_like(),)
 
         scan_sit_sot = inputs[b:e] + clean_eval_points
         inner_sit_sot = self_inputs[ib:ie] + inner_eval_points[ib:ie]
@@ -3266,12 +3271,13 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
         scan_nit_sot = inputs[b:e] * 2
 
         # All other arguments
-        clean_eval_points = []
+        clean_eval_points = ()
         for inp, evp in zip(inputs[e:], eval_points[e:]):
             if evp is not None:
-                clean_eval_points.append(evp)
+                clean_eval_points += (evp,)
             else:
-                clean_eval_points.append(inp.zeros_like())
+                clean_eval_points += (inp.zeros_like(),)
+
         scan_other = inputs[e:] + clean_eval_points
         # inner_eval_points do not have entries for shared variables
         inner_other = self_inputs[ie:] + inner_eval_points[ib:]
@@ -3313,8 +3319,9 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
 
         if info.as_while:
             inner_outs += [self_outputs[-1]]
+
         scan_inputs = (
-            [inputs[0]]
+            (inputs[0],)
             + scan_seqs
             + scan_mit_mot
             + scan_mit_sot
@@ -3347,8 +3354,12 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
             allow_gc=self.allow_gc,
         )
         outputs = local_op(*scan_inputs)
-        if not isinstance(outputs, (list, tuple)):
+
+        if not isinstance(outputs, Sequence):
             outputs = [outputs]
+        else:
+            outputs = list(outputs)
+
         # Select only the result of the R_op results
         final_outs = []
         b = info.n_mit_mot

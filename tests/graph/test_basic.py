@@ -159,7 +159,7 @@ class TestClone(X):
         node = MyOp.make_node(MyOp.make_node(r1, r2).outputs[0], r5)
         _, new = clone([r1, r2, r5], node.outputs, False)
         new_node = new[0].owner
-        new_node.inputs = [MyVariable(7), MyVariable(8)]
+        new_node.inputs = (MyVariable(7), MyVariable(8))
         assert self.str(graph_inputs(new_node.outputs), new_node.outputs) == [
             "MyOp(R7, R8)"
         ]
@@ -172,7 +172,7 @@ class TestClone(X):
         node = MyOp.make_node(MyOp.make_node(r1, r2).outputs[0], r5)
         _, new = clone([r1, r2, r5], node.outputs, False)
         new_node = new[0].owner
-        new_node.inputs = [MyVariable(7), MyVariable(8)]
+        new_node.inputs = (MyVariable(7), MyVariable(8))
         c1 = at.constant(1.5)
 
         i, o = clone([c1], [c1])
@@ -408,9 +408,9 @@ def test_walk():
     res = walk([o2], expand, bfs=True, return_children=True)
     res_list = list(res)
     assert res_list == [
-        (o2, [r3, o1]),
+        (o2, (r3, o1)),
         (r3, None),
-        (o1, [r1, r2]),
+        (o1, (r1, r2)),
         (r1, None),
         (r2, None),
     ]
