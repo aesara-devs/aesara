@@ -79,6 +79,18 @@ jobs:
           - "tests/tensor/nnet/test_abstract_conv.py"
         include:
           - python-version: "3.7"
+            os: windows-latest
+            fast-compile: 1
+            float32: 1
+            install-numba: 0
+            part: "tests/test_printing.py"  # TODO: change to test_cmodule
+          - python-version: "3.7"
+            os: windows-latest
+            fast-compile: 1
+            float32: 1
+            install-numba: 1
+            part: "tests/test_printing.py"  # TODO: change to test_cmodule
+          - python-version: "3.7"
             fast-compile: 1
             float32: 1
             install-numba: 1
