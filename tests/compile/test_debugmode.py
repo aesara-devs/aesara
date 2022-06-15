@@ -22,7 +22,7 @@ from aesara.graph.opt import local_optimizer
 from aesara.graph.optdb import EquilibriumDB
 from aesara.link.c.op import COp
 from aesara.tensor.math import add, dot, log
-from aesara.tensor.type import TensorType, dvector, fmatrix, fvector, vector
+from aesara.tensor.type import TensorType, dvector, fmatrix, fvector, scalar, vector
 from tests import unittest_tools as utt
 
 
@@ -808,3 +808,31 @@ class TestPreallocatedOutput:
 
         v_val = self.rng.standard_normal((5)).astype("float32")
         f(v_val)
+
+
+def test_function_dict():
+    """Tests that debug mode works where outputs is a dictionary."""
+
+    x = scalar("x")
+
+    f = function([x], outputs={"1": x, "2": 2 * x, "3": 3 * x}, mode="DEBUG_MODE")
+
+    result = f(3.0)
+
+    assert result["1"] == 3.0
+    assert result["2"] == 6.0
+    assert result["3"] == 9.0
+
+
+def test_function_list():
+    """Tests that debug mode works where the outputs argument is a list."""
+
+    x = scalar("x")
+
+    f = function([x], outputs=[x, 2 * x, 3 * x], mode="DEBUG_MODE")
+
+    result = f(5.0)
+
+    assert result[0] == 5.0
+    assert result[1] == 10.0
+    assert result[2] == 15.0
