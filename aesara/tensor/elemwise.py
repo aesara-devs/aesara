@@ -1,5 +1,5 @@
 from copy import copy
-from typing import Tuple, Union
+from typing import Sequence, Tuple, Union
 
 import numpy as np
 
@@ -589,7 +589,7 @@ class Elemwise(OpenMPOp):
             for igrad in scalar_igrads:
                 assert igrad is not None, self.scalar_op
 
-        if not isinstance(scalar_igrads, (list, tuple)):
+        if not isinstance(scalar_igrads, Sequence):
             raise TypeError(
                 f"{str(self.scalar_op)}.grad returned {str(type(scalar_igrads))} instead of list or tuple"
             )
@@ -1088,7 +1088,7 @@ class Elemwise(OpenMPOp):
                     npy_intp n = PyArray_SIZE({z});
                     """
                     index = ""
-                    for x, var in zip(inames + onames, inputs + node.outputs):
+                    for x, var in zip(inames + onames, inputs + list(node.outputs)):
                         if not all(var.broadcastable):
                             contig += (
                                 """
@@ -1122,7 +1122,7 @@ class Elemwise(OpenMPOp):
                         % locals()
                     )
             if contig is not None:
-                z = list(zip(inames + onames, inputs + node.outputs))
+                z = list(zip(inames + onames, inputs + list(node.outputs)))
                 cond1 = " && ".join(
                     [
                         "PyArray_ISCONTIGUOUS(%s)" % arr

@@ -1784,7 +1784,7 @@ class TestUselessCheckAndRaise:
         fg_res = optimize_graph(fg, include=["canonicalize", "specialize"])
         topo = fg_res.toposort()
         (assert_node,) = [node for node in topo if isinstance(node.op, CheckAndRaise)]
-        assert assert_node.inputs == [x, y]
+        assert assert_node.inputs == (x, y)
 
     def test_local_remove_useless_3(self):
         """Don't remove `CheckAndRaise` conditions that are always false."""
@@ -1794,7 +1794,7 @@ class TestUselessCheckAndRaise:
         fg_res = optimize_graph(fg, include=["canonicalize", "specialize"])
         topo = fg_res.toposort()
         (assert_node,) = [node for node in topo if isinstance(node.op, CheckAndRaise)]
-        assert assert_node.inputs[:2] == [x, y]
+        assert assert_node.inputs[:2] == (x, y)
         assert assert_node.inputs[-1].data == 0
 
 

@@ -250,7 +250,7 @@ class Op(MetaObject):
             )
         return Apply(self, inputs, [o() for o in self.otypes])
 
-    def __call__(self, *inputs: Any, **kwargs) -> Union[Variable, List[Variable]]:
+    def __call__(self, *inputs: Any, **kwargs) -> Union[Variable, Tuple[Variable, ...]]:
         r"""Construct an `Apply` node using :meth:`Op.make_node` and return its outputs.
 
         This method is just a wrapper around :meth:`Op.make_node`.
@@ -301,11 +301,11 @@ class Op(MetaObject):
         if self.default_output is not None:
             rval = node.outputs[self.default_output]
             if return_list:
-                return [rval]
+                return (rval,)
             return rval
         else:
             if return_list:
-                return list(node.outputs)
+                return node.outputs
             elif len(node.outputs) == 1:
                 return node.outputs[0]
             else:

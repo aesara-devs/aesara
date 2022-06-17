@@ -5,7 +5,7 @@ import time
 import warnings
 from collections import OrderedDict
 from functools import partial, reduce
-from typing import TYPE_CHECKING, Callable, List, Optional, Union
+from typing import TYPE_CHECKING, Callable, List, Optional, Sequence, Union
 
 import numpy as np
 
@@ -1819,7 +1819,7 @@ def verify_grad(
     # fun can be either a function or an actual Op instance
     o_output = fun(*tensor_pt)
 
-    if isinstance(o_output, list):
+    if isinstance(o_output, Sequence):
         raise NotImplementedError(
             "Can't (yet) auto-test the gradient of a function with multiple outputs"
         )
@@ -1830,7 +1830,7 @@ def verify_grad(
     o_fn = fn_maker(tensor_pt, o_output, name="gradient.py fwd")
     o_fn_out = o_fn(*[p.copy() for p in pt])
 
-    if isinstance(o_fn_out, tuple) or isinstance(o_fn_out, list):
+    if isinstance(o_fn_out, Sequence):
         raise TypeError(
             "It seems like you are trying to use verify_grad "
             "on an Op or a function which outputs a list: there should"

@@ -6,7 +6,7 @@ import time
 import traceback
 from collections import defaultdict
 from io import StringIO
-from typing import Optional
+from typing import Optional, Tuple
 
 import numpy as np
 
@@ -91,7 +91,7 @@ from aesara.tensor.type import (
 )
 from aesara.tensor.type_other import NoneConst
 from aesara.tensor.var import TensorConstant
-from aesara.utils import NoDuplicateOptWarningFilter
+from aesara.utils import NoDuplicateOptWarningFilter, set_index
 
 
 _logger = logging.getLogger("aesara.tensor.basic_opt")
@@ -1677,7 +1677,7 @@ def local_fill_sink(fgraph, node):
             and isinstance(client.op, Elemwise)
             and client.op != fill
         ):
-            client_inputs = client.inputs[:]
+            client_inputs = list(client.inputs)
             client_inputs[cl_idx] = c
             new_client = client.op(*client_inputs)
 
@@ -1825,7 +1825,7 @@ def local_alloc_sink_dimshuffle(fgraph, node):
         ):
             inner = inp
         else:
-            inner = op(*([inp] + new_output_shape))
+            inner = op(*((inp,) + new_output_shape))
         dimshuffle_new_order = ["x"] * num_dims_with_size_1_added_to_left + list(
             range(len(new_output_shape))
         )
@@ -2104,7 +2104,7 @@ def local_remove_useless_assert(fgraph, node):
     if not isinstance(node.op, CheckAndRaise):
         return False
 
-    new_conds = []
+    new_conds: Tuple[Variable] = ()
     n_conds = len(node.inputs[1:])
     for c in node.inputs[1:]:
         try:
@@ -2113,9 +2113,9 @@ def local_remove_useless_assert(fgraph, node):
             if 0 != const.ndim or const == 0:
                 # Should we raise an error here? How to be sure it
                 # is not caught?
-                new_conds.append(c)
+                new_conds += (c,)
         except NotScalarConstantError:
-            new_conds.append(c)
+            new_conds += (c,)
 
     if len(new_conds) == 0:
         return [node.inputs[0]]
@@ -2193,10 +2193,10 @@ def local_upcast_elemwise_constant_inputs(fgraph, node):
             # this is the kind of op that we can screw with the input
             # dtypes by upcasting explicitly
             output_dtype = node.outputs[0].type.dtype
-            new_inputs = []
+            new_inputs = ()
             for i in node.inputs:
                 if i.type.dtype == output_dtype:
-                    new_inputs.append(i)
+                    new_inputs += (i,)
                 else:
                     try:
                         # works only for scalars
@@ -2204,26 +2204,24 @@ def local_upcast_elemwise_constant_inputs(fgraph, node):
                             i, only_process_constants=True
                         )
                         if all(i.broadcastable):
-                            new_inputs.append(
-                                shape_padleft(cast(cval_i, output_dtype), i.ndim)
+                            new_inputs += (
+                                shape_padleft(cast(cval_i, output_dtype), i.ndim),
                             )
                         else:
                             if shape_i is None:
                                 return
-                            new_inputs.append(
+                            new_inputs == (
                                 alloc(
                                     cast(cval_i, output_dtype),
                                     *[shape_i(d)(i) for d in range(i.ndim)],
-                                )
+                                ),
                             )
-                            # print >> sys.stderr, "AAA",
-                            # *[Shape_i(d)(i) for d in range(i.ndim)]
                     except NotScalarConstantError:
                         # for the case of a non-scalar
                         if isinstance(i, TensorConstant):
-                            new_inputs.append(cast(i, output_dtype))
+                            new_inputs += (cast(i, output_dtype),)
                         else:
-                            new_inputs.append(i)
+                            new_inputs += (i,)
 
             if new_inputs != node.inputs:
                 rval = [node.op(*new_inputs)]
@@ -3365,12 +3363,13 @@ def local_merge_alloc(fgraph, node):
             if isinstance(dim_inner, Constant) and dim_inner.data == 1:
                 pass
             else:
-                dims_outer[-1 - i] = Assert(
+                new_var = Assert(
                     "You have a shape error in your graph. To see a better"
                     " error message and a stack trace of where in your code"
                     " the error is created, use the Aesara flags"
                     " optimizer=None or optimizer=fast_compile."
                 )(dim_outer, eq(dim_outer, dim_inner))
+                dims_outer = set_index(dims_outer, -1 - i, new_var)
         i += 1
     return [alloc(inputs_inner[0], *dims_outer)]
 

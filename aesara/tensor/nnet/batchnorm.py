@@ -481,13 +481,13 @@ class AbstractBatchNormTrain(Op):
         x, scale, bias, epsilon, running_average_factor = inputs[:5]
         dy = grads[0]
         _, x_mean, x_invstd = outputs[:3]
-        disconnected_outputs = [
+        disconnected_outputs = (
             aesara.gradient.DisconnectedType()(),  # epsilon
             aesara.gradient.DisconnectedType()(),
-        ]  # running_average_factor
+        )  # running_average_factor
         # Optional running_mean and running_var.
         for i in range(5, len(inputs)):
-            disconnected_outputs.append(aesara.gradient.DisconnectedType()())
+            disconnected_outputs += (aesara.gradient.DisconnectedType()(),)
         return (
             AbstractBatchNormTrainGrad(self.axes)(
                 x, dy, scale, x_mean, x_invstd, epsilon

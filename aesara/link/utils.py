@@ -13,6 +13,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
+    DefaultDict,
     Dict,
     Iterable,
     List,
@@ -791,19 +792,21 @@ def {fgraph_name}({", ".join(fgraph_input_names)}):
     return fgraph_def
 
 
-def get_destroy_dependencies(fgraph: FunctionGraph) -> Dict[Apply, List[Variable]]:
-    """Construct a ``dict`` of nodes to variables that are implicit dependencies induced by `Op.destroy_map` and `Op.view_map`
+def get_destroy_dependencies(
+    fgraph: FunctionGraph,
+) -> DefaultDict[Apply, List[Variable]]:
+    """Construct a ``dict`` of nodes to variables that are implicit dependencies induced by `Op.destroy_map` and `Op.view_map`.
 
     These variable dependencies are in contrast to each node's inputs, which
     are _explicit_ dependencies.
 
     The variables in the values of this ``dict`` would be impossible to compute
-    after the current key nodes are evaluated, because node.thunk() is going to
+    after the current key nodes are evaluated, because ``node.thunk()`` is going to
     destroy a common input variable needed by whatever node owns each variable
-    in destroy_dependencies.
+    in `destroy_dependencies`.
     """
     order = fgraph.orderings()
-    destroy_dependencies = defaultdict(lambda: [])
+    destroy_dependencies: DefaultDict[Apply, List[Variable]] = defaultdict(lambda: [])
     for node in fgraph.apply_nodes:
         for prereq in order.get(node, []):
             destroy_dependencies[node].extend(prereq.outputs)

@@ -98,8 +98,8 @@ def test_KanrenRelationSub_filters():
 def test_KanrenRelationSub_multiout():
     class MyMultiOutOp(Op):
         def make_node(self, *inputs):
-            outputs = [MyType()(), MyType()()]
-            return Apply(self, list(inputs), outputs)
+            outputs = (MyType()(), MyType()())
+            return Apply(self, inputs, outputs)
 
         def perform(self, node, inputs, outputs):
             outputs[0] = np.array(inputs[0])

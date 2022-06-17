@@ -12,7 +12,9 @@ import warnings
 from collections import OrderedDict
 from collections.abc import Callable
 from functools import partial, wraps
-from typing import List, Set
+from typing import Any, List, Set, Tuple
+
+from numpy.core.multiarray import normalize_axis_index
 
 
 __all__ = [
@@ -452,3 +454,14 @@ class DefaultOrderedDict(OrderedDict):
 
     def __copy__(self):
         return type(self)(self.default_factory, self)
+
+
+def set_index(x: Tuple, idx: int, value: Any) -> Tuple:
+    """Replace the value at an index in a tuple."""
+
+    idx = normalize_axis_index(idx, len(x))
+
+    if idx >= len(x):
+        raise IndexError()
+
+    return x[:idx] + (value,) + x[(idx + 1) :]

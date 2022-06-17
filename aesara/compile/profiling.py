@@ -1043,7 +1043,7 @@ class ProfileStats:
             for var in fgraph.inputs:
                 for c, _ in fgraph.clients[var]:
                     if c != "output":
-                        deps = c.inputs + destroy_dependencies[c]
+                        deps = c.inputs + tuple(destroy_dependencies[c])
                         if all(compute_map[v][0] for v in deps):
                             executable_nodes.add(c)
 
@@ -1171,7 +1171,7 @@ class ProfileStats:
                         for var in node.outputs:
                             for c, _ in fgraph.clients[var]:
                                 if c != "output":
-                                    deps = c.inputs + destroy_dependencies[c]
+                                    deps = c.inputs + tuple(destroy_dependencies[c])
                                     if all(compute_map[v][0] for v in deps):
                                         new_exec_nodes.add(c)
 

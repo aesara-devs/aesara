@@ -265,7 +265,7 @@ class TestFunctionGraph:
         fg.replace_all([(var3, var1)])
         assert var3 not in fg.variables
         assert fg.apply_nodes == {var4.owner, var5.owner}
-        assert var4.owner.inputs == [var1, var2]
+        assert var4.owner.inputs == (var1, var2)
 
     def test_replace_verbose(self, capsys):
 
@@ -298,7 +298,7 @@ class TestFunctionGraph:
         # The following works (and is kind of gross), because `var4` has been
         # mutated in-place
         assert fg.apply_nodes == {var4.owner, var5.owner}
-        assert var4.owner.inputs == [var4, var2]
+        assert var4.owner.inputs == (var4, var2)
 
     def test_replace_bad_state(self):
 
@@ -349,12 +349,12 @@ class TestFunctionGraph:
             var6 = MyVariable2("var6")
             fg.clients[var6] = [(var5.owner, 3)]
             fg.variables.add(var6)
-            var5.owner.inputs.append(var6)
+            var5.owner.inputs += (var6,)
 
             fg.check_integrity()
 
         fg.variables.remove(var6)
-        var5.owner.inputs.remove(var6)
+        var5.owner.inputs = var5.owner.inputs[:-1]
 
         # TODO: What if the index value is greater than 1?  It will throw an
         # `IndexError`, but that doesn't sound like anything we'd want.

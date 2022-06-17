@@ -599,7 +599,9 @@ class Stack(UpdatingVM):
             current_apply = apply_stack.pop()
             current_inputs = current_apply.inputs
             current_outputs = current_apply.outputs
-            current_deps = current_inputs + self.destroy_dependencies[current_apply]
+            current_deps = current_inputs + tuple(
+                self.destroy_dependencies[current_apply]
+            )
 
             computed_ins = all(compute_map[v][0] for v in current_deps)
             computed_outs = all(compute_map[v][0] for v in current_outputs)

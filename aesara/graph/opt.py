@@ -36,7 +36,7 @@ from aesara.graph.fg import FunctionGraph
 from aesara.graph.op import Op
 from aesara.graph.utils import AssocList, InconsistencyError
 from aesara.misc.ordered_set import OrderedSet
-from aesara.utils import flatten
+from aesara.utils import flatten, set_index
 
 
 _logger = logging.getLogger("aesara.graph.opt")
@@ -919,8 +919,10 @@ def pre_constant_merge(fgraph, variables):
 
         if var.owner:
             for idx, inp in enumerate(var.owner.inputs):
-                # XXX: This is changing the graph in place!
-                var.owner.inputs[idx] = recursive_merge(inp)
+                # XXX: This is changing the graph in-place!
+                var.owner.inputs = set_index(
+                    var.owner.inputs, idx, recursive_merge(inp)
+                )
         return var
 
     return [recursive_merge(v) for v in variables]
@@ -2794,7 +2796,7 @@ def pre_greedy_local_optimizer(fgraph, optimizations, out):
                     optimized_vars[inp] = inp
 
             # XXX: An in-place change
-            node.inputs[idx] = nw_in
+            node.inputs = set_index(node.inputs, idx, nw_in)
 
         # Apply the optimizations
         results = node.outputs

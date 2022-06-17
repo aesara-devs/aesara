@@ -13,7 +13,7 @@ is a global operation with a scalar condition.
 
 import logging
 from copy import deepcopy
-from typing import List, Sequence, Union
+from typing import List, Sequence, Tuple, Union
 
 import numpy as np
 
@@ -231,8 +231,8 @@ class IfElse(_NoPythonOp):
         condition_grad = condition.zeros_like().astype(config.floatX)
         return (
             [condition_grad]
-            + if_true_op(*if_true, return_list=True)
-            + if_false_op(*if_false, return_list=True)
+            + list(if_true_op(*if_true, return_list=True))
+            + list(if_false_op(*if_false, return_list=True))
         )
 
     def make_thunk(self, node, storage_map, compute_map, no_recycling, impl=None):
@@ -586,7 +586,7 @@ class CondMerge(GlobalOptimizer):
                 mn_fs = merging_node.inputs[1:][merging_node.op.n_outs :]
                 pl_ts = proposal.inputs[1:][: proposal.op.n_outs]
                 pl_fs = proposal.inputs[1:][proposal.op.n_outs :]
-                new_ins = [merging_node.inputs[0]] + mn_ts + pl_ts + mn_fs + pl_fs
+                new_ins = (merging_node.inputs[0],) + mn_ts + pl_ts + mn_fs + pl_fs
                 mn_name = "?"
                 if merging_node.op.name:
                     mn_name = merging_node.op.name
@@ -601,16 +601,8 @@ class CondMerge(GlobalOptimizer):
                     name=mn_name + "&" + pl_name,
                 )
                 new_outs = new_ifelse(*new_ins, return_list=True)
-                new_outs = [clone_replace(x) for x in new_outs]
-                old_outs = []
-                if not isinstance(merging_node.outputs, (list, tuple)):
-                    old_outs += [merging_node.outputs]
-                else:
-                    old_outs += merging_node.outputs
-                if not isinstance(proposal.outputs, (list, tuple)):
-                    old_outs += [proposal.outputs]
-                else:
-                    old_outs += proposal.outputs
+                new_outs = tuple(clone_replace(x) for x in new_outs)
+                old_outs = merging_node.outputs + proposal.outputs
                 pairs = list(zip(old_outs, new_outs))
                 fgraph.replace_all_validate(pairs, reason="cond_merge")
 
@@ -635,20 +627,20 @@ def cond_remove_identical(fgraph, node):
     if len(out_map) == 0:
         return False
 
-    nw_ts = []
-    nw_fs = []
+    nw_ts: Tuple[Variable] = ()
+    nw_fs: Tuple[Variable] = ()
     inv_map = {}
     pos = 0
     for idx in range(len(node.outputs)):
         if idx not in out_map:
             inv_map[idx] = pos
             pos = pos + 1
-            nw_ts.append(aes[idx])
-            nw_fs.append(fs[idx])
+            nw_ts += (aes[idx],)
+            nw_fs += (fs[idx],)
 
     new_ifelse = IfElse(n_outs=len(nw_ts), as_view=op.as_view, name=op.name)
 
-    new_ins = [node.inputs[0]] + nw_ts + nw_fs
+    new_ins = (node.inputs[0],) + nw_ts + nw_fs
     new_outs = new_ifelse(*new_ins, return_list=True)
 
     rval = []
@@ -686,7 +678,7 @@ def cond_merge_random_op(fgraph, main_node):
             mn_fs = merging_node.inputs[1:][merging_node.op.n_outs :]
             pl_ts = proposal.inputs[1:][: proposal.op.n_outs]
             pl_fs = proposal.inputs[1:][proposal.op.n_outs :]
-            new_ins = [merging_node.inputs[0]] + mn_ts + pl_ts + mn_fs + pl_fs
+            new_ins = (merging_node.inputs[0],) + mn_ts + pl_ts + mn_fs + pl_fs
             mn_name = "?"
             if merging_node.op.name:
                 mn_name = merging_node.op.name
@@ -701,15 +693,7 @@ def cond_merge_random_op(fgraph, main_node):
                 name=mn_name + "&" + pl_name,
             )
             new_outs = new_ifelse(*new_ins, return_list=True)
-            old_outs = []
-            if not isinstance(merging_node.outputs, (list, tuple)):
-                old_outs += [merging_node.outputs]
-            else:
-                old_outs += merging_node.outputs
-            if not isinstance(proposal.outputs, (list, tuple)):
-                old_outs += [proposal.outputs]
-            else:
-                old_outs += proposal.outputs
+            old_outs = merging_node.outputs + proposal.outputs
             pairs = list(zip(old_outs, new_outs))
             main_outs = clone_replace(main_node.outputs, replace=pairs)
             return main_outs
