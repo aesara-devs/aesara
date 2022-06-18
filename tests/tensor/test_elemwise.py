@@ -26,6 +26,7 @@ from aesara.tensor.type import (
     bmatrix,
     bscalar,
     discrete_dtypes,
+    lscalar,
     matrix,
     scalar,
     tensor,
@@ -815,8 +816,8 @@ class TestElemwise(unittest_tools.InferShapeTester):
 
         assert len(res_shape) == 1
         assert len(res_shape[0]) == 2
-        assert res_shape[0][0].data == 1
-        assert res_shape[0][1].data == 1
+        assert aesara.get_scalar_constant_value(res_shape[0][0]) == 1
+        assert aesara.get_scalar_constant_value(res_shape[0][1]) == 1
 
     def test_multi_output(self):
         class CustomElemwise(Elemwise):
@@ -840,6 +841,18 @@ class TestElemwise(unittest_tools.InferShapeTester):
 
         with pytest.raises(ShapeError):
             z_1.owner.op.infer_shape(None, z_1.owner, [in_1_shape, in_1_shape])
+
+    def test_shape_types(self):
+        x = tensor(np.float64, (None, 1))
+        y = tensor(np.float64, (50, 10))
+
+        z = x * y
+
+        assert isinstance(z.owner.op, Elemwise)
+
+        (out_shape,) = z.owner.op.infer_shape(None, z.owner, [(lscalar(), 1), (50, 10)])
+
+        assert all(isinstance(v.type, TensorType) for v in out_shape)
 
 
 def test_not_implemented_elemwise_grad():
