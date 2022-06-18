@@ -1,5 +1,5 @@
 from copy import copy
-from typing import Tuple, Union
+from typing import List, Tuple, Union
 
 import numpy as np
 
@@ -29,6 +29,7 @@ from aesara.tensor.type import (
     float_dtypes,
     lvector,
 )
+from aesara.tensor.var import TensorVariable
 from aesara.utils import uniq
 
 
@@ -802,7 +803,7 @@ class Elemwise(OpenMPOp):
             else:
                 storage[0] = variable
 
-    def infer_shape(self, fgraph, node, i_shapes):
+    def infer_shape(self, fgraph, node, i_shapes) -> List[Tuple[TensorVariable, ...]]:
 
         if len(node.outputs) > 1:
             from aesara.tensor.basic_opt import ShapeError
@@ -813,7 +814,8 @@ class Elemwise(OpenMPOp):
 
         out_shape = aesara.tensor.broadcast_shape(*i_shapes, arrays_are_shapes=True)
 
-        return [out_shape]
+        # The `as_tensor_variable` should convert `ScalarType`s to `TensorType`s
+        return [tuple(as_tensor_variable(s) for s in out_shape)]
 
     def _c_all(self, node, nodename, inames, onames, sub):
         # Some `Op`s directly call `Elemwise._c_all` or `Elemwise.c_code`
