@@ -7,7 +7,10 @@ deterministic based on the input type and the op.
 import logging
 import multiprocessing
 import os
+import sys
 import tempfile
+from contextlib import redirect_stderr, redirect_stdout
+from io import StringIO
 from unittest.mock import patch
 
 import numpy as np
@@ -186,3 +189,49 @@ def test_cache_race_condition():
                 assert not any(
                     exit_code != 0 for exit_code in [proc.exitcode for proc in procs]
                 )
+
+
+def mocked_blas_opt(*args, **kwargs):
+    print("This line will be re-printed to stdout", file=sys.stdout)
+    print("This line will be re-printed to stderr", file=sys.stderr)
+    print(
+        "Could not locate executable g77: this line will be caught and filtered",
+        file=sys.stdout,
+    )
+    print(
+        "Could not locate executable g77: this line will be caught and filtered",
+        file=sys.stderr,
+    )
+    print(
+        "Could not locate executable foo: this line will be re-printed to stdout",
+        file=sys.stdout,
+    )
+    print(
+        "Could not locate executable foo: this line will be re-printed to stderr",
+        file=sys.stderr,
+    )
+    return {
+        "libraries": [],
+        "library_dirs": [],
+        "define_macros": [],
+        "include_dirs": [],
+    }
+
+
+@patch("numpy.distutils.system_info.get_info", new=mocked_blas_opt)
+def test_blas_opt_warnings():
+    sio_out = StringIO()
+    sio_err = StringIO()
+    with redirect_stdout(sio_out):
+        with redirect_stderr(sio_err):
+            default_blas_ldflags()
+    stdout_lines = sio_out.getvalue().splitlines()
+    stderr_lines = sio_err.getvalue().splitlines()
+    assert stdout_lines == [
+        "This line will be re-printed to stdout",
+        "Could not locate executable foo: this line will be re-printed to stdout",
+    ]
+    assert stderr_lines == [
+        "This line will be re-printed to stderr",
+        "Could not locate executable foo: this line will be re-printed to stderr",
+    ]
