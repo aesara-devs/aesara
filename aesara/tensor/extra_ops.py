@@ -1441,7 +1441,7 @@ def ravel_multi_index(multi_index, dims, mode="raise", order="C"):
     return RavelMultiIndex(mode=mode, order=order)(*args)
 
 
-def broadcast_shape(*arrays, **kwargs):
+def broadcast_shape(*arrays, **kwargs) -> Tuple[aes.ScalarVariable, ...]:
     """Compute the shape resulting from broadcasting arrays.
 
     Parameters
@@ -1462,7 +1462,7 @@ def broadcast_shape(*arrays, **kwargs):
 def broadcast_shape_iter(
     arrays: Iterable[Union[TensorVariable, Tuple[TensorVariable, ...]]],
     arrays_are_shapes: bool = False,
-):
+) -> Tuple[aes.ScalarVariable, ...]:
     r"""Compute the shape resulting from broadcasting arrays.
 
 
