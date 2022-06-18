@@ -63,7 +63,7 @@ def test_shape_basic():
         def __eq__(self, other):
             return isinstance(other, MyType) and other.thingy == self.thingy
 
-    s = shape(Variable(MyType()))
+    s = shape(Variable(MyType(), None))
     assert s.type.broadcastable == (False,)
 
     s = shape(np.array(1))
@@ -475,7 +475,7 @@ class TestSpecifyShape(utt.InferShapeTester):
     def test_infer_shape(self):
         rng = np.random.default_rng(3453)
         adtens4 = dtensor4()
-        aivec = TensorVariable(TensorType("int64", (4,)))
+        aivec = TensorVariable(TensorType("int64", (4,)), None)
         aivec_val = [3, 4, 2, 5]
         adtens4_val = rng.random(aivec_val)
         self._compile_and_check(

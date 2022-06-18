@@ -207,7 +207,7 @@ class Linker(ABC):
 
         Examples
         --------
-        x, y = Variable(Double), Variable(Double)
+        x, y = Variable(Double, None), Variable(Double, None)
         e = x + y
         fgraph = FunctionGraph([x, y], [e])
         fn, (new_x, new_y), (new_e, ) = MyLinker(fgraph).make_thunk(inplace)

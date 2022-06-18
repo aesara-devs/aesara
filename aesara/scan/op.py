@@ -1483,7 +1483,7 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
     def inner_outputs(self):
         return self.fgraph.outputs
 
-    def clone(self):
+    def clone(self) -> "Scan":
         res = copy(self)
         res.fgraph = res.fgraph.clone()
         return res
@@ -1542,41 +1542,50 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
 
             cython_mintaps = np.asarray(self.mintaps, dtype="int32")
 
-            tap_array_len = tuple(
-                len(x)
-                for x in chain(
-                    self.info.mit_mot_in_slices,
-                    self.info.mit_sot_in_slices,
-                    self.info.sit_sot_in_slices,
-                )
-            )
+            n_outs = self.info.n_mit_mot + self.info.n_mit_sot + self.info.n_sit_sot
+            cython_pos = np.zeros(n_outs + self.info.n_nit_sot, dtype=np.uint32)
+            cython_store_steps = np.zeros(n_outs + self.info.n_nit_sot, dtype=np.uint32)
 
-            cython_vector_seqs = np.asarray(self.vector_seqs, dtype="int32")
-            cython_vector_outs = np.asarray(self.vector_outs, dtype="int32")
+            tap_array = (
+                self.info.mit_mot_in_slices
+                + self.info.mit_sot_in_slices
+                + self.info.sit_sot_in_slices
+            )
+            tap_array_len = np.array([len(x) for x in tap_array], dtype=np.uint32)
+
+            cython_vector_seqs = np.asarray(self.vector_seqs, dtype=bool)
+            cython_vector_outs = np.asarray(self.vector_outs, dtype=bool)
             cython_mitmots_preallocated = np.asarray(
-                self.mitmots_preallocated, dtype="int32"
+                self.mitmots_preallocated, dtype=bool
             )
-
-            cython_outs_is_tensor = np.asarray(outs_is_tensor, dtype="int32")
+            cython_outs_is_tensor = np.asarray(outs_is_tensor, dtype=bool)
 
             if self.destroy_map:
                 cython_destroy_map = [
                     x in self.destroy_map for x in range(len(node.outputs))
                 ]
             else:
-                cython_destroy_map = [0 for x in range(len(node.outputs))]
+                cython_destroy_map = [False for x in range(len(node.outputs))]
 
-            cython_destroy_map = np.asarray(cython_destroy_map, dtype="int32")
+            cython_destroy_map = np.asarray(cython_destroy_map, dtype=bool)
 
             inner_input_storage = [s.storage for s in self.fn.input_storage]
             inner_output_storage = [s.storage for s in self.fn.output_storage]
 
             outer_output_dtypes = tuple(
-                getattr(out, "dtype", None) for out in node.outputs
+                getattr(out, "dtype", object) for out in node.outputs
             )
-            outer_output_ndims = tuple(
-                getattr(out, "ndim", None) for out in node.outputs
+
+            outer_output_ndims = np.array(
+                [getattr(out, "ndim", 0) for out in node.outputs], dtype=np.uint32
             )
+
+            # The input index for each mit-mot output
+            mit_mot_out_to_tap_idx = ()
+            for j in range(self.info.n_mit_mot):
+                for k in self.info.mit_mot_out_slices[j]:
+                    mit_mot_out_to_tap_idx += (tap_array[j].index(k),)
+            mit_mot_out_to_tap_idx = np.asarray(mit_mot_out_to_tap_idx, dtype=np.uint32)
 
             from aesara.scan.utils import InnerFunctionError
 
@@ -1604,6 +1613,8 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
                         self.info.n_nit_sot,
                         self.info.as_while,
                         cython_mintaps,
+                        cython_pos,
+                        cython_store_steps,
                         self.info.mit_mot_in_slices
                         + self.info.mit_sot_in_slices
                         + self.info.sit_sot_in_slices,
@@ -1612,6 +1623,7 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
                         cython_vector_outs,
                         self.info.mit_mot_out_slices,
                         cython_mitmots_preallocated,
+                        mit_mot_out_to_tap_idx,
                         cython_outs_is_tensor,
                         inner_input_storage,
                         inner_output_storage,

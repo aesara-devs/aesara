@@ -17,7 +17,7 @@ class TestLoadTensor:
         np.save(self.filename, self.data)
 
     def test_basic(self):
-        path = Variable(Generic())
+        path = Variable(Generic(), None)
         # Not specifying mmap_mode defaults to None, and the data is
         # copied into main memory
         x = load(path, "int32", (False,))
@@ -29,13 +29,13 @@ class TestLoadTensor:
         # Modes 'r+', 'r', and 'w+' cannot work with Aesara, becausei
         # the output array may be modified inplace, and that should not
         # modify the original file.
-        path = Variable(Generic())
+        path = Variable(Generic(), None)
         for mmap_mode in ("r+", "r", "w+", "toto"):
             with pytest.raises(ValueError):
                 load(path, "int32", (False,), mmap_mode)
 
     def test1(self):
-        path = Variable(Generic())
+        path = Variable(Generic(), None)
         # 'c' means "copy-on-write", which allow the array to be overwritten
         # by an inplace Op in the graph, without modifying the underlying
         # file.
@@ -48,7 +48,7 @@ class TestLoadTensor:
         assert (fn(self.filename) == (self.data**2).sum()).all()
 
     def test_memmap(self):
-        path = Variable(Generic())
+        path = Variable(Generic(), None)
         x = load(path, "int32", (False,), mmap_mode="c")
         fn = function([path], x)
         assert type(fn(self.filename)) == np.core.memmap

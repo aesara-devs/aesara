@@ -82,7 +82,7 @@ def load(path, dtype, broadcastable, mmap_mode=None):
     Examples
     --------
     >>> from aesara import *
-    >>> path = Variable(Generic())
+    >>> path = Variable(Generic(), None)
     >>> x = tensor.load(path, 'int64', (False,))
     >>> y = x*2
     >>> fn = function([path], y)
@@ -136,7 +136,7 @@ class MPIRecv(Op):
             self,
             [],
             [
-                Variable(Generic()),
+                Variable(Generic(), None),
                 tensor(self.dtype, shape=self.broadcastable),
             ],
         )
@@ -222,7 +222,7 @@ class MPISend(Op):
         self.tag = tag
 
     def make_node(self, data):
-        return Apply(self, [data], [Variable(Generic()), data.type()])
+        return Apply(self, [data], [Variable(Generic(), None), data.type()])
 
     view_map = {1: [0]}
 
@@ -259,7 +259,7 @@ class MPISendWait(Op):
         self.tag = tag
 
     def make_node(self, request, data):
-        return Apply(self, [request, data], [Variable(Generic())])
+        return Apply(self, [request, data], [Variable(Generic(), None)])
 
     def perform(self, node, inp, out):
         request = inp[0]

@@ -1,5 +1,5 @@
 from abc import abstractmethod
-from typing import Any, Optional, Text, Tuple, TypeVar, Union
+from typing import Any, Generic, Optional, Text, Tuple, TypeVar, Union
 
 from typing_extensions import TypeAlias
 
@@ -11,7 +11,7 @@ from aesara.graph.utils import MetaObject
 D = TypeVar("D")
 
 
-class Type(MetaObject):
+class Type(MetaObject, Generic[D]):
     """
     Interface specification for variable type instances.
 
@@ -77,8 +77,8 @@ class Type(MetaObject):
 
     @abstractmethod
     def filter(
-        self, data: D, strict: bool = False, allow_downcast: Optional[bool] = None
-    ) -> Union[D, Any]:
+        self, data: Any, strict: bool = False, allow_downcast: Optional[bool] = None
+    ) -> D:
         """Return data or an appropriately wrapped/converted data.
 
         Subclass implementations should raise a TypeError exception if
@@ -103,7 +103,7 @@ class Type(MetaObject):
 
     def filter_inplace(
         self,
-        value: D,
+        value: Any,
         storage: Any,
         strict: bool = False,
         allow_downcast: Optional[bool] = None,
@@ -180,10 +180,10 @@ class Type(MetaObject):
 
         return None
 
-    def is_valid_value(self, data: D) -> bool:
+    def is_valid_value(self, data: D, strict: bool = True) -> bool:
         """Return ``True`` for any python object that would be a legal value for a `Variable` of this `Type`."""
         try:
-            self.filter(data, strict=True)
+            self.filter(data, strict=strict)
             return True
         except (TypeError, ValueError):
             return False
@@ -197,7 +197,7 @@ class Type(MetaObject):
             A pretty string for printing and debugging.
 
         """
-        return self.variable_type(self, name=name)
+        return self.variable_type(self, None, name=name)
 
     def make_constant(self, value: D, name: Optional[Text] = None) -> constant_type:
         """Return a new `Constant` instance of this `Type`.
@@ -212,7 +212,7 @@ class Type(MetaObject):
         """
         return self.constant_type(type=self, data=value, name=name)
 
-    def clone(self, *args, **kwargs):
+    def clone(self, *args, **kwargs) -> "Type":
         """Clone a copy of this type with the given arguments/keyword values, if any."""
         return type(self)(*args, **kwargs)
 
@@ -228,7 +228,7 @@ class Type(MetaObject):
         return utils.add_tag_trace(self.make_variable(name))
 
     @classmethod
-    def values_eq(cls, a: "Type", b: "Type") -> bool:
+    def values_eq(cls, a: D, b: D) -> bool:
         """Return ``True`` if `a` and `b` can be considered exactly equal.
 
         `a` and `b` are assumed to be valid values of this `Type`.
@@ -237,7 +237,7 @@ class Type(MetaObject):
         return a == b
 
     @classmethod
-    def values_eq_approx(cls, a: Any, b: Any):
+    def values_eq_approx(cls, a: D, b: D) -> bool:
         """Return ``True`` if `a` and `b` can be considered approximately equal.
 
         This function is used by Aesara debugging tools to decide

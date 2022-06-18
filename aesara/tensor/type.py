@@ -48,7 +48,7 @@ dtype_specs_map = {
 }
 
 
-class TensorType(CType, HasDataType, HasShape):
+class TensorType(CType[np.ndarray], HasDataType, HasShape):
     r"""Symbolic `Type` representing `numpy.ndarray`\s."""
 
     __props__: Tuple[str, ...] = ("dtype", "shape")
@@ -108,7 +108,9 @@ class TensorType(CType, HasDataType, HasShape):
         self.name = name
         self.numpy_dtype = np.dtype(self.dtype)
 
-    def clone(self, dtype=None, shape=None, broadcastable=None, **kwargs):
+    def clone(
+        self, dtype=None, shape=None, broadcastable=None, **kwargs
+    ) -> "TensorType":
         if broadcastable is not None:
             warnings.warn(
                 "The `broadcastable` keyword is deprecated; use `shape`.",

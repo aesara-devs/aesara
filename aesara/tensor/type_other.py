@@ -51,7 +51,7 @@ class MakeSlice(Op):
 make_slice = MakeSlice()
 
 
-class SliceType(Type):
+class SliceType(Type[slice]):
     def clone(self, **kwargs):
         return type(self)()
 
