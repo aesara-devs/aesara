@@ -57,15 +57,17 @@ jobs:
     - uses: pre-commit/action@v2.0.0
 
   test:
-    name: "Test py${{ matrix.python-version }}: ${{ matrix.part }}"
+    name: "Test ${{ matrix.os }} py${{ matrix.python-version }}: ${{ matrix.part }}"
     needs:
       - changes
       - style
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     if: ${{ needs.changes.outputs.changes == 'true' && needs.style.result == 'success' }}
     strategy:
       fail-fast: true
       matrix:
+        os:
+          - ubuntu-latest
         python-version: ["3.7", "3.9"]
         fast-compile: [0]
         float32: [0]
