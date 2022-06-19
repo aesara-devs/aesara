@@ -2734,24 +2734,46 @@ def default_blas_ldflags():
 
         @contextmanager
         def filter_numpy_missing_executable_warnings():
+            # Known executables which trigger false-positive warnings when not found.
+            # Ref: <https://github.com/conda-forge/aesara-feedstock/issues/54>
             executables = ["g77", "f77", "ifort", "ifl", "f90", "DF", "efl"]
+
             with warnings.catch_warnings(record=True):
+                # The warnings about missing executables don't use Python's "warnings"
+                # mechanism, and thus are not filtered by the catch_warnings context
+                # above. On Linux the warnings are printed to stderr, but on Windows
+                # they are printed to stdout. Thus we capture and filter both stdout
+                # and stderr.
                 stdout_sio, stderr_sio = NumpyCompatibleStdoutStringIO(), io.StringIO()
                 with redirect_stdout(stdout_sio), redirect_stderr(stderr_sio):
                     # Body of "with" block executes here:
                     yield
-                # In case there are messages printed to both stdout and stderr,
-                # they may be incorrectly interspersed. But in the normal case
-                # there should be no output to either, so this should not pose
-                # a problem.
-                for sio, file in ((stdout_sio, sys.stdout), (stderr_sio, sys.stderr)):
-                    lines = sio.getvalue().splitlines()
-                    for line in lines:
+
+                # Print any unfiltered messages to stdout and stderr.
+                # (We hope that, beyond what we filter out, there should have been
+                # no messages printed to stdout or stderr. In case there were messages,
+                # we want to print them for the user to see. In what follows, we print
+                # the stdout messages followed by the stderr messages. This means that
+                # messages will be printed in the wrong order in the case that
+                # there is output to both stdout and stderr, and the stderr output
+                # doesn't come at the end.)
+                for captured_buffer, print_destination in (
+                    (stdout_sio, sys.stdout),
+                    (stderr_sio, sys.stderr),
+                ):
+                    raw_lines = captured_buffer.getvalue().splitlines()
+                    filtered_lines = [
+                        line
+                        for line in raw_lines
+                        # Keep a line when none of the warnings are found within
+                        # (equiv. when all of the warnings are not found within).
                         if all(
                             f"Could not locate executable {exe}" not in line
                             for exe in executables
-                        ):
-                            print(line, file=file)
+                        )
+                    ]
+                    for line in filtered_lines:
+                        print(line, file=print_destination)
 
         with filter_numpy_missing_executable_warnings():
             blas_info = numpy.distutils.system_info.get_info("blas_opt")
