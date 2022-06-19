@@ -2722,10 +2722,12 @@ def default_blas_ldflags():
         numpy.distutils.system_info.system_info.verbosity = 0  # side-effect
 
         class NumpyCompatibleStdoutStringIO(io.StringIO):
-            """Temporarily replaces sys.stdout to capture Numpy output.
+            """Used as a temporary replacement of sys.stdout to capture Numpy's output.
 
-            Numpy expects the .encoding attribute to be a string, but for io.StringIO
-            it is set to None and not writable, hence the need for this subclass.
+            We want to simply use io.StringIO, but this doesn't work because
+            Numpy expects the .encoding attribute to be a string. For io.StringIO,
+            this attribute is set to None and cannot be modified, hence the need for
+            this subclass.
 
             (See forward_bytes_to_stdout in numpy.distutils.exec_command.)
             """
