@@ -61,7 +61,7 @@ jobs:
     needs:
       - changes
       - style
-    runs-on: ${{ matrix.os }}
+    runs-on: ${{ matrix.os || 'ubuntu-latest' }}
     if: ${{ needs.changes.outputs.changes == 'true' && needs.style.result == 'success' }}
     strategy:
       fail-fast: true
