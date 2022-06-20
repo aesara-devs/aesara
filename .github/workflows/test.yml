@@ -93,36 +93,43 @@ jobs:
             install-numba: 1
             part: "tests/link/c/test_cmodule.py"
           - python-version: "3.7"
+            os: ubuntu-latest
             fast-compile: 1
             float32: 1
             install-numba: 1
             part: "tests --ignore=tests/tensor/nnet --ignore=tests/tensor/signal"
           - python-version: "3.7"
+            os: ubuntu-latest
             fast-compile: 1
             float32: 0
             install-numba: 1
             part: "tests --ignore=tests/tensor/nnet --ignore=tests/tensor/signal"
           - python-version: "3.7"
+            os: ubuntu-latest
             fast-compile: 1
             float32: 1
             install-numba: 1
             part: "tests/tensor/nnet"
           - python-version: "3.7"
+            os: ubuntu-latest
             fast-compile: 1
             float32: 0
             install-numba: 1
             part: "tests/tensor/nnet"
           - python-version: "3.7"
+            os: ubuntu-latest
             fast-compile: 1
             float32: 1
             install-numba: 1
             part: "tests/tensor/signal"
           - python-version: "3.7"
+            os: ubuntu-latest
             fast-compile: 1
             float32: 0
             install-numba: 1
             part: "tests/tensor/signal"
           - python-version: "3.9"
+            os: ubuntu-latest
             fast-compile: 0
             float32: 0
             install-numba: 0
