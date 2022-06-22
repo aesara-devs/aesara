@@ -145,7 +145,7 @@ def test_thread_safety():
     np.random.seed(32)
 
     def run_aesara(i, out):
-        s = np.random.randint(10, 50)
+        s = at.constant(np.random.randint(10, 50))
         a = at.random.normal(size=(s, s))
         fn = aesara.function([], a)
         for _ in range(10):

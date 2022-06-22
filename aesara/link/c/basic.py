@@ -21,50 +21,17 @@ from aesara.graph.basic import (
     io_toposort,
     vars_between,
 )
-from aesara.graph.callcache import CallCache
 from aesara.link.basic import Container, Linker, LocalLinker, PerformLinker
-from aesara.link.c.cmodule import (
-    METH_VARARGS,
-    DynamicModule,
-    ExtFunction,
-    GCC_compiler,
-    dlimport_workdir,
-)
-from aesara.link.c.cmodule import get_module_cache as _get_module_cache
+from aesara.link.c.cmodule import METH_VARARGS, DynamicModule, ExtFunction, GCC_compiler
 from aesara.link.c.interface import CLinkerObject, CLinkerOp, CLinkerType
 from aesara.link.utils import gc_helper, map_storage, raise_with_op, streamline
-from aesara.utils import difference, uniq
+from aesara.utils import difference, hash_from_obj, uniq
 
 
 _logger = logging.getLogger("aesara.link.c.basic")
 
 
 run_cthunk = None  # Will be imported only when needed.
-
-
-def get_module_cache(init_args=None):
-    """
-
-    Parameters
-    ----------
-    init_args
-        If not None, the (k, v) pairs in this dictionary will be forwarded to
-        the ModuleCache constructor as keyword arguments.
-
-    """
-    return _get_module_cache(config.compiledir, init_args=init_args)
-
-
-_persistent_module_cache = None
-
-
-def get_persistent_module_cache():
-    global _persistent_module_cache
-    if _persistent_module_cache is None:
-        _persistent_module_cache = CallCache(
-            os.path.join(config.compiledir, "persistent_cache")
-        )
-    return _persistent_module_cache
 
 
 class CodeBlock:
@@ -1518,21 +1485,39 @@ class CLinker(Linker):
         mod = self.get_dynamic_module()
         return mod.code()
 
-    def compile_cmodule(self, location=None):
+    # TODO(max): recompile after config.cmodule__age_thresh_use
+    def compile_cmodule(self, key=None):
         """
         This compiles the source code for this linker and returns a
         loaded module.
 
         """
-        if location is None:
-            location = dlimport_workdir(config.compiledir)
-        mod = self.get_dynamic_module()
-        c_compiler = self.c_compiler()
-        libs = self.libraries()
-        preargs = self.compile_args()
         # We want to compute the code without the lock
+        mod = self.get_dynamic_module()
         src_code = mod.code()
-        with lock_ctx():
+        if key is None:
+            # modules that do not have persistent key
+            # are treated to be recompiled every time
+            # keeping old behavior
+            location = os.path.join(
+                config.compiledir,
+                "tmp",
+                f"lib_{mod.code_hash}",
+            )
+        else:
+            # modules that have persistent key,
+            # have persistent path as well
+            location = os.path.join(
+                config.compiledir,
+                "persistent",
+                f"code_hash_{mod.code_hash}",
+                f"key_hash_{hash_from_obj(key)}",
+            )
+        os.makedirs(location, exist_ok=True)
+        with lock_ctx(location):
+            c_compiler = self.c_compiler()
+            libs = self.libraries()
+            preargs = self.compile_args()
             try:
                 _logger.debug(f"LOCATION {location}")
                 module = c_compiler.compile_str(
@@ -1543,13 +1528,15 @@ class CLinker(Linker):
                     lib_dirs=self.lib_dirs(),
                     libs=libs,
                     preargs=preargs,
+                    exist_ok=False,
                 )
             except Exception as e:
                 e.args += (str(self.fgraph),)
+                # clean up rubbish
                 raise
-        return module
+            return module
 
-    def get_dynamic_module(self):
+    def get_dynamic_module(self) -> DynamicModule:
         """
         Return a cmodule.DynamicModule instance full of the code for our fgraph.
 
@@ -1626,7 +1613,7 @@ class CLinker(Linker):
             # Set compute_map as None as clinker do not support lazy evaluation
             for node in self.node_order:
                 node.op.prepare_node(node, storage_map, None, "c")
-            module = get_module_cache().module_from_key(key=key, lnk=self)
+            module = self.compile_cmodule(key=key)
 
         vars = self.inputs + self.outputs + self.orphans
         # List of indices that should be ignored when passing the arguments
@@ -2015,7 +2002,3 @@ class DualLinker(Linker):
                     raise_with_op(fgraph, node1)
 
         return f, i1, o1
-
-
-if config.cmodule__preload_cache:
-    get_module_cache()

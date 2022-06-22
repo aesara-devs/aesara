@@ -66,18 +66,5 @@ def lock_ctx(
         timeout = config.compile__timeout
 
     # locks are kept in a dictionary to account for changing compiledirs
-    dir_key = f"{lock_dir}-{os.getpid()}"
-
-    if dir_key not in local_mem._locks:
-        local_mem._locks[dir_key] = True
-        fl = filelock.FileLock(os.path.join(lock_dir, ".lock"))
-        fl.acquire(timeout=timeout)
-        try:
-            yield
-        finally:
-            if fl.is_locked:
-                fl.release()
-            if dir_key in local_mem._locks:
-                del local_mem._locks[dir_key]
-    else:
+    with filelock.FileLock(os.path.join(lock_dir, ".lock"), timeout=timeout):
         yield
