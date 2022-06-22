@@ -5,6 +5,7 @@ Defines Linkers that deal with C implementations.
 import logging
 import os
 import sys
+import tempfile
 from collections import defaultdict
 from copy import copy
 from io import StringIO
@@ -1504,6 +1505,7 @@ class CLinker(Linker):
                 "tmp",
                 f"lib_{mod.code_hash}",
             )
+            location = tempfile.mkdtemp(dir=location)
         else:
             # modules that have persistent key,
             # have persistent path as well
