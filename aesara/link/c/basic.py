@@ -1528,7 +1528,7 @@ class CLinker(Linker):
                     lib_dirs=self.lib_dirs(),
                     libs=libs,
                     preargs=preargs,
-                    exist_ok=False,
+                    exist_ok=True,
                 )
             except Exception as e:
                 e.args += (str(self.fgraph),)
