@@ -224,6 +224,7 @@ def test_compile_is_cached_for_multiple_threads(mocker):
         out[i] = True
 
     T = 32
+
     out = [None] * T
     # running threads will always give the same graph. There should be only one compilation step
     threads = [
@@ -249,6 +250,7 @@ def test_compile_is_not_cached_for_no_key_modules(mocker):
         out[i] = True
 
     T = 32
+
     out = [None] * T
     # running threads will always give the same graph. There should be only one compilation step
     threads = [
