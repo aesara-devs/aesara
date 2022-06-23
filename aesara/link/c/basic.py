@@ -26,7 +26,7 @@ from aesara.link.basic import Container, Linker, LocalLinker, PerformLinker
 from aesara.link.c.cmodule import METH_VARARGS, DynamicModule, ExtFunction, GCC_compiler
 from aesara.link.c.interface import CLinkerObject, CLinkerOp, CLinkerType
 from aesara.link.utils import gc_helper, map_storage, raise_with_op, streamline
-from aesara.utils import difference, hash_from_obj, uniq
+from aesara.utils import difference, uniq
 
 
 _logger = logging.getLogger("aesara.link.c.basic")
@@ -1509,11 +1509,12 @@ class CLinker(Linker):
         else:
             # modules that have persistent key,
             # have persistent path as well
+            k_hash = hash(key)
             location = os.path.join(
                 config.compiledir,
                 "persistent",
                 f"code_hash_{mod.code_hash}",
-                f"key_hash_{hash_from_obj(key)}",
+                f"key_hash_{int(k_hash>0)}{abs(k_hash)}",
             )
         os.makedirs(location, exist_ok=True)
         with lock_ctx(location):

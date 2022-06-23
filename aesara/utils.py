@@ -4,7 +4,6 @@ import hashlib
 import inspect
 import logging
 import os
-import pickle
 import struct
 import subprocess
 import sys
@@ -266,11 +265,6 @@ def hash_from_code(msg):
     # Python 3 does not like module names that start with
     # a digit.
     return "m" + hashlib.sha256(msg).hexdigest()
-
-
-def hash_from_obj(obj):
-    """Return the SHA256 hash of python types using pickling."""
-    return "p" + hashlib.sha256(pickle.dumps(obj)).hexdigest()
 
 
 def memoize(f):
