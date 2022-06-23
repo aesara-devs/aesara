@@ -1475,15 +1475,6 @@ class FunctionMaker:
         if getattr(mode, "profile", None):
             raise TypeError("profile passed via 'mode'. This isn't supported anymore")
         self.profile = profile
-        if profile:
-            # This is very important:
-            # 1) We preload the cache here to not have its timing
-            #    included in optimization that compile function.
-            # 2) Do not refresh the cache here by default. It cause
-            #    too much execution time during testing as we compile
-            #    much more functions then the number of compile c
-            #    module.
-            aesara.link.c.basic.get_module_cache().refresh()
         # Handle the case where inputs and/or outputs is a single
         # Variable (not in a list)
         unpack_single = False
