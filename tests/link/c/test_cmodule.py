@@ -26,6 +26,14 @@ from aesara.link.c.exceptions import CompileError
 from aesara.tensor.type import dvectors
 
 
+@pytest.fixture
+def tmp_compile_dir():
+    with tempfile.TemporaryDirectory() as dir_name:
+        compiledir_prop = aesara.config._config_var_dict["compiledir"]
+        with patch.object(compiledir_prop, "val", dir_name, create=True):
+            yield
+
+
 class MyOp(DeepCopyOp):
     def c_code_cache_version(self):
         return ()
@@ -48,6 +56,7 @@ def test_compiler_error():
         GCC_Compiler.compile_str("module_name", "blah", location=dir_name)
 
 
+@pytest.mark.usefixtures("tmp_compile_dir")
 def test_inter_process_cache(mocker):
     # When an op with c_code, but no version. If we have 2 apply node
     # in the graph with different inputs variable(so they don't get
@@ -56,6 +65,11 @@ def test_inter_process_cache(mocker):
     # Currently this test show that we generate the c_code only once.
     #
     # The updated test validates such modules are always recompiled
+    #
+    # I found it important to do trial compilation before checking call count
+    x, y = dvectors("xy")
+    function([x, y], [x + y])(np.arange(60), np.arange(60))
+    # now we count calls
     spy = mocker.spy(aesara.link.c.cmodule, "launchCompilerProcess")
     x, y = dvectors("xy")
     f = function([x, y], [MyOp()(x), MyOp()(y)])
@@ -143,128 +157,102 @@ def test_linking_patch(listdir_mock, platform):
             ]
 
 
+@pytest.mark.usefixtures("tmp_compile_dir")
 def test_cache_race_condition():
+    @config.change_flags(on_opt_error="raise", on_shape_error="raise")
+    def f_build(factor):
+        # Some of the caching issues arise during constant folding within the
+        # optimization passes, so we need these config changes to prevent the
+        # exceptions from being caught
+        a = at.vector()
+        f = aesara.function([a], factor * a)
+        return f(np.array([1], dtype=config.floatX))
 
-    with tempfile.TemporaryDirectory() as dir_name:
+    ctx = multiprocessing.get_context()
 
-        @config.change_flags(on_opt_error="raise", on_shape_error="raise")
-        def f_build(factor):
-            # Some of the caching issues arise during constant folding within the
-            # optimization passes, so we need these config changes to prevent the
-            # exceptions from being caught
-            a = at.vector()
-            f = aesara.function([a], factor * a)
-            return f(np.array([1], dtype=config.floatX))
+    num_procs = 30
+    rng = np.random.default_rng(209)
 
-        ctx = multiprocessing.get_context()
-        compiledir_prop = aesara.config._config_var_dict["compiledir"]
+    for i in range(10):
+        # A random, constant input to prevent caching between runs
+        factor = rng.random()
+        procs = [ctx.Process(target=f_build, args=(factor,)) for i in range(num_procs)]
+        for proc in procs:
+            proc.start()
+        for proc in procs:
+            proc.join()
 
-        # The module cache must (initially) be `None` for all processes so that
-        # `ModuleCache.refresh` is called
-        with patch.object(compiledir_prop, "val", dir_name, create=True):
-
-            assert aesara.config.compiledir == dir_name
-
-            num_procs = 30
-            rng = np.random.default_rng(209)
-
-            for i in range(10):
-                # A random, constant input to prevent caching between runs
-                factor = rng.random()
-                procs = [
-                    ctx.Process(target=f_build, args=(factor,))
-                    for i in range(num_procs)
-                ]
-                for proc in procs:
-                    proc.start()
-                for proc in procs:
-                    proc.join()
-
-                assert not any(
-                    exit_code != 0 for exit_code in [proc.exitcode for proc in procs]
-                )
+        assert not any(
+            exit_code != 0 for exit_code in [proc.exitcode for proc in procs]
+        )
 
 
+@pytest.mark.usefixtures("tmp_compile_dir")
 def test_compilation_thread_safety_integrated():
-    with tempfile.TemporaryDirectory() as dir_name:
-        compiledir_prop = aesara.config._config_var_dict["compiledir"]
-        with patch.object(compiledir_prop, "val", dir_name, create=True):
-            assert aesara.config.compiledir == dir_name
+    np.random.seed(32)
 
-            np.random.seed(32)
+    def run_aesara(i, out):
+        s = at.constant(np.random.randint(10, 50))
+        a = at.random.normal(size=(s, s))
+        fn = aesara.function([], a)
+        for _ in range(10):
+            fn()
+        out[i] = True
 
-            def run_aesara(i, out):
-                s = at.constant(np.random.randint(10, 50))
-                a = at.random.normal(size=(s, s))
-                fn = aesara.function([], a)
-                for _ in range(10):
-                    fn()
-                out[i] = True
+    T = 32
+    out = [None] * T
 
-            T = 32
-            out = [None] * T
-
-            threads = [
-                threading.Thread(target=run_aesara, args=(i, out)) for i in range(T)
-            ]
-            [t.start() for t in threads]
-            [t.join() for t in threads]
-            assert all(out)
+    threads = [threading.Thread(target=run_aesara, args=(i, out)) for i in range(T)]
+    [t.start() for t in threads]
+    [t.join() for t in threads]
+    assert all(out)
 
 
+@pytest.mark.usefixtures("tmp_compile_dir")
 def test_compile_is_cached_for_multiple_threads(mocker):
-    with tempfile.TemporaryDirectory() as dir_name:
-        compiledir_prop = aesara.config._config_var_dict["compiledir"]
-        with patch.object(compiledir_prop, "val", dir_name, create=True):
-            assert aesara.config.compiledir == dir_name
-            spy = mocker.spy(aesara.link.c.cmodule, "launchCompilerProcess")
+    spy = mocker.spy(aesara.link.c.cmodule, "launchCompilerProcess")
 
-            def run_aesara_compile(i, out):
-                a = at.ones((3, 3))
-                b = at.vector()
-                o = b + a
-                fg = aesara.link.basic.FunctionGraph([b], [o])
-                lk = aesara.link.c.basic.CLinker().accept(fg)
-                lk.compile_cmodule(lk.cmodule_key())
-                out[i] = True
+    def run_aesara_compile(i, out):
+        a = at.ones((3, 3))
+        b = at.vector()
+        o = b + a
+        fg = aesara.link.basic.FunctionGraph([b], [o])
+        lk = aesara.link.c.basic.CLinker().accept(fg)
+        lk.compile_cmodule(lk.cmodule_key())
+        out[i] = True
 
-            T = 32
-            out = [None] * T
-            # running threads will always give the same graph. There should be only one compilation step
-            threads = [
-                threading.Thread(target=run_aesara_compile, args=(i, out))
-                for i in range(T)
-            ]
-            [t.start() for t in threads]
-            [t.join() for t in threads]
-            assert spy.call_count == 1
-            assert all(out)
+    T = 32
+    out = [None] * T
+    # running threads will always give the same graph. There should be only one compilation step
+    threads = [
+        threading.Thread(target=run_aesara_compile, args=(i, out)) for i in range(T)
+    ]
+    [t.start() for t in threads]
+    [t.join() for t in threads]
+    assert spy.call_count == 1
+    assert all(out)
 
 
+@pytest.mark.usefixtures("tmp_compile_dir")
 def test_compile_is_not_cached_for_no_key_modules(mocker):
-    with tempfile.TemporaryDirectory() as dir_name:
-        compiledir_prop = aesara.config._config_var_dict["compiledir"]
-        with patch.object(compiledir_prop, "val", dir_name, create=True):
-            assert aesara.config.compiledir == dir_name
-            spy = mocker.spy(aesara.link.c.cmodule, "launchCompilerProcess")
+    spy = mocker.spy(aesara.link.c.cmodule, "launchCompilerProcess")
 
-            def run_aesara_compile(i, out):
-                a = at.ones((3, 3))
-                b = at.vector()
-                o = b + a
-                fg = aesara.link.basic.FunctionGraph([b], [o])
-                lk = aesara.link.c.basic.CLinker().accept(fg)
-                lk.compile_cmodule()
-                out[i] = True
+    def run_aesara_compile(i, out):
+        a = at.ones((3, 3))
+        b = at.vector()
+        o = b + a
+        fg = aesara.link.basic.FunctionGraph([b], [o])
+        lk = aesara.link.c.basic.CLinker().accept(fg)
+        lk.compile_cmodule()
+        out[i] = True
 
-            T = 32
-            out = [None] * T
-            # running threads will always give the same graph. There should be only one compilation step
-            threads = [
-                threading.Thread(target=run_aesara_compile, args=(i, out))
-                for i in range(T)
-            ]
-            [t.start() for t in threads]
-            [t.join() for t in threads]
-            assert spy.call_count == T
-            assert all(out)
+    T = 32
+    out = [None] * T
+    # running threads will always give the same graph. There should be only one compilation step
+    threads = [
+        threading.Thread(target=run_aesara_compile, args=(i, out)) for i in range(T)
+    ]
+    [t.start() for t in threads]
+    [t.join() for t in threads]
+    assert spy.call_count == T
+    assert all(out)
