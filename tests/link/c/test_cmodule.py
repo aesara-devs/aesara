@@ -75,6 +75,7 @@ def test_inter_process_cache(mocker):
     f = function([x, y], [MyOp()(x), MyOp()(y)])
     f(np.arange(60), np.arange(60))
     if config.mode == "FAST_COMPILE" or config.cxx == "":
+        # no compilation happening
         assert spy.call_count == 0
     else:
         assert spy.call_count == 2
@@ -84,7 +85,8 @@ def test_inter_process_cache(mocker):
     f = function([x, y], [MyOp()(x), MyOp()(y)])
     f(np.arange(60), np.arange(60))
     if config.mode == "FAST_COMPILE" or config.cxx == "":
-        assert spy.call_count == 2
+        # no compilation happening
+        assert spy.call_count == 0
     else:
         assert spy.call_count == 4
 
