@@ -63,6 +63,8 @@ METH_VARARGS = "METH_VARARGS"
 METH_NOARGS = "METH_NOARGS"
 # global variable that represent the total time spent in importing module.
 import_time = 0
+# dynamic modules are imported not thread safe (sys.path is modified)
+import_lock = threading.RLock()
 
 
 def debug_counter(name, every=1):
@@ -304,27 +306,30 @@ def dlimport(fullpath, suffix=None):
     _logger.debug(f"WORKDIR {workdir}")
     _logger.debug(f"module_name {module_name}")
 
-    sys.path[0:0] = [workdir]  # insert workdir at beginning (temporarily)
-    # Explicitly add gcc dll directory on Python 3.8+ on Windows
-    if (sys.platform == "win32") & (hasattr(os, "add_dll_directory")):
-        gcc_path = shutil.which("gcc")
-        if gcc_path is not None:
-            os.add_dll_directory(os.path.dirname(gcc_path))
-    global import_time
-    try:
-        importlib.invalidate_caches()
-        t0 = time.time()
-        with warnings.catch_warnings():
-            warnings.filterwarnings("ignore", message="numpy.ndarray size changed")
-            rval = __import__(module_name, {}, {}, [module_name])
-        t1 = time.time()
-        import_time += t1 - t0
-        if not rval:
-            raise Exception("__import__ failed", fullpath)
-    finally:
-        del sys.path[0]
+    with import_lock:
+        # Explicitly add gcc dll directory on Python 3.8+ on Windows
+        if (sys.platform == "win32") & (hasattr(os, "add_dll_directory")):
+            gcc_path = shutil.which("gcc")
+            if gcc_path is not None:
+                os.add_dll_directory(os.path.dirname(gcc_path))
+        global import_time
+        sys.path[0:0] = [workdir]  # insert workdir at beginning (temporarily)
+        try:
+            importlib.invalidate_caches()
+            t0 = time.time()
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore", message="numpy.ndarray size changed")
+                rval = __import__(module_name, {}, {}, [module_name])
+            t1 = time.time()
+            import_time += t1 - t0
+            if not rval:
+                raise Exception("__import__ failed", fullpath)
+        finally:
+            del sys.path[0]
 
-    assert fullpath.startswith(rval.__file__)
+    assert fullpath.startswith(
+        rval.__file__
+    ), f"{fullpath}\n!=\n{rval.__file__}\nshould not happen"
     return rval
 
 

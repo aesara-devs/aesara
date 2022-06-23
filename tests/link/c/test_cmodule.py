@@ -7,6 +7,7 @@ deterministic based on the input type and the op.
 import logging
 import multiprocessing
 import os
+import sys
 import tempfile
 import threading
 from unittest.mock import patch
@@ -31,7 +32,7 @@ def tmp_compile_dir():
     with tempfile.TemporaryDirectory() as dir_name:
         compiledir_prop = aesara.config._config_var_dict["compiledir"]
         with patch.object(compiledir_prop, "val", dir_name, create=True):
-            yield
+            yield dir_name
 
 
 class MyOp(DeepCopyOp):
@@ -260,3 +261,31 @@ def test_compile_is_not_cached_for_no_key_modules(mocker):
     [t.join() for t in threads]
     assert spy.call_count == T
     assert all(out)
+
+
+def _run_aesara_compile_xpy(compiledir, returns: multiprocessing.Queue = None):
+    compiledir_prop = aesara.config._config_var_dict["compiledir"]
+    with patch.object(compiledir_prop, "val", compiledir, create=True):
+        x, y = dvectors("xy")
+        fg = aesara.link.basic.FunctionGraph([x, y], [x + y])
+        lk = aesara.link.c.basic.CLinker().accept(fg)
+        mod = lk.compile_cmodule(lk.cmodule_key())
+        if returns is not None:
+            returns.put(mod.__name__)
+            returns.put(mod.__file__)
+        assert mod.__name__ in sys.modules
+
+
+def test_import_precompiled_module(tmpdir):
+    returns = multiprocessing.Queue()
+    p = multiprocessing.Process(target=_run_aesara_compile_xpy, args=(tmpdir, returns))
+    p.start()
+    p.join()
+    assert p.exitcode == 0
+    mod_name = returns.get()
+    mod_file = returns.get()
+    print(mod_name)
+    print(mod_file)
+    assert mod_name not in sys.modules
+    mod = aesara.link.c.cmodule.dlimport(mod_file)
+    assert mod.__file__ == mod_file
