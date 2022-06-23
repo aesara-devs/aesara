@@ -4,6 +4,7 @@ We don't have real tests for the cache, but it would be great to make them!
 But this one tests a current behavior that isn't good: the c_code isn't
 deterministic based on the input type and the op.
 """
+import contextlib
 import logging
 import multiprocessing
 import os
@@ -27,12 +28,18 @@ from aesara.link.c.exceptions import CompileError
 from aesara.tensor.type import dvectors
 
 
+@contextlib.contextmanager
+def force_change_compile_dir(new_compile_dir):
+    compiledir_prop = aesara.config._config_var_dict["compiledir"]
+    with patch.object(compiledir_prop, "val", new_compile_dir, create=True):
+        os.makedirs(new_compile_dir, exist_ok=True)
+        yield str(new_compile_dir)
+
+
 @pytest.fixture
-def tmp_compile_dir():
-    with tempfile.TemporaryDirectory() as dir_name:
-        compiledir_prop = aesara.config._config_var_dict["compiledir"]
-        with patch.object(compiledir_prop, "val", dir_name, create=True):
-            yield dir_name
+def tmp_compile_dir(tmpdir):
+    with force_change_compile_dir(tmpdir):
+        yield str(tmpdir)
 
 
 class MyOp(DeepCopyOp):
@@ -160,9 +167,9 @@ def test_linking_patch(listdir_mock, platform):
             ]
 
 
-@pytest.mark.usefixtures("tmp_compile_dir")
-def test_cache_race_condition():
+def test_cache_race_condition(tmp_compile_dir):
     @config.change_flags(on_opt_error="raise", on_shape_error="raise")
+    @force_change_compile_dir(tmp_compile_dir)
     def f_build(factor):
         # Some of the caching issues arise during constant folding within the
         # optimization passes, so we need these config changes to prevent the
@@ -264,8 +271,7 @@ def test_compile_is_not_cached_for_no_key_modules(mocker):
 
 
 def _run_aesara_compile_xpy(compiledir, returns: multiprocessing.Queue = None):
-    compiledir_prop = aesara.config._config_var_dict["compiledir"]
-    with patch.object(compiledir_prop, "val", compiledir, create=True):
+    with force_change_compile_dir(compiledir):
         x, y = dvectors("xy")
         fg = aesara.link.basic.FunctionGraph([x, y], [x + y])
         lk = aesara.link.c.basic.CLinker().accept(fg)
@@ -276,9 +282,11 @@ def _run_aesara_compile_xpy(compiledir, returns: multiprocessing.Queue = None):
         assert mod.__name__ in sys.modules
 
 
-def test_import_precompiled_module(tmpdir):
+def test_import_precompiled_module(tmp_compile_dir):
     returns = multiprocessing.Queue()
-    p = multiprocessing.Process(target=_run_aesara_compile_xpy, args=(tmpdir, returns))
+    p = multiprocessing.Process(
+        target=_run_aesara_compile_xpy, args=(tmp_compile_dir, returns)
+    )
     p.start()
     p.join()
     assert p.exitcode == 0
@@ -289,3 +297,4 @@ def test_import_precompiled_module(tmpdir):
     assert mod_name not in sys.modules
     mod = aesara.link.c.cmodule.dlimport(mod_file)
     assert mod.__file__ == mod_file
+    assert mod.__file__.startswith(tmp_compile_dir)
