@@ -1503,7 +1503,6 @@ class CLinker(Linker):
             location = os.path.join(
                 config.compiledir,
                 "tmp",
-                f"lib_{mod.code_hash}",
             )
             os.makedirs(location, exist_ok=True)
             location = tempfile.mkdtemp(dir=location)
