@@ -40,21 +40,17 @@ def force_change_compile_dir(new_compile_dir):
     # raising an uninformative message.
     # So yeah, what is done in this test tries to avoid
     # any sort of conflict with other tests
-    # A separate compilation dir is not enough to solve the issue
-    # It is required no old modules are visible for dlimport
-    # to solve that, we need to clean sys.modules
-    # from aesara compiled libs
+    #
+    # Modules names are bound to keys.
+    # We can just add some random salt to module keys and avoid duplication
     compiledir_prop = aesara.config._config_var_dict["compiledir"]
-    with patch.object(compiledir_prop, "val", new_compile_dir, create=True):
+    with patch.object(
+        compiledir_prop, "val", new_compile_dir, create=True
+    ), patch.object(
+        aesara.config, "get_config_hash", new=lambda: str(hash(new_compile_dir))
+    ):
         os.makedirs(new_compile_dir, exist_ok=True)
-        old_modules = sys.modules.copy()
-        for k, v in list(sys.modules.items()):
-            if "key_hash" in k and ".so" in v.__file__:
-                del sys.modules[k]
         yield str(new_compile_dir)
-        # revert_modules
-        sys.modules.clear()
-        sys.modules.update(old_modules)
 
 
 def _run_aesara_compile_xpy(compiledir, returns: multiprocessing.Queue = None):
@@ -70,6 +66,10 @@ def _run_aesara_compile_xpy(compiledir, returns: multiprocessing.Queue = None):
 
 
 def test_change_compile_hack():
+    x, y = dvectors("xy")
+    fg = aesara.link.basic.FunctionGraph([x, y], [x + y])
+    lk = aesara.link.c.basic.CLinker().accept(fg)
+    lk.compile_cmodule(lk.cmodule_key())
     with tempfile.TemporaryDirectory() as tmp:
         _run_aesara_compile_xpy(tmp)
     # and the second time
