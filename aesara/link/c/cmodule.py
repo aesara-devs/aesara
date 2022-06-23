@@ -1426,7 +1426,7 @@ class GCC_CompilerBase(CompilerBase):
             print(" ".join(cmd), file=sys.stderr)
 
         try:
-            p_out = output_subprocess_Popen(cmd)
+            p_out = launchCompilerProcess(cmd)
             compile_stderr = p_out[1].decode()
         except Exception:
             # An exception can occur e.g. if `g++` is not found.
@@ -1488,6 +1488,10 @@ class GCC_CompilerBase(CompilerBase):
             open(os.path.join(location, "__init__.py"), "w").close()
             assert os.path.isfile(lib_filename)
             return dlimport(lib_filename)
+
+
+def launchCompilerProcess(cmd):  # a proxy function to monitor compiler calls in tests
+    return output_subprocess_Popen(cmd)
 
 
 def icc_module_compile_str(*args):

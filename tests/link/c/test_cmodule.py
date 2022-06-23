@@ -8,12 +8,15 @@ import logging
 import multiprocessing
 import os
 import tempfile
+import threading
 from unittest.mock import patch
 
 import numpy as np
 import pytest
 
 import aesara
+import aesara.compile.compiledir
+import aesara.link.c.cmodule
 import aesara.tensor as at
 from aesara.compile.function import function
 from aesara.compile.ops import DeepCopyOp
@@ -24,13 +27,10 @@ from aesara.tensor.type import dvectors
 
 
 class MyOp(DeepCopyOp):
-    nb_called = 0
-
     def c_code_cache_version(self):
         return ()
 
     def c_code(self, node, name, inames, onames, sub):
-        MyOp.nb_called += 1
         (iname,) = inames
         (oname,) = onames
         fail = sub["fail"]
@@ -48,32 +48,31 @@ def test_compiler_error():
         GCC_Compiler.compile_str("module_name", "blah", location=dir_name)
 
 
-def test_inter_process_cache():
+def test_inter_process_cache(mocker):
     # When an op with c_code, but no version. If we have 2 apply node
     # in the graph with different inputs variable(so they don't get
     # merged) but the inputs variable have the same type, do we reuse
     # the same module? Even if they would generate different c_code?
     # Currently this test show that we generate the c_code only once.
     #
-    # This is to know if the c_code can add information specific to the
-    # node.inputs[*].owner like the name of the variable.
-
+    # The updated test validates such modules are always recompiled
+    spy = mocker.spy(aesara.link.c.cmodule, "launchCompilerProcess")
     x, y = dvectors("xy")
     f = function([x, y], [MyOp()(x), MyOp()(y)])
     f(np.arange(60), np.arange(60))
     if config.mode == "FAST_COMPILE" or config.cxx == "":
-        assert MyOp.nb_called == 0
+        assert spy.call_count == 0
     else:
-        assert MyOp.nb_called == 1
+        assert spy.call_count == 2
 
     # What if we compile a new function with new variables?
     x, y = dvectors("xy")
     f = function([x, y], [MyOp()(x), MyOp()(y)])
     f(np.arange(60), np.arange(60))
     if config.mode == "FAST_COMPILE" or config.cxx == "":
-        assert MyOp.nb_called == 0
+        assert spy.call_count == 2
     else:
-        assert MyOp.nb_called == 1
+        assert spy.call_count == 4
 
 
 def test_flag_detection():
@@ -162,9 +161,7 @@ def test_cache_race_condition():
 
         # The module cache must (initially) be `None` for all processes so that
         # `ModuleCache.refresh` is called
-        with patch.object(compiledir_prop, "val", dir_name, create=True), patch.object(
-            aesara.link.c.cmodule, "_module_cache", None
-        ):
+        with patch.object(compiledir_prop, "val", dir_name, create=True):
 
             assert aesara.config.compiledir == dir_name
 
@@ -186,3 +183,88 @@ def test_cache_race_condition():
                 assert not any(
                     exit_code != 0 for exit_code in [proc.exitcode for proc in procs]
                 )
+
+
+def test_compilation_thread_safety_integrated():
+    with tempfile.TemporaryDirectory() as dir_name:
+        compiledir_prop = aesara.config._config_var_dict["compiledir"]
+        with patch.object(compiledir_prop, "val", dir_name, create=True):
+            assert aesara.config.compiledir == dir_name
+
+            np.random.seed(32)
+
+            def run_aesara(i, out):
+                s = at.constant(np.random.randint(10, 50))
+                a = at.random.normal(size=(s, s))
+                fn = aesara.function([], a)
+                for _ in range(10):
+                    fn()
+                out[i] = True
+
+            T = 32
+            out = [None] * T
+
+            threads = [
+                threading.Thread(target=run_aesara, args=(i, out)) for i in range(T)
+            ]
+            [t.start() for t in threads]
+            [t.join() for t in threads]
+            assert all(out)
+
+
+def test_compile_is_cached_for_multiple_threads(mocker):
+    with tempfile.TemporaryDirectory() as dir_name:
+        compiledir_prop = aesara.config._config_var_dict["compiledir"]
+        with patch.object(compiledir_prop, "val", dir_name, create=True):
+            assert aesara.config.compiledir == dir_name
+            spy = mocker.spy(aesara.link.c.cmodule, "launchCompilerProcess")
+
+            def run_aesara_compile(i, out):
+                a = at.ones((3, 3))
+                b = at.vector()
+                o = b + a
+                fg = aesara.link.basic.FunctionGraph([b], [o])
+                lk = aesara.link.c.basic.CLinker().accept(fg)
+                lk.compile_cmodule(lk.cmodule_key())
+                out[i] = True
+
+            T = 32
+            out = [None] * T
+            # running threads will always give the same graph. There should be only one compilation step
+            threads = [
+                threading.Thread(target=run_aesara_compile, args=(i, out))
+                for i in range(T)
+            ]
+            [t.start() for t in threads]
+            [t.join() for t in threads]
+            assert spy.call_count == 1
+            assert all(out)
+
+
+def test_compile_is_not_cached_for_no_key_modules(mocker):
+    with tempfile.TemporaryDirectory() as dir_name:
+        compiledir_prop = aesara.config._config_var_dict["compiledir"]
+        with patch.object(compiledir_prop, "val", dir_name, create=True):
+            assert aesara.config.compiledir == dir_name
+            spy = mocker.spy(aesara.link.c.cmodule, "launchCompilerProcess")
+
+            def run_aesara_compile(i, out):
+                a = at.ones((3, 3))
+                b = at.vector()
+                o = b + a
+                fg = aesara.link.basic.FunctionGraph([b], [o])
+                lk = aesara.link.c.basic.CLinker().accept(fg)
+                lk.compile_cmodule()
+                out[i] = True
+
+            T = 32
+            out = [None] * T
+            # running threads will always give the same graph. There should be only one compilation step
+            threads = [
+                threading.Thread(target=run_aesara_compile, args=(i, out))
+                for i in range(T)
+            ]
+            [t.start() for t in threads]
+            [t.join() for t in threads]
+            assert spy.call_count == T
+            assert all(out)
