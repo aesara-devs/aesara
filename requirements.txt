@@ -5,6 +5,7 @@ pep8
 pyflakes
 black>=20.8b1
 pytest-cov>=2.6.1
+pytest-mock
 coverage>=5.1
 pytest
 cython

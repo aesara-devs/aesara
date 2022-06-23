@@ -15,6 +15,7 @@ import sys
 import sysconfig
 import tempfile
 import textwrap
+import threading
 import time
 import warnings
 from io import BytesIO, StringIO
@@ -665,15 +666,14 @@ def gcc_llvm() -> Optional[bool]:
 gcc_llvm.is_llvm = None
 
 
-class Compiler:
+class CompilerBase(threading.local):
     """
     Meta compiler that offer some generic function.
 
     """
 
-    @classmethod
     def _try_compile_tmp(
-        cls,
+        self,
         src_code,
         tmp_prefix="",
         flags=(),
@@ -703,7 +703,7 @@ class Compiler:
         flags = list(flags)
         # Get compile arguments from compiler method if required
         if comp_args:
-            args = cls.compile_args()
+            args = self.compile_args()
         else:
             args = []
         compilation_ok = True
@@ -758,9 +758,8 @@ class Compiler:
         else:
             return (compilation_ok, run_ok, out, err)
 
-    @classmethod
     def _try_flags(
-        cls,
+        self,
         flag_list,
         preamble="",
         body="",
@@ -793,7 +792,7 @@ class Compiler:
         """
             % locals()
         ).encode()
-        return cls._try_compile_tmp(
+        return self._try_compile_tmp(
             code,
             tmp_prefix="try_flags_",
             flags=flag_list,
@@ -828,7 +827,7 @@ def try_blas_flag(flags):
     path_wrapper = '"' if os.name == "nt" else ""
     cflags.extend([f"-L{path_wrapper}{d}{path_wrapper}" for d in std_lib_dirs()])
 
-    res = GCC_compiler.try_compile_tmp(
+    res = GCC_Compiler.try_compile_tmp(
         test_code, tmp_prefix="try_blas_", flags=cflags, try_run=True
     )
     # res[0]: shows successful compilation
@@ -863,24 +862,24 @@ def try_march_flag(flags):
     )
 
     cflags = flags + ["-L" + d for d in std_lib_dirs()]
-    compilation_result, execution_result = GCC_compiler.try_compile_tmp(
+    compilation_result, execution_result = GCC_Compiler.try_compile_tmp(
         test_code, tmp_prefix="try_march_", flags=cflags, try_run=True
     )
     return compilation_result, execution_result
 
 
-class GCC_compiler(Compiler):
+class GCC_CompilerBase(CompilerBase):
     # The equivalent flags of --march=native used by g++.
-    march_flags = None
-
-    supports_amdlibm = True
+    def __init__(self) -> None:
+        super().__init__()
+        self.march_flags = None
+        self.supports_amdlibm = True
 
     @staticmethod
     def version_str():
         return config.cxx + " " + gcc_version_str
 
-    @staticmethod
-    def compile_args(march_flags=True):
+    def compile_args(self, march_flags=True):
         cxxflags = [flag for flag in config.gcc__cxxflags.split(" ") if flag]
         if "-fopenmp" in cxxflags:
             raise ValueError(
@@ -895,13 +894,13 @@ class GCC_compiler(Compiler):
         # Those URL discuss how to find witch flags are used by -march=native.
         # http://en.gentoo-wiki.com/wiki/Safe_Cflags#-march.3Dnative
         # http://en.gentoo-wiki.com/wiki/Hardware_CFLAGS
-        detect_march = GCC_compiler.march_flags is None and march_flags
+        detect_march = self.march_flags is None and march_flags
         if detect_march:
             for f in cxxflags:
                 # If the user give an -march=X parameter, don't add one ourself
                 if f.startswith("--march=") or f.startswith("-march="):
                     detect_march = False
-                    GCC_compiler.march_flags = []
+                    self.march_flags = []
                     break
 
         if (
@@ -921,7 +920,7 @@ class GCC_compiler(Compiler):
             detect_march = False
 
         if detect_march:
-            GCC_compiler.march_flags = []
+            self.march_flags = []
 
             def get_lines(cmd, parse=True):
                 p = subprocess_Popen(
@@ -1097,10 +1096,10 @@ class GCC_compiler(Compiler):
                             for p in new_flags:
                                 split_flags.extend(p.split())
 
-                            GCC_compiler.march_flags = split_flags
+                            self.march_flags = split_flags
                             break
                     _logger.info(
-                        f"g++ -march=native equivalent flags: {GCC_compiler.march_flags}"
+                        f"g++ -march=native equivalent flags: {self.march_flags}"
                     )
 
             # Find working march flag:
@@ -1111,7 +1110,7 @@ class GCC_compiler(Compiler):
             #   -- if none of that worked, set GCC_compiler.march_flags = [] (for x86).
 
             default_compilation_result, default_execution_result = try_march_flag(
-                GCC_compiler.march_flags
+                self.march_flags
             )
             if not default_compilation_result or not default_execution_result:
                 march_success = False
@@ -1120,8 +1119,8 @@ class GCC_compiler(Compiler):
                 default_detected_flag = []
                 march_flags_to_try = ["corei7-avx", "corei7", "core2"]
 
-                for m_ in range(len(GCC_compiler.march_flags)):
-                    march_flag = GCC_compiler.march_flags[m_]
+                for m_ in range(len(self.march_flags)):
+                    march_flag = self.march_flags[m_]
                     if "march" in march_flag:
                         march_ind = m_
                         default_detected_flag = [march_flag]
@@ -1130,12 +1129,12 @@ class GCC_compiler(Compiler):
 
                 for march_flag in march_flags_to_try:
                     if march_ind is not None:
-                        GCC_compiler.march_flags[march_ind] = "-march=" + march_flag
+                        self.march_flags[march_ind] = "-march=" + march_flag
                     if mtune_ind is not None:
-                        GCC_compiler.march_flags[mtune_ind] = "-mtune=" + march_flag
+                        self.march_flags[mtune_ind] = "-mtune=" + march_flag
 
                     compilation_result, execution_result = try_march_flag(
-                        GCC_compiler.march_flags
+                        self.march_flags
                     )
 
                     if compilation_result and execution_result:
@@ -1151,15 +1150,15 @@ class GCC_compiler(Compiler):
                         )
                         if compilation_result and execution_result:
                             march_success = True
-                            GCC_compiler.march_flags = ["-march=" + march_flag]
+                            self.march_flags = ["-march=" + march_flag]
                             break
 
                 if not march_success:
-                    GCC_compiler.march_flags = []
+                    self.march_flags = []
 
         # Add the detected -march=native equivalent flags
-        if march_flags and GCC_compiler.march_flags:
-            cxxflags.extend(GCC_compiler.march_flags)
+        if march_flags and self.march_flags:
+            cxxflags.extend(self.march_flags)
 
         # NumPy 1.7 Deprecate the old API.
         # The following macro asserts that we don't bring new code
@@ -1216,9 +1215,8 @@ class GCC_compiler(Compiler):
 
         return cxxflags
 
-    @classmethod
     def try_compile_tmp(
-        cls,
+        self,
         src_code,
         tmp_prefix="",
         flags=(),
@@ -1226,19 +1224,18 @@ class GCC_compiler(Compiler):
         output=False,
         comp_args=True,
     ):
-        return cls._try_compile_tmp(
+        return self._try_compile_tmp(
             src_code,
             tmp_prefix,
-            cls.patch_ldflags(flags),
+            self.patch_ldflags(flags),
             try_run,
             output,
             config.cxx,
             comp_args,
         )
 
-    @classmethod
     def try_flags(
-        cls,
+        self,
         flag_list,
         preamble="",
         body="",
@@ -1246,8 +1243,8 @@ class GCC_compiler(Compiler):
         output=False,
         comp_args=True,
     ):
-        return cls._try_flags(
-            cls.patch_ldflags(flag_list),
+        return self._try_flags(
+            self.patch_ldflags(flag_list),
             preamble,
             body,
             try_run,
@@ -1256,8 +1253,7 @@ class GCC_compiler(Compiler):
             comp_args,
         )
 
-    @staticmethod
-    def patch_ldflags(flag_list: List[str]) -> List[str]:
+    def patch_ldflags(self, flag_list: List[str]) -> List[str]:
         lib_dirs = [flag[2:].lstrip() for flag in flag_list if flag.startswith("-L")]
         flag_idxs: List[int] = []
         libs: List[str] = []
@@ -1267,7 +1263,7 @@ class GCC_compiler(Compiler):
                 libs.append(flag[2:].lstrip())
         if not libs:
             return flag_list
-        libs = GCC_compiler.linking_patch(lib_dirs, libs)
+        libs = self.linking_patch(lib_dirs, libs)
         for flag_idx, lib in zip(flag_idxs, libs):
             flag_list[flag_idx] = lib
         return flag_list
@@ -1299,8 +1295,8 @@ class GCC_compiler(Compiler):
             patched_lib_ldflags.append(ldflag)
         return patched_lib_ldflags
 
-    @staticmethod
     def compile_str(
+        self,
         module_name,
         src_code,
         location=None,
@@ -1352,23 +1348,6 @@ class GCC_compiler(Compiler):
         if not config.cxx:
             raise MissingGXX("g++ not available! We can't compile c code.")
 
-        if include_dirs is None:
-            include_dirs = []
-        if lib_dirs is None:
-            lib_dirs = []
-        if libs is None:
-            libs = []
-        if preargs is None:
-            preargs = []
-
-        # Remove empty string directory
-        include_dirs = [d for d in include_dirs if d]
-        lib_dirs = [d for d in lib_dirs if d]
-
-        include_dirs = include_dirs + std_include_dirs()
-        libs = libs + std_libs()
-        lib_dirs = lib_dirs + std_lib_dirs()
-
         if platform.python_implementation() == "PyPy":
             suffix = "." + get_lib_extension()
 
@@ -1385,6 +1364,23 @@ class GCC_compiler(Compiler):
             if py_module:
                 open(os.path.join(location, "__init__.py"), "w").close()
                 return dlimport(lib_filename)
+
+        if include_dirs is None:
+            include_dirs = []
+        if lib_dirs is None:
+            lib_dirs = []
+        if libs is None:
+            libs = []
+        if preargs is None:
+            preargs = []
+
+        # Remove empty string directory
+        include_dirs = [d for d in include_dirs if d]
+        lib_dirs = [d for d in lib_dirs if d]
+
+        include_dirs = include_dirs + std_include_dirs()
+        libs = libs + std_libs()
+        lib_dirs = lib_dirs + std_lib_dirs()
 
         cppfilename = os.path.join(location, "mod.cpp")
         with open(cppfilename, "w") as cppfile:
@@ -1417,7 +1413,7 @@ class GCC_compiler(Compiler):
             cmd.append("-fvisibility=hidden")
         cmd.extend(["-o", f"{path_wrapper}{lib_filename}{path_wrapper}"])
         cmd.append(f"{path_wrapper}{cppfilename}{path_wrapper}")
-        cmd.extend(GCC_compiler.linking_patch(lib_dirs, libs))
+        cmd.extend(self.linking_patch(lib_dirs, libs))
         # print >> sys.stderr, 'COMPILING W CMD', cmd
         _logger.debug(f"Running cmd: {' '.join(cmd)}")
 
@@ -1784,3 +1780,7 @@ def add_blas_configvars():
 
 # Register config parameters that are specific to this module:
 add_blas_configvars()
+
+# using thread local instances for compilation API
+GCC_Compiler = GCC_CompilerBase()
+Compiler = CompilerBase()

@@ -12,7 +12,7 @@ import textwrap
 from os.path import dirname
 
 from aesara.configdefaults import config
-from aesara.link.c.cmodule import GCC_compiler
+from aesara.link.c.cmodule import GCC_Compiler
 
 
 _logger = logging.getLogger("aesara.tensor.blas")
@@ -86,7 +86,7 @@ def detect_macos_sdot_bug():
     )
 
     _logger.debug("Trying to compile and run test case.")
-    compilation_ok, run_ok = GCC_compiler.try_compile_tmp(
+    compilation_ok, run_ok = GCC_Compiler.try_compile_tmp(
         test_code, tmp_prefix="detect_macos_sdot_bug_", flags=flags, try_run=True
     )
     detect_macos_sdot_bug.tested = True
@@ -133,7 +133,7 @@ def detect_macos_sdot_bug():
     )
 
     _logger.debug("Trying to compile and run tentative workaround.")
-    compilation_fix_ok, run_fix_ok = GCC_compiler.try_compile_tmp(
+    compilation_fix_ok, run_fix_ok = GCC_Compiler.try_compile_tmp(
         test_fix_code,
         tmp_prefix="detect_macos_sdot_bug_testfix_",
         flags=flags,

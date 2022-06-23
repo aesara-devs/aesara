@@ -18,7 +18,7 @@ import aesara.tensor as at
 from aesara.compile.function import function
 from aesara.compile.ops import DeepCopyOp
 from aesara.configdefaults import config
-from aesara.link.c.cmodule import GCC_compiler, default_blas_ldflags
+from aesara.link.c.cmodule import GCC_Compiler, default_blas_ldflags
 from aesara.link.c.exceptions import CompileError
 from aesara.tensor.type import dvectors
 
@@ -45,7 +45,7 @@ class MyOp(DeepCopyOp):
 
 def test_compiler_error():
     with pytest.raises(CompileError), tempfile.TemporaryDirectory() as dir_name:
-        GCC_compiler.compile_str("module_name", "blah", location=dir_name)
+        GCC_Compiler.compile_str("module_name", "blah", location=dir_name)
 
 
 def test_inter_process_cache():
@@ -81,7 +81,7 @@ def test_flag_detection():
     # It used to happen on python 3 because of improper string handling,
     # but was not detected because that path is not usually taken,
     # so we test it here directly.
-    GCC_compiler.try_flags(["-lblas"])
+    GCC_Compiler.try_flags(["-lblas"])
 
 
 @patch("aesara.link.c.cmodule.try_blas_flag", return_value=None)
@@ -104,7 +104,7 @@ def test_default_blas_ldflags(sys_mock, try_blas_flag_mock, caplog):
 def test_patch_ldflags(listdir_mock):
     mkl_path = "some_path"
     flag_list = ["-lm", "-lopenblas", f"-L {mkl_path}", "-l mkl_core", "-lmkl_rt"]
-    assert GCC_compiler.patch_ldflags(flag_list) == [
+    assert GCC_Compiler.patch_ldflags(flag_list) == [
         "-lm",
         "-lopenblas",
         f"-L {mkl_path}",
@@ -129,14 +129,14 @@ def test_linking_patch(listdir_mock, platform):
     lib_dirs = ['"mock_dir"']
     with patch("sys.platform", platform):
         if platform == "win32":
-            assert GCC_compiler.linking_patch(lib_dirs, libs) == [
+            assert GCC_Compiler.linking_patch(lib_dirs, libs) == [
                 "-lopenblas",
                 "-lm",
                 '"' + os.path.join(lib_dirs[0].strip('"'), "mkl_core.1.dll") + '"',
                 '"' + os.path.join(lib_dirs[0].strip('"'), "mkl_rt.1.1.dll") + '"',
             ]
         else:
-            GCC_compiler.linking_patch(lib_dirs, libs) == [
+            GCC_Compiler.linking_patch(lib_dirs, libs) == [
                 "-lopenblas",
                 "-lm",
                 "-lmkl_core",

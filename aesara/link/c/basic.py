@@ -23,7 +23,7 @@ from aesara.graph.basic import (
     vars_between,
 )
 from aesara.link.basic import Container, Linker, LocalLinker, PerformLinker
-from aesara.link.c.cmodule import METH_VARARGS, DynamicModule, ExtFunction, GCC_compiler
+from aesara.link.c.cmodule import METH_VARARGS, DynamicModule, ExtFunction, GCC_Compiler
 from aesara.link.c.interface import CLinkerObject, CLinkerOp, CLinkerType
 from aesara.link.utils import gc_helper, map_storage, raise_with_op, streamline
 from aesara.utils import difference, uniq
@@ -1006,7 +1006,7 @@ class CLinker(Linker):
                         (c_compiler, x_compiler),
                     )
         if c_compiler is None:
-            return GCC_compiler
+            return GCC_Compiler
         else:
             return c_compiler
 
@@ -1505,6 +1505,7 @@ class CLinker(Linker):
                 "tmp",
                 f"lib_{mod.code_hash}",
             )
+            os.makedirs(location, exist_ok=True)
             location = tempfile.mkdtemp(dir=location)
         else:
             # modules that have persistent key,
@@ -1516,7 +1517,7 @@ class CLinker(Linker):
                 f"code_hash_{mod.code_hash}",
                 f"key_hash_{int(k_hash>0)}{abs(k_hash)}",
             )
-        os.makedirs(location, exist_ok=True)
+            os.makedirs(location, exist_ok=True)
         with lock_ctx(location):
             c_compiler = self.c_compiler()
             libs = self.libraries()

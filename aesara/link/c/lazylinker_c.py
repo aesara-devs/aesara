@@ -10,7 +10,7 @@ from typing import Optional
 import aesara
 from aesara.compile.compilelock import lock_ctx
 from aesara.configdefaults import config
-from aesara.link.c.cmodule import GCC_compiler
+from aesara.link.c.cmodule import GCC_Compiler
 
 
 _logger = logging.getLogger(__file__)
@@ -136,8 +136,8 @@ except ImportError:
                     assert e.errno == errno.EEXIST
                     assert os.path.exists(loc)
 
-            args = GCC_compiler.compile_args()
-            GCC_compiler.compile_str(dirname, code, location=loc, preargs=args)
+            args = GCC_Compiler.compile_args()
+            GCC_Compiler.compile_str(dirname, code, location=loc, preargs=args)
             # Save version into the __init__.py file.
             init_py = os.path.join(loc, "__init__.py")
             with open(init_py, "w") as f:

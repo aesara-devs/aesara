@@ -187,7 +187,7 @@ class OpenMPOp(COp):
     @staticmethod
     def test_gxx_support():
         """Check if OpenMP is supported."""
-        from aesara.link.c.cmodule import GCC_compiler
+        from aesara.link.c.cmodule import GCC_Compiler
 
         code = """
         #include <omp.h>
@@ -200,7 +200,7 @@ int main( int argc, const char* argv[] )
         }
 }
         """
-        default_openmp = GCC_compiler.try_compile_tmp(
+        default_openmp = GCC_Compiler.try_compile_tmp(
             src_code=code, tmp_prefix="test_omp_", flags=["-fopenmp"], try_run=False
         )
         return default_openmp

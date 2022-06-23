@@ -82,12 +82,12 @@ except ImportError:
                 )
 
             preargs = ["-fwrapv", "-O2", "-fno-strict-aliasing"]
-            preargs += cmodule.GCC_compiler.compile_args()
+            preargs += cmodule.GCC_Compiler.compile_args()
 
             with open(cfile) as f:
                 code = f.read()
 
-            cmodule.GCC_compiler.compile_str(
+            cmodule.GCC_Compiler.compile_str(
                 dirname, code, location=loc, preargs=preargs, hide_symbols=False
             )
             # Save version into the __init__.py file.

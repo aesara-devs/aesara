@@ -6,7 +6,7 @@ from aesara.configdefaults import config
 from aesara.gradient import grad_undefined
 from aesara.graph.basic import Apply
 from aesara.graph.opt import local_optimizer
-from aesara.link.c.cmodule import GCC_compiler
+from aesara.link.c.cmodule import GCC_Compiler
 from aesara.link.c.op import ExternalCOp, OpenMPOp
 from aesara.tensor.basic_opt import register_canonicalize
 from aesara.tensor.blas import batched_dot
@@ -46,7 +46,7 @@ options.num_threads = 1;
         params.extend([f"-I{os.path.join(config.ctc__root, 'include')}"])
         params.extend([f"-L{ctc_lib_path}"])
     params.extend(["-l", "warpctc"])
-    compiler_res = GCC_compiler.try_flags(
+    compiler_res = GCC_Compiler.try_flags(
         params, preamble=preamble, body=body, try_run=False, output=True
     )
 
