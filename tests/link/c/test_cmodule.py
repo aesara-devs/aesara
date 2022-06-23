@@ -30,10 +30,51 @@ from aesara.tensor.type import dvectors
 
 @contextlib.contextmanager
 def force_change_compile_dir(new_compile_dir):
+    # while testing, somebody might have compiled
+    # a similar graph and loaded the module. E.g
+    # test_inter_process_cache compiles a + b
+    # and
+    # test_import_precompiled_module compiles the same
+    # If not taken in account,
+    # the imports will conflict in aesara.link.c.cmodule.dlimport
+    # raising an uninformative message.
+    # So yeah, what is done in this test tries to avoid
+    # any sort of conflict with other tests
+    # A separate compilation dir is not enough to solve the issue
+    # It is required no old modules are visible for dlimport
+    # to solve that, we need to clean sys.modules
+    # from aesara compiled libs
     compiledir_prop = aesara.config._config_var_dict["compiledir"]
     with patch.object(compiledir_prop, "val", new_compile_dir, create=True):
         os.makedirs(new_compile_dir, exist_ok=True)
+        old_modules = sys.modules.copy()
+        for k, v in list(sys.modules.items()):
+            if "key_hash" in k and ".so" in v.__file__:
+                del sys.modules[k]
         yield str(new_compile_dir)
+        # revert_modules
+        sys.modules.clear()
+        sys.modules.update(old_modules)
+
+
+def _run_aesara_compile_xpy(compiledir, returns: multiprocessing.Queue = None):
+    with force_change_compile_dir(compiledir):
+        x, y = dvectors("xy")
+        fg = aesara.link.basic.FunctionGraph([x, y], [x + y])
+        lk = aesara.link.c.basic.CLinker().accept(fg)
+        mod = lk.compile_cmodule(lk.cmodule_key())
+        if returns is not None:
+            returns.put(mod.__name__)
+            returns.put(mod.__file__)
+        assert mod.__name__ in sys.modules
+
+
+def test_change_compile_hack():
+    with tempfile.TemporaryDirectory() as tmp:
+        _run_aesara_compile_xpy(tmp)
+    # and the second time
+    with tempfile.TemporaryDirectory() as tmp:
+        _run_aesara_compile_xpy(tmp)
 
 
 @pytest.fixture
@@ -268,18 +309,6 @@ def test_compile_is_not_cached_for_no_key_modules(mocker):
     [t.join() for t in threads]
     assert spy.call_count == T
     assert all(out)
-
-
-def _run_aesara_compile_xpy(compiledir, returns: multiprocessing.Queue = None):
-    with force_change_compile_dir(compiledir):
-        x, y = dvectors("xy")
-        fg = aesara.link.basic.FunctionGraph([x, y], [x + y])
-        lk = aesara.link.c.basic.CLinker().accept(fg)
-        mod = lk.compile_cmodule(lk.cmodule_key())
-        if returns is not None:
-            returns.put(mod.__name__)
-            returns.put(mod.__file__)
-        assert mod.__name__ in sys.modules
 
 
 def test_import_precompiled_module(tmp_compile_dir):
