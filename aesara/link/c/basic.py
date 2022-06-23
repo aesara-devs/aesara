@@ -1514,7 +1514,6 @@ class CLinker(Linker):
             location = os.path.join(
                 config.compiledir,
                 "persistent",
-                f"code_hash_{mod.code_hash}",
                 f"key_hash_{int(k_hash>0)}{abs(k_hash)}",
             )
             os.makedirs(location, exist_ok=True)
