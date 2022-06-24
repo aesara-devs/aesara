@@ -223,3 +223,16 @@ def test_op_invalid_input_types():
     msg = r"^Invalid input types for Op.*"
     with pytest.raises(TypeError, match=msg):
         TestOp()(dvector(), dscalar(), dvector())
+
+
+def test_op_input_broadcastable():
+    # Test that we can create an op with a broadcastable subtype as input
+    class SomeOp(aesara.tensor.Op):
+        itypes = [at.dvector]
+        otypes = [at.dvector]
+
+        def perform(self, *_):
+            raise NotImplementedError()
+
+    x = at.TensorType(dtype="float64", shape=(1,))("x")
+    assert SomeOp()(x).type == at.dvector
