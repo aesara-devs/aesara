@@ -418,7 +418,7 @@ class Op(MetaObject):
     def perform(
         self,
         node: Apply,
-        inputs: List[Variable],
+        inputs: Sequence[Any],
         output_storage: OutputStorageType,
         params: ParamsInputType = None,
     ) -> None:
