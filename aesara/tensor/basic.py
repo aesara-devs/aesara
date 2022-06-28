@@ -1422,8 +1422,22 @@ def eye(n, m=None, k=0, dtype=None):
     return localop(n, m, k)
 
 
-def identity_like(x):
-    return eye(x.shape[0], x.shape[1], k=0, dtype=x.dtype)
+def identity_like(x, dtype: Optional[Union[str, np.generic, np.dtype]] = None):
+    """Create a tensor with ones on main diagonal and zeroes elsewhere.
+
+    Parameters
+    ----------
+    x : tensor
+    dtype : data-type, optional
+
+    Returns
+    -------
+    tensor
+        tensor the shape of x with ones on main diagonal and zeroes elsewhere of type of dtype.
+    """
+    if dtype is None:
+        dtype = x.dtype
+    return eye(x.shape[0], x.shape[1], k=0, dtype=dtype)
 
 
 def infer_broadcastable(shape):
