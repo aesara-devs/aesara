@@ -59,6 +59,7 @@ from aesara.tensor.basic import (
     get_scalar_constant_value,
     get_vector_length,
     horizontal_stack,
+    identity_like,
     infer_broadcastable,
     inverse_permutation,
     join,
@@ -4390,6 +4391,15 @@ def test_empty():
     res = aesara.function([], empty_at)()
     assert res.shape == (2, 3)
     assert res.dtype == "int64"
+
+
+def test_identity_like_dtype():
+    # Test that we allocate eye correctly via identity_like
+    m = matrix(dtype="int64")
+    m_out = identity_like(m)
+    assert m_out.dtype == m.dtype
+    m_out_float = identity_like(m, dtype=np.float64)
+    assert m_out_float.dtype == "float64"
 
 
 def test_atleast_Nd():
