@@ -24,9 +24,12 @@ from aesara.tensor.slinalg import (
     kron,
     solve,
     solve_triangular,
+    solve_discrete_lyapunov,
+    solve_continuous_lyapunov
 )
 from aesara.tensor.type import dmatrix, matrix, tensor, vector
 from tests import unittest_tools as utt
+from tests.unittest_tools import InferShapeTester
 
 
 def check_lower_triangular(pd, ch_f):
@@ -178,14 +181,14 @@ class TestSolveBase(utt.InferShapeTester):
         [
             (vector, matrix, "`A` must be a matrix.*"),
             (
-                functools.partial(tensor, dtype="floatX", shape=(False,) * 3),
-                matrix,
-                "`A` must be a matrix.*",
+                    functools.partial(tensor, dtype="floatX", shape=(False,) * 3),
+                    matrix,
+                    "`A` must be a matrix.*",
             ),
             (
-                matrix,
-                functools.partial(tensor, dtype="floatX", shape=(False,) * 3),
-                "`b` must be a matrix or a vector.*",
+                    matrix,
+                    functools.partial(tensor, dtype="floatX", shape=(False,) * 3),
+                    "`b` must be a matrix or a vector.*",
             ),
         ],
     )
@@ -498,7 +501,7 @@ def test_expm_grad_2():
     # Always test in float64 for better numerical stability.
     A = rng.standard_normal((5, 5))
     w = rng.standard_normal((5)) ** 2
-    A = (np.diag(w**0.5)).dot(A + A.T).dot(np.diag(w ** (-0.5)))
+    A = (np.diag(w ** 0.5)).dot(A + A.T).dot(np.diag(w ** (-0.5)))
     assert not np.allclose(A, A.T)
 
     utt.verify_grad(expm, [A], rng=rng)
@@ -514,7 +517,6 @@ def test_expm_grad_3():
 
 
 class TestKron(utt.InferShapeTester):
-
     rng = np.random.default_rng(43)
 
     def setup_method(self):
@@ -552,3 +554,39 @@ class TestKron(utt.InferShapeTester):
                 b = self.rng.random(shp1).astype(config.floatX)
                 out = f(a, b)
                 assert np.allclose(out, np.kron(a, b))
+
+
+def test_solve_discrete_lyapunov():
+    N = 5
+    rng = np.random.default_rng(utt.fetch_seed())
+    a = at.dmatrix()
+    q = at.dmatrix()
+    f = function([a, q], [solve_discrete_lyapunov(a, q)])
+
+    A = rng.normal(size=(N, N))
+    Q = rng.normal(size=(N, N))
+
+    X = f(A, Q)
+    assert np.allclose(A @ X @ A.conj().T - X + Q, 0.0)
+
+    utt.verify_grad(solve_discrete_lyapunov,
+                     pt=[A, Q],
+                     rng=rng)
+
+
+def test_solve_continuous_lyapunov():
+    N = 5
+    rng = np.random.default_rng(utt.fetch_seed())
+    a = at.dmatrix()
+    q = at.dmatrix()
+    f = function([a, q], [solve_continuous_lyapunov(a, q)])
+
+    A = rng.normal(size=(N, N))
+    Q = rng.normal(size=(N, N))
+    X = f(A, Q)
+
+    assert np.allclose(A @ X + X @ A.conj().T, Q)
+
+    utt.verify_grad(solve_continuous_lyapunov,
+                    pt=[A, Q],
+                    rng=rng)

@@ -1,9 +1,10 @@
 import logging
 import warnings
-from typing import Union
+from typing import Union, Optional
 
 import numpy as np
 import scipy.linalg
+from numpy.typing._array_like import ArrayLike
 
 import aesara.tensor
 from aesara.graph.basic import Apply
@@ -13,7 +14,6 @@ from aesara.tensor import basic as at
 from aesara.tensor import math as atm
 from aesara.tensor.type import matrix, tensor, vector
 from aesara.tensor.var import TensorVariable
-
 
 logger = logging.getLogger(__name__)
 
@@ -140,7 +140,7 @@ class CholeskyGrad(Op):
         assert l.ndim == 2
         assert dz.ndim == 2
         assert (
-            l.owner.op.lower == self.lower
+                l.owner.op.lower == self.lower
         ), "lower/upper mismatch between Cholesky op and CholeskyGrad op"
         return Apply(self, [x, l, dz], [x.type()])
 
@@ -191,13 +191,12 @@ class CholeskyGrad(Op):
 
 
 class CholeskySolve(Op):
-
     __props__ = ("lower", "check_finite")
 
     def __init__(
-        self,
-        lower=True,
-        check_finite=True,
+            self,
+            lower=True,
+            check_finite=True,
     ):
         self.lower = lower
         self.check_finite = check_finite
@@ -270,9 +269,9 @@ class SolveBase(Op):
     )
 
     def __init__(
-        self,
-        lower=False,
-        check_finite=True,
+            self,
+            lower=False,
+            check_finite=True,
     ):
         self.lower = lower
         self.check_finite = check_finite
@@ -352,11 +351,11 @@ class SolveTriangular(SolveBase):
     )
 
     def __init__(
-        self,
-        trans=0,
-        lower=False,
-        unit_diagonal=False,
-        check_finite=True,
+            self,
+            trans=0,
+            lower=False,
+            unit_diagonal=False,
+            check_finite=True,
     ):
         super().__init__(lower=lower, check_finite=check_finite)
         self.trans = trans
@@ -388,12 +387,12 @@ solvetriangular = SolveTriangular()
 
 
 def solve_triangular(
-    a: TensorVariable,
-    b: TensorVariable,
-    trans: Union[int, str] = 0,
-    lower: bool = False,
-    unit_diagonal: bool = False,
-    check_finite: bool = True,
+        a: TensorVariable,
+        b: TensorVariable,
+        trans: Union[int, str] = 0,
+        lower: bool = False,
+        unit_diagonal: bool = False,
+        check_finite: bool = True,
 ) -> TensorVariable:
     """Solve the equation `a x = b` for `x`, assuming `a` is a triangular matrix.
 
@@ -438,10 +437,10 @@ class Solve(SolveBase):
     )
 
     def __init__(
-        self,
-        assume_a="gen",
-        lower=False,
-        check_finite=True,
+            self,
+            assume_a="gen",
+            lower=False,
+            check_finite=True,
     ):
         if assume_a not in ("gen", "sym", "her", "pos"):
             raise ValueError(f"{assume_a} is not a recognized matrix structure")
@@ -511,6 +510,7 @@ def solve(a, b, assume_a="gen", lower=False, check_finite=True):
 solve_lower_triangular = SolveTriangular(lower=True)
 solve_upper_triangular = SolveTriangular(lower=False)
 solve_symmetric = Solve(assume_a="sym")
+
 
 # TODO: Optimizations to replace multiplication by matrix inverse
 #      with solve() Op (still unwritten)
@@ -745,6 +745,165 @@ class ExpmGrad(Op):
 
 expm = Expm()
 
+
+class SolveContinuousLyapunov(at.Op):
+    __props__ = ()
+
+    def make_node(self, A, B):
+        A = as_tensor_variable(A)
+        B = as_tensor_variable(B)
+
+        out_dtype = aesara.scalar.upcast(A.dtype, B.dtype)
+        X = aesara.tensor.matrix(dtype=out_dtype)
+
+        return aesara.graph.basic.Apply(self, [A, B], [X])
+
+    def perform(self, node, inputs, output_storage):
+        (A, B) = inputs
+        X = output_storage[0]
+
+        X[0] = scipy.linalg.solve_continuous_lyapunov(A, B)
+
+    def infer_shape(self, fgraph, node, shapes):
+        return [shapes[0]]
+
+    def grad(self, inputs, output_grads):
+        # Gradient computations come from Kao and Hennequin (2020), https://arxiv.org/pdf/2011.11430.pdf
+        # Note that they write the equation as AX + XA.H + Q = 0, while scipy uses AX + XA^H = Q,
+        # so minor adjustments need to be made.
+        A, Q = inputs
+        (dX,) = output_grads
+
+        X = self(A, Q)
+        S = self(A.conj().T, -dX)  # Eq 31, adjusted
+
+        A_bar = S.dot(X.conj().T) + S.conj().T.dot(X)
+        Q_bar = -S  # Eq 29, adjusted
+
+        return [A_bar, Q_bar]
+
+    def _check_input_dims(self, A, B):
+        if A.ndim != 2:
+            raise ValueError(f'solve_discrete_lyapunov only valid for 2d matrices, matrix A has {A.ndim} dimensions')
+        if B.ndim != 2:
+            raise ValueError(f'solve_discrete_lyapunov only valid for 2d matrices, matrix A has {B.ndim} dimensions')
+
+        AN, AM = A.shape
+        BN, BM = B.shape
+
+        if AN != AM:
+            raise ValueError(f'Matrix A should be square, the provided matrix has shape {AN} x {AM}')
+        if BN != BM:
+            raise ValueError(f'Matrix B should be square, the provided matrix has shape {BN} x {BM}')
+
+        if AN != BN:
+            raise ValueError(f'Matrices A and B should have the same size, but matrix A has shape {AN} x {AN}, and'
+                             f'matrix B has shape {BN} x {BM}')
+
+
+class SolveDiscreteLyapunov(at.Op):
+    __props__ = ()
+
+    def __init__(self, method=None):
+        self.method = method
+
+    def make_node(self, A, B):
+        A = as_tensor_variable(A)
+        B = as_tensor_variable(B)
+
+        out_dtype = aesara.scalar.upcast(A.dtype, B.dtype)
+        X = aesara.tensor.matrix(dtype=out_dtype)
+
+        return aesara.graph.basic.Apply(self, [A, B], [X])
+
+    def perform(self, node, inputs, output_storage):
+        (A, B) = inputs
+        self._check_input_dims(A, B)
+
+        X = output_storage[0]
+
+        X[0] = scipy.linalg.solve_discrete_lyapunov(A, B, method=self.method)
+
+    def infer_shape(self, fgraph, node, shapes):
+        return [shapes[0]]
+
+    def grad(self, inputs, output_grads):
+        # Gradient computations come from Kao and Hennequin (2020), https://arxiv.org/pdf/2011.11430.pdf
+        A, Q = inputs
+        (dX,) = output_grads
+
+        X = self(A, Q)
+        S = self(A.conj().T, dX)  # Eq 41, note that it is not written as a proper Lyapunov equation
+
+        A_bar = aesara.tensor.linalg.matrix_dot(S, A, X.conj().T) + aesara.tensor.linalg.matrix_dot(S.conj().T, A, X)
+        Q_bar = S
+        return [A_bar, Q_bar]
+
+    def _check_input_dims(self, A, B):
+        if A.ndim != 2:
+            raise ValueError(f'solve_continuous_lyapunov only valid for 2d matrices, matrix A has {A.ndim} dimensions')
+        if B.ndim != 2:
+            raise ValueError(f'solve_continuous_lyapunov only valid for 2d matrices, matrix A has {B.ndim} dimensions')
+
+        AN, AM = A.shape
+        BN, BM = B.shape
+
+        if AN != AM:
+            raise ValueError(f'Matrix A should be square, the provided matrix has shape {AN} x {AM}')
+        if BN != BM:
+            raise ValueError(f'Matrix B should be square, the provided matrix has shape {BN} x {BM}')
+
+        if AN != BN:
+            raise ValueError(f'Matrices A and B should have the same size, but matrix A has shape {AN} x {AN}, and'
+                             f'matrix B has shape {BN} x {BM}')
+
+
+_solve_continuous_lyapunov = SolveContinuousLyapunov()
+
+
+def solve_discrete_lyapunov(A, Q, method: Optional[str] = None) -> at.Op:
+    """
+    Solve the discrete Lyapunov equation :math:`AXA^H - X = Q`.
+    Parameters
+    ----------
+    A: ArrayLike
+        Square matrix of shape N x N; must have the same shape as Q
+    Q: ArrayLike
+        Square matrix of shape N x N; must have the same shape as A
+    method: Optional, string
+        Solver method passed to scipy.linalg.solve_discrete_lyapunov, either "bilinear", "direct", or None. "direct"
+        scales poorly with size. If None, uses "direct" if N < 10, else "bilinear".
+
+    Returns
+    -------
+    X: at.matrix
+        Square matrix of shape N x N, representing the solution to the Lyapunov equation
+    """
+
+    return SolveDiscreteLyapunov(method)(A, Q)
+
+
+def solve_continuous_lyapunov(A, Q) -> at.Op:
+    """
+    Solve the continuous Lyapunov equation :math: `AX + XA^H = Q
+
+    Parameters
+    ----------
+    A: ArrayLike
+        Square matrix of shape N x N; must have the same shape as Q
+    Q: ArrayLike
+        Square matrix of shape N x N; must have the same shape as A
+
+    Returns
+    -------
+    X: at.matrix
+        Square matrix of shape N x N, representing the solution to the Lyapunov equation
+
+    """
+
+    return _solve_continuous_lyapunov(A, Q)
+
+
 __all__ = [
     "cholesky",
     "solve",
@@ -754,4 +913,6 @@ __all__ = [
     "eigvalsh",
     "kron",
     "expm",
+    "solve_discrete_lyapunov",
+    "solve_continuous_lyapunov"
 ]
