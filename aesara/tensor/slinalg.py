@@ -1,10 +1,9 @@
 import logging
 import warnings
-from typing import Union, Optional
+from typing import Optional, Union
 
 import numpy as np
 import scipy.linalg
-from numpy.typing._array_like import ArrayLike
 
 import aesara.tensor
 from aesara.graph.basic import Apply
@@ -14,6 +13,7 @@ from aesara.tensor import basic as at
 from aesara.tensor import math as atm
 from aesara.tensor.type import matrix, tensor, vector
 from aesara.tensor.var import TensorVariable
+
 
 logger = logging.getLogger(__name__)
 
@@ -140,7 +140,7 @@ class CholeskyGrad(Op):
         assert l.ndim == 2
         assert dz.ndim == 2
         assert (
-                l.owner.op.lower == self.lower
+            l.owner.op.lower == self.lower
         ), "lower/upper mismatch between Cholesky op and CholeskyGrad op"
         return Apply(self, [x, l, dz], [x.type()])
 
@@ -194,9 +194,9 @@ class CholeskySolve(Op):
     __props__ = ("lower", "check_finite")
 
     def __init__(
-            self,
-            lower=True,
-            check_finite=True,
+        self,
+        lower=True,
+        check_finite=True,
     ):
         self.lower = lower
         self.check_finite = check_finite
@@ -269,9 +269,9 @@ class SolveBase(Op):
     )
 
     def __init__(
-            self,
-            lower=False,
-            check_finite=True,
+        self,
+        lower=False,
+        check_finite=True,
     ):
         self.lower = lower
         self.check_finite = check_finite
@@ -351,11 +351,11 @@ class SolveTriangular(SolveBase):
     )
 
     def __init__(
-            self,
-            trans=0,
-            lower=False,
-            unit_diagonal=False,
-            check_finite=True,
+        self,
+        trans=0,
+        lower=False,
+        unit_diagonal=False,
+        check_finite=True,
     ):
         super().__init__(lower=lower, check_finite=check_finite)
         self.trans = trans
@@ -387,12 +387,12 @@ solvetriangular = SolveTriangular()
 
 
 def solve_triangular(
-        a: TensorVariable,
-        b: TensorVariable,
-        trans: Union[int, str] = 0,
-        lower: bool = False,
-        unit_diagonal: bool = False,
-        check_finite: bool = True,
+    a: TensorVariable,
+    b: TensorVariable,
+    trans: Union[int, str] = 0,
+    lower: bool = False,
+    unit_diagonal: bool = False,
+    check_finite: bool = True,
 ) -> TensorVariable:
     """Solve the equation `a x = b` for `x`, assuming `a` is a triangular matrix.
 
@@ -437,10 +437,10 @@ class Solve(SolveBase):
     )
 
     def __init__(
-            self,
-            assume_a="gen",
-            lower=False,
-            check_finite=True,
+        self,
+        assume_a="gen",
+        lower=False,
+        check_finite=True,
     ):
         if assume_a not in ("gen", "sym", "her", "pos"):
             raise ValueError(f"{assume_a} is not a recognized matrix structure")
@@ -784,21 +784,31 @@ class SolveContinuousLyapunov(at.Op):
 
     def _check_input_dims(self, A, B):
         if A.ndim != 2:
-            raise ValueError(f'solve_discrete_lyapunov only valid for 2d matrices, matrix A has {A.ndim} dimensions')
+            raise ValueError(
+                f"solve_discrete_lyapunov only valid for 2d matrices, matrix A has {A.ndim} dimensions"
+            )
         if B.ndim != 2:
-            raise ValueError(f'solve_discrete_lyapunov only valid for 2d matrices, matrix A has {B.ndim} dimensions')
+            raise ValueError(
+                f"solve_discrete_lyapunov only valid for 2d matrices, matrix A has {B.ndim} dimensions"
+            )
 
         AN, AM = A.shape
         BN, BM = B.shape
 
         if AN != AM:
-            raise ValueError(f'Matrix A should be square, the provided matrix has shape {AN} x {AM}')
+            raise ValueError(
+                f"Matrix A should be square, the provided matrix has shape {AN} x {AM}"
+            )
         if BN != BM:
-            raise ValueError(f'Matrix B should be square, the provided matrix has shape {BN} x {BM}')
+            raise ValueError(
+                f"Matrix B should be square, the provided matrix has shape {BN} x {BM}"
+            )
 
         if AN != BN:
-            raise ValueError(f'Matrices A and B should have the same size, but matrix A has shape {AN} x {AN}, and'
-                             f'matrix B has shape {BN} x {BM}')
+            raise ValueError(
+                f"Matrices A and B should have the same size, but matrix A has shape {AN} x {AN}, and"
+                f"matrix B has shape {BN} x {BM}"
+            )
 
 
 class SolveDiscreteLyapunov(at.Op):
@@ -833,29 +843,43 @@ class SolveDiscreteLyapunov(at.Op):
         (dX,) = output_grads
 
         X = self(A, Q)
-        S = self(A.conj().T, dX)  # Eq 41, note that it is not written as a proper Lyapunov equation
+        S = self(
+            A.conj().T, dX
+        )  # Eq 41, note that it is not written as a proper Lyapunov equation
 
-        A_bar = aesara.tensor.linalg.matrix_dot(S, A, X.conj().T) + aesara.tensor.linalg.matrix_dot(S.conj().T, A, X)
+        A_bar = aesara.tensor.linalg.matrix_dot(
+            S, A, X.conj().T
+        ) + aesara.tensor.linalg.matrix_dot(S.conj().T, A, X)
         Q_bar = S
         return [A_bar, Q_bar]
 
     def _check_input_dims(self, A, B):
         if A.ndim != 2:
-            raise ValueError(f'solve_continuous_lyapunov only valid for 2d matrices, matrix A has {A.ndim} dimensions')
+            raise ValueError(
+                f"solve_continuous_lyapunov only valid for 2d matrices, matrix A has {A.ndim} dimensions"
+            )
         if B.ndim != 2:
-            raise ValueError(f'solve_continuous_lyapunov only valid for 2d matrices, matrix A has {B.ndim} dimensions')
+            raise ValueError(
+                f"solve_continuous_lyapunov only valid for 2d matrices, matrix A has {B.ndim} dimensions"
+            )
 
         AN, AM = A.shape
         BN, BM = B.shape
 
         if AN != AM:
-            raise ValueError(f'Matrix A should be square, the provided matrix has shape {AN} x {AM}')
+            raise ValueError(
+                f"Matrix A should be square, the provided matrix has shape {AN} x {AM}"
+            )
         if BN != BM:
-            raise ValueError(f'Matrix B should be square, the provided matrix has shape {BN} x {BM}')
+            raise ValueError(
+                f"Matrix B should be square, the provided matrix has shape {BN} x {BM}"
+            )
 
         if AN != BN:
-            raise ValueError(f'Matrices A and B should have the same size, but matrix A has shape {AN} x {AN}, and'
-                             f'matrix B has shape {BN} x {BM}')
+            raise ValueError(
+                f"Matrices A and B should have the same size, but matrix A has shape {AN} x {AN}, and"
+                f"matrix B has shape {BN} x {BM}"
+            )
 
 
 _solve_continuous_lyapunov = SolveContinuousLyapunov()
@@ -914,5 +938,5 @@ __all__ = [
     "kron",
     "expm",
     "solve_discrete_lyapunov",
-    "solve_continuous_lyapunov"
+    "solve_continuous_lyapunov",
 ]
