@@ -1,3 +1,4 @@
+import contextlib
 import copy
 
 import numpy as np
@@ -22,6 +23,7 @@ from aesara.graph.type import Type
 from aesara.misc.safe_asarray import _asarray
 from aesara.printing import pprint
 from aesara.raise_op import Assert, CheckAndRaise
+from aesara.scalar.basic import Composite
 from aesara.tensor.basic import (
     Alloc,
     Join,
@@ -1151,6 +1153,54 @@ class TestFusion:
             isinstance(getattr(n.op, "scalar_op"), aes.basic.Composite)
             for n in f.maker.fgraph.toposort()
         )
+
+    @pytest.mark.parametrize("test_value", [np.c_[[1.0]], np.c_[[]]])
+    def test_test_values(self, test_value):
+        """Make sure that `local_elemwise_fusion_op` uses test values correctly when they have zero dimensions.
+
+        The test values we're talking about are the ones used when C implementations
+        are checked.
+
+        """
+
+        opts = OptimizationQuery(
+            include=[
+                "local_elemwise_fusion",
+                "composite_elemwise_fusion",
+                "canonicalize",
+            ],
+            exclude=["cxx_only", "BlasOpt"],
+        )
+
+        mode = Mode(self.mode.linker, opts)
+
+        x, y, z = dmatrices("xyz")
+
+        x.tag.test_value = test_value
+        y.tag.test_value = test_value
+        z.tag.test_value = test_value
+
+        if test_value.size == 0:
+            cm = pytest.raises(ValueError)
+        else:
+            cm = contextlib.suppress()
+
+        with config.change_flags(
+            compute_test_value="raise", compute_test_value_opt="raise"
+        ):
+            out = x * y + z
+            with cm:
+                f = function([x, y, z], out, mode=mode)
+
+        if test_value.size != 0:
+            # Confirm that the fusion happened
+            assert isinstance(f.maker.fgraph.outputs[0].owner.op.scalar_op, Composite)
+            assert len(f.maker.fgraph.toposort()) == 1
+
+            x_c, y_c, z_c = f.maker.fgraph.outputs[0].owner.inputs
+            assert np.array_equal(
+                f.maker.fgraph.outputs[0].tag.test_value, np.c_[[2.0]]
+            )
 
 
 class TimesN(aes.basic.UnaryScalarOp):
