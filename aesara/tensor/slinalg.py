@@ -812,7 +812,7 @@ class SolveContinuousLyapunov(at.Op):
 
 
 class SolveDiscreteLyapunov(at.Op):
-    __props__ = ()
+    __props__ = ("method",)
 
     def __init__(self, method=None):
         self.method = method
