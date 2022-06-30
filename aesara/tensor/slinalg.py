@@ -782,34 +782,6 @@ class SolveContinuousLyapunov(at.Op):
 
         return [A_bar, Q_bar]
 
-    def _check_input_dims(self, A, B):
-        if A.ndim != 2:
-            raise ValueError(
-                f"solve_discrete_lyapunov only valid for 2d matrices, matrix A has {A.ndim} dimensions"
-            )
-        if B.ndim != 2:
-            raise ValueError(
-                f"solve_discrete_lyapunov only valid for 2d matrices, matrix A has {B.ndim} dimensions"
-            )
-
-        AN, AM = A.shape
-        BN, BM = B.shape
-
-        if AN != AM:
-            raise ValueError(
-                f"Matrix A should be square, the provided matrix has shape {AN} x {AM}"
-            )
-        if BN != BM:
-            raise ValueError(
-                f"Matrix B should be square, the provided matrix has shape {BN} x {BM}"
-            )
-
-        if AN != BN:
-            raise ValueError(
-                f"Matrices A and B should have the same size, but matrix A has shape {AN} x {AN}, and"
-                f"matrix B has shape {BN} x {BM}"
-            )
-
 
 class SolveDiscreteLyapunov(at.Op):
     __props__ = ()
@@ -828,8 +800,6 @@ class SolveDiscreteLyapunov(at.Op):
 
     def perform(self, node, inputs, output_storage):
         (A, B) = inputs
-        self._check_input_dims(A, B)
-
         X = output_storage[0]
 
         X[0] = scipy.linalg.solve_discrete_lyapunov(A, B, method=self.method)
@@ -852,34 +822,6 @@ class SolveDiscreteLyapunov(at.Op):
         ) + aesara.tensor.linalg.matrix_dot(S.conj().T, A, X)
         Q_bar = S
         return [A_bar, Q_bar]
-
-    def _check_input_dims(self, A, B):
-        if A.ndim != 2:
-            raise ValueError(
-                f"solve_continuous_lyapunov only valid for 2d matrices, matrix A has {A.ndim} dimensions"
-            )
-        if B.ndim != 2:
-            raise ValueError(
-                f"solve_continuous_lyapunov only valid for 2d matrices, matrix A has {B.ndim} dimensions"
-            )
-
-        AN, AM = A.shape
-        BN, BM = B.shape
-
-        if AN != AM:
-            raise ValueError(
-                f"Matrix A should be square, the provided matrix has shape {AN} x {AM}"
-            )
-        if BN != BM:
-            raise ValueError(
-                f"Matrix B should be square, the provided matrix has shape {BN} x {BM}"
-            )
-
-        if AN != BN:
-            raise ValueError(
-                f"Matrices A and B should have the same size, but matrix A has shape {AN} x {AN}, and"
-                f"matrix B has shape {BN} x {BM}"
-            )
 
 
 _solve_continuous_lyapunov = SolveContinuousLyapunov()
