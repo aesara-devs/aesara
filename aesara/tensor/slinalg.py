@@ -827,7 +827,7 @@ class SolveDiscreteLyapunov(at.Op):
 _solve_continuous_lyapunov = SolveContinuousLyapunov()
 
 
-def solve_discrete_lyapunov(A, Q, method: Optional[str] = None) -> at.Op:
+def solve_discrete_lyapunov(A, Q, method: Optional[str] = None) -> TensorVariable:
     """
     Solve the discrete Lyapunov equation :math:`AXA^H - X = Q`.
     Parameters
@@ -849,7 +849,7 @@ def solve_discrete_lyapunov(A, Q, method: Optional[str] = None) -> at.Op:
     return SolveDiscreteLyapunov(method)(A, Q)
 
 
-def solve_continuous_lyapunov(A, Q) -> at.Op:
+def solve_continuous_lyapunov(A, Q) -> TensorVariable:
     """
     Solve the continuous Lyapunov equation :math: `AX + XA^H = Q
 
