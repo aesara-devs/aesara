@@ -58,6 +58,7 @@ from aesara.tensor.math import (
     Prod,
     ProdWithoutZeros,
     Sum,
+    _conj,
 )
 from aesara.tensor.math import abs as at_abs
 from aesara.tensor.math import (
@@ -86,6 +87,7 @@ from aesara.tensor.math import true_div
 from aesara.tensor.shape import Shape, Shape_i
 from aesara.tensor.subtensor import Subtensor
 from aesara.tensor.type import (
+    complex_dtypes,
     uint_dtypes,
     values_eq_approx_remove_inf,
     values_eq_approx_remove_inf_nan,
@@ -3552,3 +3554,13 @@ local_sigmoid_logit = PatternSub(
 )
 register_canonicalize(local_sigmoid_logit)
 register_specialize(local_sigmoid_logit)
+
+
+@register_canonicalize
+@register_useless
+@local_optimizer([_conj])
+def local_useless_conj(fgraph, node):
+    r"""Remove `conj` `Op`\s applied to non-imaginary variable types."""
+    x = node.inputs[0]
+    if x.type.dtype not in complex_dtypes:
+        return [x]

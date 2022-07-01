@@ -696,7 +696,7 @@ TestComplexFromPolarBroadcast = makeBroadcastTester(
 )
 
 TestConjBroadcast = makeBroadcastTester(
-    op=conj, expected=np.conj, good=_good_broadcast_unary_normal
+    op=conj, expected=np.conj, good={"complex": _good_broadcast_unary_normal["complex"]}
 )
 
 
@@ -2566,6 +2566,10 @@ class TestTensorInstanceMethods:
         z = x + y * 1j
         assert_array_equal(Z.conj().eval({Z: z}), z.conj())
         assert_array_equal(Z.conjugate().eval({Z: z}), z.conj())
+
+        # No conjugate when the data type isn't complex
+        assert X.type.dtype not in complex_dtypes
+        assert X.conj() is X
 
     def test_round(self):
         X, _ = self.vars

@@ -1465,9 +1465,19 @@ def complex(real, imag):
     """Return complex-valued tensor with `real` and `imag` components"""
 
 
-@scalar_elemwise
-def conj(z):
+@scalar_elemwise(symbolname="conj")
+def _conj(z):
     """Return the complex conjugate of `z`."""
+
+
+def conjugate(x):
+    _x = as_tensor_variable(x)
+    if _x.type.dtype not in complex_dtypes:
+        return _x
+    return _conj(_x)
+
+
+conj = conjugate
 
 
 @scalar_elemwise
@@ -2931,6 +2941,7 @@ __all__ = [
     "angle",
     "complex",
     "conj",
+    "conjugate",
     "complex_from_polar",
     "sum",
     "prod",
