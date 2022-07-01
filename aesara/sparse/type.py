@@ -2,6 +2,7 @@ import numpy as np
 import scipy.sparse
 
 import aesara
+from aesara import scalar as aes
 from aesara.graph.type import HasDataType
 from aesara.tensor.type import TensorType
 
@@ -106,22 +107,28 @@ class SparseTensorType(TensorType, HasDataType):
             and value.dtype == self.dtype
         ):
             return value
+
         if strict:
             raise TypeError(
                 f"{value} is not sparse, or not the right dtype (is {value.dtype}, "
                 f"expected {self.dtype})"
             )
+
         # The input format could be converted here
         if allow_downcast:
             sp = self.format_cls[self.format](value, dtype=self.dtype)
         else:
-            sp = self.format_cls[self.format](value)
-            if str(sp.dtype) != self.dtype:
+            data = self.format_cls[self.format](value)
+            up_dtype = aes.upcast(self.dtype, data.dtype)
+            if up_dtype != self.dtype:
                 raise NotImplementedError(
-                    f"Expected {self.dtype} dtype but got {sp.dtype}"
+                    f"Expected {self.dtype} dtype but got {data.dtype}"
                 )
+            sp = data.astype(up_dtype)
+
         if sp.format != self.format:
             raise NotImplementedError()
+
         return sp
 
     @classmethod

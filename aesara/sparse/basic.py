@@ -26,8 +26,9 @@ from aesara.sparse.type import SparseTensorType, _is_sparse
 from aesara.sparse.utils import hash_from_sparse
 from aesara.tensor import basic as at
 from aesara.tensor.basic import Split
+from aesara.tensor.math import _conj
 from aesara.tensor.math import add as at_add
-from aesara.tensor.math import arcsin, arcsinh, arctan, arctanh, ceil, conj, deg2rad
+from aesara.tensor.math import arcsin, arcsinh, arctan, arctanh, ceil, deg2rad
 from aesara.tensor.math import dot as at_dot
 from aesara.tensor.math import exp, expm1, floor, log, log1p, maximum, minimum
 from aesara.tensor.math import pow as at_pow
@@ -322,7 +323,6 @@ def override_dense(*methods):
     "max",
     "argmin",
     "argmax",
-    "conj",
     "round",
     "trace",
     "cumsum",
@@ -450,6 +450,9 @@ class _sparse_py_operators(_tensor_py_operators):
         else:
             ret = get_item_2d(self, args)
         return ret
+
+    def conj(self):
+        return conjugate(self)
 
 
 class SparseVariable(_sparse_py_operators, TensorVariable):
@@ -3548,13 +3551,23 @@ def sqrt(x):
     # see decorator for function body
 
 
-@structured_monoid(conj)  # type: ignore[no-redef]
-def conj(x):
+@structured_monoid(_conj)  # type: ignore[no-redef]
+def _conj(x):
     """
     Elemwise complex conjugate of `x`.
 
     """
     # see decorator for function body
+
+
+def conjugate(x):
+    _x = as_sparse_variable(x)
+    if _x.type.dtype not in complex_dtypes:
+        return _x
+    return _conj(_x)
+
+
+conj = conjugate
 
 
 class TrueDot(Op):

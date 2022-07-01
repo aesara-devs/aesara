@@ -34,7 +34,7 @@ from aesara.tensor.basic_opt import local_dimshuffle_lift
 from aesara.tensor.blas import Dot22, Gemv
 from aesara.tensor.blas_c import CGemv
 from aesara.tensor.elemwise import CAReduce, DimShuffle, Elemwise
-from aesara.tensor.math import Dot, MaxAndArgmax, Prod, Sum
+from aesara.tensor.math import Dot, MaxAndArgmax, Prod, Sum, _conj
 from aesara.tensor.math import abs as at_abs
 from aesara.tensor.math import add
 from aesara.tensor.math import all as at_all
@@ -119,6 +119,7 @@ from aesara.tensor.type import (
     values_eq_approx_remove_nan,
     vector,
     vectors,
+    zscalar,
 )
 from aesara.tensor.var import TensorConstant
 from tests import unittest_tools as utt
@@ -4619,3 +4620,20 @@ def test_local_logit_sigmoid():
     fg = optimize(FunctionGraph([x], [out]))
     assert not list(fg.toposort())
     assert fg.inputs[0] is fg.outputs[0]
+
+
+def test_local_useless_conj():
+    default_mode = get_default_mode()
+
+    # Test for all zeros
+    x = scalar()
+    s = _conj(x)
+    mode_with_opt = default_mode.including("canonicalization", "local_useless_conj")
+    f = function([x], s, mode=mode_with_opt)
+    assert not any(node.op == _conj for node in f.maker.fgraph.apply_nodes)
+
+    x = zscalar()
+    s = _conj(x)
+    mode_with_opt = default_mode.including("canonicalization", "local_useless_conj")
+    f = function([x], s, mode=mode_with_opt)
+    assert any(node.op == _conj for node in f.maker.fgraph.apply_nodes)
