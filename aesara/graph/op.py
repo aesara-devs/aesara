@@ -222,21 +222,22 @@ class Op(MetaObject):
         """
         if self.itypes is None:
             raise NotImplementedError(
-                "You can either define itypes and otypes,\
-             or implement make_node"
+                "You can either define itypes and otypes, or implement make_node"
             )
 
         if self.otypes is None:
             raise NotImplementedError(
-                "You can either define itypes and otypes,\
-             or implement make_node"
+                "You can either define itypes and otypes, or implement make_node"
             )
 
         if len(inputs) != len(self.itypes):
             raise ValueError(
                 f"We expected {len(self.itypes)} inputs but got {len(inputs)}."
             )
-        if not all(it.in_same_class(inp.type) for inp, it in zip(inputs, self.itypes)):
+        if not all(
+            expected_type.is_super(var.type)
+            for var, expected_type in zip(inputs, self.itypes)
+        ):
             raise TypeError(
                 f"Invalid input types for Op {self}:\n"
                 + "\n".join(

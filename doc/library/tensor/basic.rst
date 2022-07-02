@@ -777,12 +777,13 @@ Creating Tensors
     :returns: An array where all elements are equal to zero, except for the `k`-th
               diagonal, whose values are equal to one.
 
-.. function:: identity_like(x)
+.. function:: identity_like(x, dtype=None)
 
     :param x: tensor
+    :param dtype: The dtype of the returned tensor. If `None`, default to dtype of `x`
     :returns: A tensor of same shape as `x` that is filled with zeros everywhere
               except for the main diagonal, whose values are equal to one. The output
-              will have same dtype as `x`.
+              will have same dtype as `x` unless overridden in `dtype`.
 
 .. function:: stack(tensors, axis=0)
 
