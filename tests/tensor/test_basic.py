@@ -923,6 +923,24 @@ class TestTriangle:
             assert np.allclose(result_indx, result_from)
             assert result.dtype == np.dtype(dtype)
 
+        def check_l_batch(m, k=0):
+            m_symb = tensor3(dtype=m.dtype)
+            k_symb = iscalar()
+            f = function([m_symb, k_symb], tril(m_symb, k_symb))
+            for k in [-1, 0, 1]:
+                result = f(m, k)
+                assert np.allclose(result, np.tril(m, k))
+                assert result.dtype == np.dtype(dtype)
+
+        def check_u_batch(m):
+            m_symb = tensor3(dtype=m.dtype)
+            k_symb = iscalar()
+            f = function([m_symb, k_symb], triu(m_symb, k_symb))
+            for k in [-1, 0, 1]:
+                result = f(m, k)
+                assert np.allclose(result, np.triu(m, k))
+                assert result.dtype == np.dtype(dtype)
+
         for dtype in ALL_DTYPES:
             m = random_of_dtype((10, 10), dtype)
             check_l(m, 0)
@@ -941,6 +959,14 @@ class TestTriangle:
             check_u(m, 0)
             check_u(m, 1)
             check_u(m, -1)
+
+            m = random_of_dtype((5, 5, 5), dtype)
+            check_l_batch(m)
+            check_u_batch(m)
+
+            m = random_of_dtype((5, 10, 5), dtype)
+            check_l_batch(m)
+            check_u_batch(m)
 
         m = random_of_dtype((10,), dtype)
         for fn in (triu_indices_from, tril_indices_from):
