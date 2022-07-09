@@ -1626,7 +1626,8 @@ class CLinker(Linker):
             # Set compute_map as None as clinker do not support lazy evaluation
             for node in self.node_order:
                 node.op.prepare_node(node, storage_map, None, "c")
-            module = get_module_cache().module_from_key(key=key, lnk=self)
+            with get_module_cache() as cache:
+                module = cache.module_from_key(key=key, lnk=self)
 
         vars = self.inputs + self.outputs + self.orphans
         # List of indices that should be ignored when passing the arguments
@@ -2018,4 +2019,5 @@ class DualLinker(Linker):
 
 
 if config.cmodule__preload_cache:
-    get_module_cache()
+    with get_module_cache():
+        pass
