@@ -19,3 +19,7 @@ pre-commit
 isort
 packaging
 typing_extensions
+etuples
+logical-unification
+miniKanren
+cons
