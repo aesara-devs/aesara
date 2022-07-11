@@ -5,10 +5,7 @@ global-include *.cuh
 global-include *.cpp
 global-include *.h
 global-include *.sh
-global-include *.pkl
-recursive-include doc
+recursive-include doc *
 include bin/aesara-cache
-prune .jenkins
-prune .travis
 include versioneer.py
 include aesara/_version.py
