@@ -278,8 +278,6 @@ class TestGrad:
         g = grad(a1.outputs[0], a1.outputs[1], disconnected_inputs="ignore")
         assert g.owner.op == at.fill
         assert g.owner.inputs[1].data == 0
-        with pytest.raises(TypeError):
-            grad(a1.outputs[0], "wtf")
 
     def test_NNone_rval(self):
         # grad: Test returning some zero value from grad

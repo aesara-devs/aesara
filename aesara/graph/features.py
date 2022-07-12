@@ -1,6 +1,7 @@
 import inspect
 import sys
 import time
+import warnings
 from collections import OrderedDict
 from functools import partial
 from io import StringIO
@@ -628,7 +629,7 @@ class ReplaceValidate(History, Validator):
             if rm in fgraph.apply_nodes or rm in fgraph.variables:
                 fgraph.revert(chk)
                 if warn:
-                    warn(
+                    warnings.warn(
                         "An optimization wanted to replace a Variable"
                         " in the graph, but the replacement for it doesn't"
                         " remove it. We disabled the optimization."

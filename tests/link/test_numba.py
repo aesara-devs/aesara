@@ -40,7 +40,7 @@ from aesara.tensor import extra_ops, nlinalg, slinalg
 from aesara.tensor import subtensor as at_subtensor
 from aesara.tensor.elemwise import Elemwise
 from aesara.tensor.math import All, Any, Max, Mean, Min, Prod, ProdWithoutZeros, Sum
-from aesara.tensor.shape import Reshape, Shape, Shape_i, SpecifyShape
+from aesara.tensor.shape import Reshape, Shape, Shape_i, SpecifyShape, Unbroadcast
 
 
 class MyType(Type):
@@ -769,39 +769,18 @@ def test_ScalarFromTensor(v):
     )
 
 
-@pytest.mark.parametrize(
-    "v, axis, fails",
-    [
-        (
-            set_test_value(at.matrix(), np.array([[1.0]], dtype=config.floatX)),
-            [(0, True), (1, True)],
-            False,
-        ),
-        (
-            set_test_value(at.matrix(), np.array([[1.0, 2.0]], dtype=config.floatX)),
-            [(0, True), (1, False)],
-            False,
-        ),
-        (
-            set_test_value(at.matrix(), np.array([[1.0, 2.0]], dtype=config.floatX)),
-            [(0, True), (1, True)],
-            True,
-        ),
-    ],
-)
-def test_Rebroadcast(v, axis, fails):
-    g = atb.Rebroadcast(*axis)(v)
+def test_Unbroadcast():
+    v = set_test_value(at.row(), np.array([[1.0, 2.0]], dtype=config.floatX))
+    g = Unbroadcast(0)(v)
     g_fg = FunctionGraph(outputs=[g])
-    cm = contextlib.suppress() if not fails else pytest.raises(ValueError)
-    with cm:
-        compare_numba_and_py(
-            g_fg,
-            [
-                i.tag.test_value
-                for i in g_fg.inputs
-                if not isinstance(i, (SharedVariable, Constant))
-            ],
-        )
+    compare_numba_and_py(
+        g_fg,
+        [
+            i.tag.test_value
+            for i in g_fg.inputs
+            if not isinstance(i, (SharedVariable, Constant))
+        ],
+    )
 
 
 @pytest.mark.parametrize(

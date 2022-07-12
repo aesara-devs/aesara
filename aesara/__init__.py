@@ -147,7 +147,7 @@ from aesara.updates import OrderedUpdates
 def get_scalar_constant_value(v):
     """Return the constant scalar (i.e. 0-D) value underlying variable `v`.
 
-    If `v` is the output of dim-shuffles, fills, allocs, rebroadcasts, cast
+    If `v` is the output of dim-shuffles, fills, allocs, cast, etc.
     this function digs through them.
 
     If ``aesara.sparse`` is also there, we will look over CSM `Op`.

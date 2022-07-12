@@ -62,7 +62,7 @@ numpy.import_array()
 
 
 def get_version():
-    return 0.325
+    return 0.326
 
 
 @cython.cdivision(True)
@@ -253,19 +253,24 @@ def perform(
             continue
 
         outer_outputs_idx_0 = outer_outputs_idx[0]
+        outer_inputs_offset_idx = outer_inputs[<unsigned int>(seqs_arg_offset + idx)]
+
 
         if ( outer_outputs_idx_0 is not None and
-              outer_outputs_idx_0.shape[1:] == outer_inputs[<unsigned int>(1+ n_seqs + idx)].shape[1:]
+              outer_outputs_idx_0.shape[1:] == outer_inputs_offset_idx.shape[1:]
               and outer_outputs_idx_0.shape[0] >= store_steps[idx] ):
             # Put in the values of the initial state
-            outer_outputs_idx[0] = outer_outputs_idx_0[:store_steps[idx]]
+
+            outer_outputs_idx_0 = outer_outputs_idx_0[:store_steps[idx]]
+            outer_outputs_idx[0] = outer_outputs_idx_0
+
             if idx > n_mit_mot:
                 l = - mintaps[idx]
-                outer_outputs_idx_0[:l] = outer_inputs[<unsigned int>(seqs_arg_offset + idx)][:l]
+                outer_outputs_idx_0[:l] = outer_inputs_offset_idx[:l]
             else:
-                outer_outputs_idx_0[:] = outer_inputs[<unsigned int>(seqs_arg_offset + idx)]
+                outer_outputs_idx_0[:] = outer_inputs_offset_idx
         else:
-            outer_outputs_idx[0] = outer_inputs[<unsigned int>(seqs_arg_offset + idx)].copy()
+            outer_outputs_idx[0] = outer_inputs_offset_idx.copy()
 
     if n_steps == 0:
         for idx in range(n_outs, n_outs + n_nit_sot):

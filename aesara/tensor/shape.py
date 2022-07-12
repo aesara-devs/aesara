@@ -12,7 +12,7 @@ from aesara.link.c.op import COp
 from aesara.link.c.params_type import ParamsType
 from aesara.misc.safe_asarray import _asarray
 from aesara.scalar import int32
-from aesara.tensor import _get_vector_length
+from aesara.tensor import _get_vector_length, as_tensor_variable
 from aesara.tensor import basic as at
 from aesara.tensor import get_vector_length
 from aesara.tensor.exceptions import NotScalarConstantError
@@ -462,13 +462,9 @@ class SpecifyShape(COp):
     def grad(self, inp, grads):
         x, *shape = inp
         (gz,) = grads
-        # Should I set an SpecifyShape on gz? I think so
-        # But I don't do it now as we need to make an optimization
-        # to remove that op from the graph to don't block other optimization
-        # Should I do an optimizer that will remove the SpecifyShape?
-        # I think Yes
-        # return [specify_shape(gz, s)] + [aesara.gradient.DisconnectedType()() for _ in range(len(shape))]
-        return [gz] + [aesara.gradient.DisconnectedType()() for _ in range(len(shape))]
+        return [specify_shape(gz, shape)] + [
+            aesara.gradient.DisconnectedType()() for _ in range(len(shape))
+        ]
 
     def R_op(self, inputs, eval_points):
         if eval_points[0] is None:
@@ -555,6 +551,16 @@ def specify_shape(
                 shape = tuple(shape_vector)
             except ValueError:
                 raise ValueError("Shape vector must have fixed dimensions")
+
+    # If the specified shape is already encoded in the input static shape, do nothing
+    # This ignores Aesara constants in shape
+    x = at.as_tensor_variable(x)
+    new_shape_info = any(
+        s != xts for (s, xts) in zip(shape, x.type.shape) if s is not None
+    )
+    # If shape does not match x.ndim, we rely on the `Op` to raise a ValueError
+    if not new_shape_info and len(shape) == x.type.ndim:
+        return x
 
     return _specify_shape(x, *shape)
 
@@ -885,3 +891,143 @@ register_shape_i_c_code(
     """,
     version=3,
 )
+
+
+def specify_broadcastable(x, *axes):
+    """
+    Specify the input as being broadcastable in the specified axes.
+
+    For example, specify_broadcastable(x, 0) will make the first dimension of
+    x broadcastable. When performing the function, if the length of
+    x along that dimension is not 1, a ValueError will be raised.
+
+    Parameters
+    ----------
+    x : tensor_like
+        Input aesara tensor.
+    axis : an int or an iterable object such as list or tuple of int values
+        The dimension along which the tensor x should be broadcastable.
+        If the length of x along these dimensions is not 1, a ValueError will
+        be raised.
+
+    Returns
+    -------
+    tensor
+        A aesara tensor, which is broadcastable along the specified dimensions.
+
+    """
+    x = as_tensor_variable(x)
+
+    if not axes:
+        return x
+
+    if max(axes) >= x.type.ndim:
+        raise ValueError("Trying to specify broadcastable of non-existent dimension")
+
+    shape_info = [1 if i in axes else None for i in range(len(x.type.shape))]
+    return specify_shape(x, shape_info)
+
+
+class Unbroadcast(COp):
+    """
+    Mask static broadcastable dimensions of input as `None`
+
+    See Also
+    --------
+    unbroadcast <aesara.tensor.shape.unbroadcast>
+
+
+    Examples
+    --------
+    ``Unbroadcast((1,))(x)`` would make `x` second static dimension be `None`
+
+    """
+
+    view_map = {0: [0]}
+    _f16_ok = True
+    # Mapping from Type to C code (and version) to use.
+    # In the C code, the name of the input variable is %(iname)s,
+    # the output variable is %(oname)s.
+    c_code_and_version: Dict = {}
+
+    check_input = False
+    __props__ = ("axes",)
+    _f16_ok = True
+
+    def __init__(self, *axis):
+        # Sort them to make sure we merge all possible case.
+        items = tuple(sorted(axis))
+        self.axes = items
+        for axis in self.axes:
+            if not isinstance(axis, (np.integer, int)):
+                raise TypeError(f"Unbroadcast needs integer axes. Got {axis}")
+
+    def __str__(self):
+        return f"{self.__class__.__name__}{{{','.join(str(i) for i in self.axes)}}}"
+
+    def make_node(self, x):
+        x = as_tensor_variable(x)
+        if x.type.ndim <= max(self.axes):
+            raise ValueError("Trying to unbroadcast of non-existent dimension")
+        shape = [
+            None if (sh == 1 and i in self.axes) else sh
+            for i, sh in enumerate(x.type.shape)
+        ]
+        return Apply(self, [x], [x.type.clone(shape=shape)()])
+
+    def perform(self, node, inp, out_):
+        (x,) = inp
+        (out,) = out_
+        out[0] = x
+
+    def grad(self, inp, grads):
+        (x,) = inp
+        (gz,) = grads
+        # restore the broadcasting pattern of the input
+        return [specify_shape(gz, x.type.shape)]
+
+    def infer_shape(self, fgraph, node, ishapes):
+        assert len(ishapes) == 1
+        return [tuple(ishapes[0])]
+
+    def R_op(self, inputs, eval_points):
+        if eval_points[0] is None:
+            return [None]
+        return self(*eval_points, return_list=True)
+
+    def c_code(self, node, nodename, inp, out, sub):
+        (iname,) = inp
+        (oname,) = out
+
+        return f"""
+        Py_XDECREF({oname});
+        {oname} = {iname};
+        Py_XINCREF({oname});
+        """
+
+    def c_code_cache_version(self):
+        return (3,)
+
+
+def unbroadcast(x, *axes):
+    """
+    Mask static broadcastable dimensions of input as `None`
+
+    Parameters
+    ----------
+    x : tensor_like
+        Input aesara tensor.
+    axis : an int or an iterable object such as list or tuple of int values
+        The broadcastable dimensions of x that should be unbroadcasted.
+
+    Returns
+    -------
+    tensor
+        A aesara tensor, with static broadcastable dimensions masked as `None`
+
+    """
+    x = as_tensor_variable(x)
+    unbroadcasted_axes = [axis for axis in axes if x.type.shape[axis] == 1]
+    if not unbroadcasted_axes:
+        return x
+    return Unbroadcast(*unbroadcasted_axes)(x)

@@ -29,7 +29,6 @@ from aesara.tensor.basic import (
     Eye,
     Join,
     MakeVector,
-    Rebroadcast,
     ScalarFromTensor,
     TensorFromScalar,
 )
@@ -50,7 +49,7 @@ from aesara.tensor.math import Dot, MaxAndArgmax
 from aesara.tensor.nlinalg import SVD, Det, Eig, Eigh, MatrixInverse, QRFull
 from aesara.tensor.nnet.basic import LogSoftmax, Softmax, SoftmaxGrad
 from aesara.tensor.random.op import RandomVariable
-from aesara.tensor.shape import Reshape, Shape, Shape_i, SpecifyShape
+from aesara.tensor.shape import Reshape, Shape, Shape_i, SpecifyShape, Unbroadcast
 from aesara.tensor.slinalg import Cholesky, Solve, SolveTriangular
 from aesara.tensor.subtensor import (
     AdvancedIncSubtensor,
@@ -347,20 +346,12 @@ def jax_funcify_SpecifyShape(op, **kwargs):
     return specifyshape
 
 
-@jax_funcify.register(Rebroadcast)
-def jax_funcify_Rebroadcast(op, **kwargs):
-    op_axis = op.axis
-
-    def rebroadcast(x):
-        for axis, value in op_axis.items():
-            if value and x.shape[axis] != 1:
-                raise ValueError(
-                    "Dimension %s in Rebroadcast's input was"
-                    " supposed to be 1 (got %s instead)" % (axis, x.shape[axis])
-                )
+@jax_funcify.register(Unbroadcast)
+def jax_funcify_Unbroadcast(op, **kwargs):
+    def unbroadcast(x):
         return x
 
-    return rebroadcast
+    return unbroadcast
 
 
 @jax_funcify.register(ViewOp)

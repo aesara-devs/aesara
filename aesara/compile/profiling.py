@@ -15,6 +15,7 @@ import operator
 import sys
 import time
 from collections import defaultdict
+from contextlib import contextmanager
 from typing import Dict, List
 
 import numpy as np
@@ -23,6 +24,17 @@ import aesara
 from aesara.configdefaults import config
 from aesara.graph.basic import Constant, Variable
 from aesara.link.utils import get_destroy_dependencies
+
+
+@contextmanager
+def extended_open(filename, mode="r"):
+    if filename == "<stdout>":
+        yield sys.stdout
+    elif filename == "<stderr>":
+        yield sys.stderr
+    else:
+        with open(filename, mode=mode) as f:
+            yield f
 
 
 logger = logging.getLogger("aesara.compile.profiling")
@@ -37,92 +49,91 @@ _atexit_registered = False
 
 
 def _atexit_print_fn():
-    """
-    Print ProfileStat objects in _atexit_print_list to _atexit_print_file.
-
-    """
+    """Print `ProfileStat` objects in `_atexit_print_list` to `_atexit_print_file`."""
     if config.profile:
         to_sum = []
 
         if config.profiling__destination == "stderr":
-            destination_file = sys.stderr
+            destination_file = "<stderr>"
         elif config.profiling__destination == "stdout":
-            destination_file = sys.stdout
+            destination_file = "<stdout>"
         else:
-            destination_file = open(config.profiling__destination, "w")
+            destination_file = config.profiling__destination
 
-        # Reverse sort in the order of compile+exec time
-        for ps in sorted(
-            _atexit_print_list, key=lambda a: a.compile_time + a.fct_call_time
-        )[::-1]:
-            if (
-                ps.fct_callcount >= 1
-                or ps.compile_time > 1
-                or getattr(ps, "callcount", 0) > 1
-            ):
-                ps.summary(
+        with extended_open(destination_file, mode="w"):
+
+            # Reverse sort in the order of compile+exec time
+            for ps in sorted(
+                _atexit_print_list, key=lambda a: a.compile_time + a.fct_call_time
+            )[::-1]:
+                if (
+                    ps.fct_callcount >= 1
+                    or ps.compile_time > 1
+                    or getattr(ps, "callcount", 0) > 1
+                ):
+                    ps.summary(
+                        file=destination_file,
+                        n_ops_to_print=config.profiling__n_ops,
+                        n_apply_to_print=config.profiling__n_apply,
+                    )
+
+                    if ps.show_sum:
+                        to_sum.append(ps)
+                else:
+                    # TODO print the name if there is one!
+                    print("Skipping empty Profile")
+            if len(to_sum) > 1:
+                # Make a global profile
+                cum = copy.copy(to_sum[0])
+                msg = f"Sum of all({len(to_sum)}) printed profiles at exit."
+                cum.message = msg
+                for ps in to_sum[1:]:
+                    for attr in [
+                        "compile_time",
+                        "fct_call_time",
+                        "fct_callcount",
+                        "vm_call_time",
+                        "optimizer_time",
+                        "linker_time",
+                        "validate_time",
+                        "import_time",
+                        "linker_node_make_thunks",
+                    ]:
+                        setattr(cum, attr, getattr(cum, attr) + getattr(ps, attr))
+
+                    # merge dictionary
+                    for attr in [
+                        "apply_time",
+                        "apply_callcount",
+                        "apply_cimpl",
+                        "variable_shape",
+                        "variable_strides",
+                        "variable_offset",
+                        "linker_make_thunk_time",
+                    ]:
+                        cum_attr = getattr(cum, attr)
+                        for key, val in getattr(ps, attr.items()):
+                            assert key not in cum_attr, (key, cum_attr)
+                            cum_attr[key] = val
+
+                    if cum.optimizer_profile and ps.optimizer_profile:
+                        try:
+                            merge = cum.optimizer_profile[0].merge_profile(
+                                cum.optimizer_profile[1], ps.optimizer_profile[1]
+                            )
+                            assert len(merge) == len(cum.optimizer_profile[1])
+                            cum.optimizer_profile = (cum.optimizer_profile[0], merge)
+                        except Exception as e:
+                            print(e)
+                            cum.optimizer_profile = None
+                    else:
+                        cum.optimizer_profile = None
+
+                cum.summary(
                     file=destination_file,
                     n_ops_to_print=config.profiling__n_ops,
                     n_apply_to_print=config.profiling__n_apply,
                 )
-
-                if ps.show_sum:
-                    to_sum.append(ps)
-            else:
-                # TODO print the name if there is one!
-                print("Skipping empty Profile")
-        if len(to_sum) > 1:
-            # Make a global profile
-            cum = copy.copy(to_sum[0])
-            msg = f"Sum of all({len(to_sum)}) printed profiles at exit."
-            cum.message = msg
-            for ps in to_sum[1:]:
-                for attr in [
-                    "compile_time",
-                    "fct_call_time",
-                    "fct_callcount",
-                    "vm_call_time",
-                    "optimizer_time",
-                    "linker_time",
-                    "validate_time",
-                    "import_time",
-                    "linker_node_make_thunks",
-                ]:
-                    setattr(cum, attr, getattr(cum, attr) + getattr(ps, attr))
-
-                # merge dictionary
-                for attr in [
-                    "apply_time",
-                    "apply_callcount",
-                    "apply_cimpl",
-                    "variable_shape",
-                    "variable_strides",
-                    "variable_offset",
-                    "linker_make_thunk_time",
-                ]:
-                    cum_attr = getattr(cum, attr)
-                    for key, val in getattr(ps, attr.items()):
-                        assert key not in cum_attr, (key, cum_attr)
-                        cum_attr[key] = val
-
-                if cum.optimizer_profile and ps.optimizer_profile:
-                    try:
-                        merge = cum.optimizer_profile[0].merge_profile(
-                            cum.optimizer_profile[1], ps.optimizer_profile[1]
-                        )
-                        assert len(merge) == len(cum.optimizer_profile[1])
-                        cum.optimizer_profile = (cum.optimizer_profile[0], merge)
-                    except Exception as e:
-                        print(e)
-                        cum.optimizer_profile = None
-                else:
-                    cum.optimizer_profile = None
-
-            cum.summary(
-                file=destination_file,
-                n_ops_to_print=config.profiling__n_ops,
-                n_apply_to_print=config.profiling__n_apply,
-            )
 
     if config.print_global_stats:
         print_global_stats()
@@ -139,24 +150,25 @@ def print_global_stats():
     """
 
     if config.profiling__destination == "stderr":
-        destination_file = sys.stderr
+        destination_file = "<stderr>"
     elif config.profiling__destination == "stdout":
-        destination_file = sys.stdout
+        destination_file = "<stdout>"
     else:
-        destination_file = open(config.profiling__destination, "w")
+        destination_file = config.profiling__destination
 
-    print("=" * 50, file=destination_file)
-    print(
-        (
-            "Global stats: ",
-            f"Time elasped since Aesara import = {time.time() - aesara_imported_time:6.3f}s, "
-            f"Time spent in Aesara functions = {total_fct_exec_time:6.3f}s, "
-            "Time spent compiling Aesara functions: "
-            f" optimization = {total_graph_opt_time:6.3f}s, linker = {total_time_linker:6.3f}s ",
-        ),
-        file=destination_file,
-    )
-    print("=" * 50, file=destination_file)
+    with extended_open(destination_file, mode="w"):
+        print("=" * 50, file=destination_file)
+        print(
+            (
+                "Global stats: ",
+                f"Time elasped since Aesara import = {time.time() - aesara_imported_time:6.3f}s, "
+                f"Time spent in Aesara functions = {total_fct_exec_time:6.3f}s, "
+                "Time spent compiling Aesara functions: "
+                f" optimization = {total_graph_opt_time:6.3f}s, linker = {total_time_linker:6.3f}s ",
+            ),
+            file=destination_file,
+        )
+        print("=" * 50, file=destination_file)
 
 
 _profiler_printers = []

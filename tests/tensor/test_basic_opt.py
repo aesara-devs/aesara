@@ -1,3 +1,4 @@
+import contextlib
 import copy
 
 import numpy as np
@@ -22,11 +23,11 @@ from aesara.graph.type import Type
 from aesara.misc.safe_asarray import _asarray
 from aesara.printing import pprint
 from aesara.raise_op import Assert, CheckAndRaise
+from aesara.scalar.basic import Composite
 from aesara.tensor.basic import (
     Alloc,
     Join,
     MakeVector,
-    Rebroadcast,
     ScalarFromTensor,
     Split,
     TensorFromScalar,
@@ -38,7 +39,6 @@ from aesara.tensor.basic import (
 )
 from aesara.tensor.basic_opt import (
     ShapeFeature,
-    apply_rebroadcast_opt,
     assert_op,
     local_alloc_sink_dimshuffle,
     local_dimshuffle_lift,
@@ -90,9 +90,11 @@ from aesara.tensor.shape import (
     Reshape,
     Shape_i,
     SpecifyShape,
+    Unbroadcast,
     reshape,
     shape,
     specify_shape,
+    unbroadcast,
 )
 from aesara.tensor.subtensor import (
     AdvancedIncSubtensor1,
@@ -113,6 +115,7 @@ from aesara.tensor.type import (
     fvector,
     imatrices,
     iscalar,
+    iscalars,
     ivector,
     lscalar,
     lvector,
@@ -1152,6 +1155,54 @@ class TestFusion:
             for n in f.maker.fgraph.toposort()
         )
 
+    @pytest.mark.parametrize("test_value", [np.c_[[1.0]], np.c_[[]]])
+    def test_test_values(self, test_value):
+        """Make sure that `local_elemwise_fusion_op` uses test values correctly when they have zero dimensions.
+
+        The test values we're talking about are the ones used when C implementations
+        are checked.
+
+        """
+
+        opts = OptimizationQuery(
+            include=[
+                "local_elemwise_fusion",
+                "composite_elemwise_fusion",
+                "canonicalize",
+            ],
+            exclude=["cxx_only", "BlasOpt"],
+        )
+
+        mode = Mode(self.mode.linker, opts)
+
+        x, y, z = dmatrices("xyz")
+
+        x.tag.test_value = test_value
+        y.tag.test_value = test_value
+        z.tag.test_value = test_value
+
+        if test_value.size == 0:
+            cm = pytest.raises(ValueError)
+        else:
+            cm = contextlib.suppress()
+
+        with config.change_flags(
+            compute_test_value="raise", compute_test_value_opt="raise"
+        ):
+            out = x * y + z
+            with cm:
+                f = function([x, y, z], out, mode=mode)
+
+        if test_value.size != 0:
+            # Confirm that the fusion happened
+            assert isinstance(f.maker.fgraph.outputs[0].owner.op.scalar_op, Composite)
+            assert len(f.maker.fgraph.toposort()) == 1
+
+            x_c, y_c, z_c = f.maker.fgraph.outputs[0].owner.inputs
+            assert np.array_equal(
+                f.maker.fgraph.outputs[0].tag.test_value, np.c_[[2.0]]
+            )
+
 
 class TimesN(aes.basic.UnaryScalarOp):
     """
@@ -1847,30 +1898,46 @@ class TestTile:
                 f(data)
 
 
-class TestRebroadcast:
-    def test_local_useless_rebroadcast(self):
-        mode = get_default_mode().including("canonicalize")
-        v1 = vector()
-        v2 = vector()
-        j = at.join(0, v1, v2)
-        f = function([v1, v2], j, mode=mode)
-        f([1, 2], [3, 4, 5])
-        e = f.maker.fgraph.toposort()
-        assert len([n for n in e if isinstance(n.op, Rebroadcast)]) == 0
+class TestUnbroadcast:
+    def setup_method(self):
+        self.mode = get_default_mode().including("canonicalize")
 
-        assert check_stack_trace(f, ops_to_check="all")
+    def test_local_useless_unbroadcast(self):
+        x1 = tensor("float64", shape=(1, 2))
+        x2 = tensor("float64", shape=(2, 1))
+        unbroadcast_op = Unbroadcast(0)
 
-    def test_rebroadcast_rebroadcast(self):
-        mode = get_default_mode().including("canonicalize")
-        m = matrix()
-        s = at.addbroadcast(m, 0, 1)
-        v = at.unbroadcast(s, 1)
-        f = function([m], v, mode=mode)
-        f([[76]])
-        e = f.maker.fgraph.toposort()
-        rebroadcast_nodes = [n for n in e if isinstance(n.op, Rebroadcast)]
-        assert len(rebroadcast_nodes) == 1
-        assert rebroadcast_nodes[0].op.axis == {0: True}
+        f = function([x1], unbroadcast_op(x1), mode=self.mode)
+        assert (
+            sum(isinstance(node.op, Unbroadcast) for node in f.maker.fgraph.toposort())
+            == 1
+        )
+
+        f = function([x2], unbroadcast_op(x2), mode=self.mode)
+        assert (
+            sum(isinstance(node.op, Unbroadcast) for node in f.maker.fgraph.toposort())
+            == 0
+        )
+
+    def test_local_unbroadcast_lift(self):
+        x = tensor("float64", shape=(1, 1))
+        y = unbroadcast(at.exp(unbroadcast(x, 0)), 1)
+
+        assert (
+            sum(
+                isinstance(node.op, Unbroadcast)
+                for node in FunctionGraph([x], [y], copy_inputs=False).toposort()
+            )
+            == 2
+        )
+
+        f = function([x], y, mode=self.mode)
+        assert (
+            sum(isinstance(node.op, Unbroadcast) for node in f.maker.fgraph.toposort())
+            == 1
+        )
+
+        np.testing.assert_almost_equal(f([[1]]), np.exp([[1]]))
 
 
 class TestUselessElemwise:
@@ -3128,21 +3195,6 @@ def test_local_useless_alloc():
     assert isinstance(topo[-1].op, Alloc)
 
 
-def test_apply_rebroadcast_opt():
-    # Test the `Elemwise` case in `local_rebroadcast_lift` with `fgraph=None`.
-    # This is called by in `apply_rebroadcast_opt`.
-    a = vector(dtype="float32")
-    b = tensor("float64", [True])
-    x = b.astype(a.dtype)
-
-    broadcastable = (False,)
-    axis = [(i, broadcastable[i]) for i in range(len(broadcastable))]
-    rval = Rebroadcast(*axis)(x)
-
-    res = apply_rebroadcast_opt(rval)
-    assert res is rval
-
-
 @pytest.mark.parametrize("return_index", [False])
 @pytest.mark.parametrize("return_counts", [False])
 @pytest.mark.parametrize("return_inverse", [False])
@@ -3162,9 +3214,6 @@ def test_local_Unique_scalar(return_index, return_counts, return_inverse):
     )
     y_opt = y_opt_fg.outputs[0]
     y_opt_start = y_opt
-
-    if isinstance(y_opt.owner.op, Rebroadcast):
-        y_opt_start = y_opt.owner.inputs[0]
 
     assert isinstance(y_opt_start.owner.op, DimShuffle)
     assert y_opt_start.owner.inputs[0] == x
@@ -3214,11 +3263,6 @@ def test_local_Unique_Alloc_lift(
     )
     y_opt = y_opt_fg.outputs[0]
     y_opt_start = y_opt
-
-    # Ignore any initial `Rebroadcast`s (they serve to
-    # make the replacement match the original type)
-    if isinstance(y_opt.owner.op, Rebroadcast):
-        y_opt_start = y_opt.owner.inputs[0]
 
     assert isinstance(y_opt_start.owner.op, Unique)
     assert y_opt_start.owner.inputs[0] == x
@@ -3277,11 +3321,6 @@ def test_local_Unique_BroadcastTo(
     )
     y_opt = y_opt_fg.outputs[0]
     y_opt_start = y_opt
-
-    # Ignore any initial `Rebroadcast`s (they serve to
-    # make the replacement match the original type)
-    if isinstance(y_opt.owner.op, Rebroadcast):
-        y_opt_start = y_opt.owner.inputs[0]
 
     assert isinstance(y_opt_start.owner.op, Unique)
     assert y_opt_start.owner.inputs[0] == x
@@ -3344,11 +3383,6 @@ def test_local_Unique_Repeat(
     y_opt = y_opt_fg.outputs[0]
     y_opt_start = y_opt
 
-    # Ignore any initial `Rebroadcast`s (they serve to
-    # make the replacement match the original type)
-    if isinstance(y_opt.owner.op, Rebroadcast):
-        y_opt_start = y_opt.owner.inputs[0]
-
     assert isinstance(y_opt_start.owner.op, Unique)
     assert y_opt_start.owner.inputs[0] == x
     assert not any(isinstance(node.op, Repeat) for node in y_opt_fg.apply_nodes)
@@ -3405,11 +3439,6 @@ def test_local_Unique_second(
     y_opt = y_opt_fg.outputs[0]
     y_opt_start = y_opt
 
-    # Ignore any initial `Rebroadcast`s (they serve to
-    # make the replacement match the original type)
-    if y_opt.owner and isinstance(y_opt.owner.op, Rebroadcast):
-        y_opt_start = y_opt.owner.inputs[0]
-
     assert isinstance(y_opt_start.owner.op, Unique)
 
     y_opt_start = y_opt_start.owner.inputs[0]
@@ -3441,19 +3470,38 @@ def test_local_Unique_second(
     assert np.array_equal(y_exp_val, y_val)
 
 
-def test_local_useless_SpecifyShape():
+def test_local_merge_consecutive_specify_shape():
     x = matrix()
     s = at.as_tensor([iscalar(), iscalar()])
     y = specify_shape(specify_shape(x, s), s)
 
     y_fg = FunctionGraph(outputs=[y], copy_inputs=False)
     y_opt_fg = optimize_graph(
-        y_fg, clone=False, include=["canonicalize", "local_useless_SpecifyShape"]
+        y_fg,
+        clone=False,
+        include=["canonicalize", "local_merge_consecutive_specify_shape"],
     )
     y_opt = y_opt_fg.outputs[0]
 
     assert isinstance(y_opt.owner.op, SpecifyShape)
     assert y_opt.owner.inputs[0] == x
+
+
+def test_local_merge_consecutive_specify_shape2():
+    x = tensor3()
+    s1, s2, s3, s4 = iscalars("s1", "s2", "s3", "s4")
+    y = specify_shape(specify_shape(x, [s1, s2, None]), [None, s3, s4])
+
+    y_fg = FunctionGraph(outputs=[y], copy_inputs=False)
+    y_opt_fg = optimize_graph(
+        y_fg,
+        clone=False,
+        include=["canonicalize", "local_merge_consecutive_specify_shape"],
+    )
+    y_opt = y_opt_fg.outputs[0]
+
+    assert isinstance(y_opt.owner.op, SpecifyShape)
+    assert tuple(y_opt.owner.inputs) == (x, s1, s3, s4)
 
 
 def test_printing():

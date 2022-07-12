@@ -3170,6 +3170,15 @@ SqrtTester = elemwise_checker(sparse.sqrt, np.sqrt, gap=(0, 10))
 ConjTester = elemwise_checker(sparse.conj, np.conj, grad_test=False)
 
 
+def test_useless_conj():
+    x = sparse.SparseTensorType("csr", dtype="complex128")()
+    assert x.conj() is not x
+
+    # No conjugate when the data type isn't complex
+    x = sparse.SparseTensorType("csr", dtype="float64")()
+    assert x.conj() is x
+
+
 class TestMulSV:
     def test_mul_s_v_grad(self):
         sp_types = {"csc": sp.sparse.csc_matrix, "csr": sp.sparse.csr_matrix}

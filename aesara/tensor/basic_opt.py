@@ -16,6 +16,7 @@ from aesara import compile
 from aesara.compile.ops import ViewOp
 from aesara.configdefaults import config
 from aesara.graph.basic import (
+    Apply,
     Constant,
     Variable,
     ancestors,
@@ -24,7 +25,7 @@ from aesara.graph.basic import (
 )
 from aesara.graph.features import AlreadyThere, Feature, ReplaceValidate
 from aesara.graph.fg import FunctionGraph
-from aesara.graph.op import get_test_value
+from aesara.graph.op import compute_test_value, get_test_value
 from aesara.graph.opt import (
     GlobalOptimizer,
     OpRemove,
@@ -47,7 +48,6 @@ from aesara.tensor.basic import (
     AllocEmpty,
     Join,
     MakeVector,
-    Rebroadcast,
     ScalarFromTensor,
     Split,
     TensorFromScalar,
@@ -60,11 +60,9 @@ from aesara.tensor.basic import (
     get_scalar_constant_value,
     join,
     ones_like,
-    patternbroadcast,
     stack,
     switch,
     tensor_copy,
-    unbroadcast,
     zeros,
     zeros_like,
 )
@@ -78,8 +76,11 @@ from aesara.tensor.shape import (
     Shape,
     Shape_i,
     SpecifyShape,
+    Unbroadcast,
     shape_i,
     shape_padleft,
+    specify_shape,
+    unbroadcast,
 )
 from aesara.tensor.sort import TopKOp
 from aesara.tensor.subtensor import Subtensor, get_idx_list
@@ -150,25 +151,7 @@ def broadcast_like(value, template, fgraph, dtype=None):
     else:
         new_shape = template.shape
     rval = alloc(value, *new_shape)
-    # the template may have 1s in its shape without being broadcastable
-    if rval.broadcastable != template.broadcastable:
-        rval = unbroadcast(
-            rval,
-            *[
-                i
-                for i in range(rval.ndim)
-                if rval.broadcastable[i] and not template.broadcastable[i]
-            ],
-        )
     assert rval.type.dtype == dtype
-
-    if rval.type.broadcastable != template.broadcastable:
-        raise AssertionError(
-            "rval.type.broadcastable is "
-            + str(rval.type.broadcastable)
-            + " but template.broadcastable is"
-            + str(template.broadcastable)
-        )
 
     return rval
 
@@ -2244,10 +2227,13 @@ def local_upcast_elemwise_constant_inputs(fgraph, node):
 @register_useless
 @register_canonicalize
 @register_specialize
-@local_optimizer([Rebroadcast])
-def local_useless_rebroadcast(fgraph, node):
-    """Remove `Rebroadcast` if it does not actually change the broadcasting pattern."""
-    if isinstance(node.op, Rebroadcast):
+@local_optimizer([Unbroadcast])
+def local_useless_unbroadcast(fgraph, node):
+    """Remove `Unbroadcast` if it does not actually change the broadcasting pattern.
+
+    TODO: Implement equivalent rewrite for SpecifyShape
+    """
+    if isinstance(node.op, Unbroadcast):
         x = node.inputs[0]
         if x.broadcastable == node.outputs[0].broadcastable:
             # No broadcastable flag was modified
@@ -2256,15 +2242,12 @@ def local_useless_rebroadcast(fgraph, node):
             return [x]
         else:
             # Keep the flags that modify something
-            new_axis = {}
-            for dim, bc in node.op.axis.items():
-                if x.broadcastable[dim] != bc:
-                    new_axis[dim] = bc
-            if new_axis == node.op.axis:
+            new_axes = tuple(ax for ax in node.op.axes if x.type.shape[ax] == 1)
+            if new_axes == node.op.axes:
                 # All flags are useful
-                return
+                return None
             else:
-                r = Rebroadcast(*new_axis.items())(x)
+                r = unbroadcast(x, *new_axes)
                 # Copy over stacktrace from previous output
                 copy_stack_trace(node.outputs, r)
                 return [r]
@@ -2272,91 +2255,47 @@ def local_useless_rebroadcast(fgraph, node):
 
 @register_canonicalize
 @register_specialize
-@local_optimizer([Rebroadcast])
-def local_rebroadcast_lift(fgraph, node):
+@local_optimizer([Unbroadcast])
+def local_unbroadcast_lift(fgraph, node):
     """
-    Lifts Rebroadcast through unary Elemwise operations,
-    and merges consecutive Rebroadcasts.
+    Lifts `Unbroadcast` through unary Elemwise operations,
+    and merges consecutive `Unbroadcast`s.
 
-    Rebroadcast(Elemwise(x)) => Elemwise(Rebroadcast(x))
-    Rebroadcast(Rebroadcast(x)) => Rebroadcast(x)
+    Unbroadcast(Elemwise(x)) => Elemwise(Unbroadcast(x))
+    Unbroadcast(Unbroadcast(x)) => Unbroadcast(x)
 
+    TODO: Implement equivalent Elemwise lift for SpecifyShape
     """
     op = node.op
-    if not isinstance(op, Rebroadcast):
+    if not isinstance(op, Unbroadcast):
         return False
 
     inp = node.inputs[0]
     inode = inp.owner
     if inode and isinstance(inode.op, Elemwise) and len(inode.inputs) == 1:
-        # It may happen that `input` has no client because this optimization
-        # is called from `apply_rebroadcast_opt`, which in particular is used
-        # by the `unbroadcast` function before we are in the actual function
-        # compilation phase.
         if len(fgraph.clients.get(inp, ())) == 1:
-            rebroadcasted = Rebroadcast(*list(op.axis.items()))(inode.inputs[0])
-            # Copy over stacktrace from previous output (after rebroadcasting)
-            # to new output, because an error in the new graph right after
-            # rebroadcasting must have been caused by the previous rebroadcasting.
-            copy_stack_trace(node.outputs, rebroadcasted)
+            unbroadcasted = unbroadcast(inode.inputs[0], *op.axes)
+            copy_stack_trace(node.outputs, unbroadcasted)
 
-            rval = inode.op.make_node(rebroadcasted).outputs
+            rval = inode.op.make_node(unbroadcasted).outputs
 
-            # Copy over stacktrace from previous output (after rebroadcasting)
+            # Copy over stacktrace from previous output (after unbroadcasting)
             # and input (after elemwise operation) to new output, because an
             # error in the new graph could have been caused by either of the
             # two ops.
             copy_stack_trace(node.outputs + node.inputs, rval)
-
             return rval
-    if inode and isinstance(inode.op, Rebroadcast):
-        # the "axis" specification in the outer Rebroadcast overrides
-        # the axis of the inner one
-        axis = inode.op.axis.copy()
-        axis.update(op.axis)
+
+    if inode and isinstance(inode.op, Unbroadcast):
+        # Merge axis of each unbroadcast
+        axis = tuple(set(inode.op.axes).union(set(op.axes)))
         iinput = inode.inputs[0]
-
-        rval = [Rebroadcast(*list(axis.items()))(iinput)]
-
-        # Copy over stacktrace from previous output (after second rebroadcast)
-        # and from previous input (after first rebroadcast op) because an error in
-        # the new graph could have been caused by either of the two
-        # rebroadcast ops.
+        rval = [unbroadcast(iinput, *axis)]
+        # Copy over stacktrace from previous output (after second unbroadcasting)
+        # and from previous input (after first unbroadcasting) because an error in
+        # the new graph could have been caused by either of the two Unbroadcast ops.
         copy_stack_trace(node.outputs + node.inputs, rval)
         return rval
-
-
-def apply_rebroadcast_opt(rval):
-    """
-    Apply as many times as required the optimization local_useless_rebroadcast
-    and local_rebroadcast_lift.
-
-    Parameters
-    ----------
-    rval: a Variable
-
-    Returns
-    -------
-    A Variable (the same if no optimization can be applied)
-
-    """
-
-    fg = FunctionGraph([], [])
-    changed = True
-    while changed and rval.owner:
-        changed = False
-        rval2 = local_useless_rebroadcast.transform(fg, rval.owner)
-        if rval2:
-            assert len(rval2) == 1
-            rval = rval2[0]
-            changed = True
-        if rval.owner:
-            rval2 = local_rebroadcast_lift.transform(fg, rval.owner)
-            if rval2:
-                assert len(rval2) == 1
-                rval = rval2[0]
-                changed = True
-    return rval
 
 
 @register_specialize
@@ -2421,15 +2360,6 @@ def local_join_empty(fgraph, node):
         # Copy over stacktrace from previous output (after join op)
         # to new output, because an error in the new op must be caused
         # by an error in the old join op.
-        copy_stack_trace(node.outputs, ret)
-
-        if not o.type.is_super(ret.type):
-            assert ret.dtype == o.dtype
-            assert ret.ndim == o.ndim
-            ret = patternbroadcast(ret, node.outputs[0].broadcastable)
-
-        # Copy over stacktrace from previous output
-        # (after patternbroadcast op) for same reasons as before.
         copy_stack_trace(node.outputs, ret)
 
         return [ret]
@@ -2830,20 +2760,7 @@ def local_reshape_lift(fgraph, node):
         # Copy stacktrace from both previous Reshape and UnaryElemwise op
         # because an error in new cg could have been caused by either ops.
         copy_stack_trace(node.outputs + node.inputs, e)
-
-        # In rare case the original broadcast was (False, True), but
-        # the new one is (False, False). So don't crash in that case.
-        if not node.outputs[0].type.is_super(e.type):
-            re = patternbroadcast(e, node.outputs[0].broadcastable)
-
-            # Copy over stack trace.
-            # If the graph fails it is usually due to the fact that a dimension
-            # that should be broadcastable does not actually have length 1,
-            copy_stack_trace(e, re)
-        else:
-            re = e
-
-        return [re]
+        return [e]
 
 
 register_canonicalize(OpRemove(tensor_copy), name="remove_tensor_copy")
@@ -3003,7 +2920,7 @@ def local_elemwise_fusion_op(op_class, max_input_fct=lambda node: 32, maker=None
         fused = False
 
         for i in node.inputs:
-            do_fusion = False
+            scalar_node: Optional[Apply] = None
             # Will store inputs of the fused node that are not currently inputs
             # of the node we want to create (to avoid duplicating inputs).
             tmp_input = []
@@ -3034,35 +2951,44 @@ def local_elemwise_fusion_op(op_class, max_input_fct=lambda node: 32, maker=None
                             tmp_s_input.append(tmp_scalar[tmp_input.index(ii)])
                         else:
                             tmp = aes.get_scalar_type(ii.type.dtype).make_variable()
+
                             try:
                                 tv = get_test_value(ii)
-                                if tv.size > 0:
-                                    tmp.tag.test_value = tv.flatten()[0]
-                                else:
-                                    _logger.warning(
-                                        "Cannot construct a scalar test value"
-                                        " from a test value with no size: {}".format(ii)
-                                    )
-                            except TestValueError:
+                                # Sometimes the original inputs have
+                                # zero-valued shapes in some dimensions, which
+                                # implies that this whole scalar thing doesn't
+                                # make sense (i.e. we're asking for the scalar
+                                # value of an entry in a zero-dimensional
+                                # array).
+                                # This will eventually lead to an error in the
+                                # `compute_test_value` call below when/if
+                                # `config.compute_test_value_opt` is enabled
+                                # (for debugging, more or less)
+                                tmp.tag.test_value = tv.item()
+                            except (TestValueError, ValueError):
                                 pass
 
                             tmp_s_input.append(tmp)
                             tmp_input.append(ii)
                             tmp_scalar.append(tmp_s_input[-1])
 
-                    s_op = i.owner.op.scalar_op(*tmp_s_input, return_list=True)
+                    # Use the `Op.make_node` interface in case `Op.__call__`
+                    # has been customized
+                    scalar_node = i.owner.op.scalar_op.make_node(*tmp_s_input)
+
+                    if config.compute_test_value_opt != "off":
+                        # This is required because `Op.make_node` won't do it
+                        compute_test_value(scalar_node)
 
                     # If the scalar_op doesn't have a C implementation, we skip
                     # its fusion to allow fusion of the other ops
                     i.owner.op.scalar_op.c_code(
-                        s_op[0].owner,
+                        scalar_node,
                         "test_presence_of_c_code",
                         ["x" for x in i.owner.inputs],
                         ["z" for z in i.owner.outputs],
                         {"fail": "%(fail)s"},
                     )
-
-                    do_fusion = True
 
                 except (NotImplementedError, MethodNotDefined):
                     _logger.warning(
@@ -3073,7 +2999,7 @@ def local_elemwise_fusion_op(op_class, max_input_fct=lambda node: 32, maker=None
                             "loop fusion."
                         )
                     )
-                    do_fusion = False
+                    scalar_node = None
 
             # Compute the number of inputs in case we fuse this input.
             # We subtract 1 because we replace the existing input with the new
@@ -3089,12 +3015,12 @@ def local_elemwise_fusion_op(op_class, max_input_fct=lambda node: 32, maker=None
                 if x in node.inputs:
                     new_nb_input_ -= 1
 
-            if do_fusion and (new_nb_input_ <= max_nb_input):
+            if scalar_node and (new_nb_input_ <= max_nb_input):
                 fused = True
                 new_nb_input = new_nb_input_
                 inputs.extend(tmp_input)
                 s_inputs.extend(tmp_scalar)
-                s_g.extend(s_op)
+                s_g.extend(scalar_node.outputs)
             else:
                 # We must support the case where the same variable appears many
                 # times within the inputs
@@ -3102,13 +3028,14 @@ def local_elemwise_fusion_op(op_class, max_input_fct=lambda node: 32, maker=None
                     s = s_inputs[inputs.index(i)]
                 else:
                     s = aes.get_scalar_type(i.type.dtype).make_variable()
-                    try:
-                        if config.compute_test_value != "off":
+                    if config.compute_test_value_opt != "off":
+                        try:
                             v = get_test_value(i)
-                            if v.size > 0:
-                                s.tag.test_value = v.flatten()[0]
-                    except TestValueError:
-                        pass
+                            # See the zero-dimensional test value situation
+                            # described above.
+                            s.tag.test_value = v.item()
+                        except (TestValueError, ValueError):
+                            pass
 
                     inputs.append(i)
                     s_inputs.append(s)
@@ -3157,7 +3084,8 @@ your code will run correctly, but may be slower."""
 
         if len(new_node.inputs) > max_nb_input:
             _logger.warning(
-                "loop fusion failed because Op would exceed" " kernel argument limit."
+                "Loop fusion failed because the resulting node "
+                "would exceed the kernel argument limit."
             )
             return False
 
@@ -3413,8 +3341,10 @@ def local_useless_topk(fgraph, node):
 @register_useless
 @register_canonicalize
 @local_optimizer([SpecifyShape])
-def local_useless_SpecifyShape(fgraph, node):
-    """Replace ``specify_shape(specify_shape(x, s1), s2)`` with ``specify_shape(x, s1)``."""
+def local_merge_consecutive_specify_shape(fgraph, node):
+    """Replace ``specify_shape(specify_shape(x, s1), s2)`` with ``specify_shape(x, s3)``,
+    where s3 is the union of specified dimensions in s1 and s2, with preference given to s2.
+    """
 
     if not isinstance(node.op, SpecifyShape):
         return False
@@ -3423,10 +3353,15 @@ def local_useless_SpecifyShape(fgraph, node):
     if not (obj.owner and isinstance(obj.owner.op, SpecifyShape)):
         return False
 
-    # TODO: We could make sure that the shapes of the two `SpecifyShape`s are
+    inner_obj, *shape = obj.owner.inputs
+    for dim, sh in enumerate(node.inputs[1:]):
+        if not NoneConst.equals(sh):
+            shape[dim] = sh
+
+    # TODO: We could make sure that the overlapping shapes of the two `SpecifyShape`s are
     # the same.
 
-    return [obj]
+    return [specify_shape(inner_obj, shape)]
 
 
 @register_useless

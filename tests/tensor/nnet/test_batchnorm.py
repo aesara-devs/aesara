@@ -8,6 +8,7 @@ import aesara.tensor as at
 from aesara.configdefaults import config
 from aesara.tensor.math import sum as at_sum
 from aesara.tensor.nnet import batchnorm
+from aesara.tensor.shape import specify_broadcastable
 from aesara.tensor.type import (
     TensorType,
     matrix,
@@ -219,8 +220,8 @@ def test_batch_normalization_train():
             x_mean2 = x.mean(axis=axes2, keepdims=True)
             x_var2 = x.var(axis=axes2, keepdims=True)
             x_invstd2 = at.reciprocal(at.sqrt(x_var2 + eps))
-            scale2 = at.addbroadcast(scale, *axes2)
-            bias2 = at.addbroadcast(bias, *axes2)
+            scale2 = specify_broadcastable(scale, *axes2)
+            bias2 = specify_broadcastable(bias, *axes2)
             out2 = (x - x_mean2) * (scale2 * x_invstd2) + bias2
             m = at.cast(at.prod(x.shape) / at.prod(scale.shape), aesara.config.floatX)
             out_running_mean2 = (
@@ -597,7 +598,7 @@ def test_batch_normalization_test():
             else:
                 axes2 = axes
             scale2, bias2, mean2, var2 = (
-                at.addbroadcast(t, *axes2) for t in (scale, bias, mean, var)
+                specify_broadcastable(t, *axes2) for t in (scale, bias, mean, var)
             )
             out2 = (x - mean2) * (scale2 / at.sqrt(var2 + eps)) + bias2
             # backward pass

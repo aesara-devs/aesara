@@ -37,17 +37,19 @@ Aesara propagates information about shapes within a graph using specialized
 Specifying Exact Shape
 ======================
 
-Currently, specifying a shape is not as easy and flexible as we wish and we plan some
-upgrade.  Here is the current state of what can be done:
-
-- You can pass the shape info directly to the ``ConvOp`` created
-  when calling ``conv2d``. You simply set the parameters ``image_shape``
-  and ``filter_shape`` inside the call. They must be tuples of 4
-  elements. For example:
+You can create variables with static shape information as follows:
 
 .. code-block:: python
 
-    aesara.tensor.nnet.conv2d(..., image_shape=(7, 3, 5, 5), filter_shape=(2, 3, 4, 4))
+    aesara.tensor.tensor("float64", shape=(4, 3, 2))
+
+
+You can also pass shape infomation directly to some :class:`Op`\s, like ``RandomVariables``
+
+.. code-block:: python
+
+    aesara.tensor.random.normal(size=(7, 3, 5, 5))
+
 
 - You can use the :class:`SpecifyShape`\ :class:`Op` to add shape information anywhere in the
   graph. This allows to perform some optimizations. In the following example,

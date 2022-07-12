@@ -26,8 +26,9 @@ from aesara.sparse.type import SparseTensorType, _is_sparse
 from aesara.sparse.utils import hash_from_sparse
 from aesara.tensor import basic as at
 from aesara.tensor.basic import Split
+from aesara.tensor.math import _conj
 from aesara.tensor.math import add as at_add
-from aesara.tensor.math import arcsin, arcsinh, arctan, arctanh, ceil, conj, deg2rad
+from aesara.tensor.math import arcsin, arcsinh, arctan, arctanh, ceil, deg2rad
 from aesara.tensor.math import dot as at_dot
 from aesara.tensor.math import exp, expm1, floor, log, log1p, maximum, minimum
 from aesara.tensor.math import pow as at_pow
@@ -44,7 +45,7 @@ from aesara.tensor.math import (
     tanh,
     trunc,
 )
-from aesara.tensor.shape import shape
+from aesara.tensor.shape import shape, specify_broadcastable
 from aesara.tensor.type import TensorType
 from aesara.tensor.type import continuous_dtypes as tensor_continuous_dtypes
 from aesara.tensor.type import discrete_dtypes as tensor_discrete_dtypes
@@ -322,7 +323,6 @@ def override_dense(*methods):
     "max",
     "argmin",
     "argmax",
-    "conj",
     "round",
     "trace",
     "cumsum",
@@ -450,6 +450,9 @@ class _sparse_py_operators(_tensor_py_operators):
         else:
             ret = get_item_2d(self, args)
         return ret
+
+    def conj(self):
+        return conjugate(self)
 
 
 class SparseVariable(_sparse_py_operators, TensorVariable):
@@ -1133,7 +1136,9 @@ class SparseFromDense(Op):
         (x,) = inputs
         (gz,) = gout
         gx = dense_from_sparse(gz)
-        gx = at.patternbroadcast(gx, x.broadcastable)
+        gx = specify_broadcastable(
+            gx, *(ax for (ax, b) in enumerate(x.type.broadcastable) if b)
+        )
         return (gx,)
 
     def infer_shape(self, fgraph, node, shapes):
@@ -1897,9 +1902,9 @@ class SpSum(Op):
             else:
                 ones = at.ones_like(x)
                 if self.axis == 0:
-                    r = at.addbroadcast(gz.dimshuffle("x", 0), 0) * ones
+                    r = specify_broadcastable(gz.dimshuffle("x", 0), 0) * ones
                 elif self.axis == 1:
-                    r = at.addbroadcast(gz.dimshuffle(0, "x"), 1) * ones
+                    r = specify_broadcastable(gz.dimshuffle(0, "x"), 1) * ones
                 else:
                     raise ValueError("Illegal value for self.axis.")
             r = SparseFromDense(o_format)(r)
@@ -3548,13 +3553,23 @@ def sqrt(x):
     # see decorator for function body
 
 
-@structured_monoid(conj)  # type: ignore[no-redef]
-def conj(x):
+@structured_monoid(_conj)  # type: ignore[no-redef]
+def _conj(x):
     """
     Elemwise complex conjugate of `x`.
 
     """
     # see decorator for function body
+
+
+def conjugate(x):
+    _x = as_sparse_variable(x)
+    if _x.type.dtype not in complex_dtypes:
+        return _x
+    return _conj(_x)
+
+
+conj = conjugate
 
 
 class TrueDot(Op):

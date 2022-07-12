@@ -10,7 +10,7 @@ import warnings
 from collections.abc import Sequence
 from functools import partial
 from numbers import Number
-from typing import Dict, Iterable, Optional, Tuple, Union
+from typing import Optional, Tuple, Union
 from typing import cast as type_cast
 
 import numpy as np
@@ -44,11 +44,13 @@ from aesara.tensor.exceptions import NotScalarConstantError
 from aesara.tensor.shape import (
     Shape,
     Shape_i,
+    Unbroadcast,
     shape,
     shape_padaxis,
     shape_padleft,
     shape_padright,
     shape_tuple,
+    specify_broadcastable,
 )
 from aesara.tensor.type import (
     TensorType,
@@ -253,7 +255,7 @@ def get_scalar_constant_value(
 ):
     """Return the constant scalar(0-D) value underlying variable `v`.
 
-    If `v` is the output of dimshuffles, fills, allocs, rebroadcasts,
+    If `v` is the output of dimshuffles, fills, allocs, etc,
     cast, OutputGuard, DeepCopyOp, ScalarFromTensor, ScalarOp, Elemwise
     and some pattern with Subtensor, this function digs through them.
 
@@ -322,7 +324,7 @@ def get_scalar_constant_value(
                 (
                     Alloc,
                     DimShuffle,
-                    Rebroadcast,
+                    Unbroadcast,
                     # outputguard is only used in debugmode but we
                     # keep it here to avoid problems with old pickels.
                     compile.ops.OutputGuard,
@@ -494,7 +496,7 @@ def get_scalar_constant_value(
                     gp_broadcastable = grandparent.type.broadcastable
                     ndim = grandparent.type.ndim
                     if grandparent.owner and isinstance(
-                        grandparent.owner.op, Rebroadcast
+                        grandparent.owner.op, Unbroadcast
                     ):
                         ggp_broadcastable = grandparent.owner.inputs[0].broadcastable
                         l = [
@@ -613,187 +615,6 @@ class ScalarFromTensor(COp):
 
 
 scalar_from_tensor = ScalarFromTensor()
-
-
-class Rebroadcast(COp):
-    """
-    Change the input's broadcastable fields in some predetermined way.
-
-    See Also
-    --------
-    unbroadcast <aesara.tensor.unbroadcast>
-    addbroadcast <aesara.tensor.addbroadcast>
-    patternbroadcast <aesara.tensor.patternbroadcast>
-
-    Notes
-    -----
-    Works inplace and works for CudaNdarrayType.
-
-    Examples
-    --------
-    ``Rebroadcast((0, True), (1, False))(x)`` would make `x` broadcastable in
-    axis 0 and not broadcastable in axis 1.
-
-    """
-
-    view_map = {0: [0]}
-    _f16_ok = True
-    # Mapping from Type to C code (and version) to use.
-    # In the C code, the name of the input variable is %(iname)s,
-    # the output variable is %(oname)s.
-    c_code_and_version: Dict = {}
-
-    check_input = False
-    __props__ = ("axis",)
-    _f16_ok = True
-
-    def __init__(self, *axis):
-        # Sort them to make sure we merge all possible case.
-        items = sorted(axis)
-        self.axis = dict(items)
-        for axis, broad in self.axis.items():
-            if not isinstance(axis, (np.integer, int)):
-                raise TypeError(f"Rebroadcast needs integer axes. Got {axis}")
-
-            if not isinstance(broad, (np.bool_, bool)):
-                raise TypeError(
-                    f"Rebroadcast needs bool for new broadcast pattern. Got {broad}"
-                )
-
-    def __hash__(self):
-        # Need special __hash__ as dict aren't hashable.
-        # no ambiguity because each item key is unique
-        items = sorted(self.axis.items())
-        return hash((type(self), tuple(items)))
-
-    def __str__(self):
-        return f"{self.__class__.__name__}{{{','.join(str(i) for i in self.axis.items())}}}"
-
-    def make_node(self, x):
-        if self.axis.keys() and (x.ndim <= max(self.axis.keys())):
-            raise ValueError("Trying to rebroadcast non-existent dimension")
-        t = x.type.clone(
-            shape=[self.axis.get(i, b) for i, b in enumerate(x.type.broadcastable)]
-        )
-        return Apply(self, [x], [t()])
-
-    def perform(self, node, inp, out_):
-        (x,) = inp
-        (out,) = out_
-        for axis, value in self.axis.items():
-            if value and x.shape[axis] != 1:
-                raise ValueError(
-                    f"Dimension {axis} in Rebroadcast's input was"
-                    f" supposed to be 1 (got {x.shape[axis]} instead)"
-                )
-        out[0] = x
-
-    def grad(self, inp, grads):
-        (x,) = inp
-        (gz,) = grads
-        # restore the broadcasting pattern of the input
-        return (
-            Rebroadcast(
-                *[
-                    (axis, x.type.broadcastable[axis])
-                    for axis, value in self.axis.items()
-                ]
-            )(gz),
-        )
-
-    def infer_shape(self, fgraph, node, ishapes):
-        assert len(ishapes) == 1
-        l = []
-        one = aesara.tensor.basic.constant(1)
-        for ax in range(len(ishapes[0])):
-            if self.axis.get(ax, False):
-                l.append(one)
-            else:
-                l.append(ishapes[0][ax])
-
-        return [tuple(l)]
-
-    def R_op(self, inputs, eval_points):
-        if eval_points[0] is None:
-            return [None]
-        return self(*eval_points, return_list=True)
-
-    def c_code(self, node, nodename, inp, out, sub):
-        (iname,) = inp
-        (oname,) = out
-        fail = sub["fail"]
-
-        itype = node.inputs[0].type.__class__
-        if itype in self.c_code_and_version:
-            code, version = self.c_code_and_version[itype]
-            final_code = ""
-            for axis, value in self.axis.items():
-                if value:
-                    final_code += code % locals()
-            return (
-                final_code
-                + f"""
-            Py_XDECREF({oname});
-            {oname} = {iname};
-            Py_XINCREF({oname});
-            """
-            )
-        raise NotImplementedError()
-
-    def c_code_cache_version(self):
-        version = []
-        # If any of the c code is unversioned, we have to return ()
-        # Else, we will return a list of (type name, version) pairs.
-        for t, (c, v) in sorted(
-            self.c_code_and_version.items(), key=lambda pair: str(pair[0])
-        ):
-            if not v:
-                warnings.warn(
-                    f"Type {t} has C code for Rebroadcast, but it "
-                    "has no version. You should add a 'version' "
-                    "keyword arg when calling "
-                    "register_rebroadcast_c_code.",
-                    stacklevel=2,
-                )
-                return ()
-            version.append((str(t), v))
-
-        if version:
-            version.append(1)
-        return tuple(version)
-
-
-def register_rebroadcast_c_code(typ, code, version=()):
-    """
-    Tell Rebroadcast how to generate C code for an Aesara Type.
-
-    typ : Aesara type
-        It must be the Aesara class itself and not an instance of the class.
-    code : C code
-        That checks if the dimension %(axis)s is of shape 1 for the Aesara type
-        'typ'. Use %(iname)s and %(oname)s for the input and output C variable
-        names respectively, and %(axis)s for the axis that we need to check.
-        This code is put in a loop for all axes.
-    version
-        A number indicating the version of the code, for cache.
-
-    """
-    Rebroadcast.c_code_and_version[typ] = (code, version)
-
-
-register_rebroadcast_c_code(
-    TensorType,
-    """
-    if(PyArray_DIMS(%(iname)s)[%(axis)s] != 1){
-        PyErr_Format(PyExc_ValueError,
-            "Dimension %(axis)s in Rebroadcast's input was"
-            " supposed to be 1 (got %%d instead)",
-            PyArray_DIMS(%(iname)s)[%(axis)s]);
-        %(fail)s
-    }
-    """,
-    version=1,
-)
 
 
 # to be removed as we get the epydoc routine-documenting thing going
@@ -1199,10 +1020,12 @@ def tril(m, k=0):
     Lower triangle of an array.
 
     Return a copy of an array with elements above the `k`-th diagonal zeroed.
+    For arrays with ``ndim`` exceeding 2, `tril` will apply to the final two
+    axes.
 
     Parameters
     ----------
-    m : array_like, shape (M, N)
+    m : array_like, shape (..., M, N)
         Input array.
     k : int, optional
         Diagonal above which to zero elements.  `k = 0` (the default) is the
@@ -1210,23 +1033,48 @@ def tril(m, k=0):
 
     Returns
     -------
-    array, shape (M, N)
+    tril : ndarray, shape (..., M, N)
         Lower triangle of `m`, of same shape and data-type as `m`.
 
     See Also
     --------
     triu : Same thing, only for the upper triangle.
 
+    Examples
+    --------
+    >>> at.tril(np.arange(1,13).reshape(4,3), -1).eval()
+    array([[ 0,  0,  0],
+           [ 4,  0,  0],
+           [ 7,  8,  0],
+           [10, 11, 12]])
+
+    >>> at.tril(np.arange(3*4*5).reshape(3, 4, 5)).eval()
+    array([[[ 0,  0,  0,  0,  0],
+            [ 5,  6,  0,  0,  0],
+            [10, 11, 12,  0,  0],
+            [15, 16, 17, 18,  0]],
+
+           [[20,  0,  0,  0,  0],
+            [25, 26,  0,  0,  0],
+            [30, 31, 32,  0,  0],
+            [35, 36, 37, 38,  0]],
+
+           [[40,  0,  0,  0,  0],
+            [45, 46,  0,  0,  0],
+            [50, 51, 52,  0,  0],
+            [55, 56, 57, 58,  0]]])
+
     """
-    return m * tri(m.shape[0], m.shape[1], k=k, dtype=m.dtype)
+    return m * tri(*m.shape[-2:], k=k, dtype=m.dtype)
 
 
 def triu(m, k=0):
     """
     Upper triangle of an array.
 
-    Return a copy of a matrix with the elements below the `k`-th diagonal
-    zeroed.
+    Return a copy of an array with the elements below the `k`-th diagonal
+    zeroed. For arrays with ``ndim`` exceeding 2, `triu` will apply to the
+    final two axes.
 
     Please refer to the documentation for `tril` for further details.
 
@@ -1234,10 +1082,32 @@ def triu(m, k=0):
     --------
     tril : Lower triangle of an array.
 
+    Examples
+    --------
+    >>> at.triu(np.arange(1,13).reshape(4,3), -1).eval()
+    array([[ 1,  2,  3],
+           [ 4,  5,  6],
+           [ 0,  8,  9],
+           [ 0,  0, 12]])
+
+    >>> at.triu(np.arange(3*4*5).reshape(3, 4, 5)).eval()
+    array([[[ 0,  1,  2,  3,  4],
+            [ 0,  6,  7,  8,  9],
+            [ 0,  0, 12, 13, 14],
+            [ 0,  0,  0, 18, 19]],
+
+           [[20, 21, 22, 23, 24],
+            [ 0, 26, 27, 28, 29],
+            [ 0,  0, 32, 33, 34],
+            [ 0,  0,  0, 38, 39]],
+
+           [[40, 41, 42, 43, 44],
+            [ 0, 46, 47, 48, 49],
+            [ 0,  0, 52, 53, 54],
+            [ 0,  0,  0, 58, 59]]])
+
     """
-    return m * (
-        constant(1, dtype=m.dtype) - tri(m.shape[0], m.shape[1], k=k - 1, dtype=m.dtype)
-    )
+    return m * (constant(1, dtype=m.dtype) - tri(*m.shape[-2:], k=k - 1, dtype=m.dtype))
 
 
 def tril_indices(
@@ -2206,100 +2076,6 @@ class Split(COp):
         )
 
 
-def addbroadcast(x, *axes):
-    """
-    Make the input broadcastable in the specified axes.
-
-    For example, addbroadcast(x, 0) will make the first dimension of
-    x broadcastable. When performing the function, if the length of
-    x along that dimension is not 1, a ValueError will be raised.
-
-    We apply the opt here not to pollute the graph
-
-    Parameters
-    ----------
-    x : tensor_like
-        Input aesara tensor.
-    axis : an int or an iterable object such as list or tuple of int values
-        The dimension along which the tensor x should be broadcastable.
-        If the length of x along these dimensions is not 1, a ValueError will
-        be raised.
-
-    Returns
-    -------
-    tensor
-        A aesara tensor, which is broadcastable along the specified dimensions.
-
-    """
-    x = as_tensor_variable(x)
-
-    if isinstance(x.type, TensorType) and not any(s is None for s in x.type.shape):
-        if not set(i for i, b in enumerate(x.broadcastable) if b).issuperset(axes):
-            raise ValueError(f"{x}'s fixed broadcast pattern does not match {axes}")
-        return x
-
-    rval = Rebroadcast(*[(axis, True) for axis in axes])(x)
-    return aesara.tensor.basic_opt.apply_rebroadcast_opt(rval)
-
-
-def unbroadcast(x, *axes):
-    """
-    Make the input impossible to broadcast in the specified axes.
-
-    For example, addbroadcast(x, 0) will make the first dimension
-    of x broadcastable. When performing the function, if the length
-    of x along that dimension is not 1, a ValueError will be raised.
-
-    We apply the opt here not to pollute the graph
-
-    Parameters
-    ----------
-    x : tensor_like
-        Input aesara tensor.
-    axis : an int or an iterable object such as list or tuple of int values
-        The dimension along which the tensor x should be unbroadcastable.
-        If the length of x along these dimensions is not 1, a ValueError will
-        be raised.
-
-    Returns
-    -------
-    tensor
-        A aesara tensor, which is unbroadcastable along the specified dimensions.
-
-    """
-    x = as_tensor_variable(x)
-    rval = Rebroadcast(*[(axis, False) for axis in axes])(x)
-    return aesara.tensor.basic_opt.apply_rebroadcast_opt(rval)
-
-
-def patternbroadcast(
-    x: TensorVariable, broadcastable: Iterable[Union[bool, int]]
-) -> TensorVariable:
-    """Make the input adopt a specific broadcasting pattern.
-
-    For example, ``patternbroadcast(x, (True, False))`` will make the first
-    dimension of `x` broadcastable and the second dimension not broadcastable,
-    so `x` will now be a row.
-
-    Parameters
-    ----------
-    x
-        Input to re-broadcast.
-    broadcastable
-        Truthy values indicating whether or not a dimension should be
-        broadcastable or not. If the length of `x` along these dimensions is
-        not ``1``, a `ValueError` will be raised.
-
-    """
-    x = as_tensor_variable(x)
-
-    if x.broadcastable == broadcastable:
-        return x
-
-    rval = Rebroadcast(*[(i, broadcastable[i]) for i in range(len(broadcastable))])(x)
-    return aesara.tensor.basic_opt.apply_rebroadcast_opt(rval)
-
-
 class Join(COp):
     r"""
     Concatenate multiple `TensorVariable`\s along some axis.
@@ -2550,7 +2326,12 @@ class Join(COp):
             # broadcast. As the grad need to keep the information,
             # read it if needed.
             split_gz = [
-                patternbroadcast(g, t.broadcastable) for t, g in zip(tens, split_gz)
+                g
+                if g.type.broadcastable == t.type.broadcastable
+                else specify_broadcastable(
+                    g, *(ax for (ax, b) in enumerate(t.type.broadcastable) if b)
+                )
+                for t, g in zip(tens, split_gz)
             ]
             rval = rval + split_gz
         else:
@@ -2773,7 +2554,7 @@ def stack(*tensors, **kwargs):
         raise ValueError("No tensor arguments provided")
 
     # If all tensors are scalars of the same type, call make_vector.
-    # It makes the graph simpler, by not adding DimShuffles and Rebroadcasts
+    # It makes the graph simpler, by not adding DimShuffles and SpecifyShapes
 
     # This should be an optimization!
     # Doing it here make the graph less canonicalized
@@ -2930,7 +2711,9 @@ def flatten(x, ndim=1):
     bcast_kept_dims = _x.broadcastable[: ndim - 1]
     bcast_new_dim = builtins.all(_x.broadcastable[ndim - 1 :])
     broadcastable = bcast_kept_dims + (bcast_new_dim,)
-    x_reshaped = addbroadcast(x_reshaped, *[i for i in range(ndim) if broadcastable[i]])
+    x_reshaped = specify_broadcastable(
+        x_reshaped, *[i for i in range(ndim) if broadcastable[i]]
+    )
     return x_reshaped
 
 
@@ -4204,9 +3987,6 @@ __all__ = [
     "stack",
     "roll",
     "join",
-    "patternbroadcast",
-    "unbroadcast",
-    "addbroadcast",
     "split",
     "transpose",
     "extract_constant",

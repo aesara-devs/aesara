@@ -34,12 +34,10 @@ from aesara.tensor.basic import (
     Join,
     MakeVector,
     PermuteRowElements,
-    Rebroadcast,
     ScalarFromTensor,
     Split,
     TensorFromScalar,
     Tri,
-    addbroadcast,
     alloc,
     arange,
     as_tensor_variable,
@@ -69,7 +67,6 @@ from aesara.tensor.basic import (
     nonzero_values,
     ogrid,
     ones_like,
-    patternbroadcast,
     permute_row_elements,
     roll,
     scalar_from_tensor,
@@ -88,7 +85,6 @@ from aesara.tensor.basic import (
     triu,
     triu_indices,
     triu_indices_from,
-    unbroadcast,
     vertical_stack,
     zeros_like,
 )
@@ -106,7 +102,6 @@ from aesara.tensor.type import (
     dscalar,
     dscalars,
     dtensor3,
-    dtensor4,
     dvector,
     fmatrix,
     fscalar,
@@ -339,7 +334,7 @@ TestAllocb4GradBroadcast = makeBroadcastTester(
 )
 
 
-# Partial un broadcast of a dimshuffled input
+# Partial unbroadcast of a dimshuffled input
 TestAllocDimshuffleGradBroadcast = makeBroadcastTester(
     name="Allocb4GradTester",
     op=lambda x: alloc(x.dimshuffle("x", "x", 0), 1, s2, s3),
@@ -923,6 +918,24 @@ class TestTriangle:
             assert np.allclose(result_indx, result_from)
             assert result.dtype == np.dtype(dtype)
 
+        def check_l_batch(m, k=0):
+            m_symb = tensor3(dtype=m.dtype)
+            k_symb = iscalar()
+            f = function([m_symb, k_symb], tril(m_symb, k_symb))
+            for k in [-1, 0, 1]:
+                result = f(m, k)
+                assert np.allclose(result, np.tril(m, k))
+                assert result.dtype == np.dtype(dtype)
+
+        def check_u_batch(m):
+            m_symb = tensor3(dtype=m.dtype)
+            k_symb = iscalar()
+            f = function([m_symb, k_symb], triu(m_symb, k_symb))
+            for k in [-1, 0, 1]:
+                result = f(m, k)
+                assert np.allclose(result, np.triu(m, k))
+                assert result.dtype == np.dtype(dtype)
+
         for dtype in ALL_DTYPES:
             m = random_of_dtype((10, 10), dtype)
             check_l(m, 0)
@@ -941,6 +954,14 @@ class TestTriangle:
             check_u(m, 0)
             check_u(m, 1)
             check_u(m, -1)
+
+            m = random_of_dtype((5, 5, 5), dtype)
+            check_l_batch(m)
+            check_u_batch(m)
+
+            m = random_of_dtype((5, 10, 5), dtype)
+            check_l_batch(m)
+            check_u_batch(m)
 
         m = random_of_dtype((10,), dtype)
         for fn in (triu_indices_from, tril_indices_from):
@@ -3197,128 +3218,6 @@ class TestLongTensor:
             constant()[val, val]
         with pytest.raises(Exception):
             constant()[[val, val]]
-
-
-class TestBroadcast:
-    def test_addbroadcast_validation(self):
-        x = as_tensor_variable(np.zeros((2, 3)))
-        with pytest.raises(ValueError, match=".*pattern does not.*"):
-            addbroadcast(x, 4)
-
-    def test_broadcast_bigdim(self):
-        def f():
-            x = matrix()
-            addbroadcast(x, 2)
-
-        with pytest.raises(ValueError):
-            f()
-
-    def test_unbroadcast_addbroadcast(self):
-        # test that the unbroadcast fct don't insert not needed broadcast
-        # and fuse consecutive Rebroadcast op
-
-        x = matrix()
-        assert unbroadcast(x, 0) is x
-        assert unbroadcast(x, 1) is x
-        assert unbroadcast(x, 1, 0) is x
-        assert unbroadcast(x, 0, 1) is x
-
-        assert addbroadcast(x, 0) is not x
-        assert addbroadcast(x, 1) is not x
-        assert addbroadcast(x, 1, 0).owner.inputs[0] is x
-
-        assert unbroadcast(addbroadcast(x, 0), 0) is x
-        assert addbroadcast(unbroadcast(x, 0), 0) is not x
-        x = row()
-        assert unbroadcast(x, 0) is not x
-        assert unbroadcast(x, 1) is x
-        assert unbroadcast(x, 1, 0) is not x
-        assert unbroadcast(x, 0, 1) is not x
-
-        assert addbroadcast(x, 0) is x
-        assert addbroadcast(x, 1).owner.inputs[0] is x
-        assert addbroadcast(x, 1, 0).owner.inputs[0] is x
-        assert addbroadcast(x, 0, 1).owner.inputs[0] is x
-
-        assert unbroadcast(addbroadcast(x, 1), 1) is x
-        assert addbroadcast(unbroadcast(x, 1), 1) is not x
-
-        # The first broadcast is remove the broadcast, so the second
-        # should not make one
-        assert unbroadcast(unbroadcast(x, 0), 0).owner.inputs[0] is x
-
-        # Test that consecutive Rebroadcast op are fused
-        x = TensorType(dtype="float64", shape=(True, True))()
-        assert unbroadcast(unbroadcast(x, 1), 0).owner.inputs[0] is x
-        assert addbroadcast(unbroadcast(x, 1), 0).owner.inputs[0] is x
-        assert addbroadcast(unbroadcast(x, 0), 0) is x
-
-    def test_patternbroadcast(self):
-        # Test that patternbroadcast with an empty broadcasting pattern works
-        x = scalar("x")
-        m = matrix("m")
-        s = patternbroadcast(m, x.broadcastable)
-        assert s is m
-        x2 = patternbroadcast(x, x.broadcastable)
-        assert x2 is x
-
-    def test_infer_shape(self):
-        x = matrix()
-        y = addbroadcast(x, 0)
-        f = aesara.function([x], y.shape)
-        assert (f(np.zeros((1, 5), dtype=config.floatX)) == [1, 5]).all()
-        topo = f.maker.fgraph.toposort()
-        if config.mode != "FAST_COMPILE":
-            assert len(topo) == 2
-            assert isinstance(topo[0].op, Shape_i)
-            assert isinstance(topo[1].op, MakeVector)
-
-        x = matrix()
-        y = unbroadcast(x, 0)
-        f = aesara.function([x], y.shape)
-        assert (f(np.zeros((2, 5), dtype=config.floatX)) == [2, 5]).all()
-        topo = f.maker.fgraph.toposort()
-        if config.mode != "FAST_COMPILE":
-            assert len(topo) == 3
-            assert isinstance(topo[0].op, Shape_i)
-            assert isinstance(topo[1].op, Shape_i)
-            assert isinstance(topo[2].op, MakeVector)
-
-        x = row()
-        y = unbroadcast(x, 0)
-        f = aesara.function([x], y.shape)
-        assert (f(np.zeros((1, 5), dtype=config.floatX)) == [1, 5]).all()
-        topo = f.maker.fgraph.toposort()
-        if config.mode != "FAST_COMPILE":
-            assert len(topo) == 2
-            assert isinstance(topo[0].op, Shape_i)
-            assert isinstance(topo[1].op, MakeVector)
-
-
-class TestRebroadcast(utt.InferShapeTester):
-    def test_rebroadcast(self):
-        rng = np.random.default_rng(3453)
-        # Rebroadcast
-        adtens4 = dtensor4()
-        adict = [(0, False), (1, True), (2, False), (3, True)]
-        adtens4_val = rng.random((2, 1, 3, 1)).astype(config.floatX)
-        self._compile_and_check(
-            [adtens4],
-            [Rebroadcast(*adict)(adtens4)],
-            [adtens4_val],
-            Rebroadcast,
-            warn=False,
-        )
-
-        adtens4_bro = TensorType("float64", (True, True, True, False))()
-        bdict = [(0, True), (1, False), (2, False), (3, False)]
-        adtens4_bro_val = rng.random((1, 1, 1, 3)).astype(config.floatX)
-        self._compile_and_check(
-            [adtens4_bro],
-            [Rebroadcast(*bdict)(adtens4_bro)],
-            [adtens4_bro_val],
-            Rebroadcast,
-        )
 
 
 def test_len():

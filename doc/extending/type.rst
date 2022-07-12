@@ -141,15 +141,17 @@ more specific/informative than ``v1``'s--and both are compatible.
 
 >>> v3 = v2.type.filter_variable(v1)
 >>> v3
-Rebroadcast{(0, False),(1, True)}.0
+SpecifyShape.0
 >>> import aesara
 >>> aesara.dprint(v3, print_type=True)
-Rebroadcast{(0, False),(1, True)} [id A] <TensorType(float64, (None, 1))> ''
+SpecifyShape [id A] <TensorType(float64, (2, 1))>
  |<TensorType(float64, (2, None))> [id B] <TensorType(float64, (2, None))>
+ |TensorConstant{2} [id C] <TensorType(int8, ())>
+ |TensorConstant{1} [id D] <TensorType(int8, ())>
 
 
 Performing this in the opposite direction returned the output of a
-:class:`Rebroadcast`\ :class:`Op`.  This :class:`Rebroadcast` uses ``v1`` as an
+:class:`SpecifyShape`\ :class:`Op`.  This :class:`SpecifyShape` uses ``v1`` static shape as an
 input and serves to produce a new :class:`Variable` that has a :class:`Type` compatible with
 both ``v1`` and ``v2``.
 

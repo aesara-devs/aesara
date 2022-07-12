@@ -696,7 +696,7 @@ TestComplexFromPolarBroadcast = makeBroadcastTester(
 )
 
 TestConjBroadcast = makeBroadcastTester(
-    op=conj, expected=np.conj, good=_good_broadcast_unary_normal
+    op=conj, expected=np.conj, good={"complex": _good_broadcast_unary_normal["complex"]}
 )
 
 
@@ -1918,32 +1918,9 @@ class TestDot:
         # These examples should all work.  All dimensions of all results have
         # size 1.
         #
-        def val_for(r):
-            if r.dtype.startswith("complex"):
-                # We want to test complex at the same time, so we give a value
-                # to the imaginary component.
-                # This strange way of doing things is the only way that worked
-                # on NumPy 1.4.1.
-                if r.ndim == 0:
-                    return np.asarray(complex(1.1, 2.1), dtype=r.dtype)
-                if r.ndim == 1:
-                    if r.dtype == "complex64":
-                        return np.complex64([complex(1.2, 2.2)])
-                    elif r.dtype == "complex128":
-                        return np.complex128([complex(1.2, 2.2)])
-                elif r.ndim == 2:
-                    if r.dtype == "complex64":
-                        return np.complex64([[complex(1.3, 2.3)]])
-                    elif r.dtype == "complex128":
-                        return np.complex128([[complex(1.3, 2.3)]])
-
-            if r.ndim == 0:
-                return np.asarray(1.1, dtype=r.dtype)
-            if r.ndim == 1:
-                return np.asarray([1.2], dtype=r.dtype)
-            elif r.ndim == 2:
-                return np.asarray([[1.3]], dtype=r.dtype)
-            raise AssertionError()
+        def is_super_shape(var1, var2):
+            # Check that var1.type is a superset of var2.type, ignoring dtype
+            return var1.type.is_super(var2.type.clone(dtype=var1.type.dtype))
 
         for dtype0 in ("float32", "float64", "complex64"):
             for dtype1 in ("float32", "complex64", "complex128"):
@@ -1970,9 +1947,9 @@ class TestDot:
 
                         if dtype0.startswith("float") and dtype1.startswith("float"):
                             g = grad(z.sum(), x)
-                            assert g.broadcastable == x.broadcastable
+                            assert is_super_shape(x, g)
                             g = grad(z.sum(), y)
-                            assert g.broadcastable == y.broadcastable
+                            assert is_super_shape(y, g)
 
 
 class TestTensordot:
@@ -2566,6 +2543,10 @@ class TestTensorInstanceMethods:
         z = x + y * 1j
         assert_array_equal(Z.conj().eval({Z: z}), z.conj())
         assert_array_equal(Z.conjugate().eval({Z: z}), z.conj())
+
+        # No conjugate when the data type isn't complex
+        assert X.type.dtype not in complex_dtypes
+        assert X.conj() is X
 
     def test_round(self):
         X, _ = self.vars

@@ -3,7 +3,6 @@ Generate and compile C modules for Python.
 
 """
 import atexit
-import distutils.sysconfig
 import importlib
 import io
 import logging
@@ -24,7 +23,13 @@ from contextlib import redirect_stderr, redirect_stdout
 from io import BytesIO, StringIO
 from typing import Callable, Dict, List, Optional, Set, Tuple, cast
 
-import numpy.distutils
+import numpy as np
+from setuptools._distutils.sysconfig import (
+    get_config_h_filename,
+    get_config_var,
+    get_python_inc,
+    get_python_lib,
+)
 from typing_extensions import Protocol
 
 # we will abuse the lockfile mechanism when reading and writing the registry
@@ -256,9 +261,9 @@ class DynamicModule:
 
 def _get_ext_suffix():
     """Get the suffix for compiled extensions"""
-    dist_suffix = distutils.sysconfig.get_config_var("EXT_SUFFIX")
+    dist_suffix = get_config_var("EXT_SUFFIX")
     if dist_suffix is None:
-        dist_suffix = distutils.sysconfig.get_config_var("SO")
+        dist_suffix = get_config_var("SO")
     return dist_suffix
 
 
@@ -1010,8 +1015,8 @@ class ModuleCache:
                 entry = key_data.get_entry()
                 try:
                     # Test to see that the file is [present and] readable.
-                    open(entry).close()
-                    gone = False
+                    with open(entry):
+                        gone = False
                 except OSError:
                     gone = True
 
@@ -1507,8 +1512,8 @@ class ModuleCache:
             if filename.startswith("tmp"):
                 try:
                     fname = os.path.join(self.dirname, filename, "key.pkl")
-                    open(fname).close()
-                    has_key = True
+                    with open(fname):
+                        has_key = True
                 except OSError:
                     has_key = False
                 if not has_key:
@@ -1601,7 +1606,8 @@ def _rmtree(
         if os.path.exists(parent):
             try:
                 _logger.info(f'placing "delete.me" in {parent}')
-                open(os.path.join(parent, "delete.me"), "w").close()
+                with open(os.path.join(parent, "delete.me"), "w"):
+                    pass
             except Exception as ee:
                 _logger.warning(
                     f"Failed to remove or mark cache directory {parent} for removal {ee}"
@@ -1666,9 +1672,9 @@ def get_gcc_shared_library_arg():
 
 
 def std_include_dirs():
-    numpy_inc_dirs = numpy.distutils.misc_util.get_numpy_include_dirs()
-    py_inc = distutils.sysconfig.get_python_inc()
-    py_plat_spec_inc = distutils.sysconfig.get_python_inc(plat_specific=True)
+    numpy_inc_dirs = [np.get_include()]
+    py_inc = get_python_inc()
+    py_plat_spec_inc = get_python_inc(plat_specific=True)
     python_inc_dirs = (
         [py_inc] if py_inc == py_plat_spec_inc else [py_inc, py_plat_spec_inc]
     )
@@ -1682,7 +1688,7 @@ def std_lib_dirs_and_libs() -> Optional[Tuple[List[str], ...]]:
     # this method is called many times.
     if std_lib_dirs_and_libs.data is not None:
         return std_lib_dirs_and_libs.data
-    python_inc = distutils.sysconfig.get_python_inc()
+    python_inc = get_python_inc()
     if sys.platform == "win32":
         # Obtain the library name from the Python version instead of the
         # installation directory, in case the user defined a custom
@@ -1756,7 +1762,7 @@ def std_lib_dirs_and_libs() -> Optional[Tuple[List[str], ...]]:
 
             # get the name of the python library (shared object)
 
-            libname = str(distutils.sysconfig.get_config_var("LDLIBRARY"))
+            libname = str(get_config_var("LDLIBRARY"))
 
             if libname.startswith("lib"):
                 libname = libname[3:]
@@ -1767,7 +1773,7 @@ def std_lib_dirs_and_libs() -> Optional[Tuple[List[str], ...]]:
             elif libname.endswith(".a"):
                 libname = libname[:-2]
 
-            libdir = str(distutils.sysconfig.get_config_var("LIBDIR"))
+            libdir = str(get_config_var("LIBDIR"))
 
         std_lib_dirs_and_libs.data = [libname], [libdir]
 
@@ -1775,9 +1781,7 @@ def std_lib_dirs_and_libs() -> Optional[Tuple[List[str], ...]]:
     # explicitly where it is located this returns
     # somepath/lib/python2.x
 
-    python_lib = str(
-        distutils.sysconfig.get_python_lib(plat_specific=True, standard_lib=True)
-    )
+    python_lib = str(get_python_lib(plat_specific=True, standard_lib=True))
     python_lib = os.path.dirname(python_lib)
     if python_lib not in std_lib_dirs_and_libs.data[1]:
         std_lib_dirs_and_libs.data[1].append(python_lib)
@@ -2365,7 +2369,7 @@ class GCC_compiler(Compiler):
             # The following nullifies that redefinition, if it is found.
             python_version = sys.version_info[:3]
             if (3,) <= python_version < (3, 7, 3):
-                config_h_filename = distutils.sysconfig.get_config_h_filename()
+                config_h_filename = get_config_h_filename()
                 try:
                     with open(config_h_filename) as config_h:
                         if any(
@@ -2540,7 +2544,7 @@ class GCC_compiler(Compiler):
         if platform.python_implementation() == "PyPy":
             suffix = "." + get_lib_extension()
 
-            dist_suffix = distutils.sysconfig.get_config_var("SO")
+            dist_suffix = get_config_var("SO")
             if dist_suffix is not None and dist_suffix != "":
                 suffix = dist_suffix
 
@@ -2643,7 +2647,8 @@ class GCC_compiler(Compiler):
 
         if py_module:
             # touch the __init__ file
-            open(os.path.join(location, "__init__.py"), "w").close()
+            with open(os.path.join(location, "__init__.py"), "w"):
+                pass
             assert os.path.isfile(lib_filename)
             return dlimport(lib_filename)
 
@@ -2702,8 +2707,6 @@ def default_blas_ldflags():
     str
 
     """
-    import numpy.distutils  # noqa
-
     warn_record = []
     try:
         # We do this import only here, as in some setup, if we
@@ -2749,7 +2752,7 @@ def default_blas_ldflags():
             stdout_sio, stderr_sio = NumpyCompatibleStdoutStringIO(), io.StringIO()
             with redirect_stdout(stdout_sio), redirect_stderr(stderr_sio):
                 # This is the line which results in the unwanted warnings:
-                blas_info = numpy.distutils.system_info.get_info("blas_opt")
+                blas_info = np.__config__.get_info("blas_opt")
 
             # Print any unfiltered messages to stdout and stderr.
             # (We hope that, beyond what we filter out, there should have been

@@ -118,7 +118,8 @@ For instance, you can define functions along the lines of:
 
     def __setstate__(self, d):
         self.__dict__.update(d)
-        self.training_set = cPickle.load(open(self.training_set_file, 'rb'))
+        with open(self.training_set_file, 'rb') as f:
+            self.training_set = cPickle.load(f)
 
 
 Robust Serialization

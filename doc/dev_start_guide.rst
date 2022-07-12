@@ -68,7 +68,7 @@ Documentation and docstrings
   docstrings of all the classes and functions should respect the
   `PEP257 <https://www.python.org/dev/peps/pep-0257/>`_ rules and follow the
   `Numpy docstring standard
-  <https://github.com/numpy/numpy/blob/master/doc/HOWTO_DOCUMENT.rst.txt>`_.
+  <https://numpydoc.readthedocs.io/en/latest/format.html#docstring-standard>`_.
 
 * To cross-reference other objects (e.g. reference other classes or methods) in
   the docstrings, use the

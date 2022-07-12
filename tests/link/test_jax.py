@@ -39,7 +39,7 @@ from aesara.tensor.math import sum as at_sum
 from aesara.tensor.nnet.basic import SoftmaxGrad
 from aesara.tensor.random.basic import RandomVariable, normal
 from aesara.tensor.random.utils import RandomStream
-from aesara.tensor.shape import Shape, Shape_i, SpecifyShape, reshape
+from aesara.tensor.shape import Shape, Shape_i, SpecifyShape, Unbroadcast, reshape
 from aesara.tensor.type import (
     dscalar,
     dvector,
@@ -201,19 +201,10 @@ def test_jax_compile_ops():
     compare_jax_and_py(x_fg, [])
 
     x_np = np.zeros((20, 1, 1))
-    x = at.Rebroadcast((0, False), (1, True), (2, False))(at.as_tensor_variable(x_np))
+    x = Unbroadcast(0, 2)(at.as_tensor_variable(x_np))
     x_fg = FunctionGraph([], [x])
 
     compare_jax_and_py(x_fg, [])
-
-    with config.change_flags(compute_test_value="off"):
-        x = at.Rebroadcast((0, True), (1, False), (2, False))(
-            at.as_tensor_variable(x_np)
-        )
-        x_fg = FunctionGraph([], [x])
-
-        with pytest.raises(ValueError):
-            compare_jax_and_py(x_fg, [])
 
     x = ViewOp()(at.as_tensor_variable(x_np))
     x_fg = FunctionGraph([], [x])

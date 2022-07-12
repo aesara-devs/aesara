@@ -150,7 +150,7 @@ How do I configure/test my BLAS library
 There are many ways to configure BLAS for Aesara. This is done with the Aesara
 flags ``blas__ldflags`` (:ref:`libdoc_config`). The default is to use the BLAS
 installation information in NumPy, accessible via
-``numpy.distutils.__config__.show()``.  You can tell aesara to use a different
+``numpy.__config__.show()``.  You can tell aesara to use a different
 version of BLAS, in case you did not compile NumPy with a fast BLAS or if NumPy
 was compiled with a static library of BLAS (the latter is not supported in
 Aesara).
