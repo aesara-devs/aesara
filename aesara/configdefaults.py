@@ -1,4 +1,3 @@
-import distutils.spawn
 import errno
 import logging
 import os
@@ -9,6 +8,7 @@ import sys
 import textwrap
 
 import numpy as np
+from setuptools._distutils.spawn import find_executable
 
 import aesara
 import aesara.configparser
@@ -437,7 +437,7 @@ def add_compile_configvars():
 
     # Try to find the full compiler path from the name
     if param != "":
-        newp = distutils.spawn.find_executable(param)
+        newp = find_executable(param)
         if newp is not None:
             param = newp
         del newp
