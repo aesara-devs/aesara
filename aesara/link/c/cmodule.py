@@ -21,7 +21,7 @@ import warnings
 from io import BytesIO, StringIO
 from typing import Callable, Dict, List, Optional, Set, Tuple, cast
 
-import numpy.distutils
+import numpy as np
 from setuptools._distutils.sysconfig import (
     get_config_h_filename,
     get_config_var,
@@ -1670,7 +1670,7 @@ def get_gcc_shared_library_arg():
 
 
 def std_include_dirs():
-    numpy_inc_dirs = numpy.distutils.misc_util.get_numpy_include_dirs()
+    numpy_inc_dirs = [np.get_include()]
     py_inc = get_python_inc()
     py_plat_spec_inc = get_python_inc(plat_specific=True)
     python_inc_dirs = (
@@ -2705,27 +2705,9 @@ def default_blas_ldflags():
     str
 
     """
-    import numpy.distutils  # noqa
-
     warn_record = []
     try:
-        # We do this import only here, as in some setup, if we
-        # just import aesara and exit, with the import at global
-        # scope, we get this error at exit: "Exception TypeError:
-        # "'NoneType' object is not callable" in <bound method
-        # Popen.__del__ of <subprocess.Popen object at 0x21359d0>>
-        # ignored"
-
-        # This happen with Python 2.7.3 |EPD 7.3-1 and numpy 1.8.1
-        # isort: off
-        import numpy.distutils.system_info  # noqa
-
-        # We need to catch warnings as in some cases NumPy print
-        # stuff that we don't want the user to see.
-        # I'm not able to remove all printed stuff
-        with warnings.catch_warnings(record=True):
-            numpy.distutils.system_info.system_info.verbosity = 0
-            blas_info = numpy.distutils.system_info.get_info("blas_opt")
+        blas_info = np.__config__.get_info("blas_opt")
 
         # If we are in a EPD installation, mkl is available
         if "EPD" in sys.version:
