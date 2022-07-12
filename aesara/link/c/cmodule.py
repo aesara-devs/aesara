@@ -3,7 +3,6 @@ Generate and compile C modules for Python.
 
 """
 import atexit
-import distutils.sysconfig
 import importlib
 import logging
 import os
@@ -23,6 +22,12 @@ from io import BytesIO, StringIO
 from typing import Callable, Dict, List, Optional, Set, Tuple, cast
 
 import numpy.distutils
+from setuptools._distutils.sysconfig import (
+    get_config_h_filename,
+    get_config_var,
+    get_python_inc,
+    get_python_lib,
+)
 from typing_extensions import Protocol
 
 # we will abuse the lockfile mechanism when reading and writing the registry
@@ -254,9 +259,9 @@ class DynamicModule:
 
 def _get_ext_suffix():
     """Get the suffix for compiled extensions"""
-    dist_suffix = distutils.sysconfig.get_config_var("EXT_SUFFIX")
+    dist_suffix = get_config_var("EXT_SUFFIX")
     if dist_suffix is None:
-        dist_suffix = distutils.sysconfig.get_config_var("SO")
+        dist_suffix = get_config_var("SO")
     return dist_suffix
 
 
@@ -1666,8 +1671,8 @@ def get_gcc_shared_library_arg():
 
 def std_include_dirs():
     numpy_inc_dirs = numpy.distutils.misc_util.get_numpy_include_dirs()
-    py_inc = distutils.sysconfig.get_python_inc()
-    py_plat_spec_inc = distutils.sysconfig.get_python_inc(plat_specific=True)
+    py_inc = get_python_inc()
+    py_plat_spec_inc = get_python_inc(plat_specific=True)
     python_inc_dirs = (
         [py_inc] if py_inc == py_plat_spec_inc else [py_inc, py_plat_spec_inc]
     )
@@ -1681,7 +1686,7 @@ def std_lib_dirs_and_libs() -> Optional[Tuple[List[str], ...]]:
     # this method is called many times.
     if std_lib_dirs_and_libs.data is not None:
         return std_lib_dirs_and_libs.data
-    python_inc = distutils.sysconfig.get_python_inc()
+    python_inc = get_python_inc()
     if sys.platform == "win32":
         # Obtain the library name from the Python version instead of the
         # installation directory, in case the user defined a custom
@@ -1755,7 +1760,7 @@ def std_lib_dirs_and_libs() -> Optional[Tuple[List[str], ...]]:
 
             # get the name of the python library (shared object)
 
-            libname = str(distutils.sysconfig.get_config_var("LDLIBRARY"))
+            libname = str(get_config_var("LDLIBRARY"))
 
             if libname.startswith("lib"):
                 libname = libname[3:]
@@ -1766,7 +1771,7 @@ def std_lib_dirs_and_libs() -> Optional[Tuple[List[str], ...]]:
             elif libname.endswith(".a"):
                 libname = libname[:-2]
 
-            libdir = str(distutils.sysconfig.get_config_var("LIBDIR"))
+            libdir = str(get_config_var("LIBDIR"))
 
         std_lib_dirs_and_libs.data = [libname], [libdir]
 
@@ -1774,9 +1779,7 @@ def std_lib_dirs_and_libs() -> Optional[Tuple[List[str], ...]]:
     # explicitly where it is located this returns
     # somepath/lib/python2.x
 
-    python_lib = str(
-        distutils.sysconfig.get_python_lib(plat_specific=True, standard_lib=True)
-    )
+    python_lib = str(get_python_lib(plat_specific=True, standard_lib=True))
     python_lib = os.path.dirname(python_lib)
     if python_lib not in std_lib_dirs_and_libs.data[1]:
         std_lib_dirs_and_libs.data[1].append(python_lib)
@@ -2364,7 +2367,7 @@ class GCC_compiler(Compiler):
             # The following nullifies that redefinition, if it is found.
             python_version = sys.version_info[:3]
             if (3,) <= python_version < (3, 7, 3):
-                config_h_filename = distutils.sysconfig.get_config_h_filename()
+                config_h_filename = get_config_h_filename()
                 try:
                     with open(config_h_filename) as config_h:
                         if any(
@@ -2539,7 +2542,7 @@ class GCC_compiler(Compiler):
         if platform.python_implementation() == "PyPy":
             suffix = "." + get_lib_extension()
 
-            dist_suffix = distutils.sysconfig.get_config_var("SO")
+            dist_suffix = get_config_var("SO")
             if dist_suffix is not None and dist_suffix != "":
                 suffix = dist_suffix
 
