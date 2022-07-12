@@ -1300,7 +1300,8 @@ def _filter_compiledir(path):
     init_file = os.path.join(path, "__init__.py")
     if not os.path.exists(init_file):
         try:
-            open(init_file, "w").close()
+            with open(init_file, "w"):
+                pass
         except OSError as e:
             if os.path.exists(init_file):
                 pass  # has already been created

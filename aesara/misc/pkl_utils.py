@@ -42,21 +42,19 @@ Pickler = pickle.Pickler
 
 
 class StripPickler(Pickler):
-    """
-    Subclass of Pickler that strips unnecessary attributes from Aesara objects.
+    """Subclass of `Pickler` that strips unnecessary attributes from Aesara objects.
 
-    .. versionadded:: 0.8
-
-    Example of use::
+    Example
+    -------
 
         fn_args = dict(inputs=inputs,
                        outputs=outputs,
                        updates=updates)
         dest_pkl = 'my_test.pkl'
-        f = open(dest_pkl, 'wb')
-        strip_pickler = StripPickler(f, protocol=-1)
-        strip_pickler.dump(fn_args)
-        f.close()
+        with open(dest_pkl, 'wb') as f:
+            strip_pickler = StripPickler(f, protocol=-1)
+            strip_pickler.dump(fn_args)
+
     """
 
     def __init__(self, file, protocol=0, extra_tag_to_remove=None):

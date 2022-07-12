@@ -1008,8 +1008,8 @@ class ModuleCache:
                 entry = key_data.get_entry()
                 try:
                     # Test to see that the file is [present and] readable.
-                    open(entry).close()
-                    gone = False
+                    with open(entry):
+                        gone = False
                 except OSError:
                     gone = True
 
@@ -1505,8 +1505,8 @@ class ModuleCache:
             if filename.startswith("tmp"):
                 try:
                     fname = os.path.join(self.dirname, filename, "key.pkl")
-                    open(fname).close()
-                    has_key = True
+                    with open(fname):
+                        has_key = True
                 except OSError:
                     has_key = False
                 if not has_key:
@@ -1599,7 +1599,8 @@ def _rmtree(
         if os.path.exists(parent):
             try:
                 _logger.info(f'placing "delete.me" in {parent}')
-                open(os.path.join(parent, "delete.me"), "w").close()
+                with open(os.path.join(parent, "delete.me"), "w"):
+                    pass
             except Exception as ee:
                 _logger.warning(
                     f"Failed to remove or mark cache directory {parent} for removal {ee}"
@@ -2641,7 +2642,8 @@ class GCC_compiler(Compiler):
 
         if py_module:
             # touch the __init__ file
-            open(os.path.join(location, "__init__.py"), "w").close()
+            with open(os.path.join(location, "__init__.py"), "w"):
+                pass
             assert os.path.isfile(lib_filename)
             return dlimport(lib_filename)
 
