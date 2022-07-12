@@ -130,11 +130,10 @@ import os
 import time
 
 import numpy as np
-import numpy.distutils
 
 
 try:
-    import numpy.distutils.__config__  # noqa
+    import numpy.__config__  # noqa
 except ImportError:
     pass
 
