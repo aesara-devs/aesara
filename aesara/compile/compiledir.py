@@ -33,14 +33,13 @@ def cleanup():
     """
     compiledir = config.compiledir
     for directory in os.listdir(compiledir):
-        file = None
         try:
-            try:
-                filename = os.path.join(compiledir, directory, "key.pkl")
-                file = open(filename, "rb")
-                # print file
+            filename = os.path.join(compiledir, directory, "key.pkl")
+            # print file
+            with open(filename, "rb") as file:
                 try:
                     keydata = pickle.load(file)
+
                     for key in list(keydata.keys):
                         have_npy_abi_version = False
                         have_c_compiler = False
@@ -86,14 +85,11 @@ def cleanup():
                         "the clean-up, please remove manually "
                         "the directory containing it."
                     )
-            except OSError:
-                _logger.error(
-                    f"Could not clean up this directory: '{directory}'. To complete "
-                    "the clean-up, please remove it manually."
-                )
-        finally:
-            if file is not None:
-                file.close()
+        except OSError:
+            _logger.error(
+                f"Could not clean up this directory: '{directory}'. To complete "
+                "the clean-up, please remove it manually."
+            )
 
 
 def print_title(title, overline="", underline=""):
