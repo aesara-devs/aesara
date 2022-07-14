@@ -1321,16 +1321,9 @@ class TestJoinAndSplit:
     def test_stack_new_interface(self):
         # Test the new numpy-like interface: stack(tensors, axis=0).
 
-        # Testing against old interface
-        warnings.simplefilter("always", DeprecationWarning)
         a = imatrix("a")
         b = imatrix("b")
-        s1 = stack(a, b)
-        s2 = stack([a, b])
-        f = function([a, b], [s1, s2], mode=self.mode)
-        v1, v2 = f([[1, 2]], [[3, 4]])
-        assert v1.shape == v2.shape
-        assert np.all(v1 == v2)
+
         # Testing axis parameter
         s3 = stack([a, b], 1)
         f = function([a, b], s3, mode=self.mode)

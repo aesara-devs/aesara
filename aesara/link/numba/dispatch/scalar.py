@@ -22,8 +22,8 @@ from aesara.scalar.basic import (
     Clip,
     Composite,
     Identity,
-    Inv,
     Mul,
+    Reciprocal,
     ScalarOp,
     Second,
     Switch,
@@ -236,13 +236,15 @@ def numba_funcify_Second(op, node, **kwargs):
     return second
 
 
-@numba_funcify.register(Inv)
-def numba_funcify_Inv(op, node, **kwargs):
+@numba_funcify.register(Reciprocal)
+def numba_funcify_Reciprocal(op, node, **kwargs):
     @numba_basic.numba_njit(inline="always")
-    def inv(x):
+    def reciprocal(x):
+        # TODO FIXME: This isn't really the behavior or `numpy.reciprocal` when
+        # `x` is an `int`
         return 1 / x
 
-    return inv
+    return reciprocal
 
 
 @numba_funcify.register(Sigmoid)

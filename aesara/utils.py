@@ -158,12 +158,18 @@ def deprecated(message: str = ""):
     def decorator_wrapper(func):
         @wraps(func)
         def function_wrapper(*args, **kwargs):
+            nonlocal message
+
             current_call_source = "|".join(
                 traceback.format_stack(inspect.currentframe())
             )
             if current_call_source not in function_wrapper.last_call_source:
+
+                if not message:
+                    message = f"Function {func.__name__} is deprecated."
+
                 warnings.warn(
-                    "Function {} is now deprecated! {}".format(func.__name__, message),
+                    message,
                     category=DeprecationWarning,
                     stacklevel=2,
                 )

@@ -1048,10 +1048,6 @@ def abs(a):
     """|`a`|"""
 
 
-# These are deprecated and will be removed
-abs_ = abs
-
-
 pprint.assign(abs, printing.PatternPrinter(("|%(0)s|", -1000)))
 
 
@@ -1078,10 +1074,6 @@ def neg(a):
 @scalar_elemwise
 def reciprocal(a):
     """1.0/a"""
-
-
-# This is deprecated and will be removed
-inv = reciprocal
 
 
 @scalar_elemwise
@@ -3024,13 +3016,11 @@ __all__ = [
     "invert",
     "bitwise_not",
     "abs",
-    "abs_",
     "exp",
     "exp2",
     "expm1",
     "neg",
     "reciprocal",
-    "inv",
     "log",
     "log2",
     "log10",
@@ -3127,3 +3117,28 @@ __all__ = [
     "logaddexp",
     "logsumexp",
 ]
+
+DEPRECATED_NAMES = [
+    ("abs_", "`abs_` is deprecated; use `abs` instead.", abs),
+    ("inv", "`inv` is deprecated; use `reciprocal` instead.", reciprocal),
+]
+
+
+def __getattr__(name):
+    """Intercept module-level attribute access of deprecated symbols.
+
+    Adapted from https://stackoverflow.com/a/55139609/3006474.
+
+    """
+    from warnings import warn
+
+    for old_name, msg, old_object in DEPRECATED_NAMES:
+        if name == old_name:
+            warn(msg, DeprecationWarning, stacklevel=2)
+            return old_object
+
+    raise AttributeError(f"module {__name__} has no attribute {name}")
+
+
+def __dir__():
+    return sorted(__all__ + [names[0] for names in DEPRECATED_NAMES])

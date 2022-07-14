@@ -2129,10 +2129,9 @@ consider_constant_ = ConsiderConstant()
 
 
 def consider_constant(x):
-    """
-    DEPRECATED: use zero_grad() or disconnected_grad() instead.
+    """Consider an expression constant when computing gradients.
 
-    Consider an expression constant when computing gradients.
+    DEPRECATED: use `zero_grad` or `disconnected_grad` instead.
 
     The expression itself is unaffected, but when its gradient is
     computed, or the gradient of another expression that this
@@ -2149,14 +2148,14 @@ def consider_constant(x):
     """
     warnings.warn(
         (
-            "consider_constant() is deprecated, use zero_grad() or "
-            "disconnected_grad() instead."
+            "`ConsiderConstant` is deprecated; use `zero_grad` or "
+            "`disconnected_grad` instead."
         ),
         category=DeprecationWarning,
         stacklevel=3,
     )
 
-    return consider_constant_(x)
+    return ConsiderConstant()(x)
 
 
 class ZeroGrad(ViewOp):
@@ -2365,3 +2364,28 @@ def grad_scale(x, multiplier):
     0.416...
     """
     return GradScale(multiplier)(x)
+
+
+DEPRECATED_NAMES = [
+    (
+        "consider_constant_",
+        "`consider_constant_` is deprecated; use `zero_grad` or `disconnected_grad` instead.",
+        ConsiderConstant(),
+    ),
+]
+
+
+def __getattr__(name):
+    """Intercept module-level attribute access of deprecated symbols.
+
+    Adapted from https://stackoverflow.com/a/55139609/3006474.
+
+    """
+    from warnings import warn
+
+    for old_name, msg, old_object in DEPRECATED_NAMES:
+        if name == old_name:
+            warn(msg, DeprecationWarning, stacklevel=2)
+            return old_object
+
+    raise AttributeError(f"module {__name__} has no attribute {name}")

@@ -1107,10 +1107,10 @@ class MRG_RandomStream:
         **kwargs,
     ):
         warnings.warn(
-            "MRG_RandomStream.multinomial_wo_replacement is "
-            "deprecated and will be removed in the next release of "
-            "Aesara. Please use MRG_RandomStream.choice instead.",
+            "`MRG_RandomStream.multinomial_wo_replacement` is "
+            "deprecated; use `MRG_RandomStream.choice` instead.",
             DeprecationWarning,
+            stacklevel=2,
         )
         assert size is None
         return self.choice(
