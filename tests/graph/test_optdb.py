@@ -10,7 +10,7 @@ from aesara.graph.optdb import (
 )
 
 
-class TestOpt(opt.GlobalOptimizer):
+class TestOpt(opt.GraphRewriter):
     name = "blah"
 
     def apply(self, fgraph):

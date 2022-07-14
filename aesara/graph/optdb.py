@@ -11,14 +11,14 @@ from aesara.misc.ordered_set import OrderedSet
 from aesara.utils import DefaultOrderedDict
 
 
-OptimizersType = Union[aesara_opt.GlobalOptimizer, aesara_opt.LocalOptimizer]
+OptimizersType = Union[aesara_opt.GraphRewriter, aesara_opt.LocalOptimizer]
 
 
 class OptimizationDatabase:
-    """A class that represents a collection/database of optimizations.
+    r"""A class that represents a collection/database of optimizations.
 
     These databases are used to logically organize collections of optimizers
-    (i.e. ``GlobalOptimizer``s and ``LocalOptimizer``).
+    (i.e. `GraphRewriter`\s and `LocalOptimizer`).
     """
 
     def __init__(self):
@@ -61,7 +61,7 @@ class OptimizationDatabase:
             optimizer,
             (
                 OptimizationDatabase,
-                aesara_opt.GlobalOptimizer,
+                aesara_opt.GraphRewriter,
                 aesara_opt.LocalOptimizer,
             ),
         ):
@@ -311,7 +311,7 @@ class EquilibriumDB(OptimizationDatabase):
 
     Notes
     -----
-    We can use `LocalOptimizer` and `GlobalOptimizer` since `EquilibriumOptimizer`
+    We can use `LocalOptimizer` and `GraphRewriter` since `EquilibriumOptimizer`
     supports both.
 
     It is probably not a good idea to have ignore_newtrees=False and
@@ -506,7 +506,7 @@ class LocalGroupDB(SequenceDB):
 
 
 class TopoDB(OptimizationDatabase):
-    """Generate a `GlobalOptimizer` of type TopoOptimizer."""
+    """Generate a `GraphRewriter` of type TopoOptimizer."""
 
     def __init__(
         self, db, order="in_to_out", ignore_newtrees=False, failure_callback=None

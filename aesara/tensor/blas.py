@@ -147,7 +147,7 @@ from aesara.graph.features import ReplacementDidNotRemoveError, ReplaceValidate
 from aesara.graph.op import Op
 from aesara.graph.opt import (
     EquilibriumOptimizer,
-    GlobalOptimizer,
+    GraphRewriter,
     copy_stack_trace,
     in2out,
     local_optimizer,
@@ -1496,7 +1496,7 @@ def _gemm_from_node2(fgraph, node):
     return None, t1 - t0, 0, 0
 
 
-class GemmOptimizer(GlobalOptimizer):
+class GemmOptimizer(GraphRewriter):
     """Graph optimizer for inserting Gemm operations."""
 
     def __init__(self):

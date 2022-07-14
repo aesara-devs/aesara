@@ -27,7 +27,7 @@ from aesara.graph.features import AlreadyThere, Feature, ReplaceValidate
 from aesara.graph.fg import FunctionGraph
 from aesara.graph.op import compute_test_value, get_test_value
 from aesara.graph.opt import (
-    GlobalOptimizer,
+    GraphRewriter,
     OpRemove,
     check_chain,
     copy_stack_trace,
@@ -162,7 +162,7 @@ def broadcast_like(value, template, fgraph, dtype=None):
     return rval
 
 
-class InplaceElemwiseOptimizer(GlobalOptimizer):
+class InplaceElemwiseOptimizer(GraphRewriter):
     r"""
     This is parameterized so that it works for `Elemwise` `Op`\s.
     """
@@ -1443,7 +1443,7 @@ class ShapeFeature(Feature):
         return type(self)()
 
 
-class ShapeOptimizer(GlobalOptimizer):
+class ShapeOptimizer(GraphRewriter):
     """Optimizer that adds `ShapeFeature` as a feature."""
 
     def add_requirements(self, fgraph):
@@ -1453,7 +1453,7 @@ class ShapeOptimizer(GlobalOptimizer):
         pass
 
 
-class UnShapeOptimizer(GlobalOptimizer):
+class UnShapeOptimizer(GraphRewriter):
     """Optimizer that removes `ShapeFeature` as a feature."""
 
     def apply(self, fgraph):
@@ -3085,7 +3085,7 @@ def elemwise_max_input_fct(node):
 local_elemwise_fusion = local_elemwise_fusion_op(Elemwise, elemwise_max_input_fct)
 
 
-class FusionOptimizer(GlobalOptimizer):
+class FusionOptimizer(GraphRewriter):
     """Graph optimizer that simply runs local fusion operations.
 
     TODO: This is basically a `EquilibriumOptimizer`; we should just use that.

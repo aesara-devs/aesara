@@ -22,7 +22,7 @@ from aesara.compile import optdb
 from aesara.configdefaults import config
 from aesara.graph.basic import Apply, Variable, clone_replace, is_in_ancestors
 from aesara.graph.op import _NoPythonOp
-from aesara.graph.opt import GlobalOptimizer, in2out, local_optimizer
+from aesara.graph.opt import GraphRewriter, in2out, local_optimizer
 from aesara.graph.type import HasDataType, HasShape
 from aesara.tensor.shape import Reshape, Shape, SpecifyShape, Unbroadcast
 
@@ -583,7 +583,7 @@ def cond_merge_ifs_false(fgraph, node):
     return op(*old_ins, return_list=True)
 
 
-class CondMerge(GlobalOptimizer):
+class CondMerge(GraphRewriter):
     """Graph Optimizer that merges different cond ops"""
 
     def add_requirements(self, fgraph):

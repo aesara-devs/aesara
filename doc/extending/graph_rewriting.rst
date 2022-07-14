@@ -39,10 +39,10 @@ we want to define are local.
 
 .. optimizer:
 
-Global optimization
--------------------
+Graph Rewriting
+---------------
 
-.. class:: GlobalOptimizer
+.. class:: GraphRewriter
 
     .. method:: apply(fgraph)
 
@@ -54,12 +54,12 @@ Global optimization
 
       This method takes a :class:`FunctionGraph` object and adds :ref:`features
       <libdoc_graph_fgraphfeature>` to it. These features are "plugins" that are needed
-      for the :meth:`GlobalOptimizer.apply` method to do its job properly.
+      for the :meth:`GraphRewriter.apply` method to do its job properly.
 
     .. method:: optimize(fgraph)
 
       This is the interface function called by Aesara.  It calls
-      :meth:`GlobalOptimizer.apply` by default.
+      :meth:`GraphRewriter.apply` by default.
 
 
 Local optimization
@@ -101,10 +101,10 @@ simplification described above:
 .. testcode::
 
    import aesara
-   from aesara.graph.opt import GlobalOptimizer
+   from aesara.graph.opt import GraphRewriter
    from aesara.graph.features import ReplaceValidate
 
-   class Simplify(GlobalOptimizer):
+   class Simplify(GraphRewriter):
        def add_requirements(self, fgraph):
            fgraph.attach_feature(ReplaceValidate())
 
@@ -136,7 +136,7 @@ another while respecting certain validation constraints. As an
 exercise, try to rewrite :class:`Simplify` using :class:`NodeFinder`. (Hint: you
 want to use the method it publishes instead of the call to toposort)
 
-Then, in :meth:`GlobalOptimizer.apply` we do the actual job of simplification. We start by
+Then, in :meth:`GraphRewriter.apply` we do the actual job of simplification. We start by
 iterating through the graph in topological order. For each node
 encountered, we check if it's a ``div`` node. If not, we have nothing
 to do here. If so, we put in ``x``, ``y`` and ``z`` the numerator,
