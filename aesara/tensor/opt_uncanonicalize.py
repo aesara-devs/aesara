@@ -34,7 +34,7 @@ supposed to be canonical.
 import logging
 
 from aesara import scalar as aes
-from aesara.graph.opt import copy_stack_trace, local_optimizer
+from aesara.graph.opt import copy_stack_trace, node_rewriter
 from aesara.tensor.basic import Alloc, alloc, constant
 from aesara.tensor.basic_opt import register_uncanonicalize
 from aesara.tensor.elemwise import CAReduce, DimShuffle
@@ -47,7 +47,7 @@ _logger = logging.getLogger("aesara.tensor.opt_uncanonicalize")
 
 
 @register_uncanonicalize
-@local_optimizer([MaxAndArgmax])
+@node_rewriter([MaxAndArgmax])
 def local_max_and_argmax(fgraph, node):
     """
     If we don't use the argmax, change it to a max only.
@@ -66,7 +66,7 @@ def local_max_and_argmax(fgraph, node):
 
 
 @register_uncanonicalize
-@local_optimizer([neg])
+@node_rewriter([neg])
 def local_max_to_min(fgraph, node):
     """
     Change -(max(-x)) to min.
@@ -95,7 +95,7 @@ def local_max_to_min(fgraph, node):
 
 
 @register_uncanonicalize
-@local_optimizer([Alloc])
+@node_rewriter([Alloc])
 def local_alloc_dimshuffle(fgraph, node):
     """
     If a dimshuffle is inside an alloc and only adds dimension to the
@@ -118,7 +118,7 @@ def local_alloc_dimshuffle(fgraph, node):
 
 
 @register_uncanonicalize
-@local_optimizer([Reshape])
+@node_rewriter([Reshape])
 def local_reshape_dimshuffle(fgraph, node):
     """
     If a dimshuffle is inside a reshape and does not change the order
@@ -147,7 +147,7 @@ def local_reshape_dimshuffle(fgraph, node):
 
 
 @register_uncanonicalize
-@local_optimizer([DimShuffle])
+@node_rewriter([DimShuffle])
 def local_dimshuffle_alloc(fgraph, node):
     """
     If an alloc is inside a dimshuffle which only adds dimension to the left,
@@ -175,7 +175,7 @@ def local_dimshuffle_alloc(fgraph, node):
 
 
 @register_uncanonicalize
-@local_optimizer([DimShuffle])
+@node_rewriter([DimShuffle])
 def local_dimshuffle_subtensor(fgraph, node):
     """If a subtensor is inside a dimshuffle which only drop
     broadcastable dimensions, scrap the dimshuffle and index the

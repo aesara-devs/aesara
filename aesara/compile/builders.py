@@ -24,7 +24,7 @@ from aesara.graph.basic import (
 from aesara.graph.fg import FunctionGraph
 from aesara.graph.null_type import NullType
 from aesara.graph.op import HasInnerGraph, Op
-from aesara.graph.opt import in2out, local_optimizer
+from aesara.graph.opt import in2out, node_rewriter
 from aesara.graph.utils import MissingInputError
 from aesara.tensor.basic_opt import ShapeFeature
 
@@ -928,7 +928,7 @@ class OpFromGraph(Op, HasInnerGraph):
             output[0] = variable
 
 
-@local_optimizer([OpFromGraph])
+@node_rewriter([OpFromGraph])
 def inline_ofg_expansion(fgraph, node):
     """
     This optimization expands internal graph of OpFromGraph.

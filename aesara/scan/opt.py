@@ -28,7 +28,7 @@ from aesara.graph.destroyhandler import DestroyHandler
 from aesara.graph.features import ReplaceValidate
 from aesara.graph.fg import FunctionGraph
 from aesara.graph.op import compute_test_value
-from aesara.graph.opt import GraphRewriter, in2out, local_optimizer
+from aesara.graph.opt import GraphRewriter, in2out, node_rewriter
 from aesara.graph.optdb import EquilibriumDB, SequenceDB
 from aesara.graph.type import HasShape
 from aesara.graph.utils import InconsistencyError
@@ -67,7 +67,7 @@ list_opt_slice = [
 ]
 
 
-@local_optimizer([Scan])
+@node_rewriter([Scan])
 def remove_constants_and_unused_inputs_scan(fgraph, node):
     """Move constants into the inner graph, and remove unused inputs.
 
@@ -192,7 +192,7 @@ def remove_constants_and_unused_inputs_scan(fgraph, node):
         return False
 
 
-@local_optimizer([Scan])
+@node_rewriter([Scan])
 def push_out_non_seq_scan(fgraph, node):
     r"""Push out the variables inside the `Scan` that depend only on non-sequences.
 
@@ -400,7 +400,7 @@ def push_out_non_seq_scan(fgraph, node):
         return False
 
 
-@local_optimizer([Scan])
+@node_rewriter([Scan])
 def push_out_seq_scan(fgraph, node):
     r"""Push out the variables inside the `Scan` that depend only on constants and sequences.
 
@@ -812,7 +812,7 @@ def add_nitsot_outputs(
     return new_scan_node, {}
 
 
-@local_optimizer([Scan])
+@node_rewriter([Scan])
 def push_out_add_scan(fgraph, node):
     r"""Push `Add` operations performed at the end of the inner graph to the outside.
 
@@ -1113,7 +1113,7 @@ def sanitize(x):
         return at.as_tensor_variable(x)
 
 
-@local_optimizer([Scan])
+@node_rewriter([Scan])
 def save_mem_new_scan(fgraph, node):
     r"""Graph optimizer that reduces scan memory consumption.
 
@@ -1950,7 +1950,7 @@ def make_equiv(lo, li):
     return left, right
 
 
-@local_optimizer([Scan])
+@node_rewriter([Scan])
 def scan_merge_inouts(fgraph, node):
     """
     This optimization attempts to merge a `Scan` `Op`'s identical outer inputs as well
@@ -2154,7 +2154,7 @@ def scan_merge_inouts(fgraph, node):
     return na.outer_outputs
 
 
-@local_optimizer([Scan])
+@node_rewriter([Scan])
 def push_out_dot1_scan(fgraph, node):
     r"""
     This is another optimization that attempts to detect certain patterns of

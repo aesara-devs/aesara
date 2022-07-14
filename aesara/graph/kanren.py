@@ -6,11 +6,11 @@ from unification import var
 from unification.variable import Var
 
 from aesara.graph.basic import Apply, Variable
-from aesara.graph.opt import LocalOptimizer
+from aesara.graph.opt import NodeRewriter
 from aesara.graph.unify import eval_if_etuple
 
 
-class KanrenRelationSub(LocalOptimizer):
+class KanrenRelationSub(NodeRewriter):
     r"""A local optimizer that uses `kanren` to match and replace terms.
 
     See `kanren <https://github.com/pythological/kanren>`__ for more information

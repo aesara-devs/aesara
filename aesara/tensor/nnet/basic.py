@@ -18,7 +18,7 @@ from aesara.compile import optdb
 from aesara.gradient import DisconnectedType, grad_not_implemented
 from aesara.graph.basic import Apply
 from aesara.graph.op import Op
-from aesara.graph.opt import copy_stack_trace, local_optimizer, optimizer
+from aesara.graph.opt import copy_stack_trace, node_rewriter, optimizer
 from aesara.link.c.op import COp
 from aesara.raise_op import Assert
 from aesara.scalar import UnaryScalarOp
@@ -1046,7 +1046,7 @@ class LogSoftmax(COp):
 # This is not registered in stabilize, as it cause some crossentropy
 # optimization to not be inserted.
 @register_specialize("stabilize", "fast_compile")
-@local_optimizer([Elemwise])
+@node_rewriter([Elemwise])
 def local_logsoftmax(fgraph, node):
     """
     Detect Log(Softmax(x)) and replace it with LogSoftmax(x)
@@ -1071,7 +1071,7 @@ def local_logsoftmax(fgraph, node):
 # This is not registered in stabilize, as it cause some crossentropy
 # optimization to not be inserted.
 @register_specialize("stabilize", "fast_compile")
-@local_optimizer([SoftmaxGrad])
+@node_rewriter([SoftmaxGrad])
 def local_logsoftmax_grad(fgraph, node):
     """
     Detect Log(Softmax(x))'s grad and replace it with LogSoftmax(x)'s grad
@@ -1150,7 +1150,7 @@ def logsoftmax(c, axis=UNSET_AXIS):
 
 
 @register_specialize("fast_compile")
-@local_optimizer([softmax_legacy])
+@node_rewriter([softmax_legacy])
 def local_softmax_with_bias(fgraph, node):
     """
     Try to turn softmax(sum_of_stuff) -> softmax_w_bias(matrix, bias).
@@ -1954,7 +1954,7 @@ optdb.register(
 @register_specialize(
     "fast_compile", "local_crossentropy_to_crossentropy_with_softmax_grad"
 )  # old name
-@local_optimizer([softmax_grad_legacy])
+@node_rewriter([softmax_grad_legacy])
 def local_softmax_grad_to_crossentropy_with_softmax_grad(fgraph, node):
     if node.op == softmax_grad_legacy and node.inputs[1].ndim == 2:
         g_coding_dist, coding_dist = node.inputs
@@ -1971,7 +1971,7 @@ def local_softmax_grad_to_crossentropy_with_softmax_grad(fgraph, node):
 
 
 @register_specialize("fast_compile")
-@local_optimizer([MaxAndArgmax])
+@node_rewriter([MaxAndArgmax])
 def local_argmax_pushdown(fgraph, node):
     if (
         isinstance(node.op, MaxAndArgmax)
@@ -2060,7 +2060,7 @@ def _is_const(z, val, approx=False):
 
 
 @register_specialize("fast_compile")
-@local_optimizer([AdvancedSubtensor, log])
+@node_rewriter([AdvancedSubtensor, log])
 def local_advanced_indexing_crossentropy_onehot(fgraph, node):
     log_op = None
     sm = None
@@ -2108,7 +2108,7 @@ def local_advanced_indexing_crossentropy_onehot(fgraph, node):
 
 
 @register_specialize("fast_compile")
-@local_optimizer([softmax_grad_legacy])
+@node_rewriter([softmax_grad_legacy])
 def local_advanced_indexing_crossentropy_onehot_grad(fgraph, node):
     if not (node.op == softmax_grad_legacy and node.inputs[1].ndim == 2):
         return
@@ -2323,7 +2323,7 @@ def local_advanced_indexing_crossentropy_onehot_grad(fgraph, node):
 
 
 @register_specialize("fast_compile")
-@local_optimizer([softmax_with_bias])
+@node_rewriter([softmax_with_bias])
 def graph_merge_softmax_with_crossentropy_softmax(fgraph, node):
     if node.op == softmax_with_bias:
         x, b = node.inputs
@@ -2340,7 +2340,7 @@ def graph_merge_softmax_with_crossentropy_softmax(fgraph, node):
 @register_specialize
 @register_stabilize
 @register_canonicalize
-@local_optimizer([CrossentropySoftmax1HotWithBiasDx])
+@node_rewriter([CrossentropySoftmax1HotWithBiasDx])
 def local_useless_crossentropy_softmax_1hot_with_bias_dx_alloc(fgraph, node):
     """
     Replace a CrossentropySoftmax1HotWithBiasDx op, whose incoming gradient is

@@ -25,7 +25,7 @@ from aesara.compile import optdb
 from aesara.configdefaults import config
 from aesara.gradient import undefined_grad
 from aesara.graph.basic import Apply, Constant, Variable
-from aesara.graph.opt import in2out, local_optimizer
+from aesara.graph.opt import in2out, node_rewriter
 from aesara.link.c.op import COp, Op
 from aesara.link.c.params_type import ParamsType
 from aesara.sandbox import multinomial
@@ -1343,7 +1343,7 @@ def _check_size(size):
     return at.as_tensor_variable(size, ndim=1)
 
 
-@local_optimizer((mrg_uniform_base,))
+@node_rewriter((mrg_uniform_base,))
 def mrg_random_make_inplace(fgraph, node):
 
     op = node.op

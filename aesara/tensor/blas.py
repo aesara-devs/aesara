@@ -150,7 +150,7 @@ from aesara.graph.opt import (
     GraphRewriter,
     copy_stack_trace,
     in2out,
-    local_optimizer,
+    node_rewriter,
 )
 from aesara.graph.optdb import SequenceDB
 from aesara.graph.utils import InconsistencyError, MethodNotDefined, TestValueError
@@ -1733,7 +1733,7 @@ class Dot22(GemmRelated):
 _dot22 = Dot22()
 
 
-@local_optimizer([Dot])
+@node_rewriter([Dot])
 def local_dot_to_dot22(fgraph, node):
     # This works for tensor.outer too because basic.outer is a macro that
     # produces a dot(dimshuffle,dimshuffle) of form 4 below
@@ -1766,7 +1766,7 @@ def local_dot_to_dot22(fgraph, node):
     _logger.info(f"Not optimizing dot with inputs {x} {y} {x.type} {y.type}")
 
 
-@local_optimizer([gemm_no_inplace], inplace=True)
+@node_rewriter([gemm_no_inplace], inplace=True)
 def local_inplace_gemm(fgraph, node):
     if node.op == gemm_no_inplace:
         new_out = [gemm_inplace(*node.inputs)]
@@ -1774,7 +1774,7 @@ def local_inplace_gemm(fgraph, node):
         return new_out
 
 
-@local_optimizer([gemv_no_inplace], inplace=True)
+@node_rewriter([gemv_no_inplace], inplace=True)
 def local_inplace_gemv(fgraph, node):
     if node.op == gemv_no_inplace:
         new_out = [gemv_inplace(*node.inputs)]
@@ -1782,7 +1782,7 @@ def local_inplace_gemv(fgraph, node):
         return new_out
 
 
-@local_optimizer([ger], inplace=True)
+@node_rewriter([ger], inplace=True)
 def local_inplace_ger(fgraph, node):
     if node.op == ger:
         new_out = [ger_destructive(*node.inputs)]
@@ -1790,7 +1790,7 @@ def local_inplace_ger(fgraph, node):
         return new_out
 
 
-@local_optimizer([gemm_no_inplace])
+@node_rewriter([gemm_no_inplace])
 def local_gemm_to_gemv(fgraph, node):
     """GEMM acting on row or column matrices -> GEMV."""
     if node.op == gemm_no_inplace:
@@ -1807,7 +1807,7 @@ def local_gemm_to_gemv(fgraph, node):
         return new_out
 
 
-@local_optimizer([gemm_no_inplace])
+@node_rewriter([gemm_no_inplace])
 def local_gemm_to_ger(fgraph, node):
     """GEMM computing an outer-product -> GER."""
     if node.op == gemm_no_inplace:
@@ -1839,7 +1839,7 @@ def local_gemm_to_ger(fgraph, node):
 
 # TODO: delete this optimization when we have the proper dot->gemm->ger pipeline
 #      working
-@local_optimizer([_dot22])
+@node_rewriter([_dot22])
 def local_dot22_to_ger_or_gemv(fgraph, node):
     """dot22 computing an outer-product -> GER."""
     if node.op == _dot22:
@@ -2033,7 +2033,7 @@ class Dot22Scalar(GemmRelated):
 _dot22scalar = Dot22Scalar()
 
 
-@local_optimizer([mul])
+@node_rewriter([mul])
 def local_dot22_to_dot22scalar(fgraph, node):
     """
     Notes
@@ -2651,7 +2651,7 @@ _batched_dot = BatchedDot()
 
 # from opt import register_specialize, register_canonicalize
 # @register_specialize
-@local_optimizer([sub, add])
+@node_rewriter([sub, add])
 def local_print_as_we_go_along(fgraph, node):
     if node.op in (sub, add):
         debugprint(node)

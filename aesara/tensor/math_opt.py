@@ -11,11 +11,11 @@ import aesara.scalar.math as aes_math
 from aesara.graph.basic import Constant, Variable
 from aesara.graph.opt import (
     LocalOptGroup,
-    LocalOptimizer,
+    NodeRewriter,
     PatternSub,
     copy_stack_trace,
     in2out,
-    local_optimizer,
+    node_rewriter,
 )
 from aesara.graph.opt_utils import get_clients_at_depth
 from aesara.misc.safe_asarray import _asarray
@@ -148,7 +148,7 @@ def fill_chain(new_out, orig_inputs):
 
 @register_canonicalize
 @register_stabilize
-@local_optimizer([Dot])
+@node_rewriter([Dot])
 def local_0_dot_x(fgraph, node):
     if not isinstance(node.op, Dot):
         return False
@@ -185,7 +185,7 @@ def local_0_dot_x(fgraph, node):
 
 
 @register_canonicalize
-@local_optimizer([DimShuffle])
+@node_rewriter([DimShuffle])
 def local_lift_transpose_through_dot(fgraph, node):
     """Perform the rewrite ``dot(x,y).T -> dot(y.T, x.T)``
 
@@ -229,7 +229,7 @@ def is_inverse_pair(node_op, prev_op, inv_pair):
 
 @register_canonicalize
 @register_specialize
-@local_optimizer([Elemwise])
+@node_rewriter([Elemwise])
 def local_func_inv(fgraph, node):
     """
     Check for two consecutive operations that are functional inverses
@@ -271,7 +271,7 @@ def local_func_inv(fgraph, node):
 
 @register_canonicalize
 @register_specialize
-@local_optimizer([Elemwise])
+@node_rewriter([Elemwise])
 def local_exp_log(fgraph, node):
     x = node.inputs[0]
 
@@ -313,7 +313,7 @@ def local_exp_log(fgraph, node):
 
 
 @register_specialize
-@local_optimizer([Elemwise])
+@node_rewriter([Elemwise])
 def local_exp_log_nan_switch(fgraph, node):
     # Rewrites of the kind exp(log...(x)) that require a `nan` switch
     x = node.inputs[0]
@@ -371,7 +371,7 @@ def local_exp_log_nan_switch(fgraph, node):
 
 @register_canonicalize
 @register_specialize
-@local_optimizer([Sum])
+@node_rewriter([Sum])
 def local_sumsqr2dot(fgraph, node):
     """
     This optimization detects
@@ -418,7 +418,7 @@ def local_sumsqr2dot(fgraph, node):
 @register_stabilize
 @register_specialize
 @register_canonicalize
-@local_optimizer([Elemwise])
+@node_rewriter([Elemwise])
 def local_expm1(fgraph, node):
     """
     This optimization detects exp(a)-1 and converts this to expm1(a).
@@ -446,7 +446,7 @@ def local_expm1(fgraph, node):
 
 @register_specialize
 @register_canonicalize
-@local_optimizer([mul])
+@node_rewriter([mul])
 def local_mul_switch_sink(fgraph, node):
     """
     This optimization makes the following changes in the graph:
@@ -540,7 +540,7 @@ def local_mul_switch_sink(fgraph, node):
 
 
 @register_canonicalize
-@local_optimizer([true_div, int_div])
+@node_rewriter([true_div, int_div])
 def local_div_switch_sink(fgraph, node):
     """
     This optimization makes the following changes in the graph:
@@ -616,33 +616,33 @@ def local_div_switch_sink(fgraph, node):
     return False
 
 
-class AlgebraicCanonizer(LocalOptimizer):
-    r"""Simplification tool.
+class AlgebraicCanonizer(NodeRewriter):
+    r"""A `Rewriter` that rewrites algebraic expressions.
 
-    The variable is a ``local_optimizer``. It is best used
-    with a ``TopoOptimizer`` in ``in_to_out`` order.
+    The variable is a `node_rewriter`. It is best used
+    with a `TopoOptimizer` in in-to-out order.
 
     Usage: ``AlgebraicCanonizer(main, inverse, reciprocal, calculate)``
 
     Parameters
     ----------
     main
-        A suitable ``Op`` class that is commutative, associative and
+        A suitable `Op` class that is commutative, associative and
         takes one to an arbitrary number of inputs, e.g. add or
         mul
     inverse
-        An ``Op`` class such that ``inverse(main(x, y), y) == x``
-        e.g. ``sub`` or true_div
+        An `Op` class such that ``inverse(main(x, y), y) == x``
+        (e.g. `sub` or `true_div`).
     reciprocal
         A function such that ``main(x, reciprocal(y)) == inverse(x, y)``
-        e.g. ``neg`` or ``reciprocal``
+        (e.g. `neg` or `reciprocal`).
     calculate
-        Function that takes a list of numpy.ndarray instances
+        Function that takes a list of `numpy.ndarray` instances
         for the numerator, another list for the denumerator,
         and calculates ``inverse(main(\*num), main(\*denum))``. It
-        takes a keyword argument, aslist. If True, the value
+        takes a keyword argument, `aslist`. If ``True``, the value
         should be returned as a list of one element, unless
-        the value is such that value = main(). In that case,
+        the value is such that ``value = main()``. In that case,
         the return value should be an empty list.
 
     Examples
@@ -654,18 +654,18 @@ class AlgebraicCanonizer(LocalOptimizer):
     >>> mul_canonizer = AlgebraicCanonizer(mul, true_div, inv, \\
     ...                                    lambda n, d: prod(n) / prod(d))
 
-    Examples of optimizations ``mul_canonizer`` can perform:
+    Examples of optimizations `mul_canonizer` can perform:
 
-    | x / x -> 1
-    | (x * y) / x -> y
-    | x / y / x -> 1 / y
-    | x / y / z -> x / (y * z)
-    | x / (y / z) -> (x * z) / y
-    | (a / b) * (b / c) * (c / d) -> a / d
-    | (2.0 * x) / (4.0 * y) -> (0.5 * x) / y
-    | 2 * x / 2 -> x
-    | x * y * z -> Elemwise(mul){x,y,z} #only one pass over the memory.
-    |           !-> Elemwise(mul){x,Elemwise(mul){y,z}}
+        | x / x -> 1
+        | (x * y) / x -> y
+        | x / y / x -> 1 / y
+        | x / y / z -> x / (y * z)
+        | x / (y / z) -> (x * z) / y
+        | (a / b) * (b / c) * (c / d) -> a / d
+        | (2.0 * x) / (4.0 * y) -> (0.5 * x) / y
+        | 2 * x / 2 -> x
+        | x * y * z -> Elemwise(mul){x,y,z} #only one pass over the memory.
+        |           !-> Elemwise(mul){x,Elemwise(mul){y,z}}
 
     """
 
@@ -1082,14 +1082,14 @@ register_canonicalize(local_mul_canonizer, name="local_mul_canonizer")
 
 
 @register_canonicalize
-@local_optimizer([neg])
+@node_rewriter([neg])
 def local_neg_to_mul(fgraph, node):
     if node.op == neg:
         return [mul(np.array(-1, dtype=node.inputs[0].dtype), node.inputs[0])]
 
 
 @register_specialize
-@local_optimizer([Sum, Prod])
+@node_rewriter([Sum, Prod])
 def local_sum_prod_mul_by_scalar(fgraph, node):
     """
     sum(scalar * smth) -> scalar * sum(smth)
@@ -1175,7 +1175,7 @@ def local_sum_prod_mul_by_scalar(fgraph, node):
 
 
 @register_specialize
-@local_optimizer([Elemwise])
+@node_rewriter([Elemwise])
 def local_elemwise_sub_zeros(fgraph, node):
     """
     Elemwise{sub}(X,X) -> zeros_like(X)
@@ -1197,7 +1197,7 @@ def local_elemwise_sub_zeros(fgraph, node):
 @register_specialize
 @register_stabilize
 @register_canonicalize
-@local_optimizer([Elemwise])
+@node_rewriter([Elemwise])
 def local_useless_elemwise_comparison(fgraph, node):
     """...
 
@@ -1407,7 +1407,7 @@ def local_useless_elemwise_comparison(fgraph, node):
 
 @register_canonicalize
 @register_specialize
-@local_optimizer([Sum, Prod])
+@node_rewriter([Sum, Prod])
 def local_sum_prod_div_dimshuffle(fgraph, node):
     """
     sum(a / dimshuffle{...}(b), axis=l) -> sum(a, axis={...}) / b,
@@ -1499,7 +1499,7 @@ def local_sum_prod_div_dimshuffle(fgraph, node):
 
 
 @register_canonicalize
-@local_optimizer([Sum, Prod])
+@node_rewriter([Sum, Prod])
 def local_sum_prod_all_to_none(fgraph, node):
     """
     Sum{0,1,...N} -> Sum{} or
@@ -1517,7 +1517,7 @@ def local_sum_prod_all_to_none(fgraph, node):
 
 
 @register_canonicalize
-@local_optimizer([Sum, Prod])
+@node_rewriter([Sum, Prod])
 def local_op_of_op(fgraph, node):
     """
     Prod(Prod()) -> single Prod()
@@ -1573,7 +1573,7 @@ ALL_REDUCE = (
 
 @register_canonicalize
 @register_uncanonicalize  # Needed for MaxAndArgmax -> CAReduce
-@local_optimizer(ALL_REDUCE)
+@node_rewriter(ALL_REDUCE)
 def local_reduce_join(fgraph, node):
     """
     CAReduce{scalar.op}(Join(axis=0, a, b), axis=0) -> Elemwise{scalar.op}(a, b)
@@ -1645,7 +1645,7 @@ def local_reduce_join(fgraph, node):
 
 @register_canonicalize("fast_compile", "local_cut_useless_reduce")
 @register_useless("local_cut_useless_reduce")
-@local_optimizer(ALL_REDUCE)
+@node_rewriter(ALL_REDUCE)
 def local_useless_reduce(fgraph, node):
     """Sum(a, axis=[]) -> a"""
     if isinstance(node.op, CAReduce):
@@ -1658,7 +1658,7 @@ def local_useless_reduce(fgraph, node):
 @register_canonicalize
 @register_uncanonicalize
 @register_specialize
-@local_optimizer(ALL_REDUCE)
+@node_rewriter(ALL_REDUCE)
 def local_reduce_broadcastable(fgraph, node):
     """Remove reduction over broadcastable dimensions."""
     if isinstance(node.op, CAReduce):
@@ -1700,7 +1700,7 @@ def local_reduce_broadcastable(fgraph, node):
 
 
 @register_specialize
-@local_optimizer([Sum, Prod])
+@node_rewriter([Sum, Prod])
 def local_opt_alloc(fgraph, node):
     """
     sum(alloc(constant,shapes...)) => constant*prod(shapes)
@@ -1764,7 +1764,7 @@ def local_opt_alloc(fgraph, node):
 
 
 @register_specialize
-@local_optimizer([neg])
+@node_rewriter([neg])
 def local_neg_div_neg(fgraph, node):
     """
     - (-a / b) -> a / b
@@ -1788,7 +1788,7 @@ def local_neg_div_neg(fgraph, node):
 
 
 @register_canonicalize
-@local_optimizer([mul])
+@node_rewriter([mul])
 def local_mul_zero(fgraph, node):
     """
     As part of canonicalization, we replace multiplication by zero
@@ -1811,7 +1811,7 @@ def local_mul_zero(fgraph, node):
 
 # TODO: Add this to the canonicalization to reduce redundancy.
 @register_specialize
-@local_optimizer([true_div])
+@node_rewriter([true_div])
 def local_div_to_reciprocal(fgraph, node):
     if node.op == true_div and np.all(get_constant(node.inputs[0]) == 1.0):
         out = node.outputs[0]
@@ -1828,7 +1828,7 @@ def local_div_to_reciprocal(fgraph, node):
 
 
 @register_canonicalize
-@local_optimizer([reciprocal])
+@node_rewriter([reciprocal])
 def local_reciprocal_canon(fgraph, node):
     if node.op == reciprocal:
         return [at_pow(node.inputs[0], -1.0)]
@@ -1837,7 +1837,7 @@ def local_reciprocal_canon(fgraph, node):
 
 
 @register_canonicalize
-@local_optimizer([at_pow])
+@node_rewriter([at_pow])
 def local_pow_canonicalize(fgraph, node):
     if node.op == at_pow:
         cst = get_constant(node.inputs[1])
@@ -1850,7 +1850,7 @@ def local_pow_canonicalize(fgraph, node):
 
 
 @register_specialize
-@local_optimizer([mul])
+@node_rewriter([mul])
 def local_mul_to_sqr(fgraph, node):
     """
     x*x -> sqr(x)
@@ -1862,7 +1862,7 @@ def local_mul_to_sqr(fgraph, node):
 
 
 @register_canonicalize
-@local_optimizer([int_div])
+@node_rewriter([int_div])
 def local_intdiv_by_one(fgraph, node):
     """x // 1 -> x"""
     if node.op in [int_div]:
@@ -1874,7 +1874,7 @@ def local_intdiv_by_one(fgraph, node):
 
 @register_canonicalize
 @register_specialize
-@local_optimizer([int_div, true_div])
+@node_rewriter([int_div, true_div])
 def local_zero_div(fgraph, node):
     """0 / x -> 0"""
     if isinstance(node.op, Elemwise) and isinstance(
@@ -1887,7 +1887,7 @@ def local_zero_div(fgraph, node):
 
 
 @register_specialize
-@local_optimizer([at_pow])
+@node_rewriter([at_pow])
 def local_pow_specialize(fgraph, node):
     # here, we are past the point of canonicalization, so we don't want
     # to put in un-necessary fills.
@@ -1925,7 +1925,7 @@ def local_pow_specialize(fgraph, node):
 
 
 @register_specialize_device
-@local_optimizer([at_pow])
+@node_rewriter([at_pow])
 def local_pow_specialize_device(fgraph, node):
     """
     This optimization is not the same on all device. We do it only on cpu here.
@@ -1992,7 +1992,7 @@ def local_pow_specialize_device(fgraph, node):
 
 
 @register_specialize
-@local_optimizer([mul])
+@node_rewriter([mul])
 def local_mul_specialize(fgraph, node):
     """
     Remove special-case constants from mul arguments and useless neg in inputs.
@@ -2068,7 +2068,7 @@ def local_mul_specialize(fgraph, node):
 
 
 @register_specialize
-@local_optimizer([add])
+@node_rewriter([add])
 def local_add_specialize(fgraph, node):
     """Remove zeros from ``add``s.
 
@@ -2147,7 +2147,7 @@ local_mul_canonizer.add_simplifier(check_for_x_over_absX, "X_over_absX")
 
 
 @register_canonicalize
-@local_optimizer([at_abs])
+@node_rewriter([at_abs])
 def local_abs_lift(fgraph, node):
     """
     Move the abs toward the input.
@@ -2165,7 +2165,7 @@ def local_abs_lift(fgraph, node):
 
 
 @register_specialize
-@local_optimizer([mul, true_div])
+@node_rewriter([mul, true_div])
 def local_abs_merge(fgraph, node):
     """
     Merge abs generated by local_abs_lift when the canonizer don't
@@ -2201,7 +2201,7 @@ def local_abs_merge(fgraph, node):
 
 @register_stabilize
 @register_specialize
-@local_optimizer([log])
+@node_rewriter([log])
 def local_log1p(fgraph, node):
     # log(1+x) -> log1p(x)
     # log(1-x) -> log1p(-x)
@@ -2234,7 +2234,7 @@ def local_log1p(fgraph, node):
 
 @register_stabilize
 @register_specialize
-@local_optimizer([log])
+@node_rewriter([log])
 def local_log_add_exp(fgraph, node):
     """
     ``log(exp(x)+exp(y)+exp(z)) = max + log(x-max, y-max, z-max)``
@@ -2266,7 +2266,7 @@ def local_log_add_exp(fgraph, node):
 
 @register_stabilize
 @register_specialize
-@local_optimizer([log])
+@node_rewriter([log])
 def local_log_sum_exp(fgraph, node):
     # log(sum_i(exp(x_i))) = x_max + log(sum_i(exp(x_i - x_max)))
 
@@ -2435,7 +2435,7 @@ def attempt_distribution(factor, num, denum, out_type):
 
 @register_canonicalize
 @register_stabilize
-@local_optimizer([mul, true_div, reciprocal])
+@node_rewriter([mul, true_div, reciprocal])
 def local_greedy_distributor(fgraph, node):
     """
     Optimize by reducing the number of multiplications and/or divisions.
@@ -2609,7 +2609,7 @@ register_specialize(local_erf_neg_minus_one)
 
 @register_stabilize
 @register_specialize
-@local_optimizer([log])
+@node_rewriter([log])
 def local_log_erfc(fgraph, node):
     """Stability optimization for `log(erfc(x))`.
 
@@ -2652,7 +2652,7 @@ def local_log_erfc(fgraph, node):
 
 @register_stabilize
 @register_specialize
-@local_optimizer([true_div])
+@node_rewriter([true_div])
 def local_grad_log_erfc_neg(fgraph, node):
     """Stability optimization for the grad of `log(erfc(x))`.
 
@@ -3093,7 +3093,7 @@ def is_neg(var):
 
 
 @register_stabilize
-@local_optimizer([true_div])
+@node_rewriter([true_div])
 def local_exp_over_1_plus_exp(fgraph, node):
     """
     exp(x)/(1+exp(x)) -> sigm(x)
@@ -3447,7 +3447,7 @@ def perform_sigm_times_exp(
 
 
 @register_stabilize
-@local_optimizer([mul])
+@node_rewriter([mul])
 def local_sigm_times_exp(fgraph, node):
     """
     exp(x) * sigm(-x) -> sigm(x)
@@ -3476,7 +3476,7 @@ def local_sigm_times_exp(fgraph, node):
 
 
 @register_stabilize
-@local_optimizer([reciprocal])
+@node_rewriter([reciprocal])
 def local_reciprocal_1_plus_exp(fgraph, node):
     """``reciprocal(1+exp(x)) -> sigm(-x)``
 
@@ -3558,7 +3558,7 @@ register_specialize(local_sigmoid_logit)
 
 @register_canonicalize
 @register_useless
-@local_optimizer([_conj])
+@node_rewriter([_conj])
 def local_useless_conj(fgraph, node):
     r"""Remove `conj` `Op`\s applied to non-imaginary variable types."""
     x = node.inputs[0]

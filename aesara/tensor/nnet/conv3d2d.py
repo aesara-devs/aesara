@@ -3,7 +3,7 @@ from aesara import tensor as at
 from aesara.gradient import DisconnectedType
 from aesara.graph.basic import Apply
 from aesara.graph.op import Op
-from aesara.graph.opt import TopoOptimizer, copy_stack_trace, local_optimizer
+from aesara.graph.opt import TopoOptimizer, copy_stack_trace, node_rewriter
 
 
 def get_diagonal_subtensor_view(x, i0, i1):
@@ -296,7 +296,7 @@ def conv3d(
     return out_5d
 
 
-@local_optimizer([DiagonalSubtensor, IncDiagonalSubtensor])
+@node_rewriter([DiagonalSubtensor, IncDiagonalSubtensor])
 def local_inplace_DiagonalSubtensor(fgraph, node):
     """Also work for IncDiagonalSubtensor."""
     if (

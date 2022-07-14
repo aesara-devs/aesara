@@ -7,7 +7,7 @@ import aesara
 import aesara.scalar.basic as aes
 from aesara import compile
 from aesara.graph.basic import Constant, Variable
-from aesara.graph.opt import TopoOptimizer, copy_stack_trace, in2out, local_optimizer
+from aesara.graph.opt import TopoOptimizer, copy_stack_trace, in2out, node_rewriter
 from aesara.raise_op import Assert
 from aesara.tensor.basic import (
     Alloc,
@@ -202,7 +202,7 @@ def get_advsubtensor_axis(indices):
 
 
 @register_specialize
-@local_optimizer([AdvancedSubtensor])
+@node_rewriter([AdvancedSubtensor])
 def local_replace_AdvancedSubtensor(fgraph, node):
     r"""
     This rewrite converts expressions like ``X[..., y]`` into ``X.T[y].T``, for
@@ -231,7 +231,7 @@ def local_replace_AdvancedSubtensor(fgraph, node):
 
 
 @register_specialize
-@local_optimizer([AdvancedIncSubtensor])
+@node_rewriter([AdvancedIncSubtensor])
 def local_AdvancedIncSubtensor_to_AdvancedIncSubtensor1(fgraph, node):
     r"""Replace `AdvancedIncSubtensor`\s with `AdvancedIncSubtensor1`\s.
 
@@ -268,7 +268,7 @@ def local_AdvancedIncSubtensor_to_AdvancedIncSubtensor1(fgraph, node):
 @register_canonicalize
 @register_stabilize
 @register_specialize
-@local_optimizer([Subtensor])
+@node_rewriter([Subtensor])
 def local_subtensor_of_dot(fgraph, node):
     """Rewrite ``at.dot(A, B)[idxs]`` into ``at.dot(A[idxs_a], B[idxs_b])``.
     ``idxs_a`` is the first ``A.ndim-1`` entries of ``idxs``, and ``idxs_b`` is
@@ -326,7 +326,7 @@ def local_subtensor_of_dot(fgraph, node):
 @register_useless
 @register_canonicalize
 @register_specialize
-@local_optimizer([Subtensor])
+@node_rewriter([Subtensor])
 def local_useless_slice(fgraph, node):
     """
     Remove Subtensor of the form X[0, :] -> X[0]
@@ -362,7 +362,7 @@ def local_useless_slice(fgraph, node):
 
 # fast_compile to allow opt subtensor(cast{float32}(make_vector))
 @register_canonicalize("fast_compile")
-@local_optimizer([Subtensor])
+@node_rewriter([Subtensor])
 def local_subtensor_lift(fgraph, node):
     """
     unary(x)[idx] -> unary(x[idx])#any broadcast pattern.
@@ -466,7 +466,7 @@ def local_subtensor_lift(fgraph, node):
 
 @register_canonicalize
 @register_specialize
-@local_optimizer([Subtensor])
+@node_rewriter([Subtensor])
 def local_subtensor_merge(fgraph, node):
     """
     Refactored optimization to deal with all cases of tensor merging.
@@ -537,7 +537,7 @@ def local_subtensor_merge(fgraph, node):
 
 @register_specialize
 @register_canonicalize
-@local_optimizer([Subtensor])
+@node_rewriter([Subtensor])
 def local_subtensor_remove_broadcastable_index(fgraph, node):
     """
     Remove broadcastable dimension with index 0 or -1
@@ -586,7 +586,7 @@ def local_subtensor_remove_broadcastable_index(fgraph, node):
 @register_useless
 @register_canonicalize
 @register_specialize
-@local_optimizer([Subtensor])
+@node_rewriter([Subtensor])
 def local_subtensor_of_alloc(fgraph, node):
     """
 
@@ -654,7 +654,7 @@ def local_subtensor_of_alloc(fgraph, node):
 
 @register_specialize
 @register_canonicalize
-@local_optimizer([Subtensor])
+@node_rewriter([Subtensor])
 def local_subtensor_inc_subtensor(fgraph, node):
     """
     Subtensor(SetSubtensor(x, y, idx), idx) -> y
@@ -694,7 +694,7 @@ def local_subtensor_inc_subtensor(fgraph, node):
 @register_specialize
 @register_canonicalize("fast_compile")
 @register_useless
-@local_optimizer([Subtensor, AdvancedSubtensor1])
+@node_rewriter([Subtensor, AdvancedSubtensor1])
 def local_subtensor_make_vector(fgraph, node):
     """Perform ``*Subtensor*`` operations on ``MakeVector`` outputs when the indices are constant.
 
@@ -770,7 +770,7 @@ def local_subtensor_make_vector(fgraph, node):
 @register_useless
 @register_canonicalize
 @register_specialize
-@local_optimizer([IncSubtensor])
+@node_rewriter([IncSubtensor])
 def local_useless_inc_subtensor(fgraph, node):
     r"""Remove redundant `IncSubtensor`\s.
 
@@ -834,7 +834,7 @@ def local_useless_inc_subtensor(fgraph, node):
 
 @register_canonicalize
 @register_specialize
-@local_optimizer([AdvancedIncSubtensor1])
+@node_rewriter([AdvancedIncSubtensor1])
 def local_set_to_inc_subtensor(fgraph, node):
     r"""
     AdvancedIncSubtensor1(x, x[ilist]+other, ilist, set_instead_of_inc=True) ->
@@ -878,7 +878,7 @@ def local_set_to_inc_subtensor(fgraph, node):
 
 @register_canonicalize
 @register_specialize
-@local_optimizer([Subtensor])
+@node_rewriter([Subtensor])
 def local_useless_subtensor(fgraph, node):
     """Remove `Subtensor` if it takes the full input."""
     # This optimization needs ShapeOpt and fgraph.shape_feature
@@ -960,7 +960,7 @@ def local_useless_subtensor(fgraph, node):
 
 @register_canonicalize
 @register_specialize
-@local_optimizer([AdvancedSubtensor1])
+@node_rewriter([AdvancedSubtensor1])
 def local_useless_AdvancedSubtensor1(fgraph, node):
     """Remove `AdvancedSubtensor1` if it takes the full input.
 
@@ -1116,7 +1116,7 @@ def merge_two_slices(fgraph, slice1, len1, slice2, len2):
 
 
 @register_canonicalize
-@local_optimizer([add])
+@node_rewriter([add])
 def local_IncSubtensor_serialize(fgraph, node):
     """
     When using Subtensor, gradient graphs can be ugly.
@@ -1216,7 +1216,7 @@ compile.optdb.register(
 # gemm is the first one now, at priority 70
 
 
-@local_optimizer([IncSubtensor], inplace=True)
+@node_rewriter([IncSubtensor], inplace=True)
 def local_inplace_setsubtensor(fgraph, node):
     if isinstance(node.op, IncSubtensor) and not node.op.inplace:
         dta = node.op.destroyhandler_tolerate_aliased
@@ -1249,7 +1249,7 @@ compile.optdb.register(
 )
 
 
-@local_optimizer([AdvancedIncSubtensor1], inplace=True)
+@node_rewriter([AdvancedIncSubtensor1], inplace=True)
 def local_inplace_AdvancedIncSubtensor1(fgraph, node):
     if isinstance(node.op, AdvancedIncSubtensor1) and not node.op.inplace:
         new_op = node.op.clone_inplace()
@@ -1270,7 +1270,7 @@ compile.optdb.register(
 )
 
 
-@local_optimizer([AdvancedIncSubtensor], inplace=True)
+@node_rewriter([AdvancedIncSubtensor], inplace=True)
 def local_inplace_AdvancedIncSubtensor(fgraph, node):
     if isinstance(node.op, AdvancedIncSubtensor) and not node.op.inplace:
         new_op = type(node.op)(
@@ -1298,7 +1298,7 @@ compile.optdb.register(
 # Register old name
 @register_canonicalize("local_incsubtensor_of_allocs")
 @register_stabilize("local_incsubtensor_of_allocs")
-@local_optimizer([IncSubtensor, AdvancedIncSubtensor, AdvancedIncSubtensor1])
+@node_rewriter([IncSubtensor, AdvancedIncSubtensor, AdvancedIncSubtensor1])
 def local_incsubtensor_of_zeros(fgraph, node):
     """
     IncSubtensor(x, zeros, idx) -> x
@@ -1323,7 +1323,7 @@ def local_incsubtensor_of_zeros(fgraph, node):
 
 @register_canonicalize
 @register_specialize
-@local_optimizer([IncSubtensor])
+@node_rewriter([IncSubtensor])
 def local_incsubtensor_of_zeros_to_setsubtensor(fgraph, node):
     """
     IncSubtensor(zeros, x, ...) -> SetSubtensor(zeros, x, ...)
@@ -1344,7 +1344,7 @@ def local_incsubtensor_of_zeros_to_setsubtensor(fgraph, node):
 
 @register_canonicalize("local_setsubtensor_of_allocs")
 @register_stabilize("local_setsubtensor_of_allocs")
-@local_optimizer([IncSubtensor])
+@node_rewriter([IncSubtensor])
 def local_setsubtensor_of_constants(fgraph, node):
     """
     SetSubtensor(x, x[idx], idx) -> x
@@ -1379,7 +1379,7 @@ def local_setsubtensor_of_constants(fgraph, node):
 
 @register_canonicalize
 @register_specialize
-@local_optimizer([AdvancedSubtensor1])
+@node_rewriter([AdvancedSubtensor1])
 def local_adv_sub1_adv_inc_sub1(fgraph, node):
     """Optimize the possible AdvSub1(AdvSetSub1(...), ...).
 
@@ -1446,7 +1446,7 @@ def local_adv_sub1_adv_inc_sub1(fgraph, node):
 @register_stabilize
 @register_canonicalize
 @register_useless
-@local_optimizer([IncSubtensor, AdvancedIncSubtensor, AdvancedIncSubtensor1])
+@node_rewriter([IncSubtensor, AdvancedIncSubtensor, AdvancedIncSubtensor1])
 def local_useless_inc_subtensor_alloc(fgraph, node):
     """
     Replaces an [Advanced]IncSubtensor[1], whose increment is an `alloc` of
@@ -1552,7 +1552,7 @@ def local_useless_inc_subtensor_alloc(fgraph, node):
 
 @register_specialize
 @register_canonicalize
-@local_optimizer([Subtensor])
+@node_rewriter([Subtensor])
 def local_subtensor_shape_constant(fgraph, node):
     r"""Simplify constant `Subtensor`\s on `Shape`\s dimensions that are known.
 
@@ -1606,7 +1606,7 @@ def local_subtensor_shape_constant(fgraph, node):
 
 
 @register_canonicalize
-@local_optimizer([Subtensor])
+@node_rewriter([Subtensor])
 def local_subtensor_SpecifyShape_lift(fgraph, node):
     """Lift ``specify_shape(x, s)[i_1, ..., i_n]`` to ``specify_shape(x[i1, ... , i_n], s[n:])``."""
 
@@ -1640,7 +1640,7 @@ def local_subtensor_SpecifyShape_lift(fgraph, node):
 
 
 @register_specialize
-@local_optimizer([Join])
+@node_rewriter([Join])
 def local_join_subtensors(fgraph, node):
     r"""Simplify contiguous :class:`Subtensor`\s inside a :class:`Join`.
 

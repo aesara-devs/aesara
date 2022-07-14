@@ -11,14 +11,14 @@ from aesara.misc.ordered_set import OrderedSet
 from aesara.utils import DefaultOrderedDict
 
 
-OptimizersType = Union[aesara_opt.GraphRewriter, aesara_opt.LocalOptimizer]
+OptimizersType = Union[aesara_opt.GraphRewriter, aesara_opt.NodeRewriter]
 
 
 class OptimizationDatabase:
     r"""A class that represents a collection/database of optimizations.
 
     These databases are used to logically organize collections of optimizers
-    (i.e. `GraphRewriter`\s and `LocalOptimizer`).
+    (i.e. `GraphRewriter`\s and `NodeRewriter`).
     """
 
     def __init__(self):
@@ -62,7 +62,7 @@ class OptimizationDatabase:
             (
                 OptimizationDatabase,
                 aesara_opt.GraphRewriter,
-                aesara_opt.LocalOptimizer,
+                aesara_opt.NodeRewriter,
             ),
         ):
             raise TypeError(f"{optimizer} is not a valid optimizer type.")
@@ -311,7 +311,7 @@ class EquilibriumDB(OptimizationDatabase):
 
     Notes
     -----
-    We can use `LocalOptimizer` and `GraphRewriter` since `EquilibriumOptimizer`
+    We can use `NodeRewriter` and `GraphRewriter` since `EquilibriumOptimizer`
     supports both.
 
     It is probably not a good idea to have ignore_newtrees=False and
@@ -474,24 +474,18 @@ class SequenceDB(OptimizationDatabase):
 
 
 class LocalGroupDB(SequenceDB):
-    """
-    Generate a local optimizer of type LocalOptGroup instead
-    of a global optimizer.
-
-    It supports the tracks, to only get applied to some Op.
-
-    """
+    r"""A database that generates `NodeRewriter`\s of type `LocalOptGroup`."""
 
     def __init__(
         self,
         apply_all_opts: bool = False,
         profile: bool = False,
-        local_opt=aesara_opt.LocalOptGroup,
+        node_rewriter=aesara_opt.LocalOptGroup,
     ):
         super().__init__(failure_callback=None)
         self.apply_all_opts = apply_all_opts
         self.profile = profile
-        self.local_opt = local_opt
+        self.node_rewriter = node_rewriter
         self.__name__: str = ""
 
     def register(self, name, obj, *tags, position="last", **kwargs):
@@ -499,7 +493,7 @@ class LocalGroupDB(SequenceDB):
 
     def query(self, *tags, **kwtags):
         opts = list(super().query(*tags, **kwtags))
-        ret = self.local_opt(
+        ret = self.node_rewriter(
             *opts, apply_all_opts=self.apply_all_opts, profile=self.profile
         )
         return ret

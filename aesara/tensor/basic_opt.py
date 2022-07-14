@@ -32,7 +32,7 @@ from aesara.graph.opt import (
     check_chain,
     copy_stack_trace,
     in2out,
-    local_optimizer,
+    node_rewriter,
 )
 from aesara.graph.optdb import SequenceDB
 from aesara.graph.utils import (
@@ -605,7 +605,7 @@ def is_dimshuffle_useless(new_order, input):
 
 @register_canonicalize
 @register_specialize
-@local_optimizer([DimShuffle])
+@node_rewriter([DimShuffle])
 def local_dimshuffle_lift(fgraph, node):
     """
     "Lifts" DimShuffle through Elemwise operations and merges
@@ -651,7 +651,7 @@ def local_dimshuffle_lift(fgraph, node):
 
 @register_canonicalize
 @register_specialize
-@local_optimizer([DimShuffle])
+@node_rewriter([DimShuffle])
 def local_useless_dimshuffle_makevector(fgraph, node):
     r"""Remove `DimShuffle`\s that drop one dimensional broadcastable `MakeVector`s.
 
@@ -680,7 +680,7 @@ def local_useless_dimshuffle_makevector(fgraph, node):
 
 
 @register_canonicalize
-@local_optimizer([Reshape])
+@node_rewriter([Reshape])
 def local_useless_dimshuffle_in_reshape(fgraph, node):
     """
     Removes useless DimShuffle operation inside Reshape:
@@ -720,7 +720,7 @@ def local_useless_dimshuffle_in_reshape(fgraph, node):
 
 @register_canonicalize
 @register_specialize
-@local_optimizer([TensorFromScalar])
+@node_rewriter([TensorFromScalar])
 def local_tensor_scalar_tensor(fgraph, node):
     """tensor_from_scalar(scalar_from_tensor(x)) -> x"""
     if isinstance(node.op, TensorFromScalar):
@@ -734,7 +734,7 @@ def local_tensor_scalar_tensor(fgraph, node):
 
 @register_canonicalize
 @register_specialize
-@local_optimizer([ScalarFromTensor])
+@node_rewriter([ScalarFromTensor])
 def local_scalar_tensor_scalar(fgraph, node):
     """scalar_from_tensor(tensor_from_scalar(x)) -> x"""
     if isinstance(node.op, ScalarFromTensor):
@@ -1474,7 +1474,7 @@ aesara.compile.mode.optdb.register("UnShapeOpt", UnShapeOptimizer(), position=10
 
 
 @register_specialize("local_alloc_elemwise")
-@local_optimizer([Elemwise])
+@node_rewriter([Elemwise])
 def local_elemwise_alloc(fgraph, node):
     r"""Remove unnecessary `Alloc`\s that occur as inputs of `Elemwise` `Op`\s.
 
@@ -1595,7 +1595,7 @@ def local_elemwise_alloc(fgraph, node):
 
 
 @register_canonicalize
-@local_optimizer([Elemwise])
+@node_rewriter([Elemwise])
 def local_fill_sink(fgraph, node):
     """
     f(fill(a, b), fill(c, d), e) -> fill(c, fill(a, f(b, d, e)))
@@ -1647,7 +1647,7 @@ def local_fill_sink(fgraph, node):
 
 @register_specialize
 @register_stabilize
-@local_optimizer([fill])
+@node_rewriter([fill])
 def local_fill_to_alloc(fgraph, node):
     r"""Remove `fill`\s or replace them with `Alloc`\s.
 
@@ -1698,7 +1698,7 @@ compile.optdb.register(
 
 @register_canonicalize("fast_compile")
 @register_useless
-@local_optimizer([fill])
+@node_rewriter([fill])
 def local_useless_fill(fgraph, node):
     """fill(s,v) -> v
 
@@ -1721,7 +1721,7 @@ def local_useless_fill(fgraph, node):
 @register_stabilize
 @register_canonicalize
 @register_useless
-@local_optimizer([Alloc])
+@node_rewriter([Alloc])
 def local_useless_alloc(fgraph, node):
     """
     If the input type is the same as the output type (dtype and broadcast)
@@ -1751,7 +1751,7 @@ def local_useless_alloc(fgraph, node):
 @register_specialize
 @register_stabilize
 @register_canonicalize
-@local_optimizer([Alloc])
+@node_rewriter([Alloc])
 def local_alloc_sink_dimshuffle(fgraph, node):
     r"""Convert broadcastable leading dimensions in an `Alloc` to `DimShuffle`\s."""
     op = node.op
@@ -1785,7 +1785,7 @@ def local_alloc_sink_dimshuffle(fgraph, node):
         return [DimShuffle(inner.type.broadcastable, dimshuffle_new_order)(inner)]
 
 
-@local_optimizer([AllocEmpty])
+@node_rewriter([AllocEmpty])
 def local_alloc_empty_to_zeros(fgraph, node):
     """This convert AllocEmpty to Alloc of 0.
 
@@ -1808,7 +1808,7 @@ compile.optdb.register(
 
 @register_specialize
 @register_canonicalize
-@local_optimizer([Shape])
+@node_rewriter([Shape])
 def local_shape_to_shape_i(fgraph, node):
     if isinstance(node.op, Shape):
         # This optimization needs ShapeOpt and fgraph.shape_feature
@@ -1824,7 +1824,7 @@ def local_shape_to_shape_i(fgraph, node):
 
 @register_specialize
 @register_canonicalize
-@local_optimizer([Shape_i])
+@node_rewriter([Shape_i])
 def local_track_shape_i(fgraph, node):
     if not isinstance(node.op, Shape_i):
         return False
@@ -1847,7 +1847,7 @@ def local_track_shape_i(fgraph, node):
 @register_useless
 @register_canonicalize("fast_compile")
 @register_specialize
-@local_optimizer([Elemwise])
+@node_rewriter([Elemwise])
 def local_useless_elemwise(fgraph, node):
     """
     eq(x, x) -> 1
@@ -1952,7 +1952,7 @@ def local_useless_elemwise(fgraph, node):
 
 
 @register_specialize
-@local_optimizer([Elemwise])
+@node_rewriter([Elemwise])
 def local_alloc_unary(fgraph, node):
     """unary(alloc(x, shp)) -> alloc(unary(x), shp)"""
     if isinstance(node.op, Elemwise) and len(node.inputs) == 1:
@@ -1974,7 +1974,7 @@ def local_alloc_unary(fgraph, node):
 
 @register_canonicalize
 @register_specialize
-@local_optimizer([Elemwise])
+@node_rewriter([Elemwise])
 def local_cast_cast(fgraph, node):
     """cast(cast(x, dtype1), dtype2)
 
@@ -2052,7 +2052,7 @@ def is_an_upcast(type1, type2):
 
 @register_useless
 @register_specialize
-@local_optimizer(None)
+@node_rewriter(None)
 def local_remove_useless_assert(fgraph, node):
     if not isinstance(node.op, CheckAndRaise):
         return False
@@ -2079,7 +2079,7 @@ def local_remove_useless_assert(fgraph, node):
         return [new_var]
 
 
-@local_optimizer([Assert])
+@node_rewriter([Assert])
 def local_remove_all_assert(fgraph, node):
     """An optimization disabled by default that removes all asserts from
     the graph.
@@ -2122,7 +2122,7 @@ compile.optdb["useless"].register(
 
 
 @register_canonicalize
-@local_optimizer([Elemwise])
+@node_rewriter([Elemwise])
 def local_upcast_elemwise_constant_inputs(fgraph, node):
     """This explicitly upcasts constant inputs to elemwise Ops, when
     those Ops do implicit upcasting anyway.
@@ -2197,7 +2197,7 @@ def local_upcast_elemwise_constant_inputs(fgraph, node):
 @register_useless
 @register_canonicalize
 @register_specialize
-@local_optimizer([Unbroadcast])
+@node_rewriter([Unbroadcast])
 def local_useless_unbroadcast(fgraph, node):
     """Remove `Unbroadcast` if it does not actually change the broadcasting pattern.
 
@@ -2225,7 +2225,7 @@ def local_useless_unbroadcast(fgraph, node):
 
 @register_canonicalize
 @register_specialize
-@local_optimizer([Unbroadcast])
+@node_rewriter([Unbroadcast])
 def local_unbroadcast_lift(fgraph, node):
     """
     Lifts `Unbroadcast` through unary Elemwise operations,
@@ -2271,7 +2271,7 @@ def local_unbroadcast_lift(fgraph, node):
 @register_specialize
 @register_canonicalize
 @register_useless
-@local_optimizer([Join])
+@node_rewriter([Join])
 def local_join_1(fgraph, node):
     """Join(i, x) => x
 
@@ -2291,7 +2291,7 @@ def local_join_1(fgraph, node):
 @register_useless
 @register_specialize
 @register_canonicalize
-@local_optimizer([Join])
+@node_rewriter([Join])
 def local_join_empty(fgraph, node):
     """Join(i, x, y, empty) => Join(i, x, y)
 
@@ -2338,7 +2338,7 @@ def local_join_empty(fgraph, node):
 @register_specialize
 @register_canonicalize
 @register_useless
-@local_optimizer([Join])
+@node_rewriter([Join])
 def local_join_make_vector(fgraph, node):
     r"""Merge `MakeVector` inputs within a `Join`.
 
@@ -2385,7 +2385,7 @@ def local_join_make_vector(fgraph, node):
 @register_useless("local_remove_switch_const_cond")
 @register_canonicalize("fast_compile", "local_remove_switch_const_cond")
 @register_specialize
-@local_optimizer([Elemwise])
+@node_rewriter([Elemwise])
 def local_useless_switch(fgraph, node):
     """
     This optimization makes the following changes in the graph:
@@ -2462,7 +2462,7 @@ def local_useless_switch(fgraph, node):
 
 
 @register_canonicalize
-@local_optimizer([Elemwise])
+@node_rewriter([Elemwise])
 def local_merge_switch_same_cond(fgraph, node):
     """
     Merge add/sub/mul/div/minimum/maximum/... of switches sharing the same
@@ -2499,7 +2499,7 @@ def local_merge_switch_same_cond(fgraph, node):
 @register_useless
 @register_canonicalize
 @register_specialize
-@local_optimizer([Split])
+@node_rewriter([Split])
 def local_useless_split(fgraph, node):
     """Split{n_splits=1}(x, y) -> x
 
@@ -2520,7 +2520,7 @@ def local_useless_split(fgraph, node):
 
 
 def local_reshape_chain(op):
-    @local_optimizer([op])
+    @node_rewriter([op])
     def f(fgraph, node):
         """
         Reshape(Reshape(shape1),shape2) -> Reshape(shape2)
@@ -2560,7 +2560,7 @@ register_canonicalize(local_reshape_chain(Reshape), name="local_reshape_chain")
 @register_useless
 @register_canonicalize
 @register_stabilize
-@local_optimizer([Reshape])
+@node_rewriter([Reshape])
 def local_useless_reshape(fgraph, node):
     """
     Remove two kinds of useless reshape.
@@ -2658,7 +2658,7 @@ def local_useless_reshape(fgraph, node):
 
 
 @register_canonicalize
-@local_optimizer([Reshape])
+@node_rewriter([Reshape])
 def local_reshape_to_dimshuffle(fgraph, node):
     """
     Broadcastable dimensions in Reshape are replaced with dimshuffle.
@@ -2706,7 +2706,7 @@ def local_reshape_to_dimshuffle(fgraph, node):
 
 @register_canonicalize
 @register_stabilize
-@local_optimizer([Reshape])
+@node_rewriter([Reshape])
 def local_reshape_lift(fgraph, node):
     """
     Reshape(UnaryElemwise(x)) -> UnaryElemwise(Reshape(x))
@@ -2736,7 +2736,7 @@ def local_reshape_lift(fgraph, node):
 register_canonicalize(OpRemove(tensor_copy), name="remove_tensor_copy")
 
 
-@local_optimizer(None)
+@node_rewriter(None)
 def constant_folding(fgraph, node):
 
     if not node.op.do_constant_folding(fgraph, node):
@@ -3092,9 +3092,9 @@ class FusionOptimizer(GraphRewriter):
 
     """
 
-    def __init__(self, local_optimizer):
+    def __init__(self, node_rewriter):
         super().__init__()
-        self.optimizer = local_optimizer
+        self.optimizer = node_rewriter
 
     def add_requirements(self, fgraph):
         fgraph.attach_feature(ReplaceValidate())
@@ -3206,7 +3206,7 @@ else:
 
 
 @register_canonicalize
-@local_optimizer([Elemwise])
+@node_rewriter([Elemwise])
 def local_useless_composite(fgraph, node):
     """For elemwise Composite that have multiple outputs, remove the
     outputs that are not used.
@@ -3227,7 +3227,7 @@ def local_useless_composite(fgraph, node):
 
 @register_canonicalize("fast_compile")
 @register_useless("fast_compile")
-@local_optimizer(None)
+@node_rewriter(None)
 def local_view_op(fgraph, node):
     if isinstance(node.op, ViewOp):
         return node.inputs
@@ -3237,7 +3237,7 @@ def local_view_op(fgraph, node):
 @register_canonicalize
 @register_stabilize
 @register_specialize
-@local_optimizer([Alloc])
+@node_rewriter([Alloc])
 def local_merge_alloc(fgraph, node):
     # This opt takes care of several cases:
     # Alloc(Alloc(m, x, 1, 1, 1), x, y, z, w) -> Alloc(m, x, y, z, w)
@@ -3274,7 +3274,7 @@ def local_merge_alloc(fgraph, node):
 
 
 @register_useless("fast_compile")
-@local_optimizer([TopKOp])
+@node_rewriter([TopKOp])
 def local_useless_topk(fgraph, node):
     """
     TopKOp generates two outputs by default
@@ -3310,7 +3310,7 @@ def local_useless_topk(fgraph, node):
 
 @register_useless
 @register_canonicalize
-@local_optimizer([SpecifyShape])
+@node_rewriter([SpecifyShape])
 def local_merge_consecutive_specify_shape(fgraph, node):
     """Replace ``specify_shape(specify_shape(x, s1), s2)`` with ``specify_shape(x, s3)``,
     where s3 is the union of specified dimensions in s1 and s2, with preference given to s2.
@@ -3336,7 +3336,7 @@ def local_merge_consecutive_specify_shape(fgraph, node):
 
 @register_useless
 @register_canonicalize
-@local_optimizer([Shape])
+@node_rewriter([Shape])
 def local_Shape_of_SpecifyShape(fgraph, node):
     """Replace ``specify_shape(x, s).shape`` with ``s``."""
 
@@ -3360,7 +3360,7 @@ def local_Shape_of_SpecifyShape(fgraph, node):
 
 @register_useless
 @register_canonicalize
-@local_optimizer([Shape_i])
+@node_rewriter([Shape_i])
 def local_Shape_i_of_broadcastable(fgraph, node):
     """Replace ``shape_i(x, i)`` with ``1`` when ``x.broadcastable[i]`` is ``True``."""
 
@@ -3378,7 +3378,7 @@ def local_Shape_i_of_broadcastable(fgraph, node):
 
 @register_useless
 @register_canonicalize
-@local_optimizer([Unique])
+@node_rewriter([Unique])
 def local_Unique_scalar(fgraph, node):
     """Convert ``unique(x)`` to ``x`` when ``x`` is a scalar."""
     if not isinstance(node.op, Unique):
@@ -3399,7 +3399,7 @@ def local_Unique_scalar(fgraph, node):
 
 @register_useless
 @register_canonicalize
-@local_optimizer([Unique])
+@node_rewriter([Unique])
 def local_Unique_Alloc_lift(fgraph, node):
     """Convert ``unique(alloc(x, ...), axis=None)`` to ``unique(x, axis=None)``.
 
@@ -3432,7 +3432,7 @@ def local_Unique_Alloc_lift(fgraph, node):
 
 @register_useless
 @register_canonicalize
-@local_optimizer([Unique])
+@node_rewriter([Unique])
 def local_Unique_BroadcastTo_lift(fgraph, node):
     """Convert ``unique(broadcast_to(x, ...), axis=None)`` to ``unique(x, axis=None)``.
 
@@ -3465,7 +3465,7 @@ def local_Unique_BroadcastTo_lift(fgraph, node):
 
 @register_useless
 @register_canonicalize
-@local_optimizer([Unique])
+@node_rewriter([Unique])
 def local_Unique_Repeat_lift(fgraph, node):
     """Convert ``unique(repeat(x, ...), axis=None)`` to ``unique(x, axis=None)``.
 
@@ -3498,7 +3498,7 @@ def local_Unique_Repeat_lift(fgraph, node):
 
 @register_useless
 @register_canonicalize
-@local_optimizer([Unique])
+@node_rewriter([Unique])
 def local_Unique_second(fgraph, node):
     """Convert ``unique(second(x, ...), axis=None)`` to ``second(x, axis=None)``.
 
@@ -3535,7 +3535,7 @@ def local_Unique_second(fgraph, node):
 
 @register_useless
 @register_canonicalize
-@local_optimizer([BroadcastTo])
+@node_rewriter([BroadcastTo])
 def local_remove_scalar_BroadcastTo(fgraph, node):
 
     bcast_shape = node.inputs[1:]
