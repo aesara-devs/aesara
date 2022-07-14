@@ -11,7 +11,7 @@ from aesara.graph.unify import eval_if_etuple
 
 
 class KanrenRelationSub(NodeRewriter):
-    r"""A local optimizer that uses `kanren` to match and replace terms.
+    r"""A rewriter that uses `kanren` to match and replace terms.
 
     See `kanren <https://github.com/pythological/kanren>`__ for more information
     miniKanren and the API for constructing `kanren` goals.
@@ -56,7 +56,7 @@ class KanrenRelationSub(NodeRewriter):
             A function that takes an input graph and an output logic variable and
             returns a `kanren` goal.
         results_filter
-            A function that takes the direct output of `kanren.run(None, ...)`
+            A function that takes the direct output of ``kanren.run(None, ...)``
             and returns a single result.  The default implementation returns
             the first result.
         node_filter

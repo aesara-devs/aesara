@@ -290,55 +290,40 @@ class OptimizationQuery:
 
 
 class EquilibriumDB(OptimizationDatabase):
-    """
-    A set of potential optimizations which should be applied in an arbitrary
-    order until equilibrium is reached.
+    """A database of rewrites that should be applied until equilibrium is reached.
 
     Canonicalize, Stabilize, and Specialize are all equilibrium optimizations.
-
-    Parameters
-    ----------
-    ignore_newtrees
-        If False, we will apply local opt on new node introduced during local
-        optimization application. This could result in less fgraph iterations,
-        but this doesn't mean it will be faster globally.
-
-    tracks_on_change_inputs
-        If True, we will re-apply local opt on nodes whose inputs
-        changed during local optimization application. This could
-        result in less fgraph iterations, but this doesn't mean it
-        will be faster globally.
 
     Notes
     -----
     We can use `NodeRewriter` and `GraphRewriter` since `EquilibriumOptimizer`
     supports both.
 
-    It is probably not a good idea to have ignore_newtrees=False and
-    tracks_on_change_inputs=True
+    It is probably not a good idea to have both ``ignore_newtrees == False``
+    and ``tracks_on_change_inputs == True``.
 
     """
 
-    def __init__(self, ignore_newtrees=True, tracks_on_change_inputs=False):
+    def __init__(
+        self, ignore_newtrees: bool = True, tracks_on_change_inputs: bool = False
+    ):
         """
-        Parameters
-        ==========
-        ignore_newtrees:
-            If False, we will apply local opt on new node introduced during local
-            optimization application. This could result in less fgraph iterations,
-            but this doesn't mean it will be faster globally.
 
-        tracks_on_change_inputs:
-            If True, we will re-apply local opt on nodes whose inputs
-            changed during local optimization application. This could
-            result in less fgraph iterations, but this doesn't mean it
-            will be faster globally.
+        Parameters
+        ----------
+        ignore_newtrees
+            If ``False``, apply rewrites to new nodes introduced during
+            rewriting.
+
+        tracks_on_change_inputs
+            If ``True``, re-apply rewrites on nodes with changed inputs.
+
         """
         super().__init__()
         self.ignore_newtrees = ignore_newtrees
         self.tracks_on_change_inputs = tracks_on_change_inputs
-        self.__final__ = {}
-        self.__cleanup__ = {}
+        self.__final__: Dict[str, aesara_opt.Rewriter] = {}
+        self.__cleanup__: Dict[str, aesara_opt.Rewriter] = {}
 
     def register(self, name, obj, *tags, final_opt=False, cleanup=False, **kwargs):
         if final_opt and cleanup:

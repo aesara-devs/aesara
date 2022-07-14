@@ -17,7 +17,7 @@ from collections import UserList, defaultdict, deque
 from collections.abc import Iterable
 from functools import _compose_mro, partial, reduce  # type: ignore
 from itertools import chain
-from typing import Callable, Dict, List, Optional, Sequence, Tuple, Union
+from typing import Callable, Dict, List, Optional, Sequence, Tuple, Union, cast
 
 from typing_extensions import Literal
 
@@ -156,15 +156,20 @@ class NodeRewriter(Rewriter):
     @abc.abstractmethod
     def transform(
         self, fgraph: FunctionGraph, node: Apply, *args, **kwargs
-    ) -> Union[bool, List[Variable], Dict[Variable, Variable]]:
-        r"""Transform a subgraph whose output is `node`.
+    ) -> Union[
+        bool,
+        Sequence[Variable],
+        Dict[Union[Variable, Literal["remove"]], Union[Variable, Sequence[Variable]]],
+    ]:
+        r"""Rewrite the sub-graph given by `node`.
 
         Subclasses should implement this function so that it returns one of the
         following:
 
         - ``False`` to indicate that this rewrite cannot be applied to `node`
         - A list of `Variable`\s to use in place of the `node`'s current outputs
-        - A ``dict`` mapping old `Variable`\s to new `Variable`\s
+        - A ``dict`` mapping old `Variable`\s to `Variable`\s, or the key
+        ``"remove"`` mapping to a list of `Variable`\s to be removed.
 
         Parameters
         ----------
@@ -1850,10 +1855,15 @@ class NavigatorOptimizer(GraphRewriter):
         if u is not None:
             fgraph.remove_feature(u)
 
-    def process_node(self, fgraph, node, lopt=None):
-        r"""Apply `lopt` to `node`.
+    def process_node(
+        self,
+        fgraph: FunctionGraph,
+        node: Apply,
+        node_rewriter: Optional[NodeRewriter] = None,
+    ):
+        r"""Apply `node_rewriter` to `node`.
 
-        The :meth:`lopt.transform` method will return either ``False`` or a
+        The :meth:`node_rewriter.transform` method will return either ``False`` or a
         list of `Variable`\s that are intended to replace :attr:`node.outputs`.
 
         If the `fgraph` accepts the replacement, then the optimization is
@@ -1864,11 +1874,11 @@ class NavigatorOptimizer(GraphRewriter):
 
         Parameters
         ----------
-        fgraph :
+        fgraph
             A `FunctionGraph`.
-        node :
+        node
             An `Apply` instance in `fgraph`
-        lopt :
+        node_rewriter
             A `NodeRewriter` instance that may have a better idea for
             how to compute node's outputs.
 
@@ -1878,13 +1888,15 @@ class NavigatorOptimizer(GraphRewriter):
             ``True`` iff the `node`'s outputs were replaced in the `fgraph`.
 
         """
-        lopt = lopt or self.node_rewriter
+        node_rewriter = node_rewriter or self.node_rewriter
+        # TODO FIXME: This class's interface is broken
+        assert node_rewriter is not None
         try:
-            replacements = lopt.transform(fgraph, node)
+            replacements = node_rewriter.transform(fgraph, node)
         except Exception as e:
             if self.failure_callback is not None:
                 self.failure_callback(
-                    e, self, [(x, None) for x in node.outputs], lopt, node
+                    e, self, [(x, None) for x in node.outputs], node_rewriter, node
                 )
                 return False
             else:
@@ -1892,25 +1904,27 @@ class NavigatorOptimizer(GraphRewriter):
         if replacements is False or replacements is None:
             return False
         old_vars = node.outputs
-        remove = []
+        remove: List[Variable] = []
         if isinstance(replacements, dict):
             if "remove" in replacements:
-                remove = replacements.pop("remove")
-            old_vars = list(replacements.keys())
-            replacements = list(replacements.values())
+                remove = list(cast(Sequence[Variable], replacements.pop("remove")))
+            old_vars = list(cast(Sequence[Variable], replacements.keys()))
+            replacements = list(cast(Sequence[Variable], replacements.values()))
         elif not isinstance(replacements, (tuple, list)):
             raise TypeError(
-                f"Node rewriter {lopt} gave wrong type of replacement. "
+                f"Node rewriter {node_rewriter} gave wrong type of replacement. "
                 f"Expected list or tuple; got {replacements}"
             )
         if len(old_vars) != len(replacements):
-            raise ValueError(f"Node rewriter {lopt} gave wrong number of replacements")
+            raise ValueError(
+                f"Node rewriter {node_rewriter} gave wrong number of replacements"
+            )
         # None in the replacement mean that this variable isn't used
         # and we want to remove it
         for r, rnew in zip(old_vars, replacements):
             if rnew is None and len(fgraph.clients[r]) > 0:
                 raise ValueError(
-                    f"Node rewriter {lopt} tried to remove a variable"
+                    f"Node rewriter {node_rewriter} tried to remove a variable"
                     f" that is being used: {r}"
                 )
         # If an output would be replaced by itself, no need to perform
@@ -1924,7 +1938,9 @@ class NavigatorOptimizer(GraphRewriter):
         if len(repl_pairs) == 0:
             return False
         try:
-            fgraph.replace_all_validate_remove(repl_pairs, reason=lopt, remove=remove)
+            fgraph.replace_all_validate_remove(  # type: ignore
+                repl_pairs, reason=node_rewriter, remove=remove
+            )
             return True
         except Exception as e:
             # This means the replacements were rejected by the fgraph.
@@ -1932,7 +1948,7 @@ class NavigatorOptimizer(GraphRewriter):
             # This is not supposed to happen.  The default failure_callback
             # will print a traceback as a warning.
             if self.failure_callback is not None:
-                self.failure_callback(e, self, repl_pairs, lopt, node)
+                self.failure_callback(e, self, repl_pairs, node_rewriter, node)
                 return False
             else:
                 raise
@@ -2027,7 +2043,7 @@ class TopoOptimizer(NavigatorOptimizer):
             io_t,
             loop_t,
             callback_time,
-            lopt,
+            node_rewriter,
         ) = prof
 
         print(
@@ -2046,16 +2062,16 @@ class TopoOptimizer(NavigatorOptimizer):
         print(blanc, "  init io_toposort", io_t, file=stream)
         print(blanc, "  loop time", loop_t, file=stream)
         print(blanc, "  callback_time", callback_time, file=stream)
-        if isinstance(lopt, LocalOptGroup):
-            if lopt.profile:
-                lopt.print_profile(
+        if isinstance(node_rewriter, LocalOptGroup):
+            if node_rewriter.profile:
+                node_rewriter.print_profile(
                     stream,
                     (
-                        lopt.time_opts,
-                        lopt.process_count,
-                        lopt.applied_true,
-                        lopt.node_created,
-                        lopt.profile,
+                        node_rewriter.time_opts,
+                        node_rewriter.process_count,
+                        node_rewriter.applied_true,
+                        node_rewriter.node_created,
+                        node_rewriter.profile,
                     ),
                     level=level + 1,
                 )
@@ -2228,11 +2244,11 @@ class EquilibriumOptimizer(NavigatorOptimizer):
         self.global_optimizers: List[GraphRewriter] = []
         self.tracks_on_change_inputs = tracks_on_change_inputs
 
-        self.local_tracker = LocalOptTracker()
+        self.node_tracker = LocalOptTracker()
 
         for opt in optimizers:
             if isinstance(opt, NodeRewriter):
-                self.local_tracker.add_tracker(opt)
+                self.node_tracker.add_tracker(opt)
             else:
                 assert isinstance(opt, GraphRewriter)
                 self.global_optimizers.append(opt)
@@ -2250,7 +2266,7 @@ class EquilibriumOptimizer(NavigatorOptimizer):
         self.max_use_ratio = max_use_ratio
 
     def get_node_rewriters(self):
-        yield from self.local_tracker.get_rewriters()
+        yield from self.node_tracker.get_rewriters()
 
     def get_local_optimizers(self):
         warnings.warn(
@@ -2357,11 +2373,8 @@ class EquilibriumOptimizer(NavigatorOptimizer):
 
             global_opt_timing.append(float(time.time() - t0))
 
-            # apply clean up as global opt can have done changes that
-            # request that
             changed |= apply_cleanup(iter_cleanup_sub_profs)
 
-            # apply local optimizer
             topo_t0 = time.time()
             q = deque(io_toposort(fgraph.inputs, start_from))
             io_toposort_timing.append(time.time() - topo_t0)
@@ -2390,23 +2403,25 @@ class EquilibriumOptimizer(NavigatorOptimizer):
                     if node not in fgraph.apply_nodes:
                         continue
                     current_node = node
-                    for lopt in self.local_tracker.get_trackers(node.op):
+                    for node_rewriter in self.node_tracker.get_trackers(node.op):
                         nb = change_tracker.nb_imported
                         t_opt = time.time()
-                        lopt_change = self.process_node(fgraph, node, lopt)
-                        time_opts[lopt] += time.time() - t_opt
-                        if not lopt_change:
+                        node_rewriter_change = self.process_node(
+                            fgraph, node, node_rewriter
+                        )
+                        time_opts[node_rewriter] += time.time() - t_opt
+                        if not node_rewriter_change:
                             continue
-                        process_count.setdefault(lopt, 0)
-                        process_count[lopt] += 1
-                        global_process_count[lopt] += 1
+                        process_count.setdefault(node_rewriter, 0)
+                        process_count[node_rewriter] += 1
+                        global_process_count[node_rewriter] += 1
                         changed = True
-                        node_created[lopt] += change_tracker.nb_imported - nb
+                        node_created[node_rewriter] += change_tracker.nb_imported - nb
                         changed |= apply_cleanup(iter_cleanup_sub_profs)
-                        if global_process_count[lopt] > max_use:
+                        if global_process_count[node_rewriter] > max_use:
                             max_use_abort = True
-                            opt_name = getattr(lopt, "name", None) or getattr(
-                                lopt, "__name__", ""
+                            opt_name = getattr(node_rewriter, "name", None) or getattr(
+                                node_rewriter, "__name__", ""
                             )
                         if node not in fgraph.apply_nodes:
                             # go to next node
@@ -2494,8 +2509,10 @@ class EquilibriumOptimizer(NavigatorOptimizer):
             f"{' ' * level}{self.__class__.__name__} {name} id={id(self)}", file=stream
         )
         if depth != 0:
-            for lopt in self.get_node_rewriters():
-                lopt.print_summary(stream, level=(level + 2), depth=(depth - 1))
+            for node_rewriter in self.get_node_rewriters():
+                node_rewriter.print_summary(
+                    stream, level=(level + 2), depth=(depth - 1)
+                )
 
     @staticmethod
     def print_profile(stream, prof, level=0):
@@ -2529,27 +2546,27 @@ class EquilibriumOptimizer(NavigatorOptimizer):
         )
         print(blanc, f"  time io_toposort {sum(io_toposort_timing):.3f}s", file=stream)
         s = sum(time_opts[o] for o in opt.get_node_rewriters())
-        print(blanc, f"  time in local optimizers {s:.3f}s", file=stream)
+        print(blanc, f"  time in node rewriters {s:.3f}s", file=stream)
         s = sum(time_opts[o] for o in opt.global_optimizers)
-        print(blanc, f"  time in global optimizers {s:.3f}s", file=stream)
+        print(blanc, f"  time in graph rewriters {s:.3f}s", file=stream)
         s = sum(time_opts[o] for o in opt.final_optimizers)
-        print(blanc, f"  time in final optimizers {s:.3f}s", file=stream)
+        print(blanc, f"  time in final rewriters {s:.3f}s", file=stream)
         s = sum(time_opts[o] for o in opt.cleanup_optimizers)
-        print(blanc, f"  time in cleanup optimizers {s:.3f}s", file=stream)
+        print(blanc, f"  time in cleanup rewriters {s:.3f}s", file=stream)
         for i in range(len(loop_timing)):
-            lopt = ""
+            loop_times = ""
             if loop_process_count[i]:
                 d = list(
                     reversed(sorted(loop_process_count[i].items(), key=lambda a: a[1]))
                 )
-                lopt = " ".join([str((str(k), v)) for k, v in d[:5]])
+                loop_times = " ".join([str((str(k), v)) for k, v in d[:5]])
                 if len(d) > 5:
-                    lopt += " ..."
+                    loop_times += " ..."
             print(
                 blanc,
                 (
-                    f"  {int(i):2d} - {loop_timing[i]:.3f}s {int(sum(loop_process_count[i].values()))} ({global_opt_timing[i]:.3f}s in global opts, "
-                    f"{io_toposort_timing[i]:.3f}s io_toposort) - {int(nb_nodes[i])} nodes - {lopt}"
+                    f"  {int(i):2d} - {loop_timing[i]:.3f}s {int(sum(loop_process_count[i].values()))} ({global_opt_timing[i]:.3f}s in graph rewriters, "
+                    f"{io_toposort_timing[i]:.3f}s io_toposort) - {int(nb_nodes[i])} nodes - {loop_times}"
                 ),
                 file=stream,
             )
@@ -2784,8 +2801,10 @@ def check_chain(r, *chain):
     return _check_chain(r, reduce(list.__iadd__, ([x, 0] for x in chain)))
 
 
-def pre_greedy_node_rewriter(fgraph, optimizations, out):
-    """Apply local optimizations to a graph.
+def pre_greedy_node_rewriter(
+    fgraph: FunctionGraph, optimizations: Sequence[NodeRewriter], out: Variable
+) -> Variable:
+    """Apply node rewriters throughout a graph in a greedy, pre-traversal way.
 
     This function traverses the computation graph in the graph before the
     variable `out` but that are not in the `fgraph`. It applies
@@ -2796,7 +2815,7 @@ def pre_greedy_node_rewriter(fgraph, optimizations, out):
         This changes the nodes in a graph in-place.
 
     Its main use is to apply locally constant folding when generating
-    the graph of the indices of a subtensor.
+    the graph of the indices of a `Subtensor`.
 
     Changes should not be applied to nodes that are in an `fgraph`,
     so we use `fgraph` to prevent that.
@@ -2810,16 +2829,21 @@ def pre_greedy_node_rewriter(fgraph, optimizations, out):
 
     Parameters
     ----------
-    fgraph : FunctionGraph
+    fgraph
         The graph used to avoid/filter nodes.
-    optimizations : list of NodeRewriter
-        The list of local optimizations to apply
-    out : Variable
-        A `Variable` specifying the graph to optimize.
+    optimizations
+        A sequence of rewrites to apply.
+    out
+        The graph to optimize.
 
     """
 
-    def local_recursive_function(list_opt, out, optimized_vars, depth):
+    def local_recursive_function(
+        list_opt: Sequence[NodeRewriter],
+        out: Variable,
+        optimized_vars: Dict[Variable, Variable],
+        depth: int,
+    ) -> Tuple[List[Variable], Dict[Variable, Variable]]:
         if not getattr(out, "owner", None):
             return [out], optimized_vars
         node = out.owner
@@ -2852,6 +2876,7 @@ def pre_greedy_node_rewriter(fgraph, optimizations, out):
         for opt in list_opt:
             ret = opt.transform(fgraph, node)
             if ret is not False and ret is not None:
+                assert isinstance(ret, Sequence)
                 assert len(ret) == len(node.outputs), opt
                 for k, v in zip(node.outputs, ret):
                     optimized_vars[k] = v
@@ -2864,7 +2889,7 @@ def pre_greedy_node_rewriter(fgraph, optimizations, out):
         return results, optimized_vars
 
     if out.owner:
-        out_index = out.owner.outputs.index(out)
+        out_index: int = out.owner.outputs.index(out)
     else:
         out_index = 0
 
