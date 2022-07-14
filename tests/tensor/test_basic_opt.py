@@ -16,7 +16,7 @@ from aesara.configdefaults import config
 from aesara.graph.basic import Apply, Constant, Variable
 from aesara.graph.fg import FunctionGraph
 from aesara.graph.op import Op
-from aesara.graph.opt import check_stack_trace, local_optimizer, out2in
+from aesara.graph.opt import check_stack_trace, node_rewriter, out2in
 from aesara.graph.opt_utils import optimize_graph
 from aesara.graph.optdb import OptimizationQuery
 from aesara.graph.type import Type
@@ -1752,7 +1752,7 @@ class TestShapeOptimizer:
 
         identity_shape = IdentityShape()
 
-        @local_optimizer([IdentityNoShape])
+        @node_rewriter([IdentityNoShape])
         def local_identity_noshape_to_identity_shape(fgraph, node):
             """Optimization transforming the first Op into the second"""
             if isinstance(node.op, IdentityNoShape):

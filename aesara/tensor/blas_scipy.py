@@ -11,7 +11,7 @@ from aesara.tensor.blas import (
     ger,
     ger_destructive,
     have_fblas,
-    local_optimizer,
+    node_rewriter,
     optdb,
 )
 
@@ -58,13 +58,13 @@ scipy_ger_no_inplace = ScipyGer(False)
 scipy_ger_inplace = ScipyGer(True)
 
 
-@local_optimizer([ger, ger_destructive])
+@node_rewriter([ger, ger_destructive])
 def use_scipy_ger(fgraph, node):
     if node.op == ger:
         return [scipy_ger_no_inplace(*node.inputs)]
 
 
-@local_optimizer([scipy_ger_no_inplace])
+@node_rewriter([scipy_ger_no_inplace])
 def make_ger_destructive(fgraph, node):
     if node.op == scipy_ger_no_inplace:
         return [scipy_ger_inplace(*node.inputs)]

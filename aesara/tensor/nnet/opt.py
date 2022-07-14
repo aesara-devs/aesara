@@ -11,7 +11,7 @@ from aesara.graph.opt import (
     TopoOptimizer,
     copy_stack_trace,
     in2out,
-    local_optimizer,
+    node_rewriter,
 )
 from aesara.tensor.basic_opt import register_specialize_device
 from aesara.tensor.nnet.abstract_conv import (
@@ -37,7 +37,7 @@ from aesara.tensor.nnet.corr3d import Corr3dMM, Corr3dMMGradInputs, Corr3dMMGrad
 from aesara.tensor.type import TensorType
 
 
-@local_optimizer([SparseBlockGemv], inplace=True)
+@node_rewriter([SparseBlockGemv], inplace=True)
 def local_inplace_sparse_block_gemv(fgraph, node):
     """
     SparseBlockGemv(inplace=False) -> SparseBlockGemv(inplace=True)
@@ -60,7 +60,7 @@ compile.optdb.register(
 )  # DEBUG
 
 
-@local_optimizer([SparseBlockOuter], inplace=True)
+@node_rewriter([SparseBlockOuter], inplace=True)
 def local_inplace_sparse_block_outer(fgraph, node):
     """
     SparseBlockOuter(inplace=False) -> SparseBlockOuter(inplace=True)
@@ -85,7 +85,7 @@ compile.optdb.register(
 
 
 # Conv opts
-@local_optimizer([AbstractConv2d])
+@node_rewriter([AbstractConv2d])
 def local_abstractconv_gemm(fgraph, node):
     # If config.blas__ldflags is empty, Aesara will use
     # a NumPy C implementation of [sd]gemm_.
@@ -113,7 +113,7 @@ def local_abstractconv_gemm(fgraph, node):
     return [rval]
 
 
-@local_optimizer([AbstractConv3d])
+@node_rewriter([AbstractConv3d])
 def local_abstractconv3d_gemm(fgraph, node):
     # If config.blas__ldflags is empty, Aesara will use
     # a NumPy C implementation of [sd]gemm_.
@@ -139,7 +139,7 @@ def local_abstractconv3d_gemm(fgraph, node):
     return [rval]
 
 
-@local_optimizer([AbstractConv2d_gradWeights])
+@node_rewriter([AbstractConv2d_gradWeights])
 def local_abstractconv_gradweight_gemm(fgraph, node):
     # If config.blas__ldflags is empty, Aesara will use
     # a NumPy C implementation of [sd]gemm_.
@@ -169,7 +169,7 @@ def local_abstractconv_gradweight_gemm(fgraph, node):
     return [rval]
 
 
-@local_optimizer([AbstractConv3d_gradWeights])
+@node_rewriter([AbstractConv3d_gradWeights])
 def local_abstractconv3d_gradweight_gemm(fgraph, node):
     # If config.blas__ldflags is empty, Aesara will use
     # a NumPy C implementation of [sd]gemm_.
@@ -197,7 +197,7 @@ def local_abstractconv3d_gradweight_gemm(fgraph, node):
     return [rval]
 
 
-@local_optimizer([AbstractConv2d_gradInputs])
+@node_rewriter([AbstractConv2d_gradInputs])
 def local_abstractconv_gradinputs_gemm(fgraph, node):
     # If config.blas__ldflags is empty, Aesara will use
     # a NumPy C implementation of [sd]gemm_.
@@ -227,7 +227,7 @@ def local_abstractconv_gradinputs_gemm(fgraph, node):
     return [rval]
 
 
-@local_optimizer([AbstractConv3d_gradInputs])
+@node_rewriter([AbstractConv3d_gradInputs])
 def local_abstractconv3d_gradinputs_gemm(fgraph, node):
     # If config.blas__ldflags is empty, Aesara will use
     # a NumPy C implementation of [sd]gemm_.
@@ -255,7 +255,7 @@ def local_abstractconv3d_gradinputs_gemm(fgraph, node):
     return [rval]
 
 
-@local_optimizer([AbstractConv2d])
+@node_rewriter([AbstractConv2d])
 def local_conv2d_cpu(fgraph, node):
 
     if not isinstance(node.op, AbstractConv2d) or node.inputs[0].dtype == "float16":
@@ -287,7 +287,7 @@ def local_conv2d_cpu(fgraph, node):
     return [rval]
 
 
-@local_optimizer([AbstractConv2d_gradWeights])
+@node_rewriter([AbstractConv2d_gradWeights])
 def local_conv2d_gradweight_cpu(fgraph, node):
     if (
         not isinstance(node.op, AbstractConv2d_gradWeights)
@@ -396,7 +396,7 @@ def local_conv2d_gradweight_cpu(fgraph, node):
     return [res]
 
 
-@local_optimizer([AbstractConv2d_gradInputs])
+@node_rewriter([AbstractConv2d_gradInputs])
 def local_conv2d_gradinputs_cpu(fgraph, node):
     if (
         not isinstance(node.op, AbstractConv2d_gradInputs)
@@ -561,7 +561,7 @@ conv_groupopt.register(
 
 
 # Verify that no AbstractConv are present in the graph
-@local_optimizer(
+@node_rewriter(
     [
         AbstractConv2d,
         AbstractConv2d_gradWeights,

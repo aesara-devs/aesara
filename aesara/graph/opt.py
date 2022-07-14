@@ -48,7 +48,7 @@ FailureCallbackType = Callable[
         Exception,
         "NavigatorOptimizer",
         List[Tuple[Variable, None]],
-        "LocalOptimizer",
+        "NodeRewriter",
         Apply,
     ],
     None,
@@ -142,13 +142,13 @@ class GraphRewriter(Rewriter):
             )
 
 
-class LocalOptimizer(Rewriter):
-    """A node-based optimizer."""
+class NodeRewriter(Rewriter):
+    """A `Rewriter` that is applied to an `Apply` node."""
 
-    def tracks(self):
-        """Return the list of `Op` classes to which this optimization applies.
+    def tracks(self) -> Optional[Sequence[Op]]:
+        """Return the list of `Op` classes to which this rewrite applies.
 
-        Returns ``None`` when the optimization applies to all nodes.
+        Returns ``None`` when the rewrite applies to all nodes.
 
         """
         return None
@@ -162,23 +162,22 @@ class LocalOptimizer(Rewriter):
         Subclasses should implement this function so that it returns one of the
         following:
 
-        - ``False`` to indicate that no optimization can be applied to this `node`;
-        - A list of `Variable`\s to use in place of the `node`'s current outputs.
-        - A ``dict`` mapping old `Variable`\s to `Variable`\s.
-
+        - ``False`` to indicate that this rewrite cannot be applied to `node`
+        - A list of `Variable`\s to use in place of the `node`'s current outputs
+        - A ``dict`` mapping old `Variable`\s to new `Variable`\s
 
         Parameters
         ----------
-        fgraph :
+        fgraph
             A `FunctionGraph` containing `node`.
-        node :
-            An `Apply` node to be transformed.
+        node
+            An `Apply` node to be rewritten.
 
         """
 
         raise NotImplementedError()
 
-    def add_requirements(self, fgraph):
+    def add_requirements(self, fgraph: FunctionGraph):
         r"""Add required `Feature`\s to `fgraph`."""
 
     def print_summary(self, stream=sys.stdout, level=0, depth=-1):
@@ -939,9 +938,9 @@ def pre_constant_merge(fgraph, variables):
     return [recursive_merge(v) for v in variables]
 
 
-class LocalMetaOptimizer(LocalOptimizer):
+class LocalMetaOptimizer(NodeRewriter):
     r"""
-    Base class for meta-optimizers that try a set of `LocalOptimizer`\s
+    Base class for meta-optimizers that try a set of `NodeRewriter`\s
     to replace a node and choose the one that executes the fastest.
 
     If the error `MetaNodeRewriterSkip` is raised during
@@ -1058,8 +1057,8 @@ class LocalMetaOptimizer(LocalOptimizer):
         return time.time() - start
 
 
-class FromFunctionLocalOptimizer(LocalOptimizer):
-    """A `LocalOptimizer` constructed from a function."""
+class FromFunctionLocalOptimizer(NodeRewriter):
+    """A `NodeRewriter` constructed from a function."""
 
     def __init__(self, fn, tracks=None, requirements=()):
         self.fn = fn
@@ -1095,7 +1094,7 @@ class FromFunctionLocalOptimizer(LocalOptimizer):
         print(f"{' ' * level}{self.transform} id={id(self)}", file=stream)
 
 
-def local_optimizer(
+def node_rewriter(
     tracks: Optional[Sequence[Union[Op, type]]],
     inplace: bool = False,
     requirements: Optional[Tuple[type, ...]] = (),
@@ -1150,12 +1149,12 @@ class LocalOptTracker:
     r"""A container that maps rewrites to `Op` instances and `Op`-type inheritance."""
 
     def __init__(self):
-        self.tracked_instances: Dict[Op, List[LocalOptimizer]] = {}
-        self.tracked_types: Dict[type, List[LocalOptimizer]] = {}
-        self.untracked_opts: List[LocalOptimizer] = []
+        self.tracked_instances: Dict[Op, List[NodeRewriter]] = {}
+        self.tracked_types: Dict[type, List[NodeRewriter]] = {}
+        self.untracked_opts: List[NodeRewriter] = []
 
-    def add_tracker(self, rw: LocalOptimizer):
-        """Add a `LocalOptimizer` to be keyed by its `LocalOptimizer.tracks` or applied generally."""
+    def add_tracker(self, rw: NodeRewriter):
+        """Add a `NodeRewriter` to be keyed by its `NodeRewriter.tracks` or applied generally."""
         tracks = rw.tracks()
 
         if tracks is None:
@@ -1167,8 +1166,8 @@ class LocalOptTracker:
                 else:
                     self.tracked_instances.setdefault(c, []).append(rw)
 
-    def _find_impl(self, cls) -> List[LocalOptimizer]:
-        r"""Returns the `LocalOptimizer`\s that apply to `cls` based on inheritance.
+    def _find_impl(self, cls) -> List[NodeRewriter]:
+        r"""Returns the `NodeRewriter`\s that apply to `cls` based on inheritance.
 
         This based on `functools._find_impl`.
         """
@@ -1181,7 +1180,7 @@ class LocalOptTracker:
         return matches
 
     @functools.lru_cache()
-    def get_trackers(self, op: Op) -> List[LocalOptimizer]:
+    def get_trackers(self, op: Op) -> List[NodeRewriter]:
         """Get all the rewrites applicable to `op`."""
         return (
             self._find_impl(type(op))
@@ -1198,8 +1197,8 @@ class LocalOptTracker:
         )
 
 
-class LocalOptGroup(LocalOptimizer):
-    r"""An optimizer that applies a list of `LocalOptimizer`\s to a node.
+class LocalOptGroup(NodeRewriter):
+    r"""An optimizer that applies a list of `NodeRewriter`\s to a node.
 
     Attributes
     ----------
@@ -1390,7 +1389,7 @@ class LocalOptGroup(LocalOptimizer):
             opt.add_requirements(fgraph)
 
 
-class OpSub(LocalOptimizer):
+class OpSub(NodeRewriter):
     """
 
     Replaces the application of a certain `Op` by the application of
@@ -1440,7 +1439,7 @@ class OpSub(LocalOptimizer):
         return f"{self.op1} -> {self.op2}"
 
 
-class OpRemove(LocalOptimizer):
+class OpRemove(NodeRewriter):
     """
     Removes all applications of an `Op` by transferring each of its
     outputs to the corresponding input.
@@ -1473,7 +1472,7 @@ class OpRemove(LocalOptimizer):
         )
 
 
-class PatternSub(LocalOptimizer):
+class PatternSub(NodeRewriter):
     """Replace all occurrences of an input pattern with an output pattern.
 
     The input and output patterns have the following syntax:
@@ -1719,44 +1718,20 @@ class Updater(Feature):
 
 
 class NavigatorOptimizer(GraphRewriter):
-    r"""An optimizer that applies a `LocalOptimizer` with considerations for the new nodes it creates.
+    r"""An optimizer that applies a `NodeRewriter` with considerations for the new nodes it creates.
 
 
-    This optimizer also allows the `LocalOptimizer` to use a special ``"remove"`` value
-    in the ``dict``\s returned by :meth:`LocalOptimizer`.  `Variable`\s mapped to this
+    This optimizer also allows the `NodeRewriter` to use a special ``"remove"`` value
+    in the ``dict``\s returned by :meth:`NodeRewriter`.  `Variable`\s mapped to this
     value are removed from the `FunctionGraph`.
-
-    Parameters
-    ----------
-    local_opt :
-        A `LocalOptimizer` to apply over a `FunctionGraph` (or ``None``).
-    ignore_newtrees :
-        - ``True``: new subgraphs returned by an optimization are not a
-          candidate for optimization.
-        - ``False``: new subgraphs returned by an optimization is a candidate
-          for optimization.
-        - ``'auto'``: let the `local_opt` set this parameter via its :attr:`reentrant`
-          attribute.
-    failure_callback
-        A function with the signature ``(exception, navigator, [(old, new),
-        (old,new),...])`` that is called when there's an exception.
-
-        If the exception is raised in ``local_opt.transform``, the ``new`` variables
-        will be ``None``.
-
-        If the exception is raised during validation (e.g. the new types don't
-        match) then the new variables will be the ones created by ``self.transform``.
-
-        If this parameter is ``None``, then exceptions are not caught here and
-        are raised normally.
 
     """
 
     @staticmethod
-    def warn(exc, nav, repl_pairs, local_opt, node):
+    def warn(exc, nav, repl_pairs, node_rewriter, node):
         """A failure callback that prints a traceback."""
         if config.on_opt_error != "ignore":
-            _logger.error(f"Optimization failure due to: {local_opt}")
+            _logger.error(f"Optimization failure due to: {node_rewriter}")
             _logger.error(f"node: {node}")
             _logger.error("TRACEBACK:")
             _logger.error(traceback.format_exc())
@@ -1768,30 +1743,59 @@ class NavigatorOptimizer(GraphRewriter):
             raise exc
 
     @staticmethod
-    def warn_inplace(exc, nav, repl_pairs, local_opt, node):
-        r"""A failure callback that ignores ``InconsistencyError``\s and prints a traceback.
+    def warn_inplace(exc, nav, repl_pairs, node_rewriter, node):
+        r"""A failure callback that ignores `InconsistencyError`\s and prints a traceback.
 
-        If the error occurred during replacement, ``repl_pairs`` is set;
+        If the error occurred during replacement, `repl_pairs` is set;
         otherwise, its value is ``None``.
 
         """
         if isinstance(exc, InconsistencyError):
             return
-        return NavigatorOptimizer.warn(exc, nav, repl_pairs, local_opt, node)
+        return NavigatorOptimizer.warn(exc, nav, repl_pairs, node_rewriter, node)
 
     @staticmethod
-    def warn_ignore(exc, nav, repl_pairs, local_opt, node):
+    def warn_ignore(exc, nav, repl_pairs, node_rewriter, node):
         """A failure callback that ignores all errors."""
 
     def __init__(
         self,
-        local_opt: LocalOptimizer,
+        node_rewriter: Optional[NodeRewriter],
         ignore_newtrees: Literal[True, False, "auto"],
         failure_callback: Optional[FailureCallbackType] = None,
     ):
-        self.local_opt = local_opt
+        """
+
+        Parameters
+        ----------
+        node_rewriter
+            A `NodeRewriter` to apply over a `FunctionGraph` (or ``None``).
+        ignore_newtrees
+            - ``True``: new subgraphs returned by an optimization are not a
+            candidate for optimization.
+            - ``False``: new subgraphs returned by an optimization is a
+            candidate for optimization.
+            - ``'auto'``: let the `node_rewriter` set this parameter via its
+            :attr:`reentrant` attribute.
+        failure_callback
+            A function with the signature
+            ``(exception, navigator, [(old, new), (old,new),...])``
+            that is called when there's an exception.
+
+            If the exception is raised in `node_rewriter.transform`, the
+            ``new`` variables will be ``None``.
+
+            If the exception is raised during validation (e.g. the new types
+            don't match) then the new variables will be the ones created by
+            ``self.transform``.
+
+            If this parameter is ``None``, then exceptions are not caught here
+            and are raised normally.
+
+        """
+        self.node_rewriter = node_rewriter
         if ignore_newtrees == "auto":
-            self.ignore_newtrees = not getattr(local_opt, "reentrant", True)
+            self.ignore_newtrees = not getattr(node_rewriter, "reentrant", True)
         else:
             self.ignore_newtrees = ignore_newtrees
         self.failure_callback = failure_callback
@@ -1865,7 +1869,7 @@ class NavigatorOptimizer(GraphRewriter):
         node :
             An `Apply` instance in `fgraph`
         lopt :
-            A `LocalOptimizer` instance that may have a better idea for
+            A `NodeRewriter` instance that may have a better idea for
             how to compute node's outputs.
 
         Returns
@@ -1874,7 +1878,7 @@ class NavigatorOptimizer(GraphRewriter):
             ``True`` iff the `node`'s outputs were replaced in the `fgraph`.
 
         """
-        lopt = lopt or self.local_opt
+        lopt = lopt or self.node_rewriter
         try:
             replacements = lopt.transform(fgraph, node)
         except Exception as e:
@@ -1896,19 +1900,17 @@ class NavigatorOptimizer(GraphRewriter):
             replacements = list(replacements.values())
         elif not isinstance(replacements, (tuple, list)):
             raise TypeError(
-                f"Local optimizer {lopt} gave wrong type of replacement. "
+                f"Node rewriter {lopt} gave wrong type of replacement. "
                 f"Expected list or tuple; got {replacements}"
             )
         if len(old_vars) != len(replacements):
-            raise ValueError(
-                f"Local optimizer {lopt} gave wrong number of replacements"
-            )
+            raise ValueError(f"Node rewriter {lopt} gave wrong number of replacements")
         # None in the replacement mean that this variable isn't used
         # and we want to remove it
         for r, rnew in zip(old_vars, replacements):
             if rnew is None and len(fgraph.clients[r]) > 0:
                 raise ValueError(
-                    f"Local optimizer {lopt} tried to remove a variable"
+                    f"Node rewriter {lopt} tried to remove a variable"
                     f" that is being used: {r}"
                 )
         # If an output would be replaced by itself, no need to perform
@@ -1939,21 +1941,23 @@ class NavigatorOptimizer(GraphRewriter):
         super().add_requirements(fgraph)
         # Added by default
         # fgraph.attach_feature(ReplaceValidate())
-        if self.local_opt:
-            self.local_opt.add_requirements(fgraph)
+        if self.node_rewriter:
+            self.node_rewriter.add_requirements(fgraph)
 
     def print_summary(self, stream=sys.stdout, level=0, depth=-1):
         print(f"{' ' * level}{self.__class__.__name__} id={id(self)}", file=stream)
         if depth != 0:
-            self.local_opt.print_summary(stream, level=(level + 2), depth=(depth - 1))
+            self.node_rewriter.print_summary(
+                stream, level=(level + 2), depth=(depth - 1)
+            )
 
 
 class TopoOptimizer(NavigatorOptimizer):
-    """An optimizer that applies a single `LocalOptimizer` to each node in topological order (or reverse)."""
+    """An optimizer that applies a single `NodeRewriter` to each node in topological order (or reverse)."""
 
     def __init__(
         self,
-        local_opt: LocalOptimizer,
+        node_rewriter: NodeRewriter,
         order: Literal["out_to_in", "in_to_out"] = "in_to_out",
         ignore_newtrees: bool = False,
         failure_callback: Optional[FailureCallbackType] = None,
@@ -1961,7 +1965,7 @@ class TopoOptimizer(NavigatorOptimizer):
         if order not in ("out_to_in", "in_to_out"):
             raise ValueError("order must be 'out_to_in' or 'in_to_out'")
         self.order = order
-        super().__init__(local_opt, ignore_newtrees, failure_callback)
+        super().__init__(node_rewriter, ignore_newtrees, failure_callback)
 
     def apply(self, fgraph, start_from=None):
         if start_from is None:
@@ -2005,7 +2009,7 @@ class TopoOptimizer(NavigatorOptimizer):
             io_t,
             loop_t,
             callback_time,
-            self.local_opt,
+            self.node_rewriter,
         )
 
     @staticmethod
@@ -2061,22 +2065,26 @@ class TopoOptimizer(NavigatorOptimizer):
 
 
 def topogroup_optimizer(
-    order, *local_opts, name=None, failure_callback=TopoOptimizer.warn_inplace, **kwargs
+    order,
+    *node_rewriters,
+    name=None,
+    failure_callback=TopoOptimizer.warn_inplace,
+    **kwargs,
 ):
-    """Apply `local_opts` from the input/output nodes to the output/input nodes of a graph.
+    """Apply `node_rewriters` from the input/output nodes to the output/input nodes of a graph.
 
     This constructs `TopoOptimizer`s, and uses a `LocalOptGroup` when there's
-    more than one entry in `local_opts`.
+    more than one entry in `node_rewriters`.
     """
-    if len(local_opts) > 1:
+    if len(node_rewriters) > 1:
         # Don't wrap it uselessly if their is only 1 optimization.
-        local_opts = LocalOptGroup(*local_opts)
+        node_rewriters = LocalOptGroup(*node_rewriters)
     else:
-        (local_opts,) = local_opts
+        (node_rewriters,) = node_rewriters
         if not name:
-            name = local_opts.__name__
+            name = node_rewriters.__name__
     ret = TopoOptimizer(
-        local_opts,
+        node_rewriters,
         order=order,
         failure_callback=failure_callback,
         **kwargs,
@@ -2091,9 +2099,9 @@ out2in = partial(topogroup_optimizer, "out_to_in")
 
 
 class OpKeyOptimizer(NavigatorOptimizer):
-    r"""An optimizer that applies a `LocalOptimizer` to specific `Op`\s.
+    r"""An optimizer that applies a `NodeRewriter` to specific `Op`\s.
 
-    The `Op`\s are provided by a :meth:`LocalOptimizer.op_key` method (either
+    The `Op`\s are provided by a :meth:`NodeRewriter.op_key` method (either
     as a list of `Op`\s or a single `Op`), and discovered within a
     `FunctionGraph` using the `NodeFinder` `Feature`.
 
@@ -2101,13 +2109,13 @@ class OpKeyOptimizer(NavigatorOptimizer):
 
     """
 
-    def __init__(self, local_opt, ignore_newtrees=False, failure_callback=None):
-        if not hasattr(local_opt, "op_key"):
-            raise TypeError(f"{local_opt} must have an `op_key` method.")
-        super().__init__(local_opt, ignore_newtrees, failure_callback)
+    def __init__(self, node_rewriter, ignore_newtrees=False, failure_callback=None):
+        if not hasattr(node_rewriter, "op_key"):
+            raise TypeError(f"{node_rewriter} must have an `op_key` method.")
+        super().__init__(node_rewriter, ignore_newtrees, failure_callback)
 
     def apply(self, fgraph):
-        op = self.local_opt.op_key()
+        op = self.node_rewriter.op_key()
         if isinstance(op, (list, tuple)):
             q = reduce(list.__iadd__, map(fgraph.get_nodes, op))
         else:
@@ -2175,68 +2183,86 @@ def merge_dict(d1, d2):
 
 
 class EquilibriumOptimizer(NavigatorOptimizer):
-    """An optimizer that applies an optimization until a fixed-point/equilibrium is reached.
-
-    Parameters
-    ----------
-    optimizers : list or set
-        Local or global optimizations to apply until equilibrium.
-        The global optimizer will be run at the start of each iteration before
-        the local optimizer.
-    max_use_ratio : int or float
-        Each optimizer can be applied at most ``(size of graph * this number)``
-        times.
-    ignore_newtrees :
-        See :attr:`EquilibriumDB.ignore_newtrees`.
-    final_optimizers :
-        Global optimizers that will be run after each iteration.
-    cleanup_optimizers :
-        Global optimizers that apply a list of pre determined optimization.
-        They must not traverse the graph as they are called very frequently.
-        The MergeOptimizer is one example of optimization that respect this.
-        They are applied after all global optimizers, then when one local
-        optimizer is applied, then after all final optimizers.
-
-    """
+    """An `Rewriter` that applies an optimization until a fixed-point/equilibrium is reached."""
 
     def __init__(
         self,
-        optimizers,
-        failure_callback=None,
-        ignore_newtrees=True,
-        tracks_on_change_inputs=False,
-        max_use_ratio=None,
-        final_optimizers=None,
-        cleanup_optimizers=None,
+        optimizers: Sequence[Rewriter],
+        failure_callback: Optional[FailureCallbackType] = None,
+        ignore_newtrees: bool = True,
+        tracks_on_change_inputs: bool = False,
+        max_use_ratio: Optional[float] = None,
+        final_optimizers: Optional[Sequence[GraphRewriter]] = None,
+        cleanup_optimizers: Optional[Sequence[GraphRewriter]] = None,
     ):
+        """
+
+        Parameters
+        ----------
+        optimizers
+            Node or graph rewriters to apply until equilibrium.
+            The global optimizer will be run at the start of each iteration before
+            the node rewriter.
+        failure_callback
+            See :attr:`NavigatorOptimizer.failure_callback`.
+        ignore_newtrees
+            See :attr:`NavigatorOptimizer.ignore_newtrees`.
+        tracks_on_change_inputs
+            See :attr:`NavigatorOptimizer.tracks_on_change_inputs`.
+        max_use_ratio
+            Each rewriter can be applied at most ``(size_of_graph * max_use_ratio)``
+            times.
+        final_optimizers
+            Rewriters that will be run after each iteration.
+        cleanup_optimizers
+            Rewriters applied after all graph rewriters, then when one
+            `NodeRewriter` is applied, then after all final rewriters.
+            They should not traverse the entire graph, since they are called
+            very frequently.  The `MergeOptimizer` is one example of a rewriter
+            that respect this.
+
+        """
         super().__init__(
             None, ignore_newtrees=ignore_newtrees, failure_callback=failure_callback
         )
-        self.global_optimizers = []
-        self.final_optimizers = []
-        self.cleanup_optimizers = []
+        self.global_optimizers: List[GraphRewriter] = []
         self.tracks_on_change_inputs = tracks_on_change_inputs
 
         self.local_tracker = LocalOptTracker()
 
         for opt in optimizers:
-            if isinstance(opt, LocalOptimizer):
+            if isinstance(opt, NodeRewriter):
                 self.local_tracker.add_tracker(opt)
             else:
+                assert isinstance(opt, GraphRewriter)
                 self.global_optimizers.append(opt)
 
         if final_optimizers:
-            self.final_optimizers = final_optimizers
+            self.final_optimizers = list(final_optimizers)
+        else:
+            self.final_optimizers = []
+
         if cleanup_optimizers:
-            self.cleanup_optimizers = cleanup_optimizers
+            self.cleanup_optimizers = list(cleanup_optimizers)
+        else:
+            self.cleanup_optimizers = []
+
         self.max_use_ratio = max_use_ratio
 
-    def get_local_optimizers(self):
+    def get_node_rewriters(self):
         yield from self.local_tracker.get_rewriters()
+
+    def get_local_optimizers(self):
+        warnings.warn(
+            "`get_local_optimizers` is deprecated; use `get_node_rewriters` instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        yield from self.get_node_rewriters()
 
     def add_requirements(self, fgraph):
         super().add_requirements(fgraph)
-        for opt in self.get_local_optimizers():
+        for opt in self.get_node_rewriters():
             opt.add_requirements(fgraph)
         for opt in self.global_optimizers:
             opt.add_requirements(fgraph)
@@ -2274,7 +2300,7 @@ class EquilibriumOptimizer(NavigatorOptimizer):
         cleanup_sub_profs = []
         for opt in (
             self.global_optimizers
-            + list(self.get_local_optimizers())
+            + list(self.get_node_rewriters())
             + self.final_optimizers
             + self.cleanup_optimizers
         ):
@@ -2468,7 +2494,7 @@ class EquilibriumOptimizer(NavigatorOptimizer):
             f"{' ' * level}{self.__class__.__name__} {name} id={id(self)}", file=stream
         )
         if depth != 0:
-            for lopt in self.get_local_optimizers():
+            for lopt in self.get_node_rewriters():
                 lopt.print_summary(stream, level=(level + 2), depth=(depth - 1))
 
     @staticmethod
@@ -2502,7 +2528,7 @@ class EquilibriumOptimizer(NavigatorOptimizer):
             file=stream,
         )
         print(blanc, f"  time io_toposort {sum(io_toposort_timing):.3f}s", file=stream)
-        s = sum(time_opts[o] for o in opt.get_local_optimizers())
+        s = sum(time_opts[o] for o in opt.get_node_rewriters())
         print(blanc, f"  time in local optimizers {s:.3f}s", file=stream)
         s = sum(time_opts[o] for o in opt.global_optimizers)
         print(blanc, f"  time in global optimizers {s:.3f}s", file=stream)
@@ -2534,7 +2560,7 @@ class EquilibriumOptimizer(NavigatorOptimizer):
         process_count = {}
         for o in (
             opt.global_optimizers
-            + list(opt.get_local_optimizers())
+            + list(opt.get_node_rewriters())
             + list(opt.final_optimizers)
             + list(opt.cleanup_optimizers)
         ):
@@ -2605,8 +2631,8 @@ class EquilibriumOptimizer(NavigatorOptimizer):
     def merge_profile(prof1, prof2):
         # (opt, loop_timing, loop_process_count, max_nb_nodes,
         # global_opt_timing, nb_nodes, time_opts, io_toposort_timing) = prof1
-        local_optimizers = OrderedSet(prof1[0].get_local_optimizers()).union(
-            prof2[0].get_local_optimizers()
+        node_rewriters = OrderedSet(prof1[0].get_node_rewriters()).union(
+            prof2[0].get_node_rewriters()
         )
         global_optimizers = OrderedSet(prof1[0].global_optimizers).union(
             prof2[0].global_optimizers
@@ -2618,7 +2644,7 @@ class EquilibriumOptimizer(NavigatorOptimizer):
             OrderedSet(prof1[0].cleanup_optimizers).union(prof2[0].cleanup_optimizers)
         )
         new_opt = EquilibriumOptimizer(
-            local_optimizers.union(global_optimizers),
+            node_rewriters.union(global_optimizers),
             max_use_ratio=1,
             final_optimizers=final_optimizers,
             cleanup_optimizers=cleanup_optimizers,
@@ -2758,7 +2784,7 @@ def check_chain(r, *chain):
     return _check_chain(r, reduce(list.__iadd__, ([x, 0] for x in chain)))
 
 
-def pre_greedy_local_optimizer(fgraph, optimizations, out):
+def pre_greedy_node_rewriter(fgraph, optimizations, out):
     """Apply local optimizations to a graph.
 
     This function traverses the computation graph in the graph before the
@@ -2786,7 +2812,7 @@ def pre_greedy_local_optimizer(fgraph, optimizations, out):
     ----------
     fgraph : FunctionGraph
         The graph used to avoid/filter nodes.
-    optimizations : list of LocalOptimizer
+    optimizations : list of NodeRewriter
         The list of local optimizations to apply
     out : Variable
         A `Variable` specifying the graph to optimize.
@@ -3064,6 +3090,21 @@ DEPRECATED_NAMES = [
         "GlobalOptimizer",
         "`GlobalOptimizer` is deprecated: use `GraphRewriter` instead.",
         GraphRewriter,
+    ),
+    (
+        "LocalOptimizer",
+        "`LocalOptimizer` is deprecated: use `NodeRewriter` instead.",
+        NodeRewriter,
+    ),
+    (
+        "local_optimizer",
+        "`local_optimizer` is deprecated: use `node_rewriter` instead.",
+        node_rewriter,
+    ),
+    (
+        "pre_greedy_local_optimizer",
+        "`pre_greedy_local_optimizer` is deprecated: use `pre_greedy_node_rewriter` instead.",
+        pre_greedy_node_rewriter,
     ),
 ]
 

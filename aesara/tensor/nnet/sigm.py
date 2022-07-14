@@ -9,7 +9,7 @@ stability.
 import aesara
 from aesara import printing
 from aesara import scalar as aes
-from aesara.graph.opt import copy_stack_trace, local_optimizer
+from aesara.graph.opt import copy_stack_trace, node_rewriter
 from aesara.printing import pprint
 from aesara.scalar import sigmoid as scalar_sigmoid
 from aesara.scalar.math import Sigmoid
@@ -99,7 +99,7 @@ pprint.assign(ultra_fast_sigmoid, printing.FunctionPrinter(["ultra_fast_sigmoid"
 
 
 # @opt.register_uncanonicalize
-@local_optimizer(None)
+@node_rewriter(None)
 def local_ultra_fast_sigmoid(fgraph, node):
     """
     When enabled, change all sigmoid to ultra_fast_sigmoid.
@@ -159,7 +159,7 @@ def hard_sigmoid(x):
 
 
 # @opt.register_uncanonicalize
-@local_optimizer([sigmoid])
+@node_rewriter([sigmoid])
 def local_hard_sigmoid(fgraph, node):
     if isinstance(node.op, Elemwise) and node.op.scalar_op == scalar_sigmoid:
         out = hard_sigmoid(node.inputs[0])

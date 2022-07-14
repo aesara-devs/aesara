@@ -1,7 +1,7 @@
 from aesara.compile import optdb
 from aesara.configdefaults import config
 from aesara.graph.op import compute_test_value
-from aesara.graph.opt import in2out, local_optimizer
+from aesara.graph.opt import in2out, node_rewriter
 from aesara.tensor.basic import constant, get_vector_length
 from aesara.tensor.elemwise import DimShuffle
 from aesara.tensor.extra_ops import broadcast_to
@@ -39,7 +39,7 @@ def is_rv_used_in_graph(base_rv, node, fgraph):
     return not all(_node_check(n, i) for n, i in fgraph.clients.get(base_rv, ()))
 
 
-@local_optimizer([RandomVariable], inplace=True)
+@node_rewriter([RandomVariable], inplace=True)
 def random_make_inplace(fgraph, node):
     op = node.op
 
@@ -61,7 +61,7 @@ optdb.register(
 )
 
 
-@local_optimizer(tracks=None)
+@node_rewriter(tracks=None)
 def local_rv_size_lift(fgraph, node):
     """Lift the ``size`` parameter in a ``RandomVariable``.
 
@@ -109,7 +109,7 @@ def local_rv_size_lift(fgraph, node):
     return new_node.outputs
 
 
-@local_optimizer([DimShuffle])
+@node_rewriter([DimShuffle])
 def local_dimshuffle_rv_lift(fgraph, node):
     """Lift a ``DimShuffle`` through ``RandomVariable`` inputs.
 
@@ -266,7 +266,7 @@ def local_dimshuffle_rv_lift(fgraph, node):
     return False
 
 
-@local_optimizer([Subtensor, AdvancedSubtensor1, AdvancedSubtensor])
+@node_rewriter([Subtensor, AdvancedSubtensor1, AdvancedSubtensor])
 def local_subtensor_rv_lift(fgraph, node):
     """Lift a ``*Subtensor`` through ``RandomVariable`` inputs.
 

@@ -4,7 +4,7 @@ import aesara
 from aesara.configdefaults import config
 from aesara.graph.basic import Apply
 from aesara.graph.op import Op
-from aesara.graph.opt import copy_stack_trace, local_optimizer
+from aesara.graph.opt import copy_stack_trace, node_rewriter
 from aesara.scalar import Composite, add, as_common_dtype, mul, sub, true_div
 from aesara.tensor import basic as at
 from aesara.tensor.basic import as_tensor_variable
@@ -778,7 +778,7 @@ class AbstractBatchNormTrainGrad(Op):
         output_storage[2][0] = g_wrt_bias
 
 
-@local_optimizer([AbstractBatchNormTrain])
+@node_rewriter([AbstractBatchNormTrain])
 def local_abstract_batch_norm_train(fgraph, node):
     if not isinstance(node.op, AbstractBatchNormTrain):
         return None
@@ -832,7 +832,7 @@ def local_abstract_batch_norm_train(fgraph, node):
     return results
 
 
-@local_optimizer([AbstractBatchNormTrainGrad])
+@node_rewriter([AbstractBatchNormTrainGrad])
 def local_abstract_batch_norm_train_grad(fgraph, node):
     if not isinstance(node.op, AbstractBatchNormTrainGrad):
         return None
@@ -866,7 +866,7 @@ def local_abstract_batch_norm_train_grad(fgraph, node):
     return results
 
 
-@local_optimizer([AbstractBatchNormInference])
+@node_rewriter([AbstractBatchNormInference])
 def local_abstract_batch_norm_inference(fgraph, node):
     if not isinstance(node.op, AbstractBatchNormInference):
         return None

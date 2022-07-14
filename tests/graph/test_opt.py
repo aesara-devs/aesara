@@ -15,10 +15,10 @@ from aesara.graph.opt import (
     PatternSub,
     TopoOptimizer,
     in2out,
-    local_optimizer,
     logging,
+    node_rewriter,
     pre_constant_merge,
-    pre_greedy_local_optimizer,
+    pre_greedy_node_rewriter,
 )
 from aesara.raise_op import assert_op
 from aesara.tensor.basic_opt import constant_folding
@@ -547,7 +547,7 @@ def test_pre_constant_merge():
     assert res == [adv]
 
 
-def test_pre_greedy_local_optimizer():
+def test_pre_greedy_node_rewriter():
 
     empty_fgraph = FunctionGraph([], [])
 
@@ -564,7 +564,7 @@ def test_pre_greedy_local_optimizer():
 
     # This should fold `o1`, because it has only `Constant` arguments, and
     # replace it with the `Constant` result
-    cst = pre_greedy_local_optimizer(empty_fgraph, [constant_folding], o2)
+    cst = pre_greedy_node_rewriter(empty_fgraph, [constant_folding], o2)
 
     assert cst.owner.inputs[0].owner is None
     assert cst.owner.inputs[1] is c2
@@ -577,14 +577,14 @@ def test_pre_greedy_local_optimizer():
     fg = FunctionGraph([], [o1], clone=False)
     o2 = op1(o1, c2, x, o3, o1)
 
-    cst = pre_greedy_local_optimizer(fg, [constant_folding], o2)
+    cst = pre_greedy_node_rewriter(fg, [constant_folding], o2)
 
     assert cst.owner.inputs[0] is o1
     assert cst.owner.inputs[4] is cst.owner.inputs[0]
 
     # What exactly is this supposed to test?
     ms = MakeSlice()(1)
-    cst = pre_greedy_local_optimizer(empty_fgraph, [constant_folding], ms)
+    cst = pre_greedy_node_rewriter(empty_fgraph, [constant_folding], ms)
 
     assert isinstance(cst, SliceConstant)
 
@@ -673,13 +673,13 @@ class TestLocalOptGroup:
 
         fgraph = FunctionGraph([x, y], [o1], clone=False)
 
-        @local_optimizer(None)
+        @node_rewriter(None)
         def local_opt_1(fgraph, node):
             if node.inputs[0] == x:
                 res = op2(y, *node.inputs[1:])
                 return [res]
 
-        @local_optimizer(None)
+        @node_rewriter(None)
         def local_opt_2(fgraph, node):
             if node.inputs[0] == y:
                 res = op2(x, *node.inputs[1:])
@@ -703,8 +703,8 @@ class TestLocalOptGroup:
         )
 
 
-def test_local_optimizer_str():
-    @local_optimizer([op1, MyOp])
+def test_node_rewriter_str():
+    @node_rewriter([op1, MyOp])
     def local_opt_1(fgraph, node):
         pass
 
@@ -715,17 +715,17 @@ def test_local_optimizer_str():
     assert "local_opt_1" in res
 
 
-def test_local_optimizer():
+def test_node_rewriter():
 
     with pytest.raises(ValueError):
 
-        @local_optimizer([])
+        @node_rewriter([])
         def local_bad_1(fgraph, node):
             return node.outputs
 
     with pytest.raises(TypeError):
 
-        @local_optimizer([None])
+        @node_rewriter([None])
         def local_bad_2(fgraph, node):
             return node.outputs
 
@@ -748,7 +748,7 @@ def test_local_optimizer():
 
     hits = [0]
 
-    @local_optimizer([op1, MyNewOp])
+    @node_rewriter([op1, MyNewOp])
     def local_opt_1(fgraph, node, hits=hits):
         hits[0] += 1
         return node.outputs
@@ -766,24 +766,24 @@ def test_local_optimizer():
     assert hits[0] == 2
 
 
-def test_TrackingLocalOptimizer():
-    @local_optimizer(None)
+def test_TrackingNodeRewriter():
+    @node_rewriter(None)
     def local_opt_1(fgraph, node):
         pass
 
-    @local_optimizer([op1])
+    @node_rewriter([op1])
     def local_opt_2(fgraph, node):
         pass
 
-    @local_optimizer([Op])
+    @node_rewriter([Op])
     def local_opt_3(fgraph, node):
         pass
 
-    @local_optimizer([MyOp])
+    @node_rewriter([MyOp])
     def local_opt_4(fgraph, node):
         pass
 
-    @local_optimizer([MyOp])
+    @node_rewriter([MyOp])
     def local_opt_5(fgraph, node):
         pass
 

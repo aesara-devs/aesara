@@ -1,9 +1,9 @@
 from aesara.compile import optdb
-from aesara.graph.opt import TopoOptimizer, local_optimizer
+from aesara.graph.opt import TopoOptimizer, node_rewriter
 from aesara.typed_list.basic import Append, Extend, Insert, Remove, Reverse
 
 
-@local_optimizer([Append, Extend, Insert, Reverse, Remove], inplace=True)
+@node_rewriter([Append, Extend, Insert, Reverse, Remove], inplace=True)
 def typed_list_inplace_opt(fgraph, node):
     if (
         isinstance(node.op, (Append, Extend, Insert, Reverse, Remove))

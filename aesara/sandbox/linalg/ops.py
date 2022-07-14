@@ -1,6 +1,6 @@
 import logging
 
-from aesara.graph.opt import local_optimizer
+from aesara.graph.opt import node_rewriter
 from aesara.tensor import basic as at
 from aesara.tensor.basic_opt import (
     register_canonicalize,
@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 
 
 @register_canonicalize
-@local_optimizer([DimShuffle])
+@node_rewriter([DimShuffle])
 def transinv_to_invtrans(fgraph, node):
     if isinstance(node.op, DimShuffle):
         if node.op.new_order == (1, 0):
@@ -32,7 +32,7 @@ def transinv_to_invtrans(fgraph, node):
 
 
 @register_stabilize
-@local_optimizer([Dot, Dot22])
+@node_rewriter([Dot, Dot22])
 def inv_as_solve(fgraph, node):
     """
     This utilizes a boolean `symmetric` tag on the matrices.
@@ -51,7 +51,7 @@ def inv_as_solve(fgraph, node):
 
 @register_stabilize
 @register_canonicalize
-@local_optimizer([Solve])
+@node_rewriter([Solve])
 def tag_solve_triangular(fgraph, node):
     """
     If a general solve() is applied to the output of a cholesky op, then
@@ -82,7 +82,7 @@ def tag_solve_triangular(fgraph, node):
 @register_canonicalize
 @register_stabilize
 @register_specialize
-@local_optimizer([DimShuffle])
+@node_rewriter([DimShuffle])
 def no_transpose_symmetric(fgraph, node):
     if isinstance(node.op, DimShuffle):
         x = node.inputs[0]
@@ -92,7 +92,7 @@ def no_transpose_symmetric(fgraph, node):
 
 
 @register_stabilize
-@local_optimizer([Solve])
+@node_rewriter([Solve])
 def psd_solve_with_chol(fgraph, node):
     """
     This utilizes a boolean `psd` tag on matrices.
@@ -111,7 +111,7 @@ def psd_solve_with_chol(fgraph, node):
 
 @register_stabilize
 @register_specialize
-@local_optimizer([Det])
+@node_rewriter([Det])
 def local_det_chol(fgraph, node):
     """
     If we have det(X) and there is already an L=cholesky(X)
@@ -129,7 +129,7 @@ def local_det_chol(fgraph, node):
 @register_canonicalize
 @register_stabilize
 @register_specialize
-@local_optimizer([log])
+@node_rewriter([log])
 def local_log_prod_sqr(fgraph, node):
     """
     This utilizes a boolean `positive` tag on matrices.

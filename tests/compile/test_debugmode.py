@@ -18,7 +18,7 @@ from aesara.configdefaults import config
 from aesara.graph.basic import Apply, Variable
 from aesara.graph.features import BadOptimization
 from aesara.graph.op import Op
-from aesara.graph.opt import local_optimizer
+from aesara.graph.opt import node_rewriter
 from aesara.graph.optdb import EquilibriumDB
 from aesara.link.c.op import COp
 from aesara.tensor.math import add, dot, log
@@ -237,7 +237,7 @@ def test_badthunkoutput():
 
 
 def test_badoptimization():
-    @local_optimizer([add])
+    @node_rewriter([add])
     def insert_broken_add(fgraph, node):
         if node.op == add:
             return [off_by_half(*node.inputs)]
@@ -263,7 +263,7 @@ def test_badoptimization():
 def test_badoptimization_opt_err():
     # This variant of test_badoptimization() replace the working code
     # with a new apply node that will raise an error.
-    @local_optimizer([add])
+    @node_rewriter([add])
     def insert_bigger_b_add(fgraph, node):
         if node.op == add:
             inputs = list(node.inputs)
@@ -272,7 +272,7 @@ def test_badoptimization_opt_err():
                 return [node.op(*inputs)]
         return False
 
-    @local_optimizer([add])
+    @node_rewriter([add])
     def insert_bad_dtype(fgraph, node):
         if node.op == add:
             inputs = list(node.inputs)
@@ -326,7 +326,7 @@ def test_stochasticoptimization():
 
     last_time_replaced = [False]
 
-    @local_optimizer([add])
+    @node_rewriter([add])
     def insert_broken_add_sometimes(fgraph, node):
         if node.op == add:
             last_time_replaced[0] = not last_time_replaced[0]

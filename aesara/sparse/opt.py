@@ -4,7 +4,7 @@ import aesara
 import aesara.scalar as aes
 from aesara.configdefaults import config
 from aesara.graph.basic import Apply
-from aesara.graph.opt import PatternSub, TopoOptimizer, local_optimizer
+from aesara.graph.opt import PatternSub, TopoOptimizer, node_rewriter
 from aesara.link.c.op import COp, _NoPythonCOp
 from aesara.misc.safe_asarray import _asarray
 from aesara.sparse import basic as sparse
@@ -32,7 +32,7 @@ _is_dense = sparse._is_dense
 # This is tested in tests/test_opt.py:test_local_csm_properties_csm
 
 
-@local_optimizer([csm_properties])
+@node_rewriter([csm_properties])
 def local_csm_properties_csm(fgraph, node):
     """
     If we find csm_properties(CSM(*args)), then we can replace that with the
@@ -51,7 +51,7 @@ register_specialize(local_csm_properties_csm)
 
 
 # This is tested in tests/test_basic.py:test_remove0
-@local_optimizer([sparse.Remove0])
+@node_rewriter([sparse.Remove0])
 def local_inplace_remove0(fgraph, node):
     """
     Optimization to insert inplace versions of Remove0.
@@ -188,7 +188,7 @@ class AddSD_ccode(_NoPythonCOp):
         return (2,)
 
 
-@local_optimizer([sparse.AddSD])
+@node_rewriter([sparse.AddSD])
 def local_inplace_addsd_ccode(fgraph, node):
     """
     Optimization to insert inplace versions of AddSD.
@@ -218,7 +218,7 @@ aesara.compile.optdb.register(
 
 @register_canonicalize("fast_compile")
 @register_specialize
-@local_optimizer([sparse.DenseFromSparse])
+@node_rewriter([sparse.DenseFromSparse])
 def local_dense_from_sparse_sparse_from_dense(fgraph, node):
     if isinstance(node.op, sparse.DenseFromSparse):
         inp = node.inputs[0]
@@ -226,7 +226,7 @@ def local_dense_from_sparse_sparse_from_dense(fgraph, node):
             return inp.owner.inputs
 
 
-@local_optimizer([sparse.AddSD])
+@node_rewriter([sparse.AddSD])
 def local_addsd_ccode(fgraph, node):
     """
     Convert AddSD to faster AddSD_ccode.
@@ -638,7 +638,7 @@ sd_csr = StructuredDotCSR()
 
 # register a specialization to replace StructuredDot -> StructuredDotCSx
 # This is tested in tests/test_basic.py:792
-@local_optimizer([sparse._structured_dot])
+@node_rewriter([sparse._structured_dot])
 def local_structured_dot(fgraph, node):
     if node.op == sparse._structured_dot:
         a, b = node.inputs
@@ -950,7 +950,7 @@ register_specialize(local_usmm, name="local_usmm")
 
 # register a specialization to replace usmm_csc_dense -> usmm_csc_dense_inplace
 # This is tested in tests/test_basic.py:UsmmTests
-@local_optimizer([usmm_csc_dense])
+@node_rewriter([usmm_csc_dense])
 def local_usmm_csc_dense_inplace(fgraph, node):
     if node.op == usmm_csc_dense:
         return [usmm_csc_dense_inplace(*node.inputs)]
@@ -960,7 +960,7 @@ register_specialize(local_usmm_csc_dense_inplace, "cxx_only", "inplace")
 
 
 # This is tested in tests/test_basic.py:UsmmTests
-@local_optimizer([usmm])
+@node_rewriter([usmm])
 def local_usmm_csx(fgraph, node):
     """
     usmm -> usmm_csc_dense
@@ -1120,7 +1120,7 @@ csm_grad_c = CSMGradC()
 
 # register a specialization to replace csm_grad -> csm_grad_c
 # This is tested in tests/test_opt.py:test_local_csm_grad_c
-@local_optimizer([csm_grad(None)])
+@node_rewriter([csm_grad(None)])
 def local_csm_grad_c(fgraph, node):
     """
     csm_grad(None) -> csm_grad_c
@@ -1404,7 +1404,7 @@ mul_s_d_csr = MulSDCSR()
 
 
 # register a specialization to replace MulSD -> MulSDCSX
-@local_optimizer([sparse.mul_s_d])
+@node_rewriter([sparse.mul_s_d])
 def local_mul_s_d(fgraph, node):
     if node.op == sparse.mul_s_d:
         x, y = node.inputs
@@ -1584,7 +1584,7 @@ mul_s_v_csr = MulSVCSR()
 
 
 # register a specialization to replace MulSV -> MulSVCSR
-@local_optimizer([sparse.mul_s_v])
+@node_rewriter([sparse.mul_s_v])
 def local_mul_s_v(fgraph, node):
     if node.op == sparse.mul_s_v:
         x, y = node.inputs
@@ -1762,7 +1762,7 @@ structured_add_s_v_csr = StructuredAddSVCSR()
 
 # register a specialization to replace
 # structured_add_s_v -> structured_add_s_v_csr
-@local_optimizer([sparse.structured_add_s_v])
+@node_rewriter([sparse.structured_add_s_v])
 def local_structured_add_s_v(fgraph, node):
     if node.op == sparse.structured_add_s_v:
         x, y = node.inputs
@@ -2051,7 +2051,7 @@ sampling_dot_csr = SamplingDotCSR()
 
 
 # register a specialization to replace SamplingDot -> SamplingDotCsr
-@local_optimizer([sparse.sampling_dot])
+@node_rewriter([sparse.sampling_dot])
 def local_sampling_dot_csr(fgraph, node):
     if not config.blas__ldflags:
         # The C implementation of SamplingDotCsr relies on BLAS routines

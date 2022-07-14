@@ -22,7 +22,7 @@ from aesara.compile import optdb
 from aesara.configdefaults import config
 from aesara.graph.basic import Apply, Variable, clone_replace, is_in_ancestors
 from aesara.graph.op import _NoPythonOp
-from aesara.graph.opt import GraphRewriter, in2out, local_optimizer
+from aesara.graph.opt import GraphRewriter, in2out, node_rewriter
 from aesara.graph.type import HasDataType, HasShape
 from aesara.tensor.shape import Reshape, Shape, SpecifyShape, Unbroadcast
 
@@ -404,7 +404,7 @@ def ifelse(
         return tuple(rval)
 
 
-@local_optimizer([IfElse])
+@node_rewriter([IfElse])
 def cond_make_inplace(fgraph, node):
     op = node.op
     if (
@@ -482,7 +482,7 @@ acceptable_ops = (
 )
 
 
-@local_optimizer(acceptable_ops)
+@node_rewriter(acceptable_ops)
 def ifelse_lift_single_if_through_acceptable_ops(fgraph, main_node):
     """This optimization lifts up certain ifelse instances.
 
@@ -529,7 +529,7 @@ def ifelse_lift_single_if_through_acceptable_ops(fgraph, main_node):
     return nw_outs
 
 
-@local_optimizer([IfElse])
+@node_rewriter([IfElse])
 def cond_merge_ifs_true(fgraph, node):
     op = node.op
     if not isinstance(op, IfElse):
@@ -556,7 +556,7 @@ def cond_merge_ifs_true(fgraph, node):
     return op(*old_ins, return_list=True)
 
 
-@local_optimizer([IfElse])
+@node_rewriter([IfElse])
 def cond_merge_ifs_false(fgraph, node):
     op = node.op
     if not isinstance(op, IfElse):
@@ -635,7 +635,7 @@ class CondMerge(GraphRewriter):
                 fgraph.replace_all_validate(pairs, reason="cond_merge")
 
 
-@local_optimizer([IfElse])
+@node_rewriter([IfElse])
 def cond_remove_identical(fgraph, node):
     op = node.op
 
@@ -681,7 +681,7 @@ def cond_remove_identical(fgraph, node):
     return rval
 
 
-@local_optimizer([IfElse])
+@node_rewriter([IfElse])
 def cond_merge_random_op(fgraph, main_node):
     if isinstance(main_node.op, IfElse):
         return False

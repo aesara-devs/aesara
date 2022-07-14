@@ -67,15 +67,15 @@ Local optimization
 
 A local optimization is an object which defines the following methods:
 
-.. class:: LocalOptimizer
+.. class:: NodeRewriter
 
     .. method:: transform(fgraph, node)
 
       This method takes a :class:`FunctionGraph` and an :class:`Apply` node and
       returns either ``False`` to signify that no changes are to be done or a
       list of :class:`Variable`\s which matches the length of the node's ``outputs``
-      list. When the :class:`LocalOptimizer` is applied by a :class:`NavigatorOptimizer`, the outputs
-      of the node passed as argument to the :class:`LocalOptimizer` will be replaced by
+      list. When the :class:`NodeRewriter` is applied by a :class:`NavigatorOptimizer`, the outputs
+      of the node passed as argument to the :class:`NodeRewriter` will be replaced by
       the list returned.
 
 
@@ -218,10 +218,10 @@ The local version of the above code would be the following:
 
 .. testcode::
 
-   from aesara.graph.opt import LocalOptimizer
+   from aesara.graph.opt import NodeRewriter
 
 
-   class LocalSimplify(LocalOptimizer):
+   class LocalSimplify(NodeRewriter):
        def transform(self, fgraph, node):
            if node.op == true_div:
                x, y = node.inputs
@@ -234,7 +234,7 @@ The local version of the above code would be the following:
            return False
 
        def tracks(self):
-           # This tells certain navigators to only apply this `LocalOptimizer`
+           # This tells certain navigators to only apply this `NodeRewriter`
            # on these kinds of `Op`s
            return [true_div]
 
@@ -242,7 +242,7 @@ The local version of the above code would be the following:
 
 
 In this case, the transformation is defined in the
-:meth:`LocalOptimizer.transform` method, which is given an explicit
+:meth:`NodeRewriter.transform` method, which is given an explicit
 :class:`Apply` node on which to work.  The entire graph--as a ``fgraph``--is
 also provided, in case global information is needed.
 
@@ -273,7 +273,7 @@ FunctionGraph(add(z, mul(x, true_div(z, x))))
 :class:`OpSub`, :class:`OpRemove`, :class:`PatternSub`
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-Aesara defines some shortcuts to make :class:`LocalOptimizer`\s:
+Aesara defines some shortcuts to make :class:`NodeRewriter`\s:
 
 .. function:: OpSub(op1, op2)
 
@@ -433,7 +433,7 @@ This means that a relation that--say--represents :math:`x + x = 2 x` can be
 utilized in both directions.
 
 Currently, the local optimizer :class:`KanrenRelationSub` provides a means of
-turning :mod:`kanren` relations into :class:`LocalOptimizer`\s; however,
+turning :mod:`kanren` relations into :class:`NodeRewriter`\s; however,
 :mod:`kanren` can always be used directly from within a custom :class:`Rewriter`, so
 :class:`KanrenRelationSub` is not necessary.
 
@@ -561,7 +561,7 @@ serve as a basis for filtering.
 The point of :obj:`optdb` is that you might want to apply many optimizations
 to a computation graph in many unique patterns. For example, you might
 want to do optimization X, then optimization Y, then optimization Z. And then
-maybe optimization Y is an :class:`EquilibriumOptimizer` containing :class:`LocalOptimizer`\s A, B
+maybe optimization Y is an :class:`EquilibriumOptimizer` containing :class:`NodeRewriter`\s A, B
 and C which are applied on every node of the graph until they all fail to change
 it. If some optimizations act up, we want an easy way to turn them off. Ditto if
 some optimizations are very CPU-intensive and we don't want to take the time to
@@ -596,14 +596,14 @@ is returned. If the :class:`SequenceDB` contains :class:`OptimizationDatabase`
 instances, the :class:`OptimizationQuery` will be passed to them as well and the
 optimizers they return will be put in their places.
 
-An :class:`EquilibriumDB` contains :class:`LocalOptimizer` or :class:`OptimizationDatabase` objects. Each of them
+An :class:`EquilibriumDB` contains :class:`NodeRewriter` or :class:`OptimizationDatabase` objects. Each of them
 has a name and an arbitrary number of tags. When a :class:`OptimizationQuery` is applied to
-an :class:`EquilibriumDB`, all :class:`LocalOptimizer`\s that match the query are
+an :class:`EquilibriumDB`, all :class:`NodeRewriter`\s that match the query are
 inserted into an :class:`EquilibriumOptimizer`, which is returned. If the
 :class:`SequenceDB` contains :class:`OptimizationDatabase` instances, the
 :class:`OptimizationQuery` will be passed to them as well and the
-:class:`LocalOptimizer`\s they return will be put in their places
-(note that as of yet no :class:`OptimizationDatabase` can produce :class:`LocalOptimizer` objects, so this
+:class:`NodeRewriter`\s they return will be put in their places
+(note that as of yet no :class:`OptimizationDatabase` can produce :class:`NodeRewriter` objects, so this
 is a moot point).
 
 Aesara contains one principal :class:`OptimizationDatabase` object, :class:`optdb`, which
@@ -697,10 +697,10 @@ already-compiled functions will see no change. The 'order' parameter
 
 
 
-Registering a :class:`LocalOptimizer`
--------------------------------------
+Registering a :class:`NodeRewriter`
+-----------------------------------
 
-:class:`LocalOptimizer`\s may be registered in two ways:
+:class:`NodeRewriter`\s may be registered in two ways:
 
 * Wrap them in a :class:`NavigatorOptimizer` and insert them like a global optimizer
   (see previous section).
