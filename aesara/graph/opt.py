@@ -17,7 +17,9 @@ from collections import UserList, defaultdict, deque
 from collections.abc import Iterable
 from functools import _compose_mro, partial, reduce  # type: ignore
 from itertools import chain
-from typing import Dict, List, Optional, Sequence, Tuple, Union
+from typing import Callable, Dict, List, Optional, Sequence, Tuple, Union
+
+from typing_extensions import Literal
 
 import aesara
 from aesara.configdefaults import config
@@ -40,6 +42,17 @@ from aesara.utils import flatten
 
 
 _logger = logging.getLogger("aesara.graph.opt")
+
+FailureCallbackType = Callable[
+    [
+        Exception,
+        "NavigatorOptimizer",
+        List[Tuple[Variable, None]],
+        "LocalOptimizer",
+        Apply,
+    ],
+    None,
+]
 
 
 class LocalMetaOptimizerSkipAssertionError(AssertionError):
@@ -1770,7 +1783,12 @@ class NavigatorOptimizer(GlobalOptimizer):
     def warn_ignore(exc, nav, repl_pairs, local_opt, node):
         """A failure callback that ignores all errors."""
 
-    def __init__(self, local_opt, ignore_newtrees="auto", failure_callback=None):
+    def __init__(
+        self,
+        local_opt: LocalOptimizer,
+        ignore_newtrees: Literal[True, False, "auto"],
+        failure_callback: Optional[FailureCallbackType] = None,
+    ):
         self.local_opt = local_opt
         if ignore_newtrees == "auto":
             self.ignore_newtrees = not getattr(local_opt, "reentrant", True)
@@ -1934,7 +1952,11 @@ class TopoOptimizer(NavigatorOptimizer):
     """An optimizer that applies a single `LocalOptimizer` to each node in topological order (or reverse)."""
 
     def __init__(
-        self, local_opt, order="in_to_out", ignore_newtrees=False, failure_callback=None
+        self,
+        local_opt: LocalOptimizer,
+        order: Literal["out_to_in", "in_to_out"] = "in_to_out",
+        ignore_newtrees: bool = False,
+        failure_callback: Optional[FailureCallbackType] = None,
     ):
         if order not in ("out_to_in", "in_to_out"):
             raise ValueError("order must be 'out_to_in' or 'in_to_out'")
