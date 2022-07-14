@@ -710,7 +710,7 @@ def test_node_rewriter_str():
 
     assert str(local_opt_1) == "local_opt_1"
     res = repr(local_opt_1)
-    assert res.startswith("FromFunctionLocalOptimizer(")
+    assert res.startswith("FromFunctionNodeRewriter(")
     assert "Op1" in res
     assert "local_opt_1" in res
 

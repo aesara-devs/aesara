@@ -1064,7 +1064,7 @@ class MetaNodeRewriter(NodeRewriter):
         return time.time() - start
 
 
-class FromFunctionLocalOptimizer(NodeRewriter):
+class FromFunctionNodeRewriter(NodeRewriter):
     """A `NodeRewriter` constructed from a function."""
 
     def __init__(self, fn, tracks=None, requirements=()):
@@ -1095,7 +1095,7 @@ class FromFunctionLocalOptimizer(NodeRewriter):
         return getattr(self, "__name__", repr(self))
 
     def __repr__(self):
-        return f"FromFunctionLocalOptimizer({repr(self.fn)}, {repr(self._tracks)}, {repr(self.requirements)})"
+        return f"FromFunctionNodeRewriter({repr(self.fn)}, {repr(self._tracks)}, {repr(self.requirements)})"
 
     def print_summary(self, stream=sys.stdout, level=0, depth=-1):
         print(f"{' ' * level}{self.transform} id={id(self)}", file=stream)
@@ -1106,7 +1106,7 @@ def node_rewriter(
     inplace: bool = False,
     requirements: Optional[Tuple[type, ...]] = (),
 ):
-    r"""A decorator used to construct `FromFunctionLocalOptimizer` instances.
+    r"""A decorator used to construct `FromFunctionNodeRewriter` instances.
 
     Parameters
     ----------
@@ -1145,7 +1145,7 @@ def node_rewriter(
             req = tuple(requirements) + (
                 lambda fgraph: fgraph.attach_feature(dh_handler()),
             )
-        rval = FromFunctionLocalOptimizer(f, tracks, req)
+        rval = FromFunctionNodeRewriter(f, tracks, req)
         rval.__name__ = f.__name__
         return rval
 
@@ -3157,6 +3157,11 @@ DEPRECATED_NAMES = [
         "SeqOptimizer",
         "`SeqOptimizer` is deprecated: use `SequentialGraphRewriter` instead.",
         SequentialGraphRewriter,
+    ),
+    (
+        "FromFunctionLocalOptimizer",
+        "`FromFunctionLocalOptimizer` is deprecated: use `FromFunctionNodeRewriter` instead.",
+        FromFunctionNodeRewriter,
     ),
 ]
 
