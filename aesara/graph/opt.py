@@ -2038,10 +2038,13 @@ class TopoOptimizer(NavigatorOptimizer):
         return getattr(self, "__name__", "<TopoOptimizer instance>")
 
 
-def topogroup_optimizer(order, *local_opts, name=None, **kwargs):
+def topogroup_optimizer(
+    order, *local_opts, name=None, failure_callback=TopoOptimizer.warn_inplace, **kwargs
+):
     """Apply `local_opts` from the input/output nodes to the output/input nodes of a graph.
 
-    This uses a combination of `LocalOptGroup` and `TopoOptimizer`.
+    This constructs `TopoOptimizer`s, and uses a `LocalOptGroup` when there's
+    more than one entry in `local_opts`.
     """
     if len(local_opts) > 1:
         # Don't wrap it uselessly if their is only 1 optimization.
@@ -2052,8 +2055,8 @@ def topogroup_optimizer(order, *local_opts, name=None, **kwargs):
             name = local_opts.__name__
     ret = TopoOptimizer(
         local_opts,
-        order="in_to_out",
-        failure_callback=TopoOptimizer.warn_inplace,
+        order=order,
+        failure_callback=failure_callback,
         **kwargs,
     )
     if name:
