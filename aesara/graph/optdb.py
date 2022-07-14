@@ -177,10 +177,6 @@ class OptimizationDatabase:
         print("  db", self.__db__, file=stream)
 
 
-# This is deprecated and will be removed.
-DB = OptimizationDatabase
-
-
 class OptimizationQuery:
     """An object that specifies a set of optimizations by tag/name."""
 
@@ -291,10 +287,6 @@ class OptimizationQuery:
             self.position_cutoff,
             self.extra_optimizations + list(optimizations),
         )
-
-
-# This is deprecated and will be removed.
-Query = OptimizationQuery
 
 
 class EquilibriumDB(OptimizationDatabase):
@@ -550,3 +542,33 @@ class ProxyDB(OptimizationDatabase):
 
     def query(self, *tags, **kwtags):
         return self.db.query(*tags, **kwtags)
+
+
+DEPRECATED_NAMES = [
+    (
+        "DB",
+        "`DB` is deprecated; use `OptimizationDatabase` instead.",
+        OptimizationDatabase,
+    ),
+    (
+        "Query",
+        "`Query` is deprecated; use `OptimizationQuery` instead.",
+        OptimizationQuery,
+    ),
+]
+
+
+def __getattr__(name):
+    """Intercept module-level attribute access of deprecated symbols.
+
+    Adapted from https://stackoverflow.com/a/55139609/3006474.
+
+    """
+    from warnings import warn
+
+    for old_name, msg, old_object in DEPRECATED_NAMES:
+        if name == old_name:
+            warn(msg, DeprecationWarning, stacklevel=2)
+            return old_object
+
+    raise AttributeError(f"module {__name__} has no attribute {name}")

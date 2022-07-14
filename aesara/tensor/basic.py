@@ -2667,7 +2667,7 @@ def is_flat(var, ndim=None, outdim=None):
     elif outdim is not None and ndim is not None:
         raise ValueError("You should only specify ndim")
     elif outdim is not None:
-        warnings.warn("flatten outdim parameter is deprecated, use ndim instead.")
+        warnings.warn("outdim` is deprecated; use `ndim` instead.")
         ndim = outdim
     return var.ndim == ndim
 

@@ -101,9 +101,8 @@ class Cholesky(Op):
 
         def conjugate_solve_triangular(outer, inner):
             """Computes L^{-T} P L^{-1} for lower-triangular L."""
-            return solve_upper_triangular(
-                outer.T, solve_upper_triangular(outer.T, inner.T).T
-            )
+            solve_upper = SolveTriangular(lower=False)
+            return solve_upper(outer.T, solve_upper(outer.T, inner.T).T)
 
         s = conjugate_solve_triangular(
             chol_x, tril_and_halve_diagonal(chol_x.T.dot(dz))
@@ -507,15 +506,6 @@ def solve(a, b, assume_a="gen", lower=False, check_finite=True):
     )(a, b)
 
 
-# TODO: These are deprecated; emit a warning
-solve_lower_triangular = SolveTriangular(lower=True)
-solve_upper_triangular = SolveTriangular(lower=False)
-solve_symmetric = Solve(assume_a="sym")
-
-# TODO: Optimizations to replace multiplication by matrix inverse
-#      with solve() Op (still unwritten)
-
-
 class Eigvalsh(Op):
     """
     Generalized eigenvalues of a Hermitian positive definite eigensystem.
@@ -748,10 +738,45 @@ expm = Expm()
 __all__ = [
     "cholesky",
     "solve",
-    "solve_lower_triangular",
-    "solve_upper_triangular",
-    "solve_symmetric",
     "eigvalsh",
     "kron",
     "expm",
 ]
+
+DEPRECATED_NAMES = [
+    (
+        "solve_lower_triangular",
+        "`solve_lower_triangular` is deprecated; use `solve` instead.",
+        SolveTriangular(lower=True),
+    ),
+    (
+        "solve_upper_triangular",
+        "`solve_upper_triangular` is deprecated; use `solve` instead.",
+        SolveTriangular(lower=False),
+    ),
+    (
+        "solve_symmetric",
+        "`solve_symmetric` is deprecated; use `solve` instead.",
+        Solve(assume_a="sym"),
+    ),
+]
+
+
+def __getattr__(name):
+    """Intercept module-level attribute access of deprecated symbols.
+
+    Adapted from https://stackoverflow.com/a/55139609/3006474.
+
+    """
+    from warnings import warn
+
+    for old_name, msg, old_object in DEPRECATED_NAMES:
+        if name == old_name:
+            warn(msg, DeprecationWarning, stacklevel=2)
+            return old_object
+
+    raise AttributeError(f"module {__name__} has no attribute {name}")
+
+
+def __dir__():
+    return sorted(__all__ + [names[0] for names in DEPRECATED_NAMES])

@@ -46,12 +46,13 @@ def conv2d(
     subsample=(1, 1),
     **kargs,
 ):
-    """
-    Deprecated, old conv2d interface.
-    This function will build the symbolic graph for convolving a stack of
-    input images with a set of filters. The implementation is modelled after
-    Convolutional Neural Networks (CNN). It is simply a wrapper to the ConvOp
-    but provides a much cleaner interface.
+    """Build the symbolic graph for convolving a stack of input images with a set of filters.
+
+    The implementation is modelled after Convolutional Neural Networks
+    (CNN). It is simply a wrapper to the `ConvOp` but provides a much cleaner
+    interface.
+
+    This is deprecated.
 
     Parameters
     ----------
@@ -402,8 +403,7 @@ class ConvOp(OpenMPOp):
         # with s=1 for mode=='full' and s=-1 for mode=='valid'.
         # To support symbolic shapes, we express this with integer arithmetic.
         warnings.warn(
-            "The method `getOutputShape` is deprecated use"
-            "`get_conv_output_shape` instead.",
+            "`getOutputShape` is deprecated; use `get_conv_output_shape` instead.",
             DeprecationWarning,
             stacklevel=2,
         )

@@ -827,8 +827,8 @@ def test_Cast(v, dtype):
         (set_test_value(at.iscalar(), np.array(10, dtype="int32")), aesb.float64),
     ],
 )
-def test_Inv(v, dtype):
-    g = aesb.inv(v)
+def test_reciprocal(v, dtype):
+    g = aesb.reciprocal(v)
     g_fg = FunctionGraph(outputs=[g])
     compare_numba_and_py(
         g_fg,
