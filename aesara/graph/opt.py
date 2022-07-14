@@ -231,13 +231,13 @@ def inplace_graph_rewriter(f):
     return rval
 
 
-class SeqOptimizer(GraphRewriter, UserList):
+class SequentialGraphRewriter(GraphRewriter, UserList):
     """A `GraphRewriter` that applies a list of optimizers sequentially."""
 
     @staticmethod
     def warn(exc, self, optimizer):
-        """Default ``failure_callback`` for `SeqOptimizer`."""
-        _logger.error(f"SeqOptimizer apply {optimizer}")
+        """Default ``failure_callback`` for `SequentialGraphRewriter`."""
+        _logger.error(f"SequentialGraphRewriter apply {optimizer}")
         _logger.error("Traceback:")
         _logger.error(traceback.format_exc())
         if config.on_opt_error == "raise":
@@ -378,7 +378,7 @@ class SeqOptimizer(GraphRewriter, UserList):
 
         blanc = "    " * level
 
-        print(blanc, "SeqOptimizer", end=" ", file=stream)
+        print(blanc, "SequentialGraphRewriter", end=" ", file=stream)
         if hasattr(opts, "name"):
             print(blanc, opts.name, end=" ", file=stream)
         elif hasattr(opts, "__name__"):
@@ -487,7 +487,7 @@ class SeqOptimizer(GraphRewriter, UserList):
             new_l.append(l)
             new_sub_profile.append(p[6][idx])
 
-        new_opt = SeqOptimizer(*new_l)
+        new_opt = SequentialGraphRewriter(*new_l)
         new_nb_nodes = []
         for p1, p2 in zip(prof1[8], prof2[8]):
             new_nb_nodes.append((p1[0] + p2[0], p1[1] + p2[1]))
@@ -3152,6 +3152,11 @@ DEPRECATED_NAMES = [
         "LocalMetaOptimizer",
         "`LocalMetaOptimizer` is deprecated: use `MetaNodeRewriter` instead.",
         MetaNodeRewriter,
+    ),
+    (
+        "SeqOptimizer",
+        "`SeqOptimizer` is deprecated: use `SequentialGraphRewriter` instead.",
+        SequentialGraphRewriter,
     ),
 ]
 

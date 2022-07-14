@@ -747,7 +747,7 @@ two or more states and nothing will get done.
 :obj:`optdb` structure
 ----------------------
 
-:obj:`optdb` contains the following :class:`Optimizer`\s and sub-DBs, with the given
+:obj:`optdb` contains the following :class:`Rewriters`\s and sub-DBs, with the given
 priorities and tags:
 
 +-------+---------------------+------------------------------+
@@ -855,7 +855,7 @@ This will output something like this:
 
     Optimizer Profile
     -----------------
-     SeqOptimizer  OPT_FAST_RUN  time 1.152s for 123/50 nodes before/after optimization
+     SequentialGraphRewriter  OPT_FAST_RUN  time 1.152s for 123/50 nodes before/after optimization
        0.028s for fgraph.validate()
        0.131s for callback
        time      - (name, class, index) - validate time
@@ -924,8 +924,8 @@ This will output something like this:
              0.000s - local_subtensor_of_alloc
              0.000s - local_subtensor_of_dot
              0.000s - local_subtensor_merge
-       0.101733s - ('elemwise_fusion', 'SeqOptimizer', 13) - 0.000s
-         SeqOptimizer      elemwise_fusion  time 0.102s for 78/50 nodes before/after optimization
+       0.101733s - ('elemwise_fusion', 'SequentialGraphRewriter', 13) - 0.000s
+         SequentialGraphRewriter      elemwise_fusion  time 0.102s for 78/50 nodes before/after optimization
            0.000s for fgraph.validate()
            0.004s for callback
            0.095307s - ('composite_elemwise_fusion', 'FusionOptimizer', 1) - 0.000s
@@ -945,8 +945,8 @@ This will output something like this:
               callback_time 0.000783205032349
               time_toposort 0.0035240650177
        0.090089s - ('inplace_elemwise_optimizer', 'FromFunctionGraphRewriter', 30) - 0.019s
-       0.048993s - ('BlasOpt', 'SeqOptimizer', 8) - 0.000s
-         SeqOptimizer      BlasOpt  time 0.049s for 81/80 nodes before/after optimization
+       0.048993s - ('BlasOpt', 'SequentialGraphRewriter', 8) - 0.000s
+         SequentialGraphRewriter      BlasOpt  time 0.049s for 81/80 nodes before/after optimization
            0.000s for fgraph.validate()
            0.003s for callback
            0.035997s - ('gemm_optimizer', 'GemmOptimizer', 1) - 0.000s
@@ -1042,21 +1042,21 @@ This will output something like this:
 To understand this profile here is some explanation of how optimizations work:
 
 * Optimizations are organized in an hierarchy. At the top level, there
-  is a :class:`SeqOptimizer`. It contains other optimizers,
+  is a :class:`SequentialGraphRewriter`. It contains other optimizers,
   and applies them in the order they were specified. Those sub-optimizers can be
   of other types, but are all *global* optimizers.
 
-* Each :class:`Optimizer` in the hierarchy will print some stats about
+* Each :class:`Rewriter` in the hierarchy will print some stats about
   itself. The information that it prints depends of the type of the
   optimizer.
 
-* The :class:`SeqOptimizer` will print some stats at the start:
+* The :class:`SequentialGraphRewriter` will print some stats at the start:
 
     .. code-block:: none
 
         Optimizer Profile
         -----------------
-         SeqOptimizer  OPT_FAST_RUN  time 1.152s for 123/50 nodes before/after optimization
+         SequentialGraphRewriter  OPT_FAST_RUN  time 1.152s for 123/50 nodes before/after optimization
            0.028s for fgraph.validate()
            0.131s for callback
            time      - (name, class, index) - validate time
@@ -1071,12 +1071,12 @@ To understand this profile here is some explanation of how optimizations work:
   * 0.028s means it spent that time calls to ``fgraph.validate()``
   * 0.131s means it spent that time for callbacks. This is a mechanism that can trigger other execution when there is a change to the FunctionGraph.
   * ``time      - (name, class, index) - validate time`` tells how the information for each sub-optimizer get printed.
-  * All other instances of :class:`SeqOptimizer` are described like this. In
+  * All other instances of :class:`SequentialGraphRewriter` are described like this. In
     particular, some sub-optimizer from ``OPT_FAST_RUN`` that are also
-    :class:`SeqOptimizer`.
+    :class:`SequentialGraphRewriter`.
 
 
-* The :class:`SeqOptimizer` will print some stats at the start:
+* The :class:`SequentialGraphRewriter` will print some stats at the start:
 
     .. code-block:: none
 
@@ -1147,11 +1147,11 @@ To understand this profile here is some explanation of how optimizations work:
              0.000s - local_subtensor_merge
 
   * ``0.751816s - ('canonicalize', 'EquilibriumOptimizer', 4) - 0.004s``
-    This line is from :class:`SeqOptimizer`, and indicates information related
+    This line is from :class:`SequentialGraphRewriter`, and indicates information related
     to a sub-optimizer. It means that this sub-optimizer took
     a total of .7s. Its name is ``'canonicalize'``. It is an
     :class:`EquilibriumOptimizer`. It was executed at index 4 by the
-    :class:`SeqOptimizer`. It spent 0.004s in the *validate* phase.
+    :class:`SequentialGraphRewriter`. It spent 0.004s in the *validate* phase.
   * All other lines are from the profiler of the :class:`EquilibriumOptimizer`.
 
   * An :class:`EquilibriumOptimizer` does multiple passes on the Apply nodes from

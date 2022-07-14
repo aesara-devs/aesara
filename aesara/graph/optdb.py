@@ -353,22 +353,20 @@ class EquilibriumDB(OptimizationDatabase):
 
 
 class SequenceDB(OptimizationDatabase):
-    """A sequence of potential optimizations.
+    """A sequence of potential rewrites.
 
-    Retrieve a sequence of optimizations (a SeqOptimizer) by calling query().
+    Retrieve a sequence of rewrites as a `SequentialGraphRewriter` by calling
+    `SequenceDB.query`.
 
     Each potential optimization is registered with a floating-point position.
     No matter which optimizations are selected by a query, they are carried
     out in order of increasing position.
 
-    The optdb itself (`aesara.compile.mode.optdb`), from which (among many
-    other tags) fast_run and fast_compile optimizers are drawn is a SequenceDB.
-
     """
 
-    seq_opt = aesara_opt.SeqOptimizer
+    seq_opt = aesara_opt.SequentialGraphRewriter
 
-    def __init__(self, failure_callback=aesara_opt.SeqOptimizer.warn):
+    def __init__(self, failure_callback=aesara_opt.SequentialGraphRewriter.warn):
         super().__init__()
         self.__position__ = {}
         self.failure_callback = failure_callback

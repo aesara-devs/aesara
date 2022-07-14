@@ -53,7 +53,7 @@ class TestDB:
 
         res = seq_db.query("+a")
 
-        assert isinstance(res, opt.SeqOptimizer)
+        assert isinstance(res, opt.SequentialGraphRewriter)
         assert res.data == []
 
         seq_db.register("b", TestOpt(), position=1)
