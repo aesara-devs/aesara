@@ -83,7 +83,7 @@ class Rewriter(abc.ABC):
         return id(self)
 
 
-class GlobalOptimizer(Rewriter):
+class GraphRewriter(Rewriter):
     """A optimizer that can be applied to a `FunctionGraph` in order to transform it.
 
     It can represent an optimization or, in general, any kind of transformation
@@ -96,7 +96,7 @@ class GlobalOptimizer(Rewriter):
         """Apply the optimization to a `FunctionGraph`.
 
         It may use all the methods defined by the `FunctionGraph`. If the
-        `GlobalOptimizer` needs to use a certain tool, such as an
+        `GraphRewriter` needs to use a certain tool, such as an
         `InstanceFinder`, it can do so in its `add_requirements` method.
 
         """
@@ -185,8 +185,8 @@ class LocalOptimizer(Rewriter):
         print(f"{' ' * level}{self.__class__.__name__} id={id(self)}", file=stream)
 
 
-class FromFunctionOptimizer(GlobalOptimizer):
-    """A `GlobalOptimizer` constructed from a given function."""
+class FromFunctionOptimizer(GraphRewriter):
+    """A `GraphRewriter` constructed from a given function."""
 
     def __init__(self, fn, requirements=()):
         self.fn = fn
@@ -225,8 +225,8 @@ def inplace_optimizer(f):
     return rval
 
 
-class SeqOptimizer(GlobalOptimizer, UserList):
-    """A `GlobalOptimizer` that applies a list of optimizers sequentially."""
+class SeqOptimizer(GraphRewriter, UserList):
+    """A `GraphRewriter` that applies a list of optimizers sequentially."""
 
     @staticmethod
     def warn(exc, self, optimizer):
@@ -258,7 +258,7 @@ class SeqOptimizer(GlobalOptimizer, UserList):
         self.failure_callback = failure_callback
 
     def apply(self, fgraph):
-        """Applies each `GlobalOptimizer` in ``self.data`` to `fgraph`."""
+        """Applies each `GraphRewriter` in ``self.data`` to `fgraph`."""
         l = []
         if fgraph.profile:
             validate_before = fgraph.profile.validate_time
@@ -670,7 +670,7 @@ class MergeFeature(Feature):
                 self.noinput_nodes.add(node)
 
 
-class MergeOptimizer(GlobalOptimizer):
+class MergeOptimizer(GraphRewriter):
     r"""Merges parts of the graph that are identical and redundant.
 
     The basic principle is that if two `Apply`\s have `Op`\s that compare equal, and
@@ -1718,7 +1718,7 @@ class Updater(Feature):
         self.chin = None
 
 
-class NavigatorOptimizer(GlobalOptimizer):
+class NavigatorOptimizer(GraphRewriter):
     r"""An optimizer that applies a `LocalOptimizer` with considerations for the new nodes it creates.
 
 
@@ -2578,7 +2578,7 @@ class EquilibriumOptimizer(NavigatorOptimizer):
                 + list(opt.final_optimizers)
                 + list(opt.cleanup_optimizers)
             )
-            if o.print_profile.__code__ is not GlobalOptimizer.print_profile.__code__
+            if o.print_profile.__code__ is not GraphRewriter.print_profile.__code__
         ]
         if not gf_opts:
             return
@@ -3043,7 +3043,7 @@ class CheckStackTraceFeature(Feature):
                     )
 
 
-class CheckStackTraceOptimization(GlobalOptimizer):
+class CheckStackTraceOptimization(GraphRewriter):
     """Optimizer that serves to add `CheckStackTraceOptimization` as a feature."""
 
     def add_requirements(self, fgraph):
@@ -3059,6 +3059,11 @@ DEPRECATED_NAMES = [
         "LocalMetaOptimizerSkipAssertionError",
         "`LocalMetaOptimizerSkipAssertionError` is deprecated: use `MetaNodeRewriterSkip` instead.",
         MetaNodeRewriterSkip,
+    ),
+    (
+        "GlobalOptimizer",
+        "`GlobalOptimizer` is deprecated: use `GraphRewriter` instead.",
+        GraphRewriter,
     ),
 ]
 

@@ -28,7 +28,7 @@ from aesara.graph.destroyhandler import DestroyHandler
 from aesara.graph.features import ReplaceValidate
 from aesara.graph.fg import FunctionGraph
 from aesara.graph.op import compute_test_value
-from aesara.graph.opt import GlobalOptimizer, in2out, local_optimizer
+from aesara.graph.opt import GraphRewriter, in2out, local_optimizer
 from aesara.graph.optdb import EquilibriumDB, SequenceDB
 from aesara.graph.type import HasShape
 from aesara.graph.utils import InconsistencyError
@@ -919,7 +919,7 @@ def push_out_add_scan(fgraph, node):
     return False
 
 
-class ScanInplaceOptimizer(GlobalOptimizer):
+class ScanInplaceOptimizer(GraphRewriter):
     """Make `Scan`s perform in-place.
 
     This optimization attempts to make `Scan` compute its recurrent outputs inplace
@@ -1658,7 +1658,7 @@ def save_mem_new_scan(fgraph, node):
         return False
 
 
-class ScanMerge(GlobalOptimizer):
+class ScanMerge(GraphRewriter):
     r"""Graph optimizer that merges different scan ops.
 
     This optimization attempts to fuse distinct `Scan` `Op`s into a single `Scan` `Op`

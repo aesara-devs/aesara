@@ -12,7 +12,7 @@ from aesara.configdefaults import config
 from aesara.graph.destroyhandler import DestroyHandler
 from aesara.graph.opt import (
     CheckStackTraceOptimization,
-    GlobalOptimizer,
+    GraphRewriter,
     MergeOptimizer,
     NavigatorOptimizer,
 )
@@ -106,13 +106,13 @@ predefined_optimizers = {
 
 
 def register_optimizer(name, opt):
-    """Add a `GlobalOptimizer` which can be referred to by `name` in `Mode`."""
+    """Add a `GraphRewriter` which can be referred to by `name` in `Mode`."""
     if name in predefined_optimizers:
         raise ValueError(f"Optimizer name already taken: {name}")
     predefined_optimizers[name] = opt
 
 
-class AddDestroyHandler(GlobalOptimizer):
+class AddDestroyHandler(GraphRewriter):
     """
     This optimizer performs two important functions:
 
@@ -145,7 +145,7 @@ class AddDestroyHandler(GlobalOptimizer):
         fgraph.attach_feature(DestroyHandler())
 
 
-class AddFeatureOptimizer(GlobalOptimizer):
+class AddFeatureOptimizer(GraphRewriter):
     """
     This optimizer adds a provided feature to the function graph.
     """
@@ -161,7 +161,7 @@ class AddFeatureOptimizer(GlobalOptimizer):
         pass
 
 
-class PrintCurrentFunctionGraph(GlobalOptimizer):
+class PrintCurrentFunctionGraph(GraphRewriter):
     """
     This optimizer is for debugging.
 
