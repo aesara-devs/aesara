@@ -189,7 +189,7 @@ class NodeRewriter(Rewriter):
         print(f"{' ' * level}{self.__class__.__name__} id={id(self)}", file=stream)
 
 
-class FromFunctionOptimizer(GraphRewriter):
+class FromFunctionGraphRewriter(GraphRewriter):
     """A `GraphRewriter` constructed from a given function."""
 
     def __init__(self, fn, requirements=()):
@@ -213,18 +213,18 @@ class FromFunctionOptimizer(GraphRewriter):
         return self.__name__
 
 
-def optimizer(f):
-    """Decorator for `FromFunctionOptimizer`."""
-    rval = FromFunctionOptimizer(f)
+def graph_rewriter(f):
+    """Decorator for `FromFunctionGraphRewriter`."""
+    rval = FromFunctionGraphRewriter(f)
     rval.__name__ = f.__name__
     return rval
 
 
-def inplace_optimizer(f):
-    """Decorator for `FromFunctionOptimizer` that also adds the `DestroyHandler` features."""
+def inplace_graph_rewriter(f):
+    """Decorator for `FromFunctionGraphRewriter` that also adds the `DestroyHandler` features."""
     dh_handler = dh.DestroyHandler
     requirements = (lambda fgraph: fgraph.attach_feature(dh_handler()),)
-    rval = FromFunctionOptimizer(f, requirements)
+    rval = FromFunctionGraphRewriter(f, requirements)
     rval.__name__ = f.__name__
     return rval
 
@@ -3130,6 +3130,21 @@ DEPRECATED_NAMES = [
         "pre_greedy_local_optimizer",
         "`pre_greedy_local_optimizer` is deprecated: use `pre_greedy_node_rewriter` instead.",
         pre_greedy_node_rewriter,
+    ),
+    (
+        "FromFunctionOptimizer",
+        "`FromFunctionOptimizer` is deprecated: use `FromFunctionGraphRewriter` instead.",
+        FromFunctionGraphRewriter,
+    ),
+    (
+        "optimizer",
+        "`optimizer` is deprecated: use `graph_rewriter` instead.",
+        graph_rewriter,
+    ),
+    (
+        "inplace_optimizer",
+        "`inplace_optimizer` is deprecated: use `graph_rewriter` instead.",
+        graph_rewriter,
     ),
 ]
 

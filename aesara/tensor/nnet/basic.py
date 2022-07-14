@@ -18,7 +18,7 @@ from aesara.compile import optdb
 from aesara.gradient import DisconnectedType, grad_not_implemented
 from aesara.graph.basic import Apply
 from aesara.graph.op import Op
-from aesara.graph.opt import copy_stack_trace, node_rewriter, optimizer
+from aesara.graph.opt import copy_stack_trace, graph_rewriter, node_rewriter
 from aesara.link.c.op import COp
 from aesara.raise_op import Assert
 from aesara.scalar import UnaryScalarOp
@@ -1847,7 +1847,7 @@ crossentropy_categorical_1hot = CrossentropyCategorical1Hot()
 
 @register_stabilize("fast_compile")
 @register_specialize("fast_compile")
-@optimizer
+@graph_rewriter
 def crossentropy_to_crossentropy_with_softmax_with_bias(fgraph):
     def search_make_one_sub():
         for node in fgraph.toposort():
@@ -1874,7 +1874,7 @@ def crossentropy_to_crossentropy_with_softmax_with_bias(fgraph):
     return
 
 
-@optimizer
+@graph_rewriter
 def crossentropy_to_crossentropy_with_softmax(fgraph):
     """
     This is a stabilization rewrite that is more general than
