@@ -1849,16 +1849,6 @@ crossentropy_categorical_1hot = CrossentropyCategorical1Hot()
 @register_specialize("fast_compile")
 @optimizer
 def crossentropy_to_crossentropy_with_softmax_with_bias(fgraph):
-    """
-    This is a stabilization optimization.
-
-    Notes
-    -----
-    Not a local optimization because we are replacing outputs
-    from several nodes at once.
-
-    """
-
     def search_make_one_sub():
         for node in fgraph.toposort():
             if node.op == crossentropy_categorical_1hot:
@@ -1887,18 +1877,13 @@ def crossentropy_to_crossentropy_with_softmax_with_bias(fgraph):
 @optimizer
 def crossentropy_to_crossentropy_with_softmax(fgraph):
     """
-    This is a stabilization optimization that is more general than
-    crossentropy_to_crossentropy_with_softmax_with_bias.
-
-    It must be executed after local_softmax_with_bias optimization in
-    specialize.
-
-    TODO : This is a stabilization optimization! How to make this more cleanly?
+    This is a stabilization rewrite that is more general than
+    `crossentropy_to_crossentropy_with_softmax_with_bias`.
 
     Notes
     -----
-    Not a local optimization because we are replacing outputs from several
-    nodes at once.
+    It must be executed after `local_softmax_with_bias` during the
+    specialization passes.
 
     """
 
