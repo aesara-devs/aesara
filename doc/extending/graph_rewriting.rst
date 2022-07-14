@@ -944,7 +944,7 @@ This will output something like this:
               validate_time 6.43730163574e-05
               callback_time 0.000783205032349
               time_toposort 0.0035240650177
-       0.090089s - ('inplace_elemwise_optimizer', 'FromFunctionOptimizer', 30) - 0.019s
+       0.090089s - ('inplace_elemwise_optimizer', 'FromFunctionGraphRewriter', 30) - 0.019s
        0.048993s - ('BlasOpt', 'SeqOptimizer', 8) - 0.000s
          SeqOptimizer      BlasOpt  time 0.049s for 81/80 nodes before/after optimization
            0.000s for fgraph.validate()
