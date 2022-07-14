@@ -55,9 +55,9 @@ FailureCallbackType = Callable[
 ]
 
 
-class LocalMetaOptimizerSkipAssertionError(AssertionError):
-    """This is an AssertionError, but instead of having the
-    LocalMetaOptimizer print the error, it just skip that
+class MetaNodeRewriterSkip(AssertionError):
+    """This is an `AssertionError`, but instead of having the
+    `LocalMetaOptimizer` print the error, it just skip that
     compilation.
 
     """
@@ -944,7 +944,7 @@ class LocalMetaOptimizer(LocalOptimizer):
     Base class for meta-optimizers that try a set of `LocalOptimizer`\s
     to replace a node and choose the one that executes the fastest.
 
-    If the error ``LocalMetaOptimizerSkipAssertionError`` is raised during
+    If the error `MetaNodeRewriterSkip` is raised during
     compilation, we will skip that function compilation and not print
     the error.
 
@@ -1016,7 +1016,7 @@ class LocalMetaOptimizer(LocalOptimizer):
                     )
                     fn.trust_input = True
                     timing = min(self.time_call(fn) for _ in range(2))
-                except LocalMetaOptimizerSkipAssertionError:
+                except MetaNodeRewriterSkip:
                     continue
                 except Exception as e:
                     if self.verbose > 0:
@@ -3052,3 +3052,28 @@ class CheckStackTraceOptimization(GlobalOptimizer):
 
     def apply(self, fgraph):
         pass
+
+
+DEPRECATED_NAMES = [
+    (
+        "LocalMetaOptimizerSkipAssertionError",
+        "`LocalMetaOptimizerSkipAssertionError` is deprecated: use `MetaNodeRewriterSkip` instead.",
+        MetaNodeRewriterSkip,
+    ),
+]
+
+
+def __getattr__(name):
+    """Intercept module-level attribute access of deprecated symbols.
+
+    Adapted from https://stackoverflow.com/a/55139609/3006474.
+
+    """
+    from warnings import warn
+
+    for old_name, msg, old_object in DEPRECATED_NAMES:
+        if name == old_name:
+            warn(msg, DeprecationWarning, stacklevel=2)
+            return old_object
+
+    raise AttributeError(f"module {__name__} has no attribute {name}")

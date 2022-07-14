@@ -7,7 +7,7 @@ from aesara import compile
 from aesara.compile import optdb
 from aesara.configdefaults import config
 from aesara.graph.opt import (
-    LocalMetaOptimizerSkipAssertionError,
+    MetaNodeRewriterSkip,
     TopoOptimizer,
     copy_stack_trace,
     in2out,
@@ -583,8 +583,8 @@ def local_abstractconv_check(fgraph, node):
             AbstractConv3d_gradInputs,
         ),
     ):
-        raise LocalMetaOptimizerSkipAssertionError(
-            f"{node.op.__class__.__name__} Aesara optimization failed: there is no implementation "
+        raise MetaNodeRewriterSkip(
+            f"{node.op.__class__.__name__} Aesara rewriting failed: there is no implementation "
             "available supporting the requested options. If on CPU, "
             "do you have a BLAS library installed Aesara can link against? "
             "On the CPU we do not support float16."
