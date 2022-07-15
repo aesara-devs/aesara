@@ -19,7 +19,7 @@ from aesara.configdefaults import config
 from aesara.graph.basic import Apply, Constant, equal_computations
 from aesara.graph.fg import FunctionGraph
 from aesara.graph.opt import (
-    LocalOptGroup,
+    SequentialNodeRewriter,
     TopoOptimizer,
     check_stack_trace,
     in2out,
@@ -191,7 +191,7 @@ class TestGreedyDistribute:
         g = FunctionGraph([a, b, c, d, x, y, z], [e])
         mul_canonizer.optimize(g)
         TopoOptimizer(
-            LocalOptGroup(local_greedy_distributor), order="out_to_in"
+            SequentialNodeRewriter(local_greedy_distributor), order="out_to_in"
         ).optimize(g)
         assert str(pprint(g.outputs[0])) == "((a * x) + (b * z))"
 
@@ -200,7 +200,7 @@ class TestGreedyDistribute:
         g = FunctionGraph([a, b, x], [e])
         mul_canonizer.optimize(g)
         TopoOptimizer(
-            LocalOptGroup(local_greedy_distributor), order="out_to_in"
+            SequentialNodeRewriter(local_greedy_distributor), order="out_to_in"
         ).optimize(g)
         assert str(pprint(g.outputs[0])) == "(a + (b * x))"
 
@@ -3053,7 +3053,7 @@ class TestLocalErfc:
             fg = FunctionGraph(inputs, [no_match], clone=False)
 
             TopoOptimizer(
-                LocalOptGroup(local_grad_log_erfc_neg), order="out_to_in"
+                SequentialNodeRewriter(local_grad_log_erfc_neg), order="out_to_in"
             ).optimize(fg)
 
             # Make sure that the graph hasn't been changed

@@ -457,13 +457,13 @@ class SequenceDB(OptimizationDatabase):
 
 
 class LocalGroupDB(SequenceDB):
-    r"""A database that generates `NodeRewriter`\s of type `LocalOptGroup`."""
+    r"""A database that generates `NodeRewriter`\s of type `SequentialNodeRewriter`."""
 
     def __init__(
         self,
         apply_all_opts: bool = False,
         profile: bool = False,
-        node_rewriter=aesara_opt.LocalOptGroup,
+        node_rewriter=aesara_opt.SequentialNodeRewriter,
     ):
         super().__init__(failure_callback=None)
         self.apply_all_opts = apply_all_opts

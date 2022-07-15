@@ -1204,7 +1204,7 @@ class OpToRewriterTracker:
         )
 
 
-class LocalOptGroup(NodeRewriter):
+class SequentialNodeRewriter(NodeRewriter):
     r"""An optimizer that applies a list of `NodeRewriter`\s to a node.
 
     Attributes
@@ -1272,7 +1272,7 @@ class LocalOptGroup(NodeRewriter):
         return getattr(
             self,
             "__name__",
-            f"LocalOptGroup({','.join([str(o) for o in self.opts])})",
+            f"{type(self).__name__}({','.join([str(o) for o in self.opts])})",
         )
 
     def tracks(self):
@@ -1332,15 +1332,15 @@ class LocalOptGroup(NodeRewriter):
             repl = new_repl
             node = new_vars[0].owner
 
-    @staticmethod
-    def print_profile(stream, prof, level=0):
+    @classmethod
+    def print_profile(cls, stream, prof, level=0):
         (time_opts, process_count, applied_true, node_created, profile) = prof
 
         if not profile:
             return
 
         blanc = "    " * int(level)
-        print(blanc, "LocalOptGroup", file=stream)
+        print(blanc, f"{cls.__name__}", file=stream)
         print(blanc, "---------------------", file=stream)
         count_opt = []
         not_used = []
@@ -2064,7 +2064,7 @@ class TopoOptimizer(NavigatorOptimizer):
         print(blanc, "  init io_toposort", io_t, file=stream)
         print(blanc, "  loop time", loop_t, file=stream)
         print(blanc, "  callback_time", callback_time, file=stream)
-        if isinstance(node_rewriter, LocalOptGroup):
+        if isinstance(node_rewriter, SequentialNodeRewriter):
             if node_rewriter.profile:
                 node_rewriter.print_profile(
                     stream,
@@ -2089,14 +2089,14 @@ def topogroup_optimizer(
     failure_callback=TopoOptimizer.warn_inplace,
     **kwargs,
 ):
-    """Apply `node_rewriters` from the input/output nodes to the output/input nodes of a graph.
+    r"""Apply `node_rewriters` from the input/output nodes to the output/input nodes of a graph.
 
-    This constructs `TopoOptimizer`s, and uses a `LocalOptGroup` when there's
+    This constructs `TopoOptimizer`\s, and uses a `SequentialNodeRewriter` when there's
     more than one entry in `node_rewriters`.
     """
     if len(node_rewriters) > 1:
         # Don't wrap it uselessly if their is only 1 optimization.
-        node_rewriters = LocalOptGroup(*node_rewriters)
+        node_rewriters = SequentialNodeRewriter(*node_rewriters)
     else:
         (node_rewriters,) = node_rewriters
         if not name:
@@ -3167,6 +3167,11 @@ DEPRECATED_NAMES = [
         "LocalOptTracker",
         "`LocalOptTracker` is deprecated: use `OpToRewriterTracker` instead.",
         OpToRewriterTracker,
+    ),
+    (
+        "LocalOptGroup",
+        "`LocalOptGroup` is deprecated: use `SequentialNodeRewriter` instead.",
+        SequentialNodeRewriter,
     ),
 ]
 
