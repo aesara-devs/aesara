@@ -150,7 +150,7 @@ class TestPatternOptimizer:
     def test_ambiguous(self):
         # this test should always work with TopoOptimizer and the
         # ignore_newtrees flag set to False. Behavior with ignore_newtrees
-        # = True or with other NavigatorOptimizers may differ.
+        # = True or with other NodeProcessingGraphRewriters may differ.
         x, y, z = MyVariable("x"), MyVariable("y"), MyVariable("z")
         e = op1(op1(op1(op1(op1(x)))))
         g = FunctionGraph([x, y, z], [e])

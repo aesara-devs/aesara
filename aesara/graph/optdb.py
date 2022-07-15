@@ -346,7 +346,7 @@ class EquilibriumDB(OptimizationDatabase):
             max_use_ratio=config.optdb__max_use_ratio,
             ignore_newtrees=self.ignore_newtrees,
             tracks_on_change_inputs=self.tracks_on_change_inputs,
-            failure_callback=aesara_opt.NavigatorOptimizer.warn_inplace,
+            failure_callback=aesara_opt.NodeProcessingGraphRewriter.warn_inplace,
             final_optimizers=final_opts,
             cleanup_optimizers=cleanup_opts,
         )
