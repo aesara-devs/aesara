@@ -1997,8 +1997,8 @@ class NodeProcessingGraphRewriter(GraphRewriter):
             )
 
 
-class TopoOptimizer(NodeProcessingGraphRewriter):
-    """An optimizer that applies a single `NodeRewriter` to each node in topological order (or reverse)."""
+class WalkingGraphRewriter(NodeProcessingGraphRewriter):
+    """A rewriter that applies a single `NodeRewriter` to each node in topological order (or reverse)."""
 
     def __init__(
         self,
@@ -2057,11 +2057,11 @@ class TopoOptimizer(NodeProcessingGraphRewriter):
             self.node_rewriter,
         )
 
-    @staticmethod
-    def print_profile(stream, prof, level=0):
+    @classmethod
+    def print_profile(cls, stream, prof, level=0):
         blanc = "    " * level
         if prof is None:  # Happen as merge_profile() isn't implemented
-            print(blanc, "TopoOptimizer merge_profile not implemented", file=stream)
+            print(blanc, f"{cls.__name__} merge_profile not implemented", file=stream)
             return
 
         (
@@ -2077,7 +2077,7 @@ class TopoOptimizer(NodeProcessingGraphRewriter):
 
         print(
             blanc,
-            "TopoOptimizer ",
+            f"{cls.__name__} ",
             getattr(opt, "name", getattr(opt, "__name__", "")),
             file=stream,
         )
@@ -2106,19 +2106,19 @@ class TopoOptimizer(NodeProcessingGraphRewriter):
                 )
 
     def __str__(self):
-        return getattr(self, "__name__", "<TopoOptimizer instance>")
+        return getattr(self, "__name__", super().__str__())
 
 
 def topogroup_optimizer(
     order,
     *node_rewriters,
     name=None,
-    failure_callback=TopoOptimizer.warn_inplace,
+    failure_callback=WalkingGraphRewriter.warn_inplace,
     **kwargs,
 ):
     r"""Apply `node_rewriters` from the input/output nodes to the output/input nodes of a graph.
 
-    This constructs `TopoOptimizer`\s, and uses a `SequentialNodeRewriter` when there's
+    This constructs `WalkingGraphRewriter`\s, and uses a `SequentialNodeRewriter` when there's
     more than one entry in `node_rewriters`.
     """
     if len(node_rewriters) > 1:
@@ -2128,7 +2128,7 @@ def topogroup_optimizer(
         (node_rewriters,) = node_rewriters
         if not name:
             name = node_rewriters.__name__
-    ret = TopoOptimizer(
+    ret = WalkingGraphRewriter(
         node_rewriters,
         order=order,
         failure_callback=failure_callback,
@@ -3219,6 +3219,11 @@ DEPRECATED_NAMES = [
         "NavigatorOptimizer",
         "`NavigatorOptimizer` is deprecated: use `NodeProcessingGraphRewriter` instead.",
         NodeProcessingGraphRewriter,
+    ),
+    (
+        "TopoOptimizer",
+        "`TopoOptimizer` is deprecated: use `WalkingGraphRewriter` instead.",
+        WalkingGraphRewriter,
     ),
 ]
 

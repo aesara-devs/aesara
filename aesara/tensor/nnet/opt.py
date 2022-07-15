@@ -8,7 +8,7 @@ from aesara.compile import optdb
 from aesara.configdefaults import config
 from aesara.graph.opt import (
     MetaNodeRewriterSkip,
-    TopoOptimizer,
+    WalkingGraphRewriter,
     copy_stack_trace,
     in2out,
     node_rewriter,
@@ -51,8 +51,9 @@ def local_inplace_sparse_block_gemv(fgraph, node):
 
 compile.optdb.register(
     "local_inplace_sparse_block_gemv",
-    TopoOptimizer(
-        local_inplace_sparse_block_gemv, failure_callback=TopoOptimizer.warn_inplace
+    WalkingGraphRewriter(
+        local_inplace_sparse_block_gemv,
+        failure_callback=WalkingGraphRewriter.warn_inplace,
     ),
     "fast_run",
     "inplace",
@@ -74,9 +75,9 @@ def local_inplace_sparse_block_outer(fgraph, node):
 
 compile.optdb.register(
     "local_inplace_sparse_block_outer",
-    TopoOptimizer(
+    WalkingGraphRewriter(
         local_inplace_sparse_block_outer,
-        failure_callback=TopoOptimizer.warn_inplace,
+        failure_callback=WalkingGraphRewriter.warn_inplace,
     ),
     "fast_run",
     "inplace",

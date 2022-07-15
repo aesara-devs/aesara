@@ -483,7 +483,7 @@ class LocalGroupDB(SequenceDB):
 
 
 class TopoDB(OptimizationDatabase):
-    """Generate a `GraphRewriter` of type TopoOptimizer."""
+    """Generate a `GraphRewriter` of type `WalkingGraphRewriter`."""
 
     def __init__(
         self, db, order="in_to_out", ignore_newtrees=False, failure_callback=None
@@ -495,7 +495,7 @@ class TopoDB(OptimizationDatabase):
         self.failure_callback = failure_callback
 
     def query(self, *tags, **kwtags):
-        return aesara_opt.TopoOptimizer(
+        return aesara_opt.WalkingGraphRewriter(
             self.db.query(*tags, **kwtags),
             self.order,
             self.ignore_newtrees,

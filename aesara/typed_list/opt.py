@@ -1,5 +1,5 @@
 from aesara.compile import optdb
-from aesara.graph.opt import TopoOptimizer, node_rewriter
+from aesara.graph.opt import WalkingGraphRewriter, node_rewriter
 from aesara.typed_list.basic import Append, Extend, Insert, Remove, Reverse
 
 
@@ -18,7 +18,9 @@ def typed_list_inplace_opt(fgraph, node):
 
 optdb.register(
     "typed_list_inplace_opt",
-    TopoOptimizer(typed_list_inplace_opt, failure_callback=TopoOptimizer.warn_inplace),
+    WalkingGraphRewriter(
+        typed_list_inplace_opt, failure_callback=WalkingGraphRewriter.warn_inplace
+    ),
     "fast_run",
     "inplace",
     position=60,

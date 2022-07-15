@@ -3,7 +3,7 @@ from aesara import tensor as at
 from aesara.gradient import DisconnectedType
 from aesara.graph.basic import Apply
 from aesara.graph.op import Op
-from aesara.graph.opt import TopoOptimizer, copy_stack_trace, node_rewriter
+from aesara.graph.opt import WalkingGraphRewriter, copy_stack_trace, node_rewriter
 
 
 def get_diagonal_subtensor_view(x, i0, i1):
@@ -312,8 +312,9 @@ def local_inplace_DiagonalSubtensor(fgraph, node):
 
 aesara.compile.optdb.register(
     "local_inplace_DiagonalSubtensor",
-    TopoOptimizer(
-        local_inplace_DiagonalSubtensor, failure_callback=TopoOptimizer.warn_inplace
+    WalkingGraphRewriter(
+        local_inplace_DiagonalSubtensor,
+        failure_callback=WalkingGraphRewriter.warn_inplace,
     ),
     "fast_run",
     "inplace",
