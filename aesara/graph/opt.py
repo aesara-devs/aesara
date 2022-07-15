@@ -1396,7 +1396,7 @@ class SequentialNodeRewriter(NodeRewriter):
             opt.add_requirements(fgraph)
 
 
-class OpSub(NodeRewriter):
+class SubstitutionNodeRewriter(NodeRewriter):
     """
 
     Replaces the application of a certain `Op` by the application of
@@ -1411,12 +1411,12 @@ class OpSub(NodeRewriter):
     Examples
     --------
 
-        OpSub(add, sub) ==>
+        SubstitutionNodeRewriter(add, sub) ==>
             add(div(x, y), add(y, x)) -> sub(div(x, y), sub(y, x))
 
     """
 
-    # an OpSub does not apply to the nodes it produces
+    # an SubstitutionNodeRewriter does not apply to the nodes it produces
     reentrant = False
     # all the inputs of the original node are transferred to the outputs
     retains_inputs = True
@@ -3172,6 +3172,11 @@ DEPRECATED_NAMES = [
         "LocalOptGroup",
         "`LocalOptGroup` is deprecated: use `SequentialNodeRewriter` instead.",
         SequentialNodeRewriter,
+    ),
+    (
+        "OpSub",
+        "`OpSub` is deprecated: use `SubstitutionNodeRewriter` instead.",
+        SubstitutionNodeRewriter,
     ),
 ]
 

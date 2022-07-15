@@ -9,10 +9,10 @@ from aesara.graph.opt import (
     EquilibriumOptimizer,
     MergeOptimizer,
     OpKeyOptimizer,
-    OpSub,
     OpToRewriterTracker,
     PatternSub,
     SequentialNodeRewriter,
+    SubstitutionNodeRewriter,
     TopoOptimizer,
     in2out,
     logging,
@@ -223,23 +223,23 @@ class TestPatternOptimizer:
         assert str_g == "FunctionGraph(Op4(z, y))"
 
 
-def OpSubOptimizer(op1, op2):
-    return OpKeyOptimizer(OpSub(op1, op2))
+def KeyedSubstitutionNodeRewriter(op1, op2):
+    return OpKeyOptimizer(SubstitutionNodeRewriter(op1, op2))
 
 
-class TestOpSubOptimizer:
+class TestSubstitutionNodeRewriter:
     def test_straightforward(self):
         x, y, z = MyVariable("x"), MyVariable("y"), MyVariable("z")
         e = op1(op1(op1(op1(op1(x)))))
         g = FunctionGraph([x, y, z], [e])
-        OpSubOptimizer(op1, op2).optimize(g)
+        KeyedSubstitutionNodeRewriter(op1, op2).optimize(g)
         assert str(g) == "FunctionGraph(Op2(Op2(Op2(Op2(Op2(x))))))"
 
     def test_straightforward_2(self):
         x, y, z = MyVariable("x"), MyVariable("y"), MyVariable("z")
         e = op1(op2(x), op3(y), op4(z))
         g = FunctionGraph([x, y, z], [e])
-        OpSubOptimizer(op3, op4).optimize(g)
+        KeyedSubstitutionNodeRewriter(op3, op4).optimize(g)
         assert str(g) == "FunctionGraph(Op1(Op2(x), Op4(y), Op4(z)))"
 
 

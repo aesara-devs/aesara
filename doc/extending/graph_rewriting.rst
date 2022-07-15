@@ -270,12 +270,12 @@ FunctionGraph(add(z, mul(true_div(mul(y, x), y), true_div(z, x))))
 >>> e
 FunctionGraph(add(z, mul(x, true_div(z, x))))
 
-:class:`OpSub`, :class:`OpRemove`, :class:`PatternSub`
-++++++++++++++++++++++++++++++++++++++++++++++++++++++
+:class:`SubstitutionNodeRewriter`, :class:`OpRemove`, :class:`PatternSub`
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 Aesara defines some shortcuts to make :class:`NodeRewriter`\s:
 
-.. function:: OpSub(op1, op2)
+.. function:: SubstitutionNodeRewriter(op1, op2)
 
   Replaces all uses of ``op1`` by ``op2``. In other
   words, the outputs of all :class:`Apply` nodes using ``op1`` by the outputs
@@ -296,11 +296,11 @@ Aesara defines some shortcuts to make :class:`NodeRewriter`\s:
 .. code::
 
    from aesara.scalar import identity
-   from aesara.graph.opt import OpSub, OpRemove, PatternSub
+   from aesara.graph.opt import SubstitutionNodeRewriter, OpRemove, PatternSub
 
    # Replacing `add` by `mul` (this is not recommended for primarily
    # mathematical reasons):
-   add_to_mul = OpSub(add, mul)
+   add_to_mul = SubstitutionNodeRewriter(add, mul)
 
    # Removing `identity`
    remove_identity = OpRemove(identity)
@@ -313,12 +313,12 @@ Aesara defines some shortcuts to make :class:`NodeRewriter`\s:
 
 .. note::
 
-   :class:`OpSub`, :class:`OpRemove` and :class:`PatternSub` produce local optimizers, which
+   :class:`SubstitutionNodeRewriter`, :class:`OpRemove` and :class:`PatternSub` produce local optimizers, which
    means that everything we said previously about local optimizers
    apply (e.g. they need to be wrapped in a :class:`NavigatorOptimizer`, etc.)
 
 
-When an optimization can be naturally expressed using :class:`OpSub`, :class:`OpRemove`
+When an optimization can be naturally expressed using :class:`SubstitutionNodeRewriter`, :class:`OpRemove`
 or :class:`PatternSub`, it is highly recommended to use them.
 
 .. _unification:
