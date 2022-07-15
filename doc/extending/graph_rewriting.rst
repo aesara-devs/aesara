@@ -264,9 +264,9 @@ subset of them) and applies one or several local optimizers.
 >>> e = aesara.graph.fg.FunctionGraph([x, y, z], [a])
 >>> e
 FunctionGraph(add(z, mul(true_div(mul(y, x), y), true_div(z, x))))
->>> simplify = aesara.graph.opt.TopoOptimizer(local_simplify)
+>>> simplify = aesara.graph.opt.WalkingGraphRewriter(local_simplify)
 >>> simplify.optimize(e)
-(<aesara.graph.opt.TopoOptimizer object at 0x...>, 1, 5, 3, ..., ..., ...)
+(<aesara.graph.opt.WalkingGraphRewriter object at 0x...>, 1, 5, 3, ..., ..., ...)
 >>> e
 FunctionGraph(add(z, mul(x, true_div(z, x))))
 
@@ -962,14 +962,14 @@ This will output something like this:
               time_toposort 0.00311398506165
               validate_time 4.60147857666e-05
               callback_time 0.00174236297607
-           0.004569s - ('local_dot_to_dot22', 'TopoOptimizer', 0) - 0.000s
-             TopoOptimizer
+           0.004569s - ('local_dot_to_dot22', 'WalkingGraphRewriter', 0) - 0.000s
+             WalkingGraphRewriter
                nb_node (start, end, changed) (81, 81, 5)
                init io_toposort 0.00139284133911
                loop time 0.00312399864197
                callback_time 0.00172805786133
-           0.002283s - ('local_dot22_to_dot22scalar', 'TopoOptimizer', 2) - 0.000s
-             TopoOptimizer
+           0.002283s - ('local_dot22_to_dot22scalar', 'WalkingGraphRewriter', 2) - 0.000s
+             WalkingGraphRewriter
                nb_node (start, end, changed) (80, 80, 0)
                init io_toposort 0.00171804428101
                loop time 0.000502109527588
@@ -982,14 +982,14 @@ This will output something like this:
                time in local optimizers 0.000s
                time in global optimizers 0.000s
                 0 - 0.002s 0 (0.000s in global opts, 0.001s io_toposort) - 80 nodes -
-           0.002227s - ('use_c_blas', 'TopoOptimizer', 4) - 0.000s
-             TopoOptimizer
+           0.002227s - ('use_c_blas', 'WalkingGraphRewriter', 4) - 0.000s
+             WalkingGraphRewriter
                nb_node (start, end, changed) (80, 80, 0)
                init io_toposort 0.0014750957489
                loop time 0.00068998336792
                callback_time 0.0
-           0.001632s - ('use_scipy_ger', 'TopoOptimizer', 5) - 0.000s
-             TopoOptimizer
+           0.001632s - ('use_scipy_ger', 'WalkingGraphRewriter', 5) - 0.000s
+             WalkingGraphRewriter
                nb_node (start, end, changed) (80, 80, 0)
                init io_toposort 0.00138401985168
                loop time 0.000202178955078

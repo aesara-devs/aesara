@@ -13,7 +13,7 @@ from aesara.graph.opt import (
     PatternNodeRewriter,
     SequentialNodeRewriter,
     SubstitutionNodeRewriter,
-    TopoOptimizer,
+    WalkingGraphRewriter,
     in2out,
     logging,
     node_rewriter,
@@ -55,7 +55,7 @@ def PatternOptimizer(p1, p2, ign=False):
 
 
 def TopoPatternOptimizer(p1, p2, ign=True):
-    return TopoOptimizer(PatternNodeRewriter(p1, p2), ignore_newtrees=ign)
+    return WalkingGraphRewriter(PatternNodeRewriter(p1, p2), ignore_newtrees=ign)
 
 
 class TestPatternOptimizer:
@@ -148,7 +148,7 @@ class TestPatternOptimizer:
         assert str(g) == "FunctionGraph(Op2(Op1(Op2(Op1(Op2(Op1(x)))))))"
 
     def test_ambiguous(self):
-        # this test should always work with TopoOptimizer and the
+        # this test should always work with WalkingGraphRewriter and the
         # ignore_newtrees flag set to False. Behavior with ignore_newtrees
         # = True or with other NodeProcessingGraphRewriters may differ.
         x, y, z = MyVariable("x"), MyVariable("y"), MyVariable("z")

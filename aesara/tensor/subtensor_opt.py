@@ -7,7 +7,12 @@ import aesara
 import aesara.scalar.basic as aes
 from aesara import compile
 from aesara.graph.basic import Constant, Variable
-from aesara.graph.opt import TopoOptimizer, copy_stack_trace, in2out, node_rewriter
+from aesara.graph.opt import (
+    WalkingGraphRewriter,
+    copy_stack_trace,
+    in2out,
+    node_rewriter,
+)
 from aesara.raise_op import Assert
 from aesara.tensor.basic import (
     Alloc,
@@ -1200,9 +1205,9 @@ def local_IncSubtensor_serialize(fgraph, node):
         # print incsub_inputs, [id(i.owner.inputs[0]) for i in incsub_inputs]
 
 
-# We register it in a TopoOptimizer inside the canonizer EQ optimizer.
+# We register it in a WalkingGraphRewriter inside the canonizer EQ optimizer.
 # Otherwise in some cases it was making the EQ optimizer use 45. In
-# the TopoOptimizer, the EQ only use 5 passes.
+# the WalkingGraphRewriter, the EQ only use 5 passes.
 compile.optdb.register(
     "pre_local_IncSubtensor_serialize",
     in2out(local_IncSubtensor_serialize),
@@ -1240,8 +1245,8 @@ def local_inplace_setsubtensor(fgraph, node):
 
 compile.optdb.register(
     "local_inplace_setsubtensor",
-    TopoOptimizer(
-        local_inplace_setsubtensor, failure_callback=TopoOptimizer.warn_inplace
+    WalkingGraphRewriter(
+        local_inplace_setsubtensor, failure_callback=WalkingGraphRewriter.warn_inplace
     ),
     "fast_run",
     "inplace",
@@ -1261,8 +1266,9 @@ def local_inplace_AdvancedIncSubtensor1(fgraph, node):
 
 compile.optdb.register(
     "local_inplace_AdvancedIncSubtensor1",
-    TopoOptimizer(
-        local_inplace_AdvancedIncSubtensor1, failure_callback=TopoOptimizer.warn_inplace
+    WalkingGraphRewriter(
+        local_inplace_AdvancedIncSubtensor1,
+        failure_callback=WalkingGraphRewriter.warn_inplace,
     ),
     "fast_run",
     "inplace",
@@ -1286,8 +1292,9 @@ def local_inplace_AdvancedIncSubtensor(fgraph, node):
 
 compile.optdb.register(
     "local_inplace_AdvancedIncSubtensor",
-    TopoOptimizer(
-        local_inplace_AdvancedIncSubtensor, failure_callback=TopoOptimizer.warn_inplace
+    WalkingGraphRewriter(
+        local_inplace_AdvancedIncSubtensor,
+        failure_callback=WalkingGraphRewriter.warn_inplace,
     ),
     "fast_run",
     "inplace",

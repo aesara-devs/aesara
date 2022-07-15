@@ -620,7 +620,7 @@ class AlgebraicCanonizer(NodeRewriter):
     r"""A `Rewriter` that rewrites algebraic expressions.
 
     The variable is a `node_rewriter`. It is best used
-    with a `TopoOptimizer` in in-to-out order.
+    with a `WalkingGraphRewriter` in in-to-out order.
 
     Usage: ``AlgebraicCanonizer(main, inverse, reciprocal, calculate)``
 

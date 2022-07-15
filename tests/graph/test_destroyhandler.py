@@ -13,7 +13,7 @@ from aesara.graph.opt import (
     OpKeyOptimizer,
     PatternNodeRewriter,
     SubstitutionNodeRewriter,
-    TopoOptimizer,
+    WalkingGraphRewriter,
 )
 from aesara.graph.type import Type
 from aesara.graph.utils import InconsistencyError
@@ -27,7 +27,7 @@ def PatternOptimizer(p1, p2, ign=True):
 def TopoSubstitutionNodeRewriter(
     op1, op2, fail=NodeProcessingGraphRewriter.warn_ignore, ign=True
 ):
-    return TopoOptimizer(
+    return WalkingGraphRewriter(
         SubstitutionNodeRewriter(op1, op2), ignore_newtrees=ign, failure_callback=fail
     )
 

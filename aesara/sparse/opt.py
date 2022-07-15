@@ -4,7 +4,7 @@ import aesara
 import aesara.scalar as aes
 from aesara.configdefaults import config
 from aesara.graph.basic import Apply
-from aesara.graph.opt import PatternNodeRewriter, TopoOptimizer, node_rewriter
+from aesara.graph.opt import PatternNodeRewriter, WalkingGraphRewriter, node_rewriter
 from aesara.link.c.op import COp, _NoPythonCOp
 from aesara.misc.safe_asarray import _asarray
 from aesara.sparse import basic as sparse
@@ -68,7 +68,9 @@ def local_inplace_remove0(fgraph, node):
 
 aesara.compile.optdb.register(
     "local_inplace_remove0",
-    TopoOptimizer(local_inplace_remove0, failure_callback=TopoOptimizer.warn_inplace),
+    WalkingGraphRewriter(
+        local_inplace_remove0, failure_callback=WalkingGraphRewriter.warn_inplace
+    ),
     "fast_run",
     "inplace",
     position=60,
@@ -207,8 +209,8 @@ def local_inplace_addsd_ccode(fgraph, node):
 
 aesara.compile.optdb.register(
     "local_inplace_addsd_ccode",
-    TopoOptimizer(
-        local_inplace_addsd_ccode, failure_callback=TopoOptimizer.warn_inplace
+    WalkingGraphRewriter(
+        local_inplace_addsd_ccode, failure_callback=WalkingGraphRewriter.warn_inplace
     ),
     "fast_run",
     "inplace",
@@ -240,7 +242,7 @@ def local_addsd_ccode(fgraph, node):
 
 aesara.compile.optdb.register(
     "local_addsd_ccode",
-    TopoOptimizer(local_addsd_ccode),
+    WalkingGraphRewriter(local_addsd_ccode),
     # Must be after local_inplace_addsd_ccode at 60
     "fast_run",
     position=61,
