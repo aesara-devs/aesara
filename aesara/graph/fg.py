@@ -909,7 +909,9 @@ class FunctionGraph(MetaObject):
         for feature in self._features:
             for attr in getattr(feature, "pickle_rm_attr", []):
                 del d[attr]
-        # The class Updater take fct as parameter and they are lambda function, so unpicklable.
+
+        # XXX: The `Feature` `DispatchingFeature` takes functions as parameter
+        # and they can be lambda functions, making them unpicklable.
 
         # execute_callbacks_times have reference to optimizer, and they can't
         # be pickled as the decorators with parameters aren't pickable.
