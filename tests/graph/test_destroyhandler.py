@@ -10,7 +10,7 @@ from aesara.graph.fg import FunctionGraph
 from aesara.graph.op import Op
 from aesara.graph.opt import (
     NodeProcessingGraphRewriter,
-    OpKeyOptimizer,
+    OpKeyGraphRewriter,
     PatternNodeRewriter,
     SubstitutionNodeRewriter,
     WalkingGraphRewriter,
@@ -21,7 +21,7 @@ from tests.unittest_tools import assertFailure_fast
 
 
 def PatternOptimizer(p1, p2, ign=True):
-    return OpKeyOptimizer(PatternNodeRewriter(p1, p2), ignore_newtrees=ign)
+    return OpKeyGraphRewriter(PatternNodeRewriter(p1, p2), ignore_newtrees=ign)
 
 
 def TopoSubstitutionNodeRewriter(
