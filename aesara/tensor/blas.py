@@ -1526,7 +1526,9 @@ class GemmOptimizer(GraphRewriter):
             if new_node is not node:
                 nodelist.append(new_node)
 
-        u = aesara.graph.opt.Updater(on_import, None, None, name="GemmOptimizer")
+        u = aesara.graph.opt.DispatchingFeature(
+            on_import, None, None, name="GemmOptimizer"
+        )
         fgraph.attach_feature(u)
         while did_something:
             nb_iter += 1
