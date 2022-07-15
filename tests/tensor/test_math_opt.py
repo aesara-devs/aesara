@@ -4312,7 +4312,7 @@ class TestSigmoidOpts:
 
         # tests exp_over_1_plus_exp
         f = aesara.function([x], 1 - exp(x) / (1 + exp(x)), mode=m)
-        # FIXME: PatternSub does not copy stack trace
+        # FIXME: PatternNodeRewriter does not copy stack trace
         #  (see https://github.com/Theano/Theano/issues/4581)
         # assert check_stack_trace(f, ops_to_check=[neg, sigmoid])
         assert [node.op for node in f.maker.fgraph.toposort()] == [neg, sigmoid]
