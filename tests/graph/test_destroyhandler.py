@@ -11,8 +11,8 @@ from aesara.graph.op import Op
 from aesara.graph.opt import (
     NavigatorOptimizer,
     OpKeyOptimizer,
-    OpSub,
     PatternSub,
+    SubstitutionNodeRewriter,
     TopoOptimizer,
 )
 from aesara.graph.type import Type
@@ -24,8 +24,12 @@ def PatternOptimizer(p1, p2, ign=True):
     return OpKeyOptimizer(PatternSub(p1, p2), ignore_newtrees=ign)
 
 
-def OpSubOptimizer(op1, op2, fail=NavigatorOptimizer.warn_ignore, ign=True):
-    return TopoOptimizer(OpSub(op1, op2), ignore_newtrees=ign, failure_callback=fail)
+def TopoSubstitutionNodeRewriter(
+    op1, op2, fail=NavigatorOptimizer.warn_ignore, ign=True
+):
+    return TopoOptimizer(
+        SubstitutionNodeRewriter(op1, op2), ignore_newtrees=ign, failure_callback=fail
+    )
 
 
 def as_variable(x):
@@ -127,7 +131,7 @@ def create_fgraph(inputs, outputs, validate=True):
 
 
 class FailureWatch:
-    # when passed to OpSubOptimizer or PatternOptimizer, counts the
+    # when passed to SubstitutionNodeRewriter or PatternOptimizer, counts the
     # number of failures
     def __init__(self):
         self.failures = 0
@@ -326,7 +330,7 @@ def test_long_destroyers_loop():
     e = dot(dot(add_in_place(x, y), add_in_place(y, z)), add(z, x))
     g = create_fgraph([x, y, z], [e])
     assert g.consistent()
-    OpSubOptimizer(add, add_in_place).optimize(g)
+    TopoSubstitutionNodeRewriter(add, add_in_place).optimize(g)
     assert g.consistent()
     # we don't want to see that!
     assert (
@@ -362,7 +366,7 @@ def test_multi_destroyers_through_views():
     g = create_fgraph([x, y, z], [e])
     assert g.consistent()
     fail = FailureWatch()
-    OpSubOptimizer(add, add_in_place, fail).optimize(g)
+    TopoSubstitutionNodeRewriter(add, add_in_place, fail).optimize(g)
     assert g.consistent()
     assert fail.failures == 1  # should have succeeded once and failed once
 
@@ -384,7 +388,7 @@ def test_usage_loop():
     g = create_fgraph([x, y, z], [dot(add_in_place(x, z), x)], False)
     assert not g.consistent()
     # replace add_in_place with add
-    OpSubOptimizer(add_in_place, add).optimize(g)
+    TopoSubstitutionNodeRewriter(add_in_place, add).optimize(g)
     assert g.consistent()
 
 
@@ -405,7 +409,7 @@ def test_usage_loop_insert_views():
     g = create_fgraph([x, y, z], [e])
     assert g.consistent()
     fail = FailureWatch()
-    OpSubOptimizer(sigmoid, transpose_view, fail).optimize(g)
+    TopoSubstitutionNodeRewriter(sigmoid, transpose_view, fail).optimize(g)
     assert g.consistent()
     # it must keep one sigmoid in the long sigmoid chain
     assert fail.failures == 1
@@ -450,24 +454,26 @@ def test_multiple_inplace():
 
     # try to work in-place on x/0 and y/1 (this should fail)
     fail = FailureWatch()
-    OpSubOptimizer(multiple, multiple_in_place_0_1, fail).optimize(g)
+    TopoSubstitutionNodeRewriter(multiple, multiple_in_place_0_1, fail).optimize(g)
     assert g.consistent()
     assert fail.failures == 1
 
     # try to work in-place on x/0 (this should fail)
     fail = FailureWatch()
-    OpSubOptimizer(multiple, multiple_in_place_0, fail).optimize(g)
+    TopoSubstitutionNodeRewriter(multiple, multiple_in_place_0, fail).optimize(g)
     assert g.consistent()
     assert fail.failures == 1
 
     # try to work in-place on y/1 (this should succeed)
     fail = FailureWatch()
-    OpSubOptimizer(multiple, multiple_in_place_1, fail).optimize(g)
+    TopoSubstitutionNodeRewriter(multiple, multiple_in_place_1, fail).optimize(g)
     assert g.consistent()
     assert fail.failures == 0
 
     # try to work in-place on x/0 and y/1 (this should still fail)
     fail = FailureWatch()
-    OpSubOptimizer(multiple_in_place_1, multiple_in_place_0_1, fail).optimize(g)
+    TopoSubstitutionNodeRewriter(
+        multiple_in_place_1, multiple_in_place_0_1, fail
+    ).optimize(g)
     assert g.consistent()
     assert fail.failures == 1
