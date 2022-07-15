@@ -270,8 +270,8 @@ FunctionGraph(add(z, mul(true_div(mul(y, x), y), true_div(z, x))))
 >>> e
 FunctionGraph(add(z, mul(x, true_div(z, x))))
 
-:class:`SubstitutionNodeRewriter`, :class:`OpRemove`, :class:`PatternSub`
-+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+:class:`SubstitutionNodeRewriter`, :class:`RemovalNodeRewriter`, :class:`PatternSub`
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 Aesara defines some shortcuts to make :class:`NodeRewriter`\s:
 
@@ -281,7 +281,7 @@ Aesara defines some shortcuts to make :class:`NodeRewriter`\s:
   words, the outputs of all :class:`Apply` nodes using ``op1`` by the outputs
   of :class:`Apply` nodes involving ``op2``, where their inputs are the same.
 
-.. function:: OpRemove(op)
+.. function:: RemovalNodeRewriter(op)
 
   Removes all uses of ``op`` in the following way:
   if ``y = op(x)`` then ``y`` is replaced by ``x``. ``op`` must have as many
@@ -296,14 +296,14 @@ Aesara defines some shortcuts to make :class:`NodeRewriter`\s:
 .. code::
 
    from aesara.scalar import identity
-   from aesara.graph.opt import SubstitutionNodeRewriter, OpRemove, PatternSub
+   from aesara.graph.opt import SubstitutionNodeRewriter, RemovalNodeRewriter, PatternSub
 
    # Replacing `add` by `mul` (this is not recommended for primarily
    # mathematical reasons):
    add_to_mul = SubstitutionNodeRewriter(add, mul)
 
    # Removing `identity`
-   remove_identity = OpRemove(identity)
+   remove_identity = RemovalNodeRewriter(identity)
 
    # The "simplify" operation we've been defining in the past few
    # sections. Note that we need two patterns to account for the
@@ -313,12 +313,12 @@ Aesara defines some shortcuts to make :class:`NodeRewriter`\s:
 
 .. note::
 
-   :class:`SubstitutionNodeRewriter`, :class:`OpRemove` and :class:`PatternSub` produce local optimizers, which
+   :class:`SubstitutionNodeRewriter`, :class:`RemovalNodeRewriter` and :class:`PatternSub` produce local optimizers, which
    means that everything we said previously about local optimizers
    apply (e.g. they need to be wrapped in a :class:`NavigatorOptimizer`, etc.)
 
 
-When an optimization can be naturally expressed using :class:`SubstitutionNodeRewriter`, :class:`OpRemove`
+When an optimization can be naturally expressed using :class:`SubstitutionNodeRewriter`, :class:`RemovalNodeRewriter`
 or :class:`PatternSub`, it is highly recommended to use them.
 
 .. _unification:

@@ -1446,7 +1446,7 @@ class SubstitutionNodeRewriter(NodeRewriter):
         return f"{self.op1} -> {self.op2}"
 
 
-class OpRemove(NodeRewriter):
+class RemovalNodeRewriter(NodeRewriter):
     """
     Removes all applications of an `Op` by transferring each of its
     outputs to the corresponding input.
@@ -3177,6 +3177,11 @@ DEPRECATED_NAMES = [
         "OpSub",
         "`OpSub` is deprecated: use `SubstitutionNodeRewriter` instead.",
         SubstitutionNodeRewriter,
+    ),
+    (
+        "OpRemove",
+        "`OpRemove` is deprecated: use `RemovalNodeRewriter` instead.",
+        RemovalNodeRewriter,
     ),
 ]
 

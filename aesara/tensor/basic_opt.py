@@ -29,7 +29,7 @@ from aesara.graph.op import compute_test_value, get_test_value
 from aesara.graph.opt import (
     GraphRewriter,
     NodeRewriter,
-    OpRemove,
+    RemovalNodeRewriter,
     Rewriter,
     check_chain,
     copy_stack_trace,
@@ -2744,7 +2744,7 @@ def local_reshape_lift(fgraph, node):
         return [e]
 
 
-register_canonicalize(OpRemove(tensor_copy), name="remove_tensor_copy")
+register_canonicalize(RemovalNodeRewriter(tensor_copy), name="remove_tensor_copy")
 
 
 @node_rewriter(None)
