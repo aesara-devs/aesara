@@ -1479,7 +1479,7 @@ class RemovalNodeRewriter(NodeRewriter):
         )
 
 
-class PatternSub(NodeRewriter):
+class PatternNodeRewriter(NodeRewriter):
     """Replace all occurrences of an input pattern with an output pattern.
 
     The input and output patterns have the following syntax:
@@ -1517,7 +1517,7 @@ class PatternSub(NodeRewriter):
     trying to match and returns True or False according to an
     arbitrary criterion.
 
-    The constructor creates a `PatternSub` that replaces occurrences of
+    The constructor creates a `PatternNodeRewriter` that replaces occurrences of
     `in_pattern` by occurrences of `out_pattern`.
 
     Parameters
@@ -1548,11 +1548,11 @@ class PatternSub(NodeRewriter):
     Examples
     --------
 
-        PatternSub((add, 'x', 'y'), (add, 'y', 'x'))
-        PatternSub((multiply, 'x', 'x'), (square, 'x'))
-        PatternSub((subtract, (add, 'x', 'y'), 'y'), 'x')
-        PatternSub((power, 'x', Constant(double, 2.0)), (square, 'x'))
-        PatternSub((boggle, {'pattern': 'x',
+        PatternNodeRewriter((add, 'x', 'y'), (add, 'y', 'x'))
+        PatternNodeRewriter((multiply, 'x', 'x'), (square, 'x'))
+        PatternNodeRewriter((subtract, (add, 'x', 'y'), 'y'), 'x')
+        PatternNodeRewriter((power, 'x', Constant(double, 2.0)), (square, 'x'))
+        PatternNodeRewriter((boggle, {'pattern': 'x',
                             'constraint': lambda expr: expr.type == scrabble}),
                    (scrabble, 'x'))
 
@@ -3182,6 +3182,11 @@ DEPRECATED_NAMES = [
         "OpRemove",
         "`OpRemove` is deprecated: use `RemovalNodeRewriter` instead.",
         RemovalNodeRewriter,
+    ),
+    (
+        "PatternSub",
+        "`PatternSub` is deprecated: use `PatternNodeRewriter` instead.",
+        PatternNodeRewriter,
     ),
 ]
 

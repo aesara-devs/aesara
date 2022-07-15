@@ -13,7 +13,7 @@ from aesara.compile.io import In, Out
 from aesara.compile.mode import Mode, get_default_mode
 from aesara.configdefaults import config
 from aesara.graph.basic import Constant
-from aesara.graph.opt import OpKeyOptimizer, PatternSub
+from aesara.graph.opt import OpKeyOptimizer, PatternNodeRewriter
 from aesara.graph.utils import MissingInputError
 from aesara.link.vm import VMLinker
 from aesara.tensor.math import dot
@@ -35,7 +35,7 @@ from aesara.utils import exc_message
 
 
 def PatternOptimizer(p1, p2, ign=True):
-    return OpKeyOptimizer(PatternSub(p1, p2), ignore_newtrees=ign)
+    return OpKeyOptimizer(PatternNodeRewriter(p1, p2), ignore_newtrees=ign)
 
 
 class TestFunction:

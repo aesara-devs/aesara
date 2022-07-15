@@ -89,7 +89,7 @@ For starters, let's define the following simplification:
    \frac{xy}{y} = x
 
 We will implement it in three ways: using a global optimization, a
-local optimization with a :class:`NavigatorOptimizer` and then using the :class:`PatternSub`
+local optimization with a :class:`NavigatorOptimizer` and then using the :class:`PatternNodeRewriter`
 facility.
 
 Global optimization
@@ -270,8 +270,8 @@ FunctionGraph(add(z, mul(true_div(mul(y, x), y), true_div(z, x))))
 >>> e
 FunctionGraph(add(z, mul(x, true_div(z, x))))
 
-:class:`SubstitutionNodeRewriter`, :class:`RemovalNodeRewriter`, :class:`PatternSub`
-++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+:class:`SubstitutionNodeRewriter`, :class:`RemovalNodeRewriter`, :class:`PatternNodeRewriter`
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 Aesara defines some shortcuts to make :class:`NodeRewriter`\s:
 
@@ -288,15 +288,15 @@ Aesara defines some shortcuts to make :class:`NodeRewriter`\s:
   outputs as it has inputs. The first output becomes the first input,
   the second output becomes the second input, and so on.
 
-.. function:: PatternSub(pattern1, pattern2)
+.. function:: PatternNodeRewriter(pattern1, pattern2)
 
   Replaces all occurrences of the first pattern by the second pattern.
-  See :class:`PatternSub`.
+  See :class:`PatternNodeRewriter`.
 
 .. code::
 
    from aesara.scalar import identity
-   from aesara.graph.opt import SubstitutionNodeRewriter, RemovalNodeRewriter, PatternSub
+   from aesara.graph.opt import SubstitutionNodeRewriter, RemovalNodeRewriter, PatternNodeRewriter
 
    # Replacing `add` by `mul` (this is not recommended for primarily
    # mathematical reasons):
@@ -308,25 +308,25 @@ Aesara defines some shortcuts to make :class:`NodeRewriter`\s:
    # The "simplify" operation we've been defining in the past few
    # sections. Note that we need two patterns to account for the
    # permutations of the arguments to `mul`.
-   local_simplify_1 = PatternSub((true_div, (mul, 'x', 'y'), 'y'), 'x')
-   local_simplify_2 = PatternSub((true_div, (mul, 'x', 'y'), 'x'), 'y')
+   local_simplify_1 = PatternNodeRewriter((true_div, (mul, 'x', 'y'), 'y'), 'x')
+   local_simplify_2 = PatternNodeRewriter((true_div, (mul, 'x', 'y'), 'x'), 'y')
 
 .. note::
 
-   :class:`SubstitutionNodeRewriter`, :class:`RemovalNodeRewriter` and :class:`PatternSub` produce local optimizers, which
+   :class:`SubstitutionNodeRewriter`, :class:`RemovalNodeRewriter` and :class:`PatternNodeRewriter` produce local optimizers, which
    means that everything we said previously about local optimizers
    apply (e.g. they need to be wrapped in a :class:`NavigatorOptimizer`, etc.)
 
 
 When an optimization can be naturally expressed using :class:`SubstitutionNodeRewriter`, :class:`RemovalNodeRewriter`
-or :class:`PatternSub`, it is highly recommended to use them.
+or :class:`PatternNodeRewriter`, it is highly recommended to use them.
 
 .. _unification:
 
 Unification and reification
 ===========================
 
-The :class:`PatternSub` class uses `unification and reification
+The :class:`PatternNodeRewriter` class uses `unification and reification
 <https://en.wikipedia.org/wiki/Unification_(computer_science)>`_ to implement a
 more succinct and reusable form of "pattern matching and replacement".
 In general, *use of the unification and reification tools is preferable when
@@ -345,7 +345,7 @@ In order to use :func:`unify` and :func:`reify` with Aesara graphs, we need an i
 structure that will allow us to represent Aesara graphs that contain :class:`var`\s, because
 Aesara :class:`Op`\s and :class:`Apply` nodes will not accept these foreign objects as inputs.
 
-:class:`PatternSub` uses Python ``tuple``\s to effectively represent :class:`Apply` nodes and
+:class:`PatternNodeRewriter` uses Python ``tuple``\s to effectively represent :class:`Apply` nodes and
 ``str``\s to represent logic variables (i.e. :class:`var`\s in the :mod:`unification` library).
 Behind the scenes, these ``tuple``\s are converted to a ``tuple`` subclass called :class:`ExpressionTuple`\s,
 which behave just like normal ``tuple``\s except for some special caching features that allow for easy

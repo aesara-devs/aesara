@@ -11,7 +11,7 @@ from aesara.graph.op import Op
 from aesara.graph.opt import (
     NavigatorOptimizer,
     OpKeyOptimizer,
-    PatternSub,
+    PatternNodeRewriter,
     SubstitutionNodeRewriter,
     TopoOptimizer,
 )
@@ -21,7 +21,7 @@ from tests.unittest_tools import assertFailure_fast
 
 
 def PatternOptimizer(p1, p2, ign=True):
-    return OpKeyOptimizer(PatternSub(p1, p2), ignore_newtrees=ign)
+    return OpKeyOptimizer(PatternNodeRewriter(p1, p2), ignore_newtrees=ign)
 
 
 def TopoSubstitutionNodeRewriter(

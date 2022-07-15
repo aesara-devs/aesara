@@ -10,7 +10,7 @@ from aesara.graph.opt import (
     MergeOptimizer,
     OpKeyOptimizer,
     OpToRewriterTracker,
-    PatternSub,
+    PatternNodeRewriter,
     SequentialNodeRewriter,
     SubstitutionNodeRewriter,
     TopoOptimizer,
@@ -51,11 +51,11 @@ class AssertNoChanges(Feature):
 
 
 def PatternOptimizer(p1, p2, ign=False):
-    return OpKeyOptimizer(PatternSub(p1, p2), ignore_newtrees=ign)
+    return OpKeyOptimizer(PatternNodeRewriter(p1, p2), ignore_newtrees=ign)
 
 
 def TopoPatternOptimizer(p1, p2, ign=True):
-    return TopoOptimizer(PatternSub(p1, p2), ignore_newtrees=ign)
+    return TopoOptimizer(PatternNodeRewriter(p1, p2), ignore_newtrees=ign)
 
 
 class TestPatternOptimizer:
@@ -448,9 +448,9 @@ class TestEquilibrium:
         # print g
         opt = EquilibriumOptimizer(
             [
-                PatternSub((op1, "x", "y"), (op2, "x", "y")),
-                PatternSub((op4, "x", "y"), (op1, "x", "y")),
-                PatternSub((op3, (op2, "x", "y")), (op4, "x", "y")),
+                PatternNodeRewriter((op1, "x", "y"), (op2, "x", "y")),
+                PatternNodeRewriter((op4, "x", "y"), (op1, "x", "y")),
+                PatternNodeRewriter((op3, (op2, "x", "y")), (op4, "x", "y")),
             ],
             max_use_ratio=10,
         )
@@ -465,11 +465,11 @@ class TestEquilibrium:
         # print g
         opt = EquilibriumOptimizer(
             [
-                PatternSub((op1, (op2, "x", "y")), (op4, "x", "y")),
-                PatternSub((op3, "x", "y"), (op4, "x", "y")),
-                PatternSub((op4, "x", "y"), (op5, "x", "y")),
-                PatternSub((op5, "x", "y"), (op6, "x", "y")),
-                PatternSub((op6, "x", "y"), (op2, "x", "y")),
+                PatternNodeRewriter((op1, (op2, "x", "y")), (op4, "x", "y")),
+                PatternNodeRewriter((op3, "x", "y"), (op4, "x", "y")),
+                PatternNodeRewriter((op4, "x", "y"), (op5, "x", "y")),
+                PatternNodeRewriter((op5, "x", "y"), (op6, "x", "y")),
+                PatternNodeRewriter((op6, "x", "y"), (op2, "x", "y")),
             ],
             max_use_ratio=10,
         )
@@ -490,9 +490,9 @@ class TestEquilibrium:
         try:
             opt = EquilibriumOptimizer(
                 [
-                    PatternSub((op1, "x", "y"), (op2, "x", "y")),
-                    PatternSub((op4, "x", "y"), (op1, "x", "y")),
-                    PatternSub((op3, (op2, "x", "y")), (op4, "x", "y")),
+                    PatternNodeRewriter((op1, "x", "y"), (op2, "x", "y")),
+                    PatternNodeRewriter((op4, "x", "y"), (op1, "x", "y")),
+                    PatternNodeRewriter((op3, (op2, "x", "y")), (op4, "x", "y")),
                 ],
                 max_use_ratio=1.0 / len(g.apply_nodes),
             )  # each opt can only be applied once
@@ -595,14 +595,14 @@ def test_pre_greedy_node_rewriter():
 @pytest.mark.parametrize("tracks", [True, False])
 @pytest.mark.parametrize("out_pattern", [(op2, "x"), "x", 1.0])
 def test_patternsub_values_eq_approx(out_pattern, tracks):
-    # PatternSub would fail when `values_eq_approx` and `get_nodes` were specified
+    # PatternNodeRewriter would fail when `values_eq_approx` and `get_nodes` were specified
     x = MyVariable("x")
     e = op1(x)
     fg = FunctionGraph([x], [e], clone=False)
 
     opt = EquilibriumOptimizer(
         [
-            PatternSub(
+            PatternNodeRewriter(
                 (op1, "x"),
                 out_pattern,
                 tracks=[op1] if tracks else (),
@@ -628,14 +628,14 @@ def test_patternsub_values_eq_approx(out_pattern, tracks):
 
 @pytest.mark.parametrize("out_pattern", [(op1, "x"), "x"])
 def test_patternsub_invalid_dtype(out_pattern):
-    # PatternSub would wrongly return output of different dtype as the original node
+    # PatternNodeRewriter would wrongly return output of different dtype as the original node
     x = MyVariable("x")
     e = op_cast_type2(x)
     fg = FunctionGraph([x], [e])
 
     opt = EquilibriumOptimizer(
         [
-            PatternSub(
+            PatternNodeRewriter(
                 (op_cast_type2, "x"),
                 out_pattern,
             )
@@ -647,8 +647,8 @@ def test_patternsub_invalid_dtype(out_pattern):
 
 
 def test_patternsub_different_output_lengths():
-    # Test that PatternSub won't replace nodes with different numbers of outputs
-    ps = PatternSub(
+    # Test that PatternNodeRewriter won't replace nodes with different numbers of outputs
+    ps = PatternNodeRewriter(
         (op1, "x"),
         ("x"),
         name="ps",

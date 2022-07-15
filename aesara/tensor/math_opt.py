@@ -11,7 +11,7 @@ import aesara.scalar.math as aes_math
 from aesara.graph.basic import Constant, Variable
 from aesara.graph.opt import (
     NodeRewriter,
-    PatternSub,
+    PatternNodeRewriter,
     SequentialNodeRewriter,
     copy_stack_trace,
     in2out,
@@ -2512,7 +2512,7 @@ get_clients_at_depth1 = partial(get_clients_at_depth, depth=1)
 get_clients_at_depth2 = partial(get_clients_at_depth, depth=2)
 
 # 1+erf(x)=>erfc(-x)
-local_one_plus_erf = PatternSub(
+local_one_plus_erf = PatternNodeRewriter(
     (add, 1, (erf, "x")),
     (erfc, (neg, "x")),
     allow_multiple_clients=True,
@@ -2527,7 +2527,7 @@ register_specialize(local_one_plus_erf)
 # Only one of the two rewrites below is needed if a canonicalization is added
 # for sub(x, y) -> add(x, -y) or a specialization for add(x, -y) -> sub(x, y)
 # 1-erf(x)=>erfc(x)
-local_one_minus_erf = PatternSub(
+local_one_minus_erf = PatternNodeRewriter(
     (sub, 1, (erf, "x")),
     (erfc, "x"),
     allow_multiple_clients=True,
@@ -2539,7 +2539,7 @@ register_canonicalize(local_one_minus_erf)
 register_stabilize(local_one_minus_erf)
 register_specialize(local_one_minus_erf)
 
-local_one_minus_erf2 = PatternSub(
+local_one_minus_erf2 = PatternNodeRewriter(
     (add, 1, (neg, (erf, "x"))),
     (erfc, "x"),
     allow_multiple_clients=True,
@@ -2554,7 +2554,7 @@ register_specialize(local_one_minus_erf2)
 # (-1)+erf(x) => -erfc(x)
 # There is no need for erf(x)+(-1) nor erf(x) - 1, as the canonicalize will
 # convert those to the matched pattern
-local_erf_minus_one = PatternSub(
+local_erf_minus_one = PatternNodeRewriter(
     (add, -1, (erf, "x")),
     (neg, (erfc, "x")),
     allow_multiple_clients=True,
@@ -2569,7 +2569,7 @@ register_specialize(local_erf_minus_one)
 # Only one of the two rewrites below is needed if a canonicalization is added
 # for sub(x, y) -> add(x, -y) or a specialization for add(x, -y) -> sub(x, y)
 # 1-erfc(x) => erf(x)
-local_one_minus_erfc = PatternSub(
+local_one_minus_erfc = PatternNodeRewriter(
     (sub, 1, (erfc, "x")),
     (erf, "x"),
     allow_multiple_clients=True,
@@ -2581,7 +2581,7 @@ register_canonicalize(local_one_minus_erfc)
 register_stabilize(local_one_minus_erfc)
 register_specialize(local_one_minus_erfc)
 
-local_one_minus_erfc2 = PatternSub(
+local_one_minus_erfc2 = PatternNodeRewriter(
     (add, 1, (neg, (erfc, "x"))),
     (erf, "x"),
     allow_multiple_clients=True,
@@ -2594,7 +2594,7 @@ register_stabilize(local_one_minus_erfc2)
 register_specialize(local_one_minus_erfc2)
 
 # (-1)+erfc(-x)=>erf(x)
-local_erf_neg_minus_one = PatternSub(
+local_erf_neg_minus_one = PatternNodeRewriter(
     (add, -1, (erfc, (neg, "x"))),
     (erf, "x"),
     allow_multiple_clients=True,
@@ -2914,7 +2914,7 @@ def _is_1(expr):
         return False
 
 
-logsigm_to_softplus = PatternSub(
+logsigm_to_softplus = PatternNodeRewriter(
     (log, (sigmoid, "x")),
     (neg, (softplus, (neg, "x"))),
     allow_multiple_clients=True,
@@ -2923,7 +2923,7 @@ logsigm_to_softplus = PatternSub(
     tracks=[sigmoid],
     get_nodes=get_clients_at_depth1,
 )
-log1msigm_to_softplus = PatternSub(
+log1msigm_to_softplus = PatternNodeRewriter(
     (log, (sub, dict(pattern="y", constraint=_is_1), (sigmoid, "x"))),
     (neg, (softplus, "x")),
     allow_multiple_clients=True,
@@ -2932,13 +2932,13 @@ log1msigm_to_softplus = PatternSub(
     tracks=[sigmoid],
     get_nodes=get_clients_at_depth2,
 )
-log1pexp_to_softplus = PatternSub(
+log1pexp_to_softplus = PatternNodeRewriter(
     (log1p, (exp, "x")),
     (softplus, "x"),
     values_eq_approx=values_eq_approx_remove_inf,
     allow_multiple_clients=True,
 )
-log1p_neg_sigmoid = PatternSub(
+log1p_neg_sigmoid = PatternNodeRewriter(
     (log1p, (neg, (sigmoid, "x"))),
     (neg, (softplus, "x")),
     values_eq_approx=values_eq_approx_remove_inf,
@@ -3511,7 +3511,7 @@ def local_reciprocal_1_plus_exp(fgraph, node):
 
 
 # 1 - sigmoid(x) -> sigmoid(-x)
-local_1msigmoid = PatternSub(
+local_1msigmoid = PatternNodeRewriter(
     (sub, dict(pattern="y", constraint=_is_1), (sigmoid, "x")),
     (sigmoid, (neg, "x")),
     tracks=[sigmoid],
@@ -3522,7 +3522,7 @@ register_stabilize(local_1msigmoid)
 register_specialize(local_1msigmoid)
 
 
-log1pmexp_to_log1mexp = PatternSub(
+log1pmexp_to_log1mexp = PatternNodeRewriter(
     (log1p, (neg, (exp, "x"))),
     (log1mexp, "x"),
     allow_multiple_clients=True,
@@ -3532,7 +3532,7 @@ register_stabilize(log1pmexp_to_log1mexp, name="log1pmexp_to_log1mexp")
 
 # log(sigmoid(x) / (1 - sigmoid(x))) -> x
 # i.e logit(sigmoid(x)) -> x
-local_logit_sigmoid = PatternSub(
+local_logit_sigmoid = PatternNodeRewriter(
     (log, (true_div, (sigmoid, "x"), (sub, 1, (sigmoid, "x")))),
     "x",
     tracks=[sigmoid],
@@ -3546,7 +3546,7 @@ register_specialize(local_logit_sigmoid)
 
 # sigmoid(log(x / (1-x)) -> x
 # i.e., sigmoid(logit(x)) -> x
-local_sigmoid_logit = PatternSub(
+local_sigmoid_logit = PatternNodeRewriter(
     (sigmoid, (log, (true_div, "x", (sub, 1, "x")))),
     "x",
     allow_multiple_clients=True,
