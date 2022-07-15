@@ -2109,7 +2109,7 @@ class WalkingGraphRewriter(NodeProcessingGraphRewriter):
         return getattr(self, "__name__", super().__str__())
 
 
-def topogroup_optimizer(
+def walking_rewriter(
     order,
     *node_rewriters,
     name=None,
@@ -2139,8 +2139,8 @@ def topogroup_optimizer(
     return ret
 
 
-in2out = partial(topogroup_optimizer, "in_to_out")
-out2in = partial(topogroup_optimizer, "out_to_in")
+in2out = partial(walking_rewriter, "in_to_out")
+out2in = partial(walking_rewriter, "out_to_in")
 
 
 class OpKeyOptimizer(NodeProcessingGraphRewriter):
@@ -3224,6 +3224,11 @@ DEPRECATED_NAMES = [
         "TopoOptimizer",
         "`TopoOptimizer` is deprecated: use `WalkingGraphRewriter` instead.",
         WalkingGraphRewriter,
+    ),
+    (
+        "topogroup_optimizer",
+        "`topogroup_optimizer` is deprecated: use `walking_rewriter` instead.",
+        walking_rewriter,
     ),
 ]
 
