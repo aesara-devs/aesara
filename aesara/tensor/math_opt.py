@@ -10,9 +10,9 @@ import aesara.scalar.basic as aes
 import aesara.scalar.math as aes_math
 from aesara.graph.basic import Constant, Variable
 from aesara.graph.opt import (
-    LocalOptGroup,
     NodeRewriter,
     PatternSub,
+    SequentialNodeRewriter,
     copy_stack_trace,
     in2out,
     node_rewriter,
@@ -2117,7 +2117,7 @@ def local_add_specialize(fgraph, node):
 
 
 mul_canonizer = in2out(
-    LocalOptGroup(local_mul_canonizer, local_fill_sink, apply_all_opts=True),
+    SequentialNodeRewriter(local_mul_canonizer, local_fill_sink, apply_all_opts=True),
     name="mul_canonizer_groups",
 )
 
@@ -2344,7 +2344,7 @@ def add_calculate(num, denum, aslist=False, out_type=None):
 
 local_add_canonizer = AlgebraicCanonizer(add, sub, neg, add_calculate)
 add_canonizer = in2out(
-    LocalOptGroup(local_add_canonizer, local_fill_sink, apply_all_opts=True),
+    SequentialNodeRewriter(local_add_canonizer, local_fill_sink, apply_all_opts=True),
     name="add_canonizer_group",
 )
 

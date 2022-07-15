@@ -7,12 +7,12 @@ from aesara.graph.fg import FunctionGraph
 from aesara.graph.op import Op
 from aesara.graph.opt import (
     EquilibriumOptimizer,
-    LocalOptGroup,
     MergeOptimizer,
     OpKeyOptimizer,
     OpSub,
     OpToRewriterTracker,
     PatternSub,
+    SequentialNodeRewriter,
     TopoOptimizer,
     in2out,
     logging,
@@ -664,7 +664,7 @@ def test_patternsub_different_output_lengths():
     assert fgraph.outputs[0].owner.op == op1
 
 
-class TestLocalOptGroup:
+class TestSequentialNodeRewriter:
     def test_optimizer_verbose(self, capsys):
 
         x = MyVariable("x")
@@ -685,7 +685,7 @@ class TestLocalOptGroup:
                 res = op2(x, *node.inputs[1:])
                 return [res]
 
-        opt_group = LocalOptGroup(local_opt_1, local_opt_2)
+        opt_group = SequentialNodeRewriter(local_opt_1, local_opt_2)
 
         with config.change_flags(optimizer_verbose=True):
             (new_res,) = opt_group.transform(fgraph, o1.owner)
