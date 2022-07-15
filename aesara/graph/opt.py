@@ -48,7 +48,7 @@ _logger = logging.getLogger("aesara.graph.opt")
 FailureCallbackType = Callable[
     [
         Exception,
-        "NavigatorOptimizer",
+        "NodeProcessingGraphRewriter",
         List[Tuple[Variable, None]],
         "NodeRewriter",
         Apply,
@@ -1210,7 +1210,7 @@ class SequentialNodeRewriter(NodeRewriter):
     Attributes
     ----------
     reentrant : bool
-        Some global optimizers, like `NavigatorOptimizer`, use this value to
+        Some global optimizers, like `NodeProcessingGraphRewriter`, use this value to
         determine if they should ignore new nodes.
     retains_inputs : bool
         States whether or not the inputs of a transformed node are transferred
@@ -1724,13 +1724,17 @@ class Updater(Feature):
         self.chin = None
 
 
-class NavigatorOptimizer(GraphRewriter):
-    r"""An optimizer that applies a `NodeRewriter` with considerations for the new nodes it creates.
+class NodeProcessingGraphRewriter(GraphRewriter):
+    r"""A rewriter that applies a `NodeRewriter` with considerations for the new nodes it creates.
 
+    The results of successful rewrites are considered for rewriting based on
+    the values of `NodeProcessingGraphRewriter.ignore_newtrees` and/or
+    `NodeRewriter.reentrant`.
 
-    This optimizer also allows the `NodeRewriter` to use a special ``"remove"`` value
-    in the ``dict``\s returned by :meth:`NodeRewriter`.  `Variable`\s mapped to this
-    value are removed from the `FunctionGraph`.
+    This rewriter accepts ``dict`` values from `NodeRewriter.transform`.
+    Entries in these ``dict``\s can be `Variable`\s and their new values.
+    It also accepts a special ``"remove"`` key.  A sequence of `Variable`\s
+    mapped to the key ``"remove"`` are removed from the `FunctionGraph`.
 
     """
 
@@ -1759,7 +1763,9 @@ class NavigatorOptimizer(GraphRewriter):
         """
         if isinstance(exc, InconsistencyError):
             return
-        return NavigatorOptimizer.warn(exc, nav, repl_pairs, node_rewriter, node)
+        return NodeProcessingGraphRewriter.warn(
+            exc, nav, repl_pairs, node_rewriter, node
+        )
 
     @staticmethod
     def warn_ignore(exc, nav, repl_pairs, node_rewriter, node):
@@ -1778,10 +1784,10 @@ class NavigatorOptimizer(GraphRewriter):
         node_rewriter
             A `NodeRewriter` to apply over a `FunctionGraph` (or ``None``).
         ignore_newtrees
-            - ``True``: new subgraphs returned by an optimization are not a
-            candidate for optimization.
-            - ``False``: new subgraphs returned by an optimization is a
-            candidate for optimization.
+            - ``True``: new subgraphs returned by an `NodeRewriter` are not a
+            candidate for rewriting.
+            - ``False``: new subgraphs returned by an `NodeRewriter` is a
+            candidate for rewriting.
             - ``'auto'``: let the `node_rewriter` set this parameter via its
             :attr:`reentrant` attribute.
         failure_callback
@@ -1970,7 +1976,7 @@ class NavigatorOptimizer(GraphRewriter):
             )
 
 
-class TopoOptimizer(NavigatorOptimizer):
+class TopoOptimizer(NodeProcessingGraphRewriter):
     """An optimizer that applies a single `NodeRewriter` to each node in topological order (or reverse)."""
 
     def __init__(
@@ -2116,7 +2122,7 @@ in2out = partial(topogroup_optimizer, "in_to_out")
 out2in = partial(topogroup_optimizer, "out_to_in")
 
 
-class OpKeyOptimizer(NavigatorOptimizer):
+class OpKeyOptimizer(NodeProcessingGraphRewriter):
     r"""An optimizer that applies a `NodeRewriter` to specific `Op`\s.
 
     The `Op`\s are provided by a :meth:`NodeRewriter.op_key` method (either
@@ -2200,7 +2206,7 @@ def merge_dict(d1, d2):
     return d
 
 
-class EquilibriumOptimizer(NavigatorOptimizer):
+class EquilibriumOptimizer(NodeProcessingGraphRewriter):
     """An `Rewriter` that applies an optimization until a fixed-point/equilibrium is reached."""
 
     def __init__(
@@ -2222,11 +2228,11 @@ class EquilibriumOptimizer(NavigatorOptimizer):
             The global optimizer will be run at the start of each iteration before
             the node rewriter.
         failure_callback
-            See :attr:`NavigatorOptimizer.failure_callback`.
+            See :attr:`NodeProcessingGraphRewriter.failure_callback`.
         ignore_newtrees
-            See :attr:`NavigatorOptimizer.ignore_newtrees`.
+            See :attr:`NodeProcessingGraphRewriter.ignore_newtrees`.
         tracks_on_change_inputs
-            See :attr:`NavigatorOptimizer.tracks_on_change_inputs`.
+            See :attr:`NodeProcessingGraphRewriter.tracks_on_change_inputs`.
         max_use_ratio
             Each rewriter can be applied at most ``(size_of_graph * max_use_ratio)``
             times.
@@ -3187,6 +3193,11 @@ DEPRECATED_NAMES = [
         "PatternSub",
         "`PatternSub` is deprecated: use `PatternNodeRewriter` instead.",
         PatternNodeRewriter,
+    ),
+    (
+        "NavigatorOptimizer",
+        "`NavigatorOptimizer` is deprecated: use `NodeProcessingGraphRewriter` instead.",
+        NodeProcessingGraphRewriter,
     ),
 ]
 

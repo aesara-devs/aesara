@@ -14,7 +14,7 @@ from aesara.graph.opt import (
     CheckStackTraceOptimization,
     GraphRewriter,
     MergeOptimizer,
-    NavigatorOptimizer,
+    NodeProcessingGraphRewriter,
 )
 from aesara.graph.optdb import (
     EquilibriumDB,
@@ -193,7 +193,7 @@ optdb.register(
 local_useless = LocalGroupDB(apply_all_opts=True, profile=True)
 optdb.register(
     "useless",
-    TopoDB(local_useless, failure_callback=NavigatorOptimizer.warn_inplace),
+    TopoDB(local_useless, failure_callback=NodeProcessingGraphRewriter.warn_inplace),
     "fast_run",
     "fast_compile",
     position=0.6,

@@ -9,7 +9,7 @@ from aesara.graph.features import ReplaceValidate
 from aesara.graph.fg import FunctionGraph
 from aesara.graph.op import Op
 from aesara.graph.opt import (
-    NavigatorOptimizer,
+    NodeProcessingGraphRewriter,
     OpKeyOptimizer,
     PatternNodeRewriter,
     SubstitutionNodeRewriter,
@@ -25,7 +25,7 @@ def PatternOptimizer(p1, p2, ign=True):
 
 
 def TopoSubstitutionNodeRewriter(
-    op1, op2, fail=NavigatorOptimizer.warn_ignore, ign=True
+    op1, op2, fail=NodeProcessingGraphRewriter.warn_ignore, ign=True
 ):
     return TopoOptimizer(
         SubstitutionNodeRewriter(op1, op2), ignore_newtrees=ign, failure_callback=fail

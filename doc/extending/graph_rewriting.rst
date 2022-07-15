@@ -74,7 +74,7 @@ A local optimization is an object which defines the following methods:
       This method takes a :class:`FunctionGraph` and an :class:`Apply` node and
       returns either ``False`` to signify that no changes are to be done or a
       list of :class:`Variable`\s which matches the length of the node's ``outputs``
-      list. When the :class:`NodeRewriter` is applied by a :class:`NavigatorOptimizer`, the outputs
+      list. When the :class:`NodeRewriter` is applied by a :class:`NodeProcessingGraphRewriter`, the outputs
       of the node passed as argument to the :class:`NodeRewriter` will be replaced by
       the list returned.
 
@@ -89,7 +89,7 @@ For starters, let's define the following simplification:
    \frac{xy}{y} = x
 
 We will implement it in three ways: using a global optimization, a
-local optimization with a :class:`NavigatorOptimizer` and then using the :class:`PatternNodeRewriter`
+local optimization with a :class:`NodeProcessingGraphRewriter` and then using the :class:`PatternNodeRewriter`
 facility.
 
 Global optimization
@@ -253,7 +253,7 @@ outputs are returned. This list must have the same length as
 you can put ``None`` in the returned list to remove it.
 
 In order to apply the local optimizer we can use it in conjunction
-with a :class:`NavigatorOptimizer`. Basically, a :class:`NavigatorOptimizer` is
+with a :class:`NodeProcessingGraphRewriter`. Basically, a :class:`NodeProcessingGraphRewriter` is
 a global optimizer that loops through all nodes in the graph (or a well-defined
 subset of them) and applies one or several local optimizers.
 
@@ -315,7 +315,7 @@ Aesara defines some shortcuts to make :class:`NodeRewriter`\s:
 
    :class:`SubstitutionNodeRewriter`, :class:`RemovalNodeRewriter` and :class:`PatternNodeRewriter` produce local optimizers, which
    means that everything we said previously about local optimizers
-   apply (e.g. they need to be wrapped in a :class:`NavigatorOptimizer`, etc.)
+   apply (e.g. they need to be wrapped in a :class:`NodeProcessingGraphRewriter`, etc.)
 
 
 When an optimization can be naturally expressed using :class:`SubstitutionNodeRewriter`, :class:`RemovalNodeRewriter`
@@ -702,7 +702,7 @@ Registering a :class:`NodeRewriter`
 
 :class:`NodeRewriter`\s may be registered in two ways:
 
-* Wrap them in a :class:`NavigatorOptimizer` and insert them like a global optimizer
+* Wrap them in a :class:`NodeProcessingGraphRewriter` and insert them like a global optimizer
   (see previous section).
 * Put them in an :class:`EquilibriumDB`.
 
@@ -795,8 +795,8 @@ under the assumption there are no inplace operations.
 
 .. _navigator:
 
-:class:`NavigatorOptimizer`
----------------------------
+:class:`NodeProcessingGraphRewriter`
+------------------------------------
 
 WRITEME
 
