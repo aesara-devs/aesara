@@ -1152,8 +1152,8 @@ def node_rewriter(
     return decorator
 
 
-class LocalOptTracker:
-    r"""A container that maps rewrites to `Op` instances and `Op`-type inheritance."""
+class OpToRewriterTracker:
+    r"""A container that maps `NodeRewriter`\s to `Op` instances and `Op`-type inheritance."""
 
     def __init__(self):
         self.tracked_instances: Dict[Op, List[NodeRewriter]] = {}
@@ -1256,7 +1256,7 @@ class LocalOptGroup(NodeRewriter):
             self.applied_true: Dict[Rewriter, int] = {}
             self.node_created: Dict[Rewriter, int] = {}
 
-        self.tracker = LocalOptTracker()
+        self.tracker = OpToRewriterTracker()
 
         for o in self.opts:
 
@@ -2246,7 +2246,7 @@ class EquilibriumOptimizer(NavigatorOptimizer):
         self.global_optimizers: List[GraphRewriter] = []
         self.tracks_on_change_inputs = tracks_on_change_inputs
 
-        self.node_tracker = LocalOptTracker()
+        self.node_tracker = OpToRewriterTracker()
 
         for opt in optimizers:
             if isinstance(opt, NodeRewriter):
@@ -3162,6 +3162,11 @@ DEPRECATED_NAMES = [
         "FromFunctionLocalOptimizer",
         "`FromFunctionLocalOptimizer` is deprecated: use `FromFunctionNodeRewriter` instead.",
         FromFunctionNodeRewriter,
+    ),
+    (
+        "LocalOptTracker",
+        "`LocalOptTracker` is deprecated: use `OpToRewriterTracker` instead.",
+        OpToRewriterTracker,
     ),
 ]
 

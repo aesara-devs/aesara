@@ -8,10 +8,10 @@ from aesara.graph.op import Op
 from aesara.graph.opt import (
     EquilibriumOptimizer,
     LocalOptGroup,
-    LocalOptTracker,
     MergeOptimizer,
     OpKeyOptimizer,
     OpSub,
+    OpToRewriterTracker,
     PatternSub,
     TopoOptimizer,
     in2out,
@@ -766,7 +766,7 @@ def test_node_rewriter():
     assert hits[0] == 2
 
 
-def test_TrackingNodeRewriter():
+def test_OpToRewriterTracker():
     @node_rewriter(None)
     def local_opt_1(fgraph, node):
         pass
@@ -787,7 +787,7 @@ def test_TrackingNodeRewriter():
     def local_opt_5(fgraph, node):
         pass
 
-    tracker = LocalOptTracker()
+    tracker = OpToRewriterTracker()
     tracker.add_tracker(local_opt_1)
     tracker.add_tracker(local_opt_2)
     tracker.add_tracker(local_opt_3)
