@@ -146,7 +146,7 @@ from aesara.graph.basic import Apply, view_roots
 from aesara.graph.features import ReplacementDidNotRemoveError, ReplaceValidate
 from aesara.graph.op import Op
 from aesara.graph.opt import (
-    EquilibriumOptimizer,
+    EquilibriumGraphRewriter,
     GraphRewriter,
     copy_stack_trace,
     in2out,
@@ -1906,7 +1906,7 @@ blas_optdb.register(
 blas_optdb.register("gemm_optimizer", GemmOptimizer(), "fast_run", position=10)
 blas_optdb.register(
     "local_gemm_to_gemv",
-    EquilibriumOptimizer(
+    EquilibriumGraphRewriter(
         [
             local_gemm_to_gemv,
             local_gemm_to_ger,

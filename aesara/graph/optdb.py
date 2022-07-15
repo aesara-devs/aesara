@@ -31,19 +31,18 @@ class OptimizationDatabase:
     def register(
         self,
         name: str,
-        optimizer: Union["OptimizationDatabase", OptimizersType],
+        rewriter: Union["OptimizationDatabase", OptimizersType],
         *tags: str,
         use_db_name_as_tag=True,
-        **kwargs,
     ):
-        """Register a new optimizer to the database.
+        """Register a new rewriter to the database.
 
         Parameters
         ----------
         name:
-            Name of the optimizer.
-        opt:
-            The optimizer to register.
+            Name of the rewriter.
+        rewriter:
+            The rewriter to register.
         tags:
             Tag name that allow to select the optimizer.
         use_db_name_as_tag:
@@ -58,14 +57,14 @@ class OptimizationDatabase:
 
         """
         if not isinstance(
-            optimizer,
+            rewriter,
             (
                 OptimizationDatabase,
                 aesara_opt.GraphRewriter,
                 aesara_opt.NodeRewriter,
             ),
         ):
-            raise TypeError(f"{optimizer} is not a valid optimizer type.")
+            raise TypeError(f"{rewriter} is not a valid optimizer type.")
 
         if name in self.__db__:
             raise ValueError(f"The tag '{name}' is already present in the database.")
@@ -74,18 +73,18 @@ class OptimizationDatabase:
             if self.name is not None:
                 tags = tags + (self.name,)
 
-        optimizer.name = name
+        rewriter.name = name
         # This restriction is there because in many place we suppose that
         # something in the OptimizationDatabase is there only once.
-        if optimizer.name in self.__db__:
+        if rewriter.name in self.__db__:
             raise ValueError(
-                f"Tried to register {optimizer.name} again under the new name {name}. "
+                f"Tried to register {rewriter.name} again under the new name {name}. "
                 "The same optimization cannot be registered multiple times in"
                 " an ``OptimizationDatabase``; use ProxyDB instead."
             )
-        self.__db__[name] = OrderedSet([optimizer])
+        self.__db__[name] = OrderedSet([rewriter])
         self._names.add(name)
-        self.__db__[optimizer.__class__.__name__].add(optimizer)
+        self.__db__[rewriter.__class__.__name__].add(rewriter)
         self.add_tags(name, *tags)
 
     def add_tags(self, name, *tags):
@@ -292,11 +291,11 @@ class OptimizationQuery:
 class EquilibriumDB(OptimizationDatabase):
     """A database of rewrites that should be applied until equilibrium is reached.
 
-    Canonicalize, Stabilize, and Specialize are all equilibrium optimizations.
+    Canonicalize, Stabilize, and Specialize are all equilibrium rewriters.
 
     Notes
     -----
-    We can use `NodeRewriter` and `GraphRewriter` since `EquilibriumOptimizer`
+    We can use `NodeRewriter` and `GraphRewriter` since `EquilibriumGraphRewriter`
     supports both.
 
     It is probably not a good idea to have both ``ignore_newtrees == False``
@@ -322,33 +321,47 @@ class EquilibriumDB(OptimizationDatabase):
         super().__init__()
         self.ignore_newtrees = ignore_newtrees
         self.tracks_on_change_inputs = tracks_on_change_inputs
-        self.__final__: Dict[str, aesara_opt.Rewriter] = {}
-        self.__cleanup__: Dict[str, aesara_opt.Rewriter] = {}
+        self.__final__: Dict[str, bool] = {}
+        self.__cleanup__: Dict[str, bool] = {}
 
-    def register(self, name, obj, *tags, final_opt=False, cleanup=False, **kwargs):
-        if final_opt and cleanup:
-            raise ValueError("`final_opt` and `cleanup` cannot both be true.")
-        super().register(name, obj, *tags, **kwargs)
-        self.__final__[name] = final_opt
+    def register(
+        self,
+        name: str,
+        rewriter: Union["OptimizationDatabase", OptimizersType],
+        *tags: str,
+        final_rewriter: bool = False,
+        cleanup: bool = False,
+        **kwargs,
+    ):
+        if final_rewriter and cleanup:
+            raise ValueError("`final_rewriter` and `cleanup` cannot both be true.")
+        super().register(name, rewriter, *tags, **kwargs)
+        self.__final__[name] = final_rewriter
         self.__cleanup__[name] = cleanup
 
     def query(self, *tags, **kwtags):
-        _opts = super().query(*tags, **kwtags)
-        final_opts = [o for o in _opts if self.__final__.get(o.name, False)]
-        cleanup_opts = [o for o in _opts if self.__cleanup__.get(o.name, False)]
-        opts = [o for o in _opts if o not in final_opts and o not in cleanup_opts]
-        if len(final_opts) == 0:
-            final_opts = None
-        if len(cleanup_opts) == 0:
-            cleanup_opts = None
-        return aesara_opt.EquilibriumOptimizer(
-            opts,
+        _rewriters = super().query(*tags, **kwtags)
+        final_rewriters = [o for o in _rewriters if self.__final__.get(o.name, False)]
+        cleanup_rewriters = [
+            o for o in _rewriters if self.__cleanup__.get(o.name, False)
+        ]
+        rewriters = [
+            o
+            for o in _rewriters
+            if o not in final_rewriters and o not in cleanup_rewriters
+        ]
+        if len(final_rewriters) == 0:
+            final_rewriters = None
+        if len(cleanup_rewriters) == 0:
+            cleanup_rewriters = None
+        return aesara_opt.EquilibriumGraphRewriter(
+            rewriters,
             max_use_ratio=config.optdb__max_use_ratio,
             ignore_newtrees=self.ignore_newtrees,
             tracks_on_change_inputs=self.tracks_on_change_inputs,
             failure_callback=aesara_opt.NodeProcessingGraphRewriter.warn_inplace,
-            final_optimizers=final_opts,
-            cleanup_optimizers=cleanup_opts,
+            final_rewriters=final_rewriters,
+            cleanup_rewriters=cleanup_rewriters,
         )
 
 
@@ -372,8 +385,10 @@ class SequenceDB(OptimizationDatabase):
         self.failure_callback = failure_callback
 
     def register(self, name, obj, *tags, **kwargs):
-        super().register(name, obj, *tags, **kwargs)
         position = kwargs.pop("position", "last")
+
+        super().register(name, obj, *tags, **kwargs)
+
         if position == "last":
             if len(self.__position__) == 0:
                 self.__position__[name] = 0

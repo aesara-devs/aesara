@@ -2227,26 +2227,26 @@ def merge_dict(d1, d2):
     return d
 
 
-class EquilibriumOptimizer(NodeProcessingGraphRewriter):
-    """An `Rewriter` that applies an optimization until a fixed-point/equilibrium is reached."""
+class EquilibriumGraphRewriter(NodeProcessingGraphRewriter):
+    """A `Rewriter` that applies its rewrites until a fixed-point/equilibrium is reached."""
 
     def __init__(
         self,
-        optimizers: Sequence[Rewriter],
+        rewriters: Sequence[Rewriter],
         failure_callback: Optional[FailureCallbackType] = None,
         ignore_newtrees: bool = True,
         tracks_on_change_inputs: bool = False,
         max_use_ratio: Optional[float] = None,
-        final_optimizers: Optional[Sequence[GraphRewriter]] = None,
-        cleanup_optimizers: Optional[Sequence[GraphRewriter]] = None,
+        final_rewriters: Optional[Sequence[GraphRewriter]] = None,
+        cleanup_rewriters: Optional[Sequence[GraphRewriter]] = None,
     ):
         """
 
         Parameters
         ----------
-        optimizers
+        rewriters
             Node or graph rewriters to apply until equilibrium.
-            The global optimizer will be run at the start of each iteration before
+            The global rewriter will be run at the start of each iteration before
             the node rewriter.
         failure_callback
             See :attr:`NodeProcessingGraphRewriter.failure_callback`.
@@ -2257,9 +2257,9 @@ class EquilibriumOptimizer(NodeProcessingGraphRewriter):
         max_use_ratio
             Each rewriter can be applied at most ``(size_of_graph * max_use_ratio)``
             times.
-        final_optimizers
+        final_rewriters
             Rewriters that will be run after each iteration.
-        cleanup_optimizers
+        cleanup_rewriters
             Rewriters applied after all graph rewriters, then when one
             `NodeRewriter` is applied, then after all final rewriters.
             They should not traverse the entire graph, since they are called
@@ -2270,27 +2270,27 @@ class EquilibriumOptimizer(NodeProcessingGraphRewriter):
         super().__init__(
             None, ignore_newtrees=ignore_newtrees, failure_callback=failure_callback
         )
-        self.global_optimizers: List[GraphRewriter] = []
+        self.global_rewriters: List[GraphRewriter] = []
         self.tracks_on_change_inputs = tracks_on_change_inputs
 
         self.node_tracker = OpToRewriterTracker()
 
-        for opt in optimizers:
-            if isinstance(opt, NodeRewriter):
-                self.node_tracker.add_tracker(opt)
+        for rewriter in rewriters:
+            if isinstance(rewriter, NodeRewriter):
+                self.node_tracker.add_tracker(rewriter)
             else:
-                assert isinstance(opt, GraphRewriter)
-                self.global_optimizers.append(opt)
+                assert isinstance(rewriter, GraphRewriter)
+                self.global_rewriters.append(rewriter)
 
-        if final_optimizers:
-            self.final_optimizers = list(final_optimizers)
+        if final_rewriters:
+            self.final_rewriters = list(final_rewriters)
         else:
-            self.final_optimizers = []
+            self.final_rewriters = []
 
-        if cleanup_optimizers:
-            self.cleanup_optimizers = list(cleanup_optimizers)
+        if cleanup_rewriters:
+            self.cleanup_rewriters = list(cleanup_rewriters)
         else:
-            self.cleanup_optimizers = []
+            self.cleanup_rewriters = []
 
         self.max_use_ratio = max_use_ratio
 
@@ -2307,14 +2307,14 @@ class EquilibriumOptimizer(NodeProcessingGraphRewriter):
 
     def add_requirements(self, fgraph):
         super().add_requirements(fgraph)
-        for opt in self.get_node_rewriters():
-            opt.add_requirements(fgraph)
-        for opt in self.global_optimizers:
-            opt.add_requirements(fgraph)
-        for opt in self.final_optimizers:
-            opt.add_requirements(fgraph)
-        for opt in self.cleanup_optimizers:
-            opt.add_requirements(fgraph)
+        for rewriter in self.get_node_rewriters():
+            rewriter.add_requirements(fgraph)
+        for rewriter in self.global_rewriters:
+            rewriter.add_requirements(fgraph)
+        for rewriter in self.final_rewriters:
+            rewriter.add_requirements(fgraph)
+        for rewriter in self.cleanup_rewriters:
+            rewriter.add_requirements(fgraph)
 
     def apply(self, fgraph, start_from=None):
         change_tracker = ChangeTracker()
@@ -2327,7 +2327,7 @@ class EquilibriumOptimizer(NodeProcessingGraphRewriter):
 
         changed = True
         max_use_abort = False
-        opt_name = None
+        rewriter_name = None
         global_process_count = {}
         start_nb_nodes = len(fgraph.apply_nodes)
         max_nb_nodes = len(fgraph.apply_nodes)
@@ -2335,39 +2335,39 @@ class EquilibriumOptimizer(NodeProcessingGraphRewriter):
 
         loop_timing = []
         loop_process_count = []
-        global_opt_timing = []
-        time_opts = {}
+        global_rewriter_timing = []
+        time_rewriters = {}
         io_toposort_timing = []
         nb_nodes = []
         node_created = {}
         global_sub_profs = []
         final_sub_profs = []
         cleanup_sub_profs = []
-        for opt in (
-            self.global_optimizers
+        for rewriter in (
+            self.global_rewriters
             + list(self.get_node_rewriters())
-            + self.final_optimizers
-            + self.cleanup_optimizers
+            + self.final_rewriters
+            + self.cleanup_rewriters
         ):
-            global_process_count.setdefault(opt, 0)
-            time_opts.setdefault(opt, 0)
-            node_created.setdefault(opt, 0)
+            global_process_count.setdefault(rewriter, 0)
+            time_rewriters.setdefault(rewriter, 0)
+            node_created.setdefault(rewriter, 0)
 
         def apply_cleanup(profs_dict):
             changed = False
-            for copt in self.cleanup_optimizers:
+            for crewriter in self.cleanup_rewriters:
                 change_tracker.reset()
                 nb = change_tracker.nb_imported
-                t_opt = time.time()
-                sub_prof = copt.apply(fgraph)
-                time_opts[copt] += time.time() - t_opt
-                profs_dict[copt].append(sub_prof)
+                t_rewrite = time.time()
+                sub_prof = crewriter.apply(fgraph)
+                time_rewriters[crewriter] += time.time() - t_rewrite
+                profs_dict[crewriter].append(sub_prof)
                 if change_tracker.changed:
-                    process_count.setdefault(copt, 0)
-                    process_count[copt] += 1
-                    global_process_count[copt] += 1
+                    process_count.setdefault(crewriter, 0)
+                    process_count[crewriter] += 1
+                    global_process_count[crewriter] += 1
                     changed = True
-                    node_created[copt] += change_tracker.nb_imported - nb
+                    node_created[crewriter] += change_tracker.nb_imported - nb
             return changed
 
         while changed and not max_use_abort:
@@ -2375,32 +2375,32 @@ class EquilibriumOptimizer(NodeProcessingGraphRewriter):
             t0 = time.time()
             changed = False
             iter_cleanup_sub_profs = {}
-            for copt in self.cleanup_optimizers:
-                iter_cleanup_sub_profs[copt] = []
+            for crewrite in self.cleanup_rewriters:
+                iter_cleanup_sub_profs[crewrite] = []
 
-            # apply global optimizers
+            # Apply global rewriters
             sub_profs = []
-            for gopt in self.global_optimizers:
+            for grewrite in self.global_rewriters:
                 change_tracker.reset()
                 nb = change_tracker.nb_imported
-                t_opt = time.time()
-                sub_prof = gopt.apply(fgraph)
-                time_opts[gopt] += time.time() - t_opt
+                t_rewrite = time.time()
+                sub_prof = grewrite.apply(fgraph)
+                time_rewriters[grewrite] += time.time() - t_rewrite
                 sub_profs.append(sub_prof)
                 if change_tracker.changed:
-                    process_count.setdefault(gopt, 0)
-                    process_count[gopt] += 1
-                    global_process_count[gopt] += 1
+                    process_count.setdefault(grewrite, 0)
+                    process_count[grewrite] += 1
+                    global_process_count[grewrite] += 1
                     changed = True
-                    node_created[gopt] += change_tracker.nb_imported - nb
-                    if global_process_count[gopt] > max_use:
+                    node_created[grewrite] += change_tracker.nb_imported - nb
+                    if global_process_count[grewrite] > max_use:
                         max_use_abort = True
-                        opt_name = getattr(gopt, "name", None) or getattr(
-                            gopt, "__name__", ""
+                        rewriter_name = getattr(grewrite, "name", None) or getattr(
+                            grewrite, "__name__", ""
                         )
             global_sub_profs.append(sub_profs)
 
-            global_opt_timing.append(float(time.time() - t0))
+            global_rewriter_timing.append(float(time.time() - t0))
 
             changed |= apply_cleanup(iter_cleanup_sub_profs)
 
@@ -2434,11 +2434,11 @@ class EquilibriumOptimizer(NodeProcessingGraphRewriter):
                     current_node = node
                     for node_rewriter in self.node_tracker.get_trackers(node.op):
                         nb = change_tracker.nb_imported
-                        t_opt = time.time()
+                        t_rewrite = time.time()
                         node_rewriter_change = self.process_node(
                             fgraph, node, node_rewriter
                         )
-                        time_opts[node_rewriter] += time.time() - t_opt
+                        time_rewriters[node_rewriter] += time.time() - t_rewrite
                         if not node_rewriter_change:
                             continue
                         process_count.setdefault(node_rewriter, 0)
@@ -2449,48 +2449,48 @@ class EquilibriumOptimizer(NodeProcessingGraphRewriter):
                         changed |= apply_cleanup(iter_cleanup_sub_profs)
                         if global_process_count[node_rewriter] > max_use:
                             max_use_abort = True
-                            opt_name = getattr(node_rewriter, "name", None) or getattr(
-                                node_rewriter, "__name__", ""
-                            )
+                            rewriter_name = getattr(
+                                node_rewriter, "name", None
+                            ) or getattr(node_rewriter, "__name__", "")
                         if node not in fgraph.apply_nodes:
                             # go to next node
                             break
             finally:
                 self.detach_updater(fgraph, u)
 
-            # Apply final optimizers
+            # Apply final rewriters
             sub_profs = []
-            t_before_final_opt = time.time()
-            for gopt in self.final_optimizers:
+            t_before_final_rewrites = time.time()
+            for grewrite in self.final_rewriters:
                 change_tracker.reset()
                 nb = change_tracker.nb_imported
-                t_opt = time.time()
-                sub_prof = gopt.apply(fgraph)
-                time_opts[gopt] += time.time() - t_opt
+                t_rewrite = time.time()
+                sub_prof = grewrite.apply(fgraph)
+                time_rewriters[grewrite] += time.time() - t_rewrite
                 sub_profs.append(sub_prof)
                 if change_tracker.changed:
-                    process_count.setdefault(gopt, 0)
-                    process_count[gopt] += 1
-                    global_process_count[gopt] += 1
+                    process_count.setdefault(grewrite, 0)
+                    process_count[grewrite] += 1
+                    global_process_count[grewrite] += 1
                     changed = True
-                    node_created[gopt] += change_tracker.nb_imported - nb
-                    if global_process_count[gopt] > max_use:
+                    node_created[grewrite] += change_tracker.nb_imported - nb
+                    if global_process_count[grewrite] > max_use:
                         max_use_abort = True
-                        opt_name = getattr(gopt, "name", None) or getattr(
-                            gopt, "__name__", ""
+                        rewriter_name = getattr(grewrite, "name", None) or getattr(
+                            grewrite, "__name__", ""
                         )
             final_sub_profs.append(sub_profs)
 
-            global_opt_timing[-1] += time.time() - t_before_final_opt
-            # apply clean up as final opt can have done changes that
-            # request that
+            global_rewriter_timing[-1] += time.time() - t_before_final_rewrites
+
             changed |= apply_cleanup(iter_cleanup_sub_profs)
-            # merge clean up profiles during that iteration.
+
+            # Merge clean up profiles during that iteration
             c_sub_profs = []
-            for copt, sub_profs in iter_cleanup_sub_profs.items():
+            for crewrite, sub_profs in iter_cleanup_sub_profs.items():
                 sub_prof = sub_profs[0]
                 for s_p in sub_profs[1:]:
-                    sub_prof = copt.merge_profile(sub_prof, s_p)
+                    sub_prof = crewrite.merge_profile(sub_prof, s_p)
                 c_sub_profs.append(sub_prof)
             cleanup_sub_profs.append(c_sub_profs)
 
@@ -2501,9 +2501,9 @@ class EquilibriumOptimizer(NodeProcessingGraphRewriter):
 
         if max_use_abort:
             msg = (
-                f"EquilibriumOptimizer max'ed out by '{opt_name}'"
-                + ". You can safely raise the current threshold of "
-                + "{config.optdb__max_use_ratio:f} with the aesara flag 'optdb__max_use_ratio'."
+                f"{type(self).__name__} max'ed out by {rewriter_name}."
+                "You can safely raise the current threshold of "
+                f"{config.optdb__max_use_ratio} with the option `optdb__max_use_ratio`."
             )
             if config.on_opt_error == "raise":
                 raise AssertionError(msg)
@@ -2511,7 +2511,7 @@ class EquilibriumOptimizer(NodeProcessingGraphRewriter):
                 _logger.error(msg)
         fgraph.remove_feature(change_tracker)
         assert len(loop_process_count) == len(loop_timing)
-        assert len(loop_process_count) == len(global_opt_timing)
+        assert len(loop_process_count) == len(global_rewriter_timing)
         assert len(loop_process_count) == len(nb_nodes)
         assert len(loop_process_count) == len(io_toposort_timing)
         assert len(loop_process_count) == len(global_sub_profs)
@@ -2522,9 +2522,9 @@ class EquilibriumOptimizer(NodeProcessingGraphRewriter):
             loop_timing,
             loop_process_count,
             (start_nb_nodes, end_nb_nodes, max_nb_nodes),
-            global_opt_timing,
+            global_rewriter_timing,
             nb_nodes,
-            time_opts,
+            time_rewriters,
             io_toposort_timing,
             node_created,
             global_sub_profs,
@@ -2543,16 +2543,16 @@ class EquilibriumOptimizer(NodeProcessingGraphRewriter):
                     stream, level=(level + 2), depth=(depth - 1)
                 )
 
-    @staticmethod
-    def print_profile(stream, prof, level=0):
+    @classmethod
+    def print_profile(cls, stream, prof, level=0):
         (
-            opt,
+            rewrite,
             loop_timing,
             loop_process_count,
             (start_nb_nodes, end_nb_nodes, max_nb_nodes),
-            global_opt_timing,
+            global_rewrite_timing,
             nb_nodes,
-            time_opts,
+            time_rewrites,
             io_toposort_timing,
             node_created,
             global_sub_profs,
@@ -2561,8 +2561,12 @@ class EquilibriumOptimizer(NodeProcessingGraphRewriter):
         ) = prof
 
         blanc = "    " * level
-        print(blanc, "EquilibriumOptimizer", end=" ", file=stream)
-        print(blanc, getattr(opt, "name", getattr(opt, "__name__", "")), file=stream)
+        print(blanc, cls.__name__, end=" ", file=stream)
+        print(
+            blanc,
+            getattr(rewrite, "name", getattr(rewrite, "__name__", "")),
+            file=stream,
+        )
         print(
             blanc,
             f"  time {sum(loop_timing):.3f}s for {len(loop_timing)} passes",
@@ -2574,13 +2578,13 @@ class EquilibriumOptimizer(NodeProcessingGraphRewriter):
             file=stream,
         )
         print(blanc, f"  time io_toposort {sum(io_toposort_timing):.3f}s", file=stream)
-        s = sum(time_opts[o] for o in opt.get_node_rewriters())
+        s = sum(time_rewrites[o] for o in rewrite.get_node_rewriters())
         print(blanc, f"  time in node rewriters {s:.3f}s", file=stream)
-        s = sum(time_opts[o] for o in opt.global_optimizers)
+        s = sum(time_rewrites[o] for o in rewrite.global_rewriters)
         print(blanc, f"  time in graph rewriters {s:.3f}s", file=stream)
-        s = sum(time_opts[o] for o in opt.final_optimizers)
+        s = sum(time_rewrites[o] for o in rewrite.final_rewriters)
         print(blanc, f"  time in final rewriters {s:.3f}s", file=stream)
-        s = sum(time_opts[o] for o in opt.cleanup_optimizers)
+        s = sum(time_rewrites[o] for o in rewrite.cleanup_rewriters)
         print(blanc, f"  time in cleanup rewriters {s:.3f}s", file=stream)
         for i in range(len(loop_timing)):
             loop_times = ""
@@ -2594,21 +2598,21 @@ class EquilibriumOptimizer(NodeProcessingGraphRewriter):
             print(
                 blanc,
                 (
-                    f"  {int(i):2d} - {loop_timing[i]:.3f}s {int(sum(loop_process_count[i].values()))} ({global_opt_timing[i]:.3f}s in graph rewriters, "
+                    f"  {int(i):2d} - {loop_timing[i]:.3f}s {int(sum(loop_process_count[i].values()))} ({global_rewrite_timing[i]:.3f}s in graph rewriters, "
                     f"{io_toposort_timing[i]:.3f}s io_toposort) - {int(nb_nodes[i])} nodes - {loop_times}"
                 ),
                 file=stream,
             )
 
-        count_opt = []
+        count_rewrite = []
         not_used = []
         not_used_time = 0
         process_count = {}
         for o in (
-            opt.global_optimizers
-            + list(opt.get_node_rewriters())
-            + list(opt.final_optimizers)
-            + list(opt.cleanup_optimizers)
+            rewrite.global_rewriters
+            + list(rewrite.get_node_rewriters())
+            + list(rewrite.final_rewriters)
+            + list(rewrite.cleanup_rewriters)
         ):
             process_count.setdefault(o, 0)
         for count in loop_process_count:
@@ -2616,17 +2620,17 @@ class EquilibriumOptimizer(NodeProcessingGraphRewriter):
                 process_count[o] += v
         for o, count in process_count.items():
             if count > 0:
-                count_opt.append((time_opts[o], count, node_created[o], o))
+                count_rewrite.append((time_rewrites[o], count, node_created[o], o))
             else:
-                not_used.append((time_opts[o], o))
-                not_used_time += time_opts[o]
+                not_used.append((time_rewrites[o], o))
+                not_used_time += time_rewrites[o]
 
-        if count_opt:
+        if count_rewrite:
             print(
                 blanc, "  times - times applied - nb node created - name:", file=stream
             )
-            count_opt.sort()
-            for (t, count, n_created, o) in count_opt[::-1]:
+            count_rewrite.sort()
+            for (t, count, n_created, o) in count_rewrite[::-1]:
                 print(
                     blanc,
                     f"  {t:.3f}s - {int(count)} - {int(n_created)} - {o}",
@@ -2634,40 +2638,40 @@ class EquilibriumOptimizer(NodeProcessingGraphRewriter):
                 )
             print(
                 blanc,
-                f"  {not_used_time:.3f}s - in {len(not_used)} optimization that were not used (display only those with a runtime > 0)",
+                f"  {not_used_time:.3f}s - in {len(not_used)} rewrites that were not used (i.e. those with a run-time of zero)",
                 file=stream,
             )
             not_used.sort(key=lambda nu: (nu[0], str(nu[1])))
             for (t, o) in not_used[::-1]:
                 if t > 0:
-                    # Skip opt that have 0 times, they probably wasn't even tried.
+                    # Skip rewrites that have no run-times; they probably weren't even tried.
                     print(blanc + "  ", f"  {t:.3f}s - {o}", file=stream)
             print(file=stream)
-        gf_opts = [
+        gf_rewrites = [
             o
             for o in (
-                opt.global_optimizers
-                + list(opt.final_optimizers)
-                + list(opt.cleanup_optimizers)
+                rewrite.global_rewrites
+                + list(rewrite.final_rewriters)
+                + list(rewrite.cleanup_rewriters)
             )
             if o.print_profile.__code__ is not GraphRewriter.print_profile.__code__
         ]
-        if not gf_opts:
+        if not gf_rewrites:
             return
-        print(blanc, "Global, final and clean up optimizers", file=stream)
+        print(blanc, "Global, final, and clean up rewriters", file=stream)
         for i in range(len(loop_timing)):
             print(blanc, f"Iter {int(i)}", file=stream)
-            for o, prof in zip(opt.global_optimizers, global_sub_profs[i]):
+            for o, prof in zip(rewrite.global_rewriters, global_sub_profs[i]):
                 try:
                     o.print_profile(stream, prof, level + 2)
                 except NotImplementedError:
                     print(blanc, "merge not implemented for ", o)
-            for o, prof in zip(opt.final_optimizers, final_sub_profs[i]):
+            for o, prof in zip(rewrite.final_rewriters, final_sub_profs[i]):
                 try:
                     o.print_profile(stream, prof, level + 2)
                 except NotImplementedError:
                     print(blanc, "merge not implemented for ", o)
-            for o, prof in zip(opt.cleanup_optimizers, cleanup_sub_profs[i]):
+            for o, prof in zip(rewrite.cleanup_rewriters, cleanup_sub_profs[i]):
                 try:
                     o.print_profile(stream, prof, level + 2)
                 except NotImplementedError:
@@ -2675,25 +2679,23 @@ class EquilibriumOptimizer(NodeProcessingGraphRewriter):
 
     @staticmethod
     def merge_profile(prof1, prof2):
-        # (opt, loop_timing, loop_process_count, max_nb_nodes,
-        # global_opt_timing, nb_nodes, time_opts, io_toposort_timing) = prof1
         node_rewriters = OrderedSet(prof1[0].get_node_rewriters()).union(
             prof2[0].get_node_rewriters()
         )
-        global_optimizers = OrderedSet(prof1[0].global_optimizers).union(
-            prof2[0].global_optimizers
+        global_rewriters = OrderedSet(prof1[0].global_rewriters).union(
+            prof2[0].global_rewriters
         )
-        final_optimizers = list(
-            OrderedSet(prof1[0].final_optimizers).union(prof2[0].final_optimizers)
+        final_rewriters = list(
+            OrderedSet(prof1[0].final_rewriters).union(prof2[0].final_rewriters)
         )
-        cleanup_optimizers = list(
-            OrderedSet(prof1[0].cleanup_optimizers).union(prof2[0].cleanup_optimizers)
+        cleanup_rewriters = list(
+            OrderedSet(prof1[0].cleanup_rewriters).union(prof2[0].cleanup_rewriters)
         )
-        new_opt = EquilibriumOptimizer(
-            node_rewriters.union(global_optimizers),
+        new_rewriter = EquilibriumGraphRewriter(
+            node_rewriters.union(global_rewriters),
             max_use_ratio=1,
-            final_optimizers=final_optimizers,
-            cleanup_optimizers=cleanup_optimizers,
+            final_rewriters=final_rewriters,
+            cleanup_rewriters=cleanup_rewriters,
         )
 
         def add_append_list(l1, l2):
@@ -2720,29 +2722,27 @@ class EquilibriumOptimizer(NodeProcessingGraphRewriter):
                 else:
                     process_count[process] = count
 
-            def merge(opts, attr, idx):
+            def merge(rewriters, attr, idx):
                 tmp = []
-                for opt in opts:
+                for rewriter in rewriters:
                     o1 = getattr(prof1[0], attr)
                     o2 = getattr(prof2[0], attr)
-                    if opt in o1 and opt in o2:
-                        p1 = prof1[idx][i][o1.index(opt)]
-                        p2 = prof2[idx][i][o2.index(opt)]
+                    if rewriter in o1 and rewriter in o2:
+                        p1 = prof1[idx][i][o1.index(rewriter)]
+                        p2 = prof2[idx][i][o2.index(rewriter)]
                         m = None
-                        if hasattr(opt, "merge_profile"):
-                            m = opt.merge_profile(p1, p2)
-                    elif opt in o1:
-                        m = prof1[idx][i][o1.index(opt)]
+                        if hasattr(rewriter, "merge_profile"):
+                            m = rewriter.merge_profile(p1, p2)
+                    elif rewriter in o1:
+                        m = prof1[idx][i][o1.index(rewriter)]
                     else:
-                        m = prof2[idx][i][o2.index(opt)]
+                        m = prof2[idx][i][o2.index(rewriter)]
                     tmp.append(m)
                 return tmp
 
-            global_sub_profs.append(merge(global_optimizers, "global_optimizers", 9))
-            final_sub_profs.append(merge(final_optimizers, "final_optimizers", 10))
-            cleanup_sub_profs.append(
-                merge(cleanup_optimizers, "cleanup_optimizers", 11)
-            )
+            global_sub_profs.append(merge(global_rewriters, "global_rewriters", 9))
+            final_sub_profs.append(merge(final_rewriters, "final_rewriters", 10))
+            cleanup_sub_profs.append(merge(cleanup_rewriters, "cleanup_rewriters", 11))
 
         # Add the iteration done by only one of the profile.
         loop_process_count.extend(prof1[2][len(loop_process_count) :])
@@ -2756,15 +2756,15 @@ class EquilibriumOptimizer(NodeProcessingGraphRewriter):
 
         max_nb_nodes = max(prof1[3], prof2[3])
 
-        global_opt_timing = add_append_list(prof1[4], prof2[4])
+        global_rewrite_timing = add_append_list(prof1[4], prof2[4])
 
         nb_nodes = add_append_list(prof1[5], prof2[5])
 
-        time_opts = merge_dict(prof1[6], prof2[6])
+        time_rewrites = merge_dict(prof1[6], prof2[6])
         io_toposort_timing = add_append_list(prof1[7], prof2[7])
         assert (
             len(loop_timing)
-            == len(global_opt_timing)
+            == len(global_rewrite_timing)
             == len(global_sub_profs)
             == len(io_toposort_timing)
             == len(nb_nodes)
@@ -2773,13 +2773,13 @@ class EquilibriumOptimizer(NodeProcessingGraphRewriter):
 
         node_created = merge_dict(prof1[8], prof2[8])
         return (
-            new_opt,
+            new_rewriter,
             loop_timing,
             loop_process_count,
             max_nb_nodes,
-            global_opt_timing,
+            global_rewrite_timing,
             nb_nodes,
-            time_opts,
+            time_rewrites,
             io_toposort_timing,
             node_created,
             global_sub_profs,
@@ -3234,6 +3234,11 @@ DEPRECATED_NAMES = [
         "OpKeyOptimizer",
         "`OpKeyOptimizer` is deprecated: use `OpKeyGraphRewriter` instead.",
         OpKeyGraphRewriter,
+    ),
+    (
+        "EquilibriumOptimizer",
+        "`EquilibriumOptimizer` is deprecated: use `EquilibriumGraphRewriter` instead.",
+        EquilibriumGraphRewriter,
     ),
 ]
 

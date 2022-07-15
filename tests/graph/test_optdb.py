@@ -45,8 +45,8 @@ class TestDB:
     def test_EquilibriumDB(self):
         eq_db = EquilibriumDB()
 
-        with pytest.raises(ValueError, match=r"`final_opt` and.*"):
-            eq_db.register("d", TestOpt(), final_opt=True, cleanup=True)
+        with pytest.raises(ValueError, match=r"`final_rewriter` and.*"):
+            eq_db.register("d", TestOpt(), final_rewriter=True, cleanup=True)
 
     def test_SequenceDB(self):
         seq_db = SequenceDB(failure_callback=None)

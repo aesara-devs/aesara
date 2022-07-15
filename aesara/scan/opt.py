@@ -2373,7 +2373,7 @@ optdb.register(
     position=75,
 )
 
-scan_eqopt1.register("all_pushout_opt", scan_seqopt1, "fast_run", "scan", position=1)
+scan_eqopt1.register("all_pushout_opt", scan_seqopt1, "fast_run", "scan")
 
 
 scan_seqopt1.register(
@@ -2419,7 +2419,7 @@ scan_seqopt1.register(
 
 scan_seqopt1.register(
     "scan_pushout_add",
-    # TODO: Perhaps this should be an `EquilibriumOptimizer`?
+    # TODO: Perhaps this should be an `EquilibriumGraphRewriter`?
     in2out(push_out_add_scan, ignore_newtrees=False),
     "fast_run",
     "more_mem",
@@ -2434,7 +2434,6 @@ scan_eqopt2.register(
     in2out(basic_opt.constant_folding, ignore_newtrees=True),
     "fast_run",
     "scan",
-    position=1,
 )
 
 
@@ -2444,14 +2443,13 @@ scan_eqopt2.register(
     "remove_constants_and_unused_inputs_scan",
     "fast_run",
     "scan",
-    position=2,
 )
 
 
 # after const merge but before stabilize so that we can have identity
 # for equivalent nodes but we still have the chance to hoist stuff out
 # of the scan later.
-scan_eqopt2.register("scan_merge", ScanMerge(), "fast_run", "scan", position=4)
+scan_eqopt2.register("scan_merge", ScanMerge(), "fast_run", "scan")
 
 # After Merge optimization
 scan_eqopt2.register(
@@ -2460,7 +2458,6 @@ scan_eqopt2.register(
     "remove_constants_and_unused_inputs_scan",
     "fast_run",
     "scan",
-    position=5,
 )
 
 scan_eqopt2.register(
@@ -2468,7 +2465,6 @@ scan_eqopt2.register(
     in2out(scan_merge_inouts, ignore_newtrees=True),
     "fast_run",
     "scan",
-    position=6,
 )
 
 # After everything else
@@ -2478,5 +2474,4 @@ scan_eqopt2.register(
     "remove_constants_and_unused_inputs_scan",
     "fast_run",
     "scan",
-    position=8,
 )

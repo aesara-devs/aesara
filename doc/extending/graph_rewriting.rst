@@ -444,7 +444,7 @@ The following is an example that distributes dot products across additions.
     import aesara
     import aesara.tensor as at
     from aesara.graph.kanren import KanrenRelationSub
-    from aesara.graph.opt import EquilibriumOptimizer
+    from aesara.graph.opt import EquilibriumGraphRewriter
     from aesara.graph.opt_utils import optimize_graph
     from aesara.tensor.math import _dot
     from etuples import etuple
@@ -484,7 +484,7 @@ The following is an example that distributes dot products across additions.
         )
 
 
-    dot_distribute_opt = EquilibriumOptimizer([KanrenRelationSub(dot_distributeo)], max_use_ratio=10)
+    dot_distribute_opt = EquilibriumGraphRewriter([KanrenRelationSub(dot_distributeo)], max_use_ratio=10)
 
 
 Below, we apply `dot_distribute_opt` to a few example graphs.  First we create simple test graph:
@@ -531,7 +531,7 @@ relational properties.
 To do that, we will create another :class:`Rewriter` that simply reverses the arguments
 to the relation :func:`dot_distributeo` and apply it to the distributed result in ``res``:
 
->>> dot_gather_opt = EquilibriumOptimizer([KanrenRelationSub(lambda x, y: dot_distributeo(y, x))], max_use_ratio=10)
+>>> dot_gather_opt = EquilibriumGraphRewriter([KanrenRelationSub(lambda x, y: dot_distributeo(y, x))], max_use_ratio=10)
 >>> rev_res = optimize_graph(res, include=[], custom_opt=dot_gather_opt, clone=False)
 >>> print(aesara.pprint(rev_res))
 (A @ (x + (y + (B @ (z + w)))))
@@ -561,7 +561,7 @@ serve as a basis for filtering.
 The point of :obj:`optdb` is that you might want to apply many optimizations
 to a computation graph in many unique patterns. For example, you might
 want to do optimization X, then optimization Y, then optimization Z. And then
-maybe optimization Y is an :class:`EquilibriumOptimizer` containing :class:`NodeRewriter`\s A, B
+maybe optimization Y is an :class:`EquilibriumGraphRewriter` containing :class:`NodeRewriter`\s A, B
 and C which are applied on every node of the graph until they all fail to change
 it. If some optimizations act up, we want an easy way to turn them off. Ditto if
 some optimizations are very CPU-intensive and we don't want to take the time to
@@ -599,7 +599,7 @@ optimizers they return will be put in their places.
 An :class:`EquilibriumDB` contains :class:`NodeRewriter` or :class:`OptimizationDatabase` objects. Each of them
 has a name and an arbitrary number of tags. When a :class:`OptimizationQuery` is applied to
 an :class:`EquilibriumDB`, all :class:`NodeRewriter`\s that match the query are
-inserted into an :class:`EquilibriumOptimizer`, which is returned. If the
+inserted into an :class:`EquilibriumGraphRewriter`, which is returned. If the
 :class:`SequenceDB` contains :class:`OptimizationDatabase` instances, the
 :class:`OptimizationQuery` will be passed to them as well and the
 :class:`NodeRewriter`\s they return will be put in their places
@@ -859,8 +859,8 @@ This will output something like this:
        0.028s for fgraph.validate()
        0.131s for callback
        time      - (name, class, index) - validate time
-       0.751816s - ('canonicalize', 'EquilibriumOptimizer', 4) - 0.004s
-         EquilibriumOptimizer      canonicalize
+       0.751816s - ('canonicalize', 'EquilibriumGraphRewriter', 4) - 0.004s
+         EquilibriumGraphRewriter      canonicalize
            time 0.751s for 14 passes
            nb nodes (start, end,  max) 108 81 117
            time io_toposort 0.029s
@@ -974,8 +974,8 @@ This will output something like this:
                init io_toposort 0.00171804428101
                loop time 0.000502109527588
                callback_time 0.0
-           0.002257s - ('local_gemm_to_gemv', 'EquilibriumOptimizer', 3) - 0.000s
-             EquilibriumOptimizer          local_gemm_to_gemv
+           0.002257s - ('local_gemm_to_gemv', 'EquilibriumGraphRewriter', 3) - 0.000s
+             EquilibriumGraphRewriter          local_gemm_to_gemv
                time 0.002s for 1 passes
                nb nodes (start, end,  max) 80 80 80
                time io_toposort 0.001s
@@ -994,8 +994,8 @@ This will output something like this:
                init io_toposort 0.00138401985168
                loop time 0.000202178955078
                callback_time 0.0
-       0.031740s - ('specialize', 'EquilibriumOptimizer', 9) - 0.000s
-         EquilibriumOptimizer      specialize
+       0.031740s - ('specialize', 'EquilibriumGraphRewriter', 9) - 0.000s
+         EquilibriumGraphRewriter      specialize
            time 0.031s for 2 passes
            nb nodes (start, end,  max) 80 78 80
            time io_toposort 0.003s
@@ -1080,8 +1080,8 @@ To understand this profile here is some explanation of how optimizations work:
 
     .. code-block:: none
 
-       0.751816s - ('canonicalize', 'EquilibriumOptimizer', 4) - 0.004s
-         EquilibriumOptimizer      canonicalize
+       0.751816s - ('canonicalize', 'EquilibriumGraphRewriter', 4) - 0.004s
+         EquilibriumGraphRewriter      canonicalize
            time 0.751s for 14 passes
            nb nodes (start, end,  max) 108 81 117
            time io_toposort 0.029s
@@ -1146,15 +1146,15 @@ To understand this profile here is some explanation of how optimizations work:
              0.000s - local_subtensor_of_dot
              0.000s - local_subtensor_merge
 
-  * ``0.751816s - ('canonicalize', 'EquilibriumOptimizer', 4) - 0.004s``
+  * ``0.751816s - ('canonicalize', 'EquilibriumGraphRewriter', 4) - 0.004s``
     This line is from :class:`SequentialGraphRewriter`, and indicates information related
     to a sub-optimizer. It means that this sub-optimizer took
     a total of .7s. Its name is ``'canonicalize'``. It is an
-    :class:`EquilibriumOptimizer`. It was executed at index 4 by the
+    :class:`EquilibriumGraphRewriter`. It was executed at index 4 by the
     :class:`SequentialGraphRewriter`. It spent 0.004s in the *validate* phase.
-  * All other lines are from the profiler of the :class:`EquilibriumOptimizer`.
+  * All other lines are from the profiler of the :class:`EquilibriumGraphRewriter`.
 
-  * An :class:`EquilibriumOptimizer` does multiple passes on the Apply nodes from
+  * An :class:`EquilibriumGraphRewriter` does multiple passes on the Apply nodes from
     the graph, trying to apply local and global optimizations.
     Conceptually, it tries to execute all global optimizations,
     and to apply all local optimizations on all
