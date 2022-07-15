@@ -8,7 +8,7 @@ from aesara.graph.op import Op
 from aesara.graph.opt import (
     EquilibriumOptimizer,
     MergeOptimizer,
-    OpKeyOptimizer,
+    OpKeyGraphRewriter,
     OpToRewriterTracker,
     PatternNodeRewriter,
     SequentialNodeRewriter,
@@ -51,7 +51,7 @@ class AssertNoChanges(Feature):
 
 
 def PatternOptimizer(p1, p2, ign=False):
-    return OpKeyOptimizer(PatternNodeRewriter(p1, p2), ignore_newtrees=ign)
+    return OpKeyGraphRewriter(PatternNodeRewriter(p1, p2), ignore_newtrees=ign)
 
 
 def TopoPatternOptimizer(p1, p2, ign=True):
@@ -224,7 +224,7 @@ class TestPatternOptimizer:
 
 
 def KeyedSubstitutionNodeRewriter(op1, op2):
-    return OpKeyOptimizer(SubstitutionNodeRewriter(op1, op2))
+    return OpKeyGraphRewriter(SubstitutionNodeRewriter(op1, op2))
 
 
 class TestSubstitutionNodeRewriter:

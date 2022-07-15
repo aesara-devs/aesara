@@ -2143,14 +2143,14 @@ in2out = partial(walking_rewriter, "in_to_out")
 out2in = partial(walking_rewriter, "out_to_in")
 
 
-class OpKeyOptimizer(NodeProcessingGraphRewriter):
-    r"""An optimizer that applies a `NodeRewriter` to specific `Op`\s.
+class OpKeyGraphRewriter(NodeProcessingGraphRewriter):
+    r"""A rewriter that applies a `NodeRewriter` to specific `Op`\s.
 
     The `Op`\s are provided by a :meth:`NodeRewriter.op_key` method (either
     as a list of `Op`\s or a single `Op`), and discovered within a
     `FunctionGraph` using the `NodeFinder` `Feature`.
 
-    This is similar to the ``tracks`` feature used by other optimizers.
+    This is similar to the `Op`-based tracking feature used by other rewriters.
 
     """
 
@@ -3229,6 +3229,11 @@ DEPRECATED_NAMES = [
         "topogroup_optimizer",
         "`topogroup_optimizer` is deprecated: use `walking_rewriter` instead.",
         walking_rewriter,
+    ),
+    (
+        "OpKeyOptimizer",
+        "`OpKeyOptimizer` is deprecated: use `OpKeyGraphRewriter` instead.",
+        OpKeyGraphRewriter,
     ),
 ]
 
