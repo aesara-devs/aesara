@@ -212,10 +212,10 @@ optdb.register(
     "canonicalize_db",
     position=1,
 )
-# Register in the canonizer Equilibrium as a clean up opt the merge opt.
+# Register in the canonizer Equilibrium as a clean-up rewrite the merge rewrite.
 # Without this, as the equilibrium have ignore_newtrees=False, we
-# won't merge all nodes if it is set as a global optimizer with
-# final_opt=True.
+# won't merge all nodes if it is set as a global rewriter with
+# final_rewriter=True.
 
 # We need a new instance of MergeOptimizer to don't have its name
 # changed by other usage of it.

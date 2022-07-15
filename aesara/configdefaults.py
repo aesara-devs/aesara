@@ -1107,7 +1107,7 @@ def add_optimizer_configvars():
 
     config.add(
         "optdb__max_use_ratio",
-        "A ratio that prevent infinite loop in EquilibriumOptimizer.",
+        "A ratio that prevent infinite loop in EquilibriumGraphRewriter.",
         FloatParam(8),
         in_c_key=False,
     )

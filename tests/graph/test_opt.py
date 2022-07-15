@@ -6,7 +6,7 @@ from aesara.graph.features import Feature
 from aesara.graph.fg import FunctionGraph
 from aesara.graph.op import Op
 from aesara.graph.opt import (
-    EquilibriumOptimizer,
+    EquilibriumGraphRewriter,
     MergeOptimizer,
     OpKeyGraphRewriter,
     OpToRewriterTracker,
@@ -446,7 +446,7 @@ class TestEquilibrium:
         e = op3(op4(x, y))
         g = FunctionGraph([x, y, z], [e])
         # print g
-        opt = EquilibriumOptimizer(
+        opt = EquilibriumGraphRewriter(
             [
                 PatternNodeRewriter((op1, "x", "y"), (op2, "x", "y")),
                 PatternNodeRewriter((op4, "x", "y"), (op1, "x", "y")),
@@ -463,7 +463,7 @@ class TestEquilibrium:
         e = op1(op1(op3(x, y)))
         g = FunctionGraph([x, y, z], [e])
         # print g
-        opt = EquilibriumOptimizer(
+        opt = EquilibriumGraphRewriter(
             [
                 PatternNodeRewriter((op1, (op2, "x", "y")), (op4, "x", "y")),
                 PatternNodeRewriter((op3, "x", "y"), (op4, "x", "y")),
@@ -488,7 +488,7 @@ class TestEquilibrium:
         oldlevel = _logger.level
         _logger.setLevel(logging.CRITICAL)
         try:
-            opt = EquilibriumOptimizer(
+            opt = EquilibriumGraphRewriter(
                 [
                     PatternNodeRewriter((op1, "x", "y"), (op2, "x", "y")),
                     PatternNodeRewriter((op4, "x", "y"), (op1, "x", "y")),
@@ -600,7 +600,7 @@ def test_patternsub_values_eq_approx(out_pattern, tracks):
     e = op1(x)
     fg = FunctionGraph([x], [e], clone=False)
 
-    opt = EquilibriumOptimizer(
+    opt = EquilibriumGraphRewriter(
         [
             PatternNodeRewriter(
                 (op1, "x"),
@@ -633,7 +633,7 @@ def test_patternsub_invalid_dtype(out_pattern):
     e = op_cast_type2(x)
     fg = FunctionGraph([x], [e])
 
-    opt = EquilibriumOptimizer(
+    opt = EquilibriumGraphRewriter(
         [
             PatternNodeRewriter(
                 (op_cast_type2, "x"),

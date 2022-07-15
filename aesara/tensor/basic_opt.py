@@ -2802,10 +2802,10 @@ def constant_folding(fgraph, node):
 topo_constant_folding = in2out(
     constant_folding, ignore_newtrees=True, name="topo_constant_folding"
 )
-register_canonicalize(topo_constant_folding, "fast_compile", final_opt=True)
-register_uncanonicalize(topo_constant_folding, "fast_compile", final_opt=True)
-register_stabilize(topo_constant_folding, "fast_compile", final_opt=True)
-register_specialize(topo_constant_folding, "fast_compile", final_opt=True)
+register_canonicalize(topo_constant_folding, "fast_compile", final_rewriter=True)
+register_uncanonicalize(topo_constant_folding, "fast_compile", final_rewriter=True)
+register_stabilize(topo_constant_folding, "fast_compile", final_rewriter=True)
+register_specialize(topo_constant_folding, "fast_compile", final_rewriter=True)
 
 
 def local_elemwise_fusion_op(op_class, max_input_fct=lambda node: 32, maker=None):
@@ -3096,7 +3096,7 @@ local_elemwise_fusion = local_elemwise_fusion_op(Elemwise, elemwise_max_input_fc
 class FusionOptimizer(GraphRewriter):
     """Graph rewriter that simply runs node fusion operations.
 
-    TODO: This is basically an `EquilibriumOptimizer`; we should just use that.
+    TODO: This is basically an `EquilibriumGraphRewriter`; we should just use that.
 
     """
 

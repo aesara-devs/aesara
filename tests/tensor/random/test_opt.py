@@ -7,7 +7,7 @@ from aesara.compile.function import function
 from aesara.compile.mode import Mode
 from aesara.graph.basic import Constant
 from aesara.graph.fg import FunctionGraph
-from aesara.graph.opt import EquilibriumOptimizer
+from aesara.graph.opt import EquilibriumGraphRewriter
 from aesara.graph.optdb import OptimizationQuery
 from aesara.tensor.elemwise import DimShuffle
 from aesara.tensor.random.basic import (
@@ -50,7 +50,7 @@ def apply_local_opt_to_rv(opt, op_fn, dist_op, dist_params, size, rng, name=None
         p for p in dist_params_at + size_at if not isinstance(p, (slice, Constant))
     ]
 
-    mode = Mode("py", EquilibriumOptimizer([opt], max_use_ratio=100))
+    mode = Mode("py", EquilibriumGraphRewriter([opt], max_use_ratio=100))
 
     f_opt = function(
         f_inputs,
@@ -519,7 +519,7 @@ def test_Subtensor_lift_restrictions():
     z = x - y
 
     fg = FunctionGraph([rng], [z], clone=False)
-    _ = EquilibriumOptimizer([local_subtensor_rv_lift], max_use_ratio=100).apply(fg)
+    _ = EquilibriumGraphRewriter([local_subtensor_rv_lift], max_use_ratio=100).apply(fg)
 
     subtensor_node = fg.outputs[0].owner.inputs[1].owner.inputs[0].owner
     assert subtensor_node == y.owner
@@ -531,7 +531,7 @@ def test_Subtensor_lift_restrictions():
     # We add `x` as an output to make sure that `is_rv_used_in_graph` handles
     # `"output"` "nodes" correctly.
     fg = FunctionGraph([rng], [z, x], clone=False)
-    EquilibriumOptimizer([local_subtensor_rv_lift], max_use_ratio=100).apply(fg)
+    EquilibriumGraphRewriter([local_subtensor_rv_lift], max_use_ratio=100).apply(fg)
 
     assert fg.outputs[0] == z
     assert fg.outputs[1] == x
@@ -539,7 +539,7 @@ def test_Subtensor_lift_restrictions():
     # The non-`Subtensor` client doesn't depend on the RNG state, so we can
     # perform the lift
     fg = FunctionGraph([rng], [z], clone=False)
-    EquilibriumOptimizer([local_subtensor_rv_lift], max_use_ratio=100).apply(fg)
+    EquilibriumGraphRewriter([local_subtensor_rv_lift], max_use_ratio=100).apply(fg)
 
     rv_node = fg.outputs[0].owner.inputs[1].owner.inputs[0].owner
     assert rv_node.op == normal
@@ -557,7 +557,9 @@ def test_Dimshuffle_lift_restrictions():
     z = x - y
 
     fg = FunctionGraph([rng], [z, y], clone=False)
-    _ = EquilibriumOptimizer([local_dimshuffle_rv_lift], max_use_ratio=100).apply(fg)
+    _ = EquilibriumGraphRewriter([local_dimshuffle_rv_lift], max_use_ratio=100).apply(
+        fg
+    )
 
     dimshuffle_node = fg.outputs[0].owner.inputs[1].owner
     assert dimshuffle_node == y.owner
@@ -569,7 +571,7 @@ def test_Dimshuffle_lift_restrictions():
     # We add `x` as an output to make sure that `is_rv_used_in_graph` handles
     # `"output"` "nodes" correctly.
     fg = FunctionGraph([rng], [z, x], clone=False)
-    EquilibriumOptimizer([local_dimshuffle_rv_lift], max_use_ratio=100).apply(fg)
+    EquilibriumGraphRewriter([local_dimshuffle_rv_lift], max_use_ratio=100).apply(fg)
 
     assert fg.outputs[0] == z
     assert fg.outputs[1] == x
@@ -577,7 +579,7 @@ def test_Dimshuffle_lift_restrictions():
     # The non-`Dimshuffle` client doesn't depend on the RNG state, so we can
     # perform the lift
     fg = FunctionGraph([rng], [z], clone=False)
-    EquilibriumOptimizer([local_dimshuffle_rv_lift], max_use_ratio=100).apply(fg)
+    EquilibriumGraphRewriter([local_dimshuffle_rv_lift], max_use_ratio=100).apply(fg)
 
     rv_node = fg.outputs[0].owner.inputs[1].owner
     assert rv_node.op == normal
