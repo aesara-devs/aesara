@@ -578,9 +578,9 @@ def test_mvnormal_samples(mu, cov, size):
 def test_mvnormal_default_args():
     compare_sample_values(multivariate_normal, test_fn=mvnormal_test_fn)
 
-    with pytest.raises(ValueError, match="shape mismatch.*"):
+    with pytest.raises(ValueError, match="operands could not be broadcast together "):
         multivariate_normal.rng_fn(
-            None, np.zeros((1, 2)), np.ones((1, 2, 2)), size=(4,)
+            None, np.zeros((3, 2)), np.ones((3, 2, 2)), size=(4,)
         )
 
 
@@ -654,10 +654,16 @@ def test_dirichlet_samples(alphas, size):
 def test_dirichlet_rng():
     alphas = np.array([[100, 1, 1], [1, 100, 1], [1, 1, 100]], dtype=config.floatX)
 
-    with pytest.raises(ValueError, match="shape mismatch.*"):
-        # The independent dimension's shape is missing from size (i.e. should
-        # be `(10, 2, 3)`)
+    with pytest.raises(ValueError, match="operands could not be broadcast together"):
+        # The independent dimension's shape cannot be broadcasted from (3,) to (10, 2)
         dirichlet.rng_fn(None, alphas, size=(10, 2))
+
+    with pytest.raises(
+        ValueError, match="input operand has more dimensions than allowed"
+    ):
+        # One of the independent dimension's shape is missing from size
+        # (i.e. should be `(1, 3)`)
+        dirichlet.rng_fn(None, np.broadcast_to(alphas, (1, 3, 3)), size=(3,))
 
 
 M_at = iscalar("M")
@@ -1146,10 +1152,16 @@ def test_multinomial_rng():
     test_M = np.array([10, 20], dtype=np.int64)
     test_p = np.array([[0.999, 0.001], [0.001, 0.999]], dtype=config.floatX)
 
-    with pytest.raises(ValueError, match="shape mismatch.*"):
-        # The independent dimension's shape is missing from size (i.e. should
-        # be `(1, 2)`)
+    with pytest.raises(ValueError, match="operands could not be broadcast together"):
+        # The independent dimension's shape cannot be broadcasted from (2,) to (1,)
         multinomial.rng_fn(None, test_M, test_p, size=(1,))
+
+    with pytest.raises(
+        ValueError, match="input operand has more dimensions than allowed"
+    ):
+        # One of the independent dimension's shape is missing from size
+        # (i.e. should be `(5, 2)`)
+        multinomial.rng_fn(None, np.broadcast_to(test_M, (5, 2)), test_p, size=(2,))
 
 
 @pytest.mark.parametrize(
