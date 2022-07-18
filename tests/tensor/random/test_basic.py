@@ -28,6 +28,7 @@ from aesara.tensor.random.basic import (
     dirichlet,
     exponential,
     gamma,
+    gengamma,
     geometric,
     gumbel,
     halfcauchy,
@@ -1088,6 +1089,48 @@ def test_betabinom_samples(M, a, p, size):
         p,
         size=size,
         test_fn=lambda *args, size=None, random_state=None, **kwargs: betabinom.rng_fn(
+            random_state, *(args + (size,))
+        ),
+    )
+
+
+@pytest.mark.parametrize(
+    "alpha, p, lambd, size",
+    [
+        (
+            np.array(2, dtype=config.floatX),
+            np.array(3, dtype=config.floatX),
+            np.array(5, dtype=config.floatX),
+            None,
+        ),
+        (
+            np.array(1, dtype=config.floatX),
+            np.array(1, dtype=config.floatX),
+            np.array(10, dtype=config.floatX),
+            [],
+        ),
+        (
+            np.array(2, dtype=config.floatX),
+            np.array(2, dtype=config.floatX),
+            np.array(10, dtype=config.floatX),
+            [2, 3],
+        ),
+        (
+            np.full((1, 2), 2, dtype=config.floatX),
+            np.array(2, dtype=config.floatX),
+            np.array(10, dtype=config.floatX),
+            None,
+        ),
+    ],
+)
+def test_gengamma_samples(alpha, p, lambd, size):
+    compare_sample_values(
+        gengamma,
+        alpha,
+        p,
+        lambd,
+        size=size,
+        test_fn=lambda *args, size=None, random_state=None, **kwargs: gengamma.rng_fn(
             random_state, *(args + (size,))
         ),
     )
