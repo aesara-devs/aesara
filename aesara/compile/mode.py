@@ -11,7 +11,7 @@ from aesara.compile.function.types import Supervisor
 from aesara.configdefaults import config
 from aesara.graph.destroyhandler import DestroyHandler
 from aesara.graph.opt import (
-    CheckStackTraceOptimization,
+    CheckStackTraceRewriter,
     GraphRewriter,
     MergeOptimizer,
     NodeProcessingGraphRewriter,
@@ -271,7 +271,7 @@ if config.check_stack_trace in ("raise", "warn", "log"):
 if config.check_stack_trace == "off":
     _tags = ()
 
-optdb.register("CheckStackTrace", CheckStackTraceOptimization(), *_tags, position=-1)
+optdb.register("CheckStackTrace", CheckStackTraceRewriter(), *_tags, position=-1)
 del _tags
 
 
