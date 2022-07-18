@@ -56,7 +56,7 @@ Graph Rewriting
       <libdoc_graph_fgraphfeature>` to it. These features are "plugins" that are needed
       for the :meth:`GraphRewriter.apply` method to do its job properly.
 
-    .. method:: optimize(fgraph)
+    .. method:: rewrite(fgraph)
 
       This is the interface function called by Aesara.  It calls
       :meth:`GraphRewriter.apply` by default.
@@ -159,7 +159,7 @@ Now, we test the optimization:
 >>> e = aesara.graph.fg.FunctionGraph([x, y, z], [a])
 >>> e
 FunctionGraph(add(z, mul(true_div(mul(y, x), y), true_div(z, x))))
->>> simplify.optimize(e)
+>>> simplify.rewrite(e)
 >>> e
 FunctionGraph(add(z, mul(x, true_div(z, x))))
 
@@ -175,7 +175,7 @@ optimization you wrote. For example, consider the following:
 >>> e = aesara.graph.fg.FunctionGraph([x, y, z], [a])
 >>> e
 FunctionGraph(true_div(mul(add(y, z), x), add(y, z)))
->>> simplify.optimize(e)
+>>> simplify.rewrite(e)
 >>> e
 FunctionGraph(true_div(mul(add(y, z), x), add(y, z)))
 
@@ -186,11 +186,11 @@ computation, using the :class:`MergeOptimizer` defined in
 :mod:`aesara.graph.opt`.
 
 >>> from aesara.graph.opt import MergeOptimizer
->>> MergeOptimizer().optimize(e)  # doctest: +ELLIPSIS
+>>> MergeOptimizer().rewrite(e)  # doctest: +ELLIPSIS
 (0, ..., None, None, {}, 1, 0)
 >>> e
 FunctionGraph(true_div(mul(*1 -> add(y, z), x), *1))
->>> simplify.optimize(e)
+>>> simplify.rewrite(e)
 >>> e
 FunctionGraph(x)
 
@@ -265,7 +265,7 @@ subset of them) and applies one or several local optimizers.
 >>> e
 FunctionGraph(add(z, mul(true_div(mul(y, x), y), true_div(z, x))))
 >>> simplify = aesara.graph.opt.WalkingGraphRewriter(local_simplify)
->>> simplify.optimize(e)
+>>> simplify.rewrite(e)
 (<aesara.graph.opt.WalkingGraphRewriter object at 0x...>, 1, 5, 3, ..., ..., ...)
 >>> e
 FunctionGraph(add(z, mul(x, true_div(z, x))))

@@ -44,10 +44,10 @@ def optimize_graph(
         return_only_out = True
 
     canonicalize_opt = optdb.query(RewriteDatabaseQuery(include=include, **kwargs))
-    _ = canonicalize_opt.optimize(fgraph)
+    _ = canonicalize_opt.rewrite(fgraph)
 
     if custom_opt:
-        custom_opt.optimize(fgraph)
+        custom_opt.rewrite(fgraph)
 
     if return_only_out:
         return fgraph.outputs[0]
@@ -79,7 +79,7 @@ def is_same_graph_with_merge(var1, var2, givens=None):
     for to_replace, replace_by in givens.items():
         fgraph.replace(to_replace, replace_by)
     # Perform merge optimization.
-    MergeOptimizer().optimize(fgraph)
+    MergeOptimizer().rewrite(fgraph)
     # When two variables perform the same computations, they will have the same
     # owner in the optimized graph.
     # We need to be careful with the special case where the owner is None,

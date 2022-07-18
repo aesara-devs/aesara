@@ -159,11 +159,11 @@ def ds(x, y):
 
 def optimize(g, level="fast_run"):
     if level == "fast_run":
-        _optimizer_fast_run.optimize(g)
+        _optimizer_fast_run.rewrite(g)
     elif level == "specialize":
-        _optimizer_specialize.optimize(g)
+        _optimizer_specialize.rewrite(g)
     elif level == "stabilize":
-        _optimizer_stabilize.optimize(g)
+        _optimizer_stabilize.rewrite(g)
     else:
         raise ValueError(level)
     return g
@@ -184,7 +184,7 @@ class TestDimshuffleLift:
         assert (
             str(g) == "FunctionGraph(InplaceDimShuffle{1,0}(InplaceDimShuffle{1,0}(x)))"
         )
-        dimshuffle_lift.optimize(g)
+        dimshuffle_lift.rewrite(g)
         assert str(g) == "FunctionGraph(x)"
         # no need to check_stack_trace as graph is supposed to be empty
 
@@ -196,7 +196,7 @@ class TestDimshuffleLift:
             str(g)
             == "FunctionGraph(InplaceDimShuffle{2,0,x,1}(InplaceDimShuffle{1,x,0}(x)))"
         ), str(g)
-        dimshuffle_lift.optimize(g)
+        dimshuffle_lift.rewrite(g)
         assert str(g) == "FunctionGraph(InplaceDimShuffle{0,1,x,x}(x))", str(g)
         # Check stacktrace was copied over correctly after opt was applied
         assert check_stack_trace(g, ops_to_check="all")
@@ -209,7 +209,7 @@ class TestDimshuffleLift:
             "FunctionGraph(InplaceDimShuffle{1,0}(InplaceDimShuffle{2,0,x,1}"
             "(InplaceDimShuffle{0,x,1}(x))))"
         ), str(g)
-        dimshuffle_lift.optimize(g)
+        dimshuffle_lift.rewrite(g)
         assert str(g) == "FunctionGraph(x)", str(g)
         # no need to check_stack_trace as graph is supposed to be empty
 
@@ -238,7 +238,7 @@ class TestDimshuffleLift:
             "FunctionGraph(Elemwise{add,no_inplace}(Elemwise{add,no_inplace}"
             "(DimShuffle{x,x,0}(x), DimShuffle{x,0,1}(y)), z))"
         )
-        dimshuffle_lift.optimize(g)
+        dimshuffle_lift.rewrite(g)
         assert str(g) in (opt_str_g_inplace, opt_str_g_noinplace), str(g)
         # Check stacktrace was copied over correctly after opt was applied
         assert check_stack_trace(g, ops_to_check="all")
@@ -277,7 +277,7 @@ class TestDimshuffleLift:
         e = ds(x, (0, 1))
         g = FunctionGraph([x], [e])
         assert str(g) == "FunctionGraph(InplaceDimShuffle{0,1}(x))"
-        dimshuffle_lift.optimize(g)
+        dimshuffle_lift.rewrite(g)
         assert str(g) == "FunctionGraph(x)"
         # Check stacktrace was copied over correctly after opt was applied
         assert hasattr(g.outputs[0].tag, "trace")
@@ -294,7 +294,7 @@ class TestDimshuffleLift:
             str(g)
             == "FunctionGraph(InplaceDimShuffle{0,x}(x), InplaceDimShuffle{2,1,0}(y), InplaceDimShuffle{2,1,0}(z), InplaceDimShuffle{x}(TensorConstant{1}))"
         )
-        dimshuffle_lift.optimize(g)
+        dimshuffle_lift.rewrite(g)
         assert (
             str(g)
             == "FunctionGraph(x, y, InplaceDimShuffle{2,1,0}(z), InplaceDimShuffle{x}(TensorConstant{1}))"
@@ -331,7 +331,7 @@ def test_local_useless_dimshuffle_in_reshape():
         "Reshape{2}(InplaceDimShuffle{0}(col), Shape(col)))"
     )
     useless_dimshuffle_in_reshape = out2in(local_useless_dimshuffle_in_reshape)
-    useless_dimshuffle_in_reshape.optimize(g)
+    useless_dimshuffle_in_reshape.rewrite(g)
     assert str(g) == (
         "FunctionGraph(Reshape{1}(vector, Shape(vector)), "
         "Reshape{2}(mat, Shape(mat)), "
@@ -347,7 +347,7 @@ def test_local_useless_dimshuffle_in_reshape():
     reshape_dimshuffle_mat2 = reshape(mat.dimshuffle("x", 1, "x", 0), mat.shape)
     h = FunctionGraph([mat], [reshape_dimshuffle_mat2])
     str_h = str(h)
-    useless_dimshuffle_in_reshape.optimize(h)
+    useless_dimshuffle_in_reshape.rewrite(h)
     assert str(h) == str_h
 
 
@@ -1505,7 +1505,7 @@ class TestLocalCanonicalizeAlloc:
         assert any(isinstance(node.op, Alloc) for node in g.toposort())
 
         alloc_lift = out2in(local_alloc_sink_dimshuffle)
-        alloc_lift.optimize(g)
+        alloc_lift.rewrite(g)
 
         if has_alloc:
             assert any(isinstance(node.op, Alloc) for node in g.toposort())
@@ -2849,8 +2849,8 @@ class TestLocalReshapeToDimshuffle:
             "TensorConstant{[1 5 1 6 1 1]}))"
         )
 
-        reshape_lift.optimize(g)
-        useless_reshape.optimize(g)
+        reshape_lift.rewrite(g)
+        useless_reshape.rewrite(g)
         assert str(g) == (
             "FunctionGraph(InplaceDimShuffle{x,0}"
             "(<TensorType(float64, (None,))>), "
@@ -2880,9 +2880,9 @@ def test_local_reshape_lift():
 
 class TestLiftTransposeThroughDot:
     def simple_optimize(self, g):
-        out2in(local_useless_elemwise).optimize(g)
-        out2in(local_lift_transpose_through_dot).optimize(g)
-        out2in(local_useless_elemwise).optimize(g)
+        out2in(local_useless_elemwise).rewrite(g)
+        out2in(local_lift_transpose_through_dot).rewrite(g)
+        out2in(local_useless_elemwise).rewrite(g)
         return g
 
     def test_matrix_matrix(self):
@@ -3159,9 +3159,9 @@ def test_local_useless_alloc():
     output = at.alloc(at.alloc(m, 1, y, 1, 1), x, y, z, w)
     g = FunctionGraph([m, x, y, z, w], [output])
 
-    useless_alloc.optimize(g)
-    merge_alloc.optimize(g)
-    useless_alloc.optimize(g)
+    useless_alloc.rewrite(g)
+    merge_alloc.rewrite(g)
+    useless_alloc.rewrite(g)
 
     topo = g.toposort()
     assert len(topo) == 1
@@ -3172,9 +3172,9 @@ def test_local_useless_alloc():
     output = at.alloc(at.alloc(m, y, 1, 1), x, y, z, w)
     g = FunctionGraph([m, x, y, z, w], [output])
 
-    useless_alloc.optimize(g)
-    merge_alloc.optimize(g)
-    useless_alloc.optimize(g)
+    useless_alloc.rewrite(g)
+    merge_alloc.rewrite(g)
+    useless_alloc.rewrite(g)
 
     topo = g.toposort()
     assert len(topo) == 1
@@ -3186,9 +3186,9 @@ def test_local_useless_alloc():
     output = at.alloc(at.alloc(m, y, 1, 1), x, y2, z, w)
     g = FunctionGraph([m, x, y, y2, z, w], [output])
 
-    useless_alloc.optimize(g)
-    merge_alloc.optimize(g)
-    useless_alloc.optimize(g)
+    useless_alloc.rewrite(g)
+    merge_alloc.rewrite(g)
+    useless_alloc.rewrite(g)
 
     topo = g.toposort()
     assert len(topo) == 3
