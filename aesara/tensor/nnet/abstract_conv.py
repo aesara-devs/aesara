@@ -2763,13 +2763,9 @@ class AbstractConv3d(AbstractConv):
 
 
 class AbstractConv_gradWeights(BaseAbstractConv):
-    """Gradient wrt. filters for `AbstractConv`.
-    Refer to :func:`BaseAbstractConv <aesara.tensor.nnet.abstract_conv.BaseAbstractConv>`
-    for a more detailed documentation.
+    """Gradient with respect to filters for `AbstractConv`.
 
-    :note: You will not want to use this directly, but rely on
-           Aesara's automatic differentiation or graph optimization to
-           use it as needed.
+    Refer to :class:`BaseAbstractConv` for more detailed documentation.
 
     """
 
@@ -2991,13 +2987,9 @@ class AbstractConv_gradWeights(BaseAbstractConv):
 
 
 class AbstractConv2d_gradWeights(AbstractConv_gradWeights):
-    """Gradient wrt. filters for `AbstractConv2d`.
-    Refer to :func:`BaseAbstractConv <aesara.tensor.nnet.abstract_conv.BaseAbstractConv>`
-    for a more detailed documentation.
+    """Gradient with respect to filters for `AbstractConv2d`.
 
-    :note: You will not want to use this directly, but rely on
-           Aesara's automatic differentiation or graph optimization to
-           use it as needed.
+    Refer to :class:`BaseAbstractConv` for more detailed documentation.
 
     """
 
@@ -3058,13 +3050,9 @@ class AbstractConv2d_gradWeights(AbstractConv_gradWeights):
 
 
 class AbstractConv3d_gradWeights(AbstractConv_gradWeights):
-    """Gradient wrt. filters for `AbstractConv3d`.
-    Refer to :func:`BaseAbstractConv <aesara.tensor.nnet.abstract_conv.BaseAbstractConv>`
-    for a more detailed documentation.
+    """Gradient with respect to filters for `AbstractConv3d`.
 
-    :note: You will not want to use this directly, but rely on
-           Aesara's automatic differentiation or graph optimization to
-           use it as needed.
+    Refer to :class:`BaseAbstractConv` for more detailed documentation.
 
     """
 
@@ -3121,13 +3109,9 @@ class AbstractConv3d_gradWeights(AbstractConv_gradWeights):
 
 
 class AbstractConv_gradInputs(BaseAbstractConv):
-    """Gradient wrt. inputs for `AbstractConv`.
-    Refer to :func:`BaseAbstractConv <aesara.tensor.nnet.abstract_conv.BaseAbstractConv>`
-    for a more detailed documentation.
+    """Gradient with respect to inputs for `AbstractConv`.
 
-    :note: You will not want to use this directly, but rely on
-           Aesara's automatic differentiation or graph optimization to
-           use it as needed.
+    Refer to :class:`BaseAbstractConv` for more detailed documentation.
 
     """
 
@@ -3373,13 +3357,9 @@ class AbstractConv_gradInputs(BaseAbstractConv):
 
 
 class AbstractConv2d_gradInputs(AbstractConv_gradInputs):
-    """Gradient wrt. inputs for `AbstractConv2d`.
-    Refer to :func:`BaseAbstractConv <aesara.tensor.nnet.abstract_conv.BaseAbstractConv>`
-    for a more detailed documentation.
+    """Gradient with respect to inputs for `AbstractConv2d`.
 
-    :note: You will not want to use this directly, but rely on
-           Aesara's automatic differentiation or graph optimization to
-           use it as needed.
+    Refer to :class:`BaseAbstractConv` for more detailed documentation.
 
     """
 
@@ -3440,13 +3420,9 @@ class AbstractConv2d_gradInputs(AbstractConv_gradInputs):
 
 
 class AbstractConv3d_gradInputs(AbstractConv_gradInputs):
-    """Gradient wrt. inputs for `AbstractConv3d`.
-    Refer to :func:`BaseAbstractConv <aesara.tensor.nnet.abstract_conv.BaseAbstractConv>`
-    for a more detailed documentation.
+    """Gradient with respect to inputs for `AbstractConv3d`.
 
-    :note: You will not want to use this directly, but rely on
-           Aesara's automatic differentiation or graph optimization to
-           use it as needed.
+    Refer to :class:`BaseAbstractConv` for more detailed documentation.
 
     """
 

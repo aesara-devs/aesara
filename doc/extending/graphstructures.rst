@@ -205,7 +205,7 @@ structures, code going like ``def f(x): ...`` would produce an :class:`Op` for
 
 A :class:`Type` in Aesara provides static information (or constraints) about
 data objects in a graph. The information provided by :class:`Type`\s allows
-Aesara to perform optimizations and produce more efficient compiled code.
+Aesara to perform rewrites and produce more efficient compiled code.
 
 Every symbolic :class:`Variable` in an Aesara graph has an associated
 :class:`Type` instance, and :class:`Type`\s also serve as a means of
@@ -306,7 +306,7 @@ When used in a computation graph as the input of an
 will *always* take the value contained in the :class:`Constant`'s data
 field. Furthermore, it is assumed that the :class:`Op` will not under
 any circumstances modify the input. This means that a :class:`Constant` is
-eligible to participate in numerous optimizations: constant in-lining
+eligible to participate in numerous rewrites: constant in-lining
 in C code, constant folding, etc.
 
 Automatic Differentiation
@@ -327,26 +327,26 @@ gradient of the graph's output with respect to the graph's inputs.
 A following section of this tutorial will examine the topic of
 :ref:`differentiation<tutcomputinggrads>` in greater detail.
 
-Optimizations
-=============
+Rewrites
+========
 
 When compiling an Aesara graph using :func:`aesara.function`, a graph is
 necessarily provided.  While this graph structure shows how to compute the
 output from the input, it also offers the possibility to improve the way this
-computation is carried out. The way optimizations work in Aesara is by
+computation is carried out. The way rewrites work in Aesara is by
 identifying and replacing certain patterns in the graph with other specialized
 patterns that produce the same results but are either faster or more
-stable. Optimizations can also detect identical subgraphs and ensure that the
+stable. Rewrites can also detect identical subgraphs and ensure that the
 same values are not computed twice.
 
-For example, one (simple) optimization that Aesara uses is to replace
+For example, one simple rewrite that Aesara uses is to replace
 the pattern :math:`\frac{xy}{y}` by :math:`x`.
 
 See :ref:`graph_rewriting` and :ref:`optimizations` for more information.
 
 **Example**
 
-Consider the following example of optimization:
+Consider the following example of rewrites:
 
 >>> import aesara
 >>> a = aesara.tensor.vector("a")      # declare symbolic variable
@@ -354,13 +354,13 @@ Consider the following example of optimization:
 >>> f = aesara.function([a], b)        # compile function
 >>> print(f([0, 1, 2]))                # prints `array([0,2,1026])`
 [    0.     2.  1026.]
->>> aesara.printing.pydotprint(b, outfile="./pics/symbolic_graph_unopt.png", var_with_name_simple=True)  # doctest: +SKIP
-The output file is available at ./pics/symbolic_graph_unopt.png
->>> aesara.printing.pydotprint(f, outfile="./pics/symbolic_graph_opt.png", var_with_name_simple=True)  # doctest: +SKIP
-The output file is available at ./pics/symbolic_graph_opt.png
+>>> aesara.printing.pydotprint(b, outfile="./pics/symbolic_graph_no_rewrite.png", var_with_name_simple=True)  # doctest: +SKIP
+The output file is available at ./pics/symbolic_graph_no_rewrite.png
+>>> aesara.printing.pydotprint(f, outfile="./pics/symbolic_graph_rewite.png", var_with_name_simple=True)  # doctest: +SKIP
+The output file is available at ./pics/symbolic_graph_rewrite.png
 
-We used :func:`aesara.printing.pydotprint` to visualize the optimized graph
-(right), which is much more compact than the unoptimized graph (left).
+We used :func:`aesara.printing.pydotprint` to visualize the rewritten graph
+(right), which is much more compact than the un-rewritten graph (left).
 
 .. |g1| image:: ./pics/symbolic_graph_unopt.png
         :width: 500 px
@@ -368,7 +368,7 @@ We used :func:`aesara.printing.pydotprint` to visualize the optimized graph
         :width: 500 px
 
 ================================ ====================== ================================
-        Unoptimized graph                                         Optimized graph
+        Un-rewritten graph                                      Rewritten graph
 ================================ ====================== ================================
 |g1|                                                              |g2|
 ================================ ====================== ================================

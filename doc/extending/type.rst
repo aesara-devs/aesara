@@ -5,7 +5,7 @@
 ===============
 
 The :class:`Type` class is used to provide "static" information about the types of
-:class:`Variable`\s in an Aesara graph.  This information is used for graph optimizations
+:class:`Variable`\s in an Aesara graph.  This information is used for graph rewrites
 and compilation to languages with typing that's stricter than Python's.
 
 The types handled by Aesara naturally overlap a lot with NumPy, but
@@ -311,7 +311,7 @@ default values.
 
         Optional. Only needed to profile the memory of this :class:`Type` of object.
 
-        :param shape_info: the output of the call to get_shape_info()
+        :param shape_info: the output of the call to `get_shape_info`
         :return: the number of bytes taken by the object described by
             ``shape_info``.
 
@@ -324,8 +324,8 @@ For certain mechanisms, you can register functions and other such
 things to plus your type into aesara's mechanisms.  These are optional
 but will allow people to use you type with familiar interfaces.
 
-`transfer()`
-~~~~~~~~~~~~
+`transfer`
+~~~~~~~~~~
 
 To plug in additional options for the transfer target, define a
 function which takes an Aesara variable and a target argument and
@@ -388,7 +388,7 @@ when ``allow_downcast`` is False, i.e. no precision loss is allowed.
 
 The second method we define is ``values_eq_approx``. This method
 allows approximate comparison between two values respecting our :class:`Type`'s
-constraints. It might happen that an optimization changes the computation
+constraints. It might happen that a rewrite changes the computation
 graph in such a way that it produces slightly different variables, for
 example because of numerical instability like rounding errors at the
 end of the mantissa. For instance, ``a + a + a + a + a + a`` might not

@@ -13,7 +13,7 @@ stressed enough!
 Unit Testing revolves around the following principles:
 
 * ensuring correctness: making sure that your :class:`Op`, :class:`Type` or
-  optimization works in the way you intended it to work. It is important for
+  rewrites works in the way you intended it to work. It is important for
   this testing to be as thorough as possible: test not only the obvious cases,
   but more importantly the corner cases which are more likely to trigger bugs
   down the line.

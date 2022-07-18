@@ -25,7 +25,7 @@ simple function:
    def sum_square_difference(a, b):
        return at.sum((a - b)**2)
 
-Even without taking Aesara's optimizations into account, it is likely
+Even without taking Aesara's rewrites into account, it is likely
 to work just as well as a custom implementation. It also supports all
 data types, tensors of all dimensions as well as broadcasting, whereas
 a custom implementation would probably only bother to support

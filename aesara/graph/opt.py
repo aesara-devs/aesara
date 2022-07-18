@@ -1,8 +1,4 @@
-"""
-Defines the base class for optimizations as well as a certain
-amount of useful generic optimization tools.
-
-"""
+"""This module defines the base classes for graph rewriting."""
 import abc
 import copy
 import functools
@@ -17,7 +13,7 @@ from collections import UserList, defaultdict, deque
 from collections.abc import Iterable
 from functools import _compose_mro, partial, reduce  # type: ignore
 from itertools import chain
-from typing import Callable, Dict
+from typing import TYPE_CHECKING, Callable, Dict
 from typing import Iterable as IterableType
 from typing import List, Optional, Sequence, Tuple, Union, cast
 
@@ -41,6 +37,10 @@ from aesara.graph.op import Op
 from aesara.graph.utils import AssocList, InconsistencyError
 from aesara.misc.ordered_set import OrderedSet
 from aesara.utils import flatten
+
+
+if TYPE_CHECKING:
+    from aesara.graph.unify import Var
 
 
 _logger = logging.getLogger("aesara.graph.opt")
@@ -237,12 +237,12 @@ def inplace_graph_rewriter(f):
 
 
 class SequentialGraphRewriter(GraphRewriter, UserList):
-    """A `GraphRewriter` that applies a list of optimizers sequentially."""
+    """A `GraphRewriter` that applies a list of rewriters sequentially."""
 
-    @staticmethod
-    def warn(exc, self, optimizer):
-        """Default ``failure_callback`` for `SequentialGraphRewriter`."""
-        _logger.error(f"SequentialGraphRewriter apply {optimizer}")
+    @classmethod
+    def warn(cls, exc, self, rewriter):
+        """Default failure callback function for `SequentialGraphRewriter`."""
+        _logger.error(f"{cls.__name__} apply {rewriter}")
         _logger.error("Traceback:")
         _logger.error(traceback.format_exc())
         if config.on_opt_error == "raise":
@@ -250,21 +250,20 @@ class SequentialGraphRewriter(GraphRewriter, UserList):
         elif config.on_opt_error == "pdb":
             pdb.post_mortem(sys.exc_info()[2])
 
-    def __init__(self, *opts, failure_callback=None):
+    def __init__(self, *rewrites, failure_callback=None):
         """
         Parameters
         ----------
-        *opts :
-            The List of optimizers to be applied to a node
-        failure_callback : callable or None
-            Keyword only argument. A callback used when a failure
-            happen during optimization.
+        *rewrites
+            The List of rewriters to be applied to a node
+        failure_callback
+            A callback used when a failure happens during rewriting.
 
         """
-        if len(opts) == 1 and isinstance(opts[0], (list, tuple)):
-            opts = opts[0]
+        if len(rewrites) == 1 and isinstance(rewrites[0], (list, tuple)):
+            rewrites = rewrites[0]
 
-        super().__init__(opts)
+        super().__init__(rewrites)
 
         self.failure_callback = failure_callback
 
@@ -296,11 +295,11 @@ class SequentialGraphRewriter(GraphRewriter, UserList):
             {},
         )
         try:
-            for optimizer in self.data:
+            for rewriter in self.data:
                 try:
                     nb_nodes_before = len(fgraph.apply_nodes)
                     t0 = time.time()
-                    sub_prof = optimizer.apply(fgraph)
+                    sub_prof = rewriter.apply(fgraph)
                     l.append(float(time.time() - t0))
                     sub_profs.append(sub_prof)
                     nb_nodes.append((nb_nodes_before, len(fgraph.apply_nodes)))
@@ -311,7 +310,7 @@ class SequentialGraphRewriter(GraphRewriter, UserList):
                     raise
                 except Exception as e:
                     if self.failure_callback:
-                        self.failure_callback(e, self, optimizer)
+                        self.failure_callback(e, self, rewriter)
                         continue
                     else:
                         raise
@@ -346,11 +345,11 @@ class SequentialGraphRewriter(GraphRewriter, UserList):
         return self.pre_profile
 
     def __repr__(self):
-        return f"SeqOpt({self.data})"
+        return f"{type(self).__name__}({self.data})"
 
     def add_requirements(self, fgraph):
-        for opt in self.data:
-            opt.add_requirements(fgraph)
+        for rewrite in self.data:
+            rewrite.add_requirements(fgraph)
 
     def print_summary(self, stream=sys.stdout, level=0, depth=-1):
         name = getattr(self, "name", None)
@@ -360,13 +359,13 @@ class SequentialGraphRewriter(GraphRewriter, UserList):
         # This way, -1 will do all depth
         if depth != 0:
             depth -= 1
-            for opt in self.data:
-                opt.print_summary(stream, level=(level + 2), depth=depth)
+            for rewrite in self.data:
+                rewrite.print_summary(stream, level=(level + 2), depth=depth)
 
-    @staticmethod
-    def print_profile(stream, prof, level=0):
+    @classmethod
+    def print_profile(cls, stream, prof, level=0):
         (
-            opts,
+            rewrites,
             prof,
             validate_time,
             callback_time,
@@ -383,15 +382,15 @@ class SequentialGraphRewriter(GraphRewriter, UserList):
 
         blanc = "    " * level
 
-        print(blanc, "SequentialGraphRewriter", end=" ", file=stream)
-        if hasattr(opts, "name"):
-            print(blanc, opts.name, end=" ", file=stream)
-        elif hasattr(opts, "__name__"):
-            print(blanc, opts.__name__, end=" ", file=stream)
+        print(blanc, cls.__name__, end=" ", file=stream)
+        if hasattr(rewrites, "name"):
+            print(blanc, rewrites.name, end=" ", file=stream)
+        elif hasattr(rewrites, "__name__"):
+            print(blanc, rewrites.__name__, end=" ", file=stream)
         print(
             (
                 f" time {sum(prof):.3f}s for {int(nb_node_before)}/{int(nb_node_after)} nodes"
-                " before/after optimization"
+                " before/after rewriting"
             ),
             file=stream,
         )
@@ -412,38 +411,38 @@ class SequentialGraphRewriter(GraphRewriter, UserList):
                 file=stream,
             )
         ll = []
-        for (opt, nb_n) in zip(opts, nb_nodes):
-            if hasattr(opt, "__name__"):
-                name = opt.__name__
+        for (rewrite, nb_n) in zip(rewrites, nb_nodes):
+            if hasattr(rewrite, "__name__"):
+                name = rewrite.__name__
             else:
-                name = opt.name
-            idx = opts.index(opt)
-            ll.append((name, opt.__class__.__name__, idx) + nb_n)
+                name = rewrite.name
+            idx = rewrites.index(rewrite)
+            ll.append((name, rewrite.__class__.__name__, idx) + nb_n)
         lll = sorted(zip(prof, ll), key=lambda a: a[0])
 
-        for (t, opt) in lll[::-1]:
-            i = opt[2]
+        for (t, rewrite) in lll[::-1]:
+            i = rewrite[2]
             if sub_validate_time:
                 val_time = sub_validate_time[i + 1] - sub_validate_time[i]
                 print(
                     blanc,
-                    f"  {t:.6f}s - {opt} - {val_time:.3f}s",
+                    f"  {t:.6f}s - {rewrite} - {val_time:.3f}s",
                     file=stream,
                 )
             else:
-                print(blanc, f"  {t:.6f}s - {opt}", file=stream)
+                print(blanc, f"  {t:.6f}s - {rewrite}", file=stream)
 
             if sub_profs[i]:
-                opts[i].print_profile(stream, sub_profs[i], level=level + 1)
+                rewrites[i].print_profile(stream, sub_profs[i], level=level + 1)
         print(file=stream)
 
     @staticmethod
     def merge_profile(prof1, prof2):
         """Merge two profiles."""
-        new_t = []  # the time for the optimization
-        new_l = []  # the optimization
+        new_t = []  # the times for the rewrites
+        new_l = []  # the rewrites
         new_sub_profile = []
-        # merge common(same object) opt
+        # Merge common (i.e. same object) rewrites
         for l in set(prof1[0]).intersection(set(prof2[0])):
             idx1 = prof1[0].index(l)
             idx2 = prof2[0].index(l)
@@ -455,13 +454,12 @@ class SequentialGraphRewriter(GraphRewriter, UserList):
             else:
                 new_sub_profile.append(None)
 
-        # merge not common opt
         from io import StringIO
 
         for l in set(prof1[0]).symmetric_difference(set(prof2[0])):
-            # The set trick above only work for the same object optimization
-            # It don't work for equivalent optimization.
-            # So we try to merge equivalent optimization here.
+            # The set trick above only works for the same rewrite objects; it
+            # doesn't work for equivalent rewrites, so we try to merge
+            # equivalent rewrites here.
             new_l_names = [o.name for o in new_l]
             if l.name in new_l_names:
                 idx = new_l_names.index(l.name)
@@ -492,7 +490,7 @@ class SequentialGraphRewriter(GraphRewriter, UserList):
             new_l.append(l)
             new_sub_profile.append(p[6][idx])
 
-        new_opt = SequentialGraphRewriter(*new_l)
+        new_rewrite = SequentialGraphRewriter(*new_l)
         new_nb_nodes = []
         for p1, p2 in zip(prof1[8], prof2[8]):
             new_nb_nodes.append((p1[0] + p2[0], p1[1] + p2[1]))
@@ -504,9 +502,9 @@ class SequentialGraphRewriter(GraphRewriter, UserList):
         # the name.
         assert {l.name for l in prof1[0]}.issubset({l.name for l in new_l})
         assert {l.name for l in prof2[0]}.issubset({l.name for l in new_l})
-        assert len(new_t) == len(new_opt) == len(new_sub_profile)
+        assert len(new_t) == len(new_rewrite) == len(new_sub_profile)
         return (
-            new_opt,
+            new_rewrite,
             new_t,
             prof1[2] + prof2[2],
             prof1[3] + prof2[3],
@@ -626,7 +624,7 @@ class MergeFeature(Feature):
 
         if node.inputs:
             # We use the smallest clients list.  Some `Op`s like `Elemwise`
-            # have optimizations that put constants as the first inputs.  Since
+            # have rewrites that put constants as the first inputs.  Since
             # constants generally have more clients than other types of nodes,
             # using `node.inputs[0]` will make us look at more nodes on
             # average, so by picking the smallest clients list, we might speed
@@ -820,8 +818,8 @@ class MergeOptimizer(GraphRewriter):
     def __str__(self):
         return self.__class__.__name__
 
-    @staticmethod
-    def print_profile(stream, prof, level=0):
+    @classmethod
+    def print_profile(cls, stream, prof, level=0):
 
         (
             nb_fail,
@@ -837,7 +835,7 @@ class MergeOptimizer(GraphRewriter):
         callback_time = callback_time or float("nan")
 
         blanc = "    " * level
-        print(blanc, "MergeOptimizer", file=stream)
+        print(blanc, cls.__name__, file=stream)
         print(
             blanc,
             f"  nb fail={nb_fail:5d} merged={nb_merged:5d} atomic={nb_atomic:5d}",
@@ -905,7 +903,7 @@ def pre_constant_merge(fgraph, variables):
 
     Notes
     -----
-    It is used to pre-merge nodes generated inside an optimization.  It is
+    It is used to pre-merge nodes generated inside an rewrite.  It is
     useful if there are many such replacements to make, so that `DebugMode`
     will not check each of them.
 
@@ -1120,15 +1118,15 @@ def node_rewriter(
     Parameters
     ----------
     tracks
-        The `Op` types or instances to which this optimization applies.
-        Use ``None`` instead of an empty list to have the optimization apply to
-        all `Op`s`.
+        The `Op` types or instances to which this rewrite applies.
+        Use ``None`` instead of an empty list to have the rewrite apply to
+        all `Op`\s.
     inplace
-        A boolean indicating whether or not the optimization works in-place.
+        A boolean indicating whether or not the rewrite works in-place.
         If ``True``, a `DestroyHandler` `Feature` is added automatically added
-        to the `FunctionGraph`\s applied to this optimization.
+        to the `FunctionGraph`\s applied to this rewrite.
     requirements
-        `Feature` types required by this optimization.
+        `Feature` types required by this rewrite.
 
     """
 
@@ -1139,7 +1137,7 @@ def node_rewriter(
         if tracks is not None:
             if len(tracks) == 0:
                 raise ValueError(
-                    "Use `None` instead of an empty list to make an optimization apply to all nodes."
+                    "Use `None` instead of an empty list to make an rewrite apply to all nodes."
                 )
             for t in tracks:
                 if not (
@@ -1167,14 +1165,14 @@ class OpToRewriterTracker:
     def __init__(self):
         self.tracked_instances: Dict[Op, List[NodeRewriter]] = {}
         self.tracked_types: Dict[type, List[NodeRewriter]] = {}
-        self.untracked_opts: List[NodeRewriter] = []
+        self.untracked_rewrites: List[NodeRewriter] = []
 
     def add_tracker(self, rw: NodeRewriter):
         """Add a `NodeRewriter` to be keyed by its `NodeRewriter.tracks` or applied generally."""
         tracks = rw.tracks()
 
         if tracks is None:
-            self.untracked_opts.append(rw)
+            self.untracked_rewrites.append(rw)
         else:
             for c in tracks:
                 if isinstance(c, type):
@@ -1201,7 +1199,7 @@ class OpToRewriterTracker:
         return (
             self._find_impl(type(op))
             + self.tracked_instances.get(op, [])
-            + self.untracked_opts
+            + self.untracked_rewrites
         )
 
     def get_rewriters(self):
@@ -1209,17 +1207,17 @@ class OpToRewriterTracker:
             chain.from_iterable(
                 chain(self.tracked_types.values(), self.tracked_instances.values())
             ),
-            self.untracked_opts,
+            self.untracked_rewrites,
         )
 
 
 class SequentialNodeRewriter(NodeRewriter):
-    r"""An optimizer that applies a list of `NodeRewriter`\s to a node.
+    r"""An rewriter that applies a list of `NodeRewriter`\s to a node.
 
     Attributes
     ----------
     reentrant : bool
-        Some global optimizers, like `NodeProcessingGraphRewriter`, use this value to
+        Some global rewriters, like `NodeProcessingGraphRewriter`, use this value to
         determine if they should ignore new nodes.
     retains_inputs : bool
         States whether or not the inputs of a transformed node are transferred
@@ -1228,51 +1226,53 @@ class SequentialNodeRewriter(NodeRewriter):
 
     def __init__(
         self,
-        *optimizers: Rewriter,
-        apply_all_opts: bool = False,
+        *rewriters: Rewriter,
+        apply_all_rewrites: bool = False,
         profile: bool = False,
     ):
         """
 
         Parameters
         ----------
-        optimizers
-            A list of optimizers to be applied to nodes.
-        apply_all_opts
+        rewriters
+            A list of rewriters to be applied to nodes.
+        apply_all_rewrites
             If ``False``, it will return after the first successfully applied
             rewrite; otherwise, it will apply every applicable rewrite
             incrementally.
         profile
-            Whether or not to profile the optimizations.
+            Whether or not to profile the rewrites.
 
         """
         super().__init__()
 
-        self.opts: Sequence[Rewriter] = optimizers
-        assert isinstance(self.opts, tuple)
+        self.rewrites: Sequence[Rewriter] = rewriters
+        assert isinstance(self.rewrites, tuple)
 
-        self.reentrant = any(getattr(opt, "reentrant", True) for opt in optimizers)
+        self.reentrant = any(
+            getattr(rewrite, "reentrant", True) for rewrite in rewriters
+        )
         self.retains_inputs = all(
-            getattr(opt, "retains_inputs", False) for opt in optimizers
+            getattr(rewrite, "retains_inputs", False) for rewrite in rewriters
         )
 
-        self.apply_all_opts = apply_all_opts
+        self.apply_all_rewrites = apply_all_rewrites
 
         self.profile = profile
         if self.profile:
-            self.time_opts: Dict[Rewriter, float] = {}
+            self.time_rewrites: Dict[Rewriter, float] = {}
             self.process_count: Dict[Rewriter, int] = {}
             self.applied_true: Dict[Rewriter, int] = {}
             self.node_created: Dict[Rewriter, int] = {}
 
         self.tracker = OpToRewriterTracker()
 
-        for o in self.opts:
+        for o in self.rewrites:
 
             self.tracker.add_tracker(o)
 
             if self.profile:
-                self.time_opts.setdefault(o, 0.0)
+                self.time_rewrites.setdefault(o, 0.0)
                 self.process_count.setdefault(o, 0)
                 self.applied_true.setdefault(o, 0)
                 self.node_created.setdefault(o, 0)
@@ -1281,34 +1281,34 @@ class SequentialNodeRewriter(NodeRewriter):
         return getattr(
             self,
             "__name__",
-            f"{type(self).__name__}({','.join([str(o) for o in self.opts])})",
+            f"{type(self).__name__}({','.join([str(o) for o in self.rewrites])})",
         )
 
     def tracks(self):
         t = []
-        for l in self.opts:
+        for l in self.rewrites:
             at = l.tracks()
             if at:
                 t.extend(at)
         return t
 
     def transform(self, fgraph, node):
-        if len(self.opts) == 0:
+        if len(self.rewrites) == 0:
             return
 
         repl = None
 
         while True:
-            opts = self.tracker.get_trackers(node.op)
+            rewrites = self.tracker.get_trackers(node.op)
 
             new_repl = None
-            for opt in opts:
-                opt_start = time.time()
-                new_repl = opt.transform(fgraph, node)
-                opt_finish = time.time()
+            for rewrite in rewrites:
+                rewrite_start = time.time()
+                new_repl = rewrite.transform(fgraph, node)
+                rewrite_finish = time.time()
                 if self.profile:
-                    self.time_opts[opt] += opt_start - opt_finish
-                    self.process_count[opt] += 1
+                    self.time_rewrites[rewrite] += rewrite_start - rewrite_finish
+                    self.process_count[rewrite] += 1
                 if not new_repl:
                     continue
                 if isinstance(new_repl, (tuple, list)):
@@ -1318,19 +1318,19 @@ class SequentialNodeRewriter(NodeRewriter):
 
                 if config.optimizer_verbose:
                     print(
-                        f"optimizer: rewrite {opt} replaces node {node} with {new_repl}"
+                        f"rewriting: rewrite {rewrite} replaces node {node} with {new_repl}"
                     )
 
                 if self.profile:
-                    self.node_created[opt] += len(
+                    self.node_created[rewrite] += len(
                         list(applys_between(fgraph.variables, new_vars))
                     )
-                    self.applied_true[opt] += 1
-                break  # break from the for loop over optimization.
-            if not new_repl:  # No optimization applied in the last iteration
+                    self.applied_true[rewrite] += 1
+                break
+            if not new_repl:  # No rewrites applied in the last iteration
                 return repl
             # only 1 iteration
-            if not self.apply_all_opts:
+            if not self.apply_all_rewrites:
                 return new_repl
             if not new_vars[0].owner:
                 # We are at the start of the graph.
@@ -1343,7 +1343,7 @@ class SequentialNodeRewriter(NodeRewriter):
 
     @classmethod
     def print_profile(cls, stream, prof, level=0):
-        (time_opts, process_count, applied_true, node_created, profile) = prof
+        (time_rewrites, process_count, applied_true, node_created, profile) = prof
 
         if not profile:
             return
@@ -1351,25 +1351,25 @@ class SequentialNodeRewriter(NodeRewriter):
         blanc = "    " * int(level)
         print(blanc, f"{cls.__name__}", file=stream)
         print(blanc, "---------------------", file=stream)
-        count_opt = []
+        count_rewrite = []
         not_used = []
         not_used_time = 0
         for o, count in process_count.items():
             if count > 0:
-                count_opt.append(
-                    (time_opts[o], applied_true[o], count, o, node_created[o])
+                count_rewrite.append(
+                    (time_rewrites[o], applied_true[o], count, o, node_created[o])
                 )
             else:
-                not_used.append((time_opts[o], o))
-                not_used_time += time_opts[o]
-        if count_opt:
+                not_used.append((time_rewrites[o], o))
+                not_used_time += time_rewrites[o]
+        if count_rewrite:
             print(
                 blanc,
                 "  time taken - times applied - times tried - name - node_created:",
                 file=stream,
             )
-            count_opt.sort()
-            for (t, a_t, count, o, n_c) in count_opt[::-1]:
+            count_rewrite.sort()
+            for (t, a_t, count, o, n_c) in count_rewrite[::-1]:
                 print(
                     blanc,
                     f"  {t:.3f}s - {int(a_t)} - {int(count)} - {o} - {int(n_c)}",
@@ -1377,19 +1377,23 @@ class SequentialNodeRewriter(NodeRewriter):
                 )
             print(
                 blanc,
-                f"  {not_used_time:.3f}s - in {len(not_used)} optimization that were not used (display those with runtime greater than 0)",
+                (
+                    f"  {not_used_time:.3f}s - in {len(not_used)} rewrite(s) that were not used "
+                    "(displaying only those with a runtime greater than 0)"
+                ),
                 file=stream,
             )
             not_used.sort(key=lambda nu: (nu[0], str(nu[1])))
             for (t, o) in not_used[::-1]:
                 if t > 0:
-                    # Skip opt that have 0 times, they probably wasn't even tried.
+                    # Skip rewrites that have 0 times; they probably weren't even tried.
                     print(blanc + "  ", f"  {t:.3f}s - {o}", file=stream)
         else:
-            print(blanc, " The optimizer wasn't successful ", file=stream)
+            print(blanc, " The rewriter wasn't successful ", file=stream)
 
         print(file=stream)
 
+    @staticmethod
     def merge_profile(prof1, prof2):
         raise NotImplementedError
 
@@ -1397,12 +1401,12 @@ class SequentialNodeRewriter(NodeRewriter):
         print(f"{' ' * level}{self.__class__.__name__} id={id(self)}", file=stream)
         if depth != 0:
             depth -= 1
-            for lopt in self.opts:
-                lopt.print_summary(stream, level=(level + 2), depth=depth)
+            for lrewrite in self.rewrites:
+                lrewrite.print_summary(stream, level=(level + 2), depth=depth)
 
     def add_requirements(self, fgraph):
-        for opt in self.opts:
-            opt.add_requirements(fgraph)
+        for rewrite in self.rewrites:
+            rewrite.add_requirements(fgraph)
 
 
 class SubstitutionNodeRewriter(NodeRewriter):
@@ -1529,31 +1533,6 @@ class PatternNodeRewriter(NodeRewriter):
     The constructor creates a `PatternNodeRewriter` that replaces occurrences of
     `in_pattern` by occurrences of `out_pattern`.
 
-    Parameters
-    ----------
-    in_pattern :
-        The input pattern that we want to replace.
-    out_pattern :
-        The replacement pattern.
-    allow_multiple_clients : bool
-        If False, the pattern matching will fail if one of the subpatterns has
-        more than one client.
-    skip_identities_fn : TODO
-    name :
-        Allows to override this optimizer name.
-    tracks : optional
-        The values that :meth:`self.tracks` will return. Useful to speed up
-        optimization sometimes.
-    get_nodes : optional
-        If you provide `tracks`, you must provide this parameter. It must be a
-        function that takes the tracked node and returns a list of nodes on
-        which we will try this optimizer.
-
-    Notes
-    -----
-    `tracks` and `get_nodes` can be used to make this optimizer track a less
-    frequent `Op`, so this will make this optimizer tried less frequently.
-
     Examples
     --------
 
@@ -1571,16 +1550,45 @@ class PatternNodeRewriter(NodeRewriter):
         self,
         in_pattern,
         out_pattern,
-        allow_multiple_clients=False,
+        allow_multiple_clients: bool = False,
         skip_identities_fn=None,
-        name=None,
+        name: Optional[str] = None,
         tracks=(),
         get_nodes=None,
         values_eq_approx=None,
     ):
+        """
+
+        Parameters
+        ----------
+        in_pattern
+            The input pattern that we want to replace.
+        out_pattern
+            The replacement pattern.
+        allow_multiple_clients
+            If ``False``, the pattern matching will fail if one of the subpatterns has
+            more than one client.
+        skip_identities_fn
+            TODO
+        name
+            Set the name of this rewriter.
+        tracks
+            The values that :meth:`self.tracks` will return.
+        get_nodes
+            If you provide `tracks`, you must provide this parameter. It must be a
+            function that takes the tracked node and returns a list of nodes on
+            which we will try this rewrite.
+
+        Notes
+        -----
+        `tracks` and `get_nodes` can be used to make this rewrite track a less
+        frequent `Op`, which will prevent the rewrite from being tried as
+        often.
+
+        """
         from aesara.graph.unify import convert_strs_to_vars
 
-        var_map = {}
+        var_map: Dict[str, "Var"] = {}
         self.in_pattern = convert_strs_to_vars(in_pattern, var_map=var_map)
         self.out_pattern = convert_strs_to_vars(out_pattern, var_map=var_map)
         self.values_eq_approx = values_eq_approx
@@ -1592,9 +1600,7 @@ class PatternNodeRewriter(NodeRewriter):
             raise TypeError(
                 "The pattern to search for must start with a specific Op instance."
             )
-        self.__doc__ = (
-            self.__class__.__doc__ + "\n\nThis instance does: " + str(self) + "\n"
-        )
+        self.__doc__ = f"{self.__class__.__doc__}\n\nThis instance does: {self}\n"
         self.allow_multiple_clients = allow_multiple_clients
         self.skip_identities_fn = skip_identities_fn
         if name:
@@ -2068,7 +2074,7 @@ class WalkingGraphRewriter(NodeProcessingGraphRewriter):
             return
 
         (
-            opt,
+            rewrite,
             nb,
             nb_nodes_start,
             nb_nodes_end,
@@ -2081,7 +2087,7 @@ class WalkingGraphRewriter(NodeProcessingGraphRewriter):
         print(
             blanc,
             f"{cls.__name__} ",
-            getattr(opt, "name", getattr(opt, "__name__", "")),
+            getattr(rewrite, "name", getattr(rewrite, "__name__", "")),
             file=stream,
         )
 
@@ -2099,7 +2105,7 @@ class WalkingGraphRewriter(NodeProcessingGraphRewriter):
                 node_rewriter.print_profile(
                     stream,
                     (
-                        node_rewriter.time_opts,
+                        node_rewriter.time_rewrites,
                         node_rewriter.process_count,
                         node_rewriter.applied_true,
                         node_rewriter.node_created,
@@ -2125,7 +2131,7 @@ def walking_rewriter(
     more than one entry in `node_rewriters`.
     """
     if len(node_rewriters) > 1:
-        # Don't wrap it uselessly if their is only 1 optimization.
+        # Don't wrap it uselessly if there is only one rewrite.
         node_rewriters = SequentialNodeRewriter(*node_rewriters)
     else:
         (node_rewriters,) = node_rewriters
@@ -2267,7 +2273,7 @@ class EquilibriumGraphRewriter(NodeProcessingGraphRewriter):
             `NodeRewriter` is applied, then after all final rewriters.
             They should not traverse the entire graph, since they are called
             very frequently.  The `MergeOptimizer` is one example of a rewriter
-            that respect this.
+            that respects this.
 
         """
         super().__init__(
@@ -2834,13 +2840,13 @@ def check_chain(r, *chain):
 
 
 def pre_greedy_node_rewriter(
-    fgraph: FunctionGraph, optimizations: Sequence[NodeRewriter], out: Variable
+    fgraph: FunctionGraph, rewrites: Sequence[NodeRewriter], out: Variable
 ) -> Variable:
     """Apply node rewriters throughout a graph in a greedy, pre-traversal way.
 
     This function traverses the computation graph in the graph before the
     variable `out` but that are not in the `fgraph`. It applies
-    `optimizations` to each variable on the traversed graph.
+    `rewrites` to each variable on the traversed graph.
 
     .. warning::
 
@@ -2854,78 +2860,78 @@ def pre_greedy_node_rewriter(
 
     Notes
     -----
-    This doesn't do an equilibrium optimization, so, if there is an
-    optimization--like `local_upcast_elemwise_constant_inputs`--in the list
-    that adds additional nodes to the inputs of the node, it might be necessary
-    to call this function multiple times.
+    This doesn't do an equilibrium rewrite, so, if there is a rewrite--like
+    `local_upcast_elemwise_constant_inputs`--in the list that adds additional
+    nodes to the inputs of the node, it might be necessary to call this
+    function multiple times.
 
     Parameters
     ----------
     fgraph
         The graph used to avoid/filter nodes.
-    optimizations
+    rewrites
         A sequence of rewrites to apply.
     out
-        The graph to optimize.
+        The graph to rewrite.
 
     """
 
     def local_recursive_function(
-        list_opt: Sequence[NodeRewriter],
+        rewrite_list: Sequence[NodeRewriter],
         out: Variable,
-        optimized_vars: Dict[Variable, Variable],
+        rewritten_vars: Dict[Variable, Variable],
         depth: int,
     ) -> Tuple[List[Variable], Dict[Variable, Variable]]:
         if not getattr(out, "owner", None):
-            return [out], optimized_vars
+            return [out], rewritten_vars
         node = out.owner
 
         if node in fgraph.apply_nodes:
-            return node.outputs, optimized_vars
+            return node.outputs, rewritten_vars
 
         # Walk up the graph via the node's inputs
         for idx, inp in enumerate(node.inputs):
-            if inp in optimized_vars:
-                nw_in = optimized_vars[inp]
+            if inp in rewritten_vars:
+                nw_in = rewritten_vars[inp]
             else:
                 if inp.owner:
-                    outs, optimized_vars = local_recursive_function(
-                        list_opt, inp, optimized_vars, depth + 1
+                    outs, rewritten_vars = local_recursive_function(
+                        rewrite_list, inp, rewritten_vars, depth + 1
                     )
                     for k, v in zip(inp.owner.outputs, outs):
-                        optimized_vars[k] = v
+                        rewritten_vars[k] = v
                     nw_in = outs[inp.owner.outputs.index(inp)]
 
                 else:
                     nw_in = inp
-                    optimized_vars[inp] = inp
+                    rewritten_vars[inp] = inp
 
             # XXX: An in-place change
             node.inputs[idx] = nw_in
 
-        # Apply the optimizations
+        # Apply the rewrites
         results = node.outputs
-        for opt in list_opt:
-            ret = opt.transform(fgraph, node)
+        for rewrite in rewrite_list:
+            ret = rewrite.transform(fgraph, node)
             if ret is not False and ret is not None:
                 assert isinstance(ret, Sequence)
-                assert len(ret) == len(node.outputs), opt
+                assert len(ret) == len(node.outputs), rewrite
                 for k, v in zip(node.outputs, ret):
-                    optimized_vars[k] = v
+                    rewritten_vars[k] = v
                 results = ret
                 if ret[0].owner:
                     node = out.owner
                 else:
                     break
 
-        return results, optimized_vars
+        return results, rewritten_vars
 
     if out.owner:
         out_index: int = out.owner.outputs.index(out)
     else:
         out_index = 0
 
-    final_outs, optimized_nodes = local_recursive_function(optimizations, out, {}, 0)
+    final_outs, rewritten_nodes = local_recursive_function(rewrites, out, {}, 0)
     return final_outs[out_index]
 
 

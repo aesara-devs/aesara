@@ -175,9 +175,11 @@ class TestSoftmaxWithBias(utt.InferShapeTester):
         utt.verify_grad(f, [rng.random((3, 4)), rng.random((4))])
 
     def test_broadcast(self):
-        # test that we don't raise an error during optimization for no good
-        # reason as softmax_with_bias don't support correctly some/all
-        # broadcasted inputs pattern
+        """
+        Test that we don't raise an error during rewriting for no good reason
+        as `softmax_with_bias` don't support correctly some/all broadcasted
+        inputs pattern.
+        """
         initial_W = np.asarray(
             [[0.1, 0.1, 0.1], [0.1, 0.1, 0.1], [0.1, 0.1, 0.1]],
             dtype=config.floatX,
@@ -240,7 +242,7 @@ class TestLogSoftmax(utt.InferShapeTester):
         rng = np.random.default_rng(utt.fetch_seed())
         utt.verify_grad(f, [rng.random((4,))])
 
-    def test_matrix_perform_and_opt(self):
+    def test_matrix_perform_and_rewrite(self):
         m = config.mode
         m = aesara.compile.get_mode(m)
         m.check_isfinite = False
@@ -280,11 +282,12 @@ class TestLogSoftmax(utt.InferShapeTester):
         assert not np.any(np.isnan(grad_))
 
     @pytest.mark.parametrize("axis", [None, 0, -1])
-    def test_local_logsoftmax_opt(self, axis):
-        # Test the Logsoftmax substitution
-        #
-        # Check that Log(Softmax(x)) is substituted with Logsoftmax(x). Note that
-        # only the forward pass is checked (i.e., doesn't check the gradient)
+    def test_local_logsoftmax_rewrite(self, axis):
+        """Test the `Logsoftmax` substitution.
+
+        Check that ``Log(Softmax(x))`` is substituted with ``Logsoftmax(x)``. Note that
+        only the forward pass is checked (i.e., doesn't check the gradient)
+        """
 
         x = matrix("x")
         sm = softmax(x, axis=axis)
@@ -294,18 +297,19 @@ class TestLogSoftmax(utt.InferShapeTester):
         assert check_stack_trace(f, ops_to_check=LogSoftmax)
 
     @pytest.mark.parametrize("axis", [None, 0, -1])
-    def test_local_logsoftmax_grad_opt(self, axis):
-        # Test the Logsoftmax's grad substitution.
-        #
-        # Check that Log(Softmax(x))'s grad is substituted with Logsoftmax(x)'s
-        # grad and that the new operation does not explode for big inputs.
-        # Note that only the grad is checked.
+    def test_local_logsoftmax_grad_rewrite(self, axis):
+        """Test the `Logsoftmax`'s grad substitution.
+
+        Check that ``Log(Softmax(x))``'s grad is substituted with ``Logsoftmax(x)``'s
+        grad and that the new operation does not explode for big inputs.
+        Note that only the grad is checked.
+        """
 
         m = config.mode
         m = aesara.compile.get_mode(m)
         m.check_isfinite = False
         # some inputs that are large to make the gradient explode in the non
-        # optimized case
+        # rewritten case
         rng = np.random.default_rng(utt.fetch_seed())
         a = np.exp(10 * rng.random((5, 10)).astype(config.floatX))
 
@@ -321,9 +325,10 @@ class TestLogSoftmax(utt.InferShapeTester):
         assert check_stack_trace(f, ops_to_check="all")
 
     def test_logsoftmax_grad_true_div_elemwise(self):
-        # Checks that the gradient of an expression similar to a log(softmax)
-        # but with a different elemwise operation than true_div is not
-        # optimized.
+        """
+        Checks that the gradient of an expression similar to a ``log(softmax)`` but
+        with a different elemwise operation than true_div is not rewritten.
+        """
 
         x = matrix("x")
         y = log(softmax(x))
@@ -638,7 +643,7 @@ class TestCrossEntropyCategorical1Hot(utt.InferShapeTester):
             CrossentropyCategorical1Hot,
         )
 
-    def test_softmax_optimizations(self):
+    def test_softmax_rewrites(self):
         x = matrix("x")
         one_of_n = lvector("one_of_n")
         op = crossentropy_categorical_1hot
@@ -650,7 +655,7 @@ class TestCrossEntropyCategorical1Hot(utt.InferShapeTester):
         optdb.query(OPT_FAST_RUN).rewrite(fgraph)
         assert fgraph.outputs[0].owner.op == crossentropy_softmax_argmax_1hot_with_bias
 
-    def test_softmax_optimizations_w_bias(self):
+    def test_softmax_rewrites_w_bias(self):
         x = matrix("x")
         b = vector("b")
         one_of_n = lvector("one_of_n")
@@ -664,7 +669,7 @@ class TestCrossEntropyCategorical1Hot(utt.InferShapeTester):
         assert len(fgraph.toposort()) == 1
         assert fgraph.outputs[0].owner.op == crossentropy_softmax_argmax_1hot_with_bias
 
-    def test_softmax_optimizations_w_bias2(self):
+    def test_softmax_rewrites_w_bias2(self):
         x = matrix("x")
         b = vector("b")
         c = vector("c")
@@ -681,7 +686,7 @@ class TestCrossEntropyCategorical1Hot(utt.InferShapeTester):
         assert len(fgraph.toposort()) == 2
         assert fgraph.outputs[0].owner.op == crossentropy_softmax_argmax_1hot_with_bias
 
-    def test_softmax_grad_optimizations(self):
+    def test_softmax_grad_rewrites(self):
         x = matrix("x")
         one_of_n = lvector("one_of_n")
         op = crossentropy_categorical_1hot
@@ -734,7 +739,7 @@ class TestCrossEntropyCategorical1Hot(utt.InferShapeTester):
             assert softmax_legacy in ops
             assert softmax_grad_legacy not in ops
 
-        # Test that a biased softmax is optimized correctly
+        # Test that a biased softmax is rewritten correctly
         bias_expressions = [
             at_sum(-log(softmax(x + b)[at.arange(y.shape[0]), y])),
             -at_sum(log(softmax(b + x)[at.arange(y.shape[0]), y])),
@@ -987,10 +992,9 @@ def test_argmax_pushdown_bias():
 
 
 def test_asymptotic_32():
-    # This test makes sure that our functions behave sensibly when
-    # huge values are present
+    """Test that our functions behave sensibly when huge values are present."""
 
-    # TODO: consider adding the optimization of crossentropy into the current
+    # TODO: consider adding the rewrite of crossentropy into the current
     # mode for the purpose of running this test
 
     for dtype in "float32", "float64":
@@ -1027,15 +1031,17 @@ def test_asymptotic_32():
         assert gxval[0, 1] == 0.25
 
 
-class TestSoftmaxOpt:
-    # Test that expressions of softmax in terms of exponentiated things
-    # divided by row sums are replaced by softmax expressions.
-    #
-    # Softmax_grad isn't that interesting as an Op, but it has the signature
-    # we look for when trying to insert CrossEntropySoftmax... grad.  So, for
-    # now, we add softmax_grad to graphs. In the future, we may modify the
-    # CrossEntropySoftmax...grad to look for the more basic pattern.
-    #
+class TestSoftmaxRewrite:
+    """
+    Test that expressions of softmax in terms of exponentiated things
+    divided by row sums are replaced by softmax expressions.
+
+    `Softmax_grad` isn't that interesting as an Op, but it has the signature
+    we look for when trying to insert `CrossEntropySoftmax` grad.  So, for
+    now, we add `softmax_grad` to graphs. In the future, we may modify the
+    `CrossEntropySoftmax` grad to look for the more basic pattern.
+
+    """
 
     def setup_method(self):
         self.mode = aesara.compile.mode.get_default_mode()
@@ -1086,7 +1092,7 @@ class TestSoftmaxOpt:
         c_val = rng.random((3, 4, 5)).astype(config.floatX)
         assert np.allclose(f(c_val), sp.softmax(c_val, axis=axis))
 
-    @pytest.mark.skip(reason="Optimization not enabled for the moment")
+    @pytest.mark.skip(reason="Rewrite not enabled for the moment")
     def test_grad(self):
         c = matrix()
         p_y = exp(c) / exp(c).sum(axis=1).dimshuffle(0, "x")
@@ -1116,7 +1122,7 @@ class TestSoftmaxOpt:
         assert len(f_ops) == 1
         assert isinstance(f_ops[0], Softmax)
 
-    @pytest.mark.skip(reason="Optimization not enabled for the moment")
+    @pytest.mark.skip(reason="Rewrite not enabled for the moment")
     def test_transpose_grad(self):
         # this should be a transposed softmax
         c = matrix()
@@ -1139,7 +1145,7 @@ class TestSoftmaxOpt:
         assert len(f_ops) == 1
         assert isinstance(f_ops[0], Softmax)
 
-    @pytest.mark.skip(reason="Optimization not enabled for the moment")
+    @pytest.mark.skip(reason="Rewrite not enabled for the moment")
     def test_1D_grad(self):
         c = vector()
         p_y = exp(c) / exp(c).sum()
@@ -1207,12 +1213,12 @@ def test_stabilize_log_softmax():
     f = aesara.function([x], z, mode=mode)
     assert check_stack_trace(f, ops_to_check="all")
 
-    # check that the softmax has been optimized out
+    # Check that the softmax has been rewritten
     for node in f.maker.fgraph.toposort():
         assert not isinstance(node.op, y.owner.op.__class__)
 
-    # call the function so debug mode can verify the optimized
-    # version matches the unoptimized version
+    # Call the function so debug mode can verify the rewritten version matches
+    # the un-rewritten version
     rng = np.random.default_rng(utt.fetch_seed())
     f(np.cast[config.floatX](rng.random((2, 3))))
 
@@ -1222,25 +1228,25 @@ def test_relu():
     rng = np.random.default_rng(utt.fetch_seed())
     X = rng.standard_normal((20, 30)).astype(config.floatX)
 
-    # test the base case, without custom alpha value
+    # Test the base case, without custom alpha value
     y = relu(x).eval({x: X})
     assert np.allclose(y, np.maximum(X, 0))
 
-    # test for different constant alpha values (also outside of [0, 1])
+    # Test for different constant alpha values (also outside of [0, 1])
     for alpha in 0, 0.3, 1, 2, -0.3, -1, -2:
         y = relu(x, alpha).eval({x: X})
         assert np.allclose(y, np.where(X > 0, X, alpha * X))
 
-    # test for variable alpha (scalar, vector and matrix)
+    # Test for variable alpha (scalar, vector and matrix)
     for alpha in scalar(), vector(), matrix():
-        # create value for alpha (correct ndim and broadcastable against X)
+        # Create value for alpha (correct ndim and broadcastable against X)
         A = np.array(
             rng.standard_normal(X.shape[::-1][: alpha.ndim][::-1]), dtype=config.floatX
         )
         y = relu(x, alpha).eval({x: X, alpha: A})
         assert np.allclose(y, np.where(X > 0, X, A * X), rtol=3e-5)
 
-        # test that for alpha of ndarray don't cause upcast.
+        # Test that an alpha of type `ndarray` doesn't generate an upcast
         x = matrix("x", dtype="float32")
         X = rng.standard_normal((20, 30)).astype("float32")
         alpha = np.asarray(0.123, dtype="float32")
@@ -1251,8 +1257,7 @@ def test_relu():
 
 
 def test_h_softmax():
-    # Tests the output dimensions of the h_softmax when a target is provided or
-    # not.
+    """Tests the output dimensions of the `h_softmax` when a target is provided or not."""
 
     input_size = 4
     batch_size = 2

@@ -1199,7 +1199,7 @@ Bitwise
 Inplace
 -------
 
-In-place operators are *not* supported.  Aesara's graph-optimizations
+In-place operators are *not* supported.  Aesara's graph rewrites
 will determine which intermediate values to use for in-place
 computations.  If you would like to update the value of a
 :term:`shared variable`, consider using the ``updates`` argument to

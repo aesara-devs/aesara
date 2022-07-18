@@ -33,7 +33,7 @@ hello world __str__ = [ 1.  2.  3.]
 
 If you print more than one thing in a function like `f`, they will not
 necessarily be printed in the order that you think.  The order might even depend
-on which graph optimizations are applied. Strictly speaking, the order of
+on which graph rewrites are applied. Strictly speaking, the order of
 printing is not completely defined by the interface --
 the only hard rule is that if the input of some print output `a` is
 ultimately used as an input to some other print input `b` (so that `b` depends on `a`),
@@ -56,7 +56,7 @@ Aesara also provides :func:`aesara.printing.pydotprint` that creates a png image
 >>> x = at.dscalar('x')
 >>> y = x ** 2
 >>> gy = grad(y, x)
->>> pp(gy)  # print out the gradient prior to optimization
+>>> pp(gy)  # print out the gradient prior to rewriting
 '((fill((x ** TensorConstant{2}), TensorConstant{1.0}) * TensorConstant{2}) * (x ** (TensorConstant{2} - TensorConstant{1})))'
 >>> f = function([x], gy)
 >>> pp(f.maker.fgraph.outputs[0])

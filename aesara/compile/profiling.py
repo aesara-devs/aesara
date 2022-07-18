@@ -45,7 +45,7 @@ logger = logging.getLogger("aesara.compile.profiling")
 
 aesara_imported_time: float = time.time()
 total_fct_exec_time: float = 0.0
-total_graph_opt_time: float = 0.0
+total_graph_rewrite_time: float = 0.0
 total_time_linker: float = 0.0
 
 _atexit_print_list: List["ProfileStats"] = []
@@ -97,7 +97,7 @@ def _atexit_print_fn():
                         "fct_call_time",
                         "fct_callcount",
                         "vm_call_time",
-                        "optimizer_time",
+                        "rewriter_time",
                         "linker_time",
                         "validate_time",
                         "import_time",
@@ -120,18 +120,18 @@ def _atexit_print_fn():
                             assert key not in cum_attr, (key, cum_attr)
                             cum_attr[key] = val
 
-                    if cum.optimizer_profile and ps.optimizer_profile:
+                    if cum.rewriter_profile and ps.rewriter_profile:
                         try:
-                            merge = cum.optimizer_profile[0].merge_profile(
-                                cum.optimizer_profile[1], ps.optimizer_profile[1]
+                            merge = cum.rewriter_profile[0].merge_profile(
+                                cum.rewriter_profile[1], ps.rewriter_profile[1]
                             )
-                            assert len(merge) == len(cum.optimizer_profile[1])
-                            cum.optimizer_profile = (cum.optimizer_profile[0], merge)
+                            assert len(merge) == len(cum.rewriter_profile[1])
+                            cum.rewriter_profile = (cum.rewriter_profile[0], merge)
                         except Exception as e:
                             print(e)
-                            cum.optimizer_profile = None
+                            cum.rewriter_profile = None
                     else:
-                        cum.optimizer_profile = None
+                        cum.rewriter_profile = None
 
                 cum.summary(
                     file=destination_file,
@@ -149,7 +149,7 @@ def print_global_stats():
       -- Time elapsed since Aesara was imported
       -- Time spent inside Aesara functions
       -- Time spent in compiling Aesara functions
-           -- on graph optimization
+           -- on graph rewriters
            -- on linker
     """
 
@@ -168,7 +168,7 @@ def print_global_stats():
                 f"Time elasped since Aesara import = {time.time() - aesara_imported_time:6.3f}s, "
                 f"Time spent in Aesara functions = {total_fct_exec_time:6.3f}s, "
                 "Time spent compiling Aesara functions: "
-                f" optimization = {total_graph_opt_time:6.3f}s, linker = {total_time_linker:6.3f}s ",
+                f"rewriting = {total_graph_rewrite_time:6.3f}s, linking = {total_time_linker:6.3f}s ",
             ),
             file=destination_file,
         )
@@ -186,7 +186,7 @@ def register_profiler_printer(fct):
 class ProfileStats:
     """
     Object to store runtime and memory profiling information for all of
-    Aesara's operations: compilation, optimization, execution.
+    Aesara's operations: compilation, rewriting, execution.
 
     Parameters
     ----------
@@ -220,7 +220,7 @@ class ProfileStats:
 
     compile_time: float = 0.0
     # Total time spent in body of orig_function,
-    # dominated by graph optimization and compilation of C
+    # dominated by graph rewriting and compilation of C
     #
 
     fct_call_time: float = 0.0
@@ -259,12 +259,12 @@ class ProfileStats:
     # Variable -> offset
     #
 
-    optimizer_time: float = 0.0
-    # time spent optimizing graph (FunctionMaker.__init__)
+    rewriting_time: float = 0.0
+    # time spent rewriting graph (FunctionMaker.__init__)
 
     validate_time: float = 0.0
     # time spent in fgraph.validate
-    # This is a subset of optimizer_time that is dominated by toposort()
+    # This is a subset of rewriting_time that is dominated by toposort()
     # when the destorymap feature is included.
 
     linker_time: float = 0.0
@@ -284,8 +284,8 @@ class ProfileStats:
     # case we print the profile when the function wasn't executed, or if there
     # is a lazy operation in the graph.
 
-    optimizer_profile = None
-    # None or tuple (the optimizer, the profile it returned)
+    rewriter_profile = None
+    # None or tuple (the rewriter, the profile it returned)
 
     # param is called flag_time_thunks because most other attributes with time
     # in the name are times *of* something, rather than configuration flags.
@@ -801,9 +801,9 @@ class ProfileStats:
                     f"  Time in thunks: {local_time}s ({100 * local_time / self.fct_call_time:.3f}%)",
                     file=file,
                 )
-        print(f"  Total compile time: {self.compile_time:e}s", file=file)
+        print(f"  Total compilation time: {self.compile_time:e}s", file=file)
         print(f"    Number of Apply nodes: {int(self.nb_nodes)}", file=file)
-        print(f"    Aesara Optimizer time: {self.optimizer_time:e}s", file=file)
+        print(f"    Aesara rewrite time: {self.rewriting_time:e}s", file=file)
         print(f"       Aesara validate time: {self.validate_time:e}s", file=file)
         print(
             (
@@ -823,9 +823,8 @@ class ProfileStats:
             print(f"           Node {node} time {t:e}s", file=file)
         print("", file=file)
 
-        # The validation time is a subset of optimizer_time
-        if self.optimizer_time > 0:
-            assert self.validate_time < self.optimizer_time
+        if self.rewriting_time > 0:
+            assert self.validate_time < self.rewriting_time
 
     def summary_globals(self, file):
         print(
@@ -1468,10 +1467,10 @@ class ProfileStats:
             aesara.printing.debugprint(fcts, print_type=True)
         if self.variable_shape or self.variable_strides:
             self.summary_memory(file, n_apply_to_print)
-        if self.optimizer_profile:
-            print("Optimizer Profile", file=file)
-            print("-----------------", file=file)
-            self.optimizer_profile[0].print_profile(file, self.optimizer_profile[1])
+        if self.rewriter_profile:
+            print("Rewriter Profile", file=file)
+            print("----------------", file=file)
+            self.rewriter_profile[0].print_profile(file, self.rewriter_profile[1])
         self.print_extra(file)
         self.print_tips(file)
 
@@ -1619,7 +1618,7 @@ class ProfileStats:
             ):
                 print(
                     (
-                        "  - You have a dot operation that was not optimized to"
+                        "  - You have a dot operation that was not rewritten to"
                         " dot22 (which is faster). Make sure the inputs are "
                         "float32 or float64, and are the same for both inputs. "
                         f"Currently they are: {[i.type for i in node.inputs]}"

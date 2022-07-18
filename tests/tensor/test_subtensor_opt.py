@@ -1994,10 +1994,12 @@ def test_local_subtensor_SpecifyShape_lift(x, s, idx, x_val, s_val):
     y = specify_shape(x, s)[idx]
     assert isinstance(y.owner.inputs[0].owner.op, SpecifyShape)
 
-    opts = RewriteDatabaseQuery(include=[None])
-    no_opt_mode = Mode(optimizer=opts)
+    rewrites = RewriteDatabaseQuery(include=[None])
+    no_rewrites_mode = Mode(optimizer=rewrites)
 
-    y_val_fn = function([x] + list(s), y, on_unused_input="ignore", mode=no_opt_mode)
+    y_val_fn = function(
+        [x] + list(s), y, on_unused_input="ignore", mode=no_rewrites_mode
+    )
     y_val = y_val_fn(*([x_val] + [s_ for s_ in s_val]))
 
     # This optimization should appear in the canonicalizations

@@ -20,7 +20,7 @@ from aesara.graph.utils import InconsistencyError
 from tests.unittest_tools import assertFailure_fast
 
 
-def PatternOptimizer(p1, p2, ign=True):
+def OpKeyPatternNodeRewriter(p1, p2, ign=True):
     return OpKeyGraphRewriter(PatternNodeRewriter(p1, p2), ignore_newtrees=ign)
 
 
@@ -131,19 +131,12 @@ def create_fgraph(inputs, outputs, validate=True):
 
 
 class FailureWatch:
-    # when passed to SubstitutionNodeRewriter or PatternOptimizer, counts the
-    # number of failures
     def __init__(self):
         self.failures = 0
 
-    def __call__(self, exc, nav, pairs, lopt, node):
+    def __call__(self, exc, nav, pairs, lrewrite, node):
         assert isinstance(exc, InconsistencyError)
         self.failures += 1
-
-
-#################
-# Test protocol #
-#################
 
 
 def test_misc():
@@ -151,7 +144,7 @@ def test_misc():
     e = transpose_view(transpose_view(transpose_view(transpose_view(x))))
     g = create_fgraph([x, y, z], [e])
     assert g.consistent()
-    PatternOptimizer((transpose_view, (transpose_view, "x")), "x").rewrite(g)
+    OpKeyPatternNodeRewriter((transpose_view, (transpose_view, "x")), "x").rewrite(g)
     assert str(g) == "FunctionGraph(x)"
     new_e = add(x, y)
     g.replace_validate(x, new_e)
@@ -159,11 +152,6 @@ def test_misc():
     g.replace(new_e, dot(add_in_place(x, y), transpose_view(x)))
     assert str(g) == "FunctionGraph(Dot(AddInPlace(x, y), TransposeView(x)))"
     assert not g.consistent()
-
-
-######################
-# Test protocol skip #
-######################
 
 
 @assertFailure_fast
@@ -233,11 +221,6 @@ def test_destroyers_loop():
     with pytest.raises(InconsistencyError):
         g.replace_validate(e1, add_in_place(x, y))
     assert g.consistent()
-
-
-########
-# Misc #
-########
 
 
 def test_aliased_inputs():

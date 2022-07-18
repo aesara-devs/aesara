@@ -1,4 +1,4 @@
-""" Tensor optimizations addressing the ops in math.py."""
+r"""Rewrites for the `Op`\s in `aesara.tensor.math`."""
 
 import itertools
 import operator
@@ -187,15 +187,15 @@ def local_0_dot_x(fgraph, node):
 @register_canonicalize
 @node_rewriter([DimShuffle])
 def local_lift_transpose_through_dot(fgraph, node):
-    """Perform the rewrite ``dot(x,y).T -> dot(y.T, x.T)``
+    r"""Perform the rewrite ``dot(x,y).T -> dot(y.T, x.T)``.
 
-    These optimizations "lift" (propagate towards the inputs) DimShuffle
+    These rewrites "lift" (propagate towards the inputs) `DimShuffle`
     through dot product.  It allows to put the graph in a more standard shape,
-    and to later merge consecutive DimShuffles.
+    and to later merge consecutive `DimShuffle`\s.
 
     The transformation should be apply whether or not the transpose is
     inplace.  The newly-introduced transpositions are not inplace, this will
-    be taken care of in a later optimization phase.
+    be taken care of in a later rewrite phase.
 
     """
     if not (isinstance(node.op, DimShuffle) and node.op.new_order == (1, 0)):
@@ -257,7 +257,7 @@ def local_func_inv(fgraph, node):
 
     for inv_pair in inv_pairs:
         if is_inverse_pair(node_op, prev_op, inv_pair):
-            # We don't need to copy stack trace, because the optimization
+            # We don't need to copy stack trace, because the rewrite
             # is trivial and maintains the earlier stack trace
             ottype = node.out.dtype
             inp = x.owner.inputs[0]
@@ -374,7 +374,7 @@ def local_exp_log_nan_switch(fgraph, node):
 @node_rewriter([Sum])
 def local_sumsqr2dot(fgraph, node):
     """
-    This optimization detects
+    This rewrite detects
     ``at.sqr(W.dimshuffle("x", 0, 1) * G.dimshuffle(0, "x", 1) ).sum(axis=(1, 2))``
     and converts it to ``at.dot(at.sqr(G), at.sqr(W).sum(axis=0))``.
     """
@@ -420,9 +420,7 @@ def local_sumsqr2dot(fgraph, node):
 @register_canonicalize
 @node_rewriter([Elemwise])
 def local_expm1(fgraph, node):
-    """
-    This optimization detects exp(a)-1 and converts this to expm1(a).
-    """
+    """Detect ``exp(a) - 1`` and convert them to ``expm1(a)``."""
     if isinstance(node.op, Elemwise) and isinstance(node.op.scalar_op, aes.Sub):
         in1, in2 = node.inputs
         out = node.outputs[0]
@@ -449,13 +447,15 @@ def local_expm1(fgraph, node):
 @node_rewriter([mul])
 def local_mul_switch_sink(fgraph, node):
     """
-    This optimization makes the following changes in the graph:
-    ``at.mul(A, at.switch(cond, 0, iff), B)`` -> ``at.switch(cond, 0, at.mul(A, B, iff))``
-    ``at.mul(A, at.switch(cond, ift, 0), B)`` -> ``at.switch(cond, at.mul(A, B, ift), 0)``
+    This rewrite makes the following changes in the graph:
+
+        at.mul(A, at.switch(cond, 0, iff), B) -> at.switch(cond, 0, at.mul(A, B, iff))
+        at.mul(A, at.switch(cond, ift, 0), B) -> at.switch(cond, at.mul(A, B, ift), 0)
+
     ``A`` and ``B`` being several (or none) symbolic variables.
     This is useful because ``A`` and ``B`` may not be numerically stable and give
     NaN or inf values for cases where the switch returns 0.
-    With this optimization ``at.grad(at.switch(...))`` has the right behavior.
+    With this rewrite ``at.grad(at.switch(...))`` has the right behavior.
 
     Examples
     --------
@@ -464,11 +464,11 @@ def local_mul_switch_sink(fgraph, node):
         x -> g(x)
         y = at.switch(cond, f(x), g(x))
 
-    without the optimization:
+    without the rewrite:
 
         at.grad(y, x) -> grad(f(x), x) * grad(y, f(x)) + grad(g(x), x) * grad(y, g(x))
 
-    with the optimization
+    with the rewrite
 
         at.grad(y, x) -> switch(cond, grad(f(x), x), 0) + switch(cond, 0, grad(g(x), x))
 
@@ -543,10 +543,10 @@ def local_mul_switch_sink(fgraph, node):
 @node_rewriter([true_div, int_div])
 def local_div_switch_sink(fgraph, node):
     """
-    This optimization makes the following changes in the graph:
+    This rewrite makes the following changes in the graph:
 
-    ``at.div(at.switch(cond, 0, iff), A)`` -> ``at.switch(cond, 0, at.div(iff, A))``
-    ``at.div(at.switch(cond, ift, 0), A)`` -> ``at.switch(cond, at.div(ift, A), 0)``
+        at.div(at.switch(cond, 0, iff), A) -> at.switch(cond, 0, at.div(iff, A))
+        at.div(at.switch(cond, ift, 0), A) -> at.switch(cond, at.div(ift, A), 0)
 
     where ``A`` is a symbolic variable.
 
@@ -654,7 +654,7 @@ class AlgebraicCanonizer(NodeRewriter):
     >>> mul_canonizer = AlgebraicCanonizer(mul, true_div, inv, \\
     ...                                    lambda n, d: prod(n) / prod(d))
 
-    Examples of optimizations `mul_canonizer` can perform:
+    Examples of rewrites `mul_canonizer` can perform:
 
         | x / x -> 1
         | (x * y) / x -> y
@@ -959,7 +959,7 @@ class AlgebraicCanonizer(NodeRewriter):
                 #   numerator (we only check the first argument because the
                 #   canonizer puts the computed constants first)
                 # -> then we return very exactly the original num/denum.
-                # If we don't do that the optimizer will just loop
+                # If we don't do that the rewrite will just loop
                 # infinitely because it will not catch on that there are
                 # no changes to be made and every time it will want to
                 # replace something by the same thing...
@@ -1110,7 +1110,6 @@ def local_sum_prod_mul_by_scalar(fgraph, node):
             scalars = [t.dimshuffle() for t in terms if all(t.type.broadcastable)]
 
             if len(scalars) == 0:
-                # Nothing to optimize here
                 return
 
             non_scalars = [t for t in terms if not all(t.broadcastable)]
@@ -1201,8 +1200,6 @@ def local_elemwise_sub_zeros(fgraph, node):
 def local_useless_elemwise_comparison(fgraph, node):
     """...
 
-    :note: These cases appear in the graph generated by scan.
-           These optimizations will make the graph easier to read.
     # Comparing to itself is constant
     Elemwise[{LT,GT}](X, X) -> Elemwise[zeros](X)
     Elemwise[{LE,GE}](X, X) -> Elemwise[ones](X)
@@ -1223,6 +1220,11 @@ def local_useless_elemwise_comparison(fgraph, node):
     # Shapes are never negative
     # Needed by Reshape.infer_shape
     Elemwise[EQ](Subtensor(Shape(x)), -N) -> Elemwise[zeros](X)
+
+    Notes
+    -----
+    These cases appear in the graph generated by scan. These rewrites will make
+    the graph easier to read.
 
     """
     if not isinstance(node.op, Elemwise):
@@ -1507,13 +1509,13 @@ def local_sum_prod_all_to_none(fgraph, node):
 
     """
     if isinstance(node.op, Sum) or isinstance(node.op, Prod):
-        opt_type = Sum if isinstance(node.op, Sum) else Prod
+        op_type = Sum if isinstance(node.op, Sum) else Prod
         # if all the axes are named, then use None as a shorthand
         # this permits more merging
         if node.op.axis is None:
             return
         if set(node.op.axis) == set(range(node.inputs[0].type.ndim)):
-            return [opt_type(axis=None, dtype=node.op.dtype)(node.inputs[0])]
+            return [op_type(axis=None, dtype=node.op.dtype)(node.inputs[0])]
 
 
 @register_canonicalize
@@ -1526,18 +1528,18 @@ def local_op_of_op(fgraph, node):
 
     """
     if isinstance(node.op, Prod) or isinstance(node.op, Sum):
-        opt_type = Sum if isinstance(node.op, Sum) else Prod
+        op_type = Sum if isinstance(node.op, Sum) else Prod
         (node_inps,) = node.inputs
         out_dtype = node.op.dtype
-        # We manipulate the graph so this is done to make sure the opt
-        # doesn't affect other computations.
+        # This is done to make sure the rewrite doesn't affect other
+        # computations.
         if len(fgraph.clients[node_inps]) == 1:
             if node_inps.owner and (isinstance(node_inps.owner.op, node.op.__class__)):
 
                 # check to see either the inner or outer prod is doing a
                 # product over all axis, in which case we can remove it
                 if node_inps.owner.op.axis is None or node.op.axis is None:
-                    return [opt_type(None, dtype=out_dtype)(node_inps.owner.inputs[0])]
+                    return [op_type(None, dtype=out_dtype)(node_inps.owner.inputs[0])]
 
                 # figure out which axes were in the original sum
                 newaxis = list(tuple(node_inps.owner.op.axis))
@@ -1553,7 +1555,7 @@ def local_op_of_op(fgraph, node):
                     list(node_inps.owner.op.axis) + list(node.op.axis)
                 )
 
-                combined = opt_type(newaxis, dtype=out_dtype)
+                combined = op_type(newaxis, dtype=out_dtype)
                 return [combined(node_inps.owner.inputs[0])]
 
 
@@ -1603,7 +1605,7 @@ def local_reduce_join(fgraph, node):
         elif not isinstance(node.op.scalar_op, (aes.Add, aes.Mul)):
             return
         elif len(join_node.inputs) <= 2:
-            # This is a useless join, that will get removed by another opt.
+            # This is a useless join that should get removed by another rewrite?
             return
 
         new_inp = []
@@ -1928,7 +1930,7 @@ def local_pow_specialize(fgraph, node):
 @node_rewriter([at_pow])
 def local_pow_specialize_device(fgraph, node):
     """
-    This optimization is not the same on all device. We do it only on cpu here.
+    This rewrite is not the same on all device. We do it only on cpu here.
     """
     if node.op == at_pow:
         # the idea here is that we have pow(x, y)
@@ -2117,7 +2119,9 @@ def local_add_specialize(fgraph, node):
 
 
 mul_canonizer = in2out(
-    SequentialNodeRewriter(local_mul_canonizer, local_fill_sink, apply_all_opts=True),
+    SequentialNodeRewriter(
+        local_mul_canonizer, local_fill_sink, apply_all_rewrites=True
+    ),
     name="mul_canonizer_groups",
 )
 
@@ -2251,7 +2255,7 @@ def local_log_add_exp(fgraph, node):
             if len(pre_exp) == len(zi):
                 # Do not offset when max_pre = -np.inf, to avoid nan in the output
                 # Switch statement is placed directly inside add to break the self-symmetry
-                # of the returned output (otherwise the optimization would not stabilize)
+                # of the returned output (otherwise the rewrite would not stabilize)
                 max_pre = reduce(maximum, pre_exp)
                 ret = max_pre + log(
                     add(
@@ -2296,7 +2300,7 @@ def local_log_sum_exp(fgraph, node):
 
     # Do not offset when max_pre = -np.inf, to avoid nan in the output
     # Switch statement is placed directly inside sum to break the self-symmetry
-    # of the returned output (otherwise the optimization would not stabilize)
+    # of the returned output (otherwise the rewrite would not stabilize)
     ret = max_pre_exp + log(
         at_sum(
             switch(
@@ -2344,7 +2348,9 @@ def add_calculate(num, denum, aslist=False, out_type=None):
 
 local_add_canonizer = AlgebraicCanonizer(add, sub, neg, add_calculate)
 add_canonizer = in2out(
-    SequentialNodeRewriter(local_add_canonizer, local_fill_sink, apply_all_opts=True),
+    SequentialNodeRewriter(
+        local_add_canonizer, local_fill_sink, apply_all_rewrites=True
+    ),
     name="add_canonizer_group",
 )
 
@@ -2437,26 +2443,25 @@ def attempt_distribution(factor, num, denum, out_type):
 @register_stabilize
 @node_rewriter([mul, true_div, reciprocal])
 def local_greedy_distributor(fgraph, node):
-    """
-    Optimize by reducing the number of multiplications and/or divisions.
+    """Reduce the number of multiplications and/or divisions.
 
-    This optimization tries to apply distributivity of multiplication
+    This rewrite tries to apply distributivity of multiplication
     to addition in order to reduce the number of multiplications
     and/or divisions that must be done. The algorithm weighs division
     more than multiplication to account for the former's slightly
     greater computational cost.
 
     The following expressions are simplified:
-    1. ((a/x + b/y) * x * y) --> a*y + b*x
-    2. ((a/x + b) * x) --> a + b*x
+    1. ``((a/x + b/y) * x * y) -> a*y + b*x``
+    2. ``((a/x + b) * x) -> a + b*x``
     3. There are other forms too where node is a true_div.
 
     The following expressions are not simplified:
-    4. ((a + b) * x) -/-> a*x + b*x
+    4. ``((a + b) * x) /> a*x + b*x``
 
-    This optimization aims to reduce computational cost. It may also
-    increase numerical stability, e.g. when x and/or y tend to 0 in
-    example 1.
+    This rewrite aims to reduce computational cost. It may also
+    increase numerical stability, e.g. when ``x`` and/or ``y`` tend to ``0`` in
+    Example 1.
 
     """
 
@@ -2611,16 +2616,18 @@ register_specialize(local_erf_neg_minus_one)
 @register_specialize
 @node_rewriter([log])
 def local_log_erfc(fgraph, node):
-    """Stability optimization for `log(erfc(x))`.
+    """Stability rewrite for ``log(erfc(x))``.
 
-    log(erfc(x)) => when x>threshold,
-                -x**2-log(x)-.5*log(pi)+log(1-1/(2*x**2)+3/(4*x**4)-15/(8*x**6))
-    for float64: threshold=26.641747557 was chosen with:
-    [(i,numpy.log(scipy.special.erfc(numpy.asarray([i],dtype='float64'))))
-    for i in numpy.arange(26.641747557,26.6417475571,.00000000001)]
-    for float32: threshold=10.0541949, [(i,numpy.log(scipy.special.erfc(
-        numpy.asarray([i],dtype='float32')))) for i in numpy.arange(
-        10.0541948,10.0541951,.0000001)]
+    Notes
+    -----
+        log(erfc(x)) => when x>threshold,
+                    -x**2-log(x)-.5*log(pi)+log(1-1/(2*x**2)+3/(4*x**4)-15/(8*x**6))
+        for float64: threshold=26.641747557 was chosen with:
+        [(i,numpy.log(scipy.special.erfc(numpy.asarray([i],dtype='float64'))))
+        for i in numpy.arange(26.641747557,26.6417475571,.00000000001)]
+        for float32: threshold=10.0541949, [(i,numpy.log(scipy.special.erfc(
+            numpy.asarray([i],dtype='float32')))) for i in numpy.arange(
+            10.0541948,10.0541951,.0000001)]
     """
     if node.op != log:
         return False
@@ -2628,8 +2635,10 @@ def local_log_erfc(fgraph, node):
         return False
 
     if hasattr(node.tag, "local_log_erfc_applied"):
-        # We use that flag to don't apply the optimization recursively
+        # We use that flag to don't apply the rewrite recursively
+        # TODO FIXME: We shouldn't need to use tags for this.
         return False
+
     node.tag.local_log_erfc_applied = True
 
     x = node.inputs[0].owner.inputs[0]
@@ -2654,20 +2663,23 @@ def local_log_erfc(fgraph, node):
 @register_specialize
 @node_rewriter([true_div])
 def local_grad_log_erfc_neg(fgraph, node):
-    """Stability optimization for the grad of `log(erfc(x))`.
+    """Stability rewrite for the grad of ``log(erfc(x))``.
 
-    ([y*]exp(-(x**2)))/erfc(x) # The y* is optional
-    ([y*]exp(x**2))/erfc(-x) => [y*](when x > threshold,
-                            sqrt(pi)*-x/(1-1/(2*x**2)+3/(4*x**4)-15/(8*x**6)))
+    Notes
+    -----
+        ([y*]exp(-(x**2)))/erfc(x)  # The y* is optional
+        ([y*]exp(x**2))/erfc(-x) => [y*](when x > threshold,
+                                sqrt(pi)*-x/(1-1/(2*x**2)+3/(4*x**4)-15/(8*x**6)))
 
-    for float64: threshold=26.63 see at the end of the fct for the explanation
-    for float32: threshold=9.3 see at the end of the fct for the explanation
+        for float64: threshold=26.63 see at the end of the fct for the explanation
+        for float32: threshold=9.3 see at the end of the fct for the explanation
 
     TODO: remove the constraint that there are only 2 inputs to exp(x**2)
-        is the second.
+    is the second.
+
     TODO: at the test point 10 in float32, there is instability in the original
-        value. The original gives -30.0, the stab -20.1 and in float64 -18.1.
-        Make it so that the test does not generate an error in that case!
+    value. The original gives -30.0, the stab -20.1 and in float64 -18.1.
+    Make it so that the test does not generate an error in that case!
 
     """
     if node.op != true_div:
@@ -2798,7 +2810,8 @@ def local_grad_log_erfc_neg(fgraph, node):
         return False
 
     if hasattr(node.tag, "local_grad_log_erfc_neg"):
-        # We use that flag to don't apply the optimization recursively
+        # We use that flag to don't apply the rewrite recursively
+        # TODO FIXME: We shouldn't need to use tags for this.
         return False
 
     if erfc_x is not x:
@@ -3096,11 +3109,12 @@ def is_neg(var):
 @node_rewriter([true_div])
 def local_exp_over_1_plus_exp(fgraph, node):
     """
+
     exp(x)/(1+exp(x)) -> sigm(x)
     c/(1+exp(x)) -> c*sigm(-x)
 
     """
-    # this optimization should be done for numerical stability
+    # This rewrite should be done for numerical stability
     # so we don't care to check client counts
     if node.op == true_div:
 
@@ -3323,33 +3337,32 @@ def perform_sigm_times_exp(
     full_tree=None,
 ):
     """
-    Core processing of the `local_sigm_times_exp` optimization.
+    Core processing of the `local_sigm_times_exp` rewrite.
 
     This recursive function operates on a multiplication tree as output by
     `parse_mul_tree`. It walks through the tree and modifies it in-place
-    by replacing matching pairs (exp, sigmoid) with the desired optimized
-    version.
+    by replacing matching pairs (exp, sigmoid) with the desired version.
 
     Parameters
     ----------
     tree
         The sub-tree to operate on.
     exp_x
-        List of arguments x so that `exp(x)` exists somewhere in the whole
-        multiplication tree. Each argument is a pair (x, leaf) with `x` the
-        argument of the exponential, and `leaf` the corresponding leaf in the
-        multiplication tree (of the form [n, exp(x)] -- see `parse_mul_tree`).
-        If None, this argument is initialized to an empty list.
+        List of arguments ``x`` so that ``exp(x)`` exists somewhere in the whole
+        multiplication tree. Each argument is a pair ``(x, leaf)`` with ``x`` the
+        argument of the exponential, and ``leaf`` the corresponding leaf in the
+        multiplication tree (of the form ``[n, exp(x)]`` -- see `parse_mul_tree`).
+        If ``None``, this argument is initialized to an empty list.
     exp_minus_x
-        Similar to `exp_x`, but for `exp(-x)`.
+        Similar to `exp_x`, but for ``exp(-x)``.
     sigm_x
-        Similar to `exp_x`, but for `sigmoid(x)`.
+        Similar to `exp_x`, but for ``sigmoid(x)``.
     sigm_minus_x
-        Similar to `exp_x`, but for `sigmoid(-x)`.
+        Similar to `exp_x`, but for ``sigmoid(-x)``.
     parent
-        Parent of `tree` (None if `tree` is the global root).
+        Parent of `tree` (``None`` if `tree` is the global root).
     child_idx
-        Index of `tree` in its parent's inputs (None if `tree` is the global
+        Index of `tree` in its parent's inputs (``None`` if `tree` is the global
         root).
     full_tree
         The global multiplication tree (should not be set except by recursive
@@ -3358,8 +3371,8 @@ def perform_sigm_times_exp(
     Returns
     -------
     bool
-        True if a modification was performed somewhere in the whole multiplication
-        tree, or False otherwise.
+        ``True`` if a modification was performed somewhere in the whole multiplication
+        tree, or ``False`` otherwise.
 
     """
     if exp_x is None:
@@ -3460,12 +3473,11 @@ def local_sigm_times_exp(fgraph, node):
         return None
     # Obtain tree of multiplications starting at this node.
     mul_tree = parse_mul_tree(node.outputs[0])
-    # Perform core optimization.
     did_something = perform_sigm_times_exp(mul_tree)
     if not did_something:
         # No change.
         return None
-    # The optimization may have introduced multiplications by 1 in the tree:
+    # The rewrite may have introduced multiplications by 1 in the tree:
     # get rid of them.
     mul_tree = simplify_mul(mul_tree)
     # Recompute final output based on the updated tree.
@@ -3484,7 +3496,7 @@ def local_reciprocal_1_plus_exp(fgraph, node):
     for division (e.g. either `true_div` or `reciprocal`) and have this
     taken care of with existing rewrites.
     """
-    # this optimization should be done for numerical stability
+    # This Rewrite should be done for numerical stability
     # so we don't care to check client counts
     if node.op == reciprocal:
         reciprocal_arg = node.inputs[0]

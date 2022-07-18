@@ -6,18 +6,18 @@ from io import StringIO
 from typing import Dict, Iterable, Optional, Sequence, Tuple, Union
 
 from aesara.configdefaults import config
-from aesara.graph import opt as aesara_opt
+from aesara.graph import opt as aesara_rewriting
 from aesara.misc.ordered_set import OrderedSet
 from aesara.utils import DefaultOrderedDict
 
 
-OptimizersType = Union[aesara_opt.GraphRewriter, aesara_opt.NodeRewriter]
+RewritesType = Union[aesara_rewriting.GraphRewriter, aesara_rewriting.NodeRewriter]
 
 
 class RewriteDatabase:
-    r"""A class that represents a collection/database of optimizations.
+    r"""A class that represents a collection/database of rewrites.
 
-    These databases are used to logically organize collections of optimizers
+    These databases are used to logically organize collections of rewrites
     (i.e. `GraphRewriter`\s and `NodeRewriter`).
     """
 
@@ -31,7 +31,7 @@ class RewriteDatabase:
     def register(
         self,
         name: str,
-        rewriter: Union["RewriteDatabase", OptimizersType],
+        rewriter: Union["RewriteDatabase", RewritesType],
         *tags: str,
         use_db_name_as_tag=True,
     ):
@@ -44,27 +44,28 @@ class RewriteDatabase:
         rewriter:
             The rewriter to register.
         tags:
-            Tag name that allow to select the optimizer.
+            Tag name that allows one to select the rewrite using a
+            `RewriteDatabaseQuery`.
         use_db_name_as_tag:
             Add the database's name as a tag, so that its name can be used in a
             query.
-            By default, all optimizations registered in ``EquilibriumDB`` are
+            By default, all rewrites registered to an `EquilibriumDB` are
             selected when the ``"EquilibriumDB"`` name is used as a tag. We do
-            not want this behavior for some optimizers like
+            not want this behavior for some rewrites like
             ``local_remove_all_assert``. Setting `use_db_name_as_tag` to
-            ``False`` removes that behavior. This mean only the optimizer name
-            and the tags specified will enable that optimization.
+            ``False`` removes that behavior. This means that only the rewrite's name
+            and/or its tags will enable it.
 
         """
         if not isinstance(
             rewriter,
             (
                 RewriteDatabase,
-                aesara_opt.GraphRewriter,
-                aesara_opt.NodeRewriter,
+                aesara_rewriting.GraphRewriter,
+                aesara_rewriting.NodeRewriter,
             ),
         ):
-            raise TypeError(f"{rewriter} is not a valid optimizer type.")
+            raise TypeError(f"{rewriter} is not a valid rewrite type.")
 
         if name in self.__db__:
             raise ValueError(f"The tag '{name}' is already present in the database.")
@@ -79,8 +80,8 @@ class RewriteDatabase:
         if rewriter.name in self.__db__:
             raise ValueError(
                 f"Tried to register {rewriter.name} again under the new name {name}. "
-                "The same optimization cannot be registered multiple times in"
-                " an ``RewriteDatabase``; use ProxyDB instead."
+                "The same rewrite cannot be registered multiple times in"
+                " an `RewriteDatabase`; use `ProxyDB` instead."
             )
         self.__db__[name] = OrderedSet([rewriter])
         self._names.add(name)
@@ -110,7 +111,7 @@ class RewriteDatabase:
             self.__db__[tag].remove(obj)
 
     def __query__(self, q):
-        # The ordered set is needed for deterministic optimization.
+        # The ordered set is needed for deterministic rewriting.
         variables = OrderedSet()
         for tag in q.include:
             variables.update(self.__db__[tag])
@@ -123,9 +124,9 @@ class RewriteDatabase:
         for obj in variables:
             if isinstance(obj, RewriteDatabase):
                 def_sub_query = q
-                if q.extra_optimizations:
+                if q.extra_rewrites:
                     def_sub_query = copy.copy(q)
-                    def_sub_query.extra_optimizations = []
+                    def_sub_query.extra_rewrites = []
                 sq = q.subquery.get(obj.name, def_sub_query)
 
                 replacement = obj.query(sq)
@@ -177,7 +178,7 @@ class RewriteDatabase:
 
 
 class RewriteDatabaseQuery:
-    """An object that specifies a set of optimizations by tag/name."""
+    """An object that specifies a set of rewrites by tag/name."""
 
     def __init__(
         self,
@@ -186,9 +187,9 @@ class RewriteDatabaseQuery:
         exclude: Optional[Union[OrderedSet, Sequence[str]]] = None,
         subquery: Optional[Dict[str, "RewriteDatabaseQuery"]] = None,
         position_cutoff: float = math.inf,
-        extra_optimizations: Optional[
+        extra_rewrites: Optional[
             Sequence[
-                Tuple[Union["RewriteDatabaseQuery", OptimizersType], Union[int, float]]
+                Tuple[Union["RewriteDatabaseQuery", RewritesType], Union[int, float]]
             ]
         ] = None,
     ):
@@ -197,24 +198,24 @@ class RewriteDatabaseQuery:
         Parameters
         ==========
         include:
-            A set of tags such that every optimization obtained through this
+            A set of tags such that every rewirte obtained through this
             `RewriteDatabaseQuery` must have **one** of the tags listed. This
             field is required and basically acts as a starting point for the
             search.
         require:
-            A set of tags such that every optimization obtained through this
+            A set of tags such that every rewrite obtained through this
             `RewriteDatabaseQuery` must have **all** of these tags.
         exclude:
-            A set of tags such that every optimization obtained through this
+            A set of tags such that every rewrite obtained through this
             ``RewriteDatabaseQuery` must have **none** of these tags.
         subquery:
             A dictionary mapping the name of a sub-database to a special
             `RewriteDatabaseQuery`.  If no subquery is given for a sub-database,
             the original `RewriteDatabaseQuery` will be used again.
         position_cutoff:
-            Only optimizations with position less than the cutoff are returned.
-        extra_optimizations:
-            Extra optimizations to be added.
+            Only rewrites with position less than the cutoff are returned.
+        extra_rewrites:
+            Extra rewrites to be added.
 
         """
         self.include = OrderedSet(include)
@@ -223,9 +224,9 @@ class RewriteDatabaseQuery:
         self.subquery = subquery or {}
         self.position_cutoff = position_cutoff
         self.name: Optional[str] = None
-        if extra_optimizations is None:
-            extra_optimizations = []
-        self.extra_optimizations = list(extra_optimizations)
+        if extra_rewrites is None:
+            extra_rewrites = []
+        self.extra_rewrites = list(extra_rewrites)
 
     def __str__(self):
         return (
@@ -233,13 +234,13 @@ class RewriteDatabaseQuery:
             + f"inc={self.include},ex={self.exclude},"
             + f"require={self.require},subquery={self.subquery},"
             + f"position_cutoff={self.position_cutoff},"
-            + f"extra_opts={self.extra_optimizations})"
+            + f"extra_rewrites={self.extra_rewrites})"
         )
 
     def __setstate__(self, state):
         self.__dict__.update(state)
-        if not hasattr(self, "extra_optimizations"):
-            self.extra_optimizations = []
+        if not hasattr(self, "extra_rewrites"):
+            self.extra_rewrites = []
 
     def including(self, *tags: str) -> "RewriteDatabaseQuery":
         """Add rewrites with the given tags."""
@@ -249,7 +250,7 @@ class RewriteDatabaseQuery:
             self.exclude,
             self.subquery,
             self.position_cutoff,
-            self.extra_optimizations,
+            self.extra_rewrites,
         )
 
     def excluding(self, *tags: str) -> "RewriteDatabaseQuery":
@@ -260,7 +261,7 @@ class RewriteDatabaseQuery:
             self.exclude.union(tags),
             self.subquery,
             self.position_cutoff,
-            self.extra_optimizations,
+            self.extra_rewrites,
         )
 
     def requiring(self, *tags: str) -> "RewriteDatabaseQuery":
@@ -271,20 +272,20 @@ class RewriteDatabaseQuery:
             self.exclude,
             self.subquery,
             self.position_cutoff,
-            self.extra_optimizations,
+            self.extra_rewrites,
         )
 
     def register(
-        self, *optimizations: Tuple["RewriteDatabaseQuery", Union[int, float]]
+        self, *rewrites: Tuple["RewriteDatabaseQuery", Union[int, float]]
     ) -> "RewriteDatabaseQuery":
-        """Include the given optimizations."""
+        """Include the given rewrites."""
         return RewriteDatabaseQuery(
             self.include,
             self.require,
             self.exclude,
             self.subquery,
             self.position_cutoff,
-            self.extra_optimizations + list(optimizations),
+            self.extra_rewrites + list(rewrites),
         )
 
 
@@ -327,7 +328,7 @@ class EquilibriumDB(RewriteDatabase):
     def register(
         self,
         name: str,
-        rewriter: Union["RewriteDatabase", OptimizersType],
+        rewriter: Union["RewriteDatabase", RewritesType],
         *tags: str,
         final_rewriter: bool = False,
         cleanup: bool = False,
@@ -354,12 +355,12 @@ class EquilibriumDB(RewriteDatabase):
             final_rewriters = None
         if len(cleanup_rewriters) == 0:
             cleanup_rewriters = None
-        return aesara_opt.EquilibriumGraphRewriter(
+        return aesara_rewriting.EquilibriumGraphRewriter(
             rewriters,
             max_use_ratio=config.optdb__max_use_ratio,
             ignore_newtrees=self.ignore_newtrees,
             tracks_on_change_inputs=self.tracks_on_change_inputs,
-            failure_callback=aesara_opt.NodeProcessingGraphRewriter.warn_inplace,
+            failure_callback=aesara_rewriting.NodeProcessingGraphRewriter.warn_inplace,
             final_rewriters=final_rewriters,
             cleanup_rewriters=cleanup_rewriters,
         )
@@ -371,15 +372,15 @@ class SequenceDB(RewriteDatabase):
     Retrieve a sequence of rewrites as a `SequentialGraphRewriter` by calling
     `SequenceDB.query`.
 
-    Each potential optimization is registered with a floating-point position.
-    No matter which optimizations are selected by a query, they are carried
+    Each potential rewrite is registered with a floating-point position.
+    No matter which rewrites are selected by a query, they are carried
     out in order of increasing position.
 
     """
 
-    seq_opt = aesara_opt.SequentialGraphRewriter
+    seq_rewriter_type = aesara_rewriting.SequentialGraphRewriter
 
-    def __init__(self, failure_callback=aesara_opt.SequentialGraphRewriter.warn):
+    def __init__(self, failure_callback=aesara_rewriting.SequentialGraphRewriter.warn):
         super().__init__()
         self.__position__ = {}
         self.failure_callback = failure_callback
@@ -407,10 +408,10 @@ class SequenceDB(RewriteDatabase):
         Parameters
         ----------
         position_cutoff : float or int
-            Only optimizations with position less than the cutoff are returned.
+            Only rewrites with position less than the cutoff are returned.
 
         """
-        opts = super().query(*tags, **kwtags)
+        rewrites = super().query(*tags, **kwtags)
 
         if position_cutoff is None:
             position_cutoff = config.optdb__position_cutoff
@@ -423,30 +424,31 @@ class SequenceDB(RewriteDatabase):
             if getattr(tags[0], "position_cutoff", None):
                 position_cutoff = tags[0].position_cutoff
 
-            # The RewriteDatabaseQuery instance might contain extra optimizations which need
-            # to be added the the sequence of optimizations (don't alter the
+            # The RewriteDatabaseQuery instance might contain extra rewrites which need
+            # to be added the the sequence of rewrites (don't alter the
             # original dictionary)
-            if len(tags[0].extra_optimizations) > 0:
+            if len(tags[0].extra_rewrites) > 0:
                 position_dict = position_dict.copy()
-                for extra_opt in tags[0].extra_optimizations:
-                    # Give a name to the extra optimization (include both the
+                for extra_rewrite in tags[0].extra_rewrites:
+                    # Give a name to the extra rewrites (include both the
                     # class name for descriptiveness and id to avoid name
                     # collisions)
-                    opt, position = extra_opt
-                    opt.name = f"{opt.__class__}_{id(opt)}"
+                    rewrite, position = extra_rewrite
+                    rewrite.name = f"{rewrite.__class__}_{id(rewrite)}"
 
-                    # Add the extra optimization to the optimization sequence
                     if position < position_cutoff:
-                        opts.add(opt)
-                        position_dict[opt.name] = position
+                        rewrites.add(rewrite)
+                        position_dict[rewrite.name] = position
 
-        opts = [o for o in opts if position_dict[o.name] < position_cutoff]
-        opts.sort(key=lambda obj: (position_dict[obj.name], obj.name))
+        rewrites = [o for o in rewrites if position_dict[o.name] < position_cutoff]
+        rewrites.sort(key=lambda obj: (position_dict[obj.name], obj.name))
 
         if self.failure_callback:
-            ret = self.seq_opt(opts, failure_callback=self.failure_callback)
+            ret = self.seq_rewriter_type(
+                rewrites, failure_callback=self.failure_callback
+            )
         else:
-            ret = self.seq_opt(opts)
+            ret = self.seq_rewriter_type(rewrites)
 
         if hasattr(tags[0], "name"):
             ret.name = tags[0].name
@@ -476,12 +478,12 @@ class LocalGroupDB(SequenceDB):
 
     def __init__(
         self,
-        apply_all_opts: bool = False,
+        apply_all_rewrites: bool = False,
         profile: bool = False,
-        node_rewriter=aesara_opt.SequentialNodeRewriter,
+        node_rewriter=aesara_rewriting.SequentialNodeRewriter,
     ):
         super().__init__(failure_callback=None)
-        self.apply_all_opts = apply_all_opts
+        self.apply_all_rewrites = apply_all_rewrites
         self.profile = profile
         self.node_rewriter = node_rewriter
         self.__name__: str = ""
@@ -490,9 +492,9 @@ class LocalGroupDB(SequenceDB):
         super().register(name, obj, *tags, position=position, **kwargs)
 
     def query(self, *tags, **kwtags):
-        opts = list(super().query(*tags, **kwtags))
+        rewrites = list(super().query(*tags, **kwtags))
         ret = self.node_rewriter(
-            *opts, apply_all_opts=self.apply_all_opts, profile=self.profile
+            *rewrites, apply_all_rewrites=self.apply_all_rewrites, profile=self.profile
         )
         return ret
 
@@ -510,7 +512,7 @@ class TopoDB(RewriteDatabase):
         self.failure_callback = failure_callback
 
     def query(self, *tags, **kwtags):
-        return aesara_opt.WalkingGraphRewriter(
+        return aesara_rewriting.WalkingGraphRewriter(
             self.db.query(*tags, **kwtags),
             self.order,
             self.ignore_newtrees,
