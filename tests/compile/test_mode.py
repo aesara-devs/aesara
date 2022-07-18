@@ -1,18 +1,18 @@
 from aesara.compile.function import function
 from aesara.compile.mode import AddFeatureOptimizer, Mode
 from aesara.graph.features import NoOutputFromInplace
-from aesara.graph.optdb import OptimizationQuery, SequenceDB
+from aesara.graph.optdb import RewriteDatabaseQuery, SequenceDB
 from aesara.tensor.math import dot, tanh
 from aesara.tensor.type import matrix
 
 
 def test_Mode_basic():
     db = SequenceDB()
-    mode = Mode(linker="py", optimizer=OptimizationQuery(include=None), db=db)
+    mode = Mode(linker="py", optimizer=RewriteDatabaseQuery(include=None), db=db)
 
     assert mode.optdb is db
 
-    assert str(mode).startswith("Mode(linker=py, optimizer=OptimizationQuery")
+    assert str(mode).startswith("Mode(linker=py, optimizer=RewriteDatabaseQuery")
 
 
 def test_NoOutputFromInplace():

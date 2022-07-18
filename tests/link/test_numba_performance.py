@@ -7,12 +7,12 @@ import aesara.tensor as aet
 from aesara import config
 from aesara.compile.function import function
 from aesara.compile.mode import Mode
-from aesara.graph.optdb import OptimizationQuery
+from aesara.graph.optdb import RewriteDatabaseQuery
 from aesara.link.numba.linker import NumbaLinker
 from aesara.tensor.math import Max
 
 
-opts = OptimizationQuery(include=[None], exclude=["cxx_only", "BlasOpt"])
+opts = RewriteDatabaseQuery(include=[None], exclude=["cxx_only", "BlasOpt"])
 numba_mode = Mode(NumbaLinker(), opts)
 py_mode = Mode("py", opts)
 

@@ -15,7 +15,7 @@ from aesara.configdefaults import config
 from aesara.graph.basic import Apply
 from aesara.graph.fg import FunctionGraph
 from aesara.graph.op import Op, get_test_value
-from aesara.graph.optdb import OptimizationQuery
+from aesara.graph.optdb import RewriteDatabaseQuery
 from aesara.ifelse import ifelse
 from aesara.link.jax import JAXLinker
 from aesara.raise_op import assert_op
@@ -56,7 +56,7 @@ from aesara.tensor.type import (
 
 jax = pytest.importorskip("jax")
 
-opts = OptimizationQuery(include=[None], exclude=["cxx_only", "BlasOpt"])
+opts = RewriteDatabaseQuery(include=[None], exclude=["cxx_only", "BlasOpt"])
 jax_mode = Mode(JAXLinker(), opts)
 py_mode = Mode("py", opts)
 
@@ -1142,7 +1142,7 @@ def test_jax_BatchedDot():
 
     # A dimension mismatch should raise a TypeError for compatibility
     inputs = [get_test_value(a)[:-1], get_test_value(b)]
-    opts = OptimizationQuery(include=[None], exclude=["cxx_only", "BlasOpt"])
+    opts = RewriteDatabaseQuery(include=[None], exclude=["cxx_only", "BlasOpt"])
     jax_mode = Mode(JAXLinker(), opts)
     aesara_jax_fn = function(fgraph.inputs, fgraph.outputs, mode=jax_mode)
     with pytest.raises(TypeError):

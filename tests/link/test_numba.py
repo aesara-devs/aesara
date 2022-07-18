@@ -24,7 +24,7 @@ from aesara.compile.sharedvalue import SharedVariable
 from aesara.graph.basic import Apply, Constant
 from aesara.graph.fg import FunctionGraph
 from aesara.graph.op import Op, get_test_value
-from aesara.graph.optdb import OptimizationQuery
+from aesara.graph.optdb import RewriteDatabaseQuery
 from aesara.graph.type import Type
 from aesara.ifelse import ifelse
 from aesara.link.numba.dispatch import basic as numba_basic
@@ -92,7 +92,7 @@ my_multi_out.ufunc = MyMultiOut.impl
 my_multi_out.ufunc.nin = 2
 my_multi_out.ufunc.nout = 2
 
-opts = OptimizationQuery(include=[None], exclude=["cxx_only", "BlasOpt"])
+opts = RewriteDatabaseQuery(include=[None], exclude=["cxx_only", "BlasOpt"])
 numba_mode = Mode(NumbaLinker(), opts)
 py_mode = Mode("py", opts)
 
