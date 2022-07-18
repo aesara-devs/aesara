@@ -6,6 +6,7 @@ import numpy as np
 from aesara import config, printing
 from aesara import scalar as aes
 from aesara.gradient import DisconnectedType
+from aesara.gradient import grad_undefined
 from aesara.graph.basic import Apply, Variable
 from aesara.graph.op import Op
 from aesara.link.c.op import COp
@@ -350,6 +351,7 @@ class Argmax(COp):
     def __init__(self, axis):
         if axis is not None:
             axis = tuple(axis)
+        self.axis = axis
         self.axis = tuple(axis)
 
     def get_params(self, node):
@@ -622,11 +624,166 @@ class NonZeroCAReduce(CAReduce):
         return decl, checks, alloc, loop, end
 
 
-class Max(NonZeroCAReduce):
-    nfunc_spec = ("max", 1, 1)
+class Max(COp):
+    nin = 2  # tensor, axis
+    nout = 1
+    E_axis = "invalid axis"
+    __props__ = ("axis",)
+    _f16_ok = True
+
+    params_type = ParamsType(c_axis=aes.int64)
 
     def __init__(self, axis):
-        super().__init__(aes.scalar_maximum, axis)
+        if axis is not None:
+            axis = tuple(axis)
+        self.axis = axis
+
+    def get_params(self, node):
+        if self.axis is not None and len(self.axis) == 1:
+            c_axis = np.int64(self.axis[0])
+        else:
+            # The value here doesn't matter, it won't be used
+            c_axis = np.int64(-1)
+        return self.params_type.get_params(c_axis=c_axis)
+
+    def make_node(self, x, axis=None):
+        x = as_tensor_variable(x)
+        if self.axis is None:
+            all_axes = list(range(x.ndim))
+        else:
+            all_axes = self.axis
+        inputs = [x]
+
+        # We keep the original broadcastable flags for dimensions on which
+        # we do not perform the argmax.
+        broadcastable = [
+            b for i, b in enumerate(x.type.broadcastable) if i not in all_axes
+        ]
+        outputs = [tensor(x.type.dtype, broadcastable, name="max")]
+        return Apply(self, inputs, outputs)
+
+    def prepare_node(self, node, storage_map, compute_map, impl):
+        if len(node.inputs) == 2:
+            raise ValueError(
+                "You are trying to compile a graph with an old Argmax node.  Either reoptimize your graph or rebuild it to get the new node format."
+            )
+
+    def c_code(self, node, name, inp, out, sub):
+        (x,) = inp
+        (max,) = out
+        fail = sub["fail"]
+        params = sub["params"]
+        if self.axis is None or len(self.axis) == 0:
+            axis_code = "axis = NPY_MAXDIMS;"
+        else:
+            if len(self.axis) > 1:
+                raise NotImplementedError()
+            # params is only used here for now
+            axis_code = (
+                """
+            axis = %(params)s->c_axis;
+            if(axis > PyArray_NDIM(%(x)s)-1 || axis < -PyArray_NDIM(%(x)s)){
+                PyErr_SetString(PyExc_ValueError,
+                "Max, bad axis argument");
+                %(fail)s
+            }
+            """
+                % locals()
+            )
+        ret = """
+        int axis;
+        Py_CLEAR(%(max)s);
+        %(axis_code)s
+
+        %(max)s = (PyArrayObject*)PyArray_Max(%(x)s, axis, NULL);
+        if (%(max)s == NULL) {
+            %(fail)s;
+        }
+        if (!PyArray_CheckExact(%(max)s)) {
+            %(max)s = (PyArrayObject*)PyArray_FromAny((PyObject*)%(max)s, NULL, 0, 0, NPY_ARRAY_ENSUREARRAY, NULL);
+            if(%(max)s == NULL){
+                %(fail)s;
+            }
+        }
+        """
+        return ret % locals()
+
+    def c_code_cache_version(self):
+        return (2,)
+
+    def infer_shape(self, fgraph, node, shapes):
+        (ishape,) = shapes
+        if self.axis is None:
+            return [()]
+        rval = tuple(
+            [
+                ishape[i]
+                for (i, b) in enumerate(node.inputs[0].type.broadcastable)
+                if i not in self.axis
+            ]
+        )
+        return [rval]
+
+    def perform(self, node, inp, outs, params):
+        (x,) = inp
+        axes = self.axis
+        (max,) = outs
+        if axes is None:
+            axes = tuple(range(x.ndim))
+
+        max[0] = _asarray(np.max(x, axes), dtype=node.outputs[0].dtype)
+
+    def R_op(self, inputs, eval_points):
+        if eval_points[0] is None:
+            return
+        if self.axis[0] > 1:
+            return grad_undefined(
+                self, 0, inputs, "R_op supported for max only when axis is 0 or 1"
+            )
+        if inputs[0].ndim != 2:
+            return grad_undefined(
+                self, 0, inputs, "R_op supported for max only when input is a matrix"
+            )
+        max_pos = Argmax(self.axis).make_node(*inputs).outputs
+        if self.axis[0] == 0:
+            return eval_points[0][max_pos, arange(eval_points[0].shape[1])]
+        else:
+            return eval_points[0][arange(eval_points[0].shape[0]), max_pos]
+
+    def grad(self, inp, grads):
+        # The strict sense mathematical gradient of the maximum function is
+        # not calculated here for it is not defined at every point where some
+        # coordinates are identical. However, since the latter set has null
+        # Lebesgue measure, the result may be interpreted as a weak gradient.
+
+        x = inp[0]
+        axis = as_tensor_variable(self.axis)
+        # g_max, g_max_idx = grads
+
+        if NoneConst.equals(axis):
+            axis_ = list(range(x.ndim))
+        else:
+            axis_ = axis
+        xmax = max(x, axis_.data)
+
+        # Raise the g_max and xmax to the same number of dim as the input.
+        pattern = []
+        out_dim = 0
+        if NoneConst.equals(axis):
+            # We are taking the max/argmax over all dimensions.
+            axis = None
+        for i in range(x.ndim):
+            if axis is None or i in axis.data:
+                pattern.append("x")
+            else:
+                pattern.append(out_dim)
+                out_dim += 1
+        g_max_pad = DimShuffle(grads[0].broadcastable, pattern)(grads[0])
+        xmax_pad = DimShuffle(xmax.broadcastable, pattern)(xmax)
+
+        # Set the grad to the correct position.
+        g_x = eq(xmax_pad, x) * g_max_pad
+        return (g_x,)
 
 
 class Min(NonZeroCAReduce):
@@ -667,11 +824,11 @@ def max(x, axis=None, keepdims=False):
 
     # We thus prefer to use MaxAndArgmax, if possible. It does not
     # support all axis arguments, so we may need to fall back to CAReduce.
-
-    try:
-        out = max_and_argmax(x, axis)[0]
-    except Exception:
-        out = Max(axis)(x)
+    x = as_tensor_variable(x)
+    axis = check_and_normalize_axes(x, axis)
+    if len(axis) == 0:
+        axis = list(range(x.type.ndim))
+    out = Max(axis)(x)
 
     if keepdims:
         out = makeKeepDims(x, out, axis)

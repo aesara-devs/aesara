@@ -9,7 +9,7 @@ from aesara.graph.fg import FunctionGraph
 from aesara.graph.opt import out2in
 from aesara.link.basic import PerformLinker
 from aesara.tensor.elemwise import CAReduce, DimShuffle, Elemwise
-from aesara.tensor.math import MaxAndArgmax
+from aesara.tensor.math import Max, Min
 from aesara.tensor.math import max as at_max
 from aesara.tensor.math import max_and_argmax
 from aesara.tensor.math import min as at_min
@@ -60,7 +60,7 @@ class TestMinMax:
             f = function([n], at_max(n, axis), mode=self.mode)
             topo = f.maker.fgraph.toposort()
             assert len(topo) == 1
-            assert isinstance(topo[0].op, CAReduce)
+            assert isinstance(topo[0].op, Max)
             f(data)
 
             f = function([n], at_max(-n, axis), mode=self.mode)
@@ -68,13 +68,13 @@ class TestMinMax:
             assert len(topo) == 2
             assert isinstance(topo[0].op, Elemwise)
             assert isinstance(topo[0].op.scalar_op, aes.Neg)
-            assert isinstance(topo[1].op, CAReduce)
+            assert isinstance(topo[1].op, Max)
             f(data)
 
             f = function([n], -at_max(n, axis), mode=self.mode)
             topo = f.maker.fgraph.toposort()
             assert len(topo) == 2
-            assert isinstance(topo[0].op, CAReduce)
+            assert isinstance(topo[0].op, Max)
             assert isinstance(topo[1].op, Elemwise)
             assert isinstance(topo[1].op.scalar_op, aes.Neg)
             f(data)
@@ -82,7 +82,7 @@ class TestMinMax:
             f = function([n], -at_max(-n, axis), mode=self.mode)
             topo = f.maker.fgraph.toposort()
             assert len(topo) == 1
-            assert isinstance(topo[0].op, CAReduce)  # min
+            assert isinstance(topo[0].op, Min)  # min
             f(data)
 
     def test_optimization_min(self):
@@ -100,7 +100,7 @@ class TestMinMax:
             f = function([n], at_min(-n, axis), mode=self.mode)
             topo = f.maker.fgraph.toposort()
             assert len(topo) == 2
-            assert isinstance(topo[0].op, CAReduce)  # max
+            assert isinstance(topo[0].op, Max)  # max
             assert isinstance(topo[1].op, Elemwise)
             assert isinstance(topo[1].op.scalar_op, aes.Neg)
             f(data)
@@ -110,13 +110,13 @@ class TestMinMax:
             assert len(topo) == 2
             assert isinstance(topo[0].op, Elemwise)
             assert isinstance(topo[0].op.scalar_op, aes.Neg)
-            assert isinstance(topo[1].op, CAReduce)  # max
+            assert isinstance(topo[1].op, Max)  # max
             f(data)
 
             f = function([n], -at_min(-n, axis), mode=self.mode)
             topo = f.maker.fgraph.toposort()
             assert len(topo) == 1
-            assert isinstance(topo[0].op, CAReduce)  # max
+            assert isinstance(topo[0].op, Max)  # max
             f(data)
 
 

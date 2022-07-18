@@ -38,7 +38,7 @@ from aesara.scalar.basic import (
 from aesara.scalar.basic import add as add_as
 from aesara.scalar.basic import scalar_maximum
 from aesara.tensor.elemwise import CAReduce, DimShuffle, Elemwise
-from aesara.tensor.math import MaxAndArgmax, MulWithoutZeros
+from aesara.tensor.math import Max, MulWithoutZeros
 from aesara.tensor.nnet.basic import LogSoftmax, Softmax, SoftmaxGrad
 
 
@@ -692,8 +692,8 @@ def numba_funcify_LogSoftmax(op, node, **kwargs):
     return log_softmax
 
 
-@numba_funcify.register(MaxAndArgmax)
-def numba_funcify_MaxAndArgmax(op, node, **kwargs):
+@numba_funcify.register(Max)
+def numba_funcify_Max(op, node, **kwargs):
     axis = op.axis
     x_at = node.inputs[0]
     x_dtype = x_at.type.numpy_dtype
@@ -703,17 +703,15 @@ def numba_funcify_MaxAndArgmax(op, node, **kwargs):
     if x_ndim == 0:
 
         @numba_basic.numba_njit(inline="always")
-        def maxandargmax(x):
-            return x, 0
+        def max(x):
+            return x
 
     else:
 
-        axes = tuple(int(ax) for ax in axis)
-
-        # NumPy does not support multiple axes for argmax; this is a
-        # work-around
-        keep_axes = tuple(i for i in range(x_ndim) if i not in axes)
-
+        if axis is None:
+            axes = list(range(node.inputs[0].ndim))
+        else:
+            axes = tuple(int(ax) for ax in axis)
         reduce_max_py_fn = create_multiaxis_reducer(
             scalar_maximum, -np.inf, axes, x_ndim, x_dtype
         )
@@ -721,34 +719,9 @@ def numba_funcify_MaxAndArgmax(op, node, **kwargs):
             Apply(node.op, node.inputs, [node.outputs[0].clone()]), reduce_max_py_fn
         )
 
-        reduced_x_ndim = x_ndim - len(axes) + 1
-        argmax_axis = create_axis_apply_fn(
-            np.argmax, reduced_x_ndim - 1, reduced_x_ndim, np.int64
-        )
-
-        reaxis_order = keep_axes + axes
-        sl1 = slice(None, len(keep_axes))
-        sl2 = slice(len(keep_axes), None)
-
-        @numba_basic.numba_njit
-        def maxandargmax(x):
+       @numba_basic.numba_njit
+        def max(x):
             max_res = reduce_max(x)
+            return max_res
 
-            # Not-reduced axes in front
-            transposed_x = np.ascontiguousarray(np.transpose(x, reaxis_order))
-            kept_shape = transposed_x.shape[sl1]
-            reduced_shape = transposed_x.shape[sl2]
-            reduced_size = 1
-            for s in reduced_shape:
-                reduced_size *= s
-
-            # Numpy.prod returns 1.0 when arg is empty, so we cast it to int64
-            # Otherwise reshape would complain citing float arg
-            new_shape = kept_shape + (reduced_size,)
-            reshaped_x = transposed_x.reshape(new_shape)
-
-            max_idx_res = argmax_axis(reshaped_x)
-
-            return max_res, max_idx_res
-
-    return maxandargmax
+    return max
