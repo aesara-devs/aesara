@@ -36,7 +36,7 @@ from aesara.graph.opt import (
     in2out,
     node_rewriter,
 )
-from aesara.graph.optdb import OptimizationDatabase, SequenceDB
+from aesara.graph.optdb import RewriteDatabase, SequenceDB
 from aesara.graph.utils import (
     InconsistencyError,
     MethodNotDefined,
@@ -479,11 +479,11 @@ compile.optdb.register(
 
 
 def register_useless(
-    node_rewriter: Union[OptimizationDatabase, NodeRewriter, str], *tags, **kwargs
+    node_rewriter: Union[RewriteDatabase, NodeRewriter, str], *tags, **kwargs
 ):
     if isinstance(node_rewriter, str):
 
-        def register(inner_rewriter: Union[OptimizationDatabase, Rewriter]):
+        def register(inner_rewriter: Union[RewriteDatabase, Rewriter]):
             return register_useless(inner_rewriter, node_rewriter, *tags, **kwargs)
 
         return register
@@ -497,11 +497,11 @@ def register_useless(
 
 
 def register_canonicalize(
-    node_rewriter: Union[OptimizationDatabase, NodeRewriter, str], *tags: str, **kwargs
+    node_rewriter: Union[RewriteDatabase, NodeRewriter, str], *tags: str, **kwargs
 ):
     if isinstance(node_rewriter, str):
 
-        def register(inner_rewriter: Union[OptimizationDatabase, Rewriter]):
+        def register(inner_rewriter: Union[RewriteDatabase, Rewriter]):
             return register_canonicalize(inner_rewriter, node_rewriter, *tags, **kwargs)
 
         return register
@@ -514,11 +514,11 @@ def register_canonicalize(
 
 
 def register_stabilize(
-    node_rewriter: Union[OptimizationDatabase, NodeRewriter, str], *tags: str, **kwargs
+    node_rewriter: Union[RewriteDatabase, NodeRewriter, str], *tags: str, **kwargs
 ):
     if isinstance(node_rewriter, str):
 
-        def register(inner_rewriter: Union[OptimizationDatabase, Rewriter]):
+        def register(inner_rewriter: Union[RewriteDatabase, Rewriter]):
             return register_stabilize(inner_rewriter, node_rewriter, *tags, **kwargs)
 
         return register
@@ -531,11 +531,11 @@ def register_stabilize(
 
 
 def register_specialize(
-    node_rewriter: Union[OptimizationDatabase, NodeRewriter, str], *tags: str, **kwargs
+    node_rewriter: Union[RewriteDatabase, NodeRewriter, str], *tags: str, **kwargs
 ):
     if isinstance(node_rewriter, str):
 
-        def register(inner_rewriter: Union[OptimizationDatabase, Rewriter]):
+        def register(inner_rewriter: Union[RewriteDatabase, Rewriter]):
             return register_specialize(inner_rewriter, node_rewriter, *tags, **kwargs)
 
         return register
@@ -548,11 +548,11 @@ def register_specialize(
 
 
 def register_uncanonicalize(
-    node_rewriter: Union[OptimizationDatabase, NodeRewriter, str], *tags: str, **kwargs
+    node_rewriter: Union[RewriteDatabase, NodeRewriter, str], *tags: str, **kwargs
 ):
     if isinstance(node_rewriter, str):
 
-        def register(inner_rewriter: Union[OptimizationDatabase, Rewriter]):
+        def register(inner_rewriter: Union[RewriteDatabase, Rewriter]):
             return register_uncanonicalize(
                 inner_rewriter, node_rewriter, *tags, **kwargs
             )
@@ -567,11 +567,11 @@ def register_uncanonicalize(
 
 
 def register_specialize_device(
-    node_rewriter: Union[OptimizationDatabase, Rewriter, str], *tags: str, **kwargs
+    node_rewriter: Union[RewriteDatabase, Rewriter, str], *tags: str, **kwargs
 ):
     if isinstance(node_rewriter, str):
 
-        def register(inner_rewriter: Union[OptimizationDatabase, Rewriter]):
+        def register(inner_rewriter: Union[RewriteDatabase, Rewriter]):
             return register_specialize_device(
                 inner_rewriter, node_rewriter, *tags, **kwargs
             )

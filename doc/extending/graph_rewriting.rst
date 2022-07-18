@@ -583,30 +583,30 @@ Definition of :obj:`optdb`
 
 :obj:`optdb` is an object which is an instance of
 :class:`SequenceDB <optdb.SequenceDB>`,
-itself a subclass of :class:`OptimizationDatabase <optdb.OptimizationDatabase>`.
-There exist (for now) two types of :class:`OptimizationDatabase`, :class:`SequenceDB` and :class:`EquilibriumDB`.
-When given an appropriate :class:`OptimizationQuery`, :class:`OptimizationDatabase` objects build an :class:`Optimizer` matching
+itself a subclass of :class:`RewriteDatabase <optdb.RewriteDatabase>`.
+There exist (for now) two types of :class:`RewriteDatabase`, :class:`SequenceDB` and :class:`EquilibriumDB`.
+When given an appropriate :class:`OptimizationQuery`, :class:`RewriteDatabase` objects build an :class:`Optimizer` matching
 the query.
 
-A :class:`SequenceDB` contains :class:`Optimizer` or :class:`OptimizationDatabase` objects. Each of them
+A :class:`SequenceDB` contains :class:`Optimizer` or :class:`RewriteDatabase` objects. Each of them
 has a name, an arbitrary number of tags and an integer representing their order
 in the sequence. When a :class:`OptimizationQuery` is applied to a :class:`SequenceDB`, all :class:`Optimizer`\s whose
 tags match the query are inserted in proper order in a :class:`SequenceOptimizer`, which
-is returned. If the :class:`SequenceDB` contains :class:`OptimizationDatabase`
+is returned. If the :class:`SequenceDB` contains :class:`RewriteDatabase`
 instances, the :class:`OptimizationQuery` will be passed to them as well and the
 optimizers they return will be put in their places.
 
-An :class:`EquilibriumDB` contains :class:`NodeRewriter` or :class:`OptimizationDatabase` objects. Each of them
+An :class:`EquilibriumDB` contains :class:`NodeRewriter` or :class:`RewriteDatabase` objects. Each of them
 has a name and an arbitrary number of tags. When a :class:`OptimizationQuery` is applied to
 an :class:`EquilibriumDB`, all :class:`NodeRewriter`\s that match the query are
 inserted into an :class:`EquilibriumGraphRewriter`, which is returned. If the
-:class:`SequenceDB` contains :class:`OptimizationDatabase` instances, the
+:class:`SequenceDB` contains :class:`RewriteDatabase` instances, the
 :class:`OptimizationQuery` will be passed to them as well and the
 :class:`NodeRewriter`\s they return will be put in their places
-(note that as of yet no :class:`OptimizationDatabase` can produce :class:`NodeRewriter` objects, so this
+(note that as of yet no :class:`RewriteDatabase` can produce :class:`NodeRewriter` objects, so this
 is a moot point).
 
-Aesara contains one principal :class:`OptimizationDatabase` object, :class:`optdb`, which
+Aesara contains one principal :class:`RewriteDatabase` object, :class:`optdb`, which
 contains all of Aesara's optimizers with proper tags. It is
 recommended to insert new :class:`Optimizer`\s in it. As mentioned previously,
 optdb is a :class:`SequenceDB`, so, at the top level, Aesara applies a sequence

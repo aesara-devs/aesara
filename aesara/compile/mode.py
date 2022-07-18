@@ -19,8 +19,8 @@ from aesara.graph.opt import (
 from aesara.graph.optdb import (
     EquilibriumDB,
     LocalGroupDB,
-    OptimizationDatabase,
     OptimizationQuery,
+    RewriteDatabase,
     SequenceDB,
     TopoDB,
 )
@@ -288,7 +288,7 @@ class Mode:
         A Linker decides which implementations to use (C or Python, for example)
         and how to string them together to perform the computation.
     db:
-        The ``OptimizationDatabase`` used by this ``Mode``.  Note: This value
+        The ``RewriteDatabase`` used by this ``Mode``.  Note: This value
         is *not* part of a ``Mode`` instance's pickled state.
 
     See Also
@@ -303,7 +303,7 @@ class Mode:
         self,
         linker: Optional[Union[str, Linker]] = None,
         optimizer: Union[str, OptimizationQuery] = "default",
-        db: OptimizationDatabase = None,
+        db: RewriteDatabase = None,
     ):
         if linker is None:
             linker = config.linker

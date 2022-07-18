@@ -14,7 +14,7 @@ from aesara.utils import DefaultOrderedDict
 OptimizersType = Union[aesara_opt.GraphRewriter, aesara_opt.NodeRewriter]
 
 
-class OptimizationDatabase:
+class RewriteDatabase:
     r"""A class that represents a collection/database of optimizations.
 
     These databases are used to logically organize collections of optimizers
@@ -31,7 +31,7 @@ class OptimizationDatabase:
     def register(
         self,
         name: str,
-        rewriter: Union["OptimizationDatabase", OptimizersType],
+        rewriter: Union["RewriteDatabase", OptimizersType],
         *tags: str,
         use_db_name_as_tag=True,
     ):
@@ -59,7 +59,7 @@ class OptimizationDatabase:
         if not isinstance(
             rewriter,
             (
-                OptimizationDatabase,
+                RewriteDatabase,
                 aesara_opt.GraphRewriter,
                 aesara_opt.NodeRewriter,
             ),
@@ -75,12 +75,12 @@ class OptimizationDatabase:
 
         rewriter.name = name
         # This restriction is there because in many place we suppose that
-        # something in the OptimizationDatabase is there only once.
+        # something in the RewriteDatabase is there only once.
         if rewriter.name in self.__db__:
             raise ValueError(
                 f"Tried to register {rewriter.name} again under the new name {name}. "
                 "The same optimization cannot be registered multiple times in"
-                " an ``OptimizationDatabase``; use ProxyDB instead."
+                " an ``RewriteDatabase``; use ProxyDB instead."
             )
         self.__db__[name] = OrderedSet([rewriter])
         self._names.add(name)
@@ -121,7 +121,7 @@ class OptimizationDatabase:
         remove = OrderedSet()
         add = OrderedSet()
         for obj in variables:
-            if isinstance(obj, OptimizationDatabase):
+            if isinstance(obj, RewriteDatabase):
                 def_sub_query = q
                 if q.extra_optimizations:
                     def_sub_query = copy.copy(q)
@@ -288,7 +288,7 @@ class OptimizationQuery:
         )
 
 
-class EquilibriumDB(OptimizationDatabase):
+class EquilibriumDB(RewriteDatabase):
     """A database of rewrites that should be applied until equilibrium is reached.
 
     Canonicalize, Stabilize, and Specialize are all equilibrium rewriters.
@@ -327,7 +327,7 @@ class EquilibriumDB(OptimizationDatabase):
     def register(
         self,
         name: str,
-        rewriter: Union["OptimizationDatabase", OptimizersType],
+        rewriter: Union["RewriteDatabase", OptimizersType],
         *tags: str,
         final_rewriter: bool = False,
         cleanup: bool = False,
@@ -365,7 +365,7 @@ class EquilibriumDB(OptimizationDatabase):
         )
 
 
-class SequenceDB(OptimizationDatabase):
+class SequenceDB(RewriteDatabase):
     """A sequence of potential rewrites.
 
     Retrieve a sequence of rewrites as a `SequentialGraphRewriter` by calling
@@ -497,7 +497,7 @@ class LocalGroupDB(SequenceDB):
         return ret
 
 
-class TopoDB(OptimizationDatabase):
+class TopoDB(RewriteDatabase):
     """Generate a `GraphRewriter` of type `WalkingGraphRewriter`."""
 
     def __init__(
@@ -518,17 +518,17 @@ class TopoDB(OptimizationDatabase):
         )
 
 
-class ProxyDB(OptimizationDatabase):
-    """A object that wraps an existing ``OptimizationDatabase``.
+class ProxyDB(RewriteDatabase):
+    """A object that wraps an existing ``RewriteDatabase``.
 
-    This is needed because we can't register the same ``OptimizationDatabase``
+    This is needed because we can't register the same ``RewriteDatabase``
     multiple times in different positions in a ``SequentialDB``.
 
     """
 
     def __init__(self, db):
-        if not isinstance(db, OptimizationDatabase):
-            raise TypeError("`db` must be an `OptimizationDatabase`.")
+        if not isinstance(db, RewriteDatabase):
+            raise TypeError("`db` must be an `RewriteDatabase`.")
 
         self.db = db
 
@@ -539,13 +539,18 @@ class ProxyDB(OptimizationDatabase):
 DEPRECATED_NAMES = [
     (
         "DB",
-        "`DB` is deprecated; use `OptimizationDatabase` instead.",
-        OptimizationDatabase,
+        "`DB` is deprecated; use `RewriteDatabase` instead.",
+        RewriteDatabase,
     ),
     (
         "Query",
         "`Query` is deprecated; use `OptimizationQuery` instead.",
         OptimizationQuery,
+    ),
+    (
+        "OptimizationDatabase",
+        "`OptimizationDatabase` is deprecated; use `RewriteDatabase` instead.",
+        RewriteDatabase,
     ),
 ]
 
