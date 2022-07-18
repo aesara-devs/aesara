@@ -603,13 +603,13 @@ class ReplaceValidate(History, Validator):
             fgraph.revert(chk)
             if verbose:
                 print(
-                    f"optimizer: validate failed on node {r}.\n Reason: {reason}, {e}"
+                    f"rewriting: validate failed on node {r}.\n Reason: {reason}, {e}"
                 )
             raise
 
         if verbose:
             print(
-                f"optimizer: rewrite {reason} replaces {r} of {r.owner} with {new_r} of {new_r.owner}"
+                f"rewriting: rewrite {reason} replaces {r} of {r.owner} with {new_r} of {new_r.owner}"
             )
 
         # The return is needed by replace_all_validate_remove

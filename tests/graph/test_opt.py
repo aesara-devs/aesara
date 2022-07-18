@@ -50,28 +50,30 @@ class AssertNoChanges(Feature):
         raise AssertionError()
 
 
-def PatternOptimizer(p1, p2, ign=False):
+def OpKeyPatternNodeRewriter(p1, p2, ign=False):
     return OpKeyGraphRewriter(PatternNodeRewriter(p1, p2), ignore_newtrees=ign)
 
 
-def TopoPatternOptimizer(p1, p2, ign=True):
+def WalkingPatternNodeRewriter(p1, p2, ign=True):
     return WalkingGraphRewriter(PatternNodeRewriter(p1, p2), ignore_newtrees=ign)
 
 
-class TestPatternOptimizer:
+class TestPatternNodeRewriter:
     def test_replace_output(self):
         # replacing the whole graph
         x, y, z = MyVariable("x"), MyVariable("y"), MyVariable("z")
         e = op1(op2(x, y), z)
         g = FunctionGraph([x, y, z], [e])
-        PatternOptimizer((op1, (op2, "1", "2"), "3"), (op4, "3", "2")).rewrite(g)
+        OpKeyPatternNodeRewriter((op1, (op2, "1", "2"), "3"), (op4, "3", "2")).rewrite(
+            g
+        )
         assert str(g) == "FunctionGraph(Op4(z, y))"
 
     def test_nested_out_pattern(self):
         x, y, z = MyVariable("x"), MyVariable("y"), MyVariable("z")
         e = op1(x, y)
         g = FunctionGraph([x, y, z], [e])
-        PatternOptimizer(
+        OpKeyPatternNodeRewriter(
             (op1, "1", "2"), (op4, (op1, "1"), (op2, "2"), (op3, "1", "2"))
         ).rewrite(g)
         assert str(g) == "FunctionGraph(Op4(Op1(x), Op2(y), Op3(x, y)))"
@@ -80,7 +82,7 @@ class TestPatternOptimizer:
         x, y, z = MyVariable("x"), MyVariable("y"), MyVariable("z")
         e = op1(op2(x, x), z)  # the arguments to op2 are the same
         g = FunctionGraph([x, y, z], [e])
-        PatternOptimizer(
+        OpKeyPatternNodeRewriter(
             (op1, (op2, "1", "1"), "2"),  # they are the same in the pattern
             (op4, "2", "1"),
         ).rewrite(g)
@@ -91,7 +93,7 @@ class TestPatternOptimizer:
         x, y, z = MyVariable("x"), MyVariable("y"), MyVariable("z")
         e = op1(op2(x, y), z)  # the arguments to op2 are different
         g = FunctionGraph([x, y, z], [e])
-        PatternOptimizer(
+        OpKeyPatternNodeRewriter(
             (op1, (op2, "1", "1"), "2"),  # they are the same in the pattern
             (op4, "2", "1"),
         ).rewrite(g)
@@ -103,7 +105,7 @@ class TestPatternOptimizer:
         x, y, z = MyVariable("x"), MyVariable("y"), MyVariable("z")
         e = op1(op2(x, y), z)
         g = FunctionGraph([x, y, z], [e])
-        PatternOptimizer((op2, "1", "2"), (op1, "2", "1")).rewrite(g)
+        OpKeyPatternNodeRewriter((op2, "1", "2"), (op1, "2", "1")).rewrite(g)
         assert str(g) == "FunctionGraph(Op1(Op1(y, x), z))"
 
     def test_no_recurse(self):
@@ -113,7 +115,7 @@ class TestPatternOptimizer:
         x, y, z = MyVariable("x"), MyVariable("y"), MyVariable("z")
         e = op1(op2(x, y), z)
         g = FunctionGraph([x, y, z], [e])
-        PatternOptimizer((op2, "1", "2"), (op2, "2", "1"), ign=True).rewrite(g)
+        OpKeyPatternNodeRewriter((op2, "1", "2"), (op2, "2", "1"), ign=True).rewrite(g)
         assert str(g) == "FunctionGraph(Op1(Op2(y, x), z))"
 
     def test_multiple(self):
@@ -121,7 +123,7 @@ class TestPatternOptimizer:
         x, y, z = MyVariable("x"), MyVariable("y"), MyVariable("z")
         e = op1(op2(x, y), op2(x, y), op2(y, z))
         g = FunctionGraph([x, y, z], [e])
-        PatternOptimizer((op2, "1", "2"), (op4, "1")).rewrite(g)
+        OpKeyPatternNodeRewriter((op2, "1", "2"), (op4, "1")).rewrite(g)
         assert str(g) == "FunctionGraph(Op1(Op4(x), Op4(x), Op4(y)))"
 
     def test_nested_even(self):
@@ -130,21 +132,21 @@ class TestPatternOptimizer:
         x, y, z = MyVariable("x"), MyVariable("y"), MyVariable("z")
         e = op1(op1(op1(op1(x))))
         g = FunctionGraph([x, y, z], [e])
-        PatternOptimizer((op1, (op1, "1")), "1").rewrite(g)
+        OpKeyPatternNodeRewriter((op1, (op1, "1")), "1").rewrite(g)
         assert str(g) == "FunctionGraph(x)"
 
     def test_nested_odd(self):
         x, y, z = MyVariable("x"), MyVariable("y"), MyVariable("z")
         e = op1(op1(op1(op1(op1(x)))))
         g = FunctionGraph([x, y, z], [e])
-        PatternOptimizer((op1, (op1, "1")), "1").rewrite(g)
+        OpKeyPatternNodeRewriter((op1, (op1, "1")), "1").rewrite(g)
         assert str(g) == "FunctionGraph(Op1(x))"
 
     def test_expand(self):
         x, y, z = MyVariable("x"), MyVariable("y"), MyVariable("z")
         e = op1(op1(op1(x)))
         g = FunctionGraph([x, y, z], [e])
-        PatternOptimizer((op1, "1"), (op2, (op1, "1")), ign=True).rewrite(g)
+        OpKeyPatternNodeRewriter((op1, "1"), (op2, (op1, "1")), ign=True).rewrite(g)
         assert str(g) == "FunctionGraph(Op2(Op1(Op2(Op1(Op2(Op1(x)))))))"
 
     def test_ambiguous(self):
@@ -154,7 +156,7 @@ class TestPatternOptimizer:
         x, y, z = MyVariable("x"), MyVariable("y"), MyVariable("z")
         e = op1(op1(op1(op1(op1(x)))))
         g = FunctionGraph([x, y, z], [e])
-        TopoPatternOptimizer((op1, (op1, "1")), (op1, "1"), ign=False).rewrite(g)
+        WalkingPatternNodeRewriter((op1, (op1, "1")), (op1, "1"), ign=False).rewrite(g)
         assert str(g) == "FunctionGraph(Op1(x))"
 
     def test_constant(self):
@@ -163,7 +165,7 @@ class TestPatternOptimizer:
         z = Constant(MyType(), 2, name="z")
         e = op1(op1(x, y), y)
         g = FunctionGraph([y], [e])
-        PatternOptimizer((op1, z, "1"), (op2, "1", z)).rewrite(g)
+        OpKeyPatternNodeRewriter((op1, z, "1"), (op2, "1", z)).rewrite(g)
         assert str(g) == "FunctionGraph(Op1(Op2(y, z), y))"
 
     def test_constraints(self):
@@ -175,7 +177,7 @@ class TestPatternOptimizer:
             # Only replacing if the input is an instance of Op2
             return r.owner.op == op2
 
-        PatternOptimizer(
+        OpKeyPatternNodeRewriter(
             (op1, {"pattern": "1", "constraint": constraint}), (op3, "1")
         ).rewrite(g)
         assert str(g) == "FunctionGraph(Op4(Op3(Op2(x, y)), Op1(Op1(x, y))))"
@@ -184,7 +186,7 @@ class TestPatternOptimizer:
         x, y, z = MyVariable("x"), MyVariable("y"), MyVariable("z")
         e = op1(x, x)
         g = FunctionGraph([x, y, z], [e])
-        PatternOptimizer((op1, "x", "y"), (op3, "x", "y")).rewrite(g)
+        OpKeyPatternNodeRewriter((op1, "x", "y"), (op3, "x", "y")).rewrite(g)
         assert str(g) == "FunctionGraph(Op3(x, x))"
 
     @pytest.mark.xfail(
@@ -199,7 +201,7 @@ class TestPatternOptimizer:
             # Only replacing if the input is an instance of Op2
             return r.owner.inputs[0] is not r.owner.inputs[1]
 
-        PatternOptimizer(
+        OpKeyPatternNodeRewriter(
             {"pattern": (op1, "x", "y"), "constraint": constraint}, (op3, "x", "y")
         ).rewrite(g)
         assert str(g) == "FunctionGraph(Op2(Op1(x, x), Op3(x, y)))"
@@ -210,7 +212,7 @@ class TestPatternOptimizer:
         # `e0` has multiple clients (i.e. the `op4` and `op3` nodes)
         e = op3(op4(e0), e0)
         g = FunctionGraph([x, y, z], [e])
-        PatternOptimizer((op4, (op1, "x", "y")), (op3, "x", "y")).rewrite(g)
+        OpKeyPatternNodeRewriter((op4, (op1, "x", "y")), (op3, "x", "y")).rewrite(g)
         assert str(g) == "FunctionGraph(Op3(Op4(*1 -> Op1(x, y)), *1))"
 
     def test_eq(self):
@@ -218,7 +220,9 @@ class TestPatternOptimizer:
         x, y, z = MyVariable("x"), MyVariable("y"), MyVariable("z")
         e = op1(op_y(x, y), z)
         g = FunctionGraph([x, y, z], [e])
-        PatternOptimizer((op1, (op_z, "1", "2"), "3"), (op4, "3", "2")).rewrite(g)
+        OpKeyPatternNodeRewriter((op1, (op_z, "1", "2"), "3"), (op4, "3", "2")).rewrite(
+            g
+        )
         str_g = str(g)
         assert str_g == "FunctionGraph(Op4(z, y))"
 
@@ -446,7 +450,7 @@ class TestEquilibrium:
         e = op3(op4(x, y))
         g = FunctionGraph([x, y, z], [e])
         # print g
-        opt = EquilibriumGraphRewriter(
+        rewriter = EquilibriumGraphRewriter(
             [
                 PatternNodeRewriter((op1, "x", "y"), (op2, "x", "y")),
                 PatternNodeRewriter((op4, "x", "y"), (op1, "x", "y")),
@@ -454,7 +458,7 @@ class TestEquilibrium:
             ],
             max_use_ratio=10,
         )
-        opt.rewrite(g)
+        rewriter.rewrite(g)
         # print g
         assert str(g) == "FunctionGraph(Op2(x, y))"
 
@@ -463,7 +467,7 @@ class TestEquilibrium:
         e = op1(op1(op3(x, y)))
         g = FunctionGraph([x, y, z], [e])
         # print g
-        opt = EquilibriumGraphRewriter(
+        rewriter = EquilibriumGraphRewriter(
             [
                 PatternNodeRewriter((op1, (op2, "x", "y")), (op4, "x", "y")),
                 PatternNodeRewriter((op3, "x", "y"), (op4, "x", "y")),
@@ -473,7 +477,7 @@ class TestEquilibrium:
             ],
             max_use_ratio=10,
         )
-        opt.rewrite(g)
+        rewriter.rewrite(g)
         assert str(g) == "FunctionGraph(Op2(x, y))"
 
     @config.change_flags(on_opt_error="ignore")
@@ -488,15 +492,15 @@ class TestEquilibrium:
         oldlevel = _logger.level
         _logger.setLevel(logging.CRITICAL)
         try:
-            opt = EquilibriumGraphRewriter(
+            rewriter = EquilibriumGraphRewriter(
                 [
                     PatternNodeRewriter((op1, "x", "y"), (op2, "x", "y")),
                     PatternNodeRewriter((op4, "x", "y"), (op1, "x", "y")),
                     PatternNodeRewriter((op3, (op2, "x", "y")), (op4, "x", "y")),
                 ],
                 max_use_ratio=1.0 / len(g.apply_nodes),
-            )  # each opt can only be applied once
-            opt.rewrite(g)
+            )
+            rewriter.rewrite(g)
         finally:
             _logger.setLevel(oldlevel)
         # print 'after', g
@@ -600,7 +604,7 @@ def test_patternsub_values_eq_approx(out_pattern, tracks):
     e = op1(x)
     fg = FunctionGraph([x], [e], clone=False)
 
-    opt = EquilibriumGraphRewriter(
+    rewriter = EquilibriumGraphRewriter(
         [
             PatternNodeRewriter(
                 (op1, "x"),
@@ -612,7 +616,7 @@ def test_patternsub_values_eq_approx(out_pattern, tracks):
         ],
         max_use_ratio=1,
     )
-    opt.rewrite(fg)
+    rewriter.rewrite(fg)
     output = fg.outputs[0]
     if isinstance(out_pattern, tuple):
         assert output.owner.op == op2
@@ -633,7 +637,7 @@ def test_patternsub_invalid_dtype(out_pattern):
     e = op_cast_type2(x)
     fg = FunctionGraph([x], [e])
 
-    opt = EquilibriumGraphRewriter(
+    rewriter = EquilibriumGraphRewriter(
         [
             PatternNodeRewriter(
                 (op_cast_type2, "x"),
@@ -642,7 +646,7 @@ def test_patternsub_invalid_dtype(out_pattern):
         ],
         max_use_ratio=1,
     )
-    opt.rewrite(fg)
+    rewriter.rewrite(fg)
     assert e.type.is_super(fg.outputs[0].type)
 
 
@@ -653,14 +657,14 @@ def test_patternsub_different_output_lengths():
         ("x"),
         name="ps",
     )
-    opt = in2out(ps)
+    rewriter = in2out(ps)
 
     x = MyVariable("x")
     e1, e2 = op_multiple_outputs(x)
     o = op1(e1)
 
     fgraph = FunctionGraph(inputs=[x], outputs=[o])
-    opt.rewrite(fgraph)
+    rewriter.rewrite(fgraph)
     assert fgraph.outputs[0].owner.op == op1
 
 
@@ -674,45 +678,45 @@ class TestSequentialNodeRewriter:
         fgraph = FunctionGraph([x, y], [o1], clone=False)
 
         @node_rewriter(None)
-        def local_opt_1(fgraph, node):
+        def local_rewrite_1(fgraph, node):
             if node.inputs[0] == x:
                 res = op2(y, *node.inputs[1:])
                 return [res]
 
         @node_rewriter(None)
-        def local_opt_2(fgraph, node):
+        def local_rewrite_2(fgraph, node):
             if node.inputs[0] == y:
                 res = op2(x, *node.inputs[1:])
                 return [res]
 
-        opt_group = SequentialNodeRewriter(local_opt_1, local_opt_2)
+        seq_rewriter = SequentialNodeRewriter(local_rewrite_1, local_rewrite_2)
 
         with config.change_flags(optimizer_verbose=True):
-            (new_res,) = opt_group.transform(fgraph, o1.owner)
-            _ = opt_group.transform(fgraph, new_res.owner)
+            (new_res,) = seq_rewriter.transform(fgraph, o1.owner)
+            _ = seq_rewriter.transform(fgraph, new_res.owner)
 
         capres = capsys.readouterr()
         assert capres.err == ""
         assert (
-            "optimizer: rewrite local_opt_1 replaces node Op1(x, y) with [Op2.0]"
+            "rewriting: rewrite local_rewrite_1 replaces node Op1(x, y) with [Op2.0]"
             in capres.out
         )
         assert (
-            "optimizer: rewrite local_opt_2 replaces node Op2(y, y) with [Op2.0]"
+            "rewriting: rewrite local_rewrite_2 replaces node Op2(y, y) with [Op2.0]"
             in capres.out
         )
 
 
 def test_node_rewriter_str():
     @node_rewriter([op1, MyOp])
-    def local_opt_1(fgraph, node):
+    def local_rewriter_1(fgraph, node):
         pass
 
-    assert str(local_opt_1) == "local_opt_1"
-    res = repr(local_opt_1)
+    assert str(local_rewriter_1) == "local_rewriter_1"
+    res = repr(local_rewriter_1)
     assert res.startswith("FromFunctionNodeRewriter(")
     assert "Op1" in res
-    assert "local_opt_1" in res
+    assert "local_rewriter_1" in res
 
 
 def test_node_rewriter():
@@ -749,60 +753,66 @@ def test_node_rewriter():
     hits = [0]
 
     @node_rewriter([op1, MyNewOp])
-    def local_opt_1(fgraph, node, hits=hits):
+    def local_rewriter_1(fgraph, node, hits=hits):
         hits[0] += 1
         return node.outputs
 
     # This is allowed by the `op1` in `tracks`
-    local_opt_1.transform(fgraph, fgraph.outputs[0].owner)
+    local_rewriter_1.transform(fgraph, fgraph.outputs[0].owner)
     assert hits[0] == 1
 
     # This is allowed by the `MyOp` in `tracks`
-    local_opt_1.transform(fgraph, fgraph.outputs[1].owner)
+    local_rewriter_1.transform(fgraph, fgraph.outputs[1].owner)
     assert hits[0] == 2
 
     # This is not allowed by `tracks`
-    local_opt_1.transform(fgraph, fgraph.outputs[2].owner)
+    local_rewriter_1.transform(fgraph, fgraph.outputs[2].owner)
     assert hits[0] == 2
 
 
 def test_OpToRewriterTracker():
     @node_rewriter(None)
-    def local_opt_1(fgraph, node):
+    def local_rewriter_1(fgraph, node):
         pass
 
     @node_rewriter([op1])
-    def local_opt_2(fgraph, node):
+    def local_rewriter_2(fgraph, node):
         pass
 
     @node_rewriter([Op])
-    def local_opt_3(fgraph, node):
+    def local_rewriter_3(fgraph, node):
         pass
 
     @node_rewriter([MyOp])
-    def local_opt_4(fgraph, node):
+    def local_rewriter_4(fgraph, node):
         pass
 
     @node_rewriter([MyOp])
-    def local_opt_5(fgraph, node):
+    def local_rewriter_5(fgraph, node):
         pass
 
     tracker = OpToRewriterTracker()
-    tracker.add_tracker(local_opt_1)
-    tracker.add_tracker(local_opt_2)
-    tracker.add_tracker(local_opt_3)
-    tracker.add_tracker(local_opt_4)
-    tracker.add_tracker(local_opt_5)
+    tracker.add_tracker(local_rewriter_1)
+    tracker.add_tracker(local_rewriter_2)
+    tracker.add_tracker(local_rewriter_3)
+    tracker.add_tracker(local_rewriter_4)
+    tracker.add_tracker(local_rewriter_5)
 
-    assert tracker.tracked_instances == {op1: [local_opt_2]}
+    assert tracker.tracked_instances == {op1: [local_rewriter_2]}
     assert tracker.tracked_types == {
-        Op: [local_opt_3],
-        MyOp: [local_opt_4, local_opt_5],
+        Op: [local_rewriter_3],
+        MyOp: [local_rewriter_4, local_rewriter_5],
     }
-    assert tracker.untracked_opts == [local_opt_1]
+    assert tracker.untracked_rewrites == [local_rewriter_1]
 
     res = tracker.get_trackers(op1)
-    assert res == [local_opt_4, local_opt_5, local_opt_3, local_opt_2, local_opt_1]
+    assert res == [
+        local_rewriter_4,
+        local_rewriter_5,
+        local_rewriter_3,
+        local_rewriter_2,
+        local_rewriter_1,
+    ]
 
     class MyNewOp(Op):
         def perform(self, *args):
@@ -811,12 +821,12 @@ def test_OpToRewriterTracker():
     new_op = MyNewOp()
 
     res = tracker.get_trackers(new_op)
-    assert res == [local_opt_3, local_opt_1]
+    assert res == [local_rewriter_3, local_rewriter_1]
 
     assert list(tracker.get_rewriters()) == [
-        local_opt_3,
-        local_opt_4,
-        local_opt_5,
-        local_opt_2,
-        local_opt_1,
+        local_rewriter_3,
+        local_rewriter_4,
+        local_rewriter_5,
+        local_rewriter_2,
+        local_rewriter_1,
     ]

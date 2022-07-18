@@ -1388,21 +1388,20 @@ def local_setsubtensor_of_constants(fgraph, node):
 @register_specialize
 @node_rewriter([AdvancedSubtensor1])
 def local_adv_sub1_adv_inc_sub1(fgraph, node):
-    """Optimize the possible AdvSub1(AdvSetSub1(...), ...).
+    """Rewrite graphs like ``AdvancedSubtensor1(AdvancedSetSubtensor1(...), ...)``.
 
-    AdvancedSubtensor1(AdvancedSetSubtensor1(x, y, idx), idx) -> y
+        AdvancedSubtensor1(AdvancedSetSubtensor1(x, y, idx), idx) -> y
 
     Notes
     -----
-    This opt add AssertOp. Otherwise, it would remove shape and
-    index error. If you want to get rid of them, see the
-    :ref:`unsafe_optimization` section.
+    This rewrite adds an `AssertOp`; otherwise, it would remove shape and index
+    error. If you want to get rid of them, see the :ref:`unsafe_rewrites`
+    section.
 
-    WARNING:
-    A previous version of this optimization also matched
-    AdvancedSubtensor1(AdvancedIncSubtensor1(0s, y, idx), idx) -> y
+    A previous version of this rewrite also matched
+    ``AdvancedSubtensor1(AdvancedIncSubtensor1(x, y, idx), idx)``.
     This is incorrect when there are duplicate indices.
-    The current version warns the user about potential past issues.
+    The current version warns the user about potential issues.
 
     """
     if not isinstance(node.op, AdvancedSubtensor1):

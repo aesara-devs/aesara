@@ -129,12 +129,12 @@ as it will be useful later on.
 
 -------------------------------------------
 
-Mode
-====
+Default Modes
+=============
 
 Every time :func:`aesara.function <function.function>` is called,
 the symbolic relationships between the input and output Aesara *variables*
-are optimized and compiled. The way this compilation occurs
+are rewritten and compiled. The way this compilation occurs
 is controlled by the value of the ``mode`` parameter.
 
 Aesara defines the following modes by name:
@@ -166,10 +166,10 @@ short name        Full constructor                                              
     see :ref:`the debugging FAQ<faq_monitormode>` for details.
 
 
-Linkers
-=======
+Default Linkers
+===============
 
-A mode is composed of 2 things: an optimizer and a linker. Some modes,
+A :class:`Mode` object is composed of two things: an optimizer and a linker. Some modes,
 like `NanGuardMode` and `DebugMode`, add logic around the
 optimizer and linker. `DebugMode` uses its own linker.
 
@@ -201,12 +201,14 @@ For more detail, see :ref:`Mode<libdoc_compile_mode>` in the library.
 
 .. _optimizers:
 
-Optimizers
-==========
+Default Optimizers
+==================
 
-Aesara allows compilations with a number of predefined optimizers.
-An optimizer consists of a particular set of optimizations, that speed
-up execution of Aesara programs.
+Aesara allows compilations with a number of predefined rewrites that are
+expected to improve graph evaluation performance on average.
+An optimizer is technically just a :class:`Rewriter`, or an object that
+indicates a particular set of rewrites (e.g. a string used to query `optdb` for
+a :class:`Rewriter`).
 
 The optimizers Aesara provides are summarized below to indicate the trade-offs
 one might make between compilation time and execution time.
@@ -217,35 +219,33 @@ or per call to aesara functions with ``function(...mode=Mode(optimizer="name"))`
 =================  ============  ==============  ==================================================
 optimizer          Compile time  Execution time  Description
 =================  ============  ==============  ==================================================
-None               "++++++"      "+"             Applies none of Aesara's opts
-o1 (fast_compile)  "+++++"       "++"            Applies only basic opts
-o2                 "++++"        "+++"           Applies few basic opts and some that compile fast
-o3                 "+++"         "++++"          Applies all opts except ones that compile slower
-o4 (fast_run)      "++"          "+++++"         Applies all opts
-unsafe             "+"           "++++++"        Applies all opts, and removes safety checks
-stabilize          "+++++"       "++"            Only applies stability opts
+None               "++++++"      "+"             Applies none of Aesara's rewrites
+o1 (fast_compile)  "+++++"       "++"            Applies only basic rewrites
+o2                 "++++"        "+++"           Applies few basic rewrites and some that compile fast
+o3                 "+++"         "++++"          Applies all rewrites except ones that compile slower
+o4 (fast_run)      "++"          "+++++"         Applies all rewrites
+unsafe             "+"           "++++++"        Applies all rewrites, and removes safety checks
+stabilize          "+++++"       "++"            Only applies stability rewrites
 =================  ============  ==============  ==================================================
 
-For a detailed list of the specific optimizations applied for each of these
-optimizers, see :ref:`optimizations`. Also, see :ref:`unsafe_optimization` and
+For a detailed list of the specific rewrites applied for each of these
+optimizers, see :ref:`optimizations`. Also, see :ref:`unsafe_rewrites` and
 :ref:`faster-aesara-function-compilation` for other trade-off.
 
 
 .. _using_debugmode:
 
-Using DebugMode
-===============
+Using :class:`DebugMode`
+========================
 
 While normally you should use the ``FAST_RUN`` or ``FAST_COMPILE`` mode,
-it is useful at first (especially when you are defining new kinds of
-expressions or new optimizations) to run your code using the `DebugMode`
+it is useful at first--especially when you are defining new kinds of
+expressions or new rewrites--to run your code using the `DebugMode`
 (available via ``mode='DebugMode``). The `DebugMode` is designed to
 run several self-checks and assertions that can help diagnose
 possible programming errors leading to incorrect output. Note that
-``DebugMode`` is much slower than ``FAST_RUN`` or ``FAST_COMPILE`` so
-use it only during development (not when you launch 1000 processes on a
-cluster!).
-
+`DebugMode` is much slower than ``FAST_RUN`` or ``FAST_COMPILE``, so
+use it only during development.
 
 .. If you modify this code, also change :
 .. tests/test_tutorial.py:T_modes.test_modes_1

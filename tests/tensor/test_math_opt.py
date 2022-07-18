@@ -125,36 +125,36 @@ from aesara.tensor.var import TensorConstant
 from tests import unittest_tools as utt
 
 
-mode_opt = config.mode
-if mode_opt == "FAST_COMPILE":
-    mode_opt = "FAST_RUN"
-mode_opt = get_mode(mode_opt)
+rewrite_mode = config.mode
+if rewrite_mode == "FAST_COMPILE":
+    rewrite_mode = "FAST_RUN"
+rewrite_mode = get_mode(rewrite_mode)
 
 dimshuffle_lift = out2in(local_dimshuffle_lift)
 
-_optimizer_stabilize = RewriteDatabaseQuery(include=["fast_run"])
-_optimizer_stabilize.position_cutoff = 1.51
-_optimizer_stabilize = optdb.query(_optimizer_stabilize)
+_stablize_rewrites = RewriteDatabaseQuery(include=["fast_run"])
+_stablize_rewrites.position_cutoff = 1.51
+_stablize_rewrites = optdb.query(_stablize_rewrites)
 
-_optimizer_specialize = RewriteDatabaseQuery(include=["fast_run"])
-_optimizer_specialize.position_cutoff = 2.01
-_optimizer_specialize = optdb.query(_optimizer_specialize)
+_specialize_rewrites = RewriteDatabaseQuery(include=["fast_run"])
+_specialize_rewrites.position_cutoff = 2.01
+_specialize_rewrites = optdb.query(_specialize_rewrites)
 
-_optimizer_fast_run = RewriteDatabaseQuery(include=["fast_run"])
-_optimizer_fast_run = optdb.query(_optimizer_fast_run)
+_fast_run_rewrites = RewriteDatabaseQuery(include=["fast_run"])
+_fast_run_rewrites = optdb.query(_fast_run_rewrites)
 
 
 def ds(x, y):
     return DimShuffle(x.type.broadcastable, y)(x)
 
 
-def optimize(g, level="fast_run"):
+def rewrite(g, level="fast_run"):
     if level == "fast_run":
-        _optimizer_fast_run.rewrite(g)
+        _fast_run_rewrites.rewrite(g)
     elif level == "specialize":
-        _optimizer_specialize.rewrite(g)
+        _specialize_rewrites.rewrite(g)
     elif level == "stabilize":
-        _optimizer_stabilize.rewrite(g)
+        _stablize_rewrites.rewrite(g)
     else:
         raise ValueError(level)
     return g
@@ -251,15 +251,11 @@ class TestAlgebraicCanonizer:
         ],
     )
     def test_muldiv(self, e, exp_g):
-        g_opt = optimize_graph(e, custom_opt=mul_canonizer)
-        assert equal_computations([g_opt], [exp_g])
+        g_rewritten = optimize_graph(e, custom_opt=mul_canonizer)
+        assert equal_computations([g_rewritten], [exp_g])
 
-    def test_elemwise_multiple_inputs_optimisation(self):
-        # verify that the AlgebraicCanonizer merge sequential Elemwise({mul,add}) part 1
-        #
-        # This part are that case that is done, but don't include case
-        # that are not implemented but are supposed to be.
-        #
+    def test_elemwise_multiple_inputs_rewrites(self):
+        """Verify that the `AlgebraicCanonizer` merges sequential ``Elemwise({mul,add})``."""
         # Test with and without DimShuffle
         shp = (5, 5)
         fx, fy, fz = fmatrices("xyz")
@@ -363,19 +359,18 @@ class TestAlgebraicCanonizer:
         ]  # [10:11]
         # print cases
 
-        # We must be sure that the AlgebraicCanonizer is working, but that we don't have other
-        # optimisation that could hide bug in the AlgebraicCanonizer as local_elemwise_fusion
+        # We must be sure that the `AlgebraicCanonizer` is working, but that we don't have other
+        # rewrites that could hide bug in the `AlgebraicCanonizer` as `local_elemwise_fusion`
         mode = get_default_mode()
-        opt = RewriteDatabaseQuery(["canonicalize"])
-        opt = opt.excluding("local_elemwise_fusion")
-        mode = mode.__class__(linker=mode.linker, optimizer=opt)
+        rewrites = RewriteDatabaseQuery(["canonicalize"])
+        rewrites = rewrites.excluding("local_elemwise_fusion")
+        mode = mode.__class__(linker=mode.linker, optimizer=rewrites)
         for id, [g, sym_inputs, val_inputs, nb_elemwise, out_dtype] in enumerate(cases):
             if isinstance(out_dtype, dict):
                 out_dtype = out_dtype[config.cast_policy]
             f = function(
                 list(sym_inputs),
                 g,
-                # we need the optimisation enabled, debug do this.
                 mode=mode,
             )
 
@@ -386,11 +381,13 @@ class TestAlgebraicCanonizer:
     @pytest.mark.skip(
         reason="Current implementation of AlgebraicCanonizer does not implement all cases."
     )
-    def test_elemwise_multiple_inputs_optimisation2(self):
-        # verify that the AlgebraicCanonizer merge sequential Elemwise({mul,add}) part 2.
-        # This part are that case that should have been done, but that are not implemented.
-        # Test with and without DimShuffle
+    def test_elemwise_multiple_inputs_rewrites_2(self):
+        """Verify that the `AlgebraicCanonizer` merges sequential ``Elemwise({mul,add})``.
 
+        This part are that case that should have been done, but that are not implemented.
+        """
+
+        # Test with and without `DimShuffle`
         shp = (5, 5)
         fx, fy, fz = fmatrices("xyz")
         dx, dy, dz = dmatrices("xyz")
@@ -498,7 +495,7 @@ class TestAlgebraicCanonizer:
         # print cases
 
         # We must be sure that the AlgebraicCanonizer is working, but that we don't have other
-        # optimisation that could hide bug in the AlgebraicCanonizer as local_elemwise_fusion
+        # rewrites that could hide bugs in the `AlgebraicCanonizer` as `local_elemwise_fusion`
         mode = get_default_mode()
         mode._optimizer = RewriteDatabaseQuery(["canonicalize"])
         mode._optimizer = mode._optimizer.excluding("local_elemwise_fusion")
@@ -506,7 +503,6 @@ class TestAlgebraicCanonizer:
             f = function(
                 list(sym_inputs),
                 g,
-                # we need the optimisation enabled, debug do this.
                 mode=mode,
             )
 
@@ -514,16 +510,20 @@ class TestAlgebraicCanonizer:
             assert len(f.maker.fgraph.toposort()) == nb_elemwise
             assert out_dtype == out.dtype
 
-    def test_multiple_case(self):
-        # test those case take from the comment in AlgebraicCanonizer
-        # x / x -> 1
-        # (x * y) / x -> y
-        # x / y / x -> 1 / y
-        # x / y / z -> x / (y * z)
-        # x / (y / z) -> (x * z) / y
-        # (a / b) * (b / c) * (c / d) -> a / d
-        # (2.0 * x) / (4.0 * y) -> (0.5 * x) / y
-        # 2 * x / 2 -> x
+    def test_mul_div_cases(self):
+        """
+        TODO
+
+            x / x -> 1
+            (x * y) / x -> y
+            x / y / x -> 1 / y
+            x / y / z -> x / (y * z)
+            x / (y / z) -> (x * z) / y
+            (a / b) * (b / c) * (c / d) -> a / d
+            (2.0 * x) / (4.0 * y) -> (0.5 * x) / y
+            2 * x / 2 -> x
+
+        """
         # with and without DimShuffle
         # TODO: with DimShuffle
 
@@ -543,14 +543,14 @@ class TestAlgebraicCanonizer:
         dwv = _asarray(np.random.random(shp), dtype="float64")
         dvv = _asarray(np.random.random((shp[0])), dtype="float64").reshape(1, shp[0])
 
-        # We must be sure that the AlgebraicCanonizer is working, but that we don't have other
-        # optimisation that could hide bug in the AlgebraicCanonizer as local_elemwise_fusion
+        # We must be sure that the `AlgebraicCanonizer` is working, but that we don't have other
+        # rewrites that could hide bugs in the `AlgebraicCanonizer` as `local_elemwise_fusion`
         mode = get_default_mode()
 
-        opt = RewriteDatabaseQuery(["canonicalize"])
-        opt = opt.including("ShapeOpt", "local_fill_to_alloc")
-        opt = opt.excluding("local_elemwise_fusion")
-        mode = mode.__class__(linker=mode.linker, optimizer=opt)
+        rewrite_query = RewriteDatabaseQuery(["canonicalize"])
+        rewrite_query = rewrite_query.including("ShapeOpt", "local_fill_to_alloc")
+        rewrite_query = rewrite_query.excluding("local_elemwise_fusion")
+        mode = mode.__class__(linker=mode.linker, optimizer=rewrite_query)
         # test x / x -> 1
         for id, (g, sym_inputs, val_inputs, out_dtype) in enumerate(
             [
@@ -855,8 +855,7 @@ class TestAlgebraicCanonizer:
             assert out_dtype == out.dtype
 
     def test_abs_mul_div(self):
-        # test that if we have
-        # 4 * x / abs(2*x) it get simplifier during canonicalisation.
+        """Test that ``4 * x / abs(2*x)`` gets "simplified" during canonicalization."""
 
         x = dscalar()
         # a = at.at_abs(x)
@@ -869,8 +868,8 @@ class TestAlgebraicCanonizer:
         f = function([x], [(4 * x) / abs(2 * x)], mode=mode)
         f(0.1)
         f(-1)
-        # some stabilization optimization make the output be finite instead of nan
-        # debug_mode will raise an error when he see nan
+        # Some stabilization rewrites make the output finite instead of NaN.
+        # `debug_mode` will raise an error when he see NaN
         if not isinstance(mode, DebugMode):
             assert np.isfinite(f(0))
 
@@ -880,8 +879,6 @@ class TestAlgebraicCanonizer:
         f = function([x], [(4 * x) / abs(x / 2)], mode=mode)
         f(0.1)
         f(-1)
-        # some stabilization optimization make the output be finite instead of nan
-        # debug_mode will raise an error when he see nan
         if not isinstance(mode, DebugMode):
             assert np.isfinite(f(0))
 
@@ -903,13 +900,12 @@ class TestAlgebraicCanonizer:
         dyv = _asarray(np.random.random(shp), dtype="float32")
         dzv = _asarray(np.random.random(shp), dtype="float32")
         # fvv = _asarray(np.random.random((shp[0]), dtype='float32').reshape(1, shp[0])
-        # We must be sure that the AlgebraicCanonizer is working, but that we don't have other
-        # optimisation that could hide bug in the AlgebraicCanonizer as local_elemwise_fusion
+
         mode = get_default_mode()
 
-        opt = RewriteDatabaseQuery(["canonicalize"])
-        opt = opt.excluding("local_elemwise_fusion")
-        mode = mode.__class__(linker=mode.linker, optimizer=opt)
+        rewrites = RewriteDatabaseQuery(["canonicalize"])
+        rewrites = rewrites.excluding("local_elemwise_fusion")
+        mode = mode.__class__(linker=mode.linker, optimizer=rewrites)
         # test fail!
         # test x / y / z -> x / (y * z)
         for (g, sym_inputs, val_inputs, out_dtype) in [
@@ -944,7 +940,7 @@ class TestAlgebraicCanonizer:
     def test_canonicalize_nan(self):
         # Regression test for bug in canonicalization of NaN values.
         # This bug caused an infinite loop which was caught by the equilibrium
-        # optimizer, resulting in an error log message.
+        # rewriter, resulting in an error log message.
 
         sio = StringIO()
         handler = logging.StreamHandler(sio)
@@ -956,7 +952,7 @@ class TestAlgebraicCanonizer:
         finally:
             logging.getLogger("aesara.graph.opt").removeHandler(handler)
         # Ideally this test would only catch the maxed out equilibrium
-        # optimizer error message, but to be safe in case this message
+        # rewriter error message, but to be safe in case this message
         # is modified in the future, we assert that there is no error
         # at all.
         assert not sio.getvalue()
@@ -970,9 +966,11 @@ class TestAlgebraicCanonizer:
             z.owner.op, z.owner.inputs, [tensor("float64", (None, None))]
         ).outputs[0]
 
-        z_opt = optimize_graph(z, custom_opt=in2out(local_mul_canonizer, name="blah"))
+        z_rewritten = optimize_graph(
+            z, custom_opt=in2out(local_mul_canonizer, name="blah")
+        )
         # No rewrite was applied
-        assert z_opt is z
+        assert z_rewritten is z
 
 
 def test_local_merge_abs():
@@ -997,8 +995,9 @@ def test_local_merge_abs():
 
 
 def test_merge_abs_bugfix():
-    # Test crash in optimization reported by Jeremiah Lowin at
-    # https://groups.google.com/d/topic/theano-users/TaXfqXP2Mj0/discussion
+    """
+    See https://groups.google.com/d/topic/theano-users/TaXfqXP2Mj0/discussion
+    """
     input = matrix()
     # normalize on cols
     step1 = input / input.sum(0)
@@ -1074,7 +1073,7 @@ def test_cast_in_mul_canonizer():
 
 
 class TestFusion:
-    opts = RewriteDatabaseQuery(
+    rewrites = RewriteDatabaseQuery(
         include=[
             "local_elemwise_fusion",
             "composite_elemwise_fusion",
@@ -1083,7 +1082,7 @@ class TestFusion:
         ],
         exclude=["cxx_only", "BlasOpt"],
     )
-    mode = Mode(get_default_mode().linker, opts)
+    mode = Mode(get_default_mode().linker, rewrites)
     _shared = staticmethod(shared)
     topo_exclude = ()
 
@@ -1782,7 +1781,7 @@ class TestFusion:
 
     def test_add_mul_fusion_inplace(self):
 
-        opts = RewriteDatabaseQuery(
+        rewrites_query = RewriteDatabaseQuery(
             include=[
                 "local_elemwise_fusion",
                 "composite_elemwise_fusion",
@@ -1792,7 +1791,7 @@ class TestFusion:
             exclude=["cxx_only", "BlasOpt"],
         )
 
-        mode = Mode(self.mode.linker, opts)
+        mode = Mode(self.mode.linker, rewrites_query)
 
         x, y, z = dmatrices("xyz")
         out = dot(x, y) + x + y + z
@@ -1883,7 +1882,7 @@ def test_local_log_add_exp():
     assert np.isfinite(f([10000], [10000]))  # causes overflow if handled incorrectly
     utt.assert_allclose(f([10000], [10000]), 10000 + np.log1p(1))
 
-    # test that when max = +-inf, optimized output still works correctly
+    # test that when max = +-inf, rewritten output still works correctly
     assert f([-np.inf], [-np.inf]) == -np.inf
     assert f([np.inf], [np.inf]) == np.inf
     assert f([np.inf], [-np.inf]) == np.inf
@@ -1896,7 +1895,7 @@ def test_local_log_add_exp():
     assert np.isfinite(f([10000], [10000]))  # causes overflow if handled incorrectly
     utt.assert_allclose(f([10000], [10000]), 20000)
 
-    # TODO: test that the optimization works in the presence of broadcasting.
+    # TODO: test that the rewrite works in the presence of broadcasting.
 
 
 def test_local_subtensor_of_dot():
@@ -1942,8 +1941,6 @@ def test_local_subtensor_of_dot():
 
 
 def test_local_elemwise_sub_zeros():
-    # Test opt local_elemwise_sub_zeros
-    # We test separately for scalars, vectors and matrices
     scal = scalar()
     vect = vector()
     mat = matrix()
@@ -1967,38 +1964,32 @@ def test_local_elemwise_sub_zeros():
 
     # Test scalar minus scalar
     f = function([scal], scal - scal, mode=mode)
-    # Check optimized graph is correct
     assert isinstance(f.maker.fgraph.toposort()[0].op, Elemwise)
     assert isinstance(f.maker.fgraph.toposort()[0].op.scalar_op, aes.Second)
     assert isinstance(
         f.maker.fgraph.toposort()[0].inputs[1], TensorConstant
     ) or isinstance(f.maker.fgraph.toposort()[0].inputs[1], TensorConstant)
     utt.assert_allclose(f(scalar_val), 0.0)
-    # Check stack trace is copied over
     assert check_stack_trace(f, ops_to_check="all")
 
     # Test vector minus vector
     f = function([vect], vect - vect, mode=mode)
-    # Check optimized graph is correct
     assert isinstance(f.maker.fgraph.toposort()[0].op, Elemwise)
     assert isinstance(f.maker.fgraph.toposort()[0].op.scalar_op, aes.Second)
     assert isinstance(
         f.maker.fgraph.toposort()[0].inputs[1], TensorConstant
     ) or isinstance(f.maker.fgraph.toposort()[0].inputs[1], TensorConstant)
     utt.assert_allclose(f(vect_val), np.zeros(vect_val.shape))
-    # Check stack trace is copied over
     assert check_stack_trace(f, ops_to_check="all")
 
     # Test vector minus vector
     f = function([mat], mat - mat, mode=mode)
-    # Check optimized graph is correct
     assert isinstance(f.maker.fgraph.toposort()[0].op, Elemwise)
     assert isinstance(f.maker.fgraph.toposort()[0].op.scalar_op, aes.Second)
     assert isinstance(
         f.maker.fgraph.toposort()[0].inputs[1], TensorConstant
     ) or isinstance(f.maker.fgraph.toposort()[0].inputs[1], TensorConstant)
     utt.assert_allclose(f(mat_val), np.zeros(mat_val.shape))
-    # Check stack trace is copied over
     assert check_stack_trace(f, ops_to_check="all")
 
 
@@ -2161,7 +2152,7 @@ class TestLocalUselessElemwiseComparison:
         self.assert_eqs_const(f, 0)
         assert f(x_val) == 0
         f = function([x], minimum([0, 0], x.shape[0]), mode=mode)
-        # This case isn't optimized.
+        # This case isn't rewritten.
         # self.assert_eqs_const(f, 0)
         utt.assert_allclose(f(x_val), [0, 0])
 
@@ -2184,7 +2175,7 @@ class TestLocalUselessElemwiseComparison:
 
     @pytest.mark.skipif(
         config.mode == "FAST_COMPILE",
-        reason="Skip opt test as the opt is disabled",
+        reason="This rewrite is disabled.",
     )
     def test_equality_shapes(self):
         # Test equality where one sides contain only shapes related
@@ -2331,10 +2322,10 @@ def speed_local_pow_specialize_range():
     val = np.random.random((1e7))
     v = vector()
     mode = get_default_mode()
-    mode_without_pow_opt = mode.excluding("local_pow_specialize")
+    mode_without_pow_rewrite = mode.excluding("local_pow_specialize")
     for i in range(500, 513):
         f1 = function([v], v**i, mode=mode)
-        f2 = function([v], v**i, mode=mode_without_pow_opt)
+        f2 = function([v], v**i, mode=mode_without_pow_rewrite)
         assert len(f1.maker.fgraph.toposort()) == 1
         t1 = time.time()
         f1(val)
@@ -2346,7 +2337,7 @@ def speed_local_pow_specialize_range():
             print("WARNING WE ARE SLOWER")
     for i in range(-3, -1500, -1):
         f1 = function([v], v**i, mode=mode)
-        f2 = function([v], v**i, mode=mode_without_pow_opt)
+        f2 = function([v], v**i, mode=mode_without_pow_rewrite)
         assert len(f1.maker.fgraph.toposort()) == 1
         t1 = time.time()
         f1(val)
@@ -2455,10 +2446,10 @@ class TestFuncInverse:
         mode = get_default_mode()
         self.mode = mode.including("local_func_inv")
 
-    def assert_func_pair_optimized(
+    def assert_func_pair_rewritten(
         self, func1, func2, data, should_copy=True, is_complex=False
     ):
-        # Check that a pair of funcs is optimized properly
+        """Check that a pair of functions are rewritten properly."""
 
         x = cmatrix() if is_complex else fmatrix()
         o = func2(func1(x))
@@ -2484,30 +2475,30 @@ class TestFuncInverse:
         ), "Inverse functions not removed!"
 
     def test(self):
-        # test optimization for consecutive functional inverses
+        """Test rewrites for consecutive functional inverses."""
 
         dx = np.random.random((5, 4)).astype("float32")
-        self.assert_func_pair_optimized(deg2rad, rad2deg, dx)
+        self.assert_func_pair_rewritten(deg2rad, rad2deg, dx)
         dx = np.random.random((5, 4)).astype("float32") * 180
-        self.assert_func_pair_optimized(rad2deg, deg2rad, dx)
+        self.assert_func_pair_rewritten(rad2deg, deg2rad, dx)
 
         # Test the other functional inverses
         dx = np.random.random((5, 4)).astype("float32")
-        self.assert_func_pair_optimized(cosh, arccosh, dx)
-        self.assert_func_pair_optimized(arcsinh, sinh, dx)
-        self.assert_func_pair_optimized(arctanh, tanh, dx)
-        self.assert_func_pair_optimized(reciprocal, reciprocal, dx)
-        self.assert_func_pair_optimized(neg, neg, dx)
+        self.assert_func_pair_rewritten(cosh, arccosh, dx)
+        self.assert_func_pair_rewritten(arcsinh, sinh, dx)
+        self.assert_func_pair_rewritten(arctanh, tanh, dx)
+        self.assert_func_pair_rewritten(reciprocal, reciprocal, dx)
+        self.assert_func_pair_rewritten(neg, neg, dx)
         cx = dx + complex(0, 1) * (dx + 0.01)
-        self.assert_func_pair_optimized(conj, conj, cx, is_complex=True)
+        self.assert_func_pair_rewritten(conj, conj, cx, is_complex=True)
 
         # Test that non-inverse functions are ran normally
-        self.assert_func_pair_optimized(
+        self.assert_func_pair_rewritten(
             conj, neg, cx, should_copy=False, is_complex=True
         )
         dx = np.random.random((5, 4)).astype("float32") + 0.01
-        self.assert_func_pair_optimized(rad2deg, rad2deg, dx, should_copy=False)
-        self.assert_func_pair_optimized(rad2deg, cosh, dx, should_copy=False)
+        self.assert_func_pair_rewritten(rad2deg, rad2deg, dx, should_copy=False)
+        self.assert_func_pair_rewritten(rad2deg, cosh, dx, should_copy=False)
 
     def test_integer_upcast(self):
         """
@@ -2732,10 +2723,9 @@ class TestLocalSwitchSink:
         self.mode.check_isfinite = False
 
     def function_remove_nan(self, *args, **kwargs):
-        """
-        Wrapper around function for this test.
+        """Wrapper around function for this test.
 
-        It disables checking for NaN removed by optimizations in DebugMode
+        It disables checking for NaNs removed by rewrites in `DebugMode`
         (it has false positives in that case).
         """
         f = function(*args, **kwargs)
@@ -2786,7 +2776,7 @@ class TestLocalSwitchSink:
                     ].size
                 idx += 1
 
-        # This case caused a missed optimization in the past.
+        # This case prevented a rewrite from being applied in the past
         x = dscalar("x")
         y = at.switch(x < 7, x, sqrt(x - 7))
         f = self.function_remove_nan([x], aesara.gradient.grad(y, x), self.mode)
@@ -2923,7 +2913,7 @@ class TestLocalErfc:
         self.mode = self.mode_fusion.excluding("fusion")
 
     def test_local_one_minus_erfc(self):
-        # test opt: 1-erfc(x) => erf(x) and -erfc(x)+1 => erf(x)
+        """Test the rewrites ``1 - erfc(x) -> erf(x)`` and ``-erfc(x) + 1 -> erf(x)``."""
 
         val = np.asarray([-30, -3, -2, -1, 0, 1, 2, 3, 30], dtype=config.floatX)
         x = vector("x")
@@ -2946,7 +2936,7 @@ class TestLocalErfc:
         assert isinstance(topo[1].op.scalar_op, aes.Sub)
 
     def test_local_erf_neg_minus_one(self):
-        # test opt: (-1)+erfc(-x)=>erf(x)
+        """Test the rewrite ``-1 + erfc(-x) -> erf(x)``."""
         val = np.asarray([-30, -3, -2, -1, 0, 1, 2, 3, 30], dtype=config.floatX)
         x = vector("x")
 
@@ -3155,7 +3145,7 @@ class TestLocalMergeSwitchSameCond:
             neq,
             at_pow,
         ):
-            g = optimize(FunctionGraph(mats, [op(s1, s2)]))
+            g = rewrite(FunctionGraph(mats, [op(s1, s2)]))
             assert str(g).count("Switch") == 1
         # integer Ops
         mats = imatrices("cabxy")
@@ -3167,26 +3157,24 @@ class TestLocalMergeSwitchSameCond:
             bitwise_or,
             bitwise_xor,
         ):
-            g = optimize(FunctionGraph(mats, [op(s1, s2)]))
+            g = rewrite(FunctionGraph(mats, [op(s1, s2)]))
             assert str(g).count("Switch") == 1
         # add/mul with more than two inputs
         u, v = matrices("uv")
         s3 = at.switch(c, u, v)
         for op in (add, mul):
-            g = optimize(FunctionGraph(mats + [u, v], [op(s1, s2, s3)]))
+            g = rewrite(FunctionGraph(mats + [u, v], [op(s1, s2, s3)]))
             assert str(g).count("Switch") == 1
 
 
 class TestLocalSumProd:
-    """
-    Test sum/prod opts in opt.py
-    """
+    """Test sum/prod rewrites."""
 
     def setup_method(self):
         self.mode = get_default_mode().including("canonicalize", "specialize")
 
     def test_local_sum_prod_mul_by_scalar(self):
-        # Test the optimization local_sum_prod_mul_by_scalar for both Sum and
+        # Test the rewrite `local_sum_prod_mul_by_scalar` for both Sum and
         # Prod ops in six cases each :
         # 1-the inputs to the mul contain a scalar and no non-scalar
         # 2-the inputs to the mul contain a scalar and one non-scalar
@@ -3205,7 +3193,7 @@ class TestLocalSumProd:
         s1_val = np.random.random()
         s2_val = np.random.random()
 
-        def test_reduction_opt(
+        def test_reduction_rewrite(
             inputs, inputs_val, reduction_op, expected_output, nb_expected_sum_nodes
         ):
             mul_out = mul(*inputs)
@@ -3213,8 +3201,8 @@ class TestLocalSumProd:
             out = f(*inputs_val)
             utt.assert_allclose(out, expected_output)
 
-            # Ensure that the optimization has been applied properly by
-            # ensuring that the optimized graph contains the expected number
+            # Ensure that the rewrite has been applied properly by
+            # ensuring that the rewritten graph contains the expected number
             # of apply nodes for the sum op
             prod_nodes = [
                 n for n in f.maker.fgraph.toposort() if isinstance(n.op, reduction_op)
@@ -3224,15 +3212,15 @@ class TestLocalSumProd:
         # Test sum
 
         # Case 1
-        test_reduction_opt([scalar1], [s1_val], Sum, s1_val, 0)
+        test_reduction_rewrite([scalar1], [s1_val], Sum, s1_val, 0)
 
         # Case 2
-        test_reduction_opt(
+        test_reduction_rewrite(
             [vect, scalar1], [v_val, s1_val], Sum, s1_val * v_val.sum(), 1
         )
 
         # Case 3
-        test_reduction_opt(
+        test_reduction_rewrite(
             [vect, mat, scalar1],
             [v_val, m_val, s1_val],
             Sum,
@@ -3241,12 +3229,12 @@ class TestLocalSumProd:
         )
 
         # Case 4
-        test_reduction_opt(
+        test_reduction_rewrite(
             [scalar1, scalar2], [s1_val, s2_val], Sum, s1_val * s2_val, 0
         )
 
         # Case 5
-        test_reduction_opt(
+        test_reduction_rewrite(
             [vect, scalar1, scalar2],
             [v_val, s1_val, s2_val],
             Sum,
@@ -3255,7 +3243,7 @@ class TestLocalSumProd:
         )
 
         # Case 6
-        test_reduction_opt(
+        test_reduction_rewrite(
             [vect, mat, scalar1, scalar2],
             [v_val, m_val, s1_val, s2_val],
             Sum,
@@ -3266,10 +3254,10 @@ class TestLocalSumProd:
         # Test prod
 
         # Case 1
-        test_reduction_opt([scalar1], [s1_val], Prod, s1_val, 0)
+        test_reduction_rewrite([scalar1], [s1_val], Prod, s1_val, 0)
 
         # Case 2
-        test_reduction_opt(
+        test_reduction_rewrite(
             [vect, scalar1],
             [v_val, s1_val],
             Prod,
@@ -3278,7 +3266,7 @@ class TestLocalSumProd:
         )
 
         # Case 3
-        test_reduction_opt(
+        test_reduction_rewrite(
             [vect, mat, scalar1],
             [v_val, m_val, s1_val],
             Prod,
@@ -3287,12 +3275,12 @@ class TestLocalSumProd:
         )
 
         # Case 4
-        test_reduction_opt(
+        test_reduction_rewrite(
             [scalar1, scalar2], [s1_val, s2_val], Prod, s1_val * s2_val, 0
         )
 
         # Case 5
-        test_reduction_opt(
+        test_reduction_rewrite(
             [vect, scalar1, scalar2],
             [v_val, s1_val, s2_val],
             Prod,
@@ -3301,7 +3289,7 @@ class TestLocalSumProd:
         )
 
         # Case 6
-        test_reduction_opt(
+        test_reduction_rewrite(
             [vect, mat, scalar1, scalar2],
             [v_val, m_val, s1_val, s2_val],
             Prod,
@@ -3418,7 +3406,7 @@ class TestLocalSumProd:
         utt.assert_allclose(f(input), input.prod())
         assert len(f.maker.fgraph.apply_nodes) == 1
 
-        # test sum prod don't get opt.
+        # Test that sum prod didn't get rewritten.
         for d, dd in dims:
             expected = my_sum_prod(input, d, dd)
             f = function([a], a.sum(d).prod(dd), mode=self.mode)
@@ -3437,7 +3425,6 @@ class TestLocalSumProd:
         assert len(f.maker.fgraph.apply_nodes) == 1
 
     def test_local_sum_prod_alloc(self):
-        # test local_opt_alloc
         a = dtensor3()
         input = np.asarray(np.arange(2 * 3 * 4).reshape(2, 3, 4), dtype="float64")
         mode = self.mode.including("specialize").excluding("fusion")
@@ -3503,8 +3490,10 @@ class TestLocalSumProd:
                 assert not any(isinstance(node.op, Sum) for node in topo)
 
     def test_local_sum_sum_int8(self):
-        # Test that local_sum_sum works when combining two sums on an int8 array.
-        # This is a regression test for ticket gh-356.
+        """Test that `local_sum_sum` works when combining two sums on an int8 array.
+
+        This is a regression test for ticket gh-356.
+        """
 
         x = tensor3(dtype="int8")
         y = x.sum(axis=0).sum(axis=1)
@@ -3514,7 +3503,7 @@ class TestLocalSumProd:
             function([x], y)
 
     def test_local_sum_sum_dtype(self):
-        # Test that local_sum_sum works when specifying dtypes manually.
+        """Test that `local_sum_sum` works when specifying dtypes manually."""
 
         x = tensor3(dtype="int8")
         y = x.sum(axis=0, dtype="int32").sum(axis=1, dtype="int64")
@@ -3524,7 +3513,7 @@ class TestLocalSumProd:
             function([x], y)
 
     def test_local_sum_prod_mul_by_scalar_stack_trace(self):
-        # Test that stack trace is copied over correctly for local_sum_prod_mul_by_scalar.
+        """Test that stack trace is copied over correctly for `local_sum_prod_mul_by_scalar`."""
         m0 = (
             get_default_mode()
             .excluding("inplace_elemwise_opt")
@@ -3609,9 +3598,9 @@ class TestLocalReduce:
 
             op = node.op
             assert isinstance(op, CAReduce)
-            # -- the leading broadcastable dimension has been dropped
-            #   by the local_reduce_broadcastable optimization
-            #   now summation is over the original x's dimension 1.
+            # The leading broadcastable dimension has been dropped by the
+            # `local_reduce_broadcastable` rewrite.  Now, summation is over
+            # the original `x`'s dimension 1.
             assert node.inputs[0].ndim == 2, node
             assert op.axis == (0,), op.axis
 
@@ -3668,7 +3657,7 @@ class TestLocalReduce:
         topo = f.maker.fgraph.toposort()
         assert not isinstance(topo[-1].op, Elemwise)
 
-        # This case could be optimized
+        # This case could be rewritten
         A = shared(np.array([1, 2, 3, 4, 5]).reshape(5, 1))
         f = function([], at_sum(at.concatenate((A, A), axis=1), axis=1), mode=self.mode)
         utt.assert_allclose(f(), [2, 4, 6, 8, 10])
@@ -3681,7 +3670,7 @@ class TestLocalReduce:
         topo = f.maker.fgraph.toposort()
         assert not isinstance(topo[-1].op, Elemwise)
 
-        # Test that the optimization does not crash in one case where it
+        # Test that the rewrite does not crash in one case where it
         # is not applied.  Reported at
         # https://groups.google.com/d/topic/theano-users/EDgyCU00fFA/discussion
         out = at_sum([vx, vy, vz], axis=None)
@@ -3795,27 +3784,29 @@ class TestLocalSumProdDimshuffle:
         d_val = np.asarray(rng.standard_normal(), config.floatX)
 
         default_mode = get_default_mode()
-        # FusionOptimizer is included to make sure that expected_outer_operator
-        # remains the same for all optimization modes.
-        mode_with_opt = default_mode.including(
+        # `FusionOptimizer` is included to make sure that `expected_outer_operator`
+        # remains the same for all rewrite modes.
+        mode_with_rewrite = default_mode.including(
             "local_sum_prod_div_dimshuffle", "FusionOptimizer"
         )
-        mode_without_opt = default_mode.excluding("local_sum_prod_div_dimshuffle")
+        mode_without_rewrite = default_mode.excluding("local_sum_prod_div_dimshuffle")
 
         # Numerical tests: tests whether the numerical values with and without
-        #                  optimizer are equal or not.
+        # rewrites are equal or not.
         for i, s in enumerate(prods):
             f = function(
-                [a, b, c, d], s, on_unused_input="ignore", mode=mode_without_opt
+                [a, b, c, d], s, on_unused_input="ignore", mode=mode_without_rewrite
             )
-            g = function([a, b, c, d], s, on_unused_input="ignore", mode=mode_with_opt)
+            g = function(
+                [a, b, c, d], s, on_unused_input="ignore", mode=mode_with_rewrite
+            )
 
             utt.assert_allclose(
                 f(a_val, b_val, c_val, d_val), g(a_val, b_val, c_val, d_val)
             )
 
-        # Logical tests: tests whether the optimizer has been appplied or not
-        #                by checking graph structure.
+        # Logical tests: tests whether the rewrite has been appplied or not
+        # by checking graph structure.
         prods = [
             prod(a / e),
             prod(a / d),
@@ -3840,7 +3831,7 @@ class TestLocalSumProdDimshuffle:
 
         for i, s in enumerate(prods):
             g = function(
-                [a, b, c, d, e], s, on_unused_input="ignore", mode=mode_with_opt
+                [a, b, c, d, e], s, on_unused_input="ignore", mode=mode_with_rewrite
             )
             assert isinstance(
                 g.maker.fgraph.toposort()[-1].op.scalar_op, expected_outer_operator[i]
@@ -3857,32 +3848,36 @@ def test_local_useless_adds():
     # Test for all zeros
     a = scalar()
     s = add(at.zeros_like(a))
-    mode_with_opt = default_mode.including("canonicalization", "local_useless_fill")
-    f = function([a], s, mode=mode_with_opt)
+    mode_with_rewrite = default_mode.including("canonicalization", "local_useless_fill")
+    f = function([a], s, mode=mode_with_rewrite)
     assert not any(node.op == add for node in f.maker.fgraph.apply_nodes)
 
     # test of non-zero dimension
     a = vector()
     s = add(at.zeros_like(a))
-    mode_with_opt = default_mode.including("canonicalization", "local_useless_elemwise")
-    f = function([a], s, mode=mode_with_opt)
+    mode_with_rewrite = default_mode.including(
+        "canonicalization", "local_useless_elemwise"
+    )
+    f = function([a], s, mode=mode_with_rewrite)
     assert not any(node.op == add for node in f.maker.fgraph.apply_nodes)
 
     # test of 0-d
     a = scalar()
     s = add(at.zeros_like(a))
-    mode_with_opt = default_mode.including(
+    mode_with_rewrite = default_mode.including(
         "canonicalization", "local_useless_fill", "local_useless_elemwise"
     )
-    f = function([a], s, mode=mode_with_opt)
+    f = function([a], s, mode=mode_with_rewrite)
     assert not any(node.op == add for node in f.maker.fgraph.apply_nodes)
 
     # Test when the 0 input is forcing upcasting
     a = at.constant(0, dtype="int64")
     b = at.constant(1, dtype="int32")
     s = a + b
-    mode_with_opt = default_mode.including("canonicalization", "local_add_canonizer")
-    f = function([], s, mode=mode_with_opt)
+    mode_with_rewrite = default_mode.including(
+        "canonicalization", "local_add_canonizer"
+    )
+    f = function([], s, mode=mode_with_rewrite)
     transformed = f.maker.fgraph.outputs[0]
     assert not any(node.op == add for node in f.maker.fgraph.apply_nodes)
     assert transformed.type == s.type
@@ -3910,9 +3905,8 @@ class TestIntDivByOne:
         self.mode = get_default_mode()
         self.mode = self.mode.including("local_intdiv_by_one")
 
-    def test1(self):
-        # Tests removing the extra floor_div by 1 introduced by
-        # local_subtensor_merge optimization
+    def test_remove_floor(self):
+        """Tests removing the extra floor_div by 1 introduced by `local_subtensor_merge` rewrite."""
 
         y = tensor4("y")
         self.mode = self.mode.excluding("fusion")
@@ -3962,8 +3956,8 @@ def test_local_zero_div(t, op):
     """Test the canonicalization ``0/x -> 0``."""
     x = t("x")
     y = op(0, x)
-    g = optimize(FunctionGraph([x], [y]))
-    # the division should be gone
+    g = rewrite(FunctionGraph([x], [y]))
+    # The division should be gone
     divs = [
         node
         for node in g.toposort()
@@ -3971,11 +3965,11 @@ def test_local_zero_div(t, op):
         and isinstance(node.op.scalar_op, type(op.scalar_op))
     ]
     assert len(divs) == 0
-    # the output type should match the unoptimized one
+    # The output type should match the un-rewritten one
     output = g.outputs[0]
     assert output.ndim == y.ndim
     assert output.type == y.type
-    # and the output should be zero
+    # The output should be zero
     if output.owner and isinstance(output.owner.op, Alloc):
         out_var = output.owner.inputs[0]
     else:
@@ -4074,16 +4068,18 @@ def check_max_log_sum_exp(x, axis, dimshuffle_op=None):
         ):
             return
 
-        # in mode FAST_COMPILE, the optimisations don't replace the
-        # MaxAndArgmax op.
+        # In mode FAST_COMPILE, the rewrites don't replace the
+        # `MaxAndArgmax` `Op`.
         if isinstance(node.op, MaxAndArgmax):
             return
 
-    raise Exception("No maximum detected after log_sum_exp optimisation")
+    # TODO FIXME: Refactor this test so that it makes a direct assertion and
+    # nothing more.
+    raise AssertionError("No maximum detected after log_sum_exp rewrite")
 
 
-def test_local_log_sum_exp1():
-    # Tests if optimization is applied by checking the presence of the maximum
+def test_local_log_sum_exp_maximum():
+    """Test that the rewrite is applied by checking the presence of the maximum."""
     x = tensor3("x")
     check_max_log_sum_exp(x, axis=(0,), dimshuffle_op=None)
     check_max_log_sum_exp(x, axis=(1,), dimshuffle_op=None)
@@ -4101,39 +4097,38 @@ def test_local_log_sum_exp1():
     check_max_log_sum_exp(x, axis=(0, 1), dimshuffle_op=sum_keepdims_op)
 
 
-def test_local_log_sum_exp2():
-    # Tests if the optimization works (result is correct) around 1.0
+def test_local_log_sum_exp_near_one():
+    """Test that the rewritten result is correct around 1.0."""
 
     x = tensor3("x")
     x_val = 1.0 + np.random.random((4, 3, 2)).astype(config.floatX) / 10.0
 
     f = compile_graph_log_sum_exp(x, axis=(1,))
     naive_ret = np.log(np.sum(np.exp(x_val), axis=1))
-    optimised_ret = f(x_val)
-    assert np.allclose(naive_ret, optimised_ret)
+    rewritten_ret = f(x_val)
+    assert np.allclose(naive_ret, rewritten_ret)
 
     # If a transpose is applied
     transpose_op = DimShuffle((False, False), (1, 0))
     f = compile_graph_log_sum_exp(x, axis=(1,), dimshuffle_op=transpose_op)
     naive_ret = np.log(np.sum(np.exp(x_val), axis=1).T)
-    optimised_ret = f(x_val)
-    assert np.allclose(naive_ret, optimised_ret)
+    rewritten_ret = f(x_val)
+    assert np.allclose(naive_ret, rewritten_ret)
 
 
-def test_local_log_sum_exp3():
-    # Tests if the optimization works (result is correct) for extreme value 100
+def test_local_log_sum_exp_large():
+    """Test that the rewrite result is correct for extreme value 100."""
     x = vector("x")
     f = compile_graph_log_sum_exp(x, axis=0)
 
     x_val = np.array([-100.0, 100.0]).astype(config.floatX)
 
-    optimised_ret = f(x_val)
-
-    assert np.allclose(optimised_ret, 100.0)
+    rewritten_ret = f(x_val)
+    assert np.allclose(rewritten_ret, 100.0)
 
 
 def test_local_log_sum_exp_inf():
-    # Test that when max = +-inf, optimized output still works correctly
+    """Test that when max = +-inf, the rewritten output still works correctly."""
     x = vector("x")
     f = compile_graph_log_sum_exp(x, axis=0)
 
@@ -4149,16 +4144,21 @@ def test_local_reciprocal_1_plus_exp():
     assert z.owner.op == sigmoid
 
 
-class TestSigmoidOpts:
+class TestSigmoidRewrites:
     def get_mode(self, excluding=None):
         """
         Return appropriate mode for the tests.
 
-        :param excluding: List of optimizations to exclude.
+        Parameters
+        ----------
+        excluding
+            List of rewrites to exclude.
 
-        :return: The current default mode unless the `config.mode` option is
+        Returns
+        -------
+        The current default mode unless the `config.mode` option is
         set to 'FAST_COMPILE' (in which case it is replaced by the 'FAST_RUN'
-        mode), without the optimizations specified in `excluding`.
+        mode), without the rewrites specified in `excluding`.
         """
         if excluding is None:
             excluding = []
@@ -4310,28 +4310,29 @@ class TestSigmoidOpts:
         m = self.get_mode(excluding=["fusion", "inplace"])
         x = fmatrix()
 
-        # tests exp_over_1_plus_exp
+        # Test `exp_over_1_plus_exp`
         f = aesara.function([x], 1 - exp(x) / (1 + exp(x)), mode=m)
         # FIXME: PatternNodeRewriter does not copy stack trace
         #  (see https://github.com/Theano/Theano/issues/4581)
         # assert check_stack_trace(f, ops_to_check=[neg, sigmoid])
         assert [node.op for node in f.maker.fgraph.toposort()] == [neg, sigmoid]
 
-        # tests inv_1_plus_exp
+        # Test `inv_1_plus_exp`
         f = aesara.function([x], 1 - at.fill(x, 1.0) / (1 + exp(-x)), mode=m)
         # assert check_stack_trace(f, ops_to_check=[neg, sigmoid])
         assert [node.op for node in f.maker.fgraph.toposort()] == [neg, sigmoid]
 
-        # Tests float constant
+        # Test float constant
         f = aesara.function(
             [x], np.array(1.000001, dtype="float32") - sigmoid(x), mode=m
         )
         assert [node.op for node in f.maker.fgraph.toposort()] == [neg, sigmoid]
 
     def test_local_sigm_times_exp(self):
-        # Test the `local_sigm_times_exp` optimization.
-        # exp(x) * sigm(-x) -> sigm(x)
-        # exp(-x) * sigm(x) -> sigm(-x)
+        """
+        exp(x) * sigm(-x) -> sigm(x)
+        exp(-x) * sigm(x) -> sigm(-x)
+        """
 
         def match(func, ops):
             # print [node.op.scalar_op for node in func.maker.fgraph.toposort()]
@@ -4364,15 +4365,16 @@ class TestSigmoidOpts:
         #                                           exp])
 
     def test_perform_sigm_times_exp(self):
-        # Test the core function doing the `sigm_times_exp` optimization.
-        #
-        # It is easier to test different graph scenarios this way than by
-        # compiling an Aesara function.
+        """Test the core function doing the `sigm_times_exp` rewrite.
+
+        It is easier to test different graph scenarios this way than by
+        compiling an Aesara function.
+        """
 
         x, y, z, t = vectors("x", "y", "z", "t")
         exp_op = exp
 
-        def ok(expr1, expr2):
+        def check(expr1, expr2):
             trees = [parse_mul_tree(e) for e in (expr1, expr2)]
             perform_sigm_times_exp(trees[0])
             trees[0] = simplify_mul(trees[0])
@@ -4386,12 +4388,12 @@ class TestSigmoidOpts:
                 aesara.printing.debugprint(compute_mul(trees[1]))
             assert good
 
-        ok(sigmoid(x) * exp_op(-x), sigmoid(-x))
-        ok(
+        check(sigmoid(x) * exp_op(-x), sigmoid(-x))
+        check(
             -x * sigmoid(x) * (y * (-1 * z) * exp_op(-x)),
             -x * sigmoid(-x) * (y * (-1 * z)),
         )
-        ok(
+        check(
             -sigmoid(-x)
             * (
                 exp_op(y)
@@ -4403,11 +4405,11 @@ class TestSigmoidOpts:
             * (-sigmoid(y) * (-sigmoid(-z) * 3) * (y * 2 * ((z + t) * exp_op(z))))
             * (-sigmoid(x)),
         )
-        ok(
+        check(
             exp_op(-x) * -exp_op(-x) * (-sigmoid(x) * -sigmoid(x)),
             -sigmoid(-x) * sigmoid(-x),
         )
-        ok(-exp_op(x) * -sigmoid(-x) * -exp_op(-x), -sigmoid(-x))
+        check(-exp_op(x) * -sigmoid(-x) * -exp_op(-x), -sigmoid(-x))
 
     def test_grad_log1msigm(self):
         # At some point, this returned nan, because (1 - sigm(x)) was
@@ -4421,7 +4423,7 @@ class TestSigmoidOpts:
         c = l.mean()
         ux = x - lr * aesara.grad(c, x)
 
-        # Before the optimization, inf and NaN will be produced in the graph,
+        # Before the rewriting, inf and NaN will be produced in the graph,
         # and DebugMode will complain. Everything is fine afterwards.
         mode = self.get_mode()
         if not isinstance(mode, aesara.compile.debugmode.DebugMode):
@@ -4430,7 +4432,7 @@ class TestSigmoidOpts:
             assert not np.isnan(ux_v)
 
 
-class TestSoftplusOpts:
+class TestSoftplusRewrites:
     def setup_method(self):
         if aesara.config.mode == "FAST_COMPILE":
             m = aesara.compile.mode.get_mode("FAST_RUN").excluding(
@@ -4538,10 +4540,7 @@ class TestSoftplusOpts:
 
 
 class TestSigmoidUtils:
-    """
-    Test utility functions found in 'math_opt.py' used in the optimization of
-    sigmoid / softplus expressions.
-    """
+    """Test utility functions used in the rewrites for `sigmoid`/`softplus` expressions."""
 
     def test_compute_mul(self):
         x, y, z = vectors("x", "y", "z")
@@ -4588,12 +4587,12 @@ def test_log1mexp_stabilization():
     nodes = [node.op for node in f.maker.fgraph.toposort()]
     assert nodes == [at.log1mexp]
 
-    # Check values that would under or overflow without optimization
+    # Check values that would under or overflow without rewriting
     assert f([-(2.0**-55)]) != -np.inf
     overflow_value = -500.0 if config.floatX == "float64" else -100.0
     assert f([overflow_value]) < 0
 
-    # Check values around the optimization switch point np.log(0.5)
+    # Check values around the switch point np.log(0.5)
     assert np.allclose(
         f(np.array([-0.8, -0.6], dtype=config.floatX)),
         np.log(1 - np.exp([-0.8, -0.6])),
@@ -4601,10 +4600,7 @@ def test_log1mexp_stabilization():
 
 
 def test_local_logit_sigmoid():
-    """
-    Test that graphs of the form logit(sigmoid(x)) and sigmoid(logit(x)) get
-    optimized to x (sigmoid is the inverse of the logit)
-    """
+    """Test that graphs of the form ``logit(sigmoid(x))`` and ``sigmoid(logit(x))`` get rewritten to ``x``."""
 
     def logit_fn(x):
         return log(x / (1 - x))
@@ -4612,12 +4608,12 @@ def test_local_logit_sigmoid():
     x = fmatrix()
 
     out = sigmoid(logit_fn(x))
-    fg = optimize(FunctionGraph([x], [out]))
+    fg = rewrite(FunctionGraph([x], [out]))
     assert not list(fg.toposort())
     assert fg.inputs[0] is fg.outputs[0]
 
     out = logit_fn(sigmoid(x))
-    fg = optimize(FunctionGraph([x], [out]))
+    fg = rewrite(FunctionGraph([x], [out]))
     assert not list(fg.toposort())
     assert fg.inputs[0] is fg.outputs[0]
 
@@ -4628,12 +4624,12 @@ def test_local_useless_conj():
     # Test for all zeros
     x = scalar()
     s = _conj(x)
-    mode_with_opt = default_mode.including("canonicalization", "local_useless_conj")
-    f = function([x], s, mode=mode_with_opt)
+    mode_with_rewrite = default_mode.including("canonicalization", "local_useless_conj")
+    f = function([x], s, mode=mode_with_rewrite)
     assert not any(node.op == _conj for node in f.maker.fgraph.apply_nodes)
 
     x = zscalar()
     s = _conj(x)
-    mode_with_opt = default_mode.including("canonicalization", "local_useless_conj")
-    f = function([x], s, mode=mode_with_opt)
+    mode_with_rewrite = default_mode.including("canonicalization", "local_useless_conj")
+    f = function([x], s, mode=mode_with_rewrite)
     assert any(node.op == _conj for node in f.maker.fgraph.apply_nodes)

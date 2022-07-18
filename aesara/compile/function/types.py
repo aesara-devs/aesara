@@ -1,7 +1,4 @@
-"""
-Driver of graph construction, optimization, and linking.
-
-"""
+"""Objects that orchestrate graph construction, rewriting, and linking."""
 
 import copy
 import copyreg
@@ -753,9 +750,8 @@ class Function:
             # cause problems.
             on_unused_input="ignore",
             function_builder=maker.function_builder,
-            # As this is an optimized graph, it
-            # can contain inplace. DebugMode check
-            # that.
+            # As this is an rewritten graph, it can contain inplace. DebugMode
+            # check that.
             accept_inplace=True,
             no_fgraph_prep=True,
         ).create(input_storage, storage_map=new_storage_map)
@@ -1182,7 +1178,7 @@ def insert_deepcopy(fgraph, wrapped_inputs, wrapped_outputs):
     This loop was inserted to remove aliasing between outputs when they all
     evaluate to the same value. Originally it was OK for outputs to be aliased,
     but some of the outputs can be shared variables, and is not good for shared
-    variables to be aliased. It might be possible to optimize this by making
+    variables to be aliased. It might be possible to rewrite this by making
     sure there is no aliasing only between shared variables.
 
     If some outputs are constant, we add deep copy to respect the memory
@@ -1279,7 +1275,7 @@ class FunctionMaker:
     """
     `FunctionMaker` is the class to `create` `Function` instances.
 
-    This class has the fgraph, the optimizer, and the linker. When
+    This class has the fgraph, the rewriter, and the linker. When
     copying a `Function`, there is no need to duplicate the
     `FunctionMaker` instance. Deepcopy still copies both, which can
     variable in re-compilation.
@@ -1292,7 +1288,7 @@ class FunctionMaker:
         functions produced by FunctionMaker will return their output value
         directly.
     mode : Mode instance
-        Telling FunctionMaker how to optimize and link. None means to use the
+        Telling FunctionMaker how to rewrite and link. None means to use the
         `config.mode`.
     accept_inplace : bool
         True iff it is acceptable to have inplace operations in the graph from
@@ -1395,44 +1391,44 @@ class FunctionMaker:
 
     @staticmethod
     def prepare_fgraph(
-        inputs, outputs, additional_outputs, fgraph, optimizer, linker, profile
+        inputs, outputs, additional_outputs, fgraph, rewriter, linker, profile
     ):
 
         try:
-            start_optimizer = time.time()
+            start_rewriter = time.time()
 
-            optimizer_profile = None
-            opt_time = None
+            rewriter_profile = None
+            rewrite_time = None
 
             with config.change_flags(
                 compute_test_value=config.compute_test_value_opt,
                 traceback__limit=config.traceback__compile_limit,
             ):
-                optimizer_profile = optimizer(fgraph)
+                rewriter_profile = rewriter(fgraph)
 
-                end_optimizer = time.time()
-                opt_time = end_optimizer - start_optimizer
-                _logger.debug(f"Optimizing took {opt_time:f} seconds")
+                end_rewriter = time.time()
+                rewrite_time = end_rewriter - start_rewriter
+                _logger.debug(f"Rewriting took {rewrite_time:f} seconds")
 
                 # Add deep copy to respect the memory interface
                 insert_deepcopy(fgraph, inputs, outputs + additional_outputs)
         finally:
 
-            # If the optimizer got interrupted
-            if opt_time is None:
-                end_optimizer = time.time()
-                opt_time = end_optimizer - start_optimizer
+            # If the rewriter got interrupted
+            if rewrite_time is None:
+                end_rewriter = time.time()
+                rewrite_time = end_rewriter - start_rewriter
 
-            aesara.compile.profiling.total_graph_opt_time += opt_time
+            aesara.compile.profiling.total_graph_rewrite_time += rewrite_time
 
             if profile:
-                if optimizer_profile is None and hasattr(optimizer, "pre_profile"):
-                    optimizer_profile = optimizer.pre_profile
+                if rewriter_profile is None and hasattr(rewriter, "pre_profile"):
+                    rewriter_profile = rewriter.pre_profile
 
-                profile.optimizer_time += opt_time
+                profile.rewriting_time += rewrite_time
 
                 if config.profile_optimizer:
-                    profile.optimizer_profile = (optimizer, optimizer_profile)
+                    profile.rewriter_profile = (rewriter, rewriter_profile)
             elif config.profile_optimizer and profile is not False:
                 # If False, it means the profiling for that function was
                 # explicitly disabled
@@ -1466,8 +1462,8 @@ class FunctionMaker:
     ):
         # Save the provided mode, not the instantiated mode.
         # The instantiated mode don't pickle and if we unpickle an Aesara
-        # function and it get re-compiled, we want the current optimizer to be
-        # used, not the optimizer when it was saved.
+        # function and it get re-compiled, we want the current rewriter to be
+        # used, not the rewriter when it was saved.
         self.mode = mode
         mode = aesara.compile.mode.get_mode(mode)
 
@@ -1478,7 +1474,7 @@ class FunctionMaker:
         if profile:
             # This is very important:
             # 1) We preload the cache here to not have its timing
-            #    included in optimization that compile function.
+            #    included with the rewrites.
             # 2) Do not refresh the cache here by default. It cause
             #    too much execution time during testing as we compile
             #    much more functions then the number of compile c
@@ -1515,11 +1511,11 @@ class FunctionMaker:
 
         self.fgraph = fgraph
 
-        optimizer, linker = mode.optimizer, copy.copy(mode.linker)
+        rewriter, linker = mode.optimizer, copy.copy(mode.linker)
 
         if not no_fgraph_prep:
             self.prepare_fgraph(
-                inputs, outputs, found_updates, fgraph, optimizer, linker, profile
+                inputs, outputs, found_updates, fgraph, rewriter, linker, profile
             )
 
         assert len(fgraph.outputs) == len(outputs + found_updates)
@@ -1715,7 +1711,7 @@ def orig_function(
         time spent in this function.
     accept_inplace : bool
         True iff the graph can contain inplace operations prior to the
-        optimization phase (default is False).
+        rewrite phase (default is False).
     profile : None or ProfileStats instance
     on_unused_input : {'raise', 'warn', 'ignore', None}
         What to do if a variable in the 'inputs' list is not used in the graph.

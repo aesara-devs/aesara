@@ -85,6 +85,15 @@ this flag while debugging NaN.
 NaN Introduced by AllocEmpty
 -----------------------------------------------
 
-AllocEmpty is used by many operation such as scan to allocate some memory without properly clearing it. The reason for that is that the allocated memory will subsequently be overwritten. However, this can sometimes introduce NaN depending on the operation and what was previously stored in the memory it is working on. For instance, trying to zero out memory  using a multiplication before applying an operation could cause NaN if NaN is already present in the memory, since `0 * NaN => NaN`.
+AllocEmpty is used by many operation such as scan to allocate some memory
+without properly clearing it. The reason for that is that the allocated memory
+will subsequently be overwritten. However, this can sometimes introduce NaN
+depending on the operation and what was previously stored in the memory it is
+working on. For instance, trying to zero out memory using a multiplication
+before applying an operation could cause NaN if NaN is already present in the
+memory, since `0 * NaN => NaN`.
 
-Using ``optimizer_including=alloc_empty_to_zeros`` replaces `AllocEmpty` by `Alloc{0}`, which is helpful to diagnose where NaNs come from. Please note that when running in `NanGuardMode`, this optimizer is not included by default. Therefore, it might be helpful to use them both together.
+Using ``optimizer_including=alloc_empty_to_zeros`` replaces `AllocEmpty` by
+`Alloc{0}`, which is helpful to diagnose where NaNs come from. Please note that
+when running in `NanGuardMode`, this rewrite is not included by
+default. Therefore, it might be helpful to use them both together.

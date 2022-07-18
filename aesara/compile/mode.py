@@ -190,7 +190,7 @@ optdb.register(
 # The opt should not do anything that need shape inference.
 # New nodes that don't have infer_shape need that the original node
 # also don't have infer_shape
-local_useless = LocalGroupDB(apply_all_opts=True, profile=True)
+local_useless = LocalGroupDB(apply_all_rewrites=True, profile=True)
 optdb.register(
     "useless",
     TopoDB(local_useless, failure_callback=NodeProcessingGraphRewriter.warn_inplace),
@@ -276,20 +276,19 @@ del _tags
 
 
 class Mode:
-    """
-    The Mode represents a way to optimize and then link a computation graph.
+    """A class that specifies the rewrites/optimizations used during function compilation.
 
     Parameters
     ----------
-    optimizer: a structure of type Optimizer
+    optimizer
         An Optimizer may simplify the math, put similar computations together,
         improve numerical stability and various other improvements.
-    linker: a structure of type Linker
+    linker
         A Linker decides which implementations to use (C or Python, for example)
         and how to string them together to perform the computation.
-    db:
-        The ``RewriteDatabase`` used by this ``Mode``.  Note: This value
-        is *not* part of a ``Mode`` instance's pickled state.
+    db
+        The `RewriteDatabase` used by this `Mode`.  Note: This value
+        is *not* part of a `Mode` instance's pickled state.
 
     See Also
     --------

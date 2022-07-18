@@ -134,36 +134,36 @@ from aesara.tensor.type import (
 from tests import unittest_tools as utt
 
 
-mode_opt = config.mode
-if mode_opt == "FAST_COMPILE":
-    mode_opt = "FAST_RUN"
-mode_opt = get_mode(mode_opt)
+rewrite_mode = config.mode
+if rewrite_mode == "FAST_COMPILE":
+    rewrite_mode = "FAST_RUN"
+rewrite_mode = get_mode(rewrite_mode)
 
 dimshuffle_lift = out2in(local_dimshuffle_lift)
 
-_optimizer_stabilize = RewriteDatabaseQuery(include=["fast_run"])
-_optimizer_stabilize.position_cutoff = 1.51
-_optimizer_stabilize = optdb.query(_optimizer_stabilize)
+_stabilize_rewrites = RewriteDatabaseQuery(include=["fast_run"])
+_stabilize_rewrites.position_cutoff = 1.51
+_stabilize_rewrites = optdb.query(_stabilize_rewrites)
 
-_optimizer_specialize = RewriteDatabaseQuery(include=["fast_run"])
-_optimizer_specialize.position_cutoff = 2.01
-_optimizer_specialize = optdb.query(_optimizer_specialize)
+_specialize_rewrites = RewriteDatabaseQuery(include=["fast_run"])
+_specialize_rewrites.position_cutoff = 2.01
+_specialize_rewrites = optdb.query(_specialize_rewrites)
 
-_optimizer_fast_run = RewriteDatabaseQuery(include=["fast_run"])
-_optimizer_fast_run = optdb.query(_optimizer_fast_run)
+_fast_run_rewrites = RewriteDatabaseQuery(include=["fast_run"])
+_fast_run_rewrites = optdb.query(_fast_run_rewrites)
 
 
 def ds(x, y):
     return DimShuffle(x.type.broadcastable, y)(x)
 
 
-def optimize(g, level="fast_run"):
+def rewrite(g, level="fast_run"):
     if level == "fast_run":
-        _optimizer_fast_run.rewrite(g)
+        _fast_run_rewrites.rewrite(g)
     elif level == "specialize":
-        _optimizer_specialize.rewrite(g)
+        _specialize_rewrites.rewrite(g)
     elif level == "stabilize":
-        _optimizer_stabilize.rewrite(g)
+        _stabilize_rewrites.rewrite(g)
     else:
         raise ValueError(level)
     return g
@@ -198,7 +198,7 @@ class TestDimshuffleLift:
         ), str(g)
         dimshuffle_lift.rewrite(g)
         assert str(g) == "FunctionGraph(InplaceDimShuffle{0,1,x,x}(x))", str(g)
-        # Check stacktrace was copied over correctly after opt was applied
+        # Check stacktrace was copied over correctly after rewrite was applied
         assert check_stack_trace(g, ops_to_check="all")
 
     def test_elim3(self):
@@ -230,17 +230,17 @@ class TestDimshuffleLift:
         )
         assert str(g) in (init_str_g_inplace, init_str_g_noinplace), str(g)
 
-        opt_str_g_inplace = (
+        rewrite_str_g_inplace = (
             "FunctionGraph(Elemwise{add,no_inplace}(Elemwise{add,no_inplace}"
             "(InplaceDimShuffle{x,x,0}(x), InplaceDimShuffle{x,0,1}(y)), z))"
         )
-        opt_str_g_noinplace = (
+        rewrite_str_g_noinplace = (
             "FunctionGraph(Elemwise{add,no_inplace}(Elemwise{add,no_inplace}"
             "(DimShuffle{x,x,0}(x), DimShuffle{x,0,1}(y)), z))"
         )
         dimshuffle_lift.rewrite(g)
-        assert str(g) in (opt_str_g_inplace, opt_str_g_noinplace), str(g)
-        # Check stacktrace was copied over correctly after opt was applied
+        assert str(g) in (rewrite_str_g_inplace, rewrite_str_g_noinplace), str(g)
+        # Check stacktrace was copied over correctly after rewrite was applied
         assert check_stack_trace(g, ops_to_check="all")
 
     def test_recursive_lift(self):
@@ -260,7 +260,7 @@ class TestDimshuffleLift:
         assert str(g) == init_str_g
         new_out = local_dimshuffle_lift.transform(g, g.outputs[0].owner)[0]
         new_g = FunctionGraph(g.inputs, [new_out])
-        opt_str_g = (
+        rewrite_str_g = (
             "FunctionGraph(Elemwise{mul,no_inplace}(Elemwise{add,no_inplace}"
             "(InplaceDimShuffle{0,x}(<TensorType(float64, (None,))>), "
             "InplaceDimShuffle{x,x}(TensorConstant{42})), "
@@ -268,8 +268,8 @@ class TestDimshuffleLift:
             "(<TensorType(float64, (None, None))>), "
             "InplaceDimShuffle{x,x}(TensorConstant{84}))))"
         )
-        assert str(new_g) == opt_str_g
-        # Check stacktrace was copied over correctly after opt was applied
+        assert str(new_g) == rewrite_str_g
+        # Check stacktrace was copied over correctly after rewrite was applied
         assert check_stack_trace(new_g, ops_to_check="all")
 
     def test_useless_dimshuffle(self):
@@ -279,7 +279,7 @@ class TestDimshuffleLift:
         assert str(g) == "FunctionGraph(InplaceDimShuffle{0,1}(x))"
         dimshuffle_lift.rewrite(g)
         assert str(g) == "FunctionGraph(x)"
-        # Check stacktrace was copied over correctly after opt was applied
+        # Check stacktrace was copied over correctly after rewrite was applied
         assert hasattr(g.outputs[0].tag, "trace")
 
     def test_dimshuffle_on_broadcastable(self):
@@ -299,7 +299,7 @@ class TestDimshuffleLift:
             str(g)
             == "FunctionGraph(x, y, InplaceDimShuffle{2,1,0}(z), InplaceDimShuffle{x}(TensorConstant{1}))"
         )
-        # Check stacktrace was copied over correctly after opt was applied
+        # Check stacktrace was copied over correctly after rewrite was applied
         assert hasattr(g.outputs[0].tag, "trace")
 
 
@@ -339,10 +339,10 @@ def test_local_useless_dimshuffle_in_reshape():
         "Reshape{2}(col, Shape(col)))"
     )
 
-    # Check stacktrace was copied over correctly after opt was applied
+    # Check stacktrace was copied over correctly after rewrite was applied
     assert check_stack_trace(g, ops_to_check="all")
 
-    # Check that the optimization does not get applied when the order
+    # Check that the rewrite does not get applied when the order
     # of dimensions has changed.
     reshape_dimshuffle_mat2 = reshape(mat.dimshuffle("x", 1, "x", 0), mat.shape)
     h = FunctionGraph([mat], [reshape_dimshuffle_mat2])
@@ -352,7 +352,7 @@ def test_local_useless_dimshuffle_in_reshape():
 
 
 class TestFusion:
-    opts = RewriteDatabaseQuery(
+    rewrites = RewriteDatabaseQuery(
         include=[
             "local_elemwise_fusion",
             "composite_elemwise_fusion",
@@ -361,7 +361,7 @@ class TestFusion:
         ],
         exclude=["cxx_only", "BlasOpt"],
     )
-    mode = Mode(get_default_mode().linker, opts)
+    mode = Mode(get_default_mode().linker, rewrites)
     _shared = staticmethod(shared)
     topo_exclude = ()
 
@@ -1088,7 +1088,7 @@ class TestFusion:
         vars = [sd, means]
 
         # Make sure that C compilation is used
-        mode = Mode("cvm", self.opts)
+        mode = Mode("cvm", self.rewrites)
         dlogp = function(vars, [aesara.grad(logp, v) for v in vars], mode=mode)
 
         # Make sure something was fused
@@ -1099,7 +1099,7 @@ class TestFusion:
 
     def test_add_mul_fusion_inplace(self):
 
-        opts = RewriteDatabaseQuery(
+        rewrites = RewriteDatabaseQuery(
             include=[
                 "local_elemwise_fusion",
                 "composite_elemwise_fusion",
@@ -1109,7 +1109,7 @@ class TestFusion:
             exclude=["cxx_only", "BlasOpt"],
         )
 
-        mode = Mode(self.mode.linker, opts)
+        mode = Mode(self.mode.linker, rewrites)
 
         x, y, z = dmatrices("xyz")
         out = dot(x, y) + x + y + z
@@ -1165,7 +1165,7 @@ class TestFusion:
 
         """
 
-        opts = RewriteDatabaseQuery(
+        rewrites = RewriteDatabaseQuery(
             include=[
                 "local_elemwise_fusion",
                 "composite_elemwise_fusion",
@@ -1174,7 +1174,7 @@ class TestFusion:
             exclude=["cxx_only", "BlasOpt"],
         )
 
-        mode = Mode(self.mode.linker, opts)
+        mode = Mode(self.mode.linker, rewrites)
 
         x, y, z = dmatrices("xyz")
 
@@ -1290,10 +1290,10 @@ class TestCompositeCodegen:
 def test_local_useless_slice():
     # test a simple matrix
     x = matrix("x")
-    mode_unopt = get_default_mode().excluding(
+    mode_excluding = get_default_mode().excluding(
         "local_useless_slice", "local_mul_canonizer"
     )
-    mode_opt = (
+    mode_including = (
         get_default_mode()
         .including("local_useless_slice")
         .excluding("local_mul_canonizer")
@@ -1301,45 +1301,41 @@ def test_local_useless_slice():
 
     # test with and without the useless slice
     o = 2 * x[0, :]
-    f_unopt = function([x], o, mode=mode_unopt)
-    f_opt = function([x], o, mode=mode_opt)
+    f_excluding = function([x], o, mode=mode_excluding)
+    f_including = function([x], o, mode=mode_including)
     rng = np.random.default_rng(utt.fetch_seed())
     test_inp = rng.integers(-10, 10, (4, 4)).astype("float32")
-    assert all(
-        f_opt(test_inp) == f_unopt(test_inp)
-    ), "The optimization caused a mismatch in the result"
+    assert all(f_including(test_inp) == f_excluding(test_inp))
     # test to see if the slice is truly gone
-    apply_node = f_opt.maker.fgraph.toposort()[0]
+    apply_node = f_including.maker.fgraph.toposort()[0]
     subtens = apply_node.op
-    assert not any(
-        isinstance(idx, slice) for idx in subtens.idx_list
-    ), "Slice should be gone"
+    assert not any(isinstance(idx, slice) for idx in subtens.idx_list)
 
     # Now test that the stack trace is copied over properly,
-    # before before and after optimization.
-    assert check_stack_trace(f_unopt, ops_to_check="all")
-    assert check_stack_trace(f_opt, ops_to_check="all")
+    # before before and after rewriting.
+    assert check_stack_trace(f_excluding, ops_to_check="all")
+    assert check_stack_trace(f_including, ops_to_check="all")
 
     # test a 4d tensor
     z = tensor4("z")
     o2 = z[1, :, :, 1]
     o3 = z[0, :, :, :]
-    f_opt_check = function([z], o2, mode=mode_opt)
-    f_opt_check_apply = function([z], o3, mode=mode_opt)
+    f_including_check = function([z], o2, mode=mode_including)
+    f_including_check_apply = function([z], o3, mode=mode_including)
 
-    # The optimization shouldn't apply here
-    apply_node = f_opt_check.maker.fgraph.toposort()[0]
+    # The rewrite shouldn't apply here
+    apply_node = f_including_check.maker.fgraph.toposort()[0]
     subtens = apply_node.op
     assert [isinstance(idx, slice) for idx in subtens.idx_list].count(True) == 2
     # But it should here
-    apply_node = f_opt_check_apply.maker.fgraph.toposort()[0]
+    apply_node = f_including_check_apply.maker.fgraph.toposort()[0]
     subtens = apply_node.op
     assert not any(isinstance(idx, slice) for idx in subtens.idx_list)
 
     # Finally, test that the stack trace is copied over properly,
-    # before before and after optimization.
-    assert check_stack_trace(f_opt_check, ops_to_check=Subtensor)
-    assert check_stack_trace(f_opt_check_apply, ops_to_check=Subtensor)
+    # before before and after rewriting.
+    assert check_stack_trace(f_including_check, ops_to_check=Subtensor)
+    assert check_stack_trace(f_including_check_apply, ops_to_check=Subtensor)
 
 
 def test_local_useless_fill():
@@ -1352,42 +1348,42 @@ def test_local_useless_fill():
     z_ = (np.random.random((5,)) * 5).astype("int64")
 
     # basic case
-    f = function([x], at.fill(x, x) * 2, mode=mode_opt)
+    f = function([x], at.fill(x, x) * 2, mode=rewrite_mode)
     assert [node.op for node in f.maker.fgraph.toposort()] == [mul]
     res = f(x_)
     exp_res = np.broadcast_to(x_, x_.shape) * 2
     assert np.array_equal(res, exp_res)
 
     # basic case
-    f = function([x, y], at.second(y, x) * 2, mode=mode_opt)
+    f = function([x, y], at.second(y, x) * 2, mode=rewrite_mode)
     assert [node.op for node in f.maker.fgraph.toposort()] == [mul]
     res = f(x_, y_)
     exp_res = np.broadcast_to(x_, y_.shape) * 2
     assert np.array_equal(res, exp_res)
 
     # basic case
-    f = function([x, y], at.fill(x, y) * 2, mode=mode_opt)
+    f = function([x, y], at.fill(x, y) * 2, mode=rewrite_mode)
     assert [node.op for node in f.maker.fgraph.toposort()] == [mul]
     res = f(x_, y_)
     exp_res = np.broadcast_to(y_, x_.shape) * 2
     assert np.array_equal(res, exp_res)
 
     # now with different type(cast)
-    f = function([x, z], at.fill(z, x) * 2, mode=mode_opt)
+    f = function([x, z], at.fill(z, x) * 2, mode=rewrite_mode)
     assert [node.op for node in f.maker.fgraph.toposort()] == [mul]
     res = f(x_, z_)
     exp_res = np.broadcast_to(x_, z_.shape) * 2
     assert np.array_equal(res, exp_res)
 
     # now with different type(cast)
-    f = function([x, z], at.fill(x, z) * 2, mode=mode_opt)
+    f = function([x, z], at.fill(x, z) * 2, mode=rewrite_mode)
     assert [node.op for node in f.maker.fgraph.toposort()] == [mul]
     res = f(x_, z_)
     exp_res = np.broadcast_to(z_, x_.shape) * 2
     assert np.array_equal(res, exp_res)
 
     # now cutting out the input ??
-    f = function([x, y], at.fill(x, y) * 2, mode=mode_opt)
+    f = function([x, y], at.fill(x, y) * 2, mode=rewrite_mode)
     assert [node.op for node in f.maker.fgraph.toposort()] == [mul]
     res = f(x_, y_)
     exp_res = np.broadcast_to(y_, x_.shape) * 2
@@ -1403,7 +1399,7 @@ def test_local_fill_to_alloc():
 
     y = at.fill(m, x)
 
-    mode = mode_opt.including("stabilize", "local_fill_to_alloc").excluding(
+    mode = rewrite_mode.including("stabilize", "local_fill_to_alloc").excluding(
         "useless", "local_useless_fill"
     )
 
@@ -1436,14 +1432,14 @@ class TestLocalCanonicalizeAlloc:
 
         # `local_useless_alloc` should replace the `Alloc` with an `Assert`
         with pytest.raises(AssertionError):
-            f = function([], a, mode=mode_opt)
+            f = function([], a, mode=rewrite_mode)
 
         x = at.as_tensor(self.rng.standard_normal((6, 7)))
         a = at.alloc(x, 6, 7)
 
-        f = function([], a, mode=mode_opt)
+        f = function([], a, mode=rewrite_mode)
 
-        # The optimization should then be applied, and remove Alloc
+        # The rewrite should then be applied, and remove Alloc
         assert not any(
             isinstance(node.op, (Alloc, Assert)) for node in f.maker.fgraph.toposort()
         )
@@ -1455,9 +1451,9 @@ class TestLocalCanonicalizeAlloc:
 
         assert a.owner and isinstance(a.owner.op, Alloc)
 
-        f = function([], a, mode=mode_opt)
+        f = function([], a, mode=rewrite_mode)
 
-        # The optimization should then be applied, and remove Alloc
+        # The rewrite should then be applied, and remove Alloc
         assert not any(isinstance(node.op, Alloc) for node in f.maker.fgraph.toposort())
         assert any(isinstance(node.op, Assert) for node in f.maker.fgraph.toposort())
 
@@ -1473,16 +1469,16 @@ class TestLocalCanonicalizeAlloc:
         x = matrix("x")
         y = at.fill(x, x)
 
-        # The optimization 'locall_fill_to_alloc' should call at.alloc,
-        # which should return x and not alloc(x, ...)
-        f = function([x], [y], mode=mode_opt.including("local_fill_to_alloc"))
+        # The rewrite `locall_fill_to_alloc` should call `at.alloc`,
+        # which should return `x` and not `alloc(x, ...)`
+        f = function([x], [y], mode=rewrite_mode.including("local_fill_to_alloc"))
         assert not any(isinstance(node.op, Alloc) for node in f.maker.fgraph.toposort())
 
     def test_basic_tile(self):
         x = matrix("x")
         y = at.tile(x, (1,) * 2)
 
-        mode = mode_opt.including(
+        mode = rewrite_mode.including(
             "local_dimshuffle_lift",
             "local_useless_dimshuffle_in_reshape",
             "local_alloc_sink_dimshuffle",
@@ -1514,10 +1510,10 @@ class TestLocalCanonicalizeAlloc:
 
 
 class TestLocalUselessIncSubtensorAlloc:
-    opt_name = "local_useless_inc_subtensor_alloc"
+    rewrite_name = "local_useless_inc_subtensor_alloc"
 
     def setup_method(self):
-        # The optimization requires the shape feature so we need to compile in
+        # The rewrite requires the shape feature so we need to compile in
         # FAST_RUN mode.
         mode = config.mode
         if mode == "FAST_COMPILE":
@@ -1530,8 +1526,8 @@ class TestLocalUselessIncSubtensorAlloc:
         y = scalar("y")
         i = matrix("i", dtype="int64")
         z = advanced_inc_subtensor(x, at.alloc(y, *i.shape), i)
-        mode1 = self.mode.excluding(self.opt_name)
-        mode2 = self.mode.including(self.opt_name)
+        mode1 = self.mode.excluding(self.rewrite_name)
+        mode2 = self.mode.including(self.rewrite_name)
         f1 = function([x, i, y], z, mode=mode1)
         f2 = function([x, i, y], z, mode=mode2)
 
@@ -1553,7 +1549,7 @@ class TestLocalUselessIncSubtensorAlloc:
 
         utt.assert_allclose(r1, r2)
 
-        # Check stacktrace was copied over correctly after opt was applied
+        # Check stacktrace was copied over correctly after rewrite was applied
         assert check_stack_trace(f1, ops_to_check=AdvancedIncSubtensor1)
         assert check_stack_trace(f2, ops_to_check=AdvancedIncSubtensor1)
 
@@ -1562,8 +1558,8 @@ class TestLocalUselessIncSubtensorAlloc:
         y = scalar("y")
         i = vector("i", dtype="int64")
         z = advanced_inc_subtensor1(x, at.alloc(y, *i.shape), i)
-        mode1 = self.mode.excluding(self.opt_name)
-        mode2 = self.mode.including(self.opt_name)
+        mode1 = self.mode.excluding(self.rewrite_name)
+        mode2 = self.mode.including(self.rewrite_name)
         f1 = function([x, i, y], z, mode=mode1)
         f2 = function([x, i, y], z, mode=mode2)
 
@@ -1585,7 +1581,6 @@ class TestLocalUselessIncSubtensorAlloc:
 
         utt.assert_allclose(r1, r2)
 
-        # Check stacktrace was copied over correctly after opt was applied
         assert check_stack_trace(f1, ops_to_check=AdvancedIncSubtensor1)
         assert check_stack_trace(f2, ops_to_check="all")
 
@@ -1594,8 +1589,8 @@ class TestLocalUselessIncSubtensorAlloc:
         y = scalar("y")
         i = scalar("i", dtype="int64")
         z = inc_subtensor(x[:i], at.alloc(y, i))
-        mode1 = self.mode.excluding(self.opt_name)
-        mode2 = self.mode.including(self.opt_name)
+        mode1 = self.mode.excluding(self.rewrite_name)
+        mode2 = self.mode.including(self.rewrite_name)
         f1 = function([x, i, y], z, mode=mode1)
         f2 = function([x, i, y], z, mode=mode2)
 
@@ -1617,12 +1612,11 @@ class TestLocalUselessIncSubtensorAlloc:
 
         utt.assert_allclose(r1, r2)
 
-        # Check stacktrace was copied over correctly after opt was applied
         assert check_stack_trace(f1, ops_to_check="last")
         assert check_stack_trace(f2, ops_to_check="last")
 
 
-class TestShapeOptimizer:
+class TestShapeRewriter:
     def test_basic(self):
         mode = config.mode
         if mode == "FAST_COMPILE":
@@ -1694,7 +1688,7 @@ class TestShapeOptimizer:
         return mx
 
     def test_broadcasted_dims(self):
-        # This test a case that caused a crash during optimization
+        # This test a case that caused a crash during rewriting
         shp = (1, 1, 1, 1)
         rng = np.random.default_rng(utt.fetch_seed())
         a = shared(rng.random(shp).astype(config.floatX))
@@ -1708,7 +1702,7 @@ class TestShapeOptimizer:
 
     def test_constant_merge(self):
         # This test the error in gh-1122 that is a caused by the
-        # combination of merge optimizer and ShapeFeature.
+        # combination of merge rewriter and ShapeFeature.
 
         x = at.constant([0, 0])
         y = x[1:]
@@ -1754,7 +1748,7 @@ class TestShapeOptimizer:
 
         @node_rewriter([IdentityNoShape])
         def local_identity_noshape_to_identity_shape(fgraph, node):
-            """Optimization transforming the first Op into the second"""
+            """Transform the first `Op` into the second."""
             if isinstance(node.op, IdentityNoShape):
                 return [identity_shape(node.inputs[0])]
 
@@ -1763,7 +1757,7 @@ class TestShapeOptimizer:
         x = tensor3("x")
         ins_x = identity_noshape(x)
 
-        # Without the optimization
+        # Without the rewrite
         f = function([x], ins_x.shape, mode=mode)
         xval = rng.standard_normal((3, 4, 7)).astype(config.floatX)
         assert np.all(f(xval) == [3, 4, 7])
@@ -1772,12 +1766,11 @@ class TestShapeOptimizer:
         assert identity_noshape in f_ops
         assert identity_shape not in f_ops
 
-        # Register the optimization
+        # Register the rewrite
         register_specialize(local_identity_noshape_to_identity_shape)
 
         mode = get_default_mode().including("ShapeOpt", "specialize")
-        # With the optimization
-        # The identity_shape op should not be needed anymore to compute
+        # The `identity_shape` hOph should not be needed anymore to compute
         # the shape
         g = function([x], ins_x.shape, mode=mode)
         xval = rng.standard_normal((6, 1, 2)).astype(config.floatX)
@@ -1787,7 +1780,7 @@ class TestShapeOptimizer:
         assert identity_noshape not in g_ops
         assert identity_shape not in g_ops
 
-        # test multiple level of op without infer_shape
+        # Test multiple applications of an `Op` without an `Op.infer_shape`
         ins_x3 = identity_noshape(identity_noshape(identity_noshape(x)))
         h = function([x], ins_x3.shape, mode=mode)
         xval = rng.standard_normal((6, 1, 2)).astype(config.floatX)
@@ -1798,7 +1791,7 @@ class TestShapeOptimizer:
         assert identity_shape not in h_ops
 
     def test_no_shapeopt(self):
-        # Test that a basic example works even when ShapeOpt is excluded
+        """Test that a basic example works even when `ShapeOpt` is excluded."""
         X = matrix()
         expr = X.shape[0]
 
@@ -1857,7 +1850,7 @@ def test_local_remove_all_assert():
     x = scalar()
     y = scalar()
     f = function([x, y], assert_op(x, y), mode=mode)
-    # Without the optimization, this would fail
+    # Without the rewrite, this would fail
     assert f(1, 0) == 1
     topo = f.maker.fgraph.toposort()
     assert not any(isinstance(node.op, CheckAndRaise) for node in topo)
@@ -1886,8 +1879,8 @@ class TestTile:
                 assert len(topo) == 1
                 assert isinstance(topo[0].op, DeepCopyOp)
                 f(data)
-                # In this case the opt only removes nodes,
-                # no need to check_stack_trace
+                # In this case, the rewrite only removes nodes;
+                # no need to `check_stack_trace`
             # When len(repeat pattern) > var.ndim, only a dimshuffle should be
             # left, but there can be a DeepCopy as well
             for ndim in range(var.ndim + 1, var.ndim + 3):
@@ -2074,7 +2067,7 @@ class TestCastCast:
         assert isinstance(topo[0].op, DeepCopyOp)
 
         # Downcast followed by an upcast back to the base type
-        # Optimization shouldn't be applied
+        # The rewrite shouldn't be applied
         x = dmatrix()
         o = Elemwise(aes.Cast(aes.ScalarType("float64")))(x.astype("float32"))
         f = function([x], o, mode=self.mode)
@@ -2108,19 +2101,18 @@ def test_constant_folding():
 
 
 @pytest.mark.xfail(
-    reason="Aesara optimizes constant before stabilization. "
-    "This breaks stabilization optimizations in some "
-    "cases. See #504.",
+    reason="Aesara rewrites constants before stabilization. "
+    "This breaks stabilization rewrites in some cases. See #504.",
     raises=AssertionError,
 )
 def test_constant_get_stabilized():
-    # Currently Aesara enables the `constant_folding` optimization before stabilization optimization.
-    # This caused some stabilization optimizations to not be activated and that
+    # Currently Aesara enables the `constant_folding` rewrite before stabilization rewrites.
+    # This caused some stabilization rewrites to not be activated and that
     # caused inf values to appear when they should not.
 
-    # We can't simply move the `constant_folding` optimization to
-    # specialize since this will break other optimizations.  We will need to
-    # partially duplicate some canonicalize optimizations to fix this issue.
+    # We can't simply move the `constant_folding` rewrite to
+    # specialize since this will break other rewrites.  We will need to
+    # partially duplicate some canonicalize rewrites to fix this issue.
 
     x2 = scalar()
     y2 = log(1 + exp(x2))
@@ -2173,7 +2165,7 @@ class TestLocalSwitchSink:
         """
         Wrapper around function for this test.
 
-        It disables checking for NaN removed by optimizations in DebugMode
+        It disables checking for NaN removed by rewrites in `DebugMode`
         (it has false positives in that case).
         """
         f = function(*args, **kwargs)
@@ -2224,7 +2216,7 @@ class TestLocalSwitchSink:
                     ].size
                 idx += 1
 
-        # This case caused a missed optimization in the past.
+        # This case caused a missed rewrite in the past.
         x = dscalar("x")
         y = at.switch(x < 7, x, sqrt(x - 7))
         f = self.function_remove_nan([x], aesara.gradient.grad(y, x), self.mode)
@@ -2267,7 +2259,7 @@ class TestLocalSwitchSink:
 
 class TestLocalUselessSwitch:
     def setup_method(self):
-        self.mode = mode_opt.excluding("constant_folding")
+        self.mode = rewrite_mode.excluding("constant_folding")
 
     @pytest.mark.parametrize(
         "dtype1",
@@ -2450,7 +2442,7 @@ class TestLocalMergeSwitchSameCond:
         s1 = at.switch(c, a, b)
         s2 = at.switch(c, x, y)
 
-        g = optimize(FunctionGraph(mats, [op(s1, s2)]))
+        g = rewrite(FunctionGraph(mats, [op(s1, s2)]))
         assert str(g).count("Switch") == 1
 
     @pytest.mark.parametrize(
@@ -2467,7 +2459,7 @@ class TestLocalMergeSwitchSameCond:
         c, a, b, x, y = mats
         s1 = at.switch(c, a, b)
         s2 = at.switch(c, x, y)
-        g = optimize(FunctionGraph(mats, [op(s1, s2)]))
+        g = rewrite(FunctionGraph(mats, [op(s1, s2)]))
         assert str(g).count("Switch") == 1
 
     @pytest.mark.parametrize("op", [add, mul])
@@ -2479,7 +2471,7 @@ class TestLocalMergeSwitchSameCond:
         s2 = at.switch(c, x, y)
         u, v = matrices("uv")
         s3 = at.switch(c, u, v)
-        g = optimize(FunctionGraph(mats + [u, v], [op(s1, s2, s3)]))
+        g = rewrite(FunctionGraph(mats + [u, v], [op(s1, s2, s3)]))
         assert str(g).count("Switch") == 1
 
 
@@ -2527,7 +2519,7 @@ def test_local_join_1():
     # test for vector
     a = vector("a")
     s = at.stack([a])
-    f = function([a], s, mode=mode_opt)
+    f = function([a], s, mode=rewrite_mode)
     val = f([1])
     assert np.all(val == [1])
     e = f.maker.fgraph.toposort()
@@ -2537,7 +2529,7 @@ def test_local_join_1():
     # test for matrix join(0,a)
     a = matrix("a")
     s = join(0, a)
-    f = function([a], s, mode=mode_opt)
+    f = function([a], s, mode=rewrite_mode)
     val = f([[1]])
     assert np.all(val == [[1]])
     e = f.maker.fgraph.toposort()
@@ -2546,7 +2538,7 @@ def test_local_join_1():
 
     # test for matrix join(1,a)
     s = join(1, a)
-    f = function([a], s, mode=mode_opt)
+    f = function([a], s, mode=rewrite_mode)
     val = f([[1]])
     assert np.all(val == [[1]])
     e = f.maker.fgraph.toposort()
@@ -2555,7 +2547,7 @@ def test_local_join_1():
 
     # test we don't apply when their is 2 inputs
     s = join(1, a, a)
-    f = function([a], s, mode=mode_opt)
+    f = function([a], s, mode=rewrite_mode)
     val = f([[1]])
     assert np.all(val == [[1]])
     e = f.maker.fgraph.toposort()
@@ -2568,7 +2560,7 @@ def test_local_join_empty():
     empty_vec = np.asarray([], dtype=config.floatX)
     a = vector("a")
     s = at.join(0, a, a, empty_vec)
-    f = function([a], s, mode=mode_opt)
+    f = function([a], s, mode=rewrite_mode)
     val = f([1])
     assert np.all(val == [1])
     e = f.maker.fgraph.toposort()
@@ -2584,7 +2576,7 @@ def test_local_join_empty():
     empty_mat = np.asarray([[]], dtype=config.floatX)
     m = matrix("m")
     s = join(1, empty_mat, m, m, m)
-    f = function([m], s, mode=mode_opt)
+    f = function([m], s, mode=rewrite_mode)
     val = f([[1]])
     assert np.all(val == [[1]])
     e = f.maker.fgraph.toposort()
@@ -2596,9 +2588,9 @@ def test_local_join_empty():
     )
     assert f.maker.fgraph.outputs[0].dtype == config.floatX
     # test for vector, vector, empty to matrix
-    # We can't optimize this case.
+    # We can't rewrite this case.
     s = at.stack([a, a, empty_vec])
-    f = function([a], s, mode=mode_opt)
+    f = function([a], s, mode=rewrite_mode)
     val = f([])
     assert np.all(val == [1])
     e = f.maker.fgraph.toposort()
@@ -2610,9 +2602,9 @@ def test_local_join_empty():
     )
     assert f.maker.fgraph.outputs[0].dtype == config.floatX
     # test for matrix join(0,a)
-    # We can't optimize this case.
+    # We can't rewrite this case.
     s = join(0, m, np.asarray([[2.0]], dtype=config.floatX), m)
-    f = function([m], s, mode=mode_opt)
+    f = function([m], s, mode=rewrite_mode)
     val = f([[1]])
     assert np.all(val == [[1], [2], [1]])
     e = f.maker.fgraph.toposort()
@@ -2630,7 +2622,7 @@ def test_local_join_make_vector():
     v = vector("v")
     mv = MakeVector(config.floatX)
     s = at.join(0, mv(a), v, mv(b, c), mv(d, e))
-    f = function([a, b, c, d, e, v], s, mode=mode_opt)
+    f = function([a, b, c, d, e, v], s, mode=rewrite_mode)
     val = f(1, 2, 3, 4, 6, [7, 8])
     assert np.all(val == [1, 7, 8, 2, 3, 4, 6])
     e = f.maker.fgraph.toposort()
@@ -2668,7 +2660,7 @@ def test_local_tensor_scalar_tensor(dtype):
     s = at.scalar_from_tensor(t)
     t2 = at.tensor_from_scalar(s)
 
-    f = function([t], t2, mode=mode_opt)
+    f = function([t], t2, mode=rewrite_mode)
     e = f.maker.fgraph.toposort()
     assert not any(
         n for n in e if isinstance(n.op, (TensorFromScalar, ScalarFromTensor))
@@ -2698,7 +2690,7 @@ def test_local_scalar_tensor_scalar(dtype):
     t = at.tensor_from_scalar(s)
     s2 = at.scalar_from_tensor(t)
 
-    f = function([s], s2, mode=mode_opt)
+    f = function([s], s2, mode=rewrite_mode)
     e = f.maker.fgraph.toposort()
     assert not any(
         n for n in e if isinstance(n.op, (TensorFromScalar, ScalarFromTensor))
@@ -2708,24 +2700,24 @@ def test_local_scalar_tensor_scalar(dtype):
 def test_local_useless_split():
     x = matrix("x")
     splits = ivector("splits")
-    opt = at.split(x, splits, n_splits=1)
-    nonopt = at.split(x, splits, n_splits=3)
+    rewritten = at.split(x, splits, n_splits=1)
+    not_rewritten = at.split(x, splits, n_splits=3)
 
     mode = get_default_mode().including("local_useless_split")
-    f_opt = function([x, splits], opt, mode=mode)
-    f_nonopt = function([x, splits], nonopt, mode=mode)
+    f_rewritten = function([x, splits], rewritten, mode=mode)
+    f_not_rewritten = function([x, splits], not_rewritten, mode=mode)
 
-    f_opt(np.random.random((4, 4)).astype(config.floatX), [4])
-    f_nonopt(np.random.random((4, 4)).astype(config.floatX), [1, 2, 1])
-    graph_opt = f_opt.maker.fgraph.toposort()
-    graph_nonopt = f_nonopt.maker.fgraph.toposort()
+    f_rewritten(np.random.random((4, 4)).astype(config.floatX), [4])
+    f_not_rewritten(np.random.random((4, 4)).astype(config.floatX), [1, 2, 1])
+    graph_rewritten = f_rewritten.maker.fgraph.toposort()
+    graph_not_rewritten = f_not_rewritten.maker.fgraph.toposort()
 
-    assert isinstance(graph_opt[-1].op, DeepCopyOp)
-    assert len(graph_nonopt) == 1
-    assert isinstance(graph_nonopt[0].op, Split)
+    assert isinstance(graph_rewritten[-1].op, DeepCopyOp)
+    assert len(graph_not_rewritten) == 1
+    assert isinstance(graph_not_rewritten[0].op, Split)
 
-    assert check_stack_trace(f_opt, ops_to_check=[Assert])
-    assert check_stack_trace(f_nonopt, ops_to_check="all")
+    assert check_stack_trace(f_rewritten, ops_to_check=[Assert])
+    assert check_stack_trace(f_not_rewritten, ops_to_check="all")
 
 
 @pytest.mark.parametrize("i", list(range(1, 4)))
@@ -2749,7 +2741,7 @@ def test_local_flatten_lift(i):
 
 class TestReshape:
     def setup_method(self):
-        self.mode = mode_opt
+        self.mode = rewrite_mode
         self.op = Reshape
 
     def test_local_reshape(self):
@@ -2859,7 +2851,7 @@ class TestLocalReshapeToDimshuffle:
             "TensorConstant{[5 6]})))"
         )
 
-        # Check stacktrace was copied over correctly after opt was applied
+        # Check stacktrace was copied over correctly after the rewrite was applied
         assert check_stack_trace(g, ops_to_check=(DimShuffle, Reshape))
 
 
@@ -2874,12 +2866,11 @@ def test_local_reshape_lift():
     topo = f.maker.fgraph.toposort()
     assert isinstance(topo[-2].op, Reshape)
     assert isinstance(topo[-1].op, Elemwise)
-    # Check stacktrace was copied over correctly after opt was applied
     assert check_stack_trace(f, ops_to_check="last")
 
 
 class TestLiftTransposeThroughDot:
-    def simple_optimize(self, g):
+    def simple_rewrite(self, g):
         out2in(local_useless_elemwise).rewrite(g)
         out2in(local_lift_transpose_through_dot).rewrite(g)
         out2in(local_useless_elemwise).rewrite(g)
@@ -2887,34 +2878,31 @@ class TestLiftTransposeThroughDot:
 
     def test_matrix_matrix(self):
         a, b = matrices("ab")
-        g = self.simple_optimize(FunctionGraph([a, b], [dot(a, b).T]))
+        g = self.simple_rewrite(FunctionGraph([a, b], [dot(a, b).T]))
         sg = "FunctionGraph(dot(InplaceDimShuffle{1,0}(b), InplaceDimShuffle{1,0}(a)))"
         assert str(g) == sg, (str(g), sg)
-        # Check stacktrace was copied over correctly after opt was applied
         assert check_stack_trace(g, ops_to_check="all")
 
     def test_row_matrix(self):
         a = vector("a")
         b = matrix("b")
-        g = optimize(
+        g = rewrite(
             FunctionGraph([a, b], [dot(a.dimshuffle("x", 0), b).T]),
             level="stabilize",
         )
         sg = "FunctionGraph(dot(InplaceDimShuffle{1,0}(b), InplaceDimShuffle{0,x}(a)))"
         assert str(g) == sg, (str(g), sg)
-        # Check stacktrace was copied over correctly after opt was applied
         assert check_stack_trace(g, ops_to_check="all")
 
     def test_matrix_col(self):
         a = vector("a")
         b = matrix("b")
-        g = optimize(
+        g = rewrite(
             FunctionGraph([a, b], [dot(b, a.dimshuffle(0, "x")).T]),
             level="stabilize",
         )
         sg = "FunctionGraph(dot(InplaceDimShuffle{x,0}(a), InplaceDimShuffle{1,0}(b)))"
         assert str(g) == sg, (str(g), sg)
-        # Check stacktrace was copied over correctly after opt was applied
         assert check_stack_trace(g, ops_to_check="all")
 
 
@@ -2924,7 +2912,7 @@ def test_local_upcast_elemwise_constant_inputs():
     f = function([s], [aesara.gradient.grad(x, s)])
     f([-42, -2.1, -1, -0.5, 0, 0.2, 1, 2, 12])
 
-    # This test a corner where the optimization should not be applied.
+    # This tests a corner case for which the rewrite should not be applied.
     with config.change_flags(floatX="float32"):
         v = lvector()
         function([v], true_div(v, 2))
@@ -3096,10 +3084,9 @@ def test_assert_op_gradient():
 
 
 def test_local_merge_alloc():
-    # Add this opt to the default mode,
-    # otherwise, FAST_COMPILE fails.
+    # Add this rewrite to the default mode; otherwise, FAST_COMPILE fails.
     default_mode = get_default_mode()
-    opt_mode = default_mode.including("local_merge_alloc")
+    rewrite_mode = default_mode.including("local_merge_alloc")
 
     x = iscalar("x")
     y = iscalar("y")
@@ -3110,7 +3097,7 @@ def test_local_merge_alloc():
     # case 1
     # Alloc(Alloc(m, x, 1, 1, 1), x, y, z, w) -> Alloc(m, x, y, z, w)
     output = at.alloc(at.alloc(m, 1, y, 1, 1), x, y, z, w)
-    f = function([m, x, y, z, w], output, mode=opt_mode)
+    f = function([m, x, y, z, w], output, mode=rewrite_mode)
     topo = f.maker.fgraph.toposort()
     assert len(topo) == 1
     assert isinstance(topo[0].op, Alloc)
@@ -3120,7 +3107,7 @@ def test_local_merge_alloc():
     # case 2
     # Alloc(Alloc(m, y, 1, 1), x, y, z, w) -> Alloc(m, x, y, z, w)
     output = at.alloc(at.alloc(m, y, 1, 1), x, y, z, w)
-    f = function([m, x, y, z, w], output, mode=opt_mode)
+    f = function([m, x, y, z, w], output, mode=rewrite_mode)
     topo = f.maker.fgraph.toposort()
     assert len(topo) == 1
     assert isinstance(topo[0].op, Alloc)
@@ -3131,7 +3118,7 @@ def test_local_merge_alloc():
     # Alloc(Alloc(m, y1, 1, 1), x, y2, z, w) ->
     #   Alloc(m, x, assert(y1, y1==y2), z, w)
     output = at.alloc(at.alloc(m, y, 1, 1), x, y2, z, w)
-    f = function([m, x, y, y2, z, w], output, mode=opt_mode)
+    f = function([m, x, y, y2, z, w], output, mode=rewrite_mode)
     topo = f.maker.fgraph.toposort()
     assert len(topo) == 3
     assert isinstance(topo[-2].op, Assert)
@@ -3210,18 +3197,18 @@ def test_local_Unique_scalar(return_index, return_counts, return_inverse):
     )
 
     y_fg = FunctionGraph(outputs=[y], copy_inputs=False)
-    y_opt_fg = optimize_graph(
+    y_rewritten_fg = optimize_graph(
         y_fg, clone=False, include=["canonicalize", "local_Unique_scalar"]
     )
-    y_opt = y_opt_fg.outputs[0]
-    y_opt_start = y_opt
+    y_rewritten = y_rewritten_fg.outputs[0]
+    y_rewritten_start = y_rewritten
 
-    assert isinstance(y_opt_start.owner.op, DimShuffle)
-    assert y_opt_start.owner.inputs[0] == x
+    assert isinstance(y_rewritten_start.owner.op, DimShuffle)
+    assert y_rewritten_start.owner.inputs[0] == x
 
     default_mode = get_default_mode()
-    opt_mode = default_mode.excluding("local_Unique_scalar")
-    y_fn = function([x], [y, y_opt], mode=opt_mode)
+    rewrite_mode = default_mode.excluding("local_Unique_scalar")
+    y_fn = function([x], [y, y_rewritten], mode=rewrite_mode)
 
     x_val = np.array(-10.0, dtype=np.float64)
     y_exp_val, y_val = y_fn(x_val)
@@ -3256,29 +3243,29 @@ def test_local_Unique_Alloc_lift(
 
     # This approach allows us to directly confirm that `x` is in the result.
     y_fg = FunctionGraph(outputs=[y], copy_inputs=False)
-    y_opt_fg = optimize_graph(
+    y_rewritten_fg = optimize_graph(
         y_fg,
         clone=False,
         include=["canonicalize", "local_Unique_Alloc_lift"],
         exclude=["local_Unique_scalar"],
     )
-    y_opt = y_opt_fg.outputs[0]
-    y_opt_start = y_opt
+    y_rewritten = y_rewritten_fg.outputs[0]
+    y_rewritten_start = y_rewritten
 
-    assert isinstance(y_opt_start.owner.op, Unique)
-    assert y_opt_start.owner.inputs[0] == x
-    assert not any(isinstance(node.op, Alloc) for node in y_opt_fg.apply_nodes)
+    assert isinstance(y_rewritten_start.owner.op, Unique)
+    assert y_rewritten_start.owner.inputs[0] == x
+    assert not any(isinstance(node.op, Alloc) for node in y_rewritten_fg.apply_nodes)
 
     default_mode = get_default_mode()
-    # The optimization has already been applied to `y_opt`, so we can--and
+    # The rewrite has already been applied to `y_rewritten`, so we can--and
     # should--exclude it from the compilation of both our reference, `y`, and
-    # the optimized result, `y_opt`.
+    # the rewritten result, `y_rewritten`.
     # The remaining exclusions simply allow us to perform the check below that
     # makes sure the original `Alloc` is present in our reference (sub)graph.
-    opt_mode = default_mode.excluding(
+    rewrite_mode = default_mode.excluding(
         "local_useless_alloc", "local_alloc_sink_dimshuffle", "local_Unique_Alloc_lift"
     )
-    y_fn = function([x], [y, y_opt], mode=opt_mode)
+    y_fn = function([x], [y, y_rewritten], mode=rewrite_mode)
     # Make sure that the original `Alloc` is used to compute the reference `y`
     # result
     assert any(isinstance(node.op, Alloc) for node in y_fn.maker.fgraph.apply_nodes)
@@ -3314,25 +3301,27 @@ def test_local_Unique_BroadcastTo(
 
     # This approach allows us to directly confirm that `x` is in the result.
     y_fg = FunctionGraph(outputs=[y], copy_inputs=False)
-    y_opt_fg = optimize_graph(
+    y_rewritten_fg = optimize_graph(
         y_fg,
         clone=False,
         include=["canonicalize", "local_Unique_BroadcastTo_lift"],
         exclude=["local_Unique_scalar"],
     )
-    y_opt = y_opt_fg.outputs[0]
-    y_opt_start = y_opt
+    y_rewritten = y_rewritten_fg.outputs[0]
+    y_rewritten_start = y_rewritten
 
-    assert isinstance(y_opt_start.owner.op, Unique)
-    assert y_opt_start.owner.inputs[0] == x
-    assert not any(isinstance(node.op, BroadcastTo) for node in y_opt_fg.apply_nodes)
+    assert isinstance(y_rewritten_start.owner.op, Unique)
+    assert y_rewritten_start.owner.inputs[0] == x
+    assert not any(
+        isinstance(node.op, BroadcastTo) for node in y_rewritten_fg.apply_nodes
+    )
 
     default_mode = get_default_mode()
-    # The optimization has already been applied to `y_opt`, so we can--and
+    # The rewrite has already been applied to `y_rewritten`, so we can--and
     # should--exclude it from the compilation of both our reference, `y`, and
-    # the optimized result, `y_opt`.
-    opt_mode = default_mode.excluding("local_Unique_BroadcastTo_lift")
-    y_fn = function([x], [y, y_opt], mode=opt_mode)
+    # the rewritten result, `y_rewritten`.
+    rewrite_mode = default_mode.excluding("local_Unique_BroadcastTo_lift")
+    y_fn = function([x], [y, y_rewritten], mode=rewrite_mode)
     # Make sure that the original `BroadcastTo` is used to compute the
     # reference `y` result
     assert any(
@@ -3375,25 +3364,25 @@ def test_local_Unique_Repeat(
 
     # This approach allows us to directly confirm that `x` is in the result.
     y_fg = FunctionGraph(outputs=[y], copy_inputs=False)
-    y_opt_fg = optimize_graph(
+    y_rewritten_fg = optimize_graph(
         y_fg,
         clone=False,
         include=["canonicalize", "local_Unique_Repeat_lift"],
         exclude=["local_Unique_scalar"],
     )
-    y_opt = y_opt_fg.outputs[0]
-    y_opt_start = y_opt
+    y_rewritten = y_rewritten_fg.outputs[0]
+    y_rewritten_start = y_rewritten
 
-    assert isinstance(y_opt_start.owner.op, Unique)
-    assert y_opt_start.owner.inputs[0] == x
-    assert not any(isinstance(node.op, Repeat) for node in y_opt_fg.apply_nodes)
+    assert isinstance(y_rewritten_start.owner.op, Unique)
+    assert y_rewritten_start.owner.inputs[0] == x
+    assert not any(isinstance(node.op, Repeat) for node in y_rewritten_fg.apply_nodes)
 
     default_mode = get_default_mode()
-    # The optimization has already been applied to `y_opt`, so we can--and
+    # The rewrite has already been applied to `y_rewritten`, so we can--and
     # should--exclude it from the compilation of both our reference, `y`, and
-    # the optimized result, `y_opt`.
-    opt_mode = default_mode.excluding("local_Unique_Repeat_lift")
-    y_fn = function([x], [y, y_opt], mode=opt_mode)
+    # the rewritten result, `y_rewritten`.
+    rewrite_mode = default_mode.excluding("local_Unique_Repeat_lift")
+    y_fn = function([x], [y, y_rewritten], mode=rewrite_mode)
     # Make sure that the original `BroadcastTo` is used to compute the
     # reference `y` result
     assert any(isinstance(node.op, Repeat) for node in y_fn.maker.fgraph.apply_nodes)
@@ -3431,33 +3420,33 @@ def test_local_Unique_second(
 
     # This approach allows us to directly confirm that `x` is in the result.
     y_fg = FunctionGraph(outputs=[y], copy_inputs=False)
-    y_opt_fg = optimize_graph(
+    y_rewritten_fg = optimize_graph(
         y_fg,
         clone=False,
         include=["canonicalize", "local_Unique_second_lift"],
         exclude=["local_Unique_scalar", "topo_constant_folding"],
     )
-    y_opt = y_opt_fg.outputs[0]
-    y_opt_start = y_opt
+    y_rewritten = y_rewritten_fg.outputs[0]
+    y_rewritten_start = y_rewritten
 
-    assert isinstance(y_opt_start.owner.op, Unique)
+    assert isinstance(y_rewritten_start.owner.op, Unique)
 
-    y_opt_start = y_opt_start.owner.inputs[0]
+    y_rewritten_start = y_rewritten_start.owner.inputs[0]
 
-    if y_opt_start.owner and isinstance(y_opt_start.owner.op, DimShuffle):
-        y_opt_start = y_opt_start.owner.inputs[0]
+    if y_rewritten_start.owner and isinstance(y_rewritten_start.owner.op, DimShuffle):
+        y_rewritten_start = y_rewritten_start.owner.inputs[0]
 
-    assert y_opt_start == x
+    assert y_rewritten_start == x
     assert not any(
         isinstance(node.op.scalar_op, aes.Second)
-        for node in y_opt_fg.apply_nodes
+        for node in y_rewritten_fg.apply_nodes
         if isinstance(node.op, Elemwise)
     )
 
-    # The optimization has already been applied to `y_opt`, so we can--and
+    # The rewrite has already been applied to `y_rewritten`, so we can--and
     # should--exclude it from the compilation of both our reference, `y`, and
-    # the optimized result, `y_opt`.
-    y_fn = function([x], [y, y_opt], mode=Mode(optimizer=OPT_NONE))
+    # the rewritten result, `y_rewritten`.
+    y_fn = function([x], [y, y_rewritten], mode=Mode(optimizer=OPT_NONE))
 
     # Make sure that the original `BroadcastTo` is used to compute the
     # reference `y` result
@@ -3477,15 +3466,15 @@ def test_local_merge_consecutive_specify_shape():
     y = specify_shape(specify_shape(x, s), s)
 
     y_fg = FunctionGraph(outputs=[y], copy_inputs=False)
-    y_opt_fg = optimize_graph(
+    y_rewritten_fg = optimize_graph(
         y_fg,
         clone=False,
         include=["canonicalize", "local_merge_consecutive_specify_shape"],
     )
-    y_opt = y_opt_fg.outputs[0]
+    y_rewritten = y_rewritten_fg.outputs[0]
 
-    assert isinstance(y_opt.owner.op, SpecifyShape)
-    assert y_opt.owner.inputs[0] == x
+    assert isinstance(y_rewritten.owner.op, SpecifyShape)
+    assert y_rewritten.owner.inputs[0] == x
 
 
 def test_local_merge_consecutive_specify_shape2():
@@ -3494,15 +3483,15 @@ def test_local_merge_consecutive_specify_shape2():
     y = specify_shape(specify_shape(x, [s1, s2, None]), [None, s3, s4])
 
     y_fg = FunctionGraph(outputs=[y], copy_inputs=False)
-    y_opt_fg = optimize_graph(
+    y_rewritten_fg = optimize_graph(
         y_fg,
         clone=False,
         include=["canonicalize", "local_merge_consecutive_specify_shape"],
     )
-    y_opt = y_opt_fg.outputs[0]
+    y_rewritten = y_rewritten_fg.outputs[0]
 
-    assert isinstance(y_opt.owner.op, SpecifyShape)
-    assert tuple(y_opt.owner.inputs) == (x, s1, s3, s4)
+    assert isinstance(y_rewritten.owner.op, SpecifyShape)
+    assert tuple(y_rewritten.owner.inputs) == (x, s1, s3, s4)
 
 
 def test_printing():
@@ -3532,13 +3521,13 @@ def test_local_useless_dimshuffle_makevector():
 
     y_fg = FunctionGraph(outputs=[y], copy_inputs=False)
 
-    y_opt_fg = optimize_graph(
+    y_rewritten_fg = optimize_graph(
         y_fg,
         clone=False,
         include=["canonicalize", "local_useless_dimshuffle_makevector"],
     )
 
-    assert y_opt_fg.outputs[0] == a
+    assert y_rewritten_fg.outputs[0] == a
 
 
 def test_Shape_i_canonicalize():
@@ -3555,7 +3544,7 @@ def test_Shape_i_canonicalize():
 
     y_fg = FunctionGraph(outputs=[y], copy_inputs=False, features=[ShapeFeature()])
 
-    y_opt_fg = optimize_graph(
+    y_rewritten_fg = optimize_graph(
         y_fg,
         clone=False,
         include=[
@@ -3563,11 +3552,11 @@ def test_Shape_i_canonicalize():
         ],
     )
 
-    y_opt = y_opt_fg.outputs[0]
+    y_rewritten = y_rewritten_fg.outputs[0]
 
-    assert isinstance(y_opt.owner.op, Shape_i)
-    assert y_opt.owner.op.i == 0
-    assert y_opt.owner.inputs[0] == x
+    assert isinstance(y_rewritten.owner.op, Shape_i)
+    assert y_rewritten.owner.op.i == 0
+    assert y_rewritten.owner.inputs[0] == x
 
 
 class TestLocalElemwiseAlloc:
@@ -3701,12 +3690,11 @@ class TestLocalElemwiseAlloc:
         assert any(isinstance(node.op, Alloc) for node in z_opt_fg.apply_nodes)
 
     def test_remove_alloc_wo_dimshuffle(self):
-        # Exclude local_useless_alloc, since it does not introduce
-        # assert in all the same cases.
+        # Exclude `local_useless_alloc`, since it does not introduce
+        # `Assert` in all the same cases.
         self.fast_run_mode = self.fast_run_mode.excluding(
             "local_useless_alloc", "local_alloc_sink_dimshuffle"
         )
-        # No optimization on alloc
         func = function(
             [self.vec, self.mat],
             self.alloc_wo_dep + self.mat,
@@ -3714,17 +3702,14 @@ class TestLocalElemwiseAlloc:
         )
         self.verify_op_count(func, 1, Alloc)
         self.verify_op_count(func, 0, Assert)
-        # Check stacktrace was copied over correctly after opt was applied
         assert check_stack_trace(func, ops_to_check="all")
 
-        # Optimization on alloc with assert
         func = function(
             [self.vec, self.mat], self.alloc_wo_dep + self.mat, mode=self.fast_run_mode
         )
         self.verify_op_count(func, 0, Alloc)
         self.verify_op_count(func, 2, Assert)
 
-        # Optimization on alloc with assert and broadcast
         func = function(
             [self.vec, self.mat],
             self.alloc_wo_dep_broad + self.mat,
@@ -3742,14 +3727,12 @@ class TestLocalElemwiseAlloc:
         self.verify_op_count(func, 1, Alloc)
         self.verify_op_count(func, 0, Assert)
 
-        # Optimization on alloc without assert
         func = function(
             [self.vec, self.mat], self.alloc_w_dep + self.mat, mode=self.fast_run_mode
         )
         self.verify_op_count(func, 0, Alloc)
         self.verify_op_count(func, 0, Assert)
 
-        # Optimization on alloc without assert and with broadcast
         func = function(
             [self.vec, self.mat],
             self.alloc_w_dep_broad + self.mat,
@@ -3758,7 +3741,7 @@ class TestLocalElemwiseAlloc:
         self.verify_op_count(func, 0, Alloc)
         self.verify_op_count(func, 0, Assert)
 
-        # This was previously not optimized, but it is now that we
+        # This was previously not rewritten, but it is now that we
         # have `BroadcastTo`.
         func = function(
             [self.vec, self.mat],
@@ -3769,7 +3752,6 @@ class TestLocalElemwiseAlloc:
         self.verify_op_count(func, 1, Assert)
 
     def test_remove_alloc_w_dimshuffle(self):
-        # No optimization on dimshuffle with assert
         func = function(
             [self.vec, self.tens],
             self.alloc_wo_dep.dimshuffle(0, 1, "x") + self.tens,
@@ -3778,7 +3760,6 @@ class TestLocalElemwiseAlloc:
         self.verify_op_count(func, 1, Alloc)
         self.verify_op_count(func, 0, Assert)
 
-        # Optimization on dimshuffle with assert
         # TODO FIXME: The `BroadcastTo` shapes should use the constants
         # provided by the first/`Alloc` term, and not the unknown values from
         # the `tens` term.
@@ -3790,7 +3771,6 @@ class TestLocalElemwiseAlloc:
         self.verify_op_count(func, 0, Alloc)
         self.verify_op_count(func, 2, Assert)
 
-        # No optimization on dimshuffle without assert
         func = function(
             [self.vec, self.tens],
             self.alloc_w_dep_tens.dimshuffle(0, 1, "x") + self.tens,
@@ -3799,7 +3779,6 @@ class TestLocalElemwiseAlloc:
         self.verify_op_count(func, 1, Alloc)
         self.verify_op_count(func, 0, Assert)
 
-        # Optimization on dimshuffle without assert
         func = function(
             [self.vec, self.tens],
             self.alloc_w_dep_tens.dimshuffle(0, 1, "x") + self.tens,

@@ -1618,10 +1618,10 @@ class GemmOptimizer(GraphRewriter):
             callbacks_time,
         )
 
-    @staticmethod
-    def print_profile(stream, prof, level=0):
+    @classmethod
+    def print_profile(cls, stream, prof, level=0):
         blanc = "    " * level
-        print(blanc, "GemmOptimizer", file=stream)
+        print(blanc, cls.__name__, file=stream)
         print(blanc, " nb_iter", prof[1], file=stream)
         print(blanc, " nb_replacement", prof[2], file=stream)
         print(blanc, " nb_replacement_didn_t_remove", prof[3], file=stream)

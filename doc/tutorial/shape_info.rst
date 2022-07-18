@@ -112,13 +112,11 @@ this example, the computation of the shape of the output of ``join`` is done onl
 based on the first input Aesara variable, which leads to an error.
 
 This might happen with other `Op`\s such as :class:`Elemwise` and :class:`Dot`, for example.
-Indeed, to perform some optimizations (for speed or stability, for instance),
+Indeed, to perform some optimizations/rewrites (for speed or stability, for instance),
 Aesara assumes that the computation is correct and consistent
 in the first place, as it does here.
 
-You can detect those problems by running the code without this
-optimization, using the Aesara flag
-``optimizer_excluding=local_shape_to_shape_i``. You can also obtain the
-same effect by running in the modes ``FAST_COMPILE`` (it will not apply this
-optimization, nor most other optimizations) or :class:`DebugMode` (it will test
-before and after all optimizations).
+You can detect those problems by running the code without this optimization,
+using the Aesara flag ``optimizer_excluding=local_shape_to_shape_i``. You can
+also obtain the same effect by running in the modes ``FAST_COMPILE`` or
+:class:`DebugMode`.

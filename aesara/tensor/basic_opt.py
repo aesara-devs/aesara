@@ -177,10 +177,10 @@ class InplaceElemwiseOptimizer(GraphRewriter):
 
         fgraph.attach_feature(DestroyHandler())
 
-    @staticmethod
-    def print_profile(stream, prof, level=0):
+    @classmethod
+    def print_profile(cls, stream, prof, level=0):
         blanc = "    " * level
-        print(blanc, "InplaceElemwiseOptimizer ", prof["opt"].op, file=stream)
+        print(blanc, cls.__name__, prof["opt"].op, file=stream)
         for k in [
             "node_before",
             "nb_call_replace",
@@ -3164,10 +3164,10 @@ class FusionOptimizer(GraphRewriter):
             time_toposort,
         )
 
-    @staticmethod
-    def print_profile(stream, prof, level=0):
+    @classmethod
+    def print_profile(cls, stream, prof, level=0):
         blanc = "    " * level
-        print(blanc, "FusionOptimizer", file=stream)
+        print(blanc, cls.__name__, file=stream)
         print(blanc, " nb_iter", prof[1], file=stream)
         print(blanc, " nb_replacement", prof[2], file=stream)
         print(blanc, " nb_inconsistency_replace", prof[3], file=stream)

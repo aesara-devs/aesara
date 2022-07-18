@@ -71,7 +71,7 @@ When {{{order == f}}}, the iterators ''ideally'' (but not necessarily) iterate i
 
 {{{order}}} does __not__ represent the {{{C/F_CONTIGUOUS}}} flags of the inputs or outputs. Depending on combinations of those parameters, different loops will be used. If {{{order == f and C_CONTIGUOUS(array)}}}, for example, the loop will be on {{{dim1..dimN}}} and the matrices of lesser rank will need to be looped over several times.
 
-An Optimizer should look at the operations in the graph and figure out whether to allocate C_CONTIGUOUS (ideal for {{{order == c}}}) or F_CONTIGUOUS (ideal for {{{order == f}}}) arrays.
+An rewrite should look at the operations in the graph and figure out whether to allocate C_CONTIGUOUS (ideal for {{{order == c}}}) or F_CONTIGUOUS (ideal for {{{order == f}}}) arrays.
 
 Gradient
 ========

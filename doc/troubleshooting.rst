@@ -130,12 +130,12 @@ Could lower the memory usage, but raise computation time:
 - Use :func:`batch_normalization()
   <aesara.tensor.nnet.batchnorm.batch_normalization>`. It use less memory
   then building a corresponding Aesara graph.
-- Disable one or scan more optimizations:
+- Disable one or scan more rewrites:
     - ``optimizer_excluding=scan_pushout_seqs_ops``
     - ``optimizer_excluding=scan_pushout_dot1``
     - ``optimizer_excluding=scan_pushout_add``
-- Disable all optimization tagged as raising memory usage:
-  ``optimizer_excluding=more_mem`` (currently only the 3 scan optimizations above)
+- Disable all rewrites tagged as raising memory usage:
+  ``optimizer_excluding=more_mem`` (currently only the 3 scan rewrites above)
 - `float16 <https://github.com/Theano/Theano/issues/2908>`_.
 
 If you want to analyze the memory usage during computation, the
