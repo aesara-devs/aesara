@@ -4,8 +4,8 @@ from aesara.graph import opt
 from aesara.graph.optdb import (
     EquilibriumDB,
     LocalGroupDB,
-    OptimizationDatabase,
     ProxyDB,
+    RewriteDatabase,
     SequenceDB,
 )
 
@@ -19,7 +19,7 @@ class TestOpt(opt.GraphRewriter):
 
 class TestDB:
     def test_register(self):
-        db = OptimizationDatabase()
+        db = RewriteDatabase()
         db.register("a", TestOpt())
 
         db.register("b", TestOpt())
