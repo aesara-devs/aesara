@@ -150,11 +150,11 @@ def ds(x, y):
 
 def optimize(g, level="fast_run"):
     if level == "fast_run":
-        _optimizer_fast_run.optimize(g)
+        _optimizer_fast_run.rewrite(g)
     elif level == "specialize":
-        _optimizer_specialize.optimize(g)
+        _optimizer_specialize.rewrite(g)
     elif level == "stabilize":
-        _optimizer_stabilize.optimize(g)
+        _optimizer_stabilize.rewrite(g)
     else:
         raise ValueError(level)
     return g
@@ -189,19 +189,19 @@ class TestGreedyDistribute:
         # 1. ((a/x + b/y) * x * y) --> a*y + b*x
         e = (a / z + b / x) * x * z
         g = FunctionGraph([a, b, c, d, x, y, z], [e])
-        mul_canonizer.optimize(g)
+        mul_canonizer.rewrite(g)
         WalkingGraphRewriter(
             SequentialNodeRewriter(local_greedy_distributor), order="out_to_in"
-        ).optimize(g)
+        ).rewrite(g)
         assert str(pprint(g.outputs[0])) == "((a * x) + (b * z))"
 
         # 2. ((a/x + b) * x) --> a + b*x
         e = (a / x + b) * x
         g = FunctionGraph([a, b, x], [e])
-        mul_canonizer.optimize(g)
+        mul_canonizer.rewrite(g)
         WalkingGraphRewriter(
             SequentialNodeRewriter(local_greedy_distributor), order="out_to_in"
-        ).optimize(g)
+        ).rewrite(g)
         assert str(pprint(g.outputs[0])) == "(a + (b * x))"
 
     def test_kording_bug(self):
@@ -3054,7 +3054,7 @@ class TestLocalErfc:
 
             WalkingGraphRewriter(
                 SequentialNodeRewriter(local_grad_log_erfc_neg), order="out_to_in"
-            ).optimize(fg)
+            ).rewrite(fg)
 
             # Make sure that the graph hasn't been changed
             assert fg.outputs[0] is no_match

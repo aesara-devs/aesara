@@ -151,7 +151,7 @@ def test_misc():
     e = transpose_view(transpose_view(transpose_view(transpose_view(x))))
     g = create_fgraph([x, y, z], [e])
     assert g.consistent()
-    PatternOptimizer((transpose_view, (transpose_view, "x")), "x").optimize(g)
+    PatternOptimizer((transpose_view, (transpose_view, "x")), "x").rewrite(g)
     assert str(g) == "FunctionGraph(x)"
     new_e = add(x, y)
     g.replace_validate(x, new_e)
@@ -330,7 +330,7 @@ def test_long_destroyers_loop():
     e = dot(dot(add_in_place(x, y), add_in_place(y, z)), add(z, x))
     g = create_fgraph([x, y, z], [e])
     assert g.consistent()
-    TopoSubstitutionNodeRewriter(add, add_in_place).optimize(g)
+    TopoSubstitutionNodeRewriter(add, add_in_place).rewrite(g)
     assert g.consistent()
     # we don't want to see that!
     assert (
@@ -366,7 +366,7 @@ def test_multi_destroyers_through_views():
     g = create_fgraph([x, y, z], [e])
     assert g.consistent()
     fail = FailureWatch()
-    TopoSubstitutionNodeRewriter(add, add_in_place, fail).optimize(g)
+    TopoSubstitutionNodeRewriter(add, add_in_place, fail).rewrite(g)
     assert g.consistent()
     assert fail.failures == 1  # should have succeeded once and failed once
 
@@ -388,7 +388,7 @@ def test_usage_loop():
     g = create_fgraph([x, y, z], [dot(add_in_place(x, z), x)], False)
     assert not g.consistent()
     # replace add_in_place with add
-    TopoSubstitutionNodeRewriter(add_in_place, add).optimize(g)
+    TopoSubstitutionNodeRewriter(add_in_place, add).rewrite(g)
     assert g.consistent()
 
 
@@ -409,7 +409,7 @@ def test_usage_loop_insert_views():
     g = create_fgraph([x, y, z], [e])
     assert g.consistent()
     fail = FailureWatch()
-    TopoSubstitutionNodeRewriter(sigmoid, transpose_view, fail).optimize(g)
+    TopoSubstitutionNodeRewriter(sigmoid, transpose_view, fail).rewrite(g)
     assert g.consistent()
     # it must keep one sigmoid in the long sigmoid chain
     assert fail.failures == 1
@@ -454,19 +454,19 @@ def test_multiple_inplace():
 
     # try to work in-place on x/0 and y/1 (this should fail)
     fail = FailureWatch()
-    TopoSubstitutionNodeRewriter(multiple, multiple_in_place_0_1, fail).optimize(g)
+    TopoSubstitutionNodeRewriter(multiple, multiple_in_place_0_1, fail).rewrite(g)
     assert g.consistent()
     assert fail.failures == 1
 
     # try to work in-place on x/0 (this should fail)
     fail = FailureWatch()
-    TopoSubstitutionNodeRewriter(multiple, multiple_in_place_0, fail).optimize(g)
+    TopoSubstitutionNodeRewriter(multiple, multiple_in_place_0, fail).rewrite(g)
     assert g.consistent()
     assert fail.failures == 1
 
     # try to work in-place on y/1 (this should succeed)
     fail = FailureWatch()
-    TopoSubstitutionNodeRewriter(multiple, multiple_in_place_1, fail).optimize(g)
+    TopoSubstitutionNodeRewriter(multiple, multiple_in_place_1, fail).rewrite(g)
     assert g.consistent()
     assert fail.failures == 0
 
@@ -474,6 +474,6 @@ def test_multiple_inplace():
     fail = FailureWatch()
     TopoSubstitutionNodeRewriter(
         multiple_in_place_1, multiple_in_place_0_1, fail
-    ).optimize(g)
+    ).rewrite(g)
     assert g.consistent()
     assert fail.failures == 1

@@ -824,7 +824,7 @@ class TestScan:
         assert scan_c is not scan_a
 
         g = FunctionGraph([x, y, c], [2 * scan_a, 2 * scan_b, 2 * scan_c], clone=False)
-        MergeOptimizer().optimize(g)
+        MergeOptimizer().rewrite(g)
         scan_a_out, scan_b_out, scan_c_out = g.outputs
 
         assert scan_a_out is scan_b_out

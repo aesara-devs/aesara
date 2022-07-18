@@ -92,16 +92,16 @@ class Rewriter(abc.ABC):
 
 
 class GraphRewriter(Rewriter):
-    """A optimizer that can be applied to a `FunctionGraph` in order to transform it.
+    """A rewriter that can be applied to a `FunctionGraph` in order to transform it.
 
-    It can represent an optimization or, in general, any kind of transformation
-    one could apply to a `FunctionGraph`.
+    This class represents a generalized rewrite that includes the way a graph
+    is traversed and/or changed as a whole.
 
     """
 
     @abc.abstractmethod
     def apply(self, fgraph):
-        """Apply the optimization to a `FunctionGraph`.
+        """Apply the rewriter to a `FunctionGraph`.
 
         It may use all the methods defined by the `FunctionGraph`. If the
         `GraphRewriter` needs to use a certain tool, such as an
@@ -110,26 +110,29 @@ class GraphRewriter(Rewriter):
         """
         raise NotImplementedError()
 
-    def optimize(self, fgraph, *args, **kwargs):
+    def optimize(self, *args, **kwargs):
+        warnings.warn(
+            "`GraphRewriter.optimize` is deprecated; use `GraphRewriter.rewrite` instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        self.rewrite(*args, **kwargs)
+
+    def rewrite(self, fgraph, *args, **kwargs):
         """
 
         This is meant as a shortcut for the following::
 
-            opt.add_requirements(fgraph)
-            opt.apply(fgraph)
+            self.add_requirements(fgraph)
+            self.apply(fgraph)
 
         """
         self.add_requirements(fgraph)
-        ret = self.apply(fgraph, *args, **kwargs)
-        return ret
+        return self.apply(fgraph, *args, **kwargs)
 
     def __call__(self, fgraph):
-        """Optimize a `FunctionGraph`.
-
-        This is the same as ``self.optimize(fgraph)``.
-
-        """
-        return self.optimize(fgraph)
+        """Rewrite a `FunctionGraph`."""
+        return self.rewrite(fgraph)
 
     def add_requirements(self, fgraph):
         ...
@@ -141,12 +144,12 @@ class GraphRewriter(Rewriter):
             file=stream,
         )
 
-    @staticmethod
-    def print_profile(stream, prof, level=0):
+    @classmethod
+    def print_profile(cls, stream, prof, level=0):
         if prof is not None:
             raise NotImplementedError(
-                "The function print_profile must be overridden if the"
-                " optimizer return profiling information."
+                "The function `print_profile` must be overridden when the"
+                " rewriter returns profiling information."
             )
 
 
